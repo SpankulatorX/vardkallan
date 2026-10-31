@@ -20,6 +20,8 @@ export async function visa(el, ctx) {
     e.currentTarget.setAttribute('aria-expanded', 'true');
     remissForm(plats, ctx);
   });
+  // Från snabbvalet Skicka remiss i översikten (remisser/ny) öppnas formuläret direkt.
+  if (ctx.sub === 'ny' && kan) el.querySelector('[data-ny]').click();
 }
 
 function remissForm(plats, ctx) {
@@ -39,7 +41,7 @@ function remissForm(plats, ctx) {
     <div class="knapprad"><button type="submit" class="knapp">Skicka remissen</button><button type="button" class="knapp text" data-stang>Avbryt</button></div>
   </form>`;
   const form = plats.querySelector('form');
-  form.querySelector('h3').focus();
+  form.tillEnhetId.focus();
   form.querySelector('[data-stang]').addEventListener('click', () => { plats.innerHTML = ''; });
   form.addEventListener('submit', async (e) => {
     e.preventDefault();

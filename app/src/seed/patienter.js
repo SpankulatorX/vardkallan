@@ -26,7 +26,7 @@ export const PATIENTER = [
       { kod: 'I50.1', text: 'Vänsterhjärtsvikt', enhet: 'uso-kard-mott', vk: 'cos23', datum: '2023-05-16', typ: 'huvud', kalla: 'migrerad:Cosmic' },
       { kod: 'I10.9', text: 'Essentiell hypertoni (högt blodtryck utan känd orsak)', enhet: 'vc-tybble', datum: '2011-09-14', typ: 'bi' },
       { kod: 'I48.1', text: 'Persisterande förmaksflimmer', enhet: 'uso-kard-72', vk: 'inl', datum: -3, typ: 'huvud' },
-      { kod: 'I50.0', text: 'Högerhjärtsvikt', enhet: 'uso-kard-72', vk: 'inl', datum: -3, typ: 'bi' },
+      { kod: 'I50.1', text: 'Vänsterhjärtsvikt', enhet: 'uso-kard-72', vk: 'inl', datum: -3, typ: 'bi' },
     ],
     anteckningar: [
       { typ: 'Epikris', enhet: 'uso-med', vk: 'vas14', av: 'lak-vas', tid: ['2014-03-18', '10:30'], kalla: 'migrerad:VAS', sokord: {

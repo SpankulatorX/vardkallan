@@ -10,7 +10,7 @@ const VAR = {
   '/patient/:id': [null, 'patientjournalen'], '/patient/:id/anteckningar': [null, 'journalens anteckningar'],
   '/patient/:id/lakemedel': [null, 'journalens läkemedelsflik'], '/vantrum': ['#/vantrum', 'Väntrummet'],
 };
-const TESTSTATUS = { 'grön': ['ok', 'Grönt'], 'röd': ['fel', 'Rött'], hoppad: ['hoppad', 'Hoppades över'], saknas: ['fel', 'Saknas'] };
+const TESTSTATUS = { 'grön': ['ok', 'Grönt'], 'röd': ['fel', 'Rött'], hoppad: ['hoppad', 'Hoppades över'], saknas: ['fel', 'Saknas'], inaktuell: ['hoppad', 'Inaktuellt, gränssnittet har ändrats sedan testet kördes'] };
 const GRUPP = [['K', 'Spårbarhet från krav till test'], ['D', 'Icke-funktionella krav och design'], ['L', 'Lagkrav och nationella tjänster'], ['M', 'Misstag att inte upprepa']];
 
 export async function visa(main, _p, q) {
@@ -26,6 +26,7 @@ export async function visa(main, _p, q) {
   const filterLank = (k, text, n) => `<li><a href="#/krav${k === 'alla' ? '' : `?status=${k}`}"${filter === k ? ' aria-current="true"' : ''}>${esc(text)} <span class="antal">${n}</span></a></li>`;
   main.querySelector('#kr').innerHTML = `
     <div class="testkorning ${t?.misslyckade ? 'testkorning-rod' : 'testkorning-gron'}">${t ? `${t.misslyckade ? ikon.varning : ikon.bock}<p><strong>${t.godkanda} av ${t.antal} tester gröna</strong> i senaste bygget, ${esc(tidpunkt(t.tid))}, Bun ${esc(t.bun)}.${t.misslyckade ? ` ${t.misslyckade} röda.` : ''}</p>` : `${ikon.info}<p>Inget testresultat finns från bygget.</p>`}</div>
+    ${klientRad(d.klienttester)}
     <nav class="delflikar" aria-label="Filtrera på status"><ul>
       ${filterLank('alla', 'Alla', d.krav.length)}${filterLank('uppfyllt_demo', STATUS.uppfyllt_demo, summa.uppfyllt_demo)}${filterLank('delvis', STATUS.delvis, summa.delvis)}${filterLank('planerat', STATUS.planerat, summa.planerat)}
     </ul></nav>
@@ -36,6 +37,30 @@ export async function visa(main, _p, q) {
     }).join('') || '<p class="tom">Inga krav har den statusen.</p>'}`;
 }
 
+// Testerna av gränssnittet körs i en webbläsare med Playwright före bygget, inte i själva bygget.
+function klientRad(kt) {
+  if (!kt) return '';
+  return `<p class="dampad liten">Gränssnittet testas dessutom i en webbläsare med Playwright: ${kt.godkanda} av ${kt.antal} tester gröna, ${esc(tidpunkt(kt.tid))}.${kt.aktuell ? '' : ' Gränssnittet har ändrats sedan dess, så de testerna räknas som inaktuella tills de körs igen.'}</p>`;
+}
+
+// Klickbudgeten (D6): uppmätt antal steg mot budgeten per flöde.
+function klickbudgetTabell(kb) {
+  if (!kb) return '<p class="ruta ruta-larm liten">Ingen mätning av klickbudgeten finns.</p>';
+  return `<div class="klickbudget">
+    <div class="tabellrulle"><table class="tabell siffertabell kb-tabell">
+      <caption>Klickbudget per flöde, uppmätt ${esc(tidpunkt(kb.tid))}${kb.aktuell ? '' : ', före den senaste ändringen av gränssnittet'}</caption>
+      <thead><tr><th scope="col">Flöde</th><th scope="col">Börjar i</th><th scope="col" class="tal">Uppmätt</th><th scope="col" class="tal">Budget</th><th scope="col">Varav</th></tr></thead>
+      <tbody>${kb.floden.map(f => `<tr${f.uppmatt > f.budget ? ' class="avvikande"' : ''}>
+        <th scope="row">${esc(f.namn)}</th><td>${esc(f.start)}</td>
+        <td class="tal"><strong>${f.uppmatt}</strong>${f.uppmatt > f.budget ? `<span class="avst avst-fel">${ikon.varning}Över budget</span>` : ''}</td><td class="tal">${f.budget}</td>
+        <td class="liten">${[[f.klick, 'klick', 'klick'], [f.faltbyten, 'fältbyte', 'fältbyten'], [f.tangenter, 'tangent', 'tangenter']].filter(x => x[0]).map(([n, en, fl]) => `${n} ${n === 1 ? en : fl}`).join(', ')}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+    <p class="dampad liten">${esc(kb.regler)}</p>
+    <details class="testlista"><summary>Motivering för varje budget</summary><dl class="kb-motivering">${kb.floden.map(f => `<div><dt>${esc(f.namn)}</dt><dd>${esc(f.motivering)}</dd></div>`).join('')}</dl></details>
+  </div>`;
+}
+
 function kravRad(k) {
   const v = k.var ? VAR[k.var] : null;
   return `<li class="krav krav-${esc(k.status)}">
@@ -43,6 +68,7 @@ function kravRad(k) {
     <p class="krav-kalla">Källa: ${esc(k.kalla)}${v ? `. Visas i ${v[0] ? `<a href="${v[0]}">${esc(v[1])}</a>` : esc(v[1])}` : ''}.</p>
     ${k.avsedd !== k.status ? `<p class="ruta ruta-larm liten">Avsett som ${esc(STATUS[k.avsedd].toLowerCase())}, men alla tester är inte gröna.</p>` : ''}
     ${k.anmarkning ? `<p class="krav-anm">${esc(k.anmarkning)}</p>` : ''}
+    ${'klickbudget' in k ? klickbudgetTabell(k.klickbudget) : ''}
     ${k.tester.length ? `<details class="testlista"><summary>${k.tester.length === 1 ? 'Ett test' : `${k.tester.length} tester`}, ${k.tester.filter(x => x.status === 'grön').length} gröna</summary><ul>${k.tester.map(x => {
       const [kl, txt] = TESTSTATUS[x.status] ?? ['fel', x.status];
       return `<li class="test test-${kl}">${kl === 'ok' ? ikon.bock : ikon.kryss}<span class="sr">${esc(txt)}: </span><span>${esc(x.namn)}</span></li>`;

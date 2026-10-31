@@ -1,0 +1,58 @@
+// Service worker för läsläget vid avbrott (D4). Den cachar gränssnittets statiska filer, så att appen startar även
+// när servern inte svarar. Den rör aldrig /api eller /fhir: patientuppgifter cachas inte här utan bara i den
+// krypterade läskopian (js/lasekopia.js).
+//
+// Nätet först: varje fil hämtas från servern och cachen uppdateras. Bara när servern inte svarar inom fyra sekunder,
+// eller svarar med ett serverfel (502 till 504 och Cloudflares 52x när servern bakom är nere), används den cachade
+// filen. Så får alla en ny version direkt när servern svarar, och den gamla versionen bara under ett avbrott.
+//
+// Listan måste ha med varje fil i public/. Ett test (Läskopia > service workern cachar alla statiska filer) jämför.
+const CACHE = 'vardkallan-v1';
+const FILER = [
+  '/index.html', '/app.css', '/favicon.svg',
+  '/fonts/OFL.txt', '/fonts/noto-sans-400.woff2', '/fonts/noto-sans-600.woff2', '/fonts/noto-sans-700.woff2',
+  '/fonts/noto-sans-c600.woff2', '/fonts/noto-sans-c700.woff2',
+  '/js/app.js', '/js/avbrott.js', '/js/behorighet.js', '/js/lasekopia.js', '/js/ui.js',
+  '/js/vyer/arbetslista.js', '/js/vyer/drift.js', '/js/vyer/inkorg.js', '/js/vyer/inloggning.js', '/js/vyer/krav.js',
+  '/js/vyer/logg.js', '/js/vyer/migrering.js', '/js/vyer/moduler.js', '/js/vyer/oppet-api.js', '/js/vyer/patient-journal.js',
+  '/js/vyer/patient-lakemedel.js', '/js/vyer/patient-logglista.js', '/js/vyer/patient-matvarden.js', '/js/vyer/patient-oversikt.js',
+  '/js/vyer/patient-remisser.js', '/js/vyer/patient.js', '/js/vyer/remisser.js', '/js/vyer/sok.js', '/js/vyer/vantrum.js',
+];
+const TIDSGRANS_MS = 4000;
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILER)).then(() => self.skipWaiting()));
+});
+
+self.addEventListener('activate', (e) => {
+  e.waitUntil(caches.keys()
+    .then(namn => Promise.all(namn.filter(n => n.startsWith('vardkallan-') && n !== CACHE).map(n => caches.delete(n))))
+    .then(() => self.clients.claim()));
+});
+
+self.addEventListener('fetch', (e) => {
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+  if (url.pathname.startsWith('/api/') || url.pathname === '/fhir' || url.pathname.startsWith('/fhir/')) return;
+  e.respondWith(hamta(req, url));
+});
+
+const medTidsgrans = (p, ms) => Promise.race([p, new Promise((_, nej) => setTimeout(() => nej(new Error('tidsgräns')), ms))]);
+
+async function hamta(req, url) {
+  const cache = await caches.open(CACHE);
+  // Alla adresser i gränssnittet är index.html med routning i #, så en navigering hämtar alltid index.html.
+  const nyckel = req.mode === 'navigate' || url.pathname === '/' ? '/index.html' : url.pathname;
+  try {
+    const svar = await medTidsgrans(fetch(req), TIDSGRANS_MS);
+    if (svar.ok) {
+      if (FILER.includes(nyckel)) await cache.put(nyckel, svar.clone());
+      return svar;
+    }
+    if (svar.status < 500) return svar;
+  } catch { /* servern svarar inte */ }
+  const sparad = await cache.match(nyckel);
+  return sparad ?? new Response('Vårdkällan svarar inte, och filen finns inte i webbläsarens cache.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+}

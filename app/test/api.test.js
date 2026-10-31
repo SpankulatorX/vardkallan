@@ -476,7 +476,7 @@ describe('API', () => {
       expect(r.testresultat.antal).toBe(1);
       expect(r.krav.find(x => x.id === 'D5').status).toBe('uppfyllt_demo');
       expect(r.krav.find(x => x.id === 'D2').status).toBe('delvis');
-      expect(r.krav.find(x => x.id === 'D4').status).toBe('planerat');
+      expect(r.krav.find(x => x.id === 'D12').status).toBe('planerat');
       expect(r.krav.length).toBe(43);
     } finally { app2.stopp(); rmSync(dir, { recursive: true }); }
   });

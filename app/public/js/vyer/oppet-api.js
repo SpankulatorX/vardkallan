@@ -17,10 +17,10 @@ export async function visa(main) {
   const exempel = arLogggranskare()
     ? [['/fhir/metadata', 'Vad servern kan (CapabilityStatement)'], [`/fhir/AuditEvent?patient=${pid}`, `Åtkomstloggen för ${pnamn} som AuditEvent`], ['/fhir/Practitioner', 'All personal'], [`/fhir/Patient/${pid}`, 'Läsa en journal, vilket logggranskaren inte får']]
     : [['/fhir/metadata', 'Vad servern kan (CapabilityStatement)'], [`/fhir/Patient/${pid}`, `Patienten ${pnamn}`], [`/fhir/MedicationRequest?patient=${pid}`, 'Läkemedelsordinationer med ATC och uppföljningsdatum'],
-      [`/fhir/Condition?patient=${pid}`, 'Diagnoser med ICD-10-SE'], [`/fhir/Observation?patient=${pid}`, 'Mätvärden med LOINC'], [`/fhir/AllergyIntolerance?patient=${pid}`, 'Överkänslighet'],
+      [`/fhir/Condition?patient=${pid}`, 'Diagnoser med ICD-10-SE'], [`/fhir/Observation?patient=${pid}`, 'Mätvärden med NPU och LOINC'], [`/fhir/AllergyIntolerance?patient=${pid}`, 'Överkänslighet'],
       [`/fhir/Composition?patient=${pid}`, 'Journalanteckningar'], [`/fhir/ServiceRequest?patient=${pid}`, 'Remisser'], ['/fhir/Organization', 'Vårdenheter med HSA-id'], ['/fhir/Patient/p12', 'En patient utan vårdrelation']];
   main.innerHTML = vyRubrik('Öppet API') + `<div class="ingress-block">
-      <p>FHIR R4 är den internationella standarden från HL7 för att utbyta vårdinformation. Allt i Vårdkällan går att läsa genom samma öppna API som gränssnittet bygger på, i formatet application/fhir+json, med personnummer, ICD-10-SE, ATC och LOINC.</p>
+      <p>FHIR R4 är den internationella standarden från HL7 för att utbyta vårdinformation. Allt i Vårdkällan går att läsa genom samma öppna API som gränssnittet bygger på, i formatet application/fhir+json, med personnummer, ICD-10-SE, ATC, NPU för labbvärden och LOINC för vitalparametrar.</p>
       <p>API:t har samma behörighetskontroll och samma loggning som gränssnittet. Anropen nedan görs med din session som ${esc(arLogggranskare() ? 'logggranskare' : 'inloggad')}, så svaren visar exakt det din roll får se, och varje anrop som rör en patient hamnar i loggen. Resurserna är inte validerade mot HL7 Swedens basprofiler.</p>
     </div>
     <div class="api-delad">

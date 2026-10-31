@@ -1,0 +1,57 @@
+// Klickbudget per vanligt arbetsflöde (D6). Budgetarna sätts här och mäts av test/klickbudget.cjs, som gör flödena
+// i gränssnittet i Playwright och skriver resultatet till klickbudget.json. Testet misslyckas om ett flöde kräver
+// fler steg än budgeten.
+//
+// Så räknas det:
+//   klick      varje musklick på en knapp, länk, kryssruta eller rad. En rullgardinslista räknas som två klick
+//              (öppna och välja), utom när rätt värde redan är förvalt och inte behöver röras.
+//   fältbyte   varje gång användaren måste flytta sig till ett textfält. Ett fält som gränssnittet redan har satt
+//              fokus i räknas inte. Texten som skrivs räknas inte tecken för tecken.
+//   tangent    tangenter som inte är text, till exempel Enter för att skicka en sökning.
+//
+// Budgeten är antalet steg som flödet behöver: ett steg för att komma dit, ett fältbyte för varje fält som måste
+// fyllas i, två klick för en lista som måste ändras och ett klick för att spara eller bekräfta. Obligatoriska fält
+// (ordinationsorsak, uppföljningsdatum, syfte vid nödåtkomst) räknas med. De går inte att spara bort, eftersom
+// lagen eller NLL kräver dem. Budgeten är alltså ett tak som gränssnittet ska klara, inte ett mål att trimma mot.
+// Mätningen görs med ett skript, inte med verkliga användare.
+
+export const REGLER = 'Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.';
+
+export const FLODEN = [
+  {
+    id: 'oppna-patient', namn: 'Öppna patient från arbetslistan', roll: 'lak-kard', start: 'Arbetslistan efter inloggning', budget: 1,
+    motivering: 'Ett klick på patientens namn. Översikten med läkemedel, diagnoser, mätvärden och senaste anteckningar ska synas direkt, utan flikbyte.',
+  },
+  {
+    id: 'las-anteckning', namn: 'Läsa senaste anteckning', roll: 'lak-kard', start: 'Patientens översikt', budget: 1,
+    motivering: 'Ett klick på den senaste anteckningen i översikten, som då visas i sin helhet.',
+  },
+  {
+    id: 'daganteckning', namn: 'Skriva och signera en daganteckning', roll: 'lak-kard', start: 'Patientens översikt', budget: 4,
+    motivering: 'Ett klick för att öppna en ny anteckning, ett fältbyte för vart och ett av de två sökord som skrivs (Aktuellt och Bedömning) och ett klick för att signera. Mallen Daganteckning och den pågående vårdkontakten ska vara förvalda.',
+  },
+  {
+    id: 'ordinera', namn: 'Ordinera ett läkemedel utan varning', roll: 'lak-kard', start: 'Patientens översikt', budget: 7,
+    motivering: 'Ett klick för att öppna ordinationen, ett fältbyte till sökfältet och ett klick på träffen, ett fältbyte vardera för dosering och ordinationsorsak, ett klick för uppföljningsdatum och ett för att spara. Utan varningar ska kontroll och sparande ske med samma klick.',
+  },
+  {
+    id: 'utsattning', namn: 'Sätta ut ett läkemedel', roll: 'lak-kard', start: 'Patientens översikt', budget: 4,
+    motivering: 'Ett klick till läkemedelslistan, ett på Sätt ut för raden, ett fältbyte för den obligatoriska orsaken och ett klick för att bekräfta.',
+  },
+  {
+    id: 'blodtryck', namn: 'Registrera blodtryck', roll: 'ssk-kard', start: 'Patientens översikt', budget: 3,
+    motivering: 'Ett klick till mätvärdena, ett fältbyte för värdet och ett klick för att registrera. Blodtryck är det vanligaste mätvärdet och ska vara förvalt, så att listan inte behöver ändras.',
+  },
+  {
+    id: 'remiss', namn: 'Skicka remiss', roll: 'lak-vc', start: 'Patientens översikt', budget: 7,
+    motivering: 'Ett klick till remisserna och ett för att öppna en ny remiss, två klick för att välja mottagare i listan, ett fältbyte vardera för frågeställning och anamnes och ett klick för att skicka. Prioritet och sista svarsdatum ska ha rimliga förval.',
+  },
+  {
+    id: 'kvittera-svar', namn: 'Kvittera remissvar', roll: 'lak-vc', start: 'Arbetslistan efter inloggning', budget: 3,
+    motivering: 'Ett klick till inkorgen, ett på svaret, som då visas i sin helhet, och ett för att kvittera att svaret är läst. Svaret ska läsas före kvittensen, så kvittensen ligger inte direkt i inkorgen.',
+  },
+  {
+    id: 'nodatkomst', namn: 'Nödåtkomst', roll: 'lak-akut', start: 'Arbetslistan efter inloggning', budget: 8,
+    motivering: 'Ett klick till sök, ett fältbyte och Enter för sökningen, ett klick på träffen, ett på Nödåtkomst, ett för syftet, ett för intyget att patienten inte kan samtycka och ett för att öppna. Syfte och intyg krävs och ska inte gå att hoppa över.',
+  },
+];

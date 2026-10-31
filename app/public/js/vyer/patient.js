@@ -163,7 +163,11 @@ export async function visa(main, [id, flik, sub], q, ctx = {}) {
   yttre.replaceChildren(el);
   const fctx = {
     id, sub, q, patient: huvud, href: (fl, s) => href(id, fl, s),
-    ladda: () => visa(main, [id, flik, sub], q, { aktuell: () => true, sammaPatient: true }),
+    // Efter en sparad ändring ritas fliken om. Ett formulär som öppnades med /ny öppnas inte igen.
+    ladda: () => {
+      if (sub === 'ny' && flik !== 'journal') history.replaceState(null, '', href(id, flik));
+      return visa(main, [id, flik, sub === 'ny' && flik !== 'journal' ? undefined : sub], q, { aktuell: () => true, sammaPatient: true });
+    },
     laddaOm: () => { huvud = null; return rita(); },
     aktuell: ctx.aktuell ?? (() => true),
   };

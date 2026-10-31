@@ -12,7 +12,7 @@ export async function visa(main, _p, q) {
     : 'Sök på namn eller personnummer i hela regionen. Att patienten hittas betyder inte att du får öppna journalen.') + `
     <form class="sokform" id="sokform" role="search">
       <div class="falt"><label for="sokfalt">Namn eller personnummer</label>
-        <div class="sokrad"><input id="sokfalt" name="q" type="search" value="${esc(fraga)}" autocomplete="off" minlength="2" required aria-describedby="sok-hjalp"><button class="knapp" type="submit">Sök</button></div>
+        <div class="sokrad"><input id="sokfalt" name="q" type="search" value="${esc(fraga)}" autocomplete="off" minlength="2" required aria-describedby="sok-hjalp" data-fokus><button class="knapp" type="submit">Sök</button></div>
         <span class="hjalp" id="sok-hjalp">Minst två tecken. Varje sökning loggas. En patient med skyddad identitet hittas bara på fullständigt personnummer, till exempel 19840416-2383.</span>
       </div>
       <p class="form-fel" role="alert" hidden></p>

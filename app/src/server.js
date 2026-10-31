@@ -3,13 +3,14 @@
 import { join, normalize } from 'node:path';
 import { existsSync, readFileSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
 import { Fel, nySessionsDb, lasSandlada, idag, installning } from './db.js';
-import { Atkomst, ROLLER, kanRoll, vardenhetFor, harVardrelation, aktivaSparrar, visningsnamn, visningsPnr, alder } from './atkomst.js';
+import { Atkomst, ROLLER, kanRoll, vardenhetFor, harVardrelation, aktivaSparrar, visningsnamn, visningsPnr, alder, starkasteGrund } from './atkomst.js';
 import * as logg from './logg.js';
 import * as journal from './journal.js';
 import * as lakemedel from './lakemedel.js';
 import * as remiss from './remiss.js';
 import * as fhir from './fhir.js';
 import { kravregister, lasTestresultat } from './krav.js';
+import { lasKlientresultat } from './klientresultat.js';
 import { YRKEN } from './seed/personal.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
@@ -18,6 +19,12 @@ const SESSION_TTL = 8 * 3600_000;
 const MAX_KROPP = 64 * 1024;
 const SPARVERSION = 1;
 const VAL_TYPER = ['andra_enheter', 'nodatkomst', 'samtycke_sparr', 'visa_identitet'];
+// Läskopian för avbrott (D4): så många av de senaste anteckningarna per patient följer med.
+const LASKOPIA_ANTECKNINGAR = 5;
+// Läshandlingar som får rapporteras från läsläget i efterhand.
+const LASLAGE_HANDLINGAR = ['las_oversikt', 'las_admin', 'las_lakemedel', 'las_journal', 'las_omvardnad'];
+const KLOCKMARGINAL = 5 * 60_000;
+const MAX_LASLOGG_ID = 5000;
 
 // Svarstider: senaste mätningarna per endpoint.
 export class Matning {
@@ -78,6 +85,7 @@ async function statisk(path) {
 
 export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.0.0.0', origin = process.env.ORIGIN || '',
   sessionFil = process.env.SESSION_FIL || '', testresultat = process.env.TESTRESULTAT || join(import.meta.dir, '..', 'test-resultat.json'),
+  klientresultat = { klickbudget: process.env.KLICKBUDGET || join(import.meta.dir, '..', 'klickbudget.json'), klienttester: process.env.KLIENTTESTER || join(import.meta.dir, '..', 'klienttest-resultat.json') },
   nyaPerTimme = Number(process.env.NYA_PER_TIMME || 60) } = {}) {
   const sessioner = new Map();
   const nyaPerIp = new Map();
@@ -85,14 +93,23 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   const startad = new Date().toISOString();
 
   const slumpId = () => Buffer.from(crypto.getRandomValues(new Uint8Array(24))).toString('base64url');
+  const slumpNyckel = () => Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64url');
   const kakSid = (req) => (req.headers.get('cookie') || '').match(/(?:^|;\s*)vk_sid=([A-Za-z0-9_-]{32})(?:;|$)/)?.[1];
-  const kaka = (sid) => `vk_sid=${sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_TTL / 1000}${origin.startsWith('https') ? '; Secure' : ''}`;
+  const kaka = (sid) => `vk_sid=${sid}; Path=/; HttpOnly; SameSite=Lax${origin.startsWith('https') ? '; Secure' : ''}`;
   // Cloudflare skriver över cf-connecting-ip vid kanten. Rubriken gäller bara när LITA_PA_PROXY=1,
   // alltså när enda vägen in är tunneln och Caddy. Annars räknas socketens adress.
   const litaPaProxy = process.env.LITA_PA_PROXY === '1';
   const klientIp = (req, server) => (litaPaProxy && req.headers.get('cf-connecting-ip')) || server.requestIP(req)?.address || 'okänd';
 
-  const nySession = () => ({ db: nySessionsDb(), personalId: null, val: {}, sist: Date.now(), matning: new Matning(200) });
+  // Läskopian (D4): lasnyckel är nyckeln som webbläsaren krypterar sin läskopia med. kopia håller reda på vilka patienter
+  // som har lämnats ut till läskopian, på vilken grund och när, så att åtkomster i läsläget kan tas emot i efterhand.
+  const nyLasnyckel = () => ({ nyckel: slumpNyckel(), giltigTill: new Date(Date.now() + SESSION_TTL).toISOString() });
+  const nollstallKopia = (s) => { s.oppnade = new Set(); s.kopia = new Map(); s.kopiaLoggIds = new Set(); };
+  const nySession = () => {
+    const s = { db: nySessionsDb(), personalId: null, val: {}, sist: Date.now(), matning: new Matning(200), lasnyckel: null };
+    nollstallKopia(s);
+    return s;
+  };
 
   function hamtaSession(req) {
     const sid = kakSid(req);
@@ -131,7 +148,10 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       const grans = Date.now() - SESSION_TTL;
       for (const x of JSON.parse(readFileSync(sessionFil, 'utf8'))) {
         if (x.v !== SPARVERSION || x.sist < grans || !/^[A-Za-z0-9_-]{32}$/.test(x.sid)) continue;
-        sessioner.set(x.sid, { db: lasSandlada(x.db), personalId: x.personalId, val: x.val ?? {}, sist: x.sist, matning: new Matning(200) });
+        sessioner.set(x.sid, {
+          db: lasSandlada(x.db), personalId: x.personalId, val: x.val ?? {}, sist: x.sist, matning: new Matning(200),
+          lasnyckel: x.lasnyckel ?? null, oppnade: new Set(x.oppnade ?? []), kopia: new Map(x.kopia ?? []), kopiaLoggIds: new Set(x.kopiaLoggIds ?? []),
+        });
       }
       console.log(`Läste in ${sessioner.size} sparade sandlådor`);
     } catch (e) { console.error('Kunde inte läsa sparade sandlådor:', e.message); }
@@ -139,7 +159,10 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   }
   function spara() {
     if (!sessionFil) return 0;
-    const lista = [...sessioner].map(([sid, x]) => ({ v: SPARVERSION, sid, personalId: x.personalId, val: x.val, sist: x.sist, db: Buffer.from(x.db.serialize()).toString('base64') }));
+    const lista = [...sessioner].map(([sid, x]) => ({
+      v: SPARVERSION, sid, personalId: x.personalId, val: x.val, sist: x.sist, db: Buffer.from(x.db.serialize()).toString('base64'),
+      lasnyckel: x.lasnyckel, oppnade: [...x.oppnade], kopia: [...x.kopia], kopiaLoggIds: [...x.kopiaLoggIds],
+    }));
     writeFileSync(sessionFil + '.tmp', JSON.stringify(lista), { mode: 0o600 });
     renameSync(sessionFil + '.tmp', sessionFil);
     return lista.length;
@@ -193,6 +216,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ut.personal = { id: p.id, namn: p.namn, yrke: p.yrke, yrkeText: YRKEN[p.yrke], titel: p.titel, hsaId: p.hsa_id };
       ut.enhet = { ...enhetKort(s.db, p.enhet_id), vardenhet: enhetKort(s.db, ve) };
       ut.behorigheter = ROLLER[p.yrke] ?? [];
+      if (!s.lasnyckel) s.lasnyckel = nyLasnyckel();
+      ut.lasnyckel = s.lasnyckel;
     }
     return ut;
   }
@@ -336,6 +361,87 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     });
   }
 
+  // Läskopian för avbrott (D4). Den byggs med exakt samma funktioner och samma behörighetskontroll som de vanliga
+  // anropen, en Atkomst per del precis som när gränssnittet hämtar dem, så den innehåller aldrig mer än servern redan
+  // lämnar ut till den inloggade. Patienter som den inloggade inte får öppna hoppas över utan att något loggas som nekat.
+  // Med kommer patienterna på arbetslistan och de patienter personen har öppnat under sessionen. Att en patient lämnas
+  // ut till läskopian loggas en gång per inloggning, och igen om grunden ändras (till exempel efter ett aktivt val).
+  function lasekopia(c) {
+    const db = c.db;
+    const pers = c.personal;
+    const s = c.s;
+    if (!s.lasnyckel) s.lasnyckel = nyLasnyckel();
+    const { lasnyckel: _, ...session } = sessionUt(s);
+    const alla = db.query('SELECT * FROM enheter').all();
+    const nod = (e) => ({ id: e.id, hsaId: e.hsa_id, namn: e.namn, kortnamn: e.kortnamn, typ: e.typ, barn: alla.filter(b => b.forald_id === e.id).map(nod) });
+    const ut = {
+      skapad: new Date().toISOString(), giltigTill: s.lasnyckel.giltigTill, session,
+      enheter: alla.filter(e => !e.forald_id).map(nod), mallar: journal.MALLAR, arbetslista: [], patienter: {},
+    };
+    if (pers.yrke === 'logggranskare') return ut;
+    ut.arbetslista = arbetslista(c);
+    const ids = [...new Set([...ut.arbetslista.map(x => x.id), ...s.oppnade])];
+    for (const pid of ids) {
+      const pat = db.query('SELECT * FROM patienter WHERE id = ?').get(pid);
+      if (!pat) continue;
+      const handling = kanRoll(pers, 'las_oversikt') ? 'las_oversikt' : 'las_admin';
+      const val = valFor(s, pid);
+      const delar = [];
+      const ny = (h = handling) => { const a = new Atkomst(db, pers, pid, val, h); delar.push(a); return a; };
+      if (!ny().prova(handling).tillaten) continue;
+      const post = { handling, huvud: patientHuvud(c, ny(), pat), oversikt: oversikt(c, ny(), pat), lakemedel: null, anteckningar: null, anteckning: {} };
+      if (kanRoll(pers, 'las_lakemedel')) post.lakemedel = lakemedel.lista(ny('las_lakemedel'));
+      if (kanRoll(pers, 'las_journal') || kanRoll(pers, 'las_omvardnad')) {
+        const l = journal.listaAnteckningar(ny('las_journal'));
+        const senaste = l.anteckningar.slice(0, LASKOPIA_ANTECKNINGAR);
+        post.anteckningar = { anteckningar: senaste, dolda: l.dolda, iLaskopian: senaste.length, totalt: l.anteckningar.length };
+        for (const a of senaste) post.anteckning[a.id] = journal.hamtaAnteckning(ny(journal.lasHandling(a.kategori)), journal.hamtaAnteckningRad(db, a.id));
+      }
+      const grunder = new Set(delar.flatMap(a => [...a.grunder]));
+      const grund = starkasteGrund(grunder, pers.yrke === 'vardadministrator' ? 'administrativ' : 'vardrelation');
+      const forra = s.kopia.get(pid);
+      if (!forra || forra.grund !== grund) delar[0].logga(handling, grund, 'lasekopia', 'tillaten', 'Läskopia för avbrott, krypterad i webbläsaren');
+      s.kopia.set(pid, { grund, handling, tid: forra?.tid ?? ut.skapad });
+      ut.patienter[pid] = post;
+    }
+    return ut;
+  }
+
+  // Åtkomster som gjordes i läsläget, när servern inte svarade, skickas hit när förbindelsen är tillbaka. Bara den
+  // inloggade kan rapportera, bara åtkomster till patienter som servern har lämnat ut till den inloggades läskopia, bara
+  // läshandlingar som rollen har och bara tider inom läskopians giltighet. Varje rad har ett id från webbläsaren, så att
+  // en rad som skickas två gånger loggas en gång.
+  function lasekopiaLogg(c) {
+    const pers = c.personal;
+    const s = c.s;
+    const rader = c.body.rader;
+    if (!Array.isArray(rader) || rader.length > 500) throw new Fel(400, 'Skicka högst 500 rader i en lista.', 'ogiltig', { falt: ['rader'] });
+    const nu = Date.now();
+    let mottagna = 0;
+    const avvisade = [];
+    for (const r of rader) {
+      const id = typeof r?.id === 'string' && /^[A-Za-z0-9_-]{8,64}$/.test(r.id) ? r.id : null;
+      if (!id) { avvisade.push({ id: null, orsak: 'Raden saknar giltigt id.' }); continue; }
+      if (s.kopiaLoggIds.has(id)) { mottagna++; continue; }
+      const kopia = typeof r.patientId === 'string' ? s.kopia.get(r.patientId) : null;
+      if (!kopia) { avvisade.push({ id, orsak: 'Patienten fanns inte i din läskopia.' }); continue; }
+      if (!LASLAGE_HANDLINGAR.includes(r.handling) || !kanRoll(pers, r.handling)) { avvisade.push({ id, orsak: 'Handlingen är inte en läsning som din yrkesroll får göra.' }); continue; }
+      const t = typeof r.tid === 'string' ? Date.parse(r.tid) : NaN;
+      if (!Number.isFinite(t) || t < Date.parse(kopia.tid) - KLOCKMARGINAL || t > nu + KLOCKMARGINAL || t < nu - SESSION_TTL) {
+        avvisade.push({ id, orsak: 'Tidpunkten ligger utanför läskopians giltighet.' }); continue;
+      }
+      const resurs = typeof r.resurs === 'string' ? r.resurs.slice(0, 200) : '';
+      logg.loggaRad(c.db, {
+        tid: new Date(t).toISOString(), personal_id: pers.id, enhet_id: pers.enhet_id, patient_id: r.patientId, handling: r.handling,
+        resurs: `laslage:${resurs}`, grund: kopia.grund, syfte: 'Läsläge vid avbrott, läskopia i webbläsaren', resultat: 'tillaten',
+      });
+      s.kopiaLoggIds.add(id);
+      if (s.kopiaLoggIds.size > MAX_LASLOGG_ID) s.kopiaLoggIds.delete(s.kopiaLoggIds.values().next().value);
+      mottagna++;
+    }
+    return { mottagna, avvisade };
+  }
+
   function registreraVal(c, p, { typ, syfte }) {
     const db = c.db;
     if (!VAL_TYPER.includes(typ)) throw new Fel(400, 'Okänt val.', 'ogiltig', { falt: ['typ'] });
@@ -386,14 +492,32 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (!p) throw new Fel(400, 'Välj en av demorollerna.', 'ogiltig', { falt: ['personalId'] });
     c.s.personalId = p.id;
     c.s.val = {};
+    // Ny nyckel för läskopian vid varje inloggning, så att en tidigare persons kopia inte går att läsa.
+    c.s.lasnyckel = nyLasnyckel();
+    nollstallKopia(c.s);
     c.rotera = true;
     return sessionUt(c.s);
   });
-  rutt('POST', '/api/logout', (c) => { c.s.personalId = null; c.s.val = {}; return sessionUt(c.s); });
+  // Utloggning efter ett avbrott kan ha med sig åtkomsterna från läsläget. De loggas innan sessionen avslutas,
+  // eftersom de annars aldrig går att föra över.
+  // Sessionen avslutas alltid, även om raderna inte går att ta emot.
+  rutt('POST', '/api/logout', (c) => {
+    let lasloggen;
+    try {
+      if (c.personal && Array.isArray(c.body?.rader)) lasloggen = lasekopiaLogg(c);
+    } catch (e) {
+      lasloggen = { mottagna: 0, avvisade: [], fel: e instanceof Fel ? e.message : 'Raderna kunde inte tas emot.' };
+    } finally {
+      c.s.personalId = null; c.s.val = {}; c.s.lasnyckel = null; nollstallKopia(c.s);
+    }
+    return { ...sessionUt(c.s), ...(lasloggen ? { lasloggen } : {}) };
+  });
   rutt('POST', '/api/reset', (c) => {
     c.s.db.close();
     c.s.db = nySessionsDb();
     c.s.val = {};
+    // Den nya sandlådan har en ny logg, så läskopian lämnas ut och loggas på nytt där.
+    nollstallKopia(c.s);
     return { ok: true, ...sessionUt(c.s) };
   });
   rutt('GET', '/api/enheter', (c) => {
@@ -404,11 +528,15 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('GET', '/api/arbetslista', (c) => { kravInloggad(c); return arbetslista(c); });
   rutt('GET', '/api/sok', (c) => { kravInloggad(c); return sok(c, c.url.searchParams.get('q')); });
   rutt('GET', '/api/vantrum', (c) => { kravInloggad(c); return vantrum(c); });
+  rutt('GET', '/api/lasekopia', (c) => { kravInloggad(c); return lasekopia(c); });
+  rutt('POST', '/api/lasekopia/logg', (c) => { kravInloggad(c); return lasekopiaLogg(c); });
 
   rutt('GET', '/api/patient/:id', (c, id) => {
     kravInloggad(c);
     const handling = kanRoll(c.personal, 'las_oversikt') ? 'las_oversikt' : 'las_admin';
-    return medPatient(c, id, handling, (atk, p) => patientHuvud(c, atk, p));
+    const ut = medPatient(c, id, handling, (atk, p) => patientHuvud(c, atk, p));
+    c.s.oppnade.add(ut.id);
+    return ut;
   });
   rutt('POST', '/api/patient/:id/val', (c, id) => { kravInloggad(c); return registreraVal(c, patientRad(c.db, id), c.body); });
   rutt('GET', '/api/patient/:id/oversikt', (c, id) => {
@@ -530,7 +658,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     }));
     return { datatyper, avvikelser, summa: { antalKalla: datatyper.reduce((s, d) => s + d.antalKalla, 0), antalOverforda: datatyper.reduce((s, d) => s + d.antalOverforda, 0), antalVerifierade: datatyper.reduce((s, d) => s + d.antalVerifierade, 0) } };
   });
-  rutt('GET', '/api/krav', () => kravregister(lasTestresultat(testresultat)));
+  rutt('GET', '/api/krav', () => kravregister(lasTestresultat(testresultat), undefined, lasKlientresultat(klientresultat)));
   // Svarstidsmål (D5): p95 under 200 ms per endpoint.
   const MAL_P95 = 200;
   const medMal = (rader) => rader.map(r => ({ ...r, inomMal: r.p95 <= MAL_P95 }));

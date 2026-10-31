@@ -130,7 +130,7 @@ const MENY = {
       const n = await page.locator('.roll').count();
       if (n !== 8) throw new Error(`${n} roller`);
       await forvanta(page, '.demorad', 'Demo med påhittade patienter och testpersonnummer från Skatteverket. Inte för vård av riktiga patienter.');
-      await forvanta(page, '.sidfot', 'Vårdkällan är ett fristående demoprojekt med öppen källkod. Det är inte en tjänst från Region Örebro län.');
+      await forvanta(page, '.sidfot', 'Vårdkällan är ett fristående demoprojekt med öppen källkod (EUPL 1.2). Det är inte en tjänst från Region Örebro län.');
       await forvanta(page, '#roll-lak-akut-visar', 'Nödåtkomst');
       await bild(page, '01-inloggning', true);
     });

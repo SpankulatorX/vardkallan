@@ -13,8 +13,10 @@ describe('Kravregistret', () => {
       expect(k.rubrik.length).toBeGreaterThan(5);
       if (k.status === 'uppfyllt_demo') expect(k.tester.length).toBeGreaterThan(0);
     }
-    // Det som inte byggs i första versionen är planerat.
-    for (const id of ['D4', 'D6', 'D12', 'L5', 'L8', 'L10', 'L11']) expect(KRAV.find(k => k.id === id).status).toBe('planerat');
+    // Det som inte byggs i första versionen är planerat. Läsläget vid avbrott (D4) och klickbudgeten (D6) är byggda
+    // men delvis uppfyllda: läsläget saknar reservinloggning, och klickbudgeten är mätt med skript, inte med användare.
+    for (const id of ['D12', 'L5', 'L8', 'L10', 'L11']) expect(KRAV.find(k => k.id === id).status).toBe('planerat');
+    for (const id of ['D4', 'D6']) expect(KRAV.find(k => k.id === id).status).toBe('delvis');
   });
 
   test('status uppfyllt_demo bara när alla tester är gröna', () => {
@@ -34,6 +36,17 @@ describe('Kravregistret', () => {
     expect(kravregister(resultat([]), utanTester).krav[0].status).toBe('delvis');
   });
 
+  test('tester av gränssnittet räknas med, och inaktuella räknas inte som gröna', () => {
+    const reg = [{ id: 'X4', rubrik: 'Test', kalla: 'test', status: 'uppfyllt_demo', var: null, tester: ['A > a', 'Gränssnitt > b'], bilaga: 'klickbudget' }];
+    const bun = resultat([{ namn: 'A > a', status: 'grön' }]);
+    const kb = { tid: '2026-10-31T10:00:00Z', floden: [], aktuell: true };
+    const gron = kravregister(bun, reg, { tester: [{ namn: 'Gränssnitt > b', status: 'grön' }], klickbudget: kb }).krav[0];
+    expect(gron.status).toBe('uppfyllt_demo');
+    expect(gron.klickbudget).toEqual(kb);
+    expect(kravregister(bun, reg, { tester: [{ namn: 'Gränssnitt > b', status: 'inaktuell' }] }).krav[0].status).toBe('delvis');
+    expect(kravregister(bun, reg, null).krav[0]).toMatchObject({ status: 'delvis', klickbudget: null });
+  });
+
   test('planerade krav förblir planerade', () => {
     const reg = [{ id: 'X3', rubrik: 'Test', kalla: 'test', status: 'planerat', var: null, tester: ['A > a'] }];
     expect(kravregister(resultat([{ namn: 'A > a', status: 'grön' }]), reg).krav[0].status).toBe('planerat');
@@ -41,4 +54,36 @@ describe('Kravregistret', () => {
     expect(s.uppfyllt_demo).toBe(0);
     expect(s.delvis + s.planerat).toBe(KRAV.length);
   });
+});
+
+test('Kravregistret > tester av gränssnittet blir inaktuella när public/ har ändrats', async () => {
+  const { mkdtempSync, writeFileSync, mkdirSync, rmSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const { gransnittHash, lasKlientresultat } = await import('../src/klientresultat.js');
+  const dir = mkdtempSync(join(import.meta.dir, '..', '.testtmp-klient-'));
+  try {
+    const pub = join(dir, 'public');
+    mkdirSync(join(pub, 'js'), { recursive: true });
+    writeFileSync(join(pub, 'index.html'), '<p>1</p>');
+    writeFileSync(join(pub, 'js', 'a.js'), 'a');
+    const hash = gransnittHash(pub);
+    const kt = join(dir, 'kt.json');
+    const kb = join(dir, 'kb.json');
+    writeFileSync(kt, JSON.stringify({ tid: '2026-10-31T10:00:00Z', gransnittHash: hash, tester: [{ namn: 'Gränssnitt > x', status: 'grön' }] }));
+    writeFileSync(kb, JSON.stringify({ tid: '2026-10-31T10:00:00Z', gransnittHash: hash, regler: 'r', floden: [], tester: [{ namn: 'Gränssnitt > Klickbudget > y', status: 'grön' }] }));
+    const aktuell = lasKlientresultat({ klickbudget: kb, klienttester: kt, publicDir: pub });
+    expect(aktuell.tester).toEqual([{ namn: 'Gränssnitt > x', status: 'grön' }, { namn: 'Gränssnitt > Klickbudget > y', status: 'grön' }]);
+    expect(aktuell.klickbudget.aktuell).toBe(true);
+    writeFileSync(join(pub, 'js', 'a.js'), 'b');
+    const andrad = join(dir, 'public2');
+    rmSync(andrad, { recursive: true, force: true });
+    // En annan katalog räknas om; hashen för en katalog räknas en gång per process.
+    mkdirSync(join(andrad, 'js'), { recursive: true });
+    writeFileSync(join(andrad, 'index.html'), '<p>1</p>');
+    writeFileSync(join(andrad, 'js', 'a.js'), 'b');
+    const inaktuell = lasKlientresultat({ klickbudget: kb, klienttester: kt, publicDir: andrad });
+    expect(inaktuell.tester.map(t => t.status)).toEqual(['inaktuell', 'inaktuell']);
+    expect(inaktuell.klickbudget.aktuell).toBe(false);
+    expect(lasKlientresultat({ klickbudget: join(dir, 'saknas.json'), klienttester: join(dir, 'saknas2.json'), publicDir: pub })).toMatchObject({ tester: [], klickbudget: null, klienttester: null });
+  } finally { rmSync(dir, { recursive: true }); }
 });

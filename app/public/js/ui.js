@@ -69,7 +69,20 @@ export class ApiFel extends Error {
     this.data = data ?? {};
   }
 }
-export const krokar = { svarstid: null, vid401: null, vid429: null };
+export const krokar = { svarstid: null, vid401: null, vid429: null, efterSkrivning: null };
+
+// Avbrott (D4). När servern inte svarar går gränssnittet över till läsläge: läsningar besvaras från den krypterade
+// läskopian i webbläsaren och skrivningar stoppas. avbrott.js sätter upptackt (kontrollerar att servern verkligen är
+// nere och visar läsläget) och svara (läser ur läskopian). simulerat gör att klienten beter sig som om servern var nere.
+export const avbrott = { aktivt: false, simulerat: false, upptackt: null, svara: null };
+// Svar som betyder att servern bakom inte nås: 502 till 504 från Caddy och 52x från Cloudflare.
+const NERE = new Set([502, 503, 504, 520, 521, 522, 523, 524, 525, 526, 527, 530]);
+const natverkFel = () => new ApiFel(0, { fel: 'Det gick inte att nå servern. Kontrollera anslutningen och försök igen.', kod: 'natverk' });
+async function franKopia(vag, metod) {
+  if (!avbrott.aktivt) await avbrott.upptackt?.(true);
+  if (!avbrott.svara) throw natverkFel();
+  return avbrott.svara(vag, metod);
+}
 
 export function lasServerTiming(h) {
   const m = (h || '').match(/app;dur=([\d.]+)/);
@@ -80,7 +93,9 @@ export function lasServerTiming(h) {
 const pagaende = new Set();
 export function avbrytAllaAnrop() { for (const k of pagaende) k.abort(); pagaende.clear(); }
 
-export async function api(vag, { metod = 'GET', data, tyst = false } = {}) {
+// direkt: anropet går alltid till servern, också i läsläget (hälsokontrollen, läskopian och loggen från läsläget).
+export async function api(vag, { metod = 'GET', data, tyst = false, direkt = false } = {}) {
+  if (!direkt && (avbrott.aktivt || avbrott.simulerat)) return franKopia(vag, metod);
   let r;
   const t0 = performance.now();
   const kontroll = new AbortController();
@@ -95,10 +110,12 @@ export async function api(vag, { metod = 'GET', data, tyst = false } = {}) {
     });
   } catch {
     if (kontroll.signal.aborted) throw new ApiFel(0, { fel: 'Anropet avbröts.', kod: 'avbruten' });
-    throw new ApiFel(0, { fel: 'Det gick inte att nå servern. Kontrollera anslutningen och försök igen.', kod: 'natverk' });
+    if (!direkt && await avbrott.upptackt?.()) return franKopia(vag, metod);
+    throw natverkFel();
   } finally {
     pagaende.delete(kontroll);
   }
+  if (!direkt && NERE.has(r.status) && await avbrott.upptackt?.()) return franKopia(vag, metod);
   const st = lasServerTiming(r.headers.get('server-timing'));
   krokar.svarstid?.({ vag, metod, server: st, totalt: performance.now() - t0, status: r.status });
   const txt = await r.text();
@@ -110,11 +127,13 @@ export async function api(vag, { metod = 'GET', data, tyst = false } = {}) {
     if (r.status === 429) krokar.vid429?.(e);
     throw e;
   }
+  if (metod !== 'GET') krokar.efterSkrivning?.(vag);
   return j;
 }
 
 // Råanrop som behåller status, rubriker och text (för FHIR-exemplen).
 export async function raa(vag) {
+  if (avbrott.aktivt || avbrott.simulerat) throw new ApiFel(0, { fel: 'Det öppna API:t nås inte under avbrottet. Läskopian innehåller inga FHIR-svar.', kod: 'laslage' });
   const t0 = performance.now();
   const r = await fetch(vag, { credentials: 'same-origin' });
   const text = await r.text();
