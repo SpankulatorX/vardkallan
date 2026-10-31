@@ -1,5 +1,6 @@
 // Översikten: aktuella läkemedel, diagnoser, senaste mätvärden och anteckningar, pågående remisser och tidslinjen.
-import { esc, api, datum, tidpunkt, klockslag, migreradEtikett, NLL, VARDFORM, tal } from '../ui.js';
+import { esc, api, datum, tidpunkt, klockslag, migreradEtikett, NLL, VARDFORM, tal, ikon } from '../ui.js';
+import { far, pa } from '../app.js';
 import { doldaRad } from './patient.js';
 import { remissStatusText } from './remisser.js';
 
@@ -11,6 +12,18 @@ const sektion = (id, rubrik, innehall, extra = '') => `<section class="ov-sektio
 const tomRad = (t) => `<p class="tom liten">${esc(t)}</p>`;
 
 export const varde = (m) => `${esc(typeof m.varde === 'number' ? tal(m.varde, 2) : m.varde)} <span class="enhet">${esc(m.enhet)}</span>`;
+
+// Snabbval för de vanligaste åtgärderna, så att de nås med ett klick från översikten (klickbudgeten, D6).
+// data-skriv döljer dem i läsläget vid avbrott.
+function snabbval(ctx) {
+  const v = [];
+  if (pa('skriv_journal', 'skriv_omvardnad')) v.push([ctx.href('journal', 'ny'), ikon.penna, 'Ny anteckning']);
+  if (far('ordinera')) v.push([ctx.href('lakemedel', 'ny'), ikon.plus, 'Ordinera']);
+  if (far('registrera_matvarde')) v.push([ctx.href('matvarden', 'ny'), ikon.plus, 'Registrera mätvärde']);
+  if (far('remittera')) v.push([ctx.href('remisser', 'ny'), ikon.remiss, 'Skicka remiss']);
+  if (!v.length) return '';
+  return `<nav class="snabbval" aria-label="Snabbval" data-skriv><ul>${v.map(([h, ik, t]) => `<li><a class="knapp liten sekundar" href="${h}">${ik}<span>${esc(t)}</span></a></li>`).join('')}</ul></nav>`;
+}
 
 export async function visa(el, ctx) {
   const d = await api(`/api/patient/${encodeURIComponent(ctx.id)}/oversikt`);
@@ -45,7 +58,7 @@ export async function visa(el, ctx) {
   const begransat = !d.lakemedel && !d.anteckningar
     ? '<p class="ruta ruta-info liten">Din yrkesroll ser administrativa uppgifter: vårdkontakter, kontaktuppgifter och remissernas status. Journaltext, diagnoser och läkemedel visas inte.</p>' : '';
 
-  el.innerHTML = `<h2 class="sr">Översikt</h2>${doldaRad(d.dolda)}${begransat}
+  el.innerHTML = `<h2 class="sr">Översikt</h2>${snabbval(ctx)}${doldaRad(d.dolda)}${begransat}
     <div class="oversikt-rutnat">${delar.join('')}</div>
     <section class="tidslinje-sektion" aria-labelledby="ov-tl">
       <div class="sektion-huvud"><h2 id="ov-tl">Tidslinje</h2><p class="dampad liten">Nyast först. Migrerade poster från VAS och Cosmic ligger i samma kronologi och har samma vikt som ny dokumentation.</p></div>

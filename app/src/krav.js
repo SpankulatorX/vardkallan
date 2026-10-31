@@ -3,6 +3,7 @@
 // Källa: rapporten "Cosmic upphandling krav och kritik", avsnitten Kravlista och designchecklista
 // samt Misstag att inte upprepa.
 import { existsSync, readFileSync } from 'node:fs';
+import { FLODEN } from './klickbudget.js';
 
 const RAPPORT = 'Cosmic upphandling krav och kritik';
 const k = (id, rubrik, kalla, status, var_, tester = [], anmarkning = null) => ({ id, rubrik, kalla, status, var: var_, tester, anmarkning });
@@ -16,6 +17,11 @@ const R = 'Remiss > ';
 const F = 'FHIR > ';
 const S = 'Seed > ';
 const KR = 'Kravregistret > ';
+const LK = 'Läskopia > ';
+// Testerna av gränssnittet körs i Playwright (test/avbrott.cjs och test/klickbudget.cjs), se klientresultat.js.
+const GA = 'Gränssnitt > Avbrott > ';
+const GK = 'Gränssnitt > Klickbudget > ';
+export const klickbudgetTest = (f) => `${GK}${f.namn} inom budget`;
 
 export const KRAV = [
   // Kravspårbarhet
@@ -39,11 +45,22 @@ export const KRAV = [
   k('D3', 'Verifierad migrering med avstämningsrapport', `${RAPPORT}, D3`, 'delvis', '/migrering',
     [`${A}migreringsavstämningen visar avvikelsen`],
     'Avstämningen räknas på seedens migrerade poster. Någon riktig migrering från VAS eller Cosmic görs inte.'),
-  k('D4', 'Läsåtkomst vid avbrott och inloggning som inte faller med en extern tjänst', `${RAPPORT}, D4`, 'planerat', null, [], 'Avbrottsläsläge byggs inte i första versionen.'),
+  k('D4', 'Läsåtkomst vid avbrott och inloggning som inte faller med en extern tjänst', `${RAPPORT}, D4`, 'uppfyllt_demo', '/',
+    [`${LK}nyckeln lämnas vid inloggning, byts vid ny inloggning och glöms vid utloggning`, `${LK}innehåller bara det servern redan lämnar ut till den inloggade`,
+      `${LK}spärrade uppgifter och skyddad identitet följer samma regler i läskopian`, `${LK}yrkesrollen styr vad läskopian innehåller`,
+      `${LK}utan inloggning lämnas ingen läskopia ut`, `${LK}att uppgifterna lämnas ut till läskopian loggas en gång per patient och grund`,
+      `${LK}åtkomster i läsläget skrivs till åtkomstloggen när förbindelsen är tillbaka`, `${LK}åtkomster utanför läskopian, med fel handling eller fel tid avvisas`,
+      `${LK}en rad som skickas två gånger loggas en gång`, `${LK}läskopians nyckel och kopplingar överlever omstart av servern`, `${LK}service workern cachar alla statiska filer`,
+      `${GA}appen startar utan nät från service workern och visar läsläget`, `${GA}läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB`,
+      `${GA}skrivande är avstängt i läsläget med en förklaring`, `${GA}simulerat avbrott ger läsläge medan servern svarar andra besökare`,
+      `${GA}åtkomster i läsläget når åtkomstloggen när servern svarar igen`, `${GA}läskopian rensas vid utloggning`, `${GA}läskopian används inte efter 8 timmar`],
+    'Läsläget gäller den som var inloggad när avbrottet kom, i samma webbläsarflik, och visar arbetslistan och de patienter som kopierats. Inloggningen i demon är ett simulerat SITHS-kort som inte beror på någon extern tjänst, men en riktig inloggning med reservväg vid avbrott hos Inera är inte byggd. Läsläget ersätter inte en reservrutin med utskrifter eller ett separat reservsystem för läsning.'),
   k('D5', 'Svarstidsmål per vanlig åtgärd, mätta i drift och publicerade', `${RAPPORT}, D5`, 'uppfyllt_demo', '/drift',
     [`${A}hälsa och Server-Timing på alla svar`, `${A}drift visar p50 och p95 per endpoint`],
     'Målet i demon är p95 under 200 ms per endpoint. Mätningen gäller demons server, inte ett produktionssystem.'),
-  k('D6', 'Klickbudget per vanligt arbetsflöde, mätt med verkliga användare', `${RAPPORT}, D6`, 'planerat', null, [], 'Klick mäts inte i första versionen.'),
+  { ...k('D6', 'Klickbudget per vanligt arbetsflöde, mätt med verkliga användare', `${RAPPORT}, D6`, 'uppfyllt_demo', '/krav',
+    [`Klickbudget > klickbudget.json täcker alla flöden med budgetarna från koden`, ...FLODEN.map(klickbudgetTest)],
+    'Klick, fältbyten och tangenttryck mäts i Playwright med ett skript som gör flödena i gränssnittet, inte med verkliga användare. En mätning med verkliga användare före start återstår. SVT Norrbotten rapporterade 2026-02-19 att det i Cosmic krävs upp till 21 knapptryck för att få fram rätt information. Den siffran är inte mätt här och flödena är inte desamma.'), bilaga: 'klickbudget' },
   k('D7', 'Små releaser med automatiserad regressionstest och återgång', `${RAPPORT}, D7`, 'delvis', '/krav',
     [`${KR}status uppfyllt_demo bara när alla tester är gröna`],
     'Bygget kör alla tester och stoppas om något är rött. Återgång och kundens godkännande före uppgradering är inte byggda.'),
@@ -111,7 +128,8 @@ export const KRAV = [
   k('M8', 'Uppgraderingar skapar nya fel: små releaser och automatiserade tester', `${RAPPORT}, Misstag att inte upprepa`, 'delvis', '/krav',
     [`${KR}status uppfyllt_demo bara när alla tester är gröna`], 'Återgång är inte byggd.'),
   k('M9', 'Fler klick och långsamhet: klickbudget och svarstidsmål', `${RAPPORT}, Misstag att inte upprepa`, 'delvis', '/drift',
-    [`${A}drift visar p50 och p95 per endpoint`], 'Svarstid mäts. Klick mäts inte.'),
+    [`${A}drift visar p50 och p95 per endpoint`, `Klickbudget > klickbudget.json täcker alla flöden med budgetarna från koden`],
+    'Svarstid mäts i drift och klick mäts med ett skript i Playwright. Sekreterare, vårdadministratörer och andra verkliga användare har inte varit med i designen eller mätningen.'),
   k('M10', 'Ändringar fastnar i samverkan: eget förvaltningsteam med beslutsrätt', `${RAPPORT}, Misstag att inte upprepa`, 'planerat', null, [], 'Gäller organisation, inte koden.'),
   k('M11', 'Beslut utanför demokratisk insyn: diarieföring och öppen dokumentation', `${RAPPORT}, Misstag att inte upprepa`, 'delvis', '/krav', [], 'Designen och koden är öppna. Diarieföring gäller organisationen.'),
   k('M12', 'Inlåsning: regionägd kod och data i öppna format', `${RAPPORT}, Misstag att inte upprepa`, 'delvis', '/fhir/metadata',
@@ -127,19 +145,23 @@ export function lasTestresultat(fil) {
 }
 
 // Status beräknas från testresultatet. Ett krav som avses vara uppfyllt men saknar gröna tester blir delvis.
-export function kravregister(resultat, register = KRAV) {
-  const status = new Map((resultat?.tester ?? []).map(t => [t.namn, t.status]));
+// klient är resultatet från testerna av gränssnittet (klientresultat.js). Ett inaktuellt klienttest räknas inte som grönt.
+export function kravregister(resultat, register = KRAV, klient = null) {
+  const status = new Map([...(resultat?.tester ?? []), ...(klient?.tester ?? [])].map(t => [t.namn, t.status]));
   const krav = register.map(x => {
     const tester = x.tester.map(namn => ({ namn, status: status.get(namn) ?? 'saknas' }));
     const allaGrona = tester.length > 0 && tester.every(t => t.status === 'grön');
     let s = x.status;
     if (s === 'uppfyllt_demo' && !allaGrona) s = 'delvis';
-    return { id: x.id, rubrik: x.rubrik, kalla: x.kalla, status: s, avsedd: x.status, var: x.var, tester, anmarkning: x.anmarkning };
+    const ut = { id: x.id, rubrik: x.rubrik, kalla: x.kalla, status: s, avsedd: x.status, var: x.var, tester, anmarkning: x.anmarkning };
+    if (x.bilaga === 'klickbudget') ut.klickbudget = klient?.klickbudget ?? null;
+    return ut;
   });
   const summa = { uppfyllt_demo: 0, delvis: 0, planerat: 0 };
   for (const x of krav) summa[x.status]++;
   return {
     testresultat: resultat ? { tid: resultat.tid, bun: resultat.bun, antal: resultat.antal, godkanda: resultat.godkanda, misslyckade: resultat.misslyckade } : null,
+    klienttester: klient?.klienttester ?? null,
     summa, krav,
   };
 }

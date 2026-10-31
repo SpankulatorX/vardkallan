@@ -1,0 +1,220 @@
+{
+  "tid": "2026-10-31T17:52:25.439Z",
+  "bas": "http://127.0.0.1:18797",
+  "webblasare": "Chromium 147.0.7727.15",
+  "gransnittHash": "4aad48ed67c84b28c403f996acf7da776bda1b8740f84648178de45879a0e4c4",
+  "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
+  "floden": [
+    {
+      "id": "oppna-patient",
+      "namn": "Öppna patient från arbetslistan",
+      "roll": "lak-kard",
+      "start": "Arbetslistan efter inloggning",
+      "budget": 1,
+      "motivering": "Ett klick på patientens namn. Översikten med läkemedel, diagnoser, mätvärden och senaste anteckningar ska synas direkt, utan flikbyte.",
+      "klick": 1,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "steg": [
+        "klick: patientens namn i arbetslistan"
+      ]
+    },
+    {
+      "id": "las-anteckning",
+      "namn": "Läsa senaste anteckning",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 1,
+      "motivering": "Ett klick på den senaste anteckningen i översikten, som då visas i sin helhet.",
+      "klick": 1,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "steg": [
+        "klick: senaste signerade anteckningen (Omvårdnadsanteckning)"
+      ]
+    },
+    {
+      "id": "daganteckning",
+      "namn": "Skriva och signera en daganteckning",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 4,
+      "motivering": "Ett klick för att öppna en ny anteckning, ett fältbyte för vart och ett av de två sökord som skrivs (Aktuellt och Bedömning) och ett klick för att signera. Mallen Daganteckning och den pågående vårdkontakten ska vara förvalda.",
+      "klick": 2,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Ny anteckning",
+        "förvalt: mallen Daganteckning",
+        "har redan fokus: sökordet Aktuellt",
+        "fältbyte: sökordet Bedömning",
+        "klick: Signera"
+      ]
+    },
+    {
+      "id": "ordinera",
+      "namn": "Ordinera ett läkemedel utan varning",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 7,
+      "motivering": "Ett klick för att öppna ordinationen, ett fältbyte till sökfältet och ett klick på träffen, ett fältbyte vardera för dosering och ordinationsorsak, ett klick för uppföljningsdatum och ett för att spara. Utan varningar ska kontroll och sparande ske med samma klick.",
+      "klick": 4,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 5,
+      "inomBudget": true,
+      "steg": [
+        "klick: Ordinera",
+        "har redan fokus: sök läkemedel",
+        "klick: träffen Omeprazol",
+        "har redan fokus: dosering",
+        "fältbyte: ordinationsorsak",
+        "klick: uppföljning om två veckor",
+        "klick: Kontrollera och spara"
+      ]
+    },
+    {
+      "id": "utsattning",
+      "namn": "Sätta ut ett läkemedel",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 4,
+      "motivering": "Ett klick till läkemedelslistan, ett på Sätt ut för raden, ett fältbyte för den obligatoriska orsaken och ett klick för att bekräfta.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Läkemedel",
+        "klick: Sätt ut för Alvedon",
+        "har redan fokus: orsak",
+        "klick: Sätt ut"
+      ]
+    },
+    {
+      "id": "blodtryck",
+      "namn": "Registrera blodtryck",
+      "roll": "ssk-kard",
+      "start": "Patientens översikt",
+      "budget": 3,
+      "motivering": "Ett klick till mätvärdena, ett fältbyte för värdet och ett klick för att registrera. Blodtryck är det vanligaste mätvärdet och ska vara förvalt, så att listan inte behöver ändras.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Registrera mätvärde",
+        "förvalt: mätvärdet Blodtryck",
+        "har redan fokus: värdet",
+        "klick: Registrera"
+      ]
+    },
+    {
+      "id": "remiss",
+      "namn": "Skicka remiss",
+      "roll": "lak-vc",
+      "start": "Patientens översikt",
+      "budget": 7,
+      "motivering": "Ett klick till remisserna och ett för att öppna en ny remiss, två klick för att välja mottagare i listan, ett fältbyte vardera för frågeställning och anamnes och ett klick för att skicka. Prioritet och sista svarsdatum ska ha rimliga förval.",
+      "klick": 4,
+      "faltbyten": 2,
+      "tangenter": 0,
+      "uppmatt": 6,
+      "inomBudget": true,
+      "steg": [
+        "klick: Skicka remiss",
+        "lista (2 klick): mottagare Kardiologiska kliniken",
+        "fältbyte: frågeställning",
+        "fältbyte: anamnes",
+        "klick: Skicka remissen"
+      ]
+    },
+    {
+      "id": "kvittera-svar",
+      "namn": "Kvittera remissvar",
+      "roll": "lak-vc",
+      "start": "Arbetslistan efter inloggning",
+      "budget": 3,
+      "motivering": "Ett klick till inkorgen, ett på svaret, som då visas i sin helhet, och ett för att kvittera att svaret är läst. Svaret ska läsas före kvittensen, så kvittensen ligger inte direkt i inkorgen.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Inkorg i menyn",
+        "klick: remissvaret i inkorgen",
+        "klick: Kvittera svaret"
+      ]
+    },
+    {
+      "id": "nodatkomst",
+      "namn": "Nödåtkomst",
+      "roll": "lak-akut",
+      "start": "Arbetslistan efter inloggning",
+      "budget": 8,
+      "motivering": "Ett klick till sök, ett fältbyte och Enter för sökningen, ett klick på träffen, ett på Nödåtkomst, ett för syftet, ett för intyget att patienten inte kan samtycka och ett för att öppna. Syfte och intyg krävs och ska inte gå att hoppa över.",
+      "klick": 6,
+      "faltbyten": 0,
+      "tangenter": 1,
+      "uppmatt": 7,
+      "inomBudget": true,
+      "steg": [
+        "klick: Sök patient i menyn",
+        "har redan fokus: sökfältet",
+        "tangent Enter: sök",
+        "klick: träffen Thomas Lindberg",
+        "klick: Nödåtkomst",
+        "klick: syftet Medvetslös vid ankomst",
+        "klick: intyget att patienten inte kan samtycka",
+        "klick: Öppna med nödåtkomst"
+      ]
+    }
+  ],
+  "tester": [
+    {
+      "namn": "Gränssnitt > Klickbudget > Öppna patient från arbetslistan inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Läsa senaste anteckning inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Skriva och signera en daganteckning inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Ordinera ett läkemedel utan varning inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Sätta ut ett läkemedel inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera blodtryck inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Skicka remiss inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Kvittera remissvar inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Nödåtkomst inom budget",
+      "status": "grön"
+    }
+  ]
+}

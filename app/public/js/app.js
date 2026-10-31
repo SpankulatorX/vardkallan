@@ -1,5 +1,7 @@
 // Vårdkällan: sessionen, ramen och routningen. Varje vy är en modul med visa(main, parametrar).
-import { esc, api, avbrytAllaAnrop, krokar, notis, felNotis, ikon, tal, medKnapp } from './ui.js';
+import { esc, api, avbrytAllaAnrop, krokar, notis, felNotis, ikon, tal, medKnapp, avbrott } from './ui.js';
+import * as avbrottslage from './avbrott.js';
+import { satNyckel } from './lasekopia.js';
 import * as inloggning from './vyer/inloggning.js';
 import * as arbetslista from './vyer/arbetslista.js';
 import * as sok from './vyer/sok.js';
@@ -161,6 +163,7 @@ export const aktuellNav = () => navNr;
 
 export async function rita() {
   const nr = ++navNr;
+  demoknappar();
   const route = location.hash || '#/';
   const [vag, fraga = ''] = route.split('?');
   const q = new URLSearchParams(fraga);
@@ -205,18 +208,30 @@ async function visaVy(vy, main, param, q, nr) {
   }
   if (nr !== navNr) return;
   // Vid första laddningen ligger fokus kvar i början av sidan, så att länken till innehållet nås först.
+  // En vy kan peka ut ett fält med data-fokus (sökfältet), annars får rubriken fokus.
   if (forstaVisning) forstaVisning = false;
   else if (!sammaPatient) {
-    const h1 = main.querySelector('h1');
-    (h1 ?? main).focus({ preventScroll: false });
+    const mal = main.querySelector('[data-fokus]') ?? main.querySelector('h1');
+    (mal ?? main).focus({ preventScroll: false });
     window.scrollTo(0, 0);
   }
   document.title = `${main.querySelector('h1')?.textContent?.trim() || 'Start'}, Vårdkällan`;
+  // Läskopian för avbrott förnyas när en patient har öppnats, annars högst en gång i minuten.
+  if (S.session?.inloggad) avbrottslage.fornya({ nu: vyNamn === 'patient' });
+}
+
+// Demoknappen Simulera avbrott visas för den som är inloggad, och inte under ett avbrott.
+export function demoknappar() {
+  const b = document.querySelector('[data-a="avbrott"]');
+  if (b) b.hidden = !S.session?.inloggad || avbrott.simulerat || avbrott.aktivt;
 }
 
 export async function loggaIn(personalId, knapp) {
   const s = await medKnapp(knapp, () => api('/api/login', { metod: 'POST', data: { personalId } }));
   S.session = s;
+  // Ny inloggning, ny nyckel: en tidigare persons läskopia raderas.
+  await satNyckel(s.lasnyckel, s.personal.id).catch(() => {});
+  avbrottslage.fornya({ nu: true });
   ramNyckel = null;
   document.getElementById('notiser').replaceChildren();
   await Promise.all([uppdateraInkorg(), laddaEnheter().catch(() => {})]);
@@ -229,7 +244,18 @@ document.addEventListener('click', async (e) => {
   const a = b.dataset.a;
   if (a === 'loggaut') {
     avbrytAllaAnrop();
+    if (avbrott.aktivt) {
+      await avbrottslage.loggaUtUnderAvbrott();
+      S.session = { inloggad: false };
+      S.inkorg = null;
+      ramNyckel = null;
+      document.getElementById('notiser').replaceChildren();
+      notis('Du är utloggad i den här fliken och läskopian är raderad. Sessionen på servern loggas ut när förbindelsen är tillbaka.', 'info');
+      if (location.hash === '#/') rita(); else location.hash = '#/';
+      return;
+    }
     try { await api('/api/logout', { metod: 'POST', data: {} }); } catch (err) { felNotis(err); }
+    await avbrottslage.rensa().catch(() => {});
     S.session = { inloggad: false };
     S.inkorg = null;
     ramNyckel = null;
@@ -247,6 +273,9 @@ document.addEventListener('click', async (e) => {
       await uppdateraInkorg();
       rita();
     } catch { /* notis visad */ }
+  } else if (a === 'avbrott') {
+    await avbrottslage.simulera();
+    notis('Avbrottet är simulerat. Den här fliken beter sig som om servern var nere. Servern är igång för alla andra.', 'info');
   } else if (a === 'meny') {
     const nav = document.getElementById('meny');
     const oppen = nav.classList.toggle('oppen');
@@ -257,9 +286,13 @@ document.addEventListener('click', async (e) => {
 window.addEventListener('hashchange', () => rita());
 
 async function start() {
+  avbrottslage.init();
   try {
     S.session = await api('/api/session', { tyst: true });
+    if (!avbrott.aktivt) await avbrottslage.slutforUtloggning().catch(() => {});
     if (S.session.inloggad) await laddaEnheter().catch(() => {});
+    if (S.session.inloggad && !avbrott.aktivt) await satNyckel(S.session.lasnyckel, S.session.personal.id).catch(() => {});
+    if (!S.session.inloggad && !avbrott.aktivt) await avbrottslage.rensa().catch(() => {});
   } catch (e) {
     S.session = { inloggad: false };
     if (e.status !== 429) felNotis(e);

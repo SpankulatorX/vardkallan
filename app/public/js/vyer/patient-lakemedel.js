@@ -27,6 +27,8 @@ export async function visa(el, ctx) {
     e.currentTarget.setAttribute('aria-expanded', 'true');
     ordinationsForm(plats, ctx);
   });
+  // Från snabbvalet Ordinera i översikten (lakemedel/ny) öppnas formuläret direkt.
+  if (ctx.sub === 'ny' && kanOrdinera) el.querySelector('[data-ny]').click();
   el.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-utsatt],[data-avstam],[data-nll]');
     if (!b) return;
@@ -135,8 +137,9 @@ function ordinationsForm(plats, ctx) {
     <div class="knapprad"><button type="submit" class="knapp" data-spara>Kontrollera och spara</button><button type="button" class="knapp text" data-stang>Avbryt</button></div>
   </form>`;
   const form = plats.querySelector('form');
-  form.querySelector('h3').focus();
   const sok = form.querySelector('#lm-sok');
+  // Fokus i sökfältet, så att det går att börja skriva läkemedlets namn direkt.
+  sok.focus();
   const traffar = form.querySelector('#lm-traffar');
   let timer = null;
   let kontrollerad = null;

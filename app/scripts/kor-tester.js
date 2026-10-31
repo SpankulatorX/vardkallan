@@ -3,6 +3,7 @@
 import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { KRAV } from '../src/krav.js';
+import { lasKlientresultat } from '../src/klientresultat.js';
 
 const rot = join(import.meta.dir, '..');
 const xml = join(rot, 'test-resultat.xml');
@@ -31,7 +32,11 @@ for (const m of text.matchAll(/<(\/?)(testsuites|testsuite|testcase|failure|erro
 }
 try { unlinkSync(xml); } catch { /* ingen fil */ }
 
-const namn = new Set(tester.map(t => t.namn));
+// Testerna av gränssnittet körs i Playwright före bygget och följer med som klickbudget.json och klienttest-resultat.json.
+const klient = lasKlientresultat({ klickbudget: join(rot, 'klickbudget.json'), klienttester: join(rot, 'klienttest-resultat.json') });
+const namn = new Set([...tester, ...klient.tester].map(t => t.namn));
+const inaktuella = klient.tester.filter(t => t.status === 'inaktuell').length;
+if (inaktuella) console.warn(`${inaktuella} tester av gränssnittet är inaktuella: public/ har ändrats sedan Playwright-testerna kördes.`);
 const saknas = [...new Set(KRAV.flatMap(k => k.tester).filter(t => !namn.has(t)))];
 const resultat = {
   tid: new Date().toISOString(), bun: Bun.version, antal: tester.length,

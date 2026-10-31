@@ -90,6 +90,18 @@ Det här dokumentet beskriver var backend avviker från eller lägger till någo
 - **Lagkraven är L1 till L13**, inte L1 till L8: rapportens tabell "Lagkrav och nationella tjänster" har 13 rader och varje rad blev ett krav. Dessutom finns **M1 till M13** från tabellen "Misstag att inte upprepa".
 - `GET /api/drift` ger `{ startad, sandladar, mal: { p95Ms: 200 }, server: [{ endpoint, antal, p50, p95, inomMal }], sandlada: [...] }`. `endpoint` är normaliserad, till exempel `GET /api/patient/:id`. Mätningen gäller de senaste 1000 anropen per endpoint för servern och 200 för sandlådan.
 
+## Läsläge vid avbrott (D4)
+
+- `POST /api/login` och `GET /api/session` har `lasnyckel: { nyckel, giltigTill }` när någon är inloggad: en slumpad AES-nyckel på 256 bitar (base64url) som webbläsaren krypterar sin läskopia med. Den byts vid varje inloggning, glöms vid utloggning och gäller i 8 timmar.
+- `GET /api/lasekopia` ger `{ skapad, giltigTill, session, enheter, mallar, arbetslista, patienter: { [id]: { handling, huvud, oversikt, lakemedel, anteckningar, anteckning: { [id]: full anteckning } } } }` för patienterna på arbetslistan och de patienter den inloggade har öppnat under sessionen. Varje del byggs med samma funktion och samma behörighetskontroll som det vanliga anropet, så den är identisk med vad `GET /api/patient/:id`, `/oversikt`, `/lakemedel` och `/api/anteckning/:id` ger. `anteckningar` har de fem senaste och `iLaskopian` och `totalt`. `session` har inte nyckeln. Logggranskaren får en tom kopia. Utlämnandet loggas en gång per patient och inloggning med resurs `lasekopia`, och igen om grunden ändras.
+- `POST /api/lasekopia/logg { rader: [{ id, tid, patientId, handling, resurs }] }` tar emot åtkomster från läsläget när servern svarar igen. Högst 500 rader. En rad tas emot bara om patienten finns i den inloggades läskopia, handlingen är en läsning som rollen har (`las_oversikt`, `las_admin`, `las_lakemedel`, `las_journal`, `las_omvardnad`) och tiden ligger inom läskopians giltighet (fem minuters marginal för klockan). Raden loggas med webbläsarens tid, grunden från när kopian lämnades ut, resurs `laslage:<sökväg>` och syftet "Läsläge vid avbrott, läskopia i webbläsaren". Svar: `{ mottagna, avvisade: [{ id, orsak }] }`. Ett `id` som redan har tagits emot räknas som mottaget men loggas inte igen.
+- Nyckeln, de öppnade patienterna och vilka patienter som lämnats ut sparas med sandlådan vid omstart.
+- `public/sw.js` cachar de statiska filerna. `/api` och `/fhir` går aldrig via service workern.
+
+## Krav och klickbudget (D6)
+
+- `GET /api/krav` läser också `klickbudget.json` och `klienttest-resultat.json` (miljövariabler `KLICKBUDGET` och `KLIENTTESTER`), som skrivs av Playwright-skripten `test/klickbudget.cjs` och `test/avbrott.cjs`. Tillagt i svaret: `klienttester: { tid, antal, godkanda, aktuell }` och för D6 `klickbudget: { tid, regler, floden, aktuell }`. Testerna av gränssnittet räknas som `inaktuell` när hashen av `public/` inte är densamma som när de kördes.
+
 ## FHIR
 
 - Bara läsning. FHIR-anrop skapar ingen sandlåda: utan sessionskaka eller inloggning blir svaret 401 `OperationOutcome` (utom `/fhir/metadata`).

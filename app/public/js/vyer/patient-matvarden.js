@@ -64,6 +64,8 @@ export async function visa(el, ctx) {
   const satt = () => { const t = MATTYPER.find(m => m[0] === form.typ.value); enhet.textContent = t[2]; form.varde.placeholder = t[0] === 'blodtryck' ? '120/80' : ''; form.varde.inputMode = t[0] === 'blodtryck' ? 'text' : 'decimal'; };
   form.typ.addEventListener('change', satt);
   satt();
+  // Från snabbvalet Registrera mätvärde i översikten (matvarden/ny) får värdefältet fokus. Blodtryck är förvalt.
+  if (ctx.sub === 'ny') form.varde.focus();
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const typ = form.typ.value;

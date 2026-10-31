@@ -15,8 +15,12 @@
 <a class="hoppa" href="#innehall">Hoppa till innehållet</a>
 <div class="demorad" role="note">
   <p>Demo med påhittade patienter och testpersonnummer från Skatteverket. Inte för vård av riktiga patienter.</p>
-  <button type="button" class="knapp liten demoknapp" data-a="aterstall">Återställ demon</button>
+  <div class="demoknappar">
+    <button type="button" class="knapp liten demoknapp" data-a="avbrott" hidden>Simulera avbrott</button>
+    <button type="button" class="knapp liten demoknapp" data-a="aterstall">Återställ demon</button>
+  </div>
 </div>
+<div id="avbrott" class="avbrottsrad" role="alert" hidden></div>
 <div id="ram"><p class="laddar-sida">Startar Vårdkällan.</p></div>
 <footer class="sidfot">
   <p>Vårdkällan är ett fristående demoprojekt med öppen källkod. Det är inte en tjänst från Region Örebro län.</p>

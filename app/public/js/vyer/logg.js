@@ -17,6 +17,14 @@ const patientCell = (r, lank = true) => {
   return `${lank ? `<a href="#/logg/patient/${encodeURIComponent(r.patient.id)}">${n}</a>` : n}<span class="under-text pnr">${esc(r.patient.personnummer)}</span>`;
 };
 
+// Förklaring under handlingen: söksträngen, och om raden gäller läskopian för avbrott (D4).
+function resursText(r) {
+  if (r.resurs && r.handling === 'sok') return `<span class="under-text">${esc(r.resurs.replace(/^sok:/, 'Sökte på '))}</span>`;
+  if (r.resurs === 'lasekopia') return '<span class="under-text">Lämnades ut till läskopian för avbrott</span>';
+  if (r.resurs?.startsWith('laslage:')) return '<span class="under-text">Läst i läsläget under ett avbrott</span>';
+  return '';
+}
+
 export function loggTabell(rader, { visaPatient = true } = {}) {
   if (!rader.length) return tom('Inga loggrader matchar urvalet.');
   return `<div class="tabellrulle"><table class="tabell logg-tabell">
@@ -26,7 +34,7 @@ export function loggTabell(rader, { visaPatient = true } = {}) {
       <td>${esc(r.personal?.namn ?? '')}<span class="under-text">${esc(YRKE[r.personal?.yrke] ?? '')}</span></td>
       <td>${esc(r.enhet?.namn ?? '')}</td>
       ${visaPatient ? `<td>${patientCell(r)}</td>` : ''}
-      <td>${esc(HANDLING[r.handling] ?? r.handling)}${r.resurs && r.handling === 'sok' ? `<span class="under-text">${esc(r.resurs.replace(/^sok:/, 'Sökte på '))}</span>` : ''}</td>
+      <td>${esc(HANDLING[r.handling] ?? r.handling)}${resursText(r)}</td>
       <td><span class="grund grund-${esc(r.grund)}">${esc(GRUND[r.grund] ?? r.grund)}</span></td>
       <td>${esc(r.syfte ?? '')}</td>
       <td>${r.resultat === 'nekad' ? `<span class="resultat-nekad">${ikon.las}Nekad</span>` : 'Tillåten'}${r.flaggad ? '<span class="sr">, flaggad för uppföljning</span>' : ''}</td>

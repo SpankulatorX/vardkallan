@@ -21,13 +21,16 @@ export async function visa(el, ctx) {
   if (filter.typ && !typer.includes(filter.typ)) filter.typ = '';
   const egnaMallar = mallar.filter(m => kanSkriva(m.kategori));
 
-  el.innerHTML = `<h2 class="sr">Journal</h2>${doldaRad(lista.dolda)}
+  // I läsläget vid avbrott kommer listan från läskopian, som bara har de senaste anteckningarna.
+  const urKopia = lista.totalt > lista.iLaskopian
+    ? `<p class="ruta ruta-info liten">Läskopian har de ${lista.iLaskopian} senaste av patientens ${lista.totalt} anteckningar som du kan se.</p>` : '';
+  el.innerHTML = `<h2 class="sr">Journal</h2>${urKopia}${doldaRad(lista.dolda)}
     <div class="journal-delad">
       <div class="journal-lista">
         <div class="journal-verktyg">
-          <div class="falt kompakt"><label for="j-enhet">Enhet</label><select id="j-enhet"><option value="">Alla enheter</option>${enheter.map(([id, n]) => `<option value="${esc(id)}"${filter.enhet === id ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div>
-          <div class="falt kompakt"><label for="j-typ">Typ</label><select id="j-typ"><option value="">Alla typer</option>${typer.map(t => `<option${filter.typ === t ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
-          ${egnaMallar.length ? `<a class="knapp liten" href="${ctx.href('journal', 'ny')}">${ikon.plus}<span>Ny anteckning</span></a>` : ''}
+          <div class="falt kompakt" data-las-ok><label for="j-enhet">Enhet</label><select id="j-enhet"><option value="">Alla enheter</option>${enheter.map(([id, n]) => `<option value="${esc(id)}"${filter.enhet === id ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div>
+          <div class="falt kompakt" data-las-ok><label for="j-typ">Typ</label><select id="j-typ"><option value="">Alla typer</option>${typer.map(t => `<option${filter.typ === t ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
+          ${egnaMallar.length ? `<a class="knapp liten" href="${ctx.href('journal', 'ny')}" data-skriv>${ikon.plus}<span>Ny anteckning</span></a>` : ''}
         </div>
         <div id="j-poster"></div>
       </div>
@@ -149,7 +152,8 @@ async function nyForm(las, ctx, egnaMallar) {
   };
   form.querySelector('[data-spara]').addEventListener('click', e => spara(e.currentTarget, false));
   form.querySelector('[data-signera]').addEventListener('click', e => spara(e.currentTarget, true));
-  form.querySelector('h2').focus();
+  // Fokus i första sökordet, så att det går att börja skriva direkt. Formuläret har rubriken som namn.
+  form.querySelector('#ny-sokord textarea')?.focus();
 }
 
 async function utkastForm(las, ctx, a) {

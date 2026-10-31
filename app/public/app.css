@@ -575,6 +575,31 @@ legend { font-weight: 600; font-size: var(--f-s); padding: 0; margin-bottom: 6px
 .forslag legend { width: 100%; font-size: var(--f-xs); color: var(--dampad); font-weight: 400; }
 .radiogrupp { display: flex; gap: 18px; }
 
+/* Avbrott: läsläge (D4). Raden ligger under demoraden och syns på varje sida så länge avbrottet pågår. */
+.demoknappar { display: flex; gap: 8px; flex: none; flex-wrap: wrap; }
+.demoknapp[hidden] { display: none; }
+.avbrottsrad { background: var(--larm-bg); border-bottom: 3px solid var(--larm); color: var(--blak); }
+.avbrott-inre { display: flex; gap: 14px; align-items: flex-start; padding: 12px 20px; }
+.avbrott-inre > .ikon { color: var(--larm); width: 26px; height: 26px; margin-top: 2px; }
+.avbrott-text { flex: 1; min-width: 0; }
+.avbrott-text h2 { font-size: var(--f-l); color: var(--larm); margin-bottom: 4px; }
+.avbrott-text p { margin: 2px 0; max-width: 92ch; }
+.avbrott-sim { font-weight: 600; color: var(--obs); }
+body.laslage [data-skriv] { display: none !important; }
+body.laslage [data-laslage-av] { cursor: not-allowed; }
+
+/* Snabbval i översikten */
+.snabbval ul { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Klickbudgeten på kravsidan (D6) */
+.klickbudget { margin: 10px 0 0 54px; max-width: 980px; }
+.kb-tabell caption { text-align: left; font-weight: 600; padding: 2px 0 6px; caption-side: top; }
+.kb-tabell .avst { display: block; }
+.kb-motivering { margin: 6px 0 0; }
+.kb-motivering div { margin: 6px 0; }
+.kb-motivering dt { font-weight: 600; }
+.kb-motivering dd { margin: 0; color: var(--blak-2); max-width: 90ch; }
+
 /* Smalare skärmar */
 @media (max-width: 1100px) {
   .patientband { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "las id" "las signaler" "las grund"; }
@@ -595,6 +620,8 @@ legend { font-weight: 600; font-size: var(--f-s); padding: 0; margin-bottom: 6px
 }
 @media (max-width: 640px) {
   .demorad { flex-direction: column; align-items: flex-start; gap: 6px; padding: 6px 16px; }
+  .avbrott-inre { flex-wrap: wrap; padding: 10px 16px; }
+  .klickbudget { margin-left: 0; }
   .topp-inre { padding: 8px 16px; gap: 10px; }
   .inloggad { order: 6; width: 100%; }
   .svarstid { order: 7; padding-left: 0; }

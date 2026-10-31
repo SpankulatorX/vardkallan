@@ -1,0 +1,36 @@
+{
+  "tid": "2026-10-31T17:51:59.112Z",
+  "bas": "http://127.0.0.1:18797",
+  "webblasare": "Chromium 147.0.7727.15",
+  "gransnittHash": "4aad48ed67c84b28c403f996acf7da776bda1b8740f84648178de45879a0e4c4",
+  "tester": [
+    {
+      "namn": "Gränssnitt > Avbrott > läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > appen startar utan nät från service workern och visar läsläget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > skrivande är avstängt i läsläget med en förklaring",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > åtkomster i läsläget når åtkomstloggen när servern svarar igen",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > simulerat avbrott ger läsläge medan servern svarar andra besökare",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > läskopian rensas vid utloggning",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > läskopian används inte efter 8 timmar",
+      "status": "grön"
+    }
+  ]
+}
