@@ -1,5 +1,5 @@
 // Vårdkällan: sessionen, ramen och routningen. Varje vy är en modul med visa(main, parametrar).
-import { esc, api, krokar, notis, felNotis, ikon, tal, medKnapp } from './ui.js';
+import { esc, api, avbrytAllaAnrop, krokar, notis, felNotis, ikon, tal, medKnapp } from './ui.js';
 import * as inloggning from './vyer/inloggning.js';
 import * as arbetslista from './vyer/arbetslista.js';
 import * as sok from './vyer/sok.js';
@@ -228,6 +228,7 @@ document.addEventListener('click', async (e) => {
   if (!b) return;
   const a = b.dataset.a;
   if (a === 'loggaut') {
+    avbrytAllaAnrop();
     try { await api('/api/logout', { metod: 'POST', data: {} }); } catch (err) { felNotis(err); }
     S.session = { inloggad: false };
     S.inkorg = null;

@@ -76,18 +76,28 @@ export function lasServerTiming(h) {
   return m ? Number(m[1]) : null;
 }
 
+// Pågående anrop avbryts vid utloggning, så att ett anrop som når servern efter utloggningen inte ger 401.
+const pagaende = new Set();
+export function avbrytAllaAnrop() { for (const k of pagaende) k.abort(); pagaende.clear(); }
+
 export async function api(vag, { metod = 'GET', data, tyst = false } = {}) {
   let r;
   const t0 = performance.now();
+  const kontroll = new AbortController();
+  pagaende.add(kontroll);
   try {
     r = await fetch(vag, {
       method: metod,
       headers: data !== undefined ? { 'Content-Type': 'application/json' } : {},
       body: data !== undefined ? JSON.stringify(data) : undefined,
       credentials: 'same-origin',
+      signal: kontroll.signal,
     });
   } catch {
+    if (kontroll.signal.aborted) throw new ApiFel(0, { fel: 'Anropet avbröts.', kod: 'avbruten' });
     throw new ApiFel(0, { fel: 'Det gick inte att nå servern. Kontrollera anslutningen och försök igen.', kod: 'natverk' });
+  } finally {
+    pagaende.delete(kontroll);
   }
   const st = lasServerTiming(r.headers.get('server-timing'));
   krokar.svarstid?.({ vag, metod, server: st, totalt: performance.now() - t0, status: r.status });
@@ -126,7 +136,7 @@ export function notis(text, typ = 'ok') {
   setTimeout(() => el.remove(), typ === 'fel' ? 7000 : 4200);
 }
 export function felNotis(e) {
-  if (e?.status === 401 || e?.status === 429) return;
+  if (e?.status === 401 || e?.status === 429 || e?.kod === 'avbruten') return;
   notis(e?.message || 'Något gick fel.', 'fel');
 }
 
