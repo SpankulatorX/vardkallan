@@ -3,21 +3,32 @@ import { Fel, idag } from './db.js';
 import { Atkomst, kanRoll, visningsnamn, vardenhetFor } from './atkomst.js';
 import { MATTYPER, lasHandling } from './journal.js';
 import * as logg from './logg.js';
+import { SYSTEM as KODSYSTEM, ICD10SE, ATC, MATKOD } from './kodverk.js';
+import { EXT, CS, DEFINITIONER } from './fhir-definitioner.js';
 
 export const SYSTEM = {
   personnummer: 'http://electronichealth.se/identifier/personnummer',
-  icd10se: 'http://hl7.org/fhir/sid/icd-10-se',
-  atc: 'http://www.whocc.no/atc',
-  loinc: 'http://loinc.org',
+  ...KODSYSTEM,
   hsa: 'urn:oid:1.2.752.29.4.19',
+  v2_0203: 'http://terminology.hl7.org/CodeSystem/v2-0203',
   npl: 'https://vardkallan.404haven.se/fhir/NamingSystem/npl-demo',
-  kalla: 'https://vardkallan.404haven.se/fhir/CodeSystem/kalla',
-  felkod: 'https://vardkallan.404haven.se/fhir/CodeSystem/felkod',
+  kalla: `${CS}/kalla`,
+  felkod: `${CS}/felkod`,
+  atkomstgrund: `${CS}/atkomstgrund`,
   confidentiality: 'http://terminology.hl7.org/CodeSystem/v3-Confidentiality',
+  sesakerhet: 'http://hl7.se/fhir/ig/base/CodeSystem/SecurityLabel',
   actcode: 'http://terminology.hl7.org/CodeSystem/v3-ActCode',
 };
-const EXT = 'https://vardkallan.404haven.se/fhir/StructureDefinition';
 export const TYPER = ['Patient', 'Encounter', 'Condition', 'Observation', 'MedicationRequest', 'AllergyIntolerance', 'ServiceRequest', 'Composition', 'Organization', 'Practitioner', 'AuditEvent'];
+// Profiler som resurserna påstår att de följer i meta.profile. Bara de som validerats utan fel (docs/fhir-validering.md):
+// HL7 Swedens basprofiler (hl7se.fhir.base 1.1.0) och FHIR R4:s vitalparameterprofiler.
+export const SEBAS = 'http://hl7.se/fhir/ig/base/StructureDefinition';
+export const PROFIL = { Patient: `${SEBAS}/SEBasePatient`, Organization: `${SEBAS}/SEBaseOrganization`, Practitioner: `${SEBAS}/SEBasePractitioner` };
+const VITALPROFIL = 'http://hl7.org/fhir/StructureDefinition';
+// Konformitetsresurser som kan läsas utan inloggning.
+export const DEFINITIONSTYPER = Object.keys(DEFINITIONER);
+export const oppenSokvag = (sokvag) => sokvag === '/fhir/metadata' || DEFINITIONSTYPER.some(t => sokvag === `/fhir/${t}` || sokvag.startsWith(`/fhir/${t}/`));
+const hsaIdentifier = (value) => ({ type: { coding: [{ system: SYSTEM.v2_0203, code: 'PRN', display: 'Provider number' }] }, system: SYSTEM.hsa, value });
 
 // Handling i behörighetsmotorn per resurstyp.
 const HANDLING = {
@@ -47,12 +58,13 @@ const personNamn = (db, id) => db.query('SELECT namn FROM personal WHERE id = ?'
 export function patient(db, p, visad = false) {
   const dolj = p.skyddad && !visad;
   const r = {
-    resourceType: 'Patient', id: p.id,
+    resourceType: 'Patient', id: p.id, meta: { profile: [PROFIL.Patient] },
     identifier: [{ system: SYSTEM.personnummer, value: dolj ? `${p.personnummer.slice(0, 8)}****` : p.personnummer }],
     name: dolj ? [{ text: visningsnamn(p) }] : [{ text: `${p.fornamn} ${p.efternamn}`, family: p.efternamn, given: [p.fornamn] }],
     gender: p.kon === 'man' ? 'male' : 'female', birthDate: p.fodd,
   };
-  if (p.skyddad) r.meta = { security: [{ system: SYSTEM.confidentiality, code: 'R', display: 'restricted' }] };
+  // Sekretessmarkering enligt HL7 Swedens SecurityLabel, och R (restricted) för mottagare som bara känner HL7:s kodverk.
+  if (p.skyddad) r.meta.security = [{ system: SYSTEM.sesakerhet, code: 'sekretessmarkering', display: 'Sekretessmarkering' }, { system: SYSTEM.confidentiality, code: 'R', display: 'restricted' }];
   if (!p.skyddad && p.adress) r.address = [{ line: [p.adress], postalCode: p.postnr, city: p.ort, country: 'SE' }];
   if (!p.skyddad && p.telefon) r.telecom = [{ system: 'phone', value: p.telefon }];
   const l = db.query('SELECT enhet_id FROM listningar WHERE patient_id = ?').get(p.id);
@@ -76,7 +88,7 @@ export function condition(db, d) {
     resourceType: 'Condition', id: String(d.id), meta: kallaMeta(d.kalla),
     clinicalStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-clinical', code: 'active' }] },
     category: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-category', code: 'encounter-diagnosis' }], text: d.typ === 'huvud' ? 'Huvuddiagnos' : 'Bidiagnos' }],
-    code: { coding: [{ system: SYSTEM.icd10se, code: d.kod, display: d.text }], text: d.text },
+    code: { coding: [{ system: SYSTEM.icd10se, code: d.kod, display: ICD10SE[d.kod] ?? d.text }], text: d.text },
     subject: ref('Patient', d.patient_id), encounter: d.vardkontakt_id ? ref('Encounter', d.vardkontakt_id) : undefined,
     recordedDate: d.datum,
   };
@@ -84,20 +96,18 @@ export function condition(db, d) {
 
 export function observation(db, m) {
   const def = MATTYPER[m.typ] ?? { namn: m.typ };
-  const vital = ['blodtryck', 'puls', 'temp', 'saturation', 'andningsfrekvens', 'vikt', 'langd'].includes(m.typ);
+  const kod = MATKOD[m.typ];
   const r = {
-    resourceType: 'Observation', id: String(m.id), meta: kallaMeta(m.kalla), status: 'final',
-    category: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/observation-category', code: vital ? 'vital-signs' : 'laboratory' }] }],
-    code: { coding: def.loinc ? [{ system: SYSTEM.loinc, code: def.loinc, display: def.namn }] : [], text: def.namn },
+    resourceType: 'Observation', id: String(m.id), meta: { ...kallaMeta(m.kalla), ...(kod?.profil ? { profile: [`${VITALPROFIL}/${kod.profil}`] } : {}) }, status: 'final',
+    ...(kod ? { category: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/observation-category', code: kod.kategori }] }] } : {}),
+    code: { ...(kod?.coding.length ? { coding: kod.coding.map(c => ({ ...c })) } : {}), text: def.namn },
     subject: ref('Patient', m.patient_id), effectiveDateTime: m.tid, performer: [ref('Organization', m.enhet_id, enhetsnamn(db, m.enhet_id))],
   };
+  const mangd = (value) => ({ value, unit: m.matt_enhet, ...(kod ? { system: SYSTEM.ucum, code: kod.ucum } : {}) });
   if (m.typ === 'blodtryck') {
     const [sys, dia] = m.varde.split('/').map(Number);
-    r.component = [
-      { code: { coding: [{ system: SYSTEM.loinc, code: '8480-6', display: 'Systoliskt blodtryck' }] }, valueQuantity: { value: sys, unit: 'mmHg' } },
-      { code: { coding: [{ system: SYSTEM.loinc, code: '8462-4', display: 'Diastoliskt blodtryck' }] }, valueQuantity: { value: dia, unit: 'mmHg' } },
-    ];
-  } else r.valueQuantity = { value: m.varde_num ?? Number(m.varde), unit: m.matt_enhet };
+    r.component = kod.komponenter.map((k, i) => ({ code: { coding: [{ system: SYSTEM.loinc, ...k }], text: i ? 'Diastoliskt blodtryck' : 'Systoliskt blodtryck' }, valueQuantity: mangd(i ? dia : sys) }));
+  } else r.valueQuantity = mangd(m.varde_num ?? Number(m.varde));
   return r;
 }
 
@@ -106,7 +116,7 @@ export function medicationRequest(db, o) {
   const status = o.status === 'utsatt' ? 'stopped' : o.slut && o.slut < idag() ? 'completed' : 'active';
   return {
     resourceType: 'MedicationRequest', id: String(o.id), meta: kallaMeta(o.kalla), status, intent: 'order',
-    medicationCodeableConcept: { coding: [{ system: SYSTEM.atc, code: lm.atc, display: lm.substans }, { system: SYSTEM.npl, code: lm.id, display: lm.namn }], text: `${lm.namn} ${lm.styrka} ${lm.form}` },
+    medicationCodeableConcept: { coding: [{ system: SYSTEM.atc, code: lm.atc, ...(ATC[lm.atc] ? { display: ATC[lm.atc] } : {}) }, { system: SYSTEM.npl, code: lm.id, display: lm.namn }], text: `${lm.namn} ${lm.styrka} ${lm.form}` },
     subject: ref('Patient', o.patient_id), authoredOn: o.skapad, requester: ref('Practitioner', o.ordinerad_av, personNamn(db, o.ordinerad_av)),
     reasonCode: [{ text: o.orsak }],
     dosageInstruction: [{ text: o.dosering, asNeededBoolean: Boolean(o.vid_behov) }],
@@ -125,7 +135,7 @@ export function allergyIntolerance(db, o) {
     clinicalStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical', code: 'active' }] },
     verificationStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-verification', code: 'confirmed' }] },
     type: 'allergy', category: [o.atc ? 'medication' : 'food'], criticality: o.allvarlighet === 'allvarlig' ? 'high' : 'low',
-    code: { coding: o.atc ? [{ system: SYSTEM.atc, code: o.atc, display: o.amne }] : [], text: o.amne },
+    code: { ...(o.atc ? { coding: [{ system: SYSTEM.atc, code: o.atc, ...(ATC[o.atc] ? { display: ATC[o.atc] } : {}) }] } : {}), text: o.amne },
     patient: ref('Patient', o.patient_id), recordedDate: o.datum,
     reaction: o.reaktion ? [{ manifestation: [{ text: o.reaktion }] }] : undefined,
   };
@@ -143,7 +153,8 @@ export function serviceRequest(db, r, klinisk = true) {
   };
   if (klinisk) {
     ut.reasonCode = [{ text: r.fragestallning }];
-    ut.note = [r.anamnes && { text: r.anamnes }, r.motivering && { text: `Motivering: ${r.motivering}` }, r.svar && { text: `Svar: ${r.svar}` }].filter(Boolean);
+    const note = [r.anamnes && { text: r.anamnes }, r.motivering && { text: `Motivering: ${r.motivering}` }, r.svar && { text: `Svar: ${r.svar}` }].filter(Boolean);
+    if (note.length) ut.note = note;
   }
   return ut;
 }
@@ -151,30 +162,31 @@ export function serviceRequest(db, r, klinisk = true) {
 export function composition(db, a) {
   const ersatt = db.query('SELECT id FROM anteckningar WHERE ersatter_id = ?').get(a.id);
   const sokord = JSON.parse(a.sokord);
+  const relatesTo = [
+    ...(a.ersatter_id ? [{ code: 'replaces', targetReference: ref('Composition', a.ersatter_id) }] : []),
+    ...(ersatt ? [{ code: 'transforms', targetReference: ref('Composition', ersatt.id) }] : []),
+  ];
   return {
     resourceType: 'Composition', id: String(a.id), meta: kallaMeta(a.kalla),
     status: a.status === 'utkast' ? 'preliminary' : a.ersatter_id ? 'amended' : 'final',
     type: { text: a.typ }, subject: ref('Patient', a.patient_id), encounter: a.vardkontakt_id ? ref('Encounter', a.vardkontakt_id) : undefined,
     date: a.signerad_tid ?? a.skapad, author: [ref('Practitioner', a.forfattare_id, personNamn(db, a.forfattare_id))], title: a.typ,
     custodian: ref('Organization', a.enhet_id, enhetsnamn(db, a.enhet_id)),
-    relatesTo: [
-      ...(a.ersatter_id ? [{ code: 'replaces', targetReference: ref('Composition', a.ersatter_id) }] : []),
-      ...(ersatt ? [{ code: 'transforms', targetReference: ref('Composition', ersatt.id) }] : []),
-    ],
-    section: sokord.map(s => ({ title: s.sokord, text: { status: 'generated', div: `<div xmlns="http://www.w3.org/1999/xhtml">${escape(s.text)}</div>` } })),
+    ...(relatesTo.length ? { relatesTo } : {}),
+    ...(sokord.length ? { section: sokord.map(s => ({ title: s.sokord, text: { status: 'generated', div: `<div xmlns="http://www.w3.org/1999/xhtml">${escape(s.text)}</div>` } })) } : {}),
   };
 }
 
 export function organization(db, e) {
   return {
-    resourceType: 'Organization', id: e.id, identifier: [{ system: SYSTEM.hsa, value: e.hsa_id }], active: true, name: e.namn,
+    resourceType: 'Organization', id: e.id, meta: { profile: [PROFIL.Organization] }, identifier: [hsaIdentifier(e.hsa_id)], active: true, name: e.namn,
     ...(e.kortnamn ? { alias: [e.kortnamn] } : {}), ...(e.forald_id ? { partOf: ref('Organization', e.forald_id) } : {}),
   };
 }
 
 export function practitioner(db, p) {
   return {
-    resourceType: 'Practitioner', id: p.id, identifier: [{ system: SYSTEM.hsa, value: p.hsa_id }], active: Boolean(p.aktiv),
+    resourceType: 'Practitioner', id: p.id, meta: { profile: [PROFIL.Practitioner] }, identifier: [hsaIdentifier(p.hsa_id)], active: Boolean(p.aktiv),
     name: [{ text: p.namn, family: p.namn.split(' ').slice(-1)[0], given: p.namn.split(' ').slice(0, -1) }],
     qualification: [{ code: { text: p.titel } }],
   };
@@ -186,10 +198,10 @@ export function auditEvent(r) {
     type: { system: 'http://dicom.nema.org/resources/ontology/DCM', code: '110110', display: 'Patient Record' },
     action: r.handling.startsWith('skriv') || r.handling === 'ordinera' ? 'C' : 'R', recorded: r.tid,
     outcome: r.resultat === 'nekad' ? '4' : '0',
-    purposeOfEvent: [{ coding: [{ system: `${EXT}/atkomstgrund`, code: r.grund }], text: r.syfte ?? undefined }],
+    purposeOfEvent: [{ coding: [{ system: SYSTEM.atkomstgrund, code: r.grund }], text: r.syfte ?? undefined }],
     agent: [{ who: r.personal ? ref('Practitioner', r.personal.id, r.personal.namn) : undefined, requestor: true }],
     source: { observer: { display: 'Vårdkällan' } },
-    entity: r.patientId ? [{ what: ref('Patient', r.patientId), description: r.resurs ?? undefined }] : [],
+    entity: r.patientId ? [{ what: ref('Patient', r.patientId), description: r.resurs ?? undefined }] : undefined,
     extension: [{ url: `${EXT}/hash`, valueString: r.hash }],
   };
 }
@@ -201,11 +213,13 @@ export function capability(base) {
     rest: [{
       mode: 'server',
       security: { description: 'Sessionskaka vk_sid. Samma behörighetskontroll och åtkomstloggning som gränssnittet.' },
-      resource: TYPER.map(t => ({
-        type: t, interaction: [{ code: 'read' }, { code: 'search-type' }],
+      resource: [...TYPER.map(t => ({
+        type: t, ...(PROFIL[t] ? { supportedProfile: [PROFIL[t]] } : {}), interaction: [{ code: 'read' }, { code: 'search-type' }],
         searchParam: t === 'Patient' ? [{ name: '_id', type: 'token' }, { name: 'identifier', type: 'token' }]
           : ['Organization', 'Practitioner'].includes(t) ? [{ name: '_id', type: 'token' }] : [{ name: 'patient', type: 'reference' }],
-      })),
+      })), ...DEFINITIONSTYPER.map(t => ({
+        type: t, interaction: [{ code: 'read' }, { code: 'search-type' }], searchParam: [{ name: 'url', type: 'uri' }, { name: '_id', type: 'token' }],
+      }))],
     }],
   };
 }
@@ -214,7 +228,8 @@ function bundle(base, url, resurser) {
   return {
     resourceType: 'Bundle', type: 'searchset', total: resurser.length,
     link: [{ relation: 'self', url: `${base}${url.pathname}${url.search}` }],
-    entry: resurser.map(r => ({ fullUrl: `${base}/fhir/${r.resourceType}/${r.id}`, resource: r, search: { mode: 'match' } })),
+    // En tom sökning har ingen entry, eftersom FHIR inte tillåter tomma listor.
+    ...(resurser.length ? { entry: resurser.map(r => ({ fullUrl: `${base}/fhir/${r.resourceType}/${r.id}`, resource: r, search: { mode: 'match' } })) } : {}),
   };
 }
 
@@ -232,6 +247,16 @@ export function hantera(ctx) {
   const delar = url.pathname.replace(/\/+$/, '').split('/').slice(2).map(decodeURIComponent);
   const [typ, id] = delar;
   if (typ === 'metadata' && delar.length === 1) return { status: 200, body: capability(base) };
+  if (DEFINITIONSTYPER.includes(typ) && delar.length <= 2) {
+    const alla = DEFINITIONER[typ];
+    if (id) {
+      const d = alla.find(x => x.id === id);
+      if (!d) throw new Fel(404, 'Resursen finns inte.', 'saknas');
+      return { status: 200, body: d };
+    }
+    const sokt = url.searchParams.get('url') ?? url.searchParams.get('_id');
+    return { status: 200, body: bundle(base, url, alla.filter(d => !sokt || d.url === sokt || d.id === sokt)) };
+  }
   if (!TYPER.includes(typ) || delar.length > 2) throw new Fel(404, 'Okänd FHIR-resurs.', 'saknas');
   if (!personal) throw new Fel(401, 'Logga in först.', 'ej_inloggad');
 

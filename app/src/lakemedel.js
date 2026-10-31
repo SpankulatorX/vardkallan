@@ -6,10 +6,11 @@ import { kallaEtikett } from './journal.js';
 
 export const DEMOREGLER = 'Varningarna är demoregler för att visa flödet. De är inte kliniskt beslutsstöd och inte CE-märkta.';
 export const TYPER = ['staende', 'vid_behov', 'tillfallig'];
-const ANTIKOAGULANTIA = ['B01AA', 'B01AB', 'B01AE', 'B01AF'];
-const NSAID = 'M01A';
-const WARFARIN = 'B01AA03';
-const METFORMIN = 'A10BA02';
+// ATC-prefix och koder för reglerna, kontrollerade mot WHO:s ATC-register (src/kodverk.js).
+export const ANTIKOAGULANTIA = ['B01AA', 'B01AB', 'B01AE', 'B01AF'];
+export const NSAID = 'M01A';
+export const WARFARIN = 'B01AA03';
+export const METFORMIN = 'A10BA02';
 
 const enhetsnamn = (db, id) => db.query('SELECT namn FROM enheter WHERE id = ?').get(id)?.namn ?? id;
 const personNamn = (db, id) => (id ? db.query('SELECT namn FROM personal WHERE id = ?').get(id)?.namn ?? id : null);

@@ -16,6 +16,8 @@ const R = 'Remiss > ';
 const F = 'FHIR > ';
 const S = 'Seed > ';
 const KR = 'Kravregistret > ';
+const KV = 'Kodverk > ';
+const FS = 'FHIR-struktur > ';
 
 export const KRAV = [
   // Kravspårbarhet
@@ -54,8 +56,14 @@ export const KRAV = [
     'Testat mot demons roller, inte mot verkliga användare.'),
   k('D9', 'Öppna format: FHIR R4, ICD-10-SE och ATC', `${RAPPORT}, D9`, 'delvis', '/fhir/metadata',
     [`${F}metadata är ett CapabilityStatement`, `${F}sökning ger Bundle searchset`, `${F}Patient har personnummer med rätt identifier-system`,
-      `${F}Condition använder ICD-10-SE`, `${F}MedicationRequest använder ATC och har uppföljningsdatum`],
-    'FHIR R4 med ICD-10-SE, ATC och LOINC. Inte validerat mot HL7 Swedens basprofiler. openEHR, Snomed CT, KVÅ och RIVTA-adaptrar saknas.'),
+      `${F}Condition använder ICD-10-SE`, `${F}MedicationRequest använder ATC och har uppföljningsdatum`,
+      `${KV}varje diagnos i seeden har en ICD-10-SE-kod med Socialstyrelsens titel`, `${KV}varje läkemedel i katalogen har en ATC-kod ur WHO:s register`,
+      `${KV}varningsreglernas ATC-prefix stämmer med WHO:s register`, `${KV}varje mätvärdestyp har kod: NPU för labb, LOINC för vitalparametrar, och UCUM-enhet`,
+      `${FS}inga tomma listor, tomma strängar eller null, och varje kodning har system och kod`, `${FS}vitalparametrar följer FHIR R4:s vitalparameterprofiler`,
+      `${FS}labbvärden har NPU-kod och UCUM-enhet`, `${FS}meta.profile bara för profiler som validerats`,
+      `${FS}Patient, Organization och Practitioner följer HL7 Swedens basprofiler`, `${FS}varje tillägg och eget kodsystem har en publicerad definition`,
+      `${FS}Condition och MedicationRequest har display ur kodverket`],
+    'FHIR R4 med ICD-10-SE, ATC, NPU (labb), LOINC (vitalparametrar) och UCUM. Koderna är kontrollerade mot Socialstyrelsen, WHO, IFCC och LOINC (docs/kodkontroll.md). Alla resurstyper validerades 2026-10-31 med HL7:s validator 7.0.3 mot FHIR R4 och hl7se.fhir.base 1.1.0 utan fel (docs/fhir-validering.md), men validatorn körs inte i bygget. Patient, Organization och Practitioner påstår HL7 Swedens basprofiler. eGFR saknar kod. openEHR, Snomed CT, KVÅ och RIVTA-adaptrar saknas.'),
   k('D10', 'Beslutsstöd i separata moduler, journalkärnan utanför MDR', `${RAPPORT}, D10`, 'delvis', '/patient/:id/lakemedel',
     [`${M}varningarna är märkta som demoregler`],
     'Varningsreglerna ligger i en egen modul och är märkta som demoregler. Ingen MDR-bedömning är gjord.'),
@@ -90,8 +98,12 @@ export const KRAV = [
       `${M}NLL: timeout döljer inte ordinationen och avstämning hittar registreringen`, `${S}alla ordinationer har orsak och uppföljningsdatum`],
     'NLL är simulerad. Ingen riktig anslutning till E-hälsomyndigheten.'),
   k('L8', 'NPÖ, 1177 journal, e-remiss, Webcert och tjänsteplattformen (RIVTA)', 'Inera', 'planerat', null, [], 'Inga riktiga integrationer i första versionen.'),
-  k('L9', 'HSA, SITHS, Säker digital kommunikation, patientregistret och kvalitetsregister', 'Inera, Socialstyrelsen', 'planerat', null, [], 'HSA-id i demon är påhittade.'),
-  k('L10', 'EHDS: CE-märkning, interoperabilitets- och loggningskomponent', 'Förordning (EU) 2025/327', 'planerat', null, []),
+  k('L9', 'HSA, SITHS, Säker digital kommunikation, patientregistret och kvalitetsregister', 'Inera, Socialstyrelsen', 'planerat', null,
+    [`${KV}varje diagnos i seeden har en ICD-10-SE-kod med Socialstyrelsens titel`],
+    'HSA-id i demon är påhittade. Ingen rapportering till patientregistret byggs. Diagnoserna har ICD-10-SE 2026, som rapporteringen kräver, kontrollerade mot Socialstyrelsens kodfil.'),
+  k('L10', 'EHDS: CE-märkning, interoperabilitets- och loggningskomponent', 'Förordning (EU) 2025/327', 'planerat', null,
+    [`${FS}inga tomma listor, tomma strängar eller null, och varje kodning har system och kod`, `${FS}Patient, Organization och Practitioner följer HL7 Swedens basprofiler`],
+    'Inte uppfyllt. FHIR R4 och HL7 Swedens basprofiler är validerade, men det europeiska utbytesformatet för journaler, CE-märkning och EHDS loggningskomponent finns inte.'),
   k('L11', 'MDR för beslutsstöd, läkemedelsvarningar och dosering', 'MDR (EU) 2017/745', 'planerat', null, [], 'Demon är inte CE-märkt. Varningarna är demoregler.'),
   k('L12', 'NIS2 genom cybersäkerhetslagen', 'Cybersäkerhetslagen (2025:1506)', 'planerat', null, []),
   k('L13', 'GDPR, arkivlagen, säkerhetsskyddslagen och tillgänglighetslagen', 'Egen kunskap i anteckningarna, ska verifieras', 'planerat', null, []),
