@@ -20,9 +20,10 @@ const SPARVERSION = 1;
 const VAL_TYPER = ['andra_enheter', 'nodatkomst', 'samtycke_sparr', 'visa_identitet'];
 
 // Svarstider: senaste mätningarna per endpoint.
-class Matning {
-  constructor(max = 500) { this.max = max; this.data = new Map(); }
+export class Matning {
+  constructor(max = 500, maxNycklar = 150) { this.max = max; this.maxNycklar = maxNycklar; this.data = new Map(); }
   lagg(nyckel, ms) {
+    if (!this.data.has(nyckel) && this.data.size >= this.maxNycklar) nyckel = 'övrigt';
     let a = this.data.get(nyckel);
     if (!a) { a = []; this.data.set(nyckel, a); }
     a.push(ms);
@@ -86,7 +87,10 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   const slumpId = () => Buffer.from(crypto.getRandomValues(new Uint8Array(24))).toString('base64url');
   const kakSid = (req) => (req.headers.get('cookie') || '').match(/(?:^|;\s*)vk_sid=([A-Za-z0-9_-]{32})(?:;|$)/)?.[1];
   const kaka = (sid) => `vk_sid=${sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_TTL / 1000}${origin.startsWith('https') ? '; Secure' : ''}`;
-  const klientIp = (req, server) => req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for')?.split(',')[0].trim() || server.requestIP(req)?.address || 'okänd';
+  // Cloudflare skriver över cf-connecting-ip vid kanten. Rubriken gäller bara när LITA_PA_PROXY=1,
+  // alltså när enda vägen in är tunneln och Caddy. Annars räknas socketens adress.
+  const litaPaProxy = process.env.LITA_PA_PROXY === '1';
+  const klientIp = (req, server) => (litaPaProxy && req.headers.get('cf-connecting-ip')) || server.requestIP(req)?.address || 'okänd';
 
   const nySession = () => ({ db: nySessionsDb(), personalId: null, val: {}, sist: Date.now(), matning: new Matning(200) });
 
@@ -582,7 +586,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       }
       const ms = performance.now() - t0;
       svar.headers.set('Server-Timing', `app;dur=${ms.toFixed(1)}`);
-      const nyckel = normaliseraVag(req.method, url.pathname);
+      // Okända sökvägar samlas i en nyckel så att mätningen inte växer med vad besökare hittar på.
+      const nyckel = [404, 405].includes(svar.status) ? `${req.method} okänd` : normaliseraVag(req.method, url.pathname);
       serverMatning.lagg(nyckel, ms);
       if (c.s) c.s.matning.lagg(nyckel, ms);
       return svar;
