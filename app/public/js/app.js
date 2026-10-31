@@ -99,6 +99,10 @@ krokar.vid401 = () => {
 };
 krokar.vid429 = () => notis('Det har kommit många nya besök från din adress. Vänta en stund och försök sedan igen.', 'info');
 
+// Ett anrop som avbröts vid utloggning är inget fel. Omritningar efter en sparad ändring väntas inte alltid in,
+// så avbrottet fångas här i stället för i varje vy. Alla andra fel släpps igenom.
+window.addEventListener('unhandledrejection', (e) => { if (e.reason?.kod === 'avbruten') e.preventDefault(); });
+
 export async function uppdateraInkorg() {
   if (!S.session?.inloggad || arLogggranskare()) { S.inkorg = null; return; }
   try {
@@ -202,7 +206,7 @@ async function visaVy(vy, main, param, q, nr) {
     await vy.visa(main, param, q, { aktuell: () => nr === navNr, sammaPatient });
   } catch (e) {
     if (nr !== navNr) return;
-    if (e?.status === 401) return;
+    if (e?.status === 401 || e?.kod === 'avbruten') return;
     console.warn('Vyn kunde inte visas:', e);
     main.innerHTML = `<div class="vyhuvud"><h1 tabindex="-1">Det gick inte att visa sidan</h1></div><div class="ruta ruta-info"><p>${esc(e?.message ?? 'Okänt fel.')}</p><p><a href="${S.session?.inloggad ? hem() : '#/'}">Gå till startsidan</a></p></div>`;
   }

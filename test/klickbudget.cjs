@@ -187,7 +187,8 @@ const GOR = {
     document.addEventListener('keydown', e => { if (e.isTrusted && e.key.length > 1) window.__tangent++; }, true);
   });
   const page = await ctx.newPage();
-  page.on('pageerror', e => fel.push(`sidfel: ${e.message}`));
+  page.on('pageerror', e => fel.push(`sidfel: ${e.message} (${(e.stack || '').split('\n').slice(1, 4).map(r => r.trim()).join(' | ')})`));
+  page.on('response', r => { if (r.status() === 401) fel.push(`401: ${r.request().method()} ${r.url()}`); });
   page.on('console', msg => { if (msg.type() === 'error' && !/status of 403/.test(msg.text())) fel.push(`konsolfel: ${msg.text()}`); });
   const m = new Matare(page);
   const resultat = [];

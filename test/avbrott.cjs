@@ -196,7 +196,7 @@ const lagrat = (page) => page.evaluate(async () => {
     anta(!(await page.locator('[data-ny]').count()) || !(await page.locator('[data-ny]').isDisabled()), 'knappar är fortfarande avstängda');
     // Logggranskaren i samma sandlåda ser åtkomsterna från läsläget.
     const ctxLogg = page.context();
-    const r = await ctxLogg.request.post(`${BAS}/api/login`, { data: { personalId: 'logg' } });
+    const r = await ctxLogg.request.post(`${BAS}/api/login`, { data: { personalId: 'logg' }, headers: { Origin: BAS } });
     anta(r.ok(), 'logggranskaren kunde inte logga in');
     const ll = await (await ctxLogg.request.get(`${BAS}/api/patient/p01/logglista`)).json();
     const fran = ll.rader.filter(x => x.resurs?.startsWith('laslage:'));

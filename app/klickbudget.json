@@ -1,8 +1,8 @@
 {
-  "tid": "2026-10-31T18:04:05.779Z",
-  "bas": "http://127.0.0.1:18799",
+  "tid": "2026-10-31T18:09:00.147Z",
+  "bas": "https://vardkallan.404haven.se",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "b3dd010a8f769cc43667c3ab5b8b964deeed3bafe9fe9d41b237288e12e5ecc3",
+  "gransnittHash": "1dc97ab33dfda2a83aaac21d1932a60d3c69ba5148388a2526e1dcbb87706c3d",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
