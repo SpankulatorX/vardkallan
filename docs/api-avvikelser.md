@@ -117,3 +117,7 @@ Det här dokumentet beskriver var backend avviker från eller lägger till någo
 
 - 15 patienter (`p01` till `p15`), inte 12. De tre extra behövs för väntrummet och psykiatrins arbetslista.
 - Utöver de åtta demorollerna finns personal som inte går att logga in som, för att journalerna ska ha författare på andra enheter.
+
+## POST /api/logout tar emot åtkomster från läsläget
+
+`POST /api/logout { rader?: [...] }` med samma radformat som `POST /api/lasekopia/logg`. Raderna loggas med samma kontroller innan sessionen avslutas, och svaret får fältet `lasloggen: { mottagna, avvisade }`. Klienten raderar sin lokala logg först när servern har svarat. Utan rader fungerar utloggningen som förut.

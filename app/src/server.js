@@ -498,7 +498,13 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     c.rotera = true;
     return sessionUt(c.s);
   });
-  rutt('POST', '/api/logout', (c) => { c.s.personalId = null; c.s.val = {}; c.s.lasnyckel = null; nollstallKopia(c.s); return sessionUt(c.s); });
+  // Utloggning efter ett avbrott kan ha med sig åtkomsterna från läsläget. De loggas innan sessionen avslutas,
+  // eftersom de annars aldrig går att föra över.
+  rutt('POST', '/api/logout', (c) => {
+    const lasloggen = c.personal && Array.isArray(c.body?.rader) ? lasekopiaLogg(c) : undefined;
+    c.s.personalId = null; c.s.val = {}; c.s.lasnyckel = null; nollstallKopia(c.s);
+    return { ...sessionUt(c.s), ...(lasloggen ? { lasloggen } : {}) };
+  });
   rutt('POST', '/api/reset', (c) => {
     c.s.db.close();
     c.s.db = nySessionsDb();

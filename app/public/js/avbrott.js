@@ -26,9 +26,23 @@ const ssSkriv = (k, v) => { try { if (v == null) sessionStorage.removeItem(k); e
 const lsLas = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
 const lsSkriv = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { /* privat läge */ } };
 const medTidsgrans = (p, ms) => Promise.race([p, new Promise((_, nej) => setTimeout(() => nej(new Error('tidsgräns')), ms))]);
+// Åtkomsterna från läsläget följer med i utloggningen och raderas först när servern har tagit emot dem.
 async function loggaUtPaServern() {
-  try { await medTidsgrans(api('/api/logout', { metod: 'POST', data: {}, direkt: true, tyst: true }), 3000); return true; }
-  catch (e) { return e?.status === 401; }
+  const rader = await kopia.hamtaLogg().catch(() => []);
+  try {
+    const r = await medTidsgrans(api('/api/logout', { metod: 'POST', data: rader.length ? { rader } : {}, direkt: true, tyst: true }), 5000);
+    if (rader.length) {
+      await kopia.tomLogg(rader.map(x => x.id));
+      const avvisade = r.lasloggen?.avvisade?.length ?? 0;
+      if (avvisade) notis(`${avvisade === 1 ? 'En åtkomst' : `${avvisade} åtkomster`} från läsläget togs inte emot av servern.`, 'info');
+    }
+    return true;
+  } catch (e) {
+    if (e?.status !== 401) return false;
+    // Sessionen har redan gått ut på servern. Åtkomsterna kan då inte föras över, och det ska synas.
+    if (rader.length) notis(`${rader.length === 1 ? 'En åtkomst' : `${rader.length} åtkomster`} från läsläget kunde inte föras över, eftersom sessionen redan hade gått ut.`, 'fel');
+    return true;
+  }
 }
 
 // Hälsokontroll direkt mot servern, med tidsgräns.
@@ -165,8 +179,6 @@ async function skickaLogg() {
 // Personen loggade ut medan servern inte svarade. Nu när servern svarar skickas loggen och sessionen loggas ut där också.
 export async function slutforUtloggning() {
   if (lsLas(SS_UTLOGGAD) !== '1') return false;
-  // Loggen kan bara skickas om nyckeln finns kvar i fliken. Utloggningen på servern görs oavsett.
-  await medTidsgrans(skickaLogg(), 3000).catch(() => null);
   if (!(await loggaUtPaServern())) return false;
   lsSkriv(SS_UTLOGGAD, null);
   await kopia.rensa();
@@ -204,7 +216,6 @@ async function aterga() {
 export async function loggaUtUnderAvbrott() {
   lsSkriv(SS_UTLOGGAD, '1');
   // Vid simulerat avbrott, eller om servern hinner svara, loggas sessionen ut direkt.
-  await medTidsgrans(skickaLogg(), 3000).catch(() => null);
   const klar = await loggaUtPaServern();
   if (klar) lsSkriv(SS_UTLOGGAD, null);
   await kopia.rensa({ behallLogg: !klar });

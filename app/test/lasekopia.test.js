@@ -118,6 +118,24 @@ describe('Läskopia', () => {
     expect((await k.post('/api/lasekopia/logg', { rader: [rad('p01')] })).status).toBe(401);
   });
 
+  test('utloggning med åtkomster från läsläget loggar dem innan sessionen avslutas', async () => {
+    const k = klient(app);
+    await k.logga('lak-kard');
+    await k.get('/api/lasekopia');
+    const db = sandlada(app, k).db;
+    const fore = loggRader(k).length;
+    const r = await k.post('/api/logout', { rader: [rad('p01'), rad('p12')] });
+    expect(r.status).toBe(200);
+    expect(r.data.inloggad).toBe(false);
+    expect(r.data.lasloggen.mottagna).toBe(1);
+    expect(r.data.lasloggen.avvisade.length).toBe(1);
+    const nya = db.query('SELECT * FROM atkomstlogg ORDER BY id').all().slice(fore);
+    expect(nya.some(x => x.patient_id === 'p01' && x.resurs.startsWith('laslage:') && x.personal_id === 'lak-kard')).toBe(true);
+    expect(verifiera(db).hel).toBe(true);
+    // Efter utloggningen går raderna inte längre att skicka.
+    expect((await k.post('/api/lasekopia/logg', { rader: [rad('p01')] })).status).toBe(401);
+  });
+
   test('att uppgifterna lämnas ut till läskopian loggas en gång per patient och grund', async () => {
     const k = klient(app);
     await k.logga('lak-kard');
