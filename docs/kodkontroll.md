@@ -18,7 +18,7 @@ Totalt 113 kodposter och 16 enhetskoder. Varje labbvärde räknas en gång, men 
 De viktigaste felen:
 
 1. **19 av 36 diagnoser hade en egen benämning** i stället för Socialstyrelsens. Koderna var giltiga, men texterna var omskrivna, till exempel `E78.0 Ren hyperkolesterolemi` (titeln är Isolerad hyperkolesterolemi), `I50.1 Vänsterkammarsvikt` (Vänsterhjärtsvikt) och `N18.3 Kronisk njursjukdom, stadium 3` (Kronisk njursvikt, stadium 3).
-2. **`I50.0` hade texten "Hjärtsvikt med stas"**, men koden betyder Högerhjärtsvikt. ICD-10-SE räknar "Congestive heart failure" till I50.0, så koden står kvar och texten är nu Socialstyrelsens. Om patient 1:s hjärtsvikt kliniskt är en vänstersvikt med lungstas (journalen har basala rassel och EF 40 procent) vore I50.1 rimligare; det är ett kliniskt val och har inte ändrats.
+2. **`I50.0` hade texten "Hjärtsvikt med stas"**, men koden betyder Högerhjärtsvikt. ICD-10-SE räknar "Congestive heart failure" till I50.0, så koden står kvar och texten är nu Socialstyrelsens. Om patient 1:s hjärtsvikt kliniskt är en vänstersvikt med lungstas (journalen har basala rassel och EF 40 procent) vore I50.1 rimligare; efter kontrollen ändrades diagnosen till I50.1 Vänsterhjärtsvikt (2026-10-31).
 3. **Glukos hade LOINC 2339-0**, som är glukos i masskoncentration (mg/dL), medan demon anger mmol/L. Nu NPU02192 (P, Glucose; subst.c. = ? mmol/L).
 4. **eGFR hade LOINC 62238-1**, som anger CKD-EPI-formeln, utan stöd i data för vilken formel som används. NPU har ingen kod för skattat GFR, så koden är borttagen och texten "eGFR" står kvar.
 5. **Saturation saknade 2708-6**, som FHIR R4:s profil för syremättnad kräver. Båda koderna finns nu.
