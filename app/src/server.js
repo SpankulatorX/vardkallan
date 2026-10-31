@@ -182,6 +182,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     return p;
   };
 
+  // Patientens namn och personnummer, maskerade för skyddad identitet, för listor utanför journalen.
+  const patientKort = (p) => ({ id: p.id, namn: visningsnamn(p), personnummer: visningsPnr(p), skyddad: Boolean(p.skyddad) });
+
   function sessionUt(s) {
     const p = personalRad(s.db, s.personalId);
     const ut = { inloggad: Boolean(p), demoDatum: installning(s.db, 'seed_datum') ?? idag() };
@@ -306,8 +309,13 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       rader = db.query('SELECT * FROM patienter WHERE personnummer LIKE ? OR substr(personnummer, 3) LIKE ? ORDER BY personnummer LIMIT 20').all(`${siffror}%`, `${siffror}%`)
         .filter(p => !p.skyddad || p.personnummer === siffror || p.personnummer.slice(2) === siffror);
     } else {
-      const m = `%${fraga.toLowerCase()}%`;
-      rader = db.query("SELECT * FROM patienter WHERE skyddad = 0 AND (lower(fornamn || ' ' || efternamn) LIKE ? OR lower(efternamn) LIKE ?) ORDER BY efternamn, fornamn LIMIT 20").all(m, m);
+      // SQLite:s lower() hanterar bara ASCII, så namnen jämförs här med svensk gemenisering.
+      const sv = (s) => s.toLocaleLowerCase('sv-SE');
+      const m = sv(fraga);
+      rader = db.query('SELECT * FROM patienter WHERE skyddad = 0').all()
+        .filter(p => sv(`${p.fornamn} ${p.efternamn}`).includes(m))
+        .sort((a, b) => a.efternamn.localeCompare(b.efternamn, 'sv') || a.fornamn.localeCompare(b.fornamn, 'sv'))
+        .slice(0, 20);
     }
     const ve = vardenhetFor(db, c.personal.enhet_id);
     atk.logga('sok', atk.grund(), `sok:${fraga} (${rader.length} träffar)`);
@@ -469,21 +477,34 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
 
   rutt('GET', '/api/inkorg', (c) => {
     const p = kravInloggad(c);
+    const med = (x) => ({ ...x, patient: patientKort(patientRad(c.db, x.patientId)) });
     return {
-      osigneradeAnteckningar: journal.osigneradeFor(c.db, p.id),
+      osigneradeAnteckningar: journal.osigneradeFor(c.db, p.id).map(med),
       okvitteradeSvar: kanRoll(p, 'kvittera_svar') ? remiss.okvitteradeSvar(c.db, p) : [],
       larm: p.yrke === 'logggranskare' ? [] : remiss.larmForEnhet(c.db, p),
-      nllAvvikelser: kanRoll(p, 'las_lakemedel') ? lakemedel.nllAvvikelser(c.db, p) : [],
+      nllAvvikelser: kanRoll(p, 'las_lakemedel') ? lakemedel.nllAvvikelser(c.db, p).map(med) : [],
     };
   });
 
+  // Loggraderna får patientens namn och personnummer, maskerade för skyddad identitet, så att granskaren ser vem raden gäller.
+  const medPatientKort = (db, rader) => {
+    const cache = new Map();
+    return rader.map(r => {
+      if (!r.patientId) return { ...r, patient: null };
+      if (!cache.has(r.patientId)) {
+        const p = db.query('SELECT * FROM patienter WHERE id = ?').get(r.patientId);
+        cache.set(r.patientId, p ? patientKort(p) : null);
+      }
+      return { ...r, patient: cache.get(r.patientId) };
+    });
+  };
   rutt('GET', '/api/patient/:id/logglista', (c, id) => {
     kravInloggad(c);
     const p = patientRad(c.db, id);
     const atk = new Atkomst(c.db, c.personal, p.id, {}, 'las_logg');
     atk.krav('las_logg');
     atk.logga('las_logg', 'logggranskning', 'logglista');
-    return { patientId: p.id, rader: logg.lista(c.db, { patientId: p.id }), kedjaHel: logg.verifiera(c.db).hel };
+    return { patientId: p.id, patient: patientKort(p), rader: medPatientKort(c.db, logg.lista(c.db, { patientId: p.id })), kedjaHel: logg.verifiera(c.db).hel };
   });
   rutt('GET', '/api/logg', (c) => {
     kravInloggad(c);
@@ -492,7 +513,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const q = c.url.searchParams;
     const flagga = ['nodatkomst', 'nekad', 'samtycke', 'alla'].includes(q.get('flagga')) ? q.get('flagga') : 'alla';
     const datum = (v, slut) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? `${v}${slut ? 'T23:59:59.999Z' : 'T00:00:00.000Z'}` : v || null);
-    const rader = logg.lista(c.db, { flagga, fran: datum(q.get('fran'), false), till: datum(q.get('till'), true) });
+    const rader = medPatientKort(c.db, logg.lista(c.db, { flagga, fran: datum(q.get('fran'), false), till: datum(q.get('till'), true) }));
     atk.logga('las_logg', 'logggranskning', `logg:${flagga}`);
     const v = logg.verifiera(c.db);
     return { flagga, rader, kedjaHel: v.hel, verifiering: v };

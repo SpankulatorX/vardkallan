@@ -117,6 +117,15 @@ describe('API', () => {
     expect((await k.get('/api/sok?q=a')).status).toBe(400);
   });
 
+  test('sök på namn hittar namn med å, ä och ö oavsett skiftläge', async () => {
+    const k = klient(app);
+    await k.logga('lak-kard');
+    for (const q of ['Åkesson', 'åkesson', 'ÅKESSON', 'Gunnar Åke']) {
+      expect((await k.get(`/api/sok?q=${encodeURIComponent(q)}`)).data.map(p => p.id)).toEqual(['p01']);
+    }
+    expect((await k.get(`/api/sok?q=${encodeURIComponent('Engberg')}`)).data).toEqual([]);
+  });
+
   test('sökningen loggas', async () => {
     const k = klient(app);
     await k.logga('lak-akut');
@@ -363,6 +372,19 @@ describe('API', () => {
     expect(kard.osigneradeAnteckningar.length).toBe(1);
   });
 
+  test('inkorgens utkast och NLL-avvikelser visar patienten, maskerad för skyddad identitet', async () => {
+    const k = klient(app);
+    await k.logga('lak-vc');
+    const i = (await k.get('/api/inkorg')).data;
+    expect(i.nllAvvikelser[0].patient).toEqual({ id: 'p10', namn: 'Karl-Erik Brandt', personnummer: '19460113-6098', skyddad: false });
+    await k.logga('lak-akut');
+    await k.post('/api/patient/p03/anteckningar', { typ: 'Akutanteckning', sokord: [{ sokord: 'Kontaktorsak', text: 'Buksmärta.' }] });
+    const akut = (await k.get('/api/inkorg')).data;
+    const utkast = akut.osigneradeAnteckningar.find(a => a.patientId === 'p03');
+    expect(utkast.patient).toEqual({ id: 'p03', namn: 'Skyddad identitet', personnummer: '19840416-****', skyddad: true });
+    expect(JSON.stringify(akut)).not.toContain('Engberg');
+  });
+
   test('logggranskaren ser logg med hel kedja, andra roller nekas', async () => {
     const k = klient(app);
     await k.logga('lak-kard');
@@ -382,6 +404,21 @@ describe('API', () => {
     expect(fran.rader.every(r => r.tid >= idag())).toBe(true);
     expect((await k.get('/api/patient/p01')).status).toBe(403);
     expect(loggRader(k).at(-1).grund).toBe('nekad');
+  });
+
+  test('loggraderna visar vilken patient de gäller, maskerat för skyddad identitet', async () => {
+    const k = klient(app);
+    await k.logga('lak-akut');
+    await k.get('/api/patient/p03');
+    await k.logga('logg');
+    const alla = (await k.get('/api/logg')).data;
+    const rad = alla.rader.find(r => r.patientId === 'p03');
+    expect(rad.patient).toEqual({ id: 'p03', namn: 'Skyddad identitet', personnummer: '19840416-****', skyddad: true });
+    expect(alla.rader.find(r => r.patientId === 'p01').patient).toMatchObject({ namn: 'Gunnar Åkesson', personnummer: '19450202-4732' });
+    expect(alla.rader.filter(r => !r.patientId).every(r => r.patient === null)).toBe(true);
+    const l = (await k.get('/api/patient/p03/logglista')).data;
+    expect(l.patient).toEqual({ id: 'p03', namn: 'Skyddad identitet', personnummer: '19840416-****', skyddad: true });
+    expect(JSON.stringify(alla)).not.toContain('Engberg');
   });
 
   test('migreringsavstämningen visar avvikelsen', async () => {

@@ -1,0 +1,269 @@
+// Vårdkällan: sessionen, ramen och routningen. Varje vy är en modul med visa(main, parametrar).
+import { esc, api, krokar, notis, felNotis, ikon, tal, medKnapp } from './ui.js';
+import * as inloggning from './vyer/inloggning.js';
+import * as arbetslista from './vyer/arbetslista.js';
+import * as sok from './vyer/sok.js';
+import * as inkorg from './vyer/inkorg.js';
+import * as patient from './vyer/patient.js';
+import * as remisser from './vyer/remisser.js';
+import * as vantrum from './vyer/vantrum.js';
+import * as logg from './vyer/logg.js';
+import * as migrering from './vyer/migrering.js';
+import * as krav from './vyer/krav.js';
+import * as moduler from './vyer/moduler.js';
+import * as oppetApi from './vyer/oppet-api.js';
+import * as drift from './vyer/drift.js';
+
+// Globalt tillstånd.
+export const S = { session: null, inkorg: null, svarstid: null };
+
+export const far = (handling) => Boolean(S.session?.behorigheter?.includes(handling));
+export const arLogggranskare = () => S.session?.personal?.yrke === 'logggranskare';
+export const minVardenhet = () => S.session?.enhet?.vardenhet?.id ?? null;
+export const pa = (...h) => h.some(far);
+
+// Vänstermenyn. Varje rad: adress, text, ikon, villkor, räknare.
+const MENY = [
+  ['#/arbetslista', 'Arbetslista', 'lista', () => !arLogggranskare()],
+  ['#/sok', 'Sök patient', 'sok', () => far('sok')],
+  ['#/inkorg', 'Inkorg', 'inkorg', () => !arLogggranskare(), 'inkorg'],
+  ['#/remisser', 'Remisser', 'remiss', () => pa('las_remiss', 'las_remiss_status')],
+  ['#/vantrum', 'Väntrum (akuten)', 'vantrum', () => far('vantrum')],
+  ['#/logg', 'Logguppföljning', 'logg', () => far('las_logg')],
+  ['#/migrering', 'Migreringsavstämning', 'migrering', () => true],
+  ['#/krav', 'Kravspårbarhet', 'krav', () => true],
+  ['#/moduler', 'Moduler', 'moduler', () => true],
+  ['#/api', 'Öppet API', 'kod', () => true],
+  ['#/drift', 'Svarstider', 'klocka', () => true],
+];
+
+const RUTTER = [
+  [/^#\/arbetslista$/, arbetslista, () => !arLogggranskare()],
+  [/^#\/sok$/, sok, () => far('sok')],
+  [/^#\/inkorg$/, inkorg, () => !arLogggranskare()],
+  [/^#\/remisser$/, remisser, () => pa('las_remiss', 'las_remiss_status')],
+  [/^#\/vantrum$/, vantrum, () => far('vantrum')],
+  [/^#\/logg$/, logg, () => far('las_logg')],
+  [/^#\/logg\/patient\/([\w-]+)$/, logg.patient, () => far('las_logg')],
+  [/^#\/migrering$/, migrering, () => true],
+  [/^#\/krav$/, krav, () => true, true],
+  [/^#\/moduler$/, moduler, () => true, true],
+  [/^#\/api$/, oppetApi, () => true],
+  [/^#\/drift$/, drift, () => true, true],
+  [/^#\/patient\/([\w-]+)(?:\/([a-z]+))?(?:\/([\w-]+))?$/, patient, () => !arLogggranskare()],
+];
+
+// Enhetsträdet: varje enhet med sin vårdenhet. Inre sekretess och remisser räknas per vårdenhet.
+const enhetMap = new Map();
+export async function laddaEnheter() {
+  if (enhetMap.size) return;
+  const trad = await api('/api/enheter');
+  const gaa = (n, ve) => {
+    const egen = n.typ === 'vardenhet' ? n.id : ve;
+    enhetMap.set(n.id, { ...n, vardenhet: n.typ === 'arbetsplats' ? ve : egen });
+    n.barn.forEach(b => gaa(b, egen));
+  };
+  trad.forEach(n => gaa(n, null));
+}
+export const vardenhetAv = (id) => enhetMap.get(id)?.vardenhet ?? id;
+export const enhetLista = () => [...enhetMap.values()];
+
+export const hem = () => (arLogggranskare() ? '#/logg' : '#/arbetslista');
+
+// Logotypen: en droppe över en våg, en källa.
+export const logotyp = (storlek = 30) => `<svg class="logotyp" width="${storlek}" height="${storlek}" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="9" fill="currentColor"/><path d="M16 5.2c-3.3 4.7-6.1 8.1-6.1 11.6a6.1 6.1 0 0 0 12.2 0c0-3.5-2.8-6.9-6.1-11.6z" fill="#fff"/><path d="M7.5 26.2c2.8-1.7 5.7-1.7 8.5 0s5.7 1.7 8.5 0" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`;
+
+function svarstidHtml() {
+  const t = S.svarstid;
+  const text = t?.server != null ? `${tal(t.server, 1)} ms` : 'ingen mätning än';
+  return `${ikon.klocka}<span>Svarstid <strong>${esc(text)}</strong></span>`;
+}
+
+krokar.svarstid = (t) => {
+  if (t.server == null) return;
+  S.svarstid = t;
+  const el = document.getElementById('svarstid');
+  if (el) {
+    el.innerHTML = svarstidHtml();
+    el.title = `Senaste anrop: ${t.metod} ${t.vag}. Serverns tid ${tal(t.server, 1)} ms, hela vägen ${tal(t.totalt, 0)} ms.`;
+  }
+};
+krokar.vid401 = () => {
+  const varInloggad = Boolean(S.session?.inloggad);
+  S.session = { inloggad: false };
+  if (varInloggad) notis('Du är utloggad. Välj en roll för att logga in igen.', 'info');
+  ramNyckel = null;
+  if (location.hash !== '#/') location.hash = '#/'; else rita();
+};
+krokar.vid429 = () => notis('Det har kommit många nya besök från din adress. Vänta en stund och försök sedan igen.', 'info');
+
+export async function uppdateraInkorg() {
+  if (!S.session?.inloggad || arLogggranskare()) { S.inkorg = null; return; }
+  try {
+    const d = await api('/api/inkorg', { tyst: true });
+    S.inkorg = d.osigneradeAnteckningar.length + d.okvitteradeSvar.length + d.larm.length + d.nllAvvikelser.length;
+  } catch { S.inkorg = null; }
+  const el = document.querySelector('[data-raknare="inkorg"]');
+  if (el) { el.textContent = S.inkorg ? String(S.inkorg) : ''; el.hidden = !S.inkorg; }
+  const sr = document.querySelector('[data-raknare-text="inkorg"]');
+  if (sr) sr.textContent = S.inkorg ? `, ${S.inkorg} att hantera` : '';
+}
+
+function menyHtml(route) {
+  return MENY.filter(m => m[3]()).map(([h, t, ik, , rakn]) => {
+    const aktiv = route === h || route.startsWith(h + '/') || route.startsWith(h + '?');
+    const r = rakn === 'inkorg' ? `<span class="raknare" data-raknare="inkorg" aria-hidden="true"${S.inkorg ? '' : ' hidden'}>${S.inkorg ?? ''}</span><span class="sr" data-raknare-text="inkorg">${S.inkorg ? `, ${S.inkorg} att hantera` : ''}</span>` : '';
+    return `<li><a href="${h}"${aktiv ? ' aria-current="page"' : ''}>${ikon[ik]}<span class="menytext">${esc(t)}</span>${r}</a></li>`;
+  }).join('');
+}
+
+let ramNyckel = null;
+function ritaRam(route) {
+  const sess = S.session;
+  const ram = document.getElementById('ram');
+  const nyckel = sess?.inloggad ? sess.personal.id : 'ute';
+  if (ramNyckel === nyckel && document.getElementById('innehall')) {
+    const nav = document.getElementById('meny-lista');
+    if (nav) nav.innerHTML = menyHtml(route);
+    return document.getElementById('innehall');
+  }
+  ramNyckel = nyckel;
+  if (!sess?.inloggad) {
+    ram.innerHTML = `<header class="topp"><div class="topp-inre">
+        <a class="varumarke" href="#/">${logotyp()}<span><span class="namn">Vårdkällan</span><span class="under">Hela vården i ett öppet system</span></span></a>
+        <nav class="topp-lankar" aria-label="Om Vårdkällan"><a href="#/krav">Kravspårbarhet</a><a href="#/moduler">Moduler</a><a href="#/drift">Svarstider</a><a href="#/">Logga in</a></nav>
+      </div></header>
+      <main id="innehall" class="innehall ute" tabindex="-1"></main>`;
+    return document.getElementById('innehall');
+  }
+  const p = sess.personal;
+  const e = sess.enhet;
+  ram.innerHTML = `<header class="topp"><div class="topp-inre">
+      <a class="varumarke" href="${hem()}">${logotyp()}<span><span class="namn">Vårdkällan</span><span class="under">Hela vården i ett öppet system</span></span></a>
+      <button type="button" class="menyknapp" data-a="meny" aria-expanded="false" aria-controls="meny">${ikon.meny}<span>Meny</span></button>
+      <div class="inloggad" aria-label="Inloggad person">
+        <span class="kort-ikon" aria-hidden="true">${ikon.kort}</span>
+        <span class="vem"><strong>${esc(p.namn)}</strong><span>${esc(p.titel)}, ${esc(e.namn)}</span></span>
+      </div>
+      <a class="svarstid" id="svarstid" href="#/drift">${svarstidHtml()}</a>
+      <button type="button" class="knapp sekundar liten" data-a="loggaut">${ikon.ut}<span>Logga ut</span></button>
+    </div></header>
+    <div class="arbetsyta">
+      <nav class="meny" id="meny" aria-label="Huvudmeny"><ul id="meny-lista">${menyHtml(route)}</ul></nav>
+      <main id="innehall" class="innehall" tabindex="-1"></main>
+    </div>`;
+  return document.getElementById('innehall');
+}
+
+let navNr = 0;
+let forstaVisning = true;
+export const aktuellNav = () => navNr;
+
+export async function rita() {
+  const nr = ++navNr;
+  const route = location.hash || '#/';
+  const [vag, fraga = ''] = route.split('?');
+  const q = new URLSearchParams(fraga);
+  let traff = null;
+  for (const [re, vy, villkor, offentlig] of RUTTER) {
+    const m = vag.match(re);
+    if (m) { traff = { vy, villkor, offentlig, param: m.slice(1).map(x => (x == null ? x : decodeURIComponent(x))) }; break; }
+  }
+  if (!S.session?.inloggad) {
+    if (!traff?.offentlig) {
+      if (vag !== '#/' && vag !== '#' && vag !== '') { history.replaceState(null, '', '#/'); }
+      const main = ritaRam('#/');
+      return visaVy(inloggning, main, [], q, nr);
+    }
+    const main = ritaRam(vag);
+    return visaVy(traff.vy, main, traff.param, q, nr);
+  }
+  if (!traff || !traff.villkor()) {
+    if (traff && !traff.villkor()) notis('Den sidan hör inte till din yrkesroll.', 'info');
+    location.replace(hem());
+    return;
+  }
+  const main = ritaRam(vag);
+  document.getElementById('meny')?.classList.remove('oppen');
+  document.querySelector('[data-a="meny"]')?.setAttribute('aria-expanded', 'false');
+  return visaVy(traff.vy, main, traff.param, q, nr);
+}
+
+async function visaVy(vy, main, param, q, nr) {
+  const forraVy = main.dataset.vy;
+  const vyNamn = vy.namn ?? '';
+  // Inom patientjournalen byts bara fliken; fokus flyttas inte till sidans början.
+  const sammaPatient = vyNamn === 'patient' && forraVy === `patient:${param[0]}`;
+  main.dataset.vy = vyNamn === 'patient' ? `patient:${param[0]}` : vyNamn;
+  try {
+    await vy.visa(main, param, q, { aktuell: () => nr === navNr, sammaPatient });
+  } catch (e) {
+    if (nr !== navNr) return;
+    if (e?.status === 401) return;
+    console.warn('Vyn kunde inte visas:', e);
+    main.innerHTML = `<div class="vyhuvud"><h1 tabindex="-1">Det gick inte att visa sidan</h1></div><div class="ruta ruta-info"><p>${esc(e?.message ?? 'Okänt fel.')}</p><p><a href="${S.session?.inloggad ? hem() : '#/'}">Gå till startsidan</a></p></div>`;
+  }
+  if (nr !== navNr) return;
+  // Vid första laddningen ligger fokus kvar i början av sidan, så att länken till innehållet nås först.
+  if (forstaVisning) forstaVisning = false;
+  else if (!sammaPatient) {
+    const h1 = main.querySelector('h1');
+    (h1 ?? main).focus({ preventScroll: false });
+    window.scrollTo(0, 0);
+  }
+  document.title = `${main.querySelector('h1')?.textContent?.trim() || 'Start'}, Vårdkällan`;
+}
+
+export async function loggaIn(personalId, knapp) {
+  const s = await medKnapp(knapp, () => api('/api/login', { metod: 'POST', data: { personalId } }));
+  S.session = s;
+  ramNyckel = null;
+  document.getElementById('notiser').replaceChildren();
+  await Promise.all([uppdateraInkorg(), laddaEnheter().catch(() => {})]);
+  if (location.hash === hem()) rita(); else location.hash = hem();
+}
+
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-a]');
+  if (!b) return;
+  const a = b.dataset.a;
+  if (a === 'loggaut') {
+    try { await api('/api/logout', { metod: 'POST', data: {} }); } catch (err) { felNotis(err); }
+    S.session = { inloggad: false };
+    S.inkorg = null;
+    ramNyckel = null;
+    // Nästa person ska inte se föregående persons meddelanden.
+    document.getElementById('notiser').replaceChildren();
+    notis('Du är utloggad.', 'info');
+    if (location.hash === '#/') rita(); else location.hash = '#/';
+  } else if (a === 'aterstall') {
+    try {
+      const s = await medKnapp(b, () => api('/api/reset', { metod: 'POST', data: {} }));
+      const { ok, ...sess } = s;
+      S.session = sess;
+      notis('Demon är återställd. Alla ändringar är borta och patienterna är som från början.');
+      ramNyckel = null;
+      await uppdateraInkorg();
+      rita();
+    } catch { /* notis visad */ }
+  } else if (a === 'meny') {
+    const nav = document.getElementById('meny');
+    const oppen = nav.classList.toggle('oppen');
+    b.setAttribute('aria-expanded', String(oppen));
+  }
+});
+
+window.addEventListener('hashchange', () => rita());
+
+async function start() {
+  try {
+    S.session = await api('/api/session', { tyst: true });
+    if (S.session.inloggad) await laddaEnheter().catch(() => {});
+  } catch (e) {
+    S.session = { inloggad: false };
+    if (e.status !== 429) felNotis(e);
+  }
+  await uppdateraInkorg();
+  rita();
+}
+start();

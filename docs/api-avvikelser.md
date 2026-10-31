@@ -32,7 +32,7 @@ Det här dokumentet beskriver var backend avviker från eller lägger till någo
 ## Arbetslista, sök och väntrum
 
 - `GET /api/arbetslista` har också `pagaende` och `vardform` (`slutenvard | akut | oppenvard | null`). `larm` är ett antal. `plats` är vårdkontaktens plats, eller `Inkommande remiss`, `Listad` eller `Nyligen avslutad kontakt`. Logggranskaren får en tom lista. Arbetslistan loggas inte.
-- `GET /api/sok?q=` kräver minst två tecken. Svar: `[{ id, namn, personnummer, alder, kon, skyddad, vardrelation }]`, högst 20 träffar. En patient med skyddad identitet hittas aldrig på namn och bara på fullständigt personnummer (10 eller 12 siffror). Sökningen loggas med söksträngen i `resurs`.
+- `GET /api/sok?q=` kräver minst två tecken. Namnsökningen jämför med svensk gemenisering, så att Åkesson hittas på både åkesson och ÅKESSON (SQLite:s `lower()` hanterar bara ASCII). Svar: `[{ id, namn, personnummer, alder, kon, skyddad, vardrelation }]`, högst 20 träffar. En patient med skyddad identitet hittas aldrig på namn och bara på fullständigt personnummer (10 eller 12 siffror). Sökningen loggas med söksträngen i `resurs`.
 - `GET /api/vantrum` ger `{ konummer, ankomst, prioritet, status, vantetidMin, uppropning }` för alla. `uppropning` är alltid `Nummer A09`, aldrig ett namn. Personal på akutmottagningen får också `patientId`, `skyddad`, `orsak` och `namn`, där `namn` är `null` för skyddade patienter.
 
 ## Patient
@@ -72,14 +72,15 @@ Det här dokumentet beskriver var backend avviker från eller lägger till någo
 - En remiss är `{ id, patientId, patient?, fran, till, avsandare, prioritet, svarSenast, status, beslut, tider: { skickad, mottagen, bedomd, besvarad, svarKvitterat }, av: {...}, larm, fragestallning, anamnes, motivering, svar, kalla, kallaEtikett }`. Vårdadministratören får `fragestallning`, `anamnes`, `motivering` och `svar` som `null`.
 - En avvisad remiss har `status: "bedomd"` och `beslut: "avvisad"`, och kedjan slutar där.
 - Mottagningskvittens görs av läkare eller vårdadministratör på mottagande vårdenhet. Bedömning och svar görs av läkare på mottagande vårdenhet. Kvittens av svaret görs av läkare på remitterande vårdenhet. Fel enhet ger 403.
+- I `GET /api/inkorg` har posterna i `osigneradeAnteckningar` och `nllAvvikelser` också `patient` (`{ id, namn, personnummer, skyddad }`, maskerat för skyddad identitet), så att inkorgen kan visa vem raden gäller.
 - Larm: `saknar_mottagningskvittens` och `svar_forsenat` syns för både avsändare och mottagare, `svar_ej_kvitterat` bara för avsändaren. Ett larm är `{ typ, text, sedan, remissId, patientId, patient, riktning }` i inkorgen.
 - Vårdrelation via remiss: mottagande enhet har vårdrelation så länge remissen inte är avvisad och tills 90 dagar efter att svaret kvitterats. Remitterande enhet har vårdrelation tills svaret är kvitterat.
 
 ## Logg
 
-- `GET /api/patient/:id/logglista` ger `{ patientId, rader, kedjaHel }` och är bara öppen för logggranskaren. En vy för patienten själv finns inte i v1.
+- `GET /api/patient/:id/logglista` ger `{ patientId, patient, rader, kedjaHel }` och är bara öppen för logggranskaren. En vy för patienten själv finns inte i v1.
 - `GET /api/logg` ger `{ flagga, rader, kedjaHel, verifiering: { hel, antal, felRad, orsak } }`, högst 500 rader, nyast först. `fran` och `till` kan vara datum eller ISO-tid.
-- En loggrad i API:t är `{ id, tid, personal, enhet, patientId, handling, resurs, grund, syfte, resultat, flaggad, hash }`.
+- En loggrad i API:t är `{ id, tid, personal, enhet, patientId, patient, handling, resurs, grund, syfte, resultat, flaggad, hash }`. `patient` är `{ id, namn, personnummer, skyddad }` med namn och personnummer maskerade för skyddad identitet (även för logggranskaren), eller `null` när raden inte gäller en patient.
 - Varje anrop som rör en patient ger en loggrad med den starkaste grunden som användes (samtycke_sparr före nodatkomst före aktivt_val före egen_enhet). Inkorg, arbetslista och remisslistor loggas inte i v1.
 
 ## Migrering, krav och drift

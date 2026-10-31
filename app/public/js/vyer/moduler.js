@@ -1,0 +1,39 @@
+// Moduler: vad som finns i demon och vad som är planerat. Ingenting märks som klart som inte är det.
+import { esc, ikon, vyRubrik } from '../ui.js';
+
+export const namn = 'moduler';
+
+const FINNS = [
+  ['Patientöversikt', 'Aktuella läkemedel, diagnoser, senaste mätvärden och anteckningar, pågående remisser och en tidslinje där migrerad historik från VAS och Cosmic ligger i samma kronologi.', null],
+  ['Journal', 'Anteckningar från mallar med sökord, utkast, signering och rättelse. En signerad anteckning ändras aldrig; rättelsen blir en ny version och den gamla står kvar överstruken.', null],
+  ['Läkemedel', 'Ordination med obligatorisk ordinationsorsak och uppföljningsdatum, varningar som måste kvitteras, utsättning med orsak och kvittens från Nationella läkemedelslistan. NLL är simulerad, och varningarna är demoregler, inte kliniskt beslutsstöd.', null],
+  ['Remiss och svar', 'Remisser inom regionen med mottagningskvittens, bedömning, svar och kvittens av svaret, och larm när ett steg uteblir. Inte e-remiss mellan vårdgivare.', '#/remisser'],
+  ['Mätvärden', 'Vitalparametrar och labbvärden med trend per typ och registrering av nya värden.', null],
+  ['Behörighet och logg', 'Vårdrelation, inre sekretess med aktivt val, spärr med samtycke, nödåtkomst, skyddade personuppgifter och en logg som inte går att ändra, med logguppföljning.', '#/logg'],
+  ['Väntrum med könummer', 'Uppropning med könummer för alla patienter. Namnet på en skyddad patient lämnar aldrig servern.', '#/vantrum'],
+  ['Öppet FHIR-API', 'FHIR R4 för läsning av alla resurser, med samma behörighet och loggning som gränssnittet. Inte validerat mot HL7 Swedens basprofiler.', '#/api'],
+  ['Migreringsavstämning och kravspårbarhet', 'Avstämning av migrerade poster och ett kravregister där varje krav pekar på sina automatiska tester.', '#/migrering'],
+];
+
+const PLANERAT = [
+  ['Tidbok och patientadministration', 'Bokning, kallelser, kassa och patientavgifter, vårdtillfällen och inskrivning.'],
+  ['Samordnad vårdplanering med kommunen', 'Planering vid utskrivning från sluten vård och informationsutbyte med kommunernas vård och omsorg.'],
+  ['Operation, anestesi och intensivvård', 'Operationsplanering, anestesijournal och övervakning inom intensivvården.'],
+  ['Cytostatika', 'Behandlingsregimer, ordination och beredning av cytostatika.'],
+  ['Förlossning', 'Graviditet, förlossningsjournal och partogram.'],
+  ['Barnhälsovård', 'Hälsobesök, vaccinationer och tillväxtkurvor.'],
+  ['Beställning och svar för labb och röntgen', 'Beställningar till laboratorium och bild- och funktionsmedicin, med svar och kvittens.'],
+  ['Diktat och taligenkänning', 'Diktering av anteckningar med taligenkänning och utskrift.'],
+  ['Integrationer mot NLL, NPÖ, 1177 och e-remiss', 'Riktiga anslutningar till nationella tjänster. I demon är NLL simulerad och övriga saknas.'],
+  ['Uppföljning och statistik', 'Verksamhetsuppföljning, kvalitetsregister och inrapportering till patientregistret.'],
+  ['Mobil', 'Arbete vid sängen och i hemsjukvården från mobil och surfplatta. Gränssnittet fungerar i dag på smal skärm, men en mobil arbetsapp finns inte.'],
+];
+
+export async function visa(main) {
+  main.innerHTML = vyRubrik('Moduler', 'Hela vården ska rymmas i ett öppet system, en modul i taget. Här är vad som finns i demon och vad som är planerat. Journalens delar når du genom att öppna en patient från arbetslistan.') + `
+    <section aria-labelledby="mod-finns" class="modulgrupp"><h2 id="mod-finns">Finns i demon <span class="antal">${FINNS.length}</span></h2>
+      <ul class="modullista">${FINNS.map(([n, t, h]) => `<li class="modul modul-finns"><span class="modul-status">${ikon.bock}Finns i demon</span><h3>${h ? `<a href="${h}">${esc(n)}</a>` : esc(n)}</h3><p>${esc(t)}</p></li>`).join('')}</ul></section>
+    <section aria-labelledby="mod-plan" class="modulgrupp"><h2 id="mod-plan">Planerat <span class="antal">${PLANERAT.length}</span></h2>
+      <p class="dampad">Inget av det här finns i demon än. Ordningen säger inget om när det byggs.</p>
+      <ul class="modullista">${PLANERAT.map(([n, t]) => `<li class="modul modul-planerat"><span class="modul-status">${ikon.klocka}Planerat, inte byggt</span><h3>${esc(n)}</h3><p>${esc(t)}</p></li>`).join('')}</ul></section>`;
+}

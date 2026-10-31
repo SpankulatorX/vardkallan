@@ -4,23 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vårdkällan</title>
-<style>
-  body { font-family: system-ui, sans-serif; margin: 0; padding: 32px 16px; background: #f4f6f8; color: #1d2733; }
-  main { max-width: 640px; margin: 0 auto; background: #fff; border-radius: 10px; padding: 24px; }
-  footer { max-width: 640px; margin: 16px auto 0; font-size: 14px; color: #55606b; }
-  a { color: #0b5c8a; }
-</style>
+<meta name="description" content="Vårdkällan, hela vården i ett öppet system. Demo med påhittade patienter.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/noto-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/noto-sans-c700.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="app.css">
+<script type="module" src="js/app.js"></script>
 </head>
 <body>
-<main>
-  <h1>Vårdkällan</h1>
-  <p>Gränssnittet håller på att byggas. API:t finns redan.</p>
-  <ul>
-    <li><a href="/api/health">/api/health</a></li>
-    <li><a href="/api/krav">/api/krav</a>, kravregistret med testresultat</li>
-    <li><a href="/fhir/metadata">/fhir/metadata</a>, FHIR R4</li>
-  </ul>
-</main>
-<footer>Fristående demoprojekt med påhittade patienter. Inte en tjänst från Region Örebro län.</footer>
+<a class="hoppa" href="#innehall">Hoppa till innehållet</a>
+<div class="demorad" role="note">
+  <p>Demo med påhittade patienter och testpersonnummer från Skatteverket. Inte för vård av riktiga patienter.</p>
+  <button type="button" class="knapp liten demoknapp" data-a="aterstall">Återställ demon</button>
+</div>
+<div id="ram"><p class="laddar-sida">Startar Vårdkällan.</p></div>
+<footer class="sidfot">
+  <p>Vårdkällan är ett fristående demoprojekt med öppen källkod. Det är inte en tjänst från Region Örebro län.</p>
+</footer>
+<div id="notiser" aria-live="polite" aria-atomic="false"></div>
+<noscript><p class="noscript">Vårdkällan behöver JavaScript.</p></noscript>
 </body>
 </html>
