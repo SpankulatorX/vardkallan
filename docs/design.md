@@ -2,7 +2,7 @@
 
 Vårdkällan är ett öppet och komplett vårdinformationssystem, byggt från grunden på öppna standarder. Det är inte en kopia av Cosmic. Första versionen är en publik demo på https://vardkallan.404haven.se med påhittade patienter i Region Örebro läns verksamheter. Den ska visa att kärnan i ett journalsystem går att bygga öppet, och att de fel som drabbade Cosmic i Sussa går att konstruera bort.
 
-Underlag: `~/arbete/cosmic-krav/reports/Cosmic upphandling krav och kritik.md` (avsnitten "Kravlista och designchecklista" och "Misstag att inte upprepa"). Krav-id nedan (K1 till K5, D1 till D12, L1 till L8) kommer därifrån.
+Underlag: en sammanställning av offentliga källor om upphandlingen av Cosmic och kritiken mot systemet (Konkurrensverkets ansökningar, förvaltningsrättens och kammarrättens domar, revisionsrapporter och regionernas egna handlingar). Krav-id nedan (K1 till K5, D1 till D12, L1 till L13) kommer därifrån.
 
 ## Mål
 
