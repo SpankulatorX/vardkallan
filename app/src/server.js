@@ -575,7 +575,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const base = origin || `${url.protocol}//${url.host}`;
     if (req.method !== 'GET') throw new Fel(405, 'Bara läsning stöds i FHIR-API:t.', 'ogiltig');
     const db = c.db;
-    if (!db && !url.pathname.startsWith('/fhir/metadata')) throw new Fel(401, 'Logga in först.', 'ej_inloggad');
+    if (!db && !fhir.oppenSokvag(url.pathname.replace(/\/+$/, ''))) throw new Fel(401, 'Logga in först.', 'ej_inloggad');
     const r = fhir.hantera({ db, personal: c.personal, valFor: (pid) => valFor(c.s, pid), url, base });
     return new Response(JSON.stringify(r.body), { status: r.status, headers: { 'Content-Type': 'application/fhir+json; charset=utf-8', 'Cache-Control': 'no-store' } });
   }

@@ -23,10 +23,10 @@ export const PATIENTER = [
     ],
     diagnoser: [
       { kod: 'I48.0', text: 'Paroxysmalt förmaksflimmer', enhet: 'uso-med', vk: 'vas14', datum: '2014-03-18', typ: 'huvud', kalla: 'migrerad:VAS' },
-      { kod: 'I50.1', text: 'Vänsterkammarsvikt', enhet: 'uso-kard-mott', vk: 'cos23', datum: '2023-05-16', typ: 'huvud', kalla: 'migrerad:Cosmic' },
-      { kod: 'I10.9', text: 'Essentiell hypertoni, ospecificerad', enhet: 'vc-tybble', datum: '2011-09-14', typ: 'bi' },
+      { kod: 'I50.1', text: 'Vänsterhjärtsvikt', enhet: 'uso-kard-mott', vk: 'cos23', datum: '2023-05-16', typ: 'huvud', kalla: 'migrerad:Cosmic' },
+      { kod: 'I10.9', text: 'Essentiell hypertoni (högt blodtryck utan känd orsak)', enhet: 'vc-tybble', datum: '2011-09-14', typ: 'bi' },
       { kod: 'I48.1', text: 'Persisterande förmaksflimmer', enhet: 'uso-kard-72', vk: 'inl', datum: -3, typ: 'huvud' },
-      { kod: 'I50.0', text: 'Hjärtsvikt med stas', enhet: 'uso-kard-72', vk: 'inl', datum: -3, typ: 'bi' },
+      { kod: 'I50.0', text: 'Högerhjärtsvikt', enhet: 'uso-kard-72', vk: 'inl', datum: -3, typ: 'bi' },
     ],
     anteckningar: [
       { typ: 'Epikris', enhet: 'uso-med', vk: 'vas14', av: 'lak-vas', tid: ['2014-03-18', '10:30'], kalla: 'migrerad:VAS', sokord: {
@@ -126,9 +126,9 @@ export const PATIENTER = [
       { ref: 'vc', enhet: 'vc-kumla', typ: 'oppenvard', start: [-45, '10:20'], slut: [-45, '10:50'], plats: 'Mottagning', orsak: 'Hälsokontroll' },
     ],
     diagnoser: [
-      { kod: 'E10.0', text: 'Diabetes mellitus typ 1 med koma', enhet: 'uso-akut', vk: 'akut1', datum: -700, typ: 'huvud' },
-      { kod: 'E10.9', text: 'Diabetes mellitus typ 1 utan komplikationer', enhet: 'lind-med', vk: 'dm1', datum: -300, typ: 'huvud' },
-      { kod: 'E78.0', text: 'Ren hyperkolesterolemi', enhet: 'vc-kumla', vk: 'vc', datum: -45, typ: 'huvud' },
+      { kod: 'E10.0', text: 'Diabetes mellitus typ 1 - med koma', enhet: 'uso-akut', vk: 'akut1', datum: -700, typ: 'huvud' },
+      { kod: 'E10.9', text: 'Diabetes mellitus typ 1 - utan komplikationer', enhet: 'lind-med', vk: 'dm1', datum: -300, typ: 'huvud' },
+      { kod: 'E78.0', text: 'Isolerad hyperkolesterolemi', enhet: 'vc-kumla', vk: 'vc', datum: -45, typ: 'huvud' },
     ],
     anteckningar: [
       { typ: 'Akutanteckning', enhet: 'uso-akut', vk: 'akut1', av: 'lak-akut', tid: [-700, '03:40'], sokord: {
@@ -183,7 +183,7 @@ export const PATIENTER = [
       { ref: 'akut', enhet: 'uso-akut', typ: 'akut', start: { min: -40 }, plats: 'Väntrum', orsak: 'Buksmärta' },
     ],
     diagnoser: [
-      { kod: 'N30.0', text: 'Akut cystit', enhet: 'vc-tybble', vk: 'vc1', datum: -20, typ: 'huvud' },
+      { kod: 'N30.0', text: 'Akut cystit (urinvägsinfektion lokaliserad till urinblåsan)', enhet: 'vc-tybble', vk: 'vc1', datum: -20, typ: 'huvud' },
       { kod: 'R00.2', text: 'Hjärtklappning', enhet: 'vc-tybble', vk: 'vc2', datum: -2, typ: 'huvud' },
     ],
     anteckningar: [
@@ -232,7 +232,7 @@ export const PATIENTER = [
     diagnoser: [
       { kod: 'F33.1', text: 'Recidiverande depression, medelsvår episod', enhet: 'uso-psyk', vk: 'psyk', datum: -700, typ: 'huvud' },
       { kod: 'F41.1', text: 'Generaliserat ångestsyndrom', enhet: 'uso-psyk', vk: 'psyk', datum: -400, typ: 'bi' },
-      { kod: 'I21.4', text: 'Akut subendokardiell hjärtinfarkt', enhet: 'uso-kard-72', vk: 'inl', datum: -1, typ: 'huvud' },
+      { kod: 'I21.4', text: 'Akut subendokardiell infarkt', enhet: 'uso-kard-72', vk: 'inl', datum: -1, typ: 'huvud' },
     ],
     anteckningar: [
       { typ: 'Mottagningsanteckning', enhet: 'uso-psyk', vk: 'psyk', av: 'lak-psyk', tid: [-700, '13:50'], sokord: {
@@ -305,8 +305,8 @@ export const PATIENTER = [
       { ref: 'vc2', enhet: 'vc-kumla', typ: 'oppenvard', start: [-1, '14:30'], slut: [-1, '15:10'], plats: 'Mottagning', orsak: 'Uppföljning bröstsmärta' },
     ],
     diagnoser: [
-      { kod: 'I10.9', text: 'Essentiell hypertoni, ospecificerad', enhet: 'vc-kumla', vk: 'vc0', datum: -900, typ: 'huvud' },
-      { kod: 'E78.0', text: 'Ren hyperkolesterolemi', enhet: 'vc-kumla', vk: 'vc0', datum: -900, typ: 'bi' },
+      { kod: 'I10.9', text: 'Essentiell hypertoni (högt blodtryck utan känd orsak)', enhet: 'vc-kumla', vk: 'vc0', datum: -900, typ: 'huvud' },
+      { kod: 'E78.0', text: 'Isolerad hyperkolesterolemi', enhet: 'vc-kumla', vk: 'vc0', datum: -900, typ: 'bi' },
       { kod: 'I20.9', text: 'Angina pectoris, ospecificerad', enhet: 'vc-kumla', vk: 'vc2', datum: -1, typ: 'huvud' },
     ],
     anteckningar: [
@@ -351,10 +351,10 @@ export const PATIENTER = [
       { ref: 'vc3', enhet: 'vc-tybble', typ: 'oppenvard', start: [-7, '10:00'], slut: [-7, '10:40'], plats: 'Mottagning', orsak: 'Uppföljning njurfunktion' },
     ],
     diagnoser: [
-      { kod: 'E11.9', text: 'Diabetes mellitus typ 2 utan komplikationer', enhet: 'vc-tybble', datum: '2012-05-03', typ: 'huvud' },
-      { kod: 'I10.9', text: 'Essentiell hypertoni, ospecificerad', enhet: 'vc-tybble', datum: '2010-11-20', typ: 'bi' },
-      { kod: 'N18.3', text: 'Kronisk njursjukdom, stadium 3', enhet: 'vc-tybble', vk: 'vc2', datum: -90, typ: 'bi' },
-      { kod: 'N18.4', text: 'Kronisk njursjukdom, stadium 4', enhet: 'vc-tybble', vk: 'vc3', datum: -7, typ: 'bi' },
+      { kod: 'E11.9', text: 'Diabetes mellitus typ 2 - utan komplikationer', enhet: 'vc-tybble', datum: '2012-05-03', typ: 'huvud' },
+      { kod: 'I10.9', text: 'Essentiell hypertoni (högt blodtryck utan känd orsak)', enhet: 'vc-tybble', datum: '2010-11-20', typ: 'bi' },
+      { kod: 'N18.3', text: 'Kronisk njursvikt, stadium 3', enhet: 'vc-tybble', vk: 'vc2', datum: -90, typ: 'bi' },
+      { kod: 'N18.4', text: 'Kronisk njursvikt, stadium 4', enhet: 'vc-tybble', vk: 'vc3', datum: -7, typ: 'bi' },
     ],
     anteckningar: [
       { typ: 'Mottagningsanteckning', enhet: 'vc-tybble', vk: 'vc1', av: 'lak-vc', tid: [-400, '10:25'], sokord: {
@@ -404,8 +404,8 @@ export const PATIENTER = [
       { ref: 'inl', enhet: 'kkoga-ort', typ: 'slutenvard', start: [-6, '18:20'], plats: 'Avdelning 8, sal 3', orsak: 'Höftfraktur vänster' },
     ],
     diagnoser: [
-      { kod: 'I10.9', text: 'Essentiell hypertoni, ospecificerad', enhet: 'vc-tybble', datum: '2008-04-02', typ: 'huvud' },
-      { kod: 'S72.00', text: 'Fraktur på lårbenshalsen, sluten', enhet: 'kkoga-ort', vk: 'inl', datum: -6, typ: 'huvud' },
+      { kod: 'I10.9', text: 'Essentiell hypertoni (högt blodtryck utan känd orsak)', enhet: 'vc-tybble', datum: '2008-04-02', typ: 'huvud' },
+      { kod: 'S72.00', text: 'Kollumfraktur - sluten', enhet: 'kkoga-ort', vk: 'inl', datum: -6, typ: 'huvud' },
       { kod: 'M81.9', text: 'Osteoporos, ospecificerad', enhet: 'kkoga-ort', vk: 'inl', datum: -4, typ: 'bi' },
     ],
     anteckningar: [
@@ -531,9 +531,9 @@ export const PATIENTER = [
       { amne: 'Jordnöt', atc: null, reaktion: 'Anafylaxi med svullnad i svalget och kräkningar', allvarlighet: 'allvarlig', enhet: 'vc-tybble', datum: '2021-06-12' },
     ],
     diagnoser: [
-      { kod: 'Z91.0', text: 'Allergi i den egna sjukhistorien, utom mot läkemedel och biologiska substanser', enhet: 'vc-tybble', datum: '2021-06-12', typ: 'bi' },
+      { kod: 'Z91.0', text: 'Allergi och annan överkänslighet som inte beror på läkemedel och biologiska substanser i den egna sjukhistorien', enhet: 'vc-tybble', datum: '2021-06-12', typ: 'bi' },
       { kod: 'J45.9', text: 'Astma, ospecificerad', enhet: 'vc-tybble', vk: 'vc1', datum: -400, typ: 'huvud' },
-      { kod: 'H66.9', text: 'Mediaotit, ospecificerad', enhet: 'vc-tybble', vk: 'vc3', datum: -10, typ: 'huvud' },
+      { kod: 'H66.9', text: 'Mellanöreinflammation, ej specificerad som varig eller icke varig', enhet: 'vc-tybble', vk: 'vc3', datum: -10, typ: 'huvud' },
     ],
     anteckningar: [
       { typ: 'Mottagningsanteckning', enhet: 'vc-tybble', vk: 'vc1', av: 'lak-vc', tid: [-400, '10:25'], sokord: {
@@ -582,8 +582,8 @@ export const PATIENTER = [
       { kod: 'K21.9', text: 'Gastroesofageal refluxsjukdom utan esofagit', enhet: 'vc-tybble', datum: '2019-09-01', typ: 'bi' },
       { kod: 'G30.1', text: 'Alzheimers sjukdom med sen debut', enhet: 'vc-tybble', datum: -900, typ: 'huvud' },
       { kod: 'I48.2', text: 'Kroniskt förmaksflimmer', enhet: 'lind-med', vk: 'inl', datum: -12, typ: 'bi' },
-      { kod: 'I50.9', text: 'Hjärtsvikt, ospecificerad', enhet: 'lind-med', vk: 'inl', datum: -12, typ: 'huvud' },
-      { kod: 'R29.6', text: 'Fallbenägenhet', enhet: 'lind-med', vk: 'inl', datum: -12, typ: 'bi' },
+      { kod: 'I50.9', text: 'Hjärtinsufficiens, ospecificerad', enhet: 'lind-med', vk: 'inl', datum: -12, typ: 'huvud' },
+      { kod: 'R29.6', text: 'Fallbenägenhet, som ej klassificeras på annan plats', enhet: 'lind-med', vk: 'inl', datum: -12, typ: 'bi' },
     ],
     anteckningar: [
       { typ: 'Inskrivningsanteckning', enhet: 'lind-med', vk: 'inl', av: 'lak-lind', tid: [-20, '16:30'], sokord: {
@@ -647,7 +647,7 @@ export const PATIENTER = [
     diagnoser: [
       { kod: 'E03.9', text: 'Hypotyreos, ospecificerad', enhet: 'vc-tybble', datum: '2011-02-14', typ: 'huvud' },
       { kod: 'R00.2', text: 'Hjärtklappning', enhet: 'vc-tybble', vk: 'vc1', datum: -30, typ: 'huvud' },
-      { kod: 'I49.1', text: 'Förmaksextrasystolier', enhet: 'uso-kard-mott', vk: 'mott1', datum: -5, typ: 'huvud' },
+      { kod: 'I49.1', text: 'Prematur depolarisation av förmaket', enhet: 'uso-kard-mott', vk: 'mott1', datum: -5, typ: 'huvud' },
     ],
     anteckningar: [
       { typ: 'Mottagningsanteckning', enhet: 'vc-tybble', vk: 'vc0', av: 'lak-vc', tid: [-300, '09:15'], sokord: {
@@ -691,7 +691,7 @@ export const PATIENTER = [
       { ref: 'mott1', enhet: 'uso-ort', typ: 'oppenvard', start: [-10, '14:00'], slut: [-10, '14:20'], plats: 'Ortopedmottagningen', orsak: 'Återbesök efter operation' },
     ],
     diagnoser: [
-      { kod: 'S83.5', text: 'Stukning och sträckning av korsband i knäleden', enhet: 'uso-ort', vk: 'mott0', datum: -60, typ: 'huvud' },
+      { kod: 'S83.5', text: 'Distorsion engagerande knäets (främre) (bakre) korsband', enhet: 'uso-ort', vk: 'mott0', datum: -60, typ: 'huvud' },
     ],
     anteckningar: [
       { typ: 'Mottagningsanteckning', enhet: 'uso-ort', vk: 'mott0', av: 'lak-ort', tid: [-60, '09:25'], sokord: {
@@ -733,7 +733,7 @@ export const PATIENTER = [
       { ref: 'akut', enhet: 'uso-akut', typ: 'akut', start: { min: -90 }, plats: 'Väntrum', orsak: 'Vriden fotled' },
     ],
     diagnoser: [
-      { kod: 'Z30.4', text: 'Övervakning av antikonception med läkemedel', enhet: 'vc-kumla', vk: 'vc1', datum: -500, typ: 'huvud' },
+      { kod: 'Z30.4', text: 'Övervakning av förskrivna preventivläkemedel', enhet: 'vc-kumla', vk: 'vc1', datum: -500, typ: 'huvud' },
       { kod: 'J02.9', text: 'Akut faryngit, ospecificerad', enhet: 'vc-kumla', vk: 'vc2', datum: -200, typ: 'huvud' },
     ],
     anteckningar: [
@@ -777,7 +777,7 @@ export const PATIENTER = [
     ],
     diagnoser: [
       { kod: 'N20.1', text: 'Uretärsten', enhet: 'uso-akut', vk: 'vas', datum: '2019-04-03', typ: 'huvud', kalla: 'migrerad:VAS' },
-      { kod: 'I10.9', text: 'Essentiell hypertoni, ospecificerad', enhet: 'vc-tybble', vk: 'vc1', datum: -150, typ: 'huvud' },
+      { kod: 'I10.9', text: 'Essentiell hypertoni (högt blodtryck utan känd orsak)', enhet: 'vc-tybble', vk: 'vc1', datum: -150, typ: 'huvud' },
     ],
     anteckningar: [
       { typ: 'Akutanteckning', enhet: 'uso-akut', vk: 'vas', av: 'lak-vas', tid: ['2019-04-03', '03:00'], kalla: 'migrerad:VAS', sokord: {

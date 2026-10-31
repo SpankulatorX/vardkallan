@@ -162,28 +162,28 @@ export function osigneradeFor(db, personalId) {
   return db.query("SELECT * FROM anteckningar WHERE forfattare_id = ? AND status = 'utkast' ORDER BY skapad DESC").all(personalId)
     .map(a => anteckningUt(db, a, { full: false }));
 }
-
+// Mätvärden. Koderna för FHIR (NPU för labb, LOINC för vitalparametrar) står i kodverk.js.
 // Mätvärden. LOINC-koder används i FHIR.
 export const MATTYPER = {
-  blodtryck: { namn: 'Blodtryck', loinc: '85354-9', format: 'blodtryck' },
-  puls: { namn: 'Puls', loinc: '8867-4', min: 20, max: 250 },
-  temp: { namn: 'Temperatur', loinc: '8310-5', min: 30, max: 44 },
-  saturation: { namn: 'Saturation', loinc: '59408-5', min: 50, max: 100 },
-  andningsfrekvens: { namn: 'Andningsfrekvens', loinc: '9279-1', min: 4, max: 70 },
-  vikt: { namn: 'Vikt', loinc: '29463-7', min: 0.5, max: 400 },
-  langd: { namn: 'Längd', loinc: '8302-2', min: 30, max: 250 },
-  crp: { namn: 'CRP', loinc: '1988-5', min: 0, max: 700 },
-  egfr: { namn: 'eGFR', loinc: '62238-1', min: 0, max: 200 },
-  kreatinin: { namn: 'Kreatinin', loinc: '14682-9', min: 5, max: 3000 },
-  hba1c: { namn: 'HbA1c', loinc: '59261-8', min: 10, max: 200 },
-  inr: { namn: 'PK (INR)', loinc: '6301-6', min: 0.5, max: 10 },
-  ntprobnp: { namn: 'NT-proBNP', loinc: '33762-6', min: 0, max: 100000 },
-  hb: { namn: 'Hemoglobin', loinc: '718-7', min: 20, max: 250 },
-  glukos: { namn: 'Glukos', loinc: '2339-0', min: 0, max: 60 },
-  kalium: { namn: 'Kalium', loinc: '2823-3', min: 1, max: 10 },
-  pef: { namn: 'PEF', loinc: '19935-6', min: 20, max: 1000 },
-  troponin: { namn: 'Troponin T', loinc: '67151-1', min: 0, max: 100000 },
-  tsh: { namn: 'TSH', loinc: '3016-3', min: 0, max: 200 },
+  blodtryck: { namn: 'Blodtryck', format: 'blodtryck' },
+  puls: { namn: 'Puls', min: 20, max: 250 },
+  temp: { namn: 'Temperatur', min: 30, max: 44 },
+  saturation: { namn: 'Saturation', min: 50, max: 100 },
+  andningsfrekvens: { namn: 'Andningsfrekvens', min: 4, max: 70 },
+  vikt: { namn: 'Vikt', min: 0.5, max: 400 },
+  langd: { namn: 'Längd', min: 30, max: 250 },
+  crp: { namn: 'CRP', min: 0, max: 700 },
+  egfr: { namn: 'eGFR', min: 0, max: 200 },
+  kreatinin: { namn: 'Kreatinin', min: 5, max: 3000 },
+  hba1c: { namn: 'HbA1c', min: 10, max: 200 },
+  inr: { namn: 'PK (INR)', min: 0.5, max: 10 },
+  ntprobnp: { namn: 'NT-proBNP', min: 0, max: 100000 },
+  hb: { namn: 'Hemoglobin', min: 20, max: 250 },
+  glukos: { namn: 'Glukos', min: 0, max: 60 },
+  kalium: { namn: 'Kalium', min: 1, max: 10 },
+  pef: { namn: 'PEF', min: 20, max: 1000 },
+  troponin: { namn: 'Troponin T', min: 0, max: 100000 },
+  tsh: { namn: 'TSH', min: 0, max: 200 },
 };
 for (const [typ, m] of Object.entries(MATTYPER)) m.enhet = MATTYPER_ENHET[typ];
 

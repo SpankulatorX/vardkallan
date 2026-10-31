@@ -92,14 +92,17 @@ Det här dokumentet beskriver var backend avviker från eller lägger till någo
 
 ## FHIR
 
-- Bara läsning. FHIR-anrop skapar ingen sandlåda: utan sessionskaka eller inloggning blir svaret 401 `OperationOutcome` (utom `/fhir/metadata`).
+- Bara läsning. FHIR-anrop skapar ingen sandlåda: utan sessionskaka eller inloggning blir svaret 401 `OperationOutcome`, utom för `/fhir/metadata` och Vårdkällans egna definitioner (`/fhir/StructureDefinition`, `/fhir/CodeSystem` och `/fhir/ValueSet`, som kan sökas med `url` eller `_id`).
+- En sökning utan träffar är en `Bundle` med `total: 0` och utan `entry`, eftersom FHIR inte tillåter tomma listor. Inga resurser innehåller tomma listor.
 - Fel är `OperationOutcome` där `issue[0].details.coding[0]` har systemet `https://vardkallan.404haven.se/fhir/CodeSystem/felkod` och samma kod som `/api` (`kraver_val`, `kraver_samtycke`, `nekad`, `saknas`, `ogiltig`, `ej_inloggad`).
 - `Patient` söks med `_id`, `identifier` (`system|värde` eller bara personnumret) eller `patient`. Patienter som användaren inte har behörighet till tas inte med i sökresultatet. Läsning av en sådan patient ger 403.
-- Skyddad patient: `name` är `[{ text: "Skyddad identitet" }]`, personnumret maskeras som `19840416****` och `meta.security` har koden `R`. Adress och telefon skickas aldrig, inte heller efter visa identitet.
-- `Organization` och `Practitioner` kan listas utan patient. HSA-id har systemet `urn:oid:1.2.752.29.4.19`.
-- `Observation` använder LOINC. `MedicationRequest` har ATC och ett påhittat NPL-id (`https://vardkallan.404haven.se/fhir/NamingSystem/npl-demo`), och tilläggen `uppfoljningsdatum`, `nll-status` och `utsattningsorsak` under `https://vardkallan.404haven.se/fhir/StructureDefinition/`. `ServiceRequest` har tilläggen `remisstatus` och `svar-senast`.
+- Skyddad patient: `name` är `[{ text: "Skyddad identitet" }]`, personnumret maskeras som `19840416****` och `meta.security` har `sekretessmarkering` ur HL7 Swedens `http://hl7.se/fhir/ig/base/CodeSystem/SecurityLabel` och `R` ur `v3-Confidentiality`. Adress och telefon skickas aldrig, inte heller efter visa identitet.
+- `Organization` och `Practitioner` kan listas utan patient. HSA-id har systemet `urn:oid:1.2.752.29.4.19` och `type` `PRN` ur `v2-0203`, som basprofilerna anger.
+- **ICD-10-SE har systemet `urn:oid:1.2.752.116.1.1.1`**, inte `http://hl7.org/fhir/sid/icd-10-se` som designen säger. Den adressen är inte registrerad hos HL7 och ger fel i validatorn, och OID:n är den Socialstyrelsen anger för ICD-10-SE. `display` är Socialstyrelsens titel.
+- `Observation`: labbvärden har NPU (`http://npu-terminology.org`), vitalparametrar och PEF har LOINC, och alla värden har UCUM-enhet (`system` och `code`) utöver den svenska `unit`. Vitalparametrarna följer FHIR R4:s vitalparameterprofiler och anger dem i `meta.profile`; saturation har både 2708-6 (som profilen kräver) och 59408-5. eGFR har bara text, eftersom NPU saknar kod för skattat GFR. Den svenska benämningen står i `code.text`, och `display` är kodverkets egen (engelska för LOINC). Koderna står i `app/src/kodverk.js`.
+- `MedicationRequest` har ATC med WHO:s benämning som `display` och ett påhittat NPL-id (`https://vardkallan.404haven.se/fhir/NamingSystem/npl-demo`), och tilläggen `uppfoljningsdatum`, `nll-status` och `utsattningsorsak` under `https://vardkallan.404haven.se/fhir/StructureDefinition/`. `ServiceRequest` har tilläggen `remisstatus` och `svar-senast`, och `AuditEvent` tillägget `hash`. Alla tillägg och kodsystemen `kalla`, `felkod`, `atkomstgrund`, `nll-status` och `remisstatus` är definierade i `app/src/fhir-definitioner.js`. `AuditEvent.purposeOfEvent` har systemet `https://vardkallan.404haven.se/fhir/CodeSystem/atkomstgrund`.
 - `Composition.status` är `final`, `amended` (en rättelse, med `relatesTo` av typen `replaces`) eller `preliminary` (eget utkast).
-- Resurserna är inte validerade mot HL7 Swedens basprofiler.
+- Alla resurstyper är validerade med HL7:s validator mot FHIR R4 och HL7 Swedens basprofiler (`hl7se.fhir.base` 1.1.0) utan fel, se `docs/fhir-validering.md`. `Patient`, `Organization` och `Practitioner` anger basprofilerna i `meta.profile`. Övriga resurstyper påstår ingen profil utöver FHIR R4.
 
 ## Seed
 

@@ -45,7 +45,8 @@ describe('FHIR', () => {
     const db = nyDb();
     const b = fraga(db, 'lak-kard', '/fhir/Condition?patient=p01');
     const koder = b.entry.map(e => e.resource.code.coding[0]);
-    expect(koder.every(c => c.system === 'http://hl7.org/fhir/sid/icd-10-se')).toBe(true);
+    // Socialstyrelsens OID för ICD-10-SE. HL7 har ingen registrerad URI för ICD-10-SE.
+    expect(koder.every(c => c.system === 'urn:oid:1.2.752.116.1.1.1')).toBe(true);
     expect(koder.map(c => c.code)).toContain('I48.1');
   });
 
@@ -96,7 +97,7 @@ describe('FHIR', () => {
     expect(p.identifier[0].value).toBe('19840416****');
     expect(p.address).toBeUndefined();
     expect(p.telecom).toBeUndefined();
-    expect(p.meta.security[0].code).toBe('R');
+    expect(p.meta.security.map(c => `${c.system}|${c.code}`)).toEqual(['http://hl7.se/fhir/ig/base/CodeSystem/SecurityLabel|sekretessmarkering', 'http://terminology.hl7.org/CodeSystem/v3-Confidentiality|R']);
     const visad = fraga(db, 'lak-vc', '/fhir/Patient/p03', { p03: { visa_identitet: true } });
     expect(visad.name[0].family).toBe('Engberg');
     expect(visad.address).toBeUndefined();
