@@ -1,0 +1,207 @@
+// Behörighetsmotorn. prova() är en ren funktion av databasens innehåll och anropet: den ändrar inget
+// och loggar inget. Servern anropar den i varje API- och FHIR-anrop och loggar utfallet.
+import { Fel } from './db.js';
+import { loggaRad } from './logg.js';
+
+// Minsta åtkomst per yrkesroll (D8, PDL 4 kap. 2 §).
+export const ROLLER = {
+  lakare: ['las_oversikt', 'las_journal', 'las_omvardnad', 'skriv_journal', 'skriv_omvardnad', 'las_lakemedel', 'ordinera',
+    'las_matvarden', 'registrera_matvarde', 'las_diagnoser', 'las_remiss', 'remittera', 'mottag_remiss', 'bedom_remiss',
+    'svara_remiss', 'kvittera_svar', 'las_admin', 'sok', 'vantrum', 'nodatkomst', 'andra_enheter', 'samtycke_sparr', 'visa_identitet'],
+  sjukskoterska: ['las_oversikt', 'las_journal', 'las_omvardnad', 'skriv_omvardnad', 'las_lakemedel', 'ge_lakemedel',
+    'las_matvarden', 'registrera_matvarde', 'las_diagnoser', 'las_remiss', 'las_admin', 'sok', 'vantrum',
+    'nodatkomst', 'andra_enheter', 'samtycke_sparr', 'visa_identitet'],
+  underskoterska: ['las_oversikt', 'las_omvardnad', 'las_lakemedel', 'las_matvarden', 'registrera_matvarde', 'las_admin',
+    'sok', 'vantrum', 'andra_enheter', 'samtycke_sparr', 'visa_identitet'],
+  vardadministrator: ['las_admin', 'las_remiss_status', 'mottag_remiss', 'sok', 'vantrum', 'andra_enheter', 'visa_identitet'],
+  logggranskare: ['las_logg', 'sok'],
+};
+
+export const HANDLINGAR = {
+  las_oversikt: 'läsa patientöversikten', las_journal: 'läsa journalanteckningar', las_omvardnad: 'läsa omvårdnadsanteckningar',
+  skriv_journal: 'skriva journalanteckningar', skriv_omvardnad: 'skriva omvårdnadsanteckningar', las_lakemedel: 'läsa läkemedelslistan',
+  ordinera: 'ordinera läkemedel', ge_lakemedel: 'ge läkemedel', las_matvarden: 'läsa mätvärden', registrera_matvarde: 'registrera mätvärden',
+  las_diagnoser: 'läsa diagnoser', las_remiss: 'läsa remisser', las_remiss_status: 'se remissers status', remittera: 'skicka remisser',
+  mottag_remiss: 'kvittera mottagna remisser', bedom_remiss: 'bedöma remisser', svara_remiss: 'svara på remisser',
+  kvittera_svar: 'kvittera remissvar', las_admin: 'läsa administrativa uppgifter', sok: 'söka patienter', vantrum: 'se väntrummet',
+  nodatkomst: 'använda nödåtkomst', andra_enheter: 'visa uppgifter från andra vårdenheter', samtycke_sparr: 'registrera samtycke till spärrade uppgifter',
+  visa_identitet: 'visa skyddad identitet', las_logg: 'läsa åtkomstloggen',
+};
+
+// Handlingar som inte rör en enskild patient.
+const UTAN_PATIENT = new Set(['sok', 'vantrum', 'las_logg']);
+const RELATION_DAGAR = 90;
+
+export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
+
+// Den vårdenhet en enhet hör till. Inre sekretess gäller per vårdenhet.
+export function vardenhetFor(db, enhetId) {
+  let id = enhetId;
+  for (let i = 0; i < 6 && id; i++) {
+    const e = db.query('SELECT id, typ, forald_id FROM enheter WHERE id = ?').get(id);
+    if (!e) return enhetId;
+    if (e.typ !== 'arbetsplats') return e.id;
+    id = e.forald_id;
+  }
+  return enhetId;
+}
+
+// Alla enheter som hör till en vårdenhet (vårdenheten och dess arbetsplatser).
+export function enheterUnder(db, vardenhet) {
+  const barn = db.query("SELECT id FROM enheter WHERE forald_id = ? AND typ = 'arbetsplats'").all(vardenhet).map(r => r.id);
+  return [vardenhet, ...barn];
+}
+
+// Vårdrelation: pågående eller nyligen avslutad vårdkontakt, listning eller remiss till enheten.
+export function harVardrelation(db, patientId, vardenhet, nu = new Date()) {
+  const enheter = enheterUnder(db, vardenhet);
+  const ph = enheter.map(() => '?').join(', ');
+  const grans = new Date(nu.getTime() - RELATION_DAGAR * 86400_000).toISOString();
+  const vk = db.query(`SELECT 1 FROM vardkontakter WHERE patient_id = ? AND enhet_id IN (${ph}) AND (slut IS NULL OR slut >= ?) LIMIT 1`)
+    .get(patientId, ...enheter, grans);
+  if (vk) return true;
+  if (db.query(`SELECT 1 FROM listningar WHERE patient_id = ? AND enhet_id IN (${ph})`).get(patientId, ...enheter)) return true;
+  const remiss = db.query(`SELECT 1 FROM remisser WHERE patient_id = ? AND (
+      (till_enhet_id IN (${ph}) AND NOT (status = 'bedomd' AND beslut = 'avvisad') AND (status <> 'svar_kvitterat' OR svar_kvitterat_tid >= ?))
+      OR (fran_enhet_id IN (${ph}) AND status <> 'svar_kvitterat' AND NOT (status = 'bedomd' AND beslut = 'avvisad'))
+    ) LIMIT 1`).get(patientId, ...enheter, grans, ...enheter);
+  return Boolean(remiss);
+}
+
+export function aktivaSparrar(db, patientId) {
+  return db.query('SELECT enhet_id FROM sparrar WHERE patient_id = ? AND aktiv = 1').all(patientId).map(r => vardenhetFor(db, r.enhet_id));
+}
+
+const svar = (tillaten, grund, krav = null, skal = '', sparrade = false) => ({ tillaten, grund, krav, spärrade: sparrade, skal });
+
+// prova(db, { personal, patient, handling, resurs, val })
+//   personal: rad ur personal (id, yrke, enhet_id)
+//   patient:  patient-id eller rad ur patienter
+//   handling: nyckel i HANDLINGAR
+//   resurs:   { enhet_id, gemensam } för en enskild uppgift, annars null (patientnivå)
+//   val:      { andra_enheter, nodatkomst, samtycke_sparr, visa_identitet } för sessionen och patienten
+// Returnerar { tillaten, grund, krav, spärrade, skal }. krav är 'kraver_val' eller 'kraver_samtycke' när åtgärden
+// blir möjlig efter ett aktivt val, nödåtkomst eller samtycke.
+export function prova(db, { personal, patient, handling, resurs = null, val = {}, nu = new Date() }) {
+  if (!personal) return svar(false, 'nekad', null, 'Ingen inloggad användare.');
+  if (!HANDLINGAR[handling]) return svar(false, 'nekad', null, `Okänd handling: ${handling}`);
+  if (!kanRoll(personal, handling)) {
+    return svar(false, 'nekad', null, `Yrkesrollen får inte ${HANDLINGAR[handling]}.`);
+  }
+  if (handling === 'las_logg') return svar(true, 'logggranskning');
+  if (UTAN_PATIENT.has(handling)) return svar(true, personal.yrke === 'logggranskare' ? 'logggranskning' : 'administrativ');
+
+  const patientId = typeof patient === 'string' ? patient : patient?.id;
+  if (!patientId) return svar(false, 'nekad', null, 'Patienten saknas.');
+  const minEnhet = vardenhetFor(db, personal.enhet_id);
+  const admin = personal.yrke === 'vardadministrator';
+  const relation = harVardrelation(db, patientId, minEnhet, nu);
+
+  let bas;
+  if (relation) bas = admin ? 'administrativ' : 'vardrelation';
+  else if (val.nodatkomst && kanRoll(personal, 'nodatkomst')) bas = 'nodatkomst';
+  else if (kanRoll(personal, 'nodatkomst')) {
+    return svar(false, 'nekad', 'kraver_val', 'Det finns ingen vårdrelation. Nödåtkomst kan användas om patienten inte kan samtycka och uppgifterna behövs för vården.');
+  } else return svar(false, 'nekad', null, 'Det finns ingen vårdrelation till patienten.');
+
+  // Spärrar från andra vårdenheter än min egen. Nödåtkomst häver aldrig en spärr.
+  const sparrar = aktivaSparrar(db, patientId).filter(e => e !== minEnhet);
+  const sparrade = sparrar.length > 0 && !val.samtycke_sparr;
+
+  if (!resurs?.enhet_id) return svar(true, bas, null, '', sparrade);
+
+  const resursEnhet = vardenhetFor(db, resurs.enhet_id);
+  if (resursEnhet === minEnhet) return svar(true, bas === 'nodatkomst' ? 'nodatkomst' : admin ? 'administrativ' : 'egen_enhet', null, '', sparrade);
+  if (sparrar.includes(resursEnhet)) {
+    if (val.samtycke_sparr) return svar(true, 'samtycke_sparr', null, '', false);
+    return svar(false, 'nekad', 'kraver_samtycke', 'Det finns spärrade uppgifter. De kan visas bara om patienten samtycker nu.', true);
+  }
+  if (bas === 'nodatkomst') return svar(true, 'nodatkomst', null, '', sparrade);
+  // Gemensamma uppgifter (läkemedelslistan och överkänslighet) omfattas inte av aktivt val, men av spärr.
+  if (resurs.gemensam) return svar(true, bas, null, '', sparrade);
+  if (val.andra_enheter) return svar(true, 'aktivt_val', null, '', sparrade);
+  return svar(false, 'nekad', 'kraver_val', 'Uppgifterna kommer från en annan vårdenhet. Gör ett aktivt val för att visa dem.', sparrade);
+}
+
+// Grunderna i den ordning de väger när ett anrop visar uppgifter på flera grunder.
+const VIKT = ['samtycke_sparr', 'nodatkomst', 'aktivt_val', 'egen_enhet', 'vardrelation', 'administrativ'];
+export function starkasteGrund(grunder, standard) {
+  for (const g of VIKT) if (grunder.has(g)) return g;
+  return standard;
+}
+
+// Kontext för ett anrop: vem, vilken patient och vilka val som gjorts. Samlar grunderna och loggar en rad.
+export class Atkomst {
+  constructor(db, personal, patientId, val = {}, handling = 'las_oversikt') {
+    this.db = db;
+    this.personal = personal;
+    this.patientId = patientId;
+    this.val = val;
+    this.handling = handling;
+    this.grunder = new Set();
+    this.doldaVal = 0;
+    this.doldaSparr = false;
+    this.loggad = false;
+  }
+
+  prova(handling, resurs = null) {
+    return prova(this.db, { personal: this.personal, patient: this.patientId, handling, resurs, val: this.val });
+  }
+
+  // Kräver åtkomst på patientnivå. Loggar och kastar Fel om den nekas.
+  krav(handling = this.handling, { resurs = null, beskrivning = null } = {}) {
+    const r = this.prova(handling, resurs);
+    if (!r.tillaten) {
+      this.logga(handling, 'nekad', beskrivning, 'nekad');
+      const kod = r.krav ?? 'nekad';
+      throw new Fel(403, r.skal, kod);
+    }
+    this.grunder.add(r.grund);
+    if (r.spärrade) this.doldaSparr = true;
+    return r;
+  }
+
+  // Filtrerar rader på enhet och kategori. Det som döljs räknas så att gränssnittet kan erbjuda val.
+  filtrera(rader, handlingFor, { gemensam = false } = {}) {
+    const ut = [];
+    for (const rad of rader) {
+      const handling = typeof handlingFor === 'function' ? handlingFor(rad) : handlingFor;
+      if (!kanRoll(this.personal, handling)) continue;
+      const r = this.prova(handling, { enhet_id: rad.enhet_id, gemensam });
+      if (r.tillaten) { this.grunder.add(r.grund); ut.push(rad); }
+      else if (r.krav === 'kraver_samtycke') this.doldaSparr = true;
+      else if (r.krav === 'kraver_val') this.doldaVal++;
+    }
+    return ut;
+  }
+
+  grund() {
+    return starkasteGrund(this.grunder, this.personal.yrke === 'vardadministrator' ? 'administrativ' : 'vardrelation');
+  }
+
+  logga(handling = this.handling, grund = this.grund(), resurs = null, resultat = 'tillaten', syfte = null) {
+    this.loggad = true;
+    return loggaRad(this.db, {
+      personal_id: this.personal.id, enhet_id: this.personal.enhet_id, patient_id: this.patientId,
+      handling, resurs, grund, syfte, resultat,
+    });
+  }
+}
+
+// Skyddade personuppgifter: maskering i listor och huvud.
+export const maskeraPnr = (pnr) => `${pnr.slice(0, 8)}-****`;
+export const formateraPnr = (pnr) => `${pnr.slice(0, 8)}-${pnr.slice(8)}`;
+export const SKYDDAD_NAMN = 'Skyddad identitet';
+
+export function visningsnamn(p, visad = false) {
+  if (p.skyddad && !visad) return SKYDDAD_NAMN;
+  return `${p.fornamn} ${p.efternamn}`;
+}
+export function visningsPnr(p, visad = false) {
+  return p.skyddad && !visad ? maskeraPnr(p.personnummer) : formateraPnr(p.personnummer);
+}
+export function alder(fodd, idag) {
+  const [y, m, d] = fodd.split('-').map(Number);
+  const [ty, tm, td] = idag.split('-').map(Number);
+  return ty - y - (tm < m || (tm === m && td < d) ? 1 : 0);
+}

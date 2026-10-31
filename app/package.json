@@ -1,0 +1,12 @@
+{
+  "name": "vardkallan",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Vårdkällan, ett öppet vårdinformationssystem. Publik demo med påhittade patienter.",
+  "scripts": {
+    "start": "bun src/server.js",
+    "test": "bun test",
+    "testresultat": "bun scripts/kor-tester.js"
+  }
+}
