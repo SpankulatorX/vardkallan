@@ -21,6 +21,15 @@ let fornyaTimer = null;
 
 const ssLas = (k) => { try { return sessionStorage.getItem(k); } catch { return null; } };
 const ssSkriv = (k, v) => { try { if (v == null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch { /* privat läge */ } };
+// Väntande utloggning sparas i localStorage, så att den överlever att fliken stängs. Nästa start loggar ut sessionen
+// på servern innan den används, även om en annan person öppnar sidan på samma dator.
+const lsLas = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+const lsSkriv = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { /* privat läge */ } };
+const medTidsgrans = (p, ms) => Promise.race([p, new Promise((_, nej) => setTimeout(() => nej(new Error('tidsgräns')), ms))]);
+async function loggaUtPaServern() {
+  try { await medTidsgrans(api('/api/logout', { metod: 'POST', data: {}, direkt: true, tyst: true }), 3000); return true; }
+  catch (e) { return e?.status === 401; }
+}
 
 // Hälsokontroll direkt mot servern, med tidsgräns.
 async function serverSvarar() {
@@ -155,10 +164,11 @@ async function skickaLogg() {
 
 // Personen loggade ut medan servern inte svarade. Nu när servern svarar skickas loggen och sessionen loggas ut där också.
 export async function slutforUtloggning() {
-  if (ssLas(SS_UTLOGGAD) !== '1') return false;
-  if (await skickaLogg() === null) return false;
-  ssSkriv(SS_UTLOGGAD, null);
-  try { await api('/api/logout', { metod: 'POST', data: {}, direkt: true, tyst: true }); } catch { /* sessionen kan redan vara borta */ }
+  if (lsLas(SS_UTLOGGAD) !== '1') return false;
+  // Loggen kan bara skickas om nyckeln finns kvar i fliken. Utloggningen på servern görs oavsett.
+  await medTidsgrans(skickaLogg(), 3000).catch(() => null);
+  if (!(await loggaUtPaServern())) return false;
+  lsSkriv(SS_UTLOGGAD, null);
   await kopia.rensa();
   S.session = { inloggad: false };
   return true;
@@ -167,7 +177,7 @@ export async function slutforUtloggning() {
 async function aterga() {
   atergar = true;
   try {
-    const utloggad = ssLas(SS_UTLOGGAD) === '1';
+    const utloggad = lsLas(SS_UTLOGGAD) === '1';
     const antal = utloggad ? 0 : await skickaLogg();
     if (antal === null) return;
     if (utloggad && !(await slutforUtloggning())) return;
@@ -192,10 +202,15 @@ async function aterga() {
 // Utloggning medan servern inte svarar: kopian raderas direkt. Loggen från läsläget och nyckeln finns kvar tills de
 // har skickats, och servern loggar ut sessionen när den svarar igen.
 export async function loggaUtUnderAvbrott() {
-  ssSkriv(SS_UTLOGGAD, '1');
-  await kopia.rensa({ behallLogg: true });
+  lsSkriv(SS_UTLOGGAD, '1');
+  // Vid simulerat avbrott, eller om servern hinner svara, loggas sessionen ut direkt.
+  await medTidsgrans(skickaLogg(), 3000).catch(() => null);
+  const klar = await loggaUtPaServern();
+  if (klar) lsSkriv(SS_UTLOGGAD, null);
+  await kopia.rensa({ behallLogg: !klar });
   meta = null;
   visaRad();
+  return klar;
 }
 
 // Hämtar en ny läskopia från servern och sparar den krypterad. nu: direkt, annars högst en gång i minuten.

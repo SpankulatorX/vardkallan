@@ -245,12 +245,12 @@ document.addEventListener('click', async (e) => {
   if (a === 'loggaut') {
     avbrytAllaAnrop();
     if (avbrott.aktivt) {
-      await avbrottslage.loggaUtUnderAvbrott();
+      const klarPaServern = await avbrottslage.loggaUtUnderAvbrott();
       S.session = { inloggad: false };
       S.inkorg = null;
       ramNyckel = null;
       document.getElementById('notiser').replaceChildren();
-      notis('Du är utloggad i den här fliken och läskopian är raderad. Sessionen på servern loggas ut när förbindelsen är tillbaka.', 'info');
+      notis(klarPaServern ? 'Du är utloggad och läskopian är raderad.' : 'Du är utloggad i den här fliken och läskopian är raderad. Sessionen på servern loggas ut när förbindelsen är tillbaka, även om fliken stängs.', 'info');
       if (location.hash === '#/') rita(); else location.hash = '#/';
       return;
     }

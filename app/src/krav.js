@@ -53,7 +53,7 @@ export const KRAV = [
       `${LK}en rad som skickas två gånger loggas en gång`, `${LK}läskopians nyckel och kopplingar överlever omstart av servern`, `${LK}service workern cachar alla statiska filer`,
       `${GA}appen startar utan nät från service workern och visar läsläget`, `${GA}läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB`,
       `${GA}skrivande är avstängt i läsläget med en förklaring`, `${GA}simulerat avbrott ger läsläge medan servern svarar andra besökare`,
-      `${GA}åtkomster i läsläget når åtkomstloggen när servern svarar igen`, `${GA}läskopian rensas vid utloggning`, `${GA}läskopian används inte efter 8 timmar`],
+      `${GA}åtkomster i läsläget når åtkomstloggen när servern svarar igen`, `${GA}läskopian rensas vid utloggning`, `${GA}utloggning under avbrott loggar ut sessionen på servern, även om fliken stängs`, `${GA}läskopian används inte efter 8 timmar`],
     'Läsläget gäller den som var inloggad när avbrottet kom, i samma webbläsarflik, och visar arbetslistan och de patienter som kopierats. Inloggningen i demon är ett simulerat SITHS-kort som inte beror på någon extern tjänst, men en riktig inloggning med reservväg vid avbrott hos Inera är inte byggd. Läsläget ersätter inte en reservrutin med utskrifter eller ett separat reservsystem för läsning.'),
   k('D5', 'Svarstidsmål per vanlig åtgärd, mätta i drift och publicerade', `${RAPPORT}, D5`, 'uppfyllt_demo', '/drift',
     [`${A}hälsa och Server-Timing på alla svar`, `${A}drift visar p50 och p95 per endpoint`],

@@ -264,6 +264,42 @@ const lagrat = (page) => page.evaluate(async () => {
     offline = false;
   });
 
+  await test('utloggning under avbrott loggar ut sessionen på servern, även om fliken stängs', async () => {
+    const inloggad = async (c) => (await (await c.request.get(`${BAS}/api/session`)).json()).inloggad;
+    // Simulerat avbrott: servern svarar, så sessionen loggas ut direkt.
+    const c1 = await ny();
+    const p1 = await c1.newPage();
+    await loggaIn(p1, 'lak-kard');
+    await vantaPaKopia(p1);
+    await p1.click('[data-a="avbrott"]');
+    await synlig(p1, '#avbrott h2', 'Avbrott: läsläge');
+    await p1.click('[data-a="loggaut"]');
+    await synlig(p1, '.notis', 'Du är utloggad och läskopian är raderad');
+    anta(!(await inloggad(c1)), 'sessionen är kvar på servern efter utloggning under simulerat avbrott');
+    await c1.close();
+    // Riktigt avbrott och fliken stängs: nästa start loggar ut sessionen innan den används.
+    const c2 = await ny();
+    const p2 = await c2.newPage();
+    await loggaIn(p2, 'lak-kard');
+    await vantaPaKopia(p2);
+    await c2.setOffline(true);
+    await p2.reload();
+    await synlig(p2, '#avbrott h2', 'Avbrott: läsläge');
+    await p2.click('[data-a="loggaut"]');
+    await synlig(p2, '.notis', 'loggas ut när förbindelsen är tillbaka');
+    anta(await p2.evaluate(() => localStorage.getItem('vk_utloggad_under_avbrott')) === '1', 'den väntande utloggningen sparades inte');
+    await p2.close();
+    await c2.setOffline(false);
+    anta(await inloggad(c2), 'kontrollen: sessionen borde finnas kvar på servern innan sidan öppnas igen');
+    const p3 = await c2.newPage();
+    await p3.goto(`${BAS}/#/`);
+    await p3.waitForSelector('[data-roll]');
+    await p3.waitForTimeout(300);
+    anta(!(await inloggad(c2)), 'sessionen användes igen efter att fliken stängts under avbrottet');
+    anta(await p3.evaluate(() => localStorage.getItem('vk_utloggad_under_avbrott')) === null, 'den väntande utloggningen togs inte bort');
+    await c2.close();
+  });
+
   await test('läskopian används inte efter 8 timmar', async () => {
     const c = await ny();
     const p = await c.newPage();

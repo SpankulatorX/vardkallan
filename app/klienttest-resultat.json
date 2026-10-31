@@ -1,8 +1,8 @@
 {
-  "tid": "2026-10-31T17:51:59.112Z",
+  "tid": "2026-10-31T17:57:41.430Z",
   "bas": "http://127.0.0.1:18797",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "4aad48ed67c84b28c403f996acf7da776bda1b8740f84648178de45879a0e4c4",
+  "gransnittHash": "4259a3482e8098dd8f3c3a227f9e169a94057875718fa6132f38b18e25e1a48b",
   "tester": [
     {
       "namn": "Gränssnitt > Avbrott > läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB",
@@ -26,6 +26,10 @@
     },
     {
       "namn": "Gränssnitt > Avbrott > läskopian rensas vid utloggning",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > utloggning under avbrott loggar ut sessionen på servern, även om fliken stängs",
       "status": "grön"
     },
     {

@@ -95,7 +95,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   const slumpId = () => Buffer.from(crypto.getRandomValues(new Uint8Array(24))).toString('base64url');
   const slumpNyckel = () => Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64url');
   const kakSid = (req) => (req.headers.get('cookie') || '').match(/(?:^|;\s*)vk_sid=([A-Za-z0-9_-]{32})(?:;|$)/)?.[1];
-  const kaka = (sid) => `vk_sid=${sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_TTL / 1000}${origin.startsWith('https') ? '; Secure' : ''}`;
+  const kaka = (sid) => `vk_sid=${sid}; Path=/; HttpOnly; SameSite=Lax${origin.startsWith('https') ? '; Secure' : ''}`;
   // Cloudflare skriver över cf-connecting-ip vid kanten. Rubriken gäller bara när LITA_PA_PROXY=1,
   // alltså när enda vägen in är tunneln och Caddy. Annars räknas socketens adress.
   const litaPaProxy = process.env.LITA_PA_PROXY === '1';
