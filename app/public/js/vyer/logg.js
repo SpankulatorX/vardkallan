@@ -3,7 +3,7 @@ import { esc, api, tidpunkt, ikon, vyRubrik, tom, GRUND, HANDLING, YRKE, idag, p
 
 export const namn = 'logg';
 
-const FLAGGOR = [['alla', 'Alla'], ['nodatkomst', 'Nödåtkomst'], ['nekad', 'Nekade försök'], ['samtycke', 'Samtycke till spärrade uppgifter']];
+const FLAGGOR = [['alla', 'Alla'], ['vard', 'Vårdens åtkomster'], ['nodatkomst', 'Nödåtkomst'], ['nekad', 'Nekade försök'], ['samtycke', 'Samtycke till spärrade uppgifter']];
 
 export function kedjaRuta(hel, v) {
   return hel

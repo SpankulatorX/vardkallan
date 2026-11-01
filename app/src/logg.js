@@ -60,6 +60,8 @@ const FLAGGOR = {
   nodatkomst: "l.grund = 'nodatkomst'",
   nekad: "l.resultat = 'nekad'",
   samtycke: "l.grund = 'samtycke_sparr'",
+  // Vårdens åtkomster, utan invånarnas läsningar i Min journal.
+  vard: 'l.invanare_id IS NULL',
 };
 
 export function lista(db, { patientId = null, flagga = 'alla', fran = null, till = null, max = 500 } = {}) {

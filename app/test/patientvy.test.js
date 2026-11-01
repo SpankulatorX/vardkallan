@@ -2,7 +2,7 @@ import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { testserver, klient, sandlada, nyDb } from './hjalp.js';
 import { lasSandlada, addDagar, idag, datumAv } from '../src/db.js';
-import { verifiera } from '../src/logg.js';
+import { verifiera, loggaRad } from '../src/logg.js';
 import { aktivaSparrar } from '../src/atkomst.js';
 import * as minJournal from '../src/patientvy.js';
 import { PERSONAL } from '../src/seed/personal.js';
@@ -55,13 +55,15 @@ describe('Min journal', () => {
     expect(egen.data.patient).toMatchObject({ id: 'p01', namn: 'Gunnar Åkesson' });
     const finnsInte = await k.get('/api/min/journal/p99');
     expect(finnsInte.status).toBe(404);
-    // En annan patient som finns ger exakt samma svar som en som inte finns.
+    // En annan patient som finns ger exakt samma svar som en som inte finns. En ny sandlåda per patient, så att
+    // gränsen för nekade försök inte nås.
     for (const pid of ['p02', 'p03', 'p09', 'p12']) {
+      const kp = await som('inv-p01');
       for (const del of ['', ...DELAR.map(d => `/${d}`)]) {
-        const r = await k.get(`/api/min/journal/${pid}${del}`);
+        const r = await kp.get(`/api/min/journal/${pid}${del}`);
         expect({ pid, del, status: r.status, data: r.data }).toEqual({ pid, del, status: 404, data: finnsInte.data });
       }
-      expect((await k.post(`/api/min/journal/${pid}/begaran`, { typ: 'loggutdrag' })).status).toBe(404);
+      expect((await kp.post(`/api/min/journal/${pid}/begaran`, { typ: 'loggutdrag' })).status).toBe(404);
     }
     // En anteckning i en annan patients journal går inte att läsa genom den egna journalens adress.
     const annan = db(k).query("SELECT id FROM anteckningar WHERE patient_id = 'p02' AND status = 'signerad'").get().id;
@@ -149,7 +151,8 @@ describe('Min journal', () => {
     const fore = loggrader(k).length;
     const ut = await k.post('/api/logout', { rader: [rad] });
     expect(ut.status).toBe(200);
-    expect(ut.data.lasloggen).toBeUndefined();
+    // Raderna tas inte emot, och svaret säger det, så att klienten inte tror att de kom fram.
+    expect(ut.data.lasloggen).toMatchObject({ mottagna: 0, fel: expect.stringContaining('ingen personal') });
     expect(loggrader(k).length).toBe(fore);
     const s = sandlada(app, k);
     expect([s.kopia.size, s.oppnade.size, s.lasnyckel]).toEqual([0, 0, null]);
@@ -328,7 +331,61 @@ describe('Min journal', () => {
     const alla = (await k.get('/api/logg?flagga=alla')).data.rader.filter(r => r.invanare);
     expect(alla.length).toBeGreaterThanOrEqual(3);
     expect(alla.every(r => !r.flaggad && r.personal === null && r.invanare.relation === 'egen' && r.invanare.namn === null)).toBe(true);
-    for (const f of ['nekad', 'nodatkomst', 'samtycke']) expect((await k.get(`/api/logg?flagga=${f}`)).data.rader.some(r => r.invanare)).toBe(false);
+    for (const f of ['nekad', 'nodatkomst', 'samtycke', 'vard']) expect((await k.get(`/api/logg?flagga=${f}`)).data.rader.some(r => r.invanare)).toBe(false);
+    expect((await k.get('/api/logg?flagga=vard')).data.rader.length).toBeGreaterThan(0);
+  });
+
+  test('nekade försök begränsas och tränger inte undan vårdens åtkomster ur logglistan', async () => {
+    const k = await som('inv-p02');
+    const d = db(k);
+    const svar = [];
+    for (let i = 0; i < 25; i++) svar.push((await k.get('/api/min/journal/p01')).status);
+    expect(svar).toEqual([...Array(20).fill(404), ...Array(5).fill(403)]);
+    // Gränsen gäller också FHIR och överlever ut- och inloggning i sandlådan.
+    expect((await k.get('/fhir/Patient/p01')).status).toBe(403);
+    await k.post('/api/logout', {});
+    await k.post('/api/login/invanare', { invanareId: 'inv-p02' });
+    expect((await k.get('/api/min/journal/p01/logglista')).status).toBe(403);
+    expect((await k.get('/api/min/journal/p02')).status).toBe(200);
+    expect(d.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p01' AND invanare_id = 'inv-p02' AND resultat = 'nekad'").get().n).toBe(20);
+    // Patienten läser sin egen journal mycket ofta. Vårdens åtkomster finns ändera med i logglistan.
+    for (let i = 0; i < 600; i++) loggaRad(d, { invanare_id: 'inv-p01', patient_id: 'p01', handling: 'invanare_las', resurs: 'min:journal', grund: 'egen_atkomst' });
+    await k.post('/api/login/invanare', { invanareId: 'inv-p01' });
+    const l = (await k.get('/api/min/journal/p01/logglista')).data;
+    const vard = d.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p01' AND invanare_id IS NULL").get().n;
+    expect(vard).toBeGreaterThan(0);
+    expect(l.rader.filter(r => r.vem === 'personal').length).toBe(vard);
+    expect(l.rader.filter(r => r.egenAtkomst).length).toBe(minJournal.LOGGLISTA_MAX.egna);
+    expect(l.avskurna).toEqual({ vard: false, egna: true, andra: false });
+    // Någon annans försök räknas inte som dina egna läsningar och döljs inte.
+    const andras = l.rader.filter(r => r.vem === 'invanare');
+    expect(andras.length).toBeGreaterThan(0);
+    expect(andras.every(r => r.egenAtkomst === false && r.resultat === 'nekad')).toBe(true);
+    // Loggens löpnummer lämnas inte ut.
+    expect(l.rader.some(r => 'id' in r)).toBe(false);
+  });
+
+  test('ingen fritext från adressen hamnar i loggen, och anrop från andra webbplatser avvisas', async () => {
+    const k = await som('inv-p02');
+    const d = db(k);
+    expect((await k.get('/fhir/Observation?patient=p01&anteckning=patienten%20har%20hiv')).status).toBe(404);
+    const rad = d.query("SELECT * FROM atkomstlogg WHERE patient_id = 'p01' AND invanare_id = 'inv-p02' ORDER BY id DESC LIMIT 1").get();
+    expect(rad).toMatchObject({ resultat: 'nekad', resurs: 'fhir/Observation?patient=p01' });
+    // En resurs i en annan journal svarar som en som inte finns, och försöket loggas på den journalen.
+    const fore = d.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p01' AND invanare_id = 'inv-p02'").get().n;
+    const annan = d.query("SELECT id FROM diagnoser WHERE patient_id = 'p01'").get().id;
+    const r1 = await k.get(`/fhir/Condition/${annan}`);
+    const r2 = await k.get('/fhir/Condition/999999');
+    expect([r1.status, r1.data.issue[0].diagnostics]).toEqual([404, r2.data.issue[0].diagnostics]);
+    expect(d.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p01' AND invanare_id = 'inv-p02'").get().n).toBe(fore + 1);
+    // Webbläsaren märker en navigering från en annan webbplats med Sec-Fetch-Site. Den avvisas utan loggrad.
+    const antal = d.query('SELECT count(*) AS n FROM atkomstlogg').get().n;
+    for (const v of ['/api/min/journal/p02', '/api/min/journal/p01', '/fhir/Patient/p02']) {
+      expect((await k.get(v, { 'Sec-Fetch-Site': 'cross-site' })).status).toBe(403);
+    }
+    expect(d.query('SELECT count(*) AS n FROM atkomstlogg').get().n).toBe(antal);
+    expect((await k.get('/api/min/journal/p02', { 'Sec-Fetch-Site': 'same-origin' })).status).toBe(200);
+    expect((await k.get('/fhir/Patient/p02')).status).toBe(200);
   });
 
   test('vårdnadshavare läser barnets journal under 13 år men inte från 13 år eller för ett barn med skyddad identitet', async () => {

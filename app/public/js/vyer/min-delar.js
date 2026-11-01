@@ -196,8 +196,9 @@ function loggRad(r) {
 export async function logglista(el, ctx) {
   const d = await del(ctx.pid, 'logglista');
   if (!ctx.aktuell()) return;
-  const vard = d.rader.filter(r => !r.egenAtkomst).length;
-  const egna = d.rader.length - vard;
+  const vard = d.rader.filter(r => r.vem === 'personal').length;
+  const egna = d.rader.filter(r => r.egenAtkomst).length;
+  const andra = d.rader.length - vard - egna;
   el.innerHTML = `${delrubrik('Vem har läst journalen', `Varje gång någon i vården öppnar journalen loggas det. Här ser du vilken vårdenhet och yrkesroll det var, när det var och på vilken grund. Nödåtkomst, ditt samtycke till spärrade uppgifter och nekade försök är markerade.`)}
     <div class="ruta ruta-forklaring min-namn">
       <p>Namnet på den som läste visas inte här. Vårdgivaren ska kunna visa vilken vårdenhet och vid vilken tidpunkt någon har tagit del av uppgifterna, så att du kan bedöma om åtkomsten var befogad (HSLF-FS 2016:40 4 kap. 10 §). Vill du veta namnet kan du begära ett loggutdrag. Vården prövar då om namnet kan lämnas ut.</p>
@@ -205,7 +206,7 @@ export async function logglista(el, ctx) {
     </div>
     ${d.kedjaHel ? `<p class="kedja-status kedja-hel liten">${ikon.bock}<span>Loggen är kontrollerad: ingen rad har ändrats eller tagits bort.</span></p>` : `<p class="kedja-status kedja-bruten liten" role="alert">${ikon.varning}<span>Loggens kontroll visar att en rad inte stämmer. Kontakta vården.</span></p>`}
     <div class="min-logg-filter kryssfalt"><input type="checkbox" id="min-egna"><label for="min-egna">Visa också när du själv har läst journalen i Min journal (${esc(egna)})</label></div>
-    <p class="antal-text" id="min-logg-antal">${vard === 1 ? 'En åtkomst' : `${esc(vard)} åtkomster`} av vården. Nyast först${d.rader.length >= d.max ? `, de senaste ${esc(d.max)}` : ''}.</p>
+    <p class="antal-text" id="min-logg-antal">${vard === 1 ? 'En åtkomst' : `${esc(vard)} åtkomster`} av vården${d.avskurna.vard ? `, de senaste ${esc(d.max.vard)}` : ''}${andra ? `, och ${andra === 1 ? 'ett försök' : `${esc(andra)} försök eller läsningar`} av någon annan i Min journal` : ''}. Nyast först.</p>
     ${d.rader.length ? `<ol class="min-logg" id="min-logg">${d.rader.map(loggRad).join('')}</ol>` : tomRad('Ingen har läst journalen.')}`;
   const lista = el.querySelector('#min-logg');
   const visaEgna = (ja) => { lista?.querySelectorAll('[data-egen]').forEach(x => { x.hidden = !ja; }); };

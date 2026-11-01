@@ -5,7 +5,7 @@ import { MATTYPER, lasHandling } from './journal.js';
 import * as logg from './logg.js';
 import { SYSTEM as KODSYSTEM, ICD10SE, ATC, MATKOD } from './kodverk.js';
 import { EXT, CS, DEFINITIONER } from './fhir-definitioner.js';
-import { InvanareAtkomst, journaler, synligKedja, provsvarVisas } from './patientvy.js';
+import { InvanareAtkomst, journaler, synligKedja, provsvarVisas, MAX_NEKADE } from './patientvy.js';
 
 export const SYSTEM = {
   personnummer: 'http://electronichealth.se/identifier/personnummer',
@@ -415,12 +415,20 @@ export const MAPPA_INVANARE = {
 };
 const mappaInvanare = (db, typ, rad) => MAPPA_INVANARE[typ](db, rad);
 
+// Resursen i loggen för invånarens anrop: sökvägen och bara de sökparametrar som används, korta. Annan text i adressen
+// hamnar aldrig i loggen, varken i invånarens egen eller i en annan patients.
+const LOGGADE_PARAMETRAR = ['patient', 'subject', '_id', 'identifier'];
+function loggResurs(delar, url) {
+  const q = LOGGADE_PARAMETRAR.filter(n => url.searchParams.has(n)).map(n => `${n}=${String(url.searchParams.get(n)).slice(0, 64)}`).join('&');
+  return `fhir/${delar.map(d => d.slice(0, 64)).join('/')}${q ? `?${q}` : ''}`.slice(0, 200);
+}
+
 function hanteraInvanare(ctx, delar) {
   const { db, invanare, url, base } = ctx;
   const [typ, id, operation] = delar;
   // Bara kända resurstyper. Ett namn som hasOwnProperty eller constructor får aldrig bli en tabell eller en funktion.
   if (!TYPER.includes(typ)) throw new Fel(404, 'Okänd FHIR-resurs.', 'saknas');
-  const sokvag = `fhir/${delar.join('/')}${url.search}`;
+  const sokvag = loggResurs(delar, url);
   if (typ === 'Practitioner' || typ === 'AuditEvent') {
     throw new Fel(403, 'Personalens uppgifter och åtkomstloggen nås inte med en session från Min journal. Logglistan finns i Min journal.', 'nekad');
   }
@@ -435,7 +443,7 @@ function hanteraInvanare(ctx, delar) {
     return { status: 200, body: bundle(base, url, rader.map(r => organization(db, r))) };
   }
   const egnaJournaler = () => journaler(db, invanare).filter(j => j.atkomst).map(j => j.patientId);
-  const oppna = (pid) => { const atk = new InvanareAtkomst(db, invanare, pid); atk.krav(sokvag); return atk; };
+  const oppna = (pid) => { const atk = new InvanareAtkomst(db, invanare, pid, ctx.nekade ?? null); atk.krav(sokvag); return atk; };
 
   if (typ === 'Patient') {
     if (id && operation === '$everything' && delar.length === 3) {
@@ -475,9 +483,19 @@ function hanteraInvanare(ctx, delar) {
   if (!Object.hasOwn(MAPPA_INVANARE, typ) || delar.length > 2) throw new Fel(404, 'Okänd FHIR-resurs.', 'saknas');
   if (id) {
     const rad = db.query(`SELECT * FROM ${TABELL[typ]} WHERE id = ?`).get(Number(id));
-    // En resurs i en journal som invånaren inte får läsa, eller som inte visas i Min journal, finns inte för invånaren.
-    if (!rad || !egnaJournaler().includes(rad.patient_id)) throw new Fel(404, 'Resursen finns inte.', 'saknas');
-    const atk = oppna(rad.patient_id);
+    // En resurs som inte visas i Min journal finns inte för invånaren. En resurs i en journal som invånaren inte får
+    // läsa prövas som journalen, så att försöket loggas där och svaret blir detsamma som för en journal som inte finns.
+    const finnsInte = () => new Fel(404, 'Resursen finns inte.', 'saknas');
+    if (!rad) {
+      // Räknas som ett nekat försök, så att gränsen för försök inte avslöjar vilka id som finns.
+      if (ctx.nekade) {
+        if (ctx.nekade.antal >= MAX_NEKADE) throw new Fel(403, 'Du har gjort många försök att öppna journaler som du inte har tillgång till. Fler försök stoppas.', 'nekad');
+        ctx.nekade.antal++;
+      }
+      throw finnsInte();
+    }
+    let atk;
+    try { atk = oppna(rad.patient_id); } catch (e) { throw e.status === 404 ? finnsInte() : e; }
     if (!synligFor(db, typ, rad)) throw new Fel(404, 'Resursen finns inte.', 'saknas');
     atk.logga(sokvag);
     return { status: 200, body: mappaInvanare(db, typ, rad) };

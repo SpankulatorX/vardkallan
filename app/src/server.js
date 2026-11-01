@@ -519,6 +519,11 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     let lasloggen;
     try {
       if (c.personal && Array.isArray(c.body?.rader)) lasloggen = lasekopiaLogg(c);
+      // Bara personalen har läskopia. Rader från läsläget i en session där ingen personal är inloggad tas inte emot,
+      // och det står i svaret så att klienten kan säga det.
+      else if (Array.isArray(c.body?.rader) && c.body.rader.length) {
+        lasloggen = { mottagna: 0, avvisade: [], fel: 'Åtkomsterna från läsläget kunde inte tas emot, eftersom ingen personal är inloggad i sessionen.' };
+      }
     } catch (e) {
       lasloggen = { mottagna: 0, avvisade: [], fel: e instanceof Fel ? e.message : 'Raderna kunde inte tas emot.' };
     } finally {
@@ -666,7 +671,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const atk = new Atkomst(c.db, c.personal, null, {}, 'las_logg');
     atk.krav('las_logg');
     const q = c.url.searchParams;
-    const flagga = ['nodatkomst', 'nekad', 'samtycke', 'alla'].includes(q.get('flagga')) ? q.get('flagga') : 'alla';
+    const flagga = ['nodatkomst', 'nekad', 'samtycke', 'vard', 'alla'].includes(q.get('flagga')) ? q.get('flagga') : 'alla';
     const datum = (v, slut) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? `${v}${slut ? 'T23:59:59.999Z' : 'T00:00:00.000Z'}` : v || null);
     const rader = medPatientKort(c.db, logg.lista(c.db, { flagga, fran: datum(q.get('fran'), false), till: datum(q.get('till'), true) }));
     atk.logga('las_logg', 'logggranskning', `logg:${flagga}`);
@@ -675,9 +680,11 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   });
 
   // Min journal. Varje anrop prövar att invånaren får läsa just den journalen och loggar läsningen.
+  // Nekade försök räknas per invånare och sandlåda, också över ut- och inloggningar.
+  const nekadeFor = (c) => ((c.s.nekadeInvanare ??= {})[c.invanare.id] ??= { antal: 0 });
   const medMinJournal = (c, pid, resurs, fn) => {
     kravInvanare(c);
-    const atk = new minJournal.InvanareAtkomst(c.db, c.invanare, pid);
+    const atk = new minJournal.InvanareAtkomst(c.db, c.invanare, pid, nekadeFor(c));
     atk.krav(resurs);
     const ut = fn(atk);
     if (!atk.loggad) atk.logga(resurs);
@@ -731,6 +738,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     let sess = hamtaSession(req);
     if (!sess && !UTAN_SESSION.has(url.pathname)) sess = skapaSession(req, server);
     if (sess) Object.assign(c, { s: sess.s, sid: sess.sid, ny: sess.ny, db: sess.s.db, ...inloggade(sess.s) });
+    if (c.invanare && url.pathname.startsWith('/api/min/')) avvisaFranAnnanWebbplats(req);
     c.body = metod === 'GET' ? {} : await lasKropp(req);
     c.url = url;
     let ut = traff[0](c, ...traff[1]);
@@ -746,6 +754,13 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     return json(ut, status, c.ny ? { 'Set-Cookie': kaka(c.sid) } : {});
   }
 
+  // Sessionskakan är SameSite=Lax, så en länk från en annan webbplats skickar med den. Invånarens läsningar loggas, och
+  // ett anrop som webbläsaren märker som en navigering från en annan webbplats avvisas, så att ingen annan sida kan få
+  // invånaren att göra åtkomster i sitt namn. Klienter utanför webbläsaren skickar inte rubriken.
+  function avvisaFranAnnanWebbplats(req) {
+    if (req.headers.get('sec-fetch-site') === 'cross-site') throw new Fel(403, 'Anropet kom från en annan webbplats.', 'nekad');
+  }
+
   // Den inloggade personalen eller invånaren, aldrig båda. Skulle båda vara satta räknas ingen som inloggad.
   function inloggade(s) {
     const personal = personalRad(s.db, s.personalId);
@@ -757,11 +772,13 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   function fhirSvar(req, url, c) {
     const sess = hamtaSession(req);
     if (sess) Object.assign(c, { s: sess.s, db: sess.s.db, ...inloggade(sess.s) });
+    if (c.invanare) avvisaFranAnnanWebbplats(req);
     const base = origin || `${url.protocol}//${url.host}`;
     if (req.method !== 'GET') throw new Fel(405, 'Bara läsning stöds i FHIR-API:t.', 'ogiltig');
     const db = c.db;
     if (!db && !fhir.oppenSokvag(url.pathname.replace(/\/+$/, ''))) throw new Fel(401, 'Logga in först.', 'ej_inloggad');
-    const r = fhir.hantera({ db, personal: c.personal, invanare: c.invanare ?? null, valFor: (pid) => valFor(c.s, pid), url, base });
+    const nekade = c.invanare ? ((c.s.nekadeInvanare ??= {})[c.invanare.id] ??= { antal: 0 }) : null;
+    const r = fhir.hantera({ db, personal: c.personal, invanare: c.invanare ?? null, nekade, valFor: (pid) => valFor(c.s, pid), url, base });
     return new Response(JSON.stringify(r.body), { status: r.status, headers: { 'Content-Type': 'application/fhir+json; charset=utf-8', 'Cache-Control': 'no-store' } });
   }
 

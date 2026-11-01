@@ -24,6 +24,9 @@ import { YRKEN } from './seed/personal.js';
 export const PROVSVAR_SENAST_DAGAR = 14;
 export const BEGARANTYPER = ['sparr', 'hava_sparr', 'loggutdrag'];
 const MAX_BEGARAN = 20;
+// Så många nekade försök får en invånare göra i en sandlåda. Därefter stoppas försöken utan att loggas, så att ingen
+// kan fylla en annan patients logglista eller logguppföljningen med nekade försök.
+export const MAX_NEKADE = 20;
 const DAG = 86400_000;
 // Samma svar oavsett om journalen finns eller inte, så att det inte går att pröva sig fram till andras patient-id.
 const SAKNAS = 'Journalen finns inte, eller så har du inte tillgång till den.';
@@ -93,10 +96,12 @@ export function provaInloggning(db, id, nu = new Date()) {
 // Kontext för ett anrop från invånaren: vem, vilken journal och på vilken grund. Nekade försök till en journal som
 // finns loggas på den journalen, så att de syns i logguppföljningen och i patientens logglista.
 export class InvanareAtkomst {
-  constructor(db, invanare, patientId) {
+  // nekade: { antal } för invånaren i sessionen, delas mellan anropen.
+  constructor(db, invanare, patientId, nekade = null) {
     this.db = db;
     this.invanare = invanare;
     this.patientId = patientId;
+    this.nekade = nekade;
     this.patient = null;
     this.grund = null;
     this.relation = null;
@@ -109,6 +114,10 @@ export class InvanareAtkomst {
     const p = patientRad(this.db, this.patientId);
     const r = provaInvanare(this.db, { invanare: this.invanare, patient: p });
     if (!r.tillaten) {
+      if (this.nekade && this.nekade.antal >= MAX_NEKADE) {
+        throw new Fel(403, 'Du har gjort många försök att öppna journaler som du inte har tillgång till. Fler försök stoppas.', 'nekad');
+      }
+      if (this.nekade) this.nekade.antal++;
       if (p) this.logga(resurs, { grund: 'nekad', resultat: 'nekad' });
       if (r.relation) throw new Fel(403, r.skal, 'nekad');
       throw new Fel(404, SAKNAS, 'saknas');
@@ -342,25 +351,36 @@ const VIA = (resurs) => {
   if (resurs.startsWith('min:') || resurs.startsWith('begaran:')) return 'min_journal';
   return null;
 };
-export const LOGGLISTA_MAX = 500;
+// Vårdens rader, invånarens egna och andra invånares hämtas var för sig med var sin gräns, så att många läsningar i Min
+// journal aldrig tränger undan vårdens åtkomster eller någon annans försök ur listan. Loggens löpnummer lämnas inte ut, eftersom luckorna i det visar hur många
+// åtkomster som har gjorts i andra journaler.
+export const LOGGLISTA_MAX = { vard: 500, egna: 200, andra: 200 };
 export function logglista(atk) {
   const db = atk.db;
   const jag = atk.invanare.id;
   const vg = vardgivare(db);
-  const rader = db.query(`SELECT l.id, l.tid, l.enhet_id, l.handling, l.resurs, l.grund, l.resultat, l.invanare_id, p.yrke, i.patient_id AS inv_patient
+  const fraga = (villkor, max) => db.query(`SELECT l.id, l.tid, l.enhet_id, l.handling, l.resurs, l.grund, l.resultat, l.invanare_id, p.yrke, i.patient_id AS inv_patient
     FROM atkomstlogg l LEFT JOIN personal p ON p.id = l.personal_id LEFT JOIN invanare i ON i.id = l.invanare_id
-    WHERE l.patient_id = ? ORDER BY l.id DESC LIMIT ?`).all(atk.patientId, LOGGLISTA_MAX);
+    WHERE l.patient_id = ?1 AND ${villkor} ORDER BY l.id DESC LIMIT ?3`).all(atk.patientId, jag, max);
+  const delar = {
+    vard: fraga('l.invanare_id IS NULL', LOGGLISTA_MAX.vard),
+    egna: fraga('l.invanare_id = ?2', LOGGLISTA_MAX.egna),
+    andra: fraga('l.invanare_id IS NOT NULL AND l.invanare_id <> ?2', LOGGLISTA_MAX.andra),
+  };
+  const rader = [...delar.vard, ...delar.egna, ...delar.andra].sort((a, b) => b.id - a.id);
   return {
     rader: rader.map(r => {
       const inv = r.invanare_id != null;
       const vem = !inv ? 'personal' : r.invanare_id === jag ? 'du' : r.inv_patient === atk.patientId ? 'patienten' : r.grund === 'vardnadshavare' ? 'vardnadshavare' : 'invanare';
       const e = r.enhet_id ? enhetUt(db, r.enhet_id) : { vardenhet: null, arbetsplats: null };
       return {
-        id: r.id, tid: r.tid, vem, vardgivare: inv ? null : vg, vardenhet: e.vardenhet, arbetsplats: e.arbetsplats,
-        yrkesroll: r.yrke ? YRKEN[r.yrke] ?? null : null, handling: r.handling, grund: r.grund, resultat: r.resultat, via: VIA(r.resurs), egenAtkomst: inv,
+        tid: r.tid, vem, vardgivare: inv ? null : vg, vardenhet: e.vardenhet, arbetsplats: e.arbetsplats,
+        yrkesroll: r.yrke ? YRKEN[r.yrke] ?? null : null, handling: r.handling, grund: r.grund, resultat: r.resultat, via: VIA(r.resurs),
+        egenAtkomst: r.invanare_id === jag,
       };
     }),
-    max: LOGGLISTA_MAX, kedjaHel: verifiera(db).hel,
+    max: LOGGLISTA_MAX, avskurna: Object.fromEntries(Object.entries(delar).map(([k, v]) => [k, v.length >= LOGGLISTA_MAX[k]])),
+    kedjaHel: verifiera(db).hel,
   };
 }
 
