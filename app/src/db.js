@@ -59,7 +59,7 @@ CREATE TABLE overkanslighet (
   reaktion TEXT, allvarlighet TEXT NOT NULL, datum TEXT NOT NULL, kalla TEXT NOT NULL DEFAULT 'vardkallan'
 );
 CREATE TABLE katalog (
-  id TEXT PRIMARY KEY, namn TEXT NOT NULL, substans TEXT NOT NULL, styrka TEXT, form TEXT, atc TEXT NOT NULL
+  id TEXT PRIMARY KEY, namn TEXT NOT NULL, substans TEXT NOT NULL, styrka TEXT, form TEXT, atc TEXT NOT NULL, npl TEXT
 );
 CREATE TABLE ordinationer (
   id INTEGER PRIMARY KEY, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, lakemedel_id TEXT NOT NULL,
@@ -197,8 +197,8 @@ export function byggSeed(bas = nu()) {
   for (const e of ENHETER) insE.run(e.id, e.hsa, e.namn, e.kortnamn ?? null, e.typ, e.forald);
   const insP = db.query('INSERT INTO personal VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
   PERSONAL.forEach((p, i) => insP.run(p.id, p.namn, p.yrke, p.titel, p.enhet, `SE2321000164-VKP${String(i + 1).padStart(3, '0')}`, p.demo ? 1 : 0, p.aktiv === false ? 0 : 1));
-  const insK = db.query('INSERT INTO katalog VALUES (?, ?, ?, ?, ?, ?)');
-  for (const k of KATALOG) insK.run(k.id, k.namn, k.substans, k.styrka, k.form, k.atc);
+  const insK = db.query('INSERT INTO katalog VALUES (?, ?, ?, ?, ?, ?, ?)');
+  for (const k of KATALOG) insK.run(k.id, k.namn, k.substans, k.styrka, k.form, k.atc, k.npl);
 
   const insPat = db.query(`INSERT INTO patienter (id, personnummer, fornamn, efternamn, kon, fodd, adress, postnr, ort, telefon, kontaktperson, skyddad)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
