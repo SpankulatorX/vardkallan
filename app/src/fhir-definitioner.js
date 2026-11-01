@@ -5,8 +5,8 @@ export const KANON = 'https://vardkallan.404haven.se/fhir';
 export const EXT = `${KANON}/StructureDefinition`;
 export const CS = `${KANON}/CodeSystem`;
 export const VS = `${KANON}/ValueSet`;
-const VERSION = '0.2.0';
-const DATUM = '2026-10-31';
+const VERSION = '0.3.0';
+const DATUM = '2026-11-01';
 const gemensamt = { version: VERSION, status: 'active', experimental: true, date: DATUM, publisher: 'Vårdkällan (öppet demoprojekt)', jurisdiction: [{ coding: [{ system: 'urn:iso:std:iso:3166', code: 'SE' }] }] };
 
 function tillagg(id, namn, titel, beskrivning, kontext, typ, bindning) {
@@ -59,6 +59,8 @@ export const KODSYSTEM = [
     ['egen_enhet', 'Egen vårdenhet'], ['vardrelation', 'Vårdrelation'], ['aktivt_val', 'Aktivt val, andra vårdenheter'],
     ['samtycke_sparr', 'Samtycke till att häva spärr'], ['nodatkomst', 'Nödåtkomst'], ['administrativ', 'Administrativ uppgift'],
     ['logggranskning', 'Logggranskning'], ['nekad', 'Nekad'],
+    ['egen_atkomst', 'Egen åtkomst i Min journal', 'Patienten läste sin egen journal i e-tjänsten Min journal.'],
+    ['vardnadshavare', 'Vårdnadshavare i Min journal', 'En vårdnadshavare läste journalen för ett barn under 13 år i e-tjänsten Min journal.'],
   ]),
   kodsystem('nll-status', 'NllStatus', 'NLL-status', 'Status för överföringen av en ordination till Nationella läkemedelslistan (simulerad).', [
     ['skickad', 'Skickad'], ['kvitterad', 'Kvitterad av NLL'], ['okand_kontrolleras', 'Okänd, kontrolleras genom avstämning'], ['fel', 'Fel från NLL'],

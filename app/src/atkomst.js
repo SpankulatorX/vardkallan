@@ -188,6 +188,35 @@ export class Atkomst {
   }
 }
 
+// Min journal, invånarens egen e-tjänst. En vårdgivare får ge en enskild direktåtkomst till uppgifter om sig själv och
+// till loggarna över åtkomsten (patientdatalagen 5 kap. 5 §). Prövningen är en ren funktion som prova() och gäller i
+// varje anrop. Den släpper aldrig igenom personalens handlingar: invånaren får bara läsa en journal.
+//   Egen journal: från 16 år (Ineras villkor för 1177 journal, punkt 9).
+//   Vårdnadshavare: barnets journal tills barnet fyller 13 år (samma villkor, punkt 4), aldrig för ett barn med skyddade
+//   personuppgifter (punkt 8). Mellan 13 och 16 år läser varken barnet eller vårdnadshavaren journalen i demon.
+// Spärrar gäller mellan vårdenheter (4 kap. 4 §) och påverkar inte patientens egen läsning.
+export const EGEN_FRAN_ALDER = 16;
+export const VARDNADSHAVARE_TILL_ALDER = 13;
+const datumI = (nu) => nu.toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
+
+// prova för invånaren: { invanare, patient, nu } där invanare och patient är rader. Returnerar
+// { tillaten, grund, relation, skal } där relation är egen, vardnadshavare eller null (ingen koppling alls).
+export function provaInvanare(db, { invanare, patient, nu = new Date() }) {
+  const nej = (relation, skal) => ({ tillaten: false, grund: 'nekad', relation, skal });
+  if (!invanare) return nej(null, 'Ingen inloggad invånare.');
+  if (!patient) return nej(null, 'Journalen finns inte.');
+  const ar = alder(patient.fodd, datumI(nu));
+  if (invanare.patient_id === patient.id) {
+    if (ar < EGEN_FRAN_ALDER) return nej('egen', `Du kan läsa din journal i Min journal från ${EGEN_FRAN_ALDER} års ålder.`);
+    return { tillaten: true, grund: 'egen_atkomst', relation: 'egen', skal: '' };
+  }
+  const vh = db.query('SELECT 1 FROM vardnadshavare WHERE invanare_id = ? AND barn_id = ?').get(invanare.id, patient.id);
+  if (!vh) return nej(null, 'Du kan bara läsa din egen journal och journalen för ett barn under 13 år som du är vårdnadshavare för.');
+  if (patient.skyddad) return nej('vardnadshavare', 'Barnet har skyddade personuppgifter. Journalen kan då inte läsas av vårdnadshavare i Min journal. Kontakta vården.');
+  if (ar >= VARDNADSHAVARE_TILL_ALDER) return nej('vardnadshavare', `Som vårdnadshavare kan du läsa barnets journal tills barnet fyller ${VARDNADSHAVARE_TILL_ALDER} år. Därefter visas barnets journal inte för vårdnadshavare i Min journal.`);
+  return { tillaten: true, grund: 'vardnadshavare', relation: 'vardnadshavare', skal: '' };
+}
+
 // Skyddade personuppgifter: maskering i listor och huvud.
 export const maskeraPnr = (pnr) => `${pnr.slice(0, 8)}-****`;
 export const formateraPnr = (pnr) => `${pnr.slice(0, 8)}-${pnr.slice(8)}`;
