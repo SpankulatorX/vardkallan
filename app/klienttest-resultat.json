@@ -1,8 +1,8 @@
 {
-  "tid": "2026-10-31T18:09:19.621Z",
-  "bas": "https://vardkallan.404haven.se",
+  "tid": "2026-11-01T21:44:08.578Z",
+  "bas": "http://127.0.0.1:8095",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "1dc97ab33dfda2a83aaac21d1932a60d3c69ba5148388a2526e1dcbb87706c3d",
+  "gransnittHash": "2e0a57e031526d960f830fe2dd7bd1b204cbe71be0405f2810b0278becba257e",
   "tester": [
     {
       "namn": "Gränssnitt > Avbrott > läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB",
@@ -34,6 +34,74 @@
     },
     {
       "namn": "Gränssnitt > Avbrott > läskopian används inte efter 8 timmar",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > reservkoden väljs online och bara den inslagna nyckeln sparas",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > efter omstart av webbläsaren utan nät visas vilka som har en reservkopia på datorn och när den går ut",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > fel reservkod ger väntetid och rätt reservkod öppnar läsläget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > åtkomster med reservkod loggas krypterat och överlever att fliken stängs",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > när servern svarar igen mitt i läsläget med reservkod når åtkomsterna åtkomstloggen",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > utloggning raderar reservkopian, den inslagna nyckeln och loggen efter att loggen förts över",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > utloggning i en flik avslutar läsläget i webbläsarens andra flikar",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > en navigering direkt till en fil ersätter inte appen i service workerns cache",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > fem fel reservkoder raderar reservkopian och flikar kan inte pröva samtidigt",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > två personer på samma dator har var sin reservkopia som bara öppnas med egen kod",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > simulerat avbrott visar reservinloggningen när fliken stängs i demon",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Användartest > testläget räknar klick, fältbyten och tangenter som klickbudgetskriptet för samma flöden",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Användartest > enkäten ger SUS-poäng enligt standardformeln",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Användartest > resultatfilen laddas ner med datum, version, deltagarkod, uppgifter och SUS-poäng",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Användartest > hoppa över och hjälp registreras per uppgift",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Användartest > inget anrop skickar testresultat till servern",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Användartest > testläget rensas när testet avslutas",
       "status": "grön"
     }
   ]
