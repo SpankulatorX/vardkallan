@@ -46,6 +46,7 @@ docker run --rm -v "$PWD/app:/app" -w /app oven/bun:1.3.14-alpine bun test
 - `app/src/seed/`: påhittade verksamheter, personal och patienter.
 - `app/public/`: webbgränssnittet, JavaScript utan byggsteg.
 - `app/test/`: automatiska tester. `test/genomgang.cjs`: genomgång i webbläsaren av alla demoroller.
+- `docs/anvandartest.md`: testprotokoll för användartest med personer som arbetar i vården, med testläget i demon på `#/anvandartest`.
 
 ## Licens
 
