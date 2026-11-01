@@ -2,6 +2,8 @@
 
 Kontroll av varje kod i seeden, läkemedelskatalogen och FHIR-API:t mot primärkällan, gjord 2026-10-31. De kontrollerade värdena står i `app/src/kodverk.js`, och testerna i `app/test/kodverk.test.js` stoppar bygget om seeden avviker från dem.
 
+Läkemedelskatalogens produkter (namn, styrka, form, substans och NPL-id) och ordinationernas doser kontrollerades 2026-11-01 mot Läkemedelsverkets NPL och NSL. Den kontrollen står i `docs/lakemedelskontroll.md`.
+
 ## Sammanfattning
 
 | Kodverk | Kontrollerade | Rätt | Rättade | Borttagna |
@@ -12,6 +14,7 @@ Kontroll av varje kod i seeden, läkemedelskatalogen och FHIR-API:t mot primärk
 | Vitalparametrar och PEF, LOINC | 10 | 10 | 1 tillagd kod (2708-6) | 0 |
 | UCUM-enheter (nya i FHIR) | 16 | 16 | | |
 | KVÅ | 0 | | | |
+| NPL (läkemedelsprodukter), se `docs/lakemedelskontroll.md` | 50 | 3 | 47 | 0 |
 
 Totalt 113 kodposter och 16 enhetskoder. Varje labbvärde räknas en gång, men både den gamla LOINC-koden och den nya NPU-koden är kontrollerade.
 
@@ -84,7 +87,7 @@ Alla koder finns i ICD-10-SE 2026 och är giltiga. Två koder kan se konstiga ut
 
 ## ATC
 
-Alla ATC-koder i katalogen stämmer med substansen i WHO:s register. Den svenska substansen i katalogen är den svenska formen av WHO:s namn (till exempel levotyroxin för levothyroxine sodium). I FHIR är `display` nu WHO:s benämning. Varningsreglerna använder rätt prefix: penicilliner `J01C`, NSAID `M01A` och antikoagulantia `B01AA`, `B01AB`, `B01AE` och `B01AF`. Testet `Kodverk > varningsreglernas ATC-prefix stämmer med WHO:s register` kontrollerar också att prefixen fångar exakt katalogens penicilliner och NSAID. Läkemedelsnamn, styrka och form är inte kontrollerade mot FASS, och NPL-id är påhittade.
+Alla ATC-koder i katalogen stämmer med substansen i WHO:s register. Den svenska substansen i katalogen är den svenska formen av WHO:s namn (till exempel levotyroxin för levothyroxine sodium). I FHIR är `display` nu WHO:s benämning. Varningsreglerna använder rätt prefix: penicilliner `J01C`, NSAID `M01A` och antikoagulantia `B01AA`, `B01AB`, `B01AE` och `B01AF`. Testet `Kodverk > varningsreglernas ATC-prefix stämmer med WHO:s register` kontrollerar också att prefixen fångar exakt katalogens penicilliner och NSAID. Läkemedelsnamn, styrka, form och NPL-id kontrollerades efteråt mot Läkemedelsverkets NPL, se `docs/lakemedelskontroll.md`; tabellen nedan visar katalogen som den såg ut vid ATC-kontrollen. Alla ATC-koder stämde också med NPL.
 
 | Kod | Läkemedel i katalogen | Substans i katalogen | WHO:s benämning | Resultat |
 |---|---|---|---|---|
@@ -190,5 +193,5 @@ KVÅ förekommer inte i seeden eller koden. Inga åtgärder registreras i först
 ## Det som inte gick att verifiera
 
 - Att svenska laboratorier i Region Örebro län använder exakt dessa NPU-koder. Koderna är de generella NPU-koderna för analyserna; regionala laboratorier kan ha egna eller svenska lokala koder, som inte finns i IFCC:s fil.
-- Läkemedlens namn, styrka och form mot FASS. ATC-koden och substansen är kontrollerade, produkterna inte.
+- Läkemedlens förpackningar (NPL-pack-id), varunummer och förmånsstatus. Produkterna är kontrollerade mot NPL (`docs/lakemedelskontroll.md`), men VARA är inte öppet nedladdningsbart.
 - ICD-10-SE, NPU och NPL-id kontrolleras inte av HL7:s validator, eftersom terminologiservern saknar dem. Kontrollen av dem är den här rapporten och testerna.

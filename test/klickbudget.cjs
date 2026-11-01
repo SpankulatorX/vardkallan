@@ -123,7 +123,7 @@ const GOR = {
     await m.skriv(page.locator('input[name="ordinationsorsak"]'), 'Magskydd', 'ordinationsorsak');
     await m.klicka(page.locator('[data-upp="14"]'), 'uppföljning om två veckor');
     await m.klicka(page.locator('[data-spara]'), 'Kontrollera och spara');
-    await synlig(page, '.notis', 'Omeprazol är ordinerat');
+    await synlig(page, '.notis', 'Omeprazol Sandoz är ordinerat');
     await synlig(page, '.lm-tabell', 'Omeprazol');
   },
   utsattning: async (m, page) => {

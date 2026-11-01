@@ -1,10 +1,10 @@
 import { describe, test, expect } from 'bun:test';
 import { PATIENTER } from '../src/seed/patienter.js';
 import { KATALOG } from '../src/seed/lakemedel-katalog.js';
-import { ICD10SE, ATC, MATKOD, SYSTEM } from '../src/kodverk.js';
+import { ICD10SE, ATC, MATKOD, SYSTEM, NPL } from '../src/kodverk.js';
 import { ANTIKOAGULANTIA, NSAID, WARFARIN, METFORMIN } from '../src/lakemedel.js';
 import { MATTYPER } from '../src/journal.js';
-import { MATTYPER_ENHET } from '../src/db.js';
+import { MATTYPER_ENHET, nySessionsDb } from '../src/db.js';
 
 // Tabellerna i kodverk.js är kontrollerade mot primärkällorna (docs/kodkontroll.md). Testerna håller seeden i takt med dem.
 describe('Kodverk', () => {
@@ -25,6 +25,58 @@ describe('Kodverk', () => {
       expect(l.atc).toMatch(/^[A-Z]\d\d[A-Z]{2}(\d\d)?$/);
     }
     for (const p of PATIENTER) for (const o of p.overkanslighet ?? []) if (o.atc) expect(ATC[o.atc]).toBeDefined();
+  });
+
+  test('varje läkemedel i katalogen är en produkt i NPL med samma namn, styrka, form, substans och ATC-kod', () => {
+    const forst = (s) => s[0].toLowerCase() + s.slice(1);
+    expect(new Set(KATALOG.map(l => l.npl)).size).toBe(KATALOG.length);
+    expect(Object.keys(NPL).sort()).toEqual(KATALOG.map(l => l.npl).sort());
+    for (const l of KATALOG) {
+      const p = NPL[l.npl];
+      expect(l.npl).toMatch(/^(19|20)\d{6}\d{6}$/);
+      expect(p).toBeDefined();
+      expect([l.namn, l.styrka, l.form, l.substans, l.atc]).toEqual([p.namn, p.styrka, forst(p.form), forst(p.substans), p.atc]);
+      expect(p.godkand).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+  });
+
+  test('ordinationerna i seeden har dos och administrationsväg som passar produktens styrka och form', () => {
+    const lm = Object.fromEntries(KATALOG.map(l => [l.id, l]));
+    const enhet = (e) => (e === 'mikrog' ? 'mikrogram' : e);
+    const ordinationer = PATIENTER.flatMap(p => p.ordinationer ?? []);
+    expect(ordinationer.length).toBeGreaterThan(40);
+    for (const o of ordinationer) {
+      const l = lm[o.lm];
+      const vagar = NPL[l.npl].vagar;
+      const text = o.dosering.toLowerCase();
+      // Dos i samma enhet som en styrka per enhet (tablett, kapsel, spruta, injektionsflaska) ska vara 1 till 4 hela enheter.
+      const s = /^(\d[\d ]*(?:,\d+)?) (mg|g|mikrogram|IE)$/.exec(l.styrka);
+      if (o.dosEnhet && s && enhet(o.dosEnhet) === s[2]) {
+        const antal = o.dos / Number(s[1].replace(/ /g, '').replace(',', '.'));
+        expect(Number.isInteger(antal) && antal >= 1 && antal <= 4).toBe(true);
+        const forsta = /^(\d+) (?:till \d+ )?(tablett|tabletter|kapsel|kapslar|injektion)/.exec(text);
+        if (forsta) expect(Number(forsta[1])).toBe(antal);
+      } else if (o.dosEnhet === 'E') expect(l.styrka).toMatch(/^100 (E|enheter)\/ml$/);
+      else if (o.dosEnhet === 'dos') expect(l.styrka).toMatch(/\/dos$/);
+      else if (o.dosEnhet === 'st') expect(l.form).toMatch(/förfylld/);
+      else expect(o.dosEnhet ?? null).toBeNull();
+      if (/tablett/.test(text)) expect(l.form).toMatch(/tablett/);
+      if (/kapsel/.test(text)) expect(l.form).toMatch(/kapsel/);
+      if (/injektion|intravenöst/.test(text)) expect(l.form).toMatch(/injektion/);
+      if (/intravenöst/.test(text)) expect(vagar).toContain('INVE');
+      if (/subkutant/.test(text)) expect(vagar).toContain('SUCU');
+      if (/lårets utsida/.test(text)) expect(vagar).toContain('INMU');
+      if (/under tungan/.test(text)) expect(vagar).toContain('SL');
+      if (/inhalation|spacer/.test(text)) expect(vagar).toContain('IH');
+      if (/^(\d+|1 till 2) (tablett|kapsel)/.test(text)) expect(vagar).toContain('ORAL');
+    }
+  });
+
+  test('ingen ordination i seeden börjar före produktens godkännande i NPL', () => {
+    const db = nySessionsDb();
+    const rader = db.query('SELECT o.start, k.npl FROM ordinationer o JOIN katalog k ON k.id = o.lakemedel_id').all();
+    expect(rader.length).toBeGreaterThan(40);
+    for (const r of rader) expect(r.start.slice(0, 10) >= NPL[r.npl].godkand).toBe(true);
   });
 
   test('varningsreglernas ATC-prefix stämmer med WHO:s register', () => {

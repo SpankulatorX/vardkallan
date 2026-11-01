@@ -191,7 +191,7 @@ export const PATIENTER = [
         'Kontaktorsak': 'Sveda och täta trängningar sedan tre dagar.',
         'Status': 'Ingen feber. Ingen dunkömhet över njurlogerna. Urinsticka: nitrit positiv, leukocyter 2+.',
         'Bedömning': 'Okomplicerad cystit.',
-        'Åtgärd': 'Selexid 200 mg 1x3 i tre dagar.',
+        'Åtgärd': 'Selexid 200 mg 1x3 i fem dagar.',
       } },
       { typ: 'Mottagningsanteckning', enhet: 'vc-tybble', vk: 'vc2', av: 'lak-vc', tid: [-2, '09:25'], sokord: {
         'Kontaktorsak': 'Episoder av hjärtklappning sedan en månad.',
@@ -214,7 +214,7 @@ export const PATIENTER = [
       ['blodtryck', 'uso-akut', [[{ min: -32 }, '124/78']]],
     ],
     ordinationer: [
-      { lm: 'VK-NPL-0035', dosering: '1 tablett 3 gånger dagligen i 3 dagar', dos: 200, dosEnhet: 'mg', tider: ['08', '14', '20'], typ: 'tillfallig', orsak: 'Akut cystit', uppfoljning: -14, start: -20, slut: -17, enhet: 'vc-tybble', av: 'lak-vc' },
+      { lm: 'VK-NPL-0035', dosering: '1 tablett 3 gånger dagligen i 5 dagar', dos: 200, dosEnhet: 'mg', tider: ['08', '14', '20'], typ: 'tillfallig', orsak: 'Akut cystit', uppfoljning: -14, start: -20, slut: -15, enhet: 'vc-tybble', av: 'lak-vc' },
       { lm: 'VK-NPL-0027', dosering: '1 tablett vid behov, högst 3 per dygn', dos: 400, dosEnhet: 'mg', typ: 'vid_behov', vidBehov: true, orsak: 'Menstruationssmärta', uppfoljning: 160, start: -200, enhet: 'vc-tybble', av: 'lak-vc' },
     ],
   },
@@ -564,7 +564,7 @@ export const PATIENTER = [
       { lm: 'VK-NPL-0038', dosering: '1 till 2 doser via spacer vid behov', dosEnhet: 'dos', typ: 'vid_behov', vidBehov: true, orsak: 'Astma, akut lindring', uppfoljning: 60, start: -400, enhet: 'vc-tybble', av: 'lak-vc' },
       { lm: 'VK-NPL-0039', dosering: '1 inhalation morgon och kväll', dosEnhet: 'dos', tider: ['08', '20'], typ: 'staende', orsak: 'Astma, underhållsbehandling', uppfoljning: 60, start: -400, enhet: 'vc-tybble', av: 'lak-vc' },
       { lm: 'VK-NPL-0040', dosering: '1 injektion i lårets utsida vid allergisk reaktion med andningsbesvär', dosEnhet: 'st', typ: 'vid_behov', vidBehov: true, orsak: 'Jordnötsallergi med risk för anafylaxi', uppfoljning: 120, start: '2021-06-15', enhet: 'vc-tybble', av: 'lak-vc' },
-      { lm: 'VK-NPL-0026', dosering: '1 tablett vid behov, högst 4 per dygn', dos: 500, dosEnhet: 'mg', typ: 'tillfallig', vidBehov: true, orsak: 'Feber och öronvärk', uppfoljning: -3, start: -10, slut: -3, enhet: 'vc-tybble', av: 'lak-vc' },
+      { lm: 'VK-NPL-0026', dosering: '1 tablett vid behov, minst 6 timmar mellan doserna, högst 3 per dygn', dos: 500, dosEnhet: 'mg', typ: 'tillfallig', vidBehov: true, orsak: 'Feber och öronvärk', uppfoljning: -3, start: -10, slut: -3, enhet: 'vc-tybble', av: 'lak-vc' },
     ],
   },
 

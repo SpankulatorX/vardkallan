@@ -11,7 +11,6 @@ export const SYSTEM = {
   ...KODSYSTEM,
   hsa: 'urn:oid:1.2.752.29.4.19',
   v2_0203: 'http://terminology.hl7.org/CodeSystem/v2-0203',
-  npl: 'https://vardkallan.404haven.se/fhir/NamingSystem/npl-demo',
   kalla: `${CS}/kalla`,
   felkod: `${CS}/felkod`,
   atkomstgrund: `${CS}/atkomstgrund`,
@@ -116,7 +115,7 @@ export function medicationRequest(db, o) {
   const status = o.status === 'utsatt' ? 'stopped' : o.slut && o.slut < idag() ? 'completed' : 'active';
   return {
     resourceType: 'MedicationRequest', id: String(o.id), meta: kallaMeta(o.kalla), status, intent: 'order',
-    medicationCodeableConcept: { coding: [{ system: SYSTEM.atc, code: lm.atc, ...(ATC[lm.atc] ? { display: ATC[lm.atc] } : {}) }, { system: SYSTEM.npl, code: lm.id, display: lm.namn }], text: `${lm.namn} ${lm.styrka} ${lm.form}` },
+    medicationCodeableConcept: { coding: [{ system: SYSTEM.atc, code: lm.atc, ...(ATC[lm.atc] ? { display: ATC[lm.atc] } : {}) }, ...(lm.npl ? [{ system: SYSTEM.nplid, code: lm.npl }] : [])], text: `${lm.namn} ${lm.styrka} ${lm.form}` },
     subject: ref('Patient', o.patient_id), authoredOn: o.skapad, requester: ref('Practitioner', o.ordinerad_av, personNamn(db, o.ordinerad_av)),
     reasonCode: [{ text: o.orsak }],
     dosageInstruction: [{ text: o.dosering, asNeededBoolean: Boolean(o.vid_behov) }],

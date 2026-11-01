@@ -227,7 +227,7 @@ const MENY = {
       await bild(page, '08-lakemedel-varning', true);
       await page.fill('textarea[data-motivering="warfarin_nsaid"]', 'Kortvarig behandling, INR kontrolleras om tre dagar.');
       await page.click('[data-spara]');
-      await forvanta(page, '.notis', 'Ibuprofen är ordinerat');
+      await forvanta(page, '.notis', 'Ibuprofen Orifarm är ordinerat');
       await forvanta(page, '.lm-tabell', 'warfarin_nsaid (Kortvarig behandling');
     });
     await s('Sara: simulerar timeout mot NLL, ordinationen syns ändå, och avstämningen hittar registreringen', async () => {

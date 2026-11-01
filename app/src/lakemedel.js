@@ -24,7 +24,7 @@ const lakemedelRad = (db, id) => db.query('SELECT * FROM katalog WHERE id = ?').
 export function ordinationUt(db, o, { historik = true } = {}) {
   const lm = lakemedelRad(db, o.lakemedel_id);
   const ut = {
-    id: o.id, patientId: o.patient_id, lakemedel: lm ? { id: lm.id, namn: lm.namn, substans: lm.substans, styrka: lm.styrka, form: lm.form, atc: lm.atc } : null,
+    id: o.id, patientId: o.patient_id, lakemedel: lm ? { id: lm.id, npl: lm.npl, namn: lm.namn, substans: lm.substans, styrka: lm.styrka, form: lm.form, atc: lm.atc } : null,
     dosering: o.dosering, dos: o.dos, dosEnhet: o.dos_enhet, tider: o.tider ? JSON.parse(o.tider) : [], vidBehov: Boolean(o.vid_behov),
     typ: o.typ, ordinationsorsak: o.orsak, uppfoljningsdatum: o.uppfoljning, start: o.start, slut: o.slut,
     status: o.status, aktuell: o.status === 'aktiv' && (!o.slut || o.slut >= idag()),

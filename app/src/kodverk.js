@@ -9,6 +9,8 @@ export const SYSTEM = {
   // NPU enligt HL7 Terminology (NamingSystem NPU, föredragen URI sedan 2024-11-06).
   npu: 'http://npu-terminology.org',
   ucum: 'http://unitsofmeasure.org',
+  // NPL-id enligt E-hälsomyndighetens FHIR-profiler för Nationella läkemedelslistan (se.electronichealth.fhir.nll.r4 1.3.1).
+  nplid: 'http://electronichealth.se/fhir/NamingSystem/nplid',
 };
 
 // ICD-10-SE 2026, titel ordagrant ur Socialstyrelsens icd-10-se.tsv (giltig från 2026-01-01).
@@ -72,6 +74,64 @@ export const ATC = {
   // Grupper som överkänslighet och varningsregler använder.
   'J01C': 'BETA-LACTAM ANTIBACTERIALS, PENICILLINS', 'M01A': 'ANTIINFLAMMATORY AND ANTIRHEUMATIC PRODUCTS, NON-STEROIDS',
   'B01AA': 'Vitamin K antagonists', 'B01AB': 'Heparin group', 'B01AE': 'Direct thrombin inhibitors', 'B01AF': 'Direct factor Xa inhibitors',
+};
+
+// Läkemedelsprodukter ordagrant ur Läkemedelsverkets NPL, totalfilen 2026-11-01_Total_NPL.zip (NPL 4.5): namn
+// (medprodnamelegal), styrka, beredningsform och substansbeskrivning med NPL:s svenska text, ATC-kod,
+// administrationsvägar och godkännandedatum. Ingen av produkterna är avregistrerad eller har stoppad försäljning.
+// Administrationsvägarnas koder: ORAL oral, SUCU subkutan, INVE intravenös, INMU intramuskulär, SL sublingual,
+// IH inhalation, GAST gastrisk, EXCO extrakorporal. Nyckeln är NPL-id.
+export const NPL = {
+  '19640101000028': { namn: 'Waran', styrka: '2,5 mg', form: 'Tablett', substans: 'Warfarin', atc: 'B01AA03', vagar: ['ORAL'], godkand: '1964-01-01' },
+  '20111026000050': { namn: 'Eliquis', styrka: '5 mg', form: 'Filmdragerad tablett', substans: 'Apixaban', atc: 'B01AF02', vagar: ['GAST', 'ORAL'], godkand: '2012-11-19' },
+  '20101127000035': { namn: 'Xarelto', styrka: '20 mg', form: 'Filmdragerad tablett', substans: 'Rivaroxaban', atc: 'B01AF01', vagar: ['ORAL'], godkand: '2011-12-14' },
+  '19880318000057': { namn: 'Fragmin', styrka: '5000 IE', form: 'Injektionsvätska, lösning i förfylld spruta', substans: 'Dalteparin', atc: 'B01AB04', vagar: ['EXCO', 'INVE', 'SUCU'], godkand: '1988-03-18' },
+  '20170530000130': { namn: 'Klexane', styrka: '4 000 IE (40 mg)/0,4 ml', form: 'Injektionsvätska, lösning i förfylld spruta', substans: 'Enoxaparin', atc: 'B01AB05', vagar: ['INVE', 'SUCU'], godkand: '1989-12-08' },
+  '19910906000043': { namn: 'Trombyl', styrka: '75 mg', form: 'Tablett', substans: 'Acetylsalicylsyra', atc: 'B01AC06', vagar: ['ORAL'], godkand: '1991-09-06' },
+  '20100114000225': { namn: 'Brilique', styrka: '90 mg', form: 'Filmdragerad tablett', substans: 'Tikagrelor', atc: 'B01AC24', vagar: ['GAST', 'ORAL'], godkand: '2010-12-03' },
+  '20041011000027': { namn: 'Metoprolol Sandoz', styrka: '50 mg', form: 'Depottablett', substans: 'Metoprolol', atc: 'C07AB02', vagar: ['ORAL'], godkand: '2005-04-29' },
+  '20001201000015': { namn: 'Bisoprolol Teva', styrka: '5 mg', form: 'Tablett', substans: 'Bisoprolol', atc: 'C07AB07', vagar: ['ORAL'], godkand: '2000-12-01' },
+  '19900615000168': { namn: 'Furosemid Teva', styrka: '40 mg', form: 'Tablett', substans: 'Furosemid', atc: 'C03CA01', vagar: ['ORAL'], godkand: '1990-06-15' },
+  '19820205000142': { namn: 'Spironolakton Pfizer', styrka: '25 mg', form: 'Tablett', substans: 'Spironolakton', atc: 'C03DA01', vagar: ['ORAL'], godkand: '1982-02-05' },
+  '20041208000021': { namn: 'Enalapril Krka', styrka: '10 mg', form: 'Tablett', substans: 'Enalapril', atc: 'C09AA02', vagar: ['ORAL'], godkand: '2005-04-22' },
+  '20100615000052': { namn: 'Ramipril Krka', styrka: '5 mg', form: 'Tablett', substans: 'Ramipril', atc: 'C09AA05', vagar: ['ORAL'], godkand: '2010-11-26' },
+  '20090220000106': { namn: 'Losartan Krka', styrka: '50 mg', form: 'Filmdragerad tablett', substans: 'Losartan', atc: 'C09CA01', vagar: ['ORAL'], godkand: '2009-10-23' },
+  '20060518000033': { namn: 'Amlodipin Krka', styrka: '5 mg', form: 'Tablett', substans: 'Amlodipin', atc: 'C08CA01', vagar: ['ORAL'], godkand: '2006-12-15' },
+  '19741206000095': { namn: 'Digoxin Evolan', styrka: '0,13 mg', form: 'Tablett', substans: 'Digoxin', atc: 'C01AA05', vagar: ['ORAL'], godkand: '1974-12-06' },
+  '19931008000069': { namn: 'Nitrolingual', styrka: '0,4 mg/dos', form: 'Sublingualspray', substans: 'Glyceryltrinitrat', atc: 'C01DA02', vagar: ['SL'], godkand: '1993-10-08' },
+  '20070404000061': { namn: 'Atorvastatin Krka', styrka: '40 mg', form: 'Filmdragerad tablett', substans: 'Atorvastatin', atc: 'C10AA05', vagar: ['ORAL'], godkand: '2008-08-29' },
+  '20041018000303': { namn: 'Simvastatin Krka', styrka: '20 mg', form: 'Filmdragerad tablett', substans: 'Simvastatin', atc: 'C10AA01', vagar: ['ORAL'], godkand: '2005-04-14' },
+  '20070911000042': { namn: 'Metformin Sandoz', styrka: '500 mg', form: 'Filmdragerad tablett', substans: 'Metformin', atc: 'A10BA02', vagar: ['ORAL'], godkand: '2009-02-13' },
+  '20140528000015': { namn: 'Jardiance', styrka: '10 mg', form: 'Filmdragerad tablett', substans: 'Empagliflozin', atc: 'A10BK03', vagar: ['ORAL'], godkand: '2014-05-22' },
+  '20010115000066': { namn: 'NovoRapid FlexPen', styrka: '100 E/ml', form: 'Injektionsvätska, lösning i förfylld injektionspenna', substans: 'Insulin aspart', atc: 'A10AB05', vagar: ['SUCU'], godkand: '2001-01-15' },
+  '20000609000061': { namn: 'Lantus (SoloStar)', styrka: '100 enheter/ml', form: 'Injektionsvätska, lösning i förfylld injektionspenna', substans: 'Insulin glargin', atc: 'A10AE04', vagar: ['SUCU'], godkand: '2000-06-09' },
+  '19541213000015': { namn: 'Levaxin', styrka: '100 mikrogram', form: 'Tablett', substans: 'Levotyroxin', atc: 'H03AA01', vagar: ['ORAL'], godkand: '1954-12-13' },
+  '20090716000061': { namn: 'Omeprazol Sandoz', styrka: '20 mg', form: 'Enterokapsel, hård', substans: 'Omeprazol', atc: 'A02BC01', vagar: ['ORAL'], godkand: '2010-12-16' },
+  '19581115000027': { namn: 'Alvedon', styrka: '500 mg', form: 'Filmdragerad tablett', substans: 'Paracetamol', atc: 'N02BE01', vagar: ['ORAL'], godkand: '1958-11-15' },
+  '20060817000079': { namn: 'Ibuprofen Orifarm', styrka: '400 mg', form: 'Filmdragerad tablett', substans: 'Ibuprofen', atc: 'M01AE01', vagar: ['ORAL'], godkand: '2009-10-30' },
+  '20040607002797': { namn: 'Naproxen Orifarm', styrka: '250 mg', form: 'Tablett', substans: 'Naproxen', atc: 'M01AE02', vagar: ['ORAL'], godkand: '2005-07-01' },
+  '20040607002094': { namn: 'Diklofenak Orifarm', styrka: '50 mg', form: 'Enterotablett', substans: 'Diklofenak', atc: 'M01AB05', vagar: ['ORAL'], godkand: '2005-05-27' },
+  '20111221000060': { namn: 'Oxikodon Actavis', styrka: '5 mg', form: 'Kapsel, hård', substans: 'Oxikodon', atc: 'N02AA05', vagar: ['ORAL'], godkand: '2013-01-10' },
+  '20110104000104': { namn: 'Morfin Abcur', styrka: '10 mg/ml', form: 'Injektionsvätska, lösning', substans: 'Morfin', atc: 'N02AA01', vagar: ['INMU', 'INVE', 'SUCU'], godkand: '2012-06-14' },
+  '20230703000333': { namn: 'Bensylpenicillin Noridem', styrka: '3 g', form: 'Pulver till injektions-/infusionsvätska, lösning', substans: 'Bensylpenicillin', atc: 'J01CE01', vagar: ['INMU', 'INVE'], godkand: '2025-04-10' },
+  '19790831000024': { namn: 'Kåvepenin', styrka: '1 g', form: 'Filmdragerad tablett', substans: 'Fenoximetylpenicillin', atc: 'J01CE02', vagar: ['ORAL'], godkand: '1979-08-31' },
+  '20070919000044': { namn: 'Amoxicillin Sandoz', styrka: '750 mg', form: 'Filmdragerad tablett', substans: 'Amoxicillin', atc: 'J01CA04', vagar: ['ORAL'], godkand: '2009-12-11' },
+  '19771216000013': { namn: 'Selexid', styrka: '200 mg', form: 'Filmdragerad tablett', substans: 'Pivmecillinam', atc: 'J01CA08', vagar: ['ORAL'], godkand: '1977-12-16' },
+  '20111018000013': { namn: 'Doxycyklin EQL Pharma', styrka: '100 mg', form: 'Tablett', substans: 'Doxycyklin', atc: 'J01AA02', vagar: ['ORAL'], godkand: '2013-01-24' },
+  '20140906000019': { namn: 'Nitrofurantoin Alternova', styrka: '50 mg', form: 'Tablett', substans: 'Nitrofurantoin', atc: 'J01XE01', vagar: ['ORAL'], godkand: '2015-07-16' },
+  '19960403000015': { namn: 'Airomir', styrka: '0,1 mg/dos', form: 'Inhalationsspray, suspension', substans: 'Salbutamol', atc: 'R03AC02', vagar: ['IH'], godkand: '1996-04-03' },
+  '19881209000118': { namn: 'Pulmicort Turbuhaler', styrka: '200 mikrogram/dos', form: 'Inhalationspulver', substans: 'Budesonid', atc: 'R03BA02', vagar: ['IH'], godkand: '1988-12-09' },
+  '19961025000032': { namn: 'EpiPen jr', styrka: '150 mikrogram', form: 'Injektionsvätska, lösning i förfylld injektionspenna', substans: 'Adrenalin', atc: 'C01CA24', vagar: ['INMU'], godkand: '1996-10-25' },
+  '20060510000031': { namn: 'Sertralin Teva', styrka: '50 mg', form: 'Filmdragerad tablett', substans: 'Sertralin', atc: 'N06AB06', vagar: ['ORAL'], godkand: '2007-01-26' },
+  '20130410000049': { namn: 'Escitalopram Krka', styrka: '10 mg', form: 'Filmdragerad tablett', substans: 'Escitalopram', atc: 'N06AB10', vagar: ['ORAL'], godkand: '2014-03-28' },
+  '20040916002945': { namn: 'Mirtazapin Krka', styrka: '15 mg', form: 'Filmdragerad tablett', substans: 'Mirtazapin', atc: 'N06AX11', vagar: ['ORAL'], godkand: '2005-04-08' },
+  '20110326000029': { namn: 'Zopiklon Pilum', styrka: '5 mg', form: 'Filmdragerad tablett', substans: 'Zopiklon', atc: 'N05CF01', vagar: ['ORAL'], godkand: '2012-03-29' },
+  '20221130000058': { namn: 'Melatonin Bluefish', styrka: '2 mg', form: 'Depottablett', substans: 'Melatonin', atc: 'N05CH01', vagar: ['ORAL'], godkand: '2023-12-08' },
+  '20110113000041': { namn: 'Donepezil Krka', styrka: '5 mg', form: 'Filmdragerad tablett', substans: 'Donepezil', atc: 'N06DA02', vagar: ['ORAL'], godkand: '2011-11-03' },
+  '20050805000013': { namn: 'Alendronat Teva Veckotablett', styrka: '70 mg', form: 'Tablett', substans: 'Alendronsyra', atc: 'M05BA04', vagar: ['ORAL'], godkand: '2006-02-10' },
+  '20030905000052': { namn: 'Kalcipos-D', styrka: '500 mg/400 IE', form: 'Tuggtablett', substans: 'Kalcium + kolekalciferol (vitamin D3)', atc: 'A12AX', vagar: ['ORAL'], godkand: '2003-09-05' },
+  '19730831000037': { namn: 'Prednisolon Pfizer', styrka: '5 mg', form: 'Tablett', substans: 'Prednisolon', atc: 'H02AB06', vagar: ['ORAL'], godkand: '1973-08-31' },
+  '20100621000022': { namn: 'Desogestrel Sandoz', styrka: '75 mikrogram', form: 'Filmdragerad tablett', substans: 'Desogestrel', atc: 'G03AC09', vagar: ['ORAL'], godkand: '2011-11-24' },
 };
 
 // Mätvärden. Labbresultat kodas med NPU (används av svenska laboratorier), kontrollerat mot IFCC:s NPU-fil

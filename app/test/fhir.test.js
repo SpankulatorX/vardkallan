@@ -61,6 +61,8 @@ describe('FHIR', () => {
     }
     const waran = b.entry.find(e => e.resource.medicationCodeableConcept.coding[0].code === 'B01AA03').resource;
     expect(waran.status).toBe('active');
+    expect(waran.medicationCodeableConcept.coding[1]).toEqual({ system: 'http://electronichealth.se/fhir/NamingSystem/nplid', code: '19640101000028' });
+    expect(waran.medicationCodeableConcept.text).toBe('Waran 2,5 mg tablett');
     expect(b.entry.some(e => e.resource.status === 'stopped')).toBe(true);
   });
 

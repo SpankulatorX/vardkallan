@@ -1,6 +1,6 @@
 # FHIR-validering
 
-Validering av Vårdkällans FHIR-svar mot FHIR R4 och HL7 Swedens basprofiler, gjord 2026-10-31. Resultat: **inga fel** för någon resurstyp. Varningarna listas nedan.
+Validering av Vårdkällans FHIR-svar mot FHIR R4 och HL7 Swedens basprofiler, gjord 2026-10-31 och för utskriften av alla resurser upprepad 2026-11-01 efter läkemedelskontrollen. Resultat: **inga fel** för någon resurstyp. Varningarna listas nedan.
 
 ## Verktyg och paket
 
@@ -71,7 +71,7 @@ Alla 19 mätvärdestyper fanns med bland Observation.
 |---|---|---|
 | dom-6: resursen saknar narrativ (`text`) | alla resurstyper, en per resurs | Best practice. Resurserna har ingen genererad `text`. Kvar. |
 | `A definition for CodeSystem 'urn:oid:1.2.752.116.1.1.1' could not be found` | Condition (43) | ICD-10-SE finns inte på HL7:s terminologiserver, så validatorn kan inte kontrollera koderna. De är kontrollerade mot Socialstyrelsens kodfil, se `docs/kodkontroll.md`. |
-| `A definition for CodeSystem '.../NamingSystem/npl-demo' could not be found` | MedicationRequest (55) | NPL-id är påhittade i demon. Kvar. |
+| `A definition for CodeSystem 'http://electronichealth.se/fhir/NamingSystem/nplid' could not be found` | MedicationRequest (55) | NPL-id är riktiga sedan 2026-11-01 och har E-hälsomyndighetens system ur deras FHIR-profiler för NLL. Terminologiservern har inte NPL, så validatorn kan inte kontrollera koderna. De är kontrollerade mot Läkemedelsverkets NPL, se `docs/lakemedelskontroll.md`. Kvar. |
 | `None of the codings provided are in the value set 'PurposeOfUse'` | AuditEvent (486) | Bindningen är extensible. Åtkomstgrunderna (egen enhet, aktivt val, nödåtkomst och så vidare) är PDL-begrepp utan motsvarighet i v3-PurposeOfUse. Kvar. |
 | `UCUM Codes that contain human readable annotations like {INR}` och `{1.73_m2}` | Observation (8) | Båda är giltig UCUM och den vanliga formen för INR och eGFR. Kvar. |
 | `sekretessmarkering ... was not found in the value set 'SecurityLabels'` och `'R' was not found in ... 'SE ValueSet security labels'` | Patient med skyddad identitet (1) | Patienten har båda koderna: HL7 Swedens `sekretessmarkering` (som basprofilens extensible-bindning vill ha) och `R`, och varje kod ger en varning mot den andra värdemängden. Kvar med avsikt. |
@@ -80,6 +80,10 @@ Alla 19 mätvärdestyper fanns med bland Observation.
 ### Kontroll av att valideringen biter
 
 En kopia med avsiktliga fel validerades också: en puls utan UCUM-kod, ett labbvärde som påstår pulsprofilen, en Patient med två namn och en ordination med okänd NLL-status och fel ATC-benämning. Alla gav fel, bland annat `Patient.name: max allowed = 1, but found 2 (from SEBasePatient|1.1.0)`, `magic LOINC code 8867-4 required`, `The value provided ('okand_status') was not found in the value set 'NLL-status'` och `Wrong Display Name 'fel namn' for http://www.whocc.no/atc#B01AA03`. meta.profile, basprofilerna och de egna värdemängderna tillämpas alltså.
+
+## Omvalidering 2026-11-01: riktiga NPL-id
+
+Efter läkemedelskontrollen (`docs/lakemedelskontroll.md`) har `MedicationRequest` produktens riktiga NPL-id med systemet `http://electronichealth.se/fhir/NamingSystem/nplid` i stället för det påhittade id:t med Vårdkällans eget system, och `medicationCodeableConcept.text` har produktens namn, styrka och form som i NPL. Hela utskriften validerades igen med samma validator (7.0.3, sha256 kontrollerad vid nedladdningen), samma Java-container och samma paket. Resultat: **inga fel** för någon resurstyp, och samma antal resurser och varningar per resurstyp som i tabellen ovan. Varningen för NPL-id har det nya systemet. Svaren över HTTP (Bundle) validerades inte om, eftersom de innehåller samma resurser.
 
 ## Före rättningarna
 
@@ -111,5 +115,6 @@ Samma validering av svaren från koden före ändringarna (HTTP-urvalet: 252 uni
 - Validatorn körs i GitHub Actions vid varje push och pull request, men inte i Docker-bygget av demon, eftersom den kräver Java. I bygget kontrollerar testerna i `app/test/fhir-struktur.test.js` de viktigaste strukturkraven utan Java, och `app/test/kodverk.test.js` kontrollerar koderna mot de kontrollerade tabellerna.
 - Den automatiska körningen validerar utskriften från `exportera.js`, inte sökresultaten över HTTP.
 - ICD-10-SE-, NPU- och NPL-koder kontrolleras inte av validatorn (terminologiservern saknar dem).
+- Omvalideringen 2026-11-01 (se nedan) gällde bara utskriften av alla resurser. Svaren över HTTP (Bundle) validerades inte om.
 - Bara läsning och sökning med de parametrar som API:t har. Inga skrivande FHIR-anrop finns.
 - Ingen nationell profil utöver basprofilerna (till exempel för läkemedel eller remiss) är validerad, eftersom HL7 Sweden inte publicerar sådana i `hl7se.fhir.base`.
