@@ -264,14 +264,22 @@ export function anteckningar(atk, nu = new Date()) {
   return { anteckningar: u.visade.map(a => anteckningKort(atk.db, a)), senare: u.senare, ejVisade: u.ejVisade };
 }
 
+// En version av en anteckning visas bara om hela versionskedjan är signerad och den senaste versionen visas. Då visas
+// de äldre versionerna med den, överstrukna. Samma regel gäller i FHIR (fhir.js), så att en äldre version av en
+// anteckning som senare har dolts eller ersatts inte går att nå där.
+export function synligKedja(db, a, nu = new Date()) {
+  const kedja = versionskedja(db, a.id);
+  const senaste = kedja[kedja.length - 1];
+  const synlig = kedja.length > 0 && kedja.every(v => v.status === 'signerad') && anteckningVisning(db, senaste, nu).visas;
+  return { synlig, kedja, senaste };
+}
+
 export function anteckning(atk, id, nu = new Date()) {
   const db = atk.db;
   const a = db.query('SELECT * FROM anteckningar WHERE id = ? AND patient_id = ?').get(Number(id), atk.patientId);
   if (!a) throw new Fel(404, 'Anteckningen finns inte i din journal.', 'saknas');
-  // Den senaste versionen avgör om anteckningen visas. Äldre versioner visas med den, överstrukna.
-  const kedja = versionskedja(db, a.id);
-  const senaste = kedja[kedja.length - 1];
-  if (kedja.some(v => v.status !== 'signerad') || !anteckningVisning(db, senaste, nu).visas) throw new Fel(404, 'Anteckningen finns inte i din journal.', 'saknas');
+  const { synlig, kedja, senaste } = synligKedja(db, a, nu);
+  if (!synlig) throw new Fel(404, 'Anteckningen finns inte i din journal.', 'saknas');
   return { ...anteckningFull(db, senaste), versioner: kedja.map(v => anteckningFull(db, v)) };
 }
 

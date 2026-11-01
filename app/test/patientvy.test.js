@@ -495,6 +495,92 @@ describe('Min journal', () => {
     // Anropen loggas som invånarens egen åtkomst.
     expect(loggrader(k).filter(r => r.invanare_id === 'inv-p01' && r.resurs?.startsWith('fhir/') && r.resultat === 'tillaten').length).toBeGreaterThanOrEqual(5);
   });
+
+  test('FHIR för invånaren lämnar inte ut mer än Min journal', async () => {
+    for (const [inv, pid] of [['inv-p01', 'p01'], ['inv-p04', 'p04'], ['inv-p15', 'p15']]) {
+      const k = await som(inv);
+      const d = db(k);
+      const min = {};
+      for (const del of ['anteckningar', 'diagnoser', 'lakemedel', 'provsvar', 'remisser', 'vardkontakter']) min[del] = (await k.get(`/api/min/journal/${pid}/${del}`)).data;
+      // Alla versioner som Min journal visar, också de överstrukna.
+      const versioner = new Set();
+      for (const a of min.anteckningar.anteckningar) for (const v of (await k.get(`/api/min/journal/${pid}/anteckning/${a.id}`)).data.versioner) versioner.add(String(v.id));
+      const tillatna = {
+        Composition: versioner,
+        Condition: new Set(min.diagnoser.diagnoser.map(x => String(x.id))),
+        MedicationRequest: new Set([...min.lakemedel.aktuella, ...min.lakemedel.tidigare].map(x => String(x.id))),
+        AllergyIntolerance: new Set(min.lakemedel.overkanslighet.map(x => String(x.id))),
+        Observation: new Set([...min.provsvar.provsvar, ...min.provsvar.matvarden].map(x => String(x.id))),
+        ServiceRequest: new Set(min.remisser.remisser.map(x => String(x.id))),
+        Encounter: new Set(min.vardkontakter.vardkontakter.map(x => String(x.id))),
+      };
+      const allt = (await k.get(`/fhir/Patient/${pid}/$everything`)).data.entry.map(e => e.resource);
+      for (const [typ, ids] of Object.entries(tillatna)) {
+        const iAllt = allt.filter(r => r.resourceType === typ).map(r => r.id).sort();
+        const sokning = ((await k.get(`/fhir/${typ}?patient=${pid}`)).data.entry ?? []).map(e => e.resource.id).sort();
+        // Samma urval i sökningen och i $everything, och bara det som Min journal visar.
+        expect({ pid, typ, ids: sokning }).toEqual({ pid, typ, ids: iAllt });
+        expect({ pid, typ, utanfor: iAllt.filter(id => !ids.has(id)) }).toEqual({ pid, typ, utanfor: [] });
+      }
+      // Fält som Min journal inte visar.
+      const pat = allt.find(r => r.resourceType === 'Patient');
+      for (const f of ['address', 'telecom', 'generalPractitioner']) expect(pat[f]).toBeUndefined();
+      expect((await k.get(`/fhir/Patient/${pid}`)).data.address).toBeUndefined();
+      for (const r of allt.filter(x => x.resourceType === 'ServiceRequest')) {
+        expect(r.requester).toBeUndefined();
+        const rad = d.query('SELECT anamnes FROM remisser WHERE id = ?').get(Number(r.id));
+        if (rad.anamnes) expect(JSON.stringify(r)).not.toContain(rad.anamnes);
+      }
+      for (const r of allt.filter(x => x.resourceType === 'MedicationRequest')) {
+        expect(r.extension.map(e => e.url.split('/').pop())).not.toContain('nll-status');
+        expect(r.medicationCodeableConcept.coding.map(c => c.system)).not.toContain('https://vardkallan.404haven.se/fhir/NamingSystem/npl-demo');
+        expect(Object.keys(r.requester)).toEqual(['display']);
+      }
+      for (const r of allt.filter(x => x.resourceType === 'Composition')) expect(r.author.every(a => Object.keys(a).join() === 'display')).toBe(true);
+      const text = JSON.stringify(allt);
+      expect(text).not.toContain('Practitioner/');
+      expect(text).not.toContain('SE2321000164-VKP');
+    }
+    // Okända resurstyper, också namn som finns på alla JavaScript-objekt, ger 404 och aldrig ett serverfel.
+    const k = await som('inv-p01');
+    for (const v of ['hasOwnProperty', 'constructor/1', 'toString?patient=p01', '__proto__', 'valueOf?patient=p01', 'Patient/p01/$everything/x']) {
+      const r = await k.get(`/fhir/${v}`);
+      expect({ v, status: r.status, typ: r.data.resourceType }).toEqual({ v, status: 404, typ: 'OperationOutcome' });
+    }
+  });
+
+  test('en äldre version av en anteckning som har ersatts av en version som inte visas går inte att nå, varken i Min journal eller i FHIR', async () => {
+    const k = await som('inv-p15');
+    const d = db(k);
+    const gammal = d.query("SELECT * FROM anteckningar WHERE patient_id = 'p15' AND typ = 'Mottagningsanteckning' ORDER BY skapad DESC LIMIT 1 OFFSET 1").get();
+    // Före rättelsen visas den, i Min journal och i FHIR.
+    expect((await k.get(`/api/min/journal/p15/anteckning/${gammal.id}`)).status).toBe(200);
+    expect((await k.get(`/fhir/Composition/${gammal.id}`)).status).toBe(200);
+    // Psykiatrin rättar den nu. Den nya versionen visas först efter 14 dagar enligt visningsregeln.
+    await k.logga('lak-psyk');
+    const ny = (await k.post(`/api/anteckning/${gammal.id}/ratta`, { orsak: 'Kompletterar bedömningen.', sokord: [{ sokord: 'Aktuellt', text: 'Ny version som inte ska synas än.' }] })).data;
+    expect(ny.ersatterId).toBe(gammal.id);
+    await k.post('/api/login/invanare', { invanareId: 'inv-p15' });
+    const lista = (await k.get('/api/min/journal/p15/anteckningar')).data;
+    expect(lista.anteckningar.map(a => a.id)).not.toContain(gammal.id);
+    expect(lista.anteckningar.map(a => a.id)).not.toContain(ny.id);
+    expect(lista.senare.some(s => s.signerad === ny.signerad.tid)).toBe(true);
+    for (const id of [gammal.id, ny.id]) {
+      expect((await k.get(`/api/min/journal/p15/anteckning/${id}`)).status).toBe(404);
+      expect((await k.get(`/fhir/Composition/${id}`)).status).toBe(404);
+    }
+    const sok = (await k.get('/fhir/Composition?patient=p15')).data.entry.map(e => e.resource.id);
+    const allt = (await k.get('/fhir/Patient/p15/$everything')).data.entry.map(e => `${e.resource.resourceType}/${e.resource.id}`);
+    for (const id of [gammal.id, ny.id]) {
+      expect(sok).not.toContain(String(id));
+      expect(allt).not.toContain(`Composition/${id}`);
+    }
+    expect(JSON.stringify(allt)).not.toContain('Ny version som inte ska synas');
+    // När den nya versionen visas, visas också den gamla, överstruken.
+    const senare = new Date(Date.parse(ny.signerad.tid) + 14 * DAG);
+    expect(minJournal.synligKedja(d, gammal, senare).synlig).toBe(true);
+    expect(minJournal.synligKedja(d, gammal).synlig).toBe(false);
+  });
 });
 
 test('Min journal > sandlåda sparad före Min journal får tabellerna när den läses in', () => {

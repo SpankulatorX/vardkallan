@@ -225,7 +225,7 @@ Patienten kan begära att uppgifter från en vårdenhet spärras, att en spärr 
 
 ### FHIR
 
-Med sessionen från Min journal når invånaren `/fhir/Patient/{egen}`, `Patient/{egen}/$everything` och sökningar med `patient=` eller `subject=` för de egna journalerna, med samma visningsregler och samma loggning. En resurs i en annan journal svarar som en som inte finns. `Practitioner` och `AuditEvent` nekas, `Organization` går att läsa.
+Med sessionen från Min journal når invånaren `/fhir/Patient/{egen}`, `Patient/{egen}/$everything` och sökningar med `patient=` eller `subject=` för de egna journalerna, med samma visningsregler och samma loggning. FHIR-vägen lämnar inte ut mer än Min journal: egna mappningar tar bort kontaktuppgifter, remissens anamnes och remitterande läkare, NLL-status, katalogens id och personalens id, och en äldre version av en anteckning visas bara när den senaste versionen visas. En resurs i en annan journal svarar som en som inte finns. `Practitioner` och `AuditEvent` nekas, `Organization` går att läsa.
 
 ## Kravregistret (krav.js)
 

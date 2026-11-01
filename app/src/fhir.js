@@ -5,7 +5,7 @@ import { MATTYPER, lasHandling } from './journal.js';
 import * as logg from './logg.js';
 import { SYSTEM as KODSYSTEM, ICD10SE, ATC, MATKOD } from './kodverk.js';
 import { EXT, CS, DEFINITIONER } from './fhir-definitioner.js';
-import { InvanareAtkomst, journaler, anteckningVisning, provsvarVisas } from './patientvy.js';
+import { InvanareAtkomst, journaler, synligKedja, provsvarVisas } from './patientvy.js';
 
 export const SYSTEM = {
   personnummer: 'http://electronichealth.se/identifier/personnummer',
@@ -368,25 +368,58 @@ export function hantera(ctx) {
 const vardenhet = (db, personal) => vardenhetFor(db, personal.enhet_id);
 
 // Invånarens FHIR-API (Min journal). Samma prövning, samma visningsregler och samma loggning som Min journal i /api:
-// bara journaler som invånaren får läsa, bara signerade och synliga anteckningar och bara provsvar som får visas.
-// En resurs i en annan journal svarar som en som inte finns. Practitioner och AuditEvent är personalens.
+// bara journaler som invånaren får läsa, bara anteckningar vars hela versionskedja är signerad och vars senaste version
+// visas, och bara provsvar som får visas. En resurs i en annan journal svarar som en som inte finns. Practitioner och
+// AuditEvent är personalens.
 const INV_RAD = {
-  Composition: (db, a) => anteckningVisning(db, a).visas,
+  Composition: (db, a) => synligKedja(db, a).synlig,
   Observation: (db, m) => provsvarVisas(m),
 };
-const synligFor = (db, typ, rad) => (INV_RAD[typ] ? INV_RAD[typ](db, rad) : true);
-// Personalens id lämnas inte ut till invånaren. Referenser till Practitioner får bara namnet, som är en del av journalen.
+const synligFor = (db, typ, rad) => (Object.hasOwn(INV_RAD, typ) ? INV_RAD[typ](db, rad) : true);
+
+// Invånarens resurser lämnar inte ut mer än Min journal: utan personalens id (en referens till Practitioner får bara
+// namnet, som är en del av journalen), utan kontaktuppgifter och listning, utan remissens anamnes och remitterande
+// läkare, och utan NLL-status och katalogens id för läkemedlet.
 const utanPersonalId = (r) => (r?.reference?.startsWith('Practitioner/') ? { display: r.display ?? 'Vårdpersonal' } : r);
-function mappaInvanare(db, typ, rad) {
-  const r = typ === 'ServiceRequest' ? serviceRequest(db, rad, true) : MAPPA[typ](db, rad);
-  if (r.author) r.author = r.author.map(utanPersonalId);
-  if (r.requester) r.requester = utanPersonalId(r.requester);
+export function patientForInvanare(db, p) {
+  const r = patient(db, p, true);
+  delete r.address;
+  delete r.telecom;
+  delete r.generalPractitioner;
   return r;
 }
+export const MAPPA_INVANARE = {
+  Encounter: encounter,
+  Condition: condition,
+  Observation: observation,
+  AllergyIntolerance: allergyIntolerance,
+  MedicationRequest: (db, o) => {
+    const r = medicationRequest(db, o);
+    r.medicationCodeableConcept.coding = r.medicationCodeableConcept.coding.filter(c => c.system !== SYSTEM.npl);
+    r.extension = r.extension.filter(e => e.url !== `${EXT}/nll-status`);
+    r.requester = utanPersonalId(r.requester);
+    return r;
+  },
+  ServiceRequest: (db, rr) => {
+    const r = serviceRequest(db, rr, true);
+    delete r.requester;
+    const note = [rr.motivering && { text: `Motivering: ${rr.motivering}` }, rr.svar && { text: `Svar: ${rr.svar}` }].filter(Boolean);
+    if (note.length) r.note = note; else delete r.note;
+    return r;
+  },
+  Composition: (db, a) => {
+    const r = composition(db, a);
+    r.author = r.author.map(utanPersonalId);
+    return r;
+  },
+};
+const mappaInvanare = (db, typ, rad) => MAPPA_INVANARE[typ](db, rad);
 
 function hanteraInvanare(ctx, delar) {
   const { db, invanare, url, base } = ctx;
   const [typ, id, operation] = delar;
+  // Bara kända resurstyper. Ett namn som hasOwnProperty eller constructor får aldrig bli en tabell eller en funktion.
+  if (!TYPER.includes(typ)) throw new Fel(404, 'Okänd FHIR-resurs.', 'saknas');
   const sokvag = `fhir/${delar.join('/')}${url.search}`;
   if (typ === 'Practitioner' || typ === 'AuditEvent') {
     throw new Fel(403, 'Personalens uppgifter och åtkomstloggen nås inte med en session från Min journal. Logglistan finns i Min journal.', 'nekad');
@@ -407,8 +440,8 @@ function hanteraInvanare(ctx, delar) {
   if (typ === 'Patient') {
     if (id && operation === '$everything' && delar.length === 3) {
       const atk = oppna(id);
-      const resurser = [patient(db, atk.patient, true)];
-      for (const t of Object.keys(MAPPA)) {
+      const resurser = [patientForInvanare(db, atk.patient)];
+      for (const t of Object.keys(MAPPA_INVANARE)) {
         for (const r of db.query(`SELECT * FROM ${TABELL[t]} WHERE patient_id = ? ORDER BY id`).all(id)) if (synligFor(db, t, r)) resurser.push(mappaInvanare(db, t, r));
       }
       atk.logga(sokvag);
@@ -418,7 +451,7 @@ function hanteraInvanare(ctx, delar) {
     if (id) {
       const atk = oppna(id);
       atk.logga(sokvag);
-      return { status: 200, body: patient(db, atk.patient, true) };
+      return { status: 200, body: patientForInvanare(db, atk.patient) };
     }
     const _id = url.searchParams.get('_id') ?? url.searchParams.get('patient');
     const ident = url.searchParams.get('identifier');
@@ -434,12 +467,12 @@ function hanteraInvanare(ctx, delar) {
     for (const pid of kandidater.filter(k => tillatna.has(k))) {
       const atk = oppna(pid);
       atk.logga(sokvag);
-      ut.push(patient(db, atk.patient, true));
+      ut.push(patientForInvanare(db, atk.patient));
     }
     return { status: 200, body: bundle(base, url, ut) };
   }
 
-  if (!MAPPA[typ] || delar.length > 2) throw new Fel(404, 'Okänd FHIR-resurs.', 'saknas');
+  if (!Object.hasOwn(MAPPA_INVANARE, typ) || delar.length > 2) throw new Fel(404, 'Okänd FHIR-resurs.', 'saknas');
   if (id) {
     const rad = db.query(`SELECT * FROM ${TABELL[typ]} WHERE id = ?`).get(Number(id));
     // En resurs i en journal som invånaren inte får läsa, eller som inte visas i Min journal, finns inte för invånaren.
