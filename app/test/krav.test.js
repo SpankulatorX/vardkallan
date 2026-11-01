@@ -13,10 +13,15 @@ describe('Kravregistret', () => {
       expect(k.rubrik.length).toBeGreaterThan(5);
       if (k.status === 'uppfyllt_demo') expect(k.tester.length).toBeGreaterThan(0);
     }
-    // Det som inte byggs i första versionen är planerat. Läsläget vid avbrott (D4) och klickbudgeten (D6) är byggda
-    // men delvis uppfyllda: läsläget saknar reservinloggning, och klickbudgeten är mätt med skript, inte med användare.
+    // Det som inte byggs i första versionen är planerat. Klickbudgeten (D6) är byggd men delvis uppfylld, eftersom den
+    // är mätt med skript och inte med användare. Läsläget vid avbrott med reservinloggning (D4) är uppfyllt i demon,
+    // med SITHS-kortet simulerat och noten om det.
     for (const id of ['D12', 'L5', 'L8', 'L10', 'L11']) expect(KRAV.find(k => k.id === id).status).toBe('planerat');
-    for (const id of ['D4', 'D6']) expect(KRAV.find(k => k.id === id).status).toBe('delvis');
+    expect(KRAV.find(k => k.id === 'D6').status).toBe('delvis');
+    const d4 = KRAV.find(k => k.id === 'D4');
+    expect(d4.status).toBe('uppfyllt_demo');
+    expect(d4.anmarkning).toContain('Simulerat: SITHS-kortet och dess PIN-räknare');
+    expect(d4.anmarkning).toContain('reservväg för inloggningen vid avbrott hos Inera är inte byggd');
   });
 
   test('status uppfyllt_demo bara när alla tester är gröna', () => {
