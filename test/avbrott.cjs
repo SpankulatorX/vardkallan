@@ -1,5 +1,6 @@
 // Tester av läsläget vid avbrott (D4) i en riktig webbläsare med Playwright. Resultatet skrivs till
-// app/klienttest-resultat.json, som /api/krav läser, tillsammans med en hash av app/public. Ändras gränssnittet
+// app/klienttest-resultat.json, som /api/krav läser, tillsammans med en hash av app/public. Testerna från
+// test/anvandartest.cjs i samma fil behålls (test/klienttester.cjs). Ändras gränssnittet
 // efteråt räknas testerna som inaktuella tills skriptet körs igen.
 //
 // Användning (servern måste vara igång):
@@ -11,9 +12,10 @@
 // räknas inte som fel. Alla sidfel räknas som fel, och konsolfel när webbläsaren är online.
 
 const { chromium } = require('@playwright/test');
-const { writeFileSync, mkdirSync, readdirSync, rmSync } = require('node:fs');
+const { mkdirSync, readdirSync, rmSync } = require('node:fs');
 const { join } = require('node:path');
 const { pathToFileURL } = require('node:url');
+const { skrivKlienttester } = require('./klienttester.cjs');
 
 const BAS = process.argv[2] || 'http://127.0.0.1:18797';
 const APP = join(__dirname, '..', 'app');
@@ -320,8 +322,8 @@ const lagrat = (page) => page.evaluate(async () => {
   const version = browser.version();
   await browser.close();
   const { gransnittHash } = await import(pathToFileURL(join(APP, 'src', 'klientresultat.js')).href);
-  const resultat = { tid: new Date().toISOString(), bas: BAS, webblasare: `Chromium ${version}`, gransnittHash: gransnittHash(join(APP, 'public')), tester };
-  writeFileSync(join(APP, 'klienttest-resultat.json'), `${JSON.stringify(resultat, null, 2)}\n`);
+  // Testerna med samma prefix ersätts. Andra skripts tester i filen (test/anvandartest.cjs) behålls.
+  skrivKlienttester({ app: APP, prefix: PREFIX, tester, bas: BAS, webblasare: `Chromium ${version}`, gransnittHash: gransnittHash(join(APP, 'public')) });
   const roda = tester.filter(t => t.status !== 'grön');
   console.log(`\nAvbrott: ${tester.length - roda.length} av ${tester.length} gröna. Resultatet finns i app/klienttest-resultat.json`);
   if (sidfel.length) console.log(`Sidfel och konsolfel:\n  ${sidfel.join('\n  ')}`);

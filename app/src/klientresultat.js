@@ -1,4 +1,4 @@
-// Resultat från testerna av gränssnittet. De körs i Playwright mot en lokal server (test/avbrott.cjs och
+// Resultat från testerna av gränssnittet. De körs i Playwright mot en lokal server (test/avbrott.cjs, test/anvandartest.cjs och
 // test/klickbudget.cjs) och skrivs till klienttest-resultat.json och klickbudget.json, som följer med i bygget.
 // Varje fil har en hash av allt i public/ när testerna kördes. Har gränssnittet ändrats sedan dess räknas testerna
 // som inaktuella, och kravet blir delvis tills testerna har körts igen.

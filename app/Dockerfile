@@ -6,7 +6,7 @@ COPY src ./src
 COPY public ./public
 COPY scripts ./scripts
 COPY test ./test
-# Playwright-testerna av gränssnittet (test/avbrott.cjs och test/klickbudget.cjs) körs före bygget. Resultaten följer med här.
+# Playwright-testerna av gränssnittet (test/avbrott.cjs, test/anvandartest.cjs och test/klickbudget.cjs) körs före bygget. Resultaten följer med här.
 COPY klickbudget.json klienttest-resultat.json ./
 RUN bun scripts/kor-tester.js
 
