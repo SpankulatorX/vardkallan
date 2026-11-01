@@ -504,6 +504,8 @@ describe('Min journal', () => {
     await k.get('/fhir/Patient?identifier=198404162383');
     await k.get(`/fhir/Observation/${encodeURIComponent('patienten har hiv')}`);
     await k.get('/fhir/Observation?patient=Patient/p01%20och%20mer%20text');
+    await k.get('/fhir/Observation?patient=198404162383');
+    await k.get('/fhir/Patient/198404162383');
     const resurser = d.query("SELECT resurs FROM atkomstlogg WHERE invanare_id = 'inv-vh01'").all().map(r => r.resurs ?? '');
     expect(resurser.some(r => r.includes('198404162383') || r.includes('hiv') || r.includes('mer text'))).toBe(false);
   });

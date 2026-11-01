@@ -197,7 +197,9 @@ const anta = (villkor, text) => { if (!villkor) throw new Error(text); };
     const lacker = anrop.filter(a => markorer.some(x => a.url.includes(encodeURIComponent(x)) || a.url.includes(x) || a.kropp.includes(x)));
     anta(lacker.length === 0, `anrop med testresultat: ${lacker.map(a => `${a.metod} ${a.url}`)}`);
     // Efter uppgifterna skrivs inget till servern: enkäten, resultatet, nedladdningen och kopieringen görs i webbläsaren.
-    const skrivningar = anrop.filter(a => a.fas !== 'uppgifter' && a.metod !== 'GET');
+    // Utloggningen när uppgifterna är klara kan hinna komma efter fasbytet, eftersom den först skickar väntande loggar
+    // från läsläget. Den har inga testresultat, vilket kontrollen ovan visar.
+    const skrivningar = anrop.filter(a => a.fas !== 'uppgifter' && a.metod !== 'GET' && new URL(a.url).pathname !== '/api/logout');
     anta(skrivningar.length === 0, `skrivande anrop efter uppgifterna: ${skrivningar.map(a => `${a.metod} ${a.url}`)}`);
     const api = anrop.filter(a => a.fas === 'resultat' && new URL(a.url).pathname.startsWith('/api/'));
     anta(api.length === 0, `anrop till API:t under resultatet: ${api.map(a => a.url)}`);

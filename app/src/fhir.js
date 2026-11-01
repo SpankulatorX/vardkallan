@@ -416,17 +416,20 @@ const mappaInvanare = (db, typ, rad) => MAPPA_INVANARE[typ](db, rad);
 
 // Resursen i loggen för invånarens anrop: sökvägen och bara de sökparametrar som används, korta. Annan text i adressen
 // hamnar aldrig i loggen, varken i invånarens egen eller i en annan patients.
-// Loggen får bara sökvägen och id:n i ett strikt format. Fritext ur adressen, till exempel ett personnummer i
-// identifier, kommer aldrig in i loggen: en parameter med annat innehåll loggas bara med sitt namn.
+// Loggen får bara sökvägen och id:n i de format som Vårdkällans id har: resurstyp, löpnummer, patient-id och
+// $everything. Fritext ur adressen, till exempel ett personnummer, kommer aldrig in i loggen: en parameter med annat
+// innehåll loggas bara med sitt namn, och en del av sökvägen med annat innehåll som ogiltig.
 const LOGGADE_PARAMETRAR = ['patient', 'subject', '_id', 'identifier'];
-const LOGGBART_ID = /^[A-Za-z0-9-]{1,32}$/;
-const LOGGBAR_DEL = /^\$?[A-Za-z0-9-]{1,32}$/;
+const PATIENT_ID = /^p\d{1,4}$/;
+const LOPNUMMER = /^\d{1,9}$/;
+const loggbarDel = (d, i) => (i === 0 ? TYPER.includes(d) : PATIENT_ID.test(d) || LOPNUMMER.test(d) || d === '$everything');
 function loggResurs(delar, url) {
   const q = LOGGADE_PARAMETRAR.filter(n => url.searchParams.has(n)).map((n) => {
     const v = String(url.searchParams.get(n)).replace(/^Patient\//, '');
-    return n !== 'identifier' && LOGGBART_ID.test(v) ? `${n}=${v}` : n;
+    const ok = n === '_id' ? PATIENT_ID.test(v) || LOPNUMMER.test(v) : n !== 'identifier' && PATIENT_ID.test(v);
+    return ok ? `${n}=${v}` : n;
   }).join('&');
-  return `fhir/${delar.map(d => (LOGGBAR_DEL.test(d) ? d : 'ogiltig')).join('/')}${q ? `?${q}` : ''}`;
+  return `fhir/${delar.map((d, i) => (loggbarDel(d, i) ? d : 'ogiltig')).join('/')}${q ? `?${q}` : ''}`;
 }
 
 function hanteraInvanare(ctx, delar) {
