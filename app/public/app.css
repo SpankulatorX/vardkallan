@@ -585,6 +585,16 @@ legend { font-weight: 600; font-size: var(--f-s); padding: 0; margin-bottom: 6px
 .avbrott-text h2 { font-size: var(--f-l); color: var(--larm); margin-bottom: 4px; }
 .avbrott-text p { margin: 2px 0; max-width: 92ch; }
 .avbrott-sim { font-weight: 600; color: var(--obs); }
+.avbrott-knappar { display: flex; flex-direction: column; gap: 6px; flex: none; align-items: stretch; }
+/* Reservinloggning (D4) */
+.reservknapp .ikon { width: 16px; height: 16px; }
+.reservknapp[aria-busy="true"] { opacity: 0.6; }
+.reservkopior { margin-top: 18px; border: 1px solid var(--linje); border-left: 4px solid var(--kalla); background: var(--yta); border-radius: var(--r); padding: 10px 14px; }
+.reservkopior h2 { font-size: var(--f-l); display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.reservkopior p { margin: 4px 0; font-size: var(--f-s); color: var(--blak-2); }
+.reservkopior ul { margin: 6px 0 0; padding-left: 20px; font-size: var(--f-s); }
+.reserv-form { margin: 8px 14px 0; }
+.reserv-form .knapprad { margin-top: 6px; }
 body.laslage [data-skriv] { display: none !important; }
 body.laslage [data-laslage-av] { cursor: not-allowed; }
 
@@ -621,6 +631,7 @@ body.laslage [data-laslage-av] { cursor: not-allowed; }
 @media (max-width: 640px) {
   .demorad { flex-direction: column; align-items: flex-start; gap: 6px; padding: 6px 16px; }
   .avbrott-inre { flex-wrap: wrap; padding: 10px 16px; }
+  .avbrott-knappar { flex-direction: row; flex-wrap: wrap; }
   .klickbudget { margin-left: 0; }
   .topp-inre { padding: 8px 16px; gap: 10px; }
   .inloggad { order: 6; width: 100%; }

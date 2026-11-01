@@ -1,18 +1,19 @@
 // Service worker för läsläget vid avbrott (D4). Den cachar gränssnittets statiska filer, så att appen startar även
-// när servern inte svarar. Den rör aldrig /api eller /fhir: patientuppgifter cachas inte här utan bara i den
-// krypterade läskopian (js/lasekopia.js).
+// när servern inte svarar, också i en ny flik eller efter en omstart av webbläsaren (då med reservinloggningen). Den
+// rör aldrig /api eller /fhir: patientuppgifter cachas inte här utan bara i den krypterade läskopian
+// (js/lasekopia.js och js/reservkopia.js).
 //
 // Nätet först: varje fil hämtas från servern och cachen uppdateras. Bara när servern inte svarar inom fyra sekunder,
 // eller svarar med ett serverfel (502 till 504 och Cloudflares 52x när servern bakom är nere), används den cachade
 // filen. Så får alla en ny version direkt när servern svarar, och den gamla versionen bara under ett avbrott.
 //
 // Listan måste ha med varje fil i public/. Ett test (Läskopia > service workern cachar alla statiska filer) jämför.
-const CACHE = 'vardkallan-v1';
+const CACHE = 'vardkallan-v2';
 const FILER = [
   '/index.html', '/app.css', '/favicon.svg',
   '/fonts/OFL.txt', '/fonts/noto-sans-400.woff2', '/fonts/noto-sans-600.woff2', '/fonts/noto-sans-700.woff2',
   '/fonts/noto-sans-c600.woff2', '/fonts/noto-sans-c700.woff2',
-  '/js/app.js', '/js/avbrott.js', '/js/behorighet.js', '/js/lasekopia.js', '/js/ui.js',
+  '/js/app.js', '/js/avbrott.js', '/js/behorighet.js', '/js/lasekopia.js', '/js/reservkopia.js', '/js/ui.js',
   '/js/vyer/arbetslista.js', '/js/vyer/drift.js', '/js/vyer/inkorg.js', '/js/vyer/inloggning.js', '/js/vyer/krav.js',
   '/js/vyer/logg.js', '/js/vyer/migrering.js', '/js/vyer/moduler.js', '/js/vyer/oppet-api.js', '/js/vyer/patient-journal.js',
   '/js/vyer/patient-lakemedel.js', '/js/vyer/patient-logglista.js', '/js/vyer/patient-matvarden.js', '/js/vyer/patient-oversikt.js',
@@ -43,12 +44,16 @@ const medTidsgrans = (p, ms) => Promise.race([p, new Promise((_, nej) => setTime
 
 async function hamta(req, url) {
   const cache = await caches.open(CACHE);
-  // Alla adresser i gränssnittet är index.html med routning i #, så en navigering hämtar alltid index.html.
-  const nyckel = req.mode === 'navigate' || url.pathname === '/' ? '/index.html' : url.pathname;
+  // Alla adresser i gränssnittet är index.html med routning i #, så en navigering till en adress utan filändelse ger
+  // index.html. En navigering direkt till en fil (till exempel /js/ui.js) sparas under filens eget namn, och bara ett
+  // HTML-svar får ersätta index.html i cachen.
+  const sida = url.pathname === '/' || (req.mode === 'navigate' && !/\.[a-z0-9]+$/i.test(url.pathname));
+  const nyckel = sida ? '/index.html' : url.pathname;
   try {
     const svar = await medTidsgrans(fetch(req), TIDSGRANS_MS);
     if (svar.ok) {
-      if (FILER.includes(nyckel)) await cache.put(nyckel, svar.clone());
+      const html = (svar.headers.get('content-type') || '').startsWith('text/html');
+      if (FILER.includes(nyckel) && (nyckel !== '/index.html' || html)) await cache.put(nyckel, svar.clone());
       return svar;
     }
     if (svar.status < 500) return svar;

@@ -4,162 +4,250 @@
 // (GET /api/lasekopia). Här lagras den bara, krypterad, och läses när servern inte svarar.
 //
 // Kryptering: AES-GCM med 256 bitars nyckel genom Web Crypto. Nyckeln skapas av servern vid inloggningen, byts vid
-// varje ny inloggning och gäller i 8 timmar. I webbläsaren finns den i minnet som en CryptoKey som inte kan exporteras,
-// och i sessionStorage för den här fliken, så att läsläget fungerar också om sidan laddas om under avbrottet. Nyckeln
-// lagras aldrig i IndexedDB. Där ligger bara chiffertexten, slumpad IV och metadata (vem, när kopian skapades och hur
-// länge nyckeln gäller). Metadata är bunden till chiffertexten som additional data, så ändrad metadata gör att
-// dekrypteringen misslyckas och kopian kastas.
+// varje ny inloggning och gäller i 8 timmar. Den har ett id, läskopians id. I webbläsaren finns nyckeln i minnet som en
+// CryptoKey som inte kan exporteras, och i sessionStorage för den här fliken, så att läsläget fungerar också om sidan
+// laddas om under avbrottet. Nyckeln lagras aldrig i klartext i IndexedDB. Där ligger bara chiffertexten, slumpad IV och
+// metadata (vem, vilken läskopia, när kopian skapades och hur länge nyckeln gäller). Metadata är bunden till
+// chiffertexten som additional data, så ändrad metadata gör att dekrypteringen misslyckas och kopian kastas.
+//
+// Reservkopian (reservkopia.js) är samma chiffertext, sparad per person tillsammans med nyckeln inslagen med en nyckel
+// som härleds ur personens reservkod. Med den går läsläget att öppna i en ny flik eller efter en omstart av webbläsaren.
+//
+// Loggen från läsläget: varje läsning sparas som en egen rad i IndexedDB, krypterad med läskopians nyckel. Raden kan
+// skickas till servern utan nyckel och utan inloggning, eftersom servern har nyckeln och själv dekrypterar och
+// kontrollerar raden (POST /api/lasekopia/krypterad-logg). Därför överlever loggen att fliken stängs.
 //
 // Det skyddar mot:
 //   att någon läser webbläsarens lagrade filer (IndexedDB på disken) efter att fliken är stängd, till exempel på en
-//   delad eller stulen dator, eftersom sessionStorage och nyckeln försvinner med fliken;
+//   delad eller stulen dator, eftersom sessionStorage och nyckeln försvinner med fliken (reservkopian kräver koden);
 //   att nästa person som loggar in i samma webbläsare läser föregående persons kopia, eftersom kopian raderas vid
 //   utloggning och varje inloggning får en ny nyckel;
-//   att en gammal kopia används, eftersom kopian kastas efter 8 timmar.
+//   att en gammal kopia används, eftersom kopian kastas efter 8 timmar;
+//   att loggrader förfalskas för en annan person, eftersom bara den som har läskopians nyckel kan skapa dem.
 //
 // Det skyddar inte mot:
 //   skadlig kod som körs i sidan (XSS) eller i webbläsaren medan fliken är öppen, eftersom den kan använda nyckeln;
 //   någon som sitter vid en olåst dator medan personen är inloggad;
 //   skadeprogram på datorn medan fliken lever: webbläsaren kan skriva sessionStorage till disken för att kunna
 //   återställa flikar, och nyckeln finns i minnet;
+//   att webbläsaren återställer en stängd flik eller session: då kan flikens nyckel komma tillbaka, precis som
+//   sessionskakan, och läsläget öppnas utan reservkod;
+//   att den som har datorn raderar rader i loggen innan de har skickats (utlämnandet till läskopian loggas alltid);
 //   skärmdumpar och utskrifter. Kopian ersätter inte diskkryptering och en låst skärm.
 import { ApiFel } from './ui.js';
 
 const DB = 'vardkallan-lasekopia';
-const FORRAD = 'poster';
+const DB_VERSION = 2;
 const SS_NYCKEL = 'vk_lasnyckel';
 export const MAX_ALDER_MS = 8 * 3600_000;
 
 let nyckel = null;     // CryptoKey, går inte att exportera
-let info = null;       // { giltigTill, personalId }
+let info = null;       // { giltigTill, personalId, kopiaId }
 let kopia = null;      // den dekrypterade kopian, bara i minnet medan läsläget pågår
+let medReserv = false; // kopian öppnades med reservkod
 let kedja = Promise.resolve();
 
-const franB64 = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+export const franB64 = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+export function tillB64(b) {
+  const u = new Uint8Array(b);
+  let s = '';
+  for (let i = 0; i < u.length; i++) s += String.fromCharCode(u[i]);
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
 const ss = {
   las: () => { try { return JSON.parse(sessionStorage.getItem(SS_NYCKEL) || 'null'); } catch { return null; } },
   skriv: (v) => { try { sessionStorage.setItem(SS_NYCKEL, JSON.stringify(v)); } catch { /* privat läge */ } },
   ta: () => { try { sessionStorage.removeItem(SS_NYCKEL); } catch { /* privat läge */ } },
 };
 
+// Tre förråd: poster (fliken läskopia, id 'kopia'), reserv (reservkopior, en per person) och logg (en rad per läsning).
 function oppnaDb() {
   return new Promise((ja, nej) => {
-    const r = indexedDB.open(DB, 1);
-    r.onupgradeneeded = () => r.result.createObjectStore(FORRAD, { keyPath: 'id' });
-    r.onsuccess = () => ja(r.result);
+    const r = indexedDB.open(DB, DB_VERSION);
+    r.onupgradeneeded = () => {
+      const db = r.result;
+      if (!db.objectStoreNames.contains('poster')) db.createObjectStore('poster', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('reserv')) db.createObjectStore('reserv', { keyPath: 'personalId' });
+      if (!db.objectStoreNames.contains('logg')) db.createObjectStore('logg', { keyPath: 'id' });
+    };
+    r.onsuccess = () => { r.result.onversionchange = () => r.result.close(); ja(r.result); };
     r.onerror = () => nej(r.error);
   });
 }
-async function forrad(lage, fn) {
+async function forrad(namn, lage, fn) {
   const db = await oppnaDb();
   try {
     return await new Promise((ja, nej) => {
-      const tx = db.transaction(FORRAD, lage);
-      const r = fn(tx.objectStore(FORRAD));
+      const tx = db.transaction(namn, lage);
+      const r = fn(tx.objectStore(namn));
       tx.oncomplete = () => ja(r?.result);
       tx.onerror = () => nej(tx.error);
+      tx.onabort = () => nej(tx.error);
     });
   } finally { db.close(); }
 }
-const hamtaPost = (id) => forrad('readonly', s => s.get(id));
-const sparaPost = (post) => forrad('readwrite', s => s.put(post));
-const taBortPost = (id) => forrad('readwrite', s => s.delete(id));
+// Lagringen för reservkopia.js. andra läser och skriver en post i samma transaktion.
+export const lagring = {
+  hamta: (namn, id) => forrad(namn, 'readonly', s => s.get(id)),
+  alla: (namn) => forrad(namn, 'readonly', s => s.getAll()),
+  spara: (namn, post) => forrad(namn, 'readwrite', s => s.put(post)),
+  taBort: (namn, id) => forrad(namn, 'readwrite', s => s.delete(id)),
+  andra: (namn, id, fn) => forrad(namn, 'readwrite', s => {
+    const q = s.get(id);
+    q.onsuccess = () => { const ny = q.result ? fn(q.result) : null; if (ny) s.put(ny); };
+    return q;
+  }),
+};
+const hamtaPost = (id) => lagring.hamta('poster', id);
+const sparaPost = (post) => lagring.spara('poster', post);
+const taBortPost = (id) => lagring.taBort('poster', id);
 
-const aad = (p) => new TextEncoder().encode(`vardkallan-lasekopia|${p.id}|${p.personalId}|${p.skapad}|${p.giltigTill}`);
+const importera = (b64) => crypto.subtle.importKey('raw', franB64(b64), 'AES-GCM', false, ['encrypt', 'decrypt']);
+const aad = (p) => new TextEncoder().encode(`vardkallan-lasekopia|${p.id}|${p.kopiaId}|${p.personalId}|${p.skapad}|${p.giltigTill}`);
 async function kryptera(meta, varde) {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const data = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: aad(meta) }, nyckel, new TextEncoder().encode(JSON.stringify(varde)));
   return { ...meta, iv, data };
 }
-async function dekryptera(post) {
-  const klar = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: post.iv, additionalData: aad(post) }, nyckel, post.data);
+async function dekryptera(post, k = nyckel) {
+  const klar = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: post.iv, additionalData: aad(post) }, k, post.data);
   return JSON.parse(new TextDecoder().decode(klar));
 }
-const giltig = (post) => post && info && post.personalId === info.personalId && Date.now() < Date.parse(post.giltigTill)
-  && Date.now() - Date.parse(post.skapad) < MAX_ALDER_MS;
+export const utgangen = (post, nu = Date.now()) => !post || nu >= Date.parse(post.giltigTill) || nu - Date.parse(post.skapad) >= MAX_ALDER_MS;
+const giltig = (post) => post && info && post.personalId === info.personalId && post.kopiaId === info.kopiaId && !utgangen(post);
 
-// Nyckeln från servern ({ nyckel, giltigTill }) för den inloggade.
+// Nyckeln från servern ({ id, nyckel, giltigTill }) för den inloggade. Ger { reservBorttagen } när personen hade en
+// reservkopia från en tidigare inloggning: den går inte att förnya utan reservkoden och tas bort.
 export async function satNyckel(lasnyckel, personalId) {
-  if (!lasnyckel?.nyckel || !personalId) return;
-  const ny = { nyckel: lasnyckel.nyckel, giltigTill: lasnyckel.giltigTill, personalId };
+  if (!lasnyckel?.nyckel || !personalId) return {};
+  const ny = { nyckel: lasnyckel.nyckel, id: lasnyckel.id, giltigTill: lasnyckel.giltigTill, personalId };
   const forra = ss.las();
-  if (nyckel && forra?.nyckel === ny.nyckel && info?.personalId === personalId) return;
+  if (nyckel && forra?.nyckel === ny.nyckel && info?.personalId === personalId) return {};
   // En ny nyckel betyder en ny inloggning. En kopia som är krypterad med den gamla nyckeln går inte att läsa och tas bort.
   if (forra && forra.nyckel !== ny.nyckel) await rensa();
-  nyckel = await crypto.subtle.importKey('raw', franB64(ny.nyckel), 'AES-GCM', false, ['encrypt', 'decrypt']);
-  info = { giltigTill: ny.giltigTill, personalId };
+  let reservBorttagen = false;
+  try {
+    const r = await lagring.hamta('reserv', personalId);
+    if (r && r.kopiaId !== ny.id) { await lagring.taBort('reserv', personalId); reservBorttagen = true; }
+  } catch { /* IndexedDB saknas */ }
+  nyckel = await importera(ny.nyckel);
+  info = { giltigTill: ny.giltigTill, personalId, kopiaId: ny.id };
+  medReserv = false;
   ss.skriv(ny);
+  return { reservBorttagen };
 }
 
 // Läser in nyckeln från sessionStorage, när sidan har laddats om under ett avbrott.
 async function nyckelFranFlik() {
   if (nyckel) return true;
   const n = ss.las();
-  if (!n?.nyckel || Date.now() >= Date.parse(n.giltigTill)) return false;
-  nyckel = await crypto.subtle.importKey('raw', franB64(n.nyckel), 'AES-GCM', false, ['encrypt', 'decrypt']);
-  info = { giltigTill: n.giltigTill, personalId: n.personalId };
+  if (!n?.nyckel || !n.id || Date.now() >= Date.parse(n.giltigTill)) return false;
+  nyckel = await importera(n.nyckel);
+  info = { giltigTill: n.giltigTill, personalId: n.personalId, kopiaId: n.id };
   return true;
 }
 
-// Sparar en ny kopia från GET /api/lasekopia. Kopians session innehåller inte nyckeln.
+// Sparar en ny kopia från GET /api/lasekopia. Kopians session innehåller inte nyckeln. Har personen en reservkopia
+// från samma inloggning förnyas den också. Det behöver inte reservkoden, eftersom nyckeln är densamma.
 export async function spara(ny) {
-  if (!nyckel || ny?.session?.personal?.id !== info?.personalId) return null;
-  const meta = { id: 'kopia', personalId: info.personalId, skapad: ny.skapad, giltigTill: ny.giltigTill < info.giltigTill ? ny.giltigTill : info.giltigTill };
-  await sparaPost(await kryptera(meta, ny));
+  if (!nyckel || medReserv || ny?.session?.personal?.id !== info?.personalId || ny.kopiaId !== info.kopiaId) return null;
+  const meta = { id: 'kopia', kopiaId: info.kopiaId, personalId: info.personalId, skapad: ny.skapad, giltigTill: ny.giltigTill < info.giltigTill ? ny.giltigTill : info.giltigTill };
+  const post = await kryptera(meta, ny);
+  await sparaPost(post);
+  await lagring.andra('reserv', info.personalId, r => (r.kopiaId === post.kopiaId ? { ...r, kopia: post } : null)).catch(() => {});
   return meta.skapad;
 }
 
-// Öppnar kopian för läsläget. Ger { skapad, session } eller null när ingen användbar kopia finns.
+// Öppnar fliken läskopia för läsläget. Ger { skapad, session, patienter } eller null när ingen användbar kopia finns.
 export async function oppna() {
   if (!(await nyckelFranFlik())) return null;
   const post = await hamtaPost('kopia');
   if (!post) return null;
-  if (!giltig(post)) { await rensa(); return null; }
+  if (!giltig(post)) { await taBortPost('kopia'); return null; }
   try { kopia = await dekryptera(post); } catch { await taBortPost('kopia'); return null; }
   return { skapad: kopia.skapad, session: { ...kopia.session, inloggad: true }, patienter: Object.keys(kopia.patienter).length };
 }
+
+// Öppnar en reservkopia med nyckeln som reservkoden låste upp (reservkopia.js). Nyckeln kan inte exporteras och finns
+// bara i minnet, så en omladdning av sidan kräver koden igen.
+export async function oppnaMedReserv(k, i, post) {
+  if (post?.personalId !== i.personalId || post?.kopiaId !== i.kopiaId || utgangen(post)) throw new Error('Reservkopian gäller inte.');
+  const v = await dekryptera(post, k);
+  nyckel = k;
+  info = { ...i };
+  kopia = v;
+  medReserv = true;
+  return { skapad: v.skapad, session: { ...v.session, inloggad: true, reserv: true }, patienter: Object.keys(v.patienter).length, reserv: true };
+}
+
 export const stang = () => { kopia = null; };
 export const harKopia = () => Boolean(kopia);
+export const arReserv = () => medReserv;
+export const aktuell = () => (info ? { ...info, reserv: medReserv } : null);
 
-// Raderar kopian, nyckeln och loggen. Med behallLogg finns åtkomstloggen från läsläget och nyckeln kvar tills
-// loggen har skickats, för en utloggning som görs medan servern inte svarar.
-export async function rensa({ behallLogg = false } = {}) {
-  kopia = null;
+// Glömmer nyckeln i den här fliken, men låter IndexedDB vara. Som när fliken stängs.
+export function glomFlik() {
+  kopia = null; nyckel = null; info = null; medReserv = false;
+  ss.ta();
+}
+
+// Underlaget för att skapa en reservkopia: nyckeln i klartext från fliken, så att den kan slås in med reservkoden,
+// och fliken läskopia. Finns bara för den som är inloggad i fliken, inte i läsläge med reservkod.
+export async function underlagForReserv() {
+  const n = ss.las();
+  if (!nyckel || medReserv || !n?.nyckel || !info || n.id !== info.kopiaId || n.personalId !== info.personalId) return null;
+  const post = await hamtaPost('kopia');
+  if (!giltig(post)) return null;
+  try { await dekryptera(post); } catch { return null; }
+  return { radNyckel: franB64(n.nyckel), info: { ...info }, post };
+}
+
+// Raderar fliken läskopia och nyckeln. Loggen från läsläget och reservkopiorna lämnas, de tas bort för sig.
+export async function rensa() {
+  glomFlik();
   await kedja.catch(() => {});
   try {
     await taBortPost('kopia');
-    if (!behallLogg) await taBortPost('logg');
+    await taBortPost('logg');
   } catch { /* IndexedDB saknas */ }
-  if (!behallLogg) { nyckel = null; info = null; ss.ta(); }
 }
 
-// Åtkomstloggen i läsläget. Raderna krypteras med samma nyckel och skickas till servern när den svarar igen.
+// Åtkomstloggen i läsläget. Varje rad krypteras för sig med läskopians nyckel och sparas tills servern har tagit emot
+// den. Metadata i klartext är bara radens id och läskopians id.
+const loggAad = (kopiaId, personalId, id) => new TextEncoder().encode(`vardkallan-laslogg|${kopiaId}|${personalId}|${id}`);
 function loggaLokalt(rad) {
+  const k = nyckel;
+  const i = info;
   kedja = kedja.then(async () => {
-    if (!nyckel) return;
-    const rader = await lasLogg();
-    rader.push(rad);
-    await sparaPost(await kryptera({ id: 'logg', personalId: info.personalId, skapad: rader[0].tid, giltigTill: info.giltigTill }, rader));
+    if (!k || !i?.kopiaId) return;
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const data = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: loggAad(i.kopiaId, i.personalId, rad.id) }, k, new TextEncoder().encode(JSON.stringify(rad)));
+    await lagring.spara('logg', { id: rad.id, kopiaId: i.kopiaId, iv, data });
   }).catch(e => console.warn('Åtkomsten i läsläget kunde inte loggas lokalt:', e));
   return kedja;
 }
-async function lasLogg() {
-  const post = await hamtaPost('logg');
-  if (!post || !nyckel) return [];
-  try { return await dekryptera(post); } catch { return []; }
+// Alla rader som väntar på att skickas, för alla läskopior på datorn.
+export async function vantandeLoggar() {
+  await kedja;
+  try { return await lagring.alla('logg'); } catch { return []; }
 }
+export async function taBortLoggar(ids) {
+  if (!ids.length) return;
+  await forrad('logg', 'readwrite', s => { for (const id of ids) s.delete(id); });
+}
+// Raderna för läskopian i den här fliken, dekrypterade.
 export async function hamtaLogg() {
   await kedja;
   if (!(await nyckelFranFlik())) return [];
-  return lasLogg();
-}
-export async function tomLogg(ids) {
-  kedja = kedja.then(async () => {
-    const kvar = (await lasLogg()).filter(r => !ids.includes(r.id));
-    if (!kvar.length) await taBortPost('logg');
-    else await sparaPost(await kryptera({ id: 'logg', personalId: info.personalId, skapad: kvar[0].tid, giltigTill: info.giltigTill }, kvar));
-  });
-  return kedja;
+  const ut = [];
+  for (const r of await vantandeLoggar()) {
+    if (r.kopiaId !== info.kopiaId) continue;
+    try {
+      const klar = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: r.iv, additionalData: loggAad(r.kopiaId, info.personalId, r.id) }, nyckel, r.data);
+      ut.push(JSON.parse(new TextDecoder().decode(klar)));
+    } catch { /* inte den här personens rad */ }
+  }
+  return ut.sort((a, b) => a.tid.localeCompare(b.tid));
 }
 
 const SAKNAS = 'Det här finns inte i läskopian. Under avbrottet går det att läsa arbetslistan och, för patienterna i läskopian, patienthuvudet, översikten, läkemedlen och de senaste anteckningarna.';
@@ -172,7 +260,7 @@ export function svara(vag, metod = 'GET') {
   const p = decodeURI(vag.split('?')[0]);
   const ut = (v) => structuredClone(v);
   const logga = (patientId, handling) => loggaLokalt({ id: crypto.randomUUID(), tid: new Date().toISOString(), patientId, handling, resurs: p });
-  if (p === '/api/session') return ut({ ...kopia.session, inloggad: true });
+  if (p === '/api/session') return ut({ ...kopia.session, inloggad: true, ...(medReserv ? { reserv: true } : {}) });
   if (p === '/api/arbetslista') return ut(kopia.arbetslista);
   if (p === '/api/mallar') return ut(kopia.mallar);
   if (p === '/api/enheter') return ut(kopia.enheter);
