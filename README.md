@@ -1,5 +1,7 @@
 # Vårdkällan
 
+[![Tester och FHIR-validering](https://github.com/SpankulatorX/vardkallan/actions/workflows/test.yml/badge.svg)](https://github.com/SpankulatorX/vardkallan/actions/workflows/test.yml)
+
 Hela vården i ett öppet system.
 
 Vårdkällan är ett vårdinformationssystem med öppen källkod, byggt från grunden på öppna standarder (HL7 FHIR R4). Det är inte en kopia av något befintligt system. Projektet visar att kärnan i ett journalsystem går att bygga öppet, med data i öppna format som vårdgivaren själv äger, och att de problem som har drabbat stora journalsysteminföranden i Sverige och Norden går att konstruera bort.
@@ -18,7 +20,7 @@ Demon använder bara påhittade patienter och testpersonnummer från Skatteverke
 - Remisser med mottagningskvittens, bedömning, svar och kvittens av svaret, och larm när något uteblir.
 - Migrerad historik visas i samma kronologi som ny dokumentation, med en avstämningsrapport för migreringen.
 - Öppet FHIR R4-API under `/fhir` med samma behörighet och loggning som gränssnittet.
-- Kravspårbarhet: varje krav visas med de automatiska tester som visar att det är uppfyllt. Bygget stoppas om ett test är rött.
+- Kravspårbarhet: varje krav visas med de automatiska tester som visar att det är uppfyllt. Bygget stoppas om ett test är rött. Testerna och FHIR-valideringen mot HL7:s validator körs på GitHub vid varje ändring (`.github/workflows/test.yml`).
 
 Det som inte är byggt än (bland annat tidbok, specialområden som anestesi och intensivvård och cytostatika, och riktiga integrationer mot nationella tjänster) visas som planerat på sidan Moduler.
 

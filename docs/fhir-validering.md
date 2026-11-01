@@ -21,13 +21,25 @@ Basprofilerna finns för Patient, Organization, Practitioner och PractitionerRol
 1. Alla resurser som demorollerna når, för alla 15 patienter och med alla aktiva val (andra vårdenheter, nödåtkomst, samtycke), skrevs ut med `test/fhir-validering/exportera.js`. Organization, Practitioner, AuditEvent, CapabilityStatement och de egna definitionerna kom med.
 2. Dessutom hämtades svar över HTTP från en lokal server (`bun src/server.js` i `oven/bun:1.3.14-alpine`), inloggad som `lak-kard`, `lak-vc` och `logg`, för att validera själva sökresultaten (59 `Bundle` av typen `searchset`, också tomma).
 3. `test/fhir-validering/validera.sh` kör validatorn med `-version 4.0.1 -ig hl7se.fhir.base#1.1.0 -ig <egna definitioner> -jurisdiction SE`. Patient, Organization och Practitioner valideras dessutom uttryckligen mot `SEBasePatient`, `SEBaseOrganization` och `SEBasePractitioner`. Resurser med `meta.profile` valideras också mot den profilen.
-4. `test/fhir-validering/summera.py` räknar fel och varningar per resurstyp.
+4. `test/fhir-validering/summera.py` räknar fel och varningar per resurstyp. Det avslutar med felkod 1 om något fel (`error` eller `fatal`) finns eller om en utdatafil saknas. Varningar ger ingen felkod.
 
 ```sh
 docker run --rm --user $(id -u):$(id -g) -v "$PWD":/repo:ro -v "$UT":/ut -w /repo oven/bun:1.3.14-alpine bun test/fhir-validering/exportera.js /ut
 VALIDATOR=<katalog med validator_cli.jar> test/fhir-validering/validera.sh "$UT"
 python3 -I test/fhir-validering/summera.py "$UT"/ut-*.json
 ```
+
+## Automatisk körning i GitHub Actions
+
+Arbetsflödet `.github/workflows/test.yml` kör samma validering vid varje push och pull request, i jobbet FHIR-validering:
+
+1. Resurserna exporteras med `exportera.js` i `oven/bun:1.3.14-alpine` (låst på digest), som i steg 1 ovan. HTTP-urvalet i steg 2 ingår inte.
+2. `validator_cli.jar` 7.0.3 hämtas från HL7:s release på GitHub. Jobbet avbryts om sha256 inte är 57aa43fb40cec5de41def81c927725fd85908eeb71509b7f9313e04d9b8ec79b.
+3. Jobbet kontrollerar att tx.fhir.org svarar innan valideringen startar, och efteråt att validatorn verkligen anslöt till servern i varje körning. Svarar servern inte blir jobbet rött med ett tydligt felmeddelande, aldrig grönt utan terminologikontroll.
+4. `validera.sh` kör validatorn i `eclipse-temurin:21-jre` (Java 21, låst på digest genom `JAVABILD`). FHIR-paketen i `~/.fhir` cachas mellan körningarna, så att packages.fhir.org bara behövs när cachen saknas.
+5. `summera.py` skriver sammanfattningen och fäller jobbet om något fel finns. Varningarna fäller inte jobbet. Sammanfattningen visas på körningens sida, och validatorns utdata och loggar laddas upp som artefakten `fhir-validering`, där varningarna går att läsa.
+
+Jobbet Tester kör `bun scripts/kor-tester.js` med Bun 1.3.14. Alla externa actions är låsta på en fullständig commit-SHA. Valideringen körs inte i Docker-bygget av demon, som inte har Java.
 
 ## Resultat per resurstyp
 
@@ -96,7 +108,8 @@ Samma validering av svaren från koden före ändringarna (HTTP-urvalet: 252 uni
 
 ## Det som inte är validerat
 
-- Validatorn körs inte i bygget, eftersom den kräver Java. Testerna i `app/test/fhir-struktur.test.js` kontrollerar de viktigaste strukturkraven utan Java, och `app/test/kodverk.test.js` kontrollerar koderna mot de kontrollerade tabellerna.
+- Validatorn körs i GitHub Actions vid varje push och pull request, men inte i Docker-bygget av demon, eftersom den kräver Java. I bygget kontrollerar testerna i `app/test/fhir-struktur.test.js` de viktigaste strukturkraven utan Java, och `app/test/kodverk.test.js` kontrollerar koderna mot de kontrollerade tabellerna.
+- Den automatiska körningen validerar utskriften från `exportera.js`, inte sökresultaten över HTTP.
 - ICD-10-SE-, NPU- och NPL-koder kontrolleras inte av validatorn (terminologiservern saknar dem).
 - Bara läsning och sökning med de parametrar som API:t har. Inga skrivande FHIR-anrop finns.
 - Ingen nationell profil utöver basprofilerna (till exempel för läkemedel eller remiss) är validerad, eftersom HL7 Sweden inte publicerar sådana i `hl7se.fhir.base`.

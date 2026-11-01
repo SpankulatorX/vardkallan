@@ -1,0 +1,122 @@
+# Kör testerna och FHIR-valideringen vid varje push och pull request. Se docs/fhir-validering.md.
+name: Tester och FHIR-validering
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tester:
+    name: Tester
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+      - name: Kör testerna
+        run: bun scripts/kor-tester.js
+
+  fhir-validering:
+    name: FHIR-validering
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      BUNBILD: oven/bun:1.3.14-alpine@sha256:5acc90a93e91ff07bf72aa90a7c9f0fa189765aec90b47bdbf2152d2196383c0
+      JAVABILD: eclipse-temurin:21-jre@sha256:0b99b3376fbb50dbf9c0af8535fdd5b8eb0d3fdfc8b1e4967f383b6919f6901a
+      VALIDATORVERSION: 7.0.3
+      VALIDATORSHA256: 57aa43fb40cec5de41def81c927725fd85908eeb71509b7f9313e04d9b8ec79b
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Förbered kataloger
+        run: |
+          # Validatorn körs med user.home=FHIRHEM, så paketcachen hamnar i ~/.fhir.
+          {
+            echo "UT=$RUNNER_TEMP/fhir-ut"
+            echo "VALIDATOR=$RUNNER_TEMP/validator"
+            echo "FHIRHEM=$HOME"
+          } >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/fhir-ut" "$RUNNER_TEMP/validator"
+
+      - name: Cacha FHIR-paketen
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.fhir
+          key: fhir-paket-${{ env.VALIDATORVERSION }}-${{ hashFiles('test/fhir-validering/validera.sh') }}
+          restore-keys: |
+            fhir-paket-${{ env.VALIDATORVERSION }}-
+
+      - name: Exportera resurserna
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/repo:ro -v "$UT":/ut -w /repo "$BUNBILD" \
+            bun test/fhir-validering/exportera.js /ut
+
+      - name: Hämta validatorn och kontrollera sha256
+        run: |
+          curl -fsSL --retry 3 -o "$VALIDATOR/validator_cli.jar" \
+            "https://github.com/hapifhir/org.hl7.fhir.core/releases/download/$VALIDATORVERSION/validator_cli.jar"
+          echo "$VALIDATORSHA256  $VALIDATOR/validator_cli.jar" | sha256sum -c -
+
+      - name: Kontrollera att terminologiservern svarar
+        run: |
+          if ! curl -fsS --retry 3 --retry-all-errors --max-time 60 -H 'Accept: application/fhir+json' \
+              -o "$UT/tx-metadata.json" https://tx.fhir.org/r4/metadata; then
+            echo "::error::Terminologiservern tx.fhir.org svarar inte. Valideringen kan inte köras, kör om jobbet senare."
+            exit 1
+          fi
+
+      - name: Validera
+        run: sh test/fhir-validering/validera.sh "$UT"
+
+      - name: Kontrollera att validatorn nådde terminologiservern
+        run: |
+          fel=0
+          for f in "$UT"/logg-Patient.txt "$UT"/logg-Organization.txt "$UT"/logg-Practitioner.txt "$UT"/logg-R4.txt; do
+            if ! grep -q 'Connected to Terminology Server at https://tx.fhir.org' "$f"; then
+              echo "::error::Validatorn anslöt inte till terminologiservern tx.fhir.org ($(basename "$f")). Se loggarna i artefakten."
+              fel=1
+            fi
+          done
+          exit "$fel"
+
+      - name: Summera
+        run: |
+          set -o pipefail
+          python3 -I test/fhir-validering/summera.py "$UT"/ut-Patient.json "$UT"/ut-Organization.json \
+            "$UT"/ut-Practitioner.json "$UT"/ut-R4.json | tee "$UT/summering.txt"
+
+      - name: Skriv sammanfattningen
+        if: always()
+        run: |
+          if [ -f "$UT/summering.txt" ]; then
+            { echo '## FHIR-validering'; echo; tail -n 1 "$UT/summering.txt"; echo; echo '```'; grep '^## ' "$UT/summering.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Ladda upp valideringsutdata
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fhir-validering
+          path: |
+            ${{ runner.temp }}/fhir-ut/ut-*.json
+            ${{ runner.temp }}/fhir-ut/logg-*.txt
+            ${{ runner.temp }}/fhir-ut/summering.txt
+          if-no-files-found: warn
+          retention-days: 30
