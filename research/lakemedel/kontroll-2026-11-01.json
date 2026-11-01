@@ -1,0 +1,2462 @@
+{
+ "beskrivning": "Utdrag ur Läkemedelsverkets öppna data för Vårdkällans 50 katalogprodukter, hämtat 2026-11-01. Se docs/lakemedelskontroll.md.",
+ "kallor": {
+  "npl": "https://npl.mpa.se/MpaProductExport/4.5/2026-11-01_Total_NPL.zip",
+  "nsl": "https://nsl.mpa.se/sensl-v2.0.zip",
+  "lakemedelsfakta": "https://www.lakemedelsverket.se/sv/sok-lakemedelsfakta/lakemedel?id=<NPL-id>",
+  "upphov": "Läkemedelsverket"
+ },
+ "produkter": [
+  {
+   "katalognr": 1,
+   "nplid": "19640101000028",
+   "namn": "Waran",
+   "varumarke": "Waran®",
+   "styrka": "2,5 mg",
+   "form": "Tablett",
+   "formkod": "TABLET",
+   "substans": "Warfarin",
+   "atc": [
+    "B01AA03"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "1964-01-01",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Waran 2,5 mg tablett",
+    "beskrivning": "Fakta om Waran 2,5 mg tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod B01AA03."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POBZU959AVERT1",
+     "svenska_namn": [
+      "warfarin"
+     ],
+     "atc": [
+      "B01AA03"
+     ]
+    },
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POC5U9A03VERT1",
+     "svenska_namn": [
+      "warfarinnatrium"
+     ],
+     "atc": [
+      "B01AA03"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 2,
+   "nplid": "20111026000050",
+   "namn": "Eliquis",
+   "varumarke": "Eliquis",
+   "styrka": "5 mg",
+   "form": "Filmdragerad tablett",
+   "formkod": "FICOTA",
+   "substans": "Apixaban",
+   "atc": [
+    "B01AF02"
+   ],
+   "vagar": [
+    "GAST",
+    "ORAL"
+   ],
+   "godkand": "2012-11-19",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Eliquis 5 mg filmdragerad tablett",
+    "beskrivning": "Fakta om Eliquis 5 mg filmdragerad tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod B01AF02."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "ID1IZJQJ31SU0G0KMS",
+     "svenska_namn": [
+      "apixaban"
+     ],
+     "atc": [
+      "B01AF02"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 3,
+   "nplid": "20101127000035",
+   "namn": "Xarelto",
+   "varumarke": "Xarelto®",
+   "styrka": "20 mg",
+   "form": "Filmdragerad tablett",
+   "formkod": "FICOTA",
+   "substans": "Rivaroxaban",
+   "atc": [
+    "B01AF01"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2011-12-14",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Xarelto 20 mg filmdragerad tablett",
+    "beskrivning": "Fakta om Xarelto 20 mg filmdragerad tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod B01AF01."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDSBRMJA5ULI4WMSRV",
+     "svenska_namn": [
+      "rivaroxaban"
+     ],
+     "atc": [
+      "B01AF01",
+      "B01AX06"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 4,
+   "nplid": "19880318000057",
+   "namn": "Fragmin",
+   "varumarke": "Fragmin®",
+   "styrka": "5000 IE",
+   "form": "Injektionsvätska, lösning i förfylld spruta",
+   "formkod": "SOIJPS",
+   "substans": "Dalteparin",
+   "atc": [
+    "B01AB04"
+   ],
+   "vagar": [
+    "EXCO",
+    "INVE",
+    "SUCU"
+   ],
+   "godkand": "1988-03-18",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Fragmin 5000 IE injektionsvätska, lösning i förfylld spruta",
+    "beskrivning": "Fakta om Fragmin 5000 IE injektionsvätska, lösning i förfylld spruta | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod B01AB04."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ARES",
+     "nsl_id": "IDNBCLLXQU3HHZMSRV",
+     "svenska_namn": [
+      "dalteparin"
+     ],
+     "atc": [
+      "B01AB04"
+     ]
+    },
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POI6UC7Y6VERT1",
+     "svenska_namn": [
+      "dalteparinnatrium"
+     ],
+     "atc": [
+      "B01AB04"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 5,
+   "nplid": "20170530000130",
+   "namn": "Klexane",
+   "varumarke": "Klexane",
+   "styrka": "4 000 IE (40 mg)/0,4 ml",
+   "form": "Injektionsvätska, lösning i förfylld spruta",
+   "formkod": "SOIJPS",
+   "substans": "Enoxaparin",
+   "atc": [
+    "B01AB05"
+   ],
+   "vagar": [
+    "INVE",
+    "SUCU"
+   ],
+   "godkand": "1989-12-08",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Klexane 4 000 IE (40 mg)/0,4 ml injektionsvätska, lösning i förfylld spruta",
+    "beskrivning": "Fakta om Klexane 4 000 IE (40 mg)/0,4 ml injektionsvätska, lösning i förfylld spruta | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod B01AB05."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POHPUBUIZVERT1",
+     "svenska_namn": [
+      "enoxaparinnatrium"
+     ],
+     "atc": [
+      "B01AB05"
+     ]
+    },
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POI0UC373VERT1",
+     "svenska_namn": [
+      "enoxaparin"
+     ],
+     "atc": [
+      "B01AB05"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 6,
+   "nplid": "19910906000043",
+   "namn": "Trombyl",
+   "varumarke": "Trombyl®",
+   "styrka": "75 mg",
+   "form": "Tablett",
+   "formkod": "TABLET",
+   "substans": "Acetylsalicylsyra",
+   "atc": [
+    "B01AC06"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "1991-09-06",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Trombyl 75 mg tablett",
+    "beskrivning": "Fakta om Trombyl 75 mg tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod B01AC06."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POBSU904KVERT1",
+     "svenska_namn": [
+      "acetylsalicylsyra",
+      "aspirin"
+     ],
+     "atc": [
+      "A01AD05",
+      "B01AC06",
+      "B01AC56",
+      "C07FX02",
+      "C07FX03",
+      "C07FX04",
+      "C10BX01",
+      "C10BX02",
+      "C10BX04",
+      "C10BX05",
+      "C10BX06",
+      "C10BX08",
+      "C10BX12",
+      "M01BA03",
+      "N02AJ02",
+      "N02AJ07",
+      "N02AJ18",
+      "N02BA01",
+      "N02BA51",
+      "N02BA71"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 7,
+   "nplid": "20100114000225",
+   "namn": "Brilique",
+   "varumarke": "Brilique",
+   "styrka": "90 mg",
+   "form": "Filmdragerad tablett",
+   "formkod": "FICOTA",
+   "substans": "Tikagrelor",
+   "atc": [
+    "B01AC24"
+   ],
+   "vagar": [
+    "GAST",
+    "ORAL"
+   ],
+   "godkand": "2010-12-03",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Brilique 90 mg filmdragerad tablett",
+    "beskrivning": "Fakta om Brilique 90 mg filmdragerad tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod B01AC24."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "ID1TMJCFE1F8583BSR",
+     "svenska_namn": [
+      "tikagrelor"
+     ],
+     "atc": [
+      "B01AC24"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 8,
+   "nplid": "20041011000027",
+   "namn": "Metoprolol Sandoz",
+   "varumarke": "Metoprolol Sandoz",
+   "styrka": "50 mg",
+   "form": "Depottablett",
+   "formkod": "PRRETA",
+   "substans": "Metoprolol",
+   "atc": [
+    "C07AB02"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2005-04-29",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Metoprolol Sandoz 50 mg depottablett",
+    "beskrivning": "Fakta om Metoprolol Sandoz 50 mg depottablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod C07AB02."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POHIUBOYPVERT1",
+     "svenska_namn": [
+      "metoprololsuccinat"
+     ],
+     "atc": [
+      "C07AB02",
+      "C07AB52",
+      "C07BB02",
+      "C07BB52",
+      "C07CB02",
+      "C07FB02",
+      "C07FB13",
+      "C07FX03",
+      "C07FX05"
+     ]
+    },
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POF5UAQQDVERT1",
+     "svenska_namn": [
+      "metoprololtartrat"
+     ],
+     "atc": [
+      "C07AB02",
+      "C07AB52",
+      "C07BB02",
+      "C07BB52",
+      "C07CB02",
+      "C07FB02",
+      "C07FB13",
+      "C07FX03",
+      "C07FX05"
+     ]
+    },
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POF3UAPBGVERT1",
+     "svenska_namn": [
+      "metoprolol"
+     ],
+     "atc": [
+      "C07AB02",
+      "C07AB52",
+      "C07BB02",
+      "C07BB52",
+      "C07CB02",
+      "C07FB02",
+      "C07FB13",
+      "C07FX03",
+      "C07FX05"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 9,
+   "nplid": "20001201000015",
+   "namn": "Bisoprolol Teva",
+   "varumarke": "Bisoprolol Teva",
+   "styrka": "5 mg",
+   "form": "Tablett",
+   "formkod": "TABLET",
+   "substans": "Bisoprolol",
+   "atc": [
+    "C07AB07"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2000-12-01",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Bisoprolol Teva 5 mg tablett",
+    "beskrivning": "Fakta om Bisoprolol Teva 5 mg tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod C07AB07."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POFBUAV5RVERT1",
+     "svenska_namn": [
+      "bisoprololfumarat"
+     ],
+     "atc": [
+      "C07AB07",
+      "C07AB57",
+      "C07BB07",
+      "C07FB07",
+      "C07FX04",
+      "C09BX02",
+      "C09BX04",
+      "C09BX05"
+     ]
+    },
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POFBUAUXFVERT1",
+     "svenska_namn": [
+      "bisoprolol"
+     ],
+     "atc": [
+      "C07AB07",
+      "C07AB57",
+      "C07BB07",
+      "C07FB07",
+      "C07FX04",
+      "C09BX02",
+      "C09BX04",
+      "C09BX05"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 10,
+   "nplid": "19900615000168",
+   "namn": "Furosemid Teva",
+   "varumarke": "Furosemid Teva",
+   "styrka": "40 mg",
+   "form": "Tablett",
+   "formkod": "TABLET",
+   "substans": "Furosemid",
+   "atc": [
+    "C03CA01"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "1990-06-15",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Furosemid Teva 40 mg tablett",
+    "beskrivning": "Fakta om Furosemid Teva 40 mg tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod C03CA01."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POBTU90VUVERT1",
+     "svenska_namn": [
+      "furosemid"
+     ],
+     "atc": [
+      "C03CA01",
+      "C03CB01",
+      "C03EB01"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 11,
+   "nplid": "19820205000142",
+   "namn": "Spironolakton Pfizer",
+   "varumarke": "Spironolakton Pfizer",
+   "styrka": "25 mg",
+   "form": "Tablett",
+   "formkod": "TABLET",
+   "substans": "Spironolakton",
+   "atc": [
+    "C03DA01"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "1982-02-05",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Spironolakton Pfizer 25 mg tablett",
+    "beskrivning": "Fakta om Spironolakton Pfizer 25 mg tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod C03DA01."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POBSU90HDVERT1",
+     "svenska_namn": [
+      "spironolakton"
+     ],
+     "atc": [
+      "C03DA01"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 12,
+   "nplid": "20041208000021",
+   "namn": "Enalapril Krka",
+   "varumarke": "Enalapril Krka",
+   "styrka": "10 mg",
+   "form": "Tablett",
+   "formkod": "TABLET",
+   "substans": "Enalapril",
+   "atc": [
+    "C09AA02"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2005-04-22",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Enalapril Krka 10 mg tablett",
+    "beskrivning": "Fakta om Enalapril Krka 10 mg tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod C09AA02."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POFFUAY1JVERT1",
+     "svenska_namn": [
+      "enalapril"
+     ],
+     "atc": [
+      "C09AA02",
+      "C09BA02",
+      "C09BB02",
+      "C09BB06"
+     ]
+    },
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POFFUAY4VVERT1",
+     "svenska_namn": [
+      "enalaprilmaleat"
+     ],
+     "atc": [
+      "C09AA02",
+      "C09BA02",
+      "C09BB02",
+      "C09BB06"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 13,
+   "nplid": "20100615000052",
+   "namn": "Ramipril Krka",
+   "varumarke": "Ramipril Krka",
+   "styrka": "5 mg",
+   "form": "Tablett",
+   "formkod": "TABLET",
+   "substans": "Ramipril",
+   "atc": [
+    "C09AA05"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2010-11-26",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Ramipril Krka 5 mg tablett",
+    "beskrivning": "Fakta om Ramipril Krka 5 mg tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod C09AA05."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POFKUB1U4VERT1",
+     "svenska_namn": [
+      "ramipril"
+     ],
+     "atc": [
+      "C09AA05",
+      "C09BA05",
+      "C09BB05",
+      "C09BB07",
+      "C09BX03",
+      "C09BX05",
+      "C10BX04",
+      "C10BX06",
+      "C10BX17",
+      "C10BX18"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 14,
+   "nplid": "20090220000106",
+   "namn": "Losartan Krka",
+   "varumarke": "Losartan Krka",
+   "styrka": "50 mg",
+   "form": "Filmdragerad tablett",
+   "formkod": "FICOTA",
+   "substans": "Losartan",
+   "atc": [
+    "C09CA01"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2009-10-23",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Losartan Krka 50 mg filmdragerad tablett",
+    "beskrivning": "Fakta om Losartan Krka 50 mg filmdragerad tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod C09CA01."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POGUUB6ZDVERT1",
+     "svenska_namn": [
+      "losartankalium"
+     ],
+     "atc": [
+      "C09CA01",
+      "C09DA01",
+      "C09DB06"
+     ]
+    },
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POGTUB666VERT1",
+     "svenska_namn": [
+      "losartan"
+     ],
+     "atc": [
+      "C09CA01",
+      "C09DA01",
+      "C09DB06"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 15,
+   "nplid": "20060518000033",
+   "namn": "Amlodipin Krka",
+   "varumarke": "Amlodipin Krka",
+   "styrka": "5 mg",
+   "form": "Tablett",
+   "formkod": "TABLET",
+   "substans": "Amlodipin",
+   "atc": [
+    "C08CA01"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2006-12-15",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Amlodipin Krka 5 mg tablett",
+    "beskrivning": "Fakta om Amlodipin Krka 5 mg tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod C08CA01."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POI3UC5F7VERT1",
+     "svenska_namn": [
+      "amlodipinbesilat",
+      "amlodipinbesylat"
+     ],
+     "atc": [
+      "C07FB07",
+      "C07FB12",
+      "C07FB13",
+      "C08CA01",
+      "C08CA51",
+      "C08GA02",
+      "C09BB03",
+      "C09BB04",
+      "C09BB07",
+      "C09BB13",
+      "C09BX01",
+      "C09BX03",
+      "C09BX04",
+      "C09DB01",
+      "C09DB02",
+      "C09DB04",
+      "C09DB05",
+      "C09DB06",
+      "C09DB07",
+      "C09DB09",
+      "C09DX01",
+      "C09DX03",
+      "C09DX06",
+      "C09DX07",
+      "C09DX08",
+      "C09XA53",
+      "C09XA54",
+      "C10BX03",
+      "C10BX07",
+      "C10BX09",
+      "C10BX11",
+      "C10BX14",
+      "C10BX18",
+      "C10BX19"
+     ]
+    },
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POFKUB23AVERT1",
+     "svenska_namn": [
+      "amlodipin"
+     ],
+     "atc": [
+      "C07FB07",
+      "C07FB12",
+      "C07FB13",
+      "C08CA01",
+      "C08CA51",
+      "C08GA02",
+      "C09BB03",
+      "C09BB04",
+      "C09BB07",
+      "C09BB13",
+      "C09BX01",
+      "C09BX03",
+      "C09BX04",
+      "C09DB01",
+      "C09DB02",
+      "C09DB04",
+      "C09DB05",
+      "C09DB06",
+      "C09DB07",
+      "C09DB09",
+      "C09DX01",
+      "C09DX03",
+      "C09DX06",
+      "C09DX07",
+      "C09DX08",
+      "C09XA53",
+      "C09XA54",
+      "C10BX03",
+      "C10BX07",
+      "C10BX09",
+      "C10BX11",
+      "C10BX14",
+      "C10BX18",
+      "C10BX19"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 16,
+   "nplid": "19741206000095",
+   "namn": "Digoxin Evolan",
+   "varumarke": "Digoxin Evolan",
+   "styrka": "0,13 mg",
+   "form": "Tablett",
+   "formkod": "TABLET",
+   "substans": "Digoxin",
+   "atc": [
+    "C01AA05"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "1974-12-06",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Digoxin Evolan 0,13 mg tablett",
+    "beskrivning": "Fakta om Digoxin Evolan 0,13 mg tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod C01AA05."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POEOUADB6VERT1",
+     "svenska_namn": [
+      "digoxin"
+     ],
+     "atc": [
+      "C01AA05"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 17,
+   "nplid": "19931008000069",
+   "namn": "Nitrolingual",
+   "varumarke": "Nitrolingual®",
+   "styrka": "0,4 mg/dos",
+   "form": "Sublingualspray",
+   "formkod": "SULISP",
+   "substans": "Glyceryltrinitrat",
+   "atc": [
+    "C01DA02"
+   ],
+   "vagar": [
+    "SL"
+   ],
+   "godkand": "1993-10-08",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Nitrolingual 0,4 mg/dos sublingualspray",
+    "beskrivning": "Fakta om Nitrolingual 0,4 mg/dos sublingualspray | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod C01DA02."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POBTU913CVERT1",
+     "svenska_namn": [
+      "glyceryltrinitrat",
+      "nitroglycerin"
+     ],
+     "atc": [
+      "C01DA02",
+      "C01DA52",
+      "C05AE01"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 18,
+   "nplid": "20070404000061",
+   "namn": "Atorvastatin Krka",
+   "varumarke": "Atorvastatin Krka",
+   "styrka": "40 mg",
+   "form": "Filmdragerad tablett",
+   "formkod": "FICOTA",
+   "substans": "Atorvastatin",
+   "atc": [
+    "C10AA05"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2008-08-29",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Atorvastatin Krka 40 mg filmdragerad tablett",
+    "beskrivning": "Fakta om Atorvastatin Krka 40 mg filmdragerad tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod C10AA05."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POICUCCOFVERT1",
+     "svenska_namn": [
+      "atorvastatin"
+     ],
+     "atc": [
+      "C10AA05",
+      "C10BA05",
+      "C10BA08",
+      "C10BX03",
+      "C10BX06",
+      "C10BX08",
+      "C10BX11",
+      "C10BX12",
+      "C10BX15",
+      "C10BX18",
+      "C10BX19"
+     ]
+    },
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDM9YLAXMH3U24MSRV",
+     "svenska_namn": [
+      "amorft atorvastatinkalcium",
+      "atorvastatinkalcium, amorft"
+     ],
+     "atc": [
+      "C10AA05",
+      "C10BA05",
+      "C10BA08",
+      "C10BX03",
+      "C10BX06",
+      "C10BX08",
+      "C10BX11",
+      "C10BX12",
+      "C10BX15",
+      "C10BX18",
+      "C10BX19"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 19,
+   "nplid": "20041018000303",
+   "namn": "Simvastatin Krka",
+   "varumarke": "Simvastatin Krka",
+   "styrka": "20 mg",
+   "form": "Filmdragerad tablett",
+   "formkod": "FICOTA",
+   "substans": "Simvastatin",
+   "atc": [
+    "C10AA01"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2005-04-14",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Simvastatin Krka 20 mg filmdragerad tablett",
+    "beskrivning": "Fakta om Simvastatin Krka 20 mg filmdragerad tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod C10AA01."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POFGUAZERVERT1",
+     "svenska_namn": [
+      "simvastatin"
+     ],
+     "atc": [
+      "A10BH51",
+      "C10AA01",
+      "C10BA02",
+      "C10BA04",
+      "C10BX01",
+      "C10BX04"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 20,
+   "nplid": "20070911000042",
+   "namn": "Metformin Sandoz",
+   "varumarke": "Metformin Sandoz",
+   "styrka": "500 mg",
+   "form": "Filmdragerad tablett",
+   "formkod": "FICOTA",
+   "substans": "Metformin",
+   "atc": [
+    "A10BA02"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2009-02-13",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Metformin Sandoz 500 mg filmdragerad tablett",
+    "beskrivning": "Fakta om Metformin Sandoz 500 mg filmdragerad tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod A10BA02."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POCKU9LPTVERT1",
+     "svenska_namn": [
+      "metforminhydroklorid"
+     ],
+     "atc": [
+      "A10BA02",
+      "A10BD02",
+      "A10BD03",
+      "A10BD05",
+      "A10BD07",
+      "A10BD08",
+      "A10BD10",
+      "A10BD11",
+      "A10BD13",
+      "A10BD14",
+      "A10BD15",
+      "A10BD16",
+      "A10BD17",
+      "A10BD18",
+      "A10BD20",
+      "A10BD23",
+      "A10BD25",
+      "A10BD26",
+      "A10BD27"
+     ]
+    },
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POCHU9JK7VERT1",
+     "svenska_namn": [
+      "metformin"
+     ],
+     "atc": [
+      "A10BA02",
+      "A10BD02",
+      "A10BD03",
+      "A10BD05",
+      "A10BD07",
+      "A10BD08",
+      "A10BD10",
+      "A10BD11",
+      "A10BD13",
+      "A10BD14",
+      "A10BD15",
+      "A10BD16",
+      "A10BD17",
+      "A10BD18",
+      "A10BD20",
+      "A10BD22",
+      "A10BD23",
+      "A10BD25",
+      "A10BD26",
+      "A10BD27"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 21,
+   "nplid": "20140528000015",
+   "namn": "Jardiance",
+   "varumarke": "Jardiance",
+   "styrka": "10 mg",
+   "form": "Filmdragerad tablett",
+   "formkod": "FICOTA",
+   "substans": "Empagliflozin",
+   "atc": [
+    "A10BK03"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2014-05-22",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Jardiance 10 mg filmdragerad tablett",
+    "beskrivning": "Fakta om Jardiance 10 mg filmdragerad tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod A10BK03."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDZSK2E4M3IJW8SRV0",
+     "svenska_namn": [
+      "empagliflozin"
+     ],
+     "atc": [
+      "A10BD19",
+      "A10BD20",
+      "A10BD27",
+      "A10BK03",
+      "A10BX12"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 22,
+   "nplid": "20010115000066",
+   "namn": "NovoRapid FlexPen",
+   "varumarke": "NovoRapid® FlexPen®",
+   "styrka": "100 E/ml",
+   "form": "Injektionsvätska, lösning i förfylld injektionspenna",
+   "formkod": "SOINPP",
+   "substans": "Insulin aspart",
+   "atc": [
+    "A10AB05"
+   ],
+   "vagar": [
+    "SUCU"
+   ],
+   "godkand": "2001-01-15",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "NovoRapid FlexPen 100 E/ml injektionsvätska, lösning i förfylld injektionspenna",
+    "beskrivning": "Fakta om NovoRapid FlexPen 100 E/ml injektionsvätska, lösning i förfylld injektionspenna | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod A10AB05."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "ID1LS0P0V4BYVN1CSR",
+     "svenska_namn": [
+      "insulin, aspart (lösligt)"
+     ],
+     "atc": [
+      "A10AB05",
+      "A10AD05"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 23,
+   "nplid": "20000609000061",
+   "namn": "Lantus (SoloStar)",
+   "varumarke": "Lantus® (SoloStar)",
+   "styrka": "100 enheter/ml",
+   "form": "Injektionsvätska, lösning i förfylld injektionspenna",
+   "formkod": "SOINPP",
+   "substans": "Insulin glargin",
+   "atc": [
+    "A10AE04"
+   ],
+   "vagar": [
+    "SUCU"
+   ],
+   "godkand": "2000-06-09",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Lantus (SoloStar) 100 enheter/ml injektionsvätska, lösning i förfylld injektionspenna",
+    "beskrivning": "Fakta om Lantus (SoloStar) 100 enheter/ml injektionsvätska, lösning i förfylld injektionspenna | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod A10AE04."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POIEUCE4QVERT1",
+     "svenska_namn": [
+      "insulin, glargin"
+     ],
+     "atc": [
+      "A10AE04",
+      "A10AE54"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 24,
+   "nplid": "19541213000015",
+   "namn": "Levaxin",
+   "varumarke": "Levaxin®",
+   "styrka": "100 mikrogram",
+   "form": "Tablett",
+   "formkod": "TABLET",
+   "substans": "Levotyroxin",
+   "atc": [
+    "H03AA01"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "1954-12-13",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Levaxin 100 mikrogram tablett",
+    "beskrivning": "Fakta om Levaxin 100 mikrogram tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod H03AA01."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POBSU90BJVERT1",
+     "svenska_namn": [
+      "levotyroxin"
+     ],
+     "atc": [
+      "H03AA01",
+      "H03AA03",
+      "H03AA51"
+     ]
+    },
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POBTU910KVERT1",
+     "svenska_namn": [
+      "levotyroxinnatrium (vattenfri)"
+     ],
+     "atc": [
+      "H03AA01",
+      "H03AA03",
+      "H03AA51"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 25,
+   "nplid": "20090716000061",
+   "namn": "Omeprazol Sandoz",
+   "varumarke": "Omeprazol Sandoz",
+   "styrka": "20 mg",
+   "form": "Enterokapsel, hård",
+   "formkod": "GARECH",
+   "substans": "Omeprazol",
+   "atc": [
+    "A02BC01"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2010-12-16",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Omeprazol Sandoz 20 mg enterokapsel, hård",
+    "beskrivning": "Fakta om Omeprazol Sandoz 20 mg enterokapsel, hård | Läkemedelsverket från Läkemedelsverket. Vissa förpackningar receptbelagda läkemedel med ATC-kod A02BC01."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POFEUAXC7VERT1",
+     "svenska_namn": [
+      "omeprazol"
+     ],
+     "atc": [
+      "A02BC01",
+      "A02BD01",
+      "A02BD05",
+      "A02BD16"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 26,
+   "nplid": "19581115000027",
+   "namn": "Alvedon",
+   "varumarke": "Alvedon®",
+   "styrka": "500 mg",
+   "form": "Filmdragerad tablett",
+   "formkod": "FICOTA",
+   "substans": "Paracetamol",
+   "atc": [
+    "N02BE01"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "1958-11-15",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Alvedon 500 mg filmdragerad tablett",
+    "beskrivning": "Fakta om Alvedon 500 mg filmdragerad tablett | Läkemedelsverket från Läkemedelsverket. Vissa förpackningar receptbelagda läkemedel med ATC-kod N02BE01."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POC2U97HOVERT1",
+     "svenska_namn": [
+      "acetaminofen",
+      "paracetamol"
+     ],
+     "atc": [
+      "N02AJ01",
+      "N02AJ06",
+      "N02AJ13",
+      "N02AJ17",
+      "N02BE01",
+      "N02BE51",
+      "N02BE71"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 27,
+   "nplid": "20060817000079",
+   "namn": "Ibuprofen Orifarm",
+   "varumarke": "Ibuprofen Orifarm",
+   "styrka": "400 mg",
+   "form": "Filmdragerad tablett",
+   "formkod": "FICOTA",
+   "substans": "Ibuprofen",
+   "atc": [
+    "M01AE01"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2009-10-30",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Ibuprofen Orifarm 400 mg filmdragerad tablett",
+    "beskrivning": "Fakta om Ibuprofen Orifarm 400 mg filmdragerad tablett | Läkemedelsverket från Läkemedelsverket. Vissa förpackningar receptbelagda läkemedel med ATC-kod M01AE01."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POEKUAAH3VERT1",
+     "svenska_namn": [
+      "ibuprofen"
+     ],
+     "atc": [
+      "C01EB16",
+      "G02CC01",
+      "M01AE01",
+      "M01AE51",
+      "M02AA13",
+      "N02AJ08",
+      "N02AJ19",
+      "R02AX02"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 28,
+   "nplid": "20040607002797",
+   "namn": "Naproxen Orifarm",
+   "varumarke": "Naproxen Orifarm",
+   "styrka": "250 mg",
+   "form": "Tablett",
+   "formkod": "TABLET",
+   "substans": "Naproxen",
+   "atc": [
+    "M01AE02"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2005-07-01",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Naproxen Orifarm 250 mg tablett",
+    "beskrivning": "Fakta om Naproxen Orifarm 250 mg tablett | Läkemedelsverket från Läkemedelsverket. Vissa förpackningar receptbelagda läkemedel med ATC-kod M01AE02."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POEPUAE0HVERT1",
+     "svenska_namn": [
+      "naproxen"
+     ],
+     "atc": [
+      "G02CC02",
+      "M01AE02",
+      "M01AE52",
+      "M01AE56",
+      "M02AA12"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 29,
+   "nplid": "20040607002094",
+   "namn": "Diklofenak Orifarm",
+   "varumarke": "Diklofenak Orifarm",
+   "styrka": "50 mg",
+   "form": "Enterotablett",
+   "formkod": "GARETA",
+   "substans": "Diklofenak",
+   "atc": [
+    "M01AB05"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2005-05-27",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Diklofenak Orifarm 50 mg enterotablett",
+    "beskrivning": "Fakta om Diklofenak Orifarm 50 mg enterotablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod M01AB05."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POEJUA9QNVERT1",
+     "svenska_namn": [
+      "diklofenaknatrium"
+     ],
+     "atc": [
+      "D11AX18",
+      "M01AB05",
+      "M01AB55",
+      "M02AA15",
+      "S01BC03",
+      "S01CC01"
+     ]
+    },
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POEJUA9QXVERT1",
+     "svenska_namn": [
+      "diklofenak"
+     ],
+     "atc": [
+      "D11AX18",
+      "M01AB05",
+      "M01AB55",
+      "M02AA15",
+      "S01BC03",
+      "S01CC01"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 30,
+   "nplid": "20111221000060",
+   "namn": "Oxikodon Actavis",
+   "varumarke": "Oxikodon Actavis",
+   "styrka": "5 mg",
+   "form": "Kapsel, hård",
+   "formkod": "CAPHAR",
+   "substans": "Oxikodon",
+   "atc": [
+    "N02AA05"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2013-01-10",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Oxikodon Actavis 5 mg kapsel, hård",
+    "beskrivning": "Fakta om Oxikodon Actavis 5 mg kapsel, hård | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod N02AA05."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POC4U99E4VERT1",
+     "svenska_namn": [
+      "oxikodonhydroklorid"
+     ],
+     "atc": [
+      "N02AA05",
+      "N02AA55",
+      "N02AA56",
+      "N02AJ17",
+      "N02AJ18",
+      "N02AJ19"
+     ]
+    },
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POBYU94E4VERT1",
+     "svenska_namn": [
+      "oxikodon"
+     ],
+     "atc": [
+      "N02AA05",
+      "N02AA55",
+      "N02AA56",
+      "N02AJ17",
+      "N02AJ18",
+      "N02AJ19"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 31,
+   "nplid": "20110104000104",
+   "namn": "Morfin Abcur",
+   "varumarke": "Morfin Abcur",
+   "styrka": "10 mg/ml",
+   "form": "Injektionsvätska, lösning",
+   "formkod": "SOLINJ",
+   "substans": "Morfin",
+   "atc": [
+    "N02AA01"
+   ],
+   "vagar": [
+    "INMU",
+    "INVE",
+    "SUCU"
+   ],
+   "godkand": "2012-06-14",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Morfin Abcur 10 mg/ml injektionsvätska, lösning",
+    "beskrivning": "Fakta om Morfin Abcur 10 mg/ml injektionsvätska, lösning | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod N02AA01."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POBUU91H9VERT1",
+     "svenska_namn": [
+      "morfin"
+     ],
+     "atc": [
+      "A07DA52",
+      "N02AA01",
+      "N02AA51",
+      "N02AG01",
+      "R05DA05"
+     ]
+    },
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POBTU90I7VERT1",
+     "svenska_namn": [
+      "morfinhydrokloridtrihydrat"
+     ],
+     "atc": [
+      "A07DA52",
+      "N02AA01",
+      "N02AA51",
+      "N02AG01",
+      "R05DA05"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 32,
+   "nplid": "20230703000333",
+   "namn": "Bensylpenicillin Noridem",
+   "varumarke": "Bensylpenicillin Noridem",
+   "styrka": "3 g",
+   "form": "Pulver till injektions-/infusionsvätska, lösning",
+   "formkod": "POSOII",
+   "substans": "Bensylpenicillin",
+   "atc": [
+    "J01CE01"
+   ],
+   "vagar": [
+    "INMU",
+    "INVE"
+   ],
+   "godkand": "2025-04-10",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Bensylpenicillin Noridem 3 g pulver till injektions-/infusionsvätska, lösning",
+    "beskrivning": "Fakta om Bensylpenicillin Noridem 3 g pulver till injektions-/infusionsvätska, lösning | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod J01CE01."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POBXU93MVVERT1",
+     "svenska_namn": [
+      "bensylpenicillinnatrium",
+      "penicillin G-natrium"
+     ],
+     "atc": [
+      "J01CE01",
+      "S01AA14"
+     ]
+    },
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POBXU93MVVERT1",
+     "svenska_namn": [
+      "bensylpenicillinnatrium",
+      "penicillin G-natrium"
+     ],
+     "atc": [
+      "J01CE01",
+      "S01AA14"
+     ]
+    },
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POBVU92KRVERT1",
+     "svenska_namn": [
+      "bensylpenicillin"
+     ],
+     "atc": [
+      "J01CE01",
+      "J01CE08",
+      "J01CE09",
+      "S01AA14"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 33,
+   "nplid": "19790831000024",
+   "namn": "Kåvepenin",
+   "varumarke": "Kåvepenin®",
+   "styrka": "1 g",
+   "form": "Filmdragerad tablett",
+   "formkod": "FICOTA",
+   "substans": "Fenoximetylpenicillin",
+   "atc": [
+    "J01CE02"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "1979-08-31",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Kåvepenin 1 g filmdragerad tablett",
+    "beskrivning": "Fakta om Kåvepenin 1 g filmdragerad tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod J01CE02."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POBZU95UFVERT1",
+     "svenska_namn": [
+      "fenoximetylpenicillin",
+      "penicillin V"
+     ],
+     "atc": [
+      "J01CE02"
+     ]
+    },
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POC5U9AFYVERT1",
+     "svenska_namn": [
+      "fenoximetylpenicillinkalium",
+      "penicillin V kalium"
+     ],
+     "atc": [
+      "J01CE02"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 34,
+   "nplid": "20070919000044",
+   "namn": "Amoxicillin Sandoz",
+   "varumarke": "Amoxicillin Sandoz",
+   "styrka": "750 mg",
+   "form": "Filmdragerad tablett",
+   "formkod": "FICOTA",
+   "substans": "Amoxicillin",
+   "atc": [
+    "J01CA04"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2009-12-11",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Amoxicillin Sandoz 750 mg filmdragerad tablett",
+    "beskrivning": "Fakta om Amoxicillin Sandoz 750 mg filmdragerad tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod J01CA04."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POESUAGPUVERT1",
+     "svenska_namn": [
+      "amoxicillin (vattenfri)"
+     ],
+     "atc": [
+      "A02BD01",
+      "A02BD03",
+      "A02BD04",
+      "A02BD05",
+      "A02BD06",
+      "A02BD07",
+      "A02BD10",
+      "A02BD11",
+      "A02BD12",
+      "A02BD13",
+      "A02BD14",
+      "A02BD15",
+      "A02BD16",
+      "J01CA04",
+      "J01CR02"
+     ]
+    },
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POF8UAT4VVERT1",
+     "svenska_namn": [
+      "amoxicillintrihydrat"
+     ],
+     "atc": [
+      "A02BD01",
+      "A02BD03",
+      "A02BD04",
+      "A02BD05",
+      "A02BD06",
+      "A02BD07",
+      "A02BD10",
+      "A02BD11",
+      "A02BD12",
+      "A02BD13",
+      "A02BD14",
+      "A02BD15",
+      "A02BD16",
+      "J01CA04",
+      "J01CR02"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 35,
+   "nplid": "19771216000013",
+   "namn": "Selexid",
+   "varumarke": "Selexid®",
+   "styrka": "200 mg",
+   "form": "Filmdragerad tablett",
+   "formkod": "FICOTA",
+   "substans": "Pivmecillinam",
+   "atc": [
+    "J01CA08"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "1977-12-16",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Selexid 200 mg filmdragerad tablett",
+    "beskrivning": "Fakta om Selexid 200 mg filmdragerad tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod J01CA08."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POEVUAIXOVERT1",
+     "svenska_namn": [
+      "amdinocillinpivoxil",
+      "pivmecillinam"
+     ],
+     "atc": [
+      "J01CA08"
+     ]
+    },
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POEVUAIY8VERT1",
+     "svenska_namn": [
+      "pivmecillinamhydroklorid"
+     ],
+     "atc": [
+      "J01CA08"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 36,
+   "nplid": "20111018000013",
+   "namn": "Doxycyklin EQL Pharma",
+   "varumarke": "Doxycyklin EQL Pharma",
+   "styrka": "100 mg",
+   "form": "Tablett",
+   "formkod": "TABLET",
+   "substans": "Doxycyklin",
+   "atc": [
+    "J01AA02"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2013-01-24",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Doxycyklin EQL Pharma 100 mg tablett",
+    "beskrivning": "Fakta om Doxycyklin EQL Pharma 100 mg tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod J01AA02."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POCFU9I6OVERT1",
+     "svenska_namn": [
+      "doxycyklin (vattenfri)"
+     ],
+     "atc": [
+      "A01AB22",
+      "J01AA02"
+     ]
+    },
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POELUABDWVERT1",
+     "svenska_namn": [
+      "doxycyklinmonohydrat"
+     ],
+     "atc": [
+      "A01AB22",
+      "J01AA02"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 37,
+   "nplid": "20140906000019",
+   "namn": "Nitrofurantoin Alternova",
+   "varumarke": "Nitrofurantoin Alternova",
+   "styrka": "50 mg",
+   "form": "Tablett",
+   "formkod": "TABLET",
+   "substans": "Nitrofurantoin",
+   "atc": [
+    "J01XE01"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2015-07-16",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Nitrofurantoin Alternova 50 mg tablett",
+    "beskrivning": "Fakta om Nitrofurantoin Alternova 50 mg tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod J01XE01."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POBWU939SVERT1",
+     "svenska_namn": [
+      "nitrofurantoin (vattenfri)"
+     ],
+     "atc": [
+      "J01XE01",
+      "J01XE51"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 38,
+   "nplid": "19960403000015",
+   "namn": "Airomir",
+   "varumarke": "Airomir",
+   "styrka": "0,1 mg/dos",
+   "form": "Inhalationsspray, suspension",
+   "formkod": "PRINSU",
+   "substans": "Salbutamol",
+   "atc": [
+    "R03AC02"
+   ],
+   "vagar": [
+    "IH"
+   ],
+   "godkand": "1996-04-03",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Airomir 0,1 mg/dos inhalationsspray, suspension",
+    "beskrivning": "Fakta om Airomir 0,1 mg/dos inhalationsspray, suspension | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod R03AC02."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POF1UANABVERT1",
+     "svenska_namn": [
+      "albuterolsulfat",
+      "salbutamolsulfat"
+     ],
+     "atc": [
+      "R03AC02",
+      "R03AK04",
+      "R03AK13",
+      "R03AL02",
+      "R03CC02"
+     ]
+    },
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POENUACEWVERT1",
+     "svenska_namn": [
+      "albuterol",
+      "salbutamol"
+     ],
+     "atc": [
+      "R03AC02",
+      "R03AK04",
+      "R03AK13",
+      "R03AL02",
+      "R03CC02"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 39,
+   "nplid": "19881209000118",
+   "namn": "Pulmicort Turbuhaler",
+   "varumarke": "Pulmicort® Turbuhaler®",
+   "styrka": "200 mikrogram/dos",
+   "form": "Inhalationspulver",
+   "formkod": "INHPOW",
+   "substans": "Budesonid",
+   "atc": [
+    "R03BA02"
+   ],
+   "vagar": [
+    "IH"
+   ],
+   "godkand": "1988-12-09",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Pulmicort Turbuhaler 200 mikrogram/dos inhalationspulver",
+    "beskrivning": "Fakta om Pulmicort Turbuhaler 200 mikrogram/dos inhalationspulver | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod R03BA02."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POF1UANGZVERT1",
+     "svenska_namn": [
+      "budesonid"
+     ],
+     "atc": [
+      "A07EA06",
+      "D07AC09",
+      "R01AD05",
+      "R03AK07",
+      "R03AK12",
+      "R03BA02"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 40,
+   "nplid": "19961025000032",
+   "namn": "EpiPen jr",
+   "varumarke": "EpiPen jr",
+   "styrka": "150 mikrogram",
+   "form": "Injektionsvätska, lösning i förfylld injektionspenna",
+   "formkod": "SOINPP",
+   "substans": "Adrenalin",
+   "atc": [
+    "C01CA24"
+   ],
+   "vagar": [
+    "INMU"
+   ],
+   "godkand": "1996-10-25",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "EpiPen jr 150 mikrogram injektionsvätska, lösning i förfylld injektionspenna",
+    "beskrivning": "Fakta om EpiPen jr 150 mikrogram injektionsvätska, lösning i förfylld injektionspenna | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod C01CA24."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POBSU90AZVERT1",
+     "svenska_namn": [
+      "adrenalin",
+      "epinefrin"
+     ],
+     "atc": [
+      "A01AD01",
+      "B02BC09",
+      "C01CA24",
+      "R01AA14",
+      "R03AA01",
+      "R03AK01",
+      "S01EA01",
+      "S01EA51"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 41,
+   "nplid": "20060510000031",
+   "namn": "Sertralin Teva",
+   "varumarke": "Sertralin Teva",
+   "styrka": "50 mg",
+   "form": "Filmdragerad tablett",
+   "formkod": "FICOTA",
+   "substans": "Sertralin",
+   "atc": [
+    "N06AB06"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2007-01-26",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Sertralin Teva 50 mg filmdragerad tablett",
+    "beskrivning": "Fakta om Sertralin Teva 50 mg filmdragerad tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod N06AB06."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POFGUAZALVERT1",
+     "svenska_namn": [
+      "sertralin"
+     ],
+     "atc": [
+      "N06AB06"
+     ]
+    },
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POFGUAZA1VERT1",
+     "svenska_namn": [
+      "sertralinhydroklorid"
+     ],
+     "atc": [
+      "N06AB06"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 42,
+   "nplid": "20130410000049",
+   "namn": "Escitalopram Krka",
+   "varumarke": "Escitalopram Krka",
+   "styrka": "10 mg",
+   "form": "Filmdragerad tablett",
+   "formkod": "FICOTA",
+   "substans": "Escitalopram",
+   "atc": [
+    "N06AB10"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2014-03-28",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Escitalopram Krka 10 mg filmdragerad tablett",
+    "beskrivning": "Fakta om Escitalopram Krka 10 mg filmdragerad tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod N06AB10."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDL7LOTR5ESVT6CSRV",
+     "svenska_namn": [
+      "escitalopramoxalat"
+     ],
+     "atc": [
+      "N06AB10"
+     ]
+    },
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POJPUCJ9PVERT1",
+     "svenska_namn": [
+      "escitalopram"
+     ],
+     "atc": [
+      "N06AB10"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 43,
+   "nplid": "20040916002945",
+   "namn": "Mirtazapin Krka",
+   "varumarke": "Mirtazapin Krka",
+   "styrka": "15 mg",
+   "form": "Filmdragerad tablett",
+   "formkod": "FICOTA",
+   "substans": "Mirtazapin",
+   "atc": [
+    "N06AX11"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2005-04-08",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Mirtazapin Krka 15 mg filmdragerad tablett",
+    "beskrivning": "Fakta om Mirtazapin Krka 15 mg filmdragerad tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod N06AX11."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POF8UAT55VERT1",
+     "svenska_namn": [
+      "mirtazapin"
+     ],
+     "atc": [
+      "N06AX11"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 44,
+   "nplid": "20110326000029",
+   "namn": "Zopiklon Pilum",
+   "varumarke": "Zopiklon Pilum",
+   "styrka": "5 mg",
+   "form": "Filmdragerad tablett",
+   "formkod": "FICOTA",
+   "substans": "Zopiklon",
+   "atc": [
+    "N05CF01"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2012-03-29",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Zopiklon Pilum 5 mg filmdragerad tablett",
+    "beskrivning": "Fakta om Zopiklon Pilum 5 mg filmdragerad tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod N05CF01."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POF0UAMLJVERT1",
+     "svenska_namn": [
+      "zopiklon"
+     ],
+     "atc": [
+      "N05CF01"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 45,
+   "nplid": "20221130000058",
+   "namn": "Melatonin Bluefish",
+   "varumarke": "Melatonin Bluefish",
+   "styrka": "2 mg",
+   "form": "Depottablett",
+   "formkod": "PRRETA",
+   "substans": "Melatonin",
+   "atc": [
+    "N05CH01"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2023-12-08",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Melatonin Bluefish 2 mg depottablett",
+    "beskrivning": "Fakta om Melatonin Bluefish 2 mg depottablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod N05CH01."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POIFUCEFAVERT1",
+     "svenska_namn": [
+      "melatonin"
+     ],
+     "atc": [
+      "N05CH01"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 46,
+   "nplid": "20110113000041",
+   "namn": "Donepezil Krka",
+   "varumarke": "Donepezil Krka",
+   "styrka": "5 mg",
+   "form": "Filmdragerad tablett",
+   "formkod": "FICOTA",
+   "substans": "Donepezil",
+   "atc": [
+    "N06DA02"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2011-11-03",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Donepezil Krka 5 mg filmdragerad tablett",
+    "beskrivning": "Fakta om Donepezil Krka 5 mg filmdragerad tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod N06DA02."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POJNUCI1RVERT1",
+     "svenska_namn": [
+      "donepezilhydroklorid (vattenfri)"
+     ],
+     "atc": [
+      "N06DA02",
+      "N06DA52",
+      "N06DA53"
+     ]
+    },
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POIDUCD7WVERT1",
+     "svenska_namn": [
+      "donepezil"
+     ],
+     "atc": [
+      "N06DA02",
+      "N06DA52",
+      "N06DA53"
+     ]
+    },
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDZFB0NEU30YZ1MSRV",
+     "svenska_namn": [
+      "donepezilhydrokloridmonohydrat"
+     ],
+     "atc": [
+      "N06DA02",
+      "N06DA52",
+      "N06DA53"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 47,
+   "nplid": "20050805000013",
+   "namn": "Alendronat Teva Veckotablett",
+   "varumarke": "Alendronat Teva Veckotablett",
+   "styrka": "70 mg",
+   "form": "Tablett",
+   "formkod": "TABLET",
+   "substans": "Alendronsyra",
+   "atc": [
+    "M05BA04"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2006-02-10",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Alendronat Teva Veckotablett 70 mg tablett",
+    "beskrivning": "Fakta om Alendronat Teva Veckotablett 70 mg tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod M05BA04."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDENBZWOCX7QTOMSRV",
+     "svenska_namn": [
+      "natriumalendronatmonohydrat"
+     ],
+     "atc": [
+      "M05BA04",
+      "M05BB03",
+      "M05BB05"
+     ]
+    },
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POFBUAUZXVERT1",
+     "svenska_namn": [
+      "alendronsyra"
+     ],
+     "atc": [
+      "M05BA04",
+      "M05BB03",
+      "M05BB05",
+      "M05BB06"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 48,
+   "nplid": "20030905000052",
+   "namn": "Kalcipos-D",
+   "varumarke": "Kalcipos®-D",
+   "styrka": "500 mg/400 IE",
+   "form": "Tuggtablett",
+   "formkod": "CHETAB",
+   "substans": "Kalcium + kolekalciferol (vitamin D3)",
+   "atc": [
+    "A12AX"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2003-09-05",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Kalcipos-D 500 mg/400 IE tuggtablett",
+    "beskrivning": "Fakta om Kalcipos-D 500 mg/400 IE tuggtablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod A12AX."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POBWU93ESVERT1",
+     "svenska_namn": [
+      "kolekalciferol"
+     ],
+     "atc": [
+      "A11CC05",
+      "A11CC55",
+      "M05BB03",
+      "M05BB04",
+      "M05BB05",
+      "M05BB07",
+      "M05BB08",
+      "M05BB09",
+      "M05BX53"
+     ]
+    },
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POCBU9ELBVERT1",
+     "svenska_namn": [
+      "kalciumkarbonat"
+     ],
+     "atc": [
+      "A02AC01",
+      "A12AA04"
+     ]
+    },
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POE6U9ZWJVERT1",
+     "svenska_namn": [
+      "kalcium"
+     ],
+     "atc": [
+      "A07XA03",
+      "A11AA02",
+      "A11GB01",
+      "M05BB01",
+      "M05BB02",
+      "M05BB04",
+      "M05BB05",
+      "M05BB08"
+     ]
+    },
+    {
+     "roll": "ARES",
+     "nsl_id": "IDE4POBWU93ESVERT1",
+     "svenska_namn": [
+      "kolekalciferol"
+     ],
+     "atc": [
+      "A11CC05",
+      "A11CC55",
+      "M05BB03",
+      "M05BB04",
+      "M05BB05",
+      "M05BB07",
+      "M05BB08",
+      "M05BB09",
+      "M05BX53"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 49,
+   "nplid": "19730831000037",
+   "namn": "Prednisolon Pfizer",
+   "varumarke": "Prednisolon Pfizer",
+   "styrka": "5 mg",
+   "form": "Tablett",
+   "formkod": "TABLET",
+   "substans": "Prednisolon",
+   "atc": [
+    "H02AB06"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "1973-08-31",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Prednisolon Pfizer 5 mg tablett",
+    "beskrivning": "Fakta om Prednisolon Pfizer 5 mg tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod H02AB06."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POBSU8ZVEVERT1",
+     "svenska_namn": [
+      "prednisolon"
+     ],
+     "atc": [
+      "A01AC04",
+      "A01AC54",
+      "A07EA01",
+      "C05AA04",
+      "D07AA03",
+      "D07BA01",
+      "D07CA03",
+      "D07XA02",
+      "H02AB06",
+      "R01AD02",
+      "R01AD52",
+      "S01BA04",
+      "S01BB02",
+      "S01CA02",
+      "S01CB02",
+      "S02BA03",
+      "S02CA01",
+      "S03BA02",
+      "S03CA02",
+      "V03AB05"
+     ]
+    }
+   ]
+  },
+  {
+   "katalognr": 50,
+   "nplid": "20100621000022",
+   "namn": "Desogestrel Sandoz",
+   "varumarke": "Desogestrel Sandoz",
+   "styrka": "75 mikrogram",
+   "form": "Filmdragerad tablett",
+   "formkod": "FICOTA",
+   "substans": "Desogestrel",
+   "atc": [
+    "G03AC09"
+   ],
+   "vagar": [
+    "ORAL"
+   ],
+   "godkand": "2011-11-24",
+   "avregistrerad": null,
+   "forsaljning_stoppad": "N",
+   "lakemedelsfakta": {
+    "titel": "Desogestrel Sandoz 75 mikrogram filmdragerad tablett",
+    "beskrivning": "Fakta om Desogestrel Sandoz 75 mikrogram filmdragerad tablett | Läkemedelsverket från Läkemedelsverket. Receptbelagt läkemedel med ATC-kod G03AC09."
+   },
+   "aktiva_bestandsdelar_nsl": [
+    {
+     "roll": "ACTI",
+     "nsl_id": "IDE4POF3UAOY4VERT1",
+     "svenska_namn": [
+      "desogestrel"
+     ],
+     "atc": [
+      "G03AA09",
+      "G03AB05",
+      "G03AC09",
+      "G03FB10"
+     ]
+    }
+   ]
+  }
+ ]
+}
