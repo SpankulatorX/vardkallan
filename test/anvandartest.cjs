@@ -140,7 +140,7 @@ const anta = (villkor, text) => { if (!villkor) throw new Error(text); };
     const poang = (await page.locator('[data-sus]').textContent()).trim();
     anta(poang === '87,5', `SUS-poängen är ${poang}, väntat 87,5`);
     await page.waitForTimeout(250);
-    await page.screenshot({ path: join(UT, '38-anvandartest-resultat.png') });
+    await page.screenshot({ path: join(UT, '44-anvandartest-resultat.png') });
   });
 
   await test('resultatfilen laddas ner med datum, version, deltagarkod, uppgifter och SUS-poäng', async () => {

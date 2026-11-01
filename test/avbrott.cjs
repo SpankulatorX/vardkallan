@@ -11,9 +11,10 @@
 // workern når servern. Servern stoppas aldrig. Under offlineläget skriver webbläsaren nätverksfel i konsolen; de
 // räknas inte som fel. Alla sidfel räknas som fel, och konsolfel när webbläsaren är online.
 
-const { chromium } = require('@playwright/test');
-const { mkdirSync, readdirSync, rmSync } = require('node:fs');
+const { chromium, request: playwrightRequest } = require('@playwright/test');
+const { mkdirSync, readdirSync, rmSync, mkdtempSync } = require('node:fs');
 const { join } = require('node:path');
+const { tmpdir } = require('node:os');
 const { pathToFileURL } = require('node:url');
 const { skrivKlienttester } = require('./klienttester.cjs');
 
@@ -74,15 +75,96 @@ async function vantaPaKopia(page, efter = '') {
   await page.waitForFunction((e) => (document.documentElement.dataset.laskopia ?? '') > e, efter, { timeout: 10000 });
   return page.evaluate(() => document.documentElement.dataset.laskopia);
 }
-// Läser IndexedDB och sessionStorage i sidan.
+// Läser IndexedDB och sessionStorage i sidan: posterna i varje förråd med fälten.
 const lagrat = (page) => page.evaluate(async () => {
   const db = await new Promise((ja, nej) => { const q = indexedDB.open('vardkallan-lasekopia'); q.onsuccess = () => ja(q.result); q.onerror = () => nej(q.error); });
-  const poster = db.objectStoreNames.contains('poster')
-    ? await new Promise((ja) => { const q = db.transaction('poster').objectStore('poster').getAll(); q.onsuccess = () => ja(q.result); })
-    : [];
+  const las = (namn) => (db.objectStoreNames.contains(namn)
+    ? new Promise((ja) => { const q = db.transaction(namn).objectStore(namn).getAll(); q.onsuccess = () => ja(q.result); })
+    : Promise.resolve([]));
+  const [poster, reserv, logg] = [await las('poster'), await las('reserv'), await las('logg')];
   db.close();
-  return { poster: poster.map(p => ({ id: p.id, falt: Object.keys(p).sort() })), nyckel: sessionStorage.getItem('vk_lasnyckel') };
+  const kort = (x) => ({ id: x.id ?? x.personalId, falt: Object.keys(x).sort() });
+  return { poster: poster.map(kort), reserv: reserv.map(kort), logg: logg.map(kort), nyckel: sessionStorage.getItem('vk_lasnyckel') };
 });
+// Reservkoder i testerna. Johans är en lösenfras med å, ä och ö.
+const KOD_SARA = '246813';
+const KOD_JOHAN = 'blå häst i snön';
+async function valjReservkod(page, kod) {
+  await page.click('[data-a="reservkod"]');
+  const dl = page.locator('dialog[open]');
+  await dl.waitFor();
+  await dl.locator('#dlg-kod').fill(kod);
+  await dl.locator('#dlg-kod2').fill(kod);
+  await dl.locator('[data-varde="spara"]').click();
+  await synlig(page, '.notis', 'Reservkoden är sparad');
+  await synlig(page, '[data-a="reservkod"]', 'Reservkopia till');
+}
+// Väljer personen i reservinloggningen och skickar koden. Ger texten i felrutan, eller null när läsläget öppnades.
+async function reservInloggning(page, id, kod) {
+  const form = page.locator(`form[data-personal="${id}"]`);
+  if (await form.isHidden()) await page.click(`[data-reserv="${id}"]`);
+  await form.locator('input[name="kod"]').fill(kod);
+  await form.locator('button[type="submit"]').click();
+  const fel = form.locator('.form-fel');
+  const ok = page.locator('#avbrott h2', { hasText: 'läsläge med reservkod' });
+  const borta = page.locator('.ruta-larm');
+  await Promise.race([fel.waitFor({ state: 'visible', timeout: 15000 }), ok.waitFor({ timeout: 15000 }), borta.waitFor({ timeout: 15000 })]).catch(() => {});
+  if (await ok.count()) return null;
+  if (await borta.count()) return (await borta.textContent()) ?? '';
+  return (await fel.textContent()) ?? '';
+}
+// Undersöker allt som lagras i webbläsaren: IndexedDB, localStorage och sessionStorage. Letar efter reservkoden,
+// läskopians nyckel i klartext och patientuppgifter i klartext, och prövar att packa upp nyckeln med koden.
+const undersok = (page, kod, nyckelB64) => page.evaluate(async ({ kod, nyckelB64 }) => {
+  const db = await new Promise((ja, nej) => { const q = indexedDB.open('vardkallan-lasekopia'); q.onsuccess = () => ja(q.result); q.onerror = () => nej(q.error); });
+  const las = (namn) => new Promise((ja) => { const q = db.transaction(namn).objectStore(namn).getAll(); q.onsuccess = () => ja(q.result); });
+  const forrad = { poster: await las('poster'), reserv: await las('reserv'), logg: await las('logg') };
+  db.close();
+  const b64 = (u) => btoa(String.fromCharCode(...new Uint8Array(u))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const franB64 = (t) => Uint8Array.from(atob(t.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+  const binar = [];
+  const text = [];
+  const ga = (v) => {
+    if (v instanceof ArrayBuffer) binar.push(new Uint8Array(v));
+    else if (ArrayBuffer.isView(v)) binar.push(new Uint8Array(v.buffer, v.byteOffset, v.byteLength));
+    else if (typeof v === 'string') text.push(v);
+    else if (v && typeof v === 'object') Object.values(v).forEach(ga);
+  };
+  ga(forrad);
+  for (let i = 0; i < localStorage.length; i++) text.push(localStorage.key(i), localStorage.getItem(localStorage.key(i)));
+  // sessionStorage har flikens nyckel med avsikt, så där letas bara efter reservkoden.
+  const flik = [];
+  for (let i = 0; i < sessionStorage.length; i++) flik.push(sessionStorage.key(i), sessionStorage.getItem(sessionStorage.key(i)));
+  const innehaller = (hela, del) => { yttre: for (let i = 0; i + del.length <= hela.length; i++) { for (let j = 0; j < del.length; j++) if (hela[i + j] !== del[j]) continue yttre; return true; } return false; };
+  const kodBytes = new TextEncoder().encode(kod);
+  const radNyckel = nyckelB64 ? franB64(nyckelB64) : null;
+  const avkodad = binar.map(u => new TextDecoder('utf-8', { fatal: false }).decode(u));
+  const r = forrad.reserv[0];
+  let ickeExporterbar = null;
+  let felKodGarInte = null;
+  if (r) {
+    const aad = new TextEncoder().encode(`vardkallan-reservkod|${r.personalId}|${r.kopiaId}|${r.giltigTill}|${b64(r.salt)}|${r.iterationer}`);
+    const packaUpp = async (k) => {
+      const bas = await crypto.subtle.importKey('raw', new TextEncoder().encode(k.normalize('NFC')), 'PBKDF2', false, ['deriveKey']);
+      const kek = await crypto.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt: r.salt, iterations: r.iterationer }, bas, { name: 'AES-GCM', length: 256 }, false, ['unwrapKey']);
+      return crypto.subtle.unwrapKey('raw', r.inslagen, kek, { name: 'AES-GCM', iv: r.wrapIv, additionalData: aad }, 'AES-GCM', false, ['decrypt']);
+    };
+    ickeExporterbar = (await packaUpp(kod)).extractable === false;
+    try { await packaUpp(`${kod}9`); felKodGarInte = false; } catch { felKodGarInte = true; }
+  }
+  // Loggens metadata i klartext (id och läskopians id) får inte innehålla patientuppgifter.
+  const loggMeta = JSON.stringify(forrad.logg.map(x => ({ id: x.id, kopiaId: x.kopiaId })));
+  return {
+    antal: Object.fromEntries(Object.entries(forrad).map(([k, v]) => [k, v.length])),
+    falt: { reserv: r ? Object.keys(r).sort() : [], logg: forrad.logg[0] ? Object.keys(forrad.logg[0]).sort() : [] },
+    reserv: r ? { personalId: r.personalId, namn: r.namn, saltLangd: r.salt.length, iterationer: r.iterationer, inslagenLangd: r.inslagen.byteLength, ivLangd: r.wrapIv.length } : null,
+    koden: [...text, ...flik].some(t => t.includes(kod)) || binar.some(u => innehaller(u, kodBytes)),
+    radNyckel: radNyckel ? (text.some(t => t.includes(nyckelB64)) || binar.some(u => innehaller(u, radNyckel))) : null,
+    // Korta ord kan finnas av en slump i chiffertext, så de söks bara i metadata.
+    klartext: [...['Åkesson', 'Waran', 'Gunnar', 'las_oversikt', 'las_lakemedel'].filter(t => avkodad.some(a => a.includes(t))), ...['p01', 'las_'].filter(t => loggMeta.includes(t))],
+    ickeExporterbar, felKodGarInte,
+  };
+}, { kod, nyckelB64 });
 
 (async () => {
   const browser = await chromium.launch();
@@ -114,7 +196,7 @@ const lagrat = (page) => page.evaluate(async () => {
       const radNyckel = Uint8Array.from(atob(n.nyckel.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
       const innehaller = (hela, del) => { outer: for (let i = 0; i + del.length <= hela.length; i++) { for (let j = 0; j < del.length; j++) if (hela[i + j] !== del[j]) continue outer; return true; } return false; };
       const nyckel = await crypto.subtle.importKey('raw', radNyckel, 'AES-GCM', false, ['decrypt']);
-      const aad = (s) => new TextEncoder().encode(`vardkallan-lasekopia|kopia|${k.personalId}|${s}|${k.giltigTill}`);
+      const aad = (s) => new TextEncoder().encode(`vardkallan-lasekopia|kopia|${k.kopiaId}|${k.personalId}|${s}|${k.giltigTill}`);
       const klar = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: k.iv, additionalData: aad(k.skapad) }, nyckel, k.data));
       let andradMetaGarAttLasa = true;
       try { await crypto.subtle.decrypt({ name: 'AES-GCM', iv: k.iv, additionalData: aad('2020-01-01T00:00:00.000Z') }, nyckel, k.data); } catch { andradMetaGarAttLasa = false; }
@@ -126,7 +208,7 @@ const lagrat = (page) => page.evaluate(async () => {
         dekrypterad: ['Gunnar Åkesson', 'Waran'].every(t => klar.includes(t)), andradMetaGarAttLasa, personalId: k.personalId,
       };
     });
-    anta(JSON.stringify(r.falt) === JSON.stringify(['data', 'giltigTill', 'id', 'iv', 'personalId', 'skapad']), `fälten i IndexedDB är ${r.falt}`);
+    anta(JSON.stringify(r.falt) === JSON.stringify(['data', 'giltigTill', 'id', 'iv', 'kopiaId', 'personalId', 'skapad']), `fälten i IndexedDB är ${r.falt}`);
     anta(r.ivLangd === 12, 'IV är inte 12 byte');
     anta(r.klartextIData.length === 0, `klartext i IndexedDB: ${r.klartextIData}`);
     anta(!r.nyckelIDb, 'nyckeln finns i IndexedDB');
@@ -316,6 +398,356 @@ const lagrat = (page) => page.evaluate(async () => {
     await synlig(p, '#avbrott', 'Det finns ingen läskopia');
     const efter = await lagrat(p);
     anta(!efter.poster.some(x => x.id === 'kopia'), 'den gamla läskopian finns kvar i IndexedDB');
+    await c.close();
+  });
+
+  // Reservinloggning (D4). En webbläsarprofil på disken, så att en riktig omstart av webbläsaren kan göras: då är
+  // sessionStorage och sessionskakan borta, men IndexedDB, service workern och dess cache finns kvar.
+  const profil = mkdtempSync(join(tmpdir(), 'vk-avbrott-profil-'));
+  let pctx = null;
+  let pr = null;
+  let gammalKaka = null;
+  let lokalaRader = 0;
+  const startaProfil = async (utanNat = false) => {
+    pctx = await chromium.launchPersistentContext(profil, { viewport: { width: 1440, height: 900 }, locale: 'sv-SE', timezoneId: 'Europe/Stockholm' });
+    if (utanNat) { await pctx.setOffline(true); offline = true; }
+    pr = pctx.pages()[0] ?? await pctx.newPage();
+    bevaka(pr, 'profil');
+    felSida = pr;
+  };
+  const raknaLogg = async () => (await lagrat(pr)).logg.length;
+
+  await test('reservkoden väljs online och bara den inslagna nyckeln sparas', async () => {
+    await startaProfil();
+    await loggaIn(pr, 'lak-kard');
+    await pr.click('a.patientlank:has-text("Gunnar Åkesson")');
+    await pr.waitForSelector('.tidslinje');
+    await pr.waitForFunction(() => navigator.serviceWorker?.controller != null, null, { timeout: 15000 });
+    await vantaPaKopia(pr);
+    await synlig(pr, '[data-a="reservkod"]', 'Reservkod');
+    // För kort kod och olika koder stoppas i dialogen.
+    await pr.click('[data-a="reservkod"]');
+    const dl = pr.locator('dialog[open]');
+    await dl.locator('#dlg-kod').fill('12345');
+    await dl.locator('#dlg-kod2').fill('12345');
+    await dl.locator('[data-varde="spara"]').click();
+    await synlig(pr, 'dialog[open] .dialog-fel', 'minst 6 siffror');
+    await dl.locator('#dlg-kod').fill(KOD_SARA);
+    await dl.locator('#dlg-kod2').fill('246812');
+    await dl.locator('[data-varde="spara"]').click();
+    await synlig(pr, 'dialog[open] .dialog-fel', 'inte lika');
+    await bild(pr, '37-reservkod-dialog');
+    await dl.locator('[data-varde="avbryt"]').click();
+    await valjReservkod(pr, KOD_SARA);
+    const nyckel = JSON.parse(await pr.evaluate(() => sessionStorage.getItem('vk_lasnyckel'))).nyckel;
+    const u = await undersok(pr, KOD_SARA, nyckel);
+    anta(JSON.stringify(u.falt.reserv) === JSON.stringify(['enhet', 'forsok', 'giltigTill', 'inslagen', 'iterationer', 'kopia', 'kopiaId', 'namn', 'personalId', 'salt', 'skapad', 'titel', 'vantaTill', 'wrapIv']), `fälten i reservkopian är ${u.falt.reserv}`);
+    anta(u.reserv.personalId === 'lak-kard' && u.reserv.namn === 'Sara Lindqvist', 'fel person i reservkopian');
+    anta(u.reserv.saltLangd === 16 && u.reserv.ivLangd === 12 && u.reserv.iterationer >= 600000, `salt ${u.reserv.saltLangd}, iv ${u.reserv.ivLangd}, iterationer ${u.reserv.iterationer}`);
+    anta(u.reserv.inslagenLangd === 48, `den inslagna nyckeln är ${u.reserv.inslagenLangd} byte`);
+    anta(!u.koden, 'reservkoden finns i webbläsarens lagring');
+    anta(!u.radNyckel, 'läskopians nyckel finns i klartext i IndexedDB');
+    anta(u.klartext.length === 0, `klartext i lagringen: ${u.klartext}`);
+    anta(u.ickeExporterbar, 'nyckeln som koden packar upp går att exportera');
+    anta(u.felKodGarInte, 'fel kod packade upp nyckeln');
+    gammalKaka = (await pctx.cookies()).find(c => c.name === 'vk_sid');
+    anta(gammalKaka, 'ingen sessionskaka');
+  });
+
+  await test('efter omstart av webbläsaren utan nät visas vilka som har en reservkopia på datorn och när den går ut', async () => {
+    await pctx.close();
+    await startaProfil(true);
+    await pr.goto(`${BAS}/`);
+    await synlig(pr, 'main h1', 'Logga in med reservkod');
+    await synlig(pr, '#avbrott h2', 'servern svarar inte');
+    const rad = await synlig(pr, '#reservval li', 'Sara Lindqvist');
+    const text = await rad.textContent();
+    anta(/Går ut \d+ \w+ \d{4} kl\. \d\d:\d\d/.test(text), `utgångstiden visas inte: ${text}`);
+    anta(!(await pr.locator('[data-roll]').count()), 'demorollerna visas fast servern inte svarar');
+    await bild(pr, '38-reservinloggning');
+  });
+
+  await test('fel reservkod ger väntetid och rätt reservkod öppnar läsläget', async () => {
+    const fel = await reservInloggning(pr, 'lak-kard', '111111');
+    anta(/Fel reservkod\. 4 försök kvar/.test(fel ?? '') && /Vänta 2 sekunder/.test(fel), `felet var ${fel}`);
+    anta(await pr.locator('form[data-personal="lak-kard"] input').inputValue() === '', 'koden ligger kvar i fältet');
+    const vanta = await reservInloggning(pr, 'lak-kard', KOD_SARA);
+    anta(/Vänta/.test(vanta ?? ''), `rätt kod under väntetiden gav ${vanta}`);
+    await pr.waitForTimeout(2300);
+    const ok = await reservInloggning(pr, 'lak-kard', KOD_SARA);
+    anta(ok === null, `rätt kod gav ${ok}`);
+    await synlig(pr, '.inloggad', 'Sara Lindqvist');
+    await synlig(pr, '#lista', 'Gunnar Åkesson');
+    await synlig(pr, '#avbrott', 'Du är inloggad med din reservkod');
+    await bild(pr, '39-laslage-reservkod');
+  });
+
+  await test('åtkomster med reservkod loggas krypterat och överlever att fliken stängs', async () => {
+    await pr.click('a.patientlank:has-text("Gunnar Åkesson")');
+    await pr.waitForSelector('.tidslinje');
+    await pr.click('.flikar a:has-text("Läkemedel")');
+    await synlig(pr, '.lm-tabell', 'Waran');
+    anta(await pr.locator('[data-ny]').isDisabled(), 'Ordinera går att klicka på med reservkod');
+    await pr.click('.flikar a:has-text("Journal")');
+    await pr.waitForSelector('.anteckning .ant-fakta');
+    await pr.waitForTimeout(300);
+    const u = await undersok(pr, KOD_SARA, null);
+    lokalaRader = u.antal.logg;
+    anta(lokalaRader >= 4, `bara ${lokalaRader} lokala loggrader`);
+    anta(JSON.stringify(u.falt.logg) === JSON.stringify(['data', 'id', 'iv', 'kopiaId']), `fälten i loggen är ${u.falt.logg}`);
+    anta(u.klartext.length === 0, `klartext i loggen: ${u.klartext}`);
+    // Webbläsaren stängs mitt i läsläget. Loggen finns kvar, men läskopian kräver koden igen.
+    await pctx.close();
+    await startaProfil(true);
+    await pr.goto(`${BAS}/`);
+    await synlig(pr, 'main h1', 'Logga in med reservkod');
+    anta(await raknaLogg() === lokalaRader, 'loggen från läsläget försvann när webbläsaren stängdes');
+  });
+
+  await test('när servern svarar igen mitt i läsläget med reservkod når åtkomsterna åtkomstloggen', async () => {
+    anta(await reservInloggning(pr, 'lak-kard', KOD_SARA) === null, 'reservkoden fungerade inte efter omstarten');
+    await pr.click('a.patientlank:has-text("Gunnar Åkesson")');
+    await pr.waitForSelector('.tidslinje');
+    await pr.waitForTimeout(300);
+    lokalaRader = await raknaLogg();
+    await pctx.setOffline(false);
+    offline = false;
+    await synlig(pr, '.notis', 'åtkomstloggen');
+    await pr.locator('#avbrott').waitFor({ state: 'hidden' });
+    anta(await raknaLogg() === 0, 'loggen finns kvar lokalt');
+    // Sessionskakan försvann med omstarten, så personen loggar in igen.
+    await synlig(pr, '.notis', 'Logga in för att fortsätta');
+    await pr.waitForSelector('[data-roll]');
+    // Logggranskaren i den gamla sandlådan ser åtkomsterna på Sara.
+    const api = await playwrightRequest.newContext({ baseURL: BAS, extraHTTPHeaders: { Origin: BAS }, storageState: { cookies: [gammalKaka], origins: [] } });
+    try {
+      anta((await api.post('/api/login', { data: { personalId: 'logg' } })).ok(), 'logggranskaren kunde inte logga in');
+      const ll = await (await api.get('/api/patient/p01/logglista')).json();
+      const fran = ll.rader.filter(x => x.resurs?.startsWith('laslage:'));
+      anta(fran.length === lokalaRader, `${fran.length} rader från läsläget i loggen, ${lokalaRader} lokalt`);
+      anta(fran.every(x => x.personal?.id === 'lak-kard'), 'raderna har fel person');
+      anta(ll.kedjaHel, 'loggkedjan är inte hel');
+    } finally { await api.dispose(); }
+  });
+
+  await test('utloggning raderar reservkopian, den inslagna nyckeln och loggen efter att loggen förts över', async () => {
+    await pr.click('[data-roll="lak-kard"]');
+    await pr.waitForSelector('[data-a="loggaut"]');
+    // Reservkopian från förra inloggningen går inte att förnya utan koden och tas bort.
+    await synlig(pr, '.notis', 'reservkopia från förra inloggningen är raderad');
+    anta((await lagrat(pr)).reserv.length === 0, 'den gamla reservkopian finns kvar');
+    await pr.click('a.patientlank:has-text("Gunnar Åkesson")');
+    await pr.waitForSelector('.tidslinje');
+    await vantaPaKopia(pr);
+    await valjReservkod(pr, KOD_SARA);
+    await pr.click('[data-a="avbrott"]');
+    await synlig(pr, '#avbrott h2', 'Avbrott: läsläge');
+    await pr.click('.flikar a:has-text("Läkemedel")');
+    await synlig(pr, '.lm-tabell', 'Waran');
+    await pr.waitForTimeout(300);
+    const fore = await lagrat(pr);
+    anta(fore.reserv.length === 1 && fore.logg.length > 0, `före utloggningen: ${fore.reserv.length} reservkopior, ${fore.logg.length} loggrader`);
+    await pr.click('[data-a="loggaut"]');
+    await synlig(pr, '.notis', 'Du är utloggad');
+    await pr.waitForTimeout(300);
+    const efter = await lagrat(pr);
+    anta(efter.reserv.length === 0 && efter.logg.length === 0 && efter.poster.length === 0 && efter.nyckel === null,
+      `kvar efter utloggningen: ${JSON.stringify({ reserv: efter.reserv.length, logg: efter.logg.length, poster: efter.poster.length, nyckel: Boolean(efter.nyckel) })}`);
+    await pctx.request.post(`${BAS}/api/login`, { data: { personalId: 'logg' }, headers: { Origin: BAS } });
+    const ll = await (await pctx.request.get(`${BAS}/api/patient/p01/logglista`)).json();
+    anta(ll.rader.filter(x => x.resurs?.startsWith('laslage:')).length === fore.logg.length, 'loggen fördes inte över före utloggningen');
+    // Efter utloggningen finns ingen reservkopia att öppna.
+    await pctx.request.post(`${BAS}/api/logout`, { data: {}, headers: { Origin: BAS } });
+    await pctx.setOffline(true);
+    offline = true;
+    await pr.goto(`${BAS}/#/`);
+    await pr.reload();
+    await synlig(pr, '#reservval', 'Det finns ingen reservkopia på den här datorn');
+    await pctx.setOffline(false);
+    offline = false;
+  });
+  await pctx?.close().catch(() => {});
+  rmSync(profil, { recursive: true, force: true });
+
+  await test('utloggning i en flik avslutar läsläget i webbläsarens andra flikar', async () => {
+    const c = await ny();
+    const a = await c.newPage();
+    bevaka(a, 'flik A');
+    felSida = a;
+    await loggaIn(a, 'lak-kard');
+    await a.click('a.patientlank:has-text("Gunnar Åkesson")');
+    await a.waitForSelector('.tidslinje');
+    await a.waitForFunction(() => navigator.serviceWorker?.controller != null, null, { timeout: 15000 });
+    await vantaPaKopia(a);
+    const b = await c.newPage();
+    bevaka(b, 'flik B');
+    await b.goto(`${BAS}/#/patient/p01/lakemedel`);
+    await synlig(b, '.lm-tabell', 'Waran');
+    await vantaPaKopia(b);
+    await c.setOffline(true);
+    offline = true;
+    await a.reload();
+    await synlig(a, '#avbrott h2', 'Avbrott: läsläge');
+    await b.reload();
+    await synlig(b, '#avbrott h2', 'Avbrott: läsläge');
+    await synlig(b, '.lm-tabell', 'Waran');
+    await a.click('[data-a="loggaut"]');
+    await synlig(a, '.notis', 'Du är utloggad');
+    await synlig(b, '.notis', 'någon loggade ut i en annan flik');
+    await synlig(b, 'main h1', 'Logga in med reservkod');
+    anta(!(await b.locator('.inloggad').count()), 'flik B visar fortfarande personen');
+    await b.goto(`${BAS}/#/patient/p01/lakemedel`);
+    await synlig(b, 'main h1', 'Logga in med reservkod');
+    anta(!(await b.locator('.lm-tabell').count()), 'flik B visar läkemedlen efter utloggningen');
+    await c.setOffline(false);
+    offline = false;
+    await c.close();
+  });
+
+  await test('en navigering direkt till en fil ersätter inte appen i service workerns cache', async () => {
+    const c = await ny();
+    const p = await c.newPage();
+    bevaka(p, 'cache');
+    felSida = p;
+    await p.goto(`${BAS}/`);
+    await p.waitForSelector('[data-roll]');
+    await p.waitForFunction(() => navigator.serviceWorker?.controller != null, null, { timeout: 15000 });
+    await p.goto(`${BAS}/js/ui.js`);
+    await c.setOffline(true);
+    offline = true;
+    await p.goto(`${BAS}/`);
+    await synlig(p, 'main h1', 'Logga in med reservkod');
+    await c.setOffline(false);
+    offline = false;
+    await c.close();
+  });
+
+  await test('fem fel reservkoder raderar reservkopian och flikar kan inte pröva samtidigt', async () => {
+    const c = await ny();
+    const p = await c.newPage();
+    bevaka(p, 'fem fel');
+    felSida = p;
+    await p.clock.install();
+    await loggaIn(p, 'ssk-kard');
+    await p.waitForFunction(() => navigator.serviceWorker?.controller != null, null, { timeout: 15000 });
+    await vantaPaKopia(p);
+    await valjReservkod(p, KOD_JOHAN);
+    // En ny flik utan nät har ingen nyckel i sessionStorage.
+    await c.setOffline(true);
+    offline = true;
+    const p2 = await c.newPage();
+    bevaka(p2, 'fem fel, ny flik');
+    felSida = p2;
+    await p2.goto(`${BAS}/`);
+    await synlig(p2, 'main h1', 'Logga in med reservkod');
+    // Två flikar prövar samtidigt: bara det ena försöket prövas, det andra får vänta.
+    // Den tredje fliken bevakas bara för sidfel: dess nätverksfel utan nät kan komma efter att den stängts.
+    const p3 = await c.newPage();
+    p3.on('pageerror', e => sidfel.push(`[fem fel, tredje fliken] sidfel: ${e.message}`));
+    await p3.goto(`${BAS}/`);
+    await synlig(p3, 'main h1', 'Logga in med reservkod');
+    const samtidigt = await Promise.all([reservInloggning(p2, 'ssk-kard', 'fel kod nummer 1'), reservInloggning(p3, 'ssk-kard', 'fel kod nummer 1b')]);
+    anta(samtidigt.filter(x => /^Fel reservkod\. 4 försök kvar/.test(x ?? '')).length === 1 && samtidigt.filter(x => /^Vänta/.test(x ?? '')).length === 1, `samtidiga försök gav ${samtidigt}`);
+    await p3.close();
+    await p2.clock.setSystemTime(new Date(Date.now() + 60_000));
+    for (let i = 2; i <= 4; i++) {
+      const fel = await reservInloggning(p2, 'ssk-kard', `fel kod nummer ${i}`);
+      anta(new RegExp(`Fel reservkod\\. (${5 - i} försök|Ett försök) kvar`).test(fel ?? ''), `försök ${i} gav ${fel}`);
+      await p2.clock.setSystemTime(new Date(Date.now() + i * 120_000));
+    }
+    const sista = await reservInloggning(p2, 'ssk-kard', 'fel kod nummer 5');
+    anta(/Reservkopian är raderad från datorn/.test(sista ?? ''), `femte försöket gav ${sista}`);
+    await synlig(p2, '#reservval', 'Det finns ingen reservkopia på den här datorn');
+    anta((await lagrat(p2)).reserv.length === 0, 'reservkopian finns kvar i IndexedDB');
+    await c.setOffline(false);
+    offline = false;
+    await c.close();
+  });
+
+  await test('två personer på samma dator har var sin reservkopia som bara öppnas med egen kod', async () => {
+    const c = await ny();
+    const p = await c.newPage();
+    bevaka(p, 'två personer');
+    felSida = p;
+    await loggaIn(p, 'lak-kard');
+    await p.waitForFunction(() => navigator.serviceWorker?.controller != null, null, { timeout: 15000 });
+    await vantaPaKopia(p);
+    await valjReservkod(p, KOD_SARA);
+    // Johan loggar in i samma webbläsare utan att Sara loggar ut i gränssnittet.
+    await c.request.post(`${BAS}/api/login`, { data: { personalId: 'ssk-kard' }, headers: { Origin: BAS } });
+    await p.reload();
+    await synlig(p, '.inloggad', 'Johan Ek');
+    await vantaPaKopia(p);
+    await valjReservkod(p, KOD_JOHAN);
+    await c.request.post(`${BAS}/api/logout`, { data: {}, headers: { Origin: BAS } });
+    await p.reload();
+    await p.waitForSelector('[data-roll]');
+    await synlig(p, '#reservkopior', 'Reservkopior på den här datorn');
+    for (const n of ['Sara Lindqvist', 'Johan Ek']) await synlig(p, '#reservkopior li', n);
+    anta(/Går ut/.test(await p.locator('#reservkopior').textContent()), 'utgångstiden visas inte på inloggningssidan');
+    await bild(p, '40-reservkopior-pa-datorn');
+    await c.setOffline(true);
+    offline = true;
+    await p.reload();
+    await synlig(p, '#reservval li', 'Johan Ek');
+    const fel = await reservInloggning(p, 'ssk-kard', KOD_SARA);
+    anta(/Fel reservkod/.test(fel ?? ''), `Saras kod till Johans reservkopia gav ${fel}`);
+    await p.waitForTimeout(2300);
+    anta(await reservInloggning(p, 'ssk-kard', KOD_JOHAN) === null, 'Johans kod öppnade inte hans reservkopia');
+    await synlig(p, '.inloggad', 'Johan Ek');
+    anta(!(await p.locator('.inloggad').textContent()).includes('Sara'), 'fel person i sidhuvudet');
+    // Servern svarar igen medan Sara är inloggad i webbläsarens session. Johans reservläge tar inte över den.
+    await c.request.post(`${BAS}/api/login`, { data: { personalId: 'lak-kard' }, headers: { Origin: BAS } });
+    await c.setOffline(false);
+    offline = false;
+    await synlig(p, '.notis', 'någon annan är inloggad');
+    await p.waitForSelector('[data-roll]');
+    anta(!(await p.locator('.inloggad').count()), 'reservläget tog över en annan persons session');
+    await c.close();
+  });
+
+  await test('simulerat avbrott visar reservinloggningen när fliken stängs i demon', async () => {
+    const c = await ny();
+    const p = await c.newPage();
+    bevaka(p, 'demo');
+    felSida = p;
+    await loggaIn(p, 'lak-kard');
+    await p.click('a.patientlank:has-text("Gunnar Åkesson")');
+    await p.waitForSelector('.tidslinje');
+    await p.waitForFunction(() => navigator.serviceWorker?.controller != null, null, { timeout: 15000 });
+    await vantaPaKopia(p);
+    await p.click('[data-a="avbrott"]');
+    await synlig(p, '#avbrott h2', 'Avbrott: läsläge');
+    // Reservkoden går att välja också när avbrottet redan har börjat.
+    await p.click('[data-avbrott="reservkod"]');
+    const dl = p.locator('dialog[open]');
+    await dl.locator('#dlg-kod').fill(KOD_SARA);
+    await dl.locator('#dlg-kod2').fill(KOD_SARA);
+    await dl.locator('[data-varde="spara"]').click();
+    await synlig(p, '.notis', 'Reservkoden är sparad');
+    await synlig(p, '#avbrott', 'Du har en reservkopia på datorn');
+    await p.click('[data-avbrott="stang"]');
+    await synlig(p, 'main h1', 'Logga in med reservkod');
+    await synlig(p, '#avbrott', 'Avbrottet är simulerat');
+    anta(await reservInloggning(p, 'lak-kard', KOD_SARA) === null, 'reservkoden öppnade inte läsläget');
+    await p.click('#meny-lista a[href="#/arbetslista"]');
+    await p.click('a.patientlank:has-text("Gunnar Åkesson")');
+    await p.waitForSelector('.tidslinje');
+    await p.click('.flikar a:has-text("Läkemedel")');
+    await synlig(p, '.lm-tabell', 'Waran');
+    await p.waitForTimeout(300);
+    const rader = (await lagrat(p)).logg.length;
+    anta(rader > 0, 'inga lokala loggrader');
+    await bild(p, '41-simulerat-reservkod');
+    await p.click('[data-avbrott="avsluta"]');
+    await synlig(p, '.notis', 'Servern svarar igen');
+    await p.locator('#avbrott').waitFor({ state: 'hidden' });
+    // Samma person är inloggad i webbläsarens session, så arbetet fortsätter som vanligt.
+    await synlig(p, '.inloggad', 'Sara Lindqvist');
+    anta((await lagrat(p)).logg.length === 0, 'loggen finns kvar lokalt');
+    await c.request.post(`${BAS}/api/login`, { data: { personalId: 'logg' }, headers: { Origin: BAS } });
+    const ll = await (await c.request.get(`${BAS}/api/patient/p01/logglista`)).json();
+    anta(ll.rader.filter(x => x.resurs?.startsWith('laslage:')).length === rader, 'raderna från reservläget saknas i åtkomstloggen');
     await c.close();
   });
 

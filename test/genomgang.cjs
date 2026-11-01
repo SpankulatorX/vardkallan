@@ -320,6 +320,22 @@ const MENY = {
       await gaTill(page, '#/migrering'); await forvanta(page, '.avst-fel', 'Avvikelse'); await forvanta(page, '.avvikelse', 'jodkontrastmedel'); await bild(page, '16-migrering', true);
       await gaTill(page, '#/drift'); await forvanta(page, '.drift-tabell', 'GET /api/patient/:id'); await bild(page, '17-svarstider', true);
     });
+    await s('Sara: väljer en reservkod för läsläget vid avbrott och ser när reservkopian går ut', async () => {
+      await gaTill(page, '#/arbetslista');
+      await page.click('[data-a="reservkod"]');
+      const dl = page.locator('dialog[open]');
+      await dl.waitFor();
+      await forvanta(page, 'dialog[open]', 'SITHS-kortet');
+      await dl.locator('#dlg-kod').fill('246813');
+      await dl.locator('#dlg-kod2').fill('246813');
+      await dl.locator('[data-varde="spara"]').click();
+      await forvanta(page, '.notis', 'Reservkoden är sparad');
+      await forvanta(page, '[data-a="reservkod"]', 'Reservkopia till');
+      await page.click('[data-a="reservkod"]');
+      await forvanta(page, 'dialog[open] .ruta-info', 'Du har en reservkopia på den här datorn');
+      await bild(page, '42-reservkod-vald');
+      await page.locator('dialog[open] [data-varde="avbryt"]').click();
+    });
 
     // Remisskedjan: Per Holm skickar, Karin Berg kvitterar, Sara Lindqvist bedömer och svarar, Per Holm kvitterar svaret.
     await s('Per Holm loggar in och skickar en remiss för Gunnar Åkesson till kardiologen', async () => {
@@ -548,7 +564,7 @@ const MENY = {
       await page.waitForSelector('#testlage [data-t="klar"]', { timeout: 15000 });
       await forvanta(page, '.inloggad', 'Johan Ek');
       await page.waitForSelector('.tidslinje');
-      await bild(page, '37-anvandartest-uppgift');
+      await bild(page, '43-anvandartest-uppgift');
     });
     await s('användartestet går att avbryta, och då raderas allt som mätts', async () => {
       await page.click('#testlage [data-t="hoppa"]');

@@ -95,6 +95,8 @@ krokar.svarstid = (t) => {
 krokar.vid401 = () => {
   const varInloggad = Boolean(S.session?.inloggad);
   S.session = { inloggad: false };
+  // Sessionen finns inte längre, så flikens läskopia och nyckel gäller inte heller.
+  avbrottslage.rensa().catch(() => {});
   if (varInloggad) notis('Du är utloggad. Välj en roll för att logga in igen.', 'info');
   ramNyckel = null;
   if (location.hash !== '#/') location.hash = '#/'; else rita();
@@ -154,12 +156,14 @@ function ritaRam(route) {
         <span class="vem"><strong>${esc(p.namn)}</strong><span>${esc(p.titel)}, ${esc(e.namn)}</span></span>
       </div>
       <a class="svarstid" id="svarstid" href="#/drift">${svarstidHtml()}</a>
+      ${p.yrke === 'logggranskare' ? '' : `<button type="button" class="knapp text liten reservknapp" data-a="reservkod">${ikon.nyckel}<span data-reserv-text>Reservkod</span></button>`}
       <button type="button" class="knapp sekundar liten" data-a="loggaut">${ikon.ut}<span>Logga ut</span></button>
     </div></header>
     <div class="arbetsyta">
       <nav class="meny" id="meny" aria-label="Huvudmeny"><ul id="meny-lista">${menyHtml(route)}</ul></nav>
       <main id="innehall" class="innehall" tabindex="-1"></main>
     </div>`;
+  avbrottslage.uppdateraReservStatus();
   return document.getElementById('innehall');
 }
 
@@ -235,11 +239,15 @@ export function demoknappar() {
 export async function loggaIn(personalId, knapp) {
   const s = await medKnapp(knapp, () => api('/api/login', { metod: 'POST', data: { personalId } }));
   S.session = s;
-  // Ny inloggning, ny nyckel: en tidigare persons läskopia raderas.
-  await satNyckel(s.lasnyckel, s.personal.id).catch(() => {});
+  // Ny inloggning, ny nyckel: en tidigare persons läskopia raderas, och personens reservkopia från en tidigare
+  // inloggning också, eftersom den inte går att förnya utan reservkoden.
+  const { reservBorttagen } = await satNyckel(s.lasnyckel, s.personal.id).catch(() => ({}));
   avbrottslage.fornya({ nu: true });
   ramNyckel = null;
   document.getElementById('notiser').replaceChildren();
+  // Åtkomster från läsläget som väntar på datorn skickas också vid inloggning.
+  avbrottslage.skickaLoggar().then(avbrottslage.meddelaLogg).catch(() => {});
+  if (reservBorttagen) notis('Din reservkopia från förra inloggningen är raderad. Välj en ny reservkod om du vill kunna läsa vid ett avbrott.', 'info');
   await Promise.all([uppdateraInkorg(), laddaEnheter().catch(() => {})]);
   if (location.hash === hem()) rita(); else location.hash = hem();
 }
@@ -257,14 +265,18 @@ export async function loggaUt() {
     if (location.hash === '#/') rita(); else location.hash = '#/';
     return;
   }
+  // Åtkomster från läsläget som väntar på datorn skickas före utloggningen. Personens reservkopia raderas.
+  const vem = S.session?.personal?.id ?? null;
+  const loggen = await avbrottslage.skickaLoggar().catch(() => null);
   try { await api('/api/logout', { metod: 'POST', data: {} }); } catch (err) { felNotis(err); }
-  await avbrottslage.rensa().catch(() => {});
+  await avbrottslage.rensa({ personalId: vem }).catch(() => {});
   S.session = { inloggad: false };
   S.inkorg = null;
   ramNyckel = null;
   // Nästa person ska inte se föregående persons meddelanden.
   document.getElementById('notiser').replaceChildren();
   notis('Du är utloggad.', 'info');
+  avbrottslage.meddelaLogg(loggen);
   if (location.hash === '#/') rita(); else location.hash = '#/';
 }
 
@@ -287,6 +299,8 @@ document.addEventListener('click', async (e) => {
     await loggaUt();
   } else if (a === 'aterstall') {
     try { await aterstallDemo(b); } catch { /* notis visad */ }
+  } else if (a === 'reservkod') {
+    await avbrottslage.valjReservkod();
   } else if (a === 'avbrott') {
     await avbrottslage.simulera();
     notis('Avbrottet är simulerat. Den här fliken beter sig som om servern var nere. Servern är igång för alla andra.', 'info');
@@ -304,13 +318,16 @@ async function start() {
   anvandartest.init();
   try {
     S.session = await api('/api/session', { tyst: true });
+    // Åtkomster från ett tidigare läsläge som finns kvar på datorn, till exempel för att fliken stängdes, skickas nu.
+    if (!avbrott.aktivt) avbrottslage.meddelaLogg(await avbrottslage.skickaLoggar().catch(() => null));
     if (!avbrott.aktivt) await avbrottslage.slutforUtloggning().catch(() => {});
     if (S.session.inloggad) await laddaEnheter().catch(() => {});
     if (S.session.inloggad && !avbrott.aktivt) await satNyckel(S.session.lasnyckel, S.session.personal.id).catch(() => {});
     if (!S.session.inloggad && !avbrott.aktivt) await avbrottslage.rensa().catch(() => {});
   } catch (e) {
     S.session = { inloggad: false };
-    if (e.status !== 429) felNotis(e);
+    // Under ett avbrott förklarar avbrottsraden och reservinloggningen läget.
+    if (e.status !== 429 && !avbrott.aktivt) felNotis(e);
   }
   await uppdateraInkorg();
   rita();

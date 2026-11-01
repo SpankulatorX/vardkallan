@@ -160,7 +160,7 @@ export function felNotis(e) {
 }
 
 // Modal dialog. html ska ha en rubrik med id="dlg-rubrik". Knappar med data-varde stänger dialogen.
-// Med validera(form) kan dialogen stoppa stängning; funktionen returnerar en feltext eller null.
+// Med validera(data, dialog, varde) kan dialogen stoppa stängning; funktionen returnerar en feltext eller null.
 let dlgNr = 0;
 export function dialog(html, { onOpen, validera, klass = '' } = {}) {
   return new Promise(resolve => {
@@ -181,7 +181,7 @@ export function dialog(html, { onOpen, validera, klass = '' } = {}) {
       const form = dl.querySelector('form');
       if (form && !form.reportValidity()) return;
       const data = form ? Object.fromEntries(new FormData(form)) : {};
-      const fel = validera?.(data, dl);
+      const fel = validera?.(data, dl, b.dataset.varde);
       const ruta = dl.querySelector('.dialog-fel');
       if (fel) { if (ruta) { ruta.textContent = fel; ruta.hidden = false; } return; }
       avsluta({ val: b.dataset.varde, data });
@@ -245,6 +245,7 @@ export const ikon = {
   ut: P('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>'),
   pil: P('<path d="m9 18 6-6-6-6"/>'),
   kort: P('<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>'),
+  nyckel: P('<circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.8-9.8M17 5.8l3 3M14.2 8.6l2 2"/>'),
 };
 
 // Etikett för poster som migrerats från VAS eller Cosmic. Samma vikt som annat, bara märkt.

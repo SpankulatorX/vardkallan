@@ -2,6 +2,7 @@
 // Sandlådorna sparas till SESSION_FIL vid SIGTERM och läses in vid start.
 import { join, normalize } from 'node:path';
 import { existsSync, readFileSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
+import { createDecipheriv } from 'node:crypto';
 import { Fel, nySessionsDb, lasSandlada, idag, installning } from './db.js';
 import { Atkomst, ROLLER, kanRoll, vardenhetFor, harVardrelation, aktivaSparrar, visningsnamn, visningsPnr, alder, starkasteGrund } from './atkomst.js';
 import * as logg from './logg.js';
@@ -28,7 +29,10 @@ const LASKOPIA_ANTECKNINGAR = 5;
 // Läshandlingar som får rapporteras från läsläget i efterhand.
 const LASLAGE_HANDLINGAR = ['las_oversikt', 'las_admin', 'las_lakemedel', 'las_journal', 'las_omvardnad'];
 const KLOCKMARGINAL = 5 * 60_000;
+// Så många rader från läsläget tas emot per läskopia. Fler avvisas, så att ett id aldrig glöms och kan loggas igen.
 const MAX_LASLOGG_ID = 5000;
+// Så många läskopior per sandlåda håller servern reda på för att kunna ta emot loggen från läsläget i efterhand.
+const MAX_KOPIOR = 10;
 
 // Svarstider: senaste mätningarna per endpoint.
 export class Matning {
@@ -105,15 +109,39 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   const litaPaProxy = process.env.LITA_PA_PROXY === '1';
   const klientIp = (req, server) => (litaPaProxy && req.headers.get('cf-connecting-ip')) || server.requestIP(req)?.address || 'okänd';
 
-  // Läskopian (D4): lasnyckel är nyckeln som webbläsaren krypterar sin läskopia med. kopia håller reda på vilka patienter
-  // som har lämnats ut till läskopian, på vilken grund och när, så att åtkomster i läsläget kan tas emot i efterhand.
-  const nyLasnyckel = () => ({ nyckel: slumpNyckel(), giltigTill: new Date(Date.now() + SESSION_TTL).toISOString() });
-  const nollstallKopia = (s) => { s.oppnade = new Set(); s.kopia = new Map(); s.kopiaLoggIds = new Set(); };
-  const nySession = () => {
-    const s = { db: nySessionsDb(), personalId: null, val: {}, sist: Date.now(), matning: new Matning(200), lasnyckel: null };
-    nollstallKopia(s);
-    return s;
-  };
+  // Läskopian (D4): lasnyckel är nyckeln som webbläsaren krypterar sin läskopia och loggen från läsläget med. Den har ett
+  // id, läskopians id. kopior håller för varje läskopia som sandlådan har lämnat ut reda på vem den gäller, nyckeln,
+  // hur länge den gäller, vilka patienter som lämnades ut på vilken grund och när, och vilka rader från läsläget som
+  // redan har tagits emot. En läskopia finns kvar efter utloggning och ny inloggning tills den går ut, så att loggen
+  // från läsläget kan tas emot även när den kommer efter ett avbrott, från en ny flik eller efter en omstart av
+  // webbläsaren. Nyckeln lämnas bara ut till den inloggade medan inloggningen pågår, aldrig senare.
+  const nyLasnyckel = () => ({ id: slumpId(), nyckel: slumpNyckel(), giltigTill: new Date(Date.now() + SESSION_TTL).toISOString() });
+  const aktuellKopia = (s) => (s.lasnyckel ? s.kopior.get(s.lasnyckel.id) ?? null : null);
+  function rensaKopior(s, nu = Date.now()) {
+    for (const [id, k] of s.kopior) if (Date.parse(k.giltigTill) + KLOCKMARGINAL < nu) s.kopior.delete(id);
+    while (s.kopior.size > MAX_KOPIOR) s.kopior.delete(s.kopior.keys().next().value);
+  }
+  // Ser till att den inloggade har en nyckel och en läskopia att föra loggen mot.
+  function sakraKopia(s) {
+    if (!s.personalId) return null;
+    if (!aktuellKopia(s)) {
+      s.lasnyckel = nyLasnyckel();
+      s.kopior.set(s.lasnyckel.id, { personalId: s.personalId, nyckel: s.lasnyckel.nyckel, giltigTill: s.lasnyckel.giltigTill, patienter: new Map(), loggIds: new Set() });
+      rensaKopior(s);
+    }
+    return aktuellKopia(s);
+  }
+  const nySession = () => ({ db: nySessionsDb(), personalId: null, val: {}, sist: Date.now(), matning: new Matning(200), lasnyckel: null, oppnade: new Set(), kopior: new Map() });
+  // Läskopian som id:t gäller, i den sandlåda som lämnade ut den. Kräver ingen session: loggen från läsläget visar
+  // själv att den kommer från den som hade läskopian, eftersom den är krypterad med läskopians nyckel.
+  function hittaKopia(id) {
+    const nu = Date.now();
+    for (const s of sessioner.values()) {
+      const k = s.kopior.get(id);
+      if (k && Date.parse(k.giltigTill) + KLOCKMARGINAL >= nu) return { s, kopia: k };
+    }
+    return null;
+  }
 
   function hamtaSession(req) {
     const sid = kakSid(req);
@@ -141,7 +169,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
 
   const stadning = setInterval(() => {
     const grans = Date.now() - SESSION_TTL;
-    for (const [sid, s] of sessioner) if (s.sist < grans) { s.db.close(); sessioner.delete(sid); }
+    for (const [sid, s] of sessioner) { if (s.sist < grans) { s.db.close(); sessioner.delete(sid); } else rensaKopior(s); }
     const timme = Math.floor(Date.now() / 3600_000);
     for (const k of nyaPerIp.keys()) if (!k.endsWith(`:${timme}`)) nyaPerIp.delete(k);
   }, 10 * 60_000);
@@ -152,10 +180,18 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       const grans = Date.now() - SESSION_TTL;
       for (const x of JSON.parse(readFileSync(sessionFil, 'utf8'))) {
         if (x.v !== SPARVERSION || x.sist < grans || !/^[A-Za-z0-9_-]{32}$/.test(x.sid)) continue;
-        sessioner.set(x.sid, {
+        const s = {
           db: lasSandlada(x.db), personalId: x.personalId, val: x.val ?? {}, sist: x.sist, matning: new Matning(200),
-          lasnyckel: x.lasnyckel ?? null, oppnade: new Set(x.oppnade ?? []), kopia: new Map(x.kopia ?? []), kopiaLoggIds: new Set(x.kopiaLoggIds ?? []),
-        });
+          lasnyckel: x.lasnyckel ?? null, oppnade: new Set(x.oppnade ?? []),
+          kopior: new Map((x.kopior ?? []).map(([id, k]) => [id, { ...k, patienter: new Map(k.patienter), loggIds: new Set(k.loggIds) }])),
+        };
+        // Sparat av en äldre version, med en nyckel utan id och en enda läskopia per session.
+        if (s.lasnyckel && !s.lasnyckel.id && s.personalId) {
+          s.lasnyckel = { id: slumpId(), ...s.lasnyckel };
+          s.kopior.set(s.lasnyckel.id, { personalId: s.personalId, nyckel: s.lasnyckel.nyckel, giltigTill: s.lasnyckel.giltigTill, patienter: new Map(x.kopia ?? []), loggIds: new Set(x.kopiaLoggIds ?? []) });
+        }
+        rensaKopior(s);
+        sessioner.set(x.sid, s);
       }
       console.log(`Läste in ${sessioner.size} sparade sandlådor`);
     } catch (e) { console.error('Kunde inte läsa sparade sandlådor:', e.message); }
@@ -165,7 +201,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (!sessionFil) return 0;
     const lista = [...sessioner].map(([sid, x]) => ({
       v: SPARVERSION, sid, personalId: x.personalId, val: x.val, sist: x.sist, db: Buffer.from(x.db.serialize()).toString('base64'),
-      lasnyckel: x.lasnyckel, oppnade: [...x.oppnade], kopia: [...x.kopia], kopiaLoggIds: [...x.kopiaLoggIds],
+      lasnyckel: x.lasnyckel, oppnade: [...x.oppnade],
+      kopior: [...x.kopior].map(([id, k]) => [id, { ...k, patienter: [...k.patienter], loggIds: [...k.loggIds] }]),
     }));
     writeFileSync(sessionFil + '.tmp', JSON.stringify(lista), { mode: 0o600 });
     renameSync(sessionFil + '.tmp', sessionFil);
@@ -220,7 +257,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ut.personal = { id: p.id, namn: p.namn, yrke: p.yrke, yrkeText: YRKEN[p.yrke], titel: p.titel, hsaId: p.hsa_id };
       ut.enhet = { ...enhetKort(s.db, p.enhet_id), vardenhet: enhetKort(s.db, ve) };
       ut.behorigheter = ROLLER[p.yrke] ?? [];
-      if (!s.lasnyckel) s.lasnyckel = nyLasnyckel();
+      sakraKopia(s);
       ut.lasnyckel = s.lasnyckel;
     }
     return ut;
@@ -374,12 +411,12 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const db = c.db;
     const pers = c.personal;
     const s = c.s;
-    if (!s.lasnyckel) s.lasnyckel = nyLasnyckel();
+    const kopia = sakraKopia(s);
     const { lasnyckel: _, ...session } = sessionUt(s);
     const alla = db.query('SELECT * FROM enheter').all();
     const nod = (e) => ({ id: e.id, hsaId: e.hsa_id, namn: e.namn, kortnamn: e.kortnamn, typ: e.typ, barn: alla.filter(b => b.forald_id === e.id).map(nod) });
     const ut = {
-      skapad: new Date().toISOString(), giltigTill: s.lasnyckel.giltigTill, session,
+      kopiaId: s.lasnyckel.id, skapad: new Date().toISOString(), giltigTill: s.lasnyckel.giltigTill, session,
       enheter: alla.filter(e => !e.forald_id).map(nod), mallar: journal.MALLAR, arbetslista: [], patienter: {},
     };
     if (pers.yrke === 'logggranskare') return ut;
@@ -403,47 +440,101 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       }
       const grunder = new Set(delar.flatMap(a => [...a.grunder]));
       const grund = starkasteGrund(grunder, pers.yrke === 'vardadministrator' ? 'administrativ' : 'vardrelation');
-      const forra = s.kopia.get(pid);
+      const forra = kopia.patienter.get(pid);
       if (!forra || forra.grund !== grund) delar[0].logga(handling, grund, 'lasekopia', 'tillaten', 'Läskopia för avbrott, krypterad i webbläsaren');
-      s.kopia.set(pid, { grund, handling, tid: forra?.tid ?? ut.skapad });
+      kopia.patienter.set(pid, { grund, handling, tid: forra?.tid ?? ut.skapad });
       ut.patienter[pid] = post;
     }
     return ut;
   }
 
-  // Åtkomster som gjordes i läsläget, när servern inte svarade, skickas hit när förbindelsen är tillbaka. Bara den
-  // inloggade kan rapportera, bara åtkomster till patienter som servern har lämnat ut till den inloggades läskopia, bara
-  // läshandlingar som rollen har och bara tider inom läskopians giltighet. Varje rad har ett id från webbläsaren, så att
-  // en rad som skickas två gånger loggas en gång.
-  function lasekopiaLogg(c) {
-    const pers = c.personal;
-    const s = c.s;
-    const rader = c.body.rader;
-    if (!Array.isArray(rader) || rader.length > 500) throw new Fel(400, 'Skicka högst 500 rader i en lista.', 'ogiltig', { falt: ['rader'] });
+  // Åtkomster som gjordes i läsläget, när servern inte svarade, tas emot i efterhand. Bara åtkomster till patienter som
+  // servern har lämnat ut till läskopian, bara läshandlingar som rollen har och bara tider inom läskopians giltighet.
+  // Raden loggas på den person som läskopian lämnades ut till, aldrig på den som råkar vara inloggad när den kommer.
+  // Läsningar efter att personen loggade ut tas inte emot. Varje rad har ett id från webbläsaren, så att en rad som
+  // skickas två gånger loggas en gång. skillnad är hur många millisekunder webbläsarens klocka gick fel när raderna
+  // skickades; tiden rättas med den, och det står i syftet.
+  function taEmotRader(db, pers, kopia, rader, skillnad = 0) {
     const nu = Date.now();
+    const syfte = skillnad
+      ? `Läsläge vid avbrott, läskopia i webbläsaren. Tiden är rättad, eftersom webbläsarens klocka gick fel med ${Math.round(Math.abs(skillnad) / 60_000)} minuter.`
+      : 'Läsläge vid avbrott, läskopia i webbläsaren';
     let mottagna = 0;
     const avvisade = [];
     for (const r of rader) {
       const id = typeof r?.id === 'string' && /^[A-Za-z0-9_-]{8,64}$/.test(r.id) ? r.id : null;
       if (!id) { avvisade.push({ id: null, orsak: 'Raden saknar giltigt id.' }); continue; }
-      if (s.kopiaLoggIds.has(id)) { mottagna++; continue; }
-      const kopia = typeof r.patientId === 'string' ? s.kopia.get(r.patientId) : null;
-      if (!kopia) { avvisade.push({ id, orsak: 'Patienten fanns inte i din läskopia.' }); continue; }
+      if (kopia?.loggIds.has(id)) { mottagna++; continue; }
+      const utlamnad = kopia && pers && typeof r.patientId === 'string' ? kopia.patienter.get(r.patientId) : null;
+      if (!utlamnad) { avvisade.push({ id, orsak: 'Patienten fanns inte i din läskopia.' }); continue; }
       if (!LASLAGE_HANDLINGAR.includes(r.handling) || !kanRoll(pers, r.handling)) { avvisade.push({ id, orsak: 'Handlingen är inte en läsning som din yrkesroll får göra.' }); continue; }
-      const t = typeof r.tid === 'string' ? Date.parse(r.tid) : NaN;
-      if (!Number.isFinite(t) || t < Date.parse(kopia.tid) - KLOCKMARGINAL || t > nu + KLOCKMARGINAL || t < nu - SESSION_TTL) {
+      const t = (typeof r.tid === 'string' ? Date.parse(r.tid) : NaN) + skillnad;
+      if (!Number.isFinite(t) || t < Date.parse(utlamnad.tid) - KLOCKMARGINAL || t > nu + KLOCKMARGINAL || t < nu - SESSION_TTL || t > Date.parse(kopia.giltigTill) + KLOCKMARGINAL) {
         avvisade.push({ id, orsak: 'Tidpunkten ligger utanför läskopians giltighet.' }); continue;
       }
+      if (kopia.stangd && t > Date.parse(kopia.stangd) + KLOCKMARGINAL) { avvisade.push({ id, orsak: 'Läsningen gjordes efter utloggningen.' }); continue; }
+      if (kopia.loggIds.size >= MAX_LASLOGG_ID) { avvisade.push({ id, orsak: 'Läskopian har redan tagit emot så många rader som går.' }); continue; }
       const resurs = typeof r.resurs === 'string' ? r.resurs.slice(0, 200) : '';
-      logg.loggaRad(c.db, {
+      logg.loggaRad(db, {
         tid: new Date(t).toISOString(), personal_id: pers.id, enhet_id: pers.enhet_id, patient_id: r.patientId, handling: r.handling,
-        resurs: `laslage:${resurs}`, grund: kopia.grund, syfte: 'Läsläge vid avbrott, läskopia i webbläsaren', resultat: 'tillaten',
+        resurs: `laslage:${resurs}`, grund: utlamnad.grund, syfte, resultat: 'tillaten',
       });
-      s.kopiaLoggIds.add(id);
-      if (s.kopiaLoggIds.size > MAX_LASLOGG_ID) s.kopiaLoggIds.delete(s.kopiaLoggIds.values().next().value);
+      kopia.loggIds.add(id);
       mottagna++;
     }
     return { mottagna, avvisade };
+  }
+
+  // Den inloggade rapporterar åtkomster i läsläget mot sin pågående läskopia, med raderna i klartext.
+  function lasekopiaLogg(c) {
+    const rader = c.body.rader;
+    if (!Array.isArray(rader) || rader.length > 500) throw new Fel(400, 'Skicka högst 500 rader i en lista.', 'ogiltig', { falt: ['rader'] });
+    return taEmotRader(c.db, c.personal, aktuellKopia(c.s), rader);
+  }
+
+  // Loggen från läsläget som webbläsaren har sparat krypterad. Varje rad är krypterad för sig med läskopians nyckel
+  // (AES-GCM), med läskopians id, personen och radens id som additional data. Bara den som hade läskopian och dess
+  // nyckel kan skapa en rad som går att dekryptera, så raderna kan tas emot utan inloggning: från en ny flik, efter en
+  // omstart av webbläsaren eller när någon annan har loggat in. En rad som inte går att dekryptera, eller som ändrats,
+  // avvisas. Raderna loggas i sandlådan som lämnade ut läskopian, på personen som den lämnades ut till.
+  const loggAad = (kopiaId, personalId, id) => Buffer.from(`vardkallan-laslogg|${kopiaId}|${personalId}|${id}`);
+  function dekrypteraRad(nyckel, aad, iv, data) {
+    if (typeof iv !== 'string' || typeof data !== 'string' || iv.length > 32 || data.length > 4096) return null;
+    try {
+      const ivB = Buffer.from(iv, 'base64url');
+      const d = Buffer.from(data, 'base64url');
+      if (ivB.length !== 12 || d.length < 17) return null;
+      const dc = createDecipheriv('aes-256-gcm', nyckel, ivB);
+      dc.setAAD(aad);
+      dc.setAuthTag(d.subarray(d.length - 16));
+      const v = JSON.parse(Buffer.concat([dc.update(d.subarray(0, d.length - 16)), dc.final()]).toString('utf8'));
+      return v && typeof v === 'object' && !Array.isArray(v) ? v : null;
+    } catch { return null; }
+  }
+  function krypteradLogg(c) {
+    const { kopiaId, rader, klocka } = c.body;
+    if (typeof kopiaId !== 'string' || !/^[A-Za-z0-9_-]{32}$/.test(kopiaId)) throw new Fel(400, 'Ange läskopians id.', 'ogiltig', { falt: ['kopiaId'] });
+    if (!Array.isArray(rader) || rader.length > 500) throw new Fel(400, 'Skicka högst 500 rader i en lista.', 'ogiltig', { falt: ['rader'] });
+    const hittad = hittaKopia(kopiaId);
+    if (!hittad) throw new Fel(404, 'Läskopian finns inte längre på servern, så åtkomsterna kan inte föras över.', 'saknas');
+    const { s, kopia } = hittad;
+    const pers = personalRad(s.db, kopia.personalId);
+    const nyckel = Buffer.from(kopia.nyckel, 'base64url');
+    const klara = [];
+    const ogiltiga = [];
+    for (const r of rader) {
+      const id = typeof r?.id === 'string' && /^[A-Za-z0-9_-]{8,64}$/.test(r.id) ? r.id : null;
+      if (!id) { ogiltiga.push({ id: null, orsak: 'Raden saknar giltigt id.' }); continue; }
+      const rad = dekrypteraRad(nyckel, loggAad(kopiaId, kopia.personalId, id), r.iv, r.data);
+      if (!rad || rad.id !== id) { ogiltiga.push({ id, orsak: 'Raden kunde inte verifieras med läskopians nyckel.' }); continue; }
+      klara.push(rad);
+    }
+    // Webbläsarens klocka när raderna skickades. Går den fel med mer än marginalen rättas radernas tider med skillnaden,
+    // eftersom de är mätta med samma klocka. Mer än ett dygn fel räknas inte som en klocka som går fel.
+    const k = typeof klocka === 'string' ? Date.parse(klocka) : NaN;
+    const skillnad = Number.isFinite(k) && Math.abs(Date.now() - k) > KLOCKMARGINAL && Math.abs(Date.now() - k) < 24 * 3600_000 ? Date.now() - k : 0;
+    const ut = taEmotRader(s.db, pers, kopia, klara, skillnad);
+    return { mottagna: ut.mottagna, avvisade: [...ogiltiga, ...ut.avvisade] };
   }
 
   function registreraVal(c, p, { typ, syfte }) {
@@ -496,9 +587,11 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (!p) throw new Fel(400, 'Välj en av demorollerna.', 'ogiltig', { falt: ['personalId'] });
     c.s.personalId = p.id;
     c.s.val = {};
-    // Ny nyckel för läskopian vid varje inloggning, så att en tidigare persons kopia inte går att läsa.
-    c.s.lasnyckel = nyLasnyckel();
-    nollstallKopia(c.s);
+    // Ny nyckel och ny läskopia vid varje inloggning, så att en tidigare persons kopia inte går att läsa. Den förra
+    // läskopian finns kvar på servern tills den går ut, bara för att kunna ta emot loggen från läsläget.
+    c.s.lasnyckel = null;
+    c.s.oppnade = new Set();
+    sakraKopia(c.s);
     c.rotera = true;
     return sessionUt(c.s);
   });
@@ -512,7 +605,10 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     } catch (e) {
       lasloggen = { mottagna: 0, avvisade: [], fel: e instanceof Fel ? e.message : 'Raderna kunde inte tas emot.' };
     } finally {
-      c.s.personalId = null; c.s.val = {}; c.s.lasnyckel = null; nollstallKopia(c.s);
+      // Läskopian stängs: rader från läsningar före utloggningen tas fortfarande emot, senare läsningar inte.
+      const akt = aktuellKopia(c.s);
+      if (akt) akt.stangd = new Date().toISOString();
+      c.s.personalId = null; c.s.val = {}; c.s.lasnyckel = null; c.s.oppnade = new Set();
     }
     return { ...sessionUt(c.s), ...(lasloggen ? { lasloggen } : {}) };
   });
@@ -520,8 +616,11 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     c.s.db.close();
     c.s.db = nySessionsDb();
     c.s.val = {};
-    // Den nya sandlådan har en ny logg, så läskopian lämnas ut och loggas på nytt där.
-    nollstallKopia(c.s);
+    c.s.oppnade = new Set();
+    // Den nya sandlådan har en ny logg, så läskopian lämnas ut och loggas på nytt där. Läskopior från tidigare
+    // inloggningar hör till den gamla sandlådan och glöms.
+    const akt = aktuellKopia(c.s);
+    c.s.kopior = new Map(akt ? [[c.s.lasnyckel.id, { ...akt, patienter: new Map() }]] : []);
     return { ok: true, ...sessionUt(c.s) };
   });
   rutt('GET', '/api/enheter', (c) => {
@@ -534,6 +633,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('GET', '/api/vantrum', (c) => { kravInloggad(c); return vantrum(c); });
   rutt('GET', '/api/lasekopia', (c) => { kravInloggad(c); return lasekopia(c); });
   rutt('POST', '/api/lasekopia/logg', (c) => { kravInloggad(c); return lasekopiaLogg(c); });
+  rutt('POST', '/api/lasekopia/krypterad-logg', (c) => krypteradLogg(c));
 
   rutt('GET', '/api/patient/:id', (c, id) => {
     kravInloggad(c);
@@ -669,7 +769,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('GET', '/api/drift', (c) => ({ startad, sandladar: sessioner.size, mal: { p95Ms: MAL_P95 }, server: medMal(serverMatning.sammanstall()), sandlada: c.s ? medMal(c.s.matning.sammanstall()) : [] }));
 
   // Endpoints som inte behöver en sandlåda.
-  const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/drift']);
+  const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/drift', '/api/lasekopia/krypterad-logg']);
 
   async function api(req, server, url, c) {
     if (url.pathname === '/api/health') return json({ ok: true, sandladar: sessioner.size, version: APPVERSION, gransnitt: gransnittVersion() });
@@ -714,6 +814,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
 
   const server = Bun.serve({
     port, hostname,
+    // Ingen förfrågan behöver mer än 64 kB. Taket gäller också kroppar utan Content-Length.
+    maxRequestBodySize: MAX_KROPP * 2,
     async fetch(req, srv) {
       const t0 = performance.now();
       const url = new URL(req.url);
