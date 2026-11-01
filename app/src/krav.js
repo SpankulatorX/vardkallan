@@ -20,8 +20,9 @@ const KR = 'Kravregistret > ';
 const KV = 'Kodverk > ';
 const FS = 'FHIR-struktur > ';
 const LK = 'Läskopia > ';
-// Testerna av gränssnittet körs i Playwright (test/avbrott.cjs och test/klickbudget.cjs), se klientresultat.js.
+// Testerna av gränssnittet körs i Playwright (test/avbrott.cjs, test/anvandartest.cjs och test/klickbudget.cjs), se klientresultat.js.
 const GA = 'Gränssnitt > Avbrott > ';
+const GU = 'Gränssnitt > Användartest > ';
 const GK = 'Gränssnitt > Klickbudget > ';
 export const klickbudgetTest = (f) => `${GK}${f.namn} inom budget`;
 
@@ -61,8 +62,13 @@ export const KRAV = [
     [`${A}hälsa och Server-Timing på alla svar`, `${A}drift visar p50 och p95 per endpoint`],
     'Målet i demon är p95 under 200 ms per endpoint. Mätningen gäller demons server, inte ett produktionssystem.'),
   { ...k('D6', 'Klickbudget per vanligt arbetsflöde, mätt med verkliga användare', `${RAPPORT}, D6`, 'delvis', '/krav',
-    [`Klickbudget > klickbudget.json täcker alla flöden med budgetarna från koden`, ...FLODEN.map(klickbudgetTest)],
-    'Klick, fältbyten och tangenttryck mäts i Playwright med ett skript som gör flödena i gränssnittet, inte med verkliga användare. En mätning med verkliga användare före start återstår. SVT Norrbotten rapporterade 2026-02-19 att det i Cosmic krävs upp till 21 knapptryck för att få fram rätt information. Den siffran är inte mätt här och flödena är inte desamma.'), bilaga: 'klickbudget' },
+    [`Klickbudget > klickbudget.json täcker alla flöden med budgetarna från koden`, ...FLODEN.map(klickbudgetTest),
+      'Användartest > räkningen: klick på knappar och länkar, inte i fält som gränssnittet har satt fokus i', 'Användartest > SUS-poängen räknas med standardformeln',
+      'Användartest > uppgifterna följer flödena i klickbudgeten', 'Användartest > sammanställningen ger median, spridning, andel slutförda och SUS per flöde',
+      `${GU}testläget räknar klick, fältbyten och tangenter som klickbudgetskriptet för samma flöden`, `${GU}enkäten ger SUS-poäng enligt standardformeln`,
+      `${GU}resultatfilen laddas ner med datum, version, deltagarkod, uppgifter och SUS-poäng`, `${GU}inget anrop skickar testresultat till servern`,
+      `${GU}testläget rensas när testet avslutas`],
+    'Klick, fältbyten och tangenttryck mäts i Playwright med ett skript som gör flödena i gränssnittet. För mätningen med verkliga användare finns ett testläge i demon med samma uppgifter och samma räkning, en enkät med SUS och tre öppna frågor, ett testprotokoll för testledaren (docs/anvandartest.md) och ett skript som sammanställer resultatfilerna. Själva mätningen med personer som arbetar i vården återstår. SVT Norrbotten rapporterade 2026-02-19 att det i Cosmic krävs upp till 21 knapptryck för att få fram rätt information. Den siffran är inte mätt här och flödena är inte desamma.'), bilaga: 'klickbudget' },
   k('D7', 'Små releaser med automatiserad regressionstest och återgång', `${RAPPORT}, D7`, 'delvis', '/krav',
     [`${KR}status uppfyllt_demo bara när alla tester är gröna`],
     'Bygget kör alla tester och stoppas om något är rött. Testerna och FHIR-valideringen körs också i GitHub Actions vid varje push och pull request. Återgång och kundens godkännande före uppgradering är inte byggda.'),

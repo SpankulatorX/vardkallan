@@ -531,6 +531,35 @@ const MENY = {
       await forvanta(page, '.notis', 'Demon är återställd');
       await forvanta(page, '.inloggad', 'Mats Wall');
     });
+
+    // Användartestet (D6). Hela testet med enkät och resultatfil testas i test/anvandartest.cjs.
+    await s('användartestet startas från inloggningssidan och visar en uppgift i taget i listen', async () => {
+      await page.click('[data-a="loggaut"]');
+      await page.waitForSelector('[data-roll]');
+      await page.click('a[href="#/anvandartest"]');
+      await forvanta(page, 'main h1', 'Användartest');
+      await forvanta(page, '.at-info', 'Alla patienter i demon är påhittade');
+      await page.fill('#at-kod', 'G01');
+      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'kvittera-svar', 'nodatkomst']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+      await page.click('#at-start [type="submit"]');
+      await forvanta(page, '#testlage', 'Uppgift 1 av 2');
+      await forvanta(page, '#testlage-text', 'blodtryck till 128/82');
+      await page.click('#testlage [data-t="borja"]');
+      await page.waitForSelector('#testlage [data-t="klar"]', { timeout: 15000 });
+      await forvanta(page, '.inloggad', 'Johan Ek');
+      await page.waitForSelector('.tidslinje');
+      await bild(page, '37-anvandartest-uppgift');
+    });
+    await s('användartestet går att avbryta, och då raderas allt som mätts', async () => {
+      await page.click('#testlage [data-t="hoppa"]');
+      await forvanta(page, '#testlage', 'Uppgift 2 av 2');
+      await page.click('#testlage [data-t="avbryt"]');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await page.waitForSelector('#at-start');
+      await page.waitForSelector('[data-a="loggaut"]', { state: 'detached' });
+      const kvar = await page.evaluate(() => ({ lagrat: sessionStorage.getItem('vk_anvandartest'), list: Boolean(document.getElementById('testlage')) }));
+      if (kvar.lagrat !== null || kvar.list) throw new Error('testläget finns kvar efter att testet avbrutits');
+    });
   } catch (e) {
     await page.screenshot({ path: join(UT, '00-fel.png'), fullPage: true }).catch(() => {});
   }
@@ -559,7 +588,7 @@ const MENY = {
         await mp.click('[data-a="meny"]');
         await mp.waitForSelector('#meny.oppen');
         await bild(mp, '31-mobil-meny');
-        for (const h of ['#/patient/p01/journal', '#/patient/p01/lakemedel', '#/remisser', '#/krav', '#/logg']) {
+        for (const h of ['#/patient/p01/journal', '#/patient/p01/lakemedel', '#/remisser', '#/krav', '#/anvandartest', '#/logg']) {
           if (h === '#/logg') continue;
           await mp.goto(`${BAS}/${h}`); await mp.waitForLoadState('networkidle');
           await ingenSidledsrullning(h);

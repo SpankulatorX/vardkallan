@@ -15,6 +15,7 @@ import * as krav from './vyer/krav.js';
 import * as moduler from './vyer/moduler.js';
 import * as oppetApi from './vyer/oppet-api.js';
 import * as drift from './vyer/drift.js';
+import * as anvandartest from './anvandartest.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -52,6 +53,7 @@ const RUTTER = [
   [/^#\/moduler$/, moduler, () => true, true],
   [/^#\/api$/, oppetApi, () => true],
   [/^#\/drift$/, drift, () => true, true],
+  [/^#\/anvandartest$/, anvandartest, () => true, true],
   [/^#\/patient\/([\w-]+)(?:\/([a-z]+))?(?:\/([\w-]+))?$/, patient, () => !arLogggranskare()],
 ];
 
@@ -242,41 +244,49 @@ export async function loggaIn(personalId, knapp) {
   if (location.hash === hem()) rita(); else location.hash = hem();
 }
 
+// Utloggning. Används av knappen Logga ut och av användartestet när uppgifterna är klara.
+export async function loggaUt() {
+  avbrytAllaAnrop();
+  if (avbrott.aktivt) {
+    const klarPaServern = await avbrottslage.loggaUtUnderAvbrott();
+    S.session = { inloggad: false };
+    S.inkorg = null;
+    ramNyckel = null;
+    document.getElementById('notiser').replaceChildren();
+    notis(klarPaServern ? 'Du är utloggad och läskopian är raderad.' : 'Du är utloggad i den här fliken och läskopian är raderad. Sessionen på servern loggas ut när förbindelsen är tillbaka, även om fliken stängs.', 'info');
+    if (location.hash === '#/') rita(); else location.hash = '#/';
+    return;
+  }
+  try { await api('/api/logout', { metod: 'POST', data: {} }); } catch (err) { felNotis(err); }
+  await avbrottslage.rensa().catch(() => {});
+  S.session = { inloggad: false };
+  S.inkorg = null;
+  ramNyckel = null;
+  // Nästa person ska inte se föregående persons meddelanden.
+  document.getElementById('notiser').replaceChildren();
+  notis('Du är utloggad.', 'info');
+  if (location.hash === '#/') rita(); else location.hash = '#/';
+}
+
+// Ny sandlåda med patienterna som i seeden. Inloggningen behålls.
+export async function aterstallDemo(knapp = null) {
+  const s = await medKnapp(knapp, () => api('/api/reset', { metod: 'POST', data: {} }));
+  const { ok, ...sess } = s;
+  S.session = sess;
+  notis('Demon är återställd. Alla ändringar är borta och patienterna är som från början.');
+  ramNyckel = null;
+  await uppdateraInkorg();
+  rita();
+}
+
 document.addEventListener('click', async (e) => {
   const b = e.target.closest('[data-a]');
   if (!b) return;
   const a = b.dataset.a;
   if (a === 'loggaut') {
-    avbrytAllaAnrop();
-    if (avbrott.aktivt) {
-      const klarPaServern = await avbrottslage.loggaUtUnderAvbrott();
-      S.session = { inloggad: false };
-      S.inkorg = null;
-      ramNyckel = null;
-      document.getElementById('notiser').replaceChildren();
-      notis(klarPaServern ? 'Du är utloggad och läskopian är raderad.' : 'Du är utloggad i den här fliken och läskopian är raderad. Sessionen på servern loggas ut när förbindelsen är tillbaka, även om fliken stängs.', 'info');
-      if (location.hash === '#/') rita(); else location.hash = '#/';
-      return;
-    }
-    try { await api('/api/logout', { metod: 'POST', data: {} }); } catch (err) { felNotis(err); }
-    await avbrottslage.rensa().catch(() => {});
-    S.session = { inloggad: false };
-    S.inkorg = null;
-    ramNyckel = null;
-    // Nästa person ska inte se föregående persons meddelanden.
-    document.getElementById('notiser').replaceChildren();
-    notis('Du är utloggad.', 'info');
-    if (location.hash === '#/') rita(); else location.hash = '#/';
+    await loggaUt();
   } else if (a === 'aterstall') {
-    try {
-      const s = await medKnapp(b, () => api('/api/reset', { metod: 'POST', data: {} }));
-      const { ok, ...sess } = s;
-      S.session = sess;
-      notis('Demon är återställd. Alla ändringar är borta och patienterna är som från början.');
-      ramNyckel = null;
-      await uppdateraInkorg();
-      rita();
-    } catch { /* notis visad */ }
+    try { await aterstallDemo(b); } catch { /* notis visad */ }
   } else if (a === 'avbrott') {
     await avbrottslage.simulera();
     notis('Avbrottet är simulerat. Den här fliken beter sig som om servern var nere. Servern är igång för alla andra.', 'info');
@@ -291,6 +301,7 @@ window.addEventListener('hashchange', () => rita());
 
 async function start() {
   avbrottslage.init();
+  anvandartest.init();
   try {
     S.session = await api('/api/session', { tyst: true });
     if (!avbrott.aktivt) await avbrottslage.slutforUtloggning().catch(() => {});

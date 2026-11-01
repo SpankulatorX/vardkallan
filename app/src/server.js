@@ -10,7 +10,7 @@ import * as lakemedel from './lakemedel.js';
 import * as remiss from './remiss.js';
 import * as fhir from './fhir.js';
 import { kravregister, lasTestresultat } from './krav.js';
-import { lasKlientresultat } from './klientresultat.js';
+import { lasKlientresultat, gransnittHash } from './klientresultat.js';
 import { YRKEN } from './seed/personal.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
@@ -18,6 +18,10 @@ const MAX_SESSIONER = 400;
 const SESSION_TTL = 8 * 3600_000;
 const MAX_KROPP = 64 * 1024;
 const SPARVERSION = 1;
+// Appens version och en hash av gränssnittet. /api/health visar dem, och användartestet märker resultatet med dem.
+const APPVERSION = (() => { try { return JSON.parse(readFileSync(join(import.meta.dir, '..', 'package.json'), 'utf8')).version; } catch { return null; } })();
+let gransnitt;
+const gransnittVersion = () => { if (gransnitt === undefined) { try { gransnitt = gransnittHash(PUBLIC); } catch { gransnitt = null; } } return gransnitt; };
 const VAL_TYPER = ['andra_enheter', 'nodatkomst', 'samtycke_sparr', 'visa_identitet'];
 // Läskopian för avbrott (D4): så många av de senaste anteckningarna per patient följer med.
 const LASKOPIA_ANTECKNINGAR = 5;
@@ -668,7 +672,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/drift']);
 
   async function api(req, server, url, c) {
-    if (url.pathname === '/api/health') return json({ ok: true, sandladar: sessioner.size });
+    if (url.pathname === '/api/health') return json({ ok: true, sandladar: sessioner.size, version: APPVERSION, gransnitt: gransnittVersion() });
     const metod = req.method;
     if (metod !== 'GET' && metod !== 'HEAD') kontrolleraOrigin(req);
     let traff = null;

@@ -600,6 +600,43 @@ body.laslage [data-laslage-av] { cursor: not-allowed; }
 .kb-motivering dt { font-weight: 600; }
 .kb-motivering dd { margin: 0; color: var(--blak-2); max-width: 90ch; }
 
+/* Användartest (D6). Listen med uppgiften ligger längst ner och täcker inget, eftersom sidan får lika mycket luft. */
+.testlage { position: fixed; left: 0; right: 0; bottom: 0; z-index: 55; background: var(--yta); border-top: 3px solid var(--kalla); box-shadow: 0 -2px 10px rgba(16, 33, 37, 0.12); }
+.testlage-inre { max-width: 1280px; margin: 0 auto; padding: 8px 20px; display: flex; gap: 14px; align-items: center; }
+.testlage-nr { margin: 0; flex: none; font-size: var(--f-xs); font-weight: 700; color: var(--kalla); text-transform: uppercase; letter-spacing: 0.04em; }
+.testlage-text { margin: 0; flex: 1; min-width: 0; font-size: var(--f-m); }
+.testlage-knappar { display: flex; gap: 6px; flex: none; flex-wrap: wrap; }
+body.testlage-aktivt { padding-bottom: var(--testlage-hojd, 64px); }
+body.testlage-aktivt #notiser { bottom: calc(var(--testlage-hojd, 64px) + 12px); }
+.anvandartest { max-width: 980px; }
+.anvandartest > .ruta, .anvandartest > form > .ruta, #at-start { max-width: 78ch; }
+.at-tabell .tal { white-space: nowrap; }
+.at-tabell caption { text-align: left; }
+.at-kopia[hidden] { display: none; }
+.anvandartest h2 { font-size: var(--f-l); margin-bottom: 8px; }
+.anvandartest fieldset legend { font-weight: 600; font-size: var(--f-s); margin-bottom: 4px; }
+.val { display: flex; gap: 8px; align-items: flex-start; margin: 6px 0; }
+.val input { width: 18px; height: 18px; min-height: 0; margin: 2px 0 0; flex: none; accent-color: var(--kalla); }
+.sus-lista { margin: 0; padding-left: 22px; }
+.sus-lista > li { margin: 0 0 12px; }
+.sus legend { font-weight: 400; font-size: var(--f-m); }
+.sus-skala { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sus-anda { font-size: var(--f-xs); color: var(--dampad); }
+.sus-val { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border: 1px solid var(--linje); border-radius: var(--r); cursor: pointer; }
+.sus-val:has(input:checked) { background: var(--kalla-ljus); border-color: var(--kalla); }
+.sus-val input { margin: 0; accent-color: var(--kalla); }
+.at-sus-poang { font-size: var(--f-l); }
+.at-knappar { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.at-kopia textarea { font-family: ui-monospace, monospace; font-size: var(--f-xs); }
+@media (max-width: 640px) {
+  .testlage-inre { flex-wrap: wrap; gap: 6px; padding: 8px 16px; }
+  .testlage-text { flex-basis: 100%; }
+  .sus-skala { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .sus-val { justify-content: center; }
+  .sus-anda { grid-row: 2; grid-column: 1 / span 3; }
+  .sus-anda:last-child { grid-column: 3 / span 3; text-align: right; }
+}
+
 /* Smalare skärmar */
 @media (max-width: 1100px) {
   .patientband { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "las id" "las signaler" "las grund"; }
