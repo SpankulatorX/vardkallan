@@ -209,6 +209,8 @@ Min journal är Vårdkällans egen e-tjänst för invånare: patienten läser si
 | Spärrade uppgifter | Visas för patienten själv. Spärren gäller vårdenheter emellan. Patienten ser vilka spärrar som finns. |
 | Vaccinationer, tidbokningar, intyg | Finns inte i journalen i demon och visas därför inte. Det står i tjänsten. |
 
+Att bara signerade anteckningar visas är ett val. Regioner som följer det nationella ramverket för 1177 journal visar i dag ofta också osignerade anteckningar, tydligt markerade, och låter patienten välja att inte se det som är nyare än 14 dagar (till exempel Region Gotlands rutin för 1177 Journalen, STY-09706, version 18.0, avsnitt 3.1). Regeln för osignerade anteckningar och fördröjningen av provsvar är inte konfigurerbara i demon; visningsreglerna för anteckningstyper är det.
+
 Den som har skrivit och signerat en anteckning visas med namn och titel, eftersom det är en del av journalen. Svaren innehåller inte personalens id eller HSA-id, inga NLL-meddelanden, inga varningskvittenser, inga larm och inga kontaktuppgifter.
 
 ### Vem har läst min journal

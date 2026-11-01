@@ -483,6 +483,11 @@ describe('Min journal', () => {
       expect((r.subject ?? r.patient).reference).toBe('Patient/p01');
     }
     expect(allt.entry.map(e => `${e.resource.resourceType}/${e.resource.id}`)).not.toContain(`Observation/${inr}`);
+    // Personalens id lämnas inte ut, bara namnet på den som skrev eller ordinerade.
+    const alltText = JSON.stringify(allt);
+    expect(alltText).not.toContain('Practitioner/');
+    for (const p of PERSONAL) expect(alltText).not.toContain(`"${p.id}"`);
+    expect(allt.entry.find(e => e.resource.resourceType === 'Composition').resource.author[0]).toEqual({ display: expect.any(String) });
     // Med p04: psykiatrins omvårdnadsanteckning visas inte heller i FHIR.
     const k4 = await som('inv-p04');
     const dold = db(k4).query("SELECT id FROM anteckningar WHERE patient_id = 'p04' AND enhet_id = 'uso-psyk' AND typ = 'Omvårdnadsanteckning'").get().id;

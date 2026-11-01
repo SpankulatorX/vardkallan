@@ -375,7 +375,14 @@ const INV_RAD = {
   Observation: (db, m) => provsvarVisas(m),
 };
 const synligFor = (db, typ, rad) => (INV_RAD[typ] ? INV_RAD[typ](db, rad) : true);
-const mappaInvanare = (db, typ, rad) => (typ === 'ServiceRequest' ? serviceRequest(db, rad, true) : MAPPA[typ](db, rad));
+// Personalens id lämnas inte ut till invånaren. Referenser till Practitioner får bara namnet, som är en del av journalen.
+const utanPersonalId = (r) => (r?.reference?.startsWith('Practitioner/') ? { display: r.display ?? 'Vårdpersonal' } : r);
+function mappaInvanare(db, typ, rad) {
+  const r = typ === 'ServiceRequest' ? serviceRequest(db, rad, true) : MAPPA[typ](db, rad);
+  if (r.author) r.author = r.author.map(utanPersonalId);
+  if (r.requester) r.requester = utanPersonalId(r.requester);
+  return r;
+}
 
 function hanteraInvanare(ctx, delar) {
   const { db, invanare, url, base } = ctx;

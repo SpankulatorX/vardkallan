@@ -59,6 +59,7 @@ export async function visa(main, [pid, del, sub], q, ctx = {}) {
     // Bara den egna journalen: den visas direkt. En vårdnadshavare väljer, så att det syns vems journal det är.
     if (j.length === 1 && j[0].atkomst && j[0].relation === 'egen') {
       history.replaceState(null, '', href(j[0].patientId));
+      main.dataset.vy = `min:${j[0].patientId}`;
       return visa(main, [j[0].patientId], q, ctx);
     }
     huvud = null;
@@ -78,13 +79,17 @@ export async function visa(main, [pid, del, sub], q, ctx = {}) {
     if (ctx.aktuell && !ctx.aktuell()) return;
     main.innerHTML = `<div class="min-vy">${bandHtml(huvud)}<div id="min-flikrad"></div><div class="min-del" id="min-del"></div></div>`;
   }
-  main.querySelector('#min-flikrad').innerHTML = flikarHtml(pid, f[0]);
+  // Den som bytte flik med tangentbordet behåller fokus på fliken när flikraden ritas om.
+  const flikrad = main.querySelector('#min-flikrad');
+  const hadeFokus = flikrad.contains(document.activeElement);
+  flikrad.innerHTML = flikarHtml(pid, f[0]);
   // På en smal skärm rullar flikraden i sidled. Den valda fliken ska synas.
   const rad = main.querySelector('.min-flikar');
   const vald = rad.querySelector('[aria-current]');
   if (rad.scrollWidth > rad.clientWidth) {
     rad.scrollLeft += vald.getBoundingClientRect().left - rad.getBoundingClientRect().left - (rad.clientWidth - vald.offsetWidth) / 2;
   }
+  if (hadeFokus) vald.focus({ preventScroll: true });
   const yttre = main.querySelector('#min-del');
   const el = document.createElement('div');
   el.innerHTML = '<p class="tom">Hämtar.</p>';

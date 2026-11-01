@@ -23,7 +23,7 @@ const VISAR_PATIENT = {
   'inv-p03': 'Har skyddade personuppgifter. Ser sina egna uppgifter, men namnet visas inte här i listan.',
   'inv-p04': 'Har spärrat uppgifter från psykiatrin. Ser själv allt, även det spärrade, och kan begära att spärren hävs.',
   'inv-p15': 'Psykiatrins mottagningsanteckningar visas 14 dagar efter signering, och omvårdnadsanteckningarna visas inte alls.',
-  'inv-vh01': 'Vårdnadshavare utan egen journal i demon. Läser sitt barns journal tills barnet fyller 13 år.',
+  'inv-vh01': 'Läser barnets journal tills barnet fyller 13 år, men kan inte spärra barnets uppgifter.',
 };
 
 const FLIKAR = [['personal', 'Personal'], ['patient', 'Patient']];
