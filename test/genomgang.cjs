@@ -1,13 +1,15 @@
 // Genomgång av Vårdkällans gränssnitt med Playwright. Loggar in som var och en av de åtta demorollerna,
-// går igenom varje vy rollen har och gör huvudflödena. Misslyckas vid konsolfel, sidfel eller HTTP 500.
+// går igenom varje vy rollen har och gör huvudflödena. Loggar sedan in som patienter i Min journal. Misslyckas vid
+// konsolfel, sidfel eller HTTP 500.
 //
 // Användning (servern måste vara igång):
 //   NODE_PATH=$(npm root -g) node test/genomgang.cjs [bas-url]
 // Standard för bas-url är http://127.0.0.1:18796. Skärmbilder sparas i test/skarmbilder/.
 //
-// Webbläsaren skriver "Failed to load resource ... 403" i konsolen när API:t nekar åtkomst. Det är väntat
-// där demon visar nekad åtkomst och nödåtkomst, så just de raderna räknas separat och redovisas. Alla andra
-// konsolfel, alla sidfel, alla svar med status 500 eller högre och saknade statiska filer räknas som fel.
+// Webbläsaren skriver "Failed to load resource ... 403" i konsolen när API:t nekar åtkomst, och 404 när Min journal
+// svarar att en annan patients journal inte finns. Det är väntat där demon visar nekad åtkomst, så just de raderna
+// räknas separat och redovisas. Alla andra konsolfel, alla sidfel, alla svar med status 500 eller högre och saknade
+// statiska filer räknas som fel.
 
 const { chromium } = require('@playwright/test');
 const { mkdirSync, rmSync } = require('node:fs');
@@ -28,7 +30,7 @@ function bevaka(page, namn) {
   page.on('console', m => {
     if (m.type() !== 'error') return;
     const t = m.text();
-    if (/Failed to load resource: the server responded with a status of 403/.test(t)) { vantade403.push(`${aktuelltSteg}`); return; }
+    if (/Failed to load resource: the server responded with a status of 40[34]/.test(t)) { vantade403.push(`${aktuelltSteg}`); return; }
     fel.push(`[${namn}] konsolfel i "${aktuelltSteg}": ${t}`);
   });
   page.on('response', r => {
@@ -80,6 +82,24 @@ async function loggaIn(page, id) {
   await page.click(`[data-roll="${id}"]`);
   await page.waitForSelector('[data-a="loggaut"]');
   await vantaVy(page);
+}
+
+// Inloggning i Min journal med simulerad e-legitimation.
+async function loggaInPatient(page, id) {
+  await page.goto(`${BAS}/#/`);
+  await page.waitForLoadState('networkidle');
+  if (await page.locator('[data-a="loggaut"]').count()) await page.click('[data-a="loggaut"]');
+  await page.waitForSelector('#flik-patient');
+  await page.click('#flik-patient');
+  await page.click(`[data-invanare="${id}"]`);
+  await page.waitForSelector('[data-a="loggaut"]');
+  await vantaVy(page);
+}
+const MIN_FLIKAR = ['Översikt', 'Anteckningar', 'Diagnoser', 'Läkemedel', 'Provsvar', 'Remisser', 'Vem har läst', 'Spärrar'];
+async function minFlik(page, text) {
+  await page.click(`.min-flikar a:text-is("${text}")`);
+  await page.waitForLoadState('networkidle');
+  await page.waitForFunction(() => !document.querySelector('.min-del .tom')?.textContent.startsWith('Hämtar'));
 }
 
 // Besöker varje menyval rollen har och kontrollerar att vyn visas utan felruta.
@@ -501,6 +521,119 @@ const MENY = {
     });
     await allaVyer(page, 'Amira Haddad', MENY.utanRemiss);
 
+    // Min journal: patienterna själva, i samma sandlåda som personalen ovan.
+    await s('inloggningssidan har val mellan Personal och Patient, och patientlistan visar inte den skyddade patientens namn', async () => {
+      await page.goto(`${BAS}/#/`);
+      await page.waitForLoadState('networkidle');
+      if (await page.locator('[data-a="loggaut"]').count()) await page.click('[data-a="loggaut"]');
+      await page.waitForSelector('#flik-personal[aria-selected="true"]');
+      if (!(await page.locator('#panel-patient').isHidden())) throw new Error('patientpanelen syns innan den valts');
+      await page.click('#flik-patient');
+      await forvanta(page, '#patientlista', 'Gunnar Åkesson');
+      await forvanta(page, '#patientlista', 'Johanna Bergström');
+      await forvanta(page, '#patientlista', 'Skyddad identitet');
+      await forvanta(page, '#patientlista', '19840416-****');
+      await saknas(page, 'Engberg');
+      if (await page.locator('[data-invanare="inv-p09"]').count()) throw new Error('barnet under 16 år kan väljas');
+      if (!page.url().endsWith('#/?vy=patient')) throw new Error(`adressen är ${page.url()}`);
+      await bild(page, '45-inloggning-patient', true);
+      // Tangentbordet: pil vänster går tillbaka till Personal.
+      await page.focus('#flik-patient');
+      await page.keyboard.press('ArrowLeft');
+      await page.waitForSelector('#flik-personal[aria-selected="true"]');
+      const fokus = await page.evaluate(() => document.activeElement?.id);
+      if (fokus !== 'flik-personal') throw new Error(`fokus på ${fokus}`);
+      if (!(await page.locator('#panel-patient').isHidden())) throw new Error('patientpanelen syns fortfarande');
+    });
+    await s('Gunnar Åkesson loggar in i Min journal och ser översikten utan personalens meny', async () => {
+      await loggaInPatient(page, 'inv-p01');
+      await forvanta(page, '.min-band h1', 'Gunnar Åkesson');
+      await forvanta(page, '.inloggad', 'Inloggad med e-legitimation (simulerad)');
+      if (await page.locator('#meny, .svarstid, [data-a="avbrott"]:visible').count()) throw new Error('personalens meny, svarstid eller avbrottsknapp visas');
+      const flikar = await page.locator('.min-flikar a').allTextContents();
+      if (JSON.stringify(flikar) !== JSON.stringify(MIN_FLIKAR)) throw new Error(`flikar ${flikar}`);
+      await forvanta(page, '.oversikt-rutnat', 'Penicilliner');
+      await forvanta(page, '.min-del .ruta-info', 'ett provsvar som inte är vidimerat än');
+      await bild(page, '46-min-oversikt', true);
+    });
+    await s('Gunnar: Vem har läst visar vårdenhet, yrkesroll och grund men inga namn på personalen', async () => {
+      await minFlik(page, 'Vem har läst');
+      await forvanta(page, '.min-logg', 'Kardiologiska kliniken USÖ');
+      await forvanta(page, '.min-logg', 'Avdelning 72, kardiologi');
+      await forvanta(page, '.min-logg', 'Akutmottagningen USÖ');
+      await forvanta(page, '.min-logg', 'Vårdcentralen Tybble');
+      await forvanta(page, '.min-logg', 'Sjuksköterska');
+      await forvanta(page, '.min-namn', 'Namnet på den som läste visas inte här');
+      for (const n of ['Sara Lindqvist', 'Johan Ek', 'Amira Haddad', 'Per Holm', 'Karin Berg', 'Erik Nyström']) await saknas(page, n);
+      if (await page.locator('.min-logg [data-egen]:visible').count()) throw new Error('egna besök visas utan att de valts');
+      await page.check('#min-egna');
+      await page.locator('.min-logg [data-egen]').first().waitFor({ state: 'visible' });
+      await page.uncheck('#min-egna');
+      await bild(page, '47-min-vem-har-last', true);
+      await page.click('[data-loggutdrag]');
+      await forvanta(page, '.notis', 'Begäran om loggutdrag är skickad');
+    });
+    await s('Gunnar: provsvaret väntar på vidimering och en anteckning öppnas i sin helhet', async () => {
+      await minFlik(page, 'Provsvar');
+      await forvanta(page, '.min-del .ruta-info', 'PK (INR)');
+      await forvanta(page, '.min-matlista', 'Puls');
+      await minFlik(page, 'Anteckningar');
+      await page.locator('.min-ant li', { hasText: 'Rättad' }).first().locator('a').click();
+      await page.waitForSelector('.min-anteckning');
+      await forvanta(page, '.min-anteckning', 'Anteckningen är rättad');
+      await forvanta(page, '.min-anteckning', 'Skriven av');
+      await page.click('.version-gammal summary');
+      await forvanta(page, '.min-anteckning', 'Fel vikt i första versionen.');
+      await forvanta(page, '.version-gammal .overstruken', 'Vikt 81,6 kg');
+      await bild(page, '48-min-anteckning', true);
+    });
+    await s('Gunnar: personalens sidor och andra patienters journaler går inte att nå', async () => {
+      await page.goto(`${BAS}/#/arbetslista`);
+      await page.waitForURL(/#\/min/);
+      await page.goto(`${BAS}/#/patient/p02`);
+      await page.waitForURL(/#\/min/);
+      await vantaVy(page);
+      await gaTill(page, '#/min/p02');
+      await forvanta(page, 'main h1', 'Journalen finns inte');
+      await saknas(page, 'Lindberg');
+      await gaTill(page, '#/krav');
+      await forvanta(page, '.testkorning', 'tester gröna');
+    });
+    await s('Elin Sandberg ser psykiatrins uppgifter trots spärren och begär att spärren hävs', async () => {
+      await loggaInPatient(page, 'inv-p04');
+      await forvanta(page, '.min-band', 'En spärr mot andra vårdenheter');
+      await minFlik(page, 'Anteckningar');
+      await forvanta(page, '.min-ant', 'Allmänpsykiatriska kliniken USÖ');
+      await forvanta(page, '.min-dolda', 'Visas inte i Min journal');
+      await minFlik(page, 'Spärrar');
+      await forvanta(page, '.min-del', 'Allmänpsykiatriska kliniken USÖ');
+      await page.click('[data-hav="uso-psyk"]');
+      await forvanta(page, '.notis', 'Begäran är skickad till vården');
+      await forvanta(page, '.min-del', 'Häva en spärr');
+      await forvanta(page, '.min-del', 'inte behandlad än');
+      await bild(page, '49-min-sparrar', true);
+    });
+    await s('David Nordin: psykiatrins nya mottagningsanteckning visas senare', async () => {
+      await loggaInPatient(page, 'inv-p15');
+      await minFlik(page, 'Anteckningar');
+      await forvanta(page, '.min-dolda', 'Visas senare');
+      await saknas(page, 'I remission');
+    });
+    await s('Johanna Bergström läser Leos journal som vårdnadshavare men kan inte spärra den', async () => {
+      await loggaInPatient(page, 'inv-vh01');
+      await forvanta(page, 'main h1', 'Min journal');
+      await forvanta(page, '.min-journaler', 'Leo Bergström');
+      await forvanta(page, 'main', 'Det finns ingen journal om dig själv');
+      await page.click('.min-journaler a');
+      await forvanta(page, '.min-band h1', 'Leo Bergström');
+      await forvanta(page, '.min-band', 'Du läser som vårdnadshavare');
+      await forvanta(page, '.oversikt-rutnat', 'Jordnöt');
+      await bild(page, '50-min-vardnadshavare', true);
+      await minFlik(page, 'Spärrar');
+      await forvanta(page, '.min-del', 'En vårdnadshavare kan inte spärra barnets uppgifter');
+      if (await page.locator('#min-sparrform').count()) throw new Error('vårdnadshavaren kan begära spärr');
+    });
+
     // Mats Wall, logggranskare
     await s('Mats Wall loggar in och landar i logguppföljningen med hel loggkedja', async () => {
       await loggaIn(page, 'logg');
@@ -528,6 +661,13 @@ const MENY = {
       await page.waitForURL(/flagga=nekad/);
       await vantaVy(page);
       await forvanta(page, '.logg-tabell', 'Nekad');
+    });
+    await s('Mats Wall ser patienternas egna läsningar i Min journal, utan flagga', async () => {
+      await gaTill(page, '#/logg');
+      const rad = page.locator('.logg-tabell tr', { hasText: 'Patienten själv' }).first();
+      await rad.waitFor();
+      if (await rad.evaluate(tr => tr.classList.contains('flaggad'))) throw new Error('patientens egen läsning är flaggad');
+      await forvanta(page, '.logg-tabell', 'Johanna Bergström');
     });
     await s('Mats Wall öppnar logglistan för Gunnar Åkesson och ser dagens åtkomster', async () => {
       await gaTill(page, '#/sok?q=Åkesson');
@@ -610,16 +750,38 @@ const MENY = {
           await ingenSidledsrullning(h);
         }
       });
+      await s('mobil: Min journal på 360 px', async () => {
+        await mp.goto(`${BAS}/#/`); await mp.waitForLoadState('networkidle');
+        await mp.click('[data-a="loggaut"]');
+        await mp.waitForSelector('#flik-patient');
+        await mp.click('#flik-patient');
+        await mp.waitForSelector('[data-invanare="inv-p01"]');
+        await ingenSidledsrullning('inloggning, patient');
+        await bild(mp, '51-mobil-inloggning-patient');
+        await mp.click('[data-invanare="inv-p01"]');
+        await mp.waitForSelector('.min-band h1');
+        await mp.waitForSelector('.oversikt-rutnat');
+        await ingenSidledsrullning('Min journal, översikt');
+        await bild(mp, '52-mobil-min-oversikt');
+        for (const f of MIN_FLIKAR.slice(1)) {
+          await minFlik(mp, f);
+          await ingenSidledsrullning(`Min journal, ${f}`);
+          if (f === 'Vem har läst') await bild(mp, '53-mobil-min-vem-har-last');
+        }
+        await mp.goto(`${BAS}/#/min/p01/anteckningar`); await mp.waitForSelector('.min-ant');
+        await mp.click('.min-ant a >> nth=0'); await mp.waitForSelector('.min-anteckning');
+        await ingenSidledsrullning('Min journal, anteckning');
+      });
     }
   } catch { await mp.screenshot({ path: join(UT, '00-fel-mobil.png'), fullPage: true }).catch(() => {}); }
 
   await browser.close();
   console.log('');
-  console.log(`Väntade nekade anrop (403) i konsolen: ${vantade403.length} (${[...new Set(vantade403)].join('; ')})`);
+  console.log(`Väntade nekade anrop (403 och 404) i konsolen: ${vantade403.length} (${[...new Set(vantade403)].join('; ')})`);
   if (fel.length) {
     console.log(`\nGenomgången misslyckades: ${steg} steg, ${fel.length} fel`);
     for (const f of fel) console.log(`  ${f}`);
     process.exit(1);
   }
-  console.log(`Genomgången klar: ${steg} steg, 0 fel, 8 roller. Skärmbilder i ${UT}`);
+  console.log(`Genomgången klar: ${steg} steg, 0 fel, 8 roller och 5 patienter i Min journal. Skärmbilder i ${UT}`);
 })().catch(e => { console.error(e); process.exit(1); });

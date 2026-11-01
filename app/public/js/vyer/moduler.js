@@ -11,6 +11,7 @@ const FINNS = [
   ['Mätvärden', 'Vitalparametrar och labbvärden med trend per typ och registrering av nya värden.', null],
   ['Behörighet och logg', 'Vårdrelation, inre sekretess med aktivt val, spärr med samtycke, nödåtkomst, skyddade personuppgifter och en logg som inte går att ändra, med logguppföljning.', '#/logg'],
   ['Väntrum med könummer', 'Uppropning med könummer för alla patienter. Namnet på en skyddad patient lämnar aldrig servern.', '#/vantrum'],
+  ['Min journal för patienten', 'Invånarens egen e-tjänst med simulerad e-legitimation: anteckningar, diagnoser, läkemedel, provsvar och remisser efter vårdgivarens visningsregler, och vem som har läst journalen, med vårdenhet, yrkesroll, tid och grund. Spärr och loggutdrag begärs hos vården. Vårdnadshavare läser barnets journal till 13 år.', '#/?vy=patient'],
   ['Öppet FHIR-API', 'FHIR R4 för läsning av alla resurser, med samma behörighet och loggning som gränssnittet. Inte validerat mot HL7 Swedens basprofiler.', '#/api'],
   ['Migreringsavstämning och kravspårbarhet', 'Avstämning av migrerade poster och ett kravregister där varje krav pekar på sina automatiska tester.', '#/migrering'],
 ];

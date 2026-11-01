@@ -4,7 +4,9 @@ import { ENHETER } from './seed/enheter.js';
 import { PERSONAL } from './seed/personal.js';
 import { KATALOG } from './seed/lakemedel-katalog.js';
 import { PATIENTER, REMISSER, VANTRUM, LOGG, MIGRERING_AVVIKELSER } from './seed/patienter.js';
+import { VARDNADSHAVARE, VISNINGSREGLER } from './seed/invanare.js';
 import { loggaRad } from './logg.js';
+import { MATKOD } from './kodverk.js';
 
 // Fel som API:t svarar med. kod: nekad | saknas | ogiltig | kraver_val | kraver_samtycke
 export class Fel extends Error {
@@ -52,7 +54,7 @@ CREATE TABLE diagnoser (
 CREATE TABLE matvarden (
   id INTEGER PRIMARY KEY, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, typ TEXT NOT NULL,
   varde TEXT NOT NULL, varde_num REAL, matt_enhet TEXT, tid TEXT NOT NULL, registrerad_av TEXT,
-  kalla TEXT NOT NULL DEFAULT 'vardkallan'
+  kalla TEXT NOT NULL DEFAULT 'vardkallan', vidimerad TEXT
 );
 CREATE TABLE overkanslighet (
   id INTEGER PRIMARY KEY, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, amne TEXT NOT NULL, atc TEXT,
@@ -102,7 +104,7 @@ CREATE TABLE installningar (nyckel TEXT PRIMARY KEY, varde TEXT);
 CREATE TABLE atkomstlogg (
   id INTEGER PRIMARY KEY, tid TEXT NOT NULL, personal_id TEXT, enhet_id TEXT, patient_id TEXT,
   handling TEXT NOT NULL, resurs TEXT, grund TEXT NOT NULL, syfte TEXT, resultat TEXT NOT NULL,
-  prev_hash TEXT NOT NULL, hash TEXT NOT NULL
+  prev_hash TEXT NOT NULL, hash TEXT NOT NULL, invanare_id TEXT
 );
 CREATE INDEX ix_logg_patient ON atkomstlogg (patient_id);
 CREATE INDEX ix_ant_patient ON anteckningar (patient_id);
@@ -126,6 +128,26 @@ CREATE TRIGGER ordination_raderas_ej BEFORE DELETE ON ordinationer
   BEGIN SELECT RAISE(ABORT, 'Ordinationer raderas inte, de sätts ut'); END;
 CREATE TRIGGER remiss_raderas_ej BEFORE DELETE ON remisser
   BEGIN SELECT RAISE(ABORT, 'Remisser raderas inte'); END;
+`;
+
+// Min journal: invånare som loggar in med simulerad e-legitimation, vårdnadshavare, vårdgivarens visningsregler och
+// invånarnas begäranden till vården. IF NOT EXISTS, så att samma schema också kan läggas till i en äldre sandlåda.
+const SCHEMA_INVANARE = `
+CREATE TABLE IF NOT EXISTS invanare (
+  id TEXT PRIMARY KEY, personnummer TEXT NOT NULL UNIQUE, fornamn TEXT NOT NULL, efternamn TEXT NOT NULL,
+  fodd TEXT NOT NULL, patient_id TEXT
+);
+CREATE TABLE IF NOT EXISTS vardnadshavare (invanare_id TEXT NOT NULL, barn_id TEXT NOT NULL, PRIMARY KEY (invanare_id, barn_id));
+CREATE TABLE IF NOT EXISTS visningsregler (
+  id INTEGER PRIMARY KEY, enhet_id TEXT, anteckningstyp TEXT, visning TEXT NOT NULL, dagar INTEGER, motivering TEXT NOT NULL,
+  CHECK (visning IN ('direkt', 'fordrojd', 'visas_inte')), CHECK (visning <> 'fordrojd' OR dagar > 0)
+);
+CREATE TABLE IF NOT EXISTS begaran (
+  id INTEGER PRIMARY KEY, patient_id TEXT NOT NULL, invanare_id TEXT NOT NULL, typ TEXT NOT NULL, enhet_id TEXT,
+  meddelande TEXT, skapad TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'skickad'
+);
+CREATE TRIGGER IF NOT EXISTS begaran_raderas_ej BEFORE DELETE ON begaran
+  BEGIN SELECT RAISE(ABORT, 'En begäran raderas inte'); END;
 `;
 
 // Tid och datum. Tider lagras som ISO i UTC, datum som YYYY-MM-DD i svensk tid.
@@ -193,6 +215,7 @@ export function byggSeed(bas = nu()) {
   const { tid, datum } = tolkare(bas);
   const db = new Database(':memory:');
   db.exec(SCHEMA);
+  db.exec(SCHEMA_INVANARE);
   const insE = db.query('INSERT INTO enheter VALUES (?, ?, ?, ?, ?, ?)');
   for (const e of ENHETER) insE.run(e.id, e.hsa, e.namn, e.kortnamn ?? null, e.typ, e.forald);
   const insP = db.query('INSERT INTO personal VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
@@ -206,7 +229,7 @@ export function byggSeed(bas = nu()) {
   const insAnt = db.query(`INSERT INTO anteckningar (patient_id, enhet_id, vardkontakt_id, typ, kategori, sokord, forfattare_id, skapad, status, signerad_tid, signerad_av, ersatter_id, rattelse_orsak, version, kalla)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   const insDia = db.query('INSERT INTO diagnoser (patient_id, enhet_id, vardkontakt_id, kod, text, typ, datum, kalla) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-  const insMv = db.query('INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, matt_enhet, tid, registrerad_av, kalla) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+  const insMv = db.query('INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, matt_enhet, tid, registrerad_av, kalla, vidimerad) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
   const insOk = db.query('INSERT INTO overkanslighet (patient_id, enhet_id, amne, atc, reaktion, allvarlighet, datum, kalla) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
   const insOrd = db.query(`INSERT INTO ordinationer (patient_id, enhet_id, lakemedel_id, dosering, dos, dos_enhet, tider, vid_behov, typ, orsak, uppfoljning, start, slut, status, utsatt_tid, utsatt_av, utsatt_orsak, ordinerad_av, skapad, nll_status, kalla)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
@@ -241,8 +264,10 @@ export function byggSeed(bas = nu()) {
       }
     }
     for (const [typ, enhet, punkter, kalla] of p.matvarden) {
-      for (const [t, varde] of punkter) {
-        insMv.run(p.id, enhet, typ, String(varde), typeof varde === 'number' ? varde : null, enhetMatt[typ] ?? null, tid(t), null, kalla ?? 'vardkallan');
+      for (const [t, varde, extra] of punkter) {
+        const mt = tid(t);
+        insMv.run(p.id, enhet, typ, String(varde), typeof varde === 'number' ? varde : null, enhetMatt[typ] ?? null, mt, null, kalla ?? 'vardkallan',
+          arLabb(typ) && !extra?.ejVidimerad ? vidimeradTid(mt, bas) : null);
       }
     }
     for (const o of p.ordinationer) {
@@ -305,8 +330,44 @@ export function byggSeed(bas = nu()) {
     loggaRad(db, { tid: tid(l.tid), personal_id: l.av, enhet_id: pers[l.av].enhet, patient_id: l.patient, handling: l.handling,
       resurs: l.resurs ?? null, grund: l.grund, syfte: l.syfte ?? null, resultat: l.resultat });
   }
+  seedaInvanare(db);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
+  return db;
+}
+
+// Provsvar från laboratoriet vidimeras av ansvarig läkare. I seeden är ett provsvar vidimerat två timmar efter
+// provtagningen, utom de som är märkta { ejVidimerad: true } och de som är för nya för att ha hunnit vidimeras.
+const arLabb = (typ) => MATKOD[typ]?.kategori === 'laboratory';
+function vidimeradTid(provtid, bas) {
+  const t = Date.parse(provtid) + 2 * 3600_000;
+  return t < bas.getTime() ? new Date(t).toISOString() : null;
+}
+
+// Invånarna i Min journal: varje patient, och vårdnadshavare utan egen journal. Visningsreglerna är vårdgivarens.
+function seedaInvanare(db) {
+  const insI = db.query('INSERT INTO invanare (id, personnummer, fornamn, efternamn, fodd, patient_id) VALUES (?, ?, ?, ?, ?, ?)');
+  for (const p of PATIENTER) insI.run(`inv-${p.id}`, p.pnr, p.fornamn, p.efternamn, fodelsedatum(p.pnr), p.id);
+  for (const v of VARDNADSHAVARE) {
+    insI.run(v.id, v.pnr, v.fornamn, v.efternamn, fodelsedatum(v.pnr), null);
+    for (const b of v.barn) db.query('INSERT INTO vardnadshavare VALUES (?, ?)').run(v.id, b);
+  }
+  const insR = db.query('INSERT INTO visningsregler (enhet_id, anteckningstyp, visning, dagar, motivering) VALUES (?, ?, ?, ?, ?)');
+  for (const r of VISNINGSREGLER) insR.run(r.enhet ?? null, r.typ ?? null, r.visning, r.dagar ?? null, r.motivering);
+}
+
+// En sandlåda som sparades före Min journal saknar dess tabeller och kolumner. De läggs till när sandlådan läses in.
+// Provsvar som fanns innan vidimeringen infördes räknas som vidimerade när de togs.
+export function migrera(db) {
+  const kolumner = (t) => db.query(`PRAGMA table_info(${t})`).all().map(k => k.name);
+  if (!kolumner('matvarden').includes('vidimerad')) {
+    db.exec('ALTER TABLE matvarden ADD COLUMN vidimerad TEXT');
+    const labb = Object.keys(MATKOD).filter(arLabb);
+    db.query(`UPDATE matvarden SET vidimerad = tid WHERE typ IN (${labb.map(() => '?').join(', ')})`).run(...labb);
+  }
+  if (!kolumner('atkomstlogg').includes('invanare_id')) db.exec('ALTER TABLE atkomstlogg ADD COLUMN invanare_id TEXT');
+  db.exec(SCHEMA_INVANARE);
+  if (!db.query('SELECT 1 FROM invanare LIMIT 1').get()) seedaInvanare(db);
   return db;
 }
 
@@ -336,7 +397,7 @@ export function nySessionsDb() {
 }
 
 export function lasSandlada(base64) {
-  return Database.deserialize(Buffer.from(base64, 'base64'));
+  return migrera(Database.deserialize(Buffer.from(base64, 'base64')));
 }
 
 export function installning(db, nyckel, varde) {

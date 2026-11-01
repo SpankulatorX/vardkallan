@@ -12,7 +12,7 @@ Validering av Vårdkällans FHIR-svar mot FHIR R4 och HL7 Swedens basprofiler, g
 | Basprofiler | `hl7se.fhir.base` 1.1.0 (HL7 Sweden, Swedish Base Profiles Implementation Guide, byggd 2025-05-20), senaste versionen i både packages.fhir.org och packages.simplifier.net. Kanonisk adress `http://hl7.se/fhir/ig/base`. Paketet sha256 3d31a95de3a67a0deba8e2cd3a9a6582d51464a6028e66e35063024bd18372b7 |
 | Beroenden som validatorn hämtade | `hl7.terminology.r4` 6.3.0 och 6.2.0, `hl7.fhir.uv.extensions.r4` 5.2.0, `hl7.terminology` 7.5.0, `hl7.fhir.uv.extensions` 5.4.0, `hl7.fhir.xver-extensions` 0.1.0 |
 | Terminologi | https://tx.fhir.org (LOINC 2.83, ATC, UCUM) |
-| Egna definitioner | `app/src/fhir-definitioner.js`: sex tillägg, fem kodsystem och fem värdemängder, version 0.2.0. Laddas med `-ig` |
+| Egna definitioner | `app/src/fhir-definitioner.js`: sex tillägg, fem kodsystem och fem värdemängder, version 0.2.0. Laddas med `-ig`. Version 0.3.0 (2026-11-01) lade till koderna `egen_atkomst` och `vardnadshavare` i kodsystemet `atkomstgrund` för Min journal; valideringen ovan gjordes med 0.2.0 |
 
 Basprofilerna finns för Patient, Organization, Practitioner och PractitionerRole (och datatyperna HumanName och Address). Övriga resurstyper har ingen svensk basprofil och validerades mot FHIR R4.
 

@@ -352,13 +352,14 @@ async function aterga() {
     let annan = false;
     if (!utloggad) {
       try { s = await api('/api/session', { tyst: true, direkt: true }); } catch (e) { if (!e?.status) return; }
-      if (forra && s.inloggad && s.personal.id !== forra.personalId) { s = { inloggad: false }; annan = true; }
+      // En inloggad patient eller en annan person i personalen tar inte över läsläget.
+      if (forra && s.inloggad && s.personal?.id !== forra.personalId) { s = { inloggad: false }; annan = true; }
     }
     avbrott.aktivt = false;
     meta = null;
     kopia.stang();
     S.session = s;
-    if (s.inloggad) await kopia.satNyckel(s.lasnyckel, s.personal.id);
+    if (s.inloggad && s.personal) await kopia.satNyckel(s.lasnyckel, s.personal.id);
     else if (forra?.reserv) kopia.glomFlik();
     else await kopia.rensa();
     stoppa();

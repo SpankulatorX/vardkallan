@@ -10,6 +10,7 @@ import * as journal from './journal.js';
 import * as lakemedel from './lakemedel.js';
 import * as remiss from './remiss.js';
 import * as fhir from './fhir.js';
+import * as minJournal from './patientvy.js';
 import { kravregister, lasTestresultat } from './krav.js';
 import { lasKlientresultat, gransnittHash } from './klientresultat.js';
 import { YRKEN } from './seed/personal.js';
@@ -131,7 +132,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     }
     return aktuellKopia(s);
   }
-  const nySession = () => ({ db: nySessionsDb(), personalId: null, val: {}, sist: Date.now(), matning: new Matning(200), lasnyckel: null, oppnade: new Set(), kopior: new Map() });
+  // personalId och invanareId är aldrig satta samtidigt: personalens och invånarens inloggning utesluter varandra.
+  const nySession = () => ({ db: nySessionsDb(), personalId: null, invanareId: null, val: {}, sist: Date.now(), matning: new Matning(200), lasnyckel: null, oppnade: new Set(), kopior: new Map() });
   // Läskopian som id:t gäller, i den sandlåda som lämnade ut den. Kräver ingen session: loggen från läsläget visar
   // själv att den kommer från den som hade läskopian, eftersom den är krypterad med läskopians nyckel.
   function hittaKopia(id) {
@@ -181,7 +183,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       for (const x of JSON.parse(readFileSync(sessionFil, 'utf8'))) {
         if (x.v !== SPARVERSION || x.sist < grans || !/^[A-Za-z0-9_-]{32}$/.test(x.sid)) continue;
         const s = {
-          db: lasSandlada(x.db), personalId: x.personalId, val: x.val ?? {}, sist: x.sist, matning: new Matning(200),
+          db: lasSandlada(x.db), personalId: x.personalId, invanareId: x.personalId ? null : x.invanareId ?? null, val: x.val ?? {}, sist: x.sist, matning: new Matning(200),
           lasnyckel: x.lasnyckel ?? null, oppnade: new Set(x.oppnade ?? []),
           kopior: new Map((x.kopior ?? []).map(([id, k]) => [id, { ...k, patienter: new Map(k.patienter), loggIds: new Set(k.loggIds) }])),
         };
@@ -200,7 +202,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   function spara() {
     if (!sessionFil) return 0;
     const lista = [...sessioner].map(([sid, x]) => ({
-      v: SPARVERSION, sid, personalId: x.personalId, val: x.val, sist: x.sist, db: Buffer.from(x.db.serialize()).toString('base64'),
+      v: SPARVERSION, sid, personalId: x.personalId, invanareId: x.invanareId, val: x.val, sist: x.sist, db: Buffer.from(x.db.serialize()).toString('base64'),
       lasnyckel: x.lasnyckel, oppnade: [...x.oppnade],
       kopior: [...x.kopior].map(([id, k]) => [id, { ...k, patienter: [...k.patienter], loggIds: [...k.loggIds] }]),
     }));
@@ -249,11 +251,16 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // Patientens namn och personnummer, maskerade för skyddad identitet, för listor utanför journalen.
   const patientKort = (p) => ({ id: p.id, namn: visningsnamn(p), personnummer: visningsPnr(p), skyddad: Boolean(p.skyddad) });
 
+  // roll är personal (simulerat SITHS-kort) eller invanare (simulerad e-legitimation, Min journal). Invånaren får
+  // ingen nyckel till läskopian och inga behörigheter för personalens handlingar.
   function sessionUt(s) {
     const p = personalRad(s.db, s.personalId);
-    const ut = { inloggad: Boolean(p), demoDatum: installning(s.db, 'seed_datum') ?? idag() };
+    const inv = p ? null : minJournal.invanareRad(s.db, s.invanareId);
+    const ut = { inloggad: Boolean(p || inv), demoDatum: installning(s.db, 'seed_datum') ?? idag() };
+    if (inv) Object.assign(ut, { roll: 'invanare' }, minJournal.sessionDel(s.db, inv));
     if (p) {
       const ve = vardenhetFor(s.db, p.enhet_id);
+      ut.roll = 'personal';
       ut.personal = { id: p.id, namn: p.namn, yrke: p.yrke, yrkeText: YRKEN[p.yrke], titel: p.titel, hsaId: p.hsa_id };
       ut.enhet = { ...enhetKort(s.db, p.enhet_id), vardenhet: enhetKort(s.db, ve) };
       ut.behorigheter = ROLLER[p.yrke] ?? [];
@@ -565,9 +572,15 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     return { ok: true, val: valFor(c.s, p.id) };
   }
 
+  // Personalens API:er kräver personalens inloggning. En invånare som är inloggad i Min journal får samma svar som den
+  // som inte är inloggad alls, och omvänt för Min journal.
   const kravInloggad = (c) => {
-    if (!c.personal) throw new Fel(401, 'Logga in först.', 'ej_inloggad');
+    if (!c.personal) throw new Fel(401, c.invanare ? 'Den här delen är för vårdens personal. Logga in med SITHS-kort.' : 'Logga in först.', 'ej_inloggad');
     return c.personal;
+  };
+  const kravInvanare = (c) => {
+    if (!c.invanare) throw new Fel(401, 'Logga in med e-legitimation för att läsa din journal.', 'ej_inloggad');
+    return c.invanare;
   };
   const kravRoll = (c, handling) => {
     kravInloggad(c);
@@ -586,6 +599,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const p = typeof c.body.personalId === 'string' ? c.db.query('SELECT * FROM personal WHERE id = ? AND demo = 1').get(c.body.personalId) : null;
     if (!p) throw new Fel(400, 'Välj en av demorollerna.', 'ogiltig', { falt: ['personalId'] });
     c.s.personalId = p.id;
+    c.s.invanareId = null;
     c.s.val = {};
     // Ny nyckel och ny läskopia vid varje inloggning, så att en tidigare persons kopia inte går att läsa. Den förra
     // läskopian finns kvar på servern tills den går ut, bara för att kunna ta emot loggen från läsläget.
@@ -602,15 +616,36 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     let lasloggen;
     try {
       if (c.personal && Array.isArray(c.body?.rader)) lasloggen = lasekopiaLogg(c);
+      // Bara personalen har läskopia. Rader från läsläget i en session där ingen personal är inloggad tas inte emot,
+      // och det står i svaret så att klienten kan säga det.
+      else if (Array.isArray(c.body?.rader) && c.body.rader.length) {
+        lasloggen = { mottagna: 0, avvisade: [], fel: 'Åtkomsterna från läsläget kunde inte tas emot, eftersom ingen personal är inloggad i sessionen.' };
+      }
     } catch (e) {
       lasloggen = { mottagna: 0, avvisade: [], fel: e instanceof Fel ? e.message : 'Raderna kunde inte tas emot.' };
     } finally {
       // Läskopian stängs: rader från läsningar före utloggningen tas fortfarande emot, senare läsningar inte.
       const akt = aktuellKopia(c.s);
       if (akt) akt.stangd = new Date().toISOString();
-      c.s.personalId = null; c.s.val = {}; c.s.lasnyckel = null; c.s.oppnade = new Set();
+      c.s.personalId = null; c.s.invanareId = null; c.s.val = {}; c.s.lasnyckel = null; c.s.oppnade = new Set();
     }
     return { ...sessionUt(c.s), ...(lasloggen ? { lasloggen } : {}) };
+  });
+  // Inloggning i Min journal med simulerad e-legitimation. Personalens inloggning, val och läskopia nollställs, och
+  // sessionskakan byts som vid personalens inloggning.
+  rutt('GET', '/api/demo/invanare', (c) => minJournal.demoInvanare(c.db));
+  rutt('POST', '/api/login/invanare', (c) => {
+    const inv = minJournal.provaInloggning(c.db, c.body.invanareId);
+    c.s.invanareId = inv.id;
+    c.s.personalId = null;
+    c.s.val = {};
+    // Personalens läskopia stängs som vid utloggning.
+    const akt = aktuellKopia(c.s);
+    if (akt) akt.stangd = new Date().toISOString();
+    c.s.lasnyckel = null;
+    c.s.oppnade = new Set();
+    c.rotera = true;
+    return sessionUt(c.s);
   });
   rutt('POST', '/api/reset', (c) => {
     c.s.db.close();
@@ -743,13 +778,37 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const atk = new Atkomst(c.db, c.personal, null, {}, 'las_logg');
     atk.krav('las_logg');
     const q = c.url.searchParams;
-    const flagga = ['nodatkomst', 'nekad', 'samtycke', 'alla'].includes(q.get('flagga')) ? q.get('flagga') : 'alla';
+    const flagga = ['nodatkomst', 'nekad', 'samtycke', 'vard', 'alla'].includes(q.get('flagga')) ? q.get('flagga') : 'alla';
     const datum = (v, slut) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? `${v}${slut ? 'T23:59:59.999Z' : 'T00:00:00.000Z'}` : v || null);
     const rader = medPatientKort(c.db, logg.lista(c.db, { flagga, fran: datum(q.get('fran'), false), till: datum(q.get('till'), true) }));
     atk.logga('las_logg', 'logggranskning', `logg:${flagga}`);
     const v = logg.verifiera(c.db);
     return { flagga, rader, kedjaHel: v.hel, verifiering: v };
   });
+
+  // Min journal. Varje anrop prövar att invånaren får läsa just den journalen och loggar läsningen.
+  // Nekade försök räknas per invånare och sandlåda, också över ut- och inloggningar.
+  const nekadeFor = (c) => ((c.s.nekadeInvanare ??= {})[c.invanare.id] ??= { antal: 0 });
+  const medMinJournal = (c, pid, resurs, fn) => {
+    kravInvanare(c);
+    const atk = new minJournal.InvanareAtkomst(c.db, c.invanare, pid, nekadeFor(c));
+    atk.krav(resurs);
+    const ut = fn(atk);
+    if (!atk.loggad) atk.logga(resurs);
+    return ut;
+  };
+  const MIN_DELAR = {
+    oversikt: minJournal.oversikt, anteckningar: minJournal.anteckningar, diagnoser: minJournal.diagnoser, lakemedel: minJournal.lakemedel,
+    provsvar: minJournal.provsvar, remisser: minJournal.remisser, vardkontakter: minJournal.vardkontakter, logglista: minJournal.logglista,
+    sparrar: minJournal.sparrvy,
+  };
+  rutt('GET', '/api/min/journal/:id', (c, id) => medMinJournal(c, id, 'min:journal', (atk) => minJournal.huvud(atk)));
+  rutt('GET', '/api/min/journal/:id/:del', (c, id, del) => {
+    if (!Object.hasOwn(MIN_DELAR, del)) throw new Fel(404, 'Okänd adress.', 'saknas');
+    return medMinJournal(c, id, `min:${del}`, (atk) => MIN_DELAR[del](atk));
+  });
+  rutt('GET', '/api/min/journal/:id/anteckning/:aid', (c, id, aid) => medMinJournal(c, id, `min:anteckning:${Number(aid) || 0}`, (atk) => minJournal.anteckning(atk, aid)));
+  rutt('POST', '/api/min/journal/:id/begaran', (c, id) => [201, medMinJournal(c, id, 'min:begaran', (atk) => minJournal.skapaBegaran(atk, c.body))]);
 
   rutt('GET', '/api/migrering', (c) => {
     kravInloggad(c);
@@ -785,7 +844,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (traff === 'metod') throw new Fel(405, 'Metoden stöds inte.', 'ogiltig');
     let sess = hamtaSession(req);
     if (!sess && !UTAN_SESSION.has(url.pathname)) sess = skapaSession(req, server);
-    if (sess) Object.assign(c, { s: sess.s, sid: sess.sid, ny: sess.ny, db: sess.s.db, personal: personalRad(sess.s.db, sess.s.personalId) });
+    if (sess) Object.assign(c, { s: sess.s, sid: sess.sid, ny: sess.ny, db: sess.s.db, ...inloggade(sess.s) });
+    if (c.invanare && url.pathname.startsWith('/api/min/')) avvisaFranAnnanWebbplats(req);
     c.body = metod === 'GET' ? {} : await lasKropp(req);
     c.url = url;
     let ut = traff[0](c, ...traff[1]);
@@ -801,14 +861,31 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     return json(ut, status, c.ny ? { 'Set-Cookie': kaka(c.sid) } : {});
   }
 
+  // Sessionskakan är SameSite=Lax, så en länk från en annan webbplats skickar med den. Invånarens läsningar loggas, och
+  // ett anrop som webbläsaren märker som en navigering från en annan webbplats avvisas, så att ingen annan sida kan få
+  // invånaren att göra åtkomster i sitt namn. Klienter utanför webbläsaren skickar inte rubriken.
+  function avvisaFranAnnanWebbplats(req) {
+    if (req.headers.get('sec-fetch-site') === 'cross-site') throw new Fel(403, 'Anropet kom från en annan webbplats.', 'nekad');
+  }
+
+  // Den inloggade personalen eller invånaren, aldrig båda. Skulle båda vara satta räknas ingen som inloggad.
+  function inloggade(s) {
+    const personal = personalRad(s.db, s.personalId);
+    const invanare = minJournal.invanareRad(s.db, s.invanareId);
+    if (personal && invanare) return { personal: null, invanare: null };
+    return { personal: personal ?? null, invanare };
+  }
+
   function fhirSvar(req, url, c) {
     const sess = hamtaSession(req);
-    if (sess) Object.assign(c, { s: sess.s, db: sess.s.db, personal: personalRad(sess.s.db, sess.s.personalId) });
+    if (sess) Object.assign(c, { s: sess.s, db: sess.s.db, ...inloggade(sess.s) });
+    if (c.invanare) avvisaFranAnnanWebbplats(req);
     const base = origin || `${url.protocol}//${url.host}`;
     if (req.method !== 'GET') throw new Fel(405, 'Bara läsning stöds i FHIR-API:t.', 'ogiltig');
     const db = c.db;
     if (!db && !fhir.oppenSokvag(url.pathname.replace(/\/+$/, ''))) throw new Fel(401, 'Logga in först.', 'ej_inloggad');
-    const r = fhir.hantera({ db, personal: c.personal, valFor: (pid) => valFor(c.s, pid), url, base });
+    const nekade = c.invanare ? ((c.s.nekadeInvanare ??= {})[c.invanare.id] ??= { antal: 0 }) : null;
+    const r = fhir.hantera({ db, personal: c.personal, invanare: c.invanare ?? null, nekade, valFor: (pid) => valFor(c.s, pid), url, base });
     return new Response(JSON.stringify(r.body), { status: r.status, headers: { 'Content-Type': 'application/fhir+json; charset=utf-8', 'Cache-Control': 'no-store' } });
   }
 

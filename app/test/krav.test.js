@@ -15,9 +15,10 @@ describe('Kravregistret', () => {
     }
     // Det som inte byggs i första versionen är planerat. Klickbudgeten (D6) är byggd men delvis uppfylld, eftersom den
     // är mätt med skript och inte med användare. Läsläget vid avbrott med reservinloggning (D4) är uppfyllt i demon,
-    // med SITHS-kortet simulerat och noten om det.
-    for (const id of ['D12', 'L5', 'L8', 'L10', 'L11']) expect(KRAV.find(k => k.id === id).status).toBe('planerat');
-    expect(KRAV.find(k => k.id === 'D6').status).toBe('delvis');
+    // med SITHS-kortet simulerat och noten om det. Patientens e-tjänst (L4, L5) finns, men flerfaktorsautentiseringen
+    // är simulerad och stickprov saknas.
+    for (const id of ['D12', 'L8', 'L10', 'L11']) expect(KRAV.find(k => k.id === id).status).toBe('planerat');
+    for (const id of ['D6', 'L4', 'L5']) expect(KRAV.find(k => k.id === id).status).toBe('delvis');
     const d4 = KRAV.find(k => k.id === 'D4');
     expect(d4.status).toBe('uppfyllt_demo');
     expect(d4.anmarkning).toContain('Simulerat: SITHS-kortet och dess PIN-räknare');

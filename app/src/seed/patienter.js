@@ -4,6 +4,7 @@
 //   [-3, '08:15']   dag och klockslag
 //   { min: -40 }    minuter före nu
 //   '2014-03-11'    absolut datum (migrerad historik)
+// Ett mätvärde är [tid, värde] eller [tid, värde, { ejVidimerad: true }] för ett provsvar som inte är vidimerat.
 // Sökord anges som objekt i den ordning de ska visas.
 
 export const PATIENTER = [
@@ -98,7 +99,7 @@ export const PATIENTER = [
       ['saturation', 'uso-kard-72', [[[-2, '08:00'], 94], [[-1, '08:00'], 95], [[0, '08:00'], 96]]],
       ['vikt', 'uso-kard-72', [[[-3, '14:00'], 84.2], [[-2, '07:00'], 83.1], [[-1, '07:00'], 82.9], [[0, '07:00'], 81.6]]],
       ['ntprobnp', 'uso-kard-72', [[[-1, '06:30'], 4850]]],
-      ['inr', 'uso-kard-72', [[[-1, '06:30'], 2.6], [[0, '06:30'], 2.4]]],
+      ['inr', 'uso-kard-72', [[[-1, '06:30'], 2.6], [[0, '06:30'], 2.4, { ejVidimerad: true }]]],
       ['kreatinin', 'uso-kard-72', [[[-1, '06:30'], 118]]],
       ['kalium', 'uso-kard-72', [[[-1, '06:30'], 3.9]]],
     ],
@@ -281,7 +282,7 @@ export const PATIENTER = [
     matvarden: [
       ['vikt', 'uso-psyk', [[[-60, '09:10'], 68.2]]],
       ['troponin', 'uso-akut', [[[-2, '21:55'], 86]]],
-      ['troponin', 'uso-kard-72', [[[-1, '06:00'], 412], [[0, '06:00'], 288]]],
+      ['troponin', 'uso-kard-72', [[[-1, '06:00'], 412], [[0, '06:00'], 288, { ejVidimerad: true }]]],
       ['blodtryck', 'uso-kard-72', [[[-1, '08:00'], '126/78'], [[0, '08:00'], '122/76']]],
       ['puls', 'uso-kard-72', [[[-1, '08:00'], 74], [[0, '08:00'], 68]]],
     ],
@@ -840,6 +841,11 @@ export const PATIENTER = [
       { typ: 'Mottagningsanteckning', enhet: 'uso-psyk', vk: 'psyk', av: 'lak-psyk', tid: [-30, '13:30'], sokord: {
         'Aktuellt': 'Mår betydligt bättre. MADRS 11.',
         'Åtgärd': 'Fortsatt escitalopram i minst sex månader.',
+      } },
+      { typ: 'Mottagningsanteckning', enhet: 'uso-psyk', vk: 'psyk', av: 'lak-psyk', tid: [-4, '14:20'], sokord: {
+        'Aktuellt': 'Stabil sedan förra besöket. Sover bättre och arbetar heltid igen.',
+        'Bedömning': 'I remission.',
+        'Åtgärd': 'Planerar nedtrappning av escitalopram efter sommaren. Återbesök om tre månader.',
       } },
     ],
     matvarden: [

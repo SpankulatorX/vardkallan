@@ -5,6 +5,7 @@ import { MATTYPER, lasHandling } from './journal.js';
 import * as logg from './logg.js';
 import { SYSTEM as KODSYSTEM, ICD10SE, ATC, MATKOD } from './kodverk.js';
 import { EXT, CS, DEFINITIONER } from './fhir-definitioner.js';
+import { InvanareAtkomst, journaler, synligKedja, provsvarVisas, MAX_NEKADE } from './patientvy.js';
 
 export const SYSTEM = {
   personnummer: 'http://electronichealth.se/identifier/personnummer',
@@ -191,6 +192,14 @@ export function practitioner(db, p) {
   };
 }
 
+// En rad från Min journal har invånaren som agent: patienten själv, eller en vårdnadshavare utan namn.
+const auditAgent = (r) => {
+  if (r.personal) return ref('Practitioner', r.personal.id, r.personal.namn);
+  if (r.invanare?.relation === 'egen') return ref('Patient', r.patientId);
+  if (r.invanare) return { display: r.invanare.relation === 'vardnadshavare' ? 'Vårdnadshavare i Min journal' : 'Invånare i Min journal' };
+  return undefined;
+};
+
 export function auditEvent(r) {
   return {
     resourceType: 'AuditEvent', id: String(r.id),
@@ -198,7 +207,7 @@ export function auditEvent(r) {
     action: r.handling.startsWith('skriv') || r.handling === 'ordinera' ? 'C' : 'R', recorded: r.tid,
     outcome: r.resultat === 'nekad' ? '4' : '0',
     purposeOfEvent: [{ coding: [{ system: SYSTEM.atkomstgrund, code: r.grund }], text: r.syfte ?? undefined }],
-    agent: [{ who: r.personal ? ref('Practitioner', r.personal.id, r.personal.namn) : undefined, requestor: true }],
+    agent: [{ who: auditAgent(r), requestor: true }],
     source: { observer: { display: 'Vårdkällan' } },
     entity: r.patientId ? [{ what: ref('Patient', r.patientId), description: r.resurs ?? undefined }] : undefined,
     extension: [{ url: `${EXT}/hash`, valueString: r.hash }],
@@ -211,9 +220,10 @@ export function capability(base) {
     software: { name: 'Vårdkällan', version: '0.1.0' }, implementation: { description: 'Vårdkällan, öppen demo med påhittade patienter', url: `${base}/fhir` },
     rest: [{
       mode: 'server',
-      security: { description: 'Sessionskaka vk_sid. Samma behörighetskontroll och åtkomstloggning som gränssnittet.' },
+      security: { description: 'Sessionskaka vk_sid. Samma behörighetskontroll och åtkomstloggning som gränssnittet. Med en session från Min journal når invånaren bara sina egna resurser, eller ett barns under 13 år, och Patient/[id]/$everything.' },
       resource: [...TYPER.map(t => ({
         type: t, ...(PROFIL[t] ? { supportedProfile: [PROFIL[t]] } : {}), interaction: [{ code: 'read' }, { code: 'search-type' }],
+        ...(t === 'Patient' ? { operation: [{ name: 'everything', definition: 'http://hl7.org/fhir/OperationDefinition/Patient-everything' }] } : {}),
         searchParam: t === 'Patient' ? [{ name: '_id', type: 'token' }, { name: 'identifier', type: 'token' }]
           : ['Organization', 'Practitioner'].includes(t) ? [{ name: '_id', type: 'token' }] : [{ name: 'patient', type: 'reference' }],
       })), ...DEFINITIONSTYPER.map(t => ({
@@ -256,6 +266,7 @@ export function hantera(ctx) {
     const sokt = url.searchParams.get('url') ?? url.searchParams.get('_id');
     return { status: 200, body: bundle(base, url, alla.filter(d => !sokt || d.url === sokt || d.id === sokt)) };
   }
+  if (!personal && ctx.invanare) return hanteraInvanare(ctx, delar);
   if (!TYPER.includes(typ) || delar.length > 2) throw new Fel(404, 'Okänd FHIR-resurs.', 'saknas');
   if (!personal) throw new Fel(401, 'Logga in först.', 'ej_inloggad');
 
@@ -354,3 +365,144 @@ export function hantera(ctx) {
 }
 
 const vardenhet = (db, personal) => vardenhetFor(db, personal.enhet_id);
+
+// Invånarens FHIR-API (Min journal). Samma prövning, samma visningsregler och samma loggning som Min journal i /api:
+// bara journaler som invånaren får läsa, bara anteckningar vars hela versionskedja är signerad och vars senaste version
+// visas, och bara provsvar som får visas. En resurs i en annan journal svarar som en som inte finns. Practitioner och
+// AuditEvent är personalens.
+const INV_RAD = {
+  Composition: (db, a) => synligKedja(db, a).synlig,
+  Observation: (db, m) => provsvarVisas(m),
+};
+const synligFor = (db, typ, rad) => (Object.hasOwn(INV_RAD, typ) ? INV_RAD[typ](db, rad) : true);
+
+// Invånarens resurser lämnar inte ut mer än Min journal: utan personalens id (en referens till Practitioner får bara
+// namnet, som är en del av journalen), utan kontaktuppgifter och listning, utan remissens anamnes och remitterande
+// läkare, och utan NLL-status och katalogens id för läkemedlet.
+const utanPersonalId = (r) => (r?.reference?.startsWith('Practitioner/') ? { display: r.display ?? 'Vårdpersonal' } : r);
+export function patientForInvanare(db, p) {
+  const r = patient(db, p, true);
+  delete r.address;
+  delete r.telecom;
+  delete r.generalPractitioner;
+  return r;
+}
+export const MAPPA_INVANARE = {
+  Encounter: encounter,
+  Condition: condition,
+  Observation: observation,
+  AllergyIntolerance: allergyIntolerance,
+  MedicationRequest: (db, o) => {
+    const r = medicationRequest(db, o);
+    r.medicationCodeableConcept.coding = r.medicationCodeableConcept.coding.filter(c => c.system !== SYSTEM.npl);
+    r.extension = r.extension.filter(e => e.url !== `${EXT}/nll-status`);
+    r.requester = utanPersonalId(r.requester);
+    return r;
+  },
+  ServiceRequest: (db, rr) => {
+    const r = serviceRequest(db, rr, true);
+    delete r.requester;
+    const note = [rr.motivering && { text: `Motivering: ${rr.motivering}` }, rr.svar && { text: `Svar: ${rr.svar}` }].filter(Boolean);
+    if (note.length) r.note = note; else delete r.note;
+    return r;
+  },
+  Composition: (db, a) => {
+    const r = composition(db, a);
+    r.author = r.author.map(utanPersonalId);
+    return r;
+  },
+};
+const mappaInvanare = (db, typ, rad) => MAPPA_INVANARE[typ](db, rad);
+
+// Resursen i loggen för invånarens anrop: sökvägen och bara de sökparametrar som används, korta. Annan text i adressen
+// hamnar aldrig i loggen, varken i invånarens egen eller i en annan patients.
+const LOGGADE_PARAMETRAR = ['patient', 'subject', '_id', 'identifier'];
+function loggResurs(delar, url) {
+  const q = LOGGADE_PARAMETRAR.filter(n => url.searchParams.has(n)).map(n => `${n}=${String(url.searchParams.get(n)).slice(0, 64)}`).join('&');
+  return `fhir/${delar.map(d => d.slice(0, 64)).join('/')}${q ? `?${q}` : ''}`.slice(0, 200);
+}
+
+function hanteraInvanare(ctx, delar) {
+  const { db, invanare, url, base } = ctx;
+  const [typ, id, operation] = delar;
+  // Bara kända resurstyper. Ett namn som hasOwnProperty eller constructor får aldrig bli en tabell eller en funktion.
+  if (!TYPER.includes(typ)) throw new Fel(404, 'Okänd FHIR-resurs.', 'saknas');
+  const sokvag = loggResurs(delar, url);
+  if (typ === 'Practitioner' || typ === 'AuditEvent') {
+    throw new Fel(403, 'Personalens uppgifter och åtkomstloggen nås inte med en session från Min journal. Logglistan finns i Min journal.', 'nekad');
+  }
+  if (typ === 'Organization' && delar.length <= 2) {
+    if (id) {
+      const rad = db.query('SELECT * FROM enheter WHERE id = ?').get(id);
+      if (!rad) throw new Fel(404, 'Resursen finns inte.', 'saknas');
+      return { status: 200, body: organization(db, rad) };
+    }
+    const _id = url.searchParams.get('_id');
+    const rader = _id ? db.query('SELECT * FROM enheter WHERE id = ?').all(_id) : db.query('SELECT * FROM enheter ORDER BY id').all();
+    return { status: 200, body: bundle(base, url, rader.map(r => organization(db, r))) };
+  }
+  const egnaJournaler = () => journaler(db, invanare).filter(j => j.atkomst).map(j => j.patientId);
+  const oppna = (pid) => { const atk = new InvanareAtkomst(db, invanare, pid, ctx.nekade ?? null); atk.krav(sokvag); return atk; };
+
+  if (typ === 'Patient') {
+    if (id && operation === '$everything' && delar.length === 3) {
+      const atk = oppna(id);
+      const resurser = [patientForInvanare(db, atk.patient)];
+      for (const t of Object.keys(MAPPA_INVANARE)) {
+        for (const r of db.query(`SELECT * FROM ${TABELL[t]} WHERE patient_id = ? ORDER BY id`).all(id)) if (synligFor(db, t, r)) resurser.push(mappaInvanare(db, t, r));
+      }
+      atk.logga(sokvag);
+      return { status: 200, body: bundle(base, url, resurser) };
+    }
+    if (delar.length > 2) throw new Fel(404, 'Okänd FHIR-resurs.', 'saknas');
+    if (id) {
+      const atk = oppna(id);
+      atk.logga(sokvag);
+      return { status: 200, body: patientForInvanare(db, atk.patient) };
+    }
+    const _id = url.searchParams.get('_id') ?? url.searchParams.get('patient');
+    const ident = url.searchParams.get('identifier');
+    let kandidater;
+    if (_id) kandidater = [_id];
+    else if (ident) {
+      const varde = (ident.includes('|') ? ident.split('|')[1] : ident).replace('-', '');
+      kandidater = ident.includes('|') && ident.split('|')[0] !== SYSTEM.personnummer ? [] : db.query('SELECT id FROM patienter WHERE personnummer = ?').all(varde).map(r => r.id);
+    } else kandidater = egnaJournaler();
+    // Precis som för personalen tas journaler som inte får läsas bort ur sökresultatet, utan att något lämnas ut.
+    const tillatna = new Set(egnaJournaler());
+    const ut = [];
+    for (const pid of kandidater.filter(k => tillatna.has(k))) {
+      const atk = oppna(pid);
+      atk.logga(sokvag);
+      ut.push(patientForInvanare(db, atk.patient));
+    }
+    return { status: 200, body: bundle(base, url, ut) };
+  }
+
+  if (!Object.hasOwn(MAPPA_INVANARE, typ) || delar.length > 2) throw new Fel(404, 'Okänd FHIR-resurs.', 'saknas');
+  if (id) {
+    const rad = db.query(`SELECT * FROM ${TABELL[typ]} WHERE id = ?`).get(Number(id));
+    // En resurs som inte visas i Min journal finns inte för invånaren. En resurs i en journal som invånaren inte får
+    // läsa prövas som journalen, så att försöket loggas där och svaret blir detsamma som för en journal som inte finns.
+    const finnsInte = () => new Fel(404, 'Resursen finns inte.', 'saknas');
+    if (!rad) {
+      // Räknas som ett nekat försök, så att gränsen för försök inte avslöjar vilka id som finns.
+      if (ctx.nekade) {
+        if (ctx.nekade.antal >= MAX_NEKADE) throw new Fel(403, 'Du har gjort många försök att öppna journaler som du inte har tillgång till. Fler försök stoppas.', 'nekad');
+        ctx.nekade.antal++;
+      }
+      throw finnsInte();
+    }
+    let atk;
+    try { atk = oppna(rad.patient_id); } catch (e) { throw e.status === 404 ? finnsInte() : e; }
+    if (!synligFor(db, typ, rad)) throw new Fel(404, 'Resursen finns inte.', 'saknas');
+    atk.logga(sokvag);
+    return { status: 200, body: mappaInvanare(db, typ, rad) };
+  }
+  const pid = (url.searchParams.get('patient') ?? url.searchParams.get('subject') ?? '').replace(/^Patient\//, '');
+  if (!pid) throw new Fel(400, 'Sökparametern patient krävs.', 'ogiltig');
+  const atk = oppna(pid);
+  const rader = db.query(`SELECT * FROM ${TABELL[typ]} WHERE patient_id = ? ORDER BY id`).all(pid).filter(r => synligFor(db, typ, r));
+  atk.logga(sokvag);
+  return { status: 200, body: bundle(base, url, rader.map(r => mappaInvanare(db, typ, r))) };
+}

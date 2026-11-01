@@ -697,3 +697,91 @@ body.testlage-aktivt #notiser { bottom: calc(var(--testlage-hojd, 64px) + 12px);
   .patientband { position: static; }
 }
 .logg-tabell td:first-child { white-space: nowrap; }
+
+/* Inloggning: val mellan personal och patient. */
+.inloggningssida { padding-top: 8px; }
+.inloggningssida > h1 { margin: 18px 0 10px; font-size: 30px; }
+.inloggningsval { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--linje); border-radius: 999px; background: var(--yta); margin-bottom: 18px; }
+.inloggningsval [role="tab"] { display: inline-flex; align-items: center; gap: 8px; font: inherit; font-weight: 600; color: var(--blak-2); background: none; border: 0; border-radius: 999px; padding: 8px 18px; cursor: pointer; min-height: 40px; }
+.inloggningsval [role="tab"]:hover { background: var(--kalla-ljus); color: var(--kalla-mork); }
+.inloggningsval [role="tab"][aria-selected="true"] { background: var(--kalla); color: #fff; }
+.inloggning-intro h2 { font-size: var(--f-xl); margin: 4px 0 10px; }
+.inv-val { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; font: inherit; color: inherit; background: none; border: 0; border-radius: 10px 10px 0 0; padding: 12px 14px 8px; cursor: pointer; }
+.inv-val:hover { background: var(--kalla-ljus); }
+.inv-val .roll-namn .ikon { color: var(--skydd); }
+.roll-kort-inv { width: 34px; height: 34px; border-radius: 50%; }
+
+/* Min journal: invånarens egen journal. Smal spalt, stora ytor att trycka på, fungerar på mobilen. */
+.topp-min { border-bottom-color: var(--kalla-mellan); box-shadow: 0 2px 0 -1px var(--kalla-ljus); }
+.min-innehall { max-width: 980px; margin: 0 auto; width: 100%; flex: 1; }
+#ram:has(.min-innehall) { display: flex; flex-direction: column; }
+.min-om { max-width: 980px; margin: 0 auto 18px; width: 100%; padding: 0 28px; color: var(--dampad); font-size: var(--f-s); display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; }
+.min-om p { margin: 0; }
+.min-om ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.min-band { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 18px; background: var(--yta); border: 1px solid var(--kalla-mellan); border-left: 6px solid var(--kalla); border-radius: 12px; padding: 12px 18px; margin-bottom: 8px; }
+.min-band-id h1 { font-size: 26px; }
+.signal-vh { color: var(--kalla-mork); background: var(--kalla-ljus); border-color: var(--kalla-mellan); }
+.min-flikar { margin-bottom: 14px; }
+.min-flikar a { padding: 10px 14px; }
+.min-del .ingress { margin-bottom: 12px; }
+.min-del section > h3 { display: flex; align-items: center; gap: 8px; margin: 18px 0 8px; }
+.min-del .ruta-info:has(> .ikon), .min-del .ruta-sparr { align-items: flex-start; }
+.min-del .ruta p:last-child { margin-bottom: 0; }
+.min-regler { margin-top: 16px; background: var(--yta); border: 1px solid var(--linje); border-radius: var(--r); padding: 10px 14px; }
+.min-regler summary { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; }
+.min-regler ul { margin: 10px 0; padding-left: 20px; }
+.min-regler li { margin-bottom: 6px; max-width: 80ch; }
+.min-dolda { background: var(--yta); border: 1px dashed var(--linje-stark); border-radius: var(--r); padding: 4px 14px 8px; margin: 10px 0; }
+.min-dolda h3 { font-size: var(--f-m); }
+.min-ant > li, .min-lista > li { background: var(--yta); border: 1px solid var(--linje); border-radius: var(--r); padding: 10px 14px; margin-bottom: 8px; }
+.min-ant > li:last-child, .min-lista > li:last-child { border-bottom: 1px solid var(--linje); }
+.min-ant a .ant-typ { font-size: var(--f-l); }
+.min-lista .knapp { margin-top: 8px; }
+.min-dos { display: block; font-weight: 600; margin-top: 2px; }
+.min-anteckning { background: var(--yta); border: 1px solid var(--linje); border-radius: var(--r); padding: 14px 16px; }
+.min-anteckning h2 { margin-bottom: 4px; }
+.min-anteckning .ant-fakta { display: block; }
+.min-sokord { margin: 10px 0 0; display: grid; gap: 10px; }
+.min-sokord dt { font-family: var(--smal); font-weight: 700; color: var(--kalla-mork); }
+.min-sokord dd { margin: 2px 0 0; max-width: 75ch; }
+.min-matlista { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 10px; }
+.min-matt { background: var(--yta); border: 1px solid var(--linje); border-radius: var(--r); padding: 10px 14px; }
+.min-matt h4 { margin-bottom: 4px; }
+.min-varden { list-style: none; margin: 0; padding: 0; }
+.min-varden li { padding: 5px 0; border-bottom: 1px solid var(--linje); }
+.min-varden li:last-child { border-bottom: 0; }
+.min-vardet { font-family: var(--smal); font-weight: 700; font-size: var(--f-l); }
+.min-remisser { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.min-remisser h3 { font-size: var(--f-l); }
+.min-remisser .kedja { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.min-remisser .faktalista div { grid-template-columns: 150px minmax(0, 1fr); }
+.min-namn .knapprad { margin-top: 6px; }
+.min-logg-filter { margin: 12px 0 4px; }
+.min-logg { list-style: none; margin: 0; padding: 0; border: 1px solid var(--linje); border-radius: var(--r); background: var(--yta); }
+.min-loggrad { display: grid; grid-template-columns: 150px minmax(0, 1.1fr) minmax(0, 1.4fr); gap: 4px 16px; padding: 10px 14px; border-bottom: 1px solid var(--linje); }
+.min-loggrad:last-child { border-bottom: 0; }
+.min-loggrad[hidden] { display: none; }
+.min-loggrad time { font-size: var(--f-s); white-space: nowrap; }
+.min-loggrad.flaggad { box-shadow: inset 4px 0 0 var(--obs-kant); }
+.min-loggrad.egen { background: var(--yta-2); }
+.min-logg-vad .grund { margin: 2px 6px 0 0; }
+.min-logg-vad .resultat-nekad { display: flex; margin-top: 2px; font-size: var(--f-s); }
+.min-journaler { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; max-width: 560px; }
+.min-journalval { display: flex; align-items: center; gap: 12px; background: var(--yta); border: 1px solid var(--linje); border-radius: 10px; padding: 14px 16px; color: var(--blak); text-decoration: none; }
+a.min-journalval:hover { background: var(--kalla-ljus); color: var(--blak); }
+.min-journalval .ikon { width: 26px; height: 26px; color: var(--kalla); }
+.min-journalval strong { font-family: var(--smal); font-size: var(--f-l); }
+.min-journalval-stangd .ikon { color: var(--sparr); }
+.min-form { max-width: 560px; }
+@media (max-width: 640px) {
+  .inloggningssida > h1 { font-size: 25px; }
+  .inloggningsval { display: flex; }
+  .inloggningsval [role="tab"] { flex: 1; justify-content: center; }
+  .min-om { padding: 0 16px; }
+  .min-band { padding: 10px 14px; border-left-width: 5px; }
+  .min-band-id h1 { font-size: 22px; }
+  .min-loggrad { grid-template-columns: 1fr; gap: 2px; }
+  .min-remisser .kedja { grid-template-columns: 1fr; }
+  .min-remisser .faktalista div { grid-template-columns: 1fr; }
+}
+.inloggning[hidden] { display: none; }

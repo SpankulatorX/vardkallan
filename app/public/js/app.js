@@ -16,11 +16,15 @@ import * as moduler from './vyer/moduler.js';
 import * as oppetApi from './vyer/oppet-api.js';
 import * as drift from './vyer/drift.js';
 import * as anvandartest from './anvandartest.js';
+import * as minJournal from './vyer/min.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
 
 export const far = (handling) => Boolean(S.session?.behorigheter?.includes(handling));
+// Personalen loggar in med simulerat SITHS-kort, invånaren i Min journal med simulerad e-legitimation.
+export const arPersonal = () => Boolean(S.session?.inloggad && S.session.personal);
+export const arInvanare = () => Boolean(S.session?.inloggad && S.session.roll === 'invanare');
 export const arLogggranskare = () => S.session?.personal?.yrke === 'logggranskare';
 export const minVardenhet = () => S.session?.enhet?.vardenhet?.id ?? null;
 export const pa = (...h) => h.some(far);
@@ -57,6 +61,14 @@ const RUTTER = [
   [/^#\/patient\/([\w-]+)(?:\/([a-z]+))?(?:\/([\w-]+))?$/, patient, () => !arLogggranskare()],
 ];
 
+// Invånarens adresser i Min journal, och de offentliga sidorna. Personalens vyer finns inte här.
+const RUTTER_MIN = [
+  [/^#\/min(?:\/([\w-]+))?(?:\/([a-z]+))?(?:\/([\w-]+))?$/, minJournal],
+  [/^#\/krav$/, krav],
+  [/^#\/moduler$/, moduler],
+  [/^#\/drift$/, drift],
+];
+
 // Enhetsträdet: varje enhet med sin vårdenhet. Inre sekretess och remisser räknas per vårdenhet.
 const enhetMap = new Map();
 export async function laddaEnheter() {
@@ -72,7 +84,7 @@ export async function laddaEnheter() {
 export const vardenhetAv = (id) => enhetMap.get(id)?.vardenhet ?? id;
 export const enhetLista = () => [...enhetMap.values()];
 
-export const hem = () => (arLogggranskare() ? '#/logg' : '#/arbetslista');
+export const hem = () => (arInvanare() ? '#/min' : arLogggranskare() ? '#/logg' : '#/arbetslista');
 
 // Logotypen: en droppe över en våg, en källa.
 export const logotyp = (storlek = 30) => `<svg class="logotyp" width="${storlek}" height="${storlek}" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="9" fill="currentColor"/><path d="M16 5.2c-3.3 4.7-6.1 8.1-6.1 11.6a6.1 6.1 0 0 0 12.2 0c0-3.5-2.8-6.9-6.1-11.6z" fill="#fff"/><path d="M7.5 26.2c2.8-1.7 5.7-1.7 8.5 0s5.7 1.7 8.5 0" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`;
@@ -106,9 +118,11 @@ krokar.vid429 = () => notis('Det har kommit många nya besök från din adress. 
 // Ett anrop som avbröts vid utloggning är inget fel. Omritningar efter en sparad ändring väntas inte alltid in,
 // så avbrottet fångas här i stället för i varje vy. Alla andra fel släpps igenom.
 window.addEventListener('unhandledrejection', (e) => { if (e.reason?.kod === 'avbruten') e.preventDefault(); });
+// Min journal får aldrig läsläge eller läskopia (D4 gäller personalen).
+krokar.ejLaslage = () => arInvanare();
 
 export async function uppdateraInkorg() {
-  if (!S.session?.inloggad || arLogggranskare()) { S.inkorg = null; return; }
+  if (!arPersonal() || arLogggranskare()) { S.inkorg = null; return; }
   try {
     const d = await api('/api/inkorg', { tyst: true });
     S.inkorg = d.osigneradeAnteckningar.length + d.okvitteradeSvar.length + d.larm.length + d.nllAvvikelser.length;
@@ -131,7 +145,7 @@ let ramNyckel = null;
 function ritaRam(route) {
   const sess = S.session;
   const ram = document.getElementById('ram');
-  const nyckel = sess?.inloggad ? sess.personal.id : 'ute';
+  const nyckel = arPersonal() ? sess.personal.id : arInvanare() ? `invanare:${sess.invanare.id}` : 'ute';
   if (ramNyckel === nyckel && document.getElementById('innehall')) {
     const nav = document.getElementById('meny-lista');
     if (nav) nav.innerHTML = menyHtml(route);
@@ -146,6 +160,7 @@ function ritaRam(route) {
       <main id="innehall" class="innehall ute" tabindex="-1"></main>`;
     return document.getElementById('innehall');
   }
+  if (arInvanare()) return ritaRamInvanare(ram, sess);
   const p = sess.personal;
   const e = sess.enhet;
   ram.innerHTML = `<header class="topp"><div class="topp-inre">
@@ -164,6 +179,21 @@ function ritaRam(route) {
       <main id="innehall" class="innehall" tabindex="-1"></main>
     </div>`;
   avbrottslage.uppdateraReservStatus();
+  return document.getElementById('innehall');
+}
+
+// Min journal har en egen ram: ingen meny för personalen, ingen svarstid och inget läsläge, bara invånarens journal.
+function ritaRamInvanare(ram, sess) {
+  ram.innerHTML = `<header class="topp topp-min"><div class="topp-inre">
+      <a class="varumarke" href="#/min">${logotyp()}<span><span class="namn">Min journal</span><span class="under">Vårdkällan för invånare</span></span></a>
+      <div class="inloggad" aria-label="Inloggad person">
+        <span class="kort-ikon" aria-hidden="true">${ikon.person}</span>
+        <span class="vem"><strong>${esc(sess.invanare.namn)}</strong><span>Inloggad med e-legitimation (simulerad)</span></span>
+      </div>
+      <button type="button" class="knapp sekundar liten" data-a="loggaut">${ikon.ut}<span>Logga ut</span></button>
+    </div></header>
+    <main id="innehall" class="innehall min-innehall" tabindex="-1"></main>
+    <nav class="min-om" aria-label="Om Vårdkällan"><p>Min journal är en del av Vårdkällan, ett öppet journalsystem.</p><ul><li><a href="#/krav">Kravspårbarhet</a></li><li><a href="#/moduler">Moduler</a></li><li><a href="#/drift">Svarstider</a></li></ul></nav>`;
   return document.getElementById('innehall');
 }
 
@@ -191,6 +221,15 @@ export async function rita() {
     const main = ritaRam(vag);
     return visaVy(traff.vy, main, traff.param, q, nr);
   }
+  if (arInvanare()) {
+    let min = null;
+    for (const [re, vy] of RUTTER_MIN) {
+      const m = vag.match(re);
+      if (m) { min = { vy, param: m.slice(1).map(x => (x == null ? x : decodeURIComponent(x))) }; break; }
+    }
+    if (!min) { location.replace('#/min'); return; }
+    return visaVy(min.vy, ritaRam(vag), min.param, q, nr);
+  }
   if (!traff || !traff.villkor()) {
     if (traff && !traff.villkor()) notis('Den sidan hör inte till din yrkesroll.', 'info');
     location.replace(hem());
@@ -205,9 +244,10 @@ export async function rita() {
 async function visaVy(vy, main, param, q, nr) {
   const forraVy = main.dataset.vy;
   const vyNamn = vy.namn ?? '';
-  // Inom patientjournalen byts bara fliken; fokus flyttas inte till sidans början.
-  const sammaPatient = vyNamn === 'patient' && forraVy === `patient:${param[0]}`;
-  main.dataset.vy = vyNamn === 'patient' ? `patient:${param[0]}` : vyNamn;
+  // Inom patientjournalen och Min journal byts bara fliken; fokus flyttas inte till sidans början.
+  const journal = (vyNamn === 'patient' || vyNamn === 'min') && param[0];
+  const sammaPatient = Boolean(journal) && forraVy === `${vyNamn}:${param[0]}`;
+  main.dataset.vy = journal ? `${vyNamn}:${param[0]}` : vyNamn;
   try {
     await vy.visa(main, param, q, { aktuell: () => nr === navNr, sammaPatient });
   } catch (e) {
@@ -226,14 +266,14 @@ async function visaVy(vy, main, param, q, nr) {
     window.scrollTo(0, 0);
   }
   document.title = `${main.querySelector('h1')?.textContent?.trim() || 'Start'}, Vårdkällan`;
-  // Läskopian för avbrott förnyas när en patient har öppnats, annars högst en gång i minuten.
-  if (S.session?.inloggad) avbrottslage.fornya({ nu: vyNamn === 'patient' });
+  // Läskopian för avbrott förnyas när en patient har öppnats, annars högst en gång i minuten. Bara för personalen.
+  if (arPersonal()) avbrottslage.fornya({ nu: vyNamn === 'patient' });
 }
 
 // Demoknappen Simulera avbrott visas för den som är inloggad, och inte under ett avbrott.
 export function demoknappar() {
   const b = document.querySelector('[data-a="avbrott"]');
-  if (b) b.hidden = !S.session?.inloggad || avbrott.simulerat || avbrott.aktivt;
+  if (b) b.hidden = !arPersonal() || avbrott.simulerat || avbrott.aktivt;
 }
 
 export async function loggaIn(personalId, knapp) {
@@ -249,6 +289,21 @@ export async function loggaIn(personalId, knapp) {
   avbrottslage.skickaLoggar().then(avbrottslage.meddelaLogg).catch(() => {});
   if (reservBorttagen) notis('Din reservkopia från förra inloggningen är raderad. Välj en ny reservkod om du vill kunna läsa vid ett avbrott.', 'info');
   await Promise.all([uppdateraInkorg(), laddaEnheter().catch(() => {})]);
+  if (location.hash === hem()) rita(); else location.hash = hem();
+}
+
+// Inloggning i Min journal. En läskopia som personal har lämnat i webbläsaren raderas, eftersom invånaren aldrig får en.
+// Åtkomster från läsläget som väntar på datorn skickas först, och den förra personens reservkopia raderas.
+export async function loggaInInvanare(invanareId, knapp) {
+  const forra = S.session?.personal?.id ?? null;
+  const loggen = await avbrottslage.skickaLoggar().catch(() => null);
+  const s = await medKnapp(knapp, () => api('/api/login/invanare', { metod: 'POST', data: { invanareId } }));
+  S.session = s;
+  S.inkorg = null;
+  await avbrottslage.rensa({ personalId: forra }).catch(() => {});
+  ramNyckel = null;
+  document.getElementById('notiser').replaceChildren();
+  avbrottslage.meddelaLogg(loggen);
   if (location.hash === hem()) rita(); else location.hash = hem();
 }
 
@@ -321,9 +376,9 @@ async function start() {
     // Åtkomster från ett tidigare läsläge som finns kvar på datorn, till exempel för att fliken stängdes, skickas nu.
     if (!avbrott.aktivt) avbrottslage.meddelaLogg(await avbrottslage.skickaLoggar().catch(() => null));
     if (!avbrott.aktivt) await avbrottslage.slutforUtloggning().catch(() => {});
-    if (S.session.inloggad) await laddaEnheter().catch(() => {});
-    if (S.session.inloggad && !avbrott.aktivt) await satNyckel(S.session.lasnyckel, S.session.personal.id).catch(() => {});
-    if (!S.session.inloggad && !avbrott.aktivt) await avbrottslage.rensa().catch(() => {});
+    if (arPersonal()) await laddaEnheter().catch(() => {});
+    if (arPersonal() && !avbrott.aktivt) await satNyckel(S.session.lasnyckel, S.session.personal.id).catch(() => {});
+    if (!arPersonal() && !avbrott.aktivt) await avbrottslage.rensa().catch(() => {});
   } catch (e) {
     S.session = { inloggad: false };
     // Under ett avbrott förklarar avbrottsraden och reservinloggningen läget.

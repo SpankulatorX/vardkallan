@@ -16,6 +16,7 @@ Underlag: en sammanställning av offentliga källor om upphandlingen av Cosmic o
 8. Öppet FHIR R4-API för alla resurser, med samma behörighetskontroll och loggning som gränssnittet (D9).
 9. Kravspårbarhet: en sida som visar varje krav, var det uppfylls och vilka automatiska tester som visar det, med testresultat från bygget (K1, K4).
 10. Svarstid mäts för varje anrop och visas (D5).
+11. Patienten läser sin egen journal och ser vem som har läst den i Min journal, Vårdkällans egen e-tjänst för invånare (se avsnittet Min journal).
 
 ## Icke-mål i första versionen
 
@@ -82,6 +83,8 @@ Inloggning sker med ett simulerat SITHS-kort: besökaren väljer person och den 
 | adm-kard | Karin Berg | Vårdadministratör | Kardiologiska kliniken USÖ |
 | logg | Mats Wall | Logggranskare (informationssäkerhet) | Regionkansliet |
 
+Patienterna loggar in i Min journal med simulerad e-legitimation. Varje patient i seeden är också en invånare (`inv-p01` till `inv-p15`), och därtill finns vårdnadshavaren Johanna Bergström (`inv-vh01`, testpersonnummer 19861214-2383) till barnet Leo Bergström (p09), utan egen journal i demon. Barnet kan inte logga in självt.
+
 ## Behörighetsmotorn (atkomst.js)
 
 En ren funktion `prova(db, { personal, patient, handling, resurs, val })` som returnerar `{ tillaten, grund, krav, spärrade, skal }`. Regler:
@@ -103,7 +106,7 @@ Servern anropar motorn i varje API- och FHIR-anrop. Gränssnittet döljer bara k
 
 ## Loggen (logg.js)
 
-Tabell `atkomstlogg` med `id, tid, personal_id, enhet_id, patient_id, handling, resurs, grund, syfte, resultat, prev_hash, hash`. `hash = sha256(prev_hash + kanonisk JSON av raden)`. SQLite-triggrar `BEFORE UPDATE` och `BEFORE DELETE` gör `RAISE(ABORT, ...)`. En funktion `verifiera(db)` kontrollerar hela kedjan. Grund är en av `egen_enhet`, `vardrelation`, `aktivt_val`, `samtycke_sparr`, `nodatkomst`, `administrativ`, `logggranskning`, `nekad`.
+Tabell `atkomstlogg` med `id, tid, personal_id, enhet_id, patient_id, handling, resurs, grund, syfte, resultat, prev_hash, hash`. `hash = sha256(prev_hash + kanonisk JSON av raden)`. SQLite-triggrar `BEFORE UPDATE` och `BEFORE DELETE` gör `RAISE(ABORT, ...)`. En funktion `verifiera(db)` kontrollerar hela kedjan. Grund är en av `egen_enhet`, `vardrelation`, `aktivt_val`, `samtycke_sparr`, `nodatkomst`, `administrativ`, `logggranskning`, `nekad`, och för invånarens läsning i Min journal `egen_atkomst` och `vardnadshavare`. En rad från Min journal har `invanare_id` i stället för `personal_id`; fältet tas med i den kanoniska JSON:en bara när det är satt, så att hashen för personalens rader är oförändrad.
 
 ## Journal (journal.js)
 
@@ -184,7 +187,8 @@ Alla svar har rubriken `Server-Timing: app;dur=<ms>`. Fel: `{ fel: "text", kod: 
 - `GET /api/patient/:id/remisser`, `POST /api/patient/:id/remisser { tillEnhetId, fragestallning, anamnes, prioritet, svarSenast }`.
 - `GET /api/remisser?riktning=inkommande|utgaende`. `POST /api/remiss/:id/mottag`, `/bedom { beslut, motivering }`, `/svara { svar }`, `/kvittera-svar`.
 - `GET /api/inkorg` → `{ osigneradeAnteckningar, okvitteradeSvar, larm, nllAvvikelser }`.
-- `GET /api/patient/:id/logglista` → åtkomster för patienten (för patientens rätt till logginformation, och för logggranskaren).
+- `GET /api/patient/:id/logglista` → åtkomster för patienten, för logggranskaren. Patienten ser sina åtkomster i Min journal.
+- Min journal (invånarens session): `POST /api/login/invanare { invanareId }`, `GET /api/demo/invanare`, `GET /api/min/journal/:id` och `/:id/{oversikt|anteckningar|diagnoser|lakemedel|provsvar|remisser|vardkontakter|logglista|sparrar}`, `GET /api/min/journal/:id/anteckning/:aid`, `POST /api/min/journal/:id/begaran`. Fälten beskrivs i `docs/api-avvikelser.md`.
 - `GET /api/logg?flagga=nodatkomst|nekad|samtycke|alla&fran&till` (bara logggranskare) → rader plus `{ kedjaHel: bool }`.
 - `GET /api/migrering` → avstämningen.
 - `GET /api/krav` → kravregistret med status och testresultat.
@@ -208,6 +212,55 @@ Minst tolv patienter, däribland:
 12. Patient utan vårdrelation till någon demoroll (för att visa nekad åtkomst).
 
 Varje patient har vårdkontakter, minst tre signerade anteckningar med realistiskt men kort kliniskt innehåll på svenska, diagnoser med ICD-10-SE, mätvärden över tid och läkemedel med ordinationsorsak och uppföljningsdatum.
+
+## Min journal (patientvy.js)
+
+Min journal är Vårdkällans egen e-tjänst för invånare: patienten läser sin journal och ser vem som har läst den. Den har eget namn och samma utseende som resten av Vårdkällan och efterliknar inte någon annan tjänst. Den är byggd för att visa att ett öppet system kan ge patienten direkt insyn, särskilt i åtkomstloggen.
+
+### Rättslig grund
+
+- En vårdgivare får ge en enskild direktåtkomst eller annat elektroniskt utlämnande av uppgifter om sig själv som får lämnas ut till honom eller henne, och av dokumentationen av åtkomsten (patientdatalagen 2008:355, 5 kap. 5 §). Vad som visas är alltså vårdgivarens val, och uppgifter som omfattas av sekretess mot patienten själv (offentlighets- och sekretesslagen 25 kap. 6 §) visas inte.
+- Vårdgivaren ska på begäran lämna information om den direktåtkomst och elektroniska åtkomst som har förekommit (patientdatalagen 8 kap. 5 §). Av informationen ska det framgå från vilken vårdenhet och vid vilken tidpunkt någon har tagit del av uppgifterna, utformat så att patienten kan bedöma om åtkomsten var befogad (HSLF-FS 2016:40 4 kap. 10 §, i lydelse till och med HSLF-FS 2025:57).
+- Den enskildes elektroniska tillgång får bara medges efter flerfaktorsautentisering (HSLF-FS 2016:40 4 kap. 11 § och 3 kap. 15 §). Om tillgången är begränsad ska den enskilde få veta det, och vart han eller hon kan vända sig för hjälp att förstå dokumentationen (4 kap. 12 §).
+- Patienten kan motsätta sig att uppgifter görs tillgängliga för andra vårdenheter, och då ska de spärras. En vårdnadshavare har inte rätt att spärra barnets uppgifter (patientdatalagen 4 kap. 4 §). Patienten har rätt att få information om rätten att begära spärr och om rätten till information om åtkomsten (8 kap. 6 §).
+- Ineras beskrivning av 1177 journal (Beskrivning och tjänstespecifika villkor, version 1.8, 2026-06-09, avsnitt 6.2) beskriver hur vårdgivare styr vad som visas: vårdgivaren väljer vilka informationsmängder som visas och kan filtrera på sökord, enhet eller journalmall, vårdnadshavare har tillgång till barnets journal tills barnet fyller 13 år, vårdnadshavare nekas för barn med skyddade personuppgifter, tjänsten kan vara öppen från 16 år och vårdgivaren ska kunna informera invånaren om att viss information inte är tillgänglig. Min journal följer samma upplägg men är inte kopplad till 1177.
+
+### Inloggning och behörighet
+
+- Inloggningssidan har två val, Personal och Patient. Patienten väljer en av de påhittade personerna. E-legitimationen är simulerad och kopplad till ingen extern tjänst, och det står på sidan. Listan före inloggning visar en patient med skyddade personuppgifter som "Skyddad identitet" med maskerat personnummer.
+- Invånarens session är skild från personalens: samma sessionskaka och sandlåda, men aldrig båda inloggade. Inloggning som invånare nollställer personalens inloggning, aktiva val och läskopia och byter sessionskaka, och omvänt. Personalens API:er svarar 401 för en invånare, och Min journal svarar 401 för personal.
+- Behörigheten prövas i servern i varje anrop med `provaInvanare` i atkomst.js, en ren funktion som `prova`. Egen journal: från 16 år. Vårdnadshavare: barnets journal tills barnet fyller 13 år, aldrig för ett barn med skyddade personuppgifter. Mellan 13 och 16 år läser varken barnet eller vårdnadshavaren journalen i Min journal. Ineras villkor låter vårdgivaren förlänga eller förkorta vårdnadshavarens tillgång i enskilda fall; det är inte byggt.
+- En journal som invånaren saknar koppling till svarar 404, oavsett om den finns, så att det inte går att pröva sig fram till andras patient-id. En journal med koppling som inte får läsas nu (barnet har fyllt 13) svarar 403 med skälet. Nekade försök mot en journal som finns loggas på den journalen.
+- En invånare får göra högst 20 nekade försök i en sandlåda. Därefter stoppas försöken utan att loggas, så att ingen kan fylla en annan patients logglista med försök. Ett anrop till Min journal eller FHIR som webbläsaren märker som en navigering från en annan webbplats avvisas, eftersom sessionskakan är SameSite=Lax och en annan sida annars kunde få invånaren att göra åtkomster i sitt namn.
+- Min journal har ingen läskopia och inget läsläge vid avbrott. Läsläget (D4) gäller personalen.
+
+### Vad som visas
+
+| Uppgift | Regel |
+|---|---|
+| Anteckningar | Bara signerade, i senaste versionen med äldre versioner överstrukna. Därtill vårdgivarens visningsregler per vårdenhet och anteckningstyp i tabellen `visningsregler` (seed/invanare.js): `direkt`, `fordrojd` (ett antal dagar efter signering) eller `visas_inte`. Den mest specifika regeln gäller. I demon: Allmänpsykiatriska klinikens mottagningsanteckningar visas 14 dagar efter signering, och klinikens omvårdnadsanteckningar visas inte. Det som inte visas räknas och redovisas med vårdgivarens motivering, men innehållet lämnas inte ut. |
+| Provsvar | Labbvärden visas när ansvarig läkare har vidimerat dem (kolumnen `vidimerad`), dock senast 14 dagar efter provtagningen. Det som väntar redovisas med provets namn och datum då det senast visas. Vitalparametrar och PEF visas direkt. |
+| Diagnoser, läkemedel, överkänslighet, remisser, vårdkontakter | Direkt. Remisser visas med status, frågeställning, svar och motivering vid avvisning. |
+| Spärrade uppgifter | Visas för patienten själv. Spärren gäller vårdenheter emellan. Patienten ser vilka spärrar som finns. |
+| Vaccinationer, tidbokningar, intyg | Finns inte i journalen i demon och visas därför inte. Det står i tjänsten. |
+
+Att bara signerade anteckningar visas är ett val. Regioner som följer det nationella ramverket för 1177 journal visar i dag ofta också osignerade anteckningar, tydligt markerade, och låter patienten välja att inte se det som är nyare än 14 dagar (till exempel Region Gotlands rutin för 1177 Journalen, STY-09706, version 18.0, avsnitt 3.1). Regeln för osignerade anteckningar och fördröjningen av provsvar är inte konfigurerbara i demon; visningsreglerna för anteckningstyper är det.
+
+Den som har skrivit och signerat en anteckning visas med namn och titel, eftersom det är en del av journalen. Svaren innehåller inte personalens id eller HSA-id, inga NLL-meddelanden, inga varningskvittenser, inga larm och inga kontaktuppgifter.
+
+### Vem har läst min journal
+
+- Logglistan är patientens rader ur samma åtkomstlogg som logguppföljningen. Varje rad har vårdgivare, vårdenhet (och avdelning eller mottagning), yrkesroll, tid, typ av åtkomst och grund (vårdrelation, aktivt val, nödåtkomst, samtycke till spärrade uppgifter, administrativ uppgift, logggranskning, nekad). Nödåtkomst, samtycke och nekade försök är markerade. Loggkedjans kontroll visas. Vårdens rader, invånarens egna och andra invånares hämtas med var sin gräns, så att många läsningar i Min journal aldrig tränger undan vårdens åtkomster ur listan. Logguppföljningen har filtret Vårdens åtkomster av samma skäl.
+- **Personalens namn visas inte.** HSLF-FS 2016:40 4 kap. 10 § kräver vårdenhet och tidpunkt men inte användarens identitet, som bara ska finnas i själva loggen (4 kap. 9 a §). Rätten till tillgång enligt dataskyddsförordningen artikel 15 omfattar i regel inte identiteten på de anställda som har behandlat uppgifterna, utom när den är nödvändig för att den registrerade ska kunna utöva sina rättigheter (EU-domstolens dom den 22 juni 2023, C-579/21, Pankki S). Patienten kan i tjänsten begära ett loggutdrag med namn, som vårdgivaren då prövar. Loggens fritext (syftet med ett aktivt val eller en nödåtkomst) visas inte heller, eftersom den skrivs för uppföljningen och inte är prövad för utlämnande.
+- Patientens egen läsning loggas med grunden `egen_atkomst` (vårdnadshavarens med `vardnadshavare`), utan personal och vårdenhet och med invånaren i kolumnen `invanare_id`. Raderna syns i patientens logglista, där de är dolda tills patienten väljer att visa dem, och i logguppföljningen som "Patienten själv" respektive vårdnadshavarens namn. De flaggas inte, eftersom de inte är vårdens åtkomst.
+
+### Begäranden till vården
+
+Patienten kan begära att uppgifter från en vårdenhet spärras, att en spärr hävs, och ett loggutdrag med namn. En begäran sparas i tabellen `begaran` med status `skickad`, loggas och visas för patienten. Den ändrar ingenting i journalen eller i spärrarna: vården ska pröva och registrera den. Handläggningen hos vården är inte byggd i demon. En vårdnadshavare kan inte begära spärr eller hävning (patientdatalagen 4 kap. 4 §), men kan begära loggutdrag.
+
+### FHIR
+
+Med sessionen från Min journal når invånaren `/fhir/Patient/{egen}`, `Patient/{egen}/$everything` och sökningar med `patient=` eller `subject=` för de egna journalerna, med samma visningsregler och samma loggning. FHIR-vägen lämnar inte ut mer än Min journal: egna mappningar tar bort kontaktuppgifter, remissens anamnes och remitterande läkare, NLL-status, katalogens id och personalens id, och en äldre version av en anteckning visas bara när den senaste versionen visas. En resurs i en annan journal svarar som en som inte finns. `Practitioner` och `AuditEvent` nekas, `Organization` går att läsa.
 
 ## Kravregistret (krav.js)
 

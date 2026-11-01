@@ -3,7 +3,7 @@ import { esc, api, tidpunkt, ikon, vyRubrik, tom, GRUND, HANDLING, YRKE, idag, p
 
 export const namn = 'logg';
 
-const FLAGGOR = [['alla', 'Alla'], ['nodatkomst', 'Nödåtkomst'], ['nekad', 'Nekade försök'], ['samtycke', 'Samtycke till spärrade uppgifter']];
+const FLAGGOR = [['alla', 'Alla'], ['vard', 'Vårdens åtkomster'], ['nodatkomst', 'Nödåtkomst'], ['nekad', 'Nekade försök'], ['samtycke', 'Samtycke till spärrade uppgifter']];
 
 export function kedjaRuta(hel, v) {
   return hel
@@ -22,7 +22,15 @@ function resursText(r) {
   if (r.resurs && r.handling === 'sok') return `<span class="under-text">${esc(r.resurs.replace(/^sok:/, 'Sökte på '))}</span>`;
   if (r.resurs === 'lasekopia') return '<span class="under-text">Lämnades ut till läskopian för avbrott</span>';
   if (r.resurs?.startsWith('laslage:')) return '<span class="under-text">Läst i läsläget under ett avbrott</span>';
+  if (r.resurs?.startsWith('fhir/') && r.invanare) return '<span class="under-text">Via det öppna API:t</span>';
   return '';
+}
+
+// En rad från Min journal har invånaren i stället för personal. Patientens egen läsning visas utan namn.
+const INVANARE = { egen: 'Patienten själv', vardnadshavare: 'Vårdnadshavare', annan: 'Invånare' };
+function vemCell(r) {
+  if (r.invanare) return `${esc(r.invanare.namn ?? INVANARE[r.invanare.relation] ?? 'Invånare')}<span class="under-text">${esc(r.invanare.namn ? INVANARE[r.invanare.relation] ?? 'Invånare' : 'Invånare')}, e-legitimation</span>`;
+  return `${esc(r.personal?.namn ?? '')}<span class="under-text">${esc(YRKE[r.personal?.yrke] ?? '')}</span>`;
 }
 
 export function loggTabell(rader, { visaPatient = true } = {}) {
@@ -31,8 +39,8 @@ export function loggTabell(rader, { visaPatient = true } = {}) {
     <thead><tr><th scope="col">Tid</th><th scope="col">Vem</th><th scope="col">Enhet</th>${visaPatient ? '<th scope="col">Patient</th>' : ''}<th scope="col">Handling</th><th scope="col">Grund</th><th scope="col">Syfte</th><th scope="col">Resultat</th></tr></thead>
     <tbody>${rader.map(r => `<tr class="${r.flaggad ? 'flaggad' : ''}${r.resultat === 'nekad' ? ' nekad' : ''}">
       <td>${esc(tidpunkt(r.tid))}</td>
-      <td>${esc(r.personal?.namn ?? '')}<span class="under-text">${esc(YRKE[r.personal?.yrke] ?? '')}</span></td>
-      <td>${esc(r.enhet?.namn ?? '')}</td>
+      <td>${vemCell(r)}</td>
+      <td>${r.invanare ? '<span class="dampad">Min journal</span>' : esc(r.enhet?.namn ?? '')}</td>
       ${visaPatient ? `<td>${patientCell(r)}</td>` : ''}
       <td>${esc(HANDLING[r.handling] ?? r.handling)}${resursText(r)}</td>
       <td><span class="grund grund-${esc(r.grund)}">${esc(GRUND[r.grund] ?? r.grund)}</span></td>

@@ -42,6 +42,7 @@ export const plural = (n, en, flera) => `${n} ${n === 1 ? en : flera}`;
 export const GRUND = {
   egen_enhet: 'Egen enhet', vardrelation: 'Vårdrelation', aktivt_val: 'Aktivt val', samtycke_sparr: 'Samtycke till spärrade uppgifter',
   nodatkomst: 'Nödåtkomst', administrativ: 'Administrativ uppgift', logggranskning: 'Logggranskning', nekad: 'Nekad',
+  egen_atkomst: 'Patientens egen åtkomst', vardnadshavare: 'Vårdnadshavare',
 };
 export const NLL = { skickad: 'Skickas', kvitterad: 'Kvitterad av NLL', okand_kontrolleras: 'Okänd, kontrolleras', fel: 'Fel från NLL' };
 export const ORDTYP = { staende: 'Stående', vid_behov: 'Vid behov', tillfallig: 'Tillfällig' };
@@ -57,6 +58,7 @@ export const HANDLING = {
   las_admin: 'Läste administrativa uppgifter', sok: 'Sökte patient', vantrum: 'Såg väntrummet', nodatkomst: 'Använde nödåtkomst',
   andra_enheter: 'Visade uppgifter från andra vårdenheter', samtycke_sparr: 'Registrerade samtycke till spärrade uppgifter',
   visa_identitet: 'Visade skyddad identitet', las_logg: 'Läste åtkomstloggen',
+  invanare_las: 'Läste journalen i Min journal', invanare_begaran: 'Skickade en begäran i Min journal',
 };
 export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare' };
 
@@ -69,7 +71,8 @@ export class ApiFel extends Error {
     this.data = data ?? {};
   }
 }
-export const krokar = { svarstid: null, vid401: null, vid429: null, efterSkrivning: null };
+// ejLaslage: när den ger true används aldrig läsläget eller läskopian (Min journal).
+export const krokar = { svarstid: null, vid401: null, vid429: null, efterSkrivning: null, ejLaslage: null };
 
 // Avbrott (D4). När servern inte svarar går gränssnittet över till läsläge: läsningar besvaras från den krypterade
 // läskopian i webbläsaren och skrivningar stoppas. avbrott.js sätter upptackt (kontrollerar att servern verkligen är
@@ -95,6 +98,7 @@ export function avbrytAllaAnrop() { for (const k of pagaende) k.abort(); pagaend
 
 // direkt: anropet går alltid till servern, också i läsläget (hälsokontrollen, läskopian och loggen från läsläget).
 export async function api(vag, { metod = 'GET', data, tyst = false, direkt = false } = {}) {
+  if (krokar.ejLaslage?.()) direkt = true;
   if (!direkt && (avbrott.aktivt || avbrott.simulerat)) return franKopia(vag, metod);
   let r;
   const t0 = performance.now();
@@ -246,6 +250,7 @@ export const ikon = {
   pil: P('<path d="m9 18 6-6-6-6"/>'),
   kort: P('<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>'),
   nyckel: P('<circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.8-9.8M17 5.8l3 3M14.2 8.6l2 2"/>'),
+  person: P('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
 };
 
 // Etikett för poster som migrerats från VAS eller Cosmic. Samma vikt som annat, bara märkt.

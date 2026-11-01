@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { prova, harVardrelation, vardenhetFor, maskeraPnr, visningsnamn, visningsPnr } from '../src/atkomst.js';
+import { prova, provaInvanare, harVardrelation, vardenhetFor, maskeraPnr, visningsnamn, visningsPnr } from '../src/atkomst.js';
 import { nyDb, personal } from './hjalp.js';
 
 const db = nyDb();
@@ -173,5 +173,44 @@ describe('Behörighetsmotorn', () => {
     expect(visningsPnr(p, true)).toBe('19840416-2383');
     const vanlig = db.query("SELECT * FROM patienter WHERE id = 'p01'").get();
     expect(visningsnamn(vanlig)).toBe('Gunnar Åkesson');
+  });
+
+  test('invånare: egen journal från 16 år, vårdnadshavare till 13 år och aldrig för ett barn med skyddad identitet', () => {
+    const d = nyDb();
+    const inv = (id) => d.query('SELECT * FROM invanare WHERE id = ?').get(id);
+    const pat = (id) => d.query('SELECT * FROM patienter WHERE id = ?').get(id);
+    const fodd = (id, datum) => d.query('UPDATE patienter SET fodd = ? WHERE id = ?').run(datum, id);
+    const nu = new Date('2026-11-01T12:00:00Z');
+    const fraga = (i, p) => provaInvanare(d, { invanare: inv(i), patient: pat(p), nu });
+    // Egen journal.
+    expect(fraga('inv-p01', 'p01')).toMatchObject({ tillaten: true, grund: 'egen_atkomst', relation: 'egen' });
+    expect(fraga('inv-p03', 'p03')).toMatchObject({ tillaten: true, grund: 'egen_atkomst' });
+    // Någon annans journal: ingen relation, inget som avslöjar mer.
+    expect(fraga('inv-p01', 'p02')).toMatchObject({ tillaten: false, grund: 'nekad', relation: null });
+    expect(fraga('inv-vh01', 'p01')).toMatchObject({ tillaten: false, relation: null });
+    // Vårdnadshavare till Leo, 8 år.
+    expect(fraga('inv-vh01', 'p09')).toMatchObject({ tillaten: true, grund: 'vardnadshavare', relation: 'vardnadshavare' });
+    // Dagen före 13-årsdagen ja, på 13-årsdagen nej.
+    fodd('p09', '2013-11-02');
+    expect(fraga('inv-vh01', 'p09').tillaten).toBe(true);
+    fodd('p09', '2013-11-01');
+    expect(fraga('inv-vh01', 'p09')).toMatchObject({ tillaten: false, relation: 'vardnadshavare' });
+    expect(fraga('inv-vh01', 'p09').skal).toContain('13 år');
+    // Mellan 13 och 16 år läser inte heller barnet själv. Från 16 år gör det det.
+    fodd('p09', '2011-11-02');
+    expect(fraga('inv-p09', 'p09')).toMatchObject({ tillaten: false, relation: 'egen' });
+    fodd('p09', '2010-11-01');
+    expect(fraga('inv-p09', 'p09')).toMatchObject({ tillaten: true, grund: 'egen_atkomst' });
+    expect(fraga('inv-vh01', 'p09').tillaten).toBe(false);
+    // Ett barn med skyddade personuppgifter: aldrig för vårdnadshavaren, oavsett ålder.
+    fodd('p09', '2019-05-05');
+    d.query("UPDATE patienter SET skyddad = 1 WHERE id = 'p09'").run();
+    expect(fraga('inv-vh01', 'p09')).toMatchObject({ tillaten: false, relation: 'vardnadshavare' });
+    expect(fraga('inv-vh01', 'p09').skal).toContain('skyddade personuppgifter');
+    // Utan invånare eller patient nekas allt.
+    expect(provaInvanare(d, { invanare: null, patient: pat('p01') }).tillaten).toBe(false);
+    expect(provaInvanare(d, { invanare: inv('inv-p01'), patient: null }).tillaten).toBe(false);
+    // Invånaren har inga av personalens handlingar i behörighetsmotorn för personal.
+    expect(prova(d, { personal: inv('inv-p01'), patient: 'p01', handling: 'las_oversikt' }).tillaten).toBe(false);
   });
 });
