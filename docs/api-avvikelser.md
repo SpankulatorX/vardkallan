@@ -4,7 +4,7 @@ Det här dokumentet beskriver var backend avviker från eller lägger till någo
 
 ## Allmänt
 
-- **Felkoder.** Utöver 400, 403 och 404 används 401 med `kod: "ej_inloggad"` när ingen demoroll är vald, 405 för fel metod, 413 för för stor kropp (över 64 kB), 415 när kroppen inte är JSON, 429 när en adress skapar för många nya sandlådor (standard 60 per timme, `NYA_PER_TIMME`) och 500 med `kod: "fel"`.
+- **Felkoder.** Utöver 400, 403 och 404 används 401 med `kod: "ej_inloggad"` när ingen demoroll är vald (också när en invånare är inloggad i Min journal och anropar personalens API:er, och när personal anropar Min journal), 405 för fel metod, 413 för för stor kropp (över 64 kB), 415 när kroppen inte är JSON, 429 när en adress skapar för många nya sandlådor (standard 60 per timme, `NYA_PER_TIMME`) och 500 med `kod: "fel"`.
 - **Extra fält i fel.** Ett 400-fel kan ha `falt` (lista med ogiltiga fält). En ordination som stoppas av varningar har också `varningar`, `kraverKvittens` (regler som måste kvitteras) och `demoregler: true`.
 - **Listsvar är objekt.** Där designen säger "lista" svarar dessa endpoints med ett objekt, så att gränssnittet får veta vad som döljs:
   - `GET /api/patient/:id/anteckningar` ger `{ anteckningar, dolda: { kraverVal, sparrade } }`
@@ -22,7 +22,7 @@ Det här dokumentet beskriver var backend avviker från eller lägger till någo
 
 ## Session och inloggning
 
-- `GET /api/session` har också `personal.yrkeText`, `personal.titel`, `personal.hsaId`, `enhet.hsaId`, `enhet.vardenhet` (den vårdenhet inre sekretess räknas mot, till exempel `uso-kard` för avdelning 72) och `behorigheter` (de handlingar rollen får göra, för att dölja knappar).
+- `GET /api/session` har också `roll` (`personal` eller `invanare`), `personal.yrkeText`, `personal.titel`, `personal.hsaId`, `enhet.hsaId`, `enhet.vardenhet` (den vårdenhet inre sekretess räknas mot, till exempel `uso-kard` för avdelning 72) och `behorigheter` (de handlingar rollen får göra, för att dölja knappar).
 - `GET /api/demo/personal` ger `{ id, namn, yrke, yrkeText, titel, enhet: { id, namn, hsaId } }`. `yrke` är koden, `yrkeText` och `titel` är text att visa.
 - `POST /api/login` byter sessionskakan (ny nyckel, samma sandlåda) och svarar som `GET /api/session`. Personalen har en fast enhet, så inget enhetsval skickas.
 - `POST /api/logout` och `POST /api/login` nollställer alla aktiva val (andra enheter, nödåtkomst, samtycke, visa identitet).
@@ -78,10 +78,27 @@ Det här dokumentet beskriver var backend avviker från eller lägger till någo
 
 ## Logg
 
-- `GET /api/patient/:id/logglista` ger `{ patientId, patient, rader, kedjaHel }` och är bara öppen för logggranskaren. En vy för patienten själv finns inte i v1.
+- `GET /api/patient/:id/logglista` ger `{ patientId, patient, rader, kedjaHel }` och är bara öppen för logggranskaren. Patienten ser sina egna åtkomster i Min journal (`GET /api/min/journal/:id/logglista`).
 - `GET /api/logg` ger `{ flagga, rader, kedjaHel, verifiering: { hel, antal, felRad, orsak } }`, högst 500 rader, nyast först. `fran` och `till` kan vara datum eller ISO-tid.
-- En loggrad i API:t är `{ id, tid, personal, enhet, patientId, patient, handling, resurs, grund, syfte, resultat, flaggad, hash }`. `patient` är `{ id, namn, personnummer, skyddad }` med namn och personnummer maskerade för skyddad identitet (även för logggranskaren), eller `null` när raden inte gäller en patient.
+- En loggrad i API:t är `{ id, tid, personal, invanare, enhet, patientId, patient, handling, resurs, grund, syfte, resultat, flaggad, hash }`. `invanare` är `{ id, relation: egen|vardnadshavare|annan, namn }` för en rad från Min journal, annars `null`; `namn` är `null` för patientens egen läsning, så att en skyddad identitet inte syns där. Grunderna `egen_atkomst` och `vardnadshavare` flaggas inte. `patient` är `{ id, namn, personnummer, skyddad }` med namn och personnummer maskerade för skyddad identitet (även för logggranskaren), eller `null` när raden inte gäller en patient.
 - Varje anrop som rör en patient ger en loggrad med den starkaste grunden som användes (samtycke_sparr före nodatkomst före aktivt_val före egen_enhet). Inkorg, arbetslista och remisslistor loggas inte i v1.
+
+## Min journal (invånarens e-tjänst)
+
+Reglerna och deras rättsliga grund står i `docs/design.md`, avsnittet Min journal.
+
+- `GET /api/demo/invanare` ger de påhittade personerna för den simulerade e-legitimationen: `[{ id, namn, personnummer, alder, skyddad, egenJournal, barn: [{ namn, alder }] }]`. Personer under 16 år finns inte med. En patient med skyddade personuppgifter har `namn: "Skyddad identitet"` och maskerat personnummer. Kräver ingen inloggning.
+- `POST /api/login/invanare { invanareId }` loggar in invånaren, byter sessionskakan och nollställer personalens inloggning, aktiva val och läskopia. 400 för okänd invånare, 403 för en person under 16 år. Svar som `GET /api/session`: `{ inloggad: true, roll: "invanare", invanare: { id, namn, personnummer, alder }, journaler: [{ patientId, namn, personnummer, alder, relation: egen|vardnadshavare, atkomst, skal }], demoDatum }`, utan `personal`, `behorigheter` och `lasnyckel`. `POST /api/login` för personal loggar ut invånaren på samma sätt, och `POST /api/logout` loggar ut båda.
+- Alla anrop under `/api/min/journal/:id` prövar behörigheten och loggar en rad med `handling: "invanare_las"` (en begäran: `invanare_begaran`), `resurs: "min:<del>"`, `grund: "egen_atkomst" | "vardnadshavare"` och `invanare_id`. En journal utan koppling till invånaren ger 404 med samma text oavsett om den finns. En journal med koppling som inte får läsas nu ger 403 med skälet. Nekade försök mot en journal som finns loggas med `resultat: "nekad"`.
+  - `GET /api/min/journal/:id` ger `{ patient: { id, namn, personnummer, alder, kon, skyddad }, relation, vardgivare, sparrar: [{ vardenhetId, vardenhet, sedan }], begransningar: { baraSignerade, provsvarSenastDagar, regler: [{ vardenhet, typ, visning, dagar, motivering }] }, kanBegaraSparr }`.
+  - `/oversikt` ger `{ anteckningar (tre senaste), antalAnteckningar, lakemedel (aktuella), overkanslighet, diagnoser (fem senaste), provsvar (senaste per typ), remisser (pågående), vardkontakter (fem senaste), vantar: { anteckningar, provsvar } }`.
+  - `/anteckningar` ger `{ anteckningar: [{ id, typ, datum, vardenhet, arbetsplats, forfattare: { namn, titel }, rattad, sammanfattning, kallaEtikett }], senare: [{ typ, vardenhet, arbetsplats, signerad, visasFran }], ejVisade: [{ typ, vardenhet, antal, motivering }] }`. `GET /api/min/journal/:id/anteckning/:aid` ger hela anteckningen med `sokord`, `rattelseOrsak` och `versioner`, och 404 för ett utkast, en anteckning som inte visas eller en anteckning i en annan journal.
+  - `/diagnoser` ger `{ diagnoser }`, `/lakemedel` ger `{ aktuella, tidigare, overkanslighet }`, `/remisser` ger `{ remisser: [{ id, fran, till, prioritet, svarSenast, status, beslut, tider, fragestallning, motivering, svar, kallaEtikett }] }` och `/vardkontakter` ger `{ vardkontakter }`. Enheter anges med namn (`vardenhet`, `arbetsplats`), utan id.
+  - `/provsvar` ger `{ provsvar, matvarden, vantar: [{ namn, provtagen, visasSenast }], senastDagar }`. Ett mätvärde har `provsvar` (sant för labbvärden) och `vidimerad` (`null` för vitalparametrar).
+  - `/logglista` ger `{ rader: [{ id, tid, vem: personal|du|patienten|vardnadshavare|invanare, vardgivare, vardenhet, arbetsplats, yrkesroll, handling, grund, resultat, via: fhir|laskopia|laslage|min_journal|null, egenAtkomst }], max: 500, kedjaHel }`. Inga namn, inga id för personalen, ingen hash, inget syfte och ingen resurs.
+  - `/sparrar` ger `{ sparrar, kanBegaraSparr, vardenheter: [{ id, namn, sparrad }], begaran: [{ id, typ, vardenhet, meddelande, skapad, status, egen }] }`, där `vardenheter` är de vårdenheter som har uppgifter om patienten.
+  - `POST /api/min/journal/:id/begaran { typ: sparr|hava_sparr|loggutdrag, enhetId?, meddelande? }` svarar 201 med `{ begaran }`. `enhetId` krävs för `sparr` (en vårdenhet med uppgifter om patienten som inte redan är spärrad) och `hava_sparr` (en aktiv spärr). `meddelande` högst 500 tecken. En likadan obehandlad begäran ger 400, och högst 20 begäranden per journal tas emot. En vårdnadshavare får 403 för `sparr` och `hava_sparr`. Begäran ändrar inga spärrar.
+- **Spara och läsa in sandlådor.** `invanareId` sparas med sandlådan. En sandlåda som sparades före Min journal får tabellerna `invanare`, `vardnadshavare`, `visningsregler` och `begaran` och kolumnerna `matvarden.vidimerad` och `atkomstlogg.invanare_id` när den läses in, och dess provsvar räknas som vidimerade när de togs.
 
 ## Migrering, krav och drift
 
@@ -114,11 +131,15 @@ Det här dokumentet beskriver var backend avviker från eller lägger till någo
 - `Observation`: labbvärden har NPU (`http://npu-terminology.org`), vitalparametrar och PEF har LOINC, och alla värden har UCUM-enhet (`system` och `code`) utöver den svenska `unit`. Vitalparametrarna följer FHIR R4:s vitalparameterprofiler och anger dem i `meta.profile`; saturation har både 2708-6 (som profilen kräver) och 59408-5. eGFR har bara text, eftersom NPU saknar kod för skattat GFR. Den svenska benämningen står i `code.text`, och `display` är kodverkets egen (engelska för LOINC). Koderna står i `app/src/kodverk.js`.
 - `MedicationRequest` har ATC med WHO:s benämning som `display` och ett påhittat NPL-id (`https://vardkallan.404haven.se/fhir/NamingSystem/npl-demo`), och tilläggen `uppfoljningsdatum`, `nll-status` och `utsattningsorsak` under `https://vardkallan.404haven.se/fhir/StructureDefinition/`. `ServiceRequest` har tilläggen `remisstatus` och `svar-senast`, och `AuditEvent` tillägget `hash`. Alla tillägg och kodsystemen `kalla`, `felkod`, `atkomstgrund`, `nll-status` och `remisstatus` är definierade i `app/src/fhir-definitioner.js`. `AuditEvent.purposeOfEvent` har systemet `https://vardkallan.404haven.se/fhir/CodeSystem/atkomstgrund`.
 - `Composition.status` är `final`, `amended` (en rättelse, med `relatesTo` av typen `replaces`) eller `preliminary` (eget utkast).
+- **Invånarens session (Min journal).** Med en session från Min journal når invånaren `Patient/{id}`, `Patient/{id}/$everything` (en `Bundle` av typen `searchset` med patienten och alla synliga resurser) och sökningar med `patient=` eller `subject=` för de journaler invånaren får läsa, med samma visningsregler som i `/api/min` (bara signerade och synliga anteckningar, bara provsvar som får visas). En `Patient`-sökning utan parametrar ger de egna journalerna. En resurs eller sökning i en annan journal ger 404 `OperationOutcome`; en `Patient`-sökning tar tyst bort journaler som inte får läsas. `Practitioner` och `AuditEvent` ger 403, `Organization` går att läsa. Anropen loggas som invånarens egen åtkomst. `CapabilityStatement` anger operationen `everything` för `Patient`. I `AuditEvent` har en rad från Min journal patienten som agent (egen läsning) eller en agent med bara `display` (vårdnadshavare).
+- Kodsystemet `atkomstgrund` har sedan version 0.3.0 av definitionerna också `egen_atkomst` och `vardnadshavare`.
 - Alla resurstyper är validerade med HL7:s validator mot FHIR R4 och HL7 Swedens basprofiler (`hl7se.fhir.base` 1.1.0) utan fel, se `docs/fhir-validering.md`. `Patient`, `Organization` och `Practitioner` anger basprofilerna i `meta.profile`. Övriga resurstyper påstår ingen profil utöver FHIR R4.
 
 ## Seed
 
 - 15 patienter (`p01` till `p15`), inte 12. De tre extra behövs för väntrummet och psykiatrins arbetslista.
+- Varje patient är också en invånare i Min journal (`inv-p01` till `inv-p15`), och vårdnadshavaren `inv-vh01` har barnet p09 (`app/src/seed/invanare.js`). Där finns också visningsreglerna för anteckningar.
+- Provsvar (labbvärden) har en vidimeringstid i seeden, två timmar efter provtagningen. Två färska provsvar är inte vidimerade (`{ ejVidimerad: true }` i seeden): dagens INR för p01 och dagens troponin för p04. P15 har en psykiatrisk mottagningsanteckning från för fyra dagar sedan, som visas i Min journal först efter 14 dagar. Ett mätvärde som personalen registrerar har ingen vidimering; vidimering görs inte i gränssnittet.
 - Utöver de åtta demorollerna finns personal som inte går att logga in som, för att journalerna ska ha författare på andra enheter.
 
 ## POST /api/logout tar emot åtkomster från läsläget

@@ -14,6 +14,7 @@ Demon använder bara påhittade patienter och testpersonnummer från Skatteverke
 - Behörighet enligt patientdatalagen och HSLF-FS 2016:40: vårdrelation, inre sekretess med aktivt val, spärr med spärrmarkering och samtycke, nödåtkomst och minsta nödvändiga åtkomst per yrkesroll. All kontroll sker på servern.
 - Skyddade personuppgifter skyddas i hela kedjan, även i väntrum och uppropning.
 - En åtkomstlogg som inte går att ändra (hashkedja och databastriggrar), logglista per patient och logguppföljning.
+- Min journal, en e-tjänst för patienten: patienten loggar in med simulerad e-legitimation och läser sin journal efter vårdgivarens visningsregler, och ser vilken vårdenhet och yrkesroll som har läst den, när och på vilken grund. Spärr och loggutdrag begärs hos vården. Vårdnadshavare läser barnets journal tills barnet fyller 13 år.
 - Läkemedelslistan är byggd för Nationella läkemedelslistan: ordinationsorsak och uppföljningsdatum är obligatoriska, varje överföring kvitteras och en timeout döljer aldrig en registrerad förskrivning. Kopplingen till NLL är simulerad i demon.
 - Remisser med mottagningskvittens, bedömning, svar och kvittens av svaret, och larm när något uteblir.
 - Migrerad historik visas i samma kronologi som ny dokumentation, med en avstämningsrapport för migreringen.
@@ -31,7 +32,7 @@ docker build -t vardkallan app
 docker run --rm -p 127.0.0.1:8080:8080 vardkallan
 ```
 
-Öppna http://127.0.0.1:8080 och välj en demoroll. Varje besökare får en egen sandlåda i minnet.
+Öppna http://127.0.0.1:8080 och välj en demoroll under Personal, eller en patient under Patient. Varje besökare får en egen sandlåda i minnet.
 
 Tester:
 
@@ -42,10 +43,10 @@ docker run --rm -v "$PWD/app:/app" -w /app oven/bun:1.3.14-alpine bun test
 ## Struktur
 
 - `docs/design.md`: syfte, behörighetsregler och API-kontrakt.
-- `app/src/`: server (Bun), behörighetsmotor, logg, journal, läkemedel, remiss, FHIR och kravregister.
+- `app/src/`: server (Bun), behörighetsmotor, logg, journal, läkemedel, remiss, Min journal för patienten (`patientvy.js`), FHIR och kravregister.
 - `app/src/seed/`: påhittade verksamheter, personal och patienter.
 - `app/public/`: webbgränssnittet, JavaScript utan byggsteg.
-- `app/test/`: automatiska tester. `test/genomgang.cjs`: genomgång i webbläsaren av alla demoroller.
+- `app/test/`: automatiska tester. `test/genomgang.cjs`: genomgång i webbläsaren av alla demoroller och av Min journal, också i mobilbredd.
 
 ## Licens
 

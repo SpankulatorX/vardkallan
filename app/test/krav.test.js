@@ -15,8 +15,9 @@ describe('Kravregistret', () => {
     }
     // Det som inte byggs i första versionen är planerat. Läsläget vid avbrott (D4) och klickbudgeten (D6) är byggda
     // men delvis uppfyllda: läsläget saknar reservinloggning, och klickbudgeten är mätt med skript, inte med användare.
-    for (const id of ['D12', 'L5', 'L8', 'L10', 'L11']) expect(KRAV.find(k => k.id === id).status).toBe('planerat');
-    for (const id of ['D4', 'D6']) expect(KRAV.find(k => k.id === id).status).toBe('delvis');
+    // Patientens e-tjänst (L4, L5) finns, men flerfaktorsautentiseringen är simulerad och stickprov saknas.
+    for (const id of ['D12', 'L8', 'L10', 'L11']) expect(KRAV.find(k => k.id === id).status).toBe('planerat');
+    for (const id of ['D4', 'D6', 'L4', 'L5']) expect(KRAV.find(k => k.id === id).status).toBe('delvis');
   });
 
   test('status uppfyllt_demo bara när alla tester är gröna', () => {
