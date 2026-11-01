@@ -2,6 +2,7 @@ import { describe, test, expect } from 'bun:test';
 import * as fhir from '../src/fhir.js';
 import { DEFINITIONER, EXT } from '../src/fhir-definitioner.js';
 import { nyDb, personal } from './hjalp.js';
+import { KATALOG } from '../src/seed/lakemedel-katalog.js';
 
 // Strukturkrav som HL7:s validator kontrollerar (docs/fhir-validering.md). Testerna kräver inte Java,
 // så att bygget fångar de viktigaste felen även utan validatorn.
@@ -134,5 +135,15 @@ describe('FHIR-struktur', () => {
     const atc = avTyp('MedicationRequest').map(m => m.medicationCodeableConcept.coding[0]);
     expect(atc.every(c => c.system === 'http://www.whocc.no/atc' && c.display)).toBe(true);
     expect(atc.find(c => c.code === 'B01AA03').display).toBe('warfarin');
+  });
+
+  test('MedicationRequest har NPL-id med E-hälsomyndighetens system', () => {
+    const npl = Object.fromEntries(KATALOG.map(l => [l.atc, l.npl]));
+    const lm = avTyp('MedicationRequest').map(m => m.medicationCodeableConcept.coding);
+    expect(lm.length).toBeGreaterThan(40);
+    for (const [atc, nplid, ...ovr] of lm) {
+      expect(ovr).toEqual([]);
+      expect(nplid).toEqual({ system: 'http://electronichealth.se/fhir/NamingSystem/nplid', code: npl[atc.code] });
+    }
   });
 });
