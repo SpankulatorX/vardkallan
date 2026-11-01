@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import { join } from 'node:path';
-import { mkdtempSync, rmSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { idag, addDagar } from '../src/db.js';
 import { testserver, klient, sandlada } from './hjalp.js';
 
@@ -17,6 +17,9 @@ describe('API', () => {
     expect(h.status).toBe(200);
     expect(h.data).toMatchObject({ ok: true });
     expect(typeof h.data.sandladar).toBe('number');
+    // Användartestet märker resultatet med appens version och en hash av gränssnittet.
+    expect(h.data.version).toBe(JSON.parse(readFileSync(join(import.meta.dir, '..', 'package.json'), 'utf8')).version);
+    expect(h.data.gransnitt).toMatch(/^[0-9a-f]{64}$/);
     for (const v of ['/api/health', '/api/session', '/api/patient/p01', '/fhir/metadata', '/', '/finns-inte.css']) {
       const r = await k.get(v);
       expect(r.headers.get('server-timing')).toMatch(/^app;dur=\d+(\.\d+)?$/);

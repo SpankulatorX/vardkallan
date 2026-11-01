@@ -100,7 +100,9 @@ Det här dokumentet beskriver var backend avviker från eller lägger till någo
 
 ## Krav och klickbudget (D6)
 
-- `GET /api/krav` läser också `klickbudget.json` och `klienttest-resultat.json` (miljövariabler `KLICKBUDGET` och `KLIENTTESTER`), som skrivs av Playwright-skripten `test/klickbudget.cjs` och `test/avbrott.cjs`. Tillagt i svaret: `klienttester: { tid, antal, godkanda, aktuell }` och för D6 `klickbudget: { tid, regler, floden, aktuell }`. Testerna av gränssnittet räknas som `inaktuell` när hashen av `public/` inte är densamma som när de kördes.
+- `GET /api/krav` läser också `klickbudget.json` och `klienttest-resultat.json` (miljövariabler `KLICKBUDGET` och `KLIENTTESTER`), som skrivs av Playwright-skripten `test/klickbudget.cjs`, `test/avbrott.cjs` och `test/anvandartest.cjs`. De två senare skriver till samma fil och ersätter bara sina egna tester (`test/klienttester.cjs`). Tillagt i svaret: `klienttester: { tid, antal, godkanda, aktuell }` och för D6 `klickbudget: { tid, regler, floden, aktuell }`. Testerna av gränssnittet räknas som `inaktuell` när hashen av `public/` inte är densamma som när de kördes.
+- `GET /api/health` ger också `version` (appens version ur `package.json`) och `gransnitt` (sha256 över alla filer i `public/`, samma hash som Playwright-skripten skriver). Användartestet märker sina resultatfiler med dem.
+- Användartestet (`#/anvandartest`, `public/js/anvandartest.js`) skickar inget till servern utöver de vanliga anropen när deltagaren gör uppgifterna, och testläget loggar in rätt demoroll och återställer demon när rollen byts. Resultatet stannar i webbläsaren. Resultatfilerna sammanställs med `bun scripts/sammanstall-anvandartest.js`, se `docs/anvandartest.md`.
 
 ## FHIR
 

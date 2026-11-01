@@ -129,7 +129,7 @@ Statuskedja: `skickad → mottagen (kvittens) → bedomd (accepterad | avvisad m
 
 Alla svar har rubriken `Server-Timing: app;dur=<ms>`. Fel: `{ fel: "text", kod: "nekad" | "saknas" | "ogiltig" | "kraver_val" | "kraver_samtycke" }` med 400, 403 eller 404. `kraver_val` och `kraver_samtycke` betyder att åtgärden blir möjlig med ett aktivt val respektive samtycke och att gränssnittet ska fråga.
 
-- `GET /api/health` → `{ ok, sandladar }`
+- `GET /api/health` → `{ ok, sandladar }` (se api-avvikelser.md för tillagda fält)
 - `GET /api/session` → `{ inloggad, personal?, enhet?, demoDatum }`
 - `GET /api/demo/personal` → lista över demoroller `{ id, namn, yrke, enhet: { id, namn } }`
 - `POST /api/login { personalId }` → session. `POST /api/logout`. `POST /api/reset` ger ny sandlåda.

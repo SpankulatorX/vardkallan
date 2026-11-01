@@ -24,6 +24,7 @@ export async function visa(main) {
       <p>I vården loggar man in med SITHS-kortet, ett tjänstekort med e-legitimation. I demon är kortet simulerat: du väljer en påhittad person, och behörigheten följer personens yrke och enhet precis som med ett riktigt kort.</p>
       <p>All behörighet kontrolleras på servern. Varje öppnad journal loggas i en logg som inte går att ändra, och du kan granska loggen genom att logga in som Mats Wall.</p>
       <p class="liten-text">Varje besökare får en egen sandlåda med påhittade patienter. Det du gör syns bara för dig och kan återställas med knappen överst.</p>
+      <p class="liten-text">Arbetar du i vården och vill testa demon på riktigt? <a href="#/anvandartest">Användartest</a> ger dig några uppgifter, en i taget, och en kort enkät efteråt.</p>
     </section>
     <section class="roller" aria-labelledby="roll-rubrik">
       <h2 id="roll-rubrik">Välj demoroll</h2>

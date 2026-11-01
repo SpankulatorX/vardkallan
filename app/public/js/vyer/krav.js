@@ -57,6 +57,7 @@ function klickbudgetTabell(kb) {
       </tr>`).join('')}</tbody>
     </table></div>
     <p class="dampad liten">${esc(kb.regler)}</p>
+    <p class="liten">Mätningen med verkliga användare görs med <a href="#/anvandartest">användartestet</a>, som ger samma uppgifter till personer som arbetar i vården och räknar på samma sätt.</p>
     <details class="testlista"><summary>Motivering för varje budget</summary><dl class="kb-motivering">${kb.floden.map(f => `<div><dt>${esc(f.namn)}</dt><dd>${esc(f.motivering)}</dd></div>`).join('')}</dl></details>
   </div>`;
 }
