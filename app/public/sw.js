@@ -14,7 +14,7 @@ const FILER = [
   '/fonts/noto-sans-c600.woff2', '/fonts/noto-sans-c700.woff2',
   '/js/app.js', '/js/avbrott.js', '/js/behorighet.js', '/js/lasekopia.js', '/js/ui.js',
   '/js/vyer/arbetslista.js', '/js/vyer/drift.js', '/js/vyer/inkorg.js', '/js/vyer/inloggning.js', '/js/vyer/krav.js',
-  '/js/vyer/logg.js', '/js/vyer/migrering.js', '/js/vyer/moduler.js', '/js/vyer/oppet-api.js', '/js/vyer/patient-journal.js',
+  '/js/vyer/logg.js', '/js/vyer/migrering.js', '/js/vyer/min.js', '/js/vyer/min-delar.js', '/js/vyer/moduler.js', '/js/vyer/oppet-api.js', '/js/vyer/patient-journal.js',
   '/js/vyer/patient-lakemedel.js', '/js/vyer/patient-logglista.js', '/js/vyer/patient-matvarden.js', '/js/vyer/patient-oversikt.js',
   '/js/vyer/patient-remisser.js', '/js/vyer/patient.js', '/js/vyer/remisser.js', '/js/vyer/sok.js', '/js/vyer/vantrum.js',
 ];

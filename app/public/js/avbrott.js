@@ -216,7 +216,7 @@ async function aterga() {
     visaRad();
     if (!utloggad) {
       try { S.session = await api('/api/session', { tyst: true }); } catch { S.session = { inloggad: false }; }
-      if (S.session.inloggad) await kopia.satNyckel(S.session.lasnyckel, S.session.personal.id);
+      if (S.session.inloggad && S.session.personal) await kopia.satNyckel(S.session.lasnyckel, S.session.personal.id);
     }
     notis(antal
       ? `Servern svarar igen. Läsläget är avslutat och ${antal === 1 ? 'åtkomsten' : `de ${antal} åtkomsterna`} under avbrottet finns nu i åtkomstloggen.`
