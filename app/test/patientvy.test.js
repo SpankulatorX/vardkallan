@@ -490,6 +490,24 @@ describe('Min journal', () => {
     expect(aktivaSparrar(db(k4), 'p04')).toEqual(['uso-psyk']);
   });
 
+  test('FHIR för invånaren: id i fel journal ger alltid 404, och identifier eller fritext i adressen loggas aldrig', async () => {
+    const k = await som('inv-vh01');
+    const d = db(k);
+    // Barnet har fyllt 13: journalen ger 403 med skälet, men en resurs i den efter id ska svara som ett id som inte finns.
+    d.query('UPDATE patienter SET fodd = ? WHERE id = ?').run(addDagar(idag(), -13 * 366), 'p09');
+    const resurs = d.query("SELECT id FROM matvarden WHERE patient_id = 'p09'").get()?.id ?? d.query("SELECT id FROM diagnoser WHERE patient_id = 'p09'").get().id;
+    const typ = d.query("SELECT id FROM matvarden WHERE patient_id = 'p09'").get() ? 'Observation' : 'Condition';
+    const r1 = await k.get(`/fhir/${typ}/${resurs}`);
+    const r2 = await k.get(`/fhir/${typ}/999999`);
+    expect([r1.status, r1.data.issue[0].diagnostics]).toEqual([404, r2.data.issue[0].diagnostics]);
+    // Personnummer i identifier och fritext i sökvägen hamnar inte i loggen.
+    await k.get('/fhir/Patient?identifier=198404162383');
+    await k.get(`/fhir/Observation/${encodeURIComponent('patienten har hiv')}`);
+    await k.get('/fhir/Observation?patient=Patient/p01%20och%20mer%20text');
+    const resurser = d.query("SELECT resurs FROM atkomstlogg WHERE invanare_id = 'inv-vh01'").all().map(r => r.resurs ?? '');
+    expect(resurser.some(r => r.includes('198404162383') || r.includes('hiv') || r.includes('mer text'))).toBe(false);
+  });
+
   test('vårdnadshavare kan inte begära spärr för barnet', async () => {
     const k = await som('inv-vh01');
     const r = await k.post('/api/min/journal/p09/begaran', { typ: 'sparr', enhetId: 'vc-tybble' });

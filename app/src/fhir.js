@@ -416,10 +416,17 @@ const mappaInvanare = (db, typ, rad) => MAPPA_INVANARE[typ](db, rad);
 
 // Resursen i loggen för invånarens anrop: sökvägen och bara de sökparametrar som används, korta. Annan text i adressen
 // hamnar aldrig i loggen, varken i invånarens egen eller i en annan patients.
+// Loggen får bara sökvägen och id:n i ett strikt format. Fritext ur adressen, till exempel ett personnummer i
+// identifier, kommer aldrig in i loggen: en parameter med annat innehåll loggas bara med sitt namn.
 const LOGGADE_PARAMETRAR = ['patient', 'subject', '_id', 'identifier'];
+const LOGGBART_ID = /^[A-Za-z0-9-]{1,32}$/;
+const LOGGBAR_DEL = /^\$?[A-Za-z0-9-]{1,32}$/;
 function loggResurs(delar, url) {
-  const q = LOGGADE_PARAMETRAR.filter(n => url.searchParams.has(n)).map(n => `${n}=${String(url.searchParams.get(n)).slice(0, 64)}`).join('&');
-  return `fhir/${delar.map(d => d.slice(0, 64)).join('/')}${q ? `?${q}` : ''}`.slice(0, 200);
+  const q = LOGGADE_PARAMETRAR.filter(n => url.searchParams.has(n)).map((n) => {
+    const v = String(url.searchParams.get(n)).replace(/^Patient\//, '');
+    return n !== 'identifier' && LOGGBART_ID.test(v) ? `${n}=${v}` : n;
+  }).join('&');
+  return `fhir/${delar.map(d => (LOGGBAR_DEL.test(d) ? d : 'ogiltig')).join('/')}${q ? `?${q}` : ''}`;
 }
 
 function hanteraInvanare(ctx, delar) {
@@ -493,8 +500,14 @@ function hanteraInvanare(ctx, delar) {
       }
       throw finnsInte();
     }
+    // Varje nekande blir samma 404 som för ett id som inte finns, så att svaret inte avslöjar vems resursen är.
+    // Bara gränsen för nekade försök ger 403.
+    const fore = ctx.nekade?.antal ?? 0;
     let atk;
-    try { atk = oppna(rad.patient_id); } catch (e) { throw e.status === 404 ? finnsInte() : e; }
+    try { atk = oppna(rad.patient_id); } catch (e) {
+      if (e.status === 403 && ctx.nekade && fore >= MAX_NEKADE) throw e;
+      throw e.status === 403 || e.status === 404 ? finnsInte() : e;
+    }
     if (!synligFor(db, typ, rad)) throw new Fel(404, 'Resursen finns inte.', 'saknas');
     atk.logga(sokvag);
     return { status: 200, body: mappaInvanare(db, typ, rad) };
