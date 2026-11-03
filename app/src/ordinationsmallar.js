@@ -25,6 +25,18 @@ export function administrationssatt(form = '') {
   return 'peroralt';
 }
 
+// De administrationssätt som passar läkemedelsformen (säkerhetsgranskningen av runda 5). Förskrivaren kan välja bland
+// dem, men inte till exempel ge en injektionsvätska under tungan eller en tablett som injektion. Det förslagna sättet
+// (administrationssatt) står först.
+export function tillatnaSatt(form = '') {
+  if (/sublingual/i.test(form)) return ['sublingualt'];
+  if (/inhalation/i.test(form)) return ['inhalation'];
+  if (/infusion/i.test(form) || /pulver till injektion/i.test(form)) return ['intravenost'];
+  if (/injektionspenna|förfylld spruta/i.test(form)) return ['subkutant', 'intramuskulart', 'intravenost'];
+  if (/injektion/i.test(form)) return ['intravenost', 'intramuskulart', 'subkutant'];
+  return ['peroralt'];
+}
+
 // Mallar per substans (ATC). dos i produktens enhet, tider som klockslag, uppfoljning i dagar, volym i ml per dos för
 // vätskebalansen när läkemedlet ges i en infusion. Patienten kan ändra förslaget: aldre gäller från 75 år, egfr under 30.
 const MALLAR = {
@@ -71,7 +83,7 @@ export function forslag(atk, lm) {
   const satt = administrationssatt(lm.form);
   return {
     mall: mall ? lm.atc : null, mallnamn: mall?.namn ?? null, dosering: f.dosering, dos: f.dos ?? null, dosEnhet: f.dosEnhet ?? null, tider: f.tider ?? [], typ: f.typ,
-    vidBehov: f.typ === 'vid_behov', administrationssatt: satt, administrationssattText: ADMINISTRATIONSSATT[satt],
+    vidBehov: f.typ === 'vid_behov', administrationssatt: satt, administrationssattText: ADMINISTRATIONSSATT[satt], tillatnaAdministrationssatt: tillatnaSatt(lm.form),
     uppfoljningsdatum: addDagar(idag(), f.uppfoljning ?? 30), volymMl: f.volym ?? null, vatskebalans: Boolean(f.volym), varfor, demoregler: true, anmarkning: DEMO_MALLAR,
   };
 }
@@ -84,7 +96,7 @@ export function valideraTillagg(db, inp = {}) {
   const lm = typeof inp.lakemedelId === 'string' ? db.query('SELECT * FROM katalog WHERE id = ?').get(inp.lakemedelId) : null;
   const falt = [];
   const satt = inp.administrationssatt ?? (lm ? administrationssatt(lm.form) : null);
-  if (satt != null && !Object.hasOwn(ADMINISTRATIONSSATT, satt)) falt.push('administrationssatt');
+  if (satt != null && (!Object.hasOwn(ADMINISTRATIONSSATT, satt) || (lm && !tillatnaSatt(lm.form).includes(satt)))) falt.push('administrationssatt');
   let handelse = null;
   if (inp.vardhandelse != null) {
     const text = typeof inp.vardhandelse.text === 'string' ? inp.vardhandelse.text.trim().slice(0, 120) : '';
@@ -97,7 +109,7 @@ export function valideraTillagg(db, inp = {}) {
   if (handelse && Array.isArray(inp.tider) && inp.tider.length) falt.push('tider');
   if (falt.length) {
     throw new Fel(400, falt.includes('tider') ? 'En ordination till en vårdhändelse som inte är tidsatt får inga fasta tider. Tiden räknas fram när vårdhändelsen får sin tid.'
-      : `Kontrollera ${falt.map(f => ({ administrationssatt: 'administrationssätt', vardhandelse: 'vårdhändelsen (minst tre tecken, högst 72 timmar före eller efter)', volymMl: 'volymen' }[f])).join(', ')}.`, 'ogiltig', { falt });
+      : `Kontrollera ${falt.map(f => ({ administrationssatt: lm ? `administrationssättet, som ska passa läkemedelsformen (${lm.form}): ${tillatnaSatt(lm.form).map(s => ADMINISTRATIONSSATT[s].toLowerCase()).join(', ')}` : 'administrationssätt', vardhandelse: 'vårdhändelsen (minst tre tecken, högst 72 timmar före eller efter)', volymMl: 'volymen' }[f])).join(', ')}.`, 'ogiltig', { falt });
   }
   return { administrationssatt: satt, mall: typeof inp.mall === 'string' ? inp.mall.slice(0, 20) : null, volymMl: volym, vatskebalans: inp.vatskebalans === false ? false : volym != null, vardhandelse: handelse };
 }

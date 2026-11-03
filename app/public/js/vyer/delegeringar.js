@@ -55,7 +55,7 @@ async function ny(d, p, ladda) {
     <fieldset class="kryssgrupp"><legend>Vad ${esc(p.namn)} får ge</legend>
       ${d.omfattningar.map(o => `<div class="kryssfalt"><input type="checkbox" id="del-${esc(o.id)}" name="omf_${esc(o.id)}" value="ja"${f.omfattning.includes(o.id) ? ' checked' : ''}><label for="del-${esc(o.id)}">${esc(o.text)}</label></div>`).join('')}
     </fieldset>
-    <div class="falt-rad"><div class="falt"><label for="del-fran">Gäller från</label><input id="del-fran" name="fran" type="date" value="${esc(f.fran)}" min="${esc(f.fran)}" required></div>
+    <div class="falt-rad"><div class="falt"><label for="del-fran">Gäller från</label><input id="del-fran" name="fran" type="date" value="${esc(f.fran)}" min="${esc(f.fran)}" max="${esc(f.franSenast)}" required></div>
       <div class="falt"><label for="del-till">Gäller till och med</label><input id="del-till" name="till" type="date" value="${esc(f.till)}" min="${esc(f.fran)}" max="${esc(f.senast)}" required></div></div>
     <p class="hjalp">Ett delegeringsbeslut är tidsbegränsat och gäller högst ett år. Det följs upp senast sista dagen, och en påminnelse kommer i inkorgen 30 dagar före.</p>
     <div class="kryssfalt"><input type="checkbox" id="del-intyg" name="intyg" value="ja" required><label for="del-intyg">Jag har kontrollerat att ${esc(p.namn)} har dokumenterade kunskaper om läkemedelshantering och riskerna, och den kompetens som uppgiften kräver.</label></div>

@@ -259,7 +259,8 @@ export function medicationAdministration(db, a) {
     ],
     ...(a.ordination_id ? { request: ref('MedicationRequest', a.ordination_id) } : {}),
     ...(note.length ? { note } : {}),
-    ...(a.dos != null && a.status !== 'ej_given' ? { dosage: { dose: { value: a.dos, ...(a.dos_enhet ? { unit: a.dos_enhet } : {}) } } } : {}),
+    // Den givna mängden: dosen per enhet gånger antalet enheter.
+    ...(a.dos != null && a.status !== 'ej_given' ? { dosage: { dose: { value: Math.round(a.dos * (a.antal ?? 1) * 1000) / 1000, ...(a.dos_enhet ? { unit: a.dos_enhet } : {}) } } } : {}),
   };
 }
 

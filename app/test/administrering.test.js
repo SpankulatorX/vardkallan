@@ -116,7 +116,7 @@ describe('Administrering', () => {
     const a = atk(db, 'ssk-kard', 'p01', {}, 'ge_lakemedel');
     const alvedon = ordFor(db, 'p01', 'Alvedon');
     // I går 23.30 en tablett (seeden), sedan två tabletter vid 03.30, 07.30 och 11.30, registrerade i efterhand.
-    for (const k of ['03:30', '07:30', '11:30']) administrering.spara(a, { ordinationId: alvedon.id, antal: 2, dos: 1000, tid: kl(k) });
+    for (const k of ['03:30', '07:30', '11:30']) administrering.spara(a, { ordinationId: alvedon.id, antal: 2, dos: 500, tid: kl(k) });
     expect(regler(administrering.kontroll(a, { ordinationId: alvedon.id, antal: 1 }).varningar)).toContain('allvarlig:dubbel_dos');
     const l = administrering.lista(atk(db, 'ssk-kard', 'p01')).vidBehov.find(v => v.ordinationId === alvedon.id);
     expect(l).toMatchObject({ kanGesNu: false, senasteDygnet: 7 });
