@@ -767,13 +767,14 @@ export function kallelseText(db, b, typ = 'kallelse') {
   const tid = tidRad(db, b.tid_id);
   const schema = schemaRad(db, tid.schema_id);
   const tt = TIDSTYPER[tid.tidstyp];
-  const p = patientRad(db, b.patient_id);
+  // Utan patient blir texten en mall, med en platshållare för namnet och avgiften.
+  const p = b.patient_id ? patientRad(db, b.patient_id) : { fornamn: '(patientens förnamn)' };
   const mottagning = enhetRad(db, schema.enhet_id);
   const ve = enhetRad(db, vardenhetFor(db, schema.enhet_id));
   const ort = mottagning?.typ === 'arbetsplats' ? `${mottagning.namn}, ${ve?.namn ?? ''}` : mottagning?.namn ?? '';
   const vg = personRad(db, schema.personal_id);
   const a = avgiftForBokning(db, b);
-  const avgift = !a ? '' : a.belopp === 0 ? 'Avgift: ingen avgift.' : `Avgift: ${a.belopp} kronor. Har du frikort betalar du inget. Avgifterna i demon är påhittade.`;
+  const avgift = !b.patient_id ? 'Avgift: systemet räknar avgiften för varje patient.' : !a ? '' : a.belopp === 0 ? 'Avgift: ingen avgift.' : `Avgift: ${a.belopp} kronor. Har du frikort betalar du inget. Avgifterna i demon är påhittade.`;
   const vem = tid.tidstyp === 'grupp' ? `${tid.rubrik ?? 'Gruppträff'}, ledd av ${YRKESROLL[schema.yrkesroll]} ${vg?.namn ?? ''}` : `${tt.text} hos ${YRKESROLL[schema.yrkesroll]} ${vg?.namn ?? ''}`;
   const andra = 'Kan du inte komma? Boka om eller avboka i Min journal senast 24 timmar före, eller ring mottagningen.';
   const incheck = tt.fysisk ? 'Checka in i Min journal eller på skärmen i väntrummet när du kommer.' : null;
@@ -960,7 +961,8 @@ export function startsida(db, personal) {
   const grupper = db.query(`SELECT DISTINCT t.* FROM tider t JOIN scheman s ON s.id = t.schema_id JOIN bokningar b ON b.tid_id = t.id JOIN kallelser k ON k.bokning_id = b.id
     WHERE s.enhet_id IN (${ph}) AND k.status = 'vantar' AND b.status = 'bokad' AND t.start > ? ORDER BY t.start`).all(...enheter, new Date(nu).toISOString()).map(t => {
     const deltagare = db.query("SELECT b.patient_id FROM bokningar b JOIN kallelser k ON k.bokning_id = b.id WHERE b.tid_id = ? AND b.status = 'bokad' AND k.status = 'vantar'").all(t.id);
-    const exempel = db.query("SELECT k.text FROM kallelser k JOIN bokningar b ON b.id = k.bokning_id WHERE b.tid_id = ? AND k.status = 'vantar' ORDER BY k.id").get(t.id)?.text?.replace(/^Hej [^,\n]+,/, 'Hej (patientens förnamn),') ?? null;
+    // Exemplet skrivs ur mallen för tiden, utan patient, och aldrig ur en sparad kallelse.
+    const exempel = kallelseText(db, { tid_id: t.id, patient_id: null, vantelista_id: null, vardkontakt_id: null }, 'kallelse');
     return { typ: 'grupp', tid: tidUt(db, t), exempel, antal: deltagare.filter(d => relation(d.patient_id)).length, text: `${t.rubrik ?? 'Gruppträff'} ${tidText(t.start)}. Systemet har skrivit kallelserna. Skicka dem när det är bestämt att träffen blir av.`, atgard: { typ: 'kalla_grupp', text: 'Skicka kallelser' } };
   }).filter(g => g.antal > 0);
   const kanInte = db.query(`SELECT k.* FROM kallelser k JOIN bokningar b ON b.id = k.bokning_id JOIN tider t ON t.id = b.tid_id JOIN scheman s ON s.id = t.schema_id

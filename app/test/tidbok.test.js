@@ -297,6 +297,18 @@ describe('Tidbok', () => {
     expect((await k.get('/api/idag')).data.bevakningar.length).toBe(0);
   });
 
+  test('exemplet på gruppkallelsen skrivs ur en mall och aldrig ur en sparad kallelse till en patient', async () => {
+    const k = await inloggad('adm-kard');
+    const d = db(k);
+    // Sparade kallelser till deltagarna får en text som inte får synas i exemplet.
+    d.query("UPDATE kallelser SET text = 'Hej Gunnar, HEMLIG RAD' WHERE status = 'vantar'").run();
+    const g = (await k.get('/api/idag')).data.kallelser.find(x => x.typ === 'grupp');
+    expect(g.exempel).not.toContain('HEMLIG');
+    for (const n of ['Gunnar', 'Elin', 'Karl-Erik']) expect(g.exempel).not.toContain(n);
+    expect(g.exempel).toContain('Hej (patientens förnamn),');
+    expect(g.exempel).toContain('Hjärtskola');
+  });
+
   test('gruppkallelse skickar en kallelse till varje deltagare och loggas per patient', async () => {
     const k = await inloggad('adm-kard');
     const g = (await k.get('/api/idag')).data.kallelser[0];
