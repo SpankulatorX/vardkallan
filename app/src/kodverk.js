@@ -11,6 +11,8 @@ export const SYSTEM = {
   ucum: 'http://unitsofmeasure.org',
   // NPL-id enligt E-hälsomyndighetens FHIR-profiler för Nationella läkemedelslistan (se.electronichealth.fhir.nll.r4 1.3.1).
   nplid: 'http://electronichealth.se/fhir/NamingSystem/nplid',
+  // NPL-pack-id enligt samma profiler (NLLMedicationRequest, delen coding:nplpackid), runda 6, r2.
+  nplpackid: 'http://electronichealth.se/fhir/NamingSystem/nplpackid',
 };
 
 // ICD-10-SE 2026, titel ordagrant ur Socialstyrelsens icd-10-se.tsv (giltig från 2026-01-01).
@@ -73,6 +75,9 @@ export const ATC = {
   'N02AA01': 'morphine', 'N02AA05': 'oxycodone', 'N02BE01': 'paracetamol', 'N05CF01': 'zopiclone', 'N05CH01': 'melatonin',
   'N06AB06': 'sertraline', 'N06AB10': 'escitalopram', 'N06AX11': 'mirtazapine', 'N06DA02': 'donepezil',
   'R03AC02': 'salbutamol', 'R03BA02': 'budesonide',
+  // Runda 6, r2: läkemedelstyperna utanför NPL (seed/produkttyper.js), kontrollerade mot WHO:s ATC/DDD-index 2026-11-03.
+  'A11DA01': 'thiamine (vit B1)', 'B05AX01': 'erythrocytes', 'B05AX03': 'blood plasma', 'B05XA01': 'potassium chloride',
+  'B05XA03': 'sodium chloride', 'V06DB': 'Fat/carbohydrates/proteins/minerals/vitamins, combinations',
   // Grupper som överkänslighet och varningsregler använder.
   'J01C': 'BETA-LACTAM ANTIBACTERIALS, PENICILLINS', 'M01A': 'ANTIINFLAMMATORY AND ANTIRHEUMATIC PRODUCTS, NON-STEROIDS',
   'B01AA': 'Vitamin K antagonists', 'B01AB': 'Heparin group', 'B01AE': 'Direct thrombin inhibitors', 'B01AF': 'Direct factor Xa inhibitors',

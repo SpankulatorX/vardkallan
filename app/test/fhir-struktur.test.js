@@ -3,6 +3,7 @@ import * as fhir from '../src/fhir.js';
 import { DEFINITIONER, EXT } from '../src/fhir-definitioner.js';
 import { nyDb, personal } from './hjalp.js';
 import { KATALOG } from '../src/seed/lakemedel-katalog.js';
+import { FORPACKNINGAR } from '../src/seed/forpackningar.js';
 
 // Strukturkrav som HL7:s validator kontrollerar (docs/fhir-validering.md). Testerna kräver inte Java,
 // så att bygget fångar de viktigaste felen även utan validatorn.
@@ -141,13 +142,18 @@ describe('FHIR-struktur', () => {
     expect(atc.find(c => c.code === 'B01AA03').display).toBe('warfarin');
   });
 
+  // Runda 6, r2: förpackningens NPL-pack-id följer efter NPL-id, som i E-hälsomyndighetens NLL-profil (coding:nplpackid).
   test('MedicationRequest har NPL-id med E-hälsomyndighetens system', () => {
     const npl = Object.fromEntries(KATALOG.map(l => [l.atc, l.npl]));
+    const packs = new Map(FORPACKNINGAR.map(f => [f.nplpackid, f]));
     const lm = avTyp('MedicationRequest').map(m => m.medicationCodeableConcept.coding);
     expect(lm.length).toBeGreaterThan(40);
-    for (const [atc, nplid, ...ovr] of lm) {
+    for (const [atc, nplid, pack, ...ovr] of lm) {
       expect(ovr).toEqual([]);
       expect(nplid).toEqual({ system: 'http://electronichealth.se/fhir/NamingSystem/nplid', code: npl[atc.code] });
+      expect(pack.system).toBe('http://electronichealth.se/fhir/NamingSystem/nplpackid');
+      expect(KATALOG.find(l => l.id === packs.get(pack.code).lakemedelId).npl).toBe(nplid.code);
+      expect(pack.display).toBe(packs.get(pack.code).text);
     }
   });
 });

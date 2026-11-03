@@ -190,4 +190,13 @@ export const FLODEN = [
     id: 'news2', namn: 'Registrera en NEWS2-kontroll', roll: 'ssk-kard', start: 'Patientens översikt', budget: 8,
     motivering: 'Sussa 3.1.3.5 och 3.1.3.9. Ett klick till Mätvärden och ett på Registrera NEWS2-kontroll, där andningsfrekvensen redan har fokus, ett fältbyte vardera för syremättnad, blodtryck, puls och temperatur, ett klick för medvetandegraden och ett för att registrera. Luft är förvalt, tiden och vårdkontakten sätter systemet, och systemet räknar poängen och säger vad som ska göras.',
   },
+  // Runda 6, r2: läkemedelsprocessen, del 2 (Sussa 3.5.1.3, 3.5.2.14 och 3.5.2.2).
+  {
+    id: 'ordinera-mall', namn: 'Ordinera från en mall med flera ordinationer', roll: 'lak-kard', start: 'Patientens läkemedelsflik', budget: 3,
+    motivering: 'Sussa 3.5.1.3 och 3.5.2.14. Ett klick på Ordinera från mall, ett på mallen och ett för att ordinera. Systemet fyller i varje ordination ur produktens mall och patientens ålder och njurfunktion, varnar per ordination, tar själv bort ett läkemedel som patienten redan har och förklarar varför, och knyter ordinationerna till samma vårdhändelse.',
+  },
+  {
+    id: 'dos-efterhand', namn: 'Registrera en dos i efterhand', roll: 'ssk-kard', start: 'Läkemedel att ge efter återställning', budget: 3,
+    motivering: 'Sussa 3.5.2.2. Ett klick på Mer för dosen, ett på Given tidigare och ett för att registrera. Systemet föreslår tiden, aldrig i framtiden, kontrollerar den mot ordinationen och tidigare doser och visar att registreringen gjordes i efterhand.',
+  },
 ];

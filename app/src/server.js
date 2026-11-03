@@ -39,6 +39,10 @@ import { registreraRutter as r3Rutter, tillagg as r3 } from './r3-rutter.js';
 import { registreraRutter as r1Rutter } from './sok-matvarden-logg-rutter.js';
 import * as vitalparametrar from './vitalparametrar.js';
 import * as sakerhetslogg from './sakerhetslogg.js';
+// Läkemedelsprocessen, del 2 (runda 6, r2).
+import { registreraRutter as lakemedelsstodRutter, inkorg as lakemedelsstodInkorg } from './lakemedelsstod-rutter.js';
+import * as lakemedelsstod from './lakemedelsstod.js';
+import * as lakemedelsvyer from './lakemedelsvyer.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -829,9 +833,14 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       // Väljs en bokning eller en post på väntelistan bestämmer servern vårdhändelsens text.
       const koppling = vardhandelse.forbered(atk, c.body);
       const kropp = koppling ? { ...c.body, vardhandelse: { ...c.body.vardhandelse, text: koppling.text } } : c.body;
-      const tillagg = ordinationsmallar.valideraTillagg(c.db, kropp);
-      const ut = lakemedel.spara(atk, kropp);
+      // Runda 6, r2: spädning, förpackning och trappschema kontrolleras före sparandet, och systemet räknar fram volym,
+      // dosering och slut ur dem.
+      const stod = lakemedelsstod.forbered(c.db, kropp);
+      const tillagg = ordinationsmallar.valideraTillagg(c.db, stod.kropp);
+      const ut = lakemedel.spara(atk, stod.kropp);
       ordinationsmallar.sparaTillagg(c.db, ut.ordination.id, tillagg);
+      lakemedelsstod.sparaTillagg(c.db, ut.ordination.id, stod.extra);
+      Object.assign(ut.ordination, lakemedelsstod.tillaggUt(c.db, lakemedel.hamtaRad(c.db, ut.ordination.id)));
       vardhandelse.knyt(atk, ut.ordination.id, koppling);
       Object.assign(ut.ordination, ordinationsmallar.tillaggUt(c.db, ut.ordination.id, { full: true }));
       return vardkontakt.knyt(atk, 'ordinationer', ut, c.body);
@@ -860,8 +869,10 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('POST', '/api/patient/:id/lakemedelsgenomgang', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'ordinera', (atk) => vidimering.sparaGenomgang(atk, c.body))]; });
   rutt('GET', '/api/patient/:id/lakemedel/forslag', (c, id) => {
     kravInloggad(c);
-    return medPatient(c, id, 'ordinera', (atk) => {
-      atk.krav('ordinera');
+    // Runda 6, r2: sjuksköterskan som dokumenterar en muntlig ordination får samma förslag som läkaren.
+    const handling = kanRoll(c.personal, 'ordinera') ? 'ordinera' : 'registrera_muntlig_ordination';
+    return medPatient(c, id, handling, (atk) => {
+      atk.krav(handling);
       const lm = c.db.query('SELECT * FROM katalog WHERE id = ?').get(c.url.searchParams.get('lakemedelId') ?? '');
       if (!lm) throw new Fel(400, 'Välj ett läkemedel i katalogen.', 'ogiltig', { falt: ['lakemedelId'] });
       return ordinationsmallar.forslag(atk, lm);
@@ -900,7 +911,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   });
   rutt('GET', '/api/patient/:id/vatskebalans', (c, id) => {
     kravInloggad(c);
-    return medPatient(c, id, 'las_matvarden', (atk) => administrering.vatskebalans(atk, { dag: dagParam(c), brytning: c.url.searchParams.get('brytning') ?? '00' }));
+    // Runda 6, r2: med beredd volym, kalorier, vikt, förväntad balans, filter och sortering (lakemedelsvyer.js).
+    return medPatient(c, id, 'las_matvarden', (atk) => lakemedelsvyer.vatskebalans(atk, { dag: dagParam(c), brytning: c.url.searchParams.get('brytning') ?? '00',
+      riktning: c.url.searchParams.get('riktning'), sortering: c.url.searchParams.get('sortering') ?? 'tid' }));
   });
   rutt('POST', '/api/patient/:id/vatskebalans', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'registrera_matvarde', (atk) => vardkontakt.knyt(atk, 'vatskebalans', administrering.registreraVatska(atk, c.body), c.body))]; });
   // Delegering av läkemedelshantering (runda 5, HSLF-FS 2017:37 9 kap., delegering.js). Sjuksköterskan registrerar och
@@ -1069,6 +1082,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...r3.inkorg(c, { patientKort, patientRad }),
       // NEWS2 eller ett enskilt värde som kräver åtgärd, för sjuksköterskan och läkaren (runda 6, r1).
       news2Larm: news2IInkorg(c),
+      // Runda 6, r2: passerade uppföljningar, muntliga ordinationer att signera, fördjupade genomgångar och licenser.
+      ...lakemedelsstodInkorg(c, patientKort, patientRad),
     });
   });
   // Runda 6, r1: NEWS2-larmen loggas på patienten en gång per session och mätomgång, som raderna om återinsättning.
@@ -1353,6 +1368,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // Runda 6, r3.
   r3Rutter({ rutt, kravInloggad, medPatient, valFor });
   r1Rutter({ rutt, kravInloggad, medPatient, valFor });
+  // Runda 6, r2: läkemedelsprocessen, del 2.
+  lakemedelsstodRutter({ rutt, kravInloggad, medPatient });
 
   // Endpoints som inte behöver en sandlåda.
   const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/krav/sussa', '/api/drift', '/api/lasekopia/krypterad-logg']);

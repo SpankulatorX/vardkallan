@@ -64,6 +64,10 @@ export const KODSYSTEM = [
   ]),
   kodsystem('nll-status', 'NllStatus', 'NLL-status', 'Status för överföringen av en ordination till Nationella läkemedelslistan (simulerad).', [
     ['skickad', 'Skickad'], ['kvitterad', 'Kvitterad av NLL'], ['okand_kontrolleras', 'Okänd, kontrolleras genom avstämning'], ['fel', 'Fel från NLL'],
+    // Runda 6, r2: en muntlig ordination skickas när läkaren har signerat, och blodprodukter, nutrition och
+    // egendefinierade läkemedel skickas inte.
+    ['vantar_signering', 'Väntar på läkarens signering', 'En muntlig ordination skickas till NLL när läkaren har signerat den.'],
+    ['ej_aktuell', 'Skickas inte till NLL', 'Blodprodukter, nutrition och egendefinierade läkemedel skickas inte till Nationella läkemedelslistan.'],
   ]),
   kodsystem('uppmarksamhet', 'Uppmarksamhet', 'Uppmärksamhetsinformation', 'Huvudgrupper och undergrupper för uppmärksamhetsinformation enligt tabell 1 i Socialstyrelsens Instruktion för ändringsförslag gällande Uppmärksamhetsinformation (2025-09-30). Undergruppens kod är huvudgruppens kod, en punkt och undergruppen.', [
     ['medicinskt', 'Medicinska tillstånd och behandlingar'], ['medicinskt.annat_tillstand', 'Annat medicinskt tillstånd'], ['medicinskt.behandling', 'Behandling'],

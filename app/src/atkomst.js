@@ -46,6 +46,14 @@ ROLLER.underskoterska.push('ge_lakemedel');
 ROLLER.sjukskoterska.push('delegera');
 // Läkare delegerar också (beslut 2026-11-03, HSLF-FS 2017:37 9 kap. 2 §), på samma villkor som sjuksköterskan.
 ROLLER.lakare.push('delegera');
+// Läkemedelsprocessen, del 2 (runda 6, r2). Läkaren fastställer generella direktiv och mallar med flera ordinationer
+// (HSLF-FS 2017:37 6 kap. 6 §, Gröna häftet avsnitt 1.4.3), och sjuksköterskan ordinerar enligt ett direktiv och
+// dokumenterar en muntlig ordination (6 kap. 7 och 15 §§). Läkaren och sjuksköterskan utvärderar behandlingen.
+// Farmaceuten läser läkemedelslistan och mätvärdena och gör sin del av den fördjupade läkemedelsgenomgången, som
+// läkaren ansvarar för (11 kap. 1 §). Farmaceuten läser inte journalanteckningar.
+ROLLER.lakare.push('faststalla_direktiv', 'faststalla_mall', 'utvardera_lakemedel', 'lakemedelsgenomgang');
+ROLLER.sjukskoterska.push('ordinera_direktiv', 'registrera_muntlig_ordination', 'utvardera_lakemedel');
+ROLLER.farmaceut = ['las_oversikt', 'las_lakemedel', 'las_matvarden', 'las_diagnoser', 'las_admin', 'sok', 'andra_enheter', 'samtycke_sparr', 'visa_identitet', 'lakemedelsgenomgang'];
 
 export const HANDLINGAR = {
   las_oversikt: 'läsa patientöversikten', las_journal: 'läsa journalanteckningar', las_omvardnad: 'läsa omvårdnadsanteckningar',
@@ -71,6 +79,14 @@ const UTAN_PATIENT = new Set(['sok', 'vantrum', 'las_logg', 'registrera_patient'
 // Delegering av läkemedelshantering (runda 5) rör personalen, inte en patient.
 HANDLINGAR.delegera = 'registrera och återkalla delegering av läkemedelshantering';
 UTAN_PATIENT.add('delegera');
+// Runda 6, r2: läkemedelsprocessen, del 2.
+Object.assign(HANDLINGAR, {
+  faststalla_direktiv: 'fastställa och upphäva generella direktiv', faststalla_mall: 'fastställa mallar med flera ordinationer',
+  ordinera_direktiv: 'ordinera enligt generella direktiv', registrera_muntlig_ordination: 'dokumentera en muntlig ordination',
+  utvardera_lakemedel: 'utvärdera läkemedelsbehandling', lakemedelsgenomgang: 'göra fördjupad läkemedelsgenomgång',
+});
+UTAN_PATIENT.add('faststalla_direktiv');
+UTAN_PATIENT.add('faststalla_mall');
 // Grunden för handlingar utan patient. Arkivarien handlar på ett registrerat beslut, som arkiv.js kontrollerar, och
 // uppföljningsrollen på sitt uppdrag. Ingen av dem får läsa journalen.
 const GRUND_UTAN_PATIENT = { logggranskare: 'logggranskning', arkivarie: 'arkivbeslut', uppfoljning: 'uppfoljning' };

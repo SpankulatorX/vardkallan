@@ -47,7 +47,9 @@ export const GRUND = {
   // Runda 6, r3: kommunens part i samordnad planering.
   samverkan: 'Samverkan med kommunen',
 };
-export const NLL = { skickad: 'Skickas', kvitterad: 'Kvitterad av NLL', okand_kontrolleras: 'Okänd, kontrolleras', fel: 'Fel från NLL' };
+export const NLL = { skickad: 'Skickas', kvitterad: 'Kvitterad av NLL', okand_kontrolleras: 'Okänd, kontrolleras', fel: 'Fel från NLL',
+  // Runda 6, r2: muntlig ordination och läkemedel som inte skickas till NLL.
+  vantar_signering: 'Väntar på signering', ej_aktuell: 'Skickas inte till NLL' };
 export const ORDTYP = { staende: 'Stående', vid_behov: 'Vid behov', tillfallig: 'Tillfällig' };
 export const PRIORITET_REMISS = { akut: 'Akut', skyndsam: 'Skyndsam', normal: 'Normal' };
 export const PRIORITET_VANTRUM = { rod: 'Röd', orange: 'Orange', gul: 'Gul', gron: 'Grön', bla: 'Blå' };
@@ -72,7 +74,7 @@ export const HANDLING = {
   las_vardplan: 'Läste vårdplaner', vardplan: 'Upprättade eller ändrade vårdplan', vardplan_atgard: 'Registrerade utförd åtgärd i vårdplan',
   las_tvangsvard: 'Läste uppgifter om tvångsvård', tvangsvard: 'Registrerade i tvångsvården', samordna: 'Samordnad planering', samverkan: 'Kommunen läste samordnad planering',
 };
-export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare', arkivarie: 'Arkivarie', uppfoljning: 'Analytiker (uppföljning)', kommun: 'Kommunens personal (simulerad)' };
+export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare', arkivarie: 'Arkivarie', uppfoljning: 'Analytiker (uppföljning)', kommun: 'Kommunens personal (simulerad)', farmaceut: 'Farmaceut' };
 
 // Anrop mot API:t. Svarstiden läses från Server-Timing. Fel kastas som ApiFel med serverns text och kod.
 export class ApiFel extends Error {

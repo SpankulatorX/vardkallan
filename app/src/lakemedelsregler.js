@@ -31,6 +31,9 @@ export function maxPerDygn(dosering = '') {
 export function minstaIntervallMs(o) {
   const m = /minst (\d+) timmar/i.exec(o.dosering ?? '');
   if (m) return Number(m[1]) * TIMME;
+  // Runda 6, r2: generella direktiv kan ange minuter, till exempel nitroglycerin med minst 5 minuter mellan doserna.
+  const min = /minst (\d+) minuter/i.exec(o.dosering ?? '');
+  if (min) return Number(min[1]) * 60_000;
   const tider = (o.tider ?? []).map(t => { const [h, mi = '0'] = String(t).split(':'); return Number(h) * 60 + Number(mi); }).sort((a, b) => a - b);
   if (o.vidBehov || !tider.length) return 4 * TIMME;
   if (tider.length === 1) return 12 * TIMME;

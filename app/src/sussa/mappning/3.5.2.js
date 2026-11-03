@@ -1,5 +1,7 @@
 // Sussa 3.5.2 Process för läkemedelshantering: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
+// Runda 6, r2.
+import { medR2 } from '../lakemedel-r2.js';
 import { TEST } from '../../krav.js';
 // Runda 5, r1: vårdhändelsen i tidboken (app/test/vardhandelse.test.js).
 import { T as TB } from '../tidbok-tester.js';
@@ -43,7 +45,7 @@ const RA_TESTER = [
   `${RA}säkerhet: bara vårdenhetens läkare som remissen är ställd till kan förhandsvisa och avvisa, och nekade försök loggas`,
 ];
 
-export default [
+const AVSNITT = [
   {
     id: '3.5.2.1', kategori: 'system', egna: ['L7'], avsedd: 'delvis',
     tester: [
@@ -287,3 +289,5 @@ export default [
     anmarkning: 'Kaloriberäkning och förväntad vätskebalans saknas.',
   },
 ];
+// Runda 6, r2: posterna som byggdes i läkemedelsprocessen, del 2, ersätts ur sussa/lakemedel-r2.js.
+export default medR2(AVSNITT);

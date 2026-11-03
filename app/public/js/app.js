@@ -29,6 +29,8 @@ import * as incheckning from './vyer/incheckning.js';
 import * as delegeringar from './vyer/delegeringar.js';
 // Runda 6, r3: bevakningen av tvångsvården, uppföljningen och kommunens vy.
 import { bevakningVy, uppfoljningVy, samverkanVy, inkorgAntal } from './vyer/r3.js';
+// Runda 6, r2: generella direktiv och uppföljning.
+import * as lakemedelsstod from './vyer/lakemedelsstod.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -58,6 +60,8 @@ const MENY = [
   // Runda 6, r3: tvångsvården på psykiatrin och kommunens samverkan.
   ['#/tvangsvard', 'Tvångsvård', 'klocka', () => Boolean(S.session?.r3?.tvangsvardsenhet)],
   ['#/samverkan', 'Samverkan', 'lista', () => far('samverkan')],
+  // Runda 6, r2: generella direktiv för läkaren och sjuksköterskan och uppföljningen på vårdenhetens nivå för läkaren.
+  ['#/lakemedelsstod', 'Direktiv och uppföljning', 'piller', () => pa('faststalla_direktiv', 'ordinera_direktiv')],
   ['#/remisser', 'Remisser', 'remiss', () => pa('las_remiss', 'las_remiss_status')],
   ['#/vantrum', 'Väntrum (akuten)', 'vantrum', () => far('vantrum')],
   ['#/logg', 'Logguppföljning', 'logg', () => far('las_logg')],
@@ -82,6 +86,7 @@ const RUTTER = [
   [/^#\/administrering$/, administrering, () => far('las_lakemedel')],
   // Delegeringar (runda 5): sjuksköterskan och läkaren registrerar, undersköterskan ser sina egna.
   [/^#\/delegeringar$/, delegeringar, () => far('delegera') || S.session?.personal?.yrke === 'underskoterska'],
+  [/^#\/lakemedelsstod$/, lakemedelsstod, () => pa('faststalla_direktiv', 'ordinera_direktiv')],
   [/^#\/remisser$/, remisser, () => pa('las_remiss', 'las_remiss_status')],
   [/^#\/vantrum$/, vantrum, () => far('vantrum')],
   [/^#\/logg$/, logg, () => far('las_logg')],
@@ -175,7 +180,9 @@ export async function uppdateraInkorg() {
       // NEWS2 som kräver åtgärd (runda 6, r1).
       + (d.news2Larm?.length ?? 0)
       // Runda 6, r3: tvångsvård, vårdplaner och samordnad planering.
-      + inkorgAntal(d);
+      + inkorgAntal(d)
+      // Läkemedelsprocessen, del 2 (runda 6, r2).
+      + (d.lakemedelsuppfoljningar?.length ?? 0) + (d.muntligaAttSignera?.length ?? 0) + (d.fordjupadeGenomgangar?.length ?? 0) + (d.licenserSomGarUt?.length ?? 0);
   } catch { S.inkorg = null; }
   const el = document.querySelector('[data-raknare="inkorg"]');
   if (el) { el.textContent = S.inkorg ? String(S.inkorg) : ''; el.hidden = !S.inkorg; }

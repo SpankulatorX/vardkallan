@@ -1102,4 +1102,29 @@ mark { background: var(--obs-bg); color: inherit; outline: 1px solid var(--obs-k
 @media (max-width: 640px) {
   .journalsok { flex-basis: 100%; }
   .kurvor { grid-template-columns: minmax(0, 1fr); }
+/* Läkemedelsprocessen, del 2 (runda 6, r2): filtrering, mallar, dosering över flera dygn, makulering och vätskebalans. */
+.lms-verktyg { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; margin: 6px 0 10px; }
+.lms-verktyg .falt { margin: 0; }
+.tagg-demo { background: var(--skydd-bg); border-color: var(--skydd-kant); color: var(--skydd); }
+.tagg-obs { background: var(--obs-bg); border-color: var(--obs-kant); color: var(--obs); white-space: normal; }
+.lms-spadning { color: var(--kalla-mork); }
+.lms-mallar, .lms-forslag { border: 1px solid var(--linje); border-radius: var(--r); background: var(--yta); padding: 12px 14px; margin: 10px 0; }
+.lms-poster { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
+.lms-poster > li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; border-top: 1px solid var(--linje); padding-top: 8px; }
+.lms-poster > li > div:first-child { flex: 1 1 260px; min-width: 0; }
+.lms-varn { margin: 4px 0; padding-left: 18px; font-size: var(--f-s); }
+.lms-dygn td, .lms-dygn th { vertical-align: top; }
+.lms-cell { display: block; white-space: nowrap; font-size: var(--f-s); }
+.lms-given, .lms-overlamnad { color: var(--ok); }
+.lms-forsenad { color: var(--larm); }
+.lms-steg { margin: 6px 0; padding-left: 20px; }
+.lms-underlag { padding-left: 18px; display: grid; gap: 10px; }
+.lms-sammanfattning { white-space: pre-wrap; font-family: var(--sans); font-size: var(--f-s); background: var(--yta-2); padding: 8px; border-radius: var(--r); }
+.makulerad { text-decoration: line-through; color: var(--dampad); }
+.makulerad .dampad, .makulerad button { text-decoration: none; display: inline-block; }
+.adm-knappar { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; }
+.o-spadning, .o-trappning { margin: 8px 0; }
+@media (max-width: 640px) {
+  .lms-verktyg { flex-direction: column; align-items: stretch; }
+  .lms-cell { white-space: normal; }
 }

@@ -5,6 +5,8 @@ import { S, uppdateraInkorg } from '../app.js';
 import { inkorgSektioner } from './r3.js';
 // Runda 6, r1: uppmärksamhetssymbolen på raderna (Sussa 3.1.5.2), med samma regler som i patienthuvudet.
 import { symbolSvg, symbolText, harNagot } from '../uppmarksamhet.js';
+// Runda 6, r2: muntliga ordinationer signeras direkt från inkorgen.
+import { signeraMuntlig } from './lakemedelsstod.js';
 
 export const namn = 'inkorg';
 
@@ -64,8 +66,24 @@ export async function visa(main) {
   const news2 = (d.news2Larm ?? []).map(x => `<li class="ik-larm ik-news2"><a href="${esc(x.href)}"><span class="ik-rubrik">${ikon.larm}<span>${esc(x.rubrik)}, ${esc(pnamn(x.patient))}${sym(x.patient)}</span></span>
     <span class="under-text">${esc(x.text)} Mätt ${esc(tidpunkt(x.tid))}.${x.forsenad ? ' Kontrollen är försenad.' : ''}</span>
     <span class="under-text ik-atgard">${esc(x.atgard.join(' '))}</span></a>${ikon.pil}</li>`);
+  // Runda 6, r2: passerade uppföljningar, muntliga ordinationer att signera, fördjupade genomgångar och licenser.
+  const uppf = (d.lakemedelsuppfoljningar ?? []).map(x => `<li class="ik-ater ik-larm"><div class="ik-text"><span class="ik-rubrik">${esc(x.lakemedel)}, ${esc(pnamn(x.patient))}</span>
+    <span class="under-text">${esc(x.text)} ${esc(x.ordinationsorsak)}.</span></div><div class="ik-knappar"><a class="knapp liten" href="${pat(x.patientId, 'lakemedel', `utvardera-${x.ordinationId}`)}">Utvärdera</a></div></li>`);
+  const muntl = (d.muntligaAttSignera ?? []).map(x => `<li class="ik-ater"><div class="ik-text"><span class="ik-rubrik">${esc(x.lakemedel)}, ${esc(pnamn(x.patient))}</span>
+    <span class="under-text">${esc(x.dosering)}. Dokumenterad ${esc(tidpunkt(x.mottagen))} av ${esc(x.mottagenAv)}, ${x.satt === 'telefon' ? 'per telefon' : 'muntligt'}.</span></div><div class="ik-knappar"><a class="knapp liten sekundar" href="${pat(x.patientId, 'lakemedel')}">Läs</a><button type="button" class="knapp liten" data-signera="${x.ordinationId}">Signera</button></div></li>`);
+  const fordj = (d.fordjupadeGenomgangar ?? []).map(x => rad(pat(x.patientId, 'lakemedel'), `Fördjupad läkemedelsgenomgång, ${esc(pnamn(x.patient))}`, `${esc(x.statusText)}. Startad ${esc(tidpunkt(x.startad))} av ${esc(x.startadAv)}.`));
+  const lic = (d.licenserSomGarUt ?? []).map(x => `<li class="${x.utgangen ? 'ik-larm' : ''}"><span class="ik-rubrik">${esc(x.lakemedel)}, licens ${esc(x.licensnummer)}</span><span class="under-text">${esc(x.text)}</span></li>`);
+  const yrke = S.session?.personal?.yrke;
+  // Runda 6, r2: har användaren hunnit gå vidare till en annan vy, eller loggat ut, medan inkorgen hämtades finns
+  // inget att visa den i.
+  if (!main.querySelector('#ik') || !S.session?.personal) return;
+
   main.querySelector('#ik').innerHTML = `<div class="inkorg-rutnat">
     ${news2.length ? sektion('news2', 'NEWS2 som kräver åtgärd', news2, '', 'Patienter på vårdenheten där NEWS2 eller ett enskilt värde kräver åtgärd enligt NEWS2 (Royal College of Physicians 2017). Systemet räknar poängen ur vitalparametrarna. Demoregel, inte kliniskt beslutsstöd.') : ''}
+    ${yrke === 'lakare' || muntl.length ? sektion('muntlig', 'Muntliga ordinationer att signera', muntl, 'Inga muntliga ordinationer väntar på din signering.', 'Ordinationer som du lämnade muntligt eller per telefon och som en sjuksköterska har dokumenterat. De skickas till NLL när du har signerat.') : ''}
+    ${S.session.behorigheter.includes('utvardera_lakemedel') && yrke === 'lakare' ? sektion('uppf', 'Uppföljning av läkemedel', uppf, 'Inga uppföljningar har passerat.', 'Läkemedel där uppföljningsdatumet har passerat. Utvärdera effekt och biverkan, och systemet föreslår nästa uppföljning.') : ''}
+    ${['lakare', 'farmaceut'].includes(yrke) ? sektion('fordj', 'Fördjupade läkemedelsgenomgångar', fordj, 'Inga fördjupade genomgångar väntar på dig.', yrke === 'farmaceut' ? 'Genomgångar på din vårdenhet som väntar på farmaceutens bedömning.' : 'Genomgångar på din vårdenhet som pågår.') : ''}
+    ${lic.length ? sektion('lic', 'Licenser som går ut', lic, '', 'Licensläkemedel på din vårdenhet. Systemet bevakar licensens giltighet.') : ''}
     ${avbokade.length ? sektion('vhavbokad', 'Vårdhändelser som avbokades', avbokade, '', 'Remissen avvisades, och tiden för en vårdhändelse som en läkemedelsdos väntar på avbokades. Besluta om ordinationen.') : ''}
     ${S.session.behorigheter.includes('ordinera') ? sektion('atersatt', 'Läkemedel att sätta in igen', atersatt, 'Inget läkemedel ska sättas in igen efter ett uppehåll i dag eller i morgon.', 'Antikoagulantia som gör uppehåll inför ett ingrepp. Systemet påminner dagen före återinsättningen och fyller i ordinationen ur den tidigare.') : ''}
     ${S.session.behorigheter.includes('delegera') && (S.session.personal.yrke === 'sjukskoterska' || deleg.length) ? sektion('deleg', 'Delegeringar som går ut', deleg, 'Inga delegeringar går ut de närmaste 30 dagarna.', 'Undersköterskornas delegeringar att ge läkemedel. Följ upp dem och registrera nya innan de går ut.') : ''}
@@ -80,6 +98,8 @@ export async function visa(main) {
   </div>${S.session.personal.yrke === 'vardadministrator' ? '<p class="dampad liten">Som vårdadministratör ser du larm om remissernas status men ingen journaltext.</p>' : ''}`;
   // Runda 5, r4: avsluta behandlingen efter ett uppehåll och sätta upp en avbokad vårdhändelse igen.
   main.querySelector('#ik').addEventListener('click', async (e) => {
+    const sg = e.target.closest('[data-signera]');
+    if (sg) return signeraMuntlig(sg, sg.dataset.signera, async () => { await uppdateraInkorg(); visa(main); });
     const b = e.target.closest('[data-avsluta],[data-vh-igen],[data-vh-nod]');
     if (!b) return;
     if (b.dataset.vhNod) {

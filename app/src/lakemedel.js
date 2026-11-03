@@ -4,9 +4,11 @@ import { Fel, iso, idag, giltigtDatum, installning, addDagar } from './db.js';
 import { vardenhetFor } from './atkomst.js';
 import { kallaEtikett } from './journal.js';
 import { tillaggUt } from './ordinationsmallar.js';
-import { utsattningsvarningar, DEMOREGLER_PROCESS, UTSATTNINGSPLANER, UPPEHALL_DAGAR, planText } from './lakemedelsregler.js';
+import { utsattningsvarningar, UTSATTNINGSREGLER, DEMOREGLER_PROCESS, UTSATTNINGSPLANER, UPPEHALL_DAGAR, planText } from './lakemedelsregler.js';
 // Avslutad behandling efter ett uppehåll (runda 5, r4).
 import { avslutFor } from './aterinsattning.js';
+// Läkemedelsprocessen, del 2 (runda 6, r2): läkemedelstyper, licenser, förpackning och listans flaggor.
+import * as stod from './lakemedelsstod.js';
 
 export const DEMOREGLER = 'Varningarna är demoregler för att visa flödet. De är inte kliniskt beslutsstöd och inte CE-märkta.';
 export const TYPER = ['staende', 'vid_behov', 'tillfallig'];
@@ -40,6 +42,8 @@ export function ordinationUt(db, o, { historik = true, fullVardhandelse = false 
     kalla: o.kalla, kallaEtikett: kallaEtikett(o.kalla, o.start),
     // Administrationssätt, fördefinierad mall och planerad vårdhändelse (ordinationsmallar.js).
     ...tillaggUt(db, o.id, { full: fullVardhandelse }),
+    // Runda 6, r2: läkemedelstyp, förpackning, spädning, trappschema, muntlig ordination, generellt direktiv och mall.
+    ...stod.tillaggUt(db, o),
   };
   if (historik) {
     // Vårdhändelsens rader (tidsättningen för hand och tidboken) visas bara för den som får se hela vårdhändelsen. Andra
@@ -74,7 +78,24 @@ export function lista(atk) {
   atk.krav('las_lakemedel');
   const rader = synligaOrdinationer(atk);
   // Vårdhändelsen ur tidboken visas med namn och tid bara för den ordinerande vårdenheten eller efter aktivt val.
-  return { ordinationer: rader.map(o => ordinationUt(atk.db, o, { fullVardhandelse: atk.prova('las_lakemedel', { enhet_id: o.enhet_id }).tillaten })), dolda: { sparrade: atk.doldaSparr } };
+  // Runda 6, r2: flaggorna för filtrering och sortering (särskild observation vid utsättning och passerad uppföljning).
+  // Runda 6, r2: ATC-koden läses en gång per ordination, eftersom flaggorna jämför ordinationerna med varandra.
+  const kat = new Map(atk.db.query('SELECT * FROM katalog').all().map(k => [k.id, k]));
+  const dag = idag();
+  const medAtc = rader.map(o => ({ ...o, atc: kat.get(o.lakemedel_id)?.atc }));
+  const nya = new Map(atk.db.query('SELECT ordination_id, nytt_uppfoljningsdatum AS d FROM lakemedelsutvarderingar WHERE patient_id = ? AND nytt_uppfoljningsdatum IS NOT NULL ORDER BY tid, id').all(atk.patientId).map(r => [r.ordination_id, r.d]));
+  return { ordinationer: rader.map(o => ({ ...ordinationUt(atk.db, o, { fullVardhandelse: atk.prova('las_lakemedel', { enhet_id: o.enhet_id }).tillaten }), ...listflaggor(atk, o, medAtc, nya, kat, dag) })), dolda: { sparrade: atk.doldaSparr } };
+}
+
+// Runda 6, r2: läkemedel med särskild observation vid utsättning (Sussa 3.5.1.8) och uppföljningens datum, där en
+// senare utvärdering kan ha satt ett nytt (lakemedelsuppfoljning.js).
+function listflaggor(atk, o, synliga, nya, kat, dag) {
+  const lm = kat.get(o.lakemedel_id);
+  // Behandlingstiden räknas bara för läkemedel som har en regel vid utsättning, eftersom den läser hela listan.
+  const regel = lm && UTSATTNINGSREGLER.some(r => r.atc.some(x => lm.atc.startsWith(x)));
+  const obs = o.status === 'aktiv' && regel ? utsattningsvarningar({ lakemedel: lm, behandlingDagar: behandlingsdagar(atk, { ...o, atc: lm.atc }, synliga) }) : [];
+  const datum = nya.get(o.id) ?? o.uppfoljning;
+  return { sarskildObservation: obs.length ? obs[0].text : null, aktuelltUppfoljningsdatum: datum, uppfoljningPasserad: o.status === 'aktiv' && (!o.slut || o.slut >= dag) && datum < dag };
 }
 
 const arAktuell = (o) => o.status === 'aktiv' && (!o.slut || o.slut >= idag());
@@ -108,8 +129,10 @@ export function validera(db, inp, { full = true } = {}) {
 }
 
 // Demoregler för varningar före sparande.
-export function varningar(db, patientId, lm, aktiva, { overkanslighet = [], egfr = null } = {}) {
+export function varningar(db, patientId, lm, aktiva, { overkanslighet = [], egfr = null, enhetId = null } = {}) {
   const ut = [];
+  // Runda 6, r2: licensläkemedel, extempore och blodprodukter, prövat för den ordinerande vårdenheten.
+  if (enhetId) ut.push(...stod.ordinationsvarningar(db, { lm, patientId, enhetId }));
   const lmFor = (o) => lakemedelRad(db, o.lakemedel_id);
   for (const ok of overkanslighet) {
     if (ok.atc && lm.atc.startsWith(ok.atc)) {
@@ -154,11 +177,11 @@ export function egfrForSakerhet(atk) {
     .find(m => atk.prova('las_lakemedel', { enhet_id: m.enhet_id, gemensam: true }).tillaten)?.varde_num ?? null;
 }
 
-function underlag(atk) {
+export function underlag(atk) {
   const db = atk.db;
   const aktiva = synligaOrdinationer(atk).filter(arAktuell);
   const ok = atk.filtrera(db.query('SELECT * FROM overkanslighet WHERE patient_id = ?').all(atk.patientId), 'las_oversikt', { gemensam: true });
-  return { aktiva, overkanslighet: ok, egfr: egfrForSakerhet(atk) };
+  return { aktiva, overkanslighet: ok, egfr: egfrForSakerhet(atk), enhetId: atk.personal.enhet_id };
 }
 
 export function kontroll(atk, inp) {
@@ -200,12 +223,16 @@ export function overfor(db, ordId, typ) {
   return { id: Number(r.lastInsertRowid), status: 'kvitterad', kvittens: k };
 }
 
-export function spara(atk, inp) {
-  atk.krav('ordinera');
+// Runda 6, r2: en muntlig ordination registreras av sjuksköterskan med läkaren som ordinatör och skickas till NLL först
+// när läkaren har signerat, och en ordination enligt generellt direktiv görs av sjuksköterskan (ordinationsvagar.js).
+// Blodprodukter, nutrition och egendefinierade läkemedel skickas inte till NLL.
+export function spara(atk, inp, { handling = 'ordinera', ordineradAv = null, nll: skickaNll = true, nllStatus = 'ej_aktuell', historikText = 'Ordinerad' } = {}) {
+  atk.krav(handling);
   const db = atk.db;
   const o = validera(db, inp);
   const u = underlag(atk);
   const v = varningar(db, atk.patientId, o.lm, u.aktiva, u);
+  const skickas = skickaNll && !stod.UTAN_NLL.has(stod.produkttyp(db, o.lm.id).typ);
   const kvitterade = Array.isArray(inp.kvitteradeVarningar) ? inp.kvitteradeVarningar : [];
   const saknas = [...new Set(v.filter(x => x.niva === 'allvarlig').map(x => x.regel))]
     .filter(regel => !kvitterade.some(k => k?.regel === regel && typeof k.motivering === 'string' && k.motivering.trim().length >= 3));
@@ -214,13 +241,13 @@ export function spara(atk, inp) {
   }
   const kv = kvitterade.filter(k => v.some(x => x.regel === k.regel)).map(k => ({ regel: k.regel, motivering: k.motivering.trim().slice(0, 500) }));
   const r = db.query(`INSERT INTO ordinationer (patient_id, enhet_id, lakemedel_id, dosering, dos, dos_enhet, tider, vid_behov, typ, orsak, uppfoljning, start, slut,
-    ordinerad_av, skapad, nll_status, kvitterade_varningar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'skickad', ?)`)
+    ordinerad_av, skapad, nll_status, kvitterade_varningar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(atk.patientId, atk.personal.enhet_id, o.lm.id, o.dosering, o.dos, o.dosEnhet, JSON.stringify(o.tider), o.vidBehov ? 1 : 0, o.typ,
-      o.ordinationsorsak, o.uppfoljningsdatum, o.start, o.slut, atk.personal.id, iso(), kv.length ? JSON.stringify(kv) : null);
+      o.ordinationsorsak, o.uppfoljningsdatum, o.start, o.slut, ordineradAv ?? atk.personal.id, iso(), skickas ? 'skickad' : nllStatus, kv.length ? JSON.stringify(kv) : null);
   const id = Number(r.lastInsertRowid);
-  historik(db, id, atk.personal.id, 'Ordinerad', o.dosering);
+  historik(db, id, atk.personal.id, historikText, o.dosering);
   for (const k of kv) historik(db, id, atk.personal.id, 'Varning kvitterad', `${k.regel}: ${k.motivering}`);
-  const nll = overfor(db, id, 'ny');
+  const nll = skickas ? overfor(db, id, 'ny') : { status: nllStatus };
   return { ordination: ordinationUt(db, db.query('SELECT * FROM ordinationer WHERE id = ?').get(id)), varningar: v, nll };
 }
 
@@ -232,10 +259,10 @@ export function hamtaRad(db, id) {
 
 // Hur många dagar patienten har haft substansen utan uppehåll: från den tidigaste av de synliga ordinationerna av samma
 // substans som följer på varandra med högst ett dygns uppehåll.
-export function behandlingsdagar(atk, o) {
+export function behandlingsdagar(atk, o, synliga = null) {
   const db = atk.db;
-  const atc = lakemedelRad(db, o.lakemedel_id)?.atc;
-  const samma = synligaOrdinationer(atk).filter(x => lakemedelRad(db, x.lakemedel_id)?.atc === atc).sort((a, b) => a.start.localeCompare(b.start));
+  const atc = o.atc ?? lakemedelRad(db, o.lakemedel_id)?.atc;
+  const samma = (synliga ?? synligaOrdinationer(atk)).filter(x => (x.atc ?? lakemedelRad(db, x.lakemedel_id)?.atc) === atc).sort((a, b) => a.start.localeCompare(b.start));
   const slutDag = (x) => (x.status === 'utsatt' ? x.utsatt_tid.slice(0, 10) : x.slut ?? idag());
   let start = o.start;
   for (let i = samma.length - 1; i >= 0; i--) {

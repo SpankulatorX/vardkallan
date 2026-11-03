@@ -119,6 +119,8 @@ const FORBERED = {
     await aterstallDemo();
     await api('/api/demo/remiss-vardhandelse', { metod: 'POST', data: {} });
   },
+  // Runda 6, r2: bara återställning, så att patienten är som i seeden.
+  aterstall: async () => { await aterstallDemo(); },
 };
 
 // Uppgiften börjar på samma sätt som i skriptet: vid byte av demoroll loggas rollen in och demon återställs, så att

@@ -5,6 +5,8 @@
 import { esc, api, notis, felNotis, medKnapp, dialog, ikon, vyRubrik, tom, klockslag, tidpunkt, datum, idag } from '../ui.js';
 import { far } from '../app.js';
 import { patientCell } from './arbetslista.js';
+// Runda 6, r2: makulering av en felaktig registrering.
+import { makulera } from './lakemedelsstod.js';
 
 export const namn = 'administrering';
 
@@ -44,11 +46,12 @@ export function patientDoser(pid, l) {
       </div></details>` : '';
     return `<tr data-dos="${esc(d.nyckel)}">
       <td><time>${esc(klockslag(d.planerad))}</time>${datum(d.planerad) !== datum(idag()) ? `<span class="under-text">${esc(datum(d.planerad))}</span>` : ''}</td>
-      <td><strong>${lmText(d)}</strong><span class="under-text">${esc(d.dosering)}${d.administrationssatt ? `, ${esc(d.administrationssatt.toLowerCase())}` : ''}${d.vardhandelse ? `. Inför ${esc(d.vardhandelse.text.toLowerCase())}` : ''}</span>${d.vardhandelse?.forklaring ? `<span class="under-text">${esc(d.vardhandelse.forklaring)}</span>` : ''}</td>
+      <td><strong>${lmText(d)}</strong>${r6Taggar(d)}<span class="under-text">${esc(d.dosering)}${d.administrationssatt ? `, ${esc(d.administrationssatt.toLowerCase())}` : ''}${d.vardhandelse ? `. Inför ${esc(d.vardhandelse.text.toLowerCase())}` : ''}</span>${d.vardhandelse?.forklaring ? `<span class="under-text">${esc(d.vardhandelse.forklaring)}</span>` : ''}${d.spadning ? `<span class="under-text lms-spadning">${esc(d.spadning.text)}</span>` : ''}</td>
       <td>${dosText(d)}</td>
       <td><span class="tagg ${kl}">${esc(st)}</span>${d.underPermission ? ' <span class="tagg">Permission</span>' : ''}
         ${a && a.status !== 'iordningstalld' ? `<span class="under-text">${vem(a)}${a.orsak ? `. ${esc(a.orsak)}` : ''}${d.antalRegistreringar > 1 ? `. Registrerad ${d.antalRegistreringar} gånger` : ''}</span>` : ''}
         ${a?.status === 'iordningstalld' ? `<span class="under-text">Iordningsställd ${esc(klockslag(a.iordningstalld.tid))} av ${esc(a.iordningstalld.av)}. Etikett ${esc(a.iordningstalld.kontrollkod)}</span>` : ''}
+        ${a && kan ? `<button type="button" class="knapp-lank" data-makulera-adm="${a.id}" data-pid="${esc(pid)}" data-text="${esc(`${d.lakemedel?.namn ?? ''}, ${STATUS[a.status]?.[0]?.toLowerCase() ?? ''} ${klockslag(a.tid ?? a.iordningstalld?.tid)}`)}">Makulera</button>` : ''}
         ${d.forslag ? inteDelegerad(d) : ''}</td>
       <td class="atgarder">${knappar}</td>
     </tr>`;
@@ -57,7 +60,8 @@ export function patientDoser(pid, l) {
       <span class="under-text">${esc(v.dosering)}</span>
       <span class="under-text">${v.senaste ? `Senast given ${esc(tidpunkt(v.senaste.tid))} av ${esc(v.senaste.utfordAv?.namn ?? '')}${v.senaste.delegering ? `, med delegering från ${esc(v.senaste.delegering.utfardadAv)}` : ''}.` : 'Inte given det senaste dygnet.'}${v.max ? ` ${v.senasteDygnet} av högst ${v.max.antal} det senaste dygnet.` : ''}</span>
       ${v.varfor ? `<span class="under-text adm-varfor">${esc(v.varfor)}</span>` : ''}${inteDelegerad(v)}</div>
-      ${kan && omfattas(v) ? `<button type="button" class="knapp liten${v.kanGesNu ? '' : ' sekundar'}" data-adm="ge" data-pid="${esc(pid)}" data-ord="${v.ordinationId}" data-namn="${esc(v.lakemedel?.namn)}">Ge</button>` : ''}</li>`;
+      ${kan && omfattas(v) ? `<div class="adm-knappar"><button type="button" class="knapp liten${v.kanGesNu ? '' : ' sekundar'}" data-adm="ge" data-pid="${esc(pid)}" data-ord="${v.ordinationId}" data-namn="${esc(v.lakemedel?.namn)}">Ge</button>
+        <details class="adm-mer"><summary>Mer</summary><div class="knapprad"><button type="button" class="knapp liten sekundar" data-adm="efterhand" data-pid="${esc(pid)}" data-ord="${v.ordinationId}" data-namn="${esc(v.lakemedel?.namn)}">Given tidigare</button></div></details></div>` : ''}</li>`;
   const ut = (u) => `<li class="adm-vb"><div><strong>${lmText(u)}</strong> <span class="tagg">Utan fasta tider</span><span class="under-text">${esc(u.dosering)}</span>
       ${u.givnaIdag.length ? `<span class="under-text">Given i dag ${u.givnaIdag.map(a => `${esc(klockslag(a.tid))}${a.dos != null ? ` (${dosText(a)})` : ''} av ${esc(a.utfordAv?.namn ?? '')}${a.delegering ? `, med delegering från ${esc(a.delegering.utfardadAv)}` : ''}`).join('; ')}.</span>` : ''}${inteDelegerad(u)}</div>
       ${kan && omfattas(u) ? `<button type="button" class="knapp liten sekundar" data-adm="fri" data-pid="${esc(pid)}" data-ord="${u.ordinationId}" data-namn="${esc(u.lakemedel?.namn)}">Ge dos</button>` : ''}</li>`;
@@ -75,10 +79,18 @@ export function patientDoser(pid, l) {
       <thead><tr><th scope="col">Tid</th><th scope="col">Läkemedel</th><th scope="col">Dos</th><th scope="col">Status</th><th scope="col"><span class="sr">Åtgärder</span></th></tr></thead>
       <tbody>${l.doser.map(rad).join('')}</tbody></table></div>` : '<p class="tom liten">Inga doser med fasta tider i dag.</p>'}
     ${l.vidBehov.length || l.utanTider.length || l.vantarPaHandelse.length || l.kommandeHandelser?.length ? `<ul class="adm-lista">${l.vidBehov.map(vb).join('')}${l.utanTider.map(ut).join('')}${l.vantarPaHandelse.map(vantar).join('')}${(l.kommandeHandelser ?? []).map(kommande).join('')}</ul>` : ''}
+    ${(l.senaste ?? []).some(a => a.makulerad) ? `<p class="liten">Makulerade registreringar: ${l.senaste.filter(a => a.makulerad).map(a => `<span class="makulerad">${esc(a.lakemedel?.namn)} ${esc(klockslag(a.tid ?? a.iordningstalld?.tid))}</span> (${esc(a.makulerad.orsak)}, ${esc(a.makulerad.av)})`).join(', ')}.</p>` : ''}
     ${l.utanOrdination?.length ? `<p class="liten">Doser utan ordination det senaste dygnet: ${l.utanOrdination.map(a => `${esc(a.lakemedel?.namn)} ${esc(klockslag(a.tid))}`).join(', ')}.</p>` : ''}
     ${!kan && l.kan?.varfor ? `<p class="dampad liten">${esc(l.kan.varfor)}</p>` : ''}
     ${l.dolda?.sparrade ? '<p class="dampad liten">Det finns spärrade uppgifter. Ordinationer och doser från spärrade vårdenheter visas inte.</p>' : ''}`;
 }
+// Runda 6, r2: trappschemats steg, läkemedelstyp, muntlig ordination och generellt direktiv vid dosen.
+const r6Taggar = (d) => [
+  d.trappning?.steg && ` <span class="tagg">Steg ${d.trappning.steg} av ${d.trappning.antal}</span>`,
+  d.produkttyp && ` <span class="tagg tagg-demo">${esc(d.produkttyp.typText)}</span>`,
+  d.muntlig && ` <span class="tagg${d.muntlig.signerad ? '' : ' tagg-larm'}">${d.muntlig.signerad ? 'Muntlig, signerad' : `Muntlig, ges utan signering till kl. ${esc(klockslag(d.muntlig.gesUtanSigneringTill))}`}</span>`,
+  d.direktiv && ` <span class="tagg">Direktiv, högst ${d.direktiv.maxTillfallen} ${d.direktiv.maxTillfallen === 1 ? 'tillfälle' : 'tillfällen'}</span>`,
+].filter(Boolean).join('');
 const handelseText = (h) => {
   // Den skyddade formen för en annan vårdenhet har ingen förskjutning, bara när läkemedlet ges (runda 5).
   if (h.forskjutningMin == null) return `inför ${h.text.toLowerCase()}`;
@@ -123,6 +135,8 @@ export function koppla(el, ladda) {
   el.addEventListener('click', async (e) => {
     const h = e.target.closest('[data-handelse]');
     if (h) return angeHandelsetid(h, ladda);
+    const mk = e.target.closest('[data-makulera-adm]');
+    if (mk) return makulera(mk.dataset.pid, 'administrering', mk.dataset.makuleraAdm, mk.dataset.text, ladda);
     const b = e.target.closest('[data-adm]');
     if (!b) return;
     const typ = b.dataset.adm;
@@ -149,7 +163,9 @@ export function koppla(el, ladda) {
       if (!svar) return;
       Object.assign(data, { atgard: 'ge', dos: Number(String(svar.data.dos).replace(',', '.')) });
     } else if (typ === 'efterhand' || typ === 'fri') {
-      const forval = b.dataset.planerad ? klockslag(b.dataset.planerad).replace('.', ':') : new Date().toTimeString().slice(0, 5);
+      // Systemet föreslår dostiden, men aldrig en tid i framtiden. För en dos utan dostid föreslås en halvtimme sedan.
+      const forvalMs = b.dataset.planerad ? Math.min(Date.parse(b.dataset.planerad), Date.now()) : typ === 'efterhand' ? Date.now() - 30 * 60_000 : Date.now();
+      const forval = klockslag(new Date(Math.floor(forvalMs / 300_000) * 300_000).toISOString()).replace('.', ':');
       const svar = await dialog(`<form><h2 id="dlg-rubrik">${typ === 'fri' ? 'Ge' : 'Registrera i efterhand'}: ${esc(namnText)}</h2>
         <p>${typ === 'fri' ? 'Ordinationen har inga fasta tider. Ange dosen som ges.' : 'Ange när dosen gavs. Registreringen visar både när dosen gavs och när den registrerades.'}</p>
         <div class="falt-rad"><div class="falt"><label for="adm-tid">Klockslag</label><input id="adm-tid" name="tid" type="time" value="${esc(forval)}" required></div>

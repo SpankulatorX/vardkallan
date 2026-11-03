@@ -1,10 +1,12 @@
 // Sussa 3.5.3 Vätskebalans: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
+// Runda 6, r2.
+import { medR2 } from '../lakemedel-r2.js';
 
 // Vätskebalansen (app/test/administrering.test.js).
 const VB = 'Vätskebalans > ';
 
-export default [
+const AVSNITT = [
   {
     id: '3.5.3.1', kategori: 'system', egna: [], avsedd: 'delvis',
     tester: [`${VB}vätskebalansen räknar in administrerad volym av sig själv`],
@@ -22,3 +24,5 @@ export default [
   { id: '3.5.3.3', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: 'Förväntad vätskebalans framåt i tiden är inte byggd.' },
 ];
+// Runda 6, r2: posterna som byggdes i läkemedelsprocessen, del 2, ersätts ur sussa/lakemedel-r2.js.
+export default medR2(AVSNITT);

@@ -25,6 +25,9 @@ export const STARTPUNKT = {
   'Inkommande remisser med en vårdhändelse som väntar': { hash: '#/remisser', klar: 'article.remiss', forbered: 'remiss-vardhandelse' },
   // Runda 6, r3: patient 21 med vårdintyg från akutmottagningen.
   'Översikten för en patient som väntar på beslut om intagning': { hash: '#/patient/p21', klar: '.tidslinje' },
+  // Runda 6, r2: demon återställs först, som i test/flodessteg.cjs.
+  'Patientens läkemedelsflik': { hash: '#/patient/p01/lakemedel', klar: '.lm-tabell', forbered: 'aterstall' },
+  'Läkemedel att ge efter återställning': { hash: '#/administrering', klar: '.adm-patient', forbered: 'aterstall' },
 };
 
 export const UPPGIFTER = [
@@ -228,6 +231,17 @@ export const UPPGIFTER = [
     id: 'news2', namn: 'Registrera en NEWS2-kontroll', roll: 'ssk-kard', start: 'Patientens översikt',
     text: 'Du kontrollerar Gunnar på kvällen. Andningsfrekvensen är 22, syremättnaden 95 procent utan syrgas, blodtrycket 118/72, pulsen 112 och temperaturen 38,4. Han är vaken. Dokumentera kontrollen så att det syns vad som ska göras.',
     kontroll: { notis: 'NEWS2-kontrollen är registrerad' },
+  },
+  // Runda 6, r2: läkemedelsprocessen, del 2.
+  {
+    id: 'ordinera-mall', namn: 'Ordinera från en mall med flera ordinationer', roll: 'lak-kard', start: 'Patientens läkemedelsflik',
+    text: 'Gunnar Åkesson ska elkonverteras. Kliniken har en fastställd mall för läkemedlen inför och efter en elkonvertering. Ordinera läkemedlen ur mallen.',
+    kontroll: { notis: 'ur mallen Inför elkonvertering' },
+  },
+  {
+    id: 'dos-efterhand', namn: 'Registrera en dos i efterhand', roll: 'ssk-kard', start: 'Läkemedel att ge efter återställning',
+    text: 'Du gav Gunnar Åkesson två tabletter Alvedon för en halvtimme sedan men hann inte registrera det. Registrera dosen nu.',
+    kontroll: { notis: 'Alvedon är registrerad som given' },
   },
 ];
 

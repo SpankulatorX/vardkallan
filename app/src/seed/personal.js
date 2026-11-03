@@ -11,6 +11,8 @@ export const YRKEN = {
   uppfoljning: 'Analytiker (uppföljning)',
   // Runda 6, r3: kommunens personal i samordnad planering. Kommunen är en simulerad part i demon.
   kommun: 'Kommunens personal (simulerad)',
+  // Fördjupad läkemedelsgenomgång (runda 6, r2, HSLF-FS 2017:37 11 kap.).
+  farmaceut: 'Farmaceut',
 };
 
 export const PERSONAL = [
@@ -47,4 +49,6 @@ export const PERSONAL = [
   // Runda 6, r3: kommunens biståndshandläggare i samordnad planering, en simulerad part (enheten kommun-demo läggs in av
   // samordnad.js). Sist i listan, så att de andras HSA-id inte ändras.
   { id: 'kom-bist', namn: 'Lisa Ahlgren', yrke: 'kommun', titel: 'Biståndshandläggare (simulerad kommun)', enhet: 'kommun-demo', demo: true },
+  // Fördjupad läkemedelsgenomgång (runda 6, r2): en klinisk farmaceut på kardiologen.
+  { id: 'far-kard', namn: 'Elsa Nordin', yrke: 'farmaceut', titel: 'Klinisk apotekare', enhet: 'uso-kard', demo: true },
 ];

@@ -105,6 +105,8 @@ describe('Seed', () => {
       ['uppf', 'Daniel Sund', 'uppfoljning', 'rk'],
       // Runda 6, r3: kommunens part i samordnad planering, en simulerad kommun.
       ['kom-bist', 'Lisa Ahlgren', 'kommun', 'kommun-demo'],
+      // Runda 6, r2: farmaceuten i den fördjupade läkemedelsgenomgången.
+      ['far-kard', 'Elsa Nordin', 'farmaceut', 'uso-kard'],
     ]);
   });
 

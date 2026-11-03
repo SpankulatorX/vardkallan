@@ -22,6 +22,8 @@ const VISAR = {
   'uppf': 'Uppföljning: hämtar datauttaget utan namn och personnummer, som uppdateras varje natt. Läser inte journalen.',
   // Runda 6, r3: kommunen är en simulerad part i samordnad planering.
   'kom-bist': 'Kommunen i samordnad planering (simulerad): ser bara det regionen har skickat, till exempel inskrivningsmeddelandet för Gunnar Åkesson. Läser aldrig journalen.',
+  // Runda 6, r2.
+  'far-kard': 'Klinisk apotekare på kardiologen: läser läkemedelslistan och mätvärdena och gör farmaceutens bedömning i den fördjupade läkemedelsgenomgången, som läkaren startar och avslutar. Läser inte journalanteckningar.',
 };
 
 // Vad några av patienterna visar i Min journal.

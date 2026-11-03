@@ -9,14 +9,21 @@ import { alder as alderAv } from './atkomst.js';
 import { egfrForSakerhet } from './lakemedel.js';
 // Planerad vårdhändelse i tidboken (vardhandelse.js): om tiden följer tidboken och systemets förklaring.
 import { kopplingUt } from './vardhandelse.js';
+// Runda 6, r2: läkemedelstyp, förpackningar, spädning och trappschema i förslaget.
+import { forslagTillagg } from './lakemedelsstod.js';
 
 export const DEMO_MALLAR = 'Förslagen är demoregler för att visa flödet. De är inte doseringsstöd och inte granskade av farmaceut eller läkare.';
 export const ADMINISTRATIONSSATT = {
   peroralt: 'Peroralt', subkutant: 'Subkutant', intravenost: 'Intravenöst', inhalation: 'Inhalation', sublingualt: 'Under tungan', intramuskulart: 'Intramuskulärt',
+  // Runda 6, r2: nutrition kan ges via sond.
+  sond: 'Via sond',
 };
 
 // Administrationssättet ur läkemedelsformen i NPL.
 export function administrationssatt(form = '') {
+  // Runda 6, r2: blodkomponenter ges intravenöst och sondnäring via sond.
+  if (/blodkomponent/i.test(form)) return 'intravenost';
+  if (/sondnäring/i.test(form)) return 'sond';
   if (/sublingual/i.test(form)) return 'sublingualt';
   if (/inhalation/i.test(form)) return 'inhalation';
   if (/infusion/i.test(form) || /pulver till injektion/i.test(form)) return 'intravenost';
@@ -29,6 +36,9 @@ export function administrationssatt(form = '') {
 // dem, men inte till exempel ge en injektionsvätska under tungan eller en tablett som injektion. Det förslagna sättet
 // (administrationssatt) står först.
 export function tillatnaSatt(form = '') {
+  if (/blodkomponent/i.test(form)) return ['intravenost'];
+  if (/sondnäring/i.test(form)) return ['sond'];
+  if (/^dryck$/i.test(form)) return ['peroralt', 'sond'];
   if (/sublingual/i.test(form)) return ['sublingualt'];
   if (/inhalation/i.test(form)) return ['inhalation'];
   if (/infusion/i.test(form) || /pulver till injektion/i.test(form)) return ['intravenost'];
@@ -85,6 +95,8 @@ export function forslag(atk, lm) {
     mall: mall ? lm.atc : null, mallnamn: mall?.namn ?? null, dosering: f.dosering, dos: f.dos ?? null, dosEnhet: f.dosEnhet ?? null, tider: f.tider ?? [], typ: f.typ,
     vidBehov: f.typ === 'vid_behov', administrationssatt: satt, administrationssattText: ADMINISTRATIONSSATT[satt], tillatnaAdministrationssatt: tillatnaSatt(lm.form),
     uppfoljningsdatum: addDagar(idag(), f.uppfoljning ?? 30), volymMl: f.volym ?? null, vatskebalans: Boolean(f.volym), varfor, demoregler: true, anmarkning: DEMO_MALLAR,
+    // Runda 6, r2: läkemedelstyp, förpackningar i NPL, spädning och trappschema.
+    ...forslagTillagg(db, lm, { dos: f.dos ?? null, dosEnhet: f.dosEnhet ?? null }),
   };
 }
 
