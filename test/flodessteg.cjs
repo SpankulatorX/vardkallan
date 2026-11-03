@@ -424,6 +424,26 @@ function skapa(BAS) {
       await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Spara bedömningen');
       await synlig(page, '.notis', 'Omeprazol Sandoz 20 mg är utsatt');
     },
+    // Runda 6, r1: sökning i journalen och NEWS2-kontroll.
+    'sok-journal': async (m, page) => {
+      await m.skriv(page.locator('#jsok-falt'), 'blodtryck', 'sökfältet i journalen');
+      await m.tangent('Enter', 'sök');
+      await synlig(page, '[data-tolkning]', 'mätvärdena blodtryck');
+      await m.klicka(page.locator('.jsok-traff a[data-traff="matvarde"]').first(), 'den senaste träffen, ett blodtryck');
+      await synlig(page, '#kurva-blodtryck.markerad h4', 'Blodtryck');
+    },
+    news2: async (m, page) => {
+      await m.klicka(page.locator('.flikar a', { hasText: 'Mätvärden' }), 'fliken Mätvärden');
+      await m.klicka(page.locator('[data-news2-ny]'), 'Registrera NEWS2-kontroll');
+      await m.skriv(page.locator('#n2-andningsfrekvens'), '22', 'andningsfrekvens');
+      await m.skriv(page.locator('#n2-saturation'), '95', 'syremättnad');
+      await m.skriv(page.locator('#n2-blodtryck'), '118/72', 'blodtryck');
+      await m.skriv(page.locator('#n2-puls'), '112', 'puls');
+      await m.skriv(page.locator('#n2-temp'), '38,4', 'temperatur');
+      await m.klicka(page.locator('#n2-acvpu-A'), 'medvetandegraden A, vaken');
+      await m.klicka(page.locator('#news2-form [type="submit"]'), 'Registrera kontrollen');
+      await synlig(page, '.notis', 'NEWS2 6, medelhög risk');
+    },
   };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }

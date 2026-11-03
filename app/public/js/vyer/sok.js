@@ -4,6 +4,8 @@ import { esc, api, vyRubrik, tom, faltFel, ikon } from '../ui.js';
 import { arLogggranskare, far } from '../app.js';
 import { patientCell, pnrCell, alderKon } from './arbetslista.js';
 import { registreringHtml, kopplaRegistrering } from './patient-identitet.js';
+// Runda 6, r1: uppmärksamhetssymbolen i träffarna (Sussa 3.1.5.2), med samma regler som i patienthuvudet.
+import { listCell } from '../uppmarksamhet.js';
 
 export const namn = 'sok';
 
@@ -47,8 +49,9 @@ async function sok(main, fraga) {
   const lg = arLogggranskare();
   ut.innerHTML = `<h2 class="sr">Träffar</h2><p class="antal-text">${rader.length === 1 ? 'En träff' : `${rader.length} träffar`}</p>
     <div class="tabellrulle"><table class="tabell">
-      <thead><tr><th scope="col">Patient</th><th scope="col">Identitet</th><th scope="col">Ålder och kön</th>${lg ? '' : '<th scope="col">Vårdrelation på din enhet</th>'}</tr></thead>
+      <thead><tr><th scope="col" class="um-cell"><span class="sr">Uppmärksamhet</span></th><th scope="col">Patient</th><th scope="col">Identitet</th><th scope="col">Ålder och kön</th>${lg ? '' : '<th scope="col">Vårdrelation på din enhet</th>'}</tr></thead>
       <tbody>${rader.map(p => `<tr>
+        <td class="um-cell">${p.uppmarksamhet ? listCell(p.uppmarksamhet, `#/patient/${encodeURIComponent(p.id)}`) : ''}</td>
         <td>${patientCell(p, lg ? `#/logg/patient/${encodeURIComponent(p.id)}` : `#/patient/${encodeURIComponent(p.id)}`)}</td>
         <td>${pnrCell(p)}${p.identitetstyp && p.identitetstyp !== 'personnummer' ? `<span class="under-text">${esc(p.typText)}</span>` : ''}${p.traffPa ? `<span class="under-text">Hittad på ${esc(p.traffPa.status === 'tidigare' ? 'tidigare' : 'extra')} identitet, ${esc(p.traffPa.typText.toLowerCase())}</span>` : ''}</td><td>${alderKon(p)}</td>
         ${lg ? '' : `<td>${p.vardrelation ? 'Ja' : '<span class="dampad">Nej, journalen kräver en grund</span>'}</td>`}

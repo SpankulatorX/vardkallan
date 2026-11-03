@@ -1,5 +1,5 @@
 // Patientjournalen: fast patienthuvud (armbandet), behörighetsrad och flikar.
-import { esc, api, ikon, GRUND, migreradEtikett, ApiFel } from '../ui.js';
+import { esc, api, ikon, GRUND, migreradEtikett, ApiFel, tal, tidpunkt } from '../ui.js';
 import { far, pa, S, uppdateraInkorg, rita } from '../app.js';
 import { valDialog, nekadRuta } from '../behorighet.js';
 import * as oversikt from './patient-oversikt.js';
@@ -11,6 +11,8 @@ import * as logglista from './patient-logglista.js';
 import * as uppmarksamhet from '../uppmarksamhet.js';
 import * as identitet from './patient-identitet.js';
 import * as utlamnat from './patient-utlamnat.js';
+// Runda 6, r1: sökning i journalen (Sussa 3.1.8).
+import * as journalsok from './patient-sok.js';
 
 export const namn = 'patient';
 
@@ -23,6 +25,8 @@ const FLIKAR = [
   ['logglista', 'Logglista', () => true, logglista],
   ['identitet', 'Identitet', () => pa('las_oversikt', 'las_admin'), identitet],
   ['utlamnat', 'Utskrifter', () => pa('skriv_ut', 'utlamna'), utlamnat],
+  // Runda 6, r1: träffarna från sökfältet. Fliken nås från sökfältet och står inte bland flikarna.
+  ['sok', 'Sökträffar', () => far('las_oversikt'), journalsok, { dold: true }],
 ];
 
 let huvud = null;
@@ -57,7 +61,7 @@ function bandHtml(h) {
     <div class="band-las" aria-hidden="true"><span></span></div>
     <div class="band-id">
       <h1 tabindex="-1">${h.skyddad && !h.identitetVisad ? `${ikon.skold}<span>Skyddad identitet</span>` : esc(h.namn)}</h1>
-      <p class="band-fakta">${h.identitet && h.identitet.typ !== 'personnummer' ? `<span class="tagg">${esc(h.identitet.typText)}</span>` : ''}<span class="pnr">${esc(h.personnummer)}</span><span>${esc(h.alder)} år</span><span>${h.kon === 'kvinna' ? 'Kvinna' : 'Man'}</span>${h.listning ? `<span>Listad på ${esc(h.listning.enhet.namn)}</span>` : ''}</p>
+      <p class="band-fakta">${h.identitet && h.identitet.typ !== 'personnummer' ? `<span class="tagg">${esc(h.identitet.typText)}</span>` : ''}<span class="pnr">${esc(h.personnummer)}</span><span>${esc(h.alder)} år</span><span>${h.kon === 'kvinna' ? 'Kvinna' : 'Man'}</span>${h.listning ? `<span>Listad på ${esc(h.listning.enhet.namn)}</span>` : ''}${basfaktaHtml(h.basfakta)}</p>
     </div>
     <ul class="band-signaler" aria-label="Uppmärksamhetssignaler och markeringar">
       ${h.uppmarksamhet ? uppmarksamhet.bandSignal(h) : overkanslighetSignal(h)}
@@ -66,6 +70,29 @@ function bandHtml(h) {
     </ul>
     <div class="band-grund"><span class="band-etikett" id="grund-etikett">Åtkomsten vilar på</span><ul aria-labelledby="grund-etikett">${grundChips(h)}</ul></div>
   </header>`;
+}
+
+// Runda 6, r1: basfakta ur samma objekt som GET /api/patient/:id/basfakta (Sussa 3.1.6). Vikt, längd och BMI med
+// när och var de registrerades som verktygstips.
+function basfaktaHtml(b) {
+  if (!b) return '';
+  const nar = (f) => `Registrerad ${tidpunkt(f.tid)} på ${f.vardenhet?.namn ?? ''}${f.registreradAv ? ` av ${f.registreradAv}` : ''}`;
+  const d = [];
+  if (b.vardas) d.push(`<span title="${esc(`Sedan ${tidpunkt(b.vardas.sedan)}`)}">${esc(b.vardas.typ === 'slutenvard' ? `Inlagd, ${b.vardas.plats ?? b.vardas.enhet.namn}` : `Pågående kontakt, ${b.vardas.enhet.namn}`)}</span>`);
+  if (b.vikt) d.push(`<span title="${esc(nar(b.vikt))}">${esc(tal(b.vikt.varde, 1))} kg</span>`);
+  if (b.langd) d.push(`<span title="${esc(nar(b.langd))}">${esc(tal(b.langd.varde, 0))} cm</span>`);
+  if (b.bmi) d.push(`<span title="${esc(b.bmi.text)}">BMI ${esc(tal(b.bmi.varde, 1))}</span>`);
+  return d.join('');
+}
+
+// Runda 6, r1: sökfältet i journalen. Systemet tolkar frågan och söker i allt rollen får läsa.
+function sokfaltHtml(id, q = '') {
+  if (!far('las_oversikt')) return '';
+  return `<form class="journalsok" role="search" aria-label="Sök i journalen" data-journalsok>
+    <label class="sr" for="jsok-falt">Sök i journalen</label>
+    <input id="jsok-falt" name="q" type="search" value="${esc(q)}" minlength="2" maxlength="60" autocomplete="off" placeholder="Sök i journalen, till exempel blodtryck, I48 eller Waran">
+    <button type="submit" class="knapp liten sekundar">${ikon.sok}<span>Sök</span></button>
+  </form>`;
 }
 
 function behorighetsrad(h) {
@@ -116,7 +143,7 @@ export function kravRuta(e) {
 }
 
 function flikarHtml(id, aktiv) {
-  return `<nav class="flikar" aria-label="Journalens delar"><ul>${FLIKAR.filter(f => f[2]()).map(([k, t]) =>
+  return `<nav class="flikar" aria-label="Journalens delar"><ul>${FLIKAR.filter(f => f[2]() && !f[4]?.dold).map(([k, t]) =>
     `<li><a href="${href(id, k === 'oversikt' ? null : k)}"${k === aktiv ? ' aria-current="page"' : ''}>${esc(t)}</a></li>`).join('')}</ul></nav>`;
 }
 
@@ -158,11 +185,19 @@ export async function visa(main, [id, flik, sub], q, ctx = {}) {
     main.innerHTML = `<div class="patientvy">
       ${bandHtml(huvud)}
       <div class="behorighetsrad" id="behorighetsrad">${uppmarksamhet.forslagRader(huvud)}${behorighetsrad(huvud)}</div>
-      <div id="flikrad"></div>
+      <div class="flikrad-med-sok"><div id="flikrad"></div>${sokfaltHtml(id, flik === 'sok' ? q.get('q') ?? '' : '')}</div>
       <section class="flikinnehall" id="flikinnehall"></section>
     </div>`;
     // Uppmärksamhetsinformation: efter en bekräftelse ritas huvudet om med den nya symbolen.
     uppmarksamhet.koppla(main.querySelector('.patientvy'), id, async () => { huvud = null; await rita(); });
+    // Runda 6, r1: sökningen visas under fliken Sökträffar, med frågan i adressen.
+    main.querySelector('[data-journalsok]')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const v = e.currentTarget.q.value.trim();
+      if (v.length < 2) { e.currentTarget.q.focus(); return; }
+      const ny = `${href(id, 'sok')}?q=${encodeURIComponent(v)}`;
+      if (location.hash === ny) rita(); else location.hash = ny;
+    });
     main.querySelector('.patientvy').addEventListener('click', async (e) => {
       const b = e.target.closest('[data-val]');
       if (!b) return;

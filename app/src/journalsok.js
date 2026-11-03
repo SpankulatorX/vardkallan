@@ -12,7 +12,7 @@ import { Fel } from './db.js';
 import { kanRoll } from './atkomst.js';
 import * as journal from './journal.js';
 import * as lakemedel from './lakemedel.js';
-import { ICD10SE } from './kodverk.js';
+import { ICD10SE, MATKOD } from './kodverk.js';
 
 const MAX_TRAFFAR = 100;
 const sv = (s) => String(s ?? '').toLocaleLowerCase('sv-SE');
@@ -151,7 +151,7 @@ export function sok(atk, fraga) {
     for (const m of journal.synligaMatvarden(atk).filter(x => t.matTyper.has(x.typ))) {
       const u = journal.matvardeUt(db, m);
       const varde = u.beskrivning ?? `${String(u.varde).replace('.', ',')} ${u.enhet ?? ''}`.trim();
-      traffar.push({ typ: 'matvarde', tid: m.tid, rubrik: 'Mätvärde', delar: [{ text: u.namn, markerad: true }, { text: ` ${varde}`, markerad: false }],
+      traffar.push({ typ: 'matvarde', tid: m.tid, rubrik: { laboratory: 'Provsvar', survey: 'Skala' }[MATKOD[m.typ]?.kategori] ?? 'Vitalparameter', delar: [{ text: u.namn, markerad: true }, { text: ` ${varde}`, markerad: false }],
         vardenhet: { id: m.enhet_id, namn: enhetsnamn(db, m.enhet_id) }, kalla: m.kalla, kallaEtikett: u.kallaEtikett, ref: { flik: 'matvarden', sub: m.typ } });
     }
   }

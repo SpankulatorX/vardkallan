@@ -23,13 +23,17 @@ export default [
     anmarkning: 'Stickprovskontroller och lagring i minst fem år finns inte.',
   },
   {
-    id: '5.2.1.3', kategori: 'system', egna: ['L4'], avsedd: 'delvis',
+    id: '5.2.1.3', kategori: 'system', egna: ['L4'], avsedd: 'uppfyllt_demo',
     tester: [
       `${F}AuditEvent bara för logggranskare`,
+      // Runda 6, r1: export till fil (logguppfoljning.js).
+      'Export av loggen > åtkomstloggen exporteras som NDJSON i kedjans ordning med hash, och exporten loggas',
+      'Export av loggen > CSV har rubriker, semikolon och skydd mot formler, och säkerhetsloggen kan också exporteras',
+      'Export av loggen > bara logggranskaren exporterar, och ett nekat försök loggas',
     ],
-    losning: 'Logggranskaren kan läsa ut loggen som FHIR AuditEvent per patient.',
-    expert: 'Loggen lämnas ut i ett öppet format med patient, personal och grund, så granskaren inte behöver sammanställa den för hand.',
-    anmarkning: 'Export av hela loggen till fil eller arkiv saknas.',
+    losning: 'Logggranskaren exporterar åtkomstloggen och säkerhetsloggen till fil som NDJSON eller CSV, med samma urval som i logguppföljningen, och kan läsa loggen som FHIR AuditEvent per patient. Exporten loggas i både åtkomstloggen och säkerhetsloggen.',
+    expert: 'Raderna kommer i kedjans ordning med hash och föregående hash, så att kedjan kan kontrolleras utanför systemet, och skyddad identitet är maskerad också i filen. CSV skyddas mot formler i kalkylprogram, så granskaren behöver inte tänka på det.',
+    anmarkning: 'Export till ett e-arkiv för loggar (lagring i minst fem år) finns inte, eftersom demons sandlådor lever i åtta timmar.',
   },
   {
     id: '5.2.1.4', kategori: 'system', egna: ['D4', 'L5'], avsedd: 'uppfyllt_demo',

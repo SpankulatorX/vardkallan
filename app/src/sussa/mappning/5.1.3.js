@@ -21,9 +21,13 @@ export default [
       `${KV}varje mätvärdestyp har kod: NPU för labb, LOINC för vitalparametrar, och UCUM-enhet`,
       `${F}Condition använder ICD-10-SE`,
       `${FS}Condition och MedicationRequest har display ur kodverket`,
+      // Runda 6, r1: eGFR med LOINC och åtgärder med KVÅ.
+      'Skalor > eGFR: CKD-EPI 2021 ur kreatinin, ålder och kön, och seedens eGFR är räknat ur kreatininet vid samma provtagning',
+      'Åtgärder med KVÅ > koderna och titlarna stämmer med KVÅ 2026, och systemet har OID:n ur Socialstyrelsens OID-serie',
+      'Åtgärder med KVÅ > FHIR: Procedure med KVÅ för NEWS2-omgångar, GCS och läkemedelsgenomgång, med samma behörighet',
     ],
-    losning: 'ICD-10-SE för diagnoser, ATC och NPL-id för läkemedel, NPU för labb, LOINC för vitalparametrar och UCUM för enheter, kontrollerade mot källorna.',
-    expert: 'Systemet sätter koden själv utifrån det användaren väljer, så ingen behöver kunna kodverken.',
-    anmarkning: 'KVÅ, Snomed CT och egna kodverk från verksamheten saknas, och eGFR saknar kod.',
+    losning: 'ICD-10-SE för diagnoser, ATC och NPL-id för läkemedel, NPU för labb, LOINC för vitalparametrar, skalor och eGFR, KVÅ för åtgärder och UCUM för enheter, kontrollerade mot källorna (docs/kodkontroll.md).',
+    expert: 'Systemet sätter koden själv utifrån det användaren gör: en NEWS2-kontroll blir KVÅ QD008, en GCS-bedömning PA001 och en läkemedelsgenomgång XV015, och eGFR räknas ur kreatininet. Ingen behöver kunna kodverken.',
+    anmarkning: 'Snomed CT och egna kodverk från verksamheten saknas. Kodverken uppdateras för hand i koden, inte med ett verktyg för förvaltning över tid.',
   },
 ];

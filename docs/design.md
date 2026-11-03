@@ -543,7 +543,7 @@ Patient 1 har penicillinöverkänslighet (skadlig) och står på Waran, som syst
 
 ### Det som saknas
 
-Kodverkslistan med Snomed CT, överföring till och hämtning från NPÖ, registrering och ändring av själva överkänsligheten (den finns bara i seeden), och klinisk granskning av förslagsreglerna. Söksidan och inkorgen visar ingen symbol.
+Kodverkslistan med Snomed CT, överföring till och hämtning från NPÖ, registrering och ändring av själva överkänsligheten (den finns bara i seeden), och klinisk granskning av förslagsreglerna. Sedan runda 6 visar också patientsöket och inkorgen symbolen, med samma regler som i patienthuvudet.
 ## Identiteter och sammanslagning (identitet.js, Sussa 3.1.1)
 
 En patient identifieras med personnummer, samordningsnummer, reservnummer eller en annan identitet med OID. Varje patient har exakt en gällande identitet och sin historik i tabellen `identiteter` (status `gallande`, `tidigare` eller `ovrig` för en extra identitet bredvid den gällande). `patienter.personnummer` har den gällande identitetens värde och `patienter.id_typ` dess typ, så att listor, huvud och logg visar rätt nummer utan att fråga identitetstabellen.
@@ -594,6 +594,64 @@ En sammanslagning går inte att ångra i demon.
 ### Seed
 
 Fyra påhittade patienter i `seed/identiteter.js`: Annika Holmgren med personnummer på Vårdcentralen Kumla (16) och samma person med reservnummer, inlagd på kardiologen i natt utan legitimation (17), en dubblett att slå samman. En säsongsarbetare med samordningsnummer på Vårdcentralen Tybble som först hade ett reservnummer (18), och en turist som identifieras med en identitet i det påhittade utländska id-systemet (19).
+
+## Sökning, mätvärden, skalor, basfakta och logguppföljning (runda 6, r1: Sussa 3.1.8, 3.1.3.5, 3.1.3.9, 3.1.5.2, 3.1.6, 5.2.1.3, 5.3.1.12 och 5.1.3.5)
+
+### Sökning i journalen (journalsok.js, Sussa 3.1.8.1 och 3.1.8.2)
+
+Ovanför flikarna i patientens journal finns ett sökfält. Det söker i anteckningar, diagnoser, läkemedel och mätvärden och visar träffarna under Sökträffar i tidsordning, nyast först, med träffen markerad. Ett klick öppnar uppgiften där den finns: anteckningen i journalen, läkemedelslistan, översikten för en diagnos och kurvan för ett mätvärde.
+
+Systemet tolkar frågan och säger hur den tolkades. Vanliga ord leder till mätvärdena (blodtryck och bt till blodtryck, feber till temperatur, njurfunktion till eGFR och kreatinin, NEWS till vitalparametrarna). En ICD-10-kod som I48 eller i48.1 hittar diagnoserna med koden. Ett läkemedelsnamn, en substans, en ATC-kod eller en grupp som blodförtunnande eller antibiotika hittar ordinationerna, och anteckningar som nämner läkemedlet. Fritext söks i alla sökord, oavsett skiftläge.
+
+Sökningen har samma behörighet som läsningen. Varje rad prövas i behörighetsmotorn innan den jämförs med frågan: inre sekretess med aktivt val, spärr (nödåtkomst häver den aldrig), yrkesroll (undersköterskan söker i omvårdnadsanteckningar, läkemedel och mätvärden men inte i läkaranteckningar eller diagnoser) och skyddad identitet (svaret har varken namn eller personnummer). Svaret har inga räknare för dolda uppgifter, så en sökning på något som bara finns i en spärrad del ger exakt samma svar som en sökning på ett påhittat ord. Att det finns uppgifter från andra vårdenheter står redan i patienthuvudet, och under sökträffarna står bara att sökningen gäller det användaren ser. Sökningen loggas som läsning av översikten med söktermen och antalet synliga träffar i syftet. Klickbudget: tre steg.
+
+### Mätvärden över tid och NEWS2 (vitalparametrar.js och skalor.js, Sussa 3.1.3.9 och 3.1.3.5)
+
+Fliken Mätvärden visar en kurva per mätvärde, ritad som SVG i gränssnittet, med referensintervallet som ett skuggat band och värden utanför intervallet röda och större, så att färgen inte är enda bäraren. Tabellen med alla värden finns kvar under kurvorna. För vitalparametrarna är bandet området där parametern ger 0 poäng i NEWS2, och det står så. För labbvärdena är intervallen demovärden för vuxna, inte ett laboratoriums referensintervall, och kreatinin och hemoglobin har intervall efter kön. När patienten står på warfarin enligt det användaren får se i läkemedelslistan visar INR målintervallet 2,0 till 3,0.
+
+NEWS2 räknas av systemet ur vitalparametrarna enligt Royal College of Physicians, National Early Warning Score (NEWS) 2, 2017: Chart 1 (poängen per parameter), Chart 2 (trösklarna) och Chart 4 (vad som ska göras och hur ofta kontrollerna ska göras), hämtade från rcp.ac.uk 2026-11-03. Värden som togs inom en timme räknas som en mätomgång (demoregel). Panelen visar poängen, risken, när poängen räknades, när nästa kontroll senast ska göras (12 timmar vid 0, 4 timmar vid 1 till 4, en timme vid 3 i en parameter eller 5 till 6, kontinuerligt vid 7 eller mer), om kontrollen är försenad, vad som ska göras i klartext och poängen per parameter. En kurva visar NEWS2 över tid med banden för risken. Saknas något värde säger systemet vilka som ska mätas, och en parameter med 3 poäng larmar ändå. Systemet räknar inte NEWS2 för barn under 16 år eller vid en synlig graviditetsdiagnos (O00 till O99, Z33 till Z36), eftersom RCP säger att NEWS2 inte ska användas där. Syremättnaden räknas bara med skala 1; skala 2 för patienter med hyperkapni ska väljas av läkare och är inte byggd.
+
+En hel NEWS2-kontroll registreras i ett formulär: sju värden, luft förvalt, och systemet räknar poängen medan värdena skrivs (`POST /api/news2/berakna`, som inte läser några patientuppgifter). Värdena sparas i en transaktion med samma tid och samma vårdkontakt, och åtgärden får KVÅ QD008. Klickbudget: åtta steg.
+
+Larmet: när NEWS2 är 5 eller mer, eller en parameter ger 3 poäng, står patienten i inkorgen för sjuksköterskan och läkaren på vårdenheten under NEWS2 som kräver åtgärd, med poängen, vilket värde som ger 3, vad som ska göras och om kontrollen är försenad. Larmet räknas bara för patienter med en pågående vårdkontakt på vårdenheten och bara ur värden som togs på den egna vårdenheten under kontakten, så att det aldrig bygger på uppgifter från en annan vårdenhet eller en spärrad vårdenhet. Raden loggas på patienten en gång per session och mätomgång. Larmet försvinner när en ny kontroll inte längre kräver åtgärd. Det finns ingen knapp som kvitterar bort larmet, eftersom inkorgen inte släpper något som inte är åtgärdat.
+
+NEWS2, skalorna och referensintervallen ligger i en egen modul (`skalor.js`) och är märkta som demoregler, inte kliniskt beslutsstöd (D10). Ingen MDR-bedömning är gjord.
+
+### Skalor (Sussa 3.1.3.5)
+
+- **NEWS2** som ovan. Medvetandegraden anges med ACVPU (vaken, nytillkommen förvirring, reagerar på tilltal, reagerar på smärta, reagerar inte) och syrgas i liter per minut, där 0 är luft.
+- **Glasgow Coma Scale** (Teasdale och Jennett 1974, i den vanliga versionen med 15 poäng): ögonöppning 1 till 4, verbalt svar 1 till 5 och motoriskt svar 1 till 6 väljs i listor med text. Systemet räknar summan och skriver texten, till exempel GCS 13 (E3 V4 M6), och en GCS-bedömning får KVÅ PA001.
+- **Smärta med NRS** 0 till 10, där systemet skriver om smärtan är lätt, måttlig eller svår.
+
+Inga licensierade skalor (till exempel RETTS eller MNA) finns.
+
+### Basfakta (Sussa 3.1.6.1 och 3.1.6.2)
+
+Basfakta är ett och samma objekt i patienthuvudet och i `GET /api/patient/:id/basfakta`: ålder, kön, var patienten vårdas (pågående vårdkontakt eller vårdtillfälle), listning, överkänslighet, uppmärksamhetsinformation, vikt och längd, och BMI som systemet räknar när vikten är från de senaste 30 dagarna och patienten är vuxen. Varje uppgift har när, var och av vem den registrerades, och en hänvisning till sin FHIR-resurs (Patient, AllergyIntolerance och Observation). Objektet byggs av det användaren redan får se: vårdadministratören får varken överkänslighet, uppmärksamhet eller vikt, och en vikt från en spärrad vårdenhet syns först efter patientens samtycke. Ett eget flöde för att registrera eller ändra överkänslighet saknas.
+
+### Uppmärksamhetssymbolen i sök och inkorg (Sussa 3.1.5.2)
+
+Patientsöket och inkorgen visar symbolen med samma regler som patienthuvudet: den räknas med `uppmarksamhet.symbolFor`, som kräver att den inloggade får läsa patientens översikt. En patient utan grund, eller en roll utan läsning av översikten (vårdadministratören och logggranskaren), får ingen symbol, och raden i inkorgen får då inget fält för den alls.
+
+### Loggen: export, säkerhetshändelser och stickprov (Sussa 5.2.1.3 och 5.3.1.12, eget krav L4)
+
+- **Export** (`logguppfoljning.js`): logggranskaren exporterar åtkomstloggen (med samma urval som i logguppföljningen) eller säkerhetsloggen till fil som NDJSON eller CSV. Raderna kommer i kedjans ordning med hash och föregående hash, så att kedjan kan kontrolleras utanför systemet. Skyddad identitet är maskerad också i filen. CSV har semikolon och rubrikrad, och ett värde som börjar med likhetstecken, plus, minus eller snabel-a får en apostrof först, så att ett kalkylprogram inte tolkar det som en formel. Exporten loggas i åtkomstloggen och i säkerhetsloggen.
+- **Säkerhetshändelser** (`sakerhetslogg.js`): en egen loggtyp i en egen tabell med egen hashkedja och databastriggrar som stoppar ändring och radering. Servern loggar efter varje anrop med en sandlåda: inloggning och utloggning (personal och invånare), misslyckad inloggning, anrop som avvisas med 401 eller 403, registrerad eller återkallad delegering (ändrad behörighet), ändrad inställning (demons simulering av NLL och återställning av demon), export av loggen och dragna stickprov. Sökvägen sparas normaliserad, med :id i stället för patientens id, så att säkerhetsloggen inte innehåller patientuppgifter. Händelser i driften utanför sandlådan, till exempel omstart av servern, loggas inte här.
+- **Stickprov** enligt HSLF-FS 2016:40 4 kap. 9 b § i lydelsen enligt HSLF-FS 2025:57 (konsoliderad version från socialstyrelsen.se, läst 2026-11-03): vårdgivaren ska ansvara för att systematiska och återkommande stickprovskontroller görs av den åtkomst som har förekommit, att kontroller görs vid misstanke om obehörig åtkomst, att kontrollerna av loggar dokumenteras och att loggar sparas minst fem år. Systemet drar tio åtkomster slumpvis, med kryptografiskt slumptal, bland vårdens åtkomster till patientuppgifter de senaste sju dagarna som inte har funnits i ett tidigare stickprov. För varje åtkomst säger systemet vad som ska kontrolleras utifrån grunden. Granskaren markerar en åtkomst som befogad med ett klick, eller som att den ska utredas med en kommentar. Det syns hela tiden hur många som återstår, och systemet föreslår nästa stickprov efter sju dagar (demoregel; de allmänna råden säger att frekvensen ska anpassas efter antalet användare och behandlingens omfattning). En granskning kan inte ändras eller raderas, och varje granskning loggas på patienten som logggranskning. Lagring i minst fem år finns inte i demon, vars sandlådor lever i åtta timmar.
+
+### Kodverk (eget krav D9, Sussa 5.1.3.5)
+
+- **eGFR** har LOINC 98979-8 (Glomerular filtration rate ... by Creatinine-based formula (CKD-EPI 2021)/1.73 sq M). NPU har ingen kod för skattad glomerulär filtration, och tidigare saknade eGFR kod eftersom data inte sa vilken formel som användes. Nu räknar demons laboratorium eGFR ur P-kreatinin med CKD-EPI 2021 (Inker m.fl., N Engl J Med 2021), också för seedens värden, och ett test kontrollerar att varje eGFR i seeden är räknat ur kreatininet vid samma provtagning. Svenska laboratorier använder ofta LMrev, som inte har någon LOINC-kod.
+- **KVÅ**: systemet sätter koden själv när åtgärden görs. En hel NEWS2-kontroll är QD008 Övervakning av vitala tecken, en GCS-bedömning PA001 Bedömning av medvetandefunktioner och en läkemedelsgenomgång XV015 Läkemedelsgenomgång, enkel. Koderna och titlarna är kontrollerade mot KVÅ 2026 och OID:n mot Socialstyrelsens OID-serie (`docs/kodkontroll.md`). Åtgärderna sparas i tabellen `atgarder` och lämnas ut som FHIR Procedure med samma behörighet som uppgifterna de bygger på.
+- Medvetandegrad, syrgas, smärta och GCS har LOINC, och medvetandegradens svar LOINC:s svarskoder.
+
+### FHIR
+
+NEWS2 lämnas ut som en härledd Observation (`news2-<id>`, LOINC 115635-5 Early warning score, med texten NEWS2) med poängen, risken som tolkning och `derivedFrom` till de sju mätvärdena, byggd av samma synliga rader som sökningen på Observation. Åtgärderna är Procedure med KVÅ. Observation, Procedure, MedicationAdministration och List validerades 2026-11-03 med HL7:s validator 7.0.3 utan fel (`docs/fhir-validering.md`).
+
+### Det som är simulerat eller saknas
+
+NEWS2, skalorna och referensintervallen är demoregler. Värden från medicinteknisk utrustning finns inte, så manuellt och maskinellt inmatade mätvärden går inte att skilja åt, utom att NEWS2 och eGFR är märkta som räknade av systemet. Sökning på grupp-, vårdenhets- och vårdgivarnivå och filter i sökträffarna saknas. Loggarna sparas inte i fem år.
 
 ## Beslutade avvägningar (3 november 2026)
 

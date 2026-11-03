@@ -13,7 +13,9 @@ Läkemedelskatalogens produkter (namn, styrka, form, substans och NPL-id) och or
 | Labbkoder, förut LOINC, nu NPU | 11 | 0 | 10 (bytt till NPU) | 1 (eGFR) |
 | Vitalparametrar och PEF, LOINC | 10 | 10 | 1 tillagd kod (2708-6) | 0 |
 | UCUM-enheter (nya i FHIR) | 16 | 16 | | |
-| KVÅ | 0 | | | |
+| KVÅ (runda 6) | 3 | 3 | | |
+| LOINC för eGFR, skalor och NEWS2 (runda 6) | 8 | 7 | 1 (en kod för NEWS2 som visade sig gälla något annat byttes före bygget) | 0 |
+| LOINC-svarskoder för medvetandegrad (runda 6) | 5 | 5 | | |
 | NPL (läkemedelsprodukter), se `docs/lakemedelskontroll.md` | 50 | 3 | 47 | 0 |
 
 Totalt 113 kodposter och 16 enhetskoder. Varje labbvärde räknas en gång, men både den gamla LOINC-koden och den nya NPU-koden är kontrollerade.
@@ -23,7 +25,7 @@ De viktigaste felen:
 1. **19 av 36 diagnoser hade en egen benämning** i stället för Socialstyrelsens. Koderna var giltiga, men texterna var omskrivna, till exempel `E78.0 Ren hyperkolesterolemi` (titeln är Isolerad hyperkolesterolemi), `I50.1 Vänsterkammarsvikt` (Vänsterhjärtsvikt) och `N18.3 Kronisk njursjukdom, stadium 3` (Kronisk njursvikt, stadium 3).
 2. **`I50.0` hade texten "Hjärtsvikt med stas"**, men koden betyder Högerhjärtsvikt. ICD-10-SE räknar "Congestive heart failure" till I50.0, så koden står kvar och texten är nu Socialstyrelsens. Om patient 1:s hjärtsvikt kliniskt är en vänstersvikt med lungstas (journalen har basala rassel och EF 40 procent) vore I50.1 rimligare; efter kontrollen ändrades diagnosen till I50.1 Vänsterhjärtsvikt (2026-10-31).
 3. **Glukos hade LOINC 2339-0**, som är glukos i masskoncentration (mg/dL), medan demon anger mmol/L. Nu NPU02192 (P, Glucose; subst.c. = ? mmol/L).
-4. **eGFR hade LOINC 62238-1**, som anger CKD-EPI-formeln, utan stöd i data för vilken formel som används. NPU har ingen kod för skattat GFR, så koden är borttagen och texten "eGFR" står kvar.
+4. **eGFR hade LOINC 62238-1**, som anger CKD-EPI-formeln, utan stöd i data för vilken formel som används. NPU har ingen kod för skattad glomerulär filtration, så koden togs bort. Sedan runda 6 räknar demons laboratorium eGFR ur kreatinin med CKD-EPI 2021, och eGFR har LOINC 98979-8, se avsnittet Runda 6 nedan.
 5. **Syremättnad saknade 2708-6**, som FHIR R4:s profil för syremättnad kräver. Båda koderna finns nu.
 6. Codings i FHIR hade svenska ord som `display` för LOINC och ATC (till exempel "Puls" och "furosemid"). `display` måste vara kodverkets egen benämning, så den svenska texten står nu i `text`. Det är ett formatfel, inte ett kodfel, och redovisas i `docs/fhir-validering.md`.
 
@@ -199,3 +201,50 @@ KVÅ förekommer inte i seeden eller koden. Inga åtgärder registreras i först
 - Att svenska laboratorier i Region Örebro län använder exakt dessa NPU-koder. Koderna är de generella NPU-koderna för analyserna; regionala laboratorier kan ha egna eller svenska lokala koder, som inte finns i IFCC:s fil.
 - Läkemedlens förpackningar (NPL-pack-id), varunummer och förmånsstatus. Produkterna är kontrollerade mot NPL (`docs/lakemedelskontroll.md`), men VARA är inte öppet nedladdningsbart.
 - ICD-10-SE, NPU och NPL-id kontrolleras inte av HL7:s validator, eftersom terminologiservern saknar dem. Kontrollen av dem är den här rapporten och testerna.
+
+## Runda 6: eGFR, skalor, NEWS2 och KVÅ (2026-11-03)
+
+### eGFR
+
+NPU-filen (IFCC, https://cms.ifcc.org/wp-content/uploads/npu-codes-latest.csv, hämtad 2026-11-03, sha256 6c64b2208917ce072b8419b014781fcd7d12d30163c832486e675571877e9afc, 25 788 rader) har fortfarande ingen kod för skattad glomerulär filtration: bara NPU28811 (Kidn., Glomerular filtration; vol.rate(surf.=1.73 m²)) och NPU28812, som inte anger att värdet är skattat ur kreatinin. LOINC 2.83 (tx.fhir.org, `CodeSystem/$lookup`) har koder per formel. Demons laboratorium räknar eGFR ur P-kreatinin, ålder och kön med CKD-EPI 2021 (`app/src/skalor.js`, `ckdEpi2021`), också för seedens värden, och därför har eGFR koden för den formeln.
+
+| Kod | LOINC:s benämning | Använd |
+|---|---|---|
+| 98979-8 | Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine-based formula (CKD-EPI 2021)/1.73 sq M | ja, för eGFR |
+| 62238-1 | Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine-based formula (CKD-EPI)/1.73 sq M | nej, äldre CKD-EPI |
+| 69405-9 | Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by based on 1.73 sq M | nej, anger inte att värdet är skattat ur kreatinin |
+
+Testet `Skalor > eGFR: CKD-EPI 2021 ur kreatinin, ålder och kön, och seedens eGFR är räknat ur kreatininet vid samma provtagning` kontrollerar formeln mot två räknade exempel och att varje eGFR i seeden har ett kreatinin vid samma provtagning och är räknat ur det.
+
+### Skalor och NEWS2
+
+Kontrollerade mot LOINC 2.83 via tx.fhir.org (`CodeSystem/$lookup` och `ValueSet/$expand`), 2026-11-03.
+
+| Kod | LOINC:s benämning | Används för |
+|---|---|---|
+| 67775-7 | Level of responsiveness | Medvetandegrad (ACVPU) |
+| 3151-8 | Inhaled oxygen flow rate | Syrgas, liter per minut |
+| 72514-3 | Pain severity - 0-10 verbal numeric rating [Score] - Reported | Smärta med NRS |
+| 9269-2 | Glasgow coma score total | GCS, summan |
+| 9267-6 | Glasgow coma score eye opening | GCS, ögonöppning |
+| 9270-0 | Glasgow coma score verbal | GCS, verbalt svar |
+| 9268-4 | Glasgow coma score motor | GCS, motoriskt svar |
+| 115635-5 | Early warning score EWS | NEWS2, med texten NEWS2 |
+
+LOINC har ingen egen kod för NEWS2. Koden 88330-6, som först antogs vara NEWS2, är enligt LOINC Mobility - admission performance during 3 day assessment period [CMS Assessment] och används inte. NEWS2 får därför den allmänna koden för en tidig varningspoäng.
+
+Medvetandegradens svar har LOINC:s svarskoder. A, V, P och U finns i svarslistan LL1845-8 för 67775-7: LA9340-6 Alert, LA17108-4 Verbal, LA17107-6 Painful och LA9343-0 Unresponsive. C, nytillkommen förvirring, har LA6560-2 Confused, som finns i LOINC men inte ingår i den svarslistan.
+
+### KVÅ
+
+Källa: Klassifikation av vårdåtgärder (KVÅ) 2026, giltig från 2026-01-01, version 1.0 2025-10-24, filen kva-inkl-beskrivningstexter-2026.xlsx från E-hälsomyndighetens sida om KVÅ (https://www.ehalsomyndigheten.se/verksamhet/ndi/interoperabilitet/klassifikationer/klassifikation-av-vardatgarder-kva/), hämtad 2026-11-03, sha256 e02d1f7239fb8919dcb02c10773c44fe320e199fdae7e0154a33d89635450d36, 11 915 rader med femställiga koder. Socialstyrelsens sida om KVÅ leder numera till E-hälsomyndigheten. Filen lästes som data med standardbiblioteket i Python.
+
+| Kod | Titel i KVÅ 2026 | Sätts av systemet när |
+|---|---|---|
+| QD008 | Övervakning av vitala tecken | en hel NEWS2-kontroll registreras |
+| PA001 | Bedömning av medvetandefunktioner | GCS registreras |
+| XV015 | Läkemedelsgenomgång, enkel, enligt Socialstyrelsens föreskrift och allmänna råd | en läkemedelsgenomgång sparas |
+
+OID: urn:oid:1.2.752.116.1.3.2.1.4, som står som aktiv för Klassifikation av vårdåtgärder (KVÅ) i Socialstyrelsens OID-serie (socialstyrelsens-oid-serie-2025-10-17.xlsx, länkad från socialstyrelsen.se/statistik-och-data/klassifikationer-och-koder/andra-kodverk/oid/, hämtad 2026-11-03, sha256 169cc3108f2469a576478922fe4e3e09590dbf1762b9b5507075c795616aaa44). Äldre OID:er för filerna med koder och kodtexter (till exempel 1.2.752.116.1.3.2.3.4) står som inaktiva i samma fil. HL7:s terminologiserver har inte KVÅ, så validatorn kan inte kontrollera koderna.
+
+Andra koder som passar men inte används än: DF026 Elkonvertering, defibrillering av förmaksflimmer, planerat (för vårdhändelsen elkonvertering), XV016 Läkemedelsgenomgång, fördjupad och XV017 Läkemedelsberättelse.

@@ -8,6 +8,8 @@ import * as tidbokFhir from '../../app/src/tidbok-fhir.js';
 import { journaler } from '../../app/src/patientvy.js';
 import { Atkomst } from '../../app/src/atkomst.js';
 import * as ks from '../../app/src/kontrasignering.js';
+// Runda 6, r1: en läkemedelsgenomgång, så att Procedure med KVÅ XV015 kommer med.
+import { sparaGenomgang } from '../../app/src/vidimering.js';
 
 const UT = process.argv[2];
 if (!UT) { console.error('Ange en utkatalog.'); process.exit(2); }
@@ -24,12 +26,14 @@ for (const k of db.query("SELECT * FROM kontrasigneringar WHERE status = 'begard
   ks.kontrasignera(new Atkomst(db, pers(k.mottagare_id), k.patient_id, {}, 'kontrasignera'), k);
 }
 
+sparaGenomgang(new Atkomst(db, pers('lak-kard'), 'p01', {}, 'ordinera'), {});
+
 const sett = new Map();
 const lagg = (b) => { for (const e of b.entry ?? []) sett.set(`${e.resource.resourceType}/${e.resource.id}`, e.resource); };
 // Alla patientresurser i fhir.js och bokningarna i tidbok-fhir.js. Kontrollen sist i filen gör körningen röd om en
 // resurstyp som API:t kan lämna ut inte kom med, så att listan följer med när en ny resurstyp tillkommer.
 const TYPER = ['Patient', 'Encounter', 'EpisodeOfCare', 'Condition', 'Observation', 'MedicationRequest', 'MedicationAdministration', 'List',
-  'AllergyIntolerance', 'Flag', 'ServiceRequest', 'Composition', 'Appointment'];
+  'AllergyIntolerance', 'Flag', 'ServiceRequest', 'Composition', 'Appointment', 'Procedure'];
 for (const roll of ['lak-kard', 'ssk-kard', 'adm-kard', 'lak-vc', 'lak-psyk', 'lak-akut']) {
   for (const { id } of db.query('SELECT id FROM patienter').all()) {
     const val = { [id]: { andra_enheter: true, nodatkomst: true, samtycke_sparr: true } };
@@ -66,4 +70,9 @@ const saknas = [...fhir.TYPER, ...tidbokFhir.TIDBOK_TYPER, ...fhir.DEFINITIONSTY
 // Kontrasigneringen syns som attester i Composition och vårdtillfället som Encounter med id vt-, så de kontrolleras för sig.
 if (![...sett.values()].some(r => r.resourceType === 'Composition' && r.attester?.length)) saknas.push('Composition med attester');
 if (![...sett.values()].some(r => r.resourceType === 'Encounter' && r.id.startsWith('vt-'))) saknas.push('Encounter för vårdtillfälle');
+// Runda 6, r1: NEWS2 som härledd Observation, GCS med komponenter, medvetandegrad som kodat värde och Procedure med KVÅ.
+if (!antal.Procedure) saknas.push('Procedure');
+for (const [namn, f] of [['NEWS2', (r) => r.id.startsWith('news2-')], ['GCS', (r) => r.code?.text === 'GCS'], ['Medvetandegrad', (r) => r.code?.text === 'Medvetandegrad'], ['eGFR', (r) => r.code?.text === 'eGFR']]) {
+  if (![...sett.values()].some(r => r.resourceType === 'Observation' && f(r))) saknas.push(`Observation för ${namn}`);
+}
 if (saknas.length) { console.error(`Resurstyper som inte kom med i utskriften: ${saknas.join(', ')}`); process.exit(1); }

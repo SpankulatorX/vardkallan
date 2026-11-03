@@ -205,6 +205,17 @@ export const UPPGIFTER = [
     text: 'Birgitta Nyman är remitterad från vårdcentralen för elkonvertering. Du bedömer att hon ska handläggas i primärvården. Avvisa remissen, och se till att inget läkemedel väntar på ett ingrepp som inte blir av.',
     kontroll: { notis: 'Remissen är avvisad' },
   },
+  // Runda 6, r1: sökning i journalen och NEWS2-kontroll.
+  {
+    id: 'sok-journal', namn: 'Söka i journalen och öppna träffen', roll: 'lak-kard', start: 'Patientens översikt',
+    text: 'Du vill se hur Gunnar Åkessons blodtryck har utvecklats sedan han lades in. Hitta blodtrycket i hans journal.',
+    kontroll: { hash: '^#/patient/p01/\\w+/blodtryck$', sel: '#kurva-blodtryck h4', text: 'Blodtryck' },
+  },
+  {
+    id: 'news2', namn: 'Registrera en NEWS2-kontroll', roll: 'ssk-kard', start: 'Patientens översikt',
+    text: 'Du kontrollerar Gunnar på kvällen. Andningsfrekvensen är 22, syremättnaden 95 procent utan syrgas, blodtrycket 118/72, pulsen 112 och temperaturen 38,4. Han är vaken. Dokumentera kontrollen så att det syns vad som ska göras.',
+    kontroll: { notis: 'NEWS2-kontrollen är registrerad' },
+  },
 ];
 
 // Deltagarens bakgrund. Bara val, inga fritextfält, så att inga identifierande uppgifter samlas in.

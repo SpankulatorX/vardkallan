@@ -1,8 +1,13 @@
 // Sussa 3.1.3 Informationsinmatning: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
-import { TEST } from '../../krav.js';
+import { TEST, klickbudgetTest } from '../../krav.js';
+import { FLODEN } from '../../klickbudget.js';
 
 const { J, KV, FS, MJ, GK } = TEST;
+// Runda 6, r1: skalor, NEWS2 och kurvor (skalor.js och vitalparametrar.js).
+const SK = 'Skalor > ';
+const MV = 'Mätvärden och NEWS2 > ';
+const N2L = 'NEWS2-larm i inkorgen > ';
 
 export default [
   {
@@ -37,10 +42,15 @@ export default [
       `${J}mallar finns för alla anteckningstyper`,
       `${J}rättelse skapar ny version och den gamla finns kvar oförändrad`,
       `${J}mätvärden valideras och registreras`,
+      `${SK}NEWS2: varje parameter ger poäng enligt Chart 1 i RCP 2017`,
+      `${SK}NEWS2: summan, risken och vad som ska göras enligt Chart 2 och Chart 4`,
+      `${SK}GCS: systemet räknar summan och skriver texten, och fel delvärden avvisas`,
+      `${SK}NRS och ACVPU: systemet skriver texten`,
+      `${MV}medvetandegrad, GCS, smärta och syrgas registreras, valideras och får text av systemet`,
     ],
-    losning: 'Strukturerade sökord i mallar, fritext under varje sökord och strukturerade mätvärden.',
-    expert: 'Mallen ger sökorden för anteckningstypen, så användaren behöver inte komma ihåg strukturen för en viss anteckning.',
-    anmarkning: 'Skalor och poängmodeller, bilder med markeringar och beräkningsunderlag saknas.',
+    losning: 'Strukturerade sökord i mallar, fritext under varje sökord och strukturerade mätvärden. Skalor och poängmodeller: NEWS2 som systemet räknar ur vitalparametrarna, Glasgow Coma Scale med ögonöppning, verbalt och motoriskt svar, smärta med NRS 0 till 10 och medvetandegrad med ACVPU. Systemet räknar summan och skriver texten, till exempel GCS 13 (E3 V4 M6). Inga licensierade skalor.',
+    expert: 'Mallen ger sökorden för anteckningstypen, och skalorna väljs i listor med vanlig text, så användaren behöver varken komma ihåg strukturen eller poängtabellerna. Systemet räknar poängen och skriver texten, och NEWS2 räknas utan att någon behöver räkna alls.',
+    anmarkning: 'Bilder med markeringar och fler skalor (till exempel för trycksår och nutrition) saknas. Skalorna är demoregler och inte kliniskt beslutsstöd.',
   },
   { id: '3.1.3.6', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: 'Textfri inmatning, till exempel skanning av streckkoder, är inte byggd.' },
@@ -55,10 +65,18 @@ export default [
       `${FS}vitalparametrar följer FHIR R4:s vitalparameterprofiler`,
       `${FS}labbvärden har NPU-kod och UCUM-enhet`,
       `${MJ}provsvar visas när de är vidimerade eller efter 14 dagar, mätvärden direkt`,
+      `${MV}kurvorna har referensintervall och markerar värden utanför`,
+      `${MV}NEWS2 räknas av systemet ur vitalparametrarna, med serie, vad som ska göras och nästa kontroll`,
+      `${MV}en hel NEWS2-omgång registreras på en gång, med samma tid och vårdkontakt och åtgärden QD008`,
+      `${MV}NEWS2-omgången sparas inte alls när ett värde saknas eller är fel`,
+      `${MV}FHIR: NEWS2 som härledd Observation med samma behörighet som mätvärdena`,
+      `${N2L}larmet syns för sjuksköterskan och läkaren på vårdenheten, med vad som ska göras, men inte för andra roller eller vårdenheter`,
+      `${N2L}larmet bygger bara på den egna vårdenhetens värden: en spärrad vårdenhets värden larmar inte och nämns inte`,
+      klickbudgetTest(FLODEN.find(f => f.id === 'news2')),
     ],
-    losning: 'Mätvärden och provsvar registreras och visas per typ, med NPU för labb, LOINC för vitalparametrar och UCUM-enheter, och lämnas ut i FHIR.',
-    expert: 'Systemet kodar varje mätvärde själv och visar det för patienten efter vårdgivarens regler, så ingen behöver välja kod eller avgöra när ett provsvar får visas.',
-    anmarkning: 'Kurvor över tid och larm vid avvikande värden saknas.',
+    losning: 'Mätvärden och provsvar registreras och visas per typ, med NPU för labb, LOINC för vitalparametrar och UCUM-enheter, och lämnas ut i FHIR. En kurva per mätvärde med referensintervall och värden utanför markerade, NEWS2 över tid, och en hel NEWS2-kontroll registreras i ett formulär. När NEWS2 eller ett enskilt värde kräver åtgärd larmar systemet i inkorgen för sjuksköterskan och läkaren på vårdenheten.',
+    expert: 'Systemet kodar varje mätvärde, räknar NEWS2, säger vad som ska göras och när nästa kontroll ska göras, larmar själv och väljer målintervallet för INR vid warfarin, så ingen behöver kunna tabellerna. NEWS2 räknas inte för barn eller under graviditet, eftersom skalan inte gäller där.',
+    anmarkning: 'NEWS2 och referensintervallen är demoregler (D10). Syremättnad räknas bara med skala 1. Mätvärden från medicinteknisk utrustning, som ska kunna skiljas från manuellt inmatade, finns inte; NEWS2 och eGFR är märkta som räknade av systemet.',
   },
   { id: '3.1.3.10', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: 'Rättstavning och grammatikkontroll med medicinska termer är inte byggd.' },
