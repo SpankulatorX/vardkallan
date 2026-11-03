@@ -17,6 +17,7 @@ import * as oppetApi from './vyer/oppet-api.js';
 import * as drift from './vyer/drift.js';
 import * as anvandartest from './anvandartest.js';
 import * as minJournal from './vyer/min.js';
+import * as administrering from './vyer/administrering.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -34,6 +35,7 @@ const MENY = [
   ['#/arbetslista', 'Arbetslista', 'lista', () => !arLogggranskare()],
   ['#/sok', 'Sök patient', 'sok', () => far('sok')],
   ['#/inkorg', 'Inkorg', 'inkorg', () => !arLogggranskare(), 'inkorg'],
+  ['#/administrering', 'Läkemedel att ge', 'piller', () => far('ge_lakemedel')],
   ['#/remisser', 'Remisser', 'remiss', () => pa('las_remiss', 'las_remiss_status')],
   ['#/vantrum', 'Väntrum (akuten)', 'vantrum', () => far('vantrum')],
   ['#/logg', 'Logguppföljning', 'logg', () => far('las_logg')],
@@ -48,6 +50,7 @@ const RUTTER = [
   [/^#\/arbetslista$/, arbetslista, () => !arLogggranskare()],
   [/^#\/sok$/, sok, () => far('sok')],
   [/^#\/inkorg$/, inkorg, () => !arLogggranskare()],
+  [/^#\/administrering$/, administrering, () => far('las_lakemedel')],
   [/^#\/remisser$/, remisser, () => pa('las_remiss', 'las_remiss_status')],
   [/^#\/vantrum$/, vantrum, () => far('vantrum')],
   [/^#\/logg$/, logg, () => far('las_logg')],

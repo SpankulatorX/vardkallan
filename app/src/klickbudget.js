@@ -32,7 +32,7 @@ export const FLODEN = [
   },
   {
     id: 'ordinera', namn: 'Ordinera ett läkemedel utan varning', roll: 'lak-kard', start: 'Patientens översikt', budget: 7,
-    motivering: 'Ett klick för att öppna ordinationen, ett fältbyte till sökfältet och ett klick på träffen, ett fältbyte vardera för dosering och ordinationsorsak, ett klick för uppföljningsdatum och ett för att spara. Utan varningar ska kontroll och sparande ske med samma klick.',
+    motivering: 'Ett klick för att öppna ordinationen, ett fältbyte till sökfältet och ett klick på träffen, ett fältbyte vardera för dosering och ordinationsorsak, ett klick för uppföljningsdatum och ett för att spara. Utan varningar ska kontroll och sparande ske med samma klick. Systemet föreslår dosering, tider och uppföljning ur produkten och patienten (Sussa 3.5.1.3), så doseringen behöver bara skrivas när förslaget inte passar.',
   },
   {
     id: 'utsattning', namn: 'Sätta ut ett läkemedel', roll: 'lak-kard', start: 'Patientens översikt', budget: 4,
@@ -90,5 +90,18 @@ export const FLODEN = [
   {
     id: 'planera-video', namn: 'Planera ett videobesök', roll: 'adm-kard', start: 'Översikten för en remitterad patient', budget: 5,
     motivering: 'Ett klick på Registrera vårdkontakt, ett på Video, ett på Planerad och ett för att registrera. Tiden är förvald till nästa vardag klockan 9. Ett fältbyte räknas med för att ändra tiden.',
+  },
+  // Läkemedelsprocessen (Sussa 3.5.2). Systemet räknar fram dagens doser och kontrollerar dem innan något sparas.
+  {
+    id: 'ge-dos', namn: 'Ge en dos', roll: 'ssk-kard', start: 'Arbetslistan efter inloggning', budget: 2,
+    motivering: 'Sussa 3.5.2.18. Ett klick till Läkemedel att ge och ett på Ge för dosen. Systemet har räknat fram dagens doser ur ordinationerna och kontrollerat dosen mot ordinationen och tidigare doser, och tiden, vem som gav den och vårdkontakten sätts av systemet. En varning för dubbel dos eller för tidig dos visas först när den gäller.',
+  },
+  {
+    id: 'vidimera', namn: 'Vidimera pågående ordinationer', roll: 'lak-kard', start: 'Patientens översikt', budget: 2,
+    motivering: 'Sussa 3.5.2.9. Ett klick till läkemedelslistan, där systemet visar vad som har ändrats sedan den senaste vidimeringen, och ett klick för att vidimera hela listan.',
+  },
+  {
+    id: 'utsattning-varning', namn: 'Sätta ut ett läkemedel med varning', roll: 'lak-kard', start: 'Patientens översikt', budget: 4,
+    motivering: 'Sussa 3.5.2.8. Ett klick till läkemedelslistan, ett på Sätt ut för raden, ett fältbyte för den obligatoriska orsaken och ett klick för att sätta ut trots varningen. Systemet visar varningen och ett förslag på nedtrappning innan något sparas, och orsaken är motiveringen, så inget extra fält behövs.',
   },
 ];

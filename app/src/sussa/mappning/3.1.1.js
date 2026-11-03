@@ -9,7 +9,7 @@ const IDENTITETER = [
   `${I}typbestämning: personnummer, samordningsnummer, reservnummer och OID känns igen i alla vanliga skrivsätt`,
   `${I}tio siffror och plustecken ger rätt sekel`,
   `${I}kontrollsiffror: fel kontrollsiffra, datum och längd förklaras på svenska`,
-  `${I}demon tar bara testpersonnummer och samordningsnummer byggda på dem`,
+  `${I}demon tar bara Skatteverkets testpersonnummer och testsamordningsnummer`,
   `${I}reservnummer skapas av systemet med påhittat format, OID-rot för dokumentation och rätt könssiffra`,
   `${I}seed: samordningsnummer, reservnummer, OID och en dubblett`,
   `${I}API: sök hittar patienten på varje identitetstyp, i valfritt format, och på en tidigare identitet`,

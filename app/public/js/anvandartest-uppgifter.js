@@ -111,6 +111,21 @@ export const UPPGIFTER = [
     text: 'Lars Wennberg ska ha ett uppföljande videobesök nästa vardag. Planera det.',
     kontroll: { notis: 'Video är registrerat till' },
   },
+  {
+    id: 'ge-dos', namn: 'Ge en dos', roll: 'ssk-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Du arbetar som sjuksköterska på avdelning 72. Gunnar Åkesson har ont och ber om något mot smärtan. Han har Alvedon vid behov. Ge honom en dos och dokumentera det.',
+    kontroll: { notis: 'Alvedon är given' },
+  },
+  {
+    id: 'vidimera', namn: 'Vidimera pågående ordinationer', roll: 'lak-kard', start: 'Patientens översikt',
+    text: 'Du är läkare på kardiologen. Gunnars läkemedel har ändrats sedan han skrevs in. Gå igenom vad som har ändrats och bekräfta att listan med hans pågående ordinationer stämmer.',
+    kontroll: { notis: 'Läkemedelslistan är vidimerad' },
+  },
+  {
+    id: 'utsattning-varning', namn: 'Sätta ut ett läkemedel med varning', roll: 'lak-kard', start: 'Patientens översikt',
+    text: 'Gunnar har fått långsam puls och ska inte ha Metoprolol längre. Sätt ut det.',
+    kontroll: { notis: 'Metoprolol Sandoz är utsatt' },
+  },
 ];
 
 // Deltagarens bakgrund. Bara val, inga fritextfält, så att inga identifierande uppgifter samlas in.

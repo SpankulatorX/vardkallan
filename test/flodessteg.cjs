@@ -114,7 +114,8 @@ function skapa(BAS) {
       await page.waitForSelector('#ordform');
       await m.skriv(page.locator('#lm-sok'), 'omeprazol', 'sök läkemedel');
       await m.klicka(page.locator('[data-lm]').first(), 'träffen Omeprazol');
-      await m.skriv(page.locator('input[name="dosering"]'), '1 kapsel på morgonen', 'dosering');
+      // Systemet föreslår doseringen ur mallen för omeprazol (Sussa 3.5.1.3), så den behöver inte skrivas.
+      await page.waitForFunction(() => document.querySelector('input[name="dosering"]')?.value === '1 kapsel på morgonen');
       await m.skriv(page.locator('input[name="ordinationsorsak"]'), 'Magskydd', 'ordinationsorsak');
       await m.klicka(page.locator('[data-upp="14"]'), 'uppföljning om två veckor');
       await m.klicka(page.locator('[data-spara]'), 'Kontrollera och spara');
@@ -238,6 +239,30 @@ function skapa(BAS) {
       await m.klicka(page.locator('dialog[open] [data-knappval="nar"] [data-val="planerad"]'), 'Planerad');
       await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Registrera');
       await synlig(page, '.notis', 'Video är registrerat till');
+    },
+    // Läkemedelsprocessen (Sussa 3.5.2).
+    'ge-dos': async (m, page) => {
+      await m.klicka(page.locator('#meny-lista a[href="#/administrering"]'), 'Läkemedel att ge i menyn');
+      await page.waitForSelector('.adm-patient');
+      const gunnar = page.locator('.adm-patient', { hasText: 'Gunnar Åkesson' });
+      await m.klicka(gunnar.locator('.adm-vb', { hasText: 'Alvedon' }).locator('[data-adm="ge"]'), 'Ge för Alvedon vid behov');
+      await synlig(page, '.notis', 'Alvedon är given');
+    },
+    vidimera: async (m, page) => {
+      await m.klicka(page.locator('.flikar a', { hasText: 'Läkemedel' }), 'fliken Läkemedel');
+      await synlig(page, '.vidimering', 'ändringar sedan vidimeringen');
+      await m.klicka(page.locator('[data-vidimera]'), 'Vidimera listan');
+      await synlig(page, '.notis', 'Läkemedelslistan är vidimerad');
+      await synlig(page, '.vidimering', 'Inget har ändrats sedan dess');
+    },
+    'utsattning-varning': async (m, page) => {
+      await m.klicka(page.locator('.flikar a', { hasText: 'Läkemedel' }), 'fliken Läkemedel');
+      await page.waitForSelector('.lm-tabell');
+      await m.klicka(page.locator('.lm-tabell tr', { hasText: 'Metoprolol' }).filter({ has: page.locator('[data-utsatt]') }).locator('[data-utsatt]'), 'Sätt ut för Metoprolol');
+      await synlig(page, 'dialog[open] .varningslista', 'Betablockerare ska inte sättas ut tvärt');
+      await m.skriv(page.locator('dialog[open] textarea'), 'Bradykardi, trappas ned enligt plan.', 'orsak');
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Sätt ut trots varningen');
+      await synlig(page, '.notis', 'Metoprolol Sandoz är utsatt');
     },
   };
   return { synlig, gaTill, loggaIn, startI, GOR };

@@ -14,6 +14,9 @@ import * as minJournal from './patientvy.js';
 import * as uppmarksamhet from './uppmarksamhet.js';
 import * as identitet from './identitet.js';
 import * as vardkontakt from './vardkontakt.js';
+import * as administrering from './administrering.js';
+import * as vidimering from './vidimering.js';
+import * as ordinationsmallar from './ordinationsmallar.js';
 import { kravregister, lasTestresultat } from './krav.js';
 import { sussaRegister } from './sussa/index.js';
 import { lasKlientresultat, gransnittHash } from './klientresultat.js';
@@ -37,10 +40,12 @@ const LASKOPIA_ANTECKNINGAR = 5;
 const LASKOPIA_FORNYA_MS = 4 * 60_000;
 const LASKOPIA_LAKEMEDEL_MAX_MS = 10 * 60_000;
 // Delarna i läkemedelsdelen: namnet i kopian och i läsläget (GET /api/patient/:id/<namn>), läshandlingen och funktionen
-// som ger samma svar som det vanliga anropet. Administreringar läggs till med en rad här när de finns, och läsläget
-// svarar då på /api/patient/:id/administreringar ur kopian och loggar läsningen med handlingen.
+// som ger samma svar som det vanliga anropet. Läsläget svarar på /api/patient/:id/<namn> ur kopian och loggar läsningen
+// med handlingen.
 const LASKOPIA_LAKEMEDEL = {
   lakemedel: { handling: 'las_lakemedel', hamta: (atk) => lakemedel.lista(atk) },
+  // Dagens administreringar med givna doser (administrering.js).
+  administreringar: { handling: 'las_lakemedel', hamta: (atk) => administrering.lista(atk) },
 };
 // Varför utlämnandet till läskopian slutade, i loggen.
 const LASKOPIA_SLUT = {
@@ -785,7 +790,17 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('GET', '/api/patient/:id/lakemedel', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_lakemedel', (atk) => lakemedel.lista(atk)); });
   rutt('GET', '/api/lakemedel/katalog', (c) => { kravInloggad(c); return lakemedel.sokKatalog(c.db, c.url.searchParams.get('q') ?? ''); });
   rutt('POST', '/api/patient/:id/lakemedel/kontroll', (c, id) => { kravInloggad(c); return medPatient(c, id, 'ordinera', (atk) => lakemedel.kontroll(atk, c.body)); });
-  rutt('POST', '/api/patient/:id/lakemedel', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'ordinera', (atk) => vardkontakt.knyt(atk, 'ordinationer', lakemedel.spara(atk, c.body), c.body))]; });
+  rutt('POST', '/api/patient/:id/lakemedel', (c, id) => {
+    kravInloggad(c);
+    return [201, medPatient(c, id, 'ordinera', (atk) => {
+      // Tillägget (administrationssätt, mall, vårdhändelse och volym) kontrolleras innan ordinationen sparas.
+      const tillagg = ordinationsmallar.valideraTillagg(c.db, c.body);
+      const ut = lakemedel.spara(atk, c.body);
+      ordinationsmallar.sparaTillagg(c.db, ut.ordination.id, tillagg);
+      Object.assign(ut.ordination, ordinationsmallar.tillaggUt(c.db, ut.ordination.id));
+      return vardkontakt.knyt(atk, 'ordinationer', ut, c.body);
+    })];
+  });
   const medOrdination = (c, id, fn) => {
     kravInloggad(c);
     const o = lakemedel.hamtaRad(c.db, id);
@@ -793,6 +808,43 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   };
   rutt('POST', '/api/ordination/:id/utsatt', (c, id) => medOrdination(c, id, (atk, o) => lakemedel.utsatt(atk, o, c.body)));
   rutt('POST', '/api/ordination/:id/nll-avstam', (c, id) => medOrdination(c, id, (atk, o) => lakemedel.avstam(atk, o)));
+  rutt('GET', '/api/ordination/:id/utsattning', (c, id) => medOrdination(c, id, (atk, o) => lakemedel.utsattningskontroll(atk, o)));
+
+  // Läkemedelsprocessen (Sussa 3.5): administrering, vidimering, läkemedelsgenomgång, fördefinierade ordinationer,
+  // planerad vårdhändelse och vätskebalans. Behörigheten prövas i administrering.js och vidimering.js, och varje
+  // anrop loggas på patienten som de andra anropen.
+  const dagParam = (c) => { const d = c.url.searchParams.get('dag'); return d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : idag(); };
+  rutt('GET', '/api/administreringar', (c) => { kravInloggad(c); return administrering.avdelning(c.db, c.personal, (pid) => valFor(c.s, pid), { dag: dagParam(c) }); });
+  rutt('GET', '/api/patient/:id/administreringar', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_lakemedel', (atk) => administrering.lista(atk, { dag: dagParam(c) })); });
+  rutt('POST', '/api/patient/:id/administreringar/kontroll', (c, id) => { kravInloggad(c); return medPatient(c, id, 'ge_lakemedel', (atk) => administrering.kontroll(atk, c.body)); });
+  rutt('POST', '/api/patient/:id/administreringar', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'ge_lakemedel', (atk) => vardkontakt.knyt(atk, 'administreringar', administrering.spara(atk, c.body), c.body))]; });
+  rutt('GET', '/api/patient/:id/vidimering', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_lakemedel', (atk) => vidimering.underlag(atk)); });
+  rutt('POST', '/api/patient/:id/vidimering', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'ordinera', (atk) => vidimering.vidimera(atk))]; });
+  rutt('GET', '/api/patient/:id/lakemedelsgenomgang', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_lakemedel', (atk) => vidimering.genomgang(atk)); });
+  rutt('POST', '/api/patient/:id/lakemedelsgenomgang', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'ordinera', (atk) => vidimering.sparaGenomgang(atk, c.body))]; });
+  rutt('GET', '/api/patient/:id/lakemedel/forslag', (c, id) => {
+    kravInloggad(c);
+    return medPatient(c, id, 'ordinera', (atk) => {
+      atk.krav('ordinera');
+      const lm = c.db.query('SELECT * FROM katalog WHERE id = ?').get(c.url.searchParams.get('lakemedelId') ?? '');
+      if (!lm) throw new Fel(400, 'Välj ett läkemedel i katalogen.', 'ogiltig', { falt: ['lakemedelId'] });
+      return ordinationsmallar.forslag(c.db, lm, atk.patientId);
+    });
+  });
+  rutt('POST', '/api/ordination/:id/vardhandelse', (c, id) => {
+    kravInloggad(c);
+    const o = lakemedel.hamtaRad(c.db, id);
+    const handling = kanRoll(c.personal, 'ordinera') ? 'ordinera' : 'ge_lakemedel';
+    return medPatient(c, o.patient_id, handling, (atk) => {
+      administrering.kravVardande(atk, handling, { enhet_id: o.enhet_id, gemensam: true }, `ordination:${o.id}`);
+      return { ordinationId: o.id, ...ordinationsmallar.tidsattHandelse(c.db, o.id, c.body.tid, c.personal.id) };
+    });
+  });
+  rutt('GET', '/api/patient/:id/vatskebalans', (c, id) => {
+    kravInloggad(c);
+    return medPatient(c, id, 'las_matvarden', (atk) => administrering.vatskebalans(atk, { dag: dagParam(c), brytning: c.url.searchParams.get('brytning') ?? '00' }));
+  });
+  rutt('POST', '/api/patient/:id/vatskebalans', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'registrera_matvarde', (atk) => vardkontakt.knyt(atk, 'vatskebalans', administrering.registreraVatska(atk, c.body), c.body))]; });
   // Nästa överföring till NLL får timeout. Med { lage: 'fel' } får den i stället ett felsvar.
   rutt('POST', '/api/demo/nll-timeout', (c) => {
     kravInloggad(c);

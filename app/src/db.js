@@ -12,6 +12,8 @@ import { IDENTITETSPATIENTER } from './seed/identiteter.js';
 import { sakraIdentitetsschema, seedIdentitet } from './identitet.js';
 import { utokaSchema, knytHistorik } from './vardstruktur.js';
 import { SANGBYTEN, HALSOARENDEN } from './seed/vardstruktur.js';
+// Läkemedelsprocessen: administrering, vidimering, läkemedelsgenomgång och vätskebalans (Sussa 3.5).
+import { sakraSchema as sakraLakemedelsprocess, seedaAdministreringar, seedaVidimeringar } from './lakemedelsprocess.js';
 
 // Fel som API:t svarar med. kod: nekad | saknas | ogiltig | kraver_val | kraver_samtycke
 export class Fel extends Error {
@@ -341,6 +343,11 @@ export function byggSeed(bas = nu()) {
   // Vårdtillfällen, hälsoärenden och vårdkontakt för allt som dokumenterats (vardstruktur.js). Efter avstämningen, så att
   // kontakter som systemet skapar för historik utan vårdkontakt inte räknas som överförda från källan.
   knytHistorik(db, { bas, tid, sangbyten: SANGBYTEN, halsoarenden: HALSOARENDEN });
+  // Läkemedelsprocessen (lakemedelsprocess.js): givna doser sedan inskrivningen för de inneliggande patienterna och en
+  // vidimering av patient 1:s läkemedelslista.
+  sakraLakemedelsprocess(db);
+  seedaAdministreringar(db, bas);
+  seedaVidimeringar(db);
   seedaInvanare(db);
   // Uppmärksamhetsinformation (Sussa 3.1.5), se seed/uppmarksamhet.js.
   db.exec(SCHEMA_UPPMARKSAMHET);
@@ -407,6 +414,8 @@ export function migrera(db) {
   }
   if (!kolumner('uppmarksamhet').includes('registrerad_enhet')) db.exec('ALTER TABLE uppmarksamhet ADD COLUMN registrerad_enhet TEXT');
   sakraIdentitetsschema(db);
+  // Läkemedelsprocessens tabeller finns inte i sandlådor från före den. Inga doser läggs in i efterhand.
+  sakraLakemedelsprocess(db);
   // En sandlåda från före vårdtillfällen och hälsoärenden får dem, och allt som dokumenterats knyts till en vårdkontakt.
   if (utokaSchema(db)) {
     const seedTid = db.query("SELECT varde FROM installningar WHERE nyckel = 'seed_tid'").get()?.varde;
