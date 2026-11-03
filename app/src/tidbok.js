@@ -847,6 +847,7 @@ export function kallaGrupp(db, personal, tid, { valFor = () => ({}), Atkomst }) 
 export function kallelseKlar(atk, k) {
   atk.krav('kalla');
   const db = atk.db;
+  kravEgenVardenhet(atk, bokningensEnhet(db, bokningRad(db, k.bokning_id)), `kallelse:${k.id}`);
   if (k.status !== 'kan_inte') throw new Fel(400, 'Kallelsen behöver ingen åtgärd.', 'ogiltig');
   db.query("UPDATE kallelser SET status = 'klar', skapad_av = coalesce(skapad_av, ?) WHERE id = ?").run(atk.personal.id, k.id);
   atk.logga('kalla', atk.grund(), `kallelse:${k.id}:lamnad`);
@@ -876,7 +877,7 @@ export function tidUt(db, tid) {
 
 const STATUSTEXT = { bokad: 'Bokad', incheckad: 'Incheckad', ombokad: 'Ombokad', avbokad: 'Avbokad' };
 // Bokningen för personalen. Statusen följer vårdkontakten: har ankomsten registrerats där räknas patienten som incheckad.
-export function bokningUt(db, b, { personal = null, avidentifierad = false } = {}) {
+export function bokningUt(db, b, { personal = null } = {}) {
   const tid = tidRad(db, b.tid_id);
   const p = patientRad(db, b.patient_id);
   const v = b.vardkontakt_id ? db.query('SELECT * FROM vardkontakter WHERE id = ?').get(b.vardkontakt_id) : null;
@@ -885,15 +886,15 @@ export function bokningUt(db, b, { personal = null, avidentifierad = false } = {
   const betalning = db.query('SELECT * FROM betalningar WHERE bokning_id = ?').get(b.id);
   const kallelser = db.query('SELECT * FROM kallelser WHERE bokning_id = ? ORDER BY skapad, id').all(b.id);
   const ut = {
-    id: b.id, status, statusText: STATUSTEXT[status], tid: tidUt(db, tid), patient: avidentifierad ? { id: null, namn: 'Patient', personnummer: '', skyddad: false } : patientKort(p),
+    id: b.id, status, statusText: STATUSTEXT[status], tid: tidUt(db, tid), patient: patientKort(p),
     orsak: b.orsak, vardkontaktId: b.vardkontakt_id, vantelistaId: b.vantelista_id, remissId: b.remiss_id, ersatterId: b.ersatter_id,
     bokad: b.bokad, bokadAv: personKort(db, b.bokad_av), bokadAvPatienten: Boolean(b.bokad_av_invanare),
     andrad: b.andrad, andradAv: personKort(db, b.andrad_av), andradAvPatienten: Boolean(b.andrad_av_invanare),
     incheckad: b.incheckad ?? (incheckad ? v.ankomst : null), incheckadVia: b.incheckad_via ?? (incheckad ? 'registrerad' : null), konummer: b.konummer, bekraftad: b.bekraftad,
     betalning: betalning ? { belopp: betalning.belopp, satt: betalning.satt, sattText: BETALSATT[betalning.satt], tid: betalning.tid, kvitto: betalning.kvitto, text: betalning.text } : null,
-    kallelser: avidentifierad ? [] : kallelser.map(kallelseUt),
+    kallelser: kallelser.map(kallelseUt),
   };
-  if (!avidentifierad && personal && kanRoll(personal, 'checka_in')) {
+  if (personal && kanRoll(personal, 'checka_in')) {
     const a = avgiftForBokning(db, b);
     if (a) ut.avgift = { belopp: a.belopp, text: a.text, demoregler: true };
   }
@@ -959,7 +960,8 @@ export function startsida(db, personal) {
   const grupper = db.query(`SELECT DISTINCT t.* FROM tider t JOIN scheman s ON s.id = t.schema_id JOIN bokningar b ON b.tid_id = t.id JOIN kallelser k ON k.bokning_id = b.id
     WHERE s.enhet_id IN (${ph}) AND k.status = 'vantar' AND b.status = 'bokad' AND t.start > ? ORDER BY t.start`).all(...enheter, new Date(nu).toISOString()).map(t => {
     const deltagare = db.query("SELECT b.patient_id FROM bokningar b JOIN kallelser k ON k.bokning_id = b.id WHERE b.tid_id = ? AND b.status = 'bokad' AND k.status = 'vantar'").all(t.id);
-    return { typ: 'grupp', tid: tidUt(db, t), antal: deltagare.filter(d => relation(d.patient_id)).length, text: `${t.rubrik ?? 'Gruppträff'} ${tidText(t.start)}. Systemet har skrivit kallelserna. Skicka dem när det är bestämt att träffen blir av.`, atgard: { typ: 'kalla_grupp', text: 'Skicka kallelser' } };
+    const exempel = db.query("SELECT k.text FROM kallelser k JOIN bokningar b ON b.id = k.bokning_id WHERE b.tid_id = ? AND k.status = 'vantar' ORDER BY k.id").get(t.id)?.text?.replace(/^Hej [^,\n]+,/, 'Hej (patientens förnamn),') ?? null;
+    return { typ: 'grupp', tid: tidUt(db, t), exempel, antal: deltagare.filter(d => relation(d.patient_id)).length, text: `${t.rubrik ?? 'Gruppträff'} ${tidText(t.start)}. Systemet har skrivit kallelserna. Skicka dem när det är bestämt att träffen blir av.`, atgard: { typ: 'kalla_grupp', text: 'Skicka kallelser' } };
   }).filter(g => g.antal > 0);
   const kanInte = db.query(`SELECT k.* FROM kallelser k JOIN bokningar b ON b.id = k.bokning_id JOIN tider t ON t.id = b.tid_id JOIN scheman s ON s.id = t.schema_id
     WHERE s.enhet_id IN (${ph}) AND k.status = 'kan_inte' AND b.status = 'bokad' ORDER BY t.start`).all(...enheter).filter(k => relation(k.patient_id)).map(k => {
@@ -997,8 +999,10 @@ export function tidbok(db, personal, { datum = idag(), avidentifierad = false } 
     scheman: scheman.map(s => {
       const tider = db.query('SELECT * FROM tider WHERE schema_id = ? AND start >= ? AND start < ? ORDER BY start').all(s.id, fran, till).map(t => ({
         ...tidUt(db, t),
-        bokningar: db.query("SELECT * FROM bokningar WHERE tid_id = ? AND status IN ('bokad', 'incheckad') ORDER BY id").all(t.id)
-          .filter(b => avidentifierad || harVardrelation(db, b.patient_id, ve)).map(b => bokningUt(db, b, { personal, avidentifierad })),
+        // Avidentifierat visas bara att tiden är upptagen (antalet bokade i tidUt), inget om patienten eller kontakten.
+        // Annars bara bokningar för patienter med vårdrelation på vårdenheten.
+        bokningar: avidentifierad ? [] : db.query("SELECT * FROM bokningar WHERE tid_id = ? AND status IN ('bokad', 'incheckad') ORDER BY id").all(t.id)
+          .filter(b => harVardrelation(db, b.patient_id, ve)).map(b => bokningUt(db, b, { personal })),
       }));
       return { id: s.id, vardgivare: personKort(db, s.personal_id), yrkesroll: s.yrkesroll, yrkesrollText: YRKESROLL[s.yrkesroll], mottagning: enhetKort(db, s.enhet_id),
         tider, belaggning: { tider: tider.length, bokade: tider.filter(t => t.bokade >= t.platser).length } };

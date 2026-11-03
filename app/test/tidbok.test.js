@@ -400,7 +400,24 @@ describe('Tidbok', () => {
     const anon = (await k.get('/api/tidbok?avidentifierad=1')).data;
     const json = JSON.stringify(anon);
     for (const n of ['Bergström', 'Nordin', 'Hassan', '20171211']) expect(json).not.toContain(n);
-    expect(anon.scheman.flatMap(s => s.tider).some(x => x.bokningar.length)).toBe(true);
+    // Den avidentifierade vyn visar bara att tiden är upptagen: tid, tidstyp och vårdgivare. Inget om patienten,
+    // kontakten, avgiften eller betalningen.
+    const tider = anon.scheman.flatMap(s => s.tider);
+    expect(tider.some(x => x.bokade > 0)).toBe(true);
+    expect(tider.every(x => x.bokningar.length === 0)).toBe(true);
+    for (const nyckel of ['orsak', 'vardkontaktId', 'betalning', 'avgift', 'kallelser', 'patient', 'konummer']) expect(json).not.toContain(`"${nyckel}"`);
+  });
+
+  test('en kallelse på en annan vårdenhet kan inte markeras som lämnad, och försöket loggas', async () => {
+    const k = await inloggad('adm-kard');
+    const d = db(k);
+    // Patient 3 har vårdrelation till kardiologen genom remissen, men bokningen hör till Vårdcentralen Tybble.
+    const b = d.query("SELECT * FROM bokningar WHERE patient_id = 'p03'").get();
+    const id = Number(d.query("INSERT INTO kallelser (bokning_id, patient_id, typ, text, status, skapad) VALUES (?, 'p03', 'kallelse', 'Test', 'kan_inte', ?)").run(b.id, new Date().toISOString()).lastInsertRowid);
+    const r = await k.post(`/api/kallelse/${id}/klar`);
+    expect(r.status).toBe(403);
+    expect(d.query('SELECT status FROM kallelser WHERE id = ?').get(id).status).toBe('kan_inte');
+    expect(loggRader(k).at(-1)).toMatchObject({ patient_id: 'p03', handling: 'kalla', resultat: 'nekad' });
   });
 
   test('patienten checkar in själv i Min journal och ankomsten registreras på vårdkontakten', async () => {
