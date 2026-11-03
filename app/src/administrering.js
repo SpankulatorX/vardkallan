@@ -279,6 +279,12 @@ function underlag(atk, inp, atgard) {
     tid = typeof inp.tid === 'string' ? Date.parse(inp.tid) : NaN;
     if (!Number.isFinite(tid) || tid > nu + 5 * 60_000 || tid < nu - EFTERHAND_DAGAR * DAG) falt.push('tid');
   }
+  // Runda 6, r2 (säkerhetsgranskning): en angiven tid får aldrig ligga före ordinationen för ett iordningsställande, en
+  // muntlig ordination eller en ordination enligt generellt direktiv. För andra doser varnar systemet som förut för en
+  // dos utan ordination, eftersom en dos kan ha getts efter en muntlig ordination som läkaren ordinerade i efterhand.
+  if (orad && inp.tid != null && Number.isFinite(tid) && tid < Date.parse(orad.skapad) - 60_000 && (atgard === 'iordningstall' || stod.muntligFor(db, orad.id) || stod.direktivFor(db, orad.id))) {
+    throw new Fel(400, `Tiden ligger före ordinationen, som gjordes ${tidText(orad.skapad)}. Ange när det faktiskt gjordes.`, 'ogiltig', { falt: ['tid'] });
+  }
   let planerad = null;
   if (inp.planerad != null) {
     const ms = typeof inp.planerad === 'string' ? Date.parse(inp.planerad) : NaN;
@@ -309,7 +315,9 @@ function underlag(atk, inp, atgard) {
   // gäller just den dosen, den dagen och på vårdenheten. Prövas innan något sparas, och ett nekat försök loggas.
   // Vid iordningsställande ska delegeringen gälla både nu, när åtgärden görs, och för dostiden (säkerhetsgranskningen
   // av runda 5). Annars prövas den för tiden då dosen gavs.
-  const delegTider = planerad && atgard === 'iordningstall' ? [tid, Date.parse(planerad)] : [tid];
+  // Runda 6, r2 (säkerhetsgranskning): delegeringen ska också gälla när registreringen faktiskt görs, inte bara den tid
+  // som anges, så att en bakdaterad registrering inte kringgår en delegering som har gått ut.
+  const delegTider = [...new Set([tid, nu, ...(planerad && atgard === 'iordningstall' ? [Date.parse(planerad)] : [])])];
   const prova = (p, du) => delegTider.map(ms => delegering.prova(db, p, { lm, satt: tillagg.administrationssatt ?? null, ms, ordination: orad, du }))
     .reduce((forsta, r) => (forsta.omfattas ? r.omfattas ? forsta : r : forsta));
   const egen = prova(atk.personal, true);
@@ -340,7 +348,9 @@ function underlag(atk, inp, atgard) {
   if (!planerad && ior?.planerad) planerad = ior.planerad;
   // Runda 6, r2: en muntlig ordination som inte är signerad och ett generellt direktiv vars tillfällen är använda
   // stoppas med en förklaring. I ett trappschema är dosen den dagens dos.
-  if (atgard !== 'ej_given') stod.provaDos(db, orad, planerad ? Date.parse(planerad) : tid, { makuleradeIds: makIor });
+  // Prövas både mot dosens tid och mot när registreringen görs (säkerhetsgranskning), så att en bakdaterad tid inte
+  // kringgår fönstret för en muntlig ordination som inte är signerad.
+  if (atgard !== 'ej_given') stod.provaDos(db, orad, [planerad ? Date.parse(planerad) : tid, tid, nu], { makuleradeIds: makIor });
   if (o && orad) {
     const steg = stod.trappsteg(db, orad.id, datumI(planerad ? Date.parse(planerad) : tid));
     if (steg?.dos != null) { o.dos = steg.dos; o.dosering = steg.dosering; }
@@ -364,7 +374,7 @@ function underlag(atk, inp, atgard) {
       // varningen för en dos som avviker från ordinationen. Utan angiven dos räknas ordinationens dos per enhet.
       dos: (inp.dos == null || inp.dos === '') && antal === 1 ? null : dos != null ? dos * antal : null });
     // Runda 6, r2: licensens giltighet och kontrollen vid sängen för blodprodukter.
-    varningar.push(...stod.administreringsvarningar(db, { lm, patientId: atk.patientId, enhetId: atk.personal.enhet_id, ms: tidVarning }));
+    varningar.push(...stod.administreringsvarningar(db, { lm, patientId: atk.patientId, enhetId: atk.personal.enhet_id, ms: tidVarning, nu }));
     if (atk.prova('las_lakemedel', {}).spärrade) {
       varningar.push({ niva: 'observation', regel: 'sparrade_uppgifter', text: 'Det finns spärrade uppgifter i journalen. Doser från en spärrad vårdenhet räknas inte in i kontrollen. Fråga patienten om samtycke att visa dem om det kan ha betydelse.' });
     }

@@ -855,8 +855,10 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('POST', '/api/patient/:id/lakemedelsgenomgang', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'ordinera', (atk) => vidimering.sparaGenomgang(atk, c.body))]; });
   rutt('GET', '/api/patient/:id/lakemedel/forslag', (c, id) => {
     kravInloggad(c);
-    return medPatient(c, id, 'ordinera', (atk) => {
-      atk.krav('ordinera');
+    // Runda 6, r2: sjuksköterskan som dokumenterar en muntlig ordination får samma förslag som läkaren.
+    const handling = kanRoll(c.personal, 'ordinera') ? 'ordinera' : 'registrera_muntlig_ordination';
+    return medPatient(c, id, handling, (atk) => {
+      atk.krav(handling);
       const lm = c.db.query('SELECT * FROM katalog WHERE id = ?').get(c.url.searchParams.get('lakemedelId') ?? '');
       if (!lm) throw new Fel(400, 'Välj ett läkemedel i katalogen.', 'ogiltig', { falt: ['lakemedelId'] });
       return ordinationsmallar.forslag(atk, lm);

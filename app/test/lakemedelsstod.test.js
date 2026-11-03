@@ -560,6 +560,41 @@ describe('Förpackning med NPL-pack-id', () => {
   });
 });
 
+describe('Säkerhetsgranskning av läkemedelsprocessen del 2', () => {
+  test('en muntlig ordination prövas mot när registreringen görs: en bakdaterad dos efter fönstret stoppas', () => {
+    const db = sandladaKl('13:30');
+    const a = atk(db, 'ssk-kard', 'p01', {}, 'registrera_muntlig_ordination');
+    const o = vagar.registreraMuntlig(a, { lakemedelId: 'VK-NPL-0025', dosering: '1 kapsel nu', dos: 20, dosEnhet: 'mg', tider: [], typ: 'tillfallig', ordinationsorsak: 'Kraftig halsbränna', lakareId: 'lak-kard', satt: 'telefon', omedelbar: 'Svåra besvär' }).ordination;
+    // Klockan är 16, fönstret gick ut 15.30. En dos som påstås ha getts 14.00 registreras nu: stoppas.
+    setSystemTime(new Date(kl('16:00')));
+    const e = fel(() => administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, atgard: 'ge', tid: kl('14:00') }));
+    expect(e?.message).toContain('inte signerad av Sara Lindqvist');
+    // En tid före ordinationen godtas aldrig för en muntlig ordination.
+    setSystemTime(new Date(kl('14:00')));
+    expect(fel(() => administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, atgard: 'ge', tid: kl('13:00') }))?.message).toContain('före ordinationen');
+  });
+
+  test('ett iordningsställande i efterhand får inte ligga före ordinationen eller i framtiden', () => {
+    const db = sandladaKl('13:30');
+    const o = ordinera(db, 'p01', { lakemedelId: 'VK-NPL-0025', dosering: '1 kapsel', dos: 20, dosEnhet: 'mg', tider: ['14'], typ: 'staende' });
+    expect(fel(() => administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('14:00'), atgard: 'iordningstall', tid: kl('13:00') }))?.message).toContain('före ordinationen');
+    expect(fel(() => administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('14:00'), atgard: 'iordningstall', tid: kl('14:00') }))?.extra.falt).toEqual(['tid']);
+  });
+
+  test('en fördjupad genomgång och en utvärdering sparar aldrig en spärrad vårdenhets läkemedel, inte ens med samtycke', () => {
+    const db = sandladaKl('13:30');
+    const sert = ordFor(db, 'p04', 'Sertralin');
+    const med = atk(db, 'lak-kard', 'p04', { samtycke_sparr: true }, 'lakemedelsgenomgang');
+    const g = uppf.startaFordjupad(med);
+    const e = fel(() => uppf.sparaSteg(med, g.pagar.id, { typ: 'lakare', beslut: [{ ordinationId: sert.id, atgard: 'satt_ut', motivering: 'Test' }], mal: 'Mål', uppfoljningsdatum: addDagar(idag(), 14), patientInformerad: true }));
+    expect(e?.status).toBe(400);
+    expect(JSON.stringify(db.query('SELECT innehall FROM fordjupade_steg').all())).not.toContain('Sertralin');
+    const u = fel(() => uppf.utvardera(atk(db, 'lak-kard', 'p04', { samtycke_sparr: true }, 'utvardera_lakemedel'), sert, { effekt: 'god', biverkan: 'ingen', beslut: 'fortsatt' }));
+    expect(u?.status).toBe(403);
+    expect(db.query('SELECT count(*) AS n FROM lakemedelsutvarderingar').get().n).toBe(0);
+  });
+});
+
 describe('Läkemedelsprocessen del 2 via API', () => {
   // Rollerna byts i samma session, så att de arbetar i samma sandlåda.
   test('API: mall, muntlig ordination, direktiv, makulering, utvärdering, fördjupad genomgång och dosering över flera dygn, med loggning och inkorg', async () => {

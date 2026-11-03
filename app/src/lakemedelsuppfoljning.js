@@ -19,6 +19,9 @@ import { datumI } from './lakemedelsprocess.js';
 const personNamn = (db, id) => (id ? db.query('SELECT namn FROM personal WHERE id = ?').get(id)?.namn ?? id : null);
 const katalog = (db, id) => db.query('SELECT * FROM katalog WHERE id = ?').get(id);
 const text = (v, max = 300) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+// Samma användare och val, men utan samtycke till spärrade uppgifter (som vidimering.js). Det som sparas får aldrig
+// bygga på ett samtycke, som bara gäller för stunden.
+const utanSamtycke = (atk) => new Atkomst(atk.db, atk.personal, atk.patientId, { ...atk.val, samtycke_sparr: false }, atk.handling);
 
 export const EFFEKT = { god: 'God effekt', delvis: 'Delvis effekt', ingen: 'Ingen effekt', for_tidigt: 'För tidigt att bedöma' };
 export const BIVERKAN = { ingen: 'Ingen biverkan', misstankt: 'Misstänkt biverkan', bekraftad: 'Bekräftad biverkan' };
@@ -59,6 +62,12 @@ export function utvarderingsunderlag(atk, o) {
 export function utvardera(atk, o, inp = {}) {
   const db = atk.db;
   kravVardande(atk, 'utvardera_lakemedel', { enhet_id: o.enhet_id, gemensam: true }, `utvardering:${o.id}`);
+  // Säkerhetsgranskning: utvärderingen sparas och syns utan samtycke, så en ordination från en spärrad vårdenhet
+  // utvärderas inte, inte ens med samtycke.
+  if (!utanSamtycke(atk).prova('las_lakemedel', { enhet_id: o.enhet_id, gemensam: true }).tillaten) {
+    atk.logga('utvardera_lakemedel', 'nekad', `utvardering:${o.id}`, 'nekad');
+    throw new Fel(403, 'Ordinationen kommer från en spärrad vårdenhet och utvärderas där. En utvärdering sparas i journalen och kan inte bygga på ett samtycke som bara gäller för stunden.', 'nekad');
+  }
   if (o.status !== 'aktiv') throw new Fel(400, 'Ordinationen är utsatt och följs inte upp längre.', 'ogiltig');
   const lakare = atk.personal.yrke === 'lakare';
   const falt = [];
@@ -237,9 +246,13 @@ export function sparaSteg(atk, gid, inp = {}) {
     atk.logga('lakemedelsgenomgang', 'nekad', `fordjupad_genomgang:${gid}:${typ}`, 'nekad');
     throw new Fel(403, typ === 'farmaceut' ? 'Farmaceutens bedömning görs av en farmaceut.' : 'Besluten i en fördjupad läkemedelsgenomgång fattas av läkaren, som ansvarar för den (11 kap. 1 §).', 'nekad');
   }
-  const pagaende = new Map(lakemedel.synligaOrdinationer(atk).filter(lakemedel.aktuell).map(o => [o.id, o]));
+  // Säkerhetsgranskning: stegen sparas och syns utan samtycke, så bara ordinationer som syns utan samtycke till spärrade
+  // uppgifter får ingå. En ordination från en spärrad vårdenhet avvisas, eftersom ett samtycke bara gäller för stunden.
+  const pagaende = new Map(lakemedel.synligaOrdinationer(utanSamtycke(atk)).filter(lakemedel.aktuell).map(o => [o.id, o]));
   const rader = (lista, namn) => {
-    const ut = (Array.isArray(lista) ? lista : []).filter(x => pagaende.has(Number(x?.ordinationId)) && Object.hasOwn(ATGARDER, x?.atgard ?? ''))
+    const alla = Array.isArray(lista) ? lista : [];
+    if (alla.some(x => !pagaende.has(Number(x?.ordinationId)))) throw new Fel(400, 'Genomgången omfattar bara pågående läkemedel som syns utan samtycke. Läkemedel från en spärrad vårdenhet kan inte tas med.', 'ogiltig', { falt: [namn] });
+    const ut = alla.filter(x => pagaende.has(Number(x?.ordinationId)) && Object.hasOwn(ATGARDER, x?.atgard ?? ''))
       .map(x => ({ ordinationId: Number(x.ordinationId), lakemedel: katalog(db, pagaende.get(Number(x.ordinationId)).lakemedel_id)?.namn, atgard: x.atgard, atgardText: ATGARDER[x.atgard], motivering: text(x.motivering, 500) }));
     if (!ut.length) throw new Fel(400, `Ange ${namn} för minst ett läkemedel.`, 'ogiltig', { falt: [namn] });
     const utan = ut.find(x => x.atgard !== 'fortsatt' && x.motivering.length < 3);

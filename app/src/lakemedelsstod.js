@@ -71,11 +71,12 @@ export function ordinationsvarningar(db, { lm, patientId, enhetId }) {
 
 // Varningar när en dos ges. Licensen ska gälla dagen då dosen ges, och en blodprodukt ges bara efter kontrollen vid
 // sängen, som bekräftas med vem som kontrollerade.
-export function administreringsvarningar(db, { lm, patientId, enhetId, ms }) {
+// Licensen prövas både för dosens dag och för dagen då registreringen görs (säkerhetsgranskning).
+export function administreringsvarningar(db, { lm, patientId, enhetId, ms, nu = Date.now() }) {
   const t = produkttyp(db, lm.id);
   const ut = [];
   if (t.typ === 'licens') {
-    const l = licensFor(db, lm.id, patientId, enhetId, datumI(ms));
+    const l = [ms, nu].map(x => licensFor(db, lm.id, patientId, enhetId, datumI(x))).find(x => !x.giltig) ?? { giltig: true };
     if (!l.giltig) ut.push({ niva: 'allvarlig', regel: 'licens', text: `${lm.namn} är ett licensläkemedel utan giltig licens den dagen. ${l.varfor}` });
   }
   if (t.typ === 'blodprodukt') ut.push({ niva: 'allvarlig', regel: 'blodkontroll', text: `${lm.namn} ges först när patientens identitet och blodgrupp är kontrollerade vid sängen mot blodpåsens etikett. Skriv vem som kontrollerade.` });
@@ -283,10 +284,12 @@ export function makuleringFor(db, typ, postId) {
 }
 
 // Prövas innan en dos registreras (administrering.js). Kastar Fel som förklarar varför dosen inte får ges.
+// ms är en tid eller flera: dostiden, den angivna tiden och när registreringen görs. Alla ska ligga inom fönstret.
 export function provaDos(db, orad, ms, { makuleradeIds = new Set() } = {}) {
   if (!orad) return;
+  const tider = (Array.isArray(ms) ? ms : [ms]).filter(Number.isFinite);
   const m = muntligFor(db, orad.id);
-  if (m && !m.signerad && ms > Date.parse(m.gesUtanSigneringTill)) {
+  if (m && !m.signerad && tider.some(t => t > Date.parse(m.gesUtanSigneringTill))) {
     throw new Fel(400, `Ordinationen är muntlig och inte signerad av ${m.lakare.namn}. Utan signering får läkemedlet bara ges när patienten behöver omedelbar behandling, de första ${MUNTLIG_OMEDELBAR_TIMMAR} timmarna. Be läkaren signera ordinationen.`, 'ogiltig', { muntlig: true });
   }
   const d = direktivFor(db, orad.id);

@@ -583,9 +583,14 @@ describe('Fördefinierade ordinationer', () => {
       const lista = (await k.get('/api/patient/p01/lakemedel')).data.ordinationer.find(o => o.id === r.data.ordination.id);
       expect(lista.administrationssattText).toBe('Intravenöst');
       expect((await k.post('/api/patient/p01/lakemedel', { lakemedelId: 'VK-NPL-0025', dosering: 'x', typ: 'staende', ordinationsorsak: 'x', uppfoljningsdatum: addDagar(idag(), 3), administrationssatt: 'okant' })).status).toBe(400);
+      // Runda 6, r2: sjuksköterskan får förslaget när hon dokumenterar en muntlig ordination, men ordinerar inte själv.
       const ssk = klient(app);
       await ssk.logga('ssk-kard');
-      expect((await ssk.get('/api/patient/p01/lakemedel/forslag?lakemedelId=VK-NPL-0032')).status).toBe(403);
+      expect((await ssk.get('/api/patient/p01/lakemedel/forslag?lakemedelId=VK-NPL-0032')).status).toBe(200);
+      expect((await ssk.post('/api/patient/p01/lakemedel', { lakemedelId: 'VK-NPL-0025', dosering: 'x', typ: 'staende', ordinationsorsak: 'x', uppfoljningsdatum: addDagar(idag(), 3) })).status).toBe(403);
+      const usk = klient(app);
+      await usk.logga('usk-kard');
+      expect((await usk.get('/api/patient/p01/lakemedel/forslag?lakemedelId=VK-NPL-0032')).status).toBe(403);
     } finally { app.stopp(); }
   });
 

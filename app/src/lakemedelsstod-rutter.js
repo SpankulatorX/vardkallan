@@ -69,7 +69,9 @@ export function registreraRutter({ rutt, kravInloggad, medPatient }) {
     kravInloggad(c);
     const handling = c.body?.typ === 'vatskebalans' ? 'registrera_matvarde' : 'ge_lakemedel';
     return medPatient(c, id, handling, (atk) => stod.makulera(atk, c.body?.typ, c.body?.id, c.body, {
-      kravVardande: administrering.kravVardande, synligaDoser: () => new Set(administrering.synligaAdministreringar(atk).map(a => a.id)),
+      // Makuleringen sparas och syns utan samtycke, så bara doser som syns utan samtycke kan makuleras (säkerhetsgranskning).
+      kravVardande: administrering.kravVardande,
+      synligaDoser: () => new Set(administrering.synligaAdministreringar(new Atkomst(c.db, atk.personal, atk.patientId, { ...atk.val, samtycke_sparr: false }, atk.handling)).map(a => a.id)),
     }));
   });
 
