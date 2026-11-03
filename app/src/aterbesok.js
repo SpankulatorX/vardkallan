@@ -96,9 +96,13 @@ function anteckning(atk, id) {
   if (!a || a.patient_id !== atk.patientId || a.status !== 'signerad' || !atk.prova(journal.lasHandling(a.kategori), { enhet_id: a.enhet_id }).tillaten) {
     throw new Fel(404, 'Anteckningen finns inte.', 'saknas');
   }
-  // Den gällande versionen om anteckningen har rättats.
+  // Den gällande versionen om anteckningen har rättats. Den måste också vara signerad och få läsas, annars svarar
+  // servern som om anteckningen inte fanns (säkerhetsgranskning runda 5).
   let g = a;
   for (let i = 0; i < 20; i++) { const n = db.query('SELECT * FROM anteckningar WHERE ersatter_id = ?').get(g.id); if (!n) break; g = n; }
+  if (g.patient_id !== atk.patientId || g.status !== 'signerad' || !atk.prova(journal.lasHandling(g.kategori), { enhet_id: g.enhet_id }).tillaten) {
+    throw new Fel(404, 'Anteckningen finns inte.', 'saknas');
+  }
   return g;
 }
 

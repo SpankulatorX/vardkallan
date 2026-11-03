@@ -94,6 +94,17 @@ describe('Återbesök', () => {
     const psyk = db(k).query("SELECT id FROM anteckningar WHERE patient_id = 'p04' AND enhet_id LIKE 'uso-psyk%' AND status = 'signerad'").get();
     expect(psyk).toBeTruthy();
     expect((await k.get(`/api/patient/p04/aterbesok/forslag?anteckningId=${psyk.id}`)).status).toBe(404);
+    // Säkerhetsgranskning: en nyare version i rättelsekedjan som inte är signerad eller inte får läsas används inte.
+    const egen = await signerad(k, 'p01', [{ sokord: 'Åtgärd', text: 'Återbesök om tre månader.' }]);
+    const d = db(k);
+    const rad = d.query('SELECT * FROM anteckningar WHERE id = ?').get(egen);
+    d.query("INSERT INTO anteckningar (patient_id, enhet_id, typ, kategori, sokord, forfattare_id, skapad, status, ersatter_id, version) VALUES ('p01', ?, 'Daganteckning', 'lakare', ?, 'lak-akut', ?, 'utkast', ?, 2)")
+      .run(rad.enhet_id, JSON.stringify([{ sokord: 'Åtgärd', text: 'Telefonkontakt med sjuksköterska om två veckor.' }]), new Date().toISOString(), egen);
+    expect((await k.get(`/api/patient/p01/aterbesok/forslag?anteckningId=${egen}`)).status).toBe(404);
+    const egen2 = await signerad(k, 'p01', [{ sokord: 'Åtgärd', text: 'Återbesök om tre månader.' }]);
+    d.query("INSERT INTO anteckningar (patient_id, enhet_id, typ, kategori, sokord, forfattare_id, skapad, status, signerad_tid, signerad_av, ersatter_id, version) VALUES ('p01', 'uso-psyk', 'Daganteckning', 'lakare', ?, 'lak-psyk', ?, 'signerad', ?, 'lak-psyk', ?, 2)")
+      .run(JSON.stringify([{ sokord: 'Åtgärd', text: 'Videobesök om ett år.' }]), new Date().toISOString(), new Date().toISOString(), egen2);
+    expect((await k.get(`/api/patient/p01/aterbesok/forslag?anteckningId=${egen2}`)).status).toBe(404);
     // En annan patients anteckning används inte heller.
     const annan = db(k).query("SELECT id FROM anteckningar WHERE patient_id = 'p01' AND status = 'signerad'").get();
     expect((await k.get(`/api/patient/p04/aterbesok/forslag?anteckningId=${annan.id}`)).status).toBe(404);

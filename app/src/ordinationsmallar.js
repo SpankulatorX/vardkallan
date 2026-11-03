@@ -109,19 +109,25 @@ export function sparaTillagg(db, ordinationId, t) {
 
 const personNamn = (db, id) => (id ? db.query('SELECT namn FROM personal WHERE id = ?').get(id)?.namn ?? id : null);
 // Tillägget för läkemedelslistan, FHIR och administreringslistan. Tom när ordinationen saknar tillägg.
-export function tillaggUt(db, ordinationId) {
+// full: användaren får se den ordinerande vårdenhetens uppgifter, och då visas vårdhändelsen ur tidboken med namn och
+// tid. Annars bara läkarens egen text och när läkemedlet ges (vardhandelse.kopplingUt, säkerhetsgranskning runda 5).
+export function tillaggUt(db, ordinationId, { full = false } = {}) {
   const t = db.query('SELECT * FROM ordination_tillagg WHERE ordination_id = ?').get(ordinationId);
   if (!t) return {};
   const ut = {};
   if (t.administrationssatt) Object.assign(ut, { administrationssatt: t.administrationssatt, administrationssattText: ADMINISTRATIONSSATT[t.administrationssatt] ?? t.administrationssatt });
   if (t.volym_ml) Object.assign(ut, { volymMl: t.volym_ml, vatskebalans: Boolean(t.vatskebalans) });
   if (t.vardhandelse) {
+    const k = kopplingUt(db, ordinationId, { full });
+    const { skyddad, egenText, ...koppling } = k;
     ut.vardhandelse = {
       text: t.vardhandelse, forskjutningMin: t.forskjutning_min ?? 0, tid: t.handelse_tid ?? null,
       administreras: t.handelse_tid ? new Date(Date.parse(t.handelse_tid) + (t.forskjutning_min ?? 0) * 60_000).toISOString() : null,
       sattAv: personNamn(db, t.handelse_satt_av), satt: t.handelse_satt ?? null,
-      ...kopplingUt(db, ordinationId),
+      ...koppling,
     };
+    // En annan vårdenhet utan aktivt val: inte bokningens orsak, tid eller vem i tidboken som ändrade den.
+    if (skyddad) Object.assign(ut.vardhandelse, { text: egenText ? t.vardhandelse : 'Planerad vårdhändelse', tid: null, sattAv: null, satt: null });
   }
   return ut;
 }
