@@ -30,7 +30,7 @@ function posterHtml(poster, remiss) {
     <thead><tr><th scope="col">Patient</th><th scope="col">${remiss ? 'Remiss' : 'Vad'}</th><th scope="col">Prioritet</th><th scope="col">Väntat</th><th scope="col">Gräns</th><th scope="col">Nästa åtgärd</th></tr></thead>
     <tbody>${poster.map(p => `<tr${p.grans?.risk ? ' class="rad-risk"' : ''}>
       <td>${patient(p.patient)}</td>
-      <td>${remiss ? `Från ${esc(p.remiss.fran?.namn ?? '')}` : esc(p.orsak)}<span class="under-text">${esc(p.tidstypText)} hos ${esc(p.yrkesrollText)}</span></td>
+      <td>${remiss ? `Från ${esc(p.remiss.fran?.namn ?? '')}` : esc(p.orsak)}<span class="under-text">${esc(p.tidstypText)} hos ${esc(p.yrkesrollText)}</span>${p.styrLakemedel ? '<span class="under-text"><span class="tagg">Styr en läkemedelsdos</span></span>' : ''}</td>
       <td>${esc(p.prioritetText)}${p.patientvald ? '<span class="under-text">Patientvald väntan</span>' : ''}</td>
       <td>${esc(dagar(p.vantatDagar))}</td>
       <td>${gransHtml(p.grans)}</td>
@@ -86,7 +86,9 @@ let upptagen = false;
 // Bokar en post på väntelistan från förslagen. Används också av väntelistan och patientens översikt.
 export async function bokaPost(id, namn) {
   const f = await api(`/api/vantelista/${id}/forslag`);
-  const tidId = await valjTid({ rubrik: `Boka tid för ${namn}`, text: `${esc(f.post.orsak)}. ${esc(f.post.tidstypText)} hos ${esc(f.post.yrkesrollText)}.`, forslag: f.forslag, demoregler: f.demoregler });
+  // En planerad vårdhändelse: dialogen säger att tiden styr en läkemedelsdos, aldrig vilket läkemedel (runda 5, r1).
+  const styr = f.post.styrLakemedel ? `</p><p class="ruta ruta-info liten">${esc(f.post.styrLakemedel)}` : '';
+  const tidId = await valjTid({ rubrik: `Boka tid för ${namn}`, text: `${esc(f.post.orsak)}. ${esc(f.post.tidstypText)} hos ${esc(f.post.yrkesrollText)}.${styr}`, forslag: f.forslag, demoregler: f.demoregler });
   if (!tidId) return null;
   const r = await api(`/api/vantelista/${id}/boka`, { metod: 'POST', data: { tidId } });
   notis(`${namn} har fått en tid ${tidText(r.tid.start)}. Kallelsen är skickad${r.kallelse?.kanalText ? ` via ${r.kallelse.kanalText.toLowerCase()}` : ''}.`);

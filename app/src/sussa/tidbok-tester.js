@@ -33,5 +33,20 @@ export const T = {
   relationsfonster: 'Tidbok, säkerhetsgranskning > en planerad kontakt ger vårdrelation bara till 90 dagar efter tiden',
   skyddadKallelse: 'Tidbok, säkerhetsgranskning > kallelsetexten och adressen för en patient med skyddade personuppgifter visas inte för personalen',
   skarm: 'Tidbok, säkerhetsgranskning > incheckningsskärmen visar inte avgiften och stoppar många försök',
+  // Runda 5, r1: planerad vårdhändelse i tidboken (app/test/vardhandelse.test.js), läkarens återbesök och egenbokningens
+  // tidstyper (app/test/aterbesok.test.js).
+  vhForslag: 'Vårdhändelse i tidboken > systemet föreslår patientens bokningar på den egna vårdenheten och den som passar ordinationen först',
+  vhBokning: 'Vårdhändelse i tidboken > ordinationen får sin tid från bokningen med ett klick, och sjuksköterskan ser när läkemedlet ges',
+  vhOmboka: 'Vårdhändelse i tidboken > ombokning och avbokning räknar om dosen utan att någon gör något, och sjuksköterskan får en förklaring',
+  vhVantelista: 'Vårdhändelse i tidboken > utan bokning hamnar vårdhändelsen på väntelistan, och vårdadministratören bokar den som vanligt i Dagens arbete',
+  vhManuell: 'Vårdhändelse i tidboken > den manuella tidsättningen finns kvar som reserv, slutar följa tidboken och sparas i historiken',
+  vhSakerhet: 'Vårdhändelse i tidboken > säkerhet: ordinera och vårdrelation på egen vårdenhet krävs, och inget sparas när kopplingen nekas',
+  vhSparr: 'Vårdhändelse i tidboken > säkerhet: spärrad vårdenhet och skyddad identitet läcker inte via förslagen eller väntelistan',
+  vhMinJournal: 'Vårdhändelse i tidboken > en tid som styr en läkemedelsdos kan patienten inte boka om själv i Min journal',
+  abTolka: 'Återbesök > planeringen i texten tolkas: tidstyp, yrkesroll och tidsram',
+  abAnteckning: 'Återbesök > systemet föreslår återbesöket ur anteckningens planering, och läkaren sätter upp det med ett klick',
+  abDiagnos: 'Återbesök > utan planering i texten föreslår systemet ur diagnosen och den senaste kontakten, och läkaren kan ändra förslaget',
+  abSakerhet: 'Återbesök > säkerhet: skriv_journal och vårdrelation på egen vårdenhet krävs, och anteckningar som inte får läsas används inte',
+  egenTidstyper: 'Tidbok, egenbokning > patientens egenbokning gäller bara återbesök, telefon och video, aldrig nybesök',
 };
 export const flode = (id) => klickbudgetTest(FLODEN.find(f => f.id === id));

@@ -20,7 +20,7 @@ export async function visa(main, _p, _q, ctx = {}) {
       <thead><tr><th scope="col">Patient</th><th scope="col">Vad</th><th scope="col">Prioritet</th><th scope="col">Väntat</th><th scope="col">Gräns</th><th scope="col"><span class="sr">Åtgärder</span></th></tr></thead>
       <tbody>${poster.map(p => `<tr${p.grans?.risk ? ' class="rad-risk"' : ''}>
         <td>${patientCell(p.patient, `#/patient/${encodeURIComponent(p.patient.id)}`)}<span class="under-text">${pnrCell(p.patient)}</span></td>
-        <td>${esc(p.orsak)}<span class="under-text">${esc(p.tidstypText)} hos ${esc(p.yrkesrollText)}${p.onskad ? `, helst ${esc(p.onskad.namn)}` : ''}</span></td>
+        <td>${esc(p.orsak)}<span class="under-text">${esc(p.tidstypText)} hos ${esc(p.yrkesrollText)}${p.onskad ? `, helst ${esc(p.onskad.namn)}` : ''}</span>${p.styrLakemedel ? '<span class="under-text"><span class="tagg">Styr en läkemedelsdos</span></span>' : ''}</td>
         <td>${esc(p.prioritetText)}${p.patientvald ? '<span class="under-text">Patientvald väntan</span>' : ''}</td>
         <td>${esc(dagar(p.vantatDagar))}<span class="under-text">sedan ${esc(p.fran)}</span></td>
         <td>${gransHtml(p.grans)}</td>

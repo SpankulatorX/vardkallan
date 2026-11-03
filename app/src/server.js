@@ -18,6 +18,9 @@ import * as administrering from './administrering.js';
 import * as vidimering from './vidimering.js';
 import * as ordinationsmallar from './ordinationsmallar.js';
 import * as tidbok from './tidbok.js';
+// Runda 5, r1: planerad vårdhändelse i tidboken och läkarens återbesök.
+import * as vardhandelse from './vardhandelse.js';
+import * as aterbesok from './aterbesok.js';
 import { kravregister, lasTestresultat } from './krav.js';
 import { sussaRegister } from './sussa/index.js';
 import { lasKlientresultat, gransnittHash } from './klientresultat.js';
@@ -800,9 +803,14 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     kravInloggad(c);
     return [201, medPatient(c, id, 'ordinera', (atk) => {
       // Tillägget (administrationssätt, mall, vårdhändelse och volym) kontrolleras innan ordinationen sparas.
-      const tillagg = ordinationsmallar.valideraTillagg(c.db, c.body);
-      const ut = lakemedel.spara(atk, c.body);
+      // Vårdhändelsen i tidboken (vardhandelse.js) prövas först, så att en nekad koppling inte lämnar en ordination.
+      // Väljs en bokning eller en post på väntelistan bestämmer servern vårdhändelsens text.
+      const koppling = vardhandelse.forbered(atk, c.body);
+      const kropp = koppling ? { ...c.body, vardhandelse: { ...c.body.vardhandelse, text: koppling.text } } : c.body;
+      const tillagg = ordinationsmallar.valideraTillagg(c.db, kropp);
+      const ut = lakemedel.spara(atk, kropp);
       ordinationsmallar.sparaTillagg(c.db, ut.ordination.id, tillagg);
+      vardhandelse.knyt(atk, ut.ordination.id, koppling);
       Object.assign(ut.ordination, ordinationsmallar.tillaggUt(c.db, ut.ordination.id));
       return vardkontakt.knyt(atk, 'ordinationer', ut, c.body);
     })];
@@ -843,8 +851,16 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const handling = kanRoll(c.personal, 'ordinera') ? 'ordinera' : 'ge_lakemedel';
     return medPatient(c, o.patient_id, handling, (atk) => {
       administrering.kravVardande(atk, handling, { enhet_id: o.enhet_id, gemensam: true }, `ordination:${o.id}`);
-      return { ordinationId: o.id, ...ordinationsmallar.tidsattHandelse(c.db, o.id, c.body.tid, c.personal.id) };
+      ordinationsmallar.tidsattHandelse(c.db, o.id, c.body.tid, c.personal.id);
+      // Tiden satt för hand är reserven: vårdhändelsen följer inte längre tidboken (vardhandelse.js).
+      vardhandelse.efterHandTid(c.db, o.id, c.personal.id);
+      return { ordinationId: o.id, ...ordinationsmallar.tillaggUt(c.db, o.id) };
     });
+  });
+  // Runda 5, r1: förslag på vårdhändelse ur tidboken när läkaren ordinerar (vardhandelse.js).
+  rutt('GET', '/api/patient/:id/vardhandelse/forslag', (c, id) => {
+    kravInloggad(c);
+    return medPatient(c, id, 'ordinera', (atk) => vardhandelse.forslag(atk, { text: (c.url.searchParams.get('text') ?? '').slice(0, 300) }));
   });
   rutt('GET', '/api/patient/:id/vatskebalans', (c, id) => {
     kravInloggad(c);
@@ -948,6 +964,13 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('POST', '/api/vantelista/:id/prioritet', (c, id) => medPost(c, id, 'vantelista', (atk, v) => tidbok.prioritera(atk, v, c.body)));
   rutt('POST', '/api/patient/:id/vantelista', (c, id) => { kravInloggad(c); return medPatient(c, id, 'vantelista', (atk) => tidbok.nyPost(atk, c.body)); });
   rutt('GET', '/api/patient/:id/bokningar', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_admin', (atk) => tidbok.patientensBokningar(atk)); });
+  // Runda 5, r1: läkaren sätter upp ett återbesök som systemet föreslår (aterbesok.js).
+  rutt('GET', '/api/patient/:id/aterbesok/forslag', (c, id) => {
+    kravInloggad(c);
+    const a = c.url.searchParams.get('anteckningId');
+    return medPatient(c, id, 'skriv_journal', (atk) => aterbesok.forslag(atk, { anteckningId: a ? Number(a) : null }));
+  });
+  rutt('POST', '/api/patient/:id/aterbesok', (c, id) => { kravInloggad(c); return medPatient(c, id, 'skriv_journal', (atk) => aterbesok.skapa(atk, c.body)); });
   rutt('GET', '/api/bokning/:id/forslag', (c, id) => medBokning(c, id, 'boka', (atk, b) => tidbok.forslagForBokning(atk, b)));
   rutt('POST', '/api/bokning/:id/omboka', (c, id) => medBokning(c, id, 'boka', (atk, b) => tidbok.omboka(atk, b, c.body)));
   rutt('POST', '/api/bokning/:id/avboka', (c, id) => medBokning(c, id, 'boka', (atk, b) => tidbok.avboka(atk, b, c.body)));

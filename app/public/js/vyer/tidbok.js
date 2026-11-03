@@ -42,7 +42,7 @@ function tidRad(x, anon) {
   const upptagen = x.bokade >= x.platser;
   const grupp = x.platser > 1 ? ` <span class="dampad">${esc(x.bokade)} av ${esc(x.platser)} platser</span>` : '';
   const vem = anon ? (upptagen ? '<span class="dampad">Upptagen</span>' : '<span class="tb-ledig">Ledig</span>')
-    : x.bokningar.length ? x.bokningar.map(b => `<span class="tb-bokning">${patientCell(b.patient, `#/patient/${encodeURIComponent(b.patient.id)}`)} <span class="tagg${b.status === 'incheckad' ? ' tagg-pagaende' : ''}">${esc(b.statusText)}</span>
+    : x.bokningar.length ? x.bokningar.map(b => `<span class="tb-bokning">${patientCell(b.patient, `#/patient/${encodeURIComponent(b.patient.id)}`)} <span class="tagg${b.status === 'incheckad' ? ' tagg-pagaende' : ''}">${esc(b.statusText)}</span>${b.styrLakemedel ? ' <span class="tagg" title="' + esc(b.styrLakemedel) + '">Styr en läkemedelsdos</span>' : ''}
       ${b.status === 'bokad' && x.platser === 1 ? `<button type="button" class="knapp text liten" data-tb="omboka" data-id="${b.id}">Boka om</button><button type="button" class="knapp text liten" data-tb="avboka" data-id="${b.id}">Avboka</button>` : ''}</span>`).join('')
       : '<span class="tb-ledig">Ledig</span>';
   return `<li class="${upptagen ? 'tb-upptagen' : 'tb-fri'}"><span class="tb-klocka">${esc(kl(x.start))}</span><span class="tb-typ">${esc(x.rubrik ?? x.tidstypText)}${grupp}</span><span class="tb-vem">${vem}</span></li>`;
@@ -51,16 +51,18 @@ function tidRad(x, anon) {
 // Ombokning och avbokning, också från patientens översikt.
 export async function ombokaBokning(id, namn) {
   const f = await api(`/api/bokning/${id}/forslag`);
-  const tidId = await valjTid({ rubrik: `Boka om ${namn}`, text: `Nu: ${esc(tidText(f.bokning.tid.start))}, ${esc(f.bokning.tid.tidstypText)} hos ${esc(f.bokning.tid.vardgivare?.namn ?? '')}. Patienten får en ny kallelse av sig själv.`, forslag: f.forslag, demoregler: f.demoregler });
+  // En planerad vårdhändelse: dialogen säger att tiden styr en läkemedelsdos, aldrig vilket läkemedel (runda 5, r1).
+  const styr = f.bokning.styrLakemedel ? `</p><p class="ruta ruta-info liten">${esc(f.bokning.styrLakemedel)}` : '';
+  const tidId = await valjTid({ rubrik: `Boka om ${namn}`, text: `Nu: ${esc(tidText(f.bokning.tid.start))}, ${esc(f.bokning.tid.tidstypText)} hos ${esc(f.bokning.tid.vardgivare?.namn ?? '')}. Patienten får en ny kallelse av sig själv.${styr}`, forslag: f.forslag, demoregler: f.demoregler });
   if (!tidId) return null;
   const r = await api(`/api/bokning/${id}/omboka`, { metod: 'POST', data: { tidId } });
   notis(`Tiden är ombokad till ${tidText(r.tid.start)}. En ny kallelse är skickad.`);
   return r;
 }
 
-export async function avbokaBokning(id, namn) {
+export async function avbokaBokning(id, namn, styrLakemedel = null) {
   const svar = await dialog(`<form><h2 id="dlg-rubrik">Avboka tiden för ${esc(namn)}</h2>
-    <div class="dialog-text"><p>Patienten får ett besked om avbokningen av sig själv. Står patienten på väntelistan läggs hen tillbaka där.</p></div>
+    <div class="dialog-text"><p>Patienten får ett besked om avbokningen av sig själv. Står patienten på väntelistan läggs hen tillbaka där.</p>${styrLakemedel ? `<p class="ruta ruta-info liten">${esc(styrLakemedel)} Avbokas tiden väntar dosen tills vårdhändelsen har fått en ny tid.</p>` : ''}</div>
     <div class="falt"><label for="ab-orsak">Orsak <span class="obl">(obligatoriskt)</span></label><input id="ab-orsak" name="orsak" required maxlength="120" autocomplete="off"></div>
     <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Avboka</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`);
   if (!svar) return null;
@@ -73,5 +75,5 @@ async function atgard(b, t) {
   const bok = t.scheman.flatMap(s => s.tider).flatMap(x => x.bokningar).find(x => String(x.id) === b.dataset.id);
   if (!bok) return;
   if (b.dataset.tb === 'omboka') await ombokaBokning(bok.id, bok.patient.namn);
-  else if (b.dataset.tb === 'avboka') await avbokaBokning(bok.id, bok.patient.namn);
+  else if (b.dataset.tb === 'avboka') await avbokaBokning(bok.id, bok.patient.namn, bok.styrLakemedel);
 }

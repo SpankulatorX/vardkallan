@@ -63,6 +63,10 @@ export const BOKNINGAR = [
   { patient: 'p01', schema: 'sch-kard-lina', tidstyp: 'grupp', tid: { dag: 9, klocka: '13:00' }, grupp: 'Hjärtskola', bokad: -2, bokadAv: 'adm-kard' },
   { patient: 'p04', schema: 'sch-kard-lina', tidstyp: 'grupp', tid: { dag: 9, klocka: '13:00' }, grupp: 'Hjärtskola', bokad: -2, bokadAv: 'adm-kard' },
   { patient: 'p10', schema: 'sch-kard-lina', tidstyp: 'grupp', tid: { dag: 9, klocka: '13:00' }, grupp: 'Hjärtskola', bokad: -2, bokadAv: 'adm-kard' },
+  // Elkonverteringen som läkaren planerade under vårdtillfället, bokad på mottagningen. Läkaren kan knyta en ordination
+  // till den, så att läkemedlet får sin tid från tidboken (vardhandelse.js).
+  { patient: 'p01', schema: 'sch-kard-sara', tidstyp: 'aterbesok', tid: { dag: 15, klocka: '10:00' }, bokad: -1, bokadAv: 'adm-kard', orsak: 'Elkonvertering',
+    kallelse: { dagar: -1, kanal: 'min_journal' } },
   // Skyddade personuppgifter: kallelsen går bara till Min journal.
   { patient: 'p03', schema: 'sch-vc-hanna', tidstyp: 'aterbesok', tid: { dag: 8, klocka: '09:00' }, bokad: -3, bokadAv: null,
     kallelse: { dagar: -3, kanal: 'min_journal' } },

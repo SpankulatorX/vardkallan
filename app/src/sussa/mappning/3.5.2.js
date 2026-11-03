@@ -1,6 +1,8 @@
 // Sussa 3.5.2 Process för läkemedelshantering: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 import { TEST } from '../../krav.js';
+// Runda 5, r1: vårdhändelsen i tidboken (app/test/vardhandelse.test.js).
+import { T as TB } from '../tidbok-tester.js';
 
 const { B, A, M, S, KV, GK, LK } = TEST;
 // Läkemedelsprocessen: administrering, vidimering, utsättning, fördefinierade ordinationer, läkemedelsgenomgång och
@@ -77,10 +79,10 @@ export default [
   },
   {
     id: '3.5.2.7', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
-    tester: [`${FO}ordination till planerad vårdhändelse får administrationstid när händelsen tidsätts`],
-    losning: 'En ordination kan göras till en planerad vårdhändelse som inte har fått en tid, till exempel två timmar före en elkonvertering. Den visas som väntande i administreringslistan tills vårdhändelsen får en tid, och då räknas administrationstiden fram.',
-    expert: 'Systemet räknar fram administrationstiden när vårdhändelsen tidsätts, så ingen behöver ändra ordinationen.',
-    anmarkning: 'Vårdhändelsen anges med text och tidsätts i läkemedelsprocessen. Koppling till tidbok och operationsplanering saknas, eftersom de inte är byggda.',
+    tester: [`${FO}ordination till planerad vårdhändelse får administrationstid när händelsen tidsätts`, TB.vhForslag, TB.vhBokning, TB.vhOmboka, TB.vhVantelista, TB.vhManuell, TB.vhSakerhet, TB.vhSparr],
+    losning: 'En ordination kan knytas till en planerad vårdhändelse, till exempel två timmar före en elkonvertering. Vårdhändelsen är en bokning i tidboken på den egna vårdenheten, eller en post på väntelistan som vårdadministratören bokar. Dosen väntar i administreringslistan tills vårdhändelsen har fått en tid, och tiden följer bokningen när den bokas, bokas om eller avbokas.',
+    expert: 'Systemet föreslår patientens bokningar med den som passar ordinationen först, eller sätter upp vårdhändelsen på väntelistan, så läkaren väljer med ett klick. När tiden ändras i tidboken räknar systemet om dosen utan att någon gör något och förklarar för sjuksköterskan varför dosen flyttades eller väntar.',
+    anmarkning: 'Tidboken har bara personal som resurs, så en vårdhändelse bokas som ett återbesök hos läkare. Operationsplanering och bokning av lokal och utrustning saknas. En vårdenhet utan tidbok i demon tidsätter vårdhändelsen för hand.',
   },
   {
     id: '3.5.2.8', kategori: 'system', egna: ['D10', 'L11'], avsedd: 'uppfyllt_demo',
@@ -150,9 +152,9 @@ export default [
   },
   {
     id: '3.5.2.14', kategori: 'system', egna: [], avsedd: 'delvis',
-    tester: [`${FO}ordination till planerad vårdhändelse får administrationstid när händelsen tidsätts`],
-    losning: 'Ordination till en planerad vårdhändelse som inte är tidsatt, med tid före eller efter händelsen. Administrationstiden anpassas när vårdhändelsen tidsätts.',
-    expert: 'Systemet räknar fram när läkemedlet ska ges när vårdhändelsen får sin tid och visar det i administreringslistan.',
+    tester: [`${FO}ordination till planerad vårdhändelse får administrationstid när händelsen tidsätts`, TB.vhBokning, TB.vhOmboka, TB.vhVantelista, TB.vhManuell, TB.vhMinJournal],
+    losning: 'Ordination till en planerad vårdhändelse som inte är tidsatt, med tid före eller efter händelsen. Vårdhändelsen får sin tid från tidboken, och administrationstiden räknas om när tiden bokas, bokas om eller avbokas. Den manuella tidsättningen finns kvar som reserv. Vårdadministratören ser att tiden styr en läkemedelsdos, men aldrig läkemedlet, och patienten kan inte själv boka om en sådan tid.',
+    expert: 'Systemet räknar fram när läkemedlet ska ges när vårdhändelsen får sin tid, visar det i Läkemedel att ge och skriver varje ändring i ordinationens historik. Vid avbokning går dosen tillbaka till att vänta, med en förklaring på vanlig svenska.',
     anmarkning: 'Fördefinierade mallar för en vårdhändelse med flera ordinationer saknas.',
   },
   { id: '3.5.2.15', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',

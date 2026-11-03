@@ -163,6 +163,12 @@ export const UPPGIFTER = [
     text: 'David Nordin ringer och kan inte komma på sin tid i dag. Ge honom en ny tid.',
     kontroll: { notis: 'Tiden är ombokad till' },
   },
+  // Runda 5, r1: läkaren sätter upp ett återbesök som systemet föreslår.
+  {
+    id: 'aterbesok', namn: 'Sätta upp ett återbesök', roll: 'lak-kard', start: 'Patientens översikt',
+    text: 'Gunnar Åkesson ska komma tillbaka till mottagningen efter vårdtillfället. Se till att han kommer upp på väntelistan för ett återbesök, så att vårdadministratören kan boka tiden.',
+    kontroll: { notis: 'Återbesöket står på väntelistan' },
+  },
 ];
 
 // Deltagarens bakgrund. Bara val, inga fritextfält, så att inga identifierande uppgifter samlas in.
