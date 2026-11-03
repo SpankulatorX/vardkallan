@@ -3,6 +3,8 @@
 import { Fel, iso, idag, giltigtDatum, installning } from './db.js';
 import { vardenhetFor } from './atkomst.js';
 import { kallaEtikett } from './journal.js';
+import { tillaggUt } from './ordinationsmallar.js';
+import { utsattningsvarningar, DEMOREGLER_PROCESS } from './lakemedelsregler.js';
 
 export const DEMOREGLER = 'Varningarna är demoregler för att visa flödet. De är inte kliniskt beslutsstöd och inte CE-märkta.';
 export const TYPER = ['staende', 'vid_behov', 'tillfallig'];
@@ -33,6 +35,8 @@ export function ordinationUt(db, o, { historik = true } = {}) {
     vardenhet: { id: o.enhet_id, namn: enhetsnamn(db, o.enhet_id) }, nll_status: o.nll_status,
     kvitteradeVarningar: o.kvitterade_varningar ? JSON.parse(o.kvitterade_varningar) : [],
     kalla: o.kalla, kallaEtikett: kallaEtikett(o.kalla, o.start),
+    // Administrationssätt, fördefinierad mall och planerad vårdhändelse (ordinationsmallar.js).
+    ...tillaggUt(db, o.id),
   };
   if (historik) {
     ut.historik = db.query('SELECT * FROM ordination_historik WHERE ordination_id = ? ORDER BY tid, id').all(o.id)
@@ -203,15 +207,44 @@ export function hamtaRad(db, id) {
   return o;
 }
 
-export function utsatt(atk, o, { orsak }) {
+// Hur många dagar patienten har haft substansen utan uppehåll: från den tidigaste av de synliga ordinationerna av samma
+// substans som följer på varandra med högst ett dygns uppehåll.
+export function behandlingsdagar(atk, o) {
+  const db = atk.db;
+  const atc = lakemedelRad(db, o.lakemedel_id)?.atc;
+  const samma = synligaOrdinationer(atk).filter(x => lakemedelRad(db, x.lakemedel_id)?.atc === atc).sort((a, b) => a.start.localeCompare(b.start));
+  const slutDag = (x) => (x.status === 'utsatt' ? x.utsatt_tid.slice(0, 10) : x.slut ?? idag());
+  let start = o.start;
+  for (let i = samma.length - 1; i >= 0; i--) {
+    const x = samma[i];
+    if (x.id === o.id || x.start >= start) continue;
+    if (Date.parse(slutDag(x)) >= Date.parse(start) - 86400_000) start = x.start;
+  }
+  return Math.max(0, Math.round((Date.parse(idag()) - Date.parse(start)) / 86400_000));
+}
+
+// Varning vid utsättning av läkemedel med särskilda observationer (Sussa 3.5.2.8). Demoregler i lakemedelsregler.js.
+export function utsattningskontroll(atk, o) {
+  atk.krav('ordinera', { resurs: { enhet_id: o.enhet_id, gemensam: true } });
+  const lm = lakemedelRad(atk.db, o.lakemedel_id);
+  return { varningar: o.status === 'aktiv' && lm ? utsattningsvarningar({ lakemedel: lm, behandlingDagar: behandlingsdagar(atk, o) }) : [], demoregler: true, anmarkning: DEMOREGLER_PROCESS };
+}
+
+export function utsatt(atk, o, { orsak, kvitteradeVarningar } = {}) {
   atk.krav('ordinera', { resurs: { enhet_id: o.enhet_id, gemensam: true } });
   if (o.status !== 'aktiv') throw new Fel(400, 'Ordinationen är redan utsatt.', 'ogiltig');
   if (typeof orsak !== 'string' || orsak.trim().length < 3) throw new Fel(400, 'Ange orsak till utsättningen.', 'ogiltig', { falt: ['orsak'] });
   const db = atk.db;
+  // En allvarlig varning kvitteras i samma steg: orsaken till utsättningen är motiveringen.
+  const v = utsattningskontroll(atk, o).varningar;
+  const kv = Array.isArray(kvitteradeVarningar) ? kvitteradeVarningar : [];
+  const saknas = [...new Set(v.filter(x => x.niva === 'allvarlig').map(x => x.regel))].filter(r => !kv.some(k => k?.regel === r));
+  if (saknas.length) throw new Fel(400, 'Läkemedlet har särskilda observationer vid utsättning. Läs varningen och bekräfta utsättningen.', 'ogiltig', { varningar: v, kraverKvittens: saknas, demoregler: true });
   db.query("UPDATE ordinationer SET status = 'utsatt', utsatt_tid = ?, utsatt_av = ?, utsatt_orsak = ? WHERE id = ?").run(iso(), atk.personal.id, orsak.trim(), o.id);
   historik(db, o.id, atk.personal.id, 'Utsatt', orsak.trim());
+  for (const x of v.filter(y => y.niva === 'allvarlig')) historik(db, o.id, atk.personal.id, 'Varning vid utsättning kvitterad', `${x.regel}: ${orsak.trim()}`);
   const nll = overfor(db, o.id, 'utsattning');
-  return { ordination: ordinationUt(db, hamtaRad(db, o.id)), nll };
+  return { ordination: ordinationUt(db, hamtaRad(db, o.id)), nll, varningar: v };
 }
 
 // Avstämning: frågar NLL igen om en överföring med okänd status.
