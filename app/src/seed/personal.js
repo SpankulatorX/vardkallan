@@ -9,6 +9,8 @@ export const YRKEN = {
   // Arkiv och uppföljning (Sussa 5.4.2, 5.3.1.7 och 6.3.1). Egna roller, som inte läser journalen.
   arkivarie: 'Arkivarie',
   uppfoljning: 'Analytiker (uppföljning)',
+  // Fördjupad läkemedelsgenomgång (runda 6, r2, HSLF-FS 2017:37 11 kap.).
+  farmaceut: 'Farmaceut',
 };
 
 export const PERSONAL = [
@@ -42,4 +44,6 @@ export const PERSONAL = [
   // Kontrasignering (Sussa 3.1.11.3): en underläkare som ber om kontrasignering och en överläkare som systemet föreslår.
   { id: 'ul-kard', namn: 'Alva Berglund', yrke: 'lakare', titel: 'Underläkare', enhet: 'uso-kard' },
   { id: 'ol-kard', namn: 'Göran Malm', yrke: 'lakare', titel: 'Överläkare', enhet: 'uso-kard' },
+  // Fördjupad läkemedelsgenomgång (runda 6, r2): en klinisk farmaceut på kardiologen.
+  { id: 'far-kard', namn: 'Elsa Nordin', yrke: 'farmaceut', titel: 'Klinisk apotekare', enhet: 'uso-kard', demo: true },
 ];

@@ -15,6 +15,8 @@ import * as tidbokFhir from './tidbok-fhir.js';
 // Plan vid utsättning och delegering av läkemedelshantering (runda 5).
 import { utsattningsplan } from './lakemedel.js';
 import { delegeringKort } from './delegering.js';
+// Läkemedelsprocessen, del 2 (runda 6, r2).
+import * as stod from './lakemedelsstod.js';
 
 export const SYSTEM = {
   personnummer: 'http://electronichealth.se/identifier/personnummer',
@@ -212,6 +214,9 @@ export function observation(db, m) {
 }
 
 export function medicationRequest(db, o) {
+  return utokaMedicationRequest(db, o, medicationRequestBas(db, o));
+}
+function medicationRequestBas(db, o) {
   const lm = db.query('SELECT * FROM katalog WHERE id = ?').get(o.lakemedel_id);
   const status = o.status === 'utsatt' ? 'stopped' : o.slut && o.slut < idag() ? 'completed' : 'active';
   const plan = o.status === 'utsatt' ? utsattningsplan(db, o.id) : null;
@@ -237,8 +242,45 @@ export function medicationRequest(db, o) {
   };
 }
 
+// Runda 6, r2: förpackningens NPL-pack-id (som i NLL-profilen), trappschemat som en dosering per steg, spädningen som
+// dosering med hastighet, och noter för läkemedelstyp, muntlig ordination, generellt direktiv och mall.
+function utokaMedicationRequest(db, o, r) {
+  const t = stod.tillaggUt(db, o);
+  if (t.forpackning) r.medicationCodeableConcept.coding.push({ system: SYSTEM.nplpackid, code: t.forpackning.nplpackid, display: t.forpackning.text });
+  if (t.trappning) {
+    const satt = r.dosageInstruction[0].route;
+    r.dosageInstruction = t.trappning.steg.map((s, i) => {
+      const till = t.trappning.steg[i + 1]?.fran;
+      const slut = till ? new Date(Date.parse(`${till}T12:00:00Z`) - 86400_000).toISOString().slice(0, 10) : o.slut;
+      return { sequence: i + 1, text: s.dosering, ...(satt ? { route: satt } : {}), timing: { repeat: { boundsPeriod: { start: s.fran, ...(slut ? { end: slut } : {}) }, frequency: 1, period: 1, periodUnit: 'd' } },
+        doseAndRate: [{ doseQuantity: { value: s.dos, unit: 'mg', system: SYSTEM.ucum, code: 'mg' } }] };
+    });
+  }
+  if (t.spadning) {
+    const d = r.dosageInstruction[0];
+    d.text = `${d.text}. ${t.spadning.text}`;
+    if (t.spadning.hastighetMlH) d.doseAndRate = [{ rateQuantity: { value: t.spadning.hastighetMlH, unit: 'ml/h', system: SYSTEM.ucum, code: 'mL/h' } }];
+  }
+  const noter = [
+    t.produkttyp.typ !== 'godkand' && { text: `${t.produkttyp.typText}. ${t.produkttyp.beskrivning}` },
+    t.muntlig && { time: t.muntlig.mottagen, authorString: t.muntlig.mottagenAv.namn, text: `${t.muntlig.sattText} ordination av ${t.muntlig.lakare.namn}, dokumenterad av ${t.muntlig.mottagenAv.namn}. ${t.muntlig.signerad ? `Signerad ${t.muntlig.signerad}.` : 'Inte signerad av läkaren.'}` },
+    t.direktiv && { text: `Ordinerad enligt generellt direktiv (${t.direktiv.indikation}), fastställt av ${t.direktiv.faststalltAv}. Sjuksköterskans bedömning: ${t.direktiv.bedomning}` },
+    t.paket && { text: `Ordinerad ur mallen ${t.paket.namn}.` },
+  ].filter(Boolean);
+  if (noter.length) r.note = [...(r.note ?? []), ...noter];
+  if (t.muntlig) r.recorder = ref('Practitioner', t.muntlig.mottagenAv.id, t.muntlig.mottagenAv.namn);
+  return r;
+}
+
 // Administrering, överlämnande och dos som inte gavs (administrering.js). En iordningsställd dos är ännu ingen resurs.
+// Runda 6, r2: en makulerad registrering har status entered-in-error och en not med vem, när och varför.
 export function medicationAdministration(db, a) {
+  const r = medicationAdministrationBas(db, a);
+  const m = stod.makuleringFor(db, 'administrering', a.id);
+  if (m) { r.status = 'entered-in-error'; r.note = [...(r.note ?? []), { authorString: m.av, time: m.tid, text: `Makulerad: ${m.orsak}` }]; }
+  return r;
+}
+function medicationAdministrationBas(db, a) {
   const lm = db.query('SELECT * FROM katalog WHERE id = ?').get(a.lakemedel_id);
   // Delegeringen som en undersköterska gav dosen med (runda 5).
   const deleg = delegeringKort(db, a.delegering_id);
@@ -609,9 +651,11 @@ export const MAPPA_INVANARE = {
   Flag: flag,
   MedicationRequest: (db, o) => {
     const r = medicationRequest(db, o);
-    r.medicationCodeableConcept.coding = r.medicationCodeableConcept.coding.filter(c => c.system !== SYSTEM.nplid);
+    r.medicationCodeableConcept.coding = r.medicationCodeableConcept.coding.filter(c => c.system !== SYSTEM.nplid && c.system !== SYSTEM.nplpackid);
     r.extension = r.extension.filter(e => e.url !== `${EXT}/nll-status`);
     r.requester = utanPersonalId(r.requester);
+    // Runda 6, r2: sjuksköterskan som dokumenterade en muntlig ordination visas utan personalens id.
+    if (r.recorder) r.recorder = utanPersonalId(r.recorder);
     return r;
   },
   ServiceRequest: (db, rr) => {

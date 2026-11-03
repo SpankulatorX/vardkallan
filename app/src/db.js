@@ -18,6 +18,8 @@ import { sakraSchema as sakraLakemedelsprocess, seedaAdministreringar, seedaVidi
 import { sakraUtdataschema, seedaArkivpatient, seedaUtdata } from './utdata-schema.js';
 // Delegering av läkemedelshantering och plan vid utsättning av antikoagulantia (runda 5, lakemedelssakerhet-schema.js).
 import { sakraLakemedelssakerhet, seedaDelegeringar } from './lakemedelssakerhet-schema.js';
+// Läkemedelsprocessen, del 2 (runda 6, r2, lakemedelsstod-schema.js).
+import { sakraLakemedelsstod, seedaLakemedelsstod } from './lakemedelsstod-schema.js';
 
 // Fel som API:t svarar med. kod: nekad | saknas | ogiltig | kraver_val | kraver_samtycke
 export class Fel extends Error {
@@ -358,6 +360,8 @@ export function byggSeed(bas = nu()) {
   // Delegeringar för undersköterskan och tabellen för planen vid utsättning (lakemedelssakerhet-schema.js).
   sakraLakemedelssakerhet(db);
   seedaDelegeringar(db, bas);
+  // Runda 6, r2: mallar, direktiv, läkemedelstyper, licens och förpackningar.
+  seedaLakemedelsstod(db, bas, { ny: true });
   seedaInvanare(db);
   // Uppmärksamhetsinformation (Sussa 3.1.5), se seed/uppmarksamhet.js.
   db.exec(SCHEMA_UPPMARKSAMHET);
@@ -442,6 +446,8 @@ export function migrera(db) {
     knytHistorik(db, { bas: seedTid ? new Date(seedTid) : nu() });
   }
   sakraUtdataschema(db);
+  // Runda 6, r2: en äldre sandlåda får tabellerna, katalogens förpackningar, läkemedelstyperna, mallarna och direktiven.
+  seedaLakemedelsstod(db, nu());
   // En sandlåda från före tidboken får den, relativt till i dag.
   require('./tidbok.js').sakraTidbok(db);
   return db;

@@ -103,6 +103,8 @@ describe('Seed', () => {
       ['logg', 'Mats Wall', 'logggranskare', 'rk'],
       ['ark', 'Ingela Nord', 'arkivarie', 'rk'],
       ['uppf', 'Daniel Sund', 'uppfoljning', 'rk'],
+      // Runda 6, r2: farmaceuten i den fördjupade läkemedelsgenomgången.
+      ['far-kard', 'Elsa Nordin', 'farmaceut', 'uso-kard'],
     ]);
   });
 

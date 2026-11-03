@@ -487,7 +487,8 @@ describe('Vidimering', () => {
     const ids = JSON.parse(db.query('SELECT ordinationer FROM vidimeringar WHERE id = ?').get(v.id).ordinationer).map(x => x.id);
     const sert = db.query("SELECT id FROM ordinationer WHERE patient_id = 'p04' AND enhet_id = 'uso-psyk'").get().id;
     expect(ids).not.toContain(sert);
-    expect(ids.length).toBe(4);
+    // Fyra från seeden och melatoninet med passerad uppföljning (runda 6, r2).
+    expect(ids.length).toBe(5);
   });
 });
 
