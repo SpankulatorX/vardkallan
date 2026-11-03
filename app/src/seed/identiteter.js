@@ -1,8 +1,7 @@
 // Påhittade patienter för identiteterna i Sussa 3.1.1: samordningsnummer, reservnummer, annan identitet med OID och en
 // dubblett att slå samman. Samma form som seed/patienter.js, med identiteten i ett av fälten
 //   pnr           personnummer ur Skatteverkets testpersonnummer
-//   samnr         samordningsnummer, påhittat och byggt på ett testpersonnummer (samma datum och löpnummer, dag plus 60,
-//                 ny kontrollsiffra). Skatteverket publicerar inga testsamordningsnummer.
+//   samnr         samordningsnummer ur Skatteverkets testsamordningsnummer
 //   reservnummer  Vårdkällans påhittade reservnummer för demon (se src/identitet.js)
 //   oid           { rot, nummer }: en identitet i ett påhittat id-system under demons OID-rot, med fodd och kon
 // tidigare är identiteter som patienten har haft, med tider som i seeden.
@@ -94,10 +93,10 @@ export const IDENTITETSPATIENTER = [
   // 18. Säsongsarbetare med samordningsnummer, listad på Vårdcentralen Tybble. Fick först ett reservnummer på akuten,
   // innan samordningsnumret fanns. Reservnumret finns kvar som tidigare identitet.
   {
-    id: 'p18', samnr: '199308662395', fornamn: 'Marek', efternamn: 'Zieliński',
+    id: 'p18', samnr: '199302862397', fornamn: 'Marek', efternamn: 'Zieliński',
     adress: 'Ekersvägen 22', postnr: '703 54', ort: 'Örebro', telefon: '070-174 06 33',
     kontaktperson: null, listning: { enhet: 'vc-tybble', fran: -300 },
-    tidigare: [{ reservnummer: 'VK199308060110', fran: [-400, '15:10'], till: [-310, '10:00'], orsak: 'ersatt av samordningsnummer' }],
+    tidigare: [{ reservnummer: 'VK199302260112', fran: [-400, '15:10'], till: [-310, '10:00'], orsak: 'ersatt av samordningsnummer' }],
     vardkontakter: [
       { ref: 'akut', enhet: 'uso-akut', typ: 'akut', start: [-400, '15:00'], slut: [-400, '19:30'], plats: 'Akutrum 7', orsak: 'Andningsbesvär' },
       { ref: 'vc1', enhet: 'vc-tybble', typ: 'oppenvard', start: [-60, '10:00'], slut: [-60, '10:30'], plats: 'Mottagning', orsak: 'Astma' },

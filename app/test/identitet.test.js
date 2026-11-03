@@ -3,7 +3,7 @@ import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  tolka, kontrollsiffra, demoKontroll, nyttReservnummer, samordningsnummerAv, dubbletterFor, slaSamman, hittaPaIdentitet,
+  tolka, kontrollsiffra, demoKontroll, nyttReservnummer, dubbletterFor, slaSamman, hittaPaIdentitet,
   OID_ROT, OID_RESERVNUMMER, FHIR_SYSTEM, gallandeId,
 } from '../src/identitet.js';
 import { verifiera } from '../src/logg.js';
@@ -23,8 +23,8 @@ describe('Identitet', () => {
       'urn:oid:1.2.752.129.2.1.3.1|196505092962', '1.2.752.129.2.1.3.1 19650509-2962', 'http://electronichealth.se/identifier/personnummer|196505092962']) {
       expect({ s, ...tolka(s, { idag: IDAG }) }).toMatchObject({ s, ok: true, typ: 'personnummer', varde: '196505092962', fodd: '1965-05-09', kon: 'kvinna', visning: '19650509-2962' });
     }
-    for (const s of ['19930866-2395', '930866-2395', '1.2.752.129.2.1.3.3 199308662395']) {
-      expect(tolka(s, { idag: IDAG })).toMatchObject({ ok: true, typ: 'samordningsnummer', varde: '199308662395', fodd: '1993-08-06', kon: 'man', visning: '19930866-2395' });
+    for (const s of ['19930286-2397', '930286-2397', '1.2.752.129.2.1.3.3 199302862397']) {
+      expect(tolka(s, { idag: IDAG })).toMatchObject({ ok: true, typ: 'samordningsnummer', varde: '199302862397', fodd: '1993-02-26', kon: 'man', visning: '19930286-2397' });
     }
     for (const s of ['VK19650509-0023', 'vk196505090023', 'VK 19650509 0023', `${OID_RESERVNUMMER} VK196505090023`]) {
       expect(tolka(s, { idag: IDAG })).toMatchObject({ ok: true, typ: 'reservnummer', varde: 'VK196505090023', fodd: '1965-05-09', kon: 'kvinna', visning: 'VK19650509-0023' });
@@ -35,7 +35,7 @@ describe('Identitet', () => {
     // Ett namn är inget nummer, och då söker systemet på namn.
     for (const s of ['Annika', 'Holmgren', 'Karl-Erik']) expect(tolka(s, { idag: IDAG })).toEqual({ ok: false, arIdentitet: false });
     // Beskrivningen är vanlig svenska.
-    expect(tolka('930866-2395', { idag: IDAG }).beskrivning).toBe('Samordningsnummer (dagen i födelsedatumet är plus 60). Man, född 6 augusti 1993.');
+    expect(tolka('930286-2397', { idag: IDAG }).beskrivning).toBe('Samordningsnummer (dagen i födelsedatumet är plus 60). Man, född 26 februari 1993.');
   });
 
   test('tio siffror och plustecken ger rätt sekel', () => {
@@ -52,7 +52,7 @@ describe('Identitet', () => {
     expect(kontrollsiffra('19650509002')).toBe('3');
     const fel = (s) => tolka(s, { idag: IDAG });
     expect(fel('19650509-2963')).toMatchObject({ ok: false, arIdentitet: true, typ: 'personnummer', fel: expect.stringContaining('Kontrollsiffran stämmer inte') });
-    expect(fel('19930866-2396')).toMatchObject({ ok: false, typ: 'samordningsnummer', fel: expect.stringContaining('samordningsnumret') });
+    expect(fel('19930286-2398')).toMatchObject({ ok: false, typ: 'samordningsnummer', fel: expect.stringContaining('samordningsnumret') });
     expect(fel('VK19650509-0024')).toMatchObject({ ok: false, typ: 'reservnummer', fel: expect.stringContaining('Kontrollsiffran i reservnumret') });
     expect(fel('19651309-2962').fel).toBe('Månaden i personnumret är 13. Den ska vara 01 till 12.');
     expect(fel('19650230-2962').fel).toContain('Den dagen finns inte i februari');
@@ -67,15 +67,16 @@ describe('Identitet', () => {
     for (const s of ['19650509-2963', '19651309-2962', 'VK1965', '1.2.3', '19650509-296']) expect(fel(s).fel).not.toMatch(/[\u2013\u2014\u2026]/);
   });
 
-  test('demon tar bara testpersonnummer och samordningsnummer byggda på dem', () => {
+  test('demon tar bara Skatteverkets testpersonnummer och testsamordningsnummer', () => {
     expect(demoKontroll(tolka('196505092962'))).toBeNull();
     // 19121212-1212 är ett giltigt personnummer men inget testpersonnummer.
     expect(tolka('19121212-1212').ok).toBe(true);
     expect(demoKontroll(tolka('19121212-1212'))).toContain('Skatteverkets testpersonnummer');
-    expect(samordningsnummerAv('199308062398')).toBe('199308662395');
-    expect(TESTPNR.has('199308062398')).toBe(true);
-    expect(demoKontroll(tolka('199308662395'))).toBeNull();
-    expect(demoKontroll(tolka(samordningsnummerAv('191212121212')))).toContain('påhittade samordningsnummer');
+    // 19930286-2397 är ett av Skatteverkets testsamordningsnummer. 19930866-2395 har rätt kontrollsiffra men finns
+    // inte i listan, och kan därför tillhöra en verklig person.
+    expect(demoKontroll(tolka('199302862397'))).toBeNull();
+    expect(tolka('19930866-2395').ok).toBe(true);
+    expect(demoKontroll(tolka('19930866-2395'))).toContain('Skatteverkets testsamordningsnummer');
   });
 
   test('reservnummer skapas av systemet med påhittat format, OID-rot för dokumentation och rätt könssiffra', () => {
@@ -98,7 +99,7 @@ describe('Identitet', () => {
     expect(typ('p16')).toEqual({ id_typ: 'personnummer', personnummer: '196505092962' });
     expect(TESTPNR.has('196505092962')).toBe(true);
     expect(typ('p17')).toEqual({ id_typ: 'reservnummer', personnummer: 'VK196505090023' });
-    expect(typ('p18')).toEqual({ id_typ: 'samordningsnummer', personnummer: '199308662395' });
+    expect(typ('p18')).toEqual({ id_typ: 'samordningsnummer', personnummer: '199302862397' });
     expect(typ('p19').id_typ).toBe('oid');
     // Alla seedens identiteter går att tolka och är tillåtna i demon, och varje patient har en gällande identitet.
     for (const r of db.query('SELECT * FROM identiteter').all()) {
@@ -110,7 +111,7 @@ describe('Identitet', () => {
       expect(db.query("SELECT count(*) AS n FROM identiteter WHERE patient_id = ? AND status = 'gallande'").get(id).n).toBe(1);
     }
     // Patient 18 hade ett reservnummer innan samordningsnumret fanns.
-    expect(db.query("SELECT typ, varde FROM identiteter WHERE patient_id = 'p18' AND status = 'tidigare'").all()).toEqual([{ typ: 'reservnummer', varde: 'VK199308060110' }]);
+    expect(db.query("SELECT typ, varde FROM identiteter WHERE patient_id = 'p18' AND status = 'tidigare'").all()).toEqual([{ typ: 'reservnummer', varde: 'VK199302260112' }]);
     expect(dubbletterFor(db, 'p17')).toEqual([{ annan: 'p16', fran: 'p17', till: 'p16', grund: 'samma_namn_fodd', forslagId: null }]);
   });
 
@@ -158,15 +159,15 @@ describe('Identitet', () => {
   test('API: sök hittar patienten på varje identitetstyp, i valfritt format, och på en tidigare identitet', async () => {
     const k = klient(app);
     await k.logga('lak-vc');
-    for (const [q, id, typ] of [['6505092962', 'p16', 'personnummer'], ['930866-2395', 'p18', 'samordningsnummer'], ['VK 19650509 0023', 'p17', 'reservnummer'],
+    for (const [q, id, typ] of [['6505092962', 'p16', 'personnummer'], ['930286-2397', 'p18', 'samordningsnummer'], ['VK 19650509 0023', 'p17', 'reservnummer'],
       ['1.3.6.1.4.1.32473.1.2 UT-4471-0921', 'p19', 'oid']]) {
       const r = await k.get(`/api/sok?q=${encodeURIComponent(q)}`);
       expect(r.status).toBe(200);
       expect(r.data.map(p => [p.id, p.identitetstyp])).toEqual([[id, typ]]);
     }
-    const r = await k.get(`/api/sok?q=${encodeURIComponent('VK19930806-0110')}`);
+    const r = await k.get(`/api/sok?q=${encodeURIComponent('VK19930226-0112')}`);
     expect(r.data.map(p => p.id)).toEqual(['p18']);
-    expect(r.data[0]).toMatchObject({ personnummer: '19930866-2395', typText: 'Samordningsnummer', traffPa: { typText: 'Reservnummer', status: 'tidigare' } });
+    expect(r.data[0]).toMatchObject({ personnummer: '19930286-2397', typText: 'Samordningsnummer', traffPa: { typText: 'Reservnummer', status: 'tidigare' } });
     // På namn hittas båda journalerna för Annika Holmgren, en med personnummer och en med reservnummer.
     const namn = await k.get('/api/sok?q=Holmgren');
     expect(namn.data.map(p => [p.id, p.personnummer]).sort()).toEqual([['p16', '19650509-2962'], ['p17', 'VK19650509-0023']]);
@@ -322,12 +323,12 @@ describe('Identitet', () => {
     await k.logga('lak-vc');
     const p18 = (await k.get('/fhir/Patient/p18')).data;
     expect(p18.identifier).toEqual([
-      { use: 'official', system: 'http://electronichealth.se/identifier/samordningsnummer', value: '199308662395' },
-      { use: 'old', system: `urn:oid:${OID_RESERVNUMMER}`, value: 'VK199308060110' },
+      { use: 'official', system: 'http://electronichealth.se/identifier/samordningsnummer', value: '199302862397' },
+      { use: 'old', system: `urn:oid:${OID_RESERVNUMMER}`, value: 'VK199302260112' },
     ]);
-    const sok = (await k.get(`/fhir/Patient?identifier=${encodeURIComponent(`urn:oid:${OID_RESERVNUMMER}|VK199308060110`)}`)).data;
+    const sok = (await k.get(`/fhir/Patient?identifier=${encodeURIComponent(`urn:oid:${OID_RESERVNUMMER}|VK199302260112`)}`)).data;
     expect(sok.entry.map(e => e.resource.id)).toEqual(['p18']);
-    const sam = (await k.get(`/fhir/Patient?identifier=${encodeURIComponent('http://electronichealth.se/identifier/samordningsnummer|199308662395')}`)).data;
+    const sam = (await k.get(`/fhir/Patient?identifier=${encodeURIComponent('http://electronichealth.se/identifier/samordningsnummer|199302862397')}`)).data;
     expect(sam.entry.map(e => e.resource.id)).toEqual(['p18']);
     await k.logga('lak-akut');
     expect((await k.get('/fhir/Patient/p19')).data.identifier).toEqual([{ use: 'official', system: 'urn:oid:1.3.6.1.4.1.32473.1.2', value: 'UT-4471-0921' }]);

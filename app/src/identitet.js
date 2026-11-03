@@ -43,6 +43,9 @@ export const TYPER = {
 // Skatteverkets testpersonnummer (kopia av research/testpersonnummer.json). I demon går bara de att registrera.
 let testpnr = null;
 const testpersonnummer = () => (testpnr ??= new Set(JSON.parse(readFileSync(join(import.meta.dir, 'seed', 'testpersonnummer.json'), 'utf8'))));
+// Skatteverkets testsamordningsnummer (öppna data, datamängden Testsamordningsnummer, hämtad 2026-11-03).
+let testsamnr;
+const testsamordningsnummer = () => (testsamnr ??= new Set(JSON.parse(readFileSync(join(import.meta.dir, 'seed', 'testsamordningsnummer.json'), 'utf8'))));
 
 // Kontrollsiffran enligt Luhn-algoritmen (modulus 10), som för personnummer: varannan siffra från höger dubbleras.
 export function kontrollsiffra(siffror) {
@@ -192,25 +195,17 @@ export function tolka(text, { idag = idagSv() } = {}) {
   return { ok: false, arIdentitet: false };
 }
 
-// Det som inte får registreras i demon, eller null. Personnummer bara från Skatteverkets testpersonnummer, och
-// samordningsnummer bara de som bygger på ett testpersonnummer (samma datum och löpnummer, dag plus 60).
+// Det som inte får registreras i demon, eller null. Personnummer och samordningsnummer bara från Skatteverkets
+// testpersonnummer och testsamordningsnummer, så att inget nummer i demon kan tillhöra en verklig person.
 export function demoKontroll(t) {
   if (!t?.ok) return null;
   if (t.typ === 'personnummer' && !testpersonnummer().has(t.varde)) {
     return 'Numret är ett giltigt personnummer men inte ett av Skatteverkets testpersonnummer. I demon går bara testpersonnummer att använda, så att inga riktiga personnummer hamnar här.';
   }
-  if (t.typ === 'samordningsnummer') {
-    const bas = `${t.varde.slice(0, 6)}${String(Number(t.varde.slice(6, 8)) - 60).padStart(2, '0')}${t.varde.slice(8, 11)}`;
-    if (![...testpersonnummer()].some(p => p.startsWith(bas))) {
-      return 'I demon går bara påhittade samordningsnummer att använda, byggda på ett av Skatteverkets testpersonnummer (samma datum och löpnummer, dag plus 60).';
-    }
+  if (t.typ === 'samordningsnummer' && !testsamordningsnummer().has(t.varde)) {
+    return 'Numret är ett giltigt samordningsnummer men inte ett av Skatteverkets testsamordningsnummer. I demon går bara testsamordningsnummer att använda, så att inga riktiga samordningsnummer hamnar här.';
   }
   return null;
-}
-// Samordningsnumret som byggs på ett testpersonnummer: dag plus 60 och ny kontrollsiffra.
-export function samordningsnummerAv(pnr) {
-  const borjan = `${pnr.slice(0, 6)}${Number(pnr.slice(6, 8)) + 60}${pnr.slice(8, 11)}`;
-  return borjan + kontrollsiffra(borjan.slice(2));
 }
 
 // Nytt reservnummer: VK, födelsedatumet och ett ledigt löpnummer med rätt könssiffra, och kontrollsiffran.

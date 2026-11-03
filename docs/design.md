@@ -406,7 +406,7 @@ Systemet är experten. Ett nummer skrivs eller klistras in i valfritt format, oc
 
 OID-roten 1.3.6.1.4.1.32473 är IANA:s nummer för dokumentation och exempel (RFC 5612) och tillhör ingen verklig organisation. Demon använder grenen 1.3.6.1.4.1.32473.1: `.1.1` för Vårdkällans reservnummer och `.1.2` för ett påhittat utländskt id-system som en av seedens patienter identifieras med. Vårdkällan utger sig inte för att vara Region Örebro län eller någon annan vårdgivare.
 
-I demon går bara Skatteverkets testpersonnummer att använda (kopia i `seed/testpersonnummer.json`), så att inga riktiga personnummer hamnar i sandlådorna. Skatteverket publicerar inga testsamordningsnummer. Demons samordningsnummer är därför påhittade och byggda på ett testpersonnummer: samma datum och löpnummer, dag plus 60 och en ny kontrollsiffra. Bara sådana samordningsnummer tas emot. Det går inte att kontrollera mot Skatteverket att ett sådant nummer aldrig har delats ut.
+I demon går bara Skatteverkets testpersonnummer att använda (kopia i `seed/testpersonnummer.json`), så att inga riktiga personnummer hamnar i sandlådorna. På samma sätt går bara Skatteverkets testsamordningsnummer att använda (kopia i `seed/testsamordningsnummer.json`, ur datamängden Testsamordningsnummer i Skatteverkets öppna data, hämtad 3 november 2026). Ett samordningsnummer med rätt kontrollsiffra som inte finns i listan avvisas, eftersom det kan tillhöra en verklig person.
 
 ### Registrering och ny identitet
 
@@ -442,6 +442,20 @@ En sammanslagning går inte att ångra i demon.
 ### Seed
 
 Fyra påhittade patienter i `seed/identiteter.js`: Annika Holmgren med personnummer på Vårdcentralen Kumla (16) och samma person med reservnummer, inlagd på kardiologen i natt utan legitimation (17), en dubblett att slå samman. En säsongsarbetare med samordningsnummer på Vårdcentralen Tybble som först hade ett reservnummer (18), och en turist som identifieras med en identitet i det påhittade utländska id-systemet (19).
+
+## Beslutade avvägningar (3 november 2026)
+
+Projektägaren beslutade de här frågorna efter omgång 2 i runda 4:
+
+- **Uppmärksamhetsinformation bekräftas bara av läkare**, som i dag.
+- **Födoämnesallergier, som jordnötsallergi, visas som övrig överkänslighet** och räknas inte som läkemedelsöverkänslighet.
+- **Bara vårdadministratören slår samman journaler.** Det kräver behörighet till båda journalerna.
+- **Att dela upp en felaktig sammanslagning** byggs i en senare runda. Fram till dess går en sammanslagning inte att ångra.
+- **Patienten ser vårdtillfällen och hälsoärenden i Min journal** från en senare runda.
+- **Kontakter som systemet skapar avslutas inte automatiskt.** De slutar ge vårdrelation efter 90 dagar.
+- **Patientavgifterna är demoregler** och följer inte regionens taxa.
+- **Demons samordningsnummer är Skatteverkets testsamordningsnummer**, på samma sätt som personnumren är testpersonnummer.
+- **Den medicinskt ansvariga kliniken ser inte platsen för en vistelse på en annan vårdenhet utan aktivt val**, och **en kontakt som skapas vid nödåtkomst ger ingen vårdrelation.** Båda följer av att en kontakt aldrig får skapa behörighet som användaren inte hade.
 
 ## Kravregistret (krav.js)
 
