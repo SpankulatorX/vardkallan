@@ -7,6 +7,7 @@ import * as administrering from '../src/administrering.js';
 import * as lakemedel from '../src/lakemedel.js';
 import * as delegering from '../src/delegering.js';
 import * as fhir from '../src/fhir.js';
+import * as mallar from '../src/ordinationsmallar.js';
 import { kanRoll } from '../src/atkomst.js';
 import { verifiera } from '../src/logg.js';
 import { atk, personal, testserver, klient, sandlada } from './hjalp.js';
@@ -258,8 +259,8 @@ describe('Dos som avviker från ordinationen', () => {
     const db = sandladaKl('13:30');
     const a = atk(db, 'ssk-kard', 'p01', {}, 'ge_lakemedel');
     const alvedon = ordFor(db, 'p01', 'Alvedon');
-    expect(regler(administrering.kontroll(a, { ordinationId: alvedon.id, dos: 1000, antal: 2 }).varningar)).toEqual([]);
-    expect(regler(administrering.kontroll(a, { ordinationId: alvedon.id, dos: 1500, antal: 3 }).varningar)).toEqual(['observera:avvikande_dos']);
+    expect(regler(administrering.kontroll(a, { ordinationId: alvedon.id, dos: 500, antal: 2 }).varningar)).toEqual([]);
+    expect(regler(administrering.kontroll(a, { ordinationId: alvedon.id, dos: 500, antal: 3 }).varningar)).toEqual(['observera:avvikande_dos']);
     // Utan dos i ordinationen (Waran enligt doseringsschema) finns inget att jämföra med.
     const waran = ordFor(db, 'p01', 'Waran');
     expect(regler(administrering.kontroll(a, { ordinationId: waran.id, dos: 5 }).varningar)).not.toContain('observera:avvikande_dos');
@@ -327,6 +328,81 @@ describe('Utsättning av antikoagulantia', () => {
       expect((await k.post(`/api/ordination/${alvedon.id}/utsatt`, { orsak: 'Smärtfri' })).status).toBe(200);
       expect(verifiera(sandlada(app, k).db).hel).toBe(true);
     } finally { app.stopp(); }
+  });
+});
+
+// Fel som säkerhetsgranskningen av runda 5 hittade. Varje test visade felet innan det rättades.
+describe('Säkerhetsgranskning av delegering och dos', () => {
+  test('en delegering kan inte registreras flera år fram: från högst 30 dagar fram och till högst ett år efter beslutsdagen', () => {
+    const db = sandladaKl('13:30');
+    const ssk = personal(db, 'ssk-kard');
+    const reg = (inp) => fel(() => delegering.registrera(db, ssk, { personalId: 'usk-kard', omfattning: ['tabletter_peroralt'], kunskapKontrollerad: true, ...inp }));
+    expect(reg({ fran: '2035-01-01', till: '2035-12-31' }).extra.falt).toContain('fran');
+    expect(reg({ fran: addDagar(idag(), 31) }).extra.falt).toContain('fran');
+    // Till räknas från beslutsdagen, inte från startdagen.
+    expect(reg({ fran: addDagar(idag(), 20), till: addDagar(idag(), 380) }).extra.falt).toContain('till');
+    const d = delegering.registrera(db, ssk, { personalId: 'usk-kard', omfattning: ['tabletter_peroralt'], kunskapKontrollerad: true, fran: addDagar(idag(), 30) });
+    expect(d).toMatchObject({ fran: addDagar(idag(), 30), till: addDagar(idag(), 365), uppfoljning: addDagar(idag(), 365) });
+  });
+
+  test('påminnelsen räknas från beslutet som gäller i dag, och ett senare beslut tystar den bara om det tar vid utan glapp', () => {
+    const db = sandladaKl('13:30');
+    const ssk = personal(db, 'ssk-kard');
+    const ny = (fran) => delegering.registrera(db, ssk, { personalId: 'usk-kard', omfattning: ['tabletter_peroralt'], kunskapKontrollerad: true, fran });
+    // Nuvarande delegering går ut om 25 dagar. Ett beslut som börjar om 28 dagar lämnar två dagar utan delegering.
+    ny(addDagar(idag(), 28));
+    expect(delegering.paminnelser(db, ssk).map(p => [p.personalId, p.till])).toEqual([['usk-kard', addDagar(idag(), 25)]]);
+    // Ett beslut som börjar dagen efter tar vid utan glapp.
+    ny(addDagar(idag(), 26));
+    expect(delegering.paminnelser(db, ssk)).toEqual([]);
+  });
+
+  test('avvikande dos räknas som dos gånger antal, så antal kringgår inte varningen', () => {
+    const db = sandladaKl('13:30');
+    const a = atk(db, 'ssk-kard', 'p01', {}, 'ge_lakemedel');
+    const furo = ordFor(db, 'p01', 'Furosemid');
+    const k = (inp) => regler(administrering.kontroll(a, { ordinationId: furo.id, planerad: kl('14:00'), ...inp }).varningar);
+    expect(k({ dos: 400 })).toEqual(['allvarlig:avvikande_dos']);
+    expect(k({ antal: 20 })).toEqual(['allvarlig:avvikande_dos']);
+    expect(k({ dos: 40, antal: 2 })).toEqual(['observera:avvikande_dos']);
+    expect(fel(() => administrering.spara(a, { ordinationId: furo.id, planerad: kl('14:00'), antal: 20 })).extra.kraverKvittens).toEqual(['avvikande_dos']);
+    // Alvedon 500 mg, "1 till 2 tabletter": två tabletter ger ingen varning, tre gör det.
+    const alvedon = ordFor(db, 'p01', 'Alvedon');
+    expect(regler(administrering.kontroll(a, { ordinationId: alvedon.id, antal: 2 }).varningar)).toEqual([]);
+    expect(regler(administrering.kontroll(a, { ordinationId: alvedon.id, antal: 3 }).varningar)).toEqual(['observera:avvikande_dos']);
+  });
+
+  test('administrationssättet ska passa läkemedelsformen, och delegeringens kategori bestäms av formen', () => {
+    const db = sandladaKl('13:30');
+    // En injektionsvätska kan inte ordineras under tungan.
+    expect(fel(() => mallar.valideraTillagg(db, { lakemedelId: 'VK-NPL-0004', administrationssatt: 'sublingualt' })).extra.falt).toEqual(['administrationssatt']);
+    expect(fel(() => mallar.valideraTillagg(db, { lakemedelId: 'VK-NPL-0010', administrationssatt: 'subkutant' })).extra.falt).toEqual(['administrationssatt']);
+    expect(mallar.valideraTillagg(db, { lakemedelId: 'VK-NPL-0004', administrationssatt: 'subkutant' }).administrationssatt).toBe('subkutant');
+    expect(mallar.forslag(atk(db, 'lak-kard', 'p01', {}, 'ordinera'), db.query("SELECT * FROM katalog WHERE id = 'VK-NPL-0004'").get()).tillatnaAdministrationssatt).toContain('subkutant');
+    // Också med en ordination som redan har fel administrationssätt räknas kategorin ur formen.
+    delegering.registrera(db, personal(db, 'ssk-kard'), { personalId: 'usk-kard', omfattning: ['tabletter_peroralt', 'sublingualt'], kunskapKontrollerad: true });
+    const f = fragmin(db);
+    db.query("INSERT INTO ordination_tillagg (ordination_id, administrationssatt) VALUES (?, 'sublingualt') ON CONFLICT (ordination_id) DO UPDATE SET administrationssatt = 'sublingualt'").run(f.id);
+    expect(delegering.kategoriFor({ form: 'injektionsvätska, lösning i förfylld spruta', atc: 'B01AB04' }, 'sublingualt')).toBe('injektion_subkutant');
+    expect(administrering.lista(atk(db, 'usk-kard', 'p01')).doser.find(d => d.ordinationId === f.id).delegering.omfattas).toBe(false);
+  });
+
+  test('en delegering ska gälla både när en dos iordningsställs och för dostiden', () => {
+    const db = sandladaKl('13:30');
+    const furo = ordFor(db, 'p01', 'Furosemid');
+    const d0 = idag();
+    // Dagen efter att delegeringen gick ut försöker undersköterskan iordningsställa en dos från dess sista dag.
+    const sista = addDagar(d0, 25);
+    setSystemTime(new Date(kl('09:00', addDagar(d0, 26))));
+    const e = fel(() => administrering.spara(atk(db, 'usk-kard', 'p01', {}, 'ge_lakemedel'), { ordinationId: furo.id, planerad: kl('14:00', sista), atgard: 'iordningstall' }));
+    expect(e).toMatchObject({ status: 403 });
+    expect(e.message).toContain('gällde till och med');
+    // En giltig delegering i dag räcker inte för en dostid efter att den har gått ut.
+    setSystemTime(new Date(kl('13:30', d0)));
+    const e2 = fel(() => administrering.spara(atk(db, 'usk-kard', 'p01', {}, 'ge_lakemedel'), { ordinationId: furo.id, planerad: kl('08:00', addDagar(d0, 26)), atgard: 'iordningstall' }));
+    expect(e2).toMatchObject({ status: 403 });
+    // Inom delegeringen går det.
+    expect(administrering.spara(atk(db, 'usk-kard', 'p01', {}, 'ge_lakemedel'), { ordinationId: furo.id, planerad: kl('14:00', d0), atgard: 'iordningstall' }).administrering.status).toBe('iordningstalld');
   });
 });
 

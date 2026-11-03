@@ -282,15 +282,19 @@ function underlag(atk, inp, atgard) {
   }
   // Delegeringen (runda 5): en undersköterska som ger, iordningsställer eller lämnar över dosen ska ha en delegering som
   // gäller just den dosen, den dagen och på vårdenheten. Prövas innan något sparas, och ett nekat försök loggas.
-  const delegMs = planerad && atgard === 'iordningstall' ? Date.parse(planerad) : tid;
-  const egen = delegering.prova(db, atk.personal, { lm, satt: tillagg.administrationssatt ?? null, ms: delegMs, ordination: orad });
+  // Vid iordningsställande ska delegeringen gälla både nu, när åtgärden görs, och för dostiden (säkerhetsgranskningen
+  // av runda 5). Annars prövas den för tiden då dosen gavs.
+  const delegTider = planerad && atgard === 'iordningstall' ? [tid, Date.parse(planerad)] : [tid];
+  const prova = (p, du) => delegTider.map(ms => delegering.prova(db, p, { lm, satt: tillagg.administrationssatt ?? null, ms, ordination: orad, du }))
+    .reduce((forsta, r) => (forsta.omfattas ? r.omfattas ? forsta : r : forsta));
+  const egen = prova(atk.personal, true);
   if (!egen.omfattas) {
     atk.logga('ge_lakemedel', 'nekad', orad ? `ordination:${orad.id}` : 'utan_ordination', 'nekad');
     throw new Fel(403, egen.varfor, 'nekad', { delegering: true });
   }
   let delegeringId = egen.delegering?.id ?? null;
   if (utfordRad.id !== atk.personal.id) {
-    const annan = delegering.prova(db, utfordRad, { lm, satt: tillagg.administrationssatt ?? null, ms: delegMs, ordination: orad, du: false });
+    const annan = prova(utfordRad, false);
     if (!annan.omfattas) throw new Fel(400, annan.varfor, 'ogiltig', { falt: ['utfordAv'] });
     delegeringId = annan.delegering?.id ?? null;
   }
@@ -321,7 +325,9 @@ function underlag(atk, inp, atgard) {
       .filter(a => atc.get(a.lakemedel_id) === lm.atc && (a.status === 'given' || a.status === 'overlamnad') && a.tid && Date.parse(a.tid) >= fran)
       .map(a => ({ tid: a.tid, planerad: a.planerad, ordinationId: a.ordination_id, antal: a.antal, status: a.status, av: personNamn(db, a.utford_av) }));
     varningar = administreringsvarningar({ ordination: o, aktivVid: orad ? aktivVid(db, orad, tidVarning) : null, lakemedel: lm, planerad, tid: tidVarning, antal, tidigare, nu,
-      dos: inp.dos == null || inp.dos === '' ? null : dos });
+      // Den givna mängden är dosen gånger antalet (säkerhetsgranskningen av runda 5), så att antal inte kringgår
+      // varningen för en dos som avviker från ordinationen. Utan angiven dos räknas ordinationens dos per enhet.
+      dos: (inp.dos == null || inp.dos === '') && antal === 1 ? null : dos != null ? dos * antal : null });
     if (atk.prova('las_lakemedel', {}).spärrade) {
       varningar.push({ niva: 'observation', regel: 'sparrade_uppgifter', text: 'Det finns spärrade uppgifter i journalen. Doser från en spärrad vårdenhet räknas inte in i kontrollen. Fråga patienten om samtycke att visa dem om det kan ha betydelse.' });
     }

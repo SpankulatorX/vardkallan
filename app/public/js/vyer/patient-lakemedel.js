@@ -261,6 +261,8 @@ function ordinationsForm(plats, ctx) {
       satt('tider', (f.tider ?? []).join(', '));
       satt('typ', f.typ);
       satt('administrationssatt', f.administrationssatt);
+      // Bara administrationssätt som passar läkemedelsformen går att välja (säkerhetsgranskningen av runda 5).
+      if (f.tillatnaAdministrationssatt) for (const o of form.administrationssatt.options) o.hidden = o.disabled = !f.tillatnaAdministrationssatt.includes(o.value);
       satt('uppfoljningsdatum', f.uppfoljningsdatum);
       form.mall.value = f.mall ?? '';
       form.volymMl.value = f.volymMl ?? '';

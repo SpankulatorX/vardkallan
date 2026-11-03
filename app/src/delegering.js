@@ -18,12 +18,14 @@
 import { Fel, iso, idag, addDagar, giltigtDatum } from './db.js';
 import { kanRoll, vardenhetFor, enheterUnder } from './atkomst.js';
 import { loggaRad } from './logg.js';
-import { administrationssatt as sattUrForm } from './ordinationsmallar.js';
+import { administrationssatt as sattUrForm, tillatnaSatt } from './ordinationsmallar.js';
 import { datumI } from './lakemedelsprocess.js';
 
 export const FORESKRIFT = 'HSLF-FS 2017:37 9 kap.';
 export const DEMOREGLER_DELEGERING = 'Vilka läkemedelsformer som kan delegeras och att ett beslut gäller högst ett år är demoregler. En vårdgivare fastställer sina egna rutiner för delegering efter en riskanalys (HSLF-FS 2017:37 9 kap. 8 och 9 §§).';
 export const PAMINN_DAGAR = 30;
+// Så långt fram kan ett beslut börja gälla.
+export const START_SENAST_DAGAR = 30;
 
 // Det som kan delegeras, med texten som visas. Nyckeln räknas fram ur dosens läkemedelsform och administrationssätt.
 export const OMFATTNING = {
@@ -51,12 +53,17 @@ export const ettAr = (datum) => {
 
 // Vilken delegering en dos kräver, ur läkemedlet och ordinationens administrationssätt. null betyder att dosen inte kan
 // ges med delegering i demon (till exempel intravenöst).
+// Kategorin bestäms av läkemedelsformen i NPL. Ordinationens administrationssätt räknas bara när det passar formen, och
+// då bara för att skilja en injektion under huden från en i blodet eller en muskel. En injektionsvätska blir alltså
+// aldrig "under tungan", hur den än har ordinerats (säkerhetsgranskningen av runda 5).
 export function kategoriFor(lm, satt = null) {
-  const s = satt ?? sattUrForm(lm?.form ?? '');
-  if (s === 'peroralt') return /tablett|kapsel/i.test(lm?.form ?? '') ? 'tabletter_peroralt' : null;
-  if (s === 'subkutant') return (lm?.atc ?? '').startsWith('A10A') ? 'insulin_subkutant' : 'injektion_subkutant';
-  if (s === 'inhalation') return 'inhalation';
-  if (s === 'sublingualt') return 'sublingualt';
+  const form = lm?.form ?? '';
+  const tillatna = tillatnaSatt(form);
+  const s = satt && tillatna.includes(satt) ? satt : sattUrForm(form);
+  if (/sublingual/i.test(form)) return 'sublingualt';
+  if (/inhalation/i.test(form)) return 'inhalation';
+  if (/injektion|infusion/i.test(form)) return s === 'subkutant' ? ((lm?.atc ?? '').startsWith('A10A') ? 'insulin_subkutant' : 'injektion_subkutant') : null;
+  if (/tablett|kapsel/i.test(form)) return 'tabletter_peroralt';
   return null;
 }
 
@@ -166,7 +173,7 @@ export function oversikt(db, personal) {
         const giltig = lista.filter(d => d.status === 'giltig').sort((a, b) => b.till.localeCompare(a.till))[0] ?? null;
         return {
           id: p.id, namn: p.namn, titel: p.titel, yrke: p.yrke, enhet: enhetKort(db, p.enhet_id), giltig, delegeringar: lista,
-          forslag: { omfattning: giltig?.omfattning ?? lista[0]?.omfattning ?? STANDARD_OMFATTNING, fran: dag, till: addDagar(dag, 365), senast: ettAr(dag) },
+          forslag: { omfattning: giltig?.omfattning ?? lista[0]?.omfattning ?? STANDARD_OMFATTNING, fran: dag, franSenast: addDagar(dag, START_SENAST_DAGAR), till: addDagar(dag, 365), senast: ettAr(dag) },
         };
       }),
     };
@@ -193,14 +200,16 @@ export function registrera(db, personal, inp = {}) {
   const omf = Array.isArray(inp.omfattning) ? [...new Set(inp.omfattning)] : [];
   if (!omf.length || omf.some(k => !Object.hasOwn(OMFATTNING, k))) falt.push('omfattning');
   const dag = idag();
+  // Beslutet gäller från i dag eller högst 30 dagar fram, och till högst ett år efter beslutsdagen, så att ingen
+  // registrerar ett beslut långt fram och uppföljningen alltid kommer inom ett år från beslutet (9 kap. 6 §).
   const fran = inp.fran ?? dag;
-  if (!giltigtDatum(fran) || fran < dag) falt.push('fran');
-  const till = inp.till ?? (giltigtDatum(fran) ? addDagar(fran, 365) : null);
-  if (!giltigtDatum(till) || (giltigtDatum(fran) && (till < fran || till > ettAr(fran)))) falt.push('till');
+  if (!giltigtDatum(fran) || fran < dag || fran > addDagar(dag, START_SENAST_DAGAR)) falt.push('fran');
+  const till = inp.till ?? addDagar(dag, 365);
+  if (!giltigtDatum(till) || till > ettAr(dag) || (giltigtDatum(fran) && till < fran)) falt.push('till');
   if (inp.kunskapKontrollerad !== true) falt.push('kunskapKontrollerad');
   if (falt.length) {
     const namn = {
-      omfattning: 'vad delegeringen omfattar', fran: 'från vilken dag den gäller (i dag eller senare)', till: 'till vilken dag den gäller (högst ett år)',
+      omfattning: 'vad delegeringen omfattar', fran: `från vilken dag den gäller (i dag eller högst ${START_SENAST_DAGAR} dagar fram)`, till: 'till vilken dag den gäller (högst ett år från i dag)',
       kunskapKontrollerad: `att du har kontrollerat att ${p.namn} har de kunskaper och den kompetens som uppgiften kräver`,
     };
     throw new Fel(400, `Kontrollera ${falt.map(f => namn[f]).join(', ')}.`, 'ogiltig', { falt });
@@ -233,9 +242,15 @@ export function paminnelser(db, personal) {
   const dag = idag();
   const ut = [];
   for (const p of mottagare(db, ve)) {
-    const aktuella = db.query('SELECT * FROM delegeringar WHERE personal_id = ? AND vardenhet_id = ? AND aterkallad_tid IS NULL AND till >= ? ORDER BY till DESC').all(p.id, ve, dag);
-    const sista = aktuella[0];
-    if (!sista || !aktuella.some(d => d.fran <= dag)) continue;
+    // Kedjan börjar i de beslut som gäller i dag. Ett senare beslut förlänger den bara om det tar vid utan glapp.
+    const aktuella = db.query('SELECT * FROM delegeringar WHERE personal_id = ? AND vardenhet_id = ? AND aterkallad_tid IS NULL AND till >= ? ORDER BY fran, id').all(p.id, ve, dag);
+    const idag_ = aktuella.filter(d => d.fran <= dag);
+    if (!idag_.length) continue;
+    let sista = idag_.reduce((a, b) => (b.till > a.till ? b : a));
+    for (let langre = true; langre;) {
+      langre = false;
+      for (const d of aktuella) if (d.fran <= addDagar(sista.till, 1) && d.till > sista.till) { sista = d; langre = true; }
+    }
     const kvar = Math.round((Date.parse(sista.till) - Date.parse(dag)) / 86400_000);
     if (kvar > PAMINN_DAGAR) continue;
     ut.push({

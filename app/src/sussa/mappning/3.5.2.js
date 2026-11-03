@@ -19,6 +19,7 @@ const DE = 'Delegering > ';
 const DA = 'Delegering via API > ';
 const DO = 'Dos som avviker från ordinationen > ';
 const PL = 'Utsättning av antikoagulantia > ';
+const SG = 'Säkerhetsgranskning av delegering och dos > ';
 
 export default [
   {
@@ -213,6 +214,12 @@ export default [
       `${DA}API: undersköterska utan giltig delegering har inte behörigheten att ge läkemedel i sessionen`,
       `${DO}en annan dos än ordinationens varnar och måste kvitteras med motivering, allvarlig vid mer än dubbelt eller mindre än hälften`,
       `${DO}en dos inom ordinationens intervall ("1 till 2 tabletter") varnar inte`,
+      // Rättningar efter säkerhetsgranskningen av runda 5.
+      `${SG}en delegering kan inte registreras flera år fram: från högst 30 dagar fram och till högst ett år efter beslutsdagen`,
+      `${SG}påminnelsen räknas från beslutet som gäller i dag, och ett senare beslut tystar den bara om det tar vid utan glapp`,
+      `${SG}avvikande dos räknas som dos gånger antal, så antal kringgår inte varningen`,
+      `${SG}administrationssättet ska passa läkemedelsformen, och delegeringens kategori bestäms av formen`,
+      `${SG}en delegering ska gälla både när en dos iordningsställs och för dostiden`,
       `${GK}Ge en dos med delegering inom budget`,
       `${GK}Registrera en delegering inom budget`,
     ],
