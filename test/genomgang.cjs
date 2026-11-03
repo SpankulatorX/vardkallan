@@ -131,7 +131,9 @@ async function valDialog(page, knappSel, { intyg = false, bildnamn } = {}) {
 
 const MENY = {
   klinisk: ['Arbetslista', 'Sök patient', 'Inkorg', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
-  sjukskoterska: ['Arbetslista', 'Sök patient', 'Inkorg', 'Läkemedel att ge', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  // Sjuksköterskan registrerar delegeringar, och undersköterskan med delegering ger läkemedel (runda 5).
+  sjukskoterska: ['Arbetslista', 'Sök patient', 'Inkorg', 'Läkemedel att ge', 'Delegeringar', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  underskoterska: ['Arbetslista', 'Sök patient', 'Inkorg', 'Läkemedel att ge', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   utanRemiss: ['Arbetslista', 'Sök patient', 'Inkorg', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Vårdadministratören har tidboken först: dagens arbete, tidbok och väntelista (Sussa 3.4.1 till 3.4.4).
   vardadministrator: ['Dagens arbete', 'Tidbok', 'Väntelista', 'Arbetslista', 'Sök patient', 'Inkorg', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
@@ -249,6 +251,8 @@ const MENY = {
       await page.click('[data-ny]');
       await page.fill('#lm-sok', 'ibuprofen');
       await page.click('[data-lm]');
+      // Vänta in systemets förslag ur produkten, annars kan förslaget ändra formuläret mellan kontrollen och sparandet.
+      await page.waitForFunction(() => document.querySelector('input[name="dos"]')?.value === '400');
       await page.fill('input[name="dosering"]', '1 tablett vid behov, högst 3 per dygn');
       await page.selectOption('select[name="typ"]', 'vid_behov');
       await page.fill('input[name="ordinationsorsak"]', 'Ledvärk');
@@ -665,6 +669,24 @@ const MENY = {
       await page.click('.ant-form [data-signera]');
       await forvanta(page, '.anteckning', 'Sov hela natten.');
     });
+    // Delegering av läkemedelshantering (runda 5, HSLF-FS 2017:37 9 kap.).
+    await s('Johan Ek ser i inkorgen att Amira Haddads delegering går ut och registrerar en ny med systemets förslag', async () => {
+      await gaTill(page, '#/inkorg');
+      await forvanta(page, '#ik-deleg ~ ul', 'Delegering går ut, Amira Haddad');
+      await page.click('#ik-deleg ~ ul a');
+      await vantaVy(page);
+      await forvanta(page, '.del-person', 'Gäller till och med');
+      await page.click('.del-person [data-del="ny"]');
+      const dl = page.locator('dialog[open]');
+      await dl.waitFor();
+      if (!(await dl.locator('#del-tabletter_peroralt').isChecked()) || !(await dl.locator('#del-insulin_subkutant').isChecked())) throw new Error('systemet föreslog inte samma omfattning som den nuvarande delegeringen');
+      await dl.locator('#del-intyg').check();
+      await bild(page, '80-delegering');
+      await dl.locator('[data-varde="ok"]').click();
+      await forvanta(page, '.notis', 'Delegeringen för Amira Haddad är registrerad');
+      await gaTill(page, '#/inkorg');
+      await forvanta(page, '#ik-deleg ~ .tom', 'Inga delegeringar går ut');
+    });
     await allaVyer(page, 'Johan Ek', MENY.sjukskoterska);
 
     // Amira Haddad, undersköterska
@@ -685,7 +707,32 @@ const MENY = {
       await forvanta(page, '.notis', 'Saturation 95');
       await bild(page, '26-underskoterska', true);
     });
-    await allaVyer(page, 'Amira Haddad', MENY.utanRemiss);
+    await s('Amira Haddad ger en dos med delegering och ser inte Ge för en injektion som delegeringen inte omfattar', async () => {
+      // Läkaren ordinerar Fragmin, en injektion under huden utan fasta tider, via API:t.
+      await loggaIn(page, 'lak-kard');
+      const r = await page.request.post(`${BAS}/api/patient/p01/lakemedel`, { headers: { Origin: BAS }, data: {
+        lakemedelId: 'VK-NPL-0004', dosering: 'Enligt schema för bryggbehandling', dos: 5000, dosEnhet: 'IE', typ: 'staende', ordinationsorsak: 'Bryggbehandling',
+        uppfoljningsdatum: new Date(Date.now() + 3 * 86400_000).toISOString().slice(0, 10), kvitteradeVarningar: [{ regel: 'dubbel_antikoagulantia', motivering: 'Bryggbehandling inför uppehåll med Waran' }] } });
+      if (!r.ok()) throw new Error(`ordinationen gick inte: ${r.status()}`);
+      await loggaIn(page, 'usk-kard');
+      await page.click('#meny-lista a[href="#/administrering"]');
+      await vantaVy(page);
+      await forvanta(page, '.adm-delegering', 'Du ger läkemedel med delegering');
+      const gunnar = page.locator('.adm-patient', { hasText: 'Gunnar Åkesson' });
+      const fragmin = gunnar.locator('.adm-vb', { hasText: 'Fragmin' });
+      await fragmin.waitFor();
+      if (await fragmin.locator('[data-adm]').count()) throw new Error('knappen Ge visas för Fragmin, som delegeringen inte omfattar');
+      await forvanta(page, '.adm-vb', 'Fragmin är en injektion under huden, som inte ingår');
+      // Alvedon är utsatt tidigare i genomgången. Waran är en tablett utan fasta tider, som delegeringen omfattar.
+      await gunnar.locator('.adm-vb', { hasText: 'Waran' }).locator('[data-adm="fri"]').click();
+      const dl = page.locator('dialog[open]');
+      await dl.waitFor();
+      await dl.locator('[data-varde="ok"]').click();
+      await forvanta(page, '.notis', 'Waran är given');
+      await forvanta(page, '.adm-vb', 'av Amira Haddad, med delegering från Johan Ek');
+      await bild(page, '81-delegering-dos', true);
+    });
+    await allaVyer(page, 'Amira Haddad', MENY.underskoterska);
 
     // Min journal: patienterna själva, i samma sandlåda som personalen ovan.
     await s('inloggningssidan har val mellan Personal och Patient, och patientlistan visar inte den skyddade patientens namn', async () => {
@@ -901,6 +948,27 @@ const MENY = {
       await page.click('.anteckning [data-kontrasignera]');
       await forvanta(page, '.kontrasignering', 'Kontrasignerad');
     });
+    // Säkrare utsättning (runda 5): antikoagulantia sätts bara ut med en plan.
+    await s('Sara sätter ut Waran med en plan, och planen syns i läkemedelslistan och i FHIR', async () => {
+      await gaTill(page, '#/patient/p01/lakemedel');
+      await page.locator('.lm-tabell tr', { hasText: 'Waran' }).filter({ has: page.locator('[data-utsatt]') }).locator('[data-utsatt]').click();
+      const dl = page.locator('dialog[open]');
+      await dl.waitFor();
+      await forvanta(page, 'dialog[open] .varningslista', 'blodpropp och stroke');
+      // Utan plan går det inte.
+      await dl.locator('[data-varde="ok"]').click();
+      await forvanta(page, 'dialog[open] .dialog-fel', 'Välj planen');
+      await dl.locator('[data-plan="uppehall"]').click();
+      if (!(await dl.locator('textarea[name="orsak"]').inputValue()).startsWith('Uppehåll inför ingrepp')) throw new Error('orsaken fylldes inte i ur planen');
+      await bild(page, '82-utsattning-plan');
+      await dl.locator('[data-varde="ok"]').click();
+      await forvanta(page, '.notis', 'Waran är utsatt');
+      await forvanta(page, '.ut-plan', 'Uppehåll inför ingrepp, återinsätts');
+      const lista = await (await page.request.get(`${BAS}/api/patient/p01/lakemedel`)).json();
+      const waran = lista.ordinationer.find(o => o.lakemedel?.namn === 'Waran' && o.status === 'utsatt');
+      const fhir = await (await page.request.get(`${BAS}/fhir/MedicationRequest/${waran.id}`)).json();
+      if (!fhir.extension.some(e => e.url.endsWith('/utsattningsplan') && e.valueCode === 'uppehall')) throw new Error('planen saknas i FHIR');
+    });
 
     // Ingela Nord, arkivarie (Sussa 5.4.2 och 5.3.1.7)
     await s('Ingela Nord landar i E-arkiv och gallring och kan inte öppna journalen', async () => {
@@ -958,7 +1026,7 @@ const MENY = {
       await forvanta(page, 'main h1', 'Användartest');
       await forvanta(page, '.at-info', 'Alla patienter i demon är påhittade');
       await page.fill('#at-kod', 'G01');
-      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

@@ -16,6 +16,8 @@ import { SANGBYTEN, HALSOARENDEN } from './seed/vardstruktur.js';
 import { sakraSchema as sakraLakemedelsprocess, seedaAdministreringar, seedaVidimeringar } from './lakemedelsprocess.js';
 // Utskrifter, kontrasignering, arkiv och datauttag (Sussa 3.1.9, 3.1.11.3, 5.4.2, 5.3.1.7 och 6.3.1).
 import { sakraUtdataschema, seedaArkivpatient, seedaUtdata } from './utdata-schema.js';
+// Delegering av läkemedelshantering och plan vid utsättning av antikoagulantia (runda 5, lakemedelssakerhet-schema.js).
+import { sakraLakemedelssakerhet, seedaDelegeringar } from './lakemedelssakerhet-schema.js';
 
 // Fel som API:t svarar med. kod: nekad | saknas | ogiltig | kraver_val | kraver_samtycke
 export class Fel extends Error {
@@ -353,6 +355,9 @@ export function byggSeed(bas = nu()) {
   sakraLakemedelsprocess(db);
   seedaAdministreringar(db, bas);
   seedaVidimeringar(db);
+  // Delegeringar för undersköterskan och tabellen för planen vid utsättning (lakemedelssakerhet-schema.js).
+  sakraLakemedelssakerhet(db);
+  seedaDelegeringar(db, bas);
   seedaInvanare(db);
   // Uppmärksamhetsinformation (Sussa 3.1.5), se seed/uppmarksamhet.js.
   db.exec(SCHEMA_UPPMARKSAMHET);
@@ -424,6 +429,13 @@ export function migrera(db) {
   sakraIdentitetsschema(db);
   // Läkemedelsprocessens tabeller finns inte i sandlådor från före den. Inga doser läggs in i efterhand.
   sakraLakemedelsprocess(db);
+  // Delegeringar och planer vid utsättning finns inte i sandlådor från före runda 5. Seedens delegeringar läggs in
+  // relativt till i dag, så att undersköterskan kan ge läkemedel också i en äldre sandlåda.
+  {
+    const fanns = db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'delegeringar'").get();
+    sakraLakemedelssakerhet(db);
+    if (!fanns) seedaDelegeringar(db, nu());
+  }
   // En sandlåda från före vårdtillfällen och hälsoärenden får dem, och allt som dokumenterats knyts till en vårdkontakt.
   if (utokaSchema(db)) {
     const seedTid = db.query("SELECT varde FROM installningar WHERE nyckel = 'seed_tid'").get()?.varde;

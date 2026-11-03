@@ -71,6 +71,10 @@ export const KODSYSTEM = [
     ['smitta', 'Smitta'], ['smitta.smittamne', 'Förekomst av smittämne'], ['smitta.smittsam_sjukdom', 'Förekomst av smittsam sjukdom'],
     ['vardrutin', 'Särskild vårdrutin'], ['vardrutin.information', 'Information som kan leda till särskild vårdrutin'], ['vardrutin.beslut', 'Beslut som kan leda till särskild vårdrutin'],
   ]),
+  // Plan vid utsättning av antikoagulantia (runda 5).
+  kodsystem('utsattningsplan', 'Utsattningsplan', 'Plan vid utsättning', 'Planen när antikoagulantia sätts ut.', [
+    ['byte', 'Byte till annat medel'], ['uppehall', 'Uppehåll inför ingrepp', 'Uppehåll inför ett ingrepp, med datum för återinsättning.'], ['avslutad', 'Avslutad behandling'],
+  ]),
   kodsystem('remisstatus', 'Remisstatus', 'Remisstatus', 'Remissens läge i statuskedjan.', [
     ['skickad', 'Skickad'], ['mottagen', 'Mottagen (kvittens)'], ['bedomd', 'Bedömd'], ['besvarad', 'Besvarad'], ['svar_kvitterat', 'Svar kvitterat'],
   ]),
@@ -81,6 +85,9 @@ export const TILLAGG = [
   tillagg('uppfoljningsdatum', 'Uppfoljningsdatum', 'Uppföljningsdatum', 'Datum då ordinationen ska följas upp. Obligatoriskt i Vårdkällan, som i Nationella läkemedelslistan.', 'MedicationRequest', 'date'),
   tillagg('nll-status', 'NllStatus', 'NLL-status', 'Status för överföringen till Nationella läkemedelslistan (simulerad i demon).', 'MedicationRequest', 'code', `${VS}/nll-status`),
   tillagg('utsattningsorsak', 'Utsattningsorsak', 'Utsättningsorsak', 'Orsaken till att ordinationen sattes ut.', 'MedicationRequest', 'string'),
+  // Plan vid utsättning av antikoagulantia (runda 5).
+  tillagg('utsattningsplan', 'Utsattningsplan', 'Plan vid utsättning', 'Planen som läkaren bekräftade när antikoagulantia sattes ut: byte till annat medel, uppehåll inför ingrepp eller avslutad behandling.', 'MedicationRequest', 'code', `${VS}/utsattningsplan`),
+  tillagg('aterinsattningsdatum', 'Aterinsattningsdatum', 'Datum för återinsättning', 'När behandlingen ska sättas in igen efter ett uppehåll inför ett ingrepp.', 'MedicationRequest', 'date'),
   tillagg('remisstatus', 'Remisstatus', 'Remisstatus', 'Remissens läge i statuskedjan skickad, mottagen, bedömd, besvarad och svar kvitterat.', 'ServiceRequest', 'code', `${VS}/remisstatus`),
   tillagg('svar-senast', 'SvarSenast', 'Svar senast', 'Sista datum för svar på remissen.', 'ServiceRequest', 'date'),
   tillagg('hash', 'Hash', 'Hash i loggkedjan', 'sha256 av föregående rads hash och raden, i hexadecimal form. Kedjan gör att ändringar i loggen upptäcks.', 'AuditEvent', 'string'),

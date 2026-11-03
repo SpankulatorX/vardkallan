@@ -128,6 +128,12 @@ export const UPPGIFTER = [
     text: 'Gunnar har fått långsam puls och ska inte ha Metoprolol längre. Sätt ut det.',
     kontroll: { notis: 'Metoprolol Sandoz är utsatt' },
   },
+  // Säkrare utsättning (runda 5).
+  {
+    id: 'utsattning-plan', namn: 'Sätta ut Waran med plan', roll: 'lak-kard', start: 'Patientens översikt',
+    text: 'Gunnar ska opereras och ska göra uppehåll med Waran inför ingreppet. Sätt ut Waran så att det framgår när behandlingen ska börja igen.',
+    kontroll: { notis: 'Waran är utsatt' },
+  },
   {
     id: 'utskrift', namn: 'Skriva ut läkemedelslistan vid utskrivning', roll: 'lak-kard', start: 'Patientens översikt',
     text: 'Gunnar Åkesson ska gå hem från avdelningen och vill ha med sig sin läkemedelslista på papper. Skriv ut den åt honom.',
@@ -142,6 +148,17 @@ export const UPPGIFTER = [
     id: 'kontrasignera', namn: 'Kontrasignera en anteckning', roll: 'lak-kard', start: 'Arbetslistan efter inloggning',
     text: 'Underläkaren Alva Berglund har bett dig kontrasignera hennes daganteckning om Elin Sandberg. Läs den och kontrasignera.',
     kontroll: { notis: 'Anteckningen är kontrasignerad' },
+  },
+  // Vem som får ge läkemedel (runda 5).
+  {
+    id: 'ge-dos-delegering', namn: 'Ge en dos med delegering', roll: 'usk-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Du arbetar som undersköterska på avdelning 72 och har delegering att ge tabletter. Gunnar Åkesson har ont och ber om något mot smärtan. Han har Alvedon vid behov. Ge honom en dos och dokumentera det.',
+    kontroll: { notis: 'Alvedon är given' },
+  },
+  {
+    id: 'registrera-delegering', namn: 'Registrera en delegering', roll: 'ssk-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Du arbetar som sjuksköterska på avdelning 72. Undersköterskan Amira Haddads delegering att ge läkemedel går snart ut. Du har följt upp hennes kunskaper och de är aktuella. Se till att hon kan fortsätta ge samma läkemedel det kommande året.',
+    kontroll: { notis: 'är registrerad och gäller till och med' },
   },
   {
     id: 'boka-remiss', namn: 'Boka tid för en remiss', roll: 'adm-kard', start: 'Vårdadministratörens startsida',

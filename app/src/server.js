@@ -15,6 +15,8 @@ import * as uppmarksamhet from './uppmarksamhet.js';
 import * as identitet from './identitet.js';
 import * as vardkontakt from './vardkontakt.js';
 import * as administrering from './administrering.js';
+// Delegering av läkemedelshantering (runda 5).
+import * as delegering from './delegering.js';
 import * as vidimering from './vidimering.js';
 import * as ordinationsmallar from './ordinationsmallar.js';
 import * as tidbok from './tidbok.js';
@@ -321,6 +323,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ut.personal = { id: p.id, namn: p.namn, yrke: p.yrke, yrkeText: YRKEN[p.yrke], titel: p.titel, hsaId: p.hsa_id };
       ut.enhet = { ...enhetKort(s.db, p.enhet_id), vardenhet: enhetKort(s.db, ve) };
       ut.behorigheter = ROLLER[p.yrke] ?? [];
+      // Undersköterskan har behörigheten att ge läkemedel bara med en giltig delegering i dag (runda 5).
+      if (p.yrke === 'underskoterska' && !delegering.giltigNu(s.db, p).giltig) ut.behorigheter = ut.behorigheter.filter(h => h !== 'ge_lakemedel');
       sakraKopia(s);
       ut.lasnyckel = s.lasnyckel;
     }
@@ -850,6 +854,11 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const o = lakemedel.hamtaRad(c.db, id);
     const handling = kanRoll(c.personal, 'ordinera') ? 'ordinera' : 'ge_lakemedel';
     return medPatient(c, o.patient_id, handling, (atk) => {
+      // Delegeringen omfattar doser, inte tiden för en vårdhändelse (runda 5).
+      if (c.personal.yrke === 'underskoterska') {
+        atk.logga(handling, 'nekad', `ordination:${o.id}`, 'nekad');
+        throw new Fel(403, 'Tiden för en planerad vårdhändelse sätts av en sjuksköterska eller läkare.', 'nekad');
+      }
       administrering.kravVardande(atk, handling, { enhet_id: o.enhet_id, gemensam: true }, `ordination:${o.id}`);
       ordinationsmallar.tidsattHandelse(c.db, o.id, c.body.tid, c.personal.id);
       // Tiden satt för hand är reserven: vårdhändelsen följer inte längre tidboken (vardhandelse.js).
@@ -867,6 +876,12 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     return medPatient(c, id, 'las_matvarden', (atk) => administrering.vatskebalans(atk, { dag: dagParam(c), brytning: c.url.searchParams.get('brytning') ?? '00' }));
   });
   rutt('POST', '/api/patient/:id/vatskebalans', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'registrera_matvarde', (atk) => vardkontakt.knyt(atk, 'vatskebalans', administrering.registreraVatska(atk, c.body), c.body))]; });
+  // Delegering av läkemedelshantering (runda 5, HSLF-FS 2017:37 9 kap., delegering.js). Sjuksköterskan registrerar och
+  // återkallar delegeringar för undersköterskorna på sin vårdenhet, och undersköterskan ser sina egna. Varje
+  // registrering och varje nekat försök loggas.
+  rutt('GET', '/api/delegeringar', (c) => delegering.oversikt(c.db, kravInloggad(c)));
+  rutt('POST', '/api/delegeringar', (c) => [201, delegering.registrera(c.db, kravInloggad(c), c.body)]);
+  rutt('POST', '/api/delegering/:id/aterkalla', (c, id) => delegering.aterkalla(c.db, kravInloggad(c), id, c.body));
   // Nästa överföring till NLL får timeout. Med { lage: 'fel' } får den i stället ett felsvar.
   rutt('POST', '/api/demo/nll-timeout', (c) => {
     kravInloggad(c);
@@ -1012,6 +1027,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       nllAvvikelser: kanRoll(p, 'las_lakemedel') ? lakemedel.nllAvvikelser(c.db, p).map(med) : [],
       dubbletter: kanRoll(p, 'sla_samman') ? dubbletterIInkorg(c) : [],
       ...utdata.inkorg(c.db, p),
+      // Delegeringar som går ut inom 30 dagar, för sjuksköterskan på samma vårdenhet (runda 5).
+      delegeringarSomGarUt: delegering.paminnelser(c.db, p),
     };
   });
 

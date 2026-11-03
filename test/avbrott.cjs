@@ -419,7 +419,7 @@ const undersok = (page, kod, nyckelB64) => page.evaluate(async ({ kod, nyckelB64
     const lista = await (await lmCtx.request.get(`${BAS}/api/patient/p01/lakemedel`)).json();
     const waran = lista.ordinationer.find(o => o.aktuell && o.lakemedel?.namn.startsWith('Waran'));
     anta(waran, 'Waran finns inte bland de aktuella ordinationerna');
-    const ut = await lmCtx.request.post(`${BAS}/api/ordination/${waran.id}/utsatt`, { data: { orsak: 'Byte till annat antikoagulantia' }, headers: { Origin: BAS } });
+    const ut = await lmCtx.request.post(`${BAS}/api/ordination/${waran.id}/utsatt`, { data: { orsak: 'Byte till annat antikoagulantia', plan: { typ: 'byte' } }, headers: { Origin: BAS } });
     anta(ut.ok(), `utsättningen gick inte: ${ut.status()}`);
     await lm.waitForTimeout(1000);
     anta(await lm.evaluate(() => document.documentElement.dataset.laskopia) === forsta, 'läskopian förnyades innan klockan gick fram');

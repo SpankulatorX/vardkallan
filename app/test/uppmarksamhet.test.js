@@ -140,7 +140,7 @@ describe('Uppmärksamhetsinformation', () => {
     const n = nyckel((await k.get('/api/patient/p01')).data, 'antikoagulantia');
     const post = (await k.post('/api/patient/p01/uppmarksamhet', { forslag: n })).data.poster.find(p => p.term === 'Antikoagulantiabehandling');
     const waran = sandlada(app, k).db.query("SELECT id FROM ordinationer WHERE patient_id = 'p01' AND lakemedel_id = 'VK-NPL-0001'").get();
-    expect((await k.post(`/api/ordination/${waran.id}/utsatt`, { orsak: 'Byte till apixaban' })).status).toBe(200);
+    expect((await k.post(`/api/ordination/${waran.id}/utsatt`, { orsak: 'Byte till apixaban', plan: { typ: 'byte', ersattMed: 'Eliquis' } })).status).toBe(200);
     const h = (await k.get('/api/patient/p01')).data;
     const avsluta = h.uppmarksamhet.forslag.find(f => f.typ === 'avsluta' && f.postId === post.id);
     expect(avsluta.varfor).toContain('utsatt');

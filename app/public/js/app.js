@@ -25,6 +25,8 @@ import * as idag from './vyer/idag.js';
 import * as tidbok from './vyer/tidbok.js';
 import * as vantelista from './vyer/vantelista.js';
 import * as incheckning from './vyer/incheckning.js';
+// Delegering av läkemedelshantering (runda 5).
+import * as delegeringar from './vyer/delegeringar.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -47,7 +49,10 @@ const MENY = [
   ['#/arbetslista', 'Arbetslista', 'lista', () => !utanJournal()],
   ['#/sok', 'Sök patient', 'sok', () => far('sok')],
   ['#/inkorg', 'Inkorg', 'inkorg', () => !utanJournal(), 'inkorg'],
-  ['#/administrering', 'Läkemedel att ge', 'piller', () => far('ge_lakemedel')],
+  // Läkaren ger läkemedel från patientens läkemedelsflik, och avdelningens lista är för sjuksköterskan och
+  // undersköterskan med delegering (runda 5). Sjuksköterskan registrerar delegeringarna.
+  ['#/administrering', 'Läkemedel att ge', 'piller', () => far('ge_lakemedel') && !far('ordinera')],
+  ['#/delegeringar', 'Delegeringar', 'nyckel', () => far('delegera')],
   ['#/remisser', 'Remisser', 'remiss', () => pa('las_remiss', 'las_remiss_status')],
   ['#/vantrum', 'Väntrum (akuten)', 'vantrum', () => far('vantrum')],
   ['#/logg', 'Logguppföljning', 'logg', () => far('las_logg')],
@@ -69,6 +74,8 @@ const RUTTER = [
   [/^#\/sok$/, sok, () => far('sok')],
   [/^#\/inkorg$/, inkorg, () => !utanJournal()],
   [/^#\/administrering$/, administrering, () => far('las_lakemedel')],
+  // Delegeringar (runda 5): sjuksköterskan registrerar, undersköterskan ser sina egna.
+  [/^#\/delegeringar$/, delegeringar, () => far('delegera') || S.session?.personal?.yrke === 'underskoterska'],
   [/^#\/remisser$/, remisser, () => pa('las_remiss', 'las_remiss_status')],
   [/^#\/vantrum$/, vantrum, () => far('vantrum')],
   [/^#\/logg$/, logg, () => far('las_logg')],
@@ -149,7 +156,8 @@ export async function uppdateraInkorg() {
   if (!arPersonal() || utanJournal()) { S.inkorg = null; return; }
   try {
     const d = await api('/api/inkorg', { tyst: true });
-    S.inkorg = d.osigneradeAnteckningar.length + d.okvitteradeSvar.length + d.larm.length + d.nllAvvikelser.length + (d.dubbletter?.length ?? 0) + (d.kontrasigneringar?.length ?? 0) + (d.aterlamnanden?.length ?? 0);
+    S.inkorg = d.osigneradeAnteckningar.length + d.okvitteradeSvar.length + d.larm.length + d.nllAvvikelser.length + (d.dubbletter?.length ?? 0) + (d.kontrasigneringar?.length ?? 0) + (d.aterlamnanden?.length ?? 0)
+      + (d.delegeringarSomGarUt?.length ?? 0);
   } catch { S.inkorg = null; }
   const el = document.querySelector('[data-raknare="inkorg"]');
   if (el) { el.textContent = S.inkorg ? String(S.inkorg) : ''; el.hidden = !S.inkorg; }

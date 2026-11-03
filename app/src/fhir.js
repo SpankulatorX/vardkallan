@@ -12,6 +12,9 @@ import { tillaggUt } from './ordinationsmallar.js';
 import { FHIR_SYSTEM as ID_SYSTEM, identiteterFor, delaOid, maskera, gallandeId, allaPatientIdn, hittaPaToken } from './identitet.js';
 // Tidboken: Schedule, Slot och Appointment (tidbok-fhir.js).
 import * as tidbokFhir from './tidbok-fhir.js';
+// Plan vid utsättning och delegering av läkemedelshantering (runda 5).
+import { utsattningsplan } from './lakemedel.js';
+import { delegeringKort } from './delegering.js';
 
 export const SYSTEM = {
   personnummer: 'http://electronichealth.se/identifier/personnummer',
@@ -211,6 +214,7 @@ export function observation(db, m) {
 export function medicationRequest(db, o) {
   const lm = db.query('SELECT * FROM katalog WHERE id = ?').get(o.lakemedel_id);
   const status = o.status === 'utsatt' ? 'stopped' : o.slut && o.slut < idag() ? 'completed' : 'active';
+  const plan = o.status === 'utsatt' ? utsattningsplan(db, o.id) : null;
   return {
     resourceType: 'MedicationRequest', id: String(o.id), meta: kallaMeta(o.kalla), status, intent: 'order',
     medicationCodeableConcept: { coding: [{ system: SYSTEM.atc, code: lm.atc, ...(ATC[lm.atc] ? { display: ATC[lm.atc] } : {}) }, ...(lm.npl ? [{ system: SYSTEM.nplid, code: lm.npl }] : [])], text: `${lm.namn} ${lm.styrka} ${lm.form}` },
@@ -223,18 +227,25 @@ export function medicationRequest(db, o) {
       { url: `${EXT}/uppfoljningsdatum`, valueDate: o.uppfoljning },
       { url: `${EXT}/nll-status`, valueCode: o.nll_status },
       ...(o.status === 'utsatt' ? [{ url: `${EXT}/utsattningsorsak`, valueString: o.utsatt_orsak }] : []),
+      // Planen vid utsättning av antikoagulantia (runda 5).
+      ...(plan ? [{ url: `${EXT}/utsattningsplan`, valueCode: plan.typ }] : []),
+      ...(plan?.aterinsattning ? [{ url: `${EXT}/aterinsattningsdatum`, valueDate: plan.aterinsattning }] : []),
     ],
+    ...(plan ? { note: [{ text: `Plan vid utsättning: ${plan.text}.` }] } : {}),
   };
 }
 
 // Administrering, överlämnande och dos som inte gavs (administrering.js). En iordningsställd dos är ännu ingen resurs.
 export function medicationAdministration(db, a) {
   const lm = db.query('SELECT * FROM katalog WHERE id = ?').get(a.lakemedel_id);
+  // Delegeringen som en undersköterska gav dosen med (runda 5).
+  const deleg = delegeringKort(db, a.delegering_id);
   const note = [
     a.status === 'overlamnad' && { text: `Överlämnad till patienten${a.permission ? ' för permission' : ''}.` },
     a.efterhand && { text: `Registrerad i efterhand ${a.registrerad} av ${personNamn(db, a.registrerad_av)}.` },
     !a.efterhand && a.registrerad_av && a.utford_av && a.registrerad_av !== a.utford_av && { text: `Registrerad av ${personNamn(db, a.registrerad_av)}.` },
     ...(a.kvitterade_varningar ? JSON.parse(a.kvitterade_varningar).map(k => ({ text: `Varning kvitterad (${k.regel}): ${k.motivering}` })) : []),
+    deleg && { text: `Given med delegering enligt ${deleg.foreskrift}, utfärdad av ${deleg.utfardadAv}, giltig ${deleg.fran} till ${deleg.till}. Omfattar: ${deleg.omfattningText}.` },
   ].filter(Boolean);
   return {
     resourceType: 'MedicationAdministration', id: String(a.id), meta: kallaMeta(a.kalla), status: a.status === 'ej_given' ? 'not-done' : 'completed',
@@ -242,7 +253,7 @@ export function medicationAdministration(db, a) {
     medicationCodeableConcept: { coding: [{ system: SYSTEM.atc, code: lm.atc, ...(ATC[lm.atc] ? { display: ATC[lm.atc] } : {}) }, ...(lm.npl ? [{ system: SYSTEM.nplid, code: lm.npl }] : [])], text: `${lm.namn} ${lm.styrka} ${lm.form}` },
     subject: ref('Patient', a.patient_id), ...(a.vardkontakt_id ? { context: ref('Encounter', a.vardkontakt_id) } : {}),
     effectiveDateTime: a.tid, performer: [
-      { actor: ref('Practitioner', a.utford_av, personNamn(db, a.utford_av)) },
+      { ...(deleg ? { function: { text: `Gav dosen med delegering från ${deleg.utfardadAv}` } } : {}), actor: ref('Practitioner', a.utford_av, personNamn(db, a.utford_av)) },
       // Den som registrerade dosen, när det är någon annan än den som gav den.
       ...(a.registrerad_av && a.utford_av && a.registrerad_av !== a.utford_av ? [{ function: { text: 'Registrerade dosen' }, actor: ref('Practitioner', a.registrerad_av, personNamn(db, a.registrerad_av)) }] : []),
     ],

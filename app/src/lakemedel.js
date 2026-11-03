@@ -1,10 +1,10 @@
 // Läkemedel: ordination, utsättning, varningar och simulerad överföring till Nationella läkemedelslistan (NLL).
 // Varningarna är demoregler, inte kliniskt beslutsstöd (D10).
-import { Fel, iso, idag, giltigtDatum, installning } from './db.js';
+import { Fel, iso, idag, giltigtDatum, installning, addDagar } from './db.js';
 import { vardenhetFor } from './atkomst.js';
 import { kallaEtikett } from './journal.js';
 import { tillaggUt } from './ordinationsmallar.js';
-import { utsattningsvarningar, DEMOREGLER_PROCESS } from './lakemedelsregler.js';
+import { utsattningsvarningar, DEMOREGLER_PROCESS, UTSATTNINGSPLANER, UPPEHALL_DAGAR, planText } from './lakemedelsregler.js';
 
 export const DEMOREGLER = 'Varningarna är demoregler för att visa flödet. De är inte kliniskt beslutsstöd och inte CE-märkta.';
 export const TYPER = ['staende', 'vid_behov', 'tillfallig'];
@@ -30,7 +30,7 @@ export function ordinationUt(db, o, { historik = true } = {}) {
     dosering: o.dosering, dos: o.dos, dosEnhet: o.dos_enhet, tider: o.tider ? JSON.parse(o.tider) : [], vidBehov: Boolean(o.vid_behov),
     typ: o.typ, ordinationsorsak: o.orsak, uppfoljningsdatum: o.uppfoljning, start: o.start, slut: o.slut,
     status: o.status, aktuell: o.status === 'aktiv' && (!o.slut || o.slut >= idag()),
-    utsatt: o.status === 'utsatt' ? { tid: o.utsatt_tid, av: personNamn(db, o.utsatt_av), orsak: o.utsatt_orsak } : null,
+    utsatt: o.status === 'utsatt' ? { tid: o.utsatt_tid, av: personNamn(db, o.utsatt_av), orsak: o.utsatt_orsak, plan: utsattningsplan(db, o.id) } : null,
     ordineradAv: { id: o.ordinerad_av, namn: personNamn(db, o.ordinerad_av) }, skapad: o.skapad,
     vardenhet: { id: o.enhet_id, namn: enhetsnamn(db, o.enhet_id) }, nll_status: o.nll_status,
     kvitteradeVarningar: o.kvitterade_varningar ? JSON.parse(o.kvitterade_varningar) : [],
@@ -45,6 +45,14 @@ export function ordinationUt(db, o, { historik = true } = {}) {
       .map(m => ({ id: m.id, typ: m.typ, skickad: m.skickad, status: m.status, svarTid: m.svar_tid, kvittens: m.kvittens }));
   }
   return ut;
+}
+
+// Planen som bekräftades när antikoagulantia sattes ut (runda 5), eller null.
+export function utsattningsplan(db, ordinationId) {
+  const p = db.query('SELECT * FROM utsattningsplaner WHERE ordination_id = ?').get(ordinationId);
+  if (!p) return null;
+  const ut = { typ: p.typ, ersattMed: p.ersatt_med, aterinsattning: p.aterinsattning, registrerad: p.registrerad, av: personNamn(db, p.av) };
+  return { ...ut, text: planText(ut) };
 }
 
 // Läkemedelslistan är gemensam för vårdgivaren. Spärrade enheters ordinationer visas inte.
@@ -232,22 +240,62 @@ export function behandlingsdagar(atk, o) {
 export function utsattningskontroll(atk, o) {
   atk.krav('ordinera', { resurs: { enhet_id: o.enhet_id, gemensam: true } });
   const lm = lakemedelRad(atk.db, o.lakemedel_id);
-  return { varningar: o.status === 'aktiv' && lm ? utsattningsvarningar({ lakemedel: lm, behandlingDagar: behandlingsdagar(atk, o) }) : [], demoregler: true, anmarkning: DEMOREGLER_PROCESS };
+  const varningar = o.status === 'aktiv' && lm ? utsattningsvarningar({ lakemedel: lm, behandlingDagar: behandlingsdagar(atk, o) }) : [];
+  return { varningar, ...(varningar.some(v => v.plan) ? { planer: planforslag(atk, o) } : {}), demoregler: true, anmarkning: DEMOREGLER_PROCESS };
 }
 
-export function utsatt(atk, o, { orsak, kvitteradeVarningar } = {}) {
+// Planerna som systemet föreslår vid utsättning av antikoagulantia (runda 5). Vid byte föreslås det antikoagulantia som
+// patienten redan har fått ordinerat, bland de ordinationer som användaren får se. Vid uppehåll föreslås ett datum för
+// återinsättning som läkaren kan ändra.
+function planforslag(atk, o) {
+  const db = atk.db;
+  const annat = synligaOrdinationer(atk).filter(arAktuell).filter(x => x.id !== o.id && x.lakemedel_id !== o.lakemedel_id)
+    .map(x => lakemedelRad(db, x.lakemedel_id)).find(lm => lm && ANTIKOAGULANTIA.some(k => lm.atc.startsWith(k)));
+  return Object.entries(UTSATTNINGSPLANER).map(([typ, p]) => ({
+    typ, text: p.text, beskrivning: p.beskrivning, orsak: p.orsak,
+    ...(typ === 'byte' ? { ersattMed: annat?.namn ?? null } : {}),
+    ...(typ === 'uppehall' ? { aterinsattning: addDagar(idag(), UPPEHALL_DAGAR) } : {}),
+  }));
+}
+
+// Kontrollerar planen. Ger { typ, ersattMed, aterinsattning } eller kastar Fel som förklarar vad som saknas.
+function valideraPlan(plan, v, planer) {
+  const typ = plan?.typ;
+  if (!Object.hasOwn(UTSATTNINGSPLANER, typ ?? '')) {
+    throw new Fel(400, 'Antikoagulantia sätts bara ut med en plan. Välj planen: byte till ett annat medel, uppehåll inför ett ingrepp eller avslutad behandling.', 'ogiltig', { varningar: v, kraverPlan: true, planer, falt: ['plan'], demoregler: true });
+  }
+  const ersattMed = typeof plan.ersattMed === 'string' && plan.ersattMed.trim() ? plan.ersattMed.trim().slice(0, 100) : null;
+  let aterinsattning = null;
+  if (typ === 'uppehall') {
+    aterinsattning = plan.aterinsattning;
+    if (!giltigtDatum(aterinsattning) || aterinsattning < idag() || aterinsattning > addDagar(idag(), 365)) {
+      throw new Fel(400, 'Ange när behandlingen ska sättas in igen, i dag eller senare och inom ett år.', 'ogiltig', { varningar: v, kraverPlan: true, planer, falt: ['aterinsattning'], demoregler: true });
+    }
+  }
+  return { typ, ersattMed: typ === 'byte' ? ersattMed : null, aterinsattning };
+}
+
+export function utsatt(atk, o, { orsak, kvitteradeVarningar, plan } = {}) {
   atk.krav('ordinera', { resurs: { enhet_id: o.enhet_id, gemensam: true } });
   if (o.status !== 'aktiv') throw new Fel(400, 'Ordinationen är redan utsatt.', 'ogiltig');
-  if (typeof orsak !== 'string' || orsak.trim().length < 3) throw new Fel(400, 'Ange orsak till utsättningen.', 'ogiltig', { falt: ['orsak'] });
   const db = atk.db;
+  const k = utsattningskontroll(atk, o);
+  const v = k.varningar;
+  // Antikoagulantia (runda 5): planen är bekräftelsen, och orsaken fylls i ur planen när läkaren inte skriver en egen.
+  const p = v.some(x => x.plan) ? valideraPlan(plan, v, k.planer) : null;
+  if (p && (typeof orsak !== 'string' || orsak.trim().length < 3)) orsak = `${UTSATTNINGSPLANER[p.typ].orsak}${p.ersattMed ? `: ${p.ersattMed}` : ''}`;
+  if (typeof orsak !== 'string' || orsak.trim().length < 3) throw new Fel(400, 'Ange orsak till utsättningen.', 'ogiltig', { falt: ['orsak'] });
   // En allvarlig varning kvitteras i samma steg: orsaken till utsättningen är motiveringen.
-  const v = utsattningskontroll(atk, o).varningar;
   const kv = Array.isArray(kvitteradeVarningar) ? kvitteradeVarningar : [];
-  const saknas = [...new Set(v.filter(x => x.niva === 'allvarlig').map(x => x.regel))].filter(r => !kv.some(k => k?.regel === r));
+  const saknas = [...new Set(v.filter(x => x.niva === 'allvarlig' && !x.plan).map(x => x.regel))].filter(r => !kv.some(k => k?.regel === r));
   if (saknas.length) throw new Fel(400, 'Läkemedlet har särskilda observationer vid utsättning. Läs varningen och bekräfta utsättningen.', 'ogiltig', { varningar: v, kraverKvittens: saknas, demoregler: true });
   db.query("UPDATE ordinationer SET status = 'utsatt', utsatt_tid = ?, utsatt_av = ?, utsatt_orsak = ? WHERE id = ?").run(iso(), atk.personal.id, orsak.trim(), o.id);
   historik(db, o.id, atk.personal.id, 'Utsatt', orsak.trim());
-  for (const x of v.filter(y => y.niva === 'allvarlig')) historik(db, o.id, atk.personal.id, 'Varning vid utsättning kvitterad', `${x.regel}: ${orsak.trim()}`);
+  if (p) {
+    db.query('INSERT INTO utsattningsplaner (ordination_id, typ, ersatt_med, aterinsattning, registrerad, av) VALUES (?, ?, ?, ?, ?, ?)').run(o.id, p.typ, p.ersattMed, p.aterinsattning, iso(), atk.personal.id);
+    historik(db, o.id, atk.personal.id, 'Plan vid utsättning', planText(p));
+  }
+  for (const x of v.filter(y => y.niva === 'allvarlig')) historik(db, o.id, atk.personal.id, 'Varning vid utsättning kvitterad', `${x.regel}: ${x.plan ? planText(p) : orsak.trim()}`);
   const nll = overfor(db, o.id, 'utsattning');
   return { ordination: ordinationUt(db, hamtaRad(db, o.id)), nll, varningar: v };
 }

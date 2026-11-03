@@ -43,7 +43,11 @@ export async function visa(main) {
   const ater = (d.aterlamnanden ?? []).map(u => rad(pat(u.patientId, 'utlamnat'), `${esc(u.mottagare)}: ${esc(u.beskrivning)}`,
     `Skulle ha lämnats tillbaka senast ${esc(u.aterlamnasSenast)}. Utlämnad ${esc(tidpunkt(u.utlamnad))}.`, 'ik-larm'));
 
+  // Delegeringar som går ut inom 30 dagar, för sjuksköterskan (runda 5).
+  const deleg = (d.delegeringarSomGarUt ?? []).map(x => rad('#/delegeringar', `Delegering går ut, ${esc(x.namn)}`, esc(x.text), 'ik-larm'));
+
   main.querySelector('#ik').innerHTML = `<div class="inkorg-rutnat">
+    ${S.session.behorigheter.includes('delegera') ? sektion('deleg', 'Delegeringar som går ut', deleg, 'Inga delegeringar går ut de närmaste 30 dagarna.', 'Undersköterskornas delegeringar att ge läkemedel. Följ upp dem och registrera nya innan de går ut.') : ''}
     ${S.session.behorigheter.includes('sla_samman') ? sektion('dubb', 'Troliga dubbletter', dubb, 'Inga troliga dubbletter.', 'Journaler som systemet tror gäller samma person, till exempel ett reservnummer och ett personnummer med samma namn och födelsedatum.') : ''}
     ${sektion('larm', 'Larm', larm, 'Inga larm.', 'Remisser där mottagningskvittens, svar eller kvittens av svaret har uteblivit för länge.')}
     ${S.session.behorigheter.includes('kontrasignera') ? sektion('ks', 'Att kontrasignera', ks, 'Inget väntar på din kontrasignering.', 'Journalinformation som någon har bett dig kontrasignera. Öppna, läs och kontrasignera med ett klick.') : ''}

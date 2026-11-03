@@ -18,6 +18,8 @@ import * as lakemedel from './lakemedel.js';
 import { tillaggUt, ADMINISTRATIONSSATT } from './ordinationsmallar.js';
 import { lokalTid, datumI, klocka } from './lakemedelsprocess.js';
 import { administreringsvarningar, maxPerDygn, minstaIntervallMs, DEMOREGLER_PROCESS, FONSTER_FORE_MIN, FONSTER_EFTER_MIN } from './lakemedelsregler.js';
+// Delegering för undersköterskan (runda 5, HSLF-FS 2017:37 9 kap.).
+import * as delegering from './delegering.js';
 
 export const ATGARDER = { ge: 'Given', overlamna: 'Överlämnad till patienten', ej_given: 'Inte given', iordningstall: 'Iordningsställd' };
 const STATUS_FOR = { ge: 'given', overlamna: 'overlamnad', ej_given: 'ej_given', iordningstall: 'iordningstalld' };
@@ -48,7 +50,19 @@ export function kanVarda(atk, handling) {
   if (!kanRoll(atk.personal, handling)) return { kan: false, varfor: null };
   const r = atk.prova(handling);
   if (!r.tillaten || r.grund === 'nodatkomst') return { kan: false, varfor: 'Du har ingen vårdrelation till patienten på din vårdenhet. Med nödåtkomst går det bara att läsa.' };
+  // Undersköterskan ger läkemedel bara med en giltig delegering på vårdenheten (runda 5).
+  if (handling === 'ge_lakemedel' && atk.personal.yrke === 'underskoterska') {
+    const g = delegering.giltigNu(atk.db, atk.personal);
+    if (!g.giltig) return { kan: false, varfor: g.varfor };
+  }
   return { kan: true, varfor: null };
+}
+
+// Delegeringen för en dos i listan, bara för undersköterskan: om dosen omfattas och annars varför inte.
+function delegeringFor(atk, o, lm, tillagg, ms) {
+  if (atk.personal.yrke !== 'underskoterska') return undefined;
+  const r = delegering.prova(atk.db, atk.personal, { lm, satt: tillagg.administrationssatt ?? null, ms, ordination: o });
+  return { omfattas: r.omfattas, varfor: r.varfor };
 }
 
 // Ordinationens dostider ett visst datum, som ISO i UTC. En ordination som gjordes samma dag får inga tider före
@@ -84,6 +98,8 @@ export function administreringUt(db, a) {
     iordningstalld: a.iordningstalld_tid ? { tid: a.iordningstalld_tid, av: personNamn(db, a.iordningstalld_av), kontrollkod: a.kontrollkod } : null,
     orsak: a.orsak, kvitteradeVarningar: a.kvitterade_varningar ? JSON.parse(a.kvitterade_varningar) : [], permission: Boolean(a.permission),
     volymMl: a.volym_ml, enhet: enhetKort(db, a.enhet_id), vardkontaktId: a.vardkontakt_id, kalla: a.kalla,
+    // Delegeringen som en undersköterska gav dosen med (runda 5).
+    delegering: delegering.delegeringKort(db, a.delegering_id),
   };
 }
 
@@ -124,6 +140,8 @@ export function lista(atk, { dag = idag() } = {}) {
     const t = tillaggUt(db, o.id);
     const u = { ...lakemedel.ordinationUt(db, o, { historik: false }), ...t };
     const bas = { ordinationId: o.id, lakemedel: u.lakemedel, dosering: u.dosering, dos: u.dos, dosEnhet: u.dosEnhet, typ: u.typ, administrationssatt: t.administrationssattText ?? null };
+    const lmRad = katalog(db, o.lakemedel_id);
+    const deleg = (ms) => delegeringFor(atk, o, lmRad, t, ms);
     const egna = adm.filter(a => a.ordinationId === o.id);
     if (o.vid_behov) {
       if (!lakemedel.aktuell(o)) continue;
@@ -137,7 +155,7 @@ export function lista(atk, { dag = idag() } = {}) {
       let varfor = null;
       if (max && hittills >= max.antal) varfor = `Högsta dygnsdosen är nådd: ${hittills} av ${max.antal} det senaste dygnet.`;
       else if (nasta && nasta > nu) varfor = `Senaste dosen gavs ${tidText(senaste.tid)}. Nästa dos tidigast ${tidText(new Date(nasta).toISOString())}.`;
-      vidBehov.push({ ...bas, senaste, senasteDygnet: hittills, max, kanGesNu: !varfor, varfor, nastaTidigast: nasta && nasta > nu ? new Date(nasta).toISOString() : null, givna: givna.slice(0, 5) });
+      vidBehov.push({ ...bas, senaste, senasteDygnet: hittills, max, kanGesNu: !varfor, varfor, nastaTidigast: nasta && nasta > nu ? new Date(nasta).toISOString() : null, givna: givna.slice(0, 5), delegering: deleg(nu) });
       continue;
     }
     if (t.vardhandelse && !t.vardhandelse.administreras) {
@@ -150,7 +168,7 @@ export function lista(atk, { dag = idag() } = {}) {
     }
     const tider = dostider(o, dag, t);
     if (!tider.length && !t.vardhandelse) {
-      if (lakemedel.aktuell(o) && !(o.tider && JSON.parse(o.tider).length)) utanTider.push({ ...bas, givnaIdag: egna.filter(a => a.tid && datumI(Date.parse(a.tid)) === dag) });
+      if (lakemedel.aktuell(o) && !(o.tider && JSON.parse(o.tider).length)) utanTider.push({ ...bas, givnaIdag: egna.filter(a => a.tid && datumI(Date.parse(a.tid)) === dag), delegering: deleg(nu) });
       continue;
     }
     for (const p of tider) {
@@ -168,7 +186,7 @@ export function lista(atk, { dag = idag() } = {}) {
       doser.push({
         ...bas, nyckel: `${o.id}@${p}`, planerad: p, status, underPermission: perm_,
         forslag: slutlig ? null : perm_ ? 'overlamna' : 'ge', administrering: slutlig ?? ior, antalRegistreringar: rader.filter(a => a.status !== 'iordningstalld').length,
-        vardhandelse: t.vardhandelse ?? null,
+        vardhandelse: t.vardhandelse ?? null, delegering: deleg(ms),
       });
     }
   }
@@ -208,6 +226,8 @@ export function avdelning(db, personal, valFor, { dag = idag() } = {}) {
   return {
     dag, vardenhet: enhetKort(db, ve), patienter,
     sammanfattning: { patienter: patienter.length, attGe: patienter.reduce((s, x) => s + x.sammanfattning.attGe, 0), forsenade: patienter.reduce((s, x) => s + x.sammanfattning.forsenade, 0) },
+    // Undersköterskans delegering (runda 5).
+    ...(personal.yrke === 'underskoterska' ? { delegering: delegering.sammanfattning(db, personal) } : {}),
     demoregler: true,
   };
 }
@@ -246,16 +266,32 @@ function underlag(atk, inp, atgard) {
   const antal = inp.antal == null ? 1 : Number(inp.antal);
   if (!Number.isFinite(antal) || antal <= 0 || antal > 20) falt.push('antal');
   let utfordAv = atk.personal.id;
+  let utfordRad = atk.personal;
   if (inp.utfordAv != null && inp.utfordAv !== atk.personal.id) {
     const p = typeof inp.utfordAv === 'string' ? db.query('SELECT * FROM personal WHERE id = ? AND aktiv = 1').get(inp.utfordAv) : null;
-    if (!p || !kanRoll(p, 'ge_lakemedel') || vardenhetFor(db, p.enhet_id) !== vardenhetFor(db, atk.personal.enhet_id)) falt.push('utfordAv');
-    else utfordAv = p.id;
+    // En undersköterska registrerar bara sina egna doser.
+    if (!p || !kanRoll(p, 'ge_lakemedel') || vardenhetFor(db, p.enhet_id) !== vardenhetFor(db, atk.personal.enhet_id) || atk.personal.yrke === 'underskoterska') falt.push('utfordAv');
+    else { utfordAv = p.id; utfordRad = p; }
   }
   const orsak = textFalt(inp.orsak);
   if (atgard === 'ej_given' && orsak.length < 3) falt.push('orsak');
   if (falt.length) {
-    const namn = { tid: `tidpunkten (högst ${EFTERHAND_DAGAR} dagar bakåt och inte i framtiden)`, planerad: 'dostiden, som inte finns i ordinationen', dos: 'dosen', antal: 'antalet', utfordAv: 'vem som gav dosen (en sjuksköterska på din vårdenhet)', orsak: 'orsaken till att dosen inte gavs' };
+    const namn = { tid: `tidpunkten (högst ${EFTERHAND_DAGAR} dagar bakåt och inte i framtiden)`, planerad: 'dostiden, som inte finns i ordinationen', dos: 'dosen', antal: 'antalet', utfordAv: 'vem som gav dosen (någon på din vårdenhet som får ge läkemedel)', orsak: 'orsaken till att dosen inte gavs' };
     throw new Fel(400, `Kontrollera ${falt.map(f => namn[f]).join(', ')}.`, 'ogiltig', { falt });
+  }
+  // Delegeringen (runda 5): en undersköterska som ger, iordningsställer eller lämnar över dosen ska ha en delegering som
+  // gäller just den dosen, den dagen och på vårdenheten. Prövas innan något sparas, och ett nekat försök loggas.
+  const delegMs = planerad && atgard === 'iordningstall' ? Date.parse(planerad) : tid;
+  const egen = delegering.prova(db, atk.personal, { lm, satt: tillagg.administrationssatt ?? null, ms: delegMs, ordination: orad });
+  if (!egen.omfattas) {
+    atk.logga('ge_lakemedel', 'nekad', orad ? `ordination:${orad.id}` : 'utan_ordination', 'nekad');
+    throw new Fel(403, egen.varfor, 'nekad', { delegering: true });
+  }
+  let delegeringId = egen.delegering?.id ?? null;
+  if (utfordRad.id !== atk.personal.id) {
+    const annan = delegering.prova(db, utfordRad, { lm, satt: tillagg.administrationssatt ?? null, ms: delegMs, ordination: orad, du: false });
+    if (!annan.omfattas) throw new Fel(400, annan.varfor, 'ogiltig', { falt: ['utfordAv'] });
+    delegeringId = annan.delegering?.id ?? null;
   }
   // Ett iordningsställande som dosen går vidare från, via etikettens kontrollkod eller ordinationen och dostiden. Bara
   // iordningsställanden som användaren får se räknas, så att en spärrad vårdenhets dos aldrig röjs eller används.
@@ -283,13 +319,14 @@ function underlag(atk, inp, atgard) {
     const tidigare = synligaAdministreringar(atk)
       .filter(a => atc.get(a.lakemedel_id) === lm.atc && (a.status === 'given' || a.status === 'overlamnad') && a.tid && Date.parse(a.tid) >= fran)
       .map(a => ({ tid: a.tid, planerad: a.planerad, ordinationId: a.ordination_id, antal: a.antal, status: a.status, av: personNamn(db, a.utford_av) }));
-    varningar = administreringsvarningar({ ordination: o, aktivVid: orad ? aktivVid(db, orad, tidVarning) : null, lakemedel: lm, planerad, tid: tidVarning, antal, tidigare, nu });
+    varningar = administreringsvarningar({ ordination: o, aktivVid: orad ? aktivVid(db, orad, tidVarning) : null, lakemedel: lm, planerad, tid: tidVarning, antal, tidigare, nu,
+      dos: inp.dos == null || inp.dos === '' ? null : dos });
     if (atk.prova('las_lakemedel', {}).spärrade) {
       varningar.push({ niva: 'observation', regel: 'sparrade_uppgifter', text: 'Det finns spärrade uppgifter i journalen. Doser från en spärrad vårdenhet räknas inte in i kontrollen. Fråga patienten om samtycke att visa dem om det kan ha betydelse.' });
     }
   }
   const perm = permissionFor(db, atk.patientId);
-  return { orad, o, lm, tid, planerad, dos, antal, utfordAv, orsak, ior, varningar, tillagg, permission: underPermission(perm, planerad ? Date.parse(planerad) : tid) };
+  return { orad, o, lm, tid, planerad, dos, antal, utfordAv, orsak, ior, varningar, tillagg, permission: underPermission(perm, planerad ? Date.parse(planerad) : tid), delegeringId };
 }
 
 // POST /api/patient/:id/administreringar/kontroll: varningarna innan något sparas.
@@ -314,10 +351,11 @@ export function spara(atk, inp = {}) {
   const u = underlag(atk, inp, atgard);
   const db = atk.db;
   const kvitterade = Array.isArray(inp.kvitteradeVarningar) ? inp.kvitteradeVarningar : [];
-  const saknas = [...new Set(u.varningar.filter(v => v.niva === 'allvarlig').map(v => v.regel))]
+  // Allvarliga varningar, och en dos som avviker från ordinationen (kraverKvittens), kvitteras med motivering.
+  const saknas = [...new Set(u.varningar.filter(v => v.niva === 'allvarlig' || v.kraverKvittens).map(v => v.regel))]
     .filter(regel => !kvitterade.some(k => k?.regel === regel && typeof k.motivering === 'string' && k.motivering.trim().length >= 3));
   if (saknas.length) {
-    throw new Fel(400, 'Allvarliga varningar måste kvitteras med motivering innan dosen registreras.', 'ogiltig', { varningar: u.varningar, kraverKvittens: saknas, demoregler: true });
+    throw new Fel(400, 'Varningarna måste kvitteras med motivering innan dosen registreras.', 'ogiltig', { varningar: u.varningar, kraverKvittens: saknas, demoregler: true });
   }
   const kv = kvitterade.filter(k => u.varningar.some(v => v.regel === k.regel)).map(k => ({ regel: k.regel, motivering: k.motivering.trim().slice(0, 500) }));
   const status = STATUS_FOR[atgard];
@@ -332,18 +370,18 @@ export function spara(atk, inp = {}) {
     // Dosen dokumenteras på den vårdenhet som ger den. Byter den vårdenhet knyts den till en ny vårdkontakt efteråt.
     const nyEnhet = u.ior.enhet_id !== atk.personal.enhet_id;
     db.query(`UPDATE administreringar SET status = ?, tid = ?, utford_av = ?, registrerad = ?, registrerad_av = ?, efterhand = ?, dos = ?, antal = ?, orsak = ?,
-      kvitterade_varningar = ?, permission = ?, volym_ml = ?, enhet_id = ?, vardkontakt_id = CASE WHEN ? THEN NULL ELSE vardkontakt_id END WHERE id = ?`)
+      kvitterade_varningar = ?, permission = ?, volym_ml = ?, enhet_id = ?, vardkontakt_id = CASE WHEN ? THEN NULL ELSE vardkontakt_id END, delegering_id = ? WHERE id = ?`)
       .run(status, tid, u.utfordAv, nu, atk.personal.id, efterhand, u.dos, u.antal, u.orsak || null, kv.length ? JSON.stringify(kv) : null, permission, volym,
-        atk.personal.enhet_id, nyEnhet ? 1 : 0, u.ior.id);
+        atk.personal.enhet_id, nyEnhet ? 1 : 0, u.delegeringId, u.ior.id);
     id = u.ior.id;
   } else {
     const ior = atgard === 'iordningstall';
     const r = db.query(`INSERT INTO administreringar (patient_id, enhet_id, ordination_id, lakemedel_id, planerad, status, dos, dos_enhet, antal, tid, utford_av,
-      registrerad, registrerad_av, efterhand, iordningstalld_tid, iordningstalld_av, orsak, kvitterade_varningar, permission, volym_ml)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      registrerad, registrerad_av, efterhand, iordningstalld_tid, iordningstalld_av, orsak, kvitterade_varningar, permission, volym_ml, delegering_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .run(atk.patientId, atk.personal.enhet_id, u.orad?.id ?? null, u.lm.id, u.planerad, status, u.dos, u.o?.dosEnhet ?? null, u.antal,
         ior ? null : tid, ior ? null : u.utfordAv, nu, atk.personal.id, efterhand, ior ? nu : null, ior ? atk.personal.id : null, u.orsak || null,
-        kv.length ? JSON.stringify(kv) : null, permission, volym);
+        kv.length ? JSON.stringify(kv) : null, permission, volym, u.delegeringId);
     id = Number(r.lastInsertRowid);
     // Etikettens kontrollkod för patientnära kontroll: dosens nummer och patientens journalnummer.
     if (ior) db.query('UPDATE administreringar SET kontrollkod = ? WHERE id = ?').run(`VK-ADM-${String(id).padStart(6, '0')}-${atk.patientId.toUpperCase()}`, id);
