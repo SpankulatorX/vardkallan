@@ -3,6 +3,7 @@ import { esc, api, tidpunkt, datum, notis, medKnapp, migreradEtikett, tal } from
 import { far } from '../app.js';
 import { doldaRad } from './patient.js';
 import { varde } from './patient-oversikt.js';
+import { kontaktRad, nyKontaktData, kontaktNotis } from './patient-vardkontakt.js';
 
 // Typer och enheter enligt API:t.
 export const MATTYPER = [
@@ -60,6 +61,7 @@ export async function visa(el, ctx) {
 
   const form = el.querySelector('#mv-form');
   if (!form) return;
+  const kontakt = kontaktRad(form.querySelector('[data-kontakt-plats]'), ctx);
   const enhet = form.querySelector('#mv-enhet');
   const satt = () => { const t = MATTYPER.find(m => m[0] === form.typ.value); enhet.textContent = t[2]; form.varde.placeholder = t[0] === 'blodtryck' ? '120/80' : ''; form.varde.inputMode = t[0] === 'blodtryck' ? 'text' : 'decimal'; };
   form.typ.addEventListener('change', satt);
@@ -71,11 +73,12 @@ export async function visa(el, ctx) {
     const typ = form.typ.value;
     const v = form.varde.value.trim();
     if (!v) { form.varde.setAttribute('aria-invalid', 'true'); form.varde.focus(); return; }
-    const data = { typ, varde: typ === 'blodtryck' ? v : Number(v.replace(',', '.')) };
+    const data = { typ, varde: typ === 'blodtryck' ? v : Number(v.replace(',', '.')), ...nyKontaktData(kontakt) };
     if (form.tid.value) data.tid = new Date(form.tid.value).toISOString();
     try {
       const m = await medKnapp(form.querySelector('[type=submit]'), () => api(`/api/patient/${encodeURIComponent(ctx.id)}/matvarden`, { metod: 'POST', data }), form);
       notis(`${m.namn} ${m.varde} ${m.enhet} är registrerat.`);
+      kontaktNotis(m);
       ctx.ladda();
     } catch { /* felet visas i formuläret */ }
   });
@@ -84,6 +87,7 @@ export async function visa(el, ctx) {
 function registrering() {
   return `<form class="mv-form" id="mv-form" novalidate aria-labelledby="mv-reg">
     <h3 id="mv-reg">Registrera mätvärde</h3>
+    <div data-kontakt-plats></div>
     <div class="falt-rad">
       <div class="falt"><label for="mv-typ">Mätvärde</label><select id="mv-typ" name="typ">${MATTYPER.map(([k, n]) => `<option value="${k}">${esc(n)}</option>`).join('')}</select></div>
       <div class="falt smal"><label for="mv-varde">Värde</label><div class="med-enhet"><input id="mv-varde" name="varde" required autocomplete="off" aria-describedby="mv-enhet"><span id="mv-enhet" class="enhet"></span></div></div>

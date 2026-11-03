@@ -8,6 +8,7 @@ export const ENHETER = [
   { id: 'uso-kard', hsa: 'SE2321000164-VK0120', namn: 'Kardiologiska kliniken USÖ', typ: 'vardenhet', forald: 'uso' },
   { id: 'uso-kard-72', hsa: 'SE2321000164-VK0121', namn: 'Avdelning 72, kardiologi', typ: 'arbetsplats', forald: 'uso-kard' },
   { id: 'uso-kard-mott', hsa: 'SE2321000164-VK0122', namn: 'Kardiologiska mottagningen', typ: 'arbetsplats', forald: 'uso-kard' },
+  { id: 'uso-kard-hia', hsa: 'SE2321000164-VK0123', namn: 'Hjärtintensivvårdsavdelningen (HIA)', typ: 'arbetsplats', forald: 'uso-kard' },
   { id: 'uso-med', hsa: 'SE2321000164-VK0130', namn: 'Medicinska kliniken USÖ', typ: 'vardenhet', forald: 'uso' },
   { id: 'uso-inf', hsa: 'SE2321000164-VK0140', namn: 'Infektionskliniken USÖ', typ: 'vardenhet', forald: 'uso' },
   { id: 'uso-ort', hsa: 'SE2321000164-VK0150', namn: 'Ortopediska kliniken USÖ', typ: 'vardenhet', forald: 'uso' },

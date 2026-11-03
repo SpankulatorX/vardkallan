@@ -65,6 +65,10 @@ Hela utskriften (alla resurser som går att nå):
 
 Svar över HTTP: 59 Bundle med sammanlagt 250 poster, 0 fel och 271 varningar (samma slags varningar som ovan, för resurserna i Bundle).
 
+### Vårdkontakt, vårdtillfälle och hälsoärende (2026-11-03)
+
+Efter att vårdtillfällen (`Encounter` med id `vt-<nummer>`, `location` per plats och `partOf` från vårdkontakterna) och hälsoärenden (`EpisodeOfCare`) lades till, och `encounter` i `Observation`, `MedicationRequest` och `ServiceRequest`, kördes hela utskriften igen med samma validator, samma paket och samma skript (`exportera.js`, `validera.sh` och `summera.py`), med kontakt med tx.fhir.org. Resultat: 1 007 resurser och **inga fel**. Encounter 72 resurser (vårdkontakter och sju vårdtillfällen) med 0 fel och 72 varningar, EpisodeOfCare 1 resurs med 0 fel och 1 varning. Varningarna är desamma som i tabellen ovan (dom-6 för alla resurser). HTTP-urvalet i steg 2 kördes inte om.
+
 Alla 19 mätvärdestyper fanns med bland Observation.
 
 ### Varningar

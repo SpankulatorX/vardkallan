@@ -14,7 +14,7 @@ const skriv = (katalog, namn, r) => { mkdirSync(`${UT}/${katalog}`, { recursive:
 
 const sett = new Map();
 const lagg = (b) => { for (const e of b.entry ?? []) sett.set(`${e.resource.resourceType}/${e.resource.id}`, e.resource); };
-const TYPER = ['Patient', 'Encounter', 'Condition', 'Observation', 'MedicationRequest', 'AllergyIntolerance', 'Flag', 'ServiceRequest', 'Composition'];
+const TYPER = ['Patient', 'Encounter', 'EpisodeOfCare', 'Condition', 'Observation', 'MedicationRequest', 'AllergyIntolerance', 'Flag', 'ServiceRequest', 'Composition'];
 for (const roll of ['lak-kard', 'lak-vc', 'lak-psyk', 'lak-akut']) {
   for (const { id } of db.query('SELECT id FROM patienter').all()) {
     const val = { [id]: { andra_enheter: true, nodatkomst: true, samtycke_sparr: true } };

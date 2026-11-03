@@ -21,7 +21,7 @@ export const SYSTEM = {
   actcode: 'http://terminology.hl7.org/CodeSystem/v3-ActCode',
   uppmarksamhet: `${CS}/uppmarksamhet`,
 };
-export const TYPER = ['Patient', 'Encounter', 'Condition', 'Observation', 'MedicationRequest', 'AllergyIntolerance', 'Flag', 'ServiceRequest', 'Composition', 'Organization', 'Practitioner', 'AuditEvent'];
+export const TYPER = ['Patient', 'Encounter', 'EpisodeOfCare', 'Condition', 'Observation', 'MedicationRequest', 'AllergyIntolerance', 'Flag', 'ServiceRequest', 'Composition', 'Organization', 'Practitioner', 'AuditEvent'];
 // Profiler som resurserna påstår att de följer i meta.profile. Bara de som validerats utan fel (docs/fhir-validering.md):
 // HL7 Swedens basprofiler (hl7se.fhir.base 1.1.0) och FHIR R4:s vitalparameterprofiler.
 export const SEBAS = 'http://hl7.se/fhir/ig/base/StructureDefinition';
@@ -34,13 +34,26 @@ const hsaIdentifier = (value) => ({ type: { coding: [{ system: SYSTEM.v2_0203, c
 
 // Handling i behörighetsmotorn per resurstyp.
 const HANDLING = {
-  Encounter: 'las_admin', Condition: 'las_diagnoser', Observation: 'las_matvarden', MedicationRequest: 'las_lakemedel',
+  Encounter: 'las_admin', EpisodeOfCare: 'las_admin', Condition: 'las_diagnoser', Observation: 'las_matvarden', MedicationRequest: 'las_lakemedel',
   AllergyIntolerance: 'las_oversikt', ServiceRequest: 'las_remiss', Composition: 'las_journal', Flag: 'las_oversikt',
 };
 const TABELL = {
-  Encounter: 'vardkontakter', Condition: 'diagnoser', Observation: 'matvarden', MedicationRequest: 'ordinationer',
+  Encounter: 'vardkontakter', EpisodeOfCare: 'halsoarenden', Condition: 'diagnoser', Observation: 'matvarden', MedicationRequest: 'ordinationer',
   AllergyIntolerance: 'overkanslighet', ServiceRequest: 'remisser', Composition: 'anteckningar', Flag: 'uppmarksamhet',
 };
+// Ett vårdtillfälle är ett eget Encounter med id vt-<nummer>, som vårdkontakterna på avdelningarna är en del av (partOf).
+const VT_ID = /^vt-(\d{1,9})$/;
+const vtRad = (db, id) => { const m = VT_ID.exec(id); return m ? db.query('SELECT * FROM vardtillfallen WHERE id = ?').get(Number(m[1])) : null; };
+// En resurs med id och patientens resurser av en typ. Encounter är både vårdkontakter och vårdtillfällen.
+// Invånaren får inte vårdtillfällen och hälsoärenden, eftersom Min journal inte visar dem.
+function radMedId(db, typ, id, { invanare = false } = {}) {
+  if (typ === 'Encounter' && VT_ID.test(id)) return invanare ? null : vtRad(db, id);
+  return /^\d{1,9}$/.test(String(id)) ? db.query(`SELECT * FROM ${TABELL[typ]} WHERE id = ?`).get(Number(id)) : null;
+}
+function patientRader(db, typ, pid, { invanare = false } = {}) {
+  const rader = db.query(`SELECT * FROM ${TABELL[typ]} WHERE patient_id = ? ORDER BY id`).all(pid);
+  return typ === 'Encounter' && !invanare ? [...db.query('SELECT * FROM vardtillfallen WHERE patient_id = ? ORDER BY id').all(pid), ...rader] : rader;
+}
 const GEMENSAM = new Set(['MedicationRequest', 'AllergyIntolerance', 'Flag']);
 // Rader som inte är resurser: ett avfärdat förslag är ingen uppmärksamhetsinformation, och en överkänslighet lämnas ut
 // som AllergyIntolerance (raden i uppmarksamhet bär bara dess bekräftade grad).
@@ -108,14 +121,50 @@ export function patient(db, p, visad = false) {
   return r;
 }
 
+const KONTAKTSATT = { besok: 'Besök', telefon: 'Telefon', video: 'Video', hembesok: 'Hembesök' };
 export function encounter(db, v) {
-  const klass = { akut: ['EMER', 'emergency'], slutenvard: ['IMP', 'inpatient encounter'], oppenvard: ['AMB', 'ambulatory'] }[v.typ] ?? ['AMB', 'ambulatory'];
+  if ('inskriven' in v) return vardtillfalleEncounter(db, v);
+  const klass = v.kontaktsatt === 'telefon' || v.kontaktsatt === 'video' ? ['VR', 'virtual'] : v.kontaktsatt === 'hembesok' ? ['HH', 'home health']
+    : { akut: ['EMER', 'emergency'], slutenvard: ['IMP', 'inpatient encounter'], oppenvard: ['AMB', 'ambulatory'] }[v.typ] ?? ['AMB', 'ambulatory'];
+  const planerad = !v.slut && !v.ankomst && Date.parse(v.start) > Date.now();
   return {
-    resourceType: 'Encounter', id: String(v.id), meta: kallaMeta(v.kalla), status: v.slut ? 'finished' : 'in-progress',
-    class: { system: SYSTEM.actcode, code: klass[0], display: klass[1] }, subject: ref('Patient', v.patient_id),
-    period: { start: v.start, ...(v.slut ? { end: v.slut } : {}) }, reasonCode: v.orsak ? [{ text: v.orsak }] : undefined,
+    resourceType: 'Encounter', id: String(v.id), meta: kallaMeta(v.kalla), status: v.slut ? 'finished' : planerad ? 'planned' : 'in-progress',
+    class: { system: SYSTEM.actcode, code: klass[0], display: klass[1] },
+    ...(v.kontaktsatt ? { type: [{ text: KONTAKTSATT[v.kontaktsatt] ?? v.kontaktsatt }] } : {}),
+    subject: ref('Patient', v.patient_id),
+    ...(v.halsoarende_id ? { episodeOfCare: [ref('EpisodeOfCare', v.halsoarende_id)] } : {}),
+    period: { start: v.ankomst ?? v.start, ...(v.slut ? { end: v.slut } : {}) }, reasonCode: v.orsak ? [{ text: v.orsak }] : undefined,
     serviceProvider: ref('Organization', v.enhet_id, enhetsnamn(db, v.enhet_id)),
     location: v.plats ? [{ location: { display: v.plats } }] : undefined,
+    ...(v.vardtillfalle_id ? { partOf: ref('Encounter', `vt-${v.vardtillfalle_id}`) } : {}),
+  };
+}
+
+// Vårdtillfället i slutenvård: från inskrivning till utskrivning, med varje plats patienten har legat på (avdelning,
+// sal och säng) som location med period, och vårdenheten med det medicinska ansvaret som serviceProvider.
+export function vardtillfalleEncounter(db, vt) {
+  const h = db.query("SELECT * FROM vardtillfalle_handelser WHERE vardtillfalle_id = ? AND typ IN ('inskrivning', 'sangbyte', 'flytt') ORDER BY tid, id").all(vt.id);
+  const location = h.map((x, i) => {
+    const slut = h[i + 1]?.tid ?? vt.utskriven;
+    return { location: { display: x.plats ?? enhetsnamn(db, x.enhet_id) }, status: slut ? 'completed' : 'active', period: { start: x.tid, ...(slut ? { end: slut } : {}) } };
+  });
+  return {
+    resourceType: 'Encounter', id: `vt-${vt.id}`, meta: kallaMeta(vt.kalla), status: vt.utskriven ? 'finished' : 'in-progress',
+    class: { system: SYSTEM.actcode, code: 'IMP', display: 'inpatient encounter' }, type: [{ text: 'Vårdtillfälle' }],
+    subject: ref('Patient', vt.patient_id), period: { start: vt.inskriven, ...(vt.utskriven ? { end: vt.utskriven } : {}) },
+    reasonCode: vt.orsak ? [{ text: vt.orsak }] : undefined,
+    serviceProvider: ref('Organization', vt.enhet_id, enhetsnamn(db, vt.enhet_id)),
+    ...(location.length ? { location } : {}),
+  };
+}
+
+// Hälsoärendet: vårdkontakter som hör ihop över tid. Vårdkontakterna pekar på det med Encounter.episodeOfCare.
+export function episodeOfCare(db, h) {
+  const forsta = db.query('SELECT min(start) AS s FROM vardkontakter WHERE halsoarende_id = ?').get(h.id)?.s;
+  return {
+    resourceType: 'EpisodeOfCare', id: String(h.id), meta: kallaMeta(h.kalla ?? 'vardkallan'), status: h.status === 'avslutat' ? 'finished' : 'active',
+    type: [{ text: `Hälsoärende: ${h.rubrik}` }], patient: ref('Patient', h.patient_id),
+    managingOrganization: ref('Organization', h.enhet_id, enhetsnamn(db, h.enhet_id)), period: { start: forsta && forsta < h.skapad ? forsta : h.skapad },
   };
 }
 
@@ -137,7 +186,8 @@ export function observation(db, m) {
     resourceType: 'Observation', id: String(m.id), meta: { ...kallaMeta(m.kalla), ...(kod?.profil ? { profile: [`${VITALPROFIL}/${kod.profil}`] } : {}) }, status: 'final',
     ...(kod ? { category: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/observation-category', code: kod.kategori }] }] } : {}),
     code: { ...(kod?.coding.length ? { coding: kod.coding.map(c => ({ ...c })) } : {}), text: def.namn },
-    subject: ref('Patient', m.patient_id), effectiveDateTime: m.tid, performer: [ref('Organization', m.enhet_id, enhetsnamn(db, m.enhet_id))],
+    subject: ref('Patient', m.patient_id), ...(m.vardkontakt_id ? { encounter: ref('Encounter', m.vardkontakt_id) } : {}),
+    effectiveDateTime: m.tid, performer: [ref('Organization', m.enhet_id, enhetsnamn(db, m.enhet_id))],
   };
   const mangd = (value) => ({ value, unit: m.matt_enhet, ...(kod ? { system: SYSTEM.ucum, code: kod.ucum } : {}) });
   if (m.typ === 'blodtryck') {
@@ -153,7 +203,8 @@ export function medicationRequest(db, o) {
   return {
     resourceType: 'MedicationRequest', id: String(o.id), meta: kallaMeta(o.kalla), status, intent: 'order',
     medicationCodeableConcept: { coding: [{ system: SYSTEM.atc, code: lm.atc, ...(ATC[lm.atc] ? { display: ATC[lm.atc] } : {}) }, ...(lm.npl ? [{ system: SYSTEM.nplid, code: lm.npl }] : [])], text: `${lm.namn} ${lm.styrka} ${lm.form}` },
-    subject: ref('Patient', o.patient_id), authoredOn: o.skapad, requester: ref('Practitioner', o.ordinerad_av, personNamn(db, o.ordinerad_av)),
+    subject: ref('Patient', o.patient_id), ...(o.vardkontakt_id ? { encounter: ref('Encounter', o.vardkontakt_id) } : {}),
+    authoredOn: o.skapad, requester: ref('Practitioner', o.ordinerad_av, personNamn(db, o.ordinerad_av)),
     reasonCode: [{ text: o.orsak }],
     dosageInstruction: [{ text: o.dosering, asNeededBoolean: Boolean(o.vid_behov) }],
     dispenseRequest: { validityPeriod: { start: o.start, ...(o.slut ? { end: o.slut } : {}) } },
@@ -202,7 +253,7 @@ export function serviceRequest(db, r, klinisk = true) {
   const ut = {
     resourceType: 'ServiceRequest', id: String(r.id), meta: kallaMeta(r.kalla), status, intent: 'order',
     priority: { akut: 'stat', skyndsam: 'urgent', normal: 'routine' }[r.prioritet] ?? 'routine',
-    subject: ref('Patient', r.patient_id), authoredOn: r.skickad_tid,
+    subject: ref('Patient', r.patient_id), ...(r.vardkontakt_id ? { encounter: ref('Encounter', r.vardkontakt_id) } : {}), authoredOn: r.skickad_tid,
     requester: ref('Practitioner', r.avsandare_id, personNamn(db, r.avsandare_id)),
     performer: [ref('Organization', r.till_enhet_id, enhetsnamn(db, r.till_enhet_id))],
     extension: [{ url: `${EXT}/remisstatus`, valueCode: r.status }, { url: `${EXT}/svar-senast`, valueDate: r.svar_senast }],
@@ -298,7 +349,7 @@ function bundle(base, url, resurser) {
   };
 }
 
-const MAPPA = { Encounter: encounter, Condition: condition, Observation: observation, MedicationRequest: medicationRequest, AllergyIntolerance: allergyIntolerance, Flag: flag, ServiceRequest: serviceRequest, Composition: composition };
+const MAPPA = { Encounter: encounter, EpisodeOfCare: episodeOfCare, Condition: condition, Observation: observation, MedicationRequest: medicationRequest, AllergyIntolerance: allergyIntolerance, Flag: flag, ServiceRequest: serviceRequest, Composition: composition };
 
 function handlingFor(typ, rad, personal) {
   if (typ === 'Composition') return lasHandling(rad?.kategori ?? 'lakare');
@@ -388,7 +439,7 @@ export function hantera(ctx) {
   // Patientens resurser.
   const mappa = MAPPA[typ];
   if (id) {
-    const rad = db.query(`SELECT * FROM ${TABELL[typ]} WHERE id = ?`).get(Number(id));
+    const rad = radMedId(db, typ, id);
     if (!rad || !finnsSomResurs(typ, rad)) throw new Fel(404, 'Resursen finns inte.', 'saknas');
     if (typ === 'Composition' && rad.status !== 'signerad' && rad.forfattare_id !== personal.id) throw new Fel(404, 'Resursen finns inte.', 'saknas');
     const handling = handlingFor(typ, rad, personal);
@@ -407,7 +458,7 @@ export function hantera(ctx) {
   if (typ === 'Composition') {
     atk.krav(kanRoll(personal, 'las_journal') ? 'las_journal' : 'las_omvardnad', { beskrivning: `fhir/${typ}${url.search}` });
   } else atk.krav(handling, { beskrivning: `fhir/${typ}${url.search}` });
-  let rader = db.query(`SELECT * FROM ${TABELL[typ]} WHERE patient_id = ? ORDER BY id`).all(pid).filter(r => finnsSomResurs(typ, r));
+  let rader = patientRader(db, typ, pid).filter(r => finnsSomResurs(typ, r));
   if (typ === 'Composition') {
     rader = rader.filter(a => a.status === 'signerad' || a.forfattare_id === personal.id);
     rader = atk.filtrera(rader, a => lasHandling(a.kategori));
@@ -447,7 +498,12 @@ export function patientForInvanare(db, p) {
   return r;
 }
 export const MAPPA_INVANARE = {
-  Encounter: encounter,
+  Encounter: (db, v) => {
+    const r = encounter(db, v);
+    delete r.partOf;
+    delete r.episodeOfCare;
+    return r;
+  },
   Condition: condition,
   Observation: observation,
   AllergyIntolerance: allergyIntolerance,
@@ -482,7 +538,7 @@ const mappaInvanare = (db, typ, rad) => MAPPA_INVANARE[typ](db, rad);
 const LOGGADE_PARAMETRAR = ['patient', 'subject', '_id', 'identifier'];
 const PATIENT_ID = /^p\d{1,4}$/;
 const LOPNUMMER = /^\d{1,9}$/;
-const loggbarDel = (d, i) => (i === 0 ? TYPER.includes(d) : PATIENT_ID.test(d) || LOPNUMMER.test(d) || d === '$everything');
+const loggbarDel = (d, i) => (i === 0 ? TYPER.includes(d) : PATIENT_ID.test(d) || LOPNUMMER.test(d) || VT_ID.test(d) || d === '$everything');
 function loggResurs(delar, url) {
   const q = LOGGADE_PARAMETRAR.filter(n => url.searchParams.has(n)).map((n) => {
     const v = String(url.searchParams.get(n)).replace(/^Patient\//, '');
@@ -519,7 +575,7 @@ function hanteraInvanare(ctx, delar) {
       const atk = oppna(id);
       const resurser = [patientForInvanare(db, atk.patient)];
       for (const t of Object.keys(MAPPA_INVANARE)) {
-        for (const r of db.query(`SELECT * FROM ${TABELL[t]} WHERE patient_id = ? ORDER BY id`).all(id)) if (synligFor(db, t, r)) resurser.push(mappaInvanare(db, t, r));
+        for (const r of patientRader(db, t, id, { invanare: true })) if (synligFor(db, t, r)) resurser.push(mappaInvanare(db, t, r));
       }
       atk.logga(sokvag);
       return { status: 200, body: bundle(base, url, resurser) };
@@ -551,7 +607,7 @@ function hanteraInvanare(ctx, delar) {
 
   if (!Object.hasOwn(MAPPA_INVANARE, typ) || delar.length > 2) throw new Fel(404, 'Okänd FHIR-resurs.', 'saknas');
   if (id) {
-    const rad = db.query(`SELECT * FROM ${TABELL[typ]} WHERE id = ?`).get(Number(id));
+    const rad = radMedId(db, typ, id, { invanare: true });
     // En resurs som inte visas i Min journal finns inte för invånaren. En resurs i en journal som invånaren inte får
     // läsa prövas som journalen, så att försöket loggas där och svaret blir detsamma som för en journal som inte finns.
     const finnsInte = () => new Fel(404, 'Resursen finns inte.', 'saknas');
@@ -578,7 +634,7 @@ function hanteraInvanare(ctx, delar) {
   const pid = (url.searchParams.get('patient') ?? url.searchParams.get('subject') ?? '').replace(/^Patient\//, '');
   if (!pid) throw new Fel(400, 'Sökparametern patient krävs.', 'ogiltig');
   const atk = oppna(pid);
-  const rader = db.query(`SELECT * FROM ${TABELL[typ]} WHERE patient_id = ? ORDER BY id`).all(pid).filter(r => synligFor(db, typ, r));
+  const rader = patientRader(db, typ, pid, { invanare: true }).filter(r => synligFor(db, typ, r));
   atk.logga(sokvag);
   return { status: 200, body: bundle(base, url, rader.map(r => mappaInvanare(db, typ, r))) };
 }

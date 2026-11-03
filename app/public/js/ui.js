@@ -58,6 +58,7 @@ export const HANDLING = {
   las_admin: 'Läste administrativa uppgifter', sok: 'Sökte patient', vantrum: 'Såg väntrummet', nodatkomst: 'Använde nödåtkomst',
   andra_enheter: 'Visade uppgifter från andra vårdenheter', samtycke_sparr: 'Registrerade samtycke till spärrade uppgifter',
   visa_identitet: 'Visade skyddad identitet', las_logg: 'Läste åtkomstloggen',
+  registrera_vardkontakt: 'Registrerade eller ändrade vårdkontakt', vardtillfalle: 'Skrev in, flyttade eller skrev ut', halsoarende: 'Bekräftade hälsoärende',
   invanare_las: 'Läste journalen i Min journal', invanare_begaran: 'Skickade en begäran i Min journal',
   registrera_patient: 'Registrerade ny patient', andra_identitet: 'Registrerade ny identitet', sla_samman: 'Slog samman journaler',
   dubblettkontroll: 'Såg ett förslag om sammanslagning', dubblett_avfardad: 'Avfärdade ett förslag om sammanslagning',

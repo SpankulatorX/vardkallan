@@ -70,6 +70,8 @@ Tidbok och kassa, specialområdena (anestesi och IVA, cytostatika, operation, f�
     src/journal.js     anteckningar, signering, rättelse
     src/lakemedel.js   ordination, utsättning, varningar, NLL-simulering
     src/remiss.js      remissflödet och larm
+    src/vardkontakt.js vårdkontakt, vårdtillfälle, hälsoärende och patientavgift
+    src/vardstruktur.js schema för vårdstrukturen och knytning av befintlig historik
     src/fhir.js        FHIR R4-mappning och /fhir-routning
     src/krav.js        kravregistret med koppling till tester
     src/sussa/         Sussas kravspecifikation (kravspec.json), mappning per avsnitt (mappning/) och index.js
@@ -81,7 +83,7 @@ Tidbok och kassa, specialområdena (anestesi och IVA, cytostatika, operation, f�
 
 Vårdgivare: Region Örebro län (påhittat HSA-id `SE2321000164-VK0000`). Vårdenheter med påhittade HSA-id av formen `SE2321000164-VKnnnn`:
 
-- Universitetssjukhuset Örebro (USÖ): Akutmottagningen, Kardiologiska kliniken (avdelning 72 och mottagning), Medicinska kliniken, Infektionskliniken, Ortopediska kliniken, Allmänpsykiatriska kliniken.
+- Universitetssjukhuset Örebro (USÖ): Akutmottagningen, Kardiologiska kliniken (avdelning 72, hjärtintensiven och mottagning), Medicinska kliniken, Infektionskliniken, Ortopediska kliniken, Allmänpsykiatriska kliniken.
 - Lindesbergs lasarett: Medicinkliniken.
 - Karlskoga lasarett: Ortopediska kliniken.
 - Vårdcentralen Tybble och Vårdcentralen Kumla (primärvård, listning).
@@ -142,6 +144,38 @@ Anteckning = typ, sökord (lista av `{ sokord, text }`), enhet, vårdkontakt, f�
 ## Remiss (remiss.js)
 
 Statuskedja: `skickad → mottagen (kvittens) → bedomd (accepterad | avvisad med motivering) → besvarad → svar_kvitterat`. Larm i inkorgen när mottagningskvittens saknas efter 2 timmar, när svar saknas efter sista svarsdatum, och när ett svar inte har kvitterats av avsändaren efter 3 dagar. Seeden innehåller remisser i varje läge, även ett som har larm.
+
+## Vårdkontakt och vårdtillfälle (vardkontakt.js, Sussa 6.1.1, 3.4.4 och 3.1.7)
+
+Vårdkontakten är den bärande strukturen. Allt som dokumenteras, anteckningar, diagnoser, mätvärden, ordinationer och remisser, hör till en vårdkontakt. En vårdkontakt har vårdform (öppenvård, akut eller slutenvård), kontaktsätt i öppenvård och akut (besök, telefon, video eller hembesök), vårdenhet, plats, orsak, start och slut, och för en planerad kontakt den faktiska ankomsttiden. Den visar vem som registrerade den och när, och vem som senast ändrade den. Schemat och knytningen av befintlig historik finns i `vardstruktur.js`, flödena i `vardkontakt.js`.
+
+**Systemet väljer kontakten.** Den som dokumenterar, ordinerar, mäter eller remitterar väljer aldrig en vårdkontakt i en lista. Servern knyter uppgiften till en kontakt efter att den har sparats, så att en nekad eller ogiltig åtgärd aldrig skapar en kontakt:
+
+1. Pågår ett vårdtillfälle på den egna vårdenheten, eller ett där vårdenheten har det medicinska ansvaret, hamnar uppgiften på avdelningens pågående kontakt.
+2. Annars ett pågående akutbesök, eller en kontakt i dag på den egna vårdenheten.
+3. Finns ingen skapar systemet en: akutbesök på akutmottagningen, annars ett besök på vårdenhetens mottagning. En öppen remiss till vårdenheten blir kontaktorsak och knyts till kontakten. Annars blir kontaktorsaken anteckningens sökord Kontaktorsak, eller kontaktsättet.
+
+Formulären för anteckning, mätvärde, ordination och remiss visar före sparandet vilken kontakt det blir, eller att en ny skapas, och den kan ändras till ett annat kontaktsätt och en annan orsak. Efteråt syns kontakten i översikten, där den egna vårdenhetens kontakter kan ändras och avslutas.
+
+**Registrering.** Vårdadministratören registrerar en vårdkontakt från patientens översikt. Förvalen är besök, nu och vårdenhetens mottagning, och finns en remiss till vårdenheten blir kontaktorsaken "Enligt remiss från" avsändaren, aldrig frågeställningen, eftersom vårdadministratören inte läser journaltext. En planerad kontakt får en tid, med nästa vardag klockan 9 förvald. När patienten kommer till en planerad kontakt i dag registreras ankomsten på den i stället för en ny kontakt, och samma kontakt kan inte registreras två gånger samma dag. Kontaktorsak behöver bara anges när systemet inte kan föreslå den.
+
+**Patientavgift (demoregler).** Systemet räknar avgiften ur kontakttyp och kontaktsätt: 200 kronor för besök, video och hembesök, 0 för telefon, 400 för akutmottagningen och 100 kronor per påbörjat vårddygn i slutenvård. Patienter under 20 år och från 85 år betalar inget, och högkostnadsskyddet på 1 450 kronor räknas över tolv månader. Beloppen är påhittade och märkta som demoregler. Betalning, kvitto, återbetalning, LMA-kort och patienter från andra län är inte byggda.
+
+**Vårdtillfälle.** Ett vårdtillfälle i slutenvård håller samman vistelserna på de avdelningar patienten ligger på. Vid inskrivning föreslår systemet avdelningen (den egna, eller vårdenhetens första avdelning) och tar orsaken från ett pågående akutbesök eller en öppen remiss. Akutbesöket avslutas och blir den föregående kontakten, så att övergången mellan vårdformer går att följa. Vid flytt avslutas kontakten på den gamla avdelningen och en ny börjar i samma vårdtillfälle. Det som redan är dokumenterat ligger kvar på sin kontakt, och nästa uppgift hamnar på den nya avdelningens kontakt, så inget registreras om. Ett sängbyte på samma avdelning ändrar bara platsen. Medicinskt ansvar (vårdtillfällets vårdenhet) och produktionsansvar (avdelningens vårdenhet) hålls isär: vid flytt till en annan klinik följer ansvaret med, utom när den gamla kliniken behåller det. Permission har ett datum för återkomst, och under permissionen går patienten inte att flytta. Vid utskrivning påminner systemet om osignerade anteckningar och saknad epikris utan att stoppa utskrivningen. Inskrivning, sängbyte, flytt, ändrat ansvar, permission, återkomst och utskrivning sparas som händelser med vem, var och när, och händelserna kan inte ändras eller raderas (databastriggrar). Bara avdelningens vårdenhet eller vårdenheten med det medicinska ansvaret kan flytta, ge permission och skriva ut.
+
+**Hälsoärende.** Ett hälsoärende håller samman vårdkontakter över tid och vårdenheter. Systemet föreslår ärenden bland de kontakter användaren får se: samma diagnoskategori (de tre första tecknen i ICD-10-SE-koden) vid flera kontakter, en remisskedja (kontakten som skickade remissen och kontakten hos mottagaren som var svaret på den) och övergångar mellan vårdformer och flyttar inom ett vårdtillfälle. Förslaget visar skälet, bekräftas med ett klick och kan avvisas, och ett avvisat förslag visas inte igen. Nya kontakter i samma vårdtillfälle och efter ett akutbesök följer med ärendet. Ett ärende kan inte avslutas, delas eller slås ihop i demon.
+
+**Översikt och tidslinje.** Översikten visar pågående vårdtillfälle med händelser och åtgärder, kontakterna med kontaktsätt, hälsoärende, vem som registrerade dem och, per kontakt, hur många anteckningar, mätvärden, ordinationer och remisser som hör till den. Tidslinjen kan visas i tidsordning, per vårdtillfälle och vårdkontakt eller per hälsoärende, och vårdtillfällets händelser finns med. `GET /api/vardkontakt/:id` ger allt som hör till en kontakt. Allt bygger på det som redan är filtrerat för användaren, så inre sekretess, spärr och yrkesroll gäller som i resten av journalen.
+
+**Behörighet och loggning.** Nya handlingar i behörighetsmotorn: `registrera_vardkontakt` (läkare, sjuksköterska och vårdadministratör), `vardtillfalle` (läkare och sjuksköterska) och `halsoarende` (läkare och sjuksköterska). Varje anrop prövas och loggas på patienten som de andra anropen, och nekade försök loggas som nekade.
+
+**Seed och migrerad historik.** Varje slutenvårdskontakt i seeden blev ett vårdtillfälle, och ett akutbesök som slutade strax före inskrivningen blev den föregående kontakten. Uppgifter som saknade vårdkontakt knöts till kontakten på samma vårdenhet och från samma källa vid samma tid. Fanns ingen skapades en, en per vårdenhet och dag, märkt som skapad av systemet och med uppgiftens källa, så att migrerad historik förblir märkt som migrerad. Sådana kontakter räknas inte som överförda i migreringsavstämningen. En remiss knöts till kontakten hos mottagaren som var svaret på den. En sandlåda från en äldre version får samma knytning när den läses in. P01 har ett sängbyte, p11 ett bekräftat hälsoärende över remisskedjan, och Kardiologiska kliniken har fått arbetsplatsen Hjärtintensivvårdsavdelningen (HIA).
+
+**FHIR.** Vårdkontakten är ett `Encounter`, vårdtillfället ett eget `Encounter` (`vt-<nummer>`) som vårdkontakterna är `partOf`, med varje plats som `location`, och hälsoärendet är `EpisodeOfCare`. Samma behörighet och loggning som gränssnittet. Validerat utan fel med HL7:s validator 2026-11-03 (`docs/fhir-validering.md`). Min journal visar vårdkontakter men inte vårdtillfällen och hälsoärenden, så invånaren får inte dem i FHIR heller.
+
+**Klickbudget.** Sex nya flöden: bekräfta ett hälsoärende (budget 1), skriva in (4), flytta (5), skriva ut (2), registrera ett besök (3) och planera ett videobesök (5).
+
+**Det som är simulerat eller saknas.** Avgifterna är demoregler. Tidbok och incheckning som patienten gör själv är inte byggda (Sussa 3.4.4.2 och 3.4.4.5); när tidboken byggs ska incheckningen registrera ankomsten på den planerade kontakten. Vårdplatser och sängar är fritext utan beläggningsöversikt. Målvärden för ledtider i subprocesser (6.1.1.4) och riktiga kringsystem (6.1.1.3) finns inte. Överkänslighet är uppmärksamhetsinformation om patienten och hör inte till en enskild vårdkontakt.
 
 ## Kronologi och migrering
 

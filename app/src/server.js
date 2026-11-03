@@ -13,6 +13,7 @@ import * as fhir from './fhir.js';
 import * as minJournal from './patientvy.js';
 import * as uppmarksamhet from './uppmarksamhet.js';
 import * as identitet from './identitet.js';
+import * as vardkontakt from './vardkontakt.js';
 import { kravregister, lasTestresultat } from './krav.js';
 import { sussaRegister } from './sussa/index.js';
 import { lasKlientresultat, gransnittHash } from './klientresultat.js';
@@ -381,14 +382,17 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       }),
       ...(rem ?? []).map(r => ({ tid: r.tider.skickad, typ: 'remiss', rubrik: `Remiss till ${r.till.namn}`, text: r.fragestallning ?? r.status, enhet: r.fran, kalla: r.kalla, kallaEtikett: r.kallaEtikett, ref: { typ: 'remiss', id: r.id } })),
     ].sort((a, b) => String(b.tid).localeCompare(String(a.tid)));
+    // Vårdkontakter, vårdtillfällen och hälsoärenden (vardkontakt.js), byggt av det som redan är filtrerat ovan.
+    const vardstruktur = vardkontakt.oversiktDel(atk, { vk, ant, dia, mv, ord, rem });
     return {
       lakemedel: ord ? ord.filter(lakemedel.aktuell).map(o => lakemedel.ordinationUt(db, o, { historik: false })) : null,
       diagnoser: dia ? dia.map(d => journal.diagnosUt(db, d)) : null,
       matvarden: mv ? journal.senastePerTyp(mv).map(m => journal.matvardeUt(db, m)) : null,
       anteckningar: ant ? ant.slice(0, 5) : null,
       remisser: rem ? rem.filter(r => r.status !== 'svar_kvitterat' && r.beslut !== 'avvisad') : null,
-      tidslinje,
-      vardkontakter: vk.map(v => journal.vardkontaktUt(db, v)),
+      tidslinje: vardkontakt.berikaTidslinje(db, tidslinje, vardstruktur, vk),
+      vardkontakter: vk.map(v => vardkontakt.kontaktUt(db, v, pers)),
+      vardstruktur,
       kontakt: { adress: p.skyddad ? null : p.adress, postnr: p.skyddad ? null : p.postnr, ort: p.skyddad ? null : p.ort, telefon: p.skyddad ? null : p.telefon, kontaktperson: p.skyddad ? null : p.kontaktperson },
       dolda: { kraverVal: atk.doldaVal, sparrade: atk.doldaSparr },
     };
@@ -765,7 +769,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('GET', '/api/patient/:id/anteckningar', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_journal', (atk) => journal.listaAnteckningar(atk)); });
   rutt('POST', '/api/patient/:id/anteckningar', (c, id) => {
     kravInloggad(c);
-    return [201, medPatient(c, id, journal.skrivHandling(journal.MALLAR.find(m => m.typ === c.body.typ)?.kategori), (atk) => journal.skapaAnteckning(atk, c.body))];
+    return [201, medPatient(c, id, journal.skrivHandling(journal.MALLAR.find(m => m.typ === c.body.typ)?.kategori), (atk) => vardkontakt.knyt(atk, 'anteckningar', journal.skapaAnteckning(atk, c.body), c.body))];
   });
   const medAnteckning = (c, id, handling, fn) => {
     kravInloggad(c);
@@ -781,7 +785,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('GET', '/api/patient/:id/lakemedel', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_lakemedel', (atk) => lakemedel.lista(atk)); });
   rutt('GET', '/api/lakemedel/katalog', (c) => { kravInloggad(c); return lakemedel.sokKatalog(c.db, c.url.searchParams.get('q') ?? ''); });
   rutt('POST', '/api/patient/:id/lakemedel/kontroll', (c, id) => { kravInloggad(c); return medPatient(c, id, 'ordinera', (atk) => lakemedel.kontroll(atk, c.body)); });
-  rutt('POST', '/api/patient/:id/lakemedel', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'ordinera', (atk) => lakemedel.spara(atk, c.body))]; });
+  rutt('POST', '/api/patient/:id/lakemedel', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'ordinera', (atk) => vardkontakt.knyt(atk, 'ordinationer', lakemedel.spara(atk, c.body), c.body))]; });
   const medOrdination = (c, id, fn) => {
     kravInloggad(c);
     const o = lakemedel.hamtaRad(c.db, id);
@@ -809,13 +813,13 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   });
 
   rutt('GET', '/api/patient/:id/matvarden', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_matvarden', (atk) => journal.listaMatvarden(atk)); });
-  rutt('POST', '/api/patient/:id/matvarden', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'registrera_matvarde', (atk) => journal.registreraMatvarde(atk, c.body))]; });
+  rutt('POST', '/api/patient/:id/matvarden', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'registrera_matvarde', (atk) => vardkontakt.knyt(atk, 'matvarden', journal.registreraMatvarde(atk, c.body), c.body))]; });
 
   rutt('GET', '/api/patient/:id/remisser', (c, id) => {
     kravInloggad(c);
     return medPatient(c, id, kanRoll(c.personal, 'las_remiss') ? 'las_remiss' : 'las_remiss_status', (atk) => remiss.forPatient(atk));
   });
-  rutt('POST', '/api/patient/:id/remisser', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'remittera', (atk) => remiss.skapa(atk, c.body))]; });
+  rutt('POST', '/api/patient/:id/remisser', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'remittera', (atk) => vardkontakt.knyt(atk, 'remisser', remiss.skapa(atk, c.body), c.body))]; });
   rutt('GET', '/api/remisser', (c) => {
     kravInloggad(c);
     if (!kanRoll(c.personal, 'las_remiss') && !kanRoll(c.personal, 'las_remiss_status')) throw new Fel(403, 'Din yrkesroll har inte tillgång till remisser.', 'nekad');
@@ -831,6 +835,39 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('POST', '/api/remiss/:id/bedom', (c, id) => medRemiss(c, id, 'bedom_remiss', (atk, r) => remiss.bedom(atk, r, c.body)));
   rutt('POST', '/api/remiss/:id/svara', (c, id) => medRemiss(c, id, 'svara_remiss', (atk, r) => remiss.svara(atk, r, c.body)));
   rutt('POST', '/api/remiss/:id/kvittera-svar', (c, id) => medRemiss(c, id, 'kvittera_svar', (atk, r) => remiss.kvitteraSvar(atk, r)));
+
+  // Vårdkontakt, vårdtillfälle och hälsoärende (vardkontakt.js). All prövning sker i behörighetsmotorn och varje
+  // anrop loggas på patienten, som de andra anropen.
+  const synligt = (atk) => ({ kontakter: journal.synligaVardkontakter(atk), diagnoser: kanRoll(atk.personal, 'las_diagnoser') ? journal.synligaDiagnoser(atk) : [] });
+  const medKontakt = (c, id, handling, fn) => {
+    kravInloggad(c);
+    const v = vardkontakt.hamtaKontakt(c.db, id);
+    return medPatient(c, v.patient_id, handling, (atk) => fn(atk, v));
+  };
+  const medVardtillfalle = (c, id, handling, fn) => {
+    kravInloggad(c);
+    const vt = vardkontakt.hamtaVardtillfalle(c.db, id);
+    return medPatient(c, vt.patient_id, handling, (atk) => fn(atk, vt));
+  };
+  const lasning = (c) => (kanRoll(c.personal, 'las_oversikt') ? 'las_oversikt' : 'las_admin');
+  // Avdelningarna som tar emot inneliggande patienter, för inskrivning och flytt. Inga patientuppgifter.
+  rutt('GET', '/api/avdelningar', (c) => { kravInloggad(c); return vardkontakt.avdelningar(c.db); });
+  rutt('GET', '/api/patient/:id/vardkontakt/aktuell', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_admin', (atk) => vardkontakt.aktuell(atk)); });
+  rutt('POST', '/api/patient/:id/vardkontakter', (c, id) => { kravInloggad(c); return medPatient(c, id, 'registrera_vardkontakt', (atk) => vardkontakt.registrera(atk, c.body)); });
+  rutt('GET', '/api/vardkontakt/:id', (c, id) => medKontakt(c, id, lasning(c), (atk, v) => vardkontakt.kontaktMedInnehall(atk, v)));
+  rutt('PATCH', '/api/vardkontakt/:id', (c, id) => medKontakt(c, id, 'registrera_vardkontakt', (atk, v) => vardkontakt.andra(atk, v, c.body)));
+  rutt('POST', '/api/vardkontakt/:id/avsluta', (c, id) => medKontakt(c, id, 'registrera_vardkontakt', (atk, v) => vardkontakt.avsluta(atk, v)));
+  rutt('POST', '/api/patient/:id/vardtillfallen', (c, id) => { kravInloggad(c); return medPatient(c, id, 'vardtillfalle', (atk) => vardkontakt.skrivIn(atk, c.body)); });
+  rutt('GET', '/api/vardtillfalle/:id', (c, id) => medVardtillfalle(c, id, 'las_admin', (atk, vt) => {
+    atk.krav('las_admin', { resurs: { enhet_id: vt.enhet_id }, beskrivning: `vardtillfalle:${vt.id}` });
+    return vardkontakt.vardtillfalleUt(c.db, vt, { innehall: true });
+  }));
+  rutt('POST', '/api/vardtillfalle/:id/flytta', (c, id) => medVardtillfalle(c, id, 'vardtillfalle', (atk, vt) => vardkontakt.flytta(atk, vt, c.body)));
+  rutt('POST', '/api/vardtillfalle/:id/permission', (c, id) => medVardtillfalle(c, id, 'vardtillfalle', (atk, vt) => vardkontakt.permission(atk, vt, c.body)));
+  rutt('POST', '/api/vardtillfalle/:id/permission/avsluta', (c, id) => medVardtillfalle(c, id, 'vardtillfalle', (atk, vt) => vardkontakt.aterFranPermission(atk, vt)));
+  rutt('POST', '/api/vardtillfalle/:id/skriv-ut', (c, id) => medVardtillfalle(c, id, 'vardtillfalle', (atk, vt) => vardkontakt.skrivUt(atk, vt)));
+  rutt('POST', '/api/patient/:id/halsoarenden', (c, id) => { kravInloggad(c); return medPatient(c, id, 'halsoarende', (atk) => { const x = synligt(atk); return vardkontakt.bekrafta(atk, c.body, x.kontakter, x.diagnoser); }); });
+  rutt('POST', '/api/patient/:id/halsoarenden/avvisa', (c, id) => { kravInloggad(c); return medPatient(c, id, 'halsoarende', (atk) => { const x = synligt(atk); return vardkontakt.avvisa(atk, c.body, x.kontakter, x.diagnoser); }); });
 
   rutt('GET', '/api/inkorg', (c) => {
     const p = kravInloggad(c);

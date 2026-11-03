@@ -447,8 +447,8 @@ describe('API', () => {
     expect(o.tidslinje.some(t => t.kalla === 'vardkallan')).toBe(true);
     const tider = o.tidslinje.map(t => t.tid);
     expect([...tider].sort().reverse()).toEqual(tider);
-    // Migrerade poster ligger i samma kronologi som ny dokumentation.
-    expect(new Set(o.tidslinje.map(t => t.typ))).toEqual(new Set(['vardkontakt', 'anteckning', 'ordination', 'remiss']));
+    // Migrerade poster ligger i samma kronologi som ny dokumentation, och vårdtillfällets händelser med dem.
+    expect(new Set(o.tidslinje.map(t => t.typ))).toEqual(new Set(['vardkontakt', 'vardtillfalle', 'anteckning', 'ordination', 'remiss']));
     expect(o.matvarden.find(m => m.typ === 'vikt').varde).toBe(81.6);
     expect(o.lakemedel.every(l => l.aktuell)).toBe(true);
     const h = (await k.get('/api/patient/p01')).data;

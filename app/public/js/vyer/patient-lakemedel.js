@@ -4,6 +4,7 @@ import { far } from '../app.js';
 import { doldaRad } from './patient.js';
 import { nllChip } from './patient-oversikt.js';
 import { lakemedelsalderRad } from '../avbrott.js';
+import { kontaktRad, nyKontaktData, kontaktNotis } from './patient-vardkontakt.js';
 
 let nastaOverforing = null;
 
@@ -112,6 +113,7 @@ function ordinationsForm(plats, ctx) {
   const i = idag();
   plats.innerHTML = `<form class="ordform" id="ordform" novalidate aria-labelledby="ord-rubrik">
     <h3 id="ord-rubrik" tabindex="-1">Ny ordination</h3>
+    <div data-kontakt-plats></div>
     <div class="falt lm-sok"><label for="lm-sok">Läkemedel <span class="obl">(obligatoriskt)</span></label>
       <input id="lm-sok" type="search" autocomplete="off" placeholder="Sök på namn, substans eller ATC-kod" aria-describedby="lm-valt" aria-controls="lm-traffar">
       <input type="hidden" name="lakemedelId">
@@ -139,6 +141,7 @@ function ordinationsForm(plats, ctx) {
     <div class="knapprad"><button type="submit" class="knapp" data-spara>Kontrollera och spara</button><button type="button" class="knapp text" data-stang>Avbryt</button></div>
   </form>`;
   const form = plats.querySelector('form');
+  const kontakt = kontaktRad(form.querySelector('[data-kontakt-plats]'), ctx);
   const sok = form.querySelector('#lm-sok');
   // Fokus i sökfältet, så att det går att börja skriva läkemedlets namn direkt.
   sok.focus();
@@ -203,9 +206,10 @@ function ordinationsForm(plats, ctx) {
           t.setAttribute('aria-invalid', 'true'); t.focus();
           throw Object.assign(new Error('Allvarliga varningar måste kvitteras med en motivering innan ordinationen sparas.'), { status: 400, data: {} });
         }
-        const r = await api(`/api/patient/${encodeURIComponent(ctx.id)}/lakemedel`, { metod: 'POST', data: { ...o, kvitteradeVarningar: kv } });
+        const r = await api(`/api/patient/${encodeURIComponent(ctx.id)}/lakemedel`, { metod: 'POST', data: { ...o, kvitteradeVarningar: kv, ...nyKontaktData(kontakt) } });
         nastaOverforing = null;
         notis(`${r.ordination.lakemedel?.namn} är ordinerat. ${nllResultat(r.nll)}`, r.nll.status === 'kvitterad' ? 'ok' : 'info');
+        kontaktNotis(r);
         ctx.ladda();
       }, form);
     } catch (err) {

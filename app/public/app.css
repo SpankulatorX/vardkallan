@@ -859,3 +859,30 @@ a.min-journalval:hover { background: var(--kalla-ljus); color: var(--blak); }
 .id-nu { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .dubblett { max-width: 80ch; }
 .dubblett h3 { margin-bottom: 6px; }
+/* Vårdkontakt, vårdtillfälle och hälsoärende (patient-vardkontakt.js). */
+.dok-kontakt { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 4px 0 10px; padding: 7px 10px; border: 1px solid var(--kalla-mellan); background: var(--kalla-ljus); border-radius: var(--r); font-size: var(--f-s); }
+.dok-kontakt > span { flex: 1 1 22ch; }
+.dok-kontakt .ikon { flex: none; }
+.ov-vardkontakter { grid-column: 1 / -1; }
+.vk-lista .knapprad { margin-top: 4px; }
+.vardtillfalle { border: 1px solid var(--kalla-mellan); border-left: 4px solid var(--kalla); border-radius: var(--r); padding: 8px 12px; margin: 8px 0 12px; background: var(--yta); }
+.vt-rubrik { margin: 0; }
+.vt-historik { margin-top: 6px; font-size: var(--f-s); }
+.vt-historik ol { margin: 6px 0 0; padding-left: 20px; }
+.vt-handelse { font-weight: 600; }
+.ha-forslag { margin: 10px 0; }
+.ha-forslag p { margin: 0 0 4px; }
+.ha-kontakter { margin: 4px 0 0; padding-left: 18px; }
+.kontroll-lista { list-style: none; margin: 8px 0 0; padding: 0; }
+.kontroll-lista li { display: flex; gap: 8px; align-items: flex-start; margin: 6px 0; }
+.tl-lage { margin: 4px 0 10px; }
+.tl-grupp { margin: 0 0 14px; }
+.tl-grupp h3 { font-size: var(--f-m); margin: 0; }
+.tl-grupp .tidslinje { margin-top: 6px; }
+.etikett { display: block; font-weight: 600; font-size: var(--f-s); margin-bottom: 4px; }
+.knappval button { padding: 5px 12px; border: 1px solid var(--linje-stark); margin-left: -1px; cursor: pointer; font: inherit; font-weight: 600; font-size: var(--f-s); background: var(--yta); color: var(--blak); min-height: 0; }
+.knappval button:first-of-type { border-radius: var(--r) 0 0 var(--r); margin-left: 0; }
+.knappval button:last-of-type { border-radius: 0 var(--r) var(--r) 0; }
+.knappval button[aria-pressed="true"] { background: var(--kalla); color: #fff; border-color: var(--kalla); position: relative; }
+.knappval button:focus-visible { outline: 3px solid var(--fokus); outline-offset: 1px; position: relative; z-index: 1; }
+.falt[hidden], .kryssfalt[hidden] { display: none; }

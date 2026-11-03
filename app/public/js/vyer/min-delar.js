@@ -183,6 +183,7 @@ const HANDLING = {
   svara_remiss: 'Svarade på en remiss', kvittera_svar: 'Kvitterade ett remissvar', nodatkomst: 'Öppnade journalen med nödåtkomst',
   andra_enheter: 'Valde att visa uppgifter från andra vårdenheter', samtycke_sparr: 'Registrerade ditt samtycke till att visa spärrade uppgifter',
   visa_identitet: 'Visade din skyddade identitet', las_logg: 'Läste åtkomstloggen', invanare_las: 'Läste journalen', invanare_begaran: 'Skickade en begäran',
+  registrera_vardkontakt: 'Registrerade eller ändrade en vårdkontakt', vardtillfalle: 'Skrev in, flyttade eller skrev ut dig', halsoarende: 'Höll samman vårdkontakter i ett hälsoärende',
 };
 const GRUND = {
   egen_enhet: 'Vårdrelation', vardrelation: 'Vårdrelation', administrativ: 'Administrativ uppgift', aktivt_val: 'Aktivt val',
