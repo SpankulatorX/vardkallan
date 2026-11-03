@@ -1,5 +1,7 @@
 // Sussa 3.5.1 Stöd för läkemedelshantering: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
+// Runda 6, r2.
+import { medR2 } from '../lakemedel-r2.js';
 import { TEST } from '../../krav.js';
 
 const { B, A, M } = TEST;
@@ -9,7 +11,7 @@ const UT = 'Utsättning > ';
 const FO = 'Fördefinierade ordinationer > ';
 const LG = 'Läkemedelsgenomgång > ';
 
-export default [
+const AVSNITT = [
   {
     id: '3.5.1.1', kategori: 'system', egna: ['L7'], avsedd: 'delvis',
     tester: [
@@ -109,3 +111,5 @@ export default [
     anmarkning: 'Läkemedelsberättelsen följer inte med epikrisen eller till nästa vårdgivare. Fynden är demoregler.',
   },
 ];
+// Runda 6, r2: posterna som byggdes i läkemedelsprocessen, del 2, ersätts ur sussa/lakemedel-r2.js.
+export default medR2(AVSNITT);

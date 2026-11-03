@@ -27,6 +27,8 @@ import * as vantelista from './vyer/vantelista.js';
 import * as incheckning from './vyer/incheckning.js';
 // Delegering av läkemedelshantering (runda 5).
 import * as delegeringar from './vyer/delegeringar.js';
+// Runda 6, r2: generella direktiv och uppföljning.
+import * as lakemedelsstod from './vyer/lakemedelsstod.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -53,6 +55,8 @@ const MENY = [
   // undersköterskan med delegering (runda 5). Sjuksköterskan och läkaren registrerar delegeringarna.
   ['#/administrering', 'Läkemedel att ge', 'piller', () => far('ge_lakemedel') && !far('ordinera')],
   ['#/delegeringar', 'Delegeringar', 'nyckel', () => far('delegera')],
+  // Runda 6, r2: generella direktiv för läkaren och sjuksköterskan och uppföljningen på vårdenhetens nivå för läkaren.
+  ['#/lakemedelsstod', 'Direktiv och uppföljning', 'piller', () => pa('faststalla_direktiv', 'ordinera_direktiv')],
   ['#/remisser', 'Remisser', 'remiss', () => pa('las_remiss', 'las_remiss_status')],
   ['#/vantrum', 'Väntrum (akuten)', 'vantrum', () => far('vantrum')],
   ['#/logg', 'Logguppföljning', 'logg', () => far('las_logg')],
@@ -76,6 +80,7 @@ const RUTTER = [
   [/^#\/administrering$/, administrering, () => far('las_lakemedel')],
   // Delegeringar (runda 5): sjuksköterskan och läkaren registrerar, undersköterskan ser sina egna.
   [/^#\/delegeringar$/, delegeringar, () => far('delegera') || S.session?.personal?.yrke === 'underskoterska'],
+  [/^#\/lakemedelsstod$/, lakemedelsstod, () => pa('faststalla_direktiv', 'ordinera_direktiv')],
   [/^#\/remisser$/, remisser, () => pa('las_remiss', 'las_remiss_status')],
   [/^#\/vantrum$/, vantrum, () => far('vantrum')],
   [/^#\/logg$/, logg, () => far('las_logg')],
@@ -161,7 +166,9 @@ export async function uppdateraInkorg() {
       // Återinsättning efter uppehåll med antikoagulantia (runda 5, r4).
       + (d.aterinsattningar?.length ?? 0)
       // Vårdhändelser som avbokades eftersom remissen avvisades (runda 5, r4).
-      + (d.avbokadeVardhandelser?.length ?? 0);
+      + (d.avbokadeVardhandelser?.length ?? 0)
+      // Läkemedelsprocessen, del 2 (runda 6, r2).
+      + (d.lakemedelsuppfoljningar?.length ?? 0) + (d.muntligaAttSignera?.length ?? 0) + (d.fordjupadeGenomgangar?.length ?? 0) + (d.licenserSomGarUt?.length ?? 0);
   } catch { S.inkorg = null; }
   const el = document.querySelector('[data-raknare="inkorg"]');
   if (el) { el.textContent = S.inkorg ? String(S.inkorg) : ''; el.hidden = !S.inkorg; }

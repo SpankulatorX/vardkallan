@@ -20,6 +20,8 @@ const VISAR = {
   'logg': 'Logguppföljning: ser varje åtkomst till alla patienter, filtrerar på nödåtkomst, nekade försök och samtycken och kontrollerar att loggkedjan är hel.',
   'ark': 'Arkivarie: registrerar beslut, skapar exportpaket till e-arkiv och verkställer gallring och förstöring av journaler efter beslut. Läser inte journalen.',
   'uppf': 'Uppföljning: hämtar datauttaget utan namn och personnummer, som uppdateras varje natt. Läser inte journalen.',
+  // Runda 6, r2.
+  'far-kard': 'Klinisk apotekare på kardiologen: läser läkemedelslistan och mätvärdena och gör farmaceutens bedömning i den fördjupade läkemedelsgenomgången, som läkaren startar och avslutar. Läser inte journalanteckningar.',
 };
 
 // Vad några av patienterna visar i Min journal.

@@ -1,4 +1,4 @@
-// Genomgång av Vårdkällans gränssnitt med Playwright. Loggar in som var och en av de tio demorollerna,
+// Genomgång av Vårdkällans gränssnitt med Playwright. Loggar in som var och en av de elva demorollerna,
 // går igenom varje vy rollen har och gör huvudflödena. Loggar sedan in som patienter i Min journal. Misslyckas vid
 // konsolfel, sidfel eller HTTP 500.
 //
@@ -131,9 +131,12 @@ async function valDialog(page, knappSel, { intyg = false, bildnamn } = {}) {
 
 const MENY = {
   // Läkaren registrerar också delegeringar (runda 5, r4).
-  klinisk: ['Arbetslista', 'Sök patient', 'Inkorg', 'Delegeringar', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  // Runda 6, r2: läkaren och sjuksköterskan har Direktiv och uppföljning.
+  klinisk: ['Arbetslista', 'Sök patient', 'Inkorg', 'Delegeringar', 'Direktiv och uppföljning', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Sjuksköterskan registrerar delegeringar, och undersköterskan med delegering ger läkemedel (runda 5).
-  sjukskoterska: ['Arbetslista', 'Sök patient', 'Inkorg', 'Läkemedel att ge', 'Delegeringar', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  sjukskoterska: ['Arbetslista', 'Sök patient', 'Inkorg', 'Läkemedel att ge', 'Delegeringar', 'Direktiv och uppföljning', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  // Runda 6, r2: farmaceuten i den fördjupade läkemedelsgenomgången.
+  farmaceut: ['Arbetslista', 'Sök patient', 'Inkorg', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   underskoterska: ['Arbetslista', 'Sök patient', 'Inkorg', 'Läkemedel att ge', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   utanRemiss: ['Arbetslista', 'Sök patient', 'Inkorg', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Vårdadministratören har tidboken först: dagens arbete, tidbok och väntelista (Sussa 3.4.1 till 3.4.4).
@@ -152,11 +155,11 @@ const MENY = {
 
   try {
     // Utan inloggning
-    await s('inloggningssidan visar de tio demorollerna och demoraden', async () => {
+    await s('inloggningssidan visar de elva demorollerna och demoraden', async () => {
       await page.goto(`${BAS}/`);
       await page.waitForSelector('.roll');
       const n = await page.locator('.roll').count();
-      if (n !== 10) throw new Error(`${n} roller`);
+      if (n !== 11) throw new Error(`${n} roller`);
       await forvanta(page, '.demorad', 'Demo med påhittade patienter och testpersonnummer från Skatteverket. Inte för vård av riktiga patienter.');
       await forvanta(page, '.sidfot', 'Vårdkällan är ett fristående demoprojekt med öppen källkod (EUPL 1.2). Det är inte en tjänst från Region Örebro län.');
       await forvanta(page, '#roll-lak-akut-visar', 'Nödåtkomst');
@@ -1021,6 +1024,106 @@ const MENY = {
       await forvanta(page, '.faktarad', 'Datauttag för uppföljning');
     });
 
+    // Runda 6, r2: läkemedelsprocessen, del 2 (Sussa 3.5.1 till 3.5.3).
+    await s('Sara Lindqvist ordinerar ur en mall, ser dosering över flera dygn, filtrerar listan och startar en fördjupad genomgång', async () => {
+      await loggaIn(page, 'lak-kard');
+      await page.click('[data-a="aterstall"]');
+      await forvanta(page, '.notis', 'Demon är återställd');
+      await gaTill(page, '#/patient/p01/lakemedel');
+      await forvanta(page, '#lm-dygn', 'Dosering över flera dygn');
+      await forvanta(page, '.lms-dygn', 'Furosemid');
+      await page.click('[data-mall]');
+      await page.click('[data-paket="elkonvertering"]');
+      await forvanta(page, '.lms-forslag', 'Tas inte med');
+      await bild(page, '90-mall-elkonvertering');
+      await page.click('[data-paket-ordinera]');
+      await forvanta(page, '.notis', 'ur mallen Inför elkonvertering');
+      await forvanta(page, '.lm-tabell', 'Mall: Inför elkonvertering');
+      await page.click('[data-lmfilter="obs"]');
+      await forvanta(page, '.lm-tabell', 'Särskild observation vid utsättning');
+      await page.click('[data-lmfilter="alla"]');
+      await page.click('[data-fg="starta"]');
+      await forvanta(page, '.notis', 'fördjupade läkemedelsgenomgången är startad');
+      await forvanta(page, '#lm-fordjupad ~ p, .lm-sektion', 'Väntar på farmaceutens bedömning');
+      await bild(page, '91-lakemedel-del2');
+    });
+    await s('Sara Lindqvist ordinerar med nedtrappning, spädning och förpackning ur systemets förslag', async () => {
+      await gaTill(page, '#/patient/p04/lakemedel');
+      await page.click('[data-ny]');
+      await page.fill('#lm-sok', 'prednisolon');
+      await page.click('[data-lm]');
+      await page.locator('.o-trappning').waitFor();
+      await page.click('.o-trappning summary');
+      await page.fill('#o-orsak', 'Polymyalgia reumatika');
+      await page.click('[data-spara]');
+      await forvanta(page, '.notis', 'Prednisolon Pfizer är ordinerat');
+      await forvanta(page, '.lm-tabell', 'Nedtrappning, steg 1 av 8');
+      await page.click('[data-ny]');
+      await page.fill('#lm-sok', 'bensylpenicillin');
+      await page.click('[data-lm]');
+      await page.locator('.o-spadning').waitFor();
+      await page.fill('#o-orsak', 'Erysipelas');
+      await page.click('[data-spara]');
+      await forvanta(page, '.notis', 'Bensylpenicillin Noridem är ordinerat');
+      await forvanta(page, '.lm-tabell', 'Koncentration 30 mg/ml');
+      await forvanta(page, '.lm-tabell', 'NPL-pack-id');
+    });
+    await s('Sara Lindqvist ser direktiven och uppföljningen på vårdenhetens nivå, och uppföljningen som har passerat i inkorgen', async () => {
+      await gaTill(page, '#/lakemedelsstod');
+      await forvanta(page, 'main h1', 'Direktiv och uppföljning');
+      await forvanta(page, '.tabell', 'Feber eller lätt till måttlig smärta');
+      await forvanta(page, '#lms-upp', 'Uppföljning på vårdenhetens nivå');
+      await bild(page, '92-direktiv-och-uppfoljning');
+      await gaTill(page, '#/inkorg');
+      await forvanta(page, '#ik-uppf ~ ul', 'Melatonin Bluefish');
+      await forvanta(page, '#ik-lic ~ ul', 'Tiamin injektionsvätska, licens');
+    });
+    await s('Johan Ek ser direktiven prövade mot patienten, dokumenterar en muntlig ordination och registrerar en dos i efterhand', async () => {
+      await loggaIn(page, 'ssk-kard');
+      await gaTill(page, '#/patient/p01/lakemedel');
+      await forvanta(page, '#lm-dir ~ ul', 'Direktivet gäller inte från 75 år');
+      await page.click('[data-muntlig]');
+      await forvanta(page, '#ord-rubrik', 'Muntlig ordination');
+      await page.fill('#lm-sok', 'omeprazol');
+      await page.click('[data-lm]');
+      await page.fill('#o-orsak', 'Kraftig halsbränna');
+      await page.fill('#m-omed', 'Svåra besvär som behöver behandlas nu');
+      await page.click('[data-spara]');
+      await forvanta(page, '.notis', 'Den muntliga ordinationen av Omeprazol Sandoz är dokumenterad');
+      await forvanta(page, '.lm-tabell', 'Muntlig, väntar på signering av Sara Lindqvist');
+      await gaTill(page, '#/administrering');
+      const alvedon = page.locator('.adm-patient', { hasText: 'Gunnar Åkesson' }).locator('.adm-vb', { hasText: 'Alvedon' });
+      await alvedon.locator('.adm-mer summary').click();
+      await alvedon.locator('[data-adm="efterhand"]').click();
+      await page.locator('dialog[open] [data-varde="ok"]').click();
+      await forvanta(page, '.notis', 'Alvedon är registrerad som given');
+      await bild(page, '93-dos-i-efterhand');
+    });
+    await s('Sara Lindqvist signerar den muntliga ordinationen i inkorgen', async () => {
+      await loggaIn(page, 'lak-kard');
+      await gaTill(page, '#/inkorg');
+      await forvanta(page, '#ik-muntlig ~ ul', 'Omeprazol Sandoz');
+      await page.locator('[data-signera]').first().click();
+      await forvanta(page, '.notis', 'muntliga ordinationen av Omeprazol Sandoz är signerad');
+    });
+
+    // Elsa Nordin, farmaceut (runda 6, r2)
+    await s('Elsa Nordin ser den fördjupade genomgången i inkorgen och gör farmaceutens bedömning', async () => {
+      await loggaIn(page, 'far-kard');
+      await gaTill(page, '#/inkorg');
+      await forvanta(page, '#ik-fordj ~ ul', 'Väntar på farmaceutens bedömning');
+      await gaTill(page, '#/patient/p01/lakemedel');
+      await page.click('[data-fg="farmaceut"]');
+      await page.locator('dialog[open] .lms-underlag').waitFor();
+      await bild(page, '94-farmaceut');
+      await page.locator('dialog[open] [data-varde="ok"]').click();
+      await forvanta(page, '.notis', 'Steget är sparat');
+      await forvanta(page, '.lm-sektion', 'Väntar på läkarens beslut');
+      await gaTill(page, '#/patient/p01');
+      await saknas(page, 'Daganteckning');
+    });
+    await allaVyer(page, 'Elsa Nordin', MENY.farmaceut);
+
     // Användartestet (D6). Hela testet med enkät och resultatfil testas i test/anvandartest.cjs.
     await s('användartestet startas från inloggningssidan och visar en uppgift i taget i listen', async () => {
       await page.click('[data-a="loggaut"]');
@@ -1029,7 +1132,7 @@ const MENY = {
       await forvanta(page, 'main h1', 'Användartest');
       await forvanta(page, '.at-info', 'Alla patienter i demon är påhittade');
       await page.fill('#at-kod', 'G01');
-      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'ordinera-mall', 'dos-efterhand']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');
@@ -1075,7 +1178,7 @@ const MENY = {
   };
   const vantaHamtat = (p) => p.waitForFunction(() => ![...document.querySelectorAll('main .tom, main .laddar')].some(e => /^Hämtar/.test(e.textContent)), null, { timeout: 8000 }).catch(() => {});
   const MOBILROLLER = [['lak-kard', 'Sara Lindqvist'], ['ssk-kard', 'Johan Ek'], ['usk-kard', 'Amira Haddad'], ['lak-akut', 'Erik Nyström'], ['lak-vc', 'Per Holm'],
-    ['lak-psyk', 'Lena Ström'], ['adm-kard', 'Karin Berg'], ['logg', 'Mats Wall'], ['ark', 'Ingela Nord'], ['uppf', 'Daniel Sund']];
+    ['lak-psyk', 'Lena Ström'], ['adm-kard', 'Karin Berg'], ['logg', 'Mats Wall'], ['ark', 'Ingela Nord'], ['uppf', 'Daniel Sund'], ['far-kard', 'Elsa Nordin']];
   try {
     if (!fel.length) {
       await s('mobil: inloggningen på 360 px', async () => {

@@ -97,6 +97,19 @@ function skapa(BAS) {
       await gaTill(page, '#/remisser');
       await page.locator('article.remiss', { hasText: 'Bedömning inför elkonvertering' }).waitFor();
     },
+    // Runda 6, r2: läkemedelsfliken och Läkemedel att ge efter att demon har återställts.
+    'Patientens läkemedelsflik': async (page) => {
+      await gaTill(page, '#/arbetslista');
+      await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
+      await gaTill(page, '#/patient/p01/lakemedel');
+      await page.waitForSelector('.lm-tabell');
+    },
+    'Läkemedel att ge efter återställning': async (page) => {
+      await gaTill(page, '#/arbetslista');
+      await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
+      await gaTill(page, '#/administrering');
+      await page.waitForSelector('.adm-patient');
+    },
     // Runda 5, r4: Waran gör uppehåll inför ett ingrepp med återinsättning i morgon. Görs med API:t utanför mätningen.
     'Arbetslistan dagen före en återinsättning': async (page) => {
       await gaTill(page, '#/arbetslista');
@@ -424,6 +437,23 @@ function skapa(BAS) {
       await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Spara bedömningen');
       await synlig(page, '.notis', 'Omeprazol Sandoz 20 mg är utsatt');
     },
+  };
+  // Runda 6, r2: läkemedelsprocessen, del 2.
+  GOR['ordinera-mall'] = async (m, page) => {
+    await m.klicka(page.locator('[data-mall]'), 'Ordinera från mall');
+    await m.klicka(page.locator('[data-paket="elkonvertering"]'), 'mallen Inför elkonvertering');
+    await synlig(page, '.lms-forslag', 'Tas inte med');
+    await m.klicka(page.locator('[data-paket-ordinera]'), 'Ordinera');
+    await synlig(page, '.notis', 'läkemedel är ordinerade ur mallen Inför elkonvertering');
+    await synlig(page, '.lm-tabell', 'Mall: Inför elkonvertering');
+  };
+  GOR['dos-efterhand'] = async (m, page) => {
+    const gunnar = page.locator('.adm-patient', { hasText: 'Gunnar Åkesson' });
+    const alvedon = gunnar.locator('.adm-vb', { hasText: 'Alvedon' });
+    await m.klicka(alvedon.locator('.adm-mer summary'), 'Mer för Alvedon vid behov');
+    await m.klicka(alvedon.locator('[data-adm="efterhand"]'), 'Given tidigare');
+    await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Registrera');
+    await synlig(page, '.notis', 'Alvedon är registrerad som given');
   };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }

@@ -67,7 +67,7 @@ export const HANDLING = {
   kontrasignera: 'Kontrasignerade', registrera_arkivbeslut: 'Registrerade eller läste arkivbeslut', arkivera: 'Exporterade till e-arkiv',
   gallra: 'Gallrade journalen efter beslut', radera: 'Förstörde journalhandlingar efter beslut', datauttag: 'Hämtade datauttaget för uppföljning',
 };
-export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare', arkivarie: 'Arkivarie', uppfoljning: 'Analytiker (uppföljning)' };
+export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare', arkivarie: 'Arkivarie', uppfoljning: 'Analytiker (uppföljning)', farmaceut: 'Farmaceut' };
 
 // Anrop mot API:t. Svarstiden läses från Server-Timing. Fel kastas som ApiFel med serverns text och kod.
 export class ApiFel extends Error {

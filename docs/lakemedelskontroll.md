@@ -166,3 +166,13 @@ E-hälsomyndighetens FHIR-profiler för Nationella läkemedelslistan anger NPL-i
 - **Klinisk dosering i övrigt.** Doserna är kontrollerade mot produktens styrka och form, och de två avvikande mot produktresumén. Övriga doser, indikationer och interaktioner är inte kontrollerade mot respektive produktresumé.
 - **Fri text i journalanteckningarna** (till exempel "Metoprolol depot 50 mg 1x1" och "Furosemid 40 mg iv") är skriven som en läkare skriver och nämner substanser, inte produkter. Den är inte ändrad, utom att Selexid-anteckningen nu säger fem dagar.
 - **Validering av NPL-id i HL7:s validator.** Terminologiservern har inte NPL, så validatorn kan inte kontrollera koderna, se `docs/fhir-validering.md`. Kontrollen av dem är den här rapporten och testerna.
+
+## Förpackningar (runda 6, 2026-11-03)
+
+Förpackningarna med NPL-pack-id lästes ur NPL:s totalfil https://npl.mpa.se/MpaProductExport/4.5/2026-11-03_Total_NPL.zip (63 185 679 byte, sha256 06b74dd8e01c20f0237dca98db187ffb59095727cb0e0dab25c3380686465fc9), som data med `python3 -I research/lakemedel/forpackningar.py` i en egen katalog under `$TMPDIR`. Utdraget med alla förpackningar för de 50 produkterna, med avregistreringsdatum och om förpackningen är parallelldistribuerad, finns i `research/lakemedel/forpackningar-2026-11-03.json`.
+
+`research/lakemedel/forpackningar-seed.py` skriver `app/src/seed/forpackningar.js` och facit `app/test/data/npl-forpackningar.json`. Bara förpackningar som inte är avregistrerade och inte parallelldistribuerade tas med, högst fyra per produkt, och en endosförpackning är förval när produkten har en. Det gav 175 förpackningar i katalogen av 446 giltiga i NPL. Testet `Förpackning med NPL-pack-id > katalogens förpackningar finns i NPL under samma produkt och är inte avregistrerade` jämför varje förpackning med facit.
+
+Systemadressen för NPL-pack-id i FHIR är `http://electronichealth.se/fhir/NamingSystem/nplpackid`, som delen `coding:nplpackid` i `NLLMedicationRequest` i `se.electronichealth.fhir.nll.r4` 1.3.1 (samma paket och kontrollsumma som ovan).
+
+Läkemedelstyperna utanför NPL (`app/src/seed/produkttyper.js`) är påhittade demoposter. Deras ATC-koder (A11DA01, B05AX01, B05AX03, B05XA01, B05XA03 och V06DB) och WHO:s benämningar är kontrollerade i WHO:s ATC/DDD-index (atcddd.fhi.no, senast uppdaterat 2026-01-20) den 2026-11-03.

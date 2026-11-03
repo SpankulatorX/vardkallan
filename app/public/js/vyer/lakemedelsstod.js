@@ -38,7 +38,7 @@ let val = { filter: 'alla', sort: 'namn' };
 try { val = { ...val, ...JSON.parse(sessionStorage.getItem('vk-lm-val') ?? '{}') }; } catch { /* ingen lagring */ }
 export function verktygsrad() {
   return `<div class="lms-verktyg" role="group" aria-label="Filtrera och sortera läkemedelslistan">
-    <div class="segment lms-filter">${Object.entries(FILTER).map(([k, t]) => `<button type="button" class="knapp liten sekundar" data-lmfilter="${k}" aria-pressed="${val.filter === k}">${esc(t)}</button>`).join('')}</div>
+    <div class="knappval-lista lms-filter">${Object.entries(FILTER).map(([k, t]) => `<button type="button" class="knapp liten sekundar" data-lmfilter="${k}" aria-pressed="${val.filter === k}">${esc(t)}</button>`).join('')}</div>
     <div class="falt lms-sort"><label for="lm-sort">Sortera</label><select id="lm-sort" data-lmsort>${Object.entries(SORT).map(([k, t]) => `<option value="${k}"${val.sort === k ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
   </div>`;
 }

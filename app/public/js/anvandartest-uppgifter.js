@@ -23,6 +23,9 @@ export const STARTPUNKT = {
   // Runda 5, r4: forbered görs av anvandartest.js innan uppgiften börjar (Waran gör uppehåll med återinsättning i morgon).
   'Arbetslistan dagen före en återinsättning': { hash: '#/arbetslista', klar: '#lista table', forbered: 'uppehall-waran' },
   'Inkommande remisser med en vårdhändelse som väntar': { hash: '#/remisser', klar: 'article.remiss', forbered: 'remiss-vardhandelse' },
+  // Runda 6, r2: demon återställs först, som i test/flodessteg.cjs.
+  'Patientens läkemedelsflik': { hash: '#/patient/p01/lakemedel', klar: '.lm-tabell', forbered: 'aterstall' },
+  'Läkemedel att ge efter återställning': { hash: '#/administrering', klar: '.adm-patient', forbered: 'aterstall' },
 };
 
 export const UPPGIFTER = [
@@ -204,6 +207,17 @@ export const UPPGIFTER = [
     id: 'avvisa-remiss-satt-ut', namn: 'Avvisa en remiss och sätta ut läkemedlet', roll: 'lak-kard', start: 'Inkommande remisser med en vårdhändelse som väntar',
     text: 'Birgitta Nyman är remitterad från vårdcentralen för elkonvertering. Du bedömer att hon ska handläggas i primärvården. Avvisa remissen, och se till att inget läkemedel väntar på ett ingrepp som inte blir av.',
     kontroll: { notis: 'Remissen är avvisad' },
+  },
+  // Runda 6, r2: läkemedelsprocessen, del 2.
+  {
+    id: 'ordinera-mall', namn: 'Ordinera från en mall med flera ordinationer', roll: 'lak-kard', start: 'Patientens läkemedelsflik',
+    text: 'Gunnar Åkesson ska elkonverteras. Kliniken har en fastställd mall för läkemedlen inför och efter en elkonvertering. Ordinera läkemedlen ur mallen.',
+    kontroll: { notis: 'ur mallen Inför elkonvertering' },
+  },
+  {
+    id: 'dos-efterhand', namn: 'Registrera en dos i efterhand', roll: 'ssk-kard', start: 'Läkemedel att ge efter återställning',
+    text: 'Du gav Gunnar Åkesson två tabletter Alvedon för en halvtimme sedan men hann inte registrera det. Registrera dosen nu.',
+    kontroll: { notis: 'Alvedon är registrerad som given' },
   },
 ];
 
