@@ -43,6 +43,8 @@ import * as sakerhetslogg from './sakerhetslogg.js';
 import { registreraRutter as lakemedelsstodRutter, inkorg as lakemedelsstodInkorg } from './lakemedelsstod-rutter.js';
 import * as lakemedelsstod from './lakemedelsstod.js';
 import * as lakemedelsvyer from './lakemedelsvyer.js';
+// Runda 6, r5: skrivning via FHIR, prenumerationer, SMART on FHIR och masterdata (oppet-api.js).
+import { skapaOppetApi } from './oppet-api.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -139,13 +141,17 @@ async function statisk(path) {
     if (!(await f.exists())) return null;
   }
   const ext = fil.slice(fil.lastIndexOf('.'));
-  return new Response(f, { headers: { 'Content-Type': TYPER[ext] ?? 'application/octet-stream', 'Cache-Control': 'no-cache', ...SAKERHET } });
+  // Runda 6, r5: externa tillämpningar visas i en ram i journalen, så de får ramas in av samma webbplats.
+  const ram = path.startsWith('/tillampningar/') ? { 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': SAKERHET['Content-Security-Policy'].replace("frame-ancestors 'none'", "frame-ancestors 'self'") } : {};
+  return new Response(f, { headers: { 'Content-Type': TYPER[ext] ?? 'application/octet-stream', 'Cache-Control': 'no-cache', ...SAKERHET, ...ram } });
 }
 
 export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.0.0.0', origin = process.env.ORIGIN || '',
   sessionFil = process.env.SESSION_FIL || '', testresultat = process.env.TESTRESULTAT || join(import.meta.dir, '..', 'test-resultat.json'),
   klientresultat = { klickbudget: process.env.KLICKBUDGET || join(import.meta.dir, '..', 'klickbudget.json'), klienttester: process.env.KLIENTTESTER || join(import.meta.dir, '..', 'klienttest-resultat.json') },
-  nyaPerTimme = Number(process.env.NYA_PER_TIMME || 60) } = {}) {
+  nyaPerTimme = Number(process.env.NYA_PER_TIMME || 60),
+  // Runda 6, r5: mottagaradresser och sändning för prenumerationerna, utbytbara i testerna.
+  oppetApiVal = {} } = {}) {
   const sessioner = new Map();
   const nyaPerIp = new Map();
   const serverMatning = new Matning(1000);
@@ -243,7 +249,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
 
   const stadning = setInterval(() => {
     const grans = Date.now() - SESSION_TTL;
-    for (const [sid, s] of sessioner) { if (s.sist < grans) { s.db.close(); sessioner.delete(sid); } else { rensaKopior(s); utdata.stadning(s.db); } }
+    for (const [sid, s] of sessioner) { if (s.sist < grans) { oppetApi.aterkalla(s, 'Åtkomstbiljetten återkallades när sessionen gick ut.'); s.db.close(); sessioner.delete(sid); } else { rensaKopior(s); utdata.stadning(s.db); } }
+    // Runda 6, r5: åtkomstbiljetter som har gått ut tas bort och loggas.
+    oppetApi.stada();
     const timme = Math.floor(Date.now() / 3600_000);
     for (const k of nyaPerIp.keys()) if (!k.endsWith(`:${timme}`)) nyaPerIp.delete(k);
   }, 10 * 60_000);
@@ -718,6 +726,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('POST', '/api/login', (c) => {
     const p = typeof c.body.personalId === 'string' ? c.db.query('SELECT * FROM personal WHERE id = ? AND demo = 1').get(c.body.personalId) : null;
     if (!p) throw new Fel(400, 'Välj en av demorollerna.', 'ogiltig', { falt: ['personalId'] });
+    // Runda 6, r5: tillämpningarnas åtkomstbiljetter gäller inte efter en ny inloggning.
+    oppetApi.aterkalla(c.s, 'Åtkomstbiljetten återkallades vid en ny inloggning.');
     avslutaKopia(c.s, aktuellKopia(c.s), 'inloggning');
     c.s.personalId = p.id;
     c.s.invanareId = null;
@@ -749,6 +759,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       const akt = aktuellKopia(c.s);
       if (akt) akt.stangd = new Date().toISOString();
       avslutaKopia(c.s, akt, 'utloggning');
+      // Runda 6, r5: tillämpningarnas åtkomstbiljetter återkallas och återkallelsen loggas.
+      oppetApi.aterkalla(c.s, 'Åtkomstbiljetten återkallades vid utloggning.');
       c.s.personalId = null; c.s.invanareId = null; c.s.val = {}; c.s.lasnyckel = null; c.s.oppnade = new Set();
     }
     return { ...sessionUt(c.s), ...(lasloggen ? { lasloggen } : {}) };
@@ -758,6 +770,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('GET', '/api/demo/invanare', (c) => minJournal.demoInvanare(c.db));
   rutt('POST', '/api/login/invanare', (c) => {
     const inv = minJournal.provaInloggning(c.db, c.body.invanareId);
+    oppetApi.aterkalla(c.s, 'Åtkomstbiljetten återkallades när någon loggade in i Min journal i samma webbläsare.');
     c.s.invanareId = inv.id;
     c.s.personalId = null;
     c.s.val = {};
@@ -771,6 +784,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     return sessionUt(c.s);
   });
   rutt('POST', '/api/reset', (c) => {
+    oppetApi.aterkalla(c.s, 'Åtkomstbiljetten återkallades när sandlådan återställdes.');
     c.s.db.close();
     c.s.db = nySessionsDb();
     c.s.val = {};
@@ -1370,6 +1384,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   r1Rutter({ rutt, kravInloggad, medPatient, valFor });
   // Runda 6, r2: läkemedelsprocessen, del 2.
   lakemedelsstodRutter({ rutt, kravInloggad, medPatient });
+  // Runda 6, r5: tillämpningar i journalen, masterdata och täckningen av API:t. Skrivningen via FHIR går genom R.
+  const oppetApi = skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaFranAnnanWebbplats, hamtaSession, inloggade, origin, maxKropp: MAX_KROPP, ...oppetApiVal });
+  oppetApi.registreraRutter({ rutt, kravInloggad, medPatient });
 
   // Endpoints som inte behöver en sandlåda.
   const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/krav/sussa', '/api/drift', '/api/lasekopia/krypterad-logg']);
@@ -1422,7 +1439,10 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     return { personal: personal ?? null, invanare };
   }
 
-  function fhirSvar(req, url, c) {
+  async function fhirSvar(req, url, c) {
+    // Runda 6, r5: skrivning, prenumerationer, åtkomstbiljetter och SMART-konfigurationen.
+    const r5 = await oppetApi.fhir(req, url, c);
+    if (r5) return r5;
     const sess = hamtaSession(req);
     if (sess) Object.assign(c, { s: sess.s, db: sess.s.db, ...inloggade(sess.s) });
     if (c.invanare) avvisaFranAnnanWebbplats(req);
@@ -1446,7 +1466,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       let svar;
       try {
         if (url.pathname.startsWith('/api/')) svar = await api(req, srv, url, c);
-        else if (url.pathname === '/fhir' || url.pathname.startsWith('/fhir/')) svar = fhirSvar(req, url, c);
+        else if (url.pathname === '/fhir' || url.pathname.startsWith('/fhir/')) svar = await fhirSvar(req, url, c);
+        // Runda 6, r5: OAuth 2.0 för SMART on FHIR.
+        else if (url.pathname.startsWith('/oauth/')) svar = await oppetApi.oauth(req, url, c, { arbetslista });
         else if (req.method !== 'GET' && req.method !== 'HEAD') svar = new Response('Metoden stöds inte.', { status: 405 });
         else svar = (await statisk(url.pathname)) ?? new Response('Sidan finns inte.', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
       } catch (e) {
@@ -1473,6 +1495,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
           sakerhetslogg.efterAnrop(c.s.db, { nyckel, status: svar.status, kod: c.felkod ?? null, fore: { personal: c.personal, invanare: c.invanare }, efter: inloggade(c.s) });
         } catch (e) { console.error('Säkerhetsloggen:', e.message); }
       }
+      // Runda 6, r5: ändringarna i sandlådan ger meddelanden till prenumerationerna.
+      if (c.s) oppetApi.efterAnrop(c.s, origin || `${url.protocol}//${url.host}`);
       serverMatning.lagg(nyckel, ms);
       if (c.s) c.s.matning.lagg(nyckel, ms);
       return svar;
@@ -1480,7 +1504,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   });
 
   return {
-    server, sessioner, port: server.port, url: `http://127.0.0.1:${server.port}`, spara,
+    server, sessioner, port: server.port, url: `http://127.0.0.1:${server.port}`, spara, oppetApi,
     stopp() { clearInterval(stadning); server.stop(true); for (const s of sessioner.values()) s.db.close(); sessioner.clear(); },
   };
 }

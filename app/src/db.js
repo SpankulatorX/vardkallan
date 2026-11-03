@@ -1,6 +1,5 @@
 // Schema, triggrar, seedad mall och sandlådor. Varje besökare får en egen kopia av mallen i minnet.
 import { Database } from 'bun:sqlite';
-import { ENHETER } from './seed/enheter.js';
 import { PERSONAL } from './seed/personal.js';
 import { KATALOG } from './seed/lakemedel-katalog.js';
 import { PATIENTER, REMISSER, VANTRUM, LOGG, MIGRERING_AVVIKELSER } from './seed/patienter.js';
@@ -22,6 +21,8 @@ import { sakraLakemedelssakerhet, seedaDelegeringar } from './lakemedelssakerhet
 import { sakraR1Schema, seedaR1 } from './schema-runda6-r1.js';
 // Läkemedelsprocessen, del 2 (runda 6, r2, lakemedelsstod-schema.js).
 import { sakraLakemedelsstod, seedaLakemedelsstod } from './lakemedelsstod-schema.js';
+// Runda 6, r5: masterdata från utbytbara källor (masterdata.js).
+import { forSeed as masterdataForSeed } from './masterdata.js';
 
 // Fel som API:t svarar med. kod: nekad | saknas | ogiltig | kraver_val | kraver_samtycke
 export class Fel extends Error {
@@ -232,10 +233,12 @@ export function byggSeed(bas = nu()) {
   db.exec(SCHEMA_INVANARE);
   utokaSchema(db);
   sakraIdentitetsschema(db);
+  // Runda 6, r5: organisation och personal kommer från masterdatakällan (masterdata.js), i demon filadaptern som läser seeden.
+  const master = masterdataForSeed();
   const insE = db.query('INSERT INTO enheter VALUES (?, ?, ?, ?, ?, ?)');
-  for (const e of ENHETER) insE.run(e.id, e.hsa, e.namn, e.kortnamn ?? null, e.typ, e.forald);
+  for (const e of master.organisation) insE.run(e.id, e.hsaId, e.namn, e.kortnamn ?? null, e.typ, e.forald ?? null);
   const insP = db.query('INSERT INTO personal VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-  PERSONAL.forEach((p, i) => insP.run(p.id, p.namn, p.yrke, p.titel, p.enhet, `SE2321000164-VKP${String(i + 1).padStart(3, '0')}`, p.demo ? 1 : 0, p.aktiv === false ? 0 : 1));
+  for (const p of master.personal) insP.run(p.id, p.namn, p.yrke, p.titel ?? null, p.enhetId, p.hsaId, p.demo ? 1 : 0, p.aktiv === false ? 0 : 1);
   const insK = db.query('INSERT INTO katalog VALUES (?, ?, ?, ?, ?, ?, ?)');
   for (const k of KATALOG) insK.run(k.id, k.namn, k.substans, k.styrka, k.form, k.atc, k.npl);
 

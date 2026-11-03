@@ -1102,6 +1102,7 @@ mark { background: var(--obs-bg); color: inherit; outline: 1px solid var(--obs-k
 @media (max-width: 640px) {
   .journalsok { flex-basis: 100%; }
   .kurvor { grid-template-columns: minmax(0, 1fr); }
+}
 /* Läkemedelsprocessen, del 2 (runda 6, r2): filtrering, mallar, dosering över flera dygn, makulering och vätskebalans. */
 .lms-verktyg { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; margin: 6px 0 10px; }
 .lms-verktyg .falt { margin: 0; }
@@ -1128,3 +1129,27 @@ mark { background: var(--obs-bg); color: inherit; outline: 1px solid var(--obs-k
   .lms-verktyg { flex-direction: column; align-items: stretch; }
   .lms-cell { white-space: normal; }
 }
+
+/* Runda 6, r5: externa tillämpningar i journalen och sidan för val av patient i en standalone launch. */
+.tillampningar { list-style: none; padding: 0; margin: 0 0 16px; display: grid; gap: 10px; }
+.tillampning { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; border: 1px solid var(--linje, #d7dee5); border-radius: 8px; padding: 12px 14px; background: #fff; }
+.tillampning h3 { margin: 0 0 4px; font-size: 1rem; }
+.tillampning p { margin: 0 0 4px; }
+.tillampning .knapp { flex: 0 0 auto; }
+.tillampning-ram { border: 1px solid var(--linje, #d7dee5); border-radius: 8px; overflow: hidden; background: #fff; }
+.tillampning-ram .ram-huvud { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 12px; border-bottom: 1px solid var(--linje, #d7dee5); }
+.tillampning-ram .ram-huvud h3 { margin: 0; font-size: 1rem; }
+.tillampning-ram .ram-huvud p { margin: 0; flex: 1 1 200px; }
+.tillampning-ram iframe { display: block; width: 100%; height: 640px; border: 0; }
+.smart-sida { max-width: 640px; margin: 24px auto; padding: 0 16px; }
+.smart-lista { list-style: none; padding: 0; display: grid; gap: 8px; }
+.smart-lista .knapp { width: 100%; text-align: left; }
+@media (max-width: 640px) {
+  .tillampning { flex-direction: column; }
+  .tillampning-ram iframe { height: 560px; }
+}
+/* Runda 6, r5: täckningen av API:t på sidan Öppet API ryms i smal skärm. */
+#api-tackning { overflow-x: auto; max-width: 100%; }
+.api-tackning code { overflow-wrap: anywhere; word-break: break-word; }
+.api-tackning td { min-width: 7ch; }
+.api-tackning { min-width: 0; max-width: 100%; }

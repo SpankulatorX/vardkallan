@@ -243,6 +243,12 @@ export const UPPGIFTER = [
     text: 'Du gav Gunnar Åkesson två tabletter Alvedon för en halvtimme sedan men hann inte registrera det. Registrera dosen nu.',
     kontroll: { notis: 'Alvedon är registrerad som given' },
   },
+  // Runda 6, r5: en extern tillämpning startas från journalen (Sussa 5.1.1.4).
+  {
+    id: 'extern-tillampning', namn: 'Starta en extern tillämpning från journalen', roll: 'lak-kard', start: 'Patientens översikt',
+    text: 'Du vill se hur Gunnar Åkessons blodtryck har förändrats i ett diagram. Kliniken använder en tillämpning som heter Blodtryck över tid. Öppna den för Gunnar.',
+    kontroll: { sel: '[data-tillampning-status]', text: 'visar' },
+  },
 ];
 
 // Deltagarens bakgrund. Bara val, inga fritextfält, så att inga identifierande uppgifter samlas in.

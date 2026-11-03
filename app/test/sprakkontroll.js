@@ -158,13 +158,17 @@ CT USÖ SVT LMA FVIS JMIR VK DELETE CHECK ÅÅÅÅ MM DD NNNN ÅÅÅÅMMDD VKÅ�
 workern workerns Playwright Webcert Thomas Wall Wennberg Waran Warfarin Eliquis Brilique webb
 LPT LRV SPU HSL SoL IVO CarePlan GCS NRS ACVPU CKD-EPI warfarin
 `.trim().split(/\s+/));
+// Runda 6, r5: det öppna API:t för skrivning och externa tillämpningar.
+for (const w of ['SMART', 'PKCE', 'OAuth', 'IP', 'GET', 'POST', 'PUT', 'Subscription', 'Parameters', 'SSRF']) TILLATNA.add(w);
 // Fraser med engelska ord som är namn på standarder, rubriker, parametrar och tekniska begrepp. Ett tomt värde i data
 // beskrivs som tomt, inte som null (beslut 2026-11-03).
 export const FRASER = ['HL7 Sweden', '$everything', 'pull request', 'Server-Timing', 'X-Content-Type-Options', 'Content-Type', 'Content-Disposition',
   'FHIR Bulk Data Access', 'Bulk Data', 'Service worker', 'service worker', 'Service Worker', 'Sökparametern schedule',
   'System Usability Scale', 'GitHub Actions',
   // Runda 6, r1: källorna för NEWS2 och GCS och en titel i NEWS2 som citeras.
-  'Royal College of Physicians', 'National Early Warning Score', 'Glasgow Coma Scale', 'specialist registrar'];
+  'Royal College of Physicians', 'National Early Warning Score', 'Glasgow Coma Scale', 'specialist registrar',
+  // Runda 6, r5: standarden för externa tillämpningar och HTTP-rubriken för åtkomstbiljetter.
+  'SMART on FHIR', 'SMART App Launch', 'WWW-Authenticate', 'Subscriptions R5 Backport', 'rest-hook'];
 
 // Svenska ord som ofta skrivs utan å, ä eller ö. Formen utan prickar är inget eget ord.
 export const UTAN_PRICKAR = new Map(Object.entries({

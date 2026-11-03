@@ -15,6 +15,8 @@ import * as utlamnat from './patient-utlamnat.js';
 import { planerFlik, tvangsvardFlik } from './r3.js';
 // Runda 6, r1: sökning i journalen (Sussa 3.1.8).
 import * as journalsok from './patient-sok.js';
+// Runda 6, r5: externa tillämpningar med SMART on FHIR (Sussa 5.1.1.4).
+import * as tillampningar from './patient-tillampningar.js';
 
 export const namn = 'patient';
 
@@ -30,6 +32,8 @@ const FLIKAR = [
   // Runda 6, r3. Tvångsvården visas för läkare, som kan utfärda vårdintyg, och för personalen på psykiatrin.
   ['planer', 'Planer', () => pa('las_vardplan', 'samordna'), planerFlik],
   ['tvangsvard', 'Tvångsvård', () => far('tvangsvard') || Boolean(S.session?.r3?.tvangsvardsenhet), tvangsvardFlik],
+  // Runda 6, r5: tillämpningarna, för de roller som får läsa mätvärden (demotillämpningen läser blodtrycket).
+  ['tillampningar', 'Tillämpningar', () => far('las_matvarden'), tillampningar],
   // Runda 6, r1: träffarna från sökfältet. Fliken nås från sökfältet och står inte bland flikarna.
   ['sok', 'Sökträffar', () => far('las_oversikt'), journalsok, { dold: true }],
 ];

@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-03T18:25:13.928Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-03T19:38:35.219Z",
+  "bas": "http://127.0.0.1:18135",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "770ea3319c70605f9c7b3ba7d59fd5df384c8958fe45ae154e6a9713f002013f",
+  "gransnittHash": "b8e0ddecba92511adb02c54f57872836b912034340b5b77f5dc633248dac41bd",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -769,6 +769,23 @@
         "klick: Given tidigare",
         "klick: Registrera"
       ]
+    },
+    {
+      "id": "extern-tillampning",
+      "namn": "Starta en extern tillämpning från journalen",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 2,
+      "motivering": "Sussa 5.1.1.4. Ett klick på fliken Tillämpningar och ett på Starta för Blodtryck över tid. Systemet ger tillämpningen patienten och den inloggade och sköter åtkomsten med SMART on FHIR och PKCE, så ingen behöver välja patient eller logga in igen.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Tillämpningar",
+        "klick: Starta Blodtryck över tid"
+      ]
     }
   ],
   "tester": [
@@ -938,6 +955,10 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Registrera en dos i efterhand inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Starta en extern tillämpning från journalen inom budget",
       "status": "grön"
     }
   ]

@@ -206,6 +206,18 @@ const MENY = {
       await forvanta(page, '#kurva-inr', 'Målintervall vid behandling med warfarin');
       await bild(page, '91-kurvor-news2', true);
     });
+    // Runda 6, r5: en extern tillämpning startas från journalen med SMART on FHIR och stängs igen.
+    await s('Sara startar Blodtryck över tid från journalen, ser diagrammet och stänger tillämpningen', async () => {
+      await gaTill(page, '#/patient/p01/tillampningar');
+      await forvanta(page, '.tillampning', 'Blodtryck över tid');
+      await forvanta(page, '.ingress', 'utan aktiva val, nödåtkomst eller samtycke');
+      await page.click('[data-starta="blodtryck"]');
+      await page.frameLocator('#tillampning-ram iframe').locator('[data-diagram] svg').waitFor({ timeout: 15000 });
+      await forvanta(page, '[data-tillampning-status]', 'Blodtryck över tid visar');
+      await bild(page, '95-tillampning-blodtryck', true);
+      await page.click('[data-stang]');
+      await forvanta(page, '.notis', 'Tillämpningen är stängd');
+    });
     await s('Sara söker på sertralin hos Elin Sandberg och får inga träffar ur den spärrade psykiatrin', async () => {
       await gaTill(page, '#/patient/p04/sok?q=sertralin');
       await forvanta(page, '.antal-text', 'Inga träffar.');
@@ -739,7 +751,7 @@ const MENY = {
       await gaTill(page, '#/patient/p01');
       const flikar = await page.locator('.flikar a').allTextContents();
       // Runda 6, r3: undersköterskan ser vårdplanerna och registrerar sina egna åtgärder under Planer.
-      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Journal', 'Läkemedel', 'Mätvärden', 'Logglista', 'Identitet', 'Utskrifter', 'Planer'])) throw new Error(`flikar ${flikar}`);
+      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Journal', 'Läkemedel', 'Mätvärden', 'Logglista', 'Identitet', 'Utskrifter', 'Planer', 'Tillämpningar'])) throw new Error(`flikar ${flikar}`);
       if (await page.locator('#ov-dia').count()) throw new Error('diagnoser visas');
       await page.click('.flikar a:has-text("Journal")');
       await page.waitForSelector('.j-grupp');
@@ -1217,7 +1229,7 @@ const MENY = {
       await forvanta(page, 'main h1', 'Användartest');
       await forvanta(page, '.at-info', 'Alla patienter i demon är påhittade');
       await page.fill('#at-kod', 'G01');
-      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut', 'sok-journal', 'news2', 'ordinera-mall', 'dos-efterhand']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut', 'sok-journal', 'news2', 'ordinera-mall', 'dos-efterhand', 'extern-tillampning']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

@@ -26,6 +26,16 @@ export default [
     expert: 'Systemet räknar fram vårdrelationen ur listningen, så ingen behöver lägga upp åtkomst för listade patienter.',
     anmarkning: 'Organisation, personal, scheman, befolkning och listning ligger i seeden och hämtas inte från masterdatakällor.',
   },
-  { id: '5.1.2.3', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
-    anmarkning: 'Ingen arkitektur för hämtning och uppdatering av masterdata är byggd.' },
+  {
+    id: '5.1.2.3', kategori: 'system', egna: [], avsedd: 'delvis',
+    tester: [
+      'Masterdata > organisation och personal i sandlådan kommer från filadaptern',
+      'Masterdata > källan kan bytas mot en annan adapter med samma kontrakt, och synkroniseringen räknar ut vad som ändrats',
+      'Masterdata > en källa med fel ändrar ingenting, och befolkningen ger skyddad identitet direkt',
+      'Masterdata > API: masterdata visar källan, antalet och den senaste synkroniseringen per del',
+    ],
+    losning: 'Organisation, personal och befolkning hämtas från utbytbara källor (adaptrar) med ett gemensamt kontrakt. Demon har en filadapter som läser seeden, och sandlådan byggs ur den. En synkronisering validerar källan och räknar ut nya, ändrade och borttagna poster utan att radera något.',
+    expert: 'Systemet validerar varje källa innan något ändras och räknar själv ut vad som har ändrats. Personal som saknas blir inaktiv i stället för att raderas, och en skyddad identitet från folkbokföringen gäller direkt.',
+    anmarkning: 'Inga riktiga anslutningar: HSA-katalogen, personalsystemet och folkbokföringen via PU-tjänsten finns inte. Synkroniseringen körs inte efter ett schema, och vilka uppgifter som räknas som masterdata går inte att ändra utan kod.',
+  },
 ];

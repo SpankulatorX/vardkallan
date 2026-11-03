@@ -460,7 +460,25 @@ export function auditEvent(r) {
   };
 }
 
+// Runda 6, r5: skrivning via FHIR (fhir-skrivning.js), prenumerationer (prenumeration.js) och SMART on FHIR (smart.js).
+const SKRIV_INTERAKTIONER = { Observation: ['create'], Composition: ['create', 'update'], MedicationRequest: ['create', 'update'], ServiceRequest: ['create'] };
+function medSkrivning(c, base) {
+  const r = c.rest[0];
+  for (const x of r.resource) for (const code of SKRIV_INTERAKTIONER[x.type] ?? []) x.interaction.push({ code });
+  r.resource.push({ type: 'Subscription', interaction: [{ code: 'read' }, { code: 'search-type' }, { code: 'create' }, { code: 'delete' }] });
+  r.security = {
+    service: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/restful-security-service', code: 'SMART-on-FHIR' }] }],
+    extension: [{ url: 'http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris', extension: [
+      { url: 'authorize', valueUri: `${base}/oauth/authorize` }, { url: 'token', valueUri: `${base}/oauth/token` }, { url: 'revoke', valueUri: `${base}/oauth/revoke` }] }],
+    description: `${r.security.description} Externa tillämpningar använder SMART on FHIR med en åtkomstbiljett (Authorization: Bearer), som aldrig ger mer än den inloggade utan aktiva val. Skrivning går genom samma funktioner och regler som gränssnittet.`,
+  };
+  return c;
+}
+
 export function capability(base) {
+  return medSkrivning(capabilityBas(base), base);
+}
+function capabilityBas(base) {
   return {
     resourceType: 'CapabilityStatement', status: 'active', date: idag(), kind: 'instance', fhirVersion: '4.0.1', format: ['application/fhir+json'],
     software: { name: 'Vårdkällan', version: '0.1.0' }, implementation: { description: 'Vårdkällan, öppen demo med påhittade patienter', url: `${base}/fhir` },

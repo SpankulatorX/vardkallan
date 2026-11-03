@@ -97,4 +97,51 @@ export const TILLAGG = [
   tillagg('hash', 'Hash', 'Hash i loggkedjan', 'sha256 av föregående rads hash och raden, i hexadecimal form. Kedjan gör att ändringar i loggen upptäcks.', 'AuditEvent', 'string'),
 ];
 
+// Runda 6, r5: skrivning via FHIR. Orsaken till en rättelse, en kvitterad varning med regel och motivering, och
+// kodsystemet för varningsreglerna (som är demoregler och inte räknas upp här).
+TILLAGG.push(tillagg('rattelseorsak', 'Rattelseorsak', 'Orsak till rättelse', 'Varför en signerad anteckning rättas. Den tidigare versionen står kvar och den nya ersätter den (HSLF-FS 2016:40 6 kap.).', 'Composition', 'string'));
+TILLAGG.push((() => {
+  const url = `${EXT}/kvitterad-varning`;
+  const del = (namn, typ, titel) => [
+    { id: `Extension.extension:${namn}`, path: 'Extension.extension', sliceName: namn, short: titel, definition: titel, min: 1, max: '1' },
+    { id: `Extension.extension:${namn}.extension`, path: 'Extension.extension.extension', max: '0' },
+    { id: `Extension.extension:${namn}.url`, path: 'Extension.extension.url', fixedUri: namn },
+    { id: `Extension.extension:${namn}.value[x]`, path: 'Extension.extension.value[x]', min: 1, type: [{ code: typ }] },
+  ];
+  return {
+    resourceType: 'StructureDefinition', id: 'kvitterad-varning', url, name: 'KvitteradVarning', title: 'Kvitterad varning', ...gemensamt,
+    description: 'En allvarlig varning som förskrivaren har läst och kvitterat med en motivering när ordinationen sparades eller sattes ut. Regeln är koden som Vårdkällan gav i OperationOutcome.',
+    fhirVersion: '4.0.1', kind: 'complex-type', abstract: false, context: [{ type: 'element', expression: 'MedicationRequest' }],
+    type: 'Extension', baseDefinition: 'http://hl7.org/fhir/StructureDefinition/Extension', derivation: 'constraint',
+    differential: { element: [
+      { id: 'Extension', path: 'Extension', short: 'Kvitterad varning', definition: 'En kvitterad varning.', min: 0, max: '*' },
+      { id: 'Extension.extension', path: 'Extension.extension', slicing: { discriminator: [{ type: 'value', path: 'url' }], rules: 'closed' }, min: 2 },
+      ...del('regel', 'code', 'Varningens regel'), ...del('motivering', 'string', 'Motiveringen'),
+      { id: 'Extension.url', path: 'Extension.url', fixedUri: url },
+      { id: 'Extension.value[x]', path: 'Extension.value[x]', max: '0' },
+    ] },
+  };
+})());
+KODSYSTEM.push({
+  resourceType: 'CodeSystem', id: 'varningsregel', url: `${CS}/varningsregel`, name: 'Varningsregel', title: 'Varningsregel', ...gemensamt,
+  description: 'Reglerna bakom Vårdkällans varningar vid ordination och utsättning, till exempel dubbel_substans. Reglerna är demoregler och räknas inte upp här.',
+  caseSensitive: true, content: 'not-present',
+});
+
 export const DEFINITIONER = { StructureDefinition: TILLAGG, CodeSystem: KODSYSTEM, ValueSet: VARDEMANGDER };
+
+// Runda 6, r5: FHIRPath till elementen i en skrivning, per fält i /api, för OperationOutcome.issue.expression
+// (fhir-skrivning.js), och omfången som SMART-konfigurationen anger (smart.js).
+export const UTTRYCK = {
+  Observation: { typ: 'Observation.code', varde: 'Observation.value[x]', tid: 'Observation.effectiveDateTime', enhet: 'Observation.valueQuantity.code' },
+  Composition: { typ: 'Composition.type', sokord: 'Composition.section', vardkontaktId: 'Composition.encounter', orsak: `Composition.extension('${EXT}/rattelseorsak')` },
+  MedicationRequest: {
+    lakemedelId: 'MedicationRequest.medicationCodeableConcept', dosering: 'MedicationRequest.dosageInstruction[0].text', dos: 'MedicationRequest.dosageInstruction[0].doseAndRate[0].doseQuantity',
+    typ: 'MedicationRequest.dosageInstruction[0].asNeededBoolean', ordinationsorsak: 'MedicationRequest.reasonCode[0].text', start: 'MedicationRequest.dispenseRequest.validityPeriod.start',
+    slut: 'MedicationRequest.dispenseRequest.validityPeriod.end', uppfoljningsdatum: `MedicationRequest.extension('${EXT}/uppfoljningsdatum')`, orsak: 'MedicationRequest.statusReason',
+    plan: `MedicationRequest.extension('${EXT}/utsattningsplan')`, aterinsattning: `MedicationRequest.extension('${EXT}/aterinsattningsdatum')`,
+  },
+  ServiceRequest: { tillEnhetId: 'ServiceRequest.performer', fragestallning: 'ServiceRequest.reasonCode[0].text', prioritet: 'ServiceRequest.priority', svarSenast: `ServiceRequest.extension('${EXT}/svar-senast')` },
+};
+export const SMART_OMFANG = ['launch', 'launch/patient', 'patient/*.read', 'patient/*.rs', 'patient/*.write', 'user/*.read', 'user/*.rs', 'user/*.write', 'user/*.cruds'];
+export const BEARER_FEL = { ogiltig: 'Bearer error="invalid_token"', omfang: 'Bearer error="insufficient_scope"' };

@@ -24,3 +24,8 @@ for t in def Encounter EpisodeOfCare Condition Observation MedicationRequest Med
   [ -d "$DATA/$t" ] && ovriga="$ovriga /data/$t"
 done
 kor R4 "$ovriga"
+# Runda 6, r5: prenumerationen och meddelandet följer FHIR Subscriptions R5 Backport för R4, och resurserna som en klient
+# skickar in (Klient) valideras med Vårdkällans tillägg för kvitterad varning och rättelse. OperationOutcome valideras mot R4.
+r5=""
+for t in Subscription Notis Klient OperationOutcome; do [ -d "$DATA/$t" ] && r5="$r5 /data/$t"; done
+[ -n "$r5" ] && kor R5 "$r5" -ig hl7.fhir.uv.subscriptions-backport.r4#1.1.0

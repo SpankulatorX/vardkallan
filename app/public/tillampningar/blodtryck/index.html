@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blodtryck över tid</title>
+<link rel="stylesheet" href="app.css">
+<script type="module" src="app.js"></script>
+</head>
+<body>
+<main class="bt-app">
+  <header class="bt-huvud">
+    <h1>Blodtryck över tid</h1>
+    <p class="bt-demo">Demotillämpning med SMART on FHIR. Den läser bara det du själv får se.</p>
+    <p class="bt-patient" data-patient hidden></p>
+  </header>
+  <p class="bt-status" data-status role="status">Ansluter till Vårdkällan.</p>
+  <figure class="bt-diagram" data-diagram hidden>
+    <figcaption>Systoliskt och diastoliskt blodtryck i mmHg</figcaption>
+  </figure>
+  <table class="bt-tabell" data-tabell hidden>
+    <caption>Uppmätta blodtryck, senaste först</caption>
+    <thead><tr><th scope="col">Tid</th><th scope="col">Systoliskt</th><th scope="col">Diastoliskt</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</main>
+</body>
+</html>
