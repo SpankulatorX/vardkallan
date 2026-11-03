@@ -3,6 +3,7 @@
 import { TEST } from '../../krav.js';
 
 const { B, L, J, M } = TEST;
+const SPRAK = 'Språk > ';
 
 export default [
   { id: '2.7.1.1', kategori: 'leverantor', egna: ['L11', 'M13'], tester: [], avsedd: 'planerat',
@@ -21,6 +22,18 @@ export default [
     expert: 'Lagkraven ligger i serverns regler, så användaren behöver inte kunna patientdatalagen: systemet frågar efter aktivt val, samtycke eller syfte just när lagen kräver det.',
     anmarkning: 'Lag 2022:913, MDR, NIS2, arkivlagen och tillgänglighetslagen är inte uppfyllda, och ingen juridisk granskning är gjord. Se de egna kraven L1 till L13.',
   },
-  { id: '2.7.1.3', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
-    anmarkning: 'Hela gränssnittet är på svenska, men det finns inget automatiskt test som kontrollerar det.' },
+  // Runda 5 (r3): språkkontrollen i app/test/sprak.test.js.
+  {
+    id: '2.7.1.3', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
+    tester: [
+      `${SPRAK}gränssnittets texter är svenska, utan engelska ord, tankstreck, ellipser och interna anteckningar`,
+      `${SPRAK}serverns felmeddelanden och varningar är svenska`,
+      `${SPRAK}inga tankstreck, ellipser eller interna anteckningar någonstans i public/ och src/, inte heller i kommentarer`,
+      `${SPRAK}kontrollen hittar engelska ord, okända förkortningar, tankstreck, ellipser och interna anteckningar`,
+      `${SPRAK}kontrollen hittar å, ä och ö som saknas`,
+    ],
+    losning: 'Hela gränssnittet, Min journal och serverns felmeddelanden och varningar är på svenska. Vid varje bygge går ett test igenom alla texter som visas och stoppar bygget vid ett engelskt ord, ett tankstreck, en ellips, ett ord där å, ä eller ö saknas eller en intern anteckning.',
+    expert: 'Systemet förklarar på vanlig svenska varför något inte går, och språkkontrollen ser till att ingen text på engelska eller med kodverkets namn når användaren.',
+    anmarkning: 'Kontrollen bygger på en lista över vanliga engelska ord och en lista över tillåtna lånord, förkortningar och egennamn (FHIR, SITHS, NPÖ, ATC och andra). Ett engelskt ord som inte står i listan och inte har w upptäcks inte. Patientuppgifterna i demon (anteckningar och namn) kontrolleras inte, och ingen språkgranskning av en människa är gjord. FHIR-svarens kodverk (LOINC, ATC) har kodverkens engelska benämningar, som inte visas i gränssnittet.',
+  },
 ];

@@ -29,7 +29,7 @@ Demon använder bara påhittade patienter och testpersonnummer från Skatteverke
 - Tidbok, väntelista och kallelser för vårdadministratören: Dagens arbete visar vilka som kommer i dag och om de har kommit, remisser som väntar på tid, väntelistan, kallelser som behöver gå ut och bevakningar, med en nästa åtgärd per rad. Systemet föreslår de lämpligaste tiderna, så att bokning och ombokning är ett klick, räknar dagar mot vårdgarantin, skriver kallelserna och påminnelserna och väljer kanal själv. Patienten checkar in och bokar om i Min journal eller på en skärm i väntrummet, och avgiften räknas av systemet. Sms, brev och betalning är simulerade, och vårdgarantin och avgifterna är demoregler.
 - Migrerad historik visas i samma kronologi som ny dokumentation, med en avstämningsrapport för migreringen.
 - Öppet FHIR R4-API under `/fhir` med samma behörighet och loggning som gränssnittet.
-- Kravspårbarhet: varje krav visas med de automatiska tester som visar att det är uppfyllt. Bygget stoppas om ett test är rött. Testerna och FHIR-valideringen mot HL7:s validator körs på GitHub vid varje ändring (`.github/workflows/test.yml`).
+- Kravspårbarhet: varje krav visas med de automatiska tester som visar att det är uppfyllt. Bygget stoppas om ett test är rött. Testerna och FHIR-valideringen mot HL7:s validator körs på GitHub vid varje ändring (`.github/workflows/test.yml`). En språkkontroll i bygget stoppar engelska ord, tankstreck, ellipser och saknade å, ä och ö i allt som visas.
 - Sussas kravspecifikation för Cosmic med originalnummer (kapitel 1 till 6 och 11, 305 poster, utlämnad av Konkurrensverket 2026-11-03) på sidan Kravspårbarhet: varje post med kravtext, Vårdkällans lösning, hur systemet tar expertrollen och testerna som visar det. Grundprincipen är att systemet är experten, inte användaren (`docs/design.md`).
 
 Det som inte är byggt än (bland annat kassa och resursbokning, specialområden som anestesi och intensivvård och cytostatika, och riktiga integrationer mot nationella tjänster) visas som planerat på sidan Moduler.
@@ -57,7 +57,7 @@ docker run --rm -v "$PWD/app:/app" -w /app oven/bun:1.3.14-alpine bun test
 - `app/src/`: server (Bun), behörighetsmotor, logg, journal, läkemedel, remiss, Min journal för patienten (`patientvy.js`), FHIR, kravregister och Sussa-registret (`sussa/`).
 - `app/src/seed/`: påhittade verksamheter, personal och patienter.
 - `app/public/`: webbgränssnittet, JavaScript utan byggsteg.
-- `app/test/`: automatiska tester. `test/genomgang.cjs`: genomgång i webbläsaren av alla demoroller och av Min journal, också i mobilbredd.
+- `app/test/`: automatiska tester. `test/genomgang.cjs`: genomgång i webbläsaren av alla demoroller och av Min journal, och av varje vy på 360 px med knappar som är minst 40 px höga.
 - `docs/anvandartest.md`: testprotokoll för användartest med personer som arbetar i vården, med testläget i demon på `#/anvandartest`.
 
 ## Licens

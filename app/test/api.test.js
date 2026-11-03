@@ -455,7 +455,7 @@ describe('API', () => {
     expect(h.overkanslighet[0]).toMatchObject({ amne: 'Penicilliner', atc: 'J01C', kallaEtikett: 'Migrerad från VAS 2014' });
   });
 
-  test('drift visar p50 och p95 per endpoint', async () => {
+  test('drift visar p50 och p95 per adress i API:t', async () => {
     const k = klient(app);
     await k.logga('lak-kard');
     for (let i = 0; i < 5; i++) await k.get('/api/patient/p01');
@@ -472,7 +472,7 @@ describe('API', () => {
   test('krav visar kravregistret', async () => {
     const dir = mkdtempSync(join(import.meta.dir, '..', '.testtmp-krav-'));
     const fil = join(dir, 'test-resultat.json');
-    writeFileSync(fil, JSON.stringify({ tid: '2026-10-31T10:00:00Z', bun: '1.3.14', antal: 1, godkanda: 1, misslyckade: 0, tester: [{ namn: 'API > drift visar p50 och p95 per endpoint', status: 'grön' }, { namn: 'API > hälsa och Server-Timing på alla svar', status: 'grön' }] }));
+    writeFileSync(fil, JSON.stringify({ tid: '2026-10-31T10:00:00Z', bun: '1.3.14', antal: 1, godkanda: 1, misslyckade: 0, tester: [{ namn: 'API > drift visar p50 och p95 per adress i API:t', status: 'grön' }, { namn: 'API > hälsa och Server-Timing på alla svar', status: 'grön' }] }));
     const app2 = testserver({ testresultat: fil });
     try {
       const r = (await klient(app2).get('/api/krav')).data;

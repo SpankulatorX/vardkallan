@@ -985,13 +985,26 @@ const MENY = {
   }
 
   // Mobilbredd 360 px: ingen sidledsrullning.
-  const mobil = await browser.newContext({ viewport: { width: 360, height: 760 }, locale: 'sv-SE', timezoneId: 'Europe/Stockholm', deviceScaleFactor: 2 });
-  const mp = await mobil.newPage();
+  const MOBILKONTEXT = { viewport: { width: 360, height: 760 }, locale: 'sv-SE', timezoneId: 'Europe/Stockholm', deviceScaleFactor: 2 };
+  let mobil = await browser.newContext(MOBILKONTEXT);
+  let mp = await mobil.newPage();
   bevaka(mp, 'mobil');
+  // Runda 5 (r3): en ny session för varje roll, så att inga anrop från förra rollens vy kommer efter utloggningen.
+  const nyMobilSession = async () => { await mobil.close(); mobil = await browser.newContext(MOBILKONTEXT); mp = await mobil.newPage(); bevaka(mp, 'mobil'); };
+  // Runda 5 (r3): varje vy på 360 px kontrolleras både för sidledsrullning och för knappar som går att trycka på med
+  // fingret, minst 40 px höga.
   const ingenSidledsrullning = async (vy) => {
     const b = await mp.evaluate(() => document.documentElement.scrollWidth);
     if (b > 360) throw new Error(`${vy}: sidan är ${b} px bred`);
+    const sma = await mp.evaluate(() => [...document.querySelectorAll('button:not(.knapp-lank), a.knapp, input[type="submit"], input[type="button"], .segment label, [role="tab"]')]
+      .map(e => ({ e, r: e.getBoundingClientRect() }))
+      .filter(({ e, r }) => r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden' && !e.closest('.sr, [hidden]') && r.height < 39.5)
+      .map(({ e, r }) => `"${(e.textContent.trim() || e.getAttribute('aria-label') || e.tagName).replace(/\s+/g, ' ').slice(0, 30)}" ${Math.round(r.height)} px`));
+    if (sma.length) throw new Error(`${vy}: knappar lägre än 40 px: ${[...new Set(sma)].slice(0, 10).join(', ')}${sma.length > 10 ? ` och ${sma.length - 10} till` : ''}`);
   };
+  const vantaHamtat = (p) => p.waitForFunction(() => ![...document.querySelectorAll('main .tom, main .laddar')].some(e => /^Hämtar/.test(e.textContent)), null, { timeout: 8000 }).catch(() => {});
+  const MOBILROLLER = [['lak-kard', 'Sara Lindqvist'], ['ssk-kard', 'Johan Ek'], ['usk-kard', 'Amira Haddad'], ['lak-akut', 'Erik Nyström'], ['lak-vc', 'Per Holm'],
+    ['lak-psyk', 'Lena Ström'], ['adm-kard', 'Karin Berg'], ['logg', 'Mats Wall'], ['ark', 'Ingela Nord'], ['uppf', 'Daniel Sund']];
   try {
     if (!fel.length) {
       await s('mobil: inloggningen på 360 px', async () => {
@@ -1049,6 +1062,49 @@ const MENY = {
         await mp.goto(`${BAS}/#/min/p01/anteckningar`); await mp.waitForSelector('.min-ant');
         await mp.click('.min-ant a >> nth=0'); await mp.waitForSelector('.min-anteckning');
         await ingenSidledsrullning('Min journal, anteckning');
+      });
+      // Runda 5 (r3): varje vy i menyn för varje demoroll, journalens alla flikar och incheckningsskärmen på 360 px.
+      for (const [id, namn] of MOBILROLLER) {
+        await s(`mobil: alla vyer i menyn för ${namn} på 360 px`, async () => {
+          await nyMobilSession();
+          await loggaIn(mp, id);
+          const lankar = await mp.locator('#meny-lista a').evaluateAll(a => a.map(x => [x.getAttribute('href'), x.querySelector('.menytext').textContent]));
+          if (!lankar.length) throw new Error(`${namn} har ingen meny`);
+          for (const [href, text] of lankar) {
+            await mp.goto(`${BAS}/${href}`); await vantaVy(mp); await vantaHamtat(mp);
+            await ingenSidledsrullning(`${namn}, ${text}`);
+          }
+          await mp.click('[data-a="meny"]');
+          await mp.waitForSelector('#meny.oppen');
+          await ingenSidledsrullning(`${namn}, menyn`);
+        });
+      }
+      await s('mobil: journalens alla flikar på 360 px', async () => {
+        await nyMobilSession();
+        await loggaIn(mp, 'lak-kard');
+        await mp.goto(`${BAS}/#/patient/p01`); await mp.waitForSelector('.tidslinje');
+        const flikar = await mp.locator('.flikar a').evaluateAll(a => a.map(x => [x.getAttribute('href'), x.textContent.trim()]));
+        if (flikar.length < 5) throw new Error(`journalen har bara ${flikar.length} flikar`);
+        for (const [href, text] of flikar) {
+          await mp.goto(`${BAS}/${href}`); await vantaVy(mp); await vantaHamtat(mp);
+          await ingenSidledsrullning(`journalen, ${text}`);
+        }
+        await bild(mp, '80-mobil-journal-flik');
+      });
+      await s('mobil: läkemedel att ge, dagens arbete, tidbok och incheckningsskärmen på 360 px', async () => {
+        await nyMobilSession();
+        await loggaIn(mp, 'ssk-kard');
+        await mp.goto(`${BAS}/#/administrering`); await vantaVy(mp); await vantaHamtat(mp);
+        await ingenSidledsrullning('Läkemedel att ge');
+        await bild(mp, '81-mobil-lakemedel-att-ge');
+        await nyMobilSession();
+        await loggaIn(mp, 'adm-kard');
+        for (const [h, namn] of [['#/idag', 'Dagens arbete'], ['#/tidbok', 'Tidbok'], ['#/vantelista', 'Väntelista'], ['#/incheckning', 'Incheckningsskärmen']]) {
+          await mp.goto(`${BAS}/${h}`); await vantaVy(mp); await vantaHamtat(mp);
+          await ingenSidledsrullning(namn);
+          if (h === '#/tidbok') await bild(mp, '82-mobil-tidbok');
+          if (h === '#/incheckning') await bild(mp, '83-mobil-incheckning');
+        }
       });
     }
   } catch (e) {

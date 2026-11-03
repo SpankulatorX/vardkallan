@@ -9,7 +9,7 @@ export default [
     id: '2.1.1.1', kategori: 'system', egna: ['D5', 'D7', 'M12'], avsedd: 'delvis',
     tester: [
       `${A}hälsa och Server-Timing på alla svar`,
-      `${A}drift visar p50 och p95 per endpoint`,
+      `${A}drift visar p50 och p95 per adress i API:t`,
       `${KR}status uppfyllt_demo bara när alla tester är gröna`,
     ],
     losning: 'Ett system med en kodbas: server, behörighetsmotor, åtkomstlogg, journal, läkemedel, remiss, Min journal och FHIR-API delar samma regler. Svarstiden mäts på varje anrop och bygget stoppas av röda tester.',
