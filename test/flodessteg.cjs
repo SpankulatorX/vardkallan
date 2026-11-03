@@ -86,6 +86,23 @@ function skapa(BAS) {
     'Vårdadministratörens startsida': async (page) => { await gaTill(page, '#/idag'); await page.waitForSelector('#idag-dagens'); },
     'Översikten för en patient med bokad tid': async (page) => { await gaTill(page, '#/patient/p15'); await page.waitForSelector('.ov-tider'); },
     'Min journal för en patient med bokad tid': async (page) => { await gaTill(page, '#/min/p14'); await page.waitForSelector('.min-band h1'); },
+    // Runda 5, r4: Waran gör uppehåll inför ett ingrepp med återinsättning i morgon. Görs med API:t utanför mätningen.
+    'Arbetslistan dagen före en återinsättning': async (page) => {
+      await gaTill(page, '#/arbetslista');
+      const ok = await page.evaluate(async () => {
+        const imorgon = new Date(Date.now() + 86400_000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
+        // Samma förberedelse som i användartestet (anvandartest.js): demon återställs först.
+        await fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        const l = await (await fetch('/api/patient/p01/lakemedel')).json();
+        const w = l.ordinationer.find(o => o.lakemedel?.namn === 'Waran' && o.status === 'aktiv');
+        if (!w) return false;
+        const r = await fetch(`/api/ordination/${w.id}/utsatt`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan: { typ: 'uppehall', aterinsattning: imorgon } }) });
+        return r.ok;
+      });
+      if (!ok) throw new Error('Waran kunde inte göra uppehåll inför flödet');
+      await gaTill(page, '#/arbetslista');
+      await page.waitForSelector('#lista table');
+    },
   };
 
   // Flödena. Varje funktion gör flödet från startpunkten och kontrollerar att det når sitt resultat.
@@ -364,6 +381,16 @@ function skapa(BAS) {
       await page.locator('dialog[open] [data-varde="ok"]').waitFor();
       await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Sätt upp återbesök');
       await synlig(page, '.notis', 'Återbesöket står på väntelistan');
+    },
+    // Runda 5, r4: återinsättning efter uppehåll från inkorgen, med ordinationen ifylld ur den tidigare (Sussa 3.5.2.8).
+    aterinsattning: async (m, page) => {
+      await m.klicka(page.locator('#meny-lista a[href="#/inkorg"]'), 'Inkorg i menyn');
+      await synlig(page, '.ik-ater', 'Waran ska sättas in igen i morgon');
+      await m.klicka(page.locator('.ik-ater', { hasText: 'Gunnar Åkesson' }).locator('[data-aterinsatt]'), 'Sätt in igen');
+      await page.waitForFunction(() => document.querySelector('#ordform input[name="dosering"]')?.value === 'Enligt doseringsschema, styrs av INR' && document.querySelector('#ordform input[name="ordinationsorsak"]')?.value);
+      await m.klicka(page.locator('#ordform [data-spara]'), 'Kontrollera och spara');
+      await synlig(page, '.notis', 'Waran är ordinerat');
+      await synlig(page, '.lm-tabell', 'Waran');
     },
   };
   return { synlig, gaTill, loggaIn, startI, GOR };

@@ -38,6 +38,14 @@ describe('Språk', () => {
     expect(pröva('Patienten är inskriven. Loading')).toContain('engelska');
     expect(pröva('Det blev undefined')).toContain('engelska');
     expect(pröva('Svarstider per endpoint')).toContain('engelska');
+    // Lånord som skrivs på svenska (beslut 2026-11-03): inget svar i tid, uppkopplad, syremättnad och tomt.
+    expect(pröva('NLL gav timeout')).toContain('engelska');
+    expect(pröva('När webbläsaren är online')).toContain('engelska');
+    expect(pröva('Saturation 95 procent')).toContain('engelska');
+    expect(pröva('Fältet är null när värdet saknas')).toContain('engelska');
+    expect(pröva('Datum, eller null')).toContain('engelska');
+    expect(pröva('Datum i svensk tid, eller "null" om kontakten pågår.')).toContain('engelska');
+    expect(pröva('NLL svarade inte i tid. Webbläsaren är uppkopplad. Syremättnad 95 procent. Fältet är tomt när värdet saknas.')).toEqual([]);
     expect(pröva('Skicka till XYZ')).toContain('okänd förkortning');
     expect(pröva('Patienten är inskriven — avdelning 72')).toContain('tankstreck');
     expect(pröva('Från 08.00 – 16.00')).toContain('tankstreck');

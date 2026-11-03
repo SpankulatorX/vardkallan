@@ -298,7 +298,7 @@ export function byggSeed(bas = nu()) {
       if (!o.kalla?.startsWith('migrerad')) {
         if (o.nll === 'timeout') {
           insNll.run(id, 'ny', plus(skapad, 2), 'timeout', null, null, 1);
-          insHist.run(id, plus(skapad, 32), null, 'Överföring till NLL fick timeout', 'Status okänd, kontrolleras genom avstämning');
+          insHist.run(id, plus(skapad, 32), null, 'NLL svarade inte i tid på överföringen', 'Status okänd, kontrolleras genom avstämning');
         } else {
           insNll.run(id, 'ny', plus(skapad, 2), 'kvitterad', plus(skapad, 3), kvittens(), 1);
           insHist.run(id, plus(skapad, 3), null, 'Kvitterad av NLL', null);

@@ -184,6 +184,27 @@ function aktuell(db, k) {
   return { lage: p ? 'vantar' : 'avbokad' };
 }
 
+// En ny post på den ordinerande vårdenhetens väntelista för en vårdhändelse vars tid har avbokats. Tidstyp och yrkesroll
+// kommer från den tidigare posten eller den avbokade tiden, så att vårdadministratören får förslag på samma slags tid.
+function igenPaVantelista(db, k, t, { av = null } = {}) {
+  const tidigare = post(db, k.vantelista_id);
+  let b = bokning(db, k.bokning_id);
+  for (let i = 0; b && b.status === 'ombokad' && i < 50; i++) b = db.query('SELECT * FROM bokningar WHERE ersatter_id = ? ORDER BY id DESC').get(b.id) ?? b;
+  const tid = b ? tidFor(db, b) : null;
+  const schema = tid ? db.query('SELECT yrkesroll FROM scheman WHERE id = ?').get(tid.schema_id) : null;
+  const tidstyp = tidigare?.tidstyp ?? (tid && tid.tidstyp !== 'grupp' ? tid.tidstyp : 'aterbesok');
+  const yrkesroll = tidigare?.yrkesroll ?? schema?.yrkesroll ?? 'lakare';
+  const o = db.query('SELECT slut FROM ordinationer WHERE id = ?').get(k.ordination_id);
+  const mal = o?.slut && o.slut > idag() ? o.slut : addDagar(idag(), 30);
+  const p = tidbok.laggPaVantelista(db, {
+    patientId: k.patient_id, ve: k.enhet_id, tidstyp, yrkesroll, orsak: t.vardhandelse || tidigare?.orsak || 'Planerad vårdhändelse', mal, av,
+    detalj: 'Tiden för vårdhändelsen avbokades, och systemet satte upp den på väntelistan igen. Tiden styr när en läkemedelsdos ska ges.',
+  });
+  db.query('UPDATE vardhandelse_kopplingar SET vantelista_id = ?, egen_post = 1 WHERE ordination_id = ?').run(p.id, k.ordination_id);
+  k.vantelista_id = p.id;
+  return { lage: 'vantar', post: p };
+}
+
 // Räknar om vårdhändelsernas tider för patienten efter en ändring i tidboken. Anropas av tidbok.js när en tid bokas,
 // bokas om eller avbokas. av är den som gjorde ändringen (null när patienten eller systemet gjorde den).
 export function synka(db, patientId, { av = null } = {}) {
@@ -193,7 +214,11 @@ export function synka(db, patientId, { av = null } = {}) {
     const o = db.query('SELECT status FROM ordinationer WHERE id = ?').get(k.ordination_id);
     const t = tillaggRad(db, k.ordination_id);
     if (o?.status !== 'aktiv' || !t) continue;
-    const a = aktuell(db, k);
+    let a = aktuell(db, k);
+    // Avbokad tid utan väntande post: systemet sätter upp vårdhändelsen på den ordinerande vårdenhetens väntelista igen
+    // (beslut 2026-11-03), så att vårdadministratören ser den i Dagens arbete. Posten ger ingen vårdkontakt och ingen
+    // vårdrelation. En utsatt ordination och en tid som är satt för hand (foljer = 0) räknas inte här.
+    if (!a.bokning && a.lage !== 'vantar' && t.handelse_tid) a = igenPaVantelista(db, k, t, { av });
     const ny = a.bokning ? tidFor(db, a.bokning).start : null;
     const fran = t.handelse_tid ?? null;
     const bokningId = a.bokning?.id ?? k.bokning_id;

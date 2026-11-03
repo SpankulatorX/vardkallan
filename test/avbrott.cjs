@@ -9,7 +9,7 @@
 //
 // Ett riktigt avbrott görs med webbläsarens offlineläge (context.setOffline), så att varken sidan eller service
 // workern når servern. Servern stoppas aldrig. Under offlineläget skriver webbläsaren nätverksfel i konsolen; de
-// räknas inte som fel. Alla sidfel räknas som fel, och konsolfel när webbläsaren är online.
+// räknas inte som fel. Alla sidfel räknas som fel, och konsolfel när webbläsaren är uppkopplad.
 
 const { chromium, request: playwrightRequest } = require('@playwright/test');
 const { mkdirSync, readdirSync, rmSync, mkdtempSync } = require('node:fs');
@@ -482,7 +482,7 @@ const undersok = (page, kod, nyckelB64) => page.evaluate(async ({ kod, nyckelB64
   };
   const raknaLogg = async () => (await lagrat(pr)).logg.length;
 
-  await test('reservkoden väljs online och bara den inslagna nyckeln sparas', async () => {
+  await test('reservkoden väljs när webbläsaren är uppkopplad och bara den inslagna nyckeln sparas', async () => {
     await startaProfil();
     await loggaIn(pr, 'lak-kard');
     await pr.click('a.patientlank:has-text("Gunnar Åkesson")');

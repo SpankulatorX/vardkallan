@@ -158,4 +158,9 @@ export const FLODEN = [
     id: 'aterbesok', namn: 'Sätta upp ett återbesök', roll: 'lak-kard', start: 'Patientens översikt', budget: 2,
     motivering: 'Sussa 3.4.1.1. Ett klick på Återbesök och ett för att bekräfta systemets förslag. Systemet har läst tidstyp, yrkesroll och tidsram ur anteckningens planering, diagnosen och den senaste kontakten, och posten hamnar på väntelistan och i vårdadministratörens Dagens arbete.',
   },
+  // Runda 5, r4: systemet bevakar datumet för återinsättning efter ett uppehåll med antikoagulantia (Sussa 3.5.2.8).
+  {
+    id: 'aterinsattning', namn: 'Sätta in Waran igen efter ett uppehåll', roll: 'lak-kard', start: 'Arbetslistan dagen före en återinsättning', budget: 3,
+    motivering: 'Sussa 3.5.2.8. Ett klick till inkorgen, ett på Sätt in igen för raden som systemet har lagt dit dagen före och ett för att spara. Systemet fyller i läkemedlet, doseringen, ordinationsorsaken och uppföljningen ur den ordination som gjorde uppehåll, så inget behöver skrivas, och raden försvinner när läkemedlet är insatt.',
+  },
 ];

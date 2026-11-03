@@ -130,7 +130,8 @@ async function valDialog(page, knappSel, { intyg = false, bildnamn } = {}) {
 }
 
 const MENY = {
-  klinisk: ['Arbetslista', 'Sök patient', 'Inkorg', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  // Läkaren registrerar också delegeringar (runda 5, r4).
+  klinisk: ['Arbetslista', 'Sök patient', 'Inkorg', 'Delegeringar', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Sjuksköterskan registrerar delegeringar, och undersköterskan med delegering ger läkemedel (runda 5).
   sjukskoterska: ['Arbetslista', 'Sök patient', 'Inkorg', 'Läkemedel att ge', 'Delegeringar', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   underskoterska: ['Arbetslista', 'Sök patient', 'Inkorg', 'Läkemedel att ge', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
@@ -187,6 +188,8 @@ const MENY = {
     await s('Sara: inkorgen och svarstiden', async () => {
       await gaTill(page, '#/inkorg');
       await forvanta(page, '.ik-larm', 'Mottagningskvittens saknas');
+      // Återinsättning efter uppehåll med antikoagulantia (runda 5, r4).
+      await forvanta(page, '#ik-atersatt', 'Läkemedel att sätta in igen');
       await forvanta(page, '#svarstid', 'ms');
       await bild(page, '03-inkorg', true);
     });
@@ -269,10 +272,10 @@ const MENY = {
       await forvanta(page, '.notis', 'Ibuprofen Orifarm är ordinerat');
       await forvanta(page, '.lm-tabell', 'warfarin_nsaid (Kortvarig behandling');
     });
-    await s('Sara: simulerar timeout mot NLL, ordinationen syns ändå, och avstämningen hittar registreringen', async () => {
+    await s('Sara: simulerar att NLL inte svarar i tid, ordinationen syns ändå, och avstämningen hittar registreringen', async () => {
       await page.click('.demo-panel summary');
       await page.click('[data-nll="timeout"]');
-      await forvanta(page, '#nll-lage', 'timeout');
+      await forvanta(page, '#nll-lage', 'inget svar i tid');
       await page.click('[data-ny]');
       await page.fill('#lm-sok', 'omeprazol');
       await page.click('[data-lm]');
@@ -280,7 +283,7 @@ const MENY = {
       await page.fill('input[name="ordinationsorsak"]', 'Magskydd under NSAID-behandling');
       await page.click('[data-upp="14"]');
       await page.click('[data-spara]');
-      await forvanta(page, '.notis', 'fick timeout');
+      await forvanta(page, '.notis', 'NLL svarade inte i tid');
       const rad = page.locator('.lm-tabell tr', { hasText: 'Omeprazol' });
       await rad.locator('.nll-okand_kontrolleras').waitFor();
       await bild(page, '09-lakemedel-nll-timeout', true);
@@ -704,7 +707,7 @@ const MENY = {
       await page.selectOption('#mv-typ', 'saturation');
       await page.fill('#mv-varde', '95');
       await page.click('#mv-form [type="submit"]');
-      await forvanta(page, '.notis', 'Saturation 95');
+      await forvanta(page, '.notis', 'Syremättnad 95');
       await bild(page, '26-underskoterska', true);
     });
     await s('Amira Haddad ger en dos med delegering och ser inte Ge för en injektion som delegeringen inte omfattar', async () => {
@@ -1026,7 +1029,7 @@ const MENY = {
       await forvanta(page, 'main h1', 'Användartest');
       await forvanta(page, '.at-info', 'Alla patienter i demon är påhittade');
       await page.fill('#at-kod', 'G01');
-      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

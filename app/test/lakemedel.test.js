@@ -115,7 +115,7 @@ describe('Läkemedel', () => {
     expect(r.ordination.nll[0].kvittens).toMatch(/^NLL-\d{6}$/);
   });
 
-  test('NLL: timeout döljer inte ordinationen och avstämning hittar registreringen', () => {
+  test('NLL: inget svar i tid döljer inte ordinationen och avstämning hittar registreringen', () => {
     const db = nyDb();
     installning(db, 'nll_nasta', 'timeout');
     const r = lakemedel.spara(atk(db, 'lak-kard', 'p01'), ord('VK-NPL-0015'));
@@ -147,7 +147,7 @@ describe('Läkemedel', () => {
     expect(a.ordination.nll.map(m => m.status)).toEqual(['fel', 'kvitterad']);
   });
 
-  test('NLL: seedad timeout väntar på avstämning', () => {
+  test('NLL: en seedad överföring utan svar i tid väntar på avstämning', () => {
     const db = nyDb();
     const o = db.query("SELECT * FROM ordinationer WHERE nll_status = 'okand_kontrolleras'").all();
     expect(o.length).toBe(1);

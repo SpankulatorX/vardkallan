@@ -487,6 +487,11 @@ legend { font-weight: 600; font-size: var(--f-s); padding: 0; margin-bottom: 6px
 .inkorg-lista a:hover .ik-rubrik { text-decoration: underline; color: var(--kalla); }
 .ik-rubrik { font-weight: 600; display: inline-flex; gap: 6px; align-items: center; }
 .ik-larm .ik-rubrik { color: var(--larm); }
+/* Återinsättning efter uppehåll i läkarens inkorg (runda 5, r4): texten och en knapp till läkemedelslistan. */
+.inkorg-lista li.ik-ater { flex-wrap: wrap; padding: 8px 4px; }
+.ik-ater .ik-text { flex: 1 1 240px; min-width: 0; }
+.inkorg-lista .ik-ater a.knapp { flex: 0 0 auto; padding: 4px 10px; color: #fff; }
+.inkorg-lista .ik-ater a.knapp:hover { color: #fff; }
 
 /* Väntrum */
 .vantrum-delad { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 340px); gap: 18px; align-items: start; }

@@ -50,7 +50,7 @@ const MENY = [
   ['#/sok', 'Sök patient', 'sok', () => far('sok')],
   ['#/inkorg', 'Inkorg', 'inkorg', () => !utanJournal(), 'inkorg'],
   // Läkaren ger läkemedel från patientens läkemedelsflik, och avdelningens lista är för sjuksköterskan och
-  // undersköterskan med delegering (runda 5). Sjuksköterskan registrerar delegeringarna.
+  // undersköterskan med delegering (runda 5). Sjuksköterskan och läkaren registrerar delegeringarna.
   ['#/administrering', 'Läkemedel att ge', 'piller', () => far('ge_lakemedel') && !far('ordinera')],
   ['#/delegeringar', 'Delegeringar', 'nyckel', () => far('delegera')],
   ['#/remisser', 'Remisser', 'remiss', () => pa('las_remiss', 'las_remiss_status')],
@@ -74,7 +74,7 @@ const RUTTER = [
   [/^#\/sok$/, sok, () => far('sok')],
   [/^#\/inkorg$/, inkorg, () => !utanJournal()],
   [/^#\/administrering$/, administrering, () => far('las_lakemedel')],
-  // Delegeringar (runda 5): sjuksköterskan registrerar, undersköterskan ser sina egna.
+  // Delegeringar (runda 5): sjuksköterskan och läkaren registrerar, undersköterskan ser sina egna.
   [/^#\/delegeringar$/, delegeringar, () => far('delegera') || S.session?.personal?.yrke === 'underskoterska'],
   [/^#\/remisser$/, remisser, () => pa('las_remiss', 'las_remiss_status')],
   [/^#\/vantrum$/, vantrum, () => far('vantrum')],
@@ -157,7 +157,9 @@ export async function uppdateraInkorg() {
   try {
     const d = await api('/api/inkorg', { tyst: true });
     S.inkorg = d.osigneradeAnteckningar.length + d.okvitteradeSvar.length + d.larm.length + d.nllAvvikelser.length + (d.dubbletter?.length ?? 0) + (d.kontrasigneringar?.length ?? 0) + (d.aterlamnanden?.length ?? 0)
-      + (d.delegeringarSomGarUt?.length ?? 0);
+      + (d.delegeringarSomGarUt?.length ?? 0)
+      // Återinsättning efter uppehåll med antikoagulantia (runda 5, r4).
+      + (d.aterinsattningar?.length ?? 0);
   } catch { S.inkorg = null; }
   const el = document.querySelector('[data-raknare="inkorg"]');
   if (el) { el.textContent = S.inkorg ? String(S.inkorg) : ''; el.hidden = !S.inkorg; }

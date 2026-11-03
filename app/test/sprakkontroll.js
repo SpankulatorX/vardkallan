@@ -138,7 +138,7 @@ draft pending ready today yesterday tomorrow week month year day days hour hours
 enter type file upload download print message notification request response list item items value values none other more less
 first last only also very still yet already now never always each every both either neither such own same than too into over out
 up down off dashboard patients record records note notes report reports health care medication medications order orders lab
-result results endpoint endpoints usability
+result results endpoint endpoints usability saturation
 `.trim().split(/\s+/));
 
 // Lånord, förkortningar och egennamn som får stå i svensk text. Förkortningar med versaler och ord med w måste stå här,
@@ -155,12 +155,12 @@ Enter Tab Escape Backspace Delete Home End PageUp PageDown Insert ArrowLeft Arro
 Meta CapsLock Fn Dead Process Unidentified Compose
 AES GCM AES-GCM HSLF FS HSLF-FS OSL VAS CE MDR EHDS GDPR DPIA METS FGS RIVTA SIP CSIP PREMIS ARK WHO IFCC KVÅ PK PCI NSAID MRSA
 CT USÖ SVT LMA FVIS JMIR VK DELETE CHECK ÅÅÅÅ MM DD NNNN ÅÅÅÅMMDD VKÅÅÅÅMMDD XXXXXXXX
-timeout online workern workerns Playwright Webcert Thomas Wall Wennberg Waran Warfarin Eliquis Brilique webb
+workern workerns Playwright Webcert Thomas Wall Wennberg Waran Warfarin Eliquis Brilique webb
 `.trim().split(/\s+/));
-// Fraser med engelska ord som är namn på standarder, rubriker, parametrar och tekniska begrepp. "null" får stå där en
-// text beskriver ett tomt värde i JSON (eller null, annars null).
+// Fraser med engelska ord som är namn på standarder, rubriker, parametrar och tekniska begrepp. Ett tomt värde i data
+// beskrivs som tomt, inte som null (beslut 2026-11-03).
 export const FRASER = ['HL7 Sweden', '$everything', 'pull request', 'Server-Timing', 'X-Content-Type-Options', 'Content-Type', 'Content-Disposition',
-  'FHIR Bulk Data Access', 'Bulk Data', 'Service worker', 'service worker', 'Service Worker', 'Sökparametern schedule', 'eller null', 'annars null',
+  'FHIR Bulk Data Access', 'Bulk Data', 'Service worker', 'service worker', 'Service Worker', 'Sökparametern schedule',
   'System Usability Scale', 'GitHub Actions'];
 
 // Svenska ord som ofta skrivs utan å, ä eller ö. Formen utan prickar är inget eget ord.
@@ -203,6 +203,8 @@ export function prova(texter) {
     if (/…|\.\.\.(?!\w)/.test(text)) ny('ellips', '…');
     const intern = text.match(INTERN);
     if (intern) ny('intern anteckning', intern[0]);
+    // Ett tomt värde beskrivs som tomt, också när null står inom citattecken som ett kodvärde (beslut 2026-11-03).
+    if (/["”]null["”]/i.test(text)) ny('engelska', 'null');
     for (const w of ord(text)) {
       const lag = w.toLowerCase();
       if (TILLATNA.has(w)) continue;

@@ -40,10 +40,12 @@ ROLLER.uppfoljning = ['datauttag'];
 ROLLER.vardadministrator.push('boka', 'kalla', 'checka_in', 'vantelista');
 // Vem som får ge läkemedel (runda 5, Sussa 3.5.2.18). Läkaren ger med samma kontroller och loggning som
 // sjuksköterskan. Undersköterskan ger bara med en giltig delegering (HSLF-FS 2017:37 9 kap.), som administrering.js
-// prövar för varje dos med delegering.js. Delegeringen registreras av en sjuksköterska på samma vårdenhet.
+// prövar för varje dos med delegering.js. Delegeringen registreras av en sjuksköterska eller läkare på samma vårdenhet.
 ROLLER.lakare.push('ge_lakemedel');
 ROLLER.underskoterska.push('ge_lakemedel');
 ROLLER.sjukskoterska.push('delegera');
+// Läkare delegerar också (beslut 2026-11-03, HSLF-FS 2017:37 9 kap. 2 §), på samma villkor som sjuksköterskan.
+ROLLER.lakare.push('delegera');
 
 export const HANDLINGAR = {
   las_oversikt: 'läsa patientöversikten', las_journal: 'läsa journalanteckningar', las_omvardnad: 'läsa omvårdnadsanteckningar',

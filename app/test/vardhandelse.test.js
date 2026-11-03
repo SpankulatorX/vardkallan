@@ -2,6 +2,7 @@ import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import { testserver, klient, sandlada } from './hjalp.js';
 import { idag, addDagar } from '../src/db.js';
 import * as tidbok from '../src/tidbok.js';
+import { harVardrelation } from '../src/atkomst.js';
 
 // Planerad vårdhändelse i tidboken (Sussa 3.5.2.7 och 3.5.2.14). Systemet är experten: läkaren väljer en bokning med ett
 // klick eller låter systemet sätta upp vårdhändelsen på väntelistan, och när tiden bokas, bokas om eller avbokas räknar
@@ -18,6 +19,7 @@ const elkonvertering = (k) => db(k).query("SELECT * FROM bokningar WHERE patient
 const start = (k, b) => db(k).query('SELECT start FROM tider WHERE id = ?').get(b.tid_id).start;
 const timmar = (iso, h) => new Date(Date.parse(iso) + h * 3600_000).toISOString();
 const antalOrdinationer = (k) => db(k).query('SELECT count(*) AS n FROM ordinationer').get().n;
+const harRelation = (k, pid, ve) => harVardrelation(db(k), pid, ve);
 
 // Omeprazol utan fasta tider. Allvarliga varningar kvitteras, eftersom testet gäller vårdhändelsen.
 async function ordinera(k, pid, vardhandelse, extra = {}) {
@@ -88,7 +90,8 @@ describe('Vårdhändelse i tidboken', () => {
     await k.logga('ssk-kard');
     const l = (await k.get('/api/patient/p01/administreringar')).data;
     const v = l.vantarPaHandelse.find(x => x.ordinationId === id);
-    expect(v.vardhandelse).toMatchObject({ tid: null, administreras: null, lage: 'avbokad' });
+    // Systemet satte upp vårdhändelsen på väntelistan igen (beslut 2026-11-03), och dosen väntar på en ny tid.
+    expect(v.vardhandelse).toMatchObject({ tid: null, administreras: null, lage: 'vantar' });
     expect(v.vardhandelse.forklaring).toContain('avbokades');
     expect(v.vardhandelse.forklaring).toContain('Ge inte dosen');
     o = (await k.get('/api/patient/p01/lakemedel')).data.ordinationer.find(x => x.id === id);
@@ -127,6 +130,69 @@ describe('Vårdhändelse i tidboken', () => {
     const v = (await k.get('/api/patient/p04/administreringar')).data.vantarPaHandelse.find(x => x.ordinationId === id);
     expect(v.vardhandelse).toMatchObject({ tid: null, lage: 'vantar' });
     expect(v.vardhandelse.forklaring).toContain('väntelistan igen');
+  });
+
+  // Runda 5, beslut 2026-11-03: en avbokad vårdhändelse sätts upp på den ordinerande vårdenhetens väntelista igen.
+  test('när tiden avbokas sätter systemet upp vårdhändelsen på den ordinerande vårdenhetens väntelista igen, utan ny vårdrelation', async () => {
+    const k = await inloggad('lak-kard');
+    const b = elkonvertering(k);
+    expect(b.vantelista_id).toBeNull();
+    const id = (await ordinera(k, 'p01', { bokningId: b.id, forskjutningTimmar: -2 })).data.ordination.id;
+    const relationFore = harRelation(k, 'p01', 'uso-kard');
+    await k.logga('adm-kard');
+    const kontakter = db(k).query("SELECT count(*) AS n FROM vardkontakter WHERE patient_id = 'p01'").get().n;
+    expect((await k.post(`/api/bokning/${b.id}/avboka`, { orsak: 'Patienten är förkyld' })).status).toBe(200);
+    // En ny post på den ordinerande vårdenhetens väntelista, med vårdhändelsens namn och vem som avbokade.
+    const post = db(k).query("SELECT * FROM vantelista WHERE patient_id = 'p01' AND orsak = 'Elkonvertering' AND status = 'vantar'").get();
+    expect(post).toMatchObject({ enhet_id: 'uso-kard', tidstyp: 'aterbesok', yrkesroll: 'lakare', skapad_av: 'adm-kard' });
+    expect(db(k).query("SELECT detalj FROM vantelista_handelser WHERE vantelista_id = ? AND typ = 'skapad'").get(post.id).detalj).toContain('avbokades');
+    expect(db(k).query('SELECT vantelista_id, egen_post, lage, foljer FROM vardhandelse_kopplingar WHERE ordination_id = ?').get(id)).toEqual({ vantelista_id: post.id, egen_post: 1, lage: 'vantar', foljer: 1 });
+    // Ingen ny vårdkontakt och ingen ny vårdrelation.
+    expect(db(k).query("SELECT count(*) AS n FROM vardkontakter WHERE patient_id = 'p01'").get().n).toBeLessThanOrEqual(kontakter);
+    expect(harRelation(k, 'p01', 'uso-kard')).toBe(relationFore);
+    // Vårdadministratören ser den i Dagens arbete med markeringen, aldrig läkemedlet.
+    const rad = (await k.get('/api/idag')).data.vantelista.find(p => p.id === post.id);
+    expect(rad).toMatchObject({ orsak: 'Elkonvertering', styrLakemedel: tidbok.STYR_LAKEMEDEL, atgard: { typ: 'boka' } });
+    expect(JSON.stringify(rad)).not.toContain('Omeprazol');
+    // Sjuksköterskan ser fortfarande att dosen inte ska ges förrän vårdhändelsen har fått en ny tid.
+    await k.logga('ssk-kard');
+    const v = (await k.get('/api/patient/p01/administreringar')).data.vantarPaHandelse.find(x => x.ordinationId === id);
+    expect(v.vardhandelse).toMatchObject({ tid: null, lage: 'vantar' });
+    expect(v.vardhandelse.forklaring).toContain('Ge inte dosen förrän');
+    expect(v.vardhandelse.forklaring).toContain('väntelistan igen');
+    // När den nya posten bokas får dosen sin tid igen.
+    await k.logga('adm-kard');
+    const f = (await k.get(`/api/vantelista/${post.id}/forslag`)).data;
+    expect((await k.post(`/api/vantelista/${post.id}/boka`, { tidId: f.forslag[0].tidId })).status).toBe(201);
+    await k.logga('ssk-kard');
+    const o = (await k.get('/api/patient/p01/lakemedel')).data.ordinationer.find(x => x.id === id);
+    expect(o.vardhandelse).toMatchObject({ tid: f.forslag[0].start, administreras: timmar(f.forslag[0].start, -2), lage: 'bokad' });
+    // Avbokas den igen står samma post på väntelistan, och ingen post till sätts upp.
+    await k.logga('adm-kard');
+    const ny = db(k).query("SELECT * FROM bokningar WHERE vantelista_id = ? AND status = 'bokad'").get(post.id);
+    expect((await k.post(`/api/bokning/${ny.id}/avboka`, { orsak: 'Ny bedömning' })).status).toBe(200);
+    expect(db(k).query("SELECT count(*) AS n FROM vantelista WHERE patient_id = 'p01' AND orsak = 'Elkonvertering' AND status = 'vantar'").get().n).toBe(1);
+  });
+
+  test('när ordinationen är utsatt eller tiden är satt för hand sätter avbokningen inte upp vårdhändelsen igen', async () => {
+    // Utsatt ordination.
+    const k = await inloggad('lak-kard');
+    const b = elkonvertering(k);
+    const id = (await ordinera(k, 'p01', { bokningId: b.id, forskjutningTimmar: -1 })).data.ordination.id;
+    expect((await k.post(`/api/ordination/${id}/utsatt`, { orsak: 'Ingreppet blir inte av' })).status).toBe(200);
+    await k.logga('adm-kard');
+    expect((await k.post(`/api/bokning/${b.id}/avboka`, { orsak: 'Ingreppet blir inte av' })).status).toBe(200);
+    expect(db(k).query("SELECT 1 FROM vantelista WHERE patient_id = 'p01' AND orsak = 'Elkonvertering'").get()).toBeNull();
+    // Tiden satt för hand.
+    const m = await inloggad('lak-kard');
+    const b2 = elkonvertering(m);
+    const id2 = (await ordinera(m, 'p01', { bokningId: b2.id, forskjutningTimmar: -1 })).data.ordination.id;
+    await m.logga('ssk-kard');
+    expect((await m.post(`/api/ordination/${id2}/vardhandelse`, { tid: new Date(Date.parse(`${addDagar(idag(), 2)}T09:00:00Z`)).toISOString() })).status).toBe(200);
+    await m.logga('adm-kard');
+    expect((await m.post(`/api/bokning/${b2.id}/avboka`, { orsak: 'Patienten är förkyld' })).status).toBe(200);
+    expect(db(m).query("SELECT 1 FROM vantelista WHERE patient_id = 'p01' AND orsak = 'Elkonvertering'").get()).toBeNull();
+    expect(db(m).query('SELECT foljer, lage FROM vardhandelse_kopplingar WHERE ordination_id = ?').get(id2)).toEqual({ foljer: 0, lage: 'manuell' });
   });
 
   test('den manuella tidsättningen finns kvar som reserv, slutar följa tidboken och sparas i historiken', async () => {

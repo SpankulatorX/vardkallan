@@ -300,7 +300,7 @@ describe('API', () => {
     expect(full.versioner[0].sokord[0].text).toBe('Pigg och utan andfåddhet.');
   });
 
-  test('helflöde: ordination med varning, kvittens och NLL-timeout med avstämning', async () => {
+  test('helflöde: ordination med varning, kvittens och NLL som inte svarar i tid, med avstämning', async () => {
     const k = klient(app);
     await k.logga('lak-kard');
     const kat = (await k.get('/api/lakemedel/katalog?q=ibu')).data;
@@ -365,7 +365,7 @@ describe('API', () => {
     const k = klient(app);
     await k.logga('lak-vc');
     const i = (await k.get('/api/inkorg')).data;
-    expect(Object.keys(i).sort()).toEqual(['aterlamnanden', 'delegeringarSomGarUt', 'dubbletter', 'kontrasigneringar', 'larm', 'nllAvvikelser', 'okvitteradeSvar', 'osigneradeAnteckningar']);
+    expect(Object.keys(i).sort()).toEqual(['aterinsattningar', 'aterlamnanden', 'delegeringarSomGarUt', 'dubbletter', 'kontrasigneringar', 'larm', 'nllAvvikelser', 'okvitteradeSvar', 'osigneradeAnteckningar']);
     expect(i.larm.map(l => `${l.patientId}:${l.typ}`).sort()).toEqual(['p06:svar_forsenat', 'p11:svar_ej_kvitterat']);
     expect(i.okvitteradeSvar.map(r => r.patientId)).toEqual(['p11']);
     expect(i.nllAvvikelser.map(a => a.patientId)).toEqual(['p10']);

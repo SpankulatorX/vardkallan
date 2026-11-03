@@ -15,7 +15,7 @@ export default [
     tester: [
       `${B}gemensam läkemedelslista: andra enheters ordinationer syns utan aktivt val men inte spärrade`,
       `${M}utsättning kräver orsak och inget raderas`,
-      `${A}helflöde: ordination med varning, kvittens och NLL-timeout med avstämning`,
+      `${A}helflöde: ordination med varning, kvittens och NLL som inte svarar i tid, med avstämning`,
       `${AD}ge en dos: med tid och den som gav den, knuten till vårdtillfällets vårdkontakt`,
       `${AD}permission: doser under permission lämnas över till patienten`,
     ],
@@ -92,11 +92,11 @@ export default [
     id: '3.5.1.9', kategori: 'nationell', egna: ['L7', 'D1'], avsedd: 'delvis',
     tester: [
       `${M}NLL: normal överföring kvitteras`,
-      `${M}NLL: timeout döljer inte ordinationen och avstämning hittar registreringen`,
+      `${M}NLL: inget svar i tid döljer inte ordinationen och avstämning hittar registreringen`,
       `${M}NLL: felsvar syns och avstämning skickar igen`,
     ],
-    losning: 'Överföring av ordinationer till Nationella läkemedelslistan med kvittens, och avstämning efter timeout eller felsvar. NLL är simulerad i demon.',
-    expert: 'Systemet döljer aldrig en registrerad ordination vid timeout, utan stämmer av mot NLL själv och visar resultatet.',
+    losning: 'Överföring av ordinationer till Nationella läkemedelslistan med kvittens, och avstämning när NLL inte svarar i tid eller svarar med fel. NLL är simulerad i demon.',
+    expert: 'Systemet döljer aldrig en registrerad ordination när NLL inte svarar i tid, utan stämmer av mot NLL själv och visar resultatet.',
     anmarkning: 'NLL är simulerad. Sil, Infektionsverktyget, Pascal och makulering av e-recept är inte anslutna.',
   },
   { id: '3.5.1.10', kategori: 'nationell', egna: ['L8'], tester: [], avsedd: 'planerat',

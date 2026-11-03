@@ -45,15 +45,20 @@ export async function visa(main) {
 
   // Delegeringar som går ut inom 30 dagar, för sjuksköterskan (runda 5).
   const deleg = (d.delegeringarSomGarUt ?? []).map(x => rad('#/delegeringar', `Delegering går ut, ${esc(x.namn)}`, esc(x.text), 'ik-larm'));
+  // Återinsättning efter uppehåll med antikoagulantia, för läkaren (runda 5, r4). Knappen öppnar läkemedelslistan med
+  // ordinationen ifylld ur den tidigare.
+  const atersatt = (d.aterinsattningar ?? []).map(x => `<li class="ik-ater${x.dagarKvar < 0 ? ' ik-larm' : ''}"><div class="ik-text"><span class="ik-rubrik">${esc(x.lakemedel)}, ${esc(pnamn(x.patient))}</span>
+    <span class="under-text">${esc(x.text)} Plan: ${esc(x.plan)}.</span></div><a class="knapp liten" href="${esc(x.href)}" data-aterinsatt="${x.ordinationId}">Sätt in igen</a></li>`);
 
   main.querySelector('#ik').innerHTML = `<div class="inkorg-rutnat">
-    ${S.session.behorigheter.includes('delegera') ? sektion('deleg', 'Delegeringar som går ut', deleg, 'Inga delegeringar går ut de närmaste 30 dagarna.', 'Undersköterskornas delegeringar att ge läkemedel. Följ upp dem och registrera nya innan de går ut.') : ''}
+    ${S.session.behorigheter.includes('ordinera') ? sektion('atersatt', 'Läkemedel att sätta in igen', atersatt, 'Inget läkemedel ska sättas in igen efter ett uppehåll i dag eller i morgon.', 'Antikoagulantia som gör uppehåll inför ett ingrepp. Systemet påminner dagen före återinsättningen och fyller i ordinationen ur den tidigare.') : ''}
+    ${S.session.behorigheter.includes('delegera') && (S.session.personal.yrke === 'sjukskoterska' || deleg.length) ? sektion('deleg', 'Delegeringar som går ut', deleg, 'Inga delegeringar går ut de närmaste 30 dagarna.', 'Undersköterskornas delegeringar att ge läkemedel. Följ upp dem och registrera nya innan de går ut.') : ''}
     ${S.session.behorigheter.includes('sla_samman') ? sektion('dubb', 'Troliga dubbletter', dubb, 'Inga troliga dubbletter.', 'Journaler som systemet tror gäller samma person, till exempel ett reservnummer och ett personnummer med samma namn och födelsedatum.') : ''}
     ${sektion('larm', 'Larm', larm, 'Inga larm.', 'Remisser där mottagningskvittens, svar eller kvittens av svaret har uteblivit för länge.')}
     ${S.session.behorigheter.includes('kontrasignera') ? sektion('ks', 'Att kontrasignera', ks, 'Inget väntar på din kontrasignering.', 'Journalinformation som någon har bett dig kontrasignera. Öppna, läs och kontrasignera med ett klick.') : ''}
     ${S.session.behorigheter.includes('utlamna') && ater.length ? sektion('ater', 'Återlämnanden som dröjer', ater, '', 'Utlämnade originalhandlingar som skulle ha kommit tillbaka.') : ''}
     ${sektion('osign', 'Osignerade anteckningar', osign, 'Inga osignerade anteckningar.', 'Dina utkast. De syns bara för dig tills du signerar.')}
     ${sektion('svar', 'Okvitterade remissvar', svar, 'Inga remissvar väntar på dig.', 'Svar på remisser från din vårdenhet som ingen har kvitterat än.')}
-    ${sektion('nll', 'NLL-avvikelser', nll, 'Inga avvikelser mot Nationella läkemedelslistan.', 'Ordinationer från din vårdenhet där överföringen till NLL fick timeout eller fel.')}
+    ${sektion('nll', 'NLL-avvikelser', nll, 'Inga avvikelser mot Nationella läkemedelslistan.', 'Ordinationer från din vårdenhet där NLL inte svarade i tid eller svarade med fel.')}
   </div>${S.session.personal.yrke === 'vardadministrator' ? '<p class="dampad liten">Som vårdadministratör ser du larm om remissernas status men ingen journaltext.</p>' : ''}`;
 }

@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-03T13:40:30.172Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-03T14:19:45.075Z",
+  "bas": "http://127.0.0.1:18124",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "321848fa2a1f2a924df37dc622dd579316e59c47236f7d1d9798ef442e1a4918",
+  "gransnittHash": "1c8183cc073b6bab8f551901f1c1c5e85bf87a78c5b594fe8852eb722bc0e0d9",
   "tester": [
     {
       "namn": "Gränssnitt > Avbrott > läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB",
@@ -45,7 +45,7 @@
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Avbrott > reservkoden väljs online och bara den inslagna nyckeln sparas",
+      "namn": "Gränssnitt > Avbrott > reservkoden väljs när webbläsaren är uppkopplad och bara den inslagna nyckeln sparas",
       "status": "grön"
     },
     {

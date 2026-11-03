@@ -47,7 +47,7 @@ export const PATIENTER = [
         'Kontaktorsak': 'Andfåddhet och hjärtklappning sedan i går kväll.',
         'Prioritet': 'Orange enligt RETTS.',
         'Anamnes': 'Känt förmaksflimmer och hjärtsvikt, behandlas med Waran. Ökad andfåddhet, sov sittande i natt. Viktuppgång 3 kg på en vecka.',
-        'Status': 'Andningsfrekvens 26, saturation 91 procent på luft. Oregelbunden takykardi 128. Basala rassel bilateralt. Ankelödem.',
+        'Status': 'Andningsfrekvens 26, syremättnad 91 procent på luft. Oregelbunden takykardi 128. Basala rassel bilateralt. Ankelödem.',
         'Bedömning': 'Förmaksflimmer med snabb kammarfrekvens och dekompenserad hjärtsvikt.',
         'Åtgärd': 'Furosemid 40 mg iv och syrgas 2 liter. Läggs in på kardiologen, avdelning 72.',
       } },
@@ -59,7 +59,7 @@ export const PATIENTER = [
         'Åtgärd': 'Höjer Metoprolol depot till 100 mg. Furosemid 40 mg 1x2. Daglig vikt och vätskelista. NT-proBNP och elektrolyter i morgon.',
       } },
       { typ: 'Omvårdnadsanteckning', enhet: 'uso-kard-72', vk: 'inl', av: 'ssk-kard', tid: [-2, '14:20'], sokord: {
-        'Andning/cirkulation': 'Andfådd vid förflyttning, bättre i vila. Saturation 94 procent med 1 liter syrgas.',
+        'Andning/cirkulation': 'Andfådd vid förflyttning, bättre i vila. Syremättnad 94 procent med 1 liter syrgas.',
         'Elimination': 'Diures 2,1 liter senaste dygnet.',
         'Aktivitet': 'Går med stöd till toaletten.',
         'Planering': 'Daglig vikt före frukost. Fortsatt vätskelista.',
@@ -77,7 +77,7 @@ export const PATIENTER = [
       } } },
       { typ: 'Omvårdnadsanteckning', enhet: 'uso-kard-72', vk: 'inl', av: 'ssk-kard', tid: [0, '07:30'], sokord: {
         'Sömn': 'Sov bättre i natt och behövde ingen extra kudde.',
-        'Andning/cirkulation': 'Saturation 96 procent utan syrgas.',
+        'Andning/cirkulation': 'Syremättnad 96 procent utan syrgas.',
         'Nutrition': 'Äter frukost själv. Vätskeintag 1,5 liter per dygn enligt ordination.',
       } },
       { typ: 'Daganteckning', enhet: 'uso-kard-72', vk: 'inl', av: 'lak-kard', tid: [0, '09:10'], status: 'utkast', sokord: {
@@ -478,17 +478,17 @@ export const PATIENTER = [
     anteckningar: [
       { typ: 'Akutanteckning', enhet: 'uso-akut', vk: 'akut', av: 'lak-akut', tid: [-5, '20:00'], sokord: {
         'Kontaktorsak': 'Feber och hosta med rostfärgat slem sedan fyra dagar.',
-        'Status': 'Temp 39,6. Andningsfrekvens 24, saturation 92 procent. Krepitationer höger bas.',
+        'Status': 'Temp 39,6. Andningsfrekvens 24, syremättnad 92 procent. Krepitationer höger bas.',
         'Bedömning': 'CRP 245. Lungröntgen: infiltrat i höger underlob. Samhällsförvärvad pneumoni, CRB-65 0 men syrgaskrävande.',
         'Åtgärd': 'Odlingar. Läggs in på infektionskliniken.',
       } },
       { typ: 'Inskrivningsanteckning', enhet: 'uso-inf', vk: 'inl', av: 'lak-inf', tid: [-5, '23:40'], sokord: {
         'Kontaktorsak': 'Samhällsförvärvad pneumoni.',
         'Anamnes': 'Tidigare frisk. Inga kända allergier.',
-        'Åtgärd': 'Bensylpenicillin 3 g x 3 intravenöst. Syrgas efter saturation.',
+        'Åtgärd': 'Bensylpenicillin 3 g x 3 intravenöst. Syrgas efter syremättnad.',
       } },
       { typ: 'Omvårdnadsanteckning', enhet: 'uso-inf', vk: 'inl', av: 'ssk-inf', tid: [-4, '14:00'], sokord: {
-        'Andning/cirkulation': 'Saturation 95 procent med 2 liter syrgas. Hostar upp segt slem.',
+        'Andning/cirkulation': 'Syremättnad 95 procent med 2 liter syrgas. Hostar upp segt slem.',
         'Nutrition': 'Dricker bra, äter lite.',
       } },
       { typ: 'Daganteckning', enhet: 'uso-inf', vk: 'inl', av: 'lak-inf', tid: [-2, '10:00'], sokord: {

@@ -24,7 +24,7 @@ De viktigaste felen:
 2. **`I50.0` hade texten "Hjärtsvikt med stas"**, men koden betyder Högerhjärtsvikt. ICD-10-SE räknar "Congestive heart failure" till I50.0, så koden står kvar och texten är nu Socialstyrelsens. Om patient 1:s hjärtsvikt kliniskt är en vänstersvikt med lungstas (journalen har basala rassel och EF 40 procent) vore I50.1 rimligare; efter kontrollen ändrades diagnosen till I50.1 Vänsterhjärtsvikt (2026-10-31).
 3. **Glukos hade LOINC 2339-0**, som är glukos i masskoncentration (mg/dL), medan demon anger mmol/L. Nu NPU02192 (P, Glucose; subst.c. = ? mmol/L).
 4. **eGFR hade LOINC 62238-1**, som anger CKD-EPI-formeln, utan stöd i data för vilken formel som används. NPU har ingen kod för skattat GFR, så koden är borttagen och texten "eGFR" står kvar.
-5. **Saturation saknade 2708-6**, som FHIR R4:s profil för syremättnad kräver. Båda koderna finns nu.
+5. **Syremättnad saknade 2708-6**, som FHIR R4:s profil för syremättnad kräver. Båda koderna finns nu.
 6. Codings i FHIR hade svenska ord som `display` för LOINC och ATC (till exempel "Puls" och "furosemid"). `display` måste vara kodverkets egen benämning, så den svenska texten står nu i `text`. Det är ett formatfel, inte ett kodfel, och redovisas i `docs/fhir-validering.md`.
 
 ## Källor
@@ -179,8 +179,8 @@ FHIR R4:s vitalparameterprofiler kräver LOINC, så vitalparametrarna behåller 
 | Diastoliskt | 8462-4 | Diastolic blood pressure | mm[Hg] | bp | rätt |
 | Puls | 8867-4 | Heart rate | /min | heartrate | rätt |
 | Temperatur | 8310-5 | Body temperature | Cel | bodytemp | rätt |
-| Saturation | 59408-5 | Oxygen saturation in Arterial blood by Pulse oximetry | % | oxygensat | rätt, 2708-6 tillagd |
-| Saturation | 2708-6 | Oxygen saturation in Arterial blood | % | oxygensat | tillagd, krävs av profilen |
+| Syremättnad | 59408-5 | Oxygen saturation in Arterial blood by Pulse oximetry | % | oxygensat | rätt, 2708-6 tillagd |
+| Syremättnad | 2708-6 | Oxygen saturation in Arterial blood | % | oxygensat | tillagd, krävs av profilen |
 | Andningsfrekvens | 9279-1 | Respiratory rate | /min | resprate | rätt |
 | Vikt | 29463-7 | Body weight | kg | bodyweight | rätt |
 | Längd | 8302-2 | Body height | cm | bodyheight | rätt |

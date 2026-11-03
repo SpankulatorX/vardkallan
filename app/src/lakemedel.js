@@ -179,7 +179,7 @@ export function overfor(db, ordId, typ) {
     installning(db, 'nll_nasta', '');
     const r = db.query("INSERT INTO nll_meddelanden (ordination_id, typ, skickad, status, nll_registrerad) VALUES (?, ?, ?, 'timeout', 1)").run(ordId, typ, t);
     db.query("UPDATE ordinationer SET nll_status = 'okand_kontrolleras' WHERE id = ?").run(ordId);
-    historik(db, ordId, null, 'Överföring till NLL fick timeout', 'Status okänd, kontrolleras genom avstämning. Ordinationen gäller och visas i listan.');
+    historik(db, ordId, null, 'NLL svarade inte i tid på överföringen', 'Status okänd, kontrolleras genom avstämning. Ordinationen gäller och visas i listan.');
     return { id: Number(r.lastInsertRowid), status: 'timeout' };
   }
   if (lage === 'fel') {
