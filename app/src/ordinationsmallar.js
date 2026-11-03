@@ -6,6 +6,7 @@
 // i ordination_tillagg, så att ordinationstabellen och NLL-överföringen är oförändrade.
 import { Fel, iso, idag, addDagar } from './db.js';
 import { alder as alderAv } from './atkomst.js';
+import { egfrForSakerhet } from './lakemedel.js';
 
 export const DEMO_MALLAR = 'Förslagen är demoregler för att visa flödet. De är inte doseringsstöd och inte granskade av farmaceut eller läkare.';
 export const ADMINISTRATIONSSATT = {
@@ -52,14 +53,13 @@ function grund(lm) {
 }
 
 // Förslaget för produkten och patienten. Varje ändring mot mallen förklaras i varfor.
-// Förslaget bygger bara på det användaren får se: ett eGFR från en annan vårdenhet räknas först efter ett aktivt val,
-// och aldrig från en spärrad vårdenhet utan samtycke.
+// eGFR räknas med samma regel som varningarna vid ordination (lakemedel.egfrForSakerhet): från alla vårdenheter, men
+// aldrig från en spärrad vårdenhet utan samtycke.
 export function forslag(atk, lm) {
   const db = atk.db;
   const p = db.query('SELECT * FROM patienter WHERE id = ?').get(atk.patientId);
   const ar = p ? alderAv(p.fodd, idag()) : null;
-  const egfrRader = db.query("SELECT * FROM matvarden WHERE patient_id = ? AND typ = 'egfr' ORDER BY tid DESC").all(atk.patientId);
-  const egfr = atk.filtrera(egfrRader, 'las_matvarden')[0]?.varde_num ?? null;
+  const egfr = egfrForSakerhet(atk);
   const mall = MALLAR[lm.atc];
   const f = { ...(mall ?? grund(lm)) };
   const varfor = [];

@@ -119,12 +119,12 @@ export function genomgang(atk) {
   const db = atk.db;
   const nu = pagaende(atk);
   const pat = db.query('SELECT * FROM patienter WHERE id = ?').get(atk.patientId);
-  const ok = atk.filtrera(db.query('SELECT * FROM overkanslighet WHERE patient_id = ?').all(atk.patientId), 'las_oversikt', { gemensam: true });
+  const ok = utanSamtycke(atk).filtrera(db.query('SELECT * FROM overkanslighet WHERE patient_id = ?').all(atk.patientId), 'las_oversikt', { gemensam: true });
   // Interaktioner och överkänslighet med samma demoregler som ordinationskontrollen, för varje ordination mot de andra.
   const par = [];
   const lm = (o) => db.query('SELECT * FROM katalog WHERE id = ?').get(o.lakemedel_id);
-  const egfr = db.query("SELECT * FROM matvarden WHERE patient_id = ? AND typ = 'egfr' ORDER BY tid DESC").all(atk.patientId)
-    .find(m => atk.prova('las_lakemedel', { enhet_id: m.enhet_id, gemensam: true }).tillaten)?.varde_num ?? null;
+  // Genomgången kan sparas och syns då utan samtycke, så eGFR räknas utan samtycke till spärrade uppgifter.
+  const egfr = lakemedel.egfrForSakerhet(utanSamtycke(atk));
   for (let i = 0; i < nu.length; i++) {
     for (const andra of nu.slice(i + 1)) {
       for (const v of lakemedel.varningar(db, atk.patientId, lm(nu[i]), [andra])) {

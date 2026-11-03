@@ -128,14 +128,19 @@ export function varningar(db, patientId, lm, aktiva, { overkanslighet = [], egfr
   return ut;
 }
 
+// Senaste eGFR för säkerhetskontrollerna (varningar vid ordination, ordinationsförslag och läkemedelsgenomgång). Ett
+// lågt eGFR är en säkerhetsuppgift som läkemedelslistan och överkänsligheten: det räknas från alla vårdenheter utan
+// aktivt val, men aldrig från en spärrad vårdenhet utan samtycke. Samma regel överallt.
+export function egfrForSakerhet(atk) {
+  return atk.db.query("SELECT * FROM matvarden WHERE patient_id = ? AND typ = 'egfr' ORDER BY tid DESC").all(atk.patientId)
+    .find(m => atk.prova('las_lakemedel', { enhet_id: m.enhet_id, gemensam: true }).tillaten)?.varde_num ?? null;
+}
+
 function underlag(atk) {
   const db = atk.db;
   const aktiva = synligaOrdinationer(atk).filter(arAktuell);
   const ok = atk.filtrera(db.query('SELECT * FROM overkanslighet WHERE patient_id = ?').all(atk.patientId), 'las_oversikt', { gemensam: true });
-  // Senaste eGFR oavsett enhet, utom spärrade. Säkerhetskontrollen avslöjar bara att värdet är lågt.
-  const egfrRader = db.query("SELECT * FROM matvarden WHERE patient_id = ? AND typ = 'egfr' ORDER BY tid DESC").all(atk.patientId)
-    .filter(m => atk.prova('las_lakemedel', { enhet_id: m.enhet_id, gemensam: true }).tillaten);
-  return { aktiva, overkanslighet: ok, egfr: egfrRader[0]?.varde_num ?? null };
+  return { aktiva, overkanslighet: ok, egfr: egfrForSakerhet(atk) };
 }
 
 export function kontroll(atk, inp) {

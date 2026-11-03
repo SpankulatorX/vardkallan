@@ -547,15 +547,20 @@ describe('Fördefinierade ordinationer', () => {
     expect(mallar.forslag(fa(db, 'p01'), lm('VK-NPL-0024'))).toMatchObject({ mall: null, dos: 100, dosEnhet: 'mikrogram', administrationssatt: 'peroralt' });
   });
 
-  test('förslaget bygger bara på mätvärden som läkaren får se: ett eGFR från en annan vårdenhet kräver aktivt val', () => {
+  test('förslaget räknar eGFR som säkerhetsuppgift: från en annan vårdenhet utan aktivt val, aldrig från en spärrad utan samtycke', () => {
     const db = sandladaKl('13:30');
     const lm = db.query("SELECT * FROM katalog WHERE id = 'VK-NPL-0005'").get();
-    db.query("INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, tid, registrerad_av) VALUES ('p01', 'vc-tybble', 'egfr', '25', 25, ?, 'lak-vc')").run(kl('09:00'));
-    const utan = mallar.forslag(atk(db, 'lak-kard', 'p01', {}, 'ordinera'), lm);
+    // Patient 4 har spärrat psykiatrin. Ett lågt eGFR därifrån får inte styra förslaget utan samtycke.
+    db.query("INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, tid, registrerad_av) VALUES ('p04', 'uso-psyk', 'egfr', '25', 25, ?, 'lak-psyk')").run(kl('09:00'));
+    const utan = mallar.forslag(atk(db, 'lak-kard', 'p04', {}, 'ordinera'), lm);
     expect(utan.dos).not.toBe(20);
     expect(utan.varfor.join(' ')).not.toContain('eGFR');
-    expect(mallar.forslag(atk(db, 'lak-kard', 'p01', { andra_enheter: true }, 'ordinera'), lm).dos).toBe(20);
+    expect(mallar.forslag(atk(db, 'lak-kard', 'p04', { samtycke_sparr: true }, 'ordinera'), lm).dos).toBe(20);
+    // Från vårdcentralen (ingen spärr) räknas det utan aktivt val, som varningarna vid ordination.
+    db.query("INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, tid, registrerad_av) VALUES ('p01', 'vc-tybble', 'egfr', '25', 25, ?, 'lak-vc')").run(kl('09:00'));
+    expect(mallar.forslag(atk(db, 'lak-kard', 'p01', {}, 'ordinera'), lm).dos).toBe(20);
   });
+
 
   test('API: ordination med förslag sparar administrationssätt och volym, och förslaget kräver ordinationsrätt', async () => {
     const app = testserver();
