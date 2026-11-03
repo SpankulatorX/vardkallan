@@ -22,6 +22,8 @@ function sandladaKl(k = '13:30') {
 }
 afterEach(() => setSystemTime());
 const ordFor = (db, pid, namn) => db.query('SELECT o.* FROM ordinationer o JOIN katalog k ON k.id = o.lakemedel_id WHERE o.patient_id = ? AND k.namn LIKE ? AND o.status = \'aktiv\' ORDER BY o.id DESC').get(pid, `${namn}%`);
+// Förslag som en läkare med nödåtkomst och aktivt val får, så att alla vårdenheters uppgifter räknas.
+const fa = (db, pid) => atk(db, 'lak-kard', pid, { nodatkomst: true, andra_enheter: true }, 'ordinera');
 const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
 const regler = (v) => v.map(x => `${x.niva}:${x.regel}`);
 
@@ -245,6 +247,23 @@ describe('Administrering', () => {
     expect(administrering.lista(atk(db, 'ssk-kard', 'p04')).senaste.some(x => x.id === ut.id)).toBe(false);
   });
 
+  test('en dos av en spärrad enhets ordination röjs inte i varningarna, varken tid eller vem som gav den', () => {
+    const db = sandladaKl('13:30');
+    const sert = db.query("SELECT o.* FROM ordinationer o WHERE o.patient_id = 'p04' AND o.enhet_id = 'uso-psyk'").get();
+    administrering.spara(atk(db, 'ssk-kard', 'p04', { samtycke_sparr: true }, 'ge_lakemedel'), { ordinationId: sert.id, planerad: kl('08:00'), tid: kl('12:00') });
+    // Kardiologen ordinerar samma substans. Utan samtycke får kontrollen inte bygga på psykiatrins dos.
+    const ny = db.query(`INSERT INTO ordinationer (patient_id, enhet_id, lakemedel_id, dosering, dos, dos_enhet, tider, vid_behov, typ, orsak, uppfoljning, start, ordinerad_av, skapad)
+      SELECT patient_id, 'uso-kard', lakemedel_id, dosering, dos, dos_enhet, tider, vid_behov, typ, orsak, uppfoljning, start, 'lak-kard', skapad FROM ordinationer WHERE id = ? RETURNING id`).get(sert.id).id;
+    const utan = administrering.kontroll(atk(db, 'ssk-kard', 'p04', {}, 'ge_lakemedel'), { ordinationId: ny }).varningar;
+    expect(utan.some(v => v.regel === 'dubbel_dos')).toBe(false);
+    expect(utan.map(v => v.text).join(' ')).not.toContain('Johan Ek');
+    // Spärren nämns som i resten av journalen, utan att röja vad den innehåller.
+    expect(utan.find(v => v.regel === 'sparrade_uppgifter')).toMatchObject({ niva: 'observation' });
+    // Med samtycke räknas dosen in.
+    const med = administrering.kontroll(atk(db, 'ssk-kard', 'p04', { samtycke_sparr: true }, 'ge_lakemedel'), { ordinationId: ny }).varningar;
+    expect(med.some(v => v.regel === 'dubbel_dos')).toBe(true);
+  });
+
   test('permission: doser under permission lämnas över till patienten', async () => {
     const app = testserver();
     try {
@@ -430,20 +449,30 @@ describe('Fördefinierade ordinationer', () => {
     const db = sandladaKl('13:30');
     const lm = (id) => db.query('SELECT * FROM katalog WHERE id = ?').get(id);
     // Patient 1 är 81 år: lägre högsta dygnsdos av paracetamol.
-    const alv = mallar.forslag(db, lm('VK-NPL-0026'), 'p01');
+    const alv = mallar.forslag(fa(db, 'p01'), lm('VK-NPL-0026'));
     expect(alv).toMatchObject({ typ: 'vid_behov', vidBehov: true, dos: 500, dosEnhet: 'mg', administrationssatt: 'peroralt', demoregler: true });
     expect(alv.dosering).toContain('högst 6 tabletter per dygn');
     expect(alv.varfor.join(' ')).toContain('Från 75 år');
-    expect(mallar.forslag(db, lm('VK-NPL-0026'), 'p13').dosering).toContain('högst 8 tabletter per dygn');
-    expect(mallar.forslag(db, lm('VK-NPL-0025'), 'p01')).toMatchObject({ dosering: '1 kapsel på morgonen', tider: ['08'], uppfoljningsdatum: addDagar(idag(), 14) });
-    expect(mallar.forslag(db, lm('VK-NPL-0004'), 'p01')).toMatchObject({ administrationssatt: 'subkutant', tider: ['18'] });
-    expect(mallar.forslag(db, lm('VK-NPL-0032'), 'p08')).toMatchObject({ administrationssatt: 'intravenost', volymMl: 100, vatskebalans: true, tider: ['06', '14', '22'] });
+    expect(mallar.forslag(fa(db, 'p13'), lm('VK-NPL-0026')).dosering).toContain('högst 8 tabletter per dygn');
+    expect(mallar.forslag(fa(db, 'p01'), lm('VK-NPL-0025'))).toMatchObject({ dosering: '1 kapsel på morgonen', tider: ['08'], uppfoljningsdatum: addDagar(idag(), 14) });
+    expect(mallar.forslag(fa(db, 'p01'), lm('VK-NPL-0004'))).toMatchObject({ administrationssatt: 'subkutant', tider: ['18'] });
+    expect(mallar.forslag(fa(db, 'p08'), lm('VK-NPL-0032'))).toMatchObject({ administrationssatt: 'intravenost', volymMl: 100, vatskebalans: true, tider: ['06', '14', '22'] });
     // Patient 6 har eGFR 27: halverad dos enoxaparin.
-    const kl6 = mallar.forslag(db, lm('VK-NPL-0005'), 'p06');
+    const kl6 = mallar.forslag(fa(db, 'p06'), lm('VK-NPL-0005'));
     expect(kl6.dos).toBe(20);
     expect(kl6.varfor.join(' ')).toContain('eGFR under 30');
     // Utan mall: produktens styrka och form.
-    expect(mallar.forslag(db, lm('VK-NPL-0024'), 'p01')).toMatchObject({ mall: null, dos: 100, dosEnhet: 'mikrogram', administrationssatt: 'peroralt' });
+    expect(mallar.forslag(fa(db, 'p01'), lm('VK-NPL-0024'))).toMatchObject({ mall: null, dos: 100, dosEnhet: 'mikrogram', administrationssatt: 'peroralt' });
+  });
+
+  test('förslaget bygger bara på mätvärden som läkaren får se: ett eGFR från en annan vårdenhet kräver aktivt val', () => {
+    const db = sandladaKl('13:30');
+    const lm = db.query("SELECT * FROM katalog WHERE id = 'VK-NPL-0005'").get();
+    db.query("INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, tid, registrerad_av) VALUES ('p01', 'vc-tybble', 'egfr', '25', 25, ?, 'lak-vc')").run(kl('09:00'));
+    const utan = mallar.forslag(atk(db, 'lak-kard', 'p01', {}, 'ordinera'), lm);
+    expect(utan.dos).not.toBe(20);
+    expect(utan.varfor.join(' ')).not.toContain('eGFR');
+    expect(mallar.forslag(atk(db, 'lak-kard', 'p01', { andra_enheter: true }, 'ordinera'), lm).dos).toBe(20);
   });
 
   test('API: ordination med förslag sparar administrationssätt och volym, och förslaget kräver ordinationsrätt', async () => {

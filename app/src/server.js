@@ -828,7 +828,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       atk.krav('ordinera');
       const lm = c.db.query('SELECT * FROM katalog WHERE id = ?').get(c.url.searchParams.get('lakemedelId') ?? '');
       if (!lm) throw new Fel(400, 'Välj ett läkemedel i katalogen.', 'ogiltig', { falt: ['lakemedelId'] });
-      return ordinationsmallar.forslag(c.db, lm, atk.patientId);
+      return ordinationsmallar.forslag(atk, lm);
     });
   });
   rutt('POST', '/api/ordination/:id/vardhandelse', (c, id) => {

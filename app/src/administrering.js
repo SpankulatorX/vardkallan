@@ -266,10 +266,17 @@ function underlag(atk, inp, atgard) {
   const tidVarning = (atgard === 'iordningstall' || atgard === 'overlamna') && planerad ? Date.parse(planerad) : tid;
   let varningar = [];
   if (atgard !== 'ej_given') {
-    const tidigare = db.query(`SELECT a.* FROM administreringar a JOIN katalog k ON k.id = a.lakemedel_id WHERE a.patient_id = ? AND k.atc = ?
-        AND a.status IN ('given', 'overlamnad') AND a.tid >= ?`).all(atk.patientId, lm.atc, new Date(tidVarning - 2 * DAG).toISOString())
+    // Bara doser som användaren får se räknas in, så att varningen aldrig röjer en spärrad eller dold vårdenhets dos.
+    // Finns spärrade uppgifter sägs det som i resten av journalen, utan att röja vad de innehåller.
+    const fran = tidVarning - 2 * DAG;
+    const atc = new Map(db.query('SELECT id, atc FROM katalog').all().map(k => [k.id, k.atc]));
+    const tidigare = synligaAdministreringar(atk)
+      .filter(a => atc.get(a.lakemedel_id) === lm.atc && (a.status === 'given' || a.status === 'overlamnad') && a.tid && Date.parse(a.tid) >= fran)
       .map(a => ({ tid: a.tid, planerad: a.planerad, ordinationId: a.ordination_id, antal: a.antal, status: a.status, av: personNamn(db, a.utford_av) }));
     varningar = administreringsvarningar({ ordination: o, aktivVid: orad ? aktivVid(db, orad, tidVarning) : null, lakemedel: lm, planerad, tid: tidVarning, antal, tidigare, nu });
+    if (atk.prova('las_lakemedel', {}).spärrade) {
+      varningar.push({ niva: 'observation', regel: 'sparrade_uppgifter', text: 'Det finns spärrade uppgifter i journalen. Doser från en spärrad vårdenhet räknas inte in i kontrollen. Fråga patienten om samtycke att visa dem om det kan ha betydelse.' });
+    }
   }
   const perm = permissionFor(db, atk.patientId);
   return { orad, o, lm, tid, planerad, dos, antal, utfordAv, orsak, ior, varningar, tillagg, permission: underPermission(perm, planerad ? Date.parse(planerad) : tid) };
