@@ -12,6 +12,7 @@ import * as remiss from './remiss.js';
 import * as fhir from './fhir.js';
 import * as minJournal from './patientvy.js';
 import { kravregister, lasTestresultat } from './krav.js';
+import { sussaRegister } from './sussa/index.js';
 import { lasKlientresultat, gransnittHash } from './klientresultat.js';
 import { YRKEN } from './seed/personal.js';
 
@@ -822,13 +823,19 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     return { datatyper, avvikelser, summa: { antalKalla: datatyper.reduce((s, d) => s + d.antalKalla, 0), antalOverforda: datatyper.reduce((s, d) => s + d.antalOverforda, 0), antalVerifierade: datatyper.reduce((s, d) => s + d.antalVerifierade, 0) } };
   });
   rutt('GET', '/api/krav', () => kravregister(lasTestresultat(testresultat), undefined, lasKlientresultat(klientresultat)));
+  // Sussas kravspecifikation med originalnummer, mappad till Vårdkällan och till de egna kraven (K1).
+  rutt('GET', '/api/krav/sussa', () => {
+    const resultat = lasTestresultat(testresultat);
+    const klient = lasKlientresultat(klientresultat);
+    return sussaRegister(resultat, klient, { egna: kravregister(resultat, undefined, klient) });
+  });
   // Svarstidsmål (D5): p95 under 200 ms per endpoint.
   const MAL_P95 = 200;
   const medMal = (rader) => rader.map(r => ({ ...r, inomMal: r.p95 <= MAL_P95 }));
   rutt('GET', '/api/drift', (c) => ({ startad, sandladar: sessioner.size, mal: { p95Ms: MAL_P95 }, server: medMal(serverMatning.sammanstall()), sandlada: c.s ? medMal(c.s.matning.sammanstall()) : [] }));
 
   // Endpoints som inte behöver en sandlåda.
-  const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/drift', '/api/lasekopia/krypterad-logg']);
+  const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/krav/sussa', '/api/drift', '/api/lasekopia/krypterad-logg']);
 
   async function api(req, server, url, c) {
     if (url.pathname === '/api/health') return json({ ok: true, sandladar: sessioner.size, version: APPVERSION, gransnitt: gransnittVersion() });

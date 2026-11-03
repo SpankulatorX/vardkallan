@@ -1,8 +1,9 @@
 // Kör bun test, skriver test-resultat.json som /api/krav läser och stoppar bygget om något test är rött
-// eller om kravregistret pekar på ett test som inte finns.
+// eller om kravregistret eller Sussa-registret pekar på ett test som inte finns.
 import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { KRAV } from '../src/krav.js';
+import { sussaTester } from '../src/sussa/index.js';
 import { lasKlientresultat } from '../src/klientresultat.js';
 
 const rot = join(import.meta.dir, '..');
@@ -38,6 +39,8 @@ const namn = new Set([...tester, ...klient.tester].map(t => t.namn));
 const inaktuella = klient.tester.filter(t => t.status === 'inaktuell').length;
 if (inaktuella) console.warn(`${inaktuella} tester av gränssnittet är inaktuella: public/ har ändrats sedan Playwright-testerna kördes.`);
 const saknas = [...new Set(KRAV.flatMap(k => k.tester).filter(t => !namn.has(t)))];
+// Samma kontroll för mappningen av Sussas kravspecifikation.
+const saknasSussa = sussaTester().filter(t => !namn.has(t));
 const resultat = {
   tid: new Date().toISOString(), bun: Bun.version, antal: tester.length,
   godkanda: tester.filter(t => t.status === 'grön').length, misslyckade: tester.filter(t => t.status === 'röd').length,
@@ -47,6 +50,10 @@ writeFileSync(join(rot, 'test-resultat.json'), JSON.stringify(resultat, null, 2)
 console.log(`\ntest-resultat.json: ${resultat.godkanda} gröna, ${resultat.misslyckade} röda, ${resultat.hoppade} hoppade av ${resultat.antal}`);
 if (saknas.length) {
   console.error(`Kravregistret pekar på tester som inte finns:\n  ${saknas.join('\n  ')}`);
+  process.exit(1);
+}
+if (saknasSussa.length) {
+  console.error(`Sussa-registret pekar på tester som inte finns:\n  ${saknasSussa.join('\n  ')}`);
   process.exit(1);
 }
 if (proc.exitCode !== 0 || resultat.misslyckade > 0 || resultat.antal === 0) process.exit(1);

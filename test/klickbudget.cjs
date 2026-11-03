@@ -74,9 +74,9 @@ const { synlig, gaTill, loggaIn, startI, GOR } = skapa(BAS);
   };
   writeFileSync(join(APP, 'klickbudget.json'), `${JSON.stringify(ut, null, 2)}\n`);
 
-  // Kravsidan visar tabellen för D6.
+  // Kravsidan visar tabellen för D6 under fliken Eget ramverk.
   try {
-    await gaTill(page, '#/krav');
+    await gaTill(page, '#/krav?vy=egna');
     const d6 = page.locator('.krav', { has: page.locator('.krav-id', { hasText: /^D6$/ }) });
     await d6.locator('.kb-tabell').waitFor();
     await d6.scrollIntoViewIfNeeded();

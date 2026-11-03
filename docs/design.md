@@ -2,7 +2,24 @@
 
 Vårdkällan är ett öppet och komplett vårdinformationssystem, byggt från grunden på öppna standarder. Det är inte en kopia av Cosmic. Första versionen är en publik demo på https://vardkallan.404haven.se med påhittade patienter i Region Örebro läns verksamheter. Den ska visa att kärnan i ett journalsystem går att bygga öppet, och att de fel som drabbade Cosmic i Sussa går att konstruera bort.
 
-Underlag: en sammanställning av offentliga källor om upphandlingen av Cosmic och kritiken mot systemet (Konkurrensverkets ansökningar, förvaltningsrättens och kammarrättens domar, revisionsrapporter och regionernas egna handlingar). Krav-id nedan (K1 till K5, D1 till D12, L1 till L13) kommer därifrån.
+Underlag: en sammanställning av offentliga källor om upphandlingen av Cosmic och kritiken mot systemet (Konkurrensverkets ansökningar, förvaltningsrättens och kammarrättens domar, revisionsrapporter och regionernas egna handlingar). Krav-id nedan (K1 till K5, D1 till D12, L1 till L13) kommer därifrån. Dessutom finns Sussas egen kravspecifikation med originalnummer för kapitel 1 till 6 och 11, som Konkurrensverket lämnade ut 2026-11-03 (se avsnittet Sussa-registret).
+
+## Grundprincip: systemet är experten
+
+Jonas formulerade grundprincipen den 3 november 2026:
+
+"Hela grundtanken är att det ska vara systemet som är experten, inte användaren. Alla flöden måste vara superenkla för användarna, oavsett vilken roll de har. Självklart ska kravspecifikationen uppfyllas, men om den lösning som Cosmic har valt inte uppfyller principen om att systemet ska vara experten ska den skrivas om så att principen alltid gäller."
+
+Sussas krav är mest skrivna som "beskriv hur ni stödjer X". De säger vad vården behöver, inte hur det ska lösas. Vårdkällan uppfyller behovet, men på ett sätt där systemet bär kunskapen om regler, kodverk och lagar. I praktiken betyder det i varje funktion:
+
+- Systemet fyller i allt det kan räkna ut ur sammanhanget: vårdkontakt, enhet, tid, patientens uppgifter och förval.
+- Det finns inga fält eller val som systemet kan avgöra själv. Användaren ska aldrig behöva kunna kodverk, regler eller lagtext.
+- Systemet föreslår nästa steg, kontrollerar mot regler och kodverk och förklarar på vanlig svenska varför något inte går eller varför det varnar.
+- Varje roll ser det rollen behöver just då, och inget annat.
+- Flödet ska klara en klickbudget (`app/src/klickbudget.js`, mätt med `test/klickbudget.cjs`). Nya vanliga flöden får en egen post i `FLODEN` med budget och motivering.
+- För varje Sussa-post som byggs står det i Sussa-registret hur systemet tar expertrollen (fältet `expert`).
+
+Exempel som redan finns: aktivt val och samtycke frågas efter bara när behörighetsmotorn kräver det och med förslag på grund, ordinationen kontrolleras mot överkänslighet och andra läkemedel innan den sparas, koder för diagnoser, läkemedel och mätvärden sätts av systemet, skyddad identitet maskeras överallt utan att någon behöver komma ihåg det, och remissens och NLL:s kvittenser bevakas av systemet och hamnar i inkorgen när något uteblir.
 
 ## Mål
 
@@ -14,7 +31,7 @@ Underlag: en sammanställning av offentliga källor om upphandlingen av Cosmic o
 6. Remisser har mottagningskvittens, bedömning, svar och kvittens av svaret, med larm när något uteblir (D1).
 7. Migrerad historik från VAS och Cosmic visas i samma kronologi som ny dokumentation, med källa utskriven, och en avstämningsrapport för migreringen (D2, D3).
 8. Öppet FHIR R4-API för alla resurser, med samma behörighetskontroll och loggning som gränssnittet (D9).
-9. Kravspårbarhet: en sida som visar varje krav, var det uppfylls och vilka automatiska tester som visar det, med testresultat från bygget (K1, K4).
+9. Kravspårbarhet: en sida som visar varje krav, var det uppfylls och vilka automatiska tester som visar det, med testresultat från bygget (K1, K4). Sussas kravspecifikation med originalnummer visas på samma sida, mappad post för post till Vårdkällan.
 10. Svarstid mäts för varje anrop och visas (D5).
 11. Patienten läser sin egen journal och ser vem som har läst den i Min journal, Vårdkällans egen e-tjänst för invånare (se avsnittet Min journal).
 
@@ -55,6 +72,7 @@ Tidbok och kassa, specialområdena (anestesi och IVA, cytostatika, operation, f�
     src/remiss.js      remissflödet och larm
     src/fhir.js        FHIR R4-mappning och /fhir-routning
     src/krav.js        kravregistret med koppling till tester
+    src/sussa/         Sussas kravspecifikation (kravspec.json), mappning per avsnitt (mappning/) och index.js
     public/            index.html, app.css, js/
     test/              bun test, en fil per modul
 ```
@@ -264,7 +282,20 @@ Med sessionen från Min journal når invånaren `/fhir/Patient/{egen}`, `Patient
 
 ## Kravregistret (krav.js)
 
-Varje post: `{ id, rubrik, kalla, status: "uppfyllt_demo" | "delvis" | "planerat", var: "sökväg i gränssnittet", tester: ["exakt testnamn"] }`. Vid bygget körs `bun test` och resultatet skrivs till `app/test-resultat.json`, som `/api/krav` läser in. Ett krav får status `uppfyllt_demo` bara om alla dess tester finns och är gröna.
+Varje post: `{ id, rubrik, kalla, status: "uppfyllt_demo" | "delvis" | "planerat", var: "sökväg i gränssnittet", tester: ["exakt testnamn"] }`. Vid bygget körs `bun test` och resultatet skrivs till `app/test-resultat.json`, som `/api/krav` läser in. Ett krav får status `uppfyllt_demo` bara om alla dess tester finns och är gröna. Det egna ramverket visas på kravsidan under fliken Eget ramverk (`#/krav?vy=egna`).
+
+## Sussa-registret (sussa/)
+
+Källa: Kravspecifikation lösning, Framtidens vårdinformationsstöd, Sussa samverkan, dnr 16RS2022, utdrag i Konkurrensverkets dnr 883/2023 aktbilaga 3, utlämnad 2026-11-03. Utdraget innehåller kapitel 1 till 6 och 11 med 305 poster i originalnumreringen: 50 krav vid anbud, 90 krav vid leverans och 165 utvärderingskriterier. Kapitel 7 (ekonomi), 8 (användbarhet och tillgänglighet), 9 (styrning och samverkan), 10 (utbildning) och 12 (underhåll och support) ingår inte i utdraget, och kapitel 1 har inga krav. Texterna är avskrivna från de skannade sidorna med rättad stavning, och tankstreck är ersatta med kommatecken.
+
+- `app/src/sussa/kravspec.json`: posterna med `id`, `typ`, `rubrik`, `avsnitt`, `kapitel`, `sida`, `text`, `mervarden` och `kompletterar`, avsnitten med rubrik och sammanfattning, kapitlen och vilka som saknas.
+- `app/src/sussa/mappning/<avsnitt>.js`: en fil per avsnitt med poster (61 filer), så att ett avsnitt kan ändras utan att röra de andra. Varje post har `id`, `kategori` (`system`, `nationell` när kravet kräver en nationell tjänst eller extern part, `leverantor` när det gäller leverantören, driften eller projektet), `egna` (kopplade krav i K, D, L och M), `tester`, `avsedd`, `losning` (vad Vårdkällan har i dag), `expert` (hur systemet tar expertrollen) och `anmarkning` (vad som saknas eller är simulerat).
+- `app/src/sussa/index.js` samlar filerna och räknar status som för de egna kraven: `uppfyllt_demo` bara när alla tester finns och är gröna, annars `delvis`. En post utan tester är `planerat`. Bygget (`scripts/kor-tester.js`) stoppas om en post pekar på ett test som inte finns.
+- Servertesterna i `app/test/sussa.test.js` kontrollerar att alla 305 id finns exakt en gång och har en mappning, att kategorierna är giltiga, att `uppfyllt_demo` kräver gröna tester, att varje system-post som inte är planerad har en expert-text och att källan och de saknade kapitlen anges.
+
+Mappningen är gjord post för post mot testerna i `app/test` och `test/*.cjs`. En post har bara tester som verkligen visar det posten kräver, och hellre `delvis` än en överdriven status. Första mappningen (2026-11-03) gav 10 poster som avses vara uppfyllda i demon, 59 delvis och 236 planerade. Det mesta som är planerat är specialområden (kapitel 4), planering och bokning, nationella tjänstekontrakt och leverantörens åtaganden. Nationella poster och leverantörsposter visas med sin kategori. Simulerat: NLL, inloggningen med SITHS och e-legitimation, och all anslutning till nationella tjänster. Inga nationella tjänstekontrakt är anslutna.
+
+Vyn `#/krav` visar Sussas krav som standard: en sammanställning per kategori och status, filter på kapitel, status och kategori, sökning på id eller text och, när en post öppnas, kravtexten, mervärdena, Vårdkällans lösning, hur systemet är experten, testerna med status och de kopplade egna kraven. Filtret sparas i adressen (`#/krav?kapitel=3&status=delvis`), och `#/krav?post=3.5.2.6` öppnar en post. Data kommer från `GET /api/krav/sussa`.
 
 ## Godkännandekriterier för första versionen
 

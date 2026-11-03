@@ -526,6 +526,27 @@ legend { font-weight: 600; font-size: var(--f-s); padding: 0; margin-bottom: 6px
 .test-fel .ikon { color: var(--larm); }
 .test-fel { color: var(--larm); }
 
+/* Sussas kravspecifikation på kravsidan */
+.sussa-summa-rulle { max-width: 640px; margin-bottom: 14px; }
+.sussa-summa caption { text-align: left; font-weight: 600; padding: 2px 0 6px; caption-side: top; }
+.sussa-summa tfoot > * > * { border-top: 2px solid var(--linje-stark); }
+.sussa-filter .falt-rad { align-items: flex-end; }
+.sussa-filter .falt { margin-bottom: 6px; }
+.sussa-om { margin: -4px 0 8px; font-size: var(--f-s); }
+.sussa-om summary { cursor: pointer; color: var(--kalla); font-weight: 600; }
+.sussa-om p { margin: 4px 0 0; color: var(--blak-2); max-width: 90ch; }
+.sussapost > summary { display: grid; grid-template-columns: 6.2em minmax(0, 1fr) auto; gap: 10px; align-items: baseline; cursor: pointer; list-style: none; }
+.sussapost > summary::-webkit-details-marker { display: none; }
+.sussapost > summary:hover strong { color: var(--kalla); }
+.sussapost[open] > summary { margin-bottom: 6px; }
+.sussa-innehall { margin-left: calc(6.2em + 10px); max-width: 90ch; font-size: var(--f-s); }
+.sussa-innehall h3 { font-family: var(--sans); font-size: var(--f-s); font-weight: 700; margin: 12px 0 2px; }
+.sussa-innehall p { margin: 2px 0; }
+.krav .sussa-innehall .dampad, .krav .sussa-innehall .ruta { margin-left: 0; }
+.sussa-innehall ul { margin: 2px 0; padding-left: 20px; }
+.sussa-innehall ul.testrader, .sussa-innehall ul.enkel-lista { list-style: none; padding: 0; }
+.sussa-text { white-space: pre-line; }
+
 /* Moduler */
 .modulgrupp { margin-bottom: 20px; }
 .modulgrupp > h2 { font-size: var(--f-l); }
@@ -687,6 +708,9 @@ body.testlage-aktivt #notiser { bottom: calc(var(--testlage-hojd, 64px) + 12px);
   .krav-huvud { grid-template-columns: 38px minmax(0, 1fr); }
   .krav-huvud .kravstatus { grid-column: 2; justify-self: start; }
   .krav-kalla, .krav-anm, .testlista, .krav .ruta, .krav .dampad { margin-left: 0; }
+  .sussapost > summary { grid-template-columns: minmax(0, 1fr) auto; row-gap: 2px; }
+  .sussapost > summary .krav-id { grid-column: 1 / -1; }
+  .sussa-innehall { margin-left: 0; }
   .faktalista div { grid-template-columns: 1fr; gap: 0; }
   .stapel { width: 90px; }
   .sokrad { flex-direction: column; }

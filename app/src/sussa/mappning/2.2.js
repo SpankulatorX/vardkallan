@@ -1,0 +1,33 @@
+// Sussa 2.2 Kärnsystemet i relation till nationella tjänster och tjänstekontrakt: hur Vårdkällan möter posterna i avsnittet.
+// Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
+
+export default [
+  { id: '2.2.1.1', kategori: 'nationell', egna: ['L9'], tester: [], avsedd: 'planerat',
+    anmarkning: 'Tjänstekontraktet är inte anslutet. Vårdkällan har inga integrationer mot tjänsteplattformen i första versionen. HSA-id i demon är påhittade och personal och enheter ligger i seeden.' },
+  { id: '2.2.1.2', kategori: 'nationell', egna: ['L9'], tester: [], avsedd: 'planerat',
+    anmarkning: 'Tjänstekontraktet är inte anslutet. Vårdkällan har inga integrationer mot tjänsteplattformen i första versionen. Personuppgifterna kommer från seeden med Skatteverkets testpersonnummer. Ingen uppslagning i PU-tjänsten görs.' },
+  { id: '2.2.1.3', kategori: 'nationell', egna: ['L3', 'L8'], tester: [], avsedd: 'planerat',
+    anmarkning: 'Tjänstekontraktet är inte anslutet. Vårdkällan har inga integrationer mot tjänsteplattformen i första versionen. Spärr, spärrmarkering och samtycke i stunden finns i Vårdkällans egen behörighetsmotor (L3), men inte via den nationella spärrtjänsten.' },
+  { id: '2.2.1.4', kategori: 'nationell', egna: ['L3', 'L8'], tester: [], avsedd: 'planerat',
+    anmarkning: 'Tjänstekontraktet är inte anslutet. Vårdkällan har inga integrationer mot tjänsteplattformen i första versionen. Samtycke i stunden till spärrade uppgifter finns lokalt (L3). Sammanhållen journalföring mellan vårdgivare är inte byggd.' },
+  { id: '2.2.1.5', kategori: 'nationell', egna: ['L8'], tester: [], avsedd: 'planerat',
+    anmarkning: 'Tjänstekontraktet är inte anslutet. Vårdkällan har inga integrationer mot tjänsteplattformen i första versionen.' },
+  { id: '2.2.1.6', kategori: 'nationell', egna: ['L5', 'L8'], tester: [], avsedd: 'planerat',
+    anmarkning: 'Tjänstekontraktet är inte anslutet. Vårdkällan har inga integrationer mot tjänsteplattformen i första versionen. Vårdkällan har en egen e-tjänst för patienten, Min journal, men ingen anslutning till 1177.' },
+  { id: '2.2.1.7', kategori: 'nationell', egna: ['L5', 'L8'], tester: [], avsedd: 'planerat',
+    anmarkning: 'Tjänstekontraktet är inte anslutet. Vårdkällan har inga integrationer mot tjänsteplattformen i första versionen. Min journal visar patienten journalen efter vårdgivarens visningsregler, men den är inte ansluten till Journalen på 1177.' },
+  { id: '2.2.1.8', kategori: 'nationell', egna: ['L8'], tester: [], avsedd: 'planerat',
+    anmarkning: 'Tjänstekontraktet är inte anslutet. Vårdkällan har inga integrationer mot tjänsteplattformen i första versionen. Uppgifterna finns som FHIR R4-resurser men produceras inte till NPÖ.' },
+  { id: '2.2.1.9', kategori: 'nationell', egna: ['L8'], tester: [], avsedd: 'planerat',
+    anmarkning: 'Tjänstekontraktet är inte anslutet. Vårdkällan har inga integrationer mot tjänsteplattformen i första versionen.' },
+  { id: '2.2.1.10', kategori: 'nationell', egna: ['L8'], tester: [], avsedd: 'planerat',
+    anmarkning: 'Tjänstekontraktet är inte anslutet. Vårdkällan har inga integrationer mot tjänsteplattformen i första versionen.' },
+  { id: '2.2.1.11', kategori: 'nationell', egna: ['L8'], tester: [], avsedd: 'planerat',
+    anmarkning: 'Tjänstekontraktet är inte anslutet. Vårdkällan har inga integrationer mot tjänsteplattformen i första versionen. Vaccinationer registreras inte i demon.' },
+  { id: '2.2.1.12', kategori: 'nationell', egna: ['D1', 'L8'], tester: [], avsedd: 'planerat',
+    anmarkning: 'Tjänstekontraktet är inte anslutet. Vårdkällan har inga integrationer mot tjänsteplattformen i första versionen. Remisser med kvittens och larm finns inom vårdgivaren (D1), men inte via den nationella e-remissen.' },
+  { id: '2.2.1.13', kategori: 'nationell', egna: ['L8'], tester: [], avsedd: 'planerat',
+    anmarkning: 'Tjänstekontraktet är inte anslutet. Vårdkällan har inga integrationer mot tjänsteplattformen i första versionen.' },
+  { id: '2.2.1.14', kategori: 'nationell', egna: ['L8'], tester: [], avsedd: 'planerat',
+    anmarkning: 'Tjänstekontraktet är inte anslutet. Vårdkällan har inga integrationer mot tjänsteplattformen i första versionen.' },
+];

@@ -1,0 +1,90 @@
+// Sussa 5.2 Identitet och åtkomst (IAM): hur Vårdkällan möter posterna i avsnittet.
+// Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
+import { TEST } from '../../krav.js';
+
+const { B, A, L, F, LK, MJ, GA, GK } = TEST;
+
+export default [
+  { id: '5.2.1.1', kategori: 'nationell', egna: ['L5', 'L9'], tester: [], avsedd: 'planerat',
+    anmarkning: 'Inloggningen är simulerad med SITHS-kort. Ingen biljett från en IDP läses.' },
+  {
+    id: '5.2.1.2', kategori: 'system', egna: ['L4'], avsedd: 'uppfyllt_demo',
+    tester: [
+      `${L}varje rad kedjas med sha256 av föregående hash och raden`,
+      `${L}UPDATE på loggen avbryts av trigger`,
+      `${L}DELETE på loggen avbryts av trigger`,
+      `${A}sökningen loggas`,
+      `${F}FHIR-anrop loggas`,
+      `${A}logggranskaren ser logg med hel kedja, andra roller nekas`,
+      `${A}nödåtkomst via API flaggas i logguppföljningen`,
+    ],
+    losning: 'Varje åtkomst och aktivitet loggas med grund i en åtkomstlogg som inte går att ändra, med hashkedja och databastriggrar, och följs upp med flaggor.',
+    expert: 'Systemet loggar varje åtkomst och dess grund självt, så ingen behöver dokumentera varför journalen öppnades.',
+    anmarkning: 'Stickprovskontroller och lagring i minst fem år finns inte.',
+  },
+  {
+    id: '5.2.1.3', kategori: 'system', egna: ['L4'], avsedd: 'delvis',
+    tester: [
+      `${F}AuditEvent bara för logggranskare`,
+    ],
+    losning: 'Logggranskaren kan läsa ut loggen som FHIR AuditEvent per patient.',
+    expert: 'Loggen lämnas ut i ett öppet format med patient, personal och grund, så granskaren inte behöver sammanställa den för hand.',
+    anmarkning: 'Export av hela loggen till fil eller arkiv saknas.',
+  },
+  {
+    id: '5.2.1.4', kategori: 'system', egna: ['D4', 'L5'], avsedd: 'uppfyllt_demo',
+    tester: [
+      `${MJ}utloggning och byte av roll i samma webbläsare nollställer sessionen`,
+      `${LK}nyckeln lämnas vid inloggning, byts vid ny inloggning och glöms vid utloggning`,
+      `${GA}läskopian rensas vid utloggning`,
+      `${GA}utloggning under avbrott loggar ut sessionen på servern, även om fliken stängs`,
+      `${GA}utloggning i en flik avslutar läsläget i webbläsarens andra flikar`,
+    ],
+    losning: 'Utloggning avslutar sessionen på servern och rensar läskopian och reservkopian, också under avbrott och i andra flikar.',
+    expert: 'Systemet rensar allt som hör till inloggningen självt vid utloggning, så användaren behöver inte stänga flikar eller tömma något.',
+    anmarkning: 'Automatisk utloggning efter inaktivitet är inte testad.',
+  },
+  { id: '5.2.1.5', kategori: 'leverantor', egna: ['D12'], tester: [], avsedd: 'planerat',
+    anmarkning: 'Gäller leverantörens drift- och supportpersonal. Det finns ingen drift med supportpersonal för demon.' },
+  {
+    id: '5.2.1.6', kategori: 'system', egna: ['D8', 'L2'], avsedd: 'delvis',
+    tester: [
+      `${B}yrkesroll: läkare får ordinera, sjuksköterska och undersköterska får inte`,
+      `${A}nekad åtkomst ger 403 kraver_val och loggas som nekad`,
+      `${MJ}patientsessionen når inga av personalens API:er`,
+      `${MJ}personalens session når inte Min journal`,
+    ],
+    losning: 'Behörigheten avgörs på servern för varje anrop utifrån yrkesroll och enhet i sessionen, och patientens session når inga av personalens API:er.',
+    expert: 'Systemet räknar ut behörigheten ur roll, enhet och vårdrelation, så användaren behöver aldrig välja behörighet själv.',
+    anmarkning: 'Inloggningen är simulerad. Ingen IDP och inga attribut i en biljett används, och API:erna har inga egna åtkomstbiljetter.',
+  },
+  {
+    id: '5.2.1.7', kategori: 'system', egna: ['L3'], avsedd: 'uppfyllt_demo',
+    tester: [
+      `${B}inre sekretess: andra enheters uppgifter kräver aktivt val`,
+      `${B}inre sekretess: aktivt val visar andra enheters uppgifter med grund aktivt_val`,
+      `${B}spärr: spärrmarkering syns men innehållet döljs`,
+      `${B}spärr: aktivt val häver inte spärren`,
+      `${B}spärr: samtycke i stunden visar spärrade uppgifter`,
+      `${B}nödåtkomst: utan vårdrelation krävs val och läkare får nödåtkomst`,
+      `${A}aktivt val för andra enheter via API`,
+      `${A}spärrmarkering och samtycke via API`,
+      `${GK}Nödåtkomst inom budget`,
+    ],
+    losning: 'Inre sekretess med aktivt val, spärr med spärrmarkering och samtycke i stunden, och nödåtkomst, i ett flöde där uppgifterna visas stegvis.',
+    expert: 'Systemet visar först det användaren har rätt till och frågar efter aktivt val eller samtycke bara när det behövs, med förslag på grund och en förklaring på vanlig svenska.',
+    anmarkning: 'Spärr och samtycke finns i Vårdkällans egen behörighetsmotor och inte via de nationella tjänsterna i kapitel 2.',
+  },
+  {
+    id: '5.2.1.8', kategori: 'system', egna: ['L2'], avsedd: 'delvis',
+    tester: [
+      `${B}vårdrelation: inskriven patient ger åtkomst på egen enhet`,
+      `${B}vårdrelation: listning och remiss till enheten ger vårdrelation`,
+      `${B}vårdrelation: kontakt avslutad för mer än 90 dagar sedan ger ingen vårdrelation`,
+      `${B}vårdrelation: avvisad remiss ger ingen vårdrelation`,
+    ],
+    losning: 'Åtkomst räknas fram ur yrkesroll, enhet och vårdrelation. Ingen behörighet läggs upp per patient.',
+    expert: 'Vårdrelationen räknas ut ur inskrivning, listning och remiss, så ingen administratör behöver lägga upp eller ta bort åtkomst för hand.',
+    anmarkning: 'Personal och roller ligger i seeden och hämtas inte från masterdata som HSA.',
+  },
+];

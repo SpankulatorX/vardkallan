@@ -322,16 +322,65 @@ const MENY = {
       await forvanta(page, '#api-status', 'HTTP 200');
       await bild(page, '13-oppet-api', true);
     });
-    await s('Sara: kravspårbarhet med filter på status', async () => {
+    await s('Sara: Sussas kravspecifikation är standardvyn, med sammanställning, filter, sök och en post', async () => {
       await gaTill(page, '#/krav');
+      await forvanta(page, '.flikar a[aria-current="page"]', 'Sussas kravspecifikation');
+      await forvanta(page, '.testkorning', 'tester gröna');
+      await forvanta(page, '.sussa-utdrag', 'Kapitel 7 till 10 och 12 ingår inte i utdraget');
+      await forvanta(page, '.ingress-block', 'dnr 16RS2022');
+      await forvanta(page, '.sussa-summa tfoot', 'Totalt');
+      await forvanta(page, '#sf-antal', 'Visar 305 av 305 poster.');
+      if (!(await page.locator('#sf-kapitel option[value="7"]').isDisabled())) throw new Error('kapitel 7 går att välja fast det inte ingår');
+      await page.evaluate(() => document.getElementById('notiser').replaceChildren());
+      await bild(page, '60-sussa-krav');
+      // Kapitel, status och kategori filtrerar listan och sparas i adressen.
+      await page.selectOption('#sf-kapitel', '3');
+      const idKap3 = await page.locator('details.sussapost').evaluateAll(d => d.map(x => x.dataset.id));
+      if (!idKap3.length || idKap3.some(id => !id.startsWith('3.'))) throw new Error(`kapitelfiltret visade ${idKap3.slice(0, 3).join(', ')}`);
+      await page.selectOption('#sf-status', 'planerat');
+      if (await page.locator('#sussa-lista .krav-uppfyllt_demo, #sussa-lista .krav-delvis').count()) throw new Error('statusfiltret visade poster som inte är planerade');
+      await page.selectOption('#sf-kapitel', '');
+      await page.selectOption('#sf-status', '');
+      await page.selectOption('#sf-kategori', 'nationell');
+      const kategorier = await page.locator('details.sussapost .under-text').allTextContents();
+      if (!kategorier.length || kategorier.some(t => !t.includes('nationell tjänst'))) throw new Error('kategorifiltret visade andra kategorier');
+      await page.selectOption('#sf-kategori', '');
+      await page.fill('#sf-sok', '3.5.2.6');
+      await forvanta(page, '#sf-antal', 'Visar 1 av 305 poster.');
+      if (!page.url().includes('sok=3.5.2.6')) throw new Error(`filtret sparades inte i adressen: ${page.url()}`);
+      await page.fill('#sf-sok', 'vätskebalans');
+      if ((await page.locator('details.sussapost').count()) < 3) throw new Error('textsökningen hittade för få poster');
+      await page.fill('#sf-sok', '3.5.2.6');
+      // En post visar kravtext, lösning, expertrollen, tester och egna krav.
+      await page.click('details.sussapost[data-id="3.5.2.6"] > summary');
+      const post = page.locator('details.sussapost[data-id="3.5.2.6"] .sussa-innehall');
+      for (const t of ['Kravtext', 'ordinationsorsak', 'Vårdkällans lösning', 'Hur systemet är experten', 'Tester', 'Läkemedel > ordinationsorsak är obligatorisk', 'Kopplade egna krav', 'L7']) {
+        await post.filter({ hasText: t }).waitFor({ timeout: 8000 });
+      }
+      await page.evaluate(() => document.getElementById('notiser').replaceChildren());
+      await bild(page, '61-sussa-post');
+      // Filtret finns kvar efter en omladdning, och en länk med post öppnar posten.
+      await page.reload(); await vantaVy(page);
+      if (await page.inputValue('#sf-sok') !== '3.5.2.6') throw new Error('sökningen fanns inte kvar efter omladdning');
+      await gaTill(page, '#/krav?post=3.1.11.1');
+      await forvanta(page, 'details.sussapost[open][data-id="3.1.11.1"] .sussa-innehall', 'Hur systemet är experten');
+      await gaTill(page, '#/krav?kategori=leverantor');
+      await page.click('details.sussapost[data-id="11.2.1.1"] > summary');
+      await forvanta(page, 'details.sussapost[data-id="11.2.1.1"] .sussa-innehall', 'Posten gäller leverantören');
+    });
+    await s('Sara: det egna ramverket finns kvar som andra flik, med filter på status', async () => {
+      await gaTill(page, '#/krav');
+      await page.click('.flikar a:has-text("Eget ramverk")');
+      await page.waitForURL(/vy=egna$/);
       await forvanta(page, '.testkorning', 'tester gröna');
       await page.click('.delflikar a:has-text("Planerat")');
-      await page.waitForURL(/status=planerat/);
+      await page.waitForURL(/vy=egna&status=planerat/);
       await forvanta(page, '.delflikar a[aria-current]', 'Planerat');
       if (await page.locator('.krav-uppfyllt_demo').count()) throw new Error('filtret visade uppfyllda krav');
       await page.click('.delflikar a:has-text("Alla")');
-      await page.waitForURL(/#\/krav$/);
+      await page.waitForURL(/vy=egna$/);
       await forvanta(page, '.delflikar a[aria-current]', 'Alla');
+      await forvanta(page, '.krav-anm', 'originalnummer finns nu för kapitel 1 till 6 och 11');
       await page.locator('.testlista summary').first().click();
       await bild(page, '14-kravsparbarhet');
     });
@@ -749,6 +798,20 @@ const MENY = {
           await mp.goto(`${BAS}/${h}`); await mp.waitForLoadState('networkidle');
           await ingenSidledsrullning(h);
         }
+      });
+      await s('mobil: Sussas kravspecifikation på 360 px', async () => {
+        await mp.goto(`${BAS}/#/krav`); await mp.waitForSelector('#sf-antal:has-text("Visar 305")');
+        await ingenSidledsrullning('Sussas krav');
+        await mp.selectOption('#sf-status', 'uppfyllt_demo');
+        await mp.waitForSelector('details.sussapost');
+        await mp.goto(`${BAS}/#/krav?post=5.2.1.7`); await mp.waitForSelector('details.sussapost[open][data-id="5.2.1.7"] .sussa-innehall h3');
+        await mp.waitForTimeout(200);
+        const topp = await mp.locator('details.sussapost[open][data-id="5.2.1.7"]').evaluate(e => e.getBoundingClientRect().top);
+        if (topp < -5 || topp > 300) throw new Error(`posten i adressen visas inte överst, utan ${Math.round(topp)} px ner`);
+        await ingenSidledsrullning('Sussas krav, en post');
+        await bild(mp, '62-mobil-sussa-krav');
+        await mp.goto(`${BAS}/#/krav?vy=egna`); await mp.waitForSelector('.delflikar');
+        await ingenSidledsrullning('eget ramverk');
       });
       await s('mobil: Min journal på 360 px', async () => {
         await mp.goto(`${BAS}/#/`); await mp.waitForLoadState('networkidle');
