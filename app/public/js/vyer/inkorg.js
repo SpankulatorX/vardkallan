@@ -50,7 +50,8 @@ export async function visa(main) {
   const atersatt = (d.aterinsattningar ?? []).map(x => `<li class="ik-ater${x.dagarKvar < 0 ? ' ik-larm' : ''}"><div class="ik-text"><span class="ik-rubrik">${esc(x.lakemedel)}, ${esc(pnamn(x.patient))}</span>
     <span class="under-text">${esc(x.text)} Plan: ${esc(x.plan)}.</span></div><div class="ik-knappar"><a class="knapp liten" href="${esc(x.href)}" data-aterinsatt="${x.ordinationId}">Sätt in igen</a><button type="button" class="knapp liten sekundar" data-avsluta="${x.ordinationId}">Avslutad behandling</button></div></li>`);
   // Vårdhändelser som avbokades eftersom remissen avvisades, för den ordinerande läkaren (runda 5, r4).
-  const avbokade = (d.avbokadeVardhandelser ?? []).map(x => `<li class="ik-ater ik-larm"><div class="ik-text"><span class="ik-rubrik">${esc(x.lakemedel ?? '')}, ${esc(pnamn(x.patient))}</span>
+  const avbokade = (d.avbokadeVardhandelser ?? []).map(x => x.utanPatient ? `<li class="ik-ater ik-larm"><div class="ik-text"><span class="ik-rubrik">En läkemedelsdos väntar på ett beslut</span>
+    <span class="under-text">${esc(x.text)}</span></div><div class="ik-knappar"><button type="button" class="knapp liten" data-vh-nod="${x.ordinationId}">Öppna med nödåtkomst</button></div></li>` : `<li class="ik-ater ik-larm"><div class="ik-text"><span class="ik-rubrik">${esc(x.lakemedel ?? '')}, ${esc(pnamn(x.patient))}</span>
     <span class="under-text">${esc(x.text)}</span></div><div class="ik-knappar"><a class="knapp liten sekundar" href="${esc(x.hrefUtsatt)}" data-vh-utsatt="${x.ordinationId}">Sätt ut</a>${x.kanSattasUpp ? `<button type="button" class="knapp liten" data-vh-igen="${x.ordinationId}">Sätt upp på väntelistan igen</button>` : ''}</div></li>`);
 
   main.querySelector('#ik').innerHTML = `<div class="inkorg-rutnat">
@@ -67,8 +68,23 @@ export async function visa(main) {
   </div>${S.session.personal.yrke === 'vardadministrator' ? '<p class="dampad liten">Som vårdadministratör ser du larm om remissernas status men ingen journaltext.</p>' : ''}`;
   // Runda 5, r4: avsluta behandlingen efter ett uppehåll och sätta upp en avbokad vårdhändelse igen.
   main.querySelector('#ik').addEventListener('click', async (e) => {
-    const b = e.target.closest('[data-avsluta],[data-vh-igen]');
+    const b = e.target.closest('[data-avsluta],[data-vh-igen],[data-vh-nod]');
     if (!b) return;
+    if (b.dataset.vhNod) {
+      const svar = await dialog(`<form><h2 id="dlg-rubrik">Nödåtkomst</h2>
+        <p>Du har ingen vårdrelation till patienten. Nödåtkomst används när uppgifterna behövs för vården och patienten inte kan tillfrågas. Den loggas med ditt namn och syftet och följs upp.</p>
+        <div class="falt"><label for="nod-syfte">Syfte</label><input id="nod-syfte" name="syfte" maxlength="300" value="Besluta om en läkemedelsdos som väntar på en avbokad vårdhändelse"></div>
+        <p class="dialog-fel form-fel" role="alert" hidden></p>
+        <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Öppna med nödåtkomst</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`,
+      { validera: (v) => ((v.syfte || '').trim().length < 3 ? 'Ange syftet med minst tre tecken.' : null),
+        onOpen: (dl) => dl.querySelector('[data-varde="ok"]').focus() });
+      if (!svar) return;
+      try {
+        const r = await medKnapp(b, () => api(`/api/ordination/${encodeURIComponent(b.dataset.vhNod)}/avbokad/nodatkomst`, { metod: 'POST', data: { syfte: svar.data.syfte.trim() } }));
+        location.hash = r.href;
+      } catch { /* notis visad */ }
+      return;
+    }
     if (b.dataset.avsluta) {
       const x = d.aterinsattningar.find(r => String(r.ordinationId) === b.dataset.avsluta);
       if (await avsluta(b, x)) visa(main);

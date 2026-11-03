@@ -98,11 +98,25 @@ describe('Avvisad remiss med vårdhändelse', () => {
     expect(r.status).toBe(200);
     expect(r.data.dolda).toBe(remissavvisning.DOLDA_TEXT);
     expect(db(k).query('SELECT status FROM ordinationer WHERE id = ?').get(ordinationId).status).toBe('aktiv');
-    // Kardiologens läkare får en rad utan patientuppgifter med en länk som kräver aktivt val eller nödåtkomst.
+    // Kardiologen får ingen rad: spärren är skälet till att ordinationen är dold, och nödåtkomst häver aldrig en spärr.
+    expect((await k.get('/api/inkorg')).data.avbokadeVardhandelser).toEqual([]);
+    expect((await k.post(`/api/ordination/${ordinationId}/avbokad/nodatkomst`, { syfte: 'Prov' })).status).toBe(404);
+    // Den ordinerande vårdenhetens läkare saknar vårdrelation och får en rad utan patientuppgifter och utan länk till patienten.
+    expect(harVardrelation(db(k), 'p06', 'uso-psyk')).toBe(false);
+    await k.logga('lak-psyk');
     const rad = (await k.get('/api/inkorg')).data.avbokadeVardhandelser.find(x => x.ordinationId === ordinationId);
-    expect(rad).toMatchObject({ utanPatient: true, href: '#/patient/p06/lakemedel' });
-    expect(JSON.stringify(rad)).not.toMatch(/Birgitta|Nyman|194601198882|Omeprazol|Elkonvertering|psyk/i);
+    expect(rad).toMatchObject({ utanPatient: true });
+    expect(rad.href).toBeUndefined();
+    expect(JSON.stringify(rad)).not.toMatch(/p06|Birgitta|Nyman|194601198882|Omeprazol|Elkonvertering|psyk/i);
     expect(logg(k, `inkorg:vardhandelse_avbokad_utan_grund:${ordinationId}`)).toHaveLength(1);
+    // Utan syfte lämnas patienten inte ut. Med syfte registreras nödåtkomsten och loggas, och först då kommer länken.
+    expect((await k.post(`/api/ordination/${ordinationId}/avbokad/nodatkomst`, {})).status).toBe(400);
+    const n = await k.post(`/api/ordination/${ordinationId}/avbokad/nodatkomst`, { syfte: 'Besluta om läkemedelsdosen' });
+    expect(n.status).toBe(200);
+    expect(n.data.href).toBe(`#/patient/p06/lakemedel/utsatt-${ordinationId}`);
+    expect(db(k).query("SELECT * FROM atkomstlogg WHERE personal_id = 'lak-psyk' AND patient_id = 'p06' AND handling = 'nodatkomst' AND grund = 'nodatkomst'").all()).toHaveLength(1);
+    // Ett ordinations-id som inte finns i läkarens inkorg ger ingen patient.
+    expect((await k.post('/api/ordination/999999/avbokad/nodatkomst', { syfte: 'Prov' })).status).toBe(404);
     // Sjuksköterskan får ingen rad.
     await k.logga('ssk-kard');
     expect((await k.get('/api/inkorg')).data.avbokadeVardhandelser).toEqual([]);

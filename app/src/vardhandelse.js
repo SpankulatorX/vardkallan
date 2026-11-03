@@ -330,22 +330,26 @@ export function styrDos(db, { bokningRad = null, postRad = null } = {}) {
 // ordinerande läkarens inkorg, med samma regler som återinsättningsraden: bara patienter som läkaren får se, aldrig en
 // spärrad vårdenhet, och den skyddade formen när läkaren inte längre är på den vårdenhet som har bokningen. Servern
 // lägger till patienten och loggar raden.
-// Mottagare är den ordinerande läkaren och läkarna på den ordinerande vårdenheten. En läkare på vårdenheten som inte
-// längre får se ordinationen, till exempel när avvisningen tog bort den sista vårdrelationen, får en rad utan
-// patientuppgifter med en länk till läkemedelslistan, som kräver aktivt val eller nödåtkomst (beslut 2026-11-03).
+// Mottagare är den ordinerande läkaren, läkarna på den vårdenhet som har bokningen och läkarna på den ordinerande
+// vårdenheten. Den som får se ordinationen får hela raden. En läkare på den ordinerande vårdenheten som saknar grund,
+// till exempel när avvisningen tog bort den sista vårdrelationen, får en rad utan patientuppgifter. Raden bär bara
+// ordinationens id, och patienten lämnas ut först efter nödåtkomst (avbokadUtanGrund). Läkare på andra vårdenheter får
+// ingen rad när ordinationen är dold för dem, och ingen får en rad när en spärr är skälet (beslut 2026-11-03).
 export function avbokadeIInkorg(db, personal) {
   if (!finnsTabell(db) || personal?.yrke !== 'lakare') return [];
   const ve = vardenhetFor(db, personal.enhet_id);
   const ut = [];
   for (const k of db.query(`SELECT k.* FROM vardhandelse_kopplingar k JOIN ordinationer o ON o.id = k.ordination_id
-    WHERE k.remiss_avvisad = 1 AND k.foljer = 1 AND o.status = 'aktiv' AND (o.ordinerad_av = ? OR k.enhet_id = ?) ORDER BY k.andrad, k.ordination_id`).all(personal.id, ve)) {
+    WHERE k.remiss_avvisad = 1 AND k.foljer = 1 AND o.status = 'aktiv' ORDER BY k.andrad, k.ordination_id`).all()) {
     const o = db.query('SELECT * FROM ordinationer WHERE id = ?').get(k.ordination_id);
-    if (!prova(db, { personal, patient: o.patient_id, handling: 'las_lakemedel', resurs: { enhet_id: o.enhet_id, gemensam: true } }).tillaten) {
-      if (k.enhet_id === ve) {
+    const ordinerande = vardenhetFor(db, o.enhet_id) === ve;
+    if (o.ordinerad_av !== personal.id && !ordinerande && vardenhetFor(db, k.enhet_id) !== ve) continue;
+    const p = prova(db, { personal, patient: o.patient_id, handling: 'las_lakemedel', resurs: { enhet_id: o.enhet_id, gemensam: true } });
+    if (!p.tillaten) {
+      if (ordinerande && p.krav === 'kraver_val') {
         ut.push({
           ordinationId: o.id, patientId: o.patient_id, utanPatient: true,
-          text: 'En läkemedelsdos väntar på en vårdhändelse som avbokades när en remiss avvisades, och du har inte längre grund att se patienten. Öppna läkemedelslistan med aktivt val eller nödåtkomst och besluta om ordinationen.',
-          href: `#/patient/${encodeURIComponent(o.patient_id)}/lakemedel`,
+          text: 'En läkemedelsdos väntar på en vårdhändelse som avbokades när en remiss avvisades, och du har inte längre grund att se patienten. Öppna ordinationen med nödåtkomst och besluta om den.',
         });
       }
       continue;
@@ -362,6 +366,14 @@ export function avbokadeIInkorg(db, personal) {
     });
   }
   return ut;
+}
+
+// Raden utan grund i inkorgen. Ger patientens id bara om läkaren har just den raden, så att ett ordinations-id inte
+// kan användas för att slå upp en patient. Servern registrerar nödåtkomsten innan id:t lämnas ut.
+export function avbokadUtanGrund(db, personal, ordinationId) {
+  const r = avbokadeIInkorg(db, personal).find(x => String(x.ordinationId) === String(ordinationId) && x.utanPatient);
+  if (!r) throw new Fel(404, 'Det finns ingen sådan rad i din inkorg.', 'saknas');
+  return r.patientId;
 }
 
 // POST /api/ordination/:id/vardhandelse/igen. Den ordinerande vårdenheten sätter upp vårdhändelsen på väntelistan igen

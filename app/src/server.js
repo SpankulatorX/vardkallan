@@ -1056,6 +1056,14 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // för en patient och loggas därför på patienten, en gång per session och ordination, så att inkorgens uppdateringar
   // inte fyller loggen.
   rutt('POST', '/api/ordination/:id/aterinsattning/avsluta', (c, id) => { kravInloggad(c); return aterinsattning.avsluta(c.db, c.personal, id, c.body); });
+  // Raden utan grund i inkorgen (runda 5, r4). Läkaren anger syftet, nödåtkomsten registreras och loggas som vanligt,
+  // och först då får klienten veta vilken patient det gäller.
+  rutt('POST', '/api/ordination/:id/avbokad/nodatkomst', (c, id) => {
+    kravInloggad(c);
+    const patientId = vardhandelse.avbokadUtanGrund(c.db, c.personal, id);
+    registreraVal(c, patientRad(c.db, patientId), { typ: 'nodatkomst', syfte: c.body?.syfte });
+    return { href: `#/patient/${encodeURIComponent(patientId)}/lakemedel/utsatt-${encodeURIComponent(id)}` };
+  });
   function avbokadeIInkorg(c) {
     const loggade = (c.s.vardhandelseAvbokadLoggad ??= new Set());
     return vardhandelse.avbokadeIInkorg(c.db, c.personal).map(r => {
