@@ -175,4 +175,34 @@ describe('Samordnad planering', () => {
     const text = JSON.stringify(u);
     for (const x of ['p01', 'Gunnar', 'Åkesson', '194502024732', 'patientId']) expect(text).not.toContain(x);
   });
+  test('kommunen får aldrig adress, namn eller personnummer för en patient med skyddad identitet, inte heller när skyddet tillkommer efter inskrivningsmeddelandet', async () => {
+    const k = await inloggad('lak-kard');
+    const s = db(k);
+    const forbjudna = (p) => [p.adress, p.ort, p.postnr, p.fornamn, p.efternamn, p.personnummer, `${p.personnummer.slice(0, 8)}-${p.personnummer.slice(8)}`, p.personnummer.slice(0, 8)];
+    const kontrollera = async (id, pid) => {
+      const p = s.query('SELECT * FROM patienter WHERE id = ?').get(pid);
+      await k.logga('kom-bist');
+      const svar = [(await k.get(`/api/samverkan/${id}`)).data, (await k.get('/api/samverkan')).data.find(x => x.id === id)];
+      const text = JSON.stringify(svar);
+      for (const x of forbjudna(p)) expect(text).not.toContain(x);
+      expect(svar[0].patient).toMatchObject({ namn: 'Skyddad identitet', personnummer: null, adress: null, skyddad: true });
+      await k.logga('lak-kard');
+    };
+    // Skyddet fanns från början: Birgitta Nyman (p06) får skyddad identitet och skrivs in.
+    s.query("UPDATE patienter SET skyddad = 1 WHERE id = 'p06'").run();
+    const vt = Number(s.query("INSERT INTO vardtillfallen (patient_id, enhet_id, inskriven, orsak, inskriven_av) VALUES ('p06', 'uso-kard', ?, 'Hjärtsvikt', 'lak-kard')").run(iso()).lastInsertRowid);
+    s.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak, vardtillfalle_id) VALUES ('p06', 'uso-kard-72', 'slutenvard', ?, 'Avd 72', 'Hjärtsvikt', ?)").run(iso(), vt);
+    const r = await k.post('/api/patient/p06/samordning', { typ: 'spu', behov: { socialtjanst: true } });
+    expect(r.status).toBe(201);
+    await kontrollera(r.data.id, 'p06');
+    // Skyddet tillkommer efter inskrivningsmeddelandet: seedens planering för Gunnar Åkesson (p01).
+    const spu = s.query("SELECT id FROM samordningar WHERE patient_id = 'p01' AND typ = 'spu'").get().id;
+    await k.logga('kom-bist');
+    expect((await k.get(`/api/samverkan/${spu}`)).data.patient.adress).toContain('Ekbacksvägen');
+    await k.logga('lak-kard');
+    s.query("UPDATE patienter SET skyddad = 1 WHERE id = 'p01'").run();
+    await kontrollera(spu, 'p01');
+    // Inskrivningsmeddelandet sparar ingen kopia av adressen.
+    expect(s.query("SELECT detalj FROM samordning_handelser WHERE typ = 'inskrivningsmeddelande'").all().map(x => x.detalj).join(' ')).not.toContain('Ekbacksvägen');
+  });
 });

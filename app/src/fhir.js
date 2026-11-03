@@ -30,6 +30,8 @@ export const SYSTEM = {
   uppmarksamhet: `${CS}/uppmarksamhet`,
 };
 export const TYPER = ['Patient', 'Encounter', 'EpisodeOfCare', 'Condition', 'Observation', 'MedicationRequest', 'AllergyIntolerance', 'Flag', 'ServiceRequest', 'Composition', 'Organization', 'Practitioner', 'AuditEvent', 'MedicationAdministration', 'List'];
+// Runda 6, r3: vårdplanen är en CarePlan (vardplan.js), med samma behörighet som i gränssnittet.
+TYPER.push('CarePlan');
 // Profiler som resurserna påstår att de följer i meta.profile. Bara de som validerats utan fel (docs/fhir-validering.md):
 // HL7 Swedens basprofiler (hl7se.fhir.base 1.1.0) och FHIR R4:s vitalparameterprofiler.
 export const SEBAS = 'http://hl7.se/fhir/ig/base/StructureDefinition';
@@ -45,11 +47,15 @@ const HANDLING = {
   Encounter: 'las_admin', EpisodeOfCare: 'las_admin', Condition: 'las_diagnoser', Observation: 'las_matvarden', MedicationRequest: 'las_lakemedel',
   AllergyIntolerance: 'las_oversikt', ServiceRequest: 'las_remiss', Composition: 'las_journal', Flag: 'las_oversikt',
   MedicationAdministration: 'las_lakemedel', List: 'las_lakemedel',
+  // Runda 6, r3.
+  CarePlan: 'las_vardplan',
 };
 const TABELL = {
   Encounter: 'vardkontakter', EpisodeOfCare: 'halsoarenden', Condition: 'diagnoser', Observation: 'matvarden', MedicationRequest: 'ordinationer',
   AllergyIntolerance: 'overkanslighet', ServiceRequest: 'remisser', Composition: 'anteckningar', Flag: 'uppmarksamhet',
   MedicationAdministration: 'administreringar', List: 'vidimeringar',
+  // Runda 6, r3.
+  CarePlan: 'vardplaner',
 };
 // Ett vårdtillfälle är ett eget Encounter med id vt-<nummer>, som vårdkontakterna på avdelningarna är en del av (partOf).
 const VT_ID = /^vt-(\d{1,9})$/;
@@ -423,7 +429,22 @@ function bundle(base, url, resurser) {
   };
 }
 
-const MAPPA = { Encounter: encounter, EpisodeOfCare: episodeOfCare, Condition: condition, Observation: observation, MedicationRequest: medicationRequest, AllergyIntolerance: allergyIntolerance, Flag: flag, ServiceRequest: serviceRequest, Composition: composition, MedicationAdministration: medicationAdministration, List: list };
+// Runda 6, r3: vårdplanen som CarePlan. Målen står i description och åtgärderna som activity med ansvarig yrkesroll.
+const CAREPLAN_STATUS = { aktiv: 'active', pausad: 'on-hold', avslutad: 'completed' };
+const AKTIVITET_STATUS = { aktiv: 'in-progress', pausad: 'on-hold', avslutad: 'completed' };
+const ANSVARIG = { lakare: 'läkare', sjukskoterska: 'sjuksköterska', underskoterska: 'undersköterska' };
+export function carePlan(db, p) {
+  const mal = db.query('SELECT text FROM vardplan_mal WHERE plan_id = ? AND borttagen IS NULL ORDER BY id').all(p.id).map(m => m.text);
+  const atg = db.query('SELECT text, ansvarig FROM vardplan_atgarder WHERE plan_id = ? AND borttagen IS NULL ORDER BY id').all(p.id);
+  return {
+    resourceType: 'CarePlan', id: String(p.id), meta: kallaMeta('vardkallan'), status: CAREPLAN_STATUS[p.status] ?? 'active', intent: 'plan',
+    title: p.rubrik, ...(mal.length ? { description: `Mål: ${mal.join('. ')}.` } : {}), subject: ref('Patient', p.patient_id), period: { start: p.skapad }, created: p.skapad,
+    author: ref('Organization', p.enhet_id, enhetsnamn(db, p.enhet_id)),
+    ...(atg.length ? { activity: atg.map(a => ({ detail: { status: AKTIVITET_STATUS[p.status] ?? 'in-progress', description: `${a.text}. Ansvarig: ${ANSVARIG[a.ansvarig] ?? a.ansvarig}.` } })) } : {}),
+  };
+}
+
+const MAPPA = { CarePlan: carePlan, Encounter: encounter, EpisodeOfCare: episodeOfCare, Condition: condition, Observation: observation, MedicationRequest: medicationRequest, AllergyIntolerance: allergyIntolerance, Flag: flag, ServiceRequest: serviceRequest, Composition: composition, MedicationAdministration: medicationAdministration, List: list };
 
 function handlingFor(typ, rad, personal) {
   if (typ === 'Composition') return lasHandling(rad?.kategori ?? 'lakare');

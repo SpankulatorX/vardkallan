@@ -142,4 +142,26 @@ describe('Vårdplan', () => {
     const efter = (await k.get('/api/patient/p22/tvangsvard')).data.perioder.find(p => p.status === 'sluten');
     expect(efter.uppgifter.some(u => u.id === 'vardplan')).toBe(false);
   });
+  test('FHIR: vårdplanen är en CarePlan med samma behörighet och loggning, och invånaren får den inte', async () => {
+    const k = await inloggad('lak-kard');
+    const p = (await k.post('/api/patient/p01/vardplaner', { mall: 'hjartsvikt' })).data;
+    const b = (await k.get('/fhir/CarePlan?patient=p01')).data;
+    const cp = b.entry.find(e => e.resource.id === String(p.id)).resource;
+    expect(cp).toMatchObject({ resourceType: 'CarePlan', status: 'active', intent: 'plan', title: 'Hjärtsvikt', subject: { reference: 'Patient/p01' } });
+    expect(cp.activity[0].detail.description).toContain('Ansvarig: undersköterska');
+    expect(cp.description).toContain('Mål:');
+    expect((await k.get(`/fhir/CarePlan/${p.id}`)).status).toBe(200);
+    expect(db(k).query('SELECT * FROM atkomstlogg ORDER BY id DESC LIMIT 1').get()).toMatchObject({ handling: 'las_vardplan', resurs: `fhir/CarePlan/${p.id}` });
+    // Psykiatrins plan för Elin Sandberg syns inte för kardiologin, eftersom psykiatrin är spärrad.
+    await k.logga('lak-psyk');
+    const psyk = (await k.post('/api/patient/p04/vardplaner', { rubrik: 'Sömn', mal: ['Sover'], atgarder: [{ text: 'Sömnregistrering', ansvarig: 'sjukskoterska' }] })).data;
+    await k.logga('lak-kard');
+    await k.post('/api/patient/p04/val', { typ: 'andra_enheter', syfte: 'Genomgång' });
+    expect(JSON.stringify((await k.get('/fhir/CarePlan?patient=p04')).data)).not.toContain('Sömn');
+    expect((await k.get(`/fhir/CarePlan/${psyk.id}`)).status).toBe(403);
+    // Min journal visar inte vårdplaner, så invånaren får dem inte i FHIR.
+    const inv = klient(app);
+    await inv.post('/api/login/invanare', { invanareId: 'inv-p01' });
+    expect((await inv.get('/fhir/CarePlan?patient=p01')).status).toBe(404);
+  });
 });

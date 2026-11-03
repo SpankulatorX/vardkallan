@@ -141,12 +141,21 @@ export function synliga(atk) {
   });
 }
 
+// Patientuppgifterna till kommunen läses från patientraden varje gång, aldrig från en sparad kopia, så att en patient som
+// får skyddade personuppgifter efter inskrivningsmeddelandet skyddas direkt. För en patient med skyddade
+// personuppgifter lämnas varken namn, personnummer eller adress ut. Adressen lämnas bara när ett inskrivningsmeddelande
+// har skickats, eftersom den är en av meddelandets uppgifter (2 kap. 2 §).
+function kommunensPatient(pat, im) {
+  if (pat.skyddad) return { namn: 'Skyddad identitet', personnummer: null, adress: null, skyddad: true };
+  return { namn: visningsnamn(pat, true), personnummer: visningsPnr(pat, true), adress: im ? [pat.adress, pat.postnr, pat.ort].filter(Boolean).join(', ') || null : null, skyddad: false };
+}
+
 function utan(db, s, l, { forKommun = false, personal = null } = {}) {
   const pat = db.query('SELECT * FROM patienter WHERE id = ?').get(s.patient_id);
   const im = l.hs.find(h => h.typ === 'inskrivningsmeddelande');
   return {
     id: s.id, typ: s.typ, typText: TYPTEXT[s.typ], enhet: enhetKort(db, s.enhet_id), skapad: s.skapad, skapadAv: personKort(db, s.skapad_av), status: l.status,
-    patient: forKommun ? { namn: pat.skyddad ? 'Skyddad identitet' : visningsnamn(pat, true), personnummer: visningsPnr(pat, !pat.skyddad), skyddad: Boolean(pat.skyddad), adress: im?.detalj.adress ?? null } : undefined,
+    patient: forKommun ? kommunensPatient(pat, im) : undefined,
     behov: l.behov, mottagare: (l.mottagare ?? []).map(e => enhetKort(db, e)), beraknad: l.beraknad, utskrivningsklar: l.utskrivningsklar, fastVardkontakt: l.fastVardkontakt,
     sipBehovs: l.sipBehovs, plan: l.plan, kallelse: l.kallelse, frister: l.frister, betalning: l.betalning,
     uppgifter: l.uppgifter.filter(u => !personal || vardenhetFor(db, u.enhet) === vardenhetFor(db, personal.enhet_id)).map(({ enhet, ...u }) => ({ ...u, enhet: enhetKort(db, enhet) })),
@@ -248,7 +257,8 @@ export function skapa(atk, body = {}) {
     const mottagare = [...(behov.socialtjanst || behov.kommunalHsv ? [KOMMUN] : []), ...(oppen ? [oppen] : [])];
     const pat = db.query('SELECT * FROM patienter WHERE id = ?').get(atk.patientId);
     const id = Number(db.query("INSERT INTO samordningar (patient_id, typ, enhet_id, vardtillfalle_id, skapad, skapad_av) VALUES (?, 'spu', ?, ?, ?, ?)").run(atk.patientId, pers.enhet_id, vt.id, t, pers.id).lastInsertRowid);
-    ny(db, id, 'inskrivningsmeddelande', pers, { bedomning: t, behov, beraknad, mottagare, oppenvard: oppen, adress: pat.skyddad ? null : [pat.adress, pat.postnr, pat.ort].filter(Boolean).join(', ') }, t);
+    // Adressen sparas inte i meddelandet: den läses från patientraden när kommunen ser meddelandet (kommunensPatient).
+    ny(db, id, 'inskrivningsmeddelande', pers, { bedomning: t, behov, beraknad, mottagare, oppenvard: oppen, adressSkickad: !pat.skyddad }, t);
     atk.logga('samordna', atk.grund(), `samordning:${id}:inskrivningsmeddelande`);
     return [201, utan(db, db.query('SELECT * FROM samordningar WHERE id = ?').get(id), lage(db, { id, typ: 'spu', vardtillfalle_id: vt.id, enhet_id: pers.enhet_id }), { personal: pers })];
   }
@@ -424,7 +434,7 @@ export function seeda(db) {
   const pat = db.query("SELECT * FROM patienter WHERE id = 'p01'").get();
   const beraknad = addDagar(datumI(Date.now()), 2);
   db.query("INSERT INTO samordning_handelser (samordning_id, typ, tid, av, enhet_id, detalj) VALUES (?, 'inskrivningsmeddelande', ?, 'lak-kard', 'uso-kard', ?)")
-    .run(id, t, JSON.stringify({ bedomning: t, behov: { socialtjanst: true, kommunalHsv: true, oppenvard: true }, beraknad, mottagare: [KOMMUN, 'vc-tybble'], oppenvard: 'vc-tybble', adress: [pat.adress, pat.postnr, pat.ort].join(', ') }));
+    .run(id, t, JSON.stringify({ bedomning: t, behov: { socialtjanst: true, kommunalHsv: true, oppenvard: true }, beraknad, mottagare: [KOMMUN, 'vc-tybble'], oppenvard: 'vc-tybble', adressSkickad: !pat.skyddad }));
   db.query("INSERT INTO samordning_handelser (samordning_id, typ, tid, av, enhet_id, detalj) VALUES (?, 'planering', ?, 'kom-bist', ?, ?)")
     .run(id, new Date(Date.parse(t) + 20 * 3600_000).toISOString(), KOMMUN, JSON.stringify({ kommentar: 'Hemtjänst och trygghetslarm utreds.' }));
 }
