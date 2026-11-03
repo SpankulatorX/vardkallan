@@ -194,6 +194,9 @@ function ordinationsForm(plats, ctx) {
   const traffar = form.querySelector('#lm-traffar');
   let timer = null;
   let kontrollerad = null;
+  // Runda 5 (r3): varningarna som visas. En ny kontroll med samma varningar ritar inte om dem, så att en motivering som
+  // redan är skriven finns kvar när systemets förslag på dos kommer efter den första kontrollen.
+  let visadeVarningar = null;
   // Fält som förskrivaren har ändrat sedan läkemedlet valdes.
   const rorda = new Set();
   form.addEventListener('input', (e) => { if (e.target.name) rorda.add(e.target.name); });
@@ -218,6 +221,7 @@ function ordinationsForm(plats, ctx) {
     traffar.innerHTML = '';
     kontrollerad = null;
     form.querySelector('#varningar').innerHTML = '';
+    visadeVarningar = null;
     rorda.clear();
     form.dosering.focus();
     // Fördefinierad ordination (Sussa 3.5.1.3): systemet föreslår dos, administrationssätt, tider och uppföljning ur
@@ -280,7 +284,10 @@ function ordinationsForm(plats, ctx) {
         if (kontrollerad !== nyckel) {
           const k = await api(`/api/patient/${encodeURIComponent(ctx.id)}/lakemedel/kontroll`, { metod: 'POST', data: o });
           kontrollerad = nyckel;
-          if (k.varningar.length) { visaVarningar(form, k); knapp.textContent = 'Spara ordinationen'; return; }
+          const varningar = k.varningar.length ? JSON.stringify(k.varningar.map(v => [v.regel, v.niva, v.text])) : null;
+          if (!varningar) form.querySelector('#varningar').innerHTML = '';
+          if (varningar && varningar !== visadeVarningar) { visadeVarningar = varningar; visaVarningar(form, k); knapp.textContent = 'Spara ordinationen'; return; }
+          visadeVarningar = varningar;
         }
         const kv = [...form.querySelectorAll('[data-motivering]')].map(t => ({ regel: t.dataset.motivering, motivering: t.value.trim() }));
         const saknas = kv.filter(k => k.motivering.length < 3);

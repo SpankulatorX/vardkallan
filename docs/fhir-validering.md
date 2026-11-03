@@ -1,6 +1,6 @@
 # FHIR-validering
 
-Validering av Vårdkällans FHIR-svar mot FHIR R4 och HL7 Swedens basprofiler, gjord 2026-10-31 och för utskriften av alla resurser upprepad 2026-11-01 efter läkemedelskontrollen. Resultat: **inga fel** för någon resurstyp. Varningarna listas nedan.
+Validering av Vårdkällans FHIR-svar mot FHIR R4 och HL7 Swedens basprofiler, gjord 2026-10-31 och för utskriften av alla resurser upprepad 2026-11-01 efter läkemedelskontrollen och 2026-11-03 med alla resurstyper efter runda 4 (se [Omvalidering 2026-11-03](#omvalidering-2026-11-03-alla-resurstyper-efter-runda-4)). Resultat: **inga fel** för någon resurstyp. Varningarna listas nedan.
 
 Identiteterna (Sussa 3.1.1) validerades 2026-11-03 med samma validator och paket: alla 19 `Patient` mot `SEBasePatient`, däribland samordningsnummer med HL7 Swedens system, reservnummer och utländsk identitet med `urn:oid:` och en tidigare identitet med `use: old`, och dessutom två sammanslagna journaler med `Patient.link` (`replaces` och `replaced-by`, den gamla med `active: false`). Resultat: 0 fel och 23 varningar, samma slags varningar som i tabellen nedan (dom-6 och sekretessmarkeringen).
 
@@ -20,7 +20,7 @@ Basprofilerna finns för Patient, Organization, Practitioner och PractitionerRol
 
 ## Så gjordes valideringen
 
-1. Alla resurser som demorollerna når, för alla 15 patienter och med alla aktiva val (andra vårdenheter, nödåtkomst, samtycke), skrevs ut med `test/fhir-validering/exportera.js`. Organization, Practitioner, AuditEvent, CapabilityStatement och de egna definitionerna kom med.
+1. Alla resurser som demorollerna når, för alla patienter och med alla aktiva val (andra vårdenheter, nödåtkomst, samtycke), skrevs ut med `test/fhir-validering/exportera.js`. Organization, Practitioner, AuditEvent, CapabilityStatement och de egna definitionerna kom med. Sedan 2026-11-03 skriver skriptet också tidbokens resurser (Schedule, Slot och Appointment), administreringen (MedicationAdministration), vidimeringen (List) och invånarnas resurser i Min journal, och det avslutar med felkod 1 om någon resurstyp som `fhir.js` och `tidbok-fhir.js` kan lämna ut saknas i utskriften, så att en ny resurstyp inte kan hamna utanför valideringen.
 2. Dessutom hämtades svar över HTTP från en lokal server (`bun src/server.js` i `oven/bun:1.3.14-alpine`), inloggad som `lak-kard`, `lak-vc` och `logg`, för att validera själva sökresultaten (59 `Bundle` av typen `searchset`, också tomma).
 3. `test/fhir-validering/validera.sh` kör validatorn med `-version 4.0.1 -ig hl7se.fhir.base#1.1.0 -ig <egna definitioner> -jurisdiction SE`. Patient, Organization och Practitioner valideras dessutom uttryckligen mot `SEBasePatient`, `SEBaseOrganization` och `SEBasePractitioner`. Resurser med `meta.profile` valideras också mot den profilen.
 4. `test/fhir-validering/summera.py` räknar fel och varningar per resurstyp. Det avslutar med felkod 1 om något fel (`error` eller `fatal`) finns eller om en utdatafil saknas. Varningar ger ingen felkod.
@@ -91,6 +91,39 @@ En kopia med avsiktliga fel validerades också: en puls utan UCUM-kod, ett labbv
 
 Efter läkemedelskontrollen (`docs/lakemedelskontroll.md`) har `MedicationRequest` produktens riktiga NPL-id med systemet `http://electronichealth.se/fhir/NamingSystem/nplid` i stället för det påhittade id:t med Vårdkällans eget system, och `medicationCodeableConcept.text` har produktens namn, styrka och form som i NPL. Hela utskriften validerades igen med samma validator (7.0.3, sha256 kontrollerad vid nedladdningen), samma Java-container och samma paket. Resultat: **inga fel** för någon resurstyp, och samma antal resurser och varningar per resurstyp som i tabellen ovan. Varningen för NPL-id har det nya systemet. Svaren över HTTP (Bundle) validerades inte om, eftersom de innehåller samma resurser.
 
+## Omvalidering 2026-11-03: alla resurstyper efter runda 4
+
+Efter runda 4 kan API:t lämna ut fler resurstyper än `exportera.js` skrev ut: `MedicationAdministration` (administrering, överlämnande och dos som inte gavs), `List` (vidimeringen av pågående ordinationer), `Composition` med `attester` (kontrasignering), `Flag` (uppmärksamhetsinformation), `EpisodeOfCare` (hälsoärende), `Encounter` för vårdtillfälle (id `vt-<nummer>`) och tidbokens `Schedule`, `Slot` och `Appointment`. Skriptet skriver nu ut alla, också invånarens resurser i Min journal (`$everything` och bokningarna för varje journal som invånaren får läsa), som har färre uppgifter än personalens och därför valideras för sig. Den enda begäran om kontrasignering i demon görs av mottagaren i skriptet, med samma funktion som gränssnittet, så att `attester` kommer med.
+
+Valideringen kördes som i avsnittet ovan: validatorn 7.0.3 med sha256 kontrollerad efter nedladdningen, i `eclipse-temurin:21-jre` låst på digest (Java 21.0.13, inte Java på värden), samma paket, `validera.sh` och `summera.py`, och validatorn anslöt till tx.fhir.org i alla fyra körningarna. Resultat: 4 082 resurser och **inga fel**. Ingen resurs behövde rättas.
+
+| Resurstyp | Resurser (varav invånarens) | Fel | Varningar | Varningar utöver dom-6 |
+|---|---|---|---|---|
+| Patient | 35 (15) | 0 | 39 | sekretessmarkeringen (2 + 2) |
+| Organization | 19 | 0 | 19 | |
+| Practitioner | 28 | 0 | 28 | |
+| Encounter, vårdkontakter och 9 vårdtillfällen | 166 (73) | 0 | 166 | |
+| EpisodeOfCare | 1 | 0 | 1 | |
+| Condition | 96 (45) | 0 | 192 | ICD-10-SE saknas på terminologiservern (96) |
+| Observation | 284 (134) | 0 | 299 | UCUM-annotering `{INR}` och `{1.73_m2}` (15) |
+| MedicationRequest | 117 (55) | 0 | 234 | NPL-id saknas på terminologiservern (117) |
+| MedicationAdministration | 30 | 0 | 60 | NPL-id saknas på terminologiservern (30) |
+| List (vidimering) | 1 | 0 | 1 | |
+| AllergyIntolerance | 4 (2) | 0 | 4 | |
+| Flag | 6 (3) | 0 | 8 | ICD-10-SE saknas på terminologiservern (2) |
+| ServiceRequest | 17 (8) | 0 | 17 | |
+| Composition, varav 2 med attester | 155 (68) | 0 | 155 | |
+| Schedule | 5 | 0 | 5 | |
+| Slot | 2 083 | 0 | 2 083 | |
+| Appointment | 16 (8) | 0 | 16 | |
+| AuditEvent | 1 000 | 0 | 2 000 | PurposeOfUse (1 000) |
+| CapabilityStatement | 1 | 0 | 1 | |
+| StructureDefinition, CodeSystem, ValueSet (egna) | 18 | 0 | 24 | flera möjliga träffar för egna kodsystem (6) |
+
+Varningarna som finns kvar är samma slag som i tabellen [Varningar](#varningar): dom-6 (ingen narrativ `text`) för varje resurs, ICD-10-SE och NPL som terminologiservern inte har, PurposeOfUse för åtkomstgrunderna, UCUM-annoteringarna och sekretessmarkeringen för patienten med skyddad identitet. De nya resurstyperna gav inga andra varningar än dom-6, utom NPL-id i `MedicationAdministration` och ICD-10-SE i `Flag`.
+
+En kopia med avsiktliga fel i de nya resurstyperna gav fel för varje ändring: `Slot.status` `ledig`, `Appointment` utan `participant`, `MedicationAdministration` utan `status`, `List.mode` `bild`, `Composition.attester.mode` `kontrasignerad`, `Schedule` utan `actor`, `Flag.status` `aktiv`, `EpisodeOfCare.status` `pagar` och ett vårdtillfälle med `Encounter.status` `inskriven`.
+
 ## Före rättningarna
 
 Samma validering av svaren från koden före ändringarna (HTTP-urvalet: 252 unika resurser och 59 Bundle):
@@ -121,6 +154,7 @@ Samma validering av svaren från koden före ändringarna (HTTP-urvalet: 252 uni
 - Validatorn körs i GitHub Actions vid varje push och pull request, men inte i Docker-bygget av demon, eftersom den kräver Java. I bygget kontrollerar testerna i `app/test/fhir-struktur.test.js` de viktigaste strukturkraven utan Java, och `app/test/kodverk.test.js` kontrollerar koderna mot de kontrollerade tabellerna.
 - Den automatiska körningen validerar utskriften från `exportera.js`, inte sökresultaten över HTTP.
 - ICD-10-SE-, NPU- och NPL-koder kontrolleras inte av validatorn (terminologiservern saknar dem).
-- Omvalideringen 2026-11-01 (se nedan) gällde bara utskriften av alla resurser. Svaren över HTTP (Bundle) validerades inte om.
+- Omvalideringarna 2026-11-01 och 2026-11-03 gällde bara utskriften av alla resurser. Svaren över HTTP (Bundle) validerades inte om.
+- Åtkomstloggen skrivs ut med de 1 000 senaste raderna, som är gränsen för en sökning.
 - Bara läsning och sökning med de parametrar som API:t har. Inga skrivande FHIR-anrop finns.
 - Ingen nationell profil utöver basprofilerna (till exempel för läkemedel eller remiss) är validerad, eftersom HL7 Sweden inte publicerar sådana i `hl7se.fhir.base`.

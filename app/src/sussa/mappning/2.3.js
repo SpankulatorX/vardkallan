@@ -6,7 +6,7 @@ const { LK, GA } = TEST;
 
 export default [
   { id: '2.3.1.1', kategori: 'system', egna: ['D4'], tester: [], avsedd: 'planerat',
-    anmarkning: 'Gränssnittet går att använda i mobilbredd och läsläget fungerar utan nät, men det finns inga mobila arbetsflöden, till exempel vid sängen, och mobilbredden är inte ett test i kravregistret.' },
+    anmarkning: 'Gränssnittet går att använda i mobilbredd och läsläget fungerar utan nät. Genomgången i webbläsaren visar varje vy för varje demoroll på 360 px och kontrollerar att sidan inte rullar i sidled och att knapparna är minst 40 px höga. Det finns inga mobila arbetsflöden, till exempel vid sängen, och genomgången är inte ett test i kravregistret.' },
   { id: '2.3.1.2', kategori: 'system', egna: ['D4'], tester: [], avsedd: 'planerat',
     anmarkning: 'Inte byggt som ett mobilt arbetssätt. Se 2.3.1.4 för robusthet vid avbrott.' },
   { id: '2.3.1.3', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
