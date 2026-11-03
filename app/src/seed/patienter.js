@@ -472,6 +472,8 @@ export const PATIENTER = [
     diagnoser: [
       { kod: 'J18.9', text: 'Pneumoni, ospecificerad', enhet: 'uso-akut', vk: 'akut', datum: -5, typ: 'huvud' },
       { kod: 'J13.9', text: 'Pneumoni orsakad av Streptococcus pneumoniae', enhet: 'uso-inf', vk: 'inl', datum: -1, typ: 'huvud' },
+      { kod: 'Z22.3', text: 'Bärare av andra specificerade patogena bakterier', enhet: 'uso-inf', vk: 'inl', datum: -1, typ: 'bi' },
+      { kod: 'U82.1', text: 'Resistens mot meticillin', enhet: 'uso-inf', vk: 'inl', datum: -1, typ: 'bi' },
     ],
     anteckningar: [
       { typ: 'Akutanteckning', enhet: 'uso-akut', vk: 'akut', av: 'lak-akut', tid: [-5, '20:00'], sokord: {

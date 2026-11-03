@@ -65,6 +65,12 @@ export const KODSYSTEM = [
   kodsystem('nll-status', 'NllStatus', 'NLL-status', 'Status för överföringen av en ordination till Nationella läkemedelslistan (simulerad).', [
     ['skickad', 'Skickad'], ['kvitterad', 'Kvitterad av NLL'], ['okand_kontrolleras', 'Okänd, kontrolleras genom avstämning'], ['fel', 'Fel från NLL'],
   ]),
+  kodsystem('uppmarksamhet', 'Uppmarksamhet', 'Uppmärksamhetsinformation', 'Huvudgrupper och undergrupper för uppmärksamhetsinformation enligt tabell 1 i Socialstyrelsens Instruktion för ändringsförslag gällande Uppmärksamhetsinformation (2025-09-30). Undergruppens kod är huvudgruppens kod, en punkt och undergruppen.', [
+    ['medicinskt', 'Medicinska tillstånd och behandlingar'], ['medicinskt.annat_tillstand', 'Annat medicinskt tillstånd'], ['medicinskt.behandling', 'Behandling'],
+    ['medicinskt.implantat', 'Förekomst av implantat'], ['medicinskt.transplantat', 'Förekomst av transplantat'],
+    ['smitta', 'Smitta'], ['smitta.smittamne', 'Förekomst av smittämne'], ['smitta.smittsam_sjukdom', 'Förekomst av smittsam sjukdom'],
+    ['vardrutin', 'Särskild vårdrutin'], ['vardrutin.information', 'Information som kan leda till särskild vårdrutin'], ['vardrutin.beslut', 'Beslut som kan leda till särskild vårdrutin'],
+  ]),
   kodsystem('remisstatus', 'Remisstatus', 'Remisstatus', 'Remissens läge i statuskedjan.', [
     ['skickad', 'Skickad'], ['mottagen', 'Mottagen (kvittens)'], ['bedomd', 'Bedömd'], ['besvarad', 'Besvarad'], ['svar_kvitterat', 'Svar kvitterat'],
   ]),

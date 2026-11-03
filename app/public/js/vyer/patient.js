@@ -8,6 +8,7 @@ import * as lakemedel from './patient-lakemedel.js';
 import * as matvarden from './patient-matvarden.js';
 import * as remisserFlik from './patient-remisser.js';
 import * as logglista from './patient-logglista.js';
+import * as uppmarksamhet from '../uppmarksamhet.js';
 
 export const namn = 'patient';
 
@@ -55,7 +56,7 @@ function bandHtml(h) {
       <p class="band-fakta"><span class="pnr">${esc(h.personnummer)}</span><span>${esc(h.alder)} år</span><span>${h.kon === 'kvinna' ? 'Kvinna' : 'Man'}</span>${h.listning ? `<span>Listad på ${esc(h.listning.enhet.namn)}</span>` : ''}</p>
     </div>
     <ul class="band-signaler" aria-label="Uppmärksamhetssignaler och markeringar">
-      ${overkanslighetSignal(h)}
+      ${h.uppmarksamhet ? uppmarksamhet.bandSignal(h) : overkanslighetSignal(h)}
       ${h.skyddad ? `<li class="signal signal-skydd">${ikon.skold}<span>Skyddade personuppgifter${h.identitetVisad ? ', identiteten visas' : ''}</span></li>` : ''}
       ${h.sparrmarkering ? `<li class="signal signal-sparr">${ikon.las}<span>Det finns spärrade uppgifter</span></li>` : ''}
     </ul>
@@ -141,10 +142,12 @@ export async function visa(main, [id, flik, sub], q, ctx = {}) {
     if (ctx.aktuell && !ctx.aktuell()) return;
     main.innerHTML = `<div class="patientvy">
       ${bandHtml(huvud)}
-      <div class="behorighetsrad" id="behorighetsrad">${behorighetsrad(huvud)}</div>
+      <div class="behorighetsrad" id="behorighetsrad">${uppmarksamhet.forslagRader(huvud)}${behorighetsrad(huvud)}</div>
       <div id="flikrad"></div>
       <section class="flikinnehall" id="flikinnehall"></section>
     </div>`;
+    // Uppmärksamhetsinformation: efter en bekräftelse ritas huvudet om med den nya symbolen.
+    uppmarksamhet.koppla(main.querySelector('.patientvy'), id, async () => { huvud = null; await rita(); });
     main.querySelector('.patientvy').addEventListener('click', async (e) => {
       const b = e.target.closest('[data-val]');
       if (!b) return;

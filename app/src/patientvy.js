@@ -18,6 +18,7 @@ import { provaInvanare, vardenhetFor, alder, formateraPnr, maskeraPnr, SKYDDAD_N
 import { loggaRad, verifiera } from './logg.js';
 import { anteckningUt, kallaEtikett, MATTYPER } from './journal.js';
 import { ordinationUt } from './lakemedel.js';
+import { forInvanare as uppmarksamhetForInvanare } from './uppmarksamhet.js';
 import { MATKOD } from './kodverk.js';
 import { YRKEN } from './seed/personal.js';
 
@@ -333,6 +334,8 @@ export function oversikt(atk, nu = new Date()) {
   return {
     anteckningar: u.visade.slice(0, 3).map(a => anteckningKort(atk.db, a)), antalAnteckningar: u.visade.length,
     lakemedel: lm.aktuella, overkanslighet: lm.overkanslighet,
+    // Uppmärksamhetsinformation (Sussa 3.1.5): bekräftade uppgifter och överkänsligheter, utan förslag och personal.
+    uppmarksamhet: uppmarksamhetForInvanare(atk.db, atk.patientId),
     diagnoser: diagnoser(atk).diagnoser.slice(0, 5),
     provsvar: [...ps.provsvar, ...ps.matvarden].sort((a, b) => b.tid.localeCompare(a.tid)).filter(m => !sett.has(m.typ) && sett.add(m.typ)),
     remisser: remisser(atk).remisser.filter(r => r.status !== 'svar_kvitterat' && r.beslut !== 'avvisad'),

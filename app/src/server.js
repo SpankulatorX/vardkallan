@@ -11,6 +11,7 @@ import * as lakemedel from './lakemedel.js';
 import * as remiss from './remiss.js';
 import * as fhir from './fhir.js';
 import * as minJournal from './patientvy.js';
+import * as uppmarksamhet from './uppmarksamhet.js';
 import { kravregister, lasTestresultat } from './krav.js';
 import { sussaRegister } from './sussa/index.js';
 import { lasKlientresultat, gransnittHash } from './klientresultat.js';
@@ -299,6 +300,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       harAndraEnheter: andra.length > 0, andraEnheterVisade: Boolean(val.andra_enheter || r.grund === 'nodatkomst'),
       nodatkomst: Boolean(val.nodatkomst), samtyckeSparr: Boolean(val.samtycke_sparr), visad,
       listning: listning ? { enhet: enhetKort(db, listning.enhet_id), fran: listning.fran } : null,
+      uppmarksamhet: uppmarksamhet.forHuvud(atk),
     };
   }
 
@@ -364,6 +366,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
         orsak: vk?.orsak ?? (inkRemiss && kanRoll(p, 'las_remiss') ? inkRemiss.fragestallning : null),
         skyddad: Boolean(pat.skyddad), larm: larm.filter(l => l.patientId === id).length + nll.filter(n => n.patientId === id).length,
         pagaende: Boolean(vk), vardform: vk?.typ ?? null,
+        uppmarksamhet: uppmarksamhet.symbolFor(db, p, id, valFor(c.s, id)),
       });
     }
     const ordning = { slutenvard: 0, akut: 1, oppenvard: 2 };
@@ -405,7 +408,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     return db.query("SELECT * FROM vantrum WHERE status = 'vantar' ORDER BY ankomst").all().map(v => {
       const p = db.query('SELECT * FROM patienter WHERE id = ?').get(v.patient_id);
       const rad = { konummer: v.konummer, ankomst: v.ankomst, prioritet: v.prioritet, status: v.status, vantetidMin: Math.max(0, Math.round((nu - Date.parse(v.ankomst)) / 60000)), uppropning: `Nummer ${v.konummer}` };
-      if (akut) Object.assign(rad, { patientId: p.id, skyddad: Boolean(p.skyddad), namn: p.skyddad ? null : visningsnamn(p), orsak: v.orsak });
+      if (akut) Object.assign(rad, { patientId: p.id, skyddad: Boolean(p.skyddad), namn: p.skyddad ? null : visningsnamn(p), orsak: v.orsak, uppmarksamhet: uppmarksamhet.symbolFor(db, c.personal, p.id, valFor(c.s, p.id)) });
       return rad;
     });
   }
@@ -717,6 +720,17 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const lage = c.body.lage === 'fel' ? 'fel' : 'timeout';
     installning(c.db, 'nll_nasta', lage);
     return { ok: true, nastaOverforing: lage };
+  });
+
+  // Uppmärksamhetsinformation (Sussa 3.1.5): bekräfta ett förslag eller registrera ur listan, avfärda ett förslag och
+  // avsluta en uppgift. Behörigheten prövas i uppmarksamhet.js och anropet loggas som skriv_journal.
+  rutt('GET', '/api/uppmarksamhet/termer', (c) => { kravInloggad(c); return uppmarksamhet.termer(); });
+  rutt('POST', '/api/patient/:id/uppmarksamhet', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'skriv_journal', (atk) => uppmarksamhet.registrera(atk, c.body))]; });
+  rutt('POST', '/api/patient/:id/uppmarksamhet/avfard', (c, id) => { kravInloggad(c); return medPatient(c, id, 'skriv_journal', (atk) => uppmarksamhet.avfarda(atk, c.body)); });
+  rutt('POST', '/api/uppmarksamhet/:id/avsluta', (c, id) => {
+    kravInloggad(c);
+    const r = uppmarksamhet.hamtaRad(c.db, id);
+    return medPatient(c, r.patient_id, 'skriv_journal', (atk) => uppmarksamhet.avsluta(atk, r, c.body));
   });
 
   rutt('GET', '/api/patient/:id/matvarden', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_matvarden', (atk) => journal.listaMatvarden(atk)); });

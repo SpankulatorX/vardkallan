@@ -18,8 +18,9 @@ export const SYSTEM = {
   confidentiality: 'http://terminology.hl7.org/CodeSystem/v3-Confidentiality',
   sesakerhet: 'http://hl7.se/fhir/ig/base/CodeSystem/SecurityLabel',
   actcode: 'http://terminology.hl7.org/CodeSystem/v3-ActCode',
+  uppmarksamhet: `${CS}/uppmarksamhet`,
 };
-export const TYPER = ['Patient', 'Encounter', 'Condition', 'Observation', 'MedicationRequest', 'AllergyIntolerance', 'ServiceRequest', 'Composition', 'Organization', 'Practitioner', 'AuditEvent'];
+export const TYPER = ['Patient', 'Encounter', 'Condition', 'Observation', 'MedicationRequest', 'AllergyIntolerance', 'Flag', 'ServiceRequest', 'Composition', 'Organization', 'Practitioner', 'AuditEvent'];
 // Profiler som resurserna påstår att de följer i meta.profile. Bara de som validerats utan fel (docs/fhir-validering.md):
 // HL7 Swedens basprofiler (hl7se.fhir.base 1.1.0) och FHIR R4:s vitalparameterprofiler.
 export const SEBAS = 'http://hl7.se/fhir/ig/base/StructureDefinition';
@@ -33,13 +34,17 @@ const hsaIdentifier = (value) => ({ type: { coding: [{ system: SYSTEM.v2_0203, c
 // Handling i behörighetsmotorn per resurstyp.
 const HANDLING = {
   Encounter: 'las_admin', Condition: 'las_diagnoser', Observation: 'las_matvarden', MedicationRequest: 'las_lakemedel',
-  AllergyIntolerance: 'las_oversikt', ServiceRequest: 'las_remiss', Composition: 'las_journal',
+  AllergyIntolerance: 'las_oversikt', ServiceRequest: 'las_remiss', Composition: 'las_journal', Flag: 'las_oversikt',
 };
 const TABELL = {
   Encounter: 'vardkontakter', Condition: 'diagnoser', Observation: 'matvarden', MedicationRequest: 'ordinationer',
-  AllergyIntolerance: 'overkanslighet', ServiceRequest: 'remisser', Composition: 'anteckningar',
+  AllergyIntolerance: 'overkanslighet', ServiceRequest: 'remisser', Composition: 'anteckningar', Flag: 'uppmarksamhet',
 };
-const GEMENSAM = new Set(['MedicationRequest', 'AllergyIntolerance']);
+const GEMENSAM = new Set(['MedicationRequest', 'AllergyIntolerance', 'Flag']);
+// Rader som inte är resurser: ett avfärdat förslag är ingen uppmärksamhetsinformation, och en överkänslighet lämnas ut
+// som AllergyIntolerance (raden i uppmarksamhet bär bara dess bekräftade grad).
+const RADFILTER = { Flag: (r) => r.status !== 'avfard' && r.kategori !== 'overkanslighet' };
+const finnsSomResurs = (typ, r) => !RADFILTER[typ] || RADFILTER[typ](r);
 
 export function utfall(status, kod, text) {
   const code = { 401: 'login', 403: 'forbidden', 404: 'not-found' }[status] ?? 'invalid';
@@ -138,6 +143,26 @@ export function allergyIntolerance(db, o) {
     code: { ...(o.atc ? { coding: [{ system: SYSTEM.atc, code: o.atc, ...(ATC[o.atc] ? { display: ATC[o.atc] } : {}) }] } : {}), text: o.amne },
     patient: ref('Patient', o.patient_id), recordedDate: o.datum,
     reaction: o.reaktion ? [{ manifestation: [{ text: o.reaktion }] }] : undefined,
+  };
+}
+
+// Uppmärksamhetsinformation (Sussa 3.1.5) utom överkänslighet: huvudgrupp och undergrupp enligt Socialstyrelsens tabell
+// i Vårdkällans kodsystem, koden ur ICD-10-SE eller ATC när uppgiften kommer från en diagnos eller ett läkemedel.
+const FLAGGKATEGORI = { medicinskt: 'Medicinska tillstånd och behandlingar', smitta: 'Smitta', vardrutin: 'Särskild vårdrutin' };
+export function flag(db, r) {
+  const ve = vardenhetFor(db, r.enhet_id);
+  const display = (r.kodsystem === 'icd10se' ? ICD10SE : ATC)[r.kod];
+  const kod = r.kod && r.kodsystem ? { system: SYSTEM[r.kodsystem], code: r.kod, ...(display ? { display } : {}) } : null;
+  return {
+    resourceType: 'Flag', id: String(r.id), meta: kallaMeta(r.kalla), status: r.status === 'aktiv' ? 'active' : 'inactive',
+    category: [
+      { coding: [{ system: SYSTEM.uppmarksamhet, code: r.kategori, display: FLAGGKATEGORI[r.kategori] }], text: FLAGGKATEGORI[r.kategori] },
+      { coding: [{ system: SYSTEM.uppmarksamhet, code: `${r.kategori}.${r.undergrupp}` }] },
+      { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/flag-category', code: 'clinical', display: 'Clinical' }] },
+    ],
+    code: { ...(kod ? { coding: [kod] } : {}), text: r.term },
+    subject: ref('Patient', r.patient_id), period: { start: r.registrerad, ...(r.avslutad ? { end: r.avslutad } : {}) },
+    author: ref('Organization', ve, enhetsnamn(db, ve)),
   };
 }
 
@@ -242,7 +267,7 @@ function bundle(base, url, resurser) {
   };
 }
 
-const MAPPA = { Encounter: encounter, Condition: condition, Observation: observation, MedicationRequest: medicationRequest, AllergyIntolerance: allergyIntolerance, ServiceRequest: serviceRequest, Composition: composition };
+const MAPPA = { Encounter: encounter, Condition: condition, Observation: observation, MedicationRequest: medicationRequest, AllergyIntolerance: allergyIntolerance, Flag: flag, ServiceRequest: serviceRequest, Composition: composition };
 
 function handlingFor(typ, rad, personal) {
   if (typ === 'Composition') return lasHandling(rad?.kategori ?? 'lakare');
@@ -331,7 +356,7 @@ export function hantera(ctx) {
   const mappa = MAPPA[typ];
   if (id) {
     const rad = db.query(`SELECT * FROM ${TABELL[typ]} WHERE id = ?`).get(Number(id));
-    if (!rad) throw new Fel(404, 'Resursen finns inte.', 'saknas');
+    if (!rad || !finnsSomResurs(typ, rad)) throw new Fel(404, 'Resursen finns inte.', 'saknas');
     if (typ === 'Composition' && rad.status !== 'signerad' && rad.forfattare_id !== personal.id) throw new Fel(404, 'Resursen finns inte.', 'saknas');
     const handling = handlingFor(typ, rad, personal);
     const atk = new Atkomst(db, personal, rad.patient_id, ctx.valFor(rad.patient_id), handling);
@@ -349,7 +374,7 @@ export function hantera(ctx) {
   if (typ === 'Composition') {
     atk.krav(kanRoll(personal, 'las_journal') ? 'las_journal' : 'las_omvardnad', { beskrivning: `fhir/${typ}${url.search}` });
   } else atk.krav(handling, { beskrivning: `fhir/${typ}${url.search}` });
-  let rader = db.query(`SELECT * FROM ${TABELL[typ]} WHERE patient_id = ? ORDER BY id`).all(pid);
+  let rader = db.query(`SELECT * FROM ${TABELL[typ]} WHERE patient_id = ? ORDER BY id`).all(pid).filter(r => finnsSomResurs(typ, r));
   if (typ === 'Composition') {
     rader = rader.filter(a => a.status === 'signerad' || a.forfattare_id === personal.id);
     rader = atk.filtrera(rader, a => lasHandling(a.kategori));
@@ -373,6 +398,7 @@ const vardenhet = (db, personal) => vardenhetFor(db, personal.enhet_id);
 const INV_RAD = {
   Composition: (db, a) => synligKedja(db, a).synlig,
   Observation: (db, m) => provsvarVisas(m),
+  Flag: (db, r) => r.status === 'aktiv' && r.kategori !== 'overkanslighet',
 };
 const synligFor = (db, typ, rad) => (Object.hasOwn(INV_RAD, typ) ? INV_RAD[typ](db, rad) : true);
 
@@ -392,6 +418,7 @@ export const MAPPA_INVANARE = {
   Condition: condition,
   Observation: observation,
   AllergyIntolerance: allergyIntolerance,
+  Flag: flag,
   MedicationRequest: (db, o) => {
     const r = medicationRequest(db, o);
     r.medicationCodeableConcept.coding = r.medicationCodeableConcept.coding.filter(c => c.system !== SYSTEM.npl);

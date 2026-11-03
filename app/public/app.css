@@ -290,6 +290,36 @@ legend { font-weight: 600; font-size: var(--f-s); padding: 0; margin-bottom: 6px
 .signal-skydd { color: var(--skydd); background: var(--skydd-bg); border-color: var(--skydd-kant); }
 .signal-sparr { color: var(--sparr); background: var(--sparr-bg); border-color: var(--sparr-kant); }
 .signal-ingen { color: var(--dampad); border-color: var(--linje); font-weight: 400; }
+
+/* Uppmärksamhetsinformation (Sussa 3.1.5). Symbolen har en del per huvudgrupp, se js/uppmarksamhet.js. */
+:root { --um-gra: #dfe5e4; --um-kant: #6b7c7a; --um-medicinskt: #c8191f; --um-overk: #c8191f; --um-smitta: #e8b100; --um-vardrutin: #1f4fd1; }
+.um-symbol { flex: none; display: block; }
+.um-symbol .um-kontur { stroke: var(--um-kant); stroke-width: 2.4; }
+.um-symbol.um-tom { opacity: 0.7; }
+.signal-um { color: var(--blak); background: var(--yta); border-color: var(--linje-stark); padding: 0; }
+.signal-um.signal-ingen { padding: 2px 10px; color: var(--dampad); border-color: var(--linje); }
+.signal-um.signal-overk { color: var(--larm); background: var(--larm-bg); border-color: var(--larm-kant); }
+.signal-um summary { display: flex; align-items: center; gap: 6px; padding: 2px 10px 2px 6px; cursor: pointer; list-style: none; }
+.signal-um summary::-webkit-details-marker { display: none; }
+.signal-um summary::after { content: ''; width: 6px; height: 6px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); margin: -3px 0 0 4px; }
+.signal-um details[open] summary::after { transform: rotate(-135deg); margin-top: 3px; }
+.um-panel { padding: 6px 12px 10px; border-top: 1px solid var(--linje); font-weight: 400; color: var(--blak); max-width: 70ch; background: var(--yta); border-radius: 0 0 14px 14px; }
+.um-grupper { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.um-grupp h3 { font-size: var(--f-s); margin: 2px 0; }
+.um-grupp ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.um-grupp-overkanslighet h3 { color: var(--larm); }
+.um-grupp-medicinskt { border-left: 4px solid var(--um-medicinskt); padding-left: 8px; }
+.um-grupp-smitta { border-left: 4px solid var(--um-smitta); padding-left: 8px; }
+.um-grupp-vardrutin { border-left: 4px solid var(--um-vardrutin); padding-left: 8px; }
+.um-grupp-overkanslighet { border-left: 4px solid var(--um-overk); padding-left: 8px; }
+.um-forslag { align-items: center; }
+.um-forslag .knapprad { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.um-cell { width: 34px; padding-right: 0; }
+.um-lank { display: inline-flex; border-radius: 6px; }
+.um-val { border: 1px solid var(--linje); border-radius: var(--r); margin: 0 0 10px; padding: 6px 10px; }
+.um-val label { display: block; padding: 4px 0; }
+.min-um-symbol { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; }
+.knapp-lank { background: none; border: 0; padding: 0; color: var(--kalla); text-decoration: underline; cursor: pointer; font: inherit; }
 .band-grund { grid-area: grund; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
 .band-grund ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
 .band-etikett { font-size: var(--f-xs); color: var(--dampad); }

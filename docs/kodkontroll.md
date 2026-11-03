@@ -186,6 +186,10 @@ FHIR R4:s vitalparameterprofiler kräver LOINC, så vitalparametrarna behåller 
 | Längd | 8302-2 | Body height | cm | bodyheight | rätt |
 | PEF | 19935-6 | Maximum expiratory gas flow Respiratory system airway by Peak flow meter | L/min | ingen | rätt (NPU har ingen PEF-kod) |
 
+## Tillägg 2026-11-03
+
+Två ICD-10-SE-koder lades till för uppmärksamhetsinformation (bärarskap hos patient 8): `Z22.3 Bärare av andra specificerade patogena bakterier` och `U82.1 Resistens mot meticillin`. Titlarna är kontrollerade ordagrant mot samma `icd-10-se.tsv` (hämtad igen 2026-11-03, samma sha256 696c0c02178dabce2c99802898e98cb5c7c4a3af1f78c5cc1c2ad29f5eaabae8). U82.1 är en tilläggskod som enligt filen inte ska användas som huvuddiagnos, och den är bidiagnos i seeden. Den femställiga koden Z22.3C (Bärare av stafylokocker) finns i filen men används inte, eftersom seedens koder följer formatet bokstav, två siffror, punkt och en eller två siffror.
+
 ## KVÅ
 
 KVÅ förekommer inte i seeden eller koden. Inga åtgärder registreras i första versionen.

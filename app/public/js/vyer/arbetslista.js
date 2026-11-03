@@ -1,6 +1,7 @@
 // Arbetslistan: patienter med vårdrelation på min vårdenhet.
 import { esc, api, ikon, vyRubrik, tom, VARDFORM } from '../ui.js';
 import { S } from '../app.js';
+import { listCell } from '../uppmarksamhet.js';
 
 export const namn = 'arbetslista';
 
@@ -30,8 +31,9 @@ export async function visa(main) {
     return `<section class="tabellsektion" aria-labelledby="g-${vf ?? 'ovr'}">
       <h2 id="g-${vf ?? 'ovr'}">${esc(rubrik)} <span class="antal">${g.length}</span></h2>
       <div class="tabellrulle"><table class="tabell">
-        <thead><tr><th scope="col">Patient</th><th scope="col">Personnummer</th><th scope="col">Ålder och kön</th><th scope="col">Plats</th><th scope="col">Kontaktorsak</th><th scope="col"><span class="sr">Larm</span><span aria-hidden="true">Larm</span></th></tr></thead>
+        <thead><tr><th scope="col"><span class="sr">Uppmärksamhetsinformation</span><span aria-hidden="true" title="Uppmärksamhetsinformation">Upm.</span></th><th scope="col">Patient</th><th scope="col">Personnummer</th><th scope="col">Ålder och kön</th><th scope="col">Plats</th><th scope="col">Kontaktorsak</th><th scope="col"><span class="sr">Larm</span><span aria-hidden="true">Larm</span></th></tr></thead>
         <tbody>${g.map(p => `<tr${p.skyddad ? ' class="rad-skyddad"' : ''}>
+          <td class="um-cell">${p.uppmarksamhet ? listCell(p.uppmarksamhet, `#/patient/${encodeURIComponent(p.id)}`) : ''}</td>
           <td>${patientCell(p, `#/patient/${encodeURIComponent(p.id)}`)}</td>
           <td>${pnrCell(p)}</td>
           <td>${alderKon(p)}</td>

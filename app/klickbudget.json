@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-03T09:25:51.774Z",
-  "bas": "http://127.0.0.1:18101",
+  "tid": "2026-11-03T09:57:11.756Z",
+  "bas": "http://127.0.0.1:18106",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "87b213cfb3b973e062b11aa12dcbc084746fad7fa8d1f7d20467235131a4c922",
+  "gransnittHash": "35dc087afc8e66b5f1790bd19832ac3239131bd0ee6b6a8af0c8584bc6ea9db8",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -96,6 +96,22 @@
         "klick: Sätt ut för Alvedon",
         "har redan fokus: orsak",
         "klick: Sätt ut"
+      ]
+    },
+    {
+      "id": "uppmarksamhet",
+      "namn": "Bekräfta föreslagen uppmärksamhetsinformation",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 1,
+      "motivering": "Systemet har själv hittat Waran i läkemedelslistan och föreslår antikoagulantiabehandling som uppmärksamhetsinformation. Förslaget visas under patienthuvudet, och ett klick på Bekräfta registrerar det. Inget skrivs in, och kategori, kod och källa sätts av systemet.",
+      "klick": 1,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "steg": [
+        "klick: Bekräfta förslaget Antikoagulantiabehandling"
       ]
     },
     {
@@ -198,6 +214,10 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Sätta ut ett läkemedel inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Bekräfta föreslagen uppmärksamhetsinformation inom budget",
       "status": "grön"
     },
     {

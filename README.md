@@ -17,6 +17,7 @@ Demon använder bara påhittade patienter och testpersonnummer från Skatteverke
 - Skyddade personuppgifter skyddas i hela kedjan, även i väntrum och uppropning.
 - En åtkomstlogg som inte går att ändra (hashkedja och databastriggrar), logglista per patient och logguppföljning.
 - Min journal, en e-tjänst för patienten: patienten loggar in med simulerad e-legitimation och läser sin journal efter vårdgivarens visningsregler, och ser vilken vårdenhet och yrkesroll som har läst den, när och på vilken grund. Spärr och loggutdrag begärs hos vården. Vårdnadshavare läser barnets journal tills barnet fyller 13 år.
+- Uppmärksamhetsinformation strukturerad efter Socialstyrelsens huvudgrupper (överkänslighet, medicinska tillstånd och behandlingar, smitta och särskild vårdrutin), med en symbol i patienthuvudet, arbetslistan och väntrummet. Systemet föreslår själv uppgifterna ur läkemedelslistan, diagnoserna och överkänsligheterna, och läkaren bekräftar med ett klick. Förslagsreglerna är demoregler.
 - Läkemedelslistan är byggd för Nationella läkemedelslistan: ordinationsorsak och uppföljningsdatum är obligatoriska, varje överföring kvitteras och en timeout döljer aldrig en registrerad förskrivning. Kopplingen till NLL är simulerad i demon.
 - Remisser med mottagningskvittens, bedömning, svar och kvittens av svaret, och larm när något uteblir.
 - Migrerad historik visas i samma kronologi som ny dokumentation, med en avstämningsrapport för migreringen.

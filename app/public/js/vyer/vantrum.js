@@ -1,6 +1,7 @@
 // Väntrummet på akuten. Uppropning sker alltid med könummer, aldrig med namn.
 import { esc, api, klockslag, ikon, vyRubrik, tom, PRIORITET_VANTRUM } from '../ui.js';
 import { S } from '../app.js';
+import { listCell } from '../uppmarksamhet.js';
 
 export const namn = 'vantrum';
 
@@ -14,14 +15,14 @@ export async function visa(main) {
     <div>
       ${rader.length ? `<div class="tabellrulle"><table class="tabell vantrum-tabell">
         <caption class="sr">Väntande patienter, högst prioritet först</caption>
-        <thead><tr><th scope="col">Könummer</th><th scope="col">Prioritet</th><th scope="col">Ankomst</th><th scope="col">Väntat</th><th scope="col">Uppropning</th>${akut ? '<th scope="col">Patient</th><th scope="col">Orsak</th>' : ''}</tr></thead>
+        <thead><tr><th scope="col">Könummer</th><th scope="col">Prioritet</th><th scope="col">Ankomst</th><th scope="col">Väntat</th><th scope="col">Uppropning</th>${akut ? '<th scope="col"><span class="sr">Uppmärksamhetsinformation</span><span aria-hidden="true" title="Uppmärksamhetsinformation">Upm.</span></th><th scope="col">Patient</th><th scope="col">Orsak</th>' : ''}</tr></thead>
         <tbody>${sorterade.map(r => `<tr>
           <th scope="row" class="konummer">${esc(r.konummer)}</th>
           <td><span class="triage triage-${esc(r.prioritet)}"><span class="triage-ruta" aria-hidden="true"></span>${esc(PRIORITET_VANTRUM[r.prioritet] ?? r.prioritet)}</span></td>
           <td>${esc(klockslag(r.ankomst))}</td>
           <td>${esc(r.vantetidMin)} min</td>
           <td><span class="uppropning">"${esc(r.uppropning)}"</span></td>
-          ${akut ? `<td>${r.skyddad ? `<span class="skyddad-namn">${ikon.skold}<span>Namn visas inte, skyddad identitet</span></span>` : `<a href="#/patient/${encodeURIComponent(r.patientId)}">${esc(r.namn)}</a>`}</td><td>${esc(r.orsak ?? '')}</td>` : ''}
+          ${akut ? `<td class="um-cell">${r.uppmarksamhet ? listCell(r.uppmarksamhet, `#/patient/${encodeURIComponent(r.patientId)}`) : ''}</td><td>${r.skyddad ? `<span class="skyddad-namn">${ikon.skold}<span>Namn visas inte, skyddad identitet</span></span>` : `<a href="#/patient/${encodeURIComponent(r.patientId)}">${esc(r.namn)}</a>`}</td><td>${esc(r.orsak ?? '')}</td>` : ''}
         </tr>`).join('')}</tbody></table></div>` : tom('Ingen väntar just nu.')}
       ${akut ? '' : '<p class="dampad liten">Du arbetar inte på akutmottagningen och ser därför bara könummer, ankomst och prioritet.</p>'}
     </div>
