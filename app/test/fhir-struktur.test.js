@@ -81,8 +81,8 @@ describe('FHIR-struktur', () => {
     const labb = avTyp('Observation').filter(o => o.category[0].coding[0].code === 'laboratory');
     expect(labb.length).toBeGreaterThan(10);
     for (const o of labb) {
-      // eGFR har bara text, eftersom NPU saknar kod för skattat GFR.
-      if (o.code.text === 'eGFR') expect(o.code.coding).toBeUndefined();
+      // eGFR har LOINC för CKD-EPI 2021, eftersom NPU saknar kod för skattat GFR (runda 6, r1).
+      if (o.code.text === 'eGFR') expect(o.code.coding).toEqual([expect.objectContaining({ system: 'http://loinc.org', code: '98979-8' })]);
       else expect(o.code.coding).toEqual([{ system: 'http://npu-terminology.org', code: expect.stringMatching(/^NPU\d{5}$/) }]);
       expect(o.code.text.length).toBeGreaterThan(1);
       expect(o.valueQuantity.system).toBe('http://unitsofmeasure.org');

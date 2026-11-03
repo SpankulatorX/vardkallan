@@ -93,12 +93,12 @@ describe('Kodverk', () => {
   });
 
   test('varje mätvärdestyp har kod: NPU för labb, LOINC för vitalparametrar, och UCUM-enhet', () => {
-    // eGFR saknar kod med avsikt, se kodverk.js.
+    // eGFR har LOINC eftersom NPU saknar kod för skattat GFR (runda 6, r1). Medvetandegraden är ett kodat värde utan enhet.
     expect(Object.keys(MATKOD).sort()).toEqual(Object.keys(MATTYPER).sort());
     for (const [typ, k] of Object.entries(MATKOD)) {
       expect(MATTYPER_ENHET[typ]).toBeDefined();
-      expect(k.ucum).toMatch(/\S/);
-      if (typ === 'egfr') expect(k.coding).toEqual([]);
+      if (k.varde === 'kod') expect(k.ucum).toBeNull(); else expect(k.ucum).toMatch(/\S/);
+      if (typ === 'egfr') expect(k.coding).toEqual([{ system: SYSTEM.loinc, code: '98979-8', display: expect.stringContaining('CKD-EPI 2021') }]);
       else if (k.kategori === 'laboratory') expect(k.coding).toEqual([{ system: SYSTEM.npu, code: expect.stringMatching(/^NPU\d{5}$/) }]);
       else expect(k.coding.every(c => c.system === SYSTEM.loinc && /^\d+-\d$/.test(c.code) && c.display)).toBe(true);
     }

@@ -33,6 +33,10 @@ import { lasKlientresultat, gransnittHash } from './klientresultat.js';
 import { YRKEN } from './seed/personal.js';
 // Utskrift, kontrasignering, arkiv och datauttag (Sussa 3.1.9, 3.1.11.3, 5.4.2, 5.3.1.7 och 6.3.1).
 import { registreraRutter as utdataRutter, tillagg as utdata } from './utdata-rutter.js';
+// Runda 6, r1: sökning i journalen, mätvärden med kurvor och NEWS2, basfakta, säkerhetsloggen, loggexport och stickprov.
+import { registreraRutter as r1Rutter } from './sok-matvarden-logg-rutter.js';
+import * as vitalparametrar from './vitalparametrar.js';
+import * as sakerhetslogg from './sakerhetslogg.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -364,6 +368,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       nodatkomst: Boolean(val.nodatkomst), samtyckeSparr: Boolean(val.samtycke_sparr), visad,
       listning: listning ? { enhet: enhetKort(db, listning.enhet_id), fran: listning.fran } : null,
       uppmarksamhet: uppmarksamhet.forHuvud(atk),
+      // Runda 6, r1: basfakta som ett och samma objekt i huvudet och i GET /api/patient/:id/basfakta (Sussa 3.1.6).
+      basfakta: vitalparametrar.basfakta(atk, p),
       ...identitetIHuvud(c, p),
       ...utdata.huvud(db, p),
     };
@@ -486,7 +492,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const ve = vardenhetFor(db, c.personal.enhet_id);
     atk.logga('sok', atk.grund(), `sok:${fraga} (${rader.length} träffar)`);
     return rader.map(p => ({ id: p.id, namn: visningsnamn(p), personnummer: visningsPnr(p), alder: alder(p.fodd, idag()), kon: p.kon, skyddad: Boolean(p.skyddad), vardrelation: harVardrelation(db, p.id, ve),
-      identitetstyp: p.id_typ ?? 'personnummer', typText: identitet.TYPER[p.id_typ ?? 'personnummer'].text, traffPa: traffar.get(p.id) ?? null }));
+      identitetstyp: p.id_typ ?? 'personnummer', typText: identitet.TYPER[p.id_typ ?? 'personnummer'].text, traffPa: traffar.get(p.id) ?? null,
+      // Runda 6, r1: uppmärksamhetssymbolen med samma regler som i patienthuvudet (Sussa 3.1.5.2).
+      uppmarksamhet: uppmarksamhet.symbolFor(db, c.personal, p.id, valFor(c.s, p.id)) }));
   }
 
   function vantrum(c) {
@@ -914,7 +922,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     return medPatient(c, r.patient_id, 'skriv_journal', (atk) => uppmarksamhet.avsluta(atk, r, c.body));
   });
 
-  rutt('GET', '/api/patient/:id/matvarden', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_matvarden', (atk) => journal.listaMatvarden(atk)); });
+  // Runda 6, r1: listan med kurvorna och NEWS2 i samma anrop (vitalparametrar.js).
+  rutt('GET', '/api/patient/:id/matvarden', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_matvarden', (atk, p) => vitalparametrar.matvardesvy(atk, p)); });
   rutt('POST', '/api/patient/:id/matvarden', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'registrera_matvarde', (atk) => vardkontakt.knyt(atk, 'matvarden', journal.registreraMatvarde(atk, c.body), c.body))]; });
 
   rutt('GET', '/api/patient/:id/remisser', (c, id) => {
@@ -1037,7 +1046,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('GET', '/api/inkorg', (c) => {
     const p = kravInloggad(c);
     const med = (x) => ({ ...x, patient: patientKort(patientRad(c.db, x.patientId)) });
-    return {
+    return medSymbol(c, {
       osigneradeAnteckningar: journal.osigneradeFor(c.db, p.id).map(med),
       okvitteradeSvar: kanRoll(p, 'kvittera_svar') ? remiss.okvitteradeSvar(c.db, p) : [],
       larm: p.yrke === 'logggranskare' ? [] : remiss.larmForEnhet(c.db, p),
@@ -1050,8 +1059,36 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       aterinsattningar: aterinsattningIInkorg(c),
       // Vårdhändelser som avbokades eftersom remissen avvisades, för den ordinerande läkaren (runda 5, r4).
       avbokadeVardhandelser: avbokadeIInkorg(c),
-    };
+      // NEWS2 eller ett enskilt värde som kräver åtgärd, för sjuksköterskan och läkaren (runda 6, r1).
+      news2Larm: news2IInkorg(c),
+    });
   });
+  // Runda 6, r1: NEWS2-larmen loggas på patienten en gång per session och mätomgång, som raderna om återinsättning.
+  function news2IInkorg(c) {
+    const loggade = (c.s.news2Loggad ??= new Set());
+    return vitalparametrar.larmForInkorg(c.db, c.personal, (pid) => valFor(c.s, pid)).map(r => {
+      const resurs = `inkorg:news2:${r.ankareId}`;
+      if (!loggade.has(resurs)) {
+        loggade.add(resurs);
+        const a = new Atkomst(c.db, c.personal, r.patientId, valFor(c.s, r.patientId), 'las_matvarden');
+        a.logga('las_matvarden', a.prova('las_matvarden').grund, resurs);
+      }
+      return { ...r, patient: patientKort(patientRad(c.db, r.patientId)) };
+    });
+  }
+  // Runda 6, r1: uppmärksamhetssymbolen på varje rad i inkorgen som har en patient (Sussa 3.1.5.2). Samma regler som i
+  // patienthuvudet: symbolen visas bara när den inloggade får läsa patientens översikt, annars är den tom.
+  function medSymbol(c, inkorg) {
+    for (const lista of Object.values(inkorg)) {
+      if (!Array.isArray(lista)) continue;
+      for (const r of lista) {
+        if (!r?.patient?.id) continue;
+        const symbol = uppmarksamhet.symbolFor(c.db, c.personal, r.patient.id, valFor(c.s, r.patient.id));
+        if (symbol) r.patient = { ...r.patient, uppmarksamhet: symbol };
+      }
+    }
+    return inkorg;
+  }
   // Återinsättning efter uppehåll (runda 5, r4). Behörigheten prövas i aterinsattning.js. Varje rad visar läkemedlet
   // för en patient och loggas därför på patienten, en gång per session och ordination, så att inkorgens uppdateringar
   // inte fyller loggen.
@@ -1305,6 +1342,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   const medMal = (rader) => rader.map(r => ({ ...r, inomMal: r.p95 <= MAL_P95 }));
   rutt('GET', '/api/drift', (c) => ({ startad, sandladar: sessioner.size, mal: { p95Ms: MAL_P95 }, server: medMal(serverMatning.sammanstall()), sandlada: c.s ? medMal(c.s.matning.sammanstall()) : [], ...utdata.drift(c.db) }));
   utdataRutter({ rutt, kravInloggad, medPatient, valFor, version: APPVERSION });
+  r1Rutter({ rutt, kravInloggad, medPatient, valFor });
 
   // Endpoints som inte behöver en sandlåda.
   const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/krav/sussa', '/api/drift', '/api/lasekopia/krypterad-logg']);
@@ -1387,6 +1425,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       } catch (e) {
         const arFhir = url.pathname.startsWith('/fhir');
         if (e instanceof Fel) {
+          c.felkod = e.kod;
           svar = arFhir
             ? new Response(JSON.stringify(fhir.utfall(e.status, e.kod, e.message)), { status: e.status, headers: { 'Content-Type': 'application/fhir+json; charset=utf-8', 'Cache-Control': 'no-store' } })
             : json({ fel: e.message, kod: e.kod, ...e.extra }, e.status, c.ny ? { 'Set-Cookie': kaka(c.sid) } : {});
@@ -1401,6 +1440,12 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       svar.headers.set('Server-Timing', `app;dur=${ms.toFixed(1)}`);
       // Okända sökvägar samlas i en nyckel så att mätningen inte växer med vad besökare hittar på.
       const nyckel = [404, 405].includes(svar.status) ? `${req.method} okänd` : normaliseraVag(req.method, url.pathname);
+      // Runda 6, r1: säkerhetshändelser i sandlådans säkerhetslogg (Sussa 5.3.1.12). Ett fel i loggningen stoppar aldrig svaret.
+      if (c.s) {
+        try {
+          sakerhetslogg.efterAnrop(c.s.db, { nyckel, status: svar.status, kod: c.felkod ?? null, fore: { personal: c.personal, invanare: c.invanare }, efter: inloggade(c.s) });
+        } catch (e) { console.error('Säkerhetsloggen:', e.message); }
+      }
       serverMatning.lagg(nyckel, ms);
       if (c.s) c.s.matning.lagg(nyckel, ms);
       return svar;

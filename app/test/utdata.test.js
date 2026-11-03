@@ -229,7 +229,9 @@ describe('Kontrasignering', () => {
     expect(las.data.post.id).toBe(id);
     expect(Object.keys(las.data).sort()).toEqual(['begard', 'begardAv', 'id', 'kommentar', 'kontrasignerad', 'mottagare', 'post', 'postId', 'status', 'typ']);
     const ik = (await k.get('/api/inkorg')).data.kontrasigneringar[0];
-    expect(Object.keys(ik.patient).sort()).toEqual(['id', 'namn', 'personnummer', 'skyddad']);
+    // Runda 6, r1: uppmärksamhetssymbolen visas i inkorgen bara när läkaren ändå får läsa patientens översikt, som här
+    // genom vårdrelationen på kardiologen (Sussa 3.1.5.2).
+    expect(Object.keys(ik.patient).sort()).toEqual(['id', 'namn', 'personnummer', 'skyddad', 'uppmarksamhet']);
   });
 
   test('spärrade uppgifter och andra vårdenheters uppgifter kan inte begäras kontrasignerade', async () => {

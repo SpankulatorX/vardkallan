@@ -365,7 +365,7 @@ describe('API', () => {
     const k = klient(app);
     await k.logga('lak-vc');
     const i = (await k.get('/api/inkorg')).data;
-    expect(Object.keys(i).sort()).toEqual(['aterinsattningar', 'aterlamnanden', 'avbokadeVardhandelser', 'delegeringarSomGarUt', 'dubbletter', 'kontrasigneringar', 'larm', 'nllAvvikelser', 'okvitteradeSvar', 'osigneradeAnteckningar']);
+    expect(Object.keys(i).sort()).toEqual(['aterinsattningar', 'aterlamnanden', 'avbokadeVardhandelser', 'delegeringarSomGarUt', 'dubbletter', 'kontrasigneringar', 'larm', 'news2Larm', 'nllAvvikelser', 'okvitteradeSvar', 'osigneradeAnteckningar']);
     expect(i.larm.map(l => `${l.patientId}:${l.typ}`).sort()).toEqual(['p06:svar_forsenat', 'p11:svar_ej_kvitterat']);
     expect(i.okvitteradeSvar.map(r => r.patientId)).toEqual(['p11']);
     expect(i.nllAvvikelser.map(a => a.patientId)).toEqual(['p10']);
@@ -379,12 +379,13 @@ describe('API', () => {
     const k = klient(app);
     await k.logga('lak-vc');
     const i = (await k.get('/api/inkorg')).data;
-    expect(i.nllAvvikelser[0].patient).toEqual({ id: 'p10', namn: 'Karl-Erik Brandt', personnummer: '19460113-6098', skyddad: false });
+    // Runda 6, r1: raden har också uppmärksamhetssymbolen, med samma regler som i patienthuvudet (Sussa 3.1.5.2).
+    expect(i.nllAvvikelser[0].patient).toEqual({ id: 'p10', namn: 'Karl-Erik Brandt', personnummer: '19460113-6098', skyddad: false, uppmarksamhet: expect.any(Object) });
     await k.logga('lak-akut');
     await k.post('/api/patient/p03/anteckningar', { typ: 'Akutanteckning', sokord: [{ sokord: 'Kontaktorsak', text: 'Buksmärta.' }] });
     const akut = (await k.get('/api/inkorg')).data;
     const utkast = akut.osigneradeAnteckningar.find(a => a.patientId === 'p03');
-    expect(utkast.patient).toEqual({ id: 'p03', namn: 'Skyddad identitet', personnummer: '19840416-****', skyddad: true });
+    expect(utkast.patient).toEqual({ id: 'p03', namn: 'Skyddad identitet', personnummer: '19840416-****', skyddad: true, uppmarksamhet: expect.any(Object) });
     expect(JSON.stringify(akut)).not.toContain('Engberg');
   });
 

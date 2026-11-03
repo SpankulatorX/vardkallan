@@ -1,6 +1,8 @@
 // Journalanteckningar med signering och rättelse, diagnoser, mätvärden, vårdkontakter och översikt.
 import { Fel, iso, idag, giltigtDatum, MATTYPER_ENHET } from './db.js';
 import { kanRoll, vardenhetFor } from './atkomst.js';
+// Skalor och poängmodeller (runda 6, r1): systemet räknar GCS och skriver texten för de kodade mätvärdena.
+import { ACVPU, tolkaGcs, gcsText, nrsText } from './skalor.js';
 
 // Mallar per anteckningstyp. Omvårdnadsanteckningen följer VIPS-sökorden.
 export const MALLAR = [
@@ -184,15 +186,34 @@ export const MATTYPER = {
   pef: { namn: 'PEF', min: 20, max: 1000 },
   troponin: { namn: 'Troponin T', min: 0, max: 100000 },
   tsh: { namn: 'TSH', min: 0, max: 200 },
+  // Runda 6, r1: medvetandegrad, syrgas, smärta och GCS (Sussa 3.1.3.5 och 3.1.3.9). Medvetandegraden anges med ACVPU,
+  // syrgas i liter per minut (0 är luft), smärta med NRS 0 till 10 och GCS som E, V och M, där systemet räknar summan.
+  medvetande: { namn: 'Medvetandegrad', format: 'acvpu' },
+  syrgas: { namn: 'Syrgas', min: 0, max: 15 },
+  smarta: { namn: 'Smärta (NRS)', min: 0, max: 10, heltal: true },
+  gcs: { namn: 'GCS', format: 'gcs' },
 };
 for (const [typ, m] of Object.entries(MATTYPER)) m.enhet = MATTYPER_ENHET[typ];
 
 export function matvardeUt(db, m) {
-  return {
+  const ut = {
     id: m.id, typ: m.typ, namn: MATTYPER[m.typ]?.namn ?? m.typ, varde: m.varde_num ?? m.varde, enhet: m.matt_enhet, tid: m.tid,
     vardenhet: { id: m.enhet_id, namn: enhetsnamn(db, m.enhet_id) }, registreradAv: personalKort(db, m.registrerad_av),
     kalla: m.kalla, kallaEtikett: kallaEtikett(m.kalla, m.tid),
   };
+  // Runda 6, r1: texten som systemet skriver för de kodade mätvärdena och skalorna.
+  const b = beskrivning(m);
+  if (b) ut.beskrivning = b;
+  return ut;
+}
+
+// Text för medvetandegrad, syrgas, smärta och GCS, så att ingen behöver tolka koden.
+export function beskrivning(m) {
+  if (m.typ === 'medvetande') return ACVPU[m.varde] ? `${m.varde}, ${ACVPU[m.varde].text.toLowerCase()}` : null;
+  if (m.typ === 'syrgas') return Number(m.varde_num ?? m.varde) > 0 ? `Syrgas ${String(m.varde_num ?? m.varde).replace('.', ',')} L/min` : 'Luft, ingen syrgas';
+  if (m.typ === 'smarta') return nrsText(Number(m.varde_num ?? m.varde));
+  if (m.typ === 'gcs') return gcsText(tolkaGcs(m.varde));
+  return null;
 }
 
 export function synligaMatvarden(atk) {
@@ -211,7 +232,16 @@ export function registreraMatvarde(atk, { typ, varde, enhet, tid }) {
   atk.krav('registrera_matvarde');
   if (enhet != null && enhet !== def.enhet) throw new Fel(400, `Fel enhet. ${def.namn} anges i ${def.enhet}.`, 'ogiltig', { falt: ['enhet'] });
   let text, num = null;
-  if (def.format === 'blodtryck') {
+  if (def.format === 'acvpu') {
+    const k = typeof varde === 'string' ? varde.trim().toUpperCase() : '';
+    if (!ACVPU[k]) throw new Fel(400, 'Medvetandegraden anges med A, C, V, P eller U: vaken, nytillkommen förvirring, reagerar på tilltal, reagerar på smärta eller reagerar inte.', 'ogiltig', { falt: ['varde'] });
+    text = k;
+  } else if (def.format === 'gcs') {
+    const g = tolkaGcs(typeof varde === 'object' && varde ? `E${varde.e}V${varde.v}M${varde.m}` : varde);
+    if (!g) throw new Fel(400, 'GCS anges med ögonöppning 1 till 4, verbalt svar 1 till 5 och motoriskt svar 1 till 6, till exempel E4V5M6.', 'ogiltig', { falt: ['varde'] });
+    text = `E${g.e}V${g.v}M${g.m}`;
+    num = g.summa;
+  } else if (def.format === 'blodtryck') {
     const m = typeof varde === 'string' && varde.trim().match(/^(\d{2,3})\/(\d{2,3})$/);
     if (!m || Number(m[1]) <= Number(m[2]) || Number(m[1]) > 300) throw new Fel(400, 'Blodtryck anges som systoliskt/diastoliskt, till exempel 120/80.', 'ogiltig', { falt: ['varde'] });
     text = `${Number(m[1])}/${Number(m[2])}`;
@@ -220,6 +250,7 @@ export function registreraMatvarde(atk, { typ, varde, enhet, tid }) {
     if (typeof num !== 'number' || !Number.isFinite(num) || num < def.min || num > def.max) {
       throw new Fel(400, `${def.namn} måste vara ett tal mellan ${def.min} och ${def.max}.`, 'ogiltig', { falt: ['varde'] });
     }
+    if (def.heltal && !Number.isInteger(num)) throw new Fel(400, `${def.namn} anges som ett heltal mellan ${def.min} och ${def.max}.`, 'ogiltig', { falt: ['varde'] });
     text = String(num);
   }
   let t = iso();

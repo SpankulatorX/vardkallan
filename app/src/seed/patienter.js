@@ -102,6 +102,15 @@ export const PATIENTER = [
       ['inr', 'uso-kard-72', [[[-1, '06:30'], 2.6], [[0, '06:30'], 2.4, { ejVidimerad: true }]]],
       ['kreatinin', 'uso-kard-72', [[[-1, '06:30'], 118]]],
       ['kalium', 'uso-kard-72', [[[-1, '06:30'], 3.9]]],
+      // Runda 6, r1: hela NEWS2-omgångar, så att systemet kan räkna NEWS2 på akuten och varje morgon på avdelningen.
+      ['temp', 'uso-akut', [[[-3, '08:10'], 37.4]]],
+      ['medvetande', 'uso-akut', [[[-3, '08:10'], 'A']]],
+      ['syrgas', 'uso-akut', [[[-3, '08:10'], 0]]],
+      ['andningsfrekvens', 'uso-kard-72', [[[-2, '08:00'], 22], [[-1, '08:00'], 18], [[0, '08:00'], 16]]],
+      ['syrgas', 'uso-kard-72', [[[-2, '08:00'], 1], [[-1, '08:00'], 0], [[0, '08:00'], 0]]],
+      ['temp', 'uso-kard-72', [[[-2, '08:00'], 37.6], [[-1, '08:00'], 37.3], [[0, '08:00'], 37.0]]],
+      ['medvetande', 'uso-kard-72', [[[-2, '08:00'], 'A'], [[-1, '08:00'], 'A'], [[0, '08:00'], 'A']]],
+      ['smarta', 'uso-kard-72', [[[-2, '08:00'], 3], [[-1, '08:00'], 2], [[0, '08:00'], 0]]],
     ],
     ordinationer: [
       { lm: 'VK-NPL-0001', dosering: 'Enligt doseringsschema, styrs av INR', typ: 'staende', orsak: 'Förmaksflimmer, strokeprofylax', uppfoljning: 4, start: '2014-03-18', enhet: 'uso-med', av: 'lak-vas', kalla: 'migrerad:VAS' },
@@ -162,6 +171,8 @@ export const PATIENTER = [
     ],
     matvarden: [
       ['glukos', 'uso-akut', [[[-700, '03:10'], 6.8]]],
+      // Runda 6, r1: medvetandet bedömt med GCS vid ankomsten. Systemet räknar summan, 7 poäng.
+      ['gcs', 'uso-akut', [[[-700, '03:10'], 'E1V2M4']]],
       ['hba1c', 'lind-med', [[[-300, '08:30'], 68], [[-120, '12:30'], 64]]],
       ['vikt', 'lind-med', [[[-300, '09:00'], 79.5], [[-120, '13:00'], 80.1]]],
       ['blodtryck', 'vc-kumla', [[[-45, '10:25'], '132/84']]],
@@ -379,7 +390,8 @@ export const PATIENTER = [
       } },
     ],
     matvarden: [
-      ['egfr', 'vc-tybble', [[[-400, '08:30'], 48], [[-200, '08:30'], 41], [[-90, '08:30'], 33], [[-7, '08:30'], 27]]],
+      // eGFR räknas av systemet ur kreatininet vid samma provtagning med CKD-EPI 2021 (schema-runda6-r1.js).
+      ['egfr', 'vc-tybble', [[[-400, '08:30'], 'ckd-epi'], [[-200, '08:30'], 'ckd-epi'], [[-90, '08:30'], 'ckd-epi'], [[-7, '08:30'], 'ckd-epi']]],
       ['kreatinin', 'vc-tybble', [[[-400, '08:30'], 98], [[-200, '08:30'], 112], [[-90, '08:30'], 135], [[-7, '08:30'], 158]]],
       ['hba1c', 'vc-tybble', [[[-400, '08:30'], 58], [[-90, '08:30'], 61]]],
       ['kalium', 'vc-tybble', [[[-7, '08:30'], 4.8]]],
