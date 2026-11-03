@@ -3,11 +3,13 @@
 import { esc, api, ikon, ApiFel, vyRubrik } from '../ui.js';
 import { S } from '../app.js';
 import * as delar from './min-delar.js';
+import * as tider from './min-tider.js';
 
 export const namn = 'min';
 
 const FLIKAR = [
   ['oversikt', 'Översikt', delar.oversikt],
+  ['tider', 'Tider', tider.visa],
   ['anteckningar', 'Anteckningar', delar.anteckningar],
   ['diagnoser', 'Diagnoser', delar.diagnoser],
   ['lakemedel', 'Läkemedel', delar.lakemedel],

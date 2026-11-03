@@ -259,6 +259,8 @@ export const ikon = {
   nyckel: P('<circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.8-9.8M17 5.8l3 3M14.2 8.6l2 2"/>'),
   person: P('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
   piller: P('<rect x="2.5" y="8.5" width="19" height="7" rx="3.5" transform="rotate(-35 12 12)"/><path d="m9.1 7.9 5.8 8.2"/>'),
+  kalender: P('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h2M8 17h2M14 14h2"/>'),
+  ko: P('<circle cx="6" cy="7" r="2.5"/><circle cx="12" cy="7" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M3 17a3 3 0 0 1 6 0M9 17a3 3 0 0 1 6 0M15 17a3 3 0 0 1 6 0"/>'),
 };
 
 // Etikett för poster som migrerats från VAS eller Cosmic. Samma vikt som annat, bara märkt.

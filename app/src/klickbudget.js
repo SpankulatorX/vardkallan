@@ -117,4 +117,26 @@ export const FLODEN = [
     id: 'kontrasignera', namn: 'Kontrasignera en anteckning', roll: 'lak-kard', start: 'Arbetslistan efter inloggning', budget: 3,
     motivering: 'Sussa 3.1.11.3. Ett klick till inkorgen, ett på begäran, som öppnar anteckningen i sin helhet, och ett på Kontrasignera. Anteckningen ska läsas före kontrasigneringen, så knappen ligger inte direkt i inkorgen.',
   },
+  // Tidbok, väntelista, kallelser och incheckning (Sussa 3.4.1 till 3.4.4). Systemet föreslår tiderna och skriver
+  // kallelserna, så ingen behöver leta i en kalender.
+  {
+    id: 'boka-remiss', namn: 'Boka tid för en remiss', roll: 'adm-kard', start: 'Vårdadministratörens startsida', budget: 2,
+    motivering: 'Ett klick på Boka tid vid remissen och ett på den tid som systemet föreslår först. Tidstyp, yrkesroll, gränsen mot vårdgarantin och tidigare vårdgivare har systemet redan tagit hänsyn till, och kallelsen går ut av sig själv.',
+  },
+  {
+    id: 'checka-in', namn: 'Checka in en patient', roll: 'adm-kard', start: 'Vårdadministratörens startsida', budget: 1,
+    motivering: 'Ett klick på Checka in i raden för patienten. Ankomsten registreras på den planerade vårdkontakten och avgiften visas, räknad av systemet.',
+  },
+  {
+    id: 'gruppkallelse', namn: 'Skicka en gruppkallelse', roll: 'adm-kard', start: 'Vårdadministratörens startsida', budget: 3,
+    motivering: 'Ett klick på Skicka kallelser för gruppträffen och ett för att bekräfta. Systemet har skrivit kallelserna och väljer kanal för varje deltagare. Ett klick räknas med för att granska en kallelse.',
+  },
+  {
+    id: 'omboka', namn: 'Boka om en tid', roll: 'adm-kard', start: 'Översikten för en patient med bokad tid', budget: 2,
+    motivering: 'Ett klick på Boka om och ett på den tid som systemet föreslår. Samma tidstyp och samma vårdgivare kommer först, och patienten får en ny kallelse utan att någon ber om det.',
+  },
+  {
+    id: 'egen-ombokning', namn: 'Patienten bokar om sin tid i Min journal', roll: 'inv-p14', start: 'Min journal för en patient med bokad tid', budget: 3,
+    motivering: 'Ett klick på fliken Tider, ett på Boka om och ett på den föreslagna tiden. Systemet visar bara tider av samma typ, minst 24 timmar fram, och skickar den nya kallelsen.',
+  },
 ];

@@ -359,6 +359,8 @@ export function byggSeed(bas = nu()) {
   seedaUppmarksamhet(db, { datum: (n) => tid(n), datumTid: (d) => tid(d) });
   seedaIdentiteter(db, tid);
   seedaUtdata(db, { tid });
+  // Tidbok, väntelista och kallelser (tidbok.js). Laddas när mallen byggs, eftersom tidbok.js bygger på vardkontakt.js.
+  require('./tidbok.js').seedaTidbok(db, { bas });
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -428,6 +430,8 @@ export function migrera(db) {
     knytHistorik(db, { bas: seedTid ? new Date(seedTid) : nu() });
   }
   sakraUtdataschema(db);
+  // En sandlåda från före tidboken får den, relativt till i dag.
+  require('./tidbok.js').sakraTidbok(db);
   return db;
 }
 
@@ -453,6 +457,8 @@ export function mallen() {
 export function nySessionsDb() {
   const db = Database.deserialize(mallen());
   db.exec('PRAGMA foreign_keys = OFF');
+  // Dagens patienter i tidboken flyttas till tider kring nu, så att någon alltid väntas (tidbok.js).
+  require('./tidbok.js').anpassaTillNu(db);
   return db;
 }
 

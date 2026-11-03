@@ -82,7 +82,7 @@ describe('Seed', () => {
     expect(d.query("SELECT varde FROM installningar WHERE nyckel = 'seed_datum'").get().varde).toBe('2027-03-15');
     // Inget i dagens mall ligger i framtiden utom planerade datum.
     const nu = new Date().toISOString();
-    for (const t of ['SELECT start AS t FROM vardkontakter', 'SELECT skapad AS t FROM anteckningar', 'SELECT tid AS t FROM matvarden', 'SELECT skickad_tid AS t FROM remisser']) {
+    for (const t of ['SELECT start AS t FROM vardkontakter WHERE coalesce(planerad, 0) = 0', 'SELECT skapad AS t FROM anteckningar', 'SELECT tid AS t FROM matvarden', 'SELECT skickad_tid AS t FROM remisser']) {
       for (const r of db.query(t).all()) expect(r.t <= nu).toBe(true);
     }
     expect(db.query("SELECT varde FROM installningar WHERE nyckel = 'seed_datum'").get().varde).toBe(idag());

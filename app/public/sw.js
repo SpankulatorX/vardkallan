@@ -21,6 +21,7 @@ const FILER = [
   '/js/vyer/patient-remisser.js', '/js/vyer/patient-vardkontakt.js', '/js/vyer/patient.js', '/js/vyer/remisser.js', '/js/vyer/sok.js', '/js/vyer/vantrum.js',
   '/js/vyer/administrering.js',
   '/js/utskrift.js', '/js/kontrasignering.js', '/js/vyer/patient-utlamnat.js', '/js/vyer/arkiv.js', '/js/vyer/datauttag.js',
+  '/js/tidbok-ui.js', '/js/vyer/idag.js', '/js/vyer/tidbok.js', '/js/vyer/vantelista.js', '/js/vyer/incheckning.js', '/js/vyer/patient-tider.js', '/js/vyer/min-tider.js',
 ];
 const TIDSGRANS_MS = 4000;
 

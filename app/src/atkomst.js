@@ -35,6 +35,9 @@ ROLLER.underskoterska.push('skriv_ut');
 ROLLER.vardadministrator.push('skriv_ut', 'utlamna');
 ROLLER.arkivarie = ['registrera_arkivbeslut', 'arkivera', 'gallra'];
 ROLLER.uppfoljning = ['datauttag'];
+// Tidbok, väntelista, kallelser och incheckning (tidbok.js, Sussa 3.4.1 till 3.4.4). Vårdadministratören bokar, kallar,
+// checkar in och hanterar väntelistan, med vårdrelation eller remiss till vårdenheten som grund.
+ROLLER.vardadministrator.push('boka', 'kalla', 'checka_in', 'vantelista');
 
 export const HANDLINGAR = {
   las_oversikt: 'läsa patientöversikten', las_journal: 'läsa journalanteckningar', las_omvardnad: 'läsa omvårdnadsanteckningar',
@@ -52,6 +55,7 @@ export const HANDLINGAR = {
   begara_kontrasignering: 'begära kontrasignering', kontrasignera: 'kontrasignera journalinformation',
   registrera_arkivbeslut: 'registrera beslut om arkivering, gallring och radering', arkivera: 'exportera till e-arkiv',
   gallra: 'gallra och radera efter beslut', datauttag: 'hämta datauttaget för uppföljning',
+  boka: 'boka, boka om och avboka tider', kalla: 'skicka kallelser', checka_in: 'checka in patienter och ta betalt', vantelista: 'hantera väntelistan och bevakningar',
 };
 
 // Handlingar som inte rör en enskild patient.

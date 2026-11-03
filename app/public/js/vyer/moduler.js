@@ -10,6 +10,7 @@ const FINNS = [
   ['Remiss och svar', 'Remisser inom regionen med mottagningskvittens, bedömning, svar och kvittens av svaret, och larm när ett steg uteblir. Inte e-remiss mellan vårdgivare.', '#/remisser'],
   ['Mätvärden', 'Vitalparametrar och labbvärden med trend per typ och registrering av nya värden.', null],
   ['Behörighet och logg', 'Vårdrelation, inre sekretess med aktivt val, spärr med samtycke, nödåtkomst, skyddade personuppgifter och en logg som inte går att ändra, med logguppföljning.', '#/logg'],
+  ['Tidbok, väntelista och kallelser', 'Vårdadministratörens dagliga arbete i ordning, tidbok per mottagning och vårdgivare, väntelista med gräns mot vårdgarantin, förslag på tider så att bokning är ett klick, kallelser och påminnelser som systemet skriver och skickar själv, incheckning i Min journal och på en skärm i väntrummet, och patientavgift med simulerad betalning. Egenbokning i Min journal. Sms, brev och betalning är simulerade, och avgifterna och vårdgarantin är demoregler.', null],
   ['Väntrum med könummer', 'Uppropning med könummer för alla patienter. Namnet på en skyddad patient lämnar aldrig servern.', '#/vantrum'],
   ['Min journal för patienten', 'Invånarens egen e-tjänst med simulerad e-legitimation: anteckningar, diagnoser, läkemedel, provsvar och remisser efter vårdgivarens visningsregler, och vem som har läst journalen, med vårdenhet, yrkesroll, tid och grund. Spärr och loggutdrag begärs hos vården. Vårdnadshavare läser barnets journal till 13 år.', '#/?vy=patient'],
   ['Öppet FHIR-API', 'FHIR R4 för läsning av alla resurser, med samma behörighet och loggning som gränssnittet. Inte validerat mot HL7 Swedens basprofiler.', '#/api'],
@@ -17,7 +18,7 @@ const FINNS = [
 ];
 
 const PLANERAT = [
-  ['Tidbok och patientadministration', 'Bokning, kallelser, kassa och patientavgifter, vårdtillfällen och inskrivning.'],
+  ['Kassa och resursbokning', 'Kassaredovisning, återbetalning, LMA-kort och avgifter för hjälpmedel, recept och intyg, och bokning av lokaler, utrustning och transporter.'],
   ['Samordnad vårdplanering med kommunen', 'Planering vid utskrivning från sluten vård och informationsutbyte med kommunernas vård och omsorg.'],
   ['Operation, anestesi och intensivvård', 'Operationsplanering, anestesijournal och övervakning inom intensivvården.'],
   ['Cytostatika', 'Behandlingsregimer, ordination och beredning av cytostatika.'],

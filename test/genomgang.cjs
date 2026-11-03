@@ -95,7 +95,7 @@ async function loggaInPatient(page, id) {
   await page.waitForSelector('[data-a="loggaut"]');
   await vantaVy(page);
 }
-const MIN_FLIKAR = ['Översikt', 'Anteckningar', 'Diagnoser', 'Läkemedel', 'Provsvar', 'Remisser', 'Vem har läst', 'Spärrar'];
+const MIN_FLIKAR = ['Översikt', 'Tider', 'Anteckningar', 'Diagnoser', 'Läkemedel', 'Provsvar', 'Remisser', 'Vem har läst', 'Spärrar'];
 async function minFlik(page, text) {
   await page.click(`.min-flikar a:text-is("${text}")`);
   await page.waitForLoadState('networkidle');
@@ -133,6 +133,8 @@ const MENY = {
   klinisk: ['Arbetslista', 'Sök patient', 'Inkorg', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   sjukskoterska: ['Arbetslista', 'Sök patient', 'Inkorg', 'Läkemedel att ge', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   utanRemiss: ['Arbetslista', 'Sök patient', 'Inkorg', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  // Vårdadministratören har tidboken först: dagens arbete, tidbok och väntelista (Sussa 3.4.1 till 3.4.4).
+  vardadministrator: ['Dagens arbete', 'Tidbok', 'Väntelista', 'Arbetslista', 'Sök patient', 'Inkorg', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   logg: ['Sök patient', 'Logguppföljning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   arkiv: ['E-arkiv och gallring', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   uppfoljning: ['Datauttag', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
@@ -447,7 +449,7 @@ const MENY = {
       await forvanta(page, '.notis', 'kvitterad som mottagen');
       await page.locator(`#remiss-${remissId} .steg-klar`, { hasText: 'Mottagen' }).waitFor();
     });
-    await allaVyer(page, 'Karin Berg', MENY.klinisk);
+    await allaVyer(page, 'Karin Berg', MENY.vardadministrator);
     await s('Karin Berg: översikten visar administrativa uppgifter, ingen journaltext och inga läkemedel', async () => {
       await gaTill(page, '#/patient/p01');
       await forvanta(page, '.ruta-info', 'Journaltext, diagnoser och läkemedel visas inte');
@@ -465,6 +467,87 @@ const MENY = {
       await forvanta(page, '.dubblett', 'Personnummer 19650509-2962');
       await forvanta(page, '.dubblett', 'Journalen med personnummer blir kvar');
       await bild(page, '63-dubblett', true);
+    });
+    // Tidboken (Sussa 3.4.1 till 3.4.4): Karin Berg börjar dagen på Dagens arbete, där systemet har ordnat allt.
+    await s('Karin Berg: dagens arbete visar dagens patienter, remisser, väntelistan, kallelser och bevakningar med en åtgärd per rad', async () => {
+      await gaTill(page, '#/idag');
+      await forvanta(page, 'main h1', 'Dagens arbete');
+      await forvanta(page, '#idag-dagens tr', 'Leo Bergström');
+      await forvanta(page, '#idag-dagens tr', 'Avgiftsfritt');
+      await forvanta(page, '#idag-dagens tr', 'minuter sen');
+      await forvanta(page, '#idag-remisser tr', 'Karl-Erik Brandt');
+      await forvanta(page, '#idag-vantelista tr', 'dagar kvar');
+      await forvanta(page, '#idag-kallelser', 'Hjärtskola');
+      await forvanta(page, '#idag-bevakningar', 'tidigare tid blir ledig');
+      for (const rad of await page.locator('#idag-dagens tbody tr, #idag-remisser tbody tr').all()) {
+        const n = await rad.locator('[data-atgard]').count();
+        if (n > 1) throw new Error('en rad har mer än en åtgärd');
+      }
+      await bild(page, '64-dagens-arbete', true);
+    });
+    await s('Karin Berg bokar tid för Karl-Erik Brandts remiss bland systemets förslag', async () => {
+      await page.locator('#idag-remisser tr', { hasText: 'Karl-Erik Brandt' }).locator('[data-atgard="boka"]').click();
+      await forvanta(page, 'dialog[open] .forslag-knapp', 'Den tidigaste lediga tiden');
+      await bild(page, '65-forslag-pa-tider');
+      await page.locator('dialog[open] .forslag-knapp').first().click();
+      await forvanta(page, '.notis', 'Karl-Erik Brandt har fått en tid');
+      await forvanta(page, '#idag-remisser', 'Alla accepterade remisser har fått tid');
+    });
+    await s('Ahmed Hassan checkar in på skärmen i väntrummet, som aldrig visar namn', async () => {
+      await gaTill(page, '#/incheckning');
+      await page.fill('#skarm-pnr', '19901117-2476');
+      await page.click('#skarm-form [type="submit"]');
+      await forvanta(page, '#skarm-svar', 'Du är incheckad');
+      await forvanta(page, '#skarm-svar', 'Avgiften är 200 kronor');
+      await saknas(page, 'Ahmed');
+      await saknas(page, 'Hassan');
+      await bild(page, '66-incheckningsskarm', true);
+      await page.fill('#skarm-pnr', '19121212-1212');
+      await page.click('#skarm-form [type="submit"]');
+      await forvanta(page, '#skarm-svar', 'Vi hittar ingen tid');
+    });
+    await s('Karin Berg tar betalt för Ahmed Hassan och checkar in David Nordin med ett klick', async () => {
+      await gaTill(page, '#/idag');
+      await page.locator('#idag-dagens tr', { hasText: 'Ahmed Hassan' }).locator('[data-atgard="betala"]').click();
+      await forvanta(page, 'dialog[open]', 'simulerad');
+      await page.click('dialog[open] [data-varde="kort"]');
+      await forvanta(page, '.notis', 'är betalt med kort');
+      await page.locator('#idag-dagens tr', { hasText: 'David Nordin' }).locator('[data-atgard="checka_in"]').click();
+      await forvanta(page, '.notis', 'David Nordin är incheckad');
+    });
+    await s('Karin Berg skickar kallelserna till Hjärtskolan', async () => {
+      await page.locator('#idag-kallelser [data-atgard="kalla_grupp"]').click();
+      await forvanta(page, 'dialog[open] .kallelse-text', 'Hej (patientens förnamn)');
+      await bild(page, '67-gruppkallelse');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', '3 kallelser är skickade');
+    });
+    await s('Karin Berg ändrar prioritet på väntelistan med en orsak', async () => {
+      await gaTill(page, '#/vantelista');
+      await forvanta(page, 'main', 'Vårdgarantin');
+      await page.locator('tr', { hasText: 'Elin Sandberg' }).locator('[data-vl="prio"]').click();
+      await page.locator('dialog[open] [data-grupp="orsak"] button').first().click();
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', 'Prioriteten för Elin Sandberg är hög');
+      await bild(page, '68-vantelista', true);
+    });
+    await s('Karin Berg: tidboken per vårdgivare, också utan namn', async () => {
+      await gaTill(page, '#/tidbok');
+      await forvanta(page, '.tb-schema', 'Lina Persson');
+      await forvanta(page, '.tb-schema', 'David Nordin');
+      await bild(page, '69-tidbok', true);
+      await page.click('a:text-is("Visa utan namn")');
+      await page.waitForSelector('.ruta-info:has-text("utan patientuppgifter")');
+      await saknas(page, 'Nordin');
+    });
+    await s('Karin Berg bokar om en tid från patientens översikt, och patienten får en ny kallelse', async () => {
+      await gaTill(page, '#/patient/p10');
+      await forvanta(page, '.ov-tider', 'Nybesök');
+      await page.locator('.ov-tider [data-tider="omboka"]').first().click();
+      await page.locator('dialog[open] .forslag-knapp').first().click();
+      await forvanta(page, '.notis', 'Tiden är ombokad till');
+      await page.locator('.ov-tider details summary').first().click();
+      await forvanta(page, '.ov-tider .kallelse', 'Din tid är ändrad');
     });
     await s('Sara Lindqvist accepterar och besvarar remissen', async () => {
       await loggaIn(page, 'lak-kard');
@@ -719,6 +802,24 @@ const MENY = {
       if (await page.locator('#min-sparrform').count()) throw new Error('vårdnadshavaren kan begära spärr');
     });
 
+    await s('Mikael Svensson ser sin tid och kallelsen under Tider i Min journal och bokar om den själv', async () => {
+      await loggaInPatient(page, 'inv-p14');
+      await minFlik(page, 'Tider');
+      await forvanta(page, '.min-tider', 'Telefontid');
+      await page.locator('.min-tid details summary').first().click();
+      await forvanta(page, '.min-tid .kallelse-text', 'Du har fått en tid');
+      await page.locator('.min-tid [data-min="omboka"]').first().click();
+      await page.locator('dialog[open] .forslag-knapp').first().click();
+      await forvanta(page, '.notis', 'Din tid är ombokad till');
+      await bild(page, '70-min-tider', true);
+    });
+    await s('Malin Engberg har skyddade personuppgifter och får kallelser bara i Min journal', async () => {
+      await loggaInPatient(page, 'inv-p03');
+      await minFlik(page, 'Tider');
+      await forvanta(page, '.ruta-info', 'skyddade personuppgifter');
+      await forvanta(page, '.min-tider', 'Vårdcentralen Tybble');
+    });
+
     // Mats Wall, logggranskare
     await s('Mats Wall loggar in och landar i logguppföljningen med hel loggkedja', async () => {
       await loggaIn(page, 'logg');
@@ -857,7 +958,7 @@ const MENY = {
       await forvanta(page, 'main h1', 'Användartest');
       await forvanta(page, '.at-info', 'Alla patienter i demon är påhittade');
       await page.fill('#at-kod', 'G01');
-      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

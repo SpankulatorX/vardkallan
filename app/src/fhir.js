@@ -10,6 +10,8 @@ import { InvanareAtkomst, journaler, synligKedja, provsvarVisas, MAX_NEKADE } fr
 import { aktivaSparrar } from './atkomst.js';
 import { tillaggUt } from './ordinationsmallar.js';
 import { FHIR_SYSTEM as ID_SYSTEM, identiteterFor, delaOid, maskera, gallandeId, allaPatientIdn, hittaPaToken } from './identitet.js';
+// Tidboken: Schedule, Slot och Appointment (tidbok-fhir.js).
+import * as tidbokFhir from './tidbok-fhir.js';
 
 export const SYSTEM = {
   personnummer: 'http://electronichealth.se/identifier/personnummer',
@@ -391,7 +393,7 @@ export function capability(base) {
         ...(t === 'Patient' ? { operation: [{ name: 'everything', definition: 'http://hl7.org/fhir/OperationDefinition/Patient-everything' }] } : {}),
         searchParam: t === 'Patient' ? [{ name: '_id', type: 'token' }, { name: 'identifier', type: 'token' }]
           : ['Organization', 'Practitioner'].includes(t) ? [{ name: '_id', type: 'token' }] : [{ name: 'patient', type: 'reference' }],
-      })), ...DEFINITIONSTYPER.map(t => ({
+      })), ...tidbokFhir.capabilityResurser(), ...DEFINITIONSTYPER.map(t => ({
         type: t, interaction: [{ code: 'read' }, { code: 'search-type' }], searchParam: [{ name: 'url', type: 'uri' }, { name: '_id', type: 'token' }],
       }))],
     }],
@@ -431,6 +433,7 @@ export function hantera(ctx) {
     const sokt = url.searchParams.get('url') ?? url.searchParams.get('_id');
     return { status: 200, body: bundle(base, url, alla.filter(d => !sokt || d.url === sokt || d.id === sokt)) };
   }
+  if (tidbokFhir.TIDBOK_TYPER.includes(typ)) return tidbokFhir.hantera(ctx, delar, (resurser) => bundle(base, url, resurser));
   if (!personal && ctx.invanare) return hanteraInvanare(ctx, delar);
   if (!TYPER.includes(typ) || delar.length > 2) throw new Fel(404, 'Okänd FHIR-resurs.', 'saknas');
   if (!personal) throw new Fel(401, 'Logga in först.', 'ej_inloggad');
