@@ -4,6 +4,8 @@ import { createHash } from 'node:crypto';
 // egen_atkomst och vardnadshavare är invånarens läsning i Min journal. De är inte vårdens åtkomst och flaggas inte.
 // arkivbeslut är arkivariens export, gallring och radering efter ett registrerat beslut, och uppfoljning är datauttaget.
 export const GRUNDER = ['egen_enhet', 'vardrelation', 'aktivt_val', 'samtycke_sparr', 'nodatkomst', 'administrativ', 'logggranskning', 'nekad', 'egen_atkomst', 'vardnadshavare', 'arkivbeslut', 'uppfoljning'];
+// Runda 6, r3: kommunens part i samordnad planering (samordnad.js) har grunden samverkan.
+GRUNDER.push('samverkan');
 export const INVANARGRUNDER = ['egen_atkomst', 'vardnadshavare'];
 const NOLL = '0'.repeat(64);
 const FALT = ['id', 'tid', 'personal_id', 'enhet_id', 'patient_id', 'handling', 'resurs', 'grund', 'syfte', 'resultat'];

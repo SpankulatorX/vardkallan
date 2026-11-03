@@ -156,6 +156,7 @@ Meta CapsLock Fn Dead Process Unidentified Compose
 AES GCM AES-GCM HSLF FS HSLF-FS OSL VAS CE MDR EHDS GDPR DPIA METS FGS RIVTA SIP CSIP PREMIS ARK WHO IFCC KVÅ PK PCI NSAID MRSA
 CT USÖ SVT LMA FVIS JMIR VK DELETE CHECK ÅÅÅÅ MM DD NNNN ÅÅÅÅMMDD VKÅÅÅÅMMDD XXXXXXXX
 workern workerns Playwright Webcert Thomas Wall Wennberg Waran Warfarin Eliquis Brilique webb
+LPT LRV SPU HSL SoL IVO CarePlan
 `.trim().split(/\s+/));
 // Fraser med engelska ord som är namn på standarder, rubriker, parametrar och tekniska begrepp. Ett tomt värde i data
 // beskrivs som tomt, inte som null (beslut 2026-11-03).

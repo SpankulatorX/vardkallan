@@ -176,7 +176,7 @@ export function vardtillfalleEncounter(db, vt, synliga = null) {
 // forsta är starten på den första vårdkontakt i ärendet som användaren får se.
 export function episodeOfCare(db, h, forsta = db.query('SELECT min(start) AS s FROM vardkontakter WHERE halsoarende_id = ?').get(h.id)?.s) {
   return {
-    resourceType: 'EpisodeOfCare', id: String(h.id), meta: kallaMeta(h.kalla ?? 'vardkallan'), status: h.status === 'avslutat' ? 'finished' : 'active',
+    resourceType: 'EpisodeOfCare', id: String(h.id), meta: kallaMeta(h.kalla ?? 'vardkallan'), status: h.status === 'avslutat' || h.status === 'sammanslaget' ? 'finished' : 'active',
     type: [{ text: `Hälsoärende: ${h.rubrik}` }], patient: ref('Patient', h.patient_id),
     managingOrganization: ref('Organization', h.enhet_id, enhetsnamn(db, h.enhet_id)), period: { start: forsta && forsta < h.skapad ? forsta : h.skapad },
   };

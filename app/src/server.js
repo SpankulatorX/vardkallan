@@ -33,6 +33,8 @@ import { lasKlientresultat, gransnittHash } from './klientresultat.js';
 import { YRKEN } from './seed/personal.js';
 // Utskrift, kontrasignering, arkiv och datauttag (Sussa 3.1.9, 3.1.11.3, 5.4.2, 5.3.1.7 och 6.3.1).
 import { registreraRutter as utdataRutter, tillagg as utdata } from './utdata-rutter.js';
+// Runda 6, r3: vårdplaner, psykiatrisk tvångsvård, samordnad planering (SIP och SPU) och ändringar i hälsoärenden.
+import { registreraRutter as r3Rutter, tillagg as r3 } from './r3-rutter.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -329,6 +331,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ut.behorigheter = ROLLER[p.yrke] ?? [];
       // Undersköterskan har behörigheten att ge läkemedel bara med en giltig delegering i dag (runda 5).
       if (p.yrke === 'underskoterska' && !delegering.giltigNu(s.db, p).giltig) ut.behorigheter = ut.behorigheter.filter(h => h !== 'ge_lakemedel');
+      // Runda 6, r3: om personalen arbetar på en vårdenhet med psykiatrisk tvångsvård.
+      ut.r3 = r3.session(s.db, p);
       sakraKopia(s);
       ut.lasnyckel = s.lasnyckel;
     }
@@ -415,6 +419,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       vardstruktur,
       kontakt: { adress: p.skyddad ? null : p.adress, postnr: p.skyddad ? null : p.postnr, ort: p.skyddad ? null : p.ort, telefon: p.skyddad ? null : p.telefon, kontaktperson: p.skyddad ? null : p.kontaktperson },
       dolda: { kraverVal: atk.doldaVal, sparrade: atk.doldaSparr },
+      // Runda 6, r3: vårdplaner, tvångsvård, samordnad planering och förslag om hälsoärenden (r3-rutter.js).
+      r3: r3.oversikt(atk),
     };
   }
 
@@ -1050,6 +1056,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       aterinsattningar: aterinsattningIInkorg(c),
       // Vårdhändelser som avbokades eftersom remissen avvisades, för den ordinerande läkaren (runda 5, r4).
       avbokadeVardhandelser: avbokadeIInkorg(c),
+      // Runda 6, r3: vårdplaner att följa upp, tvångsvårdens frister och samordnad planering (r3-rutter.js).
+      ...r3.inkorg(c, { patientKort, patientRad }),
     };
   });
   // Återinsättning efter uppehåll (runda 5, r4). Behörigheten prövas i aterinsattning.js. Varje rad visar läkemedlet
@@ -1305,6 +1313,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   const medMal = (rader) => rader.map(r => ({ ...r, inomMal: r.p95 <= MAL_P95 }));
   rutt('GET', '/api/drift', (c) => ({ startad, sandladar: sessioner.size, mal: { p95Ms: MAL_P95 }, server: medMal(serverMatning.sammanstall()), sandlada: c.s ? medMal(c.s.matning.sammanstall()) : [], ...utdata.drift(c.db) }));
   utdataRutter({ rutt, kravInloggad, medPatient, valFor, version: APPVERSION });
+  // Runda 6, r3.
+  r3Rutter({ rutt, kravInloggad, medPatient, valFor });
 
   // Endpoints som inte behöver en sandlåda.
   const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/krav/sussa', '/api/drift', '/api/lasekopia/krypterad-logg']);

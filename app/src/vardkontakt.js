@@ -596,7 +596,8 @@ const halsoarendeUt = (atk, h) => ({
 });
 
 export function synligaHalsoarenden(atk) {
-  return atk.filtrera(atk.db.query('SELECT * FROM halsoarenden WHERE patient_id = ? ORDER BY skapad DESC').all(atk.patientId), 'las_admin');
+  // Ett ärende som har slagits ihop med ett annat (runda 6, halsoarende.js) visas inte längre.
+  return atk.filtrera(atk.db.query("SELECT * FROM halsoarenden WHERE patient_id = ? AND status <> 'sammanslaget' ORDER BY skapad DESC").all(atk.patientId), 'las_admin');
 }
 
 export function forslag(atk, kontakter, diagnoser) {

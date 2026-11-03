@@ -21,4 +21,7 @@ export const ENHETER = [
   { id: 'vc-tybble', hsa: 'SE2321000164-VK0410', namn: 'Vårdcentralen Tybble', typ: 'vardenhet', forald: 'primarvard' },
   { id: 'vc-kumla', hsa: 'SE2321000164-VK0420', namn: 'Vårdcentralen Kumla', typ: 'vardenhet', forald: 'primarvard' },
   { id: 'rk', hsa: 'SE2321000164-VK0900', namn: 'Regionkansliet', typ: 'forvaltning', forald: 'rol' },
+  // Runda 6, r3: kommunen i samordnad planering (SIP och SPU) är en simulerad part med påhittat id. Den hör inte till
+  // vårdgivaren och har ingen journalåtkomst.
+  { id: 'kommun-demo', hsa: 'DEMO-KOMMUN-0001', namn: 'Kommunen, socialtjänst och kommunal hälso- och sjukvård (simulerad)', kortnamn: 'Kommunen (simulerad)', typ: 'kommun', forald: null },
 ];

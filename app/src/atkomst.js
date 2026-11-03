@@ -75,6 +75,24 @@ UTAN_PATIENT.add('delegera');
 // uppföljningsrollen på sitt uppdrag. Ingen av dem får läsa journalen.
 const GRUND_UTAN_PATIENT = { logggranskare: 'logggranskning', arkivarie: 'arkivbeslut', uppfoljning: 'uppfoljning' };
 const RELATION_DAGAR = 90;
+// Runda 6, r3: vårdplaner (vardplan.js), psykiatrisk tvångsvård (tvangsvard.js), samordnad planering (samordnad.js) och
+// ändringar i hälsoärenden (halsoarende.js). Läkare och sjuksköterskor upprättar och följer upp vårdplaner, och
+// undersköterskan registrerar sina egna åtgärder. Bara läkare registrerar vårdintyg, beslut och tvångsåtgärder, och
+// tvangsvard.js prövar dessutom vilken läkare lagen kräver. Kommunens personal (simulerad part) har ingen journalåtkomst
+// alls: samordnad.js lämnar bara ut det som har skickats till kommunen i en samordnad planering.
+HANDLINGAR.las_vardplan = 'läsa vårdplaner';
+HANDLINGAR.vardplan = 'upprätta, ändra och följa upp vårdplaner';
+HANDLINGAR.vardplan_atgard = 'registrera utförda åtgärder i vårdplaner';
+HANDLINGAR.las_tvangsvard = 'läsa uppgifter om psykiatrisk tvångsvård';
+HANDLINGAR.tvangsvard = 'registrera vårdintyg, beslut och tvångsåtgärder enligt LPT och LRV';
+HANDLINGAR.samordna = 'upprätta samordnad individuell plan och samordnad planering vid utskrivning';
+HANDLINGAR.samverkan = 'ta del av samordnad planering som kommunens part';
+ROLLER.lakare.push('las_vardplan', 'vardplan', 'vardplan_atgard', 'las_tvangsvard', 'tvangsvard', 'samordna');
+ROLLER.sjukskoterska.push('las_vardplan', 'vardplan', 'vardplan_atgard', 'las_tvangsvard', 'samordna');
+ROLLER.underskoterska.push('las_vardplan', 'vardplan_atgard', 'las_tvangsvard');
+ROLLER.kommun = ['samverkan'];
+UTAN_PATIENT.add('samverkan');
+GRUND_UTAN_PATIENT.kommun = 'samverkan';
 
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
 

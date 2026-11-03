@@ -9,6 +9,8 @@ export const YRKEN = {
   // Arkiv och uppföljning (Sussa 5.4.2, 5.3.1.7 och 6.3.1). Egna roller, som inte läser journalen.
   arkivarie: 'Arkivarie',
   uppfoljning: 'Analytiker (uppföljning)',
+  // Runda 6, r3: kommunens personal i samordnad planering. Kommunen är en simulerad part i demon.
+  kommun: 'Kommunens personal (simulerad)',
 };
 
 export const PERSONAL = [
@@ -42,4 +44,7 @@ export const PERSONAL = [
   // Kontrasignering (Sussa 3.1.11.3): en underläkare som ber om kontrasignering och en överläkare som systemet föreslår.
   { id: 'ul-kard', namn: 'Alva Berglund', yrke: 'lakare', titel: 'Underläkare', enhet: 'uso-kard' },
   { id: 'ol-kard', namn: 'Göran Malm', yrke: 'lakare', titel: 'Överläkare', enhet: 'uso-kard' },
+  // Runda 6, r3: kommunens biståndshandläggare i samordnad planering, en simulerad part (enheten kommun-demo läggs in av
+  // samordnad.js). Sist i listan, så att de andras HSA-id inte ändras.
+  { id: 'kom-bist', namn: 'Lisa Ahlgren', yrke: 'kommun', titel: 'Biståndshandläggare (simulerad kommun)', enhet: 'kommun-demo', demo: true },
 ];

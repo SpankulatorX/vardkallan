@@ -103,6 +103,8 @@ describe('Seed', () => {
       ['logg', 'Mats Wall', 'logggranskare', 'rk'],
       ['ark', 'Ingela Nord', 'arkivarie', 'rk'],
       ['uppf', 'Daniel Sund', 'uppfoljning', 'rk'],
+      // Runda 6, r3: kommunens part i samordnad planering, en simulerad kommun.
+      ['kom-bist', 'Lisa Ahlgren', 'kommun', 'kommun-demo'],
     ]);
   });
 
