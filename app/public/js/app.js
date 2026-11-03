@@ -18,6 +18,8 @@ import * as drift from './vyer/drift.js';
 import * as anvandartest from './anvandartest.js';
 import * as minJournal from './vyer/min.js';
 import * as administrering from './vyer/administrering.js';
+import * as arkiv from './vyer/arkiv.js';
+import * as datauttag from './vyer/datauttag.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -27,18 +29,22 @@ export const far = (handling) => Boolean(S.session?.behorigheter?.includes(handl
 export const arPersonal = () => Boolean(S.session?.inloggad && S.session.personal);
 export const arInvanare = () => Boolean(S.session?.inloggad && S.session.roll === 'invanare');
 export const arLogggranskare = () => S.session?.personal?.yrke === 'logggranskare';
+// Arkivarien och uppföljningsrollen läser inte journalen och har ingen arbetslista (Sussa 5.4.2 och 6.3.1).
+export const utanJournal = () => ['logggranskare', 'arkivarie', 'uppfoljning'].includes(S.session?.personal?.yrke);
 export const minVardenhet = () => S.session?.enhet?.vardenhet?.id ?? null;
 export const pa = (...h) => h.some(far);
 
 // Vänstermenyn. Varje rad: adress, text, ikon, villkor, räknare.
 const MENY = [
-  ['#/arbetslista', 'Arbetslista', 'lista', () => !arLogggranskare()],
+  ['#/arbetslista', 'Arbetslista', 'lista', () => !utanJournal()],
   ['#/sok', 'Sök patient', 'sok', () => far('sok')],
-  ['#/inkorg', 'Inkorg', 'inkorg', () => !arLogggranskare(), 'inkorg'],
+  ['#/inkorg', 'Inkorg', 'inkorg', () => !utanJournal(), 'inkorg'],
   ['#/administrering', 'Läkemedel att ge', 'piller', () => far('ge_lakemedel')],
   ['#/remisser', 'Remisser', 'remiss', () => pa('las_remiss', 'las_remiss_status')],
   ['#/vantrum', 'Väntrum (akuten)', 'vantrum', () => far('vantrum')],
   ['#/logg', 'Logguppföljning', 'logg', () => far('las_logg')],
+  ['#/arkiv', 'E-arkiv och gallring', 'arkiv', () => far('registrera_arkivbeslut')],
+  ['#/datauttag', 'Datauttag', 'lista', () => far('datauttag')],
   ['#/migrering', 'Migreringsavstämning', 'migrering', () => true],
   ['#/krav', 'Kravspårbarhet', 'krav', () => true],
   ['#/moduler', 'Moduler', 'moduler', () => true],
@@ -47,21 +53,23 @@ const MENY = [
 ];
 
 const RUTTER = [
-  [/^#\/arbetslista$/, arbetslista, () => !arLogggranskare()],
+  [/^#\/arbetslista$/, arbetslista, () => !utanJournal()],
   [/^#\/sok$/, sok, () => far('sok')],
-  [/^#\/inkorg$/, inkorg, () => !arLogggranskare()],
+  [/^#\/inkorg$/, inkorg, () => !utanJournal()],
   [/^#\/administrering$/, administrering, () => far('las_lakemedel')],
   [/^#\/remisser$/, remisser, () => pa('las_remiss', 'las_remiss_status')],
   [/^#\/vantrum$/, vantrum, () => far('vantrum')],
   [/^#\/logg$/, logg, () => far('las_logg')],
   [/^#\/logg\/patient\/([\w-]+)$/, logg.patient, () => far('las_logg')],
+  [/^#\/arkiv$/, arkiv, () => far('registrera_arkivbeslut')],
+  [/^#\/datauttag$/, datauttag, () => far('datauttag')],
   [/^#\/migrering$/, migrering, () => true],
   [/^#\/krav$/, krav, () => true, true],
   [/^#\/moduler$/, moduler, () => true, true],
   [/^#\/api$/, oppetApi, () => true],
   [/^#\/drift$/, drift, () => true, true],
   [/^#\/anvandartest$/, anvandartest, () => true, true],
-  [/^#\/patient\/([\w-]+)(?:\/([a-z]+))?(?:\/([\w-]+))?$/, patient, () => !arLogggranskare()],
+  [/^#\/patient\/([\w-]+)(?:\/([a-z]+))?(?:\/([\w-]+))?$/, patient, () => !utanJournal()],
 ];
 
 // Invånarens adresser i Min journal, och de offentliga sidorna. Personalens vyer finns inte här.
@@ -87,7 +95,7 @@ export async function laddaEnheter() {
 export const vardenhetAv = (id) => enhetMap.get(id)?.vardenhet ?? id;
 export const enhetLista = () => [...enhetMap.values()];
 
-export const hem = () => (arInvanare() ? '#/min' : arLogggranskare() ? '#/logg' : '#/arbetslista');
+export const hem = () => (arInvanare() ? '#/min' : arLogggranskare() ? '#/logg' : far('registrera_arkivbeslut') ? '#/arkiv' : far('datauttag') ? '#/datauttag' : '#/arbetslista');
 
 // Logotypen: en droppe över en våg, en källa.
 export const logotyp = (storlek = 30) => `<svg class="logotyp" width="${storlek}" height="${storlek}" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="9" fill="currentColor"/><path d="M16 5.2c-3.3 4.7-6.1 8.1-6.1 11.6a6.1 6.1 0 0 0 12.2 0c0-3.5-2.8-6.9-6.1-11.6z" fill="#fff"/><path d="M7.5 26.2c2.8-1.7 5.7-1.7 8.5 0s5.7 1.7 8.5 0" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`;
@@ -125,10 +133,10 @@ window.addEventListener('unhandledrejection', (e) => { if (e.reason?.kod === 'av
 krokar.ejLaslage = () => arInvanare();
 
 export async function uppdateraInkorg() {
-  if (!arPersonal() || arLogggranskare()) { S.inkorg = null; return; }
+  if (!arPersonal() || utanJournal()) { S.inkorg = null; return; }
   try {
     const d = await api('/api/inkorg', { tyst: true });
-    S.inkorg = d.osigneradeAnteckningar.length + d.okvitteradeSvar.length + d.larm.length + d.nllAvvikelser.length + (d.dubbletter?.length ?? 0);
+    S.inkorg = d.osigneradeAnteckningar.length + d.okvitteradeSvar.length + d.larm.length + d.nllAvvikelser.length + (d.dubbletter?.length ?? 0) + (d.kontrasigneringar?.length ?? 0) + (d.aterlamnanden?.length ?? 0);
   } catch { S.inkorg = null; }
   const el = document.querySelector('[data-raknare="inkorg"]');
   if (el) { el.textContent = S.inkorg ? String(S.inkorg) : ''; el.hidden = !S.inkorg; }
@@ -174,7 +182,7 @@ function ritaRam(route) {
         <span class="vem"><strong>${esc(p.namn)}</strong><span>${esc(p.titel)}, ${esc(e.namn)}</span></span>
       </div>
       <a class="svarstid" id="svarstid" href="#/drift">${svarstidHtml()}</a>
-      ${p.yrke === 'logggranskare' ? '' : `<button type="button" class="knapp text liten reservknapp" data-a="reservkod">${ikon.nyckel}<span data-reserv-text>Reservkod</span></button>`}
+      ${utanJournal() ? '' : `<button type="button" class="knapp text liten reservknapp" data-a="reservkod">${ikon.nyckel}<span data-reserv-text>Reservkod</span></button>`}
       <button type="button" class="knapp sekundar liten" data-a="loggaut">${ikon.ut}<span>Logga ut</span></button>
     </div></header>
     <div class="arbetsyta">

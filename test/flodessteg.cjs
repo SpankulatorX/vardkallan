@@ -264,6 +264,35 @@ function skapa(BAS) {
       await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Sätt ut trots varningen');
       await synlig(page, '.notis', 'Metoprolol Sandoz är utsatt');
     },
+    utskrift: async (m, page) => {
+      await m.klicka(page.locator('.snabbval [data-utskrift]'), 'Skriv ut');
+      await page.locator('dialog[open]').waitFor();
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Skriv ut i dialogen');
+      await synlig(page, '.notis', 'Utskriften är registrerad med id U-');
+      await synlig(page, '.utskrift .utskrift-fakta', 'Läkemedelslista till patienten vid utskrivning');
+      await synlig(page, '.utskrift-sidfot', 'Utskrifts-id U-');
+      // Utskriftssidan stängs utanför mätningen, så att nästa flöde börjar i journalen.
+      await page.evaluate(() => document.querySelector('.utskrift-ram [data-stang]')?.click());
+    },
+    'begar-kontrasignering': async (m, page) => {
+      const forsta = page.locator('.ant-lista li').filter({ hasNot: page.locator('.tagg-utkast') }).first();
+      await m.klicka(forsta.locator('a'), 'senaste signerade anteckningen');
+      await page.waitForSelector('.anteckning .ant-fakta');
+      await m.klicka(page.locator('.anteckning [data-begar-ks]'), 'Begär kontrasignering');
+      await page.locator('dialog[open]').waitFor();
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Skicka');
+      await synlig(page, '.notis', 'Begäran om kontrasignering är skickad till Göran Malm');
+      await synlig(page, '.kontrasignering', 'Kontrasignering begärd');
+    },
+    kontrasignera: async (m, page) => {
+      await m.klicka(page.locator('#meny-lista a[href="#/inkorg"]'), 'Inkorg i menyn');
+      await page.waitForSelector('#ik-ks');
+      await m.klicka(page.locator('#ik-ks ~ ul a').first(), 'begäran om kontrasignering i inkorgen');
+      await synlig(page, '.anteckning', 'Stabil efter PCI');
+      await m.klicka(page.locator('.anteckning [data-kontrasignera]'), 'Kontrasignera');
+      await synlig(page, '.notis', 'Anteckningen är kontrasignerad');
+      await synlig(page, '.kontrasignering', 'Kontrasignerad');
+    },
   };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }

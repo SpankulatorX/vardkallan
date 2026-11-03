@@ -14,6 +14,8 @@ import { utokaSchema, knytHistorik } from './vardstruktur.js';
 import { SANGBYTEN, HALSOARENDEN } from './seed/vardstruktur.js';
 // Läkemedelsprocessen: administrering, vidimering, läkemedelsgenomgång och vätskebalans (Sussa 3.5).
 import { sakraSchema as sakraLakemedelsprocess, seedaAdministreringar, seedaVidimeringar } from './lakemedelsprocess.js';
+// Utskrifter, kontrasignering, arkiv och datauttag (Sussa 3.1.9, 3.1.11.3, 5.4.2, 5.3.1.7 och 6.3.1).
+import { sakraUtdataschema, seedaArkivpatient, seedaUtdata } from './utdata-schema.js';
 
 // Fel som API:t svarar med. kod: nekad | saknas | ogiltig | kraver_val | kraver_samtycke
 export class Fel extends Error {
@@ -322,6 +324,9 @@ export function byggSeed(bas = nu()) {
       .run(v.patient, 'uso-akut', v.konummer, tid(v.ankomst), v.prioritet, v.orsak);
   }
 
+  // Patient 20 med en journal som kan gallras (utdata-schema.js), före avstämningen så att den räknas.
+  seedaArkivpatient(db, { tid, datum });
+
   // Migreringsavstämning: räknat på det som faktiskt finns i mallen, plus det som inte gick att föra över.
   const datatyper = { vardkontakter: 'vardkontakter', anteckningar: 'anteckningar', diagnoser: 'diagnoser', matvarden: 'matvarden', ordinationer: 'ordinationer', overkanslighet: 'overkanslighet', remisser: 'remisser' };
   for (const [datatyp, tabell] of Object.entries(datatyper)) {
@@ -353,6 +358,7 @@ export function byggSeed(bas = nu()) {
   db.exec(SCHEMA_UPPMARKSAMHET);
   seedaUppmarksamhet(db, { datum: (n) => tid(n), datumTid: (d) => tid(d) });
   seedaIdentiteter(db, tid);
+  seedaUtdata(db, { tid });
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -421,6 +427,7 @@ export function migrera(db) {
     const seedTid = db.query("SELECT varde FROM installningar WHERE nyckel = 'seed_tid'").get()?.varde;
     knytHistorik(db, { bas: seedTid ? new Date(seedTid) : nu() });
   }
+  sakraUtdataschema(db);
   return db;
 }
 

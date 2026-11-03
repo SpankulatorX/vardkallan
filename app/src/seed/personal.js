@@ -6,6 +6,9 @@ export const YRKEN = {
   underskoterska: 'Undersköterska',
   vardadministrator: 'Vårdadministratör',
   logggranskare: 'Logggranskare',
+  // Arkiv och uppföljning (Sussa 5.4.2, 5.3.1.7 och 6.3.1). Egna roller, som inte läser journalen.
+  arkivarie: 'Arkivarie',
+  uppfoljning: 'Analytiker (uppföljning)',
 };
 
 export const PERSONAL = [
@@ -33,4 +36,10 @@ export const PERSONAL = [
   { id: 'ssk-psyk', namn: 'Robin Axelsson', yrke: 'sjukskoterska', titel: 'Sjuksköterska', enhet: 'uso-psyk' },
   { id: 'lak-vas', namn: 'Bengt Rydén', yrke: 'lakare', titel: 'Läkare', enhet: 'uso-med', aktiv: false },
   { id: 'lak-cosmic', namn: 'Kristina Ljung', yrke: 'lakare', titel: 'Läkare', enhet: 'uso-kard', aktiv: false },
+  // Arkiv och uppföljning (Sussa 5.4.2, 5.3.1.7 och 6.3.1). Sist i listan, så att de andras HSA-id inte ändras.
+  { id: 'ark', namn: 'Ingela Nord', yrke: 'arkivarie', titel: 'Arkivarie (e-arkiv och gallring)', enhet: 'rk', demo: true },
+  { id: 'uppf', namn: 'Daniel Sund', yrke: 'uppfoljning', titel: 'Analytiker (uppföljning och statistik)', enhet: 'rk', demo: true },
+  // Kontrasignering (Sussa 3.1.11.3): en underläkare som ber om kontrasignering och en överläkare som systemet föreslår.
+  { id: 'ul-kard', namn: 'Alva Berglund', yrke: 'lakare', titel: 'Underläkare', enhet: 'uso-kard' },
+  { id: 'ol-kard', namn: 'Göran Malm', yrke: 'lakare', titel: 'Överläkare', enhet: 'uso-kard' },
 ];

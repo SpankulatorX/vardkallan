@@ -43,6 +43,7 @@ export const GRUND = {
   egen_enhet: 'Egen enhet', vardrelation: 'Vårdrelation', aktivt_val: 'Aktivt val', samtycke_sparr: 'Samtycke till spärrade uppgifter',
   nodatkomst: 'Nödåtkomst', administrativ: 'Administrativ uppgift', logggranskning: 'Logggranskning', nekad: 'Nekad',
   egen_atkomst: 'Patientens egen åtkomst', vardnadshavare: 'Vårdnadshavare',
+  arkivbeslut: 'Arkivbeslut', uppfoljning: 'Uppföljning',
 };
 export const NLL = { skickad: 'Skickas', kvitterad: 'Kvitterad av NLL', okand_kontrolleras: 'Okänd, kontrolleras', fel: 'Fel från NLL' };
 export const ORDTYP = { staende: 'Stående', vid_behov: 'Vid behov', tillfallig: 'Tillfällig' };
@@ -62,8 +63,11 @@ export const HANDLING = {
   invanare_las: 'Läste journalen i Min journal', invanare_begaran: 'Skickade en begäran i Min journal',
   registrera_patient: 'Registrerade ny patient', andra_identitet: 'Registrerade ny identitet', sla_samman: 'Slog samman journaler',
   dubblettkontroll: 'Såg ett förslag om sammanslagning', dubblett_avfardad: 'Avfärdade ett förslag om sammanslagning',
+  skriv_ut: 'Skrev ut journalen', utlamna: 'Registrerade utlämnande eller återlämnande', begara_kontrasignering: 'Begärde kontrasignering',
+  kontrasignera: 'Kontrasignerade', registrera_arkivbeslut: 'Registrerade eller läste arkivbeslut', arkivera: 'Exporterade till e-arkiv',
+  gallra: 'Gallrade journalen efter beslut', radera: 'Förstörde journalhandlingar efter beslut', datauttag: 'Hämtade datauttaget för uppföljning',
 };
-export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare' };
+export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare', arkivarie: 'Arkivarie', uppfoljning: 'Analytiker (uppföljning)' };
 
 // Anrop mot API:t. Svarstiden läses från Server-Timing. Fel kastas som ApiFel med serverns text och kod.
 export class ApiFel extends Error {

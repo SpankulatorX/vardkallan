@@ -2,7 +2,8 @@
 import { createHash } from 'node:crypto';
 
 // egen_atkomst och vardnadshavare är invånarens läsning i Min journal. De är inte vårdens åtkomst och flaggas inte.
-export const GRUNDER = ['egen_enhet', 'vardrelation', 'aktivt_val', 'samtycke_sparr', 'nodatkomst', 'administrativ', 'logggranskning', 'nekad', 'egen_atkomst', 'vardnadshavare'];
+// arkivbeslut är arkivariens export, gallring och radering efter ett registrerat beslut, och uppfoljning är datauttaget.
+export const GRUNDER = ['egen_enhet', 'vardrelation', 'aktivt_val', 'samtycke_sparr', 'nodatkomst', 'administrativ', 'logggranskning', 'nekad', 'egen_atkomst', 'vardnadshavare', 'arkivbeslut', 'uppfoljning'];
 export const INVANARGRUNDER = ['egen_atkomst', 'vardnadshavare'];
 const NOLL = '0'.repeat(64);
 const FALT = ['id', 'tid', 'personal_id', 'enhet_id', 'patient_id', 'handling', 'resurs', 'grund', 'syfte', 'resultat'];
@@ -62,6 +63,8 @@ const FLAGGOR = {
   samtycke: "l.grund = 'samtycke_sparr'",
   // Vårdens åtkomster, utan invånarnas läsningar i Min journal.
   vard: 'l.invanare_id IS NULL',
+  // Export till e-arkiv, gallring och radering efter beslut (arkiv.js).
+  arkiv: "l.grund = 'arkivbeslut'",
 };
 
 export function lista(db, { patientId = null, flagga = 'alla', fran = null, till = null, max = 500 } = {}) {
@@ -83,7 +86,7 @@ export function lista(db, { patientId = null, flagga = 'alla', fran = null, till
     invanare: r.invanare_id ? invanareKort(r) : null,
     enhet: r.enhet_id ? { id: r.enhet_id, namn: r.enhet_namn } : null, patientId: r.patient_id, handling: r.handling,
     resurs: r.resurs, grund: r.grund, syfte: r.syfte, resultat: r.resultat,
-    flaggad: r.grund === 'nodatkomst' || r.grund === 'samtycke_sparr' || r.resultat === 'nekad', hash: r.hash,
+    flaggad: r.grund === 'nodatkomst' || r.grund === 'samtycke_sparr' || r.resultat === 'nekad' || ['gallra', 'radera'].includes(r.handling), hash: r.hash,
   }));
 }
 

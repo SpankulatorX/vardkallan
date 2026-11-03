@@ -10,6 +10,7 @@ import * as remisserFlik from './patient-remisser.js';
 import * as logglista from './patient-logglista.js';
 import * as uppmarksamhet from '../uppmarksamhet.js';
 import * as identitet from './patient-identitet.js';
+import * as utlamnat from './patient-utlamnat.js';
 
 export const namn = 'patient';
 
@@ -21,6 +22,7 @@ const FLIKAR = [
   ['remisser', 'Remisser', () => pa('las_remiss', 'las_remiss_status'), remisserFlik],
   ['logglista', 'Logglista', () => true, logglista],
   ['identitet', 'Identitet', () => pa('las_oversikt', 'las_admin'), identitet],
+  ['utlamnat', 'Utskrifter', () => pa('skriv_ut', 'utlamna'), utlamnat],
 ];
 
 let huvud = null;
@@ -68,6 +70,8 @@ function bandHtml(h) {
 
 function behorighetsrad(h) {
   const r = [];
+  // En journal som är gallrad eller förstörd efter beslut (Sussa 5.4.2.4 och 5.3.1.7) säger det själv.
+  if (h.journalForstord) r.push(`<div class="behorighet">${ikon.arkiv}<p>${esc(h.journalForstord.text)} Åtkomstloggen och uppgifterna om utlämnanden finns kvar.</p></div>`);
   if (h.skyddad && !h.identitetVisad && far('visa_identitet')) {
     r.push(`<div class="behorighet behorighet-skydd">${ikon.skold}<p>Namn och personnummer är dolda eftersom patienten har skyddade personuppgifter.</p><button type="button" class="knapp liten sekundar" data-val="visa_identitet">Visa identitet</button></div>`);
   }

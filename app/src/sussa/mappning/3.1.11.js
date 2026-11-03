@@ -32,6 +32,20 @@ export default [
     expert: 'Utkast syns bara för författaren tills de signeras, och systemet säger på vanlig svenska varför en signerad anteckning inte kan ändras.',
     anmarkning: 'Signering med certifikat, signering av flera anteckningar samtidigt och signeringslistor saknas.',
   },
-  { id: '3.1.11.3', kategori: 'system', egna: ['L1'], tester: [], avsedd: 'planerat',
-    anmarkning: 'Kontrasignering är inte byggd.' },
+  {
+    id: '3.1.11.3', kategori: 'system', egna: ['L1'], avsedd: 'uppfyllt_demo',
+    tester: [
+      'Kontrasignering > systemet föreslår överläkaren och aldrig den som signerade, den som begär eller en underläkare',
+      'Kontrasignering > begäran hamnar i inkorgen och kontrasigneras med ett klick, och syns i FHIR',
+      'Kontrasignering > den som har signerat kan inte kontrasignera själv',
+      'Kontrasignering > en roll eller enhet utan behörighet nekas, och begäran ger ingen åtkomst utöver posten',
+      'Kontrasignering > spärrade uppgifter och andra vårdenheters uppgifter kan inte begäras kontrasignerade',
+      'Kontrasignering > ett provsvar kan begäras kontrasignerat, och en kontrasignering kan inte ändras eller raderas',
+      `${GK}Begära kontrasignering av en anteckning inom budget`,
+      `${GK}Kontrasignera en anteckning inom budget`,
+    ],
+    losning: 'En signerad anteckning eller ett mätvärde, till exempel ett provsvar, kan begäras kontrasignerat. Begäran hamnar i mottagarens inkorg, anteckningen visar vem som har kontrasignerat och när, och i FHIR är den som kontrasignerade attester på Composition.',
+    expert: 'Systemet föreslår en överläkare på samma vårdenhet som får läsa uppgiften, aldrig den som signerade eller en underläkare, och kontrasigneringen görs med ett klick i anteckningen.',
+    anmarkning: 'Kontrasignering av mätvärden går bara att begära genom API:t. Krav på kontrasignering per yrkesgrupp, till exempel för underläkare, är inte konfigurerat.',
+  },
 ];

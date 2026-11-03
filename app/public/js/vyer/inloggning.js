@@ -18,6 +18,8 @@ const VISAR = {
   'lak-psyk': 'Spärrade uppgifter från psykiatrin: ser klinikens egna anteckningar om Elin Sandberg, som andra enheter bara ser som en spärrmarkering.',
   'adm-kard': 'Vårdadministratör: tar emot remisser och ser kontaktuppgifter och vårdkontakter, men ingen journaltext och inga läkemedel.',
   'logg': 'Logguppföljning: ser varje åtkomst till alla patienter, filtrerar på nödåtkomst, nekade försök och samtycken och kontrollerar att loggkedjan är hel.',
+  'ark': 'Arkivarie: registrerar beslut, skapar exportpaket till e-arkiv och verkställer gallring och förstöring av journaler efter beslut. Läser inte journalen.',
+  'uppf': 'Uppföljning: hämtar datauttaget utan namn och personnummer, som uppdateras varje natt. Läser inte journalen.',
 };
 
 // Vad några av patienterna visar i Min journal.

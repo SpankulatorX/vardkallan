@@ -3,7 +3,7 @@ import { esc, api, tidpunkt, ikon, vyRubrik, tom, GRUND, HANDLING, YRKE, idag, p
 
 export const namn = 'logg';
 
-const FLAGGOR = [['alla', 'Alla'], ['vard', 'Vårdens åtkomster'], ['nodatkomst', 'Nödåtkomst'], ['nekad', 'Nekade försök'], ['samtycke', 'Samtycke till spärrade uppgifter']];
+const FLAGGOR = [['alla', 'Alla'], ['vard', 'Vårdens åtkomster'], ['nodatkomst', 'Nödåtkomst'], ['nekad', 'Nekade försök'], ['samtycke', 'Samtycke till spärrade uppgifter'], ['arkiv', 'Arkiv och gallring']];
 
 export function kedjaRuta(hel, v) {
   return hel
@@ -24,6 +24,8 @@ function resursText(r) {
   if (r.resurs === 'lasekopia:slut') return '<span class="under-text">Senaste utlämnandet till läskopian för avbrott</span>';
   if (r.resurs?.startsWith('laslage:')) return '<span class="under-text">Läst i läsläget under ett avbrott</span>';
   if (r.resurs?.startsWith('fhir/') && r.invanare) return '<span class="under-text">Via det öppna API:t</span>';
+  if (r.resurs?.startsWith('utskrift:U-')) return `<span class="under-text">Utskrifts-id ${esc(r.resurs.slice(9))}</span>`;
+  if (r.resurs?.startsWith('beslut:')) return `<span class="under-text">Arkivbeslut ${esc(r.resurs.slice(7).split(':')[0])}</span>`;
   return '';
 }
 
@@ -61,7 +63,24 @@ export async function visa(main, _p, q) {
       <div class="falt kompakt"><label for="lf-till">Till</label><input id="lf-till" name="till" type="date" value="${esc(till)}"></div>
       <button type="submit" class="knapp">Visa loggen</button>
     </form>
+    <form class="loggfilter" id="utskriftsok" role="search" aria-label="Sök utskrift">
+      <div class="falt kompakt"><label for="us-id">Utskrifts-id från papperet</label><input id="us-id" name="uid" placeholder="U-XXXXXXXX" maxlength="10" autocomplete="off"></div>
+      <button type="submit" class="knapp sekundar">Sök utskrift</button>
+    </form>
+    <div id="utskriftsvar"></div>
     <div id="loggresultat"><p class="tom">Hämtar loggen.</p></div>`;
+  // Eftersökning av en utlämnad utskrift med id:t som står på varje sida (Sussa 3.1.9.5).
+  const us = main.querySelector('#utskriftsok');
+  us.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const ut = main.querySelector('#utskriftsvar');
+    try {
+      const u = await api(`/api/utskrift/${encodeURIComponent(us.uid.value.trim().toUpperCase())}`);
+      ut.innerHTML = `<div class="ruta ruta-info" role="status"><p><strong>${esc(u.id)}</strong>, utskriven ${esc(tidpunkt(u.tid))} av ${esc(u.av?.namn ?? '')} på ${esc(u.enhet.namn)}. Syfte: ${esc(u.syfte)}. Innehåll: ${esc(u.delar.join(', '))}.</p>
+        ${u.utlamnanden.length ? `<p>Utlämnad till ${u.utlamnanden.map(x => `${esc(x.mottagare)} ${esc(tidpunkt(x.utlamnad))}${x.aterlamnad ? `, återlämnad ${esc(tidpunkt(x.aterlamnad))}` : ''}`).join('; ')}.</p>` : '<p>Inte registrerad som utlämnad.</p>'}
+        <p><a href="#/logg/patient/${encodeURIComponent(u.patientId)}">Patientens logglista</a></p></div>`;
+    } catch (err) { ut.innerHTML = `<p class="ruta ruta-info">${esc(err.message)}</p>`; }
+  });
   const form = main.querySelector('#loggfilter');
   form.addEventListener('submit', (e) => {
     e.preventDefault();
