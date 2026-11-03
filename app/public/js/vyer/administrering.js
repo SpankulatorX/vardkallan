@@ -164,6 +164,8 @@ export async function visa(main) {
   main.innerHTML = vyRubrik('Läkemedel att ge', 'Dagens doser för de inneliggande patienterna, framräknade ur ordinationerna.') + '<div id="adm"><p class="tom">Hämtar.</p></div>';
   const d = await api('/api/administreringar');
   const el = main.querySelector('#adm');
+  // Har användaren hunnit gå vidare till en annan vy medan listan hämtades finns inget att visa den i.
+  if (!el) return;
   if (!d.patienter.length) { el.innerHTML = tom(`Det finns inga inneliggande patienter på ${d.vardenhet?.namn ?? 'din vårdenhet'} som du har vårdrelation till.`); return; }
   el.innerHTML = `<p class="ingress liten">${esc(d.vardenhet?.namn ?? '')}: ${d.sammanfattning.attGe} ${d.sammanfattning.attGe === 1 ? 'dos' : 'doser'} att ge nu${d.sammanfattning.forsenade ? `, ${d.sammanfattning.forsenade} försenade` : ''}. Varningarna är demoregler, inte kliniskt beslutsstöd.</p>
     ${d.patienter.map(p => `<section class="adm-patient" aria-labelledby="adm-${esc(p.patient.id)}">
