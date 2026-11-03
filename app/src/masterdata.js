@@ -12,8 +12,9 @@ import { PERSONAL } from './seed/personal.js';
 import { PATIENTER } from './seed/patienter.js';
 import { IDENTITETSPATIENTER } from './seed/identiteter.js';
 import { TIDBOK_PERSONAL } from './seed/tidbok.js';
+import { PROVTAGNING_PERSONAL, MIN_JOURNAL_ENHET } from './seed/planering.js';
 
-const ENHETSTYPER = ['vardgivare', 'sjukhus', 'vardenhet', 'arbetsplats', 'forvaltning', 'kommun'];
+const ENHETSTYPER = ['vardgivare', 'sjukhus', 'vardenhet', 'arbetsplats', 'forvaltning', 'kommun', 'etjanst'];
 // Kontraktet per del: obligatoriska fält och en kontroll per post. Fel beskrivs på svenska.
 export const KONTRAKT = {
   organisation: {
@@ -34,11 +35,13 @@ export const KONTRAKT = {
 export function filadapter() {
   return {
     id: 'fil', namn: 'Fil (seeden)', beskrivning: 'Läser seeden i app/src/seed. Demons enda källa.',
-    organisation: () => ENHETER.map(e => ({ id: e.id, hsaId: e.hsa, namn: e.namn, kortnamn: e.kortnamn ?? null, typ: e.typ, forald: e.forald ?? null })),
+    // Runda 6, r4: vårdenheten för egna vårdbegäranden från Min journal.
+    organisation: () => [...ENHETER, MIN_JOURNAL_ENHET].map(e => ({ id: e.id, hsaId: e.hsa, namn: e.namn, kortnamn: e.kortnamn ?? null, typ: e.typ, forald: e.forald ?? null })),
     // Personalen i seed/personal.js och personalen i tidbokens scheman (seed/tidbok.js).
     personal: () => [
       ...PERSONAL.map((p, i) => ({ id: p.id, hsaId: `SE2321000164-VKP${String(i + 1).padStart(3, '0')}`, namn: p.namn, yrke: p.yrke, titel: p.titel, enhetId: p.enhet, demo: Boolean(p.demo), aktiv: p.aktiv !== false })),
-      ...TIDBOK_PERSONAL.filter(t => !PERSONAL.some(p => p.id === t.id)).map(p => ({ id: p.id, hsaId: p.hsa, namn: p.namn, yrke: p.yrke, titel: p.titel, enhetId: p.enhet, demo: false, aktiv: true })),
+      // Runda 6, r4: provtagningssköterskan på kardiologens mottagning (seed/planering.js).
+      ...[...TIDBOK_PERSONAL, PROVTAGNING_PERSONAL].filter(t => !PERSONAL.some(p => p.id === t.id)).map(p => ({ id: p.id, hsaId: p.hsa, namn: p.namn, yrke: p.yrke, titel: p.titel, enhetId: p.enhet, demo: false, aktiv: true })),
     ],
     befolkning: () => [...PATIENTER, ...IDENTITETSPATIENTER].filter(p => p.pnr).map(p => ({
       identitet: p.pnr, fornamn: p.fornamn, efternamn: p.efternamn, adress: p.adress ?? null, postnr: p.postnr ?? null, ort: p.ort ?? null, skyddad: Boolean(p.skyddad),

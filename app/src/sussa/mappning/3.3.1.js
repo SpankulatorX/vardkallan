@@ -1,10 +1,12 @@
 // Sussa 3.3.1 Grundläggande behov: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 import { TEST } from '../../krav.js';
+// Runda 6, r4.
+import { medR4 } from '../planering-r4.js';
 
 const { A, R, GK } = TEST;
 
-export default [
+const AVSNITT = [
   {
     id: '3.3.1.1', kategori: 'system', egna: ['D1', 'M4'], avsedd: 'uppfyllt_demo',
     tester: [
@@ -66,3 +68,6 @@ export default [
     anmarkning: 'Ledtider på enhets- och regionnivå och statistik över avvikelser saknas.',
   },
 ];
+
+// Runda 6, r4: posterna som byggdes i planering och tidbok, del 2, och remiss, del 2, ersätts ur sussa/planering-r4.js.
+export default medR4(AVSNITT);

@@ -24,7 +24,8 @@ describe('Tidbok', () => {
   test('seeden har scheman per mottagning och vårdgivare med tidstyper, och dagens patienter på kardiologiska mottagningen', () => {
     const d = nyDb();
     const scheman = d.query('SELECT * FROM scheman').all();
-    expect(scheman.filter(s => s.enhet_id === 'uso-kard-mott').map(s => s.personal_id).sort()).toEqual(['lak-kard', 'lak-kard2', 'ssk-kardmott']);
+    // Runda 6, r4: provtagningen på mottagningen har ett eget schema (seed/planering.js).
+    expect(scheman.filter(s => s.enhet_id === 'uso-kard-mott').map(s => s.personal_id).sort()).toEqual(['lak-kard', 'lak-kard2', 'ssk-kardlab', 'ssk-kardmott']);
     const typer = new Set(d.query('SELECT DISTINCT tidstyp FROM tider').all().map(r => r.tidstyp));
     for (const t of ['nybesok', 'aterbesok', 'telefon', 'video', 'grupp']) expect(typer.has(t)).toBe(true);
     // Varje bokning är en planerad vårdkontakt på mottagningen.
@@ -284,9 +285,11 @@ describe('Tidbok', () => {
     expect(efter.status).toContain('Att betala 200 kr');
     expect(s.remisser.map(r => r.patient.id)).toEqual(['p10']);
     expect(s.remisser[0].atgard).toEqual({ typ: 'boka', text: 'Boka tid' });
-    expect(s.vantelista.map(r => r.patient.id)).toEqual(['p01', 'p04']);
+    // Runda 6, r4: posterna som behöver ett ingrepp eller tider i följd prövas i planering.test.js.
+    expect(s.vantelista.filter(r => !r.ingrepp && !r.mall).map(r => r.patient.id)).toEqual(['p01', 'p04']);
     expect(s.kallelser).toEqual([expect.objectContaining({ typ: 'grupp', antal: 3, atgard: { typ: 'kalla_grupp', text: 'Skicka kallelser' } })]);
-    expect(s.bevakningar).toEqual([expect.objectContaining({ patient: expect.objectContaining({ id: 'p10' }), atgard: { typ: 'bevakning_klar', text: 'Klar' } })]);
+    // Runda 6, r4: egna bevakningar (egen: true) prövas i planering.test.js.
+    expect(s.bevakningar.filter(b => !b.egen)).toEqual([expect.objectContaining({ patient: expect.objectContaining({ id: 'p10' }), atgard: { typ: 'bevakning_klar', text: 'Klar' } })]);
     for (const lista of [s.dagens.map(d => d.rad), s.remisser, s.vantelista, s.kallelser, s.bevakningar]) {
       for (const x of lista) expect(x.atgard === null || typeof x.atgard.typ === 'string').toBe(true);
     }
@@ -294,7 +297,7 @@ describe('Tidbok', () => {
     expect(JSON.stringify(s)).not.toContain('Ekokardiografi och bedömning av hjärtsvikt');
     // Bevakningen markeras som klar.
     expect((await k.post(`/api/bevakning/${s.bevakningar[0].id}/klar`)).status).toBe(200);
-    expect((await k.get('/api/idag')).data.bevakningar.length).toBe(0);
+    expect((await k.get('/api/idag')).data.bevakningar.filter(b => !b.egen).length).toBe(0);
   });
 
   test('exemplet på gruppkallelsen skrivs ur en mall och aldrig ur en sparad kallelse till en patient', async () => {
@@ -376,7 +379,8 @@ describe('Tidbok', () => {
     const lak = await inloggad('lak-kard');
     const p = post(lak, 'p10');
     expect((await lak.get('/api/idag')).status).toBe(403);
-    expect((await lak.get('/api/tidbok')).status).toBe(403);
+    // Runda 6, r4: läkaren läser tidboken, med sitt eget schema som förval, men bokar inte.
+    expect((await lak.get('/api/tidbok')).status).toBe(200);
     expect((await lak.get(`/api/vantelista/${p.id}/forslag`)).status).toBe(403);
     expect(loggRader(lak).at(-1)).toMatchObject({ personal_id: 'lak-kard', patient_id: 'p10', handling: 'boka', resultat: 'nekad' });
     // Läkaren ser patientens bokade tider men kan inte boka om dem.
@@ -404,7 +408,7 @@ describe('Tidbok', () => {
   test('tidboken per mottagning och vårdgivare visar tider, beläggning och regler, och kan visas utan namn', async () => {
     const k = await inloggad('adm-kard');
     const t = (await k.get('/api/tidbok')).data;
-    expect(t.scheman.map(s => s.vardgivare.namn).sort()).toEqual(['Lina Persson', 'Magnus Öberg', 'Sara Lindqvist']);
+    expect(t.scheman.map(s => s.vardgivare.namn).sort()).toEqual(['Eva Lindgren', 'Lina Persson', 'Magnus Öberg', 'Sara Lindqvist']);
     const lina = t.scheman.find(s => s.vardgivare.namn === 'Lina Persson');
     expect(lina.tider.flatMap(x => x.bokningar).map(b => b.patient.id)).toContain('p15');
     expect(lina.belaggning.tider).toBeGreaterThan(0);

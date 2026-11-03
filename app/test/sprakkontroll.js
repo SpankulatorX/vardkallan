@@ -157,6 +157,7 @@ AES GCM AES-GCM HSLF FS HSLF-FS OSL VAS CE MDR EHDS GDPR DPIA METS FGS RIVTA SIP
 CT USÖ SVT LMA FVIS JMIR VK DELETE CHECK ÅÅÅÅ MM DD NNNN ÅÅÅÅMMDD VKÅÅÅÅMMDD XXXXXXXX
 workern workerns Playwright Webcert Thomas Wall Wennberg Waran Warfarin Eliquis Brilique webb
 LPT LRV SPU HSL SoL IVO CarePlan GCS NRS ACVPU CKD-EPI warfarin
+PNG JPEG iCalendar
 `.trim().split(/\s+/));
 // Runda 6, r5: det öppna API:t för skrivning och externa tillämpningar.
 for (const w of ['SMART', 'PKCE', 'OAuth', 'IP', 'GET', 'POST', 'PUT', 'Subscription', 'Parameters', 'SSRF']) TILLATNA.add(w);
@@ -251,10 +252,12 @@ export function gransnittTexter(app) {
 // Serverns texter: felmeddelanden (new Fel), varningar och förklaringar. Koder och benämningar i FHIR (display, code,
 // system) är kodverkens engelska och visas inte i gränssnittet, och SQL är ingen text. kodverk.js har kodverkens egna
 // benämningar (ATC och LOINC på engelska) och fhir-definitioner.js FHIR:s maskinnamn, som inte får ha å, ä eller ö.
+// kallelse-engelska.js har kallelsen på engelska för patienter som har valt det språket och filformat.js syntaxen för
+// PDF och iCalendar (runda 6, r4).
 const FHIRKOD = /\b(display|code|system|url|valueCode|resourceType)\s*:\s*$/;
 export function serverTexter(app) {
   const ut = [];
-  for (const f of filer(join(app, 'src'), p => p.endsWith('.js') && !/\/(seed|sussa)\/|\/(kodverk|fhir-definitioner)\.js$/.test(p))) {
+  for (const f of filer(join(app, 'src'), p => p.endsWith('.js') && !/\/(seed|sussa)\/|\/(kodverk|fhir-definitioner|kallelse-engelska|filformat)\.js$/.test(p))) {
     const kod = readFileSync(f, 'utf8');
     const fil = relative(app, f);
     for (const s of strangar(kod)) {

@@ -1,6 +1,6 @@
 // Arbetslistan: patienter med vårdrelation på min vårdenhet.
 import { esc, api, ikon, vyRubrik, tom, VARDFORM } from '../ui.js';
-import { S } from '../app.js';
+import { S, far } from '../app.js';
 import { listCell } from '../uppmarksamhet.js';
 
 export const namn = 'arbetslista';
@@ -18,7 +18,9 @@ export const pnrCell = (p) => `<span class="pnr">${esc(p.personnummer)}</span>`;
 export const alderKon = (p) => `${esc(p.alder)} år, ${esc((KON[p.kon] ?? p.kon).toLowerCase())}`;
 
 export async function visa(main) {
-  main.innerHTML = vyRubrik('Arbetslista', `Patienter med vårdrelation på ${esc(S.session.enhet.vardenhet?.namn ?? S.session.enhet.namn)}.`) + '<div id="lista"><p class="tom">Hämtar arbetslistan.</p></div>';
+  // Runda 6, r4: läkare och sjuksköterskor når sitt schema i tidboken härifrån, utan att boka.
+  const tidbok = far('las_tidbok') && !far('boka') ? `<nav class="snabbval" aria-label="Tidboken"><ul><li><a class="knapp liten sekundar" href="#/tidbok">${ikon.klocka}<span>Min tidbok</span></a></li></ul></nav>` : '';
+  main.innerHTML = vyRubrik('Arbetslista', `Patienter med vårdrelation på ${esc(S.session.enhet.vardenhet?.namn ?? S.session.enhet.namn)}.`) + `${tidbok}<div id="lista"><p class="tom">Hämtar arbetslistan.</p></div>`;
   const rader = await api('/api/arbetslista');
   const el = main.querySelector('#lista');
   if (!rader.length) { el.innerHTML = tom('Det finns inga patienter med vårdrelation på din enhet just nu.'); return; }

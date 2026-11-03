@@ -3,11 +3,13 @@
 import { klickbudgetTest } from '../../krav.js';
 import { FLODEN } from '../../klickbudget.js';
 import { T } from '../tidbok-tester.js';
+// Runda 6, r4.
+import { medR4 } from '../planering-r4.js';
 
 const VK = 'Vårdkontakt > ';
 const flode = (id) => klickbudgetTest(FLODEN.find(f => f.id === id));
 
-export default [
+const AVSNITT = [
   {
     id: '3.4.4.1', kategori: 'system', egna: ['D6'], avsedd: 'delvis',
     tester: [
@@ -56,3 +58,6 @@ export default [
     anmarkning: 'Incheckning genom FHIR (skrivning) och positionsbaserad incheckning i mobilen saknas. Skärmen i väntrummet är simulerad.',
   },
 ];
+
+// Runda 6, r4: posterna som byggdes i planering och tidbok, del 2, och remiss, del 2, ersätts ur sussa/planering-r4.js.
+export default medR4(AVSNITT);

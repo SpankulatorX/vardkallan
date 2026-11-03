@@ -120,6 +120,18 @@ UTAN_PATIENT.add('godkanna_mall');
 ROLLER.verksamhetschef = ['lakemedelsansvar', 'faststalla_direktiv'];
 ROLLER.lakare.push('godkanna_mall');
 
+// Runda 6, r4: planering och tidbok, del 2, och remiss, del 2. Läkare, sjuksköterskor och vårdadministratörer lägger
+// upp egna bevakningar för en patient (bevaka, kräver vårdrelation) eller för vårdenheten (bevaka_enhet), läser
+// tidboken (las_tidbok, läkare och sjuksköterskor utan att boka) och ser vårdenhetens statistik över väntetider och
+// remisser utan personuppgifter (statistik). Uppföljningsrollen ser statistiken för regionen (statistik_region).
+Object.assign(HANDLINGAR, {
+  bevaka: 'lägga upp bevakningar för en patient', bevaka_enhet: 'lägga upp bevakningar för vårdenheten', las_tidbok: 'läsa tidboken',
+  statistik: 'se vårdenhetens statistik utan personuppgifter', statistik_region: 'se regionens statistik utan personuppgifter',
+});
+for (const r of ['lakare', 'sjukskoterska', 'vardadministrator']) ROLLER[r].push('bevaka', 'bevaka_enhet', 'las_tidbok', 'statistik');
+ROLLER.uppfoljning.push('statistik_region');
+for (const h of ['bevaka_enhet', 'las_tidbok', 'statistik', 'statistik_region']) UTAN_PATIENT.add(h);
+
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
 
 // Den vårdenhet en enhet hör till. Inre sekretess gäller per vårdenhet.
@@ -157,9 +169,10 @@ export function harVardrelation(db, patientId, vardenhet, nu = new Date(), { uta
     .get(patientId, ...enheter, grans, grans);
   if (vk) return true;
   if (db.query(`SELECT 1 FROM listningar WHERE patient_id = ? AND enhet_id IN (${ph})`).get(patientId, ...enheter)) return true;
+  // En vidarebefordrad remiss är inte längre ställd till vårdenheten (runda 6, r4), lika lite som en avvisad.
   const remiss = db.query(`SELECT 1 FROM remisser WHERE patient_id = ? AND (
-      (till_enhet_id IN (${ph}) AND NOT (status = 'bedomd' AND beslut = 'avvisad') AND (status <> 'svar_kvitterat' OR svar_kvitterat_tid >= ?))
-      OR (fran_enhet_id IN (${ph}) AND status <> 'svar_kvitterat' AND NOT (status = 'bedomd' AND beslut = 'avvisad'))
+      (till_enhet_id IN (${ph}) AND NOT (status = 'bedomd' AND beslut IN ('avvisad', 'vidarebefordrad')) AND (status <> 'svar_kvitterat' OR svar_kvitterat_tid >= ?))
+      OR (fran_enhet_id IN (${ph}) AND status <> 'svar_kvitterat' AND NOT (status = 'bedomd' AND beslut IN ('avvisad', 'vidarebefordrad')))
     ) LIMIT 1`).get(patientId, ...enheter, grans, ...enheter);
   return Boolean(remiss);
 }

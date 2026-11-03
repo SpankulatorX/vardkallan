@@ -2,10 +2,12 @@
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 import { TEST } from '../../krav.js';
 import { T, flode } from '../tidbok-tester.js';
+// Runda 6, r4.
+import { medR4 } from '../planering-r4.js';
 
 const { A, M, R, GK } = TEST;
 
-export default [
+const AVSNITT = [
   {
     id: '3.4.1.1', kategori: 'system', egna: ['D6'], avsedd: 'uppfyllt_demo',
     tester: [T.remissVantelista, T.forslag, T.boka, T.vantelista, flode('boka-remiss'), T.abTolka, T.abAnteckning, T.abDiagnos, T.abSakerhet, flode('aterbesok'), T.vhVantelista],
@@ -73,3 +75,6 @@ export default [
     anmarkning: 'Notifieringar utanför systemet och fritt valda tidsperioder saknas.',
   },
 ];
+
+// Runda 6, r4: posterna som byggdes i planering och tidbok, del 2, och remiss, del 2, ersätts ur sussa/planering-r4.js.
+export default medR4(AVSNITT);

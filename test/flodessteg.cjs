@@ -532,6 +532,24 @@ function skapa(BAS) {
     await page.frameLocator('#tillampning-ram iframe').locator('[data-diagram] svg').waitFor({ timeout: 15000 });
     await synlig(page, '[data-tillampning-status]', 'Blodtryck över tid visar');
   };
+  // Runda 6, r4: ingrepp med rum och utrustning, och provtagning före läkarbesök. Systemet föreslår tiderna och bokar
+  // allt samtidigt, så båda flödena är två klick.
+  GOR['boka-ingrepp'] = async (m, page) => {
+    await m.klicka(page.locator('#idag-vantelista tr', { hasText: 'Elkonvertering vid förmaksflimmer' }).locator('[data-atgard="boka"]'), 'Boka tid vid elkonverteringen');
+    await page.locator('dialog[open] .forslag-knapp').first().waitFor();
+    await synlig(page, 'dialog[open] .forslag-resurser', 'Defibrillator');
+    await m.klicka(page.locator('dialog[open] .forslag-knapp').first(), 'den första föreslagna tiden');
+    await synlig(page, '.notis', 'Mikael Svensson har fått en tid');
+    await synlig(page, '.notis', 'Defibrillator');
+  };
+  GOR['boka-kedja'] = async (m, page) => {
+    await m.klicka(page.locator('#idag-vantelista tr', { hasText: 'Återbesök efter elkonverteringen' }).locator('[data-atgard="boka"]'), 'Boka tid vid återbesöket');
+    await page.locator('dialog[open] .forslag-knapp').first().waitFor();
+    await synlig(page, 'dialog[open] .forslag-fore', 'Provtagning klockan');
+    await m.klicka(page.locator('dialog[open] .forslag-knapp').first(), 'det första förslaget med provtagning och läkarbesök');
+    await synlig(page, '.notis', 'Gunnar Åkesson har fått en tid');
+    await synlig(page, '.notis', 'provtagning');
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 

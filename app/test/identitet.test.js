@@ -128,6 +128,22 @@ describe('Identitet', () => {
     expect(dubbletterFor(db2, 'p16')).toEqual([]);
   });
 
+  test('sammanslagning: rader som aldrig får ändras, till exempel en given dos, följer med, och skyddet gäller efteråt', () => {
+    const db = nyDb();
+    const o = db.query("SELECT * FROM ordinationer WHERE patient_id = 'p16' LIMIT 1").get() ?? db.query('SELECT * FROM ordinationer LIMIT 1').get();
+    const tid = '2026-11-02T08:00:00.000Z';
+    const id = db.query(`INSERT INTO administreringar (patient_id, enhet_id, ordination_id, lakemedel_id, planerad, status, dos, dos_enhet, antal, tid, utford_av,
+      registrerad, registrerad_av) VALUES ('p17', ?, ?, ?, ?, 'given', 1, 'st', 1, ?, 'ssk-kard', ?, 'ssk-kard') RETURNING id`).get(o.enhet_id, o.id, o.lakemedel_id, tid, tid, tid).id;
+    const triggrar = () => db.query("SELECT name, sql FROM sqlite_master WHERE type = 'trigger' ORDER BY name").all();
+    const fore = triggrar();
+    slaSamman(db, { fran: 'p17', till: 'p16', personal: personal(db, 'adm-kard'), grund: 'samma_namn_fodd' });
+    expect(db.query('SELECT patient_id, status FROM administreringar WHERE id = ?').get(id)).toEqual({ patient_id: 'p16', status: 'given' });
+    // Triggrarna finns kvar med samma definition, och den givna dosen går fortfarande inte att ändra eller flytta.
+    expect(triggrar()).toEqual(fore);
+    expect(() => db.query("UPDATE administreringar SET status = 'ej_given', orsak = 'Prov' WHERE id = ?").run(id)).toThrow(/ändras inte/);
+    expect(() => db.query("UPDATE administreringar SET patient_id = 'p01' WHERE id = ?").run(id)).toThrow(/ändras inte/);
+  });
+
   test('sammanslagning: journal, spärrar, vårdrelationer och skyddad identitet följer med och den gamla journalen leder till den gällande', () => {
     const db = nyDb();
     const n = (t, id) => db.query(`SELECT count(*) AS n FROM ${t} WHERE patient_id = ?`).get(id).n;

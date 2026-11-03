@@ -412,7 +412,16 @@ export function slaSamman(db, { fran, till, personal, grund, tid = new Date().to
           continue;
         }
       }
-      db.query(`UPDATE ${t} SET patient_id = ? WHERE patient_id = ?`).run(till, fran);
+      // Rader som aldrig får ändras (givna doser, beslut, historik) skyddas av triggrar. De som inte själva släpper
+      // igenom sammanslagningen (sammanslagning_pagar) tas bort under flytten och läggs tillbaka med exakt samma
+      // definition i samma transaktion. Bara patient_id ändras.
+      const skydd = db.query("SELECT name, sql FROM sqlite_master WHERE type = 'trigger' AND tbl_name = ? AND sql LIKE '%UPDATE%' AND sql NOT LIKE '%sammanslagning_pagar%'").all(t);
+      for (const x of skydd) db.exec(`DROP TRIGGER "${x.name}"`);
+      try {
+        db.query(`UPDATE ${t} SET patient_id = ? WHERE patient_id = ?`).run(till, fran);
+      } finally {
+        for (const x of skydd) db.exec(x.sql);
+      }
       flyttade[t] = rader;
     }
     if (db.query("SELECT 1 FROM sqlite_master WHERE name = 'vardnadshavare'").get()) {

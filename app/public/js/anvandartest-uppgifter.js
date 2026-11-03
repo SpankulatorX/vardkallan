@@ -263,6 +263,17 @@ export const UPPGIFTER = [
     text: 'Du vill se hur Gunnar Åkessons blodtryck har förändrats i ett diagram. Kliniken använder en tillämpning som heter Blodtryck över tid. Öppna den för Gunnar.',
     kontroll: { sel: '[data-tillampning-status]', text: 'visar' },
   },
+  // Runda 6, r4: ingrepp med rum och utrustning, och tider i följd.
+  {
+    id: 'boka-ingrepp', namn: 'Boka elkonvertering med rum och utrustning', roll: 'adm-kard', start: 'Vårdadministratörens startsida',
+    text: 'Mikael Svensson står på väntelistan för elkonvertering. Han behöver sjukresa hem efteråt. Ge honom en tid.',
+    kontroll: { notis: 'Mikael Svensson har fått en tid' },
+  },
+  {
+    id: 'boka-kedja', namn: 'Boka provtagning före läkarbesök', roll: 'adm-kard', start: 'Vårdadministratörens startsida',
+    text: 'Gunnar Åkesson ska på återbesök efter elkonverteringen och behöver lämna blodprov en stund före besöket. Ge honom tid för båda.',
+    kontroll: { notis: 'Gunnar Åkesson har fått en tid' },
+  },
 ];
 
 // Deltagarens bakgrund. Bara val, inga fritextfält, så att inga identifierande uppgifter samlas in.

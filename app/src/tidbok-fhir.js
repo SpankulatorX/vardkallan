@@ -6,6 +6,8 @@ import { Fel } from './db.js';
 import { Atkomst, vardenhetFor } from './atkomst.js';
 import { InvanareAtkomst, journaler } from './patientvy.js';
 import * as tidbok from './tidbok.js';
+// Runda 6, r4: incheckning genom FHIR svarar med vårdkontakten som Encounter, som i fhir.js.
+import * as fhir from './fhir.js';
 
 export const TIDBOK_TYPER = ['Schedule', 'Slot', 'Appointment'];
 const ref = (typ, id, display) => ({ reference: `${typ}/${id}`, ...(display ? { display } : {}) });
@@ -128,7 +130,76 @@ function hanteraInvanare(ctx, typ, id, bundle) {
 }
 
 export const capabilityResurser = () => TIDBOK_TYPER.map(t => ({
-  type: t, interaction: [{ code: 'read' }, { code: 'search-type' }],
+  // Runda 6, r4: Appointment kan också skrivas med PATCH, för incheckning.
+  type: t, interaction: [{ code: 'read' }, { code: 'search-type' }, ...(t === 'Appointment' ? [{ code: 'patch' }] : [])],
   searchParam: t === 'Schedule' ? [{ name: '_id', type: 'token' }] : t === 'Slot' ? [{ name: 'schedule', type: 'reference' }, { name: 'start', type: 'date' }] : [{ name: 'patient', type: 'reference' }],
 }));
 export const vardenhetForBokning = (db, b) => vardenhetFor(db, enhetFor(db, b));
+
+// ---------------------------------------------------------------------------------------------------------------
+// Runda 6, r4: incheckning genom FHIR (Sussa 3.4.4.5). En mobil lösning eller en incheckningsskärm kan checka in med
+// PATCH på Appointment/[id] eller på Encounter/[id] för den planerade vårdkontakten, med JSON Patch och bara
+// [{ "op": "replace", "path": "/status", "value": "arrived" }]. Samma behörighet och loggning som i gränssnittet:
+// personalen behöver checka_in och den egna vårdenhetens tid, och invånaren checkar in sin egen tid när incheckningen
+// är öppen. Allt annat än incheckning avvisas, så att FHIR-API:t inte blir en väg runt systemets regler.
+export const SKRIVBARA = ['Appointment', 'Encounter'];
+export const medSkrivning = (cap) => {
+  for (const r of cap.rest?.[0]?.resource ?? []) if (r.type === 'Encounter' && !r.interaction.some(i => i.code === 'patch')) r.interaction.push({ code: 'patch' });
+  return cap;
+};
+
+function tolkaPatch(typ, kropp) {
+  if (!/^application\/json-patch\+json\b/.test(typ ?? '')) throw new Fel(415, 'Skicka JSON Patch med Content-Type application/json-patch+json.', 'ogiltig');
+  let ops;
+  try { ops = JSON.parse(kropp); } catch { throw new Fel(400, 'Ogiltig JSON.', 'ogiltig'); }
+  if (!Array.isArray(ops) || !ops.length) throw new Fel(400, 'JSON Patch ska vara en lista med operationer.', 'ogiltig');
+  const andra = ops.filter(o => o?.op !== 'test');
+  if (andra.length !== 1 || !['replace', 'add'].includes(andra[0].op) || andra[0].path !== '/status' || andra[0].value !== 'arrived') {
+    throw new Fel(422, 'Bara incheckning stöds. Ombokning, avbokning och andra ändringar görs i Vårdkällan, så att systemets regler gäller.', 'ogiltig');
+  }
+}
+
+// ctx som i fhir.js. kropp är texten i förfrågan och typ dess Content-Type.
+export function skriv(ctx, delar, { kropp, typ }) {
+  const { db, personal, invanare } = ctx;
+  const [resurs, id] = delar;
+  if (delar.length !== 2 || !SKRIVBARA.includes(resurs) || !/^\d{1,9}$/.test(id ?? '')) throw new Fel(405, 'Bara Appointment och Encounter kan skrivas, och bara för incheckning.', 'ogiltig');
+  if (!personal && !invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad');
+  tolkaPatch(typ, kropp);
+  let b;
+  if (resurs === 'Appointment') b = db.query('SELECT * FROM bokningar WHERE id = ?').get(Number(id));
+  else {
+    const v = db.query('SELECT * FROM vardkontakter WHERE id = ?').get(Number(id));
+    if (!v) throw new Fel(404, 'Resursen finns inte.', 'saknas');
+    b = db.query("SELECT * FROM bokningar WHERE vardkontakt_id = ? AND status IN ('bokad', 'incheckad') ORDER BY id DESC").get(v.id);
+    if (!b) {
+      if (invanare) throw new Fel(404, 'Resursen finns inte.', 'saknas');
+      // Personalen får veta varför, men bara om patienten är någon som de får se.
+      const atk = new Atkomst(db, personal, v.patient_id, ctx.valFor(v.patient_id), 'checka_in');
+      atk.krav('checka_in', { beskrivning: `fhir/Encounter/${id}:ankomst` });
+      throw new Fel(400, 'Vårdkontakten är ingen bokad tid. Ankomsten registreras i vårdkontakten.', 'ogiltig');
+    }
+  }
+  if (!b) throw new Fel(404, 'Resursen finns inte.', 'saknas');
+  const loggresurs = `fhir/${resurs}/${id}:ankomst`;
+  if (personal) {
+    const atk = new Atkomst(db, personal, b.patient_id, ctx.valFor(b.patient_id), 'checka_in');
+    atk.krav('checka_in', { beskrivning: loggresurs });
+    tidbok.kravEgenVardenhet(atk, enhetFor(db, b), loggresurs);
+    tidbok.checkaInRad(db, b, 'fhir', { av: personal.id });
+    atk.logga('checka_in', atk.grund(), loggresurs);
+  } else {
+    // Invånaren: bara egna tider, och samma regler som i Min journal.
+    const egna = journaler(db, invanare).filter(j => j.atkomst).map(j => j.patientId);
+    if (!egna.includes(b.patient_id)) throw new Fel(404, 'Resursen finns inte.', 'saknas');
+    const atk = new InvanareAtkomst(db, invanare, b.patient_id, ctx.nekade ?? null);
+    atk.krav(loggresurs);
+    const u = tidbok.minBokningUt(db, b);
+    if (!u.kan.checkaIn) throw new Fel(400, u.status === 'incheckad' ? 'Du är redan incheckad.' : 'Incheckningen är öppen från en timme före till en halvtimme efter tiden, för besök på mottagningen.', 'ogiltig');
+    tidbok.checkaInRad(db, b, 'fhir', { avInvanare: invanare.id });
+    atk.logga(loggresurs, { handling: 'checka_in' });
+  }
+  const ny = tidbok.bokningRad(db, b.id);
+  if (resurs === 'Appointment') return { status: 200, body: appointment(db, ny, { invanare: !personal }) };
+  return { status: 200, body: fhir.encounter(db, db.query('SELECT * FROM vardkontakter WHERE id = ?').get(ny.vardkontakt_id)) };
+}

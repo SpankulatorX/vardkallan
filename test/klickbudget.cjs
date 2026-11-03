@@ -45,6 +45,8 @@ const { synlig, gaTill, loggaIn, startI, GOR } = skapa(BAS);
     try {
       // Vid byte av roll återställs demon, så att varje roll börjar med patienterna som i seeden.
       if (roll !== f.roll) {
+        // En tom sida först, så att inget från förra flödet (till exempel en tillämpning i en ram) håller nätverket igång.
+        await page.goto('about:blank');
         await loggaIn(page, f.roll);
         await page.click('[data-a="aterstall"]');
         await synlig(page, '.notis', 'Demon är återställd');

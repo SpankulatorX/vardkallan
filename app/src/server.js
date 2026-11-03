@@ -47,6 +47,10 @@ import * as lakemedelsvyer from './lakemedelsvyer.js';
 import { registreraRutter as lakemedelsansvarRutter, inkorg as lakemedelsansvarInkorg } from './lakemedelsansvar-rutter.js';
 // Runda 6, r5: skrivning via FHIR, prenumerationer, SMART on FHIR och masterdata (oppet-api.js).
 import { skapaOppetApi } from './oppet-api.js';
+// Runda 6, r4: planering och tidbok, del 2, remiss, del 2, egen vårdbegäran och incheckning genom FHIR.
+import { registreraRutter as r4Rutter, inkorg as r4Inkorg, period as r4Period } from './planering-rutter.js';
+import * as planering from './planering.js';
+import * as tidbokFhir from './tidbok-fhir.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -1030,11 +1034,16 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // (startsidan, tidboken och väntelistan) visar bara patienter med vårdrelation på vårdenheten, som arbetslistan.
   const medPost = (c, id, handling, fn) => { kravInloggad(c); const v = tidbok.vantelistaRad(c.db, id); return medPatient(c, v.patient_id, handling, (atk) => fn(atk, v)); };
   const medBokning = (c, id, handling, fn) => { kravInloggad(c); const b = tidbok.bokningRad(c.db, id); return medPatient(c, b.patient_id, handling, (atk) => fn(atk, b)); };
-  rutt('GET', '/api/idag', (c) => { kravRoll(c, 'boka'); return tidbok.startsida(c.db, c.personal); });
-  rutt('GET', '/api/tidbok', (c) => {
+  // Runda 6, r4: Dagens arbete för en fritt vald period och med användarens val av delar, och tidboken med användarens
+  // val av vårdgivare och resurser. Läkare och sjuksköterskor läser tidboken utan att boka.
+  rutt('GET', '/api/idag', (c) => {
     kravRoll(c, 'boka');
+    return { ...tidbok.startsida(c.db, c.personal, r4Period(c.url.searchParams)), vy: planering.vyFor(c.db, c.personal, 'idag').installning };
+  });
+  rutt('GET', '/api/tidbok', (c) => {
+    kravRoll(c, 'las_tidbok');
     const d = c.url.searchParams.get('datum');
-    return tidbok.tidbok(c.db, c.personal, { datum: /^\d{4}-\d{2}-\d{2}$/.test(d ?? '') ? d : idag(), avidentifierad: c.url.searchParams.get('avidentifierad') === '1' });
+    return tidbok.tidbok(c.db, c.personal, { datum: /^\d{4}-\d{2}-\d{2}$/.test(d ?? '') ? d : idag(), avidentifierad: c.url.searchParams.get('avidentifierad') === '1', vy: planering.vyFor(c.db, c.personal, 'tidbok').installning });
   });
   rutt('GET', '/api/vantelista', (c) => { kravRoll(c, 'vantelista'); return { poster: tidbok.vantelista(c.db, c.personal), prioriteringsorsaker: tidbok.OMPRIORITERING, demoregler: tidbok.DEMOREGLER.text }; });
   rutt('GET', '/api/vantelista/:id/forslag', (c, id) => medPost(c, id, 'boka', (atk, v) => tidbok.forslagForPost(atk, v)));
@@ -1104,6 +1113,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...lakemedelsstodInkorg(c, patientKort, patientRad),
       // Runda 6, r6: mallar som väntar på den mallansvariga läkarens godkännande, utan patientuppgifter.
       ...lakemedelsansvarInkorg(c),
+      // Runda 6, r4: egna bevakningar som har löpt ut, den inloggades och vårdenhetens.
+      ...r4Inkorg(c),
     });
   });
   // Runda 6, r1: NEWS2-larmen loggas på patienten en gång per session och mätomgång, som raderna om återinsättning.
@@ -1345,6 +1356,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     provsvar: minJournal.provsvar, remisser: minJournal.remisser, vardkontakter: minJournal.vardkontakter, logglista: minJournal.logglista,
     sparrar: minJournal.sparrvy, tider: tidbok.minaTider,
   };
+  // Runda 6, r4: språket för kallelserna.
+  MIN_DELAR.sprak = planering.minSprak;
   rutt('GET', '/api/min/journal/:id', (c, id) => medMinJournal(c, id, 'min:journal', (atk) => minJournal.huvud(atk)));
   rutt('GET', '/api/min/journal/:id/:del', (c, id, del) => {
     if (!Object.hasOwn(MIN_DELAR, del)) throw new Fel(404, 'Okänd adress.', 'saknas');
@@ -1395,6 +1408,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // Runda 6, r5: tillämpningar i journalen, masterdata och täckningen av API:t. Skrivningen via FHIR går genom R.
   const oppetApi = skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaFranAnnanWebbplats, hamtaSession, inloggade, origin, maxKropp: MAX_KROPP, ...oppetApiVal });
   oppetApi.registreraRutter({ rutt, kravInloggad, medPatient });
+  // Runda 6, r4 (planering-rutter.js).
+  r4Rutter({ rutt, kravInloggad, kravRoll, medPatient, medMinJournal });
 
   // Endpoints som inte behöver en sandlåda.
   const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/krav/sussa', '/api/drift', '/api/lasekopia/krypterad-logg']);
@@ -1447,6 +1462,23 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     return { personal: personal ?? null, invanare };
   }
 
+  // Runda 6, r4: incheckning genom FHIR med PATCH på Appointment och Encounter (tidbok-fhir.js). Samma session,
+  // ursprungskontroll och behörighet som resten av API:t. Andra skrivningar svarar som förut.
+  async function fhirIncheckning(req, url, c) {
+    kontrolleraOrigin(req);
+    const sess = hamtaSession(req);
+    if (sess) Object.assign(c, { s: sess.s, db: sess.s.db, ...inloggade(sess.s) });
+    if (c.invanare) avvisaFranAnnanWebbplats(req);
+    if (!c.db) throw new Fel(401, 'Logga in först.', 'ej_inloggad');
+    const langd = Number(req.headers.get('content-length') || 0);
+    const kropp = langd > MAX_KROPP ? '' : await req.text();
+    if (kropp.length > MAX_KROPP) throw new Fel(413, 'För stor förfrågan.', 'ogiltig');
+    const delar = url.pathname.replace(/^\/fhir\/?/, '').split('/').filter(Boolean);
+    const nekade = c.invanare ? ((c.s.nekadeInvanare ??= {})[c.invanare.id] ??= { antal: 0 }) : null;
+    const r = tidbokFhir.skriv({ db: c.db, personal: c.personal, invanare: c.invanare ?? null, nekade, valFor: (pid) => valFor(c.s, pid) }, delar, { kropp, typ: req.headers.get('content-type') });
+    return new Response(JSON.stringify(r.body), { status: r.status, headers: { 'Content-Type': 'application/fhir+json; charset=utf-8', 'Cache-Control': 'no-store' } });
+  }
+
   async function fhirSvar(req, url, c) {
     // Runda 6, r5: skrivning, prenumerationer, åtkomstbiljetter och SMART-konfigurationen.
     const r5 = await oppetApi.fhir(req, url, c);
@@ -1474,6 +1506,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       let svar;
       try {
         if (url.pathname.startsWith('/api/')) svar = await api(req, srv, url, c);
+        else if (url.pathname.startsWith('/fhir/') && req.method === 'PATCH') svar = await fhirIncheckning(req, url, c);
         else if (url.pathname === '/fhir' || url.pathname.startsWith('/fhir/')) svar = await fhirSvar(req, url, c);
         // Runda 6, r5: OAuth 2.0 för SMART on FHIR.
         else if (url.pathname.startsWith('/oauth/')) svar = await oppetApi.oauth(req, url, c, { arbetslista });
