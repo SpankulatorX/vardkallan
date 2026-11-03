@@ -610,7 +610,9 @@ describe('Min journal', () => {
       }
       for (const r of allt.filter(x => x.resourceType === 'MedicationRequest')) {
         expect(r.extension.map(e => e.url.split('/').pop())).not.toContain('nll-status');
-        expect(r.medicationCodeableConcept.coding.map(c => c.system)).not.toContain('https://vardkallan.404haven.se/fhir/NamingSystem/npl-demo');
+        // Min journal visar inte produktens NPL-id, så FHIR för invånaren gör det inte heller.
+        expect(r.medicationCodeableConcept.coding.filter(c => /npl/i.test(c.system))).toEqual([]);
+        expect(r.medicationCodeableConcept.coding.length).toBeGreaterThan(0);
         expect(Object.keys(r.requester)).toEqual(['display']);
       }
       for (const r of allt.filter(x => x.resourceType === 'Composition')) expect(r.author.every(a => Object.keys(a).join() === 'display')).toBe(true);

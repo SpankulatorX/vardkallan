@@ -595,7 +595,7 @@ export const MAPPA_INVANARE = {
   Flag: flag,
   MedicationRequest: (db, o) => {
     const r = medicationRequest(db, o);
-    r.medicationCodeableConcept.coding = r.medicationCodeableConcept.coding.filter(c => c.system !== SYSTEM.npl);
+    r.medicationCodeableConcept.coding = r.medicationCodeableConcept.coding.filter(c => c.system !== SYSTEM.nplid);
     r.extension = r.extension.filter(e => e.url !== `${EXT}/nll-status`);
     r.requester = utanPersonalId(r.requester);
     return r;
