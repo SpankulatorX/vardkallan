@@ -378,6 +378,7 @@ export function migrera(db) {
     const { tid } = tolkare(nu());
     seedaUppmarksamhet(db, { datum: (n) => tid(n), datumTid: (d) => tid(d) });
   }
+  if (!kolumner('uppmarksamhet').includes('registrerad_enhet')) db.exec('ALTER TABLE uppmarksamhet ADD COLUMN registrerad_enhet TEXT');
   return db;
 }
 

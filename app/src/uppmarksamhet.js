@@ -78,7 +78,8 @@ function raderFor(db, pid, atk = null) {
 }
 
 function postUt(db, r, { medPersonal = true } = {}) {
-  const registrerad = { tid: r.registrerad, vardenhet: { id: vardenhetFor(db, r.enhet_id), namn: enhetsnamn(db, vardenhetFor(db, r.enhet_id)) } };
+  const reg = r.registrerad_enhet ?? r.enhet_id;
+  const registrerad = { tid: r.registrerad, vardenhet: { id: vardenhetFor(db, reg), namn: enhetsnamn(db, vardenhetFor(db, reg)) } };
   if (medPersonal) { const p = personRad(db, r.registrerad_av); Object.assign(registrerad, { av: p?.namn ?? null, titel: p?.titel ?? null }); }
   return {
     id: r.id, kategori: r.kategori, kategoriText: KATEGORIER[r.kategori].namn, undergrupp: r.undergrupp, undergruppText: KATEGORIER[r.kategori].undergrupper[r.undergrupp] ?? r.undergrupp,
@@ -138,7 +139,8 @@ function forslagFor(atk, poster) {
   // Avsluta: uppgifter som kom från en ordination som inte längre är aktuell.
   const avsluta = [];
   for (const p of poster.filter(x => x.kalla?.typ === 'ordination' && x.id)) {
-    const o = db.query('SELECT * FROM ordinationer WHERE id = ?').get(p.kalla.id);
+    // Bara ordinationer som läkaren får se: namnet och orsaken till utsättningen röjer annars spärrade uppgifter.
+    const o = ord.find(x => x.id === p.kalla.id);
     if (!o || ordinationAktuell(o)) continue;
     const ersatt = ordinationer.find(x => x.aktuell && x.id !== o.id && foresla({ ordinationer: [x], diagnoser: [] }).some(f => f.regel === p.regel));
     if (ersatt) continue;
@@ -178,10 +180,16 @@ export function forInvanare(db, pid) {
   return { symbol: symbol(poster), poster };
 }
 
+// En uppgift som systemet har tagit fram ur en diagnos, en ordination eller en överkänslighet sparas på källans enhet, så
+// att källans spärr och inre sekretess följer med. Annars kunde en uppgift som läkaren såg med patientens samtycke bli
+// synlig för alla i vårdgivaren.
+const KALLTABELL = { diagnos: 'diagnoser', ordination: 'ordinationer', overkanslighet: 'overkanslighet' };
+const kallansEnhet = (db, kalla) => (KALLTABELL[kalla?.typ] && kalla.id != null
+  ? db.query(`SELECT enhet_id FROM ${KALLTABELL[kalla.typ]} WHERE id = ?`).get(kalla.id)?.enhet_id ?? null : null);
 const insert = (db, atk, f, status = 'aktiv') => db.query(`INSERT INTO uppmarksamhet (patient_id, enhet_id, kategori, undergrupp, term, motivering, kodsystem, kod, grad,
-    kalla_typ, kalla_id, regel, status, registrerad, registrerad_av) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-  .run(atk.patientId, atk.personal.enhet_id, f.kategori, f.undergrupp, f.term, f.motivering ?? null, f.kod?.system ?? null, f.kod?.kod ?? null, f.grad ?? null,
-    f.kalla?.typ ?? null, f.kalla?.id ?? null, f.regel ?? null, status, iso(), atk.personal.id);
+    kalla_typ, kalla_id, regel, status, registrerad, registrerad_av, registrerad_enhet) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+  .run(atk.patientId, kallansEnhet(db, f.kalla) ?? atk.personal.enhet_id, f.kategori, f.undergrupp, f.term, f.motivering ?? null, f.kod?.system ?? null, f.kod?.kod ?? null, f.grad ?? null,
+    f.kalla?.typ ?? null, f.kalla?.id ?? null, f.regel ?? null, status, iso(), atk.personal.id, atk.personal.enhet_id);
 
 function hittaForslag(atk, nyckel) {
   if (typeof nyckel !== 'string') throw new Fel(400, 'Välj ett förslag.', 'ogiltig', { falt: ['forslag'] });

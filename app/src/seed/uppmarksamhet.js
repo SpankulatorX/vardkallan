@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS uppmarksamhet (
   id INTEGER PRIMARY KEY, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL,
   kategori TEXT NOT NULL, undergrupp TEXT NOT NULL, term TEXT NOT NULL, motivering TEXT,
   kodsystem TEXT, kod TEXT, grad TEXT, kalla_typ TEXT, kalla_id INTEGER, regel TEXT,
-  status TEXT NOT NULL DEFAULT 'aktiv', registrerad TEXT NOT NULL, registrerad_av TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'aktiv', registrerad TEXT NOT NULL, registrerad_av TEXT NOT NULL, registrerad_enhet TEXT,
   avslutad TEXT, avslutad_av TEXT, avslutad_orsak TEXT, kalla TEXT NOT NULL DEFAULT 'vardkallan',
   CHECK (kategori IN ('medicinskt', 'smitta', 'overkanslighet', 'vardrutin')),
   CHECK (status IN ('aktiv', 'avslutad', 'avfard')),

@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import { nyDb, atk, testserver, klient, sandlada } from './hjalp.js';
-import { KATEGORIER, GRADER, TERMER, forHuvud, symbolFor } from '../src/uppmarksamhet.js';
+import { KATEGORIER, GRADER, TERMER, forHuvud, symbolFor, registrera } from '../src/uppmarksamhet.js';
 import * as regler from '../src/uppmarksamhet-regler.js';
 import { personal } from './hjalp.js';
 import { iso, idag } from '../src/db.js';
@@ -173,6 +173,26 @@ describe('Uppmärksamhetsinformation', () => {
     expect(forHuvud(atk(db, 'lak-kard', 'p04')).symbol.vardrutin).toBe(false);
     expect(forHuvud(atk(db, 'lak-kard', 'p04', { samtycke_sparr: true })).symbol.vardrutin).toBe(true);
     expect(forHuvud(atk(db, 'lak-psyk', 'p04')).symbol.vardrutin).toBe(true);
+  });
+
+  test('en bekräftad uppgift ur spärrade uppgifter följer källans spärr, och utsättningen röjs inte i förslagen', () => {
+    const db = nyDb();
+    db.query(`INSERT INTO diagnoser (patient_id, enhet_id, kod, text, typ, datum) VALUES ('p04', 'uso-psyk', 'Z22.3', 'Bärare av andra specificerade patogena bakterier', 'bi', ?)`).run(idag());
+    const medSamtycke = atk(db, 'lak-kard', 'p04', { samtycke_sparr: true }, 'skriv_journal');
+    const f = forHuvud(medSamtycke).forslag.find(x => x.regel === 'smitta-barare');
+    expect(f).toBeTruthy();
+    registrera(medSamtycke, { forslag: f.nyckel });
+    expect(db.query("SELECT enhet_id FROM uppmarksamhet WHERE patient_id = 'p04' AND regel = 'smitta-barare'").get().enhet_id).toBe('uso-psyk');
+    expect(forHuvud(atk(db, 'lak-kard', 'p04')).symbol.smitta).toBe(false);
+    expect(forHuvud(atk(db, 'lak-kard', 'p04', { samtycke_sparr: true })).symbol.smitta).toBe(true);
+    // En uppgift ur en spärrad ordination som har satts ut: förslaget att avsluta, med läkemedlets namn och orsak, visas inte utan samtycke.
+    const o = db.query(`INSERT INTO ordinationer (patient_id, enhet_id, lakemedel_id, dosering, typ, orsak, uppfoljning, start, status, utsatt_tid, utsatt_orsak, ordinerad_av, skapad)
+      SELECT 'p04', 'uso-psyk', id, '1 x 1', 'staende', 'Demo', ?, ?, 'utsatt', ?, 'Hemlig orsak', 'lak-psyk', ? FROM katalog WHERE atc LIKE 'B01AF%' LIMIT 1`).run(idag(), idag(), iso(), iso());
+    db.query(`INSERT INTO uppmarksamhet (patient_id, enhet_id, kategori, undergrupp, term, status, registrerad, registrerad_av, kalla_typ, kalla_id, regel)
+      VALUES ('p04', 'uso-kard', 'medicinskt', 'behandling', 'Antikoagulantiabehandling', 'aktiv', ?, 'lak-kard', 'ordination', ?, 'antikoagulantia')`).run(iso(), o.lastInsertRowid);
+    const utan = forHuvud(atk(db, 'lak-kard', 'p04', {}, 'skriv_journal')).forslag.filter(x => x.typ === 'avsluta');
+    expect(JSON.stringify(utan)).not.toContain('Hemlig orsak');
+    expect(utan).toEqual([]);
   });
 
   test('arbetslistan visar bara kategorierna, utan innehåll', async () => {
