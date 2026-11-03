@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-03T15:05:38.045Z",
+  "tid": "2026-11-03T15:39:44.731Z",
   "bas": "http://127.0.0.1:18124",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "bd3aefa07bfdceb0493fae2867015bea844b7aca73a0dbd8ecb172c0163c7ad5",
+  "gransnittHash": "4ebfc8b54fb6e018b6c1a56e7ca1125fcd6a253c35b4bf85dd58471490f70386",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -637,6 +637,25 @@
         "klick: Avslutad behandling",
         "klick: Avsluta behandlingen"
       ]
+    },
+    {
+      "id": "avvisa-remiss-satt-ut",
+      "namn": "Avvisa en remiss och sätta ut läkemedlet",
+      "roll": "lak-kard",
+      "start": "Inkommande remisser med en vårdhändelse som väntar",
+      "budget": 4,
+      "motivering": "Sussa 3.5.2.7. Ett klick på Bedöm, ett på Avvisa, ett fältbyte för motiveringen och ett för att spara. När Avvisa väljs visar systemet att tiden för vårdhändelsen avbokas och vilket läkemedel som väntar på den, med Sätt ut förvalt och orsaken ifylld, så beslutet fattas medan läkaren har åtkomst.",
+      "klick": 3,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 4,
+      "inomBudget": true,
+      "steg": [
+        "klick: Bedöm",
+        "klick: Avvisa",
+        "fältbyte: motivering",
+        "klick: Spara bedömningen"
+      ]
     }
   ],
   "tester": [
@@ -778,6 +797,10 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Avsluta behandlingen efter ett uppehåll inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Avvisa en remiss och sätta ut läkemedlet inom budget",
       "status": "grön"
     }
   ]

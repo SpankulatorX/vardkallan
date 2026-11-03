@@ -239,8 +239,8 @@ describe('Vårdhändelse i tidboken', () => {
     expect(db(k).query('SELECT count(*) AS n FROM atkomstlogg WHERE resurs = ?').get(`inkorg:vardhandelse_avbokad:${id}`).n).toBe(fore + 1);
     await k.get('/api/inkorg');
     expect(db(k).query('SELECT count(*) AS n FROM atkomstlogg WHERE resurs = ?').get(`inkorg:vardhandelse_avbokad:${id}`).n).toBe(fore + 1);
-    // Bara den ordinerande läkaren, inte vårdenhetens andra läkare eller andra roller.
-    expect(vardhandelse.avbokadeIInkorg(db(k), db(k).query("SELECT * FROM personal WHERE id = 'ol-kard'").get())).toEqual([]);
+    // Den ordinerande läkaren och den ordinerande vårdenhetens andra läkare (beslut 2026-11-03), inte andra roller.
+    expect(vardhandelse.avbokadeIInkorg(db(k), db(k).query("SELECT * FROM personal WHERE id = 'ol-kard'").get()).map(x => x.ordinationId)).toEqual([id]);
     for (const roll of ['ssk-kard', 'adm-kard', 'lak-akut']) {
       const c = await inloggad(roll);
       expect({ roll, rader: ((await c.get('/api/inkorg')).data.avbokadeVardhandelser ?? []).length }).toEqual({ roll, rader: 0 });

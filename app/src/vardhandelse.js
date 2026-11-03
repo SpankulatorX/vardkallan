@@ -330,14 +330,26 @@ export function styrDos(db, { bokningRad = null, postRad = null } = {}) {
 // ordinerande läkarens inkorg, med samma regler som återinsättningsraden: bara patienter som läkaren får se, aldrig en
 // spärrad vårdenhet, och den skyddade formen när läkaren inte längre är på den vårdenhet som har bokningen. Servern
 // lägger till patienten och loggar raden.
+// Mottagare är den ordinerande läkaren och läkarna på den ordinerande vårdenheten. En läkare på vårdenheten som inte
+// längre får se ordinationen, till exempel när avvisningen tog bort den sista vårdrelationen, får en rad utan
+// patientuppgifter med en länk till läkemedelslistan, som kräver aktivt val eller nödåtkomst (beslut 2026-11-03).
 export function avbokadeIInkorg(db, personal) {
   if (!finnsTabell(db) || personal?.yrke !== 'lakare') return [];
   const ve = vardenhetFor(db, personal.enhet_id);
   const ut = [];
   for (const k of db.query(`SELECT k.* FROM vardhandelse_kopplingar k JOIN ordinationer o ON o.id = k.ordination_id
-    WHERE k.remiss_avvisad = 1 AND k.foljer = 1 AND o.status = 'aktiv' AND o.ordinerad_av = ? ORDER BY k.andrad, k.ordination_id`).all(personal.id)) {
+    WHERE k.remiss_avvisad = 1 AND k.foljer = 1 AND o.status = 'aktiv' AND (o.ordinerad_av = ? OR k.enhet_id = ?) ORDER BY k.andrad, k.ordination_id`).all(personal.id, ve)) {
     const o = db.query('SELECT * FROM ordinationer WHERE id = ?').get(k.ordination_id);
-    if (!prova(db, { personal, patient: o.patient_id, handling: 'las_lakemedel', resurs: { enhet_id: o.enhet_id, gemensam: true } }).tillaten) continue;
+    if (!prova(db, { personal, patient: o.patient_id, handling: 'las_lakemedel', resurs: { enhet_id: o.enhet_id, gemensam: true } }).tillaten) {
+      if (k.enhet_id === ve) {
+        ut.push({
+          ordinationId: o.id, patientId: o.patient_id, utanPatient: true,
+          text: 'En läkemedelsdos väntar på en vårdhändelse som avbokades när en remiss avvisades, och du har inte längre grund att se patienten. Öppna läkemedelslistan med aktivt val eller nödåtkomst och besluta om ordinationen.',
+          href: `#/patient/${encodeURIComponent(o.patient_id)}/lakemedel`,
+        });
+      }
+      continue;
+    }
     const t = tillaggRad(db, k.ordination_id);
     const lm = db.query('SELECT namn, styrka FROM katalog WHERE id = ?').get(o.lakemedel_id);
     const full = vardenhetFor(db, k.enhet_id) === ve;
@@ -363,8 +375,16 @@ export function igen(atk, ordinationId) {
   if (vardenhetFor(db, atk.personal.enhet_id) !== k.enhet_id) nekaAnnanEnhet(atk, `ordination:${ordinationId}:vardhandelse_igen`);
   const o = db.query('SELECT status FROM ordinationer WHERE id = ?').get(ordinationId);
   if (!k.remiss_avvisad || !k.foljer || o?.status !== 'aktiv') throw new Fel(400, 'Vårdhändelsen väntar inte på ett beslut. Den står redan på väntelistan, har en tid eller är utsatt.', 'ogiltig');
+  const p = uppIgen(db, ordinationId, atk.personal.id);
+  atk.logga('ordinera', atk.grund(), `vantelista:${p.id}:ny`);
+  return { ordinationId: Number(ordinationId), vardhandelse: kopplingUt(db, ordinationId, { full: true }) };
+}
+
+// Sätter upp vårdhändelsen på den ordinerande vårdenhetens väntelista igen efter en avvisad remiss. Behörigheten prövas
+// av den som anropar (igen ovan, eller remissavvisning.js medan den som avvisar har åtkomst).
+export function uppIgen(db, ordinationId, av) {
+  const k = kopplingRad(db, ordinationId);
   const t = tillaggRad(db, ordinationId);
-  const av = atk.personal.id;
   const p = tidbok.laggPaVantelista(db, {
     patientId: k.patient_id, ve: k.enhet_id, tidstyp: post(db, k.vantelista_id)?.tidstyp ?? 'aterbesok', yrkesroll: post(db, k.vantelista_id)?.yrkesroll ?? 'lakare',
     orsak: t?.vardhandelse || 'Planerad vårdhändelse', mal: addDagar(idag(), 30), av,
@@ -373,6 +393,13 @@ export function igen(atk, ordinationId) {
   db.query("UPDATE vardhandelse_kopplingar SET vantelista_id = ?, bokning_id = NULL, egen_post = 1, remiss_avvisad = 0, lage = 'vantar', forklaring = ?, andrad = ? WHERE ordination_id = ?")
     .run(p.id, vantarText(t?.vardhandelse || 'Vårdhändelsen'), iso(), ordinationId);
   historik(db, ordinationId, av, 'Vårdhändelsen sattes upp på väntelistan igen', 'Läkemedlet ges inte förrän vårdhändelsen har fått en ny tid.');
-  atk.logga('ordinera', atk.grund(), `vantelista:${p.id}:ny`);
-  return { ordinationId: Number(ordinationId), vardhandelse: kopplingUt(db, ordinationId, { full: true }) };
+  return p;
 }
+
+// Vårdhändelser för patienten som följer tidboken och väntar på sin tid, för remissavvisning.js.
+export function vantande(db, patientId) {
+  if (!finnsTabell(db)) return [];
+  return db.query(`SELECT k.* FROM vardhandelse_kopplingar k JOIN ordinationer o ON o.id = k.ordination_id
+    WHERE k.patient_id = ? AND k.foljer = 1 AND k.remiss_avvisad = 0 AND o.status = 'aktiv'`).all(patientId);
+}
+export const remissAvvisad = (db, ordinationId) => Boolean(kopplingRad(db, ordinationId)?.remiss_avvisad);

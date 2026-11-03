@@ -86,6 +86,17 @@ function skapa(BAS) {
     'Vårdadministratörens startsida': async (page) => { await gaTill(page, '#/idag'); await page.waitForSelector('#idag-dagens'); },
     'Översikten för en patient med bokad tid': async (page) => { await gaTill(page, '#/patient/p15'); await page.waitForSelector('.ov-tider'); },
     'Min journal för en patient med bokad tid': async (page) => { await gaTill(page, '#/min/p14'); await page.waitForSelector('.min-band h1'); },
+    // Runda 5, r4: demoläget med en remiss som en vårdhändelse hänger på (POST /api/demo/remiss-vardhandelse).
+    'Inkommande remisser med en vårdhändelse som väntar': async (page) => {
+      await gaTill(page, '#/arbetslista');
+      const ok = await page.evaluate(async () => {
+        await fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        return (await fetch('/api/demo/remiss-vardhandelse', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).ok;
+      });
+      if (!ok) throw new Error('Demoläget kunde inte skapas inför flödet');
+      await gaTill(page, '#/remisser');
+      await page.locator('article.remiss', { hasText: 'Bedömning inför elkonvertering' }).waitFor();
+    },
     // Runda 5, r4: Waran gör uppehåll inför ett ingrepp med återinsättning i morgon. Görs med API:t utanför mätningen.
     'Arbetslistan dagen före en återinsättning': async (page) => {
       await gaTill(page, '#/arbetslista');
@@ -401,6 +412,17 @@ function skapa(BAS) {
       await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Avsluta behandlingen');
       await synlig(page, '.notis', 'Behandlingen med Waran 2,5 mg är avslutad');
       await synlig(page, '#ik-atersatt ~ .tom', 'Inget läkemedel ska sättas in igen');
+    },
+    // Runda 5, r4: avvisningen frågar om läkemedlet som väntar på vårdhändelsen, med Sätt ut förvalt.
+    'avvisa-remiss-satt-ut': async (m, page) => {
+      const kort = page.locator('article.remiss', { hasText: 'Bedömning inför elkonvertering' });
+      await m.klicka(kort.locator('[data-remiss-atgard="bedom"]'), 'Bedöm');
+      await page.locator('dialog[open]').waitFor();
+      await m.klicka(page.locator('dialog[open] #b-avv'), 'Avvisa');
+      await synlig(page, 'dialog[open] [data-avvisning]', 'Sätt ut eller behåll?');
+      await m.skriv(page.locator('dialog[open] #b-mot'), 'Handläggs i primärvården.', 'motivering');
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Spara bedömningen');
+      await synlig(page, '.notis', 'Omeprazol Sandoz 20 mg är utsatt');
     },
   };
   return { synlig, gaTill, loggaIn, startI, GOR };

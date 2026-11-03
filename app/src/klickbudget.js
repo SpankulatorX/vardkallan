@@ -167,4 +167,9 @@ export const FLODEN = [
     id: 'avsluta-aterinsattning', namn: 'Avsluta behandlingen efter ett uppehåll', roll: 'lak-kard', start: 'Arbetslistan dagen före en återinsättning', budget: 3,
     motivering: 'Sussa 3.5.2.8. Ett klick till inkorgen, ett på Avslutad behandling för raden och ett för att avsluta. Systemet föreslår orsaken och har den vanligaste förvald, sparar vem och när, och raden försvinner för alla som har fått den.',
   },
+  // Runda 5, r4: en avvisning som avbokar en vårdhändelse frågar om läkemedlet i samma dialog (Sussa 3.5.2.7).
+  {
+    id: 'avvisa-remiss-satt-ut', namn: 'Avvisa en remiss och sätta ut läkemedlet', roll: 'lak-kard', start: 'Inkommande remisser med en vårdhändelse som väntar', budget: 4,
+    motivering: 'Sussa 3.5.2.7. Ett klick på Bedöm, ett på Avvisa, ett fältbyte för motiveringen och ett för att spara. När Avvisa väljs visar systemet att tiden för vårdhändelsen avbokas och vilket läkemedel som väntar på den, med Sätt ut förvalt och orsaken ifylld, så beslutet fattas medan läkaren har åtkomst.',
+  },
 ];

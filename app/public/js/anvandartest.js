@@ -114,6 +114,11 @@ const FORBERED = {
     const imorgon = new Date(Date.now() + 86400_000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
     if (w) await api(`/api/ordination/${w.id}/utsatt`, { metod: 'POST', data: { plan: { typ: 'uppehall', aterinsattning: imorgon } } });
   },
+  // Demoläget med en remiss som en vårdhändelse hänger på, som i test/flodessteg.cjs.
+  'remiss-vardhandelse': async () => {
+    await aterstallDemo();
+    await api('/api/demo/remiss-vardhandelse', { metod: 'POST', data: {} });
+  },
 };
 
 // Uppgiften börjar på samma sätt som i skriptet: vid byte av demoroll loggas rollen in och demon återställs, så att

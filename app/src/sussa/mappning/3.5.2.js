@@ -33,6 +33,15 @@ const VH_IGEN = [
   `${VH}raden om den avbokade vårdhändelsen försvinner när ordinationen sätts ut, och visar inte spärrade uppgifter`,
 ];
 const AV = 'Avslutad behandling efter uppehåll > ';
+// Avvisad remiss med vårdhändelse: beslutet fattas i samma ögonblick (runda 5, r4, app/test/remissavvisning.test.js).
+const RA = 'Avvisad remiss med vårdhändelse > ';
+const RA_TESTER = [
+  `${RA}avvisningen som tar bort den sista vårdrelationen kräver ett beslut innan den sparas, och inget sparas utan det`,
+  `${RA}Sätt ut: ordinationen sätts ut med orsaken som systemet föreslår, remissen avvisas och ingen rad hamnar i inkorgen`,
+  `${RA}Behåll finns bara när den ordinerande läkaren eller en annan vårdenhet har grund, och sätter då upp vårdhändelsen igen`,
+  `${RA}säkerhet: ett läkemedel som den som avvisar inte får se sätts inte ut, och vårdenhetens läkare får besked utan patientuppgifter`,
+  `${RA}säkerhet: bara vårdenhetens läkare som remissen är ställd till kan förhandsvisa och avvisa, och nekade försök loggas`,
+];
 
 export default [
   {
@@ -99,7 +108,7 @@ export default [
   },
   {
     id: '3.5.2.7', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
-    tester: [`${FO}ordination till planerad vårdhändelse får administrationstid när händelsen tidsätts`, TB.vhForslag, TB.vhBokning, TB.vhOmboka, TB.vhVantelista, TB.vhManuell, TB.vhSakerhet, TB.vhSparr, ...VH_IGEN],
+    tester: [`${FO}ordination till planerad vårdhändelse får administrationstid när händelsen tidsätts`, TB.vhForslag, TB.vhBokning, TB.vhOmboka, TB.vhVantelista, TB.vhManuell, TB.vhSakerhet, TB.vhSparr, ...VH_IGEN, ...RA_TESTER, `${GK}Avvisa en remiss och sätta ut läkemedlet inom budget`],
     losning: 'En ordination kan knytas till en planerad vårdhändelse, till exempel två timmar före en elkonvertering. Vårdhändelsen är en bokning i tidboken på den egna vårdenheten, eller en post på väntelistan som vårdadministratören bokar. Dosen väntar i administreringslistan tills vårdhändelsen har fått en tid, och tiden följer bokningen när den bokas, bokas om eller avbokas. Avbokas tiden sätts vårdhändelsen upp på den ordinerande vårdenhetens väntelista igen.',
     expert: 'Systemet föreslår patientens bokningar med den som passar ordinationen först, eller sätter upp vårdhändelsen på väntelistan, så läkaren väljer med ett klick. När tiden ändras i tidboken räknar systemet om dosen utan att någon gör något, sätter vid en avbokning själv upp vårdhändelsen på väntelistan igen och förklarar för sjuksköterskan varför dosen flyttades eller väntar.',
     anmarkning: 'Tidboken har bara personal som resurs, så en vårdhändelse bokas som ett återbesök hos läkare. Operationsplanering och bokning av lokal och utrustning saknas. En vårdenhet utan tidbok i demon tidsätter vårdhändelsen för hand.',

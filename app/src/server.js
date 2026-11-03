@@ -25,6 +25,8 @@ import * as vardhandelse from './vardhandelse.js';
 import * as aterbesok from './aterbesok.js';
 // Återinsättning efter ett uppehåll med antikoagulantia i läkarens inkorg (runda 5, r4).
 import * as aterinsattning from './aterinsattning.js';
+// Avvisad remiss med en vårdhändelse som ett läkemedel väntar på (runda 5, r4).
+import * as remissavvisning from './remissavvisning.js';
 import { kravregister, lasTestresultat } from './krav.js';
 import { sussaRegister } from './sussa/index.js';
 import { lasKlientresultat, gransnittHash } from './klientresultat.js';
@@ -933,7 +935,11 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   };
   rutt('POST', '/api/remiss/:id/mottag', (c, id) => medRemiss(c, id, 'mottag_remiss', (atk, r) => remiss.mottag(atk, r)));
   // En accepterad remiss hamnar på väntelistan av sig själv (tidbok.js). Läkaren kan ange tidstyp och yrkesroll.
+  // Runda 5, r4: förhandsvisningen av en avvisning, och avvisningen med beslut om läkemedel som väntar på en vårdhändelse.
+  rutt('GET', '/api/remiss/:id/avvisning', (c, id) => medRemiss(c, id, 'bedom_remiss', (atk, r) => remissavvisning.forhandsvisa(atk, r)));
+  rutt('POST', '/api/demo/remiss-vardhandelse', (c) => { kravInloggad(c); return remissavvisning.demo(c.db, c.personal); });
   rutt('POST', '/api/remiss/:id/bedom', (c, id) => medRemiss(c, id, 'bedom_remiss', (atk, r) => {
+    if (c.body.beslut === 'avvisad') return remissavvisning.avvisa(atk, r, c.body);
     const ut = remiss.bedom(atk, r, c.body);
     if (c.body.beslut === 'accepterad') ut.vantelista = tidbok.efterBedomning(c.db, remiss.hamtaRad(c.db, r.id), c.body);
     // En avvisad remiss är inte längre grund för de tider som bokades på den.
@@ -1053,11 +1059,15 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   function avbokadeIInkorg(c) {
     const loggade = (c.s.vardhandelseAvbokadLoggad ??= new Set());
     return vardhandelse.avbokadeIInkorg(c.db, c.personal).map(r => {
-      if (!loggade.has(r.ordinationId)) {
-        loggade.add(r.ordinationId);
+      // En rad utan grund visar inga patientuppgifter och loggas som sådan (runda 5, r4).
+      const resurs = `inkorg:vardhandelse_avbokad${r.utanPatient ? '_utan_grund' : ''}:${r.ordinationId}`;
+      if (!loggade.has(resurs)) {
+        loggade.add(resurs);
         const a = new Atkomst(c.db, c.personal, r.patientId, {}, 'las_lakemedel');
-        a.logga('las_lakemedel', a.prova('las_lakemedel').grund, `inkorg:vardhandelse_avbokad:${r.ordinationId}`);
+        const p = a.prova('las_lakemedel');
+        a.logga('las_lakemedel', p.tillaten ? p.grund : 'administrativ', resurs);
       }
+      if (r.utanPatient) { const { patientId: _pid, ...rest } = r; return rest; }
       return { ...r, patient: patientKort(patientRad(c.db, r.patientId)) };
     });
   }

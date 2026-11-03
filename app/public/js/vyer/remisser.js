@@ -80,7 +80,10 @@ export function kopplaAtgarder(behallare, hamta, efter) {
     const r = hamta(id);
     const typ = b.dataset.remissAtgard;
     let data = {};
+    // Runda 5, r4: vad en avvisning gör med läkemedel som väntar på en vårdhändelse hämtas redan när dialogen öppnas.
+    let avvisning = null;
     if (typ === 'bedom') {
+      const forhand = api(`/api/remiss/${id}/avvisning`, { tyst: true }).catch(() => null);
       const svar = await dialog(`<form><h2 id="dlg-rubrik">Bedöm remissen</h2>
         <p>Från ${esc(r.fran.namn)}. ${esc(r.fragestallning ?? '')}</p>
         <fieldset class="radiogrupp"><legend>Beslut</legend>
@@ -88,11 +91,28 @@ export function kopplaAtgarder(behallare, hamta, efter) {
           <div class="radio"><input type="radio" id="b-avv" name="beslut" value="avvisad"><label for="b-avv">Avvisa</label></div>
         </fieldset>
         <div class="falt"><label for="b-mot">Motivering <span class="obl">(obligatorisk vid avvisning)</span></label><textarea id="b-mot" name="motivering" rows="3" maxlength="2000"></textarea></div>
+        <div class="b-avvisning" data-avvisning hidden></div>
         <p class="dialog-fel form-fel" role="alert" hidden></p>
         <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Spara bedömningen</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`,
-      { validera: (x) => (x.beslut === 'avvisad' && x.motivering.trim().length < 3 ? 'En avvisad remiss måste ha en motivering.' : null) });
+      {
+        validera: (x) => (x.beslut === 'avvisad' && x.motivering.trim().length < 3 ? 'En avvisad remiss måste ha en motivering.' : null),
+        onOpen: (dl) => {
+          const plats = dl.querySelector('[data-avvisning]');
+          const visa = () => { plats.hidden = !(dl.querySelector('#b-avv').checked && plats.innerHTML); };
+          dl.querySelectorAll('input[name="beslut"]').forEach(r => r.addEventListener('change', visa));
+          forhand.then((f) => {
+            if (!f || (!f.vardhandelser.length && !f.dolda) || !plats.isConnected) return;
+            avvisning = f;
+            plats.innerHTML = avvisningHtml(f);
+            visa();
+          });
+        },
+      });
       if (!svar) return;
       data = { beslut: svar.data.beslut, motivering: svar.data.motivering.trim() };
+      if (data.beslut === 'avvisad' && avvisning?.vardhandelser.length) {
+        data.vardhandelser = avvisning.vardhandelser.map(v => ({ ordinationId: v.ordinationId, val: svar.data[`vh_${v.ordinationId}`], orsak: svar.data[`orsak_${v.ordinationId}`] }));
+      }
     } else if (typ === 'svara') {
       const svar = await dialog(`<form><h2 id="dlg-rubrik">Svara på remissen</h2>
         <p>Frågeställning: ${esc(r.fragestallning ?? '')}</p>
@@ -107,11 +127,27 @@ export function kopplaAtgarder(behallare, hamta, efter) {
     b.disabled = true;
     try {
       const ny = await api(`/api/remiss/${id}/${vag}`, { metod: 'POST', data });
-      notis({ mottag: 'Remissen är kvitterad som mottagen.', bedom: ny.beslut === 'avvisad' ? 'Remissen är avvisad. Remittenten ser motiveringen.' : 'Remissen är accepterad.', svara: 'Svaret är skickat till remittenten.', kvittera: 'Svaret är kvitterat. Remisskedjan är avslutad.' }[typ]);
+      // Läkemedel som sattes ut eller behölls vid avvisningen, och läkemedel som den som avvisar inte kan se (runda 5, r4).
+      const utsatta = (ny.vardhandelser ?? []).filter(v => v.val === 'satt_ut').map(v => avvisning?.vardhandelser.find(x => x.ordinationId === v.ordinationId)?.lakemedel).filter(Boolean);
+      if (utsatta.length) notis(`Remissen är avvisad, och ${utsatta.join(' och ')} är utsatt.`);
+      if (ny.dolda) notis(ny.dolda, 'info');
+      if (!utsatta.length) notis({ mottag: 'Remissen är kvitterad som mottagen.', bedom: ny.beslut === 'avvisad' ? 'Remissen är avvisad. Remittenten ser motiveringen.' : 'Remissen är accepterad.', svara: 'Svaret är skickat till remittenten.', kvittera: 'Svaret är kvitterat. Remisskedjan är avslutad.' }[typ]);
       await uppdateraInkorg();
       efter(ny);
     } catch (err) { felNotis(err); if (b.isConnected) b.disabled = false; }
   });
+}
+
+// Frågan när en avvisning avbokar en vårdhändelse som ett läkemedel väntar på (runda 5, r4). Sätt ut är förvalt med
+// systemets orsak, Behåll visas bara när någon fortfarande har grund, och Avbryt i dialogen avvisar inte remissen.
+function avvisningHtml(f) {
+  return `${f.vardhandelser.map(v => `<fieldset class="radiogrupp"><legend>${esc(v.fraga)}</legend>
+      <div class="radio"><input type="radio" id="vh-${v.ordinationId}-ut" name="vh_${v.ordinationId}" value="satt_ut" checked><label for="vh-${v.ordinationId}-ut">Sätt ut</label></div>
+      ${v.kanBehalla ? `<div class="radio"><input type="radio" id="vh-${v.ordinationId}-beh" name="vh_${v.ordinationId}" value="behall"><label for="vh-${v.ordinationId}-beh">Behåll och sätt upp vårdhändelsen igen</label></div>` : `<p class="hjalp">${esc(v.varforInteBehalla)}</p>`}
+      <div class="falt"><label for="vh-${v.ordinationId}-orsak">Orsak till utsättningen</label><input id="vh-${v.ordinationId}-orsak" name="orsak_${v.ordinationId}" value="${esc(v.orsak)}" maxlength="300"></div>
+    </fieldset>`).join('')}
+    ${f.dolda ? `<p class="hjalp">${esc(f.dolda)}</p>` : ''}
+    ${f.vardhandelser.length ? '<p class="hjalp">Välj Avbryt om remissen inte ska avvisas.</p>' : ''}`;
 }
 
 export async function visa(main, _p, q) {

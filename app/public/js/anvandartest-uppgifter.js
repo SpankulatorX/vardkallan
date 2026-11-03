@@ -22,6 +22,7 @@ export const STARTPUNKT = {
   'Översikten för en patient med bokad tid': { hash: '#/patient/p15', klar: '.ov-tider' },
   // Runda 5, r4: forbered görs av anvandartest.js innan uppgiften börjar (Waran gör uppehåll med återinsättning i morgon).
   'Arbetslistan dagen före en återinsättning': { hash: '#/arbetslista', klar: '#lista table', forbered: 'uppehall-waran' },
+  'Inkommande remisser med en vårdhändelse som väntar': { hash: '#/remisser', klar: 'article.remiss', forbered: 'remiss-vardhandelse' },
 };
 
 export const UPPGIFTER = [
@@ -198,6 +199,11 @@ export const UPPGIFTER = [
     id: 'avsluta-aterinsattning', namn: 'Avsluta behandlingen efter ett uppehåll', roll: 'lak-kard', start: 'Arbetslistan dagen före en återinsättning',
     text: 'Gunnar Åkesson har gjort uppehåll med Waran inför ett ingrepp. Efter ingreppet har ni bestämt att han inte behöver behandlingen längre. Se till att ingen sätter in den igen.',
     kontroll: { notis: 'är avslutad' },
+  },
+  {
+    id: 'avvisa-remiss-satt-ut', namn: 'Avvisa en remiss och sätta ut läkemedlet', roll: 'lak-kard', start: 'Inkommande remisser med en vårdhändelse som väntar',
+    text: 'Birgitta Nyman är remitterad från vårdcentralen för elkonvertering. Du bedömer att hon ska handläggas i primärvården. Avvisa remissen, och se till att inget läkemedel väntar på ett ingrepp som inte blir av.',
+    kontroll: { notis: 'Remissen är avvisad' },
   },
 ];
 
