@@ -1,9 +1,10 @@
 // Journalen: anteckningar per enhet och typ, läsning med versioner, ny anteckning från mall, utkast, signering och rättelse.
-import { esc, api, tidpunkt, datum, migreradEtikett, notis, faltFel, medKnapp, ikon, ApiFel } from '../ui.js';
+import { esc, api, tidpunkt, datum, migreradEtikett, notis, faltFel, medKnapp, ikon, ApiFel, felNotis } from '../ui.js';
 import { far, S, minVardenhet, uppdateraInkorg, vardenhetAv as enhetsVardenhet } from '../app.js';
 import { doldaRad, kravRuta } from './patient.js';
 import { dokumenterasHtml, kopplaDokumenteras, nyKontaktData, kontaktNotis } from './patient-vardkontakt.js';
 import * as kontrasignering from '../kontrasignering.js';
+import { satUppAterbesok } from './patient-tider.js';
 
 let mallar = null;
 const filter = { enhet: '', typ: '' };
@@ -72,11 +73,13 @@ async function lasAnteckning(las, ctx, id) {
   const senaste = a.versioner.at(-1);
   const aldre = a.versioner.slice(0, -1).reverse();
   const kanRatta = !senaste.ersatt && senaste.status === 'signerad' && kanSkriva(senaste.kategori) && enhetsVardenhet(senaste.enhet.id) === minVardenhet();
+  // Runda 5, r1: från en signerad anteckning föreslår systemet återbesöket ur anteckningens planering (Sussa 3.4.1.1).
+  const kanAterbesok = senaste.status === 'signerad' && far('skriv_journal');
   las.innerHTML = `<article class="anteckning" aria-labelledby="ant-rubrik">
       ${anteckningHuvud(senaste, 'ant-rubrik', a.id !== senaste.id ? `<p class="ruta ruta-info liten">Du öppnade version ${a.version}. Här visas den gällande versionen ${senaste.version}.</p>` : '')}
       ${sokordHtml(senaste.sokord)}
       ${kontrasignering.html(a, senaste)}
-      ${kanRatta ? `<div class="knapprad"><button type="button" class="knapp sekundar" data-ratta>${ikon.penna}<span>Rätta anteckningen</span></button></div>` : ''}
+      ${kanRatta || kanAterbesok ? `<div class="knapprad" data-skriv>${kanRatta ? `<button type="button" class="knapp sekundar" data-ratta>${ikon.penna}<span>Rätta anteckningen</span></button>` : ''}${kanAterbesok ? `<button type="button" class="knapp sekundar" data-aterbesok>${ikon.kalender}<span>Återbesök</span></button>` : ''}</div>` : ''}
       ${aldre.length ? `<section class="versioner" aria-labelledby="ver-rubrik"><h3 id="ver-rubrik">Tidigare versioner</h3>
         <p class="dampad liten">En signerad anteckning ändras aldrig. En rättelse blir en ny version, och den tidigare står kvar överstruken men läsbar.</p>
         ${aldre.map(v => `<div class="version-gammal">
@@ -85,6 +88,7 @@ async function lasAnteckning(las, ctx, id) {
         </div>`).join('')}</section>` : ''}
     </article>`;
   las.querySelector('[data-ratta]')?.addEventListener('click', () => rattaForm(las, ctx, senaste));
+  las.querySelector('[data-aterbesok]')?.addEventListener('click', () => satUppAterbesok(ctx.id, ctx.patient?.namn ?? 'patienten', senaste.id).catch(felNotis));
   kontrasignering.koppla(las, a, () => ctx.ladda());
 }
 

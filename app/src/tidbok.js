@@ -19,6 +19,9 @@ import { kanRoll, vardenhetFor, enheterUnder, harVardrelation, visningsnamn, vis
 import { avgiftFor, gerVardrelation } from './vardkontakt.js';
 import * as identitet from './identitet.js';
 import * as SEED from './seed/tidbok.js';
+// Planerad vårdhändelse (vardhandelse.js): tiden i tidboken styr när en läkemedelsdos ska ges.
+import { synka as synkaVardhandelser, styrDos, sakraSchema as sakraVardhandelser, STYR_LAKEMEDEL } from './vardhandelse.js';
+export { STYR_LAKEMEDEL };
 
 // Tidstyperna. kontaktsatt är vårdkontaktens kontaktsätt, och fysiska besök checkas in.
 export const TIDSTYPER = {
@@ -29,6 +32,9 @@ export const TIDSTYPER = {
   grupp: { text: 'Gruppträff', min: 120, kontaktsatt: 'besok', fysisk: true },
 };
 export const YRKESROLL = { lakare: 'läkare', sjukskoterska: 'sjuksköterska' };
+// Tidstyper som patienten någonsin kan boka, boka om och avboka själv i Min journal (beslut 2026-11-03). Ett nybesök
+// eller en gruppträff bokas alltid av mottagningen, också om en mottagning skulle öppna dem i sina regler.
+export const EGENBOKNING_TIDSTYPER = ['aterbesok', 'telefon', 'video'];
 export const PRIORITET = { hog: 'Hög', normal: 'Normal', lag: 'Låg' };
 const PRIO_ORDNING = { hog: 0, normal: 1, lag: 2 };
 export const KANAL = { min_journal: 'Min journal', sms: 'Sms', brev: 'Brev' };
@@ -109,6 +115,7 @@ CREATE TABLE IF NOT EXISTS bevakningar (
 export function utokaTidbok(db) {
   const fanns = Boolean(db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'tider'").get());
   db.exec(SCHEMA);
+  sakraVardhandelser(db);
   return !fanns;
 }
 
@@ -131,7 +138,7 @@ export function seedaTidbok(db, { bas = new Date() } = {}) {
   for (const p of SEED.TIDBOK_PERSONAL) insP.run(p.id, p.namn, p.yrke, p.titel, p.enhet, p.hsa);
   for (const s of SEED.SCHEMAN) db.query('INSERT OR IGNORE INTO scheman VALUES (?, ?, ?, ?)').run(s.id, s.enhet, s.personal, s.yrkesroll);
   for (const r of SEED.EGENBOKNING) for (const t of Object.keys(TIDSTYPER)) {
-    db.query('INSERT OR IGNORE INTO tidboksregler VALUES (?, ?, ?)').run(r.enhet, t, r.tidstyper.includes(t) ? 1 : 0);
+    db.query('INSERT OR IGNORE INTO tidboksregler VALUES (?, ?, ?)').run(r.enhet, t, r.tidstyper.includes(t) && EGENBOKNING_TIDSTYPER.includes(t) ? 1 : 0);
   }
   for (const k of SEED.KANALVAL) db.query('INSERT OR IGNORE INTO kanalval VALUES (?, ?)').run(k.patient, k.kanal);
   const insT = db.query('INSERT INTO tider (schema_id, start, slut, tidstyp, platser, rubrik, relativ) VALUES (?, ?, ?, ?, ?, ?, ?)');
@@ -165,7 +172,7 @@ export function seedaTidbok(db, { bas = new Date() } = {}) {
       tid = db.query('SELECT * FROM tider WHERE id = ?').get(Number(id));
     }
     const bokad = new Date(Date.parse(lokalTid(addDagar(basDatum, b.bokad), '09:00'))).toISOString();
-    const bok = skapaBokning(db, { patientId: b.patient, tid, orsak: null, av: b.bokadAv, bokad });
+    const bok = skapaBokning(db, { patientId: b.patient, tid, orsak: b.orsak ?? null, av: b.bokadAv, bokad });
     if (b.incheckad) {
       const t = new Date(round5(bas.getTime() + b.incheckad.min * MIN)).toISOString();
       db.query("UPDATE bokningar SET status = 'incheckad', incheckad = ?, incheckad_via = ?, konummer = ? WHERE id = ?").run(t, b.incheckad.via, konummerFor(db, tid, t), bok.id);
@@ -366,6 +373,7 @@ export function efterAvvisning(db, r, personal) {
     db.query("UPDATE vantelista SET status = 'avslutad' WHERE id = ?").run(v.id);
     vlHandelse(db, v.id, 'avslutad', { av: personal.id, detalj: 'Remissen avvisades. Systemet avslutade posten.' });
   }
+  synkaVardhandelser(db, r.patient_id, { av: personal.id });
   return n;
 }
 
@@ -396,6 +404,8 @@ export function vantelistaUt(db, post, dag = idag()) {
     orsak: post.orsak, fran: post.fran, vantatDagar: dagarMellan(post.fran, dag), mal: post.mal, grans: g, patientvald: Boolean(post.patientvald),
     remiss: r ? { id: post.remiss_id, fran: enhetKort(db, r.fran_enhet_id) } : null, onskad: personKort(db, post.onskad_personal_id),
     status: post.status, bokningId: post.bokning_id ?? null, skapad: post.skapad, skapadAv: personKort(db, post.skapad_av),
+    // Planerad vårdhändelse: att tiden styr en läkemedelsdos, aldrig vilket läkemedel (vardhandelse.js).
+    styrLakemedel: styrDos(db, { postRad: post }) ? STYR_LAKEMEDEL : null,
     handelser: db.query('SELECT * FROM vantelista_handelser WHERE vantelista_id = ? ORDER BY tid, id').all(post.id)
       .map(h => ({ typ: h.typ, tid: h.tid, av: personKort(db, h.av), avPatienten: Boolean(h.av_invanare), detalj: h.detalj })),
   };
@@ -443,13 +453,21 @@ export function nyPost(atk, body = {}) {
   const inom = Number(body.inomDagar ?? 30);
   if (!Number.isInteger(inom) || inom < 1 || inom > 365) throw new Fel(400, 'Ange inom hur många dagar patienten ska få tid, högst ett år.', 'ogiltig', { falt: ['inomDagar'] });
   const ve = vardenhetFor(db, atk.personal.enhet_id);
-  const onskad = tidigareVardgivare(db, atk.patientId, ve, yrkesroll)[0] ?? null;
   const orsak = (typeof body.orsak === 'string' && body.orsak.trim().slice(0, 120)) || `${TIDSTYPER[tidstyp].text} hos ${YRKESROLL[yrkesroll]}`;
+  const post = laggPaVantelista(db, { patientId: atk.patientId, ve, tidstyp, yrkesroll, orsak, mal: addDagar(idag(), inom), av: atk.personal.id });
+  atk.logga('vantelista', atk.grund(), `vantelista:${post.id}:ny`);
+  return [201, vantelistaUt(db, post)];
+}
+
+// En ny post på väntelistan, gemensam för vårdadministratörens nya post, läkarens återbesök (aterbesok.js) och en
+// planerad vårdhändelse (vardhandelse.js). Behörigheten prövas av den som anropar. Systemet sätter den vårdgivare
+// patienten har träffat förut som önskad, om inget annat anges, och prioriteten normal.
+export function laggPaVantelista(db, { patientId, ve, tidstyp, yrkesroll, orsak, mal, av, onskad, detalj = null }) {
+  const vg = onskad === undefined ? tidigareVardgivare(db, patientId, ve, yrkesroll)[0] ?? null : onskad;
   const id = Number(db.query(`INSERT INTO vantelista (patient_id, enhet_id, tidstyp, yrkesroll, prioritet, orsak, onskad_personal_id, fran, mal, skapad, skapad_av)
-    VALUES (?, ?, ?, ?, 'normal', ?, ?, ?, ?, ?, ?)`).run(atk.patientId, ve, tidstyp, yrkesroll, orsak, onskad, idag(), addDagar(idag(), inom), iso(), atk.personal.id).lastInsertRowid);
-  vlHandelse(db, id, 'skapad', { av: atk.personal.id, detalj: orsak });
-  atk.logga('vantelista', atk.grund(), `vantelista:${id}:ny`);
-  return [201, vantelistaUt(db, vantelistaRad(db, id))];
+    VALUES (?, ?, ?, ?, 'normal', ?, ?, ?, ?, ?, ?)`).run(patientId, ve, tidstyp, yrkesroll, orsak, vg, idag(), mal, iso(), av).lastInsertRowid);
+  vlHandelse(db, id, 'skapad', { av, detalj: detalj ?? orsak });
+  return vantelistaRad(db, id);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -588,6 +606,8 @@ export function boka(atk, post, body = {}) {
   const b = skapaBokning(db, { patientId: post.patient_id, tid, orsak: post.orsak, av: atk.personal.id, vantelistaId: post.id, remissId: post.remiss_id, relation });
   db.query("UPDATE vantelista SET status = 'bokad', bokning_id = ? WHERE id = ?").run(b.id, post.id);
   vlHandelse(db, post.id, 'bokad', { av: atk.personal.id, detalj: `${TIDSTYPER[tid.tidstyp].text} ${tidText(tid.start)}` });
+  // En vårdhändelse som en läkemedelsdos väntar på får sin tid, och dosen räknas fram av systemet.
+  synkaVardhandelser(db, post.patient_id, { av: atk.personal.id });
   const kallelse = skickaKallelse(db, b, 'kallelse', { av: atk.personal.id });
   atk.logga('boka', atk.grund(), `bokning:${b.id}`);
   return [201, { ...bokningUt(db, bokningRad(db, b.id), { personal: atk.personal, visaIdentitet: atk.val?.visa_identitet }), kallelse: kallelseUt(kallelse, skydd(db, b.patient_id, atk.val?.visa_identitet)) }];
@@ -610,6 +630,8 @@ function ombokaRad(db, b, tid, { av = null, avInvanare = null }) {
     vlHandelse(db, b.vantelista_id, 'ombokad', { av, avInvanare, detalj: `Ny tid ${tidText(tid.start)}` });
   }
   const nyRad = bokningRad(db, ny);
+  // Styr tiden en läkemedelsdos räknar systemet om den (vardhandelse.js).
+  synkaVardhandelser(db, b.patient_id, { av });
   return { ny: nyRad, kallelse: skickaKallelse(db, nyRad, 'ombokning', { av }) };
 }
 
@@ -646,6 +668,8 @@ function avbokaRad(db, b, { av = null, avInvanare = null, orsak = null }) {
     db.query('INSERT INTO bevakningar (patient_id, enhet_id, text, forfaller, vantelista_id, skapad, skapad_av) VALUES (?, ?, ?, ?, ?, ?, NULL)')
       .run(b.patient_id, vardenhetFor(db, enhet), 'Patienten avbokade sin tid i Min journal. Erbjud en ny tid.', idag(), b.vantelista_id ?? null, iso());
   }
+  // En läkemedelsdos som väntade på tiden går tillbaka till att vänta på vårdhändelsen (vardhandelse.js).
+  synkaVardhandelser(db, b.patient_id, { av });
   return skickaKallelse(db, bokningRad(db, b.id), 'avbokning', { av });
 }
 
@@ -937,6 +961,8 @@ export function bokningUt(db, b, { personal = null, visaIdentitet = false } = {}
     incheckad: b.incheckad ?? (incheckad ? v.ankomst : null), incheckadVia: b.incheckad_via ?? (incheckad ? 'registrerad' : null), konummer: b.konummer, bekraftad: b.bekraftad,
     betalning: betalning ? { belopp: betalning.belopp, satt: betalning.satt, sattText: BETALSATT[betalning.satt], tid: betalning.tid, kvitto: betalning.kvitto, text: betalning.text } : null,
     kallelser: kallelser.map(k => kallelseUt(k, skydd(db, b.patient_id, visaIdentitet))),
+    // Planerad vårdhändelse: att tiden styr en läkemedelsdos, aldrig vilket läkemedel (vardhandelse.js).
+    styrLakemedel: styrDos(db, { bokningRad: b }) ? STYR_LAKEMEDEL : null,
   };
   if (personal && kanRoll(personal, 'checka_in')) {
     const a = avgiftForBokning(db, b);
@@ -1059,7 +1085,8 @@ export function tidbok(db, personal, { datum = idag(), avidentifierad = false } 
 // Min journal: patientens egna tider
 
 // Tidstyper som mottagningen öppnar för egenbokning (demoregler i seeden).
-const egenbokningOppen = (db, ve, tidstyp) => Boolean(db.query('SELECT egenbokning FROM tidboksregler WHERE enhet_id = ? AND tidstyp = ?').get(ve, tidstyp)?.egenbokning);
+// Bara återbesök, telefon och video (EGENBOKNING_TIDSTYPER), aldrig nybesök eller gruppträff.
+const egenbokningOppen = (db, ve, tidstyp) => EGENBOKNING_TIDSTYPER.includes(tidstyp) && Boolean(db.query('SELECT egenbokning FROM tidboksregler WHERE enhet_id = ? AND tidstyp = ?').get(ve, tidstyp)?.egenbokning);
 
 function minBokningUt(db, b, nu = Date.now()) {
   const tid = tidRad(db, b.tid_id);
@@ -1074,13 +1101,16 @@ function minBokningUt(db, b, nu = Date.now()) {
   const kanCheckaIn = b.status === 'bokad' && !incheckad && fysisk && start - DEMOREGLER.incheckningForeMin * MIN <= nu && nu <= start + DEMOREGLER.incheckningEfterMin * MIN;
   const a = avgiftForBokning(db, b);
   const betalning = db.query('SELECT * FROM betalningar WHERE bokning_id = ?').get(b.id);
+  // En tid som styr när en läkemedelsdos ska ges bokar mottagningen om, så att dosen följer med (vardhandelse.js).
+  const styr = b.status === 'bokad' && styrDos(db, { bokningRad: b });
   const andras = b.status !== 'bokad' || incheckad ? null : !oppen ? 'Mottagningen bokar om den här typen av tid själv. Ring mottagningen om du behöver ändra tiden.'
-    : !fore ? 'Det är mindre än 24 timmar kvar. Ring mottagningen om du behöver ändra tiden.' : null;
+    : styr ? 'Tiden hänger ihop med din behandling. Ring mottagningen om du behöver ändra den.'
+      : !fore ? 'Det är mindre än 24 timmar kvar. Ring mottagningen om du behöver ändra tiden.' : null;
   return {
     id: b.id, status: incheckad ? 'incheckad' : b.status, tidstyp: tid.tidstyp, tidstypText: TIDSTYPER[tid.tidstyp].text, rubrik: tid.rubrik, start: tid.start, slut: tid.slut,
     mottagning: enhetKort(db, s.enhet_id)?.namn, vardenhet: enhetKort(db, ve)?.namn, yrkesroll: YRKESROLL[s.yrkesroll], vardgivare: personRad(db, s.personal_id)?.namn ?? null,
     konummer: b.konummer, incheckad: b.incheckad ?? (incheckad ? v.ankomst : null), bekraftad: b.bekraftad,
-    kan: { checkaIn: kanCheckaIn, omboka: b.status === 'bokad' && !incheckad && oppen && fore, avboka: b.status === 'bokad' && !incheckad && oppen && fore, bekrafta: b.status === 'bokad' && !incheckad && !b.bekraftad && start > nu,
+    kan: { checkaIn: kanCheckaIn, omboka: b.status === 'bokad' && !incheckad && oppen && fore && !styr, avboka: b.status === 'bokad' && !incheckad && oppen && fore && !styr, bekrafta: b.status === 'bokad' && !incheckad && !b.bekraftad && start > nu,
       betala: incheckad && a?.belopp > 0 && !betalning },
     varforInte: andras, avgift: a ? { belopp: a.belopp, text: a.text } : null,
     betalning: betalning ? { belopp: betalning.belopp, sattText: BETALSATT[betalning.satt], kvitto: betalning.kvitto, text: betalning.text } : null,
@@ -1093,7 +1123,7 @@ function minBokningUt(db, b, nu = Date.now()) {
 function egnaBokningsval(db, pid) {
   const ut = [];
   for (const r of db.query('SELECT * FROM tidboksregler WHERE egenbokning = 1 ORDER BY enhet_id, tidstyp').all()) {
-    if (!harVardrelation(db, pid, r.enhet_id)) continue;
+    if (!EGENBOKNING_TIDSTYPER.includes(r.tidstyp) || !harVardrelation(db, pid, r.enhet_id)) continue;
     const yrkesroller = [...new Set(db.query(`SELECT yrkesroll FROM scheman WHERE enhet_id IN (${enheterUnder(db, r.enhet_id).map(() => '?').join(', ')})`).all(...enheterUnder(db, r.enhet_id)).map(x => x.yrkesroll))];
     for (const y of yrkesroller) ut.push({ nyckel: `${r.enhet_id}:${r.tidstyp}:${y}`, vardenhet: enhetKort(db, r.enhet_id), tidstyp: r.tidstyp, tidstypText: TIDSTYPER[r.tidstyp].text, yrkesroll: y, yrkesrollText: YRKESROLL[y] });
   }

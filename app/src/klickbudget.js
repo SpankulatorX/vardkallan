@@ -139,4 +139,9 @@ export const FLODEN = [
     id: 'egen-ombokning', namn: 'Patienten bokar om sin tid i Min journal', roll: 'inv-p14', start: 'Min journal för en patient med bokad tid', budget: 3,
     motivering: 'Ett klick på fliken Tider, ett på Boka om och ett på den föreslagna tiden. Systemet visar bara tider av samma typ, minst 24 timmar fram, och skickar den nya kallelsen.',
   },
+  // Runda 5, r1: läkaren sätter upp ett återbesök som systemet föreslår (Sussa 3.4.1.1).
+  {
+    id: 'aterbesok', namn: 'Sätta upp ett återbesök', roll: 'lak-kard', start: 'Patientens översikt', budget: 2,
+    motivering: 'Sussa 3.4.1.1. Ett klick på Återbesök och ett för att bekräfta systemets förslag. Systemet har läst tidstyp, yrkesroll och tidsram ur anteckningens planering, diagnosen och den senaste kontakten, och posten hamnar på väntelistan och i vårdadministratörens Dagens arbete.',
+  },
 ];

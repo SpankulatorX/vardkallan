@@ -7,6 +7,8 @@
 import { Fel, iso, idag, addDagar } from './db.js';
 import { alder as alderAv } from './atkomst.js';
 import { egfrForSakerhet } from './lakemedel.js';
+// Planerad vårdhändelse i tidboken (vardhandelse.js): om tiden följer tidboken och systemets förklaring.
+import { kopplingUt } from './vardhandelse.js';
 
 export const DEMO_MALLAR = 'Förslagen är demoregler för att visa flödet. De är inte doseringsstöd och inte granskade av farmaceut eller läkare.';
 export const ADMINISTRATIONSSATT = {
@@ -118,6 +120,7 @@ export function tillaggUt(db, ordinationId) {
       text: t.vardhandelse, forskjutningMin: t.forskjutning_min ?? 0, tid: t.handelse_tid ?? null,
       administreras: t.handelse_tid ? new Date(Date.parse(t.handelse_tid) + (t.forskjutning_min ?? 0) * 60_000).toISOString() : null,
       sattAv: personNamn(db, t.handelse_satt_av), satt: t.handelse_satt ?? null,
+      ...kopplingUt(db, ordinationId),
     };
   }
   return ut;

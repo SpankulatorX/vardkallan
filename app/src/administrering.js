@@ -117,6 +117,9 @@ export function lista(atk, { dag = idag() } = {}) {
   const vidBehov = [];
   const utanTider = [];
   const vantar = [];
+  // Runda 5, r1: doser inför en vårdhändelse som har fått en tid en senare dag, så att sjuksköterskan ser när läkemedlet
+  // ska ges redan nu (vardhandelse.js).
+  const kommandeHandelser = [];
   for (const o of ordRader) {
     const t = tillaggUt(db, o.id);
     const u = { ...lakemedel.ordinationUt(db, o, { historik: false }), ...t };
@@ -139,6 +142,10 @@ export function lista(atk, { dag = idag() } = {}) {
     }
     if (t.vardhandelse && !t.vardhandelse.administreras) {
       if (lakemedel.aktuell(o)) vantar.push({ ...bas, vardhandelse: t.vardhandelse });
+      continue;
+    }
+    if (t.vardhandelse && datumI(Date.parse(t.vardhandelse.administreras)) > dag) {
+      if (lakemedel.aktuell(o)) kommandeHandelser.push({ ...bas, administreras: t.vardhandelse.administreras, vardhandelse: t.vardhandelse });
       continue;
     }
     const tider = dostider(o, dag, t);
@@ -169,6 +176,7 @@ export function lista(atk, { dag = idag() } = {}) {
   const igar = nu - DAG;
   return {
     dag, permission: perm ? { fran: perm.fran, till: perm.till } : null, doser, vidBehov, utanTider, vantarPaHandelse: vantar,
+    kommandeHandelser: kommandeHandelser.sort((a, b) => a.administreras.localeCompare(b.administreras)),
     utanOrdination: adm.filter(a => a.ordinationId == null && Date.parse(a.tid ?? a.registrerad) >= igar),
     senaste: adm.filter(a => Date.parse(a.tid ?? a.iordningstalld?.tid ?? a.registrerad) >= igar).slice(0, 30),
     sammanfattning: { attGe: doser.filter(d => d.status === 'att_ge').length, forsenade: doser.filter(d => d.status === 'forsenad').length, givna: doser.filter(d => ['given', 'overlamnad'].includes(d.status)).length, totalt: doser.length },

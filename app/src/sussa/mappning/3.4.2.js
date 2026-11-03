@@ -19,9 +19,9 @@ export default [
   },
   {
     id: '3.4.2.3', kategori: 'system', egna: ['L5'], avsedd: 'delvis',
-    tester: [T.egenbokning, T.egenRegler, T.egenIncheckning, flode('egen-ombokning')],
-    losning: 'Patienten bokar, bokar om och avbokar i Min journal på de tidstyper som mottagningen öppnar för det, och bara där patienten redan har vårdrelation. Vårdnadshavare gör det för barn under 13 år. Varje åtgärd loggas på patienten.',
-    expert: 'Patienten får samma förslag på lämpliga tider som vårdadministratören. Systemet stänger egenbokningen 24 timmar före tiden och säger varför, och skapar en bevakning när patienten avbokar.',
+    tester: [T.egenbokning, T.egenRegler, T.egenIncheckning, flode('egen-ombokning'), T.egenTidstyper, T.vhMinJournal],
+    losning: 'Patienten bokar, bokar om och avbokar i Min journal på de tidstyper som mottagningen öppnar för det, och bara där patienten redan har vårdrelation. Egenbokningen gäller bara återbesök, telefon och video, aldrig nybesök eller gruppträff (beslut 2026-11-03). Vårdnadshavare gör det för barn under 13 år. Varje åtgärd loggas på patienten.',
+    expert: 'Patienten får samma förslag på lämpliga tider som vårdadministratören. Systemet stänger egenbokningen 24 timmar före tiden och säger varför, stänger den för en tid som styr när en läkemedelsdos ska ges och skapar en bevakning när patienten avbokar.',
     anmarkning: 'Min journal är Vårdkällans egen e-tjänst. Publicering av tider till 1177 Vårdguidens e-tjänster och andra kanaler är inte byggd, och ombud kan inte boka.',
   },
 ];

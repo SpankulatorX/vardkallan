@@ -38,7 +38,7 @@ export function patientDoser(pid, l) {
       </div></details>` : '';
     return `<tr data-dos="${esc(d.nyckel)}">
       <td><time>${esc(klockslag(d.planerad))}</time>${datum(d.planerad) !== datum(idag()) ? `<span class="under-text">${esc(datum(d.planerad))}</span>` : ''}</td>
-      <td><strong>${lmText(d)}</strong><span class="under-text">${esc(d.dosering)}${d.administrationssatt ? `, ${esc(d.administrationssatt.toLowerCase())}` : ''}${d.vardhandelse ? `. Inför ${esc(d.vardhandelse.text.toLowerCase())}` : ''}</span></td>
+      <td><strong>${lmText(d)}</strong><span class="under-text">${esc(d.dosering)}${d.administrationssatt ? `, ${esc(d.administrationssatt.toLowerCase())}` : ''}${d.vardhandelse ? `. Inför ${esc(d.vardhandelse.text.toLowerCase())}` : ''}</span>${d.vardhandelse?.forklaring ? `<span class="under-text">${esc(d.vardhandelse.forklaring)}</span>` : ''}</td>
       <td>${dosText(d)}</td>
       <td><span class="tagg ${kl}">${esc(st)}</span>${d.underPermission ? ' <span class="tagg">Permission</span>' : ''}
         ${a && a.status !== 'iordningstalld' ? `<span class="under-text">${vem(a)}${a.orsak ? `. ${esc(a.orsak)}` : ''}${d.antalRegistreringar > 1 ? `. Registrerad ${d.antalRegistreringar} gånger` : ''}</span>` : ''}
@@ -54,14 +54,20 @@ export function patientDoser(pid, l) {
   const ut = (u) => `<li class="adm-vb"><div><strong>${lmText(u)}</strong> <span class="tagg">Utan fasta tider</span><span class="under-text">${esc(u.dosering)}</span>
       ${u.givnaIdag.length ? `<span class="under-text">Given i dag ${u.givnaIdag.map(a => `${esc(klockslag(a.tid))}${a.dos != null ? ` (${dosText(a)})` : ''}`).join(', ')}.</span>` : ''}</div>
       ${kan ? `<button type="button" class="knapp liten sekundar" data-adm="fri" data-pid="${esc(pid)}" data-ord="${u.ordinationId}" data-namn="${esc(u.lakemedel?.namn)}">Ge dos</button>` : ''}</li>`;
-  const vantar = (v) => `<li class="adm-vb"><div><strong>${lmText(v)}</strong> <span class="tagg">Väntar på tid</span>
-      <span class="under-text">Ges ${esc(handelseText(v.vardhandelse))}. Tiden räknas fram när vårdhändelsen har fått sin tid.</span></div>
-      ${kan || far('ordinera') ? `<button type="button" class="knapp liten sekundar" data-handelse="${v.ordinationId}" data-pid="${esc(pid)}" data-text="${esc(v.vardhandelse.text)}">Ange tid för ${esc(v.vardhandelse.text.toLowerCase())}</button>` : ''}</li>`;
+  // Runda 5, r1: vårdhändelsen följer tidboken, och systemet förklarar varför dosen väntar (vardhandelse.js).
+  const avbokad = (h) => h.lage === 'avbokad' || h.lage === 'avslutad';
+  const vantar = (v) => `<li class="adm-vb"><div><strong>${lmText(v)}</strong> <span class="tagg${avbokad(v.vardhandelse) ? ' tagg-larm' : ''}">${avbokad(v.vardhandelse) ? 'Vårdhändelsen är avbokad' : 'Väntar på tid'}</span>
+      <span class="under-text">Ges ${esc(handelseText(v.vardhandelse))}.</span>
+      <span class="under-text adm-varfor">${esc(v.vardhandelse.forklaring ?? 'Tiden räknas fram när vårdhändelsen har fått sin tid.')}</span></div>
+      ${kan || far('ordinera') ? `<button type="button" class="knapp liten sekundar" data-handelse="${v.ordinationId}" data-pid="${esc(pid)}" data-text="${esc(v.vardhandelse.text)}" data-foljer="${v.vardhandelse.foljerTidbok ? '1' : ''}">${v.vardhandelse.foljerTidbok ? 'Ange tid för hand' : `Ange tid för ${esc(v.vardhandelse.text.toLowerCase())}`}</button>` : ''}</li>`;
+  const kommande = (v) => `<li class="adm-vb"><div><strong>${lmText(v)}</strong> <span class="tagg">Ges ${esc(tidpunkt(v.administreras))}</span>
+      <span class="under-text">Ges ${esc(handelseText(v.vardhandelse))}.${v.vardhandelse.foljerTidbok ? ' Tiden följer tidboken.' : ''}</span>
+      ${v.vardhandelse.forklaring ? `<span class="under-text">${esc(v.vardhandelse.forklaring)}</span>` : ''}</div></li>`;
   return `${l.permission ? `<p class="ruta ruta-info liten">${ikon.info}<span>Patienten är på permission till och med ${esc(datum(l.permission.till))}. Doserna under permissionen lämnas över till patienten.</span></p>` : ''}
     ${l.doser.length ? `<div class="tabellrulle"><table class="tabell adm-tabell">
       <thead><tr><th scope="col">Tid</th><th scope="col">Läkemedel</th><th scope="col">Dos</th><th scope="col">Status</th><th scope="col"><span class="sr">Åtgärder</span></th></tr></thead>
       <tbody>${l.doser.map(rad).join('')}</tbody></table></div>` : '<p class="tom liten">Inga doser med fasta tider i dag.</p>'}
-    ${l.vidBehov.length || l.utanTider.length || l.vantarPaHandelse.length ? `<ul class="adm-lista">${l.vidBehov.map(vb).join('')}${l.utanTider.map(ut).join('')}${l.vantarPaHandelse.map(vantar).join('')}</ul>` : ''}
+    ${l.vidBehov.length || l.utanTider.length || l.vantarPaHandelse.length || l.kommandeHandelser?.length ? `<ul class="adm-lista">${l.vidBehov.map(vb).join('')}${l.utanTider.map(ut).join('')}${l.vantarPaHandelse.map(vantar).join('')}${(l.kommandeHandelser ?? []).map(kommande).join('')}</ul>` : ''}
     ${l.utanOrdination?.length ? `<p class="liten">Doser utan ordination det senaste dygnet: ${l.utanOrdination.map(a => `${esc(a.lakemedel?.namn)} ${esc(klockslag(a.tid))}`).join(', ')}.</p>` : ''}
     ${!kan && l.kan?.varfor ? `<p class="dampad liten">${esc(l.kan.varfor)}</p>` : ''}
     ${l.dolda?.sparrade ? '<p class="dampad liten">Det finns spärrade uppgifter. Ordinationer och doser från spärrade vårdenheter visas inte.</p>' : ''}`;
@@ -148,6 +154,7 @@ async function angeHandelsetid(b, ladda) {
   const imorgon = new Date(Date.now() + 86400_000).toISOString().slice(0, 10);
   const svar = await dialog(`<form><h2 id="dlg-rubrik">Tid för ${esc(b.dataset.text.toLowerCase())}</h2>
     <p>När vårdhändelsen har fått en tid räknar systemet fram när läkemedlet ska ges.</p>
+    ${b.dataset.foljer ? '<p class="ruta ruta-info liten">Vårdhändelsen följer tidboken. Sätter du tiden för hand slutar den följa tidboken, och en ombokning flyttar inte längre dosen.</p>' : ''}
     <div class="falt-rad"><div class="falt"><label for="vh-dag">Datum</label><input id="vh-dag" name="dag" type="date" value="${imorgon}" required></div>
     <div class="falt"><label for="vh-tid">Klockslag</label><input id="vh-tid" name="tid" type="time" value="09:00" required></div></div>
     <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Spara tiden</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`);

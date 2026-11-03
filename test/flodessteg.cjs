@@ -330,6 +330,13 @@ function skapa(BAS) {
       await m.klicka(page.locator('dialog[open] .forslag-knapp').first(), 'den föreslagna tiden');
       await synlig(page, '.notis', 'Din tid är ombokad till');
     },
+    // Runda 5, r1: systemet föreslår återbesöket ur sammanhanget, och läkaren bekräftar med ett klick (Sussa 3.4.1.1).
+    aterbesok: async (m, page) => {
+      await m.klicka(page.locator('.snabbval [data-aterbesok]'), 'Återbesök');
+      await page.locator('dialog[open] [data-varde="ok"]').waitFor();
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Sätt upp återbesök');
+      await synlig(page, '.notis', 'Återbesöket står på väntelistan');
+    },
   };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }

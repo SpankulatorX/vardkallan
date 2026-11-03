@@ -8,10 +8,10 @@ const { A, M, R, GK } = TEST;
 export default [
   {
     id: '3.4.1.1', kategori: 'system', egna: ['D6'], avsedd: 'uppfyllt_demo',
-    tester: [T.remissVantelista, T.forslag, T.boka, T.vantelista, flode('boka-remiss')],
-    losning: 'Patientplaneringen utgår från väntelistan. En accepterad remiss hamnar där av sig själv, och läkaren eller vårdadministratören kan sätta upp återbesök. När patienten ska få tid föreslår systemet de lämpligaste tiderna, och bokningen blir en planerad vårdkontakt.',
-    expert: 'Systemet tar tidstyp, yrkesroll och prioritet ur remissen, räknar gränsen mot vårdgarantin och föreslår tider hos den vårdgivare patienten har träffat förut. Vårdadministratören bokar med ett klick och letar aldrig i en kalender.',
-    anmarkning: 'Vårdgarantin räknas med en demoregel (90 dagar från att remissen togs emot), inte enligt någon regions tillämpning.',
+    tester: [T.remissVantelista, T.forslag, T.boka, T.vantelista, flode('boka-remiss'), T.abTolka, T.abAnteckning, T.abDiagnos, T.abSakerhet, flode('aterbesok'), T.vhVantelista],
+    losning: 'Patientplaneringen utgår från väntelistan. En accepterad remiss hamnar där av sig själv, läkaren sätter upp återbesök från en signerad anteckning eller patientens översikt, och en planerad vårdhändelse som ett läkemedel väntar på hamnar där när den saknar bokning. När patienten ska få tid föreslår systemet de lämpligaste tiderna, och bokningen blir en planerad vårdkontakt.',
+    expert: 'Systemet tar tidstyp, yrkesroll och prioritet ur remissen, och för återbesöket tidstyp, yrkesroll och tidsram ur anteckningens planering, diagnosen och den senaste kontakten, så läkaren bekräftar med ett klick. Sedan räknar systemet gränsen och föreslår tider hos den vårdgivare patienten har träffat förut, så vårdadministratören bokar med ett klick och letar aldrig i en kalender.',
+    anmarkning: 'Vårdgarantin räknas med en demoregel (90 dagar från att remissen togs emot), inte enligt någon regions tillämpning. Förslagen på återbesök efter diagnos är demoregler, och planeringen tolkas ur fri text med enkla regler.',
   },
   {
     id: '3.4.1.2', kategori: 'system', egna: [], avsedd: 'delvis',
@@ -34,8 +34,8 @@ export default [
   },
   {
     id: '3.4.1.4', kategori: 'system', egna: ['D6'], avsedd: 'delvis',
-    tester: [T.forslag, T.boka, T.skyddad, flode('boka-remiss')],
-    losning: 'Planeringen använder det som redan finns: remissen, patientens tidigare vårdgivare, andra bokningar och väntelistans gräns. Skyddad identitet maskeras i alla listor.',
+    tester: [T.forslag, T.boka, T.skyddad, flode('boka-remiss'), T.abAnteckning, T.abDiagnos, flode('aterbesok')],
+    losning: 'Planeringen använder det som redan finns: remissen, patientens tidigare vårdgivare, andra bokningar och väntelistans gräns, och för läkarens återbesök anteckningens planering, diagnosen och den senaste kontakten. Skyddad identitet maskeras i alla listor.',
     expert: 'Förslagen räknas ur befintlig information, så att vårdadministratören inte skriver in något som systemet redan vet.',
     anmarkning: 'Flera aktiviteter i följd, till exempel provtagning före läkarbesök, kan inte bokas i ett steg.',
   },

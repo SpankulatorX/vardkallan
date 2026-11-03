@@ -1,5 +1,5 @@
 // Översikten: aktuella läkemedel, diagnoser, senaste mätvärden och anteckningar, pågående remisser och tidslinjen.
-import { esc, api, datum, tidpunkt, klockslag, migreradEtikett, NLL, tal, ikon } from '../ui.js';
+import { esc, api, datum, tidpunkt, klockslag, migreradEtikett, NLL, tal, ikon, felNotis } from '../ui.js';
 import { far, pa } from '../app.js';
 import { doldaRad } from './patient.js';
 import { remissStatusText } from './remisser.js';
@@ -30,8 +30,10 @@ function snabbval(ctx) {
   if (far('remittera')) v.push([ctx.href('remisser', 'ny'), ikon.remiss, 'Skicka remiss']);
   // Utskrift (Sussa 3.1.9): systemet föreslår syftet och delarna.
   const skrivUt = far('skriv_ut') ? `<li><button type="button" class="knapp liten sekundar" data-utskrift>${ikon.logg}<span>Skriv ut</span></button></li>` : '';
-  if (!v.length && !skrivUt) return '';
-  return `<nav class="snabbval" aria-label="Snabbval" data-skriv><ul>${v.map(([h, ik, t]) => `<li><a class="knapp liten sekundar" href="${h}">${ik}<span>${esc(t)}</span></a></li>`).join('')}${skrivUt}</ul></nav>`;
+  // Runda 5, r1: återbesök som systemet föreslår ur planering, diagnos och senaste kontakt (Sussa 3.4.1.1).
+  const aterbesok = far('skriv_journal') ? `<li><button type="button" class="knapp liten sekundar" data-aterbesok>${ikon.kalender}<span>Återbesök</span></button></li>` : '';
+  if (!v.length && !skrivUt && !aterbesok) return '';
+  return `<nav class="snabbval" aria-label="Snabbval" data-skriv><ul>${v.map(([h, ik, t]) => `<li><a class="knapp liten sekundar" href="${h}">${ik}<span>${esc(t)}</span></a></li>`).join('')}${aterbesok}${skrivUt}</ul></nav>`;
 }
 
 export async function visa(el, ctx) {
@@ -83,6 +85,7 @@ export async function visa(el, ctx) {
   el.querySelector('.tl-lage').addEventListener('change', (e) => { tidslinjeLage = e.target.value; el.querySelector('#tl-innehall').innerHTML = tidslinje(); });
   vardkontakt.koppla(el, d, ctx, () => ctx.ladda());
   el.querySelector('[data-utskrift]')?.addEventListener('click', () => utskrift.skrivUt(ctx.id));
+  el.querySelector('[data-aterbesok]')?.addEventListener('click', () => tider.satUppAterbesok(ctx.id, ctx.patient?.namn ?? 'patienten').catch(felNotis));
   tider.koppla(el, t, ctx, () => ctx.ladda());
 }
 

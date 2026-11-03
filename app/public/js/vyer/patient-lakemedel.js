@@ -34,7 +34,7 @@ export async function visa(el, ctx) {
     ${vid ? vidimeringPanel(vid) : ''}
     ${kanOrdinera ? nllDemo() : ''}
     <section aria-labelledby="lm-akt"><h3 id="lm-akt">Aktuella ordinationer <span class="antal">${aktuella.length}</span></h3>${tabell(aktuella, kanOrdinera, true)}</section>
-    ${adm && (adm.doser.length || adm.vidBehov.length || adm.utanTider.length || adm.vantarPaHandelse.length) ? `<section class="lm-sektion" aria-labelledby="lm-adm" id="lm-adm-sektion"><h3 id="lm-adm">Dagens administreringar</h3>${administrering.patientDoser(ctx.id, adm)}</section>` : ''}
+    ${adm && (adm.doser.length || adm.vidBehov.length || adm.utanTider.length || adm.vantarPaHandelse.length || adm.kommandeHandelser?.length) ? `<section class="lm-sektion" aria-labelledby="lm-adm" id="lm-adm-sektion"><h3 id="lm-adm">Dagens administreringar</h3>${administrering.patientDoser(ctx.id, adm)}</section>` : ''}
     ${kanOrdinera && vid?.kan?.kan ? '<section class="lm-sektion" aria-labelledby="lm-genomgang"><h3 id="lm-genomgang">Läkemedelsgenomgång</h3><p class="liten">Systemet tar fram indikation, dubbelmedicinering, interaktioner, passerade uppföljningar och en läkemedelsberättelse ur historiken.</p><button type="button" class="knapp sekundar" data-genomgang>Gör läkemedelsgenomgång</button></section>' : ''}
     ${vb ? vatskebalansSektion(vb) : ''}
     ${ovriga.length ? `<section aria-labelledby="lm-utsatt"><h3 id="lm-utsatt">Utsatta och avslutade <span class="antal">${ovriga.length}</span></h3>${tabell(ovriga, kanOrdinera, false)}</section>` : ''}`;
@@ -130,7 +130,7 @@ function tabell(rader, kanOrdinera, aktuella) {
       <td><strong>${esc(o.lakemedel?.namn)}</strong> <span class="dampad">${esc(o.lakemedel?.styrka)} ${esc(o.lakemedel?.form)}</span>
         <span class="under-text">ATC ${esc(o.lakemedel?.atc)}, ordinerat ${esc(datum(o.start))} av ${esc(o.ordineradAv?.namn ?? '')}, ${esc(o.vardenhet?.namn ?? '')}</span>${migreradEtikett(o)}
         ${o.kvitteradeVarningar?.length ? `<span class="under-text">Kvitterade varningar: ${o.kvitteradeVarningar.map(k => `${esc(k.regel)} (${esc(k.motivering)})`).join('; ')}</span>` : ''}</td>
-      <td>${esc(o.dosering)}${o.tider?.length ? `<span class="under-text">Kl. ${esc(o.tider.join(', '))}</span>` : ''}${o.administrationssattText ? `<span class="under-text">${esc(o.administrationssattText)}</span>` : ''}${o.vardhandelse ? `<span class="under-text">Inför ${esc(o.vardhandelse.text.toLowerCase())}${o.vardhandelse.administreras ? `, ges ${esc(tidpunkt(o.vardhandelse.administreras))}` : ', väntar på tid'}</span>` : ''}</td>
+      <td>${esc(o.dosering)}${o.tider?.length ? `<span class="under-text">Kl. ${esc(o.tider.join(', '))}</span>` : ''}${o.administrationssattText ? `<span class="under-text">${esc(o.administrationssattText)}</span>` : ''}${o.vardhandelse ? `<span class="under-text">Inför ${esc(o.vardhandelse.text.toLowerCase())}${o.vardhandelse.administreras ? `, ges ${esc(tidpunkt(o.vardhandelse.administreras))}` : ', väntar på tid'}${o.vardhandelse.foljerTidbok ? '. Tiden följer tidboken' : ''}</span>${o.vardhandelse.forklaring ? `<span class="under-text">${esc(o.vardhandelse.forklaring)}</span>` : ''}` : ''}</td>
       <td>${esc(ORDTYP[o.typ] ?? o.typ)}</td>
       <td>${esc(o.ordinationsorsak)}</td>
       <td>${aktuella ? `${esc(datum(o.uppfoljningsdatum))}${o.slut ? `<span class="under-text">Slut ${esc(datum(o.slut))}</span>` : ''}` : (o.utsatt ? `${esc(datum(o.utsatt.tid))}<span class="under-text">${esc(o.utsatt.orsak ?? '')}, ${esc(o.utsatt.av ?? '')}</span>` : `Slut ${esc(datum(o.slut))}`)}</td>
@@ -167,12 +167,14 @@ function ordinationsForm(plats, ctx) {
     </div>
     <input type="hidden" name="mall"><input type="hidden" name="volymMl">
     <p class="forslag-varfor" id="o-forslag" aria-live="polite" hidden></p>
-    <details class="o-handelse"><summary>Ges inför en planerad vårdhändelse som inte har fått en tid</summary>
+    <details class="o-handelse"><summary>Ges inför en planerad vårdhändelse</summary>
+      <input type="hidden" name="vhVal">
+      <div class="vh-val" data-vh-val aria-live="polite"><p class="hjalp">Hämtar patientens bokningar.</p></div>
       <div class="falt-rad">
-        <div class="falt bred"><label for="o-vh">Vårdhändelse</label><input id="o-vh" name="vardhandelse" maxlength="120" placeholder="Till exempel elkonvertering"></div>
+        <div class="falt bred" data-vh-ny hidden><label for="o-vh">Ny vårdhändelse</label><input id="o-vh" name="vardhandelse" maxlength="120" placeholder="Till exempel elkonvertering"></div>
         <div class="falt smal"><label for="o-vh-t">Timmar före</label><input id="o-vh-t" name="forskjutning" inputmode="decimal" value="1"></div>
       </div>
-      <p class="hjalp">Ordinationen får inga fasta tider. När vårdhändelsen får en tid räknar systemet fram när läkemedlet ska ges.</p>
+      <p class="hjalp">Ordinationen får inga fasta tider. Tiden kommer från tidboken: när vårdhändelsen bokas, bokas om eller avbokas räknar systemet om när läkemedlet ska ges.</p>
     </details>
     <div class="falt-rad">
       <div class="falt"><label for="o-upp">Uppföljningsdatum <span class="obl">(obligatoriskt)</span></label><input id="o-upp" name="uppfoljningsdatum" type="date" required min="${i}" value=""></div>
@@ -246,6 +248,15 @@ function ordinationsForm(plats, ctx) {
     if (e.target.closest('[data-stang]')) { plats.innerHTML = ''; plats.closest('.flikinnehall')?.querySelector('[data-ny]')?.setAttribute('aria-expanded', 'false'); }
   });
   form.addEventListener('input', (e) => { if (!e.target.closest('#varningar') && e.target !== sok) kontrollerad = null; });
+  // Planerad vårdhändelse (Sussa 3.5.2.7): systemet föreslår patientens bokningar på vårdenheten, med den som passar
+  // ordinationsorsaken först, och läkaren väljer med ett klick. Utan bokning sätter systemet upp vårdhändelsen på
+  // väntelistan.
+  form.querySelector('.o-handelse').addEventListener('toggle', (e) => {
+    // Tiden kommer från vårdhändelsen, så ordinationen får inga fasta tider.
+    form.tider.disabled = e.target.open;
+    kontrollerad = null;
+    if (e.target.open) vardhandelseVal(form, ctx, () => { kontrollerad = null; });
+  });
 
   const data = () => ({
     lakemedelId: form.lakemedelId.value, dosering: form.dosering.value.trim(),
@@ -253,7 +264,7 @@ function ordinationsForm(plats, ctx) {
     tider: form.tider.value.split(/[,\s]+/).map(x => x.trim()).filter(Boolean), typ: form.typ.value, vidBehov: form.typ.value === 'vid_behov',
     ordinationsorsak: form.ordinationsorsak.value.trim(), uppfoljningsdatum: form.uppfoljningsdatum.value, start: form.start.value || i, slut: form.slut.value || null,
     administrationssatt: form.administrationssatt.value, mall: form.mall.value || null, volymMl: form.volymMl.value ? Number(form.volymMl.value) : null,
-    ...(form.vardhandelse.value.trim() ? { vardhandelse: { text: form.vardhandelse.value.trim(), forskjutningTimmar: -Number(form.forskjutning.value.replace(',', '.') || 0) }, tider: [] } : {}),
+    ...vardhandelseData(form),
   });
   const NAMN = { lakemedelId: 'lakemedelId', dosering: 'dosering', dos: 'dos', typ: 'typ', ordinationsorsak: 'ordinationsorsak', uppfoljningsdatum: 'uppfoljningsdatum', start: 'start', slut: 'slut' };
 
@@ -289,6 +300,42 @@ function ordinationsForm(plats, ctx) {
       else if (err.status === 400) faltFel(form, err, NAMN);
     }
   });
+}
+
+// Vårdhändelsen som läkaren har valt: en bokning, en post på väntelistan eller en ny vårdhändelse.
+function vardhandelseData(form) {
+  if (!form.querySelector('.o-handelse').open) return {};
+  const val = form.vhVal.value;
+  const forskjutningTimmar = -Number(form.forskjutning.value.replace(',', '.') || 0);
+  if (val.startsWith('bokning:')) return { vardhandelse: { bokningId: Number(val.slice(8)), forskjutningTimmar }, tider: [] };
+  if (val.startsWith('post:')) return { vardhandelse: { vantelistaId: Number(val.slice(5)), forskjutningTimmar }, tider: [] };
+  if (val === 'ny') return { vardhandelse: { text: form.vardhandelse.value.trim(), forskjutningTimmar }, tider: [] };
+  return {};
+}
+
+async function vardhandelseVal(form, ctx, andrad) {
+  const ruta = form.querySelector('[data-vh-val]');
+  if (ruta.dataset.hamtad) return;
+  let f;
+  try { f = await api(`/api/patient/${encodeURIComponent(ctx.id)}/vardhandelse/forslag?text=${encodeURIComponent(form.ordinationsorsak.value.trim())}`); } catch (e) { ruta.innerHTML = `<p class="dampad liten">${esc(e.message)}</p>`; return; }
+  ruta.dataset.hamtad = '1';
+  const val = [
+    ...f.bokningar.map(b => ({ v: `bokning:${b.id}`, rek: b.rekommenderad, text: `${b.text}, ${tidpunkt(b.start)}`, under: `Bokad ${b.tidstypText.toLowerCase()}${b.vardgivare ? ` hos ${b.vardgivare}` : ''}` })),
+    ...f.vantelista.map(p => ({ v: `post:${p.id}`, rek: p.rekommenderad, text: p.text, under: `På väntelistan, ${(p.tidstypText ?? '').toLowerCase()} hos ${p.yrkesrollText}, väntar på tid` })),
+    { v: 'ny', rek: false, text: 'Ny vårdhändelse', under: f.ny.text },
+  ];
+  const forval = val.find(x => x.rek)?.v ?? 'ny';
+  ruta.innerHTML = `<p class="etikett" id="vh-rubrik">Vårdhändelse</p>
+    <div class="knappval-lista vh-lista" role="group" aria-labelledby="vh-rubrik">${val.map(x => `<button type="button" class="knapp sekundar liten" data-vh="${esc(x.v)}" aria-pressed="false"><span>${esc(x.text)}${x.rek ? ' <span class="tagg">Föreslås</span>' : ''}</span><span class="under-text">${esc(x.under)}</span></button>`).join('')}</div>
+    <p class="hjalp">${esc(f.hjalp)}</p>`;
+  const valj = (v) => {
+    form.vhVal.value = v;
+    for (const b of ruta.querySelectorAll('[data-vh]')) b.setAttribute('aria-pressed', String(b.dataset.vh === v));
+    form.querySelector('[data-vh-ny]').hidden = v !== 'ny';
+    andrad();
+  };
+  ruta.addEventListener('click', (e) => { const b = e.target.closest('[data-vh]'); if (b) { valj(b.dataset.vh); if (b.dataset.vh === 'ny') form.vardhandelse.focus(); } });
+  valj(forval);
 }
 
 function visaVarningar(form, k) {
