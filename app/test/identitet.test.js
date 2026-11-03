@@ -236,7 +236,7 @@ describe('Identitet', () => {
     // Läkaren kan inte slå samman. Vårdadministratören ser förslaget i inkorgen och i journalen.
     expect((await k.post('/api/patient/p17/sammanslagning', { med: 'p16' })).status).toBe(403);
     await k.logga('adm-kard');
-    expect((await k.get('/api/inkorg')).data.dubbletter).toEqual([expect.objectContaining({ patientId: 'p17', antal: 1 })]);
+    expect((await k.get('/api/inkorg')).data.dubbletter).toEqual(expect.arrayContaining([expect.objectContaining({ patientId: 'p17', antal: 1 })]));
     const i = await k.get('/api/patient/p17/identiteter');
     expect(i.data.dubbletter).toEqual([expect.objectContaining({ annan: expect.objectContaining({ id: 'p16' }), kvar: 'p16', grund: 'samma_nummer' })]);
     expect(i.data.kan).toEqual({ andraIdentitet: true, slaSamman: true });
@@ -285,13 +285,20 @@ describe('Identitet', () => {
     const r = await k.post('/api/patient/p01/sammanslagning', { med: 'p02' });
     expect(r.status).toBe(400);
     expect(r.data.fel).toContain('Systemet har inget förslag');
-    // Utan vårdrelation till journalen nekas sammanslagningen, och försöket loggas som nekat.
-    const nekad = await k.post('/api/patient/p16/sammanslagning', { med: 'p17' });
+    // Ett förslag är ingen behörighet. Läkaren skriver in personnumret för en patient som kardiologen inte har vårdrelation
+    // till (p07). Vårdadministratören kan inte slå samman, eftersom hon inte har vårdrelation till den andra journalen,
+    // och försöket loggas som nekat på den journalen.
+    await k.logga('lak-kard');
+    const pnr07 = sandlada(app, k).db.query("SELECT personnummer FROM patienter WHERE id = 'p07'").get().personnummer;
+    expect((await k.post('/api/patient/p17/identitet', { identitet: pnr07 })).status).toBe(409);
+    await k.logga('adm-kard');
+    const nekad = await k.post('/api/patient/p17/sammanslagning', { med: 'p07' });
     expect(nekad.status).toBe(403);
-    expect(loggRader(k).at(-1)).toMatchObject({ patient_id: 'p16', handling: 'sla_samman', resultat: 'nekad' });
+    expect(loggRader(k).at(-1)).toMatchObject({ patient_id: 'p07', handling: 'sla_samman', resultat: 'nekad' });
+    expect(sandlada(app, k).db.query("SELECT sammanslagen_till FROM patienter WHERE id = 'p17'").get().sammanslagen_till).toBeNull();
     // Ett förslag som avfärdas kommer inte tillbaka.
     expect((await k.post('/api/patient/p17/dubblett/avfarda', { med: 'p16' })).status).toBe(200);
-    expect((await k.get('/api/patient/p17/identiteter')).data.dubbletter).toEqual([]);
+    expect((await k.get('/api/patient/p17/identiteter')).data.dubbletter.filter(d => d.annan.id === 'p16')).toEqual([]);
     expect((await k.post('/api/patient/p17/sammanslagning', { med: 'p16' })).status).toBe(400);
   });
 

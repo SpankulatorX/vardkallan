@@ -863,6 +863,12 @@ export const PATIENTER = [
 
 // Remisser i varje läge av statuskedjan.
 export const REMISSER = [
+  // Annika Holmgren (p16): remiss från vårdcentralen för förmaksflimmer, mottagen på kardiologen. Hon kom sedan till
+  // akuten utan legitimation och fick reservnummer (p17). Kardiologen har vårdrelation till båda journalerna.
+  { patient: 'p16', fran: 'vc-kumla', till: 'uso-kard', av: 'lak-kumla', prioritet: 'normal', svarSenast: 20,
+    fragestallning: 'Paroxysmalt förmaksflimmer. Ställningstagande till antikoagulation och rytmkontroll?',
+    anamnes: 'Episoder av snabb oregelbunden hjärtrytm. Långtids-EKG visar korta episoder av förmaksflimmer, längsta 20 minuter. Hypertoni, behandlas med amlodipin.',
+    skickad: [-60, '10:15'], mottagen: [-60, '11:40'], mottagenAv: 'lak-kard' },
   // Saknar mottagningskvittens efter mer än 2 timmar: larm.
   { patient: 'p05', fran: 'vc-kumla', till: 'uso-kard', av: 'lak-kumla', prioritet: 'skyndsam', svarSenast: 14,
     fragestallning: 'Misstänkt kärlkramp. Arbetsprov och bedömning?',

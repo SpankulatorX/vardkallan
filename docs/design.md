@@ -383,7 +383,7 @@ Systemet hittar själv troliga dubbletter:
 
 En patient med skyddad identitet föreslås aldrig på namn, bara när någon har skrivit in hela numret. Ett avfärdat förslag (Inte samma person) kommer inte tillbaka.
 
-Vårdadministratören (`sla_samman`) ser förslagen i inkorgen och i patienthuvudet, öppnar journalerna sida vid sida under fliken Identitet och bekräftar. Systemet avgör vilken journal som blir kvar: den med den mest gällande identiteten, och vid lika den som skapades först. Vid ett förslag från ett inskrivet nummer blir journalen som har numret kvar. Två journaler slås bara samman när systemet har ett förslag om dem, och vårdadministratören måste ha vårdrelation till den journal förslaget öppnas från.
+Vårdadministratören (`sla_samman`) ser förslagen i inkorgen och i patienthuvudet, öppnar journalerna sida vid sida under fliken Identitet och bekräftar. Systemet avgör vilken journal som blir kvar: den med den mest gällande identiteten, och vid lika den som skapades först. Vid ett förslag från ett inskrivet nummer blir journalen som har numret kvar. Två journaler slås bara samman när systemet har ett förslag om dem, och vårdadministratören måste ha vårdrelation till båda journalerna. Ett förslag är ingen behörighet: annars kunde den som skriver in en annan patients nummer få tillgång till den patientens journal genom sammanslagningen. Saknas vårdrelationen till den andra journalen nekas sammanslagningen och försöket loggas på den journalen. Aktiva val och samtycken följer inte med till den gällande journalen. I seeden har kardiologen vårdrelation till Annika Holmgrens båda journaler, genom remissen från Vårdcentralen Kumla och vårdtillfället på avdelning 72.
 
 `slaSamman()` gör allt i en transaktion:
 

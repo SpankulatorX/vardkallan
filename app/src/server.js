@@ -939,8 +939,12 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const med = typeof c.body.med === 'string' ? identitet.gallandeId(c.db, c.body.med) : null;
     const forslag = identitet.dubbletterFor(c.db, p.id).find(d => d.annan === med);
     if (!forslag) throw new Fel(400, 'Systemet har inget förslag om att slå samman de här journalerna. Två journaler slås bara samman när systemet har hittat att de troligen gäller samma person.', 'ogiltig', { falt: ['med'] });
+    // Behörigheten prövas mot båda journalerna. Ett förslag om att två journaler gäller samma person är ingen behörighet:
+    // annars kunde den som skriver in en annan patients nummer få tillgång till den patientens journal genom sammanslagningen.
+    const annan = forslag.fran === p.id ? forslag.till : forslag.fran;
+    const atkAnnan = new Atkomst(c.db, c.personal, annan, valFor(c.s, annan), 'sla_samman');
+    atkAnnan.krav('sla_samman');
     const r = identitet.slaSamman(c.db, { fran: forslag.fran, till: forslag.till, personal: c.personal, grund: forslag.grund, loggGrund: atk.grund() });
-    for (const v of [c.s.val[forslag.fran]].filter(Boolean)) c.s.val[forslag.till] = { ...v, ...(c.s.val[forslag.till] ?? {}) };
     if (c.s.oppnade.delete(forslag.fran)) c.s.oppnade.add(forslag.till);
     return { till: r.till, fran: r.fran, antal: r.antal, patient: identitetKort(patientRad(c.db, r.till)) };
   });
