@@ -18,6 +18,8 @@ import { kravregister, lasTestresultat } from './krav.js';
 import { sussaRegister } from './sussa/index.js';
 import { lasKlientresultat, gransnittHash } from './klientresultat.js';
 import { YRKEN } from './seed/personal.js';
+// Utskrift, kontrasignering, arkiv och datauttag (Sussa 3.1.9, 3.1.11.3, 5.4.2, 5.3.1.7 och 6.3.1).
+import { registreraRutter as utdataRutter, tillagg as utdata } from './utdata-rutter.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -216,7 +218,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
 
   const stadning = setInterval(() => {
     const grans = Date.now() - SESSION_TTL;
-    for (const [sid, s] of sessioner) { if (s.sist < grans) { s.db.close(); sessioner.delete(sid); } else rensaKopior(s); }
+    for (const [sid, s] of sessioner) { if (s.sist < grans) { s.db.close(); sessioner.delete(sid); } else { rensaKopior(s); utdata.stadning(s.db); } }
     const timme = Math.floor(Date.now() / 3600_000);
     for (const k of nyaPerIp.keys()) if (!k.endsWith(`:${timme}`)) nyaPerIp.delete(k);
   }, 10 * 60_000);
@@ -346,6 +348,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       listning: listning ? { enhet: enhetKort(db, listning.enhet_id), fran: listning.fran } : null,
       uppmarksamhet: uppmarksamhet.forHuvud(atk),
       ...identitetIHuvud(c, p),
+      ...utdata.huvud(db, p),
     };
   }
 
@@ -520,7 +523,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
         const l = journal.listaAnteckningar(ny('las_journal'));
         const senaste = l.anteckningar.slice(0, LASKOPIA_ANTECKNINGAR);
         post.anteckningar = { anteckningar: senaste, dolda: l.dolda, iLaskopian: senaste.length, totalt: l.anteckningar.length };
-        for (const a of senaste) post.anteckning[a.id] = journal.hamtaAnteckning(ny(journal.lasHandling(a.kategori)), journal.hamtaAnteckningRad(db, a.id));
+        for (const a of senaste) post.anteckning[a.id] = utdata.anteckning(db, pers, journal.hamtaAnteckning(ny(journal.lasHandling(a.kategori)), journal.hamtaAnteckningRad(db, a.id)));
       }
       const grunder = new Set(delar.flatMap(a => [...a.grunder]));
       const grund = starkasteGrund(grunder, pers.yrke === 'vardadministrator' ? 'administrativ' : 'vardrelation');
@@ -776,7 +779,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const a = journal.hamtaAnteckningRad(c.db, id);
     return medPatient(c, a.patient_id, handling(a), (atk) => fn(atk, a));
   };
-  rutt('GET', '/api/anteckning/:id', (c, id) => medAnteckning(c, id, a => journal.lasHandling(a.kategori), (atk, a) => journal.hamtaAnteckning(atk, a)));
+  rutt('GET', '/api/anteckning/:id', (c, id) => medAnteckning(c, id, a => journal.lasHandling(a.kategori), (atk, a) => utdata.anteckning(c.db, c.personal, journal.hamtaAnteckning(atk, a))));
   rutt('PUT', '/api/anteckning/:id', (c, id) => medAnteckning(c, id, a => journal.skrivHandling(a.kategori), (atk, a) => journal.andraUtkast(atk, a, c.body)));
   rutt('POST', '/api/anteckning/:id/signera', (c, id) => medAnteckning(c, id, a => journal.skrivHandling(a.kategori), (atk, a) => journal.signera(atk, a)));
   rutt('POST', '/api/anteckning/:id/ratta', (c, id) => medAnteckning(c, id, a => journal.skrivHandling(a.kategori), (atk, a) => [201, journal.ratta(atk, a, c.body)]));
@@ -875,6 +878,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       larm: p.yrke === 'logggranskare' ? [] : remiss.larmForEnhet(c.db, p),
       nllAvvikelser: kanRoll(p, 'las_lakemedel') ? lakemedel.nllAvvikelser(c.db, p).map(med) : [],
       dubbletter: kanRoll(p, 'sla_samman') ? dubbletterIInkorg(c) : [],
+      ...utdata.inkorg(c.db, p),
     };
   });
 
@@ -1028,7 +1032,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const atk = new Atkomst(c.db, c.personal, null, {}, 'las_logg');
     atk.krav('las_logg');
     const q = c.url.searchParams;
-    const flagga = ['nodatkomst', 'nekad', 'samtycke', 'vard', 'alla'].includes(q.get('flagga')) ? q.get('flagga') : 'alla';
+    const flagga = ['nodatkomst', 'nekad', 'samtycke', 'vard', 'arkiv', 'alla'].includes(q.get('flagga')) ? q.get('flagga') : 'alla';
     const datum = (v, slut) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? `${v}${slut ? 'T23:59:59.999Z' : 'T00:00:00.000Z'}` : v || null);
     const rader = medPatientKort(c.db, logg.lista(c.db, { flagga, fran: datum(q.get('fran'), false), till: datum(q.get('till'), true) }));
     atk.logga('las_logg', 'logggranskning', `logg:${flagga}`);
@@ -1081,7 +1085,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // Svarstidsmål (D5): p95 under 200 ms per endpoint.
   const MAL_P95 = 200;
   const medMal = (rader) => rader.map(r => ({ ...r, inomMal: r.p95 <= MAL_P95 }));
-  rutt('GET', '/api/drift', (c) => ({ startad, sandladar: sessioner.size, mal: { p95Ms: MAL_P95 }, server: medMal(serverMatning.sammanstall()), sandlada: c.s ? medMal(c.s.matning.sammanstall()) : [] }));
+  rutt('GET', '/api/drift', (c) => ({ startad, sandladar: sessioner.size, mal: { p95Ms: MAL_P95 }, server: medMal(serverMatning.sammanstall()), sandlada: c.s ? medMal(c.s.matning.sammanstall()) : [], ...utdata.drift(c.db) }));
+  utdataRutter({ rutt, kravInloggad, medPatient, valFor, version: APPVERSION });
 
   // Endpoints som inte behöver en sandlåda.
   const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/krav/sussa', '/api/drift', '/api/lasekopia/krypterad-logg']);
@@ -1105,6 +1110,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     c.body = metod === 'GET' ? {} : await lasKropp(req);
     c.url = url;
     let ut = traff[0](c, ...traff[1]);
+    // En fil, till exempel exportpaketet eller datauttaget, går ut som den är.
+    if (ut instanceof Response) return ut;
     let status = 200;
     if (Array.isArray(ut) && typeof ut[0] === 'number') [status, ut] = ut;
     // Ny sessionsnyckel vid inloggning, samma sandlåda.

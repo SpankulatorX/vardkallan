@@ -269,6 +269,13 @@ export function serviceRequest(db, r, klinisk = true) {
   return ut;
 }
 
+// Kontrasignering (Sussa 3.1.11.3, kontrasignering.js): den som kontrasignerade är attester med mode professional.
+function kontrasignerad(db, a) {
+  if (!db.query("SELECT 1 FROM sqlite_master WHERE name = 'kontrasigneringar'").get()) return {};
+  const ks = db.query("SELECT mottagare_id, kontrasignerad FROM kontrasigneringar WHERE typ = 'anteckning' AND post_id = ? AND status = 'kontrasignerad' ORDER BY id").all(a.id);
+  return ks.length ? { attester: ks.map(k => ({ mode: 'professional', time: k.kontrasignerad, party: ref('Practitioner', k.mottagare_id, personNamn(db, k.mottagare_id)) })) } : {};
+}
+
 export function composition(db, a) {
   const ersatt = db.query('SELECT id FROM anteckningar WHERE ersatter_id = ?').get(a.id);
   const sokord = JSON.parse(a.sokord);
@@ -283,6 +290,7 @@ export function composition(db, a) {
     date: a.signerad_tid ?? a.skapad, author: [ref('Practitioner', a.forfattare_id, personNamn(db, a.forfattare_id))], title: a.typ,
     custodian: ref('Organization', a.enhet_id, enhetsnamn(db, a.enhet_id)),
     ...(relatesTo.length ? { relatesTo } : {}),
+    ...kontrasignerad(db, a),
     ...(sokord.length ? { section: sokord.map(s => ({ title: s.sokord, text: { status: 'generated', div: `<div xmlns="http://www.w3.org/1999/xhtml">${escape(s.text)}</div>` } })) } : {}),
   };
 }
@@ -549,6 +557,7 @@ export const MAPPA_INVANARE = {
   Composition: (db, a) => {
     const r = composition(db, a);
     r.author = r.author.map(utanPersonalId);
+    if (r.attester) r.attester = r.attester.map(x => ({ ...x, party: utanPersonalId(x.party) }));
     return r;
   },
 };

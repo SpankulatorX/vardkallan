@@ -101,6 +101,8 @@ describe('Seed', () => {
       ['lak-psyk', 'Lena Ström', 'lakare', 'uso-psyk'],
       ['adm-kard', 'Karin Berg', 'vardadministrator', 'uso-kard'],
       ['logg', 'Mats Wall', 'logggranskare', 'rk'],
+      ['ark', 'Ingela Nord', 'arkivarie', 'rk'],
+      ['uppf', 'Daniel Sund', 'uppfoljning', 'rk'],
     ]);
   });
 

@@ -26,6 +26,15 @@ export const ROLLER = {
 ROLLER.lakare.push('registrera_vardkontakt', 'vardtillfalle', 'halsoarende');
 ROLLER.sjukskoterska.push('registrera_vardkontakt', 'vardtillfalle', 'halsoarende');
 ROLLER.vardadministrator.push('registrera_vardkontakt');
+// Utskrift, utlämnande och kontrasignering (Sussa 3.1.9 och 3.1.11.3, utskrift.js och kontrasignering.js). En utskrift
+// innehåller bara det som rollen redan får se. Arkiv, gallring och radering (Sussa 5.4.2 och 5.3.1.7, arkiv.js) och
+// datauttaget för uppföljning (Sussa 6.3.1, datauttag.js) har egna roller som inte läser journalen.
+ROLLER.lakare.push('skriv_ut', 'utlamna', 'begara_kontrasignering', 'kontrasignera');
+ROLLER.sjukskoterska.push('skriv_ut', 'utlamna', 'begara_kontrasignering');
+ROLLER.underskoterska.push('skriv_ut');
+ROLLER.vardadministrator.push('skriv_ut', 'utlamna');
+ROLLER.arkivarie = ['registrera_arkivbeslut', 'arkivera', 'gallra'];
+ROLLER.uppfoljning = ['datauttag'];
 
 export const HANDLINGAR = {
   las_oversikt: 'läsa patientöversikten', las_journal: 'läsa journalanteckningar', las_omvardnad: 'läsa omvårdnadsanteckningar',
@@ -39,10 +48,17 @@ export const HANDLINGAR = {
   registrera_patient: 'registrera nya patienter', andra_identitet: 'registrera en ny identitet för en patient', sla_samman: 'slå samman journaler',
   registrera_vardkontakt: 'registrera vårdkontakter', vardtillfalle: 'skriva in, flytta och skriva ut patienter',
   halsoarende: 'bekräfta hälsoärenden',
+  skriv_ut: 'skriva ut journalen', utlamna: 'registrera utlämnande och återlämnande av journalhandlingar',
+  begara_kontrasignering: 'begära kontrasignering', kontrasignera: 'kontrasignera journalinformation',
+  registrera_arkivbeslut: 'registrera beslut om arkivering, gallring och radering', arkivera: 'exportera till e-arkiv',
+  gallra: 'gallra och radera efter beslut', datauttag: 'hämta datauttaget för uppföljning',
 };
 
 // Handlingar som inte rör en enskild patient.
-const UTAN_PATIENT = new Set(['sok', 'vantrum', 'las_logg', 'registrera_patient']);
+const UTAN_PATIENT = new Set(['sok', 'vantrum', 'las_logg', 'registrera_patient', 'registrera_arkivbeslut', 'arkivera', 'gallra', 'datauttag']);
+// Grunden för handlingar utan patient. Arkivarien handlar på ett registrerat beslut, som arkiv.js kontrollerar, och
+// uppföljningsrollen på sitt uppdrag. Ingen av dem får läsa journalen.
+const GRUND_UTAN_PATIENT = { logggranskare: 'logggranskning', arkivarie: 'arkivbeslut', uppfoljning: 'uppfoljning' };
 const RELATION_DAGAR = 90;
 
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
@@ -106,7 +122,7 @@ export function prova(db, { personal, patient, handling, resurs = null, val = {}
     return svar(false, 'nekad', null, `Yrkesrollen får inte ${HANDLINGAR[handling]}.`);
   }
   if (handling === 'las_logg') return svar(true, 'logggranskning');
-  if (UTAN_PATIENT.has(handling)) return svar(true, personal.yrke === 'logggranskare' ? 'logggranskning' : 'administrativ');
+  if (UTAN_PATIENT.has(handling)) return svar(true, GRUND_UTAN_PATIENT[personal.yrke] ?? 'administrativ');
 
   const patientId = typeof patient === 'string' ? patient : patient?.id;
   if (!patientId) return svar(false, 'nekad', null, 'Patienten saknas.');
