@@ -3,6 +3,7 @@ import { esc, api, datum, tidpunkt, klockslag, migreradEtikett, NLL, VARDFORM, t
 import { far, pa } from '../app.js';
 import { doldaRad } from './patient.js';
 import { remissStatusText } from './remisser.js';
+import { lakemedelsalderRad } from '../avbrott.js';
 
 // När frågeställningen inte visas för rollen skickar servern remissens status i stället.
 const REMISSTATUS = { skickad: 'Status: skickad', mottagen: 'Status: mottagen', bedomd: 'Status: bedömd', besvarad: 'Status: besvarad', svar_kvitterat: 'Status: svaret är kvitterat' };
@@ -31,10 +32,10 @@ export async function visa(el, ctx) {
   const delar = [];
 
   if (d.lakemedel) {
-    delar.push(sektion('lm', 'Aktuella läkemedel', d.lakemedel.length ? `<div class="tabellrulle"><table class="tabell tat">
+    delar.push(sektion('lm', 'Aktuella läkemedel', lakemedelsalderRad(ctx.id) + (d.lakemedel.length ? `<div class="tabellrulle"><table class="tabell tat">
       <thead><tr><th scope="col">Läkemedel</th><th scope="col">Dosering</th><th scope="col">Ordinationsorsak</th></tr></thead>
       <tbody>${d.lakemedel.map(o => `<tr><td><strong>${esc(o.lakemedel?.namn)}</strong> <span class="dampad">${esc(o.lakemedel?.styrka)}</span>${o.nll_status !== 'kvitterad' ? ` ${nllChip(o.nll_status)}` : ''}${migreradEtikett(o)}</td><td>${esc(o.dosering)}</td><td>${esc(o.ordinationsorsak)}</td></tr>`).join('')}</tbody></table></div>
-      <p class="dampad liten">Alla utom de markerade är kvitterade av Nationella läkemedelslistan.</p>` : tomRad('Inga aktuella läkemedel.'), `<a class="sektion-lank" href="${ctx.href('lakemedel')}">Läkemedelslistan</a>`));
+      <p class="dampad liten">Alla utom de markerade är kvitterade av Nationella läkemedelslistan.</p>` : tomRad('Inga aktuella läkemedel.')), `<a class="sektion-lank" href="${ctx.href('lakemedel')}">Läkemedelslistan</a>`));
   }
   if (d.diagnoser) {
     delar.push(sektion('dia', 'Diagnoser', d.diagnoser.length ? `<ul class="enkel-lista">${d.diagnoser.map(x => `<li><span class="kod">${esc(x.kod)}</span> ${esc(x.text)}${x.typ === 'huvud' ? ' <span class="dampad">(huvuddiagnos)</span>' : ''}<span class="under-text">${esc(datum(x.datum))}, ${esc(x.vardenhet.namn)}</span>${migreradEtikett(x)}</li>`).join('')}</ul>` : tomRad('Inga diagnoser som du kan se.')));

@@ -3,6 +3,7 @@ import { esc, api, datum, tidpunkt, migreradEtikett, notis, felNotis, faltFel, m
 import { far } from '../app.js';
 import { doldaRad } from './patient.js';
 import { nllChip } from './patient-oversikt.js';
+import { lakemedelsalderRad } from '../avbrott.js';
 
 let nastaOverforing = null;
 
@@ -14,6 +15,7 @@ export async function visa(el, ctx) {
   const ovriga = d.ordinationer.filter(o => !o.aktuell);
   el.innerHTML = `<div class="flikhuvud"><h2>Läkemedel</h2>
       ${kanOrdinera ? `<button type="button" class="knapp" data-ny aria-expanded="false" aria-controls="ordform">${ikon.plus}<span>Ordinera</span></button>` : '<p class="dampad liten">Din yrkesroll kan läsa läkemedelslistan men inte ordinera.</p>'}</div>
+    ${lakemedelsalderRad(ctx.id)}
     ${doldaRad(d.dolda)}
     <p class="dampad liten">Läkemedelslistan är gemensam för vårdgivaren och följer Nationella läkemedelslistan (NLL). Varje ändring skickas till NLL och kvitteras. I demon är NLL simulerad.</p>
     <div id="ordform-plats"></div>

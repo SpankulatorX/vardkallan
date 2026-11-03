@@ -152,7 +152,9 @@ async function nyckelFranFlik() {
 export async function spara(ny) {
   if (!nyckel || medReserv || ny?.session?.personal?.id !== info?.personalId || ny.kopiaId !== info.kopiaId) return null;
   const meta = { id: 'kopia', kopiaId: info.kopiaId, personalId: info.personalId, skapad: ny.skapad, giltigTill: ny.giltigTill < info.giltigTill ? ny.giltigTill : info.giltigTill };
-  const post = await kryptera(meta, ny);
+  // Datorns klocka när kopian hämtades, så att åldern på läkemedelsuppgifterna i läsläget mäts med samma klocka hela
+  // vägen och blir rätt även om datorns klocka går fel mot serverns.
+  const post = await kryptera(meta, { ...ny, hamtadLokalt: new Date().toISOString() });
   await sparaPost(post);
   await lagring.andra('reserv', info.personalId, r => (r.kopiaId === post.kopiaId ? { ...r, kopia: post } : null)).catch(() => {});
   return meta.skapad;
@@ -178,6 +180,24 @@ export async function oppnaMedReserv(k, i, post) {
   kopia = v;
   medReserv = true;
   return { skapad: v.skapad, session: { ...v.session, inloggad: true, reserv: true }, patienter: Object.keys(v.patienter).length, reserv: true };
+}
+
+// Hur gammal läkemedelsdelen för en patient är i den öppna läskopian (Sussa 11.2.1.8): { tid, ms, maxMs, gammal },
+// eller null när ingen kopia är öppen eller patienten saknar läkemedelsdel. tid är serverns tid när uppgifterna lästes
+// ur journalen. Åldern är tiden sedan kopian hämtades, mätt med datorns klocka, plus hur gammal delen redan var då.
+export function lakemedelsalder(patientId, nu = Date.now()) {
+  const del = kopia?.patienter?.[patientId]?.lakemedelsdel;
+  if (!del?.tid) return null;
+  const hamtad = Date.parse(kopia.hamtadLokalt ?? kopia.skapad);
+  const ms = Math.max(0, nu - hamtad + Date.parse(kopia.skapad) - Date.parse(del.tid));
+  const maxMs = kopia.fornyas?.lakemedelMaxMs ?? 10 * 60_000;
+  return { tid: del.tid, ms, maxMs, gammal: ms > maxMs };
+}
+// Den äldsta läkemedelsdelen i den öppna läskopian och hur många patienter som har en, för avbrottsraden.
+export function aldstaLakemedel(nu = Date.now()) {
+  const alla = Object.keys(kopia?.patienter ?? {}).map(id => lakemedelsalder(id, nu)).filter(Boolean);
+  if (!alla.length) return null;
+  return { ...alla.reduce((a, b) => (b.ms > a.ms ? b : a)), patienter: alla.length, gamla: alla.filter(a => a.gammal).length };
 }
 
 export const stang = () => { kopia = null; };
@@ -264,14 +284,17 @@ export function svara(vag, metod = 'GET') {
   if (p === '/api/arbetslista') return ut(kopia.arbetslista);
   if (p === '/api/mallar') return ut(kopia.mallar);
   if (p === '/api/enheter') return ut(kopia.enheter);
-  let m = p.match(/^\/api\/patient\/([\w-]+)(?:\/(oversikt|lakemedel|anteckningar))?$/);
+  let m = p.match(/^\/api\/patient\/([\w-]+)(?:\/([a-z]+))?$/);
   if (m) {
     const post = kopia.patienter[m[1]];
     if (!post) throw ej('Patienten finns inte i läskopian. Bara patienterna på arbetslistan och de som du har öppnat under inloggningen kopieras.');
     const del = m[2];
     if (!del) { logga(m[1], post.handling); return ut(post.huvud); }
     if (del === 'oversikt') { logga(m[1], post.handling); return ut(post.oversikt); }
-    if (del === 'lakemedel' && post.lakemedel) { logga(m[1], 'las_lakemedel'); return ut(post.lakemedel); }
+    // Läkemedelsdelen: servern säger vilka delar den har och med vilken läshandling de loggas, så att en ny del som
+    // administreringar inte behöver något nytt här. En kopia från en äldre version har bara läkemedelslistan.
+    const lm = post.lakemedelsdel?.delar ?? (post.lakemedel ? { lakemedel: 'las_lakemedel' } : {});
+    if (Object.hasOwn(lm, del) && post[del]) { logga(m[1], lm[del]); return ut(post[del]); }
     if (del === 'anteckningar' && post.anteckningar) {
       logga(m[1], kopia.session.behorigheter?.includes('las_journal') ? 'las_journal' : 'las_omvardnad');
       return ut(post.anteckningar);

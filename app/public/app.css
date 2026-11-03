@@ -616,6 +616,12 @@ legend { font-weight: 600; font-size: var(--f-s); padding: 0; margin-bottom: 6px
 .reservkopior ul { margin: 6px 0 0; padding-left: 20px; font-size: var(--f-s); }
 .reserv-form { margin: 8px 14px 0; }
 .reserv-form .knapprad { margin-top: 6px; }
+/* Läkemedelsuppgifternas ålder i läsläget (Sussa 11.2.1.8) */
+.lm-alder { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0; padding: 7px 12px; border-left: 4px solid var(--kalla); background: var(--kalla-ljus); border-radius: var(--r); font-size: var(--f-s); max-width: 92ch; }
+.lm-alder.gammal { border-left-color: var(--larm); background: var(--larm-bg); border: 1px solid var(--larm-kant); border-left: 4px solid var(--larm); }
+.lm-alder.gammal .ikon { color: var(--larm); width: 18px; height: 18px; flex: none; margin-top: 1px; }
+.lm-alder.gammal strong { color: var(--larm); }
+.avbrott-text .lm-alder { margin: 6px 0; }
 body.laslage [data-skriv] { display: none !important; }
 body.laslage [data-laslage-av] { cursor: not-allowed; }
 

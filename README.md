@@ -18,6 +18,7 @@ Demon använder bara påhittade patienter och testpersonnummer från Skatteverke
 - En åtkomstlogg som inte går att ändra (hashkedja och databastriggrar), logglista per patient och logguppföljning.
 - Min journal, en e-tjänst för patienten: patienten loggar in med simulerad e-legitimation och läser sin journal efter vårdgivarens visningsregler, och ser vilken vårdenhet och yrkesroll som har läst den, när och på vilken grund. Spärr och loggutdrag begärs hos vården. Vårdnadshavare läser barnets journal tills barnet fyller 13 år.
 - Läkemedelslistan är byggd för Nationella läkemedelslistan: ordinationsorsak och uppföljningsdatum är obligatoriska, varje överföring kvitteras och en timeout döljer aldrig en registrerad förskrivning. Kopplingen till NLL är simulerad i demon.
+- Läsläge vid avbrott: när servern inte svarar går det att läsa arbetslistan och patienternas journaler ur en krypterad läskopia i webbläsaren, med reservinloggning. Läskopian förnyas av sig själv medan man är inloggad, så läkemedelsuppgifterna är högst 10 minuter gamla när ett avbrott börjar, och läsläget visar per patient hur gamla de är.
 - Remisser med mottagningskvittens, bedömning, svar och kvittens av svaret, och larm när något uteblir.
 - Migrerad historik visas i samma kronologi som ny dokumentation, med en avstämningsrapport för migreringen.
 - Öppet FHIR R4-API under `/fhir` med samma behörighet och loggning som gränssnittet.

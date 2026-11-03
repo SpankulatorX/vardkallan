@@ -401,6 +401,71 @@ const undersok = (page, kod, nyckelB64) => page.evaluate(async ({ kod, nyckelB64
     await c.close();
   });
 
+  // Läskopians läkemedelsdel (Sussa 11.2.1.8). Klockan i fliken styrs av testet. Ingen gör något i fliken: Waran sätts
+  // ut från en annan flik med samma inloggning, så att fliken bara får veta det genom att läskopian förnyas av sig själv.
+  const lmCtx = await ny();
+  const lm = await lmCtx.newPage();
+  bevaka(lm, 'läkemedel');
+  await test('läskopian förnyas av sig själv medan personen är inloggad', async () => {
+    felSida = lm;
+    await lm.clock.install();
+    await loggaIn(lm, 'lak-kard');
+    await lm.click('a.patientlank:has-text("Gunnar Åkesson")');
+    await lm.waitForSelector('.tidslinje');
+    await vantaPaKopia(lm);
+    await lm.waitForLoadState('networkidle');
+    await lm.waitForTimeout(1000);
+    const forsta = await lm.evaluate(() => document.documentElement.dataset.laskopia);
+    const lista = await (await lmCtx.request.get(`${BAS}/api/patient/p01/lakemedel`)).json();
+    const waran = lista.ordinationer.find(o => o.aktuell && o.lakemedel?.namn.startsWith('Waran'));
+    anta(waran, 'Waran finns inte bland de aktuella ordinationerna');
+    const ut = await lmCtx.request.post(`${BAS}/api/ordination/${waran.id}/utsatt`, { data: { orsak: 'Byte till annat antikoagulantia' }, headers: { Origin: BAS } });
+    anta(ut.ok(), `utsättningen gick inte: ${ut.status()}`);
+    await lm.waitForTimeout(1000);
+    anta(await lm.evaluate(() => document.documentElement.dataset.laskopia) === forsta, 'läskopian förnyades innan klockan gick fram');
+    // Fyra och en halv minut utan att någon gör något.
+    await lm.clock.fastForward('04:30');
+    const andra = await vantaPaKopia(lm, forsta);
+    anta(andra > forsta, 'läskopian förnyades inte av sig själv');
+    console.log(`    läskopian förnyades av sig själv: ${forsta} och ${andra}`);
+  });
+
+  await test('läsläget visar hur gammal läkemedelsinformationen är per patient och varnar efter 10 minuter', async () => {
+    felSida = lm;
+    await lm.click('[data-a="avbrott"]');
+    await synlig(lm, '#avbrott h2', 'Avbrott: läsläge');
+    await synlig(lm, '#avbrott [data-lm-alder="alla"]', 'Läkemedelsuppgifterna');
+    await lm.click('.flikar a:has-text("Läkemedel")');
+    const rad = await synlig(lm, '[data-lm-alder="p01"]', 'Läkemedelsuppgifterna hämtades kl.');
+    const text = (await rad.textContent()) ?? '';
+    anta(/kl\. \d\d:\d\d, för mindre än en minut sedan/.test(text), `åldern visas inte: ${text}`);
+    anta(!/gammal/.test((await rad.getAttribute('class')) ?? ''), 'varnar fast uppgifterna är nya');
+    // Utsättningen från den andra fliken finns i läskopian.
+    await synlig(lm, 'section[aria-labelledby="lm-utsatt"]', 'Waran');
+    anta(!(await lm.locator('section[aria-labelledby="lm-akt"]').filter({ hasText: 'Waran' }).count()), 'Waran står kvar bland de aktuella ordinationerna');
+    await bild(lm, '42-laslage-lakemedel-alder');
+    // Medan avbrottet pågår blir uppgifterna äldre, och texten följer med.
+    await lm.clock.fastForward('06:00');
+    await synlig(lm, '[data-lm-alder="p01"]', 'för 6 minuter sedan');
+    anta(!(await lm.locator('[data-lm-alder].gammal').count()), 'varnar innan uppgifterna är 10 minuter gamla');
+    await lm.clock.fastForward('05:00');
+    const gammal = await synlig(lm, '[data-lm-alder="p01"].gammal', 'äldre än 10 minuter');
+    anta(/för 11 minuter sedan/.test((await gammal.textContent()) ?? ''), 'åldern i varningen stämmer inte');
+    await synlig(lm, '#avbrott [data-lm-alder="alla"].gammal', 'äldre än 10 minuter');
+    await bild(lm, '43-laslage-lakemedel-gammal');
+    // Översikten visar samma sak för patienten.
+    await lm.click('.flikar a:has-text("Översikt")');
+    await synlig(lm, 'section[aria-labelledby="ov-lm"] [data-lm-alder="p01"].gammal', 'äldre än 10 minuter');
+    // Utanför läsläget visas ingen ålder.
+    await lm.click('[data-avbrott="avsluta"]');
+    await synlig(lm, '.notis', 'Servern svarar igen');
+    await lm.locator('#avbrott').waitFor({ state: 'hidden' });
+    await lm.waitForSelector('section[aria-labelledby="ov-lm"]');
+    await lm.waitForTimeout(500);
+    anta(!(await lm.locator('[data-lm-alder]').count()), 'åldern visas utanför läsläget');
+  });
+  await lmCtx.close();
+
   // Reservinloggning (D4). En webbläsarprofil på disken, så att en riktig omstart av webbläsaren kan göras: då är
   // sessionStorage och sessionskakan borta, men IndexedDB, service workern och dess cache finns kvar.
   const profil = mkdtempSync(join(tmpdir(), 'vk-avbrott-profil-'));

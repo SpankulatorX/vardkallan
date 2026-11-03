@@ -21,6 +21,7 @@ const patientCell = (r, lank = true) => {
 function resursText(r) {
   if (r.resurs && r.handling === 'sok') return `<span class="under-text">${esc(r.resurs.replace(/^sok:/, 'Sökte på '))}</span>`;
   if (r.resurs === 'lasekopia') return '<span class="under-text">Lämnades ut till läskopian för avbrott</span>';
+  if (r.resurs === 'lasekopia:slut') return '<span class="under-text">Senaste utlämnandet till läskopian för avbrott</span>';
   if (r.resurs?.startsWith('laslage:')) return '<span class="under-text">Läst i läsläget under ett avbrott</span>';
   if (r.resurs?.startsWith('fhir/') && r.invanare) return '<span class="under-text">Via det öppna API:t</span>';
   return '';

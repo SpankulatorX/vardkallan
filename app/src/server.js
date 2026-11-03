@@ -28,6 +28,25 @@ const gransnittVersion = () => { if (gransnitt === undefined) { try { gransnitt 
 const VAL_TYPER = ['andra_enheter', 'nodatkomst', 'samtycke_sparr', 'visa_identitet'];
 // Läskopian för avbrott (D4): så många av de senaste anteckningarna per patient följer med.
 const LASKOPIA_ANTECKNINGAR = 5;
+// Läskopians läkemedelsdel (Sussa 11.2.1.8): uppgifterna om ordinerade och administrerade läkemedel får vara högst 10
+// minuter gamla när servern inte svarar. Webbläsaren förnyar kopian var fjärde minut av sig själv. Med en minuts
+// fördröjning för en flik i bakgrunden och ett misslyckat försök som görs om efter 30 sekunder håller det.
+const LASKOPIA_FORNYA_MS = 4 * 60_000;
+const LASKOPIA_LAKEMEDEL_MAX_MS = 10 * 60_000;
+// Delarna i läkemedelsdelen: namnet i kopian och i läsläget (GET /api/patient/:id/<namn>), läshandlingen och funktionen
+// som ger samma svar som det vanliga anropet. Administreringar läggs till med en rad här när de finns, och läsläget
+// svarar då på /api/patient/:id/administreringar ur kopian och loggar läsningen med handlingen.
+const LASKOPIA_LAKEMEDEL = {
+  lakemedel: { handling: 'las_lakemedel', hamta: (atk) => lakemedel.lista(atk) },
+};
+// Varför utlämnandet till läskopian slutade, i loggen.
+const LASKOPIA_SLUT = {
+  utloggning: 'Förnyelsen slutade när personen loggade ut.',
+  inloggning: 'Förnyelsen slutade vid en ny inloggning i samma webbläsare.',
+  invanare: 'Förnyelsen slutade när någon loggade in i Min journal i samma webbläsare.',
+  utgangen: 'Förnyelsen slutade när läskopian gick ut.',
+  utanfor: 'Förnyelsen slutade eftersom patienten inte längre hör till läskopian.',
+};
 // Läshandlingar som får rapporteras från läsläget i efterhand.
 const LASLAGE_HANDLINGAR = ['las_oversikt', 'las_admin', 'las_lakemedel', 'las_journal', 'las_omvardnad'];
 const KLOCKMARGINAL = 5 * 60_000;
@@ -120,8 +139,30 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   const nyLasnyckel = () => ({ id: slumpId(), nyckel: slumpNyckel(), giltigTill: new Date(Date.now() + SESSION_TTL).toISOString() });
   const aktuellKopia = (s) => (s.lasnyckel ? s.kopior.get(s.lasnyckel.id) ?? null : null);
   function rensaKopior(s, nu = Date.now()) {
-    for (const [id, k] of s.kopior) if (Date.parse(k.giltigTill) + KLOCKMARGINAL < nu) s.kopior.delete(id);
-    while (s.kopior.size > MAX_KOPIOR) s.kopior.delete(s.kopior.keys().next().value);
+    for (const [id, k] of s.kopior) if (Date.parse(k.giltigTill) + KLOCKMARGINAL < nu) { avslutaKopia(s, k, 'utgangen'); s.kopior.delete(id); }
+    while (s.kopior.size > MAX_KOPIOR) { const id = s.kopior.keys().next().value; avslutaKopia(s, s.kopior.get(id), 'utgangen'); s.kopior.delete(id); }
+  }
+  // Läskopian förnyas av sig själv medan personen är inloggad (Sussa 11.2.1.8), men varje förnyelse loggas inte för
+  // sig. Loggen visar när utlämnandet av en patient började (resurs lasekopia, när servern lämnade ut patienten första
+  // gången och igen om grunden ändras) och när uppgifterna lämnades ut senast (resurs lasekopia:slut, med tiden för den
+  // senaste förnyelsen och antalet förnyelser). Den sista raden skrivs när utlämnandet slutar: vid utloggning, ny
+  // inloggning, när läskopian går ut eller när patienten inte längre hör till kopian.
+  function avslutaUtlamnande(s, kopia, pid, orsak) {
+    const u = kopia.patienter.get(pid);
+    if (!u || u.slut) return;
+    u.slut = true;
+    const pers = s.db.query('SELECT * FROM personal WHERE id = ?').get(kopia.personalId);
+    if (!pers) return;
+    const fornyad = u.fornyad ?? 0;
+    logg.loggaRad(s.db, {
+      tid: u.senast ?? u.tid, personal_id: pers.id, enhet_id: pers.enhet_id, patient_id: pid, handling: u.handling, resurs: 'lasekopia:slut', grund: u.grund,
+      syfte: `Senaste utlämnandet till läskopian för avbrott. Uppgifterna förnyades ${fornyad} ${fornyad === 1 ? 'gång' : 'gånger'} efter att de lämnades ut. ${LASKOPIA_SLUT[orsak]}`,
+      resultat: 'tillaten',
+    });
+  }
+  function avslutaKopia(s, kopia, orsak) {
+    if (!kopia) return;
+    for (const pid of kopia.patienter.keys()) avslutaUtlamnande(s, kopia, pid, orsak);
   }
   // Ser till att den inloggade har en nyckel och en läskopia att föra loggen mot.
   function sakraKopia(s) {
@@ -425,6 +466,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const nod = (e) => ({ id: e.id, hsaId: e.hsa_id, namn: e.namn, kortnamn: e.kortnamn, typ: e.typ, barn: alla.filter(b => b.forald_id === e.id).map(nod) });
     const ut = {
       kopiaId: s.lasnyckel.id, skapad: new Date().toISOString(), giltigTill: s.lasnyckel.giltigTill, session,
+      fornyas: { intervallMs: LASKOPIA_FORNYA_MS, lakemedelMaxMs: LASKOPIA_LAKEMEDEL_MAX_MS },
       enheter: alla.filter(e => !e.forald_id).map(nod), mallar: journal.MALLAR, arbetslista: [], patienter: {},
     };
     if (pers.yrke === 'logggranskare') return ut;
@@ -438,8 +480,12 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       const delar = [];
       const ny = (h = handling) => { const a = new Atkomst(db, pers, pid, val, h); delar.push(a); return a; };
       if (!ny().prova(handling).tillaten) continue;
-      const post = { handling, huvud: patientHuvud(c, ny(), pat), oversikt: oversikt(c, ny(), pat), lakemedel: null, anteckningar: null, anteckning: {} };
-      if (kanRoll(pers, 'las_lakemedel')) post.lakemedel = lakemedel.lista(ny('las_lakemedel'));
+      const post = { handling, huvud: patientHuvud(c, ny(), pat), oversikt: oversikt(c, ny(), pat), lakemedel: null, lakemedelsdel: null, anteckningar: null, anteckning: {} };
+      // Läkemedelsdelen har en egen tid per patient, så att läsläget kan visa hur gammal den är.
+      const lmTid = new Date().toISOString();
+      const lmDelar = Object.entries(LASKOPIA_LAKEMEDEL).filter(([, d]) => kanRoll(pers, d.handling));
+      for (const [namn, d] of lmDelar) post[namn] = d.hamta(ny(d.handling));
+      if (lmDelar.length) post.lakemedelsdel = { tid: lmTid, delar: Object.fromEntries(lmDelar.map(([namn, d]) => [namn, d.handling])) };
       if (kanRoll(pers, 'las_journal') || kanRoll(pers, 'las_omvardnad')) {
         const l = journal.listaAnteckningar(ny('las_journal'));
         const senaste = l.anteckningar.slice(0, LASKOPIA_ANTECKNINGAR);
@@ -449,10 +495,13 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       const grunder = new Set(delar.flatMap(a => [...a.grunder]));
       const grund = starkasteGrund(grunder, pers.yrke === 'vardadministrator' ? 'administrativ' : 'vardrelation');
       const forra = kopia.patienter.get(pid);
-      if (!forra || forra.grund !== grund) delar[0].logga(handling, grund, 'lasekopia', 'tillaten', 'Läskopia för avbrott, krypterad i webbläsaren');
-      kopia.patienter.set(pid, { grund, handling, tid: forra?.tid ?? ut.skapad });
+      const borjar = !forra || forra.slut;
+      if (borjar || forra.grund !== grund) delar[0].logga(handling, grund, 'lasekopia', 'tillaten', 'Läskopia för avbrott, krypterad i webbläsaren. Den förnyas automatiskt medan inloggningen pågår, och när förnyelsen slutar loggas när uppgifterna lämnades ut senast.');
+      kopia.patienter.set(pid, { grund, handling, tid: forra?.tid ?? ut.skapad, senast: ut.skapad, fornyad: borjar ? 0 : (forra.fornyad ?? 0) + 1 });
       ut.patienter[pid] = post;
     }
+    // Patienter som inte längre hör till läskopian finns inte i den nya kopian, och utlämnandet av dem har slutat.
+    for (const pid of kopia.patienter.keys()) if (!ut.patienter[pid]) avslutaUtlamnande(s, kopia, pid, 'utanfor');
     return ut;
   }
 
@@ -599,6 +648,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('POST', '/api/login', (c) => {
     const p = typeof c.body.personalId === 'string' ? c.db.query('SELECT * FROM personal WHERE id = ? AND demo = 1').get(c.body.personalId) : null;
     if (!p) throw new Fel(400, 'Välj en av demorollerna.', 'ogiltig', { falt: ['personalId'] });
+    avslutaKopia(c.s, aktuellKopia(c.s), 'inloggning');
     c.s.personalId = p.id;
     c.s.invanareId = null;
     c.s.val = {};
@@ -628,6 +678,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       // Läskopian stängs: rader från läsningar före utloggningen tas fortfarande emot, senare läsningar inte.
       const akt = aktuellKopia(c.s);
       if (akt) akt.stangd = new Date().toISOString();
+      avslutaKopia(c.s, akt, 'utloggning');
       c.s.personalId = null; c.s.invanareId = null; c.s.val = {}; c.s.lasnyckel = null; c.s.oppnade = new Set();
     }
     return { ...sessionUt(c.s), ...(lasloggen ? { lasloggen } : {}) };
@@ -643,6 +694,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     // Personalens läskopia stängs som vid utloggning.
     const akt = aktuellKopia(c.s);
     if (akt) akt.stangd = new Date().toISOString();
+    avslutaKopia(c.s, akt, 'invanare');
     c.s.lasnyckel = null;
     c.s.oppnade = new Set();
     c.rotera = true;

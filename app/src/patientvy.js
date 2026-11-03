@@ -346,7 +346,7 @@ export function oversikt(atk, nu = new Date()) {
 const VIA = (resurs) => {
   if (!resurs) return null;
   if (resurs.startsWith('fhir/')) return 'fhir';
-  if (resurs === 'lasekopia') return 'laskopia';
+  if (resurs === 'lasekopia' || resurs === 'lasekopia:slut') return 'laskopia';
   if (resurs.startsWith('laslage:')) return 'laslage';
   if (resurs.startsWith('min:') || resurs.startsWith('begaran:')) return 'min_journal';
   return null;

@@ -1,6 +1,8 @@
 // Läsläge vid avbrott (D4). Upptäcker när servern inte svarar, visar läget "Avbrott: läsläge" med tidpunkten för
 // läskopian, stänger av allt skrivande och kontrollerar var femte sekund om servern svarar igen. Då skickas
 // åtkomsterna från läsläget till serverns åtkomstlogg, läskopian förnyas och appen återgår till vanligt läge.
+// Medan personen är inloggad förnyas läskopian av sig själv så ofta som servern säger (Sussa 11.2.1.8: läkemedelsdelen
+// högst 10 minuter gammal), och läsläget visar hur gamla läkemedelsuppgifterna är per patient.
 // Med en reservkod (reservkopia.js) går läsläget att öppna också i en ny flik eller efter en omstart av webbläsaren.
 // Demoknappen "Simulera avbrott" gör att just den här fliken beter sig som om servern var nere. Servern är igång
 // för alla andra besökare.
@@ -12,7 +14,12 @@ import { S, rita, uppdateraInkorg, demoknappar, laddaEnheter } from './app.js';
 const SS_SIMULERAT = 'vk_simulerat_avbrott';
 const SS_UTLOGGAD = 'vk_utloggad_under_avbrott';
 const KONTROLL_MS = 5000;
-const FORNYA_MS = 5 * 60_000;
+// Läskopian förnyas när den är så här gammal. Servern skickar intervallet med kopian (fornyas.intervallMs); det här är
+// värdet tills den första kopian har kommit.
+let fornyaMs = 4 * 60_000;
+// Så ofta tittar fliken om det är dags att förnya, och så länge väntar den efter ett misslyckat försök. En timer som
+// bara tittar fungerar också när webbläsaren har strypt timrarna i en flik i bakgrunden eller datorn har sovit.
+const TITTA_MS = 30_000;
 // Rader per anrop när loggen från läsläget skickas. 100 krypterade rader ryms med marginal i serverns 64 kB.
 const PER_ANROP = 100;
 
@@ -23,7 +30,9 @@ let kontroll = null;
 let vakt = null;
 let atergar = false;
 let senastFornyad = 0;
+let senastSparad = 0;
 let fornyaTimer = null;
+let alderTimer = null;
 // Utloggning i en flik meddelas webbläsarens andra flikar, så att de inte fortsätter i läsläge med läskopian.
 const kanal = typeof BroadcastChannel === 'function' ? new BroadcastChannel('vardkallan-avbrott') : null;
 
@@ -141,11 +150,20 @@ export function init() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(e => console.warn('Service workern kunde inte registreras:', e?.message));
   }
-  setInterval(() => fornya(), FORNYA_MS);
+  // Ingen behöver göra något: kopian förnyas när den är gammal nog, när fliken syns igen och när nätet är tillbaka.
+  setInterval(fornyaOmDags, TITTA_MS);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') fornyaOmDags(); });
+  window.addEventListener('online', fornyaOmDags);
+}
+function fornyaOmDags() {
+  const nu = Date.now();
+  if (nu - senastSparad >= fornyaMs && nu - senastFornyad >= TITTA_MS) fornyaNu();
 }
 
 function starta() {
   if (!kontroll) kontroll = setInterval(() => { if (!avbrott.simulerat) kontrollera(); }, KONTROLL_MS);
+  // Åldern på läkemedelsuppgifterna ökar medan avbrottet pågår, och texten följer med.
+  if (!alderTimer) alderTimer = setInterval(uppdateraAlder, TITTA_MS);
   if (!vakt) {
     // Allt skrivande stängs av, även i vyer som ritas medan läsläget pågår.
     vakt = new MutationObserver(() => sparraSkrivning());
@@ -155,6 +173,7 @@ function starta() {
 }
 function stoppa() {
   clearInterval(kontroll); kontroll = null;
+  clearInterval(alderTimer); alderTimer = null;
   vakt?.disconnect(); vakt = null;
   document.body.classList.remove('laslage');
   document.querySelectorAll('[data-laslage-av]').forEach(el => { el.disabled = false; el.removeAttribute('data-laslage-av'); el.removeAttribute('title'); });
@@ -189,6 +208,7 @@ function visaRad() {
   if (meta?.reserv) {
     rubrik = 'Avbrott: läsläge med reservkod';
     text = `<p>Servern svarar inte. Du är inloggad med din reservkod och ser en läskopia från <strong data-laskopia-tid>${esc(tidpunkt(meta.skapad))}</strong>. Uppgifterna kan vara inaktuella: det som har ändrats efter den tiden syns inte.</p>
+      ${alderRad('alla')}
       <p>Allt skrivande är avstängt, eftersom inget kan sparas i journalen förrän servern svarar igen. Läskopian har arbetslistan och ${patienter}. Det du läser loggas krypterat på datorn och förs över till åtkomstloggen när förbindelsen är tillbaka, även om fliken stängs.</p>`;
   } else if (meta) {
     rubrik = 'Avbrott: läsläge';
@@ -196,6 +216,7 @@ function visaRad() {
       ? `Du har en reservkopia på datorn som går ut ${esc(tidpunkt(minReserv.giltigTill))}, så du kommer in med reservkoden om fliken stängs.`
       : 'Stängs fliken eller startas webbläsaren om under avbrottet behövs en reservkod för att komma in igen.';
     text = `<p>Servern svarar inte. Du ser en läskopia från <strong data-laskopia-tid>${esc(tidpunkt(meta.skapad))}</strong>. Uppgifterna kan vara inaktuella: det som har ändrats efter den tiden syns inte.</p>
+      ${alderRad('alla')}
       <p>Allt skrivande är avstängt, eftersom inget kan sparas i journalen förrän servern svarar igen. Läskopian har arbetslistan och ${patienter}. Det du läser loggas här och skickas till åtkomstloggen när förbindelsen är tillbaka.</p>
       <p>${om}</p>`;
   } else {
@@ -209,6 +230,42 @@ function visaRad() {
       <h2 id="avbrott-rubrik">${rubrik}</h2>${text}${sim}
     </div>${knappar.length ? `<div class="avbrott-knappar">${knappar.join('')}</div>` : ''}</div>`;
   el.hidden = false;
+}
+
+// Hur gamla läkemedelsuppgifterna i läskopian är (Sussa 11.2.1.8), för en patient i läkemedelslistan och översikten
+// eller för hela kopian i avbrottsraden ('alla'). Tom utanför läsläget. Texten uppdateras var 30:e sekund medan
+// läsläget pågår, och varnar när uppgifterna är äldre än 10 minuter.
+export function lakemedelsalderRad(patientId) {
+  return avbrott.aktivt ? alderRad(patientId) : '';
+}
+function alderRad(id) {
+  const [klass, text] = alderText(id);
+  if (!text) return '';
+  return `<p class="${klass}" data-lm-alder="${esc(id)}">${text}</p>`;
+}
+const sedan = (ms) => {
+  const min = Math.floor(ms / 60_000);
+  return min < 1 ? 'för mindre än en minut sedan' : min === 1 ? 'för 1 minut sedan' : `för ${min} minuter sedan`;
+};
+function alderText(id) {
+  const a = id === 'alla' ? kopia.aldstaLakemedel() : kopia.lakemedelsalder(id);
+  if (!a) return ['', ''];
+  const max = Math.round(a.maxMs / 60_000);
+  const nar = `kl. ${esc(klockslag(a.tid))}, ${sedan(a.ms)}`;
+  const vem = id === 'alla' ? (a.patienter === 1 ? '' : a.gamla === a.patienter ? ' för alla patienter i läskopian' : ` för ${a.gamla} av ${a.patienter} patienter`) : '';
+  if (a.gammal) {
+    return ['lm-alder gammal', `${ikon.varning}<span><strong>Läkemedelsuppgifterna${vem} är äldre än ${max} minuter.</strong> De hämtades ${nar}. Ordinationer och givna doser som har ändrats efter det syns inte här. Fråga den som är ansvarig för patientens läkemedel innan du ger något som kan ha ändrats.</span>`];
+  }
+  const forsta = id === 'alla' ? (a.patienter === 1 ? 'Läkemedelsuppgifterna' : `Läkemedelsuppgifterna för ${a.patienter} patienter`) : 'Läkemedelsuppgifterna';
+  return ['lm-alder', `<span>${forsta} hämtades ${id === 'alla' && a.patienter > 1 ? 'senast ' : ''}${nar}. Läskopian förnyas av sig själv medan du är inloggad, så de är högst ${max} minuter gamla när ett avbrott börjar.</span>`];
+}
+function uppdateraAlder() {
+  for (const el of document.querySelectorAll('[data-lm-alder]')) {
+    const [klass, text] = alderText(el.dataset.lmAlder);
+    if (!text) { el.remove(); continue; }
+    el.className = klass;
+    el.innerHTML = text;
+  }
 }
 
 // Reservkopian för den inloggade och antalet reservkopior på datorn, i sidhuvudet och i avbrottsraden.
@@ -423,7 +480,11 @@ export async function fornyaNu() {
     const ny = await api('/api/lasekopia', { direkt: true, tyst: true });
     if (S.session?.personal?.id !== vem || avbrott.aktivt) return;
     const skapad = await kopia.spara(ny);
-    if (skapad) document.documentElement.dataset.laskopia = skapad;
+    if (skapad) {
+      senastSparad = Date.now();
+      if (ny.fornyas?.intervallMs > 0) fornyaMs = ny.fornyas.intervallMs;
+      document.documentElement.dataset.laskopia = skapad;
+    }
   } catch (e) {
     if (e.status && e.status !== 401) console.warn('Läskopian kunde inte förnyas:', e.message);
   }
@@ -440,6 +501,7 @@ export function fornya({ nu = false } = {}) {
 // webbläsarens andra flikar får veta att personen har loggat ut.
 export async function rensa({ personalId = null } = {}) {
   delete document.documentElement.dataset.laskopia;
+  senastSparad = 0;
   await kopia.rensa();
   if (personalId) {
     await reserv.taBort(personalId);

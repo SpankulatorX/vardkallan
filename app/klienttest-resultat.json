@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-03T09:26:34.946Z",
-  "bas": "http://127.0.0.1:18101",
+  "tid": "2026-11-03T09:44:32.236Z",
+  "bas": "http://127.0.0.1:18104",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "87b213cfb3b973e062b11aa12dcbc084746fad7fa8d1f7d20467235131a4c922",
+  "gransnittHash": "8b1885a98de6367e5fd64177045ea5aea09b643d408665533b58c965f918efe9",
   "tester": [
     {
       "namn": "Gränssnitt > Avbrott > läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB",
@@ -34,6 +34,14 @@
     },
     {
       "namn": "Gränssnitt > Avbrott > läskopian används inte efter 8 timmar",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > läskopian förnyas av sig själv medan personen är inloggad",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > läsläget visar hur gammal läkemedelsinformationen är per patient och varnar efter 10 minuter",
       "status": "grön"
     },
     {
