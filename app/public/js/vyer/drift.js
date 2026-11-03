@@ -25,6 +25,7 @@ export async function visa(main) {
       <div><dt>Endpoints över målet</dt><dd>${utanfor ? `${utanfor} av ${d.server.length}` : `Inga av ${d.server.length}`}</dd></div>
       <div><dt>Servern startad</dt><dd>${esc(tidpunkt(d.startad))}</dd></div>
       <div><dt>Aktiva sandlådor</dt><dd>${d.sandladar}</dd></div>
+      ${d.datauttag ? `<div><dt>Datauttag för uppföljning</dt><dd>Senast uppdaterat ${esc(tidpunkt(d.datauttag.senast))}. Nästa uppdatering ${esc(tidpunkt(d.datauttag.nasta))}, varje natt klockan ${esc(d.datauttag.klockan)}</dd></div>` : ''}
       ${sen ? `<div><dt>Ditt senaste anrop</dt><dd>${tal(sen.server, 1)} ms på servern, ${tal(sen.totalt, 0)} ms hela vägen</dd></div>` : ''}
     </dl>
     <p class="dampad liten">Mätningen gäller demons server, de senaste 1 000 anropen per endpoint för servern och 200 för din sandlåda. Den säger inget om ett produktionssystem med tusentals användare.</p>

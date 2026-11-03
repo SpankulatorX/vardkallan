@@ -1,4 +1,4 @@
-// Genomgång av Vårdkällans gränssnitt med Playwright. Loggar in som var och en av de åtta demorollerna,
+// Genomgång av Vårdkällans gränssnitt med Playwright. Loggar in som var och en av de tio demorollerna,
 // går igenom varje vy rollen har och gör huvudflödena. Loggar sedan in som patienter i Min journal. Misslyckas vid
 // konsolfel, sidfel eller HTTP 500.
 //
@@ -133,6 +133,8 @@ const MENY = {
   klinisk: ['Arbetslista', 'Sök patient', 'Inkorg', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   utanRemiss: ['Arbetslista', 'Sök patient', 'Inkorg', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   logg: ['Sök patient', 'Logguppföljning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  arkiv: ['E-arkiv och gallring', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  uppfoljning: ['Datauttag', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
 };
 
 (async () => {
@@ -144,11 +146,11 @@ const MENY = {
 
   try {
     // Utan inloggning
-    await s('inloggningssidan visar de åtta demorollerna och demoraden', async () => {
+    await s('inloggningssidan visar de tio demorollerna och demoraden', async () => {
       await page.goto(`${BAS}/`);
       await page.waitForSelector('.roll');
       const n = await page.locator('.roll').count();
-      if (n !== 8) throw new Error(`${n} roller`);
+      if (n !== 10) throw new Error(`${n} roller`);
       await forvanta(page, '.demorad', 'Demo med påhittade patienter och testpersonnummer från Skatteverket. Inte för vård av riktiga patienter.');
       await forvanta(page, '.sidfot', 'Vårdkällan är ett fristående demoprojekt med öppen källkod (EUPL 1.2). Det är inte en tjänst från Region Örebro län.');
       await forvanta(page, '#roll-lak-akut-visar', 'Nödåtkomst');
@@ -449,7 +451,7 @@ const MENY = {
       await gaTill(page, '#/patient/p01');
       await forvanta(page, '.ruta-info', 'Journaltext, diagnoser och läkemedel visas inte');
       const flikar = await page.locator('.flikar a').allTextContents();
-      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Remisser', 'Logglista', 'Identitet'])) throw new Error(`flikar ${flikar}`);
+      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Remisser', 'Logglista', 'Identitet', 'Utskrifter'])) throw new Error(`flikar ${flikar}`);
       if (await page.locator('.signal-overk').count()) throw new Error('överkänslighet visas för vårdadministratören');
       if (await page.locator('.signal-um, .um-forslag').count()) throw new Error('uppmärksamhetsinformation visas för vårdadministratören');
       await bild(page, '19-vardadministrator', true);
@@ -586,7 +588,7 @@ const MENY = {
       await loggaIn(page, 'usk-kard');
       await gaTill(page, '#/patient/p01');
       const flikar = await page.locator('.flikar a').allTextContents();
-      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Journal', 'Läkemedel', 'Mätvärden', 'Logglista', 'Identitet'])) throw new Error(`flikar ${flikar}`);
+      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Journal', 'Läkemedel', 'Mätvärden', 'Logglista', 'Identitet', 'Utskrifter'])) throw new Error(`flikar ${flikar}`);
       if (await page.locator('#ov-dia').count()) throw new Error('diagnoser visas');
       await page.click('.flikar a:has-text("Journal")');
       await page.waitForSelector('.j-grupp');
@@ -770,6 +772,82 @@ const MENY = {
       await forvanta(page, '.inloggad', 'Mats Wall');
     });
 
+    // Utskrift och kontrasignering (Sussa 3.1.9 och 3.1.11.3).
+    await s('Sara skriver ut läkemedelslistan, och utskriften har utskrifts-id och säger vad som saknas', async () => {
+      await loggaIn(page, 'lak-kard');
+      await gaTill(page, '#/patient/p04');
+      await page.waitForSelector('.tidslinje');
+      await page.click('.snabbval [data-utskrift]');
+      await page.locator('dialog[open]').waitFor();
+      await page.click('dialog[open] label:has-text("Kopia av journalen till patienten")');
+      await bild(page, '70-utskrift-dialog');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', 'Utskriften är registrerad med id U-');
+      await forvanta(page, '.utskrift-utelamnat', 'spärrade uppgifter');
+      if (await page.locator('.utskrift', { hasText: 'sertralin' }).count()) throw new Error('spärrade uppgifter kom med i utskriften');
+      await bild(page, '71-utskrift', true);
+      await page.click('.utskrift-ram [data-stang]');
+      await page.click('.flikar a:has-text("Utskrifter")');
+      await forvanta(page, 'main', 'Utlämnade journalhandlingar');
+      await forvanta(page, '.tabell', 'Patienten');
+    });
+    await s('Sara kontrasignerar underläkarens anteckning från inkorgen', async () => {
+      await gaTill(page, '#/inkorg');
+      await page.click('#ik-ks ~ ul a');
+      await forvanta(page, '.kontrasignering', 'Kontrasignering begärd');
+      await bild(page, '72-kontrasignering');
+      await page.click('.anteckning [data-kontrasignera]');
+      await forvanta(page, '.kontrasignering', 'Kontrasignerad');
+    });
+
+    // Ingela Nord, arkivarie (Sussa 5.4.2 och 5.3.1.7)
+    await s('Ingela Nord landar i E-arkiv och gallring och kan inte öppna journalen', async () => {
+      await loggaIn(page, 'ark');
+      await forvanta(page, 'main h1', 'E-arkiv och gallring');
+      await page.goto(`${BAS}/#/patient/p01`);
+      await page.waitForURL(/#\/arkiv$/);
+      await vantaVy(page);
+    });
+    await allaVyer(page, 'Ingela Nord', MENY.arkiv);
+    await s('Ingela Nord registrerar ett gallringsbeslut och systemet tar fram underlaget', async () => {
+      await gaTill(page, '#/arkiv');
+      await page.click('#ar-form label:has-text("Gallring")');
+      await page.fill('#ar-dnr', 'DEMO-2026-0101');
+      await page.click('#ar-form [type="submit"]');
+      await forvanta(page, '.notis', 'Beslutet är registrerat');
+      await page.click('[data-underlag]');
+      await forvanta(page, '[data-underlag-ut]', 'Harald Strand');
+      await bild(page, '73-gallring', true);
+    });
+    await s('Ingela Nord skapar ett exportpaket till e-arkiv för en patient', async () => {
+      await page.click('#ar-form label:has-text("Leverans till e-arkiv")');
+      await page.fill('#ar-dnr', 'DEMO-2026-0102');
+      await page.fill('#ar-pnr', '19450202-4732');
+      await page.press('#ar-pnr', 'Tab');
+      await forvanta(page, '[data-patient-svar]', 'Gunnar Åkesson');
+      await page.click('#ar-form [type="submit"]');
+      await forvanta(page, '.notis', 'Beslutet är registrerat');
+      const [nedladdning] = await Promise.all([page.waitForEvent('download'), page.click('[data-paket]')]);
+      if (!/^IP_.*\.zip$/.test(nedladdning.suggestedFilename())) throw new Error(`filnamn ${nedladdning.suggestedFilename()}`);
+      await forvanta(page, '.notis', 'Exportpaketet IP_');
+      await forvanta(page, '.arkiv-lista', 'SHA-256');
+      await bild(page, '74-arkiv-export', true);
+    });
+
+    // Daniel Sund, uppföljning (Sussa 6.3.1)
+    await s('Daniel Sund ser datauttaget utan namn och personnummer', async () => {
+      await loggaIn(page, 'uppf');
+      await forvanta(page, 'main h1', 'Datauttag för uppföljning');
+      await forvanta(page, '.tabell', 'Vardkontakt');
+      await saknas(page, 'Åkesson');
+      await bild(page, '75-datauttag', true);
+    });
+    await allaVyer(page, 'Daniel Sund', MENY.uppfoljning);
+    await s('svarstiderna visar när datauttaget senast uppdaterades', async () => {
+      await gaTill(page, '#/drift');
+      await forvanta(page, '.faktarad', 'Datauttag för uppföljning');
+    });
+
     // Användartestet (D6). Hela testet med enkät och resultatfil testas i test/anvandartest.cjs.
     await s('användartestet startas från inloggningssidan och visar en uppgift i taget i listen', async () => {
       await page.click('[data-a="loggaut"]');
@@ -778,7 +856,7 @@ const MENY = {
       await forvanta(page, 'main h1', 'Användartest');
       await forvanta(page, '.at-info', 'Alla patienter i demon är påhittade');
       await page.fill('#at-kod', 'G01');
-      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');
@@ -879,5 +957,5 @@ const MENY = {
     for (const f of fel) console.log(`  ${f}`);
     process.exit(1);
   }
-  console.log(`Genomgången klar: ${steg} steg, 0 fel, 8 roller och 5 patienter i Min journal. Skärmbilder i ${UT}`);
+  console.log(`Genomgången klar: ${steg} steg, 0 fel, 10 roller och 5 patienter i Min journal. Skärmbilder i ${UT}`);
 })().catch(e => { console.error(e); process.exit(1); });

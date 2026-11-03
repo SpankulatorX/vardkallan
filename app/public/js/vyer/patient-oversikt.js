@@ -5,6 +5,7 @@ import { doldaRad } from './patient.js';
 import { remissStatusText } from './remisser.js';
 import { lakemedelsalderRad } from '../avbrott.js';
 import * as vardkontakt from './patient-vardkontakt.js';
+import * as utskrift from '../utskrift.js';
 
 // När frågeställningen inte visas för rollen skickar servern remissens status i stället.
 const REMISSTATUS = { skickad: 'Status: skickad', mottagen: 'Status: mottagen', bedomd: 'Status: bedömd', besvarad: 'Status: besvarad', svar_kvitterat: 'Status: svaret är kvitterat' };
@@ -26,8 +27,10 @@ function snabbval(ctx) {
   if (far('ordinera')) v.push([ctx.href('lakemedel', 'ny'), ikon.plus, 'Ordinera']);
   if (far('registrera_matvarde')) v.push([ctx.href('matvarden', 'ny'), ikon.plus, 'Registrera mätvärde']);
   if (far('remittera')) v.push([ctx.href('remisser', 'ny'), ikon.remiss, 'Skicka remiss']);
-  if (!v.length) return '';
-  return `<nav class="snabbval" aria-label="Snabbval" data-skriv><ul>${v.map(([h, ik, t]) => `<li><a class="knapp liten sekundar" href="${h}">${ik}<span>${esc(t)}</span></a></li>`).join('')}</ul></nav>`;
+  // Utskrift (Sussa 3.1.9): systemet föreslår syftet och delarna.
+  const skrivUt = far('skriv_ut') ? `<li><button type="button" class="knapp liten sekundar" data-utskrift>${ikon.logg}<span>Skriv ut</span></button></li>` : '';
+  if (!v.length && !skrivUt) return '';
+  return `<nav class="snabbval" aria-label="Snabbval" data-skriv><ul>${v.map(([h, ik, t]) => `<li><a class="knapp liten sekundar" href="${h}">${ik}<span>${esc(t)}</span></a></li>`).join('')}${skrivUt}</ul></nav>`;
 }
 
 export async function visa(el, ctx) {
@@ -76,6 +79,7 @@ export async function visa(el, ctx) {
     </section>`;
   el.querySelector('.tl-lage').addEventListener('change', (e) => { tidslinjeLage = e.target.value; el.querySelector('#tl-innehall').innerHTML = tidslinje(); });
   vardkontakt.koppla(el, d, ctx, () => ctx.ladda());
+  el.querySelector('[data-utskrift]')?.addEventListener('click', () => utskrift.skrivUt(ctx.id));
 }
 
 function tidslinjeRad(t, ctx) {

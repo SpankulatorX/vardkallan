@@ -3,6 +3,7 @@ import { esc, api, tidpunkt, datum, migreradEtikett, notis, faltFel, medKnapp, i
 import { far, S, minVardenhet, uppdateraInkorg, vardenhetAv as enhetsVardenhet } from '../app.js';
 import { doldaRad, kravRuta } from './patient.js';
 import { dokumenterasHtml, kopplaDokumenteras, nyKontaktData, kontaktNotis } from './patient-vardkontakt.js';
+import * as kontrasignering from '../kontrasignering.js';
 
 let mallar = null;
 const filter = { enhet: '', typ: '' };
@@ -74,6 +75,7 @@ async function lasAnteckning(las, ctx, id) {
   las.innerHTML = `<article class="anteckning" aria-labelledby="ant-rubrik">
       ${anteckningHuvud(senaste, 'ant-rubrik', a.id !== senaste.id ? `<p class="ruta ruta-info liten">Du öppnade version ${a.version}. Här visas den gällande versionen ${senaste.version}.</p>` : '')}
       ${sokordHtml(senaste.sokord)}
+      ${kontrasignering.html(a, senaste)}
       ${kanRatta ? `<div class="knapprad"><button type="button" class="knapp sekundar" data-ratta>${ikon.penna}<span>Rätta anteckningen</span></button></div>` : ''}
       ${aldre.length ? `<section class="versioner" aria-labelledby="ver-rubrik"><h3 id="ver-rubrik">Tidigare versioner</h3>
         <p class="dampad liten">En signerad anteckning ändras aldrig. En rättelse blir en ny version, och den tidigare står kvar överstruken men läsbar.</p>
@@ -83,6 +85,7 @@ async function lasAnteckning(las, ctx, id) {
         </div>`).join('')}</section>` : ''}
     </article>`;
   las.querySelector('[data-ratta]')?.addEventListener('click', () => rattaForm(las, ctx, senaste));
+  kontrasignering.koppla(las, a, () => ctx.ladda());
 }
 
 

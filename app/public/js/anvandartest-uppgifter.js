@@ -111,6 +111,21 @@ export const UPPGIFTER = [
     text: 'Lars Wennberg ska ha ett uppföljande videobesök nästa vardag. Planera det.',
     kontroll: { notis: 'Video är registrerat till' },
   },
+  {
+    id: 'utskrift', namn: 'Skriva ut läkemedelslistan vid utskrivning', roll: 'lak-kard', start: 'Patientens översikt',
+    text: 'Gunnar Åkesson ska gå hem från avdelningen och vill ha med sig sin läkemedelslista på papper. Skriv ut den åt honom.',
+    kontroll: { notis: 'Utskriften är registrerad med id' },
+  },
+  {
+    id: 'begar-kontrasignering', namn: 'Begära kontrasignering av en anteckning', roll: 'lak-kard', start: 'Patientens översikt',
+    text: 'Du vill att en överläkare går igenom och kontrasignerar den senaste anteckningen i Gunnars journal. Be om det.',
+    kontroll: { notis: 'Begäran om kontrasignering är skickad' },
+  },
+  {
+    id: 'kontrasignera', namn: 'Kontrasignera en anteckning', roll: 'lak-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Underläkaren Alva Berglund har bett dig kontrasignera hennes daganteckning om Elin Sandberg. Läs den och kontrasignera.',
+    kontroll: { notis: 'Anteckningen är kontrasignerad' },
+  },
 ];
 
 // Deltagarens bakgrund. Bara val, inga fritextfält, så att inga identifierande uppgifter samlas in.

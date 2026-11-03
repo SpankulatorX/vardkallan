@@ -35,9 +35,19 @@ export async function visa(main) {
   const dubb = (d.dubbletter ?? []).map(x => rad(pat(x.patientId, 'identitet'),
     `Trolig dubblett, ${esc(pnamn(x.patient))}`, `<span class="pnr">${esc(x.patient.personnummer)}</span>. Systemet har hittat ${x.antal === 1 ? 'en annan journal' : `${x.antal} andra journaler`} som troligen gäller samma person. Bekräfta sammanslagningen.`, 'ik-dubblett'));
 
+  // Kontrasignering (Sussa 3.1.11.3) och utlämnade originalhandlingar som inte har kommit tillbaka (Sussa 3.1.9.3).
+  const ks = (d.kontrasigneringar ?? []).map(k => (k.tillganglig
+    ? rad(k.typ === 'anteckning' ? pat(k.patientId, 'journal', k.postId) : pat(k.patientId, 'matvarden'), `${esc(k.rubrik)}, ${esc(pnamn(k.patient))}`,
+      `Begärd ${esc(tidpunkt(k.begard))} av ${esc(k.begardAv?.namn ?? '')}.${k.kommentar ? ` ${esc(k.kommentar)}` : ''} Läs och kontrasignera.`, 'ik-ks')
+    : `<li class="ik-ks"><span class="ik-rubrik">${esc(k.rubrik)}</span><span class="under-text">Begärd av ${esc(k.begardAv?.namn ?? '')}. Du har inte längre behörighet till uppgiften, så den kan inte kontrasigneras av dig.</span></li>`));
+  const ater = (d.aterlamnanden ?? []).map(u => rad(pat(u.patientId, 'utlamnat'), `${esc(u.mottagare)}: ${esc(u.beskrivning)}`,
+    `Skulle ha lämnats tillbaka senast ${esc(u.aterlamnasSenast)}. Utlämnad ${esc(tidpunkt(u.utlamnad))}.`, 'ik-larm'));
+
   main.querySelector('#ik').innerHTML = `<div class="inkorg-rutnat">
     ${S.session.behorigheter.includes('sla_samman') ? sektion('dubb', 'Troliga dubbletter', dubb, 'Inga troliga dubbletter.', 'Journaler som systemet tror gäller samma person, till exempel ett reservnummer och ett personnummer med samma namn och födelsedatum.') : ''}
     ${sektion('larm', 'Larm', larm, 'Inga larm.', 'Remisser där mottagningskvittens, svar eller kvittens av svaret har uteblivit för länge.')}
+    ${S.session.behorigheter.includes('kontrasignera') ? sektion('ks', 'Att kontrasignera', ks, 'Inget väntar på din kontrasignering.', 'Journalinformation som någon har bett dig kontrasignera. Öppna, läs och kontrasignera med ett klick.') : ''}
+    ${S.session.behorigheter.includes('utlamna') && ater.length ? sektion('ater', 'Återlämnanden som dröjer', ater, '', 'Utlämnade originalhandlingar som skulle ha kommit tillbaka.') : ''}
     ${sektion('osign', 'Osignerade anteckningar', osign, 'Inga osignerade anteckningar.', 'Dina utkast. De syns bara för dig tills du signerar.')}
     ${sektion('svar', 'Okvitterade remissvar', svar, 'Inga remissvar väntar på dig.', 'Svar på remisser från din vårdenhet som ingen har kvitterat än.')}
     ${sektion('nll', 'NLL-avvikelser', nll, 'Inga avvikelser mot Nationella läkemedelslistan.', 'Ordinationer från din vårdenhet där överföringen till NLL fick timeout eller fel.')}
