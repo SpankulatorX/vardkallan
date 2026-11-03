@@ -38,7 +38,7 @@ const lagg = (b) => { for (const e of b.entry ?? []) sett.set(`${e.resource.reso
 // Alla patientresurser i fhir.js och bokningarna i tidbok-fhir.js. Kontrollen sist i filen gör körningen röd om en
 // resurstyp som API:t kan lämna ut inte kom med, så att listan följer med när en ny resurstyp tillkommer.
 const TYPER = ['Patient', 'Encounter', 'EpisodeOfCare', 'Condition', 'Observation', 'MedicationRequest', 'MedicationAdministration', 'List',
-  'AllergyIntolerance', 'Flag', 'ServiceRequest', 'Composition', 'Appointment', 'Procedure'];
+  'AllergyIntolerance', 'Flag', 'ServiceRequest', 'Composition', 'Appointment', 'Procedure', 'CarePlan'];
 for (const roll of ['lak-kard', 'ssk-kard', 'adm-kard', 'lak-vc', 'lak-psyk', 'lak-akut']) {
   for (const { id } of db.query('SELECT id FROM patienter').all()) {
     const val = { [id]: { andra_enheter: true, nodatkomst: true, samtycke_sparr: true } };
