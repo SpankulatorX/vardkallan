@@ -1,6 +1,8 @@
 // Remisser: inkommande och utgående för min vårdenhet, med statuskedjan och åtgärderna mottag, bedöm, svara och kvittera svar.
 import { esc, api, datum, tidpunkt, notis, felNotis, dialog, ikon, PRIORITET_REMISS, vyRubrik, tom, migreradEtikett } from '../ui.js';
-import { far, minVardenhet, uppdateraInkorg } from '../app.js';
+import { far, minVardenhet, uppdateraInkorg, enhetLista, laddaEnheter } from '../app.js';
+// Runda 6, r4: bilagor, vidarebefordran och ledtider.
+import { ledtiderHtml, lasFil, BILAGA_TEXT } from '../planering-ui.js';
 
 export const namn = 'remisser';
 
@@ -8,6 +10,7 @@ export function remissStatusText(r) {
   if (r.status === 'skickad') return 'Skickad, väntar på mottagningskvittens';
   if (r.status === 'mottagen') return 'Mottagen, väntar på bedömning';
   if (r.status === 'bedomd' && r.beslut === 'avvisad') return 'Avvisad';
+  if (r.status === 'bedomd' && r.beslut === 'vidarebefordrad') return `Vidarebefordrad till ${r.vidarebefordrad?.till?.namn ?? 'en annan vårdenhet'}`;
   if (r.status === 'bedomd') return 'Accepterad, väntar på svar';
   if (r.status === 'besvarad') return 'Besvarad, svaret väntar på kvittens';
   if (r.status === 'svar_kvitterat') return 'Svaret är kvitterat';
@@ -25,12 +28,12 @@ const ORDNING = STEG.map(s => s[0]);
 
 function kedja(r) {
   const nu = ORDNING.indexOf(r.status);
-  const avvisad = r.beslut === 'avvisad';
+  const avvisad = r.beslut === 'avvisad' || r.beslut === 'vidarebefordrad';
   return `<ol class="kedja" aria-label="Remissens statuskedja">${STEG.map(([k, t, tid, av], i) => {
     const gjord = i <= nu;
     const stopp = avvisad && i > ORDNING.indexOf('bedomd');
     const vem = av === 'avsandare' ? r.avsandare : r.av?.[av];
-    const text = k === 'bedomd' && gjord ? (avvisad ? 'Avvisad' : 'Accepterad') : t;
+    const text = k === 'bedomd' && gjord ? (r.beslut === 'vidarebefordrad' ? 'Vidarebefordrad' : avvisad ? 'Avvisad' : 'Accepterad') : t;
     const lage = stopp ? 'stoppad' : gjord ? (k === 'bedomd' && avvisad ? 'avvisad' : 'klar') : i === nu + 1 ? 'nasta' : 'vantar';
     const sr = stopp ? 'avslutad, remissen avvisades' : gjord ? 'klart' : i === nu + 1 ? 'nästa steg' : 'inte än';
     return `<li class="steg steg-${lage}"><span class="steg-punkt" aria-hidden="true">${gjord ? (lage === 'avvisad' ? ikon.kryss : ikon.bock) : ''}</span>
@@ -45,7 +48,19 @@ export function atgarder(r) {
   if (r.status === 'mottagen' && r.till.id === ve && far('bedom_remiss')) a.push(['bedom', 'Bedöm']);
   if (r.status === 'bedomd' && r.beslut === 'accepterad' && r.till.id === ve && far('svara_remiss')) a.push(['svara', 'Svara']);
   if (r.status === 'besvarad' && r.fran.id === ve && far('kvittera_svar')) a.push(['kvittera', 'Kvittera svaret']);
+  // Runda 6, r4: mottagaren skickar vidare före bedömningen, och avsändaren kompletterar med en bilaga fram till svaret.
+  if (['skickad', 'mottagen'].includes(r.status) && r.till.id === ve && far('bedom_remiss')) a.push(['vidarebefordra', 'Skicka vidare']);
+  if ((['skickad', 'mottagen'].includes(r.status) || (r.status === 'bedomd' && r.beslut === 'accepterad')) && r.fran.id === ve && far('remittera')) a.push(['bilaga', 'Komplettera med bilaga']);
   return a;
+}
+
+// Runda 6, r4: bilagor, vidarebefordran och egen vårdbegäran på remisskortet.
+function r4Html(r, klinisk) {
+  const bilagor = klinisk && r.bilagor?.length ? `<ul class="enkel-lista remiss-bilagor">${r.bilagor.map(b => `<li><a href="/api/bilaga/${b.id}" download>${esc(b.namn)}</a> <span class="dampad liten">${esc(b.typText)}, ${esc(Math.ceil(b.storlek / 1024))} kB${b.avPatienten ? ', från patienten' : ''}</span></li>`).join('')}</ul>`
+    : !klinisk && r.antalBilagor ? `<p class="dampad liten">${esc(r.antalBilagor)} ${r.antalBilagor === 1 ? 'bilaga' : 'bilagor'}. Bilagor är journalhandlingar och visas inte för vårdadministratörer.</p>` : '';
+  const vb = r.vidarebefordrad ? `<p class="ruta ruta-info liten">Vidarebefordrad till ${esc(r.vidarebefordrad.till.namn)} ${esc(tidpunkt(r.vidarebefordrad.tid))}${r.vidarebefordrad.av ? ` av ${esc(r.vidarebefordrad.av.namn)}` : ''}.${r.vidarebefordrad.motivering ? ` ${esc(r.vidarebefordrad.motivering)}` : ''}</p>` : '';
+  const fran = r.vidarebefordradFran ? `<p class="ruta ruta-info liten">Vidarebefordrad från ${esc(r.vidarebefordradFran.fran.namn)} ${esc(tidpunkt(r.vidarebefordradFran.tid))}.${r.vidarebefordradFran.motivering ? ` ${esc(r.vidarebefordradFran.motivering)}` : ''}</p>` : '';
+  return `${bilagor}${vb}${fran}`;
 }
 
 export function remissKort(r, { visaPatient = false, markerad = false } = {}) {
@@ -57,7 +72,7 @@ export function remissKort(r, { visaPatient = false, markerad = false } = {}) {
   return `<article class="remiss${markerad ? ' markerad' : ''}${r.larm?.length ? ' har-larm' : ''}" id="remiss-${r.id}" aria-labelledby="rem-${r.id}-rubrik">
     <header class="remiss-huvud">
       <h3 id="rem-${r.id}-rubrik">${patient ? `${patient}<span class="remiss-riktning">` : '<span class="remiss-riktning">'}Från ${esc(r.fran.namn)} till ${esc(r.till.namn)}</span></h3>
-      <p class="remiss-meta"><span class="prio prio-${esc(r.prioritet)}">${esc(PRIORITET_REMISS[r.prioritet] ?? r.prioritet)}</span><span>Svar senast ${esc(datum(r.svarSenast))}</span><span>Remitterande ${esc(r.avsandare?.namn ?? '')}</span>${migreradEtikett(r)}</p>
+      <p class="remiss-meta"><span class="prio prio-${esc(r.prioritet)}">${esc(PRIORITET_REMISS[r.prioritet] ?? r.prioritet)}</span><span>Svar senast ${esc(datum(r.svarSenast))}</span><span>Remitterande ${esc(r.avsandare?.namn ?? '')}</span>${migreradEtikett(r)}${r.egen ? '<span class="tagg">Egen vårdbegäran</span>' : ''}</p>
     </header>
     ${kedja(r)}
     ${r.larm?.length ? `<ul class="larmlista">${r.larm.map(l => `<li>${ikon.larm}<span>${esc(l.text)}</span></li>`).join('')}</ul>` : ''}
@@ -67,6 +82,7 @@ export function remissKort(r, { visaPatient = false, markerad = false } = {}) {
       ${r.motivering ? `<div><dt>${r.beslut === 'avvisad' ? 'Motivering till avvisning' : 'Kommentar vid bedömning'}</dt><dd>${esc(r.motivering)}</dd></div>` : ''}
       ${r.svar ? `<div><dt>Svar</dt><dd>${esc(r.svar)}</dd></div>` : ''}
     </dl>` : '<p class="dampad liten">Frågeställning, anamnes och svar är journaltext och visas inte för vårdadministratörer.</p>'}
+    ${r4Html(r, klinisk)}
     ${a.length ? `<div class="knapprad">${a.map(([k, t], i) => `<button type="button" class="knapp liten${i ? ' sekundar' : ''}" data-remiss-atgard="${k}" data-id="${r.id}">${esc(t)}</button>`).join('')}</div>` : ''}
   </article>`;
 }
@@ -113,6 +129,38 @@ export function kopplaAtgarder(behallare, hamta, efter) {
       if (data.beslut === 'avvisad' && avvisning?.vardhandelser.length) {
         data.vardhandelser = avvisning.vardhandelser.map(v => ({ ordinationId: v.ordinationId, val: svar.data[`vh_${v.ordinationId}`], orsak: svar.data[`orsak_${v.ordinationId}`] }));
       }
+    } else if (typ === 'vidarebefordra') {
+      // Runda 6, r4: systemet kvitterar mottagningen och skickar remissen vidare med samma avsändare.
+      await laddaEnheter();
+      const enheter = enhetLista().filter(x => x.typ === 'vardenhet' && x.id !== minVardenhet() && x.id !== r.fran.id).sort((x, y) => x.namn.localeCompare(y.namn, 'sv'));
+      const svar = await dialog(`<form><h2 id="dlg-rubrik">Skicka remissen vidare</h2>
+        <div class="dialog-text"><p>Från ${esc(r.fran.namn)}. Remissen går vidare med samma avsändare, så att svaret kommer rätt. Systemet kvitterar att den har kommit fram till er.</p></div>
+        <div class="falt"><label for="vb-till">Till vårdenhet</label><select id="vb-till" name="tillEnhetId" required><option value="">Välj vårdenhet</option>${enheter.map(x => `<option value="${esc(x.id)}">${esc(x.namn)}</option>`).join('')}</select></div>
+        <div class="falt"><label for="vb-mot">Motivering <span class="obl">(obligatorisk)</span></label><textarea id="vb-mot" name="motivering" rows="3" maxlength="1000" required></textarea></div>
+        <p class="dialog-fel form-fel" role="alert" hidden></p>
+        <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Skicka vidare</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`,
+      { validera: (x) => (!x.tillEnhetId ? 'Välj vårdenhet.' : x.motivering.trim().length < 3 ? 'Skriv varför remissen skickas vidare.' : null) });
+      if (!svar) return;
+      try {
+        const ny = await api(`/api/remiss/${id}/vidarebefordra`, { metod: 'POST', data: { tillEnhetId: svar.data.tillEnhetId, motivering: svar.data.motivering.trim() } });
+        notis(`Remissen är skickad vidare till ${ny.ny.till.namn}. Avsändaren ser var den är.`);
+        await uppdateraInkorg();
+        efter(ny.gammal);
+      } catch (err) { felNotis(err); }
+      return;
+    } else if (typ === 'bilaga') {
+      const svar = await dialog(`<form><h2 id="dlg-rubrik">Komplettera med en bilaga</h2>
+        <div class="falt"><label for="rb-fil">Fil</label><input id="rb-fil" name="fil" type="file" accept=".pdf,.png,.jpg,.jpeg,.txt,application/pdf,image/png,image/jpeg,text/plain" required></div>
+        <p class="hjalp">${esc(BILAGA_TEXT)}</p>
+        <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Bifoga</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`);
+      const fil = svar?.data?.fil;
+      if (!fil || !fil.size) return;
+      try {
+        await api(`/api/remiss/${id}/bilagor`, { metod: 'POST', data: await lasFil(fil) });
+        notis('Bilagan är bifogad. Mottagaren ser den på remissen.');
+        efter(r);
+      } catch (err) { felNotis(err); }
+      return;
     } else if (typ === 'svara') {
       const svar = await dialog(`<form><h2 id="dlg-rubrik">Svara på remissen</h2>
         <p>Frågeställning: ${esc(r.fragestallning ?? '')}</p>
@@ -158,13 +206,15 @@ export async function visa(main, _p, q) {
       <li><a href="#/remisser?riktning=inkommande"${riktning === 'inkommande' ? ' aria-current="page"' : ''}>Inkommande</a></li>
       <li><a href="#/remisser?riktning=utgaende"${riktning === 'utgaende' ? ' aria-current="page"' : ''}>Utgående</a></li>
     </ul></nav>
-    <div id="remisslista"><p class="tom">Hämtar remisser.</p></div>`;
+    <div id="remisslista"><p class="tom">Hämtar remisser.</p></div><div id="remiss-ledtider"></div>`;
+  // Runda 6, r4: ledtider och avvikelser för vårdenheten, utan personuppgifter.
+  if (far('statistik')) api('/api/remisser/statistik', { tyst: true }).then(s => { const p = main.querySelector('#remiss-ledtider'); if (p) p.innerHTML = ledtiderHtml(s); }).catch(() => {});
   const el = main.querySelector('#remisslista');
   let lista = [];
   const rita = async () => {
     const d = await api(`/api/remisser?riktning=${riktning}`);
     lista = d.remisser;
-    const pagaende = lista.filter(r => r.status !== 'svar_kvitterat' && r.beslut !== 'avvisad');
+    const pagaende = lista.filter(r => r.status !== 'svar_kvitterat' && !['avvisad', 'vidarebefordrad'].includes(r.beslut));
     const avslutade = lista.filter(r => !pagaende.includes(r));
     el.innerHTML = !lista.length ? tom(riktning === 'inkommande' ? 'Inga remisser till din vårdenhet.' : 'Inga remisser från din vårdenhet.') : `
       <section aria-labelledby="rp"><h2 id="rp">Pågående <span class="antal">${pagaende.length}</span></h2>${pagaende.map(r => remissKort(r, { visaPatient: true, markerad: String(r.id) === markerad })).join('') || tom('Inga pågående.')}</section>

@@ -239,6 +239,8 @@ const remissUt = (db, r) => ({
   status: r.status, beslut: r.beslut,
   tider: { skickad: r.skickad_tid, mottagen: r.mottagen_tid, bedomd: r.bedomd_tid, besvarad: r.besvarad_tid, svarKvitterat: r.svar_kvitterat_tid },
   fragestallning: r.fragestallning, motivering: r.motivering, svar: r.svar, kallaEtikett: kallaEtikett(r.kalla, r.skickad_tid),
+  // Runda 6, r4: en egen vårdbegäran som invånaren skickade i Min journal.
+  egen: r.fran_enhet_id === 'min-journal',
 });
 
 const sparrarFor = (db, pid) => db.query('SELECT * FROM sparrar WHERE patient_id = ? AND aktiv = 1 ORDER BY registrerad, id').all(pid)

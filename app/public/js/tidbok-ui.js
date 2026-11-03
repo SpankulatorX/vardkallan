@@ -1,6 +1,8 @@
 // Gemensamt för tidboken i gränssnittet: förslagen på tider, betalningen och omprioriteringen. Systemet föreslår
 // tiderna, och vårdadministratören eller patienten väljer med ett klick. Ingen behöver leta i en kalender.
 import { esc, dialog, ikon } from './ui.js';
+// Runda 6, r4: kallelsen som PDF och för kalendern.
+import { kallelseFiler } from './planering-ui.js';
 
 const TZ = 'Europe/Stockholm';
 export const dagText = (t) => new Date(t).toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long', timeZone: TZ });
@@ -12,6 +14,8 @@ export const kr = (n) => `${Number(n).toLocaleString('sv-SE')} kr`;
 const forslagKnapp = (f, i) => `<li><button type="button" class="forslag-knapp${i === 0 ? ' forst' : ''}" data-varde="tid:${f.tidId}" data-tid="${f.tidId}">
   <span class="forslag-tid">${ikon.klocka}<strong>${esc(tidText(f.start))}</strong></span>
   <span class="forslag-vem">${esc(f.tidstypText)} hos ${esc(f.vardgivare?.namn ?? '')}${f.mottagning ? `, ${esc(f.mottagning.namn)}` : ''}</span>
+  ${f.fore ? `<span class="forslag-fore">${esc(f.fore.tidstypText)} klockan ${esc(kl(f.fore.start))} hos ${esc(f.fore.vardgivare?.namn ?? '')}, före besöket. Systemet bokar båda.</span>` : ''}
+  ${f.resurser?.length ? `<span class="forslag-resurser">Bokas samtidigt: ${esc(f.resurser.map(r => r.namn).join(', '))}</span>` : ''}
   ${f.skal?.length ? `<span class="forslag-skal">${esc(f.skal.join(' '))}</span>` : ''}
   <span class="forslag-valj">Boka</span>
 </button></li>`;
@@ -69,5 +73,6 @@ export function gransHtml(g) {
 }
 
 export const kallelseHtml = (k) => `<div class="kallelse"><p class="kallelse-huvud"><strong>${esc({ kallelse: 'Kallelse', paminnelse: 'Påminnelse', ombokning: 'Ny tid', avbokning: 'Avbokning' }[k.typ] ?? 'Kallelse')}</strong>
-  ${k.kanalText ?? k.kanal ? `<span class="tagg">${esc(k.kanalText ?? k.kanal)}${k.simulerad ? ', simulerat' : ''}</span>` : ''}</p>
+  ${k.kanalText ?? k.kanal ? `<span class="tagg">${esc(k.kanalText ?? k.kanal)}${k.simulerad ? ', simulerat' : ''}</span>` : ''}${k.sprak && k.sprak !== 'sv' ? `<span class="tagg">${esc(k.sprakText)}, patientens språk</span>` : ''}
+  ${k.id && k.text != null && ['skickad', 'klar'].includes(k.status) ? kallelseFiler(`/api/kallelse/${k.id}`) : ''}</p>
   ${k.text != null ? `<p class="kallelse-text">${esc(k.text)}</p>` : `<p class="dampad">${esc(k.textDold ?? '')}</p>`}${k.forklaring ? `<p class="hjalp">${esc(k.forklaring)}</p>` : ''}</div>`;

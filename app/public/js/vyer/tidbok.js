@@ -4,6 +4,10 @@
 import { esc, api, vyRubrik, notis, felNotis, dialog } from '../ui.js';
 import { patientCell } from './arbetslista.js';
 import { valjTid, tidText, kl } from '../tidbok-ui.js';
+// Runda 6, r4: resursernas arbetslista, bokningsmallarna och anpassning av vyn. Läkare och sjuksköterskor läser
+// tidboken, med sitt eget schema som förval, men bokar inte.
+import { far } from '../app.js';
+import { anpassaVy } from '../planering-ui.js';
 
 export const namn = 'tidbok';
 
@@ -27,15 +31,34 @@ export async function visa(main, _p, q, ctx = {}) {
     </nav>
     ${oppna.length ? `<p class="hjalp">Patienterna kan själva boka, boka om och avboka ${esc(oppna.join(' och '))} i Min journal fram till 24 timmar före (demoregel).</p>` : ''}
     ${anon ? '<p class="ruta ruta-info liten">Tidboken visas utan patientuppgifter. Den visar bara vilka tider som är upptagna.</p>' : ''}
+    <p class="dampad liten tb-vy">${t.vy?.vardgivare === 'mina' ? 'Visar ditt schema.' : Array.isArray(t.vy?.vardgivare) ? 'Visar de vårdgivare du har valt.' : 'Visar alla vårdgivare.'} <button type="button" class="knapp text liten" data-tb="anpassa">Anpassa vyn</button></p>
     <div class="tb-scheman">${t.scheman.map(s => `<section class="ov-sektion tb-schema" aria-labelledby="tb-${esc(s.id)}">
       <div class="sektion-huvud"><h2 id="tb-${esc(s.id)}">${esc(s.vardgivare.namn)}</h2><p class="dampad liten">${esc(s.yrkesrollText)}, ${esc(s.mottagning.namn)}. ${esc(s.belaggning.bokade)} av ${esc(s.belaggning.tider)} tider bokade.</p></div>
       ${s.tider.length ? `<ul class="tb-tider">${s.tider.map(x => tidRad(x, anon)).join('')}</ul>` : '<p class="tom liten">Inga tider den här dagen.</p>'}
-    </section>`).join('')}</div></div>`;
+    </section>`).join('') || '<p class="tom">Inga vårdgivare att visa. Välj Anpassa vyn.</p>'}</div>
+    ${resurserHtml(t)}${mallarHtml(t)}</div>`;
   main.querySelector('#tidbok').addEventListener('click', async (e) => {
     const b = e.target.closest('[data-tb]');
     if (!b) return;
-    try { await atgard(b, t); await visa(main, _p, q, ctx); } catch (err) { felNotis(err); }
+    try {
+      if (b.dataset.tb === 'anpassa') { if (!(await anpassaVy('tidbok'))) return; } else await atgard(b, t);
+      await visa(main, _p, q, ctx);
+    } catch (err) { felNotis(err); }
   });
+}
+
+// Runda 6, r4: lokaler, utrustning och sjukresor med dagens bokningar, som en arbetslista per resurs.
+function resurserHtml(t) {
+  if (!t.resurser?.length) return '';
+  return `<section class="ov-sektion" aria-labelledby="tb-resurser"><div class="sektion-huvud"><h2 id="tb-resurser">Lokaler, utrustning och sjukresor</h2></div>
+    <div class="tb-scheman">${t.resurser.map(r => `<div class="tb-resurs"><h3>${esc(r.namn)} <span class="tagg">${esc(r.typText ?? '')}</span>${r.demo ? ' <span class="tagg">Simulerad</span>' : ''}</h3>
+      ${r.bokningar.length ? `<ul class="tb-tider">${r.bokningar.map(b => `<li class="tb-upptagen"><span class="tb-klocka">${esc(kl(b.start))}</span><span class="tb-typ">${esc(b.text)}</span><span class="tb-vem">${b.patient ? patientCell(b.patient, `#/patient/${encodeURIComponent(b.patient.id)}`) : `<span class="dampad">Till ${esc(kl(b.slut))}</span>`}</span></li>`).join('')}</ul>` : '<p class="tb-ledig liten">Ledig hela dagen.</p>'}</div>`).join('')}</div>
+    <p class="hjalp">Systemet bokar lokal, utrustning och sjukresa samtidigt som tiden och föreslår bara tider då allt är ledigt. Sjukresorna är simulerade.</p></section>`;
+}
+function mallarHtml(t) {
+  if (!t.mallar?.length) return '';
+  return `<section class="ov-sektion" aria-labelledby="tb-mallar"><div class="sektion-huvud"><h2 id="tb-mallar">Bokningsmallar</h2></div>
+    <ul class="enkel-lista">${t.mallar.map(m => `<li><strong>${esc(m.namn)}</strong><span class="under-text">${esc(m.forklaring)}</span></li>`).join('')}</ul></section>`;
 }
 
 function tidRad(x, anon) {
@@ -43,7 +66,8 @@ function tidRad(x, anon) {
   const grupp = x.platser > 1 ? ` <span class="dampad">${esc(x.bokade)} av ${esc(x.platser)} platser</span>` : '';
   const vem = anon ? (upptagen ? '<span class="dampad">Upptagen</span>' : '<span class="tb-ledig">Ledig</span>')
     : x.bokningar.length ? x.bokningar.map(b => `<span class="tb-bokning">${patientCell(b.patient, `#/patient/${encodeURIComponent(b.patient.id)}`)} <span class="tagg${b.status === 'incheckad' ? ' tagg-pagaende' : ''}">${esc(b.statusText)}</span>${b.styrLakemedel ? ' <span class="tagg" title="' + esc(b.styrLakemedel) + '">Styr en läkemedelsdos</span>' : ''}
-      ${b.status === 'bokad' && x.platser === 1 ? `<button type="button" class="knapp text liten" data-tb="omboka" data-id="${b.id}">Boka om</button><button type="button" class="knapp text liten" data-tb="avboka" data-id="${b.id}">Avboka</button>` : ''}</span>`).join('')
+      ${b.resurser?.length ? `<span class="under-text">${esc(b.resurser.map(r => r.namn).join(', '))}</span>` : ''}${b.kedja ? ` <span class="tagg">${esc(b.kedja.roll === 'fore' ? 'Före läkarbesöket' : 'Med provtagning före')}</span>` : ''}
+      ${b.status === 'bokad' && x.platser === 1 && far('boka') && b.kedja?.roll !== 'fore' ? `<button type="button" class="knapp text liten" data-tb="omboka" data-id="${b.id}">Boka om</button><button type="button" class="knapp text liten" data-tb="avboka" data-id="${b.id}">Avboka</button>` : ''}</span>`).join('')
       : '<span class="tb-ledig">Ledig</span>';
   return `<li class="${upptagen ? 'tb-upptagen' : 'tb-fri'}"><span class="tb-klocka">${esc(kl(x.start))}</span><span class="tb-typ">${esc(x.rubrik ?? x.tidstypText)}${grupp}</span><span class="tb-vem">${vem}</span></li>`;
 }

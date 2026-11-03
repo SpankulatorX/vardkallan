@@ -5,6 +5,8 @@ import { far } from '../app.js';
 import { tidText, kr, kallelseHtml, dagar } from '../tidbok-ui.js';
 import { ombokaBokning, avbokaBokning } from './tidbok.js';
 import { bokaPost } from './idag.js';
+// Runda 6, r4: egna bevakningar för patienten.
+import { nyBevakning } from '../planering-ui.js';
 
 // Tiderna hämtas för sig. I läsläget vid avbrott finns de inte i läskopian, och då visas en förklaring.
 export async function hamta(id) {
@@ -20,7 +22,7 @@ export function sektionHtml(t) {
     ${b.kanOmbokas ? `<span class="knapprad tat" data-skriv><button type="button" class="knapp text liten" data-tider="omboka" data-id="${b.id}">Boka om</button><button type="button" class="knapp text liten" data-tider="avboka" data-id="${b.id}">Avboka</button></span>` : ''}</li>`;
   const vantar = t.vantelista.map(p => `<li><strong>Väntar på tid:</strong> ${esc(p.orsak)}<span class="under-text">${esc(p.tidstypText)} hos ${esc(p.yrkesrollText)}, ${esc(dagar(p.vantatDagar))}${p.grans ? `, ${esc(dagar(p.grans.dagarKvar))} kvar till gränsen` : ''}</span>${p.styrLakemedel ? `<span class="under-text">${esc(p.styrLakemedel)}</span>` : ''}
     ${far('boka') ? `<span class="knapprad tat" data-skriv><button type="button" class="knapp liten" data-tider="boka" data-id="${p.id}">Boka tid</button></span>` : ''}</li>`).join('');
-  return `<section class="ov-sektion ov-tider" aria-labelledby="ov-tider"><div class="sektion-huvud"><h2 id="ov-tider">Bokade tider</h2>${far('boka') ? '<a class="sektion-lank" href="#/tidbok">Tidbok</a>' : ''}</div>
+  return `<section class="ov-sektion ov-tider" aria-labelledby="ov-tider"><div class="sektion-huvud"><h2 id="ov-tider">Bokade tider</h2>${far('bevaka') ? '<button type="button" class="knapp text liten" data-tider="bevakning" data-skriv>Lägg bevakning</button>' : ''}${far('las_tidbok') ? '<a class="sektion-lank" href="#/tidbok">Tidbok</a>' : ''}</div>
     ${t.kommande.length || vantar ? `<ul class="enkel-lista">${t.kommande.map(rad).join('')}${vantar}</ul>` : '<p class="tom liten">Inga bokade tider.</p>'}
     ${t.dolda?.kraverVal ? `<p class="dampad liten">${t.dolda.kraverVal} ${t.dolda.kraverVal === 1 ? 'tid' : 'tider'} på andra vårdenheter visas efter ett aktivt val.</p>` : ''}</section>`;
 }
@@ -36,6 +38,7 @@ export function koppla(el, t, ctx, ladda) {
       if (b.dataset.tider === 'omboka') klart = await ombokaBokning(b.dataset.id, namn);
       else if (b.dataset.tider === 'avboka') klart = await avbokaBokning(b.dataset.id, namn, t.kommande.find(x => String(x.id) === b.dataset.id)?.styrLakemedel);
       else if (b.dataset.tider === 'boka') klart = await bokaPost(b.dataset.id, namn);
+      else if (b.dataset.tider === 'bevakning') klart = await nyBevakning(ctx.id, namn);
       if (klart) await ladda();
     } catch (err) { felNotis(err); }
   });

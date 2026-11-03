@@ -374,6 +374,8 @@ export function byggSeed(bas = nu()) {
   require('./tidbok.js').seedaTidbok(db, { bas });
   // Runda 6, r3: vårdplaner, tvångsvård (patient 21 och 22), samordnad planering och hälsoärendenas historik.
   require('./r3-rutter.js').tillagg.seeda(db, bas);
+  // Runda 6, r4: bilagor, utkast och vidarebefordran av remisser och egen vårdbegäran (remiss-r4.js).
+  require('./remiss-r4.js').sakraRemissR4(db);
   sakraIdentitetsschema(db);
   // Runda 6, r1 (schema-runda6-r1.js).
   sakraR1Schema(db);
@@ -460,6 +462,8 @@ export function migrera(db) {
   require('./tidbok.js').sakraTidbok(db);
   // Runda 6, r3: tabellerna och seeden för en sandlåda från före runda 6.
   require('./r3-rutter.js').tillagg.sakra(db);
+  // Runda 6, r4: tabellerna för remissernas bilagor, utkast och vidarebefordran och för egen vårdbegäran.
+  require('./remiss-r4.js').sakraRemissR4(db);
   // Runda 6, r1: tabellerna för åtgärder, säkerhetsloggen och stickproven finns inte i äldre sandlådor.
   sakraR1Schema(db);
   return db;

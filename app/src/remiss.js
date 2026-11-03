@@ -3,6 +3,8 @@
 import { Fel, iso, idag, giltigtDatum } from './db.js';
 import { vardenhetFor, kanRoll, visningsnamn, visningsPnr } from './atkomst.js';
 import { kallaEtikett } from './journal.js';
+// Runda 6, r4: bilagor, vidarebefordran och egen vårdbegäran (remiss-r4.js).
+import { remissTillagg, EGEN } from './remiss-r4.js';
 
 export const PRIORITETER = ['akut', 'skyndsam', 'normal'];
 export const LARMGRANS = { mottagningskvittensTimmar: 2, svarKvittensDagar: 3 };
@@ -39,6 +41,8 @@ export function remissUt(db, r, { klinisk = true, patient = null } = {}) {
   };
   if (klinisk) Object.assign(ut, { fragestallning: r.fragestallning, anamnes: r.anamnes, motivering: r.motivering, svar: r.svar });
   if (patient) ut.patient = { id: patient.id, namn: visningsnamn(patient), personnummer: visningsPnr(patient), skyddad: Boolean(patient.skyddad) };
+  // Runda 6, r4: bilagorna (för den som läser kliniska uppgifter, annars bara antalet), vidarebefordran och egen vårdbegäran.
+  Object.assign(ut, remissTillagg(db, r, klinisk));
   return ut;
 }
 
@@ -113,6 +117,9 @@ export function svara(atk, r, { svar }) {
   const s = typeof svar === 'string' ? svar.trim() : '';
   if (s.length < 3 || s.length > 8000) throw new Fel(400, 'Skriv ett svar.', 'ogiltig', { falt: ['svar'] });
   atk.db.query("UPDATE remisser SET status = 'besvarad', besvarad_tid = ?, besvarad_av = ?, svar = ? WHERE id = ?").run(iso(), atk.personal.id, s, r.id);
+  // Runda 6, r4: en egen vårdbegäran har ingen remitterande vårdenhet som kvitterar svaret. Svaret går till patienten i
+  // Min journal, och systemet kvitterar det, så att vårdrelationen genom begäran upphör som för en kvitterad remiss.
+  if (r.fran_enhet_id === EGEN) atk.db.query("UPDATE remisser SET status = 'svar_kvitterat', svar_kvitterat_tid = besvarad_tid WHERE id = ?").run(r.id);
   return remissUt(atk.db, hamtaRad(atk.db, r.id));
 }
 

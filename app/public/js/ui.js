@@ -74,6 +74,8 @@ export const HANDLING = {
   las_vardplan: 'Läste vårdplaner', vardplan: 'Upprättade eller ändrade vårdplan', vardplan_atgard: 'Registrerade utförd åtgärd i vårdplan',
   las_tvangsvard: 'Läste uppgifter om tvångsvård', tvangsvard: 'Registrerade i tvångsvården', samordna: 'Samordnad planering', samverkan: 'Kommunen läste samordnad planering',
 };
+// Runda 6, r4: bevakningar och tidboken.
+Object.assign(HANDLING, { bevaka: 'Lade upp eller avslutade bevakning', bevaka_enhet: 'Lade upp bevakning för vårdenheten', las_tidbok: 'Läste tidboken', statistik: 'Såg statistik utan personuppgifter' });
 export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare', arkivarie: 'Arkivarie', uppfoljning: 'Analytiker (uppföljning)', kommun: 'Kommunens personal (simulerad)', farmaceut: 'Farmaceut' };
 
 // Anrop mot API:t. Svarstiden läses från Server-Timing. Fel kastas som ApiFel med serverns text och kod.

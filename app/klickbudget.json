@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-03T18:25:13.928Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-03T19:44:35.191Z",
+  "bas": "http://127.0.0.1:18134",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "770ea3319c70605f9c7b3ba7d59fd5df384c8958fe45ae154e6a9713f002013f",
+  "gransnittHash": "e8dfe1545891c41c728dfe93d157937c567f56060354bc84d7d9abbc9d4b9e2c",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -769,6 +769,40 @@
         "klick: Given tidigare",
         "klick: Registrera"
       ]
+    },
+    {
+      "id": "boka-ingrepp",
+      "namn": "Boka elkonvertering med rum och utrustning",
+      "roll": "adm-kard",
+      "start": "Vårdadministratörens startsida",
+      "budget": 3,
+      "motivering": "Sussa 3.4.1.2, 3.4.1.5 och 3.4.2.2. Ett klick på Boka tid vid elkonverteringen på väntelistan och ett på den tid som systemet föreslår först. Systemet föreslår bara tider då läkaren, ett behandlingsrum och defibrillatorn är lediga, bokar dem samtidigt och bokar sjukresan när patienten behöver den. Ett klick räknas med för att visa fler förslag.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Boka tid vid elkonverteringen",
+        "klick: den första föreslagna tiden"
+      ]
+    },
+    {
+      "id": "boka-kedja",
+      "namn": "Boka provtagning före läkarbesök",
+      "roll": "adm-kard",
+      "start": "Vårdadministratörens startsida",
+      "budget": 3,
+      "motivering": "Sussa 3.4.1.4 och 3.4.2.2. Ett klick på Boka tid vid återbesöket och ett på det förslag som systemet visar först. Systemet föreslår läkarbesöket och provtagningen samma dag med rätt mellanrum, bokar båda och skickar en kallelse som säger när provtagningen är. Ett klick räknas med för att visa fler förslag.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Boka tid vid återbesöket",
+        "klick: det första förslaget med provtagning och läkarbesök"
+      ]
     }
   ],
   "tester": [
@@ -938,6 +972,14 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Registrera en dos i efterhand inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Boka elkonvertering med rum och utrustning inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Boka provtagning före läkarbesök inom budget",
       "status": "grön"
     }
   ]

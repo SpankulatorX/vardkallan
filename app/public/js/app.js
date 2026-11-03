@@ -77,7 +77,8 @@ const MENY = [
 
 const RUTTER = [
   [/^#\/idag$/, idag, () => far('boka')],
-  [/^#\/tidbok$/, tidbok, () => far('boka')],
+  // Runda 6, r4: läkare och sjuksköterskor läser tidboken, med sitt eget schema som förval.
+  [/^#\/tidbok$/, tidbok, () => far('las_tidbok')],
   [/^#\/vantelista$/, vantelista, () => far('vantelista')],
   [/^#\/incheckning$/, incheckning, () => far('checka_in')],
   [/^#\/arbetslista$/, arbetslista, () => !utanJournal()],
@@ -182,7 +183,9 @@ export async function uppdateraInkorg() {
       // Runda 6, r3: tvångsvård, vårdplaner och samordnad planering.
       + inkorgAntal(d)
       // Läkemedelsprocessen, del 2 (runda 6, r2).
-      + (d.lakemedelsuppfoljningar?.length ?? 0) + (d.muntligaAttSignera?.length ?? 0) + (d.fordjupadeGenomgangar?.length ?? 0) + (d.licenserSomGarUt?.length ?? 0);
+      + (d.lakemedelsuppfoljningar?.length ?? 0) + (d.muntligaAttSignera?.length ?? 0) + (d.fordjupadeGenomgangar?.length ?? 0) + (d.licenserSomGarUt?.length ?? 0)
+      // Egna bevakningar som har löpt ut (runda 6, r4).
+      + (d.egnaBevakningar?.length ?? 0);
   } catch { S.inkorg = null; }
   const el = document.querySelector('[data-raknare="inkorg"]');
   if (el) { el.textContent = S.inkorg ? String(S.inkorg) : ''; el.hidden = !S.inkorg; }

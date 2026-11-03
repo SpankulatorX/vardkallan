@@ -199,4 +199,13 @@ export const FLODEN = [
     id: 'dos-efterhand', namn: 'Registrera en dos i efterhand', roll: 'ssk-kard', start: 'Läkemedel att ge efter återställning', budget: 3,
     motivering: 'Sussa 3.5.2.2. Ett klick på Mer för dosen, ett på Given tidigare och ett för att registrera. Systemet föreslår tiden, aldrig i framtiden, kontrollerar den mot ordinationen och tidigare doser och visar att registreringen gjordes i efterhand.',
   },
+  // Runda 6, r4: ingrepp med lokal och utrustning, och tider i följd (Sussa 3.4.1.2, 3.4.1.4, 3.4.1.5 och 3.4.2.2).
+  {
+    id: 'boka-ingrepp', namn: 'Boka elkonvertering med rum och utrustning', roll: 'adm-kard', start: 'Vårdadministratörens startsida', budget: 3,
+    motivering: 'Sussa 3.4.1.2, 3.4.1.5 och 3.4.2.2. Ett klick på Boka tid vid elkonverteringen på väntelistan och ett på den tid som systemet föreslår först. Systemet föreslår bara tider då läkaren, ett behandlingsrum och defibrillatorn är lediga, bokar dem samtidigt och bokar sjukresan när patienten behöver den. Ett klick räknas med för att visa fler förslag.',
+  },
+  {
+    id: 'boka-kedja', namn: 'Boka provtagning före läkarbesök', roll: 'adm-kard', start: 'Vårdadministratörens startsida', budget: 3,
+    motivering: 'Sussa 3.4.1.4 och 3.4.2.2. Ett klick på Boka tid vid återbesöket och ett på det förslag som systemet visar först. Systemet föreslår läkarbesöket och provtagningen samma dag med rätt mellanrum, bokar båda och skickar en kallelse som säger när provtagningen är. Ett klick räknas med för att visa fler förslag.',
+  },
 ];

@@ -1,8 +1,10 @@
 // Sussa 3.4.2 Bokning: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 import { T, flode } from '../tidbok-tester.js';
+// Runda 6, r4.
+import { medR4 } from '../planering-r4.js';
 
-export default [
+const AVSNITT = [
   {
     id: '3.4.2.1', kategori: 'system', egna: ['D6'], avsedd: 'uppfyllt_demo',
     tester: [T.boka, T.omboka, T.avboka, T.behorighet, T.nekad, T.avvisad, T.relationsfonster, flode('boka-remiss'), flode('omboka')],
@@ -25,3 +27,6 @@ export default [
     anmarkning: 'Min journal är Vårdkällans egen e-tjänst. Publicering av tider till 1177 Vårdguidens e-tjänster och andra kanaler är inte byggd, och ombud kan inte boka.',
   },
 ];
+
+// Runda 6, r4: posterna som byggdes i planering och tidbok, del 2, och remiss, del 2, ersätts ur sussa/planering-r4.js.
+export default medR4(AVSNITT);

@@ -24,6 +24,7 @@ const FILER = [
   '/js/tidbok-ui.js', '/js/vyer/idag.js', '/js/vyer/tidbok.js', '/js/vyer/vantelista.js', '/js/vyer/incheckning.js', '/js/vyer/patient-tider.js', '/js/vyer/min-tider.js',
   '/js/vyer/delegeringar.js', '/js/vyer/r3.js', '/js/vyer/patient-sok.js',
   '/js/vyer/lakemedelsstod.js',
+  '/js/planering-ui.js', '/js/vyer/min-vardbegaran.js',
 ];
 const TIDSGRANS_MS = 4000;
 

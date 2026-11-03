@@ -1,8 +1,10 @@
 // Sussa 3.4.3 Kallelse och påminnelse: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 import { T, flode } from '../tidbok-tester.js';
+// Runda 6, r4.
+import { medR4 } from '../planering-r4.js';
 
-export default [
+const AVSNITT = [
   {
     id: '3.4.3.1', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
     tester: [T.kallelse, T.paminnelse, T.skyddad, T.skyddadKallelse],
@@ -25,3 +27,6 @@ export default [
     anmarkning: 'Språkpreferens, export till andra format, en central distributionskanal och kallelse till vårdkontakter utan förbokad tid saknas. Sms och brev är simulerade.',
   },
 ];
+
+// Runda 6, r4: posterna som byggdes i planering och tidbok, del 2, och remiss, del 2, ersätts ur sussa/planering-r4.js.
+export default medR4(AVSNITT);

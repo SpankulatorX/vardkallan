@@ -7,6 +7,8 @@ import { inkorgSektioner } from './r3.js';
 import { symbolSvg, symbolText, harNagot } from '../uppmarksamhet.js';
 // Runda 6, r2: muntliga ordinationer signeras direkt från inkorgen.
 import { signeraMuntlig } from './lakemedelsstod.js';
+// Runda 6, r4: egna bevakningar.
+import { bevakningKlar } from '../planering-ui.js';
 
 export const namn = 'inkorg';
 
@@ -73,6 +75,9 @@ export async function visa(main) {
     <span class="under-text">${esc(x.dosering)}. Dokumenterad ${esc(tidpunkt(x.mottagen))} av ${esc(x.mottagenAv)}, ${x.satt === 'telefon' ? 'per telefon' : 'muntligt'}.</span></div><div class="ik-knappar"><a class="knapp liten sekundar" href="${pat(x.patientId, 'lakemedel')}">Läs</a><button type="button" class="knapp liten" data-signera="${x.ordinationId}">Signera</button></div></li>`);
   const fordj = (d.fordjupadeGenomgangar ?? []).map(x => rad(pat(x.patientId, 'lakemedel'), `Fördjupad läkemedelsgenomgång, ${esc(pnamn(x.patient))}`, `${esc(x.statusText)}. Startad ${esc(tidpunkt(x.startad))} av ${esc(x.startadAv)}.`));
   const lic = (d.licenserSomGarUt ?? []).map(x => `<li class="${x.utgangen ? 'ik-larm' : ''}"><span class="ik-rubrik">${esc(x.lakemedel)}, licens ${esc(x.licensnummer)}</span><span class="under-text">${esc(x.text)}</span></li>`);
+  // Runda 6, r4: egna bevakningar som har löpt ut, med en patient eller för vårdenheten.
+  const egnaBev = (d.egnaBevakningar ?? []).map(x => `<li class="ik-ater"><div class="ik-text"><span class="ik-rubrik">${x.patient ? `<a href="#/patient/${encodeURIComponent(x.patient.id)}">${esc(pnamn(x.patient))}</a>` : 'Vårdenheten'}: ${esc(x.text)}</span>
+    <span class="under-text">${x.enhetsniva ? 'För hela vårdenheten' : 'Din bevakning'}, datum ${esc(x.datum)}. Lagd av ${esc(x.skapadAv?.namn ?? '')}.</span></div><div class="ik-knappar"><button type="button" class="knapp liten sekundar" data-egen-bev="${x.id}">Klar</button></div></li>`);
   const yrke = S.session?.personal?.yrke;
   // Runda 6, r2: har användaren hunnit gå vidare till en annan vy, eller loggat ut, medan inkorgen hämtades finns
   // inget att visa den i.
@@ -89,6 +94,7 @@ export async function visa(main) {
     ${S.session.behorigheter.includes('delegera') && (S.session.personal.yrke === 'sjukskoterska' || deleg.length) ? sektion('deleg', 'Delegeringar som går ut', deleg, 'Inga delegeringar går ut de närmaste 30 dagarna.', 'Undersköterskornas delegeringar att ge läkemedel. Följ upp dem och registrera nya innan de går ut.') : ''}
     ${S.session.behorigheter.includes('sla_samman') ? sektion('dubb', 'Troliga dubbletter', dubb, 'Inga troliga dubbletter.', 'Journaler som systemet tror gäller samma person, till exempel ett reservnummer och ett personnummer med samma namn och födelsedatum.') : ''}
     ${inkorgSektioner(d, sektion, rad)}
+    ${S.session.behorigheter.includes('bevaka_enhet') ? sektion('egnabev', 'Bevakningar', egnaBev, 'Inga bevakningar har löpt ut.', 'Bevakningar som du eller någon på vårdenheten har lagt upp, med datum och ansvarig.') : ''}
     ${sektion('larm', 'Larm', larm, 'Inga larm.', 'Remisser där mottagningskvittens, svar eller kvittens av svaret har uteblivit för länge.')}
     ${S.session.behorigheter.includes('kontrasignera') ? sektion('ks', 'Att kontrasignera', ks, 'Inget väntar på din kontrasignering.', 'Journalinformation som någon har bett dig kontrasignera. Öppna, läs och kontrasignera med ett klick.') : ''}
     ${S.session.behorigheter.includes('utlamna') && ater.length ? sektion('ater', 'Återlämnanden som dröjer', ater, '', 'Utlämnade originalhandlingar som skulle ha kommit tillbaka.') : ''}
@@ -97,6 +103,12 @@ export async function visa(main) {
     ${sektion('nll', 'NLL-avvikelser', nll, 'Inga avvikelser mot Nationella läkemedelslistan.', 'Ordinationer från din vårdenhet där NLL inte svarade i tid eller svarade med fel.')}
   </div>${S.session.personal.yrke === 'vardadministrator' ? '<p class="dampad liten">Som vårdadministratör ser du larm om remissernas status men ingen journaltext.</p>' : ''}`;
   // Runda 5, r4: avsluta behandlingen efter ett uppehåll och sätta upp en avbokad vårdhändelse igen.
+  // Runda 6, r4: en egen bevakning markeras som klar.
+  main.querySelector('#ik').addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-egen-bev]');
+    if (!b) return;
+    try { await medKnapp(b, () => bevakningKlar(b.dataset.egenBev)); notis('Bevakningen är klar.'); b.closest('li')?.remove(); await uppdateraInkorg(); } catch { /* felet visas som notis */ }
+  });
   main.querySelector('#ik').addEventListener('click', async (e) => {
     const sg = e.target.closest('[data-signera]');
     if (sg) return signeraMuntlig(sg, sg.dataset.signera, async () => { await uppdateraInkorg(); visa(main); });

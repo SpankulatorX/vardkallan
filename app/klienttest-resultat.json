@@ -1,9 +1,33 @@
 {
-  "tid": "2026-11-03T18:26:07.347Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-03T19:46:22.085Z",
+  "bas": "http://127.0.0.1:18134",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "770ea3319c70605f9c7b3ba7d59fd5df384c8958fe45ae154e6a9713f002013f",
+  "gransnittHash": "e8dfe1545891c41c728dfe93d157937c567f56060354bc84d7d9abbc9d4b9e2c",
   "tester": [
+    {
+      "namn": "Gränssnitt > Användartest > testläget räknar klick, fältbyten och tangenter som klickbudgetskriptet för samma flöden",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Användartest > enkäten ger SUS-poäng enligt standardformeln",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Användartest > resultatfilen laddas ner med datum, version, deltagarkod, uppgifter och SUS-poäng",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Användartest > hoppa över och hjälp registreras per uppgift",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Användartest > inget anrop skickar testresultat till servern",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Användartest > testläget rensas när testet avslutas",
+      "status": "grön"
+    },
     {
       "namn": "Gränssnitt > Avbrott > läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB",
       "status": "grön"
@@ -86,30 +110,6 @@
     },
     {
       "namn": "Gränssnitt > Avbrott > simulerat avbrott visar reservinloggningen när fliken stängs i demon",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Användartest > testläget räknar klick, fältbyten och tangenter som klickbudgetskriptet för samma flöden",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Användartest > enkäten ger SUS-poäng enligt standardformeln",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Användartest > resultatfilen laddas ner med datum, version, deltagarkod, uppgifter och SUS-poäng",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Användartest > hoppa över och hjälp registreras per uppgift",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Användartest > inget anrop skickar testresultat till servern",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Användartest > testläget rensas när testet avslutas",
       "status": "grön"
     }
   ]

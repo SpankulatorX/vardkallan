@@ -1102,6 +1102,7 @@ mark { background: var(--obs-bg); color: inherit; outline: 1px solid var(--obs-k
 @media (max-width: 640px) {
   .journalsok { flex-basis: 100%; }
   .kurvor { grid-template-columns: minmax(0, 1fr); }
+}
 /* Läkemedelsprocessen, del 2 (runda 6, r2): filtrering, mallar, dosering över flera dygn, makulering och vätskebalans. */
 .lms-verktyg { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; margin: 6px 0 10px; }
 .lms-verktyg .falt { margin: 0; }
@@ -1127,4 +1128,25 @@ mark { background: var(--obs-bg); color: inherit; outline: 1px solid var(--obs-k
 @media (max-width: 640px) {
   .lms-verktyg { flex-direction: column; align-items: stretch; }
   .lms-cell { white-space: normal; }
+}
+
+/* Runda 6, r4: planering och tidbok, del 2, och remiss, del 2. */
+.forslag-fore, .forslag-resurser { grid-column: 1; color: var(--blak-2); font-size: var(--f-s); }
+.forslag-fore { font-weight: 600; }
+.forslag-valj { grid-row: 1 / span 5; }
+.idag-period { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0 14px; }
+.idag-period input[type="date"] { width: auto; min-height: 32px; }
+.idag-egen strong { font-weight: 600; }
+.tb-vy { margin: 8px 0 0; }
+.tb-resurs h3 { font-size: var(--f-m); margin: 0 0 6px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.kallelse-filer { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
+.remiss-bilagor { margin: 6px 0; }
+.kryss-lista { display: grid; gap: 2px; margin: 4px 0 8px 26px; }
+.min-vb textarea { width: 100%; }
+.min-vb .radiogrupp { flex-direction: column; gap: 4px; }
+.min-vb .radio { flex-wrap: wrap; }
+.min-vb .radio .under-text { flex-basis: 100%; margin-left: 26px; }
+@media (max-width: 640px) {
+  .idag-period input[type="date"] { flex: 1 1 140px; }
+  .kallelse-filer { margin-left: 0; }
 }

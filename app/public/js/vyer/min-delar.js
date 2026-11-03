@@ -3,6 +3,8 @@
 import { esc, api, datum, tidpunkt, ikon, notis, medKnapp, migreradEtikett, ORDTYP, PRIORITET_REMISS } from '../ui.js';
 import { varde } from './patient-oversikt.js';
 import { symbolSvg } from '../uppmarksamhet.js';
+// Runda 6, r4: egen vårdbegäran.
+import * as vardbegaran from './min-vardbegaran.js';
 
 // Uppmärksamhetsinformation: det vården ska se direkt för att vården ska bli säker, som överkänslighet, behandlingar
 // som påverkar annan vård, smitta och särskilda vårdrutiner. Patienten ser samma uppgifter som vården, utan förslag.
@@ -164,14 +166,16 @@ function stegHtml(r) {
 export async function remisser(el, ctx) {
   const d = await del(ctx.pid, 'remisser');
   if (!ctx.aktuell()) return;
-  el.innerHTML = `${delrubrik('Remisser', 'Remisser som vården har skickat om dig, och hur långt de har kommit.')}
+  el.innerHTML = `${delrubrik('Remisser', 'Remisser som vården har skickat om dig, och dina egna vårdbegäranden. Här ser du hur långt de har kommit.')}
+    ${vardbegaran.knappHtml()}
     ${d.remisser.length ? `<ul class="min-remisser">${d.remisser.map(r => `<li class="ov-sektion">
-      <h3>Till ${esc(r.till)}</h3><p class="under-text">Från ${esc(r.fran)}. Prioritet: ${esc((PRIORITET_REMISS[r.prioritet] ?? r.prioritet).toLowerCase())}.</p>${migreradEtikett(r)}
+      <h3>Till ${esc(r.till)}</h3><p class="under-text">${r.egen ? 'Din egen vårdbegäran' : `Från ${esc(r.fran)}`}. Prioritet: ${esc((PRIORITET_REMISS[r.prioritet] ?? r.prioritet).toLowerCase())}.</p>${migreradEtikett(r)}
       ${stegHtml(r)}<p>${esc(remissText(r))}</p>
-      <dl class="faktalista"><div><dt>Frågeställning</dt><dd>${esc(r.fragestallning)}</dd></div>
+      <dl class="faktalista"><div><dt>${r.egen ? 'Ditt besvär' : 'Frågeställning'}</dt><dd>${esc(r.fragestallning)}</dd></div>
         ${r.beslut === 'avvisad' && r.motivering ? `<div><dt>Motivering</dt><dd>${esc(r.motivering)}</dd></div>` : ''}
         ${r.svar ? `<div><dt>Svar</dt><dd>${esc(r.svar)}</dd></div>` : ''}</dl>
     </li>`).join('')}</ul>` : tomRad('Inga remisser.')}`;
+  vardbegaran.koppla(el, ctx);
 }
 
 // Vem har läst journalen.
@@ -184,6 +188,8 @@ const HANDLING = {
   andra_enheter: 'Valde att visa uppgifter från andra vårdenheter', samtycke_sparr: 'Registrerade ditt samtycke till att visa spärrade uppgifter',
   visa_identitet: 'Visade din skyddade identitet', las_logg: 'Läste åtkomstloggen', invanare_las: 'Läste journalen', invanare_begaran: 'Skickade en begäran',
   registrera_vardkontakt: 'Registrerade eller ändrade en vårdkontakt', vardtillfalle: 'Skrev in, flyttade eller skrev ut dig', halsoarende: 'Höll samman vårdkontakter i ett hälsoärende',
+  // Runda 6, r4.
+  bevaka: 'Lade upp eller avslutade en bevakning', boka: 'Bokade, bokade om eller avbokade en tid', kalla: 'Skickade eller hämtade en kallelse', checka_in: 'Checkade in dig eller tog betalt',
 };
 const GRUND = {
   egen_enhet: 'Vårdrelation', vardrelation: 'Vårdrelation', administrativ: 'Administrativ uppgift', aktivt_val: 'Aktivt val',

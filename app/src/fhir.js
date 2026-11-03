@@ -385,7 +385,8 @@ export function serviceRequest(db, r, klinisk = true) {
     resourceType: 'ServiceRequest', id: String(r.id), meta: kallaMeta(r.kalla), status, intent: 'order',
     priority: { akut: 'stat', skyndsam: 'urgent', normal: 'routine' }[r.prioritet] ?? 'routine',
     subject: ref('Patient', r.patient_id), ...(r.vardkontakt_id ? { encounter: ref('Encounter', r.vardkontakt_id) } : {}), authoredOn: r.skickad_tid,
-    requester: ref('Practitioner', r.avsandare_id, personNamn(db, r.avsandare_id)),
+    // Runda 6, r4: en egen vårdbegäran från Min journal har patienten som avsändare.
+    requester: r.fran_enhet_id === 'min-journal' ? ref('Patient', r.patient_id) : ref('Practitioner', r.avsandare_id, personNamn(db, r.avsandare_id)),
     performer: [ref('Organization', r.till_enhet_id, enhetsnamn(db, r.till_enhet_id))],
     extension: [{ url: `${EXT}/remisstatus`, valueCode: r.status }, { url: `${EXT}/svar-senast`, valueDate: r.svar_senast }],
   };
@@ -519,7 +520,8 @@ export function hantera(ctx) {
   const { db, personal, url, base } = ctx;
   const delar = url.pathname.replace(/\/+$/, '').split('/').slice(2).map(decodeURIComponent);
   const [typ, id] = delar;
-  if (typ === 'metadata' && delar.length === 1) return { status: 200, body: capability(base) };
+  // Runda 6, r4: incheckning genom PATCH på Appointment och Encounter (tidbok-fhir.js) syns i förmågorna.
+  if (typ === 'metadata' && delar.length === 1) return { status: 200, body: tidbokFhir.medSkrivning(capability(base)) };
   if (DEFINITIONSTYPER.includes(typ) && delar.length <= 2) {
     const alla = DEFINITIONER[typ];
     if (id) {
