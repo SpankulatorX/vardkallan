@@ -27,12 +27,16 @@ const SCHEMA = `
 CREATE TABLE IF NOT EXISTS vardhandelse_kopplingar (
   ordination_id INTEGER PRIMARY KEY, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, bokning_id INTEGER, vantelista_id INTEGER,
   egen_post INTEGER NOT NULL DEFAULT 0, foljer INTEGER NOT NULL DEFAULT 1, lage TEXT NOT NULL, forklaring TEXT,
-  skapad TEXT NOT NULL, skapad_av TEXT, andrad TEXT,
+  skapad TEXT NOT NULL, skapad_av TEXT, andrad TEXT, egen_text INTEGER NOT NULL DEFAULT 0,
   CHECK (lage IN ('bokad', 'vantar', 'avbokad', 'avslutad', 'manuell', 'utan_tidbok'))
 );
 CREATE INDEX IF NOT EXISTS ix_vh_patient ON vardhandelse_kopplingar (patient_id);
 `;
-export const sakraSchema = (db) => db.exec(SCHEMA);
+export function sakraSchema(db) {
+  db.exec(SCHEMA);
+  // egen_text: vårdhändelsens namn skrevs av läkaren och kommer inte från en bokning eller väntelistan.
+  if (!db.query('PRAGMA table_info(vardhandelse_kopplingar)').all().some(k => k.name === 'egen_text')) db.exec('ALTER TABLE vardhandelse_kopplingar ADD COLUMN egen_text INTEGER NOT NULL DEFAULT 0');
+}
 
 // Det vårdadministratören ser i bokningsdialogen. Aldrig läkemedlet.
 export const STYR_LAKEMEDEL = 'Tiden styr när en läkemedelsdos ska ges. Bokas tiden om eller avbokas räknar systemet om dosen av sig själv.';
@@ -152,14 +156,14 @@ export function knyt(atk, ordinationId, k) {
     vantelistaId = p.id;
   }
   const utan = k.typ === 'utan_tidbok';
-  db.query(`INSERT INTO vardhandelse_kopplingar (ordination_id, patient_id, enhet_id, bokning_id, vantelista_id, egen_post, foljer, lage, forklaring, skapad, skapad_av)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(ordinationId, atk.patientId, k.ve, k.bokningId, vantelistaId, k.typ === 'ny' ? 1 : 0, utan ? 0 : 1,
+  db.query(`INSERT INTO vardhandelse_kopplingar (ordination_id, patient_id, enhet_id, bokning_id, vantelista_id, egen_post, egen_text, foljer, lage, forklaring, skapad, skapad_av)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(ordinationId, atk.patientId, k.ve, k.bokningId, vantelistaId, k.typ === 'ny' ? 1 : 0, k.typ === 'ny' || utan ? 1 : 0, utan ? 0 : 1,
     utan ? 'utan_tidbok' : 'vantar', utan ? 'Vårdenheten har ingen tidbok i demon. Ange tiden när vårdhändelsen är bestämd.' : vantarText(k.text), iso(), av);
   if (!utan) {
-    historik(db, ordinationId, av, 'Vårdhändelsen knöts till tidboken', k.typ === 'ny' ? `${k.text} sattes upp på väntelistan.` : k.text);
+    historik(db, ordinationId, av, 'Vårdhändelsen knöts till tidboken', k.typ === 'ny' ? `${k.text} sattes upp på väntelistan.` : 'Tiden kommer från tidboken.');
     synka(db, atk.patientId, { av });
   }
-  return kopplingUt(db, ordinationId);
+  return kopplingUt(db, ordinationId, { full: true });
 }
 
 const vantarText = (text) => `${text} står på väntelistan. När vårdadministratören har bokat tiden räknar systemet fram när läkemedlet ska ges.`;
@@ -220,7 +224,9 @@ export function synka(db, patientId, { av = null } = {}) {
     }
     db.query('UPDATE ordination_tillagg SET handelse_tid = ?, handelse_satt_av = ?, handelse_satt = ? WHERE ordination_id = ?').run(ny, av, iso(), k.ordination_id);
     db.query('UPDATE vardhandelse_kopplingar SET bokning_id = ?, lage = ?, forklaring = ?, andrad = ? WHERE ordination_id = ?').run(bokningId, a.lage, forklaring, iso(), k.ordination_id);
-    if (handelse) historik(db, k.ordination_id, av, handelse, forklaring);
+    // Historiken syns i den gemensamma läkemedelslistan, så den säger bara när läkemedlet ges, aldrig bokningens namn
+    // eller tid (säkerhetsgranskning runda 5).
+    if (handelse) historik(db, k.ordination_id, av, handelse, adm ? `Läkemedlet ges ${tidbok.tidText(adm)}.` : 'Läkemedlet ges inte förrän vårdhändelsen har fått en ny tid.');
     andrade.push(k.ordination_id);
   }
   return andrade;
@@ -228,27 +234,44 @@ export function synka(db, patientId, { av = null } = {}) {
 
 // När tiden sätts för hand följer vårdhändelsen inte längre tidboken. En post som systemet satte upp på väntelistan
 // för ordinationen och som ännu inte är bokad avslutas, så att vårdhändelsen inte bokas två gånger.
-export function efterHandTid(db, ordinationId, personalId) {
+// Bara den egna vårdenhetens post avslutas, och avslutningen loggas på patienten (säkerhetsgranskning runda 5).
+export function efterHandTid(atk, ordinationId) {
+  const db = atk.db;
+  const personalId = atk.personal.id;
   const k = kopplingRad(db, ordinationId);
   if (!k) return;
+  const ve = vardenhetFor(db, atk.personal.enhet_id);
   const namn = personNamn(db, personalId) ?? 'någon';
   db.query("UPDATE vardhandelse_kopplingar SET foljer = 0, lage = 'manuell', forklaring = ?, andrad = ? WHERE ordination_id = ?")
     .run(`Tiden är satt för hand av ${namn} och följer inte tidboken.`, iso(), ordinationId);
   if (k.foljer) historik(db, ordinationId, personalId, 'Vårdhändelsen följer inte längre tidboken', 'Tiden sattes för hand.');
   const p = post(db, k.vantelista_id);
-  if (k.egen_post && p?.status === 'vantar') {
+  if (k.egen_post && p?.status === 'vantar' && vardenhetFor(db, p.enhet_id) === ve) {
     db.query("UPDATE vantelista SET status = 'avslutad' WHERE id = ?").run(p.id);
     db.query("INSERT INTO vantelista_handelser (vantelista_id, tid, av, typ, detalj) VALUES (?, ?, ?, 'avslutad', ?)")
       .run(p.id, iso(), personalId, 'Tiden för vårdhändelsen sattes för hand i läkemedelsprocessen. Systemet avslutade posten.');
+    atk.logga(atk.handling, atk.grund(), `vantelista:${p.id}:avslutad`);
   }
 }
 
-// Kopplingen i ordinationens utdata (läkemedelslistan, administreringslistan och FHIR). Inga uppgifter om bokningen
-// utöver tiden, som redan finns i ordinationen, så att en annan vårdenhet inte ser mottagning eller vårdgivare.
-export function kopplingUt(db, ordinationId) {
+// Kopplingen i ordinationens utdata. Läkemedelslistan är gemensam för vårdgivaren, men bokningen hör till den
+// ordinerande vårdenheten. full är sant när användaren får se den vårdenhetens uppgifter (egen vårdenhet eller aktivt
+// val). Annars visas bara den text som läkaren själv skrev och när läkemedlet ska ges, aldrig bokningens orsak eller
+// tid (säkerhetsgranskning runda 5). Utan uppgift om användaren visas den skyddade formen.
+export function kopplingUt(db, ordinationId, { full = false } = {}) {
   const k = kopplingRad(db, ordinationId);
   if (!k) return { foljerTidbok: false, lage: 'manuell', forklaring: null };
-  return { foljerTidbok: Boolean(k.foljer), lage: k.lage, forklaring: k.forklaring, andrad: k.andrad };
+  const ut = { foljerTidbok: Boolean(k.foljer), lage: k.lage, forklaring: k.forklaring, andrad: k.andrad };
+  if (full) return ut;
+  const t = tillaggRad(db, ordinationId);
+  const adm = t?.handelse_tid ? plus(t.handelse_tid, t.forskjutning_min) : null;
+  const kort = {
+    bokad: adm ? `Tiden kommer från tidboken. Läkemedlet ges ${tidbok.tidText(adm)}.` : null,
+    vantar: 'Vårdhändelsen har ingen tid än. Systemet räknar fram när läkemedlet ska ges när den är bokad.',
+    avbokad: 'Vårdhändelsen är avbokad. Ge inte dosen förrän den har fått en ny tid. Fråga den läkare som ordinerade läkemedlet.',
+    avslutad: 'Vårdhändelsen är avbokad. Ge inte dosen förrän den har fått en ny tid. Fråga den läkare som ordinerade läkemedlet.',
+  }[k.lage];
+  return { ...ut, forklaring: kort ?? k.forklaring, skyddad: true, egenText: Boolean(k.egen_text) };
 }
 
 // Styr tiden en läkemedelsdos? För vårdadministratörens bokningsdialog. Ger aldrig läkemedlet.

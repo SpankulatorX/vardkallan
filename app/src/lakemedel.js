@@ -23,7 +23,8 @@ export function sokKatalog(db, q = '') {
 }
 const lakemedelRad = (db, id) => db.query('SELECT * FROM katalog WHERE id = ?').get(id);
 
-export function ordinationUt(db, o, { historik = true } = {}) {
+// fullVardhandelse: användaren får se den ordinerande vårdenhetens vårdhändelse ur tidboken (ordinationsmallar.tillaggUt).
+export function ordinationUt(db, o, { historik = true, fullVardhandelse = false } = {}) {
   const lm = lakemedelRad(db, o.lakemedel_id);
   const ut = {
     id: o.id, patientId: o.patient_id, lakemedel: lm ? { id: lm.id, npl: lm.npl, namn: lm.namn, substans: lm.substans, styrka: lm.styrka, form: lm.form, atc: lm.atc } : null,
@@ -36,7 +37,7 @@ export function ordinationUt(db, o, { historik = true } = {}) {
     kvitteradeVarningar: o.kvitterade_varningar ? JSON.parse(o.kvitterade_varningar) : [],
     kalla: o.kalla, kallaEtikett: kallaEtikett(o.kalla, o.start),
     // Administrationssätt, fördefinierad mall och planerad vårdhändelse (ordinationsmallar.js).
-    ...tillaggUt(db, o.id),
+    ...tillaggUt(db, o.id, { full: fullVardhandelse }),
   };
   if (historik) {
     ut.historik = db.query('SELECT * FROM ordination_historik WHERE ordination_id = ? ORDER BY tid, id').all(o.id)
@@ -64,7 +65,8 @@ export function synligaOrdinationer(atk) {
 export function lista(atk) {
   atk.krav('las_lakemedel');
   const rader = synligaOrdinationer(atk);
-  return { ordinationer: rader.map(o => ordinationUt(atk.db, o)), dolda: { sparrade: atk.doldaSparr } };
+  // Vårdhändelsen ur tidboken visas med namn och tid bara för den ordinerande vårdenheten eller efter aktivt val.
+  return { ordinationer: rader.map(o => ordinationUt(atk.db, o, { fullVardhandelse: atk.prova('las_lakemedel', { enhet_id: o.enhet_id }).tillaten })), dolda: { sparrade: atk.doldaSparr } };
 }
 
 const arAktuell = (o) => o.status === 'aktiv' && (!o.slut || o.slut >= idag());

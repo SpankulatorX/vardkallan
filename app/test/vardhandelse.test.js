@@ -207,6 +207,51 @@ describe('Vårdhändelse i tidboken', () => {
     expect(JSON.stringify(v)).not.toMatch(/Malin|Engberg/);
   });
 
+  test('säkerhetsgranskning: en annan vårdenhet kan inte sätta tiden för hand eller avsluta den egna vårdenhetens post', async () => {
+    const k = await inloggad('lak-kard');
+    const id = (await ordinera(k, 'p01', { text: 'Elkonvertering', forskjutningTimmar: -1 })).data.ordination.id;
+    const post = db(k).query("SELECT * FROM vantelista WHERE patient_id = 'p01' AND orsak = 'Elkonvertering' AND status = 'vantar'").get();
+    expect(post).toBeTruthy();
+    await k.logga('lak-akut');
+    const tid = new Date(Date.parse(`${addDagar(idag(), 1)}T09:00:00Z`)).toISOString();
+    expect((await k.post(`/api/ordination/${id}/vardhandelse`, { tid })).status).toBe(403);
+    expect(loggRader(k).at(-1)).toMatchObject({ personal_id: 'lak-akut', patient_id: 'p01', resultat: 'nekad' });
+    expect(db(k).query('SELECT status FROM vantelista WHERE id = ?').get(post.id).status).toBe('vantar');
+    expect(db(k).query('SELECT foljer, lage FROM vardhandelse_kopplingar WHERE ordination_id = ?').get(id)).toEqual({ foljer: 1, lage: 'vantar' });
+    expect(db(k).query('SELECT handelse_tid FROM ordination_tillagg WHERE ordination_id = ?').get(id).handelse_tid).toBeNull();
+    // Den egna vårdenheten sätter tiden för hand, och avslutningen av posten loggas på patienten.
+    await k.logga('ssk-kard');
+    expect((await k.post(`/api/ordination/${id}/vardhandelse`, { tid })).status).toBe(200);
+    expect(db(k).query('SELECT status FROM vantelista WHERE id = ?').get(post.id).status).toBe('avslutad');
+    expect(loggRader(k).some(r => r.personal_id === 'ssk-kard' && r.resurs === `vantelista:${post.id}:avslutad` && r.resultat === 'tillaten')).toBe(true);
+  });
+
+  test('säkerhetsgranskning: en annan vårdenhet ser inte bokningens orsak eller tid i den gemensamma läkemedelslistan utan aktivt val', async () => {
+    const k = await inloggad('lak-kard');
+    const b = elkonvertering(k);
+    const tidBokning = start(k, b);
+    const id = (await ordinera(k, 'p01', { bokningId: b.id, forskjutningTimmar: -2 }, { ordinationsorsak: 'Förberedelse inför ingrepp' })).data.ordination.id;
+    // Samma läkemedel i Läkemedel att ge på en annan vårdenhet visar bara när läkemedlet ges.
+    await k.logga('lak-akut');
+    const l = (await k.get('/api/patient/p01/lakemedel')).data;
+    const o = l.ordinationer.find(x => x.id === id);
+    expect(o.vardhandelse).toMatchObject({ text: 'Planerad vårdhändelse', tid: null, administreras: timmar(tidBokning, -2) });
+    const adm = (await k.get('/api/patient/p01/administreringar')).data;
+    for (const x of [JSON.stringify(l), JSON.stringify(adm)]) {
+      expect(x).not.toContain('Elkonvertering');
+      expect(x).not.toContain(tidBokning);
+    }
+    expect(JSON.stringify(o.historik)).not.toContain('Elkonvertering');
+    // Med aktivt val visas vårdhändelsen som för den egna vårdenheten.
+    await k.post('/api/patient/p01/val', { typ: 'andra_enheter', syfte: 'Bedömning på akuten' });
+    expect((await k.get('/api/patient/p01/lakemedel')).data.ordinationer.find(x => x.id === id).vardhandelse).toMatchObject({ text: 'Elkonvertering', tid: tidBokning });
+    // Den text som läkaren själv skrev visas för alla som ser ordinationen.
+    await k.logga('lak-kard');
+    const egen = (await ordinera(k, 'p01', { text: 'Gastroskopi', forskjutningTimmar: -1 })).data.ordination.id;
+    await k.logga('lak-akut');
+    expect((await k.get('/api/patient/p01/lakemedel')).data.ordinationer.find(x => x.id === egen).vardhandelse.text).toBe('Gastroskopi');
+  });
+
   test('en tid som styr en läkemedelsdos kan patienten inte boka om själv i Min journal', async () => {
     const k = await inloggad('lak-vc');
     const b = db(k).query("SELECT * FROM bokningar WHERE patient_id = 'p03' AND status = 'bokad'").get();

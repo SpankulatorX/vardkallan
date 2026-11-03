@@ -137,7 +137,8 @@ export function lista(atk, { dag = idag() } = {}) {
   // ska ges redan nu (vardhandelse.js).
   const kommandeHandelser = [];
   for (const o of ordRader) {
-    const t = tillaggUt(db, o.id);
+    // Vårdhändelsen ur tidboken med namn och tid bara för den ordinerande vårdenheten eller efter aktivt val (runda 5).
+    const t = tillaggUt(db, o.id, { full: atk.prova('las_lakemedel', { enhet_id: o.enhet_id }).tillaten });
     const u = { ...lakemedel.ordinationUt(db, o, { historik: false }), ...t };
     const bas = { ordinationId: o.id, lakemedel: u.lakemedel, dosering: u.dosering, dos: u.dos, dosEnhet: u.dosEnhet, typ: u.typ, administrationssatt: t.administrationssattText ?? null };
     const lmRad = katalog(db, o.lakemedel_id);

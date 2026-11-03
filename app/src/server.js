@@ -815,7 +815,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       const ut = lakemedel.spara(atk, kropp);
       ordinationsmallar.sparaTillagg(c.db, ut.ordination.id, tillagg);
       vardhandelse.knyt(atk, ut.ordination.id, koppling);
-      Object.assign(ut.ordination, ordinationsmallar.tillaggUt(c.db, ut.ordination.id));
+      Object.assign(ut.ordination, ordinationsmallar.tillaggUt(c.db, ut.ordination.id, { full: true }));
       return vardkontakt.knyt(atk, 'ordinationer', ut, c.body);
     })];
   });
@@ -860,10 +860,17 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
         throw new Fel(403, 'Tiden för en planerad vårdhändelse sätts av en sjuksköterska eller läkare.', 'nekad');
       }
       administrering.kravVardande(atk, handling, { enhet_id: o.enhet_id, gemensam: true }, `ordination:${o.id}`);
+      // Säkerhetsgranskning runda 5: vårdhändelsens tid är den ordinerande vårdenhetens planering. Bara den vårdenheten
+      // sätter den för hand, och ett försök från en annan vårdenhet nekas och loggas innan något ändras.
+      if (vardenhetFor(c.db, o.enhet_id) !== vardenhetFor(c.db, c.personal.enhet_id)) {
+        atk.logga(handling, 'nekad', `ordination:${o.id}:vardhandelse`, 'nekad');
+        throw new Fel(403, 'Vårdhändelsens tid sätts av den vårdenhet som ordinerade läkemedlet.', 'nekad');
+      }
       ordinationsmallar.tidsattHandelse(c.db, o.id, c.body.tid, c.personal.id);
+      atk.logga(handling, atk.grund(), `ordination:${o.id}:vardhandelse`);
       // Tiden satt för hand är reserven: vårdhändelsen följer inte längre tidboken (vardhandelse.js).
-      vardhandelse.efterHandTid(c.db, o.id, c.personal.id);
-      return { ordinationId: o.id, ...ordinationsmallar.tillaggUt(c.db, o.id) };
+      vardhandelse.efterHandTid(atk, o.id);
+      return { ordinationId: o.id, ...ordinationsmallar.tillaggUt(c.db, o.id, { full: true }) };
     });
   });
   // Runda 5, r1: förslag på vårdhändelse ur tidboken när läkaren ordinerar (vardhandelse.js).
