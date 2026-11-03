@@ -5,7 +5,7 @@ import { T, flode } from '../tidbok-tester.js';
 export default [
   {
     id: '3.4.3.1', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
-    tester: [T.kallelse, T.paminnelse, T.skyddad],
+    tester: [T.kallelse, T.paminnelse, T.skyddad, T.skyddadKallelse],
     losning: 'Kallelser och påminnelser går till Min journal, med sms eller med brev. Patientens eget val av kanal sparas.',
     expert: 'Systemet väljer kanal själv: patientens val om det går, annars Min journal, sms eller brev. En patient med skyddade personuppgifter får kallelser bara i Min journal, och systemet förklarar varför.',
     anmarkning: 'Sms och brev är simulerade och märkta så. Inget skickas utanför demon.',

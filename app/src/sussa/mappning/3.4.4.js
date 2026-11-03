@@ -21,7 +21,7 @@ export default [
   },
   {
     id: '3.4.4.2', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
-    tester: [T.egenIncheckning, T.skyddad, T.incheckning],
+    tester: [T.egenIncheckning, T.skyddad, T.incheckning, T.skarm],
     losning: 'Patienten checkar in själv i Min journal eller på incheckningsskärmen i väntrummet. Incheckningen registrerar ankomsten på den planerade vårdkontakten, ger ett konummer och visar avgiften.',
     expert: 'Systemet hittar patientens tid själv ur personnumret och öppnar incheckningen från en timme före till en halvtimme efter tiden. Skärmen visar aldrig namn och svarar likadant för ett nummer utan tid som för ett nummer som inte finns.',
     anmarkning: 'Incheckningsskärmen är simulerad i webbläsaren och öppnas av vårdadministratören. Ingen riktig kiosk eller kortläsare finns.',

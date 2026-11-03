@@ -29,5 +29,9 @@ export const T = {
   egenRegler: `${TB}egenbokning stängs 24 timmar före tiden och för tidstyper som mottagningen inte öppnar`,
   fhir: `${TB}FHIR: Schedule, Slot och Appointment med status för incheckning och samma behörighet och loggning`,
   fhirInvanare: `${TB}FHIR: invånaren ser bara sina egna Appointment`,
+  avvisad: 'Tidbok, säkerhetsgranskning > en bokning ger inte bestående vårdrelation när remissen avvisas: tiden avbokas och patienten får besked',
+  relationsfonster: 'Tidbok, säkerhetsgranskning > en planerad kontakt ger vårdrelation bara till 90 dagar efter tiden',
+  skyddadKallelse: 'Tidbok, säkerhetsgranskning > kallelsetexten och adressen för en patient med skyddade personuppgifter visas inte för personalen',
+  skarm: 'Tidbok, säkerhetsgranskning > incheckningsskärmen visar inte avgiften och stoppar många försök',
 };
 export const flode = (id) => klickbudgetTest(FLODEN.find(f => f.id === id));

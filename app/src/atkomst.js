@@ -89,12 +89,16 @@ export function enheterUnder(db, vardenhet) {
 // En vårdkontakt som skapades under nödåtkomst (ger_vardrelation = 0) räknas inte, och en kontakt som systemet skapade
 // när någon dokumenterade räknas i 90 dagar från dagen den skapades, som ett avslutat besök, även om ingen avslutar den.
 // Så blir varken en nödåtkomst eller en enstaka dokumentation en bestående vårdrelation till hela journalen.
-export function harVardrelation(db, patientId, vardenhet, nu = new Date()) {
+// En planerad kontakt (en bokning i tidboken) räknas från bokningen till 90 dagar efter tiden, också efter en registrerad
+// ankomst om ingen avslutar den, så att en bokning eller ett uteblivet besök aldrig blir en bestående vårdrelation.
+// utanPlanerade räknar bort bokningarna, för att se om patienten har någon annan grund (tidbok.js efterAvvisning).
+export function harVardrelation(db, patientId, vardenhet, nu = new Date(), { utanPlanerade = false } = {}) {
   const enheter = enheterUnder(db, vardenhet);
   const ph = enheter.map(() => '?').join(', ');
   const grans = new Date(nu.getTime() - RELATION_DAGAR * 86400_000).toISOString();
   const vk = db.query(`SELECT 1 FROM vardkontakter WHERE patient_id = ? AND enhet_id IN (${ph}) AND coalesce(ger_vardrelation, 1) = 1
-      AND (slut >= ? OR (slut IS NULL AND (coalesce(automatisk, 0) = 0 OR typ = 'slutenvard' OR start >= ?))) LIMIT 1`)
+      ${utanPlanerade ? 'AND coalesce(planerad, 0) = 0' : ''}
+      AND (slut >= ? OR (slut IS NULL AND (typ = 'slutenvard' OR start >= ? OR (coalesce(automatisk, 0) = 0 AND coalesce(planerad, 0) = 0)))) LIMIT 1`)
     .get(patientId, ...enheter, grans, grans);
   if (vk) return true;
   if (db.query(`SELECT 1 FROM listningar WHERE patient_id = ? AND enhet_id IN (${ph})`).get(patientId, ...enheter)) return true;

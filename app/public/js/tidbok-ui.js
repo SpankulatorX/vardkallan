@@ -70,4 +70,4 @@ export function gransHtml(g) {
 
 export const kallelseHtml = (k) => `<div class="kallelse"><p class="kallelse-huvud"><strong>${esc({ kallelse: 'Kallelse', paminnelse: 'Påminnelse', ombokning: 'Ny tid', avbokning: 'Avbokning' }[k.typ] ?? 'Kallelse')}</strong>
   ${k.kanalText ?? k.kanal ? `<span class="tagg">${esc(k.kanalText ?? k.kanal)}${k.simulerad ? ', simulerat' : ''}</span>` : ''}</p>
-  <p class="kallelse-text">${esc(k.text)}</p>${k.forklaring ? `<p class="hjalp">${esc(k.forklaring)}</p>` : ''}</div>`;
+  ${k.text != null ? `<p class="kallelse-text">${esc(k.text)}</p>` : `<p class="dampad">${esc(k.textDold ?? '')}</p>`}${k.forklaring ? `<p class="hjalp">${esc(k.forklaring)}</p>` : ''}</div>`;

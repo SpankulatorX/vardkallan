@@ -28,9 +28,12 @@ export async function visa(main) {
       const r = await api('/api/incheckning/skarm', { metod: 'POST', data: { personnummer: form.personnummer.value } });
       svar.className = `skarm-svar ${r.ok ? 'skarm-ok' : 'skarm-info'}`;
       svar.innerHTML = r.ok
-        ? `<p class="skarm-nummer">${esc(r.konummer)}</p><p>${esc(r.redan ? 'Du var redan incheckad. ' : '')}${esc(r.text)}</p>${r.avgift ? `<p>${esc(r.avgift.text)} Avgifterna i demon är påhittade.</p>` : ''}`
+        ? `<p class="skarm-nummer">${esc(r.konummer)}</p><p>${esc(r.redan ? 'Du var redan incheckad. ' : '')}${esc(r.text)}</p>`
         : `<p>${esc(r.text)}</p>`;
       form.reset();
-    } catch (err) { felNotis(err); } finally { b.disabled = false; form.personnummer.focus(); }
+    } catch (err) {
+      // För många försök visas på skärmen, så att patienten vet att gå till receptionen.
+      if (err?.status === 403) { svar.className = 'skarm-svar skarm-info'; svar.innerHTML = `<p>${esc(err.message)}</p>`; } else felNotis(err);
+    } finally { b.disabled = false; form.personnummer.focus(); }
   });
 }

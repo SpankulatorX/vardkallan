@@ -44,8 +44,9 @@ export function appointment(db, b, { invanare = false } = {}) {
   const status = appointmentStatus(db, b);
   return {
     resourceType: 'Appointment', id: String(b.id), status,
-    ...(status === 'cancelled' ? { cancelationReason: { text: b.status === 'ombokad' ? 'Ombokad till en annan tid' : b.orsak ?? 'Avbokad' } } : {}),
-    appointmentType: { text: tidbok.TIDSTYPER[t.tidstyp]?.text }, description: b.orsak ?? undefined,
+    // Invånaren får samma uppgifter som Min journal visar: ingen fri text från personalen, varken orsak eller avbokningsorsak.
+    ...(status === 'cancelled' ? { cancelationReason: { text: b.status === 'ombokad' ? 'Ombokad till en annan tid' : invanare ? 'Avbokad' : b.orsak ?? 'Avbokad' } } : {}),
+    appointmentType: { text: tidbok.TIDSTYPER[t.tidstyp]?.text }, ...(invanare ? (t.rubrik ? { description: t.rubrik } : {}) : { description: b.orsak ?? undefined }),
     start: t.start, end: t.slut, created: b.bokad, slot: [ref('Slot', t.id)],
     ...(b.remiss_id && !invanare ? { basedOn: [ref('ServiceRequest', b.remiss_id)] } : {}),
     participant: [

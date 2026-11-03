@@ -5,7 +5,7 @@ import { T, flode } from '../tidbok-tester.js';
 export default [
   {
     id: '3.4.2.1', kategori: 'system', egna: ['D6'], avsedd: 'uppfyllt_demo',
-    tester: [T.boka, T.omboka, T.avboka, T.behorighet, T.nekad, flode('boka-remiss'), flode('omboka')],
+    tester: [T.boka, T.omboka, T.avboka, T.behorighet, T.nekad, T.avvisad, T.relationsfonster, flode('boka-remiss'), flode('omboka')],
     losning: 'Bokning, ombokning och avbokning från startsidan, väntelistan, tidboken och patientens översikt. En bokning är en planerad vårdkontakt, och varje åtgärd prövas i behörighetsmotorn och loggas.',
     expert: 'Systemet föreslår de lämpligaste tiderna och bokningen är ett klick. Vid ombokning flyttas vårdkontakten med, och patienten får en ny kallelse utan att någon ber om det.',
     anmarkning: 'Bokningsregler som verksamheten själv kan ändra finns inte i gränssnittet. Reglerna för egenbokning ligger i seeden.',

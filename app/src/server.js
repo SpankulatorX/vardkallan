@@ -894,6 +894,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('POST', '/api/remiss/:id/bedom', (c, id) => medRemiss(c, id, 'bedom_remiss', (atk, r) => {
     const ut = remiss.bedom(atk, r, c.body);
     if (c.body.beslut === 'accepterad') ut.vantelista = tidbok.efterBedomning(c.db, remiss.hamtaRad(c.db, r.id), c.body);
+    // En avvisad remiss är inte längre grund för de tider som bokades på den.
+    if (c.body.beslut === 'avvisad') ut.avbokade = tidbok.efterAvvisning(c.db, remiss.hamtaRad(c.db, r.id), c.personal);
     return ut;
   }));
   rutt('POST', '/api/remiss/:id/svara', (c, id) => medRemiss(c, id, 'svara_remiss', (atk, r) => remiss.svara(atk, r, c.body)));
@@ -960,10 +962,16 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('POST', '/api/tid/:id/kalla', (c, id) => { kravRoll(c, 'kalla'); return tidbok.kallaGrupp(c.db, c.personal, tidbok.tidRad(c.db, id), { valFor: (pid) => valFor(c.s, pid), Atkomst }); });
   rutt('POST', '/api/bevakning/:id/klar', (c, id) => { kravInloggad(c); const b = tidbok.bevakningRad(c.db, id); return medPatient(c, b.patient_id, 'vantelista', (atk) => tidbok.bevakningKlar(atk, b)); });
   // Incheckningsskärmen i väntrummet (simulerad). Skärmen öppnas av vårdadministratören och visar aldrig namn.
+  // Högst 10 misslyckade försök per session på 15 minuter, så att skärmen inte kan användas för att pröva personnummer.
+  const SKARM_FORSOK = 10;
   rutt('POST', '/api/incheckning/skarm', (c) => {
     kravRoll(c, 'checka_in');
+    const forsok = (c.s.skarmForsok ?? []).filter(t => t > Date.now() - 15 * 60_000);
+    c.s.skarmForsok = forsok;
+    if (forsok.length >= SKARM_FORSOK) throw new Fel(403, 'För många försök på skärmen. Be personalen i receptionen om hjälp.', 'nekad');
     const far = (pid) => new Atkomst(c.db, c.personal, pid, {}, 'checka_in').prova('checka_in').tillaten;
     const { patientId, bokningId, ...ut } = tidbok.skarmIncheckning(c.db, c.personal, c.body.personnummer, { far });
+    if (!ut.ok) forsok.push(Date.now());
     if (ut.ok) {
       new Atkomst(c.db, c.personal, patientId, {}, 'checka_in').logga('checka_in', 'administrativ', `incheckning:skarm:bokning:${bokningId}`, 'tillaten',
         'Patienten checkade in på incheckningsskärmen i väntrummet.');

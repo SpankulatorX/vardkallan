@@ -498,7 +498,7 @@ const MENY = {
       await page.fill('#skarm-pnr', '19901117-2476');
       await page.click('#skarm-form [type="submit"]');
       await forvanta(page, '#skarm-svar', 'Du är incheckad');
-      await forvanta(page, '#skarm-svar', 'Avgiften är 200 kronor');
+      await forvanta(page, '#skarm-svar', 'Min journal eller i receptionen');
       await saknas(page, 'Ahmed');
       await saknas(page, 'Hassan');
       await bild(page, '66-incheckningsskarm', true);
