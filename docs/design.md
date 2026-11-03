@@ -221,7 +221,7 @@ Alla svar har rubriken `Server-Timing: app;dur=<ms>`. Fel: `{ fel: "text", kod: 
 - `GET /api/migrering` → avstämningen.
 - `GET /api/krav` → kravregistret med status och testresultat.
 - `GET /api/drift` → svarstider per endpoint (p50, p95, antal) för sandlådan och servern.
-- `GET /fhir/metadata`, `GET /fhir/{Patient|Encounter|Condition|Observation|MedicationRequest|AllergyIntolerance|ServiceRequest|Composition|Organization|Practitioner}?patient=...`, `GET /fhir/{typ}/{id}`, `GET /fhir/AuditEvent?patient=` (logggranskare). Svar `application/fhir+json`, sökningar som `Bundle` av typen `searchset`. Personnummer med systemet `http://electronichealth.se/identifier/personnummer`, ICD-10-SE `http://hl7.org/fhir/sid/icd-10-se`, ATC `http://www.whocc.no/atc`. Samma behörighet och loggning som `/api`.
+- `GET /fhir/metadata`, `GET /fhir/{Patient|Encounter|Condition|Observation|MedicationRequest|AllergyIntolerance|Flag|ServiceRequest|Composition|Organization|Practitioner}?patient=...`, `GET /fhir/{typ}/{id}`, `GET /fhir/AuditEvent?patient=` (logggranskare). Svar `application/fhir+json`, sökningar som `Bundle` av typen `searchset`. Personnummer med systemet `http://electronichealth.se/identifier/personnummer`, ICD-10-SE `http://hl7.org/fhir/sid/icd-10-se`, ATC `http://www.whocc.no/atc`. Samma behörighet och loggning som `/api`.
 
 ## Seed: patienter (påhittade namn, testpersonnummer)
 
@@ -289,6 +289,67 @@ Patienten kan begära att uppgifter från en vårdenhet spärras, att en spärr 
 ### FHIR
 
 Med sessionen från Min journal når invånaren `/fhir/Patient/{egen}`, `Patient/{egen}/$everything` och sökningar med `patient=` eller `subject=` för de egna journalerna, med samma visningsregler och samma loggning. FHIR-vägen lämnar inte ut mer än Min journal: egna mappningar tar bort kontaktuppgifter, remissens anamnes och remitterande läkare, NLL-status, katalogens id och personalens id, och en äldre version av en anteckning visas bara när den senaste versionen visas. En resurs i en annan journal svarar som en som inte finns. `Practitioner` och `AuditEvent` nekas, `Organization` går att läsa.
+
+## Uppmärksamhetsinformation (Sussa 3.1.5)
+
+Uppmärksamhetsinformation är uppgifter i journalen som vården behöver se direkt för att inte skada patienten, till exempel en överkänslighet som gör att ett annat läkemedel ska väljas. Sussa 3.1.5.1 kräver att den dokumenteras strukturerat enligt Socialstyrelsens nationella rekommendation, 3.1.5.2 att en symbol visas i vyer med patientinformation, och 3.1.5.3 frågar efter omfattning, enkel registrering, säkerhet kring patientens identitet, spårbarhet och enhetlig presentation.
+
+### Källor och vad som är verifierat
+
+| Källa | Vad den används till | Verifierat |
+|---|---|---|
+| Socialstyrelsen, Instruktion för ändringsförslag gällande Uppmärksamhetsinformation, 2025-09-30, dnr 1015/2025 (socialstyrelsen.se, globalassets/sharepoint-dokument/dokument-webb/ovrigt/instruktion-for-andringsforslag-gallande-uppmarksamhetsinformation.pdf, hämtad 2026-11-03) | Tabell 1 med huvudgrupperna enligt symbolen och undergrupperna, de tre graderna av överkänslighet, symbolens utseende och kriterierna för uppmärksamhetsinformation (bland annat att tillståndet ska vara bestående, åtminstone månader eller år, och att fritext och breda begrepp inte tas med) | Ja, läst i dokumentet. Symbolen är läst från bilden i tabellen |
+| Socialstyrelsen, Förvalta och stödja implementering av uppmärksamhetsinformation 2026 (delredovisning, maj 2026, publicerad av E-hälsomyndigheten) | Att specifikationen bygger på nationell informationsstruktur, Snomed CT, ICD-10-SE och ATC, att den har en begreppsmodell, en informationsmodell och en kodverkslista, att den är en fastställd nationell gemensam specifikation i NGS sedan 2021, att patienten kan se uppmärksamhetsinformationen i 1177 journal via Ineras tjänstekontrakt, och att förvaltningen gick över till E-hälsomyndigheten den 1 juni 2026 | Ja, läst i dokumentet |
+| E-hälsomyndigheten, nyhet 2025-01-24, Ny version av Informationsspecifikation för uppmärksamhetsinformation | Att version 6.1 publicerades i januari 2025 med ändringar i kodverkslistan | Ja, läst på sidan |
+| Region Västmanland, Uppmärksamhetssignalen, nyheter i version 5.1 (regionens användarstöd) | Termerna Läkarbeslut finns från brytpunktssamtal, Sällsynt hälsotillstånd som behöver uppmärksammas särskilt och Artificiell uretrasfinkter, och att regioner i dag kallar huvudgruppen särskild vårdrutin för vårdrutinavvikelse | Ja, läst i dokumentet |
+| Socialstyrelsens informationsspecifikation (version 6.1.1 och senare) med kodverkslistan | Den fullständiga listan över termer, Snomed CT-koder och motiveringar | Nej. Länkarna på socialstyrelsen.se svarade med sidan finns inte när de söktes 2026-11-03, troligen efter flytten till E-hälsomyndigheten |
+
+Inte verifierat och därför inte byggt som påstående: exakt vilka termer och koder som ingår i kodverkslistan, hur historisk information som inte är strukturanpassad ska markeras i symbolen, och detaljerna i Ineras tjänstekontrakt för uppmärksamhetsinformation i NPÖ. HSLF-FS 2016:40 innehåller enligt Socialstyrelsens delredovisning viss reglering om uppmärksamhetsinformation; vilka paragrafer det gäller är inte kontrollerat här.
+
+### Strukturen
+
+Tabellen `uppmarksamhet` (`app/src/seed/uppmarksamhet.js`) och modulen `app/src/uppmarksamhet.js` följer tabell 1:
+
+| Huvudgrupp | Undergrupper | Del av symbolen |
+|---|---|---|
+| Medicinska tillstånd och behandlingar | Annat medicinskt tillstånd, Behandling, Förekomst av implantat, Förekomst av transplantat | Armen uppe till höger, röd |
+| Smitta | Förekomst av smittämne, Förekomst av smittsam sjukdom | Armen nere till vänster, gul |
+| Överkänslighet (livshotande, skadlig, besvärande) | Kemikalie, Aktiv substans, Hjälpämne läkemedel, Läkemedelsprodukt | Stapeln i mitten, fylld efter graden |
+| Särskild vårdrutin | Information som kan leda till särskild vårdrutin, Beslut som kan leda till särskild vårdrutin | Armen nere till höger, blå |
+
+Överkänsligheterna som redan finns i tabellen `overkanslighet` är uppmärksamhetsinformation direkt, så att ingen behöver registrera dem igen. Raden i `uppmarksamhet` bär bara den bekräftade graden. En överkänslighet mot ett födoämne (jordnöt hos patient 9) ryms inte i någon av undergrupperna i tabellen och visas som övrig överkänslighet; Socialstyrelsens delredovisning beskriver ett ändringsförslag om en Övrigt-kod med fritext, som var ute på remiss i maj 2026. Koderna är ATC och ICD-10-SE. Snomed CT används inte i demon.
+
+Varje uppgift har huvudgrupp, undergrupp, term, motivering, kod, vårdenhet, vem som registrerade den och när, och vilken uppgift i journalen den kommer från (ordination eller diagnos). En uppgift avslutas med orsak, och raden finns kvar. En databastrigger stoppar radering.
+
+### Systemet är experten
+
+Förslagsreglerna ligger i `app/src/uppmarksamhet-regler.js` och är märkta som demoregler, inte kliniskt beslutsstöd (D10):
+
+- Antikoagulantia (ATC B01AA, B01AB, B01AE, B01AF) i läkemedelslistan ger Antikoagulantiabehandling. Immunsuppressiva medel (L04) ger Immunsuppressiv behandling, och en stående ordination av glukokortikoider (H02AB) ger Långvarig kortisonbehandling. En tillfällig ordination föreslås inte, eftersom uppmärksamhetsinformation enligt Socialstyrelsens kriterium ska vara bestående; Fragmin efter höftfrakturen hos patient 7 blir därför inget förslag.
+- Bärarskap (ICD-10-SE Z22) ger smitta, och tillsammans med U82.1 Resistens mot meticillin blir termen Bärare av MRSA. Tuberkulos (A15, A16), kronisk virushepatit (B18) och hivinfektion (B20 till B24) ger smittsam sjukdom. Implantat (Z95 till Z97) och transplantat (Z94) ger medicinska tillstånd.
+- En överkänslighet utan bekräftad grad får en föreslagen grad: anafylaxi i reaktionen ger livshotande, allvarlig ger skadlig och annan besvärande.
+- När ordinationen som en uppgift bygger på sätts ut, och ingen annan ordination ger samma uppgift, föreslår systemet att uppgiften avslutas.
+
+Förslagen räknas fram ur det läkaren själv får se i journalen och visas under patienthuvudet med en förklaring. Läkaren bekräftar med ett klick, väljer en annan grad för en överkänslighet, eller trycker Inte aktuellt; ett avfärdat förslag sparas och kommer inte tillbaka. Det som systemet inte kan räkna ut (särskild vårdrutin och vissa tillstånd) registreras genom ett val i en kort lista, aldrig som fritext, som Socialstyrelsens kriterier säger. Flödet att bekräfta ett förslag har en klickbudget på ett klick.
+
+### Symbolen och behörigheten
+
+Symbolen står i patienthuvudet, som är detsamma i alla patientens vyer, och ett klick visar innehållet med när, var och av vem varje uppgift registrerades. Arbetslistan och akutens väntrum visar bara symbolen, med en textbeskrivning för skärmläsare; innehållet är ett klick bort i journalen, som loggas. Symbolen är ritad för Vårdkällan efter samma princip som den nationella symbolen och är inte den nationella bilden.
+
+- Läsa kräver `las_oversikt` (läkare, sjuksköterska och undersköterska). Vårdadministratören ser varken symbol eller innehåll. Bekräfta, registrera, avfärda och avsluta kräver `skriv_journal` (läkare) och vårdrelation, och loggas som `skriv_journal`.
+- Uppgifterna är gemensamma som läkemedelslistan och överkänsligheten: de kräver inget aktivt val mellan vårdenheter, men spärrar gäller. En uppgift från en spärrad vårdenhet syns inte i symbolen förrän patienten samtycker.
+- Väntrummet visar symbolen bara för akutens personal och aldrig namnet på en patient med skyddade personuppgifter. Symbolen i listorna kräver samma grund som journalen.
+- Uppgifterna följer med i läskopian vid avbrott. Under avbrottet går inget att bekräfta.
+- Patienten ser sin uppmärksamhetsinformation i Min journal, utan förslag och utan personalens namn.
+- FHIR: överkänslighet är `AllergyIntolerance` och övrig uppmärksamhetsinformation `Flag`, med samma behörighet och loggning (se `docs/api-avvikelser.md`). `Flag` validerades 2026-11-03 med HL7:s validator 7.0.3 utan fel.
+
+### Seeden
+
+Patient 1 har penicillinöverkänslighet (skadlig) och står på Waran, som systemet föreslår som Antikoagulantiabehandling. Patient 3 (skyddad identitet, i akutens väntrum) avböjer blodtransfusion. Patient 8 är bärare av MRSA efter vården på infektionskliniken. Patient 9 har livshotande jordnötsallergi. Patient 10 har bekräftad Antikoagulantiabehandling (Eliquis). Allt är påhittat.
+
+### Det som saknas
+
+Kodverkslistan med Snomed CT, överföring till och hämtning från NPÖ, registrering och ändring av själva överkänsligheten (den finns bara i seeden), och klinisk granskning av förslagsreglerna. Söksidan och inkorgen visar ingen symbol.
 
 ## Kravregistret (krav.js)
 

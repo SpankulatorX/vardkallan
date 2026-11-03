@@ -7,6 +7,7 @@ import { PATIENTER, REMISSER, VANTRUM, LOGG, MIGRERING_AVVIKELSER } from './seed
 import { VARDNADSHAVARE, VISNINGSREGLER } from './seed/invanare.js';
 import { loggaRad } from './logg.js';
 import { MATKOD } from './kodverk.js';
+import { SCHEMA_UPPMARKSAMHET, seedaUppmarksamhet } from './seed/uppmarksamhet.js';
 
 // Fel som API:t svarar med. kod: nekad | saknas | ogiltig | kraver_val | kraver_samtycke
 export class Fel extends Error {
@@ -331,6 +332,9 @@ export function byggSeed(bas = nu()) {
       resurs: l.resurs ?? null, grund: l.grund, syfte: l.syfte ?? null, resultat: l.resultat });
   }
   seedaInvanare(db);
+  // Uppmärksamhetsinformation (Sussa 3.1.5), se seed/uppmarksamhet.js.
+  db.exec(SCHEMA_UPPMARKSAMHET);
+  seedaUppmarksamhet(db, { datum: (n) => tid(n), datumTid: (d) => tid(d) });
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -368,6 +372,12 @@ export function migrera(db) {
   if (!kolumner('atkomstlogg').includes('invanare_id')) db.exec('ALTER TABLE atkomstlogg ADD COLUMN invanare_id TEXT');
   db.exec(SCHEMA_INVANARE);
   if (!db.query('SELECT 1 FROM invanare LIMIT 1').get()) seedaInvanare(db);
+  // Uppmärksamhetsinformation finns inte i sandlådor som sparades före den. Seeden läggs in relativt till i dag.
+  if (!db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'uppmarksamhet'").get()) {
+    db.exec(SCHEMA_UPPMARKSAMHET);
+    const { tid } = tolkare(nu());
+    seedaUppmarksamhet(db, { datum: (n) => tid(n), datumTid: (d) => tid(d) });
+  }
   return db;
 }
 

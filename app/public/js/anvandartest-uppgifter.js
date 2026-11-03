@@ -44,6 +44,11 @@ export const UPPGIFTER = [
     kontroll: { notis: 'Alvedon är utsatt' },
   },
   {
+    id: 'uppmarksamhet', namn: 'Bekräfta föreslagen uppmärksamhetsinformation', roll: 'lak-kard', start: 'Patientens översikt',
+    text: 'Gunnar står på Waran, och det ska synas för alla som vårdar honom att han har en ökad blödningsrisk. Se till att det finns som uppmärksamhetsinformation i hans journal.',
+    kontroll: { notis: 'Uppmärksamhetsinformationen är bekräftad' },
+  },
+  {
     id: 'blodtryck', namn: 'Registrera blodtryck', roll: 'ssk-kard', start: 'Patientens översikt',
     text: 'Du arbetar som sjuksköterska på avdelning 72. Du har just mätt Gunnar Åkessons blodtryck till 128/82. Dokumentera värdet.',
     kontroll: { notis: 'Blodtryck 128/82' },

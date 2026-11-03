@@ -126,6 +126,12 @@ function skapa(BAS) {
       await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Sätt ut');
       await synlig(page, '.notis', 'Alvedon är utsatt');
     },
+    uppmarksamhet: async (m, page) => {
+      const forslag = page.locator('.um-forslag', { hasText: 'Antikoagulantiabehandling' });
+      await m.klicka(forslag.locator('[data-um-bekrafta]'), 'Bekräfta förslaget Antikoagulantiabehandling');
+      await synlig(page, '.notis', 'Uppmärksamhetsinformationen är bekräftad');
+      await synlig(page, '.patientband .signal-um summary', 'Antikoagulantiabehandling');
+    },
     blodtryck: async (m, page) => {
       await m.klicka(page.locator('.snabbval a', { hasText: 'Registrera mätvärde' }), 'Registrera mätvärde');
       await page.waitForSelector('#mv-form');

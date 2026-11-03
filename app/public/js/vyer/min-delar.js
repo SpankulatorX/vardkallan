@@ -2,6 +2,17 @@
 // Texterna riktar sig till patienten. Allt som visas kommer från /api/min, som redan har tillämpat vårdgivarens regler.
 import { esc, api, datum, tidpunkt, ikon, notis, medKnapp, migreradEtikett, ORDTYP, PRIORITET_REMISS } from '../ui.js';
 import { varde } from './patient-oversikt.js';
+import { symbolSvg } from '../uppmarksamhet.js';
+
+// Uppmärksamhetsinformation: det vården ska se direkt för att vården ska bli säker, som överkänslighet, behandlingar
+// som påverkar annan vård, smitta och särskilda vårdrutiner. Patienten ser samma uppgifter som vården, utan förslag.
+const GRADTEXT = { livshotande: 'Livshotande', skadlig: 'Skadlig', besvarande: 'Besvärande' };
+function umLista(u) {
+  if (!u?.poster.length) return tomRad('Ingen uppmärksamhetsinformation är registrerad.');
+  return `<p class="liten dampad min-um-symbol">${symbolSvg(u.symbol, 22)}<span>Vården ser en symbol för uppgifterna överst i din journal.</span></p>
+    <ul class="enkel-lista">${u.poster.map(p => `<li><strong>${esc(p.term)}</strong>${p.grad ? ` <span class="tagg${p.grad === 'livshotande' ? ' tagg-larm' : ''}">${esc(GRADTEXT[p.grad])}</span>` : ''}
+      <span class="under-text">${esc(p.kategoriText)}. ${esc(p.motivering ?? '')}</span><span class="under-text">Registrerad ${esc(datum(p.registrerad.tid))}, ${esc(p.registrerad.vardenhet?.namn ?? '')}</span></li>`).join('')}</ul>`;
+}
 
 const del = (pid, d) => api(`/api/min/journal/${encodeURIComponent(pid)}/${d}`);
 const tomRad = (t) => `<p class="tom liten">${esc(t)}</p>`;
@@ -18,7 +29,7 @@ function begransningar(h) {
       <li>Anteckningar visas när de är signerade. Utkast visas inte.</li>
       <li>Provsvar från laboratoriet visas när ansvarig läkare har vidimerat dem, och senast ${esc(b.provsvarSenastDagar)} dagar efter provtagningen. Mätvärden som blodtryck och puls visas direkt.</li>
       ${b.regler.map(r => `<li>${esc(r.motivering)}</li>`).join('')}
-      <li>Diagnoser, läkemedel, överkänslighet, remisser och vårdkontakter visas direkt.</li>
+      <li>Diagnoser, läkemedel, överkänslighet, uppmärksamhetsinformation, remisser och vårdkontakter visas direkt.</li>
       <li>Spärrar gäller mellan vårdenheter. Du ser själv dina uppgifter också från en vårdenhet som du har spärrat.</li>
       <li>Vaccinationer, tidbokningar och intyg finns inte i Vårdkällans journal ännu och visas därför inte här.</li>
     </ul>
@@ -44,7 +55,7 @@ export async function oversikt(el, ctx) {
     `<a class="sektion-lank" href="${ctx.href('anteckningar')}">Alla ${esc(d.antalAnteckningar)} anteckningar</a>`),
     sektion('lm', 'Aktuella läkemedel', d.lakemedel.length ? `<ul class="enkel-lista">${d.lakemedel.map(o => `<li><strong>${esc(o.lakemedel?.namn)}</strong> <span class="dampad">${esc(o.lakemedel?.styrka ?? '')}</span><span class="under-text">${esc(o.dosering)}. ${esc(o.ordinationsorsak)}</span></li>`).join('')}</ul>` : tomRad('Inga aktuella läkemedel.'),
       `<a class="sektion-lank" href="${ctx.href('lakemedel')}">Läkemedel</a>`),
-    sektion('ok', 'Överkänslighet', d.overkanslighet.length ? `<ul class="enkel-lista">${d.overkanslighet.map(o => `<li><strong>${esc(o.amne)}</strong>${o.allvarlighet === 'allvarlig' ? ' <span class="tagg tagg-larm">Allvarlig</span>' : ''}<span class="under-text">${esc(o.reaktion ?? '')}</span></li>`).join('')}</ul>` : tomRad('Ingen registrerad överkänslighet.')),
+    sektion('um', 'Uppmärksamhetsinformation', umLista(d.uppmarksamhet)),
     sektion('dia', 'Diagnoser', d.diagnoser.length ? `<ul class="enkel-lista">${d.diagnoser.map(x => `<li>${esc(x.text)} <span class="kod">${esc(x.kod)}</span><span class="under-text">${esc(datum(x.datum))}, ${plats(x)}</span></li>`).join('')}</ul>` : tomRad('Inga diagnoser.'),
       `<a class="sektion-lank" href="${ctx.href('diagnoser')}">Alla diagnoser</a>`),
     sektion('ps', 'Senaste provsvar och mätvärden', d.provsvar.length ? `<dl class="matvarden-kort">${d.provsvar.map(m => `<div><dt>${esc(m.namn)}</dt><dd>${varde(m)}<span class="under-text">${esc(tidpunkt(m.tid))}</span></dd></div>`).join('')}</dl>` : tomRad('Inga provsvar eller mätvärden.'),

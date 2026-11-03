@@ -192,6 +192,16 @@ const MENY = {
       await forvanta(page, '.tidslinje', 'Migrerad från Cosmic 2023');
       await bild(page, '04-patient-oversikt', true);
     });
+    await s('Sara: uppmärksamhetsinformationen i patienthuvudet och systemets förslag ur läkemedelslistan', async () => {
+      await forvanta(page, '.patientband .signal-um summary', 'Överkänslighet: Penicilliner');
+      await forvanta(page, '.um-forslag', 'Antikoagulantiabehandling');
+      await forvanta(page, '.um-forslag', 'demoregel');
+      await page.click('.patientband .signal-um summary');
+      await forvanta(page, '.um-panel', 'Registrerad');
+      await forvanta(page, '.um-panel', 'skadlig');
+      await bild(page, '63-uppmarksamhet');
+      await page.click('.patientband .signal-um summary');
+    });
     await s('Sara: aktivt val visar uppgifter från andra vårdenheter', async () => {
       await valDialog(page, '#behorighetsrad [data-val="andra_enheter"]', { bildnamn: '05-dialog-aktivt-val' });
       await forvanta(page, '.band-grund', 'Aktivt val: andra vårdenheter');
@@ -441,6 +451,7 @@ const MENY = {
       const flikar = await page.locator('.flikar a').allTextContents();
       if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Remisser', 'Logglista'])) throw new Error(`flikar ${flikar}`);
       if (await page.locator('.signal-overk').count()) throw new Error('överkänslighet visas för vårdadministratören');
+      if (await page.locator('.signal-um, .um-forslag').count()) throw new Error('uppmärksamhetsinformation visas för vårdadministratören');
       await bild(page, '19-vardadministrator', true);
     });
     await s('Sara Lindqvist accepterar och besvarar remissen', async () => {
@@ -492,7 +503,18 @@ const MENY = {
       await forvanta(page, '.vantrum-tabell .skyddad-namn', 'Namn visas inte');
       await forvanta(page, '.ruta-forklaring', 'röjdes fem personer');
       await saknas(page, 'Engberg');
+      // Symbolen för uppmärksamhetsinformation, utan innehåll och utan namn för den skyddade patienten.
+      const um = page.locator('.vantrum-tabell tr', { has: page.locator('.skyddad-namn') }).locator('.um-lank');
+      if (!(await um.count())) throw new Error('väntrummet visar ingen symbol för den skyddade patienten');
+      if (!(await um.getAttribute('title')).includes('Särskild vårdrutin')) throw new Error('symbolen saknar textbeskrivning');
+      await saknas(page, 'Avböjer blodtransfusion');
       await bild(page, '21-vantrum', true);
+      await gaTill(page, '#/arbetslista');
+      const rad = page.locator('#lista tr', { hasText: 'Ahmed Hassan' });
+      if (!(await rad.locator('.um-lank').getAttribute('title')).includes('Smitta')) throw new Error('arbetslistan visar inte smitta för Ahmed Hassan');
+      await saknas(page, 'MRSA');
+      await rad.locator('.um-lank').click();
+      await forvanta(page, '.patientband .signal-um summary', 'Bärare av MRSA');
     });
     await allaVyer(page, 'Erik Nyström', MENY.klinisk);
     await s('Erik Nyström söker Thomas Lindberg, som akuten saknar vårdrelation med', async () => {
@@ -602,6 +624,8 @@ const MENY = {
       const flikar = await page.locator('.min-flikar a').allTextContents();
       if (JSON.stringify(flikar) !== JSON.stringify(MIN_FLIKAR)) throw new Error(`flikar ${flikar}`);
       await forvanta(page, '.oversikt-rutnat', 'Penicilliner');
+      await forvanta(page, '#min-um', 'Uppmärksamhetsinformation');
+      await forvanta(page, '.oversikt-rutnat', 'Skadlig');
       await forvanta(page, '.min-del .ruta-info', 'ett provsvar som inte är vidimerat än');
       await bild(page, '46-min-oversikt', true);
     });
@@ -745,7 +769,7 @@ const MENY = {
       await forvanta(page, 'main h1', 'Användartest');
       await forvanta(page, '.at-info', 'Alla patienter i demon är påhittade');
       await page.fill('#at-kod', 'G01');
-      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'kvittera-svar', 'nodatkomst']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

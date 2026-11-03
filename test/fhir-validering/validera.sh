@@ -19,7 +19,7 @@ kor Patient /data/Patient -profile http://hl7.se/fhir/ig/base/StructureDefinitio
 kor Organization /data/Organization -profile http://hl7.se/fhir/ig/base/StructureDefinition/SEBaseOrganization
 kor Practitioner /data/Practitioner -profile http://hl7.se/fhir/ig/base/StructureDefinition/SEBasePractitioner
 ovriga=""
-for t in def Encounter Condition Observation MedicationRequest AllergyIntolerance ServiceRequest Composition AuditEvent CapabilityStatement Bundle; do
+for t in def Encounter Condition Observation MedicationRequest AllergyIntolerance Flag ServiceRequest Composition AuditEvent CapabilityStatement Bundle; do
   [ -d "$DATA/$t" ] && ovriga="$ovriga /data/$t"
 done
 kor R4 "$ovriga"

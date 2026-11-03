@@ -50,6 +50,8 @@ export const ICD10SE = {
   'R29.6': 'Fallbenägenhet, som ej klassificeras på annan plats',
   'S72.00': 'Kollumfraktur - sluten',
   'S83.5': 'Distorsion engagerande knäets (främre) (bakre) korsband',
+  'U82.1': 'Resistens mot meticillin',
+  'Z22.3': 'Bärare av andra specificerade patogena bakterier',
   'Z30.4': 'Övervakning av förskrivna preventivläkemedel',
   'Z91.0': 'Allergi och annan överkänslighet som inte beror på läkemedel och biologiska substanser i den egna sjukhistorien',
 };
