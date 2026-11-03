@@ -6,7 +6,7 @@ Underlag: en sammanställning av offentliga källor om upphandlingen av Cosmic o
 
 ## Grundprincip: systemet är experten
 
-Jonas formulerade grundprincipen den 3 november 2026:
+Grundprincipen formulerades den 3 november 2026:
 
 "Hela grundtanken är att det ska vara systemet som är experten, inte användaren. Alla flöden måste vara superenkla för användarna, oavsett vilken roll de har. Självklart ska kravspecifikationen uppfyllas, men om den lösning som Cosmic har valt inte uppfyller principen om att systemet ska vara experten ska den skrivas om så att principen alltid gäller."
 
