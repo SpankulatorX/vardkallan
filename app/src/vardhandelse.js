@@ -22,6 +22,8 @@
 import { Fel, iso, idag, addDagar } from './db.js';
 import { vardenhetFor, enheterUnder, prova } from './atkomst.js';
 import * as tidbok from './tidbok.js';
+// Runda 6, r6: vem som får raden utan grund om en avbokad vårdhändelse.
+import { mottagareUtanGrund } from './lakemedelsansvar.js';
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS vardhandelse_kopplingar (
@@ -335,6 +337,12 @@ export function styrDos(db, { bokningRad = null, postRad = null } = {}) {
 // till exempel när avvisningen tog bort den sista vårdrelationen, får en rad utan patientuppgifter. Raden bär bara
 // ordinationens id, och patienten lämnas ut först efter nödåtkomst (avbokadUtanGrund). Läkare på andra vårdenheter får
 // ingen rad när ordinationen är dold för dem, och ingen får en rad när en spärr är skälet (beslut 2026-11-03).
+// Runda 6, r6: varför läkaren får raden utan grund.
+const UTAN_GRUND_VARFOR = {
+  ordinerande: ' Du ordinerade läkemedlet.',
+  medicinskt_ansvarig: ' Du får raden som medicinskt ansvarig läkare, eftersom den läkare som ordinerade inte längre finns på vårdenheten.',
+  alla: ' Den läkare som ordinerade finns inte längre på vårdenheten, och vårdenheten har ingen medicinskt ansvarig läkare, så raden går till alla läkare på vårdenheten.',
+};
 export function avbokadeIInkorg(db, personal) {
   if (!finnsTabell(db) || personal?.yrke !== 'lakare') return [];
   const ve = vardenhetFor(db, personal.enhet_id);
@@ -346,10 +354,14 @@ export function avbokadeIInkorg(db, personal) {
     if (o.ordinerad_av !== personal.id && !ordinerande && vardenhetFor(db, k.enhet_id) !== ve) continue;
     const p = prova(db, { personal, patient: o.patient_id, handling: 'las_lakemedel', resurs: { enhet_id: o.enhet_id, gemensam: true } });
     if (!p.tillaten) {
-      if (ordinerande && p.krav === 'kraver_val') {
+      // Runda 6, r6: raden utan grund går till den ordinerande läkaren, och om den läkaren inte längre finns på den
+      // ordinerande vårdenheten till vårdenhetens medicinskt ansvariga läkare. Saknas uppdraget går den till alla läkare
+      // på vårdenheten, och verksamhetschefen får en påminnelse (lakemedelsansvar.js).
+      const m = ordinerande && p.krav === 'kraver_val' ? mottagareUtanGrund(db, o) : null;
+      if (m && (m.lage === 'alla' || m.personalId === personal.id)) {
         ut.push({
-          ordinationId: o.id, patientId: o.patient_id, utanPatient: true,
-          text: 'En läkemedelsdos väntar på en vårdhändelse som avbokades när en remiss avvisades, och du har inte längre grund att se patienten. Öppna ordinationen med nödåtkomst och besluta om den.',
+          ordinationId: o.id, patientId: o.patient_id, utanPatient: true, mottagare: m.lage,
+          text: `En läkemedelsdos väntar på en vårdhändelse som avbokades när en remiss avvisades, och du har inte längre grund att se patienten.${UTAN_GRUND_VARFOR[m.lage]} Öppna ordinationen med nödåtkomst och besluta om den.`,
         });
       }
       continue;

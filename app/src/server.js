@@ -43,6 +43,8 @@ import * as sakerhetslogg from './sakerhetslogg.js';
 import { registreraRutter as lakemedelsstodRutter, inkorg as lakemedelsstodInkorg } from './lakemedelsstod-rutter.js';
 import * as lakemedelsstod from './lakemedelsstod.js';
 import * as lakemedelsvyer from './lakemedelsvyer.js';
+// Runda 6, r6: ansvarsuppdrag för läkemedel och godkännande av läkemedelsmallar.
+import { registreraRutter as lakemedelsansvarRutter, inkorg as lakemedelsansvarInkorg } from './lakemedelsansvar-rutter.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -438,6 +440,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const db = c.db;
     const p = c.personal;
     if (p.yrke === 'logggranskare') return [];
+    // Runda 6, r6: verksamhetschefen läser inte journalen och har ingen arbetslista.
+    if (p.yrke === 'verksamhetschef') return [];
     const ve = vardenhetFor(db, p.enhet_id);
     const enheter = db.query("SELECT id FROM enheter WHERE id = ? OR (forald_id = ? AND typ = 'arbetsplats')").all(ve, ve).map(r => r.id);
     const ph = enheter.map(() => '?').join(', ');
@@ -1084,6 +1088,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       news2Larm: news2IInkorg(c),
       // Runda 6, r2: passerade uppföljningar, muntliga ordinationer att signera, fördjupade genomgångar och licenser.
       ...lakemedelsstodInkorg(c, patientKort, patientRad),
+      // Runda 6, r6: mallar som väntar på den mallansvariga läkarens godkännande, utan patientuppgifter.
+      ...lakemedelsansvarInkorg(c),
     });
   });
   // Runda 6, r1: NEWS2-larmen loggas på patienten en gång per session och mätomgång, som raderna om återinsättning.
@@ -1370,6 +1376,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   r1Rutter({ rutt, kravInloggad, medPatient, valFor });
   // Runda 6, r2: läkemedelsprocessen, del 2.
   lakemedelsstodRutter({ rutt, kravInloggad, medPatient });
+  // Runda 6, r6.
+  lakemedelsansvarRutter({ rutt, kravInloggad });
 
   // Endpoints som inte behöver en sandlåda.
   const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/krav/sussa', '/api/drift', '/api/lasekopia/krypterad-logg']);

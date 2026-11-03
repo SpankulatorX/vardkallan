@@ -11,6 +11,9 @@ import * as lakemedel from '../src/lakemedel.js';
 import * as stod from '../src/lakemedelsstod.js';
 import * as mallar from '../src/ordinationsmallar.js';
 import * as vagar from '../src/ordinationsvagar.js';
+// Runda 6, r6: uppdragen och godkännandet av mallar.
+import * as ansvar from '../src/lakemedelsansvar.js';
+import * as godkannande from '../src/mallgodkannande.js';
 import * as uppf from '../src/lakemedelsuppfoljning.js';
 import * as vyer from '../src/lakemedelsvyer.js';
 import * as fhir from '../src/fhir.js';
@@ -84,7 +87,7 @@ describe('Mallar med flera ordinationer', () => {
     expect(k.varningar.map(v => v.regel)).toContain('dubbel_antikoagulantia');
   });
 
-  test('säkerhet: mallen gäller bara sin vårdenhet, sjuksköterskan ordinerar inte ur mallar och bara läkare fastställer en mall', () => {
+  test('säkerhet: mallen gäller bara sin vårdenhet, sjuksköterskan ordinerar inte ur mallar, bara läkare upprättar en mall och den används först när den är godkänd', () => {
     const db = sandladaKl('13:30');
     const e = fel(() => vagar.paketForslag(lak(db, 'p01'), 'pneumoni'));
     expect(e.status).toBe(403);
@@ -93,6 +96,11 @@ describe('Mallar med flera ordinationer', () => {
     expect(fel(() => vagar.faststallPaket(db, personal(db, 'ssk-kard'), { namn: 'Egen mall', poster: [{ lakemedelId: 'VK-NPL-0026', orsak: 'Smärta' }] })).status).toBe(403);
     const ny = vagar.faststallPaket(db, personal(db, 'lak-kard'), { namn: 'Hjärtsvikt, inläggning', poster: [{ lakemedelId: 'VK-NPL-0010', orsak: 'Hjärtsvikt' }, { lakemedelId: 'VK-NPL-0025', orsak: 'Magskydd' }] });
     expect(ny).toMatchObject({ namn: 'Hjärtsvikt, inläggning', faststalltAv: 'Sara Lindqvist', vardenhet: { id: 'uso-kard' } });
+    // Runda 6, r6: mallen används först när den mallansvariga läkaren (Sara Lindqvist på kardiologen) har godkänt den.
+    expect(ny.status).toBe('vantar');
+    expect(vagar.paketLista(lak(db, 'p01')).paket.map(p => p.namn)).not.toContain('Hjärtsvikt, inläggning');
+    expect(fel(() => vagar.paketForslag(lak(db, 'p01'), ny.id)).message).toContain('inte godkänd');
+    godkannande.godkann(db, personal(db, 'lak-kard'), { typ: 'paket', id: ny.id });
     expect(vagar.paketLista(lak(db, 'p01')).paket.map(p => p.namn)).toContain('Hjärtsvikt, inläggning');
     // En fastställd mall ändras aldrig och raderas aldrig.
     expect(() => db.query("UPDATE ordinationspaket SET innehall = '[]' WHERE id = 'elkonvertering'").run()).toThrow();
@@ -233,10 +241,20 @@ describe('Generella direktiv', () => {
     expect(r.note.map(n => n.text).join(' ')).toContain('Ordinerad enligt generellt direktiv');
   });
 
-  test('bara läkaren fastställer och upphäver ett direktiv för sin vårdenhet, med det som 6 kap. 6 § kräver', () => {
+  test('bara verksamhetschefen och den medicinskt ansvariga läkaren fastställer och upphäver ett direktiv för sin vårdenhet, med det som 6 kap. 6 § kräver', () => {
     const db = sandladaKl('13:30');
     const bas = { lakemedelId: 'VK-NPL-0025', indikation: 'Halsbränna', dosering: '1 kapsel vid behov', dos: 20, dosEnhet: 'mg', maxPerDygn: 1, minstaIntervallTimmar: 20, maxTillfallen: 1, maxdosText: 'Högst 20 mg per dygn', kontraindikationer: [{ typ: 'bekrafta', text: 'Svart avföring eller blodkräkning' }] };
     expect(fel(() => vagar.faststallDirektiv(db, personal(db, 'ssk-kard'), bas)).status).toBe(403);
+    // Runda 6, r6: kardiologen har ingen medicinskt ansvarig läkare i seeden, så Sara får inte fastställa och systemet
+    // säger varför. Verksamhetschefen får, och utser sedan Sara.
+    const utan = fel(() => vagar.faststallDirektiv(db, personal(db, 'lak-kard'), bas));
+    expect(utan.status).toBe(403);
+    expect(utan.message).toContain('har ingen medicinskt ansvarig läkare just nu');
+    expect(vagar.direktivLista(db, personal(db, 'lak-kard'))).toMatchObject({ kanFaststalla: false });
+    expect(vagar.faststallDirektiv(db, personal(db, 'vch-kard'), bas)).toMatchObject({ faststalltAv: 'Ulrika Sandell', vardenhet: { id: 'uso-kard' } });
+    ansvar.utse(db, personal(db, 'vch-kard'), { typ: 'medicinskt_ansvarig', personalId: 'lak-kard' });
+    expect(vagar.direktivLista(db, personal(db, 'lak-kard'))).toMatchObject({ kanFaststalla: true, faststallaText: null });
+    expect(fel(() => vagar.faststallDirektiv(db, personal(db, 'ol-kard'), bas)).message).toContain('På Kardiologiska kliniken USÖ är det Sara Lindqvist.');
     expect(fel(() => vagar.faststallDirektiv(db, personal(db, 'lak-kard'), { ...bas, enhetId: 'uso-akut' })).extra.falt).toEqual(['enhetId']);
     expect(fel(() => vagar.faststallDirektiv(db, personal(db, 'lak-kard'), { ...bas, kontraindikationer: [] })).extra.falt).toEqual(['kontraindikationer']);
     expect(fel(() => vagar.faststallDirektiv(db, personal(db, 'lak-kard'), { ...bas, giltigtTill: addDagar(idag(), 400) })).extra.falt).toEqual(['giltigtTill']);

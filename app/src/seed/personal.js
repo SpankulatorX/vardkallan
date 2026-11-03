@@ -13,6 +13,8 @@ export const YRKEN = {
   kommun: 'Kommunens personal (simulerad)',
   // Fördjupad läkemedelsgenomgång (runda 6, r2, HSLF-FS 2017:37 11 kap.).
   farmaceut: 'Farmaceut',
+  // Runda 6, r6: verksamhetschefen utser uppdragen i läkemedelshanteringen och läser inte journalen.
+  verksamhetschef: 'Verksamhetschef',
 };
 
 export const PERSONAL = [
@@ -51,4 +53,9 @@ export const PERSONAL = [
   { id: 'kom-bist', namn: 'Lisa Ahlgren', yrke: 'kommun', titel: 'Biståndshandläggare (simulerad kommun)', enhet: 'kommun-demo', demo: true },
   // Fördjupad läkemedelsgenomgång (runda 6, r2): en klinisk farmaceut på kardiologen.
   { id: 'far-kard', namn: 'Elsa Nordin', yrke: 'farmaceut', titel: 'Klinisk apotekare', enhet: 'uso-kard', demo: true },
+  // Runda 6, r6: verksamhetschefen på kardiologen, som utser uppdragen i läkemedelshanteringen (Gröna häftet 1.3 och 1.4).
+  // r6: true betyder att personen läggs in också i en sandlåda från före runda 6, r6 (lakemedelsansvar-schema.js).
+  { id: 'vch-kard', namn: 'Ulrika Sandell', yrke: 'verksamhetschef', titel: 'Verksamhetschef', enhet: 'uso-kard', demo: true, r6: true },
+  // En sjuksköterska på hjärtintensiven som systemet föreslår som reservkontrollant för narkotikaförbrukningen.
+  { id: 'ssk-hia', namn: 'Petra Nyberg', yrke: 'sjukskoterska', titel: 'Sjuksköterska', enhet: 'uso-kard-hia', r6: true },
 ];

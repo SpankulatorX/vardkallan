@@ -9,9 +9,10 @@
 // tillfällen) och förklarar på vanlig svenska varför ett direktiv inte går att använda. Det som systemet inte kan
 // kontrollera själv bekräftar sjuksköterskan i samma steg.
 //
-// Vem som fastställer. Mallar och generella direktiv fastställs av en läkare: verksamhetschefen eller en läkare som
-// verksamhetschefen utser (HSLF-FS 2017:37 6 kap. 6 och 17 §§, Region Örebro läns Gröna häftet 688488 R5 avsnitt
-// 1.4.3). I demon är det en läkare på vårdenheten, aldrig en sjuksköterska.
+// Vem som fastställer. Generella direktiv fastställs av verksamhetschefen eller den medicinskt ansvariga läkaren
+// (HSLF-FS 2017:37 6 kap. 6 och 17 §§, Region Örebro läns Gröna häftet 688488 R5 avsnitt 1.4.2). Mallar upprättas av en
+// läkare och godkänns av den läkare som verksamhetschefen har utsett som ansvarig för läkemedelsmallarna (1.4.3).
+// Uppdragen finns i lakemedelsansvar.js och godkännandena i mallgodkannande.js (runda 6, r6).
 import { Fel, iso, idag, addDagar, giltigtDatum } from './db.js';
 import { vardenhetFor, alder, kanRoll } from './atkomst.js';
 import { loggaRad } from './logg.js';
@@ -20,6 +21,10 @@ import * as mallar from './ordinationsmallar.js';
 import * as vardhandelse from './vardhandelse.js';
 import * as stod from './lakemedelsstod.js';
 import { kravVardande } from './administrering.js';
+// Runda 6, r6: mallarna godkänns av mallansvarig läkare, och direktiven fastställs av verksamhetschefen eller den
+// medicinskt ansvariga läkaren (lakemedelsansvar.js och mallgodkannande.js).
+import * as ansvar from './lakemedelsansvar.js';
+import * as godkannande from './mallgodkannande.js';
 
 const personNamn = (db, id) => (id ? db.query('SELECT namn FROM personal WHERE id = ?').get(id)?.namn ?? id : null);
 const katalog = (db, id) => db.query('SELECT * FROM katalog WHERE id = ?').get(id);
@@ -38,6 +43,8 @@ const loggaUtan = (db, personal, handling, resurs, resultat = 'tillaten') => log
 function paketUt(db, p) {
   return { id: p.id, namn: p.namn, vardhandelse: p.vardhandelse, beskrivning: p.beskrivning, vardenhet: { id: p.enhet_id, namn: enhetsnamn(db, p.enhet_id) },
     faststalltAv: personNamn(db, p.faststallt_av), faststallt: p.faststallt, giltigtTill: p.giltigt_till,
+    // Runda 6, r6: version, status och godkännande. faststalltAv är den som upprättade versionen.
+    ...godkannande.paketInfo(db, p),
     poster: JSON.parse(p.innehall).map(x => ({ lakemedel: lmKort(katalog(db, x.lakemedelId)), orsak: x.orsak, vidHandelse: x.vidHandelse ?? null })) };
 }
 
@@ -45,7 +52,8 @@ function paketUt(db, p) {
 export function paketLista(atk) {
   atk.krav('ordinera');
   const db = atk.db;
-  return { paket: db.query('SELECT * FROM ordinationspaket ORDER BY namn').all().filter(p => giltigt(p) && omfattar(db, p.enhet_id, atk.personal)).map(p => paketUt(db, p)), anmarkning: mallar.DEMO_MALLAR };
+  // Runda 6, r6: bara mallar som den mallansvariga läkaren har godkänt.
+  return { paket: db.query('SELECT * FROM ordinationspaket ORDER BY namn').all().filter(p => giltigt(p) && omfattar(db, p.enhet_id, atk.personal) && godkannande.paketGodkand(db, p)).map(p => paketUt(db, p)), anmarkning: mallar.DEMO_MALLAR };
 }
 
 function hamtaPaket(atk, id) {
@@ -55,6 +63,8 @@ function hamtaPaket(atk, id) {
     atk.logga('ordinera', 'nekad', `ordinationspaket:${p.id}`, 'nekad');
     throw new Fel(403, `Mallen ${p.namn} är fastställd för ${enhetsnamn(atk.db, p.enhet_id)} och gäller inte på din vårdenhet.`, 'nekad');
   }
+  // Runda 6, r6: en mall som inte är godkänd kan inte användas.
+  if (!godkannande.paketGodkand(atk.db, p)) throw new Fel(400, `Mallen ${p.namn} är inte godkänd av den läkare som ansvarar för vårdenhetens läkemedelsmallar och kan inte användas än.`, 'ogiltig');
   return p;
 }
 
@@ -153,13 +163,22 @@ export function ordineraPaket(atk, id, inp = {}, { knytKontakt = (x) => x } = {}
   return { paket: f.paket, grupp, ordinationer: sparade.map(s => ({ ...s.ordination, ...(s.vardkontakt ? { vardkontakt: s.vardkontakt } : {}) })), nll: sparade.map(s => s.nll), utelamnade: f.poster.filter(x => !valda.includes(x)).map(x => ({ post: x.post, lakemedel: x.lakemedel, varfor: x.varfor ?? 'Valdes bort.' })), vardkontakt: sparade[0]?.vardkontakt ?? null };
 }
 
-// En läkare fastställer en mall för sin vårdenhet (Gröna häftet 1.4.3). poster: [{ lakemedelId, orsak, dosering?,
-// dos?, dosEnhet?, tider?, typ?, uppfoljning?, vidHandelse? }].
+// En läkare upprättar en mall för sin vårdenhet (Gröna häftet 1.4.3). poster: [{ lakemedelId, orsak, dosering?,
+// dos?, dosEnhet?, tider?, typ?, uppfoljning?, vidHandelse? }]. Runda 6, r6: mallen används först när den
+// mallansvariga läkaren har godkänt den. ersatter är en tidigare version som mallen ändrar, och systemet skriver vad som
+// ändrats.
 export function faststallPaket(db, personal, inp = {}) {
   if (personal.yrke !== 'lakare' || !kanRoll(personal, 'faststalla_mall')) {
     loggaUtan(db, personal, 'faststalla_mall', 'ordinationspaket', 'nekad');
-    throw new Fel(403, 'Mallar med flera ordinationer fastställs av en läkare som verksamhetschefen har utsett.', 'nekad');
+    throw new Fel(403, 'Mallar med flera ordinationer upprättas av en läkare och godkänns av den läkare som verksamhetschefen har utsett som ansvarig för läkemedelsmallarna.', 'nekad');
   }
+  const forra = typeof inp.ersatter === 'string' ? db.query('SELECT * FROM ordinationspaket WHERE id = ?').get(inp.ersatter) : null;
+  if (inp.ersatter != null && (!forra || !giltigt(forra) || vardenhetFor(db, forra.enhet_id) !== vardenhetFor(db, personal.enhet_id))) {
+    throw new Fel(400, 'Mallen som ska ändras finns inte, gäller inte längre eller hör till en annan vårdenhet.', 'ogiltig', { falt: ['ersatter'] });
+  }
+  const vantar = forra && db.query('SELECT o.* FROM paketversioner v JOIN ordinationspaket o ON o.id = v.paket_id WHERE v.ersatter = ?').all(forra.id).find(o => giltigt(o) && !godkannande.paketGodkand(db, o));
+  if (vantar) throw new Fel(400, `Det finns redan en ändrad version av mallen ${forra.namn} som väntar på godkännande.`, 'ogiltig', { falt: ['ersatter'] });
+  if (forra) { inp = { namn: forra.namn, vardhandelse: forra.vardhandelse, beskrivning: forra.beskrivning, enhetId: forra.enhet_id, ...inp }; }
   const namn = text(inp.namn, 80);
   const poster = Array.isArray(inp.poster) ? inp.poster.slice(0, 10) : [];
   const enhet = inp.enhetId ?? vardenhetFor(db, personal.enhet_id);
@@ -178,8 +197,13 @@ export function faststallPaket(db, personal, inp = {}) {
     return r;
   });
   const id = `${namn.toLowerCase().replace(/[^a-zåäö0-9]+/g, '-').replace(/^-|-$/g, '')}-${Date.now().toString(36)}`;
-  db.query(`INSERT INTO ordinationspaket (id, namn, enhet_id, vardhandelse, beskrivning, innehall, faststallt_av, faststallt, giltigt_till) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(id, namn, enhet, text(inp.vardhandelse, 80) || null, text(inp.beskrivning, 300) || namn, JSON.stringify(rena), personal.id, iso(), addDagar(idag(), 365));
+  const andringar = forra ? godkannande.paketSkillnad(db, JSON.parse(forra.innehall), rena) : [];
+  if (forra && !andringar.length) throw new Fel(400, 'Mallen är oförändrad. Ändra något innan den sparas som en ny version.', 'ogiltig', { falt: ['poster'] });
+  db.transaction(() => {
+    db.query(`INSERT INTO ordinationspaket (id, namn, enhet_id, vardhandelse, beskrivning, innehall, faststallt_av, faststallt, giltigt_till) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(id, namn, enhet, text(inp.vardhandelse, 80) || null, text(inp.beskrivning, 300) || namn, JSON.stringify(rena), personal.id, iso(), addDagar(idag(), 365));
+    if (forra) db.query('INSERT INTO paketversioner (paket_id, ersatter, andring) VALUES (?, ?, ?)').run(id, forra.id, [...andringar, text(inp.andring)].filter(Boolean).join(' '));
+  })();
   loggaUtan(db, personal, 'faststalla_mall', `ordinationspaket:${id}`);
   return paketUt(db, db.query('SELECT * FROM ordinationspaket WHERE id = ?').get(id));
 }
@@ -270,7 +294,9 @@ export function direktivLista(db, personal) {
   const ve = vardenhetFor(db, personal.enhet_id);
   const rader = db.query('SELECT * FROM generella_direktiv ORDER BY id').all().filter(d => vardenhetFor(db, d.enhet_id) === ve);
   loggaUtan(db, personal, kanRoll(personal, 'faststalla_direktiv') ? 'faststalla_direktiv' : 'ordinera_direktiv', 'generella_direktiv');
-  return { direktiv: rader.map(d => ({ ...direktivUt(db, d), giltigt: giltigt(d), galler: omfattar(db, d.enhet_id, personal) })), kanFaststalla: kanRoll(personal, 'faststalla_direktiv'), anmarkning: stod.DEMO_STOD };
+  // Runda 6, r6: verksamhetschefen och den medicinskt ansvariga läkaren fastställer, och systemet säger vem det är.
+  const f = kanRoll(personal, 'faststalla_direktiv') ? ansvar.faststallaDirektiv(db, personal) : { kan: false, varfor: null };
+  return { direktiv: rader.map(d => ({ ...direktivUt(db, d), giltigt: giltigt(d), galler: omfattar(db, d.enhet_id, personal) })), kanFaststalla: f.kan, faststallaText: f.varfor, anmarkning: stod.DEMO_STOD };
 }
 
 const KONTRA = ['alder_under', 'alder_fran', 'egfr_under', 'systoliskt_under', 'bekrafta'];
@@ -278,9 +304,11 @@ const KONTRA = ['alder_under', 'alder_fran', 'egfr_under', 'systoliskt_under', '
 // skriftligt och innehålla läkemedel, dosering, maxdos, administreringssätt, indikation, kontraindikationer och antal
 // tillfällen utan läkarkontakt. Det gäller högst ett år och omprövas sedan.
 export function faststallDirektiv(db, personal, inp = {}) {
-  if (!kanRoll(personal, 'faststalla_direktiv')) {
+  // Runda 6, r6: verksamhetschefen eller den medicinskt ansvariga läkaren på vårdenheten (Gröna häftet 1.4.2).
+  const f = kanRoll(personal, 'faststalla_direktiv') ? ansvar.faststallaDirektiv(db, personal) : { kan: false };
+  if (!f.kan) {
     loggaUtan(db, personal, 'faststalla_direktiv', 'generella_direktiv', 'nekad');
-    throw new Fel(403, 'Generella direktiv fastställs av verksamhetschefen eller en läkare som verksamhetschefen har utsett (HSLF-FS 2017:37 6 kap. 6 §).', 'nekad');
+    throw new Fel(403, f.varfor ?? 'Generella direktiv fastställs av verksamhetschefen eller den medicinskt ansvariga läkaren (HSLF-FS 2017:37 6 kap. 6 §).', 'nekad');
   }
   const lm = typeof inp.lakemedelId === 'string' ? katalog(db, inp.lakemedelId) : null;
   const enhet = typeof inp.enhetId === 'string' ? inp.enhetId : vardenhetFor(db, personal.enhet_id);
@@ -313,9 +341,10 @@ export function faststallDirektiv(db, personal, inp = {}) {
 }
 
 export function upphavDirektiv(db, personal, id, { orsak } = {}) {
-  if (!kanRoll(personal, 'faststalla_direktiv')) {
+  const f = kanRoll(personal, 'faststalla_direktiv') ? ansvar.faststallaDirektiv(db, personal) : { kan: false };
+  if (!f.kan) {
     loggaUtan(db, personal, 'faststalla_direktiv', `generellt_direktiv:${id}`, 'nekad');
-    throw new Fel(403, 'Ett generellt direktiv upphävs av en läkare.', 'nekad');
+    throw new Fel(403, f.varfor ?? 'Ett generellt direktiv upphävs av verksamhetschefen eller den medicinskt ansvariga läkaren.', 'nekad');
   }
   const d = db.query('SELECT * FROM generella_direktiv WHERE id = ?').get(Number(id));
   if (!d || vardenhetFor(db, d.enhet_id) !== vardenhetFor(db, personal.enhet_id)) throw new Fel(404, 'Direktivet finns inte på din vårdenhet.', 'saknas');

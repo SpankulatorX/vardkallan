@@ -106,6 +106,19 @@ function skapa(BAS) {
       await gaTill(page, '#/patient/p01/lakemedel');
       await page.waitForSelector('.lm-tabell');
     },
+    // Runda 6, r6: verksamhetschefens startsida och den mallansvariga läkarens inkorg, efter återställning.
+    'Verksamhetschefens startsida': async (page) => {
+      await gaTill(page, '#/moduler');
+      await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
+      await gaTill(page, '#/lakemedelsansvar');
+      await page.waitForSelector('#la-pam');
+    },
+    'Inkorgen efter återställning': async (page) => {
+      await gaTill(page, '#/arbetslista');
+      await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
+      await gaTill(page, '#/inkorg');
+      await page.waitForSelector('#ik-mallar');
+    },
     'Läkemedel att ge efter återställning': async (page) => {
       await gaTill(page, '#/arbetslista');
       await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
@@ -491,6 +504,19 @@ function skapa(BAS) {
     await m.klicka(alvedon.locator('[data-adm="efterhand"]'), 'Given tidigare');
     await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Registrera');
     await synlig(page, '.notis', 'Alvedon är registrerad som given');
+  };
+  // Runda 6, r6.
+  GOR['utse-mal'] = async (m, page) => {
+    await m.klicka(page.locator('[data-paminnelse="0"]'), 'Utse Göran Malm');
+    await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Utse');
+    await synlig(page, '.notis', 'Göran Malm är utsedd till medicinskt ansvarig läkare');
+    await synlig(page, '#la-medicinskt_ansvarig', 'Göran Malm');
+  };
+  GOR['godkanna-mall'] = async (m, page) => {
+    await m.klicka(page.locator('#ik-mallar ~ ul [data-granska="0"]'), 'Granska');
+    await synlig(page, 'dialog[open]', 'Ändrat mot version 1');
+    await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Godkänn');
+    await synlig(page, '.notis', 'Mallen Inför elkonvertering är godkänd');
   };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }

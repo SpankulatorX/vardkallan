@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-03T18:25:13.928Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-03T19:11:23.948Z",
+  "bas": "http://127.0.0.1:18136",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "770ea3319c70605f9c7b3ba7d59fd5df384c8958fe45ae154e6a9713f002013f",
+  "gransnittHash": "79543aec90e46746babf821ba5cf48d8796fc352cc97f5a7b444350fc112807f",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -769,6 +769,40 @@
         "klick: Given tidigare",
         "klick: Registrera"
       ]
+    },
+    {
+      "id": "utse-mal",
+      "namn": "Utse en medicinskt ansvarig läkare",
+      "roll": "vch-kard",
+      "start": "Verksamhetschefens startsida",
+      "budget": 3,
+      "motivering": "Gröna häftet 1.3 och 1.4.2. Påminnelsen om att uppdraget saknas står först på verksamhetschefens startsida med systemets förslag (den som hade uppdraget senast). Ett klick på Utse och ett för att bekräfta. Systemet fyller i perioden, ett år, och omfattningen ur häftet och prövar att läkaren arbetar på vårdenheten och har kompetensen. Budgeten har plats för ett klick till.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Utse Göran Malm",
+        "klick: Utse"
+      ]
+    },
+    {
+      "id": "godkanna-mall",
+      "namn": "Godkänna en ändrad läkemedelsmall",
+      "roll": "lak-kard",
+      "start": "Inkorgen efter återställning",
+      "budget": 2,
+      "motivering": "Sussa 3.5.1.3 och Gröna häftet 1.4.3. Den ändrade mallen ligger i den mallansvariga läkarens inkorg. Ett klick på Granska, som visar innehållet och vad som har ändrats mot den förra versionen, och ett på Godkänn. Systemet ersätter den förra versionen och sparar godkännandet med innehållet.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Granska",
+        "klick: Godkänn"
+      ]
     }
   ],
   "tester": [
@@ -938,6 +972,14 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Registrera en dos i efterhand inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Utse en medicinskt ansvarig läkare inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Godkänna en ändrad läkemedelsmall inom budget",
       "status": "grön"
     }
   ]

@@ -4,6 +4,9 @@
 // samt Misstag att inte upprepa.
 import { existsSync, readFileSync } from 'node:fs';
 import { FLODEN } from './klickbudget.js';
+// Runda 6, r6: testerna för ansvarsuppdragen och godkännandet av läkemedelsmallar.
+import { T as R6, TESTER_ANSVAR } from './sussa/lakemedelsansvar-r6.js';
+const TESTER_MALLAR = [R6.mallInkorg, R6.mallSakerhet, R6.substans, R6.kbMall];
 
 const RAPPORT = 'Cosmic upphandling krav och kritik';
 const k = (id, rubrik, kalla, status, var_, tester = [], anmarkning = null) => ({ id, rubrik, kalla, status, var: var_, tester, anmarkning });
@@ -128,7 +131,10 @@ export const KRAV = [
       // Runda 6, r1: NEWS2 och skalorna i en egen modul (skalor.js), märkta som demoregler.
       'Skalor > NEWS2: summan, risken och vad som ska göras enligt Chart 2 och Chart 4'],
     'Varningsreglerna vid ordination ligger i lakemedel.js, och reglerna för administrering, utsättning och läkemedelsgenomgång i en egen modul (lakemedelsregler.js), skild från journalkärnan. De fördefinierade ordinationerna ligger i ordinationsmallar.js. NEWS2, GCS, NRS, referensintervallen och eGFR ligger i skalor.js. Alla är märkta som demoregler. Ingen MDR-bedömning är gjord.'),
-  k('D11', 'Styrd lokal anpassning av mallar inom fastställda ramar', `${RAPPORT}, D11`, 'planerat', null, [], 'Mallarna är fasta i koden i första versionen.'),
+  // Runda 6, r6: läkemedelsmallarna har versioner och godkänns av mallansvarig läkare på vårdenheten.
+  k('D11', 'Styrd lokal anpassning av mallar inom fastställda ramar', `${RAPPORT}, D11`, 'delvis', '/inkorg',
+    [...TESTER_MALLAR, ...TESTER_ANSVAR],
+    'Läkemedelsmallarna per substans och mallarna med flera ordinationer är data med versioner, per vårdenhet. En ny eller ändrad mall används först när den läkare som verksamhetschefen har utsett som ansvarig för vårdenhetens läkemedelsmallar har godkänt den (Gröna häftet 688488 R5 avsnitt 1.4.3), och systemet skriver vad som ändrats mot den förra versionen. Varje version och varje godkännande sparas och ändras aldrig. Ett gränssnitt för att bygga eller ändra en mall saknas (det görs med API:t), liksom mallar för journalanteckningar och ramar på vårdgivarens nivå.'),
   k('D12', 'All drift, support och personuppgiftsbehandling inom EU', `${RAPPORT}, D12`, 'planerat', null, [], 'Demon innehåller inga riktiga personuppgifter. Driftkrav och DPIA är inte gjorda.'),
 
   // Lagkrav och nationella tjänster

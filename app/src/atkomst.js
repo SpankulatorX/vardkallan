@@ -109,6 +109,16 @@ ROLLER.underskoterska.push('las_vardplan', 'vardplan_atgard', 'las_tvangsvard');
 ROLLER.kommun = ['samverkan'];
 UTAN_PATIENT.add('samverkan');
 GRUND_UTAN_PATIENT.kommun = 'samverkan';
+// Runda 6, r6: ansvarsuppdrag för läkemedel (lakemedelsansvar.js) och godkännande av läkemedelsmallar
+// (mallgodkannande.js). Verksamhetschefen utser uppdragen och fastställer generella direktiv, och läser inte journalen.
+// Läkaren godkänner mallar och fastställer direktiv bara med ett gällande uppdrag, vilket modulerna prövar.
+HANDLINGAR.lakemedelsansvar = 'utse och avsluta uppdrag i läkemedelshanteringen';
+HANDLINGAR.godkanna_mall = 'godkänna läkemedelsmallar som mallansvarig läkare';
+HANDLINGAR.faststalla_mall = 'upprätta och ändra läkemedelsmallar';
+UTAN_PATIENT.add('lakemedelsansvar');
+UTAN_PATIENT.add('godkanna_mall');
+ROLLER.verksamhetschef = ['lakemedelsansvar', 'faststalla_direktiv'];
+ROLLER.lakare.push('godkanna_mall');
 
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
 

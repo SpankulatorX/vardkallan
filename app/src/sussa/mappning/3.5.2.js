@@ -2,6 +2,8 @@
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 // Runda 6, r2.
 import { medR2 } from '../lakemedel-r2.js';
+// Runda 6, r6: godkännande av läkemedelsmallar, vem som fastställer direktiv och vem som beslutar efter en avbokning.
+import { medR6 } from '../lakemedelsansvar-r6.js';
 import { TEST } from '../../krav.js';
 // Runda 5, r1: vårdhändelsen i tidboken (app/test/vardhandelse.test.js).
 import { T as TB } from '../tidbok-tester.js';
@@ -290,4 +292,4 @@ const AVSNITT = [
   },
 ];
 // Runda 6, r2: posterna som byggdes i läkemedelsprocessen, del 2, ersätts ur sussa/lakemedel-r2.js.
-export default medR2(AVSNITT);
+export default medR6(medR2(AVSNITT));

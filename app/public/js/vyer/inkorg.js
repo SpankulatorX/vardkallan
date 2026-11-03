@@ -73,6 +73,9 @@ export async function visa(main) {
     <span class="under-text">${esc(x.dosering)}. Dokumenterad ${esc(tidpunkt(x.mottagen))} av ${esc(x.mottagenAv)}, ${x.satt === 'telefon' ? 'per telefon' : 'muntligt'}.</span></div><div class="ik-knappar"><a class="knapp liten sekundar" href="${pat(x.patientId, 'lakemedel')}">Läs</a><button type="button" class="knapp liten" data-signera="${x.ordinationId}">Signera</button></div></li>`);
   const fordj = (d.fordjupadeGenomgangar ?? []).map(x => rad(pat(x.patientId, 'lakemedel'), `Fördjupad läkemedelsgenomgång, ${esc(pnamn(x.patient))}`, `${esc(x.statusText)}. Startad ${esc(tidpunkt(x.startad))} av ${esc(x.startadAv)}.`));
   const lic = (d.licenserSomGarUt ?? []).map(x => `<li class="${x.utgangen ? 'ik-larm' : ''}"><span class="ik-rubrik">${esc(x.lakemedel)}, licens ${esc(x.licensnummer)}</span><span class="under-text">${esc(x.text)}</span></li>`);
+  // Runda 6, r6: mallar som väntar på den mallansvariga läkarens godkännande. Inga patientuppgifter.
+  const mallarIk = (d.mallarAttGodkanna ?? []).map((x, i) => `<li class="ik-ater"><div class="ik-text"><span class="ik-rubrik">${esc(x.namn)}, version ${x.version}</span>
+    <span class="under-text">${esc(x.text)} Upprättad av ${esc(x.upprattadAv)} ${esc(tidpunkt(x.upprattad))}.</span></div><div class="ik-knappar"><button type="button" class="knapp liten" data-granska="${i}">Granska</button></div></li>`);
   const yrke = S.session?.personal?.yrke;
   // Runda 6, r2: har användaren hunnit gå vidare till en annan vy, eller loggat ut, medan inkorgen hämtades finns
   // inget att visa den i.
@@ -83,6 +86,7 @@ export async function visa(main) {
     ${yrke === 'lakare' || muntl.length ? sektion('muntlig', 'Muntliga ordinationer att signera', muntl, 'Inga muntliga ordinationer väntar på din signering.', 'Ordinationer som du lämnade muntligt eller per telefon och som en sjuksköterska har dokumenterat. De skickas till NLL när du har signerat.') : ''}
     ${S.session.behorigheter.includes('utvardera_lakemedel') && yrke === 'lakare' ? sektion('uppf', 'Uppföljning av läkemedel', uppf, 'Inga uppföljningar har passerat.', 'Läkemedel där uppföljningsdatumet har passerat. Utvärdera effekt och biverkan, och systemet föreslår nästa uppföljning.') : ''}
     ${['lakare', 'farmaceut'].includes(yrke) ? sektion('fordj', 'Fördjupade läkemedelsgenomgångar', fordj, 'Inga fördjupade genomgångar väntar på dig.', yrke === 'farmaceut' ? 'Genomgångar på din vårdenhet som väntar på farmaceutens bedömning.' : 'Genomgångar på din vårdenhet som pågår.') : ''}
+    ${mallarIk.length ? sektion('mallar', 'Mallar att godkänna', mallarIk, '', 'Läkemedelsmallar på din vårdenhet som är nya eller ändrade. Du granskar och godkänner det medicinska innehållet som läkare ansvarig för läkemedelsmallarna (Gröna häftet 1.4.3).') : ''}
     ${lic.length ? sektion('lic', 'Licenser som går ut', lic, '', 'Licensläkemedel på din vårdenhet. Systemet bevakar licensens giltighet.') : ''}
     ${avbokade.length ? sektion('vhavbokad', 'Vårdhändelser som avbokades', avbokade, '', 'Remissen avvisades, och tiden för en vårdhändelse som en läkemedelsdos väntar på avbokades. Besluta om ordinationen.') : ''}
     ${S.session.behorigheter.includes('ordinera') ? sektion('atersatt', 'Läkemedel att sätta in igen', atersatt, 'Inget läkemedel ska sättas in igen efter ett uppehåll i dag eller i morgon.', 'Antikoagulantia som gör uppehåll inför ett ingrepp. Systemet påminner dagen före återinsättningen och fyller i ordinationen ur den tidigare.') : ''}
@@ -98,6 +102,8 @@ export async function visa(main) {
   </div>${S.session.personal.yrke === 'vardadministrator' ? '<p class="dampad liten">Som vårdadministratör ser du larm om remissernas status men ingen journaltext.</p>' : ''}`;
   // Runda 5, r4: avsluta behandlingen efter ett uppehåll och sätta upp en avbokad vårdhändelse igen.
   main.querySelector('#ik').addEventListener('click', async (e) => {
+    const gr = e.target.closest('[data-granska]');
+    if (gr) { if (await granska(gr, d.mallarAttGodkanna[Number(gr.dataset.granska)])) visa(main); return; }
     const sg = e.target.closest('[data-signera]');
     if (sg) return signeraMuntlig(sg, sg.dataset.signera, async () => { await uppdateraInkorg(); visa(main); });
     const b = e.target.closest('[data-avsluta],[data-vh-igen],[data-vh-nod]');
@@ -128,6 +134,24 @@ export async function visa(main) {
       visa(main);
     } catch { /* notis visad */ }
   });
+}
+
+// Runda 6, r6: granska och godkänn en mall. Systemet visar innehållet och vad som har ändrats mot den förra versionen.
+async function granska(b, x) {
+  const svar = await dialog(`<form><h2 id="dlg-rubrik">Granska ${esc(x.namn)}, version ${x.version}</h2>
+    <p>${esc(x.vardenhet.namn)}. Upprättad av ${esc(x.upprattadAv)} ${esc(tidpunkt(x.upprattad))}.</p>
+    ${x.andringar.length ? `<div class="mg-andring"><h3>Ändrat mot version ${x.version - 1}</h3><ul class="mg-lista">${x.andringar.map(a => `<li>${esc(a)}</li>`).join('')}</ul>${x.andring && !x.andringar.join(' ').includes(x.andring) ? `<p class="liten">${esc(x.andring)}</p>` : ''}</div>` : ''}
+    <h3>Innehåll</h3><ul class="mg-lista">${x.innehall.map(r => `<li>${esc(r)}</li>`).join('')}</ul>
+    <p class="liten">När du godkänner används mallen från och med nu på vårdenheten${x.version > 1 ? ', och den förra versionen ersätts' : ''}. Godkännandet sparas med innehållet, ditt namn och tiden.</p>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Godkänn</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`,
+  { klass: 'dialog-bred', onOpen: (dl) => dl.querySelector('[data-varde="ok"]').focus() });
+  if (!svar) return false;
+  try {
+    const r = await medKnapp(b, () => api('/api/lakemedelsmallar/godkann', { metod: 'POST', data: { typ: x.typ, id: x.id } }));
+    notis(r.text);
+    await uppdateraInkorg();
+    return true;
+  } catch { return false; }
 }
 
 // Avslutad behandling: systemet föreslår orsaken, och den första är förvald.

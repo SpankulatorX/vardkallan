@@ -31,6 +31,8 @@ import * as delegeringar from './vyer/delegeringar.js';
 import { bevakningVy, uppfoljningVy, samverkanVy, inkorgAntal } from './vyer/r3.js';
 // Runda 6, r2: generella direktiv och uppföljning.
 import * as lakemedelsstod from './vyer/lakemedelsstod.js';
+// Runda 6, r6: verksamhetschefens uppdrag i läkemedelshanteringen.
+import * as lakemedelsansvar from './vyer/lakemedelsansvar.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -41,7 +43,8 @@ export const arPersonal = () => Boolean(S.session?.inloggad && S.session.persona
 export const arInvanare = () => Boolean(S.session?.inloggad && S.session.roll === 'invanare');
 export const arLogggranskare = () => S.session?.personal?.yrke === 'logggranskare';
 // Arkivarien och uppföljningsrollen läser inte journalen och har ingen arbetslista (Sussa 5.4.2 och 6.3.1).
-export const utanJournal = () => ['logggranskare', 'arkivarie', 'uppfoljning', 'kommun'].includes(S.session?.personal?.yrke);
+// Runda 6, r6: verksamhetschefen läser inte heller journalen.
+export const utanJournal = () => ['logggranskare', 'arkivarie', 'uppfoljning', 'kommun', 'verksamhetschef'].includes(S.session?.personal?.yrke);
 export const minVardenhet = () => S.session?.enhet?.vardenhet?.id ?? null;
 export const pa = (...h) => h.some(far);
 
@@ -61,6 +64,8 @@ const MENY = [
   ['#/tvangsvard', 'Tvångsvård', 'klocka', () => Boolean(S.session?.r3?.tvangsvardsenhet)],
   ['#/samverkan', 'Samverkan', 'lista', () => far('samverkan')],
   // Runda 6, r2: generella direktiv för läkaren och sjuksköterskan och uppföljningen på vårdenhetens nivå för läkaren.
+  // Runda 6, r6: verksamhetschefen utser uppdragen i läkemedelshanteringen.
+  ['#/lakemedelsansvar', 'Läkemedelsansvar', 'nyckel', () => far('lakemedelsansvar')],
   ['#/lakemedelsstod', 'Direktiv och uppföljning', 'piller', () => pa('faststalla_direktiv', 'ordinera_direktiv')],
   ['#/remisser', 'Remisser', 'remiss', () => pa('las_remiss', 'las_remiss_status')],
   ['#/vantrum', 'Väntrum (akuten)', 'vantrum', () => far('vantrum')],
@@ -87,6 +92,7 @@ const RUTTER = [
   // Delegeringar (runda 5): sjuksköterskan och läkaren registrerar, undersköterskan ser sina egna.
   [/^#\/delegeringar$/, delegeringar, () => far('delegera') || S.session?.personal?.yrke === 'underskoterska'],
   [/^#\/lakemedelsstod$/, lakemedelsstod, () => pa('faststalla_direktiv', 'ordinera_direktiv')],
+  [/^#\/lakemedelsansvar$/, lakemedelsansvar, () => far('lakemedelsansvar')],
   [/^#\/remisser$/, remisser, () => pa('las_remiss', 'las_remiss_status')],
   [/^#\/vantrum$/, vantrum, () => far('vantrum')],
   [/^#\/logg$/, logg, () => far('las_logg')],
@@ -130,7 +136,7 @@ export const vardenhetAv = (id) => enhetMap.get(id)?.vardenhet ?? id;
 export const enhetLista = () => [...enhetMap.values()];
 
 // Vårdadministratören börjar på dagens arbete, där systemet har ordnat det som ska göras i dag.
-export const hem = () => (arInvanare() ? '#/min' : arLogggranskare() ? '#/logg' : far('registrera_arkivbeslut') ? '#/arkiv' : far('datauttag') ? '#/datauttag' : far('samverkan') ? '#/samverkan' : far('boka') ? '#/idag' : '#/arbetslista');
+export const hem = () => (arInvanare() ? '#/min' : arLogggranskare() ? '#/logg' : far('registrera_arkivbeslut') ? '#/arkiv' : far('datauttag') ? '#/datauttag' : far('samverkan') ? '#/samverkan' : far('lakemedelsansvar') ? '#/lakemedelsansvar' : far('boka') ? '#/idag' : '#/arbetslista');
 
 // Logotypen: en droppe över en våg, en källa.
 export const logotyp = (storlek = 30) => `<svg class="logotyp" width="${storlek}" height="${storlek}" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="9" fill="currentColor"/><path d="M16 5.2c-3.3 4.7-6.1 8.1-6.1 11.6a6.1 6.1 0 0 0 12.2 0c0-3.5-2.8-6.9-6.1-11.6z" fill="#fff"/><path d="M7.5 26.2c2.8-1.7 5.7-1.7 8.5 0s5.7 1.7 8.5 0" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`;
@@ -182,7 +188,9 @@ export async function uppdateraInkorg() {
       // Runda 6, r3: tvångsvård, vårdplaner och samordnad planering.
       + inkorgAntal(d)
       // Läkemedelsprocessen, del 2 (runda 6, r2).
-      + (d.lakemedelsuppfoljningar?.length ?? 0) + (d.muntligaAttSignera?.length ?? 0) + (d.fordjupadeGenomgangar?.length ?? 0) + (d.licenserSomGarUt?.length ?? 0);
+      + (d.lakemedelsuppfoljningar?.length ?? 0) + (d.muntligaAttSignera?.length ?? 0) + (d.fordjupadeGenomgangar?.length ?? 0) + (d.licenserSomGarUt?.length ?? 0)
+      // Mallar att godkänna (runda 6, r6).
+      + (d.mallarAttGodkanna?.length ?? 0);
   } catch { S.inkorg = null; }
   const el = document.querySelector('[data-raknare="inkorg"]');
   if (el) { el.textContent = S.inkorg ? String(S.inkorg) : ''; el.hidden = !S.inkorg; }

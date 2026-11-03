@@ -22,6 +22,8 @@ import { sakraLakemedelssakerhet, seedaDelegeringar } from './lakemedelssakerhet
 import { sakraR1Schema, seedaR1 } from './schema-runda6-r1.js';
 // Läkemedelsprocessen, del 2 (runda 6, r2, lakemedelsstod-schema.js).
 import { sakraLakemedelsstod, seedaLakemedelsstod } from './lakemedelsstod-schema.js';
+// Runda 6, r6: ansvarsuppdrag för läkemedel och godkännande av läkemedelsmallar (lakemedelsansvar-schema.js).
+import { seedaLakemedelsansvar } from './lakemedelsansvar-schema.js';
 
 // Fel som API:t svarar med. kod: nekad | saknas | ogiltig | kraver_val | kraver_samtycke
 export class Fel extends Error {
@@ -378,6 +380,9 @@ export function byggSeed(bas = nu()) {
   // Runda 6, r1 (schema-runda6-r1.js).
   sakraR1Schema(db);
   seedaR1(db, { bas });
+  // Runda 6, r6: uppdragen i läkemedelshanteringen och godkännandena av mallarna. Sist, eftersom seeden läser
+  // personalen från tidboken och mallarna från runda 6, r2.
+  seedaLakemedelsansvar(db, bas);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -462,6 +467,8 @@ export function migrera(db) {
   require('./r3-rutter.js').tillagg.sakra(db);
   // Runda 6, r1: tabellerna för åtgärder, säkerhetsloggen och stickproven finns inte i äldre sandlådor.
   sakraR1Schema(db);
+  // Runda 6, r6: en äldre sandlåda får verksamhetschefen, uppdragen och godkännandena relativt till i dag.
+  seedaLakemedelsansvar(db, nu());
   return db;
 }
 

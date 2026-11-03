@@ -1128,3 +1128,8 @@ mark { background: var(--obs-bg); color: inherit; outline: 1px solid var(--obs-k
   .lms-verktyg { flex-direction: column; align-items: stretch; }
   .lms-cell { white-space: normal; }
 }
+/* Läkemedelsansvar och godkännande av läkemedelsmallar (runda 6, r6). */
+.la-rutnat { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 14px; }
+.la-forslag { color: var(--kalla-mork); }
+.la-omfattning ul, .la-tidigare ul, .mg-lista { margin: 6px 0; padding-left: 20px; font-size: var(--f-s); }
+.mg-andring { border-left: 3px solid var(--obs-kant); padding-left: 10px; }

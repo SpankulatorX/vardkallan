@@ -28,6 +28,9 @@ export const STARTPUNKT = {
   // Runda 6, r2: demon återställs först, som i test/flodessteg.cjs.
   'Patientens läkemedelsflik': { hash: '#/patient/p01/lakemedel', klar: '.lm-tabell', forbered: 'aterstall' },
   'Läkemedel att ge efter återställning': { hash: '#/administrering', klar: '.adm-patient', forbered: 'aterstall' },
+  // Runda 6, r6.
+  'Verksamhetschefens startsida': { hash: '#/lakemedelsansvar', klar: '#la-pam', forbered: 'aterstall' },
+  'Inkorgen efter återställning': { hash: '#/inkorg', klar: '#ik-mallar', forbered: 'aterstall' },
 };
 
 export const UPPGIFTER = [
@@ -242,6 +245,17 @@ export const UPPGIFTER = [
     id: 'dos-efterhand', namn: 'Registrera en dos i efterhand', roll: 'ssk-kard', start: 'Läkemedel att ge efter återställning',
     text: 'Du gav Gunnar Åkesson två tabletter Alvedon för en halvtimme sedan men hann inte registrera det. Registrera dosen nu.',
     kontroll: { notis: 'Alvedon är registrerad som given' },
+  },
+  // Runda 6, r6: ansvarsuppdrag för läkemedel och godkännande av läkemedelsmallar.
+  {
+    id: 'utse-mal', namn: 'Utse en medicinskt ansvarig läkare', roll: 'vch-kard', start: 'Verksamhetschefens startsida',
+    text: 'Du är verksamhetschef på kardiologen. Uppdraget som medicinskt ansvarig läkare har gått ut. Se till att kliniken har en medicinskt ansvarig läkare igen.',
+    kontroll: { notis: 'är utsedd till medicinskt ansvarig läkare' },
+  },
+  {
+    id: 'godkanna-mall', namn: 'Godkänna en ändrad läkemedelsmall', roll: 'lak-kard', start: 'Inkorgen efter återställning',
+    text: 'Du ansvarar för klinikens läkemedelsmallar. En kollega har ändrat mallen inför elkonvertering. Se vad som har ändrats och godkänn mallen.',
+    kontroll: { notis: 'är godkänd' },
   },
 ];
 

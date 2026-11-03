@@ -67,6 +67,9 @@ const VID_LYCKAT = [
   ['POST', '/api/delegering/:id/aterkalla', 'andrad_behorighet', 'En delegering att ge läkemedel återkallades. Undersköterskans behörighet ändrades.'],
   ['POST', '/api/demo/nll-timeout', 'andrad_installning', 'Inställningen för nästa överföring till NLL ändrades i demon.'],
   ['POST', '/api/reset', 'andrad_installning', 'Demon återställdes till en ny sandlåda.'],
+  // Runda 6, r6: uppdragen i läkemedelshanteringen ger rätt att fastställa direktiv och godkänna mallar.
+  ['POST', '/api/lakemedelsansvar/uppdrag', 'andrad_behorighet', 'Verksamhetschefen utsåg ett uppdrag i läkemedelshanteringen. Personens behörighet ändrades.'],
+  ['POST', '/api/lakemedelsansvar/uppdrag/:id/avsluta', 'andrad_behorighet', 'Verksamhetschefen avslutade ett uppdrag i läkemedelshanteringen. Personens behörighet ändrades.'],
 ];
 const INLOGGNING = ['/api/login', '/api/login/invanare'];
 const UTLOGGNING = '/api/logout';

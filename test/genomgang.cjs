@@ -1,4 +1,4 @@
-// Genomgång av Vårdkällans gränssnitt med Playwright. Loggar in som var och en av de tolv demorollerna,
+// Genomgång av Vårdkällans gränssnitt med Playwright. Loggar in som var och en av de tretton demorollerna,
 // går igenom varje vy rollen har och gör huvudflödena. Loggar sedan in som patienter i Min journal. Misslyckas vid
 // konsolfel, sidfel eller HTTP 500.
 //
@@ -147,6 +147,8 @@ const MENY = {
   psykiatri: ['Arbetslista', 'Sök patient', 'Inkorg', 'Delegeringar', 'Tvångsvård', 'Direktiv och uppföljning', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   kommun: ['Samverkan', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   uppfoljning: ['Datauttag', 'Tvångsvård och samordning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  // Runda 6, r6: verksamhetschefen utser uppdragen i läkemedelshanteringen och fastställer generella direktiv.
+  verksamhetschef: ['Läkemedelsansvar', 'Direktiv och uppföljning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
 };
 
 (async () => {
@@ -158,11 +160,12 @@ const MENY = {
 
   try {
     // Utan inloggning
-    await s('inloggningssidan visar de tolv demorollerna och demoraden', async () => {
+    await s('inloggningssidan visar de tretton demorollerna och demoraden', async () => {
       await page.goto(`${BAS}/`);
       await page.waitForSelector('.roll');
       const n = await page.locator('.roll').count();
-      if (n !== 12) throw new Error(`${n} roller`);
+      // Runda 6, r6: verksamhetschefen är den trettonde.
+      if (n !== 13) throw new Error(`${n} roller`);
       await forvanta(page, '.demorad', 'Demo med påhittade patienter och testpersonnummer från Skatteverket. Inte för vård av riktiga patienter.');
       await forvanta(page, '.sidfot', 'Vårdkällan är ett fristående demoprojekt med öppen källkod (EUPL 1.2). Det är inte en tjänst från Region Örebro län.');
       await forvanta(page, '#roll-lak-akut-visar', 'Nödåtkomst');
@@ -1209,6 +1212,41 @@ const MENY = {
     });
     await allaVyer(page, 'Elsa Nordin', MENY.farmaceut);
 
+    // Ulrika Sandell, verksamhetschef (runda 6, r6)
+    await s('Ulrika Sandell ser påminnelserna och utser en medicinskt ansvarig läkare med systemets förslag', async () => {
+      await loggaIn(page, 'vch-kard');
+      await forvanta(page, 'main h1', 'Läkemedelsansvar');
+      await forvanta(page, '#la-pam ~ ul', 'Medicinskt ansvarig läkare saknas på Kardiologiska kliniken USÖ');
+      await forvanta(page, '#la-pam ~ ul', 'Ansvarsdokumentet för läkemedelshanteringen har inte setts över');
+      await forvanta(page, '.ruta-info', 'kan inte överlåtas');
+      await saknas(page, 'Gunnar');
+      await bild(page, '96-lakemedelsansvar', true);
+      await page.click('[data-paminnelse="0"]');
+      await page.locator('dialog[open] #la-person').waitFor();
+      await forvanta(page, 'dialog[open]', 'Göran Malm hade uppdraget till');
+      await bild(page, '97-utse-mal');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', 'Göran Malm är utsedd till medicinskt ansvarig läkare');
+      await forvanta(page, '#la-medicinskt_ansvarig', 'Göran Malm');
+      await saknas(page, 'Ansvarsdokumentet för läkemedelshanteringen har inte setts över');
+      await page.waitForLoadState('networkidle');
+    });
+    await allaVyer(page, 'Ulrika Sandell', MENY.verksamhetschef);
+    await s('Sara granskar den ändrade mallen i inkorgen och godkänner den', async () => {
+      await loggaIn(page, 'lak-kard');
+      await page.waitForFunction(() => document.querySelector('#lista') && !/Hämtar/.test(document.querySelector('#lista').textContent));
+      await gaTill(page, '#/inkorg');
+      await forvanta(page, '#ik-mallar ~ ul', 'Inför elkonvertering, version 2');
+      await page.click('#ik-mallar ~ ul [data-granska="0"]');
+      await forvanta(page, 'dialog[open]', 'tiden före vårdhändelsen ändras från 1 timme till 2 timmar');
+      await bild(page, '98-godkanna-mall');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', 'Mallen Inför elkonvertering är godkänd i version 2');
+      // Inkorgen ritas om efter godkännandet, och då finns inget kvar att godkänna.
+      await page.locator('#ik-mallar').waitFor({ state: 'detached', timeout: 8000 }).catch(() => { throw new Error('mallen står kvar i inkorgen efter godkännandet'); });
+      await page.waitForLoadState('networkidle');
+    });
+
     // Användartestet (D6). Hela testet med enkät och resultatfil testas i test/anvandartest.cjs.
     await s('användartestet startas från inloggningssidan och visar en uppgift i taget i listen', async () => {
       await page.click('[data-a="loggaut"]');
@@ -1217,7 +1255,7 @@ const MENY = {
       await forvanta(page, 'main h1', 'Användartest');
       await forvanta(page, '.at-info', 'Alla patienter i demon är påhittade');
       await page.fill('#at-kod', 'G01');
-      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut', 'sok-journal', 'news2', 'ordinera-mall', 'dos-efterhand']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut', 'sok-journal', 'news2', 'ordinera-mall', 'dos-efterhand', 'utse-mal', 'godkanna-mall']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');
@@ -1263,7 +1301,7 @@ const MENY = {
   };
   const vantaHamtat = (p) => p.waitForFunction(() => ![...document.querySelectorAll('main .tom, main .laddar')].some(e => /^Hämtar/.test(e.textContent)), null, { timeout: 8000 }).catch(() => {});
   const MOBILROLLER = [['lak-kard', 'Sara Lindqvist'], ['ssk-kard', 'Johan Ek'], ['usk-kard', 'Amira Haddad'], ['lak-akut', 'Erik Nyström'], ['lak-vc', 'Per Holm'],
-    ['lak-psyk', 'Lena Ström'], ['adm-kard', 'Karin Berg'], ['logg', 'Mats Wall'], ['ark', 'Ingela Nord'], ['uppf', 'Daniel Sund'], ['kom-bist', 'Lisa Ahlgren'], ['far-kard', 'Elsa Nordin']];
+    ['lak-psyk', 'Lena Ström'], ['adm-kard', 'Karin Berg'], ['logg', 'Mats Wall'], ['ark', 'Ingela Nord'], ['uppf', 'Daniel Sund'], ['kom-bist', 'Lisa Ahlgren'], ['far-kard', 'Elsa Nordin'], ['vch-kard', 'Ulrika Sandell']];
   try {
     if (!fel.length) {
       await s('mobil: inloggningen på 360 px', async () => {

@@ -107,6 +107,8 @@ describe('Seed', () => {
       ['kom-bist', 'Lisa Ahlgren', 'kommun', 'kommun-demo'],
       // Runda 6, r2: farmaceuten i den fördjupade läkemedelsgenomgången.
       ['far-kard', 'Elsa Nordin', 'farmaceut', 'uso-kard'],
+      // Runda 6, r6: verksamhetschefen på kardiologen.
+      ['vch-kard', 'Ulrika Sandell', 'verksamhetschef', 'uso-kard'],
     ]);
   });
 

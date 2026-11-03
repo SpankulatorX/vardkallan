@@ -60,7 +60,7 @@ export async function mallar(plats, ctx) {
   let lista;
   try { lista = await api(`/api/patient/${pid}/ordinationspaket`); } catch { return; }
   plats.innerHTML = `<section class="lms-mallar" aria-labelledby="mall-rubrik"><h3 id="mall-rubrik" tabindex="-1">Ordinera från mall</h3>
-    ${lista.paket.length ? `<div class="knappval-lista">${lista.paket.map(p => `<button type="button" class="knapp sekundar liten" data-paket="${esc(p.id)}"><span>${esc(p.namn)}</span><span class="under-text">${esc(p.beskrivning)} Fastställd av ${esc(p.faststalltAv)}.</span></button>`).join('')}</div>` : '<p class="tom liten">Det finns inga fastställda mallar för din vårdenhet.</p>'}
+    ${lista.paket.length ? `<div class="knappval-lista">${lista.paket.map(p => `<button type="button" class="knapp sekundar liten" data-paket="${esc(p.id)}"><span>${esc(p.namn)}</span><span class="under-text">${esc(p.beskrivning)} ${p.godkand ? `Godkänd av ${esc(p.godkand.av)}.` : `Fastställd av ${esc(p.faststalltAv)}.`}</span></button>`).join('')}</div>` : '<p class="tom liten">Det finns inga godkända mallar för din vårdenhet.</p>'}
     <div data-paket-forslag></div>
     <p class="demoregel">${esc(lista.anmarkning)}</p></section>`;
   plats.querySelector('#mall-rubrik').focus();
@@ -290,7 +290,7 @@ export async function visa(main) {
   const el = main.querySelector('#lms');
   if (!el) return;
   el.innerHTML = `<section class="lm-sektion" aria-labelledby="lms-dir"><h2 id="lms-dir">Generella direktiv</h2>
-      <p class="liten">Ett generellt direktiv fastställs skriftligt av verksamhetschefen eller en läkare som verksamhetschefen har utsett (HSLF-FS 2017:37 6 kap. 6 §). Sjuksköterskan ordinerar inom det efter sin bedömning av patienten, och systemet prövar ramarna.</p>
+      <p class="liten">Ett generellt direktiv fastställs skriftligt av verksamhetschefen eller den medicinskt ansvariga läkaren (HSLF-FS 2017:37 6 kap. 6 §, Gröna häftet 1.4.2). Sjuksköterskan ordinerar inom det efter sin bedömning av patienten, och systemet prövar ramarna.</p>
       ${d.direktiv.length ? `<div class="tabellrulle"><table class="tabell"><thead><tr><th scope="col">Läkemedel och indikation</th><th scope="col">Dosering och maxdos</th><th scope="col">Kontraindikationer</th><th scope="col">Gäller</th>${d.kanFaststalla ? '<th scope="col"><span class="sr">Åtgärder</span></th>' : ''}</tr></thead>
       <tbody>${d.direktiv.map(x => `<tr class="${x.giltigt ? '' : 'makulerad'}"><td><strong>${esc(x.lakemedel.namn)}</strong><span class="under-text">${esc(x.indikation)}</span></td>
         <td>${esc(x.dosering)}<span class="under-text">${esc(x.maxdosText ?? '')}. Högst ${x.maxTillfallen} ${x.maxTillfallen === 1 ? 'tillfälle' : 'tillfällen'} utan läkarkontakt.</span></td>
@@ -298,6 +298,7 @@ export async function visa(main) {
         <td>${esc(x.vardenhet.namn)}<span class="under-text">Fastställt av ${esc(x.faststalltAv)}, till ${esc(x.giltigtTill)}${x.upphavt ? `. Upphävt ${esc(datum(x.upphavt.tid))} av ${esc(x.upphavt.av)}: ${esc(x.upphavt.orsak)}` : ''}</span></td>
         ${d.kanFaststalla ? `<td class="atgarder">${x.giltigt ? `<button type="button" class="knapp liten sekundar" data-upphav="${x.id}">Upphäv</button>` : ''}</td>` : ''}</tr>`).join('')}</tbody></table></div>` : tom('Inga generella direktiv.')}
       ${d.kanFaststalla ? '<button type="button" class="knapp" data-nytt-direktiv>Fastställ ett direktiv</button>' : ''}
+      ${!d.kanFaststalla && d.faststallaText ? `<p class="ruta ruta-info liten">${esc(d.faststallaText)}</p>` : ''}
       <p class="demoregel">${esc(d.anmarkning)}</p></section>
     ${g ? `<section class="lm-sektion" aria-labelledby="lms-upp"><h2 id="lms-upp">Uppföljning på vårdenhetens nivå</h2>
       <p class="liten">${esc(g.vardenhet ?? '')}: ${g.summa.pagaende} pågående ordinationer, ${g.summa.passerade} med passerad uppföljning, ${g.summa.utvarderade} utvärderade. ${esc(g.anmarkning)}</p>

@@ -73,8 +73,10 @@ export const HANDLING = {
   // Runda 6, r3.
   las_vardplan: 'Läste vårdplaner', vardplan: 'Upprättade eller ändrade vårdplan', vardplan_atgard: 'Registrerade utförd åtgärd i vårdplan',
   las_tvangsvard: 'Läste uppgifter om tvångsvård', tvangsvard: 'Registrerade i tvångsvården', samordna: 'Samordnad planering', samverkan: 'Kommunen läste samordnad planering',
+  // Runda 6, r6.
+  lakemedelsansvar: 'Läste eller ändrade uppdrag i läkemedelshanteringen', godkanna_mall: 'Godkände eller läste läkemedelsmallar',
 };
-export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare', arkivarie: 'Arkivarie', uppfoljning: 'Analytiker (uppföljning)', kommun: 'Kommunens personal (simulerad)', farmaceut: 'Farmaceut' };
+export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare', arkivarie: 'Arkivarie', uppfoljning: 'Analytiker (uppföljning)', kommun: 'Kommunens personal (simulerad)', farmaceut: 'Farmaceut', verksamhetschef: 'Verksamhetschef' };
 
 // Anrop mot API:t. Svarstiden läses från Server-Timing. Fel kastas som ApiFel med serverns text och kod.
 export class ApiFel extends Error {
