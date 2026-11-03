@@ -80,6 +80,8 @@ export function patientDoser(pid, l) {
     ${l.dolda?.sparrade ? '<p class="dampad liten">Det finns spärrade uppgifter. Ordinationer och doser från spärrade vårdenheter visas inte.</p>' : ''}`;
 }
 const handelseText = (h) => {
+  // Den skyddade formen för en annan vårdenhet har ingen förskjutning, bara när läkemedlet ges (runda 5).
+  if (h.forskjutningMin == null) return `inför ${h.text.toLowerCase()}`;
   const t = Math.abs(h.forskjutningMin) / 60;
   const tt = `${String(Math.round(t * 10) / 10).replace('.', ',')} ${t === 1 ? 'timme' : 'timmar'}`;
   return h.forskjutningMin === 0 ? `vid ${h.text.toLowerCase()}` : h.forskjutningMin < 0 ? `${tt} före ${h.text.toLowerCase()}` : `${tt} efter ${h.text.toLowerCase()}`;

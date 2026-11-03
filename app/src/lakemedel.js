@@ -40,8 +40,12 @@ export function ordinationUt(db, o, { historik = true, fullVardhandelse = false 
     ...tillaggUt(db, o.id, { full: fullVardhandelse }),
   };
   if (historik) {
+    // Vårdhändelsens rader (tidsättningen för hand och tidboken) visas bara för den som får se hela vårdhändelsen. Andra
+    // ser bara att tiden för läkemedlet ändrades, utan tider och utan vem (säkerhetsgranskning runda 5).
+    const handelseRad = (h) => h.handelse === 'vardhandelse_tid' || h.handelse.startsWith('Vårdhändelsen');
     ut.historik = db.query('SELECT * FROM ordination_historik WHERE ordination_id = ? ORDER BY tid, id').all(o.id)
-      .map(h => ({ tid: h.tid, handelse: h.handelse, detalj: h.detalj, av: personNamn(db, h.personal_id) }));
+      .map(h => (!fullVardhandelse && handelseRad(h) ? { tid: h.tid, handelse: 'Tiden för läkemedlet ändrades', detalj: null, av: null }
+        : { tid: h.tid, handelse: h.handelse, detalj: h.detalj, av: personNamn(db, h.personal_id) }));
     ut.nll = db.query('SELECT * FROM nll_meddelanden WHERE ordination_id = ? ORDER BY id').all(o.id)
       .map(m => ({ id: m.id, typ: m.typ, skickad: m.skickad, status: m.status, svarTid: m.svar_tid, kvittens: m.kvittens }));
   }
