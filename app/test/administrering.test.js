@@ -264,6 +264,88 @@ describe('Administrering', () => {
     expect(med.some(v => v.regel === 'dubbel_dos')).toBe(true);
   });
 
+  test('en iordningsställd dos på en spärrad vårdenhet röjs inte, och den som ger dosen dokumenterar på sin egen vårdenhet', () => {
+    const db = sandladaKl('13:30');
+    const l = administrering.lista(atk(db, 'ssk-kard', 'p04'));
+    const dos = l.doser.find(d => d.status === 'att_ge' || (!d.administrering && Date.parse(d.planerad) > Date.now()));
+    expect(dos).toBeTruthy();
+    const psyk = atk(db, 'ssk-psyk', 'p04', {}, 'ge_lakemedel');
+    const ior = administrering.spara(psyk, { ordinationId: dos.ordinationId, planerad: dos.planerad, atgard: 'iordningstall' });
+    expect(db.query('SELECT enhet_id FROM administreringar WHERE id = ?').get(ior.id).enhet_id).toBe('uso-psyk');
+    // Kardiologen, utan samtycke, ser inte psykiatrins iordningsställande och kan iordningsställa och ge själv.
+    const kard = () => atk(db, 'ssk-kard', 'p04', {}, 'ge_lakemedel');
+    const ut = administrering.spara(kard(), { ordinationId: dos.ordinationId, planerad: dos.planerad, atgard: 'ge', kvitteradeVarningar: [{ regel: 'for_tidig', motivering: 'enligt plan' }] });
+    expect(JSON.stringify(ut)).not.toContain('Robin Axelsson');
+    expect(JSON.stringify(ut)).not.toContain('uso-psyk');
+    expect(ut.id).not.toBe(ior.id);
+    expect(db.query('SELECT enhet_id FROM administreringar WHERE id = ?').get(ut.id).enhet_id).toBe(personal(db, 'ssk-kard').enhet_id);
+    expect(administrering.lista(kard()).doser.find(d => d.ordinationId === dos.ordinationId && d.planerad === dos.planerad).status).toBe('given');
+    // En etikett från den spärrade enheten känns inte igen.
+    const kod = db.query('SELECT kontrollkod FROM administreringar WHERE id = ?').get(ior.id).kontrollkod;
+    const e = fel(() => administrering.spara(kard(), { ordinationId: dos.ordinationId, planerad: dos.planerad, kontrollkod: kod }));
+    expect(e).toMatchObject({ status: 400 });
+    expect(e.message).not.toContain('Robin');
+  });
+
+  test('en synlig iordningsställd dos från en annan vårdenhet dokumenteras på den vårdenhet som ger den', () => {
+    const db = sandladaKl('13:30');
+    const l = administrering.lista(atk(db, 'ssk-kard', 'p01'));
+    const dos = l.doser.find(d => !d.administrering && Date.parse(d.planerad) > Date.now());
+    // Iordningsställt på vårdcentralen (ingen spärr): läkemedel är gemensamma, så kardiologen ser det.
+    const ior = administrering.spara(atk(db, 'ssk-kard', 'p01', {}, 'ge_lakemedel'), { ordinationId: dos.ordinationId, planerad: dos.planerad, atgard: 'iordningstall' });
+    db.query("UPDATE administreringar SET enhet_id = 'vc-tybble' WHERE id = ?").run(ior.id);
+    const ut = administrering.spara(atk(db, 'ssk-kard', 'p01', {}, 'ge_lakemedel'), { ordinationId: dos.ordinationId, planerad: dos.planerad, atgard: 'ge', kvitteradeVarningar: [{ regel: 'for_tidig', motivering: 'enligt plan' }] });
+    expect(ut.id).toBe(ior.id);
+    expect(db.query('SELECT enhet_id FROM administreringar WHERE id = ?').get(ut.id).enhet_id).toBe(personal(db, 'ssk-kard').enhet_id);
+  });
+
+  test('överlämnande märks som permission bara när patienten har permission, inte för att klienten säger det', () => {
+    const db = sandladaKl('13:30');
+    const dos = administrering.lista(atk(db, 'ssk-kard', 'p01')).doser.find(d => !d.administrering && Date.parse(d.planerad) > Date.now());
+    const ut = administrering.spara(atk(db, 'ssk-kard', 'p01', {}, 'ge_lakemedel'), { ordinationId: dos.ordinationId, planerad: dos.planerad, atgard: 'overlamna', permission: true });
+    expect(ut.administrering.permission).toBe(false);
+  });
+
+  test('vätskebalansen visar inte volymen från en dos av en spärrad ordination', () => {
+    const db = sandladaKl('13:30');
+    const vatska = db.query("SELECT o.* FROM ordinationer o JOIN katalog k ON k.id = o.lakemedel_id WHERE o.patient_id = 'p01' AND o.status = 'aktiv'").all();
+    // En spärrad infusion: en ordination på psykiatrin för patient 4, given med samtycke, med volym.
+    const sert = db.query("SELECT o.* FROM ordinationer o WHERE o.patient_id = 'p04' AND o.enhet_id = 'uso-psyk'").get();
+    const med = atk(db, 'ssk-kard', 'p04', { samtycke_sparr: true }, 'ge_lakemedel');
+    const ut = administrering.spara(med, { ordinationId: sert.id, planerad: kl('08:00'), tid: kl('12:00') });
+    db.query("INSERT INTO vatskebalans (patient_id, enhet_id, riktning, typ, volym_ml, tid, registrerad, registrerad_av, administrering_id) VALUES ('p04', 'uso-kard', 'in', 'lakemedel', 100, ?, ?, 'ssk-kard', ?)").run(kl('12:00'), kl('12:00'), ut.id);
+    const utan = administrering.vatskebalans(atk(db, 'ssk-kard', 'p04', {}, 'las_matvarden'));
+    expect(utan.poster.some(x => x.administreringId === ut.id)).toBe(false);
+    expect(administrering.vatskebalans(atk(db, 'ssk-kard', 'p04', { samtycke_sparr: true }, 'las_matvarden')).poster.some(x => x.administreringId === ut.id)).toBe(true);
+    expect(vatska.length).toBeGreaterThan(0);
+  });
+
+  test('läkemedelsberättelsen tar aldrig med doser från en spärrad vårdenhet, inte ens med samtycke', () => {
+    const db = sandladaKl('13:30');
+    // En vid behov-ordination från kardiologen som psykiatrins sjuksköterska ger: dosen dokumenteras på psykiatrin.
+    const sert = db.query("SELECT o.* FROM ordinationer o WHERE o.patient_id = 'p04' AND o.enhet_id <> 'uso-psyk' AND o.status = 'aktiv'").get();
+    const vb = db.query(`INSERT INTO ordinationer (patient_id, enhet_id, lakemedel_id, dosering, dos, dos_enhet, tider, vid_behov, typ, orsak, uppfoljning, start, ordinerad_av, skapad)
+      SELECT patient_id, enhet_id, lakemedel_id, '1 tablett vid behov', dos, dos_enhet, NULL, 1, 'vid_behov', orsak, uppfoljning, start, ordinerad_av, skapad FROM ordinationer WHERE id = ? RETURNING id`).get(sert.id).id;
+    administrering.spara(atk(db, 'ssk-psyk', 'p04', {}, 'ge_lakemedel'), { ordinationId: vb, kvitteradeVarningar: ['dubbel_dos', 'max_per_dygn'].map(regel => ({ regel, motivering: 'enligt plan' })) });
+    const namn = db.query('SELECT namn FROM katalog WHERE id = ?').get(sert.lakemedel_id).namn;
+    const text = vidimering.genomgang(atk(db, 'lak-kard', 'p04', { samtycke_sparr: true }, 'las_lakemedel')).berattelse.text;
+    expect(text.split('\n').filter(r => r.startsWith('Vid behov')).join(' ')).not.toContain(namn);
+  });
+
+  test('när någon annan registrerar en dos än den som gav den syns båda, också i FHIR', () => {
+    const db = sandladaKl('13:30');
+    const dos = administrering.lista(atk(db, 'ssk-kard', 'p01')).doser.find(d => !d.administrering && Date.parse(d.planerad) > Date.now());
+    // En andra sjuksköterska på avdelningen, som gav dosen medan Johan Ek registrerar den.
+    const kol = db.query('PRAGMA table_info(personal)').all().map(c => c.name).filter(c => c !== 'id' && c !== 'namn');
+    db.query(`INSERT INTO personal (id, namn, ${kol.join(', ')}) SELECT 'ssk-kard-2', 'Sofia Lund', ${kol.join(', ')} FROM personal WHERE id = 'ssk-kard'`).run();
+    const annan = 'ssk-kard-2';
+    const ut = administrering.spara(atk(db, 'ssk-kard', 'p01', {}, 'ge_lakemedel'), { ordinationId: dos.ordinationId, planerad: dos.planerad, atgard: 'ge', utfordAv: annan, kvitteradeVarningar: [{ regel: 'for_tidig', motivering: 'enligt plan' }] });
+    expect(ut.administrering).toMatchObject({ utfordAv: { id: annan }, registreradAv: { id: 'ssk-kard' } });
+    const r = fhir.medicationAdministration(db, db.query('SELECT * FROM administreringar WHERE id = ?').get(ut.id));
+    expect(r.performer.map(p => p.actor.reference)).toEqual([`Practitioner/${annan}`, 'Practitioner/ssk-kard']);
+    expect(r.performer[1].function.text).toBe('Registrerade dosen');
+  });
+
   test('permission: doser under permission lämnas över till patienten', async () => {
     const app = testserver();
     try {
@@ -518,8 +600,15 @@ describe('Fördefinierade ordinationer', () => {
       l = (await ssk.get(`/api/patient/p01/administreringar?dag=${imorgon}`)).data;
       expect(l.vantarPaHandelse).toEqual([]);
       expect(l.doser.find(d => d.ordinationId === id)).toMatchObject({ planerad: lokalTid(imorgon, '08:00'), vardhandelse: { text: 'Elkonvertering' } });
+      // Tidsättningen sparas i ordinationens historik.
+      const db = sandlada(app, ssk).db;
+      expect(db.query("SELECT personal_id FROM ordination_historik WHERE ordination_id = ? AND handelse = 'vardhandelse_tid'").all(id)).toEqual([{ personal_id: 'ssk-kard' }]);
       await k.logga('adm-kard');
       expect((await k.post(`/api/ordination/${id}/vardhandelse`, { tid: lokalTid(imorgon, '11:00') })).status).toBe(403);
+      // En utsatt ordination får ingen ny tid.
+      db.query("UPDATE ordinationer SET status = 'utsatt' WHERE id = ?").run(id);
+      await k.logga('ssk-kard');
+      expect((await ssk.post(`/api/ordination/${id}/vardhandelse`, { tid: lokalTid(imorgon, '12:00') })).status).toBe(400);
     } finally { app.stopp(); }
   });
 });

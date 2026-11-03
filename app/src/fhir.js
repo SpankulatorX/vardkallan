@@ -231,6 +231,7 @@ export function medicationAdministration(db, a) {
   const note = [
     a.status === 'overlamnad' && { text: `Överlämnad till patienten${a.permission ? ' för permission' : ''}.` },
     a.efterhand && { text: `Registrerad i efterhand ${a.registrerad} av ${personNamn(db, a.registrerad_av)}.` },
+    !a.efterhand && a.registrerad_av && a.utford_av && a.registrerad_av !== a.utford_av && { text: `Registrerad av ${personNamn(db, a.registrerad_av)}.` },
     ...(a.kvitterade_varningar ? JSON.parse(a.kvitterade_varningar).map(k => ({ text: `Varning kvitterad (${k.regel}): ${k.motivering}` })) : []),
   ].filter(Boolean);
   return {
@@ -238,7 +239,11 @@ export function medicationAdministration(db, a) {
     ...(a.status === 'ej_given' ? { statusReason: [{ text: a.orsak }] } : {}),
     medicationCodeableConcept: { coding: [{ system: SYSTEM.atc, code: lm.atc, ...(ATC[lm.atc] ? { display: ATC[lm.atc] } : {}) }, ...(lm.npl ? [{ system: SYSTEM.nplid, code: lm.npl }] : [])], text: `${lm.namn} ${lm.styrka} ${lm.form}` },
     subject: ref('Patient', a.patient_id), ...(a.vardkontakt_id ? { context: ref('Encounter', a.vardkontakt_id) } : {}),
-    effectiveDateTime: a.tid, performer: [{ actor: ref('Practitioner', a.utford_av, personNamn(db, a.utford_av)) }],
+    effectiveDateTime: a.tid, performer: [
+      { actor: ref('Practitioner', a.utford_av, personNamn(db, a.utford_av)) },
+      // Den som registrerade dosen, när det är någon annan än den som gav den.
+      ...(a.registrerad_av && a.utford_av && a.registrerad_av !== a.utford_av ? [{ function: { text: 'Registrerade dosen' }, actor: ref('Practitioner', a.registrerad_av, personNamn(db, a.registrerad_av)) }] : []),
+    ],
     ...(a.ordination_id ? { request: ref('MedicationRequest', a.ordination_id) } : {}),
     ...(note.length ? { note } : {}),
     ...(a.dos != null && a.status !== 'ej_given' ? { dosage: { dose: { value: a.dos, ...(a.dos_enhet ? { unit: a.dos_enhet } : {}) } } } : {}),

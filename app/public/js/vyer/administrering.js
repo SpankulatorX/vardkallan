@@ -14,7 +14,13 @@ const STATUS = {
 };
 const lmText = (x) => `${esc(x.lakemedel?.namn)} <span class="dampad">${esc(x.lakemedel?.styrka ?? '')}</span>`;
 const dosText = (x) => (x.dos != null ? `${String(x.dos).replace('.', ',')} ${esc(x.dosEnhet ?? '')}` : '');
-const vem = (a) => (a?.utfordAv ? `${klockslag(a.tid)} av ${esc(a.utfordAv.namn)}${a.efterhand ? `, registrerad i efterhand ${esc(tidpunkt(a.registrerad))}` : ''}` : '');
+// Vem som gav dosen, och vem som registrerade den när det var någon annan.
+const vem = (a) => {
+  if (!a?.utfordAv) return '';
+  const annan = a.registreradAv && a.registreradAv.id !== a.utfordAv.id ? ` av ${esc(a.registreradAv.namn)}` : '';
+  const reg = a.efterhand ? `, registrerad i efterhand ${esc(tidpunkt(a.registrerad))}${annan}` : annan ? `, registrerad${annan}` : '';
+  return `${klockslag(a.tid)} av ${esc(a.utfordAv.namn)}${reg}`;
+};
 
 // Doserna för en patient, som HTML. kan: får användaren ge läkemedel till patienten.
 export function patientDoser(pid, l) {

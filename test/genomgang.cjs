@@ -131,6 +131,7 @@ async function valDialog(page, knappSel, { intyg = false, bildnamn } = {}) {
 
 const MENY = {
   klinisk: ['Arbetslista', 'Sök patient', 'Inkorg', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  sjukskoterska: ['Arbetslista', 'Sök patient', 'Inkorg', 'Läkemedel att ge', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   utanRemiss: ['Arbetslista', 'Sök patient', 'Inkorg', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   logg: ['Sök patient', 'Logguppföljning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   arkiv: ['E-arkiv och gallring', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
@@ -581,7 +582,7 @@ const MENY = {
       await page.click('.ant-form [data-signera]');
       await forvanta(page, '.anteckning', 'Sov hela natten.');
     });
-    await allaVyer(page, 'Johan Ek', MENY.klinisk);
+    await allaVyer(page, 'Johan Ek', MENY.sjukskoterska);
 
     // Amira Haddad, undersköterska
     await s('Amira Haddad ser omvårdnad, läkemedel och mätvärden men inga läkaranteckningar och inga diagnoser', async () => {
@@ -856,7 +857,7 @@ const MENY = {
       await forvanta(page, 'main h1', 'Användartest');
       await forvanta(page, '.at-info', 'Alla patienter i demon är påhittade');
       await page.fill('#at-kod', 'G01');
-      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');
@@ -877,6 +878,8 @@ const MENY = {
       if (kvar.lagrat !== null || kvar.list) throw new Error('testläget finns kvar efter att testet avbrutits');
     });
   } catch (e) {
+    // Ett fel utanför ett steg (till exempel en meny som inte stämmer) får aldrig försvinna tyst: det räknas som fel.
+    if (!fel.some(f => e.message.includes(f) || f.includes(e.message.split('\n')[0]))) fel.push(`utanför ett steg efter "${aktuelltSteg}": ${e.message.split('\n')[0]}`);
     await page.screenshot({ path: join(UT, '00-fel.png'), fullPage: true }).catch(() => {});
   }
 
@@ -947,7 +950,10 @@ const MENY = {
         await ingenSidledsrullning('Min journal, anteckning');
       });
     }
-  } catch { await mp.screenshot({ path: join(UT, '00-fel-mobil.png'), fullPage: true }).catch(() => {}); }
+  } catch (e) {
+    if (!fel.some(f => e.message.includes(f) || f.includes(e.message.split('\n')[0]))) fel.push(`mobil, utanför ett steg efter "${aktuelltSteg}": ${e.message.split('\n')[0]}`);
+    await mp.screenshot({ path: join(UT, '00-fel-mobil.png'), fullPage: true }).catch(() => {});
+  }
 
   await browser.close();
   console.log('');

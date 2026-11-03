@@ -249,15 +249,17 @@ function underlag(atk, inp, atgard) {
     const namn = { tid: `tidpunkten (högst ${EFTERHAND_DAGAR} dagar bakåt och inte i framtiden)`, planerad: 'dostiden, som inte finns i ordinationen', dos: 'dosen', antal: 'antalet', utfordAv: 'vem som gav dosen (en sjuksköterska på din vårdenhet)', orsak: 'orsaken till att dosen inte gavs' };
     throw new Fel(400, `Kontrollera ${falt.map(f => namn[f]).join(', ')}.`, 'ogiltig', { falt });
   }
-  // Ett iordningsställande som dosen går vidare från, via etikettens kontrollkod eller ordinationen och dostiden.
+  // Ett iordningsställande som dosen går vidare från, via etikettens kontrollkod eller ordinationen och dostiden. Bara
+  // iordningsställanden som användaren får se räknas, så att en spärrad vårdenhets dos aldrig röjs eller används.
   let ior = null;
+  const synligaIor = () => synligaAdministreringar(atk).filter(a => a.status === 'iordningstalld');
   if (inp.kontrollkod != null) {
-    ior = db.query("SELECT * FROM administreringar WHERE kontrollkod = ? AND status = 'iordningstalld'").get(String(inp.kontrollkod));
+    ior = synligaIor().find(a => a.kontrollkod === String(inp.kontrollkod)) ?? null;
     if (!ior || ior.patient_id !== atk.patientId || ior.ordination_id !== (orad?.id ?? null)) {
       throw new Fel(400, 'Etiketten hör inte till den här patienten och dosen. Kontrollera patienten och läkemedlet innan något ges.', 'ogiltig', { falt: ['kontrollkod'] });
     }
   } else if (orad && planerad) {
-    ior = db.query("SELECT * FROM administreringar WHERE ordination_id = ? AND planerad = ? AND status = 'iordningstalld'").get(orad.id, planerad);
+    ior = synligaIor().find(a => a.ordination_id === orad.id && a.planerad === planerad) ?? null;
   }
   if (atgard === 'iordningstall' && ior) throw new Fel(400, 'Dosen är redan iordningsställd.', 'ogiltig');
   if (!planerad && ior?.planerad) planerad = ior.planerad;
@@ -314,13 +316,17 @@ export function spara(atk, inp = {}) {
   const nu = iso();
   const tid = new Date(u.tid).toISOString();
   const efterhand = atgard !== 'iordningstall' && Date.now() - u.tid > EFTERHAND_MS ? 1 : 0;
-  const permission = atgard === 'overlamna' && (u.permission || inp.permission === true) ? 1 : 0;
+  // Permission räknas av servern ur vårdtillfället, aldrig ur det klienten skickar.
+  const permission = atgard === 'overlamna' && u.permission ? 1 : 0;
   const volym = status === 'given' ? volymFor(u.lm, u.tillagg, u.dos, u.o?.dosEnhet ?? null) : null;
   let id;
   if (u.ior) {
+    // Dosen dokumenteras på den vårdenhet som ger den. Byter den vårdenhet knyts den till en ny vårdkontakt efteråt.
+    const nyEnhet = u.ior.enhet_id !== atk.personal.enhet_id;
     db.query(`UPDATE administreringar SET status = ?, tid = ?, utford_av = ?, registrerad = ?, registrerad_av = ?, efterhand = ?, dos = ?, antal = ?, orsak = ?,
-      kvitterade_varningar = ?, permission = ?, volym_ml = ? WHERE id = ?`)
-      .run(status, tid, u.utfordAv, nu, atk.personal.id, efterhand, u.dos, u.antal, u.orsak || null, kv.length ? JSON.stringify(kv) : null, permission, volym, u.ior.id);
+      kvitterade_varningar = ?, permission = ?, volym_ml = ?, enhet_id = ?, vardkontakt_id = CASE WHEN ? THEN NULL ELSE vardkontakt_id END WHERE id = ?`)
+      .run(status, tid, u.utfordAv, nu, atk.personal.id, efterhand, u.dos, u.antal, u.orsak || null, kv.length ? JSON.stringify(kv) : null, permission, volym,
+        atk.personal.enhet_id, nyEnhet ? 1 : 0, u.ior.id);
     id = u.ior.id;
   } else {
     const ior = atgard === 'iordningstall';
@@ -353,7 +359,10 @@ export function vatskebalans(atk, { dag = idag(), brytning = '00' } = {}) {
   const k = klocka(brytning) ?? '00:00';
   const fran = Date.parse(lokalTid(dag, k));
   const till = fran + DAG;
+  // Volymen från en dos syns bara för den som får se dosen, så att en spärrad ordination inte röjs via vätskebalansen.
+  const synligaDoser = new Set(synligaAdministreringar(atk).map(a => a.id));
   const rader = atk.filtrera(db.query('SELECT * FROM vatskebalans WHERE patient_id = ? ORDER BY tid, id').all(atk.patientId), 'las_matvarden')
+    .filter(r => r.administrering_id == null || synligaDoser.has(r.administrering_id))
     .filter(r => Date.parse(r.tid) >= fran && Date.parse(r.tid) < till);
   const poster = rader.map(r => ({
     id: r.id, riktning: r.riktning, typ: r.typ, typText: VATSKETYPER[r.riktning][r.typ] ?? r.typ, volymMl: r.volym_ml, tid: r.tid,

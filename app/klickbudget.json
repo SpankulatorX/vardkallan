@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-03T11:15:49.952Z",
-  "bas": "http://127.0.0.1:18103",
+  "tid": "2026-11-03T11:31:45.209Z",
+  "bas": "http://127.0.0.1:18110",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "f373dea8bfe4fefb6a812924ffbb23ab099688dfe639c6d155e0855f69ce019f",
+  "gransnittHash": "a73cd4a89018103c3ef061ffb7050d635a06e6cb3ecdeceed0474ed1910d7aef",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -391,6 +391,59 @@
         "har redan fokus: orsak",
         "klick: Sätt ut trots varningen"
       ]
+    },
+    {
+      "id": "utskrift",
+      "namn": "Skriva ut läkemedelslistan vid utskrivning",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 2,
+      "motivering": "Sussa 3.1.9. Ett klick på Skriv ut och ett för att skriva ut. Patienten är inlagd, så systemet föreslår syftet Läkemedelslista till patienten vid utskrivning, väljer läkemedelslistan och registrerar att kopian lämnas ut till patienten. Utskriften får ett utskrifts-id och loggas.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Skriv ut",
+        "klick: Skriv ut i dialogen"
+      ]
+    },
+    {
+      "id": "begar-kontrasignering",
+      "namn": "Begära kontrasignering av en anteckning",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 3,
+      "motivering": "Sussa 3.1.11.3. Ett klick på den senaste anteckningen, ett på Begär kontrasignering och ett för att skicka. Systemet föreslår överläkaren på samma vårdenhet som får läsa anteckningen, och aldrig den som signerade.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: senaste signerade anteckningen",
+        "klick: Begär kontrasignering",
+        "klick: Skicka"
+      ]
+    },
+    {
+      "id": "kontrasignera",
+      "namn": "Kontrasignera en anteckning",
+      "roll": "lak-kard",
+      "start": "Arbetslistan efter inloggning",
+      "budget": 3,
+      "motivering": "Sussa 3.1.11.3. Ett klick till inkorgen, ett på begäran, som öppnar anteckningen i sin helhet, och ett på Kontrasignera. Anteckningen ska läsas före kontrasigneringen, så knappen ligger inte direkt i inkorgen.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Inkorg i menyn",
+        "klick: begäran om kontrasignering i inkorgen",
+        "klick: Kontrasignera"
+      ]
     }
   ],
   "tester": [
@@ -476,6 +529,18 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Sätta ut ett läkemedel med varning inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Skriva ut läkemedelslistan vid utskrivning inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Begära kontrasignering av en anteckning inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Kontrasignera en anteckning inom budget",
       "status": "grön"
     }
   ]

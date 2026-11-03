@@ -103,7 +103,8 @@ export function berattelse(atk, { pagaendeOrd = pagaende(atk) } = {}) {
   for (const o of utsatta.filter(x => !iAndrade.has(x.id))) rader.push(`Utsatt: ${namn(o)}. Orsak: ${o.utsatt_orsak}.`);
   const ofor = pagaendeOrd.filter(o => Date.parse(o.skapad) < fran && !iAndrade.has(o.id));
   if (ofor.length) rader.push(`Oförändrade: ${ofor.map(o => namn(o)).join(', ')}.`);
-  const vb = synligaAdministreringar(atk).filter(a => a.status === 'given' && Date.parse(a.tid) >= fran)
+  // Berättelsen sparas och syns utan samtycke, så doser från en spärrad vårdenhet tas aldrig med, inte ens med samtycke.
+  const vb = synligaAdministreringar(utanSamtycke(atk)).filter(a => a.status === 'given' && Date.parse(a.tid) >= fran)
     .filter(a => alla.find(o => o.id === a.ordination_id)?.vid_behov);
   const perLm = new Map();
   for (const a of vb) { const n = db.query('SELECT namn FROM katalog WHERE id = ?').get(a.lakemedel_id)?.namn; perLm.set(n, (perLm.get(n) ?? 0) + 1); }

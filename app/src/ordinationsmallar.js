@@ -127,10 +127,15 @@ export function tillaggUt(db, ordinationId) {
 export function tidsattHandelse(db, ordinationId, tid, personalId) {
   const t = db.query('SELECT * FROM ordination_tillagg WHERE ordination_id = ?').get(ordinationId);
   if (!t?.vardhandelse) throw new Fel(400, 'Ordinationen är inte kopplad till en planerad vårdhändelse.', 'ogiltig');
+  const o = db.query('SELECT status FROM ordinationer WHERE id = ?').get(ordinationId);
+  if (o?.status !== 'aktiv') throw new Fel(400, 'Ordinationen är utsatt, så vårdhändelsen kan inte längre få en tid.', 'ogiltig');
   const ms = typeof tid === 'string' ? Date.parse(tid) : NaN;
   if (!Number.isFinite(ms) || ms < Date.now() - 86400_000 || ms > Date.now() + 60 * 86400_000) {
     throw new Fel(400, 'Ange när vårdhändelsen blir av, från i går och högst 60 dagar fram.', 'ogiltig', { falt: ['tid'] });
   }
   db.query('UPDATE ordination_tillagg SET handelse_tid = ?, handelse_satt_av = ?, handelse_satt = ? WHERE ordination_id = ?').run(new Date(ms).toISOString(), personalId, iso(), ordinationId);
+  // Varje tidsättning och ändring sparas i ordinationens historik.
+  db.query("INSERT INTO ordination_historik (ordination_id, tid, personal_id, handelse, detalj) VALUES (?, ?, ?, 'vardhandelse_tid', ?)")
+    .run(ordinationId, iso(), personalId, JSON.stringify({ fran: t.handelse_tid ?? null, till: new Date(ms).toISOString() }));
   return tillaggUt(db, ordinationId);
 }
