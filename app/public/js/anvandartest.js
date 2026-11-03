@@ -6,7 +6,7 @@
 // Inget skickas till servern. Allt ligger i sessionStorage i den här fliken och rensas när testet avslutas.
 // Resultatet visas i slutet och laddas ner som en JSON-fil eller kopieras som text. Testläget lyssnar bara på
 // händelser när ett test pågår, så att det inte påverkar något annat.
-import { esc, notis, ikon, vyRubrik, tidpunkt, tal, dialog } from './ui.js';
+import { esc, notis, ikon, vyRubrik, tidpunkt, tal, dialog, api } from './ui.js';
 import { S, loggaIn, loggaUt, aterstallDemo, rita } from './app.js';
 import { nyRakning, registrera, uppmatt } from './anvandartest-rakning.js';
 import { FORMAT, UPPGIFTER, UPPGIFTSVERSION, STARTPUNKT, YRKESROLLER, ERFARENHET, OPPNA_FRAGOR } from './anvandartest-uppgifter.js';
@@ -104,6 +104,18 @@ const vantaPa = (sel, ms = 15000) => new Promise((ja, nej) => {
   titta();
 });
 
+// Startpunkter som behöver ett läge som inte finns i seeden (runda 5, r4). Samma förberedelse som i
+// test/flodessteg.cjs: demon återställs och Gunnar Åkessons Waran gör uppehåll med återinsättning i morgon.
+const FORBERED = {
+  'uppehall-waran': async () => {
+    await aterstallDemo();
+    const l = await api('/api/patient/p01/lakemedel');
+    const w = l.ordinationer.find(o => o.lakemedel?.namn === 'Waran' && o.status === 'aktiv');
+    const imorgon = new Date(Date.now() + 86400_000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
+    if (w) await api(`/api/ordination/${w.id}/utsatt`, { metod: 'POST', data: { plan: { typ: 'uppehall', aterinsattning: imorgon } } });
+  },
+};
+
 // Uppgiften börjar på samma sätt som i skriptet: vid byte av demoroll loggas rollen in och demon återställs, så att
 // patienterna är som i seeden. Sedan visas startsidan, och först därefter räknas stegen.
 async function borjaUppgift(knapp) {
@@ -116,6 +128,7 @@ async function borjaUppgift(knapp) {
       T.roll = u.roll;
     }
     const sp = STARTPUNKT[u.start];
+    if (sp.forbered) await FORBERED[sp.forbered]();
     if (location.hash === sp.hash) await rita(); else location.hash = sp.hash;
     await vantaPa(sp.klar);
     document.getElementById('notiser').replaceChildren();

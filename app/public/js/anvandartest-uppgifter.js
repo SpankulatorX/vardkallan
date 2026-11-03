@@ -20,6 +20,8 @@ export const STARTPUNKT = {
   'Översikten för en inlagd patient': { hash: '#/patient/p04', klar: '.tidslinje' },
   'Vårdadministratörens startsida': { hash: '#/idag', klar: '#idag-dagens' },
   'Översikten för en patient med bokad tid': { hash: '#/patient/p15', klar: '.ov-tider' },
+  // Runda 5, r4: forbered görs av anvandartest.js innan uppgiften börjar (Waran gör uppehåll med återinsättning i morgon).
+  'Arbetslistan dagen före en återinsättning': { hash: '#/arbetslista', klar: '#lista table', forbered: 'uppehall-waran' },
 };
 
 export const UPPGIFTER = [
@@ -185,6 +187,12 @@ export const UPPGIFTER = [
     id: 'aterbesok', namn: 'Sätta upp ett återbesök', roll: 'lak-kard', start: 'Patientens översikt',
     text: 'Gunnar Åkesson ska komma tillbaka till mottagningen efter vårdtillfället. Se till att han kommer upp på väntelistan för ett återbesök, så att vårdadministratören kan boka tiden.',
     kontroll: { notis: 'Återbesöket står på väntelistan' },
+  },
+  // Runda 5, r4: systemet bevakar datumet för återinsättning efter ett uppehåll med antikoagulantia.
+  {
+    id: 'aterinsattning', namn: 'Sätta in Waran igen efter ett uppehåll', roll: 'lak-kard', start: 'Arbetslistan dagen före en återinsättning',
+    text: 'Gunnar Åkesson har gjort uppehåll med Waran inför ett ingrepp, och behandlingen ska börja igen i morgon. Se till att han får sitt Waran igen.',
+    kontroll: { notis: 'Waran är ordinerat' },
   },
 ];
 

@@ -20,6 +20,16 @@ const DA = 'Delegering via API > ';
 const DO = 'Dos som avviker från ordinationen > ';
 const PL = 'Utsättning av antikoagulantia > ';
 const SG = 'Säkerhetsgranskning av delegering och dos > ';
+// Runda 5, r4: läkaren delegerar, vårdhändelsen sätts upp igen vid avbokning och återinsättningen bevakas
+// (app/test/delegering.test.js, vardhandelse.test.js och aterinsattning.test.js).
+const DL = 'Delegering av läkare > ';
+const VH = 'Vårdhändelse i tidboken > ';
+const AT = 'Återinsättning efter uppehåll > ';
+const ATA = 'Återinsättning i inkorgen via API > ';
+const VH_IGEN = [
+  `${VH}när tiden avbokas sätter systemet upp vårdhändelsen på den ordinerande vårdenhetens väntelista igen, utan ny vårdrelation`,
+  `${VH}när ordinationen är utsatt eller tiden är satt för hand sätter avbokningen inte upp vårdhändelsen igen`,
+];
 
 export default [
   {
@@ -86,9 +96,9 @@ export default [
   },
   {
     id: '3.5.2.7', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
-    tester: [`${FO}ordination till planerad vårdhändelse får administrationstid när händelsen tidsätts`, TB.vhForslag, TB.vhBokning, TB.vhOmboka, TB.vhVantelista, TB.vhManuell, TB.vhSakerhet, TB.vhSparr],
-    losning: 'En ordination kan knytas till en planerad vårdhändelse, till exempel två timmar före en elkonvertering. Vårdhändelsen är en bokning i tidboken på den egna vårdenheten, eller en post på väntelistan som vårdadministratören bokar. Dosen väntar i administreringslistan tills vårdhändelsen har fått en tid, och tiden följer bokningen när den bokas, bokas om eller avbokas.',
-    expert: 'Systemet föreslår patientens bokningar med den som passar ordinationen först, eller sätter upp vårdhändelsen på väntelistan, så läkaren väljer med ett klick. När tiden ändras i tidboken räknar systemet om dosen utan att någon gör något och förklarar för sjuksköterskan varför dosen flyttades eller väntar.',
+    tester: [`${FO}ordination till planerad vårdhändelse får administrationstid när händelsen tidsätts`, TB.vhForslag, TB.vhBokning, TB.vhOmboka, TB.vhVantelista, TB.vhManuell, TB.vhSakerhet, TB.vhSparr, ...VH_IGEN],
+    losning: 'En ordination kan knytas till en planerad vårdhändelse, till exempel två timmar före en elkonvertering. Vårdhändelsen är en bokning i tidboken på den egna vårdenheten, eller en post på väntelistan som vårdadministratören bokar. Dosen väntar i administreringslistan tills vårdhändelsen har fått en tid, och tiden följer bokningen när den bokas, bokas om eller avbokas. Avbokas tiden sätts vårdhändelsen upp på den ordinerande vårdenhetens väntelista igen.',
+    expert: 'Systemet föreslår patientens bokningar med den som passar ordinationen först, eller sätter upp vårdhändelsen på väntelistan, så läkaren väljer med ett klick. När tiden ändras i tidboken räknar systemet om dosen utan att någon gör något, sätter vid en avbokning själv upp vårdhändelsen på väntelistan igen och förklarar för sjuksköterskan varför dosen flyttades eller väntar.',
     anmarkning: 'Tidboken har bara personal som resurs, så en vårdhändelse bokas som ett återbesök hos läkare. Operationsplanering och bokning av lokal och utrustning saknas. En vårdenhet utan tidbok i demon tidsätter vårdhändelsen för hand.',
   },
   {
@@ -103,10 +113,17 @@ export default [
       `${PL}vid byte föreslår systemet det nya antikoagulantia som redan är ordinerat`,
       `${PL}plan via API, och läkemedel utan antikoagulantia sätts ut utan plan`,
       `${GK}Sätta ut Waran med plan inom budget`,
+      // Datumet för återinsättning bevakas i läkarens inkorg (runda 5, r4).
+      `${AT}dagen före och på dagen får läkaren en rad i inkorgen med läkemedlet, planen och en knapp till läkemedelslistan`,
+      `${AT}raden går till den ordinerande läkaren, den som beslutade om uppehållet och vårdenhetens läkare, aldrig till andra roller`,
+      `${AT}raden försvinner när läkemedlet är insatt igen eller ordinationen ändras, men inte av en bryggbehandling`,
+      `${AT}säkerhet: bara patienter som användaren får se, och aldrig uppgifter från en spärrad vårdenhet`,
+      `${ATA}API: inkorgen visar raden med skyddad identitet maskerad, loggar åtkomsten och leder till läkemedelslistan`,
+      `${GK}Sätta in Waran igen efter ett uppehåll inom budget`,
     ],
-    losning: 'Vid utsättning varnar systemet för läkemedel med särskilda observationer: betablockerare, antikoagulantia, trombocythämmare efter PCI, kortison, basinsulin, antiepileptika, antidepressiva, opioider och sömnmedel. Antikoagulantia (ATC B01AA, B01AB, B01AE och B01AF) sätts bara ut med en bekräftad plan: byte till annat medel, uppehåll inför ingrepp med datum för återinsättning, eller avslutad behandling. Planen sparas med utsättningen och syns i läkemedelslistan, i historiken och i FHIR. Reglerna ligger i en egen modul och är märkta som demoregler.',
-    expert: 'Systemet räknar ut hur länge patienten har haft substansen, också över dosändringar, visar varningen med ett förslag på nedtrappning innan något sparas och låter orsaken vara motiveringen. För antikoagulantia förklarar systemet risken för blodpropp och stroke, föreslår planerna med det nya medlet och datumet för återinsättning ifyllda och skriver orsaken ur planen, så att läkaren bekräftar med ett klick på Jag har en plan.',
-    anmarkning: 'Reglerna är demoregler, inte granskade av farmaceut eller läkare. Inget nedtrappningsschema skapas av systemet. Datumet för återinsättning bevakas inte i inkorgen, och ingen ny ordination skapas av systemet på det datumet.',
+    losning: 'Vid utsättning varnar systemet för läkemedel med särskilda observationer: betablockerare, antikoagulantia, trombocythämmare efter PCI, kortison, basinsulin, antiepileptika, antidepressiva, opioider och sömnmedel. Antikoagulantia (ATC B01AA, B01AB, B01AE och B01AF) sätts bara ut med en bekräftad plan: byte till annat medel, uppehåll inför ingrepp med datum för återinsättning, eller avslutad behandling. Planen sparas med utsättningen och syns i läkemedelslistan, i historiken och i FHIR. Datumet för återinsättning bevakas: från dagen före får den ordinerande läkaren, den som beslutade om uppehållet och läkarna på de vårdenheterna en rad i inkorgen, och knappen Sätt in igen öppnar läkemedelslistan med ordinationen ifylld. Raden står kvar tills läkemedlet är insatt igen. Reglerna ligger i en egen modul och är märkta som demoregler.',
+    expert: 'Systemet räknar ut hur länge patienten har haft substansen, också över dosändringar, visar varningen med ett förslag på nedtrappning innan något sparas och låter orsaken vara motiveringen. För antikoagulantia förklarar systemet risken för blodpropp och stroke, föreslår planerna med det nya medlet och datumet för återinsättning ifyllda och skriver orsaken ur planen, och påminner läkaren i inkorgen dagen före återinsättningen med ordinationen ifylld ur den tidigare.',
+    anmarkning: 'Reglerna är demoregler, inte granskade av farmaceut eller läkare. Inget nedtrappningsschema skapas av systemet. Systemet skapar ingen ordination själv på datumet för återinsättning: läkaren sparar den ifyllda ordinationen. En rad i inkorgen går inte att avfärda utan att läkemedlet sätts in igen, och planen kan inte ändras i efterhand.',
   },
   {
     id: '3.5.2.9', kategori: 'system', egna: ['L7', 'D9'], avsedd: 'uppfyllt_demo',
@@ -124,7 +141,7 @@ export default [
     id: '3.5.2.10', kategori: 'system', egna: ['L7'], avsedd: 'delvis',
     tester: [
       `${M}utsättning kräver orsak och inget raderas`,
-      `${A}helflöde: ordination med varning, kvittens och NLL-timeout med avstämning`,
+      `${A}helflöde: ordination med varning, kvittens och NLL som inte svarar i tid, med avstämning`,
       `${GK}Sätta ut ett läkemedel inom budget`,
       `${AD}ge en dos: med tid och den som gav den, knuten till vårdtillfällets vårdkontakt`,
       `${AD}administreringar raderas inte och en given dos ändras inte (trigger)`,
@@ -164,9 +181,9 @@ export default [
   },
   {
     id: '3.5.2.14', kategori: 'system', egna: [], avsedd: 'delvis',
-    tester: [`${FO}ordination till planerad vårdhändelse får administrationstid när händelsen tidsätts`, TB.vhBokning, TB.vhOmboka, TB.vhVantelista, TB.vhManuell, TB.vhMinJournal],
+    tester: [`${FO}ordination till planerad vårdhändelse får administrationstid när händelsen tidsätts`, TB.vhBokning, TB.vhOmboka, TB.vhVantelista, TB.vhManuell, TB.vhMinJournal, ...VH_IGEN],
     losning: 'Ordination till en planerad vårdhändelse som inte är tidsatt, med tid före eller efter händelsen. Vårdhändelsen får sin tid från tidboken, och administrationstiden räknas om när tiden bokas, bokas om eller avbokas. Den manuella tidsättningen finns kvar som reserv. Vårdadministratören ser att tiden styr en läkemedelsdos, men aldrig läkemedlet, och patienten kan inte själv boka om en sådan tid.',
-    expert: 'Systemet räknar fram när läkemedlet ska ges när vårdhändelsen får sin tid, visar det i Läkemedel att ge och skriver varje ändring i ordinationens historik. Vid avbokning går dosen tillbaka till att vänta, med en förklaring på vanlig svenska.',
+    expert: 'Systemet räknar fram när läkemedlet ska ges när vårdhändelsen får sin tid, visar det i Läkemedel att ge och skriver varje ändring i ordinationens historik. Vid avbokning går dosen tillbaka till att vänta, med en förklaring på vanlig svenska, och systemet sätter upp vårdhändelsen på den ordinerande vårdenhetens väntelista igen.',
     anmarkning: 'Fördefinierade mallar för en vårdhändelse med flera ordinationer saknas.',
   },
   { id: '3.5.2.15', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
@@ -222,10 +239,14 @@ export default [
       `${SG}en delegering ska gälla både när en dos iordningsställs och för dostiden`,
       `${GK}Ge en dos med delegering inom budget`,
       `${GK}Registrera en delegering inom budget`,
+      // Läkaren delegerar på samma villkor som sjuksköterskan (runda 5, r4, 9 kap. 2 §).
+      `${DL}läkaren registrerar och återkallar delegering på samma villkor som sjuksköterskan: samma vårdenhet, inte för sig själv och samma gränser för giltighet`,
+      `${DL}läkaren påminns bara om de delegeringar som läkaren själv har utfärdat, sjuksköterskan som förut`,
+      `${DA}API: läkaren registrerar en delegering under Delegeringar, och undersköterskan ger med den`,
     ],
-    losning: 'Dagens administreringslista per avdelning och patient räknas fram ur ordinationerna. Sjuksköterskan och läkaren ger, lämnar över eller registrerar att en dos inte gavs med ett klick, också i efterhand, med samma kontroller och loggning. En undersköterska ger läkemedel bara med en giltig delegering enligt HSLF-FS 2017:37 9 kap., som en sjuksköterska på samma vårdenhet registrerar med omfattning, giltighet på högst ett år, uppföljning och vem som utfärdade den. Delegeringen sparas med dosen och syns i dosens historik och i FHIR. En dos som avviker från ordinationen ger en varning som kvitteras med motivering. Senast given dos, dygnsdos för vid behov och doser under permission visas. Administreringarna finns i läskopian vid avbrott och i FHIR som MedicationAdministration.',
-    expert: 'Systemet kontrollerar varje dos mot ordinationen och tidigare doser och förklarar på vanlig svenska när det varnar för dubbel dos, för tidig dos, dos utan ordination, högsta dygnsdos eller en annan dos än ordinationens, och sätter själv tid, vem som gav dosen och vårdkontakten. För undersköterskan prövar systemet att delegeringen gäller just dosens läkemedelsform, administrationssätt, datum och vårdenhet, visar knappen Ge bara för de doserna, föreslår nästa delegering och påminner sjuksköterskan i inkorgen 30 dagar innan den går ut.',
-    anmarkning: 'Varningarna är demoregler. Patientnära skanning är förberedd med kontrollkoden men ingen streckkodsläsare är ansluten. Tiderna i en ordination ändras genom en ny ordination, inte i administreringslistan. Vilka läkemedelsformer som kan delegeras och gränsen på ett år är demoregler, inte en vårdgivares rutin efter riskanalys (9 kap. 8 och 9 §§). Bara undersköterskor kan få delegering i demon, och delegeringen registreras av en sjuksköterska, inte av läkare eller tandläkare som också får delegera enligt 9 kap. 2 §.',
+    losning: 'Dagens administreringslista per avdelning och patient räknas fram ur ordinationerna. Sjuksköterskan och läkaren ger, lämnar över eller registrerar att en dos inte gavs med ett klick, också i efterhand, med samma kontroller och loggning. En undersköterska ger läkemedel bara med en giltig delegering enligt HSLF-FS 2017:37 9 kap., som en sjuksköterska eller läkare på samma vårdenhet registrerar med omfattning, giltighet på högst ett år, uppföljning och vem som utfärdade den. Delegeringen sparas med dosen och syns i dosens historik och i FHIR. En dos som avviker från ordinationen ger en varning som kvitteras med motivering. Senast given dos, dygnsdos för vid behov och doser under permission visas. Administreringarna finns i läskopian vid avbrott och i FHIR som MedicationAdministration.',
+    expert: 'Systemet kontrollerar varje dos mot ordinationen och tidigare doser och förklarar på vanlig svenska när det varnar för dubbel dos, för tidig dos, dos utan ordination, högsta dygnsdos eller en annan dos än ordinationens, och sätter själv tid, vem som gav dosen och vårdkontakten. För undersköterskan prövar systemet att delegeringen gäller just dosens läkemedelsform, administrationssätt, datum och vårdenhet, visar knappen Ge bara för de doserna, föreslår nästa delegering och påminner sjuksköterskan, och läkaren om läkarens egna beslut, i inkorgen 30 dagar innan den går ut.',
+    anmarkning: 'Varningarna är demoregler. Patientnära skanning är förberedd med kontrollkoden men ingen streckkodsläsare är ansluten. Tiderna i en ordination ändras genom en ny ordination, inte i administreringslistan. Vilka läkemedelsformer som kan delegeras och gränsen på ett år är demoregler, inte en vårdgivares rutin efter riskanalys (9 kap. 8 och 9 §§). Bara undersköterskor kan få delegering i demon. Delegeringen registreras av en sjuksköterska eller läkare, men inte av en tandläkare, som också får delegera enligt 9 kap. 2 §, eftersom demon inte har någon tandvård.',
   },
   { id: '3.5.2.19', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: 'Automatgenererad administrering från medicinteknisk utrustning är inte byggd.' },

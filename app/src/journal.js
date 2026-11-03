@@ -168,7 +168,7 @@ export const MATTYPER = {
   blodtryck: { namn: 'Blodtryck', format: 'blodtryck' },
   puls: { namn: 'Puls', min: 20, max: 250 },
   temp: { namn: 'Temperatur', min: 30, max: 44 },
-  saturation: { namn: 'Saturation', min: 50, max: 100 },
+  saturation: { namn: 'Syremättnad', min: 50, max: 100 },
   andningsfrekvens: { namn: 'Andningsfrekvens', min: 4, max: 70 },
   vikt: { namn: 'Vikt', min: 0.5, max: 400 },
   langd: { namn: 'Längd', min: 30, max: 250 },

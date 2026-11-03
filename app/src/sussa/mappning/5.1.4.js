@@ -9,11 +9,11 @@ export default [
     id: '5.1.4.1', kategori: 'nationell', egna: ['L7'], avsedd: 'delvis',
     tester: [
       `${M}NLL: normal överföring kvitteras`,
-      `${M}NLL: timeout döljer inte ordinationen och avstämning hittar registreringen`,
+      `${M}NLL: inget svar i tid döljer inte ordinationen och avstämning hittar registreringen`,
       `${M}NLL: felsvar syns och avstämning skickar igen`,
     ],
     losning: 'Ordinationer förs över till en simulerad Nationell läkemedelslista med kvittens och avstämning.',
-    expert: 'Systemet döljer aldrig en registrerad förskrivning vid timeout, utan stämmer av själv och visar avvikelsen i inkorgen.',
+    expert: 'Systemet döljer aldrig en registrerad förskrivning när NLL inte svarar i tid, utan stämmer av själv och visar avvikelsen i inkorgen.',
     anmarkning: 'Simulerat. Ingen anslutning till E-hälsomyndigheten, och makulering av e-recept saknas.',
   },
   { id: '5.1.4.2', kategori: 'nationell', egna: ['D10'], tester: [], avsedd: 'planerat',

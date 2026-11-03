@@ -6,9 +6,10 @@
 //
 // Föreskriften, som den citeras här:
 //   2 § "Endast läkare, tandläkare och sjuksköterskor får delegera iordningställande, administrering och överlämnande
-//       av läkemedel till någon annan." I demon registrerar en sjuksköterska på samma vårdenhet.
+//       av läkemedel till någon annan." I demon registrerar en sjuksköterska eller läkare på samma vårdenhet
+//       (läkare från beslutet 2026-11-03), på samma villkor och aldrig för sig själv.
 //   3 och 4 §§ mottagaren ska ha dokumenterade kunskaper och den som delegerar ska kontrollera dem. Systemet kräver att
-//       sjuksköterskan intygar kontrollen.
+//       den som delegerar intygar kontrollen.
 //   5 § "Delegeringsbeslutet ska vara tidsbegränsat." Beslutet är personligt och gäller en viss verksamhet.
 //   6 § beslutet ska följas upp minst en gång per år och återkallas när det inte längre är förenligt med god och säker
 //       vård. I demon gäller ett beslut därför högst ett år, och uppföljningen sätts till sista giltighetsdagen.
@@ -109,7 +110,7 @@ export function sammanfattning(db, personal) {
 // Varför det inte finns något giltigt beslut den dagen: saknas, återkallat, utgånget, kommande eller annan vårdenhet.
 function utanGiltig(db, personal, alla, dag, ve, du) {
   const vem = du ? 'Du' : personal.namn;
-  const sjukskoterska = 'En sjuksköterska på vårdenheten kan registrera en ny delegering.';
+  const sjukskoterska = 'En sjuksköterska eller läkare på vårdenheten kan registrera en ny delegering.';
   if (!alla.length) return `${vem} har ingen delegering att ge läkemedel. ${sjukskoterska}`;
   const har = alla.filter(d => d.vardenhet_id === ve);
   if (!har.length) {
@@ -152,13 +153,13 @@ export function prova(db, personal, { lm, satt = null, ms = Date.now(), ordinati
   };
 }
 
-// Personal som kan få delegering av en sjuksköterska: undersköterskorna på samma vårdenhet.
+// Personal som kan få delegering av en sjuksköterska eller läkare: undersköterskorna på samma vårdenhet.
 function mottagare(db, ve) {
   const enheter = enheterUnder(db, ve);
   return db.query(`SELECT * FROM personal WHERE yrke = 'underskoterska' AND coalesce(aktiv, 1) = 1 AND enhet_id IN (${enheter.map(() => '?').join(', ')}) ORDER BY namn`).all(...enheter);
 }
 
-// GET /api/delegeringar. Sjuksköterskan ser undersköterskorna på sin vårdenhet med deras beslut och ett förslag på nästa,
+// GET /api/delegeringar. Sjuksköterskan och läkaren ser undersköterskorna på sin vårdenhet med deras beslut och ett förslag på nästa,
 // undersköterskan ser sina egna beslut. Inga andra vårdenheters personal visas.
 export function oversikt(db, personal) {
   const ve = vardenhetFor(db, personal.enhet_id);
@@ -184,7 +185,7 @@ export function oversikt(db, personal) {
 
 const nekad = (db, personal, resurs) => {
   loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, patient_id: null, handling: 'delegera', resurs, grund: 'nekad', resultat: 'nekad' });
-  return new Fel(403, 'Bara en sjuksköterska kan registrera och återkalla delegering av läkemedelshantering här (HSLF-FS 2017:37 9 kap. 2 §).', 'nekad');
+  return new Fel(403, 'Bara en sjuksköterska eller läkare kan registrera och återkalla delegering av läkemedelshantering här (HSLF-FS 2017:37 9 kap. 2 §).', 'nekad');
 };
 
 // POST /api/delegeringar. inp: { personalId, omfattning, fran, till, kunskapKontrollerad }. Giltighetstid och uppföljning
@@ -194,8 +195,9 @@ export function registrera(db, personal, inp = {}) {
   const ve = vardenhetFor(db, personal.enhet_id);
   const p = typeof inp.personalId === 'string' ? personRad(db, inp.personalId) : null;
   if (!p || p.aktiv === 0) throw new Fel(400, 'Välj den som ska få delegeringen.', 'ogiltig', { falt: ['personalId'] });
+  if (p.id === personal.id) throw new Fel(400, 'Du kan inte registrera en delegering för dig själv. Delegeringen ges till en undersköterska på vårdenheten.', 'ogiltig', { falt: ['personalId'] });
   if (p.yrke !== 'underskoterska') throw new Fel(400, `${p.namn} är ${p.yrke === 'lakare' ? 'läkare' : p.yrke === 'sjukskoterska' ? 'sjuksköterska' : 'inte undersköterska'} och behöver ingen delegering för att ge läkemedel. I demon kan undersköterskor få delegering.`, 'ogiltig', { falt: ['personalId'] });
-  if (vardenhetFor(db, p.enhet_id) !== ve) throw new Fel(400, `${p.namn} arbetar inte på samma vårdenhet som du. En delegering registreras av en sjuksköterska på samma vårdenhet och gäller den verksamheten.`, 'ogiltig', { falt: ['personalId'] });
+  if (vardenhetFor(db, p.enhet_id) !== ve) throw new Fel(400, `${p.namn} arbetar inte på samma vårdenhet som du. En delegering registreras av en sjuksköterska eller läkare på samma vårdenhet och gäller den verksamheten.`, 'ogiltig', { falt: ['personalId'] });
   const falt = [];
   const omf = Array.isArray(inp.omfattning) ? [...new Set(inp.omfattning)] : [];
   if (!omf.length || omf.some(k => !Object.hasOwn(OMFATTNING, k))) falt.push('omfattning');
@@ -235,7 +237,8 @@ export function aterkalla(db, personal, id, inp = {}) {
 }
 
 // Påminnelser i sjuksköterskans inkorg: undersköterskor på vårdenheten vars sista giltiga delegering går ut inom 30
-// dagar. En delegering som redan är förnyad (ett beslut som gäller längre) ger ingen påminnelse.
+// dagar. En delegering som redan är förnyad (ett beslut som gäller längre) ger ingen påminnelse. Läkaren påminns bara
+// när det beslut som går ut är läkarens eget, så att läkarens inkorg inte fylls av sjuksköterskornas uppföljningar.
 export function paminnelser(db, personal) {
   if (!kanRoll(personal, 'delegera')) return [];
   const ve = vardenhetFor(db, personal.enhet_id);
@@ -253,6 +256,7 @@ export function paminnelser(db, personal) {
     }
     const kvar = Math.round((Date.parse(sista.till) - Date.parse(dag)) / 86400_000);
     if (kvar > PAMINN_DAGAR) continue;
+    if (personal.yrke !== 'sjukskoterska' && sista.utfardad_av !== personal.id) continue;
     ut.push({
       personalId: p.id, namn: p.namn, delegeringId: sista.id, till: sista.till, dagarKvar: kvar,
       text: `Delegeringen att ge läkemedel går ut ${kvar === 0 ? 'i dag' : kvar === 1 ? 'i morgon' : `om ${kvar} dagar`}, ${sista.till}. Följ upp den och registrera en ny om ${p.namn} ska fortsätta ge läkemedel.`,

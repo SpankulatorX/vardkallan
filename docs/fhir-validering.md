@@ -130,7 +130,7 @@ Samma validering av svaren från koden före ändringarna (HTTP-urvalet: 252 uni
 
 | Resurstyp | Fel före | Huvudsakliga fel |
 |---|---|---|
-| Observation | 258 | `display` på svenska för LOINC ("Puls", "Blodtryck"), UCUM saknades (`valueQuantity.system` och `code`) som vitalparameterprofilerna kräver, 2708-6 saknades för saturation |
+| Observation | 258 | `display` på svenska för LOINC ("Puls", "Blodtryck"), UCUM saknades (`valueQuantity.system` och `code`) som vitalparameterprofilerna kräver, 2708-6 saknades för syremättnad |
 | MedicationRequest | 92 | tilläggen `uppfoljningsdatum`, `nll-status` och `utsattningsorsak` var inte definierade, svensk substans som ATC-`display` |
 | Condition | 24 | `http://hl7.org/fhir/sid/icd-10-se` är ingen känd adress |
 | Composition | 28 | tom lista i `relatesTo` |

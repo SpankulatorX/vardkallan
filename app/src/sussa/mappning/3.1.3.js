@@ -27,7 +27,7 @@ export default [
       `${GK}Registrera blodtryck inom budget`,
       `${KV}varje mätvärdestyp har kod: NPU för labb, LOINC för vitalparametrar, och UCUM-enhet`,
     ],
-    losning: 'Mätvärden som blodtryck, puls, temperatur och saturation registreras manuellt och visas per typ.',
+    losning: 'Mätvärden som blodtryck, puls, temperatur och syremättnad registreras manuellt och visas per typ.',
     expert: 'Systemet kontrollerar värdet mot rimliga gränser och sätter enhet och kod själv, så användaren skriver bara siffrorna.',
     anmarkning: 'Registreringen i efterhand är begränsad till de senaste 30 dagarna.',
   },

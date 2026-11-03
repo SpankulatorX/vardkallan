@@ -32,7 +32,7 @@ export default [
       `${SPRAK}kontrollen hittar engelska ord, okända förkortningar, tankstreck, ellipser och interna anteckningar`,
       `${SPRAK}kontrollen hittar å, ä och ö som saknas`,
     ],
-    losning: 'Hela gränssnittet, Min journal och serverns felmeddelanden och varningar är på svenska. Vid varje bygge går ett test igenom alla texter som visas och stoppar bygget vid ett engelskt ord, ett tankstreck, en ellips, ett ord där å, ä eller ö saknas eller en intern anteckning.',
+    losning: 'Hela gränssnittet, Min journal och serverns felmeddelanden och varningar är på svenska. Vid varje bygge går ett test igenom alla texter som visas och stoppar bygget vid ett engelskt ord, ett tankstreck, en ellips, ett ord där å, ä eller ö saknas eller en intern anteckning. De sista lånorden är utbytta mot svenska ord (inget svar i tid, uppkopplad, syremättnad och tomt), och kontrollen stoppar de engelska orden om de kommer tillbaka.',
     expert: 'Systemet förklarar på vanlig svenska varför något inte går, och språkkontrollen ser till att ingen text på engelska eller med kodverkets namn når användaren.',
     anmarkning: 'Kontrollen bygger på en lista över vanliga engelska ord och en lista över tillåtna lånord, förkortningar och egennamn (FHIR, SITHS, NPÖ, ATC och andra). Ett engelskt ord som inte står i listan och inte har w upptäcks inte. Patientuppgifterna i demon (anteckningar och namn) kontrolleras inte, och ingen språkgranskning av en människa är gjord. FHIR-svarens kodverk (LOINC, ATC) har kodverkens engelska benämningar, som inte visas i gränssnittet.',
   },

@@ -107,7 +107,7 @@ export const IDENTITETSPATIENTER = [
     anteckningar: [
       { typ: 'Akutanteckning', enhet: 'uso-akut', vk: 'akut', av: 'lak-akut', tid: [-400, '15:40'], sokord: {
         'Kontaktorsak': 'Andnöd efter arbete i växthus. Har inget svenskt personnummer eller samordningsnummer.',
-        'Status': 'Pip i båda lungorna. Saturation 93 procent. PEF 280.',
+        'Status': 'Pip i båda lungorna. Syremättnad 93 procent. PEF 280.',
         'Bedömning': 'Astmaanfall.',
         'Åtgärd': 'Salbutamol i inhalator. Förbättrad. Remiss till vårdcentral.',
       } },

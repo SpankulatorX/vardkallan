@@ -41,7 +41,7 @@ function* noder(v, vag = '') {
 }
 
 describe('FHIR-struktur', () => {
-  test('inga tomma listor, tomma strängar eller null, och varje kodning har system och kod', () => {
+  test('inga tomma listor, tomma strängar eller tomma värden, och varje kodning har system och kod', () => {
     expect(resurser.length).toBeGreaterThan(200);
     for (const typ of [...TYPER, 'Patient', 'Organization', 'Practitioner', 'AuditEvent']) expect(avTyp(typ).length).toBeGreaterThan(0);
     const fel = [];

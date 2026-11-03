@@ -23,6 +23,8 @@ import * as tidbok from './tidbok.js';
 // Runda 5, r1: planerad vårdhändelse i tidboken och läkarens återbesök.
 import * as vardhandelse from './vardhandelse.js';
 import * as aterbesok from './aterbesok.js';
+// Återinsättning efter ett uppehåll med antikoagulantia i läkarens inkorg (runda 5, r4).
+import * as aterinsattning from './aterinsattning.js';
 import { kravregister, lasTestresultat } from './krav.js';
 import { sussaRegister } from './sussa/index.js';
 import { lasKlientresultat, gransnittHash } from './klientresultat.js';
@@ -1036,8 +1038,24 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...utdata.inkorg(c.db, p),
       // Delegeringar som går ut inom 30 dagar, för sjuksköterskan på samma vårdenhet (runda 5).
       delegeringarSomGarUt: delegering.paminnelser(c.db, p),
+      // Återinsättning efter uppehåll med antikoagulantia, för läkaren (runda 5, r4).
+      aterinsattningar: aterinsattningIInkorg(c),
     };
   });
+  // Återinsättning efter uppehåll (runda 5, r4). Behörigheten prövas i aterinsattning.js. Varje rad visar läkemedlet
+  // för en patient och loggas därför på patienten, en gång per session och ordination, så att inkorgens uppdateringar
+  // inte fyller loggen.
+  function aterinsattningIInkorg(c) {
+    const loggade = (c.s.aterinsattningLoggad ??= new Set());
+    return aterinsattning.inkorg(c.db, c.personal).map(r => {
+      if (!loggade.has(r.ordinationId)) {
+        loggade.add(r.ordinationId);
+        const a = new Atkomst(c.db, c.personal, r.patientId, {}, 'las_lakemedel');
+        a.logga('las_lakemedel', a.prova('las_lakemedel').grund, `inkorg:aterinsattning:${r.ordinationId}`);
+      }
+      return { ...r, patient: patientKort(patientRad(c.db, r.patientId)) };
+    });
+  }
 
   // Identiteter (Sussa 3.1.1). Systemet tolkar numret, skapar reservnummer, byter identitet när ett personnummer blir
   // känt och föreslår själv sammanslagning av dubbletter, som en vårdadministratör bekräftar. Allt prövas i

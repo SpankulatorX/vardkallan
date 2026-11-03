@@ -25,7 +25,7 @@ export default [
     tester: [
       `${A}inkorgen visar larm, okvitterade svar och NLL-avvikelser`,
       `${R}larm: mottagningskvittens saknas efter 2 timmar`,
-      `${M}NLL: timeout döljer inte ordinationen och avstämning hittar registreringen`,
+      `${M}NLL: inget svar i tid döljer inte ordinationen och avstämning hittar registreringen`,
       T.startsida, T.egenbokning,
     ],
     losning: 'Inkorgen samlar bevakningar för enheten och den inloggade: remisslarm, okvitterade svar och NLL-avvikelser. Vårdadministratörens startsida visar bevakningar som har löpt ut, med en åtgärd per rad, och väntelistans patienter som närmar sig gränsen.',

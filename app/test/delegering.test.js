@@ -191,7 +191,7 @@ describe('Delegering', () => {
 
   test('registrera delegering: fel roll och fel vårdenhet nekas och loggas', () => {
     const db = sandladaKl('13:30');
-    for (const id of ['usk-kard', 'lak-kard', 'adm-kard']) {
+    for (const id of ['usk-kard', 'adm-kard', 'logg']) {
       const e = fel(() => delegering.registrera(db, personal(db, id), { personalId: 'usk-kard', omfattning: ['tabletter_peroralt'], kunskapKontrollerad: true }));
       expect({ id, status: e?.status }).toEqual({ id, status: 403 });
       expect(db.query('SELECT resultat FROM atkomstlogg WHERE personal_id = ? ORDER BY id DESC').get(id).resultat).toBe('nekad');
@@ -230,6 +230,68 @@ describe('Delegering', () => {
     expect(delegering.paminnelser(db, personal(db, 'lak-kard'))).toEqual([]);
     delegering.registrera(db, ssk, { personalId: 'usk-kard', omfattning: ['tabletter_peroralt', 'insulin_subkutant'], kunskapKontrollerad: true });
     expect(delegering.paminnelser(db, ssk)).toEqual([]);
+  });
+});
+
+// Runda 5, beslut 2026-11-03: läkare får också delegera (9 kap. 2 § HSLF-FS 2017:37), på samma villkor som sjuksköterskan.
+describe('Delegering av läkare', () => {
+  test('läkaren registrerar och återkallar delegering på samma villkor som sjuksköterskan: samma vårdenhet, inte för sig själv och samma gränser för giltighet', () => {
+    const db = sandladaKl('13:30');
+    const lak = personal(db, 'lak-kard');
+    expect(kanRoll(lak, 'delegera')).toBe(true);
+    // Samma översikt och samma förslag som sjuksköterskan får.
+    const f = delegering.oversikt(db, lak);
+    expect(f.kan).toBe(true);
+    const fSsk = delegering.oversikt(db, personal(db, 'ssk-kard'));
+    expect(f.personal.map(p => [p.id, p.forslag])).toEqual(fSsk.personal.map(p => [p.id, p.forslag]));
+    // Samma krav: kontrollerade kunskaper, högst ett år och start högst 30 dagar fram.
+    expect(fel(() => delegering.registrera(db, lak, { personalId: 'usk-kard', omfattning: ['tabletter_peroralt'] })).extra.falt).toContain('kunskapKontrollerad');
+    expect(fel(() => delegering.registrera(db, lak, { personalId: 'usk-kard', omfattning: ['tabletter_peroralt'], till: addDagar(idag(), 400), kunskapKontrollerad: true })).extra.falt).toContain('till');
+    expect(fel(() => delegering.registrera(db, lak, { personalId: 'usk-kard', omfattning: ['tabletter_peroralt'], fran: addDagar(idag(), 31), kunskapKontrollerad: true })).extra.falt).toContain('fran');
+    // Inte för sig själv.
+    const sjalv = fel(() => delegering.registrera(db, lak, { personalId: 'lak-kard', omfattning: ['tabletter_peroralt'], kunskapKontrollerad: true }));
+    expect(sjalv.status).toBe(400);
+    expect(sjalv.message).toContain('dig själv');
+    // Inte för en undersköterska på en annan vårdenhet, som läkaren inte heller ser.
+    const akut = personal(db, 'lak-akut');
+    expect(fel(() => delegering.registrera(db, akut, { personalId: 'usk-kard', omfattning: ['tabletter_peroralt'], kunskapKontrollerad: true })).message).toContain('samma vårdenhet');
+    expect(delegering.oversikt(db, akut).personal.some(x => x.id === 'usk-kard')).toBe(false);
+    // Registreringen sparas med läkaren som den som delegerat, och loggas.
+    const d = delegering.registrera(db, lak, { personalId: 'usk-kard', omfattning: ['tabletter_peroralt', 'injektion_subkutant'], kunskapKontrollerad: true });
+    expect(d).toMatchObject({ personal: { id: 'usk-kard' }, fran: idag(), till: addDagar(idag(), 365), uppfoljning: addDagar(idag(), 365), utfardadAv: { id: 'lak-kard', namn: 'Sara Lindqvist' }, vardenhet: { id: 'uso-kard' } });
+    expect(db.query("SELECT resultat, grund, handling FROM atkomstlogg WHERE personal_id = 'lak-kard' ORDER BY id DESC").get()).toEqual({ resultat: 'tillaten', grund: 'administrativ', handling: 'delegera' });
+    // Undersköterskan ger Fragmin med läkarens delegering, och dosen visar vem som delegerat.
+    const fr = fragmin(db);
+    const dos = administrering.lista(atk(db, 'usk-kard', 'p01')).doser.find(x => x.ordinationId === fr.id);
+    expect(dos.delegering.omfattas).toBe(true);
+    const lm = db.query('SELECT * FROM katalog WHERE id = ?').get(fr.lakemedel.id);
+    expect(delegering.prova(db, personal(db, 'usk-kard'), { lm, ordination: fr }).delegering).toMatchObject({ id: d.id, utfardadAv: 'Sara Lindqvist' });
+    // Läkaren på en annan vårdenhet kan inte återkalla, och nekandet loggas. Läkaren på samma vårdenhet kan.
+    expect(fel(() => delegering.aterkalla(db, akut, d.id, { orsak: 'Försök från akuten' })).status).toBe(403);
+    expect(db.query("SELECT resultat, handling FROM atkomstlogg WHERE personal_id = 'lak-akut' ORDER BY id DESC").get()).toEqual({ resultat: 'nekad', handling: 'delegera' });
+    expect(delegering.aterkalla(db, lak, d.id, { orsak: 'Uppföljningen visade att utbildningen behöver göras om' }).aterkallad.av).toBe('Sara Lindqvist');
+    // Texten till undersköterskan säger att en sjuksköterska eller läkare registrerar en ny delegering.
+    for (const x of db.query("SELECT id FROM delegeringar WHERE personal_id = 'usk-kard' AND aterkallad_tid IS NULL").all()) delegering.aterkalla(db, lak, x.id, { orsak: 'Test utan delegering' });
+    expect(administrering.lista(atk(db, 'usk-kard', 'p01')).kan.varfor).toContain('sjuksköterska eller läkare');
+  });
+
+  test('läkaren påminns bara om de delegeringar som läkaren själv har utfärdat, sjuksköterskan som förut', () => {
+    const db = sandladaKl('13:30');
+    const lak = personal(db, 'lak-kard');
+    // Seedens delegeringar är utfärdade av Johan Ek, så läkaren får ingen påminnelse om dem.
+    expect(delegering.paminnelser(db, lak)).toEqual([]);
+    expect(delegering.paminnelser(db, personal(db, 'ssk-kard')).map(p => p.personalId)).toEqual(['usk-kard']);
+    // Läkarens beslut tar vid efter Johan Eks utan glapp och gäller längre, så ingen påminnelse.
+    delegering.registrera(db, lak, { personalId: 'usk-kard', omfattning: ['tabletter_peroralt'], till: addDagar(idag(), 200), kunskapKontrollerad: true });
+    expect(delegering.paminnelser(db, lak)).toEqual([]);
+    expect(delegering.paminnelser(db, personal(db, 'ssk-kard'))).toEqual([]);
+    // Ett beslut från läkaren som är det sista i kedjan och går ut om tio dagar ger läkaren en påminnelse.
+    for (const x of db.query("SELECT id FROM delegeringar WHERE personal_id = 'usk-kard' AND aterkallad_tid IS NULL").all()) delegering.aterkalla(db, lak, x.id, { orsak: 'Test av påminnelsen' });
+    delegering.registrera(db, lak, { personalId: 'usk-kard', omfattning: ['tabletter_peroralt'], till: addDagar(idag(), 10), kunskapKontrollerad: true });
+    expect(delegering.paminnelser(db, lak).map(x => [x.personalId, x.dagarKvar])).toEqual([['usk-kard', 10]]);
+    expect(delegering.paminnelser(db, personal(db, 'ssk-kard')).map(x => [x.personalId, x.dagarKvar])).toEqual([['usk-kard', 10]]);
+    // En läkare på en annan vårdenhet påminns aldrig.
+    expect(delegering.paminnelser(db, personal(db, 'lak-akut'))).toEqual([]);
   });
 });
 
@@ -445,6 +507,24 @@ describe('Delegering via API', () => {
     const ma = (await usk.get(`/fhir/MedicationAdministration/${r.data.id}`)).data;
     expect(ma.performer[0].function.text).toContain('delegering');
     expect(verifiera(db).hel).toBe(true);
+  });
+
+  test('API: läkaren registrerar en delegering under Delegeringar, och undersköterskan ger med den', async () => {
+    const lak = klient(app);
+    await lak.logga('lak-kard');
+    expect((await lak.get('/api/session')).data.behorigheter).toContain('delegera');
+    const ov = (await lak.get('/api/delegeringar')).data;
+    expect(ov.kan).toBe(true);
+    expect(ov.personal.map(x => x.id)).toEqual(['usk-kard']);
+    const ny = await lak.post('/api/delegeringar', { personalId: 'usk-kard', omfattning: ['tabletter_peroralt', 'inhalation'], kunskapKontrollerad: true });
+    expect(ny.status).toBe(201);
+    expect(ny.data.utfardadAv.namn).toBe('Sara Lindqvist');
+    expect((await lak.post('/api/delegeringar', { personalId: 'lak-kard', omfattning: ['tabletter_peroralt'], kunskapKontrollerad: true })).status).toBe(400);
+    // Vårdadministratören kan fortfarande inte delegera.
+    const adm = klient(app);
+    await adm.logga('adm-kard');
+    expect((await adm.post('/api/delegeringar', { personalId: 'usk-kard', omfattning: ['tabletter_peroralt'], kunskapKontrollerad: true })).status).toBe(403);
+    expect((await adm.get('/api/delegeringar')).status).toBe(403);
   });
 
   test('API: undersköterska utan giltig delegering har inte behörigheten att ge läkemedel i sessionen', async () => {

@@ -40,9 +40,9 @@ export const SCHEMA = {
       aldersgrupp: 'Patientens ålder vid kontaktens början i femårsgrupper, 90- för 90 år och äldre.',
       kon: '"kvinna" eller "man".',
       vardenhet: 'Vårdenhetens HSA-id (påhittat i demon).', vardenhetNamn: 'Vårdenhetens namn.',
-      vardform: '"oppenvard", "akut" eller "slutenvard".', kontaktsatt: '"besok", "telefon", "video", "hembesok", eller "null" i slutenvård.',
-      startdatum: 'Datum i svensk tid.', slutdatum: 'Datum i svensk tid, eller "null" om kontakten pågår.',
-      vardtidDagar: 'Antal vårddygn för slutenvård, annars "null".', kalla: '"vardkallan", "migrerad:VAS" eller "migrerad:Cosmic".',
+      vardform: '"oppenvard", "akut" eller "slutenvard".', kontaktsatt: '"besok", "telefon", "video", "hembesok", eller tomt i slutenvård.',
+      startdatum: 'Datum i svensk tid.', slutdatum: 'Datum i svensk tid, eller tomt om kontakten pågår.',
+      vardtidDagar: 'Antal vårddygn för slutenvård, annars tomt.', kalla: '"vardkallan", "migrerad:VAS" eller "migrerad:Cosmic".',
     },
   },
   Diagnos: {
@@ -57,14 +57,14 @@ export const SCHEMA = {
     falt: {
       rad: 'Radens stabila nyckel.', patient: 'Patientens pseudonym.', aldersgrupp: 'Ålder vid start i femårsgrupper.', kon: '"kvinna" eller "man".',
       vardenhet: 'Vårdenhetens HSA-id.', atc: 'ATC-kod.', typ: '"staende", "vid_behov" eller "tillfallig".', startdatum: 'Startdatum.',
-      status: '"aktiv" eller "utsatt".', utsattDatum: 'Datum för utsättning, eller "null".',
+      status: '"aktiv" eller "utsatt".', utsattDatum: 'Datum för utsättning, eller tomt.',
     },
   },
   Remiss: {
     beskrivning: 'En rad per remiss, utan patient, frågeställning och svar. Ledtiderna räknas i hela dagar.',
     falt: {
       rad: 'Radens stabila nyckel.', franVardenhet: 'Remitterande vårdenhets HSA-id.', tillVardenhet: 'Mottagande vårdenhets HSA-id.',
-      prioritet: '"akut", "skyndsam" eller "normal".', status: '"skickad", "mottagen", "bedomd", "besvarad" eller "svar_kvitterat".', beslut: '"accepterad", "avvisad" eller "null".',
+      prioritet: '"akut", "skyndsam" eller "normal".', status: '"skickad", "mottagen", "bedomd", "besvarad" eller "svar_kvitterat".', beslut: '"accepterad", "avvisad" eller tomt.',
       skickadDatum: 'Datum.', dagarTillMottagen: 'Dagar från skickad till mottagningskvittens.', dagarTillSvar: 'Dagar från skickad till svar.',
     },
   },

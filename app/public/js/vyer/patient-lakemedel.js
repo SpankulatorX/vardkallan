@@ -48,6 +48,13 @@ export async function visa(el, ctx) {
   });
   // Från snabbvalet Ordinera i översikten (lakemedel/ny) öppnas formuläret direkt.
   if (ctx.sub === 'ny' && kanOrdinera) el.querySelector('[data-ny]').click();
+  // Återinsättning efter uppehåll (runda 5, r4): från inkorgen (lakemedel/aterinsatt-<id>) öppnas formuläret ifyllt ur
+  // den ordination som gjorde uppehåll.
+  const ater = kanOrdinera && /^aterinsatt-\d+$/.test(ctx.sub ?? '') ? d.ordinationer.find(o => String(o.id) === ctx.sub.slice(11) && o.utsatt?.plan?.typ === 'uppehall') : null;
+  if (ater) {
+    el.querySelector('[data-ny]').setAttribute('aria-expanded', 'true');
+    ordinationsForm(el.querySelector('#ordform-plats'), ctx, ater);
+  }
   el.addEventListener('click', async (e) => {
     const v = e.target.closest('[data-vidimera],[data-genomgang],[data-vatska]');
     if (v?.dataset.vidimera != null) {
@@ -66,7 +73,7 @@ export async function visa(el, ctx) {
       try {
         const r = await medKnapp(b, () => api('/api/demo/nll-timeout', { metod: 'POST', data: b.dataset.nll === 'fel' ? { lage: 'fel' } : {} }));
         nastaOverforing = r.nastaOverforing;
-        notis(nastaOverforing === 'fel' ? 'Nästa överföring till NLL får ett felsvar.' : 'Nästa överföring till NLL får timeout.', 'info');
+        notis(nastaOverforing === 'fel' ? 'Nästa överföring till NLL får ett felsvar.' : 'Nästa överföring till NLL får inget svar i tid.', 'info');
         el.querySelector('#nll-lage').textContent = lageText();
       } catch { /* notis visad */ }
     } else if (b.dataset.utsatt) {
@@ -128,12 +135,12 @@ export async function visa(el, ctx) {
   });
 }
 
-const lageText = () => (nastaOverforing === 'fel' ? 'Nästa överföring får ett felsvar.' : nastaOverforing === 'timeout' ? 'Nästa överföring får timeout.' : 'Nästa överföring går som vanligt.');
+const lageText = () => (nastaOverforing === 'fel' ? 'Nästa överföring får ett felsvar.' : nastaOverforing === 'timeout' ? 'Nästa överföring får inget svar i tid.' : 'Nästa överföring går som vanligt.');
 
 function nllDemo() {
   return `<details class="demo-panel"><summary>Demo: simulera problem mot NLL</summary>
-    <p>En timeout får aldrig dölja en lyckad förskrivning. Simulera ett fel, ordinera sedan, och se att ordinationen ändå syns i listan med status Okänd, kontrolleras. Stäm sedan av mot NLL.</p>
-    <div class="knapprad"><button type="button" class="knapp sekundar liten" data-nll="timeout">Simulera timeout mot NLL</button><button type="button" class="knapp sekundar liten" data-nll="fel">Simulera fel från NLL</button></div>
+    <p>Att NLL inte svarar i tid får aldrig dölja en lyckad förskrivning. Simulera ett fel, ordinera sedan, och se att ordinationen ändå syns i listan med status Okänd, kontrolleras. Stäm sedan av mot NLL.</p>
+    <div class="knapprad"><button type="button" class="knapp sekundar liten" data-nll="timeout">Simulera att NLL inte svarar i tid</button><button type="button" class="knapp sekundar liten" data-nll="fel">Simulera fel från NLL</button></div>
     <p class="liten" id="nll-lage" aria-live="polite">${esc(lageText())}</p>
   </details>`;
 }
@@ -141,7 +148,7 @@ function nllDemo() {
 export function nllResultat(nll) {
   if (!nll) return '';
   if (nll.status === 'kvitterad') return `NLL kvitterade överföringen (${nll.kvittens}).`;
-  if (nll.status === 'timeout') return 'Överföringen till NLL fick timeout. Ordinationen gäller och visas i listan med status Okänd, kontrolleras. Stäm av mot NLL.';
+  if (nll.status === 'timeout') return 'NLL svarade inte i tid. Ordinationen gäller och visas i listan med status Okänd, kontrolleras. Stäm av mot NLL.';
   if (nll.status === 'fel') return 'NLL svarade med fel. Ordinationen visas i listan med status Fel från NLL. Stäm av för att skicka den igen.';
   return '';
 }
@@ -167,10 +174,12 @@ function tabell(rader, kanOrdinera, aktuella) {
     </tr>`).join('')}</tbody></table></div>`;
 }
 
-function ordinationsForm(plats, ctx) {
+// tidigare: en utsatt ordination som ska sättas in igen efter ett uppehåll (runda 5, r4). Formuläret fylls i ur den.
+function ordinationsForm(plats, ctx, tidigare = null) {
   const i = idag();
   plats.innerHTML = `<form class="ordform" id="ordform" novalidate aria-labelledby="ord-rubrik">
-    <h3 id="ord-rubrik" tabindex="-1">Ny ordination</h3>
+    <h3 id="ord-rubrik" tabindex="-1">${tidigare ? `Sätt in ${esc(tidigare.lakemedel?.namn ?? 'läkemedlet')} igen` : 'Ny ordination'}</h3>
+    ${tidigare ? `<p class="forslag-varfor">Systemet har fyllt i ordinationen ur den som gjorde uppehåll (${esc(tidigare.utsatt.plan.text)}). Ändra det som inte stämmer.</p>` : ''}
     <div data-kontakt-plats></div>
     <div class="falt lm-sok"><label for="lm-sok">Läkemedel <span class="obl">(obligatoriskt)</span></label>
       <input id="lm-sok" type="search" autocomplete="off" placeholder="Sök på namn, substans eller ATC-kod" aria-describedby="lm-valt" aria-controls="lm-traffar">
@@ -236,12 +245,14 @@ function ordinationsForm(plats, ctx) {
       } catch (e) { felNotis(e); }
     }, 180);
   });
-  traffar.addEventListener('click', async (e) => {
+  traffar.addEventListener('click', (e) => {
     const b = e.target.closest('[data-lm]');
-    if (!b) return;
-    form.lakemedelId.value = b.dataset.lm;
-    form.querySelector('#lm-valt').textContent = `Valt: ${b.dataset.namn}`;
-    sok.value = b.dataset.namn;
+    if (b) valj(b.dataset);
+  });
+  async function valj(b, efter = null) {
+    form.lakemedelId.value = b.lm;
+    form.querySelector('#lm-valt').textContent = `Valt: ${b.namn}`;
+    sok.value = b.namn;
     traffar.innerHTML = '';
     kontrollerad = null;
     form.querySelector('#varningar').innerHTML = '';
@@ -251,8 +262,8 @@ function ordinationsForm(plats, ctx) {
     // Fördefinierad ordination (Sussa 3.5.1.3): systemet föreslår dos, administrationssätt, tider och uppföljning ur
     // produkten och patienten. Förskrivaren ändrar bara det som avviker.
     try {
-      const f = await api(`/api/patient/${encodeURIComponent(ctx.id)}/lakemedel/forslag?lakemedelId=${encodeURIComponent(b.dataset.lm)}`);
-      if (form.lakemedelId.value !== b.dataset.lm) return;
+      const f = await api(`/api/patient/${encodeURIComponent(ctx.id)}/lakemedel/forslag?lakemedelId=${encodeURIComponent(b.lm)}`);
+      if (form.lakemedelId.value !== b.lm) return;
       // Ett fält som förskrivaren redan har ändrat medan förslaget hämtades skrivs inte över.
       const satt = (namn, v) => { if (!rorda.has(namn) && v != null && v !== '') form[namn].value = v; };
       satt('dosering', f.dosering);
@@ -271,7 +282,26 @@ function ordinationsForm(plats, ctx) {
       fv.hidden = false;
       if (!rorda.size) (f.dosering ? form.ordinationsorsak : form.dosering).focus();
     } catch { if (!rorda.size) form.dosering.focus(); }
-  });
+    efter?.();
+  }
+  // Återinsättning: läkemedlet och allt som den tidigare ordinationen hade, efter systemets förslag ur mallen. Ett
+  // uppföljningsdatum som redan har passerat ersätts av förslaget.
+  if (tidigare?.lakemedel) {
+    const t = tidigare;
+    valj({ lm: t.lakemedel.id, namn: `${t.lakemedel.namn} ${t.lakemedel.styrka} ${t.lakemedel.form}` }, () => {
+      const satt = (namn, v) => { if (v != null && v !== '') form[namn].value = v; };
+      satt('dosering', t.dosering);
+      satt('dos', t.dos);
+      satt('dosEnhet', t.dosEnhet);
+      satt('tider', (t.tider ?? []).join(', '));
+      satt('typ', t.typ);
+      if (t.administrationssatt) satt('administrationssatt', t.administrationssatt);
+      satt('ordinationsorsak', t.ordinationsorsak);
+      if (t.uppfoljningsdatum >= i) satt('uppfoljningsdatum', t.uppfoljningsdatum);
+      if (!form.uppfoljningsdatum.value) form.uppfoljningsdatum.value = plusDagar(i, 30);
+      form.querySelector('[data-spara]').focus();
+    });
+  }
   form.addEventListener('click', (e) => {
     const u = e.target.closest('[data-upp]');
     if (u) { form.uppfoljningsdatum.value = plusDagar(form.start.value || i, Number(u.dataset.upp)); rorda.add('uppfoljningsdatum'); }

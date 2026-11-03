@@ -7,7 +7,7 @@ import { kontaktRad, nyKontaktData, kontaktNotis } from './patient-vardkontakt.j
 
 // Typer och enheter enligt API:t.
 export const MATTYPER = [
-  ['blodtryck', 'Blodtryck', 'mmHg'], ['puls', 'Puls', 'slag/min'], ['temp', 'Temperatur', '°C'], ['saturation', 'Saturation', '%'],
+  ['blodtryck', 'Blodtryck', 'mmHg'], ['puls', 'Puls', 'slag/min'], ['temp', 'Temperatur', '°C'], ['saturation', 'Syremättnad', '%'],
   ['andningsfrekvens', 'Andningsfrekvens', 'andetag/min'], ['vikt', 'Vikt', 'kg'], ['langd', 'Längd', 'cm'], ['crp', 'CRP', 'mg/L'],
   ['egfr', 'eGFR', 'mL/min/1,73 m²'], ['kreatinin', 'Kreatinin', 'µmol/L'], ['hba1c', 'HbA1c', 'mmol/mol'], ['inr', 'PK (INR)', 'INR'],
   ['ntprobnp', 'NT-proBNP', 'ng/L'], ['hb', 'Hemoglobin', 'g/L'], ['glukos', 'Glukos', 'mmol/L'], ['kalium', 'Kalium', 'mmol/L'],
