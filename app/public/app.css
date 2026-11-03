@@ -1039,3 +1039,67 @@ a.min-journalval:hover { background: var(--kalla-ljus); color: var(--blak); }
 .r3-avvikelser { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
 .r3-frist.r3-passerad strong, tr.r3-passerad td { color: var(--larm); }
 .r3-tvang { border-left: 4px solid var(--obs-kant, #e0b84a); }
+/* Runda 6, r1: sökning i journalen, kurvor, NEWS2, säkerhetsloggen och stickprov. */
+.flikrad-med-sok { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.flikrad-med-sok #flikrad { flex: 1 1 420px; min-width: 0; }
+.journalsok { display: flex; gap: 6px; margin: 4px 0 16px; flex: 0 1 380px; }
+.journalsok input { flex: 1; min-width: 0; }
+.jsok-lista { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.jsok-traff a { display: block; padding: 10px 12px; border: 1px solid var(--linje); border-radius: var(--r); background: var(--yta); color: inherit; text-decoration: none; }
+.jsok-traff a:hover, .jsok-traff a:focus { border-color: var(--kalla); }
+.jsok-rad1 { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.jsok-rad1 time { margin-left: auto; color: var(--dampad); font-size: var(--f-s); }
+.jsok-rubrik { font-weight: 700; }
+.jsok-text { display: block; margin-top: 4px; }
+mark { background: var(--obs-bg); color: inherit; outline: 1px solid var(--obs-kant); border-radius: 2px; padding: 0 1px; }
+.kurvor { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.kurvkort { border: 1px solid var(--linje); border-radius: var(--r); padding: 10px 12px; background: var(--yta); }
+.kurvkort.markerad { border-color: var(--kalla); box-shadow: 0 0 0 2px var(--kalla-mellan); }
+.kurvkort header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.kurvkort h4 { margin: 0; }
+.kurva-senaste { margin: 0; font-family: var(--smal); font-weight: 700; font-size: var(--f-l); }
+.kurva { display: block; width: 100%; height: auto; max-width: 420px; }
+.kurva-ref { fill: var(--ok-bg); }
+.kurva-axel { stroke: var(--linje-stark); stroke-width: 1; }
+.kurva-text { fill: var(--dampad); font-size: 10px; font-family: var(--sans); }
+.kurva-linje { fill: none; stroke: var(--kalla); stroke-width: 1.8; stroke-linejoin: round; }
+.kurva-linje.kurva-andra { stroke: var(--linje-stark); stroke-dasharray: 4 3; }
+.kurva-punkt { fill: var(--yta); stroke: var(--kalla); stroke-width: 1.5; }
+.kurva-punkt.kurva-andra { stroke: var(--linje-stark); }
+.kurva-punkt.kurva-utanfor { fill: var(--larm); stroke: var(--larm); stroke-width: 2.5; }
+.n2-lag { fill: var(--ok-bg); } .n2-medel { fill: var(--obs-bg); } .n2-hog { fill: var(--larm-bg); }
+.text-larm { color: var(--larm); }
+.news2 { border: 1px solid var(--linje); border-left: 4px solid var(--kalla); border-radius: var(--r); padding: 12px 14px; margin: 8px 0 16px; background: var(--yta); }
+.news2.news2-larm { border-left-color: var(--larm); background: var(--larm-bg); }
+.news2-huvud { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.news2-huvud h3 { margin: 0; }
+.news2-huvud .knapp { margin-left: auto; }
+.news2-poang { margin: 0; display: inline-flex; align-items: baseline; gap: 6px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--linje-stark); background: var(--yta); }
+.news2-poang strong { font-size: var(--f-xl); }
+.news2-poang.risk-lag-medel, .news2-poang.risk-medel { border-color: var(--obs-kant); background: var(--obs-bg); color: var(--obs); }
+.news2-poang.risk-hog { border-color: var(--larm-kant); background: var(--larm-bg); color: var(--larm); }
+.news2-atgard h4 { margin: 8px 0 4px; font-size: var(--f-m); }
+.news2-atgard ul { margin: 0; padding-left: 20px; }
+.news2-delar { margin-top: 8px; }
+.news2-kurva { margin-top: 10px; }
+.rad-larm th, .rad-larm td { color: var(--larm); font-weight: 700; }
+.mv-varde-plats { display: contents; }
+.mv-val .kryssfalt { display: inline-flex; margin-right: 14px; }
+.gcs-summa { flex-basis: 100%; margin: 0; font-weight: 600; }
+.news2-forhand { font-weight: 600; margin: 8px 0; }
+.ik-um { display: inline-flex; vertical-align: middle; margin-left: 4px; }
+.ik-atgard { color: var(--blak); }
+.loggexport { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.loggexport .under-text { flex-basis: 100%; }
+.stickprov-huvud { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.stickprov-huvud p { flex: 1 1 420px; margin: 0; }
+.stickprov-lista { list-style: none; padding: 0; display: grid; gap: 8px; }
+.stickprov-rad { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; border: 1px solid var(--linje); border-radius: var(--r); padding: 10px 12px; background: var(--yta); flex-wrap: wrap; }
+.stickprov-rad.granskad { background: var(--ok-bg); border-color: var(--kalla-mellan); }
+.stickprov-rad.utreds { background: var(--larm-bg); border-color: var(--larm-kant); }
+.sp-text { flex: 1 1 320px; min-width: 0; }
+.sp-kontrollera { font-style: italic; }
+@media (max-width: 640px) {
+  .journalsok { flex-basis: 100%; }
+  .kurvor { grid-template-columns: minmax(0, 1fr); }
+}

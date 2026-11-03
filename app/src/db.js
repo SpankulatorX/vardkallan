@@ -18,6 +18,8 @@ import { sakraSchema as sakraLakemedelsprocess, seedaAdministreringar, seedaVidi
 import { sakraUtdataschema, seedaArkivpatient, seedaUtdata } from './utdata-schema.js';
 // Delegering av läkemedelshantering och plan vid utsättning av antikoagulantia (runda 5, lakemedelssakerhet-schema.js).
 import { sakraLakemedelssakerhet, seedaDelegeringar } from './lakemedelssakerhet-schema.js';
+// Runda 6, r1: åtgärder med KVÅ, säkerhetsloggen och stickproven, och eGFR som systemet räknar ur kreatinin.
+import { sakraR1Schema, seedaR1 } from './schema-runda6-r1.js';
 
 // Fel som API:t svarar med. kod: nekad | saknas | ogiltig | kraver_val | kraver_samtycke
 export class Fel extends Error {
@@ -369,6 +371,9 @@ export function byggSeed(bas = nu()) {
   // Runda 6, r3: vårdplaner, tvångsvård (patient 21 och 22), samordnad planering och hälsoärendenas historik.
   require('./r3-rutter.js').tillagg.seeda(db, bas);
   sakraIdentitetsschema(db);
+  // Runda 6, r1 (schema-runda6-r1.js).
+  sakraR1Schema(db);
+  seedaR1(db, { bas });
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -449,6 +454,8 @@ export function migrera(db) {
   require('./tidbok.js').sakraTidbok(db);
   // Runda 6, r3: tabellerna och seeden för en sandlåda från före runda 6.
   require('./r3-rutter.js').tillagg.sakra(db);
+  // Runda 6, r1: tabellerna för åtgärder, säkerhetsloggen och stickproven finns inte i äldre sandlådor.
+  sakraR1Schema(db);
   return db;
 }
 
@@ -457,6 +464,8 @@ export const MATTYPER_ENHET = {
   blodtryck: 'mmHg', puls: 'slag/min', temp: '°C', saturation: '%', andningsfrekvens: 'andetag/min', vikt: 'kg', langd: 'cm',
   crp: 'mg/L', egfr: 'mL/min/1,73 m²', kreatinin: 'µmol/L', hba1c: 'mmol/mol', inr: 'INR', ntprobnp: 'ng/L', hb: 'g/L',
   glukos: 'mmol/L', kalium: 'mmol/L', pef: 'L/min', troponin: 'ng/L', tsh: 'mIE/L',
+  // Runda 6, r1: medvetandegrad och GCS har ingen enhet, smärta anges i poäng av 10 och syrgas i liter per minut.
+  medvetande: '', syrgas: 'L/min', smarta: 'av 10', gcs: 'poäng',
 };
 
 // Mallen byggs om när dagen byter, så att demon alltid ligger kring dagens datum.

@@ -188,6 +188,29 @@ const MENY = {
       await bild(page, '02-arbetslista', true);
     });
     await allaVyer(page, 'Sara Lindqvist', MENY.klinisk);
+    // Runda 6, r1: sökning i journalen, kurvor och NEWS2.
+    await s('Sara söker på blodtryck i journalen, ser tolkningen och öppnar kurvan med referensintervall', async () => {
+      await gaTill(page, '#/patient/p01');
+      await page.fill('#jsok-falt', 'blodtryck');
+      await page.press('#jsok-falt', 'Enter');
+      await forvanta(page, '[data-tolkning]', 'mätvärdena blodtryck');
+      await forvanta(page, '.jsok-traff mark', 'Blodtryck');
+      await bild(page, '90-journalsok', true);
+      await page.locator('.jsok-traff a[data-traff="matvarde"]').first().click();
+      await forvanta(page, '#kurva-blodtryck.markerad h4', 'Blodtryck');
+      await forvanta(page, '.news2', 'NEWS2');
+      await forvanta(page, '.news2', 'Nästa kontroll senast');
+      await forvanta(page, '#kurva-inr', 'Målintervall vid behandling med warfarin');
+      await bild(page, '91-kurvor-news2', true);
+    });
+    await s('Sara söker på sertralin hos Elin Sandberg och får inga träffar ur den spärrade psykiatrin', async () => {
+      await gaTill(page, '#/patient/p04/sok?q=sertralin');
+      await forvanta(page, '.antal-text', 'Inga träffar.');
+      if (await page.locator('.jsok-traff').count()) throw new Error('träffar visas ur den spärrade psykiatrin');
+      // Spärrmarkeringen i patienthuvudet står kvar, men sökträffarna säger inget om det spärrade.
+      const traffar = await page.locator('#flikinnehall').textContent();
+      if (/spärr|psykiatri|depression/i.test(traffar)) throw new Error(`sökträffarna nämner det spärrade: ${traffar.slice(0, 200)}`);
+    });
     await s('Sara: inkorgen och svarstiden', async () => {
       await gaTill(page, '#/inkorg');
       await forvanta(page, '.ik-larm', 'Mottagningskvittens saknas');
@@ -312,7 +335,7 @@ const MENY = {
       await page.fill('#mv-varde', '78');
       await page.click('#mv-form [type="submit"]');
       await forvanta(page, '.notis', 'Puls 78');
-      await page.waitForSelector('svg.trend');
+      await page.waitForSelector('#kurva-puls svg.kurva');
       await bild(page, '10-matvarden', true);
     });
     await s('Sara: patienten samtycker till att spärren för Elin Sandberg tillfälligt hävs', async () => {
@@ -693,6 +716,14 @@ const MENY = {
       await gaTill(page, '#/inkorg');
       await forvanta(page, '#ik-deleg ~ .tom', 'Inga delegeringar går ut');
     });
+    // Runda 6, r1: NEWS2-larmet i inkorgen med vad som ska göras.
+    await s('Johan Ek ser NEWS2-larmet för Annika Holmgren i inkorgen med vad som ska göras', async () => {
+      await gaTill(page, '#/inkorg');
+      await forvanta(page, '.ik-news2', 'NEWS2 7, hög risk');
+      await forvanta(page, '.ik-news2', 'Puls 134 slag/min ger 3 poäng');
+      await forvanta(page, '.ik-news2', 'intensivvård');
+      await bild(page, '92-inkorg-news2', true);
+    });
     await allaVyer(page, 'Johan Ek', MENY.sjukskoterska);
 
     // Amira Haddad, undersköterska
@@ -922,6 +953,28 @@ const MENY = {
       await page.waitForURL(/#\/logg$/);
       await vantaVy(page);
     });
+    // Runda 6, r1: säkerhetshändelser, export av loggen och stickprovskontroll.
+    await s('Mats Wall ser säkerhetshändelserna med hel kedja och kan exportera loggen', async () => {
+      await gaTill(page, '#/logg');
+      await page.locator('.loggexport a[data-export="csv"]').waitFor();
+      await page.click('.delflikar a:has-text("Säkerhetshändelser")');
+      await vantaVy(page);
+      await forvanta(page, '.logg-tabell', 'Inloggning med SITHS-kort (simulerat).');
+      await forvanta(page, '.kedja-hel', 'Loggkedjan är hel');
+      await bild(page, '93-sakerhetslogg', true);
+    });
+    await s('Mats Wall drar ett stickprov och markerar en åtkomst som befogad med ett klick', async () => {
+      await page.click('.delflikar a:has-text("Stickprov")');
+      await vantaVy(page);
+      await page.click('[data-dra]');
+      await forvanta(page, '.notis', 'åtkomster är draget');
+      const kvar = await page.locator('[data-kvar]').textContent();
+      await page.locator('[data-befogad]').first().click();
+      await forvanta(page, '.notis', 'Åtkomsten är granskad');
+      await forvanta(page, '.stickprov-rad.granskad', 'Befogad');
+      if ((await page.locator('[data-kvar]').textContent()) === kvar) throw new Error('antalet som återstår ändrades inte');
+      await bild(page, '94-stickprov', true);
+    });
     await s('återställ demon ger nya patienter men behåller inloggningen', async () => {
       await page.click('[data-a="aterstall"]');
       await forvanta(page, '.notis', 'Demon är återställd');
@@ -1043,7 +1096,7 @@ const MENY = {
       await forvanta(page, 'main h1', 'Användartest');
       await forvanta(page, '.at-info', 'Alla patienter i demon är påhittade');
       await page.fill('#at-kod', 'G01');
-      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut', 'sok-journal', 'news2']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');
@@ -1174,6 +1227,9 @@ const MENY = {
           await mp.goto(`${BAS}/${href}`); await vantaVy(mp); await vantaHamtat(mp);
           await ingenSidledsrullning(`journalen, ${text}`);
         }
+        // Runda 6, r1: sökträffarna i journalen.
+        await mp.goto(`${BAS}/#/patient/p01/sok?q=blodtryck`); await vantaVy(mp); await vantaHamtat(mp);
+        await ingenSidledsrullning('journalen, sökträffar');
         await bild(mp, '80-mobil-journal-flik');
       });
       await s('mobil: läkemedel att ge, dagens arbete, tidbok och incheckningsskärmen på 360 px', async () => {

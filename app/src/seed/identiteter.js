@@ -82,7 +82,14 @@ export const IDENTITETSPATIENTER = [
     matvarden: [
       ['puls', 'uso-akut', [[[-1, '22:45'], 138]]],
       ['blodtryck', 'uso-akut', [[[-1, '22:45'], '124/80']]],
-      ['puls', 'uso-kard-72', [[[0, '03:00'], 112]]],
+      ['puls', 'uso-kard-72', [[[0, '03:00'], 112], [[0, '06:00'], 134]]],
+      // Runda 6, r1: en NEWS2-omgång på morgonen med 7 poäng, där pulsen ensam ger 3. Systemet larmar i inkorgen.
+      ['andningsfrekvens', 'uso-kard-72', [[[0, '06:00'], 21]]],
+      ['saturation', 'uso-kard-72', [[[0, '06:00'], 95]]],
+      ['syrgas', 'uso-kard-72', [[[0, '06:00'], 0]]],
+      ['blodtryck', 'uso-kard-72', [[[0, '06:00'], '108/70']]],
+      ['medvetande', 'uso-kard-72', [[[0, '06:00'], 'A']]],
+      ['temp', 'uso-kard-72', [[[0, '06:00'], 37.0]]],
     ],
     ordinationer: [
       { lm: 'VK-NPL-0008', dosering: '1 tablett morgon och kväll', dos: 50, dosEnhet: 'mg', tider: ['08', '20'], typ: 'staende', orsak: 'Förmaksflimmer, frekvensreglering', uppfoljning: 3, start: 0, enhet: 'uso-kard', av: 'lak-kard' },

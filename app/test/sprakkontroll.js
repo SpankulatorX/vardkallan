@@ -156,13 +156,15 @@ Meta CapsLock Fn Dead Process Unidentified Compose
 AES GCM AES-GCM HSLF FS HSLF-FS OSL VAS CE MDR EHDS GDPR DPIA METS FGS RIVTA SIP CSIP PREMIS ARK WHO IFCC KVÅ PK PCI NSAID MRSA
 CT USÖ SVT LMA FVIS JMIR VK DELETE CHECK ÅÅÅÅ MM DD NNNN ÅÅÅÅMMDD VKÅÅÅÅMMDD XXXXXXXX
 workern workerns Playwright Webcert Thomas Wall Wennberg Waran Warfarin Eliquis Brilique webb
-LPT LRV SPU HSL SoL IVO CarePlan
+LPT LRV SPU HSL SoL IVO CarePlan GCS NRS ACVPU CKD-EPI warfarin
 `.trim().split(/\s+/));
 // Fraser med engelska ord som är namn på standarder, rubriker, parametrar och tekniska begrepp. Ett tomt värde i data
 // beskrivs som tomt, inte som null (beslut 2026-11-03).
 export const FRASER = ['HL7 Sweden', '$everything', 'pull request', 'Server-Timing', 'X-Content-Type-Options', 'Content-Type', 'Content-Disposition',
   'FHIR Bulk Data Access', 'Bulk Data', 'Service worker', 'service worker', 'Service Worker', 'Sökparametern schedule',
-  'System Usability Scale', 'GitHub Actions'];
+  'System Usability Scale', 'GitHub Actions',
+  // Runda 6, r1: källorna för NEWS2 och GCS och en titel i NEWS2 som citeras.
+  'Royal College of Physicians', 'National Early Warning Score', 'Glasgow Coma Scale', 'specialist registrar'];
 
 // Svenska ord som ofta skrivs utan å, ä eller ö. Formen utan prickar är inget eget ord.
 export const UTAN_PRICKAR = new Map(Object.entries({

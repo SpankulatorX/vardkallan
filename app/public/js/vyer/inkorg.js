@@ -3,10 +3,14 @@ import { esc, api, tidpunkt, ikon, vyRubrik, NLL, dialog, medKnapp, notis } from
 import { S, uppdateraInkorg } from '../app.js';
 // Runda 6, r3: tvångsvård, vårdplaner och samordnad planering.
 import { inkorgSektioner } from './r3.js';
+// Runda 6, r1: uppmärksamhetssymbolen på raderna (Sussa 3.1.5.2), med samma regler som i patienthuvudet.
+import { symbolSvg, symbolText, harNagot } from '../uppmarksamhet.js';
 
 export const namn = 'inkorg';
 
 const pnamn = (p) => (p?.skyddad ? 'Skyddad identitet' : p?.namn ?? '');
+// Symbolen visas när servern har skickat den, alltså när den inloggade får läsa patientens översikt.
+const sym = (p) => (harNagot(p?.uppmarksamhet) ? ` <span class="ik-um" title="${esc(symbolText(p.uppmarksamhet))}">${symbolSvg(p.uppmarksamhet, 18)}</span>` : '');
 const LARMTYP = { saknar_mottagningskvittens: 'Mottagningskvittens saknas', svar_forsenat: 'Svar försenat', svar_ej_kvitterat: 'Svaret är inte kvitterat' };
 
 function sektion(id, rubrik, rader, tomText, forklaring) {
@@ -26,20 +30,20 @@ export async function visa(main) {
   const pat = (id, flik, sub) => `#/patient/${encodeURIComponent(id)}${flik ? `/${flik}` : ''}${sub ? `/${sub}` : ''}`;
 
   const osign = d.osigneradeAnteckningar.map(a => rad(pat(a.patientId, 'journal', a.id),
-    `${esc(a.typ)}, ${esc(pnamn(a.patient))}`, `Utkast skapat ${esc(tidpunkt(a.skapad))} på ${esc(a.enhet.namn)}. ${esc(a.sammanfattning)}`));
+    `${esc(a.typ)}, ${esc(pnamn(a.patient))}${sym(a.patient)}`, `Utkast skapat ${esc(tidpunkt(a.skapad))} på ${esc(a.enhet.namn)}. ${esc(a.sammanfattning)}`));
   const svar = d.okvitteradeSvar.map(r => rad(`#/remisser?riktning=utgaende&remiss=${r.id}`,
-    `Svar från ${esc(r.till.namn)}, ${esc(pnamn(r.patient))}`, `Besvarad ${esc(tidpunkt(r.tider.besvarad))} av ${esc(r.av?.besvarad?.namn ?? '')}. Kvittera att du har läst svaret.`));
+    `Svar från ${esc(r.till.namn)}, ${esc(pnamn(r.patient))}${sym(r.patient)}`, `Besvarad ${esc(tidpunkt(r.tider.besvarad))} av ${esc(r.av?.besvarad?.namn ?? '')}. Kvittera att du har läst svaret.`));
   const larm = d.larm.map(l => rad(`#/remisser?riktning=${l.riktning}&remiss=${l.remissId}`,
     `${ikon.larm}<span>${esc(LARMTYP[l.typ] ?? l.typ)}, ${esc(l.patient)}</span>`, `${esc(l.text)} ${l.riktning === 'inkommande' ? 'Inkommande remiss.' : 'Utgående remiss.'}`, 'ik-larm'));
   const nll = d.nllAvvikelser.map(n => rad(pat(n.patientId, 'lakemedel'),
-    `${esc(n.lakemedel)}, ${esc(pnamn(n.patient))}`, `${esc(NLL[n.nll_status] ?? n.nll_status)}. Ordinerat ${esc(tidpunkt(n.skapad))}. Stäm av mot NLL.`, 'ik-nll'));
+    `${esc(n.lakemedel)}, ${esc(pnamn(n.patient))}${sym(n.patient)}`, `${esc(NLL[n.nll_status] ?? n.nll_status)}. Ordinerat ${esc(tidpunkt(n.skapad))}. Stäm av mot NLL.`, 'ik-nll'));
 
   const dubb = (d.dubbletter ?? []).map(x => rad(pat(x.patientId, 'identitet'),
-    `Trolig dubblett, ${esc(pnamn(x.patient))}`, `<span class="pnr">${esc(x.patient.personnummer)}</span>. Systemet har hittat ${x.antal === 1 ? 'en annan journal' : `${x.antal} andra journaler`} som troligen gäller samma person. Bekräfta sammanslagningen.`, 'ik-dubblett'));
+    `Trolig dubblett, ${esc(pnamn(x.patient))}${sym(x.patient)}`, `<span class="pnr">${esc(x.patient.personnummer)}</span>. Systemet har hittat ${x.antal === 1 ? 'en annan journal' : `${x.antal} andra journaler`} som troligen gäller samma person. Bekräfta sammanslagningen.`, 'ik-dubblett'));
 
   // Kontrasignering (Sussa 3.1.11.3) och utlämnade originalhandlingar som inte har kommit tillbaka (Sussa 3.1.9.3).
   const ks = (d.kontrasigneringar ?? []).map(k => (k.tillganglig
-    ? rad(k.typ === 'anteckning' ? pat(k.patientId, 'journal', k.postId) : pat(k.patientId, 'matvarden'), `${esc(k.rubrik)}, ${esc(pnamn(k.patient))}`,
+    ? rad(k.typ === 'anteckning' ? pat(k.patientId, 'journal', k.postId) : pat(k.patientId, 'matvarden'), `${esc(k.rubrik)}, ${esc(pnamn(k.patient))}${sym(k.patient)}`,
       `Begärd ${esc(tidpunkt(k.begard))} av ${esc(k.begardAv?.namn ?? '')}.${k.kommentar ? ` ${esc(k.kommentar)}` : ''} Läs och kontrasignera.`, 'ik-ks')
     : `<li class="ik-ks"><span class="ik-rubrik">${esc(k.rubrik)}</span><span class="under-text">Begärd av ${esc(k.begardAv?.namn ?? '')}. Du har inte längre behörighet till uppgiften, så den kan inte kontrasigneras av dig.</span></li>`));
   const ater = (d.aterlamnanden ?? []).map(u => rad(pat(u.patientId, 'utlamnat'), `${esc(u.mottagare)}: ${esc(u.beskrivning)}`,
@@ -49,14 +53,19 @@ export async function visa(main) {
   const deleg = (d.delegeringarSomGarUt ?? []).map(x => rad('#/delegeringar', `Delegering går ut, ${esc(x.namn)}`, esc(x.text), 'ik-larm'));
   // Återinsättning efter uppehåll med antikoagulantia, för läkaren (runda 5, r4). Knappen öppnar läkemedelslistan med
   // ordinationen ifylld ur den tidigare.
-  const atersatt = (d.aterinsattningar ?? []).map(x => `<li class="ik-ater${x.dagarKvar < 0 ? ' ik-larm' : ''}"><div class="ik-text"><span class="ik-rubrik">${esc(x.lakemedel)}, ${esc(pnamn(x.patient))}</span>
+  const atersatt = (d.aterinsattningar ?? []).map(x => `<li class="ik-ater${x.dagarKvar < 0 ? ' ik-larm' : ''}"><div class="ik-text"><span class="ik-rubrik">${esc(x.lakemedel)}, ${esc(pnamn(x.patient))}${sym(x.patient)}</span>
     <span class="under-text">${esc(x.text)} Plan: ${esc(x.plan)}.</span></div><div class="ik-knappar"><a class="knapp liten" href="${esc(x.href)}" data-aterinsatt="${x.ordinationId}">Sätt in igen</a><button type="button" class="knapp liten sekundar" data-avsluta="${x.ordinationId}">Avslutad behandling</button></div></li>`);
   // Vårdhändelser som avbokades eftersom remissen avvisades, för den ordinerande läkaren (runda 5, r4).
   const avbokade = (d.avbokadeVardhandelser ?? []).map(x => x.utanPatient ? `<li class="ik-ater ik-larm"><div class="ik-text"><span class="ik-rubrik">En läkemedelsdos väntar på ett beslut</span>
-    <span class="under-text">${esc(x.text)}</span></div><div class="ik-knappar"><button type="button" class="knapp liten" data-vh-nod="${x.ordinationId}">Öppna med nödåtkomst</button></div></li>` : `<li class="ik-ater ik-larm"><div class="ik-text"><span class="ik-rubrik">${esc(x.lakemedel ?? '')}, ${esc(pnamn(x.patient))}</span>
+    <span class="under-text">${esc(x.text)}</span></div><div class="ik-knappar"><button type="button" class="knapp liten" data-vh-nod="${x.ordinationId}">Öppna med nödåtkomst</button></div></li>` : `<li class="ik-ater ik-larm"><div class="ik-text"><span class="ik-rubrik">${esc(x.lakemedel ?? '')}, ${esc(pnamn(x.patient))}${sym(x.patient)}</span>
     <span class="under-text">${esc(x.text)}</span></div><div class="ik-knappar"><a class="knapp liten sekundar" href="${esc(x.hrefUtsatt)}" data-vh-utsatt="${x.ordinationId}">Sätt ut</a>${x.kanSattasUpp ? `<button type="button" class="knapp liten" data-vh-igen="${x.ordinationId}">Sätt upp på väntelistan igen</button>` : ''}</div></li>`);
 
+  // Runda 6, r1: NEWS2 eller ett enskilt värde som kräver åtgärd, för sjuksköterskan och läkaren på vårdenheten.
+  const news2 = (d.news2Larm ?? []).map(x => `<li class="ik-larm ik-news2"><a href="${esc(x.href)}"><span class="ik-rubrik">${ikon.larm}<span>${esc(x.rubrik)}, ${esc(pnamn(x.patient))}${sym(x.patient)}</span></span>
+    <span class="under-text">${esc(x.text)} Mätt ${esc(tidpunkt(x.tid))}.${x.forsenad ? ' Kontrollen är försenad.' : ''}</span>
+    <span class="under-text ik-atgard">${esc(x.atgard.join(' '))}</span></a>${ikon.pil}</li>`);
   main.querySelector('#ik').innerHTML = `<div class="inkorg-rutnat">
+    ${news2.length ? sektion('news2', 'NEWS2 som kräver åtgärd', news2, '', 'Patienter på vårdenheten där NEWS2 eller ett enskilt värde kräver åtgärd enligt NEWS2 (Royal College of Physicians 2017). Systemet räknar poängen ur vitalparametrarna. Demoregel, inte kliniskt beslutsstöd.') : ''}
     ${avbokade.length ? sektion('vhavbokad', 'Vårdhändelser som avbokades', avbokade, '', 'Remissen avvisades, och tiden för en vårdhändelse som en läkemedelsdos väntar på avbokades. Besluta om ordinationen.') : ''}
     ${S.session.behorigheter.includes('ordinera') ? sektion('atersatt', 'Läkemedel att sätta in igen', atersatt, 'Inget läkemedel ska sättas in igen efter ett uppehåll i dag eller i morgon.', 'Antikoagulantia som gör uppehåll inför ett ingrepp. Systemet påminner dagen före återinsättningen och fyller i ordinationen ur den tidigare.') : ''}
     ${S.session.behorigheter.includes('delegera') && (S.session.personal.yrke === 'sjukskoterska' || deleg.length) ? sektion('deleg', 'Delegeringar som går ut', deleg, 'Inga delegeringar går ut de närmaste 30 dagarna.', 'Undersköterskornas delegeringar att ge läkemedel. Följ upp dem och registrera nya innan de går ut.') : ''}

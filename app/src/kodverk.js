@@ -156,9 +156,10 @@ export const MATKOD = {
   langd: vp('8302-2', 'Body height', 'cm', 'bodyheight'),
   pef: { kategori: 'exam', coding: [{ system: SYSTEM.loinc, code: '19935-6', display: 'Maximum expiratory gas flow Respiratory system airway by Peak flow meter' }], ucum: 'L/min' },
   crp: npu('NPU19748', 'mg/L'), // P, C-reactive protein; mass c. = ? mg/L
-  // eGFR har ingen kod: NPU28811 (Kidn., Glomerular filtration; vol.rate(surf.=1.73 m²)) anger inte att värdet är skattat
-  // från kreatinin, och NPU-filen har ingen kod för skattat GFR. Texten och enheten finns kvar.
-  egfr: { kategori: 'laboratory', coding: [], ucum: 'mL/min/{1.73_m2}' },
+  // eGFR (runda 6, r1): NPU har ingen kod för skattat GFR (NPU28811 anger inte att värdet är skattat ur kreatinin), så
+  // eGFR har LOINC. Demons laboratorium räknar eGFR ur P-kreatinin med CKD-EPI 2021 (skalor.js, ckdEpi2021), och det är
+  // precis vad 98979-8 anger. Kontrollerat mot LOINC 2.83 via tx.fhir.org 2026-11-03, se docs/kodkontroll.md.
+  egfr: { kategori: 'laboratory', coding: [{ system: SYSTEM.loinc, code: '98979-8', display: 'Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine-based formula (CKD-EPI 2021)/1.73 sq M' }], ucum: 'mL/min/{1.73_m2}' },
   kreatinin: npu('NPU18016', 'umol/L'), // P, Creatininium; subst.c. = ? µmol/L
   hba1c: npu('NPU27300', 'mmol/mol'), // Haemoglobin beta chain(B), N-(1-deoxyfructos-1-yl)haemoglobin beta chain; subst.fr. = ? mmol/mol
   inr: npu('NPU01685', '{INR}'), // P, Coagulation, tissue factor-induced; rel.time(actual/norm;INR;IRP 67/40;proc.) = ?
@@ -168,4 +169,33 @@ export const MATKOD = {
   kalium: npu('NPU03230', 'mmol/L'), // P, Potassium ion; subst.c. = ? mmol/L
   troponin: npu('NPU27501', 'ng/L'), // P, Troponin T, cardiac muscle; mass c. = ? ng/L
   tsh: npu('NPU03577', 'm[IU]/L'), // P, Thyrotropin; arb.subst.c.(IRP 80/558;proc.) = ? × 10-3 IU/L
+  // Runda 6, r1: medvetandegrad (ACVPU), syrgas, smärta (NRS) och GCS, kontrollerade mot LOINC 2.83 via tx.fhir.org
+  // 2026-11-03. Medvetandegraden är ett kodat värde (varde: 'kod') med LOINC:s svarskoder, och GCS har sina tre delar.
+  medvetande: { kategori: 'exam', coding: [{ system: SYSTEM.loinc, code: '67775-7', display: 'Level of responsiveness' }], ucum: null, varde: 'kod' },
+  syrgas: { kategori: 'therapy', coding: [{ system: SYSTEM.loinc, code: '3151-8', display: 'Inhaled oxygen flow rate' }], ucum: 'L/min' },
+  smarta: { kategori: 'survey', coding: [{ system: SYSTEM.loinc, code: '72514-3', display: 'Pain severity - 0-10 verbal numeric rating [Score] - Reported' }], ucum: '{score}' },
+  gcs: { kategori: 'survey', coding: [{ system: SYSTEM.loinc, code: '9269-2', display: 'Glasgow coma score total' }], ucum: '{score}',
+    komponenter: [{ del: 'e', code: '9267-6', display: 'Glasgow coma score eye opening' }, { del: 'v', code: '9270-0', display: 'Glasgow coma score verbal' }, { del: 'm', code: '9268-4', display: 'Glasgow coma score motor' }] },
+};
+
+// Svarskoderna för medvetandegraden. A, V, P och U finns i LOINC:s svarslista LL1845-8 för 67775-7. C, nytillkommen
+// förvirring, har LOINC:s svarskod Confused, som inte ingår i den listan. Kontrollerat via tx.fhir.org 2026-11-03.
+export const ACVPU_KOD = {
+  A: { code: 'LA9340-6', display: 'Alert' }, C: { code: 'LA6560-2', display: 'Confused' }, V: { code: 'LA17108-4', display: 'Verbal' },
+  P: { code: 'LA17107-6', display: 'Painful' }, U: { code: 'LA9343-0', display: 'Unresponsive' },
+};
+
+// NEWS2 räknas av systemet ur vitalparametrarna och lämnas ut som en härledd Observation. LOINC har ingen egen kod för
+// NEWS2, så koden är den allmänna för en tidig varningspoäng (Early warning score), och texten säger NEWS2.
+export const NEWS2_KOD = { system: SYSTEM.loinc, code: '115635-5', display: 'Early warning score EWS' };
+
+// KVÅ, Klassifikation av vårdåtgärder 2026 (giltig från 2026-01-01, version 1.0 2025-10-24), titlarna ordagrant ur
+// E-hälsomyndighetens fil kva-inkl-beskrivningstexter-2026.xlsx, hämtad 2026-11-03. Systemet sätter koden själv när
+// åtgärden registreras, så ingen behöver välja den. OID:n står som aktiv för Klassifikation av vårdåtgärder (KVÅ) i
+// Socialstyrelsens OID-serie (socialstyrelsens-oid-serie-2025-10-17.xlsx), se docs/kodkontroll.md.
+SYSTEM.kva = 'urn:oid:1.2.752.116.1.3.2.1.4';
+export const KVA = {
+  QD008: 'Övervakning av vitala tecken',
+  PA001: 'Bedömning av medvetandefunktioner',
+  XV015: 'Läkemedelsgenomgång, enkel, enligt Socialstyrelsens föreskrift och allmänna råd',
 };

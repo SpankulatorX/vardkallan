@@ -181,4 +181,13 @@ export const FLODEN = [
     id: 'intagningsbeslut', namn: 'Registrera ett intagningsbeslut', roll: 'lak-psyk', start: 'Översikten för en patient som väntar på beslut om intagning', budget: 4,
     motivering: 'Sussa 3.2.3.1. Ett klick på Besluta om intagning, ett för att bekräfta undersökningen och bedömningen enligt 3 § LPT och ett för att besluta. Systemet har kontrollerat vårdintyget, vem som utfärdade det, uppdraget enligt 39 § och fristen på 24 timmar, räknar fristen för ansökan till förvaltningsrätten och skriver in patienten.',
   },
+  // Runda 6, r1: sökning i journalen (Sussa 3.1.8) och NEWS2 (Sussa 3.1.3.5 och 3.1.3.9).
+  {
+    id: 'sok-journal', namn: 'Söka i journalen och öppna träffen', roll: 'lak-kard', start: 'Patientens översikt', budget: 3,
+    motivering: 'Sussa 3.1.8.1. Ett fältbyte till sökfältet ovanför flikarna, Enter för att söka och ett klick på träffen. Systemet tolkar ordet blodtryck som mätvärdet, söker i allt läkaren får läsa och öppnar kurvan för blodtrycket.',
+  },
+  {
+    id: 'news2', namn: 'Registrera en NEWS2-kontroll', roll: 'ssk-kard', start: 'Patientens översikt', budget: 8,
+    motivering: 'Sussa 3.1.3.5 och 3.1.3.9. Ett klick till Mätvärden och ett på Registrera NEWS2-kontroll, där andningsfrekvensen redan har fokus, ett fältbyte vardera för syremättnad, blodtryck, puls och temperatur, ett klick för medvetandegraden och ett för att registrera. Luft är förvalt, tiden och vårdkontakten sätter systemet, och systemet räknar poängen och säger vad som ska göras.',
+  },
 ];

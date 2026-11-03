@@ -159,5 +159,5 @@ describe('Läskopia', () => {
     expect(nya.length).toBe(Object.keys(utan.patienter).length);
     expect(nya.every(r => r.resurs === 'lasekopia:slut' && r.personal_id === 'lak-akut' && r.syfte.includes('ny inloggning'))).toBe(true);
     expect(verifiera(s.db).hel).toBe(true);
-  });
+  }, 20_000); // Simulerar två timmars förnyelser, ungefär 60 hämtningar av hela läskopian.
 });

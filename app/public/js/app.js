@@ -172,6 +172,8 @@ export async function uppdateraInkorg() {
       + (d.aterinsattningar?.length ?? 0)
       // Vårdhändelser som avbokades eftersom remissen avvisades (runda 5, r4).
       + (d.avbokadeVardhandelser?.length ?? 0)
+      // NEWS2 som kräver åtgärd (runda 6, r1).
+      + (d.news2Larm?.length ?? 0)
       // Runda 6, r3: tvångsvård, vårdplaner och samordnad planering.
       + inkorgAntal(d);
   } catch { S.inkorg = null; }

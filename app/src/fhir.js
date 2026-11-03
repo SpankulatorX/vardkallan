@@ -1,7 +1,7 @@
 // FHIR R4-API. Samma behörighetsmotor och samma loggning som /api (D9).
 import { Fel, idag } from './db.js';
 import { Atkomst, kanRoll, visningsnamn, vardenhetFor } from './atkomst.js';
-import { MATTYPER, lasHandling } from './journal.js';
+import { MATTYPER, lasHandling, beskrivning } from './journal.js';
 import { synligaVistelser } from './vardkontakt.js';
 import * as logg from './logg.js';
 import { SYSTEM as KODSYSTEM, ICD10SE, ATC, MATKOD } from './kodverk.js';
@@ -15,6 +15,11 @@ import * as tidbokFhir from './tidbok-fhir.js';
 // Plan vid utsättning och delegering av läkemedelshantering (runda 5).
 import { utsattningsplan } from './lakemedel.js';
 import { delegeringKort } from './delegering.js';
+// Runda 6, r1: åtgärder med KVÅ som Procedure, NEWS2 som härledd Observation, och kodade mätvärden och GCS.
+import * as atgarder from './atgarder.js';
+import { news2Fhir } from './vitalparametrar.js';
+import { ACVPU_KOD } from './kodverk.js';
+import { tolkaGcs } from './skalor.js';
 
 export const SYSTEM = {
   personnummer: 'http://electronichealth.se/identifier/personnummer',
@@ -209,7 +214,19 @@ export function observation(db, m) {
     subject: ref('Patient', m.patient_id), ...(m.vardkontakt_id ? { encounter: ref('Encounter', m.vardkontakt_id) } : {}),
     effectiveDateTime: m.tid, performer: [ref('Organization', m.enhet_id, enhetsnamn(db, m.enhet_id))],
   };
-  const mangd = (value) => ({ value, unit: m.matt_enhet, ...(kod ? { system: SYSTEM.ucum, code: kod.ucum } : {}) });
+  const mangd = (value) => ({ value, unit: m.matt_enhet || 'poäng', ...(kod ? { system: SYSTEM.ucum, code: kod.ucum } : {}) });
+  // Runda 6, r1: medvetandegraden är ett kodat värde, och GCS har sina tre delar som komponenter.
+  if (m.typ === 'medvetande') {
+    const k = ACVPU_KOD[m.varde];
+    r.valueCodeableConcept = { ...(k ? { coding: [{ system: SYSTEM.loinc, ...k }] } : {}), text: beskrivning(m) ?? m.varde };
+    return r;
+  }
+  if (m.typ === 'gcs') {
+    const g = tolkaGcs(m.varde);
+    r.valueQuantity = mangd(g.summa);
+    r.component = kod.komponenter.map(c => ({ code: { coding: [{ system: SYSTEM.loinc, code: c.code, display: c.display }] }, valueQuantity: mangd(g[c.del]) }));
+    return r;
+  }
   if (m.typ === 'blodtryck') {
     const [sys, dia] = m.varde.split('/').map(Number);
     r.component = kod.komponenter.map((k, i) => ({ code: { coding: [{ system: SYSTEM.loinc, ...k }], text: i ? 'Diastoliskt blodtryck' : 'Systoliskt blodtryck' }, valueQuantity: mangd(i ? dia : sys) }));
@@ -413,7 +430,10 @@ export function capability(base) {
         ...(t === 'Patient' ? { operation: [{ name: 'everything', definition: 'http://hl7.org/fhir/OperationDefinition/Patient-everything' }] } : {}),
         searchParam: t === 'Patient' ? [{ name: '_id', type: 'token' }, { name: 'identifier', type: 'token' }]
           : ['Organization', 'Practitioner'].includes(t) ? [{ name: '_id', type: 'token' }] : [{ name: 'patient', type: 'reference' }],
-      })), ...tidbokFhir.capabilityResurser(), ...DEFINITIONSTYPER.map(t => ({
+      })), ...tidbokFhir.capabilityResurser(),
+      // Runda 6, r1: åtgärder med KVÅ.
+      { type: 'Procedure', interaction: [{ code: 'read' }, { code: 'search-type' }], searchParam: [{ name: 'patient', type: 'reference' }] },
+      ...DEFINITIONSTYPER.map(t => ({
         type: t, interaction: [{ code: 'read' }, { code: 'search-type' }], searchParam: [{ name: 'url', type: 'uri' }, { name: '_id', type: 'token' }],
       }))],
     }],
@@ -470,6 +490,8 @@ export function hantera(ctx) {
   }
   if (tidbokFhir.TIDBOK_TYPER.includes(typ)) return tidbokFhir.hantera(ctx, delar, (resurser) => bundle(base, url, resurser));
   if (!personal && ctx.invanare) return hanteraInvanare(ctx, delar);
+  // Runda 6, r1: Procedure (åtgärder med KVÅ) har en egen hanterare med samma behörighet och loggning.
+  if (typ === 'Procedure') return atgarder.hantera(ctx, delar, (resurser) => bundle(base, url, resurser));
   if (!TYPER.includes(typ) || delar.length > 2) throw new Fel(404, 'Okänd FHIR-resurs.', 'saknas');
   if (!personal) throw new Fel(401, 'Logga in först.', 'ej_inloggad');
 
@@ -534,6 +556,18 @@ export function hantera(ctx) {
 
   // Patientens resurser.
   const mappa = MAPPA[typ];
+  // Runda 6, r1: NEWS2 som härledd Observation, prövad och loggad som mätvärdena den bygger på.
+  if (id && typ === 'Observation' && /^news2-\d{1,9}$/.test(id)) {
+    const ankare = db.query('SELECT * FROM matvarden WHERE id = ?').get(Number(id.slice(6)));
+    if (!ankare) throw new Fel(404, 'Resursen finns inte.', 'saknas');
+    const atk = new Atkomst(db, personal, ankare.patient_id, ctx.valFor(ankare.patient_id), 'las_matvarden');
+    atk.krav('las_matvarden', { resurs: { enhet_id: ankare.enhet_id }, beskrivning: `fhir/Observation/${id}` });
+    const p = db.query('SELECT * FROM patienter WHERE id = ?').get(ankare.patient_id);
+    const obs = news2Fhir(atk, p, atk.filtrera(patientRader(db, 'Observation', p.id), 'las_matvarden')).find(o => o.id === id);
+    if (!obs) throw new Fel(404, 'Resursen finns inte.', 'saknas');
+    atk.logga('las_matvarden', atk.grund(), `fhir/Observation/${id}`);
+    return { status: 200, body: obs };
+  }
   if (id) {
     const rad = radMedId(db, typ, id);
     if (!rad || !finnsSomResurs(typ, rad)) throw new Fel(404, 'Resursen finns inte.', 'saknas');
@@ -584,6 +618,8 @@ export function hantera(ctx) {
   if (ORDINATIONSENHET[typ]) rader = rader.filter(r => { const e = ORDINATIONSENHET[typ](db, r); return !e || atk.filtrera([{ enhet_id: e }], handling, { gemensam: true }).length; });
   atk.logga(handling, atk.grund(), `fhir/${typ}${url.search}`);
   const resurser = rader.map(r => (typ === 'ServiceRequest' ? serviceRequest(db, r, kanRoll(personal, 'las_remiss')) : typ === 'EpisodeOfCare' ? episodeOfCare(db, r, forstaSynliga(atk, r)) : mappa(db, r)));
+  // Runda 6, r1: NEWS2 räknat ur de synliga mätvärdena.
+  if (typ === 'Observation') resurser.push(...news2Fhir(atk, db.query('SELECT * FROM patienter WHERE id = ?').get(pid), rader));
   return { status: 200, body: bundle(base, url, resurser) };
 }
 

@@ -24,7 +24,7 @@ export default [
     anmarkning: 'Strukturen följer huvudgrupperna och undergrupperna i Socialstyrelsens tabell (instruktionen för ändringsförslag, 2025-09-30). Kodverkslistan med Snomed CT-termer och motiveringar är inte inläst, eftersom Socialstyrelsens länkar till specifikationen inte svarade när den söktes, och Snomed CT används inte i demon. Förslagsreglerna är Vårdkällans egna demoregler. Ingen överföring till NPÖ.',
   },
   {
-    id: '3.1.5.2', kategori: 'system', egna: [], avsedd: 'delvis',
+    id: '3.1.5.2', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
     tester: [
       `${UM}överkänsligheterna som redan finns ingår, med grad, och syns i symbolen`,
       `${UM}arbetslistan visar bara kategorierna, utan innehåll`,
@@ -33,10 +33,13 @@ export default [
       `${UM}läskopian har uppmärksamhetsinformationen och symbolen`,
       `${UM}Min journal visar patientens uppmärksamhetsinformation, utan förslag och personalens id`,
       bekrafta,
+      // Runda 6, r1: symbolen också i patientsöket och inkorgen.
+      'Uppmärksamhetssymbolen i sök och inkorg > patientsök visar symbolen med samma regler som i patienthuvudet',
+      'Uppmärksamhetssymbolen i sök och inkorg > inkorgen visar symbolen på raderna med patient, bara när översikten får läsas',
     ],
-    losning: 'Symbolen står i patienthuvudet, som är detsamma i alla patientens vyer (översikt, journal, läkemedel, mätvärden, remisser och logglista), och i arbetslistan och väntrummet. Den visar vilka huvudgrupper som har information och den allvarligaste graden av överkänslighet, och innehållet är ett klick bort. Den följer med i läskopian vid avbrott.',
+    losning: 'Symbolen står i patienthuvudet, som är detsamma i alla patientens vyer (översikt, journal, läkemedel, mätvärden, remisser och logglista), och i arbetslistan, väntrummet, patientsöket och inkorgen. Den visar vilka huvudgrupper som har information och den allvarligaste graden av överkänslighet, och innehållet är ett klick bort. Den följer med i läskopian vid avbrott.',
     expert: 'Systemet sätter symbolen själv ur strukturen. Den visar aldrig mer än rollen får se: spärrade uppgifter syns inte, vårdadministratören ser ingen symbol och väntrummet visar den bara för akutens personal, utan namn för skyddad identitet.',
-    anmarkning: 'Söksidan och inkorgen, som listar patienter men inte är patientvyer, visar ingen symbol. Symbolen följer principen i Socialstyrelsens specifikation (en del per huvudgrupp, graden som fyllnad) men är ritad för Vårdkällan och är inte den nationella bilden.',
+    anmarkning: 'Symbolen i söket och inkorgen visas bara när den inloggade får läsa patientens översikt, annars är raden utan symbol. Symbolen följer principen i Socialstyrelsens specifikation (en del per huvudgrupp, graden som fyllnad) men är ritad för Vårdkällan och är inte den nationella bilden.',
   },
   {
     id: '3.1.5.3', kategori: 'system', egna: ['D10'], avsedd: 'uppfyllt_demo',

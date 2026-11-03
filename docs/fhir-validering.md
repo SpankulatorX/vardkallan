@@ -124,6 +124,23 @@ Varningarna som finns kvar är samma slag som i tabellen [Varningar](#varningar)
 
 En kopia med avsiktliga fel i de nya resurstyperna gav fel för varje ändring: `Slot.status` `ledig`, `Appointment` utan `participant`, `MedicationAdministration` utan `status`, `List.mode` `bild`, `Composition.attester.mode` `kontrasignerad`, `Schedule` utan `actor`, `Flag.status` `aktiv`, `EpisodeOfCare.status` `pagar` och ett vårdtillfälle med `Encounter.status` `inskriven`.
 
+## Omvalidering 2026-11-03: runda 6 (Observation, Procedure, MedicationAdministration och List)
+
+Efter runda 6 har `Observation` fler slag: eGFR med LOINC 98979-8, medvetandegrad som `valueCodeableConcept` med LOINC:s svarskoder, GCS med tre komponenter, smärta med NRS, syrgas och NEWS2 som härledd Observation (`news2-<id>`, `derivedFrom` till sju mätvärden). `Procedure` är ny, med KVÅ. `exportera.js` skriver ut dem och avslutar med felkod om Procedure, NEWS2, GCS, medvetandegrad eller eGFR saknas i utskriften, och `validera.sh` tar med Procedure.
+
+Valideringen kördes lokalt med validatorn 7.0.3 (sha256 57aa43fb40cec5de41def81c927725fd85908eeb71509b7f9313e04d9b8ec79b, samma som HL7:s release), i `eclipse-temurin:21-jre`, med samma paket och `-ig hl7se.fhir.base#1.1.0`, mot ett urval av utskriften: alla Observation, Procedure, MedicationAdministration och List, CapabilityStatement och de egna definitionerna. Validatorn anslöt till tx.fhir.org. Resultat: 394 resurser och **inga fel**.
+
+| Resurstyp | Resurser (personal och invånare) | Fel | Varningar | Varningar utöver dom-6 |
+|---|---|---|---|---|
+| Observation | 334 | 0 | 378 | UCUM-annoteringarna `{score}`, `{INR}` och `{1.73_m2}` (34), NEWS2 utan `performer` (5) och utan kod i `interpretation` (5) |
+| Procedure | 7 | 0 | 14 | KVÅ:s OID finns inte på terminologiservern (7) |
+| MedicationAdministration | 29 | 0 | 58 | NPL-id finns inte på terminologiservern (29) |
+| List | 1 | 0 | 1 | |
+| CapabilityStatement | 1 | 0 | 1 | |
+| StructureDefinition, CodeSystem, ValueSet (egna) | 22 | 0 | 29 | flera möjliga träffar för egna kodsystem (7) |
+
+NEWS2 är räknad av systemet och har därför ingen `performer`, och risken står som text i `interpretation`, eftersom HL7:s tolkningskoder (till exempel hög och låg) inte beskriver NEWS2:s risknivåer. Valideringen av hela utskriften i GitHub Actions omfattar också de nya resurserna från och med nästa körning.
+
 ## Före rättningarna
 
 Samma validering av svaren från koden före ändringarna (HTTP-urvalet: 252 unika resurser och 59 Bundle):
