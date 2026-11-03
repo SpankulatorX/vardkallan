@@ -97,7 +97,8 @@ describe('Användartest', () => {
   });
 
   test('uppgifterna följer flödena i klickbudgeten', () => {
-    expect(UPPGIFTER.map(u => ({ id: u.id, namn: u.namn, roll: u.roll, start: u.start }))).toEqual(FLODEN.map(f => ({ id: f.id, namn: f.namn, roll: f.roll, start: f.start })));
+    // Användartestet är för personal i vården. Patientens egna flöden i Min journal (roll inv-) mäts bara i klickbudgeten.
+    expect(UPPGIFTER.map(u => ({ id: u.id, namn: u.namn, roll: u.roll, start: u.start }))).toEqual(FLODEN.filter(f => !f.roll.startsWith('inv-')).map(f => ({ id: f.id, namn: f.namn, roll: f.roll, start: f.start })));
     for (const u of UPPGIFTER) {
       expect(STARTPUNKT[u.start]).toBeDefined();
       expect(Boolean(u.kontroll.notis || u.kontroll.sel)).toBe(true);

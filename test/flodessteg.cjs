@@ -71,7 +71,8 @@ function skapa(BAS) {
     await page.goto(`${BAS}/#/`);
     await page.waitForLoadState('networkidle');
     if (await page.locator('[data-a="loggaut"]').count()) await page.click('[data-a="loggaut"]');
-    await page.click(`[data-roll="${id}"]`);
+    // En patient (roll inv-) loggar in i Min journal med simulerad e-legitimation.
+    if (id.startsWith('inv-')) { await page.click('#flik-patient'); await page.click(`[data-invanare="${id}"]`); } else await page.click(`[data-roll="${id}"]`);
     await page.waitForSelector('[data-a="loggaut"]');
     await page.waitForSelector('#lista, main h1');
     await page.waitForLoadState('networkidle');
@@ -82,6 +83,9 @@ function skapa(BAS) {
     'Översikten för en remitterad patient': async (page) => { await gaTill(page, '#/patient/p05'); await page.waitForSelector('.tidslinje'); },
     'Översikten för en patient på mottagningen': async (page) => { await gaTill(page, '#/patient/p11'); await page.waitForSelector('.tidslinje'); },
     'Översikten för en inlagd patient': async (page) => { await gaTill(page, '#/patient/p04'); await page.waitForSelector('.tidslinje'); },
+    'Vårdadministratörens startsida': async (page) => { await gaTill(page, '#/idag'); await page.waitForSelector('#idag-dagens'); },
+    'Översikten för en patient med bokad tid': async (page) => { await gaTill(page, '#/patient/p15'); await page.waitForSelector('.ov-tider'); },
+    'Min journal för en patient med bokad tid': async (page) => { await gaTill(page, '#/min/p14'); await page.waitForSelector('.min-band h1'); },
   };
 
   // Flödena. Varje funktion gör flödet från startpunkten och kontrollerar att det når sitt resultat.
@@ -238,6 +242,39 @@ function skapa(BAS) {
       await m.klicka(page.locator('dialog[open] [data-knappval="nar"] [data-val="planerad"]'), 'Planerad');
       await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Registrera');
       await synlig(page, '.notis', 'Video är registrerat till');
+    },
+    // Tidboken (Sussa 3.4.1 till 3.4.4). Systemet föreslår tiderna, så bokning och ombokning är två klick.
+    'boka-remiss': async (m, page) => {
+      await m.klicka(page.locator('#idag-remisser tr', { hasText: 'Karl-Erik Brandt' }).locator('[data-atgard="boka"]'), 'Boka tid vid remissen');
+      await page.locator('dialog[open] .forslag-knapp').first().waitFor();
+      await m.klicka(page.locator('dialog[open] .forslag-knapp').first(), 'den första föreslagna tiden');
+      await synlig(page, '.notis', 'Karl-Erik Brandt har fått en tid');
+      await page.locator('#idag-remisser', { hasText: 'Alla accepterade remisser har fått tid' }).waitFor();
+    },
+    'checka-in': async (m, page) => {
+      await m.klicka(page.locator('#idag-dagens tr', { hasText: 'Ahmed Hassan' }).locator('[data-atgard="checka_in"]'), 'Checka in för Ahmed Hassan');
+      await synlig(page, '.notis', 'Ahmed Hassan är incheckad');
+      await synlig(page, '#idag-dagens tr', 'Att betala 200 kr');
+    },
+    gruppkallelse: async (m, page) => {
+      await m.klicka(page.locator('#idag-kallelser [data-atgard="kalla_grupp"]').first(), 'Skicka kallelser för Hjärtskolan');
+      await page.locator('dialog[open]').waitFor();
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Skicka 3 kallelser');
+      await synlig(page, '.notis', '3 kallelser är skickade');
+    },
+    omboka: async (m, page) => {
+      await m.klicka(page.locator('.ov-tider [data-tider="omboka"]').first(), 'Boka om');
+      await page.locator('dialog[open] .forslag-knapp').first().waitFor();
+      await m.klicka(page.locator('dialog[open] .forslag-knapp').first(), 'den första föreslagna tiden');
+      await synlig(page, '.notis', 'Tiden är ombokad till');
+    },
+    'egen-ombokning': async (m, page) => {
+      await m.klicka(page.locator('.min-flikar a', { hasText: /^Tider$/ }), 'fliken Tider');
+      await page.waitForSelector('.min-tider');
+      await m.klicka(page.locator('.min-tid [data-min="omboka"]').first(), 'Boka om');
+      await page.locator('dialog[open] .forslag-knapp').first().waitFor();
+      await m.klicka(page.locator('dialog[open] .forslag-knapp').first(), 'den föreslagna tiden');
+      await synlig(page, '.notis', 'Din tid är ombokad till');
     },
   };
   return { synlig, gaTill, loggaIn, startI, GOR };

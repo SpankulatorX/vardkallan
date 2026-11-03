@@ -23,12 +23,13 @@ Demon använder bara påhittade patienter och testpersonnummer från Skatteverke
 - Läsläge vid avbrott: när servern inte svarar går det att läsa arbetslistan och patienternas journaler ur en krypterad läskopia i webbläsaren, med reservinloggning. Läskopian förnyas av sig själv medan man är inloggad, så läkemedelsuppgifterna är högst 10 minuter gamla när ett avbrott börjar, och läsläget visar per patient hur gamla de är.
 - Remisser med mottagningskvittens, bedömning, svar och kvittens av svaret, och larm när något uteblir.
 - Vårdkontakt och vårdtillfälle som bärande struktur: allt som dokumenteras hör till en vårdkontakt, och ingen behöver välja kontakten själv. Systemet knyter anteckningar, mätvärden, ordinationer och remisser till den pågående kontakten, eller skapar en ur sammanhanget. Vårdadministratören registrerar planerade och oplanerade besök, telefon, video och hembesök med patientavgift enligt demoregler, och sjuksköterskan skriver in, flyttar och skriver ut. Ett vårdtillfälle följer med vid flytt och sängbyte, och systemet föreslår hälsoärenden som bekräftas med ett klick.
+- Tidbok, väntelista och kallelser för vårdadministratören: Dagens arbete visar vilka som kommer i dag och om de har kommit, remisser som väntar på tid, väntelistan, kallelser som behöver gå ut och bevakningar, med en nästa åtgärd per rad. Systemet föreslår de lämpligaste tiderna, så att bokning och ombokning är ett klick, räknar dagar mot vårdgarantin, skriver kallelserna och påminnelserna och väljer kanal själv. Patienten checkar in och bokar om i Min journal eller på en skärm i väntrummet, och avgiften räknas av systemet. Sms, brev och betalning är simulerade, och vårdgarantin och avgifterna är demoregler.
 - Migrerad historik visas i samma kronologi som ny dokumentation, med en avstämningsrapport för migreringen.
 - Öppet FHIR R4-API under `/fhir` med samma behörighet och loggning som gränssnittet.
 - Kravspårbarhet: varje krav visas med de automatiska tester som visar att det är uppfyllt. Bygget stoppas om ett test är rött. Testerna och FHIR-valideringen mot HL7:s validator körs på GitHub vid varje ändring (`.github/workflows/test.yml`).
 - Sussas kravspecifikation för Cosmic med originalnummer (kapitel 1 till 6 och 11, 305 poster, utlämnad av Konkurrensverket 2026-11-03) på sidan Kravspårbarhet: varje post med kravtext, Vårdkällans lösning, hur systemet tar expertrollen och testerna som visar det. Grundprincipen är att systemet är experten, inte användaren (`docs/design.md`).
 
-Det som inte är byggt än (bland annat tidbok, specialområden som anestesi och intensivvård och cytostatika, och riktiga integrationer mot nationella tjänster) visas som planerat på sidan Moduler.
+Det som inte är byggt än (bland annat kassa och resursbokning, specialområden som anestesi och intensivvård och cytostatika, och riktiga integrationer mot nationella tjänster) visas som planerat på sidan Moduler.
 
 ## Kör lokalt
 

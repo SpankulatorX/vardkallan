@@ -8,7 +8,7 @@
 // filen. Så får alla en ny version direkt när servern svarar, och den gamla versionen bara under ett avbrott.
 //
 // Listan måste ha med varje fil i public/. Ett test (Läskopia > service workern cachar alla statiska filer) jämför.
-const CACHE = 'vardkallan-v2';
+const CACHE = 'vardkallan-v3';
 const FILER = [
   '/index.html', '/app.css', '/favicon.svg',
   '/fonts/OFL.txt', '/fonts/noto-sans-400.woff2', '/fonts/noto-sans-600.woff2', '/fonts/noto-sans-700.woff2',
@@ -19,6 +19,7 @@ const FILER = [
   '/js/vyer/logg.js', '/js/vyer/migrering.js', '/js/vyer/min.js', '/js/vyer/min-delar.js', '/js/vyer/moduler.js', '/js/vyer/oppet-api.js', '/js/vyer/patient-journal.js',
   '/js/vyer/patient-identitet.js', '/js/vyer/patient-lakemedel.js', '/js/vyer/patient-logglista.js', '/js/vyer/patient-matvarden.js', '/js/vyer/patient-oversikt.js',
   '/js/vyer/patient-remisser.js', '/js/vyer/patient-vardkontakt.js', '/js/vyer/patient.js', '/js/vyer/remisser.js', '/js/vyer/sok.js', '/js/vyer/vantrum.js',
+  '/js/tidbok-ui.js', '/js/vyer/idag.js', '/js/vyer/tidbok.js', '/js/vyer/vantelista.js', '/js/vyer/incheckning.js', '/js/vyer/patient-tider.js', '/js/vyer/min-tider.js',
 ];
 const TIDSGRANS_MS = 4000;
 

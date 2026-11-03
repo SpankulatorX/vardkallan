@@ -18,6 +18,8 @@ export const STARTPUNKT = {
   'Översikten för en remitterad patient': { hash: '#/patient/p05', klar: '.tidslinje' },
   'Översikten för en patient på mottagningen': { hash: '#/patient/p11', klar: '.tidslinje' },
   'Översikten för en inlagd patient': { hash: '#/patient/p04', klar: '.tidslinje' },
+  'Vårdadministratörens startsida': { hash: '#/idag', klar: '#idag-dagens' },
+  'Översikten för en patient med bokad tid': { hash: '#/patient/p15', klar: '.ov-tider' },
 };
 
 export const UPPGIFTER = [
@@ -110,6 +112,26 @@ export const UPPGIFTER = [
     id: 'planera-video', namn: 'Planera ett videobesök', roll: 'adm-kard', start: 'Översikten för en remitterad patient',
     text: 'Lars Wennberg ska ha ett uppföljande videobesök nästa vardag. Planera det.',
     kontroll: { notis: 'Video är registrerat till' },
+  },
+  {
+    id: 'boka-remiss', namn: 'Boka tid för en remiss', roll: 'adm-kard', start: 'Vårdadministratörens startsida',
+    text: 'Du är vårdadministratör på kardiologen. Karl-Erik Brandts remiss från Lindesberg är accepterad. Ge honom en tid.',
+    kontroll: { notis: 'har fått en tid' },
+  },
+  {
+    id: 'checka-in', namn: 'Checka in en patient', roll: 'adm-kard', start: 'Vårdadministratörens startsida',
+    text: 'Ahmed Hassan har just kommit till receptionen för sitt besök i dag. Registrera att han har kommit.',
+    kontroll: { notis: 'är incheckad' },
+  },
+  {
+    id: 'gruppkallelse', namn: 'Skicka en gruppkallelse', roll: 'adm-kard', start: 'Vårdadministratörens startsida',
+    text: 'Det är bestämt att Hjärtskolan blir av. Se till att alla deltagare får sin kallelse.',
+    kontroll: { notis: 'kallelser är skickade' },
+  },
+  {
+    id: 'omboka', namn: 'Boka om en tid', roll: 'adm-kard', start: 'Översikten för en patient med bokad tid',
+    text: 'David Nordin ringer och kan inte komma på sin tid i dag. Ge honom en ny tid.',
+    kontroll: { notis: 'Tiden är ombokad till' },
   },
 ];
 

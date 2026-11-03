@@ -17,6 +17,11 @@ import * as oppetApi from './vyer/oppet-api.js';
 import * as drift from './vyer/drift.js';
 import * as anvandartest from './anvandartest.js';
 import * as minJournal from './vyer/min.js';
+// Tidboken (Sussa 3.4.1 till 3.4.4): vårdadministratörens startsida, tidbok, väntelista och incheckningsskärm.
+import * as idag from './vyer/idag.js';
+import * as tidbok from './vyer/tidbok.js';
+import * as vantelista from './vyer/vantelista.js';
+import * as incheckning from './vyer/incheckning.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -31,6 +36,9 @@ export const pa = (...h) => h.some(far);
 
 // Vänstermenyn. Varje rad: adress, text, ikon, villkor, räknare.
 const MENY = [
+  ['#/idag', 'Dagens arbete', 'kalender', () => far('boka')],
+  ['#/tidbok', 'Tidbok', 'klocka', () => far('boka')],
+  ['#/vantelista', 'Väntelista', 'ko', () => far('vantelista')],
   ['#/arbetslista', 'Arbetslista', 'lista', () => !arLogggranskare()],
   ['#/sok', 'Sök patient', 'sok', () => far('sok')],
   ['#/inkorg', 'Inkorg', 'inkorg', () => !arLogggranskare(), 'inkorg'],
@@ -45,6 +53,10 @@ const MENY = [
 ];
 
 const RUTTER = [
+  [/^#\/idag$/, idag, () => far('boka')],
+  [/^#\/tidbok$/, tidbok, () => far('boka')],
+  [/^#\/vantelista$/, vantelista, () => far('vantelista')],
+  [/^#\/incheckning$/, incheckning, () => far('checka_in')],
   [/^#\/arbetslista$/, arbetslista, () => !arLogggranskare()],
   [/^#\/sok$/, sok, () => far('sok')],
   [/^#\/inkorg$/, inkorg, () => !arLogggranskare()],
@@ -84,7 +96,8 @@ export async function laddaEnheter() {
 export const vardenhetAv = (id) => enhetMap.get(id)?.vardenhet ?? id;
 export const enhetLista = () => [...enhetMap.values()];
 
-export const hem = () => (arInvanare() ? '#/min' : arLogggranskare() ? '#/logg' : '#/arbetslista');
+// Vårdadministratören börjar på dagens arbete, där systemet har ordnat det som ska göras i dag.
+export const hem = () => (arInvanare() ? '#/min' : arLogggranskare() ? '#/logg' : far('boka') ? '#/idag' : '#/arbetslista');
 
 // Logotypen: en droppe över en våg, en källa.
 export const logotyp = (storlek = 30) => `<svg class="logotyp" width="${storlek}" height="${storlek}" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="9" fill="currentColor"/><path d="M16 5.2c-3.3 4.7-6.1 8.1-6.1 11.6a6.1 6.1 0 0 0 12.2 0c0-3.5-2.8-6.9-6.1-11.6z" fill="#fff"/><path d="M7.5 26.2c2.8-1.7 5.7-1.7 8.5 0s5.7 1.7 8.5 0" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`;

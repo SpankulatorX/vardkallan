@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-03T10:34:43.355Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-03T11:55:07.546Z",
+  "bas": "http://127.0.0.1:18108",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "289dd1d6de1bb768ee1d61ea9678d9ef33beaff5236dd9b2be2fe52fdb5b45e4",
+  "gransnittHash": "401e7c75fe6f5e0b6f7b196dbbd33f7e8ed218dda56fac110769c1fb60df4c0b",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -339,6 +339,91 @@
         "klick: Planerad",
         "klick: Registrera"
       ]
+    },
+    {
+      "id": "boka-remiss",
+      "namn": "Boka tid för en remiss",
+      "roll": "adm-kard",
+      "start": "Vårdadministratörens startsida",
+      "budget": 2,
+      "motivering": "Ett klick på Boka tid vid remissen och ett på den tid som systemet föreslår först. Tidstyp, yrkesroll, gränsen mot vårdgarantin och tidigare vårdgivare har systemet redan tagit hänsyn till, och kallelsen går ut av sig själv.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Boka tid vid remissen",
+        "klick: den första föreslagna tiden"
+      ]
+    },
+    {
+      "id": "checka-in",
+      "namn": "Checka in en patient",
+      "roll": "adm-kard",
+      "start": "Vårdadministratörens startsida",
+      "budget": 1,
+      "motivering": "Ett klick på Checka in i raden för patienten. Ankomsten registreras på den planerade vårdkontakten och avgiften visas, räknad av systemet.",
+      "klick": 1,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "steg": [
+        "klick: Checka in för Ahmed Hassan"
+      ]
+    },
+    {
+      "id": "gruppkallelse",
+      "namn": "Skicka en gruppkallelse",
+      "roll": "adm-kard",
+      "start": "Vårdadministratörens startsida",
+      "budget": 3,
+      "motivering": "Ett klick på Skicka kallelser för gruppträffen och ett för att bekräfta. Systemet har skrivit kallelserna och väljer kanal för varje deltagare. Ett klick räknas med för att granska en kallelse.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Skicka kallelser för Hjärtskolan",
+        "klick: Skicka 3 kallelser"
+      ]
+    },
+    {
+      "id": "omboka",
+      "namn": "Boka om en tid",
+      "roll": "adm-kard",
+      "start": "Översikten för en patient med bokad tid",
+      "budget": 2,
+      "motivering": "Ett klick på Boka om och ett på den tid som systemet föreslår. Samma tidstyp och samma vårdgivare kommer först, och patienten får en ny kallelse utan att någon ber om det.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Boka om",
+        "klick: den första föreslagna tiden"
+      ]
+    },
+    {
+      "id": "egen-ombokning",
+      "namn": "Patienten bokar om sin tid i Min journal",
+      "roll": "inv-p14",
+      "start": "Min journal för en patient med bokad tid",
+      "budget": 3,
+      "motivering": "Ett klick på fliken Tider, ett på Boka om och ett på den föreslagna tiden. Systemet visar bara tider av samma typ, minst 24 timmar fram, och skickar den nya kallelsen.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Tider",
+        "klick: Boka om",
+        "klick: den föreslagna tiden"
+      ]
     }
   ],
   "tester": [
@@ -412,6 +497,26 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Planera ett videobesök inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Boka tid för en remiss inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Checka in en patient inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Skicka en gruppkallelse inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Boka om en tid inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Patienten bokar om sin tid i Min journal inom budget",
       "status": "grön"
     }
   ]

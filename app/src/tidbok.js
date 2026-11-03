@@ -916,7 +916,7 @@ export function patientensBokningar(atk) {
   const ve = vardenhetFor(db, atk.personal.enhet_id);
   const poster = kanRoll(atk.personal, 'boka') ? db.query("SELECT * FROM vantelista WHERE patient_id = ? AND enhet_id = ? AND status = 'vantar'").all(atk.patientId, ve).map(v => vantelistaUt(db, v)) : [];
   return {
-    kommande: kommande.map(b => ({ ...b, kanOmbokas: kanRoll(atk.personal, 'boka') && b.status === 'bokad' && vardenhetFor(db, b.tid.mottagning.id) === ve })),
+    kommande: kommande.map(b => ({ ...b, kanOmbokas: kanRoll(atk.personal, 'boka') && b.status === 'bokad' && b.tid.tidstyp !== 'grupp' && vardenhetFor(db, b.tid.mottagning.id) === ve })),
     tidigare, vantelista: poster, dolda: { kraverVal: atk.doldaVal, sparrade: atk.doldaSparr },
   };
 }

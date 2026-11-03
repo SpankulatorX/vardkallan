@@ -5,6 +5,7 @@ import { doldaRad } from './patient.js';
 import { remissStatusText } from './remisser.js';
 import { lakemedelsalderRad } from '../avbrott.js';
 import * as vardkontakt from './patient-vardkontakt.js';
+import * as tider from './patient-tider.js';
 
 // När frågeställningen inte visas för rollen skickar servern remissens status i stället.
 const REMISSTATUS = { skickad: 'Status: skickad', mottagen: 'Status: mottagen', bedomd: 'Status: bedömd', besvarad: 'Status: besvarad', svar_kvitterat: 'Status: svaret är kvitterat' };
@@ -31,7 +32,8 @@ function snabbval(ctx) {
 }
 
 export async function visa(el, ctx) {
-  const d = await api(`/api/patient/${encodeURIComponent(ctx.id)}/oversikt`);
+  // Bokade tider (tidboken) hämtas samtidigt med översikten.
+  const [d, t] = await Promise.all([api(`/api/patient/${encodeURIComponent(ctx.id)}/oversikt`), tider.hamta(ctx.id)]);
   if (!ctx.aktuell()) return;
   const delar = [];
 
@@ -54,6 +56,7 @@ export async function visa(el, ctx) {
   if (d.remisser) {
     delar.push(sektion('rem', 'Pågående remisser', d.remisser.length ? `<ul class="enkel-lista">${d.remisser.map(r => `<li><strong>Till ${esc(r.till.namn)}</strong> från ${esc(r.fran.namn)}<span class="under-text">${esc(remissStatusText(r))}, svar senast ${esc(datum(r.svarSenast))}</span>${r.larm?.length ? `<span class="tagg tagg-larm">${esc(r.larm[0].text)}</span>` : ''}</li>`).join('')}</ul>` : tomRad('Inga pågående remisser.'), `<a class="sektion-lank" href="${ctx.href('remisser')}">Remisser</a>`));
   }
+  delar.push(tider.sektionHtml(t));
   delar.push(vardkontakt.sektionHtml(d, ctx));
   const k = d.kontakt;
   delar.push(sektion('kontakt', 'Kontaktuppgifter', ctx.patient.skyddad
@@ -76,6 +79,7 @@ export async function visa(el, ctx) {
     </section>`;
   el.querySelector('.tl-lage').addEventListener('change', (e) => { tidslinjeLage = e.target.value; el.querySelector('#tl-innehall').innerHTML = tidslinje(); });
   vardkontakt.koppla(el, d, ctx, () => ctx.ladda());
+  tider.koppla(el, t, ctx, () => ctx.ladda());
 }
 
 function tidslinjeRad(t, ctx) {
