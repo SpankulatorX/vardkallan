@@ -11,6 +11,8 @@ import * as logglista from './patient-logglista.js';
 import * as uppmarksamhet from '../uppmarksamhet.js';
 import * as identitet from './patient-identitet.js';
 import * as utlamnat from './patient-utlamnat.js';
+// Runda 6, r3: vårdplaner, samordnad planering och hälsoärenden, och tvångsvården.
+import { planerFlik, tvangsvardFlik } from './r3.js';
 
 export const namn = 'patient';
 
@@ -23,6 +25,9 @@ const FLIKAR = [
   ['logglista', 'Logglista', () => true, logglista],
   ['identitet', 'Identitet', () => pa('las_oversikt', 'las_admin'), identitet],
   ['utlamnat', 'Utskrifter', () => pa('skriv_ut', 'utlamna'), utlamnat],
+  // Runda 6, r3. Tvångsvården visas för läkare, som kan utfärda vårdintyg, och för personalen på psykiatrin.
+  ['planer', 'Planer', () => pa('las_vardplan', 'samordna'), planerFlik],
+  ['tvangsvard', 'Tvångsvård', () => far('tvangsvard') || Boolean(S.session?.r3?.tvangsvardsenhet), tvangsvardFlik],
 ];
 
 let huvud = null;

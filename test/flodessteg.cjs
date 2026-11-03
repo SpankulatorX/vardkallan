@@ -85,6 +85,8 @@ function skapa(BAS) {
     'Översikten för en inlagd patient': async (page) => { await gaTill(page, '#/patient/p04'); await page.waitForSelector('.tidslinje'); },
     'Vårdadministratörens startsida': async (page) => { await gaTill(page, '#/idag'); await page.waitForSelector('#idag-dagens'); },
     'Översikten för en patient med bokad tid': async (page) => { await gaTill(page, '#/patient/p15'); await page.waitForSelector('.ov-tider'); },
+    // Runda 6, r3: patient 21 med vårdintyg från akutmottagningen väntar på beslut om intagning.
+    'Översikten för en patient som väntar på beslut om intagning': async (page) => { await gaTill(page, '#/patient/p21'); await page.waitForSelector('.tidslinje'); },
     'Min journal för en patient med bokad tid': async (page) => { await gaTill(page, '#/min/p14'); await page.waitForSelector('.min-band h1'); },
     // Runda 5, r4: demoläget med en remiss som en vårdhändelse hänger på (POST /api/demo/remiss-vardhandelse).
     'Inkommande remisser med en vårdhändelse som väntar': async (page) => {
@@ -412,6 +414,21 @@ function skapa(BAS) {
       await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Avsluta behandlingen');
       await synlig(page, '.notis', 'Behandlingen med Waran 2,5 mg är avslutad');
       await synlig(page, '#ik-atersatt ~ .tom', 'Inget läkemedel ska sättas in igen');
+    },
+    // Runda 6, r3: standardvårdplan som systemet föreslår ur diagnosen (Sussa 3.2.2.1).
+    vardplan: async (m, page) => {
+      await m.klicka(page.locator('.r3-forslag [data-vp-mall="hjartsvikt"]'), 'Sätt upp vårdplanen');
+      await page.locator('dialog[open] [data-varde="ok"]').waitFor();
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Upprätta vårdplanen');
+      await synlig(page, '.notis', 'Vårdplanen Hjärtsvikt är upprättad');
+    },
+    // Runda 6, r3: beslut om intagning enligt 6 b § LPT, med systemets kontroller (Sussa 3.2.3.1).
+    intagningsbeslut: async (m, page) => {
+      await m.klicka(page.locator('[data-tv-steg]'), 'Besluta om intagning');
+      await page.locator('dialog[open] input[name="bekraftelse"]').waitFor();
+      await m.klicka(page.locator('dialog[open] input[name="bekraftelse"]'), 'Bekräfta undersökning och bedömning');
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Besluta om intagning');
+      await synlig(page, '.notis', 'Beslutet om intagning är registrerat');
     },
     // Runda 5, r4: avvisningen frågar om läkemedlet som väntar på vårdhändelsen, med Sätt ut förvalt.
     'avvisa-remiss-satt-ut': async (m, page) => {

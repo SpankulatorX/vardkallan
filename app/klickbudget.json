@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-03T15:49:29.225Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-03T17:17:53.947Z",
+  "bas": "http://127.0.0.1:18133",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "f8015240df0f42bf68d4215f4aa1cf9c42f459a84e66ca8b4f06c52843ffd2f1",
+  "gransnittHash": "fa789da8aa9f297bfeb7e65f633fb7227f17b7f41e070f46e6baae96d4ecb02b",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -656,6 +656,41 @@
         "fältbyte: motivering",
         "klick: Spara bedömningen"
       ]
+    },
+    {
+      "id": "vardplan",
+      "namn": "Sätta upp en standardvårdplan",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 3,
+      "motivering": "Sussa 3.2.2.1. Ett klick på Sätt upp vårdplanen vid systemets förslag och ett för att upprätta planen. Systemet har valt standardplanen ur diagnosen och fyllt i mål, åtgärder, ansvarig yrkesroll och uppföljningsdatum, så inget fält behöver fyllas i.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Sätt upp vårdplanen",
+        "klick: Upprätta vårdplanen"
+      ]
+    },
+    {
+      "id": "intagningsbeslut",
+      "namn": "Registrera ett intagningsbeslut",
+      "roll": "lak-psyk",
+      "start": "Översikten för en patient som väntar på beslut om intagning",
+      "budget": 4,
+      "motivering": "Sussa 3.2.3.1. Ett klick på Besluta om intagning, ett för att bekräfta undersökningen och bedömningen enligt 3 § LPT och ett för att besluta. Systemet har kontrollerat vårdintyget, vem som utfärdade det, uppdraget enligt 39 § och fristen på 24 timmar, räknar fristen för ansökan till förvaltningsrätten och skriver in patienten.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Besluta om intagning",
+        "klick: Bekräfta undersökning och bedömning",
+        "klick: Besluta om intagning"
+      ]
     }
   ],
   "tester": [
@@ -801,6 +836,14 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Avvisa en remiss och sätta ut läkemedlet inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Sätta upp en standardvårdplan inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera ett intagningsbeslut inom budget",
       "status": "grön"
     }
   ]

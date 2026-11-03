@@ -595,6 +595,76 @@ En sammanslagning går inte att ångra i demon.
 
 Fyra påhittade patienter i `seed/identiteter.js`: Annika Holmgren med personnummer på Vårdcentralen Kumla (16) och samma person med reservnummer, inlagd på kardiologen i natt utan legitimation (17), en dubblett att slå samman. En säsongsarbetare med samordningsnummer på Vårdcentralen Tybble som först hade ett reservnummer (18), och en turist som identifieras med en identitet i det påhittade utländska id-systemet (19).
 
+## Vårdplaner, psykiatrisk tvångsvård och samordnad planering (runda 6, r3, Sussa 3.2.2, 3.2.3, 4.3.1 och 6.1.1.2)
+
+Fyra delar som alla bygger på samma princip: systemet räknar fram det som lagen eller rutinen kräver ur sammanhanget, och användaren bekräftar. Modulerna är `vardplan.js`, `tvangsvard-regler.js` och `tvangsvard.js`, `samordnad.js` och `halsoarende.js`, med routningen i `r3-rutter.js` och gränssnittet i `public/js/vyer/r3.js`.
+
+**Vårdplaner (vardplan.js, Sussa 3.2.2.1 och 3.2.2.2).** En vårdplan har en rubrik, mål, åtgärder med ansvarig yrkesroll (läkare, sjuksköterska eller undersköterska) och ett uppföljningsdatum, och hör till den vårdenhet som upprättade den. Standardplanerna är mallar: hjärtsvikt, förebyggande av trycksår, diabetes, förebyggande av fall och vårdplan vid psykiatrisk tvångsvård. Systemet föreslår en standardplan ur diagnoserna på den egna vårdenheten och sammanhanget (inneliggande, ålder, pågående tvångsvård) med skälet utskrivet, och planen sätts upp med två klick från översikten. Den kan sedan anpassas (mål och åtgärder läggs till och tas bort), göra uppehåll och återupptas, följas upp mål för mål och avslutas med en utvärdering. Systemet bevakar uppföljningsdatumet och lägger planen i inkorgen när det har passerat, och visar avvikelser: passerad uppföljning, en daglig åtgärd som inte är registrerad det senaste dygnet och mål som inte nåddes. En åtgärd som gäller ett mätvärde, som daglig vikt, räknas som utförd när mätvärdet registreras, så ingen behöver kvittera samma sak två gånger. Undersköterskan registrerar sina egna åtgärder, sjuksköterskan sina och undersköterskans, och läkaren alla. Mallarna och när de föreslås är demoregler. Historiken och de utförda åtgärderna kan inte ändras eller raderas (databastriggrar). I FHIR är vårdplanen en `CarePlan`. Standardplaner kan inte importeras i demon.
+
+**Psykiatrisk tvångsvård (tvangsvard-regler.js och tvangsvard.js, Sussa 3.2.3.1 till 3.2.3.4).** Byggt direkt från lagen (1991:1128) om psykiatrisk tvångsvård (LPT), i lydelsen till och med SFS 2026:1308, och lagen (1991:1129) om rättspsykiatrisk vård (LRV), till och med SFS 2026:1148, hämtade från riksdagen.se den 3 november 2026. En tvångsvårdsperiod börjar med vårdintyget och slutar när vården upphör, i sluten och öppen form, och har en sammanhållen beslutsjournal där varje händelse har vem, vilken vårdenhet och när. Läget räknas fram ur händelserna varje gång (`lage()` är en ren funktion), och händelserna kan inte ändras eller raderas. Systemet föreslår nästa steg med de fält som behövs.
+
+Bestämmelserna som systemet bygger på:
+
+- LPT 3 §: förutsättningarna för tvångsvård. Läkaren bekräftar bedömningen när beslutet fattas.
+- LPT 4 och 5 §§: vårdintyget grundas på en särskild läkarundersökning, innehåller en redogörelse för den psykiska störningen och omständigheterna (obligatoriskt fält) och ska snarast komma till den sjukvårdsinrättning där intagningen prövas. Systemet skickar det till den psykiatriska vårdenheten och väljer den själv.
+- LPT 6 §: patienten får hållas kvar efter läkarens beslut tills frågan om intagning är avgjord.
+- LPT 6 a §: under kvarhållningen får patienten kortvarigt spännas fast eller hållas avskild efter beslut av legitimerad läkare, och en patient under 18 år högst en timme respektive två timmar.
+- LPT 6 b §: beslutet om intagning fattas skyndsamt efter undersökning, senast 24 timmar efter ankomsten till vårdinrättningen, och får inte grundas på ett vårdintyg som är äldre än fyra dagar eller fattas av den läkare som utfärdade intyget. Systemet räknar ankomsten från när patienten kom till samma sjukhus, när vårdintyget utfärdas på den egna vårdenhetens pågående kontakt där, vilket ger den tidigaste fristen. Lagen säger inte hur de fyra dagarna räknas, så systemet räknar fyra dygn från klockslaget.
+- LPT 7 §: ansökan om medgivande till fortsatt tvångsvård före utgången av fyra veckor från dagen för beslutet om intagning.
+- LPT 7 a §: den samordnade vårdplanen vid öppen tvångsvård, som ska fogas till en ansökan om öppen vård. Systemet stoppar en sådan ansökan utan plan.
+- LPT 8 §: efter rättens medgivande högst fyra månader från dagen för beslutet om intagning.
+- LPT 9 §: därefter högst sex månader åt gången från rättens beslut, och ansökan ska ha kommit in innan tiden har löpt ut.
+- LPT 10 §: vården får fortsätta i avvaktan på rättens beslut och upphör omedelbart om rätten avslår ansökan.
+- LPT 11 och 12 §§: övergång från frivillig vård, beslut senast 24 timmar efter vårdintyget, underställning senast dagen efter beslutet och ansökan senast inom fyra dagar från dagen för beslutet. LPT 13 §: högst fyra månader från beslutet efter rättens medgivande.
+- LPT 16 §: en vårdplan snarast efter intagningen och en undersökning av behovet av stöd från socialtjänsten. Lagen anger ingen tid, och systemet visar dem som uppgifter och föreslår standardplanen för tvångsvård.
+- LPT 17 § tredje stycket: behandling utan samtycke efter chefsöverläkarens beslut. Ingen tidsgräns i lagen.
+- LPT 18 a §: ett uppföljningssamtal efter en genomförd tvångsåtgärd, så snart patientens tillstånd tillåter. Ingen tid i lagen.
+- LPT 19 §: fastspänning av en vuxen ska vara kortvarig, med personal närvarande. Lagen anger ingen gräns i timmar, och systemet påstår ingen. Längre tid av synnerliga skäl beslutas av chefsöverläkaren, och Inspektionen för vård och omsorg (IVO) ska underrättas utan dröjsmål.
+- LPT 19 a §: fastspänning av en patient under 18 år, beslut som gäller högst en timme åt gången, och IVO när det har pågått längre än en timme i följd.
+- LPT 20 och 20 a §§: avskiljande, högst åtta timmar per beslut (två för en patient under 18 år), fortlöpande uppsikt, och IVO efter åtta timmar i följd (två timmar för en patient under 18 år).
+- LPT 20 b, 22 a och 22 b §§: inskränkning i rätten att använda elektroniska kommunikationstjänster (högst två månader, en vecka för en patient under 18 år) och övervakning av försändelser (högst två månader), och IVO ska underrättas.
+- LPT 22 c §: IVO när en patient under 18 år har varit föremål för fastspänning, avskiljande eller inskränkning vid minst tre tillfällen.
+- LPT 23 §: kroppsvisitation efter chefsöverläkarens beslut, med vittne om möjligt.
+- LPT 26 §: särskilda villkor vid öppen tvångsvård. LPT 26 a §: beslut om sluten vård igen, ansökan senast fyra dagar från dagen för beslutet, annars kvarstår det tidigare beslutet om öppen vård.
+- LPT 27 §: upphörande så snart förutsättningarna inte längre finns, och frågan övervägs fortlöpande. LPT 28 §: vården upphör av sig själv om ansökan inte har kommit in i tid, och systemet visar perioden som upphörd med skälet.
+- LPT 30 §: information om rätten till stödperson, så snart tillståndet tillåter. Ingen tid i lagen.
+- LPT 35 §: förvaltningsrätten tar upp målet inom åtta dagar. Visas som information när en ansökan väntar.
+- LPT 39 §: chefsöverläkaren får uppdra uppgifter åt en erfaren läkare med specialistkompetens i psykiatri. Beslut om intagning, ansökningar och förlängning av fastspänning och avskiljande kräver chefsöverläkaren eller ett sådant uppdrag. I demon har Lena Ström ett simulerat uppdrag.
+- LRV 8 §: tvångsåtgärderna i LPT 18 till 24 §§ gäller också i sluten rättspsykiatrisk vård.
+- LRV 12, 12 a och 14 §§: utan särskild utskrivningsprövning högst fyra månader från dagen då domen blev verkställbar (eller patienten kom senare), därefter sex månader åt gången, och vården upphör om ansökan inte har kommit in i tid.
+- LRV 16 a §: med särskild utskrivningsprövning anmälan till förvaltningsrätten senast fyra månader efter att domen blev verkställbar, därefter inom var sjätte månad. Lagen säger inte att vården upphör vid en sen anmälan, och systemet avslutar den inte.
+
+När lagen räknar dagar, veckor eller månader från en dag säger den inte exakt vilken dag som är den sista. Systemet väljer alltid den kortaste tolkningen: den sista dagen är dagen före den dag som ligger tiden efter startdagen (fyra veckor från måndag den 2 är till och med söndag den 29). När lagen säger "senast dagen efter" är det dagen efter. Frister i timmar räknas från klockslaget. Där lagen säger "snarast", "så snart" eller "utan dröjsmål" visar systemet uppgiften och skriver att lagen inte anger någon tid.
+
+Bevakningen (`#/tvangsvard`) visar på den psykiatriska vårdenheten alla pågående perioder med nästa frist, pågående tvångsåtgärder och antalet uppgifter, med den frist som kommer först överst. Frister som är nära eller har passerat och uppgifter som återstår hamnar i läkarens inkorg. Uppföljningen per vårdenhet (`GET /api/uppfoljning/planer`) räknar perioder, tvångsåtgärder och passerade frister utan namn, personnummer eller id, och grupper med färre än tre visas inte som tal.
+
+Parallella processer (3.2.3.3): tvångsvårdsperioden är skild från vårdtillfället. Emil Sjölund i demon vårdas på hjärtintensiven för förmaksflimmer medan tvångsvården fortsätter med sin frist för ansökan, och den somatiska vården visas i tvångsvården och tvångsvården i översikten för den som får se båda.
+
+Behörighet: uppgifterna hör till den psykiatriska vårdenheten och har inre sekretess och spärr som psykiatrins övriga information. En annan vårdenhet ser dem efter aktivt val och kan bara läsa, och när patienten har spärrat psykiatrin visas ingenting, inte heller i översikten eller inkorgen. Bara läkare registrerar, och nödåtkomst ger bara läsning. Ett vårdintyg från en annan vårdenhet svarar bara att det är skickat, och röjer inget om andra uppgifter på den psykiatriska vårdenheten.
+
+Seeden: Sofia Hedlund (p21) har ett vårdintyg från akutmottagningen och väntar på beslut om intagning (tiderna räknas från när sandlådan skapas), och Emil Sjölund (p22) har vårdats enligt LPT i 26 dagar med ansökan senast i morgon och en tidigare avslutad period. Båda är påhittade och har testpersonnummer från Skatteverket.
+
+Det som inte är byggt: Socialstyrelsens föreskrifter om psykiatrisk tvångsvård är inte lästa, bara lagarna. Rättspsykiatrisk vård för den som är anhållen eller häktad (LRV 4 §), ärenden om permission och särskild utskrivningsprövning hos förvaltningsrätten, överklaganden, kontakt med offentligt biträde och rapportering till IVO är inte byggda, bara uppgiften att underrätta IVO. Chefsöverläkarens uppdrag är simulerat.
+
+**Samordnad planering (samordnad.js, Sussa 4.3.1.1 till 4.3.1.3).** Byggt från lagen (2017:612) om samverkan vid utskrivning från sluten hälso- och sjukvård, 16 kap. 4 § hälso- och sjukvårdslagen (2017:30), 10 kap. 8 och 9 §§ socialtjänstlagen (2025:400) och 7 a § LPT. Bestämmelserna:
+
+- 1 kap. 3 § 5: utskrivningsklar bedöms av den behandlande läkaren. Bara läkaren kan skicka underrättelsen.
+- 2 kap. 1 till 3 §§: inskrivningsmeddelandet till de berörda enheterna, med namn, personnummer, folkbokföringsadress och beräknad utskrivning, senast 24 timmar efter inskrivningen eller efter den senare bedömningen. Systemet föreslår planeringen för en inneliggande patient (demoregel: 75 år eller äldre, hjärtsvikt, höftfraktur eller ökad fallrisk), väljer mottagarna (kommunen och, när den behövs eller kommunal hälso- och sjukvård behövs, den vårdcentral där patienten är listad) och skickar det med ett klick.
+- 2 kap. 4 §: en ny beräknad tidpunkt skickas av systemet när den ändras.
+- 2 kap. 5 §: den öppna vården utser en fast vårdkontakt före utskrivningen. Systemet föreslår den som öppnar uppgiften.
+- 2 kap. 6 §: kommunen börjar sin planering och registrerar det i sin vy.
+- 3 kap. 1 §: underrättelsen om att patienten är utskrivningsklar går ut med läkarens klick. 3 kap. 2 §: informationen förs över senast samma dag som utskrivningen, och systemet registrerar det när vårdtillfället avslutas.
+- 4 kap. 1 och 2 §§: samordnad individuell planering när patienten behöver insatser från både region och kommun, vilket systemet avgör ur behoven, och planen upprättas om patienten samtycker. Vid öppen tvångsvård används i stället planen enligt 7 a § LPT, som är upprättad när kommunen har justerat den.
+- 4 kap. 3 §: kallelsen skickas av den fasta vårdkontakten senast tre dagar efter underrättelsen om utskrivningsklar, räknat som ovan.
+- 5 kap. 3 och 4 §§: kommunens betalningsansvar inträder tre dagar efter underrättelsen, fyra om den skickades efter kl. 12, om villkoren är uppfyllda. Systemet visar dagen och vilka villkor som är uppfyllda. 4 kap. 5 § och 5 kap. 5 och 6 §§: en överenskommelse kan ändra tidpunkt och belopp, och beloppet räknas inte i demon.
+- 16 kap. 4 § HSL och 10 kap. 8 och 9 §§ SoL: planen anger vilka insatser som behövs, vem som ansvarar för dem, åtgärder av andra och vem som har det övergripande ansvaret, och upprättas tillsammans med den enskilde när det är möjligt och med närstående om det är lämpligt.
+
+Kommunen är en simulerad part (`kom-bist`, Lisa Ahlgren på Kommunen, simulerad) utan journalåtkomst. Kommunen ser bara planeringar som har skickats till den, och varje åtkomst loggas på patienten med grunden `samverkan`. Patientens uppgifter läses från patientraden varje gång svaret byggs, aldrig från en sparad kopia, och för en patient med skyddade personuppgifter lämnas varken namn, personnummer eller adress ut, också när skyddet tillkommer efter inskrivningsmeddelandet. En planering från en vårdenhet som patienten har spärrat syns inte för andra vårdenheter utan samtycke. Uppföljningen per vårdenhet räknar planeringar, meddelanden och kallelser i tid, utskrivningsklara vårddygn och planer med patientens deltagande, utan personuppgifter. Det som inte är byggt: riktiga meddelanden till en kommun, tidsbokning över huvudmannagränser och patientens digitala deltagande. Sekretessbestämmelserna i offentlighets- och sekretesslagen för uppgifter till kommunen är inte lästa.
+
+**Hälsoärenden som ändras (halsoarende.js, Sussa 6.1.1.2).** Ett hälsoärende kan avslutas och öppnas igen, delas (valda kontakter blir ett nytt ärende) och slås ihop med ett annat, och en vårdkontakt kan flyttas mellan ärenden eller tas bort ur ett ärende. Varje ändring sparas i ärendets historik, som inte kan ändras. Systemet föreslår att ärenden med samma diagnoskategori slås ihop och att ett ärende utan kontakter på 180 dagar avslutas (demoregel). Bara ärenden och kontakter som användaren får se ändras, och den som inte ser alla kontakter i ett ärende kan inte avsluta eller slå ihop det. Ändringarna görs under fliken Planer.
+
+**Klickbudget.** Två nya flöden: sätta upp en standardvårdplan (budget 3, mätt 2) och registrera ett intagningsbeslut (budget 4, mätt 3).
+
 ## Beslutade avvägningar (3 november 2026)
 
 Projektägaren beslutade de här frågorna efter omgång 2 i runda 4:

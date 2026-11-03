@@ -26,8 +26,15 @@ export default [
     anmarkning: 'Överkänslighet är uppmärksamhetsinformation om patienten och hör inte till en enskild vårdkontakt. Historik som saknade vårdkontakt i källan har fått en kontakt per vårdenhet och dag, märkt som skapad av systemet. Den räknas inte som överförd i migreringsavstämningen. En kontakt som systemet skapar under nödåtkomst ger ingen vårdrelation, så att systemets hjälp aldrig ger mer behörighet än användaren hade.',
   },
   {
-    id: '6.1.1.2', kategori: 'system', egna: [], avsedd: 'delvis',
+    id: '6.1.1.2', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
     tester: [
+      // Runda 6, r3: ärendet avslutas, delas och slås ihop, och en kontakt flyttas mellan ärenden.
+      'Hälsoärende > ett hälsoärende kan avslutas och öppnas igen, med historik',
+      'Hälsoärende > ett hälsoärende delas, och kontakterna följer med till det nya ärendet',
+      'Hälsoärende > två ärenden slås ihop, och det sammanslagna visas inte längre',
+      'Hälsoärende > en vårdkontakt flyttas mellan ärenden, med historik i båda',
+      'Hälsoärende > kontakter och ärenden som användaren inte får se rörs inte, och nödåtkomst ger bara läsning',
+      'Hälsoärende > historiken kan inte ändras eller raderas (trigger)',
       `${VK}hälsoärende föreslås ur samma diagnos och bekräftas med ett klick`,
       `${VK}hälsoärende föreslås ur en remisskedja`,
       `${VK}förslagen bygger bara på kontakter som användaren får se, och ett förslag kan avvisas`,
@@ -35,9 +42,9 @@ export default [
       `${VK}seedens hälsoärende håller samman remisskedjan för patient 11`,
       flode('halsoarende'),
     ],
-    losning: 'Hälsoärenden håller samman vårdkontakter över tid och vårdenheter. Systemet föreslår ärenden ur samma diagnos, en remisskedja och övergångar mellan vårdformer, och användaren bekräftar med ett klick eller avvisar förslaget. Nya kontakter i samma vårdtillfälle och efter ett akutbesök följer med ärendet. I FHIR är hälsoärendet EpisodeOfCare.',
-    expert: 'Systemet ser vilka kontakter som hör ihop och föreslår ärendet med skälet utskrivet. Användaren behöver aldrig själv leta upp och koppla ihop kontakter.',
-    anmarkning: 'Ett ärende kan inte avslutas, delas eller slås ihop med ett annat, och en kontakt kan inte flyttas mellan ärenden. Figur 2 och 3 i kravspecifikationen ingår inte i utdraget.',
+    losning: 'Hälsoärenden håller samman vårdkontakter över tid och vårdenheter. Systemet föreslår ärenden ur samma diagnos, en remisskedja och övergångar mellan vårdformer, och användaren bekräftar med ett klick eller avvisar förslaget. Nya kontakter i samma vårdtillfälle och efter ett akutbesök följer med ärendet. Ett ärende kan avslutas och öppnas igen, delas och slås ihop med ett annat, och en kontakt kan flyttas mellan ärenden, med en historik som inte kan ändras. I FHIR är hälsoärendet EpisodeOfCare.',
+    expert: 'Systemet ser vilka kontakter som hör ihop och föreslår ärendet med skälet utskrivet, och föreslår också att ärenden med samma diagnoskategori slås ihop och att ett ärende utan kontakter på ett halvår avslutas. Användaren behöver aldrig själv leta upp och koppla ihop kontakter.',
+    anmarkning: 'Regeln för att föreslå avslut är en demoregel. Den som inte ser alla kontakter i ett ärende kan inte avsluta eller slå ihop det. Figur 2 och 3 i kravspecifikationen ingår inte i utdraget.',
   },
   {
     id: '6.1.1.3', kategori: 'system', egna: ['D9'], avsedd: 'delvis',

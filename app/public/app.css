@@ -1028,3 +1028,14 @@ a.min-journalval:hover { background: var(--kalla-ljus); color: var(--blak); }
 .kryssgrupp legend { font-weight: 600; margin-bottom: 4px; }
 .del-person { margin-bottom: 24px; }
 .adm-delegering a { margin-left: 4px; }
+
+/* Runda 6, r3: vårdplaner, tvångsvård och samordnad planering (js/vyer/r3.js). */
+.tagg-obs { background: var(--obs-bg, #fff4d6); border-color: var(--obs-kant, #e0b84a); color: var(--blak); }
+.r3-kontroller { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 6px; }
+.r3-kontroller li { display: flex; gap: 8px; align-items: flex-start; }
+.r3-fel { color: var(--larm); }
+.r3-period h3, .r3-plan h3, .r3-sam h3, .r3-sam h2 { font-size: var(--f-l); margin-bottom: 4px; }
+.r3-period h4, .r3-plan h4 { margin: 12px 0 4px; font-size: var(--f-m, 1rem); }
+.r3-avvikelser { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.r3-frist.r3-passerad strong, tr.r3-passerad td { color: var(--larm); }
+.r3-tvang { border-left: 4px solid var(--obs-kant, #e0b84a); }

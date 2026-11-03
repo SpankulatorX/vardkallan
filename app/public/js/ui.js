@@ -44,6 +44,8 @@ export const GRUND = {
   nodatkomst: 'Nödåtkomst', administrativ: 'Administrativ uppgift', logggranskning: 'Logggranskning', nekad: 'Nekad',
   egen_atkomst: 'Patientens egen åtkomst', vardnadshavare: 'Vårdnadshavare',
   arkivbeslut: 'Arkivbeslut', uppfoljning: 'Uppföljning',
+  // Runda 6, r3: kommunens part i samordnad planering.
+  samverkan: 'Samverkan med kommunen',
 };
 export const NLL = { skickad: 'Skickas', kvitterad: 'Kvitterad av NLL', okand_kontrolleras: 'Okänd, kontrolleras', fel: 'Fel från NLL' };
 export const ORDTYP = { staende: 'Stående', vid_behov: 'Vid behov', tillfallig: 'Tillfällig' };
@@ -66,8 +68,11 @@ export const HANDLING = {
   skriv_ut: 'Skrev ut journalen', utlamna: 'Registrerade utlämnande eller återlämnande', begara_kontrasignering: 'Begärde kontrasignering',
   kontrasignera: 'Kontrasignerade', registrera_arkivbeslut: 'Registrerade eller läste arkivbeslut', arkivera: 'Exporterade till e-arkiv',
   gallra: 'Gallrade journalen efter beslut', radera: 'Förstörde journalhandlingar efter beslut', datauttag: 'Hämtade datauttaget för uppföljning',
+  // Runda 6, r3.
+  las_vardplan: 'Läste vårdplaner', vardplan: 'Upprättade eller ändrade vårdplan', vardplan_atgard: 'Registrerade utförd åtgärd i vårdplan',
+  las_tvangsvard: 'Läste uppgifter om tvångsvård', tvangsvard: 'Registrerade i tvångsvården', samordna: 'Samordnad planering', samverkan: 'Kommunen läste samordnad planering',
 };
-export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare', arkivarie: 'Arkivarie', uppfoljning: 'Analytiker (uppföljning)' };
+export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare', arkivarie: 'Arkivarie', uppfoljning: 'Analytiker (uppföljning)', kommun: 'Kommunens personal (simulerad)' };
 
 // Anrop mot API:t. Svarstiden läses från Server-Timing. Fel kastas som ApiFel med serverns text och kod.
 export class ApiFel extends Error {

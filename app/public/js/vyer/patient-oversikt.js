@@ -7,6 +7,8 @@ import { lakemedelsalderRad } from '../avbrott.js';
 import * as vardkontakt from './patient-vardkontakt.js';
 import * as utskrift from '../utskrift.js';
 import * as tider from './patient-tider.js';
+// Runda 6, r3: tvångsvård, vårdplaner och samordnad planering i översikten.
+import * as r3 from './r3.js';
 
 // När frågeställningen inte visas för rollen skickar servern remissens status i stället.
 const REMISSTATUS = { skickad: 'Status: skickad', mottagen: 'Status: mottagen', bedomd: 'Status: bedömd', besvarad: 'Status: besvarad', svar_kvitterat: 'Status: svaret är kvitterat' };
@@ -41,6 +43,8 @@ export async function visa(el, ctx) {
   const [d, t] = await Promise.all([api(`/api/patient/${encodeURIComponent(ctx.id)}/oversikt`), tider.hamta(ctx.id)]);
   if (!ctx.aktuell()) return;
   const delar = [];
+  // Runda 6, r3: tvångsvården först, eftersom fristerna räknas i timmar.
+  const r3del = r3.oversiktHtml(d, ctx);
 
   if (d.lakemedel) {
     delar.push(sektion('lm', 'Aktuella läkemedel', lakemedelsalderRad(ctx.id) + (d.lakemedel.length ? `<div class="tabellrulle"><table class="tabell tat">
@@ -76,7 +80,7 @@ export async function visa(el, ctx) {
     ? (d.tidslinje.length ? `<ol class="tidslinje">${d.tidslinje.map(rad).join('')}</ol>` : tomRad('Inget att visa.'))
     : vardkontakt.grupperadTidslinje(d, tidslinjeLage, rad));
   el.innerHTML = `<h2 class="sr">Översikt</h2>${snabbval(ctx)}${doldaRad(d.dolda)}${begransat}${vardkontakt.forslagHtml(d)}
-    <div class="oversikt-rutnat">${delar.join('')}</div>
+    <div class="oversikt-rutnat">${r3del}${delar.join('')}</div>
     <section class="tidslinje-sektion" aria-labelledby="ov-tl">
       <div class="sektion-huvud"><h2 id="ov-tl">Tidslinje</h2><p class="dampad liten">Nyast först. Migrerade poster från VAS och Cosmic ligger i samma kronologi och har samma vikt som ny dokumentation.</p></div>
       <div class="segment tl-lage" role="radiogroup" aria-label="Visa tidslinjen" data-las-ok>${LAGEN.map(([k, t]) => `<input type="radio" id="tl-${k}" name="tl-lage" value="${k}"${k === tidslinjeLage ? ' checked' : ''}><label for="tl-${k}">${esc(t)}</label>`).join('')}</div>
@@ -87,6 +91,7 @@ export async function visa(el, ctx) {
   el.querySelector('[data-utskrift]')?.addEventListener('click', () => utskrift.skrivUt(ctx.id));
   el.querySelector('[data-aterbesok]')?.addEventListener('click', () => tider.satUppAterbesok(ctx.id, ctx.patient?.namn ?? 'patienten').catch(felNotis));
   tider.koppla(el, t, ctx, () => ctx.ladda());
+  r3.kopplaOversikt(el, d, ctx);
 }
 
 function tidslinjeRad(t, ctx) {

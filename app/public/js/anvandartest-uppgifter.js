@@ -23,6 +23,8 @@ export const STARTPUNKT = {
   // Runda 5, r4: forbered görs av anvandartest.js innan uppgiften börjar (Waran gör uppehåll med återinsättning i morgon).
   'Arbetslistan dagen före en återinsättning': { hash: '#/arbetslista', klar: '#lista table', forbered: 'uppehall-waran' },
   'Inkommande remisser med en vårdhändelse som väntar': { hash: '#/remisser', klar: 'article.remiss', forbered: 'remiss-vardhandelse' },
+  // Runda 6, r3: patient 21 med vårdintyg från akutmottagningen.
+  'Översikten för en patient som väntar på beslut om intagning': { hash: '#/patient/p21', klar: '.tidslinje' },
 };
 
 export const UPPGIFTER = [
@@ -204,6 +206,17 @@ export const UPPGIFTER = [
     id: 'avvisa-remiss-satt-ut', namn: 'Avvisa en remiss och sätta ut läkemedlet', roll: 'lak-kard', start: 'Inkommande remisser med en vårdhändelse som väntar',
     text: 'Birgitta Nyman är remitterad från vårdcentralen för elkonvertering. Du bedömer att hon ska handläggas i primärvården. Avvisa remissen, och se till att inget läkemedel väntar på ett ingrepp som inte blir av.',
     kontroll: { notis: 'Remissen är avvisad' },
+  },
+  // Runda 6, r3: standardvårdplan och beslut om intagning enligt LPT.
+  {
+    id: 'vardplan', namn: 'Sätta upp en standardvårdplan', roll: 'lak-kard', start: 'Patientens översikt',
+    text: 'Gunnar Åkesson har hjärtsvikt. Se till att han får en vårdplan med mål och åtgärder för hjärtsvikten.',
+    kontroll: { notis: 'Vårdplanen Hjärtsvikt är upprättad' },
+  },
+  {
+    id: 'intagningsbeslut', namn: 'Registrera ett intagningsbeslut', roll: 'lak-psyk', start: 'Översikten för en patient som väntar på beslut om intagning',
+    text: 'Sofia Hedlund har kommit med vårdintyg från akutmottagningen. Du har undersökt henne och bedömer att hon behöver sluten psykiatrisk tvångsvård. Registrera ditt beslut.',
+    kontroll: { notis: 'Beslutet om intagning är registrerat' },
   },
 ];
 

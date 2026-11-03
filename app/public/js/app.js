@@ -27,6 +27,8 @@ import * as vantelista from './vyer/vantelista.js';
 import * as incheckning from './vyer/incheckning.js';
 // Delegering av läkemedelshantering (runda 5).
 import * as delegeringar from './vyer/delegeringar.js';
+// Runda 6, r3: bevakningen av tvångsvården, uppföljningen och kommunens vy.
+import { bevakningVy, uppfoljningVy, samverkanVy, inkorgAntal } from './vyer/r3.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -37,7 +39,7 @@ export const arPersonal = () => Boolean(S.session?.inloggad && S.session.persona
 export const arInvanare = () => Boolean(S.session?.inloggad && S.session.roll === 'invanare');
 export const arLogggranskare = () => S.session?.personal?.yrke === 'logggranskare';
 // Arkivarien och uppföljningsrollen läser inte journalen och har ingen arbetslista (Sussa 5.4.2 och 6.3.1).
-export const utanJournal = () => ['logggranskare', 'arkivarie', 'uppfoljning'].includes(S.session?.personal?.yrke);
+export const utanJournal = () => ['logggranskare', 'arkivarie', 'uppfoljning', 'kommun'].includes(S.session?.personal?.yrke);
 export const minVardenhet = () => S.session?.enhet?.vardenhet?.id ?? null;
 export const pa = (...h) => h.some(far);
 
@@ -53,11 +55,15 @@ const MENY = [
   // undersköterskan med delegering (runda 5). Sjuksköterskan och läkaren registrerar delegeringarna.
   ['#/administrering', 'Läkemedel att ge', 'piller', () => far('ge_lakemedel') && !far('ordinera')],
   ['#/delegeringar', 'Delegeringar', 'nyckel', () => far('delegera')],
+  // Runda 6, r3: tvångsvården på psykiatrin och kommunens samverkan.
+  ['#/tvangsvard', 'Tvångsvård', 'klocka', () => Boolean(S.session?.r3?.tvangsvardsenhet)],
+  ['#/samverkan', 'Samverkan', 'lista', () => far('samverkan')],
   ['#/remisser', 'Remisser', 'remiss', () => pa('las_remiss', 'las_remiss_status')],
   ['#/vantrum', 'Väntrum (akuten)', 'vantrum', () => far('vantrum')],
   ['#/logg', 'Logguppföljning', 'logg', () => far('las_logg')],
   ['#/arkiv', 'E-arkiv och gallring', 'arkiv', () => far('registrera_arkivbeslut')],
   ['#/datauttag', 'Datauttag', 'lista', () => far('datauttag')],
+  ['#/planuppfoljning', 'Tvångsvård och samordning', 'krav', () => far('datauttag')],
   ['#/migrering', 'Migreringsavstämning', 'migrering', () => true],
   ['#/krav', 'Kravspårbarhet', 'krav', () => true],
   ['#/moduler', 'Moduler', 'moduler', () => true],
@@ -82,6 +88,10 @@ const RUTTER = [
   [/^#\/logg\/patient\/([\w-]+)$/, logg.patient, () => far('las_logg')],
   [/^#\/arkiv$/, arkiv, () => far('registrera_arkivbeslut')],
   [/^#\/datauttag$/, datauttag, () => far('datauttag')],
+  // Runda 6, r3.
+  [/^#\/tvangsvard$/, bevakningVy, () => Boolean(S.session?.r3?.tvangsvardsenhet)],
+  [/^#\/planuppfoljning$/, uppfoljningVy, () => far('datauttag') || Boolean(S.session?.r3?.tvangsvardsenhet)],
+  [/^#\/samverkan$/, samverkanVy, () => far('samverkan')],
   [/^#\/migrering$/, migrering, () => true],
   [/^#\/krav$/, krav, () => true, true],
   [/^#\/moduler$/, moduler, () => true, true],
@@ -115,7 +125,7 @@ export const vardenhetAv = (id) => enhetMap.get(id)?.vardenhet ?? id;
 export const enhetLista = () => [...enhetMap.values()];
 
 // Vårdadministratören börjar på dagens arbete, där systemet har ordnat det som ska göras i dag.
-export const hem = () => (arInvanare() ? '#/min' : arLogggranskare() ? '#/logg' : far('registrera_arkivbeslut') ? '#/arkiv' : far('datauttag') ? '#/datauttag' : far('boka') ? '#/idag' : '#/arbetslista');
+export const hem = () => (arInvanare() ? '#/min' : arLogggranskare() ? '#/logg' : far('registrera_arkivbeslut') ? '#/arkiv' : far('datauttag') ? '#/datauttag' : far('samverkan') ? '#/samverkan' : far('boka') ? '#/idag' : '#/arbetslista');
 
 // Logotypen: en droppe över en våg, en källa.
 export const logotyp = (storlek = 30) => `<svg class="logotyp" width="${storlek}" height="${storlek}" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="9" fill="currentColor"/><path d="M16 5.2c-3.3 4.7-6.1 8.1-6.1 11.6a6.1 6.1 0 0 0 12.2 0c0-3.5-2.8-6.9-6.1-11.6z" fill="#fff"/><path d="M7.5 26.2c2.8-1.7 5.7-1.7 8.5 0s5.7 1.7 8.5 0" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`;
@@ -161,7 +171,9 @@ export async function uppdateraInkorg() {
       // Återinsättning efter uppehåll med antikoagulantia (runda 5, r4).
       + (d.aterinsattningar?.length ?? 0)
       // Vårdhändelser som avbokades eftersom remissen avvisades (runda 5, r4).
-      + (d.avbokadeVardhandelser?.length ?? 0);
+      + (d.avbokadeVardhandelser?.length ?? 0)
+      // Runda 6, r3: tvångsvård, vårdplaner och samordnad planering.
+      + inkorgAntal(d);
   } catch { S.inkorg = null; }
   const el = document.querySelector('[data-raknare="inkorg"]');
   if (el) { el.textContent = S.inkorg ? String(S.inkorg) : ''; el.hidden = !S.inkorg; }

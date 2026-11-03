@@ -15,11 +15,13 @@ const VISAR = {
   'usk-kard': 'Ser läkemedel, mätvärden, överkänslighet och omvårdnadsanteckningar, men inga läkaranteckningar och inga diagnoser.',
   'lak-akut': 'Nödåtkomst på akuten: Thomas Lindberg kommer in medvetslös och akuten har ingen vårdrelation med honom. Ser väntrummet, men aldrig namnet på en skyddad patient.',
   'lak-vc': 'Distriktsläkare med listade patienter. Har ett remissvar från kardiologen som väntar på kvittens.',
-  'lak-psyk': 'Spärrade uppgifter från psykiatrin: ser klinikens egna anteckningar om Elin Sandberg, som andra enheter bara ser som en spärrmarkering.',
+  'lak-psyk': 'Spärrade uppgifter från psykiatrin: ser klinikens egna anteckningar om Elin Sandberg, som andra enheter bara ser som en spärrmarkering. Tvångsvård: Sofia Hedlund väntar på beslut om intagning, och för Emil Sjölund ska ansökan till förvaltningsrätten in i morgon.',
   'adm-kard': 'Vårdadministratör: tar emot remisser och ser kontaktuppgifter och vårdkontakter, men ingen journaltext och inga läkemedel.',
   'logg': 'Logguppföljning: ser varje åtkomst till alla patienter, filtrerar på nödåtkomst, nekade försök och samtycken och kontrollerar att loggkedjan är hel.',
   'ark': 'Arkivarie: registrerar beslut, skapar exportpaket till e-arkiv och verkställer gallring och förstöring av journaler efter beslut. Läser inte journalen.',
   'uppf': 'Uppföljning: hämtar datauttaget utan namn och personnummer, som uppdateras varje natt. Läser inte journalen.',
+  // Runda 6, r3: kommunen är en simulerad part i samordnad planering.
+  'kom-bist': 'Kommunen i samordnad planering (simulerad): ser bara det regionen har skickat, till exempel inskrivningsmeddelandet för Gunnar Åkesson. Läser aldrig journalen.',
 };
 
 // Vad några av patienterna visar i Min journal.
