@@ -8,6 +8,8 @@ import { VARDNADSHAVARE, VISNINGSREGLER } from './seed/invanare.js';
 import { loggaRad } from './logg.js';
 import { MATKOD } from './kodverk.js';
 import { SCHEMA_UPPMARKSAMHET, seedaUppmarksamhet } from './seed/uppmarksamhet.js';
+import { IDENTITETSPATIENTER } from './seed/identiteter.js';
+import { sakraIdentitetsschema, seedIdentitet } from './identitet.js';
 
 // Fel som API:t svarar med. kod: nekad | saknas | ogiltig | kraver_val | kraver_samtycke
 export class Fel extends Error {
@@ -209,7 +211,6 @@ function tolkare(bas) {
 }
 
 const fodelsedatum = (pnr) => `${pnr.slice(0, 4)}-${pnr.slice(4, 6)}-${pnr.slice(6, 8)}`;
-const konAv = (pnr) => (Number(pnr[10]) % 2 === 1 ? 'man' : 'kvinna');
 const kategoriAv = (typ) => (typ === 'Omvårdnadsanteckning' ? 'omvardnad' : 'lakare');
 
 export function byggSeed(bas = nu()) {
@@ -217,6 +218,7 @@ export function byggSeed(bas = nu()) {
   const db = new Database(':memory:');
   db.exec(SCHEMA);
   db.exec(SCHEMA_INVANARE);
+  sakraIdentitetsschema(db);
   const insE = db.query('INSERT INTO enheter VALUES (?, ?, ?, ?, ?, ?)');
   for (const e of ENHETER) insE.run(e.id, e.hsa, e.namn, e.kortnamn ?? null, e.typ, e.forald);
   const insP = db.query('INSERT INTO personal VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
@@ -224,8 +226,8 @@ export function byggSeed(bas = nu()) {
   const insK = db.query('INSERT INTO katalog VALUES (?, ?, ?, ?, ?, ?, ?)');
   for (const k of KATALOG) insK.run(k.id, k.namn, k.substans, k.styrka, k.form, k.atc, k.npl);
 
-  const insPat = db.query(`INSERT INTO patienter (id, personnummer, fornamn, efternamn, kon, fodd, adress, postnr, ort, telefon, kontaktperson, skyddad)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  const insPat = db.query(`INSERT INTO patienter (id, personnummer, fornamn, efternamn, kon, fodd, adress, postnr, ort, telefon, kontaktperson, skyddad, id_typ)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   const insVk = db.query('INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, slut, plats, orsak, kalla) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
   const insAnt = db.query(`INSERT INTO anteckningar (patient_id, enhet_id, vardkontakt_id, typ, kategori, sokord, forfattare_id, skapad, status, signerad_tid, signerad_av, ersatter_id, rattelse_orsak, version, kalla)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
@@ -241,8 +243,10 @@ export function byggSeed(bas = nu()) {
   const kvittens = () => `NLL-${String(++kvittensNr).padStart(6, '0')}`;
   const plus = (iso, sek) => new Date(Date.parse(iso) + sek * 1000).toISOString();
 
-  for (const p of PATIENTER) {
-    insPat.run(p.id, p.pnr, p.fornamn, p.efternamn, konAv(p.pnr), fodelsedatum(p.pnr), p.adress, p.postnr, p.ort, p.telefon, p.kontaktperson, p.skyddad ? 1 : 0);
+  // Patienterna med personnummer och patienterna med andra identiteter (seed/identiteter.js, Sussa 3.1.1).
+  for (const p of [...PATIENTER, ...IDENTITETSPATIENTER]) {
+    const ident = seedIdentitet(p);
+    insPat.run(p.id, ident.varde, p.fornamn, p.efternamn, ident.kon, ident.fodd, p.adress, p.postnr, p.ort, p.telefon, p.kontaktperson, p.skyddad ? 1 : 0, ident.typ);
     if (p.listning) db.query('INSERT INTO listningar VALUES (?, ?, ?)').run(p.id, p.listning.enhet, datum(p.listning.fran));
     for (const s of p.sparr ?? []) db.query('INSERT INTO sparrar (patient_id, enhet_id, registrerad) VALUES (?, ?, ?)').run(p.id, s.enhet, datum(s.datum));
     const vk = {};
@@ -335,6 +339,7 @@ export function byggSeed(bas = nu()) {
   // Uppmärksamhetsinformation (Sussa 3.1.5), se seed/uppmarksamhet.js.
   db.exec(SCHEMA_UPPMARKSAMHET);
   seedaUppmarksamhet(db, { datum: (n) => tid(n), datumTid: (d) => tid(d) });
+  seedaIdentiteter(db, tid);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -346,6 +351,22 @@ const arLabb = (typ) => MATKOD[typ]?.kategori === 'laboratory';
 function vidimeradTid(provtid, bas) {
   const t = Date.parse(provtid) + 2 * 3600_000;
   return t < bas.getTime() ? new Date(t).toISOString() : null;
+}
+
+// Identiteterna (Sussa 3.1.1): den gällande för varje patient och de tidigare som seeden anger. En identitet gäller från
+// patientens första vårdkontakt, eller från när den tidigare identiteten upphörde.
+function seedaIdentiteter(db, tid) {
+  sakraIdentitetsschema(db);
+  for (const p of [...PATIENTER, ...IDENTITETSPATIENTER]) {
+    const forsta = db.query('SELECT min(start) AS t FROM vardkontakter WHERE patient_id = ?').get(p.id).t;
+    db.query("UPDATE identiteter SET fran = ? WHERE patient_id = ? AND status = 'gallande'").run(forsta ?? tid({ min: -1 }), p.id);
+    for (const t of p.tidigare ?? []) {
+      const ident = seedIdentitet(t);
+      db.query('INSERT INTO identiteter (patient_id, typ, varde, status, fran, till, orsak, ursprung) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(p.id, ident.typ, ident.varde, 'tidigare', tid(t.fran), tid(t.till), t.orsak, p.id);
+      db.query("UPDATE identiteter SET fran = ? WHERE patient_id = ? AND status = 'gallande'").run(tid(t.till), p.id);
+    }
+  }
 }
 
 // Invånarna i Min journal: varje patient, och vårdnadshavare utan egen journal. Visningsreglerna är vårdgivarens.
@@ -379,6 +400,7 @@ export function migrera(db) {
     seedaUppmarksamhet(db, { datum: (n) => tid(n), datumTid: (d) => tid(d) });
   }
   if (!kolumner('uppmarksamhet').includes('registrerad_enhet')) db.exec('ALTER TABLE uppmarksamhet ADD COLUMN registrerad_enhet TEXT');
+  sakraIdentitetsschema(db);
   return db;
 }
 

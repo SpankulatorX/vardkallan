@@ -101,7 +101,7 @@ Inloggning sker med ett simulerat SITHS-kort: besökaren väljer person och den 
 | adm-kard | Karin Berg | Vårdadministratör | Kardiologiska kliniken USÖ |
 | logg | Mats Wall | Logggranskare (informationssäkerhet) | Regionkansliet |
 
-Patienterna loggar in i Min journal med simulerad e-legitimation. Varje patient i seeden är också en invånare (`inv-p01` till `inv-p15`), och därtill finns vårdnadshavaren Johanna Bergström (`inv-vh01`, testpersonnummer 19861214-2383) till barnet Leo Bergström (p09), utan egen journal i demon. Barnet kan inte logga in självt.
+Patienterna loggar in i Min journal med simulerad e-legitimation. Varje patient med personnummer i `seed/patienter.js` är också en invånare (`inv-p01` till `inv-p15`), och därtill finns vårdnadshavaren Johanna Bergström (`inv-vh01`, testpersonnummer 19861214-2383) till barnet Leo Bergström (p09), utan egen journal i demon. Barnet kan inte logga in självt.
 
 ## Behörighetsmotorn (atkomst.js)
 
@@ -113,6 +113,7 @@ En ren funktion `prova(db, { personal, patient, handling, resurs, val })` som re
    - Undersköterska: läsa översikt (läkemedel, mätvärden, överkänslighet, omvårdnadsanteckningar), registrera mätvärden. Inte läkaranteckningar.
    - Vårdadministratör: administrativa uppgifter (namn, kontakter, remissernas status, vårdkontakter), ingen journaltext, inga läkemedel.
    - Logggranskare: åtkomstloggen för alla patienter, ingen journal.
+   - Patientidentitet (Sussa 3.1.1): läkare, sjuksköterskor och vårdadministratörer registrerar nya patienter och nya identiteter. Bara vårdadministratören bekräftar att två journaler slås samman.
 2. **Vårdrelation** krävs för journalåtkomst. Den finns om patienten har en pågående eller nyligen avslutad (90 dagar) vårdkontakt, inskrivning eller listning på personalens enhet, eller en remiss till enheten.
 3. **Inre sekretess**: personalen ser utan vidare sin egen enhets uppgifter. Andra enheters uppgifter inom vårdgivaren visas först efter ett aktivt val ("Visa uppgifter från andra vårdenheter") med angivet syfte. Valet loggas och gäller sessionen för den patienten.
 4. **Spärr**: en patient kan ha spärrat uppgifter från en enhet (i demon: Allmänpsykiatriska kliniken för en patient). Andra enheter ser en spärrmarkering, "Det finns spärrade uppgifter", men inte innehållet eller enhetens namn. Spärren kan tillfälligt hävas bara med patientens samtycke i stunden, vilket registreras och loggas. Nödåtkomst häver aldrig en spärr.
@@ -200,7 +201,8 @@ Alla svar har rubriken `Server-Timing: app;dur=<ms>`. Fel: `{ fel: "text", kod: 
 - `POST /api/login { personalId }` → session. `POST /api/logout`. `POST /api/reset` ger ny sandlåda.
 - `GET /api/enheter` → vårdenhetsträd.
 - `GET /api/arbetslista` → patienter med vårdrelation på min enhet: `{ id, namn, personnummer, alder, kon, plats, orsak, skyddad, larm }` (namn och personnummer maskerade för skyddade).
-- `GET /api/sok?q=` → sök på personnummer eller namn i hela regionen. Träffar visas med maskering. Sökningen loggas.
+- `GET /api/sok?q=` → sök på namn eller identitet (personnummer, samordningsnummer, reservnummer eller OID, också tidigare identiteter) i hela regionen. Träffar visas med maskering. Sökningen loggas.
+- Identiteter (Sussa 3.1.1): `GET /api/identitet/tolka?q=`, `POST /api/patienter`, `GET /api/patient/:id/identiteter`, `POST /api/patient/:id/identitet`, `POST /api/patient/:id/sammanslagning`, `POST /api/patient/:id/dubblett/avfarda`. Fälten beskrivs i `docs/api-avvikelser.md`.
 - `GET /api/vantrum` → akutmottagningens väntrum: `{ konummer, ankomst, prioritet, ... }` aldrig namn för skyddade.
 - `GET /api/patient/:id` → huvud: `{ id, namn, personnummer, alder, kon, skyddad, identitetVisad, overkanslighet: [...], sparrmarkering: bool, grund, harAndraEnheter, andraEnheterVisade }`. Kan svara 403 `kraver_val` (nödåtkomst behövs).
 - `POST /api/patient/:id/val { typ: "andra_enheter" | "nodatkomst" | "samtycke_sparr" | "visa_identitet", syfte }` → registrerar valet i sessionen och loggar.
@@ -350,6 +352,56 @@ Patient 1 har penicillinöverkänslighet (skadlig) och står på Waran, som syst
 ### Det som saknas
 
 Kodverkslistan med Snomed CT, överföring till och hämtning från NPÖ, registrering och ändring av själva överkänsligheten (den finns bara i seeden), och klinisk granskning av förslagsreglerna. Söksidan och inkorgen visar ingen symbol.
+## Identiteter och sammanslagning (identitet.js, Sussa 3.1.1)
+
+En patient identifieras med personnummer, samordningsnummer, reservnummer eller en annan identitet med OID. Varje patient har exakt en gällande identitet och sin historik i tabellen `identiteter` (status `gallande`, `tidigare` eller `ovrig` för en extra identitet bredvid den gällande). `patienter.personnummer` har den gällande identitetens värde och `patienter.id_typ` dess typ, så att listor, huvud och logg visar rätt nummer utan att fråga identitetstabellen.
+
+Systemet är experten. Ett nummer skrivs eller klistras in i valfritt format, och `tolka()` avgör självt vad det är:
+
+- Personnummer och samordningsnummer med 10 eller 12 siffror, med eller utan bindestreck och mellanslag. Med tio siffror väljs det sekel som inte ger ett födelsedatum i framtiden, och plustecknet betyder att personen har fyllt 100 år. Dag 61 till 91 betyder samordningsnummer. Kontrollsiffran räknas med Luhn-algoritmen.
+- Reservnummer: VK, födelsedatumet med åtta siffror, ett löpnummer med tre siffror (sista siffran udda för man och jämn för kvinna) och en kontrollsiffra med samma algoritm, till exempel VK19650509-0023. Formatet är påhittat för demon.
+- OID och nummer, med mellanslag, kolon eller lodstreck mellan, eller som `urn:oid:<rot>|<nummer>`. De nationella OID:erna för personnummer (1.2.752.129.2.1.3.1) och samordningsnummer (1.2.752.129.2.1.3.3) och FHIR-systemen från HL7 Sweden känns igen, och då prövas numret som personnummer eller samordningsnummer.
+
+Är något fel säger systemet vad på vanlig svenska: att kontrollsiffran inte stämmer, vilken månad eller dag som inte finns, att födelsedatumet ligger i framtiden, hur många siffror numret har eller att det saknas ett nummer efter en OID. Det finns ingen lista att välja typ i. Gränssnittet visar tolkningen medan numret skrivs (`GET /api/identitet/tolka`).
+
+OID-roten 1.3.6.1.4.1.32473 är IANA:s nummer för dokumentation och exempel (RFC 5612) och tillhör ingen verklig organisation. Demon använder grenen 1.3.6.1.4.1.32473.1: `.1.1` för Vårdkällans reservnummer och `.1.2` för ett påhittat utländskt id-system som en av seedens patienter identifieras med. Vårdkällan utger sig inte för att vara Region Örebro län eller någon annan vårdgivare.
+
+I demon går bara Skatteverkets testpersonnummer att använda (kopia i `seed/testpersonnummer.json`), så att inga riktiga personnummer hamnar i sandlådorna. Skatteverket publicerar inga testsamordningsnummer. Demons samordningsnummer är därför påhittade och byggda på ett testpersonnummer: samma datum och löpnummer, dag plus 60 och en ny kontrollsiffra. Bara sådana samordningsnummer tas emot. Det går inte att kontrollera mot Skatteverket att ett sådant nummer aldrig har delats ut.
+
+### Registrering och ny identitet
+
+- En ny patient registreras från sökvyn. Med ett känt nummer ger numret typ, födelsedatum och kön, och bara namnet behövs (det finns ingen koppling till folkbokföringen i demon). Utan nummer skapar systemet ett reservnummer av kön och födelsedatum, eller av den ungefärliga åldern (då 1 januari det året). Födelsedatum och ålder skrivs i samma fält och systemet avgör vilket det är. Namnet kan saknas och blir då Okänd man eller Okänd kvinna. Den nya patienten får en pågående vårdkontakt på den enhet som registrerade (akut på akutmottagningen, annars öppenvård), så att vården kan dokumentera direkt.
+- När personnummer eller samordningsnummer blir känt skrivs det in under fliken Identitet. Ett nummer med samma eller högre rang än det gällande (personnummer, samordningsnummer, OID, reservnummer i den ordningen) blir det gällande, och det gamla blir en tidigare identitet som går att söka på. Ett nummer med lägre rang läggs till som extra identitet. Födelsedatum och kön räknas om från ett personnummer eller samordningsnummer.
+- Läkare, sjuksköterskor och vårdadministratörer registrerar patienter och nya identiteter (`registrera_patient`, `andra_identitet`). En ny identitet kräver vårdrelation som all annan åtkomst till patienten.
+
+### Dubbletter och sammanslagning
+
+Systemet hittar själv troliga dubbletter:
+
+- samma namn, födelsedatum och kön när minst en av journalerna saknar personnummer (två olika personnummer är två olika personer), och
+- när ett nummer som skrivs in redan tillhör en annan journal. Då sparas ett förslag i `dubblettforslag` i stället för att numret läggs till.
+
+En patient med skyddad identitet föreslås aldrig på namn, bara när någon har skrivit in hela numret. Ett avfärdat förslag (Inte samma person) kommer inte tillbaka.
+
+Vårdadministratören (`sla_samman`) ser förslagen i inkorgen och i patienthuvudet, öppnar journalerna sida vid sida under fliken Identitet och bekräftar. Systemet avgör vilken journal som blir kvar: den med den mest gällande identiteten, och vid lika den som skapades först. Vid ett förslag från ett inskrivet nummer blir journalen som har numret kvar. Två journaler slås bara samman när systemet har ett förslag om dem, och vårdadministratören måste ha vårdrelation till den journal förslaget öppnas från.
+
+`slaSamman()` gör allt i en transaktion:
+
+- Alla rader med `patient_id` i alla tabeller flyttas till den journal som blir kvar, också tabeller som läggs till senare: vårdkontakter, anteckningar, diagnoser, mätvärden, överkänslighet, ordinationer, remisser, väntrum, spärrar, begäranden och invånarens koppling i Min journal. Listningen flyttas bara om den gällande journalen saknar en. Signerade anteckningar flyttas utan att ändras: triggern som skyddar dem gäller alla kolumner utom `patient_id`.
+- Den gamla journalens identiteter blir tidigare identiteter i den gällande journalen och går att söka på. Den gamla journalen finns kvar som historik med `sammanslagen_till`, och varje anrop på den leder till den gällande journalen (`patientRad` i servern, `gallandeId` i FHIR).
+- Skyddad identitet följer med: är någon av journalerna skyddad blir den sammanslagna det. Saknade kontaktuppgifter fylls i från den gamla journalen.
+- Åtkomstloggen ändras aldrig. Logglistan, både logggranskarens och patientens i Min journal, visar raderna för den gällande journalen och alla journaler som har slagits samman med den.
+- Sammanslagningen loggas på båda journalerna (`sla_samman`) och sparas i `sammanslagningar` med vem, när, varför och vilka rader som flyttades. Tabellen kan inte ändras eller raderas. Att ett förslag visas loggas på den andra journalen (`dubblettkontroll`).
+
+En sammanslagning går inte att ångra i demon.
+
+### FHIR
+
+`Patient.identifier` har alla identiteter: personnummer och samordningsnummer med HL7 Swedens system (`http://electronichealth.se/identifier/personnummer` och `.../samordningsnummer`, slices i SEBasePatient), reservnummer med `urn:oid:1.3.6.1.4.1.32473.1.1` och andra identiteter med sin OID. Den gällande har `use: official`, tidigare `old` och extra `secondary`. Basprofilen tillåter högst ett personnummer och ett samordningsnummer, så en tidigare identitet med samma system som en annan tas inte med i resursen, men den går att söka på. Den gällande journalen har `Patient.link` med `type: replaces` till varje sammanslagen journal, och den gamla journalen är `active: false` med `type: replaced-by`. `GET /fhir/Patient?identifier=` söker på alla identiteter, också tidigare, med eller utan system.
+
+### Seed
+
+Fyra påhittade patienter i `seed/identiteter.js`: Annika Holmgren med personnummer på Vårdcentralen Kumla (16) och samma person med reservnummer, inlagd på kardiologen i natt utan legitimation (17), en dubblett att slå samman. En säsongsarbetare med samordningsnummer på Vårdcentralen Tybble som först hade ett reservnummer (18), och en turist som identifieras med en identitet i det påhittade utländska id-systemet (19).
 
 ## Kravregistret (krav.js)
 

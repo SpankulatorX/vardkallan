@@ -170,6 +170,28 @@ function skapa(BAS) {
       await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Öppna med nödåtkomst');
       await synlig(page, '.band-grund', 'Nödåtkomst, loggas och granskas');
     },
+    reservnummer: async (m, page) => {
+      await m.klicka(page.locator('#meny-lista a[href="#/sok"]'), 'Sök patient i menyn');
+      await page.waitForSelector('#sokfalt');
+      await m.klicka(page.locator('[data-ny-patient]'), 'Registrera ny patient');
+      await page.waitForSelector('#np-form');
+      await m.klicka(page.locator('#np-m'), 'kön Man');
+      await m.skriv(page.locator('#np-fodelse'), '40', 'ungefärlig ålder');
+      await m.klicka(page.locator('#np-form [type="submit"]'), 'Registrera');
+      await synlig(page, '.notis', 'registrerad med reservnummer VK');
+      await synlig(page, '.band-fakta', 'Reservnummer');
+    },
+    'sla-samman': async (m, page) => {
+      await m.klicka(page.locator('#meny-lista a[href="#/inkorg"]'), 'Inkorg i menyn');
+      await page.waitForSelector('#ik-dubb');
+      await m.klicka(page.locator('#ik-dubb ~ ul a').first(), 'den troliga dubbletten i inkorgen');
+      await synlig(page, '.dubblett', 'Trolig dubblett');
+      await m.klicka(page.locator('[data-sla-samman]').first(), 'Slå samman journalerna');
+      await page.locator('dialog[open]').waitFor();
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Slå samman');
+      await synlig(page, '.notis', 'Journalerna är sammanslagna');
+      await synlig(page, '.id-tabell', 'Tidigare');
+    },
   };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }

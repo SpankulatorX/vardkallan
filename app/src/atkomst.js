@@ -2,18 +2,23 @@
 // och loggar inget. Servern anropar den i varje API- och FHIR-anrop och loggar utfallet.
 import { Fel } from './db.js';
 import { loggaRad } from './logg.js';
+import { formatera, maskera } from './identitet.js';
 
 // Minsta åtkomst per yrkesroll (D8, PDL 4 kap. 2 §).
 export const ROLLER = {
   lakare: ['las_oversikt', 'las_journal', 'las_omvardnad', 'skriv_journal', 'skriv_omvardnad', 'las_lakemedel', 'ordinera',
     'las_matvarden', 'registrera_matvarde', 'las_diagnoser', 'las_remiss', 'remittera', 'mottag_remiss', 'bedom_remiss',
-    'svara_remiss', 'kvittera_svar', 'las_admin', 'sok', 'vantrum', 'nodatkomst', 'andra_enheter', 'samtycke_sparr', 'visa_identitet'],
+    'svara_remiss', 'kvittera_svar', 'las_admin', 'sok', 'vantrum', 'nodatkomst', 'andra_enheter', 'samtycke_sparr', 'visa_identitet',
+    'registrera_patient', 'andra_identitet'],
   sjukskoterska: ['las_oversikt', 'las_journal', 'las_omvardnad', 'skriv_omvardnad', 'las_lakemedel', 'ge_lakemedel',
     'las_matvarden', 'registrera_matvarde', 'las_diagnoser', 'las_remiss', 'las_admin', 'sok', 'vantrum',
-    'nodatkomst', 'andra_enheter', 'samtycke_sparr', 'visa_identitet'],
+    'nodatkomst', 'andra_enheter', 'samtycke_sparr', 'visa_identitet', 'registrera_patient', 'andra_identitet'],
   underskoterska: ['las_oversikt', 'las_omvardnad', 'las_lakemedel', 'las_matvarden', 'registrera_matvarde', 'las_admin',
     'sok', 'vantrum', 'andra_enheter', 'samtycke_sparr', 'visa_identitet'],
-  vardadministrator: ['las_admin', 'las_remiss_status', 'mottag_remiss', 'sok', 'vantrum', 'andra_enheter', 'visa_identitet'],
+  // Patientidentiteten (Sussa 3.1.1): läkare, sjuksköterskor och vårdadministratörer registrerar patienter och nya
+  // identiteter. Att slå samman journaler bekräftas av en vårdadministratör.
+  vardadministrator: ['las_admin', 'las_remiss_status', 'mottag_remiss', 'sok', 'vantrum', 'andra_enheter', 'visa_identitet',
+    'registrera_patient', 'andra_identitet', 'sla_samman'],
   logggranskare: ['las_logg', 'sok'],
 };
 
@@ -26,10 +31,11 @@ export const HANDLINGAR = {
   kvittera_svar: 'kvittera remissvar', las_admin: 'läsa administrativa uppgifter', sok: 'söka patienter', vantrum: 'se väntrummet',
   nodatkomst: 'använda nödåtkomst', andra_enheter: 'visa uppgifter från andra vårdenheter', samtycke_sparr: 'registrera samtycke till spärrade uppgifter',
   visa_identitet: 'visa skyddad identitet', las_logg: 'läsa åtkomstloggen',
+  registrera_patient: 'registrera nya patienter', andra_identitet: 'registrera en ny identitet för en patient', sla_samman: 'slå samman journaler',
 };
 
 // Handlingar som inte rör en enskild patient.
-const UTAN_PATIENT = new Set(['sok', 'vantrum', 'las_logg']);
+const UTAN_PATIENT = new Set(['sok', 'vantrum', 'las_logg', 'registrera_patient']);
 const RELATION_DAGAR = 90;
 
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
@@ -226,8 +232,10 @@ export function visningsnamn(p, visad = false) {
   if (p.skyddad && !visad) return SKYDDAD_NAMN;
   return `${p.fornamn} ${p.efternamn}`;
 }
+// Patientens gällande identitet i visningsform: personnummer, samordningsnummer, reservnummer eller OID-identitet.
 export function visningsPnr(p, visad = false) {
-  return p.skyddad && !visad ? maskeraPnr(p.personnummer) : formateraPnr(p.personnummer);
+  const typ = p.id_typ ?? 'personnummer';
+  return p.skyddad && !visad ? maskera(typ, p.personnummer) : formatera(typ, p.personnummer);
 }
 export function alder(fodd, idag) {
   const [y, m, d] = fodd.split('-').map(Number);

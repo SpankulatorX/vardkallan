@@ -123,7 +123,7 @@ export const KRAV = [
 
   // Lagkrav och nationella tjänster
   k('L1', 'En journal per patient, signatur och tidpunkt, ingen ändring eller utplåning', 'PDL 3 kap., HSLF-FS 2016:40 6 kap.', 'delvis', '/patient/:id/anteckningar',
-    [`${J}signerad anteckning kan inte ändras i databasen (trigger)`, `${J}signerad anteckning kan inte raderas (trigger)`, `${J}rättelse skapar ny version och den gamla finns kvar oförändrad`,
+    [`${J}signerad anteckning kan inte ändras i databasen (trigger)`, `${J}signerad anteckning kan inte raderas (trigger)`, `${J}signerad anteckning flyttas till en annan patient bara under en sammanslagning av just de journalerna (trigger)`, `${J}rättelse skapar ny version och den gamla finns kvar oförändrad`,
       `${A}helflöde: anteckning skapas, signeras och rättas`],
     'Bevarande i minst tio år gäller inte demons sandlådor, som lever i åtta timmar.'),
   k('L2', 'Behörighet efter behovs- och riskanalys, minsta nödvändiga åtkomst', 'PDL 4 kap. 2 §, HSLF-FS 4 kap. 2 till 3 §§', 'delvis', '/patient/:id',

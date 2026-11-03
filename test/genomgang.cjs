@@ -449,10 +449,19 @@ const MENY = {
       await gaTill(page, '#/patient/p01');
       await forvanta(page, '.ruta-info', 'Journaltext, diagnoser och läkemedel visas inte');
       const flikar = await page.locator('.flikar a').allTextContents();
-      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Remisser', 'Logglista'])) throw new Error(`flikar ${flikar}`);
+      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Remisser', 'Logglista', 'Identitet'])) throw new Error(`flikar ${flikar}`);
       if (await page.locator('.signal-overk').count()) throw new Error('överkänslighet visas för vårdadministratören');
       if (await page.locator('.signal-um, .um-forslag').count()) throw new Error('uppmärksamhetsinformation visas för vårdadministratören');
       await bild(page, '19-vardadministrator', true);
+    });
+    await s('Karin Berg: systemet har hittat en trolig dubblett och visar journalerna sida vid sida', async () => {
+      await gaTill(page, '#/inkorg');
+      await forvanta(page, '#ik-dubb ~ ul', 'Trolig dubblett, Annika Holmgren');
+      await page.click('#ik-dubb ~ ul a');
+      await forvanta(page, '.band-fakta', 'Reservnummer');
+      await forvanta(page, '.dubblett', 'Personnummer 19650509-2962');
+      await forvanta(page, '.dubblett', 'Journalen med personnummer blir kvar');
+      await bild(page, '63-dubblett', true);
     });
     await s('Sara Lindqvist accepterar och besvarar remissen', async () => {
       await loggaIn(page, 'lak-kard');
@@ -577,7 +586,7 @@ const MENY = {
       await loggaIn(page, 'usk-kard');
       await gaTill(page, '#/patient/p01');
       const flikar = await page.locator('.flikar a').allTextContents();
-      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Journal', 'Läkemedel', 'Mätvärden', 'Logglista'])) throw new Error(`flikar ${flikar}`);
+      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Journal', 'Läkemedel', 'Mätvärden', 'Logglista', 'Identitet'])) throw new Error(`flikar ${flikar}`);
       if (await page.locator('#ov-dia').count()) throw new Error('diagnoser visas');
       await page.click('.flikar a:has-text("Journal")');
       await page.waitForSelector('.j-grupp');
@@ -769,7 +778,7 @@ const MENY = {
       await forvanta(page, 'main h1', 'Användartest');
       await forvanta(page, '.at-info', 'Alla patienter i demon är påhittade');
       await page.fill('#at-kod', 'G01');
-      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

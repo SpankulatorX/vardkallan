@@ -53,6 +53,17 @@ describe('Journal', () => {
     expect(() => db.query("UPDATE anteckningar SET status = 'utkast' WHERE id = ?").run(id)).toThrow();
   });
 
+  test('signerad anteckning flyttas till en annan patient bara under en sammanslagning av just de journalerna (trigger)', () => {
+    const db = nyDb();
+    const r = db.query("SELECT id, patient_id FROM anteckningar WHERE status = 'signerad' LIMIT 1").get();
+    expect(() => db.query("UPDATE anteckningar SET patient_id = 'p02' WHERE id = ?").run(r.id)).toThrow(/signerad anteckning kan inte ändras/);
+    db.query("INSERT OR REPLACE INTO installningar VALUES ('sammanslagning_pagar', ?)").run(`${r.patient_id}>p03`);
+    expect(() => db.query("UPDATE anteckningar SET patient_id = 'p02' WHERE id = ?").run(r.id)).toThrow(/signerad anteckning kan inte ändras/);
+    expect(() => db.query("UPDATE anteckningar SET patient_id = 'p03', sokord = '[]' WHERE id = ?").run(r.id)).toThrow(/signerad anteckning kan inte ändras/);
+    db.query("UPDATE anteckningar SET patient_id = 'p03' WHERE id = ?").run(r.id);
+    expect(db.query('SELECT patient_id FROM anteckningar WHERE id = ?').get(r.id).patient_id).toBe('p03');
+  });
+
   test('signerad anteckning kan inte raderas (trigger)', () => {
     const db = nyDb();
     const id = db.query("SELECT id FROM anteckningar WHERE status = 'signerad' LIMIT 1").get().id;

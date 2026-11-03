@@ -15,14 +15,15 @@ const db = nyDb();
 describe('Seed', () => {
   test('personnummer kommer från Skatteverkets testpersonnummer', () => {
     expect(TESTPNR.size).toBeGreaterThan(1000);
-    for (const p of db.query('SELECT personnummer FROM patienter').all()) {
+    // Patienterna med personnummer. De påhittade samordningsnumren, reservnumren och OID-identiteterna prövas i identitet.test.js.
+    for (const p of db.query("SELECT personnummer FROM patienter WHERE id_typ = 'personnummer'").all()) {
       expect(p.personnummer).toMatch(/^\d{12}$/);
       expect(TESTPNR.has(p.personnummer)).toBe(true);
     }
   });
 
   test('kön stämmer med näst sista siffran', () => {
-    for (const p of db.query('SELECT * FROM patienter').all()) {
+    for (const p of db.query("SELECT * FROM patienter WHERE id_typ = 'personnummer'").all()) {
       expect(p.kon).toBe(Number(p.personnummer[10]) % 2 === 1 ? 'man' : 'kvinna');
       expect(p.fodd).toBe(`${p.personnummer.slice(0, 4)}-${p.personnummer.slice(4, 6)}-${p.personnummer.slice(6, 8)}`);
     }

@@ -67,7 +67,8 @@ const FLAGGOR = {
 export function lista(db, { patientId = null, flagga = 'alla', fran = null, till = null, max = 500 } = {}) {
   const villkor = [FLAGGOR[flagga] ?? FLAGGOR.alla];
   const arg = [];
-  if (patientId) { villkor.push('l.patient_id = ?'); arg.push(patientId); }
+  // patientId kan vara en lista: en patient och journalerna som har slagits samman med den (Sussa 3.1.1.2).
+  if (patientId) { const ids = [patientId].flat(); villkor.push(`l.patient_id IN (${ids.map(() => '?').join(', ')})`); arg.push(...ids); }
   if (fran) { villkor.push('l.tid >= ?'); arg.push(fran); }
   if (till) { villkor.push('l.tid <= ?'); arg.push(till); }
   arg.push(max);

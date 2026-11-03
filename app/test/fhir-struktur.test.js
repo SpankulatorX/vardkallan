@@ -100,7 +100,11 @@ describe('FHIR-struktur', () => {
   test('Patient, Organization och Practitioner följer HL7 Swedens basprofiler', () => {
     for (const p of avTyp('Patient')) {
       expect(p.name.length).toBe(1);
-      expect(p.identifier.filter(i => i.system === 'http://electronichealth.se/identifier/personnummer').length).toBe(1);
+      // Basprofilen tillåter högst ett personnummer och ett samordningsnummer. Varje patient har sin gällande identitet.
+      expect(p.identifier.filter(i => i.system === 'http://electronichealth.se/identifier/personnummer').length).toBeLessThanOrEqual(1);
+      expect(p.identifier.filter(i => i.system === 'http://electronichealth.se/identifier/samordningsnummer').length).toBeLessThanOrEqual(1);
+      expect(p.identifier.filter(i => i.use === 'official').length).toBe(1);
+      for (const i of p.identifier) expect(i.system).toMatch(/^(http:\/\/electronichealth\.se\/identifier\/(personnummer|samordningsnummer)|urn:oid:[0-2](\.\d+)+)$/);
       for (const s of p.meta.security ?? []) expect(['http://hl7.se/fhir/ig/base/CodeSystem/SecurityLabel', 'http://terminology.hl7.org/CodeSystem/v3-Confidentiality']).toContain(s.system);
     }
     expect(avTyp('Patient').some(p => p.meta.security?.some(s => s.code === 'sekretessmarkering'))).toBe(true);
