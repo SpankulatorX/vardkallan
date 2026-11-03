@@ -113,7 +113,8 @@ function atgardUt(db, plan, x, nu) {
   if (x.matvarde) {
     const enheter = enheterUnder(db, plan.enhet_id);
     const m = db.query(`SELECT tid FROM matvarden WHERE patient_id = ? AND typ = ? AND enhet_id IN (${enheter.map(() => '?').join(', ')}) ORDER BY tid DESC LIMIT 1`).get(plan.patient_id, x.matvarde, ...enheter);
-    if (m && (!sist || m.tid > sist)) { sist = m.tid; auto = true; }
+    // Samma tid räknas som mätvärdet, så att resultatet inte beror på om registreringarna hamnar i samma millisekund.
+    if (m && (!sist || m.tid >= sist)) { sist = m.tid; auto = true; }
   }
   const forsenad = plan.status === 'aktiv' && x.dagligen && (!sist || nu - Date.parse(sist) > 24 * 3600_000) && nu - Date.parse(x.skapad) > 24 * 3600_000;
   return { id: x.id, text: x.text, ansvarig: x.ansvarig, ansvarigText: ANSVARIGA[x.ansvarig], dagligen: Boolean(x.dagligen), senastUtford: sist, utfordAvSystemet: auto,
