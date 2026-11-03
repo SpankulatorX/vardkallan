@@ -125,7 +125,7 @@ export async function uppdateraInkorg() {
   if (!arPersonal() || arLogggranskare()) { S.inkorg = null; return; }
   try {
     const d = await api('/api/inkorg', { tyst: true });
-    S.inkorg = d.osigneradeAnteckningar.length + d.okvitteradeSvar.length + d.larm.length + d.nllAvvikelser.length;
+    S.inkorg = d.osigneradeAnteckningar.length + d.okvitteradeSvar.length + d.larm.length + d.nllAvvikelser.length + (d.dubbletter?.length ?? 0);
   } catch { S.inkorg = null; }
   const el = document.querySelector('[data-raknare="inkorg"]');
   if (el) { el.textContent = S.inkorg ? String(S.inkorg) : ''; el.hidden = !S.inkorg; }

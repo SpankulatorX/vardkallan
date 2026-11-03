@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-03T09:25:51.774Z",
-  "bas": "http://127.0.0.1:18101",
+  "tid": "2026-11-03T09:54:22.177Z",
+  "bas": "http://127.0.0.1:18105",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "87b213cfb3b973e062b11aa12dcbc084746fad7fa8d1f7d20467235131a4c922",
+  "gransnittHash": "6bf8d0499bb0102e78c5355d9426e172bf1c391b248d24652b8a75187f476fd8",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -177,6 +177,45 @@
         "klick: intyget att patienten inte kan samtycka",
         "klick: Öppna med nödåtkomst"
       ]
+    },
+    {
+      "id": "reservnummer",
+      "namn": "Registrera patient utan känd identitet",
+      "roll": "lak-akut",
+      "start": "Arbetslistan efter inloggning",
+      "budget": 5,
+      "motivering": "Sussa 3.1.1. Ett klick till sök och ett på Registrera ny patient, ett klick för kön, ett fältbyte för ungefärlig ålder och ett klick för att registrera. Identitetsfältet lämnas tomt, så skapar systemet reservnumret själv. Ingen typ av nummer väljs i en lista, och namnet kan saknas.",
+      "klick": 4,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 5,
+      "inomBudget": true,
+      "steg": [
+        "klick: Sök patient i menyn",
+        "klick: Registrera ny patient",
+        "klick: kön Man",
+        "fältbyte: ungefärlig ålder",
+        "klick: Registrera"
+      ]
+    },
+    {
+      "id": "sla-samman",
+      "namn": "Slå samman en dubblett",
+      "roll": "adm-kard",
+      "start": "Arbetslistan efter inloggning",
+      "budget": 4,
+      "motivering": "Sussa 3.1.1.2. Systemet har själv hittat dubbletten. Ett klick till inkorgen, ett på förslaget, som visar journalerna sida vid sida, ett på Slå samman journalerna och ett för att bekräfta. Vilken journal som blir kvar avgör systemet.",
+      "klick": 4,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 4,
+      "inomBudget": true,
+      "steg": [
+        "klick: Inkorg i menyn",
+        "klick: den troliga dubbletten i inkorgen",
+        "klick: Slå samman journalerna",
+        "klick: Slå samman"
+      ]
     }
   ],
   "tester": [
@@ -214,6 +253,14 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Nödåtkomst inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera patient utan känd identitet inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Slå samman en dubblett inom budget",
       "status": "grön"
     }
   ]

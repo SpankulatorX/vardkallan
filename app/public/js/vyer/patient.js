@@ -8,6 +8,7 @@ import * as lakemedel from './patient-lakemedel.js';
 import * as matvarden from './patient-matvarden.js';
 import * as remisserFlik from './patient-remisser.js';
 import * as logglista from './patient-logglista.js';
+import * as identitet from './patient-identitet.js';
 
 export const namn = 'patient';
 
@@ -18,6 +19,7 @@ const FLIKAR = [
   ['matvarden', 'Mätvärden', () => far('las_matvarden'), matvarden],
   ['remisser', 'Remisser', () => pa('las_remiss', 'las_remiss_status'), remisserFlik],
   ['logglista', 'Logglista', () => true, logglista],
+  ['identitet', 'Identitet', () => pa('las_oversikt', 'las_admin'), identitet],
 ];
 
 let huvud = null;
@@ -52,7 +54,7 @@ function bandHtml(h) {
     <div class="band-las" aria-hidden="true"><span></span></div>
     <div class="band-id">
       <h1 tabindex="-1">${h.skyddad && !h.identitetVisad ? `${ikon.skold}<span>Skyddad identitet</span>` : esc(h.namn)}</h1>
-      <p class="band-fakta"><span class="pnr">${esc(h.personnummer)}</span><span>${esc(h.alder)} år</span><span>${h.kon === 'kvinna' ? 'Kvinna' : 'Man'}</span>${h.listning ? `<span>Listad på ${esc(h.listning.enhet.namn)}</span>` : ''}</p>
+      <p class="band-fakta">${h.identitet && h.identitet.typ !== 'personnummer' ? `<span class="tagg">${esc(h.identitet.typText)}</span>` : ''}<span class="pnr">${esc(h.personnummer)}</span><span>${esc(h.alder)} år</span><span>${h.kon === 'kvinna' ? 'Kvinna' : 'Man'}</span>${h.listning ? `<span>Listad på ${esc(h.listning.enhet.namn)}</span>` : ''}</p>
     </div>
     <ul class="band-signaler" aria-label="Uppmärksamhetssignaler och markeringar">
       ${overkanslighetSignal(h)}
@@ -70,6 +72,10 @@ function behorighetsrad(h) {
   }
   if (h.sparrmarkering && far('samtycke_sparr')) {
     r.push(`<div class="behorighet behorighet-sparr" data-sparr-rad>${ikon.las}<p>Det finns spärrade uppgifter från en annan vårdenhet. De visas bara om patienten samtycker nu.</p><button type="button" class="knapp liten sekundar" data-val="samtycke_sparr">Patienten samtycker till att spärren tillfälligt hävs</button></div>`);
+  }
+  // Troliga dubbletter som systemet har hittat (Sussa 3.1.1.2). Bara för den som kan slå samman journaler.
+  if (h.dubbletter > 0 && far('sla_samman')) {
+    r.push(`<div class="behorighet">${ikon.info}<p>Systemet har hittat ${h.dubbletter === 1 ? 'en trolig dubblett' : `${h.dubbletter} troliga dubbletter`} av journalen.</p><a class="knapp liten sekundar" href="${href(h.id, 'identitet')}">Visa förslaget</a></div>`);
   }
   if (h.harAndraEnheter && !h.andraEnheterVisade && far('andra_enheter')) {
     r.push(`<div class="behorighet">${ikon.info}<p data-andra-text>Det finns uppgifter från andra vårdenheter som inte visas.</p><button type="button" class="knapp liten sekundar" data-val="andra_enheter">Visa uppgifter från andra vårdenheter</button></div>`);
@@ -137,6 +143,11 @@ export async function visa(main, [id, flik, sub], q, ctx = {}) {
     try { huvud = await api(`/api/patient/${encodeURIComponent(id)}`); } catch (e) {
       if (e instanceof ApiFel && [403, 404].includes(e.status)) { huvud = null; return ingenAtkomst(main, id, e); }
       throw e;
+    }
+    // En journal som har slagits samman med en annan leder till den gällande journalen.
+    if (huvud.id !== id) {
+      history.replaceState(null, '', href(huvud.id, flik, sub));
+      id = huvud.id;
     }
     if (ctx.aktuell && !ctx.aktuell()) return;
     main.innerHTML = `<div class="patientvy">

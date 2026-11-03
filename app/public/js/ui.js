@@ -59,6 +59,8 @@ export const HANDLING = {
   andra_enheter: 'Visade uppgifter från andra vårdenheter', samtycke_sparr: 'Registrerade samtycke till spärrade uppgifter',
   visa_identitet: 'Visade skyddad identitet', las_logg: 'Läste åtkomstloggen',
   invanare_las: 'Läste journalen i Min journal', invanare_begaran: 'Skickade en begäran i Min journal',
+  registrera_patient: 'Registrerade ny patient', andra_identitet: 'Registrerade ny identitet', sla_samman: 'Slog samman journaler',
+  dubblettkontroll: 'Såg ett förslag om sammanslagning', dubblett_avfardad: 'Avfärdade ett förslag om sammanslagning',
 };
 export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare' };
 

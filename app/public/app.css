@@ -809,3 +809,17 @@ a.min-journalval:hover { background: var(--kalla-ljus); color: var(--blak); }
   .min-remisser .faktalista div { grid-template-columns: 1fr; }
 }
 .inloggning[hidden] { display: none; }
+
+/* Identiteter (Sussa 3.1.1): tolkningen av ett inskrivet nummer, registrering, identitetstabell och dubblettförslag. */
+.tolkning { display: flex; gap: 6px; align-items: flex-start; margin: 4px 0 0; font-size: var(--f-s); min-height: 1.4em; }
+.tolkning .ikon { flex: none; margin-top: 2px; }
+.tolkning-ok { color: var(--ok); }
+.tolkning-fel { color: var(--larm); }
+.ny-patient { max-width: 72ch; }
+.ny-patient h2 { font-size: var(--f-l); margin-bottom: 8px; }
+.ny-patient[hidden], .ny-patient [data-okand][hidden] { display: none; }
+.smal-falt { max-width: 320px; }
+.id-tabell .id-gallande th, .id-tabell .id-gallande td { font-weight: 600; }
+.id-nu { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dubblett { max-width: 80ch; }
+.dubblett h3 { margin-bottom: 6px; }

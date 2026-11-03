@@ -361,7 +361,7 @@ export function logglista(atk) {
   const vg = vardgivare(db);
   const fraga = (villkor, max) => db.query(`SELECT l.id, l.tid, l.enhet_id, l.handling, l.resurs, l.grund, l.resultat, l.invanare_id, p.yrke, i.patient_id AS inv_patient
     FROM atkomstlogg l LEFT JOIN personal p ON p.id = l.personal_id LEFT JOIN invanare i ON i.id = l.invanare_id
-    WHERE l.patient_id = ?1 AND ${villkor} ORDER BY l.id DESC LIMIT ?3`).all(atk.patientId, jag, max);
+    WHERE (l.patient_id = ?1 OR l.patient_id IN (SELECT id FROM patienter WHERE sammanslagen_till = ?1)) AND ${villkor} ORDER BY l.id DESC LIMIT ?3`).all(atk.patientId, jag, max);
   const delar = {
     vard: fraga('l.invanare_id IS NULL', LOGGLISTA_MAX.vard),
     egna: fraga('l.invanare_id = ?2', LOGGLISTA_MAX.egna),

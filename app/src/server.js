@@ -11,6 +11,7 @@ import * as lakemedel from './lakemedel.js';
 import * as remiss from './remiss.js';
 import * as fhir from './fhir.js';
 import * as minJournal from './patientvy.js';
+import * as identitet from './identitet.js';
 import { kravregister, lasTestresultat } from './krav.js';
 import { sussaRegister } from './sussa/index.js';
 import { lasKlientresultat, gransnittHash } from './klientresultat.js';
@@ -243,8 +244,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const e = db.query('SELECT * FROM enheter WHERE id = ?').get(id);
     return e ? { id: e.id, namn: e.namn, hsaId: e.hsa_id } : null;
   };
+  // En journal som har slagits samman med en annan leder till den gällande journalen (Sussa 3.1.1.2).
   const patientRad = (db, id) => {
-    const p = db.query('SELECT * FROM patienter WHERE id = ?').get(id);
+    const p = db.query('SELECT * FROM patienter WHERE id = ?').get(identitet.gallandeId(db, id));
     if (!p) throw new Fel(404, 'Patienten finns inte.', 'saknas');
     return p;
   };
@@ -299,6 +301,18 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       harAndraEnheter: andra.length > 0, andraEnheterVisade: Boolean(val.andra_enheter || r.grund === 'nodatkomst'),
       nodatkomst: Boolean(val.nodatkomst), samtyckeSparr: Boolean(val.samtycke_sparr), visad,
       listning: listning ? { enhet: enhetKort(db, listning.enhet_id), fran: listning.fran } : null,
+      ...identitetIHuvud(c, p),
+    };
+  }
+
+  // Identiteten (Sussa 3.1.1): typ, antal tidigare identiteter och, för den som kan slå samman journaler, hur många
+  // troliga dubbletter systemet har hittat.
+  function identitetIHuvud(c, p) {
+    const typ = p.id_typ ?? 'personnummer';
+    return {
+      identitet: { typ, typText: identitet.TYPER[typ].text },
+      tidigareIdentiteter: c.db.query("SELECT count(*) AS n FROM identiteter WHERE patient_id = ? AND status = 'tidigare'").get(p.id).n,
+      dubbletter: kanRoll(c.personal, 'sla_samman') ? identitet.dubbletterFor(c.db, p.id).length : 0,
     };
   }
 
@@ -377,23 +391,32 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const fraga = String(q ?? '').trim().slice(0, 60);
     if (fraga.length < 2) throw new Fel(400, 'Skriv minst två tecken.', 'ogiltig', { falt: ['q'] });
     const siffror = fraga.replace(/[-\s]/g, '');
+    // Systemet avgör självt om frågan är ett nummer (personnummer, samordningsnummer, reservnummer eller OID) eller ett
+    // namn, och hittar patienten också på en tidigare identitet (Sussa 3.1.1).
+    const t = identitet.tolka(fraga);
+    const traffar = new Map();
     let rader;
-    if (/^\d{6,12}$/.test(siffror)) {
-      // Skyddade patienter hittas bara på fullständigt personnummer.
-      rader = db.query('SELECT * FROM patienter WHERE personnummer LIKE ? OR substr(personnummer, 3) LIKE ? ORDER BY personnummer LIMIT 20').all(`${siffror}%`, `${siffror}%`)
-        .filter(p => !p.skyddad || p.personnummer === siffror || p.personnummer.slice(2) === siffror);
+    if (/^\d{6,9}$/.test(siffror)) {
+      // Början av ett nummer. Skyddade patienter hittas bara på fullständigt nummer.
+      rader = db.query('SELECT * FROM patienter WHERE sammanslagen_till IS NULL AND (personnummer LIKE ? OR substr(personnummer, 3) LIKE ?) AND skyddad = 0 ORDER BY personnummer LIMIT 20').all(`${siffror}%`, `${siffror}%`);
+    } else if (t.arIdentitet) {
+      if (!t.ok) throw new Fel(400, t.fel, 'ogiltig', { falt: ['q'] });
+      const h = identitet.hittaPaIdentitet(db, t);
+      rader = h ? [patientRad(db, h.patientId)] : [];
+      if (h && h.identitet.status !== 'gallande') traffar.set(h.patientId, { typText: identitet.TYPER[t.typ].text, status: h.identitet.status });
     } else {
       // SQLite:s lower() hanterar bara ASCII, så namnen jämförs här med svensk gemenisering.
       const sv = (s) => s.toLocaleLowerCase('sv-SE');
       const m = sv(fraga);
-      rader = db.query('SELECT * FROM patienter WHERE skyddad = 0').all()
+      rader = db.query('SELECT * FROM patienter WHERE skyddad = 0 AND sammanslagen_till IS NULL').all()
         .filter(p => sv(`${p.fornamn} ${p.efternamn}`).includes(m))
         .sort((a, b) => a.efternamn.localeCompare(b.efternamn, 'sv') || a.fornamn.localeCompare(b.fornamn, 'sv'))
         .slice(0, 20);
     }
     const ve = vardenhetFor(db, c.personal.enhet_id);
     atk.logga('sok', atk.grund(), `sok:${fraga} (${rader.length} träffar)`);
-    return rader.map(p => ({ id: p.id, namn: visningsnamn(p), personnummer: visningsPnr(p), alder: alder(p.fodd, idag()), kon: p.kon, skyddad: Boolean(p.skyddad), vardrelation: harVardrelation(db, p.id, ve) }));
+    return rader.map(p => ({ id: p.id, namn: visningsnamn(p), personnummer: visningsPnr(p), alder: alder(p.fodd, idag()), kon: p.kon, skyddad: Boolean(p.skyddad), vardrelation: harVardrelation(db, p.id, ve),
+      identitetstyp: p.id_typ ?? 'personnummer', typText: identitet.TYPER[p.id_typ ?? 'personnummer'].text, traffPa: traffar.get(p.id) ?? null }));
   }
 
   function vantrum(c) {
@@ -751,8 +774,130 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       okvitteradeSvar: kanRoll(p, 'kvittera_svar') ? remiss.okvitteradeSvar(c.db, p) : [],
       larm: p.yrke === 'logggranskare' ? [] : remiss.larmForEnhet(c.db, p),
       nllAvvikelser: kanRoll(p, 'las_lakemedel') ? lakemedel.nllAvvikelser(c.db, p).map(med) : [],
+      dubbletter: kanRoll(p, 'sla_samman') ? dubbletterIInkorg(c) : [],
     };
   });
+
+  // Identiteter (Sussa 3.1.1). Systemet tolkar numret, skapar reservnummer, byter identitet när ett personnummer blir
+  // känt och föreslår själv sammanslagning av dubbletter, som en vårdadministratör bekräftar. Allt prövas i
+  // behörighetsmotorn och loggas.
+  const identitetKort = (p, visad = false) => ({
+    ...patientKort(p), namn: visningsnamn(p, visad), personnummer: visningsPnr(p, visad), identitetstyp: p.id_typ, typText: identitet.TYPER[p.id_typ].text,
+    fodd: p.skyddad && !visad ? null : p.fodd, kon: p.kon,
+  });
+  const lasHandling = (c) => (kanRoll(c.personal, 'las_oversikt') ? 'las_oversikt' : 'las_admin');
+  // Patienterna med en trolig dubblett, för vårdadministratörens inkorg. Bara patienter med vårdrelation på den egna
+  // vårdenheten, och inga uppgifter om den andra journalen: de visas och loggas när förslaget öppnas.
+  function dubbletterIInkorg(c) {
+    const ut = [];
+    for (const rad of arbetslista(c)) {
+      const n = identitet.dubbletterFor(c.db, rad.id).length;
+      if (n) ut.push({ patientId: rad.id, patient: patientKort(patientRad(c.db, rad.id)), antal: n });
+    }
+    return ut;
+  }
+  rutt('GET', '/api/identitet/tolka', (c) => {
+    kravInloggad(c);
+    const t = identitet.tolka(String(c.url.searchParams.get('q') ?? '').slice(0, 80));
+    return { ...t, demoFel: identitet.demoKontroll(t) };
+  });
+  rutt('POST', '/api/patienter', (c) => {
+    kravRoll(c, 'registrera_patient');
+    const db = c.db;
+    const atk = new Atkomst(db, c.personal, null, {}, 'registrera_patient');
+    atk.krav('registrera_patient');
+    let r;
+    try { r = identitet.registrera(db, c.body, { idag: idag(), av: c.personal.id }); } catch (e) {
+      if (e.kod === 'finns') e.extra = { patient: patientKort(patientRad(db, e.extra.patientId)) };
+      throw e;
+    }
+    // Den nya patienten får en pågående vårdkontakt på den enhet som registrerade, så att vården kan dokumentera direkt.
+    const enhet = db.query('SELECT namn FROM enheter WHERE id = ?').get(vardenhetFor(db, c.personal.enhet_id));
+    const typ = /akut/i.test(enhet?.namn ?? '') ? 'akut' : 'oppenvard';
+    db.query('INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, orsak) VALUES (?, ?, ?, ?, ?)').run(r.id, c.personal.enhet_id, typ, new Date().toISOString(), 'Registrerad som ny patient');
+    atk.patientId = r.id;
+    atk.logga('registrera_patient', c.personal.yrke === 'vardadministrator' ? 'administrativ' : 'vardrelation', `registrering:${r.typ}`);
+    const p = patientRad(db, r.id);
+    return [201, { patient: identitetKort(p, true), skapatReservnummer: r.skapatReservnummer }];
+  });
+  rutt('GET', '/api/patient/:id/identiteter', (c, id) => {
+    kravInloggad(c);
+    return medPatient(c, id, lasHandling(c), (atk, p) => {
+      atk.krav(lasHandling(c));
+      const db = c.db;
+      const val = valFor(c.s, p.id);
+      const visad = !p.skyddad || val.visa_identitet;
+      const slaSamman = kanRoll(c.personal, 'sla_samman');
+      const dubbletter = slaSamman ? identitet.dubbletterFor(db, p.id).map(d => {
+        const annan = db.query('SELECT * FROM patienter WHERE id = ?').get(d.annan);
+        // Att förslaget visas loggas på den andra journalen, som en sökträff.
+        loggaRadFor(c, annan.id, 'dubblettkontroll', `dubblett:${p.id}`);
+        return { annan: identitetKort(annan), kvar: d.till, grund: d.grund, grundText: identitet.GRUNDTEXT[d.grund] };
+      }) : [];
+      return {
+        patientId: p.id, patient: identitetKort(p, visad), identiteter: identitet.identiteterUt(db, p.id, visad),
+        sammanslagningar: identitet.sammanslagningarFor(db, p.id).map(s => ({ ...s, franPatient: identitetKort(db.query('SELECT * FROM patienter WHERE id = ?').get(s.fran), visad) })),
+        dubbletter, kan: { andraIdentitet: kanRoll(c.personal, 'andra_identitet'), slaSamman },
+      };
+    });
+  });
+  rutt('POST', '/api/patient/:id/identitet', (c, id) => {
+    kravRoll(c, 'andra_identitet');
+    return medPatient(c, id, 'andra_identitet', (atk, p) => {
+      atk.krav('andra_identitet');
+      const text = typeof c.body.identitet === 'string' ? c.body.identitet : '';
+      const t = identitet.tolka(text);
+      if (!t.arIdentitet) throw new Fel(400, 'Det går inte att tolka som ett nummer. Skriv personnummer, samordningsnummer eller OID och nummer.', 'ogiltig', { falt: ['identitet'] });
+      if (!t.ok) throw new Fel(400, t.fel, 'ogiltig', { falt: ['identitet'] });
+      const demo = identitet.demoKontroll(t);
+      if (demo) throw new Fel(400, demo, 'ogiltig', { falt: ['identitet'] });
+      let r;
+      try { r = identitet.nyIdentitet(c.db, p, t, { personal: c.personal }); } catch (e) {
+        if (e.kod === 'dubblett') {
+          atk.logga('andra_identitet', atk.grund(), `identitet:${t.typ}:dubblett`);
+          const annan = c.db.query('SELECT * FROM patienter WHERE id = ?').get(e.extra.annanId);
+          loggaRadFor(c, annan.id, 'dubblettkontroll', `dubblett:${p.id}`);
+          e.extra = { annan: identitetKort(annan), kanSlaSamman: kanRoll(c.personal, 'sla_samman') };
+        }
+        throw e;
+      }
+      atk.logga('andra_identitet', atk.grund(), `identitet:${t.typ}:${r.utfall}`);
+      return { utfall: r.utfall, identitet: { typ: t.typ, typText: t.typText, visning: t.visning, beskrivning: t.beskrivning } };
+    });
+  });
+  rutt('POST', '/api/patient/:id/sammanslagning', (c, id) => {
+    kravRoll(c, 'sla_samman');
+    const p = patientRad(c.db, id);
+    const atk = new Atkomst(c.db, c.personal, p.id, valFor(c.s, p.id), 'sla_samman');
+    atk.krav('sla_samman');
+    const med = typeof c.body.med === 'string' ? identitet.gallandeId(c.db, c.body.med) : null;
+    const forslag = identitet.dubbletterFor(c.db, p.id).find(d => d.annan === med);
+    if (!forslag) throw new Fel(400, 'Systemet har inget förslag om att slå samman de här journalerna. Två journaler slås bara samman när systemet har hittat att de troligen gäller samma person.', 'ogiltig', { falt: ['med'] });
+    const r = identitet.slaSamman(c.db, { fran: forslag.fran, till: forslag.till, personal: c.personal, grund: forslag.grund, loggGrund: atk.grund() });
+    for (const v of [c.s.val[forslag.fran]].filter(Boolean)) c.s.val[forslag.till] = { ...v, ...(c.s.val[forslag.till] ?? {}) };
+    if (c.s.oppnade.delete(forslag.fran)) c.s.oppnade.add(forslag.till);
+    return { till: r.till, fran: r.fran, antal: r.antal, patient: identitetKort(patientRad(c.db, r.till)) };
+  });
+  rutt('POST', '/api/patient/:id/dubblett/avfarda', (c, id) => {
+    kravRoll(c, 'sla_samman');
+    const p = patientRad(c.db, id);
+    const atk = new Atkomst(c.db, c.personal, p.id, valFor(c.s, p.id), 'sla_samman');
+    atk.krav('sla_samman');
+    const med = typeof c.body.med === 'string' ? c.body.med : null;
+    const forslag = identitet.dubbletterFor(c.db, p.id).find(d => d.annan === med);
+    if (!forslag) throw new Fel(400, 'Det finns inget sådant förslag.', 'ogiltig', { falt: ['med'] });
+    const nu = new Date().toISOString();
+    c.db.query("UPDATE dubblettforslag SET status = 'avfardad', avgjord = ?, avgjord_av = ? WHERE status = 'oppen' AND ((fran_patient_id = ?3 AND till_patient_id = ?4) OR (fran_patient_id = ?4 AND till_patient_id = ?3))")
+      .run(nu, c.personal.id, forslag.fran, forslag.till);
+    c.db.query("INSERT INTO dubblettforslag (fran_patient_id, till_patient_id, grund, skapad, av, status, avgjord, avgjord_av) VALUES (?, ?, ?, ?, ?, 'avfardad', ?, ?)")
+      .run(forslag.fran, forslag.till, forslag.grund, nu, c.personal.id, nu, c.personal.id);
+    atk.logga('dubblett_avfardad', atk.grund(), `dubblett:${forslag.fran}>${forslag.till}`);
+    return { ok: true };
+  });
+  // En loggrad om en annan journal än den som öppnades, till exempel när ett förslag om sammanslagning visar den.
+  function loggaRadFor(c, patientId, handling, resurs) {
+    new Atkomst(c.db, c.personal, patientId, {}, handling).logga(handling, 'administrativ', resurs);
+  }
 
   // Loggraderna får patientens namn och personnummer, maskerade för skyddad identitet, så att granskaren ser vem raden gäller.
   const medPatientKort = (db, rader) => {
@@ -772,7 +917,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const atk = new Atkomst(c.db, c.personal, p.id, {}, 'las_logg');
     atk.krav('las_logg');
     atk.logga('las_logg', 'logggranskning', 'logglista');
-    return { patientId: p.id, patient: patientKort(p), rader: medPatientKort(c.db, logg.lista(c.db, { patientId: p.id })), kedjaHel: logg.verifiera(c.db).hel };
+    return { patientId: p.id, patient: patientKort(p), rader: medPatientKort(c.db, logg.lista(c.db, { patientId: identitet.allaPatientIdn(c.db, p.id) })), kedjaHel: logg.verifiera(c.db).hel };
   });
   rutt('GET', '/api/logg', (c) => {
     kravInloggad(c);

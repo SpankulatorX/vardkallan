@@ -34,7 +34,7 @@ describe('FHIR', () => {
     const db = nyDb();
     const p = fraga(db, 'lak-kard', '/fhir/Patient/p01');
     expect(p.resourceType).toBe('Patient');
-    expect(p.identifier[0]).toEqual({ system: 'http://electronichealth.se/identifier/personnummer', value: '194502024732' });
+    expect(p.identifier[0]).toEqual({ use: 'official', system: 'http://electronichealth.se/identifier/personnummer', value: '194502024732' });
     expect(p).toMatchObject({ gender: 'male', birthDate: '1945-02-02' });
     expect(p.name[0].family).toBe('Åkesson');
     const sok = fraga(db, 'lak-kard', '/fhir/Patient?identifier=http://electronichealth.se/identifier/personnummer|194502024732');

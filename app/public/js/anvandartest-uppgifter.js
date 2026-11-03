@@ -63,6 +63,16 @@ export const UPPGIFTER = [
     text: 'Du är läkare på akuten. Thomas Lindberg har kommit in medvetslös, och akuten har ingen vårdrelation med honom. Öppna hans journal så att du kan se vilka läkemedel han har.',
     kontroll: { sel: '.band-grund', text: 'Nödåtkomst' },
   },
+  {
+    id: 'reservnummer', namn: 'Registrera patient utan känd identitet', roll: 'lak-akut', start: 'Arbetslistan efter inloggning',
+    text: 'En man i 40-årsåldern har kommit in till akuten. Han kan inte säga vem han är och har ingen legitimation. Registrera honom som patient så att akuten kan börja dokumentera.',
+    kontroll: { notis: 'registrerad med reservnummer' },
+  },
+  {
+    id: 'sla-samman', namn: 'Slå samman en dubblett', roll: 'adm-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Du är vårdadministratör på kardiologen. Annika Holmgren skrevs in i natt med reservnummer eftersom hon saknade legitimation, men hon har redan en journal med personnummer. Se till att hon bara har en journal.',
+    kontroll: { notis: 'Journalerna är sammanslagna' },
+  },
 ];
 
 // Deltagarens bakgrund. Bara val, inga fritextfält, så att inga identifierande uppgifter samlas in.

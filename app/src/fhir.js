@@ -6,6 +6,7 @@ import * as logg from './logg.js';
 import { SYSTEM as KODSYSTEM, ICD10SE, ATC, MATKOD } from './kodverk.js';
 import { EXT, CS, DEFINITIONER } from './fhir-definitioner.js';
 import { InvanareAtkomst, journaler, synligKedja, provsvarVisas, MAX_NEKADE } from './patientvy.js';
+import { FHIR_SYSTEM as ID_SYSTEM, identiteterFor, delaOid, maskera, gallandeId, allaPatientIdn, hittaPaToken } from './identitet.js';
 
 export const SYSTEM = {
   personnummer: 'http://electronichealth.se/identifier/personnummer',
@@ -55,11 +56,33 @@ const escape = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '
 const enhetsnamn = (db, id) => db.query('SELECT namn FROM enheter WHERE id = ?').get(id)?.namn;
 const personNamn = (db, id) => db.query('SELECT namn FROM personal WHERE id = ?').get(id)?.namn;
 
+// Patientens identiteter (Sussa 3.1.1) som Patient.identifier: personnummer och samordningsnummer med HL7 Swedens
+// system, reservnummer och andra identiteter med sin OID. Den gällande har use official, tidigare identiteter old.
+// Basprofilen tillåter högst ett personnummer och ett samordningsnummer, så en tidigare identitet med samma system som
+// en annan visas inte här. Den går ändå att söka på.
+function identifierare(db, p, dolj) {
+  const rader = p.sammanslagen_till
+    ? [{ typ: p.id_typ ?? 'personnummer', varde: p.personnummer, status: 'tidigare' }]
+    : identiteterFor(db, p.id);
+  if (!rader.length) rader.push({ typ: p.id_typ ?? 'personnummer', varde: p.personnummer, status: 'gallande' });
+  const sett = new Set();
+  const ut = [];
+  for (const r of rader) {
+    const system = r.typ === 'oid' ? `urn:oid:${delaOid(r.varde).rot}` : ID_SYSTEM[r.typ];
+    if (sett.has(system)) continue;
+    sett.add(system);
+    const varde = r.typ === 'oid' ? delaOid(r.varde).nummer : r.varde;
+    const value = !dolj ? varde : r.typ === 'oid' ? maskera('oid', r.varde) : `${varde.slice(0, r.typ === 'reservnummer' ? 10 : 8)}****`;
+    ut.push({ use: r.status === 'gallande' ? 'official' : r.status === 'tidigare' ? 'old' : 'secondary', system, value });
+  }
+  return ut;
+}
+
 export function patient(db, p, visad = false) {
   const dolj = p.skyddad && !visad;
   const r = {
     resourceType: 'Patient', id: p.id, meta: { profile: [PROFIL.Patient] },
-    identifier: [{ system: SYSTEM.personnummer, value: dolj ? `${p.personnummer.slice(0, 8)}****` : p.personnummer }],
+    identifier: identifierare(db, p, dolj),
     name: dolj ? [{ text: visningsnamn(p) }] : [{ text: `${p.fornamn} ${p.efternamn}`, family: p.efternamn, given: [p.fornamn] }],
     gender: p.kon === 'man' ? 'male' : 'female', birthDate: p.fodd,
   };
@@ -69,6 +92,14 @@ export function patient(db, p, visad = false) {
   if (!p.skyddad && p.telefon) r.telecom = [{ system: 'phone', value: p.telefon }];
   const l = db.query('SELECT enhet_id FROM listningar WHERE patient_id = ?').get(p.id);
   if (l) r.generalPractitioner = [ref('Organization', l.enhet_id, enhetsnamn(db, l.enhet_id))];
+  // Sammanslagna journaler: den gamla är inaktiv och ersatt av den gällande, som ersätter den gamla.
+  if (p.sammanslagen_till) {
+    r.active = false;
+    r.link = [{ other: ref('Patient', p.sammanslagen_till), type: 'replaced-by' }];
+  } else {
+    const gamla = allaPatientIdn(db, p.id).slice(1);
+    if (gamla.length) r.link = gamla.map(id => ({ other: ref('Patient', id), type: 'replaces' }));
+  }
   return r;
 }
 
@@ -309,20 +340,22 @@ export function hantera(ctx) {
       const ident = url.searchParams.get('identifier');
       if (_id) kandidater = db.query('SELECT * FROM patienter WHERE id = ?').all(_id);
       else if (ident) {
-        const varde = ident.includes('|') ? ident.split('|')[1] : ident;
-        if (ident.includes('|') && ident.split('|')[0] !== SYSTEM.personnummer) kandidater = [];
-        else kandidater = db.query('SELECT * FROM patienter WHERE personnummer = ?').all(varde.replace('-', ''));
+        // Alla identiteter, också tidigare: sökningen ger den gällande journalen (Sussa 3.1.1).
+        const pid = hittaPaToken(db, ident);
+        kandidater = pid ? db.query('SELECT * FROM patienter WHERE id = ?').all(pid) : [];
       } else throw new Fel(400, 'Ange _id eller identifier.', 'ogiltig');
     }
     const ut = [];
     for (const p of kandidater) {
       const handling = kanRoll(personal, 'las_oversikt') ? 'las_oversikt' : 'las_admin';
-      const atk = new Atkomst(db, personal, p.id, ctx.valFor(p.id), handling);
+      // En sammanslagen journal prövas och loggas på den gällande journalen, där uppgifterna finns.
+      const pid = gallandeId(db, p.id);
+      const atk = new Atkomst(db, personal, pid, ctx.valFor(pid), handling);
       if (id) atk.krav(handling, { beskrivning: `fhir/Patient/${id}` });
       else if (!atk.prova(handling).tillaten) continue;
       else atk.krav(handling);
       atk.logga(handling, atk.grund(), `fhir/Patient${id ? '/' + id : url.search}`);
-      ut.push(patient(db, p, Boolean(ctx.valFor(p.id).visa_identitet)));
+      ut.push(patient(db, p, Boolean(ctx.valFor(pid).visa_identitet)));
     }
     return { status: 200, body: id ? ut[0] : bundle(base, url, ut) };
   }
@@ -475,8 +508,8 @@ function hanteraInvanare(ctx, delar) {
     let kandidater;
     if (_id) kandidater = [_id];
     else if (ident) {
-      const varde = (ident.includes('|') ? ident.split('|')[1] : ident).replace('-', '');
-      kandidater = ident.includes('|') && ident.split('|')[0] !== SYSTEM.personnummer ? [] : db.query('SELECT id FROM patienter WHERE personnummer = ?').all(varde).map(r => r.id);
+      const pid = hittaPaToken(db, ident);
+      kandidater = pid ? [pid] : [];
     } else kandidater = egnaJournaler();
     // Precis som för personalen tas journaler som inte får läsas bort ur sökresultatet, utan att något lämnas ut.
     const tillatna = new Set(egnaJournaler());
