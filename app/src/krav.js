@@ -26,6 +26,7 @@ const GA = 'Gränssnitt > Avbrott > ';
 const GU = 'Gränssnitt > Användartest > ';
 const GK = 'Gränssnitt > Klickbudget > ';
 const SR = 'Sussa-registret > ';
+const VK = 'Vårdkontakt > ';
 // Samma prefix används i mappningen av Sussas kravspecifikation (sussa/mappning/).
 export const TEST = { B, A, L, J, M, R, F, S, KR, KV, FS, LK, MJ, GA, GU, GK, SR };
 export const klickbudgetTest = (f) => `${GK}${f.namn} inom budget`;
@@ -100,7 +101,9 @@ export const KRAV = [
   k('D8', 'Behörighetsmodell som tvingar minsta åtkomst, testad mot roller', `${RAPPORT}, D8`, 'uppfyllt_demo', '/patient/:id',
     [`${B}yrkesroll: läkare får ordinera, sjuksköterska och undersköterska får inte`, `${B}yrkesroll: undersköterska ser omvårdnadsanteckningar men inte läkaranteckningar`,
       `${B}yrkesroll: vårdadministratör får administrativa uppgifter men ingen journaltext eller läkemedel`, `${B}yrkesroll: logggranskare får läsa loggen men inte journalen`,
-      `${B}nekad: utan grund nekas åtkomst utan erbjudande om val`, `${A}nekad åtkomst ger 403 kraver_val och loggas som nekad`],
+      `${B}nekad: utan grund nekas åtkomst utan erbjudande om val`, `${A}nekad åtkomst ger 403 kraver_val och loggas som nekad`,
+      `${VK}inskrivningen avslutar bara den egna akutkontakten och skriver bara in där den inloggade får`,
+      `${VK}vårdtillfället visar bara de vistelser, händelser och det innehåll som användaren får se`],
     'Testat mot demons roller, inte mot verkliga användare.'),
   k('D9', 'Öppna format: FHIR R4, ICD-10-SE och ATC', `${RAPPORT}, D9`, 'delvis', '/fhir/metadata',
     [`${F}metadata är ett CapabilityStatement`, `${F}sökning ger Bundle searchset`, `${F}Patient har personnummer med rätt identifier-system`,
@@ -135,7 +138,11 @@ export const KRAV = [
       `${B}nödåtkomst: utan vårdrelation krävs val och läkare får nödåtkomst`, `${B}nödåtkomst: häver aldrig en spärr`, `${A}spärrmarkering och samtycke via API`,
       `${A}nödåtkomst via API flaggas i logguppföljningen`, `${MJ}spärrade uppgifter visas för patienten själv och spärren redovisas`,
       `${MJ}begäran om spärr ändrar inte spärren och registreras som begäran till vården`,
-      'Uppmärksamhetsinformation > en bekräftad uppgift ur spärrade uppgifter följer källans spärr, och utsättningen röjs inte i förslagen'],
+      'Uppmärksamhetsinformation > en bekräftad uppgift ur spärrade uppgifter följer källans spärr, och utsättningen röjs inte i förslagen',
+      `${VK}nödåtkomst ger ingen vårdrelation genom en kontakt som systemet skapar eller som registreras`,
+      `${VK}en kontakt som systemet skapar räknas som vårdrelation i 90 dagar från dagen den skapades`,
+      `${VK}hälsoärendet visar bara de vårdkontakter som användaren får se`,
+      `${VK}FHIR: vårdtillfällets Encounter och hälsoärendets EpisodeOfCare visar bara det användaren får se`],
     'Lag 2022:913 om sammanhållen vård- och omsorgsdokumentation är inte läst och inte inbyggd. Patienten kan i Min journal begära spärr eller att en spärr hävs, men begäran behandlas inte av någon i demon.'),
   k('L4', 'Loggning av varje åtkomst, logguppföljning och logginformation till patienten', 'HSLF-FS 2016:40 4 kap. 9 till 12 §§, PDL 5 kap. 5 § och 8 kap. 5 §', 'delvis', '/logg',
     [`${L}varje rad kedjas med sha256 av föregående hash och raden`, `${L}UPDATE på loggen avbryts av trigger`, `${L}DELETE på loggen avbryts av trigger`,

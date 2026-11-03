@@ -38,7 +38,9 @@ CREATE INDEX IF NOT EXISTS ix_vk_patient ON vardkontakter (patient_id);
 
 // Kolumner som vårdkontakten har fått. kontaktsatt: besok, telefon, video eller hembesok (null i slutenvård).
 // ankomst är den faktiska tiden när patienten kom till en planerad kontakt. automatisk betyder att systemet skapade
-// kontakten när någon dokumenterade, eller när historik utan vårdkontakt fördes över.
+// kontakten när någon dokumenterade, eller när historik utan vårdkontakt fördes över. ger_vardrelation är 0 för en
+// kontakt som skapades av någon som inte hade vårdrelation till patienten på sin vårdenhet (nödåtkomst): den kontakten
+// räknas inte som vårdrelation i behörighetsmotorn, så att en nödåtkomst aldrig blir en bestående behörighet.
 const VK_KOLUMNER = [
   ['kontaktsatt', 'TEXT'], ['planerad', 'INTEGER NOT NULL DEFAULT 0'], ['ankomst', 'TEXT'], ['vardtillfalle_id', 'INTEGER'],
   ['halsoarende_id', 'INTEGER'], ['foregaende_id', 'INTEGER'], ['remiss_id', 'INTEGER'], ['skapad', 'TEXT'], ['skapad_av', 'TEXT'],
@@ -52,6 +54,8 @@ export function utokaSchema(db) {
   let saknades = false;
   const vk = kolumner('vardkontakter');
   for (const [namn, typ] of VK_KOLUMNER) if (!vk.includes(namn)) { db.exec(`ALTER TABLE vardkontakter ADD COLUMN ${namn} ${typ}`); saknades = true; }
+  // Kolumnen kräver ingen ny knytning av historiken: alla befintliga kontakter ger vårdrelation som förut.
+  if (!vk.includes('ger_vardrelation')) db.exec('ALTER TABLE vardkontakter ADD COLUMN ger_vardrelation INTEGER NOT NULL DEFAULT 1');
   for (const t of MED_VARDKONTAKT) if (!kolumner(t).includes('vardkontakt_id')) { db.exec(`ALTER TABLE ${t} ADD COLUMN vardkontakt_id INTEGER`); saknades = true; }
   if (!db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'vardtillfallen'").get()) saknades = true;
   db.exec(SCHEMA_VARDSTRUKTUR);

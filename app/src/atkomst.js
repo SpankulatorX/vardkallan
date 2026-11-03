@@ -66,12 +66,16 @@ export function enheterUnder(db, vardenhet) {
 }
 
 // Vårdrelation: pågående eller nyligen avslutad vårdkontakt, listning eller remiss till enheten.
+// En vårdkontakt som skapades under nödåtkomst (ger_vardrelation = 0) räknas inte, och en kontakt som systemet skapade
+// när någon dokumenterade räknas i 90 dagar från dagen den skapades, som ett avslutat besök, även om ingen avslutar den.
+// Så blir varken en nödåtkomst eller en enstaka dokumentation en bestående vårdrelation till hela journalen.
 export function harVardrelation(db, patientId, vardenhet, nu = new Date()) {
   const enheter = enheterUnder(db, vardenhet);
   const ph = enheter.map(() => '?').join(', ');
   const grans = new Date(nu.getTime() - RELATION_DAGAR * 86400_000).toISOString();
-  const vk = db.query(`SELECT 1 FROM vardkontakter WHERE patient_id = ? AND enhet_id IN (${ph}) AND (slut IS NULL OR slut >= ?) LIMIT 1`)
-    .get(patientId, ...enheter, grans);
+  const vk = db.query(`SELECT 1 FROM vardkontakter WHERE patient_id = ? AND enhet_id IN (${ph}) AND coalesce(ger_vardrelation, 1) = 1
+      AND (slut >= ? OR (slut IS NULL AND (coalesce(automatisk, 0) = 0 OR typ = 'slutenvard' OR start >= ?))) LIMIT 1`)
+    .get(patientId, ...enheter, grans, grans);
   if (vk) return true;
   if (db.query(`SELECT 1 FROM listningar WHERE patient_id = ? AND enhet_id IN (${ph})`).get(patientId, ...enheter)) return true;
   const remiss = db.query(`SELECT 1 FROM remisser WHERE patient_id = ? AND (

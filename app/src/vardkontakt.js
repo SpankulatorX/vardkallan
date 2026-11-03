@@ -10,8 +10,14 @@
 // är dokumenterat ligger kvar på sin kontakt, och nästa uppgift hamnar på den nya avdelningens kontakt i samma
 // vårdtillfälle. Hälsoärenden föreslås av systemet ur samma diagnos, en remisskedja eller en övergång mellan vårdformer,
 // och bekräftas med ett klick. Schemat och knytningen av befintlig historik finns i vardstruktur.js.
+//
+// Behörighet. En kontakt som skapas här ger vårdrelation bara när den som skapar den redan hade vårdrelation till
+// patienten på sin vårdenhet. Den som dokumenterar under nödåtkomst får en kontakt som vanligt, men den räknas inte som
+// vårdrelation (ger_vardrelation = 0), så nödåtkomsten blir aldrig en bestående behörighet. Allt som lämnas ut om
+// vårdtillfällen och hälsoärenden är prövat i behörighetsmotorn per vårdkontakt: vistelser, händelser, platser och
+// innehåll på andra vårdenheter visas bara efter aktivt val, och aldrig när de är spärrade.
 import { Fel, iso, idag, addDagar, datumAv, giltigtDatum } from './db.js';
-import { kanRoll, vardenhetFor, enheterUnder, alder } from './atkomst.js';
+import { kanRoll, vardenhetFor, enheterUnder, alder, harVardrelation } from './atkomst.js';
 import * as journal from './journal.js';
 import * as lakemedel from './lakemedel.js';
 import * as remiss from './remiss.js';
@@ -61,7 +67,7 @@ export function kontaktUt(db, v, personal = null) {
     planerad: Boolean(v.planerad), status: status(v), pagaende: v.slut == null, plats: v.plats, orsak: v.orsak,
     vardenhet: enhetKort(db, v.enhet_id), kalla: v.kalla, kallaEtikett: journal.kallaEtikett(v.kalla, v.start),
     vardtillfalleId: v.vardtillfalle_id ?? null, halsoarendeId: v.halsoarende_id ?? null, foregaendeId: v.foregaende_id ?? null,
-    automatisk: Boolean(v.automatisk), skapad: v.skapad ?? v.start, skapadAv: personKort(db, v.skapad_av),
+    automatisk: Boolean(v.automatisk), gerVardrelation: v.ger_vardrelation !== 0, skapad: v.skapad ?? v.start, skapadAv: personKort(db, v.skapad_av),
     andrad: v.andrad ?? null, andradAv: personKort(db, v.andrad_av),
   };
   if (personal && kanRoll(personal, 'registrera_vardkontakt') && v.typ !== 'slutenvard') {
@@ -133,23 +139,45 @@ function valideraNyKontakt(nyKontakt) {
 
 const forslagUt = (db, f) => ({ typ: f.typ, kontaktsatt: f.kontaktsatt, plats: f.plats, orsak: f.orsak, enhet: enhetKort(db, f.enhetId), vardenhet: enhetKort(db, vardenhetFor(db, f.enhetId)) });
 
+// Kontakten som dokumentationen hamnar på, för den som dokumenterar. Den vårdenhet som har det medicinska ansvaret
+// dokumenterar på vistelsen där patienten ligger, också på en annan vårdenhet. Får användaren inte se den vistelsen
+// visas bara att det är vårdtillfället som den egna vårdenheten har ansvaret för, inte var patienten ligger.
+export function dokumentationsKontakt(atk, v) {
+  const db = atk.db;
+  if (synligEnhet(atk, v.enhet_id)) return kontaktUt(db, v, atk.personal);
+  const vt = v.vardtillfalle_id ? hamtaVardtillfalle(db, v.vardtillfalle_id) : null;
+  return {
+    id: v.id, typ: v.typ, kontaktsatt: v.kontaktsatt ?? null, start: v.start, slut: v.slut, ankomst: v.ankomst ?? null, planerad: Boolean(v.planerad),
+    status: status(v), pagaende: v.slut == null, plats: null, orsak: vt?.orsak ?? null, vardenhet: null, vardtillfalleId: v.vardtillfalle_id ?? null,
+    dold: true, ansvarig: vt ? enhetKort(db, vt.enhet_id) : null,
+  };
+}
+
 // Vilken kontakt ny dokumentation hamnar på just nu, utan att något skapas. Gränssnittet visar det i formulären.
 export function aktuell(atk) {
   atk.krav('las_admin');
   const v = pagandeFor(atk.db, atk.personal, atk.patientId);
-  if (v) return { vardkontakt: kontaktUt(atk.db, v, atk.personal), ny: null };
+  if (v) return { vardkontakt: dokumentationsKontakt(atk, v), ny: null };
   return { vardkontakt: null, ny: forslagUt(atk.db, nyKontaktForslag(atk.db, atk.personal, atk.patientId)) };
 }
 
+// 1 om en ny kontakt som personalen skapar ska räknas som vårdrelation: bara när personalen redan hade vårdrelation till
+// patienten på sin vårdenhet. Under nödåtkomst blir det 0. Prövas innan kontakten skapas.
+export const gerVardrelation = (db, personal, patientId) => (harVardrelation(db, patientId, vardenhetFor(db, personal.enhet_id)) ? 1 : 0);
+
 function skapaKontakt(db, personal, patientId, f, { automatisk, start = iso(), planerad = false } = {}) {
   const t = iso();
-  const r = db.query(`INSERT INTO vardkontakter (patient_id, enhet_id, typ, kontaktsatt, start, slut, plats, orsak, kalla, planerad, remiss_id, skapad, skapad_av, automatisk)
-    VALUES (?, ?, ?, ?, ?, NULL, ?, ?, 'vardkallan', ?, ?, ?, ?, ?)`)
-    .run(patientId, f.enhetId, f.typ, f.kontaktsatt, start, f.plats, f.orsak, planerad ? 1 : 0, f.remissId ?? null, t, personal.id, automatisk ? 1 : 0);
+  const relation = gerVardrelation(db, personal, patientId);
+  const r = db.query(`INSERT INTO vardkontakter (patient_id, enhet_id, typ, kontaktsatt, start, slut, plats, orsak, kalla, planerad, remiss_id, skapad, skapad_av, automatisk, ger_vardrelation)
+    VALUES (?, ?, ?, ?, ?, NULL, ?, ?, 'vardkallan', ?, ?, ?, ?, ?, ?)`)
+    .run(patientId, f.enhetId, f.typ, f.kontaktsatt, start, f.plats, f.orsak, planerad ? 1 : 0, f.remissId ?? null, t, personal.id, automatisk ? 1 : 0, relation);
   return hamtaKontakt(db, r.lastInsertRowid);
 }
 
-const kontaktSvar = (db, v, ny) => ({ id: v.id, ny, typ: v.typ, kontaktsatt: v.kontaktsatt, plats: v.plats, orsak: v.orsak, vardenhet: enhetKort(db, v.enhet_id), vardtillfalleId: v.vardtillfalle_id ?? null });
+const kontaktSvar = (atk, v, ny) => {
+  const k = dokumentationsKontakt(atk, v);
+  return { id: v.id, ny, typ: v.typ, kontaktsatt: v.kontaktsatt, plats: k.plats, orsak: k.orsak, vardenhet: k.vardenhet, vardtillfalleId: v.vardtillfalle_id ?? null, ...(k.dold ? { dold: true, ansvarig: k.ansvarig } : {}) };
+};
 
 // Knyter en nyss sparad uppgift till en vårdkontakt, om den inte redan har en. Anropas efter att uppgiften har sparats,
 // så att en nekad eller ogiltig åtgärd aldrig skapar en kontakt. body.nyKontakt är användarens ändring av förslaget.
@@ -158,7 +186,7 @@ export function knyt(atk, tabell, ut, body = {}) {
   const id = ut?.ordination?.id ?? ut?.id;
   const rad = db.query(`SELECT vardkontakt_id FROM ${tabell} WHERE id = ?`).get(id);
   if (!rad) return ut;
-  if (rad.vardkontakt_id) { ut.vardkontakt = kontaktSvar(db, hamtaKontakt(db, rad.vardkontakt_id), false); return ut; }
+  if (rad.vardkontakt_id) { ut.vardkontakt = kontaktSvar(atk, hamtaKontakt(db, rad.vardkontakt_id), false); return ut; }
   const andring = valideraNyKontakt(body?.nyKontakt);
   let v = andring ? null : pagandeFor(db, atk.personal, atk.patientId);
   let ny = false;
@@ -169,7 +197,7 @@ export function knyt(atk, tabell, ut, body = {}) {
     ny = true;
   }
   db.query(`UPDATE ${tabell} SET vardkontakt_id = ? WHERE id = ?`).run(v.id, id);
-  ut.vardkontakt = kontaktSvar(db, v, ny);
+  ut.vardkontakt = kontaktSvar(atk, v, ny);
   return ut;
 }
 
@@ -324,8 +352,8 @@ export function avdelningar(db) {
 const vtKontakter = (db, vtId) => db.query('SELECT * FROM vardkontakter WHERE vardtillfalle_id = ? ORDER BY start, id').all(vtId);
 const aktuellVistelse = (db, vtId) => db.query('SELECT * FROM vardkontakter WHERE vardtillfalle_id = ? ORDER BY (slut IS NULL) DESC, start DESC, id DESC').get(vtId);
 
-export function utskrivningskontroll(db, vt) {
-  const ids = vtKontakter(db, vt.id).map(v => v.id);
+export function utskrivningskontroll(db, vt, kontakter = vtKontakter(db, vt.id)) {
+  const ids = kontakter.map(v => v.id);
   if (!ids.length) return [];
   const ph = ids.map(() => '?').join(', ');
   const ut = [];
@@ -337,28 +365,86 @@ export function utskrivningskontroll(db, vt) {
   return ut;
 }
 
-export function vardtillfalleUt(db, vt, { innehall = false } = {}) {
-  const kontakter = vtKontakter(db, vt.id);
+// Får användaren se uppgifter från enheten? Samma prövning som för vårdkontakterna i journalen (inre sekretess, aktivt
+// val och spärr), utan att något räknas som dolt.
+const synligEnhet = (atk, enhetId) => atk.prova('las_admin', { enhet_id: enhetId }).tillaten;
+
+// Vistelserna (vårdkontakterna) i ett vårdtillfälle som användaren får se.
+export function synligaVistelser(atk, vt) {
+  return vtKontakter(atk.db, vt.id).filter(v => synligEnhet(atk, v.enhet_id));
+}
+
+// Det som användaren får läsa och som hör till vårdkontakterna ids, per slag. null när rollen inte får läsa slaget.
+function innehallFor(atk, ids, remissIds = []) {
+  const db = atk.db;
+  const kan = (...h) => h.some(x => kanRoll(atk.personal, x));
+  const har = (id) => ids.has(id);
+  let remisser = null;
+  if (kan('las_remiss', 'las_remiss_status')) {
+    const lista = [...ids];
+    const ph = lista.map(() => '?').join(', ') || 'NULL';
+    const egna = new Set(db.query(`SELECT id FROM remisser WHERE vardkontakt_id IN (${ph})`).all(...lista).map(r => r.id));
+    for (const r of remissIds) if (r) egna.add(r);
+    remisser = remiss.forPatient(atk).remisser.filter(r => egna.has(r.id));
+  }
+  return {
+    anteckningar: kan('las_journal', 'las_omvardnad') ? journal.listaAnteckningar(atk).anteckningar.filter(a => har(a.vardkontaktId)) : null,
+    diagnoser: kan('las_diagnoser') ? journal.synligaDiagnoser(atk).filter(d => har(d.vardkontakt_id)) : null,
+    matvarden: kan('las_matvarden') ? journal.synligaMatvarden(atk).filter(m => har(m.vardkontakt_id)) : null,
+    ordinationer: kan('las_lakemedel') ? lakemedel.synligaOrdinationer(atk).filter(o => har(o.vardkontakt_id)) : null,
+    remisser,
+  };
+}
+
+// Vårdtillfället för användaren. Bara de vistelser användaren får se, och bara händelser på deras vårdenheter.
+// Avdelning, plats och produktionsansvar visas när den aktuella vistelsen syns, och en flytt eller inskrivning nämner
+// avdelningen som patienten kom från bara när den också syns. Utskrivningskontrollen och innehållet räknas på de
+// synliga vistelserna, och bara för de roller som får se dem. aven är vistelser som användaren just har skapat.
+export function vardtillfalleUt(atk, vt, { innehall = false, aven = [] } = {}) {
+  const db = atk.db;
+  const alla = vtKontakter(db, vt.id);
+  const kontakter = alla.filter(v => aven.includes(v.id) || synligEnhet(atk, v.enhet_id));
+  const ids = new Set(kontakter.map(v => v.id));
+  const vardenheter = new Set(kontakter.map(v => vardenhetFor(db, v.enhet_id)));
   const nu = aktuellVistelse(db, vt.id);
-  const handelser = db.query('SELECT * FROM vardtillfalle_handelser WHERE vardtillfalle_id = ? ORDER BY tid, id').all(vt.id).map(h => ({
-    id: h.id, typ: h.typ, text: HANDELSE[h.typ], tid: h.tid, enhet: enhetKort(db, h.enhet_id), plats: h.plats, av: personKort(db, h.av), detalj: h.detalj,
-  }));
+  const nuSyns = Boolean(nu && ids.has(nu.id));
+  const fore = alla[0]?.foregaende_id ? db.query('SELECT enhet_id FROM vardkontakter WHERE id = ?').get(alla[0].foregaende_id) : null;
+  const detaljFor = (h) => {
+    if (h.typ === 'inskrivning' && fore && !synligEnhet(atk, fore.enhet_id)) return null;
+    if (h.typ === 'flytt') {
+      const fran = alla.find(v => v.slut === h.tid && v.enhet_id !== h.enhet_id);
+      if (fran ? !ids.has(fran.id) : kontakter.length !== alla.length) return null;
+    }
+    return h.detalj;
+  };
+  const handelser = db.query('SELECT * FROM vardtillfalle_handelser WHERE vardtillfalle_id = ? ORDER BY tid, id').all(vt.id)
+    .filter(h => h.enhet_id && vardenheter.has(vardenhetFor(db, h.enhet_id))).map(h => ({
+      id: h.id, typ: h.typ, text: HANDELSE[h.typ], tid: h.tid, enhet: enhetKort(db, h.enhet_id), plats: h.plats, av: personKort(db, h.av), detalj: detaljFor(h),
+    }));
   const ut = {
     id: vt.id, status: vt.utskriven ? 'utskriven' : vt.permission_till ? 'permission' : 'inskriven', inskriven: vt.inskriven, utskriven: vt.utskriven,
     orsak: vt.orsak, permissionTill: vt.permission_till ?? null, ansvarig: enhetKort(db, vt.enhet_id),
-    produktion: nu ? enhetKort(db, vardenhetFor(db, nu.enhet_id)) : null, avdelning: nu ? enhetKort(db, nu.enhet_id) : null, plats: nu?.plats ?? null,
+    produktion: nuSyns ? enhetKort(db, vardenhetFor(db, nu.enhet_id)) : null, avdelning: nuSyns ? enhetKort(db, nu.enhet_id) : null, plats: nuSyns ? nu.plats : null,
     kontakter: kontakter.map(v => ({ id: v.id, enhet: enhetKort(db, v.enhet_id), plats: v.plats, start: v.start, slut: v.slut })),
     handelser, kalla: vt.kalla, kallaEtikett: journal.kallaEtikett(vt.kalla, vt.inskriven),
     inskrivenAv: personKort(db, vt.inskriven_av), utskrivenAv: personKort(db, vt.utskriven_av),
   };
-  if (!vt.utskriven) ut.utskrivningskontroll = utskrivningskontroll(db, vt);
-  if (innehall && kontakter.length) {
-    const ids = kontakter.map(v => v.id);
-    const ph = ids.map(() => '?').join(', ');
-    ut.innehall = Object.fromEntries(['anteckningar', 'diagnoser', 'matvarden', 'ordinationer', 'remisser']
-      .map(t => [t, db.query(`SELECT count(*) AS n FROM ${t} WHERE vardkontakt_id IN (${ph})`).get(...ids).n]));
+  if (!vt.utskriven && kanRoll(atk.personal, 'vardtillfalle')) ut.utskrivningskontroll = utskrivningskontroll(db, vt, kontakter);
+  if (innehall) {
+    const x = innehallFor(atk, ids);
+    ut.innehall = Object.fromEntries(Object.entries(x).map(([k, lista]) => [k, lista ? lista.length : null]));
   }
   return ut;
+}
+
+// GET /api/vardtillfalle/:id. Den som inte får se någon av vistelserna nekas som för en vårdkontakt på en annan
+// vårdenhet, och nekandet loggas. Grunden för läsningen loggas på samma sätt som för journalens vårdkontakter.
+export function lasVardtillfalle(atk, vt) {
+  const synliga = synligaVistelser(atk, vt);
+  const prov = synliga[0] ?? aktuellVistelse(atk.db, vt.id) ?? { enhet_id: vt.enhet_id };
+  atk.krav('las_admin', { resurs: { enhet_id: prov.enhet_id }, beskrivning: `vardtillfalle:${vt.id}` });
+  for (const v of synliga.slice(1)) atk.krav('las_admin', { resurs: { enhet_id: v.enhet_id } });
+  return vardtillfalleUt(atk, vt, { innehall: true });
 }
 
 function handelse(db, vtId, typ, { enhetId = null, plats = null, av = null, detalj = null, tid = iso() } = {}) {
@@ -366,15 +452,17 @@ function handelse(db, vtId, typ, { enhetId = null, plats = null, av = null, deta
 }
 
 // Inskrivning. Avdelningen är den egna om man arbetar på en, annars vårdenhetens första avdelning. Orsaken tas från ett
-// pågående akutbesök eller en öppen remiss till vårdenheten. Ett pågående akutbesök avslutas och blir den föregående
-// kontakten, så att övergången mellan vårdformer går att följa (6.1.1.6).
+// pågående akutbesök på den egna vårdenheten eller en öppen remiss till vårdenheten. Det akutbesöket avslutas och blir
+// den föregående kontakten, så att övergången mellan vårdformer går att följa (6.1.1.6). Ett akutbesök på en annan
+// vårdenhet rörs inte: bara den vårdenhet som har kontakten får avsluta den, som när en kontakt avslutas.
 export function inskrivningForslag(db, personal, patientId) {
   const ve = vardenhetFor(db, personal.enhet_id);
   const egen = enhetRad(db, personal.enhet_id);
   const enhet = kanVardaInneliggande(db, egen) ? egen
     : db.query("SELECT * FROM enheter WHERE forald_id = ? AND typ = 'arbetsplats' ORDER BY id").all(ve).find(e => kanVardaInneliggande(db, e))
       ?? (kanVardaInneliggande(db, enhetRad(db, ve)) ? enhetRad(db, ve) : null);
-  const akut = db.query("SELECT * FROM vardkontakter WHERE patient_id = ? AND typ = 'akut' AND slut IS NULL ORDER BY start DESC").get(patientId);
+  const akut = db.query("SELECT * FROM vardkontakter WHERE patient_id = ? AND typ = 'akut' AND slut IS NULL ORDER BY start DESC").all(patientId)
+    .find(v => vardenhetFor(db, v.enhet_id) === ve) ?? null;
   const r = oppenRemiss(db, patientId, ve);
   const orsak = akut?.orsak ?? (r && kanRoll(personal, 'las_remiss') ? kort(r.fragestallning) : null);
   return { enhet: enhet ? enhetKort(db, enhet.id) : null, orsak, fran: akut ? { id: akut.id, vardenhet: enhetKort(db, akut.enhet_id) } : null };
@@ -386,24 +474,33 @@ export function skrivIn(atk, body = {}) {
   const pers = atk.personal;
   const pagaende = db.query('SELECT * FROM vardtillfallen WHERE patient_id = ? AND utskriven IS NULL').get(atk.patientId);
   if (pagaende) {
+    // Avdelningen nämns bara om användaren får se vistelsen där.
     const v = aktuellVistelse(db, pagaende.id);
-    throw new Fel(400, `Patienten är redan inskriven på ${enhetRad(db, v?.enhet_id)?.namn ?? 'en avdelning'}. Flytta patienten i stället.`, 'ogiltig');
+    const var_ = v && synligEnhet(atk, v.enhet_id) ? enhetRad(db, v.enhet_id)?.namn : null;
+    throw new Fel(400, var_ ? `Patienten är redan inskriven på ${var_}. Flytta patienten i stället.` : 'Patienten är redan inskriven på en annan vårdenhet.', 'ogiltig');
   }
   const f = inskrivningForslag(db, pers, atk.patientId);
   const enhet = enhetRad(db, body.enhetId ?? f.enhet?.id);
   if (!kanVardaInneliggande(db, enhet)) throw new Fel(400, 'Välj en avdelning som tar emot inneliggande patienter.', 'ogiltig', { falt: ['enhetId'] });
+  // Den egna vårdenhetens avdelningar. Från ett akutbesök på den egna vårdenheten får patienten skrivas in på vilken
+  // avdelning som helst, som när den som vårdar patienten flyttar den.
+  const ve = vardenhetFor(db, enhet.id);
+  if (ve !== vardenhetFor(db, pers.enhet_id) && !f.fran) {
+    atk.logga('vardtillfalle', 'nekad', `vardtillfalle:inskrivning:${enhet.id}`, 'nekad');
+    throw new Fel(403, `Du kan skriva in patienten på din egen kliniks avdelningar, eller från ett akutbesök på din vårdenhet. Kontakta ${enhet.namn} för att skriva in patienten där.`, 'nekad');
+  }
   const orsak = textFalt(body.orsak) || f.orsak;
   if (!orsak) throw new Fel(400, 'Ange orsaken till inskrivningen. Systemet hittar inget akutbesök eller någon remiss att ta den från.', 'ogiltig', { falt: ['orsak'] });
   const plats = textFalt(body.plats, 80) || enhet.namn;
   const t = iso();
-  const ve = vardenhetFor(db, enhet.id);
+  const relation = gerVardrelation(db, pers, atk.patientId);
   const vt = Number(db.query('INSERT INTO vardtillfallen (patient_id, enhet_id, inskriven, orsak, inskriven_av) VALUES (?, ?, ?, ?, ?)').run(atk.patientId, ve, t, orsak, pers.id).lastInsertRowid);
   const akut = f.fran ? hamtaKontakt(db, f.fran.id) : null;
   if (akut) db.query('UPDATE vardkontakter SET slut = ? WHERE id = ?').run(t, akut.id);
-  db.query(`INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak, kalla, vardtillfalle_id, foregaende_id, halsoarende_id, skapad, skapad_av)
-    VALUES (?, ?, 'slutenvard', ?, ?, ?, 'vardkallan', ?, ?, ?, ?, ?)`).run(atk.patientId, enhet.id, t, plats, orsak, vt, akut?.id ?? null, akut?.halsoarende_id ?? null, t, pers.id);
+  const ny = db.query(`INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak, kalla, vardtillfalle_id, foregaende_id, halsoarende_id, skapad, skapad_av, ger_vardrelation)
+    VALUES (?, ?, 'slutenvard', ?, ?, ?, 'vardkallan', ?, ?, ?, ?, ?, ?)`).run(atk.patientId, enhet.id, t, plats, orsak, vt, akut?.id ?? null, akut?.halsoarende_id ?? null, t, pers.id, relation).lastInsertRowid;
   handelse(db, vt, 'inskrivning', { enhetId: enhet.id, plats, av: pers.id, tid: t, detalj: akut ? `Från ${enhetRad(db, akut.enhet_id)?.namn}` : null });
-  return [201, vardtillfalleUt(db, hamtaVardtillfalle(db, vt))];
+  return [201, vardtillfalleUt(atk, hamtaVardtillfalle(db, vt), { aven: [Number(ny)] })];
 }
 
 // Den som får flytta, ge permission och skriva ut: avdelningens vårdenhet eller vårdenheten med det medicinska ansvaret.
@@ -436,11 +533,14 @@ export function flytta(atk, vt, body = {}) {
     if (plats === v.plats) throw new Fel(400, `Patienten ligger redan på ${plats}.`, 'ogiltig', { falt: ['plats'] });
     db.query('UPDATE vardkontakter SET plats = ? WHERE id = ?').run(plats, v.id);
     handelse(db, vt.id, 'sangbyte', { enhetId: dit.id, plats, av: pers.id, tid: t, detalj: `Från ${v.plats} till ${plats}` });
-    return vardtillfalleUt(db, hamtaVardtillfalle(db, vt.id));
+    return vardtillfalleUt(atk, hamtaVardtillfalle(db, vt.id));
   }
+  // Den nya vistelsen ger vårdrelation till avdelningen dit patienten flyttas, men bara om den som flyttar hade
+  // vårdrelation och inte bara nödåtkomst.
+  const relation = gerVardrelation(db, pers, vt.patient_id);
   db.query('UPDATE vardkontakter SET slut = ? WHERE id = ?').run(t, v.id);
-  db.query(`INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak, kalla, vardtillfalle_id, foregaende_id, halsoarende_id, skapad, skapad_av)
-    VALUES (?, ?, 'slutenvard', ?, ?, ?, 'vardkallan', ?, ?, ?, ?, ?)`).run(vt.patient_id, dit.id, t, plats, vt.orsak, vt.id, v.id, v.halsoarende_id ?? null, t, pers.id);
+  const ny = Number(db.query(`INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak, kalla, vardtillfalle_id, foregaende_id, halsoarende_id, skapad, skapad_av, ger_vardrelation)
+    VALUES (?, ?, 'slutenvard', ?, ?, ?, 'vardkallan', ?, ?, ?, ?, ?, ?)`).run(vt.patient_id, dit.id, t, plats, vt.orsak, vt.id, v.id, v.halsoarende_id ?? null, t, pers.id, relation).lastInsertRowid);
   handelse(db, vt.id, 'flytt', { enhetId: dit.id, plats, av: pers.id, tid: t, detalj: `Från ${enhetRad(db, v.enhet_id)?.namn} till ${dit.namn}` });
   const nyVe = vardenhetFor(db, dit.id);
   if (nyVe !== vt.enhet_id) {
@@ -451,7 +551,7 @@ export function flytta(atk, vt, body = {}) {
       handelse(db, vt.id, 'ansvar', { enhetId: dit.id, av: pers.id, tid: t, detalj: `Det medicinska ansvaret går över till ${enhetRad(db, nyVe)?.namn}.` });
     }
   }
-  return vardtillfalleUt(db, hamtaVardtillfalle(db, vt.id));
+  return vardtillfalleUt(atk, hamtaVardtillfalle(db, vt.id), { aven: [ny] });
 }
 
 export function permission(atk, vt, body = {}) {
@@ -462,7 +562,7 @@ export function permission(atk, vt, body = {}) {
   if (!giltigtDatum(till) || till < idag() || till > addDagar(idag(), 14)) throw new Fel(400, 'Ange när patienten kommer tillbaka, högst 14 dagar fram.', 'ogiltig', { falt: ['till'] });
   db.query('UPDATE vardtillfallen SET permission_till = ? WHERE id = ?').run(till, vt.id);
   handelse(db, vt.id, 'permission', { enhetId: v.enhet_id, plats: v.plats, av: atk.personal.id, detalj: `Åter senast ${till}` });
-  return vardtillfalleUt(db, hamtaVardtillfalle(db, vt.id));
+  return vardtillfalleUt(atk, hamtaVardtillfalle(db, vt.id));
 }
 
 export function aterFranPermission(atk, vt) {
@@ -471,7 +571,7 @@ export function aterFranPermission(atk, vt) {
   if (!vt.permission_till) throw new Fel(400, 'Patienten är inte på permission.', 'ogiltig');
   db.query('UPDATE vardtillfallen SET permission_till = NULL WHERE id = ?').run(vt.id);
   handelse(db, vt.id, 'ater', { enhetId: v.enhet_id, plats: v.plats, av: atk.personal.id });
-  return vardtillfalleUt(db, hamtaVardtillfalle(db, vt.id));
+  return vardtillfalleUt(atk, hamtaVardtillfalle(db, vt.id));
 }
 
 export function skrivUt(atk, vt) {
@@ -481,7 +581,7 @@ export function skrivUt(atk, vt) {
   db.query('UPDATE vardkontakter SET slut = ? WHERE id = ?').run(t, v.id);
   db.query('UPDATE vardtillfallen SET utskriven = ?, utskriven_av = ?, permission_till = NULL WHERE id = ?').run(t, atk.personal.id, vt.id);
   handelse(db, vt.id, 'utskrivning', { enhetId: v.enhet_id, plats: v.plats, av: atk.personal.id, tid: t });
-  return vardtillfalleUt(db, hamtaVardtillfalle(db, vt.id));
+  return vardtillfalleUt(atk, hamtaVardtillfalle(db, vt.id));
 }
 
 // Hälsoärenden (6.1.1.2). Systemet föreslår vilka vårdkontakter som hör ihop, bara bland dem användaren får se:
@@ -489,9 +589,10 @@ export function skrivUt(atk, vt) {
 //   remiss    kontakten som skickade remissen och kontakten hos mottagaren som var svaret på den,
 //   vardform  ett akutbesök som gick över i inskrivning, och flyttar inom ett vårdtillfälle.
 // Ett förslag som bekräftas blir ett hälsoärende. Ett förslag som avvisas visas inte igen.
-const halsoarendeUt = (db, h) => ({
-  id: h.id, rubrik: h.rubrik, kod: h.kod, grund: h.grund, status: h.status, skapad: h.skapad, skapadAv: personKort(db, h.skapad_av), enhet: enhetKort(db, h.enhet_id),
-  kontakter: db.query('SELECT id FROM vardkontakter WHERE halsoarende_id = ? ORDER BY id').all(h.id).map(r => r.id), kalla: h.kalla,
+// Ärendets vårdkontakter: bara de som användaren får se.
+const halsoarendeUt = (atk, h) => ({
+  id: h.id, rubrik: h.rubrik, kod: h.kod, grund: h.grund, status: h.status, skapad: h.skapad, skapadAv: personKort(atk.db, h.skapad_av), enhet: enhetKort(atk.db, h.enhet_id),
+  kontakter: atk.db.query('SELECT id, enhet_id FROM vardkontakter WHERE halsoarende_id = ? ORDER BY id').all(h.id).filter(r => synligEnhet(atk, r.enhet_id)).map(r => r.id), kalla: h.kalla,
 });
 
 export function synligaHalsoarenden(atk) {
@@ -573,7 +674,7 @@ export function bekrafta(atk, body, kontakter, diagnoser) {
   }
   const ph = f.kontakter.map(() => '?').join(', ');
   db.query(`UPDATE vardkontakter SET halsoarende_id = ? WHERE patient_id = ? AND id IN (${ph})`).run(id, atk.patientId, ...f.kontakter);
-  return [201, halsoarendeUt(db, db.query('SELECT * FROM halsoarenden WHERE id = ?').get(id))];
+  return [201, halsoarendeUt(atk, db.query('SELECT * FROM halsoarenden WHERE id = ?').get(id))];
 }
 
 export function avvisa(atk, body, kontakter, diagnoser) {
@@ -610,14 +711,8 @@ export function oversiktDel(atk, { vk, ant, dia, mv, ord, rem }) {
     };
   }
   const vtIds = [...new Set(vk.map(v => v.vardtillfalle_id).filter(Boolean))];
-  const vardtillfallen = vtIds.map(id => hamtaVardtillfalle(db, id)).sort((a, b) => b.inskriven.localeCompare(a.inskriven)).map(vt => {
-    const ut = vardtillfalleUt(db, vt);
-    // Bara de vistelser användaren får se.
-    const synliga = new Set(vk.map(v => v.id));
-    ut.kontakter = ut.kontakter.filter(k => synliga.has(k.id));
-    if (!kanRoll(pers, 'vardtillfalle')) delete ut.utskrivningskontroll;
-    return ut;
-  });
+  // Bara de vistelser, händelser och platser som användaren får se (vardtillfalleUt).
+  const vardtillfallen = vtIds.map(id => hamtaVardtillfalle(db, id)).sort((a, b) => b.inskriven.localeCompare(a.inskriven)).map(vt => vardtillfalleUt(atk, vt));
   const forval = {};
   if (kanRoll(pers, 'registrera_vardkontakt')) {
     const f = registreringForslag(db, pers, atk.patientId);
@@ -630,16 +725,18 @@ export function oversiktDel(atk, { vk, ant, dia, mv, ord, rem }) {
   }
   if (['skriv_journal', 'skriv_omvardnad', 'ordinera', 'registrera_matvarde', 'remittera'].some(h => kanRoll(pers, h))) {
     const v = pagandeFor(db, pers, atk.patientId);
-    forval.dokumentation = v ? { vardkontakt: kontaktUt(db, v, pers), ny: null } : { vardkontakt: null, ny: forslagUt(db, nyKontaktForslag(db, pers, atk.patientId)) };
+    forval.dokumentation = v ? { vardkontakt: dokumentationsKontakt(atk, v), ny: null } : { vardkontakt: null, ny: forslagUt(db, nyKontaktForslag(db, pers, atk.patientId)) };
   }
   return {
-    vardtillfallen, halsoarenden: synligaHalsoarenden(atk).map(h => halsoarendeUt(db, h)), forslag: forslag(atk, vk, dia), perKontakt, forval,
+    vardtillfallen, halsoarenden: synligaHalsoarenden(atk).map(h => halsoarendeUt(atk, h)), forslag: forslag(atk, vk, dia), perKontakt, forval,
     kontaktsatt: KONTAKTSATT,
   };
 }
 
 // Tidslinjen per vårdkontakt, vårdtillfälle och hälsoärende: varje post får sin vårdkontakt, och händelserna i
-// vårdtillfällena (inskrivning, flytt, permission och utskrivning) läggs till.
+// vårdtillfällena (inskrivning, flytt, permission och utskrivning) läggs till. Allt bygger på det som redan är filtrerat:
+// vk är de vårdkontakter användaren får se och struktur är oversiktDel, vars händelser redan är prövade. En post vars
+// vårdkontakt användaren inte får se (en gemensam ordination från en annan vårdenhet) får ingen vårdkontakt.
 export function berikaTidslinje(db, tidslinje, struktur, vk) {
   const kontakt = new Map(vk.map(v => [v.id, v]));
   const vkFor = (ref, tid) => {
@@ -662,9 +759,8 @@ export function berikaTidslinje(db, tidslinje, struktur, vk) {
     return tabell ? db.query(`SELECT vardkontakt_id FROM ${tabell} WHERE id = ?`).get(ref.id)?.vardkontakt_id ?? null : null;
   };
   const ut = tidslinje.map(t => {
-    const id = vkFor(t.ref, t.tid);
-    const v = kontakt.get(id) ?? (id ? db.query('SELECT vardtillfalle_id, halsoarende_id FROM vardkontakter WHERE id = ?').get(id) : null);
-    return { ...t, vardkontaktId: id, vardtillfalleId: v?.vardtillfalle_id ?? null, halsoarendeId: v?.halsoarende_id ?? null };
+    const v = kontakt.get(vkFor(t.ref, t.tid));
+    return { ...t, vardkontaktId: v?.id ?? null, vardtillfalleId: v?.vardtillfalle_id ?? null, halsoarendeId: v?.halsoarende_id ?? null };
   });
   for (const vt of struktur.vardtillfallen) {
     for (const h of vt.handelser) {
@@ -683,20 +779,14 @@ export function kontaktMedInnehall(atk, v) {
   const db = atk.db;
   const pers = atk.personal;
   atk.krav('las_admin', { resurs: { enhet_id: v.enhet_id }, beskrivning: `vardkontakt:${v.id}` });
-  const kan = (...h) => h.some(x => kanRoll(pers, x));
-  const anteckningar = kan('las_journal', 'las_omvardnad') ? journal.listaAnteckningar(atk).anteckningar.filter(a => a.vardkontaktId === v.id) : null;
-  const diagnoser = kan('las_diagnoser') ? journal.synligaDiagnoser(atk).filter(d => d.vardkontakt_id === v.id).map(d => journal.diagnosUt(db, d)) : null;
-  const matvarden = kan('las_matvarden') ? journal.synligaMatvarden(atk).filter(m => m.vardkontakt_id === v.id).map(m => journal.matvardeUt(db, m)) : null;
-  const ordinationer = kan('las_lakemedel') ? lakemedel.synligaOrdinationer(atk).filter(o => o.vardkontakt_id === v.id).map(o => lakemedel.ordinationUt(db, o, { historik: false })) : null;
-  let remisser = null;
-  if (kan('las_remiss', 'las_remiss_status')) {
-    const egna = new Set(db.query('SELECT id FROM remisser WHERE vardkontakt_id = ? OR id = ?').all(v.id, v.remiss_id ?? 0).map(r => r.id));
-    remisser = remiss.forPatient(atk).remisser.filter(r => egna.has(r.id));
-  }
-  const vt = v.vardtillfalle_id ? vardtillfalleUt(db, hamtaVardtillfalle(db, v.vardtillfalle_id)) : null;
+  const x = innehallFor(atk, new Set([v.id]), [v.remiss_id]);
+  const vt = v.vardtillfalle_id ? vardtillfalleUt(atk, hamtaVardtillfalle(db, v.vardtillfalle_id)) : null;
   const h = v.halsoarende_id ? db.query('SELECT * FROM halsoarenden WHERE id = ?').get(v.halsoarende_id) : null;
   return {
-    vardkontakt: kontaktUt(db, v, pers), vardtillfalle: vt, halsoarende: h ? halsoarendeUt(db, h) : null,
-    anteckningar, diagnoser, matvarden, ordinationer, remisser, dolda: { kraverVal: atk.doldaVal, sparrade: atk.doldaSparr },
+    vardkontakt: kontaktUt(db, v, pers), vardtillfalle: vt, halsoarende: h && synligEnhet(atk, h.enhet_id) ? halsoarendeUt(atk, h) : null,
+    anteckningar: x.anteckningar, diagnoser: x.diagnoser && x.diagnoser.map(d => journal.diagnosUt(db, d)),
+    matvarden: x.matvarden && x.matvarden.map(m => journal.matvardeUt(db, m)),
+    ordinationer: x.ordinationer && x.ordinationer.map(o => lakemedel.ordinationUt(db, o, { historik: false })),
+    remisser: x.remisser, dolda: { kraverVal: atk.doldaVal, sparrade: atk.doldaSparr },
   };
 }

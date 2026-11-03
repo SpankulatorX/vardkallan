@@ -2,6 +2,7 @@
 import { Fel, idag } from './db.js';
 import { Atkomst, kanRoll, visningsnamn, vardenhetFor } from './atkomst.js';
 import { MATTYPER, lasHandling } from './journal.js';
+import { synligaVistelser } from './vardkontakt.js';
 import * as logg from './logg.js';
 import { SYSTEM as KODSYSTEM, ICD10SE, ATC, MATKOD } from './kodverk.js';
 import { EXT, CS, DEFINITIONER } from './fhir-definitioner.js';
@@ -122,8 +123,8 @@ export function patient(db, p, visad = false) {
 }
 
 const KONTAKTSATT = { besok: 'Besök', telefon: 'Telefon', video: 'Video', hembesok: 'Hembesök' };
-export function encounter(db, v) {
-  if ('inskriven' in v) return vardtillfalleEncounter(db, v);
+export function encounter(db, v, synliga) {
+  if ('inskriven' in v) return vardtillfalleEncounter(db, v, synliga);
   const klass = v.kontaktsatt === 'telefon' || v.kontaktsatt === 'video' ? ['VR', 'virtual'] : v.kontaktsatt === 'hembesok' ? ['HH', 'home health']
     : { akut: ['EMER', 'emergency'], slutenvard: ['IMP', 'inpatient encounter'], oppenvard: ['AMB', 'ambulatory'] }[v.typ] ?? ['AMB', 'ambulatory'];
   const planerad = !v.slut && !v.ankomst && Date.parse(v.start) > Date.now();
@@ -141,13 +142,15 @@ export function encounter(db, v) {
 }
 
 // Vårdtillfället i slutenvård: från inskrivning till utskrivning, med varje plats patienten har legat på (avdelning,
-// sal och säng) som location med period, och vårdenheten med det medicinska ansvaret som serviceProvider.
-export function vardtillfalleEncounter(db, vt) {
+// sal och säng) som location med period, och vårdenheten med det medicinska ansvaret som serviceProvider. synliga är
+// de vistelser som användaren får se (vardkontakt.synligaVistelser): bara platser på deras vårdenheter tas med.
+export function vardtillfalleEncounter(db, vt, synliga = null) {
   const h = db.query("SELECT * FROM vardtillfalle_handelser WHERE vardtillfalle_id = ? AND typ IN ('inskrivning', 'sangbyte', 'flytt') ORDER BY tid, id").all(vt.id);
+  const vardenheter = synliga ? new Set(synliga.map(v => vardenhetFor(db, v.enhet_id))) : null;
   const location = h.map((x, i) => {
     const slut = h[i + 1]?.tid ?? vt.utskriven;
-    return { location: { display: x.plats ?? enhetsnamn(db, x.enhet_id) }, status: slut ? 'completed' : 'active', period: { start: x.tid, ...(slut ? { end: slut } : {}) } };
-  });
+    return { enhet: x.enhet_id, location: { location: { display: x.plats ?? enhetsnamn(db, x.enhet_id) }, status: slut ? 'completed' : 'active', period: { start: x.tid, ...(slut ? { end: slut } : {}) } } };
+  }).filter(x => !vardenheter || vardenheter.has(vardenhetFor(db, x.enhet))).map(x => x.location);
   return {
     resourceType: 'Encounter', id: `vt-${vt.id}`, meta: kallaMeta(vt.kalla), status: vt.utskriven ? 'finished' : 'in-progress',
     class: { system: SYSTEM.actcode, code: 'IMP', display: 'inpatient encounter' }, type: [{ text: 'Vårdtillfälle' }],
@@ -159,8 +162,8 @@ export function vardtillfalleEncounter(db, vt) {
 }
 
 // Hälsoärendet: vårdkontakter som hör ihop över tid. Vårdkontakterna pekar på det med Encounter.episodeOfCare.
-export function episodeOfCare(db, h) {
-  const forsta = db.query('SELECT min(start) AS s FROM vardkontakter WHERE halsoarende_id = ?').get(h.id)?.s;
+// forsta är starten på den första vårdkontakt i ärendet som användaren får se.
+export function episodeOfCare(db, h, forsta = db.query('SELECT min(start) AS s FROM vardkontakter WHERE halsoarende_id = ?').get(h.id)?.s) {
   return {
     resourceType: 'EpisodeOfCare', id: String(h.id), meta: kallaMeta(h.kalla ?? 'vardkallan'), status: h.status === 'avslutat' ? 'finished' : 'active',
     type: [{ text: `Hälsoärende: ${h.rubrik}` }], patient: ref('Patient', h.patient_id),
@@ -444,11 +447,19 @@ export function hantera(ctx) {
     if (typ === 'Composition' && rad.status !== 'signerad' && rad.forfattare_id !== personal.id) throw new Fel(404, 'Resursen finns inte.', 'saknas');
     const handling = handlingFor(typ, rad, personal);
     const atk = new Atkomst(db, personal, rad.patient_id, ctx.valFor(rad.patient_id), handling);
+    if (vardtillfalle(typ, rad)) {
+      // Vårdtillfället prövas på de vistelser användaren får se, som i /api/vardtillfalle.
+      const synliga = synligaVistelser(atk, rad);
+      const prov = synliga[0] ?? db.query('SELECT enhet_id FROM vardkontakter WHERE vardtillfalle_id = ? ORDER BY start DESC').get(rad.id) ?? rad;
+      atk.krav(handling, { resurs: { enhet_id: prov.enhet_id }, beskrivning: `fhir/${typ}/${id}` });
+      atk.logga(handling, atk.grund(), `fhir/${typ}/${id}`);
+      return { status: 200, body: vardtillfalleEncounter(db, rad, synliga) };
+    }
     const enhetId = typ === 'ServiceRequest' ? rad.fran_enhet_id : rad.enhet_id;
     const egenRemiss = typ === 'ServiceRequest' && [rad.fran_enhet_id, rad.till_enhet_id].includes(vardenhet(db, personal));
     atk.krav(handling, { resurs: egenRemiss ? null : { enhet_id: enhetId, gemensam: GEMENSAM.has(typ) }, beskrivning: `fhir/${typ}/${id}` });
     atk.logga(handling, atk.grund(), `fhir/${typ}/${id}`);
-    return { status: 200, body: typ === 'ServiceRequest' ? serviceRequest(db, rad, kanRoll(personal, 'las_remiss')) : mappa(db, rad) };
+    return { status: 200, body: typ === 'ServiceRequest' ? serviceRequest(db, rad, kanRoll(personal, 'las_remiss')) : typ === 'EpisodeOfCare' ? episodeOfCare(db, rad, forstaSynliga(atk, rad)) : mappa(db, rad) };
   }
   const pid = (url.searchParams.get('patient') ?? url.searchParams.get('subject') ?? '').replace(/^Patient\//, '');
   if (!pid) throw new Fel(400, 'Sökparametern patient krävs.', 'ogiltig');
@@ -467,13 +478,26 @@ export function hantera(ctx) {
     const egna = rader.filter(r => r.fran_enhet_id === min || r.till_enhet_id === min);
     const andra = atk.filtrera(rader.filter(r => !egna.includes(r)).map(r => ({ ...r, enhet_id: r.fran_enhet_id })), handling);
     rader = [...egna, ...andra];
+  } else if (typ === 'Encounter') {
+    // Vårdtillfällena tas med när användaren får se någon av vistelserna, med bara de platserna.
+    const vt = new Map(rader.filter(r => vardtillfalle(typ, r)).map(r => [r.id, synligaVistelser(atk, r)]));
+    rader = [...rader.filter(r => vardtillfalle(typ, r) && vt.get(r.id).length), ...atk.filtrera(rader.filter(r => !vardtillfalle(typ, r)), handling)];
+    for (const [, synliga] of vt) for (const v of synliga.slice(0, 1)) atk.krav(handling, { resurs: { enhet_id: v.enhet_id } });
+    atk.logga(handling, atk.grund(), `fhir/${typ}${url.search}`);
+    return { status: 200, body: bundle(base, url, rader.map(r => (vardtillfalle(typ, r) ? vardtillfalleEncounter(db, r, vt.get(r.id)) : encounter(db, r)))) };
   } else rader = atk.filtrera(rader, handling, { gemensam: GEMENSAM.has(typ) });
   atk.logga(handling, atk.grund(), `fhir/${typ}${url.search}`);
-  const resurser = rader.map(r => (typ === 'ServiceRequest' ? serviceRequest(db, r, kanRoll(personal, 'las_remiss')) : mappa(db, r)));
+  const resurser = rader.map(r => (typ === 'ServiceRequest' ? serviceRequest(db, r, kanRoll(personal, 'las_remiss')) : typ === 'EpisodeOfCare' ? episodeOfCare(db, r, forstaSynliga(atk, r)) : mappa(db, r)));
   return { status: 200, body: bundle(base, url, resurser) };
 }
 
 const vardenhet = (db, personal) => vardenhetFor(db, personal.enhet_id);
+const vardtillfalle = (typ, rad) => typ === 'Encounter' && 'inskriven' in rad;
+// Starten på den första vårdkontakten i hälsoärendet som användaren får se, för EpisodeOfCare.period.
+function forstaSynliga(atk, h) {
+  const rader = atk.db.query('SELECT enhet_id, start FROM vardkontakter WHERE halsoarende_id = ? ORDER BY start').all(h.id);
+  return rader.find(v => atk.prova('las_admin', { enhet_id: v.enhet_id }).tillaten)?.start ?? null;
+}
 
 // Invånarens FHIR-API (Min journal). Samma prövning, samma visningsregler och samma loggning som Min journal i /api:
 // bara journaler som invånaren får läsa, bara anteckningar vars hela versionskedja är signerad och vars senaste version

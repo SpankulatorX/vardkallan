@@ -16,6 +16,12 @@ const kontaktText = (v) => `${v.kontaktsatt ? KONTAKTSATT[v.kontaktsatt] : VARDF
 // val är användarens ändring av en ny kontakt, { kontaktsatt, orsak }, eller null.
 export function dokumenterasHtml(dok, val = null) {
   if (!dok) return '';
+  if (dok.vardkontakt?.dold && !val) {
+    // Vistelsen ligger på en annan vårdenhet som användaren inte får se utan aktivt val.
+    const v = dok.vardkontakt;
+    return `<p class="dok-kontakt" data-dok-kontakt>${ikon.info}<span>Dokumenteras på vårdtillfället <strong>${esc(v.orsak ?? '')}</strong>, där ${esc(v.ansvarig?.namn ?? 'din klinik')} har det medicinska ansvaret. Patienten vårdas på en annan vårdenhet.</span>
+      <button type="button" class="knapp text liten" data-dok-andra>Ny kontakt i stället</button></p>`;
+  }
   if (dok.vardkontakt && !val) {
     const v = dok.vardkontakt;
     return `<p class="dok-kontakt" data-dok-kontakt>${ikon.info}<span>Dokumenteras på vårdkontakten <strong>${esc(v.orsak)}</strong>: ${esc(kontaktText(v))}${v.plats && v.plats !== v.vardenhet?.namn ? `, ${esc(v.plats)}` : ''}, sedan ${esc(tidpunkt(v.ankomst ?? v.start))}.</span>

@@ -858,10 +858,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('PATCH', '/api/vardkontakt/:id', (c, id) => medKontakt(c, id, 'registrera_vardkontakt', (atk, v) => vardkontakt.andra(atk, v, c.body)));
   rutt('POST', '/api/vardkontakt/:id/avsluta', (c, id) => medKontakt(c, id, 'registrera_vardkontakt', (atk, v) => vardkontakt.avsluta(atk, v)));
   rutt('POST', '/api/patient/:id/vardtillfallen', (c, id) => { kravInloggad(c); return medPatient(c, id, 'vardtillfalle', (atk) => vardkontakt.skrivIn(atk, c.body)); });
-  rutt('GET', '/api/vardtillfalle/:id', (c, id) => medVardtillfalle(c, id, 'las_admin', (atk, vt) => {
-    atk.krav('las_admin', { resurs: { enhet_id: vt.enhet_id }, beskrivning: `vardtillfalle:${vt.id}` });
-    return vardkontakt.vardtillfalleUt(c.db, vt, { innehall: true });
-  }));
+  rutt('GET', '/api/vardtillfalle/:id', (c, id) => medVardtillfalle(c, id, 'las_admin', (atk, vt) => vardkontakt.lasVardtillfalle(atk, vt)));
   rutt('POST', '/api/vardtillfalle/:id/flytta', (c, id) => medVardtillfalle(c, id, 'vardtillfalle', (atk, vt) => vardkontakt.flytta(atk, vt, c.body)));
   rutt('POST', '/api/vardtillfalle/:id/permission', (c, id) => medVardtillfalle(c, id, 'vardtillfalle', (atk, vt) => vardkontakt.permission(atk, vt, c.body)));
   rutt('POST', '/api/vardtillfalle/:id/permission/avsluta', (c, id) => medVardtillfalle(c, id, 'vardtillfalle', (atk, vt) => vardkontakt.aterFranPermission(atk, vt)));

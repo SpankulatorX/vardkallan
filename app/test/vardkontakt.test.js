@@ -4,6 +4,7 @@ import { nyDb } from './hjalp.js';
 import { testserver, klient, sandlada } from './hjalp.js';
 import { lasSandlada, idag, addDagar } from '../src/db.js';
 import { avgiftFor, AVGIFT_DEMO } from '../src/vardkontakt.js';
+import { harVardrelation } from '../src/atkomst.js';
 import * as fhir from '../src/fhir.js';
 
 // Vårdkontakt och vårdtillfälle som bärande struktur (Sussa 6.1.1, 3.4.4 och 3.1.7). Systemet är experten: den som
@@ -221,7 +222,10 @@ describe('Vårdkontakt', () => {
     expect(db(k).query('SELECT id, vardkontakt_id FROM anteckningar WHERE vardkontakt_id = ?').all(fore.id)).toEqual(anteckningarFore);
     const ut = (await k.get(`/api/vardtillfalle/${vt}`)).data;
     expect(ut.kontakter.map(x => x.id)).toEqual([fore.id, hia.id]);
-    expect(ut.innehall.anteckningar).toBeGreaterThanOrEqual(anteckningarFore.length);
+    // Innehållet räknas på det som användaren får läsa.
+    const lasbara = (await k.get('/api/patient/p01/anteckningar')).data.anteckningar.filter(x => x.vardkontaktId === fore.id).length;
+    expect(lasbara).toBeGreaterThan(0);
+    expect(ut.innehall.anteckningar).toBeGreaterThanOrEqual(lasbara);
     // Nästa mätning hamnar på den nya avdelningens kontakt, i samma vårdtillfälle.
     const m = await k.post('/api/patient/p01/matvarden', { typ: 'puls', varde: 88 });
     expect(radVk(k, 'matvarden', m.data.id)).toBe(hia.id);
@@ -429,6 +433,172 @@ describe('Vårdkontakt', () => {
     expect(d.query("SELECT * FROM atkomstlogg ORDER BY id DESC LIMIT 1").get()).toMatchObject({ personal_id: 'lak-kard', resurs: `fhir/EpisodeOfCare/${h}`, grund: 'aktivt_val' });
     expect(() => fraga('lak-psyk', `/fhir/EpisodeOfCare?patient=p11`)).toThrow();
     expect(fhir.capability('http://test.local').rest[0].resource.some(r => r.type === 'EpisodeOfCare')).toBe(true);
+  });
+
+  test('nödåtkomst ger ingen vårdrelation genom en kontakt som systemet skapar eller som registreras', async () => {
+    const k = await inloggad('lak-vc');
+    expect(harVardrelation(db(k), 'p12', 'vc-tybble')).toBe(false);
+    expect((await k.post('/api/patient/p12/val', { typ: 'nodatkomst', syfte: 'Medvetslös i väntrummet' })).status).toBe(200);
+    const m = await k.post('/api/patient/p12/matvarden', { typ: 'puls', varde: 48 });
+    expect(m.status).toBe(201);
+    // Användaren väljer fortfarande ingen kontakt: systemet skapar den, och nästa uppgift hamnar på samma kontakt.
+    const id = radVk(k, 'matvarden', m.data.id);
+    expect(kontakt(k, id)).toMatchObject({ enhet_id: 'vc-tybble', automatisk: 1, ger_vardrelation: 0 });
+    expect(m.data.vardkontakt).toMatchObject({ id, ny: true });
+    const m2 = await k.post('/api/patient/p12/matvarden', { typ: 'temp', varde: 35.1 });
+    expect(radVk(k, 'matvarden', m2.data.id)).toBe(id);
+    // Men kontakten ger ingen bestående vårdrelation: utan nödåtkomst nekas journalen igen.
+    expect(harVardrelation(db(k), 'p12', 'vc-tybble')).toBe(false);
+    await k.logga('lak-vc');
+    const ov = await k.get('/api/patient/p12/oversikt');
+    expect(ov.status).toBe(403);
+    expect(ov.data.kod).toBe('kraver_val');
+    // Samma sak när en läkare registrerar en kontakt eller skriver in under nödåtkomst.
+    const a = await inloggad('lak-akut');
+    await a.post('/api/patient/p02/val', { typ: 'nodatkomst', syfte: 'Medvetslös vid ankomst' });
+    expect((await a.post('/api/patient/p02/vardkontakter', { orsak: 'Medvetslös' })).status).toBe(201);
+    expect((await a.post('/api/patient/p02/vardtillfallen', { enhetId: 'uso-kard-72', orsak: 'Medvetslöshet' })).status).toBe(201);
+    for (const e of ['uso-akut', 'uso-kard']) expect({ e, relation: harVardrelation(db(a), 'p02', e) }).toEqual({ e, relation: false });
+    // En kontakt som skapas med vårdrelation ger vårdrelation som förut.
+    const vc = await inloggad('lak-vc');
+    const ok = await vc.post('/api/patient/p06/matvarden', { typ: 'puls', varde: 70 });
+    expect(kontakt(vc, radVk(vc, 'matvarden', ok.data.id)).ger_vardrelation).toBe(1);
+  });
+
+  test('en kontakt som systemet skapar räknas som vårdrelation i 90 dagar från dagen den skapades', () => {
+    const d = nyDb();
+    const gammal = new Date(Date.now() - 100 * 86400_000).toISOString();
+    d.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, kontaktsatt, start, plats, orsak, kalla, automatisk) VALUES ('p12', 'vc-tybble', 'oppenvard', 'besok', ?, 'Mottagning', 'Besök', 'vardkallan', 1)").run(gammal);
+    expect(harVardrelation(d, 'p12', 'vc-tybble')).toBe(false);
+    d.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, kontaktsatt, start, plats, orsak, kalla, automatisk) VALUES ('p12', 'vc-tybble', 'oppenvard', 'besok', ?, 'Mottagning', 'Besök', 'vardkallan', 1)").run(new Date().toISOString());
+    expect(harVardrelation(d, 'p12', 'vc-tybble')).toBe(true);
+  });
+
+  test('inskrivningen avslutar bara den egna akutkontakten och skriver bara in där den inloggade får', async () => {
+    // Kardiologen skriver in en patient som också har ett pågående akutbesök: akutmottagningens kontakt lämnas orörd.
+    const k = await inloggad('lak-kard');
+    const akut = db(k).query("SELECT * FROM vardkontakter WHERE patient_id = 'p03' AND enhet_id = 'uso-akut' AND slut IS NULL").get();
+    expect(akut).toBeTruthy();
+    const ov = (await k.get('/api/patient/p03/oversikt')).data;
+    expect(ov.vardstruktur.forval.inskrivning.fran).toBeNull();
+    const r = await k.post('/api/patient/p03/vardtillfallen', { orsak: 'Hjärtsvikt' });
+    expect(r.status).toBe(201);
+    expect(kontakt(k, akut.id).slut).toBeNull();
+    expect(inl(db(k), 'p03', 'uso-kard-72').foregaende_id).toBeNull();
+    // Sjuksköterskan på kardiologen kan inte skriva in på en annan kliniks avdelning, och försöket loggas.
+    const s = await inloggad('ssk-kard');
+    const n = await s.post('/api/patient/p11/vardtillfallen', { enhetId: 'uso-psyk', orsak: 'Test' });
+    expect(n.status).toBe(403);
+    expect(db(s).query("SELECT count(*) AS n FROM vardtillfallen WHERE patient_id = 'p11' AND utskriven IS NULL").get().n).toBe(0);
+    expect(loggRader(s).some(x => x.personal_id === 'ssk-kard' && x.handling === 'vardtillfalle' && x.resultat === 'nekad')).toBe(true);
+    // På den egna klinikens avdelningar går det, och från det egna akutbesöket till vilken avdelning som helst.
+    expect((await s.post('/api/patient/p11/vardtillfallen', { enhetId: 'uso-kard-hia', orsak: 'Test' })).status).toBe(201);
+    const a = await inloggad('lak-akut');
+    expect((await a.post('/api/patient/p13/vardtillfallen', { enhetId: 'uso-med', orsak: 'Pneumoni' })).status).toBe(201);
+    // Redan inskriven: meddelandet nämner inte en avdelning som användaren inte får se.
+    const igen = await a.post('/api/patient/p01/vardtillfallen', { orsak: 'Test' });
+    expect(igen.status).toBe(400);
+    expect(igen.data.fel).not.toContain('72');
+    // Flytt, permission och utskrivning kräver att patienten vårdas på den egna vårdenheten eller har ansvaret där.
+    const vt = inl(db(a), 'p01', 'uso-kard-72').vardtillfalle_id;
+    for (const [vag, kropp] of [['flytta', { enhetId: 'uso-med' }], ['permission', { till: imorgon() }], ['skriv-ut', {}]]) {
+      expect({ vag, status: (await a.post(`/api/vardtillfalle/${vt}/${vag}`, kropp)).status }).toEqual({ vag, status: 403 });
+    }
+  });
+
+  test('vårdtillfället visar bara de vistelser, händelser och det innehåll som användaren får se', async () => {
+    // Patient 1 flyttas från kardiologen till psykiatriska kliniken, och kardiologen behåller det medicinska ansvaret.
+    const k = await inloggad('ssk-kard');
+    const kard = inl(db(k), 'p01', 'uso-kard-72');
+    const vt = kard.vardtillfalle_id;
+    expect((await k.post(`/api/vardtillfalle/${vt}/flytta`, { enhetId: 'uso-psyk', plats: 'Avdelning P2, sal 3', behallAnsvar: true })).status).toBe(200);
+    const med = inl(db(k), 'p01', 'uso-psyk');
+    // Psykiatriska kliniken skriver ett utkast på sin vistelse.
+    await k.logga('lak-psyk');
+    expect((await k.post('/api/patient/p01/anteckningar', { typ: 'Daganteckning', sokord: SOK })).data.vardkontakt.id).toBe(med.id);
+    // Kardiologen ser sin egen vistelse men inte psykiatriska klinikens utan ett aktivt val.
+    await k.logga('lak-kard');
+    const ut = (await k.get(`/api/vardtillfalle/${vt}`)).data;
+    expect(ut.kontakter.map(x => x.id)).toEqual([kard.id]);
+    expect(ut.handelser.map(h => h.typ)).toEqual(['inskrivning', 'sangbyte']);
+    expect(ut).toMatchObject({ ansvarig: { id: 'uso-kard' }, avdelning: null, plats: null, produktion: null });
+    expect(JSON.stringify(ut)).not.toContain('Avdelning P2');
+    // Psykiatrins utkast räknas inte i kardiologens utskrivningskontroll eller innehåll.
+    const utkast = db(k).query("SELECT count(*) AS n FROM anteckningar WHERE vardkontakt_id = ? AND status = 'utkast'").get(kard.id).n;
+    const osign = ut.utskrivningskontroll.find(x => x.regel === 'osignerade');
+    if (utkast) expect(osign.text).toStartWith(`${utkast} `); else expect(osign).toBeUndefined();
+    const egna = (await k.get('/api/patient/p01/anteckningar')).data.anteckningar.filter(a => a.vardkontaktId === kard.id).length;
+    expect(ut.innehall.anteckningar).toBe(egna);
+    // Översikten, tidslinjen och vårdkontakten bygger på samma filter.
+    const ov = (await k.get('/api/patient/p01/oversikt')).data;
+    const s = ov.vardstruktur.vardtillfallen.find(x => x.id === vt);
+    expect(s).toMatchObject({ avdelning: null, plats: null, produktion: null });
+    expect(s.handelser.map(h => h.typ)).toEqual(['inskrivning', 'sangbyte']);
+    expect(ov.tidslinje.filter(t => t.typ === 'vardtillfalle').map(t => t.rubrik)).toEqual(['Sängbyte till Avd 72, sal 4']);
+    expect(JSON.stringify(ov.vardstruktur)).not.toContain('Avdelning P2');
+    // Kardiologen har ansvaret och dokumenterar på vistelsen, men får inte veta var patienten ligger utan ett aktivt val.
+    const akt = (await k.get('/api/patient/p01/vardkontakt/aktuell')).data;
+    expect(akt.vardkontakt).toMatchObject({ id: med.id, dold: true, plats: null, vardenhet: null, ansvarig: { id: 'uso-kard' } });
+    const vk = (await k.get(`/api/vardkontakt/${kard.id}`)).data;
+    expect(vk.vardtillfalle).toMatchObject({ avdelning: null, plats: null, kontakter: [{ id: kard.id }] });
+    expect(vk.vardtillfalle.handelser.map(h => h.typ)).toEqual(['inskrivning', 'sangbyte']);
+    // Med ett aktivt val syns hela vårdtillfället.
+    await k.post('/api/patient/p01/val', { typ: 'andra_enheter', syfte: 'Följa patienten' });
+    const alla = (await k.get(`/api/vardtillfalle/${vt}`)).data;
+    expect(alla.kontakter.map(x => x.id)).toEqual([kard.id, med.id]);
+    expect(alla).toMatchObject({ avdelning: { id: 'uso-psyk' }, plats: 'Avdelning P2, sal 3' });
+    // Psykiatriska kliniken ser flytten men inte från vilken avdelning, och inte kardiologens händelser.
+    await k.logga('lak-psyk');
+    const m = (await k.get(`/api/vardtillfalle/${vt}`)).data;
+    expect(m.kontakter.map(x => x.id)).toEqual([med.id]);
+    expect(m.handelser.map(h => h.typ)).toEqual(['flytt', 'ansvar']);
+    expect(m.handelser.find(h => h.typ === 'flytt').detalj).toBeNull();
+    // Vårdadministratören får inga antal anteckningar och ingen utskrivningskontroll.
+    await k.logga('adm-kard');
+    const adm = (await k.get(`/api/vardtillfalle/${vt}`)).data;
+    expect(adm.innehall.anteckningar).toBeNull();
+    expect(adm.utskrivningskontroll).toBeUndefined();
+    // Den som inte får se någon vistelse nekas, och det loggas.
+    await k.logga('lak-vc');
+    expect((await k.get(`/api/vardtillfalle/${vt}`)).status).toBe(403);
+    expect(loggRader(k).at(-1)).toMatchObject({ personal_id: 'lak-vc', resultat: 'nekad' });
+  });
+
+  test('hälsoärendet visar bara de vårdkontakter som användaren får se', async () => {
+    const k = await inloggad('lak-vc');
+    const ov = (await k.get('/api/patient/p11/oversikt')).data;
+    const synliga = new Set(ov.vardkontakter.map(v => v.id));
+    const h = ov.vardstruktur.halsoarenden[0];
+    expect(h.kontakter.length).toBeGreaterThan(0);
+    expect(h.kontakter.every(id => synliga.has(id))).toBe(true);
+    const egen = h.kontakter[0];
+    expect((await k.get(`/api/vardkontakt/${egen}`)).data.halsoarende.kontakter).toEqual(h.kontakter);
+    // Kardiologen ser kontakten på sin mottagning men inte ärendet från vårdcentralen utan ett aktivt val.
+    const kard = await inloggad('lak-kard');
+    const mott = db(kard).query("SELECT id FROM vardkontakter WHERE patient_id = 'p11' AND enhet_id = 'uso-kard-mott'").get().id;
+    expect((await kard.get(`/api/vardkontakt/${mott}`)).data.halsoarende).toBeNull();
+  });
+
+  test('FHIR: vårdtillfällets Encounter och hälsoärendets EpisodeOfCare visar bara det användaren får se', async () => {
+    const k = await inloggad('ssk-kard');
+    const vt = inl(db(k), 'p01', 'uso-kard-72').vardtillfalle_id;
+    await k.post(`/api/vardtillfalle/${vt}/flytta`, { enhetId: 'uso-psyk', plats: 'Avdelning P2, sal 3', behallAnsvar: true });
+    const d = db(k);
+    const pers = (id) => d.query('SELECT * FROM personal WHERE id = ?').get(id);
+    const fraga = (roll, vag, val = {}) => fhir.hantera({ db: d, personal: pers(roll), valFor: (pid) => val[pid] ?? {}, url: new URL(`http://test.local${vag}`), base: 'http://test.local' }).body;
+    const enc = fraga('lak-kard', `/fhir/Encounter/vt-${vt}`);
+    expect(enc.location.map(l => l.location.display)).toEqual(['Avd 72, sal 6', 'Avd 72, sal 4']);
+    const sok = fraga('lak-kard', '/fhir/Encounter?patient=p01');
+    expect(sok.entry.some(e => e.resource.id === `vt-${vt}`)).toBe(true);
+    expect(JSON.stringify(sok)).not.toContain('Avdelning P2');
+    expect(fraga('lak-kard', `/fhir/Encounter/vt-${vt}`, { p01: { andra_enheter: true } }).location.map(l => l.location.display)).toContain('Avdelning P2, sal 3');
+    // Psykiatriska kliniken ser vårdtillfället genom sin vistelse, men bara sin egen plats.
+    expect(fraga('lak-psyk', `/fhir/Encounter/vt-${vt}`).location.map(l => l.location.display)).toEqual(['Avdelning P2, sal 3']);
+    expect(() => fraga('lak-vc', `/fhir/Encounter/vt-${vt}`)).toThrow();
+    // Hälsoärendets period börjar med den första kontakten som användaren får se, inte med en på en annan vårdenhet.
+    const h = d.query("SELECT id FROM halsoarenden WHERE patient_id = 'p11'").get().id;
+    d.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, kontaktsatt, start, slut, plats, orsak, halsoarende_id) VALUES ('p11', 'uso-psyk', 'oppenvard', 'besok', '2001-02-03T08:00:00.000Z', '2001-02-03T09:00:00.000Z', 'Mottagning', 'Besök', ?)").run(h);
+    expect(fraga('lak-vc', `/fhir/EpisodeOfCare/${h}`).period.start).not.toBe('2001-02-03T08:00:00.000Z');
   });
 
   test('ordinationen, mätvärdet och remissen i FHIR pekar på sin vårdkontakt', () => {
