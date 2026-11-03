@@ -392,6 +392,16 @@ function skapa(BAS) {
       await synlig(page, '.notis', 'Waran är ordinerat');
       await synlig(page, '.lm-tabell', 'Waran');
     },
+    // Runda 5, r4: behandlingen avslutas för gott från inkorgen, med en orsak som systemet föreslår.
+    'avsluta-aterinsattning': async (m, page) => {
+      await m.klicka(page.locator('#meny-lista a[href="#/inkorg"]'), 'Inkorg i menyn');
+      await synlig(page, '.ik-ater', 'Waran ska sättas in igen i morgon');
+      await m.klicka(page.locator('.ik-ater', { hasText: 'Gunnar Åkesson' }).locator('[data-avsluta]'), 'Avslutad behandling');
+      await page.locator('dialog[open]').waitFor();
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Avsluta behandlingen');
+      await synlig(page, '.notis', 'Behandlingen med Waran 2,5 mg är avslutad');
+      await synlig(page, '#ik-atersatt ~ .tom', 'Inget läkemedel ska sättas in igen');
+    },
   };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }

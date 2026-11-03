@@ -3,6 +3,7 @@ import { testserver, klient, sandlada } from './hjalp.js';
 import { idag, addDagar } from '../src/db.js';
 import * as tidbok from '../src/tidbok.js';
 import { harVardrelation } from '../src/atkomst.js';
+import * as vardhandelse from '../src/vardhandelse.js';
 
 // Planerad vårdhändelse i tidboken (Sussa 3.5.2.7 och 3.5.2.14). Systemet är experten: läkaren väljer en bokning med ett
 // klick eller låter systemet sätta upp vårdhändelsen på väntelistan, och när tiden bokas, bokas om eller avbokas räknar
@@ -193,6 +194,92 @@ describe('Vårdhändelse i tidboken', () => {
     expect((await m.post(`/api/bokning/${b2.id}/avboka`, { orsak: 'Patienten är förkyld' })).status).toBe(200);
     expect(db(m).query("SELECT 1 FROM vantelista WHERE patient_id = 'p01' AND orsak = 'Elkonvertering'").get()).toBeNull();
     expect(db(m).query('SELECT foljer, lage FROM vardhandelse_kopplingar WHERE ordination_id = ?').get(id2)).toEqual({ foljer: 0, lage: 'manuell' });
+  });
+
+  // Runda 5, beslut 2026-11-03: en vårdhändelse vars tid avbokas för att remissen avvisades sätts inte upp igen. Den
+  // ordinerande läkaren får i stället en rad i inkorgen.
+  async function avvisadRemiss() {
+    const k = await inloggad('lak-akut');
+    const r = await k.post('/api/patient/p04/remisser', { tillEnhetId: 'uso-kard', fragestallning: 'Ställningstagande till elkonvertering.', anamnes: 'Förmaksflimmer.', prioritet: 'normal', svarSenast: addDagar(idag(), 30) });
+    expect(r.status).toBe(201);
+    await k.logga('adm-kard');
+    expect((await k.post(`/api/remiss/${r.data.id}/mottag`)).status).toBe(200);
+    await k.logga('lak-kard');
+    const id = (await ordinera(k, 'p04', { text: 'Elkonvertering', forskjutningTimmar: -2 })).data.ordination.id;
+    const post = db(k).query("SELECT * FROM vantelista WHERE patient_id = 'p04' AND orsak = 'Elkonvertering' AND status = 'vantar'").get();
+    // Posten hör till remissen, som när remissen accepterades och vårdhändelsen planerades på den.
+    db(k).query('UPDATE vantelista SET remiss_id = ? WHERE id = ?').run(r.data.id, post.id);
+    await k.logga('adm-kard');
+    const f = (await k.get(`/api/vantelista/${post.id}/forslag`)).data;
+    expect((await k.post(`/api/vantelista/${post.id}/boka`, { tidId: f.forslag[0].tidId })).status).toBe(201);
+    await k.logga('lak-kard');
+    const bed = await k.post(`/api/remiss/${r.data.id}/bedom`, { beslut: 'avvisad', motivering: 'Handläggs på akuten.' });
+    expect(bed.status).toBe(200);
+    expect(bed.data.avbokade).toBe(1);
+    return { k, id, post };
+  }
+
+  test('när en remiss avvisas och tiden avbokas sätts vårdhändelsen inte upp igen, dosen säger varför och den ordinerande läkaren får en rad i inkorgen', async () => {
+    const { k, id, post } = await avvisadRemiss();
+    expect(db(k).query("SELECT count(*) AS n FROM vantelista WHERE patient_id = 'p04' AND orsak = 'Elkonvertering' AND status = 'vantar'").get().n).toBe(0);
+    expect(db(k).query('SELECT status FROM vantelista WHERE id = ?').get(post.id).status).toBe('avslutad');
+    // Läkemedelslistan och Läkemedel att ge på den egna vårdenheten.
+    const o = (await k.get('/api/patient/p04/lakemedel')).data.ordinationer.find(x => x.id === id);
+    expect(o.vardhandelse.forklaring).toContain('Vårdhändelsen avbokades eftersom remissen avvisades');
+    await k.logga('ssk-kard');
+    const v = (await k.get('/api/patient/p04/administreringar')).data.vantarPaHandelse.find(x => x.ordinationId === id);
+    expect(v.vardhandelse.forklaring).toContain('Vårdhändelsen avbokades eftersom remissen avvisades');
+    expect(v.vardhandelse.forklaring).toContain('Ge inte dosen');
+    // Raden i den ordinerande läkarens inkorg, med knappar för att sätta ut och sätta upp vårdhändelsen igen.
+    await k.logga('lak-kard');
+    const fore = db(k).query('SELECT count(*) AS n FROM atkomstlogg WHERE resurs = ?').get(`inkorg:vardhandelse_avbokad:${id}`).n;
+    const rad = (await k.get('/api/inkorg')).data.avbokadeVardhandelser.find(x => x.ordinationId === id);
+    expect(rad).toMatchObject({ patientId: 'p04', vardhandelse: 'Elkonvertering', hrefUtsatt: `#/patient/p04/lakemedel/utsatt-${id}`, kanSattasUpp: true });
+    expect(rad.text).toContain('remissen avvisades');
+    expect(db(k).query('SELECT count(*) AS n FROM atkomstlogg WHERE resurs = ?').get(`inkorg:vardhandelse_avbokad:${id}`).n).toBe(fore + 1);
+    await k.get('/api/inkorg');
+    expect(db(k).query('SELECT count(*) AS n FROM atkomstlogg WHERE resurs = ?').get(`inkorg:vardhandelse_avbokad:${id}`).n).toBe(fore + 1);
+    // Bara den ordinerande läkaren, inte vårdenhetens andra läkare eller andra roller.
+    expect(vardhandelse.avbokadeIInkorg(db(k), db(k).query("SELECT * FROM personal WHERE id = 'ol-kard'").get())).toEqual([]);
+    for (const roll of ['ssk-kard', 'adm-kard', 'lak-akut']) {
+      const c = await inloggad(roll);
+      expect({ roll, rader: ((await c.get('/api/inkorg')).data.avbokadeVardhandelser ?? []).length }).toEqual({ roll, rader: 0 });
+    }
+    // En annan vårdenhet ser den skyddade formen i läkemedelslistan, utan remissen. Namnet skrev läkaren själv och
+    // syns som förut.
+    await k.logga('lak-akut');
+    const skyddad = (await k.get('/api/patient/p04/lakemedel')).data.ordinationer.find(x => x.id === id).vardhandelse;
+    expect(skyddad.skyddad).toBe(true);
+    expect(JSON.stringify(skyddad)).not.toMatch(/remiss/i);
+    // Läkaren sätter upp vårdhändelsen på väntelistan igen: raden försvinner och dosen väntar på en ny tid.
+    expect((await k.post(`/api/ordination/${id}/vardhandelse/igen`)).status).toBe(403);
+    expect(loggRader(k).at(-1)).toMatchObject({ personal_id: 'lak-akut', patient_id: 'p04', resultat: 'nekad' });
+    await k.logga('lak-kard');
+    const igen = await k.post(`/api/ordination/${id}/vardhandelse/igen`);
+    expect(igen.status).toBe(200);
+    expect(igen.data.vardhandelse).toMatchObject({ lage: 'vantar', foljerTidbok: true });
+    const ny = db(k).query("SELECT * FROM vantelista WHERE patient_id = 'p04' AND orsak = 'Elkonvertering' AND status = 'vantar'").get();
+    expect(ny).toMatchObject({ enhet_id: 'uso-kard', skapad_av: 'lak-kard', remiss_id: null });
+    expect((await k.get('/api/inkorg')).data.avbokadeVardhandelser.some(x => x.ordinationId === id)).toBe(false);
+    expect(db(k).query("SELECT handelse FROM ordination_historik WHERE ordination_id = ? ORDER BY id DESC").get(id).handelse).toBe('Vårdhändelsen sattes upp på väntelistan igen');
+    expect((await k.post(`/api/ordination/${id}/vardhandelse/igen`)).status).toBe(400);
+  });
+
+  test('raden om den avbokade vårdhändelsen försvinner när ordinationen sätts ut, och visar inte spärrade uppgifter', async () => {
+    const { k, id } = await avvisadRemiss();
+    expect((await k.post(`/api/ordination/${id}/utsatt`, { orsak: 'Ingreppet blir inte av' })).status).toBe(200);
+    expect((await k.get('/api/inkorg')).data.avbokadeVardhandelser.some(x => x.ordinationId === id)).toBe(false);
+    // Elin Sandberg har spärrat psykiatrins uppgifter: en vårdhändelse som psykiatrin ordinerade syns inte på kardiologen,
+    // inte ens för den som står som ordinerande.
+    const d = db(k);
+    const psyk = Number(d.query(`INSERT INTO ordinationer (patient_id, enhet_id, lakemedel_id, dosering, typ, orsak, uppfoljning, start, status, ordinerad_av, skapad, nll_status, kalla)
+      VALUES ('p04', 'uso-psyk', 'VK-NPL-0025', '1 kapsel', 'tillfallig', 'Inför ingrepp', ?, ?, 'aktiv', 'lak-kard', ?, 'kvitterad', 'vardkallan')`).run(addDagar(idag(), 30), idag(), new Date().toISOString()).lastInsertRowid);
+    d.query("INSERT INTO ordination_tillagg (ordination_id, vardhandelse, forskjutning_min) VALUES (?, 'Samtal på psykiatrin', 0)").run(psyk);
+    d.query("INSERT INTO vardhandelse_kopplingar (ordination_id, patient_id, enhet_id, foljer, lage, forklaring, skapad, remiss_avvisad) VALUES (?, 'p04', 'uso-psyk', 1, 'avbokad', 'x', ?, 1)").run(psyk, new Date().toISOString());
+    const rader = (await k.get('/api/inkorg')).data.avbokadeVardhandelser;
+    expect(rader.some(x => x.ordinationId === psyk)).toBe(false);
+    expect(JSON.stringify(rader)).not.toMatch(/psykiatrin/i);
+    expect((await k.post(`/api/ordination/${psyk}/vardhandelse/igen`)).status).toBe(403);
   });
 
   test('den manuella tidsättningen finns kvar som reserv, slutar följa tidboken och sparas i historiken', async () => {

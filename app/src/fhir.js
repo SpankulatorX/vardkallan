@@ -231,7 +231,9 @@ export function medicationRequest(db, o) {
       ...(plan ? [{ url: `${EXT}/utsattningsplan`, valueCode: plan.typ }] : []),
       ...(plan?.aterinsattning ? [{ url: `${EXT}/aterinsattningsdatum`, valueDate: plan.aterinsattning }] : []),
     ],
-    ...(plan ? { note: [{ text: `Plan vid utsättning: ${plan.text}.` }] } : {}),
+    ...(plan ? { note: [{ text: `Plan vid utsättning: ${plan.text}.` },
+      // Avslutad behandling efter uppehållet (runda 5, r4): vem, när och orsak.
+      ...(plan.avslutad ? [{ authorString: plan.avslutad.av, time: plan.avslutad.tid, text: `Återinsättningen avslutades: ${plan.avslutad.orsak}.` }] : [])] } : {}),
   };
 }
 

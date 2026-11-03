@@ -194,6 +194,11 @@ export const UPPGIFTER = [
     text: 'Gunnar Åkesson har gjort uppehåll med Waran inför ett ingrepp, och behandlingen ska börja igen i morgon. Se till att han får sitt Waran igen.',
     kontroll: { notis: 'Waran är ordinerat' },
   },
+  {
+    id: 'avsluta-aterinsattning', namn: 'Avsluta behandlingen efter ett uppehåll', roll: 'lak-kard', start: 'Arbetslistan dagen före en återinsättning',
+    text: 'Gunnar Åkesson har gjort uppehåll med Waran inför ett ingrepp. Efter ingreppet har ni bestämt att han inte behöver behandlingen längre. Se till att ingen sätter in den igen.',
+    kontroll: { notis: 'är avslutad' },
+  },
 ];
 
 // Deltagarens bakgrund. Bara val, inga fritextfält, så att inga identifierande uppgifter samlas in.

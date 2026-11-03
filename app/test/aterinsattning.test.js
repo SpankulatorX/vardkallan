@@ -6,6 +6,7 @@ import { describe, test, expect, beforeAll, afterAll, afterEach, setSystemTime }
 import { byggSeed, idag, addDagar, lokalTid } from '../src/db.js';
 import * as lakemedel from '../src/lakemedel.js';
 import * as aterinsattning from '../src/aterinsattning.js';
+import * as fhir from '../src/fhir.js';
 import { atk, personal, testserver, klient, sandlada } from './hjalp.js';
 
 const kl = (k, dag = idag()) => lokalTid(dag, k);
@@ -115,6 +116,61 @@ describe('Återinsättning efter uppehåll', () => {
   });
 });
 
+// Runda 5, beslut 2026-11-03: läkaren kan avfärda raden när behandlingen avslutas för gott.
+describe('Avslutad behandling efter uppehåll', () => {
+  const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
+  test('läkaren avslutar behandlingen med en orsak som systemet föreslår, sparat i historiken och i FHIR, och raden försvinner för alla mottagare', () => {
+    const db = sandladaKl('13:30');
+    const o = waran(db);
+    uppehall(db, 'lak-kard', 'p01', o, 1);
+    const rad = rader(db, 'lak-kard')[0];
+    expect(rad.orsaker).toEqual(['Behandlingen behövs inte längre', 'Byte till annat läkemedel', 'Patienten avböjer']);
+    // Orsaken krävs.
+    expect(fel(() => aterinsattning.avsluta(db, personal(db, 'lak-kard'), o.id, {})).status).toBe(400);
+    const r = aterinsattning.avsluta(db, personal(db, 'lak-kard'), o.id, { orsak: 'Patienten avböjer' });
+    expect(r.avslutad).toMatchObject({ orsak: 'Patienten avböjer', av: 'Sara Lindqvist' });
+    expect(rader(db, 'lak-kard')).toEqual([]);
+    expect(rader(db, 'ol-kard')).toEqual([]);
+    // Historiken och planen i läkemedelslistan.
+    expect(db.query("SELECT personal_id, detalj FROM ordination_historik WHERE ordination_id = ? AND handelse = 'Återinsättningen avslutades'").get(o.id)).toEqual({ personal_id: 'lak-kard', detalj: 'Patienten avböjer' });
+    const ut = lakemedel.lista(atk(db, 'lak-kard', 'p01', {}, 'las_lakemedel')).ordinationer.find(x => x.id === o.id);
+    expect(ut.utsatt.plan.avslutad).toMatchObject({ orsak: 'Patienten avböjer', av: 'Sara Lindqvist' });
+    expect(ut.utsatt.plan.text).toContain('behandlingen avslutad');
+    // FHIR: en note med vem, när och orsak.
+    const mr = fhir.medicationRequest(db, db.query('SELECT * FROM ordinationer WHERE id = ?').get(o.id));
+    expect(mr.note.find(n => n.text.startsWith('Återinsättningen avslutades'))).toMatchObject({ authorString: 'Sara Lindqvist', time: r.avslutad.tid, text: 'Återinsättningen avslutades: Patienten avböjer.' });
+    // Loggat på patienten, och bara en gång.
+    expect(db.query("SELECT patient_id, handling, resultat FROM atkomstlogg WHERE resurs = ?").get(`ordination:${o.id}:aterinsattning_avslutad`)).toEqual({ patient_id: 'p01', handling: 'ordinera', resultat: 'tillaten' });
+    expect(fel(() => aterinsattning.avsluta(db, personal(db, 'ol-kard'), o.id, { orsak: 'Byte till annat läkemedel' })).status).toBe(400);
+    // Avslutet ändras och raderas aldrig.
+    expect(() => db.query('UPDATE aterinsattning_avslut SET orsak = ?').run('x')).toThrow(/ändras inte/);
+    expect(() => db.query('DELETE FROM aterinsattning_avslut').run()).toThrow(/raderas inte/);
+  });
+
+  test('säkerhet: bara en läkare som är mottagare och får se patienten, aldrig från en spärrad vårdenhet, och nekade försök loggas', () => {
+    const db = sandladaKl('13:30');
+    const o = waran(db);
+    uppehall(db, 'lak-kard', 'p01', o, 1);
+    for (const id of ['ssk-kard', 'adm-kard', 'lak-akut']) {
+      const e = fel(() => aterinsattning.avsluta(db, personal(db, id), o.id, { orsak: 'Behandlingen behövs inte längre' }));
+      expect({ id, status: e?.status }).toEqual({ id, status: 403 });
+      expect(db.query('SELECT resultat FROM atkomstlogg WHERE personal_id = ? ORDER BY id DESC').get(id).resultat).toBe('nekad');
+    }
+    // En ordination från en spärrad vårdenhet går inte att avsluta, inte ens för den som står som ordinerande.
+    const t = new Date().toISOString();
+    const psyk = Number(db.query(`INSERT INTO ordinationer (patient_id, enhet_id, lakemedel_id, dosering, typ, orsak, uppfoljning, start, status, utsatt_tid, utsatt_av, utsatt_orsak, ordinerad_av, skapad, nll_status, kalla)
+      VALUES ('p04', 'uso-psyk', 'VK-NPL-0002', '1 tablett', 'staende', 'Förmaksflimmer', ?, ?, 'utsatt', ?, 'lak-psyk', 'Uppehåll inför ingrepp', 'lak-kard', ?, 'kvitterad', 'vardkallan')`).run(addDagar(idag(), 30), addDagar(idag(), -30), t, t).lastInsertRowid);
+    db.query("INSERT INTO utsattningsplaner (ordination_id, typ, aterinsattning, registrerad, av) VALUES (?, 'uppehall', ?, ?, 'lak-psyk')").run(psyk, addDagar(idag(), 1), t);
+    const e = fel(() => aterinsattning.avsluta(db, personal(db, 'lak-kard'), psyk, { orsak: 'Patienten avböjer' }));
+    expect(e.status).toBe(403);
+    expect(e.message).not.toMatch(/psyk|Ström|Waran|Eliquis/i);
+    expect(db.query('SELECT count(*) AS n FROM aterinsattning_avslut').get().n).toBe(0);
+    // En ordination utan uppehåll går inte att avsluta så här.
+    const furo = db.query("SELECT o.* FROM ordinationer o JOIN katalog k ON k.id = o.lakemedel_id WHERE o.patient_id = 'p01' AND k.namn LIKE 'Furosemid%' AND o.status = 'aktiv'").get();
+    expect(fel(() => aterinsattning.avsluta(db, personal(db, 'lak-kard'), furo.id, { orsak: 'Patienten avböjer' })).status).toBe(400);
+  });
+});
+
 describe('Återinsättning i inkorgen via API', () => {
   let app;
   beforeAll(() => { app = testserver(); });
@@ -138,6 +194,9 @@ describe('Återinsättning i inkorgen via API', () => {
     expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p03' AND resurs = ? AND handling = 'las_lakemedel'").get(`inkorg:aterinsattning:${id}`).n).toBe(fore + 1);
     await k.get('/api/inkorg');
     expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p03' AND resurs = ?").get(`inkorg:aterinsattning:${id}`).n).toBe(fore + 1);
+    // Avslutad behandling via API: raden försvinner.
+    expect((await k.post(`/api/ordination/${id}/aterinsattning/avsluta`, { orsak: 'Behandlingen behövs inte längre' })).status).toBe(200);
+    expect((await k.get('/api/inkorg')).data.aterinsattningar.some(r => r.ordinationId === id)).toBe(false);
     // En sjuksköterska får ingen rad.
     await k.logga('ssk-kard');
     expect((await k.get('/api/inkorg')).data.aterinsattningar).toEqual([]);

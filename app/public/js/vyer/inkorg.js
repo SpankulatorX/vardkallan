@@ -1,5 +1,5 @@
 // Inkorgen: osignerade anteckningar, okvitterade remissvar, larm och NLL-avvikelser. Varje rad leder till rätt ställe.
-import { esc, api, tidpunkt, ikon, vyRubrik, NLL } from '../ui.js';
+import { esc, api, tidpunkt, ikon, vyRubrik, NLL, dialog, medKnapp, notis } from '../ui.js';
 import { S, uppdateraInkorg } from '../app.js';
 
 export const namn = 'inkorg';
@@ -48,9 +48,13 @@ export async function visa(main) {
   // Återinsättning efter uppehåll med antikoagulantia, för läkaren (runda 5, r4). Knappen öppnar läkemedelslistan med
   // ordinationen ifylld ur den tidigare.
   const atersatt = (d.aterinsattningar ?? []).map(x => `<li class="ik-ater${x.dagarKvar < 0 ? ' ik-larm' : ''}"><div class="ik-text"><span class="ik-rubrik">${esc(x.lakemedel)}, ${esc(pnamn(x.patient))}</span>
-    <span class="under-text">${esc(x.text)} Plan: ${esc(x.plan)}.</span></div><a class="knapp liten" href="${esc(x.href)}" data-aterinsatt="${x.ordinationId}">Sätt in igen</a></li>`);
+    <span class="under-text">${esc(x.text)} Plan: ${esc(x.plan)}.</span></div><div class="ik-knappar"><a class="knapp liten" href="${esc(x.href)}" data-aterinsatt="${x.ordinationId}">Sätt in igen</a><button type="button" class="knapp liten sekundar" data-avsluta="${x.ordinationId}">Avslutad behandling</button></div></li>`);
+  // Vårdhändelser som avbokades eftersom remissen avvisades, för den ordinerande läkaren (runda 5, r4).
+  const avbokade = (d.avbokadeVardhandelser ?? []).map(x => `<li class="ik-ater ik-larm"><div class="ik-text"><span class="ik-rubrik">${esc(x.lakemedel ?? '')}, ${esc(pnamn(x.patient))}</span>
+    <span class="under-text">${esc(x.text)}</span></div><div class="ik-knappar"><a class="knapp liten sekundar" href="${esc(x.hrefUtsatt)}" data-vh-utsatt="${x.ordinationId}">Sätt ut</a>${x.kanSattasUpp ? `<button type="button" class="knapp liten" data-vh-igen="${x.ordinationId}">Sätt upp på väntelistan igen</button>` : ''}</div></li>`);
 
   main.querySelector('#ik').innerHTML = `<div class="inkorg-rutnat">
+    ${avbokade.length ? sektion('vhavbokad', 'Vårdhändelser som avbokades', avbokade, '', 'Remissen avvisades, och tiden för en vårdhändelse som en läkemedelsdos väntar på avbokades. Besluta om ordinationen.') : ''}
     ${S.session.behorigheter.includes('ordinera') ? sektion('atersatt', 'Läkemedel att sätta in igen', atersatt, 'Inget läkemedel ska sättas in igen efter ett uppehåll i dag eller i morgon.', 'Antikoagulantia som gör uppehåll inför ett ingrepp. Systemet påminner dagen före återinsättningen och fyller i ordinationen ur den tidigare.') : ''}
     ${S.session.behorigheter.includes('delegera') && (S.session.personal.yrke === 'sjukskoterska' || deleg.length) ? sektion('deleg', 'Delegeringar som går ut', deleg, 'Inga delegeringar går ut de närmaste 30 dagarna.', 'Undersköterskornas delegeringar att ge läkemedel. Följ upp dem och registrera nya innan de går ut.') : ''}
     ${S.session.behorigheter.includes('sla_samman') ? sektion('dubb', 'Troliga dubbletter', dubb, 'Inga troliga dubbletter.', 'Journaler som systemet tror gäller samma person, till exempel ett reservnummer och ett personnummer med samma namn och födelsedatum.') : ''}
@@ -61,4 +65,42 @@ export async function visa(main) {
     ${sektion('svar', 'Okvitterade remissvar', svar, 'Inga remissvar väntar på dig.', 'Svar på remisser från din vårdenhet som ingen har kvitterat än.')}
     ${sektion('nll', 'NLL-avvikelser', nll, 'Inga avvikelser mot Nationella läkemedelslistan.', 'Ordinationer från din vårdenhet där NLL inte svarade i tid eller svarade med fel.')}
   </div>${S.session.personal.yrke === 'vardadministrator' ? '<p class="dampad liten">Som vårdadministratör ser du larm om remissernas status men ingen journaltext.</p>' : ''}`;
+  // Runda 5, r4: avsluta behandlingen efter ett uppehåll och sätta upp en avbokad vårdhändelse igen.
+  main.querySelector('#ik').addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-avsluta],[data-vh-igen]');
+    if (!b) return;
+    if (b.dataset.avsluta) {
+      const x = d.aterinsattningar.find(r => String(r.ordinationId) === b.dataset.avsluta);
+      if (await avsluta(b, x)) visa(main);
+      return;
+    }
+    try {
+      await medKnapp(b, () => api(`/api/ordination/${encodeURIComponent(b.dataset.vhIgen)}/vardhandelse/igen`, { metod: 'POST', data: {} }));
+      notis('Vårdhändelsen står på väntelistan igen. Dosen väntar på den nya tiden.');
+      visa(main);
+    } catch { /* notis visad */ }
+  });
+}
+
+// Avslutad behandling: systemet föreslår orsaken, och den första är förvald.
+async function avsluta(b, x) {
+  const svar = await dialog(`<form><h2 id="dlg-rubrik">Avsluta behandlingen med ${esc(x.lakemedel)}</h2>
+    <p>Läkemedlet sätts inte in igen efter uppehållet. Avslutet sparas med ditt namn, tiden och orsaken i ordinationens historik, och raden försvinner för alla som har fått den.</p>
+    <fieldset class="kryssgrupp"><legend>Orsak</legend>
+      ${x.orsaker.map((o, i) => `<div class="kryssfalt"><input type="radio" id="av-${i}" name="orsak" value="${esc(o)}"${i ? '' : ' checked'}><label for="av-${i}">${esc(o)}</label></div>`).join('')}
+      <div class="kryssfalt"><input type="radio" id="av-annan" name="orsak" value=""><label for="av-annan">Annan orsak</label></div>
+    </fieldset>
+    <div class="falt"><label for="av-text">Annan orsak</label><input id="av-text" name="annan" maxlength="300"></div>
+    <p class="dialog-fel form-fel" role="alert" hidden></p>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Avsluta behandlingen</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`,
+  { validera: (v) => ((v.orsak || v.annan || '').trim().length < 3 ? 'Välj en orsak eller skriv en med minst tre tecken.' : null),
+    onOpen: (dl) => { dl.querySelector('#av-text').addEventListener('input', () => { dl.querySelector('#av-annan').checked = true; }); dl.querySelector('[data-varde="ok"]').focus(); } });
+  if (!svar) return false;
+  const orsak = (svar.data.orsak || svar.data.annan).trim();
+  try {
+    await medKnapp(b, () => api(`/api/ordination/${encodeURIComponent(x.ordinationId)}/aterinsattning/avsluta`, { metod: 'POST', data: { orsak } }));
+    notis(`Behandlingen med ${x.lakemedel} är avslutad.`);
+    await uppdateraInkorg();
+    return true;
+  } catch { return false; }
 }

@@ -159,7 +159,9 @@ export async function uppdateraInkorg() {
     S.inkorg = d.osigneradeAnteckningar.length + d.okvitteradeSvar.length + d.larm.length + d.nllAvvikelser.length + (d.dubbletter?.length ?? 0) + (d.kontrasigneringar?.length ?? 0) + (d.aterlamnanden?.length ?? 0)
       + (d.delegeringarSomGarUt?.length ?? 0)
       // Återinsättning efter uppehåll med antikoagulantia (runda 5, r4).
-      + (d.aterinsattningar?.length ?? 0);
+      + (d.aterinsattningar?.length ?? 0)
+      // Vårdhändelser som avbokades eftersom remissen avvisades (runda 5, r4).
+      + (d.avbokadeVardhandelser?.length ?? 0);
   } catch { S.inkorg = null; }
   const el = document.querySelector('[data-raknare="inkorg"]');
   if (el) { el.textContent = S.inkorg ? String(S.inkorg) : ''; el.hidden = !S.inkorg; }

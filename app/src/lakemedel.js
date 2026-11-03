@@ -5,6 +5,8 @@ import { vardenhetFor } from './atkomst.js';
 import { kallaEtikett } from './journal.js';
 import { tillaggUt } from './ordinationsmallar.js';
 import { utsattningsvarningar, DEMOREGLER_PROCESS, UTSATTNINGSPLANER, UPPEHALL_DAGAR, planText } from './lakemedelsregler.js';
+// Avslutad behandling efter ett uppehåll (runda 5, r4).
+import { avslutFor } from './aterinsattning.js';
 
 export const DEMOREGLER = 'Varningarna är demoregler för att visa flödet. De är inte kliniskt beslutsstöd och inte CE-märkta.';
 export const TYPER = ['staende', 'vid_behov', 'tillfallig'];
@@ -57,7 +59,9 @@ export function utsattningsplan(db, ordinationId) {
   const p = db.query('SELECT * FROM utsattningsplaner WHERE ordination_id = ?').get(ordinationId);
   if (!p) return null;
   const ut = { typ: p.typ, ersattMed: p.ersatt_med, aterinsattning: p.aterinsattning, registrerad: p.registrerad, av: personNamn(db, p.av) };
-  return { ...ut, text: planText(ut) };
+  // Avslutad behandling efter uppehållet (runda 5, r4): läkemedlet sätts inte in igen.
+  const avslutad = p.typ === 'uppehall' ? avslutFor(db, ordinationId) : null;
+  return { ...ut, text: `${planText(ut)}${avslutad ? `, behandlingen avslutad ${avslutad.tid.slice(0, 10)}: ${avslutad.orsak}` : ''}`, ...(avslutad ? { avslutad } : {}) };
 }
 
 // Läkemedelslistan är gemensam för vårdgivaren. Spärrade enheters ordinationer visas inte.

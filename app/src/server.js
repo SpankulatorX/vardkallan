@@ -851,6 +851,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       return ordinationsmallar.forslag(atk, lm);
     });
   });
+  // Runda 5, r4: vårdhändelsen sätts upp på väntelistan igen efter en avvisad remiss.
+  rutt('POST', '/api/ordination/:id/vardhandelse/igen', (c, id) => medOrdination(c, id, (atk) => vardhandelse.igen(atk, id)));
   rutt('POST', '/api/ordination/:id/vardhandelse', (c, id) => {
     kravInloggad(c);
     const o = lakemedel.hamtaRad(c.db, id);
@@ -1040,11 +1042,25 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       delegeringarSomGarUt: delegering.paminnelser(c.db, p),
       // Återinsättning efter uppehåll med antikoagulantia, för läkaren (runda 5, r4).
       aterinsattningar: aterinsattningIInkorg(c),
+      // Vårdhändelser som avbokades eftersom remissen avvisades, för den ordinerande läkaren (runda 5, r4).
+      avbokadeVardhandelser: avbokadeIInkorg(c),
     };
   });
   // Återinsättning efter uppehåll (runda 5, r4). Behörigheten prövas i aterinsattning.js. Varje rad visar läkemedlet
   // för en patient och loggas därför på patienten, en gång per session och ordination, så att inkorgens uppdateringar
   // inte fyller loggen.
+  rutt('POST', '/api/ordination/:id/aterinsattning/avsluta', (c, id) => { kravInloggad(c); return aterinsattning.avsluta(c.db, c.personal, id, c.body); });
+  function avbokadeIInkorg(c) {
+    const loggade = (c.s.vardhandelseAvbokadLoggad ??= new Set());
+    return vardhandelse.avbokadeIInkorg(c.db, c.personal).map(r => {
+      if (!loggade.has(r.ordinationId)) {
+        loggade.add(r.ordinationId);
+        const a = new Atkomst(c.db, c.personal, r.patientId, {}, 'las_lakemedel');
+        a.logga('las_lakemedel', a.prova('las_lakemedel').grund, `inkorg:vardhandelse_avbokad:${r.ordinationId}`);
+      }
+      return { ...r, patient: patientKort(patientRad(c.db, r.patientId)) };
+    });
+  }
   function aterinsattningIInkorg(c) {
     const loggade = (c.s.aterinsattningLoggad ??= new Set());
     return aterinsattning.inkorg(c.db, c.personal).map(r => {

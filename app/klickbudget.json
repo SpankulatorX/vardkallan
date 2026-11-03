@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-03T14:18:45.196Z",
+  "tid": "2026-11-03T15:05:38.045Z",
   "bas": "http://127.0.0.1:18124",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "1c8183cc073b6bab8f551901f1c1c5e85bf87a78c5b594fe8852eb722bc0e0d9",
+  "gransnittHash": "bd3aefa07bfdceb0493fae2867015bea844b7aca73a0dbd8ecb172c0163c7ad5",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -619,6 +619,24 @@
         "klick: Sätt in igen",
         "klick: Kontrollera och spara"
       ]
+    },
+    {
+      "id": "avsluta-aterinsattning",
+      "namn": "Avsluta behandlingen efter ett uppehåll",
+      "roll": "lak-kard",
+      "start": "Arbetslistan dagen före en återinsättning",
+      "budget": 3,
+      "motivering": "Sussa 3.5.2.8. Ett klick till inkorgen, ett på Avslutad behandling för raden och ett för att avsluta. Systemet föreslår orsaken och har den vanligaste förvald, sparar vem och när, och raden försvinner för alla som har fått den.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Inkorg i menyn",
+        "klick: Avslutad behandling",
+        "klick: Avsluta behandlingen"
+      ]
     }
   ],
   "tester": [
@@ -756,6 +774,10 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Sätta in Waran igen efter ett uppehåll inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Avsluta behandlingen efter ett uppehåll inom budget",
       "status": "grön"
     }
   ]

@@ -55,6 +55,9 @@ export async function visa(el, ctx) {
     el.querySelector('[data-ny]').setAttribute('aria-expanded', 'true');
     ordinationsForm(el.querySelector('#ordform-plats'), ctx, ater);
   }
+  // Från inkorgen när en vårdhändelse avbokades (lakemedel/utsatt-<id>, runda 5 r4) öppnas utsättningen direkt.
+  const utsatt = kanOrdinera && /^utsatt-\d+$/.test(ctx.sub ?? '') ? el.querySelector(`[data-utsatt="${ctx.sub.slice(7)}"]`) : null;
+  if (utsatt) setTimeout(() => utsatt.click(), 0);
   el.addEventListener('click', async (e) => {
     const v = e.target.closest('[data-vidimera],[data-genomgang],[data-vatska]');
     if (v?.dataset.vidimera != null) {

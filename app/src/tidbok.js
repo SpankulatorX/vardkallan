@@ -361,7 +361,7 @@ export function efterAvvisning(db, r, personal) {
   for (const b of db.query("SELECT * FROM bokningar WHERE patient_id = ? AND status = 'bokad' ORDER BY id").all(r.patient_id)) {
     if (vardenhetFor(db, bokningensEnhet(db, b)) !== ve) continue;
     if (b.remiss_id !== r.id && !ingenAnnan) continue;
-    avbokaRad(db, b, { av: personal.id, orsak: 'Remissen avvisades' });
+    avbokaRad(db, b, { av: personal.id, orsak: 'Remissen avvisades', synk: false });
     if (b.vantelista_id) {
       db.query("UPDATE vantelista SET status = 'avslutad' WHERE id = ?").run(b.vantelista_id);
       vlHandelse(db, b.vantelista_id, 'avslutad', { av: personal.id, detalj: 'Remissen avvisades. Systemet avbokade tiden och avslutade posten.' });
@@ -373,7 +373,8 @@ export function efterAvvisning(db, r, personal) {
     db.query("UPDATE vantelista SET status = 'avslutad' WHERE id = ?").run(v.id);
     vlHandelse(db, v.id, 'avslutad', { av: personal.id, detalj: 'Remissen avvisades. Systemet avslutade posten.' });
   }
-  synkaVardhandelser(db, r.patient_id, { av: personal.id });
+  // En vårdhändelse som hängde på tiden sätts inte upp igen, utan den ordinerande läkaren beslutar (runda 5, r4).
+  synkaVardhandelser(db, r.patient_id, { av: personal.id, remissAvvisad: true });
   return n;
 }
 
@@ -651,7 +652,8 @@ export function omboka(atk, b, body = {}) {
 // Avbokning. Den planerade vårdkontakten tas bort, eftersom besöket aldrig blev av, om inget har dokumenterats på den.
 // Bokningen finns kvar som avbokad. En post på väntelistan öppnas igen, och när patienten själv avbokar skapar systemet
 // en bevakning så att patienten får en ny tid.
-function avbokaRad(db, b, { av = null, avInvanare = null, orsak = null }) {
+// synk: false när den som anropar räknar om vårdhändelserna själv efteråt (efterAvvisning, runda 5 r4).
+function avbokaRad(db, b, { av = null, avInvanare = null, orsak = null, synk = true }) {
   if (b.status !== 'bokad') throw new Fel(400, b.status === 'incheckad' ? 'Patienten har redan checkat in.' : 'Bokningen gäller inte längre.', 'ogiltig');
   db.query("UPDATE bokningar SET status = 'avbokad', andrad = ?, andrad_av = ?, andrad_av_invanare = ?, orsak = coalesce(?, orsak) WHERE id = ?").run(iso(), av, avInvanare, orsak, b.id);
   if (b.vardkontakt_id) {
@@ -669,7 +671,7 @@ function avbokaRad(db, b, { av = null, avInvanare = null, orsak = null }) {
       .run(b.patient_id, vardenhetFor(db, enhet), 'Patienten avbokade sin tid i Min journal. Erbjud en ny tid.', idag(), b.vantelista_id ?? null, iso());
   }
   // En läkemedelsdos som väntade på tiden går tillbaka till att vänta på vårdhändelsen (vardhandelse.js).
-  synkaVardhandelser(db, b.patient_id, { av });
+  if (synk) synkaVardhandelser(db, b.patient_id, { av });
   return skickaKallelse(db, bokningRad(db, b.id), 'avbokning', { av });
 }
 

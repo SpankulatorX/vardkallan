@@ -29,7 +29,10 @@ const ATA = 'Återinsättning i inkorgen via API > ';
 const VH_IGEN = [
   `${VH}när tiden avbokas sätter systemet upp vårdhändelsen på den ordinerande vårdenhetens väntelista igen, utan ny vårdrelation`,
   `${VH}när ordinationen är utsatt eller tiden är satt för hand sätter avbokningen inte upp vårdhändelsen igen`,
+  `${VH}när en remiss avvisas och tiden avbokas sätts vårdhändelsen inte upp igen, dosen säger varför och den ordinerande läkaren får en rad i inkorgen`,
+  `${VH}raden om den avbokade vårdhändelsen försvinner när ordinationen sätts ut, och visar inte spärrade uppgifter`,
 ];
+const AV = 'Avslutad behandling efter uppehåll > ';
 
 export default [
   {
@@ -120,10 +123,13 @@ export default [
       `${AT}säkerhet: bara patienter som användaren får se, och aldrig uppgifter från en spärrad vårdenhet`,
       `${ATA}API: inkorgen visar raden med skyddad identitet maskerad, loggar åtkomsten och leder till läkemedelslistan`,
       `${GK}Sätta in Waran igen efter ett uppehåll inom budget`,
+      `${AV}läkaren avslutar behandlingen med en orsak som systemet föreslår, sparat i historiken och i FHIR, och raden försvinner för alla mottagare`,
+      `${AV}säkerhet: bara en läkare som är mottagare och får se patienten, aldrig från en spärrad vårdenhet, och nekade försök loggas`,
+      `${GK}Avsluta behandlingen efter ett uppehåll inom budget`,
     ],
-    losning: 'Vid utsättning varnar systemet för läkemedel med särskilda observationer: betablockerare, antikoagulantia, trombocythämmare efter PCI, kortison, basinsulin, antiepileptika, antidepressiva, opioider och sömnmedel. Antikoagulantia (ATC B01AA, B01AB, B01AE och B01AF) sätts bara ut med en bekräftad plan: byte till annat medel, uppehåll inför ingrepp med datum för återinsättning, eller avslutad behandling. Planen sparas med utsättningen och syns i läkemedelslistan, i historiken och i FHIR. Datumet för återinsättning bevakas: från dagen före får den ordinerande läkaren, den som beslutade om uppehållet och läkarna på de vårdenheterna en rad i inkorgen, och knappen Sätt in igen öppnar läkemedelslistan med ordinationen ifylld. Raden står kvar tills läkemedlet är insatt igen. Reglerna ligger i en egen modul och är märkta som demoregler.',
+    losning: 'Vid utsättning varnar systemet för läkemedel med särskilda observationer: betablockerare, antikoagulantia, trombocythämmare efter PCI, kortison, basinsulin, antiepileptika, antidepressiva, opioider och sömnmedel. Antikoagulantia (ATC B01AA, B01AB, B01AE och B01AF) sätts bara ut med en bekräftad plan: byte till annat medel, uppehåll inför ingrepp med datum för återinsättning, eller avslutad behandling. Planen sparas med utsättningen och syns i läkemedelslistan, i historiken och i FHIR. Datumet för återinsättning bevakas: från dagen före får den ordinerande läkaren, den som beslutade om uppehållet och läkarna på de vårdenheterna en rad i inkorgen, och knappen Sätt in igen öppnar läkemedelslistan med ordinationen ifylld. Raden står kvar tills läkemedlet är insatt igen eller läkaren avslutar behandlingen med Avslutad behandling och en orsak, som sparas i historiken och i FHIR. Reglerna ligger i en egen modul och är märkta som demoregler.',
     expert: 'Systemet räknar ut hur länge patienten har haft substansen, också över dosändringar, visar varningen med ett förslag på nedtrappning innan något sparas och låter orsaken vara motiveringen. För antikoagulantia förklarar systemet risken för blodpropp och stroke, föreslår planerna med det nya medlet och datumet för återinsättning ifyllda och skriver orsaken ur planen, och påminner läkaren i inkorgen dagen före återinsättningen med ordinationen ifylld ur den tidigare.',
-    anmarkning: 'Reglerna är demoregler, inte granskade av farmaceut eller läkare. Inget nedtrappningsschema skapas av systemet. Systemet skapar ingen ordination själv på datumet för återinsättning: läkaren sparar den ifyllda ordinationen. En rad i inkorgen går inte att avfärda utan att läkemedlet sätts in igen, och planen kan inte ändras i efterhand.',
+    anmarkning: 'Reglerna är demoregler, inte granskade av farmaceut eller läkare. Inget nedtrappningsschema skapas av systemet. Systemet skapar ingen ordination själv på datumet för återinsättning: läkaren sparar den ifyllda ordinationen eller avslutar behandlingen med en orsak. Planen kan inte ändras i efterhand.',
   },
   {
     id: '3.5.2.9', kategori: 'system', egna: ['L7', 'D9'], avsedd: 'uppfyllt_demo',

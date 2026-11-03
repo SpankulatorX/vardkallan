@@ -492,6 +492,8 @@ legend { font-weight: 600; font-size: var(--f-s); padding: 0; margin-bottom: 6px
 .ik-ater .ik-text { flex: 1 1 240px; min-width: 0; }
 .inkorg-lista .ik-ater a.knapp { flex: 0 0 auto; padding: 4px 10px; color: #fff; }
 .inkorg-lista .ik-ater a.knapp:hover { color: #fff; }
+.ik-knappar { display: flex; flex-wrap: wrap; gap: 6px; }
+.inkorg-lista .ik-ater a.knapp.sekundar, .inkorg-lista .ik-ater a.knapp.sekundar:hover { color: var(--kalla); }
 
 /* Väntrum */
 .vantrum-delad { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 340px); gap: 18px; align-items: start; }
