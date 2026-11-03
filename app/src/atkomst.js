@@ -16,6 +16,11 @@ export const ROLLER = {
   vardadministrator: ['las_admin', 'las_remiss_status', 'mottag_remiss', 'sok', 'vantrum', 'andra_enheter', 'visa_identitet'],
   logggranskare: ['las_logg', 'sok'],
 };
+// Vårdkontakt, vårdtillfälle och hälsoärende (vardkontakt.js). Vårdadministratören registrerar vårdkontakter, läkare
+// och sjuksköterskor skriver in, flyttar och skriver ut, och bekräftar hälsoärenden som systemet föreslår.
+ROLLER.lakare.push('registrera_vardkontakt', 'vardtillfalle', 'halsoarende');
+ROLLER.sjukskoterska.push('registrera_vardkontakt', 'vardtillfalle', 'halsoarende');
+ROLLER.vardadministrator.push('registrera_vardkontakt');
 
 export const HANDLINGAR = {
   las_oversikt: 'läsa patientöversikten', las_journal: 'läsa journalanteckningar', las_omvardnad: 'läsa omvårdnadsanteckningar',
@@ -26,6 +31,8 @@ export const HANDLINGAR = {
   kvittera_svar: 'kvittera remissvar', las_admin: 'läsa administrativa uppgifter', sok: 'söka patienter', vantrum: 'se väntrummet',
   nodatkomst: 'använda nödåtkomst', andra_enheter: 'visa uppgifter från andra vårdenheter', samtycke_sparr: 'registrera samtycke till spärrade uppgifter',
   visa_identitet: 'visa skyddad identitet', las_logg: 'läsa åtkomstloggen',
+  registrera_vardkontakt: 'registrera vårdkontakter', vardtillfalle: 'skriva in, flytta och skriva ut patienter',
+  halsoarende: 'bekräfta hälsoärenden',
 };
 
 // Handlingar som inte rör en enskild patient.

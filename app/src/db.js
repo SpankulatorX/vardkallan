@@ -7,6 +7,8 @@ import { PATIENTER, REMISSER, VANTRUM, LOGG, MIGRERING_AVVIKELSER } from './seed
 import { VARDNADSHAVARE, VISNINGSREGLER } from './seed/invanare.js';
 import { loggaRad } from './logg.js';
 import { MATKOD } from './kodverk.js';
+import { utokaSchema, knytHistorik } from './vardstruktur.js';
+import { SANGBYTEN, HALSOARENDEN } from './seed/vardstruktur.js';
 
 // Fel som API:t svarar med. kod: nekad | saknas | ogiltig | kraver_val | kraver_samtycke
 export class Fel extends Error {
@@ -216,6 +218,7 @@ export function byggSeed(bas = nu()) {
   const db = new Database(':memory:');
   db.exec(SCHEMA);
   db.exec(SCHEMA_INVANARE);
+  utokaSchema(db);
   const insE = db.query('INSERT INTO enheter VALUES (?, ?, ?, ?, ?, ?)');
   for (const e of ENHETER) insE.run(e.id, e.hsa, e.namn, e.kortnamn ?? null, e.typ, e.forald);
   const insP = db.query('INSERT INTO personal VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
@@ -330,6 +333,9 @@ export function byggSeed(bas = nu()) {
     loggaRad(db, { tid: tid(l.tid), personal_id: l.av, enhet_id: pers[l.av].enhet, patient_id: l.patient, handling: l.handling,
       resurs: l.resurs ?? null, grund: l.grund, syfte: l.syfte ?? null, resultat: l.resultat });
   }
+  // Vårdtillfällen, hälsoärenden och vårdkontakt för allt som dokumenterats (vardstruktur.js). Efter avstämningen, så att
+  // kontakter som systemet skapar för historik utan vårdkontakt inte räknas som överförda från källan.
+  knytHistorik(db, { bas, tid, sangbyten: SANGBYTEN, halsoarenden: HALSOARENDEN });
   seedaInvanare(db);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
@@ -368,6 +374,11 @@ export function migrera(db) {
   if (!kolumner('atkomstlogg').includes('invanare_id')) db.exec('ALTER TABLE atkomstlogg ADD COLUMN invanare_id TEXT');
   db.exec(SCHEMA_INVANARE);
   if (!db.query('SELECT 1 FROM invanare LIMIT 1').get()) seedaInvanare(db);
+  // En sandlåda från före vårdtillfällen och hälsoärenden får dem, och allt som dokumenterats knyts till en vårdkontakt.
+  if (utokaSchema(db)) {
+    const seedTid = db.query("SELECT varde FROM installningar WHERE nyckel = 'seed_tid'").get()?.varde;
+    knytHistorik(db, { bas: seedTid ? new Date(seedTid) : nu() });
+  }
   return db;
 }
 

@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-03T09:25:51.774Z",
-  "bas": "http://127.0.0.1:18101",
+  "tid": "2026-11-03T10:16:40.501Z",
+  "bas": "http://127.0.0.1:18102",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "87b213cfb3b973e062b11aa12dcbc084746fad7fa8d1f7d20467235131a4c922",
+  "gransnittHash": "dade153e537fae4cc43aa4e1096a0ecda9565f88cff31362be85961116fbd383",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -177,6 +177,113 @@
         "klick: intyget att patienten inte kan samtycka",
         "klick: Öppna med nödåtkomst"
       ]
+    },
+    {
+      "id": "halsoarende",
+      "namn": "Bekräfta ett hälsoärende",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 1,
+      "motivering": "Ett klick på Bekräfta i systemets förslag. Systemet har redan sett att kontakterna har samma diagnos och vilka kontakter som hör ihop.",
+      "klick": 1,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "steg": [
+        "klick: Bekräfta i förslaget"
+      ]
+    },
+    {
+      "id": "inskrivning",
+      "namn": "Skriva in en patient",
+      "roll": "ssk-kard",
+      "start": "Översikten för en patient på mottagningen",
+      "budget": 4,
+      "motivering": "Ett klick på Skriv in, ett fältbyte vardera för orsaken och för sal och säng, och ett klick för att skriva in. Avdelningen är förvald, och orsaken fylls i när patienten kommer från akuten eller med en remiss.",
+      "klick": 2,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Skriv in",
+        "har redan fokus: orsaken",
+        "fältbyte: sal och säng",
+        "klick: Skriv in"
+      ]
+    },
+    {
+      "id": "flytta",
+      "namn": "Flytta en patient till en annan avdelning",
+      "roll": "ssk-kard",
+      "start": "Patientens översikt",
+      "budget": 5,
+      "motivering": "Ett klick på Flytta, två klick för att välja avdelning i listan, ett fältbyte för sal och säng och ett klick för att flytta. Vårdtillfället och allt som är dokumenterat följer med, så inget registreras om.",
+      "klick": 4,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 5,
+      "inomBudget": true,
+      "steg": [
+        "klick: Flytta",
+        "lista (2 klick): avdelningen HIA",
+        "fältbyte: sal och säng",
+        "klick: Flytta"
+      ]
+    },
+    {
+      "id": "utskrivning",
+      "namn": "Skriva ut en patient",
+      "roll": "ssk-kard",
+      "start": "Översikten för en inlagd patient",
+      "budget": 2,
+      "motivering": "Ett klick på Skriv ut och ett för att bekräfta. Systemet kontrollerar själv osignerade anteckningar och epikris och säger vad som återstår.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Skriv ut",
+        "klick: Skriv ut"
+      ]
+    },
+    {
+      "id": "registrera-besok",
+      "namn": "Registrera ett besök",
+      "roll": "adm-kard",
+      "start": "Översikten för en remitterad patient",
+      "budget": 3,
+      "motivering": "Ett klick på Registrera vårdkontakt och ett för att registrera. Besök, nu och mottagningen är förvalda och kontaktorsaken kommer från remissen. Ett fältbyte räknas med för orsaken när systemet inte kan föreslå den.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Registrera vårdkontakt",
+        "klick: Registrera"
+      ]
+    },
+    {
+      "id": "planera-video",
+      "namn": "Planera ett videobesök",
+      "roll": "adm-kard",
+      "start": "Översikten för en remitterad patient",
+      "budget": 5,
+      "motivering": "Ett klick på Registrera vårdkontakt, ett på Video, ett på Planerad och ett för att registrera. Tiden är förvald till nästa vardag klockan 9. Ett fältbyte räknas med för att ändra tiden.",
+      "klick": 4,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 4,
+      "inomBudget": true,
+      "steg": [
+        "klick: Registrera vårdkontakt",
+        "klick: Video",
+        "klick: Planerad",
+        "klick: Registrera"
+      ]
     }
   ],
   "tester": [
@@ -214,6 +321,30 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Nödåtkomst inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Bekräfta ett hälsoärende inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Skriva in en patient inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Flytta en patient till en annan avdelning inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Skriva ut en patient inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera ett besök inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Planera ett videobesök inom budget",
       "status": "grön"
     }
   ]

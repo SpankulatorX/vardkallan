@@ -79,6 +79,9 @@ function skapa(BAS) {
   const startI = {
     'Arbetslistan efter inloggning': async (page) => { await gaTill(page, '#/arbetslista'); await page.waitForSelector('#lista table'); },
     'Patientens översikt': async (page) => { await gaTill(page, '#/patient/p01'); await page.waitForSelector('.tidslinje'); },
+    'Översikten för en remitterad patient': async (page) => { await gaTill(page, '#/patient/p05'); await page.waitForSelector('.tidslinje'); },
+    'Översikten för en patient på mottagningen': async (page) => { await gaTill(page, '#/patient/p11'); await page.waitForSelector('.tidslinje'); },
+    'Översikten för en inlagd patient': async (page) => { await gaTill(page, '#/patient/p04'); await page.waitForSelector('.tidslinje'); },
   };
 
   // Flödena. Varje funktion gör flödet från startpunkten och kontrollerar att det når sitt resultat.
@@ -163,6 +166,50 @@ function skapa(BAS) {
       await m.klicka(page.locator('dialog[open] input[name="intyg"]'), 'intyget att patienten inte kan samtycka');
       await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Öppna med nödåtkomst');
       await synlig(page, '.band-grund', 'Nödåtkomst, loggas och granskas');
+    },
+    halsoarende: async (m, page) => {
+      await m.klicka(page.locator('.ha-forslag', { hasText: 'Vänsterhjärtsvikt' }).locator('[data-ha-bekrafta]'), 'Bekräfta i förslaget');
+      await synlig(page, '.notis', 'Hälsoärendet Vänsterhjärtsvikt är bekräftat');
+      await synlig(page, '.vk-lista', 'Hälsoärende: Vänsterhjärtsvikt');
+    },
+    inskrivning: async (m, page) => {
+      await m.klicka(page.locator('[data-vk="skriv-in"]'), 'Skriv in');
+      await page.locator('dialog[open]').waitFor();
+      await m.skriv(page.locator('dialog[open] input[name="orsak"]'), 'Elkonvertering', 'orsaken');
+      await m.skriv(page.locator('dialog[open] input[name="plats"]'), 'Avd 72, sal 5', 'sal och säng');
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Skriv in');
+      await synlig(page, '.notis', 'Patienten är inskriven på Avdelning 72');
+      await synlig(page, '.vardtillfalle', 'Avd 72, sal 5');
+    },
+    flytta: async (m, page) => {
+      await m.klicka(page.locator('.vardtillfalle [data-vk="flytta"]'), 'Flytta');
+      await page.locator('dialog[open]').waitFor();
+      await m.valj(page.locator('dialog[open] select[name="enhetId"]'), 'uso-kard-hia', 'avdelningen HIA');
+      await m.skriv(page.locator('dialog[open] input[name="plats"]'), 'HIA, sal 1', 'sal och säng');
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Flytta');
+      await synlig(page, '.notis', 'Patienten ligger nu på Hjärtintensivvårdsavdelningen');
+      await synlig(page, '.vardtillfalle', 'HIA, sal 1');
+    },
+    utskrivning: async (m, page) => {
+      await m.klicka(page.locator('.vardtillfalle [data-vk="skriv-ut"]'), 'Skriv ut');
+      await page.locator('dialog[open]').waitFor();
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Skriv ut');
+      await synlig(page, '.notis', 'Patienten är utskriven');
+    },
+    'registrera-besok': async (m, page) => {
+      await m.klicka(page.locator('[data-vk="registrera"]'), 'Registrera vårdkontakt');
+      await page.locator('dialog[open]').waitFor();
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Registrera');
+      await synlig(page, '.notis', 'Besök är registrerat');
+      await synlig(page, '.vk-lista', 'Enligt remiss från Vårdcentralen Kumla');
+    },
+    'planera-video': async (m, page) => {
+      await m.klicka(page.locator('[data-vk="registrera"]'), 'Registrera vårdkontakt');
+      await page.locator('dialog[open]').waitFor();
+      await m.klicka(page.locator('dialog[open] [data-knappval="kontaktsatt"] [data-val="video"]'), 'Video');
+      await m.klicka(page.locator('dialog[open] [data-knappval="nar"] [data-val="planerad"]'), 'Planerad');
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Registrera');
+      await synlig(page, '.notis', 'Video är registrerat till');
     },
   };
   return { synlig, gaTill, loggaIn, startI, GOR };

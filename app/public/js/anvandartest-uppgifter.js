@@ -15,6 +15,9 @@ export const UPPGIFTSVERSION = 1;
 export const STARTPUNKT = {
   'Arbetslistan efter inloggning': { hash: '#/arbetslista', klar: '#lista table' },
   'Patientens översikt': { hash: '#/patient/p01', klar: '.tidslinje' },
+  'Översikten för en remitterad patient': { hash: '#/patient/p05', klar: '.tidslinje' },
+  'Översikten för en patient på mottagningen': { hash: '#/patient/p11', klar: '.tidslinje' },
+  'Översikten för en inlagd patient': { hash: '#/patient/p04', klar: '.tidslinje' },
 };
 
 export const UPPGIFTER = [
@@ -62,6 +65,36 @@ export const UPPGIFTER = [
     id: 'nodatkomst', namn: 'Nödåtkomst', roll: 'lak-akut', start: 'Arbetslistan efter inloggning',
     text: 'Du är läkare på akuten. Thomas Lindberg har kommit in medvetslös, och akuten har ingen vårdrelation med honom. Öppna hans journal så att du kan se vilka läkemedel han har.',
     kontroll: { sel: '.band-grund', text: 'Nödåtkomst' },
+  },
+  {
+    id: 'halsoarende', namn: 'Bekräfta ett hälsoärende', roll: 'lak-kard', start: 'Patientens översikt',
+    text: 'Gunnar Åkessons hjärtsvikt har följts både på mottagningen och nu under vårdtillfället. Se till att kontakterna hålls samman som ett hälsoärende.',
+    kontroll: { notis: 'är bekräftat' },
+  },
+  {
+    id: 'inskrivning', namn: 'Skriva in en patient', roll: 'ssk-kard', start: 'Översikten för en patient på mottagningen',
+    text: 'Du arbetar som sjuksköterska på avdelning 72. Anna Viklund läggs in för elkonvertering och får sal 5. Skriv in henne på avdelningen.',
+    kontroll: { notis: 'Patienten är inskriven' },
+  },
+  {
+    id: 'flytta', namn: 'Flytta en patient till en annan avdelning', roll: 'ssk-kard', start: 'Patientens översikt',
+    text: 'Gunnar Åkesson behöver övervakas och flyttas till hjärtintensiven, sal 1. Registrera flytten.',
+    kontroll: { notis: 'Patienten ligger nu på' },
+  },
+  {
+    id: 'utskrivning', namn: 'Skriva ut en patient', roll: 'ssk-kard', start: 'Översikten för en inlagd patient',
+    text: 'Elin Sandberg är färdigbehandlad och går hem i dag. Skriv ut henne.',
+    kontroll: { notis: 'Patienten är utskriven' },
+  },
+  {
+    id: 'registrera-besok', namn: 'Registrera ett besök', roll: 'adm-kard', start: 'Översikten för en remitterad patient',
+    text: 'Du arbetar som vårdadministratör på kardiologen. Lars Wennberg har kommit till mottagningen efter en remiss från vårdcentralen. Registrera besöket.',
+    kontroll: { notis: 'är registrerat' },
+  },
+  {
+    id: 'planera-video', namn: 'Planera ett videobesök', roll: 'adm-kard', start: 'Översikten för en remitterad patient',
+    text: 'Lars Wennberg ska ha ett uppföljande videobesök nästa vardag. Planera det.',
+    kontroll: { notis: 'Video är registrerat till' },
   },
 ];
 

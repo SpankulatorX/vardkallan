@@ -3,6 +3,7 @@ import { esc, api, notis, medKnapp, ikon, idag, plusDagar } from '../ui.js';
 import { far, minVardenhet, enhetLista, laddaEnheter } from '../app.js';
 import { doldaRad } from './patient.js';
 import { remissKort, kopplaAtgarder } from './remisser.js';
+import { kontaktRad, nyKontaktData, kontaktNotis } from './patient-vardkontakt.js';
 
 export async function visa(el, ctx) {
   const [d] = await Promise.all([api(`/api/patient/${encodeURIComponent(ctx.id)}/remisser`), laddaEnheter()]);
@@ -29,6 +30,7 @@ function remissForm(plats, ctx) {
   const enheter = enhetLista().filter(e => e.typ === 'vardenhet' && e.id !== min).sort((a, b) => a.namn.localeCompare(b.namn, 'sv'));
   plats.innerHTML = `<form class="remissform" id="remissform" novalidate aria-labelledby="rf-rubrik">
     <h3 id="rf-rubrik" tabindex="-1">Ny remiss</h3>
+    <div data-kontakt-plats></div>
     <div class="falt-rad">
       <div class="falt bred"><label for="rf-till">Till vårdenhet <span class="obl">(obligatoriskt)</span></label><select id="rf-till" name="tillEnhetId" required><option value="">Välj mottagare</option>${enheter.map(e => `<option value="${esc(e.id)}">${esc(e.namn)}</option>`).join('')}</select></div>
       <div class="falt"><label for="rf-prio">Prioritet</label><select id="rf-prio" name="prioritet"><option value="normal">Normal</option><option value="skyndsam">Skyndsam</option><option value="akut">Akut</option></select></div>
@@ -42,13 +44,15 @@ function remissForm(plats, ctx) {
   </form>`;
   const form = plats.querySelector('form');
   form.tillEnhetId.focus();
+  const kontakt = kontaktRad(form.querySelector('[data-kontakt-plats]'), ctx);
   form.querySelector('[data-stang]').addEventListener('click', () => { plats.innerHTML = ''; });
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const data = { tillEnhetId: form.tillEnhetId.value, prioritet: form.prioritet.value, svarSenast: form.svarSenast.value, fragestallning: form.fragestallning.value.trim(), anamnes: form.anamnes.value.trim() };
+    const data = { tillEnhetId: form.tillEnhetId.value, prioritet: form.prioritet.value, svarSenast: form.svarSenast.value, fragestallning: form.fragestallning.value.trim(), anamnes: form.anamnes.value.trim(), ...nyKontaktData(kontakt) };
     try {
       const r = await medKnapp(form.querySelector('[type=submit]'), () => api(`/api/patient/${encodeURIComponent(ctx.id)}/remisser`, { metod: 'POST', data }), form);
       notis(`Remissen är skickad till ${r.till.namn}. Den väntar nu på mottagningskvittens.`);
+      kontaktNotis(r);
       ctx.ladda();
     } catch { /* felet visas i formuläret */ }
   });

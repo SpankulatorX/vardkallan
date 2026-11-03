@@ -58,6 +58,7 @@ export const HANDLING = {
   las_admin: 'Läste administrativa uppgifter', sok: 'Sökte patient', vantrum: 'Såg väntrummet', nodatkomst: 'Använde nödåtkomst',
   andra_enheter: 'Visade uppgifter från andra vårdenheter', samtycke_sparr: 'Registrerade samtycke till spärrade uppgifter',
   visa_identitet: 'Visade skyddad identitet', las_logg: 'Läste åtkomstloggen',
+  registrera_vardkontakt: 'Registrerade eller ändrade vårdkontakt', vardtillfalle: 'Skrev in, flyttade eller skrev ut', halsoarende: 'Bekräftade hälsoärende',
   invanare_las: 'Läste journalen i Min journal', invanare_begaran: 'Skickade en begäran i Min journal',
 };
 export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare' };

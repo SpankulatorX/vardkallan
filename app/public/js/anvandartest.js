@@ -330,7 +330,7 @@ function visaStart(main) {
   form.addEventListener('submit', (e) => { e.preventDefault(); starta(form, form.querySelector('[type="submit"]')); });
 }
 
-const ROLLTEXT = { 'lak-kard': 'läkare, kardiologen', 'ssk-kard': 'sjuksköterska, avdelning 72', 'lak-vc': 'distriktsläkare, vårdcentral', 'lak-akut': 'läkare, akuten' };
+const ROLLTEXT = { 'lak-kard': 'läkare, kardiologen', 'ssk-kard': 'sjuksköterska, avdelning 72', 'lak-vc': 'distriktsläkare, vårdcentral', 'lak-akut': 'läkare, akuten', 'adm-kard': 'vårdadministratör, kardiologen' };
 
 function visaEnkat(main) {
   const radio = (namn, lista) => lista.map(([v, t]) => `<label class="val"><input type="radio" name="${namn}" value="${esc(v)}" required> ${esc(t)}</label>`).join('');

@@ -1,12 +1,16 @@
 // Översikten: aktuella läkemedel, diagnoser, senaste mätvärden och anteckningar, pågående remisser och tidslinjen.
-import { esc, api, datum, tidpunkt, klockslag, migreradEtikett, NLL, VARDFORM, tal, ikon } from '../ui.js';
+import { esc, api, datum, tidpunkt, klockslag, migreradEtikett, NLL, tal, ikon } from '../ui.js';
 import { far, pa } from '../app.js';
 import { doldaRad } from './patient.js';
 import { remissStatusText } from './remisser.js';
+import * as vardkontakt from './patient-vardkontakt.js';
 
 // När frågeställningen inte visas för rollen skickar servern remissens status i stället.
 const REMISSTATUS = { skickad: 'Status: skickad', mottagen: 'Status: mottagen', bedomd: 'Status: bedömd', besvarad: 'Status: besvarad', svar_kvitterat: 'Status: svaret är kvitterat' };
-const TYP = { vardkontakt: 'Vårdkontakt', anteckning: 'Anteckning', ordination: 'Läkemedel', remiss: 'Remiss' };
+const TYP = { vardkontakt: 'Vårdkontakt', vardtillfalle: 'Vårdtillfälle', anteckning: 'Anteckning', ordination: 'Läkemedel', remiss: 'Remiss' };
+// Tidslinjen i tidsordning, per vårdtillfälle och vårdkontakt, eller per hälsoärende. Valet gäller under sessionen.
+const LAGEN = [['tid', 'I tidsordning'], ['kontakt', 'Per vårdkontakt'], ['arende', 'Per hälsoärende']];
+let tidslinjeLage = 'tid';
 
 const sektion = (id, rubrik, innehall, extra = '') => `<section class="ov-sektion" aria-labelledby="ov-${id}"><div class="sektion-huvud"><h2 id="ov-${id}">${esc(rubrik)}</h2>${extra}</div>${innehall}</section>`;
 const tomRad = (t) => `<p class="tom liten">${esc(t)}</p>`;
@@ -49,7 +53,7 @@ export async function visa(el, ctx) {
   if (d.remisser) {
     delar.push(sektion('rem', 'Pågående remisser', d.remisser.length ? `<ul class="enkel-lista">${d.remisser.map(r => `<li><strong>Till ${esc(r.till.namn)}</strong> från ${esc(r.fran.namn)}<span class="under-text">${esc(remissStatusText(r))}, svar senast ${esc(datum(r.svarSenast))}</span>${r.larm?.length ? `<span class="tagg tagg-larm">${esc(r.larm[0].text)}</span>` : ''}</li>`).join('')}</ul>` : tomRad('Inga pågående remisser.'), `<a class="sektion-lank" href="${ctx.href('remisser')}">Remisser</a>`));
   }
-  delar.push(sektion('vk', 'Vårdkontakter', d.vardkontakter.length ? `<ul class="enkel-lista">${d.vardkontakter.map(v => `<li><strong>${esc(v.orsak)}</strong>${v.pagaende ? ' <span class="tagg tagg-pagaende">Pågående</span>' : ''}<span class="under-text">${esc(VARDFORM[v.typ] ?? v.typ)}, ${esc(v.vardenhet.namn)}, ${esc(v.plats)}. ${esc(datum(v.start))}${v.slut ? ` till ${esc(datum(v.slut))}` : ''}</span>${migreradEtikett(v)}</li>`).join('')}</ul>` : tomRad('Inga vårdkontakter som du kan se.')));
+  delar.push(vardkontakt.sektionHtml(d, ctx));
   const k = d.kontakt;
   delar.push(sektion('kontakt', 'Kontaktuppgifter', ctx.patient.skyddad
     ? '<p class="dampad">Adress, telefon och kontaktperson visas aldrig för en patient med skyddade personuppgifter, inte heller efter Visa identitet.</p>'
@@ -58,12 +62,19 @@ export async function visa(el, ctx) {
   const begransat = !d.lakemedel && !d.anteckningar
     ? '<p class="ruta ruta-info liten">Din yrkesroll ser administrativa uppgifter: vårdkontakter, kontaktuppgifter och remissernas status. Journaltext, diagnoser och läkemedel visas inte.</p>' : '';
 
-  el.innerHTML = `<h2 class="sr">Översikt</h2>${snabbval(ctx)}${doldaRad(d.dolda)}${begransat}
+  const rad = (t) => tidslinjeRad(t, ctx);
+  const tidslinje = () => (tidslinjeLage === 'tid'
+    ? (d.tidslinje.length ? `<ol class="tidslinje">${d.tidslinje.map(rad).join('')}</ol>` : tomRad('Inget att visa.'))
+    : vardkontakt.grupperadTidslinje(d, tidslinjeLage, rad));
+  el.innerHTML = `<h2 class="sr">Översikt</h2>${snabbval(ctx)}${doldaRad(d.dolda)}${begransat}${vardkontakt.forslagHtml(d)}
     <div class="oversikt-rutnat">${delar.join('')}</div>
     <section class="tidslinje-sektion" aria-labelledby="ov-tl">
       <div class="sektion-huvud"><h2 id="ov-tl">Tidslinje</h2><p class="dampad liten">Nyast först. Migrerade poster från VAS och Cosmic ligger i samma kronologi och har samma vikt som ny dokumentation.</p></div>
-      ${d.tidslinje.length ? `<ol class="tidslinje">${d.tidslinje.map(t => tidslinjeRad(t, ctx)).join('')}</ol>` : tomRad('Inget att visa.')}
+      <div class="segment tl-lage" role="radiogroup" aria-label="Visa tidslinjen" data-las-ok>${LAGEN.map(([k, t]) => `<input type="radio" id="tl-${k}" name="tl-lage" value="${k}"${k === tidslinjeLage ? ' checked' : ''}><label for="tl-${k}">${esc(t)}</label>`).join('')}</div>
+      <div id="tl-innehall">${tidslinje()}</div>
     </section>`;
+  el.querySelector('.tl-lage').addEventListener('change', (e) => { tidslinjeLage = e.target.value; el.querySelector('#tl-innehall').innerHTML = tidslinje(); });
+  vardkontakt.koppla(el, d, ctx, () => ctx.ladda());
 }
 
 function tidslinjeRad(t, ctx) {

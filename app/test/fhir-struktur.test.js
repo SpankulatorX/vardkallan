@@ -8,7 +8,7 @@ import { KATALOG } from '../src/seed/lakemedel-katalog.js';
 // så att bygget fångar de viktigaste felen även utan validatorn.
 const db = nyDb();
 const fraga = (personalId, vag, val = {}) => fhir.hantera({ db, personal: personalId ? personal(db, personalId) : null, valFor: (pid) => val[pid] ?? {}, url: new URL(`http://test.local${vag}`), base: 'http://test.local' }).body;
-const TYPER = ['Encounter', 'Condition', 'Observation', 'MedicationRequest', 'AllergyIntolerance', 'ServiceRequest', 'Composition'];
+const TYPER = ['Encounter', 'EpisodeOfCare', 'Condition', 'Observation', 'MedicationRequest', 'AllergyIntolerance', 'ServiceRequest', 'Composition'];
 const ALLA = { andra_enheter: true, nodatkomst: true, samtycke_sparr: true };
 
 // Alla resurser som demorollerna kan nå, med alla val gjorda.

@@ -2,6 +2,7 @@
 import { esc, api, tidpunkt, datum, migreradEtikett, notis, faltFel, medKnapp, ikon, ApiFel } from '../ui.js';
 import { far, S, minVardenhet, uppdateraInkorg, vardenhetAv as enhetsVardenhet } from '../app.js';
 import { doldaRad, kravRuta } from './patient.js';
+import { dokumenterasHtml, kopplaDokumenteras, nyKontaktData, kontaktNotis } from './patient-vardkontakt.js';
 
 let mallar = null;
 const filter = { enhet: '', typ: '' };
@@ -106,25 +107,21 @@ function sokordFalt(sokordLista, varden = {}) {
 }
 const lasSokord = (form) => [...form.querySelectorAll('[data-sokord]')].map(t => ({ sokord: t.dataset.sokord, text: t.value.trim() })).filter(s => s.text);
 
-async function vardkontaktAlternativ(ctx, valt) {
-  try {
-    const d = await api(`/api/patient/${encodeURIComponent(ctx.id)}/oversikt`);
-    const vk = d.vardkontakter;
-    const egen = vk.find(v => v.pagaende && enhetsVardenhet(v.vardenhet.id) === minVardenhet());
-    const forval = valt !== undefined ? valt : egen?.id ?? '';
-    return `<option value="">Ingen vårdkontakt</option>${vk.map(v => `<option value="${v.id}"${String(v.id) === String(forval) ? ' selected' : ''}>${esc(datum(v.start))}, ${esc(v.orsak)} (${esc(v.vardenhet.namn)})</option>`).join('')}`;
-  } catch { return '<option value="">Ingen vårdkontakt</option>'; }
+// Vilken vårdkontakt anteckningen hamnar på. Systemet väljer den; användaren väljer aldrig i en lista.
+async function aktuellKontakt(ctx) {
+  try { return await api(`/api/patient/${encodeURIComponent(ctx.id)}/vardkontakt/aktuell`); } catch { return null; }
 }
 
 async function nyForm(las, ctx, egnaMallar) {
   if (!egnaMallar.length) { las.innerHTML = '<p class="tom">Din yrkesroll kan inte skriva anteckningar.</p>'; return; }
   const forval = egnaMallar.find(m => m.typ === 'Daganteckning') ?? egnaMallar[0];
-  const vk = await vardkontaktAlternativ(ctx);
+  const dok = await aktuellKontakt(ctx);
+  const kontakt = { val: null };
   las.innerHTML = `<form class="ant-form" id="ant-form" novalidate aria-labelledby="ny-rubrik">
     <h2 id="ny-rubrik" tabindex="-1">Ny anteckning</h2>
+    <div id="ny-kontakt">${dokumenterasHtml(dok)}</div>
     <div class="falt-rad">
       <div class="falt"><label for="ny-mall">Mall</label><select id="ny-mall" name="typ">${egnaMallar.map(m => `<option${m === forval ? ' selected' : ''}>${esc(m.typ)}</option>`).join('')}</select></div>
-      <div class="falt"><label for="ny-vk">Vårdkontakt</label><select id="ny-vk" name="vardkontaktId">${vk}</select></div>
     </div>
     <fieldset class="sokordsfalt"><legend>Sökord</legend><div id="ny-sokord">${sokordFalt(forval.sokord)}</div></fieldset>
     <p class="form-fel" role="alert" hidden></p>
@@ -132,6 +129,8 @@ async function nyForm(las, ctx, egnaMallar) {
     <p class="hjalp">Ett utkast syns bara för dig. När du signerar kan anteckningen inte längre ändras, bara rättas.</p>
   </form>`;
   const form = las.querySelector('form');
+  const ritaKontakt = () => { const k = form.querySelector('#ny-kontakt'); k.innerHTML = dokumenterasHtml(dok, kontakt.val); kopplaDokumenteras(k, dok, kontakt, ritaKontakt); };
+  if (dok) kopplaDokumenteras(form.querySelector('#ny-kontakt'), dok, kontakt, ritaKontakt);
   form.typ.addEventListener('change', () => {
     const m = egnaMallar.find(x => x.typ === form.typ.value);
     form.querySelector('#ny-sokord').innerHTML = sokordFalt(m.sokord);
@@ -141,11 +140,12 @@ async function nyForm(las, ctx, egnaMallar) {
     if (!sokord.length) { faltFel(form, { message: 'Skriv något under minst ett sökord.', data: {} }); form.querySelector('textarea')?.focus(); return; }
     try {
       const ny = await medKnapp(knapp, async () => {
-        const x = await api(`/api/patient/${encodeURIComponent(ctx.id)}/anteckningar`, { metod: 'POST', data: { typ: form.typ.value, vardkontaktId: form.vardkontaktId.value ? Number(form.vardkontaktId.value) : null, sokord } });
+        const x = await api(`/api/patient/${encodeURIComponent(ctx.id)}/anteckningar`, { metod: 'POST', data: { typ: form.typ.value, sokord, ...nyKontaktData(kontakt) } });
         if (signera) await api(`/api/anteckning/${x.id}/signera`, { metod: 'POST', data: {} });
         return x;
       }, form);
       notis(signera ? 'Anteckningen är signerad.' : 'Utkastet är sparat. Det syns bara för dig tills du signerar.');
+      kontaktNotis(ny);
       await uppdateraInkorg();
       location.hash = ctx.href('journal', ny.id);
     } catch { /* felet visas i formuläret */ }
@@ -160,11 +160,9 @@ async function utkastForm(las, ctx, a) {
   const mall = mallar.find(m => m.typ === a.typ);
   const varden = Object.fromEntries(a.sokord.map(s => [s.sokord, s.text]));
   const lista = [...new Set([...(mall?.sokord ?? []), ...a.sokord.map(s => s.sokord)])];
-  const vk = await vardkontaktAlternativ(ctx, a.vardkontaktId ?? '');
   las.innerHTML = `<form class="ant-form" novalidate aria-labelledby="utk-rubrik">
     <h2 id="utk-rubrik" tabindex="-1">${esc(a.typ)}, utkast</h2>
-    <p class="ant-meta">Skapat ${esc(tidpunkt(a.skapad))}${a.andrad ? `, senast ändrat ${esc(tidpunkt(a.andrad))}` : ''}. Bara du ser utkastet.</p>
-    <div class="falt"><label for="utk-vk">Vårdkontakt</label><select id="utk-vk" name="vardkontaktId">${vk}</select></div>
+    <p class="ant-meta">Skapat ${esc(tidpunkt(a.skapad))}${a.andrad ? `, senast ändrat ${esc(tidpunkt(a.andrad))}` : ''}. Bara du ser utkastet. Det hör till den vårdkontakt som systemet knöt det till när det sparades.</p>
     <fieldset class="sokordsfalt"><legend>Sökord</legend>${sokordFalt(lista, varden)}</fieldset>
     <p class="form-fel" role="alert" hidden></p>
     <div class="knapprad"><button type="button" class="knapp sekundar" data-spara>Spara utkast</button><button type="button" class="knapp" data-signera>Signera</button></div>
@@ -175,7 +173,7 @@ async function utkastForm(las, ctx, a) {
     if (!sokord.length) { faltFel(form, { message: 'Skriv något under minst ett sökord.', data: {} }); return; }
     try {
       await medKnapp(knapp, async () => {
-        await api(`/api/anteckning/${a.id}`, { metod: 'PUT', data: { sokord, vardkontaktId: form.vardkontaktId.value ? Number(form.vardkontaktId.value) : null } });
+        await api(`/api/anteckning/${a.id}`, { metod: 'PUT', data: { sokord } });
         if (signera) await api(`/api/anteckning/${a.id}/signera`, { metod: 'POST', data: {} });
       }, form);
       notis(signera ? 'Anteckningen är signerad.' : 'Utkastet är sparat.');
