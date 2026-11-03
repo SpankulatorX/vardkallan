@@ -26,6 +26,9 @@ export const ROLLER = {
 ROLLER.lakare.push('registrera_vardkontakt', 'vardtillfalle', 'halsoarende');
 ROLLER.sjukskoterska.push('registrera_vardkontakt', 'vardtillfalle', 'halsoarende');
 ROLLER.vardadministrator.push('registrera_vardkontakt');
+// Tidbok, väntelista, kallelser och incheckning (tidbok.js, Sussa 3.4.1 till 3.4.4). Vårdadministratören bokar, kallar,
+// checkar in och hanterar väntelistan, med vårdrelation eller remiss till vårdenheten som grund.
+ROLLER.vardadministrator.push('boka', 'kalla', 'checka_in', 'vantelista');
 
 export const HANDLINGAR = {
   las_oversikt: 'läsa patientöversikten', las_journal: 'läsa journalanteckningar', las_omvardnad: 'läsa omvårdnadsanteckningar',
@@ -39,6 +42,7 @@ export const HANDLINGAR = {
   registrera_patient: 'registrera nya patienter', andra_identitet: 'registrera en ny identitet för en patient', sla_samman: 'slå samman journaler',
   registrera_vardkontakt: 'registrera vårdkontakter', vardtillfalle: 'skriva in, flytta och skriva ut patienter',
   halsoarende: 'bekräfta hälsoärenden',
+  boka: 'boka, boka om och avboka tider', kalla: 'skicka kallelser', checka_in: 'checka in patienter och ta betalt', vantelista: 'hantera väntelistan och bevakningar',
 };
 
 // Handlingar som inte rör en enskild patient.

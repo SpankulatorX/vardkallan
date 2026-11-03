@@ -14,6 +14,7 @@ import * as minJournal from './patientvy.js';
 import * as uppmarksamhet from './uppmarksamhet.js';
 import * as identitet from './identitet.js';
 import * as vardkontakt from './vardkontakt.js';
+import * as tidbok from './tidbok.js';
 import { kravregister, lasTestresultat } from './krav.js';
 import { sussaRegister } from './sussa/index.js';
 import { lasKlientresultat, gransnittHash } from './klientresultat.js';
@@ -416,7 +417,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     for (const id of ids) {
       if (!harVardrelation(db, id, ve)) continue;
       const pat = db.query('SELECT * FROM patienter WHERE id = ?').get(id);
-      const vk = db.query(`SELECT * FROM vardkontakter WHERE patient_id = ? AND enhet_id IN (${ph}) AND slut IS NULL ORDER BY start DESC`).get(id, ...enheter);
+      // En planerad kontakt längre fram (en bokning i tidboken) är inte pågående.
+      const vk = db.query(`SELECT * FROM vardkontakter WHERE patient_id = ? AND enhet_id IN (${ph}) AND slut IS NULL
+        AND NOT (coalesce(planerad, 0) = 1 AND ankomst IS NULL AND start > ?) ORDER BY start DESC`).get(id, ...enheter, new Date(Date.now() + 3600_000).toISOString());
       const inkRemiss = db.query("SELECT * FROM remisser WHERE patient_id = ? AND till_enhet_id = ? AND status <> 'svar_kvitterat' ORDER BY skickad_tid DESC").get(id, ve);
       const list = db.query(`SELECT 1 FROM listningar WHERE patient_id = ? AND enhet_id IN (${ph})`).get(id, ...enheter);
       ut.push({
@@ -832,7 +835,12 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     return medPatient(c, r.patient_id, handling, (atk) => fn(atk, r));
   };
   rutt('POST', '/api/remiss/:id/mottag', (c, id) => medRemiss(c, id, 'mottag_remiss', (atk, r) => remiss.mottag(atk, r)));
-  rutt('POST', '/api/remiss/:id/bedom', (c, id) => medRemiss(c, id, 'bedom_remiss', (atk, r) => remiss.bedom(atk, r, c.body)));
+  // En accepterad remiss hamnar på väntelistan av sig själv (tidbok.js). Läkaren kan ange tidstyp och yrkesroll.
+  rutt('POST', '/api/remiss/:id/bedom', (c, id) => medRemiss(c, id, 'bedom_remiss', (atk, r) => {
+    const ut = remiss.bedom(atk, r, c.body);
+    if (c.body.beslut === 'accepterad') ut.vantelista = tidbok.efterBedomning(c.db, remiss.hamtaRad(c.db, r.id), c.body);
+    return ut;
+  }));
   rutt('POST', '/api/remiss/:id/svara', (c, id) => medRemiss(c, id, 'svara_remiss', (atk, r) => remiss.svara(atk, r, c.body)));
   rutt('POST', '/api/remiss/:id/kvittera-svar', (c, id) => medRemiss(c, id, 'kvittera_svar', (atk, r) => remiss.kvitteraSvar(atk, r)));
 
@@ -865,6 +873,48 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('POST', '/api/vardtillfalle/:id/skriv-ut', (c, id) => medVardtillfalle(c, id, 'vardtillfalle', (atk, vt) => vardkontakt.skrivUt(atk, vt)));
   rutt('POST', '/api/patient/:id/halsoarenden', (c, id) => { kravInloggad(c); return medPatient(c, id, 'halsoarende', (atk) => { const x = synligt(atk); return vardkontakt.bekrafta(atk, c.body, x.kontakter, x.diagnoser); }); });
   rutt('POST', '/api/patient/:id/halsoarenden/avvisa', (c, id) => { kravInloggad(c); return medPatient(c, id, 'halsoarende', (atk) => { const x = synligt(atk); return vardkontakt.avvisa(atk, c.body, x.kontakter, x.diagnoser); }); });
+
+  // Tidbok, väntelista, kallelser, incheckning och betalning (tidbok.js, Sussa 3.4.1 till 3.4.4). Varje åtgärd prövas i
+  // behörighetsmotorn med handlingarna boka, kalla, checka_in och vantelista, och loggas på patienten. Listorna
+  // (startsidan, tidboken och väntelistan) visar bara patienter med vårdrelation på vårdenheten, som arbetslistan.
+  const medPost = (c, id, handling, fn) => { kravInloggad(c); const v = tidbok.vantelistaRad(c.db, id); return medPatient(c, v.patient_id, handling, (atk) => fn(atk, v)); };
+  const medBokning = (c, id, handling, fn) => { kravInloggad(c); const b = tidbok.bokningRad(c.db, id); return medPatient(c, b.patient_id, handling, (atk) => fn(atk, b)); };
+  rutt('GET', '/api/idag', (c) => { kravRoll(c, 'boka'); return tidbok.startsida(c.db, c.personal); });
+  rutt('GET', '/api/tidbok', (c) => {
+    kravRoll(c, 'boka');
+    const d = c.url.searchParams.get('datum');
+    return tidbok.tidbok(c.db, c.personal, { datum: /^\d{4}-\d{2}-\d{2}$/.test(d ?? '') ? d : idag(), avidentifierad: c.url.searchParams.get('avidentifierad') === '1' });
+  });
+  rutt('GET', '/api/vantelista', (c) => { kravRoll(c, 'vantelista'); return { poster: tidbok.vantelista(c.db, c.personal), prioriteringsorsaker: tidbok.OMPRIORITERING, demoregler: tidbok.DEMOREGLER.text }; });
+  rutt('GET', '/api/vantelista/:id/forslag', (c, id) => medPost(c, id, 'boka', (atk, v) => tidbok.forslagForPost(atk, v)));
+  rutt('POST', '/api/vantelista/:id/boka', (c, id) => medPost(c, id, 'boka', (atk, v) => tidbok.boka(atk, v, c.body)));
+  rutt('POST', '/api/vantelista/:id/prioritet', (c, id) => medPost(c, id, 'vantelista', (atk, v) => tidbok.prioritera(atk, v, c.body)));
+  rutt('POST', '/api/patient/:id/vantelista', (c, id) => { kravInloggad(c); return medPatient(c, id, 'vantelista', (atk) => tidbok.nyPost(atk, c.body)); });
+  rutt('GET', '/api/patient/:id/bokningar', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_admin', (atk) => tidbok.patientensBokningar(atk)); });
+  rutt('GET', '/api/bokning/:id/forslag', (c, id) => medBokning(c, id, 'boka', (atk, b) => tidbok.forslagForBokning(atk, b)));
+  rutt('POST', '/api/bokning/:id/omboka', (c, id) => medBokning(c, id, 'boka', (atk, b) => tidbok.omboka(atk, b, c.body)));
+  rutt('POST', '/api/bokning/:id/avboka', (c, id) => medBokning(c, id, 'boka', (atk, b) => tidbok.avboka(atk, b, c.body)));
+  rutt('POST', '/api/bokning/:id/checka-in', (c, id) => medBokning(c, id, 'checka_in', (atk, b) => tidbok.checkaIn(atk, b)));
+  rutt('POST', '/api/bokning/:id/betala', (c, id) => medBokning(c, id, 'checka_in', (atk, b) => tidbok.betala(atk, b, c.body)));
+  rutt('POST', '/api/kallelse/:id/klar', (c, id) => {
+    kravInloggad(c);
+    const k = c.db.query('SELECT * FROM kallelser WHERE id = ?').get(Number(id));
+    if (!k) throw new Fel(404, 'Kallelsen finns inte.', 'saknas');
+    return medPatient(c, k.patient_id, 'kalla', (atk) => tidbok.kallelseKlar(atk, k));
+  });
+  rutt('POST', '/api/tid/:id/kalla', (c, id) => { kravRoll(c, 'kalla'); return tidbok.kallaGrupp(c.db, c.personal, tidbok.tidRad(c.db, id), { valFor: (pid) => valFor(c.s, pid), Atkomst }); });
+  rutt('POST', '/api/bevakning/:id/klar', (c, id) => { kravInloggad(c); const b = tidbok.bevakningRad(c.db, id); return medPatient(c, b.patient_id, 'vantelista', (atk) => tidbok.bevakningKlar(atk, b)); });
+  // Incheckningsskärmen i väntrummet (simulerad). Skärmen öppnas av vårdadministratören och visar aldrig namn.
+  rutt('POST', '/api/incheckning/skarm', (c) => {
+    kravRoll(c, 'checka_in');
+    const far = (pid) => new Atkomst(c.db, c.personal, pid, {}, 'checka_in').prova('checka_in').tillaten;
+    const { patientId, bokningId, ...ut } = tidbok.skarmIncheckning(c.db, c.personal, c.body.personnummer, { far });
+    if (ut.ok) {
+      new Atkomst(c.db, c.personal, patientId, {}, 'checka_in').logga('checka_in', 'administrativ', `incheckning:skarm:bokning:${bokningId}`, 'tillaten',
+        'Patienten checkade in på incheckningsskärmen i väntrummet.');
+    }
+    return ut;
+  });
 
   rutt('GET', '/api/inkorg', (c) => {
     const p = kravInloggad(c);
@@ -1050,7 +1100,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   const MIN_DELAR = {
     oversikt: minJournal.oversikt, anteckningar: minJournal.anteckningar, diagnoser: minJournal.diagnoser, lakemedel: minJournal.lakemedel,
     provsvar: minJournal.provsvar, remisser: minJournal.remisser, vardkontakter: minJournal.vardkontakter, logglista: minJournal.logglista,
-    sparrar: minJournal.sparrvy,
+    sparrar: minJournal.sparrvy, tider: tidbok.minaTider,
   };
   rutt('GET', '/api/min/journal/:id', (c, id) => medMinJournal(c, id, 'min:journal', (atk) => minJournal.huvud(atk)));
   rutt('GET', '/api/min/journal/:id/:del', (c, id, del) => {
@@ -1059,6 +1109,15 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   });
   rutt('GET', '/api/min/journal/:id/anteckning/:aid', (c, id, aid) => medMinJournal(c, id, `min:anteckning:${Number(aid) || 0}`, (atk) => minJournal.anteckning(atk, aid)));
   rutt('POST', '/api/min/journal/:id/begaran', (c, id) => [201, medMinJournal(c, id, 'min:begaran', (atk) => minJournal.skapaBegaran(atk, c.body))]);
+  // Patientens egna tider i Min journal: incheckning, ombokning, avbokning, bekräftelse, betalning och egen bokning.
+  rutt('GET', '/api/min/journal/:id/bokning/:bid/forslag', (c, id, bid) => medMinJournal(c, id, `min:bokning:${Number(bid) || 0}:forslag`, (atk) => tidbok.minForslag(atk, bid)));
+  const MIN_BOKNING = { 'checka-in': tidbok.minCheckaIn, omboka: tidbok.minOmboka, avboka: tidbok.minAvboka, bekrafta: tidbok.minBekrafta, betala: tidbok.minBetala };
+  rutt('POST', '/api/min/journal/:id/bokning/:bid/:atgard', (c, id, bid, atgard) => {
+    if (!Object.hasOwn(MIN_BOKNING, atgard)) throw new Fel(404, 'Okänd adress.', 'saknas');
+    return medMinJournal(c, id, `min:bokning:${Number(bid) || 0}`, (atk) => MIN_BOKNING[atgard](atk, bid, c.body));
+  });
+  rutt('GET', '/api/min/journal/:id/boka/forslag', (c, id) => medMinJournal(c, id, 'min:boka:forslag', (atk) => tidbok.minNyaForslag(atk, c.url.searchParams.get('nyckel'))));
+  rutt('POST', '/api/min/journal/:id/boka', (c, id) => medMinJournal(c, id, 'min:boka', (atk) => tidbok.minBoka(atk, c.body)));
 
   rutt('GET', '/api/migrering', (c) => {
     kravInloggad(c);
