@@ -45,7 +45,9 @@ export const GRUND = {
   egen_atkomst: 'Patientens egen åtkomst', vardnadshavare: 'Vårdnadshavare',
   arkivbeslut: 'Arkivbeslut', uppfoljning: 'Uppföljning',
 };
-export const NLL = { skickad: 'Skickas', kvitterad: 'Kvitterad av NLL', okand_kontrolleras: 'Okänd, kontrolleras', fel: 'Fel från NLL' };
+export const NLL = { skickad: 'Skickas', kvitterad: 'Kvitterad av NLL', okand_kontrolleras: 'Okänd, kontrolleras', fel: 'Fel från NLL',
+  // Runda 6, r2: muntlig ordination och läkemedel som inte skickas till NLL.
+  vantar_signering: 'Väntar på signering', ej_aktuell: 'Skickas inte till NLL' };
 export const ORDTYP = { staende: 'Stående', vid_behov: 'Vid behov', tillfallig: 'Tillfällig' };
 export const PRIORITET_REMISS = { akut: 'Akut', skyndsam: 'Skyndsam', normal: 'Normal' };
 export const PRIORITET_VANTRUM = { rod: 'Röd', orange: 'Orange', gul: 'Gul', gron: 'Grön', bla: 'Blå' };

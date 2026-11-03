@@ -37,7 +37,7 @@ export async function visa(el, ctx) {
   const ovriga = d.ordinationer.filter(o => !o.aktuell);
   el.innerHTML = `<div class="flikhuvud"><h2>Läkemedel</h2>
       <div class="knapprad">${kanOrdinera ? `<button type="button" class="knapp" data-ny aria-expanded="false" aria-controls="ordform">${ikon.plus}<span>Ordinera</span></button><button type="button" class="knapp sekundar" data-mall aria-expanded="false">Ordinera från mall</button>`
-        : far('registrera_muntlig_ordination') ? '<button type="button" class="knapp sekundar" data-muntlig aria-expanded="false">Muntlig ordination</button>' : '<p class="dampad liten">Din yrkesroll kan läsa läkemedelslistan men inte ordinera.</p>'}</div></div>
+        : far('registrera_muntlig_ordination') ? '<button type="button" class="knapp sekundar" data-muntlig aria-expanded="false">Muntlig ordination</button><p class="dampad liten">Din yrkesroll kan läsa läkemedelslistan men inte ordinera. Dokumentera en muntlig ordination från en läkare, eller ordinera enligt ett generellt direktiv.</p>' : '<p class="dampad liten">Din yrkesroll kan läsa läkemedelslistan men inte ordinera.</p>'}</div></div>
     ${lakemedelsalderRad(ctx.id)}
     ${doldaRad(d.dolda)}
     <p class="dampad liten">Läkemedelslistan är gemensam för vårdgivaren och följer Nationella läkemedelslistan (NLL). Varje ändring skickas till NLL och kvitteras. I demon är NLL simulerad.</p>

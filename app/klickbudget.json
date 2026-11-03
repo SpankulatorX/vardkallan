@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-03T15:49:29.225Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-03T18:16:06.882Z",
+  "bas": "http://127.0.0.1:18132",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "f8015240df0f42bf68d4215f4aa1cf9c42f459a84e66ca8b4f06c52843ffd2f1",
+  "gransnittHash": "f95bea65bcd1e0f116b4e94820831143d179c2e1244b7bf9629e8b1c1e4ec2a6",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -656,6 +656,42 @@
         "fältbyte: motivering",
         "klick: Spara bedömningen"
       ]
+    },
+    {
+      "id": "ordinera-mall",
+      "namn": "Ordinera från en mall med flera ordinationer",
+      "roll": "lak-kard",
+      "start": "Patientens läkemedelsflik",
+      "budget": 3,
+      "motivering": "Sussa 3.5.1.3 och 3.5.2.14. Ett klick på Ordinera från mall, ett på mallen och ett för att ordinera. Systemet fyller i varje ordination ur produktens mall och patientens ålder och njurfunktion, varnar per ordination, tar själv bort ett läkemedel som patienten redan har och förklarar varför, och knyter ordinationerna till samma vårdhändelse.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Ordinera från mall",
+        "klick: mallen Inför elkonvertering",
+        "klick: Ordinera"
+      ]
+    },
+    {
+      "id": "dos-efterhand",
+      "namn": "Registrera en dos i efterhand",
+      "roll": "ssk-kard",
+      "start": "Läkemedel att ge efter återställning",
+      "budget": 3,
+      "motivering": "Sussa 3.5.2.2. Ett klick på Mer för dosen, ett på Given tidigare och ett för att registrera. Systemet föreslår tiden, aldrig i framtiden, kontrollerar den mot ordinationen och tidigare doser och visar att registreringen gjordes i efterhand.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Mer för Alvedon vid behov",
+        "klick: Given tidigare",
+        "klick: Registrera"
+      ]
     }
   ],
   "tester": [
@@ -801,6 +837,14 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Avvisa en remiss och sätta ut läkemedlet inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Ordinera från en mall med flera ordinationer inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera en dos i efterhand inom budget",
       "status": "grön"
     }
   ]

@@ -561,6 +561,8 @@ const MENY = {
     });
     await s('Sara Lindqvist accepterar och besvarar remissen', async () => {
       await loggaIn(page, 'lak-kard');
+      // Arbetslistan hämtas klart innan sidan byts.
+      await page.waitForFunction(() => document.querySelector('#lista') && !/Hämtar/.test(document.querySelector('#lista').textContent));
       await gaTill(page, `#/remisser?riktning=inkommande&remiss=${remissId}`);
       const kort = page.locator(`#remiss-${remissId}`);
       await kort.locator('[data-remiss-atgard="bedom"]').click();
@@ -664,6 +666,8 @@ const MENY = {
     // Johan Ek, sjuksköterska
     await s('Johan Ek loggar in, kan inte ordinera men skriver och signerar en omvårdnadsanteckning', async () => {
       await loggaIn(page, 'ssk-kard');
+      // Arbetslistan hämtas klart innan sidan byts.
+      await page.waitForFunction(() => document.querySelector('#lista') && !/Hämtar/.test(document.querySelector('#lista').textContent));
       await gaTill(page, '#/patient/p01/lakemedel');
       if (await page.locator('[data-ny]').count()) throw new Error('sjuksköterskan har knappen Ordinera');
       await forvanta(page, '.flikhuvud', 'kan läsa läkemedelslistan men inte ordinera');
@@ -930,6 +934,8 @@ const MENY = {
     // Utskrift och kontrasignering (Sussa 3.1.9 och 3.1.11.3).
     await s('Sara skriver ut läkemedelslistan, och utskriften har utskrifts-id och säger vad som saknas', async () => {
       await loggaIn(page, 'lak-kard');
+      // Arbetslistan hämtas klart innan sidan byts.
+      await page.waitForFunction(() => document.querySelector('#lista') && !/Hämtar/.test(document.querySelector('#lista').textContent));
       await gaTill(page, '#/patient/p04');
       await page.waitForSelector('.tidslinje');
       await page.click('.snabbval [data-utskrift]');
@@ -1080,16 +1086,20 @@ const MENY = {
     });
     await s('Johan Ek ser direktiven prövade mot patienten, dokumenterar en muntlig ordination och registrerar en dos i efterhand', async () => {
       await loggaIn(page, 'ssk-kard');
+      // Arbetslistan hämtas klart innan sidan byts.
+      await page.waitForFunction(() => document.querySelector('#lista') && !/Hämtar/.test(document.querySelector('#lista').textContent));
       await gaTill(page, '#/patient/p01/lakemedel');
       await forvanta(page, '#lm-dir ~ ul', 'Direktivet gäller inte från 75 år');
       await page.click('[data-muntlig]');
       await forvanta(page, '#ord-rubrik', 'Muntlig ordination');
-      await page.fill('#lm-sok', 'omeprazol');
+      // Losartan, som Gunnar inte har. Omeprazol har Sara ordinerat tidigare i genomgången.
+      await page.fill('#lm-sok', 'losartan');
       await page.click('[data-lm]');
-      await page.fill('#o-orsak', 'Kraftig halsbränna');
-      await page.fill('#m-omed', 'Svåra besvär som behöver behandlas nu');
+      await page.fill('#o-dosering', '1 tablett nu');
+      await page.fill('#o-orsak', 'Högt blodtryck');
+      await page.fill('#m-omed', 'Blodtrycket behöver sänkas nu');
       await page.click('[data-spara]');
-      await forvanta(page, '.notis', 'Den muntliga ordinationen av Omeprazol Sandoz är dokumenterad');
+      await forvanta(page, '.notis', 'Den muntliga ordinationen av Losartan Krka är dokumenterad');
       await forvanta(page, '.lm-tabell', 'Muntlig, väntar på signering av Sara Lindqvist');
       await gaTill(page, '#/administrering');
       const alvedon = page.locator('.adm-patient', { hasText: 'Gunnar Åkesson' }).locator('.adm-vb', { hasText: 'Alvedon' });
@@ -1101,15 +1111,20 @@ const MENY = {
     });
     await s('Sara Lindqvist signerar den muntliga ordinationen i inkorgen', async () => {
       await loggaIn(page, 'lak-kard');
+      // Arbetslistan hämtas klart innan sidan byts.
+      await page.waitForFunction(() => document.querySelector('#lista') && !/Hämtar/.test(document.querySelector('#lista').textContent));
       await gaTill(page, '#/inkorg');
-      await forvanta(page, '#ik-muntlig ~ ul', 'Omeprazol Sandoz');
+      await forvanta(page, '#ik-muntlig ~ ul', 'Losartan Krka');
       await page.locator('[data-signera]').first().click();
-      await forvanta(page, '.notis', 'muntliga ordinationen av Omeprazol Sandoz är signerad');
+      await forvanta(page, '.notis', 'muntliga ordinationen av Losartan Krka är signerad');
+      await forvanta(page, '#ik-muntlig ~ .tom', 'Inga muntliga ordinationer väntar');
     });
 
     // Elsa Nordin, farmaceut (runda 6, r2)
     await s('Elsa Nordin ser den fördjupade genomgången i inkorgen och gör farmaceutens bedömning', async () => {
       await loggaIn(page, 'far-kard');
+      // Arbetslistan hämtas klart innan sidan byts.
+      await page.waitForFunction(() => document.querySelector('#lista') && !/Hämtar/.test(document.querySelector('#lista').textContent));
       await gaTill(page, '#/inkorg');
       await forvanta(page, '#ik-fordj ~ ul', 'Väntar på farmaceutens bedömning');
       await gaTill(page, '#/patient/p01/lakemedel');
@@ -1119,6 +1134,9 @@ const MENY = {
       await page.locator('dialog[open] [data-varde="ok"]').click();
       await forvanta(page, '.notis', 'Steget är sparat');
       await forvanta(page, '.lm-sektion', 'Väntar på läkarens beslut');
+      // Fliken har ritats om efter sparandet. Vänta tills alla anrop är klara innan sidan byts.
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(500);
       await gaTill(page, '#/patient/p01');
       await saknas(page, 'Daganteckning');
     });

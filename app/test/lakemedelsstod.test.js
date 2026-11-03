@@ -150,7 +150,8 @@ describe('Muntlig ordination', () => {
   test('sjuksköterskan dokumenterar en muntlig ordination med läkarens namn och tid, dosen får ges direkt och läkaren signerar', () => {
     const db = sandladaKl('13:30');
     const a = atk(db, 'ssk-kard', 'p01', {}, 'registrera_muntlig_ordination');
-    expect(vagar.muntligaLakare(a).map(l => l.id)).toContain('lak-kard');
+    // Läkaren som har ordinerat patientens läkemedel på vårdenheten står först, och underläkaren sist.
+    expect(vagar.muntligaLakare(a).map(l => l.id)).toEqual(['lak-kard', 'ol-kard', 'lak-kard2', 'ul-kard']);
     const ut = vagar.registreraMuntlig(a, { lakemedelId: 'VK-NPL-0025', dosering: '1 kapsel nu', dos: 20, dosEnhet: 'mg', tider: [], typ: 'tillfallig', ordinationsorsak: 'Kraftig halsbränna och bröstsmärta som inte är hjärtrelaterad', lakareId: 'lak-kard', satt: 'telefon', omedelbar: 'Svåra besvär som behöver behandlas nu' });
     const o = ut.ordination;
     expect(o).toMatchObject({ ordineradAv: { id: 'lak-kard' }, nll_status: 'vantar_signering', uppfoljningsdatum: addDagar(idag(), 1) });
@@ -465,6 +466,8 @@ describe('Fördjupad läkemedelsgenomgång', () => {
     const s = uppf.startaFordjupad(l);
     expect(s.pagar.status).toBe('vantar_farmaceut');
     expect(s.underlag.every(u => u.kontroller.map(k => k.punkt).join() === 'Indikation,Effekt,Dos mot njurfunktion och ålder,Biverkningar,Interaktioner och dubbelmedicinering')).toBe(true);
+    // Systemet skriver motiveringen till varje förslag som inte är att fortsätta.
+    expect(s.underlag.filter(u => u.forslag !== 'fortsatt').every(u => u.forslagMotivering.length >= 3)).toBe(true);
     expect(fel(() => uppf.startaFordjupad(l)).message).toContain('pågår');
     // Farmaceuten ser genomgången i inkorgen och föreslår åtgärder. Farmaceuten läser inte journalanteckningar.
     const far = personal(db, 'far-kard');

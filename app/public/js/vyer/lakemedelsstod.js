@@ -3,7 +3,7 @@
 // samlade vätskebalansen. Delarna används i patientens läkemedelsflik, och sidan Direktiv och uppföljning
 // (#/lakemedelsstod) visar vårdenhetens direktiv och uppföljningen på vårdenhetens nivå.
 import { esc, api, datum, tidpunkt, klockslag, notis, felNotis, medKnapp, dialog, ikon, vyRubrik, tom, idag, plusDagar } from '../ui.js';
-import { far, S } from '../app.js';
+import { far } from '../app.js';
 
 export const namn = 'lakemedelsstod';
 const tal = (n) => String(Math.round(n * 100) / 100).replace('.', ',');
@@ -223,7 +223,7 @@ export async function fordjupadSteg(ctx, g, typ, knapp) {
       <ul class="liten">${x.kontroller.map(k => `<li>${esc(k.punkt)}: ${esc(k.text)}</li>`).join('')}</ul>
       ${f ? `<p class="liten">Farmaceuten föreslår: ${esc(f.atgardText)}${f.motivering ? `. ${esc(f.motivering)}` : ''}</p>` : ''}
       <div class="falt-rad"><div class="falt"><label for="${namn}-a-${i}">Åtgärd</label><select id="${namn}-a-${i}" name="a_${x.ordinationId}">${Object.entries(ATG).map(([k, t]) => `<option value="${k}"${k === forval ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
-      <div class="falt bred"><label for="${namn}-m-${i}">Motivering</label><input id="${namn}-m-${i}" name="m_${x.ordinationId}" maxlength="500" value="${esc(f?.motivering ?? (x.fynd[0]?.text ?? ''))}"></div></div></li>`;
+      <div class="falt bred"><label for="${namn}-m-${i}">Motivering</label><input id="${namn}-m-${i}" name="m_${x.ordinationId}" maxlength="500" value="${esc(f?.motivering ?? x.forslagMotivering ?? '')}"></div></div></li>`;
   }).join('');
   const lista = (data) => u.map(x => ({ ordinationId: x.ordinationId, atgard: data[`a_${x.ordinationId}`], motivering: (data[`m_${x.ordinationId}`] ?? '').trim() }));
   let html;
@@ -351,4 +351,3 @@ async function nyttDirektiv(main) {
     visa(main);
   } catch (e) { felNotis(e); }
 }
-void S;

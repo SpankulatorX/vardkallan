@@ -64,7 +64,8 @@ function vardhandelseFor(atk, namn) {
   const f = vardhandelse.forslag(atk, { text: namn });
   const passar = (x) => [...ord(namn)].some(w => ord(x.text).has(w));
   const b = f.bokningar.find(passar);
-  if (b) return { val: { bokningId: b.id }, text: `${b.text}, bokad ${b.start}`, typ: 'bokning' };
+  const tid = (iso) => new Date(iso).toLocaleString('sv-SE', { timeZone: 'Europe/Stockholm', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }).replace(':', '.');
+  if (b) return { val: { bokningId: b.id }, text: `${b.text}, bokad ${tid(b.start)}`, typ: 'bokning' };
   const p = f.vantelista.find(passar);
   if (p) return { val: { vantelistaId: p.id }, text: `${p.text}, på väntelistan`, typ: 'vantelista' };
   return { val: { text: namn }, text: f.ny.text, typ: f.ny.mojlig ? 'ny' : 'utan_tidbok' };
@@ -99,7 +100,8 @@ export function paketForslag(atk, id) {
     if (lage === 'tas_med') tidigare.push({ lakemedel_id: lm.id, id: -1 - i });
     return {
       post: i, lakemedel: lmKort(lm), ordination, varningar, lage, varfor, vidHandelse: x.vidHandelse ?? null,
-      sammanfattning: `${lm.namn}: ${ordination.dosering}${x.vidHandelse != null ? `, ${x.vidHandelse} ${x.vidHandelse === 1 ? 'timme' : 'timmar'} före ${p.vardhandelse.toLowerCase()}` : ''}. ${f.varfor.filter(v => !v.startsWith('Mallen')).join(' ')}`.trim(),
+      // Systemets anpassningar efter patienten nämns bara när mallen inte har en egen dosering.
+      sammanfattning: `${ordination.dosering}${x.vidHandelse != null && !/före/.test(ordination.dosering) ? `, ${x.vidHandelse} ${x.vidHandelse === 1 ? 'timme' : 'timmar'} före ${p.vardhandelse.toLowerCase()}` : ''}.${x.dosering ? '' : ` ${f.varfor.filter(v => !v.startsWith('Mallen')).join(' ')}`}`.trim(),
       ...(tillagg.spadning ? { spadning: stod.beraknaSpadning(db, lm, ordination.dos, ordination.dosEnhet, ordination.spadning) } : {}),
     };
   });
@@ -185,12 +187,19 @@ export function faststallPaket(db, personal, inp = {}) {
 // Muntlig ordination ------------------------------------------------------------------------------------------------
 
 // Läkarna som kan ha lämnat ordinationen: läkare på samma vårdenhet som får ordinera för patienten. Förslaget ger ingen
-// åtkomst som läkaren inte redan har.
+// åtkomst som läkaren inte redan har. Först står den läkare som har ordinerat flest av patientens pågående läkemedel på
+// vårdenheten, sedan överläkare och specialister, och underläkare sist.
 export function muntligaLakare(atk) {
   const db = atk.db;
   const ve = vardenhetFor(db, atk.personal.enhet_id);
-  return db.query("SELECT * FROM personal WHERE yrke = 'lakare' AND aktiv = 1 ORDER BY namn").all()
+  const antal = new Map();
+  for (const o of db.query("SELECT ordinerad_av, enhet_id FROM ordinationer WHERE patient_id = ? AND status = 'aktiv'").all(atk.patientId)) {
+    if (vardenhetFor(db, o.enhet_id) === ve) antal.set(o.ordinerad_av, (antal.get(o.ordinerad_av) ?? 0) + 1);
+  }
+  const rang = (t) => (/överläkare/i.test(t ?? '') ? 0 : /specialist/i.test(t ?? '') ? 1 : /underläkare/i.test(t ?? '') ? 3 : 2);
+  return db.query("SELECT * FROM personal WHERE yrke = 'lakare' AND aktiv = 1").all()
     .filter(p => vardenhetFor(db, p.enhet_id) === ve && kanRoll(p, 'ordinera'))
+    .sort((a, b) => (antal.get(b.id) ?? 0) - (antal.get(a.id) ?? 0) || rang(a.titel) - rang(b.titel) || a.namn.localeCompare(b.namn, 'sv'))
     .map(p => ({ id: p.id, namn: p.namn, titel: p.titel }));
 }
 

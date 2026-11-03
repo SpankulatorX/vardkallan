@@ -177,7 +177,9 @@ function underlagPerLakemedel(atk, g) {
         { punkt: 'Biverkningar', text: senast && senast.biverkan !== 'ingen' ? `${senast.biverkanText}: ${senast.biverkanBeskrivning ?? ''}` : 'Ingen biverkan registrerad. Jämför med patientens besvär.' },
         { punkt: 'Interaktioner och dubbelmedicinering', text: fynd.filter(f => f.typ === 'interaktion' || f.typ === 'dubbelmedicinering').map(f => f.text).join(' ') || 'Inga fynd enligt demoreglerna.' },
       ],
-      fynd, forslag, forslagText: ATGARDER[forslag],
+      // Motiveringen till förslaget skrivs av systemet, så att den som bedömer bara ändrar det som inte stämmer.
+      fynd, forslag, forslagText: ATGARDER[forslag], forslagMotivering: forslag === 'fortsatt' ? ''
+        : (fynd.find(f => f.typ !== 'interaktion' || f.niva === 'allvarlig')?.text ?? (senast?.effekt === 'ingen' ? 'Ingen effekt vid den senaste utvärderingen.' : 'Ingen utvärdering av effekten är registrerad.')),
     };
   });
 }
