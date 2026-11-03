@@ -126,8 +126,12 @@ export function tillaggUt(db, ordinationId, { full = false } = {}) {
       sattAv: personNamn(db, t.handelse_satt_av), satt: t.handelse_satt ?? null,
       ...koppling,
     };
-    // En annan vårdenhet utan aktivt val: inte bokningens orsak, tid eller vem i tidboken som ändrade den.
-    if (skyddad) Object.assign(ut.vardhandelse, { text: egenText ? t.vardhandelse : 'Planerad vårdhändelse', tid: null, sattAv: null, satt: null });
+    // En annan vårdenhet utan aktivt val: bara texten och när läkemedlet ges. Förskjutningen, ändringstiden och vem som
+    // satte tiden lämnas inte ut, eftersom bokningens tid annars går att räkna fram (säkerhetsgranskning runda 5).
+    if (skyddad) {
+      const { administreras, foljerTidbok, lage, forklaring } = ut.vardhandelse;
+      ut.vardhandelse = { text: egenText ? t.vardhandelse : 'Planerad vårdhändelse', administreras, foljerTidbok, lage, forklaring, skyddad: true };
+    }
   }
   return ut;
 }

@@ -235,7 +235,8 @@ describe('Vårdhändelse i tidboken', () => {
     await k.logga('lak-akut');
     const l = (await k.get('/api/patient/p01/lakemedel')).data;
     const o = l.ordinationer.find(x => x.id === id);
-    expect(o.vardhandelse).toMatchObject({ text: 'Planerad vårdhändelse', tid: null, administreras: timmar(tidBokning, -2) });
+    expect(o.vardhandelse).toMatchObject({ text: 'Planerad vårdhändelse', administreras: timmar(tidBokning, -2), skyddad: true });
+    expect(o.vardhandelse.tid).toBeUndefined();
     const adm = (await k.get('/api/patient/p01/administreringar')).data;
     for (const x of [JSON.stringify(l), JSON.stringify(adm)]) {
       expect(x).not.toContain('Elkonvertering');
@@ -250,6 +251,55 @@ describe('Vårdhändelse i tidboken', () => {
     const egen = (await ordinera(k, 'p01', { text: 'Gastroskopi', forskjutningTimmar: -1 })).data.ordination.id;
     await k.logga('lak-akut');
     expect((await k.get('/api/patient/p01/lakemedel')).data.ordinationer.find(x => x.id === egen).vardhandelse.text).toBe('Gastroskopi');
+  });
+
+  test('säkerhetsgranskning: den skyddade formen ger varken förskjutning, ändringstid eller historik som röjer bokningens tid, i någon väg där ordinationen lämnas ut', async () => {
+    const k = await inloggad('lak-kard');
+    const b = elkonvertering(k);
+    const id = (await ordinera(k, 'p01', { bokningId: b.id, forskjutningTimmar: -2 }, { ordinationsorsak: 'Förberedelse inför ingrepp' })).data.ordination.id;
+    await k.logga('adm-kard');
+    const ny = (await k.get(`/api/bokning/${b.id}/forslag`)).data.forslag[0];
+    expect((await k.post(`/api/bokning/${b.id}/omboka`, { tidId: ny.tidId })).status).toBe(200);
+    const hemligt = [start(k, b), ny.start, 'Elkonvertering', 'Karin Berg'];
+    const tillatna = ['text', 'administreras', 'foljerTidbok', 'lage', 'forklaring', 'skyddad'];
+    // Alla vägar där en ordination lämnas ut till den som inte får se kardiologens bokning.
+    const granska = async (c, fas) => {
+      expect((await c.get('/api/patient/p01')).status).toBe(200);
+      const lista = (await c.get('/api/patient/p01/lakemedel')).data;
+      const o = lista.ordinationer.find(x => x.id === id);
+      expect({ fas, nycklar: Object.keys(o.vardhandelse).filter(n => !tillatna.includes(n)) }).toEqual({ fas, nycklar: [] });
+      // Historiken: tidbokens och tidsättningens rader säger bara att tiden för läkemedlet ändrades.
+      expect({ fas, rader: o.historik.filter(h => h.handelse === 'vardhandelse_tid' || h.handelse.startsWith('Vårdhändelsen')) }).toEqual({ fas, rader: [] });
+      const andrad = o.historik.filter(h => h.handelse === 'Tiden för läkemedlet ändrades');
+      expect(andrad.length).toBeGreaterThan(0);
+      for (const h of andrad) expect({ fas, detalj: h.detalj, av: h.av }).toEqual({ fas, detalj: null, av: null });
+      const vagar = {
+        lakemedel: lista,
+        administreringar: (await c.get('/api/patient/p01/administreringar')).data,
+        oversikt: (await c.get('/api/patient/p01/oversikt')).data,
+        fhir: (await c.get('/fhir/MedicationRequest?patient=p01')).data,
+        vidimering: (await c.get('/api/patient/p01/vidimering')).data,
+        genomgang: (await c.get('/api/patient/p01/lakemedelsgenomgang')).data,
+        lasekopia: (await c.get('/api/lasekopia')).data,
+      };
+      for (const [namn, v] of Object.entries(vagar)) {
+        const text = JSON.stringify(v);
+        for (const x of hemligt) expect({ fas, namn, x, finns: text.includes(x) }).toEqual({ fas, namn, x, finns: false });
+      }
+    };
+    await k.logga('lak-akut');
+    await granska(k, 'efter ombokning');
+    // Tiden satt för hand av den egna vårdenheten.
+    await k.logga('ssk-kard');
+    expect((await k.post(`/api/ordination/${id}/vardhandelse`, { tid: new Date(Date.parse(ny.start) + 3600_000).toISOString() })).status).toBe(200);
+    hemligt.push(new Date(Date.parse(ny.start) + 3600_000).toISOString());
+    await k.logga('lak-akut');
+    await granska(k, 'efter tid för hand');
+    expect((await k.get('/api/patient/p01/lakemedel')).data.ordinationer.find(x => x.id === id).vardhandelse.forklaring).toBe('Tiden för läkemedlet är satt för hand.');
+    // Min journal: patienten ser sin ordination utan tidbokens historik.
+    await k.post('/api/login/invanare', { invanareId: 'inv-p01' });
+    const mj = JSON.stringify((await k.get('/api/min/journal/p01/lakemedel')).data);
+    for (const x of ['Karin Berg', 'vardhandelse_tid', ...hemligt]) expect({ x, finns: mj.includes(x) }).toEqual({ x, finns: false });
   });
 
   test('en tid som styr en läkemedelsdos kan patienten inte boka om själv i Min journal', async () => {

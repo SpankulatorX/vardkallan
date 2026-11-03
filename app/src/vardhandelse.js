@@ -270,8 +270,10 @@ export function kopplingUt(db, ordinationId, { full = false } = {}) {
     vantar: 'Vårdhändelsen har ingen tid än. Systemet räknar fram när läkemedlet ska ges när den är bokad.',
     avbokad: 'Vårdhändelsen är avbokad. Ge inte dosen förrän den har fått en ny tid. Fråga den läkare som ordinerade läkemedlet.',
     avslutad: 'Vårdhändelsen är avbokad. Ge inte dosen förrän den har fått en ny tid. Fråga den läkare som ordinerade läkemedlet.',
+    manuell: 'Tiden för läkemedlet är satt för hand.',
+    utan_tidbok: 'Vårdhändelsen har ingen tid i tidboken. Läkemedlet ges när tiden är satt.',
   }[k.lage];
-  return { ...ut, forklaring: kort ?? k.forklaring, skyddad: true, egenText: Boolean(k.egen_text) };
+  return { ...ut, forklaring: kort ?? 'Vårdhändelsen har ingen tid än.', andrad: null, skyddad: true, egenText: Boolean(k.egen_text) };
 }
 
 // Styr tiden en läkemedelsdos? För vårdadministratörens bokningsdialog. Ger aldrig läkemedlet.
