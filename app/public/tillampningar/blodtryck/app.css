@@ -1,0 +1,23 @@
+/* Blodtryck över tid, demotillämpning med SMART on FHIR. Egen stil, så att tillämpningen inte beror på journalens. */
+:root { color-scheme: light; --text: #1b2733; --dampad: #4c5b6a; --sys: #b3261e; --dia: #1f5fa8; --linje: #d7dee5; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; color: var(--text); background: #fff; font-size: 15px; line-height: 1.45; }
+.bt-app { padding: 12px 14px 18px; max-width: 760px; }
+.bt-huvud h1 { font-size: 1.15rem; margin: 0 0 2px; }
+.bt-demo, .bt-patient { margin: 0; color: var(--dampad); font-size: .85rem; }
+.bt-patient { font-weight: 600; color: var(--text); }
+.bt-status { margin: 10px 0; }
+.bt-fel { color: var(--sys); font-weight: 600; }
+.bt-diagram { margin: 0 0 12px; }
+.bt-diagram figcaption { font-size: .85rem; color: var(--dampad); margin-bottom: 4px; }
+.bt-diagram svg { width: 100%; height: auto; display: block; }
+.bt-rutnat { stroke: var(--linje); stroke-width: 1; }
+.bt-axel { font-size: 11px; fill: var(--dampad); }
+polyline.bt-sys, polyline.bt-dia { fill: none; stroke-width: 2; }
+polyline.bt-sys { stroke: var(--sys); } polyline.bt-dia { stroke: var(--dia); }
+circle.bt-sys { fill: var(--sys); } circle.bt-dia { fill: var(--dia); }
+.bt-forklaring { font-size: .85rem; margin: 4px 0 0; }
+.bt-sys-farg { color: var(--sys); font-weight: 600; margin-right: 12px; } .bt-dia-farg { color: var(--dia); font-weight: 600; }
+.bt-tabell { border-collapse: collapse; width: 100%; font-size: .9rem; }
+.bt-tabell caption { text-align: left; font-weight: 600; margin-bottom: 4px; }
+.bt-tabell th, .bt-tabell td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--linje); }

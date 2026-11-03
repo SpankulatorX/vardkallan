@@ -117,12 +117,15 @@ describe('FHIR-struktur', () => {
     for (const p of avTyp('Practitioner')) expect(p.name.length).toBe(1);
   });
 
+  // Runda 6, r5: tillägget för OAuth-adresserna i CapabilityStatement (SMART on FHIR) och dess delar är definierade av
+  // SMART Health IT, inte av Vårdkällan.
+  const EXTERNA_TILLAGG = new Set(['http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris', 'authorize', 'token', 'revoke']);
   test('varje tillägg och eget kodsystem har en publicerad definition', () => {
     const sd = new Set(DEFINITIONER.StructureDefinition.map(d => d.url));
     const cs = new Set(DEFINITIONER.CodeSystem.map(d => d.url));
     for (const r of resurser) {
       for (const [vag, v] of noder(r)) {
-        if (vag.endsWith('.url') && /extension\[\d+\]\.url$/.test(vag)) expect(sd.has(v)).toBe(true);
+        if (vag.endsWith('.url') && /extension\[\d+\]\.url$/.test(vag) && !EXTERNA_TILLAGG.has(v)) expect(sd.has(v)).toBe(true);
         if (vag.endsWith('.system') && String(v).startsWith('https://vardkallan.404haven.se/fhir/CodeSystem/')) expect(cs.has(v)).toBe(true);
       }
     }

@@ -76,6 +76,9 @@ const { synlig, gaTill, loggaIn, startI, GOR } = skapa(BAS);
 
   // Kravsidan visar tabellen för D6 under fliken Eget ramverk.
   try {
+    // Sidan laddas om från en tom sida, så att inget från det sista flödet (till exempel en tillämpning i en ram) håller
+    // nätverket igång.
+    await page.goto('about:blank');
     await gaTill(page, '#/krav?vy=egna');
     const d6 = page.locator('.krav', { has: page.locator('.krav-id', { hasText: /^D6$/ }) });
     await d6.locator('.kb-tabell').waitFor();

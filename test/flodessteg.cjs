@@ -92,8 +92,10 @@ function skapa(BAS) {
     'Inkommande remisser med en vårdhändelse som väntar': async (page) => {
       await gaTill(page, '#/arbetslista');
       const ok = await page.evaluate(async () => {
-        await fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-        return (await fetch('/api/demo/remiss-vardhandelse', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).ok;
+        await fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text());
+        const r = await fetch('/api/demo/remiss-vardhandelse', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        await r.text();
+        return r.ok;
       });
       if (!ok) throw new Error('Demoläget kunde inte skapas inför flödet');
       await gaTill(page, '#/remisser');
@@ -102,7 +104,9 @@ function skapa(BAS) {
     // Runda 6, r2: läkemedelsfliken och Läkemedel att ge efter att demon har återställts.
     'Patientens läkemedelsflik': async (page) => {
       await gaTill(page, '#/arbetslista');
-      await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
+      // Runda 6, r5: svaret läses till slut, annars räknar Playwright anropet som pågående och väntar förgäves på ett
+      // nätverk i vila när en ram (tillämpningen i journalen) senare laddas.
+      await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()));
       await gaTill(page, '#/patient/p01/lakemedel');
       await page.waitForSelector('.lm-tabell');
     },
@@ -121,7 +125,9 @@ function skapa(BAS) {
     },
     'Läkemedel att ge efter återställning': async (page) => {
       await gaTill(page, '#/arbetslista');
-      await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
+      // Runda 6, r5: svaret läses till slut, annars räknar Playwright anropet som pågående och väntar förgäves på ett
+      // nätverk i vila när en ram (tillämpningen i journalen) senare laddas.
+      await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()));
       await gaTill(page, '#/administrering');
       await page.waitForSelector('.adm-patient');
     },
@@ -131,11 +137,12 @@ function skapa(BAS) {
       const ok = await page.evaluate(async () => {
         const imorgon = new Date(Date.now() + 86400_000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
         // Samma förberedelse som i användartestet (anvandartest.js): demon återställs först.
-        await fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        await fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text());
         const l = await (await fetch('/api/patient/p01/lakemedel')).json();
         const w = l.ordinationer.find(o => o.lakemedel?.namn === 'Waran' && o.status === 'aktiv');
         if (!w) return false;
         const r = await fetch(`/api/ordination/${w.id}/utsatt`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan: { typ: 'uppehall', aterinsattning: imorgon } }) });
+        await r.text();
         return r.ok;
       });
       if (!ok) throw new Error('Waran kunde inte göra uppehåll inför flödet');
@@ -517,6 +524,13 @@ function skapa(BAS) {
     await synlig(page, 'dialog[open]', 'Ändrat mot version 1');
     await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Godkänn');
     await synlig(page, '.notis', 'Mallen Inför elkonvertering är godkänd');
+  };
+  // Runda 6, r5: en extern tillämpning startas från journalen med SMART on FHIR och visar blodtrycket i en ram.
+  GOR['extern-tillampning'] = async (m, page) => {
+    await m.klicka(page.locator('.flikar a', { hasText: 'Tillämpningar' }), 'fliken Tillämpningar');
+    await m.klicka(page.locator('[data-starta="blodtryck"]'), 'Starta Blodtryck över tid');
+    await page.frameLocator('#tillampning-ram iframe').locator('[data-diagram] svg').waitFor({ timeout: 15000 });
+    await synlig(page, '[data-tillampning-status]', 'Blodtryck över tid visar');
   };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }

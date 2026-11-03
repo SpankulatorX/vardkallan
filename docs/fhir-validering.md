@@ -141,6 +141,23 @@ Valideringen kördes lokalt med validatorn 7.0.3 (sha256 57aa43fb40cec5de41def81
 
 NEWS2 är räknad av systemet och har därför ingen `performer`, och risken står som text i `interpretation`, eftersom HL7:s tolkningskoder (till exempel hög och låg) inte beskriver NEWS2:s risknivåer. Valideringen av hela utskriften i GitHub Actions omfattar också de nya resurserna från och med nästa körning.
 
+## Omvalidering 2026-11-03: runda 6, r5 (skrivning, prenumerationer och SMART on FHIR)
+
+Skrivning via FHIR, prenumerationer och SMART on FHIR lade till nya resurser och tillägg: `Subscription` med tillägget `backport-payload-content` (`id-only`) ur FHIR Subscriptions R5 Backport för R4, meddelandet som en `Bundle` av typen `history` med en `Parameters`, `OperationOutcome` från skrivningen (med svensk text, felkod, FHIRPath och en rad per varning), `CapabilityStatement` med `create`, `update`, Subscription och SMART:s OAuth-adresser, och Vårdkällans nya definitioner: det sammansatta tillägget `kvitterad-varning` (delarna `regel` och `motivering`), tillägget `rattelseorsak` och kodsystemet `varningsregel` (`content: not-present`, eftersom varningsreglerna är demoregler). `exportera.js` skriver ut en prenumeration, ett meddelande, tre OperationOutcome och tre resurser som en klient skickar in (en ordination med kvitterad varning, en rättelse med orsak och ett blodtryck), och `validera.sh` validerar dem i en egen körning med `-ig hl7.fhir.uv.subscriptions-backport.r4#1.1.0`.
+
+Valideringen kördes lokalt med validatorn 7.0.3 (sha256 57aa43fb40cec5de41def81c927725fd85908eeb71509b7f9313e04d9b8ec79b) i `eclipse-temurin:21-jre`, med `-ig hl7se.fhir.base#1.1.0`, de egna definitionerna och Backport-paketet 1.1.0, mot ett urval: de egna definitionerna, CapabilityStatement och de nya resurserna. Validatorn anslöt till tx.fhir.org. Resultat: 34 resurser och **inga fel**.
+
+| Resurstyp | Resurser | Fel | Varningar | Varningar utöver dom-6 |
+|---|---|---|---|---|
+| Subscription | 1 | 0 | 1 | |
+| Bundle (meddelande, history) | 1 | 0 | 0 | |
+| OperationOutcome | 3 | 0 | 5 | validatorn kan inte kontrollera koderna i kodsystemet `varningsregel`, som inte räknar upp dem (2) |
+| Klientens resurser (MedicationRequest, Composition, Observation) | 3 | 0 | 5 | NPL-id saknas på terminologiservern (1), Observation utan `performer` (1) |
+| CapabilityStatement | 1 | 0 | 1 | |
+| StructureDefinition, CodeSystem, ValueSet (egna) | 25 | 0 | 32 | flera möjliga träffar för egna kodsystem (7) |
+
+En kopia med avsiktliga fel gav fel för varje ändring: en kvitterad varning utan `motivering` (`Slice 'Extension.extension:motivering': a matching slice is required`), `backport-payload-content` med värdet `allt` och `Subscription.status` `aktiv`.
+
 ## Före rättningarna
 
 Samma validering av svaren från koden före ändringarna (HTTP-urvalet: 252 unika resurser och 59 Bundle):
@@ -173,5 +190,5 @@ Samma validering av svaren från koden före ändringarna (HTTP-urvalet: 252 uni
 - ICD-10-SE-, NPU- och NPL-koder kontrolleras inte av validatorn (terminologiservern saknar dem).
 - Omvalideringarna 2026-11-01 och 2026-11-03 gällde bara utskriften av alla resurser. Svaren över HTTP (Bundle) validerades inte om.
 - Åtkomstloggen skrivs ut med de 1 000 senaste raderna, som är gränsen för en sökning.
-- Bara läsning och sökning med de parametrar som API:t har. Inga skrivande FHIR-anrop finns.
+- Sökningarna över HTTP och svaren på skrivande anrop valideras inte i GitHub Actions, utom de exempel som `exportera.js` skriver ut (se Omvalidering 2026-11-03: runda 6, r5). Svaren på skrivningar är samma mappning som läsningen.
 - Ingen nationell profil utöver basprofilerna (till exempel för läkemedel eller remiss) är validerad, eftersom HL7 Sweden inte publicerar sådana i `hl7se.fhir.base`.

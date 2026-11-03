@@ -19,11 +19,15 @@ export async function visa(main) {
     : [['/fhir/metadata', 'Vad servern kan (CapabilityStatement)'], [`/fhir/Patient/${pid}`, `Patienten ${pnamn}`], [`/fhir/MedicationRequest?patient=${pid}`, 'Läkemedelsordinationer med ATC och uppföljningsdatum'],
       [`/fhir/Condition?patient=${pid}`, 'Diagnoser med ICD-10-SE'], [`/fhir/Observation?patient=${pid}`, 'Mätvärden med NPU och LOINC'], [`/fhir/AllergyIntolerance?patient=${pid}`, 'Överkänslighet'],
       [`/fhir/Flag?patient=${pid}`, 'Övrig uppmärksamhetsinformation (behandling, smitta och särskild vårdrutin)'],
-      [`/fhir/Composition?patient=${pid}`, 'Journalanteckningar'], [`/fhir/ServiceRequest?patient=${pid}`, 'Remisser'], ['/fhir/Organization', 'Vårdenheter med HSA-id'], ['/fhir/Patient/p12', 'En patient utan vårdrelation']];
+      [`/fhir/Composition?patient=${pid}`, 'Journalanteckningar'], [`/fhir/ServiceRequest?patient=${pid}`, 'Remisser'], ['/fhir/Organization', 'Vårdenheter med HSA-id'], ['/fhir/Patient/p12', 'En patient utan vårdrelation'],
+      // Runda 6, r5: SMART on FHIR och prenumerationer.
+      ['/fhir/.well-known/smart-configuration', 'SMART on FHIR: hur externa tillämpningar ansluter'], ['/fhir/Subscription', 'Dina prenumerationer']];
   main.innerHTML = vyRubrik('Öppet API') + `<div class="ingress-block">
       <p>FHIR R4 är den internationella standarden från HL7 för att utbyta vårdinformation. Allt i Vårdkällan går att läsa genom samma öppna API som gränssnittet bygger på, i formatet application/fhir+json, med personnummer, ICD-10-SE, ATC, NPU för labbvärden och LOINC för vitalparametrar.</p>
-      <p>API:t har samma behörighetskontroll och samma loggning som gränssnittet. Anropen nedan görs med din session som ${esc(arLogggranskare() ? 'logggranskare' : 'inloggad')}, så svaren visar exakt det din roll får se, och varje anrop som rör en patient hamnar i loggen. Resurserna är inte validerade mot HL7 Swedens basprofiler.</p>
+      <p>API:t har samma behörighetskontroll och samma loggning som gränssnittet. Anropen nedan görs med din session som ${esc(arLogggranskare() ? 'logggranskare' : 'inloggad')}, så svaren visar exakt det din roll får se, och varje anrop som rör en patient hamnar i loggen.</p>
+      <p>Mätvärden, anteckningar, ordinationer och remisser kan också skapas och ändras via API:t, genom samma funktioner och med samma varningar som i gränssnittet. Externa tillämpningar ansluter med SMART on FHIR och får aldrig mer än den inloggade, och prenumerationer meddelar bara id till adresser som administratören har godkänt.</p>
     </div>
+    <section class="api-tackning" aria-labelledby="api-tackning-rubrik"><h2 id="api-tackning-rubrik">Vad går att göra via API:t?</h2><p class="under-text">Varje vanligt flöde i gränssnittet, och om det går att göra via det öppna API:t.</p><div id="api-tackning"></div></section>
     <div class="api-delad">
       <ul class="api-exempel" aria-label="Exempel på anrop">${exempel.map(([v, t], i) => `<li><button type="button" class="api-knapp" data-vag="${esc(v)}"${i === 0 ? ' aria-pressed="true"' : ' aria-pressed="false"'}><code>GET ${esc(v)}</code><span>${esc(t)}</span></button></li>`).join('')}</ul>
       <section class="api-svar" aria-labelledby="api-svar-rubrik" aria-live="polite">
@@ -42,6 +46,11 @@ export async function visa(main) {
     st.innerHTML = `<span class="http http-${r.status < 300 ? 'ok' : 'fel'}">HTTP ${r.status}</span> <code>${esc(r.typ ?? '')}</code>${r.server != null ? ` <span class="dampad">Serverns tid ${tal(r.server, 1)} ms</span>` : ''}`;
     main.querySelector('#api-json').textContent = text;
   };
+  // Runda 6, r5: täckningen av klickbudgetens flöden (Sussa 2.5.1.3).
+  api('/api/oppet-api/tackning').then((d) => {
+    const STATUS = { ja: 'Ja', delvis: 'Delvis', nej: 'Nej', inte_bedomt: 'Inte bedömt' };
+    main.querySelector('#api-tackning').innerHTML = `<table class="tabell"><thead><tr><th scope="col">Flöde</th><th scope="col">Via API:t</th><th scope="col">Hur, eller vad som saknas</th></tr></thead><tbody>${d.floden.map(f => `<tr><td>${esc(f.namn)}</td><td>${esc(STATUS[f.status] ?? f.status)}</td><td>${esc(f.text)}${f.anrop.length ? `<br><code>${f.anrop.map(esc).join('</code>, <code>')}</code>` : ''}</td></tr>`).join('')}</tbody></table>`;
+  }).catch(() => {});
   main.querySelector('.api-exempel').addEventListener('click', (e) => { const b = e.target.closest('.api-knapp'); if (b) kor(b).catch(() => {}); });
   await kor(main.querySelector('.api-knapp'));
 }

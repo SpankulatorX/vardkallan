@@ -10,6 +10,11 @@ import { Atkomst } from '../../app/src/atkomst.js';
 import * as ks from '../../app/src/kontrasignering.js';
 // Runda 6, r1: en läkemedelsgenomgång, så att Procedure med KVÅ XV015 kommer med.
 import { sparaGenomgang } from '../../app/src/vidimering.js';
+// Runda 6, r5: prenumerationer, meddelanden, OperationOutcome från skrivningen och resurser som en klient skickar.
+import * as prenumeration from '../../app/src/prenumeration.js';
+import * as skrivning from '../../app/src/fhir-skrivning.js';
+import { Fel } from '../../app/src/db.js';
+import { EXT } from '../../app/src/fhir-definitioner.js';
 
 const UT = process.argv[2];
 if (!UT) { console.error('Ange en utkatalog.'); process.exit(2); }
@@ -75,4 +80,23 @@ if (!antal.Procedure) saknas.push('Procedure');
 for (const [namn, f] of [['NEWS2', (r) => r.id.startsWith('news2-')], ['GCS', (r) => r.code?.text === 'GCS'], ['Medvetandegrad', (r) => r.code?.text === 'Medvetandegrad'], ['eGFR', (r) => r.code?.text === 'eGFR']]) {
   if (![...sett.values()].some(r => r.resourceType === 'Observation' && f(r))) saknas.push(`Observation för ${namn}`);
 }
+// Runda 6, r5: en prenumeration, ett meddelande med bara id, OperationOutcome för en kvittering som saknas och en lyckad
+// skrivning, och resurser som en klient skickar in: en ordination med kvitterad varning och en rättelse med orsak.
+const prn = prenumeration.skapa(db, pers('lak-kard'), { resourceType: 'Subscription', reason: 'Regionalt vårddatalager', criteria: 'Observation?patient=p01', channel: { type: 'rest-hook', endpoint: prenumeration.GODKANDA_MOTTAGARE[0], payload: 'application/fhir+json' } });
+skriv('Subscription', `Subscription-${prn.id}`, prenumeration.subscription(prn));
+skriv('Notis', 'notis-1', prenumeration.meddelande(BAS, prn, { nummer: 1, tid: new Date().toISOString(), handelse: 'ny', fokus: 'Observation/1' }));
+skriv('OperationOutcome', 'kvittens-saknas', skrivning.utfall('MedicationRequest', new Fel(400, 'Allvarliga varningar måste kvitteras med motivering innan ordinationen sparas.', 'ogiltig', {
+  falt: ['ordinationsorsak'], kraverKvittens: ['dubbel_substans'], varningar: [{ niva: 'allvarlig', regel: 'dubbel_substans', text: 'Patienten har redan en aktiv ordination av warfarin (Waran).' }, { niva: 'observera', regel: 'dubbel_grupp', text: 'Patienten har redan ett läkemedel i samma grupp.' }] })));
+skriv('OperationOutcome', 'sparad', skrivning.lyckat('Ordinationen är sparad.', [{ niva: 'observera', text: 'Patienten har redan ett läkemedel i samma grupp.' }]));
+skriv('OperationOutcome', 'tas-inte-bort', skrivning.utfall('Composition', new Fel(405, skrivning.TABORT_TEXT, 'ogiltig')));
+skriv('Klient', 'MedicationRequest-kvitterad', { resourceType: 'MedicationRequest', status: 'active', intent: 'order', subject: { reference: 'Patient/p01' },
+  medicationCodeableConcept: { coding: [{ system: 'http://electronichealth.se/fhir/NamingSystem/nplid', code: '19640101000028' }] }, reasonCode: [{ text: 'Förmaksflimmer' }],
+  extension: [{ url: `${EXT}/uppfoljningsdatum`, valueDate: '2026-12-03' }, { url: `${EXT}/kvitterad-varning`, extension: [{ url: 'regel', valueCode: 'dubbel_substans' }, { url: 'motivering', valueString: 'Byte av förpackning.' }] }] });
+skriv('Klient', 'Composition-rattelse', { resourceType: 'Composition', status: 'final', type: { text: 'Daganteckning' }, subject: { reference: 'Patient/p01' }, date: new Date().toISOString(),
+  author: [{ reference: 'Practitioner/lak-kard' }], title: 'Daganteckning', extension: [{ url: `${EXT}/rattelseorsak`, valueString: 'Fel i första meningen.' }],
+  section: [{ title: 'Aktuellt', text: { status: 'generated', div: '<div xmlns="http://www.w3.org/1999/xhtml">Mår bättre.</div>' } }] });
+skriv('Klient', 'Observation-blodtryck', { resourceType: 'Observation', status: 'final', subject: { reference: 'Patient/p01' }, effectiveDateTime: new Date().toISOString(),
+  category: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/observation-category', code: 'vital-signs' }] }], code: { coding: [{ system: 'http://loinc.org', code: '85354-9' }] },
+  component: [{ code: { coding: [{ system: 'http://loinc.org', code: '8480-6' }] }, valueQuantity: { value: 131, unit: 'mmHg', system: 'http://unitsofmeasure.org', code: 'mm[Hg]' } },
+    { code: { coding: [{ system: 'http://loinc.org', code: '8462-4' }] }, valueQuantity: { value: 84, unit: 'mmHg', system: 'http://unitsofmeasure.org', code: 'mm[Hg]' } }] });
 if (saknas.length) { console.error(`Resurstyper som inte kom med i utskriften: ${saknas.join(', ')}`); process.exit(1); }

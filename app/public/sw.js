@@ -24,7 +24,9 @@ const FILER = [
   '/js/tidbok-ui.js', '/js/vyer/idag.js', '/js/vyer/tidbok.js', '/js/vyer/vantelista.js', '/js/vyer/incheckning.js', '/js/vyer/patient-tider.js', '/js/vyer/min-tider.js',
   '/js/vyer/delegeringar.js', '/js/vyer/r3.js', '/js/vyer/patient-sok.js',
   '/js/vyer/lakemedelsstod.js', '/js/vyer/lakemedelsansvar.js',
+  '/js/vyer/patient-tillampningar.js', '/tillampningar/blodtryck/index.html', '/tillampningar/blodtryck/app.js', '/tillampningar/blodtryck/app.css',
 ];
+// Runda 6, r5: listan har tillämpningsfliken och demotillämpningen Blodtryck över tid (/tillampningar/blodtryck/).
 const TIDSGRANS_MS = 4000;
 
 self.addEventListener('install', (e) => {
@@ -43,6 +45,9 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/') || url.pathname === '/fhir' || url.pathname.startsWith('/fhir/')) return;
+  // Runda 6, r5: inloggningen för externa tillämpningar och tillämpningarna själva går aldrig via cachen. En tillämpning
+  // behöver servern för att få sin åtkomst, så den kan inte användas i läsläget ändå.
+  if (url.pathname.startsWith('/oauth/') || url.pathname.startsWith('/tillampningar/')) return;
   e.respondWith(hamta(req, url));
 });
 

@@ -785,6 +785,43 @@ NEWS2 lämnas ut som en härledd Observation (`news2-<id>`, LOINC 115635-5 Early
 
 NEWS2, skalorna och referensintervallen är demoregler. Värden från medicinteknisk utrustning finns inte, så manuellt och maskinellt inmatade mätvärden går inte att skilja åt, utom att NEWS2 och eGFR är märkta som räknade av systemet. Sökning på grupp-, vårdenhets- och vårdgivarnivå och filter i sökträffarna saknas. Loggarna sparas inte i fem år.
 
+## Öppet API för skrivning och externa tillämpningar (runda 6, r5: Sussa 2.5.1.1 till 2.5.1.3, 2.6.1.2, 5.1.1.4, 5.1.2.3 och 5.2.1.6)
+
+### Skrivning via FHIR (fhir-skrivning.js och oppet-api.js)
+
+Skrivningen har ingen egen väg förbi reglerna. En FHIR-resurs översätts till exakt det anrop som gränssnittet gör, och anropet körs genom serverns egen routningstabell med samma session och samma funktioner. Därför gäller samma behörighetsmotor, samma varningar, samma vårdkontakt som systemet väljer och samma loggning, och det som gränssnittet inte kan göra kan API:t inte heller göra.
+
+- **Observation** (mätvärden): koden är LOINC eller NPU som i läsningen, eller bara namnet (Puls, Blodtryck), så att ingen behöver kunna kodverket. Värdet prövas som i fliken Mätvärden, och en UCUM-enhet som inte stämmer avvisas med en förklaring. Ett mätvärde ändras inte.
+- **Composition** (anteckningar): samma mallar och sökord. `final` skapar och signerar i samma anrop, `preliminary` sparar ett utkast. Ett utkast ändras med PUT, och en signerad anteckning rättas med en ny version och en orsak, och den tidigare står kvar.
+- **MedicationRequest** (ordinationer): samma kontroller och varningar som läkemedelslistan. Läkemedlet anges med NPL-id, eller med ATC-kod när den bara ger en produkt. Saknas dosering eller uppföljningsdatum fyller systemet i sitt förslag för produkten och patienten och säger det i svaret. Ordinationsorsaken skriver förskrivaren alltid själv. En allvarlig varning stoppar sparandet med en OperationOutcome där varje varning står med sin regel, och kvitteras med tillägget `kvitterad-varning` i nästa anrop. En ordination ändras genom utsättning (status stopped), och antikoagulantia sätts bara ut med en plan, där systemet föreslår planerna.
+- **ServiceRequest** (remisser): samma kontroller och samma förval som formuläret, normal prioritet och svar inom 14 dagar.
+- **Det som inte går**: diagnoser, överkänslighet och patienter går inte att registrera i gränssnittet än, och därför inte heller i API:t. DELETE nekas alltid med förklaringen att journaluppgifter rättas, sätts ut eller makuleras och aldrig tas bort.
+- **Fel** är en OperationOutcome med samma svenska text som gränssnittet visar, felkoden och en FHIRPath till fältet som är fel.
+
+### Prenumerationer (prenumeration.js)
+
+FHIR R4 Subscription med rest-hook, för en patient och en resurstyp. Att skapa en prenumeration prövas som en sökning på resurstypen för patienten. Ändringarna fångas med triggrar i databasen, som läggs till när den första prenumerationen skapas, så att allt som sparas kommer med, också det som görs i gränssnittet. Efter varje anrop går servern igenom ändringarna och prövar för varje prenumeration att prenumerantens person får läsa just den resursen, utan aktiva val, nödåtkomst eller samtycke. Spärrade uppgifter, uppgifter från en annan vårdenhet och osignerade utkast ger inget meddelande, och inget meddelande säger att något dolt finns. Meddelandet har bara prenumerationens id, händelsens nummer och resursens adress (Subscriptions R5 Backport för R4, `id-only`), och mottagaren hämtar resursen med sin egen behörighet. Varje meddelande loggas på patienten.
+
+Mottagaradresserna godkänns av administratören i konfigurationen (`WEBHOOK_GODKANDA`). En adress ska vara https på port 443 och ha ett namn, inte en IP-adress, och vara godkänd ordagrant. Före sändningen slås namnet upp och varje adress prövas, så att ett namn som pekar på en intern, lokal eller reserverad adress stoppas. Omdirigeringar följs aldrig och svaret väntas högst fem sekunder. I demon simuleras sändningen: meddelandet sparas med status simulerad men skickas inte, om inte servern startas med `WEBHOOK_SKICKA=1`. En begränsning: namnet slås upp en gång före sändningen och sedan igen av fetch, så en mottagare som byter adress mellan uppslagen (DNS-ombindning) stoppas inte helt; listan med godkända adresser begränsar risken.
+
+### SMART on FHIR (smart.js)
+
+Externa tillämpningar startas från journalen under fliken Tillämpningar (EHR launch) eller för sig (standalone launch), med OAuth 2.0, kod med PKCE (S256) och publika klienter. Tillämpningarna registreras av administratören med sina omfång och adresser, i demon i koden. Demotillämpningen Blodtryck över tid ligger på samma server och ritar patientens blodtryck.
+
+- **Systemet är experten.** Starten från journalen ger tillämpningen patienten och den inloggade, så användaren startar med två klick (klickbudgeten) utan att välja patient eller logga in igen. I en standalone launch väljer personen bland patienterna på sin arbetslista.
+- **Aldrig mer än användaren.** Varje anrop med en åtkomstbiljett prövas först mot omfånget (patient/ gäller bara patienten som tillämpningen startades för) och sedan i behörighetsmotorn som personen själv, men utan aktiva val, nödåtkomst och samtycke, även om personen har gjort valen i gränssnittet. Sessionskakan används inte när en biljett finns.
+- **Livslängd och loggning.** Biljetten gäller 30 minuter och finns bara i serverns minne och i tillämpningens. Den återkallas vid utloggning, ny inloggning, återställning och när tillämpningen stängs. Utfärdandet, återkallelsen och utgången loggas med handlingen `tillampning`, och varje anrop loggas som vanligt med tillämpningens namn i resursen.
+- **Ramen.** Tillämpningen visas i en ram i journalen. Filerna under `/tillampningar/` får ramas in av samma webbplats, och service workern rör dem inte. Tillämpningen meddelar ramen med `postMessage` när den visar något, och journalen godtar bara meddelanden från ramen och samma webbplats.
+- **Saknas.** Uppdateringsbiljetter, id-token (OpenID Connect), systemkonton (backend services), ett gränssnitt för att registrera tillämpningar och en extern identitetsleverantör.
+
+### Räcker API:t? (api-tackning.js)
+
+För varje flöde i klickbudgeten står om det går att göra via API:t, med anropen, och annars vad som saknas och varför. Testet `API-täckning` gör varje flöde som står som ja via API:t på riktigt, och ett nytt flöde som inte har bedömts står som inte bedömt. Sidan Öppet API visar listan. Tio flöden går, två delvis (återinsättning och NEWS2), och resten finns bara i gränssnittet. Nödåtkomst ska aldrig gå via API:t.
+
+### Masterdata (masterdata.js)
+
+Organisation, personal och befolkning hämtas från utbytbara källor (adaptrar) med ett kontrakt per del: obligatoriska fält och en kontroll per post. Sandlådan byggs ur källan, i demon filadaptern som läser seeden. En synkronisering validerar källan först, och en källa med fel ändrar ingenting. Den räknar ut nya, ändrade och borttagna poster, raderar aldrig något (personal som saknas blir inaktiv, en enhet som saknas rapporteras) och sparar en rapport. En skyddad identitet från befolkningskällan gäller direkt. `GET /api/masterdata` visar källan per del. Inga riktiga anslutningar finns: HSA-katalogen, personalsystemet och folkbokföringen via PU-tjänsten är inte anslutna, och synkroniseringen körs inte efter ett schema.
+
 ## Beslutade avvägningar (3 november 2026)
 
 Projektägaren beslutade de här frågorna efter omgång 2 i runda 4:
