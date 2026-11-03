@@ -132,7 +132,8 @@ describe('Administrering', () => {
     const db = sandladaKl('14:30');
     const a = atk(db, 'ssk-kard', 'p01', {}, 'ge_lakemedel');
     const furo = ordFor(db, 'p01', 'Furosemid');
-    for (const utfordAv of ['ssk-akut', 'lak-kard', 'finns-inte']) {
+    // Läkaren får ge läkemedel sedan runda 5, vårdadministratören aldrig.
+    for (const utfordAv of ['ssk-akut', 'adm-kard', 'finns-inte']) {
       expect(fel(() => administrering.spara(a, { ordinationId: furo.id, planerad: kl('14:00'), tid: kl('14:10'), utfordAv })).extra.falt).toEqual(['utfordAv']);
     }
     expect(fel(() => administrering.spara(a, { ordinationId: furo.id, planerad: kl('14:00'), tid: kl('15:00') })).extra.falt).toEqual(['tid']);
@@ -175,10 +176,14 @@ describe('Administrering', () => {
     expect(() => db.query("INSERT INTO administreringar (patient_id, enhet_id, lakemedel_id, status, registrerad, registrerad_av) VALUES ('p01', 'uso-kard-72', 'VK-NPL-0026', 'ej_given', 'x', 'ssk-kard')").run()).toThrow();
   });
 
-  test('nekas: läkare, undersköterska och vårdadministratör får inte ge läkemedel, men läkare och undersköterska ser listan', () => {
+  test('nekas: vårdadministratör och undersköterska utan delegering får inte ge läkemedel, men undersköterskan och läkaren ser listan', () => {
     const db = sandladaKl('13:30');
     const furo = ordFor(db, 'p01', 'Furosemid');
-    for (const p of ['lak-kard', 'usk-kard', 'adm-kard']) {
+    // Utan giltig delegering (runda 5): undersköterskans delegering är återkallad.
+    for (const d of db.query("SELECT id FROM delegeringar WHERE personal_id = 'usk-kard' AND aterkallad_tid IS NULL").all()) {
+      db.query("UPDATE delegeringar SET aterkallad_tid = ?, aterkallad_av = 'ssk-kard', aterkallad_orsak = 'Test' WHERE id = ?").run(new Date().toISOString(), d.id);
+    }
+    for (const p of ['usk-kard', 'adm-kard']) {
       const e = fel(() => administrering.spara(atk(db, p, 'p01', {}, 'ge_lakemedel'), { ordinationId: furo.id, planerad: kl('14:00') }));
       expect({ p, status: e?.status }).toEqual({ p, status: 403 });
     }
@@ -386,11 +391,12 @@ describe('Administrering via API', () => {
     const rad = db.query("SELECT * FROM atkomstlogg WHERE personal_id = 'ssk-kard' AND handling = 'ge_lakemedel' ORDER BY id DESC").get();
     // Ordinationen är gjord på den egna vårdenheten.
     expect(rad).toMatchObject({ patient_id: 'p01', resultat: 'tillaten', grund: 'egen_enhet' });
+    // En läkare utan vårdrelation på sin vårdenhet nekas och loggas (läkare får ge läkemedel sedan runda 5).
     const lak = klient(app);
-    await lak.logga('lak-kard');
+    await lak.logga('lak-psyk');
     const nekad = await lak.post('/api/patient/p01/administreringar', { ordinationId: alvedon.ordinationId });
     expect(nekad.status).toBe(403);
-    expect(sandlada(app, lak).db.query("SELECT resultat FROM atkomstlogg WHERE personal_id = 'lak-kard' AND handling = 'ge_lakemedel' ORDER BY id DESC").get().resultat).toBe('nekad');
+    expect(sandlada(app, lak).db.query("SELECT resultat FROM atkomstlogg WHERE personal_id = 'lak-psyk' AND handling = 'ge_lakemedel' ORDER BY id DESC").get().resultat).toBe('nekad');
     expect((await lak.post('/api/patient/p01/administreringar/kontroll', { ordinationId: alvedon.ordinationId })).status).toBe(403);
     const adm = klient(app);
     await adm.logga('adm-kard');
@@ -503,13 +509,14 @@ describe('Utsättning', () => {
     expect(u.ordination.historik.map(h => h.handelse)).toContain('Varning vid utsättning kvitterad');
   });
 
-  test('utsättning utan särskilda observationer ger ingen varning, och antikoagulantia ger en observation', () => {
+  test('utsättning utan särskilda observationer ger ingen varning, och antikoagulantia kräver en plan', () => {
     const db = sandladaKl('13:30');
     const a = atk(db, 'lak-kard', 'p01', {}, 'ordinera');
     expect(lakemedel.utsattningskontroll(a, ordFor(db, 'p01', 'Alvedon')).varningar).toEqual([]);
     const waran = ordFor(db, 'p01', 'Waran');
-    expect(regler(lakemedel.utsattningskontroll(a, waran).varningar)).toEqual(['observera:antikoagulantia']);
-    expect(lakemedel.utsatt(a, waran, { orsak: 'Byte till apixaban' }).ordination.status).toBe('utsatt');
+    expect(regler(lakemedel.utsattningskontroll(a, waran).varningar)).toEqual(['allvarlig:antikoagulantia']);
+    // Läkaren bekräftar med planen (runda 5).
+    expect(lakemedel.utsatt(a, waran, { orsak: 'Byte till apixaban', plan: { typ: 'byte', ersattMed: 'Eliquis' } }).ordination.status).toBe('utsatt');
   });
 
   test('utsättningsreglerna ligger i en egen modul och är märkta som demoregler', () => {

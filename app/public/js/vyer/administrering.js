@@ -19,8 +19,13 @@ const vem = (a) => {
   if (!a?.utfordAv) return '';
   const annan = a.registreradAv && a.registreradAv.id !== a.utfordAv.id ? ` av ${esc(a.registreradAv.namn)}` : '';
   const reg = a.efterhand ? `, registrerad i efterhand ${esc(tidpunkt(a.registrerad))}${annan}` : annan ? `, registrerad${annan}` : '';
-  return `${klockslag(a.tid)} av ${esc(a.utfordAv.namn)}${reg}`;
+  // Delegeringen som undersköterskan gav dosen med (runda 5).
+  const deleg = a.delegering ? `, med delegering från ${esc(a.delegering.utfardadAv)}` : '';
+  return `${klockslag(a.tid)} av ${esc(a.utfordAv.namn)}${deleg}${reg}`;
 };
+// Undersköterskan ser knappen Ge bara för doser som hennes delegering omfattar, och annars varför (runda 5).
+const omfattas = (x) => x.delegering?.omfattas !== false;
+const inteDelegerad = (x) => (omfattas(x) ? '' : `<span class="under-text adm-varfor">${esc(x.delegering.varfor)}</span>`);
 
 // Doserna för en patient, som HTML. kan: får användaren ge läkemedel till patienten.
 export function patientDoser(pid, l) {
@@ -28,11 +33,12 @@ export function patientDoser(pid, l) {
   const rad = (d) => {
     const [st, kl] = STATUS[d.status] ?? [d.status, ''];
     const a = d.administrering;
-    const knappar = kan && d.forslag ? `
+    const knappar = kan && d.forslag && omfattas(d) ? `
       <button type="button" class="knapp liten" data-adm="${d.forslag}" data-pid="${esc(pid)}" data-ord="${d.ordinationId}" data-planerad="${esc(d.planerad)}"${a?.iordningstalld?.kontrollkod ? ` data-kod="${esc(a.iordningstalld.kontrollkod)}"` : ''} data-namn="${esc(d.lakemedel?.namn)}">${d.forslag === 'overlamna' ? 'Lämna över' : 'Ge'}</button>
       <details class="adm-mer"><summary>Mer</summary><div class="knapprad">
         ${a?.status !== 'iordningstalld' ? `<button type="button" class="knapp liten sekundar" data-adm="iordningstall" data-pid="${esc(pid)}" data-ord="${d.ordinationId}" data-planerad="${esc(d.planerad)}" data-namn="${esc(d.lakemedel?.namn)}">Iordningsställ</button>` : ''}
         <button type="button" class="knapp liten sekundar" data-adm="efterhand" data-pid="${esc(pid)}" data-ord="${d.ordinationId}" data-planerad="${esc(d.planerad)}" data-namn="${esc(d.lakemedel?.namn)}">Given tidigare</button>
+        ${d.dos != null ? `<button type="button" class="knapp liten sekundar" data-adm="annan_dos" data-pid="${esc(pid)}" data-ord="${d.ordinationId}" data-planerad="${esc(d.planerad)}" data-dos="${esc(d.dos)}" data-enhet="${esc(d.dosEnhet ?? '')}" data-namn="${esc(d.lakemedel?.namn)}">Annan dos</button>` : ''}
         <button type="button" class="knapp liten sekundar" data-adm="ej_given" data-pid="${esc(pid)}" data-ord="${d.ordinationId}" data-planerad="${esc(d.planerad)}" data-namn="${esc(d.lakemedel?.namn)}">Inte given</button>
         ${d.forslag === 'overlamna' ? `<button type="button" class="knapp liten sekundar" data-adm="ge" data-pid="${esc(pid)}" data-ord="${d.ordinationId}" data-planerad="${esc(d.planerad)}" data-namn="${esc(d.lakemedel?.namn)}">Ge på avdelningen</button>` : ''}
       </div></details>` : '';
@@ -42,18 +48,19 @@ export function patientDoser(pid, l) {
       <td>${dosText(d)}</td>
       <td><span class="tagg ${kl}">${esc(st)}</span>${d.underPermission ? ' <span class="tagg">Permission</span>' : ''}
         ${a && a.status !== 'iordningstalld' ? `<span class="under-text">${vem(a)}${a.orsak ? `. ${esc(a.orsak)}` : ''}${d.antalRegistreringar > 1 ? `. Registrerad ${d.antalRegistreringar} gånger` : ''}</span>` : ''}
-        ${a?.status === 'iordningstalld' ? `<span class="under-text">Iordningsställd ${esc(klockslag(a.iordningstalld.tid))} av ${esc(a.iordningstalld.av)}. Etikett ${esc(a.iordningstalld.kontrollkod)}</span>` : ''}</td>
+        ${a?.status === 'iordningstalld' ? `<span class="under-text">Iordningsställd ${esc(klockslag(a.iordningstalld.tid))} av ${esc(a.iordningstalld.av)}. Etikett ${esc(a.iordningstalld.kontrollkod)}</span>` : ''}
+        ${d.forslag ? inteDelegerad(d) : ''}</td>
       <td class="atgarder">${knappar}</td>
     </tr>`;
   };
   const vb = (v) => `<li class="adm-vb"><div><strong>${lmText(v)}</strong> <span class="tagg">Vid behov</span>
       <span class="under-text">${esc(v.dosering)}</span>
-      <span class="under-text">${v.senaste ? `Senast given ${esc(tidpunkt(v.senaste.tid))} av ${esc(v.senaste.utfordAv?.namn ?? '')}.` : 'Inte given det senaste dygnet.'}${v.max ? ` ${v.senasteDygnet} av högst ${v.max.antal} det senaste dygnet.` : ''}</span>
-      ${v.varfor ? `<span class="under-text adm-varfor">${esc(v.varfor)}</span>` : ''}</div>
-      ${kan ? `<button type="button" class="knapp liten${v.kanGesNu ? '' : ' sekundar'}" data-adm="ge" data-pid="${esc(pid)}" data-ord="${v.ordinationId}" data-namn="${esc(v.lakemedel?.namn)}">Ge</button>` : ''}</li>`;
+      <span class="under-text">${v.senaste ? `Senast given ${esc(tidpunkt(v.senaste.tid))} av ${esc(v.senaste.utfordAv?.namn ?? '')}${v.senaste.delegering ? `, med delegering från ${esc(v.senaste.delegering.utfardadAv)}` : ''}.` : 'Inte given det senaste dygnet.'}${v.max ? ` ${v.senasteDygnet} av högst ${v.max.antal} det senaste dygnet.` : ''}</span>
+      ${v.varfor ? `<span class="under-text adm-varfor">${esc(v.varfor)}</span>` : ''}${inteDelegerad(v)}</div>
+      ${kan && omfattas(v) ? `<button type="button" class="knapp liten${v.kanGesNu ? '' : ' sekundar'}" data-adm="ge" data-pid="${esc(pid)}" data-ord="${v.ordinationId}" data-namn="${esc(v.lakemedel?.namn)}">Ge</button>` : ''}</li>`;
   const ut = (u) => `<li class="adm-vb"><div><strong>${lmText(u)}</strong> <span class="tagg">Utan fasta tider</span><span class="under-text">${esc(u.dosering)}</span>
-      ${u.givnaIdag.length ? `<span class="under-text">Given i dag ${u.givnaIdag.map(a => `${esc(klockslag(a.tid))}${a.dos != null ? ` (${dosText(a)})` : ''}`).join(', ')}.</span>` : ''}</div>
-      ${kan ? `<button type="button" class="knapp liten sekundar" data-adm="fri" data-pid="${esc(pid)}" data-ord="${u.ordinationId}" data-namn="${esc(u.lakemedel?.namn)}">Ge dos</button>` : ''}</li>`;
+      ${u.givnaIdag.length ? `<span class="under-text">Given i dag ${u.givnaIdag.map(a => `${esc(klockslag(a.tid))}${a.dos != null ? ` (${dosText(a)})` : ''} av ${esc(a.utfordAv?.namn ?? '')}${a.delegering ? `, med delegering från ${esc(a.delegering.utfardadAv)}` : ''}`).join('; ')}.</span>` : ''}${inteDelegerad(u)}</div>
+      ${kan && omfattas(u) ? `<button type="button" class="knapp liten sekundar" data-adm="fri" data-pid="${esc(pid)}" data-ord="${u.ordinationId}" data-namn="${esc(u.lakemedel?.namn)}">Ge dos</button>` : ''}</li>`;
   const vantar = (v) => `<li class="adm-vb"><div><strong>${lmText(v)}</strong> <span class="tagg">Väntar på tid</span>
       <span class="under-text">Ges ${esc(handelseText(v.vardhandelse))}. Tiden räknas fram när vårdhändelsen har fått sin tid.</span></div>
       ${kan || far('ordinera') ? `<button type="button" class="knapp liten sekundar" data-handelse="${v.ordinationId}" data-pid="${esc(pid)}" data-text="${esc(v.vardhandelse.text)}">Ange tid för ${esc(v.vardhandelse.text.toLowerCase())}</button>` : ''}</li>`;
@@ -73,12 +80,15 @@ const handelseText = (h) => {
 };
 
 const lokalTill = (hhmm, dag = idag()) => new Date(`${dag}T${hhmm}:00`).toISOString();
-const kvittensHtml = (varningar) => {
+// Motivering krävs för allvarliga varningar och för en dos som avviker från ordinationen (kraverKvittens, runda 5).
+const REGELTEXT = { dubbel_dos: 'dubbel dos', for_tidig: 'för tidig dos', utan_ordination: 'dos utan ordination', max_per_dygn: 'högsta dygnsdos', avvikande_dos: 'annan dos än ordinationen' };
+const kvittensHtml = (varningar, kraver = null) => {
   const allv = varningar.filter(v => v.niva === 'allvarlig');
   const obs = varningar.filter(v => v.niva !== 'allvarlig');
+  const regler = kraver ?? [...new Set(varningar.filter(v => v.niva === 'allvarlig' || v.kraverKvittens).map(v => v.regel))];
   return `${allv.length ? `<ul class="varn-allvarlig">${allv.map(v => `<li><strong>Allvarlig.</strong> ${esc(v.text)}</li>`).join('')}</ul>` : ''}
     ${obs.length ? `<ul class="varn-observera">${obs.map(v => `<li><strong>Observera.</strong> ${esc(v.text)}</li>`).join('')}</ul>` : ''}
-    ${[...new Set(allv.map(v => v.regel))].map((r, n) => `<div class="falt"><label for="adm-kv-${n}">Motivering (${esc(r.replace(/_/g, ' '))}) <span class="obl">(obligatoriskt)</span></label><textarea id="adm-kv-${n}" name="kv_${esc(r)}" rows="2" maxlength="500" required minlength="3"></textarea></div>`).join('')}`;
+    ${regler.map((r, n) => `<div class="falt"><label for="adm-kv-${n}">Motivering (${esc(REGELTEXT[r] ?? r.replace(/_/g, ' '))}) <span class="obl">(obligatoriskt)</span></label><textarea id="adm-kv-${n}" name="kv_${esc(r)}" rows="2" maxlength="500" required minlength="3"></textarea></div>`).join('')}`;
 };
 
 // Registrerar en åtgärd. Med en allvarlig varning visas den med fält för motivering, och åtgärden görs om med kvittensen.
@@ -89,7 +99,7 @@ async function registrera(pid, data, namnText) {
   } catch (e) {
     if (!(e.status === 400 && e.data?.varningar)) throw e;
     const svar = await dialog(`<form><h2 id="dlg-rubrik">${ikon.varning}<span>Varning: ${esc(namnText)}</span></h2>
-      <div class="varningslista" role="alert">${kvittensHtml(e.data.varningar)}<p class="demoregel">Varningarna är demoregler, inte kliniskt beslutsstöd.</p></div>
+      <div class="varningslista" role="alert">${kvittensHtml(e.data.varningar, e.data.kraverKvittens)}<p class="demoregel">Varningarna är demoregler, inte kliniskt beslutsstöd.</p></div>
       <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Registrera ändå</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`,
     { validera: (x) => (Object.values(x).some(v => String(v).trim().length < 3) ? 'Skriv en motivering med minst tre tecken.' : null) });
     if (!svar) return null;
@@ -98,7 +108,7 @@ async function registrera(pid, data, namnText) {
   }
 }
 
-const KLAR = { ge: 'är given', overlamna: 'är överlämnad till patienten', ej_given: 'är registrerad som inte given', iordningstall: 'är iordningsställd', efterhand: 'är registrerad som given', fri: 'är given' };
+const KLAR = { ge: 'är given', overlamna: 'är överlämnad till patienten', ej_given: 'är registrerad som inte given', iordningstall: 'är iordningsställd', efterhand: 'är registrerad som given', fri: 'är given', annan_dos: 'är given' };
 
 // Kopplar knapparna i el. ladda ritar om efter en ändring.
 export function koppla(el, ladda) {
@@ -122,6 +132,14 @@ export function koppla(el, ladda) {
       { onOpen: (dl) => dl.addEventListener('click', (x) => { const o = x.target.closest('[data-orsak]'); if (o) dl.querySelector('textarea').value = o.dataset.orsak; }) });
       if (!svar) return;
       Object.assign(data, { atgard: 'ej_given', orsak: svar.data.orsak.trim() });
+    } else if (typ === 'annan_dos') {
+      // En annan dos än ordinationens (runda 5). Servern varnar och kräver en motivering innan dosen sparas.
+      const svar = await dialog(`<form><h2 id="dlg-rubrik">Annan dos: ${esc(namnText)}</h2>
+        <p>Ordinationen är ${esc(String(b.dataset.dos).replace('.', ','))} ${esc(b.dataset.enhet)}. En annan dos visar en varning och kräver en motivering.</p>
+        <div class="falt"><label for="adm-annan">Dos som ges (${esc(b.dataset.enhet)})</label><input id="adm-annan" name="dos" inputmode="decimal" value="${esc(String(b.dataset.dos).replace('.', ','))}" required></div>
+        <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Fortsätt</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`);
+      if (!svar) return;
+      Object.assign(data, { atgard: 'ge', dos: Number(String(svar.data.dos).replace(',', '.')) });
     } else if (typ === 'efterhand' || typ === 'fri') {
       const forval = b.dataset.planerad ? klockslag(b.dataset.planerad).replace('.', ':') : new Date().toTimeString().slice(0, 5);
       const svar = await dialog(`<form><h2 id="dlg-rubrik">${typ === 'fri' ? 'Ge' : 'Registrera i efterhand'}: ${esc(namnText)}</h2>
@@ -167,7 +185,11 @@ export async function visa(main) {
   // Har användaren hunnit gå vidare till en annan vy medan listan hämtades finns inget att visa den i.
   if (!el) return;
   if (!d.patienter.length) { el.innerHTML = tom(`Det finns inga inneliggande patienter på ${d.vardenhet?.namn ?? 'din vårdenhet'} som du har vårdrelation till.`); return; }
-  el.innerHTML = `<p class="ingress liten">${esc(d.vardenhet?.namn ?? '')}: ${d.sammanfattning.attGe} ${d.sammanfattning.attGe === 1 ? 'dos' : 'doser'} att ge nu${d.sammanfattning.forsenade ? `, ${d.sammanfattning.forsenade} försenade` : ''}. Varningarna är demoregler, inte kliniskt beslutsstöd.</p>
+  // Undersköterskan ser vad hennes delegering omfattar och hur länge den gäller (runda 5).
+  const deleg = d.delegering ? `<p class="ruta ruta-info liten adm-delegering">${ikon.info}<span>${d.delegering.giltig
+    ? `Du ger läkemedel med delegering: ${esc(d.delegering.omfattning.toLowerCase())}, till och med ${esc(datum(d.delegering.till))}. Knappen Ge visas bara för doser som delegeringen omfattar.`
+    : esc(d.delegering.varfor)} <a href="#/delegeringar">Mina delegeringar</a></span></p>` : '';
+  el.innerHTML = `${deleg}<p class="ingress liten">${esc(d.vardenhet?.namn ?? '')}: ${d.sammanfattning.attGe} ${d.sammanfattning.attGe === 1 ? 'dos' : 'doser'} att ge nu${d.sammanfattning.forsenade ? `, ${d.sammanfattning.forsenade} försenade` : ''}. Varningarna är demoregler, inte kliniskt beslutsstöd.</p>
     ${d.patienter.map(p => `<section class="adm-patient" aria-labelledby="adm-${esc(p.patient.id)}">
       <h2 id="adm-${esc(p.patient.id)}">${patientCell(p.patient, `#/patient/${encodeURIComponent(p.patient.id)}/lakemedel`)} <span class="dampad liten">${esc(p.plats ?? '')}</span></h2>
       ${patientDoser(p.patient.id, p)}

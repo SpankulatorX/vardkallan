@@ -47,8 +47,12 @@ export function minstaIntervallMs(o) {
 //   tid          när dosen ges (ms)
 //   antal        antal enheter (tabletter, doser) i dosen
 //   tidigare     tidigare doser av samma substans: [{ tid, planerad, ordinationId, antal, av, status }]
-export function administreringsvarningar({ ordination, aktivVid, lakemedel, planerad, tid, antal = 1, tidigare = [], nu = Date.now() }) {
+//   dos          dosen som anges när den skiljer sig från ordinationens, annars null
+export function administreringsvarningar({ ordination, aktivVid, lakemedel, planerad, tid, antal = 1, tidigare = [], nu = Date.now(), dos = null }) {
   const ut = [];
+  // Dos som avviker från ordinationen: bara när en annan dos än ordinationens anges.
+  const avvikelse = ordination ? dosavvikelse(ordination, dos) : null;
+  if (avvikelse) ut.push(avvikelse);
   if (!ordination) {
     ut.push({ niva: 'allvarlig', regel: 'utan_ordination', text: `Det finns ingen ordination av ${lakemedel.namn}. En dos utan ordination ska bara ges efter en muntlig ordination av läkare, och läkaren behöver ordinera i efterhand. Skriv vem som ordinerade.` });
   } else if (aktivVid && !aktivVid.aktiv) {
@@ -92,9 +96,10 @@ export const UTSATTNINGSREGLER = [
   { regel: 'betablockerare', atc: ['C07'], dagar: 7, niva: 'allvarlig',
     text: 'Betablockerare ska inte sättas ut tvärt efter längre tids behandling. Det kan ge snabb puls, högt blodtryck och kärlkramp.',
     forslag: 'Trappa ned dosen under en till två veckor, till exempel genom att halvera dosen varannan till var tredje dag.' },
-  { regel: 'antikoagulantia', atc: ['B01AA', 'B01AF', 'B01AE'], dagar: 0, niva: 'observera',
-    text: 'Utsättning av antikoagulantia ökar risken för blodpropp och stroke.',
-    forslag: 'Kontrollera att utsättningen är avsiktlig och om behandlingen ska ersättas, till exempel vid byte till ett annat antikoagulantia.' },
+  // Antikoagulantia (beslut 2026-11-03): utsättningen kräver en bekräftad plan, som sparas med utsättningen.
+  { regel: 'antikoagulantia', atc: ['B01AA', 'B01AB', 'B01AE', 'B01AF'], dagar: 0, niva: 'allvarlig', plan: true,
+    text: 'Ett avbrott i behandlingen med antikoagulantia utan en plan ökar risken för blodpropp och stroke.',
+    forslag: 'Välj planen: byte till ett annat medel, uppehåll inför ett ingrepp med datum för återinsättning, eller avslutad behandling.' },
   { regel: 'p2y12_efter_pci', atc: ['B01AC24', 'B01AC04', 'B01AC22'], dagar: 0, maxDagar: 365, niva: 'allvarlig',
     text: 'Trombocythämmare efter PCI ska inte sättas ut i förtid. Under det första året ökar utsättning risken för stenttrombos.',
     forslag: 'Stäm av med kardiolog innan behandlingen sätts ut.' },
@@ -126,7 +131,7 @@ export function utsattningsvarningar({ lakemedel, behandlingDagar }) {
     if (behandlingDagar < r.dagar) continue;
     if (r.maxDagar != null && behandlingDagar > r.maxDagar) continue;
     const langd = behandlingDagar >= 365 ? `${Math.floor(behandlingDagar / 365)} år` : `${behandlingDagar} ${behandlingDagar === 1 ? 'dag' : 'dagar'}`;
-    ut.push({ niva: r.niva, regel: r.regel, text: `${lakemedel.namn} (${lakemedel.atc}). ${r.text} Patienten har haft behandlingen i ${langd}.`, forslag: r.forslag });
+    ut.push({ niva: r.niva, regel: r.regel, text: `${lakemedel.namn} (${lakemedel.atc}). ${r.text} Patienten har haft behandlingen i ${langd}.`, forslag: r.forslag, ...(r.plan ? { plan: true } : {}) });
   }
   return ut;
 }
@@ -162,4 +167,44 @@ export function genomgangsfynd({ ordinationer, par = [], alder = null, idag }) {
     fynd.push({ typ: 'polyfarmaci', niva: 'observera', ordinationer: [], text: `Patienten är ${alder} år och har ${ordinationer.length} pågående ordinationer. Tio eller fler läkemedel ger ökad risk för biverkningar.` });
   }
   return fynd;
+}
+
+// Planerna vid utsättning av antikoagulantia (runda 5). Läkaren väljer en, och systemet fyller i orsaken ur planen.
+export const UTSATTNINGSPLANER = {
+  byte: { text: 'Byte till annat medel', orsak: 'Byte till annat antikoagulantia', beskrivning: 'Ett annat antikoagulantia ersätter det som sätts ut.' },
+  uppehall: { text: 'Uppehåll inför ingrepp', orsak: 'Uppehåll inför ingrepp', beskrivning: 'Behandlingen gör uppehåll inför ett ingrepp och sätts in igen ett visst datum.', aterinsattning: true },
+  avslutad: { text: 'Avslutad behandling', orsak: 'Behandlingen är avslutad', beskrivning: 'Behandlingen ska inte fortsätta, till exempel när tiden för behandlingen är slut.' },
+};
+// Hur många dagar efter i dag systemet föreslår att behandlingen sätts in igen efter ett uppehåll.
+export const UPPEHALL_DAGAR = 5;
+export function planText(p) {
+  if (!p) return null;
+  if (p.typ === 'byte') return `${UTSATTNINGSPLANER.byte.text}${p.ersattMed ? `: ${p.ersattMed}` : ''}`;
+  if (p.typ === 'uppehall') return `${UTSATTNINGSPLANER.uppehall.text}, återinsätts ${p.aterinsattning}`;
+  return UTSATTNINGSPLANER[p.typ]?.text ?? p.typ;
+}
+
+// Dos som avviker från ordinationen (runda 5). Intervallet är ordinationens dos, eller dos till dos gånger kvoten i
+// doseringen när den anger ett intervall ("1 till 2 tabletter", "2,5 till 5 mg"). Utanför intervallet är dosen en
+// observation som ändå kvitteras med motivering, och mer än dubbelt eller mindre än hälften är allvarligt.
+const tal = (x) => Number(String(x).replace(',', '.'));
+const talText = (x) => String(Math.round(x * 1000) / 1000).replace('.', ',');
+export function dosintervall(o) {
+  if (o?.dos == null || !Number.isFinite(o.dos) || o.dos <= 0) return null;
+  const m = /(\d+(?:,\d+)?)\s*till\s*(\d+(?:,\d+)?)/.exec(o.dosering ?? '');
+  const kvot = m && tal(m[1]) > 0 && tal(m[2]) > tal(m[1]) ? tal(m[2]) / tal(m[1]) : 1;
+  return { min: o.dos, max: o.dos * kvot };
+}
+export function dosavvikelse(o, dos) {
+  const iv = dosintervall(o);
+  if (dos == null || !iv || (dos >= iv.min && dos <= iv.max)) return null;
+  const enhet = o.dosEnhet ? ` ${o.dosEnhet}` : '';
+  const ord = iv.max > iv.min ? `${talText(iv.min)} till ${talText(iv.max)}${enhet}` : `${talText(iv.min)}${enhet}`;
+  const given = `${talText(dos)}${enhet}`;
+  if (dos > iv.max * 2 || dos < iv.min / 2) {
+    return { niva: 'allvarlig', regel: 'avvikande_dos', kraverKvittens: true,
+      text: `Dosen ${given} är ${dos > iv.max ? 'mer än dubbelt så stor som' : 'mindre än hälften av'} ordinationens ${ord}. Kontrollera dosen mot ordinationen innan den ges, och skriv varför en annan dos ges.` };
+  }
+  return { niva: 'observera', regel: 'avvikande_dos', kraverKvittens: true,
+    text: `Dosen ${given} skiljer sig från ordinationens ${ord}. Skriv varför en annan dos ges, till exempel en muntlig ordination.` };
 }

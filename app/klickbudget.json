@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-03T12:12:41.919Z",
-  "bas": "http://127.0.0.1:18108",
+  "tid": "2026-11-03T13:08:51.886Z",
+  "bas": "http://127.0.0.1:18122",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "2d09a53fa8bc9e928408c739b12201a2c691fbe4c308b33aee98ef07e05aa444",
+  "gransnittHash": "0f125ef702d0f20da4af0c03d977d011c43c0635bcd191a24bd18069fdc31487",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -393,6 +393,25 @@
       ]
     },
     {
+      "id": "utsattning-plan",
+      "namn": "Sätta ut Waran med plan",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 4,
+      "motivering": "Sussa 3.5.2.8. Ett klick till läkemedelslistan, ett på Sätt ut för Waran, ett på den plan som gäller och ett på Jag har en plan. Systemet förklarar risken för blodpropp och stroke, föreslår planerna med nytt medel eller datum för återinsättning ifyllt och skriver orsaken ur planen, så inget behöver skrivas.",
+      "klick": 4,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 4,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Läkemedel",
+        "klick: Sätt ut för Waran",
+        "klick: planen Uppehåll inför ingrepp",
+        "klick: Jag har en plan"
+      ]
+    },
+    {
       "id": "utskrift",
       "namn": "Skriva ut läkemedelslistan vid utskrivning",
       "roll": "lak-kard",
@@ -443,6 +462,42 @@
         "klick: Inkorg i menyn",
         "klick: begäran om kontrasignering i inkorgen",
         "klick: Kontrasignera"
+      ]
+    },
+    {
+      "id": "ge-dos-delegering",
+      "namn": "Ge en dos med delegering",
+      "roll": "usk-kard",
+      "start": "Arbetslistan efter inloggning",
+      "budget": 2,
+      "motivering": "Sussa 3.5.2.18. Ett klick till Läkemedel att ge och ett på Ge för dosen. Systemet har kontrollerat att undersköterskans delegering omfattar dosens läkemedelsform och administrationssätt, att den gäller i dag och på vårdenheten, och visar knappen Ge bara för de doserna. Delegeringen sparas med dosen.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Läkemedel att ge i menyn",
+        "klick: Ge för Alvedon vid behov"
+      ]
+    },
+    {
+      "id": "registrera-delegering",
+      "namn": "Registrera en delegering",
+      "roll": "ssk-kard",
+      "start": "Arbetslistan efter inloggning",
+      "budget": 4,
+      "motivering": "Ett klick till Delegeringar, ett på Ny delegering för undersköterskan, ett för intyget att kunskaperna är kontrollerade och ett för att registrera. Systemet föreslår samma omfattning som den nuvarande delegeringen, giltighet från i dag i ett år och uppföljningen, och påminner i inkorgen 30 dagar innan den går ut.",
+      "klick": 4,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 4,
+      "inomBudget": true,
+      "steg": [
+        "klick: Delegeringar i menyn",
+        "klick: Ny delegering för Amira Haddad",
+        "klick: intyget att kunskaperna är kontrollerade",
+        "klick: Registrera delegeringen"
       ]
     },
     {
@@ -617,6 +672,10 @@
       "status": "grön"
     },
     {
+      "namn": "Gränssnitt > Klickbudget > Sätta ut Waran med plan inom budget",
+      "status": "grön"
+    },
+    {
       "namn": "Gränssnitt > Klickbudget > Skriva ut läkemedelslistan vid utskrivning inom budget",
       "status": "grön"
     },
@@ -626,6 +685,14 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Kontrasignera en anteckning inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Ge en dos med delegering inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera en delegering inom budget",
       "status": "grön"
     },
     {

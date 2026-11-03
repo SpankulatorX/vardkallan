@@ -38,6 +38,12 @@ ROLLER.uppfoljning = ['datauttag'];
 // Tidbok, väntelista, kallelser och incheckning (tidbok.js, Sussa 3.4.1 till 3.4.4). Vårdadministratören bokar, kallar,
 // checkar in och hanterar väntelistan, med vårdrelation eller remiss till vårdenheten som grund.
 ROLLER.vardadministrator.push('boka', 'kalla', 'checka_in', 'vantelista');
+// Vem som får ge läkemedel (runda 5, Sussa 3.5.2.18). Läkaren ger med samma kontroller och loggning som
+// sjuksköterskan. Undersköterskan ger bara med en giltig delegering (HSLF-FS 2017:37 9 kap.), som administrering.js
+// prövar för varje dos med delegering.js. Delegeringen registreras av en sjuksköterska på samma vårdenhet.
+ROLLER.lakare.push('ge_lakemedel');
+ROLLER.underskoterska.push('ge_lakemedel');
+ROLLER.sjukskoterska.push('delegera');
 
 export const HANDLINGAR = {
   las_oversikt: 'läsa patientöversikten', las_journal: 'läsa journalanteckningar', las_omvardnad: 'läsa omvårdnadsanteckningar',
@@ -60,6 +66,9 @@ export const HANDLINGAR = {
 
 // Handlingar som inte rör en enskild patient.
 const UTAN_PATIENT = new Set(['sok', 'vantrum', 'las_logg', 'registrera_patient', 'registrera_arkivbeslut', 'arkivera', 'gallra', 'datauttag']);
+// Delegering av läkemedelshantering (runda 5) rör personalen, inte en patient.
+HANDLINGAR.delegera = 'registrera och återkalla delegering av läkemedelshantering';
+UTAN_PATIENT.add('delegera');
 // Grunden för handlingar utan patient. Arkivarien handlar på ett registrerat beslut, som arkiv.js kontrollerar, och
 // uppföljningsrollen på sitt uppdrag. Ingen av dem får läsa journalen.
 const GRUND_UTAN_PATIENT = { logggranskare: 'logggranskning', arkivarie: 'arkivbeslut', uppfoljning: 'uppfoljning' };

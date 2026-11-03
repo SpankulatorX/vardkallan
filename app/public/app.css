@@ -996,3 +996,13 @@ a.min-journalval:hover { background: var(--kalla-ljus); color: var(--blak); }
 .min-tider { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .min-tid { border: 1px solid var(--linje); border-radius: var(--r); background: var(--yta); padding: 12px 14px; }
 .min-tid-nar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+/* Runda 5: delegering av läkemedelshantering och plan vid utsättning av antikoagulantia. */
+.ut-planer { border: 1px solid var(--linje); border-radius: var(--r); padding: 8px 12px; margin: 12px 0; }
+.ut-planer legend { font-weight: 600; padding: 0 4px; }
+.ut-planer [data-plan][aria-pressed="true"] { background: var(--kalla); color: #fff; border-color: var(--kalla); }
+.ut-plan { font-weight: 600; }
+.kryssgrupp { border: 0; padding: 0; margin: 8px 0; }
+.kryssgrupp legend { font-weight: 600; margin-bottom: 4px; }
+.del-person { margin-bottom: 24px; }
+.adm-delegering a { margin-left: 4px; }

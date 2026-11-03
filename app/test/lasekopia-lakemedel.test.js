@@ -60,7 +60,7 @@ describe('Läskopia', () => {
     b.nu += 1000;
     setSystemTime(new Date(b.nu));
     const andrad = b.nu;
-    const ut = await k.post(`/api/ordination/${waran.id}/utsatt`, { orsak: 'Byte till annat antikoagulantia' });
+    const ut = await k.post(`/api/ordination/${waran.id}/utsatt`, { orsak: 'Byte till annat antikoagulantia', plan: { typ: 'byte' } });
     expect(ut.status).toBe(200);
 
     let syns = null;

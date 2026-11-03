@@ -75,18 +75,42 @@ export async function visa(el, ctx) {
       let k = { varningar: [] };
       try { k = await medKnapp(b, () => api(`/api/ordination/${o.id}/utsattning`)); } catch { return; }
       const allv = k.varningar.filter(x => x.niva === 'allvarlig');
+      // Antikoagulantia (runda 5): läkaren väljer en av systemets planer och bekräftar med Jag har en plan. Planen fyller
+      // i orsaken, som går att ändra.
+      const planer = k.planer ?? null;
       const svar = await dialog(`<form><h2 id="dlg-rubrik">Sätt ut ${esc(o.lakemedel?.namn)}</h2>
           ${k.varningar.length ? `<div class="varningslista" role="alert"><h3>${ikon.varning}<span>Särskilda observationer vid utsättning</span></h3>
             <ul>${k.varningar.map(x => `<li><strong>${x.niva === 'allvarlig' ? 'Allvarlig.' : 'Observera.'}</strong> ${esc(x.text)}${x.forslag ? ` <em>${esc(x.forslag)}</em>` : ''}</li>`).join('')}</ul>
             <p class="demoregel">${esc(k.anmarkning ?? 'Varningarna är demoregler, inte kliniskt beslutsstöd.')}</p></div>` : ''}
+          ${planer ? `<fieldset class="ut-planer"><legend>Planen</legend>
+            <div class="knapprad">${planer.map(p => `<button type="button" class="knapp sekundar liten" data-plan="${esc(p.typ)}" aria-pressed="false">${esc(p.text)}${p.ersattMed ? `: ${esc(p.ersattMed)}` : ''}</button>`).join('')}</div>
+            <input type="hidden" name="plan" value="">
+            <div class="falt" data-planfalt="byte" hidden><label for="ut-ersatt">Nytt medel</label><input id="ut-ersatt" name="ersattMed" maxlength="100" value="${esc(planer.find(p => p.typ === 'byte')?.ersattMed ?? '')}"></div>
+            <div class="falt" data-planfalt="uppehall" hidden><label for="ut-ater">Sätts in igen</label><input id="ut-ater" name="aterinsattning" type="date" value="${esc(planer.find(p => p.typ === 'uppehall')?.aterinsattning ?? '')}"></div>
+          </fieldset>` : ''}
           <p>Ordinationen raderas inte. Den flyttas till utsatta med orsak, tid och vem som satte ut den, och utsättningen skickas till NLL.</p>
-          <div class="falt"><label for="ut-orsak">Orsak till utsättningen <span class="obl">(obligatoriskt)</span></label><textarea id="ut-orsak" name="orsak" rows="2" required minlength="3" maxlength="300"></textarea></div>
+          <div class="falt"><label for="ut-orsak">Orsak till utsättningen <span class="obl">(obligatoriskt${planer ? ', fylls i ur planen' : ''})</span></label><textarea id="ut-orsak" name="orsak" rows="2"${planer ? '' : ' required'} minlength="3" maxlength="300"></textarea></div>
           <p class="dialog-fel form-fel" role="alert" hidden></p>
-          <div class="knapprad"><button type="button" class="knapp${allv.length ? ' knapp-allvar' : ''}" data-varde="ok">${allv.length ? 'Sätt ut trots varningen' : 'Sätt ut'}</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`,
-      { validera: (x) => (x.orsak.trim().length < 3 ? 'Ange orsaken med minst tre tecken.' : null) });
+          <div class="knapprad"><button type="button" class="knapp${allv.length ? ' knapp-allvar' : ''}" data-varde="ok">${planer ? 'Jag har en plan' : allv.length ? 'Sätt ut trots varningen' : 'Sätt ut'}</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`,
+      {
+        onOpen: (dl) => dl.addEventListener('click', (x) => {
+          const pb = x.target.closest('[data-plan]');
+          if (!pb) return;
+          const p = planer.find(y => y.typ === pb.dataset.plan);
+          dl.querySelector('input[name="plan"]').value = p.typ;
+          const felruta = dl.querySelector('.dialog-fel');
+          if (felruta) felruta.hidden = true;
+          for (const b of dl.querySelectorAll('[data-plan]')) b.setAttribute('aria-pressed', String(b === pb));
+          for (const f of dl.querySelectorAll('[data-planfalt]')) f.hidden = f.dataset.planfalt !== p.typ;
+          const ersatt = dl.querySelector('input[name="ersattMed"]').value.trim();
+          dl.querySelector('textarea[name="orsak"]').value = `${p.orsak}${p.typ === 'byte' && ersatt ? `: ${ersatt}` : ''}`;
+        }),
+        validera: (x) => (planer && !x.plan ? 'Välj planen för behandlingen.' : x.orsak.trim().length < 3 ? 'Ange orsaken med minst tre tecken.' : null),
+      });
       if (!svar) return;
+      const plan = planer ? { typ: svar.data.plan, ersattMed: svar.data.ersattMed?.trim() || null, aterinsattning: svar.data.aterinsattning || null } : undefined;
       try {
-        const r = await api(`/api/ordination/${o.id}/utsatt`, { metod: 'POST', data: { orsak: svar.data.orsak.trim(), kvitteradeVarningar: allv.map(x => ({ regel: x.regel })) } });
+        const r = await api(`/api/ordination/${o.id}/utsatt`, { metod: 'POST', data: { orsak: svar.data.orsak.trim(), kvitteradeVarningar: allv.filter(x => !x.plan).map(x => ({ regel: x.regel })), plan } });
         nastaOverforing = null;
         notis(`${o.lakemedel?.namn} är utsatt. ${nllResultat(r.nll)}`, r.nll.status === 'kvitterad' ? 'ok' : 'info');
         ctx.ladda();
@@ -133,7 +157,7 @@ function tabell(rader, kanOrdinera, aktuella) {
       <td>${esc(o.dosering)}${o.tider?.length ? `<span class="under-text">Kl. ${esc(o.tider.join(', '))}</span>` : ''}${o.administrationssattText ? `<span class="under-text">${esc(o.administrationssattText)}</span>` : ''}${o.vardhandelse ? `<span class="under-text">Inför ${esc(o.vardhandelse.text.toLowerCase())}${o.vardhandelse.administreras ? `, ges ${esc(tidpunkt(o.vardhandelse.administreras))}` : ', väntar på tid'}</span>` : ''}</td>
       <td>${esc(ORDTYP[o.typ] ?? o.typ)}</td>
       <td>${esc(o.ordinationsorsak)}</td>
-      <td>${aktuella ? `${esc(datum(o.uppfoljningsdatum))}${o.slut ? `<span class="under-text">Slut ${esc(datum(o.slut))}</span>` : ''}` : (o.utsatt ? `${esc(datum(o.utsatt.tid))}<span class="under-text">${esc(o.utsatt.orsak ?? '')}, ${esc(o.utsatt.av ?? '')}</span>` : `Slut ${esc(datum(o.slut))}`)}</td>
+      <td>${aktuella ? `${esc(datum(o.uppfoljningsdatum))}${o.slut ? `<span class="under-text">Slut ${esc(datum(o.slut))}</span>` : ''}` : (o.utsatt ? `${esc(datum(o.utsatt.tid))}<span class="under-text">${esc(o.utsatt.orsak ?? '')}, ${esc(o.utsatt.av ?? '')}</span>${o.utsatt.plan ? `<span class="under-text ut-plan">Plan: ${esc(o.utsatt.plan.text)}</span>` : ''}` : `Slut ${esc(datum(o.slut))}`)}</td>
       <td>${nllChip(o.nll_status)}</td>
       <td class="atgarder">
         ${kanOrdinera && ['okand_kontrolleras', 'fel'].includes(o.nll_status) ? `<button type="button" class="knapp liten" data-avstam="${o.id}">Stäm av mot NLL</button>` : ''}

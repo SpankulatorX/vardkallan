@@ -11,6 +11,12 @@ const VI = 'Vidimering > ';
 const UT = 'Utsättning > ';
 const FO = 'Fördefinierade ordinationer > ';
 const VB = 'Vätskebalans > ';
+// Vem som får ge läkemedel och säkrare utsättning och dos (runda 5, app/test/delegering.test.js).
+const LG = 'Läkare ger läkemedel > ';
+const DE = 'Delegering > ';
+const DA = 'Delegering via API > ';
+const DO = 'Dos som avviker från ordinationen > ';
+const PL = 'Utsättning av antikoagulantia > ';
 
 export default [
   {
@@ -86,13 +92,18 @@ export default [
     id: '3.5.2.8', kategori: 'system', egna: ['D10', 'L11'], avsedd: 'uppfyllt_demo',
     tester: [
       `${UT}utsättning av betablockerare ger varning och kräver bekräftelse`,
-      `${UT}utsättning utan särskilda observationer ger ingen varning, och antikoagulantia ger en observation`,
+      `${UT}utsättning utan särskilda observationer ger ingen varning, och antikoagulantia kräver en plan`,
       `${UT}utsättningsreglerna ligger i en egen modul och är märkta som demoregler`,
       `${GK}Sätta ut ett läkemedel med varning inom budget`,
+      // Antikoagulantia sätts bara ut med en plan (runda 5).
+      `${PL}utsättning av Waran kräver en plan, som sparas med utsättningen och syns i listan och i FHIR`,
+      `${PL}vid byte föreslår systemet det nya antikoagulantia som redan är ordinerat`,
+      `${PL}plan via API, och läkemedel utan antikoagulantia sätts ut utan plan`,
+      `${GK}Sätta ut Waran med plan inom budget`,
     ],
-    losning: 'Vid utsättning varnar systemet för läkemedel med särskilda observationer: betablockerare, antikoagulantia, trombocythämmare efter PCI, kortison, basinsulin, antiepileptika, antidepressiva, opioider och sömnmedel. Reglerna ligger i en egen modul och är märkta som demoregler.',
-    expert: 'Systemet räknar ut hur länge patienten har haft substansen, också över dosändringar, visar varningen med ett förslag på nedtrappning innan något sparas och låter orsaken vara motiveringen.',
-    anmarkning: 'Reglerna är demoregler, inte granskade av farmaceut eller läkare. Inget nedtrappningsschema skapas av systemet.',
+    losning: 'Vid utsättning varnar systemet för läkemedel med särskilda observationer: betablockerare, antikoagulantia, trombocythämmare efter PCI, kortison, basinsulin, antiepileptika, antidepressiva, opioider och sömnmedel. Antikoagulantia (ATC B01AA, B01AB, B01AE och B01AF) sätts bara ut med en bekräftad plan: byte till annat medel, uppehåll inför ingrepp med datum för återinsättning, eller avslutad behandling. Planen sparas med utsättningen och syns i läkemedelslistan, i historiken och i FHIR. Reglerna ligger i en egen modul och är märkta som demoregler.',
+    expert: 'Systemet räknar ut hur länge patienten har haft substansen, också över dosändringar, visar varningen med ett förslag på nedtrappning innan något sparas och låter orsaken vara motiveringen. För antikoagulantia förklarar systemet risken för blodpropp och stroke, föreslår planerna med det nya medlet och datumet för återinsättning ifyllda och skriver orsaken ur planen, så att läkaren bekräftar med ett klick på Jag har en plan.',
+    anmarkning: 'Reglerna är demoregler, inte granskade av farmaceut eller läkare. Inget nedtrappningsschema skapas av systemet. Datumet för återinsättning bevakas inte i inkorgen, och ingen ny ordination skapas av systemet på det datumet.',
   },
   {
     id: '3.5.2.9', kategori: 'system', egna: ['L7', 'D9'], avsedd: 'uppfyllt_demo',
@@ -184,10 +195,28 @@ export default [
       `${AD}per avdelning visar bara patienter som användaren får se, med skyddad identitet maskerad och spärrade ordinationer dolda`,
       `${AA}Läskopia > en given dos finns i läskopians läkemedelsdel, identisk med det vanliga anropet`,
       `${GK}Ge en dos inom budget`,
+      // Vem som får ge läkemedel och dos som avviker från ordinationen (runda 5).
+      `${LG}läkare får ge en dos med samma kontroller och loggning som sjuksköterskan`,
+      `${DE}undersköterska med giltig delegering ger en tablett, och delegeringen syns i dosen och i FHIR`,
+      `${DE}undersköterska: en dos som delegeringen inte omfattar nekas och förklaras, och knappen visas inte`,
+      `${DE}sjuksköterskan registrerar en dos som undersköterskan gav: delegeringen prövas för den som gav dosen`,
+      `${DE}undersköterska: utgången delegering, och ingen delegering alls, ger ingen rätt och förklaras`,
+      `${DE}undersköterska: delegeringen gäller bara den vårdenhet den är utfärdad för`,
+      `${DE}undersköterska: spärr och skyddad identitet gäller som för sjuksköterskan, också med delegering`,
+      `${DE}registrera delegering: sjuksköterska på samma vårdenhet, tidsbegränsad till högst ett år, med kontroll av kunskaperna`,
+      `${DE}registrera delegering: fel roll och fel vårdenhet nekas och loggas`,
+      `${DE}återkallad delegering ger ingen rätt, och återkallas bara en gång med orsak`,
+      `${DE}påminnelse i inkorgen när en delegering går ut inom 30 dagar, bara på samma vårdenhet och borta efter förnyelse`,
+      `${DA}API: sjuksköterskan registrerar en delegering och ser påminnelsen i inkorgen, undersköterskan ger med den`,
+      `${DA}API: undersköterska utan giltig delegering har inte behörigheten att ge läkemedel i sessionen`,
+      `${DO}en annan dos än ordinationens varnar och måste kvitteras med motivering, allvarlig vid mer än dubbelt eller mindre än hälften`,
+      `${DO}en dos inom ordinationens intervall ("1 till 2 tabletter") varnar inte`,
+      `${GK}Ge en dos med delegering inom budget`,
+      `${GK}Registrera en delegering inom budget`,
     ],
-    losning: 'Dagens administreringslista per avdelning och patient räknas fram ur ordinationerna. Sjuksköterskan ger, lämnar över eller registrerar att en dos inte gavs med ett klick, också i efterhand. Senast given dos, dygnsdos för vid behov och doser under permission visas. Administreringarna finns i läskopian vid avbrott och i FHIR som MedicationAdministration.',
-    expert: 'Systemet kontrollerar varje dos mot ordinationen och tidigare doser och varnar för dubbel dos, för tidig dos, dos utan ordination och högsta dygnsdos med en förklaring på vanlig svenska. Tid, vem som gav dosen och vårdkontakten sätts av systemet.',
-    anmarkning: 'Varningarna är demoregler. Patientnära skanning är förberedd med kontrollkoden men ingen streckkodsläsare är ansluten. Tiderna i en ordination ändras genom en ny ordination, inte i administreringslistan.',
+    losning: 'Dagens administreringslista per avdelning och patient räknas fram ur ordinationerna. Sjuksköterskan och läkaren ger, lämnar över eller registrerar att en dos inte gavs med ett klick, också i efterhand, med samma kontroller och loggning. En undersköterska ger läkemedel bara med en giltig delegering enligt HSLF-FS 2017:37 9 kap., som en sjuksköterska på samma vårdenhet registrerar med omfattning, giltighet på högst ett år, uppföljning och vem som utfärdade den. Delegeringen sparas med dosen och syns i dosens historik och i FHIR. En dos som avviker från ordinationen ger en varning som kvitteras med motivering. Senast given dos, dygnsdos för vid behov och doser under permission visas. Administreringarna finns i läskopian vid avbrott och i FHIR som MedicationAdministration.',
+    expert: 'Systemet kontrollerar varje dos mot ordinationen och tidigare doser och förklarar på vanlig svenska när det varnar för dubbel dos, för tidig dos, dos utan ordination, högsta dygnsdos eller en annan dos än ordinationens, och sätter själv tid, vem som gav dosen och vårdkontakten. För undersköterskan prövar systemet att delegeringen gäller just dosens läkemedelsform, administrationssätt, datum och vårdenhet, visar knappen Ge bara för de doserna, föreslår nästa delegering och påminner sjuksköterskan i inkorgen 30 dagar innan den går ut.',
+    anmarkning: 'Varningarna är demoregler. Patientnära skanning är förberedd med kontrollkoden men ingen streckkodsläsare är ansluten. Tiderna i en ordination ändras genom en ny ordination, inte i administreringslistan. Vilka läkemedelsformer som kan delegeras och gränsen på ett år är demoregler, inte en vårdgivares rutin efter riskanalys (9 kap. 8 och 9 §§). Bara undersköterskor kan få delegering i demon, och delegeringen registreras av en sjuksköterska, inte av läkare eller tandläkare som också får delegera enligt 9 kap. 2 §.',
   },
   { id: '3.5.2.19', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: 'Automatgenererad administrering från medicinteknisk utrustning är inte byggd.' },

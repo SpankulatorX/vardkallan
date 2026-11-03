@@ -268,6 +268,34 @@ function skapa(BAS) {
       await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Sätt ut trots varningen');
       await synlig(page, '.notis', 'Metoprolol Sandoz är utsatt');
     },
+    // Vem som får ge läkemedel och säkrare utsättning (runda 5).
+    'utsattning-plan': async (m, page) => {
+      await m.klicka(page.locator('.flikar a', { hasText: 'Läkemedel' }), 'fliken Läkemedel');
+      await page.waitForSelector('.lm-tabell');
+      await m.klicka(page.locator('.lm-tabell tr', { hasText: 'Waran' }).filter({ has: page.locator('[data-utsatt]') }).locator('[data-utsatt]'), 'Sätt ut för Waran');
+      await synlig(page, 'dialog[open] .varningslista', 'blodpropp och stroke');
+      await m.klicka(page.locator('dialog[open] [data-plan="uppehall"]'), 'planen Uppehåll inför ingrepp');
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Jag har en plan');
+      await synlig(page, '.notis', 'Waran är utsatt');
+      await synlig(page, '.ut-plan', 'Uppehåll inför ingrepp, återinsätts');
+    },
+    'ge-dos-delegering': async (m, page) => {
+      await m.klicka(page.locator('#meny-lista a[href="#/administrering"]'), 'Läkemedel att ge i menyn');
+      await page.waitForSelector('.adm-patient');
+      await synlig(page, '.adm-delegering', 'Du ger läkemedel med delegering');
+      const gunnar = page.locator('.adm-patient', { hasText: 'Gunnar Åkesson' });
+      await m.klicka(gunnar.locator('.adm-vb', { hasText: 'Alvedon' }).locator('[data-adm="ge"]'), 'Ge för Alvedon vid behov');
+      await synlig(page, '.notis', 'Alvedon är given');
+    },
+    'registrera-delegering': async (m, page) => {
+      await m.klicka(page.locator('#meny-lista a[href="#/delegeringar"]'), 'Delegeringar i menyn');
+      const amira = page.locator('.del-person', { hasText: 'Amira Haddad' });
+      await m.klicka(amira.locator('[data-del="ny"]'), 'Ny delegering för Amira Haddad');
+      await page.locator('dialog[open]').waitFor();
+      await m.klicka(page.locator('dialog[open] #del-intyg'), 'intyget att kunskaperna är kontrollerade');
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Registrera delegeringen');
+      await synlig(page, '.notis', 'Delegeringen för Amira Haddad är registrerad');
+    },
     utskrift: async (m, page) => {
       await m.klicka(page.locator('.snabbval [data-utskrift]'), 'Skriv ut');
       await page.locator('dialog[open]').waitFor();

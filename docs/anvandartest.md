@@ -27,12 +27,18 @@ Testläget har en uppgift per flöde i klickbudgeten. Uppgiften beskriver en sit
 | Skicka remiss | Distriktsläkare, vårdcentral | Patientens översikt | 7 | Läkare |
 | Kvittera remissvar | Distriktsläkare, vårdcentral | Arbetslistan | 3 | Läkare |
 | Nödåtkomst | Läkare, akuten | Arbetslistan | 8 | Läkare |
+| Sätta ut Waran med plan | Läkare, kardiologen | Patientens översikt | 4 | Läkare |
+| Ge en dos med delegering | Undersköterska, avdelning 72 | Arbetslistan | 2 | Undersköterskor |
+| Registrera en delegering | Sjuksköterska, avdelning 72 | Arbetslistan | 4 | Sjuksköterskor |
+
+Tabellen visar ett urval. Alla flöden med budget och motivering finns i `app/src/klickbudget.js`.
 
 Välj uppgifter efter deltagarens yrkesroll när du startar testet:
 
-- Läkare gör alla uppgifter utom Registrera blodtryck.
-- Sjuksköterskor gör Öppna patient från arbetslistan, Läsa senaste anteckning och Registrera blodtryck. De två första görs i demon med läkarens roll, men sidorna ser likadana ut. De räknas in i sammanställningen för alla deltagare, inte för målgruppen.
-- Undersköterskor, vårdadministratörer och medicinska sekreterare kan göra Öppna patient från arbetslistan och Läsa senaste anteckning. Deras erfarenheter är värdefulla, men det finns ännu inga flöden i klickbudgeten som är skrivna för deras arbete.
+- Läkare gör läkarnas uppgifter (demorollerna läkare och distriktsläkare).
+- Sjuksköterskor gör Öppna patient från arbetslistan, Läsa senaste anteckning och sjuksköterskornas uppgifter, bland dem Registrera blodtryck, Ge en dos och Registrera en delegering. De två första görs i demon med läkarens roll, men sidorna ser likadana ut. De räknas in i sammanställningen för alla deltagare, inte för målgruppen.
+- Undersköterskor gör Öppna patient från arbetslistan, Läsa senaste anteckning och Ge en dos med delegering, som är skriven för deras arbete.
+- Vårdadministratörer och medicinska sekreterare gör vårdadministratörens uppgifter.
 
 Uppgifterna görs alltid i den ordning testläget visar dem, eftersom några bygger på varandra.
 
