@@ -176,6 +176,17 @@ const JANEJ = {
   },
 };
 
+// Runda 10, r7: om avgiften för en tjänst i kassan ingår i högkostnadsskyddet, per avgiftstyp (kassa.js, Sussa 3.4.4.4).
+// Förvalet är nej, som demoregel.
+for (const [typ, namn] of [['receptfornyelse', 'Förnyelse av recept'], ['intyg', 'Intyg']]) {
+  JANEJ[`avgift.hogkostnadsskydd_${typ}`] = {
+    omrade: 'administration', rubrik: `${namn} ingår i högkostnadsskyddet`, typ: 'janej', standard: false, anvands: 'kassa.js',
+    text: { true: 'Ingår i högkostnadsskyddet', false: 'Ingår inte i högkostnadsskyddet' },
+    beskrivning: `Om avgiften för ${namn.toLowerCase()} räknas mot högkostnadsskyddet. Ingår den sätts avgiften ned till det som återstår till frikortet, och med frikort är den avgiftsfri. Det är regionens beslut. Förvalet är en demoregel.`,
+    effekt: (db, nytt) => [nytt ? `Nya avgifter för ${namn.toLowerCase()} räknas mot högkostnadsskyddet.` : `Nya avgifter för ${namn.toLowerCase()} räknas inte mot högkostnadsskyddet.`, 'Avgifter som redan är registrerade ändras inte.'],
+  };
+}
+
 // Runda 8, r1: beställning och svar (labb.js, Sussa 12.1.1.9). Svarstiden för det simulerade laboratoriet, larmet för
 // prov som inte är tagna och paketens innehåll, som systemförvaltningen ändrar på ett ställe och som slår igenom i
 // förslagen, i beställningarna och i inkorgen. Katalogen importeras som data, inte modulen som använder parametrarna.

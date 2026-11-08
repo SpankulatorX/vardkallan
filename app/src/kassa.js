@@ -18,6 +18,7 @@ import { kanRoll, vardenhetFor, enheterUnder, alder, visningsnamn, visningsPnr }
 import { hogkostnadsskyddet, AVGIFT_DEMO } from './vardkontakt.js';
 import { lmaFor } from './ekonomi-schema.js';
 import * as identitet from './identitet.js';
+import * as konfiguration from './konfiguration.js';
 
 export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS tjanstavgifter (
@@ -68,21 +69,40 @@ export const ORSAKER = {
   fel_avgift: 'Avgiften var fel', dubbel: 'Patienten betalade två gånger', installt: 'Besöket blev inställt', frikort: 'Patienten hade frikort',
 };
 export const BETALSATT = { kort: 'Kort', faktura: 'Faktura' };
-export const DEMOREGLER = `Demoregler: förnyelse av recept kostar ${RECEPTFORNYELSE} kr och är avgiftsfri för barn och unga under ${AVGIFT_DEMO.friUnder} år, från ${AVGIFT_DEMO.friFran} år och med frikort. Asylsökande med LMA-kort betalar 50 kr. Intyg kostar efter typ och omfattas inte av frikortet. Receptförnyelsen räknas inte in i högkostnadsskyddet i demon. Betalterminalen är simulerad: inga pengar dras och ingen faktura skickas.`;
+export const DEMOREGLER = `Demoregler: förnyelse av recept kostar ${RECEPTFORNYELSE} kr och är avgiftsfri för barn och unga under ${AVGIFT_DEMO.friUnder} år, från ${AVGIFT_DEMO.friFran} år och med frikort. Asylsökande med LMA-kort betalar 50 kr. Intyg kostar efter typ och omfattas inte av frikortet. Om receptförnyelsen och intyg ingår i högkostnadsskyddet sätter systemförvaltaren under Regler och parametrar, och förvalet är nej. Betalterminalen är simulerad: inga pengar dras och ingen faktura skickas.`;
 
 // --- Avgiften ------------------------------------------------------------------------------------------------------
 // Avgiften för en tjänst räknas av systemet. Svaret säger bara att frikort gäller och till när, som e-frikortet, aldrig
 // hur mycket som är betalt.
+// Runda 10, r7: om avgiften ingår i högkostnadsskyddet är en parameter per avgiftstyp (konfiguration.js). Ingår den sätts
+// avgiften ned till det som återstår, räknat på besöken och på de avgifter för tjänster som ingår, och med frikort är den
+// noll. Texten säger aldrig hur mycket som är betalt, som e-frikortet.
+const ingar = (db, tjanst) => { try { return konfiguration.varde(db, `avgift.hogkostnadsskydd_${tjanst}`) === true; } catch { return false; } };
+function inomSkyddet(db, patient, tjanst, belopp, text) {
+  const hk = hogkostnadsskyddet(db, patient);
+  if (hk.frikort) return { belopp: 0, grund: 'frikort', text: `Frikort gäller till och med ${hk.frikortTill}.` };
+  const fran = new Date(Date.now() - 365 * 86400_000).toISOString();
+  const typer = ['receptfornyelse', 'intyg'].filter(t => ingar(db, t));
+  const tjanster = finns(db) && typer.length ? db.query(`SELECT coalesce(sum(belopp), 0) AS n FROM tjanstavgifter WHERE patient_id = ? AND skapad >= ? AND tjanst IN (${typer.map(() => '?').join(', ')})
+    AND id NOT IN (SELECT a.id FROM tjanstavgifter a JOIN kassabetalningar b ON b.avgift_id = a.id JOIN aterbetalningar r ON r.kalla = 'tjanst' AND r.kalla_id = b.id)`).get(patient.id, fran, ...typer).n : 0;
+  const kvar = Math.max(0, hk.kvar - tjanster);
+  if (kvar === 0) return { belopp: 0, grund: 'frikort', text: 'Frikort gäller, eftersom högkostnadsskyddet är nått.' };
+  return kvar < belopp ? { belopp: kvar, grund: 'avgift', text: `${text} Avgiften är nedsatt enligt högkostnadsskyddet.` } : { belopp, grund: 'avgift', text: `${text} Avgiften ingår i högkostnadsskyddet.` };
+}
+
 export function avgiftFor(db, patient, tjanst, intygstyp = null, dag = idag()) {
   const ar = alder(patient.fodd, dag);
   if (tjanst === 'intyg') {
     const t = Object.hasOwn(INTYGSTYPER, intygstyp ?? '') ? INTYGSTYPER[intygstyp] : null;
     if (!t) throw new Fel(400, 'Välj vilket intyg det gäller.', 'ogiltig', { falt: ['intygstyp'] });
-    return t.belopp === 0 ? { belopp: 0, grund: 'avgiftsfri', text: t.fri } : { belopp: t.belopp, grund: 'avgift', text: `${t.text}: ${t.belopp} kr. Intyg omfattas inte av frikortet.` };
+    if (t.belopp === 0) return { belopp: 0, grund: 'avgiftsfri', text: t.fri };
+    if (ingar(db, 'intyg') && !lmaFor(db, patient.id, dag)) return inomSkyddet(db, patient, 'intyg', t.belopp, `${t.text}.`);
+    return { belopp: t.belopp, grund: 'avgift', text: `${t.text}: ${t.belopp} kr. Intyg omfattas inte av frikortet.` };
   }
   if (tjanst !== 'receptfornyelse') throw new Fel(400, 'Välj förnyelse av recept eller intyg.', 'ogiltig', { falt: ['tjanst'] });
   if (ar < AVGIFT_DEMO.friUnder || ar >= AVGIFT_DEMO.friFran) return { belopp: 0, grund: 'avgiftsfri', text: `Avgiftsfritt för patienter under ${AVGIFT_DEMO.friUnder} år och från ${AVGIFT_DEMO.friFran} år.` };
   if (lmaFor(db, patient.id, dag)) return { belopp: 50, grund: 'lma', text: 'Asylsökande med LMA-kort betalar 50 kr.' };
+  if (ingar(db, 'receptfornyelse')) return inomSkyddet(db, patient, 'receptfornyelse', RECEPTFORNYELSE, 'Förnyelse av recept.');
   const hk = hogkostnadsskyddet(db, patient);
   if (hk.frikort) return { belopp: 0, grund: 'frikort', text: `Frikort gäller till och med ${hk.frikortTill}.` };
   return { belopp: RECEPTFORNYELSE, grund: 'avgift', text: `Förnyelse av recept: ${RECEPTFORNYELSE} kr.` };

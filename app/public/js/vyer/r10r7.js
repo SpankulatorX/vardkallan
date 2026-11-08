@@ -203,7 +203,7 @@ export async function ombudIJournalen(el, pid) {
   sek.setAttribute('aria-labelledby', 'fm-rubrik');
   const ritaOm = (x) => {
     sek.innerHTML = `<h3 id="fm-rubrik">Ombud med fullmakt</h3>
-      ${x.fullmakter.length ? `<ul class="enkel-lista">${x.fullmakter.map(f => `<li><strong>${esc(f.ombud?.namn ?? '')}</strong> <span class="pnr">${esc(f.ombud?.personnummer ?? '')}</span>: ${esc(f.omfattning.map(o => o.text).join('. '))}. Till och med ${esc(f.giltigTill)}. ${esc(f.kallaText)}. <span class="tagg">${f.aktiv ? 'Gäller' : f.aterkallad ? 'Återkallad' : 'Har gått ut'}</span>
+      ${x.fullmakter.length ? `<ul class="enkel-lista">${x.fullmakter.map(f => `<li><strong>${esc(f.ombud?.namn ?? '')}</strong> <span class="pnr">${esc(f.ombud?.personnummer ?? '')}</span>: ${esc(f.omfattning.map(o => o.text).join('. '))}. Till och med ${esc(f.giltigTill)}. ${esc(f.kallaText)}. <span class="tagg">${esc(f.statusText ?? '')}</span>
         ${f.aktiv && x.kanRegistrera ? `<button type="button" class="knapp text liten" data-fm-aterkalla="${f.id}">Återkalla</button>` : ''}</li>`).join('')}</ul>` : '<p class="tom">Patienten har inga ombud.</p>'}
       ${x.kanRegistrera ? `<form id="fm-ny" novalidate><div class="falt-rad"><div class="falt"><label for="fm-pnr">Ombudets personnummer</label><input id="fm-pnr" name="personnummer" autocomplete="off" maxlength="13"></div></div>
         <div class="radio"><input type="checkbox" id="fm-skriftlig" name="skriftlig"><label for="fm-skriftlig">Patienten har lämnat en skriftlig och undertecknad fullmakt</label></div>

@@ -41,6 +41,7 @@ const href = (pid, del, sub) => `#/min/${encodeURIComponent(pid)}${del && del !=
 
 // Utan journal i adressen: den egna journalen direkt, eller ett val när invånaren är vårdnadshavare.
 function valAvJournal(main) {
+  r10r7.kopplaForfragningar(main);
   const j = S.session?.journaler ?? [];
   const egen = j.find(x => x.relation === 'egen');
   const barn = j.filter(x => x.relation === 'vardnadshavare');
@@ -51,6 +52,7 @@ function valAvJournal(main) {
         ? `<a class="min-journalval" href="${href(b.patientId)}">${ikon.person}<span><strong>${esc(b.namn)}</strong><span class="under-text">${esc(b.alder)} år. Du är vårdnadshavare.</span></span></a>`
         : `<div class="min-journalval min-journalval-stangd">${ikon.las}<span><strong>${esc(b.namn)}</strong><span class="under-text">${esc(b.skal ?? '')}</span></span></div>`}</li>`).join('')}
     </ul>
+    ${r10r7.forfragningarHtml(S.session?.ombudForfragningar ?? [])}
     ${r10r7.ombudLista(S.session?.ombudFor ?? [], (pid) => href(pid, 'tider'))}
     ${egen ? '' : '<p class="dampad">Det finns ingen journal om dig själv i Vårdkällans demo.</p>'}`;
 }
@@ -78,7 +80,8 @@ export async function visa(main, [pid, del, sub], q, ctx = {}) {
   if (!pid) {
     const j = S.session?.journaler ?? [];
     // Bara den egna journalen: den visas direkt. En vårdnadshavare väljer, så att det syns vems journal det är.
-    if (j.length === 1 && j[0].atkomst && j[0].relation === 'egen') {
+    // Runda 10, r7: en förfrågan om att bli ombud visas på valet av journal, så då visas valet.
+    if (j.length === 1 && j[0].atkomst && j[0].relation === 'egen' && !S.session?.ombudForfragningar?.length) {
       history.replaceState(null, '', href(j[0].patientId));
       main.dataset.vy = `min:${j[0].patientId}`;
       return visa(main, [j[0].patientId], q, ctx);

@@ -23,7 +23,7 @@ import { MATKOD } from './kodverk.js';
 import { YRKEN } from './seed/personal.js';
 import { kvalitetssakrad } from './mt-klass.js';
 // Runda 10, r7: ombud med fullmakt (ombud.js).
-import { fullmaktFor, ombudFor } from './ombud.js';
+import { fullmaktFor, ombudFor, forfragningar } from './ombud.js';
 
 export const PROVSVAR_SENAST_DAGAR = 14;
 export const BEGARANTYPER = ['sparr', 'hava_sparr', 'loggutdrag'];
@@ -70,6 +70,7 @@ export function sessionDel(db, inv, nu = new Date()) {
     journaler: journaler(db, inv, nu),
     // Runda 10, r7: patienterna som invånaren är ombud för (ombud.js).
     ombudFor: ombudFor(db, inv),
+    ombudForfragningar: forfragningar(db, inv),
   };
 }
 

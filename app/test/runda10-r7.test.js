@@ -4,9 +4,11 @@ import { T10 } from '../src/sussa/runda10-r7.js';
 import * as kassa from '../src/kassa.js';
 import * as kapacitet from '../src/kapacitetsprognos.js';
 import * as kontorsstod from '../src/kontorsstod.js';
+import * as konfiguration from '../src/konfiguration.js';
 import { packaUpp } from '../src/zip.js';
 import { idag, addDagar, iso } from '../src/db.js';
 import { harVardrelation } from '../src/atkomst.js';
+import { hogkostnadsskyddet } from '../src/vardkontakt.js';
 
 // Runda 10, r7 (Sussa 3.4.1.5, 3.4.2.3, 3.4.4.1, 3.4.4.4, 3.7.1.1, 3.7.1.3 och 5.1.1.1): ombud med fullmakt, meddelanden
 // mellan invånare och vård, invånarens begäranden, vårdplanen i Min journal, kassan, kapaciteten och kontorsstödet.
@@ -43,7 +45,12 @@ describe('Ombud', () => {
     expect(lista.kanGe).toBe(true);
     const r = await p.post('/api/min/journal/p02/ombud', { personnummer: '19861214-2383' });
     expect(r.status).toBe(201);
-    expect(r.data.fullmakt).toMatchObject({ aktiv: true, ombud: { personnummer: '19861214-****' } });
+    expect(r.data.fullmakt).toMatchObject({ aktiv: false, vantar: true, ombud: { personnummer: '19861214-****' } });
+    // Johanna Bergström godkänner i sin egen inloggning. Då gäller fullmakten och patienten ser namnet.
+    const pv = sandlada(app, p);
+    somInv(pv, 'inv-vh01');
+    expect((await p.post(`/api/min/fullmakt/${r.data.fullmakt.id}/godkann`)).status).toBe(200);
+    somInv(pv, 'inv-p02');
     expect((await p.get('/api/min/journal/p02/ombud')).data.fullmakter[0].ombud).toEqual({ namn: 'Johanna Bergström', personnummer: '19861214-2383' });
     expect(r.data.fullmakt.omfattning.map(x => x.id)).toEqual(['tider', 'meddelanden']);
     expect(r.data.fullmakt.giltigTill).toBe(addDagar(idag(), 365));
@@ -97,6 +104,8 @@ describe('Ombud', () => {
     // En utgången fullmakt gäller inte heller.
     const ny = await p.post('/api/min/journal/p01/ombud', { personnummer: '19770123-2386' });
     expect(ny.status).toBe(201);
+    expect((await o.get('/api/min/journal/p01/tider')).status).toBe(404);
+    expect((await o.post(`/api/min/fullmakt/${ny.data.fullmakt.id}/godkann`)).status).toBe(200);
     expect((await o.get('/api/min/journal/p01/tider')).status).toBe(200);
     os.db.exec('DROP TRIGGER fullmakt_andras_ej');
     os.db.query('UPDATE fullmakter SET giltig_till = ? WHERE id = ?').run(addDagar(idag(), -1), ny.data.fullmakt.id);
@@ -238,8 +247,8 @@ describe('Ombud', () => {
     for (const x of ['Johanna', 'Bergström', '2383']) expect(oktext).not.toContain(x);
     expect(oktext).toContain('19861214-****');
     expect(ok.data.fullmakt.giltigTill).toBeTruthy();
-    // I listan över fullmakter ser patienten ombudets namn.
-    expect((await p.get('/api/min/journal/p02/ombud')).data.fullmakter[0].ombud.namn).toBe('Johanna Bergström');
+    // I listan ser patienten bara personnumret maskerat tills ombudet har godkänt.
+    expect((await p.get('/api/min/journal/p02/ombud')).data.fullmakter[0].ombud).toEqual({ personnummer: '19861214-****' });
     // Samma svar för en person som inte finns, en som är under 18 och en med skyddade personuppgifter.
     const svar = [];
     for (const pnr of ['19121212-1212', '20171211-2398', '19840416-2383']) {
@@ -279,6 +288,79 @@ describe('Ombud', () => {
     expect(tak.status).toBe(429);
     expect(tak.data.fel).toContain('många försök');
     expect((await p.get('/api/min/journal/p02/ombud')).data.fullmakter).toHaveLength(1);
+  });
+
+  test(namn(T10.ombudGodkann), async () => {
+    // Birgitta Nyman (p06) ger fullmakt i Min journal. Den gäller först när ombudet har godkänt den.
+    const p = await invanare('inv-p06');
+    const s = sandlada(app, p);
+    const r = await p.post('/api/min/journal/p06/ombud', { personnummer: '19861214-2383' });
+    expect(r.status).toBe(201);
+    expect(r.data.fullmakt).toMatchObject({ aktiv: false, vantar: true, ombud: { personnummer: '19861214-****' } });
+    const fore = (await p.get('/api/min/journal/p06/ombud')).data;
+    expect(fore.fullmakter[0]).toMatchObject({ vantar: true, ombud: { personnummer: '19861214-****' } });
+    expect(fore.fullmakter[0].statusText).toContain('väntar på att ombudet godkänner');
+    expect(JSON.stringify(fore)).not.toContain('Johanna');
+    expect(JSON.stringify(fore)).not.toContain('Bergström');
+    // Före godkännandet ger fullmakten ingen åtkomst.
+    somInv(s, 'inv-vh01');
+    expect((await p.get('/api/min/journal/p06/tider')).status).toBe(404);
+    const sess = (await p.get('/api/session')).data;
+    expect(sess.ombudFor.map(x => x.patientId)).not.toContain('p06');
+    const fr = sess.ombudForfragningar.find(x => x.patient.namn === 'Birgitta Nyman');
+    expect(fr).toBeTruthy();
+    // Ombudet godkänner i sin egen inloggning. Patienten kan inte godkänna åt ombudet.
+    somInv(s, 'inv-p06');
+    expect((await p.post(`/api/min/fullmakt/${fr.id}/godkann`)).status).toBe(404);
+    somInv(s, 'inv-vh01');
+    expect((await p.post(`/api/min/fullmakt/${fr.id}/godkann`)).status).toBe(200);
+    expect((await p.get('/api/min/journal/p06/tider')).status).toBe(200);
+    expect(logg(p, "patient_id = 'p06' AND invanare_id = 'inv-vh01' AND resurs = ?", `min:fullmakt:${fr.id}:godkand`)).toHaveLength(1);
+    // Efter godkännandet ser patienten namnet.
+    somInv(s, 'inv-p06');
+    expect((await p.get('/api/min/journal/p06/ombud')).data.fullmakter[0]).toMatchObject({ aktiv: true, vantar: false, ombud: { namn: 'Johanna Bergström' } });
+    // Samma svar för okänt nummer, en dubblett, personen själv och fullt antal ombud.
+    const fel = async (pnr) => { const x = await p.post('/api/min/journal/p06/ombud', { personnummer: pnr }); return { status: x.status, data: x.data }; };
+    const okant = await fel('19121212-1212');
+    expect(okant.status).toBe(400);
+    expect(await fel('19861214-2383')).toEqual(okant);
+    expect(await fel('19460119-8882')).toEqual(okant);
+    // Två till ger tre ombud (det andra väntar), och ett fjärde ger samma svar som ett okänt nummer.
+    expect((await p.post('/api/min/journal/p06/ombud', { personnummer: '19770123-2386' })).status).toBe(201);
+    expect((await p.post('/api/min/journal/p06/ombud', { personnummer: '19660319-3373' })).status).toBe(201);
+    expect(await fel('19650314-3254')).toEqual(okant);
+    // Alla misslyckade försök räknas mot taket: fyra hittills, sex till och sedan stoppas också ett giltigt nummer.
+    expect(logg(p, "patient_id = 'p06' AND invanare_id = 'inv-p06' AND resurs = 'min:ombud:nekad'")).toHaveLength(4);
+    for (let i = 0; i < 6; i++) await fel('19121212-1212');
+    expect((await fel('19800426-2385')).status).toBe(429);
+  });
+
+  test(namn(T10.ombudCykel), async () => {
+    // Registrering och återkallelse om och om igen har ett eget tak per dygn.
+    const p = await invanare('inv-p05');
+    const svar = [];
+    for (let i = 0; i < 4; i++) {
+      const r = await p.post('/api/min/journal/p05/ombud', { personnummer: '19861214-2383' });
+      svar.push(r.status);
+      if (r.status === 201) await p.post(`/api/min/journal/p05/ombud/${r.data.fullmakt.id}/aterkalla`);
+    }
+    expect(svar.slice(0, 3)).toEqual([201, 201, 201]);
+    expect(svar[3]).toBe(429);
+    // Ett ombud avböjer en förfrågan, och den ger aldrig åtkomst.
+    const k = await invanare('inv-p11');
+    const s = sandlada(app, k);
+    const r = await k.post('/api/min/journal/p11/ombud', { personnummer: '19861214-2383' });
+    somInv(s, 'inv-vh01');
+    expect((await k.post(`/api/min/fullmakt/${r.data.fullmakt.id}/avboj`)).status).toBe(200);
+    expect((await k.post(`/api/min/fullmakt/${r.data.fullmakt.id}/godkann`)).status).toBe(404);
+    expect((await k.get('/api/min/journal/p11/tider')).status).toBe(404);
+    // En fullmakt som personalen registrerar efter en skriftlig fullmakt gäller direkt.
+    const a = await inloggad('adm-kard');
+    const sa = sandlada(app, a);
+    const v = await a.post('/api/patient/p10/fullmakter', { personnummer: '19861214-2383', skriftlig: true });
+    expect(v.data.fullmakt).toMatchObject({ aktiv: true, vantar: false });
+    somInv(sa, 'inv-vh01');
+    expect((await a.get('/api/min/journal/p10/tider')).status).toBe(200);
   });
 
   test(namn(T10.ombudLogg), async () => {
@@ -555,6 +637,37 @@ describe('Kassan', () => {
     expect(r.data.avgift).toMatchObject({ tjanst: 'intyg', belopp: 300, status: 'att_betala', skapadAv: 'Karin Berg' });
     expect(logg(k, "patient_id = 'p01' AND personal_id = 'adm-kard' AND resurs = ?", `tjanstavgift:${r.data.avgift.id}`)).toHaveLength(1);
     expect(() => db(k).query('UPDATE tjanstavgifter SET belopp = 0').run()).toThrow();
+  });
+
+  test(namn(T10.hogkostnad), async () => {
+    const p = konfiguration.parametrar();
+    for (const k of ['avgift.hogkostnadsskydd_receptfornyelse', 'avgift.hogkostnadsskydd_intyg']) {
+      expect(p[k]).toMatchObject({ typ: 'janej', standard: false, omrade: 'administration' });
+    }
+    const d = nyDb();
+    expect(konfiguration.varde(d, 'avgift.hogkostnadsskydd_receptfornyelse')).toBe(false);
+    // Besök de senaste tolv månaderna tills mindre än receptförnyelsens 100 kr återstår till frikortet.
+    const pt = d.query("SELECT * FROM patienter WHERE id = 'p02'").get();
+    for (let i = 1; hogkostnadsskyddet(d, pt).kvar >= 100 && i < 30; i++) {
+      d.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, kontaktsatt, start, slut, orsak, kalla, planerad, skapad) VALUES ('p02', 'vc-tybble', 'oppenvard', 'besok', ?, ?, 'Besök', 'vardkallan', 0, ?)")
+        .run(new Date(Date.now() - i * 10 * 86400_000).toISOString(), new Date(Date.now() - i * 10 * 86400_000 + 3600_000).toISOString(), iso());
+    }
+    const kvar = hogkostnadsskyddet(d, pt).kvar;
+    expect(kvar).toBeGreaterThan(0);
+    expect(kassa.avgiftFor(d, pt, 'receptfornyelse').belopp).toBe(100);
+    expect(kassa.avgiftFor(d, pt, 'intyg', 'resa').belopp).toBe(300);
+    // Systemförvaltaren sätter att receptförnyelsen ingår. Då sätts avgiften ned till det som återstår.
+    d.query("INSERT INTO konfig_andringar (slag, nyckel, varde, giltig_fran, motivering, foreslagen_av, foreslagen, status, beslutad_av, beslutad, galler_fran) VALUES ('parameter', 'avgift.hogkostnadsskydd_receptfornyelse', 'true', ?, 'Test', 'sf-1', ?, 'godkand', 'sf-2', ?, ?)").run(idag(), iso(), iso(), idag());
+    expect(konfiguration.varde(d, 'avgift.hogkostnadsskydd_receptfornyelse')).toBe(true);
+    const a = kassa.avgiftFor(d, pt, 'receptfornyelse');
+    expect(a.belopp).toBe(kvar);
+    expect(a.text).toContain('högkostnadsskyddet');
+    expect(a.text).not.toMatch(/1\s?400|1\s?450/);
+    // En avgift för receptförnyelse som redan är registrerad räknas också, och sedan gäller frikort.
+    kassa.skapaAvgift(d, { patient: pt, enhetId: 'uso-kard', tjanst: 'receptfornyelse' });
+    expect(kassa.avgiftFor(d, pt, 'receptfornyelse')).toMatchObject({ belopp: 0, grund: 'frikort' });
+    // Intyget ingår fortfarande inte.
+    expect(kassa.avgiftFor(d, pt, 'intyg', 'resa').belopp).toBe(300);
   });
 
   test(namn(T10.betala), async () => {

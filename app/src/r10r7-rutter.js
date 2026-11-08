@@ -28,6 +28,12 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
   rutt('POST', '/api/min/journal/:id/meddelanden/:tid/svar', (c, id, tid) => medMinJournal(c, id, `min:meddelanden:${Number(tid) || 0}:svar`, (atk) => meddelanden.minSvara(atk, tid, c.body)));
   rutt('POST', '/api/min/journal/:id/ombud', (c, id) => medMinJournal(c, id, 'min:ombud', (atk) => ombud.minGe(atk, c.body)));
   rutt('POST', '/api/min/journal/:id/ombud/:fid/aterkalla', (c, id, fid) => medMinJournal(c, id, `min:ombud:${Number(fid) || 0}`, (atk) => ombud.minAterkalla(atk, fid)));
+  // Ombudet godkänner eller avböjer en fullmakt i sin egen inloggning.
+  rutt('POST', '/api/min/fullmakt/:fid/:svar', (c, fid, svar) => {
+    if (!c.invanare) throw new Fel(401, 'Logga in med e-legitimation.', 'ej_inloggad');
+    if (!['godkann', 'avboj'].includes(svar)) throw new Fel(404, 'Okänd adress.', 'saknas');
+    return ombud.besvara(c.db, c.invanare, fid, svar);
+  });
   rutt('POST', '/api/min/journal/:id/avgift/:aid/betala', (c, id, aid) => medMinJournal(c, id, `min:avgift:${Number(aid) || 0}`, (atk) => kassa.minBetala(atk, aid, c.body)));
 
   // --- Meddelanden från invånare och begäranden -----------------------------------------------------------------

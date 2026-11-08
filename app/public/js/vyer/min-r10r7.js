@@ -1,6 +1,7 @@
 // Runda 10, r7: Min journal. Meddelanden till vården, vårdplanen med kommentarer, ombud med fullmakt, avgifter för
 // tjänster och möteslänkar för videobesök. Servern prövar varje anrop och loggar det på patienten.
 import { esc, api, notis, felNotis, medKnapp, ikon, tidpunkt, datum } from '../ui.js';
+import { S, rita } from '../app.js';
 
 const vag = (pid, v = '') => `/api/min/journal/${encodeURIComponent(pid)}${v}`;
 const kr = (n) => `${Number(n).toLocaleString('sv-SE')} kr`;
@@ -8,6 +9,27 @@ const kr = (n) => `${Number(n).toLocaleString('sv-SE')} kr`;
 // --- Valet av journal: patienterna som invånaren är ombud för ------------------------------------------------------
 export const ombudLista = (lista, href) => (lista.length ? `<h2 class="min-ombud-rubrik">Du är ombud för</h2><ul class="min-journaler">${lista.map(o =>
   `<li><a class="min-journalval" href="${href(o.patientId)}" data-ombud="${esc(o.patientId)}">${ikon.person}<span><strong>${esc(o.namn)}</strong><span class="under-text">${esc(o.alder)} år. Fullmakten gäller ${esc(o.omfattning.map(x => ({ tider: 'tider', meddelanden: 'meddelanden' })[x]).join(' och '))} till och med ${esc(o.giltigTill)}.</span></span></a></li>`).join('')}</ul>` : '');
+
+// Förfrågningar om att bli ombud. Fullmakten gäller först när den som ska vara ombud har godkänt den.
+export const forfragningarHtml = (lista) => (lista.length ? `<section class="ov-sektion" aria-labelledby="min-forfragan"><h2 id="min-forfragan" class="min-ombud-rubrik">Förfrågningar om att bli ombud</h2>
+  <ul class="enkel-lista">${lista.map(f => `<li data-forfragan="${f.id}"><p><strong>${esc(f.patient.namn)}</strong> vill ge dig fullmakt: ${esc(f.omfattning.map(o => o.text.toLowerCase()).join(' och '))}, till och med ${esc(f.giltigTill)}.</p>
+    <div class="knapprad"><button type="button" class="knapp" data-forfragan-svar="godkann" data-id="${f.id}">Godkänn</button><button type="button" class="knapp sekundar" data-forfragan-svar="avboj" data-id="${f.id}">Avböj</button></div></li>`).join('')}</ul>
+  <p class="hjalp">Som ombud ser du tiderna och meddelandena, aldrig journalen. Det du gör loggas och syns för patienten.</p></section>` : '');
+let kopplad = null;
+export function kopplaForfragningar(main) {
+  if (kopplad === main) return;
+  kopplad = main;
+  main.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-forfragan-svar]');
+    if (!b) return;
+    try {
+      const r = await medKnapp(b, () => api(`/api/min/fullmakt/${encodeURIComponent(b.dataset.id)}/${b.dataset.forfraganSvar}`, { metod: 'POST', data: {} }));
+      notis(r.text);
+      S.session = await api('/api/session');
+      rita();
+    } catch (err) { felNotis(err); }
+  });
+}
 
 // --- Meddelanden ------------------------------------------------------------------------------------------------------
 const tradHtml = (t) => `<li class="min-trad" data-trad="${t.id}">
@@ -114,10 +136,10 @@ export async function vardplan(el, ctx) {
 }
 
 // --- Ombud -----------------------------------------------------------------------------------------------------------
-const fullmaktHtml = (f, kan) => `<li class="min-tid"><p><strong>${esc(f.ombud?.namn ?? f.patient?.namn ?? '')}</strong>${f.ombud ? ` <span class="under-text">${esc(f.ombud.personnummer)}</span>` : ''}
-  <span class="tagg${f.aktiv ? ' tagg-pagaende' : ''}">${f.aktiv ? 'Gäller' : f.aterkallad ? 'Återkallad' : 'Har gått ut'}</span></p>
+const fullmaktHtml = (f, kan) => `<li class="min-tid"><p><strong>${esc(f.ombud?.namn ?? f.patient?.namn ?? f.ombud?.personnummer ?? '')}</strong>${f.ombud?.namn ? ` <span class="under-text">${esc(f.ombud.personnummer)}</span>` : ''}
+  <span class="tagg${f.aktiv ? ' tagg-pagaende' : ''}">${esc(f.statusText ?? '')}</span></p>
   <p>${esc(f.omfattning.map(x => x.text).join('. '))}. Till och med ${esc(f.giltigTill)}. ${esc(f.kallaText)}.</p>
-  ${f.aktiv && kan ? `<div class="knapprad"><button type="button" class="knapp text liten" data-om-aterkalla="${f.id}">${f.ombud ? 'Återkalla fullmakten' : 'Avsäg dig fullmakten'}</button></div>` : ''}</li>`;
+  ${(f.aktiv || f.vantar) && kan ? `<div class="knapprad"><button type="button" class="knapp text liten" data-om-aterkalla="${f.id}">${f.ombud ? 'Återkalla fullmakten' : 'Avsäg dig fullmakten'}</button></div>` : ''}</li>`;
 
 export async function ombud(el, ctx) {
   const d = await api(vag(ctx.pid, '/ombud'));
