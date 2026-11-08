@@ -413,7 +413,7 @@ async function nyMiljo(b) {
   const ut = b.closest('section').querySelector('[data-miljo-ut]');
   try {
     const r = await medKnapp(b, () => api('/api/miljoer', { metod: 'POST', data: { typ: b.dataset.nyMiljo } }));
-    ut.innerHTML = `<p class="ruta ruta-ok liten">${ikon.bock} ${esc(r.miljo.text)} är skapad. <a href="${esc(r.adress)}" data-oppna-miljo>Öppna ${esc(r.miljo.text.toLowerCase())}</a>. Länken gäller en gång i fem minuter.</p>`;
+    ut.innerHTML = `<p class="ruta ruta-ok liten">${ikon.bock}<span>${esc(r.miljo.text)} är skapad. <a href="${esc(r.adress)}" data-oppna-miljo>Öppna ${esc(r.miljo.text.toLowerCase())}</a>. Länken gäller en gång i fem minuter.</span></p>`;
     notis(`${r.miljo.text} är skapad.`);
   } catch { /* notis visad */ }
 }

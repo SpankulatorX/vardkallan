@@ -11,8 +11,8 @@ const leveransText = (l) => (!l ? '' : l.status === 'kvitterat'
   : `<span class="under-text">Avvisat av ${esc(l.mottagare)}: ${esc(l.orsak ?? '')}</span>`);
 // Runda 9, r5 (Sussa 5.4.2.4): gallringsreglerna per informationsmängd, som systemförvaltaren ändrar.
 const reglerLista = (regler) => `<section class="arkiv-kort" aria-labelledby="ar-regler"><h2 id="ar-regler">Gallringsregler</h2>
-  <dl class="faktalista">${regler.map(r => `<div><dt>${esc(r.text)}</dt><dd>${esc(plural(r.ar, 'år', 'år'))}<span class="under-text">${esc(r.villkor)}</span></dd></div>`).join('')}</dl>
   <p class="dampad liten">Ett gallringsbeslut tar med reglerna som de gäller när beslutet registreras. Systemförvaltaren ändrar dem under Regler och parametrar, med fyra ögon. Hela journalen bevaras minst tio år efter den sista uppgiften.</p>
+  <dl class="faktalista">${regler.map(r => `<div><dt>${esc(r.text)}</dt><dd>${esc(plural(r.ar, 'år', 'år'))}<span class="under-text">${esc(r.villkor)}</span></dd></div>`).join('')}</dl>
 </section>`;
 const STATUS = (b) => (b.verkstallt ? `Verkställt ${tidpunkt(b.verkstallt)} av ${b.verkstalltAv ?? ''}` : 'Inte verkställt');
 const pnamn = (p) => (p ? `${p.skyddad ? 'Skyddad identitet' : p.namn}, ${p.personnummer}` : 'Alla journaler');

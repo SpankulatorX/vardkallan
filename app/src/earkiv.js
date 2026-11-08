@@ -100,7 +100,7 @@ ${DATAELEMENT.map(d => `| ${d.namn} | ${d.obligatorisk ? 'ja' : 'nej'} | ${d.kal
 
 const sha = (b) => createHash('sha256').update(b).digest('hex').toUpperCase();
 // En fil per patient heter efter patienten. I kvittensen och i felen står bara mappen, så att svaret inte bär patientens id.
-const visaVag = (v) => v.replace(/^(representations\/rep_1\/data\/(?:journal|ovrigt)\/)[^/]+$/, '$1(en patients fil)');
+const visaVag = (v) => v.replace(/^(representations\/rep_1\/data\/(?:journal|ovrigt)\/)[^/]+$/, '$1(fil för en patient)');
 const MAPPAR = ['metadata/', 'metadata/descriptive/', 'metadata/preservation/', 'metadata/other/', 'representations/', 'representations/rep_1/', 'representations/rep_1/data/', 'schemas/', 'documentation/'];
 
 // E-arkivets mottagningskontroll av paketet. Ger { fel, filer, handlingar } där fel är en lista på vanlig svenska.

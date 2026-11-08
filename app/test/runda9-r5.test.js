@@ -577,7 +577,7 @@ describe('E-arkiv', () => {
     const utan = zip([...filer].filter(([n]) => !n.endsWith('/p02.json')).map(([namn, f]) => (namn.endsWith('/') ? { namn } : { namn, data: f.data })));
     const saknas = earkiv.leverera(db, { objid, paket: utan });
     expect(saknas.status).toBe('avvisat');
-    expect(saknas.orsak).toContain('Filen representations/rep_1/data/journal/(en patients fil) finns i METS.xml men inte i paketet.');
+    expect(saknas.orsak).toContain('Filen representations/rep_1/data/journal/(fil för en patient) finns i METS.xml men inte i paketet.');
     // Felen bär inte patientens id.
     expect(JSON.stringify(saknas)).not.toContain('p02');
     expect(saknas.kontroll.fel).toContain('Journalhandling 1 i indexet pekar på en fil som inte finns.');
