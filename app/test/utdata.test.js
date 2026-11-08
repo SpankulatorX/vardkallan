@@ -426,7 +426,8 @@ describe('Datauttag', () => {
     const k = await inloggad('uppf');
     const m = (await k.get('/api/datauttag')).data;
     expect(m).toMatchObject({ requiresAccessToken: false, format: 'application/x-ndjson', error: [] });
-    expect(m.output.map(o => o.type)).toEqual(['Vardkontakt', 'Diagnos', 'Ordination', 'Remiss']);
+    // Runda 9, r7: också mätvärden, anteckningar, vårdtillfällen och patientavgifter (Sussa 6.3.1.3).
+    expect(m.output.map(o => o.type)).toEqual(['Vardkontakt', 'Diagnos', 'Ordination', 'Remiss', 'Matvarde', 'Anteckning', 'Vardtillfalle', 'Patientavgift']);
     expect(m.output.every(o => o.count > 0 && o.url.endsWith(`/api/datauttag/${o.type}`))).toBe(true);
     const r = await raw(k, 'GET', '/api/datauttag/Diagnos');
     expect(r.headers.get('content-type')).toContain('application/x-ndjson');
@@ -447,7 +448,10 @@ describe('Datauttag', () => {
       if (p.adress) expect(text).not.toContain(p.adress);
       expect(text).not.toContain(`"${p.id}"`);
     }
-    for (const v of d.query('SELECT orsak, plats FROM vardkontakter WHERE orsak IS NOT NULL').all()) if (v.orsak.length > 8) expect(text).not.toContain(v.orsak);
+    // Runda 9, r7: anteckningstypen står i tabellen Anteckning, och en migrerad kontakt kan ha typen som orsak.
+    const typer = new Set(d.query('SELECT DISTINCT typ FROM anteckningar').all().map(x => x.typ));
+    for (const v of d.query('SELECT orsak, plats FROM vardkontakter WHERE orsak IS NOT NULL').all()) if (v.orsak.length > 8 && !typer.has(v.orsak)) expect(text).not.toContain(v.orsak);
+    for (const a of d.query('SELECT sokord FROM anteckningar').all()) for (const s of JSON.parse(a.sokord)) if (s.text.length > 12) expect(text).not.toContain(s.text);
     for (const o of d.query('SELECT orsak FROM ordinationer').all()) expect(text).not.toContain(o.orsak);
     const forsta = JSON.parse(text.split('\n')[0]);
     expect(Object.keys(forsta).sort()).toEqual(Object.keys(datauttag.SCHEMA.Vardkontakt.falt).sort());
