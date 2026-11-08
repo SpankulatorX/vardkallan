@@ -11,6 +11,7 @@ const MV = 'Mätvärden, skala 2 och inmatning > ';
 const UM = 'Uppmärksamhetsinformation > ';
 const RJ = 'Skannade restjournaler > ';
 const DN = 'Donation och transplantation > ';
+const DA = 'Donationsansvariga och avliden patient > ';
 
 export const INFARTER = [
   `${IF}typen avgör storlek, KVÅ-kod och nästa skötsel, och registreringen knyts till den pågående vårdkontakten`,
@@ -58,4 +59,10 @@ export const DONATION = [
   `${DN}en transplantation ger bidiagnos ur ICD-10-SE och uppmärksamhetsinformationen föreslår transplantat`,
   `${DN}behörighet: fel roll, fel vårdenhet och spärr, och tidslinjen visar bara det som får ses`,
   `${GK}Pröva donation efter ett dödsfall på intensivvården inom budget`,
+  // De donationsansvariga som uppdrag och den avlidna patienten (beslut 2026-11-08).
+  `${DA}förslaget går till de donationsansvariga som verksamhetschefen har utsett, och ett byte av uppdraget ändrar mottagaren`,
+  `${DA}dödsfallet märker patienten som avliden med datum i huvudet och i sökningen, och den simulerade folkbokföringen meddelas`,
+  `${DA}kommande tider avbokas med orsak och utan besked till patienten, och posterna på väntelistan avslutas`,
+  `${DA}nya bokningar, kallelser, påminnelser och sms till en avliden patient stoppas`,
+  `${DA}journalen för en avliden patient går fortfarande att läsa och dokumentera i`,
 ];

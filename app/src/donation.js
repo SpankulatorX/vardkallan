@@ -23,6 +23,12 @@ import * as atgarder from './atgarder.js';
 import * as journal from './journal.js';
 import * as uppmarksamhet from './uppmarksamhet.js';
 import { IVA_ENHETER } from './iva.js';
+// Runda 10, r4: de donationsansvariga är uppdrag som verksamhetschefen utser (lakemedelsansvar.js).
+import * as ansvar from './lakemedelsansvar.js';
+import { OMFATTNING } from './lakemedelsansvar-schema.js';
+// Runda 10, r4: dödsfallet märker patienten som avliden och stoppar tidboken (avliden.js och tidbok.js).
+import * as avliden from './avliden.js';
+import { avbokaVidDodsfall } from './tidbok.js';
 import { tabell, finns, personNamn, enhetKort, textFalt, iso, tid as giltigTid, vardkontaktFor, bunden, andraRad, DAG, vardenhetFor, provaRad } from './specialist-hjalp.js';
 
 export const LAS = 'las_journal';
@@ -31,9 +37,24 @@ export const DEMOREGEL = 'Checklistan och underlaget är demoregler i Vårdkäll
 export const MALL_TYP = 'Donationsanteckning';
 export const MALL = { typ: MALL_TYP, kategori: 'lakare', sokord: ['Aktuellt', 'Bedömning', 'Närstående', 'Åtgärd'] };
 
-// Vårdenhetens donationsansvariga läkare (DAL) och sjuksköterska (DAS), som får förslaget i inkorgen. Demoregel: i
-// driften utses de av verksamhetschefen.
-export const DONATIONSANSVARIGA = tabell({ 'uso-kard': ['lak-kard', 'ssk-kard'] });
+// Vårdenhetens donationsansvariga läkare (DAL) och sjuksköterska (DAS), som får förslaget i inkorgen. De är uppdrag som
+// verksamhetschefen utser per vårdenhet, med samma mekanism som uppdragen i läkemedelshanteringen (lakemedelsansvar.js).
+export const UPPDRAG_TYPER = ['donationsansvarig_lakare', 'donationsansvarig_ssk'];
+export const arDonationsansvarig = (db, personal) => UPPDRAG_TYPER.some(typ => Boolean(ansvar.uppdragFor(db, personal, typ)));
+// Seeden: Sara Lindqvist och Johan Ek är donationsansvariga på Kardiologiska kliniken, utsedda av verksamhetschefen.
+export function seedaUppdrag(db, bas = new Date()) {
+  if (!db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'lakemedelsuppdrag'").get()) return;
+  if (db.query(`SELECT 1 FROM lakemedelsuppdrag WHERE typ IN ('donationsansvarig_lakare', 'donationsansvarig_ssk')`).get()) return;
+  if (!db.query("SELECT 1 FROM enheter WHERE id = 'uso-kard'").get()) return;
+  const dag = (n) => new Date(bas.getTime() + n * DAG).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
+  const ins = db.query('INSERT INTO lakemedelsuppdrag (typ, enhet_id, personal_id, reserv, omfattning, fran, till, satt_av, satt) VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?)');
+  for (const [typ, person] of [['donationsansvarig_lakare', 'lak-kard'], ['donationsansvarig_ssk', 'ssk-kard']]) {
+    // En sandlåda från före runda 10 har en tabell som inte tar de nya uppdragen. Där utser verksamhetschefen dem.
+    try {
+      if (db.query('SELECT 1 FROM personal WHERE id = ?').get(person)) ins.run(typ, 'uso-kard', person, JSON.stringify(OMFATTNING[typ]), dag(-400), dag(330), 'vch-kard', iso(bas.getTime() - 400 * DAG));
+    } catch { return; }
+  }
+}
 export const KRITERIER = tabell({ direkta: 'Direkta kriterier (total hjärninfarkt)', indirekta: 'Indirekta kriterier (hjärtstillestånd)' });
 export const VILJA = tabell({ ja: 'Ja till donation', ja_utom: 'Ja, med undantag', nej: 'Nej till donation', okand: 'Inställningen är inte känd' });
 export const VILJA_KALLOR = tabell({ donationsregistret: 'Donationsregistret (simulerat)', narstaende: 'Närståendes uppgift om den avlidnes inställning', patienten: 'Patienten själv' });
@@ -222,7 +243,11 @@ export function registreraDodsfall(atk, body = {}, nu = new Date()) {
   const tid = giltigTid(body.tid, 'tid', nu, { bakat: 2 * DAG });
   const r = db.query('INSERT INTO dodsfall (patient_id, enhet_id, vardkontakt_id, tid, kriterier, registrerad, registrerad_av) VALUES (?, ?, ?, ?, ?, ?, ?)')
     .run(atk.patientId, iva.enhet_id, iva.id, tid, body.kriterier, iso(nu), atk.personal.id);
-  return { id: Number(r.lastInsertRowid), tid, kriterier: body.kriterier, kriterierText: KRITERIER[body.kriterier], text: 'Dödsfallet är registrerat. Vårdenhetens donationsansvariga har fått ett förslag att pröva donation.' };
+  // Patienten märks som avliden, kommande tider avbokas och den simulerade folkbokföringen meddelas.
+  const datum = new Date(tid).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
+  const a = avliden.markera(db, { patientId: atk.patientId, datum, dodsfallId: Number(r.lastInsertRowid), av: atk.personal.id, nu }, avbokaVidDodsfall);
+  return { id: Number(r.lastInsertRowid), tid, kriterier: body.kriterier, kriterierText: KRITERIER[body.kriterier], avliden: a,
+    text: `Dödsfallet är registrerat. Vårdenhetens donationsansvariga har fått ett förslag att pröva donation.${a.avbokade ? ` ${a.avbokade === 1 ? 'En kommande tid är avbokad' : `${a.avbokade} kommande tider är avbokade`}, utan besked till patienten.` : ''} ${a.folkbokforing.text}` };
 }
 
 // POST /api/patient/:id/donation: startar utredningen. Systemet slår upp Donationsregistret (simulerat) direkt.
@@ -332,7 +357,7 @@ export function registreraTransplantation(atk, body = {}, nu = new Date()) {
 export function inkorg(db, personal, valFor = () => ({})) {
   if (!finnsTabell(db) || !personal) return [];
   const ve = vardenhetFor(db, personal.enhet_id);
-  if (!Object.hasOwn(DONATIONSANSVARIGA, ve) || !DONATIONSANSVARIGA[ve].includes(personal.id)) return [];
+  if (!arDonationsansvarig(db, personal)) return [];
   const under = enheterUnder(db, ve);
   const ph = under.map(() => '?').join(', ');
   const ut = [];

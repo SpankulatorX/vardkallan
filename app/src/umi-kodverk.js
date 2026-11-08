@@ -3,6 +3,9 @@
 // (seed/umi-kodverkslista.json, se docs/kodkontroll.md). Allt som registreras som uppmärksamhetsinformation, och allt som
 // systemet föreslår, är en term ur listan, så att dokumentationen följer den nationella rekommendationen.
 //
+// Snomed CT kräver licens. Begreppen finns därför bara som id, och texten är listans egna rubriker och motiveringar. Vid
+// verklig användning läses den svenska utgåvan av Snomed CT in från källan, som andra kodverk i masterdatan.
+//
 // Systemet är experten: en diagnos eller ett läkemedel i journalen leder själv till rätt term med koder och motivering.
 // Ingen behöver kunna kodverkslistan, Snomed CT eller ICD-10-SE.
 import lista from './seed/umi-kodverkslista.json' with { type: 'json' };

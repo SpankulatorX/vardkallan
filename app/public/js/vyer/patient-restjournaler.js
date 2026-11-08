@@ -15,7 +15,8 @@ function dokumentRad(x, markerad) {
   return `<li class="rj-rad${markerad ? ' markerad' : ''}" id="rj-${x.id}">
     <p class="rj-rubrik"><strong>${esc(x.dokumenttypText)}</strong>, ${esc(x.period.text)} <span class="tagg tagg-migrerad">${ikon.arkiv}${esc(x.kallaEtikett)}</span></p>
     ${x.ursprung ? `<p>${esc(x.ursprung)}</p>` : ''}
-    ${x.utdrag ? `<p class="rj-utdrag">${esc(x.utdrag)}</p>` : '<p class="under-text">Bilden har ingen text som systemet kan läsa.</p>'}
+    ${x.utdrag ? `<p class="rj-utdrag">${esc(x.utdrag)}</p>` : x.typ === 'application/pdf' ? '<p class="under-text">Systemet hittade ingen text i dokumentet.</p>' : '<p class="under-text">Bilden har ingen text som systemet kan läsa.</p>'}
+    ${x.textOfullstandig ? '<p class="ruta ruta-info liten"><span>Texten är ofullständig. Dokumentet var för stort för att läsas helt, så sökningen hittar bara den del som lästes. Dokumentet är sparat i sin helhet.</span></p>' : ''}
     <p class="under-text">Skannad ${esc(tidpunkt(x.skannad.tid))} av ${esc(x.skannad.av ?? '')} på ${esc(x.vardenhet?.namn ?? '')}. ${esc(x.identitet)}</p>
     <p><a class="knapp liten sekundar" href="${esc(x.url)}" target="_blank" rel="noopener">Öppna ${esc(x.namn)}</a></p>
   </li>`;
@@ -46,7 +47,7 @@ export async function visa(el, ctx) {
     try {
       fil = { namn: f.name, data: await lasFil(f) };
       const t = await medKnapp(null, () => api(`/api/patient/${encodeURIComponent(ctx.id)}/restjournaler/tolka`, { metod: 'POST', data: { fil } }), form);
-      plats.innerHTML = `<div class="ruta ${t.identitet === 'annan' ? 'ruta-larm' : 'ruta-info'} liten">${ikon.info}<span>${esc(t.text)}${t.redanSkannad ? ' Samma fil är redan inskannad.' : ''}</span></div>
+      plats.innerHTML = `<div class="ruta ${t.identitet === 'annan' ? 'ruta-larm' : 'ruta-info'} liten">${ikon.info}<span>${esc(t.text)}${t.redanSkannad ? ' Samma fil är redan inskannad.' : ''}${t.textOfullstandig ? ' Texten är ofullständig, eftersom dokumentet var för stort för att läsas helt. Dokumentet sparas ändå i sin helhet.' : ''}</span></div>
         ${t.identitet === 'annan' ? '' : `<div class="falt-rad">
           <div class="falt"><label for="rj-typ">Dokumenttyp</label><select id="rj-typ" name="dokumenttyp">${d.dokumenttyper.map(x => `<option value="${esc(x.id)}"${x.id === t.dokumenttyp ? ' selected' : ''}>${esc(x.text)}</option>`).join('')}</select></div>
           <div class="falt smal"><label for="rj-fran">Från</label><input id="rj-fran" name="periodFran" type="date" value="${esc(t.periodFran ?? '')}"></div>

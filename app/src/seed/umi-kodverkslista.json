@@ -7,7 +7,7 @@
   "url": "https://www.ehalsomyndigheten.se/verksamhet/ndi/interoperabilitet/uppmarksamhetsinformation/",
   "sha256": "deb89adce3e87447e1b5aba11a6be716326a69a37aa598b884be21eb7c048db9",
   "snomed": "SCTSE 2025_1",
-  "normalisering": "Termerna och motiveringarna är ordagranna ur filen, utom att blanktecken är sammanslagna och att ett tankstreck i en term är ersatt med ett kommatecken."
+  "normalisering": "Termerna, reaktionerna och motiveringarna är kodverkslistans egna rubriker och texter, ordagranna utom att blanktecken är sammanslagna och att ett tankstreck i en term är ersatt med ett kommatecken. Snomed CT-begreppen finns bara som id. Snomed CT kräver licens, och begreppens svenska beskrivningar finns därför inte här. Vid verklig användning läses den svenska utgåvan in från källan, som andra kodverk i masterdatan."
  },
  "undergrupper": {
   "annat_tillstand": {
@@ -60,8 +60,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "41291007",
-     "term": "angioödem"
+     "kod": "41291007"
     }
    ],
    "material": [],
@@ -79,8 +78,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "9651007",
-     "term": "långt QT-syndrom"
+     "kod": "9651007"
     }
    ],
    "material": [],
@@ -99,8 +97,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "70995007",
-     "term": "pulmonell hypertension"
+     "kod": "70995007"
     }
    ],
    "material": [],
@@ -118,12 +115,10 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "373662000",
-     "term": "primär binjurebarksinsufficiens"
+     "kod": "373662000"
     },
     {
-     "kod": "363732003",
-     "term": "Addisons sjukdom"
+     "kod": "363732003"
     }
    ],
    "material": [],
@@ -141,8 +136,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "405501007",
-     "term": "malign hypertermi"
+     "kod": "405501007"
     }
    ],
    "material": [],
@@ -170,8 +164,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "64779008",
-     "term": "blodkoagulationssjukdom"
+     "kod": "64779008"
     }
    ],
    "material": [],
@@ -195,12 +188,10 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "53891000052101",
-     "term": "trombocytrelaterad sjukdom med ökad blödningstendens"
+     "kod": "53891000052101"
     },
     {
-     "kod": "126729006",
-     "term": "trombotisk mikroangiopati"
+     "kod": "126729006"
     }
    ],
    "material": [],
@@ -219,8 +210,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "234467004",
-     "term": "trombofili"
+     "kod": "234467004"
     }
    ],
    "material": [],
@@ -238,8 +228,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "91637004",
-     "term": "myasthenia gravis"
+     "kod": "91637004"
     }
    ],
    "material": [],
@@ -257,8 +246,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "234422006",
-     "term": "akut intermittent porfyri"
+     "kod": "234422006"
     }
    ],
    "material": [],
@@ -276,8 +264,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "58275005",
-     "term": "porphyria variegata"
+     "kod": "58275005"
     }
    ],
    "material": [],
@@ -295,8 +282,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "7425008",
-     "term": "hereditär koproporfyri"
+     "kod": "7425008"
     }
    ],
    "material": [],
@@ -314,8 +300,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "64081000",
-     "term": "brist på porfobilinogensyntetas"
+     "kod": "64081000"
     }
    ],
    "material": [],
@@ -334,8 +319,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "360631004",
-     "term": "brist på kolinesteras 2, ospecifik"
+     "kod": "360631004"
     }
    ],
    "material": [],
@@ -355,8 +339,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "33211000",
-     "term": "komplikation till anestesi"
+     "kod": "33211000"
     }
    ],
    "material": [],
@@ -374,8 +357,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "718447001",
-     "term": "svår intubation"
+     "kod": "718447001"
     }
    ],
    "material": [],
@@ -394,8 +376,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "707147002",
-     "term": "aspleni"
+     "kod": "707147002"
     }
    ],
    "material": [],
@@ -413,8 +394,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "31323000",
-     "term": "svår kombinerad immunbrist"
+     "kod": "31323000"
     }
    ],
    "material": [],
@@ -432,8 +412,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "17182001",
-     "term": "agranulocytos"
+     "kod": "17182001"
     }
    ],
    "material": [],
@@ -451,8 +430,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "770942003",
-     "term": "Kostmanns syndrom"
+     "kod": "770942003"
     }
    ],
    "material": [],
@@ -470,8 +448,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "89454001",
-     "term": "Shwachmans syndrom"
+     "kod": "89454001"
     }
    ],
    "material": [],
@@ -489,8 +466,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "203551000052109",
-     "term": "störning av neutrofilfunktion"
+     "kod": "203551000052109"
     }
    ],
    "material": [],
@@ -508,8 +484,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "439784005",
-     "term": "kirurgiskt anlagd arteriovenös fistel"
+     "kod": "439784005"
     }
    ],
    "material": [],
@@ -527,8 +502,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "27718001",
-     "term": "Maple syrup urine disease"
+     "kod": "27718001"
     }
    ],
    "material": [],
@@ -546,8 +520,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "116020001",
-     "term": "rubbning i omsättningen av förgrenade aminosyror"
+     "kod": "116020001"
     }
    ],
    "material": [],
@@ -565,8 +538,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "39929009",
-     "term": "rubbning i fettsyraomsättningen"
+     "kod": "39929009"
     }
    ],
    "material": [],
@@ -584,8 +556,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "7046009",
-     "term": "hyperleucin-isoleucinemi"
+     "kod": "7046009"
     }
    ],
    "material": [],
@@ -603,8 +574,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "87827003",
-     "term": "brist på isovaleryl-CoA-dehydrogenas"
+     "kod": "87827003"
     }
    ],
    "material": [],
@@ -622,8 +592,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "42393006",
-     "term": "metylmalonisk acidemi"
+     "kod": "42393006"
     }
    ],
    "material": [],
@@ -641,8 +610,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "69080001",
-     "term": "propionsyraemi"
+     "kod": "69080001"
     }
    ],
    "material": [],
@@ -660,8 +628,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "1156591005",
-     "term": "fettsyreoxidationsdefekt"
+     "kod": "1156591005"
     }
    ],
    "material": [],
@@ -679,8 +646,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "1156591005",
-     "term": "fettsyreoxidationsdefekt"
+     "kod": "1156591005"
     }
    ],
    "material": [],
@@ -698,8 +664,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "82319005",
-     "term": "brist på acyl-CoA-dehydrogenas"
+     "kod": "82319005"
     }
    ],
    "material": [],
@@ -717,8 +682,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "36444000",
-     "term": "rubbning i ureaomsättningscykeln"
+     "kod": "36444000"
     }
    ],
    "material": [],
@@ -736,8 +700,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "237929000",
-     "term": "rubbning i lysin- och hydroxilysinomsättningen"
+     "kod": "237929000"
     }
    ],
    "material": [],
@@ -755,8 +718,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "41013004",
-     "term": "brist på argininosuccinatlyas"
+     "kod": "41013004"
     }
    ],
    "material": [],
@@ -774,8 +736,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "398680004",
-     "term": "citrullinemi"
+     "kod": "398680004"
     }
    ],
    "material": [],
@@ -793,8 +754,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "29633007",
-     "term": "glykogeninlagringssjukdom"
+     "kod": "29633007"
     }
    ],
    "material": [],
@@ -812,8 +772,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "39452003",
-     "term": "rubbning i fruktosomsättningen"
+     "kod": "39452003"
     }
    ],
    "material": [],
@@ -831,8 +790,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "190760009",
-     "term": "rubbningar i pyruvatomsättningen och glukoneogenesen"
+     "kod": "190760009"
     }
    ],
    "material": [],
@@ -850,8 +808,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "75934005",
-     "term": "metabol sjukdom"
+     "kod": "75934005"
     }
    ],
    "material": [],
@@ -869,8 +826,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "238006008",
-     "term": "rubbning i purin- och pyrimidinomsättningen"
+     "kod": "238006008"
     }
    ],
    "material": [],
@@ -888,8 +844,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "16851005",
-     "term": "mitokondriell myopati"
+     "kod": "16851005"
     }
    ],
    "material": [],
@@ -907,8 +862,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "237751000",
-     "term": "kongenital adrenal hyperplasi"
+     "kod": "237751000"
     }
    ],
    "material": [],
@@ -926,8 +880,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "737315000",
-     "term": "enterokolit utlöst av födoämnesprotein"
+     "kod": "737315000"
     }
    ],
    "material": [],
@@ -945,8 +898,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "439218000",
-     "term": "kirurgiskt anlagt arteriovenöst graft"
+     "kod": "439218000"
     }
    ],
    "material": [],
@@ -962,8 +914,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "614151000052101",
-     "term": "sällsynt hälsotillstånd som behöver uppmärksammas särskilt"
+     "kod": "614151000052101"
     }
    ],
    "material": [],
@@ -1043,8 +994,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "243142003",
-     "term": "BiPAP-behandling"
+     "kod": "243142003"
     }
    ],
    "material": [],
@@ -1062,8 +1012,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "385971003",
-     "term": "dialysbehandling"
+     "kod": "385971003"
     }
    ],
    "material": [],
@@ -1081,8 +1030,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "72506001",
-     "term": "implanterbar defibrillator"
+     "kod": "72506001"
     }
    ],
    "material": [],
@@ -1100,8 +1048,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "14106009",
-     "term": "pacemaker"
+     "kod": "14106009"
     }
    ],
    "material": [],
@@ -1120,8 +1067,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "705991002",
-     "term": "mekanisk hjärtklaffprotes"
+     "kod": "705991002"
     }
    ],
    "material": [],
@@ -1137,8 +1083,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "72821000052105",
-     "term": "mikrospiral, magnetisk metall"
+     "kod": "72821000052105"
     }
    ],
    "material": [],
@@ -1154,8 +1099,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "72811000052102",
-     "term": "kärlklämma, magnetisk metall"
+     "kod": "72811000052102"
     }
    ],
    "material": [],
@@ -1173,8 +1117,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "258593008",
-     "term": "ventrikelshunt"
+     "kod": "258593008"
     }
    ],
    "material": [],
@@ -1190,8 +1133,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "360100007",
-     "term": "trakeal stent"
+     "kod": "360100007"
     }
    ],
    "material": [],
@@ -1207,8 +1149,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "69805005",
-     "term": "insulinpump"
+     "kod": "69805005"
     }
    ],
    "material": [],
@@ -1226,8 +1167,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "261680000",
-     "term": "artificiell uretrasfinkter"
+     "kod": "261680000"
     }
    ],
    "material": [],
@@ -1245,8 +1185,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "43252007",
-     "term": "kokleaimplantat"
+     "kod": "43252007"
     }
    ],
    "material": [],
@@ -1264,8 +1203,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "1351253007",
-     "term": "nervstimulator för centrala nervsystemet"
+     "kod": "1351253007"
     }
    ],
    "material": [],
@@ -1283,8 +1221,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "447033006",
-     "term": "vagal nervstimulator"
+     "kod": "447033006"
     }
    ],
    "material": [],
@@ -1302,8 +1239,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "705545001",
-     "term": "elektrisk diafragmastimulering"
+     "kod": "705545001"
     }
    ],
    "material": [],
@@ -1321,8 +1257,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "360066001",
-     "term": "vänsterkammarassist"
+     "kod": "360066001"
     }
    ],
    "material": [],
@@ -1340,8 +1275,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "360125003",
-     "term": "pacemakerelektrod"
+     "kod": "360125003"
     }
    ],
    "material": [],
@@ -1359,8 +1293,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "1010731003",
-     "term": "magnetisk benledarhörapparat"
+     "kod": "1010731003"
     }
    ],
    "material": [],
@@ -1378,22 +1311,18 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "413781000052107",
-     "term": "stamcelltransplantat föreligger"
+     "kod": "413781000052107"
     }
    ],
    "material": [
     {
-     "kod": "413679007",
-     "term": "benmärgsvätska"
+     "kod": "413679007"
     },
     {
-     "kod": "413604003",
-     "term": "autolog benmärgsvätska"
+     "kod": "413604003"
     },
     {
-     "kod": "413478009",
-     "term": "allogen benmärgsvätska"
+     "kod": "413478009"
     }
    ],
    "motivering": "Benmärgstransplanterade patienter har initialt kraftigt ökad infektionskänslighet."
@@ -1410,14 +1339,12 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "739024006",
-     "term": "transplanterat hjärta föreligger"
+     "kod": "739024006"
     }
    ],
    "material": [
     {
-     "kod": "420291005",
-     "term": "transplantatmaterial från hjärta"
+     "kod": "420291005"
     }
    ],
    "motivering": "Organmottagare har risk för avstötningsreaktioner samt ökad risk för infektioner på grund av immunsupprimerande läkemedelsbehandling."
@@ -1434,14 +1361,12 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "737297006",
-     "term": "transplanterad lever föreligger"
+     "kod": "737297006"
     }
    ],
    "material": [
     {
-     "kod": "421751001",
-     "term": "transplantatmaterial från lever"
+     "kod": "421751001"
     }
    ],
    "motivering": "Organmottagare har risk för avstötningsreaktioner samt ökad risk för infektioner på grund av immunsupprimerande läkemedelsbehandling."
@@ -1458,14 +1383,12 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "737296002",
-     "term": "transplanterad lunga föreligger"
+     "kod": "737296002"
     }
    ],
    "material": [
     {
-     "kod": "421525000",
-     "term": "transplantatmaterial från lunga"
+     "kod": "421525000"
     }
    ],
    "motivering": "Organmottagare har risk för avstötningsreaktioner samt ökad risk för infektioner på grund av immunsupprimerande läkemedelsbehandling."
@@ -1482,14 +1405,12 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "737295003",
-     "term": "transplanterad njure föreligger"
+     "kod": "737295003"
     }
    ],
    "material": [
     {
-     "kod": "420852008",
-     "term": "transplantatmaterial från njure"
+     "kod": "420852008"
     }
    ],
    "motivering": "Organmottagare har risk för avstötningsreaktioner samt ökad risk för infektioner på grund av immunsupprimerande läkemedelsbehandling."
@@ -1506,14 +1427,12 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "73111000052103",
-     "term": "transplanterad pankreas föreligger"
+     "kod": "73111000052103"
     }
    ],
    "material": [
     {
-     "kod": "421263007",
-     "term": "transplantatmaterial från pankreas"
+     "kod": "421263007"
     }
    ],
    "motivering": "Organmottagare har risk för avstötningsreaktioner samt ökad risk för infektioner på grund av immunsupprimerande läkemedelsbehandling."
@@ -1530,14 +1449,12 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "73131000052108",
-     "term": "transplanterad tarm föreligger"
+     "kod": "73131000052108"
     }
    ],
    "material": [
     {
-     "kod": "73341000052100",
-     "term": "transplantatmaterial från tarm"
+     "kod": "73341000052100"
     }
    ],
    "motivering": "Organmottagare har risk för avstötningsreaktioner samt ökad risk för infektioner på grund av immunsupprimerande läkemedelsbehandling."
@@ -1556,8 +1473,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "432415000",
-     "term": "bärare av meticillinresistent Staphylococcus aureus"
+     "kod": "432415000"
     }
    ],
    "material": [],
@@ -1577,8 +1493,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "431109006",
-     "term": "bärare av vankomycinresistenta enterokocker"
+     "kod": "431109006"
     }
    ],
    "material": [],
@@ -1598,8 +1513,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "762988003",
-     "term": "bärare av ESBL-producerande bakterier"
+     "kod": "762988003"
     }
    ],
    "material": [],
@@ -1619,8 +1533,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "61751000052107",
-     "term": "bärare av ESBL- och karbapenemasproducerande bakterier"
+     "kod": "61751000052107"
     }
    ],
    "material": [],
@@ -1636,8 +1549,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "64301000052105",
-     "term": "blodsmitta hos gravid"
+     "kod": "64301000052105"
     }
    ],
    "material": [],
@@ -1653,8 +1565,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "373568007",
-     "term": "klorhexidin"
+     "kod": "373568007"
     }
    ],
    "material": [],
@@ -1670,8 +1581,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "111088007",
-     "term": "latex"
+     "kod": "111088007"
     }
    ],
    "material": [],
@@ -1687,8 +1597,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "281000220103",
-     "term": "taurolidin"
+     "kod": "281000220103"
     }
    ],
    "material": [],
@@ -1704,8 +1613,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "60781000052105",
-     "term": "hotbild mot patient"
+     "kod": "60781000052105"
     }
    ],
    "material": [],
@@ -1721,8 +1629,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "713670002",
-     "term": "deltar i klinisk läkemedelsprövning"
+     "kod": "713670002"
     }
    ],
    "material": [],
@@ -1738,8 +1645,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "1304232008",
-     "term": "deltar i klinisk prövning"
+     "kod": "1304232008"
     }
    ],
    "material": [],
@@ -1755,8 +1661,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "699128009",
-     "term": "avböjt transfusion av blodprodukt"
+     "kod": "699128009"
     }
    ],
    "material": [],
@@ -1772,8 +1677,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "60761000052104",
-     "term": "avböjt autolog blodtransfusion eller cell saver"
+     "kod": "60761000052104"
     }
    ],
    "material": [],
@@ -1789,8 +1693,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "61921000052102",
-     "term": "läkarbeslut finns om att inte utföra hjärt-lungräddning"
+     "kod": "61921000052102"
     }
    ],
    "material": [],
@@ -1806,8 +1709,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "61931000052100",
-     "term": "läkarbeslut finns om att avsluta livsuppehållande åtgärd"
+     "kod": "61931000052100"
     }
    ],
    "material": [],
@@ -1823,8 +1725,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "60741000052100",
-     "term": "läkarbeslut finns från brytpunktssamtal"
+     "kod": "60741000052100"
     }
    ],
    "material": [],
@@ -1840,8 +1741,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "133571000052106",
-     "term": "utfärdande av förskrivningsrestriktion"
+     "kod": "133571000052106"
     }
    ],
    "material": [],
@@ -1857,8 +1757,7 @@
    "atc": [],
    "snomed": [
     {
-     "kod": "306103005",
-     "term": "hänvisning till specifik vårdenhet"
+     "kod": "306103005"
     }
    ],
    "material": [],
@@ -1870,96 +1769,84 @@
    {
     "term": "Allvarlig arytmi",
     "snomed": {
-     "kod": "53931000052108",
-     "term": "allvarlig arytmi i samband med överkänslighetsreaktion"
+     "kod": "53931000052108"
     },
     "utreds": false
    },
    {
     "term": "Anafylaktisk reaktion",
     "snomed": {
-     "kod": "39579001",
-     "term": "anafylaktisk reaktion"
+     "kod": "39579001"
     },
     "utreds": false
    },
    {
     "term": "Angioödem",
     "snomed": {
-     "kod": "41291007",
-     "term": "angioödem"
+     "kod": "41291007"
     },
     "utreds": false
    },
    {
     "term": "Astma",
     "snomed": {
-     "kod": "195967001",
-     "term": "astma"
+     "kod": "195967001"
     },
     "utreds": false
    },
    {
     "term": "Blodtrycksfall",
     "snomed": {
-     "kod": "255329004",
-     "term": "blodtrycksfall"
+     "kod": "255329004"
     },
     "utreds": true
    },
    {
     "term": "Förvirring",
     "snomed": {
-     "kod": "286933003",
-     "term": "konfusion"
+     "kod": "286933003"
     },
     "utreds": false
    },
    {
     "term": "Generaliserade kramper",
     "snomed": {
-     "kod": "246545002",
-     "term": "generaliserat krampanfall"
+     "kod": "246545002"
     },
     "utreds": false
    },
    {
     "term": "Larynxödem",
     "snomed": {
-     "kod": "51599000",
-     "term": "larynxödem"
+     "kod": "51599000"
     },
     "utreds": false
    },
    {
     "term": "Stevens-Johnsons syndrom",
     "snomed": {
-     "kod": "73442001",
-     "term": "Stevens-Johnsons syndrom"
+     "kod": "73442001"
     },
     "utreds": false
    },
    {
     "term": "Svår urtikaria",
     "snomed": {
-     "kod": "53921000052106",
-     "term": "svår allergisk urtikaria"
+     "kod": "53921000052106"
     },
     "utreds": false
    },
    {
     "term": "Sänkt medvetandegrad",
     "snomed": {
-     "kod": "443371007",
-     "term": "sänkt medvetandegrad"
+     "kod": "443371007"
     },
     "utreds": false
    },
    {
     "term": "Toxisk epidermal nekrolys",
     "snomed": {
-     "kod": "23067006",
-     "term": "toxisk epidermal nekrolys enligt Lyell, subepidermal typ"
+     "kod": "23067006"
     },
     "utreds": false
    }
@@ -1968,80 +1855,70 @@
    {
     "term": "Diarré",
     "snomed": {
-     "kod": "62315008",
-     "term": "diarré"
+     "kod": "62315008"
     },
     "utreds": false
    },
    {
     "term": "Hudrodnad",
     "snomed": {
-     "kod": "247441003",
-     "term": "erytem"
+     "kod": "247441003"
     },
     "utreds": false
    },
    {
     "term": "Hudsvullnad",
     "snomed": {
-     "kod": "300886007",
-     "term": "hudsvullnad"
+     "kod": "300886007"
     },
     "utreds": false
    },
    {
     "term": "Klåda",
     "snomed": {
-     "kod": "418290006",
-     "term": "klåda"
+     "kod": "418290006"
     },
     "utreds": false
    },
    {
     "term": "Kräkningar",
     "snomed": {
-     "kod": "422400008",
-     "term": "kräkning"
+     "kod": "422400008"
     },
     "utreds": false
    },
    {
     "term": "Lindrig till medelsvår urtikaria",
     "snomed": {
-     "kod": "53911000052103",
-     "term": "lindrig till medelsvår allergisk urtikaria"
+     "kod": "53911000052103"
     },
     "utreds": false
    },
    {
     "term": "Irritation i mun och svalg",
     "snomed": {
-     "kod": "53901000052100",
-     "term": "irritation i mun och svalg"
+     "kod": "53901000052100"
     },
     "utreds": false
    },
    {
     "term": "Irritation i näsa",
     "snomed": {
-     "kod": "70076002",
-     "term": "rinit"
+     "kod": "70076002"
     },
     "utreds": false
    },
    {
     "term": "Irritation i ögon",
     "snomed": {
-     "kod": "473460002",
-     "term": "allergisk konjunktivit"
+     "kod": "473460002"
     },
     "utreds": false
    },
    {
     "term": "Tungandning",
     "snomed": {
-     "kod": "267036007",
-     "term": "dyspné"
+     "kod": "267036007"
     },
     "utreds": false
    }

@@ -55,7 +55,7 @@ async function sok(main, fraga) {
       <tbody>${rader.map(p => `<tr>
         <td class="um-cell">${p.uppmarksamhet ? listCell(p.uppmarksamhet, `#/patient/${encodeURIComponent(p.id)}`) : ''}</td>
         <td>${patientCell(p, lg ? `#/logg/patient/${encodeURIComponent(p.id)}` : `#/patient/${encodeURIComponent(p.id)}`)}</td>
-        <td>${pnrCell(p)}${p.identitetstyp && p.identitetstyp !== 'personnummer' ? `<span class="under-text">${esc(p.typText)}</span>` : ''}${p.traffPa ? `<span class="under-text">Hittad på ${esc(p.traffPa.status === 'tidigare' ? 'tidigare' : 'extra')} identitet, ${esc(p.traffPa.typText.toLowerCase())}</span>` : ''}</td><td>${alderKon(p)}</td>
+        <td>${pnrCell(p)}${p.identitetstyp && p.identitetstyp !== 'personnummer' ? `<span class="under-text">${esc(p.typText)}</span>` : ''}${p.traffPa ? `<span class="under-text">Hittad på ${esc(p.traffPa.status === 'tidigare' ? 'tidigare' : 'extra')} identitet, ${esc(p.traffPa.typText.toLowerCase())}</span>` : ''}${p.avliden ? `<span class="tagg tagg-avliden">${esc(p.avliden.text)}</span>` : ''}</td><td>${alderKon(p)}</td>
         ${lg ? '' : `<td>${p.vardrelation ? 'Ja' : '<span class="dampad">Nej, journalen kräver en grund</span>'}</td>`}
       </tr>`).join('')}</tbody>
     </table></div>`;

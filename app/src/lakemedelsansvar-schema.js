@@ -25,7 +25,9 @@ CREATE TABLE IF NOT EXISTS lakemedelsuppdrag (
   id INTEGER PRIMARY KEY, typ TEXT NOT NULL, enhet_id TEXT NOT NULL, personal_id TEXT NOT NULL, reserv INTEGER NOT NULL DEFAULT 0,
   omfattning TEXT NOT NULL, fran TEXT NOT NULL, till TEXT NOT NULL, satt_av TEXT, satt TEXT NOT NULL,
   avslutat TEXT, avslutat_av TEXT, avslutat_tid TEXT, avslutat_orsak TEXT,
-  CHECK (typ IN ('medicinskt_ansvarig', 'mallansvarig', 'lakemedelsansvarig_ssk', 'narkotikakontroll')), CHECK (till >= fran)
+  CHECK (typ IN ('medicinskt_ansvarig', 'mallansvarig', 'lakemedelsansvarig_ssk', 'narkotikakontroll',
+    -- Runda 10, r4: de donationsansvariga (donation.js).
+    'donationsansvarig_lakare', 'donationsansvarig_ssk')), CHECK (till >= fran)
 );
 CREATE TRIGGER IF NOT EXISTS lakemedelsuppdrag_raderas_ej BEFORE DELETE ON lakemedelsuppdrag
   BEGIN SELECT RAISE(ABORT, 'Ett uppdrag raderas inte'); END;
@@ -67,6 +69,16 @@ const tidPlus = (bas, n) => new Date(bas.getTime() + n * 86400_000).toISOString(
 // Uppgifterna i ansvarsdokumentet, ur Gröna häftet. Systemet skriver in dem när uppdraget utses, så att ingen behöver
 // skriva dem själv. Hör här, så att seeden och lakemedelsansvar.js använder samma text.
 export const OMFATTNING = {
+  // Runda 10, r4: de donationsansvariga (donation.js).
+  donationsansvarig_lakare: [
+    'Pröva om en patient som avlider på intensivvårdsavdelningen kan bli donator, utifrån systemets förslag i inkorgen.',
+    'Leda donationsutredningen, göra den medicinska bedömningen och skriva donationsanteckningen.',
+    'Se till att de närstående informeras och att den avlidnes inställning till donation utreds.',
+  ],
+  donationsansvarig_ssk: [
+    'Följa checklistan för donation tillsammans med donationsansvarig läkare.',
+    'Kontakta transplantationskoordinatorn och se till att underlaget till kvalitetsregistret blir klart.',
+  ],
   medicinskt_ansvarig: [
     'Initiera framtagande och revidering av lokala rutiner för ordination av läkemedel.',
     'Upprätta, revidera och fastställa bassortimentet tillsammans med läkemedelsansvarig sjuksköterska och farmaceut.',

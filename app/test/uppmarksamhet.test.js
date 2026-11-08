@@ -287,6 +287,8 @@ describe('Uppmärksamhetsinformation', () => {
     for (const t of umi.TERMER) {
       expect(t.icd.length + t.atc.length + t.snomed.length).toBeGreaterThan(0);
       for (const s of [...t.snomed, ...t.material]) expect({ kod: s.kod, ok: provaBegrepp(s.kod).ok }).toEqual({ kod: s.kod, ok: true });
+      // Snomed CT kräver licens: bara begreppens id, inga svenska beskrivningar ur Snomed CT.
+      for (const s of [...t.snomed, ...t.material]) expect(Object.keys(s)).toEqual(['kod']);
       for (const k of t.icd) expect(k).toMatch(/^[A-Z]\d{2}(\.\d{1,2}[A-Z]?)?$|^[A-Z]\d{3}$/);
       expect(KATEGORIER[t.kategori].undergrupper[t.undergrupp]).toBeDefined();
     }

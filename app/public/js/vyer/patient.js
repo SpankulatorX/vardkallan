@@ -92,6 +92,7 @@ function bandHtml(h) {
     </div>
     <ul class="band-signaler" aria-label="Uppmärksamhetssignaler och markeringar">
       ${h.uppmarksamhet ? uppmarksamhet.bandSignal(h) : overkanslighetSignal(h)}
+      ${h.avliden ? `<li class="signal signal-avliden"><span>${esc(h.avliden.text)}</span></li>` : ''}
       ${h.skyddad ? `<li class="signal signal-skydd">${ikon.skold}<span>Skyddade personuppgifter${h.identitetVisad ? ', identiteten visas' : ''}</span></li>` : ''}
       ${h.sparrmarkering ? `<li class="signal signal-sparr">${ikon.las}<span>Det finns spärrade uppgifter</span></li>` : ''}
     </ul>

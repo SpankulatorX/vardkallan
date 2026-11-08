@@ -1574,3 +1574,5 @@ td .tagg-referens, td .tagg-egen, td .tagg-ok { margin-left: 6px; }
 .tagg-maskinell { background: var(--obs-bg); border-color: var(--obs-kant); color: var(--obs); }
 .mv-urval { align-items: flex-end; }
 td .tagg + .under-text { display: block; }
+.tagg-avliden, .signal-avliden { background: var(--obs-bg); border-color: var(--obs-kant); color: var(--obs); }
+td .tagg-avliden { margin-left: 6px; }

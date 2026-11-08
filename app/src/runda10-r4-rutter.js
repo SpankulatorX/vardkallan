@@ -8,12 +8,15 @@ import * as infarter from './infarter.js';
 import * as restjournal from './restjournal.js';
 import * as donation from './donation.js';
 import * as skala2 from './syremattnad-skala.js';
+import * as avliden from './avliden.js';
 
 // Tabellerna, och seeden när en tabell är ny.
 export function sakra(db, bas = new Date()) {
   infarter.seeda(db, bas);
   restjournal.sakra(db);
   donation.sakra(db);
+  avliden.sakra(db);
+  donation.seedaUppdrag(db, bas);
   skala2.sakra(db);
   return db;
 }

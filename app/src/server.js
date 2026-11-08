@@ -106,6 +106,7 @@ import * as folkhalsa from './folkhalsa.js';
 import { registreraRutter as r9r4Rutter, efterTid as masterdataEfterTid } from './arkitektur-rutter.js';
 // Runda 10, r4: in- och utfarter, restjournaler och donation (runda10-r4-rutter.js).
 import { registreraRutter as r10r4Rutter, tidslinje as r10r4Tidslinje, inkorg as r10r4Inkorg } from './runda10-r4-rutter.js';
+import { avlidenFor } from './avliden.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -522,6 +523,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       basfakta: vitalparametrar.basfakta(atk, p),
       ...identitetIHuvud(c, p),
       ...utdata.huvud(db, p),
+      // Runda 10, r4: en avliden patient är märkt med datum (avliden.js).
+      avliden: avlidenFor(db, p.id),
     };
   }
 
@@ -659,7 +662,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     return rader.map(p => ({ id: p.id, namn: visningsnamn(p), personnummer: visningsPnr(p), alder: alder(p.fodd, idag()), kon: p.kon, skyddad: Boolean(p.skyddad), vardrelation: harVardrelation(db, p.id, ve),
       identitetstyp: p.id_typ ?? 'personnummer', typText: identitet.TYPER[p.id_typ ?? 'personnummer'].text, traffPa: traffar.get(p.id) ?? null,
       // Runda 6, r1: uppmärksamhetssymbolen med samma regler som i patienthuvudet (Sussa 3.1.5.2).
-      uppmarksamhet: uppmarksamhet.symbolFor(db, c.personal, p.id, valFor(c.s, p.id)) }));
+      uppmarksamhet: uppmarksamhet.symbolFor(db, c.personal, p.id, valFor(c.s, p.id)),
+      // Runda 10, r4: en avliden patient är märkt med datum också i sökningen.
+      avliden: avlidenFor(db, p.id) }));
   }
 
   function vantrum(c) {
