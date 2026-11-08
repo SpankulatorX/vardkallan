@@ -37,6 +37,7 @@ export default [
       `${A}att skicka sparar rapporten med kvittens från den simulerade mottagaren och loggar varje patient`,
       `${A}läkaren får felet i inkorgen bara för sin vårdenhet och rättar det med systemets förslag, och vårdkontakten följer med i nästa rapport`,
       `${A}en yttre orsak registreras i inkorgen ur svaren, och en kod som systemet inte känner till nekas`,
+      `${A}en diagnos som registreras via rapportfelet röjer inte dolda diagnoser, och två huvuddiagnoser rättas av den som får se båda`,
       `${A}demoläget ger ett fel på kardiologen och ett på akutmottagningen i rätt inkorg`,
       `${A}väntelistans fritext visas inte för uppföljningsrollen, bara för vårdadministratören efter prövningen`,
       `${A}inkorgen följer det aktuella läget när en vårdkontakt flyttas eller personalen byter enhet efter att sammanställningen har sparats`,

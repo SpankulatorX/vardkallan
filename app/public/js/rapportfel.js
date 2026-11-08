@@ -4,7 +4,7 @@
 // ger åtkomst till patienten på den egna vårdenheten.
 import { esc, api, dialog, medKnapp, notis, datum } from './ui.js';
 
-const KNAPP = { diagnos: 'Sätt diagnos', yttre_orsak: 'Ange yttre orsak' };
+const KNAPP = { diagnos: 'Sätt diagnos', yttre_orsak: 'Ange yttre orsak', huvuddiagnos: 'Välj huvuddiagnos' };
 const LANK = { identitet: (r) => `#/patient/${encodeURIComponent(r.patientId)}/identitet`, aktivitet: () => '#/vantelista', vantelista: () => '#/vantelista' };
 const pnamn = (p) => (p?.skyddad ? 'Skyddad identitet' : p?.namn ?? '');
 
@@ -46,15 +46,25 @@ async function yttreDialog(r) {
   return svar ? svar.data : null;
 }
 
+async function huvudDialog(r) {
+  const svar = await dialog(`<form><h2 id="dlg-rubrik">Välj huvuddiagnos</h2><p>${esc(r.text)}</p>
+    <fieldset class="radiogrupp"><legend>Diagnoserna som är registrerade som huvuddiagnos</legend>${(r.forslag ?? []).map((f, i) => `<label class="radio"><input type="radio" name="diagnosId" value="${esc(f.id)}"${i === 0 ? ' checked' : ''}> ${esc(f.kod)} ${esc(f.text)}</label>`).join('')}</fieldset>
+    <p class="under-text">De andra blir bidiagnoser.</p>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Spara</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`,
+  { onOpen: (dl) => dl.querySelector('[data-varde="ok"]').focus() });
+  return svar ? { diagnosId: Number(svar.data.diagnosId) } : null;
+}
+
 // Klick i inkorgen. Returnerar true när klicket gällde ett rapportfel.
 export async function rapportfelKlick(e, d, efter) {
   const b = e.target.closest('[data-rapportfel]');
   if (!b) return false;
   const r = d.rapportfel[Number(b.dataset.rapportfel)];
-  const kropp = r.atgard === 'yttre_orsak' ? await yttreDialog(r) : await diagnosDialog(r);
+  const kropp = r.atgard === 'yttre_orsak' ? await yttreDialog(r) : r.atgard === 'huvuddiagnos' ? await huvudDialog(r) : await diagnosDialog(r);
   if (!kropp) return true;
   try {
-    const ut = await medKnapp(b, () => api(`/api/vardkontakt/${encodeURIComponent(r.vardkontaktId)}/diagnos`, { metod: 'POST', data: kropp }));
+    const vag = r.atgard === 'huvuddiagnos' ? 'huvuddiagnos' : 'diagnos';
+    const ut = await medKnapp(b, () => api(`/api/vardkontakt/${encodeURIComponent(r.vardkontaktId)}/${vag}`, { metod: 'POST', data: kropp }));
     notis(`${ut.kod} ${ut.text} är registrerad som ${ut.typ === 'huvud' ? 'huvuddiagnos' : 'bidiagnos'}.`);
     await efter();
   } catch { /* felet visas som notis */ }

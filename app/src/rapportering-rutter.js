@@ -13,9 +13,9 @@ import * as tk from './tjanstekontrakt.js';
 
 // Det uppföljningsrollen får se av ett fel: ingen patient, ingen vårdkontakt, inget datum, ingen detalj ur journalen och
 // ingen länk in i journalen. Vårdenheten och vem som rättar räcker för att följa upp.
-const VEM = { diagnos: 'Läkare på vårdenheten', yttre_orsak: 'Läkare på vårdenheten', identitet: 'Vårdadministratör på vårdenheten', aktivitet: 'Vårdadministratör på vårdenheten', vantelista: 'Vårdadministratör på vårdenheten', mappning: 'Den som förvaltar rapporteringen' };
+const VEM = { diagnos: 'Läkare på vårdenheten', yttre_orsak: 'Läkare på vårdenheten', huvuddiagnos: 'Läkare på vårdenheten som får se diagnoserna', identitet: 'Vårdadministratör på vårdenheten', aktivitet: 'Vårdadministratör på vårdenheten', vantelista: 'Vårdadministratör på vårdenheten', mappning: 'Den som förvaltar rapporteringen' };
 const felUtanPatient = (f, i) => ({ nyckel: `${f.rapport}:${f.regel}:${i + 1}`, rapport: f.rapport, regel: f.regel, text: f.text, enhet: f.enhet, atgard: f.atgard,
-  vem: VEM[f.atgard], iInkorgen: ['diagnos', 'yttre_orsak', 'identitet', 'aktivitet', 'vantelista'].includes(f.atgard), lank: f.atgard === 'mappning' ? '#/rapportering?visa=mappning' : null });
+  vem: VEM[f.atgard], iInkorgen: ['diagnos', 'yttre_orsak', 'huvuddiagnos', 'identitet', 'aktivitet', 'vantelista'].includes(f.atgard), lank: f.atgard === 'mappning' ? '#/rapportering?visa=mappning' : null });
 // Filerna visas utan rader: bara hur många rader som har varje fält ifyllt. Alla fält i en rad, också datum, tider och
 // id, kan tillsammans peka ut en patient, så inga värden lämnas ut till rapporteringsrollen.
 const ifyllda = (f) => f.falt.map((namn, i) => ({ falt: namn, ifyllda: f.rader.filter(r => String(r[i] ?? '') !== '').length }));
@@ -72,6 +72,11 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
     const vk = mr.kontaktForRattning(c.db, id);
     return [201, medPatient(c, vk.patient_id, 'registrera_diagnos', (atk) => mr.registreraDiagnos(atk, vk, c.body))];
   });
+  rutt('POST', '/api/vardkontakt/:id/huvuddiagnos', (c, id) => {
+    kravInloggad(c);
+    const vk = mr.kontaktForRattning(c.db, id);
+    return medPatient(c, vk.patient_id, 'registrera_diagnos', (atk) => mr.valjHuvuddiagnos(atk, vk, c.body));
+  });
   // Patienten motsätter sig registrering i kvalitetsregistret (patientdatalagen 7 kap. 2 §). Läkaren och sjuksköterskan
   // registrerar och ångrar invändningen i journalen, och patienten anmäler och ångrar den själv i Min journal. Allt loggas.
   const medInvandning = (c, id, resurs, fn) => {
@@ -111,7 +116,7 @@ export function inkorg(c, patientKort, patientRad, valFor) {
   const admin = p.yrke === 'vardadministrator';
   if (!lakare && !admin) return { rapportfel: [] };
   const min = vardenhetFor(c.db, p.enhet_id);
-  const atgarder = lakare ? ['diagnos', 'yttre_orsak'] : ['identitet', 'aktivitet', 'vantelista'];
+  const atgarder = lakare ? ['diagnos', 'yttre_orsak', 'huvuddiagnos'] : ['identitet', 'aktivitet', 'vantelista'];
   const handling = lakare ? 'registrera_diagnos' : 'las_admin';
   const loggade = (c.s.rapportfelLoggad ??= new Set());
   const ut = [];
@@ -140,7 +145,8 @@ export function inkorg(c, patientKort, patientRad, valFor) {
       ut.push({
         nyckel, regel: f.regel, atgard: f.atgard, text: f.text, detalj: f.detalj, datum: f.datum, rapporter: [mr.RAPPORTER[id].namn], patientId: plats.patientId,
         patient: patientKort(patientRad(c.db, plats.patientId)), vardkontaktId: f.vardkontaktId,
-        forslag: f.atgard === 'diagnos' && vk && plats.enheter.includes(vk.enhet_id) ? mr.diagnosforslag(c.db, vk) : [],
+        // Förslagen kommer bara med när behörigheten gäller varje enhet i felet, som prövats ovan.
+        forslag: !vk || !plats.enheter.includes(vk.enhet_id) ? [] : f.atgard === 'diagnos' ? mr.diagnosforslag(c.db, vk) : f.atgard === 'huvuddiagnos' ? mr.huvudForslag(c.db, vk) : [],
       });
     }
   }
