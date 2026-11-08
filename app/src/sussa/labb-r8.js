@@ -22,6 +22,7 @@ export const T = {
   dubbHistorik: `${BS}en beställning trots dubblettvarning sparar bara analysnamnen, så att historiken inte röjer ett svar som en kollega inte får se`,
   nycklar: `${BS}nycklar som constructor, __proto__ och toString är aldrig analyser, paket, laboratorier, kontroller eller frekvenser`,
   signeraBehorighet: `${BS}signeringen prövar behörigheten först och nämner inte den ansvariga läkaren för den som inte får se beställningen`,
+  undantag: `${BS}ett mätvärde som är undantaget från visning visas inte som svar i beställningen eller i inkorgen`,
   uppdrag: `${BS}sjuksköterskan och undersköterskan beställer på uppdrag av en läkare på vårdenheten, som signerar i inkorgen`,
   provtagning: `${BS}provtagningen registreras med ett klick per rör, systemet sätter tid och provtagare och skickar när alla rör är tagna`,
   svar: `${BS}laboratoriet svarar efter svarstiden: svaren blir mätvärden med NPU-kod, referensintervall och avvikelse, och hamnar hos den beställande läkaren`,

@@ -24,6 +24,8 @@ import * as lakemedel from './lakemedel.js';
 import * as vardkontakt from './vardkontakt.js';
 import { varde as konfig } from './konfiguration.js';
 import { referens, utanforReferens, ckdEpi2021 } from './skalor.js';
+// Mätvärden som systemförvaltningen har undantagit från visning visas inte heller som svar (Sussa 12.1.1.10).
+import { provare as undantagProvare } from './undantag.js';
 import { LAB, LABORATORIER, ROR, ANALYSER, ANALYS, PAKET, PAKETEN, SVARSVARDEN, FYND, DISCIPLINER, DEMOREGEL, finns as iKatalog } from './labb-katalog.js';
 
 export const SCHEMA = `
@@ -180,7 +182,8 @@ export function synligaBestallningar(atk) {
 
 // Svaren för en analys: mätvärdena med referensintervall och avvikelse, eller ett textsvar.
 function svarFor(db, a, kon) {
-  const mv = db.query('SELECT m.* FROM labb_svar s JOIN matvarden m ON m.id = s.matvarde_id WHERE s.analys_rad_id = ? ORDER BY m.id').all(a.id);
+  const undantagen = undantagProvare(db, 'visning');
+  const mv = db.query('SELECT m.* FROM labb_svar s JOIN matvarden m ON m.id = s.matvarde_id WHERE s.analys_rad_id = ? ORDER BY m.id').all(a.id).filter(m => !undantagen(m, 'matvarde'));
   return mv.map(m => {
     const r = referens(m.typ, { kon });
     const v = m.varde_num ?? Number(m.varde);

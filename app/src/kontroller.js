@@ -13,6 +13,7 @@ import { Fel, iso, addDagar, datumAv, lokalTid } from './db.js';
 import { Atkomst, kanRoll, vardenhetFor, enheterUnder, visningsnamn, visningsPnr } from './atkomst.js';
 import * as vardkontakt from './vardkontakt.js';
 import * as labb from './labb.js';
+import { provare as undantagProvare } from './undantag.js';
 import { KONTROLLER, KONTROLL, FREKVENSER, DEMOREGEL, finns as iKatalog } from './labb-katalog.js';
 
 // En rad med en kontroll eller frekvens som inte finns i katalogen visas inte, så att den aldrig stoppar listningen.
@@ -92,6 +93,8 @@ function utfordVid(db, k, t) {
   }
   const m = db.query(`SELECT * FROM matvarden WHERE patient_id = ? AND typ = ? AND enhet_id IN (${ph}) AND tid >= ? AND tid <= ? ORDER BY tid LIMIT 1`)
     .get(k.patient_id, def.matvarde, ...enheter, new Date(ms - TIMME).toISOString(), new Date(ms + 2 * TIMME).toISOString());
+  // Ett mätvärde som är undantaget från visning bockar av kontrollen, men värdet visas inte.
+  if (m && undantagProvare(db, 'visning')(m, 'matvarde')) return { tid: m.tid, av: personNamn(db, m.registrerad_av), varde: null, matvardeId: null };
   return m ? { tid: m.tid, av: personNamn(db, m.registrerad_av), varde: m.varde, matvardeId: m.id } : null;
 }
 

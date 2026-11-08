@@ -2,11 +2,12 @@
 // prövas på en sandlåda byggd vid en fast tidpunkt och med fasta tider, så att inget beror på dagens datum. API:t prövas
 // för behörighet, loggning och flöde.
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
-import { byggSeed } from '../src/db.js';
+import { byggSeed, datumAv } from '../src/db.js';
 import { Atkomst } from '../src/atkomst.js';
 import * as labb from '../src/labb.js';
 import * as labbFhir from '../src/labb-fhir.js';
 import * as kontroller from '../src/kontroller.js';
+import * as undantag from '../src/undantag.js';
 import * as fhir from '../src/fhir.js';
 import * as konfiguration from '../src/konfiguration.js';
 import * as streckkod from '../src/streckkod.js';
@@ -140,6 +141,18 @@ describe('Beställning och svar', () => {
     db.query("INSERT INTO kontrollordinationer (patient_id, enhet_id, kontroll, frekvens, start, ordinerad_av, skapad) VALUES ('p04', 'uso-kard-72', 'constructor', 'toString', ?, 'lak-kard', ?)").run(BAS.toISOString(), BAS.toISOString());
     expect(() => kontroller.forPatient(atk(db, 'ssk-kard', 'p04'), BAS)).not.toThrow();
     expect(() => kontroller.planerat(db, pers(db, 'ssk-kard'), () => ({}), {}, BAS)).not.toThrow();
+  });
+
+  test('ett mätvärde som är undantaget från visning visas inte som svar i beställningen eller i inkorgen', () => {
+    const db = byggSeed(BAS);
+    const nu = new Date();
+    const fore = JSON.stringify(labb.inkorg(db, pers(db, 'lak-kard'), () => ({}), nu).provsvarAttVidimera);
+    expect(fore).toContain('Kalium 6,4');
+    const { andring } = undantag.foresla(db, pers(db, 'sysf'), { omfang: 'matvarde', varde: 'kalium', kanaler: ['visning'], giltigFran: datumAv(nu), motivering: 'Prov av undantag för kalium.' }, nu);
+    undantag.godkann(db, pers(db, 'sysf-2'), andring.id, {}, nu);
+    expect(JSON.stringify(labb.inkorg(db, pers(db, 'lak-kard'), () => ({}), nu).provsvarAttVidimera)).not.toContain('6,4');
+    const b = labb.forPatient(atk(db, 'lak-kard', 'p04'), nu).bestallningar.find(x => x.analyser.some(a => a.analys === 'kalium' && a.status === 'besvarad'));
+    expect(b.analyser.find(a => a.analys === 'kalium').svar).toEqual([]);
   });
 
   test('signeringen prövar behörigheten först och nämner inte den ansvariga läkaren för den som inte får se beställningen', () => {

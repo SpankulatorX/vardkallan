@@ -89,7 +89,7 @@ export default [
     anmarkning: 'Beställning av blodprodukter till blodcentralen är inte byggd. Blodprodukter finns som demoposter i läkemedelsprocessen.' },
   {
     id: '4.4.2.13', kategori: 'system', egna: [], avsedd: 'delvis',
-    tester: [T.svar, T.vidimera, T.kritisk, `${MJ}provsvar visas när de är vidimerade eller efter 14 dagar, mätvärden direkt`],
+    tester: [T.svar, T.vidimera, T.kritisk, T.undantag, `${MJ}provsvar visas när de är vidimerade eller efter 14 dagar, mätvärden direkt`],
     losning: 'Nya svar hamnar i den ansvariga läkarens inkorg för vidimering, med avvikande och kritiska först, och kritiska svar larmar också sjuksköterskorna på vårdenheten. Min journal visar svaret när det är vidimerat.',
     expert: 'Systemet larmar själv vid kritiska svar och ordnar inkorgen efter avvikelse.',
     anmarkning: 'Uppdaterade svar (en rättelse från laboratoriet) och bifogade underlag i svaret finns inte.',
