@@ -1203,7 +1203,7 @@ const MENY = {
       await page.click('[data-kr="aterkalla"]');
       await forvanta(page, '.notis', 'Invändningen är ångrad');
       await page.waitForLoadState('networkidle');
-      await loggaIn(page, 'inv-p10');
+      await loggaInPatient(page, 'inv-p10');
       await gaTill(page, '#/min/p10/sparrar');
       await page.click('[data-kr="motsatt"]');
       await forvanta(page, '.kr-invandning', 'Du har motsatt sig registrering');
