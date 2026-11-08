@@ -27,6 +27,7 @@ const VISAR = {
   // Runda 6, r6.
   // Runda 7, r4.
   'sysf': 'Systemförvaltare: ändrar regler och parametrar med giltighetsdatum och fyra ögon, förbereder omorganisationer som systemet genomför på dagen, beslutar om undantag från visning och kontrollerar säkerhetskopian. Läser inte journalen.',
+  'sysf-2': 'Den andra systemförvaltaren: finns för att godkänna det som Tomas Lindh föreslår, till exempel ändrade regler, en sammanslagning eller ett uttag, eftersom ingen godkänner sina egna ändringar (fyra ögon).',
   'vch-kard': 'Verksamhetschef på kardiologen: utser medicinskt ansvarig läkare, mallansvarig läkare och läkemedelsansvariga sjuksköterskor med systemets förslag, och påminns när ett uppdrag saknas eller ansvarsdokumentet inte har setts över på ett år. Läser inte journalen.',
 };
 

@@ -107,6 +107,7 @@ Inloggning sker med ett simulerat SITHS-kort: besökaren väljer person och den 
 | far-kard | Elsa Nordin | Farmaceut (klinisk apotekare), från runda 6 | Kardiologiska kliniken USÖ |
 | vch-kard | Ulrika Sandell | Verksamhetschef, från runda 6 (r6) | Kardiologiska kliniken USÖ |
 | sysf | Tomas Lindh | Systemförvaltare, från runda 7 (r4) | Regionkansliet |
+| sysf-2 | Nora Ekholm | Systemförvaltare som godkänner (fyra ögon), från runda 7 (r4) | Regionkansliet |
 
 Patienterna loggar in i Min journal med simulerad e-legitimation. Varje patient med personnummer i `seed/patienter.js` är också en invånare (`inv-p01` till `inv-p15`), och därtill finns vårdnadshavaren Johanna Bergström (`inv-vh01`, testpersonnummer 19861214-2383) till barnet Leo Bergström (p09), utan egen journal i demon. Barnet kan inte logga in självt.
 
@@ -122,7 +123,7 @@ En ren funktion `prova(db, { personal, patient, handling, resurs, val })` som re
    - Logggranskare: åtkomstloggen för alla patienter, ingen journal.
    - Arkivarie: beslut om leverans till e-arkiv, gallring och radering, exportpaket och verkställande efter beslut, ingen journal i gränssnittet. Uppföljning: datauttaget för uppföljning, ingen journal (se avsnittet om utskrift, e-arkiv och datauttag).
    - Verksamhetschef (runda 6, r6): utser och avslutar uppdragen i läkemedelshanteringen och fastställer generella direktiv, ingen journal och ingen arbetslista (se avsnittet om ansvarsuppdrag för läkemedel).
-   - Systemförvaltare (runda 7, r4): ändrar regler och parametrar, förbereder omorganisationer, beslutar om undantag från visning och publicering och följer upp lagringen, ingen journal och ingen arbetslista (se avsnittet Systemförvaltning). En andra systemförvaltare (Nora Ekholm) finns för fyra ögon men går inte att logga in som.
+   - Systemförvaltare (runda 7, r4): ändrar regler och parametrar, förbereder omorganisationer, beslutar om undantag från visning och publicering och följer upp lagringen, ingen journal och ingen arbetslista (se avsnittet Systemförvaltning). En andra systemförvaltare (Nora Ekholm, `sysf-2`) är en egen demoroll direkt efter den första och finns för att godkänna det som den första föreslår (fyra ögon). Ingen godkänner sina egna ändringar, och det finns ingen genväg som godkänner åt någon annan.
    - Patientidentitet (Sussa 3.1.1): läkare, sjuksköterskor och vårdadministratörer registrerar nya patienter och nya identiteter. Bara vårdadministratören bekräftar att två journaler slås samman.
 2. **Vårdrelation** krävs för journalåtkomst. Den finns om patienten har en pågående eller nyligen avslutad (90 dagar) vårdkontakt, inskrivning eller listning på personalens enhet, eller en remiss till enheten. En vårdkontakt som skapades under nödåtkomst räknas inte, och en kontakt som systemet skapade när någon dokumenterade räknas i 90 dagar från dagen den skapades (se Vårdkontakt och vårdtillfälle).
 3. **Inre sekretess**: personalen ser utan vidare sin egen enhets uppgifter. Andra enheters uppgifter inom vårdgivaren visas först efter ett aktivt val ("Visa uppgifter från andra vårdenheter") med angivet syfte. Valet loggas och gäller sessionen för den patienten.
@@ -900,7 +901,7 @@ Säkerhetskopian är en konsistent ögonblicksbild i en enda operation: `VACUUM 
 
 ### Det som är simulerat eller saknas
 
-Kopplingen till HSA-katalogen och publiceringen till nationella tjänster är simulerade. Demon har en huvudman och den simulerade kommunen, och testet lägger in en andra påhittad region. Den andra systemförvaltaren går inte att logga in som, så det som kräver fyra ögon godkänns i demon bara i testerna. Lagringsklasser, schemalagda säkerhetskopior och kopior på flera platser hör till driften. En stängd enhet kan inte öppnas igen, och avgifter, vårdgarantin, läkemedelsvarningarnas regler och beställning och svar för labb är ännu inte parametrar.
+Kopplingen till HSA-katalogen och publiceringen till nationella tjänster är simulerade. Demon har en huvudman och den simulerade kommunen, och testet lägger in en andra påhittad region. Det som kräver fyra ögon godkänns i demon av den andra systemförvaltaren, som är en egen demoroll. Lagringsklasser, schemalagda säkerhetskopior och kopior på flera platser hör till driften. En stängd enhet kan inte öppnas igen, och avgifter, vårdgarantin, läkemedelsvarningarnas regler och beställning och svar för labb är ännu inte parametrar.
 
 ## Beslutade avvägningar (3 november 2026)
 

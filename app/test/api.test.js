@@ -77,7 +77,7 @@ describe('API', () => {
   test('inloggning och demoroller', async () => {
     const k = klient(app);
     const roller = await k.get('/api/demo/personal');
-    expect(roller.data.map(r => r.id)).toEqual(['lak-kard', 'ssk-kard', 'usk-kard', 'lak-akut', 'lak-vc', 'lak-psyk', 'adm-kard', 'logg', 'ark', 'uppf', 'kom-bist', 'far-kard', 'vch-kard', 'sysf']);
+    expect(roller.data.map(r => r.id)).toEqual(['lak-kard', 'ssk-kard', 'usk-kard', 'lak-akut', 'lak-vc', 'lak-psyk', 'adm-kard', 'logg', 'ark', 'uppf', 'kom-bist', 'far-kard', 'vch-kard', 'sysf', 'sysf-2']);
     expect(roller.data[0]).toMatchObject({ namn: 'Sara Lindqvist', yrke: 'lakare', enhet: { id: 'uso-kard', namn: 'Kardiologiska kliniken USÖ' } });
     expect((await k.post('/api/login', { personalId: 'lak-ort' })).status).toBe(400);
     expect((await k.get('/api/arbetslista')).data.kod).toBe('ej_inloggad');

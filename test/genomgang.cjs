@@ -162,12 +162,12 @@ const MENY = {
 
   try {
     // Utan inloggning
-    await s('inloggningssidan visar de fjorton demorollerna och demoraden', async () => {
+    await s('inloggningssidan visar de femton demorollerna och demoraden', async () => {
       await page.goto(`${BAS}/`);
       await page.waitForSelector('.roll');
       const n = await page.locator('.roll').count();
-      // Runda 6, r6: verksamhetschefen är den trettonde. Runda 7, r4: systemförvaltaren är den fjortonde.
-      if (n !== 14) throw new Error(`${n} roller`);
+      // Runda 6, r6: verksamhetschefen är den trettonde. Runda 7, r4: de två systemförvaltarna är den fjortonde och femtonde.
+      if (n !== 15) throw new Error(`${n} roller`);
       await forvanta(page, '.demorad', 'Demo med påhittade patienter och testpersonnummer från Skatteverket. Inte för vård av riktiga patienter.');
       await forvanta(page, '.sidfot', 'Vårdkällan är ett fristående demoprojekt med öppen källkod (EUPL 1.2). Det är inte en tjänst från Region Örebro län.');
       await forvanta(page, '#roll-lak-akut-visar', 'Nödåtkomst');
@@ -1317,6 +1317,34 @@ const MENY = {
       await page.waitForLoadState('networkidle');
     });
     await allaVyer(page, 'Tomas Lindh', MENY.systemforvaltare);
+    // Fyra ögon på riktigt: Nora Ekholm loggar in i samma sandlåda och godkänner sammanslagningen som Tomas Lindh förberedde.
+    await s('Nora Ekholm godkänner sammanslagningen som Tomas Lindh förberedde, men inte sina egna förslag', async () => {
+      await loggaIn(page, 'sysf-2');
+      await gaTill(page, '#/omorganisation');
+      const rad = page.locator('#sf-forberedda ~ ul li', { hasText: 'slås samman till Hjärt- och medicinkliniken USÖ' });
+      await rad.waitFor();
+      await forvanta(page, '#sf-forberedda ~ ul', 'Förberedd av Tomas Lindh');
+      await bild(page, '104-godkanna-omorganisation');
+      await rad.locator('[data-godkann-omorg]').click();
+      await forvanta(page, '.notis', 'Förändringen är godkänd');
+      await forvanta(page, '#sf-forberedda ~ ul', 'Godkänd av Nora Ekholm');
+      // Beslutet om uttag som Tomas Lindh registrerade godkänns också av henne, och filen går sedan att hämta.
+      await gaTill(page, '#/lagring');
+      await page.locator('#sf-l-uttag ~ ul [data-godkann-uttag]').first().click();
+      await forvanta(page, '.notis', 'Uttaget är godkänt');
+      await forvanta(page, '#sf-l-uttag ~ ul', 'Godkänt av Nora Ekholm');
+      await page.locator('#sf-l-uttag ~ ul [data-hamta-uttag]').first().waitFor();
+      // Det hon själv föreslår väntar på någon annan: ingen knapp för att godkänna det.
+      await gaTill(page, '#/regler');
+      await page.click('tr[data-nyckel="logg.stickprov_antal"] [data-andra]');
+      await page.locator('dialog[open] #sf-varde').fill('15');
+      await page.locator('dialog[open] #sf-motivering').fill('Fler åtkomster i varje stickprov.');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '#sf-mina ~ ul', '15 åtkomster');
+      if (await page.locator('#sf-mina ~ ul [data-godkann]').count()) throw new Error('den egna ändringen gick att godkänna');
+      await page.waitForLoadState('networkidle');
+    });
+    await allaVyer(page, 'Nora Ekholm', MENY.systemforvaltare);
     await s('Sara granskar den ändrade mallen i inkorgen och godkänner den', async () => {
       await loggaIn(page, 'lak-kard');
       await page.waitForFunction(() => document.querySelector('#lista') && !/Hämtar/.test(document.querySelector('#lista').textContent));
@@ -1386,7 +1414,7 @@ const MENY = {
   };
   const vantaHamtat = (p) => p.waitForFunction(() => ![...document.querySelectorAll('main .tom, main .laddar')].some(e => /^Hämtar/.test(e.textContent)), null, { timeout: 8000 }).catch(() => {});
   const MOBILROLLER = [['lak-kard', 'Sara Lindqvist'], ['ssk-kard', 'Johan Ek'], ['usk-kard', 'Amira Haddad'], ['lak-akut', 'Erik Nyström'], ['lak-vc', 'Per Holm'],
-    ['lak-psyk', 'Lena Ström'], ['adm-kard', 'Karin Berg'], ['logg', 'Mats Wall'], ['ark', 'Ingela Nord'], ['uppf', 'Daniel Sund'], ['kom-bist', 'Lisa Ahlgren'], ['far-kard', 'Elsa Nordin'], ['vch-kard', 'Ulrika Sandell'], ['sysf', 'Tomas Lindh']];
+    ['lak-psyk', 'Lena Ström'], ['adm-kard', 'Karin Berg'], ['logg', 'Mats Wall'], ['ark', 'Ingela Nord'], ['uppf', 'Daniel Sund'], ['kom-bist', 'Lisa Ahlgren'], ['far-kard', 'Elsa Nordin'], ['vch-kard', 'Ulrika Sandell'], ['sysf', 'Tomas Lindh'], ['sysf-2', 'Nora Ekholm']];
   try {
     if (!fel.length) {
       await s('mobil: inloggningen på 360 px', async () => {

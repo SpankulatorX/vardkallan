@@ -58,8 +58,19 @@ describe('Systemförvaltning', () => {
     expect(s.behorigheter).toEqual(['konfigurera', 'omorganisera', 'undanta', 'lagring']);
     expect((await k.get('/api/patient/p01')).status).toBe(403);
     expect((await k.get('/api/arbetslista')).data).toEqual([]);
-    // Den andra systemförvaltaren finns för fyra ögon men är ingen demoroll.
-    expect((await k.get('/api/demo/personal')).data.filter(p => p.yrke === 'systemforvaltare').map(p => p.id)).toEqual(['sysf']);
+    // Den andra systemförvaltaren finns för fyra ögon och går att logga in som, direkt efter den första.
+    const demo = (await k.get('/api/demo/personal')).data.map(p => p.id);
+    expect(demo.filter(id => id.startsWith('sysf'))).toEqual(['sysf', 'sysf-2']);
+    expect(demo.indexOf('sysf-2')).toBe(demo.indexOf('sysf') + 1);
+    // Hon godkänner en ändring som Tomas Lindh har föreslagit, inloggad som sig själv.
+    const t = (await k.post('/api/konfiguration', { nyckel: 'logg.stickprov_antal', varde: 20, motivering: 'Större urval.' })).data.andring;
+    expect((await k.post(`/api/konfiguration/${t.id}/godkann`, {})).status).toBe(403);
+    // En ny inloggning i samma webbläsare behåller sandlådan.
+    await k.logga('sysf-2');
+    expect((await k.get('/api/session')).data.personal.namn).toBe('Nora Ekholm');
+    const g = await k.post(`/api/konfiguration/${t.id}/godkann`, {});
+    expect(g.data.andring).toMatchObject({ status: 'godkand', foreslagenAv: 'Tomas Lindh', beslutadAv: 'Nora Ekholm' });
+    await k.logga('sysf');
     // Andra roller får inte systemförvaltningens API.
     const l = klient(app);
     await l.logga('lak-kard');

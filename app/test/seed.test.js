@@ -111,6 +111,7 @@ describe('Seed', () => {
       ['vch-kard', 'Ulrika Sandell', 'verksamhetschef', 'uso-kard'],
       // Runda 7, r4: systemförvaltaren på regionkansliet.
       ['sysf', 'Tomas Lindh', 'systemforvaltare', 'rk'],
+      ['sysf-2', 'Nora Ekholm', 'systemforvaltare', 'rk'],
     ]);
   });
 
