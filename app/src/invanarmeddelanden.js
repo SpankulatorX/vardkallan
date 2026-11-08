@@ -110,7 +110,13 @@ function avInvanare(db, t, invanareId) {
   return 'Ombudet';
 }
 
-function tradUt(db, t, { forInvanare }) {
+// Runda 10, r7 (säkerhetsgranskningen): ett ombud ser och refererar aldrig journalinnehåll. Läkemedel och vårdplaner
+// listas inte, recept och vårdplan kan inte väljas, och vad en tråd gäller visas inte när det kommer från en ordination
+// eller en plan, inte heller i en tråd som patienten själv startade.
+const OMBUD_UTAN = ['recept', 'vardplan'];
+export const OMBUD_NEJ = 'Som ombud kan du inte be om förnyade recept eller kommentera vårdplanen, eftersom det gäller journalen. Det kan patienten själv eller en vårdnadshavare göra.';
+
+function tradUt(db, t, { forInvanare, ombud = false }) {
   const m = meddelandenFor(db, t.id);
   const ordination = t.ordination_id ? db.query('SELECT k.namn, k.styrka FROM ordinationer o JOIN katalog k ON k.id = o.lakemedel_id WHERE o.id = ?').get(t.ordination_id) : null;
   const plan = t.plan_id ? db.query('SELECT rubrik FROM vardplaner WHERE id = ?').get(t.plan_id) : null;
@@ -118,7 +124,7 @@ function tradUt(db, t, { forInvanare }) {
   return {
     id: t.id, typ: t.typ, typText: TYPER[t.typ]?.text, vardenhet: enhetNamn(db, t.enhet_id), yrkesrollText: YRKE[t.yrkesroll], status: t.status, statusText: STATUS[t.status],
     skapad: t.skapad, avslutad: t.avslutad, utfall: t.utfall,
-    galler: ordination ? `${ordination.namn} ${ordination.styrka ?? ''}`.trim() : plan ? plan.rubrik : t.intygstyp ? kassa.INTYGSTYPER[t.intygstyp]?.text ?? null : null,
+    galler: ombud && (t.ordination_id || t.plan_id) ? null : ordination ? `${ordination.namn} ${ordination.styrka ?? ''}`.trim() : plan ? plan.rubrik : t.intygstyp ? kassa.INTYGSTYPER[t.intygstyp]?.text ?? null : null,
     avgift: avgift ? { belopp: avgift.belopp, text: avgift.text } : null,
     skrivetAv: forInvanare ? null : { egen: 'Patienten', vardnadshavare: 'Vårdnadshavaren', ombud: 'Ombudet' }[t.relation],
     meddelanden: m.map(x => ({
@@ -138,13 +144,14 @@ export function minLista(atk) {
   const db = atk.db;
   sakra(db);
   const pid = atk.patientId;
+  const ombud = atk.relation === 'ombud';
   const tradar = db.query('SELECT * FROM meddelandetradar WHERE patient_id = ? ORDER BY id DESC').all(pid);
-  const ut = tradar.map(t => tradUt(db, t, { forInvanare: true }));
+  const ut = tradar.map(t => tradUt(db, t, { forInvanare: true, ombud }));
   // Den som läser markeras som läst på vårdens svar.
   db.query("UPDATE invanarmeddelanden SET lasd = ? WHERE patient_id = ? AND fran <> 'invanare' AND lasd IS NULL").run(iso(), pid);
-  const typer = Object.entries(TYPER).filter(([k]) => k !== 'vardplan' || planer(db, pid).length).map(([id, t]) => ({ id, text: t.text }));
+  const typer = Object.entries(TYPER).filter(([k]) => !(ombud && OMBUD_UTAN.includes(k)) && (k !== 'vardplan' || planer(db, pid).length)).map(([id, t]) => ({ id, text: t.text }));
   return {
-    tradar: ut, mottagare: mottagare(db, pid), typer, lakemedel: fornybara(db, pid), planer: planer(db, pid),
+    tradar: ut, mottagare: mottagare(db, pid), typer, lakemedel: ombud ? [] : fornybara(db, pid), planer: ombud ? [] : planer(db, pid),
     intygstyper: Object.entries(kassa.INTYGSTYPER).map(([id, t]) => ({ id, text: t.text })),
     kanSkriva: db.query("SELECT count(*) AS n FROM meddelandetradar WHERE patient_id = ? AND status <> 'avslutad'").get(pid).n < MAX_OPPNA,
     demoregler: DEMOREGLER,
@@ -158,6 +165,9 @@ export function minSkapa(atk, body = {}) {
   const pid = atk.patientId;
   const typ = Object.hasOwn(TYPER, body.typ ?? '') ? body.typ : null;
   if (!typ) throw new Fel(400, 'Välj vad meddelandet gäller.', 'ogiltig', { falt: ['typ'] });
+  // Prövas före allt annat, så att svaret är detsamma oavsett om läkemedlet eller planen finns.
+  const ombud = atk.relation === 'ombud';
+  if (ombud && OMBUD_UTAN.includes(typ)) throw new Fel(403, OMBUD_NEJ, 'nekad');
   const text = textIn(body.text);
   // Vid ord som kan tyda på något akut skickas inget förrän invånaren har läst rådet.
   if (AKUT.test(text) && body.akutLast !== true) return { skickat: false, akut: AKUT_TEXT };
@@ -195,7 +205,7 @@ export function minSkapa(atk, body = {}) {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(pid, enhet, typ, TYPER[typ].yrkesroll, t, atk.invanare.id, atk.relation, ordinationId, planId, intygstyp).lastInsertRowid);
   db.query("INSERT INTO invanarmeddelanden (trad_id, patient_id, enhet_id, fran, invanare_id, text, tid) VALUES (?, ?, ?, 'invanare', ?, ?, ?)").run(id, pid, enhet, atk.invanare.id, text, t);
   atk.logga(`min:meddelanden:${id}`, { handling: 'invanare_meddelande' });
-  const ut = tradUt(db, tradRad(db, id), { forInvanare: true });
+  const ut = tradUt(db, tradRad(db, id), { forInvanare: true, ombud });
   return [201, { skickat: true, trad: ut, text: `Meddelandet är skickat till ${ut.vardenhet}, och en ${ut.yrkesrollText} läser det. Vården svarar inom tre arbetsdagar (demoregel). Du får svaret här.` }];
 }
 
@@ -209,7 +219,7 @@ export function minSvara(atk, tid, body = {}) {
   db.query("INSERT INTO invanarmeddelanden (trad_id, patient_id, enhet_id, fran, invanare_id, text, tid) VALUES (?, ?, ?, 'invanare', ?, ?, ?)").run(t.id, t.patient_id, t.enhet_id, atk.invanare.id, text, iso());
   db.query("UPDATE meddelandetradar SET status = 'ny' WHERE id = ?").run(t.id);
   atk.logga(`min:meddelanden:${t.id}:svar`, { handling: 'invanare_meddelande' });
-  return tradUt(db, tradRad(db, t.id), { forInvanare: true });
+  return tradUt(db, tradRad(db, t.id), { forInvanare: true, ombud: atk.relation === 'ombud' });
 }
 
 // --- Vården ------------------------------------------------------------------------------------------------------
@@ -300,7 +310,8 @@ export function vardAvsluta(atk, t, body = {}) {
     const p = db.query('SELECT * FROM patienter WHERE id = ?').get(t.patient_id);
     const a = kassa.skapaAvgift(db, { patient: p, enhetId: t.enhet_id, tjanst: utfall === 'fornyat' ? 'receptfornyelse' : 'intyg', intygstyp: t.intygstyp, av: atk.personal.id, kalla: 'meddelande', kallaId: t.id });
     avgift = a;
-    const vad = utfall === 'fornyat' ? `Receptet för ${tradUt(db, t, { forInvanare: true }).galler} är förnyat och finns på apoteket.` : `Intyget (${kassa.INTYGSTYPER[t.intygstyp]?.text.toLowerCase()}) är utfärdat och skickas till dig.`;
+    // Svaret nämner inte läkemedlet, eftersom ett ombud kan läsa tråden. Vad tråden gäller visas för patienten.
+    const vad = utfall === 'fornyat' ? 'Receptet är förnyat och finns på apoteket.' : `Intyget (${kassa.INTYGSTYPER[t.intygstyp]?.text.toLowerCase()}) är utfärdat och skickas till dig.`;
     const om = a.belopp > 0 ? ` Avgiften är ${a.belopp} kr, och du kan betala den i Min journal under Tider eller få en faktura.` : ` ${a.text}`;
     db.query("INSERT INTO invanarmeddelanden (trad_id, patient_id, enhet_id, fran, personal_id, text, tid, avisering) VALUES (?, ?, ?, 'systemet', NULL, ?, ?, ?)").run(t.id, t.patient_id, t.enhet_id, `${vad}${om}`, iso(), avisera(db, t));
   }

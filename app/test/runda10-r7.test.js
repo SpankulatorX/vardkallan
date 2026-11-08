@@ -136,6 +136,55 @@ describe('Ombud', () => {
     expect(tak.data.fel).toContain('högst 3 ombud');
   });
 
+  test(T10.ombudInnehall, async () => {
+    const o = await invanare('inv-om01');
+    const d = db(o);
+    const ord = d.query("SELECT o.id, k.namn FROM ordinationer o JOIN katalog k ON k.id = o.lakemedel_id WHERE o.patient_id = 'p01'").all();
+    // Gunnar Åkesson får en vårdplan, så att det finns en plan som ombudet inte får se.
+    d.query("INSERT INTO vardplaner (patient_id, enhet_id, mall, rubrik, uppfoljning, skapad, skapad_av) VALUES ('p01', 'uso-kard-72', NULL, 'Plan för hjärtsvikten', ?, ?, 'ssk-kard')").run(addDagar(idag(), 7), iso());
+    const planer = d.query("SELECT id, rubrik FROM vardplaner WHERE patient_id = 'p01'").all();
+    const hemligt = [...ord.flatMap(x => [x.namn, `"ordinationId":${x.id}`]), ...planer.flatMap(x => [x.rubrik, `"planId":${x.id}`])];
+    const r = await o.get('/api/min/journal/p01/meddelanden');
+    expect(r.status).toBe(200);
+    expect(r.data.lakemedel).toEqual([]);
+    expect(r.data.planer).toEqual([]);
+    expect(r.data.typer.map(t => t.id)).not.toContain('recept');
+    expect(r.data.typer.map(t => t.id)).not.toContain('vardplan');
+    // Den seedade tråden om receptet, som patienten själv startade, visas utan vad den gäller.
+    expect(r.data.tradar.some(t => t.typ === 'recept')).toBe(true);
+    const text = JSON.stringify(r.data);
+    for (const x of hemligt) expect(text).not.toContain(x);
+    for (const t of r.data.tradar) expect(t.galler).toBeNull();
+    // Ombudet kan inte pröva sig fram med recept eller vårdplan, med ett id som finns eller inte finns.
+    for (const body of [{ typ: 'recept', text: 'Förnya', ordinationId: ord[0].id }, { typ: 'vardplan', text: 'Kommentar', planId: planer[0].id }, { typ: 'recept', text: 'Förnya', ordinationId: 999999 }, { typ: 'vardplan', text: 'Kommentar', planId: 999999 }]) {
+      const n = await o.post('/api/min/journal/p01/meddelanden', body);
+      expect(n.status).toBe(403);
+      expect(n.data.fel).toContain('patienten själv eller en vårdnadshavare');
+      for (const x of hemligt) expect(JSON.stringify(n.data)).not.toContain(x);
+    }
+    // Svaret på ett eget meddelande visar inte heller vad en tråd gäller.
+    const egen = await o.post('/api/min/journal/p01/meddelanden', { typ: 'tid', text: 'Pappa behöver en tid.', enhetId: 'uso-kard' });
+    expect(egen.status).toBe(201);
+    for (const x of hemligt) expect(JSON.stringify(egen.data)).not.toContain(x);
+    // När läkaren har förnyat receptet nämner svaret inte läkemedlet, så ombudet ser det inte heller där.
+    const s = sandlada(app, o);
+    som(s, 'lak-kard');
+    const rid = r.data.tradar.find(t => t.typ === 'recept').id;
+    expect((await o.post(`/api/meddelanden/${rid}/avsluta`, { utfall: 'fornyat' })).status).toBe(200);
+    somInv(s, 'inv-om01');
+    const efter = JSON.stringify((await o.get('/api/min/journal/p01/meddelanden')).data);
+    expect(efter).toContain('Receptet är förnyat');
+    for (const x of hemligt) expect(efter).not.toContain(x);
+    // Samma anrop för patienten själv fungerar som förut.
+    somInv(sandlada(app, o), 'inv-p01');
+    const p = (await o.get('/api/min/journal/p01/meddelanden')).data;
+    expect(p.lakemedel.length).toBeGreaterThan(0);
+    expect(p.planer.map(x => x.id)).toContain(planer[0].id);
+    expect(p.typer.map(t => t.id)).toEqual(expect.arrayContaining(['recept', 'vardplan']));
+    expect(p.tradar.find(t => t.typ === 'recept').galler).toBeTruthy();
+    expect((await o.post('/api/min/journal/p01/meddelanden', { typ: 'vardplan', text: 'Bra plan.', planId: planer[0].id })).status).toBe(201);
+  });
+
   test(T10.ombudLogg, async () => {
     const o = await invanare('inv-om01');
     const bokad = await bokaSom(o, 'p01');
