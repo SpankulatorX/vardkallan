@@ -282,6 +282,11 @@ export const UPPGIFTER = [
     text: 'Du är ekonom på regionkansliet. Ekonomisystemet behöver förra månadens faktureringsunderlag för en vårdenhet. Hämta underlaget som en fil.',
     kontroll: { notis: 'är exporterat' },
   },
+  {
+    id: 'lamna-ut-hjalpmedel', namn: 'Lämna ut ett hjälpmedel', roll: 'ssk-kard', start: 'Patientens översikt',
+    text: 'Gunnar Åkesson ska få en rollator med sig hem. Registrera att han har fått den.',
+    kontroll: { notis: 'är registrerat som utlämnat' },
+  },
 ];
 
 // Deltagarens bakgrund. Bara val, inga fritextfält, så att inga identifierande uppgifter samlas in.

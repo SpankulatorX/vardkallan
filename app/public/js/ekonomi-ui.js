@@ -37,15 +37,32 @@ export function sektionHtml(k) {
       ${a.drg ? `<p class="ek-drg">Enligt DRG, demogrupp ${esc(a.drg.text.replace(' (demogrupp)', '').toLowerCase())}: <strong>${esc(kr(a.drg.belopp))}</strong>${a.drg.preliminar ? ', preliminärt tills patienten är utskriven' : ''}.<span class="under-text">${esc(a.drg.forklaring)}</span></p>` : ''}
       ${fardigHtml(a.fardigbehandlad)}`;
   } else innehall = `<p>${a.typ === 'vardtillfalle' ? 'Vårdtillfället' : 'Vårdkontakten'} ${esc(datum(a.sedan))}.</p>`;
+  // Läkare och sjuksköterskor lämnar ut hjälpmedel härifrån. Posten och en eventuell hjälpmedelsavgift skapar systemet.
+  const hjalpmedel = far('hjalpmedel') ? '<div class="knapprad tat" data-skriv><button type="button" class="knapp liten sekundar" data-ek="hjalpmedel">Lämna ut hjälpmedel</button></div>' : '';
   return `<section class="ov-sektion ov-kostnader" aria-labelledby="ov-kostnader"><div class="sektion-huvud"><h2 id="ov-kostnader">${a?.kategorier ? 'Kostnader i vårdprocessen' : 'Avgifter och högkostnadsskydd'}</h2><span class="tagg tagg-demo">Demopriser</span></div>
-    ${innehall}${avgifter}${hog}<p class="demoregel">${esc(k.demo)}</p></section>`;
+    ${innehall}${avgifter}${hog}${hjalpmedel}<p class="demoregel">${esc(k.demo)}</p></section>`;
+}
+
+// Utlämnat hjälpmedel: ett klick på hjälpmedlet ur vårdenhetens prislista. Vårdkontakten väljer systemet.
+async function lamnaUt(ctx, ladda) {
+  const { hjalpmedel } = await api('/api/hjalpmedel');
+  const svar = await dialog(`<h2 id="dlg-rubrik">Lämna ut hjälpmedel</h2><div class="dialog-text">
+      <p>Välj hjälpmedlet som ${esc(ctx.patient?.namn ?? 'patienten')} får. Systemet registrerar det på den pågående vårdkontakten, och en hjälpmedelsavgift kommer med i faktureringsunderlaget.</p>
+      <div class="knappval-lista ek-hjalpmedel">${hjalpmedel.map(h => `<button type="button" class="knapp sekundar" data-varde="${esc(h.kod)}">${esc(h.text)}${h.avgift ? ` (avgift ${esc(kr(h.avgift))})` : ''}</button>`).join('')}</div></div>
+    <div class="knapprad"><button type="button" class="knapp text" data-varde="avbryt">Avbryt</button></div>`);
+  if (!svar) return;
+  const r = await api(`/api/patient/${encodeURIComponent(ctx.id)}/hjalpmedel`, { metod: 'POST', data: { artikel: svar.val } });
+  notis(`${r.text} är registrerat som utlämnat.`);
+  await ladda();
 }
 
 export function koppla(el, k, ctx, ladda) {
-  if (!k?.aktuell) return;
+  if (!k) return;
   el.addEventListener('click', async (e) => {
+    const hm = e.target.closest('[data-ek="hjalpmedel"]');
+    if (hm) { try { await lamnaUt(ctx, ladda); } catch (err) { felNotis(err); } return; }
     const b = e.target.closest('[data-ek="fardigbehandlad"]');
-    if (!b) return;
+    if (!b || !k.aktuell) return;
     const svar = await dialog(`<h2 id="dlg-rubrik">Medicinskt färdigbehandlad</h2><form class="dialog-text">
         <p>Registrera att ${esc(ctx.patient?.namn ?? 'patienten')} är medicinskt färdigbehandlad. Datumet följer med i faktureringsunderlaget för vårdtillfället.</p>
         <div class="falt"><label for="ek-fb-datum">Datum</label><input id="ek-fb-datum" name="datum" type="date" max="${esc(idag())}" value="${esc(idag())}" required></div>

@@ -916,6 +916,8 @@ const MENY = {
       await loggaInPatient(page, 'inv-p14');
       await minFlik(page, 'Tider');
       await forvanta(page, '.min-tider', 'Telefontid');
+      // Runda 7, r3: patienten ser hela sitt högkostnadsskydd under Tider.
+      await forvanta(page, '.min-hogkostnad', 'högkostnadsskyddet de senaste tolv månaderna');
       await page.locator('.min-tid details summary').first().click();
       await forvanta(page, '.min-tid .kallelse-text', 'Du har fått en tid');
       await page.locator('.min-tid [data-min="omboka"]').first().click();
@@ -1316,6 +1318,17 @@ const MENY = {
       await forvanta(page, '.ov-kostnader', 'Medicinskt färdigbehandlad');
       await page.waitForLoadState('networkidle');
     });
+    await s('Sara lämnar ut en rollator från kostnadsrutan, och den syns som hjälpmedel i kostnaden', async () => {
+      await gaTill(page, '#/patient/p01');
+      await forvanta(page, '.ov-kostnader', 'Beloppet gäller de besök du kan se');
+      await page.click('.ov-kostnader [data-ek="hjalpmedel"]');
+      await page.locator('dialog[open] [data-varde="HM-ROLLATOR"]').waitFor();
+      await bild(page, '102-hjalpmedel');
+      await page.click('dialog[open] [data-varde="HM-ROLLATOR"]');
+      await forvanta(page, '.notis', 'Rollator är registrerat som utlämnat');
+      await forvanta(page, '.ov-kostnader', 'Hjälpmedel');
+      await page.waitForLoadState('networkidle');
+    });
     await s('Karin Berg ser bara avgifter och högkostnadsskydd i kostnadsrutan, inga läkemedel eller DRG', async () => {
       await loggaIn(page, 'adm-kard');
       await gaTill(page, '#/patient/p01');
@@ -1332,7 +1345,7 @@ const MENY = {
       await forvanta(page, 'main h1', 'Användartest');
       await forvanta(page, '.at-info', 'Alla patienter i demon är påhittade');
       await page.fill('#at-kod', 'G01');
-      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut', 'sok-journal', 'news2', 'ordinera-mall', 'dos-efterhand', 'utse-mal', 'godkanna-mall', 'extern-tillampning', 'boka-ingrepp', 'boka-kedja', 'exportera-underlag']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut', 'sok-journal', 'news2', 'ordinera-mall', 'dos-efterhand', 'utse-mal', 'godkanna-mall', 'extern-tillampning', 'boka-ingrepp', 'boka-kedja', 'exportera-underlag', 'lamna-ut-hjalpmedel']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

@@ -560,6 +560,12 @@ function skapa(BAS) {
     await synlig(page, '.notis', 'är exporterat');
     await synlig(page, '#ek-exporter', 'CSV');
   };
+  // Runda 7, r3: ett hjälpmedel lämnas ut med två klick från kostnadsrutan i översikten.
+  GOR['lamna-ut-hjalpmedel'] = async (m, page) => {
+    await m.klicka(page.locator('.ov-kostnader [data-ek="hjalpmedel"]'), 'Lämna ut hjälpmedel');
+    await m.klicka(page.locator('dialog[open] [data-varde="HM-ROLLATOR"]'), 'Rollator');
+    await synlig(page, '.notis', 'Rollator är registrerat som utlämnat');
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 

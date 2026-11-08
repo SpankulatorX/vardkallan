@@ -55,6 +55,7 @@ export const TACKNING = {
   'dos-efterhand': nej('Som att ge en dos.'),
   // Runda 7, r3: underlaget är personalens API, inte det öppna FHIR-API:t.
   'exportera-underlag': nej('Faktureringsunderlaget hämtas med personalens API som CSV eller JSON. Det finns ingen FHIR-resurs för det i Vårdkällan.', [a('GET', '/api/ekonomi/underlag?vardenhet={id}&period={månad}&format=csv')]),
+  'lamna-ut-hjalpmedel': nej('Utlämnade hjälpmedel registreras med personalens API och läses som ChargeItem i FHIR, men registreras inte via FHIR.', [a('POST', '/api/patient/{id}/hjalpmedel'), a('GET', '/fhir/ChargeItem?patient={id}')]),
   'extern-tillampning': ja([a('GET', '/fhir/.well-known/smart-configuration'), a('GET', '/oauth/authorize'), a('POST', '/oauth/token'), a('GET', '/fhir/Observation?patient={id}')], 'Det här flödet är API:t: tillämpningen startas med SMART on FHIR och läser med sin åtkomstbiljett.'),
 };
 
