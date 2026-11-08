@@ -48,7 +48,7 @@ const R10 = {
     ],
     losning: 'Standardvyer för patientens vårdprocess: översikten med kronologin, där migrerad historik syns likvärdigt med ny dokumentation, avdelningens och patientens planering med aktiviteter och åtgärder, och uppföljningsvyn som visar var i vårdprocessen patienten är, vårdplanernas mål och avvikelser, avvikande provsvar, läkemedel som ska följas upp, remisser med larm och samordnad planering med kommunen. Varje rad visar när, var och av vem, och vyn filtreras på typ. En journal som skapades för en oidentifierad patient slås samman med den gällande och visas samlad.',
     expert: 'Systemet samlar det som behöver följas upp ur vårdplanerna, provsvaren, ordinationerna, remisserna och den samordnade planeringen, sätter avvikelserna först och säger var i vårdprocessen patienten är, så att ingen behöver leta på flera ställen.',
-    anmarkning: 'Vården mellan vårdgivare är den samordnade planeringen med kommunen, som är en simulerad part. Information från vårdgivare utanför Vårdkällan visas genom 3.2.2.3.',
+    anmarkning: 'Vården mellan vårdgivare är den samordnade planeringen med kommunen, som är en egen vårdgivare och en simulerad part i demon. Information från vårdgivare utanför Vårdkällan visas genom 3.2.2.3.',
   },
   '3.1.2.3': {
     id: '3.1.2.3', kategori: 'system', egna: ['D11'], avsedd: 'uppfyllt_demo',
@@ -62,7 +62,7 @@ const R10 = {
     ],
     losning: 'Översikten anpassas för användaren (vilka delar, i vilken ordning och hur lång tid tidslinjen visar), för ett verksamhetsområde (vårdenhetens förval, som systemförvaltningen eller verksamhetschefen sätter) och för en situation (mottagningsbesök, akut och rond, med var sitt förval). Dagens arbete och tidboken anpassas per användare och Dagens arbete också per vårdenhet. Varje del visar när, var och vem som skapade informationen.',
     expert: 'Systemet väljer situationen själv ur patientens läge och förklarar valet: en pågående akut vårdkontakt ger akut och en inskrivning rond. Användaren behöver inte ställa in något, och den som gör det ser aldrig mer än behörigheten.',
-    anmarkning: 'Journalens och mätvärdenas flikar har fasta kolumner. Anpassningen gäller översikten, Dagens arbete och tidboken.',
+    anmarkning: 'Avgränsning: presentationsvyn är översikten, som anpassas för användaren, verksamheten och situationen. Journalens och mätvärdenas flikar har fasta kolumner.',
   },
   '3.1.2.4': {
     id: '3.1.2.4', kategori: 'system', egna: ['L6'], avsedd: 'uppfyllt_demo',
