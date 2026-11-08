@@ -227,4 +227,13 @@ export const FLODEN = [
     id: 'kravviktning', namn: 'Visa de tio högst viktade kriterierna som inte är uppfyllda', roll: 'adm-kard', start: 'Kravsidan', budget: 2,
     motivering: 'K2. Ett klick på genvägen ovanför filtren, som väljer utvärderingskriterier som inte är uppfyllda i demon, sorterar dem efter vikten i Sussas utvärdering och visar de tio första med vikt och signaler från avtalet. Budgeten har plats för ett klick till.',
   },
+  // Runda 7, r3: faktureringsunderlaget för en månad (Sussa 7.1.1.1 och 7.1.1.2).
+  {
+    id: 'exportera-underlag', namn: 'Exportera faktureringsunderlag för en månad', roll: 'eko', start: 'Ekonomens startsida', budget: 3,
+    motivering: 'Sussa 7.1.1.1 och 7.1.1.2. Ett klick på CSV för vårdenheten. Systemet har redan skapat posterna ur det som har hänt, räknat priserna ur prislistan och betalningsmottagarna, och förra månaden är förvald eftersom den är avslutad. Budgeten har plats för att välja en annan månad i listan.',
+  },
+  {
+    id: 'lamna-ut-hjalpmedel', namn: 'Lämna ut ett hjälpmedel', roll: 'ssk-kard', start: 'Patientens översikt', budget: 3,
+    motivering: 'Sussa 7.1.1.1 och 3.4.4.4. Ett klick på Lämna ut hjälpmedel i kostnadsrutan och ett på hjälpmedlet. Systemet tar hjälpmedlen ur vårdenhetens prislista, knyter utlämningen till den pågående vårdkontakten och skapar posten och hjälpmedelsavgiften i faktureringsunderlaget. Budgeten har plats för ett klick till.',
+  },
 ];

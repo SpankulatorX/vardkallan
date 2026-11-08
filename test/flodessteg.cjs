@@ -119,6 +119,8 @@ function skapa(BAS) {
       await gaTill(page, '#/lakemedelsansvar');
       await page.waitForSelector('#la-pam');
     },
+    // Runda 7, r3: ekonomens startsida med faktureringsunderlaget per vårdenhet för förra månaden.
+    'Ekonomens startsida': async (page) => { await gaTill(page, '#/ekonomi'); await page.waitForSelector('#ek table'); await page.waitForSelector('#ek-exporter ul, #ek-exporter .tom:not(:has-text("Hämtar"))'); },
     'Inkorgen efter återställning': async (page) => {
       await gaTill(page, '#/arbetslista');
       await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
@@ -559,6 +561,20 @@ function skapa(BAS) {
     const id = await page.locator('#sussa-lista details.sussapost').evaluateAll(d => d.map(x => x.dataset.id));
     if (id.length !== 10 || id[0] !== 'KD1.1.1.9') throw new Error(`listan visade ${id.length} poster och först ${id[0]}`);
     await synlig(page, '#sussa-lista .sussapost', 'Vikt 4,64 %');
+  };
+  // Runda 7, r3: underlaget för den första vårdenheten med poster hämtas som CSV med ett klick.
+  GOR['exportera-underlag'] = async (m, page) => {
+    const rad = page.locator('#ek tbody tr', { has: page.locator('[data-export="csv"]') }).first();
+    const [fil] = await Promise.all([page.waitForEvent('download'), m.klicka(rad.locator('[data-export="csv"]'), 'CSV för vårdenheten')]);
+    if (!/^faktureringsunderlag-[\w-]+-\d{4}-\d{2}\.csv$/.test(fil.suggestedFilename())) throw new Error(`filen heter ${fil.suggestedFilename()}`);
+    await synlig(page, '.notis', 'är exporterat');
+    await synlig(page, '#ek-exporter', 'CSV');
+  };
+  // Runda 7, r3: ett hjälpmedel lämnas ut med två klick från kostnadsrutan i översikten.
+  GOR['lamna-ut-hjalpmedel'] = async (m, page) => {
+    await m.klicka(page.locator('.ov-kostnader [data-ek="hjalpmedel"]'), 'Lämna ut hjälpmedel');
+    await m.klicka(page.locator('dialog[open] [data-varde="HM-ROLLATOR"]'), 'Rollator');
+    await synlig(page, '.notis', 'Rollator är registrerat som utlämnat');
   };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }

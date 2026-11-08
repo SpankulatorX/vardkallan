@@ -53,6 +53,9 @@ export const TACKNING = {
   news2: delvis([a('POST', '/fhir/Observation,', 'ett anrop per mätvärde'), a('GET', '/fhir/Observation?patient={id}')], 'Varje mätvärde kan registreras via API:t, och NEWS2 räknas av systemet och kan läsas. Kontrollen registreras inte som en helhet, så åtgärden med KVÅ QD008 sparas bara från gränssnittet.'),
   'ordinera-mall': nej('Mallar med flera ordinationer används bara i gränssnittet. Varje ordination kan göras för sig med MedicationRequest.'),
   'dos-efterhand': nej('Som att ge en dos.'),
+  // Runda 7, r3: underlaget är personalens API, inte det öppna FHIR-API:t.
+  'exportera-underlag': nej('Faktureringsunderlaget hämtas med personalens API som CSV eller JSON. Det finns ingen FHIR-resurs för det i Vårdkällan.', [a('GET', '/api/ekonomi/underlag?vardenhet={id}&period={månad}&format=csv')]),
+  'lamna-ut-hjalpmedel': nej('Utlämnade hjälpmedel registreras med personalens API och läses som ChargeItem i FHIR, men registreras inte via FHIR.', [a('POST', '/api/patient/{id}/hjalpmedel'), a('GET', '/fhir/ChargeItem?patient={id}')]),
   'extern-tillampning': ja([a('GET', '/fhir/.well-known/smart-configuration'), a('GET', '/oauth/authorize'), a('POST', '/oauth/token'), a('GET', '/fhir/Observation?patient={id}')], 'Det här flödet är API:t: tillämpningen startas med SMART on FHIR och läser med sin åtkomstbiljett.'),
 };
 

@@ -25,6 +25,8 @@ import { sakraLakemedelsstod, seedaLakemedelsstod } from './lakemedelsstod-schem
 import { seedaLakemedelsansvar } from './lakemedelsansvar-schema.js';
 // Runda 6, r5: masterdata från utbytbara källor (masterdata.js).
 import { forSeed as masterdataForSeed } from './masterdata.js';
+// Runda 7, r3: ekonomi (ekonomi-schema.js).
+import { sakraEkonomi } from './ekonomi-schema.js';
 
 // Fel som API:t svarar med. kod: nekad | saknas | ogiltig | kraver_val | kraver_samtycke
 export class Fel extends Error {
@@ -388,6 +390,8 @@ export function byggSeed(bas = nu()) {
   // Runda 6, r6: uppdragen i läkemedelshanteringen och godkännandena av mallarna. Sist, eftersom seeden läser
   // personalen från tidboken och mallarna från runda 6, r2.
   seedaLakemedelsansvar(db, bas);
+  // Runda 7, r3: prislistorna, ekonomen och de utlämnade hjälpmedlen. Sist, eftersom seeden läser vårdtillfällena.
+  sakraEkonomi(db, bas);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -476,6 +480,8 @@ export function migrera(db) {
   sakraR1Schema(db);
   // Runda 6, r6: en äldre sandlåda får verksamhetschefen, uppdragen och godkännandena relativt till i dag.
   seedaLakemedelsansvar(db, nu());
+  // Runda 7, r3: en äldre sandlåda får ekonomins tabeller, prislistorna och ekonomen relativt till i dag.
+  sakraEkonomi(db, nu());
   return db;
 }
 

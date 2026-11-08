@@ -45,10 +45,17 @@ const AVSNITT = [
   },
   {
     id: '3.4.4.4', kategori: 'system', egna: [], avsedd: 'delvis',
-    tester: [`${VK}patientavgiften räknas ur kontakttyp och regler och är märkt som demoregler`, T.betalning, T.incheckning, T.egenIncheckning],
+    tester: [`${VK}patientavgiften räknas ur kontakttyp och regler och är märkt som demoregler`, T.betalning, T.incheckning, T.egenIncheckning,
+      // Runda 7, r3: LMA-kort, hjälpmedelsavgift, vårdnadshavare som betalar och avgifterna i faktureringsunderlaget.
+      'Ekonomi: faktureringsunderlag > vårdadministratören registrerar LMA-kortet som patienten visar, och då ändras avgiften och betalningsmottagaren',
+      'Ekonomi: faktureringsunderlag > utlämnade hjälpmedel blir poster med hjälpmedelsavgift, och registreringen prövas och loggas',
+      'Ekonomi: faktureringsunderlag > betalningsmottagaren räknas fram: utomlänsvård, vårdnadshavare, asylsökande, reservnummer och egen region',
+      'Ekonomi: faktureringsunderlag > ett besök som vårdadministratören registrerar blir en post och en patientavgift utan att något mer registreras',
+      'Ekonomi: avgiften visas som e-frikortet > i vårdkontaktslistan och tidbokens betalning skiljer sig svaret med och utan dolda besök bara i beloppet och frikortsstatusen',
+      'Ekonomi: avgiften visas som e-frikortet > patienten ser hela högkostnadsskyddet i Min journal, med alla besök, och ingen annan når det'],
     losning: 'Patientavgiften räknas fram ur kontakttyp och kontaktsätt, med avgiftsfrihet för barn och de äldsta och med högkostnadsskyddet räknat över tolv månader, och visas med förklaring vid incheckningen. Betalningen registreras med kort eller faktura av vårdadministratören eller av patienten i Min journal, med vem, när och kvittonummer, och kan inte ändras i efterhand.',
     expert: 'Systemet räknar avgiften och säger varför den blir som den blir, till exempel att högkostnadsskyddet är nått. När patienten har frikort eller inte ska betala registrerar systemet det självt, så att ingen behöver kunna reglerna eller räkna.',
-    anmarkning: 'Beloppen och reglerna är demoregler, och betalningen är simulerad. Återbetalning, LMA-kort, avgifter för hjälpmedel, recept och intyg och patienter från andra län är inte byggda.',
+    anmarkning: 'Beloppen och reglerna är demoregler, och betalningen är simulerad. Sedan runda 7 betalar en asylsökande med LMA-kort den lägre avgiften (demoregel), ett utlämnat hjälpmedel kan ha en hjälpmedelsavgift, vårdnadshavaren är betalningsmottagare för ett barn och en avgift som inte betalades vid besöket kommer med i faktureringsunderlaget (Sussa 7.1). Patienter från andra län betalar samma avgift, och vården faktureras hemregionen. Avgiften visas som e-frikortet: frikort till ett datum eller avgiften att betala, aldrig betalda belopp, och patienten ser hela högkostnadsskyddet i Min journal. Återbetalning och avgifter för recept och intyg är inte byggda.',
   },
   {
     id: '3.4.4.5', kategori: 'system', egna: [], avsedd: 'delvis',

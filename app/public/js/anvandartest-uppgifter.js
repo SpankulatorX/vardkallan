@@ -33,6 +33,8 @@ export const STARTPUNKT = {
   'Inkorgen efter återställning': { hash: '#/inkorg', klar: '#ik-mallar', forbered: 'aterstall' },
   // Runda 7, r7.
   'Kravsidan': { hash: '#/krav', klar: '#sussa-lista details.sussapost' },
+  // Runda 7, r3.
+  'Ekonomens startsida': { hash: '#/ekonomi', klar: '#ek table' },
 };
 
 export const UPPGIFTER = [
@@ -281,6 +283,17 @@ export const UPPGIFTER = [
     id: 'kravviktning', namn: 'Visa de tio högst viktade kriterierna som inte är uppfyllda', roll: 'adm-kard', start: 'Kravsidan',
     text: 'Du följer upp journalsystemet mot regionens kravspecifikation. Ta fram de tio utvärderingskriterier som regionen värderade högst och som ännu inte är uppfyllda.',
     kontroll: { sel: '#sa-vikt', text: 'De 10 högst viktade' },
+  },
+  // Runda 7, r3.
+  {
+    id: 'exportera-underlag', namn: 'Exportera faktureringsunderlag för en månad', roll: 'eko', start: 'Ekonomens startsida',
+    text: 'Du är ekonom på regionkansliet. Ekonomisystemet behöver förra månadens faktureringsunderlag för en vårdenhet. Hämta underlaget som en fil.',
+    kontroll: { notis: 'är exporterat' },
+  },
+  {
+    id: 'lamna-ut-hjalpmedel', namn: 'Lämna ut ett hjälpmedel', roll: 'ssk-kard', start: 'Patientens översikt',
+    text: 'Gunnar Åkesson ska få en rollator med sig hem. Registrera att han har fått den.',
+    kontroll: { notis: 'är registrerat som utlämnat' },
   },
 ];
 

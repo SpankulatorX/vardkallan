@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T08:25:35.378Z",
-  "bas": "http://127.0.0.1:18177",
+  "tid": "2026-11-08T09:17:15.938Z",
+  "bas": "http://127.0.0.1:18110",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "7bbebb194703f42b7e8e8b6b574c5d73286b2f4b8ffb248af7af473e0060f499",
+  "gransnittHash": "8b88b0cb7f443f30ced152050915bd58722a6876b7b636d283bb5eb96e45f0c6",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -870,6 +870,39 @@
       "steg": [
         "klick: De tio högst viktade kriterierna som inte är uppfyllda"
       ]
+    },
+    {
+      "id": "exportera-underlag",
+      "namn": "Exportera faktureringsunderlag för en månad",
+      "roll": "eko",
+      "start": "Ekonomens startsida",
+      "budget": 3,
+      "motivering": "Sussa 7.1.1.1 och 7.1.1.2. Ett klick på CSV för vårdenheten. Systemet har redan skapat posterna ur det som har hänt, räknat priserna ur prislistan och betalningsmottagarna, och förra månaden är förvald eftersom den är avslutad. Budgeten har plats för att välja en annan månad i listan.",
+      "klick": 1,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "steg": [
+        "klick: CSV för vårdenheten"
+      ]
+    },
+    {
+      "id": "lamna-ut-hjalpmedel",
+      "namn": "Lämna ut ett hjälpmedel",
+      "roll": "ssk-kard",
+      "start": "Patientens översikt",
+      "budget": 3,
+      "motivering": "Sussa 7.1.1.1 och 3.4.4.4. Ett klick på Lämna ut hjälpmedel i kostnadsrutan och ett på hjälpmedlet. Systemet tar hjälpmedlen ur vårdenhetens prislista, knyter utlämningen till den pågående vårdkontakten och skapar posten och hjälpmedelsavgiften i faktureringsunderlaget. Budgeten har plats för ett klick till.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Lämna ut hjälpmedel",
+        "klick: Rollator"
+      ]
     }
   ],
   "tester": [
@@ -1063,6 +1096,14 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Visa de tio högst viktade kriterierna som inte är uppfyllda inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Exportera faktureringsunderlag för en månad inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Lämna ut ett hjälpmedel inom budget",
       "status": "grön"
     }
   ]

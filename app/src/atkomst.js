@@ -132,6 +132,22 @@ for (const r of ['lakare', 'sjukskoterska', 'vardadministrator']) ROLLER[r].push
 ROLLER.uppfoljning.push('statistik_region');
 for (const h of ['bevaka_enhet', 'las_tidbok', 'statistik', 'statistik_region']) UTAN_PATIENT.add(h);
 
+// Runda 7, r3: ekonomi (ekonomi.js, Sussa 7.1). Ekonomen exporterar faktureringsunderlag och ändrar prislistorna, och
+// läser inte journalen. Läkare och sjuksköterskor ser kostnaderna i vårdprocessen, och vårdadministratören patientens
+// avgifter och högkostnadsskydd i samma ruta. Läkaren registrerar medicinskt färdigbehandlad, läkare och sjuksköterskor
+// lämnar ut hjälpmedel och vårdadministratören registrerar ett LMA-kort som patienten visar upp.
+Object.assign(HANDLINGAR, {
+  faktureringsunderlag: 'ta fram och exportera faktureringsunderlag', prislista: 'läsa och ändra prislistor',
+  las_kostnader: 'se kostnaderna i vårdprocessen', fardigbehandlad: 'registrera att patienten är medicinskt färdigbehandlad',
+  hjalpmedel: 'registrera utlämnade hjälpmedel', lma: 'registrera LMA-kort för asylsökande',
+});
+ROLLER.ekonom = ['faktureringsunderlag', 'prislista'];
+for (const h of ['faktureringsunderlag', 'prislista']) UTAN_PATIENT.add(h);
+GRUND_UTAN_PATIENT.ekonom = 'ekonomi';
+ROLLER.lakare.push('las_kostnader', 'fardigbehandlad', 'hjalpmedel');
+ROLLER.sjukskoterska.push('las_kostnader', 'hjalpmedel');
+ROLLER.vardadministrator.push('las_kostnader', 'lma');
+
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
 
 // Den vårdenhet en enhet hör till. Inre sekretess gäller per vårdenhet.

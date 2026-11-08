@@ -37,8 +37,15 @@ const sprakHtml = (s) => `<section class="ov-sektion" aria-labelledby="min-sprak
   <div class="falt-rad"><div class="falt"><label for="min-sprakval">Kallelser och påminnelser skrivs på</label><select id="min-sprakval">${[['sv', 'Svenska'], ['en', 'Engelska']].map(([k, t]) => `<option value="${k}"${s.sprak === k ? ' selected' : ''}>${t}</option>`).join('')}</select></div>
   <div class="falt"><button type="button" class="knapp sekundar liten" data-min="sprak">Spara</button></div></div></section>`;
 
+// Runda 7, r3: högkostnadsskyddet med varje avgift som räknas.
+const hogkostnadHtml = (hk) => `<section class="ov-sektion min-hogkostnad" aria-labelledby="min-hk"><div class="sektion-huvud"><h3 id="min-hk">Högkostnadsskydd</h3></div>
+  <p>${esc(hk.text)}</p>
+  ${hk.avgifter.length ? `<details><summary>Avgifter som räknas (${hk.avgifter.length})</summary><ul class="enkel-lista">${hk.avgifter.map(a => `<li>${esc(a.datum)}, ${esc(a.vardenhet ?? '')}: ${esc(kr(a.belopp))}</li>`).join('')}</ul></details>` : ''}
+  <p class="hjalp">${esc(hk.demo)}</p></section>`;
+
 export async function visa(el, ctx) {
-  const t = await api(del(ctx.pid, '/tider'));
+  // Runda 7, r3: högkostnadsskyddet hämtas samtidigt. Patienten ser hela skyddet med alla avgifter.
+  const [t, hk] = await Promise.all([api(del(ctx.pid, '/tider')), api(del(ctx.pid, '/hogkostnadsskydd')).catch(() => null)]);
   if (!ctx.aktuell()) return;
   el.innerHTML = `<div class="flikhuvud"><h2>Tider</h2></div>
     ${t.kanal.forklaring ? `<p class="ruta ruta-info liten">${esc(t.kanal.forklaring)}</p>` : ''}
@@ -50,6 +57,7 @@ export async function visa(el, ctx) {
       <p class="hjalp">Du kan boka de tider som mottagningarna där du redan får vård öppnar för det.</p></section>` : ''}
     ${t.tidigare.length ? `<section class="ov-sektion" aria-labelledby="min-tidigare"><div class="sektion-huvud"><h3 id="min-tidigare">Tidigare och ändrade tider</h3></div>
       <ul class="enkel-lista">${t.tidigare.map(b => `<li>${esc(tidText(b.start))}, ${esc(b.tidstypText)}, ${esc(b.mottagning)} <span class="tagg">${esc(STATUS[b.status] ?? b.status)}</span></li>`).join('')}</ul></section>` : ''}
+    ${hk ? hogkostnadHtml(hk) : ''}
     ${t.sprak ? sprakHtml(t.sprak) : ''}
     <p class="hjalp">${esc(t.demoregler)}</p>`;
   el.addEventListener('click', async (e) => {

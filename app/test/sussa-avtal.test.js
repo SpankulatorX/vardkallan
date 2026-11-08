@@ -162,7 +162,12 @@ describe('Sussa-avtalet', () => {
     const r = sussaRegister(null);
     // Utan testresultat är inget uppfyllt, och en rad har samma status som sina poster eller delvis.
     for (const b of r.borkrav) expect(['delvis', 'planerat']).toContain(b.status);
-    expect(r.borkrav.find(b => b.id === 'B2').status).toBe('planerat');
+    // En rad vars poster alla är planerade är planerad, och en rad med någon post som inte är planerad är delvis.
+    const status = new Map(r.poster.map(p => [p.id, p.status]));
+    for (const b of r.borkrav) {
+      const allaPlanerade = b.poster.every(p => status.get(p) === 'planerat');
+      expect({ id: b.id, status: b.status }).toEqual({ id: b.id, status: allaPlanerade ? 'planerat' : 'delvis' });
+    }
   });
 
   test('datafilerna har inga tankstreck, ellipser eller personnamn ur handlingarna', () => {
