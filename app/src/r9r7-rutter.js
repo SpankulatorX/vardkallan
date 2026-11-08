@@ -6,6 +6,7 @@ import * as analys from './analys.js';
 import * as folkhalsa from './folkhalsa.js';
 import * as sparbarhet from './sparbarhet.js';
 import * as vardformer from './vardformer.js';
+import * as forskning from './forskning.js';
 import * as vardkontakt from './vardkontakt.js';
 import { kanRoll } from './atkomst.js';
 
@@ -40,6 +41,12 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor }) {
   rutt('POST', '/api/vardkontakt/:id/besok-slut', (c, id) => medKontakt(c, id, 'registrera_vardkontakt', (atk, v) => vardformer.avslutaBesok(atk, v)));
   rutt('POST', '/api/vardkontakt/:id/overgang', (c, id) => medKontakt(c, id, 'vardtillfalle', (atk, v) => vardformer.franDagkirurgi(atk, v, c.body)));
   rutt('POST', '/api/patient/:id/dagkirurgi', (c, id) => { kravInloggad(c); return medPatient(c, id, 'registrera_vardkontakt', (atk) => vardformer.registreraDagkirurgi(atk, c.body)); });
+  // Sussa 6.3.3.1: beställningar av forskningsuttag.
+  rutt('GET', '/api/forskning', (c) => forskning.lista(c.db, kravInloggad(c)));
+  rutt('POST', '/api/forskning', (c) => [201, forskning.registrera(c.db, kravInloggad(c), c.body)]);
+  rutt('GET', '/api/forskning/:id', (c, id) => forskning.hamta(c.db, kravInloggad(c), id));
+  rutt('POST', '/api/forskning/:id/beslut', (c, id) => forskning.besluta(c.db, kravInloggad(c), id, c.body));
+  rutt('POST', '/api/forskning/:id/utlamna', (c, id) => forskning.utlamna(c.db, kravInloggad(c), id));
   rutt('POST', '/api/vardtillfalle/:id/overgang', (c, id) => {
     kravInloggad(c);
     const vt = vardkontakt.hamtaVardtillfalle(c.db, id);

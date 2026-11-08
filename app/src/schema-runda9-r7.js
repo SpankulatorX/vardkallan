@@ -6,12 +6,14 @@ import * as levnadsvanor from './levnadsvanor.js';
 import * as analys from './analys.js';
 import * as folkhalsa from './folkhalsa.js';
 import * as vardformer from './vardformer.js';
+import * as forskning from './forskning.js';
 
 export function sakraR9r7(db, bas = new Date()) {
   vardformer.sakra(db);
   skanning.sakra(db);
   levnadsvanor.sakra(db);
   analys.sakra(db);
+  forskning.sakra(db);
   folkhalsa.sakra(db);
   folkhalsa.seeda(db, bas);
   return db;
