@@ -67,7 +67,8 @@ export function skapa(atk, body = {}) {
   const val = f.forslag.find(x => x.enhet.id === body.enhetId);
   if (!val) throw new Fel(400, 'Välj en av de vårdenheter som systemet föreslår.', 'ogiltig', { falt: ['enhetId'] });
   if (oppna(db, pid) >= MAX_OPPNA) throw new Fel(400, `Du har redan ${MAX_OPPNA === 3 ? 'tre' : MAX_OPPNA} vårdbegäranden som vården inte har svarat på. Vänta på svar, eller ring vårdenheten.`, 'ogiltig');
-  const bilaga = body.bilaga ? tolkaBilaga(body.bilaga) : null;
+  // Runda 10, r6: med gränserna som systemförvaltningen har satt.
+  const bilaga = body.bilaga ? tolkaBilaga(body.bilaga, db) : null;
   const text = body.besvar.trim();
   const id = Number(db.query(`INSERT INTO remisser (patient_id, fran_enhet_id, till_enhet_id, avsandare_id, fragestallning, anamnes, prioritet, svar_senast, status, skickad_tid)
     VALUES (?, ?, ?, ?, ?, NULL, 'normal', ?, 'skickad', ?)`).run(pid, EGEN, val.enhet.id, atk.invanare.id, text, addDagar(idag(), SVAR_DAGAR), iso()).lastInsertRowid);

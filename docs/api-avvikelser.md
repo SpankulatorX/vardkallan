@@ -642,4 +642,5 @@ Det som ändrar något kräver radens vårdenhet. Listor på enhetsnivå och upp
 - `GET /api/produktionssystem`, `POST /api/produktionssystem/:lab/anslut` (201, nyckeln en gång), `POST /api/produktionssystem/:lab/koppla-fran` och `POST /api/produktionssystem/:lab/simulera`, alla med `konfigurera`.
 - En beställning har `producentsystem: [{ lab, text }]`, och en analys hos ett anslutet laboratorium har status `skickad` tills laboratoriet har kvitterat den. `POST /api/patient/:id/prover` ger 400 när laboratoriets katalog inte erbjuder analysen.
 - Nya analyser: `ana`, `hfe`, `ekg`, `eeg` och `rtg_lungor`. Undersökningar har röret `undersokning`, ingen Specimen och ingen etikett, och en ServiceRequest för dem har ingen `specimen`.
-
+- Transfusionsmedicin: en blodbeställning går ut som ett meddelande med taggen `blodbestallning` och ServiceRequest/blod-{id}. `POST /ps/Task` med `basedOn` ServiceRequest/blod-{id} tar `status` received, in-progress, rejected eller completed, och completed har `output` med `type.text` blodenhet (`valueIdentifier.value`) och blodgrupp (`valueString`). Ett svar på bastest kräver `conclusionCode` 10828004 eller 260385009.
+- Nya parametrar i `GET /api/konfiguration`, området `bestallning`: `remiss.bilaga_max_kb` (förval 40, 10 till 45) och `remiss.bilagor_max` (förval 5, 1 till 20).

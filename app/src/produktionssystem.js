@@ -30,6 +30,8 @@ import { LAB, LABORATORIER, ANALYS, DISCIPLINER, FYND, SVARSVARDEN, ROR, finns a
 import { MATKOD } from './kodverk.js';
 import { CS } from './fhir-definitioner.js';
 import { FHIR_SYSTEM as ID_SYSTEM } from './identitet.js';
+// Transfusionsmedicin: blodkomponenter till blodcentralen (blod.js).
+import * as blod from './blod.js';
 
 export const STANDARD = 'HL7 FHIR R4';
 export const ANALYS_SYSTEM = `${CS}/labbanalys`;
@@ -50,7 +52,7 @@ CREATE TABLE IF NOT EXISTS ps_anslutningar (
 CREATE TABLE IF NOT EXISTS ps_meddelanden (
   id INTEGER PRIMARY KEY AUTOINCREMENT, riktning TEXT NOT NULL, lab_id TEXT NOT NULL, typ TEXT NOT NULL, bestallning_id INTEGER, patient_id TEXT, enhet_id TEXT,
   innehall TEXT, tid TEXT NOT NULL, hamtad_tid TEXT, kvitterad_tid TEXT, resultat TEXT NOT NULL, orsak TEXT,
-  CHECK (riktning IN ('ut', 'in')), CHECK (typ IN ('bestallning', 'makulering', 'status', 'svar', 'katalog')), CHECK (resultat IN ('vantar', 'mottaget', 'avvisat'))
+  CHECK (riktning IN ('ut', 'in')), CHECK (typ IN ('bestallning', 'makulering', 'blodbestallning', 'status', 'svar', 'katalog')), CHECK (resultat IN ('vantar', 'mottaget', 'avvisat'))
 );
 CREATE INDEX IF NOT EXISTS ix_ps_meddelanden_lab ON ps_meddelanden (lab_id, riktning);
 CREATE TRIGGER IF NOT EXISTS ps_meddelande_andras_ej BEFORE UPDATE OF riktning, lab_id, typ, bestallning_id, innehall, tid ON ps_meddelanden
@@ -191,6 +193,46 @@ export function laggIUtkorg(db, b, labId, typ, nu = new Date()) {
     .run('ut', labId, typ, b.id, b.patient_id, b.enhet_id, JSON.stringify(entry), iso(nu), 'vantar');
 }
 
+// Transfusionsmedicin: en beställning av blodkomponenter till blodcentralen som en ServiceRequest med produkten, antalet
+// och indikationen. Blodgruppering och bastest går som andra analyser.
+export const BLODKOMPONENT_SYSTEM = `${CS}/blodkomponent`;
+export function laggBlodIUtkorg(db, b, nu = new Date()) {
+  sakra(db);
+  const p = blod.PRODUKTER[b.produkt];
+  const sr = {
+    resourceType: 'ServiceRequest', id: `blod-${b.id}`, identifier: [{ system: `${labbFhir.BESTALLNING_SYSTEM}/blod`, value: b.nummer }],
+    status: 'active', intent: 'order', category: [{ text: 'Blodkomponent' }],
+    code: { coding: [{ system: BLODKOMPONENT_SYSTEM, code: b.produkt, display: p.namn }], text: p.namn },
+    quantityQuantity: { value: b.antal, unit: 'enheter' }, subject: { reference: `Patient/${b.patient_id}` }, authoredOn: b.skapad, occurrenceDateTime: b.planerad,
+    requester: { reference: `Practitioner/${b.bestalld_av}` }, performer: [{ identifier: { system: 'urn:oid:1.2.752.29.4.19', value: LAB[blod.BLOD_LAB].hsa }, display: LAB[blod.BLOD_LAB].namn }],
+    reasonCode: [{ text: b.indikation }],
+  };
+  db.query('INSERT INTO ps_meddelanden (riktning, lab_id, typ, bestallning_id, patient_id, enhet_id, innehall, tid, resultat) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run('ut', blod.BLOD_LAB, 'blodbestallning', b.id, b.patient_id, b.enhet_id, JSON.stringify([{ fullUrl: `Patient/${b.patient_id}`, resource: patientResurs(db, b.patient_id) }, { fullUrl: `ServiceRequest/blod-${b.id}`, resource: sr }]), iso(nu), 'vantar');
+}
+
+// Blodcentralens besked om en blodbeställning: Task med basedOn ServiceRequest/blod-{id}. completed har en output per
+// enhet med enhetsnumret och en output med enheternas blodgrupp, som Vårdkällan prövar mot patientens.
+function blodStatus(db, labId, task, id, nu) {
+  if (labId !== blod.BLOD_LAB) throw new Fel(404, 'Blodbeställningen finns inte för det här laboratoriet.', 'saknas');
+  const b = db.query('SELECT * FROM blod_bestallningar WHERE id = ?').get(Number(id));
+  if (!b) throw new Fel(404, 'Blodbeställningen finns inte för det här laboratoriet.', 'saknas');
+  const typ = (o) => (o?.type?.coding ?? []).map(c => c?.code).find(Boolean) ?? o?.type?.text;
+  const output = Array.isArray(task.output) ? task.output : [];
+  const enheter = output.filter(o => typ(o) === 'blodenhet').map(o => o.valueIdentifier?.value ?? o.valueString);
+  const blodgrupp = output.find(o => typ(o) === 'blodgrupp')?.valueString ?? null;
+  const orsak = typeof task.statusReason?.text === 'string' ? task.statusReason.text.trim().slice(0, 300) : '';
+  const ref = { id: b.bestallning_id ?? null, patient_id: b.patient_id, enhet_id: b.enhet_id };
+  try {
+    const text = blod.franProducent(db, b, { status: task.status, orsak, enheter, blodgrupp }, nu);
+    meddelandeIn(db, labId, 'status', { bestallning: ref, resultat: 'mottaget', nu });
+    return { text };
+  } catch (e) {
+    if (e instanceof Fel) meddelandeIn(db, labId, 'status', { bestallning: ref, resultat: 'avvisat', orsak: e.message, nu });
+    throw e;
+  }
+}
+
 // Meddelandena som väntar på laboratoriet, som en Bundle av typen searchset. Varje hämtning loggas på patienten, med
 // producentsystemet som mottagare, eftersom patientuppgifter lämnas ut.
 export function hamta(db, labId, nu = new Date()) {
@@ -233,6 +275,9 @@ function analysFor(db, labId, resurs) {
 export function taEmotStatus(db, labId, task, nu = new Date()) {
   sakra(db);
   if (task?.resourceType !== 'Task') throw ogiltig('Skicka en Task.');
+  // Transfusionsmedicin: en blodbeställning har ServiceRequest/blod-{id}.
+  const blodRef = (task.basedOn ?? []).map(x => x?.reference).filter(x => typeof x === 'string').map(x => /^ServiceRequest\/blod-(\d{1,9})$/.exec(x)).find(Boolean);
+  if (blodRef && (task.basedOn ?? []).length === 1) return blodStatus(db, labId, task, blodRef[1], nu);
   const { a, b } = analysFor(db, labId, task);
   const avvisa = (text) => { meddelandeIn(db, labId, 'status', { bestallning: b, resultat: 'avvisat', orsak: text, nu }); return ogiltig(text); };
   if (b.makulerad_tid || a.status === 'makulerad') throw avvisa('Beställningen är makulerad. Laboratoriet har fått makuleringen i utkorgen.');
@@ -312,8 +357,16 @@ export function taEmotSvar(db, labId, dr, nu = new Date()) {
       svar.fynd = FYND_FOR_KOD.get(kod);
       svar.text = text || `${FYND[svar.fynd].text}.`;
       if (svar.fynd !== 'ingen_vaxt') { svar.avvikande = 'fynd'; if (a.analys === 'blododling') svar.kritisk = 1; }
+    } else if (a.analys === 'bastest') {
+      // Transfusionsmedicin: bastestet är positivt eller negativt i Snomed CT, och ett positivt stoppar blodbeställningen.
+      const kod = (dr.conclusionCode ?? []).flatMap(c => c?.coding ?? []).map(c => c?.code).find(c => ['10828004', '260385009'].includes(c));
+      if (!kod) throw avvisa('Ange bastestets utfall i conclusionCode med Snomed CT: 10828004 för positivt eller 260385009 för negativt.');
+      svar.text = text || (kod === '10828004' ? 'Antikroppsscreening positiv. Blodcentralen utreder antikroppen innan blod kan lämnas ut.' : 'Antikroppsscreening negativ.');
+      if (kod === '10828004') svar.avvikande = 'fynd';
     } else {
       if (text.length < 3) throw avvisa('Skriv utlåtandet i conclusion.');
+      // Blodgrupperingen läses av systemet, så den ska stå på samma sätt som från blodcentralen.
+      if (a.analys === 'blodgruppering' && !blod.tolkaBlodgrupp(text)) throw avvisa('Skriv blodgruppen i conclusion som "Blodgrupp A RhD positiv".');
       svar.text = text;
     }
   }
@@ -378,8 +431,11 @@ export function simuleraProducent(db, personal, labId, nu = new Date()) {
   if (!arAnsluten(db, labId)) throw ogiltig('Anslut laboratoriets producentsystem först.');
   const paket = hamta(db, labId, nu);
   let svar = 0;
+  const blodMeddelanden = [];
   for (const m of paket.entry) {
     const id = m.resource.id.replace('ps-', '');
+    // Blodbeställningar besvaras efter proverna, när blodgrupperingen är klar.
+    if (m.resource.meta.tag[0].code === 'blodbestallning') { blodMeddelanden.push({ id, m }); continue; }
     kvittera(db, labId, id, nu);
     if (m.resource.meta.tag[0].code !== 'bestallning') continue;
     for (const e of m.resource.entry.filter(x => x.resource.resourceType === 'ServiceRequest')) {
@@ -391,6 +447,22 @@ export function simuleraProducent(db, personal, labId, nu = new Date()) {
       taEmotSvar(db, labId, diagnosticReportFor(labb.simuleratSvar(db, b, a), basedOn, ANALYS[a.analys]), nu);
       svar++;
     }
+  }
+  // Den simulerade blodcentralen bereder enheter med patientens blodgrupp när blodgruppering och bastest är besvarade.
+  // Annars ligger blodbeställningen kvar i utkorgen till nästa körning.
+  for (const { id, m } of blodMeddelanden) {
+    const sr = m.resource.entry.find(e => e.resource.resourceType === 'ServiceRequest').resource;
+    const b = db.query('SELECT * FROM blod_bestallningar WHERE id = ?').get(Number(sr.id.replace('blod-', '')));
+    if (!b || b.status !== 'vantar_prov') { kvittera(db, labId, id, nu); continue; }
+    const grupp = blod.patientensBlodgrupp(db, b.patient_id);
+    const bas = db.query("SELECT avvikande FROM labb_analyser WHERE patient_id = ? AND analys = 'bastest' AND status = 'besvarad' ORDER BY besvarad_tid DESC LIMIT 1").get(b.patient_id);
+    if (!grupp || (blod.PRODUKTER[b.produkt].bastest && !bas)) continue;
+    kvittera(db, labId, id, nu);
+    const basedOn = [{ reference: `ServiceRequest/${sr.id}` }];
+    if (bas?.avvikande === 'fynd') { taEmotStatus(db, labId, { resourceType: 'Task', status: 'in-progress', basedOn, statusReason: { text: 'Bastestet är positivt. Antikroppen utreds.' } }, nu); continue; }
+    const output = [{ type: { text: 'blodgrupp' }, valueString: grupp }, ...Array.from({ length: b.antal }, (_, i) => ({ type: { text: 'blodenhet' }, valueIdentifier: { value: `SIM${String(b.id).padStart(6, '0')}${i + 1}` } }))];
+    taEmotStatus(db, labId, { resourceType: 'Task', status: 'completed', basedOn, output }, nu);
+    svar++;
   }
   return { meddelanden: paket.entry.length, svar, text: `Det simulerade producentsystemet hämtade ${paket.entry.length} ${paket.entry.length === 1 ? 'meddelande' : 'meddelanden'} och svarade på ${svar} ${svar === 1 ? 'analys' : 'analyser'}.`, simulerad: SIMULERAD };
 }
@@ -405,6 +477,7 @@ export function diagnosticReportFor(s, basedOn, def) {
     resourceType: 'DiagnosticReport', status: 'final', basedOn, code: { text: def.namn },
     ...(obs.length ? { contained: obs, result: obs.map(o => ({ reference: `#${o.id}` })) } : {}),
     ...(s.fynd ? { conclusionCode: [{ coding: [{ system: 'http://snomed.info/sct', code: FYND[s.fynd].snomed }] }] } : {}),
+    ...(def.id === 'bastest' ? { conclusionCode: [{ coding: [{ system: 'http://snomed.info/sct', code: s.avvikande === 'fynd' ? '10828004' : '260385009' }] }] } : {}),
     ...(s.text ? { conclusion: s.text } : {}),
   };
 }

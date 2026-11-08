@@ -346,6 +346,32 @@ Object.assign(HELTAL, {
     effekt: (db, nytt, forra) => [`Varningen för låg urinproduktion kommer efter ${timmar(nytt)} i stället för ${timmar(forra)}.`],
   },
 });
+// Runda 10, r6: bilagornas storlek och antal per remiss (remiss-r4.js, Sussa 3.3.1.4). Förvalen är demons gränser. Ett
+// anrop till servern får vara högst 64 kB, och en bilaga skickas som base64, så större än 45 kB går inte att ta emot.
+Object.assign(HELTAL, {
+  'remiss.bilaga_max_kb': {
+    omrade: 'bestallning', rubrik: 'Största bilaga till en remiss', enhet: 'kB', standard: 40, min: 10, max: 45, anvands: 'remiss-r4.js',
+    beskrivning: 'Så stor får en fil vara som bifogas en remiss, ett remissutkast eller en egen vårdbegäran. Systemet kontrollerar storleken innan filen sparas.',
+    minVarfor: 'Mindre än 10 kB räcker inte för en inskannad sida eller ett foto.',
+    maxVarfor: 'Ett anrop till servern får vara högst 64 kB, och en bilaga skickas som base64. Större än 45 kB går därför inte att ta emot.',
+    effekt: (db, nytt, forra) => {
+      if (!harTabell(db, 'remiss_bilagor')) return [];
+      const n = (kb) => db.query('SELECT count(*) AS n FROM remiss_bilagor WHERE storlek > ?').get(kb * 1024).n;
+      return [`Av de bilagor som redan finns är ${st(n(nytt), 'bilaga', 'bilagor')} större än ${nytt} kB, mot ${n(forra)} större än ${forra} kB. De som redan finns står kvar.`];
+    },
+  },
+  'remiss.bilagor_max': {
+    omrade: 'bestallning', rubrik: 'Flest bilagor per remiss', enhet: 'bilagor', standard: 5, min: 1, max: 20, anvands: 'remiss-r4.js',
+    beskrivning: 'Så många bilagor kan en remiss eller ett remissutkast ha. Systemet säger det när gränsen är nådd.',
+    minVarfor: 'En remiss behöver kunna ha minst en bilaga, till exempel ett EKG.',
+    maxVarfor: 'Fler än 20 bilagor gör remissen svår att läsa för mottagaren. Mer underlag skickas som en sammanfattning.',
+    effekt: (db, nytt, forra) => {
+      if (!harTabell(db, 'remiss_bilagor')) return [];
+      const n = (m) => db.query('SELECT count(*) AS n FROM (SELECT remiss_id FROM remiss_bilagor WHERE remiss_id IS NOT NULL GROUP BY remiss_id HAVING count(*) >= ?)').get(m).n;
+      return [`${st(n(nytt), 'remiss', 'remisser')} har redan ${nytt} bilagor eller fler, mot ${n(forra)} med ${forra}.`];
+    },
+  },
+});
 
 let alla = null;
 export function parametrar() {

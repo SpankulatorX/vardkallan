@@ -12,6 +12,8 @@ import { createHash } from 'node:crypto';
 import { Fel, iso, idag, addDagar, giltigtDatum } from './db.js';
 import { vardenhetFor, kanRoll } from './atkomst.js';
 import * as remiss from './remiss.js';
+// Runda 10, r6: bilagornas storlek och antal är parametrar som systemförvaltaren sätter (konfiguration.js).
+import { varde as konfig } from './konfiguration.js';
 // Runda 8, r2: extern pappersremiss (remiss-r8.js).
 import * as r8 from './remiss-r8.js';
 // Runda 10, r6: remiss eller konsultation (remiss-r10.js).
@@ -65,14 +67,21 @@ export function typFor(buf) {
   return null;
 }
 
+// Gränserna som gäller i dag. Utan databas, eller i en sandlåda utan parametrarna, gäller demons förval.
+export function bilagegranser(db, nu = new Date()) {
+  const las = (k, std) => { try { return db ? konfig(db, k, nu) : std; } catch { return std; } };
+  return { maxKb: las('remiss.bilaga_max_kb', MAX_BILAGA / 1024), maxAntal: las('remiss.bilagor_max', MAX_BILAGOR) };
+}
+
 // Läser och kontrollerar en bilaga ur anropet: { namn, data } med data i base64.
-export function tolkaBilaga(inp) {
+export function tolkaBilaga(inp, db = null) {
   const namn = typeof inp?.namn === 'string' ? inp.namn.replace(/[\\/\x00-\x1f]/g, '').trim().slice(0, 100) : '';
   if (!namn) throw new Fel(400, 'Bilagan behöver ett namn.', 'ogiltig', { falt: ['namn'] });
   if (typeof inp?.data !== 'string' || !/^[A-Za-z0-9+/=\s]+$/.test(inp.data)) throw new Fel(400, 'Filen kunde inte läsas.', 'ogiltig', { falt: ['data'] });
   const buf = Buffer.from(inp.data, 'base64');
   if (!buf.length) throw new Fel(400, 'Filen är tom.', 'ogiltig', { falt: ['data'] });
-  if (buf.length > MAX_BILAGA) throw new Fel(400, `Filen är för stor. En bilaga får vara högst 40 kB i demon.`, 'ogiltig', { falt: ['data'] });
+  const { maxKb } = bilagegranser(db);
+  if (buf.length > maxKb * 1024) throw new Fel(400, `Filen är för stor. En bilaga får vara högst ${maxKb} kB. Gränsen bestämmer systemförvaltningen.`, 'ogiltig', { falt: ['data'] });
   const typ = typFor(buf);
   if (!typ) throw new Fel(400, 'Filtypen stöds inte. Bifoga PDF, PNG, JPEG eller text. Systemet avgör typen ur filens innehåll.', 'ogiltig', { falt: ['data'] });
   return { namn, typ, buf };
@@ -80,7 +89,8 @@ export function tolkaBilaga(inp) {
 
 export function sparaBilaga(db, { remissId = null, utkastId = null, patientId, bilaga, av = null, avInvanare = null }) {
   const antal = db.query('SELECT count(*) AS n FROM remiss_bilagor WHERE (remiss_id = ? AND ? IS NOT NULL) OR (utkast_id = ? AND ? IS NOT NULL)').get(remissId, remissId, utkastId, utkastId).n;
-  if (antal >= MAX_BILAGOR) throw new Fel(400, `En remiss kan ha högst ${MAX_BILAGOR} bilagor i demon.`, 'ogiltig');
+  const { maxAntal } = bilagegranser(db);
+  if (antal >= maxAntal) throw new Fel(400, `En remiss kan ha högst ${maxAntal} bilagor. Gränsen bestämmer systemförvaltningen.`, 'ogiltig');
   const id = Number(db.query(`INSERT INTO remiss_bilagor (remiss_id, utkast_id, patient_id, namn, typ, storlek, sha256, data, skapad, skapad_av, skapad_av_invanare)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(remissId, utkastId, patientId, bilaga.namn, bilaga.typ, bilaga.buf.length,
     createHash('sha256').update(bilaga.buf).digest('hex'), bilaga.buf, iso(), av, avInvanare).lastInsertRowid);
@@ -142,7 +152,7 @@ export function kompletteraMedBilaga(atk, r, body) {
     throw new Fel(403, 'Bara den remitterande vårdenheten kan komplettera remissen.', 'nekad');
   }
   if (!['skickad', 'mottagen'].includes(r.status) && !(r.status === 'bedomd' && r.beslut === 'accepterad')) throw new Fel(400, 'Remissen är redan besvarad eller avslutad och kan inte kompletteras.', 'ogiltig');
-  const b = sparaBilaga(atk.db, { remissId: r.id, patientId: r.patient_id, bilaga: tolkaBilaga(body), av: atk.personal.id });
+  const b = sparaBilaga(atk.db, { remissId: r.id, patientId: r.patient_id, bilaga: tolkaBilaga(body, atk.db), av: atk.personal.id });
   atk.logga('remittera', atk.grund(), `remiss:${r.id}:bilaga:${b.id}`);
   return [201, b];
 }
@@ -249,7 +259,7 @@ export function taBortUtkast(atk, u) {
 export function bilagaTillUtkast(atk, u, body) {
   atk.krav('remittera');
   if (u.status !== 'utkast') throw new Fel(400, 'Utkastet är redan skickat. Komplettera remissen i stället.', 'ogiltig');
-  const b = sparaBilaga(atk.db, { utkastId: u.id, patientId: u.patient_id, bilaga: tolkaBilaga(body), av: atk.personal.id });
+  const b = sparaBilaga(atk.db, { utkastId: u.id, patientId: u.patient_id, bilaga: tolkaBilaga(body, atk.db), av: atk.personal.id });
   atk.logga('remittera', atk.grund(), `remissutkast:${u.id}:bilaga:${b.id}`);
   return [201, b];
 }

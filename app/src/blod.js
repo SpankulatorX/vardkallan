@@ -19,6 +19,9 @@ import { Atkomst, vardenhetFor, enheterUnder, kanRoll, visningsnamn } from './at
 import * as labb from './labb.js';
 import { BASTEST_TIMMAR, ANALYS } from './labb-katalog.js';
 import { tabell, finns, personNamn, enhetKort, textFalt, iso, MIN, TIMME, vardkontaktFor, andraRad, provaRad, loggaPatient } from './specialist-hjalp.js';
+// Runda 10, r6: blodcentralens producentsystem genom det öppna gränssnittet (produktionssystem.js, Sussa 5.1.4.5).
+import * as ps from './produktionssystem.js';
+export const BLOD_LAB = 'lab-blod-uso';
 
 export const DEMOREGEL = 'Demoregel, inte ett kliniskt beslutsstöd. Blodcentralen och enhetsnumren är simulerade.';
 export const BLODCENTRAL = 'Blodcentralen USÖ (simulerad)';
@@ -143,6 +146,12 @@ export function bestall(atk, body = {}, nu = new Date()) {
     historik(db, b, atk.personal.id, 'upprattad', `${antal} ${PRODUKTER[produkt].namn.toLocaleLowerCase('sv')} till ${BLODCENTRAL}.${f.saknas.length ? ` ${f.saknas.map(a => ANALYS[a].namn).join(' och ')} beställt.` : ''}`, iso(nu));
   })();
   const b = db.query('SELECT * FROM blod_bestallningar WHERE patient_id = ? ORDER BY id DESC LIMIT 1').get(atk.patientId);
+  // Runda 10, r6: med ett anslutet producentsystem går beställningen till blodcentralen genom gränssnittet, och den
+  // simulerade blodcentralen bereder inget i dess ställe.
+  if (ps.arAnsluten(db, BLOD_LAB)) {
+    ps.laggBlodIUtkorg(db, b, nu);
+    historik(db, b, atk.personal.id, 'skickad', 'Beställningen är skickad till blodcentralen genom producentsystemet.', iso(nu));
+  }
   blodcentralen(atk, b, nu);
   return bestallningUt(atk, bestallningRad(db, b.id), nu);
 }
@@ -152,6 +161,7 @@ export function bestall(atk, body = {}, nu = new Date()) {
 export function blodcentralen(atk, b, nu = new Date()) {
   const db = atk.db;
   if (b.status !== 'vantar_prov') return;
+  if (ps.arAnsluten(db, BLOD_LAB)) return;
   const t = transfusionsprover(atk, nu);
   if (!t.blodgrupp || (PRODUKTER[b.produkt].bastest && !t.bastest)) return;
   if (t.bastest?.positivt) {
@@ -169,6 +179,46 @@ export function blodcentralen(atk, b, nu = new Date()) {
     db.query("UPDATE blod_bestallningar SET status = 'beredd' WHERE id = ?").run(b.id);
     historik(db, b, null, 'beredd', `Förenlighetsprövad mot blodgrupp ${t.blodgrupp} och bastest från ${new Date(t.bastest?.tid ?? nu).toLocaleString('sv-SE', { timeZone: 'Europe/Stockholm' }).slice(0, 16)}. ${b.antal} enheter är reserverade.`, iso(nu));
   })();
+}
+
+// Runda 10, r6: blodcentralens producentsystem svarar på en blodbeställning (produktionssystem.js). Patientens blodgrupp
+// läses ur den senaste besvarade blodgrupperingen, och varje enhet ska vara förenlig med den. Allt kontrolleras innan
+// något sparas.
+export function patientensBlodgrupp(db, pid) {
+  const a = db.query("SELECT svar_text FROM labb_analyser WHERE patient_id = ? AND analys = 'blodgruppering' AND status = 'besvarad' ORDER BY besvarad_tid DESC LIMIT 1").get(pid);
+  return a ? tolkaBlodgrupp(a.svar_text) : null;
+}
+export function franProducent(db, b, { status, orsak = '', enheter = [], blodgrupp = null }, nu = new Date()) {
+  const fel = (text) => new Fel(400, text, 'ogiltig');
+  if (!['vantar_prov', 'utreds'].includes(b.status)) throw fel(`Blodbeställningen är redan ${STATUS[b.status].toLocaleLowerCase('sv')}.`);
+  if (status === 'received') { historik(db, b, null, 'mottagen', 'Blodcentralen har tagit emot beställningen.', iso(nu)); return 'Statusen är mottagen.'; }
+  if (status === 'in-progress') {
+    if (orsak.length < 3) throw fel('Ange varför blodcentralen utreder i statusReason.text, till exempel en antikropp i bastestet.');
+    db.query("UPDATE blod_bestallningar SET status = 'utreds' WHERE id = ?").run(b.id);
+    historik(db, b, null, 'utreds', `Blodcentralen utreder: ${orsak}`, iso(nu));
+    return 'Beställningen utreds av blodcentralen.';
+  }
+  if (status === 'rejected') {
+    if (orsak.length < 3) throw fel('Ange varför blodcentralen inte kan lämna ut blod i statusReason.text. Läkaren behöver orsaken.');
+    db.query("UPDATE blod_bestallningar SET status = 'makulerad', makulerad_orsak = ? WHERE id = ?").run(orsak, b.id);
+    historik(db, b, null, 'makulerad', `Blodcentralen kan inte lämna ut blod: ${orsak}`, iso(nu));
+    return 'Beställningen är avslutad av blodcentralen.';
+  }
+  if (status !== 'completed') throw fel('Status ska vara "received", "in-progress", "rejected" eller "completed".');
+  if (!/^(AB|A|B|O)[+-]$/.test(blodgrupp ?? '')) throw fel('Ange enheternas blodgrupp, till exempel O-, som en output med typen blodgrupp.');
+  const mottagare = patientensBlodgrupp(db, b.patient_id);
+  if (!mottagare) throw fel('Patientens blodgruppering är inte besvarad i Vårdkällan. Skicka svaret på blodgrupperingen först.');
+  if (!forenlig(b.produkt, blodgrupp, mottagare)) throw fel(`Blodgrupp ${blodgrupp} är inte förenlig med patientens blodgrupp ${mottagare} för ${PRODUKTER[b.produkt].namn.toLocaleLowerCase('sv')}. Enheterna tas inte emot.`);
+  if (enheter.length !== b.antal) throw fel(`Beställningen gäller ${b.antal} enheter. Skicka ett enhetsnummer per enhet.`);
+  if (enheter.some(e => !/^[A-Z0-9]{6,20}$/.test(e)) || new Set(enheter).size !== enheter.length) throw fel('Ett enhetsnummer har 6 till 20 versaler eller siffror och får bara finnas en gång.');
+  if (enheter.some(e => db.query('SELECT 1 FROM blod_enheter WHERE enhetsnummer = ?').get(e))) throw fel('Ett av enhetsnumren finns redan i Vårdkällan.');
+  const hallbar = datumAv(new Date(nu.getTime() + PRODUKTER[b.produkt].hallbarDagar * 24 * TIMME));
+  db.transaction(() => {
+    for (const e of enheter) db.query("INSERT INTO blod_enheter (bestallning_id, patient_id, enhet_id, enhetsnummer, blodgrupp, hallbar, status) VALUES (?, ?, ?, ?, ?, ?, 'reserverad')").run(b.id, b.patient_id, b.enhet_id, e, blodgrupp, hallbar);
+    db.query("UPDATE blod_bestallningar SET status = 'beredd' WHERE id = ?").run(b.id);
+    historik(db, b, null, 'beredd', `Förenlighetsprövad av blodcentralen. ${b.antal} enheter med blodgrupp ${blodgrupp} är reserverade.`, iso(nu));
+  })();
+  return `${b.antal} enheter är reserverade för patienten.`;
 }
 
 const klocka = (t) => new Date(t).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Stockholm' });

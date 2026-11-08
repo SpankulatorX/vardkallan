@@ -1,9 +1,11 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import { testserver, klient, sandlada, somPerson } from './hjalp.js';
-import { idag, addDagar } from '../src/db.js';
+import { idag, addDagar, datumAv } from '../src/db.js';
 import * as fhir from '../src/fhir.js';
 import { urval, REMISSTYPER } from '../src/remiss-r10.js';
 import { CS } from '../src/fhir-definitioner.js';
+import * as konfiguration from '../src/konfiguration.js';
+import { MAX_BILAGA, MAX_BILAGOR } from '../src/remiss-r4.js';
 
 // Remiss, del 4 (runda 10, r6, Sussa 3.3.1.3 till 3.3.1.5): konsultation skild från remiss, urval i remissöversikten och
 // läkarens kvittens av beslut som har registrerats på uppdrag. Systemet är experten: det frågar på vanlig svenska om
@@ -120,6 +122,33 @@ describe('Remiss, del 4', () => {
     expect(db(vc).query('SELECT typ FROM remisser WHERE id = ?').get(Number(r.data.id)).typ).toBe('remiss');
     const fel = await vc.raw('POST', '/fhir/ServiceRequest', { ...sr, category: [{ coding: [{ system: `${CS}/remisstyp`, code: 'constructor' }] }] });
     expect(fel.status).toBe(400);
+  });
+
+  test('bilagor: storleken och antalet är parametrar som systemförvaltaren sätter, med demons gränser som förval', async () => {
+    const p = konfiguration.parametrar();
+    expect(p['remiss.bilaga_max_kb'].standard).toBe(MAX_BILAGA / 1024);
+    expect(p['remiss.bilagor_max'].standard).toBe(MAX_BILAGOR);
+    expect(konfiguration.prova('remiss.bilaga_max_kb', 60).varfor).toContain('64 kB');
+    const vc = await inloggad('lak-vc');
+    const d = db(vc);
+    const u = (await vc.post('/api/patient/p09/remissutkast', { tillEnhetId: 'uso-kard', fragestallning: 'Fråga med bilagor.' })).data;
+    const fil = (kb) => ({ namn: 'anteckning.txt', data: Buffer.from('a'.repeat(kb * 1024)).toString('base64') });
+    expect((await vc.post(`/api/remissutkast/${u.id}/bilagor`, fil(30))).status).toBe(201);
+    // Systemförvaltaren sänker gränserna, och en annan systemförvaltare godkänner (fyra ögon).
+    const pers = (id) => d.query('SELECT * FROM personal WHERE id = ?').get(id);
+    const nu = new Date();
+    for (const [nyckel, varde] of [['remiss.bilaga_max_kb', 20], ['remiss.bilagor_max', 2]]) {
+      const a = konfiguration.foresla(d, pers('sysf'), { nyckel, varde, giltigFran: datumAv(nu), motivering: 'Mindre bilagor i demon.' }, nu);
+      konfiguration.godkann(d, pers('sysf-2'), (a.andring ?? a).id, {}, nu);
+      expect(konfiguration.varde(d, nyckel, nu)).toBe(varde);
+    }
+    const stor = await vc.post(`/api/remissutkast/${u.id}/bilagor`, fil(25));
+    expect(stor.status).toBe(400);
+    expect(stor.data.fel).toContain('högst 20 kB');
+    expect((await vc.post(`/api/remissutkast/${u.id}/bilagor`, fil(10))).status).toBe(201);
+    const tredje = await vc.post(`/api/remissutkast/${u.id}/bilagor`, fil(1));
+    expect(tredje.status).toBe(400);
+    expect(tredje.data.fel).toContain('högst 2 bilagor');
   });
 
   test('översikt: remisserna filtreras på typ, status, prioritet och tid, och antalet per val räknar bara det som visas för den egna vårdenheten', async () => {

@@ -13,6 +13,7 @@ export const T10 = {
   urval: `${RE4}översikt: remisserna filtreras på typ, status, prioritet och tid, och antalet per val räknar bara det som visas för den egna vårdenheten`,
   period: `${RE4}översikt: perioden räknas från en fast tid och intervallet följer svensk tid`,
   kvittens: `${RE4}beslut på uppdrag: hamnar i den ansvariga läkarens inkorg och kvitteras av läkaren i egen inloggning`,
+  bilagor: `${RE4}bilagor: storleken och antalet är parametrar som systemförvaltaren sätter, med demons gränser som förval`,
   underkann: `${RE4}beslut på uppdrag: läkaren som inte håller med öppnar remissen igen för egen bedömning, och väntelistans post avslutas`,
 };
 
@@ -24,10 +25,10 @@ const ANDRING = {
     anmarkning: 'Urvalet gäller översikten över den egna vårdenhetens remisser. Remisser från vårdgivare utanför Vårdkällan finns bara som registrerade pappersremisser (3.3.1.2).',
   },
   '3.3.1.4': {
-    tester: [T10.typ, T10.fhir, flode('skicka-konsultation')],
+    tester: [T10.typ, T10.fhir, T10.bilagor, flode('skicka-konsultation')],
     losning: ' Den som remitterar väljer om vårdansvaret ska lämnas över (remiss) eller om hon vill ha råd medan vårdansvaret stannar hos vårdenheten (konsultation). Valet finns i formuläret, i utkastet, i remissen på uppdrag och i FHIR som kategori, och följer med när en tidigare remiss återanvänds och när remissen skickas vidare.',
     expert: 'Systemet fyller i patient, avsändare, enhet, prioritet och sista svarsdatum, föreslår uppdragsgivaren ur patientens tider och vårdkontakter och frågar på vanlig svenska om vårdansvaret ska lämnas över, med remiss förvald. Den som skriver på uppdrag ser aldrig det hon inte får se.',
-    anmarkning: 'Bilagor är PDF, PNG, JPEG eller text, högst 40 kB och fem per remiss i den publika demon.',
+    anmarkning: 'Bilagor är PDF, PNG, JPEG eller text. Storleken och antalet är parametrar som systemförvaltaren sätter med fyra ögon, med 40 kB och fem per remiss som förval i den publika demon. Ett anrop får vara högst 64 kB, så en bilaga kan vara högst 45 kB i demon.',
   },
   '3.3.1.5': {
     tester: [T10.svar, T10.kvittens, T10.underkann],

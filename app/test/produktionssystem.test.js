@@ -209,6 +209,58 @@ describe('Integration med produktionssystem', () => {
     expect((await ps('POST', '/ps/DiagnosticReport', nyckel, { resourceType: 'DiagnosticReport', status: 'final', basedOn: basedOn(r.analyser[0].id), conclusion: 'Inga infiltrat.' })).status).toBe(201);
   });
 
+  test('transfusionsmedicin: blodgruppering, bastest och blodkomponenter går mellan Vårdkällan och blodcentralens producentsystem', async () => {
+    const sysf = await inloggad('sysf');
+    const lak = await inloggad('lak-kard');
+    delaSandlada(lak, sysf);
+    const nyckel = (await sysf.post('/api/produktionssystem/lab-blod-uso/anslut', {})).data.nyckel;
+    // (4) Blodcentralens katalog kopplas till blodgruppering och bastest.
+    const ad = (kod, title) => ({ resource: { resourceType: 'ActivityDefinition', status: 'active', title, code: { coding: [{ system: ANALYS_SYSTEM, code: kod }] } } });
+    expect((await ps('PUT', '/ps/katalog', nyckel, { resourceType: 'Bundle', entry: [ad('blodgruppering', 'B-Blodgruppering'), ad('bastest', 'B-Bastest')] })).data.vardkallan.kopplade).toBe(2);
+    // (1) Läkaren beställer erytrocyter. Systemet beställer blodgruppering och bastest, och blodbeställningen går ut.
+    const best = await lak.post('/api/patient/p04/blod', { produkt: 'erytrocyter', antal: 2, indikation: 'Hb 72 med trötthet.' });
+    expect(best.status).toBe(201);
+    const blodId = best.data.id;
+    const prover = (await lak.get('/api/patient/p04/prover')).data.bestallningar.find(x => x.analyser.some(a => a.analys === 'bastest') && x.status === 'bestalld');
+    for (const p of prover.prov) await lak.post(`/api/labb/prov/${p.id}/tagen`, {});
+    const ut = (await ps('GET', '/ps/bestallningar', nyckel)).data.entry.map(e => e.resource);
+    const bm = ut.find(m => m.meta.tag[0].code === 'blodbestallning');
+    const sr = bm.entry.find(e => e.resource.resourceType === 'ServiceRequest').resource;
+    expect(sr).toMatchObject({ id: `blod-${blodId}`, quantityQuantity: { value: 2 }, code: { coding: [{ code: 'erytrocyter' }] }, reasonCode: [{ text: 'Hb 72 med trötthet.' }] });
+    expect(ut.find(m => m.meta.tag[0].code === 'bestallning').entry.filter(e => e.resource.resourceType === 'ServiceRequest')).toHaveLength(2);
+    // Den simulerade blodcentralen bereder inget när producentsystemet är anslutet.
+    expect((await lak.get('/api/patient/p04/blod')).data.bestallningar.find(x => x.id === blodId).status).toBe('vantar_prov');
+    // (2) och (3): status och svar. Blodgruppen ska gå att läsa, och bastestets utfall anges i Snomed CT.
+    const gr = prover.analyser.find(a => a.analys === 'blodgruppering');
+    const bt = prover.analyser.find(a => a.analys === 'bastest');
+    expect((await ps('POST', '/ps/Task', nyckel, { resourceType: 'Task', status: 'received', basedOn: basedOn(gr.id) })).status).toBe(200);
+    expect((await ps('POST', '/ps/DiagnosticReport', nyckel, { resourceType: 'DiagnosticReport', status: 'final', basedOn: basedOn(gr.id), conclusion: 'Grupp A.' })).status).toBe(400);
+    expect((await ps('POST', '/ps/DiagnosticReport', nyckel, { resourceType: 'DiagnosticReport', status: 'final', basedOn: basedOn(gr.id), conclusion: 'Blodgrupp A RhD positiv.' })).status).toBe(201);
+    expect((await ps('POST', '/ps/DiagnosticReport', nyckel, { resourceType: 'DiagnosticReport', status: 'final', basedOn: basedOn(bt.id), conclusion: 'Negativ.' })).status).toBe(400);
+    expect((await ps('POST', '/ps/DiagnosticReport', nyckel, { resourceType: 'DiagnosticReport', status: 'final', basedOn: basedOn(bt.id), conclusionCode: [{ coding: [{ system: 'http://snomed.info/sct', code: '260385009' }] }] })).status).toBe(201);
+    // Blodcentralen bereder enheterna. Systemet prövar blodgruppen mot patientens och antalet mot beställningen.
+    const blodBas = [{ reference: `ServiceRequest/blod-${blodId}` }];
+    const enheter = (grupp, nr) => [{ type: { text: 'blodgrupp' }, valueString: grupp }, ...nr.map(n => ({ type: { text: 'blodenhet' }, valueIdentifier: { value: n } }))];
+    expect((await ps('POST', '/ps/Task', nyckel, { resourceType: 'Task', status: 'received', basedOn: blodBas })).status).toBe(200);
+    const oforenlig = await ps('POST', '/ps/Task', nyckel, { resourceType: 'Task', status: 'completed', basedOn: blodBas, output: enheter('B+', ['E00000001', 'E00000002']) });
+    expect(oforenlig.status).toBe(400);
+    expect(oforenlig.data.issue[0].diagnostics).toContain('inte förenlig');
+    expect((await ps('POST', '/ps/Task', nyckel, { resourceType: 'Task', status: 'completed', basedOn: blodBas, output: enheter('O-', ['E00000001']) })).data.issue[0].diagnostics).toContain('2 enheter');
+    const ok = await ps('POST', '/ps/Task', nyckel, { resourceType: 'Task', status: 'completed', basedOn: blodBas, output: enheter('O-', ['E00000001', 'E00000002']) });
+    expect(ok.status).toBe(200);
+    const b = (await lak.get('/api/patient/p04/blod')).data.bestallningar.find(x => x.id === blodId);
+    expect(b.status).toBe('beredd');
+    expect(b.enheter.map(e => [e.enhetsnummer, e.blodgrupp])).toEqual([['E00000001', 'O-'], ['E00000002', 'O-']]);
+    // Ett annat laboratorium kan inte svara på en blodbeställning.
+    const annan = (await sysf.post('/api/produktionssystem/lab-kem-uso/anslut', {})).data.nyckel;
+    expect((await ps('POST', '/ps/Task', annan, { resourceType: 'Task', status: 'received', basedOn: blodBas })).status).toBe(404);
+    // Det simulerade producentsystemet går samma väg: proverna och sedan blodet, med patientens blodgrupp.
+    const andra = await lak.post('/api/patient/p04/blod', { produkt: 'plasma', antal: 1, indikation: 'Blödning.' });
+    expect((await sysf.post('/api/produktionssystem/lab-blod-uso/simulera', {})).data.svar).toBe(1);
+    const p2 = (await lak.get('/api/patient/p04/blod')).data.bestallningar.find(x => x.id === andra.data.id);
+    expect(p2).toMatchObject({ status: 'beredd', enheter: [{ blodgrupp: 'A+' }] });
+  });
+
   test('katalog in: laboratoriets katalog kopplas till Vårdkällans analyser, och en analys som inte erbjuds kan inte beställas', async () => {
     const sysf = await inloggad('sysf');
     const lak = await inloggad('lak-kard');
