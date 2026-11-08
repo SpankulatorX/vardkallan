@@ -1559,3 +1559,19 @@ td .tagg-referens, td .tagg-egen, td .tagg-ok { margin-left: 6px; }
 .diagram-etikett, .diagram-varde { font-size: 12px; fill: currentColor; }
 .armband-utskrift { border: 1px dashed var(--dampad); padding: 8px 12px; display: inline-block; background: #fff; color: #000; }
 @media (max-width: 720px) { .skanna { flex-basis: 100%; } }
+
+/* Runda 10, r5: kunskapsstödet, vårdförloppet, läkemedelsöverföringen och akutmottagningens flödestavla. */
+.kunskap { border-left: 3px solid var(--kalla-mellan); padding: 6px 10px; margin: 8px 0; background: var(--yta-2); }
+.kunskap-nasta { margin: 0 0 4px; }
+.vf-steg { margin: 6px 0; padding-left: 20px; }
+.vf-steg li { margin: 4px 0; }
+.vf-klar .tagg { background: var(--ok-bg); color: var(--ok); }
+.kunskap-utfall { font-size: var(--f-xs); margin: 6px 0; }
+.kunskap-allvarlig { color: var(--larm); }
+.kunskap-observera { color: var(--obs); }
+.lm-kunskap-ruta { margin: 6px 0 10px; }
+.lm-berattelse { white-space: pre-wrap; font-family: var(--sans); font-size: var(--f-xs); background: var(--yta-2); padding: 8px; border-radius: 4px; }
+.akut-tavla { margin-bottom: 16px; }
+.akut-tabell td { vertical-align: top; }
+.triage-ej_triagerad .triage-ruta { background: var(--yta); border-style: dashed; }
+.sj-ruta form { display: grid; gap: 6px; }

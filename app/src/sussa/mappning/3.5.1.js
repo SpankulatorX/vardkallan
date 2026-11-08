@@ -1,6 +1,8 @@
 // Sussa 3.5.1 Stöd för läkemedelshantering: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 // Runda 6, r2.
+// Runda 10, r5: processtöd, kunskapsstöd, vårdprocesser, högflödesmottagning, läkemedel och vaccination (sussa/runda10-r5.js).
+import { medR10r5 } from '../runda10-r5.js';
 import { medR2 } from '../lakemedel-r2.js';
 // Runda 6, r6: godkännande av läkemedelsmallar, vem som fastställer direktiv och vem som beslutar efter en avbokning.
 import { medR6 } from '../lakemedelsansvar-r6.js';
@@ -132,4 +134,4 @@ const AVSNITT = [
 ];
 // Runda 6, r2: posterna som byggdes i läkemedelsprocessen, del 2, ersätts ur sussa/lakemedel-r2.js.
 // Runda 9, r1: beredning, etikett, skanning och resten av läkemedelsprocessen (sussa/lakemedel-r9.js).
-export default medR9r1(medR8r4(medR6(medR2(AVSNITT))));
+export default medR10r5(medR9r1(medR8r4(medR6(medR2(AVSNITT)))));

@@ -14,7 +14,9 @@ import * as ekonomi from '../ekonomi-ui.js';
 
 // När frågeställningen inte visas för rollen skickar servern remissens status i stället.
 const REMISSTATUS = { skickad: 'Status: skickad', mottagen: 'Status: mottagen', bedomd: 'Status: bedömd', besvarad: 'Status: besvarad', svar_kvitterat: 'Status: svaret är kvitterat' };
-const TYP = { vardkontakt: 'Vårdkontakt', vardtillfalle: 'Vårdtillfälle', anteckning: 'Anteckning', ordination: 'Läkemedel', remiss: 'Remiss' };
+const TYP = { vardkontakt: 'Vårdkontakt', vardtillfalle: 'Vårdtillfälle', anteckning: 'Anteckning', ordination: 'Läkemedel', remiss: 'Remiss',
+  // Runda 10, r5: uppgifter från en annan vårdgivare genom sammanhållen journalföring.
+  extern: 'Annan vårdgivare' };
 // Tidslinjen i tidsordning, per vårdtillfälle och vårdkontakt, eller per hälsoärende. Valet gäller under sessionen.
 const LAGEN = [['tid', 'I tidsordning'], ['kontakt', 'Per vårdkontakt'], ['arende', 'Per hälsoärende']];
 let tidslinjeLage = 'tid';
@@ -95,7 +97,7 @@ export async function visa(el, ctx) {
     ? (d.tidslinje.length ? `<ol class="tidslinje">${d.tidslinje.map(rad).join('')}</ol>` : tomRad('Inget att visa.'))
     : vardkontakt.grupperadTidslinje(d, tidslinjeLage, rad));
   el.innerHTML = `<h2 class="sr">Översikt</h2>${snabbval(ctx)}${doldaRad(d.dolda)}${begransat}${vardkontakt.forslagHtml(d)}
-    <div class="oversikt-rutnat">${r3del}${delar.join('')}</div>
+    <div class="oversikt-rutnat">${r3del}${delar.join('')}<div id="ov-sj-plats"></div></div>
     <section class="tidslinje-sektion" aria-labelledby="ov-tl">
       <div class="sektion-huvud"><h2 id="ov-tl">Tidslinje</h2><p class="dampad liten">Nyast först. Migrerade poster från VAS och Cosmic ligger i samma kronologi och har samma vikt som ny dokumentation.</p></div>
       <div class="segment tl-lage" role="radiogroup" aria-label="Visa tidslinjen" data-las-ok>${LAGEN.map(([k, t]) => `<input type="radio" id="tl-${k}" name="tl-lage" value="${k}"${k === tidslinjeLage ? ' checked' : ''}><label for="tl-${k}">${esc(t)}</label>`).join('')}</div>
@@ -108,6 +110,36 @@ export async function visa(el, ctx) {
   tider.koppla(el, t, ctx, () => ctx.ladda());
   ekonomi.koppla(el, kost, ctx, () => ctx.ladda());
   r3.kopplaOversikt(el, d, ctx);
+  // Runda 10, r5: sammanhållen journalföring med en annan vårdgivare (Sussa 3.2.2.3).
+  if (far('las_journal')) sammanhallenRuta(el.querySelector('#ov-sj-plats'), ctx);
+}
+
+// Andra vårdgivare: systemet vet om samtycket finns och frågar bara när det saknas. Uppgifterna hämtas efter ett
+// aktivt val med syfte och läggs i tidslinjen med källan utskriven.
+async function sammanhallenRuta(plats, ctx) {
+  if (!plats) return;
+  let d;
+  try { d = await api(`/api/patient/${encodeURIComponent(ctx.id)}/sammanhallen`, { tyst: true }); } catch { return; }
+  if (!ctx.aktuell()) return;
+  const vg = d.vardgivare.map(v => v.namn).join(', ');
+  plats.innerHTML = `<section class="ruta sj-ruta" aria-labelledby="ov-sj"><h2 id="ov-sj">Andra vårdgivare</h2>
+    <p class="liten">${esc(d.text)}</p>
+    ${d.hamtad ? `<p class="liten">Hämtat från ${esc(vg)}${d.grund === 'nodatkomst' ? ' med nödåtkomst' : ' med patientens samtycke'}. Uppgifterna finns i tidslinjen.</p>${d.samtycke ? '<button type="button" class="knapp liten sekundar" data-sj-aterkalla>Patienten återkallar samtycket</button>' : ''}`
+      : `<form class="sj-form"><div class="falt"><label for="sj-syfte">Syfte</label><input id="sj-syfte" name="syfte" maxlength="300" value="Bedömning inför vården i dag" required></div>
+        ${d.samtycke ? '' : '<label class="kryss"><input type="checkbox" name="samtycke" data-sj-samtycke> Patienten samtycker till att uppgifterna hämtas</label>'}
+        <button type="submit" class="knapp liten">Hämta uppgifter från ${esc(vg)}</button></form>`}
+    <p class="demoregel">${esc(d.simulerad)}</p></section>`;
+  plats.querySelector('.sj-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.currentTarget;
+    try {
+      await api(`/api/patient/${encodeURIComponent(ctx.id)}/sammanhallen`, { metod: 'POST', data: { syfte: f.syfte.value, samtycke: Boolean(f.querySelector('[data-sj-samtycke]')?.checked) } });
+      ctx.ladda();
+    } catch (x) { felNotis(x); }
+  });
+  plats.querySelector('[data-sj-aterkalla]')?.addEventListener('click', async () => {
+    try { await api(`/api/patient/${encodeURIComponent(ctx.id)}/sammanhallen/aterkalla`, { metod: 'POST', data: {} }); ctx.ladda(); } catch (x) { felNotis(x); }
+  });
 }
 
 function tidslinjeRad(t, ctx) {
@@ -116,7 +148,7 @@ function tidslinjeRad(t, ctx) {
   return `<li class="tl-${esc(t.typ)}">
     <time datetime="${esc(t.tid)}"><span class="tl-datum">${esc(datum(t.tid))}</span><span class="tl-tid">${esc(klockslag(t.tid))}</span></time>
     <div class="tl-kropp"><p class="tl-rubrik"><span class="tl-typ">${esc(TYP[t.typ] ?? t.typ)}</span>${rubrik}${migreradEtikett(t)}</p>
-      ${t.text ? `<p class="tl-text">${esc(t.typ === 'remiss' ? (REMISSTATUS[t.text] ?? t.text) : t.text)}</p>` : ''}<p class="under-text">${esc(t.enhet?.namn ?? '')}</p></div>
+      ${t.text ? `<p class="tl-text">${esc(t.typ === 'remiss' ? (REMISSTATUS[t.text] ?? t.text) : t.text)}</p>` : ''}<p class="under-text">${esc(t.enhet?.namn ?? '')}</p>${t.typ === 'extern' ? `<p class="under-text"><span class="tagg tagg-demo">${esc(t.kallaEtikett)}</span></p>` : ''}</div>
   </li>`;
 }
 

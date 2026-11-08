@@ -40,6 +40,9 @@ export const STARTPUNKT = {
   'Kravsidan': { hash: '#/krav', klar: '#sussa-lista details.sussapost' },
   // Runda 9, r1: Birgitta Nyman tar insulin med penna, och demon återställs först.
   'Översikten för en patient med insulin': { hash: '#/patient/p06', klar: '.tidslinje', forbered: 'aterstall' },
+  // Runda 10, r5: Gunnar Åkesson och väntrummet på akuten, efter återställning.
+  'Översikten för den inlagda patienten efter återställning': { hash: '#/patient/p01', klar: '.tidslinje', forbered: 'aterstall' },
+  'Väntrummet efter återställning': { hash: '#/vantrum', klar: '.akut-tavla', forbered: 'aterstall' },
   // Runda 7, r3.
   'Ekonomens startsida': { hash: '#/ekonomi', klar: '#ek table' },
   // Runda 7, r6: barnet på Barnavårdscentralen Tybble.
@@ -451,6 +454,27 @@ export const UPPGIFTER = [
     id: 'patientgrupp', namn: 'Visa en färdig patientgrupp', roll: 'lak-vc', start: 'Arbetslistan efter inloggning',
     text: 'Vårdcentralen vill veta vilka patienter med diabetes som har ett HbA1c över målnivån. Visa gruppen.',
     kontroll: { sel: '[data-grupp-ut]', text: 'Birgitta' },
+  },
+  // Runda 10, r5: läkemedelsberättelsen, vaccinationen, sammanhållen journalföring och ankomsten till akuten.
+  {
+    id: 'lakemedelsberattelse', namn: 'Skicka läkemedelsberättelsen till nästa vårdgivare', roll: 'lak-kard', start: 'Översikten för den inlagda patienten efter återställning',
+    text: 'Gunnar Åkesson ska skrivas ut. Skicka läkemedelsberättelsen och läkemedelslistan till dem som tar över vården.',
+    kontroll: { notis: 'är skickade till Vårdcentralen Tybble' },
+  },
+  {
+    id: 'vaccination-riskgrupp', namn: 'Ge en vaccination i programmet för riskgrupper', roll: 'lak-vc', start: 'Översikten för den inlagda patienten efter återställning',
+    text: 'Gunnar Åkesson är 81 år. Ge honom den vaccination mot pneumokocker som han ska ha.',
+    kontroll: { notis: 'rapporterad till vaccinationsregistret' },
+  },
+  {
+    id: 'sammanhallen', namn: 'Hämta uppgifter från en annan vårdgivare', roll: 'lak-kard', start: 'Översikten för den inlagda patienten efter återställning',
+    text: 'Gunnar Åkesson har varit hos en annan vårdgivare. Han samtycker till att du läser det. Hämta uppgifterna.',
+    kontroll: { sel: '.tidslinje', text: 'Annan vårdgivare' },
+  },
+  {
+    id: 'akut-ankomst', namn: 'Registrera en ankomst på akutmottagningen', roll: 'lak-akut', start: 'Väntrummet efter återställning',
+    text: 'Thomas Lindberg, 19660319-3373, kommer till akutmottagningen med bröstsmärta. Registrera ankomsten.',
+    kontroll: { notis: 'Ankomsten är registrerad' },
   },
 ];
 

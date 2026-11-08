@@ -120,7 +120,9 @@ export function forPatient(atk) {
       text: m.length ? `Systemet skickar till ${m.map(x => x.namn).join(' och ')}.` : 'Patienten är inte listad på någon annan vårdenhet och har ingen samordnad planering med kommunen. Det finns ingen mottagare att skicka till.',
     };
   }
-  return { forslag, overforingar: synliga(db, atk.personal, atk.patientId).map(r => overforingUt(db, r)) };
+  const ve = vardenhetFor(db, atk.personal.enhet_id);
+  const kan = ['lakare', 'sjukskoterska'].includes(atk.personal.yrke);
+  return { forslag, overforingar: synliga(db, atk.personal, atk.patientId).map(r => ({ ...overforingUt(db, r), kanKvittera: kan && !r.kvitterad && r.mottagare_typ === 'vardenhet' && vardenhetFor(db, r.mottagare) === ve })) };
 }
 
 // POST: skickar till mottagarna som systemet har valt. body.samtycke när patienten har spärrat den egna vårdenheten.

@@ -54,7 +54,8 @@ export const NLL = { skickad: 'Skickas', kvitterad: 'Kvitterad av NLL', okand_ko
   vantar_signering: 'Väntar på signering', ej_aktuell: 'Skickas inte till NLL' };
 export const ORDTYP = { staende: 'Stående', vid_behov: 'Vid behov', tillfallig: 'Tillfällig' };
 export const PRIORITET_REMISS = { akut: 'Akut', skyndsam: 'Skyndsam', normal: 'Normal' };
-export const PRIORITET_VANTRUM = { rod: 'Röd', orange: 'Orange', gul: 'Gul', gron: 'Grön', bla: 'Blå' };
+// Runda 10, r5: en ankomst som inte är triagerad än (akutflode.js).
+export const PRIORITET_VANTRUM = { rod: 'Röd', orange: 'Orange', gul: 'Gul', gron: 'Grön', bla: 'Blå', ej_triagerad: 'Inte triagerad' };
 export const VARDFORM = { slutenvard: 'Slutenvård', akut: 'Akut', oppenvard: 'Öppenvård' };
 export const HANDLING = {
   las_oversikt: 'Läste patientöversikten', las_journal: 'Läste journalanteckningar', las_omvardnad: 'Läste omvårdnadsanteckningar',

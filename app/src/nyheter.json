@@ -359,6 +359,73 @@
           "omfattning": "liten",
           "rubrik": "Sökorden får kod i Snomed CT",
           "text": "Systemet ger sökorden i dina anteckningar kod i Snomed CT, en del av det nationella fackspråket, så att journalen kan läsas av andra system. Du väljer sökord som förut och ser aldrig koden."
+        },
+        {
+          "id": "r10r5-kunskapsstod",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "liten",
+          "var": "#/arbetslista",
+          "rubrik": "Kunskapsstöd i vårdplanen och vid läkemedlen",
+          "text": "Vårdplanen visar vårdförloppets steg med riktlinjens text och nästa steg. Vid varje varning står varför systemet varnar och vad du kan göra, och vid ordinationen finns läkemedelsinformation med patientens eGFR och ålder."
+        },
+        {
+          "id": "r10r5-kollegakontroll",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "systemforvaltare"
+          ],
+          "omfattning": "stor",
+          "var": "#/administrering",
+          "rubrik": "Kollegakontroll av högriskläkemedel",
+          "text": "Koncentrerade elektrolyter, opioider, insulin- och heparininfusion och cytostatika iordningsställs och kontrolleras av en kollega i sin egen inloggning innan dosen ges. Systemförvaltaren styr vilka grupper som kontrolleras."
+        },
+        {
+          "id": "r10r5-lakemedelsberattelse",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "liten",
+          "var": "#/arbetslista",
+          "rubrik": "Läkemedelsberättelsen till nästa vårdgivare",
+          "text": "Under Läkemedel skickar läkaren läkemedelsberättelsen, läkemedelslistan och epikrisen med ett klick. Systemet väljer mottagarna, och mottagaren kvitterar i inkorgen."
+        },
+        {
+          "id": "r10r5-vaccinationer",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "liten",
+          "var": "#/arbetslista",
+          "rubrik": "Vaccinationsprogrammen under fliken Vaccinationer",
+          "text": "Systemet visar vilka doser i barnens program och programmet för riskgrupper som gäller för patienten och varför, och rapporterar varje dos till vaccinationsregistret, som är simulerat."
+        },
+        {
+          "id": "r10r5-sammanhallen",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "liten",
+          "var": "#/arbetslista",
+          "rubrik": "Uppgifter från andra vårdgivare i tidslinjen",
+          "text": "I översikten hämtar du uppgifter från en annan vårdgivare med patientens samtycke. De visas i tidslinjen med vårdgivaren utskriven. Den andra vårdgivaren är simulerad."
+        },
+        {
+          "id": "r10r5-akut",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "stor",
+          "var": "#/vantrum",
+          "rubrik": "Flödestavla på akutmottagningen",
+          "text": "Väntrummet har en flödestavla för akutmottagningens personal: ankomst, triage där systemet räknar prioriteten, aktiviteter, bedömning, beslut och inläggning, och förvarningar från ambulansen."
         }
       ]
     },

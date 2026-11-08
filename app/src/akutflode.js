@@ -255,7 +255,7 @@ function provaBeslut(db, body, b) {
   if (!['hem', 'inlaggning', 'annan'].includes(beslut)) throw new Fel(400, 'Välj beslutet: hem, inläggning eller annan vårdform.', 'ogiltig', { falt: ['beslut'] });
   const enhetId = beslut === 'inlaggning' ? (body.enhetId ?? b.beslut_enhet) : null;
   if (beslut === 'inlaggning') {
-    const e = typeof enhetId === 'string' ? db.query("SELECT * FROM enheter WHERE id = ? AND typ = 'arbetsplats'").get(enhetId) : null;
+    const e = typeof enhetId === 'string' ? db.query("SELECT * FROM enheter WHERE id = ? AND typ IN ('arbetsplats', 'vardenhet')").get(enhetId) : null;
     if (!e) throw new Fel(400, 'Välj avdelningen som patienten ska läggas in på.', 'ogiltig', { falt: ['enhetId'] });
   }
   return { beslut, enhetId };

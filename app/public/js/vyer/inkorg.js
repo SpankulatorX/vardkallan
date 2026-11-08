@@ -104,6 +104,10 @@ export async function visa(main) {
     `${esc(x.fragestallning ?? '')} Fördelad till dig ${esc(tidpunkt(x.fordelad.tid))} av ${esc(x.fordelad.av?.namn ?? '')}. Svar senast ${esc(x.svarSenast)}.`));
   // Runda 9, r1: beredningar som väntar på kontroll av en annan sjuksköterska eller läkare. Inga patientuppgifter.
   const berKontroll = (d.beredningarAttKontrollera ?? []).map(x => rad(esc(x.lank), 'Beredningar att kontrollera', esc(x.text)));
+  // Runda 10, r5: doser av högriskläkemedel som väntar på kollegakontroll (utan patientuppgifter), och läkemedelsberättelser
+  // från en annan vårdenhet att kvittera.
+  const kollega = (d.kollegakontrollerAttGora ?? []).map(x => rad(esc(x.lank), 'Doser att kontrollera som kollega', esc(x.text)));
+  const overf = (d.lakemedelsoverforingar ?? []).map(x => rad(esc(x.lank), `Läkemedelsberättelse från ${esc(x.fran ?? '')}, ${esc(pnamn(x.patient))}${sym(x.patient)}`, `${esc(x.text)} Skickad ${esc(tidpunkt(x.skickad))}.`));
   const harBhv = Boolean(S.session?.bhv);
   const yrke = S.session?.personal?.yrke;
   // Runda 6, r2: har användaren hunnit gå vidare till en annan vy, eller loggat ut, medan inkorgen hämtades finns
@@ -124,6 +128,8 @@ export async function visa(main) {
     ${['lakare', 'farmaceut'].includes(yrke) ? sektion('fordj', 'Fördjupade läkemedelsgenomgångar', fordj, 'Inga fördjupade genomgångar väntar på dig.', yrke === 'farmaceut' ? 'Genomgångar på din vårdenhet som väntar på farmaceutens bedömning.' : 'Genomgångar på din vårdenhet som pågår.') : ''}
     ${mallarIk.length ? sektion('mallar', 'Mallar att godkänna', mallarIk, '', 'Läkemedelsmallar på din vårdenhet som är nya eller ändrade. Du granskar och godkänner det medicinska innehållet som läkare ansvarig för läkemedelsmallarna (Gröna häftet 1.4.3).') : ''}
     ${berKontroll.length ? sektion('berkontroll', 'Beredningar att kontrollera', berKontroll, '', 'Beredningar på din vårdenhet som systemet kräver att en annan sjuksköterska eller läkare kontrollerar innan dosen ges. Öppna Läkemedel att ge och välj Kontrollera beredning.') : ''}
+    ${kollega.length ? sektion('kollega', 'Doser att kontrollera som kollega', kollega, '', 'Doser av högriskläkemedel på din vårdenhet som en kollega ska kontrollera innan de ges: koncentrerade elektrolyter, opioider, insulin- och heparininfusion och cytostatika. Öppna patientens läkemedel och välj Kontrollera dosen.') : ''}
+    ${overf.length ? sektion('overf', 'Läkemedelsberättelser att kvittera', overf, '', 'Läkemedelsberättelser och läkemedelslistor som en annan vårdenhet har skickat till din vårdenhet när patienten skrevs ut. Läs och kvittera dem i patientens läkemedel.') : ''}
     ${lic.length ? sektion('lic', 'Licenser som går ut', lic, '', 'Licensläkemedel på din vårdenhet. Systemet bevakar licensens giltighet.') : ''}
     ${avbokade.length ? sektion('vhavbokad', 'Vårdhändelser som avbokades', avbokade, '', 'Remissen avvisades, och tiden för en vårdhändelse som en läkemedelsdos väntar på avbokades. Besluta om ordinationen.') : ''}
     ${S.session.behorigheter.includes('ordinera') ? sektion('atersatt', 'Läkemedel att sätta in igen', atersatt, 'Inget läkemedel ska sättas in igen efter ett uppehåll i dag eller i morgon.', 'Antikoagulantia som gör uppehåll inför ett ingrepp. Systemet påminner dagen före återinsättningen och fyller i ordinationen ur den tidigare.') : ''}

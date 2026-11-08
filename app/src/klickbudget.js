@@ -353,4 +353,22 @@ export const FLODEN = [
     id: 'patientgrupp', namn: 'Visa en färdig patientgrupp', roll: 'lak-vc', start: 'Arbetslistan efter inloggning', budget: 3,
     motivering: 'Sussa 6.2.1.2. Ett klick på Analys och statistik och ett på Visa gruppen för den färdiga grupp som är förvald. Systemet skriver vad gruppen betyder och varför varje patient är med, och räknar bara på det som läkaren får se.',
   },
+  // Runda 10, r5: läkemedelsberättelsen till nästa vårdgivare, vaccinationsprogrammen, sammanhållen journalföring och
+  // ankomsten till akutmottagningen (Sussa 3.5.1.1, 3.5.1.7, 3.2.2.3 och 3.2.3.5).
+  {
+    id: 'lakemedelsberattelse', namn: 'Skicka läkemedelsberättelsen till nästa vårdgivare', roll: 'lak-kard', start: 'Översikten för den inlagda patienten efter återställning', budget: 2,
+    motivering: 'Sussa 3.5.1.1. Ett klick till läkemedelsfliken och ett på Skicka läkemedelsberättelsen. Systemet har tagit fram berättelsen ur ordinationernas historik, den aktuella listan och epikrisen, och valt mottagarna själv: vårdcentralen där patienten är listad och kommunen i den samordnade planeringen.',
+  },
+  {
+    id: 'vaccination-riskgrupp', namn: 'Ge en vaccination i programmet för riskgrupper', roll: 'lak-vc', start: 'Översikten för den inlagda patienten efter återställning', budget: 3,
+    motivering: 'Sussa 3.5.1.7. Ett klick på fliken Vaccinationer, ett på Ge dosen vid den dos som systemet föreslår och ett för att registrera. Systemet har räknat ut att patienten ska ha dosen och varför, frågar om vaccinationer någon annanstans med nej förvalt, sätter ATC, dos och tid och rapporterar dosen till vaccinationsregistret.',
+  },
+  {
+    id: 'sammanhallen', namn: 'Hämta uppgifter från en annan vårdgivare', roll: 'lak-kard', start: 'Översikten för den inlagda patienten efter återställning', budget: 2,
+    motivering: 'Sussa 3.2.2.3. Ett klick för patientens samtycke och ett på Hämta. Systemet föreslår syftet, registrerar samtycket och lägger uppgifterna från den andra vårdgivaren i tidslinjen med källan utskriven.',
+  },
+  {
+    id: 'akut-ankomst', namn: 'Registrera en ankomst på akutmottagningen', roll: 'lak-akut', start: 'Väntrummet efter återställning', budget: 4,
+    motivering: 'Sussa 3.2.3.5. Ett klick på Ny ankomst, personnumret, ett fältbyte till kontaktorsaken och ett klick för att registrera. Systemet sätter könumret, ankomsttiden och akutbesöket och lägger patienten på flödestavlan och i väntrummet.',
+  },
 ];

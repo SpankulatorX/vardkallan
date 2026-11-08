@@ -62,6 +62,7 @@ export async function visa(el, ctx) {
     <div id="lm-fb-plats"></div>
     <div id="lm-lb-plats"></div>
     <div id="lm-kp-plats"></div>
+    <div id="lm-ov-plats"></div>
     ${lms.direktivSektion(dir)}
     ${adm && (adm.doser.length || adm.vidBehov.length || adm.utanTider.length || adm.vantarPaHandelse.length || adm.kommandeHandelser?.length || adm.egenadministrering?.length) ? `<section class="lm-sektion" aria-labelledby="lm-adm" id="lm-adm-sektion"><h3 id="lm-adm">Dagens administreringar</h3>${administrering.patientDoser(ctx.id, adm)}</section>` : ''}
     ${kanOrdinera && vid?.kan?.kan ? '<section class="lm-sektion" aria-labelledby="lm-genomgang"><h3 id="lm-genomgang">Läkemedelsgenomgång</h3><p class="liten">Systemet tar fram indikation, dubbelmedicinering, interaktioner, passerade uppföljningar och en läkemedelsberättelse ur historiken.</p><button type="button" class="knapp sekundar" data-genomgang>Gör läkemedelsgenomgång</button></section>' : ''}
@@ -74,6 +75,8 @@ export async function visa(el, ctx) {
   if (fb) forbrukning.visa(el.querySelector('#lm-fb-plats'), ctx.id, fb);
   if (lb) forbrukning.visaBestallningar(el.querySelector('#lm-lb-plats'), ctx.id, lb);
   if (kp) forbrukning.visaProvningar(el.querySelector('#lm-kp-plats'), ctx.id, kp);
+  // Runda 10, r5: läkemedelsberättelsen och läkemedelslistan till nästa vårdgivare (Sussa 3.5.1.1).
+  overforingSektion(el.querySelector('#lm-ov-plats'), ctx);
   // Runda 6, r2: filtrering och sortering ritar bara om tabellen.
   lms.kopplaVerktyg(el.querySelector('.lms-verktyg'), () => { el.querySelector('#lm-akt-tabell').innerHTML = tabell(lms.filtrera(aktuella), kanOrdinera, true); });
   // Vätskebalansens dygnsbrytning, filter och sortering hämtar om bara den delen.
@@ -745,4 +748,41 @@ async function genomgang(ctx) {
     notis('Läkemedelsgenomgången är sparad.');
     ctx.ladda();
   } catch (e) { felNotis(e); }
+}
+
+// Runda 10, r5: överföringen till nästa vårdgivare. Systemet väljer mottagarna och tar fram innehållet, och läkaren
+// skickar med ett klick. Mottagaren kvitterar här.
+async function overforingSektion(plats, ctx) {
+  if (!plats) return;
+  const pid = encodeURIComponent(ctx.id);
+  let d;
+  try { d = await api(`/api/patient/${pid}/lakemedelsoverforing`, { tyst: true }); } catch { return; }
+  if (!ctx.aktuell() || (!d.forslag && !d.overforingar.length)) return;
+  const f = d.forslag;
+  const rad = (o) => `<li><strong>${esc(o.fran?.namn ?? '')}</strong> till <strong>${esc(o.mottagare.namn)}</strong>, ${esc(tidpunkt(o.skickad))} av ${esc(o.skickadAv?.namn ?? '')}. <span class="tagg">${esc(o.statusText)}</span>${o.kvitteradAv ? `<span class="under-text">Kvitterad ${esc(tidpunkt(o.kvitterad))} av ${esc(o.kvitteradAv.namn)}</span>` : ''}
+    <details><summary>Innehållet</summary><pre class="lm-berattelse">${esc(o.berattelse)}</pre>
+      <ul class="enkel-lista">${o.lista.map(x => `<li>${esc(x.lakemedel)} ${esc(x.styrka ?? '')}: ${esc(x.dosering)}. ${esc(x.ordinationsorsak)}</li>`).join('')}</ul>
+      ${o.epikris ? `<pre class="lm-berattelse">${esc(o.epikris.text)}</pre>` : ''}</details>
+    ${o.kanKvittera ? `<button type="button" class="knapp liten" data-ov-kvittera="${o.id}">Kvittera</button>` : ''}</li>`;
+  plats.innerHTML = `<section class="lm-sektion" aria-labelledby="lm-ov"><h3 id="lm-ov">Till nästa vårdgivare</h3>
+    ${f ? `<p>${esc(f.text)}</p>
+      ${f.mottagare.length ? `<ul class="enkel-lista">${f.mottagare.map(m => `<li>${esc(m.namn)} <span class="dampad">${esc(m.varfor)}</span></li>`).join('')}</ul>` : ''}
+      <details><summary>Det som skickas</summary><pre class="lm-berattelse">${esc(f.berattelse)}</pre><p class="liten">${f.lista.length} aktuella läkemedel${f.epikris ? ' och den signerade epikrisen' : ''}.</p></details>
+      ${f.varfor ? `<p class="forslag-varfor">${esc(f.varfor)}</p>` : ''}
+      ${f.kan.skicka ? `${f.kraverSamtycke ? '<label class="kryss"><input type="checkbox" data-ov-samtycke> Patienten samtycker till att läkemedelsberättelsen skickas</label>' : ''}<button type="button" class="knapp" data-ov-skicka>Skicka läkemedelsberättelsen</button>` : ''}` : ''}
+    ${d.overforingar.length ? `<h4>Skickade och mottagna</h4><ul class="enkel-lista">${d.overforingar.map(rad).join('')}</ul>` : ''}
+  </section>`;
+  plats.querySelector('[data-ov-skicka]')?.addEventListener('click', async (e) => {
+    const b = e.currentTarget;
+    b.disabled = true;
+    try {
+      const r = await api(`/api/patient/${pid}/lakemedelsoverforing`, { metod: 'POST', data: { samtycke: Boolean(plats.querySelector('[data-ov-samtycke]')?.checked) } });
+      notis(r.text);
+      overforingSektion(plats, ctx);
+    } catch (x) { b.disabled = false; felNotis(x); }
+  });
+  plats.querySelectorAll('[data-ov-kvittera]').forEach(b => b.addEventListener('click', async () => {
+    b.disabled = true;
+    try { await api(`/api/lakemedelsoverforing/${b.dataset.ovKvittera}/kvittera`, { metod: 'POST', data: {} }); notis('Överföringen är kvitterad.'); overforingSektion(plats, ctx); } catch (x) { b.disabled = false; felNotis(x); }
+  }));
 }

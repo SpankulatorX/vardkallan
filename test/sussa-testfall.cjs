@@ -216,6 +216,21 @@ function floden(D) {
       await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Registrera beredningen');
       await synlig(page, '.notis', 'iordningsställd');
       await page.waitForLoadState('networkidle');
+      // Runda 10, r5: Addex-Magnesium är en koncentrerad elektrolyt, så en kollega kontrollerar beredningen i sin egen
+      // inloggning innan blandningen ges (hogriskkontroll.js, beslut 2026-11-08). Kollegans steg görs av läkaren Sara
+      // Lindqvist och räknas inte i sjuksköterskans klick: sidans räknare sparas före och läggs tillbaka efter.
+      const fore = await page.evaluate(() => ({ klick: window.__klick, tangent: window.__tangent }));
+      await loggaIn(page, 'lak-kard');
+      await gaTill(page, '#/patient/sus01/lakemedel');
+      await page.locator('[data-kontroll-ber]').first().click();
+      await page.locator('dialog[open] #kb-batch').fill('MG2611');
+      await page.locator('dialog[open] [data-varde="ok"]').click();
+      await synlig(page, '.notis', 'Beredningen är kontrollerad');
+      await loggaIn(page, 'ssk-kard');
+      await gaTill(page, '#/administrering');
+      await page.waitForSelector('.adm-patient');
+      await page.waitForLoadState('networkidle');
+      await page.evaluate((f) => { window.__klick = f.klick; window.__tangent = f.tangent; }, fore);
       await m.klicka(dos('Glucos Baxter').locator('[data-adm="ge"]'), 'Ge för Glucos');
       if (await page.locator('dialog[open] [data-varde="ok"]').count()) await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'bekräfta');
       // Runda 8, r4: notisen om iordningsställandet kan synas ännu, så skriptet väntar på notisen om den givna dosen.

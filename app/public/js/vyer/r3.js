@@ -358,17 +358,25 @@ export const samverkanVy = {
     main.innerHTML = vyRubrik('Samverkan', 'Samordnad planering som regionen har skickat till kommunen. Kommunen är en simulerad part i demon och ser bara det som har skickats hit, aldrig journalen.') + '<div id="sv"><p class="tom">Hämtar.</p></div>';
     const lista = await api('/api/samverkan');
     const rita = async () => {
-      main.querySelector('#sv').innerHTML = lista.length ? (await Promise.all(lista.map(x => api(`/api/samverkan/${x.id}`)))).map(s => `<article class="ruta r3-sam" aria-label="${esc(s.typText)}">
+      // Runda 10, r5: läkemedelslistan och läkemedelsberättelsen som vården har skickat till kommunen (Sussa 3.5.1.1).
+      const detaljer = await Promise.all(lista.map(async x => ({ ...(await api(`/api/samverkan/${x.id}`)), lm: (await api(`/api/samverkan/${x.id}/lakemedel`).catch(() => null))?.overforingar ?? [] })));
+      main.querySelector('#sv').innerHTML = lista.length ? detaljer.map(s => `<article class="ruta r3-sam" aria-label="${esc(s.typText)}">
         <h2>${esc(s.typText)}: ${s.patient.skyddad ? `${ikon.skold}<span>Skyddad identitet</span>` : esc(s.patient.namn)}</h2>
         <p>${s.patient.personnummer ? `<span class="pnr">${esc(s.patient.personnummer)}</span>. ` : ''}${s.patient.adress ? `${esc(s.patient.adress)}. ` : s.patient.skyddad ? 'Patienten har skyddade personuppgifter. Kontakta vårdenheten. ' : ''}Från ${esc(s.enhet.namn)}.${s.beraknad ? ` Beräknad utskrivning ${esc(s.beraknad)}.` : ''}${s.utskrivningsklar ? ` Utskrivningsklar ${esc(tidpunkt(s.utskrivningsklar))}.` : ''}</p>
         ${s.information.length ? `<p class="liten">${s.information.map(esc).join(' ')}</p>` : ''}
         ${s.plan ? `<ul class="enkel-lista">${s.plan.insatser.map(i => `<li>${esc(i.text)} <span class="dampad">${i.huvudman === 'kommun' ? 'Kommunen' : 'Regionen'}</span></li>`).join('')}</ul>` : ''}
         ${s.betalning ? `<p class="liten">Betalningsansvar från ${esc(s.betalning.fran)}: ${s.betalning.uppfyllda ? 'villkoren är uppfyllda' : 'alla villkor är inte uppfyllda'}.</p>` : ''}
+        ${s.lm.map(o => `<section class="sv-lm" aria-label="Läkemedel från ${esc(o.fran?.namn ?? '')}"><h3>Läkemedel från ${esc(o.fran?.namn ?? '')}, ${esc(tidpunkt(o.skickad))}</h3>
+          <ul class="enkel-lista">${o.lista.map(x => `<li>${esc(x.lakemedel)} ${esc(x.styrka ?? '')}: ${esc(x.dosering)}. ${esc(x.ordinationsorsak)}</li>`).join('')}</ul>
+          <details><summary>Läkemedelsberättelsen</summary><pre class="lm-berattelse">${esc(o.berattelse)}</pre></details>
+          ${o.status === 'skickad' ? `<button type="button" class="knapp liten" data-sv-lm="${o.id}">Kvittera</button>` : `<p class="liten">${esc(o.statusText)}</p>`}</section>`).join('')}
         ${s.uppgifter.map(u => `<p class="ruta ruta-info liten">${esc(u.text)} (${esc(u.paragraf)}) <button type="button" class="knapp liten" data-sv="${u.id === 'justera' ? 'justera' : 'planering'}" data-id="${s.id}">${u.id === 'justera' ? 'Justera planen' : 'Planeringen är påbörjad'}</button></p>`).join('')}
       </article>`).join('') : tom('Inget har skickats till kommunen.');
     };
     await rita();
     main.querySelector('#sv').addEventListener('click', async (e) => {
+      const lm = e.target.closest('[data-sv-lm]');
+      if (lm) { try { await api(`/api/lakemedelsoverforing/${lm.dataset.svLm}/kvittera`, { metod: 'POST', data: {} }); notis('Läkemedelslistan är kvitterad.'); await rita(); } catch (x) { felNotis(x); } return; }
       const b = e.target.closest('[data-sv]');
       if (!b) return;
       try { await api(`/api/samverkan/${b.dataset.id}/${b.dataset.sv}`, { metod: 'POST', data: {} }); notis('Registrerat.'); await rita(); } catch (x) { felNotis(x); }
