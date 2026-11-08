@@ -1194,6 +1194,24 @@ const MENY = {
       await forvanta(page, '#tk', 'GetCareDocumentation');
       await forvanta(page, '#tk', 'Simulerad producent');
     });
+    await s('Sara Lindqvist registrerar och ångrar patientens invändning mot kvalitetsregistret, och patienten anmäler den själv i Min journal', async () => {
+      await loggaIn(page, 'lak-kard');
+      await gaTill(page, '#/patient/p01/identitet');
+      await page.click('[data-kr="motsatt"]');
+      await forvanta(page, '.notis', 'Invändningen är registrerad');
+      await forvanta(page, '.kr-invandning', 'Patienten har motsatt sig registrering');
+      await page.click('[data-kr="aterkalla"]');
+      await forvanta(page, '.notis', 'Invändningen är ångrad');
+      await page.waitForLoadState('networkidle');
+      await loggaIn(page, 'inv-p10');
+      await gaTill(page, '#/min/p10/sparrar');
+      await page.click('[data-kr="motsatt"]');
+      await forvanta(page, '.kr-invandning', 'Du har motsatt sig registrering');
+      await bild(page, '79-min-kvalitetsregister', true);
+      await page.click('[data-kr="aterkalla"]');
+      await forvanta(page, '.notis', 'Invändningen är ångrad');
+      await page.waitForLoadState('networkidle');
+    });
     // Runda 6, r3: kommunens part i samordnad planering (simulerad) ser bara det som regionen har skickat.
     await s('Lisa Ahlgren på kommunen ser inskrivningsmeddelandet men ingen journal', async () => {
       await loggaIn(page, 'kom-bist');

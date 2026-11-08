@@ -144,7 +144,6 @@ ROLLER.uppfoljning.push('myndighetsrapport');
 UTAN_PATIENT.add('myndighetsrapport');
 ROLLER.lakare.push('registrera_diagnos', 'kvalitetsregister');
 ROLLER.sjukskoterska.push('kvalitetsregister');
-ROLLER.vardadministrator.push('kvalitetsregister');
 
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
 

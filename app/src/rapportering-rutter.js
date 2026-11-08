@@ -5,7 +5,7 @@
 // Uppföljningsrollen ser rapporterna, felen och antalen, men inga patientuppgifter: felen har ingen patient, och
 // filerna visas bara med hur många rader som har varje fält ifyllt. När rapporten skickas loggas varje patient i filerna.
 import { Fel } from './db.js';
-import { Atkomst, kanRoll, vardenhetFor } from './atkomst.js';
+import { Atkomst, kanRoll, vardenhetFor, starkasteGrund } from './atkomst.js';
 import * as logg from './logg.js';
 import * as mr from './myndighetsrapport.js';
 import { KALLOR } from './rapportkoder.js';
@@ -28,7 +28,7 @@ function sammanfattning(db, s) {
   };
 }
 
-export function registreraRutter({ rutt, kravInloggad, medPatient, valFor }) {
+export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal }) {
   const kravRoll = (c, handling) => {
     const p = kravInloggad(c);
     if (!kanRoll(p, handling)) {
@@ -72,11 +72,20 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor }) {
     const vk = mr.kontaktForRattning(c.db, id);
     return [201, medPatient(c, vk.patient_id, 'registrera_diagnos', (atk) => mr.registreraDiagnos(atk, vk, c.body))];
   });
-  // Patienten motsätter sig registrering i kvalitetsregistret (patientdatalagen 7 kap. 2 §).
-  rutt('POST', '/api/patient/:id/kvalitetsregister/motsatt', (c, id) => {
+  // Patienten motsätter sig registrering i kvalitetsregistret (patientdatalagen 7 kap. 2 §). Läkaren och sjuksköterskan
+  // registrerar och ångrar invändningen i journalen, och patienten anmäler och ångrar den själv i Min journal. Allt loggas.
+  const medInvandning = (c, id, resurs, fn) => {
     kravInloggad(c);
-    return [201, medPatient(c, id, 'kvalitetsregister', (atk, p) => { atk.krav('kvalitetsregister'); const ut = mr.motsatt(c.db, c.personal, p.id); atk.logga('kvalitetsregister', atk.grund(), 'kvalitetsregister:motsatt'); return ut; })];
-  });
+    return medPatient(c, id, 'kvalitetsregister', (atk, p) => { atk.krav('kvalitetsregister'); const ut = fn(p); atk.logga('kvalitetsregister', atk.grund(), resurs); return ut; });
+  };
+  rutt('GET', '/api/patient/:id/kvalitetsregister', (c, id) => medInvandning(c, id, 'kvalitetsregister:las', (p) => mr.invandning(c.db, p.id)));
+  rutt('POST', '/api/patient/:id/kvalitetsregister/motsatt', (c, id) => [201, medInvandning(c, id, 'kvalitetsregister:motsatt', (p) => mr.motsatt(c.db, { personalId: c.personal.id }, p.id))]);
+  rutt('POST', '/api/patient/:id/kvalitetsregister/aterkalla', (c, id) => medInvandning(c, id, 'kvalitetsregister:aterkalla', (p) => mr.aterkalla(c.db, { personalId: c.personal.id }, p.id)));
+  // Bara patienten själv, inte en vårdnadshavare, anmäler invändningen i Min journal.
+  const egen = (atk) => { if (atk.relation !== 'egen') throw new Fel(403, 'Bara patienten själv kan anmäla en invändning mot kvalitetsregistret.', 'nekad'); };
+  rutt('GET', '/api/min/journal/:id/kvalitetsregister/status', (c, id) => medMinJournal(c, id, 'min:kvalitetsregister', (atk) => ({ ...mr.invandning(c.db, atk.patientId), kanAndra: atk.relation === 'egen' })));
+  rutt('POST', '/api/min/journal/:id/kvalitetsregister/motsatt', (c, id) => [201, medMinJournal(c, id, 'min:kvalitetsregister:motsatt', (atk) => { egen(atk); return mr.motsatt(c.db, { invanareId: c.invanare.id }, atk.patientId); })]);
+  rutt('POST', '/api/min/journal/:id/kvalitetsregister/aterkalla', (c, id) => medMinJournal(c, id, 'min:kvalitetsregister:aterkalla', (atk) => { egen(atk); return mr.aterkalla(c.db, { invanareId: c.invanare.id }, atk.patientId); }));
 
   // Demoläget för rättningarna i inkorgen, i den egna sandlådan.
   rutt('POST', '/api/demo/rapportfel', (c) => {
@@ -120,10 +129,13 @@ export function inkorg(c, patientKort, patientRad, valFor) {
       const atk = new Atkomst(c.db, p, plats.patientId, valFor(c.s, plats.patientId), handling);
       // Behörigheten ska gälla varje enhet vars uppgifter felet bygger på, också en spärrad enhet eller en annan vårdenhet.
       const prov = atk.prova(handling, { enhet_id: plats.enhetId });
-      if (!prov.tillaten || !plats.enheter.every(e => atk.prova(handling, { enhet_id: e }).tillaten)) continue;
+      const provs = plats.enheter.map(e => atk.prova(handling, { enhet_id: e }));
+      if (!prov.tillaten || !provs.every(r => r.tillaten)) continue;
+      // Loggen får den starkaste grunden bland prövningarna, till exempel samtycke till en spärrad enhets uppgifter.
+      const grund = starkasteGrund(new Set([prov.grund, ...provs.map(r => r.grund)]), prov.grund);
       sett.add(nyckel);
       const resurs = `inkorg:rapportfel:${nyckel}`;
-      if (!loggade.has(resurs)) { loggade.add(resurs); atk.logga(handling, prov.grund, resurs); }
+      if (!loggade.has(resurs)) { loggade.add(resurs); atk.logga(handling, grund, resurs); }
       const vk = f.vardkontaktId ? c.db.query('SELECT * FROM vardkontakter WHERE id = ?').get(f.vardkontaktId) : null;
       ut.push({
         nyckel, regel: f.regel, atgard: f.atgard, text: f.text, detalj: f.detalj, datum: f.datum, rapporter: [mr.RAPPORTER[id].namn], patientId: plats.patientId,

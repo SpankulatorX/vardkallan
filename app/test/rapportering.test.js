@@ -397,6 +397,9 @@ describe('Myndighetsrapportering i API:t', () => {
     expect((await k.post('/api/patient/p04/val', { typ: 'andra_enheter', syfte: 'Rätta rapporten till patientregistret' })).status).toBe(200);
     const med = (await k.get('/api/inkorg')).data.rapportfel.filter(x => x.regel === 'kod');
     expect(med.map(x => x.patientId).sort()).toEqual(['p01', 'p04']);
+    // Loggen har den starkaste grunden, den som psykiatrins spärrade kontakt krävde, inte kardiologens vårdrelation.
+    const rad = db.query("SELECT grund FROM atkomstlogg WHERE patient_id = 'p04' AND resurs = ?").get(`inkorg:rapportfel:kod:VT${sparrad.vt}`);
+    expect(rad.grund).toBe('samtycke_sparr');
   });
 
   test('den sparade sammanställningen görs om när en spärr eller en vårdenhet ändras', () => {
@@ -423,5 +426,44 @@ describe('Myndighetsrapportering i API:t', () => {
     await u.logga('ssk-kard');
     expect((await u.post('/api/patient/p01/kvalitetsregister/motsatt')).status).toBe(201);
     expect((await u.post('/api/patient/p20/kvalitetsregister/motsatt')).status).toBe(403);
+  });
+
+  test('läkaren och sjuksköterskan registrerar och ångrar patientens invändning mot kvalitetsregistret, och det loggas', async () => {
+    const k = await inloggad('ssk-kard');
+    const db = sdb(k);
+    expect((await k.get('/api/patient/p01/kvalitetsregister')).data).toMatchObject({ motsatt: false, register: 'Demoregister för hjärtsvikt' });
+    const r = await k.post('/api/patient/p01/kvalitetsregister/motsatt');
+    expect(r.status).toBe(201);
+    expect((await k.get('/api/patient/p01/kvalitetsregister')).data).toMatchObject({ motsatt: true, av: 'vården' });
+    expect((await k.post('/api/patient/p01/kvalitetsregister/aterkalla')).status).toBe(200);
+    expect((await k.get('/api/patient/p01/kvalitetsregister')).data.motsatt).toBe(false);
+    const logg = db.query("SELECT resurs FROM atkomstlogg WHERE patient_id = 'p01' AND handling = 'kvalitetsregister' AND resultat = 'tillaten' ORDER BY id").all().map(x => x.resurs);
+    expect(logg).toEqual(expect.arrayContaining(['kvalitetsregister:motsatt', 'kvalitetsregister:aterkalla']));
+    // Raden finns kvar med tiden för ångrandet, och ingen rad raderas.
+    expect(db.query("SELECT count(*) AS n FROM kvalitetsregister_motsatt WHERE patient_id = 'p01' AND aterkallad IS NOT NULL").get().n).toBe(1);
+    await k.logga('adm-kard');
+    expect((await k.post('/api/patient/p01/kvalitetsregister/motsatt')).status).toBe(403);
+    await k.logga('ssk-kard');
+    expect((await k.post('/api/patient/p20/kvalitetsregister/motsatt')).status).toBe(403);
+  });
+
+  test('patienten anmäler själv sin invändning mot kvalitetsregistret i Min journal och kan ångra den', async () => {
+    const k = klient(app);
+    expect((await k.post('/api/login/invanare', { invanareId: 'inv-p10' })).status).toBe(200);
+    const db = sdb(k);
+    expect((await k.get('/api/min/journal/p10/kvalitetsregister/status')).data.motsatt).toBe(false);
+    expect((await k.post('/api/min/journal/p10/kvalitetsregister/motsatt')).status).toBe(201);
+    expect((await k.get('/api/min/journal/p10/kvalitetsregister/status')).data).toMatchObject({ motsatt: true, av: 'patienten' });
+    expect(db.query("SELECT invanare_id FROM kvalitetsregister_motsatt WHERE patient_id = 'p10' AND aterkallad IS NULL").get().invanare_id).toBe('inv-p10');
+    // Patienten kommer inte med i registret.
+    expect(mr.sammanstall(db, 'kvalitetsregister').filer[0].text).not.toContain('194601136098');
+    expect((await k.post('/api/min/journal/p10/kvalitetsregister/aterkalla')).status).toBe(200);
+    expect((await k.get('/api/min/journal/p10/kvalitetsregister/status')).data.motsatt).toBe(false);
+    // En annan patients journal svarar som en som inte finns, som i resten av Min journal.
+    expect((await k.post('/api/min/journal/p01/kvalitetsregister/motsatt')).status).toBe(404);
+    // En vårdnadshavare anmäler inte för barnet.
+    const v = klient(app);
+    await v.post('/api/login/invanare', { invanareId: 'inv-vh01' });
+    expect((await v.post('/api/min/journal/p09/kvalitetsregister/motsatt')).status).toBe(403);
   });
 });

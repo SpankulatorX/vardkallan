@@ -60,3 +60,35 @@ export async function rapportfelKlick(e, d, efter) {
   } catch { /* felet visas som notis */ }
   return true;
 }
+
+// Patientens invändning mot kvalitetsregistret (patientdatalagen 7 kap. 2 §). I journalen registrerar och ångrar läkaren
+// och sjuksköterskan den under fliken Identitet, och i Min journal anmäler och ångrar patienten den själv under Spärrar.
+// Systemet sköter resten: patienten kommer inte med i registret så länge invändningen gäller.
+function invandningHtml(d, minJournal) {
+  const status = d.motsatt
+    ? `${minJournal ? 'Du har' : 'Patienten har'} motsatt sig registrering${d.av === 'patienten' && !minJournal ? ', anmält av patienten i Min journal' : ''}, sedan ${esc(datum(d.registrerad))}.`
+    : `${minJournal ? 'Dina uppgifter kan lämnas' : 'Patientens uppgifter kan lämnas'} till registret.`;
+  const kan = minJournal ? d.kanAndra : true;
+  return `<section class="kr-invandning" aria-labelledby="kr-rubrik"><h3 id="kr-rubrik">Kvalitetsregister</h3>
+    <p>${esc(d.register)}: ${status}</p><p class="under-text">${esc(d.text)}</p>
+    ${kan ? `<div class="knapprad"><button type="button" class="knapp sekundar" data-kr="${d.motsatt ? 'aterkalla' : 'motsatt'}">${d.motsatt ? 'Ångra invändningen' : minJournal ? 'Jag vill inte vara med i registret' : 'Patienten motsätter sig registrering'}</button></div>`
+      : '<p class="under-text">Bara patienten själv kan anmäla en invändning.</p>'}</section>`;
+}
+
+async function kopplaInvandning(el, bas, statusVag, minJournal) {
+  const plats = document.createElement('div');
+  el.append(plats);
+  const rita = async () => { plats.innerHTML = invandningHtml(await api(statusVag), minJournal); };
+  await rita();
+  plats.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-kr]');
+    if (!b) return;
+    try {
+      const d = await medKnapp(b, () => api(`${bas}/${b.dataset.kr}`, { metod: 'POST', data: {} }));
+      notis(d.motsatt ? 'Invändningen är registrerad. Uppgifterna lämnas inte till kvalitetsregistret.' : 'Invändningen är ångrad.');
+      await rita();
+    } catch { /* felet visas som notis */ }
+  });
+}
+export const invandningIJournalen = (el, pid) => kopplaInvandning(el, `/api/patient/${encodeURIComponent(pid)}/kvalitetsregister`, `/api/patient/${encodeURIComponent(pid)}/kvalitetsregister`, false);
+export const invandningIMinJournal = (el, pid) => kopplaInvandning(el, `/api/min/journal/${encodeURIComponent(pid)}/kvalitetsregister`, `/api/min/journal/${encodeURIComponent(pid)}/kvalitetsregister/status`, true);

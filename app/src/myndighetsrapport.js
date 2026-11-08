@@ -53,7 +53,12 @@ CREATE TABLE IF NOT EXISTS registeraterkoppling (
   id INTEGER PRIMARY KEY, register TEXT NOT NULL, rapport_id INTEGER NOT NULL, tid TEXT NOT NULL, data TEXT NOT NULL
 );
 `;
-export const sakra = (db) => db.exec(SCHEMA);
+export function sakra(db) {
+  db.exec(SCHEMA);
+  // Invändningen kan ångras och kan anmälas av patienten själv. Raden raderas aldrig, utan får tiden för ångrandet.
+  const kol = db.query('PRAGMA table_info(kvalitetsregister_motsatt)').all().map(k => k.name);
+  for (const k of ['invanare_id', 'aterkallad', 'aterkallad_av', 'aterkallad_av_invanare']) if (!kol.includes(k)) db.exec(`ALTER TABLE kvalitetsregister_motsatt ADD COLUMN ${k} TEXT`);
+}
 
 // Filerna och deras fält: namn och högsta antal tecken, i den ordning som filspecifikationen anger.
 const ID = ['Vårdkontakts-id', 30];
@@ -533,7 +538,7 @@ function byggMfr(ctx) {
 export const KVALITETSREGISTER = 'hjartsvikt';
 function byggKvalitetsregister(ctx) {
   const { db, period: per } = ctx;
-  const motsatt = new Set(db.query('SELECT patient_id FROM kvalitetsregister_motsatt WHERE register = ?').all(KVALITETSREGISTER).map(r => r.patient_id));
+  const motsatt = new Set(db.query('SELECT patient_id FROM kvalitetsregister_motsatt WHERE register = ? AND aterkallad IS NULL').all(KVALITETSREGISTER).map(r => r.patient_id));
   const sett = new Set();
   for (const d of db.query("SELECT * FROM diagnoser WHERE kod LIKE 'I50%' ORDER BY datum DESC, id DESC").all()) {
     if (sett.has(d.patient_id)) continue;
@@ -628,11 +633,32 @@ export function senasteAterkoppling(db) {
   return r ? { tid: r.tid, rapportId: r.rapport_id, ...JSON.parse(r.data) } : null;
 }
 
-export function motsatt(db, personal, patientId, nu = new Date()) {
+// Patientens invändning mot registrering i kvalitetsregistret (patientdatalagen 7 kap. 2 §). av är { personalId } när
+// vården registrerar den och { invanareId } när patienten själv anmäler den i Min journal.
+const aktivInvandning = (db, patientId) => db.query('SELECT * FROM kvalitetsregister_motsatt WHERE patient_id = ? AND register = ? AND aterkallad IS NULL ORDER BY id DESC').get(patientId, KVALITETSREGISTER);
+export function invandning(db, patientId) {
   sakra(db);
-  if (db.query('SELECT 1 FROM kvalitetsregister_motsatt WHERE patient_id = ? AND register = ?').get(patientId, KVALITETSREGISTER)) return { redan: true };
-  db.query('INSERT INTO kvalitetsregister_motsatt (patient_id, register, registrerad, registrerad_av) VALUES (?, ?, ?, ?)').run(patientId, KVALITETSREGISTER, nu.toISOString(), personal.id);
-  return { registrerad: true };
+  const r = aktivInvandning(db, patientId);
+  return {
+    register: RAPPORTER.kvalitetsregister.namn, motsatt: Boolean(r), registrerad: r?.registrerad ?? null, av: r ? (r.invanare_id ? 'patienten' : 'vården') : null,
+    text: 'Uppgifter om patienten lämnas inte till kvalitetsregistret om patienten motsätter sig det (patientdatalagen 7 kap. 2 §). Invändningen kan ångras.',
+  };
+}
+export function motsatt(db, av, patientId, nu = new Date()) {
+  sakra(db);
+  if (aktivInvandning(db, patientId)) return { redan: true, ...invandning(db, patientId) };
+  const personalId = av?.invanareId ? null : av?.personalId ?? av?.id ?? null;
+  db.query('INSERT INTO kvalitetsregister_motsatt (patient_id, register, registrerad, registrerad_av, invanare_id) VALUES (?, ?, ?, ?, ?)')
+    .run(patientId, KVALITETSREGISTER, nu.toISOString(), personalId, av?.invanareId ?? null);
+  return { registrerad: true, ...invandning(db, patientId) };
+}
+export function aterkalla(db, av, patientId, nu = new Date()) {
+  sakra(db);
+  const r = aktivInvandning(db, patientId);
+  if (!r) return { redan: true, ...invandning(db, patientId) };
+  db.query('UPDATE kvalitetsregister_motsatt SET aterkallad = ?, aterkallad_av = ?, aterkallad_av_invanare = ? WHERE id = ?')
+    .run(nu.toISOString(), av?.invanareId ? null : av?.personalId ?? av?.id ?? null, av?.invanareId ?? null, r.id);
+  return { aterkallad: true, ...invandning(db, patientId) };
 }
 
 // Mappningen som gränssnittet visar: varje vårdenhet med sina koder.

@@ -382,12 +382,13 @@ Nya handlingar: `bevaka` (bevakning för en patient, kräver vårdrelation), `be
 
 ## Rapportering till myndigheter och register och tjänstekontrakten i K10 (runda 7, r5, Sussa 6.3.2 och 2.2.1)
 
-Nya handlingar: `myndighetsrapport` (uppföljningsrollen, utan patient), `registrera_diagnos` (läkare) och `kvalitetsregister` (läkare, sjuksköterskor och vårdadministratörer). Nya grunder i loggen: `uppgiftsskyldighet` och `kvalitetsregister`.
+Nya handlingar: `myndighetsrapport` (uppföljningsrollen, utan patient), `registrera_diagnos` (läkare) och `kvalitetsregister` (läkare och sjuksköterskor). Nya grunder i loggen: `uppgiftsskyldighet` och `kvalitetsregister`.
 
 - `GET /api/rapportering` ger en sammanfattning per rapport (`par`, `viv`, `vtd`, `mfr` och `kvalitetsregister`): period, sista dag, antal, fel, varningar och senast skickad. `GET /api/rapportering/:id` ger också `filer` (namn, rubrik, fält, antal, SHA-256 och `ifyllda` per fält, inga rader), `felLista` (utan patient, datum och fritext ur journalen), `varningLista`, `undantag` med bestämmelse och `format`. Båda loggas utan patient.
 - `POST /api/rapportering/:id/skicka` (201) skickar till den simulerade mottagaren och ger `{ id, kvittens, antal, kvarhallna, period, filer }`. Varje patient i filerna loggas.
 - `GET /api/rapportering/mappning`, `/historik` och `/aterkoppling`.
 - `GET /api/rapportering/rattning/val` ger valen för en yttre orsak och diagnoslistan. `POST /api/vardkontakt/:id/diagnos { kod }` eller `{ mekanism, plats, aktivitet }` (201) registrerar en diagnos eller en yttre orsak, och systemet avgör typen.
-- `POST /api/patient/:id/kvalitetsregister/motsatt` (201) och `POST /api/demo/rapportfel` (201, demoläge i den egna sandlådan, bara läkare).
+- Invändningen mot kvalitetsregistret: `GET /api/patient/:id/kvalitetsregister`, `POST /api/patient/:id/kvalitetsregister/motsatt` (201) och `/aterkalla` för läkare och sjuksköterskor, och `GET /api/min/journal/:id/kvalitetsregister/status`, `POST /api/min/journal/:id/kvalitetsregister/motsatt` (201) och `/aterkalla` för patienten själv. Allt loggas.
+- `POST /api/demo/rapportfel` (201, demoläge i den egna sandlådan, bara läkare).
 - `GET /api/inkorg` har också `rapportfel`: fel som den inloggade kan rätta, med `detalj`, `forslag` och patienten, bara på den egna vårdenheten och när behörighetsmotorn ger åtkomst.
 - `GET /api/tjanstekontrakt` ger tabellen över K10. `POST /api/riv/:kontrakt` för GetCareDocumentation, GetDiagnosis, GetAlertInformation och GetCareContacts tar `{ patientId: { id, type }, careUnitHSAId?, datePeriod?: { start, end }, logicalAddress? }` och ger kontraktets lista och `result`. Övriga kontrakt ger 404. En patient som inte finns och en patient utan behörighet ger samma 403.

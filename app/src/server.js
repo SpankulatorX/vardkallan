@@ -1415,7 +1415,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // Runda 6, r4 (planering-rutter.js).
   r4Rutter({ rutt, kravInloggad, kravRoll, medPatient, medMinJournal });
   // Runda 7, r5 (rapportering-rutter.js).
-  r7r5Rutter({ rutt, kravInloggad, medPatient, valFor });
+  r7r5Rutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal });
 
   // Endpoints som inte behöver en sandlåda.
   const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/krav/sussa', '/api/drift', '/api/lasekopia/krypterad-logg']);

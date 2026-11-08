@@ -20,7 +20,9 @@ export const MVO = {
 
 // Vårdenhet i Vårdkällan till sjukhus, verksamhetsområde och akutverksamhet (uppgift 8 i OV-filen). primarvard betyder att
 // enheten är primärvård, som inte omfattas av uppgiftsskyldigheten till patientregistret (HSLF-FS 2023:33 2 §).
-// Att akutmottagningen har MVO 100 och psykiatrins akut räknas som psykiatrisk akutmottagning (3) är antaganden i demon.
+// Akutmottagningen har MVO 100 Akutklinik. Ingen kod i den kontrollerade kodlistan har texten akutsjukvård, och de två
+// koderna för akut är 046 Intagnings-/Akutverksamhet och 100 Akutklinik (docs/kodkontroll.md). Att psykiatrins akut
+// räknas som psykiatrisk akutmottagning (3) är ett antagande i demon.
 export const ENHETER = {
   'uso-akut': { sjukhus: 'uso', mvo: '100', akut: '1' },
   'uso-kard': { sjukhus: 'uso', mvo: '231' },

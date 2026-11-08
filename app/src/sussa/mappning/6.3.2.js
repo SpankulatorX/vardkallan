@@ -11,11 +11,13 @@ export default [
     tester: [
       `${M}kvalitetsregistret utelämnar patienter som har motsatt sig, med skyddade personuppgifter och från spärrade enheter`,
       `${A}kvalitetsregistrets återkoppling sparas och kan läsas`,
+      `${A}läkaren och sjuksköterskan registrerar och ångrar patientens invändning mot kvalitetsregistret, och det loggas`,
+      `${A}patienten anmäler själv sin invändning mot kvalitetsregistret i Min journal och kan ångra den`,
       `${A}att skicka sparar rapporten med kvittens från den simulerade mottagaren och loggar varje patient`,
     ],
     losning: 'Ett demoregister för hjärtsvikt på sidan Rapportering: systemet tar själv fram patienterna med hjärtsvikt som hade en vårdkontakt i specialiserad vård, med läkemedelsgrupper, blodtryck, puls, NT-proBNP och eGFR ur journalen, och skickar dem varje månad till ett simulerat kvalitetsregister. Registret skickar tillbaka en återkoppling per vårdenhet som sparas och visas, så att data också går att ta emot från registret.',
     expert: 'Systemet väljer patienterna och fyller i varje uppgift ur det som redan är registrerat, och utelämnar själv den som har motsatt sig registreringen enligt patientdatalagen 7 kap. 2 §, utan att någon behöver kunna registrets variabler.',
-    anmarkning: 'Kvalitetsregistret och dess återkoppling är simulerade, jämförelsetalen är påhittade och formatet är ett antagande. Inga verkliga nationella kvalitetsregister är anslutna. Patientens invändning registreras via API:t, inte i gränssnittet. Informationen till patienten enligt 7 kap. 3 § bevakas inte. Patienter med skyddade personuppgifter och spärrade uppgifter utelämnas som ett försiktigt val.',
+    anmarkning: 'Kvalitetsregistret och dess återkoppling är simulerade, jämförelsetalen är påhittade och formatet är ett antagande. Inga verkliga nationella kvalitetsregister är anslutna. Läkaren och sjuksköterskan registrerar och ångrar patientens invändning under fliken Identitet, och patienten anmäler och ångrar den själv i Min journal. Informationen till patienten enligt 7 kap. 3 § bevakas inte. Patienter med skyddade personuppgifter och spärrade uppgifter utelämnas som ett försiktigt val.',
   },
   {
     id: '6.3.2.2', kategori: 'nationell', egna: ['L9'], avsedd: 'delvis',
