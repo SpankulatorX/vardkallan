@@ -17,6 +17,9 @@ import { registreraAtgard } from './atgarder.js';
 import { NEWS2_KOD, SYSTEM } from './kodverk.js';
 import { CS } from './fhir-definitioner.js';
 import { news2, news2Omgangar, news2Galler, referens, utanforReferens, DEMOREGEL, NEWS2_KALLA, NEWS2_ATGARD, tolkaGcs } from './skalor.js';
+// Runda 9, r2: bara kvalitetssäkrade värden räknas i NEWS2, larm och basfakta. Värden från utrustning är referens tills de
+// är godkända, och patientens egna mätningar visas för sig (mt-klass.js och medicinteknik.js).
+import { kvalitetssakrad, OBEDOMDA_KALLOR } from './mt-klass.js';
 
 const idagSv = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
 const WARFARIN = 'B01AA03';
@@ -60,7 +63,9 @@ export function kurvor(atk, p, rader) {
       typ, namn: journal.MATTYPER[typ]?.namn ?? typ, enhet: sista.m.matt_enhet ?? '', referens: r,
       serier: typ === 'blodtryck' ? ['Systoliskt', 'Diastoliskt'] : [journal.MATTYPER[typ]?.namn ?? typ],
       punkter: punkter.map(({ m, v }) => ({ id: m.id, tid: m.tid, varden: v, utanfor: utanforReferens(v[0], r), vardenhet: enhetsnamn(atk.db, m.enhet_id),
-        ...(m.typ === 'gcs' ? { text: tolkaGcs(m.varde)?.text } : {}) })),
+        ...(m.typ === 'gcs' ? { text: tolkaGcs(m.varde)?.text } : {}),
+        // Runda 9, r2: ett värde från utrustning visas med källan och om det är godkänt.
+        ...(OBEDOMDA_KALLOR.has(m.kalla) ? { kalla: m.kalla, godkand: m.vidimerad != null } : {}) })),
       senaste: { tid: sista.m.tid, varde: sista.m.varde_num ?? sista.m.varde, utanfor: utanforReferens(sista.v[0], r) },
     };
   }).sort((a, b) => b.senaste.tid.localeCompare(a.senaste.tid));
@@ -68,7 +73,8 @@ export function kurvor(atk, p, rader) {
 
 // NEWS2 för patienten ur de synliga raderna: om NEWS2 gäller, serien med de kompletta omgångarna, den aktuella
 // omgången med vad som ska göras och när nästa kontroll ska göras, och om det finns ett larm.
-export function news2For(atk, p, rader, nu = Date.now()) {
+export function news2For(atk, p, alla, nu = Date.now()) {
+  const rader = alla.filter(kvalitetssakrad);
   const galler = news2Galler({ alder: alder(p.fodd, idagSv()), diagnosKoder: synligaDiagnoskoder(atk) });
   const bas = { galler: galler.galler, text: galler.text, demoregel: DEMOREGEL, kalla: NEWS2_KALLA };
   if (!galler.galler) return { ...bas, serie: [], aktuell: null, nyareRoda: [], larm: false };
@@ -102,9 +108,13 @@ export function matvardesvy(atk, p) {
   const rader = journal.synligaMatvarden(atk);
   // Runda 7, r4: mätvärden som är undantagna från visning står med antal och motivering (undantag.js).
   const dolda = { kraverVal: atk.doldaVal, sparrade: atk.doldaSparr, undantagna: undantagnaUt(atk) };
+  // Runda 9, r2: patientens egna mätningar visas skilda från vårdens värden. I NEWS2 räknas de först när de är bedömda
+  // och godkända (news2For tar bara kvalitetssäkrade värden).
+  const vardens = rader.filter(m => m.kalla !== 'patient');
   return {
-    matvarden: rader.map(m => journal.matvardeUt(atk.db, m)), dolda,
-    kurvor: kurvor(atk, p, rader), news2: news2For(atk, p, rader),
+    matvarden: vardens.map(m => journal.matvardeUt(atk.db, m)), dolda,
+    kurvor: kurvor(atk, p, vardens), news2: news2For(atk, p, rader),
+    egna: rader.filter(m => m.kalla === 'patient').map(m => journal.matvardeUt(atk.db, m)),
   };
 }
 
@@ -158,7 +168,8 @@ export function larmForInkorg(db, personal, valFor = () => ({})) {
     if (!p) continue;
     const atk = new Atkomst(db, personal, p.id, valFor(p.id), 'las_matvarden');
     if (!atk.prova('las_matvarden').tillaten) continue;
-    const rader = atk.filtrera(db.query(`SELECT * FROM matvarden WHERE patient_id = ? AND enhet_id IN (${ph}) AND tid >= ? ORDER BY tid, id`).all(p.id, ...enheter, k.start), 'las_matvarden');
+    const rader = atk.filtrera(db.query(`SELECT * FROM matvarden WHERE patient_id = ? AND enhet_id IN (${ph}) AND tid >= ? ORDER BY tid, id`).all(p.id, ...enheter, k.start), 'las_matvarden')
+      .filter(kvalitetssakrad);
     const egnaDiagnoser = kanRoll(personal, 'las_diagnoser') ? db.query(`SELECT kod FROM diagnoser WHERE patient_id = ? AND enhet_id IN (${ph})`).all(p.id, ...enheter).map(d => d.kod) : [];
     if (!news2Galler({ alder: alder(p.fodd, idagSv()), diagnosKoder: egnaDiagnoser }).galler) continue;
     const lage = news2Lage(rader);
@@ -201,7 +212,7 @@ export function basfakta(atk, p) {
     ut.uppmarksamhet = uppmarksamhet.symbolFor(db, pers, p.id, atk.val);
   } else { ut.overkanslighet = null; ut.uppmarksamhet = null; }
   if (kanRoll(pers, 'las_matvarden')) {
-    const rader = journal.synligaMatvarden(new Atkomst(db, pers, p.id, atk.val, 'las_matvarden'));
+    const rader = journal.synligaMatvarden(new Atkomst(db, pers, p.id, atk.val, 'las_matvarden')).filter(kvalitetssakrad);
     const sist = (typ) => rader.find(m => m.typ === typ) ?? null;
     const fakta = (m) => (m ? { varde: m.varde_num, enhet: m.matt_enhet, tid: m.tid, vardenhet: { id: m.enhet_id, namn: enhetsnamn(db, m.enhet_id) }, registreradAv: m.registrerad_av ? db.query('SELECT namn FROM personal WHERE id = ?').get(m.registrerad_av)?.namn ?? null : null } : null);
     const vikt = sist('vikt');
@@ -223,7 +234,8 @@ export function basfakta(atk, p) {
 // NEWS2 i FHIR: varje komplett omgång som en härledd Observation med id news2-<id för den senaste raden i omgången>,
 // poängen som värde, risken som tolkning och derivedFrom till de sju mätvärdena. Byggs av samma synliga rader som
 // sökningen på Observation, så att den aldrig lämnar ut mer än mätvärdena.
-export function news2Fhir(atk, p, rader) {
+export function news2Fhir(atk, p, alla) {
+  const rader = alla.filter(kvalitetssakrad);
   if (!news2Galler({ alder: alder(p.fodd, idagSv()), diagnosKoder: synligaDiagnoskoder(atk) }).galler) return [];
   const perId = new Map(rader.map(r => [r.id, r]));
   return news2Omgangar(rader).filter(o => o.resultat.komplett).map(o => ({

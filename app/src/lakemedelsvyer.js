@@ -13,6 +13,7 @@ import * as lakemedel from './lakemedel.js';
 import { tillaggUt } from './ordinationsmallar.js';
 import { lokalTid, klocka, datumI } from './lakemedelsprocess.js';
 import * as stod from './lakemedelsstod.js';
+import { kvalitetssakrad } from './mt-klass.js';
 
 const DAG = 86400_000;
 const katalog = (db, id) => db.query('SELECT * FROM katalog WHERE id = ?').get(id);
@@ -102,7 +103,8 @@ export function vatskebalans(atk, { dag = idag(), brytning = '00', riktning = nu
   let acc = 0;
   const ackumulerad = [...giltiga].sort((a, b) => a.tid.localeCompare(b.tid)).map(p => { acc += p.riktning === 'in' ? p.volymMl : -p.volymMl; return { tid: p.tid, balans: r1(acc) }; });
   // Vikt: den senaste som användaren får se, och ändringen sedan den första under vårdtillfället.
-  const vikter = atk.filtrera(db.query("SELECT * FROM matvarden WHERE patient_id = ? AND typ = 'vikt' ORDER BY tid").all(atk.patientId), 'las_matvarden');
+  // Runda 9, r2: en vikt som patienten själv har mätt räknas först när vården har godkänt den.
+  const vikter = atk.filtrera(db.query("SELECT * FROM matvarden WHERE patient_id = ? AND typ = 'vikt' ORDER BY tid").all(atk.patientId), 'las_matvarden').filter(kvalitetssakrad);
   const vt = db.query('SELECT inskriven FROM vardtillfallen WHERE patient_id = ? AND utskriven IS NULL ORDER BY inskriven DESC').get(atk.patientId);
   const senast = vikter.at(-1);
   const forsta = vt ? vikter.find(v => v.tid >= vt.inskriven) : null;

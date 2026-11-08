@@ -808,6 +808,51 @@ function skapa(BAS) {
     await synlig(page, '.notis', 'proverna är skickade');
     await synlig(page, '.pt-patient .pr-best', 'Skickad till laboratoriet');
   };
+  // Runda 9, r2: medicinteknisk utrustning, godkännande av värden, intensivvården och egna mätningar.
+  startI['Patientens mätvärden efter återställning'] = async (page) => {
+    await gaTill(page, '#/arbetslista');
+    await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()));
+    await gaTill(page, '#/patient/p01/matvarden');
+    await page.waitForSelector('#mt-koppla [data-mt-valj]');
+  };
+  startI['Mätvärden med värden från en kopplad monitor'] = async (page) => {
+    await gaTill(page, '#/arbetslista');
+    const ok = await page.evaluate(async () => {
+      await fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text());
+      const r = await fetch('/api/patient/p01/mt/koppla', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ streckkod: 'MT-MON-0001' }) });
+      await r.text();
+      return r.ok;
+    });
+    if (!ok) throw new Error('Monitorn kunde inte kopplas inför flödet');
+    await gaTill(page, '#/patient/p01/matvarden');
+    await page.waitForSelector('[data-mt-godkann="utrustning"]');
+  };
+  startI['Min journal för patienten'] = async (page) => { await gaTill(page, '#/min/p01'); await page.waitForSelector('.min-band h1'); };
+  GOR['koppla-monitor'] = async (m, page) => {
+    await m.klicka(page.locator('#mt-koppla [data-mt-valj="MT-MON-0001"]'), 'Patientmonitor DEMO-MON-0001 i listan, i stället för att skanna');
+    await synlig(page, '.notis', 'är kopplad till patienten');
+    await synlig(page, '.mt-koppling', 'DEMO-MON-0001');
+  };
+  GOR['godkanna-mt'] = async (m, page) => {
+    await m.klicka(page.locator('[data-mt-godkann="utrustning"]'), 'Godkänn vid värdena från monitorn');
+    await synlig(page, '.notis', 'för diagnostiskt bruk');
+    await page.waitForLoadState('networkidle');
+  };
+  GOR['iva-oversikt'] = async (m, page) => {
+    await m.klicka(page.locator('#meny-lista a[href="#/iva"]'), 'Intensivvård i menyn');
+    await page.waitForSelector('table.iva-oversikt');
+    await m.klicka(page.locator('table.iva-oversikt a.patientlank').first(), 'patienten i översikten');
+    await synlig(page, 'main h1', 'Övervakning');
+    await page.waitForSelector('#iva-analys');
+  };
+  GOR['egen-matning'] = async (m, page) => {
+    await m.klicka(page.locator('.min-flikar a', { hasText: /^Egna mätningar$/ }), 'fliken Egna mätningar');
+    await page.waitForSelector('#min-egen');
+    await m.skriv(page.locator('#min-egen-varde'), '138/86', 'blodtrycket');
+    await m.klicka(page.locator('#min-egen [type=submit]'), 'Skicka');
+    await synlig(page, '.notis', 'Mätningen är skickad');
+    await synlig(page, '.min-del table', 'Inte bedömd ännu');
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 

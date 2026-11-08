@@ -9,6 +9,8 @@ import { medR8r4 } from '../lakemedel-r8.js';
 import { TEST } from '../../krav.js';
 // Runda 5, r1: vårdhändelsen i tidboken (app/test/vardhandelse.test.js).
 import { T as TB } from '../tidbok-tester.js';
+// Runda 9, r2: medicinteknisk utrustning.
+import { T as MT9 } from '../medicinteknik-r9.js';
 
 const { B, A, M, S, KV, GK, LK } = TEST;
 // Läkemedelsprocessen: administrering, vidimering, utsättning, fördefinierade ordinationer, läkemedelsgenomgång och
@@ -269,8 +271,14 @@ const AVSNITT = [
     expert: 'Systemet kontrollerar varje dos mot ordinationen och tidigare doser och förklarar på vanlig svenska när det varnar för dubbel dos, för tidig dos, dos utan ordination, högsta dygnsdos eller en annan dos än ordinationens, och sätter själv tid, vem som gav dosen och vårdkontakten. För undersköterskan prövar systemet att delegeringen gäller just dosens läkemedelsform, administrationssätt, datum och vårdenhet, visar knappen Ge bara för de doserna, föreslår nästa delegering och påminner sjuksköterskan, och läkaren om läkarens egna beslut, i inkorgen 30 dagar innan den går ut.',
     anmarkning: 'Varningarna är demoregler. Patientnära skanning är förberedd med kontrollkoden men ingen streckkodsläsare är ansluten. Tiderna i en ordination ändras genom en ny ordination, inte i administreringslistan. Vilka läkemedelsformer som kan delegeras och gränsen på ett år är demoregler, inte en vårdgivares rutin efter riskanalys (9 kap. 8 och 9 §§). Bara undersköterskor kan få delegering i demon. Delegeringen registreras av en sjuksköterska eller läkare, men inte av en tandläkare, som också får delegera enligt 9 kap. 2 §, eftersom demon inte har någon tandvård.',
   },
-  { id: '3.5.2.19', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
-    anmarkning: 'Automatgenererad administrering från medicinteknisk utrustning är inte byggd.' },
+  // Runda 9, r2: infusionspumpens rapporter som givna doser (medicinteknik.js).
+  {
+    id: '3.5.2.19', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
+    tester: [MT9.pumpDos, MT9.pumpEnhet, MT9.simulerad, MT9.infusion, MT9.gemensam],
+    losning: 'En infusionspump som är kopplad till patienten och till en infusion rapporterar pågående hastighet, justeringar, bolusar och stopp. Systemet registrerar given volym och dos som administreringar med källan utrustning, räknar dosen ur koncentrationen, lägger volymen i vätskebalansen och kontrollerar varje rapport mot det ordinerade intervallet per kilo och timme, bolusdosen och den högsta dygnsdosen. Pumparna och varningarna visas i Läkemedel att ge och i patientens mätvärden, där sjuksköterskan kvitterar en varning med vad som gjordes.',
+    expert: 'Systemet registrerar doserna själv medan pumpen går och säger på vanlig svenska när pumpen ger mer än det ordinerade, så sjuksköterskan inte behöver räkna om ml per timme till dos per kilo.',
+    anmarkning: 'Pumparna är simulerade i demon. Pumpen rapporterar men styrs inte från Vårdkällan, och ordinationen skickas inte till pumpen.',
+  },
   {
     id: '3.5.2.20', kategori: 'system', egna: ['L7'], avsedd: 'delvis',
     tester: [

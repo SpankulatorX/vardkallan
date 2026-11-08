@@ -46,6 +46,9 @@ export const KODSYSTEM = [
     ['vardkallan', 'Vårdkällan', 'Dokumenterad i Vårdkällan.'],
     ['migrerad:VAS', 'Migrerad från VAS', 'Migrerad historik från journalsystemet VAS.'],
     ['migrerad:Cosmic', 'Migrerad från Cosmic', 'Migrerad historik från journalsystemet Cosmic.'],
+    // Runda 9, r2: mätvärden och doser från medicinteknisk utrustning och patientens egna mätningar.
+    ['utrustning', 'Medicinteknisk utrustning', 'Mottagen från en kopplad medicinteknisk utrustning, till exempel en patientmonitor eller en infusionspump.'],
+    ['patient', 'Patientens egen mätning', 'Registrerad av patienten i Min journal. Inte kvalitetssäkrad förrän vården har bedömt den.'],
   ]),
   kodsystem('felkod', 'Felkod', 'Felkod', 'Samma felkoder som Vårdkällans /api.', [
     ['kraver_val', 'Kräver aktivt val', 'Åtgärden blir möjlig efter ett aktivt val eller nödåtkomst.'],

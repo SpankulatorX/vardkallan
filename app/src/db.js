@@ -417,6 +417,9 @@ export function byggSeed(bas = nu()) {
   sakraDosandring(db);
   // Runda 8, r5.
   sakraR5(db, bas);
+  // Runda 9, r2: medicinteknisk utrustning, anestesi och intensivvård (medicinteknik.js och iva.js).
+  require('./medicinteknik.js').sakra(db);
+  require('./iva.js').sakra(db);
   // Runda 8, r1: beställning och svar och kontrollerna till avdelningen (labb-seed.js). Sist, eftersom beställningarna görs
   // med modulernas egna funktioner, som läser vårdstrukturen, konfigurationen och undantagen.
   require('./labb-seed.js').seeda(db, { bas });
@@ -525,6 +528,9 @@ export function migrera(db) {
   sakraDosandring(db);
   // Runda 8, r5: tobaksvanorna och vårdenheternas egna övningar i en sandlåda från före runda 8.
   sakraR5(db, nu());
+  // Runda 9, r2: medicinteknisk utrustning, anestesi och intensivvård i en sandlåda från före runda 9.
+  require('./medicinteknik.js').sakra(db);
+  require('./iva.js').sakra(db);
   // Runda 8, r1: tabellerna för beställning och svar och för kontrollerna. Inga beställningar läggs in i efterhand.
   require('./labb-seed.js').sakra(db);
   return db;

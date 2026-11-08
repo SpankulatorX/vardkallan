@@ -37,6 +37,58 @@
           "var": "#/drift",
           "rubrik": "Systemuppbyggnad och totalkostnad",
           "text": "Sidan Svarstider visar systemets moduler med tillverkare och krav, de fem perspektiven på systemuppbyggnaden och en uppskattad kostnad per användare."
+        },
+        {
+          "id": "medicinteknisk-utrustning",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska"
+          ],
+          "omfattning": "stor",
+          "var": "#/arbetslista",
+          "rubrik": "Monitorer och pumpar kopplas till patienten",
+          "text": "Under Mätvärden kopplar du en patientmonitor eller en infusionspump genom att skanna dess streckkod. Värdena kommer till journalen av sig själva, och pumpens doser registreras som givna och kontrolleras mot ordinationen. Utrustningen är simulerad i demon."
+        },
+        {
+          "id": "godkanna-matvarden",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "stor",
+          "rubrik": "Värden från utrustning och patientens egna mätningar godkänns",
+          "text": "Värden från en monitor och mätningar som patienten har gjort själv är referens tills du godkänner dem med ett klick under Mätvärden. Först då räknas de i NEWS2, larm och doser."
+        },
+        {
+          "id": "intensivvard",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska"
+          ],
+          "omfattning": "stor",
+          "rubrik": "Intensivvårdens översikt och övervakning",
+          "text": "På en vårdenhet med intensivvårdsavdelning visar Intensivvård alla patienter med de senaste värdena, larm och förslag som systemet räknar fram, infusionerna med dos per kilo och timme och vätskebalansen per timme."
+        },
+        {
+          "id": "anestesibedomning",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Anestesibedömning med det som redan står i journalen",
+          "text": "I intensivvårdens övervakning gör du anestesibedömningen. Systemet hämtar läkemedel, överkänslighet, diagnoser och tidigare anestesier, föreslår ASA-klass och räknar fastan ur den planerade tiden."
+        },
+        {
+          "id": "egna-matningar",
+          "roller": [
+            "invanare"
+          ],
+          "omfattning": "liten",
+          "var": "#/min",
+          "rubrik": "Lämna egna mätningar",
+          "text": "Under Egna mätningar i Min journal lämnar du blodtryck, puls, vikt och andra värden som du har mätt själv. De skickas till vårdenheten som vårdar dig, och vården bedömer dem."
         }
       ]
     },

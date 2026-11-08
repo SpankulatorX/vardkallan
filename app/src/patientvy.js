@@ -21,6 +21,7 @@ import { ordinationUt } from './lakemedel.js';
 import { forInvanare as uppmarksamhetForInvanare } from './uppmarksamhet.js';
 import { MATKOD } from './kodverk.js';
 import { YRKEN } from './seed/personal.js';
+import { kvalitetssakrad } from './mt-klass.js';
 
 export const PROVSVAR_SENAST_DAGAR = 14;
 export const BEGARANTYPER = ['sparr', 'hava_sparr', 'loggutdrag'];
@@ -310,7 +311,9 @@ export function lakemedel(atk) {
 
 export function provsvar(atk, nu = new Date()) {
   const db = atk.db;
-  const rader = db.query('SELECT * FROM matvarden WHERE patient_id = ? ORDER BY tid DESC, id DESC').all(atk.patientId);
+  // Runda 9, r2: patientens egna mätningar står under Egna mätningar, och värden från utrustning visas när vården har
+  // godkänt dem (mt-klass.js).
+  const rader = db.query('SELECT * FROM matvarden WHERE patient_id = ? ORDER BY tid DESC, id DESC').all(atk.patientId).filter(m => m.kalla !== 'patient' && kvalitetssakrad(m));
   const visade = rader.filter(m => provsvarVisas(m, nu));
   return {
     provsvar: visade.filter(m => arProvsvar(m.typ)).map(m => matvardeUt(db, m)),

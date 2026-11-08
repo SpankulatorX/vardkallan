@@ -205,6 +205,17 @@ async function angeHandelsetid(b, ladda) {
 }
 
 // Avdelningens lista (#/administrering).
+// Runda 9, r2: infusionspumparna. Dosen registreras av systemet när pumpen rapporterar, och en varning från kontrollen mot
+// ordinationen visas här och i patientens mätvärden, där den kvitteras.
+function pumparHtml(d) {
+  if (!d?.pumpar?.length) return '';
+  return `<section class="adm-pumpar ov-sektion" aria-labelledby="adm-pumpar"><div class="sektion-huvud"><h2 id="adm-pumpar">Pumpar som rapporterar</h2></div>
+    <ul class="mt-kopplingar">${d.pumpar.map(p => `<li class="mt-koppling"><div><a class="patientlank" href="#/patient/${encodeURIComponent(p.patient.id)}/matvarden">${esc(p.patient.namn)}</a>
+      <span class="under-text">${esc(p.koppling.utrustning?.typText ?? '')} ${esc(p.koppling.utrustning?.serienummer ?? '')}${p.koppling.ordination ? `, ${esc(p.koppling.ordination.text)}` : ''}. ${p.senaste ? esc(p.senaste.text) : 'Ingen rapport än'}. Det senaste dygnet ${esc(String(p.dygn.volymMl).replace('.', ','))} ml${p.dygn.dos != null ? `, ${esc(String(p.dygn.dos).replace('.', ','))} ${esc(p.dygn.dosEnhet ?? '')}` : ''}.</span></div>
+      ${p.okvitterade.length ? `<p class="ruta ruta-larm liten">${ikon.larm}<span>${esc(p.okvitterade[0].varningar[0].text)} <a href="#/patient/${encodeURIComponent(p.patient.id)}/matvarden">Kvittera i mätvärdena</a>.</span></p>` : ''}</li>`).join('')}</ul>
+    <p class="dampad liten">Doserna från pumpen registreras av systemet med källan utrustning och räknas in i vätskebalansen. ${esc(d.demo)}</p></section>`;
+}
+
 export async function visa(main) {
   main.innerHTML = vyRubrik('Läkemedel att ge', 'Dagens doser för de inneliggande patienterna, framräknade ur ordinationerna.') + hjalpRuta('ge-dos') + '<div id="adm"><p class="tom">Hämtar.</p></div>';
   const el = main.querySelector('#adm');
@@ -218,7 +229,10 @@ export async function visa(main) {
   const deleg = d.delegering ? `<p class="ruta ruta-info liten adm-delegering">${ikon.info}<span>${d.delegering.giltig
     ? `Du ger läkemedel med delegering: ${esc(d.delegering.omfattning.toLowerCase())}, till och med ${esc(datum(d.delegering.till))}. Knappen Ge visas bara för doser som delegeringen omfattar.`
     : esc(d.delegering.varfor)} <a href="#/delegeringar">Mina delegeringar</a></span></p>` : '';
-  el.innerHTML = `${deleg}<p class="ingress liten">${esc(d.vardenhet?.namn ?? '')}: ${d.sammanfattning.attGe} ${d.sammanfattning.attGe === 1 ? 'dos' : 'doser'} att ge nu${d.sammanfattning.forsenade ? `, ${d.sammanfattning.forsenade} försenade` : ''}. Varningarna är demoregler, inte kliniskt beslutsstöd.</p>
+  // Runda 9, r2: pumparna som rapporterar doser på vårdenheten (medicinteknik.js, Sussa 3.5.2.19).
+  const pump = await api('/api/mt/pumpar').catch(() => null);
+  if (!el.isConnected) return;
+  el.innerHTML = `${deleg}${pumparHtml(pump)}<p class="ingress liten">${esc(d.vardenhet?.namn ?? '')}: ${d.sammanfattning.attGe} ${d.sammanfattning.attGe === 1 ? 'dos' : 'doser'} att ge nu${d.sammanfattning.forsenade ? `, ${d.sammanfattning.forsenade} försenade` : ''}. Varningarna är demoregler, inte kliniskt beslutsstöd.</p>
     ${d.patienter.map(p => `<section class="adm-patient" aria-labelledby="adm-${esc(p.patient.id)}">
       <h2 id="adm-${esc(p.patient.id)}">${patientCell(p.patient, `#/patient/${encodeURIComponent(p.patient.id)}/lakemedel`)} <span class="dampad liten">${esc(p.plats ?? '')}</span></h2>
       ${patientDoser(p.patient.id, p)}

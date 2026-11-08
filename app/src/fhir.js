@@ -1,5 +1,9 @@
 // FHIR R4-API. Samma behörighetsmotor och samma loggning som /api (D9).
 import { Fel, idag } from './db.js';
+// Runda 9, r2: klassen för värden från utrustning och patientens egna mätningar.
+import { klassFor } from './mt-klass.js';
+const SYS_UTRUSTNING = 'https://vardkallan.404haven.se/fhir/sid/utrustning';
+import { FORMAT as MT_FORMAT } from './medicinteknik.js';
 import { Atkomst, kanRoll, visningsnamn, vardenhetFor } from './atkomst.js';
 // Runda 7, r4: undantag från FHIR för externa tillämpningar.
 import * as undantag from './undantag.js';
@@ -236,6 +240,15 @@ export function observation(db, m) {
     subject: ref('Patient', m.patient_id), ...(m.vardkontakt_id ? { encounter: ref('Encounter', m.vardkontakt_id) } : {}),
     effectiveDateTime: m.tid, performer: [ref('Organization', m.enhet_id, enhetsnamn(db, m.enhet_id))],
   };
+  // Runda 9, r2: ett värde från medicinteknisk utrustning pekar på utrustningen, och patientens egen mätning har
+  // patienten som utförare. Ett sådant värde är preliminary tills det är godkänt för diagnostiskt bruk (mt-klass.js).
+  const kl = klassFor(db, m);
+  if (kl) {
+    r.status = kl.kvalitetssakrad ? 'final' : 'preliminary';
+    if (kl.utrustning) r.device = { identifier: { system: SYS_UTRUSTNING, value: kl.utrustning.id }, display: kl.kallaText };
+    if (kl.kalla === 'patient') r.performer = [ref('Patient', m.patient_id)];
+    r.note = [{ text: kl.klassText }];
+  }
   const mangd = (value) => ({ value, unit: m.matt_enhet || 'poäng', ...(kod ? { system: SYSTEM.ucum, code: kod.ucum } : {}) });
   // Runda 6, r1: medvetandegraden är ett kodat värde, och GCS har sina tre delar som komponenter.
   if (m.typ === 'medvetande') {
@@ -517,7 +530,11 @@ function medSkrivning(c, base) {
 }
 
 export function capability(base) {
-  return medSkrivning(capabilityBas(base), base);
+  const c = medSkrivning(capabilityBas(base), base);
+  // Runda 9, r2: mottagningen från medicinteknisk utrustning (medicinteknik.js, Sussa 3.6.1.4), med format och profiler.
+  c.rest[0].documentation = `Medicinteknisk utrustning skickar till ${base}/mt/fhir (${MT_FORMAT.fhir.namn}, ${MT_FORMAT.fhir.innehall}) eller ${base}/mt/hl7v2 (${MT_FORMAT.hl7v2.namn}) med utrustningens nyckel (Authorization: Bearer). `
+    + `${MT_FORMAT.fhir.text} ${MT_FORMAT.fhir.profil} ${MT_FORMAT.hl7v2.text} ${MT_FORMAT.hl7v2.profil} Formaten och koderna finns som JSON på ${base}/mt/format.`;
+  return c;
 }
 function capabilityBas(base) {
   return {

@@ -470,6 +470,8 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     if (['lak-kard', 'ssk-kard', 'usk-kard', 'fys-kard'].includes(roll)) {
       for (const extra of ['#/avdelning', '#/avdelning/patient/p01', '#/avdelning/resurs/lak-kard']) { await gaTill(page, extra); vyLista.push([roll, extra]); await granskaHar(`${roll} ${extra}`); }
     }
+    // Runda 9, r2: intensivvårdens övervakning av en patient nås från översikten, inte från menyn.
+    if (['lak-kard', 'ssk-kard'].includes(roll)) { await gaTill(page, '#/iva/p22'); vyLista.push([roll, '#/iva/p22']); await granskaHar(`${roll} #/iva/p22`); }
     if (JOURNAL_ROLLER.includes(roll)) {
       await gaTill(page, '#/patient/p01');
       for (const h of await flikarFor(page)) {

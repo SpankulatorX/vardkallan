@@ -84,6 +84,11 @@ import * as arkitektur from './arkitektur.js';
 import { villkor10 } from './version.js';
 // Runda 8, r2: remiss på uppdrag, fördelning, remisskonferens och extern pappersremiss (remiss-r8.js).
 import * as remissR8 from './remiss-r8.js';
+// Runda 9, r2: medicinteknisk utrustning, anestesi och intensivvård (medicinteknik.js och iva.js).
+import { registreraRutter as mtRutter, skapaMottagning as mtMottagning, efterTid as mtEfterTid } from './medicinteknik-rutter.js';
+import { skapaNyckellager as mtNyckellager, patientvy as mtPatientvyFor, minaMatningar as mtMinaMatningar } from './medicinteknik.js';
+import { session as ivaSession } from './iva.js';
+const mtPatientvy = (atk) => mtPatientvyFor(atk, journal.synligaMatvarden(atk));
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -439,6 +444,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ut.r3 = r3.session(s.db, p);
       // Runda 7, r6: om personalens vårdenhet har barnhälsovård.
       ut.bhv = bhvSession(s.db, p);
+      // Runda 9, r2: om personalens vårdenhet har en intensivvårdsavdelning.
+      ut.iva = ivaSession(s.db, p);
       sakraKopia(s);
       ut.lasnyckel = s.lasnyckel;
     }
@@ -1058,7 +1065,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   });
 
   // Runda 6, r1: listan med kurvorna och NEWS2 i samma anrop (vitalparametrar.js).
-  rutt('GET', '/api/patient/:id/matvarden', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_matvarden', (atk, p) => vitalparametrar.matvardesvy(atk, p)); });
+  // Runda 9, r2: med utrustningen och värdena som väntar på bedömning (medicinteknik.js).
+  rutt('GET', '/api/patient/:id/matvarden', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_matvarden', (atk, p) => ({ ...vitalparametrar.matvardesvy(atk, p), mt: mtPatientvy(atk) })); });
   rutt('POST', '/api/patient/:id/matvarden', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'registrera_matvarde', (atk) => vardkontakt.knyt(atk, 'matvarden', journal.registreraMatvarde(atk, c.body), c.body))]; });
 
   rutt('GET', '/api/patient/:id/remisser', (c, id) => {
@@ -1482,6 +1490,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   MIN_DELAR.hogkostnadsskydd = ekonomi.minHogkostnadsskydd;
   // Runda 7, r6: barnets tillväxtkurvor och vaccinationer för vårdnadshavaren.
   MIN_DELAR.tillvaxt = minTillvaxt;
+  // Runda 9, r2: patientens egna mätningar med status (medicinteknik.js).
+  MIN_DELAR.egenmatning = (atk) => mtMinaMatningar(atk, journal.MATTYPER);
   rutt('GET', '/api/min/journal/:id', (c, id) => medMinJournal(c, id, 'min:journal', (atk) => minJournal.huvud(atk)));
   rutt('GET', '/api/min/journal/:id/:del', (c, id, del) => {
     if (!Object.hasOwn(MIN_DELAR, del)) throw new Fel(404, 'Okänd adress.', 'saknas');
@@ -1569,6 +1579,10 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   utbildningRutter({ rutt, kravInloggad });
   // Runda 8, r5: epikrisens förslag och flera mätvärden på en gång (r5-rutter.js).
   r5Rutter({ rutt, kravInloggad, medPatient });
+  // Runda 9, r2: medicinteknisk utrustning, anestesi och intensivvård. Mottagningen från utrustningen har egna nycklar.
+  const mtNycklar = mtNyckellager();
+  mtRutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal, nycklar: mtNycklar });
+  const mtMottag = mtMottagning({ nycklar: mtNycklar, finns: (s) => [...sessioner.values()].includes(s), maxKropp: MAX_KROPP });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
   // visas direkt (bara i den egna sandlådan).
   const kravNagon = (c) => { if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad'); };
@@ -1607,6 +1621,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (sess) systemforvaltningEfterDatum(sess.s.db);
     // Runda 8, r1: det simulerade laboratoriet svarar på det som har hunnit bli klart.
     if (sess) labbEfterTid(sess.s.db);
+    // Runda 9, r2: den simulerade utrustningen skickar det som har hunnit mätas.
+    if (sess) mtEfterTid(sess.s.db);
     if (sess) Object.assign(c, { s: sess.s, sid: sess.sid, ny: sess.ny, db: sess.s.db, ...inloggade(sess.s) });
     if (c.invanare && url.pathname.startsWith('/api/min/')) avvisaFranAnnanWebbplats(req);
     c.body = metod === 'GET' ? {} : await lasKropp(req);
@@ -1669,6 +1685,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (sess) systemforvaltningEfterDatum(sess.s.db);
     // Runda 8, r1: det simulerade laboratoriet svarar på det som har hunnit bli klart.
     if (sess) labbEfterTid(sess.s.db);
+    if (sess) mtEfterTid(sess.s.db);
     if (sess) Object.assign(c, { s: sess.s, db: sess.s.db, ...inloggade(sess.s) });
     if (c.invanare) avvisaFranAnnanWebbplats(req);
     const base = origin || `${url.protocol}//${url.host}`;
@@ -1695,6 +1712,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
         else if (url.pathname === '/fhir' || url.pathname.startsWith('/fhir/')) svar = await fhirSvar(req, url, c);
         // Runda 6, r5: OAuth 2.0 för SMART on FHIR.
         else if (url.pathname.startsWith('/oauth/')) svar = await oppetApi.oauth(req, url, c, { arbetslista });
+        // Runda 9, r2: mottagningen från medicinteknisk utrustning, med utrustningens nyckel och utan session.
+        else if (url.pathname === '/mt' || url.pathname.startsWith('/mt/')) svar = await mtMottag(req, url);
         else if (req.method !== 'GET' && req.method !== 'HEAD') svar = new Response('Metoden stöds inte.', { status: 405 });
         else svar = (await statisk(url.pathname)) ?? new Response('Sidan finns inte.', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
       } catch (e) {

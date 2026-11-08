@@ -322,4 +322,21 @@ export const FLODEN = [
     id: 'registrera-provtagning', namn: 'Registrera provtagning', roll: 'ssk-kard', start: 'Provtagningen efter återställning', budget: 2,
     motivering: 'Sussa 4.4.2.6 och testfall 3.3. Rören står i provtagningsordning med etiketter, och ett klick på Tagen per rör registrerar provtagningen. Systemet sätter tid och provtagare och skickar proverna till laboratoriet när alla rör är tagna. Patienten har två rör.',
   },
+  // Runda 9, r2: medicinteknisk utrustning, godkännande av värden, intensivvården och egna mätningar (Sussa 3.6.1 och 4.6).
+  {
+    id: 'koppla-monitor', namn: 'Koppla en patientmonitor till patienten', roll: 'ssk-kard', start: 'Patientens mätvärden efter återställning', budget: 2,
+    motivering: 'Sussa 3.6.1.5. Med en streckkodsläsare skannas monitorns streckkod i fältet, som är ett fältbyte och Enter. I demon väljs monitorn med ett klick i listan över utrustning på vårdenheten, vilket motsvarar skanningen. Systemet hittar utrustningen, knyter den till patienten och den pågående vårdkontakten och avslutar en tidigare koppling när monitorn flyttas.',
+  },
+  {
+    id: 'godkanna-mt', namn: 'Godkänna värden från monitorn', roll: 'ssk-kard', start: 'Mätvärden med värden från en kopplad monitor', budget: 1,
+    motivering: 'Sussa 3.6.1.6. Ett klick på Godkänn vid värdena som väntar. Systemet godkänner alla värden från utrustningen som sjuksköterskan får se på sin vårdenhet, och de räknas sedan i NEWS2, larm och beslutsstöd.',
+  },
+  {
+    id: 'iva-oversikt', namn: 'Öppna intensivvårdens översikt och övervakningen av en patient', roll: 'lak-kard', start: 'Arbetslistan efter inloggning', budget: 2,
+    motivering: 'Sussa 4.6.1.2. Ett klick på Intensivvård i menyn och ett på patienten. Översikten har redan räknat larm, förslag, infusioner och vätskebalans för alla patienter på avdelningen, med de mest akuta först.',
+  },
+  {
+    id: 'egen-matning', namn: 'Lämna en egen mätning i Min journal', roll: 'inv-p01', start: 'Min journal för patienten', budget: 3,
+    motivering: 'Sussa 3.6.1.7. Ett klick på Egna mätningar, ett fältbyte till värdet och ett klick för att skicka. Blodtryck är förvalt, tiden är nu och systemet väljer själv vårdenheten som tar emot mätningen.',
+  },
 ];
