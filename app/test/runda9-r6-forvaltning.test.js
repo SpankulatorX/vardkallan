@@ -235,3 +235,88 @@ describe('Tillämpningar och mottagare', () => {
     expect(logg(k).filter(l => l.handling === 'forvalta_api').map(l => l.resurs)).toEqual(expect.arrayContaining([`api:mottagare:${m.data.id}`, `api:mottagare:${m.data.id}:aterkallad`]));
   });
 });
+
+// Säkerhetsgranskningen av runda 9, r6: en biljett för en patient kan inte boka en remiss för en annan, och mottagare
+// som godkänns i sandlådan kan aldrig gå utöver driftens konfiguration.
+describe('Säkerhetsgranskning av runda 9 r6', () => {
+  test('en biljett för patient A kan inte boka en remiss för patient B, med eller utan participant och subject', async () => {
+    const k = klient(app);
+    await k.logga('sysf');
+    expect((await k.post('/api/oppet-api/tillampningar', { namn: 'Bokning i mobilen', beskrivning: 'Bokar tider för remisser från mobilen.', adress: '/tillampningar/blodtryck/index.html', omfang: 'patient/Appointment.write patient/Patient.read' })).status).toBe(201);
+    await k.logga('adm-kard');
+    const remissB = vantar(k, 'p10').remiss_id;
+    const scope = 'launch patient/Appointment.write patient/Patient.read';
+    const a = await startaTillampning(k, 'bokning-i-mobilen', 'p01', scope);
+    expect(a.data.patient).toBe('p01');
+    const boka = (token, extra) => fetch(`${app.url}/fhir/Appointment`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/fhir+json' },
+      body: JSON.stringify({ resourceType: 'Appointment', status: 'booked', basedOn: [{ reference: `ServiceRequest/${remissB}` }], ...extra }) });
+    for (const extra of [{}, { participant: [{ actor: { reference: 'Patient/p01' } }] }, { subject: { reference: 'Patient/p01' } }, { patient: { reference: 'Patient/p01' } }]) {
+      const r = await boka(a.data.access_token, extra);
+      expect([JSON.stringify(extra), r.status]).toEqual([JSON.stringify(extra), 403]);
+    }
+    expect(sandlada(app, k).db.query("SELECT COUNT(*) n FROM bokningar WHERE patient_id = 'p10' AND remiss_id = ?").get(remissB).n).toBe(0);
+    // Med sessionen avvisas okända fält på toppnivå.
+    expect((await k.raw('POST', '/fhir/Appointment', { resourceType: 'Appointment', status: 'booked', basedOn: [{ reference: `ServiceRequest/${remissB}` }], subject: { reference: 'Patient/p10' } })).status).toBe(400);
+    // En biljett för patient B bokar B:s remiss.
+    const b = await startaTillampning(k, 'bokning-i-mobilen', 'p10', scope);
+    expect((await boka(b.data.access_token, {})).status).toBe(201);
+  });
+
+  test('en mottagare utanför driftens konfiguration godkänns inte och får aldrig något skickat', async () => {
+    const k = klient(app);
+    await k.logga('sysf');
+    const utanfor = await k.post('/api/oppet-api/mottagare', { adress: 'https://angripare.example/samla', syfte: 'En adress utanför driftens domäner' });
+    expect(utanfor.status).toBe(400);
+    expect(utanfor.data.fel).toContain('driften');
+    // När meddelanden skickas på riktigt gäller bara konfigurationen, också för mottagare som redan finns i sandlådan.
+    const skickat = [];
+    const app2 = testserver({ oppetApiVal: { skicka: async (adress) => { skickat.push(adress); return { status: 'skickad', svar: 'HTTP 200' }; }, endastKonfiguration: true } });
+    try {
+      const s = klient(app2);
+      await s.logga('sysf');
+      expect((await s.post('/api/oppet-api/mottagare', { adress: 'https://engagemang.region.test/notis', syfte: 'Regionens engagemangsindex' })).status).toBe(400);
+      const db = sandlada(app2, s).db;
+      // En rad som har kommit in förbi kontrollen, och en prenumeration till den.
+      const forv = await import('../src/api-forvaltning.js');
+      forv.sakraSchema(db);
+      db.query("INSERT INTO api_mottagare (adress, syfte, godkand, godkand_av) VALUES ('https://angripare.example/samla', 'Utanför', '2026-11-08', 'sysf')").run();
+      await s.logga('lak-kard');
+      const sub = (endpoint) => ({ resourceType: 'Subscription', status: 'requested', reason: 'Prov', criteria: 'Observation?patient=p01', channel: { type: 'rest-hook', endpoint, payload: 'application/fhir+json' } });
+      expect((await s.raw('POST', '/fhir/Subscription', sub('https://angripare.example/samla'))).status).toBe(403);
+      expect((await s.raw('POST', '/fhir/Subscription', sub('https://vardlager.region.test/fhir-notis'))).status).toBe(201);
+      db.query("INSERT INTO prenumerationer (personal_id, typ, patient_id, kriterier, mottagare, status, orsak, skapad) VALUES ('lak-kard', 'Observation', 'p01', 'Observation?patient=p01', 'https://angripare.example/samla', 'aktiv', 'Prov', '2026-11-08')").run();
+      await s.logga('ssk-kard');
+      expect((await s.raw('POST', '/fhir/Observation', { resourceType: 'Observation', status: 'final', subject: { reference: 'Patient/p01' }, code: { coding: [{ system: 'http://loinc.org', code: '8867-4' }] }, valueQuantity: { value: 72 } })).status).toBe(201);
+      await new Promise(r => setTimeout(r, 80));
+      expect(skickat).toContain('https://vardlager.region.test/fhir-notis');
+      expect(skickat).not.toContain('https://angripare.example/samla');
+      const utfall = db.query("SELECT n.status FROM prenumeration_notiser n JOIN prenumerationer p ON p.id = n.prenumeration_id WHERE p.mottagare = 'https://angripare.example/samla'").all();
+      expect(utfall.length).toBeGreaterThan(0);
+      expect(utfall.every(r => r.status === 'misslyckad')).toBe(true);
+    } finally { app2.stopp(); }
+  });
+
+  test('den uppslagna adressen låses för själva anropet, så att en ny uppslagning inte kan leda till en intern adress', async () => {
+    const prenumeration = await import('../src/prenumeration.js');
+    let uppslag = 0;
+    let fast = null;
+    const r = await prenumeration.skickaPaRiktigt('https://vardlager.region.test/fhir-notis', { a: 1 }, {
+      uppslag: async () => { uppslag++; return uppslag === 1 ? [{ address: '93.184.216.34', family: 4 }] : [{ address: '127.0.0.1', family: 4 }]; },
+      hamta: async (_u, _init, pin) => { fast = pin; return new Response(null, { status: 200 }); },
+    });
+    expect(r.status).toBe('skickad');
+    expect(uppslag).toBe(1);
+    expect(fast).toEqual({ ip: '93.184.216.34', family: 4 });
+    // Standardsändningen ansluter till den låsta adressen och slår aldrig upp namnet igen: ett namn som inte finns når ändå
+    // servern på den låsta adressen.
+    const { createServer } = await import('node:net');
+    let anslutningar = 0;
+    const server = createServer((sock) => { anslutningar++; sock.destroy(); });
+    await new Promise(res => server.listen(0, '127.0.0.1', res));
+    try {
+      const ut = await prenumeration.postaFast('https://finns-inte.region.test/notis', { headers: {}, body: '{}' }, { ip: '127.0.0.1', family: 4, port: server.address().port });
+      expect(ut).toBeNull();
+      expect(anslutningar).toBe(1);
+    } finally { server.close(); }
+  });
+});

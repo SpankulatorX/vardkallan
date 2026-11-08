@@ -16,6 +16,7 @@
 // från systemets egna funktioner. Triggrarna läggs till när den första prenumerationen skapas.
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
+import { request as httpsRequest } from 'node:https';
 import { Fel, iso } from './db.js';
 import { Atkomst, kanRoll, vardenhetFor } from './atkomst.js';
 import { lasHandling } from './journal.js';
@@ -25,6 +26,18 @@ import { MATKOD } from './kodverk.js';
 // meddelandena simuleras (sparas utan att skickas) om inte servern startas med WEBHOOK_SKICKA=1.
 export const GODKANDA_MOTTAGARE = (process.env.WEBHOOK_GODKANDA || 'https://vardlager.region.test/fhir-notis,https://engagemangsindex.region.test/notis')
   .split(',').map(s => s.trim()).filter(Boolean);
+// Runda 9, r6 (säkerhetsgranskningen): domänerna som systemförvaltaren får godkänna mottagare under. Driftens
+// konfiguration är ett tak: en mottagare som godkänns i en sandlåda måste stå i listan ovan eller ligga under en av
+// domänerna, och när meddelanden skickas på riktigt (WEBHOOK_SKICKA=1) gäller bara listan ovan.
+export const KONFIGURERADE_DOMANER = (process.env.WEBHOOK_DOMANER || 'region.test').split(',').map(s => s.trim().toLowerCase().replace(/^\./, '')).filter(Boolean);
+export function inomKonfiguration(adress, { fasta = GODKANDA_MOTTAGARE, domaner = KONFIGURERADE_DOMANER, endastKonfiguration = false } = {}) {
+  let u;
+  try { u = new URL(adress); } catch { return false; }
+  if (fasta.includes(`${u.origin}${u.pathname}`)) return true;
+  if (endastKonfiguration) return false;
+  const namn = u.hostname.toLowerCase();
+  return u.protocol === 'https:' && domaner.some(d => namn.endsWith(`.${d}`));
+}
 
 // Resurstyperna som går att prenumerera på, med tabellen, läshandlingen och om uppgiften är gemensam för vårdgivaren.
 export const KALLOR = {
@@ -95,13 +108,32 @@ export function arInternIp(ip) {
 }
 
 // Skickar ett meddelande. Namnet slås upp och varje adress prövas innan något skickas. Ger { status, svar }.
-export async function skickaPaRiktigt(adress, kropp, { uppslag = lookup, hamta = fetch } = {}) {
+// Runda 9, r6 (säkerhetsgranskningen): adressen som prövades låses för själva anropet. Anslutningen görs till den
+// uppslagna IP-adressen med namnet för TLS, så att en ny uppslagning (DNS-ombindning) aldrig kan leda till en intern
+// adress. port finns bara för testet. Ger { status, ok } eller null när mottagaren inte svarade.
+export function postaFast(adress, init, { ip, family, port = 443 }) {
+  return new Promise((resolve) => {
+    const u = new URL(adress);
+    let klar = false;
+    const svara = (v) => { if (!klar) { klar = true; resolve(v); } };
+    const fast = (_namn, opt, cb) => (opt?.all ? cb(null, [{ address: ip, family }]) : cb(null, ip, family));
+    const req = httpsRequest({ hostname: u.hostname, servername: u.hostname, port, path: u.pathname, method: 'POST', lookup: fast, timeout: 5000,
+      headers: { ...(init.headers ?? {}), 'Content-Length': Buffer.byteLength(init.body ?? '') } }, (res) => { res.resume(); svara({ status: res.statusCode, ok: res.statusCode >= 200 && res.statusCode < 300 }); });
+    req.on('timeout', () => { req.destroy(); svara(null); });
+    req.on('error', () => svara(null));
+    req.end(init.body ?? '');
+  });
+}
+
+export async function skickaPaRiktigt(adress, kropp, { uppslag = lookup, hamta = postaFast } = {}) {
   const u = new URL(adress);
   let adresser;
   try { adresser = await uppslag(u.hostname, { all: true, verbatim: true }); } catch { return { status: 'misslyckad', svar: 'Namnet gick inte att slå upp.' }; }
   if (!adresser.length || adresser.some(a => arInternIp(a.address))) return { status: 'misslyckad', svar: 'Namnet pekar på en intern adress. Meddelandet skickades inte.' };
+  const pin = { ip: adresser[0].address, family: adresser[0].family ?? (isIP(adresser[0].address) === 6 ? 6 : 4) };
   try {
-    const r = await hamta(adress, { method: 'POST', redirect: 'manual', headers: { 'Content-Type': 'application/fhir+json' }, body: JSON.stringify(kropp), signal: AbortSignal.timeout(5000) });
+    const r = await hamta(adress, { method: 'POST', redirect: 'manual', headers: { 'Content-Type': 'application/fhir+json' }, body: JSON.stringify(kropp), signal: AbortSignal.timeout(5000) }, pin);
+    if (!r) return { status: 'misslyckad', svar: 'Mottagaren svarade inte i tid.' };
     if (r.status >= 300 && r.status < 400) return { status: 'misslyckad', svar: 'Mottagaren svarade med en omdirigering, som inte följs.' };
     return r.ok ? { status: 'skickad', svar: `HTTP ${r.status}` } : { status: 'misslyckad', svar: `HTTP ${r.status}` };
   } catch { return { status: 'misslyckad', svar: 'Mottagaren svarade inte i tid.' }; }
