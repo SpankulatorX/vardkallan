@@ -85,6 +85,8 @@ import a12_3 from './mappning/12.3.js';
 import aKD1_1 from './mappning/KD1.1.js';
 import aKD1_2 from './mappning/KD1.2.js';
 import aKD1_3 from './mappning/KD1.3.js';
+// Runda 7, r7: viktning, Cambios svar, avtalets signaler och bör-krav (K2, K3 och K5), se avtal.js.
+import { avtalPost, avtalRegister } from './avtal.js';
 
 export const SPEC = spec;
 export const KATEGORIER = ['system', 'nationell', 'leverantor'];
@@ -130,6 +132,8 @@ export function sussaRegister(resultat, klient = null, { mappning = MAPPNING, po
       ...p, kategori, status: s, avsedd: m?.avsedd ?? 'planerat', tester,
       egna: (m?.egna ?? []).map(id => { const k = egnaKrav.get(id); return { id, rubrik: k?.rubrik ?? null, status: k?.status ?? null }; }),
       losning: m?.losning ?? null, expert: m?.expert ?? null, anmarkning: m?.anmarkning ?? null,
+      // Runda 7, r7: vikt, Cambios svar och avtalets signaler.
+      ...avtalPost(p.id),
     };
   });
   return {
@@ -138,5 +142,7 @@ export function sussaRegister(resultat, klient = null, { mappning = MAPPNING, po
     testresultat: resultat ? { tid: resultat.tid, bun: resultat.bun, antal: resultat.antal, godkanda: resultat.godkanda, misslyckade: resultat.misslyckade } : null,
     klienttester: klient?.klienttester ?? null,
     summa, poster: ut,
+    // Runda 7, r7: viktningen, bilaga A1, signalernas källor och bör-kraven.
+    ...avtalRegister(ut),
   };
 }

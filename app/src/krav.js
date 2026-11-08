@@ -30,6 +30,8 @@ const GU = 'Gränssnitt > Användartest > ';
 const GK = 'Gränssnitt > Klickbudget > ';
 const SR = 'Sussa-registret > ';
 const VK = 'Vårdkontakt > ';
+// Runda 7, r7.
+const SA = 'Sussa-avtalet > ';
 // Samma prefix används i mappningen av Sussas kravspecifikation (sussa/mappning/).
 export const TEST = { B, A, L, J, M, R, F, S, KR, KV, FS, LK, MJ, GA, GU, GK, SR };
 export const klickbudgetTest = (f) => `${GK}${f.namn} inom budget`;
@@ -41,12 +43,22 @@ export const KRAV = [
       `${SR}alla 389 id finns exakt en gång, och varje post har en mappning`, `${SR}uppfyllt_demo kräver gröna tester`, `${SR}källan anges och alla kapitel ingår`,
       `${SR}API: krav/sussa ger registret utan inloggning, med egna krav och testernas status`],
     'Sussas kravspecifikation med originalnummer finns nu för kapitel 1 till 12 och för driftspecifikationen: 389 poster, varav 201 utvärderingskriterier, i Sussa-registret med koppling till tester och till kraven här. Kapitel 1 till 6 och 11 kommer från Konkurrensverkets utdrag och resten från regionens originaldokument. Kraven K, D, L och M kommer från rapportens ramverk.'),
-  k('K2', 'Svarsmappning från kriterier till leverantörens FVIS-krav', `${RAPPORT}, Kravspårbarhet`, 'planerat', '/krav', [], 'Kräver bilaga A1, den avtalade specifikationen med leverantörens svar på kraven, som inte är tillgänglig. Sussas krav och kriterier finns nu med originalnummer, men inte leverantörens svar på dem.'),
-  k('K3', 'Prioritetssignal för krav som exkluderades eller sköts upp', `${RAPPORT}, Kravspårbarhet`, 'planerat', '/krav', [], 'Kräver bilaga 1 till Tilläggsavtal 3, som begärdes ut från Konkurrensverket 2026-11-03.'),
+  // Runda 7, r7: Cambios svar, vikterna, avtalets signaler och bör-kraven (sussa/avtal.js).
+  k('K2', 'Svarsmappning från kriterier till leverantörens FVIS-krav', `${RAPPORT}, Kravspårbarhet`, 'delvis', '/krav',
+    [`${SA}varje post har Cambios svar med källa, och maskerade svar är märkta som maskerade`, `${SA}viktningen stämmer med utvärderingsmodellen och Cambios prispåslag`,
+      `${SA}registret visar vikt, rang och betyg per kriterium så att det går att sortera på vad Sussa värderade högst`,
+      `${SA}API: krav/sussa ger vikter, Cambios svar, signaler, bilaga A1 och bör-kraven`, `${GK}Visa de tio högst viktade kriterierna som inte är uppfyllda inom budget`],
+    'Varje post är kopplad till Cambios svar i anbudet, som är bilaga A1.6 i den avtalade specifikationen (bilaga A1), med fil och sida, och till Sussas vikt och betyg i utvärderingen. Kryssen går att läsa för alla poster, men 72 beskrivande svar är maskerade i den utlämnade handlingen. A1.1, protokollen från anbudsgenomgången 2019, finns inte bland handlingarna, och leverantörens egen kravlista med FVIS-nummer finns bara för de rader som Tilläggsavtal 3 räknar upp.'),
+  k('K3', 'Prioritetssignal för krav som exkluderades eller sköts upp', `${RAPPORT}, Kravspårbarhet`, 'uppfyllt_demo', '/krav',
+    [`${SA}poster som exkluderades ur avtalet eller sköts upp 2022 har en signal med skäl och källa`, `${SA}API: krav/sussa ger vikter, Cambios svar, signaler, bilaga A1 och bör-kraven`,
+      `${SA}datafilerna har inga tankstreck, ellipser eller personnamn ur handlingarna`],
+    'Signalerna kommer från ändringsbegäran ÄB32, som tog bort stödet för anestesi och intensivvård ur acceptanstestet 2022, och från bilaga 1 till Tilläggsavtal 3, där varje delfunktion i Cambios svar har en ny avtalad leveransdag eller utgår. Kravsidan går att filtrera på signalerna.'),
   k('K4', 'Varje krav bryts ned till automatiserade testfall och ett användarscenario', `${RAPPORT}, Kravspårbarhet`, 'delvis', '/krav',
     [`${KR}saknade eller röda tester ger delvis`, `${KR}planerade krav förblir planerade`],
     'Automatiska tester körs i bygget och bygget stoppas om de är röda. Användarscenarier med verkliga användare saknas.'),
-  k('K5', 'Bör-krav och målbild som separat backlogg', `${RAPPORT}, Kravspårbarhet`, 'planerat', '/krav'),
+  k('K5', 'Bör-krav och målbild som separat backlogg', `${RAPPORT}, Kravspårbarhet`, 'uppfyllt_demo', '/krav',
+    [`${SA}bör-krav och målbild är en egen lista kopplad till posterna, med status från posterna`, `${SA}API: krav/sussa ger vikter, Cambios svar, signaler, bilaga A1 och bör-kraven`],
+    'Bör-kraven och målbilden i kravspecifikationen är en egen lista under fliken Bör-krav och målbild på kravsidan. Varje rad pekar på de poster den hänger ihop med och får sin status från dem.'),
 
   // Icke-funktionella krav och design
   k('D1', 'Kvitterade meddelanden med larm, och när NLL inte svarar i tid döljs aldrig en lyckad förskrivning', `${RAPPORT}, D1`, 'delvis', '/inkorg',
