@@ -80,7 +80,21 @@ export const varforText = (kat) => `${kat.map(k => k.varfor).join(' ')} En annan
 
 // Före sparandet i administrering.js. Vid iordningsställande ger den kontrollen som ska sparas, och en beredning får
 // kontrollen i sin egen post (beredning.js). Vid given dos stoppas en dos som inte är kontrollerad.
+// Säkerhetsgranskningen av runda 10 (beslut 2026-11-08): den sparade raden avgör. En iordningsställd dos med en
+// kollegakontroll som inte är gjord ges aldrig, oavsett vilka grupper som gäller i dag och vad anropet anger. Dosens
+// läkemedel och ordination tas från den iordningsställda raden på servern, och ett anrop vars läkemedel eller
+// ordination inte stämmer med dosen avvisas. En avstängd grupp gäller bara doser som iordningsställs efter ändringen.
 export function provaAdministrering(db, { atgard, lm, o, ior, beredning: ber, efterhand, nu = Date.now() }) {
+  if ((atgard === 'ge' || atgard === 'overlamna' || atgard === 'ej_given') && ior) {
+    if (ior.lakemedel_id !== lm?.id || (ior.ordination_id ?? null) !== (o?.id ?? null)) {
+      throw new Fel(400, 'Etiketten hör inte till det läkemedel och den ordination som anges. Kontrollera patienten och läkemedlet innan något ges.', 'ogiltig', { falt: ['kontrollkod'] });
+    }
+    if (atgard === 'ej_given') return null;
+    const k = db.query('SELECT * FROM kollegakontroller WHERE administrering_id = ?').get(ior.id);
+    const namn = db.query('SELECT namn FROM katalog WHERE id = ?').get(ior.lakemedel_id)?.namn ?? lm.namn;
+    if (k && !k.kontrollerad_tid) throw new Fel(400, `${namn} väntar på kollegakontroll. ${k.varfor} Be en kollega välja Kontrollera dosen.`, 'ogiltig', { kollegakontroll: true });
+    return null;
+  }
   const kat = kategorierFor(db, { lm, o, nu });
   if (!kat.length) return null;
   if (atgard === 'iordningstall') {
@@ -93,11 +107,6 @@ export function provaAdministrering(db, { atgard, lm, o, ior, beredning: ber, ef
     return { kategorier: kat, varfor: varforText(kat) };
   }
   if (atgard !== 'ge' && atgard !== 'overlamna') return null;
-  if (ior) {
-    const k = db.query('SELECT * FROM kollegakontroller WHERE administrering_id = ?').get(ior.id);
-    if (k && !k.kontrollerad_tid) throw new Fel(400, `${lm.namn} väntar på kollegakontroll. ${k.varfor} Be en kollega välja Kontrollera dosen.`, 'ogiltig', { kollegakontroll: true });
-    return null;
-  }
   if (efterhand) return null;
   throw new Fel(400, `${lm.namn} är ett högriskläkemedel (${kat.map(k => k.rubrik.toLowerCase()).join(', ')}). ${varforText(kat)} Välj Iordningsställ, så kan en kollega kontrollera dosen.`, 'ogiltig', { kollegakontroll: true, iordningstall: true });
 }

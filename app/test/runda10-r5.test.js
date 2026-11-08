@@ -376,6 +376,42 @@ describe('Kollegakontroll av högriskläkemedel', () => {
     expect(fel(() => konfiguration.foresla(db, personal(db, 'ssk-kard'), { nyckel, varde: true, motivering: 'x' })).status).toBe(403);
   });
 
+  test(T.kkSparad.split(' > ')[1], () => {
+    const db = sandladaKl('13:30');
+    const o = oxi(db);
+    const ior = administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, atgard: 'iordningstall' });
+    const kod = ior.administrering.iordningstalld.kontrollkod;
+    // Ett annat läkemedel i anropet: dosen med kontrollkoden är oxikodon, och anropet avvisas.
+    const annatLm = fel(() => administrering.spara(ssk(db, 'p01'), { lakemedelId: 'VK-NPL-0026', kontrollkod: kod }));
+    expect(annatLm?.status).toBe(400);
+    // En annan ordination i anropet, med samma kontrollkod.
+    const alvedon = db.query("SELECT o.id FROM ordinationer o WHERE o.patient_id = 'p01' AND o.lakemedel_id = 'VK-NPL-0026' AND o.status = 'aktiv'").get();
+    const annanOrd = fel(() => administrering.spara(ssk(db, 'p01'), { ordinationId: alvedon.id, kontrollkod: kod }));
+    expect(annanOrd?.status).toBe(400);
+    // Direkt mot regeln: ett annat läkemedel än den iordningsställda dosens avvisas, och den sparade raden avgör.
+    const iorRad = db.query('SELECT * FROM administreringar WHERE id = ?').get(ior.id);
+    const paracetamol = db.query("SELECT * FROM katalog WHERE id = 'VK-NPL-0026'").get();
+    expect(fel(() => hogrisk.provaAdministrering(db, { atgard: 'ge', lm: paracetamol, o: null, ior: iorRad }))?.message).toContain('hör inte till');
+    // Parametern stängs av mellan iordningsställandet och givandet: dosen är redan iordningsställd med kontroll.
+    const sf = personal(db, 'sysf');
+    const { andring } = konfiguration.foresla(db, sf, { nyckel: hogrisk.KATEGORIER.opioider.parameter, varde: false, giltigFran: idag(), motivering: 'Ny rutin' });
+    konfiguration.godkann(db, personal(db, 'sysf-2'), andring.id, {});
+    expect(hogrisk.aktiv(db, 'opioider')).toBe(false);
+    const avstangd = fel(() => administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, kontrollkod: kod }));
+    expect(avstangd?.message).toContain('väntar på kollegakontroll');
+    // Samma person kan inte vara sin egen kollega, inte heller genom ett id i anropet.
+    const dep = { synligaAdministreringar: administrering.synligaAdministreringar, kravVardande: administrering.kravVardande };
+    expect(fel(() => hogrisk.kontrollera(ssk(db, 'p01'), ior.administrering.kollegakontroll.id, dep, { av: 'ssk-hia', personalId: 'ssk-hia' }))?.message).toContain('iordningsställde dosen själv');
+    // När kollegan har kontrollerat i sin egen inloggning kan dosen ges, fast parametern nu är avstängd.
+    hogrisk.kontrollera(ssk(db, 'p01', 'ssk-hia'), ior.administrering.kollegakontroll.id, dep);
+    expect(administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, kontrollkod: kod }).administrering.status).toBe('given');
+    // En ny dos efter ändringen iordningsställs utan kollegakontroll.
+    const ny = { ordinationId: o.id, atgard: 'iordningstall' };
+    const v = fel(() => administrering.spara(ssk(db, 'p01'), ny));
+    const kvitt = (v?.extra?.kraverKvittens ?? []).map(regel => ({ regel, motivering: 'Ny dos efter ändringen' }));
+    expect(administrering.spara(ssk(db, 'p01'), { ...ny, kvitteradeVarningar: kvitt }).administrering.kollegakontroll).toBeNull();
+  });
+
   test(T.kkInkorg.split(' > ')[1], async () => {
     const k = klient(app);
     await k.logga('ssk-kard');
