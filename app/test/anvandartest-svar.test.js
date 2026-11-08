@@ -149,6 +149,38 @@ describe('Användartestens svar', () => {
     expect(svar.spara(db, { ...SUS, kod: b.kod }, { nu: new Date(nu.getTime() + 61_000), session: sessionA }).poang).toBe(75);
   });
 
+  test('skapandet är begränsat per session och timme och per skapare, så att ingen kan fylla det globala taket', () => {
+    const db = svar.oppna(':memory:');
+    const nu = new Date('2026-11-08T10:00:00Z');
+    const session = {};
+    for (let i = 0; i < svar.MAX_SKAPA_PER_TIMME; i++) svar.skapaTillfalle(db, { nu: new Date(nu.getTime() + i), session, skapare: '192.0.2.1' });
+    expect(() => svar.skapaTillfalle(db, { nu, session, skapare: '192.0.2.1' })).toThrow(/timme/);
+    // Efter en timme går det igen, så länge skaparen har färre än 20 aktiva tillfällen.
+    svar.skapaTillfalle(db, { nu: new Date(nu.getTime() + 3601_000), session, skapare: '192.0.2.1' });
+    // Per skapare: nya sessioner hjälper inte.
+    for (let i = svar.MAX_SKAPA_PER_TIMME + 1; i < svar.MAX_AKTIVA_PER_SKAPARE; i++) svar.skapaTillfalle(db, { nu, session: {}, skapare: '192.0.2.1' });
+    expect(db.query('SELECT count(*) AS n FROM anvandartest_tillfallen').get().n).toBe(svar.MAX_AKTIVA_PER_SKAPARE);
+    expect(() => svar.skapaTillfalle(db, { nu, session: {}, skapare: '192.0.2.1' })).toThrow(/aktiva/);
+    // En annan skapare påverkas inte, och skaparens adress sparas bara som en hash.
+    expect(svar.skapaTillfalle(db, { nu, session: {}, skapare: '198.51.100.7' }).kod).toBeDefined();
+    expect(JSON.stringify(db.query('SELECT * FROM anvandartest_tillfallen').all())).not.toContain('192.0.2.1');
+    // Det globala taket är en sista säkerhetsgräns, långt över det som en skapare når.
+    expect(svar.MAX_TILLFALLEN).toBeGreaterThan(svar.MAX_AKTIVA_PER_SKAPARE * 10);
+  });
+
+  test('tomma tillfällen utan svar raderas efter 24 timmar och räknas då inte längre mot skaparen', () => {
+    const db = svar.oppna(':memory:');
+    const t0 = new Date('2026-11-08T10:00:00Z');
+    const tomt = svar.skapaTillfalle(db, { nu: t0, session: {}, skapare: '192.0.2.1' });
+    const medSvar = svar.skapaTillfalle(db, { nu: t0, session: {}, skapare: '192.0.2.1' });
+    svar.spara(db, { ...SUS, kod: medSvar.kod }, { nu: t0, session: {} });
+    expect(svar.stada(db, { nu: new Date(t0.getTime() + 23 * 3600_000) })).toEqual({ tillfallen: 0, svar: 0 });
+    expect(svar.stada(db, { nu: new Date(t0.getTime() + 25 * 3600_000) })).toEqual({ tillfallen: 1, svar: 0 });
+    expect(() => svar.lista(db, tomt.kod)).toThrow();
+    expect(svar.lista(db, medSvar.kod).svar).toHaveLength(1);
+    expect(svar.TOMT_TIMMAR).toBe(24);
+  });
+
   test('tillfällen utan aktivitet på 90 dagar raderas med sina svar', () => {
     const db = svar.oppna(':memory:');
     const t0 = new Date('2026-01-01T10:00:00Z');

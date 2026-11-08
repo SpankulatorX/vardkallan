@@ -7,9 +7,11 @@
 // läsning, export och radering kräver både rollen och koden för just det tillfället. Ingen ser alltså andras tillfällen,
 // också i den publika demon där vem som helst kan logga in som uppföljningsrollen.
 //
-// Gränser. Högst MAX_PER_TILLFALLE svar per tillfälle, högst MAX_PER_MINUT svar per session och minut och högst
-// MAX_TILLFALLEN tillfällen totalt. Ett fullt tillfälle stoppar bara sig självt. Ett tillfälle utan aktivitet på
-// GALLRING_DAGAR dagar raderas med sina svar.
+// Gränser. Högst MAX_PER_TILLFALLE svar per tillfälle och MAX_PER_MINUT svar per session och minut. Ett fullt tillfälle
+// stoppar bara sig självt. Varje session skapar högst MAX_SKAPA_PER_TIMME tillfällen per timme och varje skapare
+// (klientens adress, sparad som en hash) har högst MAX_AKTIVA_PER_SKAPARE aktiva tillfällen, så att ingen ensam kan
+// fylla taket på MAX_TILLFALLEN, som bara är en sista säkerhetsgräns. Ett tomt tillfälle utan svar raderas efter
+// TOMT_TIMMAR timmar och ett tillfälle utan aktivitet efter GALLRING_DAGAR dagar, med sina svar.
 //
 // Inga patientuppgifter och inget namn sparas: bara roll i testet, en pseudonym som testledaren sätter, datum, testfall
 // och svaren. En pseudonym eller kommentar som liknar ett personnummer eller ett datum tas inte emot, och andra fält i
@@ -24,12 +26,15 @@ import { susPoang, expertpoang, utvarderingspoang, DIALOGPRINCIPER, PRINCIPPOANG
 export { SPARAS, ROLLER, GALLRING_DAGAR };
 export const MAX_PER_TILLFALLE = 200;
 export const MAX_PER_MINUT = 10;
+export const MAX_SKAPA_PER_TIMME = 5;
+export const MAX_AKTIVA_PER_SKAPARE = 20;
+export const TOMT_TIMMAR = 24;
 export const MAX_TILLFALLEN = 2000;
 const DAG = 86400_000;
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS anvandartest_tillfallen (
-  id TEXT PRIMARY KEY, kod_hash TEXT NOT NULL UNIQUE, skapad TEXT NOT NULL, senast_aktiv TEXT NOT NULL
+  id TEXT PRIMARY KEY, kod_hash TEXT NOT NULL UNIQUE, skapad TEXT NOT NULL, senast_aktiv TEXT NOT NULL, skapare TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS anvandartest_svar (
   id INTEGER PRIMARY KEY, tillfalle_id TEXT NOT NULL, typ TEXT NOT NULL CHECK (typ IN ('sus', 'expert')), roll TEXT NOT NULL, pseudonym TEXT NOT NULL,
@@ -44,6 +49,8 @@ export function oppna(fil = ':memory:') {
   const kol = db.query("SELECT name FROM pragma_table_info('anvandartest_svar')").all().map(k => k.name);
   if (kol.length && !kol.includes('tillfalle_id')) db.exec('DROP TABLE anvandartest_svar');
   db.exec(SCHEMA);
+  // Kolumnen för skaparen kom efter tillfällena.
+  if (!db.query("SELECT name FROM pragma_table_info('anvandartest_tillfallen')").all().some(k => k.name === 'skapare')) db.exec("ALTER TABLE anvandartest_tillfallen ADD COLUMN skapare TEXT NOT NULL DEFAULT ''");
   return db;
 }
 
@@ -54,9 +61,12 @@ const fel = (text, falt) => new Fel(400, text, 'ogiltig', { falt });
 const tillfalleUt = (t) => ({ id: t.id, skapad: t.skapad, senastAktiv: t.senast_aktiv, raderas: datumSv(new Date(Date.parse(t.senast_aktiv) + GALLRING_DAGAR * DAG)) });
 
 // Raderar tillfällen utan aktivitet på GALLRING_DAGAR dagar, med deras svar.
+// Raderar också tomma tillfällen utan svar som är äldre än TOMT_TIMMAR timmar.
 export function stada(db, { nu = new Date() } = {}) {
   const grans = new Date(nu.getTime() - GALLRING_DAGAR * DAG).toISOString();
-  const gamla = db.query('SELECT id FROM anvandartest_tillfallen WHERE senast_aktiv < ?').all(grans).map(r => r.id);
+  const tomGrans = new Date(nu.getTime() - TOMT_TIMMAR * 3600_000).toISOString();
+  const gamla = db.query(`SELECT id FROM anvandartest_tillfallen t WHERE senast_aktiv < ?
+    OR (skapad < ? AND NOT EXISTS (SELECT 1 FROM anvandartest_svar s WHERE s.tillfalle_id = t.id))`).all(grans, tomGrans).map(r => r.id);
   let antalSvar = 0;
   db.transaction(() => {
     for (const id of gamla) {
@@ -68,13 +78,20 @@ export function stada(db, { nu = new Date() } = {}) {
 }
 
 // Ett nytt testtillfälle. Koden lämnas ut här och aldrig igen.
-export function skapaTillfalle(db, { nu = new Date() } = {}) {
+// session är ett objekt per inloggning och skapare klientens adress, som bara sparas som en hash.
+export function skapaTillfalle(db, { nu = new Date(), session = {}, skapare = 'okänd' } = {}) {
   stada(db, { nu });
-  if (db.query('SELECT count(*) AS n FROM anvandartest_tillfallen').get().n >= MAX_TILLFALLEN) throw new Fel(400, 'Det finns redan för många testtillfällen. Radera ett tillfälle som inte används, eller vänta tills gamla tillfällen raderas.', 'ogiltig');
+  const ms = nu.getTime();
+  session.anvandartestTillfallen = (session.anvandartestTillfallen ?? []).filter(x => x > ms - 3600_000);
+  if (session.anvandartestTillfallen.length >= MAX_SKAPA_PER_TIMME) throw new Fel(429, `Högst ${MAX_SKAPA_PER_TIMME} nya testtillfällen per timme. Vänta en stund, eller använd ett tillfälle som du redan har.`, 'for_manga');
+  const skaparHash = hash(`skapare:${skapare}`);
+  if (db.query('SELECT count(*) AS n FROM anvandartest_tillfallen WHERE skapare = ?').get(skaparHash).n >= MAX_AKTIVA_PER_SKAPARE) throw new Fel(429, `Du har redan ${MAX_AKTIVA_PER_SKAPARE} aktiva testtillfällen. Radera ett som inte används. Tomma tillfällen raderas av sig själva efter ${TOMT_TIMMAR} timmar.`, 'for_manga');
+  if (db.query('SELECT count(*) AS n FROM anvandartest_tillfallen').get().n >= MAX_TILLFALLEN) throw new Fel(400, 'Det finns redan för många testtillfällen. Vänta tills gamla tillfällen raderas.', 'ogiltig');
+  session.anvandartestTillfallen.push(ms);
   const kod = randomBytes(24).toString('base64url');
   const id = `T-${randomBytes(6).toString('hex')}`;
   const t = nu.toISOString();
-  db.query('INSERT INTO anvandartest_tillfallen (id, kod_hash, skapad, senast_aktiv) VALUES (?, ?, ?, ?)').run(id, hash(kod), t, t);
+  db.query('INSERT INTO anvandartest_tillfallen (id, kod_hash, skapad, senast_aktiv, skapare) VALUES (?, ?, ?, ?, ?)').run(id, hash(kod), t, t, skaparHash);
   return { ...tillfalleUt(db.query('SELECT * FROM anvandartest_tillfallen WHERE id = ?').get(id)), kod };
 }
 

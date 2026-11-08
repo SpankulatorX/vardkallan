@@ -57,7 +57,7 @@ export async function visa(main) {
       ${inloggad ? '<div class="falt"><label for="st-tkod">Kod för testtillfället, från testledaren</label><input id="st-tkod" name="tkod" maxlength="100" autocomplete="off" spellcheck="false"></div>' : ''}
     </section>
     ${far('anvandartest_las') ? `<section class="ruta" aria-labelledby="st-tillfallen"><h2 id="st-tillfallen">Testtillfällen (testledare)</h2>
-      <p class="liten">Skapa ett testtillfälle och ge koden till testpersonerna. Koden visas bara en gång. Svaren i ett tillfälle läses, exporteras och raderas bara med dess kod, så ingen annan testledare ser dem. Ett tillfälle tar emot högst 200 svar och raderas med alla svar ${GALLRING_DAGAR} dagar efter det senaste svaret.</p>
+      <p class="liten">Skapa ett testtillfälle och ge koden till testpersonerna. Koden visas bara en gång. Svaren i ett tillfälle läses, exporteras och raderas bara med dess kod, så ingen annan testledare ser dem. Ett tillfälle tar emot högst 200 svar och raderas med alla svar ${GALLRING_DAGAR} dagar efter det senaste svaret. Ett tillfälle utan svar raderas efter 24 timmar. Du kan skapa högst 5 tillfällen i timmen och ha högst 20 aktiva tillfällen.</p>
       <p class="knapprad"><button type="button" class="knapp liten" data-st="skapa">Skapa testtillfälle</button></p>
       <div id="st-nykod"></div>
       <form id="st-oppna" class="falt-rad" novalidate><div class="falt"><label for="st-lkod">Kod för tillfället</label><input id="st-lkod" name="lkod" maxlength="100" autocomplete="off" spellcheck="false"></div><div class="falt knappfalt"><button type="submit" class="knapp liten">Visa svaren</button></div></form>

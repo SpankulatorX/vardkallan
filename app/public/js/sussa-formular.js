@@ -86,6 +86,6 @@ export const SPARAS = [
   'Datum för testet, utan klockslag.',
   'Vilket testfall svaret gäller.',
   'Dina svar och poängen som systemet räknar. En kommentar i expertgranskningen får inte innehålla patientuppgifter.',
-  `Ett testtillfälle och alla dess svar raderas ${GALLRING_DAGAR} dagar efter det senaste svaret, eller tidigare om testledaren raderar det.`,
+  `Ett testtillfälle och alla dess svar raderas ${GALLRING_DAGAR} dagar efter det senaste svaret, eller tidigare om testledaren raderar det. Ett tillfälle som inte har fått något svar raderas efter 24 timmar.`,
 ];
 export const TESTROLLER = ['Läkare öppenvård', 'Läkare slutenvård', 'Sjuksköterska slutenvård', 'Sjuksköterska öppenvård', 'Undersköterska', 'Paramedicinare', 'Medicinsk sekreterare', 'Användbarhetsexpert'];

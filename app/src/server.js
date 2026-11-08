@@ -1006,7 +1006,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // Runda 7, r1: svaren från riktiga användartester, knutna till ett testtillfälle (anvandartest-svar.js). Testledaren
   // (uppföljningsrollen) skapar tillfället och får koden en gång. Den som är inloggad sparar svar med koden, och läsning,
   // export och radering kräver både rollen och koden. Koden skickas i anropets innehåll, aldrig i adressen.
-  rutt('POST', '/api/anvandartest/tillfallen', (c) => { kravRoll(c, 'anvandartest_las'); return [201, anvandartestSvar.skapaTillfalle(anvandartestDb)]; });
+  rutt('POST', '/api/anvandartest/tillfallen', (c) => { kravRoll(c, 'anvandartest_las'); return [201, anvandartestSvar.skapaTillfalle(anvandartestDb, { session: c.s, skapare: c.ip })]; });
   rutt('POST', '/api/anvandartest/svar', (c) => { kravInloggad(c); return [201, anvandartestSvar.spara(anvandartestDb, c.body, { session: c.s })]; });
   rutt('POST', '/api/anvandartest/svar/lista', (c) => { kravRoll(c, 'anvandartest_las'); return anvandartestSvar.lista(anvandartestDb, c.body.kod); });
   rutt('POST', '/api/anvandartest/svar/export', (c) => {
@@ -1444,6 +1444,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   async function api(req, server, url, c) {
     if (url.pathname === '/api/health') return json({ ok: true, sandladar: sessioner.size, version: APPVERSION, gransnitt: gransnittVersion() });
     const metod = req.method;
+    // Runda 7, r1: klientens adress, för gränsen per skapare av testtillfällen.
+    c.ip = klientIp(req, server);
     if (metod !== 'GET' && metod !== 'HEAD') kontrolleraOrigin(req);
     let traff = null;
     for (const [m, re, fn] of R) {
