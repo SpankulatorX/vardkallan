@@ -82,6 +82,30 @@ describe('Folkhälsa', () => {
     expect((await k.post('/api/folkhalsa/insatser', { omrade: 'socker' })).status).toBe(400);
   });
 
+  test('patientlistan i en insats prövar varje patient i behörighetsmotorn, och en patient utan åtkomst syns inte alls', async () => {
+    const k = klient(app);
+    await k.logga('lak-vc');
+    const db = sandlada(app, k).db;
+    const id = db.query("SELECT id FROM folkhalsoinsatser WHERE omrade = 'alkohol'").get().id;
+    const fore = await k.get(`/api/folkhalsa/insatser/${id}`);
+    const foreLista = await k.get('/api/folkhalsa');
+    // En patient utan vårdrelation på vårdcentralen och en patient med spärrade uppgifter (Elin Sandberg, spärr för
+    // psykiatrin) som vårdcentralen inte har vårdrelation till läggs in i riskgruppen direkt i databasen.
+    db.query("INSERT INTO patienter (id, personnummer, fornamn, efternamn, kon, fodd) VALUES ('p91', '198501012383', 'Utan', 'Relation', 'kvinna', '1985-01-01')").run();
+    db.query("INSERT INTO folkhalsoinsats_patienter (insats_id, patient_id, enhet_id, risk_text) VALUES (?, 'p91', 'vc-tybble', 'Riskbruk av alkohol')").run(id);
+    db.query("INSERT INTO folkhalsoinsats_patienter (insats_id, patient_id, enhet_id, risk_text) VALUES (?, 'p04', 'vc-tybble', 'Riskbruk av alkohol')").run(id);
+    const efter = await k.get(`/api/folkhalsa/insatser/${id}`);
+    const efterLista = await k.get('/api/folkhalsa');
+    expect(JSON.stringify(efter.data)).toBe(JSON.stringify(fore.data));
+    expect(JSON.stringify(efterLista.data)).toBe(JSON.stringify(foreLista.data));
+    // Bara de patienter som visas loggas, med grunden från behörighetsmotorn.
+    const loggade = db.query("SELECT patient_id, grund FROM atkomstlogg WHERE resurs = ? AND personal_id = 'lak-vc'").all(`folkhalsa:${id}`);
+    expect(loggade.map(r => r.patient_id)).not.toContain('p91');
+    expect(loggade.map(r => r.patient_id)).not.toContain('p04');
+    expect(JSON.stringify(efter.data)).not.toMatch(/Elin|Utan|p04|p91/);
+    expect(new Set(loggade.map(r => r.grund))).toEqual(new Set(['egen_enhet']));
+  });
+
   test('rekommendationen syns i patientens översikt för den som kan ge stödet', async () => {
     const k = klient(app);
     await k.logga('ssk-vc');

@@ -7,7 +7,7 @@ import * as folkhalsa from './folkhalsa.js';
 
 export function registreraRutter({ rutt, kravInloggad, medPatient, valFor }) {
   // Sussa 3.1.3.6: streckkodsläsaren och patientens armband.
-  rutt('POST', '/api/skanna', (c) => { kravInloggad(c); return skanning.skanna(c, c.body, { medPatient }); });
+  rutt('POST', '/api/skanna', (c) => { kravInloggad(c); return skanning.skanna(c, c.body, { medPatient, valFor }); });
   rutt('POST', '/api/patient/:id/armband', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_admin', (atk, p) => skanning.armband(atk, p)); });
 
   // Sussa 6.2.1.1 och 6.2.1.2: statistik och patientgruppering.

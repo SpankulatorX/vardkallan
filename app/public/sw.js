@@ -36,6 +36,8 @@ const FILER = [
   '/js/remiss-r8-ui.js',
   '/js/labb-ui.js', '/js/vyer/patient-prover.js', '/js/vyer/provtagning.js',
   '/js/bokning-r8.js', '/js/vyer/avdelning.js',
+  // Runda 9, r7.
+  '/js/levnadsvanor-regler.js',
 ];
 // Runda 8, r3: listan har fri bokning, teambesök, gruppträffar och avdelningens planering.
 // Runda 8, r5: listan har mallen för tobaksvanor (tobak-regler.js och patient-tobak.js).

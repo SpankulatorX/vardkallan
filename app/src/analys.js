@@ -21,7 +21,7 @@
 // de andra med uppföljningsrollen, och prövas alltid med den behörighet som den som använder det har. Ett sparat
 // resultat innehåller bara antal, aldrig vilka patienter som ingick.
 import { Fel, iso, idag, addDagar } from './db.js';
-import { kanRoll, vardenhetFor, aktivaSparrar, harVardrelation, alder as alderAv, visningsnamn, visningsPnr } from './atkomst.js';
+import { kanRoll, vardenhetFor, aktivaSparrar, alder as alderAv, visningsnamn, visningsPnr, prova } from './atkomst.js';
 import { loggaRad } from './logg.js';
 import { ICD10SE, KVA } from './kodverk.js';
 import * as LV from '../public/js/levnadsvanor-regler.js';
@@ -55,7 +55,7 @@ export const MATT_I_VILLKOR = {
   hba1c: { namn: 'HbA1c', enhet: 'mmol/mol', forslag: { jamforelse: 'over', varde: 52 }, kalla: 'Socialstyrelsen, Nationella riktlinjer för diabetesvård: målnivå HbA1c under 52 mmol/mol' },
   systoliskt: { namn: 'Systoliskt blodtryck', enhet: 'mmHg', typ: 'blodtryck', forslag: { jamforelse: 'over', varde: 139 }, kalla: 'Socialstyrelsen, Nationella riktlinjer för hypertoni: målnivå under 140 mmHg' },
   bmi: { namn: 'BMI', enhet: 'kg/m²', forslag: { jamforelse: 'over', varde: 29.9 }, kalla: 'WHO: fetma vid BMI 30 eller högre' },
-  egfr: { namn: 'eGFR', enhet: 'mL/min/1,73 m²', forslag: { jamforelse: 'under', varde: 60 }, kalla: 'KDIGO: nedsatt njurfunktion vid eGFR under 60' },
+  egfr: { namn: 'eGFR', enhet: 'mL/min/1,73 m²', forslag: { jamforelse: 'under', varde: 60 }, kalla: 'Nedsatt njurfunktion vid eGFR under 60 enligt de internationella riktlinjerna för kronisk njursjukdom' },
   ldl: null,
   kreatinin: { namn: 'Kreatinin', enhet: 'µmol/L', forslag: { jamforelse: 'over', varde: 100 } },
   crp: { namn: 'CRP', enhet: 'mg/L', forslag: { jamforelse: 'over', varde: 10 } },
@@ -170,9 +170,15 @@ export function traffar(db, personal, villkor, niv) {
   const u = underlag(db, personal, niv);
   const ut = [];
   for (const p of u.patienter) {
-    if (niv === 'enhet' && !harVardrelation(db, p.id, u.min)) continue;
+    // På vårdenhetens nivå prövas varje patient i behörighetsmotorn, utan aktiva val och utan nödåtkomst.
+    let grund = null;
+    if (niv === 'enhet') {
+      const a = prova(db, { personal, patient: p.id, handling: 'las_oversikt', resurs: { enhet_id: personal.enhet_id } });
+      if (!a.tillaten) continue;
+      grund = a.grund;
+    }
     const skal = matcha(u, p, villkor);
-    if (skal) ut.push({ p, skal });
+    if (skal) ut.push({ p, skal, grund });
   }
   return { u, traffar: ut };
 }
@@ -353,7 +359,7 @@ export function grupp(db, personal, inp = {}) {
   const bas = { niva: niv, villkor, text: beskriv(villkor), namn: urval?.namn ?? mall?.namn ?? null, urvalId: urval?.id ?? null };
   if (niv === 'enhet') {
     const t = iso();
-    for (const { p } of lista) loggaRad(db, { tid: t, personal_id: personal.id, enhet_id: personal.enhet_id, patient_id: p.id, handling: 'patientgrupp', resurs: `analys:grupp${urval ? `:${urval.id}` : ''}`, grund: 'vardrelation', resultat: 'tillaten' });
+    for (const { p, grund } of lista) loggaRad(db, { tid: t, personal_id: personal.id, enhet_id: personal.enhet_id, patient_id: p.id, handling: 'patientgrupp', resurs: `analys:grupp${urval ? `:${urval.id}` : ''}`, grund, resultat: 'tillaten' });
     return {
       ...bas, vardenhet: db.query('SELECT namn FROM enheter WHERE id = ?').get(u.min)?.namn, antal: lista.length,
       patienter: lista.sort((a, b) => a.p.efternamn.localeCompare(b.p.efternamn, 'sv')).map(({ p, skal }) => ({ id: p.id, namn: visningsnamn(p), personnummer: visningsPnr(p), skyddad: Boolean(p.skyddad), alder: alderAv(p.fodd, idag()), kon: p.kon, skal })),
@@ -515,6 +521,8 @@ function sparaResultat(db, personal, niv, spara, ut) {
 }
 
 export function resultat(db, personal, id) {
+  // Rollen prövas först, så att svaret är detsamma oavsett om id:t finns.
+  niva(db, personal, 'statistik');
   const r = /^\d{1,9}$/.test(String(id)) ? db.query('SELECT * FROM analysresultat WHERE id = ?').get(Number(id)) : null;
   if (!r || !synlig(db, personal, r)) throw new Fel(404, 'Resultatet finns inte.', 'saknas');
   return { id: r.id, namn: r.namn, tid: r.tid, delad: Boolean(r.delad), av: db.query('SELECT namn FROM personal WHERE id = ?').get(r.agare_id)?.namn ?? null, resultat: JSON.parse(r.resultat) };

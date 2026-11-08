@@ -15,14 +15,15 @@
 //
 // Behörigheten är densamma som för det skanningen gör: att öppna en patient kräver rätten att söka patienter, att ta
 // ett prov rätten att ta prov för patienten och att kontrollera en förpackning rätten att läsa läkemedelslistan.
+import { randomInt } from 'node:crypto';
 import { Fel, iso, idag } from './db.js';
-import { kanRoll, visningsnamn, visningsPnr } from './atkomst.js';
+import { kanRoll, visningsnamn, visningsPnr, prova } from './atkomst.js';
 import { loggaRad } from './logg.js';
 import * as identitet from './identitet.js';
 import { svg } from './streckkod.js';
 
 export const SCHEMA = `
--- Patientens armband. kod står i streckkoden och innehåller inga personuppgifter. Ett armband ersätts av ett nytt när
+-- Patientens armband. kod står i streckkoden, är slumpmässig och innehåller inga personuppgifter. Ett armband ersätts av ett nytt när
 -- det skrivs ut igen efter att ha återkallats, och raderas aldrig.
 CREATE TABLE IF NOT EXISTS armband (
   id INTEGER PRIMARY KEY AUTOINCREMENT, kod TEXT UNIQUE, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, skapad TEXT NOT NULL,
@@ -40,8 +41,19 @@ CREATE TRIGGER IF NOT EXISTS skanningar_andras_ej BEFORE UPDATE ON skanningar BE
 CREATE TRIGGER IF NOT EXISTS skanningar_raderas_ej BEFORE DELETE ON skanningar BEGIN SELECT RAISE(ABORT, 'En skanning raderas inte'); END;
 `;
 
-export const armbandFor = (id) => `VKA${String(id).padStart(8, '0')}`;
+// Armbandets kod: VKA, tio slumpmässiga tecken ur ett alfabet utan förväxlingsbara tecken (inte 0, 1, I eller O) och
+// ett kontrolltecken. Koden går inte att räkna upp, och en felläst kod känns igen som fel.
+export const ALFABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+const kontrolltecken = (s) => ALFABET[[...s].reduce((sum, c, i) => sum + ALFABET.indexOf(c) * (i % 2 ? 3 : 1), 0) % ALFABET.length];
+export function nyArmbandskod() {
+  let s = '';
+  for (let i = 0; i < 10; i++) s += ALFABET[randomInt(ALFABET.length)];
+  return `VKA${s}${kontrolltecken(s)}`;
+}
+const giltigArmbandskod = (k) => /^VKA[2-9A-HJ-NP-Z]{11}$/.test(k) && kontrolltecken(k.slice(3, 13)) === k[13];
 export const SAMMANHANG = ['oppna', 'provtagning', 'administrering'];
+// Misslyckade uppslag av armband och identiteter per session, innan systemet slutar svara på fler.
+export const MAX_MISSAR = 20;
 
 // Tabellerna, och armband för de patienter som är inskrivna när sandlådan byggs eller läses in.
 export function sakra(db) {
@@ -52,10 +64,10 @@ export function sakra(db) {
 }
 
 function nyttArmband(db, patientId, enhetId, av, tid = iso()) {
-  const r = db.query('INSERT INTO armband (patient_id, enhet_id, skapad, skapad_av) VALUES (?, ?, ?, ?)').run(patientId, enhetId, tid, av);
-  const id = Number(r.lastInsertRowid);
-  db.query('UPDATE armband SET kod = ? WHERE id = ?').run(armbandFor(id), id);
-  return db.query('SELECT * FROM armband WHERE id = ?').get(id);
+  let kod = nyArmbandskod();
+  while (db.query('SELECT 1 FROM armband WHERE kod = ?').get(kod)) kod = nyArmbandskod();
+  const r = db.query('INSERT INTO armband (kod, patient_id, enhet_id, skapad, skapad_av) VALUES (?, ?, ?, ?, ?)').run(kod, patientId, enhetId, tid, av);
+  return db.query('SELECT * FROM armband WHERE id = ?').get(Number(r.lastInsertRowid));
 }
 
 // POST /api/patient/:id/armband: patientens armband med streckkod, samma kod varje gång det skrivs ut. Namn och
@@ -112,7 +124,7 @@ function utgangsdatum(v) {
 // Vad koden är. En ren funktion av koden: läser inget och sparar inget.
 export function tolka(kod) {
   const s = String(kod ?? '').replace(/[\r\n]+$/g, '').trim();
-  if (/^VKA\d{8}$/i.test(s)) return { typ: 'armband', kod: s.toUpperCase() };
+  if (giltigArmbandskod(s.toUpperCase())) return { typ: 'armband', kod: s.toUpperCase() };
   if (/^VKP\d{8}$/i.test(s)) return { typ: 'etikett', kod: s.toUpperCase() };
   const dos = s.match(/^VK-ADM-(\d{6})-([A-Z0-9]{1,10})$/i);
   if (dos) return { typ: 'dos', administreringId: Number(dos[1]), patient: dos[2].toLowerCase(), kod: s.toUpperCase() };
@@ -131,7 +143,7 @@ function spara(c, rad) {
 const ANNAN_PATIENT = 'tillhör en annan patient än den som är öppen';
 
 // POST /api/skanna { kod, patientId?, sammanhang? }. medPatient är serverns kontext för en patient, som prövar och loggar.
-export function skanna(c, body, { medPatient }) {
+export function skanna(c, body, { medPatient, valFor = () => ({}) }) {
   const db = c.db;
   const t = tolka(typeof body.kod === 'string' ? body.kod.slice(0, 200) : '');
   const sammanhang = SAMMANHANG.includes(body.sammanhang) ? body.sammanhang : 'oppna';
@@ -144,18 +156,27 @@ export function skanna(c, body, { medPatient }) {
       loggaRad(db, { personal_id: c.personal.id, enhet_id: c.personal.enhet_id, handling: 'sok', resurs: `skanning:${t.typ}`, grund: 'nekad', resultat: 'nekad' });
       throw new Fel(403, 'Yrkesrollen får inte söka patienter, och därför inte heller öppna en patient från ett armband.', 'nekad');
     }
+    if ((c.s.skanningMissar ?? 0) >= MAX_MISSAR) {
+      rad({ resultat: 'tak' });
+      throw new Fel(429, 'För många skanningar som inte gav någon patient. Sök patienten i stället, eller logga in igen.', 'nekad');
+    }
     let pid = null;
     if (t.typ === 'armband') pid = db.query('SELECT patient_id FROM armband WHERE kod = ? AND aterkallad IS NULL').get(t.kod)?.patient_id ?? null;
     else pid = identitet.hittaPaIdentitet(db, t.identitet)?.patientId ?? null;
-    if (!pid) {
+    if (pid) pid = identitet.gallandeId(db, pid);
+    // Behörigheten prövas innan något om patienten visas. Utan åtkomst är svaret detsamma som för en kod som inte finns.
+    const handling = kanRoll(c.personal, 'las_oversikt') ? 'las_oversikt' : 'las_admin';
+    const atkomst = pid ? prova(db, { personal: c.personal, patient: pid, handling, val: valFor(c.s, pid) }) : null;
+    if (!pid || !atkomst.tillaten) {
+      c.s.skanningMissar = (c.s.skanningMissar ?? 0) + 1;
+      if (pid) loggaRad(db, { personal_id: c.personal.id, enhet_id: c.personal.enhet_id, patient_id: pid, handling, resurs: `skanning:${t.typ}`, grund: 'nekad', resultat: 'nekad' });
       rad({ resultat: 'saknas' });
       throw new Fel(404, t.typ === 'armband' ? 'Armbandet finns inte i Vårdkällan, eller har ersatts av ett nytt. Skriv ut ett nytt armband från patientens journal.' : 'Det finns ingen patient med det numret i Vårdkällan.', 'saknas');
     }
-    pid = identitet.gallandeId(db, pid);
     const p = db.query('SELECT * FROM patienter WHERE id = ?').get(pid);
     const kort = { id: p.id, namn: visningsnamn(p), personnummer: visningsPnr(p), skyddad: Boolean(p.skyddad) };
     const samma = oppen ? oppen === pid : null;
-    loggaRad(db, { personal_id: c.personal.id, enhet_id: c.personal.enhet_id, patient_id: pid, handling: 'sok', resurs: `skanning:${t.typ}`, grund: 'administrativ', resultat: 'tillaten' });
+    loggaRad(db, { personal_id: c.personal.id, enhet_id: c.personal.enhet_id, patient_id: pid, handling, resurs: `skanning:${t.typ}`, grund: atkomst.grund, resultat: 'tillaten' });
     rad({ patient: pid, resultat: samma === null ? 'oppna' : samma ? 'kontrollerad' : 'annan_patient', objekt: t.typ === 'armband' ? `armband:${t.kod}` : null });
     const ut = { typ: 'patient', kalla: t.typ, patient: kort, sammaPatient: samma, oppna: `#/patient/${encodeURIComponent(pid)}` };
     if (samma === true) ut.text = 'Armbandet stämmer med patienten som är öppen.';

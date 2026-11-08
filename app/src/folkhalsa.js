@@ -17,7 +17,7 @@
 // Behörigheten är patientgrupperingens: läkare och sjuksköterskor startar och följer insatser för patienter som de har
 // vårdrelation till på den egna vårdenheten, och utfallet räknas bara på uppgifter från den egna vårdenheten.
 import { Fel, iso, idag, addDagar } from './db.js';
-import { kanRoll, vardenhetFor, visningsnamn, visningsPnr, alder as alderAv } from './atkomst.js';
+import { kanRoll, vardenhetFor, visningsnamn, visningsPnr, alder as alderAv, prova } from './atkomst.js';
 import { loggaRad } from './logg.js';
 import * as analys from './analys.js';
 import * as LV from '../public/js/levnadsvanor-regler.js';
@@ -89,16 +89,20 @@ const insatsRad = (db, personal, id) => {
 };
 
 // Status för varje patient i insatsen, räknat på uppgifter från vårdenheten: stöd givet efter starten, och om den
-// senaste dokumentationen efter starten inte längre visar risk.
+// senaste dokumentationen efter starten inte längre visar risk. Varje patient prövas först i behörighetsmotorn
+// (vårdrelation, spärr och inre sekretess, utan aktiva val), och en patient som den inloggade inte får se kommer inte
+// med alls, inte heller i antalen.
 function utfall(db, personal, r, u) {
   const def = OMRADEN[r.omrade];
-  const pats = db.query('SELECT * FROM folkhalsoinsats_patienter WHERE insats_id = ? ORDER BY patient_id').all(r.id);
-  return pats.map(x => {
+  const pats = db.query('SELECT * FROM folkhalsoinsats_patienter WHERE insats_id = ? ORDER BY patient_id').all(r.id)
+    .map(x => ({ x, a: prova(db, { personal, patient: x.patient_id, handling: 'las_omvardnad', resurs: { enhet_id: r.enhet_id } }) }))
+    .filter(({ a }) => a.tillaten);
+  return pats.map(({ x, a }) => {
     const stod = (u.atgarder.get(x.patient_id) ?? []).filter(a => u.far(x.patient_id, a.enhet_id) && def.koder.includes(a.kod) && a.tid >= r.startad).sort((a, b) => b.tid.localeCompare(a.tid))[0] ?? null;
     const senaste = analys.levnadsvana(u, x.patient_id, r.omrade);
     const forbattrad = Boolean(senaste && senaste.tid > r.startad && !senaste.risk);
     const status = forbattrad ? 'forbattrad' : stod ? 'stod_givet' : 'vantar_stod';
-    return { x, stod, senaste, forbattrad, status };
+    return { x, stod, senaste, forbattrad, status, grund: a.grund };
   });
 }
 const STATUS = { forbattrad: 'Ingen risk vid senaste dokumentationen', stod_givet: 'Har fått stöd', vantar_stod: 'Väntar på stöd' };
@@ -122,9 +126,9 @@ function insatsUt(db, personal, r, { medPatienter = false } = {}) {
   };
   if (medPatienter) {
     const t = iso();
-    ut.patienter = rader.map(({ x, stod, status }) => {
+    ut.patienter = rader.map(({ x, stod, status, grund }) => {
       const p = db.query('SELECT * FROM patienter WHERE id = ?').get(x.patient_id);
-      loggaRad(db, { tid: t, personal_id: personal.id, enhet_id: personal.enhet_id, patient_id: p.id, handling: 'patientgrupp', resurs: `folkhalsa:${r.id}`, grund: 'vardrelation', resultat: 'tillaten' });
+      loggaRad(db, { tid: t, personal_id: personal.id, enhet_id: personal.enhet_id, patient_id: p.id, handling: 'patientgrupp', resurs: `folkhalsa:${r.id}`, grund, resultat: 'tillaten' });
       return { id: p.id, namn: visningsnamn(p), personnummer: visningsPnr(p), skyddad: Boolean(p.skyddad), alder: alderAv(p.fodd, idag()), status, statusText: STATUS[status],
         riskVidStart: x.risk_text, stod: stod ? { kod: stod.kod, text: KVA[stod.kod], tid: stod.tid } : null,
         rekommendation: status === 'vantar_stod' ? `Erbjud ${KVA[forslag].toLowerCase()} (KVÅ ${forslag}).` : null };

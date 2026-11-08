@@ -94,6 +94,18 @@ describe('Patientgruppering', () => {
     expect(db.query("SELECT patient_id, grund FROM atkomstlogg WHERE personal_id = 'uppf' AND resurs LIKE 'analys:%' ORDER BY id DESC LIMIT 1").get()).toEqual({ patient_id: null, grund: 'uppfoljning' });
   });
 
+  test('ett sparat resultat läses bara av en roll som får se statistik, och svaret är detsamma oavsett om det finns', async () => {
+    const u = klient(app);
+    await u.logga('uppf');
+    const res = await u.post('/api/analys/statistik', { matt: 'patienter', grupp: 'kon', spara: { namn: 'Delat', delad: true } });
+    const id = res.data.sparat.id;
+    await u.logga('eko');
+    const finns = await u.get(`/api/analys/resultat/${id}`);
+    const finnsInte = await u.get('/api/analys/resultat/999999');
+    expect(finns.status).toBe(403);
+    expect(JSON.stringify(finns.data)).toBe(JSON.stringify(finnsInte.data));
+  });
+
   test('en roll utan behörighet att gruppera nekas och loggas', async () => {
     const k = klient(app);
     await k.logga('usk-kard');

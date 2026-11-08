@@ -12,7 +12,12 @@ afterAll(() => app.stopp());
 
 describe('Skanning', () => {
   test('systemet känner själv igen armband, personnummer, provetikett, iordningställd dos och läkemedelsförpackning', () => {
-    expect(skanning.tolka('VKA00000001')).toMatchObject({ typ: 'armband', kod: 'VKA00000001' });
+    const kod = skanning.nyArmbandskod();
+    expect(kod).toMatch(/^VKA[2-9A-HJ-NP-Z]{11}$/);
+    expect(skanning.tolka(kod.toLowerCase())).toMatchObject({ typ: 'armband', kod });
+    // En kod med fel kontrolltecken är ingen armbandskod.
+    const fel = kod.slice(0, -1) + (kod.endsWith('2') ? '3' : '2');
+    expect(skanning.tolka(fel).typ).toBe('okand');
     expect(skanning.tolka(' 19450202-4732\r')).toMatchObject({ typ: 'identitet' });
     expect(skanning.tolka('VKP00000006')).toMatchObject({ typ: 'etikett', kod: 'VKP00000006' });
     expect(skanning.tolka('VK-ADM-000012-P01')).toMatchObject({ typ: 'dos', administreringId: 12, patient: 'p01' });
@@ -30,7 +35,7 @@ describe('Skanning', () => {
     await k.logga('ssk-kard');
     const band = await k.post('/api/patient/p01/armband');
     expect(band.status).toBe(200);
-    expect(band.data.kod).toMatch(/^VKA\d{8}$/);
+    expect(band.data.kod).toMatch(/^VKA[2-9A-HJ-NP-Z]{11}$/);
     expect(band.data.svg).toContain('<svg');
     // Samma armband när det skrivs ut igen.
     expect((await k.post('/api/patient/p01/armband')).data.kod).toBe(band.data.kod);
@@ -105,11 +110,40 @@ describe('Skanning', () => {
     expect(prov.status).toBe(403);
     const u = klient(app);
     await u.logga('uppf');
-    expect((await u.post('/api/skanna', { kod: 'VKA00000001' })).status).toBe(403);
+    expect((await u.post('/api/skanna', { kod: skanning.nyArmbandskod() })).status).toBe(403);
     // En okänd kod förklaras på vanlig svenska.
     const okand = await k.post('/api/skanna', { kod: 'XYZ-123' });
     expect(okand.status).toBe(400);
     expect(okand.data.fel).toContain('känner inte igen');
+  });
+
+  test('armbandskoden är slumpmässig, och utan åtkomst till patienten är svaret detsamma som för en kod som inte finns', async () => {
+    const k = klient(app);
+    await k.logga('ssk-kard');
+    const db = app.sessioner.get(k.kaka().split('=')[1]).db;
+    const koder = db.query('SELECT kod FROM armband ORDER BY id').all().map(r => r.kod);
+    expect(koder.length).toBeGreaterThan(1);
+    for (const kod of koder) expect(skanning.tolka(kod).typ).toBe('armband');
+    // Koderna följer inte varandra.
+    expect(koder.some(kod => /VKA0000000/.test(kod))).toBe(false);
+    // Läkaren på vårdcentralen har ingen vårdrelation till patienten på hjärtintensiven.
+    const hia = db.query("SELECT kod FROM armband WHERE patient_id = 'p22'").get().kod;
+    const v = klient(app);
+    await v.logga('lak-vc');
+    const nekad = await v.post('/api/skanna', { kod: hia });
+    const saknas = await v.post('/api/skanna', { kod: skanning.nyArmbandskod() });
+    expect(nekad.status).toBe(404);
+    expect(JSON.stringify(nekad.data)).toBe(JSON.stringify(saknas.data));
+    expect(JSON.stringify(nekad.data)).not.toMatch(/Emil|p22|199604062399/);
+  });
+
+  test('misslyckade uppslag har ett tak per session', async () => {
+    const k = klient(app);
+    await k.logga('ssk-kard');
+    let sista = null;
+    for (let i = 0; i < skanning.MAX_MISSAR + 1; i++) sista = await k.post('/api/skanna', { kod: skanning.nyArmbandskod() });
+    expect(sista.status).toBe(429);
+    expect(sista.data.fel).toContain('För många');
   });
 
   test('seeden har armband för de inskrivna patienterna', () => {
