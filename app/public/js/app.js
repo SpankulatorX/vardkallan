@@ -37,6 +37,8 @@ import * as lakemedelsansvar from './vyer/lakemedelsansvar.js';
 import * as ekonomi from './vyer/ekonomi.js';
 // Runda 7, r4: systemförvaltningen.
 import * as systemforvaltning from './vyer/systemforvaltning.js';
+// Runda 7, r5: rapportering till myndigheter och register.
+import * as rapportering from './vyer/rapportering.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -86,6 +88,8 @@ const MENY = [
   // Runda 7, r3: ekonomen.
   ['#/ekonomi', 'Faktureringsunderlag', 'lista', () => far('faktureringsunderlag')],
   ['#/prislistor', 'Prislistor', 'kort', () => far('prislista')],
+  // Runda 7, r5.
+  ['#/rapportering', 'Rapportering', 'arkiv', () => far('myndighetsrapport')],
   ['#/migrering', 'Migreringsavstämning', 'migrering', () => true],
   ['#/krav', 'Kravspårbarhet', 'krav', () => true],
   ['#/moduler', 'Moduler', 'moduler', () => true],
@@ -125,6 +129,8 @@ const RUTTER = [
   // Runda 7, r3.
   [/^#\/ekonomi$/, ekonomi, () => far('faktureringsunderlag')],
   [/^#\/prislistor$/, ekonomi.prislistor, () => far('prislista')],
+  // Runda 7, r5.
+  [/^#\/rapportering$/, rapportering, () => far('myndighetsrapport')],
   [/^#\/migrering$/, migrering, () => true],
   [/^#\/krav$/, krav, () => true, true],
   [/^#\/moduler$/, moduler, () => true, true],
@@ -214,7 +220,9 @@ export async function uppdateraInkorg() {
       // Mallar att godkänna (runda 6, r6).
       + (d.mallarAttGodkanna?.length ?? 0)
       // Egna bevakningar som har löpt ut (runda 6, r4).
-      + (d.egnaBevakningar?.length ?? 0);
+      + (d.egnaBevakningar?.length ?? 0)
+      // Rättningar före rapportering till myndigheter och register (runda 7, r5).
+      + (d.rapportfel?.length ?? 0);
   } catch { S.inkorg = null; }
   const el = document.querySelector('[data-raknare="inkorg"]');
   if (el) { el.textContent = S.inkorg ? String(S.inkorg) : ''; el.hidden = !S.inkorg; }

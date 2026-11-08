@@ -8,6 +8,8 @@ export const GRUNDER = ['egen_enhet', 'vardrelation', 'aktivt_val', 'samtycke_sp
 GRUNDER.push('samverkan');
 // Runda 7, r3: ekonomens faktureringsunderlag och prislistor (ekonomi.js) har grunden ekonomi.
 GRUNDER.push('ekonomi');
+// Runda 7, r5: uppgifter som lämnas till ett register enligt lag (uppgiftsskyldighet) och till ett kvalitetsregister.
+GRUNDER.push('uppgiftsskyldighet', 'kvalitetsregister');
 export const INVANARGRUNDER = ['egen_atkomst', 'vardnadshavare'];
 const NOLL = '0'.repeat(64);
 const FALT = ['id', 'tid', 'personal_id', 'enhet_id', 'patient_id', 'handling', 'resurs', 'grund', 'syfte', 'resultat'];

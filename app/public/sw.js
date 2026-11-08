@@ -28,7 +28,9 @@ const FILER = [
   '/js/planering-ui.js', '/js/vyer/min-vardbegaran.js',
   '/js/ekonomi-ui.js', '/js/vyer/ekonomi.js',
   '/js/vyer/systemforvaltning.js',
+  '/js/vyer/rapportering.js', '/js/rapportfel.js', '/js/tjanstekontrakt.js',
 ];
+// Runda 7, r5: listan har rapporteringen, rättningarna i inkorgen och tabellen över tjänstekontrakten.
 // Runda 6, r5: listan har tillämpningsfliken och demotillämpningen Blodtryck över tid (/tillampningar/blodtryck/).
 // Runda 7, r4: listan har systemförvaltningens vy.
 const TIDSGRANS_MS = 4000;

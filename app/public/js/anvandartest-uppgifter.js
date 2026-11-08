@@ -34,6 +34,8 @@ export const STARTPUNKT = {
   // Runda 6, r6.
   'Verksamhetschefens startsida': { hash: '#/lakemedelsansvar', klar: '#la-pam', forbered: 'aterstall' },
   'Inkorgen efter återställning': { hash: '#/inkorg', klar: '#ik-mallar', forbered: 'aterstall' },
+  // Runda 7, r5: uppföljningsrollens rapportering, efter återställning.
+  'Rapporteringssidan efter återställning': { hash: '#/rapportering', klar: '[data-granska="par"]', forbered: 'aterstall' },
   // Runda 7, r7.
   'Kravsidan': { hash: '#/krav', klar: '#sussa-lista details.sussapost' },
   // Runda 7, r3.
@@ -280,6 +282,12 @@ export const UPPGIFTER = [
     id: 'boka-kedja', namn: 'Boka provtagning före läkarbesök', roll: 'adm-kard', start: 'Vårdadministratörens startsida',
     text: 'Gunnar Åkesson ska på återbesök efter elkonverteringen och behöver lämna blodprov en stund före besöket. Ge honom tid för båda.',
     kontroll: { notis: 'Gunnar Åkesson har fått en tid' },
+  },
+  // Runda 7, r5: rapportering till myndigheter och register (Sussa 6.3.2.2).
+  {
+    id: 'rapport-par', namn: 'Granska och skicka månadens rapport till patientregistret', roll: 'uppf', start: 'Rapporteringssidan efter återställning',
+    text: 'Du ansvarar för regionens rapportering till Socialstyrelsen. Se efter att månadens rapport till patientregistret ser rimlig ut och skicka den.',
+    kontroll: { notis: 'Rapporten är skickad' },
   },
   // Runda 7, r7: kravsidan (K2).
   {

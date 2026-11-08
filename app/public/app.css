@@ -1180,6 +1180,17 @@ mark { background: var(--obs-bg); color: inherit; outline: 1px solid var(--obs-k
   .kallelse-filer { margin-left: 0; }
 }
 
+/* Runda 7, r5: rapportering till myndigheter och register och tabellen över tjänstekontrakten. */
+.rapport-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 12px; }
+.rapport-kort h2 { font-size: var(--f-l); margin: 0 0 4px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.rapport-kort .faktarad { margin: 8px 0 0; }
+.rapport-detalj { margin: 18px 0; }
+.rapport-detalj h3 { font-size: var(--f-m); margin: 16px 0 6px; }
+.rapport-fel, .rapport-varn { display: grid; gap: 8px; padding-left: 20px; }
+.rapport-fel .under-text { display: block; }
+.tk-tabell code { overflow-wrap: anywhere; }
+#tk { min-width: 0; max-width: 100%; }
+
 /* Runda 7, r7: kravsidan med vikt, Cambios svar, avtalets signaler och bör-krav och målbild. */
 .sussa-taggar { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
 .tagg-vikt { background: var(--kalla-ljus); border-color: var(--kalla-mellan); color: var(--kalla-mork); }
@@ -1235,3 +1246,6 @@ mark { background: var(--obs-bg); color: inherit; outline: 1px solid var(--obs-k
 [data-forhand] ul { margin: 4px 0 0 18px; padding: 0; display: grid; gap: 4px; }
 .sf-paverkas p { margin: 0 0 4px; }
 .behorighet-undantag p { margin: 0; }
+/* Runda 7, r5: raden i inkorgen har en länk till patienten följd av text, så den är ett vanligt textblock. */
+.ik-rubrik.rf-rubrik { display: block; }
+.inkorg-lista .rf-rubrik a { display: inline; padding: 0; color: var(--kalla); text-decoration: underline; }

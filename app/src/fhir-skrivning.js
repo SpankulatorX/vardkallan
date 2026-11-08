@@ -19,7 +19,8 @@ export const SKRIVBARA = {
 };
 // Resurstyper som går att läsa men inte skriva, med förklaringen.
 export const INTE_SKRIVBARA = {
-  Condition: 'Diagnoser registreras inte i gränssnittet i den här versionen, och därför inte heller via API:t. Diagnoser kommer från vårdkontakterna och den migrerade historiken.',
+  // Runda 7, r5: läkaren registrerar en diagnos på en vårdkontakt när en rapport till ett register saknar den.
+  Condition: 'Diagnoser registreras på vårdkontakten i gränssnittet, när en rapport till ett register saknar dem, men inte via API:t i den här versionen.',
   AllergyIntolerance: 'Överkänslighet registreras inte i gränssnittet i den här versionen, och därför inte heller via API:t. Graden bekräftas i patientens uppmärksamhetsinformation.',
   Patient: 'Patienter registreras och får nya identiteter i gränssnittet, som tolkar numret och letar dubbletter. Den vägen finns inte i FHIR-API:t än.',
 };

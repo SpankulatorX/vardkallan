@@ -5,6 +5,8 @@
 import { esc, api, tidpunkt, datum, notis, medKnapp, dialog, ikon, ApiFel, faltFel } from '../ui.js';
 import { far, uppdateraInkorg } from '../app.js';
 import { nollstall } from './patient.js';
+// Runda 7, r5: invändningen mot kvalitetsregistret.
+import { invandningIJournalen } from '../rapportfel.js';
 
 const STATUS = { gallande: 'Gällande', tidigare: 'Tidigare', ovrig: 'Extra identitet' };
 const kon = (k) => (k === 'man' ? 'Man' : k === 'kvinna' ? 'Kvinna' : '');
@@ -162,6 +164,8 @@ export async function visa(el, ctx) {
       <ul class="enkel-lista">${d.sammanslagningar.map(s => `<li>${esc(tidpunkt(s.tid))}: journalen med ${esc(s.franPatient.typText.toLowerCase())} <span class="pnr">${esc(s.franPatient.personnummer)}</span> slogs samman med den här av ${esc(s.av ?? '')}. ${esc(s.grundText)} ${s.antal} uppgifter flyttades.</li>`).join('')}</ul>
     </section>` : ''}`;
 
+  // Runda 7, r5: patientens invändning mot kvalitetsregistret, för läkaren och sjuksköterskan.
+  if (far('kvalitetsregister')) invandningIJournalen(el, ctx.id).catch(() => {});
   const form = el.querySelector('#id-form');
   if (form) {
     tolkaMedan(form.identitet, form.querySelector('#id-tolkning'));

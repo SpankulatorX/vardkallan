@@ -49,6 +49,8 @@ import { registreraRutter as lakemedelsansvarRutter, inkorg as lakemedelsansvarI
 import { skapaOppetApi } from './oppet-api.js';
 // Runda 6, r4: planering och tidbok, del 2, remiss, del 2, egen vårdbegäran och incheckning genom FHIR.
 import { registreraRutter as r4Rutter, inkorg as r4Inkorg, period as r4Period } from './planering-rutter.js';
+// Runda 7, r5: rapportering till myndigheter och register och de nationella tjänstekontrakten (rapportering-rutter.js).
+import { registreraRutter as r7r5Rutter, inkorg as r7r5Inkorg } from './rapportering-rutter.js';
 import * as planering from './planering.js';
 import * as tidbokFhir from './tidbok-fhir.js';
 // Runda 7, r3: ekonomi, faktureringsunderlag och kostnader i vårdprocessen (Sussa 7.1).
@@ -1130,6 +1132,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...r4Inkorg(c),
       // Runda 7, r4: patienter som kan tillfrågas om en spärr efter en omorganisation, för vårdadministratören.
       ...systemforvaltningInkorg(c),
+      // Runda 7, r5: fel i rapporterna till myndigheter och register som den inloggade kan rätta.
+      ...r7r5Inkorg(c, patientKort, patientRad, valFor),
     });
   });
   // Runda 6, r1: NEWS2-larmen loggas på patienten en gång per session och mätomgång, som raderna om återinsättning.
@@ -1431,6 +1435,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   ekonomiRutter({ rutt, kravInloggad, medPatient });
   // Runda 7, r4: systemförvaltningen.
   systemforvaltningRutter({ rutt, kravInloggad });
+  // Runda 7, r5 (rapportering-rutter.js).
+  r7r5Rutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal });
 
   // Endpoints som inte behöver en sandlåda.
   const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/krav/sussa', '/api/drift', '/api/lasekopia/krypterad-logg']);

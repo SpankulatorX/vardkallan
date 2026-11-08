@@ -160,6 +160,18 @@ for (const h of ROLLER.systemforvaltare) UTAN_PATIENT.add(h);
 // registrerar beslutet som en vanlig spärr (omorganisation.js, registreraSparr). Kräver vårdrelation.
 HANDLINGAR.registrera_sparr = 'registrera en spärr som patienten själv har beslutat';
 ROLLER.vardadministrator.push('registrera_sparr');
+// Runda 7, r5: rapportering till myndigheter och register (myndighetsrapport.js). Uppföljningsrollen granskar och
+// skickar rapporterna, som systemet sammanställer, och läser aldrig journalen. Läkaren registrerar en diagnos eller en
+// yttre orsak på en vårdkontakt när en rapport saknar den, och vården registrerar att en patient motsätter sig
+// registrering i ett kvalitetsregister (patientdatalagen 7 kap. 2 §).
+Object.assign(HANDLINGAR, {
+  myndighetsrapport: 'granska och skicka rapporter till myndigheter och register', registrera_diagnos: 'registrera diagnoser på en vårdkontakt',
+  kvalitetsregister: 'registrera att patienten motsätter sig registrering i ett kvalitetsregister',
+});
+ROLLER.uppfoljning.push('myndighetsrapport');
+UTAN_PATIENT.add('myndighetsrapport');
+ROLLER.lakare.push('registrera_diagnos', 'kvalitetsregister');
+ROLLER.sjukskoterska.push('kvalitetsregister');
 
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
 

@@ -5,6 +5,8 @@ import { varde } from './patient-oversikt.js';
 import { symbolSvg } from '../uppmarksamhet.js';
 // Runda 6, r4: egen vårdbegäran.
 import * as vardbegaran from './min-vardbegaran.js';
+// Runda 7, r5: invändningen mot kvalitetsregistret.
+import { invandningIMinJournal } from '../rapportfel.js';
 
 // Uppmärksamhetsinformation: det vården ska se direkt för att vården ska bli säker, som överkänslighet, behandlingar
 // som påverkar annan vård, smitta och särskilda vårdrutiner. Patienten ser samma uppgifter som vården, utan förslag.
@@ -273,4 +275,6 @@ export async function sparrar(el, ctx) {
     skicka(f.querySelector('[type="submit"]'), { typ: 'sparr', enhetId: f.enhetId.value, meddelande: f.meddelande.value }, f).catch(() => {});
   });
   el.querySelectorAll('[data-hav]').forEach(b => b.addEventListener('click', () => skicka(b, { typ: 'hava_sparr', enhetId: b.dataset.hav }).catch(() => {})));
+  // Runda 7, r5: patientens egen invändning mot kvalitetsregistret.
+  invandningIMinJournal(el, ctx.pid).catch(() => {});
 }
