@@ -375,6 +375,30 @@ describe('Myndighetsrapportering i API:t', () => {
     db.query("UPDATE personal SET enhet_id = 'uso-kard' WHERE id = 'lak-kard'").run();
   });
 
+  test('ett fel för ett vårdtillfälle syns bara när behörigheten gäller vårdtillfällets och varje kontakts vårdenhet, utan och med samtycke', async () => {
+    const k = await inloggad('lak-kard');
+    const db = sdb(k);
+    const per = mr.period('par', new Date());
+    const datum = addDagar(per.fran, 11);
+    // Patient 4 har spärrat Allmänpsykiatriska kliniken. Vårdtillfället har kardiologen som ansvarig vårdenhet, men
+    // diagnosen med en kod som inte går att rapportera är registrerad på en kontakt på psykiatrin.
+    const sparrad = vardtillfalle(db, { pid: 'p04', inskr: datum, utskr: addDagar(datum, 2) });
+    const psyk = Number(db.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, slut, vardtillfalle_id) VALUES ('p04', 'uso-psyk', 'slutenvard', ?, ?, ?)").run(new Date(`${datum}T12:00:00Z`).toISOString(), new Date(`${addDagar(datum, 1)}T12:00:00Z`).toISOString(), sparrad.vt).lastInsertRowid);
+    diagnos(db, { pid: 'p04', enhet: 'uso-psyk', vk: psyk, kod: 'Q99.9', datum });
+    // Samma sak på kardiologens egen kontakt, för patient 1 utan spärr, som kontroll.
+    const egen = vardtillfalle(db, { pid: 'p01', inskr: datum, utskr: addDagar(datum, 2) });
+    diagnos(db, { pid: 'p01', vk: egen.vk, kod: 'Q99.9', datum });
+    expect(mr.sammanstall(db, 'par').fel.filter(f => f.regel === 'kod').map(f => f.radNyckel).sort()).toEqual([`VT${egen.vt}`, `VT${sparrad.vt}`].sort());
+    const rader = (await k.get('/api/inkorg')).data.rapportfel.filter(x => x.regel === 'kod');
+    expect(rader.map(x => x.patientId)).toEqual(['p01']);
+    expect(rader[0].detalj).toBe('Q99.9');
+    // Med patientens samtycke till de spärrade uppgifterna och ett aktivt val för andra vårdenheter syns felet.
+    expect((await k.post('/api/patient/p04/val', { typ: 'samtycke_sparr', syfte: 'Rätta rapporten till patientregistret' })).status).toBe(200);
+    expect((await k.post('/api/patient/p04/val', { typ: 'andra_enheter', syfte: 'Rätta rapporten till patientregistret' })).status).toBe(200);
+    const med = (await k.get('/api/inkorg')).data.rapportfel.filter(x => x.regel === 'kod');
+    expect(med.map(x => x.patientId).sort()).toEqual(['p01', 'p04']);
+  });
+
   test('den sparade sammanställningen görs om när en spärr eller en vårdenhet ändras', () => {
     const db = rensad();
     const { vk } = vardtillfalle(db, { pid: 'p05', enhet: 'uso-med', plats: 'uso-med' });

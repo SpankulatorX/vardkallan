@@ -750,18 +750,31 @@ export function sammanstallCachad(db, rapportId, { nu = new Date() } = {}) {
   return s;
 }
 
-// Felets aktuella vårdenhet och patient, ur databasen: vårdkontakten om felet har en, annars vårdtillfället eller posten
-// på väntelistan. Inkorgen prövar behörigheten mot detta och aldrig mot den sparade sammanställningen.
+// Felets aktuella vårdenhet och patient, ur databasen, och alla enheter vars uppgifter felet bygger på. Ett fel för ett
+// vårdtillfälle (VT och F-VT) slås alltid upp ur vårdtillfället: den ansvariga vårdenheten är vårdtillfällets, och
+// enheterna är vårdtillfällets, varje kontakts och varje diagnos på kontakterna. Bara ett fel från en enda kontakt
+// (VK) slås upp ur vårdkontakten. Inkorgen prövar behörigheten mot detta och aldrig mot den sparade sammanställningen.
 export function aktuellPlats(db, f) {
-  let rad = null;
-  if (f.vardkontaktId) rad = db.query('SELECT patient_id, enhet_id FROM vardkontakter WHERE id = ?').get(f.vardkontaktId);
-  else {
-    const m = /^(F-VT|VT|VL|TV)(\d+)$/.exec(f.radNyckel ?? '');
-    const tabell = m && { VL: 'vantelista', TV: 'tvangsvard_perioder' }[m[1]] || 'vardtillfallen';
-    if (m) rad = db.query(`SELECT patient_id, enhet_id FROM ${tabell} WHERE id = ?`).get(Number(m[2]));
+  const m = /^(F-VT|VT|VK|VL|TV)(\d+)$/.exec(f.radNyckel ?? '');
+  if (!m) return null;
+  const id = Number(m[2]);
+  let rad;
+  let enheter;
+  if (m[1] === 'VT' || m[1] === 'F-VT') {
+    rad = db.query('SELECT patient_id, enhet_id FROM vardtillfallen WHERE id = ?').get(id);
+    if (!rad) return null;
+    const kontakter = db.query('SELECT id, enhet_id FROM vardkontakter WHERE vardtillfalle_id = ?').all(id);
+    enheter = [rad.enhet_id, ...kontakter.map(k => k.enhet_id), ...diagnoserFor(db, kontakter.map(k => k.id)).map(d => d.enhet_id)];
+  } else if (m[1] === 'VK') {
+    rad = db.query('SELECT patient_id, enhet_id FROM vardkontakter WHERE id = ?').get(id);
+    if (!rad) return null;
+    enheter = [rad.enhet_id, ...diagnoserFor(db, [id]).map(d => d.enhet_id)];
+  } else {
+    rad = db.query(`SELECT patient_id, enhet_id FROM ${m[1] === 'VL' ? 'vantelista' : 'tvangsvard_perioder'} WHERE id = ?`).get(id);
+    if (!rad) return null;
+    enheter = [rad.enhet_id];
   }
-  if (!rad) return null;
   const p = db.query('SELECT id, sammanslagen_till FROM patienter WHERE id = ?').get(rad.patient_id);
   if (!p || p.sammanslagen_till) return null;
-  return { patientId: p.id, enhetId: rad.enhet_id, vardenhet: vardenhetFor(db, rad.enhet_id) };
+  return { patientId: p.id, enhetId: rad.enhet_id, vardenhet: vardenhetFor(db, rad.enhet_id), enheter: [...new Set(enheter)] };
 }

@@ -118,8 +118,9 @@ export function inkorg(c, patientKort, patientRad, valFor) {
       const nyckel = `${f.regel}:${f.radNyckel}`;
       if (sett.has(nyckel)) continue;
       const atk = new Atkomst(c.db, p, plats.patientId, valFor(c.s, plats.patientId), handling);
+      // Behörigheten ska gälla varje enhet vars uppgifter felet bygger på, också en spärrad enhet eller en annan vårdenhet.
       const prov = atk.prova(handling, { enhet_id: plats.enhetId });
-      if (!prov.tillaten) continue;
+      if (!prov.tillaten || !plats.enheter.every(e => atk.prova(handling, { enhet_id: e }).tillaten)) continue;
       sett.add(nyckel);
       const resurs = `inkorg:rapportfel:${nyckel}`;
       if (!loggade.has(resurs)) { loggade.add(resurs); atk.logga(handling, prov.grund, resurs); }
@@ -127,7 +128,7 @@ export function inkorg(c, patientKort, patientRad, valFor) {
       ut.push({
         nyckel, regel: f.regel, atgard: f.atgard, text: f.text, detalj: f.detalj, datum: f.datum, rapporter: [mr.RAPPORTER[id].namn], patientId: plats.patientId,
         patient: patientKort(patientRad(c.db, plats.patientId)), vardkontaktId: f.vardkontaktId,
-        forslag: f.atgard === 'diagnos' && vk ? mr.diagnosforslag(c.db, vk) : [],
+        forslag: f.atgard === 'diagnos' && vk && plats.enheter.includes(vk.enhet_id) ? mr.diagnosforslag(c.db, vk) : [],
       });
     }
   }

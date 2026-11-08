@@ -39,6 +39,7 @@ export default [
       `${A}väntelistans fritext visas inte för uppföljningsrollen, bara för vårdadministratören efter prövningen`,
       `${A}inkorgen följer det aktuella läget när en vårdkontakt flyttas eller personalen byter enhet efter att sammanställningen har sparats`,
       `${A}den sparade sammanställningen görs om när en spärr eller en vårdenhet ändras`,
+      `${A}ett fel för ett vårdtillfälle syns bara när behörigheten gäller vårdtillfällets och varje kontakts vårdenhet, utan och med samtycke`,
       'Gränssnitt > Klickbudget > Granska och skicka månadens rapport till patientregistret inom budget',
     ],
     losning: 'Sidan Rapportering för uppföljningsrollen med patientregistret (slutenvård, specialiserad öppenvård, åtgärder, läkemedelstillförsel och psykiatrisk vårdform enligt HSLF-FS 2023:33 i lydelsen enligt HSLF-FS 2025:44), väntande i specialiserad vård enligt Socialstyrelsens filspecifikation för väntetidsdatabasen, Vårdtillfällesdatabasen i ett antaget format och medicinska födelseregistret enligt HSLF-FS 2024:5. Systemet sammanställer filerna själv ur vårdtillfällen, vårdkontakter, diagnoser, åtgärder, givna läkemedel, tvångsvårdens beslut och väntelistan, kontrollerar dem mot filspecifikationen och visar varje fel på svenska. Felen hamnar i inkorgen hos den som kan rätta dem. Mappningen mot sjukhus- och verksamhetskoder visas med källor. Mottagarna är simulerade.',
