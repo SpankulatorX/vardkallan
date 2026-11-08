@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T11:42:28.432Z",
-  "bas": "http://127.0.0.1:18184",
+  "tid": "2026-11-08T12:53:50.192Z",
+  "bas": "http://127.0.0.1:18110",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "cc19f138c60448ba5e9a153652e77a4f661ac115df806bcc1a658f30a110228f",
+  "gransnittHash": "8e9feefc1902f3987d5f3d6f1e22d65d9a092dc52c8755f67e0fe616178b0121",
   "kalla": "Region Örebro län, upphandlingen Framtidens vårdinformationsstöd (Sussa samverkan, dnr 16RS2022): Bilaga F1:4 Testfall, Bilaga F1:2 Modell för att testa och utvärdera användbarhet, Bilaga F1:3 Information till anbudsgivare och Bilaga F1 Utvärderingsmodell, versionerna 2018-03-07.",
   "klm": {
     "kalla": "Card, Moran och Newell 1980, Communications of the ACM 23(7), s. 396 till 410",
@@ -43,15 +43,15 @@
       "tecken": 200,
       "uppmatt": 22,
       "inomBudget": true,
-      "skriptetsTidMs": 4689,
-      "uppskattadTidS": 118.5,
+      "skriptetsTidMs": 4438,
+      "uppskattadTidS": 118.2,
       "klmDelar": {
         "klick": 39.8,
         "listval": 4,
         "faltbyten": 13.8,
         "tecken": 56,
         "tangenter": 0.3,
-        "svarstid": 4.7
+        "svarstid": 4.4
       },
       "steg": [
         "klick: Gerda Ström i arbetslistan",
@@ -110,15 +110,15 @@
       "tecken": 152,
       "uppmatt": 16,
       "inomBudget": true,
-      "skriptetsTidMs": 4149,
-      "uppskattadTidS": 89.1,
+      "skriptetsTidMs": 4821,
+      "uppskattadTidS": 89.8,
       "klmDelar": {
         "klick": 31.8,
         "listval": 0,
         "faltbyten": 10.4,
         "tecken": 42.6,
         "tangenter": 0.3,
-        "svarstid": 4.1
+        "svarstid": 4.8
       },
       "steg": [
         "klick: Elin Arnström i arbetslistan",
@@ -172,15 +172,15 @@
       "tecken": 50,
       "uppmatt": 18,
       "inomBudget": true,
-      "skriptetsTidMs": 3011,
-      "uppskattadTidS": 62,
+      "skriptetsTidMs": 2746,
+      "uppskattadTidS": 61.8,
       "klmDelar": {
         "klick": 26.5,
         "listval": 7.9,
         "faltbyten": 10.4,
         "tecken": 14,
         "tangenter": 0.3,
-        "svarstid": 3
+        "svarstid": 2.7
       },
       "steg": [
         "klick: Trevis Ljung i arbetslistan",
@@ -229,7 +229,7 @@
       "tecken": 72,
       "uppmatt": 12,
       "inomBudget": true,
-      "skriptetsTidMs": 2651,
+      "skriptetsTidMs": 2611,
       "uppskattadTidS": 55.4,
       "klmDelar": {
         "klick": 29.2,
@@ -237,7 +237,7 @@
         "faltbyten": 3.5,
         "tecken": 20.2,
         "tangenter": 0,
-        "svarstid": 2.7
+        "svarstid": 2.6
       },
       "steg": [
         "klick: Läkemedel att ge i menyn",
@@ -280,7 +280,7 @@
       "tecken": 99,
       "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 378,
+      "skriptetsTidMs": 363,
       "uppskattadTidS": 46.9,
       "klmDelar": {
         "klick": 8,
@@ -324,7 +324,7 @@
       "tecken": 99,
       "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 353,
+      "skriptetsTidMs": 340,
       "uppskattadTidS": 46.9,
       "klmDelar": {
         "klick": 8,
@@ -332,7 +332,7 @@
         "faltbyten": 6.9,
         "tecken": 27.7,
         "tangenter": 0,
-        "svarstid": 0.4
+        "svarstid": 0.3
       },
       "steg": [
         "klick: Mira Axelsson i arbetslistan",
@@ -368,7 +368,7 @@
       "tecken": 99,
       "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 382,
+      "skriptetsTidMs": 376,
       "uppskattadTidS": 46.9,
       "klmDelar": {
         "klick": 8,
@@ -385,6 +385,254 @@
         "fältbyte: frågeställning",
         "fältbyte: anamnes",
         "klick: Skicka remissen"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "2.2",
+      "titel": "Upprätta och skicka vårdbegäran på uppdrag",
+      "tema": 2,
+      "roll": "Medicinsk sekreterare",
+      "demoroll": "adm-kard",
+      "tidsklass": 9,
+      "tidsklassSkal": "Som testfall 2.1 med en uppdragsgivare.",
+      "budget": 9,
+      "motivering": "Ett klick på Sök patient, där sökfältet har fokus, Enter och ett klick på träffen. Ett klick på Remiss på uppdrag, där mottagaren har fokus, två klick för att välja mottagare i listan, ett fältbyte vardera för frågeställning och anamnes och ett klick för att skicka till läkaren. Uppdragsgivaren är förvald, eftersom läkaren registrerade patientens besök, och prioritet och sista svarsdatum har förval.",
+      "avvikelser": [
+        "Uppdragsgivaren är läkaren Sara Lindqvist på Kardiologiska kliniken USÖ, som motsvarar Medicinkliniken. Mottagaren är Ortopediska kliniken USÖ.",
+        "Remissen skickas när läkaren har signerat den i sin inkorg, med läkaren som remittent. Testfallet slutar när remissen väntar på signering."
+      ],
+      "slut": "Vårdbegäran är skickad.",
+      "uppnatt": true,
+      "klick": 6,
+      "listval": 1,
+      "faltbyten": 2,
+      "tangenter": 1,
+      "tecken": 103,
+      "uppmatt": 9,
+      "inomBudget": true,
+      "skriptetsTidMs": 432,
+      "uppskattadTidS": 51,
+      "klmDelar": {
+        "klick": 10.6,
+        "listval": 4,
+        "faltbyten": 6.9,
+        "tecken": 28.8,
+        "tangenter": 0.3,
+        "svarstid": 0.4
+      },
+      "steg": [
+        "klick: Sök patient i menyn",
+        "har redan fokus: sökfältet",
+        "tangent Enter: sök",
+        "klick: träffen Mira Axelsson",
+        "klick: Remiss på uppdrag",
+        "lista (2 klick): mottagare Ortopediska kliniken USÖ",
+        "fältbyte: frågeställning",
+        "fältbyte: anamnes",
+        "klick: Skicka till läkaren för signering"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "2.3",
+      "titel": "Ta emot vårdbegäran",
+      "tema": 2,
+      "roll": "Läkare slutenvård",
+      "demoroll": "lak-kard",
+      "tidsklass": 15,
+      "tidsklassSkal": "Fyra remisser med fyra olika beslut.",
+      "budget": 15,
+      "motivering": "Ett klick på Remisser i menyn. Berit Strandhall: Fördela och ett klick på bakjouren, som systemet föreslår först (2). Gerda Ström: Bedöm, ett klick på Inom två månader och spara (3). Elin Arnström: Bedöm, Avvisa, ett fältbyte för svarstexten och spara (4). Trevis Ljung: Skicka vidare, två klick för psykiatriska kliniken i listan, ett fältbyte för motiveringen och ett klick för att skicka (5).",
+      "avvikelser": [
+        "Remisserna kommer från Vårdcentralen Tybble till Kardiologiska kliniken USÖ, som motsvarar Medicinkliniken, Mottagning 1. Läkaren i öppenvården arbetar på vårdcentralen och spelar därför inte testfallet.",
+        "Bakjouren är överläkaren Göran Malm (demoregel), som systemet föreslår först.",
+        "Väntelistan för besök om två månader är tidsramen Inom två månader när remissen accepteras. Psykiatriska kliniken är Allmänpsykiatriska kliniken USÖ, och vidarebefordran har en motivering som avsändaren ser."
+      ],
+      "slut": "De fyra remisserna är fördelade, prioriterade, avvisade eller vidareskickade.",
+      "uppnatt": true,
+      "klick": 13,
+      "listval": 1,
+      "faltbyten": 2,
+      "tangenter": 0,
+      "tecken": 172,
+      "uppmatt": 15,
+      "inomBudget": true,
+      "skriptetsTidMs": 1171,
+      "uppskattadTidS": 89.3,
+      "klmDelar": {
+        "klick": 29.2,
+        "listval": 4,
+        "faltbyten": 6.9,
+        "tecken": 48.2,
+        "tangenter": 0,
+        "svarstid": 1.2
+      },
+      "steg": [
+        "klick: Remisser i menyn",
+        "klick: Fördela för Berit Strandhall",
+        "klick: bakjouren Göran Malm",
+        "klick: Bedöm för Gerda Ström",
+        "klick: Inom två månader",
+        "klick: Spara bedömningen",
+        "klick: Bedöm för Elin Arnström",
+        "klick: Avvisa",
+        "fältbyte: svarstexten",
+        "klick: Spara bedömningen",
+        "klick: Skicka vidare för Trevis Ljung",
+        "lista (2 klick): Allmänpsykiatriska kliniken USÖ",
+        "fältbyte: motiveringen",
+        "klick: Skicka vidare"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "2.3",
+      "titel": "Ta emot vårdbegäran",
+      "tema": 2,
+      "roll": "Paramedicinare",
+      "demoroll": "fys-kard",
+      "tidsklass": 15,
+      "tidsklassSkal": "Fyra remisser med fyra olika beslut.",
+      "budget": 15,
+      "motivering": "Samma steg som för läkaren: fysioterapeuten på kardiologiska mottagningen tar emot remisserna till kardiologen.",
+      "avvikelser": [
+        "Remisserna kommer från Vårdcentralen Tybble till Kardiologiska kliniken USÖ, som motsvarar Medicinkliniken, Mottagning 1. Läkaren i öppenvården arbetar på vårdcentralen och spelar därför inte testfallet.",
+        "Bakjouren är överläkaren Göran Malm (demoregel), som systemet föreslår först.",
+        "Väntelistan för besök om två månader är tidsramen Inom två månader när remissen accepteras. Psykiatriska kliniken är Allmänpsykiatriska kliniken USÖ, och vidarebefordran har en motivering som avsändaren ser."
+      ],
+      "slut": "De fyra remisserna är fördelade, prioriterade, avvisade eller vidareskickade.",
+      "uppnatt": true,
+      "klick": 13,
+      "listval": 1,
+      "faltbyten": 2,
+      "tangenter": 0,
+      "tecken": 172,
+      "uppmatt": 15,
+      "inomBudget": true,
+      "skriptetsTidMs": 779,
+      "uppskattadTidS": 88.9,
+      "klmDelar": {
+        "klick": 29.2,
+        "listval": 4,
+        "faltbyten": 6.9,
+        "tecken": 48.2,
+        "tangenter": 0,
+        "svarstid": 0.8
+      },
+      "steg": [
+        "klick: Remisser i menyn",
+        "klick: Fördela för Berit Strandhall",
+        "klick: bakjouren Göran Malm",
+        "klick: Bedöm för Gerda Ström",
+        "klick: Inom två månader",
+        "klick: Spara bedömningen",
+        "klick: Bedöm för Elin Arnström",
+        "klick: Avvisa",
+        "fältbyte: svarstexten",
+        "klick: Spara bedömningen",
+        "klick: Skicka vidare för Trevis Ljung",
+        "lista (2 klick): Allmänpsykiatriska kliniken USÖ",
+        "fältbyte: motiveringen",
+        "klick: Skicka vidare"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "2.4",
+      "titel": "Ta emot vårdbegäran på uppdrag",
+      "tema": 2,
+      "roll": "Medicinsk sekreterare",
+      "demoroll": "adm-kard",
+      "tidsklass": 15,
+      "tidsklassSkal": "Fyra remisser, varav tre till samma konferens.",
+      "budget": 6,
+      "motivering": "Ett klick på Remisser i menyn. Bertil Danielsson: Fördela och ett klick på bakjouren, som systemet föreslår först (2). Sara Sandmark, Anna Karlsson och Sven Markström: ett klick vardera på Till remisskonferens (3). Systemet väljer nästa konferens och kvitterar mottagningen.",
+      "avvikelser": [
+        "Remisskonferensen är vårdenhetens nästa, tisdag eller torsdag klockan 8 (demoregel). Bakjouren är överläkaren Göran Malm (demoregel).",
+        "På konferensen bedömer läkarna remisserna i följd med ett klick per beslut, och vårdadministratören kan registrera besluten på uppdrag med läkaren som ansvarig. Det ingår inte i testfallet."
+      ],
+      "slut": "En remiss är fördelad till bakjouren och de övriga står på remisskonferens.",
+      "uppnatt": true,
+      "klick": 6,
+      "listval": 0,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "tecken": 0,
+      "uppmatt": 6,
+      "inomBudget": true,
+      "skriptetsTidMs": 583,
+      "uppskattadTidS": 16.5,
+      "klmDelar": {
+        "klick": 15.9,
+        "listval": 0,
+        "faltbyten": 0,
+        "tecken": 0,
+        "tangenter": 0,
+        "svarstid": 0.6
+      },
+      "steg": [
+        "klick: Remisser i menyn",
+        "klick: Fördela för Bertil Danielsson",
+        "klick: bakjouren Göran Malm",
+        "klick: Till remisskonferens för Sara Sandmark",
+        "klick: Till remisskonferens för Anna Karlsson",
+        "klick: Till remisskonferens för Sven Markström"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "2.5",
+      "titel": "Registrera en extern vårdbegäran",
+      "tema": 2,
+      "roll": "Medicinsk sekreterare",
+      "demoroll": "adm-kard",
+      "tidsklass": 9,
+      "tidsklassSkal": "Fem uppgifter som skrivs av från papper.",
+      "budget": 7,
+      "motivering": "Ett klick på Remisser i menyn och ett på Registrera vid den inskannade remissen, där patientfältet har fokus och systemet väljer patienten när namnet ger en träff. Ett fältbyte vardera för avsändande enhet (ur den simulerade HSA-katalogen), remissdatum, frågeställning och anamnes, och ett klick för att registrera. Remissdatumet är förvalt till i dag och skrivs om.",
+      "avvikelser": [
+        "Pappersremissen är redan inskannad och blir bilaga till remissen. Den går in bland de inkommande remisserna och ger vårdrelation först när någon annan än den som registrerade den har tagit emot den (beslut 2026-11-08).",
+        "Behandlingshemmet Löparen finns i den simulerade HSA-katalogen."
+      ],
+      "slut": "Remissen är inregistrerad.",
+      "uppnatt": true,
+      "klick": 3,
+      "listval": 0,
+      "faltbyten": 4,
+      "tangenter": 0,
+      "tecken": 158,
+      "uppmatt": 7,
+      "inomBudget": true,
+      "skriptetsTidMs": 692,
+      "uppskattadTidS": 66.7,
+      "klmDelar": {
+        "klick": 8,
+        "listval": 0,
+        "faltbyten": 13.8,
+        "tecken": 44.2,
+        "tangenter": 0,
+        "svarstid": 0.7
+      },
+      "steg": [
+        "klick: Remisser i menyn",
+        "klick: Registrera vid den inskannade remissen",
+        "har redan fokus: patienten",
+        "fältbyte: avsändande enhet",
+        "fältbyte: remissdatum",
+        "fältbyte: frågeställning",
+        "fältbyte: anamnes",
+        "klick: Registrera"
       ],
       "brister": [],
       "malpoang": 10,
@@ -412,7 +660,7 @@
       "tecken": 70,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 297,
+      "skriptetsTidMs": 348,
       "uppskattadTidS": 30.5,
       "klmDelar": {
         "klick": 10.6,
@@ -455,7 +703,7 @@
       "tecken": 70,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 260,
+      "skriptetsTidMs": 333,
       "uppskattadTidS": 30.5,
       "klmDelar": {
         "klick": 10.6,
@@ -477,6 +725,262 @@
       "tidspoang": 10
     },
     {
+      "nr": "3.1",
+      "titel": "Upprätta en labbeställning",
+      "tema": 3,
+      "roll": "Läkare slutenvård",
+      "demoroll": "lak-kard",
+      "tidsklass": 9,
+      "tidsklassSkal": "Fyra analyser till två laboratorier.",
+      "budget": 3,
+      "motivering": "Ett klick på patienten i arbetslistan, ett på Beställ prover i översikten och ett på Beställ vid paketet Feber och frossa, som systemet föreslår ur vårdkontaktens orsak. Paketet har de fyra analyserna, systemet väljer klinisk kemi och klinisk mikrobiologi, rören och provtagningsordningen och fyller i anamnesen ur vårdkontakten.",
+      "avvikelser": [
+        "Provtagningen är förvald till nu, inte till klockan 9, eftersom testet görs när patienten är på plats. Klockan 7 i morgon kan väljas.",
+        "Laboratorierna heter Klinisk kemi USÖ och Klinisk mikrobiologi och är simulerade.",
+        "Anamnesen skrivs inte: systemet hämtar den ur vårdkontakten, Inkommen med feber och frossa."
+      ],
+      "slut": "Beställningen är sparad, skickad eller verkställd.",
+      "uppnatt": true,
+      "klick": 3,
+      "listval": 0,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "tecken": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "skriptetsTidMs": 313,
+      "uppskattadTidS": 8.3,
+      "klmDelar": {
+        "klick": 8,
+        "listval": 0,
+        "faltbyten": 0,
+        "tecken": 0,
+        "tangenter": 0,
+        "svarstid": 0.3
+      },
+      "steg": [
+        "klick: Hamid Burvall i arbetslistan",
+        "klick: Beställ prover",
+        "klick: Beställ vid paketet Feber och frossa"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "3.1",
+      "titel": "Upprätta en labbeställning",
+      "tema": 3,
+      "roll": "Läkare öppenvård",
+      "demoroll": "lak-vc",
+      "tidsklass": 9,
+      "tidsklassSkal": "Fyra analyser till två laboratorier.",
+      "budget": 3,
+      "motivering": "Samma steg som för läkaren i slutenvården, från arbetslistan på vårdcentralen. Klinisk kemi är laboratoriet som hör till vårdcentralen.",
+      "avvikelser": [
+        "Provtagningen är förvald till nu, inte till klockan 9, eftersom testet görs när patienten är på plats. Klockan 7 i morgon kan väljas.",
+        "Laboratorierna heter Klinisk kemi USÖ och Klinisk mikrobiologi och är simulerade.",
+        "Anamnesen skrivs inte: systemet hämtar den ur vårdkontakten, Inkommen med feber och frossa."
+      ],
+      "slut": "Beställningen är sparad, skickad eller verkställd.",
+      "uppnatt": true,
+      "klick": 3,
+      "listval": 0,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "tecken": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "skriptetsTidMs": 323,
+      "uppskattadTidS": 8.3,
+      "klmDelar": {
+        "klick": 8,
+        "listval": 0,
+        "faltbyten": 0,
+        "tecken": 0,
+        "tangenter": 0,
+        "svarstid": 0.3
+      },
+      "steg": [
+        "klick: Hamid Burvall i arbetslistan",
+        "klick: Beställ prover",
+        "klick: Beställ vid paketet Feber och frossa"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "3.2",
+      "titel": "Upprätta en labbeställning på uppdrag",
+      "tema": 3,
+      "roll": "Sjuksköterska slutenvård",
+      "demoroll": "ssk-kard",
+      "tidsklass": 9,
+      "tidsklassSkal": "Som testfall 3.1 med en uppdragsgivare.",
+      "budget": 5,
+      "motivering": "Ett klick på patienten i arbetslistan och ett på Beställ prover i översikten, två klick för att välja den läkare som gav uppdraget och ett klick på Beställ vid paketet Feber och frossa. Läkaren signerar beställningen i inkorgen.",
+      "avvikelser": [
+        "Läkaren i Sussas testdata spelas av läkaren på kardiologen. Sjuksköterska i öppenvården har ingen egen demoroll.",
+        "Beställningen kan tas och skickas direkt, och läkaren signerar den i inkorgen."
+      ],
+      "slut": "Beställningen är sparad, skickad eller verkställd.",
+      "uppnatt": true,
+      "klick": 5,
+      "listval": 1,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "tecken": 0,
+      "uppmatt": 5,
+      "inomBudget": true,
+      "skriptetsTidMs": 269,
+      "uppskattadTidS": 12.2,
+      "klmDelar": {
+        "klick": 8,
+        "listval": 4,
+        "faltbyten": 0,
+        "tecken": 0,
+        "tangenter": 0,
+        "svarstid": 0.3
+      },
+      "steg": [
+        "klick: Laura August i arbetslistan",
+        "klick: Beställ prover",
+        "lista (2 klick): läkaren Sara Lindqvist",
+        "klick: Beställ vid paketet Feber och frossa"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "3.2",
+      "titel": "Upprätta en labbeställning på uppdrag",
+      "tema": 3,
+      "roll": "Undersköterska",
+      "demoroll": "usk-kard",
+      "tidsklass": 9,
+      "tidsklassSkal": "Som testfall 3.1 med en uppdragsgivare.",
+      "budget": 5,
+      "motivering": "Samma steg som för sjuksköterskan. Undersköterskan beställer på uppdrag men inte själv.",
+      "avvikelser": [
+        "Läkaren i Sussas testdata spelas av läkaren på kardiologen. Sjuksköterska i öppenvården har ingen egen demoroll.",
+        "Beställningen kan tas och skickas direkt, och läkaren signerar den i inkorgen."
+      ],
+      "slut": "Beställningen är sparad, skickad eller verkställd.",
+      "uppnatt": true,
+      "klick": 5,
+      "listval": 1,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "tecken": 0,
+      "uppmatt": 5,
+      "inomBudget": true,
+      "skriptetsTidMs": 260,
+      "uppskattadTidS": 12.2,
+      "klmDelar": {
+        "klick": 8,
+        "listval": 4,
+        "faltbyten": 0,
+        "tecken": 0,
+        "tangenter": 0,
+        "svarstid": 0.3
+      },
+      "steg": [
+        "klick: Laura August i arbetslistan",
+        "klick: Beställ prover",
+        "lista (2 klick): läkaren Sara Lindqvist",
+        "klick: Beställ vid paketet Feber och frossa"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "3.3",
+      "titel": "Registrera provtagning",
+      "tema": 3,
+      "roll": "Sjuksköterska slutenvård",
+      "demoroll": "ssk-kard",
+      "tidsklass": 6,
+      "tidsklassSkal": "En befintlig beställning med fyra prover att bocka av.",
+      "budget": 4,
+      "motivering": "Ett klick på Prover och kontroller i menyn, där beställningen står under patienten med rören i provtagningsordning, och ett klick på Tagen för vart och ett av de tre rören: serumröret för B12 och folat, EDTA-röret för blodstatus och urinröret. Systemet sätter tid och provtagare och skickar proverna när alla rör är tagna.",
+      "avvikelser": [
+        "Beställningen gjordes dagen före testet i stället för 2017-11-26, så att den syns i demon. Proverna skickas av systemet när det sista röret är taget, och det finns ingen knapp att skicka med."
+      ],
+      "slut": "Beställningen är skickad.",
+      "uppnatt": true,
+      "klick": 4,
+      "listval": 0,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "tecken": 0,
+      "uppmatt": 4,
+      "inomBudget": true,
+      "skriptetsTidMs": 372,
+      "uppskattadTidS": 11,
+      "klmDelar": {
+        "klick": 10.6,
+        "listval": 0,
+        "faltbyten": 0,
+        "tecken": 0,
+        "tangenter": 0,
+        "svarstid": 0.4
+      },
+      "steg": [
+        "klick: Prover och kontroller i menyn",
+        "klick: Tagen för rör 1",
+        "klick: Tagen för rör 2",
+        "klick: Tagen för rör 3"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "3.3",
+      "titel": "Registrera provtagning",
+      "tema": 3,
+      "roll": "Undersköterska",
+      "demoroll": "usk-kard",
+      "tidsklass": 6,
+      "tidsklassSkal": "En befintlig beställning med fyra prover att bocka av.",
+      "budget": 4,
+      "motivering": "Samma steg som för sjuksköterskan.",
+      "avvikelser": [
+        "Beställningen gjordes dagen före testet i stället för 2017-11-26, så att den syns i demon. Proverna skickas av systemet när det sista röret är taget, och det finns ingen knapp att skicka med."
+      ],
+      "slut": "Beställningen är skickad.",
+      "uppnatt": true,
+      "klick": 4,
+      "listval": 0,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "tecken": 0,
+      "uppmatt": 4,
+      "inomBudget": true,
+      "skriptetsTidMs": 338,
+      "uppskattadTidS": 10.9,
+      "klmDelar": {
+        "klick": 10.6,
+        "listval": 0,
+        "faltbyten": 0,
+        "tecken": 0,
+        "tangenter": 0,
+        "svarstid": 0.3
+      },
+      "steg": [
+        "klick: Prover och kontroller i menyn",
+        "klick: Tagen för rör 1",
+        "klick: Tagen för rör 2",
+        "klick: Tagen för rör 3"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
       "nr": "3.4",
       "titel": "Överblicka provsvar",
       "tema": 3,
@@ -487,7 +991,7 @@
       "budget": 5,
       "motivering": "Ett klick på patienten i arbetslistan och ett på fliken Mätvärden. Provet togs på vårdcentralen, så inre sekretess kräver ett aktivt val: ett klick på Visa uppgifter från andra vårdenheter, ett på det syfte som systemet föreslår och ett för att visa. Tabellen visar tid, värde och vårdenhet för varje provsvar, så svaret syns utan fler klick.",
       "avvikelser": [
-        "Provsvaren är tagna fem dagar till en vecka före testet i stället för i oktober 2017, så att de syns i demon. Beställande läkare visas inte, eftersom provsvaren inte har någon beställning, men vårdenheten och tiden visas."
+        "Provsvaren är tagna fem dagar till en vecka före testet i stället för i oktober 2017, så att de syns i demon. Svaren från vårdcentralen visar beställande läkare (runda 8), läkaren på vårdcentralen, och svaren från ortopeden visar vårdenheten och tiden."
       ],
       "slut": "Resultatet är uppläst. Rätt svar är PK 0,9 INR.",
       "uppnatt": true,
@@ -498,7 +1002,7 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 318,
+      "skriptetsTidMs": 301,
       "uppskattadTidS": 13.6,
       "klmDelar": {
         "klick": 13.3,
@@ -530,7 +1034,7 @@
       "budget": 5,
       "motivering": "Samma steg som för läkaren, med samma aktiva val för provsvaren från vårdcentralen.",
       "avvikelser": [
-        "Provsvaren är tagna fem dagar till en vecka före testet i stället för i oktober 2017, så att de syns i demon. Beställande läkare visas inte, eftersom provsvaren inte har någon beställning, men vårdenheten och tiden visas."
+        "Provsvaren är tagna fem dagar till en vecka före testet i stället för i oktober 2017, så att de syns i demon. Svaren från vårdcentralen visar beställande läkare (runda 8), läkaren på vårdcentralen, och svaren från ortopeden visar vårdenheten och tiden."
       ],
       "slut": "Resultatet är uppläst. Rätt svar är PK 0,9 INR.",
       "uppnatt": true,
@@ -541,7 +1045,7 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 339,
+      "skriptetsTidMs": 319,
       "uppskattadTidS": 13.6,
       "klmDelar": {
         "klick": 13.3,
@@ -573,7 +1077,7 @@
       "budget": 5,
       "motivering": "Samma steg som för läkaren. Undersköterskan läser mätvärden och provsvar men inte läkaranteckningar.",
       "avvikelser": [
-        "Provsvaren är tagna fem dagar till en vecka före testet i stället för i oktober 2017, så att de syns i demon. Beställande läkare visas inte, eftersom provsvaren inte har någon beställning, men vårdenheten och tiden visas."
+        "Provsvaren är tagna fem dagar till en vecka före testet i stället för i oktober 2017, så att de syns i demon. Svaren från vårdcentralen visar beställande läkare (runda 8), läkaren på vårdcentralen, och svaren från ortopeden visar vårdenheten och tiden."
       ],
       "slut": "Resultatet är uppläst. Rätt svar är PK 0,9 INR.",
       "uppnatt": true,
@@ -584,8 +1088,8 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 309,
-      "uppskattadTidS": 13.6,
+      "skriptetsTidMs": 294,
+      "uppskattadTidS": 13.5,
       "klmDelar": {
         "klick": 13.3,
         "listval": 0,
@@ -606,6 +1110,241 @@
       "tidspoang": 10
     },
     {
+      "nr": "3.5",
+      "titel": "Upprätta en beställning eller ordination på intern analys eller mätvärde",
+      "tema": 3,
+      "roll": "Läkare slutenvård",
+      "demoroll": "lak-kard",
+      "tidsklass": 9,
+      "tidsklassSkal": "Sex kontroller vid samma tid.",
+      "budget": 9,
+      "motivering": "Ett klick på patienten i arbetslistan och ett på Kontroller i översikten, ett klick på var och en av de sex kontrollerna och ett på Ordinera. Klockan 7 i morgon är förvald, och vätskebalansen följs ett dygn. Systemet lägger kontrollerna på avdelningen där patienten ligger, och sjuksköterskan ser dem som uppgifter med tid.",
+      "avvikelser": [
+        "SR är en intern analys som tas på avdelningen och registreras som mätvärde, och vätskebalansen följs i läkemedelsprocessens vätskebalans."
+      ],
+      "slut": "Beställningen är sparad, signerad eller verkställd.",
+      "uppnatt": true,
+      "klick": 9,
+      "listval": 0,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "tecken": 0,
+      "uppmatt": 9,
+      "inomBudget": true,
+      "skriptetsTidMs": 432,
+      "uppskattadTidS": 24.3,
+      "klmDelar": {
+        "klick": 23.9,
+        "listval": 0,
+        "faltbyten": 0,
+        "tecken": 0,
+        "tangenter": 0,
+        "svarstid": 0.4
+      },
+      "steg": [
+        "klick: Inga Strand i arbetslistan",
+        "klick: Kontroller i översikten",
+        "klick: Puls",
+        "klick: Blodtryck",
+        "klick: SR",
+        "klick: Temperatur",
+        "klick: Vikt",
+        "klick: Vätskebalans",
+        "klick: Ordinera"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "3.5",
+      "titel": "Upprätta en beställning eller ordination på intern analys eller mätvärde",
+      "tema": 3,
+      "roll": "Läkare öppenvård",
+      "demoroll": "lak-vc",
+      "tidsklass": 9,
+      "tidsklassSkal": "Sex kontroller vid samma tid.",
+      "budget": 9,
+      "motivering": "Samma steg som för läkaren i slutenvården. Kontrollerna görs på vårdcentralen, där patienten har sitt besök.",
+      "avvikelser": [
+        "SR är en intern analys som tas på avdelningen och registreras som mätvärde, och vätskebalansen följs i läkemedelsprocessens vätskebalans."
+      ],
+      "slut": "Beställningen är sparad, signerad eller verkställd.",
+      "uppnatt": true,
+      "klick": 9,
+      "listval": 0,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "tecken": 0,
+      "uppmatt": 9,
+      "inomBudget": true,
+      "skriptetsTidMs": 386,
+      "uppskattadTidS": 24.2,
+      "klmDelar": {
+        "klick": 23.9,
+        "listval": 0,
+        "faltbyten": 0,
+        "tecken": 0,
+        "tangenter": 0,
+        "svarstid": 0.4
+      },
+      "steg": [
+        "klick: Inga Strand i arbetslistan",
+        "klick: Kontroller i översikten",
+        "klick: Puls",
+        "klick: Blodtryck",
+        "klick: SR",
+        "klick: Temperatur",
+        "klick: Vikt",
+        "klick: Vätskebalans",
+        "klick: Ordinera"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "4.1",
+      "titel": "Skapa anteckning",
+      "tema": 4,
+      "roll": "Läkare öppenvård",
+      "demoroll": "lak-vc",
+      "tidsklass": 6,
+      "tidsklassSkal": "Fem frågor med fasta svar och en kommentar.",
+      "budget": 6,
+      "motivering": "Ett klick på patienten i arbetslistan och ett på Dokumentera tobaksvanor i översikten. Ett klick på Dagligen för cigaretter sätter svaret Ja själv och flyttar fokus till antalet, och systemet föreslår kvalificerat rådgivande samtal med KVÅ-kod. Ett klick på Erbjudet och accepterat, ett fältbyte för kommentaren och ett klick för att signera.",
+      "avvikelser": [
+        "Tiden för besöket är nu, eftersom Sussas datum ligger före testet. Besöket är på Vårdcentralen Tybble för läkaren och på Kardiologiska mottagningen för sjuksköterskan och fysioterapeuten.",
+        "Undersköterskan och vårdadministratören skriver inte anteckningar i Vårdkällan och kan därför inte spela testfallet. Undersköterskan ser tobaksvanorna i översikten.",
+        "Sussas fråga om rökare ja eller nej följer den nationella vägledningen: om patienten använder tobak eller nikotin, och per produkt dagligen, ibland eller slutat. Erbjuden och accepterad rökavvänjning är ett val, Erbjudet och accepterat."
+      ],
+      "slut": "Informationen är inmatad på ett strukturerat sätt i journalen.",
+      "uppnatt": true,
+      "klick": 5,
+      "listval": 0,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "tecken": 68,
+      "uppmatt": 6,
+      "inomBudget": true,
+      "skriptetsTidMs": 424,
+      "uppskattadTidS": 36.2,
+      "klmDelar": {
+        "klick": 13.3,
+        "listval": 0,
+        "faltbyten": 3.5,
+        "tecken": 19,
+        "tangenter": 0,
+        "svarstid": 0.4
+      },
+      "steg": [
+        "klick: Berit Strandhall i arbetslistan",
+        "klick: Dokumentera tobaksvanor",
+        "klick: Dagligen för cigaretter",
+        "har redan fokus: antalet cigaretter per dag",
+        "klick: Erbjudet och accepterat",
+        "fältbyte: kommentaren",
+        "klick: Signera"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "4.1",
+      "titel": "Skapa anteckning",
+      "tema": 4,
+      "roll": "Sjuksköterska slutenvård",
+      "demoroll": "ssk-kard",
+      "tidsklass": 6,
+      "tidsklassSkal": "Fem frågor med fasta svar och en kommentar.",
+      "budget": 6,
+      "motivering": "Samma steg som för läkaren, från arbetslistan på Kardiologiska kliniken. Tobaksvanorna skrivs och läses med samma behörighet som omvårdnadsanteckningar.",
+      "avvikelser": [
+        "Tiden för besöket är nu, eftersom Sussas datum ligger före testet. Besöket är på Vårdcentralen Tybble för läkaren och på Kardiologiska mottagningen för sjuksköterskan och fysioterapeuten.",
+        "Undersköterskan och vårdadministratören skriver inte anteckningar i Vårdkällan och kan därför inte spela testfallet. Undersköterskan ser tobaksvanorna i översikten.",
+        "Sussas fråga om rökare ja eller nej följer den nationella vägledningen: om patienten använder tobak eller nikotin, och per produkt dagligen, ibland eller slutat. Erbjuden och accepterad rökavvänjning är ett val, Erbjudet och accepterat."
+      ],
+      "slut": "Informationen är inmatad på ett strukturerat sätt i journalen.",
+      "uppnatt": true,
+      "klick": 5,
+      "listval": 0,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "tecken": 68,
+      "uppmatt": 6,
+      "inomBudget": true,
+      "skriptetsTidMs": 394,
+      "uppskattadTidS": 36.1,
+      "klmDelar": {
+        "klick": 13.3,
+        "listval": 0,
+        "faltbyten": 3.5,
+        "tecken": 19,
+        "tangenter": 0,
+        "svarstid": 0.4
+      },
+      "steg": [
+        "klick: Berit Strandhall i arbetslistan",
+        "klick: Dokumentera tobaksvanor",
+        "klick: Dagligen för cigaretter",
+        "har redan fokus: antalet cigaretter per dag",
+        "klick: Erbjudet och accepterat",
+        "fältbyte: kommentaren",
+        "klick: Signera"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "4.1",
+      "titel": "Skapa anteckning",
+      "tema": 4,
+      "roll": "Paramedicinare",
+      "demoroll": "fys-kard",
+      "tidsklass": 6,
+      "tidsklassSkal": "Fem frågor med fasta svar och en kommentar.",
+      "budget": 6,
+      "motivering": "Samma steg som för läkaren. Fysioterapeuten skriver omvårdnadsanteckningar och därmed tobaksvanor.",
+      "avvikelser": [
+        "Tiden för besöket är nu, eftersom Sussas datum ligger före testet. Besöket är på Vårdcentralen Tybble för läkaren och på Kardiologiska mottagningen för sjuksköterskan och fysioterapeuten.",
+        "Undersköterskan och vårdadministratören skriver inte anteckningar i Vårdkällan och kan därför inte spela testfallet. Undersköterskan ser tobaksvanorna i översikten.",
+        "Sussas fråga om rökare ja eller nej följer den nationella vägledningen: om patienten använder tobak eller nikotin, och per produkt dagligen, ibland eller slutat. Erbjuden och accepterad rökavvänjning är ett val, Erbjudet och accepterat."
+      ],
+      "slut": "Informationen är inmatad på ett strukturerat sätt i journalen.",
+      "uppnatt": true,
+      "klick": 5,
+      "listval": 0,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "tecken": 68,
+      "uppmatt": 6,
+      "inomBudget": true,
+      "skriptetsTidMs": 393,
+      "uppskattadTidS": 36.1,
+      "klmDelar": {
+        "klick": 13.3,
+        "listval": 0,
+        "faltbyten": 3.5,
+        "tecken": 19,
+        "tangenter": 0,
+        "svarstid": 0.4
+      },
+      "steg": [
+        "klick: Berit Strandhall i arbetslistan",
+        "klick: Dokumentera tobaksvanor",
+        "klick: Dagligen för cigaretter",
+        "har redan fokus: antalet cigaretter per dag",
+        "klick: Erbjudet och accepterat",
+        "fältbyte: kommentaren",
+        "klick: Signera"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
       "nr": "4.2",
       "titel": "Registrera mätvärden",
       "tema": 4,
@@ -613,43 +1352,39 @@
       "demoroll": "lak-vc",
       "tidsklass": 6,
       "tidsklassSkal": "Fyra mätvärden.",
-      "budget": 15,
-      "motivering": "Ett klick på patienten i arbetslistan och ett på Registrera mätvärde, där värdefältet för blodtryck redan har fokus, och ett klick för att registrera. Sedan för längd, vikt och puls två klick för att välja mätvärdet i listan, ett fältbyte för värdet och ett klick för att registrera. Tiden och vårdkontakten sätter systemet.",
+      "budget": 7,
+      "motivering": "Ett klick på patienten i arbetslistan, ett på Registrera mätvärde och ett på formuläret för längd, vikt, blodtryck och puls, där längden har fokus. Ett fältbyte vardera för vikt, blodtryck och puls och ett klick för att registrera alla fyra. Tiden och vårdkontakten sätter systemet, och BMI räknas själv.",
       "avvikelser": [
-        "Tiden för besöket är nu, eftersom Sussas datum ligger före testet."
+        "Tiden för besöket är nu, eftersom Sussas datum ligger före testet.",
+        "Formuläret för flera värden byggdes i runda 8 för testfallet. I runda 7 krävde testfallet 15 steg, med ett val i listan för varje mätvärde."
       ],
       "slut": "Mätvärdena är inmatade i journalen.",
       "uppnatt": true,
-      "klick": 12,
-      "listval": 3,
+      "klick": 4,
+      "listval": 0,
       "faltbyten": 3,
       "tangenter": 0,
       "tecken": 13,
-      "uppmatt": 15,
+      "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 539,
-      "uppskattadTidS": 42.3,
+      "skriptetsTidMs": 306,
+      "uppskattadTidS": 24.9,
       "klmDelar": {
-        "klick": 15.9,
-        "listval": 11.9,
+        "klick": 10.6,
+        "listval": 0,
         "faltbyten": 10.4,
         "tecken": 3.6,
         "tangenter": 0,
-        "svarstid": 0.5
+        "svarstid": 0.3
       },
       "steg": [
         "klick: Sara Sandmark i arbetslistan",
         "klick: Registrera mätvärde",
-        "har redan fokus: blodtrycket",
-        "klick: Registrera",
-        "lista (2 klick): mätvärdet Längd",
-        "fältbyte: värdet för längd",
-        "klick: Registrera",
-        "lista (2 klick): mätvärdet Vikt",
-        "fältbyte: värdet för vikt",
-        "klick: Registrera",
-        "lista (2 klick): mätvärdet Puls",
-        "fältbyte: värdet för puls",
+        "klick: Längd, vikt, blodtryck och puls på en gång",
+        "har redan fokus: längden",
+        "fältbyte: vikten",
+        "fältbyte: blodtrycket",
+        "fältbyte: pulsen",
         "klick: Registrera"
       ],
       "brister": [],
@@ -664,43 +1399,39 @@
       "demoroll": "ssk-kard",
       "tidsklass": 6,
       "tidsklassSkal": "Fyra mätvärden.",
-      "budget": 15,
+      "budget": 7,
       "motivering": "Samma steg som för läkaren i öppenvården, från arbetslistan på avdelningen.",
       "avvikelser": [
-        "Tiden för besöket är nu, eftersom Sussas datum ligger före testet."
+        "Tiden för besöket är nu, eftersom Sussas datum ligger före testet.",
+        "Formuläret för flera värden byggdes i runda 8 för testfallet. I runda 7 krävde testfallet 15 steg, med ett val i listan för varje mätvärde."
       ],
       "slut": "Mätvärdena är inmatade i journalen.",
       "uppnatt": true,
-      "klick": 12,
-      "listval": 3,
+      "klick": 4,
+      "listval": 0,
       "faltbyten": 3,
       "tangenter": 0,
       "tecken": 13,
-      "uppmatt": 15,
+      "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 580,
-      "uppskattadTidS": 42.3,
+      "skriptetsTidMs": 349,
+      "uppskattadTidS": 24.9,
       "klmDelar": {
-        "klick": 15.9,
-        "listval": 11.9,
+        "klick": 10.6,
+        "listval": 0,
         "faltbyten": 10.4,
         "tecken": 3.6,
         "tangenter": 0,
-        "svarstid": 0.6
+        "svarstid": 0.3
       },
       "steg": [
         "klick: Sara Sandmark i arbetslistan",
         "klick: Registrera mätvärde",
-        "har redan fokus: blodtrycket",
-        "klick: Registrera",
-        "lista (2 klick): mätvärdet Längd",
-        "fältbyte: värdet för längd",
-        "klick: Registrera",
-        "lista (2 klick): mätvärdet Vikt",
-        "fältbyte: värdet för vikt",
-        "klick: Registrera",
-        "lista (2 klick): mätvärdet Puls",
-        "fältbyte: värdet för puls",
+        "klick: Längd, vikt, blodtryck och puls på en gång",
+        "har redan fokus: längden",
+        "fältbyte: vikten",
+        "fältbyte: blodtrycket",
+        "fältbyte: pulsen",
         "klick: Registrera"
       ],
       "brister": [],
@@ -715,43 +1446,39 @@
       "demoroll": "usk-kard",
       "tidsklass": 6,
       "tidsklassSkal": "Fyra mätvärden.",
-      "budget": 15,
+      "budget": 7,
       "motivering": "Samma steg som för läkaren i öppenvården, från arbetslistan på avdelningen.",
       "avvikelser": [
-        "Tiden för besöket är nu, eftersom Sussas datum ligger före testet."
+        "Tiden för besöket är nu, eftersom Sussas datum ligger före testet.",
+        "Formuläret för flera värden byggdes i runda 8 för testfallet. I runda 7 krävde testfallet 15 steg, med ett val i listan för varje mätvärde."
       ],
       "slut": "Mätvärdena är inmatade i journalen.",
       "uppnatt": true,
-      "klick": 12,
-      "listval": 3,
+      "klick": 4,
+      "listval": 0,
       "faltbyten": 3,
       "tangenter": 0,
       "tecken": 13,
-      "uppmatt": 15,
+      "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 536,
-      "uppskattadTidS": 42.3,
+      "skriptetsTidMs": 348,
+      "uppskattadTidS": 24.9,
       "klmDelar": {
-        "klick": 15.9,
-        "listval": 11.9,
+        "klick": 10.6,
+        "listval": 0,
         "faltbyten": 10.4,
         "tecken": 3.6,
         "tangenter": 0,
-        "svarstid": 0.5
+        "svarstid": 0.3
       },
       "steg": [
         "klick: Sara Sandmark i arbetslistan",
         "klick: Registrera mätvärde",
-        "har redan fokus: blodtrycket",
-        "klick: Registrera",
-        "lista (2 klick): mätvärdet Längd",
-        "fältbyte: värdet för längd",
-        "klick: Registrera",
-        "lista (2 klick): mätvärdet Vikt",
-        "fältbyte: värdet för vikt",
-        "klick: Registrera",
-        "lista (2 klick): mätvärdet Puls",
-        "fältbyte: värdet för puls",
+        "klick: Längd, vikt, blodtryck och puls på en gång",
+        "har redan fokus: längden",
+        "fältbyte: vikten",
+        "fältbyte: blodtrycket",
+        "fältbyte: pulsen",
         "klick: Registrera"
       ],
       "brister": [],
@@ -766,37 +1493,36 @@
       "demoroll": "lak-kard",
       "tidsklass": 15,
       "tidsklassSkal": "Fyra textfält med längre texter och en signering.",
-      "budget": 8,
-      "motivering": "Ett klick på patienten i arbetslistan och ett på Ny anteckning, två klick för att välja mallen Epikris, ett fältbyte vardera för Orsak till vård, Förlopp och Uppföljning och ett klick för att signera. Det pågående vårdtillfället är förvalt som vårdkontakt.",
+      "budget": 4,
+      "motivering": "Ett klick på patienten i arbetslistan och ett på Skriv epikris vid vårdtillfället. Systemet har skrivit orsaken till vården och diagnosen sepsis med kod ur vårdtillfället, och fokus står i Förlopp. Ett fältbyte till Uppföljning och ett klick för att signera. Det pågående vårdtillfället är förvalt som vårdkontakt.",
       "avvikelser": [
         "Vårdtillfället pågår på Avdelning 72 i stället för Infektionskliniken, och började tre dagar före testet.",
-        "Vårdkällans epikris har sökorden Orsak till vård, Förlopp, Läkemedelsförändringar och Uppföljning. Diagnosen skrivs under Orsak till vård, vårdförloppet och bedömningen under Förlopp och planeringen under Uppföljning."
+        "Vårdkällans epikris har sökorden Orsak till vård, Förlopp, Läkemedelsförändringar och Uppföljning. Systemet skriver diagnosen under Orsak till vård, och vårdförloppet och bedömningen skrivs under Förlopp och planeringen under Uppföljning.",
+        "Förslaget till epikrisen byggdes i runda 8. I runda 7 krävde testfallet 8 steg."
       ],
       "slut": "Informationen är inmatad och anteckningen är signerad.",
       "uppnatt": true,
-      "klick": 5,
-      "listval": 1,
-      "faltbyten": 3,
+      "klick": 3,
+      "listval": 0,
+      "faltbyten": 1,
       "tangenter": 0,
-      "tecken": 321,
-      "uppmatt": 8,
+      "tecken": 308,
+      "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 833,
-      "uppskattadTidS": 113,
+      "skriptetsTidMs": 525,
+      "uppskattadTidS": 98.2,
       "klmDelar": {
         "klick": 8,
-        "listval": 4,
-        "faltbyten": 10.4,
-        "tecken": 89.9,
+        "listval": 0,
+        "faltbyten": 3.5,
+        "tecken": 86.2,
         "tangenter": 0,
-        "svarstid": 0.8
+        "svarstid": 0.5
       },
       "steg": [
         "klick: Anna Karlsson i arbetslistan",
-        "klick: Ny anteckning",
-        "lista (2 klick): mallen Epikris",
-        "fältbyte: Orsak till vård",
-        "fältbyte: Förlopp",
+        "klick: Skriv epikris",
+        "har redan fokus: Förlopp",
         "fältbyte: Uppföljning",
         "klick: Signera"
       ],
@@ -827,20 +1553,165 @@
       "tecken": 0,
       "uppmatt": 3,
       "inomBudget": true,
-      "skriptetsTidMs": 514,
-      "uppskattadTidS": 8.5,
+      "skriptetsTidMs": 431,
+      "uppskattadTidS": 8.4,
       "klmDelar": {
         "klick": 8,
         "listval": 0,
         "faltbyten": 0,
         "tecken": 0,
         "tangenter": 0,
-        "svarstid": 0.5
+        "svarstid": 0.4
       },
       "steg": [
         "klick: Inkorg i menyn",
         "klick: Granska och signera alla",
         "klick: Signera alla"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "5.1",
+      "titel": "Boka patient till ett besök",
+      "tema": 5,
+      "roll": "Medicinsk sekreterare",
+      "demoroll": "adm-kard",
+      "tidsklass": 6,
+      "tidsklassSkal": "En bokning och en kallelse.",
+      "budget": 4,
+      "motivering": "Ett klick på Boka besök i Dagens arbete, där sökfältet har fokus, och Enter. Det finns en träff, så systemet väljer patienten och visar sitt val: återbesök på 30 minuter hos läkaren som patienten har träffat förut, och de lämpligaste tiderna. Ett klick på den första tiden bokar den, skapar vårdkontakten och skickar kallelsen. Budgeten har plats för att välja patienten när det finns flera träffar.",
+      "avvikelser": [
+        "Patienten står inte på väntelistan och har ingen remiss. Hon har varit på mottagningen förut, eftersom en bokning kräver vårdrelation, och läkaren är Sara Lindqvist på Kardiologiska mottagningen.",
+        "Systemet föreslår tiden, så användaren väljer inte klockslaget 13.30. Sussas datum ligger före testet. Vårdgivare och besökstyp går att ändra i dialogen.",
+        "Kallelsen skickas som brev till en påhittad adress, och breven är simulerade."
+      ],
+      "slut": "Helene Lund är bokad till ett besök och en kallelse är skickad.",
+      "uppnatt": true,
+      "klick": 2,
+      "listval": 0,
+      "faltbyten": 0,
+      "tangenter": 1,
+      "tecken": 11,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "skriptetsTidMs": 177,
+      "uppskattadTidS": 8.8,
+      "klmDelar": {
+        "klick": 5.3,
+        "listval": 0,
+        "faltbyten": 0,
+        "tecken": 3.1,
+        "tangenter": 0.3,
+        "svarstid": 0.2
+      },
+      "steg": [
+        "klick: Boka besök i Dagens arbete",
+        "har redan fokus: sökfältet",
+        "tangent Enter: sök",
+        "klick: den första föreslagna tiden"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "5.2",
+      "titel": "Boka ett teambesök",
+      "tema": 5,
+      "roll": "Medicinsk sekreterare",
+      "demoroll": "adm-kard",
+      "tidsklass": 9,
+      "tidsklassSkal": "En bokning med två resurser.",
+      "budget": 5,
+      "motivering": "Ett klick på Boka teambesök i Dagens arbete, där sökfältet har fokus, och Enter. Systemet väljer patienten, föreslår teamet (den läkare och den sjuksköterska som patienten har träffat förut) och visar tider då båda och ett behandlingsrum är lediga i 60 minuter. Ett klick på den första tiden bokar besöket och rummet och skickar kallelsen med båda vårdgivarna. Budgeten har plats för att ändra teamet med två klick.",
+      "avvikelser": [
+        "Vårdgivarna är läkaren Sara Lindqvist och sjuksköterskan Lina Persson på Kardiologiska mottagningen, och patienten har träffat båda förut.",
+        "Systemet föreslår tiden, så användaren väljer inte klockslaget 10.45. Kallelsen skickas som brev till en påhittad adress, och breven är simulerade."
+      ],
+      "slut": "Sven Markström är bokad till ett teambesök och en kallelse är skickad.",
+      "uppnatt": true,
+      "klick": 2,
+      "listval": 0,
+      "faltbyten": 0,
+      "tangenter": 1,
+      "tecken": 14,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "skriptetsTidMs": 112,
+      "uppskattadTidS": 9.6,
+      "klmDelar": {
+        "klick": 5.3,
+        "listval": 0,
+        "faltbyten": 0,
+        "tecken": 3.9,
+        "tangenter": 0.3,
+        "svarstid": 0.1
+      },
+      "steg": [
+        "klick: Boka teambesök i Dagens arbete",
+        "har redan fokus: sökfältet",
+        "tangent Enter: sök",
+        "klick: den första föreslagna tiden"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "5.3",
+      "titel": "Boka ett gruppbesök",
+      "tema": 5,
+      "roll": "Medicinsk sekreterare",
+      "demoroll": "adm-kard",
+      "tidsklass": 15,
+      "tidsklassSkal": "Fem patienter till samma tid.",
+      "budget": 15,
+      "motivering": "Ett klick på Lägg till patient vid gruppträffen i Dagens arbete. Dialogen står kvar med sökfältet i fokus: för varje patient Enter och ett klick på träffen, och systemet bokar platsen, skriver kallelsen och räknar platserna kvar (tio steg för fem patienter). Ett klick på Klar, ett på Skicka kallelser vid gruppen och ett för att bekräfta. Budgeten har plats för ett steg till.",
+      "avvikelser": [
+        "Gruppträffen leds av fysioterapeuten Jenny Holmberg på Kardiologiska mottagningen, och patienterna har varit på mottagningen förut, eftersom en bokning kräver vårdrelation.",
+        "Gruppträffen ligger tre arbetsdagar efter testet klockan 11.45, eftersom Sussas datum ligger före testet. Kallelserna skickas som brev till påhittade adresser, och breven är simulerade."
+      ],
+      "slut": "De fem patienterna är bokade och en kallelse är skickad till alla.",
+      "uppnatt": true,
+      "klick": 9,
+      "listval": 0,
+      "faltbyten": 0,
+      "tangenter": 5,
+      "tecken": 61,
+      "uppmatt": 14,
+      "inomBudget": true,
+      "skriptetsTidMs": 634,
+      "uppskattadTidS": 43,
+      "klmDelar": {
+        "klick": 23.9,
+        "listval": 0,
+        "faltbyten": 0,
+        "tecken": 17.1,
+        "tangenter": 1.4,
+        "svarstid": 0.6
+      },
+      "steg": [
+        "klick: Lägg till patient vid gruppträffen",
+        "har redan fokus: sökfältet",
+        "tangent Enter: sök Sven Markström",
+        "klick: träffen Sven Markström",
+        "har redan fokus: sökfältet",
+        "tangent Enter: sök Henrik Lundin",
+        "klick: träffen Henrik Lundin",
+        "har redan fokus: sökfältet",
+        "tangent Enter: sök Hanna Korlen",
+        "klick: träffen Hanna Korlen",
+        "har redan fokus: sökfältet",
+        "tangent Enter: sök Anton Ekrot",
+        "klick: träffen Anton Ekrot",
+        "har redan fokus: sökfältet",
+        "tangent Enter: sök Helene Lund",
+        "klick: träffen Helene Lund",
+        "klick: Klar",
+        "klick: Skicka kallelser vid gruppen",
+        "klick: bekräfta"
       ],
       "brister": [],
       "malpoang": 10,
@@ -868,7 +1739,7 @@
       "tecken": 37,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 308,
+      "skriptetsTidMs": 295,
       "uppskattadTidS": 21.5,
       "klmDelar": {
         "klick": 10.6,
@@ -913,7 +1784,7 @@
       "tecken": 0,
       "uppmatt": 1,
       "inomBudget": true,
-      "skriptetsTidMs": 62,
+      "skriptetsTidMs": 48,
       "uppskattadTidS": 2.7,
       "klmDelar": {
         "klick": 2.7,
@@ -921,7 +1792,7 @@
         "faltbyten": 0,
         "tecken": 0,
         "tangenter": 0,
-        "svarstid": 0.1
+        "svarstid": 0
       },
       "steg": [
         "klick: Checka in för Sofia Andersson"
@@ -952,7 +1823,7 @@
       "tecken": 0,
       "uppmatt": 1,
       "inomBudget": true,
-      "skriptetsTidMs": 98,
+      "skriptetsTidMs": 89,
       "uppskattadTidS": 2.7,
       "klmDelar": {
         "klick": 2.7,
@@ -980,7 +1851,8 @@
       "budget": 5,
       "motivering": "Ett klick på Sök patient, där sökfältet har fokus, Enter och ett klick på träffen. Ett klick på Registrera vårdkontakt, där besök och nu är förvalda och orsaksfältet har fokus, och ett klick för att registrera.",
       "avvikelser": [
-        "Jourmottagningen motsvaras av ett oplanerat besök på Kardiologiska mottagningen."
+        "Jourmottagningen motsvaras av ett oplanerat besök på Kardiologiska mottagningen.",
+        "Gerda Ström har en remiss till kardiologen i testdatan för testfall 2.3 (runda 8), så systemet föreslår orsaken ur remissen."
       ],
       "slut": "Gerda Ström är ankomstregistrerad.",
       "uppnatt": true,
@@ -988,16 +1860,16 @@
       "listval": 0,
       "faltbyten": 0,
       "tangenter": 1,
-      "tecken": 26,
+      "tecken": 5,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 313,
-      "uppskattadTidS": 18.5,
+      "skriptetsTidMs": 319,
+      "uppskattadTidS": 12.6,
       "klmDelar": {
         "klick": 10.6,
         "listval": 0,
         "faltbyten": 0,
-        "tecken": 7.3,
+        "tecken": 1.4,
         "tangenter": 0.3,
         "svarstid": 0.3
       },
@@ -1007,7 +1879,6 @@
         "tangent Enter: sök",
         "klick: träffen Gerda Ström",
         "klick: Registrera vårdkontakt",
-        "har redan fokus: orsaken",
         "klick: Registrera"
       ],
       "brister": [],
@@ -1036,8 +1907,8 @@
       "tecken": 0,
       "uppmatt": 3,
       "inomBudget": true,
-      "skriptetsTidMs": 208,
-      "uppskattadTidS": 8.2,
+      "skriptetsTidMs": 166,
+      "uppskattadTidS": 8.1,
       "klmDelar": {
         "klick": 8,
         "listval": 0,
@@ -1077,7 +1948,7 @@
       "tecken": 37,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 288,
+      "skriptetsTidMs": 283,
       "uppskattadTidS": 22,
       "klmDelar": {
         "klick": 8,
@@ -1120,7 +1991,7 @@
       "tecken": 37,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 269,
+      "skriptetsTidMs": 252,
       "uppskattadTidS": 22,
       "klmDelar": {
         "klick": 8,
@@ -1163,7 +2034,7 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 235,
+      "skriptetsTidMs": 246,
       "uppskattadTidS": 12.1,
       "klmDelar": {
         "klick": 8,
@@ -1205,15 +2076,15 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 298,
-      "uppskattadTidS": 12.2,
+      "skriptetsTidMs": 169,
+      "uppskattadTidS": 12.1,
       "klmDelar": {
         "klick": 8,
         "listval": 4,
         "faltbyten": 0,
         "tecken": 0,
         "tangenter": 0,
-        "svarstid": 0.3
+        "svarstid": 0.2
       },
       "steg": [
         "klick: Fatima Baskar i arbetslistan",
@@ -1247,15 +2118,15 @@
       "tecken": 7,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 232,
-      "uppskattadTidS": 11.2,
+      "skriptetsTidMs": 286,
+      "uppskattadTidS": 11.3,
       "klmDelar": {
         "klick": 5.3,
         "listval": 0,
         "faltbyten": 3.5,
         "tecken": 2,
         "tangenter": 0.3,
-        "svarstid": 0.2
+        "svarstid": 0.3
       },
       "steg": [
         "klick: Bertil Danielsson i arbetslistan",
@@ -1289,7 +2160,7 @@
       "tecken": 7,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 294,
+      "skriptetsTidMs": 261,
       "uppskattadTidS": 11.3,
       "klmDelar": {
         "klick": 5.3,
@@ -1308,171 +2179,375 @@
       "brister": [],
       "malpoang": 10,
       "tidspoang": 10
-    }
-  ],
-  "ejGenomforbara": [
-    {
-      "nr": "2.2",
-      "titel": "Upprätta och skicka vårdbegäran på uppdrag",
-      "roller": [
-        "Medicinsk sekreterare"
-      ],
-      "saknas": "Vårdadministratören kan inte skicka remisser, och en remiss på uppdrag av en annan remittent finns inte."
-    },
-    {
-      "nr": "2.3",
-      "titel": "Ta emot vårdbegäran",
-      "roller": [
-        "Läkare slutenvård",
-        "Läkare öppenvård",
-        "Paramedicinare"
-      ],
-      "saknas": "Att fördela en remiss till en namngiven läkare finns inte. Accepterad remiss hamnar på väntelistan, avvisning med motivering och vidarebefordran finns."
-    },
-    {
-      "nr": "2.4",
-      "titel": "Ta emot vårdbegäran på uppdrag",
-      "roller": [
-        "Medicinsk sekreterare"
-      ],
-      "saknas": "Remisskonferens och fördelning till en namngiven läkare finns inte. Vårdadministratören kvitterar mottagna remisser men bedömer dem inte."
-    },
-    {
-      "nr": "2.5",
-      "titel": "Registrera en extern vårdbegäran",
-      "roller": [
-        "Medicinsk sekreterare"
-      ],
-      "saknas": "Att registrera en remiss på papper från en vårdgivare utanför Vårdkällan finns inte."
-    },
-    {
-      "nr": "3.1",
-      "titel": "Upprätta en labbeställning",
-      "roller": [
-        "Läkare slutenvård",
-        "Läkare öppenvård"
-      ],
-      "saknas": "Labbeställning finns inte. Provsvar visas som mätvärden, men ingen beställning går till ett laboratorium."
-    },
-    {
-      "nr": "3.2",
-      "titel": "Upprätta en labbeställning på uppdrag",
-      "roller": [
-        "Sjuksköterska öppenvård",
-        "Sjuksköterska slutenvård",
-        "Undersköterska"
-      ],
-      "saknas": "Labbeställning finns inte, inte heller på uppdrag."
-    },
-    {
-      "nr": "3.3",
-      "titel": "Registrera provtagning",
-      "roller": [
-        "Sjuksköterska öppenvård",
-        "Sjuksköterska slutenvård",
-        "Undersköterska"
-      ],
-      "saknas": "Labbeställning och provtagning mot en beställning finns inte."
-    },
-    {
-      "nr": "3.5",
-      "titel": "Upprätta en beställning eller ordination på intern analys eller mätvärde",
-      "roller": [
-        "Läkare öppenvård",
-        "Läkare slutenvård"
-      ],
-      "saknas": "En ordination av kontroller och mätvärden till avdelningen finns inte. Mätvärden registreras när de har tagits."
-    },
-    {
-      "nr": "4.1",
-      "titel": "Skapa anteckning",
-      "roller": [
-        "Läkare slutenvård",
-        "Läkare öppenvård",
-        "Sjuksköterska öppenvård",
-        "Sjuksköterska slutenvård",
-        "Undersköterska",
-        "Paramedicinare",
-        "Medicinsk sekreterare"
-      ],
-      "saknas": "En mall för tobaksvanor med fasta svarsalternativ finns inte. Anteckningarna har sökord med fritext."
-    },
-    {
-      "nr": "5.1",
-      "titel": "Boka patient till ett besök",
-      "roller": [
-        "Läkare öppenvård",
-        "Sjuksköterska öppenvård",
-        "Paramedicinare",
-        "Medicinsk sekreterare"
-      ],
-      "saknas": "En tid bokas för det patienten väntar på (en remiss eller en post på väntelistan), och systemet föreslår tiden. Att boka en patient som inte väntar på något, på en tid och hos en vårdgivare som användaren väljer, finns inte."
-    },
-    {
-      "nr": "5.2",
-      "titel": "Boka ett teambesök",
-      "roller": [
-        "Läkare öppenvård",
-        "Sjuksköterska öppenvård",
-        "Paramedicinare",
-        "Medicinsk sekreterare"
-      ],
-      "saknas": "Ett besök med två vårdgivare finns inte. Ingrepp bokar läkare, rum och utrustning samtidigt, men inte två personer."
-    },
-    {
-      "nr": "5.3",
-      "titel": "Boka ett gruppbesök",
-      "roller": [
-        "Läkare öppenvård",
-        "Sjuksköterska öppenvård",
-        "Paramedicinare",
-        "Medicinsk sekreterare"
-      ],
-      "saknas": "Gruppträffar och gruppkallelser finns, men att lägga till patienter i en gruppträff i gränssnittet finns inte."
     },
     {
       "nr": "7.1",
       "titel": "Överblicka dagens arbete för din arbetsplats",
-      "roller": [
-        "Läkare slutenvård",
-        "Sjuksköterska slutenvård",
-        "Paramedicinare",
-        "Undersköterska"
+      "tema": 7,
+      "roll": "Sjuksköterska slutenvård",
+      "demoroll": "ssk-kard",
+      "tidsklass": 6,
+      "tidsklassSkal": "En vy och en tid.",
+      "budget": 1,
+      "motivering": "Ett klick på Avdelningens planering i arbetslistan. Vyn visar dagens händelser för avdelningens patienter i tidsordning: uppgifter, läkemedel att ge och bokade tider.",
+      "avvikelser": [
+        "Avdelningen är Avdelning 72, kardiologi. Sussas händelser ligger i dag med Sussas klockslag.",
+        "Kontrollerna i Sussas testdata (temperatur, puls, blodtryck och blodsocker) är planerade uppgifter här. Ordinerade kontroller ansluts när de finns."
       ],
-      "saknas": "Planerade händelser och arbetsuppgifter på en vårdavdelning (provtagning, omläggning, sjukgymnastik, teamrond) finns inte. Tidboken har mottagningens tider, och Läkemedel att ge har dagens doser."
+      "slut": "Händelserna klockan 11 är funna: provtagning för en patient och sjukgymnastik för en annan.",
+      "uppnatt": true,
+      "klick": 1,
+      "listval": 0,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "tecken": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "skriptetsTidMs": 90,
+      "uppskattadTidS": 2.7,
+      "klmDelar": {
+        "klick": 2.7,
+        "listval": 0,
+        "faltbyten": 0,
+        "tecken": 0,
+        "tangenter": 0,
+        "svarstid": 0.1
+      },
+      "steg": [
+        "klick: Avdelningens planering i arbetslistan"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "7.1",
+      "titel": "Överblicka dagens arbete för din arbetsplats",
+      "tema": 7,
+      "roll": "Läkare slutenvård",
+      "demoroll": "lak-kard",
+      "tidsklass": 6,
+      "tidsklassSkal": "En vy och en tid.",
+      "budget": 1,
+      "motivering": "Samma steg som för sjuksköterskan. Avdelningen är förvald, eftersom läkarens patienter ligger där.",
+      "avvikelser": [
+        "Avdelningen är Avdelning 72, kardiologi. Sussas händelser ligger i dag med Sussas klockslag.",
+        "Kontrollerna i Sussas testdata (temperatur, puls, blodtryck och blodsocker) är planerade uppgifter här. Ordinerade kontroller ansluts när de finns."
+      ],
+      "slut": "Händelserna klockan 11 är funna: provtagning för en patient och sjukgymnastik för en annan.",
+      "uppnatt": true,
+      "klick": 1,
+      "listval": 0,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "tecken": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "skriptetsTidMs": 89,
+      "uppskattadTidS": 2.7,
+      "klmDelar": {
+        "klick": 2.7,
+        "listval": 0,
+        "faltbyten": 0,
+        "tecken": 0,
+        "tangenter": 0,
+        "svarstid": 0.1
+      },
+      "steg": [
+        "klick: Avdelningens planering i arbetslistan"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "7.1",
+      "titel": "Överblicka dagens arbete för din arbetsplats",
+      "tema": 7,
+      "roll": "Paramedicinare",
+      "demoroll": "fys-kard",
+      "tidsklass": 6,
+      "tidsklassSkal": "En vy och en tid.",
+      "budget": 1,
+      "motivering": "Samma steg som för sjuksköterskan. Fysioterapeuten på mottagningen ser avdelningen på samma vårdenhet.",
+      "avvikelser": [
+        "Avdelningen är Avdelning 72, kardiologi. Sussas händelser ligger i dag med Sussas klockslag.",
+        "Kontrollerna i Sussas testdata (temperatur, puls, blodtryck och blodsocker) är planerade uppgifter här. Ordinerade kontroller ansluts när de finns."
+      ],
+      "slut": "Händelserna klockan 11 är funna: provtagning för en patient och sjukgymnastik för en annan.",
+      "uppnatt": true,
+      "klick": 1,
+      "listval": 0,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "tecken": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "skriptetsTidMs": 95,
+      "uppskattadTidS": 2.7,
+      "klmDelar": {
+        "klick": 2.7,
+        "listval": 0,
+        "faltbyten": 0,
+        "tecken": 0,
+        "tangenter": 0,
+        "svarstid": 0.1
+      },
+      "steg": [
+        "klick: Avdelningens planering i arbetslistan"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
     },
     {
       "nr": "7.2",
       "titel": "Överblicka dagens händelser för en grupp patienter",
-      "roller": [
-        "Läkare slutenvård",
-        "Sjuksköterska slutenvård",
-        "Paramedicinare",
-        "Undersköterska"
+      "tema": 7,
+      "roll": "Sjuksköterska slutenvård",
+      "demoroll": "ssk-kard",
+      "tidsklass": 6,
+      "tidsklassSkal": "En vy med fyra patienter.",
+      "budget": 5,
+      "motivering": "Ett klick på Avdelningens planering i arbetslistan och ett klick per patient för att markera de fyra. Vyn visar då bara deras händelser, och valet står kvar tills sidan laddas om.",
+      "avvikelser": [
+        "Avdelningen är Avdelning 72, kardiologi."
       ],
-      "saknas": "Planerade händelser på avdelningen finns inte, se testfall 7.1."
+      "slut": "Händelserna klockan 11 är funna för de fyra patienterna.",
+      "uppnatt": true,
+      "klick": 5,
+      "listval": 0,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "tecken": 0,
+      "uppmatt": 5,
+      "inomBudget": true,
+      "skriptetsTidMs": 370,
+      "uppskattadTidS": 13.6,
+      "klmDelar": {
+        "klick": 13.3,
+        "listval": 0,
+        "faltbyten": 0,
+        "tecken": 0,
+        "tangenter": 0,
+        "svarstid": 0.4
+      },
+      "steg": [
+        "klick: Avdelningens planering i arbetslistan",
+        "klick: markera Gerda Ström",
+        "klick: markera Elin Arnström",
+        "klick: markera Trevis Ljung",
+        "klick: markera Berit Strandhall"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "7.2",
+      "titel": "Överblicka dagens händelser för en grupp patienter",
+      "tema": 7,
+      "roll": "Undersköterska",
+      "demoroll": "usk-kard",
+      "tidsklass": 6,
+      "tidsklassSkal": "En vy med fyra patienter.",
+      "budget": 5,
+      "motivering": "Samma steg som för sjuksköterskan.",
+      "avvikelser": [
+        "Avdelningen är Avdelning 72, kardiologi."
+      ],
+      "slut": "Händelserna klockan 11 är funna för de fyra patienterna.",
+      "uppnatt": true,
+      "klick": 5,
+      "listval": 0,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "tecken": 0,
+      "uppmatt": 5,
+      "inomBudget": true,
+      "skriptetsTidMs": 505,
+      "uppskattadTidS": 13.8,
+      "klmDelar": {
+        "klick": 13.3,
+        "listval": 0,
+        "faltbyten": 0,
+        "tecken": 0,
+        "tangenter": 0,
+        "svarstid": 0.5
+      },
+      "steg": [
+        "klick: Avdelningens planering i arbetslistan",
+        "klick: markera Gerda Ström",
+        "klick: markera Elin Arnström",
+        "klick: markera Trevis Ljung",
+        "klick: markera Berit Strandhall"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
     },
     {
       "nr": "7.3",
       "titel": "Överblicka patientens planering",
-      "roller": [
-        "Läkare slutenvård",
-        "Sjuksköterska slutenvård",
-        "Paramedicinare"
+      "tema": 7,
+      "roll": "Läkare slutenvård",
+      "demoroll": "lak-kard",
+      "tidsklass": 6,
+      "tidsklassSkal": "En patient och en tid.",
+      "budget": 2,
+      "motivering": "Ett klick på Avdelningens planering i arbetslistan och ett på Planering vid patienten. Vyn visar tre dagar bakåt och tre framåt, med dagen i dag markerad.",
+      "avvikelser": [
+        "Avdelningen är Avdelning 72, kardiologi."
       ],
-      "saknas": "Planerade händelser på avdelningen finns inte, se testfall 7.1. Patientens bokade tider på mottagningar visas i översikten."
+      "slut": "Händelsen klockan 15 är funnen. Rätt svar är EKG.",
+      "uppnatt": true,
+      "klick": 2,
+      "listval": 0,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "tecken": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "skriptetsTidMs": 199,
+      "uppskattadTidS": 5.5,
+      "klmDelar": {
+        "klick": 5.3,
+        "listval": 0,
+        "faltbyten": 0,
+        "tecken": 0,
+        "tangenter": 0,
+        "svarstid": 0.2
+      },
+      "steg": [
+        "klick: Avdelningens planering i arbetslistan",
+        "klick: Planering för Bertil Danielsson"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "7.3",
+      "titel": "Överblicka patientens planering",
+      "tema": 7,
+      "roll": "Sjuksköterska slutenvård",
+      "demoroll": "ssk-kard",
+      "tidsklass": 6,
+      "tidsklassSkal": "En patient och en tid.",
+      "budget": 2,
+      "motivering": "Samma steg som för läkaren.",
+      "avvikelser": [
+        "Avdelningen är Avdelning 72, kardiologi."
+      ],
+      "slut": "Händelsen klockan 15 är funnen. Rätt svar är EKG.",
+      "uppnatt": true,
+      "klick": 2,
+      "listval": 0,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "tecken": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "skriptetsTidMs": 178,
+      "uppskattadTidS": 5.5,
+      "klmDelar": {
+        "klick": 5.3,
+        "listval": 0,
+        "faltbyten": 0,
+        "tecken": 0,
+        "tangenter": 0,
+        "svarstid": 0.2
+      },
+      "steg": [
+        "klick: Avdelningens planering i arbetslistan",
+        "klick: Planering för Bertil Danielsson"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
     },
     {
       "nr": "7.4",
       "titel": "Visualisera en specifik resurs arbetsplanering",
-      "roller": [
-        "Läkare slutenvård",
-        "Sjuksköterska slutenvård",
-        "Paramedicinare"
+      "tema": 7,
+      "roll": "Läkare slutenvård",
+      "demoroll": "lak-kard",
+      "tidsklass": 6,
+      "tidsklassSkal": "En vy och en tid.",
+      "budget": 2,
+      "motivering": "Ett klick på Avdelningens planering i arbetslistan och ett på läkarens namn vid en händelse. Vyn visar läkarens vecka med uppgifterna på avdelningen, bokade tider och teambesök, och dagen i dag markerad.",
+      "avvikelser": [
+        "Läkaren är överläkaren Göran Malm på kardiologen, och perioden är veckan med testdagen i stället för Sussas datum i november 2017."
       ],
-      "saknas": "Arbetsuppgifter på avdelningen per person finns inte. Tidboken visar mottagningens scheman."
+      "slut": "Läkarens händelse är funnen. Rätt svar är infektionskonsult.",
+      "uppnatt": true,
+      "klick": 2,
+      "listval": 0,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "tecken": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "skriptetsTidMs": 186,
+      "uppskattadTidS": 5.5,
+      "klmDelar": {
+        "klick": 5.3,
+        "listval": 0,
+        "faltbyten": 0,
+        "tecken": 0,
+        "tangenter": 0,
+        "svarstid": 0.2
+      },
+      "steg": [
+        "klick: Avdelningens planering i arbetslistan",
+        "klick: Göran Malm vid en händelse"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "7.4",
+      "titel": "Visualisera en specifik resurs arbetsplanering",
+      "tema": 7,
+      "roll": "Sjuksköterska slutenvård",
+      "demoroll": "ssk-kard",
+      "tidsklass": 6,
+      "tidsklassSkal": "En vy och en tid.",
+      "budget": 2,
+      "motivering": "Samma steg som för läkaren.",
+      "avvikelser": [
+        "Läkaren är överläkaren Göran Malm på kardiologen, och perioden är veckan med testdagen i stället för Sussas datum i november 2017."
+      ],
+      "slut": "Läkarens händelse är funnen. Rätt svar är infektionskonsult.",
+      "uppnatt": true,
+      "klick": 2,
+      "listval": 0,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "tecken": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "skriptetsTidMs": 171,
+      "uppskattadTidS": 5.5,
+      "klmDelar": {
+        "klick": 5.3,
+        "listval": 0,
+        "faltbyten": 0,
+        "tecken": 0,
+        "tangenter": 0,
+        "svarstid": 0.2
+      },
+      "steg": [
+        "klick: Avdelningens planering i arbetslistan",
+        "klick: Göran Malm vid en händelse"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
     }
   ],
+  "ejGenomforbara": [],
   "tester": [
     {
       "namn": "Gränssnitt > Sussas testfall > 1.1 Förskriva läkemedel (läkare öppenvård) når slutvillkoret inom klickbudgeten",
@@ -1503,11 +2578,55 @@
       "status": "grön"
     },
     {
+      "namn": "Gränssnitt > Sussas testfall > 2.2 Upprätta och skicka vårdbegäran på uppdrag (medicinsk sekreterare) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 2.3 Ta emot vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 2.3 Ta emot vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 2.4 Ta emot vårdbegäran på uppdrag (medicinsk sekreterare) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 2.5 Registrera en extern vårdbegäran (medicinsk sekreterare) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
       "namn": "Gränssnitt > Sussas testfall > 2.6 Besvara en vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten",
       "status": "grön"
     },
     {
       "namn": "Gränssnitt > Sussas testfall > 2.6 Besvara en vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare slutenvård) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare öppenvård) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 3.2 Upprätta en labbeställning på uppdrag (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 3.2 Upprätta en labbeställning på uppdrag (undersköterska) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (undersköterska) når slutvillkoret inom klickbudgeten",
       "status": "grön"
     },
     {
@@ -1520,6 +2639,26 @@
     },
     {
       "namn": "Gränssnitt > Sussas testfall > 3.4 Överblicka provsvar (undersköterska) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 3.5 Upprätta en beställning eller ordination på intern analys eller mätvärde (läkare slutenvård) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 3.5 Upprätta en beställning eller ordination på intern analys eller mätvärde (läkare öppenvård) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (läkare öppenvård) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (paramedicinare) når slutvillkoret inom klickbudgeten",
       "status": "grön"
     },
     {
@@ -1540,6 +2679,18 @@
     },
     {
       "namn": "Gränssnitt > Sussas testfall > 4.4 Signera (läkare öppenvård) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 5.1 Boka patient till ett besök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 5.2 Boka ett teambesök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 5.3 Boka ett gruppbesök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten",
       "status": "grön"
     },
     {
@@ -1585,20 +2736,47 @@
     {
       "namn": "Gränssnitt > Sussas testfall > 6.3 Hitta information från tidigare slutenvårdstillfälle (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten",
       "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (läkare slutenvård) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (paramedicinare) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 7.2 Överblicka dagens händelser för en grupp patienter (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 7.2 Överblicka dagens händelser för en grupp patienter (undersköterska) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 7.3 Överblicka patientens planering (läkare slutenvård) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 7.3 Överblicka patientens planering (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 7.4 Visualisera en specifik resurs arbetsplanering (läkare slutenvård) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 7.4 Visualisera en specifik resurs arbetsplanering (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
     }
   ],
   "sammanstallning": {
     "alla": {
       "antal": 34,
-      "malupfyllelse": 5.29,
-      "effektivitet": 5.29,
-      "poang": {
-        "malupfyllelse": 5,
-        "effektivitet": 5
-      }
-    },
-    "genomforda": {
-      "antal": 18,
       "malupfyllelse": 10,
       "effektivitet": 10,
       "poang": {
@@ -1606,8 +2784,17 @@
         "effektivitet": 10
       }
     },
-    "antalGenomforda": 18,
+    "genomforda": {
+      "antal": 34,
+      "malupfyllelse": 10,
+      "effektivitet": 10,
+      "poang": {
+        "malupfyllelse": 10,
+        "effektivitet": 10
+      }
+    },
+    "antalGenomforda": 34,
     "antal": 34,
-    "korningar": 28
+    "korningar": 56
   }
 }

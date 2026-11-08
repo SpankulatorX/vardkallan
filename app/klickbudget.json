@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T11:37:48.030Z",
-  "bas": "http://127.0.0.1:18184",
+  "tid": "2026-11-08T13:03:17.658Z",
+  "bas": "http://127.0.0.1:18111",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "cc19f138c60448ba5e9a153652e77a4f661ac115df806bcc1a658f30a110228f",
+  "gransnittHash": "8e9feefc1902f3987d5f3d6f1e22d65d9a092dc52c8755f67e0fe616178b0121",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -1014,6 +1014,79 @@
       ]
     },
     {
+      "id": "boka-fri",
+      "namn": "Boka en patient fritt",
+      "roll": "adm-kard",
+      "start": "Vårdadministratörens startsida",
+      "budget": 4,
+      "motivering": "Sussa 3.4.2.2 och testfall 5.1. Ett klick på Boka besök, där sökfältet har fokus, och Enter. Med en enda träff väljer systemet patienten och visar besökstyp, vårdgivare och de lämpligaste tiderna, och ett klick på en tid bokar den, skapar vårdkontakten och skickar kallelsen. Budgeten har plats för att välja patienten bland flera träffar.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 1,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Boka besök",
+        "har redan fokus: sökfältet",
+        "tangent Enter: sök",
+        "klick: den första föreslagna tiden"
+      ]
+    },
+    {
+      "id": "boka-team",
+      "namn": "Boka ett teambesök",
+      "roll": "adm-kard",
+      "start": "Vårdadministratörens startsida",
+      "budget": 5,
+      "motivering": "Sussa 3.4.1.5 och testfall 5.2. Ett klick på Boka teambesök, där sökfältet har fokus, och Enter. Systemet föreslår teamet och tider då alla och ett rum är lediga hela besöket, och ett klick bokar allt och skickar kallelsen. Budgeten har plats för att ändra teamet med två klick.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 1,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Boka teambesök",
+        "har redan fokus: sökfältet",
+        "tangent Enter: sök",
+        "klick: den första föreslagna tiden"
+      ]
+    },
+    {
+      "id": "grupp-lagg-till",
+      "namn": "Lägga till en patient i en gruppträff",
+      "roll": "adm-kard",
+      "start": "Vårdadministratörens startsida",
+      "budget": 3,
+      "motivering": "Testfall 5.3. Ett klick på Lägg till patient vid gruppträffen, där sökfältet har fokus, Enter och ett klick på träffen. Systemet bokar platsen, skriver kallelsen och räknar platserna kvar, och när träffen är full sätter det patienten på gruppens väntelista.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 1,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Lägg till patient vid Hjärtskola",
+        "har redan fokus: sökfältet",
+        "tangent Enter: sök",
+        "klick: träffen"
+      ]
+    },
+    {
+      "id": "avdelningens-handelser",
+      "namn": "Överblicka dagens händelser på avdelningen",
+      "roll": "ssk-kard",
+      "start": "Arbetslistan efter inloggning",
+      "budget": 1,
+      "motivering": "Sussa 3.4.1.6 och testfall 7.1. Ett klick på Avdelningens planering i arbetslistan. Vyn visar allt som är planerat för avdelningens patienter i dag i tidsordning: uppgifter, läkemedel att ge och bokade tider, med vem som ansvarar.",
+      "klick": 1,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "steg": [
+        "klick: Avdelningens planering"
+      ]
+    },
+    {
       "id": "forlang-inloggning",
       "namn": "Fortsätta arbeta när inloggningen snart går ut",
       "roll": "lak-kard",
@@ -1027,6 +1100,160 @@
       "inomBudget": true,
       "steg": [
         "klick: Fortsätt arbeta"
+      ]
+    },
+    {
+      "id": "tobaksvanor",
+      "namn": "Fylla i tobaksmallen i en anteckning",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 4,
+      "motivering": "Sussa testfall 4.1. Ett klick på Dokumentera tobaksvanor i översikten, ett klick på Dagligen för cigaretter, som flyttar fokus till antalet och sätter svaret Ja själv, ett klick på Erbjudet och accepterat för det stöd som systemet föreslår och ett klick för att signera. Systemet räknar ut åtgärden och KVÅ-koden ur svaren och patientens ålder.",
+      "klick": 4,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 4,
+      "inomBudget": true,
+      "steg": [
+        "klick: Dokumentera tobaksvanor i översikten",
+        "klick: Dagligen för cigaretter",
+        "har redan fokus: antalet cigaretter per dag",
+        "klick: Erbjudet och accepterat",
+        "klick: Signera"
+      ]
+    },
+    {
+      "id": "epikris",
+      "namn": "Skriva och signera en epikris",
+      "roll": "lak-kard",
+      "start": "Översikten för en inlagd patient",
+      "budget": 3,
+      "motivering": "Sussa testfall 4.3. Ett klick på Skriv epikris vid vårdtillfället. Systemet har skrivit orsaken till vården ur vårdtillfället och diagnoserna och läkemedelsförändringarna ur ordinationerna, och fokus står i Förlopp. Ett fältbyte till Uppföljning och ett klick för att signera.",
+      "klick": 2,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Skriv epikris",
+        "har redan fokus: Förlopp",
+        "fältbyte: Uppföljning",
+        "klick: Signera"
+      ]
+    },
+    {
+      "id": "grundmatningar",
+      "namn": "Registrera längd, vikt, blodtryck och puls",
+      "roll": "ssk-kard",
+      "start": "Patientens översikt",
+      "budget": 6,
+      "motivering": "Sussa testfall 4.2. Ett klick på Registrera mätvärde och ett på formuläret för flera värden, där längden har fokus, ett fältbyte vardera för vikt, blodtryck och puls och ett klick för att registrera. Tiden och vårdkontakten sätter systemet, och BMI räknas själv.",
+      "klick": 3,
+      "faltbyten": 3,
+      "tangenter": 0,
+      "uppmatt": 6,
+      "inomBudget": true,
+      "steg": [
+        "klick: Registrera mätvärde",
+        "klick: Längd, vikt, blodtryck och puls på en gång",
+        "har redan fokus: längden",
+        "fältbyte: vikten",
+        "fältbyte: blodtrycket",
+        "fältbyte: pulsen",
+        "klick: Registrera"
+      ]
+    },
+    {
+      "id": "remiss-pa-uppdrag",
+      "namn": "Skriva en remiss på uppdrag av en läkare",
+      "roll": "adm-kard",
+      "start": "Patientens översikt",
+      "budget": 6,
+      "motivering": "Sussa 3.3.1.4 och testfall 2.2. Ett klick på Remiss på uppdrag, där mottagaren har fokus, två klick för att välja mottagare i listan, ett fältbyte vardera för frågeställning och anamnes och ett klick för att skicka till läkaren. Systemet föreslår uppdragsgivaren ur patientens tider och vårdkontakter och fyller i prioritet och sista svarsdatum. Remissen skickas när läkaren har signerat den i inkorgen.",
+      "klick": 4,
+      "faltbyten": 2,
+      "tangenter": 0,
+      "uppmatt": 6,
+      "inomBudget": true,
+      "steg": [
+        "klick: Remiss på uppdrag",
+        "lista (2 klick): mottagare Ortopediska kliniken USÖ",
+        "fältbyte: frågeställning",
+        "fältbyte: anamnes",
+        "klick: Skicka till läkaren för signering"
+      ]
+    },
+    {
+      "id": "fordela-remiss",
+      "namn": "Fördela en remiss till en läkare",
+      "roll": "adm-kard",
+      "start": "Inkommande remisser efter återställning",
+      "budget": 2,
+      "motivering": "Sussa 3.3.1.5 och testfall 2.3 och 2.4. Ett klick på Fördela och ett på läkaren. Systemet föreslår bakjouren först, visar hur många remisser varje läkare har att bedöma och kvitterar mottagningen.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Fördela",
+        "klick: den läkare som systemet föreslår först"
+      ]
+    },
+    {
+      "id": "registrera-pappersremiss",
+      "namn": "Registrera en pappersremiss",
+      "roll": "adm-kard",
+      "start": "Inkommande remisser efter återställning",
+      "budget": 6,
+      "motivering": "Sussa 3.3.1.2 och testfall 2.5. Ett klick på Registrera vid den inskannade remissen, där patientfältet har fokus och systemet väljer patienten när sökningen ger en träff, ett fältbyte vardera för avsändande enhet, frågeställning och anamnes och ett klick för att registrera. Remissdatumet är förvalt till i dag, och budgeten har plats för att ändra det.",
+      "klick": 2,
+      "faltbyten": 3,
+      "tangenter": 0,
+      "uppmatt": 5,
+      "inomBudget": true,
+      "steg": [
+        "klick: Registrera vid den inskannade remissen",
+        "har redan fokus: patienten",
+        "fältbyte: avsändande enhet",
+        "fältbyte: frågeställning",
+        "fältbyte: anamnes",
+        "klick: Registrera"
+      ]
+    },
+    {
+      "id": "bestall-paket",
+      "namn": "Beställa ett standardpaket med prover",
+      "roll": "lak-kard",
+      "start": "Arbetslistan efter inloggning",
+      "budget": 3,
+      "motivering": "Sussa 4.4.2.6 och testfall 3.1. Ett klick på patienten, ett på Beställ prover i översikten och ett på Beställ vid det paket som systemet föreslår ur vårdkontakten, diagnoserna och läkemedlen. Systemet väljer laboratorium, rör, provtagningsordning och anamnes, tar bort analyser som nyss är tagna och förklarar varför, och knyter beställningen till vårdkontakten.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Gunnar Åkesson i arbetslistan",
+        "klick: Beställ prover",
+        "klick: Beställ vid det föreslagna paketet"
+      ]
+    },
+    {
+      "id": "registrera-provtagning",
+      "namn": "Registrera provtagning",
+      "roll": "ssk-kard",
+      "start": "Provtagningen efter återställning",
+      "budget": 2,
+      "motivering": "Sussa 4.4.2.6 och testfall 3.3. Rören står i provtagningsordning med etiketter, och ett klick på Tagen per rör registrerar provtagningen. Systemet sätter tid och provtagare och skickar proverna till laboratoriet när alla rör är tagna. Patienten har två rör.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Tagen för det första röret",
+        "klick: Tagen för det andra röret"
       ]
     }
   ],
@@ -1256,7 +1483,55 @@
       "status": "grön"
     },
     {
+      "namn": "Gränssnitt > Klickbudget > Boka en patient fritt inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Boka ett teambesök inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Lägga till en patient i en gruppträff inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Överblicka dagens händelser på avdelningen inom budget",
+      "status": "grön"
+    },
+    {
       "namn": "Gränssnitt > Klickbudget > Fortsätta arbeta när inloggningen snart går ut inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Fylla i tobaksmallen i en anteckning inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Skriva och signera en epikris inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera längd, vikt, blodtryck och puls inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Skriva en remiss på uppdrag av en läkare inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Fördela en remiss till en läkare inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera en pappersremiss inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Beställa ett standardpaket med prover inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera provtagning inom budget",
       "status": "grön"
     }
   ]
