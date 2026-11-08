@@ -28,6 +28,7 @@ export const T = {
   kkBeredning: `${KK}en infusion med Addex-tillsats bereds och kontrolleras av en kollega innan den ges`,
   kkParameter: `${KK}systemförvaltaren styr grupperna som parametrar med fyra ögon, och en avstängd grupp kontrolleras inte`,
   kkSparad: `${KK}den sparade kontrollen avgör: ett annat läkemedel eller en annan ordination i anropet, eller en avstängd parameter, öppnar inte en okontrollerad dos`,
+  kkGammal: `${KK}en sparad parameter av fel typ, till exempel ja eller nej för opioiderna, stänger aldrig av kontrollen och stoppar inga doser`,
   kkInkorg: `${KK}inkorgen visar antalet doser som väntar på kontroll utan patientuppgifter, och aldrig den egna dosen`,
   // Läkemedelsöverföring (3.5.1.1).
   loForslag: `${LO}systemet väljer mottagarna själv: vårdcentralen där patienten är listad och kommunen när en samordnad planering pågår`,
@@ -61,5 +62,6 @@ export const T = {
   akLedtider: `${AK}ledtiderna följs upp per prioritet utan patientuppgifter`,
   akDirekt: `${AK}den direkta ankomsten tar bara patient och kontaktorsak från anropet, och ankomstsätt, prioritet, triage och prehospitala uppgifter ignoreras`,
   akRelation: `${AK}vårdrelationen uppstår bara när en annan person bekräftar den, också efter en förvarning, och bekräftelsen loggas`,
+  akAmbulansSvar: `${AK}den simulerade ambulansen får aldrig veta vem patienten är, kräver en session i demon och har ett tak per timme`,
   akPrehospital: `${AK}en förvarning från ambulansen tas emot och blir en ankomst med prehospitala uppgifter`,
 };

@@ -61,7 +61,7 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor }) {
   rutt('GET', '/api/akut/ledtider', (c) => akut.ledtiderPerPrioritet(c.db, kravInloggad(c)));
   rutt('POST', '/api/akut/ankomst', (c) => akut.ankomst(c.db, kravInloggad(c), c.body));
   // Den simulerade ambulansen: en egen avsändare i demons kontroll för simuleringar, inte en inloggad person.
-  rutt('POST', '/api/demo/ambulans/forvarning', (c) => akut.forvarning(c.db, c.body));
+  rutt('POST', '/api/demo/ambulans/forvarning', (c) => akut.forvarningFranAmbulansen(c, c.body));
   rutt('POST', '/api/akut/:id/triage', (c, id) => akut.triagera(c.db, kravInloggad(c), akut.hamta(c.db, id), c.body));
   rutt('POST', '/api/akut/:id/aktivitet', (c, id) => [201, akut.planera(c.db, kravInloggad(c), akut.hamta(c.db, id), c.body)]);
   rutt('POST', '/api/akut/:id/aktivitet/:aid/utford', (c, id, aid) => akut.utford(c.db, kravInloggad(c), akut.hamta(c.db, id), aid));
