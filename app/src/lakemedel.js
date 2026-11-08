@@ -195,7 +195,7 @@ export function egfrForSakerhet(atk) {
 export function underlag(atk) {
   const db = atk.db;
   const aktiva = synligaOrdinationer(atk).filter(arAktuell);
-  const ok = atk.filtrera(db.query('SELECT * FROM overkanslighet WHERE patient_id = ?').all(atk.patientId), 'las_oversikt', { gemensam: true });
+  const ok = atk.filtrera(db.query("SELECT * FROM overkanslighet WHERE patient_id = ? AND status = 'aktiv'").all(atk.patientId), 'las_oversikt', { gemensam: true });
   return { aktiva, overkanslighet: ok, egfr: egfrForSakerhet(atk), enhetId: atk.personal.enhet_id,
     // Runda 9, r1: patientens deltagande i kliniska prövningar som användaren får se.
     studier: provning.synligaDeltaganden(atk) };

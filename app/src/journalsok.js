@@ -11,7 +11,9 @@
 // Runda 7, r4: undantag från visning.
 import { provare as undantagProvare } from './undantag.js';
 import { Fel } from './db.js';
-import { kanRoll } from './atkomst.js';
+import { kanRoll, vardenhetFor } from './atkomst.js';
+// Runda 10, r2: sökningen över flera patienter använder patientgrupperingen (analys.js).
+import * as analys from './analys.js';
 import * as journal from './journal.js';
 import * as lakemedel from './lakemedel.js';
 import { ICD10SE, MATKOD } from './kodverk.js';
@@ -113,11 +115,24 @@ function synligaAnteckningar(atk) {
   return atk.filtrera(rader, a => journal.lasHandling(a.kategori)).filter(a => !undantagen(a, 'anteckning'));
 }
 
-export function sok(atk, fraga) {
+// Runda 10, r2: filtren på typ, tid och vårdenhet. Ett filter som inte finns förklaras.
+export const FILTERTYPER = { anteckning: 'Anteckningar', diagnos: 'Diagnoser', ordination: 'Läkemedel', matvarde: 'Mätvärden' };
+const datumOk = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T12:00:00Z`)) && new Date(`${v}T12:00:00Z`).toISOString().slice(0, 10) === v;
+export function lasFilter(f = {}) {
+  const ut = { typ: null, fran: null, till: null, vardenhet: null };
+  if (f.typ) { if (!Object.hasOwn(FILTERTYPER, f.typ)) throw new Fel(400, 'Filtret kan vara anteckningar, diagnoser, läkemedel eller mätvärden.', 'ogiltig', { falt: ['typ'] }); ut.typ = f.typ; }
+  for (const k of ['fran', 'till']) if (f[k]) { if (!datumOk(f[k])) throw new Fel(400, 'Skriv datumet som ÅÅÅÅ-MM-DD.', 'ogiltig', { falt: [k] }); ut[k] = f[k]; }
+  if (ut.fran && ut.till && ut.fran > ut.till) throw new Fel(400, 'Intervallet slutar före det börjar.', 'ogiltig', { falt: ['till'] });
+  if (f.vardenhet) ut.vardenhet = String(f.vardenhet).slice(0, 60);
+  return ut;
+}
+
+export function sok(atk, fraga, filterInp = {}) {
   const handling = 'las_oversikt';
   atk.krav(handling);
   const t = tolka(fraga);
   if (t.fraga.length < 2) throw new Fel(400, 'Skriv minst två tecken.', 'ogiltig', { falt: ['q'] });
+  const filter = lasFilter(filterInp);
   const db = atk.db;
   const pers = atk.personal;
   const traffar = [];
@@ -178,8 +193,75 @@ export function sok(atk, fraga) {
   }
 
   traffar.sort((x, y) => String(y.tid).localeCompare(String(x.tid)));
-  const antal = traffar.length;
-  const tolkning = t.beskrivning.length ? `Söker på "${t.fraga}" i texten och på ${t.beskrivning.join(', ').replace(/, ([^,]*)$/, ' och $1')}.` : `Söker på "${t.fraga}" i anteckningar, diagnoser, läkemedel och mätvärden.`;
+  // Runda 10, r2: varje träff får sin vårdenhet, och filtren räknas på alla synliga träffar, så att användaren ser vad
+  // som finns att välja också efter ett urval. En dold uppgift är aldrig en träff och finns därför inte i filtren.
+  for (const x of traffar) x.vardenhetId = vardenhetFor(db, x.vardenhet.id);
+  const raknat = (nyckel, text) => [...traffar.reduce((m, x) => m.set(nyckel(x), (m.get(nyckel(x)) ?? 0) + 1), new Map())].map(([k, n]) => ({ ...text(k), antal: n }));
+  const filterUt = {
+    typer: raknat(x => x.typ, k => ({ typ: k, text: FILTERTYPER[k] })).sort((a, b) => Object.keys(FILTERTYPER).indexOf(a.typ) - Object.keys(FILTERTYPER).indexOf(b.typ)),
+    vardenheter: raknat(x => x.vardenhetId, k => ({ id: k, namn: enhetsnamn(db, k) })).sort((a, b) => b.antal - a.antal || a.namn.localeCompare(b.namn, 'sv')),
+    tid: traffar.length ? { fran: String(traffar.at(-1).tid).slice(0, 10), till: String(traffar[0].tid).slice(0, 10) } : null,
+    valt: filter,
+  };
+  const valda = traffar.filter(x => (!filter.typ || x.typ === filter.typ) && (!filter.vardenhet || x.vardenhetId === filter.vardenhet)
+    && (!filter.fran || String(x.tid).slice(0, 10) >= filter.fran) && (!filter.till || String(x.tid).slice(0, 10) <= filter.till));
+  const antal = valda.length;
+  // En vårdenhet utan synliga träffar namnges inte, så att svaret är detsamma för en spärrad vårdenhet och en tom.
+  const veNamn = filterUt.vardenheter.find(v => v.id === filter.vardenhet)?.namn ?? 'den valda vårdenheten';
+  const urval = [filter.typ ? FILTERTYPER[filter.typ].toLowerCase() : null, filter.vardenhet ? `på ${veNamn}` : null,
+    filter.fran ? `från ${filter.fran}` : null, filter.till ? `till ${filter.till}` : null].filter(Boolean);
+  const tolkning = (t.beskrivning.length ? `Söker på "${t.fraga}" i texten och på ${t.beskrivning.join(', ').replace(/, ([^,]*)$/, ' och $1')}.` : `Söker på "${t.fraga}" i anteckningar, diagnoser, läkemedel och mätvärden.`)
+    + (urval.length ? ` Visar bara ${urval.join(', ')}.` : '');
   atk.logga(handling, atk.grund(), 'journalsok', 'tillaten', `Sökning i journalen: "${t.fraga}" (${antal} ${antal === 1 ? 'träff' : 'träffar'})`);
-  return { fraga: t.fraga, tolkning, antal, visade: Math.min(antal, MAX_TRAFFAR), traffar: traffar.slice(0, MAX_TRAFFAR) };
+  return { fraga: t.fraga, tolkning, antal, visade: Math.min(antal, MAX_TRAFFAR), traffar: valda.slice(0, MAX_TRAFFAR), filter: filterUt };
+}
+
+// Runda 10, r2: samma sökfält över flera patienter (Sussa 3.1.8.2). Frågan tolkas som i journalen: en ICD-10-kod eller
+// ord ur diagnosens titel blir ett villkor på diagnos, en ATC-kod, en läkemedelsgrupp, ett läkemedelsnamn eller en
+// substans ett villkor på pågående läkemedel. Villkoret går till patientgrupperingen (analys.js), som prövar varje
+// patient i behörighetsmotorn: läkare och sjuksköterskor får vårdenhetens patienter som de har vårdrelation till,
+// uppföljningen antal för hela vårdgivaren utan personuppgifter. Varje patient i en lista loggas.
+export function villkorUrFraga(db, fraga) {
+  const t = tolka(fraga);
+  if (t.fraga.length < 2) throw new Fel(400, 'Skriv minst två tecken.', 'ogiltig', { falt: ['q'] });
+  const villkor = {};
+  const beskrivning = [...t.beskrivning.filter(b => !b.startsWith('mätvärdena'))];
+  if (t.icd) villkor.diagnoser = { koder: [t.icd] };
+  else if (t.ord.length >= 4) {
+    const koder = Object.entries(ICD10SE).filter(([k, titel]) => /^[A-Z]\d{2}(\.\d{1,2})?$/.test(k) && sv(titel).includes(t.ord)).map(([k]) => k).slice(0, 20);
+    if (koder.length) { villkor.diagnoser = { koder }; beskrivning.push(`diagnoser vars namn innehåller ${t.ord}`); }
+  }
+  const atc = [...t.atc];
+  if (!atc.length && t.ord.length >= 3) {
+    const k = [...new Set(db.query("SELECT DISTINCT atc FROM katalog WHERE lower(substans) = ?1 OR lower(namn) = ?1 OR lower(namn) LIKE ?1 || ' %'").all(t.ord).map(r => r.atc).filter(Boolean))];
+    if (k.length) { atc.push(...k); beskrivning.push(`läkemedel med ATC-kod ${k.join(', ')}`); }
+  }
+  if (atc.length) villkor.lakemedel = { atc: [...new Set(atc)] };
+  if (!villkor.diagnoser && !villkor.lakemedel) {
+    throw new Fel(400, `Systemet kunde inte göra "${t.fraga}" till ett villkor. Sök över patienter på en diagnos, ett läkemedel eller en läkemedelsgrupp, till exempel I48, förmaksflimmer, Waran eller blodförtunnande. Fritext söks i journalen för en patient i taget.`, 'ogiltig', { falt: ['q'] });
+  }
+  return { villkor, tolkning: `Söker patienter med ${beskrivning.join(' eller ')}.`, fraga: t.fraga };
+}
+
+export function sokJournaler(db, personal, fraga) {
+  const v = villkorUrFraga(db, fraga);
+  const niv = analys.niva(db, personal, 'grupp');
+  const period = analys.provaPeriod();
+  if (niv === 'enhet') {
+    // En diagnos eller ett läkemedel räcker: varje villkor söks för sig och svaren slås ihop.
+    const delar = Object.entries(v.villkor).map(([k, x]) => analys.grupp(db, personal, { villkor: { [k]: x } }, { resurs: 'sok:journaler' }));
+    const forsta = delar[0];
+    const per = new Map();
+    for (const d of delar) for (const p of d.patienter) per.set(p.id, per.has(p.id) ? { ...per.get(p.id), skal: `${per.get(p.id).skal}. ${p.skal}` } : p);
+    const patienter = [...per.values()];
+    return { niva: 'enhet', fraga: v.fraga, tolkning: v.tolkning, villkor: { ...v.villkor, period }, vardenhet: forsta.vardenhet, antal: patienter.length, patienter, anmarkning: forsta.anmarkning };
+  }
+  // På vårdgivarnivå: ett antal per kod och aldrig en summa över flera koder, eftersom en summa kunde jämföras med en
+  // annan fråga och ge ett litet antal som skillnad. Varje antal skyddas för sig i patientgrupperingen.
+  const celler = [...(v.villkor.diagnoser?.koder ?? []).map(k => ({ diagnoser: { koder: [k] } })), ...(v.villkor.lakemedel?.atc ?? []).map(a => ({ lakemedel: { atc: [a] } }))]
+    .map(villkor => analys.grupp(db, personal, { villkor }, { resurs: 'sok:journaler' }));
+  const forsta = celler[0];
+  return { niva: 'region', fraga: v.fraga, tolkning: v.tolkning, villkor: { ...v.villkor, period },
+    antal: celler.length === 1 ? celler[0].antal : null, antalDolt: celler.length === 1 ? celler[0].antalDolt : false,
+    perKod: celler.map(d => ({ text: d.text, antal: d.antal, antalDolt: d.antalDolt })), anmarkning: `${forsta.anmarkning} Varje kod räknas för sig, och antalen läggs inte ihop.` };
 }

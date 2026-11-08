@@ -83,6 +83,11 @@ export async function visa(main, _p, q) {
       <button type="submit" class="knapp sekundar">Sök utskrift</button>
     </form>
     <div id="utskriftsvar"></div>
+    <form class="loggfilter" id="mottagarsok" role="search" aria-label="Sök utlämnanden på mottagare">
+      <div class="falt kompakt"><label for="ms-mottagare">Utlämnat till</label><input id="ms-mottagare" name="mottagare" list="ms-forslag" maxlength="120" autocomplete="off" placeholder="Alla mottagare"><datalist id="ms-forslag"></datalist></div>
+      <button type="submit" class="knapp sekundar">Sök utlämnanden</button>
+    </form>
+    <div id="mottagarsvar"></div>
     <div id="loggresultat"><p class="tom">Hämtar loggen.</p></div>`;
   // Eftersökning av en utlämnad utskrift med id:t som står på varje sida (Sussa 3.1.9.5).
   const us = main.querySelector('#utskriftsok');
@@ -94,6 +99,24 @@ export async function visa(main, _p, q) {
       ut.innerHTML = `<div class="ruta ruta-info" role="status"><p><strong>${esc(u.id)}</strong>, utskriven ${esc(tidpunkt(u.tid))} av ${esc(u.av?.namn ?? '')} på ${esc(u.enhet.namn)}. Syfte: ${esc(u.syfte)}. Innehåll: ${esc(u.delar.join(', '))}.</p>
         ${u.utlamnanden.length ? `<p>Utlämnad till ${u.utlamnanden.map(x => `${esc(x.mottagare)} ${esc(tidpunkt(x.utlamnad))}${x.aterlamnad ? `, återlämnad ${esc(tidpunkt(x.aterlamnad))}` : ''}`).join('; ')}.</p>` : '<p>Inte registrerad som utlämnad.</p>'}
         <p><a href="#/logg/patient/${encodeURIComponent(u.patientId)}">Patientens logglista</a></p></div>`;
+    } catch (err) { ut.innerHTML = `<p class="ruta ruta-info">${esc(err.message)}</p>`; }
+  });
+  // Runda 10, r2: utlämnade journalhandlingar per mottagare över alla patienter, med menprövningen (Sussa 3.1.9.5).
+  const ms = main.querySelector('#mottagarsok');
+  ms.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const ut = main.querySelector('#mottagarsvar');
+    try {
+      const r = await api(`/api/logg/utlamnanden?${new URLSearchParams({ mottagare: ms.mottagare.value.trim(), fran: form.fran.value, till: form.till.value })}`);
+      ms.querySelector('#ms-forslag').innerHTML = r.mottagare.map(m => `<option value="${esc(m)}">`).join('');
+      ut.innerHTML = r.rader.length ? `<p class="antal-text">${r.antal === 1 ? 'Ett utlämnande' : `${esc(r.antal)} utlämnanden`} mellan ${esc(form.fran.value)} och ${esc(form.till.value)}.</p>
+        <div class="tabellrulle"><table class="tabell"><thead><tr><th scope="col">Utlämnad</th><th scope="col">Patient</th><th scope="col">Mottagare och handling</th><th scope="col">Menprövning</th><th scope="col">Återlämnad</th></tr></thead>
+        <tbody>${r.rader.map(u => `<tr><td>${esc(tidpunkt(u.utlamnad))}<span class="under-text">${esc(u.av?.namn ?? '')}, ${esc(u.enhet.namn)}</span></td>
+          <td><a href="#/logg/patient/${encodeURIComponent(u.patientId)}">${esc(u.patient?.namn ?? '')}</a><span class="under-text">${esc(u.patient?.personnummer ?? '')}</span></td>
+          <td><strong>${esc(u.mottagare)}</strong><span class="under-text">${esc(u.beskrivning)}${u.utskriftId ? `, utskrift ${esc(u.utskriftId)}` : ''}</span></td>
+          <td>${u.menprovningBeslut ? `${esc(u.menprovningBeslut.beslutText)}<span class="under-text">${esc(u.menprovningBeslut.grundText)} Prövad av ${esc(u.menprovningBeslut.av?.namn ?? '')}.</span>` : esc(u.menprovning ?? '')}</td>
+          <td>${u.aterlamnad ? esc(tidpunkt(u.aterlamnad)) : u.aterlamnasSenast ? `Senast ${esc(u.aterlamnasSenast)}${u.forsenad ? ', försenad' : ''}` : '<span class="dampad">Kopia</span>'}</td></tr>`).join('')}</tbody></table></div>`
+        : '<p class="tom">Inga utlämnanden till den mottagaren under perioden.</p>';
     } catch (err) { ut.innerHTML = `<p class="ruta ruta-info">${esc(err.message)}</p>`; }
   });
   const form = main.querySelector('#loggfilter');

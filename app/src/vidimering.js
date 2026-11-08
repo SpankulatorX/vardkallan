@@ -133,7 +133,7 @@ export function genomgang(atk) {
   const db = atk.db;
   const nu = pagaende(atk);
   const pat = db.query('SELECT * FROM patienter WHERE id = ?').get(atk.patientId);
-  const ok = utanSamtycke(atk).filtrera(db.query('SELECT * FROM overkanslighet WHERE patient_id = ?').all(atk.patientId), 'las_oversikt', { gemensam: true });
+  const ok = utanSamtycke(atk).filtrera(db.query("SELECT * FROM overkanslighet WHERE patient_id = ? AND status = 'aktiv'").all(atk.patientId), 'las_oversikt', { gemensam: true });
   // Interaktioner och överkänslighet med samma demoregler som ordinationskontrollen, för varje ordination mot de andra.
   const par = [];
   const lm = (o) => db.query('SELECT * FROM katalog WHERE id = ?').get(o.lakemedel_id);

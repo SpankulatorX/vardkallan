@@ -9,8 +9,10 @@
 
 // Kolumnerna per tabell, för triggrarna. En kolumn som inte får ändras ska ha samma värde före och efter.
 const KOLUMNER = {
-  utskrifter: ['id', 'patient_id', 'personal_id', 'enhet_id', 'tid', 'syfte', 'delar', 'utelamnat', 'avidentifierad', 'poster', 'innehall_hash', 'grund'],
-  utlamnanden: ['id', 'patient_id', 'enhet_id', 'utskrift_id', 'mottagare', 'beskrivning', 'menprovning', 'utlamnad', 'utlamnad_av', 'aterlamnas_senast', 'aterlamnad', 'aterlamnad_av'],
+  // Runda 10, r2: urvalet i utskriften och den strukturerade menprövningen (NYA_KOLUMNER nedan).
+  utskrifter: ['id', 'patient_id', 'personal_id', 'enhet_id', 'tid', 'syfte', 'delar', 'utelamnat', 'avidentifierad', 'poster', 'innehall_hash', 'grund', 'urval'],
+  utlamnanden: ['id', 'patient_id', 'enhet_id', 'utskrift_id', 'mottagare', 'beskrivning', 'menprovning', 'utlamnad', 'utlamnad_av', 'aterlamnas_senast', 'aterlamnad', 'aterlamnad_av',
+    'menprovning_beslut', 'menprovning_grund', 'menprovning_av', 'menprovning_kommentar'],
   kontrasigneringar: ['id', 'patient_id', 'typ', 'post_id', 'enhet_id', 'begard_av', 'begard', 'mottagare_id', 'kommentar', 'status', 'kontrasignerad'],
   arkivbeslut: ['id', 'typ', 'beslutsfattare', 'diarienummer', 'beslutsdatum', 'lagrum', 'patient_id', 'omfattning', 'motivering', 'registrerad', 'registrerad_av', 'verkstallt', 'verkstallt_av', 'resultat'],
 };
@@ -27,14 +29,15 @@ export const SCHEMA_UTDATA = `
 CREATE TABLE IF NOT EXISTS utskrifter (
   id TEXT PRIMARY KEY, patient_id TEXT NOT NULL, personal_id TEXT NOT NULL, enhet_id TEXT NOT NULL, tid TEXT NOT NULL,
   syfte TEXT NOT NULL, delar TEXT NOT NULL, utelamnat TEXT NOT NULL, avidentifierad INTEGER NOT NULL DEFAULT 0,
-  poster TEXT NOT NULL, innehall_hash TEXT NOT NULL, grund TEXT NOT NULL
+  poster TEXT NOT NULL, innehall_hash TEXT NOT NULL, grund TEXT NOT NULL, urval TEXT
 );
 ${andras('utskrifter', '0', 'En utskrift kan inte ändras')}
 ${ingenRadering('utskrifter')}
 CREATE TABLE IF NOT EXISTS utlamnanden (
   id INTEGER PRIMARY KEY, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, utskrift_id TEXT, mottagare TEXT NOT NULL,
   beskrivning TEXT NOT NULL, menprovning TEXT, utlamnad TEXT NOT NULL, utlamnad_av TEXT NOT NULL,
-  aterlamnas_senast TEXT, aterlamnad TEXT, aterlamnad_av TEXT
+  aterlamnas_senast TEXT, aterlamnad TEXT, aterlamnad_av TEXT,
+  menprovning_beslut TEXT, menprovning_grund TEXT, menprovning_av TEXT, menprovning_kommentar TEXT
 );
 ${andras('utlamnanden', `OLD.aterlamnad IS NULL AND NEW.aterlamnad IS NOT NULL AND NEW.aterlamnad_av IS NOT NULL AND ${lika('utlamnanden', ['aterlamnad', 'aterlamnad_av'])}`, 'Ett utlämnande kan bara kompletteras med återlämnandet')}
 ${ingenRadering('utlamnanden')}
@@ -67,7 +70,18 @@ CREATE TABLE IF NOT EXISTS datauttag (
 `;
 
 // Lägger till det som saknas, också i en sandlåda som sparades före den här delen.
+// Runda 10, r2: kolumner som har kommit till efter att tabellerna skapades. En äldre sandlåda får kolumnerna, och
+// triggrarna som skyddar raderna skapas om, så att också de nya kolumnerna är skyddade.
+const NYA_KOLUMNER = { utskrifter: ['urval'], utlamnanden: ['menprovning_beslut', 'menprovning_grund', 'menprovning_av', 'menprovning_kommentar'] };
+
 export function sakraUtdataschema(db) {
+  for (const [tabell, nya] of Object.entries(NYA_KOLUMNER)) {
+    const finns = db.query(`PRAGMA table_info(${tabell})`).all().map(k => k.name);
+    if (!finns.length) continue;
+    const saknas = nya.filter(k => !finns.includes(k));
+    for (const k of saknas) db.exec(`ALTER TABLE ${tabell} ADD COLUMN ${k} TEXT`);
+    if (saknas.length) db.exec(`DROP TRIGGER IF EXISTS ${tabell}_andras_ej`);
+  }
   db.exec(SCHEMA_UTDATA);
   const kol = db.query('PRAGMA table_info(patienter)').all().map(k => k.name);
   // Beslutet som journalen gallrades eller förstördes enligt. Patientens identitet finns kvar, så att loggen och beslutet

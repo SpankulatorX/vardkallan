@@ -59,7 +59,9 @@ describe('Ansvarsuppdrag för läkemedel', () => {
     // Runda 7, r2: all personal gör övningar, och verksamhetschefen ser vårdenhetens intyg.
     expect((await k.get('/api/session')).data.behorigheter).toEqual(['lakemedelsansvar', 'faststalla_direktiv', 'utbildning', 'intyg_enhet',
       // Runda 9, r7: godkännande av forskningsuttag och vårdenhetens signeringslista, utan journalåtkomst.
-      'forskning_godkann', 'signeringslista']);
+      'forskning_godkann', 'signeringslista',
+      // Runda 10, r2: vårdenhetens förval för vyerna.
+      'vyforval']);
     const f = (await k.get('/api/lakemedelsansvar')).data.uppdrag.find(u => u.typ === 'medicinskt_ansvarig').forslag[0];
     const r = await k.post('/api/lakemedelsansvar/uppdrag', { typ: 'medicinskt_ansvarig', personalId: f.personalId });
     expect(r.status).toBe(201);

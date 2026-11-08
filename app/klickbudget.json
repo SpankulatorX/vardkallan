@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T16:05:27.713Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-08T18:57:03.978Z",
+  "bas": "http://127.0.0.1:18202",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "a4958a5c3ab9d28741b854b75e1242d4f99e5c0f3dc0b43cbe303f6d4c69169e",
+  "gransnittHash": "a51ba9fa5fdb5e25de191024024cefd1e0e81bb1acaca62a9ea7f4556d2cf562",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -1373,6 +1373,62 @@
         "klick: Analys och statistik",
         "klick: Visa gruppen"
       ]
+    },
+    {
+      "id": "skriv-ut-anteckning",
+      "namn": "Skriva ut en enskild anteckning",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 3,
+      "motivering": "Sussa 3.1.9.4. Ett klick till Journal, där den senaste signerade anteckningen redan är öppen, ett på Skriv ut anteckningen och ett på Skriv ut. Systemet väljer anteckningen, delen och syftet, loggar utskriften och sätter utskrifts-id:t.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Journal",
+        "klick: Skriv ut anteckningen",
+        "klick: Skriv ut"
+      ]
+    },
+    {
+      "id": "registrera-overkanslighet",
+      "namn": "Registrera en överkänslighet",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 5,
+      "motivering": "Sussa 3.1.6.2. Ett klick på uppmärksamhetsraden och ett på Ny överkänslighet, där ämnet redan har fokus, ett fältbyte till reaktionen och ett klick för att registrera. Systemet slår upp ATC-koden ur ämnet och föreslår allvarlighetsgraden ur reaktionen, och basfakta, symbolen och varningarna vid ordination följer med.",
+      "klick": 3,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 4,
+      "inomBudget": true,
+      "steg": [
+        "klick: uppmärksamhetsraden",
+        "klick: Ny överkänslighet",
+        "har redan fokus: ämnet",
+        "fältbyte: reaktionen",
+        "klick: Registrera"
+      ]
+    },
+    {
+      "id": "sok-journaler",
+      "namn": "Söka bland vårdenhetens patienter på en diagnos",
+      "roll": "lak-kard",
+      "start": "Arbetslistan efter inloggning",
+      "budget": 3,
+      "motivering": "Sussa 3.1.8.2. Ett klick på Sök patient, ett fältbyte till Sök i journalerna och Enter. Systemet gör om ordet förmaksflimmer till diagnoskoderna, prövar varje patient i behörighetsmotorn och säger varför patienten är med.",
+      "klick": 1,
+      "faltbyten": 1,
+      "tangenter": 1,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Sök patient i menyn",
+        "fältbyte: Sök i journalerna",
+        "tangent Enter: sök"
+      ]
     }
   ],
   "tester": [
@@ -1678,6 +1734,18 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Visa en färdig patientgrupp inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Skriva ut en enskild anteckning inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera en överkänslighet inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Söka bland vårdenhetens patienter på en diagnos inom budget",
       "status": "grön"
     }
   ]

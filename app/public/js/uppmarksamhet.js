@@ -46,6 +46,11 @@ export function listCell(s, href) {
 }
 
 const kanSkriva = (u) => u?.kanAndra && !avbrott.aktivt && !avbrott.simulerat;
+// Runda 10, r2: överkänslighet registreras, ändras och avslutas i ett eget flöde (Sussa 3.1.6.2).
+const kanOk = (u) => u?.kanAndraOverkanslighet && !avbrott.aktivt && !avbrott.simulerat;
+const okKnappar = (p, u) => (kanOk(u) && p.kategori === 'overkanslighet' && p.overkanslighetId
+  ? ` <button type="button" class="knapp liten sekundar" data-ok-andra="${esc(p.overkanslighetId)}">Ändra</button><button type="button" class="knapp liten sekundar" data-ok-avsluta="${esc(p.overkanslighetId)}" data-ok-term="${esc(p.term)}">Avsluta</button>` : '');
+const nyOkKnapp = (u) => (kanOk(u) ? ' <button type="button" class="knapp liten sekundar" data-ok-ny>Ny överkänslighet</button>' : '');
 
 function postRad(p, u) {
   const grad = p.kategori === 'overkanslighet' ? ` <span class="tagg ${p.grad === 'livshotande' ? 'tagg-larm' : ''}">${esc(GRAD[p.grad] ?? '')}${p.bekraftad ? '' : ', föreslagen'}</span>` : '';
@@ -54,7 +59,7 @@ function postRad(p, u) {
   const nar = p.registrerad?.tid?.length > 10 ? tidpunkt(p.registrerad.tid) : datum(p.registrerad?.tid);
   const gradAv = p.gradBekraftad?.av ? ` Graden bekräftad av ${esc(p.gradBekraftad.av)} ${esc(datum(p.gradBekraftad.tid))}.` : '';
   const avsluta = kanSkriva(u) && p.id && p.kategori !== 'overkanslighet' ? ` <button type="button" class="knapp liten sekundar" data-um-avsluta="${esc(p.id)}" data-um-term="${esc(p.term)}">Avsluta</button>` : '';
-  return `<li><strong>${esc(p.term)}</strong>${grad}${kod}${avsluta}
+  return `<li><strong>${esc(p.term)}</strong>${grad}${kod}${avsluta}${okKnappar(p, u)}
     <span class="under-text">${esc(p.undergruppText ?? '')}. ${esc(p.motivering ?? '')}</span>
     <span class="under-text">Registrerad ${esc(nar)} ${vem}.${gradAv}</span>${migreradEtikett(p)}</li>`;
 }
@@ -64,7 +69,7 @@ export function bandSignal(h) {
   const u = h.uppmarksamhet;
   if (!u) return '';
   if (!u.poster.length) {
-    return `<li class="signal signal-ingen signal-um">${symbolSvg(u.symbol, 18)}<span>Ingen uppmärksamhetsinformation</span>${kanSkriva(u) ? ' <button type="button" class="knapp-lank" data-um-lagg>Lägg till</button>' : ''}</li>`;
+    return `<li class="signal signal-ingen signal-um">${symbolSvg(u.symbol, 18)}<span>Ingen uppmärksamhetsinformation</span>${kanSkriva(u) ? ' <button type="button" class="knapp-lank" data-um-lagg>Lägg till</button>' : ''}${nyOkKnapp(u)}</li>`;
   }
   const delar = [];
   const ok = u.poster.filter(p => p.kategori === 'overkanslighet');
@@ -82,7 +87,7 @@ export function bandSignal(h) {
     <div class="um-panel">
       <ul class="um-grupper">${grupper}</ul>
       <p class="under-text">Strukturerad efter huvudgrupperna i Socialstyrelsens informationsspecifikation för uppmärksamhetsinformation.</p>
-      ${kanSkriva(u) ? '<button type="button" class="knapp liten sekundar" data-um-lagg>Lägg till uppmärksamhetsinformation</button>' : ''}
+      ${kanSkriva(u) ? '<button type="button" class="knapp liten sekundar" data-um-lagg>Lägg till uppmärksamhetsinformation</button>' : ''}${nyOkKnapp(u)}
     </div>
   </details></li>`;
 }
@@ -136,7 +141,7 @@ async function avslutaPost(id, term, orsak) {
 // Klick på förslag, Lägg till och Avsluta i patientvyn. efter() ritar om patienthuvudet.
 export function koppla(rot, pid, efter) {
   rot.addEventListener('click', async (e) => {
-    const b = e.target.closest('[data-um-bekrafta], [data-um-avfarda], [data-um-lagg], [data-um-avsluta]');
+    const b = e.target.closest('[data-um-bekrafta], [data-um-avfarda], [data-um-lagg], [data-um-avsluta], [data-ok-ny], [data-ok-andra], [data-ok-avsluta]');
     if (!b) return;
     e.preventDefault();
     let klar = false;
@@ -152,9 +157,84 @@ export function koppla(rot, pid, efter) {
           notis('Förslaget är avfärdat och visas inte igen.');
           klar = true;
         } else if ('umLagg' in b.dataset) klar = await laggTill(pid);
+        else if ('okNy' in b.dataset) klar = await nyOverkanslighet(pid);
+        else if (b.dataset.okAndra) klar = await andraOverkanslighet(pid, Number(b.dataset.okAndra));
+        else if (b.dataset.okAvsluta) klar = await avslutaOverkanslighet(b.dataset.okAvsluta, b.dataset.okTerm ?? '');
         else klar = await avslutaPost(b.dataset.umAvsluta, b.dataset.umTerm ?? '', b.dataset.umOrsak ?? '');
       });
     } catch { return; }
     if (klar) await efter();
   });
+}
+
+// Runda 10, r2: överkänslighetens eget flöde. Systemet slår upp ATC-koden ur ämnet och föreslår allvarlighetsgraden ur
+// reaktionen medan användaren skriver, och förklarar förslaget. Användaren behöver inte kunna koderna.
+const ALLV = [['allvarlig', 'Allvarlig'], ['mattlig', 'Måttlig'], ['lindrig', 'Lindrig']];
+const allvFalt = (vald) => `<fieldset class="radiogrupp"><legend>Allvarlighet</legend>${ALLV.map(([k, t]) => `<div class="radio"><input type="radio" id="ok-allv-${k}" name="allvarlighet" value="${k}"${k === vald ? ' checked' : ''}><label for="ok-allv-${k}">${t}</label></div>`).join('')}</fieldset>`;
+function kopplaForslag(dl) {
+  const form = dl.querySelector('form');
+  const ruta = dl.querySelector('[data-ok-forslag]');
+  let nr = 0;
+  const uppdatera = async () => {
+    const amne = form.amne?.value.trim() ?? '';
+    if (amne.length < 2) { ruta.textContent = ''; return; }
+    const mitt = ++nr;
+    try {
+      const f = await api('/api/overkanslighet/forslag', { metod: 'POST', data: { amne, reaktion: form.reaktion.value.trim() } });
+      if (mitt !== nr) return;
+      ruta.textContent = f.varfor.join(' ');
+      const r = form.querySelector(`[name="allvarlighet"][value="${f.allvarlighet}"]`);
+      if (r && !form.dataset.allvVald) r.checked = true;
+    } catch { ruta.textContent = ''; }
+  };
+  // Förslaget uppdateras medan användaren skriver. En grad som användaren själv väljer skrivs inte över.
+  let vanta = null;
+  form.addEventListener('input', (e) => { if (e.target.name === 'allvarlighet') return; clearTimeout(vanta); vanta = setTimeout(uppdatera, 250); });
+  form.addEventListener('change', (e) => { if (e.target.name === 'allvarlighet') form.dataset.allvVald = '1'; });
+}
+
+async function nyOverkanslighet(pid) {
+  const { amnen } = await api('/api/overkanslighet/amnen');
+  let valdGrad = false;
+  const svar = await dialog(`<h2 id="dlg-rubrik">Ny överkänslighet</h2>
+    <form><div class="falt"><label for="ok-amne">Överkänslig mot <span class="obl">(obligatoriskt)</span></label><input id="ok-amne" name="amne" list="ok-amnen" required minlength="2" maxlength="120" autocomplete="off"><datalist id="ok-amnen">${amnen.map(a => `<option value="${esc(a.amne)}">`).join('')}</datalist></div>
+      <div class="falt"><label for="ok-reaktion">Reaktion <span class="obl">(obligatoriskt)</span></label><input id="ok-reaktion" name="reaktion" required minlength="2" maxlength="300" autocomplete="off"></div>
+      ${allvFalt(null)}
+      <p class="hjalp" data-ok-forslag aria-live="polite">Systemet föreslår allvarlighetsgraden ur reaktionen.</p>
+      <p class="dialog-fel" role="alert" hidden></p></form>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Registrera</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div>`, { onOpen: kopplaForslag, validera: (_d, dl) => { valdGrad = Boolean(dl.querySelector('form').dataset.allvVald); return null; } });
+  if (!svar) return false;
+  // Graden skickas bara när användaren har valt den själv. Annars avgör servern den ur reaktionen.
+  const r = await api(`/api/patient/${encodeURIComponent(pid)}/overkanslighet`, { metod: 'POST', data: { amne: svar.data.amne, reaktion: svar.data.reaktion, ...(valdGrad ? { allvarlighet: svar.data.allvarlighet } : {}) } });
+  notis(`Överkänslighet mot ${r.amne.toLowerCase()} är registrerad${r.atc ? ` med ATC-kod ${r.atc}` : ''}.`);
+  return true;
+}
+
+async function andraOverkanslighet(pid, id) {
+  const d = await api(`/api/patient/${encodeURIComponent(pid)}/overkanslighet`);
+  const o = d.aktuella.find(x => x.id === id);
+  if (!o) { notis('Överkänsligheten finns inte längre.'); return true; }
+  const svar = await dialog(`<h2 id="dlg-rubrik">Ändra överkänslighet mot ${esc(o.amne.toLowerCase())}</h2>
+    <p>Ändringen blir version ${esc(o.version + 1)}. Den tidigare versionen finns kvar i historiken med vem som ändrade och varför.</p>
+    <form><input type="hidden" name="amne" value="${esc(o.amne)}">
+      <div class="falt"><label for="ok-reaktion">Reaktion</label><input id="ok-reaktion" name="reaktion" required minlength="2" maxlength="300" value="${esc(o.reaktion ?? '')}" autocomplete="off"></div>
+      ${allvFalt(o.allvarlighet)}
+      <div class="falt"><label for="ok-orsak">Varför ändras uppgiften? <span class="obl">(obligatoriskt)</span></label><input id="ok-orsak" name="orsak" required minlength="3" maxlength="300" autocomplete="off"></div>
+      <p class="hjalp" data-ok-forslag aria-live="polite"></p>
+      <p class="dialog-fel" role="alert" hidden></p></form>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Spara ny version</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div>`, { onOpen: kopplaForslag });
+  if (!svar) return false;
+  await api(`/api/overkanslighet/${encodeURIComponent(id)}/andra`, { metod: 'POST', data: { reaktion: svar.data.reaktion, allvarlighet: svar.data.allvarlighet, orsak: svar.data.orsak } });
+  notis('Överkänsligheten är ändrad.');
+  return true;
+}
+
+async function avslutaOverkanslighet(id, term) {
+  const svar = await dialog(`<h2 id="dlg-rubrik">Avsluta överkänslighet mot ${esc(term.toLowerCase())}</h2><p>Uppgiften försvinner ur basfakta och symbolen men finns kvar i historiken med vem som avslutade den och varför.</p>
+    <form><div class="falt"><label for="ok-avsl">Varför avslutas den? <span class="obl">(obligatoriskt)</span></label><textarea id="ok-avsl" name="orsak" rows="2" required minlength="3"></textarea></div><p class="dialog-fel" role="alert" hidden></p></form>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Avsluta</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div>`);
+  if (!svar) return false;
+  await api(`/api/overkanslighet/${encodeURIComponent(id)}/avsluta`, { metod: 'POST', data: { orsak: svar.data.orsak } });
+  notis('Överkänsligheten är avslutad.');
+  return true;
 }

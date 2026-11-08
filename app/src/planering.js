@@ -147,6 +147,11 @@ export function vyFor(db, personal, vy) {
   const d = vyDef(personal, vy);
   const rad = db.query('SELECT data FROM vyinstallningar WHERE personal_id = ? AND vy = ?').get(personal.id, vy);
   if (rad) { try { return { installning: d.validera(db, personal, JSON.parse(rad.data)), sparad: true }; } catch { /* en sparad vy som inte längre gäller ersätts av förvalet */ } }
+  // Runda 10, r2: vårdenhetens förval (presentationsvyer.js) går före rollens, och användarens eget val före båda.
+  try {
+    const fv = db.query('SELECT data FROM vyforval_vardenhet WHERE vardenhet_id = ? AND vy = ?').get(vardenhetFor(db, personal.enhet_id), vy);
+    if (fv) return { installning: d.validera(db, personal, JSON.parse(fv.data)), sparad: false, forvalFran: 'vardenhet' };
+  } catch { /* äldre sandlåda eller ett förval som inte gäller rollen */ }
   return { installning: d.forval(db, personal), sparad: false };
 }
 

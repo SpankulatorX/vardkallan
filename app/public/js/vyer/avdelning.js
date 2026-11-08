@@ -75,7 +75,10 @@ async function rita(main, aktuell) {
       <label><input type="checkbox" value="${esc(p.patient.id)}"${valda.includes(p.patient.id) ? ' checked' : ''}> ${esc(p.patient.namn)}</label> <span class="dampad liten">${esc(p.plats ?? '')}</span>
       <a class="av-plan liten" href="#/avdelning/patient/${encodeURIComponent(p.patient.id)}">Planering<span class="sr"> för ${esc(p.patient.namn)}</span></a></li>`).join('')}</ul></fieldset>
     ${innehall}
-    <p class="hjalp">${esc(d.demoregler)}</p></div>`;
+    <p class="hjalp">${esc(d.demoregler)}</p>
+    <details class="ruta" id="av-belaggning"><summary>Beläggning utan personuppgifter</summary><div data-belaggning></div></details></div>`;
+  // Runda 10, r2: beläggningsöversikten utan namn, personnummer eller sal (Sussa 3.1.2.4).
+  main.querySelector('#av-belaggning').addEventListener('toggle', (e) => { if (e.target.open) visaBelaggning(e.target.querySelector('[data-belaggning]')); }, { once: false });
   const el = main.querySelector('#av');
   el.querySelector('#av-patienter').addEventListener('change', (e) => {
     const x = e.target.closest('input[type=checkbox]');
@@ -156,3 +159,13 @@ export const resurs = {
       ${dagarHtml(d.dagar, d.idag, { patient: true })}<p class="hjalp">${esc(d.utanPatient)}</p>`;
   },
 };
+
+// Runda 10, r2: beläggningen per avdelning som antal, så att den kan visas på en skärm som alla ser.
+async function visaBelaggning(el) {
+  try {
+    const b = await api('/api/belaggning');
+    el.innerHTML = `<div class="tabellrulle"><table class="tabell"><thead><tr><th scope="col">Avdelning</th><th scope="col">Platser</th><th scope="col">Belagda</th><th scope="col">Lediga</th><th scope="col">Inskrivna i dag</th><th scope="col">Utskrivna i dag</th></tr></thead>
+      <tbody>${b.avdelningar.map(a => `<tr${a.overbelagda ? ' class="avvikande"' : ''}><td>${esc(a.avdelning.namn)}</td><td>${esc(a.platser)}</td><td>${esc(a.belagda)}</td><td>${esc(a.lediga)}${a.overbelagda ? `, ${esc(a.overbelagda)} överbelagda` : ''}</td><td>${esc(a.inskrivnaIdag)}</td><td>${esc(a.utskrivnaIdag)}</td></tr>`).join('')}</tbody></table></div>
+      <p class="hjalp">Visas aldrig: ${esc(b.visasAldrig.join(', ').toLowerCase())}. ${esc(b.demoregel)}</p>`;
+  } catch (e) { el.innerHTML = `<p class="ruta ruta-info">${esc(e.message)}</p>`; }
+}

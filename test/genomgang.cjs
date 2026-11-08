@@ -860,7 +860,8 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
       const flikar = await page.locator('.flikar a').allTextContents();
       // Runda 6, r3: undersköterskan ser vårdplanerna och registrerar sina egna åtgärder under Planer.
       // Runda 8, r1: och fliken Prover, där undersköterskan tar prover och beställer på uppdrag.
-      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Journal', 'Läkemedel', 'Mätvärden', 'Prover', 'Logglista', 'Identitet', 'Utskrifter', 'Planer', 'Tillämpningar'])) throw new Error(`flikar ${flikar}`);
+      // Runda 10, r2: och fliken Uppföljning (Sussa 3.1.2.2).
+      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Journal', 'Läkemedel', 'Mätvärden', 'Prover', 'Logglista', 'Identitet', 'Utskrifter', 'Planer', 'Tillämpningar', 'Uppföljning'])) throw new Error(`flikar ${flikar}`);
       if (await page.locator('#ov-dia').count()) throw new Error('diagnoser visas');
       await page.click('.flikar a:has-text("Journal")');
       await page.waitForSelector('.j-grupp');
@@ -1819,7 +1820,9 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
         // Runda 9, r1: förbrukningsartiklar.
         'forbrukning-mall',
         // Runda 9, r7: streckkodsläsaren och patientgrupperna.
-        'skanna-armband', 'patientgrupp']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'skanna-armband', 'patientgrupp',
+        // Runda 10, r2: utskrift av en anteckning, överkänslighet och sökning över patienter.
+        'skriv-ut-anteckning', 'registrera-overkanslighet', 'sok-journaler']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

@@ -88,7 +88,10 @@ export const regler = {
       <section class="lm-sektion" aria-labelledby="sf-lasta"><h2 id="sf-lasta">Det här går inte att ändra här</h2>
         <ul class="sf-lasta">${o.lasta.map(l => `<li><strong>${esc(l.rubrik)}.</strong> ${esc(l.varfor)}</li>`).join('')}</ul></section>
       <section class="lm-sektion" aria-labelledby="sf-historik"><h2 id="sf-historik">Historik</h2>${historikTabell(o.historik)}</section>
-      <p class="demoregel">${esc(o.anmarkning)}</p>`;
+      <p class="demoregel">${esc(o.anmarkning)}</p>
+      <div id="sf-vyforval"></div>`;
+    // Runda 10, r2: vårdenheternas förval för vyerna.
+    vyforvalSektion(el.querySelector('#sf-vyforval')).catch(() => {});
     el.addEventListener('click', async (e) => {
       if (await beslut(main, e, '/api/konfiguration', regler.visa)) return;
       const b = e.target.closest('[data-andra]');
@@ -466,4 +469,37 @@ async function nyttUttag(main, o, knapp) {
     notis('Beslutet är registrerat och väntar på att en annan systemförvaltare godkänner det.');
   } catch { /* notis visad */ }
   lagring.visa(main);
+}
+
+// Runda 10, r2: vårdenheternas förval för vyerna (Sussa 3.1.2.1 och 3.1.2.3). Förvalet gäller den som inte har valt
+// själv och ändrar bara vad som visas och i vilken ordning, aldrig vad någon får se. Därför krävs inte fyra ögon.
+async function vyforvalSektion(el) {
+  const o = await api('/api/vyforval');
+  const rita = (d) => {
+    el.innerHTML = `<section class="lm-sektion" aria-labelledby="sf-vyforval-r"><h2 id="sf-vyforval-r">Vårdenheternas förval för vyerna</h2>
+      <p class="liten">Förvalet gäller på vårdenheten för den som inte har valt själv. Delar som en yrkesroll inte får läsa visas aldrig, också om de finns i förvalet.</p>
+      ${d.forval.length ? `<div class="tabellrulle"><table class="tabell"><thead><tr><th scope="col">Vårdenhet</th><th scope="col">Vy</th><th scope="col">Förval</th><th scope="col"><span class="sr">Åtgärd</span></th></tr></thead><tbody>
+        ${d.forval.map(f => `<tr><td>${esc(f.vardenhet.namn)}</td><td>${esc(f.vyText)}</td><td>${esc((f.installning.delar ?? f.installning.sektioner ?? []).map(x => d.delar.find(y => y.id === x)?.text ?? x).join(', '))}${f.installning.tidslinjeDagar ? `<span class="under-text">Tidslinjen ${esc(f.installning.tidslinjeDagar)} dagar</span>` : ''}<span class="under-text">${esc(f.andradAv?.namn ?? '')}, ${esc(tidpunkt(f.andrad))}</span></td>
+          <td><button type="button" class="knapp liten sekundar" data-vf-bort="${esc(f.vardenhet.id)}|${esc(f.vy)}">Ta bort</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="tom liten">Inga förval. Systemets förval gäller.</p>'}
+      <form id="vf-form" class="ant-form" novalidate>
+        <div class="falt-rad"><div class="falt"><label for="vf-ve">Vårdenhet</label><select id="vf-ve" name="ve">${d.vardenheter.map(v => `<option value="${esc(v.id)}">${esc(v.namn)}</option>`).join('')}</select></div>
+        <div class="falt"><label for="vf-vy">Vy</label><select id="vf-vy" name="vy">${d.vyer.map(v => `<option value="${esc(v.id)}">${esc(v.text)}</option>`).join('')}</select></div></div>
+        <fieldset class="kryssgrupp" data-vf-delar><legend>Delar i översikten</legend>${d.delar.map(x => `<div class="kryssfalt"><input type="checkbox" id="vf-d-${esc(x.id)}" name="d_${esc(x.id)}" checked><label for="vf-d-${esc(x.id)}">${esc(x.text)}</label></div>`).join('')}</fieldset>
+        <fieldset class="kryssgrupp" data-vf-sektioner hidden><legend>Delar i Dagens arbete</legend>${d.sektioner.map(x => `<div class="kryssfalt"><input type="checkbox" id="vf-s-${esc(x)}" name="s_${esc(x)}" checked><label for="vf-s-${esc(x)}">${esc(x)}</label></div>`).join('')}</fieldset>
+        <p class="form-fel" role="alert" hidden></p>
+        <div class="knapprad"><button type="submit" class="knapp">Spara förvalet</button></div>
+      </form></section>`;
+    const f = el.querySelector('#vf-form');
+    f.vy.addEventListener('change', () => { const idag = f.vy.value === 'idag'; el.querySelector('[data-vf-delar]').hidden = idag; el.querySelector('[data-vf-sektioner]').hidden = !idag; });
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const installning = f.vy.value === 'idag' ? { sektioner: d.sektioner.filter(x => f[`s_${x}`].checked) } : { delar: d.delar.map(x => x.id).filter(x => f[`d_${x}`].checked) };
+      try { rita(await medKnapp(f.querySelector('[type=submit]'), () => api('/api/vyforval', { metod: 'PUT', data: { vardenhetId: f.ve.value, vy: f.vy.value, installning } }), f)); notis('Förvalet är sparat.'); } catch { /* felet visas i formuläret */ }
+    });
+    el.querySelectorAll('[data-vf-bort]').forEach(b => b.addEventListener('click', async () => {
+      const [vardenhetId, vy] = b.dataset.vfBort.split('|');
+      try { rita(await medKnapp(b, () => api('/api/vyforval/ta-bort', { metod: 'POST', data: { vardenhetId, vy } }))); notis('Förvalet är borttaget.'); } catch { /* notis visad */ }
+    }));
+  };
+  rita(o);
 }

@@ -201,7 +201,7 @@ function rivPost(db, kontrakt, r, patientId, vardgivare) {
   // GetAlertInformation: överkänslighet ur AllergyIntolerance och övrig uppmärksamhetsinformation ur Flag.
   if (r.resourceType === 'AllergyIntolerance') {
     return { header, body: { typeOfAlertInformation: { code: 'overkanslighet', displayName: 'Överkänslighet' }, alertInformationComment: r.code?.text ?? null,
-      validityTimePeriod: { start: datumRiv(r.recordedDate), end: null }, hypersensitivity: { typeOfHypersensitivity: r.category?.[0] === 'medication' ? 'Läkemedel' : 'Annat', degreeOfSeverity: r.criticality === 'high' ? 'Allvarlig' : 'Mindre allvarlig', atcSubstance: r.code?.coding?.[0]?.code ?? null } } };
+      validityTimePeriod: { start: datumRiv(r.recordedDate), end: r.clinicalStatus?.coding?.[0]?.code === 'inactive' ? datumRiv(r.note?.[0]?.time) : null }, hypersensitivity: { typeOfHypersensitivity: r.category?.[0] === 'medication' ? 'Läkemedel' : 'Annat', degreeOfSeverity: r.criticality === 'high' ? 'Allvarlig' : 'Mindre allvarlig', atcSubstance: r.code?.coding?.[0]?.code ?? null } } };
   }
   return { header, body: { typeOfAlertInformation: { code: r.category?.[0]?.coding?.[0]?.code ?? null, displayName: r.category?.[0]?.text ?? null }, alertInformationComment: r.code?.text ?? null,
     validityTimePeriod: { start: datumRiv(r.period?.start), end: datumRiv(r.period?.end) } } };

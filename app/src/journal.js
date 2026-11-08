@@ -380,12 +380,15 @@ export function overkanslighetUt(db, o) {
   return {
     id: o.id, amne: o.amne, atc: o.atc, reaktion: o.reaktion, allvarlighet: o.allvarlighet, datum: o.datum,
     vardenhet: { id: o.enhet_id, namn: enhetsnamn(db, o.enhet_id) }, kalla: o.kalla, kallaEtikett: kallaEtikett(o.kalla, o.datum),
+    // Runda 10, r2: versionen och vem som registrerade den gällande versionen (overkanslighet.js).
+    version: o.version ?? 1, registreradAv: o.registrerad_av ? personalKort(db, o.registrerad_av) : null,
   };
 }
 
 export function synligOverkanslighet(atk) {
   if (!kanRoll(atk.personal, 'las_oversikt')) return null;
-  const rader = atk.db.query('SELECT * FROM overkanslighet WHERE patient_id = ? ORDER BY datum DESC').all(atk.patientId);
+  // Runda 10, r2: en avslutad överkänslighet ligger kvar i tabellen men är inte längre gällande.
+  const rader = atk.db.query("SELECT * FROM overkanslighet WHERE patient_id = ? AND status = 'aktiv' ORDER BY datum DESC").all(atk.patientId);
   return atk.filtrera(rader, 'las_oversikt', { gemensam: true }).map(o => overkanslighetUt(atk.db, o));
 }
 

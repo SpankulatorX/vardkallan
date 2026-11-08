@@ -94,7 +94,7 @@ const datumAv = (t) => (t ? String(t).slice(0, 10) : null);
 const aldersgrupp = (a) => (a >= 80 ? '80-' : a < 18 ? '0-17' : `${Math.floor(a / 10) * 10}-${Math.floor(a / 10) * 10 + 9}`.replace('10-19', '18-19'));
 
 // Nivån för den inloggade, eller ett fel som loggas.
-function niva(db, personal, slag) {
+export function niva(db, personal, slag) {
   if (kanRoll(personal, 'statistik_region')) return 'region';
   const kravs = slag === 'grupp' ? 'patientgrupp' : 'statistik';
   if (kanRoll(personal, kravs)) return 'enhet';
@@ -352,21 +352,22 @@ function villkorFran(db, personal, inp) {
 }
 
 // POST /api/analys/grupp { villkor | mall | urvalId, period? }.
-export function grupp(db, personal, inp = {}) {
+// Runda 10, r2: sökningen över patienter (journalsok.js) använder grupperingen och loggar med sin egen resurs.
+export function grupp(db, personal, inp = {}, { resurs = null } = {}) {
   const niv = niva(db, personal, 'grupp');
   const { villkor, urval, mall } = villkorFran(db, personal, inp);
   const { u, traffar: lista } = traffar(db, personal, villkor, niv);
   const bas = { niva: niv, villkor, text: beskriv(villkor), namn: urval?.namn ?? mall?.namn ?? null, urvalId: urval?.id ?? null };
   if (niv === 'enhet') {
     const t = iso();
-    for (const { p, grund } of lista) loggaRad(db, { tid: t, personal_id: personal.id, enhet_id: personal.enhet_id, patient_id: p.id, handling: 'patientgrupp', resurs: `analys:grupp${urval ? `:${urval.id}` : ''}`, grund, resultat: 'tillaten' });
+    for (const { p, grund } of lista) loggaRad(db, { tid: t, personal_id: personal.id, enhet_id: personal.enhet_id, patient_id: p.id, handling: 'patientgrupp', resurs: resurs ?? `analys:grupp${urval ? `:${urval.id}` : ''}`, grund, resultat: 'tillaten' });
     return {
       ...bas, vardenhet: db.query('SELECT namn FROM enheter WHERE id = ?').get(u.min)?.namn, antal: lista.length,
       patienter: lista.sort((a, b) => a.p.efternamn.localeCompare(b.p.efternamn, 'sv')).map(({ p, skal }) => ({ id: p.id, namn: visningsnamn(p), personnummer: visningsPnr(p), skyddad: Boolean(p.skyddad), alder: alderAv(p.fodd, idag()), kon: p.kon, skal })),
       anmarkning: 'Gruppen omfattar patienter som du har vårdrelation till på din vårdenhet. Villkoren prövas bara mot uppgifter från din vårdenhet och mot läkemedelslistan, aldrig mot uppgifter som kräver ett aktivt val eller som patienten har spärrat. Varje patient i listan loggas.',
     };
   }
-  loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, handling: 'statistik_region', resurs: `analys:grupp${urval ? `:${urval.id}` : ''}`, grund: 'uppfoljning', resultat: 'tillaten' });
+  loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, handling: 'statistik_region', resurs: resurs ?? `analys:grupp${urval ? `:${urval.id}` : ''}`, grund: 'uppfoljning', resultat: 'tillaten' });
   const fordelning = (nyckel) => {
     const m = new Map();
     for (const { p } of lista) { const k = nyckel(p); m.set(k, (m.get(k) ?? 0) + 1); }

@@ -15,6 +15,9 @@ import * as utlamnat from './patient-utlamnat.js';
 import { planerFlik, tvangsvardFlik } from './r3.js';
 // Runda 6, r1: sökning i journalen (Sussa 3.1.8).
 import * as journalsok from './patient-sok.js';
+// Runda 10, r2.
+import * as uppfoljningFlik from './patient-uppfoljning.js';
+import * as utbildningFlik from './patient-utbildningslage.js';
 // Runda 6, r5: externa tillämpningar med SMART on FHIR (Sussa 5.1.1.4).
 import * as tillampningar from './patient-tillampningar.js';
 // Runda 7, r6: tillväxt och barnhälsovård (Sussa 4.1).
@@ -44,6 +47,9 @@ const FLIKAR = [
   ['tillampningar', 'Tillämpningar', () => far('las_matvarden'), tillampningar],
   // Runda 6, r1: träffarna från sökfältet. Fliken nås från sökfältet och står inte bland flikarna.
   ['sok', 'Sökträffar', () => far('las_oversikt'), journalsok, { dold: true }],
+  // Runda 10, r2: uppföljningsvyn och utbildningsläget (Sussa 3.1.2.2 och 3.1.2.4). Utbildningsläget nås från översikten.
+  ['uppfoljning', 'Uppföljning', () => far('las_oversikt'), uppfoljningFlik],
+  ['utbildningslage', 'Utbildningsläge', () => far('las_oversikt'), utbildningFlik, { dold: true }],
 ];
 
 let huvud = null;

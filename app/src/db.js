@@ -88,7 +88,10 @@ CREATE TABLE matvarden (
 );
 CREATE TABLE overkanslighet (
   id INTEGER PRIMARY KEY, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, amne TEXT NOT NULL, atc TEXT,
-  reaktion TEXT, allvarlighet TEXT NOT NULL, datum TEXT NOT NULL, kalla TEXT NOT NULL DEFAULT 'vardkallan'
+  reaktion TEXT, allvarlighet TEXT NOT NULL, datum TEXT NOT NULL, kalla TEXT NOT NULL DEFAULT 'vardkallan',
+  -- Runda 10, r2: version, vem som registrerade och avslut (overkanslighet.js). En överkänslighet raderas aldrig.
+  version INTEGER NOT NULL DEFAULT 1, registrerad TEXT, registrerad_av TEXT,
+  status TEXT NOT NULL DEFAULT 'aktiv', avslutad TEXT, avslutad_av TEXT, avslut_orsak TEXT
 );
 CREATE TABLE katalog (
   id TEXT PRIMARY KEY, namn TEXT NOT NULL, substans TEXT NOT NULL, styrka TEXT, form TEXT, atc TEXT NOT NULL, npl TEXT
@@ -433,6 +436,8 @@ export function byggSeed(bas = nu()) {
   // Runda 9, r7: skanning, analys, folkhälsa, spårbarhet, forskningsuttag, in- och utfarter, restjournaler och
   // signering (schema-runda9-r7.js). Sist, eftersom seeden läser vårdkontakterna, anteckningarna och proverna.
   require('./schema-runda9-r7.js').sakraR9r7(db, bas);
+  // Runda 10, r2: överkänslighetens händelser och vyernas förval per vårdenhet (schema-runda10-r2.js).
+  require('./schema-runda10-r2.js').sakraR10r2(db);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -551,6 +556,8 @@ export function migrera(db) {
   // Runda 9, r7: tabellerna för skanning, analys, folkhälsa, spårbarhet, forskningsuttag, in- och utfarter,
   // restjournaler och signering, med seeden relativt till i dag när en tabell är ny.
   require('./schema-runda9-r7.js').sakraR9r7(db, nu());
+  // Runda 10, r2 (schema-runda10-r2.js).
+  require('./schema-runda10-r2.js').sakraR10r2(db);
   return db;
 }
 

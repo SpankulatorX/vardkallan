@@ -73,7 +73,7 @@ function raderFor(db, pid, atk = null) {
   const filtrera = (rader) => (atk ? atk.filtrera(rader, ATKOMST_LAS, { gemensam: true }) : rader);
   const grader = graderFor(db, pid);
   const ovr = filtrera(db.query("SELECT * FROM uppmarksamhet WHERE patient_id = ? AND status = 'aktiv' AND kategori <> 'overkanslighet' ORDER BY registrerad, id").all(pid));
-  const ok = filtrera(db.query('SELECT * FROM overkanslighet WHERE patient_id = ? ORDER BY datum, id').all(pid)).map(o => ({ o, bekr: grader.get(o.id) ?? null }));
+  const ok = filtrera(db.query("SELECT * FROM overkanslighet WHERE patient_id = ? AND status = 'aktiv' ORDER BY datum, id").all(pid)).map(o => ({ o, bekr: grader.get(o.id) ?? null }));
   return { ovr, ok };
 }
 
@@ -159,7 +159,9 @@ export function forHuvud(atk) {
   if (!kanRoll(atk.personal, ATKOMST_LAS)) return null;
   const poster = posterFor(atk);
   const kanAndra = kanRoll(atk.personal, ATKOMST_SKRIV) && atk.prova(ATKOMST_SKRIV).tillaten;
-  return { symbol: symbol(poster), poster, forslag: forslagFor(atk, poster), kanAndra };
+  // Runda 10, r2: läkare och sjuksköterskor registrerar, ändrar och avslutar överkänslighet (overkanslighet.js).
+  const kanAndraOverkanslighet = kanRoll(atk.personal, 'registrera_overkanslighet') && atk.prova('registrera_overkanslighet', { enhet_id: atk.personal.enhet_id }).tillaten;
+  return { symbol: symbol(poster), poster, forslag: forslagFor(atk, poster), kanAndra, kanAndraOverkanslighet };
 }
 
 // Symbolen för en rad i arbetslistan eller väntrummet: bara huvudgrupperna, med samma grund som journalen. Loggas inte,

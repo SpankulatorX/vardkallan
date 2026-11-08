@@ -404,7 +404,9 @@ export function list(db, v) {
 export function allergyIntolerance(db, o) {
   return {
     resourceType: 'AllergyIntolerance', id: String(o.id), meta: kallaMeta(o.kalla),
-    clinicalStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical', code: 'active' }] },
+    // Runda 10, r2: en avslutad överkänslighet är inaktiv, med när och varför (overkanslighet.js).
+    clinicalStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical', code: o.status === 'avslutad' ? 'inactive' : 'active' }] },
+    ...(o.status === 'avslutad' ? { note: [{ time: o.avslutad, text: `Avslutad: ${o.avslut_orsak ?? ''}` }] } : {}),
     verificationStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-verification', code: 'confirmed' }] },
     type: 'allergy', category: [o.atc ? 'medication' : 'food'], criticality: o.allvarlighet === 'allvarlig' ? 'high' : 'low',
     code: { ...(o.atc ? { coding: [{ system: SYSTEM.atc, code: o.atc, ...(ATC[o.atc] ? { display: ATC[o.atc] } : {}) }] } : {}), text: o.amne },

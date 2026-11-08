@@ -23,7 +23,9 @@ export function registreraRutter({ rutt, kravInloggad, medPatient }) {
   const datum = (v, slut) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? `${v}${slut ? 'T23:59:59.999Z' : 'T00:00:00.000Z'}` : null);
 
   // Sökning i journalen (Sussa 3.1.8.1 och 3.1.8.2).
-  rutt('GET', '/api/patient/:id/sok', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_oversikt', (atk) => journalsok.sok(atk, c.url.searchParams.get('q') ?? '')); });
+  rutt('GET', '/api/patient/:id/sok', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_oversikt', (atk) => journalsok.sok(atk, c.url.searchParams.get('q') ?? '',
+    // Runda 10, r2: filter på typ, tid och vårdenhet.
+    Object.fromEntries(['typ', 'fran', 'till', 'vardenhet'].map(k => [k, c.url.searchParams.get(k)])))); });
 
   // NEWS2 (Sussa 3.1.3.5 och 3.1.3.9): en hel omgång registreras på en gång, och förhandsvisningen räknar utan att spara
   // och utan att läsa några patientuppgifter.
