@@ -2,7 +2,7 @@ import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import { testserver, klient, sandlada } from './hjalp.js';
 import { idag, addDagar } from '../src/db.js';
 import { harVardrelation } from '../src/atkomst.js';
-import { nastaKonferens, HSA_KATALOG } from '../src/remiss-r8.js';
+import { nastaKonferens, HSA_KATALOG, laggTillSkanning } from '../src/remiss-r8.js';
 import * as fhir from '../src/fhir.js';
 
 // Remiss, del 3 (runda 8, r2, Sussa 3.3.1.2 till 3.3.1.5 och Sussas testfall 2.2 till 2.5): remiss på uppdrag,
@@ -214,8 +214,12 @@ describe('Remiss, del 3', () => {
     // Den inskannade remissen är nu bilaga, och den lämnar listan.
     expect((await adm.get('/api/skannade-remisser')).data.dokument.map(d => d.id)).not.toContain(skann[0].id);
     expect((await adm.post('/api/extern-remiss', inp)).status).toBe(400);
-    // Fritext utan HSA-id, med en egen fil i stället för en inskannad.
-    const fri = (await adm.post('/api/extern-remiss', { ...inp, skanningId: undefined, bilaga: { namn: 'remiss.pdf', data: PDF }, enhet: 'Privat mottagning i demon' })).data;
+    // Fritext utan HSA-id. Utan en inskannad remiss går det inte, inte heller med en egen fil.
+    const utan = await adm.post('/api/extern-remiss', { ...inp, skanningId: undefined, bilaga: { namn: 'remiss.pdf', data: PDF } });
+    expect(utan.status).toBe(400);
+    expect(utan.data.falt).toContain('skanningId');
+    const s2 = laggTillSkanning(db(adm), 'uso-kard', 'Andra.pdf', ['Andra pappersremissen']);
+    const fri = (await adm.post('/api/extern-remiss', { ...inp, skanningId: s2, enhet: 'Privat mottagning i demon' })).data;
     expect(fri.extern).toMatchObject({ enhet: 'Privat mottagning i demon', hsaId: null });
     // Läkaren ser remissen bland de inkommande och tar emot, bedömer och svarar som vanligt. Svaret går med post.
     const lak = await inloggad('lak-kard');
@@ -233,26 +237,64 @@ describe('Remiss, del 3', () => {
     expect(JSON.stringify(sr)).not.toContain('adm-kard');
   });
 
-  test('extern pappersremiss: ger ingen vårdrelation förrän den tas emot, och en annan vårdenhets skanning eller fel roll nekas', async () => {
+  test('extern pappersremiss: registreringen ger ingen läsrätt, den som registrerade tar inte emot och bedömer inte, och vårdrelationen uppstår när någon annan tar emot', async () => {
     const adm = await inloggad('adm-kard');
     const d = db(adm);
     const pid = d.query('SELECT id FROM patienter WHERE skyddad = 0 AND sammanslagen_till IS NULL ORDER BY id').all().map(p => p.id).find(id => !harVardrelation(d, id, 'uso-kard'));
     expect(pid).toBeTruthy();
     const skann = (await adm.get('/api/skannade-remisser')).data.dokument[0];
-    const r = (await adm.post('/api/extern-remiss', { skanningId: skann.id, patientId: pid, enhet: 'Behandlingshemmet Löparen', remissdatum: idag(), fragestallning: 'Uppföljning', anamnes: 'Påhittad.' })).data;
-    // Remissen syns bara som status, och patientens journal är stängd tills remissen tas emot.
+    const r = await adm.post('/api/extern-remiss', { skanningId: skann.id, patientId: pid, enhet: 'Behandlingshemmet Löparen', remissdatum: idag(), fragestallning: 'Uppföljning', anamnes: 'Påhittad.' });
+    expect(r.status).toBe(201);
+    // Registreringen loggas som åtkomst till patienten, men ger varken vårdrelation eller läsrätt till journalen.
+    expect(loggRader(adm).at(-1)).toMatchObject({ personal_id: 'adm-kard', patient_id: pid, handling: 'registrera_extern_remiss', grund: 'administrativ' });
     expect(harVardrelation(d, pid, 'uso-kard')).toBe(false);
-    expect(JSON.stringify(r)).not.toContain('Påhittad.');
+    expect(JSON.stringify(r.data)).not.toContain('Påhittad.');
+    expect((await adm.get(`/api/patient/${pid}`)).status).toBe(403);
+    expect((await adm.get(`/api/patient/${pid}/remisser`)).status).toBe(403);
     const lak = await inloggad('lak-kard');
     delaSandlada(adm, lak);
     expect((await lak.get(`/api/patient/${pid}`)).status).toBe(403);
-    expect((await adm.post(`/api/remiss/${r.id}/mottag`)).status).toBe(200);
+    // Den som registrerade remissen tar inte emot den, fördelar den inte, sätter den inte på konferens och registrerar inget beslut.
+    expect((await adm.post(`/api/remiss/${r.data.id}/mottag`)).status).toBe(403);
+    expect(loggRader(adm).at(-1)).toMatchObject({ personal_id: 'adm-kard', patient_id: pid, resultat: 'nekad' });
+    expect((await adm.post(`/api/remiss/${r.data.id}/fordela`, { lakareId: 'lak-kard' })).status).toBe(403);
+    expect((await adm.post(`/api/remiss/${r.data.id}/remisskonferens`, {})).status).toBe(403);
+    expect((await adm.post(`/api/remiss/${r.data.id}/beslut-pa-uppdrag`, { beslut: 'accepterad', ansvarigId: 'lak-kard' })).status).toBe(403);
+    expect(harVardrelation(d, pid, 'uso-kard')).toBe(false);
+    // Någon annan på den mottagande vårdenheten tar emot remissen. Då uppstår vårdrelationen.
+    expect((await lak.post(`/api/remiss/${r.data.id}/mottag`)).status).toBe(200);
     expect(harVardrelation(d, pid, 'uso-kard')).toBe(true);
+    expect((await lak.get(`/api/patient/${pid}`)).status).toBe(200);
+    // Den som registrerade bedömer eller registrerar inte heller ett beslut efter mottagningen.
+    expect((await adm.post(`/api/remiss/${r.data.id}/beslut-pa-uppdrag`, { beslut: 'accepterad', ansvarigId: 'lak-kard' })).status).toBe(403);
     // Läkaren och sjuksköterskan registrerar inte pappersremisser, och en annan vårdenhets skanning går inte att använda.
     expect((await lak.get('/api/skannade-remisser')).status).toBe(403);
-    expect((await lak.post('/api/extern-remiss', { patientId: pid, enhet: 'X', remissdatum: idag(), fragestallning: 'Uppföljning', bilaga: { namn: 'r.pdf', data: PDF } })).status).toBe(403);
+    expect((await lak.post('/api/extern-remiss', { skanningId: skann.id, patientId: pid, enhet: 'X', remissdatum: idag(), fragestallning: 'Uppföljning' })).status).toBe(403);
     const annan = d.query("INSERT INTO skannade_remisser (enhet_id, namn, typ, storlek, sha256, data, inskannad) VALUES ('uso-ort', 'ort.pdf', 'application/pdf', 3, 'x', X'255044', ?) RETURNING id").get(new Date().toISOString()).id;
     expect((await adm.get(`/api/skannad-remiss/${annan}`)).status).toBe(404);
     expect((await adm.post('/api/extern-remiss', { skanningId: annan, patientId: pid, enhet: 'X', remissdatum: idag(), fragestallning: 'Uppföljning' })).status).toBe(404);
+  });
+
+  test('extern pappersremiss: skyddad identitet maskeras och en spärr röjs inte, och registreringen ger ingen åtkomst till de spärrade uppgifterna', async () => {
+    const adm = await inloggad('adm-kard');
+    const d = db(adm);
+    const fria = d.query('SELECT id FROM patienter WHERE skyddad = 0 AND sammanslagen_till IS NULL ORDER BY id').all().map(p => p.id).filter(id => !harVardrelation(d, id, 'uso-kard') && !d.query('SELECT 1 FROM sparrar WHERE patient_id = ?').get(id));
+    const [skyddad, medSparr, utanSparr] = fria;
+    d.query('UPDATE patienter SET skyddad = 1 WHERE id = ?').run(skyddad);
+    d.query("INSERT INTO sparrar (patient_id, enhet_id, registrerad) VALUES (?, 'vc-tybble', ?)").run(medSparr, idag());
+    const reg = async (pid, namn) => adm.post('/api/extern-remiss', { skanningId: laggTillSkanning(d, 'uso-kard', namn, ['Pappersremiss']), patientId: pid, enhet: 'Behandlingshemmet Löparen', remissdatum: idag(), fragestallning: 'Uppföljning' });
+    // Skyddad identitet: svaret har varken namn eller personnummer.
+    const s = await reg(skyddad, 'S.pdf');
+    expect(s.status).toBe(201);
+    expect(s.data.patient).toMatchObject({ namn: 'Skyddad identitet', skyddad: true });
+    const p = d.query('SELECT fornamn, efternamn, personnummer FROM patienter WHERE id = ?').get(skyddad);
+    for (const t of [p.fornamn, p.efternamn, p.personnummer]) expect(JSON.stringify(s.data)).not.toContain(t);
+    // Spärr: svaret ser likadant ut med och utan en spärr på en annan vårdenhet, och journalen är fortfarande stängd.
+    const a = (await reg(medSparr, 'A.pdf')).data;
+    const b = (await reg(utanSparr, 'B.pdf')).data;
+    const jamfor = (x) => JSON.stringify({ ...x, id: 0, patientId: 0, patient: { ...x.patient, id: 0, namn: 0, personnummer: 0 }, bilagor: null, tider: { ...x.tider, skickad: 0 }, extern: { ...x.extern, registrerad: 0 } });
+    expect(jamfor(a)).toBe(jamfor(b));
+    expect(JSON.stringify(a)).not.toContain('vc-tybble');
+    expect((await adm.get(`/api/patient/${medSparr}`)).status).toBe(403);
   });
 });

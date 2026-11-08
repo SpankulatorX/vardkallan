@@ -197,7 +197,9 @@ UTAN_PATIENT.add('anvandartest_las');
 // skriver remisser på uppdrag av en läkare, som signerar dem, registrerar beslut som en läkare har fattat med läkaren
 // som ansvarig och registrerar pappersremisser från vårdgivare utanför Vårdkällan. Läkare, fysioterapeuter och
 // vårdadministratörer fördelar inkommande remisser till en läkare och sätter dem på remisskonferens. Registreringen av
-// en pappersremiss rör ännu ingen vårdrelation, eftersom remissen ger vårdrelation först när den tas emot.
+// en pappersremiss är en handling med patient som loggas på patienten, men den ger ingen vårdrelation och ingen läsrätt:
+// remiss-r8.js prövar den utan vårdrelation, och remissen ger vårdrelation först när någon annan än den som registrerade
+// den har tagit emot den (beslut 2026-11-08).
 Object.assign(HANDLINGAR, {
   remittera_pa_uppdrag: 'skriva remisser på uppdrag av en läkare', fordela_remiss: 'fördela remisser till en läkare för bedömning',
   remisskonferens: 'sätta remisser på remisskonferens', registrera_beslut_pa_uppdrag: 'registrera beslut om remisser på uppdrag av en läkare',
@@ -206,7 +208,6 @@ Object.assign(HANDLINGAR, {
 ROLLER.vardadministrator.push('remittera_pa_uppdrag', 'fordela_remiss', 'remisskonferens', 'registrera_beslut_pa_uppdrag', 'registrera_extern_remiss');
 ROLLER.lakare.push('fordela_remiss', 'remisskonferens');
 ROLLER.fysioterapeut.push('fordela_remiss', 'remisskonferens');
-UTAN_PATIENT.add('registrera_extern_remiss');
 
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
 
@@ -278,8 +279,10 @@ export function harVardrelation(db, patientId, vardenhet, nu = new Date(), { uta
   // En vidarebefordrad remiss är inte längre ställd till vårdenheten (runda 6, r4), lika lite som en avvisad.
   const remiss = db.query(`SELECT 1 FROM remisser WHERE patient_id = ? AND (
       (till_enhet_id IN (${ph}) AND NOT (status = 'bedomd' AND beslut IN ('avvisad', 'vidarebefordrad')) AND (status <> 'svar_kvitterat' OR svar_kvitterat_tid >= ?)
-        -- Runda 8, r2: en extern pappersremiss ger vårdrelation först när den har tagits emot (beslut 2026-11-08).
-        AND NOT (fran_enhet_id = 'extern' AND status = 'skickad'))
+        -- Runda 8, r2: en extern pappersremiss ger vårdrelation först när någon annan än den som registrerade den har
+        -- tagit emot den (beslut 2026-11-08).
+        AND NOT (fran_enhet_id = 'extern' AND (status = 'skickad' OR mottagen_av IS NULL
+          OR mottagen_av = (SELECT x.registrerad_av FROM remiss_extern x WHERE x.remiss_id = remisser.id))))
       OR (fran_enhet_id IN (${ph}) AND status <> 'svar_kvitterat' AND NOT (status = 'bedomd' AND beslut IN ('avvisad', 'vidarebefordrad')))
     ) LIMIT 1`).get(patientId, ...enheter, grans, ...enheter);
   return Boolean(remiss);

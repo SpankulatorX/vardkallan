@@ -21,7 +21,7 @@ import { Fel, iso, idag, addDagar, giltigtDatum, lokalTid, datumAv } from './db.
 import { Atkomst, vardenhetFor, kanRoll, enheterUnder } from './atkomst.js';
 import { loggaRad } from './logg.js';
 import * as remiss from './remiss.js';
-import { sparaBilaga, tolkaBilaga } from './remiss-r4.js';
+import { sparaBilaga } from './remiss-r4.js';
 import { arStangd } from './omorganisation.js';
 import { pdf } from './filformat.js';
 import { EXTERN_ENHET } from './seed/planering.js';
@@ -135,19 +135,38 @@ export function fhirTillagg(db, r) {
   return ut;
 }
 
-// En extern remiss som inte har tagits emot ger ingen vårdrelation (atkomst.js). Att ta emot den kräver därför bara
-// rollen och att remissen är ställd till vårdenheten, som remiss.js redan har prövat.
+// En extern pappersremiss ger ingen vårdrelation förrän någon annan än den som registrerade den har tagit emot den
+// (atkomst.js). Den som registrerade remissen får därför aldrig ta emot den, fördela den, sätta den på konferens eller
+// registrera ett beslut om den. Den som tar emot den gör det på grund av remissen, som är ställd till vårdenheten (det
+// prövar remiss.js och kravMottagare här), med de handlingar rollen har. Prövningen av patienten i övrigt gäller som
+// vanligt: inget av svaren visar något mer än remissens status.
 const ejMottagenExtern = (r) => r.fran_enhet_id === EXTERN && r.status === 'skickad';
+const registrerare = (db, r) => (r.fran_enhet_id === EXTERN ? db.query('SELECT registrerad_av FROM remiss_extern WHERE remiss_id = ?').get(r.id)?.registrerad_av ?? null : null);
+function nekad(atk, r, handling, text) {
+  atk.logga(handling, 'nekad', `remiss:${r.id}`, 'nekad');
+  return new Fel(403, text, 'nekad');
+}
 export function kravPaRemiss(atk, r, handling) {
-  if (!ejMottagenExtern(r)) return atk.krav(handling);
-  if (!kanRoll(atk.personal, handling)) {
-    atk.logga(handling, 'nekad', `remiss:${r.id}`, 'nekad');
-    throw new Fel(403, 'Din yrkesroll får inte göra det med remissen.', 'nekad');
+  if (r.fran_enhet_id === EXTERN && registrerare(atk.db, r) === atk.personal.id) {
+    throw nekad(atk, r, handling, 'Du registrerade pappersremissen. Någon annan på vårdenheten tar emot och handlägger den, så att ingen ger sig själv åtkomst till en patient genom en remiss.');
   }
+  if (!ejMottagenExtern(r)) return atk.krav(handling);
+  // Mottagningen: rollen ska ha både handlingen och mottagningen, eftersom fördelning och konferens kvitterar remissen.
+  for (const h of new Set([handling, 'mottag_remiss'])) if (!kanRoll(atk.personal, h)) throw nekad(atk, r, handling, 'Din yrkesroll får inte göra det med remissen.');
   atk.grunder.add('administrativ');
   return { tillaten: true, grund: 'administrativ' };
 }
 export const kravMottag = (atk, r) => kravPaRemiss(atk, r, 'mottag_remiss');
+
+// Registreringen av en pappersremiss: en handling med patient, som loggas på patienten och kräver rollen, men ingen
+// vårdrelation. Den ger ingen läsrätt, och svaret visar bara den nya remissens status, med skyddad identitet maskerad.
+function kravRegistrering(atk) {
+  if (!kanRoll(atk.personal, 'registrera_extern_remiss')) {
+    atk.logga('registrera_extern_remiss', 'nekad', 'extern_remiss', 'nekad');
+    throw new Fel(403, 'Din yrkesroll registrerar inte pappersremisser.', 'nekad');
+  }
+  atk.grunder.add('administrativ');
+}
 
 function kravMottagare(atk, r, handling) {
   if (minVe(atk) !== r.till_enhet_id) {
@@ -484,11 +503,13 @@ export function skannadFil(db, personal, id) {
 }
 
 export function registreraExtern(atk, body = {}, nu = new Date()) {
-  atk.krav('registrera_extern_remiss');
+  kravRegistrering(atk);
   const db = atk.db;
   const ve = minVe(atk);
-  const skann = body.skanningId != null ? skannadRad(db, atk.personal, body.skanningId) : null;
-  if (skann && skann.status !== 'ny') throw ogiltig('Den inskannade remissen är redan registrerad.', 'skanningId');
+  // Den inskannade remissen krävs. Den är underlaget för registreringen och blir remissens bilaga.
+  if (body.skanningId == null || body.skanningId === '') throw ogiltig('Välj den inskannade remissen som registreringen gäller.', 'skanningId');
+  const skann = skannadRad(db, atk.personal, body.skanningId);
+  if (skann.status !== 'ny') throw ogiltig('Den inskannade remissen är redan registrerad.', 'skanningId');
   const falt = [];
   const namn = typeof body.enhet === 'string' ? body.enhet.trim().slice(0, 120) : '';
   if (namn.length < 2) falt.push('enhet');
@@ -498,8 +519,6 @@ export function registreraExtern(atk, body = {}, nu = new Date()) {
   if (fragestallning.length < 3 || fragestallning.length > 2000) falt.push('fragestallning');
   const prioritet = body.prioritet ?? 'normal';
   if (!remiss.PRIORITETER.includes(prioritet)) falt.push('prioritet');
-  const bilaga = skann ? null : body.bilaga ? tolkaBilaga(body.bilaga) : null;
-  if (!skann && !bilaga) falt.push('bilaga');
   if (falt.length) throw new Fel(400, 'Kontrollera avsändande enhet, remissdatum, frågeställning och den inskannade remissen. Remissdatumet kan inte ligga i framtiden.', 'ogiltig', { falt });
   const hsa = HSA_KATALOG.find(e => e.namn.toLocaleLowerCase('sv-SE') === namn.toLocaleLowerCase('sv-SE')) ?? null;
   const anamnes = typeof body.anamnes === 'string' ? body.anamnes.trim().slice(0, 8000) : '';
@@ -508,9 +527,9 @@ export function registreraExtern(atk, body = {}, nu = new Date()) {
   const id = Number(db.query(`INSERT INTO remisser (patient_id, fran_enhet_id, till_enhet_id, avsandare_id, fragestallning, anamnes, prioritet, svar_senast, status, skickad_tid)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'skickad', ?)`).run(atk.patientId, EXTERN, ve, EXTERN, fragestallning, anamnes, prioritet, addDagar(datumAv(nu), 14), t).lastInsertRowid);
   db.query('INSERT INTO remiss_extern (remiss_id, enhet, vardgivare, hsa_id, remittent, remissdatum, registrerad_av, registrerad_tid, skanning_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(id, hsa?.namn ?? namn, hsa?.vardgivare ?? null, hsa?.hsaId ?? null, remittent || null, remissdatum, atk.personal.id, t, skann?.id ?? null);
-  sparaBilaga(db, { remissId: id, patientId: atk.patientId, bilaga: skann ? { namn: skann.namn, typ: skann.typ, buf: Buffer.from(skann.data) } : bilaga, av: atk.personal.id });
-  if (skann) db.query("UPDATE skannade_remisser SET status = 'registrerad', remiss_id = ?, registrerad_av = ? WHERE id = ?").run(id, atk.personal.id, skann.id);
+    .run(id, hsa?.namn ?? namn, hsa?.vardgivare ?? null, hsa?.hsaId ?? null, remittent || null, remissdatum, atk.personal.id, t, skann.id);
+  sparaBilaga(db, { remissId: id, patientId: atk.patientId, bilaga: { namn: skann.namn, typ: skann.typ, buf: Buffer.from(skann.data) }, av: atk.personal.id });
+  db.query("UPDATE skannade_remisser SET status = 'registrerad', remiss_id = ?, registrerad_av = ? WHERE id = ?").run(id, atk.personal.id, skann.id);
   atk.logga('registrera_extern_remiss', atk.grund(), `remiss:${id}:extern`);
   const p = db.query('SELECT * FROM patienter WHERE id = ?').get(atk.patientId);
   return [201, remiss.remissUt(db, remiss.hamtaRad(db, id), { klinisk: klinisk(atk.personal), patient: p })];
