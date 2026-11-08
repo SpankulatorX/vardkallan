@@ -12,6 +12,8 @@ import { UTSATTNINGSREGLER, DEMOREGLER_PROCESS } from '../src/lakemedelsregler.j
 import { knyt } from '../src/vardkontakt.js';
 import * as fhir from '../src/fhir.js';
 import { verifiera } from '../src/logg.js';
+// Runda 10, r5: kollegakontrollen av högriskläkemedel.
+import * as hogrisk from '../src/hogriskkontroll.js';
 import { atk, personal, testserver, klient, sandlada } from './hjalp.js';
 
 const kl = (k, dag = idag()) => lokalTid(dag, k);
@@ -667,8 +669,11 @@ describe('Vätskebalans', () => {
     mallar.sparaTillagg(db, morf.ordination.id, mallar.valideraTillagg(db, { lakemedelId: 'VK-NPL-0031' }));
     const ssk = atk(db, 'ssk-kard', 'p01', {}, 'ge_lakemedel');
     expect(administrering.spara(ssk, { ordinationId: ord.ordination.id, planerad: kl('14:00') }).administrering.volymMl).toBe(100);
-    // Morfin 10 mg/ml: 5 mg blir 0,5 ml.
-    expect(administrering.spara(ssk, { ordinationId: morf.ordination.id }).administrering.volymMl).toBe(0.5);
+    // Morfin 10 mg/ml: 5 mg blir 0,5 ml. Runda 10, r5: morfin är en opioid, så dosen iordningsställs och en kollega
+    // kontrollerar den i sin egen inloggning innan den ges (hogriskkontroll.js).
+    const ior = administrering.spara(ssk, { ordinationId: morf.ordination.id, atgard: 'iordningstall' });
+    hogrisk.kontrollera(atk(db, 'ssk-hia', 'p01', {}, 'ge_lakemedel'), ior.administrering.kollegakontroll.id, { synligaAdministreringar: administrering.synligaAdministreringar, kravVardande: administrering.kravVardande });
+    expect(administrering.spara(ssk, { ordinationId: morf.ordination.id, kontrollkod: ior.administrering.iordningstalld.kontrollkod }).administrering.volymMl).toBe(0.5);
     administrering.registreraVatska(atk(db, 'ssk-kard', 'p01', {}, 'registrera_matvarde'), { riktning: 'ut', typ: 'urin', volymMl: 300 });
     administrering.registreraVatska(atk(db, 'usk-kard', 'p01', {}, 'registrera_matvarde'), { riktning: 'in', typ: 'dryck', volymMl: 250 });
     const vb = administrering.vatskebalans(atk(db, 'usk-kard', 'p01', {}, 'las_matvarden'));

@@ -15,6 +15,7 @@ import * as vardkontakt from './vardkontakt.js';
 import * as uppmarksamhet from './uppmarksamhet.js';
 import { registreraAtgard } from './atgarder.js';
 import { NEWS2_KOD, SYSTEM } from './kodverk.js';
+import { NEWS2_KUNSKAP } from './kunskapsstod.js';
 import { CS } from './fhir-definitioner.js';
 import { news2, news2Omgangar, news2Galler, referens, utanforReferens, DEMOREGEL, NEWS2_KALLA, NEWS2_ATGARD, tolkaGcs } from './skalor.js';
 // Runda 9, r2: bara kvalitetssäkrade värden räknas i NEWS2, larm och basfakta. Värden från utrustning är referens tills de
@@ -76,7 +77,8 @@ export function kurvor(atk, p, rader) {
 export function news2For(atk, p, alla, nu = Date.now()) {
   const rader = alla.filter(kvalitetssakrad);
   const galler = news2Galler({ alder: alder(p.fodd, idagSv()), diagnosKoder: synligaDiagnoskoder(atk) });
-  const bas = { galler: galler.galler, text: galler.text, demoregel: DEMOREGEL, kalla: NEWS2_KALLA };
+  // Runda 10, r5: kunskapsstödet om vad poängen betyder (kunskapsstod.js).
+  const bas = { galler: galler.galler, text: galler.text, demoregel: DEMOREGEL, kalla: NEWS2_KALLA, kunskap: NEWS2_KUNSKAP };
   if (!galler.galler) return { ...bas, serie: [], aktuell: null, nyareRoda: [], larm: false };
   return { ...bas, ...news2Lage(rader, nu) };
 }

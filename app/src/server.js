@@ -100,6 +100,9 @@ import { registreraRutter as r9r5Rutter } from './runda9-r5-rutter.js';
 import * as miljoer from './miljoer.js';
 // Runda 9, r7: skanning, analys, folkhälsa, spårbarhet, forskningsuttag, in- och utfarter, restjournaler och signering.
 import { registreraRutter as r9r7Rutter } from './r9r7-rutter.js';
+// Runda 10, r5: kunskapsstöd, utfall, kollegakontroll, läkemedelsöverföring, vaccinationsprogram, sammanhållen
+// journalföring och akutflödet (runda10-r5-rutter.js).
+import { registreraRutter as r10r5Rutter, inkorg as r10r5Inkorg } from './runda10-r5-rutter.js';
 import * as levnadsvanor from './levnadsvanor.js';
 import * as folkhalsa from './folkhalsa.js';
 // Runda 9, r4: informationsstrukturen, fackspråket, kodverken och masterdatans källor (arkitektur-rutter.js).
@@ -1357,6 +1360,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...labbInkorg(c, patientKort, patientRad, valFor),
       // Runda 9, r1: beredningar som väntar på kontroll av en annan sjuksköterska eller läkare, utan patientuppgifter.
       ...r9r1Inkorg(c, patientKort, patientRad, valFor),
+      // Runda 10, r5: doser av högriskläkemedel som väntar på kollegakontroll, utan patientuppgifter.
+      ...r10r5Inkorg(c, patientKort, patientRad, valFor),
     });
   });
   // Runda 6, r1: NEWS2-larmen loggas på patienten en gång per session och mätomgång, som raderna om återinsättning.
@@ -1706,6 +1711,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   r9r1Rutter({ rutt, kravInloggad, medPatient, valFor });
   // Runda 9, r7 (r9r7-rutter.js).
   r9r7Rutter({ rutt, kravInloggad, medPatient, valFor });
+  // Runda 10, r5 (runda10-r5-rutter.js).
+  r10r5Rutter({ rutt, kravInloggad, medPatient, valFor, patientRad, patientKort });
   // Runda 9, r4 (arkitektur-rutter.js).
   r9r4Rutter({ rutt, kravInloggad });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen

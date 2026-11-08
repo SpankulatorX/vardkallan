@@ -27,6 +27,9 @@ import * as delegering from './delegering.js';
 import * as stod from './lakemedelsstod.js';
 // Runda 9, r1: beredning med kontroll och etikett, patientnära skanning och doser i flytande form och gasform.
 import * as beredning from './beredning.js';
+// Runda 10, r5: kollegakontroll av högriskläkemedel.
+import * as hogrisk from './hogriskkontroll.js';
+import * as kunskapsstod from './kunskapsstod.js';
 import * as egenadm from './egenadministrering.js';
 
 export const ATGARDER = { ge: 'Given', overlamna: 'Överlämnad till patienten', ej_given: 'Inte given', iordningstall: 'Iordningsställd' };
@@ -111,7 +114,7 @@ export function administreringUt(db, a) {
     // Runda 6, r2: en makulerad registrering finns kvar och visas överstruken med orsak.
     makulerad: stod.makuleringFor(db, 'administrering', a.id),
     // Runda 9, r1: beredningen och skanningen finns bara för en dos som har iordningsställts med etikett.
-    ...(a.kontrollkod ? { beredning: beredning.forAdministrering(db, a.id), skannad: beredning.skanningFor(db, a.id) } : {}),
+    ...(a.kontrollkod ? { beredning: beredning.forAdministrering(db, a.id), skannad: beredning.skanningFor(db, a.id), kollegakontroll: hogrisk.forAdministrering(db, a.id) } : {}),
   };
 }
 
@@ -257,6 +260,12 @@ function dagensTillagg(db, o, u, dag) {
   const lm = katalog(db, o.lakemedel_id);
   const ber = beredning.beredningsinfo(lm, u.spadning);
   if (ber) ut.beredning = ber;
+  // Runda 10, r5: ett högriskläkemedel som en kollega kontrollerar. I en beredning är kontrollen beredningens.
+  const kat = hogrisk.kategorierFor(db, { lm, o: u });
+  if (kat.length) {
+    if (ber) Object.assign(ber, { dubbelkontroll: true, varfor: ber.dubbelkontroll ? ber.varfor : hogrisk.varforText(kat) });
+    else ut.kollegakontroll = { kravs: true, kategorier: kat.map(k => ({ id: k.id, rubrik: k.rubrik })), varfor: hogrisk.varforText(kat) };
+  }
   Object.assign(ut, beredning.dosform(db, o, lm));
   return ut;
 }
@@ -386,6 +395,8 @@ function underlag(atk, inp, atgard) {
   // kontrollen är gjord och beredningen håller. Ett skannat armband prövas mot patienten.
   const ber = atgard === 'iordningstall' ? beredning.forbered(db, { lm, spadning: o?.spadning ?? null, nu }, inp.beredning) : null;
   if (atgard === 'ge' || atgard === 'overlamna') beredning.provaGe(db, { lm, spadning: o?.spadning ?? null, ior, efterhand: inp.tid != null && nu - tid > EFTERHAND_MS, nu });
+  // Runda 10, r5: kollegakontroll av högriskläkemedel (hogriskkontroll.js). En beredning får kontrollen i beredningen.
+  const kollega = hogrisk.provaAdministrering(db, { atgard, lm, o, ior, beredning: ber, efterhand: inp.tid != null && nu - tid > EFTERHAND_MS, nu });
   const armband = atgard === 'ge' ? beredning.provaArmband(atk, inp.armband, ior?.kontrollkod ?? null) : null;
   // Runda 6, r2: en muntlig ordination som inte är signerad och ett generellt direktiv vars tillfällen är använda
   // stoppas med en förklaring. I ett trappschema är dosen den dagens dos.
@@ -424,10 +435,14 @@ function underlag(atk, inp, atgard) {
       varningar.push({ niva: 'observation', regel: 'sparrade_uppgifter', text: 'Det finns spärrade uppgifter i journalen. Doser från en spärrad vårdenhet räknas inte in i kontrollen. Fråga patienten om samtycke att visa dem om det kan ha betydelse.' });
     }
   }
+  // Runda 10, r5: varför systemet varnar och vad användaren kan göra (kunskapsstod.js).
+  varningar = kunskapsstod.berika(varningar);
   const perm = permissionFor(db, atk.patientId);
   return { orad, o, lm, tid, planerad, dos, antal, utfordAv, orsak, ior, varningar, tillagg, permission: underPermission(perm, planerad ? Date.parse(planerad) : tid), delegeringId,
     // Runda 9, r1.
-    beredning: ber, armband };
+    beredning: ber, armband,
+    // Runda 10, r5.
+    kollega };
 }
 
 // POST /api/patient/:id/administreringar/kontroll: varningarna innan något sparas.
@@ -490,6 +505,8 @@ export function spara(atk, inp = {}) {
     if (ior) db.query('UPDATE administreringar SET kontrollkod = ? WHERE id = ?').run(`VK-ADM-${String(id).padStart(6, '0')}-${atk.patientId.toUpperCase()}`, id);
     // Runda 9, r1: beredningen sparas med iordningsställandet.
     if (ior) beredning.spara(db, atk.personal, atk.patientId, id, u.orad?.id ?? null, u.beredning, tid);
+    // Runda 10, r5: kollegakontrollen för ett högriskläkemedel som inte bereds.
+    if (ior) hogrisk.spara(db, atk.personal, atk.patientId, id, u.kollega, tid);
   }
   if (volym) {
     db.query("INSERT INTO vatskebalans (patient_id, enhet_id, riktning, typ, volym_ml, tid, registrerad, registrerad_av, administrering_id) VALUES (?, ?, 'in', 'lakemedel', ?, ?, ?, ?, ?)")

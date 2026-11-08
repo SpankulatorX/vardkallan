@@ -176,6 +176,28 @@ const JANEJ = {
   },
 };
 
+// Runda 10, r5: kollegakontroll av högriskläkemedel (hogriskkontroll.js, beslut 2026-11-08). Systemförvaltaren styr
+// vilka grupper en kollega kontrollerar innan dosen ges. Gruppernas id och regler finns i hogriskkontroll.js, och ett
+// test håller listorna lika. Effekten räknas bara med antal doser som väntar på kontroll.
+const HOGRISK = [
+  ['elektrolyter', 'koncentrerade elektrolyter, också tillsatser som Addex', 'Koncentrerade elektrolyter kan ge livshotande hjärtrytmrubbningar vid fel mängd eller för snabb infusion.'],
+  ['opioider', 'opioider', 'Opioider är narkotika, och en för hög dos kan ge andningsdepression.'],
+  ['insulininfusion', 'insulininfusion', 'Ett räknefel i en insulininfusion kan ge livshotande lågt blodsocker.'],
+  ['heparininfusion', 'heparininfusion', 'Ett räknefel i en heparininfusion kan ge allvarlig blödning eller blodpropp.'],
+  ['cytostatika', 'cytostatika', 'Cytostatika har ett smalt terapeutiskt fönster, och en felaktig dos kan ge allvarliga skador.'],
+];
+for (const [id, namn, varfor] of HOGRISK) {
+  JANEJ[`lakemedel.kollegakontroll.${id}`] = {
+    omrade: 'lakemedel', rubrik: `Kollegakontroll: ${namn}`, typ: 'janej', standard: true, anvands: 'hogriskkontroll.js och beredning.js',
+    text: { true: 'En kollega kontrollerar dosen innan den ges', false: 'Ingen kollegakontroll' },
+    beskrivning: `Om en annan sjuksköterska eller läkare ska kontrollera iordningsställandet eller beredningen innan dosen ges. ${varfor} Kontrollen görs alltid i kollegans egen inloggning.`,
+    effekt: (db, nytt) => {
+      const n = harTabell(db, 'kollegakontroller') ? db.query("SELECT count(*) AS n FROM kollegakontroller WHERE kontrollerad_tid IS NULL AND kategorier LIKE ?").get(`%"${id}"%`).n : 0;
+      return [nytt ? `Från dagen ändringen gäller kontrollerar en kollega varje ny dos av ${namn} innan den ges.` : `Från dagen ändringen gäller ges doser av ${namn} utan kollegakontroll. ${st(n, 'dos', 'doser')} som redan väntar på kontroll ska fortfarande kontrolleras.`];
+    },
+  };
+}
+
 // Runda 8, r1: beställning och svar (labb.js, Sussa 12.1.1.9). Svarstiden för det simulerade laboratoriet, larmet för
 // prov som inte är tagna och paketens innehåll, som systemförvaltningen ändrar på ett ställe och som slår igenom i
 // förslagen, i beställningarna och i inkorgen. Katalogen importeras som data, inte modulen som använder parametrarna.

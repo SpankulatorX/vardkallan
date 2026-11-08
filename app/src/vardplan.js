@@ -13,6 +13,9 @@
 // alla. Nödåtkomst ger bara läsning. Planernas historik ändras och raderas aldrig.
 import { Fel, iso, idag, addDagar, giltigtDatum } from './db.js';
 import { kanRoll, vardenhetFor, enheterUnder, alder } from './atkomst.js';
+// Runda 10, r5: kunskapsstöd och kunskapsgenererande stöd i vårdplanen (Sussa 3.2.1).
+import * as kunskapsstod from './kunskapsstod.js';
+import * as utfallsstod from './utfallsstod.js';
 
 export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS vardplaner (
@@ -139,6 +142,9 @@ export function planUt(atk, plan, nu = Date.now()) {
     statusText: { aktiv: 'Pågår', pausad: 'Uppehåll', avslutad: 'Avslutad' }[plan.status], uppfoljning: plan.uppfoljning, enhet: enhetKort(db, plan.enhet_id),
     skapad: plan.skapad, skapadAv: personKort(db, plan.skapad_av), mal: mal.map(m => malUt(db, m, senaste)), atgarder, avvikelser,
     historik: hist.map(h => ({ id: h.id, tid: h.tid, typ: h.typ, text: h.text, av: personKort(db, h.av), enhet: enhetKort(db, h.enhet_id) })),
+    // Runda 10, r5: vårdförloppet med kunskapsstöd och nästa steg (kunskapsstod.js), och utfallet för standardplanen
+    // på användarens vårdenhet (utfallsstod.js).
+    vardforlopp: kunskapsstod.vardforlopp(plan.mall, atgarder), utfall: plan.mall ? utfallsstod.vardplan(db, atk.personal, plan.mall) : null,
     kan: {
       andra: egen && kanRoll(atk.personal, 'vardplan') && plan.status !== 'avslutad',
       utfora: egen && kanRoll(atk.personal, 'vardplan_atgard') && plan.status === 'aktiv' ? atgarder.filter(x => (FAR_UTFORA[x.ansvarig] ?? []).includes(atk.personal.yrke)).map(x => x.id) : [],
@@ -155,6 +161,8 @@ export function forslag(atk, { tvangsvard = false } = {}) {
   return MALLAR.filter(m => !pagar.has(m.id)).map(m => ({ m, varfor: m.villkor(k) })).filter(x => x.varfor).map(({ m, varfor }) => ({
     mall: m.id, rubrik: m.rubrik, varfor, uppfoljning: addDagar(idag(), m.uppfoljningDagar), mal: m.mal,
     atgarder: m.atgarder.map(x => ({ text: x.text, ansvarig: x.ansvarig, ansvarigText: ANSVARIGA[x.ansvarig], dagligen: x.dagligen })),
+    // Runda 10, r5: kunskapsstödet och vårdenhetens utfall när planen föreslås.
+    vardforlopp: kunskapsstod.vardforlopp(m.id, m.atgarder.map((x, i) => ({ id: i, text: x.text, senastUtford: null }))), utfall: utfallsstod.vardplan(atk.db, atk.personal, m.id),
   }));
 }
 
