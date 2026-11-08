@@ -15,6 +15,9 @@ import * as ekonomi from '../ekonomi-ui.js';
 // När frågeställningen inte visas för rollen skickar servern remissens status i stället.
 const REMISSTATUS = { skickad: 'Status: skickad', mottagen: 'Status: mottagen', bedomd: 'Status: bedömd', besvarad: 'Status: besvarad', svar_kvitterat: 'Status: svaret är kvitterat' };
 const TYP = { vardkontakt: 'Vårdkontakt', vardtillfalle: 'Vårdtillfälle', anteckning: 'Anteckning', ordination: 'Läkemedel', remiss: 'Remiss' };
+// Runda 10, r4: in- och utfarter, skannade restjournaler och donation.
+Object.assign(TYP, { infart: 'In- och utfart', restjournal: 'Restjournal', dodsfall: 'Dödsfall', donation: 'Donation' });
+const R10R4_FLIK = { infart: 'infarter', restjournal: 'restjournaler', donation: 'donation' };
 // Tidslinjen i tidsordning, per vårdtillfälle och vårdkontakt, eller per hälsoärende. Valet gäller under sessionen.
 const LAGEN = [['tid', 'I tidsordning'], ['kontakt', 'Per vårdkontakt'], ['arende', 'Per hälsoärende']];
 let tidslinjeLage = 'tid';
@@ -111,10 +114,11 @@ export async function visa(el, ctx) {
 }
 
 function tidslinjeRad(t, ctx) {
-  const lank = t.ref?.typ === 'anteckning' ? ctx.href('journal', t.ref.id) : t.ref?.typ === 'ordination' ? ctx.href('lakemedel') : t.ref?.typ === 'remiss' ? ctx.href('remisser') : null;
+  const lank = t.ref?.typ === 'anteckning' ? ctx.href('journal', t.ref.id) : t.ref?.typ === 'ordination' ? ctx.href('lakemedel') : t.ref?.typ === 'remiss' ? ctx.href('remisser')
+    : R10R4_FLIK[t.ref?.typ] ? ctx.href(R10R4_FLIK[t.ref.typ], t.ref.typ === 'restjournal' ? t.ref.id : undefined) : null;
   const rubrik = lank ? `<a href="${lank}">${esc(t.rubrik)}</a>` : esc(t.rubrik);
   return `<li class="tl-${esc(t.typ)}">
-    <time datetime="${esc(t.tid)}"><span class="tl-datum">${esc(datum(t.tid))}</span><span class="tl-tid">${esc(klockslag(t.tid))}</span></time>
+    <time datetime="${esc(t.tid)}"><span class="tl-datum">${esc(datum(t.tid))}</span>${String(t.tid).length > 10 ? `<span class="tl-tid">${esc(klockslag(t.tid))}</span>` : ''}</time>
     <div class="tl-kropp"><p class="tl-rubrik"><span class="tl-typ">${esc(TYP[t.typ] ?? t.typ)}</span>${rubrik}${migreradEtikett(t)}</p>
       ${t.text ? `<p class="tl-text">${esc(t.typ === 'remiss' ? (REMISSTATUS[t.text] ?? t.text) : t.text)}</p>` : ''}<p class="under-text">${esc(t.enhet?.namn ?? '')}</p></div>
   </li>`;

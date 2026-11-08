@@ -21,16 +21,17 @@ CREATE TRIGGER IF NOT EXISTS uppmarksamhet_raderas_ej BEFORE DELETE ON uppmarksa
   BEGIN SELECT RAISE(ABORT, 'Uppmärksamhetsinformation raderas inte, den avslutas'); END;
 `;
 
+// Runda 10, r4: termerna och motiveringarna är ur Socialstyrelsens kodverkslista (umi-kodverk.js).
 // dagar är relativt till dagen då sandlådan skapas. En överkänslighet får sitt datum från överkänsligheten.
 const SEED = [
   { patient: 'p01', overkanslighet: 'Penicilliner', grad: 'skadlig', av: 'lak-vas', kalla: 'migrerad:VAS' },
   { patient: 'p09', overkanslighet: 'Jordnöt', grad: 'livshotande', av: 'lak-vc' },
   { patient: 'p10', regel: 'antikoagulantia', lakemedel: 'VK-NPL-0002', enhet: 'vc-tybble', av: 'lak-vc', dagar: -1490, kategori: 'medicinskt', undergrupp: 'behandling',
-    term: 'Antikoagulantiabehandling', motivering: 'Ökad blödningsrisk. Behandlingen behöver beaktas före operation, punktion, injektion och trombolys.' },
+    term: 'Antikoagulantiabehandling', motivering: 'Behandlingen medför fördröjd blodkoagulering så att patienten kan dö av blodförlust eller skador på organen. Särskild försiktighet måste iakttas vid operation och vid akut skada.' },
   { patient: 'p08', regel: 'smitta-barare', diagnos: 'Z22.3', enhet: 'uso-inf', av: 'lak-inf', dagar: -1, kategori: 'smitta', undergrupp: 'smittamne',
-    term: 'Bärare av MRSA', motivering: 'Särskilda hygienrutiner och smittskyddsåtgärder vid vård och provtagning.' },
-  { patient: 'p03', enhet: 'vc-tybble', av: 'lak-vc', dagar: -400, kategori: 'vardrutin', undergrupp: 'information', term: 'Avböjer blodtransfusion',
-    motivering: 'Patienten har sagt att hon inte vill få blod eller blodprodukter. Planera blodsparande åtgärder och fråga patienten igen vid behov.' },
+    term: 'MRSA (meticillinresistenta Staphylococcus aureus)', motivering: 'Förekomst av MRSA påverkar valet av antibiotika för den enskilda patienten.' },
+  { patient: 'p03', enhet: 'vc-tybble', av: 'lak-vc', dagar: -400, kategori: 'vardrutin', undergrupp: 'information', term: 'Patienten accepterar ej blod- eller plasmatransfusion',
+    motivering: 'Vanligtvis är hälso- och sjukvård frivillig och då bör patientens eventuella avståndstaganden från viss vård (till exempel mottagande av blod- eller plasmatransfusion) framgå.' },
 ];
 
 // Lägger in seeden. datum(n) ger ISO-tid n dagar från sandlådans dag, och datumTid(d) gör ett datum till en tid.

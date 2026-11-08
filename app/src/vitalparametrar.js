@@ -20,6 +20,9 @@ import { news2, news2Omgangar, news2Galler, referens, utanforReferens, DEMOREGEL
 // Runda 9, r2: bara kvalitetssäkrade värden räknas i NEWS2, larm och basfakta. Värden från utrustning är referens tills de
 // är godkända, och patientens egna mätningar visas för sig (mt-klass.js och medicinteknik.js).
 import { kvalitetssakrad, OBEDOMDA_KALLOR } from './mt-klass.js';
+// Runda 10, r4: SpO2 skala 2 när läkaren har beslutat det (syremattnad-skala.js), och urvalet i listan (matvarde-inmatning.js).
+import * as skala2 from './syremattnad-skala.js';
+import { lasUrval, tillampa, INMATNINGAR } from './matvarde-inmatning.js';
 
 const idagSv = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
 const WARFARIN = 'B01AA03';
@@ -78,11 +81,12 @@ export function news2For(atk, p, alla, nu = Date.now()) {
   const galler = news2Galler({ alder: alder(p.fodd, idagSv()), diagnosKoder: synligaDiagnoskoder(atk) });
   const bas = { galler: galler.galler, text: galler.text, demoregel: DEMOREGEL, kalla: NEWS2_KALLA };
   if (!galler.galler) return { ...bas, serie: [], aktuell: null, nyareRoda: [], larm: false };
-  return { ...bas, ...news2Lage(rader, nu) };
+  const sk = skala2.skalaUt(atk, synligaDiagnoskoder(atk));
+  return { ...bas, ...news2Lage(rader, nu, { skala: sk.skala }), skala: sk };
 }
 
-export function news2Lage(rader, nu = Date.now()) {
-  const omgangar = news2Omgangar(rader);
+export function news2Lage(rader, nu = Date.now(), { skala = 1 } = {}) {
+  const omgangar = news2Omgangar(rader, { skala });
   const kompletta = omgangar.filter(o => o.resultat.komplett);
   const senaste = kompletta.at(-1) ?? null;
   // Enskilda värden med 3 poäng som togs efter den senaste kompletta omgången kräver åtgärd i sig.
@@ -103,7 +107,7 @@ export function news2Lage(rader, nu = Date.now()) {
 }
 
 // Fliken Mätvärden: listan, kurvorna och NEWS2 i ett anrop, så att läsningen loggas en gång.
-export function matvardesvy(atk, p) {
+export function matvardesvy(atk, p, urvalQ = new URLSearchParams()) {
   atk.krav('las_matvarden');
   const rader = journal.synligaMatvarden(atk);
   // Runda 7, r4: mätvärden som är undantagna från visning står med antal och motivering (undantag.js).
@@ -111,8 +115,14 @@ export function matvardesvy(atk, p) {
   // Runda 9, r2: patientens egna mätningar visas skilda från vårdens värden. I NEWS2 räknas de först när de är bedömda
   // och godkända (news2For tar bara kvalitetssäkrade värden).
   const vardens = rader.filter(m => m.kalla !== 'patient');
+  // Runda 10, r4: urvalet i listan efter typ, hur värdet kom in och period. Kurvorna och NEWS2 bygger på alla värden.
+  const alla = vardens.map(m => journal.matvardeUt(atk.db, m));
+  const urval = lasUrval(urvalQ, journal.MATTYPER);
+  const valda = tillampa(alla, urval);
   return {
-    matvarden: vardens.map(m => journal.matvardeUt(atk.db, m)), dolda,
+    matvarden: valda, dolda,
+    urval: { ...urval, antal: valda.length, totalt: alla.length, inmatningar: [...new Set(alla.map(m => m.inmatning.typ))].map(id => ({ id, text: INMATNINGAR[id] })),
+      typer: [...new Set(alla.map(m => m.typ))].map(id => ({ id, text: journal.MATTYPER[id]?.namn ?? id })) },
     kurvor: kurvor(atk, p, vardens), news2: news2For(atk, p, rader),
     egna: rader.filter(m => m.kalla === 'patient').map(m => journal.matvardeUt(atk.db, m)),
   };
@@ -136,19 +146,21 @@ export function registreraNews2(atk, p, body = {}) {
     for (const m of sparade.slice(1)) db.query('UPDATE matvarden SET vardkontakt_id = ? WHERE id = ?').run(vk, m.id);
     const atgard = registreraAtgard(atk, { kod: 'QD008', tid: sparade[0].tid, vardkontaktId: vk, underlag: { matvarden: sparade.map(m => m.id) } });
     const rader = sparade.map(m => db.query('SELECT * FROM matvarden WHERE id = ?').get(m.id));
-    return { matvarden: sparade, vardkontakt: forsta.vardkontakt, atgard, news2: news2Omgangar(rader).at(-1).resultat };
+    return { matvarden: sparade, vardkontakt: forsta.vardkontakt, atgard, news2: news2Omgangar(rader, { skala: skala2.skalaFor(atk) }).at(-1).resultat };
   })();
   return ut;
 }
 
 // Förhandsvisning av NEWS2 medan värdena skrivs. Inga patientuppgifter läses och inget sparas.
 export function berakna(body = {}) {
+  // Runda 10, r4: förhandsvisningen räknar med skala 2 när formuläret är för en patient med det beslutet.
+  const skala = body.skala === 2 ? 2 : 1;
   const sys = typeof body.blodtryck === 'string' ? Number(body.blodtryck.split('/')[0]) : Number(body.systoliskt);
   const tal = (v) => (v === '' || v == null ? null : Number(String(v).replace(',', '.')));
   return news2({
     andningsfrekvens: tal(body.andningsfrekvens), saturation: tal(body.saturation), syrgas: tal(body.syrgas), systoliskt: Number.isFinite(sys) && sys > 0 ? sys : null,
     puls: tal(body.puls), medvetande: typeof body.medvetande === 'string' ? body.medvetande.toUpperCase() : null, temp: tal(body.temp),
-  });
+  }, { skala });
 }
 
 // Larm i inkorgen för sjuksköterskan och läkaren: patienter med en pågående vårdkontakt på den egna vårdenheten där
@@ -172,7 +184,9 @@ export function larmForInkorg(db, personal, valFor = () => ({})) {
       .filter(kvalitetssakrad);
     const egnaDiagnoser = kanRoll(personal, 'las_diagnoser') ? db.query(`SELECT kod FROM diagnoser WHERE patient_id = ? AND enhet_id IN (${ph})`).all(p.id, ...enheter).map(d => d.kod) : [];
     if (!news2Galler({ alder: alder(p.fodd, idagSv()), diagnosKoder: egnaDiagnoser }).galler) continue;
-    const lage = news2Lage(rader);
+    // Runda 10, r4: bara ett beslut om skala 2 från den egna vårdenheten räknas i larmet, som värdena.
+    const beslut = skala2.beslutFor(atk);
+    const lage = news2Lage(rader, Date.now(), { skala: beslut && vardenhetFor(db, beslut.enhet_id) === ve ? 2 : 1 });
     if (!lage.larm) continue;
     const a = lage.aktuell;
     const roda = lage.nyareRoda.length ? lage.nyareRoda : a.delar.filter(d => d.poang === 3);
@@ -238,7 +252,7 @@ export function news2Fhir(atk, p, alla) {
   const rader = alla.filter(kvalitetssakrad);
   if (!news2Galler({ alder: alder(p.fodd, idagSv()), diagnosKoder: synligaDiagnoskoder(atk) }).galler) return [];
   const perId = new Map(rader.map(r => [r.id, r]));
-  return news2Omgangar(rader).filter(o => o.resultat.komplett).map(o => ({
+  return news2Omgangar(rader, { skala: skala2.skalaFor(atk) }).filter(o => o.resultat.komplett).map(o => ({
     resourceType: 'Observation', id: `news2-${o.ankareId}`, meta: { tag: [{ system: `${CS}/kalla`, code: 'vardkallan' }] }, status: 'final',
     category: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/observation-category', code: 'survey' }] }],
     code: { coding: [{ ...NEWS2_KOD }], text: 'NEWS2' }, subject: { reference: `Patient/${p.id}` },

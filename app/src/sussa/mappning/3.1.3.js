@@ -4,6 +4,10 @@ import { TEST, klickbudgetTest } from '../../krav.js';
 import { FLODEN } from '../../klickbudget.js';
 // Runda 8, r5: tilläggen för tobaksvanor, epikrisen, mätvärdena, övningarna och parametrarna (sussa/runda8-r5.js).
 import { medR8r5 } from '../runda8-r5.js';
+// Runda 10, r4: in- och utfarter, skala 2 och inmatningen av mätvärden (sussa/runda10-r4.js).
+import { INFARTER, MATVARDEN } from '../runda10-r4.js';
+// Runda 9, r2: värden från medicinteknisk utrustning (sussa/medicinteknik-r9.js).
+import { T as MT } from '../medicinteknik-r9.js';
 
 const { J, KV, FS, MJ, GK } = TEST;
 // Runda 6, r1: skalor, NEWS2 och kurvor (skalor.js och vitalparametrar.js).
@@ -25,8 +29,11 @@ const POSTERNA = [
   },
   { id: '3.1.3.2', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: 'Röstinmatning och taligenkänning är inte byggda.' },
-  { id: '3.1.3.3', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
-    anmarkning: 'Registrering av in- och utfarter, till exempel katetrar och dränage, är inte byggd.' },
+  // Runda 10, r4: in- och utfarter (infarter.js).
+  { id: '3.1.3.3', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo', tester: INFARTER,
+    losning: 'In- och utfarter registreras i en egen flik: perifer och central venkateter, PICC, kvarliggande och suprapubisk urinkateter, nasogastrisk sond och dränage, med typ, storlek, placering och tid, och följs med skötsel, byte och avveckling. Varje rad visar hur många dygn den har suttit, när nästa skötsel ska göras och vem som gjorde vad. Insättning, skötsel, byte och avveckling får KVÅ-kod och lämnas ut i FHIR som Procedure. Skötseln står i avdelningens planering, och händelserna står i översiktens tidslinje.',
+    expert: 'Den som registrerar väljer typ och skriver var den sitter. Systemet förväljer storlek och tid, knyter registreringen till vårdkontakten, sätter KVÅ-koden, räknar nästa skötsel och lägger den i avdelningens planering, påminner om att pröva behovet och stoppar en andra urinkateter.',
+    anmarkning: 'Intervallen för skötsel och påminnelserna är demoregler. Armband och förpackning kan skannas vid sängen, men riktiga läsare och förpackningar med GTIN är inte provade.' },
   {
     id: '3.1.3.4', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
     tester: [
@@ -71,10 +78,12 @@ const POSTERNA = [
     anmarkning: 'I demon är förpackningens artikelnummer NPL-pack-id, eftersom katalogen saknar GTIN. Batch och utgångsdatum sparas med skanningen men inte på den givna dosen. Riktiga läsare är inte provade. Medicintekniska produkter har ingen egen kodtyp än.' },
   { id: '3.1.3.7', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: 'Röstinmatning är inte byggd.' },
-  { id: '3.1.3.8', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
-    anmarkning: 'In- och utfarter är inte byggda.' },
+  { id: '3.1.3.8', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo', tester: INFARTER,
+    losning: 'Omfattning: sju typer av in- och utfarter med storlek i typens enhet, placering, tid, vem som satte dem, artikel, batch och utgångsdatum från förpackningen, skötsel med anteckning, byte och avveckling med orsak. Registrering: typ och placering räcker, resten fyller systemet i. Identitet: armbandet kan skannas och kontrolleras mot den öppna patienten. Bedside skanning: armband och förpackning skannas vid sängen. Presentation: en flik med det som sitter nu och det som är avvecklat, med dygn, nästa skötsel och historik, och händelserna i tidslinjen. Utbud: typerna med storlekar och placeringar finns i en tabell. Enhetlighet: samma behörighet, spärr och loggning som omvårdnadsanteckningarna.',
+    expert: 'Systemet följer varje in- och utfart själv: det räknar dygnen och nästa skötsel, lägger skötseln i avdelningens planering, markerar det som är försenat och påminner om att pröva om en urinkateter eller venkateter fortfarande behövs.',
+    anmarkning: 'Utbudet av typer, storlekar och placeringar är en tabell i koden och ändras inte från gränssnittet. Intervallen för skötsel är demoregler.' },
   {
-    id: '3.1.3.9', kategori: 'system', egna: ['D9'], avsedd: 'delvis',
+    id: '3.1.3.9', kategori: 'system', egna: ['D9'], avsedd: 'uppfyllt_demo',
     tester: [
       `${J}mätvärden valideras och registreras`,
       `${FS}vitalparametrar följer FHIR R4:s vitalparameterprofiler`,
@@ -88,10 +97,14 @@ const POSTERNA = [
       `${N2L}larmet syns för sjuksköterskan och läkaren på vårdenheten, med vad som ska göras, men inte för andra roller eller vårdenheter`,
       `${N2L}larmet bygger bara på den egna vårdenhetens värden: en spärrad vårdenhets värden larmar inte och nämns inte`,
       klickbudgetTest(FLODEN.find(f => f.id === 'news2')),
+      // Runda 10, r4: skala 2, inmatningen, urvalet, värden från utrustning och vätskebalansen.
+      ...MATVARDEN, MT.fhir, MT.referens, MT.egenSkild,
+      'Vätskebalans > vätskebalansen räknar in administrerad volym av sig själv',
+      'Intensivvård > vätskebalansen räknas timvis och kumulativt, med urin och dränage per timme, urin per kilo och timme och varning för oliguri',
     ],
-    losning: 'Mätvärden och provsvar registreras och visas per typ, med NPU för labb, LOINC för vitalparametrar och UCUM-enheter, och lämnas ut i FHIR. En kurva per mätvärde med referensintervall och värden utanför markerade, NEWS2 över tid, och en hel NEWS2-kontroll registreras i ett formulär. När NEWS2 eller ett enskilt värde kräver åtgärd larmar systemet i inkorgen för sjuksköterskan och läkaren på vårdenheten.',
-    expert: 'Systemet kodar varje mätvärde, räknar NEWS2, säger vad som ska göras och när nästa kontroll ska göras, larmar själv och väljer målintervallet för INR vid warfarin, så ingen behöver kunna tabellerna. NEWS2 räknas inte för barn eller under graviditet, eftersom skalan inte gäller där.',
-    anmarkning: 'NEWS2 och referensintervallen är demoregler (D10). Syremättnad räknas bara med skala 1. Mätvärden från medicinteknisk utrustning, som ska kunna skiljas från manuellt inmatade, finns inte; NEWS2 och eGFR är märkta som räknade av systemet.',
+    losning: 'Mätvärden och provsvar registreras och visas per typ, med NPU för labb, LOINC för vitalparametrar och UCUM-enheter, och lämnas ut i FHIR. En kurva per mätvärde med referensintervall och värden utanför markerade, NEWS2 över tid, och en hel NEWS2-kontroll registreras i ett formulär. När NEWS2 eller ett enskilt värde kräver åtgärd larmar systemet i inkorgen för sjuksköterskan och läkaren på vårdenheten. Varje värde visar om det är manuellt inmatat, maskinellt från medicinteknisk utrustning eller laboratoriet, räknat av systemet, migrerat eller patientens egen mätning, och listan väljs ut efter mätvärde, inmatning och period. Syremättnaden räknas med skala 2 när läkaren har beslutat det. Vätskebalansen räknas ur in- och utflödena och den administrerade volymen.',
+    expert: 'Systemet kodar varje mätvärde, avgör om det kom in manuellt eller maskinellt, räknar NEWS2, säger vad som ska göras och när nästa kontroll ska göras, larmar själv och väljer målintervallet för INR vid warfarin, så ingen behöver kunna tabellerna. NEWS2 räknas inte för barn eller under graviditet, och vid andningssvikt med hyperkapné föreslår systemet skala 2 för syremättnaden.',
+    anmarkning: 'NEWS2 och referensintervallen är demoregler (D10). Den medicintekniska utrustningen är simulerad (Sussa 3.6.1).',
   },
   { id: '3.1.3.10', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: 'Rättstavning och grammatikkontroll med medicinska termer är inte byggd.' },

@@ -862,6 +862,50 @@ function skapa(BAS) {
     await synlig(page, '.notis', 'Insulin med penna är förskriven');
     await synlig(page, '.fb-sektion', 'Pennkanyler 4 mm');
   };
+  // Runda 10, r4: en perifer venkateter, en skannad restjournal och ett förslag om donation i inkorgen.
+  GOR['registrera-infart'] = async (m, page) => {
+    await m.klicka(page.locator('.flikar a', { hasText: 'In- och utfarter' }), 'fliken In- och utfarter');
+    await page.waitForSelector('#if-form');
+    await m.skriv(page.locator('#if-placering'), 'Höger handrygg', 'var den sitter');
+    await m.klicka(page.locator('#if-form [type="submit"]'), 'Registrera');
+    await synlig(page, '.notis', 'är registrerad');
+    await synlig(page, '.if-lista', 'Höger handrygg');
+  };
+  // Restjournalen är en PDF med textlager och patientens personnummer, som från en skanner med OCR. Sidnumret gör varje
+  // fil unik, så att flödet kan göras flera gånger i samma sandlåda.
+  const restjournalPdf = () => {
+    const strom = 'BT /F1 11 Tf 50 790 Td (Journalanteckning, pappersjournal) Tj 0 -16 Td (Gunnar Akesson 19450202-4732) Tj 0 -16 Td (1999-05-03 Mottagningsbesok.) Tj 0 -16 Td (Sida ' + Date.now() + ') Tj ET';
+    const delar = ['%PDF-1.4', '1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj', '2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj',
+      '3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R >> endobj', `4 0 obj << /Length ${strom.length} >>\nstream\n${strom}\nendstream endobj`, 'trailer << /Root 1 0 R >>', '%%EOF'];
+    return Buffer.from(delar.join('\n'), 'latin1');
+  };
+  GOR['skanna-restjournal'] = async (m, page) => {
+    await m.klicka(page.locator('.flikar a', { hasText: 'Restjournaler' }), 'fliken Restjournaler');
+    await page.waitForSelector('#rj-fil');
+    const [val] = await Promise.all([page.waitForEvent('filechooser'), m.klicka(page.locator('#rj-fil'), 'Skannat dokument')]);
+    await val.setFiles({ name: 'restjournal-1999.pdf', mimeType: 'application/pdf', buffer: restjournalPdf() });
+    await synlig(page, '#rj-forslag', 'Personnumret i dokumentet är patientens');
+    await m.klicka(page.locator('#rj-form [type="submit"]'), 'Spara restjournalen');
+    await synlig(page, '.notis', 'Restjournalen är inskannad');
+  };
+  startI['Inkorgen med ett förslag om donation'] = async (page) => {
+    await gaTill(page, '#/arbetslista');
+    const ok = await page.evaluate(async () => {
+      const post = (vag, data = {}) => fetch(vag, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.ok);
+      await fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text());
+      return await post('/api/demo/donation') && await post('/api/patient/p10/dodsfall', { kriterier: 'direkta' });
+    });
+    if (!ok) throw new Error('Demoläget för donation kunde inte skapas inför flödet');
+    await gaTill(page, '#/inkorg');
+    await page.locator('section[aria-labelledby="ik-donation"] li', { hasText: 'Möjlig donator' }).waitFor();
+  };
+  GOR['starta-donation'] = async (m, page) => {
+    await m.klicka(page.locator('section[aria-labelledby="ik-donation"] li a', { hasText: 'Möjlig donator' }), 'förslaget Möjlig donator i inkorgen');
+    await page.waitForSelector('[data-dn-starta]');
+    await m.klicka(page.locator('[data-dn-starta]'), 'Starta donationsutredning');
+    await synlig(page, '.notis', 'Donationsutredningen är startad');
+    await synlig(page, '.dn-lista', 'Donationsregistret kontrollerat');
+  };
   // Runda 9, r7: koden på armbandet hämtas utan att räknas, och skannas sedan i fältet Skanna.
   GOR['skanna-armband'] = async (m, page) => {
     const kod = await page.evaluate(() => fetch('/api/patient/p01/armband', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.json()).then(x => x.kod));

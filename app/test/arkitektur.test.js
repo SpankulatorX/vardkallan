@@ -134,7 +134,7 @@ describe('Nationellt fackspråk', () => {
     await k.logga('lak-kard');
     const r = await k.get('/api/fackssprak');
     expect(r.status).toBe(200);
-    expect(r.data.sokordUtanKod.map(s => s.sokord)).toEqual(['Stöd', 'Kommentar', 'Andning/cirkulation', 'Hud/vävnad']);
+    expect(r.data.sokordUtanKod.map(s => s.sokord)).toEqual(['Stöd', 'Kommentar', 'Andning/cirkulation', 'Hud/vävnad', 'Närstående']);
   });
 
   test(namn(T.nfAtgard), () => {

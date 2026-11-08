@@ -45,6 +45,8 @@ import * as remissR8 from './remiss-r8.js';
 import * as labbFhir from './labb-fhir.js';
 // Runda 9, r6: versionen i CapabilityStatement och ändringsloggen (Sussa 2.5.1.1).
 import * as api from './api-andringar.js';
+// Runda 10, r4: Socialstyrelsens kodverkslista för uppmärksamhetsinformation, för Snomed CT i Flag.
+import { termFor, svensktBegrepp } from './umi-kodverk.js';
 
 export const SYSTEM = {
   personnummer: 'http://electronichealth.se/identifier/personnummer',
@@ -416,6 +418,7 @@ export function allergyIntolerance(db, o) {
 // Uppmärksamhetsinformation (Sussa 3.1.5) utom överkänslighet: huvudgrupp och undergrupp enligt Socialstyrelsens tabell
 // i Vårdkällans kodsystem, koden ur ICD-10-SE eller ATC när uppgiften kommer från en diagnos eller ett läkemedel.
 const FLAGGKATEGORI = { medicinskt: 'Medicinska tillstånd och behandlingar', smitta: 'Smitta', vardrutin: 'Särskild vårdrutin' };
+const umiSnomed = (r) => (termFor(r.undergrupp, r.term)?.snomed ?? []).filter(s => !svensktBegrepp(s.kod)).slice(0, 1).map(s => ({ system: SYSTEM.snomed, code: s.kod }));
 export function flag(db, r) {
   const ve = vardenhetFor(db, r.enhet_id);
   const display = (r.kodsystem === 'icd10se' ? ICD10SE : ATC)[r.kod];
@@ -427,7 +430,8 @@ export function flag(db, r) {
       { coding: [{ system: SYSTEM.uppmarksamhet, code: `${r.kategori}.${r.undergrupp}` }] },
       { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/flag-category', code: 'clinical', display: 'Clinical' }] },
     ],
-    code: { ...(kod ? { coding: [kod] } : {}), text: r.term },
+    // Runda 10, r4: termens begrepp i Snomed CT ur Socialstyrelsens kodverkslista, när det finns i den internationella utgåvan.
+    code: { coding: [...(kod ? [kod] : []), ...umiSnomed(r)], text: r.term },
     subject: ref('Patient', r.patient_id), period: { start: r.registrerad, ...(r.avslutad ? { end: r.avslutad } : {}) },
     author: ref('Organization', ve, enhetsnamn(db, ve)),
   };

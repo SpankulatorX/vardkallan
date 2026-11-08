@@ -359,6 +359,58 @@
           "omfattning": "liten",
           "rubrik": "Sökorden får kod i Snomed CT",
           "text": "Systemet ger sökorden i dina anteckningar kod i Snomed CT, en del av det nationella fackspråket, så att journalen kan läsas av andra system. Du väljer sökord som förut och ser aldrig koden."
+        },
+        {
+          "id": "r10r4-infarter",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska"
+          ],
+          "omfattning": "liten",
+          "rubrik": "In- och utfarter i en egen flik",
+          "text": "Fliken In- och utfarter visar katetrar, sonder och dränage från insättning till avveckling. Välj typ och skriv var den sitter. Systemet räknar nästa skötsel och lägger den i avdelningens planering."
+        },
+        {
+          "id": "r10r4-restjournaler",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "vardadministrator"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Skanna in restjournaler",
+          "text": "I fliken Restjournaler skannar du in en pappersjournal. Systemet läser texten, föreslår dokumenttyp och period och kontrollerar personnumret. Dokumentet står sedan i översiktens tidslinje och går att söka i."
+        },
+        {
+          "id": "r10r4-donation",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Stöd vid donation och transplantation",
+          "text": "När en patient avlider på intensivvårdsavdelningen får vårdenhetens donationsansvariga ett förslag i inkorgen. Fliken Donation har checklistan, som systemet bockar av där det kan, och läkaren får donationsanteckningen skriven av systemet."
+        },
+        {
+          "id": "r10r4-matvarden",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Se hur ett mätvärde kom in, och skala 2 i NEWS2",
+          "text": "Listan med mätvärden visar om varje värde är manuellt eller maskinellt inmatat och kan väljas ut efter mätvärde, inmatning och period. Vid andningssvikt med hyperkapné föreslår systemet skala 2 för syremättnaden, och läkaren beslutar med ett klick."
+        },
+        {
+          "id": "r10r4-uppmarksamhet",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Uppmärksamhetsinformation enligt Socialstyrelsens kodverkslista",
+          "text": "Termerna i uppmärksamhetsinformationen är nu Socialstyrelsens kodverkslista, med koder och motivering. Systemet föreslår rätt term ur diagnoserna och läkemedelslistan, och du bekräftar med ett klick."
         }
       ]
     },

@@ -21,6 +21,10 @@ import * as tillampningar from './patient-tillampningar.js';
 import * as tillvaxt from './patient-tillvaxt.js';
 // Runda 8, r1: beställning och svar och kontrollerna till avdelningen (Sussa 4.4).
 import * as prover from './patient-prover.js';
+// Runda 10, r4: in- och utfarter, skannade restjournaler och donation.
+import * as infarter from './patient-infarter.js';
+import * as restjournaler from './patient-restjournaler.js';
+import * as donation from './patient-donation.js';
 
 export const namn = 'patient';
 
@@ -45,6 +49,12 @@ const FLIKAR = [
   // Runda 6, r1: träffarna från sökfältet. Fliken nås från sökfältet och står inte bland flikarna.
   ['sok', 'Sökträffar', () => far('las_oversikt'), journalsok, { dold: true }],
 ];
+
+// Runda 10, r4: In- och utfarter efter Mätvärden, Restjournaler efter Journal och Donation för läkare och sjuksköterskor
+// på en vårdenhet med intensivvård. Fliken Donation visas också när transplantationer ska registreras.
+FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'matvarden') + 1, 0, ['infarter', 'In- och utfarter', () => far('las_omvardnad'), infarter]);
+FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'journal') + 1, 0, ['restjournaler', 'Restjournaler', () => pa('las_journal', 'restjournal'), restjournaler]);
+FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'remisser') + 1, 0, ['donation', 'Donation', () => far('donation'), donation]);
 
 let huvud = null;
 

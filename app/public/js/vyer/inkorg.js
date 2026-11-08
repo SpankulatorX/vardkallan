@@ -104,6 +104,8 @@ export async function visa(main) {
     `${esc(x.fragestallning ?? '')} Fördelad till dig ${esc(tidpunkt(x.fordelad.tid))} av ${esc(x.fordelad.av?.namn ?? '')}. Svar senast ${esc(x.svarSenast)}.`));
   // Runda 9, r1: beredningar som väntar på kontroll av en annan sjuksköterska eller läkare. Inga patientuppgifter.
   const berKontroll = (d.beredningarAttKontrollera ?? []).map(x => rad(esc(x.lank), 'Beredningar att kontrollera', esc(x.text)));
+  // Runda 10, r4: förslag om donation till vårdenhetens donationsansvariga.
+  const donation = (d.donationsforslag ?? []).map(x => rad(esc(x.href), `${esc(x.rubrik)}, ${esc(pnamn(x.patient))}${sym(x.patient)}`, `${esc(x.text)} Dödsfallet registrerades ${esc(tidpunkt(x.tid))}.`, 'ik-larm'));
   const harBhv = Boolean(S.session?.bhv);
   const yrke = S.session?.personal?.yrke;
   // Runda 6, r2: har användaren hunnit gå vidare till en annan vy, eller loggat ut, medan inkorgen hämtades finns
@@ -123,6 +125,7 @@ export async function visa(main) {
     ${S.session.behorigheter.includes('utvardera_lakemedel') && yrke === 'lakare' ? sektion('uppf', 'Uppföljning av läkemedel', uppf, 'Inga uppföljningar har passerat.', 'Läkemedel där uppföljningsdatumet har passerat. Utvärdera effekt och biverkan, och systemet föreslår nästa uppföljning.') : ''}
     ${['lakare', 'farmaceut'].includes(yrke) ? sektion('fordj', 'Fördjupade läkemedelsgenomgångar', fordj, 'Inga fördjupade genomgångar väntar på dig.', yrke === 'farmaceut' ? 'Genomgångar på din vårdenhet som väntar på farmaceutens bedömning.' : 'Genomgångar på din vårdenhet som pågår.') : ''}
     ${mallarIk.length ? sektion('mallar', 'Mallar att godkänna', mallarIk, '', 'Läkemedelsmallar på din vårdenhet som är nya eller ändrade. Du granskar och godkänner det medicinska innehållet som läkare ansvarig för läkemedelsmallarna (Gröna häftet 1.4.3).') : ''}
+    ${donation.length ? sektion('donation', 'Donation', donation, '', 'Patienter som har avlidit på intensivvårdsavdelningen. Som donationsansvarig prövar du om patienten kan bli donator, med checklistan i fliken Donation.') : ''}
     ${berKontroll.length ? sektion('berkontroll', 'Beredningar att kontrollera', berKontroll, '', 'Beredningar på din vårdenhet som systemet kräver att en annan sjuksköterska eller läkare kontrollerar innan dosen ges. Öppna Läkemedel att ge och välj Kontrollera beredning.') : ''}
     ${lic.length ? sektion('lic', 'Licenser som går ut', lic, '', 'Licensläkemedel på din vårdenhet. Systemet bevakar licensens giltighet.') : ''}
     ${avbokade.length ? sektion('vhavbokad', 'Vårdhändelser som avbokades', avbokade, '', 'Remissen avvisades, och tiden för en vårdhändelse som en läkemedelsdos väntar på avbokades. Besluta om ordinationen.') : ''}

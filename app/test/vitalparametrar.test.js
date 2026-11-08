@@ -259,6 +259,12 @@ describe('Åtgärder med KVÅ', () => {
       DV141: 'Enkla råd om matvanor', DV142: 'Rådgivande samtal om matvanor', DV143: 'Kvalificerat rådgivande samtal om matvanor',
       DV200: 'Utfärdande av recept på fysisk aktivitet (FaR)',
       QD004: 'Skötsel av central venkateter', QD005: 'Skötsel av perifer venkateter', DK028: 'Skötsel av urinkateter', DV150: 'Skötsel av dränage', DV065: 'Sondmatning',
+      // Runda 10, r4: in- och utfarterna och donationen.
+      SP021: 'Inläggning av perifer venkateter', DP028: 'Byte av perifer venkateter', DP029: 'Avlägsnande av perifer venkateter',
+      SP105: 'Inläggning av perifert insatt central kateter (PICC)', DF007: 'Avlägsnande av central venkateter (CVK) UNS',
+      TKC20: 'Kateterisering av urinblåsa genom urinröret', DK021: 'Avlägsnande av urinkateter inlagd genom urinröret',
+      DK010: 'Inläggande av suprapubisk kateter', DK023: 'Avlägsnande av suprapubisk kateter/cystostomikateter',
+      TJD00: 'Nasogastrisk eller nasogastroduodenal sond', DV005: 'Avlägsnande av dränage', AV124: 'Undersökning av potentiell donator',
     });
     expect(SYSTEM.kva).toBe('urn:oid:1.2.752.116.1.3.2.1.4');
   });

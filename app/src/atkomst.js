@@ -546,3 +546,9 @@ ROLLER.arkivarie.push('forskning_godkann');
 ROLLER.verksamhetschef.push('forskning_godkann', 'signeringslista');
 ROLLER.lakare.push('signeringslista');
 for (const h of ['patientgrupp', 'forskning_bestall', 'forskning_godkann', 'signeringslista']) UTAN_PATIENT.add(h);
+
+// Runda 10, r4: dokumentation vid donation (donation.js, Sussa 3.1.12.1). Läkare och sjuksköterskor med vårdrelation
+// dokumenterar donationsutredningen och den avlidnes inställning. Dödsfallet, transplantationen och
+// donationsanteckningen kräver dessutom läkarens skriv_journal.
+Object.assign(HANDLINGAR, { donation: 'dokumentera donationsutredningar och inställningen till donation' });
+for (const r of ['lakare', 'sjukskoterska']) ROLLER[r].push('donation');

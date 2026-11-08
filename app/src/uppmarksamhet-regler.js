@@ -5,38 +5,37 @@
 // förslaget med ett klick. Reglerna är en ren funktion av uppgifterna: de läser inte databasen, ändrar inget och prövar
 // ingen behörighet. Den som anropar skickar bara in de rader som den inloggade får se.
 //
-// Reglerna är Vårdkällans egna exempel. De är inte Socialstyrelsens kodverkslista och inte granskade av någon
-// klinisk instans. Grupperna följer Socialstyrelsens tabell över huvudgrupper och undergrupper (se uppmarksamhet.js),
-// och koderna är ATC och ICD-10-SE. Socialstyrelsens kriterium att ett tillstånd eller en behandling ska vara bestående,
-// åtminstone månader eller år, gör att tillfälliga ordinationer inte föreslås.
+// Runda 10, r4: termerna, koderna (ICD-10-SE, ATC och Snomed CT) och motiveringarna är Socialstyrelsens kodverkslista
+// för uppmärksamhetsinformation, version 6.1.2 (umi-kodverk.js). Vilka läkemedel och diagnoser som leder till en term
+// följer listans koder. Att förslaget görs, och att tillfälliga ordinationer inte föreslås, är Vårdkällans demoregel,
+// inte granskad av någon klinisk instans. Socialstyrelsens kriterium är att ett tillstånd eller en behandling ska vara
+// bestående, åtminstone månader eller år.
 
 import { ANTIKOAGULANTIA } from './lakemedel.js';
+import { termMedId, forDiagnoser, nationell } from './umi-kodverk.js';
 
 export const DEMOREGLER = true;
 
 // Varje regel: id, beskrivning (visas i gränssnittet och i kravregistret), och vad den matchar.
 export const REGLER = [
-  { id: 'antikoagulantia', kalla: 'ordination', atc: ANTIKOAGULANTIA, kategori: 'medicinskt', undergrupp: 'behandling',
-    term: 'Antikoagulantiabehandling', motivering: 'Ökad blödningsrisk. Behandlingen behöver beaktas före operation, punktion, injektion och trombolys.',
-    beskrivning: 'En stående eller vid behov-ordination av antikoagulantia (ATC B01AA, B01AB, B01AE eller B01AF) i läkemedelslistan.' },
-  { id: 'immunsuppression', kalla: 'ordination', atc: ['L04'], kategori: 'medicinskt', undergrupp: 'behandling',
-    term: 'Immunsuppressiv behandling', motivering: 'Ökad risk för allvarliga infektioner, och infektioner kan ge mindre tydliga symtom.',
-    beskrivning: 'En ordination av immunsuppressiva medel (ATC L04) som inte är tillfällig.' },
-  { id: 'kortison', kalla: 'ordination', atc: ['H02AB'], kategori: 'medicinskt', undergrupp: 'behandling',
-    term: 'Långvarig kortisonbehandling', motivering: 'Risk för binjurebarksvikt vid annat insjuknande, operation eller om behandlingen avbryts. Ökad infektionsrisk.',
-    beskrivning: 'En stående ordination av glukokortikoider för systemiskt bruk (ATC H02AB).' },
-  { id: 'smitta-barare', kalla: 'diagnos', icd: ['Z22'], kategori: 'smitta', undergrupp: 'smittamne',
-    motivering: 'Särskilda hygienrutiner och smittskyddsåtgärder vid vård och provtagning.',
-    beskrivning: 'En diagnos om bärarskap (ICD-10-SE Z22). Tillsammans med resistens mot meticillin (U82.1) blir det bärarskap av MRSA.' },
-  { id: 'smittsam-sjukdom', kalla: 'diagnos', icd: ['A15', 'A16', 'B18', 'B20', 'B21', 'B22', 'B23', 'B24'], kategori: 'smitta', undergrupp: 'smittsam_sjukdom',
-    motivering: 'Särskilda smittskyddsåtgärder vid vård, provtagning och stickskador.',
-    beskrivning: 'En diagnos om tuberkulos (A15, A16), kronisk virushepatit (B18) eller hivinfektion (B20 till B24).' },
-  { id: 'implantat', kalla: 'diagnos', icd: ['Z95', 'Z96', 'Z97'], kategori: 'medicinskt', undergrupp: 'implantat',
-    motivering: 'Implantatet kan påverka undersökningar som magnetkamera, operation och behandling med diatermi.',
-    beskrivning: 'En diagnos om förekomst av implantat (ICD-10-SE Z95 till Z97).' },
-  { id: 'transplantat', kalla: 'diagnos', icd: ['Z94'], kategori: 'medicinskt', undergrupp: 'transplantat',
-    motivering: 'Patienten har immunsuppressiv behandling och särskild risk vid infektion och vid nya läkemedel.',
-    beskrivning: 'En diagnos om transplanterat organ eller vävnad (ICD-10-SE Z94).' },
+  // Runda 10, r4: termerna, koderna och motiveringarna är Socialstyrelsens kodverkslista (umi-kodverk.js). Läkemedlen leder
+  // till behandlingarna med ATC i listan, och diagnoserna till termerna med ICD-10-SE i listan.
+  { id: 'antikoagulantia', kalla: 'ordination', atc: ANTIKOAGULANTIA, kategori: 'medicinskt', undergrupp: 'behandling', nationell: 'antikoagulantiabehandling',
+    beskrivning: 'En stående eller vid behov-ordination av antikoagulantia (ATC B01AA, B01AB, B01AE eller B01AF) i läkemedelslistan ger Antikoagulantiabehandling.' },
+  { id: 'immunsuppression', kalla: 'ordination', atc: ['L03A', 'L04'], kategori: 'medicinskt', undergrupp: 'behandling', nationell: 'immunmodulerande-behandling',
+    beskrivning: 'En ordination av immunstimulerande eller immunsuppressiva medel (ATC L03A eller L04) som inte är tillfällig ger Immunmodulerande behandling.' },
+  { id: 'cytostatika', kalla: 'ordination', atc: ['L01'], kategori: 'medicinskt', undergrupp: 'behandling', nationell: 'cytostatikabehandling',
+    beskrivning: 'En ordination av antineoplastiska medel (ATC L01) som inte är tillfällig ger Cytostatikabehandling.' },
+  { id: 'medicinskt-tillstand', kalla: 'diagnos', kategori: 'medicinskt', undergrupp: 'annat_tillstand',
+    beskrivning: 'En diagnos med en ICD-10-SE-kod som står i kodverkslistans Annat medicinskt tillstånd, till exempel T78.3 angioneurotiskt ödem eller E27.1 Addisons sjukdom.' },
+  { id: 'behandling-diagnos', kalla: 'diagnos', kategori: 'medicinskt', undergrupp: 'behandling',
+    beskrivning: 'En diagnos om en behandling utan läkemedel i kodverkslistan, som Z99.2 beroende av njurdialys.' },
+  { id: 'smitta-barare', kalla: 'diagnos', kategori: 'smitta', undergrupp: 'smittamne',
+    beskrivning: 'Kombinationen av koder för bärarskap i kodverkslistan, till exempel bärare av stafylokocker (Z22.3) med Staphylococcus aureus (B95.6) och resistens mot meticillin (U82.1), som blir MRSA.' },
+  { id: 'implantat', kalla: 'diagnos', kategori: 'medicinskt', undergrupp: 'implantat',
+    beskrivning: 'En diagnos om förekomst av implantat i kodverkslistan (ICD-10-SE Z95, Z96, Z98.2 och Z99.4). En kod som gäller flera implantat, som Z95.0, ger ett förslag per implantat, och läkaren väljer det som stämmer.' },
+  { id: 'transplantat', kalla: 'diagnos', kategori: 'medicinskt', undergrupp: 'transplantat',
+    beskrivning: 'En diagnos om transplanterat organ eller vävnad i kodverkslistan (ICD-10-SE Z94).' },
   { id: 'overkanslighet-grad', kalla: 'overkanslighet', kategori: 'overkanslighet',
     beskrivning: 'En registrerad överkänslighet vars grad inte är bekräftad. Anafylaxi i reaktionen ger livshotande, allvarlig överkänslighet ger skadlig och annan besvärande.' },
 ];
@@ -66,27 +65,28 @@ export function foresla({ ordinationer = [], diagnoser = [], overkanslighet = []
     ut.push({ nyckel, demoregel: true, grad: null, ...f });
   };
   for (const r of REGLER.filter(x => x.kalla === 'ordination')) {
+    const t = termMedId(r.nationell);
     for (const o of ordinationer) {
       if (!o.aktuell || !prefix(o.lakemedel?.atc, r.atc)) continue;
       // En tillfällig ordination är inte bestående och blir inte uppmärksamhetsinformation.
       if (o.typ === 'tillfallig') continue;
-      if (r.id === 'kortison' && o.typ !== 'staende') continue;
       lagg({
-        regel: r.id, kategori: r.kategori, undergrupp: r.undergrupp, term: r.term, motivering: r.motivering,
+        regel: r.id, kategori: r.kategori, undergrupp: r.undergrupp, term: t.term, motivering: t.motivering, nationell: nationell(t),
         kod: { system: 'atc', kod: o.lakemedel.atc }, kalla: { typ: 'ordination', id: o.id, text: o.lakemedel.namn },
         varfor: `${o.lakemedel.namn} (ATC ${o.lakemedel.atc}) finns i läkemedelslistan.`,
       });
     }
   }
-  const mrsa = diagnoser.some(d => d.kod === 'U82.1');
+  // Diagnoserna: varje diagnos prövas för sig mot kodverkslistan, och en kombination mot alla diagnoser.
+  const koder = diagnoser.map(d => d.kod);
   for (const r of REGLER.filter(x => x.kalla === 'diagnos')) {
-    for (const d of diagnoser) {
-      if (!prefix(d.kod, r.icd)) continue;
-      const term = r.id === 'smitta-barare' && mrsa ? 'Bärare av MRSA' : d.text;
+    for (const { t, kod } of forDiagnoser(koder).filter(x => x.t.undergrupp === r.undergrupp && x.t.kategori === r.kategori)) {
+      const d = diagnoser.find(x => x.kod === kod);
+      const flera = forDiagnoser([kod]).filter(x => x.t.undergrupp === r.undergrupp).length > 1;
       lagg({
-        regel: r.id, kategori: r.kategori, undergrupp: r.undergrupp, term, motivering: r.motivering,
+        regel: r.id, kategori: r.kategori, undergrupp: r.undergrupp, term: t.term, motivering: t.motivering, nationell: nationell(t),
         kod: { system: 'icd10se', kod: d.kod }, kalla: { typ: 'diagnos', id: d.id, text: `${d.kod} ${d.text}` },
-        varfor: `Diagnosen ${d.kod} ${d.text} finns i journalen${term !== d.text ? ' tillsammans med U82.1 Resistens mot meticillin' : ''}.`,
+        varfor: `Diagnosen ${d.kod} ${d.text} finns i journalen${t.kombination ? `, tillsammans med ${t.icd.slice(1).join(' och ')}` : ''}.${flera ? ' Koden gäller flera termer i kodverkslistan. Bekräfta den som stämmer och avfärda de andra.' : ''}`,
       });
     }
   }

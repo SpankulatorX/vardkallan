@@ -3,7 +3,8 @@
 // Strukturen följer huvudgrupperna och undergrupperna i Socialstyrelsens informationsspecifikation för
 // uppmärksamhetsinformation, så som de står i tabell 1 i Socialstyrelsens Instruktion för ändringsförslag gällande
 // Uppmärksamhetsinformation (2025-09-30, dnr 1015/2025). Överkänslighet har tre grader: livshotande, skadlig och
-// besvärande. Kodverkslistan med Snomed CT-termer är inte inläst; koderna här är ATC och ICD-10-SE. Se docs/design.md.
+// besvärande. Runda 10, r4: termerna, koderna och motiveringarna är kodverkslistan till informationsspecifikationen
+// version 6.1.2 (umi-kodverk.js), med Snomed CT, ICD-10-SE och ATC. Se docs/design.md.
 //
 // Systemet är experten: överkänsligheter som redan är registrerade ingår direkt, och förslagsreglerna i
 // uppmarksamhet-regler.js (demoregler) föreslår uppmärksamhetsinformation ur läkemedelslistan och diagnoserna. Läkaren
@@ -18,6 +19,8 @@ import { Atkomst, kanRoll, vardenhetFor } from './atkomst.js';
 import { synligaOrdinationer, aktuell as ordinationAktuell } from './lakemedel.js';
 import { synligaDiagnoser, kallaEtikett } from './journal.js';
 import { foresla, foreslagenGrad, REGLER } from './uppmarksamhet-regler.js';
+// Runda 10, r4: Socialstyrelsens kodverkslista för uppmärksamhetsinformation.
+import { TERMER as KODVERK_TERMER, termMedId, termFor, nationell, reaktionFor } from './umi-kodverk.js';
 
 export const KATEGORIER = {
   medicinskt: { namn: 'Medicinska tillstånd och behandlingar', kort: 'Medicinskt', undergrupper: {
@@ -35,25 +38,9 @@ export const KATEGORIER = {
 export const GRADER = { livshotande: 'Livshotande överkänslighet', skadlig: 'Skadlig överkänslighet', besvarande: 'Besvärande överkänslighet' };
 const GRADORDNING = ['livshotande', 'skadlig', 'besvarande'];
 
-// Det som systemet inte kan räkna ut ur journalen registreras ur den här listan. Termer märkta kalla: 'region' står i
-// Region Västmanlands beskrivning av version 5.1 av sitt stöd för uppmärksamhetssignalen, och Addisons sjukdom med
-// motiveringen är exemplet i Socialstyrelsens instruktion. Övriga är Vårdkällans egna demotermer.
-export const TERMER = [
-  { id: 'brytpunktssamtal', kategori: 'vardrutin', undergrupp: 'beslut', term: 'Läkarbeslut finns från brytpunktssamtal', kalla: 'region',
-    motivering: 'Vården är inriktad på symtomlindring. Läs beslutet innan behandling som inte lindrar inleds.' },
-  { id: 'avsta-hlr', kategori: 'vardrutin', undergrupp: 'beslut', term: 'Beslut att avstå från hjärt-lungräddning',
-    motivering: 'Ansvarig läkare har beslutat att hjärt-lungräddning inte ska ges. Läs beslutet och dess motivering.' },
-  { id: 'avbojer-blod', kategori: 'vardrutin', undergrupp: 'information', term: 'Avböjer blodtransfusion',
-    motivering: 'Patienten vill inte få blod eller blodprodukter. Planera blodsparande åtgärder och fråga patienten igen vid behov.' },
-  { id: 'svar-intubation', kategori: 'vardrutin', undergrupp: 'information', term: 'Svår intubation',
-    motivering: 'Tidigare svår luftvägshantering. Planera för svår luftväg vid sövning och akut luftvägshantering.' },
-  { id: 'addison', kategori: 'medicinskt', undergrupp: 'annat_tillstand', term: 'Addisons sjukdom', kalla: 'socialstyrelsen',
-    motivering: 'Patienten har behov av kortisonsubstitution i samband med annat insjuknande, till exempel infektion.' },
-  { id: 'sallsynt', kategori: 'medicinskt', undergrupp: 'annat_tillstand', term: 'Sällsynt hälsotillstånd som behöver uppmärksammas särskilt', kalla: 'region',
-    motivering: 'Tillståndet kräver särskild kunskap. Läs journalen och kontakta den enhet som har ansvaret innan behandling ändras.' },
-  { id: 'uretrasfinkter', kategori: 'medicinskt', undergrupp: 'implantat', term: 'Artificiell uretrasfinkter', kalla: 'region',
-    motivering: 'Kateterisering kan skada implantatet. Sfinktern ska avaktiveras före kateterisering.' },
-];
+// Det som systemet inte kan räkna ut ur journalen registreras ur den här listan, som är Socialstyrelsens kodverkslista
+// (runda 10, r4, umi-kodverk.js) utom överkänsligheterna, som registreras som överkänslighet med reaktion och grad.
+export const TERMER = KODVERK_TERMER.filter(t => t.kategori !== 'overkanslighet').map(t => ({ id: t.id, kategori: t.kategori, undergrupp: t.undergrupp, term: t.term, motivering: t.motivering ?? '', kalla: 'socialstyrelsen' }));
 
 const ATKOMST_LAS = 'las_oversikt';
 const ATKOMST_SKRIV = 'skriv_journal';
@@ -85,6 +72,8 @@ function postUt(db, r, { medPersonal = true } = {}) {
     id: r.id, kategori: r.kategori, kategoriText: KATEGORIER[r.kategori].namn, undergrupp: r.undergrupp, undergruppText: KATEGORIER[r.kategori].undergrupper[r.undergrupp] ?? r.undergrupp,
     term: r.term, motivering: r.motivering, grad: null, bekraftad: true, kod: r.kod ? { system: r.kodsystem, kod: r.kod } : null,
     kalla: r.kalla_typ ? { typ: r.kalla_typ, id: r.kalla_id } : null, registrerad, kallaEtikett: kallaEtikett(r.kalla, r.registrerad), regel: r.regel,
+    // Runda 10, r4: termen i Socialstyrelsens kodverkslista med Snomed CT, ICD-10-SE och ATC, eller null för en äldre term.
+    nationell: nationell(termFor(r.undergrupp, r.term)),
   };
 }
 
@@ -97,6 +86,8 @@ function overkanslighetPost(db, { o, bekr }, { medPersonal = true } = {}) {
     bekraftad: Boolean(bekr), kod: o.atc ? { system: 'atc', kod: o.atc } : null, kalla: { typ: 'overkanslighet', id: o.id },
     registrerad: { tid: o.datum, vardenhet: { id: vardenhetFor(db, o.enhet_id), namn: enhetsnamn(db, vardenhetFor(db, o.enhet_id)) } },
     kallaEtikett: kallaEtikett(o.kalla, o.datum), regel: null,
+    // Runda 10, r4: reaktionen som term i kodverkslistan (varningsinformation eller observandum) med Snomed CT.
+    nationell: null, reaktion: reaktionFor(o.reaktion),
   };
   if (bekr) {
     ut.gradBekraftad = { tid: bekr.registrerad };
@@ -212,7 +203,8 @@ export function registrera(atk, { forslag, term, grad } = {}) {
     insert(atk.db, atk, f);
     return forHuvud(atk);
   }
-  const t = TERMER.find(x => x.id === term);
+  const nt = termMedId(term);
+  const t = nt && TERMER.find(x => x.id === nt.id);
   if (!t) throw new Fel(400, 'Välj en uppgift i listan.', 'ogiltig', { falt: ['term'] });
   if (posterFor(atk).some(p => p.kategori === t.kategori && p.term === t.term)) {
     throw new Fel(400, `${t.term} finns redan som uppmärksamhetsinformation för patienten.`, 'ogiltig', { falt: ['term'] });

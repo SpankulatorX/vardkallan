@@ -14,6 +14,10 @@ export const HANDLING_FOR = { QD008: 'las_matvarden', PA001: 'las_matvarden', XV
   DV111: 'las_omvardnad', DV112: 'las_omvardnad', DV113: 'las_omvardnad',
   // Runda 9, r3: operationerna läses som operationsplaneringen.
   JKA21: 'las_operation', JEA01: 'las_operation', NFB49: 'las_operation', NGB49: 'las_operation' };
+// Runda 10, r4: insättning, skötsel, byte och avveckling av in- och utfarter läses som omvårdnadsanteckningar
+// (infarter.js), och undersökningen av en möjlig donator som journalen (donation.js).
+for (const k of ['SP021', 'DP028', 'DP029', 'QD005', 'SP105', 'DF007', 'QD004', 'TKC20', 'DK021', 'DK028', 'DK010', 'DK023', 'TJD00', 'DV150', 'DV005']) HANDLING_FOR[k] = 'las_omvardnad';
+HANDLING_FOR.AV124 = 'las_journal';
 
 export function registreraAtgard(atk, { kod, tid, vardkontaktId = null, underlag = null }) {
   if (!KVA[kod]) throw new Fel(400, 'Okänd åtgärdskod.', 'ogiltig');

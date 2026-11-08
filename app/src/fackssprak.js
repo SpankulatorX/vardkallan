@@ -51,6 +51,8 @@ export const SOKORD = {
   'Kommentar': { ingen: 'En kommentar är fri text utan eget innehåll i Snomed CT, så sökordet får ingen kod.' },
   'Andning/cirkulation': { ingen: 'Sökordet täcker två områden i omvårdnadens struktur. Snomed CT har ett begrepp för vart och ett men inget för båda, så sökordet får ingen kod.' },
   'Hud/vävnad': { ingen: 'Snomed CT har kroppsstrukturen hud men inget begrepp för omvårdnadsområdet hud och vävnad, så sökordet får ingen kod.' },
+  // Runda 10, r4: donationsanteckningen (donation.js).
+  'Närstående': { ingen: 'Sökordet samlar vad de närstående har fått veta och vad de har sagt om den avlidnes inställning. Snomed CT har begrepp för närstående som person men inget för det innehållet, så sökordet får ingen kod.' },
 };
 
 // Åtgärderna med KVÅ och samma åtgärd i Snomed CT. Åtgärder utan exakt motsvarighet har ingen Snomed-kod.
