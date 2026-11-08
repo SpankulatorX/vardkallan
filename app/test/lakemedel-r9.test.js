@@ -334,6 +334,29 @@ describe('Klinisk läkemedelsprövning', () => {
     expect(() => db.query('DELETE FROM studiedeltagande').run()).toThrow();
   });
 
+  test('prövarens lista räknar bara ordinationer och doser som prövaren får se, utan makulerade doser', () => {
+    const db = sandladaKl('13:30');
+    const studie = db.query("SELECT * FROM kliniska_provningar WHERE studienummer = 'DEMO-HF-01'").get();
+    // Patient 4 har spärrat psykiatrin. Läkaren på kardiologen inkluderar patienten och ordinerar prövningsläkemedlet.
+    provning.inkludera(atk(db, 'lak-kard', 'p04', {}, 'ordinera'), { provningId: studie.id });
+    const o = ordinera(db, 'p04', { lakemedelId: 'VK-EGEN-0004', dosering: '1 tablett kl. 14', dos: 20, dosEnhet: 'mg', tider: ['14'], typ: 'staende' });
+    const ut = administrering.spara(ssk(db, 'p04'), { ordinationId: o.id, planerad: kl('14:00') });
+    const rad = () => provning.forProvare(db, personal(db, 'lak-kard')).provningar[0].deltagare.find(x => x.patient.id === 'p04');
+    expect(rad()).toMatchObject({ ordinationer: 1, givnaDoser: 1 });
+    const fore = JSON.stringify(provning.forProvare(db, personal(db, 'lak-kard')));
+    // En ordination och en dos på den spärrade psykiatrin ändrar inte svaret alls.
+    const t = new Date().toISOString();
+    const psyk = db.query(`INSERT INTO ordinationer (patient_id, enhet_id, lakemedel_id, dosering, dos, dos_enhet, tider, vid_behov, typ, orsak, uppfoljning, start, ordinerad_av, skapad)
+      VALUES ('p04', 'uso-psyk', 'VK-EGEN-0004', '1 tablett', 20, 'mg', '[]', 0, 'staende', 'Studie', ?, ?, 'lak-psyk', ?) RETURNING id`).get(addDagar(idag(), 30), idag(), t).id;
+    db.query(`INSERT INTO administreringar (patient_id, enhet_id, ordination_id, lakemedel_id, status, dos, dos_enhet, antal, tid, utford_av, registrerad, registrerad_av)
+      VALUES ('p04', 'uso-psyk', ?, 'VK-EGEN-0004', 'given', 20, 'mg', 1, ?, 'ssk-psyk', ?, 'ssk-psyk')`).run(psyk, t, t);
+    expect(JSON.stringify(provning.forProvare(db, personal(db, 'lak-kard')))).toBe(fore);
+    // En makulerad dos räknas inte.
+    const a = ssk(db, 'p04');
+    stod.makulera(a, 'administrering', ut.id, { orsak: 'Fel patient' }, { kravVardande: administrering.kravVardande, synligaDoser: () => new Set(administrering.synligaAdministreringar(a).map(x => x.id)) });
+    expect(rad()).toMatchObject({ ordinationer: 1, givnaDoser: 0, senasteDos: null });
+  });
+
   test('ett deltagande på en spärrad vårdenhet syns inte och ger ingen varning som röjer det', () => {
     const db = sandladaKl('13:30');
     // Patient 4 har spärrat psykiatrin. Ett deltagande registrerat där syns inte för kardiologen.

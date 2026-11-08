@@ -1363,7 +1363,7 @@ Uppföljningen (rollen med `statistik_region`) ser i Datauttag per läkemedel an
 
 ### Det som är simulerat eller saknas
 
-Vilka beredningar som kontrolleras av en annan person, hållbarheten, gränserna för syrgas, reglerna för egenadministrering, artiklarna, varunumren, mängderna och mallarna för förbrukningsartiklar är demoregler. Att sjuksköterskor förskriver förbrukningsartiklar utan särskild förskrivningsrätt är en demoregel. Ingen streckkodsläsare eller etikettskrivare är ansluten. NLL, apoteket, Läkemedelsverket och blodcentralen är simulerade. Beredningen, skanningen, förbrukningsartiklarna och beställningarna finns i gränssnittet och API:t men inte i FHIR-API:t. Vaccinationsprogrammen utöver barnhälsovården är inte byggda i rundan. Studien och prövningsläkemedlet är påhittade, och redovisning till sponsorn och avblindning finns inte.
+Vilka beredningar som kontrolleras av en annan person, hållbarheten, gränserna för syrgas, reglerna för egenadministrering, artiklarna, varunumren, mängderna och mallarna för förbrukningsartiklar är demoregler. I demon har alla sjuksköterskor förskrivningsrätt för förbrukningsartiklar, vilket i verkligheten bara diabetes- och stomisjuksköterskor och andra med särskild behörighet har. Ingen streckkodsläsare eller etikettskrivare är ansluten. NLL, apoteket, Läkemedelsverket och blodcentralen är simulerade. Beredningen, skanningen, förbrukningsartiklarna och beställningarna finns i gränssnittet och API:t men inte i FHIR-API:t. Vaccinationsprogrammen utöver barnhälsovården är inte byggda i rundan. Studien och prövningsläkemedlet är påhittade, och redovisning till sponsorn och avblindning finns inte.
 
 ## Godkännandekriterier för första versionen
 

@@ -14,6 +14,10 @@
 // en dold registrering ger ingen varning som röjer den. Prövarens lista loggas per patient.
 import { Fel, iso, idag } from './db.js';
 import { Atkomst, kanRoll, vardenhetFor, visningsnamn, visningsPnr } from './atkomst.js';
+// Säkerhetsgranskningen av runda 9: prövarens lista byggs ur det som prövaren får se.
+import * as lakemedel from './lakemedel.js';
+import { synligaAdministreringar } from './administrering.js';
+import { makulerade } from './lakemedelsstod.js';
 
 export const DEMOREGEL_PROVNING = 'Studien, studieprotokollets förbjudna läkemedel och prövningsläkemedlet är påhittade demoposter.';
 const personNamn = (db, id) => (id ? db.query('SELECT namn FROM personal WHERE id = ?').get(id)?.namn ?? id : null);
@@ -130,8 +134,14 @@ export function forProvare(db, personal, valFor = () => ({})) {
         const atk = new Atkomst(db, personal, d.patient_id, valFor(d.patient_id), 'las_oversikt');
         if (!atk.prova('las_oversikt').tillaten || !synligaDeltaganden(atk).some(x => x.id === d.id)) continue;
         const pat = db.query('SELECT * FROM patienter WHERE id = ?').get(d.patient_id);
-        const ord = db.query('SELECT * FROM ordinationer WHERE patient_id = ? AND lakemedel_id = ?').all(d.patient_id, p.lakemedel_id);
-        const doser = db.query("SELECT tid FROM administreringar WHERE patient_id = ? AND lakemedel_id = ? AND status = 'given' ORDER BY tid DESC").all(d.patient_id, p.lakemedel_id);
+        // Bara ordinationer och doser som prövaren får se, och inga makulerade doser, så att en spärrad eller dold
+        // vårdenhets uppgifter aldrig påverkar raden.
+        const lm = new Atkomst(db, personal, d.patient_id, valFor(d.patient_id), 'las_lakemedel');
+        const synligaOrd = lm.prova('las_lakemedel').tillaten ? lakemedel.synligaOrdinationer(lm) : [];
+        const ord = synligaOrd.filter(o => o.lakemedel_id === p.lakemedel_id);
+        const mak = makulerade(db, 'administrering', d.patient_id);
+        const doser = (synligaOrd.length ? synligaAdministreringar(lm, { ordinationer: synligaOrd }) : [])
+          .filter(a => a.lakemedel_id === p.lakemedel_id && a.status === 'given' && !mak.has(a.id)).sort((a, b) => String(b.tid).localeCompare(String(a.tid)));
         atk.logga('las_oversikt', atk.grund(), `provning:${p.id}:deltagare`);
         deltagare.push({ deltagandeId: d.id, patient: { id: pat.id, namn: visningsnamn(pat, Boolean(valFor(pat.id)?.visa_identitet)), personnummer: visningsPnr(pat, Boolean(valFor(pat.id)?.visa_identitet)) },
           inkluderad: d.inkluderad, randomiseringskod: d.randomiseringskod, aktiv: !d.avslutad, ordinationer: ord.filter(o => o.status === 'aktiv').length, givnaDoser: doser.length, senasteDos: doser[0]?.tid ?? null });

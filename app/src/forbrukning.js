@@ -17,7 +17,7 @@ import { Fel, iso, idag, addDagar, giltigtDatum } from './db.js';
 import { kanRoll, vardenhetFor } from './atkomst.js';
 import * as lakemedel from './lakemedel.js';
 
-export const DEMOREGLER_FORBRUKNING = 'Artiklarna och varunumren är påhittade demoposter, och mängderna och mallarna är demoregler. NLL är simulerad.';
+export const DEMOREGLER_FORBRUKNING = 'Artiklarna och varunumren är påhittade demoposter, och mängderna och mallarna är demoregler. I demon har alla sjuksköterskor förskrivningsrätt för förbrukningsartiklar. NLL är simulerad.';
 const DAGAR_PER_UTTAG = 90;
 export const GRUPPER = { egenkontroll: 'Egenkontroll av medicinering', tillforsel: 'Tillförsel av läkemedel', stomi: 'Stomi' };
 

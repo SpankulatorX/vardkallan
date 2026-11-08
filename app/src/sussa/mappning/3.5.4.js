@@ -12,7 +12,7 @@ const T = {
   api: `${FB}API: lista, mall, ändring, förnyelse, utsättning och återinsättning med loggning, och sjuksköterskan förskriver`,
   klick: 'Gränssnitt > Klickbudget > Förskriva förbrukningsartiklar ur en mall inom budget',
 };
-const DEMO = 'Artiklarna och varunumren är påhittade demoposter, och mängderna, mallarna och att sjuksköterskor förskriver utan särskild behörighet är demoregler. NLL är simulerad.';
+const DEMO = 'Artiklarna och varunumren är påhittade demoposter, och mängderna, mallarna är demoregler. I demon har alla sjuksköterskor förskrivningsrätt för förbrukningsartiklar, som i verkligheten bara diabetes- och stomisjuksköterskor och andra med särskild behörighet har. NLL är simulerad.';
 
 export default [
   { id: '3.5.4.1', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
