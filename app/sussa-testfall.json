@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T10:41:43.843Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-08T11:42:28.432Z",
+  "bas": "http://127.0.0.1:18184",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "6861eabb78763a405740bf97897dd10fff8989df56b204f9e50a1ab598fbf78a",
+  "gransnittHash": "cc19f138c60448ba5e9a153652e77a4f661ac115df806bcc1a658f30a110228f",
   "kalla": "Region Örebro län, upphandlingen Framtidens vårdinformationsstöd (Sussa samverkan, dnr 16RS2022): Bilaga F1:4 Testfall, Bilaga F1:2 Modell för att testa och utvärdera användbarhet, Bilaga F1:3 Information till anbudsgivare och Bilaga F1 Utvärderingsmodell, versionerna 2018-03-07.",
   "klm": {
     "kalla": "Card, Moran och Newell 1980, Communications of the ACM 23(7), s. 396 till 410",
@@ -28,30 +28,30 @@
       "demoroll": "lak-vc",
       "tidsklass": 18,
       "tidsklassSkal": "Fyra läkemedel med var sin dosering, en upptrappning och en dosändring. Det största testfallet i temat.",
-      "budget": 29,
-      "motivering": "Ett klick på patienten. Alvedon forte: Ordinera, träffen, där ordinationsorsaken får fokus, och två fältbyten med markering för att skriva om doseringen och dosen, och spara (7). Kloramfenikol: Ordinera, träffen, där doseringen får fokus, två klick för typen Tillfällig, ett fältbyte vardera för orsak och slutdatum, och spara (7). Sertralin: Ordinera, träffen, Upptrappning enligt schema, två steg för att ändra antalet dagar till 6, orsaken, uppföljning om två veckor och spara (8). Metformin: fliken Läkemedel, Sätt ut, där orsaken får fokus, bekräfta, Ordinera, träffen och spara (6). Provförpackningen med 10 tabletter är förvald.",
+      "budget": 22,
+      "motivering": "Ett klick på patienten. Alvedon forte: Ordinera, träffen, där doseringen och dosen för 1 g kommer ur produkten och ordinationsorsaken får fokus, och spara (3). Kloramfenikol: Ordinera, träffen, där doseringen får fokus och administrationssättet I ögat kommer ur beredningsformen, två klick för typen Tillfällig, ett fältbyte vardera för orsak och slutdatum, och spara (7). Sertralin: Ordinera, träffen, Upptrappning enligt schema, två steg för att ändra antalet dagar till 6, orsaken, uppföljning om två veckor och spara (8). Metformin: Ändra dos, styrkan 850 mg, där systemet fyller i doseringen och dosen, och Ändra dosen (3). Provförpackningen med 10 tabletter är förvald.",
       "avvikelser": [
-        "Metformin har ingen dosändring: den gamla ordinationen sätts ut och den nya ordineras. Ordinationen skickas till NLL när den sparas, och NLL är simulerad.",
+        "Dosen av Metformin ändras i den pågående ordinationen, som byter till styrkan 850 mg (Metformin Teva). Ändringen skickas till NLL som en ny förskrivning som ersätter den förra, och NLL är simulerad.",
         "Kloramfenikol är Kloramfenikol Santen och Metformin 850 mg är Metformin Teva. Recept och uttag på apotek finns inte i demon."
       ],
       "slut": "Tre läkemedel är förskrivna och dosen är ändrad.",
       "uppnatt": true,
-      "klick": 20,
+      "klick": 17,
       "listval": 1,
-      "faltbyten": 6,
-      "tangenter": 3,
-      "tecken": 323,
-      "uppmatt": 29,
+      "faltbyten": 4,
+      "tangenter": 1,
+      "tecken": 200,
+      "uppmatt": 22,
       "inomBudget": true,
-      "skriptetsTidMs": 5327,
-      "uppskattadTidS": 169,
+      "skriptetsTidMs": 4689,
+      "uppskattadTidS": 118.5,
       "klmDelar": {
-        "klick": 47.7,
+        "klick": 39.8,
         "listval": 4,
-        "faltbyten": 20.7,
-        "tecken": 90.4,
-        "tangenter": 0.8,
-        "svarstid": 5.3
+        "faltbyten": 13.8,
+        "tecken": 56,
+        "tangenter": 0.3,
+        "svarstid": 4.7
       },
       "steg": [
         "klick: Gerda Ström i arbetslistan",
@@ -59,10 +59,6 @@
         "har redan fokus: sök läkemedel",
         "klick: träffen Alvedon forte",
         "har redan fokus: ordinationsorsak",
-        "fältbyte: dosering",
-        "tangent Control+a: markera texten i dosering",
-        "fältbyte: dos",
-        "tangent Control+a: markera texten i dos",
         "klick: Kontrollera och spara",
         "klick: Ordinera",
         "har redan fokus: sök läkemedel",
@@ -82,21 +78,12 @@
         "fältbyte: ordinationsorsak",
         "klick: uppföljning om två veckor",
         "klick: Kontrollera och spara",
-        "klick: fliken Läkemedel",
-        "klick: Sätt ut för Metformin",
-        "har redan fokus: orsak",
-        "klick: Sätt ut",
-        "klick: Ordinera i läkemedelsfliken",
-        "har redan fokus: sök läkemedel",
-        "klick: träffen Metformin Teva 850",
-        "har redan fokus: ordinationsorsak",
-        "klick: Kontrollera och spara"
+        "klick: Ändra dos för Metformin",
+        "klick: styrkan 850 mg",
+        "klick: Ändra dosen"
       ],
-      "brister": [
-        "Ögondropparna sparas med administrationssättet peroralt, eftersom ögat inte finns bland administrationssätten.",
-        "Systemet föreslår doseringen och dosen för Alvedon 500 mg också för Alvedon forte 1 g, så de skrivs om."
-      ],
-      "malpoang": 5,
+      "brister": [],
+      "malpoang": 10,
       "tidspoang": 10
     },
     {
@@ -107,29 +94,30 @@
       "demoroll": "lak-kard",
       "tidsklass": 18,
       "tidsklassSkal": "En infusion, en blandning med tillsats och en ordination som hänger på en undersökning.",
-      "budget": 28,
-      "motivering": "Ett klick på patienten. Paracetamol: Ordinera, träffen, där orsaken får fokus, två steg vardera för att skriva om doseringen och dosen, två klick för typen Tillfällig och spara (9). Glukos och Addex-Magnesium: Ordinera, träffen, där doseringen får fokus, två klick för typen, orsaken och spara (6 vardera). Stesolid: Ordinera, träffen, orsaken, Ges inför en planerad vårdhändelse, Ny vårdhändelse, där texten får fokus, och spara (6). En timme före är förvalt.",
+      "budget": 16,
+      "motivering": "Ett klick på patienten. Paracetamol: Ordinera, träffen, där doseringen, dosen och typen för infusion kommer ur produkten och orsaken får fokus, och spara (3). Glukos med Addex-Magnesium: Ordinera, träffen, där orsaken får fokus, ett fältbyte för tillsatsen, två steg för att ändra infusionstiden till 120 minuter och spara (6). Systemet skriver doseringen ur infusionen och tillsatsen. Stesolid: Ordinera, träffen, orsaken, Ges inför en planerad vårdhändelse, Ny vårdhändelse, där texten får fokus, och spara (6). En timme före är förvalt.",
       "avvikelser": [
         "Paracetamol Panpharma finns inte i NPL, så infusionen är Paracetamol Fresenius Kabi 10 mg/ml. Den buffrade glukosen är Glucos Baxter 25 mg/ml buffrad.",
+        "Engångsordinationen är en tillfällig ordination som slutar samma dag.",
         "Röntgen är en ny vårdhändelse som väntar på tid i tidboken."
       ],
       "slut": "Läkemedlen är ordinerade.",
       "uppnatt": true,
-      "klick": 21,
-      "listval": 3,
-      "faltbyten": 5,
-      "tangenter": 2,
-      "tecken": 316,
-      "uppmatt": 28,
+      "klick": 12,
+      "listval": 0,
+      "faltbyten": 3,
+      "tangenter": 1,
+      "tecken": 152,
+      "uppmatt": 16,
       "inomBudget": true,
-      "skriptetsTidMs": 4111,
-      "uppskattadTidS": 162,
+      "skriptetsTidMs": 4149,
+      "uppskattadTidS": 89.1,
       "klmDelar": {
-        "klick": 39.8,
-        "listval": 11.9,
-        "faltbyten": 17.3,
-        "tecken": 88.5,
-        "tangenter": 0.6,
+        "klick": 31.8,
+        "listval": 0,
+        "faltbyten": 10.4,
+        "tecken": 42.6,
+        "tangenter": 0.3,
         "svarstid": 4.1
       },
       "steg": [
@@ -138,25 +126,14 @@
         "har redan fokus: sök läkemedel",
         "klick: träffen Paracetamol Fresenius Kabi",
         "har redan fokus: ordinationsorsak",
-        "fältbyte: dosering",
-        "tangent Control+a: markera texten i dosering",
-        "fältbyte: dos",
-        "tangent Control+a: markera texten i dos",
-        "lista (2 klick): typen Tillfällig",
         "klick: Kontrollera och spara",
         "klick: Ordinera",
         "har redan fokus: sök läkemedel",
         "klick: träffen Glucos Baxter",
-        "har redan fokus: dosering",
-        "lista (2 klick): typen Tillfällig",
-        "fältbyte: ordinationsorsak",
-        "klick: Kontrollera och spara",
-        "klick: Ordinera",
-        "har redan fokus: sök läkemedel",
-        "klick: träffen Addex-Magnesium",
-        "har redan fokus: dosering",
-        "lista (2 klick): typen Tillfällig",
-        "fältbyte: ordinationsorsak",
+        "har redan fokus: ordinationsorsak",
+        "fältbyte: Addex-Magnesium 20 mmol",
+        "fältbyte: infusionstiden 120 minuter",
+        "tangent Control+a: markera texten i infusionstiden 120 minuter",
         "klick: Kontrollera och spara",
         "klick: Ordinera",
         "har redan fokus: sök läkemedel",
@@ -168,11 +145,8 @@
         "har redan fokus: vårdhändelsen",
         "klick: Kontrollera och spara"
       ],
-      "brister": [
-        "Systemet föreslår en dosering för tabletter till paracetamol som infusion, så doseringen, dosen och typen skrivs om.",
-        "Addex-Magnesium kan inte ordineras som tillsats i glukoslösningen, så den ordineras för sig med en hänvisning i doseringen."
-      ],
-      "malpoang": 5,
+      "brister": [],
+      "malpoang": 10,
       "tidspoang": 10
     },
     {
@@ -183,28 +157,29 @@
       "demoroll": "ssk-kard",
       "tidsklass": 9,
       "tidsklassSkal": "Två ordinationer med en uppdragsgivare.",
-      "budget": 31,
-      "motivering": "Ett klick på patienten och ett på fliken Läkemedel. För varje läkemedel: Muntlig ordination, två klick för läkaren, ett fältbyte för varför behandlingen inte kan vänta, sökningen och träffen, och spara. Alvedon forte: två steg vardera för att skriva om doseringen och dosen och två för typen (14). Morfin: ett steg för doseringen, som har fokus, två för dosen, två för typen, två för intramuskulärt och ett för orsaken (15).",
+      "budget": 18,
+      "motivering": "Ett klick på patienten och ett på fliken Läkemedel. Alvedon forte: Muntlig ordination, två klick för läkaren, ett fältbyte för varför behandlingen inte kan vänta, sökningen och träffen, där dosen för 1 g kommer ur produkten och orsaken får fokus, Engångsdos och spara (8). Morfin: Muntlig ordination, där läkaren och skälet är ifyllda från den förra, träffen, där orsaken får fokus, två steg för dosen, två för intramuskulärt, Engångsdos och spara (8).",
       "avvikelser": [
-        "Uppdragsgivaren är läkaren Sara Lindqvist, som signerar den muntliga ordinationen i sin inkorg."
+        "Uppdragsgivaren är läkaren Sara Lindqvist, som signerar den muntliga ordinationen i sin inkorg.",
+        "Engångsordinationen är en tillfällig ordination som slutar samma dag och ges utan fast tid."
       ],
       "slut": "De två läkemedlen är ordinerade.",
       "uppnatt": true,
-      "klick": 18,
-      "listval": 5,
-      "faltbyten": 9,
-      "tangenter": 4,
-      "tecken": 131,
-      "uppmatt": 31,
+      "klick": 14,
+      "listval": 2,
+      "faltbyten": 3,
+      "tangenter": 1,
+      "tecken": 50,
+      "uppmatt": 18,
       "inomBudget": true,
-      "skriptetsTidMs": 3021,
-      "uppskattadTidS": 112.8,
+      "skriptetsTidMs": 3011,
+      "uppskattadTidS": 62,
       "klmDelar": {
-        "klick": 21.2,
-        "listval": 19.8,
-        "faltbyten": 31.1,
-        "tecken": 36.7,
-        "tangenter": 1.1,
+        "klick": 26.5,
+        "listval": 7.9,
+        "faltbyten": 10.4,
+        "tecken": 14,
+        "tangenter": 0.3,
         "svarstid": 3
       },
       "steg": [
@@ -216,31 +191,20 @@
         "fältbyte: sök läkemedel",
         "klick: träffen Alvedon forte",
         "har redan fokus: ordinationsorsak",
-        "fältbyte: dosering",
-        "tangent Control+a: markera texten i dosering",
-        "fältbyte: dos",
-        "tangent Control+a: markera texten i dos",
-        "lista (2 klick): typen Tillfällig",
+        "klick: engångsdos",
         "klick: Kontrollera och spara",
         "klick: Muntlig ordination",
-        "lista (2 klick): läkaren Sara Lindqvist",
-        "fältbyte: varför behandlingen inte kan vänta",
-        "fältbyte: sök läkemedel",
+        "har redan fokus: sök läkemedel",
         "klick: träffen Morfin Abcur",
-        "fältbyte: dosering",
-        "tangent Control+a: markera texten i dosering",
+        "har redan fokus: ordinationsorsak",
         "fältbyte: dos",
         "tangent Control+a: markera texten i dos",
-        "lista (2 klick): typen Tillfällig",
         "lista (2 klick): intramuskulärt",
-        "fältbyte: ordinationsorsak",
+        "klick: engångsdos",
         "klick: Kontrollera och spara"
       ],
-      "brister": [
-        "Systemet föreslår doseringen och dosen för Alvedon 500 mg också för Alvedon forte 1 g, så de skrivs om.",
-        "Läkaren och skälet till den muntliga ordinationen anges på nytt för det andra läkemedlet."
-      ],
-      "malpoang": 5,
+      "brister": [],
+      "malpoang": 10,
       "tidspoang": 10
     },
     {
@@ -252,9 +216,9 @@
       "tidsklass": 15,
       "tidsklassSkal": "Fyra administreringar, ett iordningställande och en avvikelse som ska dokumenteras.",
       "budget": 12,
-      "motivering": "Ett klick på Läkemedel att ge, ett på Ge för paracetamol, Mer och Iordningsställ för glukoslösningen och sedan Ge, Ge för Stesolid och Ge för Zopiklon vid behov (7). Instruktionerna står i doseringen i listan. Kräkningen dokumenteras med ett klick på patienten, fliken Översikt, Ny anteckning, där omvårdnadsanteckningen är förvald, ett fältbyte för sökordet Elimination och Signera (5).",
+      "motivering": "Ett klick på Läkemedel att ge, ett på Ge för paracetamol, Mer och Iordningsställ för glukoslösningen med Addex-Magnesium och sedan Ge, Ge för Stesolid och Ge för Zopiklon vid behov (7). Instruktionerna står i doseringen i listan, och för infusionen med tillsatsen räknar systemet koncentrationen och hastigheten. Kräkningen dokumenteras med ett klick på patienten, fliken Översikt, Ny anteckning, där omvårdnadsanteckningen är förvald, ett fältbyte för sökordet Elimination och Signera (5).",
       "avvikelser": [
-        "Ordinationerna gjordes i går och dosen ska ges i dag vid den hela timmen före testet. Att patienten kräktes upp premedicineringen registreras inte på dosen utan i en omvårdnadsanteckning."
+        "Ordinationerna gjordes i går och dosen ska ges i dag vid den hela timmen före testet. Glukosen med Addex-Magnesium är en ordination med tillsats. Att patienten kräktes upp premedicineringen registreras inte på dosen utan i en omvårdnadsanteckning."
       ],
       "slut": "Instruktionerna är upplästa, alla fyra läkemedel är administrerade och det är dokumenterat att patienten kräktes upp premedicineringen.",
       "uppnatt": true,
@@ -265,15 +229,15 @@
       "tecken": 72,
       "uppmatt": 12,
       "inomBudget": true,
-      "skriptetsTidMs": 2230,
-      "uppskattadTidS": 55,
+      "skriptetsTidMs": 2651,
+      "uppskattadTidS": 55.4,
       "klmDelar": {
         "klick": 29.2,
         "listval": 0,
         "faltbyten": 3.5,
         "tecken": 20.2,
         "tangenter": 0,
-        "svarstid": 2.2
+        "svarstid": 2.7
       },
       "steg": [
         "klick: Läkemedel att ge i menyn",
@@ -316,15 +280,15 @@
       "tecken": 99,
       "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 310,
-      "uppskattadTidS": 46.8,
+      "skriptetsTidMs": 378,
+      "uppskattadTidS": 46.9,
       "klmDelar": {
         "klick": 8,
         "listval": 4,
         "faltbyten": 6.9,
         "tecken": 27.7,
         "tangenter": 0,
-        "svarstid": 0.3
+        "svarstid": 0.4
       },
       "steg": [
         "klick: Mira Axelsson i arbetslistan",
@@ -360,15 +324,15 @@
       "tecken": 99,
       "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 308,
-      "uppskattadTidS": 46.8,
+      "skriptetsTidMs": 353,
+      "uppskattadTidS": 46.9,
       "klmDelar": {
         "klick": 8,
         "listval": 4,
         "faltbyten": 6.9,
         "tecken": 27.7,
         "tangenter": 0,
-        "svarstid": 0.3
+        "svarstid": 0.4
       },
       "steg": [
         "klick: Mira Axelsson i arbetslistan",
@@ -404,15 +368,15 @@
       "tecken": 99,
       "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 303,
-      "uppskattadTidS": 46.8,
+      "skriptetsTidMs": 382,
+      "uppskattadTidS": 46.9,
       "klmDelar": {
         "klick": 8,
         "listval": 4,
         "faltbyten": 6.9,
         "tecken": 27.7,
         "tangenter": 0,
-        "svarstid": 0.3
+        "svarstid": 0.4
       },
       "steg": [
         "klick: Mira Axelsson i arbetslistan",
@@ -448,7 +412,7 @@
       "tecken": 70,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 282,
+      "skriptetsTidMs": 297,
       "uppskattadTidS": 30.5,
       "klmDelar": {
         "klick": 10.6,
@@ -491,7 +455,7 @@
       "tecken": 70,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 307,
+      "skriptetsTidMs": 260,
       "uppskattadTidS": 30.5,
       "klmDelar": {
         "klick": 10.6,
@@ -534,7 +498,7 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 320,
+      "skriptetsTidMs": 318,
       "uppskattadTidS": 13.6,
       "klmDelar": {
         "klick": 13.3,
@@ -577,8 +541,8 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 287,
-      "uppskattadTidS": 13.5,
+      "skriptetsTidMs": 339,
+      "uppskattadTidS": 13.6,
       "klmDelar": {
         "klick": 13.3,
         "listval": 0,
@@ -620,8 +584,8 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 281,
-      "uppskattadTidS": 13.5,
+      "skriptetsTidMs": 309,
+      "uppskattadTidS": 13.6,
       "klmDelar": {
         "klick": 13.3,
         "listval": 0,
@@ -663,7 +627,7 @@
       "tecken": 13,
       "uppmatt": 15,
       "inomBudget": true,
-      "skriptetsTidMs": 525,
+      "skriptetsTidMs": 539,
       "uppskattadTidS": 42.3,
       "klmDelar": {
         "klick": 15.9,
@@ -714,7 +678,7 @@
       "tecken": 13,
       "uppmatt": 15,
       "inomBudget": true,
-      "skriptetsTidMs": 548,
+      "skriptetsTidMs": 580,
       "uppskattadTidS": 42.3,
       "klmDelar": {
         "klick": 15.9,
@@ -722,7 +686,7 @@
         "faltbyten": 10.4,
         "tecken": 3.6,
         "tangenter": 0,
-        "svarstid": 0.5
+        "svarstid": 0.6
       },
       "steg": [
         "klick: Sara Sandmark i arbetslistan",
@@ -765,7 +729,7 @@
       "tecken": 13,
       "uppmatt": 15,
       "inomBudget": true,
-      "skriptetsTidMs": 520,
+      "skriptetsTidMs": 536,
       "uppskattadTidS": 42.3,
       "klmDelar": {
         "klick": 15.9,
@@ -817,15 +781,15 @@
       "tecken": 321,
       "uppmatt": 8,
       "inomBudget": true,
-      "skriptetsTidMs": 1234,
-      "uppskattadTidS": 113.4,
+      "skriptetsTidMs": 833,
+      "uppskattadTidS": 113,
       "klmDelar": {
         "klick": 8,
         "listval": 4,
         "faltbyten": 10.4,
         "tecken": 89.9,
         "tangenter": 0,
-        "svarstid": 1.2
+        "svarstid": 0.8
       },
       "steg": [
         "klick: Anna Karlsson i arbetslistan",
@@ -863,8 +827,8 @@
       "tecken": 0,
       "uppmatt": 3,
       "inomBudget": true,
-      "skriptetsTidMs": 458,
-      "uppskattadTidS": 8.4,
+      "skriptetsTidMs": 514,
+      "uppskattadTidS": 8.5,
       "klmDelar": {
         "klick": 8,
         "listval": 0,
@@ -904,7 +868,7 @@
       "tecken": 37,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 302,
+      "skriptetsTidMs": 308,
       "uppskattadTidS": 21.5,
       "klmDelar": {
         "klick": 10.6,
@@ -949,7 +913,7 @@
       "tecken": 0,
       "uppmatt": 1,
       "inomBudget": true,
-      "skriptetsTidMs": 43,
+      "skriptetsTidMs": 62,
       "uppskattadTidS": 2.7,
       "klmDelar": {
         "klick": 2.7,
@@ -957,7 +921,7 @@
         "faltbyten": 0,
         "tecken": 0,
         "tangenter": 0,
-        "svarstid": 0
+        "svarstid": 0.1
       },
       "steg": [
         "klick: Checka in för Sofia Andersson"
@@ -988,8 +952,8 @@
       "tecken": 0,
       "uppmatt": 1,
       "inomBudget": true,
-      "skriptetsTidMs": 107,
-      "uppskattadTidS": 2.8,
+      "skriptetsTidMs": 98,
+      "uppskattadTidS": 2.7,
       "klmDelar": {
         "klick": 2.7,
         "listval": 0,
@@ -1027,7 +991,7 @@
       "tecken": 26,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 298,
+      "skriptetsTidMs": 313,
       "uppskattadTidS": 18.5,
       "klmDelar": {
         "klick": 10.6,
@@ -1072,8 +1036,8 @@
       "tecken": 0,
       "uppmatt": 3,
       "inomBudget": true,
-      "skriptetsTidMs": 193,
-      "uppskattadTidS": 8.1,
+      "skriptetsTidMs": 208,
+      "uppskattadTidS": 8.2,
       "klmDelar": {
         "klick": 8,
         "listval": 0,
@@ -1113,7 +1077,7 @@
       "tecken": 37,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 226,
+      "skriptetsTidMs": 288,
       "uppskattadTidS": 22,
       "klmDelar": {
         "klick": 8,
@@ -1121,7 +1085,7 @@
         "faltbyten": 3.5,
         "tecken": 10.4,
         "tangenter": 0,
-        "svarstid": 0.2
+        "svarstid": 0.3
       },
       "steg": [
         "klick: Mira Axelsson i arbetslistan",
@@ -1156,7 +1120,7 @@
       "tecken": 37,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 255,
+      "skriptetsTidMs": 269,
       "uppskattadTidS": 22,
       "klmDelar": {
         "klick": 8,
@@ -1199,7 +1163,7 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 175,
+      "skriptetsTidMs": 235,
       "uppskattadTidS": 12.1,
       "klmDelar": {
         "klick": 8,
@@ -1241,15 +1205,15 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 200,
-      "uppskattadTidS": 12.1,
+      "skriptetsTidMs": 298,
+      "uppskattadTidS": 12.2,
       "klmDelar": {
         "klick": 8,
         "listval": 4,
         "faltbyten": 0,
         "tecken": 0,
         "tangenter": 0,
-        "svarstid": 0.2
+        "svarstid": 0.3
       },
       "steg": [
         "klick: Fatima Baskar i arbetslistan",
@@ -1283,15 +1247,15 @@
       "tecken": 7,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 281,
-      "uppskattadTidS": 11.3,
+      "skriptetsTidMs": 232,
+      "uppskattadTidS": 11.2,
       "klmDelar": {
         "klick": 5.3,
         "listval": 0,
         "faltbyten": 3.5,
         "tecken": 2,
         "tangenter": 0.3,
-        "svarstid": 0.3
+        "svarstid": 0.2
       },
       "steg": [
         "klick: Bertil Danielsson i arbetslistan",
@@ -1325,7 +1289,7 @@
       "tecken": 7,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 276,
+      "skriptetsTidMs": 294,
       "uppskattadTidS": 11.3,
       "klmDelar": {
         "klick": 5.3,
@@ -1626,7 +1590,7 @@
   "sammanstallning": {
     "alla": {
       "antal": 34,
-      "malupfyllelse": 4.85,
+      "malupfyllelse": 5.29,
       "effektivitet": 5.29,
       "poang": {
         "malupfyllelse": 5,
@@ -1635,7 +1599,7 @@
     },
     "genomforda": {
       "antal": 18,
-      "malupfyllelse": 9.17,
+      "malupfyllelse": 10,
       "effektivitet": 10,
       "poang": {
         "malupfyllelse": 10,

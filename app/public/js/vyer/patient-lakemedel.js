@@ -16,7 +16,9 @@ let nastaOverforing = null;
 // Vätskebalansens val (dygnsbrytning, filter och sortering) gäller tills sidan laddas om (runda 6, r2).
 const vbVal = {};
 let vbParam = '';
-const SATT = { peroralt: 'Peroralt', subkutant: 'Subkutant', intravenost: 'Intravenöst', inhalation: 'Inhalation', sublingualt: 'Under tungan', intramuskulart: 'Intramuskulärt' };
+const SATT = { peroralt: 'Peroralt', subkutant: 'Subkutant', intravenost: 'Intravenöst', inhalation: 'Inhalation', sublingualt: 'Under tungan', intramuskulart: 'Intramuskulärt',
+  // Runda 8, r4: administrationssätten för ögon, öron, näsa, hud, ändtarm och slida (ordinationsmallar.js).
+  sond: 'Via sond', okulart: 'I ögat', aurikulart: 'I örat', nasalt: 'I näsan', kutant: 'På huden', transdermalt: 'Plåster på huden', rektalt: 'Rektalt', vaginalt: 'Vaginalt' };
 
 // Delar som inte finns i läskopian under ett avbrott (vidimering och vätskebalans) visas inte då.
 const kanske = (p) => p.catch(() => null);
@@ -118,6 +120,9 @@ export async function visa(el, ctx) {
       return;
     }
     if (v?.dataset.genomgang != null) return genomgang(ctx);
+    // Runda 8, r4: dosändring i en pågående ordination.
+    const da = e.target.closest('[data-dosandring]');
+    if (da) return andraDos(ctx, da.dataset.dosandring, da);
     if (v?.dataset.vatska != null) return registreraVatska(ctx, v.dataset.vatska);
     const b = e.target.closest('[data-utsatt],[data-avstam],[data-nll]');
     if (!b) return;
@@ -213,19 +218,91 @@ function tabell(rader, kanOrdinera, aktuella) {
       <td><strong>${esc(o.lakemedel?.namn)}</strong> <span class="dampad">${esc(o.lakemedel?.styrka)} ${esc(o.lakemedel?.form)}</span> ${lms.taggar(o)}
         <span class="under-text">ATC ${esc(o.lakemedel?.atc)}, ordinerat ${esc(datum(o.start))} av ${esc(o.ordineradAv?.namn ?? '')}, ${esc(o.vardenhet?.namn ?? '')}</span>${migreradEtikett(o)}
         ${o.kvitteradeVarningar?.length ? `<span class="under-text">Kvitterade varningar: ${o.kvitteradeVarningar.map(k => `${esc(k.regel)} (${esc(k.motivering)})`).join('; ')}</span>` : ''}</td>
-      <td>${esc(o.dosering)}${lms.underDosering(o)}${o.tider?.length ? `<span class="under-text">Kl. ${esc(o.tider.join(', '))}</span>` : ''}${o.administrationssattText ? `<span class="under-text">${esc(o.administrationssattText)}</span>` : ''}${o.vardhandelse ? `<span class="under-text">Inför ${esc(o.vardhandelse.text.toLowerCase())}${o.vardhandelse.administreras ? `, ges ${esc(tidpunkt(o.vardhandelse.administreras))}` : ', väntar på tid'}${o.vardhandelse.foljerTidbok ? '. Tiden följer tidboken' : ''}</span>${o.vardhandelse.forklaring ? `<span class="under-text">${esc(o.vardhandelse.forklaring)}</span>` : ''}` : ''}</td>
+      <td>${esc(o.dosering)}${lms.underDosering(o)}${(o.planeradeDosandringar ?? []).map(d => `<span class="under-text lm-dosandring">Ny dosering från ${esc(datum(d.fran))}: ${esc(d.lakemedel && d.lakemedel.id !== o.lakemedel?.id ? `${d.lakemedel.namn} ${d.lakemedel.styrka}, ` : '')}${esc(d.dosering)}</span>`).join('')}${o.tider?.length ? `<span class="under-text">Kl. ${esc(o.tider.join(', '))}</span>` : ''}${o.administrationssattText ? `<span class="under-text">${esc(o.administrationssattText)}</span>` : ''}${o.vardhandelse ? `<span class="under-text">Inför ${esc(o.vardhandelse.text.toLowerCase())}${o.vardhandelse.administreras ? `, ges ${esc(tidpunkt(o.vardhandelse.administreras))}` : ', väntar på tid'}${o.vardhandelse.foljerTidbok ? '. Tiden följer tidboken' : ''}</span>${o.vardhandelse.forklaring ? `<span class="under-text">${esc(o.vardhandelse.forklaring)}</span>` : ''}` : ''}</td>
       <td>${esc(ORDTYP[o.typ] ?? o.typ)}</td>
       <td>${esc(o.ordinationsorsak)}</td>
       <td>${aktuella ? `${esc(datum(o.aktuelltUppfoljningsdatum ?? o.uppfoljningsdatum))}${o.slut ? `<span class="under-text">Slut ${esc(datum(o.slut))}</span>` : ''}` : (o.utsatt ? `${esc(datum(o.utsatt.tid))}<span class="under-text">${esc(o.utsatt.orsak ?? '')}, ${esc(o.utsatt.av ?? '')}</span>${o.utsatt.plan ? `<span class="under-text ut-plan">Plan: ${esc(o.utsatt.plan.text)}</span>` : ''}` : `Slut ${esc(datum(o.slut))}`)}</td>
       <td>${nllChip(o.nll_status)}</td>
       <td class="atgarder">
         ${kanOrdinera && ['okand_kontrolleras', 'fel'].includes(o.nll_status) ? `<button type="button" class="knapp liten" data-avstam="${o.id}">Stäm av mot NLL</button>` : ''}
+        ${kanOrdinera && o.status === 'aktiv' && aktuella && kanAndraDos(o) ? `<button type="button" class="knapp liten sekundar" data-dosandring="${o.id}">Ändra dos</button>` : ''}
         ${kanOrdinera && o.status === 'aktiv' ? `<button type="button" class="knapp liten sekundar" data-utsatt="${o.id}">Sätt ut</button>` : ''}
         ${o.muntlig && !o.muntlig.signerad && o.muntlig.lakare.id === S.session?.personal?.id ? `<button type="button" class="knapp liten" data-signera-muntlig="${o.id}">Signera</button>` : ''}
         ${aktuella && o.status === 'aktiv' && far('utvardera_lakemedel') ? `<button type="button" class="knapp liten sekundar" data-utvardera="${o.id}">Utvärdera</button>` : ''}
         <details class="historik"><summary>Historik</summary><ol>${(o.historik ?? []).map(h => `<li><time>${esc(tidpunkt(h.tid))}</time> ${esc(h.handelse)}${h.detalj ? `: ${esc(h.detalj)}` : ''}${h.av ? ` <span class="dampad">(${esc(h.av)})</span>` : ''}</li>`).join('')}</ol></details>
       </td>
     </tr>`).join('')}</tbody></table></div>`;
+}
+
+// Runda 8, r4: dosen kan ändras i en pågående ordination utan trappschema, spädning, osignerad muntlig ordination eller
+// direktiv. Servern prövar samma sak och förklarar varför när det inte går.
+const kanAndraDos = (o) => !o.trappning && !o.spadning && !o.direktiv && !(o.muntlig && !o.muntlig.signerad);
+
+// Runda 8, r4: dosändring (dosandring.js). Systemet föreslår produkterna med samma substans och form, och fyller i
+// doseringen när en annan styrka väljs. Den nya doseringen gäller från i dag eller ett senare datum.
+async function andraDos(ctx, id, knapp) {
+  let u;
+  try { u = await medKnapp(knapp, () => api(`/api/ordination/${encodeURIComponent(id)}/dosandring`)); } catch { return; }
+  const o = u.ordination;
+  const tal = (x) => (x == null ? '' : String(x).replace('.', ','));
+  const alt = u.alternativ;
+  const html = `<form><h2 id="dlg-rubrik">Ändra dos: ${esc(o.lakemedel?.namn)} ${esc(o.lakemedel?.styrka)}</h2>
+    <p>Nu: ${esc(o.dosering)}${o.tider?.length ? `, kl. ${esc(o.tider.join(', '))}` : ''}. Ordinationen fortsätter med samma orsak och uppföljning, och ändringen skickas till NLL. Den gamla doseringen finns kvar i historiken.</p>
+    ${alt.length > 1 ? `<fieldset class="da-styrka"><legend>Styrka</legend><div class="knapprad">${alt.map(a => `<button type="button" class="knapp sekundar liten" data-styrka="${esc(a.id)}" aria-pressed="${a.nuvarande}">${esc(a.styrka)}${a.namn !== o.lakemedel?.namn ? ` <span class="dampad">${esc(a.namn)}</span>` : ''}</button>`).join('')}</div></fieldset>` : ''}
+    <input type="hidden" name="lakemedelId" value="${esc(o.lakemedel?.id ?? '')}">
+    <div class="falt"><label for="da-dosering">Dosering <span class="obl">(obligatoriskt)</span></label><input id="da-dosering" name="dosering" value="${esc(o.dosering)}" maxlength="300" required></div>
+    <div class="falt-rad">
+      <div class="falt smal"><label for="da-dos">Dos</label><input id="da-dos" name="dos" inputmode="decimal" value="${esc(tal(o.dos))}"></div>
+      <div class="falt smal"><label for="da-enhet">Enhet</label><input id="da-enhet" name="dosEnhet" value="${esc(o.dosEnhet ?? '')}"></div>
+      ${o.vidBehov ? '' : `<div class="falt smal"><label for="da-tider">Tider</label><input id="da-tider" name="tider" value="${esc((o.tider ?? []).join(', '))}"></div>`}
+      <div class="falt"><label for="da-fran">Gäller från</label><input id="da-fran" name="fran" type="date" min="${esc(u.fran)}" max="${esc(o.slut ?? u.franSenast)}" value="${esc(u.fran)}" required></div>
+    </div>
+    <p class="forslag-varfor" data-da-varfor aria-live="polite" hidden></p>
+    <div class="falt"><label for="da-orsak">Orsak till ändringen</label><input id="da-orsak" name="orsak" maxlength="300"></div>
+    ${u.planerade?.length ? `<p class="liten">Redan planerat: ${u.planerade.map(d => `${esc(datum(d.fran))}, ${esc(d.dosering)}`).join('; ')}.</p>` : ''}
+    <p class="dialog-fel form-fel" role="alert" hidden></p>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Ändra dosen</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`;
+  const svar = await dialog(html, {
+    onOpen: (dl) => dl.addEventListener('click', (x) => {
+      const b = x.target.closest('[data-styrka]');
+      if (!b) return;
+      const a = alt.find(y => y.id === b.dataset.styrka);
+      const f = a.forslag ?? { dosering: o.dosering, dos: o.dos, dosEnhet: o.dosEnhet, tider: o.tider, varfor: null };
+      dl.querySelector('input[name="lakemedelId"]').value = a.id;
+      for (const k of dl.querySelectorAll('[data-styrka]')) k.setAttribute('aria-pressed', String(k === b));
+      dl.querySelector('input[name="dosering"]').value = f.dosering ?? '';
+      dl.querySelector('input[name="dos"]').value = tal(f.dos);
+      dl.querySelector('input[name="dosEnhet"]').value = f.dosEnhet ?? '';
+      const tider = dl.querySelector('input[name="tider"]');
+      if (tider) tider.value = (f.tider ?? []).join(', ');
+      const v = dl.querySelector('[data-da-varfor]');
+      v.textContent = f.varfor ?? '';
+      v.hidden = !f.varfor;
+    }),
+    validera: (x) => (!x.dosering.trim() ? 'Ange doseringen.' : null),
+  });
+  if (!svar) return;
+  const d = svar.data;
+  const data = { lakemedelId: d.lakemedelId, dosering: d.dosering.trim(), dos: d.dos.trim() ? Number(d.dos.replace(',', '.')) : null, dosEnhet: d.dosEnhet.trim() || null,
+    tider: (d.tider ?? '').split(/[,\s]+/).map(t => t.trim()).filter(Boolean), fran: d.fran, orsak: d.orsak.trim() || undefined };
+  const vag = `/api/ordination/${encodeURIComponent(id)}/dosandring`;
+  try {
+    let r;
+    try { r = await api(vag, { metod: 'POST', data }); } catch (e) {
+      if (!(e.status === 400 && e.data?.varningar)) throw e;
+      // En allvarlig varning kvitteras med motivering, som vid en ny ordination.
+      const k = await dialog(`<form><h2 id="dlg-rubrik">${ikon.varning}<span>Varning vid dosändringen</span></h2>
+        <div class="varningslista" role="alert"><ul>${e.data.varningar.map(v => `<li><strong>${v.niva === 'allvarlig' ? 'Allvarlig.' : 'Observera.'}</strong> ${esc(v.text)}</li>`).join('')}</ul>
+        ${e.data.kraverKvittens.map((rg, n) => `<div class="falt"><label for="da-kv-${n}">Motivering (${esc(rg.replace(/_/g, ' '))}) <span class="obl">(obligatoriskt)</span></label><textarea id="da-kv-${n}" name="kv_${esc(rg)}" rows="2" maxlength="500" required minlength="3"></textarea></div>`).join('')}
+        <p class="demoregel">Varningarna är demoregler, inte kliniskt beslutsstöd.</p></div>
+        <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Ändra dosen ändå</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`);
+      if (!k) return;
+      r = await api(vag, { metod: 'POST', data: { ...data, kvitteradeVarningar: Object.entries(k.data).map(([n, m]) => ({ regel: n.slice(3), motivering: String(m).trim() })) } });
+    }
+    nastaOverforing = null;
+    notis(`${r.ordination.lakemedel?.namn}: ${r.dosandring.galler ? 'dosen är ändrad' : `den nya doseringen gäller från ${datum(r.dosandring.fran)}`}. ${nllResultat(r.nll)}`, r.nll?.status === 'kvitterad' ? 'ok' : 'info');
+    ctx.ladda();
+  } catch (e) { felNotis(e); }
 }
 
 // tidigare: en utsatt ordination som ska sättas in igen efter ett uppehåll (runda 5, r4). Formuläret fylls i ur den.
@@ -238,7 +315,8 @@ function ordinationsForm(plats, ctx, tidigare = null, { muntlig = false } = {}) 
     ${muntlig ? `<p class="forslag-varfor">En muntlig ordination får bara lämnas när patienten behöver omedelbar behandling. Dosen får ges direkt och de första två timmarna, och läkaren signerar sedan ordinationen i sin inkorg. Först då skickas den till NLL.</p>
     <div class="falt-rad" data-muntlig-falt><div class="falt"><label for="m-lak">Läkaren som ordinerade</label><select id="m-lak" name="lakareId"></select></div>
       <div class="falt"><label for="m-satt">Lämnades</label><select id="m-satt" name="satt"><option value="telefon">Per telefon</option><option value="muntligt">Muntligt på plats</option></select></div>
-      <div class="falt bred"><label for="m-omed">Varför behandlingen inte kan vänta <span class="obl">(obligatoriskt)</span></label><input id="m-omed" name="omedelbar" maxlength="300"></div></div>` : ''}
+      <div class="falt bred"><label for="m-omed">Varför behandlingen inte kan vänta <span class="obl">(obligatoriskt)</span></label><input id="m-omed" name="omedelbar" maxlength="300"></div></div>
+    <p class="hjalp" data-muntlig-forval hidden>Läkaren och skälet är ifyllda från din förra muntliga ordination för patienten. Ändra dem om de inte stämmer.</p>` : ''}
     ${tidigare ? `<p class="forslag-varfor">Systemet har fyllt i ordinationen ur den som gjorde uppehåll (${esc(tidigare.utsatt.plan.text)}). Ändra det som inte stämmer.</p>` : ''}
     <div data-kontakt-plats></div>
     <div class="falt lm-sok"><label for="lm-sok">Läkemedel <span class="obl">(obligatoriskt)</span></label>
@@ -258,6 +336,7 @@ function ordinationsForm(plats, ctx, tidigare = null, { muntlig = false } = {}) 
       <div class="falt"><label for="o-satt">Administrationssätt</label><select id="o-satt" name="administrationssatt">${Object.entries(SATT).map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select></div>
       <div class="falt bred"><label for="o-orsak">Ordinationsorsak <span class="obl">(obligatoriskt)</span></label><input id="o-orsak" name="ordinationsorsak" required maxlength="300"></div>
     </div>
+    <p class="hjalp">Förslag på typ: <button type="button" class="lanknapp" data-engangs>engångsdos</button>, som ges en gång i dag.</p>
     <input type="hidden" name="mall"><input type="hidden" name="volymMl">
     <div data-r6-tillagg></div>
     <p class="forslag-varfor" id="o-forslag" aria-live="polite" hidden></p>
@@ -283,7 +362,17 @@ function ordinationsForm(plats, ctx, tidigare = null, { muntlig = false } = {}) 
   const form = plats.querySelector('form');
   const kontakt = kontaktRad(form.querySelector('[data-kontakt-plats]'), ctx);
   // Runda 6, r2: läkarna på vårdenheten, med den som ansvarar för patienten först.
-  if (muntlig) api(`/api/patient/${encodeURIComponent(ctx.id)}/muntlig-ordination`).then(m => { form.lakareId.innerHTML = m.lakare.map(l => `<option value="${esc(l.id)}">${esc(l.namn)}, ${esc(l.titel)}</option>`).join(''); }).catch(() => {});
+  if (muntlig) api(`/api/patient/${encodeURIComponent(ctx.id)}/muntlig-ordination`).then(m => {
+    form.lakareId.innerHTML = m.lakare.map(l => `<option value="${esc(l.id)}">${esc(l.namn)}, ${esc(l.titel)}</option>`).join('');
+    // Runda 8, r4: samma läkare, sätt och skäl som i sjuksköterskans förra muntliga ordination för patienten.
+    if (m.senaste) {
+      form.lakareId.value = m.senaste.lakareId;
+      form.satt.value = m.senaste.satt;
+      if (!form.omedelbar.value) form.omedelbar.value = m.senaste.omedelbar;
+      const t = form.querySelector('[data-muntlig-forval]');
+      if (t) t.hidden = false;
+    }
+  }).catch(() => {});
   const sok = form.querySelector('#lm-sok');
   // Fokus i sökfältet, så att det går att börja skriva läkemedlets namn direkt.
   sok.focus();
@@ -295,7 +384,12 @@ function ordinationsForm(plats, ctx, tidigare = null, { muntlig = false } = {}) 
   let visadeVarningar = null;
   // Fält som förskrivaren har ändrat sedan läkemedlet valdes.
   const rorda = new Set();
-  form.addEventListener('input', (e) => { if (e.target.name) rorda.add(e.target.name); });
+  // Runda 8, r4: infusionen med basvätska som doseringen skrivs ur, när produkten är en sådan.
+  let infusion = null;
+  form.addEventListener('input', (e) => {
+    if (e.target.name) rorda.add(e.target.name);
+    if (infusion && e.target.closest('.o-spadning') && !rorda.has('dosering')) form.dosering.value = infusionsText(form, infusion);
+  });
   form.addEventListener('change', (e) => { if (e.target.name) rorda.add(e.target.name); });
   sok.addEventListener('input', () => {
     clearTimeout(timer);
@@ -342,10 +436,15 @@ function ordinationsForm(plats, ctx, tidigare = null, { muntlig = false } = {}) 
       form.volymMl.value = f.volymMl ?? '';
       // Runda 6, r2: förpackning, spädning och trappschema ur förslaget.
       form.querySelector('[data-r6-tillagg]').innerHTML = r6Tillagg(f);
+      // Runda 8, r4: en engångsdos slutar samma dag, och doseringen för en infusion med basvätska skriver systemet ur
+      // infusionen och tillsatserna så länge förskrivaren inte har skrivit en egen.
+      if (f.engangs && !rorda.has('slut')) form.slut.value = form.start.value || i;
+      infusion = f.spadning?.basvatska ? f.spadning : null;
+      if (infusion && !rorda.has('dosering')) form.dosering.value = infusionsText(form, infusion);
       const fv = form.querySelector('#o-forslag');
       fv.textContent = `Förslag ur ${f.mallnamn ? `mallen ${f.mallnamn}` : 'produktens styrka och form'}. ${f.varfor.filter(x => !x.startsWith('Mallen')).join(' ')} ${f.anmarkning}`.replace(/\s+/g, ' ').trim();
       fv.hidden = false;
-      if (!rorda.size) (f.dosering ? form.ordinationsorsak : form.dosering).focus();
+      if (!rorda.size) (form.dosering.value ? form.ordinationsorsak : form.dosering).focus();
     } catch { if (!rorda.size) form.dosering.focus(); }
     efter?.();
   }
@@ -370,6 +469,17 @@ function ordinationsForm(plats, ctx, tidigare = null, { muntlig = false } = {}) 
   form.addEventListener('click', (e) => {
     const u = e.target.closest('[data-upp]');
     if (u) { form.uppfoljningsdatum.value = plusDagar(form.start.value || i, Number(u.dataset.upp)); rorda.add('uppfoljningsdatum'); }
+    // Runda 8, r4: engångsdos. Systemet sätter typen, slutdatumet och doseringen ur dosen och administrationssättet.
+    if (e.target.closest('[data-engangs]')) {
+      form.typ.value = 'tillfallig';
+      form.slut.value = form.start.value || i;
+      form.tider.value = '';
+      const satt = form.administrationssatt.value;
+      const dos = form.dos.value.trim();
+      if (dos) form.dosering.value = `${dos} ${form.dosEnhet.value.trim()}${satt && satt !== 'peroralt' ? ` ${(SATT[satt] ?? '').toLowerCase()}` : ''} som engångsdos`.replace(/\s+/g, ' ');
+      for (const x of ['typ', 'slut', 'tider', 'dosering']) rorda.add(x);
+      kontrollerad = null;
+    }
     if (e.target.closest('[data-stang]')) { plats.innerHTML = ''; plats.closest('.flikinnehall')?.querySelector('[data-ny]')?.setAttribute('aria-expanded', 'false'); }
   });
   form.addEventListener('input', (e) => { if (!e.target.closest('#varningar') && e.target !== sok) kontrollerad = null; });
@@ -442,6 +552,8 @@ function ordinationsForm(plats, ctx, tidigare = null, { muntlig = false } = {}) 
 // Runda 6, r2: förpackningen i NPL, spädningen och trappschemat som systemet föreslår för produkten.
 function r6Tillagg(f) {
   const ut = [];
+  // Runda 8, r4: ett koncentrat som ska sättas till en infusion.
+  if (f.tillsats) ut.push(`<p class="ruta ruta-info liten">${ikon.info}<span>${esc(f.tillsats.text)}</span></p>`);
   if (f.produkttyp && f.produkttyp.typ !== 'godkand') ut.push(`<p class="ruta ruta-info liten">${ikon.info}<span>${esc(f.produkttyp.typText)}. ${esc(f.produkttyp.beskrivning ?? '')}</span></p>`);
   if (f.forpackningar?.length) ut.push(`<div class="falt"><label for="o-fp">Förpackning</label><select id="o-fp" name="forpackning">${f.forpackningar.map(p => `<option value="${esc(p.nplpackid)}">${esc(p.text)}${p.forval ? ' (förval)' : ''}</option>`).join('')}</select><p class="hjalp">NPL-pack-id följer med överföringen till NLL.</p></div>`);
   if (f.spadning) {
@@ -450,7 +562,7 @@ function r6Tillagg(f) {
       ${s.basvatska ? '' : `<div class="falt"><label for="o-sp-l">Späds i</label><select id="o-sp-l" name="spLosning">${s.losningar.map(l => `<option>${esc(l)}</option>`).join('')}</select></div>`}
       <div class="falt smal"><label for="o-sp-v">Volym ml</label><input id="o-sp-v" name="spVolym" inputmode="decimal" value="${esc(String(s.volymMl).replace('.', ','))}"></div>
       <div class="falt smal"><label for="o-sp-t">Minuter</label><input id="o-sp-t" name="spTid" inputmode="numeric" value="${esc(s.tidMin ?? '')}"></div>
-      ${s.basvatska ? '<div class="falt smal"><label for="o-sp-k">Kaliumklorid mmol</label><input id="o-sp-k" name="spKalium" inputmode="decimal"></div>' : ''}</div>
+      ${s.basvatska ? (s.tillsatsVal ?? []).map((t, n) => `<div class="falt smal"><label for="o-sp-t${n}">${esc(t.namn[0].toUpperCase() + t.namn.slice(1))}, ${esc(t.enhet)}</label><input id="o-sp-t${n}" name="spTillsats${n}" data-tillsats="${esc(t.lakemedelId)}" inputmode="decimal"></div>`).join('') : ''}</div>
       <p class="hjalp">Systemet räknar koncentration och hastighet och visar dem vid iordningsställandet.</p></fieldset>`);
   }
   if (f.trappning) {
@@ -471,10 +583,23 @@ function r6Data(form) {
   if (form.forpackning?.value) ut.forpackning = form.forpackning.value;
   if (form.spVolym) {
     ut.spadning = { losning: form.spLosning?.value, volymMl: n(form.spVolym.value), tidMin: form.spTid.value ? n(form.spTid.value) : null,
-      tillsatser: form.spKalium?.value ? [{ lakemedelId: 'VK-EGEN-0001', mangd: n(form.spKalium.value) }] : [] };
+      // Runda 8, r4: varje tillsats som har en mängd.
+      tillsatser: [...form.querySelectorAll('[data-tillsats]')].filter(t => t.value.trim()).map(t => ({ lakemedelId: t.dataset.tillsats, mangd: n(t.value) })) };
   }
   if (form.querySelector('.o-trappning')?.open) ut.trappning = { riktning: form.trRiktning.value, startdos: n(form.trStart.value), steg: n(form.trSteg.value), dagar: n(form.trDagar.value), slutdos: n(form.trSlut.value) };
   return ut;
+}
+
+// Runda 8, r4: doseringen för en infusion med basvätska, skriven ur volymen, tillsatserna och tiden.
+const talText = (x) => String(Math.round(x * 100) / 100).replace('.', ',');
+function infusionsText(form, inf) {
+  const n = (v) => Number(String(v ?? '').replace(',', '.'));
+  const vol = n(form.spVolym?.value);
+  const tid = n(form.spTid?.value);
+  const tillsatser = [...form.querySelectorAll('[data-tillsats]')].filter(t => n(t.value) > 0)
+    .map(t => { const d = (inf.tillsatsVal ?? []).find(x => x.lakemedelId === t.dataset.tillsats); return `${talText(n(t.value))} ${d?.enhet ?? ''} ${d?.namn ?? ''}`.replace(/\s+/g, ' ').trim(); });
+  const tidText = !(tid > 0) ? '' : tid === 60 ? '1 timme' : tid >= 120 && tid % 60 === 0 ? `${tid / 60} timmar` : `${talText(tid)} minuter`;
+  return `${vol > 0 ? `${talText(vol)} ml ` : ''}${inf.namn ?? ''}${tillsatser.length ? ` med ${tillsatser.join(' och ')}` : ''}, intravenöst${tidText ? ` under ${tidText}` : ''}`.trim();
 }
 
 // Vårdhändelsen som läkaren har valt: en bokning, en post på väntelistan eller en ny vårdhändelse.

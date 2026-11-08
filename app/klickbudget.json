@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T10:24:01.607Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-08T11:37:48.030Z",
+  "bas": "http://127.0.0.1:18184",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "6861eabb78763a405740bf97897dd10fff8989df56b204f9e50a1ab598fbf78a",
+  "gransnittHash": "cc19f138c60448ba5e9a153652e77a4f661ac115df806bcc1a658f30a110228f",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -979,6 +979,25 @@
       ]
     },
     {
+      "id": "andra-dos",
+      "namn": "Ändra dosen i en pågående ordination",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 4,
+      "motivering": "Sussa 3.5.2.12 och testfall 1.1. Ett klick till läkemedelslistan, ett på Ändra dos för raden, ett på den nya styrkan, där systemet fyller i doseringen och dosen, och ett för att spara. Ordinationen fortsätter med samma orsak och uppföljning, utan att sättas ut och ordineras på nytt, och den nya doseringen gäller från i dag om inget annat datum väljs.",
+      "klick": 4,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 4,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Läkemedel",
+        "klick: Ändra dos för Metoprolol",
+        "klick: styrkan 100 mg",
+        "klick: Ändra dosen"
+      ]
+    },
+    {
       "id": "nyheter",
       "namn": "Läsa nyheterna och stänga dem",
       "roll": "lak-kard",
@@ -1226,6 +1245,10 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Registrera längd och vikt vid ett BHV-besök och se kurvan inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Ändra dosen i en pågående ordination inom budget",
       "status": "grön"
     },
     {

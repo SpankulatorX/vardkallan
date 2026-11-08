@@ -46,7 +46,9 @@ export function registreraRutter({ rutt, kravInloggad, medPatient }) {
   // Muntlig ordination (3.5.2.12).
   rutt('GET', '/api/patient/:id/muntlig-ordination', (c, id) => {
     kravInloggad(c);
-    return medPatient(c, id, 'registrera_muntlig_ordination', (atk) => { administrering.kravVardande(atk, 'registrera_muntlig_ordination', null, 'muntlig_ordination:forslag'); return { lakare: vagar.muntligaLakare(atk), omedelbarTimmar: stod.MUNTLIG_OMEDELBAR_TIMMAR }; });
+    return medPatient(c, id, 'registrera_muntlig_ordination', (atk) => { administrering.kravVardande(atk, 'registrera_muntlig_ordination', null, 'muntlig_ordination:forslag'); return { lakare: vagar.muntligaLakare(atk), omedelbarTimmar: stod.MUNTLIG_OMEDELBAR_TIMMAR,
+      // Runda 8, r4: läkaren och skälet från sjuksköterskans senaste muntliga ordination för patienten.
+      senaste: vagar.senasteMuntlig(atk) }; });
   });
   rutt('POST', '/api/patient/:id/muntlig-ordination', (c, id) => {
     kravInloggad(c);

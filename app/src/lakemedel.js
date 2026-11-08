@@ -9,6 +9,8 @@ import { utsattningsvarningar, UTSATTNINGSREGLER, DEMOREGLER_PROCESS, UTSATTNING
 import { avslutFor } from './aterinsattning.js';
 // Läkemedelsprocessen, del 2 (runda 6, r2): läkemedelstyper, licenser, förpackning och listans flaggor.
 import * as stod from './lakemedelsstod.js';
+// Runda 8, r4: dosändring i en pågående ordination, med ny dosering från ett datum.
+import { tillampaDosandringar, planerade as planeradeDosandringar } from './dosandring.js';
 
 export const DEMOREGLER = 'Varningarna är demoregler för att visa flödet. De är inte kliniskt beslutsstöd och inte CE-märkta.';
 export const TYPER = ['staende', 'vid_behov', 'tillfallig'];
@@ -45,6 +47,9 @@ export function ordinationUt(db, o, { historik = true, fullVardhandelse = false 
     // Runda 6, r2: läkemedelstyp, förpackning, spädning, trappschema, muntlig ordination, generellt direktiv och mall.
     ...stod.tillaggUt(db, o),
   };
+  // Runda 8, r4: en dosändring som gäller från ett senare datum.
+  const planerade = o.status === 'aktiv' ? planeradeDosandringar(db, o.id) : [];
+  if (planerade.length) ut.planeradeDosandringar = planerade;
   if (historik) {
     // Vårdhändelsens rader (tidsättningen för hand och tidboken) visas bara för den som får se hela vårdhändelsen. Andra
     // ser bara att tiden för läkemedlet ändrades, utan tider och utan vem (säkerhetsgranskning runda 5).
@@ -70,6 +75,8 @@ export function utsattningsplan(db, ordinationId) {
 
 // Läkemedelslistan är gemensam för vårdgivaren. Spärrade enheters ordinationer visas inte.
 export function synligaOrdinationer(atk) {
+  // Runda 8, r4: en dosändring vars datum har kommit börjar gälla innan listan läses.
+  tillampaDosandringar(atk.db, atk.patientId);
   const rader = atk.db.query('SELECT * FROM ordinationer WHERE patient_id = ? ORDER BY status, start DESC, id DESC').all(atk.patientId);
   return atk.filtrera(rader, 'las_lakemedel', { gemensam: true });
 }
@@ -254,7 +261,9 @@ export function spara(atk, inp, { handling = 'ordinera', ordineradAv = null, nll
 export function hamtaRad(db, id) {
   const o = db.query('SELECT * FROM ordinationer WHERE id = ?').get(Number(id));
   if (!o) throw new Fel(404, 'Ordinationen finns inte.', 'saknas');
-  return o;
+  // Runda 8, r4: en dosändring vars datum har kommit gäller innan ordinationen används.
+  tillampaDosandringar(db, o.patient_id);
+  return db.query('SELECT * FROM ordinationer WHERE id = ?').get(o.id);
 }
 
 // Hur många dagar patienten har haft substansen utan uppehåll: från den tidigaste av de synliga ordinationerna av samma

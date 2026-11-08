@@ -207,10 +207,12 @@ async function angeHandelsetid(b, ladda) {
 // Avdelningens lista (#/administrering).
 export async function visa(main) {
   main.innerHTML = vyRubrik('Läkemedel att ge', 'Dagens doser för de inneliggande patienterna, framräknade ur ordinationerna.') + hjalpRuta('ge-dos') + '<div id="adm"><p class="tom">Hämtar.</p></div>';
-  const d = await api('/api/administreringar');
   const el = main.querySelector('#adm');
-  // Har användaren hunnit gå vidare till en annan vy medan listan hämtades finns inget att visa den i.
-  if (!el) return;
+  const d = await api('/api/administreringar');
+  // Runda 8, r4: har användaren gått vidare, eller har listan ritats om medan den hämtades (två doser givna tätt efter
+  // varandra), ritar den senaste omritningen själv. Annars kopplades knapparna två gånger till samma lista, och ett
+  // klick på Ge registrerade dosen två gånger (testfall 1.4 föll ibland på varningen för dubbel dos).
+  if (!el.isConnected) return;
   if (!d.patienter.length) { el.innerHTML = tom(`Det finns inga inneliggande patienter på ${d.vardenhet?.namn ?? 'din vårdenhet'} som du har vårdrelation till.`); return; }
   // Undersköterskan ser vad hennes delegering omfattar och hur länge den gäller (runda 5).
   const deleg = d.delegering ? `<p class="ruta ruta-info liten adm-delegering">${ikon.info}<span>${d.delegering.giltig

@@ -356,6 +356,16 @@ function skapa(BAS) {
       await synlig(page, '.notis', 'Video är registrerat till');
     },
     // Läkemedelsprocessen (Sussa 3.5.2).
+    // Runda 8, r4: dosändring i en pågående ordination, med en annan styrka som systemet fyller i doseringen för.
+    'andra-dos': async (m, page) => {
+      await m.klicka(page.locator('.flikar a', { hasText: 'Läkemedel' }), 'fliken Läkemedel');
+      await page.waitForSelector('.lm-tabell');
+      await m.klicka(page.locator('.lm-tabell tr', { hasText: 'Metoprolol Sandoz' }).locator('[data-dosandring]'), 'Ändra dos för Metoprolol');
+      await m.klicka(page.locator('dialog[open] [data-styrka]', { hasText: '100 mg' }), 'styrkan 100 mg');
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Ändra dosen');
+      await synlig(page, '.notis', 'dosen är ändrad');
+      await synlig(page, '.lm-tabell tr:has-text("Metoprolol Sandoz")', '100 mg');
+    },
     // Runda 7, r2: varningen före utloggningen.
     'forlang-inloggning': async (m, page) => {
       await synlig(page, '#tidsgrans', 'Du loggas snart ut');
@@ -365,7 +375,9 @@ function skapa(BAS) {
     },
     // Runda 7, r2: nyhetsrutan.
     nyheter: async (m, page) => {
-      await synlig(page, '.nyhetsruta', 'Hjälp i sammanhanget och övningar med intyg');
+      // Runda 8: rutan visar den aktuella versionens nyheter för rollen, som servern säger vilka de är.
+      const forvantat = await page.evaluate(() => fetch('/api/nyheter').then(r => r.json()));
+      await synlig(page, '.nyhetsruta', forvantat.ruta.nyheter[0].rubrik);
       await m.klicka(page.locator('[data-a="stang-nyheter"]'), 'Stäng nyheterna');
       await page.waitForFunction(() => !document.querySelector('.nyhetsruta'));
       await synlig(page, '.notis', 'Nyheterna är stängda');

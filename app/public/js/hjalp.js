@@ -16,8 +16,8 @@ export const HJALP = {
   },
   ordinera: {
     rubrik: 'Ordinera eller sätta ut ett läkemedel',
-    steg: ['Välj Ordinera och sök på läkemedlets namn eller substans.', 'Välj träffen. Systemet föreslår dosering och tider, som du ändrar om de inte passar.', 'Skriv ordinationsorsaken, välj uppföljning och spara.', 'Sätt ut med knappen på läkemedlets rad och skriv orsaken.'],
-    systemet: 'Ordinationen kontrolleras mot överkänslighet, andra läkemedel och högsta dos innan den sparas, och en allvarlig varning kräver en motivering. Överföringen till NLL bevakas (simulerad i demon).',
+    steg: ['Välj Ordinera och sök på läkemedlets namn eller substans.', 'Välj träffen. Systemet föreslår dosering, tider och administrationssätt ur produkten och beredningsformen, som du ändrar om de inte passar. Välj engångsdos för en dos som ges en gång i dag.', 'Skriv ordinationsorsaken, välj uppföljning och spara.', 'Ändra dosen med Ändra dos på läkemedlets rad: välj en annan styrka eller skriv den nya doseringen, och från vilket datum den gäller.', 'Sätt ut med knappen på läkemedlets rad och skriv orsaken.'],
+    systemet: 'Ordinationen kontrolleras mot överkänslighet, andra läkemedel och högsta dos innan den sparas, och en allvarlig varning kräver en motivering. En dosändring fortsätter samma ordination och sparas i historiken. Överföringen till NLL bevakas (simulerad i demon).',
   },
   inkorg: {
     rubrik: 'Inkorgen',

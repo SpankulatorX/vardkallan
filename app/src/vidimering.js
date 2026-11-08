@@ -13,6 +13,8 @@
 import { Fel, iso, idag, addDagar } from './db.js';
 import { Atkomst, alder } from './atkomst.js';
 import * as lakemedel from './lakemedel.js';
+// Runda 8, r4: dosändringarna i läkemedelsberättelsen.
+import { dosandringarFor } from './dosandring.js';
 import { tillaggUt } from './ordinationsmallar.js';
 import { kravVardande, kanVarda, synligaAdministreringar } from './administrering.js';
 import { genomgangsfynd, DEMOREGLER_PROCESS } from './lakemedelsregler.js';
@@ -23,7 +25,10 @@ const enhetKort = (db, id) => { const e = id && db.query('SELECT id, namn FROM e
 // Samma användare och val, men utan samtycke till spärrade uppgifter.
 const utanSamtycke = (atk) => new Atkomst(atk.db, atk.personal, atk.patientId, { ...atk.val, samtycke_sparr: false }, atk.handling);
 const pagaende = (atk) => lakemedel.synligaOrdinationer(utanSamtycke(atk)).filter(lakemedel.aktuell);
-const avtryck = (o) => ({ id: o.id, dosering: o.dosering, status: o.status });
+// Runda 8, r4: produkten, dosen och tiderna ingår, så att en dosändring i en pågående ordination syns som ändrad också
+// när doseringstexten är densamma (en annan styrka med samma antal tabletter).
+const avtryck = (o) => ({ id: o.id, dosering: o.dosering, status: o.status, lakemedelId: o.lakemedel_id, dos: o.dos, tider: o.tider });
+const andrad = (fore, o) => fore.dosering !== o.dosering || ('lakemedelId' in fore && (fore.lakemedelId !== o.lakemedel_id || (fore.dos ?? null) !== (o.dos ?? null) || (fore.tider ?? null) !== (o.tider ?? null)));
 const kort = (db, o) => { const u = lakemedel.ordinationUt(db, o, { historik: false }); return { id: u.id, lakemedel: u.lakemedel, dosering: u.dosering, typ: u.typ, ordinationsorsak: u.ordinationsorsak, uppfoljningsdatum: u.uppfoljningsdatum, start: u.start, ordineradAv: u.ordineradAv, vardenhet: u.vardenhet, skapad: u.skapad, kalla: u.kalla, kallaEtikett: u.kallaEtikett, ...tillaggUt(db, o.id) }; };
 
 function vidimeringUt(atk, v) {
@@ -43,7 +48,7 @@ export function underlag(atk) {
   const foreIds = new Map(fore.map(x => [x.id, x]));
   const nuIds = new Set(nu.map(o => o.id));
   const alla = new Map(lakemedel.synligaOrdinationer(utanSamtycke(atk)).map(o => [o.id, o]));
-  const nya = nu.filter(o => !foreIds.has(o.id) || foreIds.get(o.id).dosering !== o.dosering).map(o => ({ ...kort(db, o), andring: foreIds.has(o.id) ? 'andrad' : 'ny' }));
+  const nya = nu.filter(o => !foreIds.has(o.id) || andrad(foreIds.get(o.id), o)).map(o => ({ ...kort(db, o), andring: foreIds.has(o.id) ? 'andrad' : 'ny' }));
   const utsatta = fore.filter(x => !nuIds.has(x.id) && alla.has(x.id)).map(x => {
     const o = alla.get(x.id);
     return { ...kort(db, o), andring: 'utsatt', utsatt: o.status === 'utsatt' ? { tid: o.utsatt_tid, av: personNamn(db, o.utsatt_av), orsak: o.utsatt_orsak } : { tid: null, av: null, orsak: `Slutdatum ${o.slut}` } };
@@ -99,9 +104,18 @@ export function berattelse(atk, { pagaendeOrd = pagaende(atk) } = {}) {
   const iAndrade = new Set(andrade.flatMap(a => [a.fran.id, a.till.id]));
   const rader = [`Läkemedelsberättelse för ${p.text}, framtagen av systemet ${datumI(Date.now())}.`];
   for (const a of andrade) rader.push(`Ändrad dos: ${namn(a.till)} från ${a.fran.dosering.toLowerCase()} till ${a.till.dosering.toLowerCase()}. Orsak: ${a.till.orsak}.`);
+  // Runda 8, r4: dosändringar i pågående ordinationer under perioden, bara i ordinationer som syns i berättelsen.
+  const synliga = new Set(alla.map(o => o.id));
+  const dosandrade = new Set();
+  for (const o of pagaendeOrd.filter(x => synliga.has(x.id))) {
+    for (const d of dosandringarFor(db, o.id).filter(x => Date.parse(x.tid) >= fran)) {
+      dosandrade.add(o.id);
+      rader.push(`Ändrad dos: ${namn(o)}${d.galler ? '' : ` från ${d.fran}`}. ${d.text}${d.orsak ? ` Orsak: ${d.orsak}.` : ''}`);
+    }
+  }
   for (const o of insatta.filter(x => !iAndrade.has(x.id))) rader.push(`Insatt: ${namn(o)}, ${o.dosering.toLowerCase()}. Orsak: ${o.orsak}.`);
   for (const o of utsatta.filter(x => !iAndrade.has(x.id))) rader.push(`Utsatt: ${namn(o)}. Orsak: ${o.utsatt_orsak}.`);
-  const ofor = pagaendeOrd.filter(o => Date.parse(o.skapad) < fran && !iAndrade.has(o.id));
+  const ofor = pagaendeOrd.filter(o => Date.parse(o.skapad) < fran && !iAndrade.has(o.id) && !dosandrade.has(o.id));
   if (ofor.length) rader.push(`Oförändrade: ${ofor.map(o => namn(o)).join(', ')}.`);
   // Berättelsen sparas och syns utan samtycke, så doser från en spärrad vårdenhet tas aldrig med, inte ens med samtycke.
   const vb = synligaAdministreringar(utanSamtycke(atk)).filter(a => a.status === 'given' && Date.parse(a.tid) >= fran)

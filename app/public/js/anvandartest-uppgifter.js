@@ -328,6 +328,12 @@ export const UPPGIFTER = [
     text: 'Ida Holmqvist är på besök hos barnavårdscentralen. Hon väger 9,6 kg och är 82 cm lång. Registrera måtten och se hur hon följer sin kurva.',
     kontroll: { notis: 'är registrerat' },
   },
+  // Runda 8, r4: dosändring i en pågående ordination (Sussa 3.5.2.12).
+  {
+    id: 'andra-dos', namn: 'Ändra dosen i en pågående ordination', roll: 'lak-kard', start: 'Patientens översikt',
+    text: 'Gunnar behöver en högre dos Metoprolol, 100 mg på morgonen från i dag. Ändra dosen utan att sätta ut läkemedlet.',
+    kontroll: { notis: 'dosen är ändrad' },
+  },
   // Runda 7, r2: nyhetsrutan efter en ny version (Sussa 10.1.1.4).
   {
     id: 'nyheter', namn: 'Läsa nyheterna och stänga dem', roll: 'lak-kard', start: 'Arbetslistan med nyheterna efter en ny version',

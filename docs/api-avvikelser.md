@@ -457,6 +457,17 @@ Inget här rör en patient. Nyheterna och övningarna har inga patientuppgifter 
 - Varje svar till en inloggad har rubriken `X-Inloggning-Gar-Ut` (ISO-tid). `GET /api/session` och inloggningssvaren har `inloggning: { garUt, minuter, varningMinuter }` när någon är inloggad.
 - `POST /api/session/forlang` (inloggad, annars 401) förlänger inloggningen och ger `{ inloggning }`.
 - `POST /api/demo/inloggning-gar-ut { sekunder }` (inloggad) sätter tiden så att inloggningen går ut om så många sekunder (5 till hela tiden, standard 270), i den egna sessionen.
+## Läkemedelsprocessen efter Sussas testfall (runda 8, r4, Sussa 3.5.1.3, 3.5.1.4, 3.5.2.11 och 3.5.2.12)
+
+- Nya administrationssätt i `administrationssatt` och `tillatnaAdministrationssatt`: `okulart` (I ögat), `aurikulart` (I örat), `nasalt` (I näsan), `kutant` (På huden), `transdermalt` (Plåster på huden), `rektalt` och `vaginalt`. En lokal beredningsform har bara sitt eget sätt, och `lösning för nebulisator` har `inhalation`. Ett sätt som inte passar formen ger 400 som förut.
+- `GET /api/patient/:id/lakemedel/forslag` har `engangs` (true när förslaget är en engångsdos som slutar samma dag), och för en basvätska `spadning.tillsatsVal: [{ lakemedelId, namn, enhet }]` och `spadning.namn`. För ett koncentrat som bara ges som tillsats finns `tillsats: { text }`. Förslaget följer mallens variant för produktens beredningsform och styrka, och `varfor` förklarar när mallen räknas om för en annan styrka eller inte används för en annan form.
+- `spadning.tillsatser` tar emot `VK-NPL-0051` (Addex-Magnesium, mmol) förutom `VK-EGEN-0001` (kaliumklorid), och glukos med elektrolyter (`B05BA03`) är en basvätska.
+- `GET /api/ordination/:id/dosandring` (handlingen `ordinera` på ordinationens vårdenhet) ger `{ ordination, alternativ: [{ id, namn, styrka, form, nuvarande, forslag: { dosering, dos, dosEnhet, tider, varfor } | null }], fran, franSenast, planerade }`. 400 för en ordination som inte pågår eller har trappschema, spädning, osignerad muntlig ordination eller generellt direktiv.
+- `POST /api/ordination/:id/dosandring { lakemedelId?, dosering, dos?, dosEnhet?, tider?, fran?, orsak?, kvitteradeVarningar? }` ger `{ ordination, dosandring: { id, fran, dosering, dos, dosEnhet, tider, lakemedel, text, orsak, av, tid, galler }, varningar, nll }`. `lakemedelId` ska ha samma ATC-kod och beredningsform. `fran` är i dag eller senare, inom ett år och senast ordinationens slut. En allvarlig varning ger 400 med `varningar` och `kraverKvittens`. NLL-meddelandet har `typ: andring`, eller `ny_forskrivning` när styrkan byts.
+- `GET /api/patient/:id/lakemedel` och andra svar med en ordination har `planeradeDosandringar` (samma form som `dosandring`) när en ändring gäller från ett senare datum.
+- `GET /api/patient/:id/muntlig-ordination` har `senaste: { lakareId, satt, omedelbar } | null`, från sjuksköterskans egen muntliga ordination för patienten de senaste två timmarna.
+- FHIR: en `MedicationRequest` med en kommande dosändring har en `dosageInstruction` per period (`timing.repeat.boundsPeriod`), och ett byte av styrka står i `note`.
+
 ## Sussas användbarhetstester (runda 7, r1, Sussa 8.4.1.1 och 8.4.1.2)
 
 - `POST /api/demo/sussa-testfall` lägger in Sussas 26 testpatienter (id `sus01` till `sus26`) och testfallens data i den inloggades sandlåda och svarar `{ ok, redan, patienter }`. Kräver inloggning (401 annars), och datan läggs in en gång per sandlåda (`redan: true` andra gången). Behörigheten gäller som för andra patienter: datan ger vårdrelation bara där seeden hade gjort det.
