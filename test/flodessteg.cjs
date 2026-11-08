@@ -875,6 +875,29 @@ function skapa(BAS) {
     await m.klicka(page.locator('[data-grupp] [type="submit"]'), 'Visa gruppen');
     await synlig(page, '[data-grupp-ut]', 'Birgitta');
   };
+  // Runda 10, r2: utskrift av en anteckning, överkänslighet och sökning över patienter.
+  GOR['skriv-ut-anteckning'] = async (m, page) => {
+    await m.klicka(page.locator('.flikar a', { hasText: 'Journal' }), 'fliken Journal');
+    await m.klicka(page.locator('[data-skriv-ut-anteckning]'), 'Skriv ut anteckningen');
+    await m.klicka(page.locator('dialog [data-varde="ok"]'), 'Skriv ut');
+    await synlig(page, '.utskrift-ram', 'Journalanteckningar');
+    await page.locator('.utskrift-ram [data-stang]').evaluate(b => b.click());
+  };
+  GOR['registrera-overkanslighet'] = async (m, page) => {
+    await m.klicka(page.locator('.signal-um summary'), 'uppmärksamhetsraden');
+    await m.klicka(page.locator('[data-ok-ny]').first(), 'Ny överkänslighet');
+    await m.skriv(page.locator('#ok-amne'), 'ibuprofen', 'ämnet');
+    await m.skriv(page.locator('#ok-reaktion'), 'Andningsbesvär', 'reaktionen');
+    await synlig(page, '[data-ok-forslag]', 'M01AE01');
+    await m.klicka(page.locator('dialog [data-varde="ok"]'), 'Registrera');
+    await synlig(page, '.notis', 'ATC-kod M01AE01');
+  };
+  GOR['sok-journaler'] = async (m, page) => {
+    await m.klicka(page.locator('#meny-lista a[href="#/sok"]'), 'Sök patient i menyn');
+    await m.skriv(page.locator('#journalerfalt'), 'förmaksflimmer', 'Sök i journalerna');
+    await m.tangent('Enter', 'sök');
+    await synlig(page, '#journalertraffar', 'Söker patienter med');
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 

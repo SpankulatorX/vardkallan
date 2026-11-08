@@ -353,4 +353,17 @@ export const FLODEN = [
     id: 'patientgrupp', namn: 'Visa en färdig patientgrupp', roll: 'lak-vc', start: 'Arbetslistan efter inloggning', budget: 3,
     motivering: 'Sussa 6.2.1.2. Ett klick på Analys och statistik och ett på Visa gruppen för den färdiga grupp som är förvald. Systemet skriver vad gruppen betyder och varför varje patient är med, och räknar bara på det som läkaren får se.',
   },
+  // Runda 10, r2: en enskild anteckning skrivs ut, överkänslighet registreras och samma sökfält söker över patienter.
+  {
+    id: 'skriv-ut-anteckning', namn: 'Skriva ut en enskild anteckning', roll: 'lak-kard', start: 'Patientens översikt', budget: 3,
+    motivering: 'Sussa 3.1.9.4. Ett klick till Journal, där den senaste signerade anteckningen redan är öppen, ett på Skriv ut anteckningen och ett på Skriv ut. Systemet väljer anteckningen, delen och syftet, loggar utskriften och sätter utskrifts-id:t.',
+  },
+  {
+    id: 'registrera-overkanslighet', namn: 'Registrera en överkänslighet', roll: 'lak-kard', start: 'Patientens översikt', budget: 5,
+    motivering: 'Sussa 3.1.6.2. Ett klick på uppmärksamhetsraden och ett på Ny överkänslighet, där ämnet redan har fokus, ett fältbyte till reaktionen och ett klick för att registrera. Systemet slår upp ATC-koden ur ämnet och föreslår allvarlighetsgraden ur reaktionen, och basfakta, symbolen och varningarna vid ordination följer med.',
+  },
+  {
+    id: 'sok-journaler', namn: 'Söka bland vårdenhetens patienter på en diagnos', roll: 'lak-kard', start: 'Arbetslistan efter inloggning', budget: 3,
+    motivering: 'Sussa 3.1.8.2. Ett klick på Sök patient, ett fältbyte till Sök i journalerna och Enter. Systemet gör om ordet förmaksflimmer till diagnoskoderna, prövar varje patient i behörighetsmotorn och säger varför patienten är med.',
+  },
 ];

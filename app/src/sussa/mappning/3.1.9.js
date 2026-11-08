@@ -50,6 +50,7 @@ export default [
       `${UU}en enskild anteckning skrivs ut för sig, och loggen, posterna och kontrollsumman gäller just urvalet`,
       `${UU}valda poster ur flera delar skrivs ut, och en post som inte syns för den inloggade avvisas utan att röja den`,
       `${UU}förslaget erbjuder datumintervall och de poster som går att välja, och bara de som rollen får läsa`,
+      `${GK}Skriva ut en enskild anteckning inom budget`,
     ],
     losning: 'Utskrift av hela journalen eller av delar: fördefinierade utskrifter efter syfte, fritt val av delar, ett datumintervall, valda poster och en enskild anteckning direkt från journalen. Avidentifierad utskrift och skydd av patientens identitet. Utskriften går till den skrivare som datorn har, eller sparas som PDF i webbläsarens utskriftsdialog.',
     expert: 'Systemet föreslår syfte, delar och intervall ur patientens läge, erbjuder bara de delar och poster rollen får läsa och säger i utskriften vad urvalet var och vad som inte kom med.',

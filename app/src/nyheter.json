@@ -359,6 +359,89 @@
           "omfattning": "liten",
           "rubrik": "Sökorden får kod i Snomed CT",
           "text": "Systemet ger sökorden i dina anteckningar kod i Snomed CT, en del av det nationella fackspråket, så att journalen kan läsas av andra system. Du väljer sökord som förut och ser aldrig koden."
+        },
+        {
+          "id": "oversikt-situation",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska",
+            "fysioterapeut"
+          ],
+          "omfattning": "stor",
+          "var": "#/arbetslista",
+          "rubrik": "Översikten följer situationen",
+          "text": "Översikten väljer själv mottagningsbesök, akut eller rond efter patientens läge och säger varför. Med Anpassa översikten väljer du delar, ordning och hur långt bakåt tidslinjen visar, och valet sparas för situationen."
+        },
+        {
+          "id": "uppfoljningsvy",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska"
+          ],
+          "omfattning": "liten",
+          "var": "#/arbetslista",
+          "rubrik": "Fliken Uppföljning",
+          "text": "Fliken Uppföljning i journalen samlar vårdplanernas mål och avvikelser, avvikande provsvar, läkemedel som ska följas upp, remisser med larm och samordnad planering. Avvikelserna står först."
+        },
+        {
+          "id": "overkanslighet-flode",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "liten",
+          "var": "#/arbetslista",
+          "rubrik": "Registrera överkänslighet",
+          "text": "Ny överkänslighet registreras från uppmärksamhetsraden i patienthuvudet. Systemet slår upp ATC-koden och föreslår allvarlighetsgraden. En ändring blir en ny version, och ett avslut kräver en orsak."
+        },
+        {
+          "id": "utskrift-urval",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska",
+            "vardadministrator"
+          ],
+          "omfattning": "liten",
+          "var": "#/arbetslista",
+          "rubrik": "Skriv ut ett urval",
+          "text": "I utskriften väljer du ett datumintervall eller enstaka poster, och en anteckning skrivs ut för sig med Skriv ut anteckningen. Urvalet står i utskriften och i loggen."
+        },
+        {
+          "id": "sok-journaler",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "liten",
+          "var": "#/sok",
+          "rubrik": "Sök i journalerna på vårdenheten",
+          "text": "Under Sök patient söker du bland vårdenhetens patienter på en diagnos eller ett läkemedel, till exempel förmaksflimmer eller Waran. Sökträffarna i en journal går att filtrera på typ, tid och vårdenhet."
+        },
+        {
+          "id": "menprovning-strukturerad",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "vardadministrator",
+            "logggranskare"
+          ],
+          "omfattning": "liten",
+          "var": "#/logg",
+          "rubrik": "Menprövning och sökning på mottagare",
+          "text": "Menprövningen vid utlämnande registreras med beslut och grund, som systemet föreslår ur mottagaren. Logggranskaren söker utlämnanden på mottagare över alla patienter."
+        },
+        {
+          "id": "vyforval-vardenhet",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "liten",
+          "var": "#/regler",
+          "rubrik": "Vårdenheternas förval för vyerna",
+          "text": "Under Regler och parametrar sätter du vårdenhetens förval för översikten per situation och för Dagens arbete. Förvalet ändrar bara vad som visas, aldrig vad någon får se."
         }
       ]
     },

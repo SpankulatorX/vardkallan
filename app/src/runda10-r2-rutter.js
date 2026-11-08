@@ -7,6 +7,7 @@ import * as logg from './logg.js';
 import * as utskrift from './utskrift.js';
 import * as overkanslighet from './overkanslighet.js';
 import * as journalsok from './journalsok.js';
+import * as vyer from './presentationsvyer.js';
 
 export function registreraRutter({ rutt, kravInloggad, medPatient, patientKort }) {
   // Logggranskarens anrop. En annan roll nekas, och försöket loggas som nekat.
@@ -41,6 +42,17 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, patientKort }
   };
   rutt('POST', '/api/overkanslighet/:id/andra', (c, id) => medOverkanslighet(c, id, (atk) => overkanslighet.andra(atk, id, c.body)));
   rutt('POST', '/api/overkanslighet/:id/avsluta', (c, id) => medOverkanslighet(c, id, (atk) => overkanslighet.avsluta(atk, id, c.body)));
+
+  // Anpassningsbara och standardiserade vyer (Sussa 3.1.2.1 till 3.1.2.4).
+  rutt('GET', '/api/oversiktsvy/:situation', (c, s) => vyer.oversiktsvy(c.db, kravInloggad(c), s));
+  rutt('PUT', '/api/oversiktsvy/:situation', (c, s) => vyer.sparaOversiktsvy(c.db, kravInloggad(c), s, c.body));
+  rutt('POST', '/api/oversiktsvy/:situation/aterstall', (c, s) => vyer.aterstallOversiktsvy(c.db, kravInloggad(c), s));
+  rutt('GET', '/api/vyforval', (c) => vyer.forvalsLista(c.db, kravInloggad(c)));
+  rutt('PUT', '/api/vyforval', (c) => vyer.sattForval(c.db, kravInloggad(c), c.body));
+  rutt('POST', '/api/vyforval/ta-bort', (c) => vyer.taBortForval(c.db, kravInloggad(c), c.body));
+  rutt('GET', '/api/patient/:id/uppfoljning', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_oversikt', (atk) => vyer.uppfoljningsvy(atk, { typ: c.url.searchParams.get('typ') || null })); });
+  rutt('GET', '/api/belaggning', (c) => vyer.belaggning(c.db, kravInloggad(c)));
+  rutt('GET', '/api/patient/:id/utbildningsvy', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_oversikt', (atk, p) => vyer.utbildningsvy(atk, p)); });
 
   // Sökning över flera patienter med samma sökfält som i journalen (Sussa 3.1.8.2).
   rutt('GET', '/api/sok/journaler', (c) => journalsok.sokJournaler(c.db, kravInloggad(c), c.url.searchParams.get('q') ?? ''));

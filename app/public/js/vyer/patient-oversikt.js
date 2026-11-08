@@ -11,6 +11,8 @@ import * as tider from './patient-tider.js';
 import * as r3 from './r3.js';
 // Runda 7, r3: kostnaderna i vårdprocessen, avgifter och högkostnadsskydd.
 import * as ekonomi from '../ekonomi-ui.js';
+// Runda 10, r2: översiktens delar, ordning och tidsurval efter situationen (Sussa 3.1.2.1 och 3.1.2.3).
+import { dialog, notis } from '../ui.js';
 
 // När frågeställningen inte visas för rollen skickar servern remissens status i stället.
 const REMISSTATUS = { skickad: 'Status: skickad', mottagen: 'Status: mottagen', bedomd: 'Status: bedömd', besvarad: 'Status: besvarad', svar_kvitterat: 'Status: svaret är kvitterat' };
@@ -18,6 +20,8 @@ const TYP = { vardkontakt: 'Vårdkontakt', vardtillfalle: 'Vårdtillfälle', ant
 // Tidslinjen i tidsordning, per vårdtillfälle och vårdkontakt, eller per hälsoärende. Valet gäller under sessionen.
 const LAGEN = [['tid', 'I tidsordning'], ['kontakt', 'Per vårdkontakt'], ['arende', 'Per hälsoärende']];
 let tidslinjeLage = 'tid';
+// Runda 10, r2: situationen som användaren har valt under sessionen. Utan val väljer systemet ur sammanhanget.
+let situationVal = null;
 
 const sektion = (id, rubrik, innehall, extra = '') => `<section class="ov-sektion" aria-labelledby="ov-${id}"><div class="sektion-huvud"><h2 id="ov-${id}">${esc(rubrik)}</h2>${extra}</div>${innehall}</section>`;
 const tomRad = (t) => `<p class="tom liten">${esc(t)}</p>`;
@@ -48,44 +52,57 @@ function snabbval(ctx) {
 export async function visa(el, ctx) {
   // Bokade tider (tidboken) hämtas samtidigt med översikten.
   // Runda 7, r3: kostnaderna hämtas samtidigt, för de roller som ser dem.
-  const [d, t, kost] = await Promise.all([api(`/api/patient/${encodeURIComponent(ctx.id)}/oversikt`), tider.hamta(ctx.id), ekonomi.hamta(ctx.id)]);
+  const [d, t, kost] = await Promise.all([api(`/api/patient/${encodeURIComponent(ctx.id)}/oversikt${situationVal ? `?situation=${situationVal}` : ''}`), tider.hamta(ctx.id), ekonomi.hamta(ctx.id)]);
   if (!ctx.aktuell()) return;
+  // Runda 10, r2: delarna samlas per id och visas i vyns ordning.
   const delar = [];
+  const perDel = new Map();
+  const push = delar.push.bind(delar);
+  let aktuellDel = null;
+  delar.push = (html) => { if (aktuellDel) perDel.set(aktuellDel, html); return push(html); };
+  const som = (id, fn) => { aktuellDel = id; fn(); aktuellDel = null; };
   // Runda 6, r3: tvångsvården först, eftersom fristerna räknas i timmar.
   const r3del = r3.oversiktHtml(d, ctx);
 
-  if (d.lakemedel) {
+  if (d.uppfoljning) som('uppfoljning', () => delar.push(sektion('uppf', 'Uppföljning och avvikelser', uppfoljningHtml(d.uppfoljning), `<a class="sektion-lank" href="${ctx.href('uppfoljning')}">Hela uppföljningen</a>`)));
+  if (d.lakemedel) som('lakemedel', () => {
     delar.push(sektion('lm', 'Aktuella läkemedel', lakemedelsalderRad(ctx.id) + (d.lakemedel.length ? `<div class="tabellrulle"><table class="tabell tat">
       <thead><tr><th scope="col">Läkemedel</th><th scope="col">Dosering</th><th scope="col">Ordinationsorsak</th></tr></thead>
       <tbody>${d.lakemedel.map(o => `<tr><td><strong>${esc(o.lakemedel?.namn)}</strong> <span class="dampad">${esc(o.lakemedel?.styrka)}</span>${o.nll_status !== 'kvitterad' ? ` ${nllChip(o.nll_status)}` : ''}${migreradEtikett(o)}</td><td>${esc(o.dosering)}</td><td>${esc(o.ordinationsorsak)}</td></tr>`).join('')}</tbody></table></div>
       <p class="dampad liten">Alla utom de markerade är kvitterade av Nationella läkemedelslistan.</p>` : tomRad('Inga aktuella läkemedel.')), `<a class="sektion-lank" href="${ctx.href('lakemedel')}">Läkemedelslistan</a>`));
-  }
-  if (d.diagnoser) {
+  });
+  if (d.diagnoser) som('diagnoser', () => {
     delar.push(sektion('dia', 'Diagnoser', d.diagnoser.length ? `<ul class="enkel-lista">${d.diagnoser.map(x => `<li><span class="kod">${esc(x.kod)}</span> ${esc(x.text)}${x.typ === 'huvud' ? ' <span class="dampad">(huvuddiagnos)</span>' : ''}<span class="under-text">${esc(datum(x.datum))}, ${esc(x.vardenhet.namn)}</span>${migreradEtikett(x)}</li>`).join('')}</ul>` : tomRad('Inga diagnoser som du kan se.')));
-  }
-  if (d.matvarden) {
+  });
+  if (d.matvarden) som('matvarden', () => {
     delar.push(sektion('mv', 'Senaste mätvärden', d.matvarden.length ? `<dl class="matvarden-kort">${d.matvarden.map(m => `<div><dt>${esc(m.namn)}</dt><dd>${varde(m)}<span class="under-text">${esc(tidpunkt(m.tid))}</span></dd></div>`).join('')}</dl>` : tomRad('Inga mätvärden.'), `<a class="sektion-lank" href="${ctx.href('matvarden')}">Alla mätvärden</a>`));
-  }
+  });
   // Runda 8, r5: tobaksvanorna. Systemet visar den senaste dokumentationen, eller att den saknas, och ett klick öppnar
   // mallen med fasta svarsalternativ.
-  if (d.tobak) delar.push(sektion('tobak', 'Tobak och nikotin', tobakHtml(d.tobak, ctx)));
+  if (d.tobak) som('tobak', () => delar.push(sektion('tobak', 'Tobak och nikotin', tobakHtml(d.tobak, ctx))));
   // Runda 9, r7: levnadsvanorna och systemets rekommendation när patienten ingår i en folkhälsoinsats.
-  if (d.levnadsvanor) delar.push(sektion('levnadsvanor', 'Levnadsvanor', levnadsvanorHtml(d, ctx)));
-  if (d.anteckningar) {
+  if (d.levnadsvanor) som('levnadsvanor', () => delar.push(sektion('levnadsvanor', 'Levnadsvanor', levnadsvanorHtml(d, ctx))));
+  if (d.anteckningar) som('anteckningar', () => {
     delar.push(sektion('ant', 'Senaste anteckningar', d.anteckningar.length ? `<ul class="ant-lista">${d.anteckningar.map(a => `<li><a href="${ctx.href('journal', a.id)}"><span class="ant-typ">${esc(a.typ)}</span>${a.status === 'utkast' ? ' <span class="tagg tagg-utkast">Utkast</span>' : ''}</a>
       <span class="under-text">${esc(tidpunkt(a.signerad?.tid ?? a.skapad))}, ${esc(a.enhet.namn)}, ${esc(a.forfattare?.namn ?? '')}</span>${migreradEtikett(a)}<p class="sammanfattning">${esc(a.sammanfattning)}</p></li>`).join('')}</ul>` : tomRad('Inga anteckningar som du kan se.'), `<a class="sektion-lank" href="${ctx.href('journal')}">Hela journalen</a>`));
-  }
-  if (d.remisser) {
+  });
+  if (d.remisser) som('remisser', () => {
     delar.push(sektion('rem', 'Pågående remisser', d.remisser.length ? `<ul class="enkel-lista">${d.remisser.map(r => `<li><strong>Till ${esc(r.till.namn)}</strong> från ${esc(r.fran.namn)}<span class="under-text">${esc(remissStatusText(r))}, svar senast ${esc(datum(r.svarSenast))}</span>${r.larm?.length ? `<span class="tagg tagg-larm">${esc(r.larm[0].text)}</span>` : ''}</li>`).join('')}</ul>` : tomRad('Inga pågående remisser.'), `<a class="sektion-lank" href="${ctx.href('remisser')}">Remisser</a>`));
-  }
-  delar.push(tider.sektionHtml(t));
-  delar.push(vardkontakt.sektionHtml(d, ctx));
+  });
+  som('tider', () => delar.push(tider.sektionHtml(t)));
+  som('vardkontakt', () => delar.push(vardkontakt.sektionHtml(d, ctx)));
   // Runda 7, r3.
-  delar.push(ekonomi.sektionHtml(kost));
-  const k = d.kontakt;
+  som('ekonomi', () => delar.push(ekonomi.sektionHtml(kost)));
+  const k = d.kontakt ?? {};
+  aktuellDel = 'kontakt';
   delar.push(sektion('kontakt', 'Kontaktuppgifter', ctx.patient.skyddad
     ? '<p class="dampad">Adress, telefon och kontaktperson visas aldrig för en patient med skyddade personuppgifter, inte heller efter Visa identitet.</p>'
     : `<dl class="faktalista"><div><dt>Adress</dt><dd>${esc(k.adress ?? '')}, ${esc(k.postnr ?? '')} ${esc(k.ort ?? '')}</dd></div><div><dt>Telefon</dt><dd>${esc(k.telefon ?? '')}</dd></div><div><dt>Kontaktperson</dt><dd>${esc(k.kontaktperson ?? 'Ingen angiven')}</dd></div></dl>`));
+  aktuellDel = null;
+  perDel.set('r3', r3del);
+  const vy = d.vy;
+  const ordning = vy ? vy.installning.delar : [...perDel.keys(), 'tidslinje'];
+  const visade = ordning.filter(x => x !== 'tidslinje' && perDel.has(x)).map(x => perDel.get(x)).join('');
 
   const begransat = !d.lakemedel && !d.anteckningar
     ? '<p class="ruta ruta-info liten">Din yrkesroll ser administrativa uppgifter: vårdkontakter, kontaktuppgifter och remissernas status. Journaltext, diagnoser och läkemedel visas inte.</p>' : '';
@@ -94,14 +111,16 @@ export async function visa(el, ctx) {
   const tidslinje = () => (tidslinjeLage === 'tid'
     ? (d.tidslinje.length ? `<ol class="tidslinje">${d.tidslinje.map(rad).join('')}</ol>` : tomRad('Inget att visa.'))
     : vardkontakt.grupperadTidslinje(d, tidslinjeLage, rad));
-  el.innerHTML = `<h2 class="sr">Översikt</h2>${snabbval(ctx)}${doldaRad(d.dolda)}${begransat}${vardkontakt.forslagHtml(d)}
-    <div class="oversikt-rutnat">${r3del}${delar.join('')}</div>
-    <section class="tidslinje-sektion" aria-labelledby="ov-tl">
+  const tlSektion = !ordning.includes('tidslinje') ? '' : `<section class="tidslinje-sektion" aria-labelledby="ov-tl">
       <div class="sektion-huvud"><h2 id="ov-tl">Tidslinje</h2><p class="dampad liten">Nyast först. Migrerade poster från VAS och Cosmic ligger i samma kronologi och har samma vikt som ny dokumentation.</p></div>
       <div class="segment tl-lage" role="radiogroup" aria-label="Visa tidslinjen" data-las-ok>${LAGEN.map(([k, t]) => `<input type="radio" id="tl-${k}" name="tl-lage" value="${k}"${k === tidslinjeLage ? ' checked' : ''}><label for="tl-${k}">${esc(t)}</label>`).join('')}</div>
+      ${vy?.tidslinjeUtanfor ? `<p class="dampad liten">${esc(vy.installning.tidslinjeDagar)} dagar visas. ${esc(vy.tidslinjeUtanfor)} äldre poster finns i journalen.</p>` : ''}
       <div id="tl-innehall">${tidslinje()}</div>
     </section>`;
-  el.querySelector('.tl-lage').addEventListener('change', (e) => { tidslinjeLage = e.target.value; el.querySelector('#tl-innehall').innerHTML = tidslinje(); });
+  el.innerHTML = `<h2 class="sr">Översikt</h2>${vyRad(vy, ctx)}${snabbval(ctx)}${doldaRad(d.dolda)}${begransat}${vardkontakt.forslagHtml(d)}
+    <div class="oversikt-rutnat">${visade}</div>${tlSektion}`;
+  kopplaVy(el, vy, ctx);
+  el.querySelector('.tl-lage')?.addEventListener('change', (e) => { tidslinjeLage = e.target.value; el.querySelector('#tl-innehall').innerHTML = tidslinje(); });
   vardkontakt.koppla(el, d, ctx, () => ctx.ladda());
   el.querySelector('[data-utskrift]')?.addEventListener('click', () => utskrift.skrivUt(ctx.id));
   el.querySelector('[data-aterbesok]')?.addEventListener('click', () => tider.satUppAterbesok(ctx.id, ctx.patient?.namn ?? 'patienten').catch(felNotis));
@@ -139,4 +158,54 @@ function tobakHtml(t, ctx) {
     : tomRad('Tobaksvanorna är inte dokumenterade.');
   const knapp = pa('skriv_omvardnad') ? `<p class="knapprad tat" data-skriv><a class="knapp liten sekundar" href="${ctx.href('journal', 'tobak')}" data-tobak-ny>${ikon.penna}<span>${s ? 'Uppdatera tobaksvanor' : 'Dokumentera tobaksvanor'}</span></a></p>` : '';
   return text + knapp;
+}
+
+// Runda 10, r2: raden med situationen och anpassningen. Systemet väljer situationen och säger varför, och användaren
+// byter situation eller anpassar delar, ordning och tidsurval. Valet sparas på servern per situation.
+function vyRad(vy, ctx) {
+  if (!vy) return '';
+  return `<div class="vyrad" data-las-ok>
+    <fieldset class="segment" aria-describedby="ov-vy-varfor"><legend>Situation</legend>${vy.alternativ.situationer.map(s => `<input type="radio" id="ov-sit-${esc(s.id)}" name="ov-situation" value="${esc(s.id)}"${s.id === vy.situation ? ' checked' : ''}><label for="ov-sit-${esc(s.id)}">${esc(s.text)}</label>`).join('')}</fieldset>
+    <p class="dampad liten" id="ov-vy-varfor">${esc(vy.varfor)} ${esc(vy.kallaText)}.</p>
+    <p class="knapprad"><button type="button" class="knapp liten sekundar" data-anpassa-oversikt>Anpassa översikten</button>${pa('las_oversikt') ? `<a class="knapp liten text" href="${ctx.href('utbildningslage')}">Utbildningsläge</a>` : ''}</p>
+  </div>`;
+}
+
+function kopplaVy(el, vy, ctx) {
+  if (!vy) return;
+  el.querySelector('.vyrad fieldset')?.addEventListener('change', (e) => { situationVal = e.target.value; ctx.ladda(); });
+  el.querySelector('[data-anpassa-oversikt]')?.addEventListener('click', () => anpassa(vy).then(k => { if (k) ctx.ladda(); }).catch(felNotis));
+}
+
+async function anpassa(vy) {
+  const valda = vy.installning.delar;
+  const rader = [...valda, ...vy.alternativ.delar.map(d => d.id).filter(id => !valda.includes(id))];
+  const text = Object.fromEntries(vy.alternativ.delar.map(d => [d.id, d.text]));
+  const svar = await dialog(`<form><h2 id="dlg-rubrik">Anpassa översikten vid ${esc(vy.situationText.toLowerCase())}</h2>
+    <div class="dialog-text"><p>Valet sparas för dig och gäller den här situationen på alla datorer. Delar som din yrkesroll inte får läsa finns inte i listan.</p></div>
+    <fieldset class="kryssgrupp"><legend>Delar och ordning</legend><ol class="vy-ordning">${rader.map(id => `<li data-id="${esc(id)}"><span class="kryssfalt"><input type="checkbox" id="vy-del-${esc(id)}" name="d_${esc(id)}"${valda.includes(id) ? ' checked' : ''}><label for="vy-del-${esc(id)}">${esc(text[id] ?? id)}</label></span> <button type="button" class="knapp liten text" data-upp aria-label="Flytta upp ${esc(text[id] ?? id)}">Upp</button></li>`).join('')}</ol></fieldset>
+    <div class="falt"><label for="vy-tid">Tidslinjen visar</label><select id="vy-tid" name="tid">${vy.alternativ.tidsurval.map(t => `<option value="${t.dagar ?? ''}"${(t.dagar ?? null) === (vy.installning.tidslinjeDagar ?? null) ? ' selected' : ''}>${esc(t.text)}</option>`).join('')}</select></div>
+    <p class="dialog-fel form-fel" role="alert" hidden></p>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Spara</button><button type="button" class="knapp sekundar" data-varde="aterstall">Återställ förvalet</button><button type="button" class="knapp text" data-varde="avbryt">Avbryt</button></div></form>`, {
+    onOpen: (dl) => dl.querySelector('.vy-ordning').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-upp]');
+      if (!b) return;
+      const li = b.closest('li');
+      if (li.previousElementSibling) li.parentElement.insertBefore(li, li.previousElementSibling);
+      b.focus();
+    }),
+    validera: (data, dl, val) => (val === 'ok' && !dl.querySelector('.vy-ordning input:checked') ? 'Välj minst en del.' : null),
+  });
+  if (!svar) return false;
+  if (svar.val === 'aterstall') { await api(`/api/oversiktsvy/${vy.situation}/aterstall`, { metod: 'POST', data: {} }); notis('Översikten visar förvalet igen.'); return true; }
+  const ordning = [...document.querySelectorAll('.vy-ordning li')].map(li => li.dataset.id);
+  const delar = ordning.filter(id => svar.data[`d_${id}`]);
+  await api(`/api/oversiktsvy/${vy.situation}`, { metod: 'PUT', data: { installning: { delar, tidslinjeDagar: svar.data.tid ? Number(svar.data.tid) : null } } });
+  notis('Översikten är sparad för situationen.');
+  return true;
+}
+
+// Sammanfattningen av uppföljningsvyn: var i vårdprocessen och antalet avvikelser.
+function uppfoljningHtml(u) {
+  return `<p>${esc(u.lage.text)}</p><p class="${u.avvikelser ? 'tagg tagg-larm' : 'dampad liten'}">${u.avvikelser ? `${esc(u.avvikelser)} ${u.avvikelser === 1 ? 'avvikelse' : 'avvikelser'} att följa upp` : 'Inga avvikelser att följa upp.'}</p>`;
 }

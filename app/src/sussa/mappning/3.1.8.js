@@ -43,7 +43,7 @@ export default [
       `${SF}samma sökfält söker över vårdenhetens patienter: en diagnos, ett läkemedel eller en grupp blir villkor`,
       `${SF}en patient utan vårdrelation, en spärrad vårdenhets uppgift och skyddad identitet följer behörigheten i sökningen över patienter`,
       `${SF}på vårdgivarnivå får uppföljningen antal utan personuppgifter, och andra roller nekas`,
-      sokFlode,
+      sokFlode, klickbudgetTest(FLODEN.find(f => f.id === 'sok-journaler')),
     ],
     losning: 'Sökning på fyra nivåer med samma tolkning av frågan: patientsök på namn eller identitet i hela regionen, sökning i en patients journal med filter på typ, tid och vårdenhet, sökning över vårdenhetens patienter på en diagnos, ett läkemedel eller en läkemedelsgrupp (grupp- och vårdenhetsnivå), och samma sökning som antal för hela vårdgivaren för uppföljningen. Fritext och kodad information i samma sökfält: fritext i anteckningarnas sökord, ICD-10-SE för diagnoser, ATC och läkemedelsgrupper för ordinationer och mätvärdestyper med vanliga ord.',
     expert: 'Sökningen tål skiftläge och å, ä och ö, tolkar vanliga ord till kodverken och förklarar tolkningen, så användaren behöver varken kunna koderna eller veta var uppgiften står. Filtren räknas fram ur träffarna, och sökningen över patienter prövar varje patient i behörighetsmotorn och loggar den.',

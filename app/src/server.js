@@ -106,6 +106,7 @@ import * as folkhalsa from './folkhalsa.js';
 import { registreraRutter as r9r4Rutter, efterTid as masterdataEfterTid } from './arkitektur-rutter.js';
 // Runda 10, r2: vyer, presentation, sökning, utskrifter och loggning.
 import { registreraRutter as r10r2Rutter } from './runda10-r2-rutter.js';
+import * as presentationsvyer from './presentationsvyer.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -704,7 +705,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       const delar = [];
       const ny = (h = handling) => { const a = new Atkomst(db, pers, pid, val, h); delar.push(a); return a; };
       if (!ny().prova(handling).tillaten) continue;
-      const post = { handling, huvud: patientHuvud(c, ny(), pat), oversikt: oversikt(c, ny(), pat), lakemedel: null, lakemedelsdel: null, anteckningar: null, anteckning: {} };
+      // Runda 10, r2: översikten i läskopian har samma vy som i appen (presentationsvyer.js).
+      const ovAtk = ny();
+      const post = { handling, huvud: patientHuvud(c, ny(), pat), oversikt: presentationsvyer.medVy(ovAtk, oversikt(c, ovAtk, pat)), lakemedel: null, lakemedelsdel: null, anteckningar: null, anteckning: {} };
       // Läkemedelsdelen har en egen tid per patient, så att läsläget kan visa hur gammal den är.
       const lmTid = new Date().toISOString();
       const lmDelar = Object.entries(LASKOPIA_LAKEMEDEL).filter(([, d]) => kanRoll(pers, d.handling));
@@ -1035,7 +1038,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('GET', '/api/patient/:id/oversikt', (c, id) => {
     kravInloggad(c);
     const handling = kanRoll(c.personal, 'las_oversikt') ? 'las_oversikt' : 'las_admin';
-    return medPatient(c, id, handling, (atk, p) => oversikt(c, atk, p));
+    // Runda 10, r2: vyn för situationen, med delarna och tidsurvalet (presentationsvyer.js).
+    return medPatient(c, id, handling, (atk, p) => presentationsvyer.medVy(atk, oversikt(c, atk, p), { situation: c.url.searchParams.get('situation') }));
   });
   rutt('GET', '/api/patient/:id/anteckningar', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_journal', (atk) => journal.listaAnteckningar(atk)); });
   rutt('POST', '/api/patient/:id/anteckningar', (c, id) => {

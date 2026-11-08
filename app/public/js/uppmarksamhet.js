@@ -187,20 +187,25 @@ function kopplaForslag(dl) {
       if (r && !form.dataset.allvVald) r.checked = true;
     } catch { ruta.textContent = ''; }
   };
-  form.addEventListener('change', (e) => { if (e.target.name === 'allvarlighet') form.dataset.allvVald = '1'; else uppdatera(); });
+  // Förslaget uppdateras medan användaren skriver. En grad som användaren själv väljer skrivs inte över.
+  let vanta = null;
+  form.addEventListener('input', (e) => { if (e.target.name === 'allvarlighet') return; clearTimeout(vanta); vanta = setTimeout(uppdatera, 250); });
+  form.addEventListener('change', (e) => { if (e.target.name === 'allvarlighet') form.dataset.allvVald = '1'; });
 }
 
 async function nyOverkanslighet(pid) {
   const { amnen } = await api('/api/overkanslighet/amnen');
+  let valdGrad = false;
   const svar = await dialog(`<h2 id="dlg-rubrik">Ny överkänslighet</h2>
     <form><div class="falt"><label for="ok-amne">Överkänslig mot <span class="obl">(obligatoriskt)</span></label><input id="ok-amne" name="amne" list="ok-amnen" required minlength="2" maxlength="120" autocomplete="off"><datalist id="ok-amnen">${amnen.map(a => `<option value="${esc(a.amne)}">`).join('')}</datalist></div>
       <div class="falt"><label for="ok-reaktion">Reaktion <span class="obl">(obligatoriskt)</span></label><input id="ok-reaktion" name="reaktion" required minlength="2" maxlength="300" autocomplete="off"></div>
-      ${allvFalt('mattlig')}
-      <p class="hjalp" data-ok-forslag aria-live="polite"></p>
+      ${allvFalt(null)}
+      <p class="hjalp" data-ok-forslag aria-live="polite">Systemet föreslår allvarlighetsgraden ur reaktionen.</p>
       <p class="dialog-fel" role="alert" hidden></p></form>
-    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Registrera</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div>`, { onOpen: kopplaForslag });
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Registrera</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div>`, { onOpen: kopplaForslag, validera: (_d, dl) => { valdGrad = Boolean(dl.querySelector('form').dataset.allvVald); return null; } });
   if (!svar) return false;
-  const r = await api(`/api/patient/${encodeURIComponent(pid)}/overkanslighet`, { metod: 'POST', data: { amne: svar.data.amne, reaktion: svar.data.reaktion, allvarlighet: svar.data.allvarlighet } });
+  // Graden skickas bara när användaren har valt den själv. Annars avgör servern den ur reaktionen.
+  const r = await api(`/api/patient/${encodeURIComponent(pid)}/overkanslighet`, { metod: 'POST', data: { amne: svar.data.amne, reaktion: svar.data.reaktion, ...(valdGrad ? { allvarlighet: svar.data.allvarlighet } : {}) } });
   notis(`Överkänslighet mot ${r.amne.toLowerCase()} är registrerad${r.atc ? ` med ATC-kod ${r.atc}` : ''}.`);
   return true;
 }

@@ -552,3 +552,9 @@ for (const h of ['patientgrupp', 'forskning_bestall', 'forskning_godkann', 'sign
 Object.assign(HANDLINGAR, { registrera_overkanslighet: 'registrera, ändra och avsluta överkänslighet' });
 ROLLER.lakare.push('registrera_overkanslighet');
 ROLLER.sjukskoterska.push('registrera_overkanslighet');
+// Runda 10, r2: vårdenhetens förval för vyerna (presentationsvyer.js, Sussa 3.1.2.1 och 3.1.2.3). Systemförvaltningen
+// sätter förvalet för alla vårdenheter och verksamhetschefen för sin egen. Förvalet ändrar bara vad som visas.
+Object.assign(HANDLINGAR, { vyforval: 'sätta vårdenhetens förval för vyerna' });
+ROLLER.systemforvaltare.push('vyforval');
+ROLLER.verksamhetschef.push('vyforval');
+UTAN_PATIENT.add('vyforval');

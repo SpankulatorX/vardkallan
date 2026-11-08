@@ -239,7 +239,8 @@ describe('Intensivvård', () => {
     expect(e.belaggningProcent).toBe(Math.round(e.vardygn / (8 * 30) * 1000) / 10);
     expect(e.vardtyngd).toMatchObject({ overvakningProcent: 0, infusionProcent: 0 });
     expect(e.kvalitet.map(x => x.id)).toEqual(['godkanda_inom_timme', 'vatskebalans', 'aterinskrivning_48h']);
-    const text = JSON.stringify(u);
+    // Runda 10, r2: periodens tider (fran och till) kan innehålla 19 när klockan är 19 i UTC, så de räknas inte med.
+    const text = JSON.stringify({ ...u, fran: null, till: null });
     for (const x of ['p22', 'Hjärtintensiven, sal 3', '19']) expect(text).not.toContain(x);
     // Uppföljningsrollen ser alla intensivvårdsavdelningar, vårdcentralens läkare ingen, och logggranskaren inget alls.
     expect((await (await inloggad('uppf')).get('/api/iva/uppfoljning')).data.enheter.map(x => x.enhet.id)).toEqual(['uso-kard-hia']);

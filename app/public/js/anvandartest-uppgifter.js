@@ -452,6 +452,22 @@ export const UPPGIFTER = [
     text: 'Vårdcentralen vill veta vilka patienter med diabetes som har ett HbA1c över målnivån. Visa gruppen.',
     kontroll: { sel: '[data-grupp-ut]', text: 'Birgitta' },
   },
+  // Runda 10, r2: utskrift av en anteckning, överkänslighet och sökning över patienter.
+  {
+    id: 'skriv-ut-anteckning', namn: 'Skriva ut en enskild anteckning', roll: 'lak-kard', start: 'Patientens översikt',
+    text: 'Gunnar Åkesson vill ha en kopia av den senaste anteckningen i journalen. Skriv ut just den anteckningen.',
+    kontroll: { sel: '.utskrift-ram', text: 'Journalanteckningar' },
+  },
+  {
+    id: 'registrera-overkanslighet', namn: 'Registrera en överkänslighet', roll: 'lak-kard', start: 'Patientens översikt',
+    text: 'Gunnar Åkesson berättar att han fick andningsbesvär av ibuprofen. Registrera överkänsligheten.',
+    kontroll: { notis: 'ATC-kod M01AE01' },
+  },
+  {
+    id: 'sok-journaler', namn: 'Söka bland vårdenhetens patienter på en diagnos', roll: 'lak-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Kliniken vill se vilka av era patienter som har förmaksflimmer. Sök fram dem.',
+    kontroll: { sel: '#journalertraffar', text: 'Söker patienter med' },
+  },
 ];
 
 // Deltagarens bakgrund. Bara val, inga fritextfält, så att inga identifierande uppgifter samlas in.
