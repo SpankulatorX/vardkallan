@@ -45,7 +45,7 @@ export default [
   },
   {
     id: '4.4.2.6', kategori: 'system', egna: ['D6'], avsedd: 'delvis',
-    tester: [T.paket, T.dubb, T.dubbDold, T.anvisning, T.provtagning, T.uppdrag, T.kbPaket, T.kbProv, ...TESTFALL_3['3.1'], ...TESTFALL_3['3.2'], ...TESTFALL_3['3.3']],
+    tester: [T.paket, T.dubb, T.dubbDold, T.anvisning, T.provtagning, T.uppdrag, T.signeraBehorighet, T.kbPaket, T.kbProv, ...TESTFALL_3['3.1'], ...TESTFALL_3['3.2'], ...TESTFALL_3['3.3']],
     losning: 'Beställning av en eller flera analyser i olika rör och till olika laboratorier, med provtagningstid per analys, anamnes och kommentar, beställning på uppdrag och provtagningsanvisning som PDF. Utförda och kvarstående rör syns i beställningen och i provtagningslistan.',
     expert: 'Systemet föreslår paket och tar bort prov som nyss är tagna med en förklaring, räknat bara på det användaren får se, och fyller i laboratorium, rör, provtagningsordning och anamnes.',
     anmarkning: `Underlag kan inte bifogas till en beställning. ${SIM}`,

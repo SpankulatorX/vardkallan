@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T10:24:01.607Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-08T12:02:08.715Z",
+  "bas": "http://127.0.0.1:18181",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "6861eabb78763a405740bf97897dd10fff8989df56b204f9e50a1ab598fbf78a",
+  "gransnittHash": "a5553d3e916370a526812c0c50045449baf024ec47909be5372c1f98ad932d2a",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -1009,6 +1009,41 @@
       "steg": [
         "klick: Fortsätt arbeta"
       ]
+    },
+    {
+      "id": "bestall-paket",
+      "namn": "Beställa ett standardpaket med prover",
+      "roll": "lak-kard",
+      "start": "Arbetslistan efter inloggning",
+      "budget": 3,
+      "motivering": "Sussa 4.4.2.6 och testfall 3.1. Ett klick på patienten, ett på Beställ prover i översikten och ett på Beställ vid det paket som systemet föreslår ur vårdkontakten, diagnoserna och läkemedlen. Systemet väljer laboratorium, rör, provtagningsordning och anamnes, tar bort analyser som nyss är tagna och förklarar varför, och knyter beställningen till vårdkontakten.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Gunnar Åkesson i arbetslistan",
+        "klick: Beställ prover",
+        "klick: Beställ vid det föreslagna paketet"
+      ]
+    },
+    {
+      "id": "registrera-provtagning",
+      "namn": "Registrera provtagning",
+      "roll": "ssk-kard",
+      "start": "Provtagningen efter återställning",
+      "budget": 2,
+      "motivering": "Sussa 4.4.2.6 och testfall 3.3. Rören står i provtagningsordning med etiketter, och ett klick på Tagen per rör registrerar provtagningen. Systemet sätter tid och provtagare och skickar proverna till laboratoriet när alla rör är tagna. Patienten har två rör.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Tagen för det första röret",
+        "klick: Tagen för det andra röret"
+      ]
     }
   ],
   "tester": [
@@ -1234,6 +1269,14 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Fortsätta arbeta när inloggningen snart går ut inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Beställa ett standardpaket med prover inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera provtagning inom budget",
       "status": "grön"
     }
   ]

@@ -13,7 +13,7 @@ export async function visa(el, ctx) {
   const kanKontroll = far('ordinera_kontroll');
   const k = d.kontroller;
   el.innerHTML = `<div class="flikhuvud"><h2>Prover och kontroller</h2><div class="knapprad">
-      ${kanBestalla ? `<button type="button" class="knapp" data-ny aria-expanded="false" aria-controls="pr-form-plats">${ikon.plus}<span>${far('bestalla_prov') ? 'Beställ prover' : 'Beställ på uppdrag'}</span></button>` : ''}
+      ${kanBestalla ? `<button type="button" class="knapp" data-ny-prov aria-expanded="false" aria-controls="pr-form-plats">${ikon.plus}<span>${far('bestalla_prov') ? 'Beställ prover' : 'Beställ på uppdrag'}</span></button>` : ''}
       ${kanKontroll ? `<button type="button" class="knapp sekundar" data-ny-kontroll aria-expanded="false" aria-controls="pr-kontroll-plats">${ikon.klocka}<span>Ordinera kontroller</span></button>` : ''}</div></div>
     ${doldaRad(d.dolda)}
     <div id="pr-form-plats"></div>
@@ -27,7 +27,7 @@ export async function visa(el, ctx) {
       <p class="dampad liten">Kontrollerna bockas av när mätvärdet registreras i tid på vårdenheten. ${esc(k.demoregel)}</p>
     </section>`;
   kopplaBestallningar(el.querySelector('#pr-lista'), (id) => d.bestallningar.find(b => String(b.id) === String(id)), () => ctx.ladda(), { lakare: d.lakare });
-  el.querySelector('[data-ny]')?.addEventListener('click', (e) => {
+  el.querySelector('[data-ny-prov]')?.addEventListener('click', (e) => {
     const plats = el.querySelector('#pr-form-plats');
     if (plats.firstChild) { plats.innerHTML = ''; e.currentTarget.setAttribute('aria-expanded', 'false'); return; }
     e.currentTarget.setAttribute('aria-expanded', 'true');
@@ -45,7 +45,7 @@ export async function visa(el, ctx) {
     try { const r = await medKnapp(b, () => api(`/api/kontroll/${b.dataset.avslutaKontroll}/avsluta`, { metod: 'POST', data: {} })); notis(r.text); ctx.ladda(); } catch { /* notis visad */ }
   });
   // Från snabbvalen i översikten (prover/ny och prover/kontroller) öppnas formuläret direkt.
-  if (ctx.sub === 'ny' && kanBestalla) el.querySelector('[data-ny]').click();
+  if (ctx.sub === 'ny' && kanBestalla) el.querySelector('[data-ny-prov]').click();
   if (ctx.sub === 'kontroller' && kanKontroll) el.querySelector('[data-ny-kontroll]').click();
 }
 

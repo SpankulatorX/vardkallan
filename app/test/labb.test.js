@@ -6,6 +6,7 @@ import { byggSeed } from '../src/db.js';
 import { Atkomst } from '../src/atkomst.js';
 import * as labb from '../src/labb.js';
 import * as labbFhir from '../src/labb-fhir.js';
+import * as kontroller from '../src/kontroller.js';
 import * as fhir from '../src/fhir.js';
 import * as konfiguration from '../src/konfiguration.js';
 import * as streckkod from '../src/streckkod.js';
@@ -122,6 +123,35 @@ describe('Beställning och svar', () => {
     expect(JSON.stringify(db.query('SELECT detalj FROM labb_historik WHERE bestallning_id = ?').all(b.id))).not.toContain('7,77');
   });
 
+  test('nycklar som constructor, __proto__ och toString är aldrig analyser, paket, laboratorier, kontroller eller frekvenser', () => {
+    const db = byggSeed(BAS);
+    const a = atk(db, 'lak-kard', 'p04', {}, 'bestalla_prov');
+    const k = atk(db, 'lak-kard', 'p04', {}, 'ordinera_kontroll');
+    for (const x of ['constructor', '__proto__', 'toString', 'hasOwnProperty']) {
+      expect(() => labb.bestall(a, { analyser: [x], kvitteraDubbletter: true }, BAS)).toThrow(/finns inte/);
+      expect(() => labb.bestall(a, { paket: x }, BAS)).toThrow(/finns inte/);
+      expect(() => labb.bestall(a, { analyser: ['tsh'], laboratorier: { klinisk_kemi: x }, kvitteraDubbletter: true }, BAS)).toThrow(/tar inte emot/);
+      expect(() => kontroller.ordinera(k, { kontroller: [x] }, BAS)).toThrow(/finns inte/);
+      expect(() => kontroller.ordinera(k, { kontroller: ['puls'], frekvens: x }, BAS)).toThrow(/hur ofta/);
+      expect(kontroller.tiderFor({ frekvens: x, kontroll: 'puls', start: BAS.toISOString(), slut: null, avslutad_tid: null }, T(-60).toISOString(), T(24 * 60).toISOString())).toEqual([]);
+      expect(labb.paketAnalyser(db, x, BAS)).toEqual([]);
+    }
+    // En trasig rad i databasen stoppar inte listningen för andra.
+    db.query("INSERT INTO kontrollordinationer (patient_id, enhet_id, kontroll, frekvens, start, ordinerad_av, skapad) VALUES ('p04', 'uso-kard-72', 'constructor', 'toString', ?, 'lak-kard', ?)").run(BAS.toISOString(), BAS.toISOString());
+    expect(() => kontroller.forPatient(atk(db, 'ssk-kard', 'p04'), BAS)).not.toThrow();
+    expect(() => kontroller.planerat(db, pers(db, 'ssk-kard'), () => ({}), {}, BAS)).not.toThrow();
+  });
+
+  test('signeringen prövar behörigheten först och nämner inte den ansvariga läkaren för den som inte får se beställningen', () => {
+    const db = byggSeed(BAS);
+    const b = db.query("SELECT * FROM labb_bestallningar WHERE patient_id = 'p04' AND pa_uppdrag = 1").get();
+    let fel;
+    try { labb.signera(atk(db, 'lak-ort', 'p04'), b, BAS); } catch (e) { fel = e; }
+    expect(fel.status).toBe(403);
+    expect(fel.message).not.toContain('Sara Lindqvist');
+    expect(db.query("SELECT 1 FROM atkomstlogg WHERE personal_id = 'lak-ort' AND patient_id = 'p04' AND resultat = 'nekad'").get()).toBeTruthy();
+  });
+
   test('sjuksköterskan och undersköterskan beställer på uppdrag av en läkare på vårdenheten, som signerar i inkorgen', () => {
     const db = sussa();
     const ssk = atk(db, 'ssk-kard', 'sus18', {}, 'bestalla_prov_uppdrag');
@@ -136,7 +166,9 @@ describe('Beställning och svar', () => {
     expect(usk.registreradAv.id).toBe('usk-kard');
     const ink = labb.inkorg(db, pers(db, 'lak-kard'), () => ({}), BAS);
     expect(ink.labbAttSignera.map(x => x.nummer)).toEqual(expect.arrayContaining([b.nummer, usk.nummer]));
-    expect(() => labb.signera(atk(db, 'lak-vc', 'sus18'), labb.bestallningRad(db, b.id), BAS)).toThrow(/signeras av Sara Lindqvist/);
+    // En läkare utan åtkomst får inget veta, och en läkare på vårdenheten får veta vem som ska signera.
+    expect(() => labb.signera(atk(db, 'lak-vc', 'sus18'), labb.bestallningRad(db, b.id), BAS)).toThrow(/vårdrelation/);
+    expect(() => labb.signera(atk(db, 'ol-kard', 'sus18'), labb.bestallningRad(db, b.id), BAS)).toThrow(/signeras av Sara Lindqvist/);
     labb.signera(atk(db, 'lak-kard', 'sus18'), labb.bestallningRad(db, b.id), BAS);
     expect(labb.inkorg(db, pers(db, 'lak-kard'), () => ({}), BAS).labbAttSignera.map(x => x.nummer)).not.toContain(b.nummer);
     // Fysioterapeuten beställer inga prover.

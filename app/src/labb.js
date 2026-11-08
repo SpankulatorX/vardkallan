@@ -24,7 +24,7 @@ import * as lakemedel from './lakemedel.js';
 import * as vardkontakt from './vardkontakt.js';
 import { varde as konfig } from './konfiguration.js';
 import { referens, utanforReferens, ckdEpi2021 } from './skalor.js';
-import { LAB, LABORATORIER, ROR, ANALYSER, ANALYS, PAKET, PAKETEN, SVARSVARDEN, FYND, DISCIPLINER, DEMOREGEL } from './labb-katalog.js';
+import { LAB, LABORATORIER, ROR, ANALYSER, ANALYS, PAKET, PAKETEN, SVARSVARDEN, FYND, DISCIPLINER, DEMOREGEL, finns as iKatalog } from './labb-katalog.js';
 
 export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS labb_bestallningar (
@@ -123,8 +123,8 @@ export function labFor(db, enhetId, disciplin) {
 // Paketens innehåll gäller som systemförvaltningen har bestämt det (konfiguration.js, Sussa 12.1.1.9). Parametern är en
 // lista med analysernas namn.
 export function paketAnalyser(db, paketId, nu = new Date()) {
+  if (!iKatalog(PAKETEN, paketId)) return [];
   const p = PAKETEN[paketId];
-  if (!p) return [];
   let namn;
   try { namn = konfig(db, `labb.paket.${paketId}`, nu); } catch { return [...p.analyser]; }
   const perNamn = new Map(ANALYSER.map(a => [a.namn.toLocaleLowerCase('sv'), a.id]));
@@ -446,21 +446,21 @@ export function bestall(atk, body = {}, nu = new Date()) {
     if (!lakare.some(l => l.id === valt)) throw new Fel(400, 'En beställning på uppdrag görs för en läkare på din vårdenhet. Välj läkaren som gav uppdraget.', 'ogiltig', { falt: ['lakareId'] });
     ansvarig = valt;
   }
-  const paket = body.paket != null ? PAKETEN[body.paket] : null;
+  const paket = body.paket != null && iKatalog(PAKETEN, body.paket) ? PAKETEN[body.paket] : null;
   if (body.paket != null && !paket) throw new Fel(400, 'Paketet finns inte.', 'ogiltig', { falt: ['paket'] });
   const planerad = valideraTid(body.planerad, nu);
   let lista = Array.isArray(body.analyser) ? body.analyser : paket ? paketAnalyser(db, paket.id, nu) : [];
   lista = lista.map(x => (typeof x === 'string' ? { analys: x } : x)).filter(x => x && typeof x.analys === 'string');
   if (!lista.length) throw new Fel(400, 'Välj minst en analys eller ett paket.', 'ogiltig', { falt: ['analyser'] });
   if (lista.length > 30) throw new Fel(400, 'En beställning kan ha högst 30 analyser.', 'ogiltig', { falt: ['analyser'] });
-  const okand = lista.find(x => !ANALYS[x.analys]);
+  const okand = lista.find(x => !iKatalog(ANALYS, x.analys));
   if (okand) throw new Fel(400, 'Analysen finns inte i katalogen.', 'ogiltig', { falt: ['analyser'] });
   const sedda = new Set();
   lista = lista.filter(x => (sedda.has(x.analys) ? false : (sedda.add(x.analys), true)));
   const rader = lista.map(x => {
     const def = ANALYS[x.analys];
     const valtLab = body.laboratorier?.[def.disciplin];
-    if (valtLab != null && LAB[valtLab]?.disciplin !== def.disciplin) throw new Fel(400, `Laboratoriet tar inte emot prov för ${DISCIPLINER[def.disciplin].namn.toLocaleLowerCase('sv')}.`, 'ogiltig', { falt: ['laboratorier'] });
+    if (valtLab != null && (!iKatalog(LAB, valtLab) || LAB[valtLab].disciplin !== def.disciplin)) throw new Fel(400, `Laboratoriet tar inte emot prov för ${DISCIPLINER[def.disciplin].namn.toLocaleLowerCase('sv')}.`, 'ogiltig', { falt: ['laboratorier'] });
     return { analys: x.analys, lab: valtLab ?? labFor(db, pers.enhet_id, def.disciplin).id, planerad: x.planerad != null ? valideraTid(x.planerad, nu) : planerad };
   });
   let anamnes = textFalt(body.anamnes, 500);
@@ -503,8 +503,9 @@ export function bestall(atk, body = {}, nu = new Date()) {
 // Den ansvariga läkaren signerar en beställning som gjordes på uppdrag.
 export function signera(atk, b, nu = new Date()) {
   const db = atk.db;
-  if (atk.personal.id !== b.ansvarig_id) throw new Fel(403, `Beställningen signeras av ${personNamn(db, b.ansvarig_id)}, som den gjordes på uppdrag av.`, 'nekad');
+  // Behörigheten prövas först, så att den som inte får se beställningen inte får veta något om den.
   atk.krav('las_prover', { resurs: { enhet_id: b.enhet_id } });
+  if (atk.personal.id !== b.ansvarig_id) throw new Fel(403, `Beställningen signeras av ${personNamn(db, b.ansvarig_id)}, som den gjordes på uppdrag av.`, 'nekad');
   if (!b.pa_uppdrag) throw new Fel(409, 'Beställningen gjordes inte på uppdrag och behöver ingen signering.', 'ogiltig');
   if (b.signerad_tid) throw new Fel(409, 'Beställningen är redan signerad.', 'ogiltig');
   if (b.makulerad_tid) throw new Fel(409, 'Beställningen är makulerad.', 'ogiltig');
@@ -549,8 +550,8 @@ export function andra(atk, b, { taBort = [], laggTill = [], kvitteraDubbletter =
   const tagen = bort.find(a => prov.get(a.prov_id)?.provtagen_tid);
   if (tagen) throw new Fel(409, `Röret för ${ANALYS[tagen.analys].namn} är redan taget. Analysen kan inte tas bort, men beställningen kan makuleras innan laboratoriet har svarat.`, 'ogiltig');
   if (bort.length === analyser.filter(a => a.status !== 'borttagen').length && !laggTill.length) throw new Fel(400, 'Alla analyser kan inte tas bort. Makulera beställningen i stället.', 'ogiltig');
-  const nya = laggTill.filter(id => ANALYS[id] && !analyser.some(a => a.analys === id && a.status !== 'borttagen'));
-  if (laggTill.some(id => !ANALYS[id])) throw new Fel(400, 'Analysen finns inte i katalogen.', 'ogiltig', { falt: ['laggTill'] });
+  const nya = laggTill.filter(id => iKatalog(ANALYS, id) && !analyser.some(a => a.analys === id && a.status !== 'borttagen'));
+  if (laggTill.some(id => !iKatalog(ANALYS, id))) throw new Fel(400, 'Analysen finns inte i katalogen.', 'ogiltig', { falt: ['laggTill'] });
   const dubb = dubbletter(atk, nya, nu);
   if (dubb.size && !kvitteraDubbletter) throw new Fel(409, [...dubb.values()][0].skal, 'dubblett', { dubbletter: [...dubb.values()] });
   db.transaction(() => {

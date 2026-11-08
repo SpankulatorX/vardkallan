@@ -365,7 +365,7 @@ function skapa(BAS) {
     },
     // Runda 7, r2: nyhetsrutan.
     nyheter: async (m, page) => {
-      await synlig(page, '.nyhetsruta', 'Hjälp i sammanhanget och övningar med intyg');
+      await synlig(page, '.nyhetsruta', 'Beställ prover med ett klick');
       await m.klicka(page.locator('[data-a="stang-nyheter"]'), 'Stäng nyheterna');
       await page.waitForFunction(() => !document.querySelector('.nyhetsruta'));
       await synlig(page, '.notis', 'Nyheterna är stängda');

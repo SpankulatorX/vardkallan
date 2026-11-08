@@ -9,11 +9,16 @@
 
 export const DEMOREGEL = 'Demoregel, inte ett laboratoriums anvisning eller kliniskt beslutsstöd.';
 
-export const DISCIPLINER = {
+// Uppslagstabellerna har ingen prototyp, så att en nyckel som constructor, __proto__ eller toString från en klient
+// aldrig blir en analys, ett paket, ett laboratorium, en kontroll eller en frekvens.
+const tabell = (o) => Object.freeze(Object.assign(Object.create(null), o));
+export const finns = (t, nyckel) => typeof nyckel === 'string' && Object.hasOwn(t, nyckel);
+
+export const DISCIPLINER = tabell({
   klinisk_kemi: { namn: 'Klinisk kemi', fhir: 'LAB' },
   mikrobiologi: { namn: 'Klinisk mikrobiologi', fhir: 'MB' },
   patologi: { namn: 'Klinisk patologi', fhir: 'SP' },
-};
+});
 
 // De simulerade laboratorierna. Klinisk kemi har tre utförande laboratorier (Sussa 4.4.1.2), och systemet väljer det
 // som hör till sjukhuset där beställningen görs. sjukhus är enhetens sjukhus i enhetsträdet (seed/enheter.js).
@@ -24,11 +29,11 @@ export const LABORATORIER = [
   { id: 'lab-mikro-uso', hsa: 'SE2321000164-VKL102', namn: 'Klinisk mikrobiologi USÖ (simulerat laboratorium)', kort: 'Klinisk mikrobiologi', disciplin: 'mikrobiologi', sjukhus: [] },
   { id: 'lab-pat-uso', hsa: 'SE2321000164-VKL103', namn: 'Klinisk patologi USÖ (simulerat laboratorium)', kort: 'Klinisk patologi', disciplin: 'patologi', sjukhus: [] },
 ];
-export const LAB = Object.fromEntries(LABORATORIER.map(l => [l.id, l]));
+export const LAB = tabell(Object.fromEntries(LABORATORIER.map(l => [l.id, l])));
 
 // Provrören och provmaterialet, i provtagningsordning (blododling först, sedan citrat, serum, heparin och EDTA, så att
 // tillsatser inte förs över mellan rören). fhir är provets typ i HL7 v2 tabell 0487 och snomed provets typ i Snomed CT.
-export const ROR = {
+export const ROR = tabell({
   blododling: { namn: 'Blododlingsflaskor', beskrivning: 'två flaskor, aerob och anaerob', farg: 'blå och lila hätta', ordning: 1, material: 'Blod', fhir: 'BLD', snomed: '119297000', snomedText: 'Blood specimen' },
   citrat: { namn: 'Citratrör', beskrivning: 'fyll till markeringen', farg: 'ljusblå propp', ordning: 2, material: 'Plasma', fhir: 'PLAS', snomed: '119297000', snomedText: 'Blood specimen' },
   serum: { namn: 'Serumrör med gel', beskrivning: 'låt stå 30 minuter före centrifugering', farg: 'gul propp', ordning: 3, material: 'Serum', fhir: 'SER', snomed: '119297000', snomedText: 'Blood specimen' },
@@ -36,7 +41,7 @@ export const ROR = {
   edta: { namn: 'EDTA-rör', beskrivning: 'vänd röret försiktigt åtta gånger', farg: 'lila propp', ordning: 5, material: 'Helblod', fhir: 'BLD', snomed: '119297000', snomedText: 'Blood specimen' },
   urin: { namn: 'Urinodlingsrör med borsyra', beskrivning: 'mittstråleurin, helst morgonurin', farg: 'grön kork', ordning: 6, material: 'Urin', fhir: 'UR', snomed: '122575003', snomedText: 'Urine specimen' },
   vavnad: { namn: 'Burk med formalin', beskrivning: 'vävnaden ska täckas helt av formalinet', farg: 'vit kork', ordning: 7, material: 'Vävnad', fhir: 'TISS', snomed: '119376003', snomedText: 'Tissue specimen' },
-};
+});
 
 // Analyserna. matvarden är de mätvärdestyper som svaret ger (journal.js MATTYPER), odling ett textsvar med fynd i
 // Snomed CT och patologi ett utlåtande i text. dubblettTimmar är hur länge efter ett taget eller beställt prov systemet
@@ -61,7 +66,7 @@ export const ANALYSER = [
   a('urinodling', 'U-Odling', 'mikrobiologi', 'urin', { odling: true, anamnes: true, dubblettTimmar: 24, ord: ['urinodling', 'odling', 'urinvägsinfektion', 'uvi'] }),
   a('pad', 'PAD, vävnadsprov', 'patologi', 'vavnad', { patologi: true, anamnes: true, dubblettTimmar: 0, ord: ['pad', 'biopsi', 'vävnadsprov', 'patologi'] }),
 ];
-export const ANALYS = Object.fromEntries(ANALYSER.map(x => [x.id, x]));
+export const ANALYS = tabell(Object.fromEntries(ANALYSER.map(x => [x.id, x])));
 
 // Paketen. Systemet föreslår paket ur vårdkontaktens orsak (ord), patientens diagnoser (ICD-10-prefix) och tidigare
 // beställningar på vårdenheten. Paketens innehåll kan systemförvaltningen ändra som parameter (konfiguration.js,
@@ -75,12 +80,12 @@ export const PAKET = [
   { id: 'waran', namn: 'Waran, kontroll', analyser: ['pk'], ord: ['waran', 'warfarin'], diagnoser: ['I48'], atc: ['B01AA03'] },
   { id: 'inskrivning', namn: 'Inskrivningsprover', analyser: ['blodstatus', 'crp', 'natrium', 'kalium', 'kreatinin', 'glukos'], ord: [], diagnoser: [], inskrivning: true },
 ];
-export const PAKETEN = Object.fromEntries(PAKET.map(p => [p.id, p]));
+export const PAKETEN = tabell(Object.fromEntries(PAKET.map(p => [p.id, p])));
 
 // Svaren från det simulerade laboratoriet. normal är ett typiskt värde för en frisk vuxen och infektion värdet vid feber
 // och frossa, så att demon ser ut som den ska. kritiskLag och kritiskHog är demons gränser för ett kritiskt svar, som
 // larmar läkaren och sjuksköterskan direkt.
-export const SVARSVARDEN = {
+export const SVARSVARDEN = tabell({
   crp: { normal: 3, infektion: 86, decimaler: 0 },
   hb: { normal: 138, infektion: 131, kritiskLag: 70, decimaler: 0 },
   lpk: { normal: 6.4, infektion: 14.2, kritiskLag: 1.0, kritiskHog: 50, decimaler: 1 },
@@ -96,14 +101,14 @@ export const SVARSVARDEN = {
   tsh: { normal: 1.8, decimaler: 1 },
   kobalamin: { normal: 310, decimaler: 0 },
   folat: { normal: 14, decimaler: 0 },
-};
+});
 
 // Fynd i odlingar, med Snomed CT. Kontrollerade mot tx.fhir.org (SNOMED CT International) 2026-11-08.
-export const FYND = {
+export const FYND = tabell({
   ingen_vaxt: { snomed: '264868006', display: 'No growth', text: 'Ingen växt' },
   e_coli: { snomed: '112283007', display: 'Escherichia coli', text: 'Växt av Escherichia coli' },
   s_aureus: { snomed: '3092008', display: 'Staphylococcus aureus', text: 'Växt av Staphylococcus aureus' },
-};
+});
 
 // Kontrollerna som läkaren ordinerar till avdelningen (Sussas testfall 3.5). matvarde är mätvärdestypen som
 // sjuksköterskan registrerar, och systemet bockar av kontrollen när ett sådant värde registreras i tid. Vätskebalansen
@@ -119,11 +124,11 @@ export const KONTROLLER = [
   { id: 'andningsfrekvens', namn: 'Andningsfrekvens', matvarde: 'andningsfrekvens' },
   { id: 'glukos', namn: 'Blodsocker', matvarde: 'glukos', intern: true },
 ];
-export const KONTROLL = Object.fromEntries(KONTROLLER.map(k => [k.id, k]));
+export const KONTROLL = tabell(Object.fromEntries(KONTROLLER.map(k => [k.id, k])));
 
 // Hur ofta en kontroll görs. intervall i timmar. fore_maltid är före frukost, lunch och middag. vatskebalans följs
 // över ett helt dygn från starten.
-export const FREKVENSER = {
+export const FREKVENSER = tabell({
   en_gang: { namn: 'En gång', tider: 'en' },
   var_4: { namn: 'Var fjärde timme', intervall: 4 },
   var_6: { namn: 'Var sjätte timme', intervall: 6 },
@@ -131,4 +136,4 @@ export const FREKVENSER = {
   morgon_kvall: { namn: 'Morgon och kväll', klockslag: ['07:00', '19:00'] },
   fore_maltid: { namn: 'Före måltid', klockslag: ['07:30', '11:30', '16:30'] },
   dygnet: { namn: 'Under ett dygn', dygn: true },
-};
+});

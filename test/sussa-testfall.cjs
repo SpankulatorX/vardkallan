@@ -409,7 +409,7 @@ function floden(D) {
     },
     '3.5': async (m, page) => {
       await oppnaFranLista(m, page, 'Inga Strand');
-      await m.klicka(page.locator('.snabbval a', { hasText: 'Ordinera kontroller' }), 'Ordinera kontroller');
+      await m.klicka(page.locator('.snabbval a', { hasText: 'Kontroller' }), 'Kontroller i översikten');
       await page.waitForSelector('#pr-kform');
       for (const [id, namn] of [['puls', 'Puls'], ['blodtryck', 'Blodtryck'], ['sr', 'SR'], ['temp', 'Temperatur'], ['vikt', 'Vikt'], ['vatskebalans', 'Vätskebalans']]) {
         await m.klicka(page.locator(`#pr-k-${id}`), namn);

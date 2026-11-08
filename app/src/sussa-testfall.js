@@ -256,7 +256,7 @@ export const TESTFALL = [
     mal: ['Puls, blodtryck, sänkningsreaktion, temperatur och vikt i morgon klockan 7.', 'Följ vätskebalansen det kommande dygnet.', 'Spara, signera eller verkställ.'],
     slut: 'Beställningen är sparad, signerad eller verkställd.',
     tidsklass: 9, tidsklassSkal: 'Sex kontroller vid samma tid.',
-    korningar: [kor('lakare_slutenvard', 9, 'Ett klick på patienten i arbetslistan och ett på Ordinera kontroller i översikten, ett klick på var och en av de sex kontrollerna och ett på Ordinera. Klockan 7 i morgon är förvald, och vätskebalansen följs ett dygn. Systemet lägger kontrollerna på avdelningen där patienten ligger, och sjuksköterskan ser dem som uppgifter med tid.'),
+    korningar: [kor('lakare_slutenvard', 9, 'Ett klick på patienten i arbetslistan och ett på Kontroller i översikten, ett klick på var och en av de sex kontrollerna och ett på Ordinera. Klockan 7 i morgon är förvald, och vätskebalansen följs ett dygn. Systemet lägger kontrollerna på avdelningen där patienten ligger, och sjuksköterskan ser dem som uppgifter med tid.'),
       kor('lakare_oppenvard', 9, 'Samma steg som för läkaren i slutenvården. Kontrollerna görs på vårdcentralen, där patienten har sitt besök.')],
     avvikelser: ['SR är en intern analys som tas på avdelningen och registreras som mätvärde, och vätskebalansen följs i läkemedelsprocessens vätskebalans.'],
   }),

@@ -13,7 +13,10 @@ import { Fel, iso, addDagar, datumAv, lokalTid } from './db.js';
 import { Atkomst, kanRoll, vardenhetFor, enheterUnder, visningsnamn, visningsPnr } from './atkomst.js';
 import * as vardkontakt from './vardkontakt.js';
 import * as labb from './labb.js';
-import { KONTROLLER, KONTROLL, FREKVENSER, DEMOREGEL } from './labb-katalog.js';
+import { KONTROLLER, KONTROLL, FREKVENSER, DEMOREGEL, finns as iKatalog } from './labb-katalog.js';
+
+// En rad med en kontroll eller frekvens som inte finns i katalogen visas inte, så att den aldrig stoppar listningen.
+const giltig = (k) => iKatalog(KONTROLL, k.kontroll) && iKatalog(FREKVENSER, k.frekvens);
 
 export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS kontrollordinationer (
@@ -55,7 +58,7 @@ function enhetFor(db, personal, patientId) {
 
 // De planerade tiderna för en kontroll mellan fran och till (ISO). En kontroll under ett dygn har en tid, starten.
 export function tiderFor(k, fran, till) {
-  const f = FREKVENSER[k.frekvens];
+  const f = iKatalog(FREKVENSER, k.frekvens) ? FREKVENSER[k.frekvens] : null;
   const start = Date.parse(k.start);
   const slut = k.avslutad_tid ? Math.min(Date.parse(k.avslutad_tid), k.slut ? Date.parse(k.slut) : Infinity) : (k.slut ? Date.parse(k.slut) : Infinity);
   const a = Date.parse(fran), b = Date.parse(till);
@@ -123,7 +126,7 @@ export function kontrollUt(db, k, nu = new Date()) {
 // Kontrollerna för patienten som den inloggade får se.
 export function synligaKontroller(atk) {
   if (!finns(atk.db) || !kanRoll(atk.personal, 'las_prover')) return [];
-  return atk.filtrera(atk.db.query('SELECT * FROM kontrollordinationer WHERE patient_id = ? ORDER BY start, id').all(atk.patientId), 'las_prover');
+  return atk.filtrera(atk.db.query('SELECT * FROM kontrollordinationer WHERE patient_id = ? ORDER BY start, id').all(atk.patientId).filter(giltig), 'las_prover');
 }
 export function forPatient(atk, nu = new Date()) {
   atk.krav('las_prover');
@@ -149,9 +152,9 @@ export function ordinera(atk, body = {}, nu = new Date()) {
   atk.krav('ordinera_kontroll');
   const lista = Array.isArray(body.kontroller) ? [...new Set(body.kontroller)] : [];
   if (!lista.length) throw new Fel(400, 'Välj minst en kontroll.', 'ogiltig', { falt: ['kontroller'] });
-  if (lista.some(id => !KONTROLL[id])) throw new Fel(400, 'Kontrollen finns inte.', 'ogiltig', { falt: ['kontroller'] });
+  if (lista.some(id => !iKatalog(KONTROLL, id))) throw new Fel(400, 'Kontrollen finns inte.', 'ogiltig', { falt: ['kontroller'] });
   const frekvens = body.frekvens ?? 'en_gang';
-  if (!FREKVENSER[frekvens] || frekvens === 'dygnet') throw new Fel(400, 'Välj hur ofta kontrollen ska göras.', 'ogiltig', { falt: ['frekvens'] });
+  if (!iKatalog(FREKVENSER, frekvens) || frekvens === 'dygnet') throw new Fel(400, 'Välj hur ofta kontrollen ska göras.', 'ogiltig', { falt: ['frekvens'] });
   const startMs = body.start == null || body.start === '' ? Date.parse(forslagStart(nu)) : Date.parse(body.start);
   if (!Number.isFinite(startMs)) throw new Fel(400, 'Starttiden är inte en giltig tidpunkt.', 'ogiltig', { falt: ['start'] });
   if (startMs < nu.getTime() - 2 * TIMME) throw new Fel(400, 'En kontroll kan inte ordineras bakåt i tiden. Ett värde som redan är taget registreras som mätvärde.', 'ogiltig', { falt: ['start'] });
@@ -232,7 +235,7 @@ export function planerat(db, personal, valFor, { enhetId = null, datum = null } 
   const plats = (pid) => db.query(`SELECT plats FROM vardkontakter WHERE patient_id = ? AND enhet_id IN (${ph}) AND slut IS NULL ORDER BY start DESC`).get(pid, ...enheter)?.plats ?? null;
   if (finns(db)) {
     for (const k of db.query(`SELECT * FROM kontrollordinationer WHERE enhet_id IN (${ph}) AND start < ? AND (slut IS NULL OR slut >= ?) ORDER BY start, id`).all(...enheter, till, fran)) {
-      if (!tillaten(k.patient_id, k.enhet_id)) continue;
+      if (!giltig(k) || !tillaten(k.patient_id, k.enhet_id)) continue;
       for (const t of tiderFor(k, fran, till)) {
         const s = uppgiftStatus(db, k, t, nu);
         const def = KONTROLL[k.kontroll];

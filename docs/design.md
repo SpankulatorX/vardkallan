@@ -1197,7 +1197,7 @@ Varje analys är en `ServiceRequest` med id `labb-<n>`, kategori Laboratory proc
 
 ### Gränssnittet
 
-Fliken Prover i journalen (`patient-prover.js`) med beställningarna som kort, beställningsformuläret med systemets förslag och kontrollerna. Snabbvalen Beställ prover och Ordinera kontroller i översikten. Prover och kontroller i menyn för sjuksköterskan och undersköterskan (`#/provtagning`) med rören att ta i dag per patient, dagens kontroller och uppföljningen. Inkorgen har kritiska provsvar, provsvar att vidimera och beställningar att signera, med knappar direkt i raden. Mätvärdena visar vem som beställde ett svar från laboratoriet. Klickbudget: beställa ett standardpaket (budget 3, uppmätt 3) och registrera provtagning med två rör (budget 2, uppmätt 2).
+Fliken Prover i journalen (`patient-prover.js`) med beställningarna som kort, beställningsformuläret med systemets förslag och kontrollerna. Snabbvalen Beställ prover och Kontroller i översikten. Prover och kontroller i menyn för sjuksköterskan och undersköterskan (`#/provtagning`) med rören att ta i dag per patient, dagens kontroller och uppföljningen. Inkorgen har kritiska provsvar, provsvar att vidimera och beställningar att signera, med knappar direkt i raden. Mätvärdena visar vem som beställde ett svar från laboratoriet. Klickbudget: beställa ett standardpaket (budget 3, uppmätt 3) och registrera provtagning med två rör (budget 2, uppmätt 2).
 
 ### Det som är simulerat eller saknas
 

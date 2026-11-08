@@ -10,7 +10,7 @@ const SIM = 'Laboratorierna är simulerade: svaren räknas fram av demon, och in
 export default [
   {
     id: '4.4.1.1', kategori: 'system', egna: ['D9', 'D6'], avsedd: 'uppfyllt_demo',
-    tester: [T.paket, T.provtagning, T.svar, T.vidimera, T.apiFlode, `${MJ}provsvar visas när de är vidimerade eller efter 14 dagar, mätvärden direkt`, ...TESTFALL_3['3.1'], ...TESTFALL_3['3.3']],
+    tester: [T.paket, T.provtagning, T.svar, T.vidimera, T.apiFlode, T.nycklar, `${MJ}provsvar visas när de är vidimerade eller efter 14 dagar, mätvärden direkt`, ...TESTFALL_3['3.1'], ...TESTFALL_3['3.3']],
     losning: 'Fliken Prover i journalen: läkaren beställer analyser och paket för patienten, den som tar proverna bockar av rör för rör med etiketter, proverna skickas till det simulerade laboratoriet och svaren kommer tillbaka som mätvärden med NPU-kod, referensintervall och avvikelse, i den ansvariga läkarens inkorg för vidimering. Varje prov har ett etikett-id som knyter röret till patienten och beställningen.',
     expert: 'Systemet föreslår paket ur vårdkontakten, diagnoserna och läkemedlen, väljer laboratorium, rör, provtagningsordning och anamnes, tar bort prov som nyss är tagna och skickar proverna själv när alla rör är tagna.',
     anmarkning: SIM,
