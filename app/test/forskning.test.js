@@ -1,12 +1,13 @@
 // Runda 9, r7: beställningar av datauttag till forskare (Sussa 6.3.3.1). Testnamnen står i src/sussa/mappning/6.3.3.js.
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import * as forskning from '../src/forskning.js';
 import { testserver, klient, sandlada } from './hjalp.js';
 
 let app;
 beforeAll(() => { app = testserver(); });
 afterAll(() => app.stopp());
 const BESTALLNING = { titel: 'Förmaksflimmer och blodförtunnande hos äldre', forskare: 'Demo Forskare', organisation: 'Demouniversitetet (påhittat)', etikprovning: '2026-01234-01',
-  urval: { Diagnos: ['kod', 'datum', 'aldersgrupp'], Ordination: ['atc', 'startdatum'] }, aterkommande: true };
+  urval: { Diagnos: ['kod', 'datum', 'aldersgrupp', 'vardenhet'], Ordination: ['atc', 'startdatum'] }, vardenheter: ['uso-kard', 'vc-tybble'], aterkommande: true };
 
 describe('Forskningsuttag', () => {
   test('beställningen får diarienummer, etikprövningen kontrolleras och urvalet hämtas ur datauttaget', async () => {
@@ -17,7 +18,7 @@ describe('Forskningsuttag', () => {
     expect(r.data.diarienummer).toMatch(/^FU-\d{4}-0001$/);
     expect(r.data).toMatchObject({ status: 'registrerad', etikprovning: '2026-01234-01', vantarPa: ['Sekretessprövning', 'Godkännande för verksamheten'] });
     // Systemet tar själv med radnyckeln och patientens pseudonym.
-    expect(r.data.urval.Diagnos).toEqual(['rad', 'patient', 'kod', 'datum', 'aldersgrupp']);
+    expect(r.data.urval.Diagnos).toEqual(['rad', 'patient', 'kod', 'datum', 'aldersgrupp', 'vardenhet']);
     expect((await k.post('/api/forskning', { ...BESTALLNING, etikprovning: 'saknas' })).data.fel).toContain('etikprövning');
     expect((await k.post('/api/forskning', { ...BESTALLNING, urval: { Diagnos: ['personnummer'] } })).status).toBe(400);
     expect((await k.post('/api/forskning', { ...BESTALLNING, urval: { Journal: ['text'] } })).status).toBe(400);
@@ -45,7 +46,7 @@ describe('Forskningsuttag', () => {
     expect(u.data.antal.Diagnos).toBeGreaterThan(0);
     const db = sandlada(app, k).db;
     const rader = u.data.filer['Diagnos.ndjson'].trim().split('\n').map(x => JSON.parse(x));
-    expect(Object.keys(rader[0]).sort()).toEqual(['aldersgrupp', 'datum', 'kod', 'patient', 'rad']);
+    expect(Object.keys(rader[0]).sort()).toEqual(['aldersgrupp', 'datum', 'kod', 'patient', 'rad', 'vardenhet']);
     // Inga personuppgifter, inga spärrade uppgifter, och egna pseudonymer för studien.
     const text = JSON.stringify(u.data);
     for (const p of db.query('SELECT * FROM patienter').all()) { expect(text).not.toContain(p.personnummer); expect(text).not.toContain(p.efternamn); }
@@ -72,5 +73,29 @@ describe('Forskningsuttag', () => {
     await k.logga('lak-kard');
     expect((await k.get('/api/forskning')).status).toBe(403);
     expect((await k.post('/api/forskning', BESTALLNING)).status).toBe(403);
+  });
+
+  test('verksamhetschefen godkänner bara för sin egen vårdenhet, och uttaget får bara med vårdenheter som har godkänt', async () => {
+    const k = klient(app);
+    await k.logga('uppf');
+    const db = sandlada(app, k).db;
+    expect((await k.post('/api/forskning', { ...BESTALLNING, vardenheter: [] })).status).toBe(400);
+    const id = (await k.post('/api/forskning', BESTALLNING)).data.id;
+    // En verksamhetschef på en vårdenhet som inte ingår i beställningen kan inte godkänna den.
+    db.query("INSERT INTO personal (id, namn, yrke, titel, enhet_id, hsa_id) VALUES ('vch-ort', 'Demo Chef', 'verksamhetschef', 'Verksamhetschef', 'uso-ort', 'SE-DEMO-VCH-ORT')").run();
+    const ort = db.query("SELECT * FROM personal WHERE id = 'vch-ort'").get();
+    expect(() => forskning.besluta(db, ort, id, { beslut: 'godkand' })).toThrow('ingår inte');
+    await k.logga('ark');
+    await k.post(`/api/forskning/${id}/beslut`, { beslut: 'godkand' });
+    await k.logga('vch-kard');
+    const g = await k.post(`/api/forskning/${id}/beslut`, { beslut: 'godkand' });
+    expect(g.data).toMatchObject({ status: 'godkand' });
+    expect(g.data.godkandaVardenheter).toEqual(['Kardiologiska kliniken USÖ']);
+    await k.logga('uppf');
+    const u = await k.post(`/api/forskning/${id}/utlamna`);
+    const hsa = (e) => db.query('SELECT hsa_id FROM enheter WHERE id = ?').get(e).hsa_id;
+    const enheter = new Set(u.data.filer['Diagnos.ndjson'].trim().split('\n').map(x => JSON.parse(x).vardenhet));
+    expect([...enheter]).toEqual([hsa('uso-kard')]);
+    expect(u.data.filer['Diagnos.ndjson']).not.toContain(hsa('vc-tybble'));
   });
 });

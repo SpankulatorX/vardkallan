@@ -50,13 +50,17 @@ describe('Datauttag, runda 9', () => {
       .run(new Date(Date.now() - i * 86400_000).toISOString(), new Date(Date.now() - i * 86400_000 + 3600_000).toISOString());
     expect(avgifter()).toBe(fore);
     expect(alla()).toBe(foreAlla);
-    // En patient med LMA-kort får inget belopp i uttaget.
-    const v = db.query("SELECT v.patient_id, v.start FROM vardkontakter v WHERE kalla = 'vardkallan' AND typ = 'oppenvard' AND patient_id = 'p13' LIMIT 1").get()
-      ?? db.query("SELECT v.patient_id, v.start FROM vardkontakter v WHERE kalla = 'vardkallan' AND typ = 'oppenvard' AND patient_id NOT IN ('p04', 'p03') LIMIT 1").get();
+    // Ett LMA-kort ändrar inget i uttaget: raden har samma nycklar och samma sorts värden som för en annan patient,
+    // och inget belopp lämnas ut.
+    const v = db.query("SELECT patient_id FROM vardkontakter WHERE kalla = 'vardkallan' AND typ = 'oppenvard' AND patient_id NOT IN ('p04', 'p03') LIMIT 1").get();
+    const foreLma = alla();
     db.query("INSERT INTO lma_kort (patient_id, nummer, giltig_till, registrerad, av) VALUES (?, 'DEMO-LMA-1', '2030-01-01', '2020-01-01T00:00:00Z', 'adm-kard')").run(v.patient_id);
-    const lma = datauttag.bygg(db).data.Patientavgift.filter(r => r.datum === v.start.slice(0, 10));
-    expect(lma.length).toBeGreaterThan(0);
-    expect(lma.some(r => r.belopp === null && r.avgiftsfri === null)).toBe(true);
+    expect(alla()).toBe(foreLma);
+    const rader = datauttag.bygg(db).data.Patientavgift;
+    const nycklar = new Set(rader.map(r => Object.keys(r).sort().join(',')));
+    expect(nycklar.size).toBe(1);
+    expect([...nycklar][0]).not.toMatch(/belopp|avgiftsfri/);
+    for (const r of rader) expect(typeof r.avgiftsbelagd).toBe('boolean');
   });
 
   test('kontrollreglerna per rad står i manifestet och pekar ut rader som inte klarar dem', () => {

@@ -7,7 +7,8 @@
 // inga namn, personnummer, adresser eller fritext.
 //
 // Godkännande av två personer: arkivarien gör sekretessprövningen och verksamhetschefen godkänner för den verksamhet som
-// ansvarar för uppgifterna. Den som registrerade beställningen kan inte godkänna den, och ingen godkänner två gånger.
+// ansvarar för uppgifterna. Beställningen anger vilka vårdenheter den omfattar, en verksamhetschef godkänner bara för
+// sin egen vårdenhet, och uttaget får bara med uppgifter från de vårdenheter vars verksamhetschef har godkänt. Den som registrerade beställningen kan inte godkänna den, och ingen godkänner två gånger.
 // Först med två godkännanden kan uttaget lämnas ut. Varje utlämnande sparas med tid, vem, antal rader och en
 // kontrollsumma över innehållet, loggas och kan inte ändras eller raderas. Pseudonymerna räknas med en nyckel för
 // beställningen, så att de inte går att koppla till uppföljningens uttag eller till en annan studie, men är desamma i
@@ -17,23 +18,23 @@
 // annat sätt än som fil, och aggregeringar.
 import { createHash, randomBytes } from 'node:crypto';
 import { Fel, iso, idag } from './db.js';
-import { kanRoll } from './atkomst.js';
+import { kanRoll, vardenhetFor } from './atkomst.js';
 import { loggaRad } from './logg.js';
 import * as datauttag from './datauttag.js';
 
 export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS forskningsbestallningar (
   id INTEGER PRIMARY KEY, diarienummer TEXT NOT NULL UNIQUE, titel TEXT NOT NULL, forskare TEXT NOT NULL, organisation TEXT NOT NULL,
-  etikprovning TEXT NOT NULL, urval TEXT NOT NULL, period_fran TEXT, period_till TEXT, aterkommande INTEGER NOT NULL DEFAULT 0,
+  etikprovning TEXT NOT NULL, urval TEXT NOT NULL, vardenheter TEXT NOT NULL, period_fran TEXT, period_till TEXT, aterkommande INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'registrerad', registrerad TEXT NOT NULL, registrerad_av TEXT NOT NULL, enhet_id TEXT NOT NULL, nyckel TEXT NOT NULL,
   CHECK (status IN ('registrerad', 'godkand', 'avslagen', 'utlamnad'))
 );
 -- Innehållet i en beställning ändras inte efter registreringen. Bara statusen ändras, och bara framåt.
-CREATE TRIGGER IF NOT EXISTS forskningsbestallning_innehall BEFORE UPDATE OF diarienummer, titel, forskare, organisation, etikprovning, urval, period_fran, period_till, aterkommande, registrerad, registrerad_av, nyckel ON forskningsbestallningar
+CREATE TRIGGER IF NOT EXISTS forskningsbestallning_innehall BEFORE UPDATE OF diarienummer, titel, forskare, organisation, etikprovning, urval, vardenheter, period_fran, period_till, aterkommande, registrerad, registrerad_av, nyckel ON forskningsbestallningar
   BEGIN SELECT RAISE(ABORT, 'En beställning av forskningsuttag ändras inte'); END;
 CREATE TRIGGER IF NOT EXISTS forskningsbestallning_raderas_ej BEFORE DELETE ON forskningsbestallningar BEGIN SELECT RAISE(ABORT, 'En beställning av forskningsuttag raderas inte'); END;
 CREATE TABLE IF NOT EXISTS forskningsbeslut (
-  id INTEGER PRIMARY KEY, bestallning_id INTEGER NOT NULL, personal_id TEXT NOT NULL, roll TEXT NOT NULL, beslut TEXT NOT NULL, motivering TEXT, tid TEXT NOT NULL,
+  id INTEGER PRIMARY KEY, bestallning_id INTEGER NOT NULL, personal_id TEXT NOT NULL, roll TEXT NOT NULL, vardenhet TEXT, beslut TEXT NOT NULL, motivering TEXT, tid TEXT NOT NULL,
   UNIQUE (bestallning_id, personal_id), CHECK (beslut IN ('godkand', 'avslagen'))
 );
 CREATE TRIGGER IF NOT EXISTS forskningsbeslut_andras_ej BEFORE UPDATE ON forskningsbeslut BEGIN SELECT RAISE(ABORT, 'Ett beslut ändras inte'); END;
@@ -88,9 +89,11 @@ function ut(db, r) {
   const utl = db.query('SELECT * FROM forskningsutlamnanden WHERE bestallning_id = ? ORDER BY tid, id').all(r.id);
   const godk = beslut.filter(b => b.beslut === 'godkand');
   const saknas = Object.keys(ROLL).filter(roll => !godk.some(b => b.roll === roll));
+  const enhetNamn = (id) => db.query('SELECT namn FROM enheter WHERE id = ?').get(id)?.namn ?? id;
   return {
     id: r.id, diarienummer: r.diarienummer, titel: r.titel, forskare: r.forskare, organisation: r.organisation, etikprovning: r.etikprovning,
-    urval: JSON.parse(r.urval), period: r.period_fran ? { fran: r.period_fran, till: r.period_till } : null, aterkommande: Boolean(r.aterkommande), status: r.status,
+    urval: JSON.parse(r.urval), vardenheter: JSON.parse(r.vardenheter).map(enhetNamn),
+    godkandaVardenheter: godk.filter(b => b.roll === 'verksamhetschef').map(b => enhetNamn(b.vardenhet)), period: r.period_fran ? { fran: r.period_fran, till: r.period_till } : null, aterkommande: Boolean(r.aterkommande), status: r.status,
     registrerad: r.registrerad, registreradAv: namnPa(db, r.registrerad_av),
     beslut: beslut.map(b => ({ av: namnPa(db, b.personal_id), roll: ROLL[b.roll] ?? b.roll, beslut: b.beslut, motivering: b.motivering, tid: b.tid })),
     vantarPa: r.status === 'registrerad' ? saknas.map(x => ROLL[x]) : [],
@@ -121,6 +124,9 @@ export function registrera(db, personal, inp = {}) {
   const etik = typeof inp.etikprovning === 'string' ? inp.etikprovning.trim() : '';
   if (!/^\d{4}-\d{4,5}(-\d{2})?$/.test(etik)) throw new Fel(400, 'Skriv diarienumret för etikprövningen som Etikprövningsmyndigheten anger det, till exempel 2026-01234-01. Ett uttag till forskning kräver ett godkännande från etikprövningen.', 'ogiltig', { falt: ['etikprovning'] });
   const urval = provaUrval(inp.urval);
+  const ve = Array.isArray(inp.vardenheter) ? [...new Set(inp.vardenheter.map(String))] : [];
+  if (!ve.length || ve.length > 30) throw new Fel(400, 'Välj vilka vårdenheter uttaget gäller. Varje vårdenhets verksamhetschef godkänner för sin vårdenhet.', 'ogiltig', { falt: ['vardenheter'] });
+  for (const id of ve) if (!db.query("SELECT 1 FROM enheter WHERE id = ? AND typ = 'vardenhet'").get(id)) throw new Fel(400, 'Vårdenheten finns inte.', 'ogiltig', { falt: ['vardenheter'] });
   let fran = null, till = null;
   if (inp.period) {
     const g = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
@@ -130,9 +136,9 @@ export function registrera(db, personal, inp = {}) {
   if (db.query("SELECT count(*) AS n FROM forskningsbestallningar WHERE status IN ('registrerad', 'godkand')").get().n >= MAX_OPPNA) throw new Fel(400, `Det finns redan ${MAX_OPPNA} beställningar som väntar.`, 'ogiltig');
   const ar = idag().slice(0, 4);
   const lopnr = db.query('SELECT count(*) AS n FROM forskningsbestallningar WHERE diarienummer LIKE ?').get(`FU-${ar}-%`).n + 1;
-  const r = db.query(`INSERT INTO forskningsbestallningar (diarienummer, titel, forskare, organisation, etikprovning, urval, period_fran, period_till, aterkommande, registrerad, registrerad_av, enhet_id, nyckel)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(`FU-${ar}-${String(lopnr).padStart(4, '0')}`, text(inp.titel, 200, 'studiens titel'), text(inp.forskare, 100, 'forskaren'), text(inp.organisation, 100, 'organisationen'),
-    etik, JSON.stringify(urval), fran, till, inp.aterkommande ? 1 : 0, iso(), personal.id, personal.enhet_id, randomBytes(32).toString('base64url'));
+  const r = db.query(`INSERT INTO forskningsbestallningar (diarienummer, titel, forskare, organisation, etikprovning, urval, vardenheter, period_fran, period_till, aterkommande, registrerad, registrerad_av, enhet_id, nyckel)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(`FU-${ar}-${String(lopnr).padStart(4, '0')}`, text(inp.titel, 200, 'studiens titel'), text(inp.forskare, 100, 'forskaren'), text(inp.organisation, 100, 'organisationen'),
+    etik, JSON.stringify(urval), JSON.stringify(ve), fran, till, inp.aterkommande ? 1 : 0, iso(), personal.id, personal.enhet_id, randomBytes(32).toString('base64url'));
   loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, handling: 'forskning_bestall', resurs: `forskning:${r.lastInsertRowid}:registrerad`, grund: 'uppfoljning', resultat: 'tillaten' });
   return ut(db, rad(db, r.lastInsertRowid));
 }
@@ -144,13 +150,17 @@ export function besluta(db, personal, id, inp = {}) {
   if (r.status !== 'registrerad') throw new Fel(409, 'Beställningen är redan beslutad.', 'ogiltig');
   if (r.registrerad_av === personal.id) throw new Fel(403, 'Den som registrerade beställningen kan inte godkänna den.', 'nekad');
   if (db.query('SELECT 1 FROM forskningsbeslut WHERE bestallning_id = ? AND personal_id = ?').get(r.id, personal.id)) throw new Fel(409, 'Du har redan beslutat om beställningen. Två andra personer behöver godkänna den.', 'ogiltig');
-  if (db.query('SELECT 1 FROM forskningsbeslut WHERE bestallning_id = ? AND roll = ?').get(r.id, personal.yrke)) throw new Fel(409, `${ROLL[personal.yrke]} är redan gjord. Nästa godkännande görs av den andra rollen.`, 'ogiltig');
+  // Verksamhetschefen godkänner bara för sin egen vårdenhet, och bara om den ingår i beställningen.
+  const egen = personal.yrke === 'verksamhetschef' ? vardenhetFor(db, personal.enhet_id) : null;
+  if (egen && !JSON.parse(r.vardenheter).includes(egen)) throw new Fel(403, 'Din vårdenhet ingår inte i beställningen. Bara verksamhetschefen för en vårdenhet som uttaget gäller kan godkänna det.', 'nekad');
+  if (personal.yrke === 'arkivarie' && db.query("SELECT 1 FROM forskningsbeslut WHERE bestallning_id = ? AND roll = 'arkivarie'").get(r.id)) throw new Fel(409, `${ROLL.arkivarie} är redan gjord. Nästa godkännande görs av verksamhetschefen.`, 'ogiltig');
+  if (egen && db.query("SELECT 1 FROM forskningsbeslut WHERE bestallning_id = ? AND roll = 'verksamhetschef' AND vardenhet = ?").get(r.id, egen)) throw new Fel(409, 'Vårdenheten har redan godkänt beställningen.', 'ogiltig');
   const beslut = inp.beslut === 'avslagen' ? 'avslagen' : inp.beslut === 'godkand' ? 'godkand' : null;
   if (!beslut) throw new Fel(400, 'Välj godkänn eller avslå.', 'ogiltig', { falt: ['beslut'] });
   const motivering = typeof inp.motivering === 'string' ? inp.motivering.trim().slice(0, 500) : '';
   if (beslut === 'avslagen' && motivering.length < 3) throw new Fel(400, 'Skriv varför beställningen avslås.', 'ogiltig', { falt: ['motivering'] });
   db.transaction(() => {
-    db.query('INSERT INTO forskningsbeslut (bestallning_id, personal_id, roll, beslut, motivering, tid) VALUES (?, ?, ?, ?, ?, ?)').run(r.id, personal.id, personal.yrke, beslut, motivering || null, iso());
+    db.query('INSERT INTO forskningsbeslut (bestallning_id, personal_id, roll, vardenhet, beslut, motivering, tid) VALUES (?, ?, ?, ?, ?, ?, ?)').run(r.id, personal.id, personal.yrke, egen, beslut, motivering || null, iso());
     const godk = db.query("SELECT count(DISTINCT roll) AS n FROM forskningsbeslut WHERE bestallning_id = ? AND beslut = 'godkand'").get(r.id).n;
     if (beslut === 'avslagen') db.query("UPDATE forskningsbestallningar SET status = 'avslagen' WHERE id = ?").run(r.id);
     else if (godk >= 2) db.query("UPDATE forskningsbestallningar SET status = 'godkand' WHERE id = ?").run(r.id);
@@ -167,6 +177,10 @@ export function utlamna(db, personal, id) {
   if (r.status === 'utlamnad' && !r.aterkommande) throw new Fel(409, 'Beställningen är redan utlämnad. En ny leverans kräver en ny beställning, eller en beställning som är återkommande.', 'ogiltig');
   const { data, utelamnat } = datauttag.bygg(db, { pseudonymnyckel: r.nyckel });
   const urval = JSON.parse(r.urval);
+  // Bara uppgifter från vårdenheter vars verksamhetschef har godkänt. En remiss kommer med när båda vårdenheterna har det.
+  const godkanda = new Set(db.query("SELECT vardenhet FROM forskningsbeslut WHERE bestallning_id = ? AND roll = 'verksamhetschef' AND beslut = 'godkand'").all(r.id)
+    .map(b => db.query('SELECT hsa_id FROM enheter WHERE id = ?').get(b.vardenhet)?.hsa_id).filter(Boolean));
+  const fran = (x) => (Object.hasOwn(x, 'vardenhet') ? godkanda.has(x.vardenhet) : godkanda.has(x.franVardenhet) && godkanda.has(x.tillVardenhet));
   const iPeriod = (x) => {
     if (!r.period_fran) return true;
     const d = x.startdatum ?? x.datum ?? x.inskrivenDatum ?? x.skickadDatum ?? null;
@@ -175,7 +189,7 @@ export function utlamna(db, personal, id) {
   const filer = {};
   const antal = {};
   for (const [t, falt] of Object.entries(urval)) {
-    const rader = (data[t] ?? []).filter(iPeriod).map(x => Object.fromEntries(falt.map(f => [f, x[f] ?? null])));
+    const rader = (data[t] ?? []).filter(x => iPeriod(x) && fran(x)).map(x => Object.fromEntries(falt.map(f => [f, x[f] ?? null])));
     filer[`${t}.ndjson`] = rader.map(x => JSON.stringify(x)).join('\n') + (rader.length ? '\n' : '');
     antal[t] = rader.length;
   }

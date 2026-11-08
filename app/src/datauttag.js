@@ -97,10 +97,11 @@ export const SCHEMA = {
     },
   },
   Patientavgift: {
-    beskrivning: 'En rad per vårdkontakt med patientavgiften enligt demoreglerna.',
+    beskrivning: 'En rad per vårdkontakt i öppenvård, akut, hemsjukvård och dagkirurgi med om besöket är avgiftsbelagt enligt prislistan. Beloppet lämnas inte ut, eftersom det beror på högkostnadsskyddet och på om patienten har LMA-kort.',
     falt: {
       rad: 'Radens stabila nyckel.', patient: 'Patientens pseudonym.', vardenhet: 'Vårdenhetens HSA-id.', vardkontakt: 'Vårdkontaktens radnyckel.',
-      vardform: 'Vårdformen.', datum: 'Kontaktens datum.', belopp: 'Avgiften i kronor, räknad med högkostnadsskyddet för de kontakter som finns i uttaget. Tomt när beloppet skulle röja att patienten har LMA-kort.', avgiftsfri: 'true när kontakten är avgiftsfri, eller tomt som beloppet.',
+      vardform: 'Vårdformen.', kontaktsatt: 'Kontaktsättet, eller tomt.', datum: 'Kontaktens datum.',
+      avgiftsbelagd: 'true när besöket har en avgift i prislistan för patientens ålder och kontaktsättet, utan hänsyn till högkostnadsskydd och LMA-kort.',
     },
   },
 };
@@ -214,18 +215,18 @@ export function bygg(db, { pseudonymnyckel = null } = {}) {
     data.Vardtillfalle.push({ rad: pseudonym(k, `vardtillfalle:${t.id}`), ...person(p, inn), vardenhet: ve(t.enhet_id)?.hsa_id ?? null, inskrivenDatum: inn, utskrivenDatum: datumI(t.utskriven),
       vardtidDagar: t.utskriven ? Math.max(1, Math.round((Date.parse(t.utskriven) - Date.parse(t.inskriven)) / 86400_000)) : null, vistelser: vistelser.length });
   }
-  const { avgiftFor } = require('./vardkontakt.js');
+  // Patientavgiften: bara om besöket är avgiftsbelagt enligt prislistan för patientens ålder och kontaktsättet. Beloppet
+  // lämnas inte ut, eftersom det beror på högkostnadsskyddet (som kan röja kontakter på en spärrad vårdenhet) och på om
+  // patienten har LMA-kort (som röjer att patienten är asylsökande).
+  const { AVGIFT_DEMO } = require('./vardkontakt.js');
   for (const v of db.query("SELECT * FROM vardkontakter WHERE kalla = 'vardkallan' AND typ <> 'slutenvard' ORDER BY id").all()) {
     const p = far(v.patient_id, v.enhet_id);
     if (!p) continue;
-    let a = null;
-    // Högkostnadsskyddet räknas bara på kontakter som får komma med, så att beloppet aldrig röjer en kontakt på en
-    // spärrad vårdenhet. Ett belopp för en patient med LMA-kort röjer att patienten är asylsökande och lämnas tomt.
-    const synliga = (lista) => lista.filter(x => !sparrad(v.patient_id, x.enhet_id));
-    try { a = avgiftFor(db, db.query('SELECT * FROM patienter WHERE id = ?').get(v.patient_id), v, { synliga }); } catch { a = null; }
-    if (!a) continue;
+    const d = datumI(v.start);
+    const ar = arAv(p.fodd, d);
+    const pris = v.typ === 'akut' ? AVGIFT_DEMO.akut : AVGIFT_DEMO[v.kontaktsatt ?? 'besok'] ?? AVGIFT_DEMO.besok;
     data.Patientavgift.push({ rad: pseudonym(k, `avgift:${v.id}`), patient: pseudonym(k, `patient:${p.id}`), vardenhet: ve(v.enhet_id)?.hsa_id ?? null, vardkontakt: vk(v.id),
-      vardform: v.typ, datum: datumI(v.start), belopp: a.lma ? null : a.belopp ?? 0, avgiftsfri: a.lma ? null : !(a.belopp > 0) });
+      vardform: v.typ, kontaktsatt: v.kontaktsatt ?? null, datum: d, avgiftsbelagd: ar >= AVGIFT_DEMO.friUnder && ar < AVGIFT_DEMO.friFran && pris > 0 });
   }
   return { data, utelamnat };
 }
