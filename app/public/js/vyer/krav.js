@@ -15,13 +15,15 @@ const TESTSTATUS = { 'grön': ['ok', 'Grönt'], 'röd': ['fel', 'Rött'], hoppad
 const GRUPP = [['K', 'Spårbarhet från krav till test'], ['D', 'Icke-funktionella krav och design'], ['L', 'Lagkrav och nationella tjänster'], ['M', 'Misstag att inte upprepa']];
 
 export async function visa(main, _p, q) {
-  const vy = q.get('vy') === 'egna' ? 'egna' : 'sussa';
+  const vy = ['egna', 'bor'].includes(q.get('vy')) ? q.get('vy') : 'sussa';
   main.innerHTML = vyRubrik('Kravspårbarhet') + `<nav class="flikar" aria-label="Kravregister"><ul>
       <li><a href="#/krav"${vy === 'sussa' ? ' aria-current="page"' : ''}>Sussas kravspecifikation</a></li>
+      <li><a href="#/krav?vy=bor"${vy === 'bor' ? ' aria-current="page"' : ''}>Bör-krav och målbild</a></li>
       <li><a href="#/krav?vy=egna"${vy === 'egna' ? ' aria-current="page"' : ''}>Eget ramverk</a></li>
     </ul></nav><div id="kr-vy"></div>`;
   const yta = main.querySelector('#kr-vy');
   if (vy === 'egna') await visaEgna(yta, q);
+  else if (vy === 'bor') await visaBor(yta);
   else await visaSussa(yta, q);
 }
 
@@ -66,26 +68,40 @@ const KATEGORI_FORKLARING = {
 const TYP = { krav_vid_anbud: 'Krav vid anbud', krav_vid_leverans: 'Krav vid leverans', utvarderingskriterium: 'Utvärderingskriterium' };
 const STATUSORDNING = ['uppfyllt_demo', 'delvis', 'planerat'];
 const normal = (s) => String(s ?? '').toLocaleLowerCase('sv-SE');
+// Runda 7, r7: driftspecifikationen som eget filter, vikt, Cambios svar och avtalets signaler (K2 och K3).
+const SPECIFIKATION = { losning: 'Kravspecifikation lösning', drift: 'Kravspecifikation drift och teknik' };
+const AVTALSFILTER = { exkluderat: 'Exkluderat ur avtalet 2022', uppskjutet: 'Uppskjutet', nagot: 'Exkluderat eller uppskjutet' };
+const ARBETS_STATUS = { ...Object.fromEntries(STATUSORDNING.map(s => [s, STATUS[s]])), ej: 'Inte uppfyllt i demon' };
+const procent = (v, decimaler = 2) => `${(v * 100).toLocaleString('sv-SE', { minimumFractionDigits: decimaler, maximumFractionDigits: 2 })} %`;
+const kronor = (n) => `${n.toLocaleString('sv-SE')} kr`;
+const ARBETSLISTA = '#/krav?typ=utvarderingskriterium&status=ej&sortera=vikt&topp=10';
 
 async function visaSussa(yta, q) {
   yta.innerHTML = '<p class="tom">Hämtar Sussas kravspecifikation.</p>';
   const d = await api('/api/krav/sussa');
-  const kapitel = new Map(d.kapitel.map(k => [k.nr, k]));
   const avsnitt = new Map(d.avsnitt.map(a => [a.id, a]));
   const perId = new Map(d.poster.map(p => [p.id, p]));
-  const saknade = d.saknadeKapitel.map(n => `${n} ${kapitel.get(n)?.rubrik ?? ''}`.trim());
   const val = {
-    kapitel: d.kapitel.some(k => k.ingar && k.nr === q.get('kapitel')) ? q.get('kapitel') : '',
-    status: STATUSORDNING.includes(q.get('status')) ? q.get('status') : '',
+    spec: SPECIFIKATION[q.get('spec')] ? q.get('spec') : '',
+    kapitel: d.kapitel.some(k => k.nr === q.get('kapitel')) ? q.get('kapitel') : '',
+    status: ARBETS_STATUS[q.get('status')] ? q.get('status') : '',
     kategori: KATEGORI[q.get('kategori')] ? q.get('kategori') : '',
+    typ: TYP[q.get('typ')] ? q.get('typ') : '',
+    avtal: AVTALSFILTER[q.get('avtal')] ? q.get('avtal') : '',
+    sortera: q.get('sortera') === 'vikt' ? 'vikt' : '',
     sok: q.get('sok') ?? '',
   };
+  // Genvägen visar de första tio. Ändras ett filter visas hela urvalet igen.
+  let topp = /^\d{1,3}$/.test(q.get('topp') ?? '') ? Number(q.get('topp')) : 0;
   const s = d.summa;
+  const v = d.viktning;
+  const a = d.avtal;
+  const valj = (namn, rubrik, alla, alternativ) => `<div class="falt"><label for="sf-${namn}">${rubrik}</label><select id="sf-${namn}" name="${namn}"><option value="">${alla}</option>${Object.entries(alternativ).map(([k, t]) => `<option value="${esc(k)}"${val[namn] === k ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></div>`;
   yta.innerHTML = `<div class="ingress-block">
       <p>Region Örebro läns kravspecifikation för upphandlingen av journalsystemet Cosmic, med Sussas originalnummer. Varje post visar kravtexten, hur Vårdkällan möter den, hur systemet tar expertrollen och vilka automatiska tester som visar det. En post räknas som uppfylld i demon bara om alla dess tester finns och är gröna, och en post utan tester är planerad. Uppfyllt i demon betyder inte att Vårdkällan uppfyller kraven i en upphandling.</p>
-      <p class="liten">Källa: ${esc(d.kalla)}. ${esc(d.utdrag)}</p>
+      <p>Varje post visar också vad Cambio svarade i anbudet, som är en del av avtalet, hur mycket Sussa viktade kriteriet i utvärderingen och om delar av det togs bort ur avtalet eller sköts upp 2022.</p>
+      <p class="liten">Källa: ${esc(d.kalla.replace(/\.$/, ''))}. ${esc(d.utdrag)}</p>
     </div>
-    <p class="ruta ruta-info sussa-utdrag">${ikon.info}<span>Kapitel 7 till 10 och 12 ingår inte i utdraget: ${esc(saknade.join(', '))}. Registret innehåller kapitel 1 till 6 och 11, och kapitel 1 har inga krav.</span></p>
     ${testkorning(d.testresultat)}
     <div class="tabellrulle sussa-summa-rulle"><table class="tabell siffertabell sussa-summa">
       <caption>Sammanställning av ${d.poster.length} poster per kategori och status</caption>
@@ -93,11 +109,28 @@ async function visaSussa(yta, q) {
       <tbody>${Object.keys(KATEGORI).map(k => `<tr><th scope="row">${esc(KATEGORI[k])}</th>${STATUSORDNING.map(st => `<td class="tal">${s.korstabell[k][st]}</td>`).join('')}<td class="tal"><strong>${s.kategori[k]}</strong></td></tr>`).join('')}</tbody>
       <tfoot><tr><th scope="row">Totalt</th>${STATUSORDNING.map(st => `<td class="tal"><strong>${s.status[st]}</strong></td>`).join('')}<td class="tal"><strong>${d.poster.length}</strong></td></tr></tfoot>
     </table></div>
+    <details class="sussa-om sussa-viktning"><summary>Så viktade Sussa kriterierna</summary>
+      <p>${v.antalViktade} utvärderingskriterier har en vikt i viktningsträdet (bilaga F1:1). Ett kriteriums vikt är dess andel av hela kvalitetsbedömningen: produkten av vikterna för kapitlet, avsnittet och kriteriet. Kriterierna väger tillsammans ${esc(procent(v.summaKriterier, 0))} och användbarhetstesterna ${esc(procent(v.modell.anvandbarhetstester, 0))}. Kvaliteten vägdes mot priset ${v.modell.funktion * 100} mot ${v.modell.pris * 100}: varje kriterium som inte fick full poäng gav ett prispåslag, där hela påslaget var medelpriset för anbuden gånger ${String(v.modell.prispaslagFaktor).replace('.', ',')}, ${esc(kronor(v.modell.prispaslag))}.</p>
+      <p>Vikterna stämmer med Cambios prispåslag per kriterium i bilaga 6a till upphandlingsrapporten, utom för 9.1.1.2 och 9.1.1.3. Där räknade utvärderingen med vikterna i omvänd ordning mot viktningsträdet.</p>
+      <p class="liten">Källa: ${esc(v.kalla)}. Betygen: ${esc(v.kallaBetyg)} och ${esc(v.kallaMotivering)}.</p>
+    </details>
+    <details class="sussa-om sussa-a1"><summary>Avtalet och Cambios svar</summary>
+      <p>Den avtalade specifikationen är bilaga A1 till avtalet om köp. Den består av sju delar:</p>
+      <ul class="sussa-a1-delar">${a.a1.delar.map(x => `<li><span class="krav-id">${esc(x.id)}</span> ${esc(x.namn)}. <span class="tagg tagg-a1-${esc(x.finns)}">${esc({ ja: 'Finns', delvis: 'Finns delvis', nej: 'Finns inte' }[x.finns])}</span> <span class="dampad">${esc(x.var)}</span></li>`).join('')}</ul>
+      <p>${esc(a.a1.senare)}</p>
+      <p>Cambio kryssade ja på ${a.summa.ja} av ${d.poster.length} poster. ${a.summa.sammanfattade} beskrivande svar går att läsa och är sammanfattade här, ${a.summa.maskerade} är maskerade i den utlämnade handlingen och ${a.summa.delvisMaskerade} är delvis maskerat.</p>
+      <p class="liten">Källa: ${esc(a.kalla)}. ${esc(d.signalkallor.ab32.namn)}, ${esc(d.signalkallor.ab32.datum)}. ${esc(d.signalkallor.at3.namn)}, undertecknad ${esc(d.signalkallor.at3.datum)}.</p>
+    </details>
+    <p class="sussa-genvag"><a class="knapp sekundar liten" id="sf-arbetslista" href="${ARBETSLISTA}">De tio högst viktade kriterierna som inte är uppfyllda</a></p>
     <form class="sussa-filter" role="search" aria-label="Filtrera Sussas krav">
       <div class="falt-rad">
-        <div class="falt"><label for="sf-kapitel">Kapitel</label><select id="sf-kapitel" name="kapitel"><option value="">Alla kapitel</option>${d.kapitel.map(k => `<option value="${esc(k.nr)}"${k.ingar ? '' : ' disabled'}${val.kapitel === k.nr ? ' selected' : ''}>${esc(`${k.nr} ${k.rubrik}`)}${k.ingar ? '' : ' (ingår inte i utdraget)'}</option>`).join('')}</select></div>
-        <div class="falt"><label for="sf-status">Status</label><select id="sf-status" name="status"><option value="">Alla</option>${STATUSORDNING.map(st => `<option value="${st}"${val.status === st ? ' selected' : ''}>${esc(STATUS[st])}</option>`).join('')}</select></div>
-        <div class="falt"><label for="sf-kategori">Kategori</label><select id="sf-kategori" name="kategori"><option value="">Alla</option>${Object.entries(KATEGORI).map(([k, t]) => `<option value="${k}"${val.kategori === k ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
+        ${valj('spec', 'Specifikation', 'Båda', SPECIFIKATION)}
+        ${valj('kapitel', 'Kapitel', 'Alla kapitel', Object.fromEntries(d.kapitel.map(k => [k.nr, `${k.nr} ${k.rubrik}`])))}
+        ${valj('status', 'Status', 'Alla', ARBETS_STATUS)}
+        ${valj('kategori', 'Kategori', 'Alla', KATEGORI)}
+        ${valj('typ', 'Typ', 'Alla', TYP)}
+        ${valj('avtal', 'Avtalet 2022', 'Alla', AVTALSFILTER)}
+        ${valj('sortera', 'Ordning', 'Som i dokumentet', { vikt: 'Högst vikt först' })}
         <div class="falt bred"><label for="sf-sok">Sök på id eller text</label><input id="sf-sok" name="sok" type="search" autocomplete="off" value="${esc(val.sok)}" placeholder="Till exempel 3.5.2.6 eller ordinationsorsak"></div>
       </div>
     </form>
@@ -109,39 +142,60 @@ async function visaSussa(yta, q) {
   const antal = yta.querySelector('#sf-antal');
   const rita = () => {
     const sok = normal(val.sok.trim());
-    const urval = d.poster.filter(p => (!val.kapitel || p.kapitel === val.kapitel) && (!val.status || p.status === val.status)
-      && (!val.kategori || p.kategori === val.kategori)
-      && (!sok || p.id.startsWith(sok) || normal(`${p.rubrik} ${p.text} ${p.mervarden.join(' ')} ${p.losning ?? ''}`).includes(sok)));
-    antal.textContent = `Visar ${urval.length} av ${d.poster.length} poster.`;
+    let urval = d.poster.filter(p => (!val.spec || (val.spec === 'drift') === p.kapitel.startsWith('KD'))
+      && (!val.kapitel || p.kapitel === val.kapitel)
+      && (!val.status || (val.status === 'ej' ? p.status !== 'uppfyllt_demo' : p.status === val.status))
+      && (!val.kategori || p.kategori === val.kategori) && (!val.typ || p.typ === val.typ)
+      && (!val.avtal || (val.avtal === 'nagot' ? p.signaler.length > 0 : p.signaler.some(x => x.typ === val.avtal)))
+      && (!sok || p.id.toLocaleLowerCase('sv-SE').startsWith(sok) || normal(`${p.rubrik} ${p.text} ${p.mervarden.join(' ')} ${p.losning ?? ''} ${p.avtal?.sammanfattning ?? ''}`).includes(sok)));
+    const totalt = urval.length;
+    if (val.sortera === 'vikt') urval = [...urval].sort((x, y) => (x.viktRang ?? 1e9) - (y.viktRang ?? 1e9));
+    if (topp) urval = urval.slice(0, topp);
+    antal.innerHTML = topp && totalt > urval.length
+      ? `Visar de ${urval.length} första av ${totalt} poster. <a href="#" id="sf-visa-alla">Visa alla ${totalt}</a>`
+      : `Visar ${urval.length} av ${d.poster.length} poster.`;
+    if (val.sortera === 'vikt') {
+      lista.innerHTML = urval.length ? `<section class="kravgrupp" aria-labelledby="sa-vikt"><h2 id="sa-vikt">${topp ? `De ${urval.length} högst viktade` : 'Högst vikt först'}</h2>
+        <ol class="kravlista sussa-rang">${urval.map(sussaRad).join('')}</ol></section>` : '<p class="tom">Inga poster matchar filtret.</p>';
+      return;
+    }
     const grupper = [];
     for (const p of urval) {
       if (grupper.at(-1)?.id !== p.avsnitt) grupper.push({ id: p.avsnitt, poster: [] });
       grupper.at(-1).poster.push(p);
     }
     lista.innerHTML = grupper.map(g => {
-      const a = avsnitt.get(g.id);
-      return `<section class="kravgrupp" aria-labelledby="sa-${esc(g.id)}"><h2 id="sa-${esc(g.id)}"><span class="krav-id">${esc(g.id)}</span> ${esc(a?.rubrik ?? '')}</h2>
-        ${a?.sammanfattning ? `<details class="sussa-om"><summary>Om avsnittet</summary><p>${esc(a.sammanfattning)}</p></details>` : ''}
+      const av = avsnitt.get(g.id);
+      return `<section class="kravgrupp" aria-labelledby="sa-${esc(g.id)}"><h2 id="sa-${esc(g.id)}"><span class="krav-id">${esc(g.id)}</span> ${esc(av?.rubrik ?? '')}</h2>
+        ${av?.sammanfattning ? `<details class="sussa-om"><summary>Om avsnittet</summary><p>${esc(av.sammanfattning)}</p></details>` : ''}
         <ul class="kravlista">${g.poster.map(sussaRad).join('')}</ul></section>`;
     }).join('') || '<p class="tom">Inga poster matchar filtret.</p>';
   };
   const spara = () => {
-    const qs = new URLSearchParams(Object.entries(val).filter(([, v]) => v)).toString();
+    const qs = new URLSearchParams([...Object.entries(val).filter(([, x]) => x), ...(topp ? [['topp', String(topp)]] : [])]).toString();
     try { history.replaceState(null, '', `#/krav${qs ? `?${qs}` : ''}`); } catch { /* adressen kan inte ändras */ }
   };
   form.addEventListener('input', (e) => {
     if (!(e.target.name in val)) return;
     val[e.target.name] = e.target.value;
+    topp = 0;
     spara();
     rita();
   });
   form.addEventListener('submit', (e) => e.preventDefault());
+  antal.addEventListener('click', (e) => {
+    if (e.target.id !== 'sf-visa-alla') return;
+    e.preventDefault();
+    topp = 0;
+    spara();
+    rita();
+  });
   // Detaljerna fylls i först när en post öppnas.
   lista.addEventListener('toggle', (e) => {
     const el = e.target;
     if (!el.matches?.('details.sussapost') || !el.open) return;
     const del = el.querySelector('.sussa-detalj');
-    if (!del.dataset.fylld) { del.innerHTML = sussaDetalj(perId.get(el.dataset.id)); del.dataset.fylld = '1'; }
+    if (!del.dataset.fylld) { del.innerHTML = sussaDetalj(perId.get(el.dataset.id), d); del.dataset.fylld = '1'; }
   }, true);
   rita();
   const oppna = q.get('post');
@@ -150,20 +204,59 @@ async function visaSussa(yta, q) {
   if (el) { el.open = true; setTimeout(() => { el.querySelector('summary').focus({ preventScroll: true }); el.scrollIntoView({ block: 'start' }); }, 0); }
 }
 
+const signalTagg = (x) => `<span class="tagg tagg-${esc(x.typ)}">${esc(AVTALSFILTER[x.typ])}</span>`;
+
 function sussaRad(p) {
+  const taggar = [p.vikt != null ? `<span class="tagg tagg-vikt" title="Plats ${p.viktRang} av de viktade kriterierna">Vikt ${esc(procent(p.vikt))}</span>` : '', ...p.signaler.map(signalTagg)].filter(Boolean).join('');
   return `<li class="krav krav-${esc(p.status)}"><details class="sussapost" data-id="${esc(p.id)}">
-    <summary><span class="krav-id">${esc(p.id)}</span><span class="sussa-rubrik"><strong>${esc(p.rubrik)}</strong><span class="under-text">${esc(TYP[p.typ] ?? p.typ)}${p.kategori === 'system' ? '' : `, ${esc(KATEGORI[p.kategori].toLowerCase())}`}</span></span><span class="kravstatus kravstatus-${esc(p.status)}">${esc(STATUS[p.status])}</span></summary>
+    <summary><span class="krav-id">${esc(p.id)}</span><span class="sussa-rubrik"><strong>${esc(p.rubrik)}</strong><span class="under-text">${esc(TYP[p.typ] ?? p.typ)}${p.kategori === 'system' ? '' : `, ${esc(KATEGORI[p.kategori].toLowerCase())}`}</span>${taggar ? `<span class="sussa-taggar">${taggar}</span>` : ''}</span><span class="kravstatus kravstatus-${esc(p.status)}">${esc(STATUS[p.status])}</span></summary>
     <div class="sussa-detalj"></div>
   </details></li>`;
 }
 
-function sussaDetalj(p) {
+const sida = (k) => `${esc(k.fil)}, sida ${esc(String(k.sida))}`;
+
+// Vikten i utvärderingen och Sussas betyg på Cambios svar (K2).
+function viktDel(p, d) {
+  if (p.vikt == null) return p.typ === 'utvarderingskriterium' ? '<h3>Vikt i utvärderingen</h3><p>Kriteriet har ingen vikt. Beskrivningen utvärderades inte.</p>' : '';
+  const b = p.betyg;
+  return `<h3>Vikt i utvärderingen</h3>
+    <p>${esc(procent(p.vikt))} av kvalitetsbedömningen, plats ${p.viktRang} av ${d.viktning.antalViktade} viktade kriterier.${b?.viktIUtvarderingen != null ? ` Utvärderingen räknade med ${esc(procent(b.viktIUtvarderingen))}, i omvänd ordning mot viktningsträdet.` : ''}</p>
+    ${b ? `<p>Cambios svar fick ${b.poang} av 10 poäng${b.prispaslag ? `, vilket gav ett prispåslag på ${esc(kronor(b.prispaslag))}` : ' och inget prispåslag'}.</p>
+    <p class="liten dampad">Källa: ${esc(d.viktning.kallaBetyg)}, sida ${b.sida}${b.motivering ? `. Sussas motivering: ${esc(d.viktning.kallaMotivering)}, sida ${b.motivering}` : ''}.</p>` : ''}`;
+}
+
+// Cambios svar i anbudet, avtalets bilaga A1.6 (K2).
+function svarDel(p) {
+  const s = p.avtal;
+  if (!s) return '';
+  const svar = s.svar === 'ja' ? 'Cambio svarade ja.' : s.svar === 'nej' ? 'Cambio svarade nej.' : 'Posten har inget kryss att svara ja eller nej på.';
+  const text = s.sammanfattning ? `<p>${esc(s.sammanfattning)}</p>`
+    : s.maskerat === 'helt' ? '<p class="sussa-maskerat">Cambios beskrivning är maskerad i den utlämnade handlingen.</p>' : '';
+  const kallor = [`Kryss: ${sida(s.kryss)}`, ...s.beskrivning.map(b => `${b.maskerad ? 'Maskerad beskrivning' : 'Beskrivning'}: ${sida(b)}`)];
+  return `<h3>Cambios svar i anbudet</h3>
+    <p><strong>${esc(svar)}</strong>${s.maskerat === 'delvis' ? ' En del av beskrivningen är maskerad.' : ''}</p>
+    ${text}
+    <p class="liten dampad">${kallor.map(k => esc(k)).join('. ')}.</p>`;
+}
+
+// Det som togs bort ur avtalet eller sköts upp 2022 (K3).
+function signalDel(p) {
+  if (!p.signaler.length) return '';
+  return `<h3>Avtalet 2022</h3><ul class="enkel-lista sussa-signaler">${p.signaler.map(x => `<li>${signalTagg(x)} ${esc(x.varfor)}${x.datum ? ` <span class="dampad">Ny leveransdag: ${esc(x.datum.join(', '))}.</span>` : ''}
+    <span class="liten dampad under-text">Källa: ${x.kallor.map(k => `${esc(k.dokument)}, ${k.sidor.length > 1 ? 'sidorna' : 'sida'} ${esc(k.sidor.join(', '))}`).join('. ')}.</span></li>`).join('')}</ul>`;
+}
+
+function sussaDetalj(p, d) {
   const egna = p.egna.length ? `<ul class="enkel-lista">${p.egna.map(e => `<li><a href="#/krav?vy=egna">${esc(e.id)}</a> ${esc(e.rubrik ?? '')}${e.status ? ` <span class="kravstatus kravstatus-${esc(e.status)}">${esc(STATUS[e.status])}</span>` : ''}</li>`).join('')}</ul>` : '<p class="dampad">Inga kopplade egna krav.</p>';
   return `<div class="sussa-innehall">
-    <p class="dampad liten">${esc(TYP[p.typ] ?? p.typ)}, sida ${esc(p.sida)} i kravspecifikationen. ${esc(KATEGORI_FORKLARING[p.kategori] ?? '')}</p>
+    <p class="dampad liten">${esc(TYP[p.typ] ?? p.typ)}${p.sida ? `, sida ${esc(p.sida)} i kravspecifikationen` : ''}. ${esc(KATEGORI_FORKLARING[p.kategori] ?? '')}</p>
     <h3>Kravtext</h3><p class="sussa-text">${esc(p.text)}</p>
     ${p.mervarden.length ? `<h3>Mervärden som bedöms</h3><ul>${p.mervarden.map(m => `<li>${esc(m)}</li>`).join('')}</ul>` : ''}
     ${p.kompletterar.length ? `<p class="liten">Hänger ihop med ${p.kompletterar.map(id => `<a href="#/krav?post=${encodeURIComponent(id)}">${esc(id)}</a>`).join(', ')}.</p>` : ''}
+    ${viktDel(p, d)}
+    ${svarDel(p)}
+    ${signalDel(p)}
     <h3>Vårdkällans lösning</h3><p>${p.losning ? esc(p.losning) : 'Inte byggt i Vårdkällan.'}</p>
     ${p.expert ? `<h3>Hur systemet är experten</h3><p>${esc(p.expert)}</p>` : ''}
     ${p.anmarkning ? `<h3>Det som saknas eller är simulerat</h3><p>${esc(p.anmarkning)}</p>` : ''}
@@ -171,6 +264,28 @@ function sussaDetalj(p) {
     <h3>Tester</h3>${p.tester.length ? `<ul class="testrader">${testrader(p.tester)}</ul>` : '<p class="dampad">Inga automatiska tester än, därför planerad.</p>'}
     <h3>Kopplade egna krav</h3>${egna}
   </div>`;
+}
+
+// Bör-krav och målbild som en egen backlogg (K5). Varje rad hänger ihop med poster i Sussas kravspecifikation.
+async function visaBor(yta) {
+  yta.innerHTML = '<p class="tom">Hämtar bör-krav och målbild.</p>';
+  const d = await api('/api/krav/sussa');
+  const perId = new Map(d.poster.map(p => [p.id, p]));
+  const rad = (b) => `<li class="krav krav-${esc(b.status)}">
+    <div class="krav-huvud"><span class="krav-id">${esc(b.id)}</span><h3>${esc(b.text)}</h3><span class="kravstatus kravstatus-${esc(b.status)}">${esc(STATUS[b.status])}</span></div>
+    <p class="krav-kalla">Källa: ${esc(b.kalla)}.</p>
+    <ul class="enkel-lista bor-poster">${b.poster.map(id => { const p = perId.get(id); return `<li><a href="#/krav?post=${encodeURIComponent(id)}">${esc(id)}</a> ${esc(p?.rubrik ?? '')}${p ? ` <span class="kravstatus kravstatus-${esc(p.status)}">${esc(STATUS[p.status])}</span>` : ''}</li>`; }).join('')}</ul>
+  </li>`;
+  const grupp = (typ, rubrik, ingress) => {
+    const g = d.borkrav.filter(b => b.typ === typ);
+    return `<section class="kravgrupp" aria-labelledby="bor-${typ}"><h2 id="bor-${typ}">${esc(rubrik)} <span class="antal">${g.length}</span></h2><p class="dampad liten">${esc(ingress)}</p><ul class="kravlista">${g.map(rad).join('')}</ul></section>`;
+  };
+  yta.innerHTML = `<div class="ingress-block">
+      <p>Det som kravspecifikationen önskar utan att kräva det, och målbilden som kraven ska leda mot, som en egen lista. Varje rad pekar på de poster i Sussas kravspecifikation som den hänger ihop med, och statusen följer posterna: uppfyllt i demon när alla poster är det, planerat när alla är planerade och annars delvis.</p>
+      <p class="liten">Meningar med bör som bara anvisar hur anbudssvaret skulle skrivas, till exempel sidantal, finns inte med.</p>
+    </div>
+    ${grupp('bor', 'Bör-krav', 'Önskemål med ordet bör i kravspecifikationen.')}
+    ${grupp('malbild', 'Målbild', 'Målbilden i kapitel 1 och de avsnitt där beställaren beskriver sin målbild.')}`;
 }
 
 // Testerna av gränssnittet körs i en webbläsare med Playwright före bygget, inte i själva bygget.

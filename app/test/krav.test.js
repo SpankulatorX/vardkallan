@@ -20,16 +20,20 @@ describe('Kravregistret', () => {
     for (const id of ['D12', 'L8', 'L10', 'L11']) expect(KRAV.find(k => k.id === id).status).toBe('planerat');
     for (const id of ['D6', 'L4', 'L5']) expect(KRAV.find(k => k.id === id).status).toBe('delvis');
     // K1 omfattar nu hela Sussas kravspecifikation med originalnummer, med Sussa-registrets tester.
-    // K2 väntar på bilaga A1 och K3 på bilaga 1 till Tilläggsavtal 3.
-    const [k1, k2, k3] = ['K1', 'K2', 'K3'].map(id => KRAV.find(k => k.id === id));
+    // Runda 7, r7: K2 kopplar varje post till Cambios svar men saknar leverantörens FVIS-kravlista, K3 och K5 är byggda.
+    const [k1, k2, k3, k5] = ['K1', 'K2', 'K3', 'K5'].map(id => KRAV.find(k => k.id === id));
     expect(k1.status).toBe('delvis');
     expect(k1.anmarkning).toContain('originalnummer finns nu för kapitel 1 till 12');
     expect(k1.anmarkning).toContain('originaldokument');
     expect(k1.tester.filter(t => t.startsWith('Sussa-registret > ')).length).toBeGreaterThanOrEqual(3);
-    expect(k2).toMatchObject({ status: 'planerat', tester: [] });
+    expect(k2.status).toBe('delvis');
+    expect(k2.tester.filter(t => t.startsWith('Sussa-avtalet > ')).length).toBeGreaterThanOrEqual(3);
     expect(k2.anmarkning).toContain('bilaga A1');
-    expect(k3).toMatchObject({ status: 'planerat', tester: [] });
-    expect(k3.anmarkning).toContain('begärdes ut från Konkurrensverket 2026-11-03');
+    expect(k2.anmarkning).toContain('FVIS');
+    expect(k3.status).toBe('uppfyllt_demo');
+    expect(k3.anmarkning).toContain('Tilläggsavtal 3');
+    expect(k5.status).toBe('uppfyllt_demo');
+    expect(k5.tester.length).toBeGreaterThan(0);
     const d4 = KRAV.find(k => k.id === 'D4');
     expect(d4.status).toBe('uppfyllt_demo');
     expect(d4.anmarkning).toContain('Simulerat: SITHS-kortet och dess PIN-räknare');

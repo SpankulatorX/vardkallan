@@ -392,11 +392,12 @@ const MENY = {
       await gaTill(page, '#/krav');
       await forvanta(page, '.flikar a[aria-current="page"]', 'Sussas kravspecifikation');
       await forvanta(page, '.testkorning', 'tester gröna');
-      await forvanta(page, '.sussa-utdrag', 'Kapitel 7 till 10 och 12 ingår inte i utdraget');
+      // Runda 7, r7: hela specifikationen ingår, och ingen text säger längre att kapitel saknas.
+      if (await page.locator('.sussa-utdrag').count()) throw new Error('rutan om kapitel som saknas finns kvar');
       await forvanta(page, '.ingress-block', 'dnr 16RS2022');
       await forvanta(page, '.sussa-summa tfoot', 'Totalt');
-      await forvanta(page, '#sf-antal', 'Visar 305 av 305 poster.');
-      if (!(await page.locator('#sf-kapitel option[value="7"]').isDisabled())) throw new Error('kapitel 7 går att välja fast det inte ingår');
+      await forvanta(page, '#sf-antal', 'Visar 389 av 389 poster.');
+      if (await page.locator('#sf-kapitel option[value="7"]').isDisabled()) throw new Error('kapitel 7 går inte att välja');
       await page.evaluate(() => document.getElementById('notiser').replaceChildren());
       await bild(page, '60-sussa-krav');
       // Kapitel, status och kategori filtrerar listan och sparas i adressen.
@@ -412,7 +413,7 @@ const MENY = {
       if (!kategorier.length || kategorier.some(t => !t.includes('nationell tjänst'))) throw new Error('kategorifiltret visade andra kategorier');
       await page.selectOption('#sf-kategori', '');
       await page.fill('#sf-sok', '3.5.2.6');
-      await forvanta(page, '#sf-antal', 'Visar 1 av 305 poster.');
+      await forvanta(page, '#sf-antal', 'Visar 1 av 389 poster.');
       if (!page.url().includes('sok=3.5.2.6')) throw new Error(`filtret sparades inte i adressen: ${page.url()}`);
       await page.fill('#sf-sok', 'vätskebalans');
       if ((await page.locator('details.sussapost').count()) < 3) throw new Error('textsökningen hittade för få poster');
@@ -434,7 +435,63 @@ const MENY = {
       await page.click('details.sussapost[data-id="11.2.1.1"] > summary');
       await forvanta(page, 'details.sussapost[data-id="11.2.1.1"] .sussa-innehall', 'Posten gäller leverantören');
     });
-    await s('Sara: det egna ramverket finns kvar som andra flik, med filter på status', async () => {
+    // Runda 7, r7: driftspecifikationen som eget filter, vikt, Cambios svar, avtalets signaler och bör-kraven (K2, K3, K5).
+    await s('Sara: kravsidan visar vikt, Cambios svar och vad som togs bort eller sköts upp i avtalet', async () => {
+      await gaTill(page, '#/krav');
+      await page.selectOption('#sf-spec', 'drift');
+      const drift = await page.locator('details.sussapost').evaluateAll(d => d.map(x => x.dataset.id));
+      if (drift.length !== 52 || drift.some(id => !id.startsWith('KD1.'))) throw new Error(`driftfiltret visade ${drift.length} poster, först ${drift[0]}`);
+      await page.selectOption('#sf-spec', '');
+      // Sortering på vikt: det högst viktade kriteriet först, med vikten i raden.
+      await page.selectOption('#sf-typ', 'utvarderingskriterium');
+      await page.selectOption('#sf-sortera', 'vikt');
+      const forsta = page.locator('#sussa-lista details.sussapost').first();
+      if (await forsta.getAttribute('data-id') !== 'KD1.1.1.9') throw new Error('det högst viktade kriteriet står inte först');
+      await forvanta(page, '#sussa-lista details.sussapost[data-id="KD1.1.1.9"] summary', 'Vikt 4,64 %');
+      await page.click('details.sussapost[data-id="KD1.1.1.9"] > summary');
+      const kd = page.locator('details.sussapost[data-id="KD1.1.1.9"] .sussa-innehall');
+      for (const t of ['Vikt i utvärderingen', 'plats 1 av 200', 'Cambios svar fick 2 av 10 poäng', 'Cambios svar i anbudet', 'Cambio svarade ja']) await kd.filter({ hasText: t }).waitFor({ timeout: 8000 });
+      // Ett omaskerat svar i kapitel 3 är sammanfattat med fil och sida, ett maskerat är märkt.
+      await gaTill(page, '#/krav?post=3.1.1.3');
+      const p3 = page.locator('details.sussapost[open][data-id="3.1.1.3"] .sussa-innehall');
+      for (const t of ['reservnummer', 'CAMBIO Anbudssvar_KAP03_3.1.1.3.pdf, sida', 'Kryss: CAMBIO Kravspecifikation Kapitel 3']) await p3.filter({ hasText: t }).waitFor({ timeout: 8000 });
+      await gaTill(page, '#/krav?post=3.2.2.3');
+      await forvanta(page, 'details.sussapost[open][data-id="3.2.2.3"] .sussa-maskerat', 'maskerad i den utlämnade handlingen');
+      // Signalerna: CIS togs bort ur avtalet 2022 och delar av 3.4.3.3 sköts upp.
+      await gaTill(page, '#/krav?avtal=exkluderat');
+      await forvanta(page, '#sussa-lista details.sussapost[data-id="4.6.1.2"] summary', 'Exkluderat ur avtalet 2022');
+      await page.click('details.sussapost[data-id="4.6.1.2"] > summary');
+      await forvanta(page, 'details.sussapost[data-id="4.6.1.2"] .sussa-signaler', 'ÄB32');
+      await gaTill(page, '#/krav?post=3.4.3.3');
+      await forvanta(page, 'details.sussapost[open][data-id="3.4.3.3"] .sussa-signaler', 'Ny leveransdag: 2023-12-15');
+      // Bilaga A1 och viktningen förklaras ovanför filtren.
+      await page.click('.sussa-a1 > summary');
+      await forvanta(page, '.sussa-a1', 'A1.1');
+      await forvanta(page, '.sussa-a1', 'Finns inte');
+      await page.click('.sussa-viktning > summary');
+      await forvanta(page, '.sussa-viktning', '9.1.1.2 och 9.1.1.3');
+      await page.evaluate(() => document.getElementById('notiser').replaceChildren());
+      await bild(page, '63-sussa-avtal');
+      // Genvägen till de tio högst viktade som inte är uppfyllda, och tillbaka till hela urvalet.
+      await page.click('#sf-arbetslista');
+      await forvanta(page, '#sa-vikt', 'De 10 högst viktade');
+      if ((await page.locator('#sussa-lista details.sussapost').count()) !== 10) throw new Error('genvägen visade inte tio poster');
+      if (await page.locator('#sussa-lista .krav-uppfyllt_demo').count()) throw new Error('genvägen visade uppfyllda poster');
+      await page.click('#sf-visa-alla');
+      await forvanta(page, '#sf-antal', 'Visar');
+      if ((await page.locator('#sussa-lista details.sussapost').count()) <= 10) throw new Error('Visa alla visade inte hela urvalet');
+      // Bör-krav och målbild som egen flik, kopplad till posterna.
+      await page.click('.flikar a:has-text("Bör-krav och målbild")');
+      await page.waitForURL(/vy=bor$/);
+      await forvanta(page, '#bor-bor', 'Bör-krav');
+      await forvanta(page, '#bor-malbild', 'Målbild');
+      await forvanta(page, '.kravgrupp', 'Ekonomisk information bör kunna visualiseras');
+      await page.locator('.bor-poster a[href="#/krav?post=7.1.2.1"]').first().click();
+      await forvanta(page, 'details.sussapost[open][data-id="7.1.2.1"] .sussa-innehall', 'Kravtext');
+      await gaTill(page, '#/krav?vy=bor');
+      await bild(page, '64-bor-krav');
+    });
+    await s('Sara: det egna ramverket finns kvar som egen flik, med filter på status', async () => {
       await gaTill(page, '#/krav');
       await page.click('.flikar a:has-text("Eget ramverk")');
       await page.waitForURL(/vy=egna$/);
@@ -446,7 +503,7 @@ const MENY = {
       await page.click('.delflikar a:has-text("Alla")');
       await page.waitForURL(/vy=egna$/);
       await forvanta(page, '.delflikar a[aria-current]', 'Alla');
-      await forvanta(page, '.krav-anm', 'originalnummer finns nu för kapitel 1 till 6 och 11');
+      await forvanta(page, '.krav-anm', 'originalnummer finns nu för kapitel 1 till 12');
       await page.locator('.testlista summary').first().click();
       await bild(page, '14-kravsparbarhet');
     });
@@ -1267,7 +1324,7 @@ const MENY = {
       await forvanta(page, 'main h1', 'Användartest');
       await forvanta(page, '.at-info', 'Alla patienter i demon är påhittade');
       await page.fill('#at-kod', 'G01');
-      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut', 'sok-journal', 'news2', 'ordinera-mall', 'dos-efterhand', 'utse-mal', 'godkanna-mall', 'extern-tillampning', 'boka-ingrepp', 'boka-kedja']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut', 'sok-journal', 'news2', 'ordinera-mall', 'dos-efterhand', 'utse-mal', 'godkanna-mall', 'extern-tillampning', 'boka-ingrepp', 'boka-kedja', 'kravviktning']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');
@@ -1337,7 +1394,7 @@ const MENY = {
         }
       });
       await s('mobil: Sussas kravspecifikation på 360 px', async () => {
-        await mp.goto(`${BAS}/#/krav`); await mp.waitForSelector('#sf-antal:has-text("Visar 305")');
+        await mp.goto(`${BAS}/#/krav`); await mp.waitForSelector('#sf-antal:has-text("Visar 389")');
         await ingenSidledsrullning('Sussas krav');
         await mp.selectOption('#sf-status', 'uppfyllt_demo');
         await mp.waitForSelector('details.sussapost');
