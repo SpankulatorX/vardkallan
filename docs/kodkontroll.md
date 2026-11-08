@@ -244,10 +244,15 @@ Källa: Klassifikation av vårdåtgärder (KVÅ) 2026, giltig från 2026-01-01, 
 | QD008 | Övervakning av vitala tecken | en hel NEWS2-kontroll registreras |
 | PA001 | Bedömning av medvetandefunktioner | GCS registreras |
 | XV015 | Läkemedelsgenomgång, enkel, enligt Socialstyrelsens föreskrift och allmänna råd | en läkemedelsgenomgång sparas |
+| DV111 | Enkla råd om tobaks- och nikotinbruk | en anteckning om tobaksvanor signeras med enkla råd givna vid besöket (runda 8) |
+| DV112 | Rådgivande samtal om tobaks- och nikotinbruk | som ovan, rådgivande samtal |
+| DV113 | Kvalificerat rådgivande samtal om tobaks- och nikotinbruk | som ovan, kvalificerat rådgivande samtal |
 
 OID: urn:oid:1.2.752.116.1.3.2.1.4, som står som aktiv för Klassifikation av vårdåtgärder (KVÅ) i Socialstyrelsens OID-serie (socialstyrelsens-oid-serie-2025-10-17.xlsx, länkad från socialstyrelsen.se/statistik-och-data/klassifikationer-och-koder/andra-kodverk/oid/, hämtad 2026-11-03, sha256 169cc3108f2469a576478922fe4e3e09590dbf1762b9b5507075c795616aaa44). Äldre OID:er för filerna med koder och kodtexter (till exempel 1.2.752.116.1.3.2.3.4) står som inaktiva i samma fil. HL7:s terminologiserver har inte KVÅ, så validatorn kan inte kontrollera koderna.
 
-Andra koder som passar men inte används än: DF026 Elkonvertering, defibrillering av förmaksflimmer, planerat (för vårdhändelsen elkonvertering), XV016 Läkemedelsgenomgång, fördjupad och XV017 Läkemedelsberättelse.
+DV111 till DV113 kontrollerades 2026-11-08 i samma fil (samma sha256). Socialstyrelsens Indikatorer för vård vid ohälsosamma levnadsvanor 2024 (2024-11-9207, sha256 2473b19a6ac87853a547c89f49c4d13c5a13901e21abb7a996001c8028a72a70) anger samma tre koder för indikatorn rådgivning vid daglig rökning. Rekommendationerna som förslaget följer är ur Nationella riktlinjer 2024, Vård vid ohälsosamma levnadsvanor, prioriteringsstöd (2024-11-9272, sha256 df59fc17fee6bde8aaa455158842787a4b6ae92b014cb47beb9eaf26256dc3a0), avsnittet Tobaks- och nikotinbruk. Frågorna är ur Vägledning för enhetlig dokumentation av en persons levnadsvanor, version 3 (2026-01-14, sha256 6e99cb59922b121d74414b8cf90e05e4e7dda1921f702e3dc0fd31e9df131d1b), och Snomed CT-koderna för produkterna och användningen ur Struktur och kodning för svar på frågor om en persons levnadsvanor, version 1.2 (sha256 421ae073b9c3caa0165573b97670c013f726bc515cac697090e01a11be73f399), båda från kunskapsstyrningvard.se. Snomed CT-koderna är inte kontrollerade mot den gällande utgåvan av Snomed CT, som kräver licens.
+
+Andra koder som passar men inte används än: AW042 Uppföljning av åtgärd vid tobaks- och nikotinbruk, DF026 Elkonvertering, defibrillering av förmaksflimmer, planerat (för vårdhändelsen elkonvertering), XV016 Läkemedelsgenomgång, fördjupad och XV017 Läkemedelsberättelse.
 
 ## Rapportering till myndigheter och register (runda 7, r5, 2026-11-08)
 

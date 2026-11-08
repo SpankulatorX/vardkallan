@@ -6,6 +6,88 @@
       "datum": "2026-11-08",
       "nyheter": [
         {
+          "id": "tobaksvanor",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "fysioterapeut"
+          ],
+          "omfattning": "stor",
+          "var": "#/arbetslista",
+          "rubrik": "Tobaksvanor med fasta svarsalternativ",
+          "text": "Översikten visar Tobak och nikotin. Välj Dokumentera tobaksvanor och svara på frågorna. Systemet föreslår stödet enligt Socialstyrelsens riktlinjer och registrerar åtgärden med KVÅ-kod när samtalet har hållits."
+        },
+        {
+          "id": "epikris-forslag",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "stor",
+          "rubrik": "Epikrisen skrivs från vårdtillfället",
+          "text": "Välj Skriv epikris vid vårdtillfället i översikten. Systemet skriver orsaken till vården med diagnoserna och läkemedelsförändringarna, och du skriver förloppet och uppföljningen."
+        },
+        {
+          "id": "flera-matvarden",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska",
+            "fysioterapeut"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Längd, vikt, blodtryck och puls på en gång",
+          "text": "Under Mätvärden registrerar du de fyra vanligaste värdena i ett formulär med samma tid, och systemet räknar BMI."
+        },
+        {
+          "id": "tobak-las",
+          "roller": [
+            "underskoterska"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Tobaksvanorna i översikten",
+          "text": "Översikten visar den senaste dokumentationen av patientens tobaksvanor, som sjuksköterskan eller läkaren har skrivit."
+        },
+        {
+          "id": "egna-ovningar",
+          "roller": [
+            "verksamhetschef"
+          ],
+          "omfattning": "stor",
+          "var": "#/utbildning",
+          "rubrik": "Vårdenhetens egna övningar",
+          "text": "Under Utbildning lägger du till övningar som bara gäller din vårdenhet, utöver vårdgivarens. De får versioner och historik på samma sätt, och utbildarna på vårdenheten kan också ändra dem."
+        },
+        {
+          "id": "ovningar-vardenhet",
+          "roller": [
+            "personal"
+          ],
+          "omfattning": "liten",
+          "var": "#/utbildning",
+          "rubrik": "Övningar från din vårdenhet",
+          "text": "Din vårdenhet kan ha egna övningar utöver vårdgivarens. De står med vårdenhetens namn bland övningarna under Utbildning och ingår i intyget."
+        },
+        {
+          "id": "utloggning-parameter",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "stor",
+          "var": "#/regler",
+          "rubrik": "Utloggningen och barnhälsovårdsregistret som regler",
+          "text": "Tiden till utloggning är nu två regler under Regler och parametrar, en för personalen och en för Min journal, med kontroll av att värdet är rimligt och fyra ögon. Där finns också om barn med skyddade personuppgifter ska rapporteras till barnhälsovårdsregistret."
+        },
+        {
+          "id": "version-1-0",
+          "roller": [
+            "alla"
+          ],
+          "omfattning": "liten",
+          "var": "#/krav",
+          "rubrik": "Version och vägen till 1.0",
+          "text": "Överst på kravsidan står vilken version som körs och vad som återstår till version 1.0, räknat av systemet ur kravregistret, Sussas testfall och säkerhetsgranskningen."
+        },
+        {
           "id": "andra-dos",
           "roller": [
             "lakare"

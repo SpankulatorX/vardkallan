@@ -92,7 +92,7 @@ describe('Systemförvaltning', () => {
     expect(p['logg.stickprov_antal'].standard).toBe(logguppfoljning.STICKPROV_ANTAL);
     expect(p['arkiv.gallring_ar'].standard).toBe(arkiv.GALLRING_AR);
     expect(p['halsoarende.avsluta_dagar'].standard).toBe(halsoarende.DEMOREGEL_AVSLUTA_DAGAR);
-    for (const m of journal.MALLAR) expect(p[`journal.sokord.${m.typ}`].standard).toEqual(m.sokord);
+    for (const m of journal.MALLAR.filter(x => !x.strukturerad)) expect(p[`journal.sokord.${m.typ}`].standard).toEqual(m.sokord);
     // Varje parameter hör till ett av områdena i Sussa 12.1.1.6 till 12.1.1.9 och har en beskrivning.
     for (const d of Object.values(p)) { expect(Object.keys(konfiguration.OMRADEN)).toContain(d.omrade); expect(d.beskrivning.length).toBeGreaterThan(20); }
     const db = byggSeed();

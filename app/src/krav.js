@@ -9,6 +9,8 @@ import { KORNINGSTESTER as SUSSA_KORNINGAR, TEST_REGISTER as SUSSA_REGISTERTESTE
 // Runda 6, r6: testerna för ansvarsuppdragen och godkännandet av läkemedelsmallar.
 import { T as R6, TESTER_ANSVAR } from './sussa/lakemedelsansvar-r6.js';
 const TESTER_MALLAR = [R6.mallInkorg, R6.mallSakerhet, R6.substans, R6.kbMall];
+// Runda 8, r5: villkoren för version 1.0 överst på kravsidan (version.js).
+import { TESTER_VERSION } from './sussa/runda8-r5.js';
 
 const RAPPORT = 'Cosmic upphandling krav och kritik';
 const k = (id, rubrik, kalla, status, var_, tester = [], anmarkning = null) => ({ id, rubrik, kalla, status, var: var_, tester, anmarkning });
@@ -43,7 +45,7 @@ export const KRAV = [
   k('K1', 'Kravregister med id, källa, status och koppling till tester', `${RAPPORT}, Kravspårbarhet`, 'delvis', '/krav',
     [`${KR}alla krav K1 till K5, D1 till D12, L1 till L13 och M1 till M13 finns`, `${KR}status uppfyllt_demo bara när alla tester är gröna`, `${A}krav visar kravregistret`,
       `${SR}alla 389 id finns exakt en gång, och varje post har en mappning`, `${SR}uppfyllt_demo kräver gröna tester`, `${SR}källan anges och alla kapitel ingår`,
-      `${SR}API: krav/sussa ger registret utan inloggning, med egna krav och testernas status`],
+      `${SR}API: krav/sussa ger registret utan inloggning, med egna krav och testernas status`, ...TESTER_VERSION],
     'Sussas kravspecifikation med originalnummer finns nu för kapitel 1 till 12 och för driftspecifikationen: 389 poster, varav 201 utvärderingskriterier, i Sussa-registret med koppling till tester och till kraven här. Kapitel 1 till 6 och 11 kommer från Konkurrensverkets utdrag och resten från regionens originaldokument. Kraven K, D, L och M kommer från rapportens ramverk.'),
   // Runda 7, r7: Cambios svar, vikterna, avtalets signaler och bör-kraven (sussa/avtal.js).
   k('K2', 'Svarsmappning från kriterier till leverantörens FVIS-krav', `${RAPPORT}, Kravspårbarhet`, 'delvis', '/krav',

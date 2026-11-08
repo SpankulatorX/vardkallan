@@ -54,28 +54,32 @@ describe('Nyheter', () => {
 
   test('rutan visar bara den aktuella versionens nyheter för användarens roll, och historiken går att läsa igen', () => {
     const d = byggSeed();
-    // Runda 8: provas med versionerna till och med 0.7.0, som testet skrevs för, så att en senare version inte ändrar det.
-    const V07 = { versioner: nyheter.NYHETER.slice(nyheter.NYHETER.findIndex(v => v.version === '0.7.0')) };
-    const lak = nyheter.nyheter(d, pers(d, 'lak-kard'), V07);
-    expect(lak.version).toBe('0.7.0');
-    expect(lak.ruta.version).toBe('0.7.0');
-    expect(lak.ruta.nyheter.map(n => n.id)).toContain('hjalp-och-intyg');
+    const lak = nyheter.nyheter(d, pers(d, 'lak-kard'));
+    expect(lak.version).toBe(nyheter.AKTUELL);
+    expect(lak.ruta.version).toBe(nyheter.AKTUELL);
+    // Runda 8, r5: version 0.8.0 är den aktuella, och de tidigare versionernas nyheter läses i historiken.
+    expect(lak.ruta.nyheter.map(n => n.id)).toContain('tobaksvanor');
     // Verksamhetschefens nyhet visas inte för läkaren, och den stora förändringen står före den lilla.
-    expect(lak.ruta.nyheter.map(n => n.id)).not.toContain('intyg-enhet');
+    expect(lak.ruta.nyheter.map(n => n.id)).not.toContain('egna-ovningar');
     expect(lak.ruta.nyheter[0].omfattning).toBe('stor');
-    // Historiken har också den förra versionens nyheter för läkaren, men inte de som gäller andra roller.
-    expect(lak.alla.map(v => v.version)).toEqual(V07.versioner.map(v => v.version));
-    const forra = lak.alla[1].nyheter.map(n => n.id);
+    // Historiken har också de tidigare versionernas nyheter för läkaren, men inte de som gäller andra roller.
+    expect(lak.alla.map(v => v.version)).toEqual(nyheter.NYHETER.map(v => v.version));
+    const version = (x, v) => x.alla.find(y => y.version === v).nyheter.map(n => n.id);
+    expect(version(lak, '0.7.0')).toContain('hjalp-och-intyg');
+    expect(version(lak, '0.7.0')).not.toContain('intyg-enhet');
+    const forra = version(lak, '0.6.0');
     expect(forra).toContain('mallar');
     expect(forra).not.toContain('resurser');
     expect(forra).not.toContain('vardbegaran');
-    const vch = nyheter.nyheter(d, pers(d, 'vch-kard'), V07);
-    expect(vch.ruta.nyheter.map(n => n.id)).toEqual(expect.arrayContaining(['intyg-enhet', 'hjalp-och-intyg']));
+    const vch = nyheter.nyheter(d, pers(d, 'vch-kard'));
+    expect(vch.ruta.nyheter.map(n => n.id)).toEqual(expect.arrayContaining(['egna-ovningar', 'ovningar-vardenhet']));
+    expect(version(vch, '0.7.0')).toEqual(expect.arrayContaining(['intyg-enhet', 'hjalp-och-intyg']));
     // Invånaren ser det som gäller alla, men inte personalens nyheter.
-    const inv = nyheter.nyheter(d, { personal: null, invanare: { id: 'inv-p01' } }, V07);
+    const inv = nyheter.nyheter(d, { personal: null, invanare: { id: 'inv-p01' } });
     expect(inv.roll).toBe('invanare');
-    expect(inv.ruta.nyheter.map(n => n.id)).toEqual(['hog-kontrast', 'nyhetsrutan', 'utloggning']);
-    expect(inv.alla[1].nyheter.map(n => n.id)).toEqual(['vardbegaran']);
+    expect(inv.ruta.nyheter.map(n => n.id)).toEqual(['version-1-0']);
+    expect(version(inv, '0.7.0')).toEqual(['hog-kontrast', 'nyhetsrutan', 'utloggning']);
+    expect(version(inv, '0.6.0')).toEqual(['vardbegaran']);
   });
 
   test('rutan stängs per användare och version och kommer tillbaka vid nästa version', () => {

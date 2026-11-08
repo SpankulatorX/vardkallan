@@ -20,6 +20,8 @@ export const OMRADEN = {
   strukturerad: { rubrik: 'Strukturerad information', sussa: '12.1.1.7' },
   lakemedel: { rubrik: 'Läkemedel', sussa: '12.1.1.8' },
   bestallning: { rubrik: 'Beställning och svar', sussa: '12.1.1.9' },
+  // Runda 8, r5: utloggningen efter en tid utan aktivitet, som kunden själv konfigurerar (Sussa 12.1.1.5).
+  sakerhet: { rubrik: 'Säkerhet', sussa: '12.1.1.5' },
 };
 
 const DAG = 86400_000;
@@ -117,6 +119,37 @@ const HELTAL = {
       return [`Systemet föreslår att ${st(n(nytt), 'hälsoärende', 'hälsoärenden')} avslutas med ${dagar(nytt)}, mot ${n(forra)} med ${dagar(forra)}.`];
     },
   },
+  // Runda 8, r5: utloggningen efter en tid utan aktivitet, skild för personal och invånare (K2 1.6.1, justerbar
+  // tidsgräns). Servern läser värdet för sessionens sandlåda vid varje anrop (server.js), och varningen kommer alltid
+  // fem minuter före utloggningen.
+  'sakerhet.utloggning_personal_min': {
+    omrade: 'sakerhet', rubrik: 'Utloggning efter tid utan aktivitet, personal', enhet: 'minuter', standard: 30, min: 5, max: 120, anvands: 'server.js och tidsgrans.js',
+    beskrivning: 'Så många minuter utan aktivitet loggas personalen ut. Fem minuter före visas en varning med knappen Fortsätt arbeta, och text i en anteckning eller remiss sparas som utkast.',
+    minVarfor: 'Med mindre än fem minuter kommer varningen, som visas fem minuter före, direkt efter varje klick, och den som läser journalen under ett samtal med patienten loggas ut mitt i samtalet.',
+    maxVarfor: 'Med mer än två timmar står en dator som lämnas i ett behandlingsrum eller en korridor öppen med patientuppgifter alldeles för länge.',
+    effekt: (db, nytt, forra) => [`Personalen loggas ut efter ${minuter(nytt)} utan aktivitet i stället för ${minuter(forra)}. Varningen kommer ${minuter(Math.max(0, nytt - 5))} efter den senaste aktiviteten. Invånarna i Min journal har en egen gräns.`],
+  },
+  'sakerhet.utloggning_invanare_min': {
+    omrade: 'sakerhet', rubrik: 'Utloggning efter tid utan aktivitet, Min journal', enhet: 'minuter', standard: 30, min: 5, max: 60, anvands: 'server.js och tidsgrans.js',
+    beskrivning: 'Så många minuter utan aktivitet loggas en invånare ut ur Min journal. Fem minuter före visas samma varning som för personalen.',
+    minVarfor: 'Med mindre än fem minuter hinner en invånare inte läsa en längre anteckning innan varningen kommer.',
+    maxVarfor: 'En invånare loggar ofta in från en dator som andra också använder, till exempel på ett bibliotek eller hemma. Med mer än en timme kan nästa person läsa journalen.',
+    effekt: (db, nytt, forra) => [`Invånarna loggas ut ur Min journal efter ${minuter(nytt)} utan aktivitet i stället för ${minuter(forra)}. Personalens gräns ändras inte.`],
+  },
+};
+
+// Runda 8, r5: parametrar med svaret ja eller nej. text är vad värdet betyder, för sidan och historiken.
+const JANEJ = {
+  'rapportering.bhvq_undanta_skyddad': {
+    omrade: 'administration', rubrik: 'Barn med skyddade personuppgifter i barnhälsovårdsregistret', typ: 'janej', standard: true, anvands: 'bhvq.js',
+    text: { true: 'Rapporteras inte till registret', false: 'Rapporteras som andra barn' },
+    beskrivning: 'Om uppgifter om barn med skyddade personuppgifter ska undantas från rapporteringen till Svenska barnhälsovårdsregistret. Det är vårdgivarens beslut, inte en regel i patientdatalagen. Barn vars vårdnadshavare har motsatt sig registreringen rapporteras aldrig, oavsett värdet.',
+    effekt: (db, nytt) => {
+      const n = harTabell(db, 'bhv_inskrivning') ? db.query('SELECT count(*) AS n FROM bhv_inskrivning i JOIN patienter p ON p.id = i.patient_id WHERE p.skyddad = 1 AND p.sammanslagen_till IS NULL').get().n : 0;
+      return [nytt ? `Barn med skyddade personuppgifter undantas från nästa utskick. I dag gäller det ${st(n, 'inskrivet barn', 'inskrivna barn')}.` : `Barn med skyddade personuppgifter rapporteras från nästa utskick, med personnumret men utan namn. I dag gäller det ${st(n, 'inskrivet barn', 'inskrivna barn')}.`,
+        'Det som redan har skickats ändras inte.'];
+    },
+  },
 };
 
 // Sökorden i journalens mallar (strukturerad information). Läses från journal.js när de behövs.
@@ -144,8 +177,9 @@ const sokordsparameter = (m) => ({
 let alla = null;
 export function parametrar() {
   if (!alla) {
-    alla = { ...Object.fromEntries(Object.entries(HELTAL).map(([k, d]) => [k, { typ: 'heltal', ...d }])) };
-    for (const m of journalMallar()) alla[`journal.sokord.${m.typ}`] = sokordsparameter(m);
+    alla = { ...Object.fromEntries(Object.entries(HELTAL).map(([k, d]) => [k, { typ: 'heltal', ...d }])), ...JANEJ };
+    // Runda 8, r5: en strukturerad mall (tobaksvanor) har inga sökord att ändra.
+    for (const m of journalMallar().filter(x => !x.strukturerad)) alla[`journal.sokord.${m.typ}`] = sokordsparameter(m);
   }
   return alla;
 }
@@ -176,6 +210,11 @@ export function varde(db, nyckel, nu = new Date()) {
 export function prova(nyckel, inmatat) {
   const def = parametrar()[nyckel];
   if (!def) return { ok: false, varfor: 'Parametern finns inte.' };
+  // Runda 8, r5: ja eller nej.
+  if (def.typ === 'janej') {
+    const v = typeof inmatat === 'boolean' ? inmatat : { ja: true, true: true, nej: false, false: false }[String(inmatat ?? '').trim().toLowerCase()];
+    return typeof v === 'boolean' ? { ok: true, varde: v } : { ok: false, varfor: 'Välj ja eller nej.' };
+  }
   if (def.typ === 'lista') {
     const lista = (Array.isArray(inmatat) ? inmatat : String(inmatat ?? '').split(/[,\n]/)).map(s => String(s).trim()).filter(Boolean);
     if (!lista.length) return { ok: false, varfor: 'Mallen behöver minst ett sökord, annars har den som skriver inget att utgå från.' };
@@ -197,7 +236,9 @@ export function prova(nyckel, inmatat) {
   return { ok: true, varde: t };
 }
 
-const visa = (def, v) => (def.typ === 'lista' ? v.join(', ') : `${v} ${def.enhet}`);
+// Runda 8, r5: ett ja eller nej som redan gäller beskrivs med regelns text.
+const redan = (def, v) => (def.typ === 'janej' ? `Det gäller redan: ${visa(def, v).toLowerCase()}.` : `Värdet är redan ${visa(def, v)}.`);
+const visa = (def, v) => (def.typ === 'lista' ? v.join(', ') : def.typ === 'janej' ? def.text[String(v)] : `${v} ${def.enhet}`);
 const lika = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const personnamn = (db, id) => (id ? db.query('SELECT namn FROM personal WHERE id = ?').get(id)?.namn ?? id : null);
 
@@ -219,7 +260,7 @@ export function forhandsvisa(db, personal, { nyckel, varde: inmatat, giltigFran 
   if (!p.ok) return ut;
   ut.varde = p.varde;
   ut.vardeText = visa(def, p.varde);
-  if (lika(p.varde, forra)) { ut.ok = false; ut.varfor = `Värdet är redan ${visa(def, forra)}.`; return ut; }
+  if (lika(p.varde, forra)) { ut.ok = false; ut.varfor = redan(def, forra); return ut; }
   ut.effekt = def.effekt(db, p.varde, forra, nu);
   ut.effekt.push(`Gäller från ${datum}. Det som redan har hänt bedöms efter de regler som gällde då.`);
   return ut;
@@ -240,7 +281,7 @@ export function foresla(db, personal, { nyckel, varde: inmatat, giltigFran, moti
   const p = prova(nyckel, inmatat);
   if (!p.ok) throw new Fel(400, p.varfor, 'ogiltig', { falt: ['varde'] });
   const forra = varde(db, nyckel, nu);
-  if (lika(p.varde, forra)) throw new Fel(400, `Värdet är redan ${visa(def, forra)}.`, 'ogiltig', { falt: ['varde'] });
+  if (lika(p.varde, forra)) throw new Fel(400, redan(def, forra), 'ogiltig', { falt: ['varde'] });
   if (db.query("SELECT 1 FROM konfig_andringar WHERE nyckel = ? AND status = 'vantar'").get(nyckel)) {
     throw new Fel(409, 'Det finns redan en ändring av parametern som väntar på godkännande. Godkänn, avslå eller återkalla den först, så att två ändringar inte gäller samtidigt.', 'ogiltig');
   }
@@ -337,7 +378,7 @@ export function oversikt(db, personal, nu = new Date()) {
       const kommande = per(nyckel).filter(a => a.status === 'godkand' && a.galler_fran > dag).sort((a, b) => a.galler_fran.localeCompare(b.galler_fran))[0];
       const vantar = per(nyckel).find(a => a.status === 'vantar');
       return {
-        nyckel, rubrik: d.rubrik, beskrivning: d.beskrivning, typ: d.typ, enhet: d.enhet, min: d.min ?? null, max: d.max ?? null,
+        nyckel, rubrik: d.rubrik, beskrivning: d.beskrivning, typ: d.typ, enhet: d.enhet ?? null, min: d.min ?? null, max: d.max ?? null, text: d.text ?? null,
         varde: g, vardeText: visa(d, g), standard: d.standard, arStandard: lika(g, d.standard), anvands: d.anvands,
         kommande: kommande ? { gallerFran: kommande.galler_fran, vardeText: visa(d, JSON.parse(kommande.varde)) } : null,
         vantar: vantar ? andringUt(db, vantar, personal) : null,
@@ -356,5 +397,5 @@ export function oversikt(db, personal, nu = new Date()) {
 
 // Journalens mallar med de sökord som gäller i dag (GET /api/mallar).
 export function mallar(db, nu = new Date()) {
-  return journalMallar().map(m => ({ ...m, sokord: varde(db, `journal.sokord.${m.typ}`, nu) }));
+  return journalMallar().map(m => (m.strukturerad ? { ...m } : { ...m, sokord: varde(db, `journal.sokord.${m.typ}`, nu) }));
 }

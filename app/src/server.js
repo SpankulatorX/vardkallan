@@ -72,6 +72,10 @@ import { redogorelse as tillganglighet } from './tillganglighet.js';
 // Runda 7, r1: demoläget för Sussas användbarhetstester (sussa-demo.js).
 import * as sussaDemo from './sussa-demo.js';
 import * as anvandartestSvar from './anvandartest-svar.js';
+// Runda 8, r5: tobaksvanor, epikrisens förslag, flera mätvärden och villkoren för version 1.0.
+import * as tobak from './tobak.js';
+import { registreraRutter as r5Rutter } from './r5-rutter.js';
+import { villkor10 } from './version.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -179,8 +183,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     // Runda 7, r1: Sussas användbarhetstester (test/sussa-testfall.cjs).
     sussatestfall: process.env.SUSSATESTFALL || join(import.meta.dir, '..', 'sussa-testfall.json') },
   nyaPerTimme = Number(process.env.NYA_PER_TIMME || 60),
-  // Runda 7, r2 (K2 1.6.1): inloggningen går ut efter så här många minuter utan aktivitet.
-  inloggningMinuter = Number(process.env.INLOGGNING_MINUTER || 30),
+  // Runda 7, r2 (K2 1.6.1): inloggningen går ut efter så här många minuter utan aktivitet. Runda 8, r5: utan värde här
+  // gäller parametrarna på sidan Regler och parametrar, skilda för personal och invånare (konfiguration.js).
+  inloggningMinuter = process.env.INLOGGNING_MINUTER ? Number(process.env.INLOGGNING_MINUTER) : null,
   // Runda 7, r1: svaren från riktiga användartester, i en egen databas som alla sandlådor delar. Bredvid sessionsfilen
   // när den finns, annars bara i minnet.
   anvandartestFil = process.env.ANVANDARTEST_FIL || (sessionFil ? join(dirname(sessionFil), 'anvandartest.sqlite') : ':memory:'),
@@ -274,15 +279,22 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // kvar, så att utkast och annat som sparats finns efter en ny inloggning. Anrop som gränssnittet gör av sig självt
   // (förnyelsen av läskopian) har rubriken X-Vk-Bakgrund och räknas inte som aktivitet. Gränssnittet varnar fem
   // minuter innan, och knappen Fortsätt arbeta är ett anrop som räknas.
-  const INLOGGNING_MS = inloggningMinuter * 60_000;
   const VARNING_MINUTER = 5;
   const inloggad = (s) => Boolean(s.personalId || s.invanareId);
+  // Runda 8, r5: gränsen i minuter för sessionens inloggade, ur sandlådans parametrar. Ett fel i en äldre sandlåda ger
+  // standardvärdet 30 minuter.
+  const minuterFor = (s) => {
+    if (inloggningMinuter) return inloggningMinuter;
+    try { return konfiguration.varde(s.db, s.invanareId && !s.personalId ? 'sakerhet.utloggning_invanare_min' : 'sakerhet.utloggning_personal_min'); } catch { return 30; }
+  };
+  const inloggningMs = (s) => minuterFor(s) * 60_000;
   function kontrolleraInloggning(s, req) {
     const nu = Date.now();
-    if (inloggad(s) && s.aktiv && nu - s.aktiv > INLOGGNING_MS) loggaUtInaktiv(s);
+    if (inloggad(s) && s.aktiv && nu - s.aktiv > inloggningMs(s)) loggaUtInaktiv(s);
     if (!s.aktiv || req.headers.get('x-vk-bakgrund') !== '1') s.aktiv = nu;
   }
   function loggaUtInaktiv(s) {
+    const minuter = minuterFor(s);
     const fore = inloggade(s);
     const akt = aktuellKopia(s);
     if (akt) akt.stangd = new Date().toISOString();
@@ -291,10 +303,10 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     s.personalId = null; s.invanareId = null; s.val = {}; s.lasnyckel = null; s.oppnade = new Set();
     try {
       sakerhetslogg.logga(s.db, { typ: 'utloggning', personal_id: fore.personal?.id ?? null, invanare_id: fore.invanare?.id ?? null, enhet_id: fore.personal?.enhet_id ?? null,
-        beskrivning: `Utloggning efter ${inloggningMinuter} minuter utan aktivitet.` });
+        beskrivning: `Utloggning efter ${minuter} minuter utan aktivitet.` });
     } catch (e) { console.error('Säkerhetsloggen:', e.message); }
   }
-  const inloggningUt = (s) => (s && inloggad(s) ? { garUt: new Date((s.aktiv ?? Date.now()) + INLOGGNING_MS).toISOString(), minuter: inloggningMinuter, varningMinuter: VARNING_MINUTER } : null);
+  const inloggningUt = (s) => (s && inloggad(s) ? { garUt: new Date((s.aktiv ?? Date.now()) + inloggningMs(s)).toISOString(), minuter: minuterFor(s), varningMinuter: VARNING_MINUTER } : null);
   function skapaSession(req, server) {
     const k = `${klientIp(req, server)}:${Math.floor(Date.now() / 3600_000)}`;
     const n = (nyaPerIp.get(k) ?? 0) + 1;
@@ -510,6 +522,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       dolda: { kraverVal: atk.doldaVal, sparrade: atk.doldaSparr, undantagna: undantag.undantagnaUt(atk) },
       // Runda 6, r3: vårdplaner, tvångsvård, samordnad planering och förslag om hälsoärenden (r3-rutter.js).
       r3: r3.oversikt(atk),
+      // Runda 8, r5: den senaste anteckningen om tobaksvanor bland dem som syns (tobak.js).
+      tobak: kanRoll(pers, 'las_omvardnad') ? tobak.oversiktDel(db, ant) : null,
     };
   }
 
@@ -1489,6 +1503,12 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const klient = lasKlientresultat(klientresultat);
     return sussaRegister(resultat, klient, { egna: kravregister(resultat, undefined, klient) });
   });
+  // Runda 8, r5: villkoren för version 1.0, räknade ur Sussa-registret, Sussas testfall och säkerhetsfynden (version.js).
+  rutt('GET', '/api/krav/version', () => {
+    const resultat = lasTestresultat(testresultat);
+    const klient = lasKlientresultat(klientresultat);
+    return villkor10(sussaRegister(resultat, klient, { egna: kravregister(resultat, undefined, klient) }), klient.sussaTestfall, { version: APPVERSION });
+  });
   // Svarstidsmål (D5): p95 under 200 ms per endpoint.
   const MAL_P95 = 200;
   const medMal = (rader) => rader.map(r => ({ ...r, inomMal: r.p95 <= MAL_P95 }));
@@ -1516,14 +1536,16 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   bhvRutter({ rutt, kravInloggad, medPatient, medMinJournal, valFor });
   // Runda 7, r2: nyheter, övningar och intyg, och tillgänglighetsredogörelsen med testernas status.
   utbildningRutter({ rutt, kravInloggad });
+  // Runda 8, r5: epikrisens förslag och flera mätvärden på en gång (r5-rutter.js).
+  r5Rutter({ rutt, kravInloggad, medPatient });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
   // visas direkt (bara i den egna sandlådan).
   const kravNagon = (c) => { if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad'); };
   rutt('POST', '/api/session/forlang', (c) => { kravNagon(c); return { inloggning: inloggningUt(c.s) }; });
   rutt('POST', '/api/demo/inloggning-gar-ut', (c) => {
     kravNagon(c);
-    const sek = Math.max(5, Math.min(inloggningMinuter * 60, Math.round(Number(c.body.sekunder) || 270)));
-    c.s.aktiv = Date.now() - INLOGGNING_MS + sek * 1000;
+    const sek = Math.max(5, Math.min(minuterFor(c.s) * 60, Math.round(Number(c.body.sekunder) || 270)));
+    c.s.aktiv = Date.now() - inloggningMs(c.s) + sek * 1000;
     return { inloggning: inloggningUt(c.s) };
   });
   rutt('GET', '/api/tillganglighet', () => {
@@ -1532,7 +1554,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   });
 
   // Endpoints som inte behöver en sandlåda.
-  const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/krav/sussa', '/api/drift', '/api/lasekopia/krypterad-logg', '/api/tillganglighet']);
+  const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/krav/sussa', '/api/krav/version', '/api/drift', '/api/lasekopia/krypterad-logg', '/api/tillganglighet']);
 
   async function api(req, server, url, c) {
     if (url.pathname === '/api/health') return json({ ok: true, sandladar: sessioner.size, version: APPVERSION, gransnitt: gransnittVersion() });

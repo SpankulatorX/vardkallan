@@ -346,6 +346,22 @@ export const UPPGIFTER = [
     text: 'Du har varit borta från datorn en stund, och Vårdkällan varnar för att du snart loggas ut. Du vill fortsätta arbeta.',
     kontroll: { notis: 'Du är inloggad' },
   },
+  // Runda 8, r5: tobaksvanorna, epikrisen och flera mätvärden på en gång (Sussas tema 4).
+  {
+    id: 'tobaksvanor', namn: 'Fylla i tobaksmallen i en anteckning', roll: 'lak-kard', start: 'Patientens översikt',
+    text: 'Gunnar Åkesson berättar att han röker 20 cigaretter om dagen. Du erbjuder stöd för att sluta, och han tackar ja. Dokumentera hans tobaksvanor och signera.',
+    kontroll: { sel: '.anteckning', text: 'Cigaretter dagligen' },
+  },
+  {
+    id: 'epikris', namn: 'Skriva och signera en epikris', roll: 'lak-kard', start: 'Översikten för en inlagd patient',
+    text: 'Elin Sandberg ska skrivas ut. Skriv epikrisen: hon är stabil under vårdtiden och ska på återbesök på mottagningen om sex veckor. Signera den.',
+    kontroll: { sel: '.anteckning .ant-fakta', text: 'Signerad' },
+  },
+  {
+    id: 'grundmatningar', namn: 'Registrera längd, vikt, blodtryck och puls', roll: 'ssk-kard', start: 'Patientens översikt',
+    text: 'Du har mätt Gunnar Åkesson: längd 178 cm, vikt 82 kg, blodtryck 132/84 och puls 68. Dokumentera värdena.',
+    kontroll: { notis: 'BMI' },
+  },
 ];
 
 // Deltagarens bakgrund. Bara val, inga fritextfält, så att inga identifierande uppgifter samlas in.

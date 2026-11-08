@@ -13,6 +13,11 @@
 // före rättningen), förklarar varje svar på vanlig svenska, räknar giltighetstiden, prövar en ändrad övning innan den
 // sparas och förklarar vad som saknas, och vet själv vilka som arbetar på vårdenheten.
 //
+// Runda 8, r5: en vårdenhet kan ha egna övningar utöver vårdgivarens, med samma versioner och historik (tabellen
+// enhetsovningar). Vårdenhetens verksamhetschef och utbildarna på vårdenheten ändrar dem. Personalen gör vårdgivarens
+// och den egna vårdenhetens övningar för sin yrkesroll, och de egna övningarna har id med prefixet e., så att de aldrig
+// kan krocka med vårdgivarens.
+//
 // Övningarna innehåller inga patientuppgifter utom demopatienternas påhittade namn. Demon är själv utbildningsmiljön.
 import { Fel, iso } from './db.js';
 import { kanRoll, vardenhetFor } from './atkomst.js';
@@ -36,6 +41,23 @@ export function aktuella(db) {
 }
 
 export const ovningarFor = (yrke, lista = OVNINGAR_V1) => lista.filter(x => x.roller.includes(yrke));
+
+// Runda 8, r5: vårdenhetens egna övningar. Den senaste versionen, eller version 0 utan övningar.
+const harEnhetstabell = (db) => Boolean(db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'enhetsovningar'").get());
+export const ENHET_PREFIX = 'e.';
+export function aktuellaEnhet(db, ve) {
+  const r = ve && harEnhetstabell(db) ? db.query('SELECT * FROM enhetsovningar WHERE enhet_id = ? ORDER BY version DESC LIMIT 1').get(ve) : null;
+  return r ? { version: r.version, ovningar: JSON.parse(r.innehall) } : { version: 0, ovningar: [] };
+}
+const enhetsnamn = (db, ve) => db.query('SELECT namn FROM enheter WHERE id = ?').get(ve)?.namn ?? ve;
+// Alla övningar som personen ska göra: vårdgivarens och den egna vårdenhetens, för yrkesrollen.
+function allaFor(db, personal) {
+  const a = aktuella(db);
+  const ve = vardenhetFor(db, personal.enhet_id);
+  const e = aktuellaEnhet(db, ve);
+  const egna = ovningarFor(personal.yrke, e.ovningar).map(x => ({ ...x, id: `${ENHET_PREFIX}${x.id}`, enhet: true }));
+  return { a, e, ve, lista: [...ovningarFor(personal.yrke, a.ovningar), ...egna] };
+}
 
 // Alternativen visas i en ordning som beror på övningen, så att det rätta svaret inte alltid står på samma plats.
 const blanda = (ovning, alternativ) => {
@@ -64,7 +86,7 @@ const provaNar = (vag, personal) => {
 
 // En övning som den visas före rättningen: utan rätt svar och förklaring.
 const utan = (x, personal) => ({
-  id: x.id, fraga: x.fraga, alternativ: blanda(x.id, x.alternativ).map(a => ({ id: a.id, text: a.text })),
+  id: x.id, fraga: x.fraga, alternativ: blanda(x.id, x.alternativ).map(a => ({ id: a.id, text: a.text })), enhet: Boolean(x.enhet),
   // Länken till samma ställe i demon visas bara när rollen når det.
   prova: x.prova && provaNar(x.prova, personal) ? x.prova : null,
 });
@@ -93,24 +115,35 @@ function kravUtbildning(personal) {
 // Verksamhetschefen och den som har ett giltigt utbildarintyg ändrar övningarna.
 export const arUtbildare = (db, personal, nu = new Date()) => Boolean(personal && giltig(senasteUtbildarintyg(db, personal.id), nu) && kanRoll(personal, 'utbildning'));
 export const kanAndra = (db, personal, nu = new Date()) => Boolean(chefFor(db, personal) || arUtbildare(db, personal, nu));
+// Runda 8, r5: vårdenhetens egna övningar ändras av vårdenhetens verksamhetschef och av utbildare vars utbildarintyg
+// gäller den vårdenhet där de arbetar. Ger vårdenheten, eller null.
+export function enhetForAndring(db, personal, nu = new Date()) {
+  const chef = chefFor(db, personal);
+  if (chef) return chef;
+  const u = personal ? senasteUtbildarintyg(db, personal.id) : null;
+  return u && arUtbildare(db, personal, nu) && u.vardenhet === vardenhetFor(db, personal.enhet_id) ? u.vardenhet : null;
+}
 
 // Övningarna för den inloggade, och personens intyg.
 export function oversikt(db, personal, { nu = new Date() } = {}) {
   kravUtbildning(personal);
-  const a = aktuella(db);
-  const ovningar = ovningarFor(personal.yrke, a.ovningar).map(x => utan(x, personal));
+  const { a, e, ve, lista } = allaFor(db, personal);
+  const ovningar = lista.map(x => utan(x, personal));
+  const andraEnhet = enhetForAndring(db, personal, nu);
   return {
     kurs: KURS, version: a.version, giltigDagar: GILTIG_DAGAR, utbildningsmiljo: UTBILDNINGSMILJO, roll: personal.yrke, rollText: YRKEN[personal.yrke],
     ovningar, intyg: intygStatus(senasteIntyg(db, personal.id), nu), enhet: Boolean(chefFor(db, personal)),
     utbildare: intygStatus(senasteUtbildarintyg(db, personal.id), nu, 'Utbildare'), kanAndra: kanAndra(db, personal, nu),
+    // Runda 8, r5: vårdenhetens egna övningar.
+    vardenhet: { id: ve, namn: enhetsnamn(db, ve), version: e.version, antalEgna: ovningar.filter(x => x.enhet).length },
+    kanAndraEnhet: andraEnhet ? { id: andraEnhet, namn: enhetsnamn(db, andraEnhet) } : null,
   };
 }
 
 // Rättar svaren. Alla övningar ska vara besvarade. Är alla rätt utfärdas ett intyg som gäller i ett år.
 export function ratta(db, personal, svar, { nu = new Date() } = {}) {
   kravUtbildning(personal);
-  const a = aktuella(db);
-  const lista = ovningarFor(personal.yrke, a.ovningar);
+  const { a, lista } = allaFor(db, personal);
   if (!svar || typeof svar !== 'object' || Array.isArray(svar)) throw new Fel(400, 'Svara på övningarna först.', 'ogiltig', { falt: ['svar'] });
   const obesvarade = lista.filter(x => !x.alternativ.some(y => y.id === svar[x.id]));
   if (obesvarade.length) {
@@ -166,20 +199,32 @@ export function utfardaUtbildare(db, personal, personalId, { nu = new Date() } =
 }
 
 // Övningarna med rätt svar och historiken, för den som får ändra dem.
-export function redigera(db, personal, { nu = new Date() } = {}) {
+export function redigera(db, personal, { nu = new Date(), omfang = 'vardgivare' } = {}) {
+  const namn = (id) => db.query('SELECT namn FROM personal WHERE id = ?').get(id)?.namn ?? null;
+  const rad = (r) => ({ version: r.version, tid: r.tid, av: namn(r.av), andring: r.andring, antal: JSON.parse(r.innehall).length });
+  const gemensamt = { roller: ALLA.map(id => ({ id, text: YRKEN[id] })), prova: Object.keys(PROVA) };
+  // Runda 8, r5: vårdenhetens egna övningar.
+  if (omfang === 'enhet') {
+    const ve = enhetForAndring(db, personal, nu);
+    if (!ve) throw new Fel(403, 'Bara vårdenhetens verksamhetschef och utbildare på vårdenheten ändrar vårdenhetens egna övningar.', 'nekad');
+    const e = aktuellaEnhet(db, ve);
+    const historik = harEnhetstabell(db) ? db.query('SELECT * FROM enhetsovningar WHERE enhet_id = ? ORDER BY version DESC').all(ve).map(rad) : [];
+    return { omfang: 'enhet', vardenhet: { id: ve, namn: enhetsnamn(db, ve) }, version: e.version, ovningar: e.ovningar, historik, ...gemensamt };
+  }
+  if (omfang !== 'vardgivare') throw new Fel(400, 'Välj vårdgivarens övningar eller vårdenhetens egna.', 'ogiltig', { falt: ['omfang'] });
   if (!kanAndra(db, personal, nu)) throw new Fel(403, 'Bara verksamhetschefen och utbildare ändrar övningarna.', 'nekad');
   const a = aktuella(db);
-  const namn = (id) => db.query('SELECT namn FROM personal WHERE id = ?').get(id)?.namn ?? null;
-  const historik = harTabell(db) ? db.query('SELECT * FROM ovningsversioner ORDER BY version DESC').all()
-    .map(r => ({ version: r.version, tid: r.tid, av: namn(r.av), andring: r.andring, antal: JSON.parse(r.innehall).length })) : [];
-  return { version: a.version, ovningar: a.ovningar, historik, roller: ALLA.map(id => ({ id, text: YRKEN[id] })), prova: Object.keys(PROVA) };
+  const historik = harTabell(db) ? db.query('SELECT * FROM ovningsversioner ORDER BY version DESC').all().map(rad) : [];
+  return { omfang: 'vardgivare', version: a.version, ovningar: a.ovningar, historik, ...gemensamt };
 }
 
 const txt = (v, min, max) => (typeof v === 'string' && v.trim().length >= min && v.trim().length <= max ? v.trim() : null);
 
 // Prövar en lista med övningar och ger den rensade listan, eller ett fel som säger vad som saknas.
-export function prova(lista) {
-  if (!Array.isArray(lista) || !lista.length || lista.length > 80) throw new Fel(400, 'Övningarna ska vara mellan 1 och 80.', 'ogiltig', { falt: ['ovningar'] });
+// Runda 8, r5: med enhet: true prövas vårdenhetens egna övningar, som får vara noll och inte behöver täcka alla
+// yrkesroller, eftersom vårdgivarens övningar redan gör det.
+export function prova(lista, { enhet = false } = {}) {
+  if (!Array.isArray(lista) || (!enhet && !lista.length) || lista.length > 80) throw new Fel(400, enhet ? 'Vårdenheten kan ha högst 80 egna övningar.' : 'Övningarna ska vara mellan 1 och 80.', 'ogiltig', { falt: ['ovningar'] });
   const sedda = new Set();
   const ut = lista.map((x, i) => {
     const nr = `Övning ${i + 1}`;
@@ -203,13 +248,26 @@ export function prova(lista) {
     if (provaVag !== null && !(provaVag in PROVA)) throw fel('länken till demon ska vara en av de adresser som finns i listan.', 'prova');
     return { id, roller, fraga, alternativ: alternativ.map(a => ({ id: a.id, text: a.text })), ratt: alternativ.find(a => a.ratt).id, forklaring, prova: provaVag };
   });
-  const utan = ALLA.filter(y => !ut.some(x => x.roller.includes(y)));
+  const utan = enhet ? [] : ALLA.filter(y => !ut.some(x => x.roller.includes(y)));
   if (utan.length) throw new Fel(400, `Varje yrkesroll ska ha minst en övning. Ingen övning finns för ${utan.map(y => YRKEN[y].toLowerCase()).join(', ')}.`, 'ogiltig', { falt: ['roller'] });
   return ut;
 }
 
 // Sparar en ny version av övningarna. Den förra finns kvar i historiken, och intyg som redan är utfärdade gäller.
-export function sparaVersion(db, personal, { ovningar, andring } = {}, { nu = new Date() } = {}) {
+export function sparaVersion(db, personal, { ovningar, andring, omfang = 'vardgivare' } = {}, { nu = new Date() } = {}) {
+  // Runda 8, r5: vårdenhetens egna övningar får en egen version i sin egen historik.
+  if (omfang === 'enhet') {
+    const ve = enhetForAndring(db, personal, nu);
+    if (!ve) throw new Fel(403, 'Bara vårdenhetens verksamhetschef och utbildare på vårdenheten ändrar vårdenhetens egna övningar.', 'nekad');
+    const vad = txt(andring, 5, 300);
+    if (!vad) throw new Fel(400, 'Skriv kort vad som har ändrats, 5 till 300 tecken. Det står i historiken.', 'ogiltig', { falt: ['andring'] });
+    const lista = prova(ovningar, { enhet: true });
+    const forra = aktuellaEnhet(db, ve);
+    if (JSON.stringify(lista) === JSON.stringify(forra.ovningar)) throw new Fel(400, 'Inget har ändrats i övningarna.', 'ogiltig', { falt: ['ovningar'] });
+    db.query('INSERT INTO enhetsovningar (enhet_id, version, innehall, andring, av, tid) VALUES (?, ?, ?, ?, ?, ?)').run(ve, forra.version + 1, JSON.stringify(lista), vad, personal.id, iso(nu));
+    return { ...redigera(db, personal, { nu, omfang: 'enhet' }), text: `Version ${forra.version + 1} av övningarna för ${enhetsnamn(db, ve)} är sparad och gäller nu.` };
+  }
+  if (omfang !== 'vardgivare') throw new Fel(400, 'Välj vårdgivarens övningar eller vårdenhetens egna.', 'ogiltig', { falt: ['omfang'] });
   if (!kanAndra(db, personal, nu)) throw new Fel(403, 'Bara verksamhetschefen och utbildare ändrar övningarna.', 'nekad');
   const vad = txt(andring, 5, 300);
   if (!vad) throw new Fel(400, 'Skriv kort vad som har ändrats, 5 till 300 tecken. Det står i historiken.', 'ogiltig', { falt: ['andring'] });

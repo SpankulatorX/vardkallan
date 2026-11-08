@@ -275,6 +275,7 @@ describe('Nyheter för läkemedelsprocessen', () => {
     expect(ids('lak-kard')).not.toContain('muntlig-i-foljd');
     expect(ids('ssk-kard')).toEqual(expect.arrayContaining(['dosering-ur-produkten', 'tillsats-infusion', 'muntlig-i-foljd']));
     expect(ids('ssk-kard')).not.toContain('andra-dos');
-    expect(ids('adm-kard')).toEqual([]);
+    // Runda 8, r5: nyheten om version 1.0 gäller alla roller, men läkemedelsnyheterna får inte andra roller.
+    for (const id of ['andra-dos', 'dosering-ur-produkten', 'tillsats-infusion', 'muntlig-i-foljd']) expect(ids('adm-kard')).not.toContain(id);
   });
 });

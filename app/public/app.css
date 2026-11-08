@@ -1426,3 +1426,15 @@ body.laslage #nyhetsruta { display: none; }
 
 /* Runda 7, r1: koden för ett testtillfälle, som visas en gång. */
 .st-kod { word-break: break-all; font-size: 1.1rem; }
+
+/* Runda 8, r5: mallen för tobaksvanor och villkoren för version 1.0 på kravsidan. */
+.tobak fieldset { margin: 10px 0; }
+.tobak-tabell td.tobak-val { text-align: center; }
+.tobak-tabell td.tobak-val label { margin-left: 4px; font-size: var(--f-s); }
+.tobak-tabell td.tobak-mer input[type="text"] { max-width: 9em; }
+.tobak-fler summary { cursor: pointer; margin: 8px 0; }
+.tobak-forslag .ruta p { margin: 0 0 8px; }
+.version-ruta { border: 1px solid var(--linje); background: var(--yta); border-radius: var(--r); padding: 12px 14px; margin: 10px 0 16px; }
+.version-ruta h2 { margin-top: 0; }
+.version-villkor { list-style: none; padding: 0; margin: 8px 0; }
+.version-villkor li { padding: 4px 0; }

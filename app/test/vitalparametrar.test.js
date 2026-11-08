@@ -245,6 +245,10 @@ describe('Åtgärder med KVÅ', () => {
       QD008: 'Övervakning av vitala tecken',
       PA001: 'Bedömning av medvetandefunktioner',
       XV015: 'Läkemedelsgenomgång, enkel, enligt Socialstyrelsens föreskrift och allmänna råd',
+      // Runda 8, r5: stödet vid tobaksbruk.
+      DV111: 'Enkla råd om tobaks- och nikotinbruk',
+      DV112: 'Rådgivande samtal om tobaks- och nikotinbruk',
+      DV113: 'Kvalificerat rådgivande samtal om tobaks- och nikotinbruk',
     });
     expect(SYSTEM.kva).toBe('urn:oid:1.2.752.116.1.3.2.1.4');
   });

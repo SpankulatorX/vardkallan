@@ -1,0 +1,4 @@
+{
+  "beskrivning": "Öppna fynd från säkerhetsgranskningarna av Vårdkällan. Ett fynd läggs här när det hittas och tas bort när det är rättat och testat. Villkor d för version 1.0 är att listan är tom (version.js).",
+  "oppna": []
+}

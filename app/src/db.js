@@ -33,6 +33,8 @@ import { forSeed as masterdataForSeed } from './masterdata.js';
 import { sakraEkonomi } from './ekonomi-schema.js';
 // Runda 8, r4: dosändringar i pågående ordinationer.
 import { sakraDosandring } from './dosandring-schema.js';
+// Runda 8, r5: tobaksvanorna och vårdenheternas egna övningar.
+import { sakraR5 } from './schema-runda8-r5.js';
 
 // Fel som API:t svarar med. kod: nekad | saknas | ogiltig | kraver_val | kraver_samtycke
 export class Fel extends Error {
@@ -409,6 +411,8 @@ export function byggSeed(bas = nu()) {
   seedaUtbildning(db, bas);
   // Runda 8, r4: dosändringar i pågående ordinationer.
   sakraDosandring(db);
+  // Runda 8, r5.
+  sakraR5(db, bas);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -508,6 +512,8 @@ export function migrera(db) {
   if (sakraUtbildning(db)) seedaUtbildning(db, nu());
   // Runda 8, r4: en sandlåda från före runda 8 får tabellen för dosändringar.
   sakraDosandring(db);
+  // Runda 8, r5: tobaksvanorna och vårdenheternas egna övningar i en sandlåda från före runda 8.
+  sakraR5(db, nu());
   return db;
 }
 

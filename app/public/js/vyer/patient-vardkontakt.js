@@ -109,7 +109,7 @@ export function sektionHtml(d, ctx) {
   const knappar = [];
   if (far('registrera_vardkontakt') && s.forval.registrering) knappar.push(`<button type="button" class="knapp liten sekundar" data-vk="registrera">${ikon.plus}<span>Registrera vårdkontakt</span></button>`);
   if (far('vardtillfalle') && s.forval.inskrivning) knappar.push(`<button type="button" class="knapp liten sekundar" data-vk="skriv-in">${ikon.plus}<span>Skriv in</span></button>`);
-  for (const vt of s.vardtillfallen.filter(x => x.status !== 'utskriven')) delar.push(vardtillfalleHtml(vt));
+  for (const vt of s.vardtillfallen.filter(x => x.status !== 'utskriven')) delar.push(vardtillfalleHtml(vt, ctx));
   const per = s.perKontakt;
   const lista = d.vardkontakter.length ? `<ul class="enkel-lista vk-lista">${d.vardkontakter.map(v => {
     const p = per[v.id] ?? {};
@@ -135,8 +135,10 @@ export function sektionHtml(d, ctx) {
     ${knappar.length ? `<div class="knapprad tat" data-skriv>${knappar.join('')}</div>` : ''}${delar.join('')}</section>`;
 }
 
-function vardtillfalleHtml(vt) {
+function vardtillfalleHtml(vt, ctx) {
   const kan = far('vardtillfalle');
+  // Runda 8, r5: epikrisen öppnas direkt från vårdtillfället, med det som systemet kan skriva ur det.
+  const epikris = ctx && far('skriv_journal') ? `<a class="knapp liten sekundar" href="${ctx.href('journal', 'epikris')}" data-epikris>${ikon.penna}<span>Skriv epikris</span></a>` : '';
   const satellit = vt.ansvarig && vt.produktion && vt.ansvarig.id !== vt.produktion.id;
   return `<div class="vardtillfalle" data-vt="${vt.id}">
     <p class="vt-rubrik"><strong>${esc(VT_STATUS[vt.status])}</strong> på ${esc(vt.avdelning?.namn ?? '')}, ${esc(vt.plats ?? '')}${vt.status === 'permission' ? ` <span class="tagg tagg-utkast">Permission till ${esc(datum(vt.permissionTill))}</span>` : ''}</p>
@@ -145,7 +147,7 @@ function vardtillfalleHtml(vt) {
     <details class="vt-historik"><summary>Vårdtillfällets händelser (${vt.handelser.length})</summary><ol>${vt.handelser.map(h => `<li><span class="vt-handelse">${esc(h.text)}</span> ${esc(tidpunkt(h.tid))}${h.plats ? `, ${esc(h.plats)}` : ''}${h.detalj ? `. ${esc(h.detalj)}` : ''}${h.av ? `. ${esc(h.av.namn)}` : ''}</li>`).join('')}</ol></details>
     ${kan ? `<div class="knapprad tat" data-skriv>
       ${vt.status === 'permission' ? '<button type="button" class="knapp liten sekundar" data-vk="ater">Åter från permission</button>' : '<button type="button" class="knapp liten sekundar" data-vk="flytta">Flytta</button><button type="button" class="knapp liten sekundar" data-vk="permission">Permission</button>'}
-      <button type="button" class="knapp liten sekundar" data-vk="skriv-ut">Skriv ut</button></div>` : ''}
+      <button type="button" class="knapp liten sekundar" data-vk="skriv-ut">Skriv ut</button>${epikris}</div>` : epikris ? `<div class="knapprad tat" data-skriv>${epikris}</div>` : ''}
   </div>`;
 }
 

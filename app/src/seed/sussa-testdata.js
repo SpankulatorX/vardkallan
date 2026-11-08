@@ -66,6 +66,9 @@ export const ANNA_EPIKRIS = {
   uppfoljning: 'Får återgå till hemmet. Planeras till ett återbesök om 3 veckor.',
 };
 
+// Runda 8, r5: kommentaren i Berit Strandhalls tobaksvanor (testfall 4.1, Bilaga F1:4).
+export const BERIT_TOBAK = { antal: 25, kommentar: 'Hon röker endast varannan vecka, när hennes barn är hos sin pappa.' };
+
 // Remissvaret i testfall 2.6 och remissen i testfall 2.1 (Bilaga F1:4).
 export const SVAR_2_6 = 'Tack för remissen. Vi har träffat Sara och gett henne rätt behandling.';
 export const REMISS_2_1 = {

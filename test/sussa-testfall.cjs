@@ -227,6 +227,9 @@ function floden(D) {
       if (await page.locator('dialog[open] [data-varde="ok"]').count()) await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'bekräfta');
       await synlig(page, '.notis', 'Zopiklon');
       // Listan ritas om efter varje dos. Vänta tills den står still, så att nästa klick inte hamnar på en knapp som flyttas.
+      // Runda 8, r5: vänta också tills den omritade listan visar den givna dosen. Annars kunde klicket på patientens namn
+      // hamna på knappen Ge för Zopiklon medan listan ritades om.
+      await bertil.locator('.adm-vb', { hasText: 'Zopiklon' }).filter({ hasText: 'Senast given' }).first().waitFor();
       await page.waitForLoadState('networkidle');
       await page.waitForTimeout(500);
       // Patienten kräktes upp premedicineringen: en omvårdnadsanteckning.
@@ -273,31 +276,43 @@ function floden(D) {
       const text = await rad.first().innerText();
       if (!text.includes('0,9 INR') || !text.includes('Vårdcentralen Tybble')) throw new Error(`fel provsvar: ${text}`);
     },
+    // Runda 8, r5: testfall 4.1 med mallen för tobaksvanor.
+    '4.1': async (m, page) => {
+      await oppnaFranLista(m, page, 'Berit Strandhall');
+      await m.klicka(page.locator('[data-tobak-ny]'), 'Dokumentera tobaksvanor');
+      await page.waitForSelector('#ant-form [data-tobak]');
+      await m.klicka(page.locator('#tb-cigaretter-dagligen'), 'Dagligen för cigaretter');
+      await m.skriv(page.locator('#tb-antal-cigaretter'), '25', 'antalet cigaretter per dag');
+      await m.klicka(page.locator('#tb-stod-accepterat'), 'Erbjudet och accepterat');
+      await m.skriv(page.locator('#tb-kommentar'), D.BERIT_TOBAK.kommentar, 'kommentaren');
+      await m.klicka(page.locator('.ant-form [data-signera]'), 'Signera');
+      // Slutvillkoret: anteckningen är signerad och har de strukturerade svaren som text, med stödet och koden.
+      for (const t of ['Cigaretter dagligen, 25 per dag', 'Kvalificerat rådgivande samtal om tobaks- och nikotinbruk (KVÅ DV113): erbjudet och accepterat', D.BERIT_TOBAK.kommentar]) await synlig(page, '.anteckning', t);
+      await synlig(page, '.anteckning .ant-fakta', 'Signerad');
+    },
+    // Runda 8, r5: alla fyra mätvärdena i ett formulär.
     '4.2': async (m, page) => {
       await oppnaFranLista(m, page, 'Sara Sandmark');
       await m.klicka(page.locator('.snabbval a', { hasText: 'Registrera mätvärde' }), 'Registrera mätvärde');
-      await page.waitForSelector('#mv-form');
-      await m.skriv(page.locator('#mv-varde'), '140/90', 'blodtrycket');
-      await m.klicka(page.locator('#mv-form [type="submit"]'), 'Registrera');
-      await synlig(page, '.notis', 'Blodtryck 140/90');
-      for (const [typ, namn, varde] of [['langd', 'Längd', '165'], ['vikt', 'Vikt', '75'], ['puls', 'Puls', '83']]) {
-        await page.waitForSelector('#mv-form #mv-typ');
-        await m.valj(page.locator('#mv-typ'), typ, `mätvärdet ${namn}`);
-        await m.skriv(page.locator('#mv-varde'), varde, `värdet för ${namn.toLowerCase()}`);
-        await m.klicka(page.locator('#mv-form [type="submit"]'), 'Registrera');
-        await synlig(page, '.notis', `${namn} ${varde}`);
-      }
+      await m.klicka(page.locator('[data-flera-ny]'), 'Längd, vikt, blodtryck och puls på en gång');
+      await m.skriv(page.locator('#fl-langd'), '165', 'längden');
+      await m.skriv(page.locator('#fl-vikt'), '75', 'vikten');
+      await m.skriv(page.locator('#fl-blodtryck'), '140/90', 'blodtrycket');
+      await m.skriv(page.locator('#fl-puls'), '83', 'pulsen');
+      await m.klicka(page.locator('#flera-form [type="submit"]'), 'Registrera');
+      await synlig(page, '.notis', 'Längd 165 cm, Vikt 75 kg, Blodtryck 140/90 mmHg, Puls 83 slag/min är registrerat');
     },
+    // Runda 8, r5: epikrisen från vårdtillfället, där systemet har skrivit orsaken och diagnosen.
     '4.3': async (m, page) => {
       await oppnaFranLista(m, page, 'Anna Karlsson');
-      await m.klicka(page.locator('.snabbval a', { hasText: 'Ny anteckning' }), 'Ny anteckning');
-      await page.waitForSelector('#ant-form');
-      await m.valj(page.locator('#ny-mall'), 'Epikris', 'mallen Epikris');
-      await m.skriv(page.locator('textarea[data-sokord="Orsak till vård"]'), D.ANNA_EPIKRIS.orsak, 'Orsak till vård');
+      await m.klicka(page.locator('.vardtillfalle [data-epikris]'), 'Skriv epikris');
+      await page.waitForSelector('#ant-form [data-forslag-info]');
+      const orsak = await page.locator('textarea[data-sokord="Orsak till vård"]').inputValue();
+      if (!orsak.includes('Sepsis') || !orsak.includes('A41.9')) throw new Error(`systemet skrev inte diagnosen: ${orsak}`);
       await m.skriv(page.locator('textarea[data-sokord="Förlopp"]'), D.ANNA_EPIKRIS.forlopp, 'Förlopp');
       await m.skriv(page.locator('textarea[data-sokord="Uppföljning"]'), D.ANNA_EPIKRIS.uppfoljning, 'Uppföljning');
       await m.klicka(page.locator('.ant-form [data-signera]'), 'Signera');
-      await synlig(page, '.anteckning', 'Sepsis, A41.9');
+      await synlig(page, '.anteckning', 'A41.9');
       await synlig(page, '.anteckning .ant-fakta', 'Signerad');
     },
     '4.4': async (m, page) => {

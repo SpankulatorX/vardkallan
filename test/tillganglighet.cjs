@@ -707,6 +707,8 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
       ['lak-kard', '#/arbetslista', 'oppna-patient'], ['lak-kard', '#/patient/p01/journal', 'daganteckning'], ['lak-kard', '#/patient/p01/lakemedel', 'ordinera'],
       ['lak-kard', '#/inkorg', 'inkorg'], ['ssk-kard', '#/patient/p01/matvarden', 'matvarde'], ['ssk-kard', '#/administrering', 'ge-dos'],
       ['lak-vc', '#/patient/p01/remisser', 'remiss'], ['lak-akut', '#/sok', 'sok'], ['adm-kard', '#/idag', 'boka'],
+      // Runda 8, r5.
+      ['sysf', '#/regler', 'regler'],
     ];
     let inl = null;
     for (const [roll, h, id] of STALLEN) {

@@ -684,6 +684,41 @@ function skapa(BAS) {
     await synlig(page, '#tv-kurva-vikt .kurva-senaste', '9,6');
     await page.locator('#tv-kurva-vikt svg.tv-kurva').waitFor();
   };
+  // Runda 8, r5: tobaksvanorna med fasta svarsalternativ. Ett klick på Dagligen för cigaretter flyttar fokus till
+  // antalet, och systemet föreslår stödet och KVÅ-koden.
+  GOR.tobaksvanor = async (m, page) => {
+    await m.klicka(page.locator('[data-tobak-ny]'), 'Dokumentera tobaksvanor i översikten');
+    await page.waitForSelector('#ant-form [data-tobak]');
+    await m.klicka(page.locator('#tb-cigaretter-dagligen'), 'Dagligen för cigaretter');
+    await m.skriv(page.locator('#tb-antal-cigaretter'), '20', 'antalet cigaretter per dag');
+    await m.klicka(page.locator('#tb-stod-accepterat'), 'Erbjudet och accepterat');
+    await m.klicka(page.locator('.ant-form [data-signera]'), 'Signera');
+    await synlig(page, '.anteckning', 'Cigaretter dagligen, 20 per dag');
+    await synlig(page, '.anteckning', 'KVÅ DV113');
+    await synlig(page, '.anteckning .ant-fakta', 'Signerad');
+  };
+  // Runda 8, r5: epikrisen från vårdtillfället. Systemet har skrivit orsaken till vården ur vårdtillfället och
+  // diagnoserna, och fokus står i Förlopp.
+  GOR.epikris = async (m, page) => {
+    await m.klicka(page.locator('.vardtillfalle [data-epikris]'), 'Skriv epikris');
+    await page.waitForSelector('#ant-form [data-forslag-info]');
+    await m.skriv(page.locator('textarea[data-sokord="Förlopp"]'), 'Konverterad till sinusrytm. Stabil under vårdtiden.', 'Förlopp');
+    await m.skriv(page.locator('textarea[data-sokord="Uppföljning"]'), 'Återbesök på mottagningen om sex veckor.', 'Uppföljning');
+    await m.klicka(page.locator('.ant-form [data-signera]'), 'Signera');
+    await synlig(page, '.anteckning .ant-huvud h2', 'Epikris');
+    await synlig(page, '.anteckning .ant-fakta', 'Signerad');
+  };
+  // Runda 8, r5: längd, vikt, blodtryck och puls på en gång.
+  GOR.grundmatningar = async (m, page) => {
+    await m.klicka(page.locator('.snabbval a', { hasText: 'Registrera mätvärde' }), 'Registrera mätvärde');
+    await m.klicka(page.locator('[data-flera-ny]'), 'Längd, vikt, blodtryck och puls på en gång');
+    await m.skriv(page.locator('#fl-langd'), '178', 'längden');
+    await m.skriv(page.locator('#fl-vikt'), '82', 'vikten');
+    await m.skriv(page.locator('#fl-blodtryck'), '132/84', 'blodtrycket');
+    await m.skriv(page.locator('#fl-puls'), '68', 'pulsen');
+    await m.klicka(page.locator('#flera-form [type="submit"]'), 'Registrera');
+    await synlig(page, '.notis', 'BMI 25,9');
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 

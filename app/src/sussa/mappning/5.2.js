@@ -1,10 +1,12 @@
 // Sussa 5.2 Identitet och åtkomst (IAM): hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 import { TEST } from '../../krav.js';
+// Runda 8, r5: tilläggen för tobaksvanor, epikrisen, mätvärdena, övningarna och parametrarna (sussa/runda8-r5.js).
+import { medR8r5 } from '../runda8-r5.js';
 
 const { B, A, L, F, LK, MJ, GA, GK } = TEST;
 
-export default [
+const POSTERNA = [
   { id: '5.2.1.1', kategori: 'nationell', egna: ['L5', 'L9'], tester: [], avsedd: 'planerat',
     anmarkning: 'Inloggningen är simulerad med SITHS-kort. Ingen biljett från en IDP läses.' },
   {
@@ -95,3 +97,4 @@ export default [
     anmarkning: 'Personal och roller ligger i seeden och hämtas inte från masterdata som HSA.',
   },
 ];
+export default medR8r5(POSTERNA);
