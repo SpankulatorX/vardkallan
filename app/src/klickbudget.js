@@ -372,10 +372,6 @@ export const FLODEN = [
     motivering: 'Sussa 3.4.1.5. Ett klick på Kapacitet. Systemet har redan räknat lediga tider mot väntelistan och remisserna för tolv veckor, när kön är borta och vilka förslag som behövs.',
   },
   {
-    id: 'kassa-avgift', namn: 'Ta betalt för en receptförnyelse i kassan', roll: 'adm-kard', start: 'Vårdadministratörens startsida', budget: 4,
-    motivering: 'Sussa 3.4.4.4. Ett klick på Kassa, ett fältbyte till personnumret, ett klick på Registrera avgift och ett på Kort. Förnyelse av recept är förvald, och systemet räknar avgiften ur ålder, LMA-kort och frikort.',
-  },
-  {
     id: 'dagsavslut', namn: 'Göra dagsavslut i kassan', roll: 'adm-kard', start: 'Kassan', budget: 2,
     motivering: 'Sussa 3.4.4.1. Ett klick på Gör dagsavslut och ett på Stäm av och avsluta. Systemet har räknat kassan per betalsätt och fyllt i terminalens belopp, så kassören skriver något bara när det inte stämmer.',
   },

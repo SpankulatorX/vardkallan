@@ -55,7 +55,7 @@ export const STARTPUNKT = {
   'Patientens mätvärden efter återställning': { hash: '#/patient/p01/matvarden', klar: '#mt-koppla', forbered: 'aterstall' },
   'Mätvärden med värden från en kopplad monitor': { hash: '#/patient/p01/matvarden', klar: '[data-mt-godkann]', forbered: 'koppla-monitor' },
   // Runda 10, r7: kassan, efter uppgiften där vårdadministratören tar betalt.
-  'Kassan': { hash: '#/kassa', klar: '#kassa-dagens' },
+  'Kassan': { hash: '#/kassa', klar: '#kassa-avslut', forbered: 'kassa-besok' },
 };
 
 export const UPPGIFTER = [
@@ -474,11 +474,6 @@ export const UPPGIFTER = [
     id: 'kapacitetsprognos', namn: 'Se vårdenhetens kapacitet och prognos för väntelistan', roll: 'adm-kard', start: 'Vårdadministratörens startsida',
     text: 'Verksamhetschefen undrar när kön till mottagningen är borta och om någon riskerar att vänta för länge. Ta reda på det.',
     kontroll: { sel: '#kap-grupper' },
-  },
-  {
-    id: 'kassa-avgift', namn: 'Ta betalt för en receptförnyelse i kassan', roll: 'adm-kard', start: 'Vårdadministratörens startsida',
-    text: 'Gunnar Åkesson, 19450202-4732, står i receptionen och vill betala för en receptförnyelse med kort. Ta betalt.',
-    kontroll: { notis: 'Betalt med kort' },
   },
   {
     id: 'dagsavslut', namn: 'Göra dagsavslut i kassan', roll: 'adm-kard', start: 'Kassan',

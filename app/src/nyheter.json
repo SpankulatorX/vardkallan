@@ -381,7 +381,7 @@
           "omfattning": "stor",
           "var": "#/kassa",
           "rubrik": "Kassa med återbetalning och dagsavslut",
-          "text": "Under Kassa tar du betalt för receptförnyelser och intyg, återbetalar en betalning med ett klick på orsaken och gör dagsavslut. Systemet räknar kassan per betalsätt och stämmer av den mot betalterminalen, som är simulerad."
+          "text": "Under Kassa tar du betalt vid besöken, återbetalar en betalning med ett klick på orsaken och gör dagsavslut. Avgifter för recept och intyg betalar patienten i Min journal eller med faktura. Systemet räknar kassan per betalsätt och stämmer av den mot betalterminalen, som är simulerad."
         },
         {
           "id": "kapacitet-prognos",

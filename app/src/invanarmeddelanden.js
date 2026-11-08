@@ -120,7 +120,7 @@ export const synligFor = (atk, t) => atk.relation !== 'ombud' || (!t.ordination_
 const synligaTradar = (atk, villkor = '') => atk.db.query(`SELECT * FROM meddelandetradar WHERE patient_id = ? ${villkor} ORDER BY id DESC`).all(atk.patientId).filter(t => synligFor(atk, t));
 export const OMBUD_NEJ = 'Som ombud kan du inte be om förnyade recept eller kommentera vårdplanen, eftersom det gäller journalen. Det kan patienten själv eller en vårdnadshavare göra.';
 
-function tradUt(db, t, { forInvanare, ombud = false, synliga = null }) {
+function tradUt(db, t, { forInvanare, ombud = false }) {
   const m = meddelandenFor(db, t.id);
   const ordination = t.ordination_id ? db.query('SELECT k.namn, k.styrka FROM ordinationer o JOIN katalog k ON k.id = o.lakemedel_id WHERE o.id = ?').get(t.ordination_id) : null;
   const plan = t.plan_id ? db.query('SELECT rubrik FROM vardplaner WHERE id = ?').get(t.plan_id) : null;
@@ -129,8 +129,8 @@ function tradUt(db, t, { forInvanare, ombud = false, synliga = null }) {
     id: t.id, typ: t.typ, typText: TYPER[t.typ]?.text, vardenhet: enhetNamn(db, t.enhet_id), yrkesrollText: YRKE[t.yrkesroll], status: t.status, statusText: STATUS[t.status],
     skapad: t.skapad, avslutad: t.avslutad, utfall: t.utfall,
     galler: ombud && (t.ordination_id || t.plan_id) ? null : ordination ? `${ordination.namn} ${ordination.styrka ?? ''}`.trim() : plan ? plan.rubrik : t.intygstyp ? kassa.INTYGSTYPER[t.intygstyp]?.text ?? null : null,
-    // Personalen ser avgiften räknad med sitt eget filter, patienten det riktiga beloppet (kassa.js).
-    avgift: avgift ? (({ belopp, text }) => ({ belopp, text }))(kassa.visatFor(db, avgift, forInvanare ? null : synliga)) : null,
+    // Patienten ser det riktiga beloppet. Personalen ser bara att tjänsten är avgiftsbelagd, utan belopp (kassa.js).
+    avgift: avgift ? (forInvanare ? { belopp: avgift.belopp, text: avgift.text } : kassa.forPersonal()) : null,
     skrivetAv: forInvanare ? null : { egen: 'Patienten', vardnadshavare: 'Vårdnadshavaren', ombud: 'Ombudet' }[t.relation],
     meddelanden: m.map(x => ({
       id: x.id, fran: x.fran, tid: x.tid, text: x.text,
@@ -272,10 +272,10 @@ export function vardTrad(atk, t) {
   atk.logga('meddelande_invanare', atk.grund(), `meddelande:${t.id}`);
   const lakare = kanRoll(atk.personal, 'ordinera');
   return {
-    ...tradUt(db, t, { forInvanare: false, synliga: kassa.synligaFor(atk) }), utfall: t.utfall, utfallVal: utfallFor(t),
+    ...tradUt(db, t, { forInvanare: false }), utfall: t.utfall, utfallVal: utfallFor(t),
     kanAvsluta: t.status !== 'avslutad' && (!['recept', 'intyg'].includes(t.typ) || lakare),
     varforInte: ['recept', 'intyg'].includes(t.typ) && !lakare ? 'En läkare förnyar recept och utfärdar intyg. Ärendet ligger kvar till läkaren.' : null,
-    forslag: t.typ === 'recept' ? 'Systemet skapar avgiften för förnyelsen och skriver svaret till patienten när du väljer Receptet är förnyat.' : t.typ === 'intyg' ? 'Systemet skapar avgiften för intyget och skriver svaret till patienten när du väljer Intyget är utfärdat.' : null,
+    forslag: t.typ === 'recept' ? 'Systemet skapar avgiften för förnyelsen enligt patientavgiftsreglerna och skriver svaret till patienten när du väljer Receptet är förnyat.' : t.typ === 'intyg' ? 'Systemet skapar avgiften för intyget enligt patientavgiftsreglerna och skriver svaret till patienten när du väljer Intyget är utfärdat.' : null,
   };
 }
 

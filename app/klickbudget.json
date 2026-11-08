@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T18:02:28.918Z",
+  "tid": "2026-11-08T20:50:25.779Z",
   "bas": "http://127.0.0.1:18207",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "8c1b7fcd35c830ccbba8bd1859b4c73c4388d9b8ed4d80d45f0476825e78998f",
+  "gransnittHash": "8e2275bafaeedf14f5a82920ab2b7b1f2fc8589ea0566ea73524ba5fe6288479",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -1445,25 +1445,6 @@
       ]
     },
     {
-      "id": "kassa-avgift",
-      "namn": "Ta betalt för en receptförnyelse i kassan",
-      "roll": "adm-kard",
-      "start": "Vårdadministratörens startsida",
-      "budget": 4,
-      "motivering": "Sussa 3.4.4.4. Ett klick på Kassa, ett fältbyte till personnumret, ett klick på Registrera avgift och ett på Kort. Förnyelse av recept är förvald, och systemet räknar avgiften ur ålder, LMA-kort och frikort.",
-      "klick": 3,
-      "faltbyten": 1,
-      "tangenter": 0,
-      "uppmatt": 4,
-      "inomBudget": true,
-      "steg": [
-        "klick: Kassa",
-        "fältbyte: personnumret",
-        "klick: Registrera avgift",
-        "klick: Kort"
-      ]
-    },
-    {
       "id": "dagsavslut",
       "namn": "Göra dagsavslut i kassan",
       "roll": "adm-kard",
@@ -1836,10 +1817,6 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Se vårdenhetens kapacitet och prognos för väntelistan inom budget",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Klickbudget > Ta betalt för en receptförnyelse i kassan inom budget",
       "status": "grön"
     },
     {

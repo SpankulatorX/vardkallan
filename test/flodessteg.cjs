@@ -903,16 +903,12 @@ function skapa(BAS) {
     await m.klicka(page.locator('#meny a', { hasText: 'Kapacitet' }), 'Kapacitet');
     await page.waitForSelector('#kap-grupper');
   };
-  GOR['kassa-avgift'] = async (m, page) => {
-    await m.klicka(page.locator('#meny a', { hasText: 'Kassa' }), 'Kassa');
-    await page.waitForSelector('#kassa-pnr');
-    await m.skriv(page.locator('#kassa-pnr'), '19450202-4732', 'personnumret');
-    await m.klicka(page.locator('#kassa-ny [type="submit"]'), 'Registrera avgift');
-    await page.waitForSelector('[data-betala="kort"]');
-    await m.klicka(page.locator('[data-betala="kort"]'), 'Kort');
-    await synlig(page, '.notis', 'Betalt med kort');
+  // Kassan med en betalning i dag: en patient checkas in och betalar med kort innan stegen räknas.
+  startI['Kassan'] = async (page) => {
+    await page.evaluate(() => fetch('/api/demo/kassa-besok', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()));
+    await gaTill(page, '#/kassa');
+    await page.waitForSelector('#kassa-avslut');
   };
-  startI['Kassan'] = async (page) => { await gaTill(page, '#/kassa'); await page.waitForSelector('#kassa-dagens'); };
   GOR['dagsavslut'] = async (m, page) => {
     await m.klicka(page.locator('#kassa-avslut'), 'Gör dagsavslut');
     await page.waitForSelector('#kassa-avsluta-ok');

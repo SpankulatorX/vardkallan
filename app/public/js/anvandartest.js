@@ -125,6 +125,8 @@ const FORBERED = {
   'inloggning-gar-ut': async () => { await aterstallDemo(); await api('/api/demo/inloggning-gar-ut', { metod: 'POST', data: { sekunder: 240 } }); },
   // Runda 9, r2: en simulerad monitor kopplas till Gunnar Åkesson, så att värden väntar på godkännande.
   'koppla-monitor': async () => { await aterstallDemo(); await api('/api/patient/p01/mt/koppla', { metod: 'POST', data: { streckkod: 'MT-MON-0001' } }); },
+  // Runda 10, r7: en patient checkas in och betalar med kort, så att kassan har en betalning att göra dagsavslut på.
+  'kassa-besok': async () => { await aterstallDemo(); await api('/api/demo/kassa-besok', { metod: 'POST', data: {} }); },
 };
 
 // Uppgiften börjar på samma sätt som i skriptet: vid byte av demoroll loggas rollen in och demon återställs, så att

@@ -58,6 +58,7 @@ export async function visa(main, _p, q) {
       <div class="ruta ruta-info">${ikon.info}<div><p>Varje post har ett sammanhållande id som pekar på vårdkontakten eller vårdtillfället. Betalningsmottagaren räknar systemet fram ur identiteten, åldern, folkbokföringen (simulerad) och LMA-kort. Utomlänsvården har en egen del i JSON-filen per hemregion, i den form som den nationella tjänsten för utomlänsvård tar emot (simulerad).</p>
         <p>Varje export loggas på patienterna i underlaget. För en patient med skyddade personuppgifter innehåller underlaget aldrig namn eller adress.</p></div></div>
       <section aria-labelledby="ek-tidigare"><h2 id="ek-tidigare">Tidigare exporter</h2><div id="ek-exporter"><p class="tom liten">Hämtar.</p></div></section>
+      <section aria-labelledby="ek-tjanst-rubrik"><h2 id="ek-tjanst-rubrik">Avgifter för recept och intyg i dag</h2><div id="ek-tjanst"><p class="tom liten">Hämtar.</p></div></section>
       <p class="demoregel">${esc(o.demo)}</p>`;
     el.querySelector('#ek-period').addEventListener('change', (e) => ladda(e.target.value).catch(felNotis));
     const ex = await api('/api/ekonomi/exporter');
@@ -65,6 +66,14 @@ export async function visa(main, _p, q) {
     if (lista) {
       lista.innerHTML = ex.exporter.length ? `<ul class="enkel-lista">${ex.exporter.slice(0, 10).map(x => `<li><strong>${esc(x.vardenhet?.namn ?? '')}, ${esc(x.period.text)}</strong>
           <span class="under-text">${esc(tidpunkt(x.tid))}, ${esc(x.format.toUpperCase())}, ${x.antal} poster, ${esc(kr(x.summa))}. ${esc(x.av?.namn ?? '')}.</span></li>`).join('')}</ul>` : '<p class="tom liten">Inga exporter än.</p>';
+    }
+    // Runda 10, r7: det patienterna har betalat i Min journal eller med faktura, per vårdenhet. Inga uppgifter per patient.
+    const tj = await api('/api/ekonomi/tjanstavgifter');
+    const tl = el.querySelector('#ek-tjanst');
+    if (tl) {
+      tl.innerHTML = tj.vardenheter.length ? `<div class="tabellrulle"><table class="tabell siffertabell"><thead><tr><th scope="col">Vårdenhet</th><th scope="col" class="tal">Kort</th><th scope="col" class="tal">Faktura</th><th scope="col" class="tal">Summa</th></tr></thead>
+          <tbody>${tj.vardenheter.map(v => `<tr><th scope="row">${esc(v.vardenhet.namn)}</th><td class="tal">${esc(kr(v.kort))}</td><td class="tal">${esc(kr(v.faktura))}</td><td class="tal">${esc(kr(v.summa))}</td></tr>`).join('')}</tbody></table></div>`
+        : '<p class="tom liten">Inga betalda avgifter för recept eller intyg i dag.</p>';
     }
     return p;
   };

@@ -28,7 +28,7 @@ async function visaTrad(main, id) {
     <div class="sektion-huvud"><h2 id="md-rubrik" tabindex="-1">${esc(t.typText)}${t.galler ? `: ${esc(t.galler)}` : ''}</h2><span class="tagg">${esc(t.statusText)}</span></div>
     <p class="under-text">Skrivet av ${esc(t.skrivetAv ?? '')}, till ${esc(t.yrkesrollText)} på ${esc(t.vardenhet ?? '')}.</p>
     <ol class="meddelanden">${t.meddelanden.map(m => `<li class="meddelande meddelande-${esc(m.fran)}"><p class="under-text">${esc(m.vem ?? '')}, ${esc(tidpunkt(m.tid))}</p><p class="kallelse-text">${esc(m.text)}</p>${m.avisering ? `<p class="hjalp">${esc(m.avisering)}</p>` : ''}</li>`).join('')}</ol>
-    ${t.avgift ? `<p class="hjalp">Avgift: ${esc(kr(t.avgift.belopp))}. ${esc(t.avgift.text)}</p>` : ''}
+    ${t.avgift ? `<p class="hjalp">${esc(t.avgift.text)}</p>` : ''}
     ${t.forslag ? `<p class="ruta ruta-info liten">${esc(t.forslag)}</p>` : ''}
     ${t.varforInte ? `<p class="ruta ruta-info liten">${esc(t.varforInte)}</p>` : ''}
     ${t.kanSvara ? `<form id="md-svar" novalidate><div class="falt"><label for="md-text">Svar till patienten</label><textarea id="md-text" name="text" rows="3" maxlength="2000"></textarea></div>
@@ -49,7 +49,7 @@ async function visaTrad(main, id) {
         notis('Svaret är skickat och ärendet avslutat.');
       } else {
         const r = await medKnapp(b, () => api(`/api/meddelanden/${t.id}/avsluta`, { metod: 'POST', data: { utfall: b.dataset.mdUtfall, text } }), form);
-        notis(r.utfall === 'fornyat' ? 'Receptet är förnyat. Systemet har skapat avgiften och skrivit till patienten.' : r.utfall === 'utfardat' ? 'Intyget är utfärdat. Systemet har skapat avgiften och skrivit till patienten.' : 'Ärendet är avslutat.');
+        notis(r.utfall === 'fornyat' ? 'Receptet är förnyat. Systemet har skapat avgiften enligt patientavgiftsreglerna och skrivit till patienten.' : r.utfall === 'utfardat' ? 'Intyget är utfärdat. Systemet har skapat avgiften enligt patientavgiftsreglerna och skrivit till patienten.' : 'Ärendet är avslutat.');
       }
       await visaMeddelanden(main, [String(t.id)]);
     } catch (err) { fel(err); }
@@ -78,17 +78,11 @@ async function visaBegaran(main) {
 // --- Kassan -------------------------------------------------------------------------------------------------------
 const summaHtml = (s) => `Kort ${esc(kr(s.kort))}, faktura ${esc(kr(s.faktura))}${s.aterbetalt ? `, återbetalt ${esc(kr(s.aterbetalt))}` : ''}. Netto ${esc(kr(s.netto))}.`;
 async function visaKassa(main) {
-  main.innerHTML = vyRubrik('Kassa', 'Betalningar och återbetalningar på vårdenheten i dag, per kassör och betalsätt. Betalterminalen är simulerad.') + '<div id="kassa"><p class="tom">Hämtar.</p></div>';
+  main.innerHTML = vyRubrik('Kassa', 'Patientavgifterna vid besöken och återbetalningarna på vårdenheten i dag, per kassör och betalsätt. Avgifter för recept och intyg betalar patienten i Min journal eller med faktura. Betalterminalen är simulerad.') + '<div id="kassa"><p class="tom">Hämtar.</p></div>';
   const k = await api('/api/kassa');
   const el = main.querySelector('#kassa');
   const jag = k.kassorer.find(x => x.du);
-  el.innerHTML = `<form class="ov-sektion" id="kassa-ny" novalidate aria-labelledby="kassa-ny-rubrik">
-      <div class="sektion-huvud"><h2 id="kassa-ny-rubrik">Ta betalt för recept eller intyg</h2></div>
-      <div class="falt-rad"><div class="falt"><label for="kassa-pnr">Patientens personnummer</label><input id="kassa-pnr" name="personnummer" autocomplete="off" maxlength="40"></div>
-      <div class="falt"><label for="kassa-tjanst">Tjänst</label><select id="kassa-tjanst" name="tjanst">${k.tjanster.map(t => `<option value="${esc(t.id)}">${esc(t.text)}</option>`).join('')}</select></div></div>
-      <p class="form-fel" hidden></p><div class="knapprad"><button type="submit" class="knapp">Registrera avgift</button></div><div id="kassa-avgift"></div>
-    </form>
-    <section class="ov-sektion" id="kassa-dagens" aria-labelledby="kassa-dagens-rubrik"><div class="sektion-huvud"><h2 id="kassa-dagens-rubrik">Dagens kassa ${esc(k.datum)}</h2></div>
+  el.innerHTML = `<section class="ov-sektion" id="kassa-dagens" aria-labelledby="kassa-dagens-rubrik"><div class="sektion-huvud"><h2 id="kassa-dagens-rubrik">Dagens kassa ${esc(k.datum)}</h2></div>
       <p>${esc(k.vardenhet.namn)}. ${summaHtml(k.summa)}</p>
       ${k.kassorer.length ? k.kassorer.map(x => `<h3>${esc(x.namn)}</h3><p>${summaHtml(x.summa)}</p>${x.forklaring ? `<p class="hjalp">${esc(x.forklaring)}</p>` : ''}
         <div class="tabellrulle"><table class="tabell"><caption class="sr">Betalningar för ${esc(x.namn)}</caption><thead><tr><th scope="col">Tid</th><th scope="col">Kvitto</th><th scope="col">Slag</th><th scope="col">Betalsätt</th><th scope="col" class="tal">Belopp</th><th scope="col">Avslutad</th><th scope="col"><span class="sr">Åtgärd</span></th></tr></thead>
@@ -101,26 +95,11 @@ async function visaKassa(main) {
       ${k.avslut.length ? `<ul class="enkel-lista">${k.avslut.map(a => `<li>${esc(klockslag(a.tid))}, ${esc(a.kassor.namn ?? '')}: ${a.antal} rader, kort ${esc(kr(a.summor.kort))}, faktura ${esc(kr(a.summor.faktura))}. ${esc(a.text)}${a.forklaring ? ` ${esc(a.forklaring)}` : ''}</li>`).join('')}</ul>` : tom('Inget dagsavslut ännu.')}
     </section>
     <p class="hjalp">${esc(k.demoregler)}</p>`;
-  const ny = el.querySelector('#kassa-ny');
-  ny.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const [tjanst, intygstyp] = ny.tjanst.value.split(':');
-    try {
-      const r = await medKnapp(ny.querySelector('[type=submit]'), () => api('/api/kassa/avgift', { metod: 'POST', data: { personnummer: ny.personnummer.value, tjanst, intygstyp } }), ny);
-      const a = r.avgift;
-      ny.querySelector('#kassa-avgift').innerHTML = `<div class="ruta ruta-info"><p><strong>${esc(r.patient.namn)}</strong>, ${esc(a.tjanstText)}: ${esc(kr(a.belopp))}.</p><p class="hjalp">${esc(a.text)}</p>
-        ${a.status === 'att_betala' ? `<div class="knapprad"><button type="button" class="knapp" data-betala="kort" data-id="${a.id}">Kort</button><button type="button" class="knapp sekundar" data-betala="faktura" data-id="${a.id}">Faktura</button></div>` : '<p>Det finns inget att betala. Systemet har registrerat det.</p>'}</div>`;
-    } catch (err) { fel(err); }
-  });
   el.addEventListener('click', async (e) => {
-    const b = e.target.closest('[data-betala], [data-ater], #kassa-avslut, #kassa-avsluta-ok');
+    const b = e.target.closest('[data-ater], #kassa-avslut, #kassa-avsluta-ok');
     if (!b) return;
     try {
-      if (b.dataset.betala) {
-        const r = await medKnapp(b, () => api(`/api/kassa/avgift/${b.dataset.id}/betala`, { metod: 'POST', data: { satt: b.dataset.betala } }));
-        notis(`${r.betalning.satt === 'kort' ? 'Betalt med kort' : 'Fakturan är registrerad'}. Kvitto ${r.betalning.kvitto}.`);
-        await visaKassa(main);
-      } else if (b.dataset.ater) {
+      if (b.dataset.ater) {
         const [kalla, id] = b.dataset.ater.split(':');
         const svar = await dialog(`<h2 id="dlg-rubrik">Återbetala ${esc(kr(b.dataset.belopp))}</h2><div class="dialog-text"><p>Beloppet går tillbaka samma väg som det betalades: till kortet eller som kreditfaktura. Välj varför.</p></div>
           <div class="knapprad">${k.orsaker.map(o => `<button type="button" class="knapp sekundar" data-varde="${esc(o.id)}">${esc(o.text)}</button>`).join('')}<button type="button" class="knapp text" data-varde="avbryt">Avbryt</button></div>`);

@@ -59,27 +59,29 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
   // --- Kassan -------------------------------------------------------------------------------------------------------
   const datum = (c) => { const d = c.url.searchParams.get('datum'); return d && giltigtDatum(d) ? d : idag(); };
   rutt('GET', '/api/kassa', (c) => kassa.kassa(c.db, kravInloggad(c), { datum: datum(c) }));
+  // Demoläget för gränssnittstesterna: en patient med en tid i dag på kassörens vårdenhet checkas in och betalar med kort,
+  // så att kassan har en betalning att göra dagsavslut på.
+  rutt('POST', '/api/demo/kassa-besok', (c) => {
+    const p = kravInloggad(c);
+    for (const b of kassa.demoBokningar(c.db, p)) {
+      try {
+        return medPatient(c, b.patient_id, 'checka_in', (atk) => {
+          tidbok.checkaIn(atk, b);
+          return [201, tidbok.betala(atk, tidbok.bokningRad(c.db, b.id), { satt: 'kort' })];
+        });
+      } catch { /* nästa tid */ }
+    }
+    throw new Fel(400, 'Det finns ingen tid i dag att ta betalt för.', 'ogiltig');
+  });
   rutt('POST', '/api/kassa/dagsavslut', (c) => kassa.dagsavslut(c.db, kravInloggad(c), c.body));
-  rutt('POST', '/api/kassa/avgift', (c) => {
-    const personal = kravInloggad(c);
-    if (!kanRoll(personal, 'kassa')) throw new Fel(403, 'Din yrkesroll har ingen kassa.', 'nekad');
-    const far = (pid) => new Atkomst(c.db, personal, pid, valFor(c.s, pid)).prova('checka_in').tillaten;
-    const pid = kassa.patientFranNummer(c.db, c.body.personnummer, far);
-    return medPatient(c, pid, 'checka_in', (atk, p) => kassa.registreraAvgift(atk, p, c.body));
-  });
-  rutt('POST', '/api/kassa/avgift/:id/betala', (c, id) => {
-    kravInloggad(c);
-    kassa.sakra(c.db);
-    const a = c.db.query('SELECT * FROM tjanstavgifter WHERE id = ?').get(Number(id) || 0);
-    if (!a) throw new Fel(404, 'Avgiften finns inte.', 'saknas');
-    return medPatient(c, a.patient_id, 'checka_in', (atk) => kassa.betala(atk, a, c.body));
-  });
   rutt('POST', '/api/kassa/aterbetalning', (c) => {
     kravInloggad(c);
     const bet = kassa.hamtaBetalning(c.db, c.body.kalla, c.body.id);
     if (!bet) throw new Fel(404, 'Betalningen finns inte.', 'saknas');
     return medPatient(c, bet.patient_id, 'checka_in', (atk) => kassa.aterbetala(atk, bet, c.body));
   });
+  // Ekonomens summa för avgifter för tjänster per dag och vårdenhet, utan uppgifter per patient.
+  rutt('GET', '/api/ekonomi/tjanstavgifter', (c) => kassa.tjanstRedovisning(c.db, kravInloggad(c), { datum: datum(c) }));
   rutt('GET', '/api/kassa/rapport.docx', (c) => {
     const k = kassa.kassa(c.db, kravInloggad(c), { datum: datum(c) });
     const block = [

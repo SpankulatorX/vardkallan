@@ -444,7 +444,8 @@ describe('Meddelanden från invånare', () => {
     expect(t.kanAvsluta).toBe(true);
     const a = await k.post(`/api/meddelanden/${recept.id}/avsluta`, { utfall: 'fornyat' });
     expect(a.status).toBe(200);
-    expect(a.data).toMatchObject({ status: 'avslutad', utfall: 'fornyat', avgift: { belopp: 100 } });
+    expect(a.data).toMatchObject({ status: 'avslutad', utfall: 'fornyat', avgift: { text: kassa.PERSONALENS_TEXT } });
+    expect(JSON.stringify(a.data.avgift)).not.toContain('kr');
     expect(a.data.meddelanden.at(-1)).toMatchObject({ fran: 'systemet' });
     expect(a.data.meddelanden.at(-1).text).toContain('ser du i Min journal under Tider');
     expect(a.data.meddelanden.at(-1).text).not.toContain('kr');
@@ -462,7 +463,12 @@ describe('Meddelanden från invånare', () => {
     som(p, 'lak-kard');
     expect((await k.post(`/api/meddelanden/${ny.data.trad.id}/avsluta`, { utfall: 'ej_utfardat' })).status).toBe(400);
     const u = await k.post(`/api/meddelanden/${ny.data.trad.id}/avsluta`, { utfall: 'utfardat' });
-    expect(u.data.avgift).toMatchObject({ belopp: 300 });
+    expect(u.data.avgift).toEqual({ text: kassa.PERSONALENS_TEXT });
+    expect(db(k).query('SELECT belopp FROM tjanstavgifter WHERE kalla_id = ?').get(ny.data.trad.id).belopp).toBe(300);
+    // Patienten ser beloppen i Min journal.
+    somInv(p, 'inv-p01');
+    const min = (await k.get('/api/min/journal/p01/meddelanden')).data.tradar.find(x => x.id === ny.data.trad.id);
+    expect(min.avgift).toMatchObject({ belopp: 300 });
   });
 
   test(namn(T10.sakerhet), async () => {
@@ -631,13 +637,10 @@ describe('Kassan', () => {
     expect(kassa.avgiftFor(d, p('p01'), 'intyg', 'sjukpenning')).toMatchObject({ belopp: 0, grund: 'avgiftsfri' });
     expect(() => kassa.avgiftFor(d, p('p01'), 'intyg', 'constructor')).toThrow();
     expect(() => kassa.avgiftFor(d, p('p01'), 'annat')).toThrow();
-    // I kassan registrerar vårdadministratören avgiften med patientens personnummer.
-    const k = await inloggad('adm-kard');
-    const r = await k.post('/api/kassa/avgift', { personnummer: '19450202-4732', tjanst: 'intyg', intygstyp: 'resa' });
-    expect(r.status).toBe(201);
-    expect(r.data.avgift).toMatchObject({ tjanst: 'intyg', belopp: 300, status: 'att_betala', skapadAv: 'Karin Berg' });
-    expect(logg(k, "patient_id = 'p01' AND personal_id = 'adm-kard' AND resurs = ?", `tjanstavgift:${r.data.avgift.id}`)).toHaveLength(1);
-    expect(() => db(k).query('UPDATE tjanstavgifter SET belopp = 0').run()).toThrow();
+    // Avgiften sparas med det riktiga beloppet och ändras aldrig.
+    const a = kassa.skapaAvgift(d, { patient: p('p01'), enhetId: 'uso-kard', tjanst: 'intyg', intygstyp: 'resa', kalla: 'meddelande' });
+    expect(a).toMatchObject({ tjanst: 'intyg', belopp: 300, enhet_id: 'uso-kard' });
+    expect(() => d.query('UPDATE tjanstavgifter SET belopp = 0').run()).toThrow();
   });
 
   test(namn(T10.hogkostnad), async () => {
@@ -671,235 +674,191 @@ describe('Kassan', () => {
     expect(kassa.avgiftFor(d, pt, 'intyg', 'resa').belopp).toBe(300);
   });
 
-  test(namn(T10.kassaSynlig), async () => {
-    // Patienten har besök på kardiologen, som kassören ser, och på en vårdenhet med spärr, som kassören inte ser.
-    const bygg = (medDolda) => {
-      const d = nyDb();
-      const besok = (enhet, i) => d.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, kontaktsatt, start, slut, orsak, kalla, planerad, skapad) VALUES ('p02', ?, 'oppenvard', 'besok', ?, ?, 'Besök', 'vardkallan', 0, ?)")
-        .run(enhet, new Date(Date.now() - i * 9 * 86400_000).toISOString(), new Date(Date.now() - i * 9 * 86400_000 + 3600_000).toISOString(), iso());
-      const pt = d.query("SELECT * FROM patienter WHERE id = 'p02'").get();
-      const adm = d.query("SELECT * FROM personal WHERE id = 'adm-kard'").get();
-      const atk = new Atkomst(d, adm, 'p02', {}, 'checka_in');
-      const synliga = (r) => atk.filtrera(r, 'las_admin');
-      // Synliga besök tills 450 kr eller mindre återstår till frikortet.
-      for (let i = 1; hogkostnadsskyddet(d, pt, Date.now(), { synliga }).kvar > 450 && i < 20; i++) besok('uso-kard', i);
-      if (medDolda) {
-        d.query("INSERT INTO sparrar (patient_id, enhet_id, registrerad) VALUES ('p02', 'uso-psyk', ?)").run(idag());
-        for (let i = 21; i <= 23; i++) besok('uso-psyk', i);
-        kassa.skapaAvgift(d, { patient: pt, enhetId: 'uso-psyk', tjanst: 'receptfornyelse' });
-      }
-      return { d, pt, synliga, besok };
-    };
-    const ja = (d, typ) => d.query("INSERT INTO konfig_andringar (slag, nyckel, varde, giltig_fran, motivering, foreslagen_av, foreslagen, status, beslutad_av, beslutad, galler_fran) VALUES ('parameter', ?, 'true', ?, 'Test', 'sf-1', ?, 'godkand', 'sf-2', ?, ?)").run(`avgift.hogkostnadsskydd_${typ}`, idag(), iso(), iso(), idag());
-    for (const medParameter of [false, true]) {
-      const utan = bygg(false);
-      const med = bygg(true);
-      if (medParameter) for (const x of [utan, med]) { ja(x.d, 'receptfornyelse'); ja(x.d, 'intyg'); }
-      for (const [tjanst, typ] of [['receptfornyelse', null], ['intyg', 'forsakring']]) {
-        const a = kassa.avgiftFor(utan.d, utan.pt, tjanst, typ, idag(), { synliga: utan.synliga });
-        const b = kassa.avgiftFor(med.d, med.pt, tjanst, typ, idag(), { synliga: med.synliga });
-        expect(JSON.stringify(b)).toBe(JSON.stringify(a));
-        expect(b.text).not.toContain('nedsatt');
-        if (medParameter && tjanst === 'intyg') expect(b.belopp).toBeLessThan(700);
-      }
-      // Utan filter, som i Min journal där patienten ser allt, räknas de dolda besöken, och då gäller frikort.
-      expect(kassa.avgiftFor(med.d, med.pt, 'receptfornyelse').grund).toBe('frikort');
-    }
-    // När de synliga avgifterna når taket gäller frikort, också i kassan.
-    const fri = bygg(true);
-    ja(fri.d, 'receptfornyelse');
-    for (let i = 30; i <= 33; i++) fri.besok('uso-kard', i);
-    expect(kassa.avgiftFor(fri.d, fri.pt, 'receptfornyelse', null, idag(), { synliga: fri.synliga })).toMatchObject({ belopp: 0, grund: 'frikort' });
-    // I kassan räknas avgiften med kassörens filter, och de dolda besöken ändrar inte beloppet.
-    const k = await inloggad('adm-kard');
-    const s = sandlada(app, k);
-    const m = bygg(true);
-    ja(m.d, 'receptfornyelse');
-    s.db = m.d;
-    const r = await k.post('/api/kassa/avgift', { personnummer: '19660319-3373', tjanst: 'receptfornyelse' });
-    expect(r.status).toBe(201);
-    expect(r.data.avgift.belopp).toBe(100);
-    expect(r.data.avgift.text).not.toContain('Frikort');
-  });
-
-  test(namn(T10.kassaRiktig), async () => {
-    // Samma patient med och utan besök på en spärrad vårdenhet, som personalen inte ser. Med de dolda besöken har
-    // patienten frikort, så den riktiga avgiften är noll.
+  test(namn(T10.kassaDold), async () => {
+    // Samma vårdenhet med och utan besök och en avgift på en spärrad vårdenhet, som personalen inte ser. Med de dolda
+    // besöken har patienten p20 frikort, så den riktiga avgiften för förnyelsen är noll.
     const bygg = (medDolda) => {
       const d = nyDb();
       const besok = (enhet, i) => d.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, kontaktsatt, start, slut, orsak, kalla, planerad, skapad) VALUES ('p20', ?, 'oppenvard', 'besok', ?, ?, 'Besök', 'vardkallan', 0, ?)")
         .run(enhet, new Date(Date.now() - i * 9 * 86400_000).toISOString(), new Date(Date.now() - i * 9 * 86400_000 + 3600_000).toISOString(), iso());
       const pt = d.query("SELECT * FROM patienter WHERE id = 'p20'").get();
-      // Patienten loggar in i Min journal i demon, så den får en invånare.
       if (!d.query("SELECT 1 FROM invanare WHERE patient_id = 'p20'").get()) d.query("INSERT INTO invanare (id, personnummer, fornamn, efternamn, fodd, patient_id) VALUES ('inv-p20', ?, ?, ?, ?, 'p20')").run(pt.personnummer, pt.fornamn, pt.efternamn, pt.fodd);
-      const atk = new Atkomst(d, d.query("SELECT * FROM personal WHERE id = 'adm-kard'").get(), 'p20', {}, 'checka_in');
-      const synliga = (r) => atk.filtrera(r, 'las_admin');
-      for (let i = 1; hogkostnadsskyddet(d, pt, Date.now(), { synliga }).kvar > 450 && i < 20; i++) besok('uso-kard', i);
+      for (let i = 1; i <= 5; i++) besok('uso-kard', i);
       if (medDolda) {
         d.query("INSERT INTO sparrar (patient_id, enhet_id, registrerad) VALUES ('p20', 'uso-psyk', ?)").run(idag());
         for (let i = 21; i <= 23; i++) besok('uso-psyk', i);
+        kassa.skapaAvgift(d, { patient: pt, enhetId: 'uso-psyk', tjanst: 'intyg', intygstyp: 'forsakring' });
       }
-      // En begäran om att förnya ett recept, som läkaren svarar på.
       const tid = Number(d.query("INSERT INTO meddelandetradar (patient_id, enhet_id, typ, yrkesroll, skapad, skapad_av_invanare, relation) VALUES ('p20', 'uso-kard', 'recept', 'lakare', ?, 'inv-p20', 'egen')").run(iso()).lastInsertRowid);
       d.query("INSERT INTO invanarmeddelanden (trad_id, patient_id, enhet_id, fran, invanare_id, text, tid) VALUES (?, 'p20', 'uso-kard', 'invanare', 'inv-p20', 'Förnya, tack.', ?)").run(tid, iso());
       return { d, pt, tid };
     };
-    const utanTid = (x) => JSON.parse(JSON.stringify(x, (k, v) => (['id', 'skapad', 'tid', 'avslutad', 'senast'].includes(k) ? undefined : v)));
+    const utanTid = (x) => JSON.parse(JSON.stringify(x, (k, v) => (['skapad', 'tid', 'avslutad', 'senast'].includes(k) ? undefined : v)));
+    const ekonom = (d) => d.query("SELECT id FROM personal WHERE yrke = 'ekonom'").get().id;
     const kor = async (medDolda) => {
       const { d, pt, tid } = bygg(medDolda);
       const k = await inloggad('lak-kard');
       const s = sandlada(app, k);
       s.db = d;
-      const trad = (await k.post(`/api/meddelanden/${tid}/avsluta`, { utfall: 'fornyat' })).data;
+      const svar = {};
+      svar.trad = (await k.post(`/api/meddelanden/${tid}/avsluta`, { utfall: 'fornyat' })).data;
+      svar.tradIgen = (await k.get(`/api/meddelanden/${tid}`)).data;
+      // Kassören tar betalt för ett besök, återbetalar det och gör dagsavslut.
       som(s, 'adm-kard');
-      const ny = (await k.post('/api/kassa/avgift', { personnummer: '19450512-4752', tjanst: 'receptfornyelse' })).data;
-      const betald = (await k.post(`/api/kassa/avgift/${ny.avgift.id}/betala`, { satt: 'kort' })).data;
-      const kassan = (await k.get('/api/kassa')).data;
+      const bok = d.query("SELECT b.* FROM bokningar b JOIN tider t ON t.id = b.tid_id JOIN scheman s ON s.id = t.schema_id WHERE b.patient_id = 'p15' AND b.status = 'bokad' AND s.enhet_id = 'uso-kard-mott'").get();
+      await k.post(`/api/bokning/${bok.id}/checka-in`);
+      svar.betald = (await k.post(`/api/bokning/${bok.id}/betala`, { satt: 'kort' })).data.betalning;
+      const bet = d.query('SELECT id FROM betalningar WHERE bokning_id = ?').get(bok.id);
+      svar.ater = (await k.post('/api/kassa/aterbetalning', { kalla: 'bokning', id: bet.id, orsak: 'fel_avgift' })).data;
+      svar.kassan = (await k.get('/api/kassa')).data;
+      svar.avslut = (await k.post('/api/kassa/dagsavslut', {})).data;
+      // Patienten ser det riktiga beloppet och betalar det i Min journal.
       somInv(s, 'inv-p20');
-      const min = (await k.get('/api/min/journal/p20/avgifter')).data;
-      return { d, pt, trad, ny, betald, kassan, min };
+      svar.min = (await k.get('/api/min/journal/p20/avgifter')).data;
+      const egen = svar.min.avgifter.find(a => a.tjanst === 'receptfornyelse');
+      svar.minBetald = await k.post(`/api/min/journal/p20/avgift/${egen.id}/betala`, { satt: 'faktura' });
+      som(s, ekonom(d));
+      svar.ekonom = (await k.get('/api/ekonomi/tjanstavgifter')).data;
+      return { d, pt, svar };
     };
     const utan = await kor(false);
     const med = await kor(true);
-    // Det sparade beloppet är det riktiga, räknat på alla patientens besök, oavsett vem som registrerade avgiften.
-    const sparade = med.d.query("SELECT kalla, belopp, grund FROM tjanstavgifter WHERE patient_id = 'p20' ORDER BY id").all();
-    expect(sparade).toEqual([{ kalla: 'meddelande', belopp: 0, grund: 'frikort' }, { kalla: 'kassa', belopp: 0, grund: 'frikort' }]);
-    expect(utan.d.query("SELECT belopp FROM tjanstavgifter WHERE patient_id = 'p20' ORDER BY id").all().map(r => r.belopp)).toEqual([100, 100]);
-    // Personalens svar är detsamma med och utan de dolda besöken.
-    expect(JSON.stringify(utanTid(med.trad))).toBe(JSON.stringify(utanTid(utan.trad)));
-    expect(JSON.stringify(utanTid(med.ny))).toBe(JSON.stringify(utanTid(utan.ny)));
-    expect(JSON.stringify(utanTid(med.betald))).toBe(JSON.stringify(utanTid(utan.betald)));
-    expect(med.betald).toMatchObject({ belopp: 100, status: 'betald' });
-    // Skillnaden återbetalas av sig själv. Kassan visar en återbetalning utan orsak och utan patientuppgifter.
-    expect(med.d.query('SELECT belopp, automatisk FROM aterbetalningar').all()).toEqual([{ belopp: 100, automatisk: 1 }]);
-    expect(utan.d.query('SELECT count(*) AS n FROM aterbetalningar').get().n).toBe(0);
-    const rad = med.kassan.kassorer.find(x => x.du).rader.find(x => x.kalla === 'aterbetalning');
-    expect(rad).toMatchObject({ slag: 'Återbetalning', belopp: -100 });
-    for (const x of ['Frikort', 'högkostnad', med.pt.efternamn, med.pt.personnummer.slice(0, 8)]) expect(JSON.stringify(med.kassan.kassorer)).not.toContain(x);
-    expect(med.kassan.kassorer.find(x => x.du).summa).toMatchObject({ kort: 0, aterbetalt: 100, netto: 0 });
-    // Patienten ser det riktiga beloppet, frikortet och återbetalningen i Min journal.
-    const minKassa = med.min.avgifter.find(a => a.betalning);
-    expect(minKassa).toMatchObject({ belopp: 0, grund: 'frikort' });
-    expect(minKassa.aterbetalning.text).toContain('100 kr tillbaka');
-    expect(med.min.avgifter.find(a => !a.betalning)).toMatchObject({ belopp: 0, status: 'frikort' });
-    expect(utan.min.avgifter.find(a => a.betalning).aterbetalning).toBeNull();
+    // Det sparade beloppet är det riktiga, på alla patientens besök.
+    expect(med.d.query("SELECT belopp, grund FROM tjanstavgifter WHERE patient_id = 'p20' AND tjanst = 'receptfornyelse'").get()).toEqual({ belopp: 0, grund: 'frikort' });
+    expect(utan.d.query("SELECT belopp FROM tjanstavgifter WHERE patient_id = 'p20' AND tjanst = 'receptfornyelse'").get().belopp).toBe(100);
+    // Personalens svar är desamma med och utan den dolda avgiften: meddelandet, kassan, återbetalningen och dagsavslutet.
+    for (const del of ['trad', 'tradIgen', 'betald', 'ater', 'kassan', 'avslut']) expect({ del, svar: JSON.stringify(utanTid(med.svar[del])) }).toEqual({ del, svar: JSON.stringify(utanTid(utan.svar[del])) });
+    expect(med.svar.trad.avgift).toEqual({ text: kassa.PERSONALENS_TEXT });
+    expect(JSON.stringify(med.svar.kassan)).not.toContain('Förnyelse av recept');
+    // Patienten ser det riktiga beloppet. Med frikort finns inget att betala, utan frikort går fakturan med det riktiga beloppet.
+    expect(med.svar.min.avgifter.find(a => a.tjanst === 'receptfornyelse')).toMatchObject({ belopp: 0, status: 'frikort' });
+    expect(med.svar.minBetald.status).toBe(400);
+    expect(utan.svar.minBetald.status).toBe(200);
+    expect(utan.svar.minBetald.data).toMatchObject({ status: 'betald', belopp: 100, betalning: { satt: 'faktura', belopp: 100 } });
+    expect(utan.svar.minBetald.data.betalning.text).toContain('Faktura på 100 kr');
+    // Ekonomen ser summan per vårdenhet och dag, utan uppgifter per patient.
+    expect(utan.svar.ekonom.vardenheter).toEqual([expect.objectContaining({ vardenhet: { id: 'uso-kard', namn: expect.any(String) }, faktura: 100, summa: 100 })]);
+    expect(JSON.stringify(utan.svar.ekonom)).not.toContain('p20');
+    expect(JSON.stringify(utan.svar.ekonom)).not.toContain(utan.pt.efternamn);
   });
 
   test(namn(T10.betala), async () => {
+    // Patientavgiften vid ett besök betalas med kort i den simulerade terminalen och återbetalas samma väg, en gång.
     const k = await inloggad('adm-kard');
-    const r = (await k.post('/api/kassa/avgift', { personnummer: '19450202-4732', tjanst: 'receptfornyelse' })).data.avgift;
-    expect((await k.post(`/api/kassa/avgift/${r.id}/betala`, { satt: 'kontant' })).status).toBe(400);
-    const b = await k.post(`/api/kassa/avgift/${r.id}/betala`, { satt: 'kort' });
-    expect(b.status).toBe(200);
-    expect(b.data).toMatchObject({ status: 'betald', betalning: { satt: 'kort', av: 'Karin Berg' } });
-    expect(b.data.betalning.kvitto).toMatch(/^VK-DEMO-T-\d{5}$/);
-    expect(b.data.betalning.text).toContain('simulerade betalterminalen');
-    expect((await k.post(`/api/kassa/avgift/${r.id}/betala`, { satt: 'kort' })).status).toBe(400);
-    // Återbetalning samma väg, med orsak och eget kvitto, en gång.
-    const bet = db(k).query('SELECT * FROM kassabetalningar WHERE avgift_id = ?').get(r.id);
-    expect((await k.post('/api/kassa/aterbetalning', { kalla: 'tjanst', id: bet.id })).status).toBe(400);
-    const a = await k.post('/api/kassa/aterbetalning', { kalla: 'tjanst', id: bet.id, orsak: 'fel_avgift' });
+    const d = db(k);
+    const bok = d.query("SELECT b.* FROM bokningar b JOIN tider t ON t.id = b.tid_id JOIN scheman s ON s.id = t.schema_id WHERE b.patient_id = 'p15' AND b.status = 'bokad' AND s.enhet_id = 'uso-kard-mott'").get();
+    await k.post(`/api/bokning/${bok.id}/checka-in`);
+    const b = (await k.post(`/api/bokning/${bok.id}/betala`, { satt: 'kort' })).data.betalning;
+    expect(b).toMatchObject({ satt: 'kort' });
+    const bet = d.query('SELECT * FROM betalningar WHERE bokning_id = ?').get(bok.id);
+    expect((await k.post('/api/kassa/aterbetalning', { kalla: 'bokning', id: bet.id })).status).toBe(400);
+    const a = await k.post('/api/kassa/aterbetalning', { kalla: 'bokning', id: bet.id, orsak: 'fel_avgift' });
     expect(a.status).toBe(201);
-    expect(a.data).toMatchObject({ belopp: 100, satt: 'kort', orsak: 'Avgiften var fel', ursprungligtKvitto: bet.kvitto });
+    expect(a.data).toMatchObject({ belopp: bet.belopp, satt: 'kort', orsak: 'Avgiften var fel', ursprungligtKvitto: bet.kvitto });
     expect(a.data.kvitto).toMatch(/^VK-DEMO-R-\d{5}$/);
     expect(a.data.text).toContain('tillbaka till kortet');
-    expect((await k.post('/api/kassa/aterbetalning', { kalla: 'tjanst', id: bet.id, orsak: 'dubbel' })).status).toBe(400);
-    expect(logg(k, "patient_id = 'p01' AND resurs = ?", `aterbetalning:tjanst:${bet.id}`)).toHaveLength(1);
-    // En patientavgift vid besöket återbetalas på samma sätt, som kreditfaktura när den fakturerades.
-    const d = db(k);
-    const bok = d.query("SELECT b.* FROM bokningar b JOIN tider t ON t.id = b.tid_id JOIN scheman s ON s.id = t.schema_id WHERE s.enhet_id IN ('uso-kard', 'uso-kard-mott') AND b.status = 'bokad' AND b.patient_id = 'p01' LIMIT 1").get()
-      ?? d.query("SELECT b.* FROM bokningar b JOIN tider t ON t.id = b.tid_id JOIN scheman s ON s.id = t.schema_id WHERE s.enhet_id IN ('uso-kard', 'uso-kard-mott') AND b.status = 'bokad' LIMIT 1").get();
-    d.query("INSERT INTO betalningar (bokning_id, patient_id, belopp, satt, tid, av, kvitto, text) VALUES (?, ?, 200, 'faktura', ?, 'adm-kard', 'VK-DEMO-90001', 'Faktura, simulerad.')").run(bok.id, bok.patient_id, iso());
+    expect((await k.post('/api/kassa/aterbetalning', { kalla: 'bokning', id: bet.id, orsak: 'dubbel' })).status).toBe(400);
+    expect(logg(k, "patient_id = 'p15' AND resurs = ?", `aterbetalning:bokning:${bet.id}`)).toHaveLength(1);
+    // En fakturerad avgift återbetalas som kreditfaktura.
+    const ann = d.query("SELECT b.* FROM bokningar b JOIN tider t ON t.id = b.tid_id JOIN scheman s ON s.id = t.schema_id WHERE s.enhet_id IN ('uso-kard', 'uso-kard-mott') AND b.status = 'bokad' AND b.id <> ? LIMIT 1").get(bok.id);
+    d.query("INSERT INTO betalningar (bokning_id, patient_id, belopp, satt, tid, av, kvitto, text) VALUES (?, ?, 200, 'faktura', ?, 'adm-kard', 'VK-DEMO-90001', 'Faktura, simulerad.')").run(ann.id, ann.patient_id, iso());
     const fb = d.query("SELECT id FROM betalningar WHERE kvitto = 'VK-DEMO-90001'").get();
     const af = await k.post('/api/kassa/aterbetalning', { kalla: 'bokning', id: fb.id, orsak: 'installt' });
     expect(af.status).toBe(201);
     expect(af.data.text).toContain('Kreditfaktura');
     expect(() => d.query('DELETE FROM aterbetalningar').run()).toThrow();
-    // Frikort och avgiftsfria besök har inget att återbetala.
-    const fri = d.query("SELECT id FROM betalningar WHERE belopp = 0 LIMIT 1").get();
+    // Frikort och avgiftsfria besök har inget att återbetala, och avgifter för tjänster återbetalas inte i kassan.
+    const fri = d.query('SELECT id FROM betalningar WHERE belopp = 0 LIMIT 1').get();
     if (fri) expect((await k.post('/api/kassa/aterbetalning', { kalla: 'bokning', id: fri.id, orsak: 'fel_avgift' })).status).toBe(400);
+    expect((await k.post('/api/kassa/aterbetalning', { kalla: 'tjanst', id: 1, orsak: 'fel_avgift' })).status).toBe(404);
   });
 
   test(namn(T10.avslut), async () => {
     const k = await inloggad('adm-kard');
-    const r = (await k.post('/api/kassa/avgift', { personnummer: '19450202-4732', tjanst: 'intyg', intygstyp: 'skola' })).data.avgift;
-    await k.post(`/api/kassa/avgift/${r.id}/betala`, { satt: 'kort' });
-    const r2 = (await k.post('/api/kassa/avgift', { personnummer: '19450202-4732', tjanst: 'receptfornyelse' })).data.avgift;
-    await k.post(`/api/kassa/avgift/${r2.id}/betala`, { satt: 'faktura' });
+    const d = db(k);
+    const bok = d.query("SELECT b.* FROM bokningar b JOIN tider t ON t.id = b.tid_id JOIN scheman s ON s.id = t.schema_id WHERE b.patient_id = 'p15' AND b.status = 'bokad' AND s.enhet_id = 'uso-kard-mott'").get();
+    await k.post(`/api/bokning/${bok.id}/checka-in`);
+    await k.post(`/api/bokning/${bok.id}/betala`, { satt: 'kort' });
+    const kort = d.query('SELECT belopp FROM betalningar WHERE bokning_id = ?').get(bok.id).belopp;
+    const ann = d.query("SELECT b.* FROM bokningar b JOIN tider t ON t.id = b.tid_id JOIN scheman s ON s.id = t.schema_id WHERE s.enhet_id IN ('uso-kard', 'uso-kard-mott') AND b.status = 'bokad' AND b.id <> ? LIMIT 1").get(bok.id);
+    d.query("INSERT INTO betalningar (bokning_id, patient_id, belopp, satt, tid, av, kvitto, text) VALUES (?, ?, 100, 'faktura', ?, 'adm-kard', 'VK-DEMO-90002', 'Faktura, simulerad.')").run(ann.id, ann.patient_id, iso());
     const kv = (await k.get('/api/kassa')).data;
     const jag = kv.kassorer.find(x => x.du);
     expect(jag).toMatchObject({ namn: 'Karin Berg', kanAvsluta: true });
-    expect(jag.summa).toMatchObject({ kort: 300, faktura: 100, netto: 400 });
+    expect(jag.summa).toMatchObject({ kort, faktura: 100, netto: kort + 100 });
     expect(jag.rader.every(x => x.kvitto)).toBe(true);
     // Ett räknat belopp som inte stämmer kräver en förklaring.
-    const fel = await k.post('/api/kassa/dagsavslut', { raknat: 250 });
+    const fel = await k.post('/api/kassa/dagsavslut', { raknat: kort + 50 });
     expect(fel.status).toBe(400);
-    expect(fel.data.fel).toContain('terminalen säger 300 kr');
+    expect(fel.data.fel).toContain(`terminalen säger ${kort} kr`);
     const a = await k.post('/api/kassa/dagsavslut', {});
     expect(a.status).toBe(201);
-    expect(a.data).toMatchObject({ terminal: 300, raknat: 300, avvikelse: 0, antal: jag.rader.length, summor: { kort: 300, faktura: 100 } });
+    expect(a.data).toMatchObject({ terminal: kort, raknat: kort, avvikelse: 0, antal: jag.rader.length, summor: { kort, faktura: 100 } });
     expect(a.data.text).toContain('stämmer med betalterminalens dagsrapport');
     expect((await k.post('/api/kassa/dagsavslut', {})).status).toBe(400);
     const efter = (await k.get('/api/kassa')).data;
     expect(efter.kassorer.find(x => x.du)).toMatchObject({ kanAvsluta: false });
     expect(efter.kassorer.find(x => x.du).rader.every(x => x.avslutad)).toBe(true);
-    expect(efter.avslut).toHaveLength(1);
-    // En betalning efter avslutet tas med i nästa avslut, med förklaring när kassan inte stämmer.
-    const r3 = (await k.post('/api/kassa/avgift', { personnummer: '19450202-4732', tjanst: 'intyg', intygstyp: 'forsakring' })).data.avgift;
-    await k.post(`/api/kassa/avgift/${r3.id}/betala`, { satt: 'kort' });
-    const a2 = await k.post('/api/kassa/dagsavslut', { raknat: 600, forklaring: 'Kunden fick 100 kr tillbaka i fel ordning.' });
-    expect(a2.data).toMatchObject({ terminal: 700, raknat: 600, avvikelse: -100, antal: 1 });
-    // Ett avslut ändras och raderas aldrig.
-    expect(() => db(k).query('UPDATE kassaavslut SET raknat = 0').run()).toThrow();
-    expect(() => db(k).query('DELETE FROM kassaavslut').run()).toThrow();
+    // En återbetalning efter avslutet tas med i nästa avslut, med förklaring när kassan inte stämmer.
+    const bet = d.query('SELECT id FROM betalningar WHERE bokning_id = ?').get(bok.id);
+    await k.post('/api/kassa/aterbetalning', { kalla: 'bokning', id: bet.id, orsak: 'fel_avgift' });
+    const a2 = await k.post('/api/kassa/dagsavslut', { raknat: 0, forklaring: 'Kunden fick pengarna kontant i stället.' });
+    expect(a2.data).toMatchObject({ terminal: -kort, raknat: 0, avvikelse: kort, antal: 1 });
+    expect(() => d.query('UPDATE kassaavslut SET raknat = 0').run()).toThrow();
+    expect(() => d.query('DELETE FROM kassaavslut').run()).toThrow();
+    // Demoläget för gränssnittstesterna checkar in en patient och tar betalt, så att det finns något att avsluta.
+    // Här är dagens tider redan betalda.
+    expect((await k.post('/api/demo/kassa-besok', {})).status).toBe(400);
+    const ny = await inloggad('adm-kard');
+    expect((await ny.post('/api/demo/kassa-besok', {})).status).toBe(201);
+    expect((await ny.get('/api/kassa')).data.kassorer.find(x => x.du)).toMatchObject({ kanAvsluta: true });
   });
 
   test(namn(T10.kassaSakerhet), async () => {
     const k = await inloggad('adm-kard');
-    const r = (await k.post('/api/kassa/avgift', { personnummer: '19450202-4732', tjanst: 'receptfornyelse' })).data.avgift;
-    await k.post(`/api/kassa/avgift/${r.id}/betala`, { satt: 'kort' });
+    const d = db(k);
+    const bok = d.query("SELECT b.* FROM bokningar b JOIN tider t ON t.id = b.tid_id JOIN scheman s ON s.id = t.schema_id WHERE b.patient_id = 'p15' AND b.status = 'bokad' AND s.enhet_id = 'uso-kard-mott'").get();
+    await k.post(`/api/bokning/${bok.id}/checka-in`);
+    await k.post(`/api/bokning/${bok.id}/betala`, { satt: 'kort' });
     const text = JSON.stringify((await k.get('/api/kassa')).data);
-    for (const x of ['Åkesson', 'Gunnar', '19450202', 'p01']) expect(text).not.toContain(x);
-    // En patient utan vårdrelation hit: samma svar som ett nummer som inte finns.
-    const utanRelation = db(k).query('SELECT * FROM patienter ORDER BY id').all().find(p => !harVardrelation(db(k), p.id, 'uso-kard'));
-    const utan = await k.post('/api/kassa/avgift', { personnummer: utanRelation.personnummer, tjanst: 'receptfornyelse' });
-    const finnsEj = await k.post('/api/kassa/avgift', { personnummer: '19121212-1212', tjanst: 'receptfornyelse' });
-    expect(utan.status).toBe(404);
-    expect(utan.data.fel).toBe(finnsEj.data.fel);
+    for (const x of ['Nordin', 'David', '19880421', 'p15']) expect(text).not.toContain(x);
+    // Avgifter för tjänster registreras och betalas inte i kassan.
+    expect((await k.post('/api/kassa/avgift', { personnummer: '19450202-4732', tjanst: 'receptfornyelse' })).status).toBe(404);
     // Fel roll.
     const s = sandlada(app, k);
     som(s, 'lak-kard');
     expect((await k.get('/api/kassa')).status).toBe(403);
-    expect((await k.post('/api/kassa/avgift', { personnummer: '19450202-4732', tjanst: 'receptfornyelse' })).status).toBe(403);
     expect((await k.post('/api/kassa/dagsavslut', {})).status).toBe(403);
+    expect((await k.get('/api/ekonomi/tjanstavgifter')).status).toBe(403);
+    expect((await k.post('/api/demo/kassa-besok', {})).status).toBe(403);
     // En annan vårdenhet återbetalar inte och ser inte kassan.
-    const vc = s.db.query("SELECT id FROM personal WHERE yrke = 'vardadministrator' AND enhet_id LIKE 'vc-%'").get();
+    const bet = d.query('SELECT * FROM betalningar WHERE bokning_id = ?').get(bok.id);
+    const vc = d.query("SELECT id FROM personal WHERE yrke = 'vardadministrator' AND enhet_id LIKE 'vc-%'").get();
     if (vc) {
       som(s, vc.id);
-      const bet = s.db.query('SELECT * FROM kassabetalningar WHERE avgift_id = ?').get(r.id);
-      const a = await k.post('/api/kassa/aterbetalning', { kalla: 'tjanst', id: bet.id, orsak: 'fel_avgift' });
-      expect(a.status).toBe(403);
+      expect((await k.post('/api/kassa/aterbetalning', { kalla: 'bokning', id: bet.id, orsak: 'fel_avgift' })).status).toBe(403);
       expect(JSON.stringify((await k.get('/api/kassa')).data)).not.toContain(bet.kvitto);
     }
   });
 
   test(namn(T10.minBetala), async () => {
     const k = await inloggad('adm-kard');
-    const r = (await k.post('/api/kassa/avgift', { personnummer: '19450202-4732', tjanst: 'intyg', intygstyp: 'resa' })).data.avgift;
     const s = sandlada(app, k);
+    const pt = s.db.query("SELECT * FROM patienter WHERE id = 'p01'").get();
+    const r = kassa.skapaAvgift(s.db, { patient: pt, enhetId: 'uso-kard', tjanst: 'intyg', intygstyp: 'resa', kalla: 'meddelande' });
+    expect(() => s.db.query('UPDATE tjanstavgifter SET belopp = 0').run()).toThrow();
     somInv(s, 'inv-p01');
-    const m = (await k.get('/api/min/journal/p01/avgifter')).data;
-    const a = m.avgifter.find(x => x.id === r.id);
-    expect(a).toMatchObject({ status: 'att_betala', belopp: 300, skapadAv: null });
+    const a = (await k.get('/api/min/journal/p01/avgifter')).data.avgifter.find(x => x.id === r.id);
+    expect(a).toMatchObject({ status: 'att_betala', belopp: 300 });
+    expect((await k.post(`/api/min/journal/p01/avgift/${r.id}/betala`, { satt: 'kontant' })).status).toBe(400);
     const b = await k.post(`/api/min/journal/p01/avgift/${r.id}/betala`, { satt: 'kort' });
     expect(b.status).toBe(200);
-    expect(b.data).toMatchObject({ status: 'betald', betalning: { av: 'Min journal' } });
-    expect(JSON.stringify(b.data)).not.toContain('Karin Berg');
+    expect(b.data).toMatchObject({ status: 'betald', betalning: { satt: 'kort', belopp: 300 } });
     expect((await k.post(`/api/min/journal/p01/avgift/${r.id}/betala`, { satt: 'kort' })).status).toBe(400);
-    // I kassan står betalningen under Min journal.
+    expect(logg(k, "patient_id = 'p01' AND invanare_id = 'inv-p01' AND resurs = ?", `min:avgift:${r.id}:betald:kort`)).toHaveLength(1);
+    // Betalningen finns inte i personalens kassa.
     som(s, 'adm-kard');
-    const kv = (await k.get('/api/kassa')).data;
-    expect(kv.kassorer.find(x => x.id === 'min_journal')).toMatchObject({ kanAvsluta: false });
+    expect(JSON.stringify((await k.get('/api/kassa')).data.kassorer)).not.toContain('Intyg');
     // Ombudet ser inte avgifterna.
     somInv(s, 'inv-om01');
     expect((await k.get('/api/min/journal/p01/avgifter')).status).toBe(403);
