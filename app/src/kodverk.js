@@ -283,6 +283,10 @@ export const KVA = {
   DV111: 'Enkla råd om tobaks- och nikotinbruk',
   DV112: 'Rådgivande samtal om tobaks- och nikotinbruk',
   DV113: 'Kvalificerat rådgivande samtal om tobaks- och nikotinbruk',
+  // Runda 9, r3: ett demourval av operationer (operation.js). Texterna är förkortade och
+  // koderna är inte kontrollerade mot den gällande utgåvan av KVÅ (docs/kodkontroll.md).
+  JKA21: 'Laparoskopisk kolecystektomi', JEA00: 'Laparoskopisk appendektomi', NFB49: 'Primär total protes i höftled med cement',
+  NGB49: 'Primär total protes i knäled med cement',
 };
 
 // Runda 7, r6: koderna för Svenska barnhälsovårdsregistret ordagrant ur bilaga K11 till Sussas förfrågningsunderlag,

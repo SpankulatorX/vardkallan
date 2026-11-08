@@ -231,6 +231,24 @@ ROLLER.lakare.push('las_prover', 'bestalla_prov', 'ta_prov', 'vidimera_provsvar'
 ROLLER.sjukskoterska.push('las_prover', 'bestalla_prov_uppdrag', 'ta_prov');
 ROLLER.underskoterska.push('las_prover', 'bestalla_prov_uppdrag', 'ta_prov');
 
+// Runda 9, r3: specialistområdena i Sussa kapitel 4. Operationsplanering (operation.js, Sussa 4.5): läkaren anmäler till
+// operation, läkare och sjuksköterskor planerar sal, team och tid och registrerar förloppet och uppvakningen, och
+// undersköterskan läser planeringen. Graviditet och förlossning (obstetrik.js, Sussa 4.7): läkare och sjuksköterskor
+// (barnmorskan i demon) för graviditetsjournalen och förlossningsjournalen. Cytostatika (cytostatika.js, Sussa 4.8):
+// läkaren ordinerar ur en behandlingsregim, och läkare och sjuksköterskor tar emot beredningen och ger kuren med
+// dubbelkontroll. Bilder och media (bilder.js, Sussa 4.2) läses och skrivs med journalens handlingar, och blodprodukter
+// (blod.js, Sussa 4.4.2.12) beställs och ges med provbeställningens och läkemedlens handlingar.
+Object.assign(HANDLINGAR, {
+  las_operation: 'läsa operationsanmälningar och operationsplaneringen', operation_anmala: 'anmäla patienter till operation',
+  operation_planera: 'planera och stryka operationer', operation_registrera: 'registrera operationsförlopp och uppvakning',
+  las_graviditet: 'läsa graviditetsjournalen och förlossningsjournalen', graviditet: 'föra graviditetsjournalen och förlossningsjournalen',
+  las_cytostatika: 'läsa cytostatikabehandlingar', ordinera_cytostatika: 'ordinera cytostatika ur en behandlingsregim',
+  ge_cytostatika: 'ta emot beredd cytostatika och ge den med dubbelkontroll',
+});
+ROLLER.lakare.push('las_operation', 'operation_anmala', 'operation_planera', 'operation_registrera', 'las_graviditet', 'graviditet', 'las_cytostatika', 'ordinera_cytostatika', 'ge_cytostatika');
+ROLLER.sjukskoterska.push('las_operation', 'operation_planera', 'operation_registrera', 'las_graviditet', 'graviditet', 'las_cytostatika', 'ge_cytostatika');
+ROLLER.underskoterska.push('las_operation');
+
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
 
 // Runda 7, r4: omorganisation (omorganisation.js, HSA:s regler för organisationsförändringar, bilaga K6). En vårdenhet
