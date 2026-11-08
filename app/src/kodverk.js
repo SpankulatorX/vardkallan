@@ -283,6 +283,23 @@ export const KVA = {
   DV111: 'Enkla råd om tobaks- och nikotinbruk',
   DV112: 'Rådgivande samtal om tobaks- och nikotinbruk',
   DV113: 'Kvalificerat rådgivande samtal om tobaks- och nikotinbruk',
+  // Runda 9, r7: stöd vid alkohol, fysisk aktivitet och matvanor (levnadsvanor-regler.js), och skötseln av in- och
+  // utfarter (infarter.js), ordagrant ur samma fil.
+  DV121: 'Enkla råd om alkoholvanor',
+  DV122: 'Rådgivande samtal om alkoholvanor',
+  DV123: 'Kvalificerat rådgivande samtal om alkoholvanor',
+  DV131: 'Enkla råd om fysisk aktivitet',
+  DV132: 'Rådgivande samtal om fysisk aktivitet',
+  DV133: 'Kvalificerat rådgivande samtal om fysisk aktivitet',
+  DV141: 'Enkla råd om matvanor',
+  DV142: 'Rådgivande samtal om matvanor',
+  DV143: 'Kvalificerat rådgivande samtal om matvanor',
+  DV200: 'Utfärdande av recept på fysisk aktivitet (FaR)',
+  QD004: 'Skötsel av central venkateter',
+  QD005: 'Skötsel av perifer venkateter',
+  DK028: 'Skötsel av urinkateter',
+  DV150: 'Skötsel av dränage',
+  DV065: 'Sondmatning',
 };
 
 // Runda 7, r6: koderna för Svenska barnhälsovårdsregistret ordagrant ur bilaga K11 till Sussas förfrågningsunderlag,

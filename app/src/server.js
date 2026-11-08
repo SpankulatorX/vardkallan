@@ -82,6 +82,10 @@ import { registreraRutter as r5Rutter } from './r5-rutter.js';
 import { villkor10 } from './version.js';
 // Runda 8, r2: remiss på uppdrag, fördelning, remisskonferens och extern pappersremiss (remiss-r8.js).
 import * as remissR8 from './remiss-r8.js';
+// Runda 9, r7: skanning, analys, folkhälsa, spårbarhet, forskningsuttag, in- och utfarter, restjournaler och signering.
+import { registreraRutter as r9r7Rutter } from './r9r7-rutter.js';
+import * as levnadsvanor from './levnadsvanor.js';
+import * as folkhalsa from './folkhalsa.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -530,6 +534,10 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       r3: r3.oversikt(atk),
       // Runda 8, r5: den senaste anteckningen om tobaksvanor bland dem som syns (tobak.js).
       tobak: kanRoll(pers, 'las_omvardnad') ? tobak.oversiktDel(db, ant) : null,
+      // Runda 9, r7: den senaste anteckningen om levnadsvanor bland dem som syns (levnadsvanor.js).
+      levnadsvanor: kanRoll(pers, 'las_omvardnad') ? levnadsvanor.oversiktDel(db, ant) : null,
+      // Runda 9, r7: systemets rekommendation när patienten ingår i en folkhälsoinsats på vårdenheten (folkhalsa.js).
+      folkhalsa: folkhalsa.forPatient(atk),
     };
   }
 
@@ -1557,6 +1565,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   utbildningRutter({ rutt, kravInloggad });
   // Runda 8, r5: epikrisens förslag och flera mätvärden på en gång (r5-rutter.js).
   r5Rutter({ rutt, kravInloggad, medPatient });
+  // Runda 9, r7 (r9r7-rutter.js).
+  r9r7Rutter({ rutt, kravInloggad, medPatient, valFor });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
   // visas direkt (bara i den egna sandlådan).
   const kravNagon = (c) => { if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad'); };

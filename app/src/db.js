@@ -420,6 +420,9 @@ export function byggSeed(bas = nu()) {
   // Runda 8, r1: beställning och svar och kontrollerna till avdelningen (labb-seed.js). Sist, eftersom beställningarna görs
   // med modulernas egna funktioner, som läser vårdstrukturen, konfigurationen och undantagen.
   require('./labb-seed.js').seeda(db, { bas });
+  // Runda 9, r7: skanning, analys, folkhälsa, spårbarhet, forskningsuttag, in- och utfarter, restjournaler och
+  // signering (schema-runda9-r7.js). Sist, eftersom seeden läser vårdkontakterna, anteckningarna och proverna.
+  require('./schema-runda9-r7.js').sakraR9r7(db, bas);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -527,6 +530,9 @@ export function migrera(db) {
   sakraR5(db, nu());
   // Runda 8, r1: tabellerna för beställning och svar och för kontrollerna. Inga beställningar läggs in i efterhand.
   require('./labb-seed.js').sakra(db);
+  // Runda 9, r7: tabellerna för skanning, analys, folkhälsa, spårbarhet, forskningsuttag, in- och utfarter,
+  // restjournaler och signering, med seeden relativt till i dag när en tabell är ny.
+  require('./schema-runda9-r7.js').sakraR9r7(db, nu());
   return db;
 }
 
