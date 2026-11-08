@@ -1313,6 +1313,38 @@ Ordinerade kontroller och provtagningar (runda 8, r1) ansluts med `registreraKal
 - Kallelserna med brev och sms är simulerade. Teambesökens arbetstider och uppgifternas längd och yrkesroller är demoregler.
 - Planerade uppgifter finns ännu inte i FHIR (Task). Valen i avdelningens planering sparas inte på servern, och uppgifter kan inte upprepas av sig själva.
 
+## Uppföljning, spårbarhet, datauttag, folkhälsa och skanning (runda 9, r7: Sussa 6.1.1.3, 6.1.1.4, 6.1.1.6, 6.2.1.1, 6.2.1.2, 6.2.2.1, 6.3.1.3 till 6.3.1.5, 6.3.3.1 och 3.1.3.6)
+
+Koden finns i `skanning.js`, `analys.js`, `levnadsvanor.js` och `public/js/levnadsvanor-regler.js`, `folkhalsa.js`, `sparbarhet.js`, `vardformer.js`, `forskning.js` och tillägg i `datauttag.js`, med schemat i varje modul, seeden i `schema-runda9-r7.js` och API:t i `r9r7-rutter.js`. Gränssnittet är `public/js/skanner.js`, `vyer/analys.js`, `vyer/forskning.js` och `vyer/patient-levnadsvanor.js`.
+
+### Streckkodsläsaren (skanning.js, Sussa 3.1.3.6)
+
+Fältet Skanna i toppraden tar emot en läsare i tangentbordsläge, och en snabb följd av tecken som slutar med Enter fångas också när fokus inte står i ett textfält. Servern avgör vad koden är: Vårdkällans armband, ett personnummer, samordningsnummer eller reservnummer, en provetikett, etiketten på en iordningställd dos eller en läkemedelsförpackning med GS1-koder (artikelnummer, utgångsdatum, batch och serienummer). Armbandets kod är tio slumpmässiga tecken ur ett alfabet utan förväxlingsbara tecken och ett kontrolltecken, och innehåller inga personuppgifter. Ett armband öppnar patienten, en etikett bockar av röret vid provtagningen och en förpackning kontrolleras mot ordinationen och utgångsdatumet. Ett rör, en dos eller ett armband som hör till en annan patient än den som är öppen stoppas utan att något om den andra patienten visas. Behörigheten prövas innan något om patienten visas, och utan åtkomst är svaret detsamma som för en kod som inte finns. Misslyckade uppslag har ett tak per session. Varje skanning sparas i `skanningar` med vem, var, när, vad och resultatet, aldrig med ett skannat personnummer.
+
+### Patientgrupper och statistik (analys.js, Sussa 6.2.1.1 och 6.2.1.2)
+
+En patientgrupp är villkor på diagnoser, åtgärder, läkemedel, mät- och labbvärden (med BMI som systemet räknar), mätvärden som saknas, levnadsvanor, besök och demografi, med en period. Systemet har färdiga grupper med målvärden ur riktlinjerna och skriver själv vad gruppen betyder och varför varje patient är med. Läkare och sjuksköterskor ser bara patienter som behörighetsmotorn ger dem på den egna vårdenheten, och villkoren prövas bara mot den egna vårdenhetens uppgifter och läkemedelslistan. Varje patient i listan loggas med motorns grund. Uppföljningen ser antal för hela vårdgivaren utan spärrade uppgifter och patienter med skyddade personuppgifter. Antal mellan 1 och 4 visas inte, och när bara en ruta i en fördelning skulle döljas döljs också den näst minsta.
+
+Statistiken har sju mått, grupperas per månad, vårdenhet, vårdform, kön, åldersgrupp eller kategori och kan filtreras på en patientgrupp. Den visas som tabell och diagram. Urval och resultat sparas och delas med vårdenheten eller med uppföljningen. Ett delat urval prövas med behörigheten hos den som använder det, och ett sparat resultat innehåller bara antal.
+
+### Levnadsvanor och folkhälsa (levnadsvanor.js och folkhalsa.js, Sussa 6.2.2.1)
+
+Anteckningstypen Levnadsvanor har fasta frågor om alkohol, fysisk aktivitet och matvanor, som tobaksvanorna. Systemet räknar risken, föreslår stöd med KVÅ-kod (DV121 till DV143 och DV200) och registrerar åtgärden när samtalet har hållits. Gränserna och matvanornas poäng är demoregler med riktlinjernas definitioner som förebild. En folkhälsoinsats startar med en riskgrupp ur patientgrupperingen, sparad som den var vid starten, och följer andelen som har fått stöd och andelen utan risk vid den senaste dokumentationen mot målet. Patienterna i insatsen prövas en och en i behörighetsmotorn innan de visas eller räknas. Rekommendationen syns i patientens översikt för den som kan ge stödet.
+
+### Spårbarhet och vårdformer (sparbarhet.js och vardformer.js, Sussa 6.1.1.3, 6.1.1.4 och 6.1.1.6)
+
+Händelser och kringsystem för en vårdkontakt visar process-id:t och en kedja med det som hände i Vårdkällan och anropen till laboratoriet (korrelations-id beställningsnumret), NLL (meddelandets id) och prenumeranterna, med svaren och ledtiden. Varje del följer sin egen behörighet. Subprocesserna remiss, provtagning och läkemedelsöverföring följs upp per steg mot målvärden som systemförvaltaren sätter på sidan Regler och parametrar (`ledtid.*`). Hemsjukvård och dagkirurgi är vårdformer. Utskrivningen till hemsjukvård eller öppenvård görs i ett steg med den nya kontakten i samma hälsoärende, och en dagkirurgisk kontakt där patienten blir kvar skrivs in. Besökets faktiska sluttid registreras utan att kontakten avslutas. En ny kontakt kan inte bakdateras eller läggas mer än ett år fram.
+
+### Datauttaget och forskningsuttag (datauttag.js och forskning.js, Sussa 6.3.1.3 till 6.3.1.5 och 6.3.3.1)
+
+Datauttaget har också mätvärden, anteckningar utan text, vårdtillfällen och patientavgifter. Avgiften lämnas ut som om besöket är avgiftsbelagt enligt prislistan, utan belopp, eftersom beloppet beror på högkostnadsskyddet och på om patienten har LMA-kort. Varje rad kontrolleras mot regler för obligatoriska fält, giltiga koder, datum i ordning och hänvisningar till vårdkontakter, med resultatet i manifestet. Sju uppdateringar sparas, och ändringarna kan läsas sedan vilken av dem som helst (`?sedan=`).
+
+En beställning av forskningsuttag får diarienummer och anger forskare, studie, etikprövning, vårdenheter, urval av fält ur datauttaget och period. Arkivarien gör sekretessprövningen och verksamhetschefen för varje vårdenhet godkänner för sin vårdenhet. Den som registrerade kan inte godkänna. Uttaget får bara med uppgifter från vårdenheter som har godkänt, pseudonymerna räknas med en nyckel för beställningen, och varje utlämnande sparas med kontrollsumma och loggas och kan inte ändras.
+
+### Det som är simulerat eller saknas
+
+Laboratoriet, NLL och prenumeranterna är simulerade. Förpackningens artikelnummer är NPL-pack-id i demon. Analysen räknas på journalens tabeller vid varje fråga, inte i ett datalager. Patientens medgivande till forskning, externa datakällor i folkhälsoarbetet och notifieringar till invånare är inte byggda. Röstinmatning, rättstavning, in- och utfarter, skannade restjournaler, donation, anpassningsbara journalvyer och signeringslistan (övriga poster i r7) är inte byggda i den här rundan.
+
 ## Godkännandekriterier för första versionen
 
 - `bun test` grönt, med tester för varje regel i behörighetsmotorn, loggkedjan och triggrarna, signering och rättelse, obligatoriska fält och varningar i läkemedel, NLL som inte svarar i tid och avstämning, remissens statuskedja och larm, FHIR-svarens form.
