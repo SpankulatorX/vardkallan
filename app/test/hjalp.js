@@ -2,6 +2,8 @@
 import { nySessionsDb } from '../src/db.js';
 import { Atkomst } from '../src/atkomst.js';
 import { starta } from '../src/server.js';
+// Runda 9, r5: en session som byter person i ett test får personens medarbetaruppdrag ur masterdata (idp.js).
+import { uppdragUrMasterdata } from '../src/idp.js';
 
 export const nyDb = () => nySessionsDb();
 export const personal = (db, id) => db.query('SELECT * FROM personal WHERE id = ?').get(id);
@@ -38,3 +40,5 @@ export function klient(app, { origin = null } = {}) {
 }
 
 export const sandlada = (app, k) => app.sessioner.get(k.kaka().split('=')[1]);
+// Låter en session vara inloggad som en annan person, med personens uppdrag, som efter en inloggning med biljett.
+export function somPerson(s, id) { s.personalId = id; s.uppdrag = uppdragUrMasterdata(s.db, personal(s.db, id)); return s; }

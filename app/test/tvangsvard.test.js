@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
-import { testserver, klient, sandlada } from './hjalp.js';
+import { testserver, klient, sandlada, somPerson } from './hjalp.js';
 import { idag, addDagar, lokalTid } from '../src/db.js';
 import { lage, sistaDag, provaIntagning } from '../src/tvangsvard-regler.js';
 
@@ -151,7 +151,7 @@ describe('Tvångsvård', () => {
     // Lena Ström utan uppdraget (simulerat): uppdraget tas bort i den här sandlådan genom en annan läkare på enheten.
     const s = sandlada(app, k);
     s.db.query("INSERT INTO personal (id, namn, yrke, titel, enhet_id, hsa_id, demo) VALUES ('lak-psyk2', 'Test Läkare', 'lakare', 'Underläkare', 'uso-psyk', 'X', 0)").run();
-    s.personalId = 'lak-psyk2';
+    somPerson(s, 'lak-psyk2');
     const r2 = await k.post('/api/patient/p21/tvangsvard', { typ: 'intagning', period: id, bekraftelse: true });
     expect(r2.status).toBe(403);
     expect(r2.data.fel ?? r2.data.text ?? JSON.stringify(r2.data)).toContain('39 §');

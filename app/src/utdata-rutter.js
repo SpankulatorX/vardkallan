@@ -83,7 +83,8 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, versi
   });
 
   // Arkiv, gallring och radering (Sussa 5.4.2 och 5.3.1.7). Bara arkivarien, och bara efter ett registrerat beslut.
-  rutt('GET', '/api/arkiv/typer', (c) => { kravRoll(c, 'registrera_arkivbeslut'); return { typer: arkiv.BESLUTSTYPER, gallringAr: konfiguration.varde(c.db, 'arkiv.gallring_ar') }; });
+  // Runda 9, r5: gallringsreglerna per informationsmängd som de gäller i dag (Sussa 5.4.2.4).
+  rutt('GET', '/api/arkiv/typer', (c) => { kravRoll(c, 'registrera_arkivbeslut'); return { typer: arkiv.BESLUTSTYPER, gallringAr: konfiguration.varde(c.db, 'arkiv.gallring_ar'), gallringsregler: arkiv.gallringsregler(c.db) }; });
   rutt('GET', '/api/arkiv/beslut', (c) => {
     kravRoll(c, 'registrera_arkivbeslut');
     loggUtanPatient(c, 'registrera_arkivbeslut', 'administrativ', 'arkiv:beslut');

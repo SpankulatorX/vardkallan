@@ -26,6 +26,8 @@ import { varde as konfig } from './konfiguration.js';
 import { referens, utanforReferens, ckdEpi2021 } from './skalor.js';
 // Mätvärden som systemförvaltningen har undantagit från visning visas inte heller som svar (Sussa 12.1.1.10).
 import { provare as undantagProvare } from './undantag.js';
+// Runda 9, r5: laboratoriets svar är signerade (signering.js).
+import * as signering from './signering.js';
 import { LAB, LABORATORIER, ROR, ANALYSER, ANALYS, PAKET, PAKETEN, SVARSVARDEN, FYND, DISCIPLINER, DEMOREGEL, finns as iKatalog } from './labb-katalog.js';
 // Runda 9, r3: blodcentralens svar.
 import { blodgruppFor, blodgruppText } from './labb-katalog.js';
@@ -656,17 +658,22 @@ function profil(db, b) {
   return /feber|frossa|sepsis|infektion/.test(text) ? 'infektion' : 'normal';
 }
 
-// Svarar på en analys. Mätvärdena hamnar bland patientens mätvärden på den beställande vårdenheten, med provtagningens
-// tid, vårdkontakten och ingen vidimering än.
-function besvara(db, b, a, nu) {
+// Runda 9, r5 (Sussa 5.3.1.5 och 5.3.1.8): laboratoriet är en annan organisation. Det skickar svaret signerat med sitt
+// certifikat, och Vårdkällan kontrollerar signaturen, certifikatkedjan och att certifikatet inte är återkallat innan
+// svaret blir mätvärden. Ett svar som inte går att kontrollera tas inte emot. Beviset sparas i båda fallen (signering.js).
+// kanal är vägen mellan laboratoriet och Vårdkällan. Testerna byter den för att ändra ett meddelande på vägen.
+let kanal = (x) => x;
+export function sattKanal(fn) { const forra = kanal; kanal = fn ?? ((x) => x); return forra; }
+
+// Laboratoriets svar på en analys, som laboratoriet räknar fram: värdena, texten och fyndet. Ändrar ingenting.
+function labbetsSvar(db, b, a) {
   const def = ANALYS[a.analys];
   const p = db.query('SELECT * FROM patienter WHERE id = ?').get(b.patient_id);
   const prov = db.query('SELECT * FROM labb_prov WHERE id = ?').get(a.prov_id);
   const tid = prov?.provtagen_tid ?? b.planerad;
   const demo = b.demo ? JSON.parse(b.demo) : {};
   const pr = profil(db, b);
-  const insMv = db.query('INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, matt_enhet, tid, registrerad_av, kalla, vidimerad, vardkontakt_id) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, ?)');
-  const insSv = db.query('INSERT INTO labb_svar (analys_rad_id, matvarde_id, patient_id, enhet_id) VALUES (?, ?, ?, ?)');
+  const varden = [];
   let avvikande = null, kritisk = 0, text = null, fynd = null;
   if (def.matvarden) {
     let kreatinin = null;
@@ -682,8 +689,7 @@ function besvara(db, b, a, nu) {
         v = Number(v.toFixed(sv.decimaler));
         if (typ === 'kreatinin') kreatinin = v;
       }
-      const r = Number(insMv.run(b.patient_id, b.enhet_id, typ, String(v), v, MATTYPER_ENHET[typ] ?? null, tid, b.kalla ?? 'vardkallan', b.vardkontakt_id ?? null).lastInsertRowid);
-      insSv.run(a.id, r, b.patient_id, b.enhet_id);
+      varden.push({ typ, varde: v, enhet: MATTYPER_ENHET[typ] ?? null });
       const sv = SVARSVARDEN[typ];
       if (sv && ((sv.kritiskLag != null && v < sv.kritiskLag) || (sv.kritiskHog != null && v > sv.kritiskHog))) kritisk = 1;
     }
@@ -699,8 +705,38 @@ function besvara(db, b, a, nu) {
     else if (demo.bastest === 'positiv') { text = 'Antikroppsscreening positiv. Blodcentralen utreder antikroppen innan blod kan lämnas ut.'; avvikande = 'fynd'; }
     else text = 'Antikroppsscreening negativ.';
   }
+  return { bestallning: b.nummer, analysRad: a.id, analys: a.analys, lab: a.lab_id, provtagen: tid, varden, text, fynd, avvikande, kritisk };
+}
+
+// Svarar på en analys. Mätvärdena hamnar bland patientens mätvärden på den beställande vårdenheten, med provtagningens
+// tid, vårdkontakten och ingen vidimering än. Ger null när svaret togs emot, annars orsaken.
+function besvara(db, b, a, nu) {
+  const skickat = labbetsSvar(db, b, a);
+  // Det som kommer fram: meddelandet med laboratoriets signatur och innehållet. Vårdkällan använder bara det som kom fram.
+  const { meddelande, innehall: svar } = kanal({ meddelande: signering.signera('labb', { typ: 'labbsvar', mottagare: 'vardkallan', innehall: skickat, nu }), innehall: skickat });
+  const mottaget = signering.taEmot(db, { typ: 'labbsvar', kalla: `labb_analyser:${a.id}`, enhetId: b.enhet_id, meddelande, innehall: svar, nu });
+  if (!mottaget.godkant) return mottaget.orsak;
+  const insMv = db.query('INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, matt_enhet, tid, registrerad_av, kalla, vidimerad, vardkontakt_id) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, ?)');
+  const insSv = db.query('INSERT INTO labb_svar (analys_rad_id, matvarde_id, patient_id, enhet_id) VALUES (?, ?, ?, ?)');
+  for (const v of svar.varden) {
+    const r = Number(insMv.run(b.patient_id, b.enhet_id, v.typ, String(v.varde), v.varde, v.enhet, svar.provtagen, b.kalla ?? 'vardkallan', b.vardkontakt_id ?? null).lastInsertRowid);
+    insSv.run(a.id, r, b.patient_id, b.enhet_id);
+  }
   db.query("UPDATE labb_analyser SET status = 'besvarad', besvarad_tid = ?, svar_text = ?, fynd = ?, avvikande = ?, kritisk = ? WHERE id = ?")
-    .run(iso(nu), text, fynd, avvikande, kritisk, a.id);
+    .run(iso(nu), svar.text, svar.fynd, svar.avvikande, svar.kritisk, a.id);
+  return null;
+}
+
+// Runda 9, r5: svaret som det togs emot, ur journalen som den ser ut nu, för att kontrollera beviset i efterhand.
+export function mottagetSvar(db, analysId) {
+  if (!finns(db)) return undefined;
+  const a = db.query("SELECT * FROM labb_analyser WHERE id = ? AND status = 'besvarad'").get(analysId);
+  const b = a && db.query('SELECT * FROM labb_bestallningar WHERE id = ?').get(a.bestallning_id);
+  if (!b) return undefined;
+  const prov = db.query('SELECT * FROM labb_prov WHERE id = ?').get(a.prov_id);
+  const varden = db.query('SELECT m.typ, m.varde_num, m.matt_enhet FROM labb_svar s JOIN matvarden m ON m.id = s.matvarde_id WHERE s.analys_rad_id = ? ORDER BY s.id').all(a.id)
+    .map(m => ({ typ: m.typ, varde: m.varde_num, enhet: m.matt_enhet }));
+  return { bestallning: b.nummer, analysRad: a.id, analys: a.analys, lab: a.lab_id, provtagen: prov?.provtagen_tid ?? b.planerad, varden, text: a.svar_text, fynd: a.fynd, avvikande: a.avvikande, kritisk: a.kritisk };
 }
 
 // Svarar på det som har legat på laboratoriet längre än svarstiden (parametern labb.svar_minuter). Körs vid varje anrop
@@ -714,17 +750,26 @@ export function forfallnaSvar(db, nu = new Date(), { bestallningId = null, alla 
       .all(...[...(alla ? [] : [grans]), ...(bestallningId ? [bestallningId] : [])]);
     if (!rader.length) return 0;
     const perBest = new Map();
+    let besvarade = 0;
     db.transaction(() => {
       for (const a of rader) {
         const b = db.query('SELECT * FROM labb_bestallningar WHERE id = ?').get(a.bestallning_id);
         if (!b || b.makulerad_tid) continue;
-        besvara(db, b, a, nu);
+        const avvisat = besvara(db, b, a, nu);
+        // Runda 9, r5: ett svar som inte gick att kontrollera tas inte emot. Laboratoriet får besked, och systemet försöker
+        // inte igen förrän nästa dag, så att samma fel inte upprepas i varje anrop.
+        if (avvisat) {
+          historik(db, b, null, 'Svaret från laboratoriet togs inte emot', `${avvisat} Laboratoriet har fått besked och svaret väntar.`, iso(nu));
+          fel.set(db, datumAv(nu));
+          continue;
+        }
+        besvarade++;
         if (!perBest.has(b.id)) perBest.set(b.id, { b, labb: new Set() });
         perBest.get(b.id).labb.add(LAB[a.lab_id]?.kort ?? a.lab_id);
       }
       for (const { b, labb } of perBest.values()) historik(db, b, null, 'Svar från laboratoriet', `${[...labb].join(' och ')}. Svaret väntar på vidimering av ${personNamn(db, b.ansvarig_id)}.`, iso(nu));
     })();
-    return rader.length;
+    return besvarade;
   } catch (e) {
     fel.set(db, datumAv(nu));
     console.error('Det simulerade laboratoriet kunde inte svara:', e.message);

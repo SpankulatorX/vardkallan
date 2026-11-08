@@ -5,6 +5,15 @@ import { esc, api, vyRubrik, tidpunkt, datum, idag, notis, felNotis, medKnapp, d
 
 export const namn = 'arkiv';
 
+// Runda 9, r5 (Sussa 5.4.2.3): e-arkivets kvittens för ett paket som har levererats.
+const leveransText = (l) => (!l ? '' : l.status === 'kvitterat'
+  ? `<span class="under-text">Mottaget och kvitterat av ${esc(l.mottagare)} ${esc(tidpunkt(l.tid))}. Kvittensen är signerad.</span>`
+  : `<span class="under-text">Avvisat av ${esc(l.mottagare)}: ${esc(l.orsak ?? '')}</span>`);
+// Runda 9, r5 (Sussa 5.4.2.4): gallringsreglerna per informationsmängd, som systemförvaltaren ändrar.
+const reglerLista = (regler) => `<section class="arkiv-kort" aria-labelledby="ar-regler"><h2 id="ar-regler">Gallringsregler</h2>
+  <p class="dampad liten">Ett gallringsbeslut tar med reglerna som de gäller när beslutet registreras. Systemförvaltaren ändrar dem under Regler och parametrar, med fyra ögon. Hela journalen bevaras minst tio år efter den sista uppgiften.</p>
+  <dl class="faktalista">${regler.map(r => `<div><dt>${esc(r.text)}</dt><dd>${esc(plural(r.ar, 'år', 'år'))}<span class="under-text">${esc(r.villkor)}</span></dd></div>`).join('')}</dl>
+</section>`;
 const STATUS = (b) => (b.verkstallt ? `Verkställt ${tidpunkt(b.verkstallt)} av ${b.verkstalltAv ?? ''}` : 'Inte verkställt');
 const pnamn = (p) => (p ? `${p.skyddad ? 'Skyddad identitet' : p.namn}, ${p.personnummer}` : 'Alla journaler');
 
@@ -20,10 +29,10 @@ function beslutKort(b) {
       <div><dt>Lagrum</dt><dd>${esc(b.lagrum)}</dd></div>
       <div><dt>Gäller</dt><dd>${esc(vad)}</dd></div>
       <div><dt>Status</dt><dd>${esc(STATUS(b))}${res && !res.paket ? `. ${esc(plural(res.patienter, 'journal', 'journaler'))}` : ''}</dd></div>
-      ${b.exporter.map(e => `<div><dt>Paket</dt><dd>${esc(e.id)}, ${esc(plural(e.filer, 'fil', 'filer'))}, ${esc(Math.round(e.storlek / 1024))} kB<span class="under-text">SHA-256 ${esc(e.sha256)}</span></dd></div>`).join('')}
+      ${b.exporter.map(e => `<div><dt>Paket</dt><dd>${esc(e.id)}, ${esc(plural(e.filer, 'fil', 'filer'))}, ${esc(Math.round(e.storlek / 1024))} kB<span class="under-text">SHA-256 ${esc(e.sha256)}</span>${leveransText(e.leverans)}</dd></div>`).join('')}
     </dl>
     <div class="knapprad">
-      ${b.typ === 'leverans' ? `<button type="button" class="knapp" data-paket="${b.id}">${ikon.arkiv}<span>Skapa exportpaket</span></button>` : ''}
+      ${b.typ === 'leverans' ? `<button type="button" class="knapp" data-leverera="${b.id}">${ikon.arkiv}<span>Leverera till e-arkivet</span></button><button type="button" class="knapp sekundar" data-paket="${b.id}">Ladda ner exportpaket</button>` : ''}
       ${b.typ !== 'leverans' && !b.verkstallt ? `<button type="button" class="knapp sekundar" data-underlag="${b.id}">Visa underlag</button>` : ''}
     </div>
     <div data-underlag-ut></div>
@@ -32,7 +41,7 @@ function beslutKort(b) {
 
 export async function visa(main) {
   main.innerHTML = vyRubrik('E-arkiv och gallring', 'Export till e-arkiv, återföring av all data, gallring och förstöring av journaler. Allt kräver ett registrerat beslut och loggas. Journalens innehåll visas inte här.') + '<div id="arkiv"><p class="tom">Hämtar besluten.</p></div>';
-  const [{ typer }, beslut] = await Promise.all([api('/api/arkiv/typer'), api('/api/arkiv/beslut')]);
+  const [{ typer, gallringsregler = [] }, beslut] = await Promise.all([api('/api/arkiv/typer'), api('/api/arkiv/beslut')]);
   const el = main.querySelector('#arkiv');
   const tillstand = { typ: 'leverans', patient: null, poster: null };
   el.innerHTML = `<div class="arkiv-rutnat">
@@ -53,6 +62,7 @@ export async function visa(main) {
         <div class="knapprad"><button type="submit" class="knapp">Registrera beslutet</button></div>
       </form>
     </section>
+    ${gallringsregler.length ? reglerLista(gallringsregler) : ''}
     <section aria-labelledby="ar-lista"><h2 id="ar-lista">Beslut</h2>
       ${beslut.length ? `<ul class="arkiv-lista">${beslut.map(beslutKort).join('')}</ul>` : '<p class="tom">Inga beslut är registrerade.</p>'}
     </section>
@@ -105,6 +115,7 @@ export async function visa(main) {
   });
 
   el.querySelectorAll('[data-paket]').forEach(b => b.addEventListener('click', () => laddaNer(b, main)));
+  el.querySelectorAll('[data-leverera]').forEach(b => b.addEventListener('click', () => leverera(b, main)));
   el.querySelectorAll('[data-underlag]').forEach(b => b.addEventListener('click', () => underlag(b, main)));
 }
 
@@ -127,16 +138,30 @@ async function laddaNer(b, main) {
   } catch (err) { felNotis(err); b.disabled = false; }
 }
 
+// Runda 9, r5: systemet bygger paketet, skickar det till e-arkivet och visar kvittensen.
+async function leverera(b, main) {
+  try {
+    const r = await medKnapp(b, () => api(`/api/arkiv/beslut/${b.dataset.leverera}/leverera`, { metod: 'POST', data: {} }));
+    if (r.status === 'kvitterat') notis(`Paketet ${r.paket} med ${plural(r.patienter, 'journal', 'journaler')} är mottaget och kvitterat av ${r.mottagare}.`);
+    else felNotis(new Error(`${r.mottagare} tog inte emot paketet. ${r.orsak ?? ''}`));
+    visa(main);
+  } catch { /* notis visad */ }
+}
+
 async function underlag(b, main) {
   const ut = b.closest('[data-beslut]').querySelector('[data-underlag-ut]');
   let u;
   try { u = await api(`/api/arkiv/beslut/${b.dataset.underlag}/underlag`); } catch (err) { felNotis(err); return; }
-  ut.innerHTML = `<p>${u.regel ? `${esc(u.regel)} ` : ''}Beslutet gäller ${esc(plural(u.patienter.length, 'journal', 'journaler'))}:</p>
-    ${u.patienter.length ? `<ul class="post-lista">${u.patienter.map(p => `<li>${esc(pnamn(p))}${p.sistaUppgift ? `<span class="under-text">Sista uppgiften ${esc(datum(p.sistaUppgift))}</span>` : ''}</li>`).join('')}</ul>
-    <div class="knapprad"><button type="button" class="knapp knapp-allvar" data-verkstall>${ikon.varning}<span>Verkställ</span></button></div>` : '<p class="tom">Inga journaler uppfyller beslutet.</p>'}`;
+  // Runda 9, r5: delarna av andra journaler som gallras för sig, per informationsmängd.
+  const delar = u.delar ?? [];
+  ut.innerHTML = `<p>${u.regel ? `${esc(u.regel)} ` : ''}Beslutet gäller ${esc(plural(u.patienter.length, 'hel journal', 'hela journaler'))}${u.patienter.length ? ':' : '.'}</p>
+    ${u.patienter.length ? `<ul class="post-lista">${u.patienter.map(p => `<li>${esc(pnamn(p))}${p.sistaUppgift ? `<span class="under-text">Sista uppgiften ${esc(datum(p.sistaUppgift))}</span>` : ''}</li>`).join('')}</ul>` : ''}
+    ${delar.map(d => `<p>${esc(d.text)} äldre än ${esc(plural(d.ar, 'år', 'år'))}, före ${esc(datum(d.fore))}: ${esc(String(d.antal))} i ${esc(plural(d.patienter.length, 'journal', 'journaler'))}. Resten av journalerna finns kvar.</p>
+      <ul class="post-lista">${d.patienter.map(p => `<li>${esc(pnamn(p))}<span class="under-text">${esc(String(p.antal))} st.</span></li>`).join('')}</ul>`).join('')}
+    ${u.patienter.length || delar.length ? `<div class="knapprad"><button type="button" class="knapp knapp-allvar" data-verkstall>${ikon.varning}<span>Verkställ</span></button></div>` : '<p class="tom">Inga journaler uppfyller beslutet.</p>'}`;
   ut.querySelector('[data-verkstall]')?.addEventListener('click', async (e) => {
     const ok = await dialog(`<h2 id="dlg-rubrik">${ikon.varning}<span>Verkställ beslutet</span></h2>
-      <div class="dialog-text"><p>${esc(u.beslut.typText)} enligt ${esc(u.beslut.diarienummer)}. Journalhandlingarna för ${esc(plural(u.patienter.length, 'journal', 'journaler'))} raderas och går inte att återskapa.</p>
+      <div class="dialog-text"><p>${esc(u.beslut.typText)} enligt ${esc(u.beslut.diarienummer)}. Journalhandlingarna för ${esc(plural(u.patienter.length, 'journal', 'journaler'))}${delar.length ? ` och de utpekade delarna av ${esc(plural(new Set(delar.flatMap(d => d.patienter.map(p => p.id))).size, 'journal', 'journaler'))}` : ''} raderas och går inte att återskapa.</p>
       <p>Åtkomstloggen ändras inte. Raderingen loggas med beslutets id och hur många poster som togs bort. Patientens identitet, utskrifter och utlämnanden finns kvar.</p></div>
       <div class="knapprad"><button type="button" class="knapp text" data-varde="avbryt">Avbryt</button><button type="button" class="knapp knapp-allvar" data-varde="ok">Verkställ</button></div>`, { klass: 'dialog-allvar' });
     if (!ok) return;

@@ -70,13 +70,19 @@ const VID_LYCKAT = [
   // Runda 6, r6: uppdragen i läkemedelshanteringen ger rätt att fastställa direktiv och godkänna mallar.
   ['POST', '/api/lakemedelsansvar/uppdrag', 'andrad_behorighet', 'Verksamhetschefen utsåg ett uppdrag i läkemedelshanteringen. Personens behörighet ändrades.'],
   ['POST', '/api/lakemedelsansvar/uppdrag/:id/avsluta', 'andrad_behorighet', 'Verksamhetschefen avslutade ett uppdrag i läkemedelshanteringen. Personens behörighet ändrades.'],
+  // Runda 9, r5: ett certifikat i sandlådans spärrlista och en ny miljö ur en kopia av sandlådan.
+  ['POST', '/api/certifikat/aterkalla', 'andrad_behorighet', 'Systemförvaltaren återkallade ett certifikat i sandlådans spärrlista. Meddelanden med certifikatet godtas inte längre.'],
+  ['POST', '/api/miljoer', 'andrad_installning', 'Systemförvaltaren skapade en ny miljö ur en kopia av sandlådan.'],
 ];
 const INLOGGNING = ['/api/login', '/api/login/invanare'];
+// Runda 9, r5: inloggning med en biljett från autentiseringstjänsten (idp.js).
+const BILJETT = '/api/login/biljett';
+INLOGGNING.push(BILJETT);
 const UTLOGGNING = '/api/logout';
 const ATERSTALL = '/api/reset';
 
 // Anropas av servern efter varje anrop till /api och /fhir med en sandlåda. fore är den inloggade före anropet.
-export function efterAnrop(db, { nyckel, status, kod = null, fore = {}, efter = {} }) {
+export function efterAnrop(db, { nyckel, status, kod = null, fel = null, fore = {}, efter = {} }) {
   if (!db) return;
   const [metod, vag] = nyckel.split(' ');
   const vem = (x) => ({ personal_id: x.personal?.id ?? null, invanare_id: x.invanare?.id ?? null, enhet_id: x.personal?.enhet_id ?? null });
@@ -84,8 +90,10 @@ export function efterAnrop(db, { nyckel, status, kod = null, fore = {}, efter = 
   const ok = status < 400;
   if (metod === 'POST' && INLOGGNING.includes(vag)) {
     const invanare = vag === INLOGGNING[1];
-    if (ok) logga(db, { ...bas, ...vem(efter), typ: 'inloggning', beskrivning: invanare ? 'Invånaren loggade in i Min journal med e-legitimation (simulerad).' : 'Inloggning med SITHS-kort (simulerat).' });
-    else logga(db, { ...bas, ...vem(fore), typ: 'inloggning_misslyckad', beskrivning: invanare ? 'Inloggningen i Min journal misslyckades.' : 'Inloggningen misslyckades: personen finns inte bland demorollerna.' });
+    // Runda 9, r5: personalens inloggning går genom autentiseringstjänsten, och en misslyckad inloggning får orsaken.
+    const personalText = vag === BILJETT ? 'Inloggning med biljett från autentiseringstjänsten.' : 'Inloggning med SITHS-kort (simulerat).';
+    if (ok) logga(db, { ...bas, ...vem(efter), typ: 'inloggning', beskrivning: invanare ? 'Invånaren loggade in i Min journal med e-legitimation (simulerad).' : personalText });
+    else logga(db, { ...bas, ...vem(fore), typ: 'inloggning_misslyckad', beskrivning: invanare ? 'Inloggningen i Min journal misslyckades.' : `Inloggningen misslyckades. ${String(fel ?? 'Personen finns inte bland demorollerna.').slice(0, 300)}` });
     return;
   }
   if (metod === 'POST' && vag === UTLOGGNING) {

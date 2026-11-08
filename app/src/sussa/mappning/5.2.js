@@ -3,12 +3,14 @@
 import { TEST } from '../../krav.js';
 // Runda 8, r5: tilläggen för tobaksvanor, epikrisen, mätvärdena, övningarna och parametrarna (sussa/runda8-r5.js).
 import { medR8r5 } from '../runda8-r5.js';
+// Runda 9, r5: inloggning med biljett, skyddsbehov, signering, certifikat, e-arkiv, gallring och miljöer (sussa/runda9-r5.js).
+import { medR9r5 } from '../runda9-r5.js';
 
 const { B, A, L, F, LK, MJ, GA, GK } = TEST;
 
 const POSTERNA = [
   { id: '5.2.1.1', kategori: 'nationell', egna: ['L5', 'L9'], tester: [], avsedd: 'planerat',
-    anmarkning: 'Inloggningen är simulerad med SITHS-kort. Ingen biljett från en IDP läses.' },
+    anmarkning: 'Inloggningen går genom en simulerad autentiseringstjänst som utfärdar en signerad biljett (Sussa 5.2.1.6). Ineras tjänst för SITHS är inte ansluten.' },
   {
     id: '5.2.1.2', kategori: 'system', egna: ['L4'], avsedd: 'uppfyllt_demo',
     tester: [
@@ -97,4 +99,4 @@ const POSTERNA = [
     anmarkning: 'Personal och roller ligger i seeden och hämtas inte från masterdata som HSA.',
   },
 ];
-export default medR8r5(POSTERNA);
+export default medR9r5(medR8r5(POSTERNA));

@@ -22,10 +22,26 @@ import { loggaRad } from './logg.js';
 import * as fhir from './fhir.js';
 import * as identitet from './identitet.js';
 import { zip } from './zip.js';
+// Runda 9, r5: mappningen mot e-arkivets dataelement och leveransen med kvittens (Sussa 5.4.2.3).
+import * as earkiv from './earkiv.js';
 // Runda 7, r4: parametrar som systemförvaltningen kan ändra.
 import * as konfiguration from './konfiguration.js';
 
 export const GALLRING_AR = 10;
+// Runda 9, r5 (Sussa 5.4.2.4): gallring av delar av journalen per informationsmängd. Antalet år är parametrar som
+// systemförvaltaren ändrar på sidan Regler och parametrar (konfiguration.js), och beslutet tar med reglerna som de
+// gäller när det registreras. Konstanterna är standardvärdena.
+export const GALLRING_MATVARDEN_AR = 100;
+export const GALLRING_KALLELSER_AR = 2;
+export const INFORMATIONSMANGDER = {
+  matvarden: { text: 'Mätvärden', parameter: 'arkiv.gallring_matvarden_ar', tabell: 'matvarden', datum: 'tid', radtext: ['mätvärde', 'mätvärden'] },
+  kallelser: { text: 'Kallelser och påminnelser', parameter: 'arkiv.gallring_kallelser_ar', tabell: 'kallelser', datum: 'coalesce(skickad, skapad)', radtext: ['kallelse', 'kallelser'] },
+};
+// Reglerna som de gäller i dag, för arkivariens sida och för ett nytt beslut.
+export const gallringsregler = (db) => [
+  { mangd: 'journal', text: 'Hela journalen', ar: konfiguration.varde(db, 'arkiv.gallring_ar'), parameter: 'arkiv.gallring_ar', villkor: 'Efter den sista uppgiften, när ingen kontakt pågår' },
+  ...Object.entries(INFORMATIONSMANGDER).map(([mangd, m]) => ({ mangd, text: m.text, ar: konfiguration.varde(db, m.parameter), parameter: m.parameter, villkor: mangd === 'kallelser' ? 'Efter att den skickades' : 'Efter mätningen, också när journalen finns kvar' })),
+];
 export const BESLUTSTYPER = {
   leverans: {
     text: 'Leverans till e-arkiv', beslutsfattare: 'Vårdgivarens arkivansvarige',
@@ -112,7 +128,9 @@ export function registreraBeslut(db, personal, inp) {
   } else if (typ === 'gallring') {
     // Runda 7, r4: åren kan ändras av systemförvaltningen, aldrig under tio (konfiguration.js). GALLRING_AR är standardvärdet.
     const ar = konfiguration.varde(db, 'arkiv.gallring_ar');
-    omfattning = { urval: 'regel', ar, fore: addDagar(idag(), -Math.round(ar * 365.25)) };
+    // Runda 9, r5: informationsmängderna som gallras för sig, med reglerna som de gäller i dag.
+    const delar = Object.entries(INFORMATIONSMANGDER).map(([mangd, m]) => { const a = konfiguration.varde(db, m.parameter); return { mangd, ar: a, fore: addDagar(idag(), -Math.round(a * 365.25)) }; });
+    omfattning = { urval: 'regel', ar, fore: addDagar(idag(), -Math.round(ar * 365.25)), delar };
   } else {
     patientId = typeof inp.patientId === 'string' ? identitet.gallandeId(db, inp.patientId) : null;
     if (!patientId || !patientRad(db, patientId)) throw new Fel(400, 'Ange patienten som beslutet gäller.', 'ogiltig', { falt: ['patientId'] });
@@ -151,7 +169,9 @@ export function beslutUt(db, b) {
     patient: b.patient_id ? patientKort(patientRad(db, b.patient_id)) : null,
     registrerad: b.registrerad, registreradAv: personNamn(db, b.registrerad_av),
     verkstallt: b.verkstallt, verkstalltAv: personNamn(db, b.verkstallt_av), resultat: b.resultat ? JSON.parse(b.resultat) : null,
-    exporter: db.query('SELECT * FROM arkivexporter WHERE beslut_id = ? ORDER BY tid').all(b.id).map(e => ({ id: e.id, tid: e.tid, av: personNamn(db, e.av), patienter: e.patienter, filer: e.filer, storlek: e.storlek, sha256: e.sha256 })),
+    exporter: db.query('SELECT * FROM arkivexporter WHERE beslut_id = ? ORDER BY tid').all(b.id).map(e => ({ id: e.id, tid: e.tid, av: personNamn(db, e.av), patienter: e.patienter, filer: e.filer, storlek: e.storlek, sha256: e.sha256,
+      // Runda 9, r5: leveransen till e-arkivet och kvittensen.
+      leverans: earkiv.leveransFor(db, e.id) })),
   };
 }
 export const listaBeslut = (db) => db.query('SELECT * FROM arkivbeslut ORDER BY id DESC').all().map(b => beslutUt(db, b));
@@ -187,8 +207,26 @@ export function underlag(db, personal, b) {
     const p = patientRad(db, b.patient_id);
     patienter = [{ ...patientKort(p), sistaUppgift: sistaUppgift(db, p.id)?.slice(0, 10) ?? null }];
   }
-  loggArkiv(db, personal, b.patient_id, 'registrera_arkivbeslut', `beslut:${b.id}:underlag`, `Underlag för ${BESLUTSTYPER[b.typ].text.toLowerCase()}, ${patienter.length} journaler`);
-  return { beslut: beslutUt(db, b), patienter, regel: b.typ === 'gallring' ? `Sista uppgiften före ${omf.fore}, ingen pågående kontakt.` : null };
+  // Runda 9, r5: delarna av andra journaler som gallras för sig, per informationsmängd, med antal per journal.
+  const delar = b.typ === 'gallring' ? gallringsdelar(db, omf, new Set(patienter.map(p => p.id))) : [];
+  loggArkiv(db, personal, b.patient_id, 'registrera_arkivbeslut', `beslut:${b.id}:underlag`, `Underlag för ${BESLUTSTYPER[b.typ].text.toLowerCase()}, ${patienter.length} journaler${delar.length ? ` och delar av ${new Set(delar.flatMap(d => d.patienter.map(p => p.id))).size} journaler` : ''}`);
+  return { beslut: beslutUt(db, b), patienter, delar, regel: b.typ === 'gallring' ? `Sista uppgiften före ${omf.fore}, ingen pågående kontakt.` : null };
+}
+
+// Runda 9, r5: raderna per informationsmängd som är äldre än regelns gräns, i journaler som inte gallras hela.
+function gallringsdelar(db, omf, hela) {
+  const ut = [];
+  for (const d of omf.delar ?? []) {
+    const m = INFORMATIONSMANGDER[d.mangd];
+    if (!m || !db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(m.tabell)) continue;
+    const rader = db.query(`SELECT x.patient_id AS pid, count(*) AS n FROM ${m.tabell} x JOIN patienter p ON p.id = x.patient_id
+      WHERE ${m.datum.replace(/(skickad|skapad|tid)/g, 'x.$1')} < ? AND p.journal_forstord IS NULL AND p.sammanslagen_till IS NULL GROUP BY x.patient_id ORDER BY x.patient_id`).all(d.fore)
+      .filter(r => !hela.has(r.pid));
+    if (!rader.length) continue;
+    ut.push({ mangd: d.mangd, text: m.text, ar: d.ar, fore: d.fore, antal: rader.reduce((s, r) => s + r.n, 0),
+      patienter: rader.map(r => ({ ...patientKort(patientRad(db, r.pid)), antal: r.n })) });
+  }
+  return ut;
 }
 
 // FHIR R4-bundle av typen collection med hela journalen: alla versioner av signerade anteckningar, alla vårdkontakter
@@ -241,6 +279,7 @@ Paketet följer FGS Paketstruktur 2.0 (E-ARK CSIP 2.1.0 och E-ARK SIP 2.1.0 i Ri
 - representations/rep_1/data/journal/<patient>-sparr-och-skydd.json: spärrar och skyddade personuppgifter, som gäller för den som tar emot paketet.
 - representations/rep_1/data/ovrigt/<patient>-atkomstlogg.ndjson: åtkomstloggen för patienten, en rad per åtkomst med hashkedjans värden. Loggen är inte en journalhandling och ligger därför för sig.
 - metadata/preservation/premis.xml: händelsen när paketet skapades.
+- metadata/descriptive/earkiv-index.xml: en post per journalhandling med e-arkivets dataelement, se mappningen nedan.
 
 ## Dataelement
 
@@ -260,9 +299,10 @@ Paketet följer FGS Paketstruktur 2.0 (E-ARK CSIP 2.1.0 och E-ARK SIP 2.1.0 i Ri
 | Vårdenhet | Organization |
 | Personal | Practitioner |
 
+${earkiv.mappningDok()}
 ## Det som saknas i demon
 
-XML-scheman för METS och PREMIS ligger inte i mappen schemas, eftersom demon inte har dem. I en riktig leverans ska de ligga där, och paketet ska kontrolleras mot leveransöverenskommelsen med e-arkivet.
+Mottagaren är ett simulerat e-arkiv, och dess dataelement är en förenklad uppsättning i demon och inte en verklig leveransöverenskommelse. E-arkivet kontrollerar paketet mot METS.xml, kontrollsummorna, mapparna och de obligatoriska dataelementen, men XML-scheman för METS och PREMIS ligger inte i mappen schemas, och paketet valideras inte mot schemana.
 `;
 }
 
@@ -294,6 +334,8 @@ ${lista.map(f => `      <file ID="${xml(f.id)}" MIMETYPE="${xml(f.mime)}" SIZE="
       </file>`).join('\n')}
     </fileGrp>`;
   const doc = filer.filter(f => f.grupp === 'Documentation');
+  // Runda 9, r5: indexet med e-arkivets dataelement är beskrivande metadata.
+  const desc = filer.filter(f => f.grupp === 'Descriptive');
   const rep = filer.filter(f => f.grupp === 'Representations');
   const pres = filer.filter(f => f.grupp === 'Preservation');
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -306,6 +348,7 @@ ${lista.map(f => `      <file ID="${xml(f.id)}" MIMETYPE="${xml(f.mime)}" SIZE="
     <agent ROLE="CREATOR" TYPE="OTHER" OTHERTYPE="SOFTWARE"><name>Vårdkällan</name><note csip:NOTETYPE="SOFTWARE VERSION">${xml(version ?? 'okänd')}</note></agent>
     <agent ROLE="ARCHIVIST" TYPE="ORGANIZATION"><name>${xml(arkivbildare)} (demo)</name></agent>
   </metsHdr>
+${desc.map(f => `  <dmdSec ID="dmd-${xml(f.id)}" CREATED="${tid}" STATUS="CURRENT"><mdRef LOCTYPE="URL" xlink:type="simple" xlink:href="${xml(f.relativ)}" MDTYPE="OTHER" OTHERMDTYPE="E-arkivindex" MIMETYPE="text/xml" SIZE="${f.data.length}" CREATED="${tid}" CHECKSUM="${f.sha}" CHECKSUMTYPE="SHA-256"/></dmdSec>`).join('\n')}
   <amdSec>
 ${pres.map(f => `    <digiprovMD ID="dp-${xml(f.id)}" STATUS="CURRENT"><mdRef LOCTYPE="URL" xlink:type="simple" xlink:href="${xml(f.relativ)}" MDTYPE="PREMIS" MIMETYPE="text/xml" SIZE="${f.data.length}" CREATED="${tid}" CHECKSUM="${f.sha}" CHECKSUMTYPE="SHA-256"/></digiprovMD>`).join('\n')}
   </amdSec>
@@ -316,7 +359,7 @@ ${grupp('Representations/rep_1', rep)}
   </fileSec>
   <structMap ID="struktur" TYPE="PHYSICAL" LABEL="CSIP">
     <div ID="rot" LABEL="${xml(objid)}">
-      <div ID="metadata" LABEL="Metadata" ADMID="${pres.map(f => `dp-${xml(f.id)}`).join(' ')}"/>
+      <div ID="metadata" LABEL="Metadata" ADMID="${pres.map(f => `dp-${xml(f.id)}`).join(' ')}"${desc.length ? ` DMDID="${desc.map(f => `dmd-${xml(f.id)}`).join(' ')}"` : ''}/>
       <div ID="dokumentation" LABEL="Documentation"><fptr FILEID="fg-Documentation"/></div>
       <div ID="scheman" LABEL="Schemas"><fptr FILEID="fg-Schemas"/></div>
       <div ID="rep1" LABEL="Representations/rep_1"><fptr FILEID="fg-Representations-rep_1"/></div>
@@ -357,6 +400,7 @@ export function exportera(db, personal, b, { version = null } = {}) {
     const logg = identitet.allaPatientIdn(db, pid).flatMap(id => db.query('SELECT * FROM atkomstlogg WHERE patient_id = ? ORDER BY id').all(id));
     lagg(`representations/rep_1/data/ovrigt/${pid}-atkomstlogg.ndjson`, logg.map(r => JSON.stringify(r)).join('\n') + (logg.length ? '\n' : ''), 'application/x-ndjson', 'Representations');
   }
+  lagg('metadata/descriptive/earkiv-index.xml', earkiv.indexXml(patienter.flatMap(pk => earkiv.index(db, pk.id))), 'text/xml', 'Descriptive');
   lagg('documentation/beskrivning.md', beskrivning(db, b, patienter, objid, tid), 'text/markdown', 'Documentation');
   lagg('metadata/preservation/premis.xml', premis(objid, tid, filer.length), 'text/xml', 'Preservation');
   const metsXml = mets(db, objid, tid, filer, version, enhetsnamn(db, 'rol'));
@@ -447,15 +491,48 @@ function radera(db, pid, omfattning) {
 
 const RADTEXT = { anteckningar: 'anteckningar', diagnoser: 'diagnoser', matvarden: 'mätvärden', ordinationer: 'ordinationer', vardkontakter: 'vårdkontakter', remisser: 'remisser' };
 
+// Runda 9, r5: gallring av delar. Raderna och det som pekar på dem (kontrasignering, svaret från laboratoriet och
+// kallelsens språk) tas bort med släppta triggrar, och varje journal får en rad i loggen med antal per mängd, utan
+// innehåll. Ger antalet per mängd.
+function gallraDelar(db, personal, b, delar) {
+  const per = new Map();
+  const antal = {};
+  const finnsT = (t) => db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(t);
+  medSlapptaTriggrar(db, ['matvarden', 'kallelser', 'kontrasigneringar', 'labb_svar', 'kallelse_sprak'], () => {
+    for (const d of delar) {
+      const m = INFORMATIONSMANGDER[d.mangd];
+      for (const p of d.patienter) {
+        const ids = db.query(`SELECT id FROM ${m.tabell} WHERE patient_id = ? AND ${m.datum} < ?`).all(p.id, d.fore).map(r => r.id);
+        if (!ids.length) continue;
+        const ph = ids.map(() => '?').join(', ');
+        if (d.mangd === 'matvarden') {
+          if (finnsT('kontrasigneringar')) db.query(`DELETE FROM kontrasigneringar WHERE typ = 'matvarde' AND post_id IN (${ph})`).run(...ids);
+          if (finnsT('labb_svar')) db.query(`DELETE FROM labb_svar WHERE matvarde_id IN (${ph})`).run(...ids);
+        }
+        if (d.mangd === 'kallelser' && finnsT('kallelse_sprak')) db.query(`DELETE FROM kallelse_sprak WHERE kallelse_id IN (${ph})`).run(...ids);
+        db.query(`DELETE FROM ${m.tabell} WHERE id IN (${ph})`).run(...ids);
+        antal[d.mangd] = (antal[d.mangd] ?? 0) + ids.length;
+        if (!per.has(p.id)) per.set(p.id, []);
+        per.get(p.id).push(`${ids.length} ${ids.length === 1 ? m.radtext[0] : m.radtext[1]} äldre än ${d.ar} år`);
+      }
+    }
+  });
+  for (const [pid, texter] of per) loggArkiv(db, personal, pid, 'gallra', `beslut:${b.id}:delar`, `Gallring enligt ${b.diarienummer} (${b.beslutsfattare}). Delar av journalen: ${texter.join(', ')}.`);
+  return { journaler: per.size, rader: antal };
+}
+
 // Verkställer gallring eller radering. Beslutet kan bara verkställas en gång.
 export function verkstall(db, personal, b) {
   if (b.typ === 'leverans') throw new Fel(400, 'Ett beslut om leverans verkställs genom att exportpaketet skapas.', 'ogiltig');
   if (b.verkstallt) throw new Fel(400, 'Beslutet är redan verkställt.', 'ogiltig');
   const omf = JSON.parse(b.omfattning);
-  const patienter = b.typ === 'gallring' ? underlag(db, personal, b).patienter.map(p => p.id) : [b.patient_id];
+  const u = b.typ === 'gallring' ? underlag(db, personal, b) : null;
+  const patienter = u ? u.patienter.map(p => p.id) : [b.patient_id];
   const tid = iso();
   const resultat = { patienter: 0, rader: {} };
   db.transaction(() => {
+    // Runda 9, r5: delarna av andra journaler, per informationsmängd. Bara raderna som är äldre än regelns gräns.
+    if (u?.delar.length) resultat.delar = gallraDelar(db, personal, b, u.delar);
     for (const pid of patienter) {
       const omfattning = b.typ === 'gallring' ? { hela: true } : omf;
       const antal = radera(db, pid, omfattning);

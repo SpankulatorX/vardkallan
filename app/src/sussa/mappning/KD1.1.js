@@ -2,6 +2,8 @@
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 // Runda 7, r2: posterna för tillgänglighet och skärmanpassning ersätts ur sussa/runda7-r2.js.
 import { medR7r2 } from '../runda7-r2.js';
+// Runda 9, r5: inloggning med biljett, skyddsbehov, signering, certifikat, e-arkiv, gallring och miljöer (sussa/runda9-r5.js).
+import { medR9r5 } from '../runda9-r5.js';
 
 // Runda 7, r4: lagringen (lagring.js och test/systemforvaltning.test.js).
 const S = 'Systemförvaltning > ';
@@ -108,4 +110,4 @@ const AVSNITT = [
   { id: 'KD1.1.4.10', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: "Bildskärm är inte byggt ännu (runda 7)." },
 ];
-export default medR7r2(AVSNITT);
+export default medR9r5(medR7r2(AVSNITT));

@@ -1148,6 +1148,44 @@ Saknas: prenumeration på en hel population och systemkonton utan inloggad perso
 
 Saknas: skrivande under avbrott, med en kö för mätvärden och givna doser som skickas när förbindelsen är tillbaka, och en större läskopia.
 
+## Behörighet, säkerhet, arkiv och miljöer (runda 9, r5: idp.js, skyddsbehov.js, pki.js, signering.js, earkiv.js, miljoer.js, hotmodell.js och runda9-r5-rutter.js, Sussa 5.2.1.6, 5.2.1.8, 5.3.1.2, 5.3.1.5, 5.3.1.8, 5.3.1.18, 5.4.2.3, 5.4.2.4 och KD1.1.1.5)
+
+### Inloggning med biljett och behörighet ur masterdata (idp.js)
+
+Personalen loggar in genom en autentiseringstjänst med OpenID Connect. Tjänsten är simulerad: valet av demoroll är det simulerade SITHS-kortet, och tjänsten utfärdar en id-biljett, en JWT signerad med ES256, med `employeeHsaId`, `commissionHsaId`, `commissionPurpose`, `healthCareUnitHsaId`, `healthCareProviderHsaId`, `professionCode`, tillitsnivå 3 och `amr` för smartkort och PIN. Biljetten gäller i fem minuter och kan användas en gång. Vårdkällan godtar bara utfärdare i listan över betrodda och tar personen, vårdenheten och yrkesrollen ur attributen. Medarbetaruppdraget prövas mot masterdata vid inloggningen och i varje anrop: en person som synkroniseringen gör inaktiv, som byter yrkesroll eller vårdenhet eller vars ändamål inte passar rollen loggas ut av systemet, och säkerhetsloggen får orsaken. Ändamålet följer rollen: vård och behandling för vårdens roller, kvalitetssäkring för logggranskaren, statistik för uppföljningen och administration för arkivarien, ekonomen, verksamhetschefen och systemförvaltaren.
+
+En biljett utifrån tas emot med `POST /api/login/biljett`. Personen behöver inte vara en demoroll men måste vara aktiv i masterdata. Konfigurationen och den publika nyckeln finns under `/api/idp/`. Utfärdarens nyckel skapas när servern startar. Sessioner som sparades av en äldre version får uppdraget ur masterdata när de läses in.
+
+### Informationens skyddsbehov (skyddsbehov.js)
+
+Varje informationstyp har en tabell, kolumnerna som ger organisation, process och plan, handlingarna i behörighetsmotorn och en skyddsnivå: grundläggande, högt för alla patientuppgifter och mycket högt för tvångsvård, spärrade uppgifter, skyddade personuppgifter och åtkomstloggen. En typ som inte står i klassningen har nivån högt. Loggen har urvalet `skyddsbehov`, varje rad har sin nivå, och stickprovet tar alltid med minst en åtkomst med mycket högt skyddsbehov när sådana finns, upp till en tredjedel av stickprovet.
+
+### Signerade meddelanden och certifikat (signering.js och pki.js)
+
+En rotutfärdare (test-CA som står för den publikt erkända utfärdaren) har utfärdat en utfärdare för tjänster, som har utfärdat X.509-certifikat för Vårdkällan, det simulerade laboratoriet, den simulerade läkemedelslistan och det simulerade e-arkivet, alla med ECDSA P-256. Certifikaten byggs i DER och kontrolleras med `X509Certificate` i node:crypto. Kedjan ska gå till en betrodd rot, varje certifikat ska vara signerat av nästa och gälla vid tidpunkten, bara en utfärdare får utfärda, och inget certifikat i kedjan får stå i sandlådans spärrlista.
+
+Ett meddelande har ett huvud med id, typ, avsändare, mottagare, tid och SHA-256 av innehållet i kanonisk JSON, avsändarens signatur och certifikatkedja. Mottagaren svarar med en signerad kvittens. Förskrivningar och utsättningar till läkemedelslistan signeras och kvitteras, och en kvittens som inte går att kontrollera ger NLL-status fel. Svaren från laboratoriet signeras av laboratoriet och blir mätvärden först när signaturen och certifikatet stämmer. Leveranser till e-arkivet signeras och kvitteras. Bevisen sparas i `signerade_meddelanden` utan innehållet, och triggrar stoppar ändring och radering. Systemförvaltaren ser certifikaten och bevisen under Lagring och kan kontrollera ett bevis mot journalen som den ser ut nu.
+
+### Säkerhetsarkitektur och hotmodell (hotmodell.js)
+
+Arkitekturen beskrivs i `docs/sakerhetsarkitektur.md`. Hotmodellen har yttre och inre hot, och varje hot har en kontroll, principerna ur kravtexten och testerna som visar kontrollen. Testerna är mappade på 5.3.1.18.
+
+### E-arkivet (earkiv.js)
+
+Exportpaketet har ett index med det simulerade e-arkivets dataelement för varje journalhandling (`metadata/descriptive/earkiv-index.xml`, med en `dmdSec` i METS.xml), och mappningen står i paketets dokumentation. Leveransen skickar paketet med ett signerat manifest, och e-arkivet kontrollerar signaturen, att paketet stämmer med manifestet, METS.xml, kontrollsummorna, mapparna och de obligatoriska dataelementen, och svarar med en signerad kvittens. E-arkivets dataelement är en förenklad uppsättning i demon, och paketet valideras inte mot XML-scheman.
+
+### Gallringsregler (arkiv.js och konfiguration.js)
+
+Utöver regeln för hela journalen finns regler för mätvärden och för kallelser och påminnelser, som parametrar under Regler och parametrar (`arkiv.gallring_matvarden_ar`, minst tio år, standard 100 år, och `arkiv.gallring_kallelser_ar`, minst ett år, standard två år). Ett gallringsbeslut tar med reglerna som de gäller när det registreras. Underlaget visar hela journaler och delar av andra journaler, och verkställandet tar bort raderna och det som pekar på dem (kontrasignering, svaret från laboratoriet och kallelsens språk) med släppta triggrar i en transaktion. Varje journal får en rad i loggen med antal och utan innehåll.
+
+### Miljöer (miljoer.js)
+
+Systemförvaltaren skapar under Lagring en acceptanstestmiljö, en utbildningsmiljö eller en testmiljö, som blir en egen sandlåda. Acceptanstestmiljön är en kopia av databasen där patienternas namn, personnummer, identiteter, adresser, telefonnummer och kontaktpersoner byts ut, också i fritext i patientens rader, med lediga testpersonnummer i slumpvis ordning. Loggarna och bevisen följer inte med. Utbildnings- och testmiljön har demons fiktiva patienter med de gemensamma tabellerna (regler, parametrar, katalog och inställningar) kopierade från produktionsmiljön. Miljön står i sandlådans inställningar och visas överst på varje sida, med knappen Tillbaka till produktionsmiljön. En sandlåda kan ha tre miljöer, och miljöerna räknas mot taket för nya sandlådor per adress. Dimensioneringen och SLA:erna i kravet gäller driften och är inte prövade.
+
+### Det som är simulerat eller saknas
+
+Autentiseringstjänsten, rotutfärdaren, laboratoriet, läkemedelslistan och e-arkivet är simulerade i samma server. SAML, utloggning hos tjänsten, autentisering med en annan enhet och federation finns inte. Certifikaten används för signerade meddelanden och inte för ömsesidig TLS. Remisser till vårdgivare utanför Vårdkällan och svaren från tjänstekontrakten signeras inte.
+
 ## Beslutade avvägningar (3 november 2026)
 
 Projektägaren beslutade de här frågorna efter omgång 2 i runda 4:

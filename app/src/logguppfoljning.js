@@ -11,6 +11,8 @@ import { Fel } from './db.js';
 import * as logg from './logg.js';
 import * as sakerhet from './sakerhetslogg.js';
 import { visningsnamn, visningsPnr } from './atkomst.js';
+// Runda 9, r5: skyddsbehovet styr stickprovet (Sussa 5.3.1.2).
+import * as skyddsbehov from './skyddsbehov.js';
 // Runda 7, r4: parametrar som systemförvaltningen kan ändra.
 import * as konfiguration from './konfiguration.js';
 
@@ -100,19 +102,29 @@ export const KONTROLLERA = {
 export function dra(db, pers, { antal = konfiguration.varde(db, 'logg.stickprov_antal'), dagar = STICKPROV_DAGAR, nu = new Date() } = {}) {
   const fran = new Date(nu.getTime() - dagar * 86400_000).toISOString();
   const till = nu.toISOString();
-  const kandidater = db.query(`SELECT id FROM atkomstlogg WHERE personal_id IS NOT NULL AND patient_id IS NOT NULL AND invanare_id IS NULL
-      AND resultat = 'tillaten' AND grund <> 'logggranskning' AND handling <> 'las_logg' AND tid >= ? AND tid <= ?
-      AND id NOT IN (SELECT logg_id FROM stickprov_rader) ORDER BY id`).all(fran, till).map(r => r.id);
+  const urval = `FROM atkomstlogg l WHERE l.personal_id IS NOT NULL AND l.patient_id IS NOT NULL AND l.invanare_id IS NULL
+      AND l.resultat = 'tillaten' AND l.grund <> 'logggranskning' AND l.handling <> 'las_logg' AND l.tid >= ? AND l.tid <= ?
+      AND l.id NOT IN (SELECT logg_id FROM stickprov_rader)`;
+  const kandidater = db.query(`SELECT l.id ${urval} ORDER BY l.id`).all(fran, till).map(r => r.id);
   if (!kandidater.length) throw new Fel(400, `Det finns inga åtkomster från de senaste ${dagar} dagarna som inte redan har kontrollerats.`, 'ogiltig');
   // Fisher och Yates med kryptografiskt slumptal, så att urvalet inte går att förutse.
+  const blanda = (lista, n) => {
+    const slump = new Uint32Array(n);
+    crypto.getRandomValues(slump);
+    for (let i = 0; i < n; i++) {
+      const j = i + (slump[i] % (lista.length - i));
+      [lista[i], lista[j]] = [lista[j], lista[i]];
+    }
+    return lista.slice(0, n);
+  };
   const n = Math.min(antal, kandidater.length);
-  const slump = new Uint32Array(n);
-  crypto.getRandomValues(slump);
-  for (let i = 0; i < n; i++) {
-    const j = i + (slump[i] % (kandidater.length - i));
-    [kandidater[i], kandidater[j]] = [kandidater[j], kandidater[i]];
-  }
-  const valda = kandidater.slice(0, n).sort((a, b) => a - b);
+  // Runda 9, r5 (Sussa 5.3.1.2): åtkomster till uppgifter med mycket högt skyddsbehov kontrolleras alltid. När sådana
+  // finns dras minst en, och upp till en tredjedel av stickprovet, slumpvis bland dem. Resten dras bland alla andra.
+  const hoga = new Set(db.query(`SELECT l.id ${urval} AND ${skyddsbehov.MYCKET_HOGT_SQL}`).all(fran, till).map(r => r.id));
+  const antalHoga = hoga.size ? Math.min(hoga.size, Math.max(1, Math.floor(n / 3))) : 0;
+  const forsta = blanda([...hoga], antalHoga);
+  const ovriga = kandidater.filter(id => !forsta.includes(id));
+  const valda = [...forsta, ...blanda(ovriga, n - forsta.length)].sort((a, b) => a - b);
   const id = db.transaction(() => {
     const r = db.query('INSERT INTO stickprov (skapad, av, fran, till, antal, urval) VALUES (?, ?, ?, ?, ?, ?)').run(till, pers.id, fran, till, n, kandidater.length);
     const sid = Number(r.lastInsertRowid);
@@ -140,6 +152,8 @@ export function stickprov(db, id) {
       return {
         loggId: r.logg_id, ordning: r.ordning, tid: l?.tid, personal: l?.personal, enhet: l?.enhet, patient: patientKort(db, l?.patientId, cache),
         handling: l?.handling, resurs: l?.resurs, grund: l?.grund, syfte: l?.syfte, kontrollera: KONTROLLERA[l?.grund] ?? 'Kontrollera att åtkomsten behövdes för vården.',
+        // Runda 9, r5: skyddsnivån och varför den är mycket hög.
+        skyddsniva: l?.skyddsniva ?? null, skyddsorsak: l?.skyddsniva === 3 ? skyddsbehov.orsakFor(l, Boolean(patientKort(db, l.patientId, cache)?.skyddad)) : null,
         granskad: r.granskad ? { tid: r.granskad, av: { id: r.granskad_av, namn: r.granskad_av_namn }, bedomning: r.bedomning, kommentar: r.kommentar } : null,
       };
     }),

@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
-import { testserver, klient, sandlada } from './hjalp.js';
+import { testserver, klient, sandlada, somPerson } from './hjalp.js';
 import { idag, addDagar } from '../src/db.js';
 import { harVardrelation } from '../src/atkomst.js';
 import { nastaKonferens, HSA_KATALOG, laggTillSkanning } from '../src/remiss-r8.js';
@@ -17,7 +17,7 @@ afterAll(() => app.stopp());
 const inloggad = async (roll) => { const k = klient(app); await k.logga(roll); return k; };
 const db = (k) => sandlada(app, k).db;
 // Läkare som inte är demoroller (överläkaren som är bakjour) loggas in genom att sessionen byter person.
-const som = async (roll, personalId) => { const k = await inloggad(roll); sandlada(app, k).personalId = personalId; return k; };
+const som = async (roll, personalId) => { const k = await inloggad(roll); somPerson(sandlada(app, k), personalId); return k; };
 const loggRader = (k) => db(k).query('SELECT * FROM atkomstlogg ORDER BY id').all();
 const delaSandlada = (fran, till) => { sandlada(app, till).db = sandlada(app, fran).db; };
 const b64 = (s) => Buffer.from(s).toString('base64');

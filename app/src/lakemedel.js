@@ -1,5 +1,7 @@
 // Läkemedel: ordination, utsättning, varningar och simulerad överföring till Nationella läkemedelslistan (NLL).
 // Varningarna är demoregler, inte kliniskt beslutsstöd (D10).
+// Runda 9, r5: signerade överföringar till läkemedelslistan (Sussa 5.3.1.5).
+import * as signering from './signering.js';
 import { Fel, iso, idag, giltigtDatum, installning, addDagar } from './db.js';
 import { vardenhetFor } from './atkomst.js';
 import { kallaEtikett } from './journal.js';
@@ -57,8 +59,10 @@ export function ordinationUt(db, o, { historik = true, fullVardhandelse = false 
     ut.historik = db.query('SELECT * FROM ordination_historik WHERE ordination_id = ? ORDER BY tid, id').all(o.id)
       .map(h => (!fullVardhandelse && handelseRad(h) ? { tid: h.tid, handelse: 'Tiden för läkemedlet ändrades', detalj: null, av: null }
         : { tid: h.tid, handelse: h.handelse, detalj: h.detalj, av: personNamn(db, h.personal_id) }));
+    // Runda 9, r5: om överföringen är signerad och kvitterad med signatur (signering.js).
     ut.nll = db.query('SELECT * FROM nll_meddelanden WHERE ordination_id = ? ORDER BY id').all(o.id)
-      .map(m => ({ id: m.id, typ: m.typ, skickad: m.skickad, status: m.status, svarTid: m.svar_tid, kvittens: m.kvittens }));
+      .map(m => ({ id: m.id, typ: m.typ, skickad: m.skickad, status: m.status, svarTid: m.svar_tid, kvittens: m.kvittens,
+        signerad: signering.forKalla(db, nllKalla(o.id, m.typ, m.skickad))[0]?.status ?? null }));
   }
   return ut;
 }
@@ -205,6 +209,21 @@ function historik(db, ordId, personalId, handelse, detalj = null) {
 let kvittensNr = Math.floor(Math.random() * 90000) + 10000;
 const nyKvittens = () => `NLL-${String(++kvittensNr).padStart(6, '0')}`;
 
+// Runda 9, r5: innehållet i en överföring till läkemedelslistan, som det signeras och som det kontrolleras i efterhand.
+// Bara uppgifter som inte ändras efter överföringen är med, och utsättningen för en utsättning.
+export const nllKalla = (ordId, typ, skickad) => `nll:${ordId}:${typ}:${skickad}`;
+export function nllInnehall(db, ordId, typ, skickad) {
+  const o = db.query('SELECT * FROM ordinationer WHERE id = ?').get(ordId);
+  if (!o) return undefined;
+  const p = db.query('SELECT personnummer FROM patienter WHERE id = ?').get(o.patient_id);
+  const hsa = (tabell, id) => db.query(`SELECT hsa_id FROM ${tabell} WHERE id = ?`).get(id)?.hsa_id ?? null;
+  return {
+    typ, skickad, ordination: o.id, patient: p?.personnummer ?? null, lakemedel: o.lakemedel_id, npl: lakemedelRad(db, o.lakemedel_id)?.npl ?? null,
+    dosering: o.dosering, start: o.start, forskrivare: hsa('personal', o.ordinerad_av), vardenhet: hsa('enheter', o.enhet_id),
+    ...(typ === 'utsattning' ? { utsatt: o.utsatt_tid, orsak: o.utsatt_orsak } : {}),
+  };
+}
+
 // Simulerad överföring. Vid timeout är ordinationen ändå registrerad i NLL, vilket avstämningen visar.
 export function overfor(db, ordId, typ) {
   const lage = installning(db, 'nll_nasta');
@@ -221,6 +240,17 @@ export function overfor(db, ordId, typ) {
     const r = db.query("INSERT INTO nll_meddelanden (ordination_id, typ, skickad, status, svar_tid, nll_registrerad) VALUES (?, ?, ?, 'fel', ?, 0)").run(ordId, typ, t, iso());
     db.query("UPDATE ordinationer SET nll_status = 'fel' WHERE id = ?").run(ordId);
     historik(db, ordId, null, 'NLL svarade med fel', 'Ordinationen är inte registrerad i NLL. Avstämning skickar den igen.');
+    return { id: Number(r.lastInsertRowid), status: 'fel' };
+  }
+  // Runda 9, r5 (Sussa 5.3.1.5): överföringen signeras med Vårdkällans certifikat, och läkemedelslistan svarar med en
+  // signerad kvittens. Går kvittensen inte att kontrollera räknas överföringen som misslyckad, och avstämningen skickar
+  // ordinationen igen.
+  const ord = db.query('SELECT enhet_id FROM ordinationer WHERE id = ?').get(ordId);
+  const bevis = signering.skicka(db, { typ: 'nll', kalla: nllKalla(ordId, typ, t), enhetId: ord?.enhet_id ?? 'rol', innehall: nllInnehall(db, ordId, typ, t), nu: new Date(t) });
+  if (bevis.status !== 'kvitterat') {
+    const r = db.query("INSERT INTO nll_meddelanden (ordination_id, typ, skickad, status, svar_tid, nll_registrerad) VALUES (?, ?, ?, 'fel', ?, 0)").run(ordId, typ, t, iso());
+    db.query("UPDATE ordinationer SET nll_status = 'fel' WHERE id = ?").run(ordId);
+    historik(db, ordId, null, 'Kvittensen från NLL godtogs inte', `${bevis.orsak} Ordinationen räknas inte som registrerad i NLL. Avstämning skickar den igen.`);
     return { id: Number(r.lastInsertRowid), status: 'fel' };
   }
   const k = nyKvittens();

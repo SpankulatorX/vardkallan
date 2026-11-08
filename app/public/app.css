@@ -88,6 +88,13 @@ code, pre { font-family: ui-monospace, 'DejaVu Sans Mono', Menlo, Consolas, mono
   color: var(--obs); font-size: var(--f-s); font-weight: 600;
 }
 .demorad p { margin: 0; }
+/* Runda 9, r5: märkningen av en miljö som inte är produktionsmiljön. */
+.miljorad {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 16px 6px 20px;
+  background: var(--skydd-bg); border-bottom: 2px solid var(--skydd-kant); color: var(--skydd); font-size: var(--f-s);
+}
+.miljorad[hidden] { display: none; }
+.miljorad p { margin: 0; }
 .demoknapp { flex: none; }
 
 /* Toppen */

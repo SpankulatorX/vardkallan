@@ -28,6 +28,8 @@ const GEMENSAMMA = new Set(['katalog', 'installningar', 'migrering', 'forpacknin
   'ovningsversioner']);
 // Tabeller som hör till systemförvaltningen och inte till en huvudman i ett uttag.
 // Datauttaget för uppföljning byggs om ur uppgifterna och följer inte med i ett uttag.
+// Runda 9, r5: de gemensamma tabellerna kopieras till en ny utbildnings- eller testmiljö (miljoer.js).
+export const GEMENSAMMA_TABELLER = GEMENSAMMA;
 const SYSTEM = new Set(['omorganisationer', 'omorganisation_flyttar', 'lagringsmatningar', 'sqlite_sequence', 'datauttag', 'uttagsbeslut', 'uttagsfiler',
   // Runda 7, r2: vilka nyheter en användare har stängt hör till inloggningen och inte till en huvudman.
   'nyheter_stangda',

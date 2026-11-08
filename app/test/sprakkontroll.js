@@ -175,6 +175,8 @@ for (const w of ['EN', 'WCAG', 'AA', 'ISO']) TILLATNA.add(w);
 for (const w of ['LPK', 'TPK', 'EDTA', 'NT', 'PAD', 'SR', 'B12', 'DiagnosticReport', 'Specimen']) TILLATNA.add(w);
 // Runda 9, r6: koden för slutenvård i FHIR (IMP), metoden PATCH, EHR launch i SMART on FHIR och DOS-lagen.
 for (const w of ['IMP', 'PATCH', 'EHR', 'DOS', 'DOS-lagen']) TILLATNA.add(w);
+// Runda 9, r5: inloggning med biljett, signering och certifikat, e-arkivet och miljöerna.
+for (const w of ['JWT', 'JWKS', 'ES256', 'OpenID', 'IdP', 'ECDSA', 'P-256', 'SHA-256', 'X.509', 'CA', 'R7e']) TILLATNA.add(w);
 // Runda 7, r1: källan till tidsmodellen i Sussas testfall.
 for (const w of ['ACM', 'Newell']) TILLATNA.add(w);
 // Runda 9, r3: blodgrupperna, cytostatikaregimerna och dosberäkningen (AUC och GFR i Calverts formel) och CTG.

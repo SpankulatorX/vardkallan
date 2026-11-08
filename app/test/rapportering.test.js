@@ -372,6 +372,8 @@ describe('Myndighetsrapportering i API:t', () => {
     expect((await k.get('/api/inkorg')).data.rapportfel.some(x => x.vardkontaktId === vk)).toBe(true);
     // Läkaren byter enhet. Felet på kardiologen syns inte längre för henne.
     db.query("UPDATE personal SET enhet_id = 'uso-ort' WHERE id = 'lak-kard'").run();
+    // Runda 9, r5: med en ny vårdenhet gäller ett nytt medarbetaruppdrag, så läkaren loggar in igen.
+    await k.logga('lak-kard');
     expect((await k.get('/api/inkorg')).data.rapportfel.some(x => x.vardkontaktId === vk)).toBe(false);
     db.query("UPDATE personal SET enhet_id = 'uso-kard' WHERE id = 'lak-kard'").run();
   });
