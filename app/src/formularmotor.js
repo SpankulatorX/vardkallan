@@ -310,12 +310,22 @@ export function mallFor(db, typ, personal) {
 }
 
 // Förifyllnaden: värdena som systemet kan ta ur journalen, med var de kommer ifrån. Bara det som anroparen får se.
+// Säkerhetsgranskningen av runda 10: förifyllnaden använder bara den egna vårdenhetens uppgifter, prövade utan
+// sessionens aktiva val och nödåtkomst, och aldrig något från en spärrad vårdenhet. Ett värde från en annan vårdenhet
+// skriver användaren själv, som ett medvetet val. Källan skrivs aldrig in i anteckningens text, utan sparas som referens
+// och visas när anteckningen läses, prövad med läsarens egen behörighet (kallorFor).
+const egenAtkomst = (atk) => new (require('./atkomst.js').Atkomst)(atk.db, atk.personal, atk.patientId, {}, atk.handling);
+const egenVardenhet = (atk, enhetId) => vardenhetFor(atk.db, enhetId) === vardenhetFor(atk.db, atk.personal.enhet_id);
 function senasteMatvarde(atk, typ) {
   const j = journalModul();
   if (!kanRoll(atk.personal, 'las_matvarden')) return null;
-  return j.synligaMatvarden(atk).find(m => m.typ === typ) ?? null;
+  const egen = egenAtkomst(atk);
+  return j.synligaMatvarden(egen).find(m => m.typ === typ && egenVardenhet(atk, m.enhet_id)) ?? null;
 }
 const enhetsnamn = (db, id) => db.query('SELECT namn FROM enheter WHERE id = ?').get(id)?.namn ?? id;
+// Texten i anteckningen för var ett värde kommer ifrån. Den innehåller aldrig en vårdenhet.
+const KALLTEXT = { personnummer: 'ur personnumret', matvarde: 'förifyllt av systemet', ny: 'registreras som mätvärde när anteckningen signeras', registrerat: 'registrerat som mätvärde vid signeringen' };
+const kalltexter = (kallor) => Object.fromEntries(Object.entries(kallor).map(([id, k]) => [id, KALLTEXT[k?.typ] ?? (typeof k === 'string' ? k : 'förifyllt av systemet')]));
 function forifyllda(atk, def) {
   const ut = {};
   for (const f of def.falt) {
@@ -326,7 +336,7 @@ function forifyllda(atk, def) {
       const m = senasteMatvarde(atk, f.matvarde);
       if (m) ut[f.id] = { varde: m.varde_num ?? Number(m.varde), kalla: `Senaste mätvärdet ${m.tid.slice(0, 10)}, ${enhetsnamn(atk.db, m.enhet_id)}`, matvardeId: m.id };
     } else if (f.forifyll === 'diagnoser') {
-      const d = journalModul().synligaDiagnoser(atk).filter(x => x.typ !== 'avslutad');
+      const d = journalModul().synligaDiagnoser(egenAtkomst(atk)).filter(x => x.typ !== 'avslutad' && egenVardenhet(atk, x.enhet_id));
       if (d.length) ut[f.id] = { varde: d.map(x => `${x.text} (${x.kod})`).join(', ').slice(0, f.maxLangd), kalla: 'Diagnoserna i journalen' };
     }
   }
@@ -357,21 +367,21 @@ export function forbered(atk, formular, svar, { forra = null } = {}) {
       // Åldern vet systemet. Ett tomt fält fylls i, och en annan ålder sparas inte.
       if (v[f.id] == null) v[f.id] = fore[f.id].varde;
       else if (v[f.id] !== fore[f.id].varde) throw new Fel(400, `Patienten är ${fore[f.id].varde} år enligt personnumret. Systemet fyller i åldern.`, 'ogiltig', { falt: [f.id] });
-      kallor[f.id] = 'ur personnumret';
+      kallor[f.id] = { typ: 'personnummer' };
     }
     if (f.typ === 'matvarde' && v[f.id] != null) {
       if (forra) {
         if (forra.svar[f.id] !== v[f.id]) throw new Fel(400, `Mätvärdet ${f.fraga.toLowerCase()} är registrerat i journalens mätvärden och rättas under Mätvärden, så att det bara finns på ett ställe.`, 'ogiltig', { falt: [f.id] });
         kallor[f.id] = forra.kallor[f.id];
-      } else if (fore[f.id] && fore[f.id].varde === v[f.id]) kallor[f.id] = fore[f.id].kalla.charAt(0).toLowerCase() + fore[f.id].kalla.slice(1);
+      } else if (fore[f.id] && fore[f.id].varde === v[f.id]) kallor[f.id] = { typ: 'matvarde', matvardeId: fore[f.id].matvardeId };
       else {
         if (!kanRoll(atk.personal, 'registrera_matvarde')) throw new Fel(403, `Din yrkesroll registrerar inte mätvärden. Lämna ${f.fraga.toLowerCase()} som systemet fyllde i, eller tomt.`, 'nekad');
-        kallor[f.id] = 'registreras som mätvärde när anteckningen signeras';
+        kallor[f.id] = { typ: 'ny' };
       }
     }
   }
   const poang = R.poang(def, v);
-  return { formularId: formular.id, varde: v, kallor, poang, sokord: R.sokord(def, v, { kallor }) };
+  return { formularId: formular.id, varde: v, kallor, poang, sokord: R.sokord(def, v, { kallor: kalltexter(kallor) }) };
 }
 
 export function spara(db, anteckningId, f) {
@@ -390,6 +400,23 @@ export function formularFor(db, anteckningId) {
   return { rad: s, formular: { id: r.id, kod: r.kod, version: r.version, definition: JSON.parse(r.definition) }, svar: JSON.parse(s.svar), kallor: JSON.parse(s.kallor ?? '{}') };
 }
 
+// Källorna som text för den som läser, med versal i början, utan referenser till mätvärden.
+const kalltexterUt = (kallor) => Object.fromEntries(Object.entries(kalltexter(kallor)).map(([id, t]) => [id, t.charAt(0).toUpperCase() + t.slice(1)]));
+
+// Källorna för den som läser anteckningen: ett förifyllt mätvärde visas med datum och vårdenhet bara när läsaren själv får
+// se mätvärdet, prövat med läsarens egen behörighet. Annars står bara att systemet fyllde i värdet.
+export function kallorFor(atk, anteckningId) {
+  const f = formularFor(atk.db, anteckningId);
+  if (!f) return null;
+  const ut = kalltexterUt(f.kallor);
+  for (const [id, k] of Object.entries(f.kallor)) {
+    if (k?.typ !== 'matvarde' || !k.matvardeId || !kanRoll(atk.personal, 'las_matvarden')) continue;
+    const m = journalModul().synligaMatvarden(atk).find(x => x.id === k.matvardeId);
+    if (m) ut[id] = `Senaste mätvärdet ${m.tid.slice(0, 10)}, ${enhetsnamn(atk.db, m.enhet_id)}`;
+  }
+  return ut;
+}
+
 // Svaren för en anteckning, som de lämnas ut tillsammans med anteckningen.
 export function ut(db, anteckningId) {
   const f = formularFor(db, anteckningId);
@@ -398,7 +425,8 @@ export function ut(db, anteckningId) {
   const registrerat = harTabell(db, 'formular_matvarden')
     ? db.query('SELECT falt, matvarde_id FROM formular_matvarden WHERE anteckning_id = ? ORDER BY falt').all(anteckningId).map(r => ({ falt: r.falt, matvardeId: r.matvarde_id })) : [];
   return {
-    id: f.formular.id, kod: f.formular.kod, version: f.formular.version, namn: def.namn, definition: def, svar: f.svar, kallor: f.kallor,
+    // Källorna lämnas ut som text utan referenser. kallorFor ger källan för den som får se den.
+    id: f.formular.id, kod: f.formular.kod, version: f.formular.version, namn: def.namn, definition: def, svar: f.svar, kallor: kalltexterUt(f.kallor),
     poang: R.poang(def, f.svar), varningar: R.varningar(def, f.svar), registrerat,
     koder: koder(def).map(k => ({ var: k.var, text: kodText(k.kod) })),
   };
@@ -416,12 +444,12 @@ export function foreSignering(atk, a) {
   const j = journalModul();
   for (const falt of R.synligaFalt(def, f.svar)) {
     if (falt.typ !== 'matvarde' || f.svar[falt.id] == null) continue;
-    if (fore[falt.id] && fore[falt.id].varde === f.svar[falt.id]) { kallor[falt.id] = fore[falt.id].kalla.charAt(0).toLowerCase() + fore[falt.id].kalla.slice(1); continue; }
+    if (fore[falt.id] && fore[falt.id].varde === f.svar[falt.id]) { kallor[falt.id] = { typ: 'matvarde', matvardeId: fore[falt.id].matvardeId }; continue; }
     const m = j.registreraMatvarde(atk, { typ: falt.matvarde, varde: f.svar[falt.id] });
     atk.db.query('INSERT INTO formular_matvarden (anteckning_id, falt, matvarde_id) VALUES (?, ?, ?)').run(a.id, falt.id, m.id);
-    kallor[falt.id] = 'registrerat som mätvärde vid signeringen';
+    kallor[falt.id] = { typ: 'registrerat', matvardeId: m.id };
   }
-  const sokord = R.sokord(def, f.svar, { kallor });
+  const sokord = R.sokord(def, f.svar, { kallor: kalltexter(kallor) });
   atk.db.query('UPDATE formular_svar SET kallor = ? WHERE anteckning_id = ?').run(JSON.stringify(kallor), a.id);
   atk.db.query('UPDATE anteckningar SET sokord = ? WHERE id = ?').run(JSON.stringify(sokord), a.id);
 }
@@ -548,11 +576,11 @@ export function seeda(db, bas = new Date(), { anteckning = false } = {}) {
   if (!anteckning || !db.query("SELECT 1 FROM patienter WHERE id = 'p01'").get() || !db.query("SELECT 1 FROM personal WHERE id = 'ssk-kard'").get()) return;
   const def = JSON.parse(db.query('SELECT definition FROM formular WHERE id = ?').get(fall).definition);
   const svar = { alder: alderAv(db.query("SELECT fodd FROM patienter WHERE id = 'p01'").get().fodd, t(48).slice(0, 10)), fall: 'nej', lakemedel: 'ett', syn: 'ja', gang: 'hjalpmedel', forvirring: 'nej' };
-  const kallor = { alder: 'ur personnumret' };
+  const kallor = { alder: { typ: 'personnummer' } };
   const tid = t(48);
   const vk = db.query("SELECT id FROM vardkontakter WHERE patient_id = 'p01' AND enhet_id = 'uso-kard-72' ORDER BY start DESC").get()?.id ?? null;
   const r = db.query(`INSERT INTO anteckningar (patient_id, enhet_id, vardkontakt_id, typ, kategori, sokord, forfattare_id, skapad, status, signerad_tid, signerad_av)
-    VALUES ('p01', 'uso-kard-72', ?, ?, 'omvardnad', ?, 'ssk-kard', ?, 'signerad', ?, 'ssk-kard')`).run(vk, def.namn, JSON.stringify(R.sokord(def, svar, { kallor })), tid, tid);
+    VALUES ('p01', 'uso-kard-72', ?, ?, 'omvardnad', ?, 'ssk-kard', ?, 'signerad', ?, 'ssk-kard')`).run(vk, def.namn, JSON.stringify(R.sokord(def, svar, { kallor: kalltexter(kallor) })), tid, tid);
   db.query('INSERT INTO formular_svar (anteckning_id, formular_id, svar, poang, kallor, sparad) VALUES (?, ?, ?, ?, ?, ?)')
     .run(Number(r.lastInsertRowid), fall, JSON.stringify(svar), R.poang(def, svar).summa, JSON.stringify(kallor), tid);
 }

@@ -879,7 +879,9 @@ function skapa(BAS) {
   // sparas förrän läkaren signerar: skriptet kontrollerar att ingen anteckning skickas till servern under dikteringen.
   GOR.diktera = async (m, page) => {
     await page.evaluate((fraser) => {
+      // Igenkänningen görs på enheten (processLocally), så ingen fråga om webbläsarens tjänst kommer.
       window.__vkTaligenkanning = class {
+        static available(o) { return Promise.resolve(o?.processLocally ? 'available' : 'unavailable'); }
         start() {
           let i = 0;
           const nasta = () => {
@@ -935,7 +937,7 @@ function skapa(BAS) {
     await m.skriv(page.locator('#fm-bredd'), '1,5', 'bredden');
     await m.klicka(page.locator('.ant-form [data-signera]'), 'Signera');
     await synlig(page, '.anteckning', 'höger häl: Rodnad som inte bleknar');
-    await synlig(page, '.anteckning', 'Vikt: 81,6 kg (senaste mätvärdet');
+    await synlig(page, '.anteckning', 'Vikt: 81,6 kg (förifyllt av systemet)');
     await page.waitForSelector('.anteckning .fm-las svg .fm-markering');
   };
   // Runda 10, r3: formulärbyggaren. Förslaget gäller först när en annan systemförvaltare har godkänt det.

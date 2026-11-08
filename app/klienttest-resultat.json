@@ -1,199 +1,203 @@
 {
-  "tid": "2026-11-08T19:55:16.330Z",
+  "tid": "2026-11-08T20:27:31.267Z",
   "bas": "http://127.0.0.1:18203",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "5de6e5114380dbf46aadd0be33fd45ce0c40278a4bf51da5cbf93f9d1813f62a",
+  "gransnittHash": "f7bbb6824a1eb9e2be559e2999632d1925af210daadd38dc50560550711de19f",
   "tester": [
     {
       "namn": "Gränssnitt > Avbrott > läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > appen startar utan nät från service workern och visar läsläget",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > skrivande är avstängt i läsläget med en förklaring",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > åtkomster i läsläget når åtkomstloggen när servern svarar igen",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > simulerat avbrott ger läsläge medan servern svarar andra besökare",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > läskopian rensas vid utloggning",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > utloggning under avbrott loggar ut sessionen på servern, även om fliken stängs",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > läskopian används inte efter 8 timmar",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > läskopian förnyas av sig själv medan personen är inloggad",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > läsläget visar hur gammal läkemedelsinformationen är per patient och varnar efter 10 minuter",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > reservkoden väljs när webbläsaren är uppkopplad och bara den inslagna nyckeln sparas",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > efter omstart av webbläsaren utan nät visas vilka som har en reservkopia på datorn och när den går ut",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > fel reservkod ger väntetid och rätt reservkod öppnar läsläget",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > åtkomster med reservkod loggas krypterat och överlever att fliken stängs",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > när servern svarar igen mitt i läsläget med reservkod når åtkomsterna åtkomstloggen",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > utloggning raderar reservkopian, den inslagna nyckeln och loggen efter att loggen förts över",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > utloggning i en flik avslutar läsläget i webbläsarens andra flikar",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > en navigering direkt till en fil ersätter inte appen i service workerns cache",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > fem fel reservkoder raderar reservkopian och flikar kan inte pröva samtidigt",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > två personer på samma dator har var sin reservkopia som bara öppnas med egen kod",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > simulerat avbrott visar reservinloggningen när fliken stängs i demon",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Användartest > testläget räknar klick, fältbyten och tangenter som klickbudgetskriptet för samma flöden",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Användartest > enkäten ger SUS-poäng enligt standardformeln",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Användartest > resultatfilen laddas ner med datum, version, deltagarkod, uppgifter och SUS-poäng",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Användartest > hoppa över och hjälp registreras per uppgift",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Användartest > inget anrop skickar testresultat till servern",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Användartest > testläget rensas när testet avslutas",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Mobil > Öppna patient från arbetslistan går i 360 px",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Mobil > Läsa senaste anteckning går i 360 px",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Mobil > Registrera blodtryck går i 360 px",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Mobil > Kvittera remissvar går i 360 px",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Mobil > Ge en dos går i 360 px",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Mobil > Ge en dos med delegering går i 360 px",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Mobil > Patienten bokar om sin tid i Min journal går i 360 px",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Mobil > Söka i journalen och öppna träffen går i 360 px",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Mobil > Registrera en NEWS2-kontroll går i 360 px",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Mobil > Registrera en dos i efterhand går i 360 px",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Mobil > Överblicka dagens händelser på avdelningen går i 360 px",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Mobil > Registrera längd, vikt, blodtryck och puls går i 360 px",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Mobil > Registrera provtagning går i 360 px",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Mobil > Diktera och signera en daganteckning går i 360 px",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Mobil > Dokumentera ett sår med kroppsbilden går i 360 px",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Mobil > varje roll har sin startsida och menyn i 360 px utan sidledsrullning och med knappar på minst 40 px",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Mobil > patienten läser sin journal, sina tider och vem som läst journalen i Min journal i 360 px",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Mobil > vid sängen identifierar armbandet patienten i Läkemedel att ge, och bara patientens doser visas",
-      "status": "röd"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Mobil > förbindelsen bryts och kommer tillbaka från en annan adress utan att inloggningen tappas",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Öppet API > ändringsloggen visar versionen, och läkaren skickar ett ärende om en saknad informationsmängd",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Öppet API > systemförvaltaren registrerar en tillämpning, ser vad den får och kan återkalla den",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > röstinmatningen frågar i en dialog innan ljudet går till webbläsarens tjänst när igenkänning på enheten saknas, valet sparas per användare, och med igenkänning på enheten kommer ingen fråga",
       "status": "grön"
     },
     {

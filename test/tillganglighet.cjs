@@ -805,6 +805,72 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     await k.close();
   });
 
+  // Runda 10, r3: röstinmatningen. Utan igenkänning på enheten frågar Diktera först i en dialog som läses upp, och
+  // användaren måste välja att fortsätta. Valet sparas per användare. Med igenkänning på enheten kommer ingen fråga.
+  {
+    const namn = `${PREFIX.GT}röstinmatningen frågar i en dialog innan ljudet går till webbläsarens tjänst när igenkänning på enheten saknas, valet sparas per användare, och med igenkänning på enheten kommer ingen fråga`;
+    try {
+      const k = await kontext({ width: 1440, height: 900 });
+      await k.addInitScript(INIT);
+      const p = await k.newPage();
+      bevaka(p, 'diktera');
+      const motor = (lokal) => p.evaluate((l) => {
+        window.__vkTaligenkanning = class {
+          static available(o) { return Promise.resolve(l && o?.processLocally ? 'available' : 'unavailable'); }
+          start() {} stop() { setTimeout(() => this.onend?.(), 0); } abort() {}
+        };
+      }, lokal);
+      const oppna = async () => { await gaTill(p, '#/arbetslista'); await gaTill(p, '#/patient/p01/journal/ny'); await p.waitForSelector('#ant-form [data-diktera]'); };
+      const dialogFinns = () => p.evaluate(() => Boolean(document.querySelector('dialog[open].diktat-val')));
+      const pagar = () => p.locator('#ant-form [data-diktera]').getAttribute('aria-pressed');
+      await loggaIn(p, 'lak-kard');
+      await p.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()));
+      await oppna();
+      await motor(false);
+      await p.click('#ant-form [data-diktera]');
+      await p.waitForSelector('dialog[open].diktat-val');
+      const d = await p.evaluate(() => {
+        const el = document.querySelector('dialog[open].diktat-val');
+        return { namn: document.getElementById(el.getAttribute('aria-labelledby'))?.textContent, text: el.querySelector('[data-moln-text]')?.textContent, fokus: el.contains(document.activeElement) };
+      });
+      if (!d.namn || !/webbläsarens leverantör/.test(d.text) || !/påhittade patienter/.test(d.text) || !d.fokus) throw new Error(`förklaringen saknas eller har inte namn och fokus (${JSON.stringify(d)})`);
+      await p.click('dialog[open].diktat-val [data-varde="avbryt"]');
+      await p.waitForFunction(() => !document.querySelector('dialog[open].diktat-val'));
+      if (await pagar() !== 'false') throw new Error('dikteringen startade fast användaren avbröt');
+      await p.click('#ant-form [data-diktera]');
+      await p.click('dialog[open].diktat-val [data-varde="ok"]');
+      await p.waitForFunction(() => document.querySelector('#ant-form [data-diktera]')?.getAttribute('aria-pressed') === 'true');
+      await p.click('#ant-form [data-diktera]');
+      // Valet är sparat: nästa gång startar dikteringen utan fråga.
+      await oppna();
+      await motor(false);
+      await p.click('#ant-form [data-diktera]');
+      await p.waitForFunction(() => document.querySelector('#ant-form [data-diktera]')?.getAttribute('aria-pressed') === 'true');
+      if (await dialogFinns()) throw new Error('frågan kom igen fast valet var sparat');
+      await p.click('#ant-form [data-diktera]');
+      // En annan användare har inte valt, men med igenkänning på enheten kommer ingen fråga.
+      await loggaIn(p, 'ssk-kard');
+      await oppna();
+      await motor(true);
+      await p.click('#ant-form [data-diktera]');
+      await p.waitForFunction(() => document.querySelector('#ant-form [data-diktera]')?.getAttribute('aria-pressed') === 'true');
+      if (await dialogFinns()) throw new Error('frågan kom fast igenkänningen görs på enheten');
+      if (!/på den här datorn/.test(await p.locator('#ant-form [data-diktat]').textContent())) throw new Error('rutan säger inte att igenkänningen görs på datorn');
+      // Utan val och utan igenkänning på enheten frågar systemet den nya användaren.
+      await p.click('#ant-form [data-diktera]');
+      await oppna();
+      await motor(false);
+      await p.click('#ant-form [data-diktera]');
+      await p.waitForSelector('dialog[open].diktat-val');
+      await k.close();
+      tester.push({ namn, status: 'grön' });
+      console.log('ok  röstinmatningens fråga om webbläsarens tjänst');
+    } catch (e) {
+      tester.push({ namn, status: 'röd', fel: kort(e.message) });
+      console.log(`FEL röstinmatningens fråga om webbläsarens tjänst: ${kort(e.message)}`);
+    }
+  }
+
   // ---- Resultatet ----
   const tillg = [
     [G.media, ['media']], [G.alt, ['alt']], [G.namn, ['namn']], [G.rubriker, ['rubriker']], [G.landmarken, ['landmarken']], [G.sprak, ['sprak']],

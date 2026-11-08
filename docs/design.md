@@ -1645,11 +1645,15 @@ aldrig, och en rättelse får egna svar. Formulären lämnas ut i FHIR som Quest
 QuestionnaireResponse, med anteckningens behörighet och loggning.
 
 Information registreras en gång. Åldern tas ur personnumret och kan inte skrivas fel. Ett mätvärde fylls i med det
-senaste värdet som den som fyller i får se, med källan utskriven, och lämnas det oförändrat registreras det inte igen. Ett
+senaste värdet från den egna vårdenheten, och lämnas det oförändrat registreras det inte igen. Förifyllnaden prövas utan
+sessionens aktiva val och nödåtkomst och tar aldrig något från en annan eller spärrad vårdenhet. Ett värde från en annan
+vårdenhet skriver användaren själv, som ett medvetet val. Anteckningens text säger bara att värdet är förifyllt av
+systemet och innehåller aldrig en vårdenhet. Källan sparas som en referens till mätvärdet och visas med datum och
+vårdenhet när anteckningen läses, bara för den som själv får se mätvärdet. Ett
 nytt värde registreras bland mätvärdena när anteckningen signeras, i signeringens transaktion, och finns sedan i
 kurvorna, NEWS2 och nästa formulär. En rättelse ändrar aldrig ett registrerat mätvärde: det rättas under Mätvärden.
-Förifyllnaden bygger bara på det som anroparen får se efter behörighetsmotorn, spärr och inre sekretess, och ett
-mätvärde på en spärrad vårdenhet ändrar inte svaret.
+Förifyllnaden bygger bara på den egna vårdenhetens uppgifter efter behörighetsmotorn, och ett mätvärde på en annan
+eller spärrad vårdenhet ändrar inte svaret, inte heller med aktiva val.
 
 ### Kroppsbilden
 
@@ -1661,9 +1665,14 @@ När en signerad anteckning läses visas bilden med markeringarna.
 
 ### Röstinmatning (rostinmatning.js och rost-regler.js)
 
-Knappen Diktera i anteckningens sökord startar webbläsarens taligenkänning (Web Speech API) på svenska. Systemet ber om
-lokal igenkänning när webbläsaren har den. Annars kan webbläsaren skicka ljudet till sin leverantörs tjänst, vilket rutan
-säger. I demon finns bara påhittade patienter, och i drift behövs en motor som regionen godkänner. Det som sägs blir text i
+Patientens röst ska inte gå till en molntjänst. I drift görs igenkänningen av en lokal motor på regionens egna servrar,
+till exempel en öppen svensk Whisper-modell (KB-Whisper från Kungliga biblioteket): anteckningen skickar ljudet inom
+regionens nät till motorn och får texten tillbaka, och inget ljud lämnar regionen. I demon startar knappen Diktera
+webbläsarens taligenkänning (Web Speech API) på svenska, på enheten när webbläsaren har en svensk modell för det
+(`SpeechRecognition.available` med `processLocally`). Annars visar Diktera första gången en dialog som förklarar att
+ljudet kan skickas till webbläsarens leverantör och att demon bara har påhittade patienter, och användaren måste välja att
+fortsätta. Valet sparas per användare på servern (`GET` och `POST /api/rost/val`), och utan val startar ingen
+diktering. Det som sägs blir text i
 det sökord som dikteras, och röstkommandon ger punkt, kommatecken, frågetecken, kolon, ny rad, nytt stycke, nästa och
 föregående sökord, gå till ett sökord, ångra och sluta diktera. Ordet komma är ett vanligt verb och blir inget
 kommatecken. Systemet sätter stor bokstav och mellanslag. Dikteringen hör till den patient som var öppen när den startade:

@@ -637,4 +637,5 @@ Det som ändrar något kräver radens vårdenhet. Listor på enhetsnivå och upp
 - `GET /api/patient/:id/formular/:kod/forifyllnad` ger `{ formular, varden: { <nyckel>: { varde, kalla } } }` med bara det som den inloggade får se.
 - Ett sökord kan ha `inmatning: "rost"` när texten är dikterad. Det sparas och lämnas ut med anteckningen.
 - `POST /api/stavning { text, sprak?: sv|en }` ger `{ sprak, fel: [{ start, slut, text, typ: stavning|grammatik, forslag, forklaring }] }`. Texten sparas och loggas inte, och får vara högst 8000 tecken. `GET /api/stavning/ordlista` ger `{ ord, max, kallor }`, `POST /api/stavning/ordlista { ord }` (201) och `POST /api/stavning/ordlista/ta-bort { ord }`.
+- `GET /api/rost/val` ger `{ molntjanst, valt }` för den inloggade, och `POST /api/rost/val` sparar valet att låta webbläsarens leverantör känna igen talet när igenkänning på enheten saknas.
 - FHIR: `Questionnaire` (formulärens versioner, id `<kod>-<version>`) och `QuestionnaireResponse?patient=` och `/QuestionnaireResponse/:id` (anteckningens id, med anteckningens behörighet och loggning). De står i ändringsloggen under 0.9.0.

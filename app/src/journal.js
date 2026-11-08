@@ -134,6 +134,8 @@ export function hamtaAnteckning(atk, a) {
   if (u) throw new Fel(404, `Anteckningen visas inte. Systemförvaltningen har undantagit den från visning från ${u.gallerFran}: ${u.motivering}`, 'saknas');
   const ut = anteckningUt(atk.db, a);
   ut.versioner = versionskedja(atk.db, a.id).map(v => anteckningUt(atk.db, v));
+  // Runda 10, r3: källan till ett förifyllt värde, prövad med läsarens egen behörighet.
+  if (ut.formular) ut.formular.kallor = formular.kallorFor(atk, a.id);
   return ut;
 }
 

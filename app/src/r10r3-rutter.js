@@ -3,6 +3,7 @@
 // Rättstavningen tar emot text från ett fält som håller på att skrivas, sparar den aldrig och loggar den aldrig.
 import * as formular from './formularmotor.js';
 import * as stavning from './stavning.js';
+import * as rost from './rostinmatning.js';
 import { Fel } from './db.js';
 
 // En förhandsvisning svarar alltid 200: ett fel i definitionen är en del av svaret, med förklaringen i varfor.
@@ -30,4 +31,8 @@ export function registreraRutter({ rutt, kravInloggad, medPatient }) {
   rutt('GET', '/api/stavning/ordlista', (c) => stavning.ordlista(c.db, kravInloggad(c)));
   rutt('POST', '/api/stavning/ordlista', (c) => [201, stavning.laggTill(c.db, kravInloggad(c), c.body)]);
   rutt('POST', '/api/stavning/ordlista/ta-bort', (c) => stavning.taBort(c.db, kravInloggad(c), c.body));
+
+  // Valet att låta webbläsarens leverantör känna igen talet, per användare.
+  rutt('GET', '/api/rost/val', (c) => rost.val(c.db, kravInloggad(c)));
+  rutt('POST', '/api/rost/val', (c) => rost.godkann(c.db, kravInloggad(c)));
 }

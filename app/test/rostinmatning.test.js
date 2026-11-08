@@ -7,7 +7,7 @@ import { byggSeed } from '../src/db.js';
 import { Atkomst } from '../src/atkomst.js';
 import * as journal from '../src/journal.js';
 import * as R from '../public/js/rost-regler.js';
-import { personal } from './hjalp.js';
+import { personal, testserver, klient } from './hjalp.js';
 
 const NU = new Date('2026-11-08T10:00:00Z');
 const SOKORD = ['Aktuellt', 'Status', 'Bedömning', 'Åtgärd', 'Andning/cirkulation'];
@@ -36,6 +36,31 @@ describe('Röstinmatning', () => {
     expect(d).toEqual([{ typ: 'text', ord: ['stabil', '.'] }, { typ: 'kommando', kommando: 'signera', text: R.SIGNERA_TEXT }]);
     expect(R.SIGNERA_TEXT).toContain('Rösten kan inte signera');
     expect(R.KOMMANDON.map(k => k.fras).join(' ')).not.toContain('signera');
+  });
+
+  test('igenkänning på enheten används när den finns, och annars krävs att användaren har valt webbläsarens tjänst, ett val som sparas per användare', async () => {
+    // Igenkänning på enheten: ingen förklaring och inget val. Annars en förklaring tills användaren har valt att fortsätta.
+    expect(R.behoverVal({ lokal: true, valt: false })).toBe(false);
+    expect(R.behoverVal({ lokal: false, valt: false })).toBe(true);
+    expect(R.behoverVal({ lokal: false, valt: true })).toBe(false);
+    expect(R.MOLN_TEXT).toContain('webbläsarens leverantör');
+    expect(R.MOLN_TEXT).toContain('påhittade patienter');
+    expect(await R.arLokal({ available: async (o) => (o.processLocally && o.langs[0] === 'sv-SE' ? 'available' : 'unavailable') })).toBe(true);
+    expect(await R.arLokal({ available: async () => 'downloadable' })).toBe(false);
+    expect(await R.arLokal(class {})).toBe(false);
+    expect(await R.arLokal({ available: async () => { throw new Error('nej'); } })).toBe(false);
+    // Valet sparas på servern per användare och gäller inte för andra.
+    const app = testserver();
+    try {
+      const k = klient(app);
+      expect((await k.get('/api/rost/val')).status).toBe(401);
+      await k.logga('lak-kard');
+      expect((await k.get('/api/rost/val')).data.molntjanst).toBe(false);
+      expect((await k.post('/api/rost/val', {})).data.molntjanst).toBe(true);
+      expect((await k.get('/api/rost/val')).data.molntjanst).toBe(true);
+      await k.logga('ssk-kard');
+      expect((await k.get('/api/rost/val')).data.molntjanst).toBe(false);
+    } finally { app.stopp(); }
   });
 
   test('dikterad text märks i anteckningen och blir journal för andra först när den är signerad', () => {

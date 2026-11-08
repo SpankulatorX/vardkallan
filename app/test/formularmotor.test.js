@@ -217,6 +217,40 @@ describe(P.slice(0, -3), () => {
     expect(svar(true)).toBe(utan);
   });
 
+  test('förifyllnaden använder bara den egna vårdenhetens uppgifter utan aktiva val, texten har ingen vårdenhet, och källan visas bara för den som får se den', () => {
+    const db = byggSeed(NU);
+    const enhetsnamn = db.query('SELECT namn FROM enheter').all().map(r => r.namn);
+    const ny = (pid, enhet, varde) => Number(db.query("INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, matt_enhet, tid, registrerad_av) VALUES (?, ?, 'vikt', ?, ?, 'kg', ?, 'lak-akut')")
+      .run(pid, enhet, String(varde), varde, new Date(Date.now() - 60_000).toISOString()).lastInsertRowid);
+    // Ett nyare mätvärde på en annan vårdenhet förifylls inte, inte heller när författaren har gjort aktiva val och nödåtkomst.
+    ny('p01', 'uso-akut', 70.2);
+    const medVal = atk(db, 'ssk-kard', 'p01', 'skriv_omvardnad', { andra_enheter: { syfte: 'Prov' }, nodatkomst: { syfte: 'Prov' } });
+    expect(fm.forifyllnad(medVal, 'sar').varden.vikt.varde).toBe(81.6);
+    // Ett nyare mätvärde på en spärrad vårdenhet förifylls aldrig och nämns inte.
+    ny('p04', 'uso-psyk', 59.9);
+    const sp = JSON.stringify(fm.forifyllnad(atk(db, 'ssk-kard', 'p04', 'skriv_omvardnad', { samtycke_sparr: { syfte: 'Prov' }, andra_enheter: { syfte: 'Prov' } }), 'sar'));
+    expect(sp).not.toContain('59.9');
+    expect(sp).not.toContain('psyk');
+    // Den sparade texten har ingen vårdenhet. Källan sparas som referens.
+    const a = journal.skapaAnteckning(medVal, { typ: 'Sårdokumentation', formular: { lage: [{ vy: 'bak', x: 56, y: 95 }], sartyp: 'trycksar', vikt: 81.6 } });
+    const text = JSON.stringify(a.sokord);
+    for (const n of enhetsnamn) expect(text).not.toContain(n);
+    expect(text).toContain('Vikt: 81,6 kg (förifyllt av systemet).');
+    // Författaren får se källan när anteckningen läses, med sin egen behörighet.
+    const las = (pid, val = {}) => journal.hamtaAnteckning(atk(db, pid, 'p01', 'las_omvardnad', val), journal.hamtaAnteckningRad(db, a.id));
+    expect(las('ssk-kard').formular.kallor.vikt).toContain('Senaste mätvärdet 2026-11-08');
+    // Pekar källan på ett mätvärde som läsaren inte når, står bara att systemet fyllde i värdet.
+    const dolt = ny('p01', 'uso-psyk', 81.6);
+    db.query('UPDATE formular_svar SET kallor = ? WHERE anteckning_id = ?').run(JSON.stringify({ vikt: { typ: 'matvarde', matvardeId: dolt } }), a.id);
+    const l = las('ssk-kard');
+    expect(l.formular.kallor.vikt).toBe('Förifyllt av systemet');
+    const helt = JSON.stringify(l);
+    expect(helt).not.toContain('psyk');
+    expect(helt).not.toContain('Allmänpsykiatriska');
+    expect(helt).not.toContain(`"matvardeId":${dolt}`);
+    expect(JSON.stringify(fm.ut(db, a.id))).not.toContain(String(dolt));
+  });
+
   test('ett nytt mätvärde i formuläret registreras som mätvärde när anteckningen signeras, och ett oförändrat förifyllt värde registreras inte igen', () => {
     const db = byggSeed(NU);
     const a = atk(db, 'ssk-kard', 'p01');
@@ -224,7 +258,7 @@ describe(P.slice(0, -3), () => {
     const fore = antal();
     // Samma vikt som det senaste mätvärdet: systemet använder det som redan finns.
     const samma = journal.skapaAnteckning(a, { typ: 'Sårdokumentation', formular: { lage: [{ vy: 'bak', x: 56, y: 95 }], sartyp: 'trycksar', vikt: 81.6 } });
-    expect(samma.sokord.map(s => s.text).join('\n')).toContain('Vikt: 81,6 kg (senaste mätvärdet 2026-11-08');
+    expect(samma.sokord.map(s => s.text).join('\n')).toContain('Vikt: 81,6 kg (förifyllt av systemet).');
     journal.signera(a, journal.hamtaAnteckningRad(db, samma.id));
     expect(antal()).toBe(fore);
     // En ny vikt: registreras en gång som mätvärde när anteckningen signeras, med anteckningens vårdenhet och den som signerade.

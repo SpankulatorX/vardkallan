@@ -52,6 +52,10 @@ CREATE TRIGGER IF NOT EXISTS formular_matvarden_andras_ej BEFORE UPDATE ON formu
 CREATE TABLE IF NOT EXISTS personlig_ordlista (
   personal_id TEXT NOT NULL, ord TEXT NOT NULL, tillagd TEXT NOT NULL, PRIMARY KEY (personal_id, ord)
 );
+
+-- Användare som har valt att låta webbläsarens leverantör känna igen talet när igenkänning på enheten saknas
+-- (rostinmatning.js). Inga patientuppgifter.
+CREATE TABLE IF NOT EXISTS rost_val (personal_id TEXT PRIMARY KEY, valt TEXT NOT NULL);
 `;
 
 // Seedens formulär. Poängen och gränserna är Vårdkällans demoregler och inte validerade skalor.
