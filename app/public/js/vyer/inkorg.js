@@ -86,6 +86,12 @@ export async function visa(main) {
   // Runda 7, r4: patienter som kan tillfrågas om spärren ska gälla en ny vårdenhet efter en omorganisation.
   const sparrFr = (d.sparrFragor ?? []).map((x, i) => `<li class="ik-ater"><div class="ik-text"><span class="ik-rubrik">${esc(pnamn(x.patient ? { namn: x.patient, skyddad: x.skyddad } : null))}, ${esc(x.personnummer)}</span>
     <span class="under-text">${esc(x.text)}</span></div><div class="ik-knappar"><button type="button" class="knapp liten sekundar" data-sparr-fraga="${i}">Registrera patientens beslut</button></div></li>`);
+  // Runda 7, r6: avvikande tillväxt, mätningar hemma att bekräfta och hälsobesök att boka i barnhälsovården.
+  const tvLarm = (d.tillvaxtLarm ?? []).map(x => `<li class="ik-larm"><a href="${esc(x.href)}"><span class="ik-rubrik">${ikon.larm}<span>${esc(x.rubrik)}, ${esc(pnamn(x.patient))}${sym(x.patient)}</span></span>
+    <span class="under-text">${esc(x.text)} Mätt ${esc(tidpunkt(x.tid))}.</span><span class="under-text ik-atgard">${esc(x.nastaSteg)}</span></a>${ikon.pil}</li>`);
+  const tvHemma = (d.hemmatningarAttBekrafta ?? []).map(x => rad(esc(x.href), `Mätning hemma, ${esc(pnamn(x.patient))}`, `${esc(x.namn)} ${esc(String(x.varde).replace('.', ','))} ${esc(x.enhet)}, mätt ${esc(tidpunkt(x.tid))}. Bekräfta eller avvisa i fliken Tillväxt.`));
+  const tvBoka = (d.bhvAttBoka ?? []).map(x => rad(esc(x.href), `${esc(x.text)}, ${esc(pnamn(x.patient))}`, `Ska göras senast ${esc(x.till)}.${x.vacciner.length ? ` Vaccination: ${esc(x.vacciner.join(', ').toLowerCase())}.` : ''} Systemet föreslår tider i fliken Tillväxt.`));
+  const harBhv = Boolean(S.session?.bhv);
   const yrke = S.session?.personal?.yrke;
   // Runda 6, r2: har användaren hunnit gå vidare till en annan vy, eller loggat ut, medan inkorgen hämtades finns
   // inget att visa den i.
@@ -93,6 +99,9 @@ export async function visa(main) {
 
   main.querySelector('#ik').innerHTML = `<div class="inkorg-rutnat">
     ${rapportfelSektion(d, sektion)}
+    ${harBhv || tvLarm.length ? sektion('tvlarm', 'Avvikande tillväxt', tvLarm, 'Inga barn på barnavårdscentralen har avvikande tillväxt.', 'Systemet jämför varje barns kurva med WHO:s standard och larmar när kurvor korsas eller ett värde ligger utanför två standardavvikelser. Demoregel, inte kliniskt beslutsstöd.') : ''}
+    ${tvHemma.length ? sektion('tvhemma', 'Mätningar hemma att bekräfta', tvHemma, '', 'Mätningar som vårdnadshavare har skickat i Min journal. De räknas på kurvan när du har bekräftat dem.') : ''}
+    ${harBhv && tvBoka.length ? sektion('tvboka', 'Hälsobesök att boka', tvBoka, '', 'Barn som ska ha ett besök i barnhälsovårdens program nu och som inte har någon tid.') : ''}
     ${news2.length ? sektion('news2', 'NEWS2 som kräver åtgärd', news2, '', 'Patienter på vårdenheten där NEWS2 eller ett enskilt värde kräver åtgärd enligt NEWS2 (Royal College of Physicians 2017). Systemet räknar poängen ur vitalparametrarna. Demoregel, inte kliniskt beslutsstöd.') : ''}
     ${yrke === 'lakare' || muntl.length ? sektion('muntlig', 'Muntliga ordinationer att signera', muntl, 'Inga muntliga ordinationer väntar på din signering.', 'Ordinationer som du lämnade muntligt eller per telefon och som en sjuksköterska har dokumenterat. De skickas till NLL när du har signerat.') : ''}
     ${S.session.behorigheter.includes('utvardera_lakemedel') && yrke === 'lakare' ? sektion('uppf', 'Uppföljning av läkemedel', uppf, 'Inga uppföljningar har passerat.', 'Läkemedel där uppföljningsdatumet har passerat. Utvärdera effekt och biverkan, och systemet föreslår nästa uppföljning.') : ''}

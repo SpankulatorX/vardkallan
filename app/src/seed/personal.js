@@ -43,7 +43,9 @@ export const PERSONAL = [
   { id: 'lak-lind', namn: 'Olof Granberg', yrke: 'lakare', titel: 'Läkare', enhet: 'lind-med' },
   { id: 'ssk-lind', namn: 'Sanna Björk', yrke: 'sjukskoterska', titel: 'Sjuksköterska', enhet: 'lind-med' },
   { id: 'lak-kumla', namn: 'Eva Sjöberg', yrke: 'lakare', titel: 'Läkare (distriktsläkare)', enhet: 'vc-kumla' },
-  { id: 'ssk-vc', namn: 'Hanna Lilja', yrke: 'sjukskoterska', titel: 'Sjuksköterska (astma- och KOL-sjuksköterska)', enhet: 'vc-tybble' },
+  // Runda 7, r6: distriktssköterskan på Vårdcentralen Tybble är demoroll och har ett uppdrag på Barnavårdscentralen
+  // Tybble (bhv.js), så att en sjuksköterska gör flödet i barnhälsovården.
+  { id: 'ssk-vc', namn: 'Hanna Lilja', yrke: 'sjukskoterska', titel: 'Distriktssköterska', enhet: 'vc-tybble', demo: true },
   { id: 'ssk-psyk', namn: 'Robin Axelsson', yrke: 'sjukskoterska', titel: 'Sjuksköterska', enhet: 'uso-psyk' },
   { id: 'lak-vas', namn: 'Bengt Rydén', yrke: 'lakare', titel: 'Läkare', enhet: 'uso-med', aktiv: false },
   { id: 'lak-cosmic', namn: 'Kristina Ljung', yrke: 'lakare', titel: 'Läkare', enhet: 'uso-kard', aktiv: false },

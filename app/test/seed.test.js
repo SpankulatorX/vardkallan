@@ -40,7 +40,8 @@ describe('Seed', () => {
       expect(n("SELECT count(*) AS n FROM anteckningar WHERE patient_id = ? AND status = 'signerad'")).toBeGreaterThanOrEqual(3);
       expect(n('SELECT count(*) AS n FROM diagnoser WHERE patient_id = ?')).toBeGreaterThan(0);
       expect(n('SELECT count(*) AS n FROM matvarden WHERE patient_id = ?')).toBeGreaterThan(0);
-      expect(n('SELECT count(*) AS n FROM ordinationer WHERE patient_id = ?')).toBeGreaterThan(0);
+      // Runda 7, r6: ett friskt barn i barnhälsovården har inga ordinerade läkemedel.
+      if (!db.query('SELECT 1 FROM bhv_inskrivning WHERE patient_id = ?').get(id)) expect(n('SELECT count(*) AS n FROM ordinationer WHERE patient_id = ?')).toBeGreaterThan(0);
     }
     // Mätvärden över tid: minst en patient har en serie av samma typ.
     expect(db.query("SELECT count(*) AS n FROM matvarden WHERE patient_id = 'p08' AND typ = 'crp'").get().n).toBeGreaterThanOrEqual(4);
@@ -101,6 +102,8 @@ describe('Seed', () => {
       ['lak-psyk', 'Lena Ström', 'lakare', 'uso-psyk'],
       ['adm-kard', 'Karin Berg', 'vardadministrator', 'uso-kard'],
       ['logg', 'Mats Wall', 'logggranskare', 'rk'],
+      // Runda 7, r6: distriktssköterskan med uppdrag på Barnavårdscentralen Tybble.
+      ['ssk-vc', 'Hanna Lilja', 'sjukskoterska', 'vc-tybble'],
       ['ark', 'Ingela Nord', 'arkivarie', 'rk'],
       ['uppf', 'Daniel Sund', 'uppfoljning', 'rk'],
       // Runda 6, r3: kommunens part i samordnad planering, en simulerad kommun.

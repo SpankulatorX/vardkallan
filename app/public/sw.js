@@ -29,10 +29,11 @@ const FILER = [
   '/js/ekonomi-ui.js', '/js/vyer/ekonomi.js',
   '/js/vyer/systemforvaltning.js',
   '/js/vyer/rapportering.js', '/js/rapportfel.js', '/js/tjanstekontrakt.js',
+  '/js/tillvaxt-kurva.js', '/js/vyer/patient-tillvaxt.js', '/js/vyer/min-tillvaxt.js', '/js/vyer/bhv.js',
 ];
 // Runda 7, r5: listan har rapporteringen, rättningarna i inkorgen och tabellen över tjänstekontrakten.
 // Runda 6, r5: listan har tillämpningsfliken och demotillämpningen Blodtryck över tid (/tillampningar/blodtryck/).
-// Runda 7, r4: listan har systemförvaltningens vy.
+// Runda 7, r4: listan har systemförvaltningens vy. r6: och tillväxtkurvorna och barnhälsovården (tillvaxt-kurva.js, patient-tillvaxt.js, min-tillvaxt.js och bhv.js).
 const TIDSGRANS_MS = 4000;
 
 self.addEventListener('install', (e) => {

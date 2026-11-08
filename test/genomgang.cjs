@@ -154,6 +154,8 @@ const MENY = {
   ekonom: ['Faktureringsunderlag', 'Prislistor', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 7, r4: systemförvaltaren har regler och parametrar, omorganisation, undantag och lagring.
   systemforvaltare: ['Regler och parametrar', 'Omorganisation', 'Undantag från visning', 'Lagring', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  // Runda 7, r6: läkaren på Vårdcentralen Tybble har Barnhälsovård, eftersom vårdenheten har en barnavårdscentral.
+  bvc: ['Arbetslista', 'Sök patient', 'Inkorg', 'Delegeringar', 'Direktiv och uppföljning', 'Barnhälsovård', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
 };
 
 (async () => {
@@ -165,12 +167,13 @@ const MENY = {
 
   try {
     // Utan inloggning
-    await s('inloggningssidan visar de sexton demorollerna och demoraden', async () => {
+    await s('inloggningssidan visar de sjutton demorollerna och demoraden', async () => {
       await page.goto(`${BAS}/`);
       await page.waitForSelector('.roll');
       const n = await page.locator('.roll').count();
-      // Runda 6, r6: verksamhetschefen är den trettonde. Runda 7: ekonomen (r3) och de två systemförvaltarna (r4).
-      if (n !== 16) throw new Error(`${n} roller`);
+      // Runda 6, r6: verksamhetschefen är den trettonde. Runda 7: ekonomen (r3), de två systemförvaltarna (r4) och
+      // distriktssköterskan Hanna Lilja i barnhälsovården (r6).
+      if (n !== 17) throw new Error(`${n} roller`);
       await forvanta(page, '.demorad', 'Demo med påhittade patienter och testpersonnummer från Skatteverket. Inte för vård av riktiga patienter.');
       await forvanta(page, '.sidfot', 'Vårdkällan är ett fristående demoprojekt med öppen källkod (EUPL 1.2). Det är inte en tjänst från Region Örebro län.');
       await forvanta(page, '#roll-lak-akut-visar', 'Nödåtkomst');
@@ -555,7 +558,28 @@ const MENY = {
       await forvanta(page, `#remiss-${remissId} .steg-nasta`, 'Mottagen');
       await bild(page, '18-remiss-skickad', true);
     });
-    await allaVyer(page, 'Per Holm', MENY.klinisk);
+    await allaVyer(page, 'Per Holm', MENY.bvc);
+    // Runda 7, r6: tillväxt och barnhälsovård på Barnavårdscentralen Tybble.
+    await s('Per Holm ser Idas tillväxtkurvor med WHO:s referenslinjer och bekräftar en mätning som mamman gjort hemma', async () => {
+      await gaTill(page, '#/patient/p61/tillvaxt');
+      await forvanta(page, '#tv-kurva-vikt', 'Vikt');
+      await page.locator('#tv-kurva-langd svg.tv-kurva polyline.tv-ref').first().waitFor();
+      await forvanta(page, '.tv-tecken', 'Mätt hemma, väntar');
+      await forvanta(page, '.tv-program', 'Barnhälsovårdens program');
+      await forvanta(page, '#tv-fodsel ~ *', 'Målängden är');
+      await bild(page, '96-tillvaxt', true);
+      await page.locator('[data-bekrafta]').first().click();
+      await forvanta(page, '.notis', 'räknas nu på kurvan');
+    });
+    await s('Per Holm skickar barnhälsovårdens rapport till registret, som är en simulerad mottagare', async () => {
+      await gaTill(page, '#/bhv');
+      await forvanta(page, '#bhv-q', 'Svenska barnhälsovårdsregistret');
+      await forvanta(page, '#bhv', 'simulerad mottagare');
+      await bild(page, '97-bhvq', true);
+      await page.click('[data-bhvq-skicka]');
+      await forvanta(page, '.notis', 'Kvittens BHVQ-SIM-');
+      await forvanta(page, '#bhv', 'Det finns inget nytt att rapportera');
+    });
     await s('Karin Berg kvitterar remissen som mottagen men ser ingen journaltext', async () => {
       await loggaIn(page, 'adm-kard');
       await gaTill(page, '#/remisser');
@@ -975,6 +999,33 @@ const MENY = {
       if (await page.locator('#min-sparrform').count()) throw new Error('vårdnadshavaren kan begära spärr');
     });
 
+    // Runda 7, r6: distriktssköterskan ger MPR och får frågan om andra vaccinationer, som alla barn får.
+    await s('Hanna Lilja ger Ida MPR och svarar på frågan om vaccinationer som har getts någon annanstans', async () => {
+      await loggaIn(page, 'ssk-vc');
+      await gaTill(page, '#/patient/p61/tillvaxt');
+      await page.locator('[data-vaccin="mpr1"]').click();
+      const dl = page.locator('dialog[open]');
+      await dl.waitFor();
+      await forvanta(page, 'dialog[open] legend', 'någon annanstans');
+      if (await dl.locator('[data-dolda-vaccinationer]').count()) throw new Error('varningen om dolda vaccinationer visas utan att det finns några');
+      await dl.locator('#dlg-andra-nej').check();
+      await bild(page, '99-vaccination-fraga');
+      await dl.locator('[data-varde="ok"]').click();
+      await forvanta(page, '.notis', 'är registrerad');
+    });
+    // Runda 7, r6: vårdnadshavaren ser barnets tillväxt och skickar en mätning hemifrån.
+    await s('Linnea Holmqvist ser Idas kurvor och vaccinationer i Min journal och skickar en mätning hemifrån', async () => {
+      await loggaInPatient(page, 'inv-vh02');
+      await page.click('.min-journaler a');
+      await forvanta(page, '.min-band h1', 'Ida Holmqvist');
+      await minFlik(page, 'Tillväxt');
+      await forvanta(page, '.min-del', 'Vaccinationer');
+      await page.locator('.min-del svg.tv-kurva').first().waitFor();
+      await page.fill('#min-tv-vikt', '9,5');
+      await page.click('#min-tv-form [type="submit"]');
+      await forvanta(page, '.notis', 'Barnavårdscentralen bekräftar');
+      await bild(page, '98-min-tillvaxt', true);
+    });
     await s('Mikael Svensson ser sin tid och kallelsen under Tider i Min journal och bokar om den själv', async () => {
       await loggaInPatient(page, 'inv-p14');
       await minFlik(page, 'Tider');
@@ -1565,7 +1616,7 @@ const MENY = {
       await forvanta(page, 'main h1', 'Användartest');
       await forvanta(page, '.at-info', 'Alla patienter i demon är påhittade');
       await page.fill('#at-kod', 'G01');
-      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut', 'sok-journal', 'news2', 'ordinera-mall', 'dos-efterhand', 'utse-mal', 'godkanna-mall', 'extern-tillampning', 'boka-ingrepp', 'boka-kedja', 'kravviktning', 'exportera-underlag', 'lamna-ut-hjalpmedel', 'forbered-namnbyte', 'andra-demoregel', 'rapport-par']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut', 'sok-journal', 'news2', 'ordinera-mall', 'dos-efterhand', 'utse-mal', 'godkanna-mall', 'extern-tillampning', 'boka-ingrepp', 'boka-kedja', 'kravviktning', 'exportera-underlag', 'lamna-ut-hjalpmedel', 'forbered-namnbyte', 'andra-demoregel', 'rapport-par', 'tillvaxt-bhv']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

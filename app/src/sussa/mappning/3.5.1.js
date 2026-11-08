@@ -76,8 +76,21 @@ const AVSNITT = [
     expert: 'Systemet gör kontrollerna själv och visar bara det som behöver bedömas, så läkaren inte behöver gå igenom varje läkemedel mot reglerna.',
     anmarkning: 'Kontrollerna är demoregler. Fördjupad läkemedelsgenomgång, patientens egen medverkan och farmaceutens roll är inte byggda.',
   },
-  { id: '3.5.1.7', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
-    anmarkning: 'Stöd för nationella vaccinationsprogram är inte byggt.' },
+  // Runda 7, r6: barnvaccinationsprogrammet i barnhälsovården (bhv-program.js och bhv.js).
+  {
+    id: '3.5.1.7', kategori: 'system', egna: ['D10'], avsedd: 'delvis',
+    tester: [
+      'Barnhälsovårdens program > besöken och vaccinationerna följer barnets ålder, och systemet säger varför en dos inte kan ges',
+      'Barnhälsovårdens program > vaccinationen prövas mot programmet och får ATC och dos av systemet',
+      'Barnhälsovårdens program > före varje dos frågar systemet alltid om vaccinationer som har getts någon annanstans',
+      'Barnhälsovårdens program > en vaccination som kräver aktivt val ger en varning utan vårdenhet, vaccin eller datum, och dosen kan ges efter en bekräftelse som loggas',
+      'Barnhälsovårdens program > en vaccination bakom en spärr röjs aldrig: ingen varning, bara den vanliga frågan som alla barn får',
+      'API för barnhälsovården > FHIR: vaccinationerna är Immunization med ATC och dos, med samma behörighet och loggning, och invånaren ser dem utan personal',
+    ],
+    losning: 'Folkhälsomyndighetens barnvaccinationsprogram för barnhälsovården: systemet visar vilka doser som kan ges vid barnets ålder och registrerar en given dos med ATC, dosnummer, tid och vårdkontakt. Vaccinationerna syns i Min journal för vårdnadshavaren och som Immunization i FHIR.',
+    expert: 'Systemet prövar ålder, ordning och intervall mellan doserna och förklarar på vanlig svenska varför en dos inte kan ges, frågar före varje dos om vaccinationer som har getts någon annanstans och varnar när vaccinationer på en annan vårdenhet bara syns efter ett aktivt val, utan att röja en spärr.',
+    anmarkning: 'Bara barnvaccinationsprogrammet till fem år. Vaccinationerna i elevhälsan, programmet för riskgrupper, vaccination mot vattkoppor (från 2027) och rapportering till Folkhälsomyndighetens vaccinationsregister saknas. Intervallen är förenklade demoregler.',
+  },
   {
     id: '3.5.1.8', kategori: 'system', egna: ['L7'], avsedd: 'delvis',
     tester: [

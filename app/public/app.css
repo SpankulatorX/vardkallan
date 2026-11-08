@@ -1249,3 +1249,34 @@ mark { background: var(--obs-bg); color: inherit; outline: 1px solid var(--obs-k
 /* Runda 7, r5: raden i inkorgen har en länk till patienten följd av text, så den är ett vanligt textblock. */
 .ik-rubrik.rf-rubrik { display: block; }
 .inkorg-lista .rf-rubrik a { display: inline; padding: 0; color: var(--kalla); text-decoration: underline; }
+/* Runda 7, r6: tillväxtkurvor och barnhälsovård. Punkternas form bär källan, så att färgen inte är enda bäraren. */
+.tv-kurvor { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+.tv-kurva { max-width: 520px; }
+.tv-ref { fill: none; stroke: var(--linje-stark); stroke-width: 1; }
+.tv-sdp0 { stroke: var(--kalla-mellan); stroke-width: 2; }
+.tv-sdm2, .tv-sdp2 { stroke-dasharray: 5 3; }
+.tv-sdm1, .tv-sdp1 { stroke: var(--linje); }
+.tv-rut { stroke: var(--linje); stroke-width: 0.5; }
+.tv-barn { fill: none; stroke: var(--kalla); stroke-width: 2; stroke-linejoin: round; }
+.tv-punkt { fill: var(--kalla); stroke: var(--kalla); stroke-width: 1.5; }
+.tv-punkt.tv-hemma { fill: var(--yta); }
+.tv-punkt.tv-vantar { fill: var(--yta); stroke: var(--obs); stroke-dasharray: 2 2; }
+.tv-punkt.tv-fodsel { fill: var(--obs-bg); stroke: var(--obs); }
+.tv-handelse { stroke: var(--obs); stroke-width: 1; stroke-dasharray: 2 3; }
+.tv-handelse-nr { fill: var(--obs); font-size: 10px; font-weight: 700; font-family: var(--sans); }
+.tv-tecken { display: flex; flex-wrap: wrap; gap: 6px 16px; list-style: none; padding: 0; margin: 4px 0 10px; font-size: var(--f-s); color: var(--blak-2); }
+.tv-tecken li { display: flex; align-items: center; gap: 6px; }
+.tv-tecken svg { width: 20px; height: 14px; }
+.tv-larm { margin-bottom: 12px; }
+.tv-spann { margin: 0; }
+.tv-fakta { list-style: none; padding: 0; margin: 0 0 8px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 16px; }
+.tv-fakta li { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--linje); padding: 4px 0; }
+.tv-hemma-rad { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tv-forslag, .tv-vacciner { border: 1px solid var(--linje); border-radius: var(--r); padding: 10px 12px; background: var(--yta); margin: 8px 0; }
+.tv-vacciner li { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tv-status-nu td:last-child, .tv-status-missat td:last-child { font-weight: 700; }
+.tv-rad-vantar td { font-style: italic; }
+.tv-handelser { font-size: var(--f-s); }
+.tv-bhvq { margin-top: 10px; }
+.tv-forslag .forslag-lista { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 6px; }
+.tv-forslag .forslag-lista li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

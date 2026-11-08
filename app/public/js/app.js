@@ -39,6 +39,8 @@ import * as ekonomi from './vyer/ekonomi.js';
 import * as systemforvaltning from './vyer/systemforvaltning.js';
 // Runda 7, r5: rapportering till myndigheter och register.
 import * as rapportering from './vyer/rapportering.js';
+// Runda 7, r6: barnhälsovårdens sida med rapporteringen till registret och uppföljningen.
+import * as barnhalsovard from './vyer/bhv.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -79,6 +81,8 @@ const MENY = [
   ['#/omorganisation', 'Omorganisation', 'moduler', () => far('omorganisera')],
   ['#/undantag', 'Undantag från visning', 'oga', () => far('undanta')],
   ['#/lagring', 'Lagring', 'arkiv', () => far('lagring')],
+  // Runda 7, r6: barnhälsovården, för läkare och sjuksköterskor på en vårdenhet med barnavårdscentral.
+  ['#/bhv', 'Barnhälsovård', 'person', () => Boolean(S.session?.bhv)],
   ['#/remisser', 'Remisser', 'remiss', () => pa('las_remiss', 'las_remiss_status')],
   ['#/vantrum', 'Väntrum (akuten)', 'vantrum', () => far('vantrum')],
   ['#/logg', 'Logguppföljning', 'logg', () => far('las_logg')],
@@ -116,6 +120,7 @@ const RUTTER = [
   [/^#\/omorganisation$/, systemforvaltning.omorganisation, () => far('omorganisera')],
   [/^#\/undantag$/, systemforvaltning.undantag, () => far('undanta')],
   [/^#\/lagring$/, systemforvaltning.lagring, () => far('lagring')],
+  [/^#\/bhv$/, barnhalsovard, () => Boolean(S.session?.bhv)],
   [/^#\/remisser$/, remisser, () => pa('las_remiss', 'las_remiss_status')],
   [/^#\/vantrum$/, vantrum, () => far('vantrum')],
   [/^#\/logg$/, logg, () => far('las_logg')],
@@ -222,7 +227,9 @@ export async function uppdateraInkorg() {
       // Egna bevakningar som har löpt ut (runda 6, r4).
       + (d.egnaBevakningar?.length ?? 0)
       // Rättningar före rapportering till myndigheter och register (runda 7, r5).
-      + (d.rapportfel?.length ?? 0);
+      + (d.rapportfel?.length ?? 0)
+      // Runda 7, r6: barnhälsovården.
+      + (d.tillvaxtLarm?.length ?? 0) + (d.hemmatningarAttBekrafta?.length ?? 0) + (d.bhvAttBoka?.length ?? 0);
   } catch { S.inkorg = null; }
   const el = document.querySelector('[data-raknare="inkorg"]');
   if (el) { el.textContent = S.inkorg ? String(S.inkorg) : ''; el.hidden = !S.inkorg; }

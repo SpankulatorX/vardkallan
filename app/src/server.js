@@ -61,6 +61,9 @@ import { registreraRutter as systemforvaltningRutter, efterDatum as systemforval
 import * as konfiguration from './konfiguration.js';
 import * as undantag from './undantag.js';
 import * as omorganisation from './omorganisation.js';
+// Runda 7, r6: barnhälsovården, tillväxt och rapporteringen till Svenska barnhälsovårdsregistret (bhv-rutter.js).
+import { registreraRutter as bhvRutter, inkorg as bhvInkorg, session as bhvSession } from './bhv-rutter.js';
+import { minTillvaxt } from './bhv.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -365,6 +368,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       if (p.yrke === 'underskoterska' && !delegering.giltigNu(s.db, p).giltig) ut.behorigheter = ut.behorigheter.filter(h => h !== 'ge_lakemedel');
       // Runda 6, r3: om personalen arbetar på en vårdenhet med psykiatrisk tvångsvård.
       ut.r3 = r3.session(s.db, p);
+      // Runda 7, r6: om personalens vårdenhet har barnhälsovård.
+      ut.bhv = bhvSession(s.db, p);
       sakraKopia(s);
       ut.lasnyckel = s.lasnyckel;
     }
@@ -1134,6 +1139,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...systemforvaltningInkorg(c),
       // Runda 7, r5: fel i rapporterna till myndigheter och register som den inloggade kan rätta.
       ...r7r5Inkorg(c, patientKort, patientRad, valFor),
+      // Runda 7, r6: avvikande tillväxt, mätningar hemma att bekräfta och hälsobesök att boka i barnhälsovården.
+      ...bhvInkorg(c, patientKort, patientRad, valFor),
     });
   });
   // Runda 6, r1: NEWS2-larmen loggas på patienten en gång per session och mätomgång, som raderna om återinsättning.
@@ -1379,6 +1386,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   MIN_DELAR.sprak = planering.minSprak;
   // Runda 7, r3: patienten ser hela sitt högkostnadsskydd, med alla avgifter (ekonomi.js).
   MIN_DELAR.hogkostnadsskydd = ekonomi.minHogkostnadsskydd;
+  // Runda 7, r6: barnets tillväxtkurvor och vaccinationer för vårdnadshavaren.
+  MIN_DELAR.tillvaxt = minTillvaxt;
   rutt('GET', '/api/min/journal/:id', (c, id) => medMinJournal(c, id, 'min:journal', (atk) => minJournal.huvud(atk)));
   rutt('GET', '/api/min/journal/:id/:del', (c, id, del) => {
     if (!Object.hasOwn(MIN_DELAR, del)) throw new Fel(404, 'Okänd adress.', 'saknas');
@@ -1437,6 +1446,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   systemforvaltningRutter({ rutt, kravInloggad });
   // Runda 7, r5 (rapportering-rutter.js).
   r7r5Rutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal });
+  // Runda 7, r6 (bhv-rutter.js).
+  bhvRutter({ rutt, kravInloggad, medPatient, medMinJournal, valFor });
 
   // Endpoints som inte behöver en sandlåda.
   const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/krav/sussa', '/api/drift', '/api/lasekopia/krypterad-logg']);

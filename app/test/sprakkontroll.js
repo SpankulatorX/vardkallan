@@ -167,6 +167,8 @@ for (const w of ['DRG', 'NordDRG']) TILLATNA.add(w);
 // Runda 7, r5: rapporteringen till myndigheter och register och tjänstekontrakten i K10, med kontraktens namn.
 for (const w of ['PAR', 'MFR', 'VIV', 'SKR', 'MVO', 'BB', 'SOSNYK', 'FV', 'RAS', 'MRA', 'SGLT2', 'PADL', 'PU', 'TGP', 'RIV', 'TA', 'RIV-TA', 'LT', 'YK', 'TV', 'KR', 'NKRR']) TILLATNA.add(w);
 for (const k of KONTRAKT) TILLATNA.add(k.kontrakt);
+// Runda 7, r6: barnhälsovården, vaccinerna och registret (BHVQ), och FHIR-resursen för vaccinationer.
+for (const w of ['BVC', 'BHV', 'BHVQ', 'BHVQ-SIM', 'BCG', 'EPDS', 'MPR', 'HPV', 'SD', 'Immunization', 'Snomed', 'K11', 'NKRR', 'IGO', 'CC', 'BY-NC-SA']) TILLATNA.add(w);
 // Fraser med engelska ord som är namn på standarder, rubriker, parametrar och tekniska begrepp. Ett tomt värde i data
 // beskrivs som tomt, inte som null (beslut 2026-11-03).
 export const FRASER = ['HL7 Sweden', '$everything', 'pull request', 'Server-Timing', 'X-Content-Type-Options', 'Content-Type', 'Content-Disposition',

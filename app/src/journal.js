@@ -199,6 +199,8 @@ export const MATTYPER = {
   syrgas: { namn: 'Syrgas', min: 0, max: 15 },
   smarta: { namn: 'Smärta (NRS)', min: 0, max: 10, heltal: true },
   gcs: { namn: 'GCS', format: 'gcs' },
+  // Runda 7, r6: huvudomfång i barnhälsovården (Sussa 4.1).
+  huvudomfang: { namn: 'Huvudomfång', min: 20, max: 70 },
 };
 for (const [typ, m] of Object.entries(MATTYPER)) m.enhet = MATTYPER_ENHET[typ];
 

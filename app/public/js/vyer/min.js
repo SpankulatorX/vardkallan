@@ -4,6 +4,8 @@ import { esc, api, ikon, ApiFel, vyRubrik } from '../ui.js';
 import { S } from '../app.js';
 import * as delar from './min-delar.js';
 import * as tider from './min-tider.js';
+// Runda 7, r6: barnets tillväxt för vårdnadshavaren.
+import * as tillvaxt from './min-tillvaxt.js';
 
 export const namn = 'min';
 
@@ -14,6 +16,8 @@ const FLIKAR = [
   ['diagnoser', 'Diagnoser', delar.diagnoser],
   ['lakemedel', 'Läkemedel', delar.lakemedel],
   ['provsvar', 'Provsvar', delar.provsvar],
+  // Runda 7, r6: visas för barn och ungdomar. Villkoret får huvudet.
+  ['tillvaxt', 'Tillväxt', tillvaxt.visa, (h) => !h || h.patient.alder < 18],
   ['remisser', 'Remisser', delar.remisser],
   ['logglista', 'Vem har läst', delar.logglista],
   ['sparrar', 'Spärrar', delar.sparrar],
@@ -52,7 +56,7 @@ function bandHtml(h) {
   </header>`;
 }
 
-const flikarHtml = (pid, aktiv) => `<nav class="flikar min-flikar" aria-label="Journalens delar"><ul>${FLIKAR.map(([k, t]) =>
+const flikarHtml = (pid, aktiv) => `<nav class="flikar min-flikar" aria-label="Journalens delar"><ul>${FLIKAR.filter(f => !f[3] || f[3](huvud)).map(([k, t]) =>
   `<li><a href="${href(pid, k)}"${k === aktiv ? ' aria-current="page"' : ''}>${esc(t)}</a></li>`).join('')}</ul></nav>`;
 
 export async function visa(main, [pid, del, sub], q, ctx = {}) {

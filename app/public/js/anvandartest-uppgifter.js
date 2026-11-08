@@ -40,6 +40,8 @@ export const STARTPUNKT = {
   'Kravsidan': { hash: '#/krav', klar: '#sussa-lista details.sussapost' },
   // Runda 7, r3.
   'Ekonomens startsida': { hash: '#/ekonomi', klar: '#ek table' },
+  // Runda 7, r6: barnet på Barnavårdscentralen Tybble.
+  'Översikten för ett barn på barnavårdscentralen': { hash: '#/patient/p61', klar: '.tidslinje', forbered: 'aterstall' },
 };
 
 export const UPPGIFTER = [
@@ -316,6 +318,12 @@ export const UPPGIFTER = [
     id: 'andra-demoregel', namn: 'Ändra en demoregel', roll: 'sysf', start: 'Reglerna efter återställning',
     text: 'Patienterna vill få påminnelsen om sin bokade tid tre dygn i förväg i stället för två. Ändra regeln.',
     kontroll: { notis: 'väntar på att en annan systemförvaltare godkänner den' },
+  },
+  // Runda 7, r6: tillväxt i barnhälsovården (Sussa 4.1).
+  {
+    id: 'tillvaxt-bhv', namn: 'Registrera längd och vikt vid ett BHV-besök och se kurvan', roll: 'ssk-vc', start: 'Översikten för ett barn på barnavårdscentralen',
+    text: 'Ida Holmqvist är på besök hos barnavårdscentralen. Hon väger 9,6 kg och är 82 cm lång. Registrera måtten och se hur hon följer sin kurva.',
+    kontroll: { notis: 'är registrerat' },
   },
 ];
 

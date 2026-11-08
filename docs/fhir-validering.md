@@ -4,6 +4,8 @@ Validering av Vårdkällans FHIR-svar mot FHIR R4 och HL7 Swedens basprofiler, g
 
 Identiteterna (Sussa 3.1.1) validerades 2026-11-03 med samma validator och paket: alla 19 `Patient` mot `SEBasePatient`, däribland samordningsnummer med HL7 Swedens system, reservnummer och utländsk identitet med `urn:oid:` och en tidigare identitet med `use: old`, och dessutom två sammanslagna journaler med `Patient.link` (`replaces` och `replaced-by`, den gamla med `active: false`). Resultat: 0 fel och 23 varningar, samma slags varningar som i tabellen nedan (dom-6 och sekretessmarkeringen).
 
+Vaccinationerna i barnhälsovården (`Immunization`) och huvudomfånget (`Observation` med vitalparameterprofilen headcircum) validerades 2026-11-08 med samma validator och paket: 16 Immunization (åtta för personalen och åtta för invånaren) och fyra Observation för huvudomfång. Resultat: 0 fel och en varning per resurs (dom-6, ingen narrativ text), som för de andra resurstyperna.
+
 ## Verktyg och paket
 
 | Del | Version |
