@@ -45,6 +45,8 @@ export const STARTPUNKT = {
   // Runda 7, r2: efter en återställning har ingen stängt nyheterna.
   'Arbetslistan med nyheterna efter en ny version': { hash: '#/arbetslista', klar: '.nyhetsruta', forbered: 'aterstall' },
   'Arbetslistan när inloggningen snart går ut': { hash: '#/arbetslista', klar: '#tidsgrans', forbered: 'inloggning-gar-ut' },
+  // Runda 8, r1: provtagningen för sjuksköterskan, efter återställning.
+  'Provtagningen efter återställning': { hash: '#/provtagning', klar: '.pt-patient', forbered: 'aterstall' },
 };
 
 export const UPPGIFTER = [
@@ -339,6 +341,17 @@ export const UPPGIFTER = [
     id: 'forlang-inloggning', namn: 'Fortsätta arbeta när inloggningen snart går ut', roll: 'lak-kard', start: 'Arbetslistan när inloggningen snart går ut',
     text: 'Du har varit borta från datorn en stund, och Vårdkällan varnar för att du snart loggas ut. Du vill fortsätta arbeta.',
     kontroll: { notis: 'Du är inloggad' },
+  },
+  // Runda 8, r1: beställning och svar (Sussa 4.4.2.6 och testfall 3.1 och 3.3).
+  {
+    id: 'bestall-paket', namn: 'Beställa ett standardpaket med prover', roll: 'lak-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Gunnar Åkesson ligger inne med hjärtsvikt. Beställ de prover som behövs för att följa upp hjärtsvikten.',
+    kontroll: { notis: 'är beställt' },
+  },
+  {
+    id: 'registrera-provtagning', namn: 'Registrera provtagning', roll: 'ssk-kard', start: 'Provtagningen efter återställning',
+    text: 'Du har tagit blodproverna på Elin Sandberg, blodstatus och CRP. Registrera att proverna är tagna och skicka dem till laboratoriet.',
+    kontroll: { notis: 'proverna är skickade' },
   },
 ];
 

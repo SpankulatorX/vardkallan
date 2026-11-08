@@ -16,6 +16,8 @@ const FINNS = [
   ['Öppet FHIR-API', 'FHIR R4 för läsning av alla resurser, med samma behörighet och loggning som gränssnittet. Inte validerat mot HL7 Swedens basprofiler.', '#/api'],
   // Runda 7, r6.
   ['Barnhälsovård och tillväxt', 'Tillväxtkurvor med WHO:s tillväxtstandard och larm när kurvor korsas, barnhälsovårdens besöks- och vaccinationsprogram med bokning i tidboken, mätningar hemma från vårdnadshavaren och rapportering till Svenska barnhälsovårdsregistret med kontroll före utskicket. Registret är en simulerad mottagare, och larmen och tidsfönstren är demoregler.', null],
+  // Runda 8, r1.
+  ['Beställning och svar för laboratoriet', 'Labbeställning med paket som systemet föreslår, beställning på uppdrag, provtagning rör för rör med etiketter, svar med NPU-kod och referensintervall som läkaren vidimerar och kontroller till avdelningen. Laboratorierna är simulerade.', null],
   ['Migreringsavstämning och kravspårbarhet', 'Avstämning av migrerade poster och ett kravregister där varje krav pekar på sina automatiska tester.', '#/migrering'],
 ];
 
@@ -25,7 +27,7 @@ const PLANERAT = [
   ['Operation, anestesi och intensivvård', 'Operationsplanering, anestesijournal och övervakning inom intensivvården.'],
   ['Cytostatika', 'Behandlingsregimer, ordination och beredning av cytostatika.'],
   ['Förlossning', 'Graviditet, förlossningsjournal och partogram.'],
-  ['Beställning och svar för labb och röntgen', 'Beställningar till laboratorium och bild- och funktionsmedicin, med svar och kvittens.'],
+  ['Beställning och svar för röntgen och fysiologi', 'Beställningar till bild- och funktionsmedicin, med svar och kvittens. Laboratoriet finns sedan runda 8.'],
   ['Diktat och taligenkänning', 'Diktering av anteckningar med taligenkänning och utskrift.'],
   ['Integrationer mot NLL, NPÖ, 1177 och e-remiss', 'Riktiga anslutningar till nationella tjänster. I demon är NLL simulerad och övriga saknas.'],
   ['Uppföljning och statistik', 'Verksamhetsuppföljning, kvalitetsregister och inrapportering till patientregistret.'],

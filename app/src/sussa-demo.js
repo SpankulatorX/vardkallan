@@ -9,6 +9,9 @@ import { Fel, addDagar, datumAv, lokalTid } from './db.js';
 import { Atkomst } from './atkomst.js';
 import * as tidbok from './tidbok.js';
 import { SUSSA_PATIENTER, BERTIL_PK, BERTIL_EPIKRIS, ANKOMNA_5_6, OSIGNERADE_4_4 } from './seed/sussa-testdata.js';
+// Runda 8, r1: tema 3, beställning och svar (labb.js och kontroller.js).
+import * as labb from './labb.js';
+import { TREVIS_3_3, BERTIL_PK_BESTALLD_AV } from './seed/sussa-testdata.js';
 
 const MIN = 60_000;
 const kon = (pnr) => (Number(pnr[10]) % 2 === 1 ? 'man' : 'kvinna');
@@ -174,6 +177,31 @@ export function laddaTestdata(db, personal, { nu = new Date() } = {}) {
     db.query("UPDATE bokningar SET status = 'incheckad', incheckad = ?, incheckad_via = 'reception', konummer = ? WHERE id = ?").run(kom, `K${String(i + 1).padStart(2, '0')}`, b.id);
     db.query('UPDATE vardkontakter SET ankomst = ? WHERE id = ?').run(kom, b.vardkontakt_id);
   });
+
+  // Runda 8, r1: tema 3, beställning och svar (Bilaga F1:3 och F1:4, testfall 3.1 till 3.5).
+  // Hamid Burvall (3.1) har kommit med feber och frossa till kardiologiska mottagningen och till vårdcentralen, och Laura
+  // August (3.2) till kardiologiska mottagningen, så att systemet föreslår paketet och anamnesen. Inga Strand (3.5) är
+  // inlagd på Avdelning 72 och har ett besök på vårdcentralen i dag.
+  db.transaction(() => {
+    const insVk = db.query(`INSERT INTO vardkontakter (patient_id, enhet_id, typ, kontaktsatt, start, plats, orsak, kalla, planerad, skapad, automatisk, ger_vardrelation)
+      VALUES (?, ?, 'oppenvard', 'besok', ?, ?, ?, 'vardkallan', 0, ?, 0, 1)`);
+    const besok = (pid, enhet, start, plats, orsak) => insVk.run(pid, enhet, start, plats, orsak, start);
+    besok('sus19', 'uso-kard-mott', M(-15), 'Kardiologiska mottagningen', 'Feber och frossa');
+    besok('sus19', 'vc-tybble', M(-10), 'Mottagning', 'Feber och frossa');
+    besok('sus18', 'uso-kard-mott', M(-25), 'Kardiologiska mottagningen', 'Feber och frossa');
+    besok('sus14', 'vc-tybble', M(-5), 'Mottagning', 'Uppföljning');
+    const ve = 'uso-kard';
+    const vt = Number(db.query("INSERT INTO vardtillfallen (patient_id, enhet_id, inskriven, orsak, inskriven_av, kalla) VALUES ('sus14', ?, ?, 'Dehydrering och feber', 'ssk-kard', 'vardkallan')").run(ve, T(-1, '11:00')).lastInsertRowid);
+    db.query("INSERT INTO vardtillfalle_handelser (vardtillfalle_id, typ, tid, enhet_id, plats, av) VALUES (?, 'inskrivning', ?, 'uso-kard-72', 'Avd 72, sal 9', 'ssk-kard')").run(vt, T(-1, '11:00'));
+    db.query(`INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak, kalla, planerad, vardtillfalle_id, skapad, skapad_av, automatisk, ger_vardrelation)
+      VALUES ('sus14', 'uso-kard-72', 'slutenvard', ?, 'Avd 72, sal 9', 'Dehydrering och feber', 'vardkallan', 0, ?, ?, 'ssk-kard', 0, 1)`).run(T(-1, '11:00'), vt, T(-1, '11:00'));
+  })();
+  // Trevis Ljung (3.3): beställningen som läkaren gjorde i går, med blodstatus, B12, folat och urinodling, att ta i dag.
+  labb.bestall(new Atkomst(db, pers(TREVIS_3_3.av), 'sus04', {}, 'bestalla_prov'), { analyser: TREVIS_3_3.analyser, anamnes: TREVIS_3_3.anamnes, planerad: T(0, TREVIS_3_3.klocka), kvitteraDubbletter: true }, new Date(T(-1, '16:00')));
+  // Bertil Danielsson (3.4): provsvaren från vårdcentralen är beställda av läkaren där, så att beställande läkare syns.
+  for (const m of db.query("SELECT * FROM matvarden WHERE patient_id = 'sus01' AND typ = 'inr' AND enhet_id = 'vc-tybble' ORDER BY tid").all()) {
+    labb.kopplaBefintligtSvar(db, { matvardeId: m.id, analys: 'pk', ansvarig: BERTIL_PK_BESTALLD_AV, bestalld: plus(m.tid, -30) });
+  }
 
   return { ok: true, redan: false, patienter: SUSSA_PATIENTER.length };
 }

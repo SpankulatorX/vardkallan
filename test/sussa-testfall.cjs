@@ -376,6 +376,48 @@ function floden(D) {
       await synlig(page, '.anteckning .ant-huvud h2', 'Epikris');
       await synlig(page, '.anteckning', 'Sepsis');
     },
+    // Runda 8, r1: tema 3, beställning och svar. Paketet som systemet föreslår beställs med ett klick, provtagningen
+    // registreras med ett klick per rör och kontrollerna ordineras med ett klick per kontroll.
+    '3.1': async (m, page) => {
+      await oppnaFranLista(m, page, 'Hamid Burvall');
+      await m.klicka(page.locator('.snabbval a', { hasText: 'Beställ prover' }), 'Beställ prover');
+      await m.klicka(page.locator('#pr-forslag [data-bestall-paket="feber"]'), 'Beställ vid paketet Feber och frossa');
+      await synlig(page, '.notis', 'är beställt');
+      const kort = await synlig(page, '#pr-lista .pr-best', 'P-CRP, B-Blodstatus, P-Kreatinin, Blododling');
+      const text = await kort.innerText();
+      if (!text.includes('Anamnes: Inkommen med feber och frossa') || !text.includes('Klinisk mikrobiologi') || !text.includes('Klinisk kemi USÖ')) throw new Error(`fel beställning: ${text.slice(0, 200)}`);
+    },
+    '3.2': async (m, page) => {
+      await oppnaFranLista(m, page, 'Laura August');
+      await m.klicka(page.locator('.snabbval a', { hasText: 'Beställ prover' }), 'Beställ prover');
+      await page.waitForSelector('#pr-forslag [data-bestall-paket="feber"]');
+      await m.valj(page.locator('#pr-lakare'), 'lak-kard', 'läkaren Sara Lindqvist');
+      await m.klicka(page.locator('#pr-forslag [data-bestall-paket="feber"]'), 'Beställ vid paketet Feber och frossa');
+      await synlig(page, '.notis', 'signerar i inkorgen');
+      await synlig(page, '#pr-lista .pr-best', 'på uppdrag av Sara Lindqvist');
+    },
+    '3.3': async (m, page) => {
+      await m.klicka(page.locator('#meny-lista a[href="#/provtagning"]'), 'Prover och kontroller i menyn');
+      const trevis = () => page.locator('.pt-patient', { hasText: 'Trevis Ljung' }).locator('.pr-best', { hasText: 'U-Odling' });
+      await trevis().locator('[data-tagen]').first().waitFor();
+      for (const nr of [1, 2, 3]) {
+        await m.klicka(trevis().locator('[data-tagen]').first(), `Tagen för rör ${nr}`);
+        await synlig(page, '.notis', nr < 3 ? 'rör kvar' : 'proverna är skickade');
+        await page.waitForLoadState('networkidle');
+      }
+      await synlig(page, '.pt-patient .pr-best', 'Skickad till laboratoriet');
+    },
+    '3.5': async (m, page) => {
+      await oppnaFranLista(m, page, 'Inga Strand');
+      await m.klicka(page.locator('.snabbval a', { hasText: 'Ordinera kontroller' }), 'Ordinera kontroller');
+      await page.waitForSelector('#pr-kform');
+      for (const [id, namn] of [['puls', 'Puls'], ['blodtryck', 'Blodtryck'], ['sr', 'SR'], ['temp', 'Temperatur'], ['vikt', 'Vikt'], ['vatskebalans', 'Vätskebalans']]) {
+        await m.klicka(page.locator(`#pr-k-${id}`), namn);
+      }
+      await m.klicka(page.locator('#pr-kform [data-spara-kontroll]'), 'Ordinera');
+      await synlig(page, '.notis', 'är ordinerat från i morgon kl. 07:00');
+      for (const n of ['Puls', 'Blodtryck', 'SR', 'Temperatur', 'Vikt', 'Vätskebalans']) await synlig(page, '.pr-kontroller', n);
+    },
   };
 }
 

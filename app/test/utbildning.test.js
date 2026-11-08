@@ -56,23 +56,24 @@ describe('Nyheter', () => {
     const lak = nyheter.nyheter(d, pers(d, 'lak-kard'));
     expect(lak.version).toBe(nyheter.AKTUELL);
     expect(lak.ruta.version).toBe(nyheter.AKTUELL);
-    expect(lak.ruta.nyheter.map(n => n.id)).toContain('hjalp-och-intyg');
-    // Verksamhetschefens nyhet visas inte för läkaren, och den stora förändringen står före den lilla.
-    expect(lak.ruta.nyheter.map(n => n.id)).not.toContain('intyg-enhet');
+    // Runda 8, r1: den aktuella versionen är 0.8.0, och 0.7.0 är den förra.
+    expect(lak.ruta.nyheter.map(n => n.id)).toContain('bestallning-och-svar');
+    // Sjuksköterskans nyhet visas inte för läkaren, och den stora förändringen står före den lilla.
+    expect(lak.ruta.nyheter.map(n => n.id)).not.toContain('prover-och-kontroller');
     expect(lak.ruta.nyheter[0].omfattning).toBe('stor');
     // Historiken har också den förra versionens nyheter för läkaren, men inte de som gäller andra roller.
     expect(lak.alla.map(v => v.version)).toEqual(nyheter.NYHETER.map(v => v.version));
     const forra = lak.alla[1].nyheter.map(n => n.id);
-    expect(forra).toContain('mallar');
-    expect(forra).not.toContain('resurser');
-    expect(forra).not.toContain('vardbegaran');
+    expect(forra).toContain('hjalp-och-intyg');
+    expect(forra).not.toContain('intyg-enhet');
     const vch = nyheter.nyheter(d, pers(d, 'vch-kard'));
-    expect(vch.ruta.nyheter.map(n => n.id)).toEqual(expect.arrayContaining(['intyg-enhet', 'hjalp-och-intyg']));
+    expect(vch.ruta.nyheter.map(n => n.id)).toEqual(['sussa-tema-3']);
+    expect(vch.alla[1].nyheter.map(n => n.id)).toEqual(expect.arrayContaining(['intyg-enhet', 'hjalp-och-intyg']));
     // Invånaren ser det som gäller alla, men inte personalens nyheter.
     const inv = nyheter.nyheter(d, { personal: null, invanare: { id: 'inv-p01' } });
     expect(inv.roll).toBe('invanare');
-    expect(inv.ruta.nyheter.map(n => n.id)).toEqual(['hog-kontrast', 'nyhetsrutan', 'utloggning']);
-    expect(inv.alla[1].nyheter.map(n => n.id)).toEqual(['vardbegaran']);
+    expect(inv.ruta.nyheter.map(n => n.id)).toEqual(['sussa-tema-3']);
+    expect(inv.alla[1].nyheter.map(n => n.id)).toEqual(['hog-kontrast', 'nyhetsrutan', 'utloggning']);
   });
 
   test('rutan stängs per användare och version och kommer tillbaka vid nästa version', () => {

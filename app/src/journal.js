@@ -201,6 +201,13 @@ export const MATTYPER = {
   gcs: { namn: 'GCS', format: 'gcs' },
   // Runda 7, r6: huvudomfång i barnhälsovården (Sussa 4.1).
   huvudomfang: { namn: 'Huvudomfång', min: 20, max: 70 },
+  // Runda 8, r1: svaren från det simulerade laboratoriet och SR som intern analys på avdelningen (labb.js).
+  lpk: { namn: 'Leukocyter (LPK)', min: 0, max: 500 },
+  tpk: { namn: 'Trombocyter (TPK)', min: 0, max: 3000 },
+  natrium: { namn: 'Natrium', min: 90, max: 200 },
+  kobalamin: { namn: 'Kobalamin (B12)', min: 0, max: 10000 },
+  folat: { namn: 'Folat', min: 0, max: 200 },
+  sr: { namn: 'SR', min: 0, max: 150, heltal: true },
 };
 for (const [typ, m] of Object.entries(MATTYPER)) m.enhet = MATTYPER_ENHET[typ];
 
@@ -213,7 +220,17 @@ export function matvardeUt(db, m) {
   // Runda 6, r1: texten som systemet skriver för de kodade mätvärdena och skalorna.
   const b = beskrivning(m);
   if (b) ut.beskrivning = b;
+  // Runda 8, r1: ett svar från laboratoriet visar beställningen och vem som beställde (labb.js).
+  const lb = labbKoppling(db, m.id);
+  if (lb) ut.bestallning = lb;
   return ut;
+}
+function labbKoppling(db, id) {
+  try {
+    const r = db.query(`SELECT b.id, b.nummer, p.namn FROM labb_svar s JOIN labb_analyser a ON a.id = s.analys_rad_id JOIN labb_bestallningar b ON b.id = a.bestallning_id
+      LEFT JOIN personal p ON p.id = b.ansvarig_id WHERE s.matvarde_id = ?`).get(id);
+    return r ? { id: r.id, nummer: r.nummer, bestalldAv: r.namn } : null;
+  } catch { return null; }
 }
 
 // Text för medvetandegrad, syrgas, smärta och GCS, så att ingen behöver tolka koden.

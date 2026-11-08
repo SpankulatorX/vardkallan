@@ -193,6 +193,19 @@ HANDLINGAR.anvandartest_las = 'läsa och exportera svaren från användartester'
 ROLLER.uppfoljning.push('anvandartest_las');
 UTAN_PATIENT.add('anvandartest_las');
 
+// Runda 8, r1: beställning och svar (labb.js, Sussa 4.4) och kontroller till avdelningen (kontroller.js, Sussas testfall
+// 3.5). Läkaren beställer prover, vidimerar svaren och ordinerar kontroller. Sjuksköterskan och undersköterskan
+// beställer på uppdrag av en läkare, som signerar beställningen, och tar prover. Alla tre läser beställningarna och
+// kontrollerna. Biomedicinsk analytiker har ingen egen roll i demon.
+Object.assign(HANDLINGAR, {
+  las_prover: 'läsa beställningar av prover och ordinerade kontroller', bestalla_prov: 'beställa prover',
+  bestalla_prov_uppdrag: 'beställa prover på uppdrag av en läkare', ta_prov: 'registrera provtagning',
+  vidimera_provsvar: 'vidimera provsvar', ordinera_kontroll: 'ordinera kontroller och mätvärden till avdelningen',
+});
+ROLLER.lakare.push('las_prover', 'bestalla_prov', 'ta_prov', 'vidimera_provsvar', 'ordinera_kontroll');
+ROLLER.sjukskoterska.push('las_prover', 'bestalla_prov_uppdrag', 'ta_prov');
+ROLLER.underskoterska.push('las_prover', 'bestalla_prov_uppdrag', 'ta_prov');
+
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
 
 // Runda 7, r4: omorganisation (omorganisation.js, HSA:s regler för organisationsförändringar, bilaga K6). En vårdenhet

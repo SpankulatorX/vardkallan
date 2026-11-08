@@ -152,6 +152,13 @@ const REFERENS = {
   tsh: { lag: 0.4, hog: 4.0, text: DEMO },
   smarta: { hog: 3, text: 'NRS 0 till 3, ingen eller lätt smärta' },
   gcs: { lag: 15, hog: 15, text: 'Fullt medveten' },
+  // Runda 8, r1: svaren från det simulerade laboratoriet och SR (labb.js).
+  lpk: { lag: 3.5, hog: 8.8, text: DEMO },
+  tpk: { kvinna: [165, 387], man: [145, 348], text: DEMO },
+  natrium: { lag: 137, hog: 145, text: DEMO },
+  kobalamin: { lag: 140, hog: 650, text: DEMO },
+  folat: { lag: 7, hog: 45, text: DEMO },
+  sr: { kvinna: [0, 30], man: [0, 20], text: `${DEMO}, under 50 år` },
 };
 export function referens(typ, { kon = null, warfarin = false } = {}) {
   if (typ === 'inr' && warfarin) return { lag: 2.0, hog: 3.0, text: 'Målintervall vid behandling med warfarin. Systemet ser warfarin i läkemedelslistan' };

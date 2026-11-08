@@ -48,6 +48,9 @@ import * as nyheter from './vyer/nyheter.js';
 import * as utbildning from './vyer/utbildning.js';
 import * as tillganglighet from './vyer/tillganglighet.js';
 import * as tidsgrans from './tidsgrans.js';
+// Runda 8, r1: provtagningen och kontrollerna på vårdenheten, och raderna för beställning och svar i inkorgen.
+import * as provtagning from './vyer/provtagning.js';
+import { inkorgAntal as labbInkorgAntal } from './labb-ui.js';
 
 // Högkontrastläget sätts innan något ritas, så att sidan inte blinkar till i vanliga färger.
 kontrast.init();
@@ -80,6 +83,9 @@ const MENY = [
   // Läkaren ger läkemedel från patientens läkemedelsflik, och avdelningens lista är för sjuksköterskan och
   // undersköterskan med delegering (runda 5). Sjuksköterskan och läkaren registrerar delegeringarna.
   ['#/administrering', 'Läkemedel att ge', 'piller', () => far('ge_lakemedel') && !far('ordinera')],
+  // Runda 8, r1: rören att ta och kontrollerna i dag, för sjuksköterskan och undersköterskan. Läkaren tar prover från
+  // patientens flik Prover.
+  ['#/provtagning', 'Prover och kontroller', 'lista', () => far('ta_prov') && !far('bestalla_prov')],
   ['#/delegeringar', 'Delegeringar', 'nyckel', () => far('delegera')],
   // Runda 6, r3: tvångsvården på psykiatrin och kommunens samverkan.
   ['#/tvangsvard', 'Tvångsvård', 'klocka', () => Boolean(S.session?.r3?.tvangsvardsenhet)],
@@ -127,6 +133,8 @@ const RUTTER = [
   [/^#\/sok$/, sok, () => far('sok')],
   [/^#\/inkorg$/, inkorg, () => !utanJournal()],
   [/^#\/administrering$/, administrering, () => far('las_lakemedel')],
+  // Runda 8, r1.
+  [/^#\/provtagning$/, provtagning, () => far('ta_prov')],
   // Delegeringar (runda 5): sjuksköterskan och läkaren registrerar, undersköterskan ser sina egna.
   [/^#\/delegeringar$/, delegeringar, () => far('delegera') || S.session?.personal?.yrke === 'underskoterska'],
   [/^#\/lakemedelsstod$/, lakemedelsstod, () => pa('faststalla_direktiv', 'ordinera_direktiv')],
@@ -258,7 +266,9 @@ export async function uppdateraInkorg() {
       // Rättningar före rapportering till myndigheter och register (runda 7, r5).
       + (d.rapportfel?.length ?? 0)
       // Runda 7, r6: barnhälsovården.
-      + (d.tillvaxtLarm?.length ?? 0) + (d.hemmatningarAttBekrafta?.length ?? 0) + (d.bhvAttBoka?.length ?? 0);
+      + (d.tillvaxtLarm?.length ?? 0) + (d.hemmatningarAttBekrafta?.length ?? 0) + (d.bhvAttBoka?.length ?? 0)
+      // Runda 8, r1: beställning och svar.
+      + labbInkorgAntal(d);
   } catch { S.inkorg = null; }
   const el = document.querySelector('[data-raknare="inkorg"]');
   if (el) { el.textContent = S.inkorg ? String(S.inkorg) : ''; el.hidden = !S.inkorg; }

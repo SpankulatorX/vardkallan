@@ -64,6 +64,8 @@ import * as omorganisation from './omorganisation.js';
 // Runda 7, r6: barnhälsovården, tillväxt och rapporteringen till Svenska barnhälsovårdsregistret (bhv-rutter.js).
 import { registreraRutter as bhvRutter, inkorg as bhvInkorg, session as bhvSession } from './bhv-rutter.js';
 import { minTillvaxt } from './bhv.js';
+// Runda 8, r1: beställning och svar, provtagning och kontrollerna till avdelningen (labb-rutter.js).
+import { registreraRutter as labbRutter, inkorg as labbInkorg, efterTid as labbEfterTid } from './labb-rutter.js';
 // Runda 7, r2: nyhetsrutan, övningarna med intyg och tillgänglighetsredogörelsen.
 import { registreraRutter as utbildningRutter } from './utbildning-rutter.js';
 import { redogorelse as tillganglighet } from './tillganglighet.js';
@@ -1202,6 +1204,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...r7r5Inkorg(c, patientKort, patientRad, valFor),
       // Runda 7, r6: avvikande tillväxt, mätningar hemma att bekräfta och hälsobesök att boka i barnhälsovården.
       ...bhvInkorg(c, patientKort, patientRad, valFor),
+      // Runda 8, r1: provsvar att vidimera, beställningar på uppdrag att signera och kritiska provsvar.
+      ...labbInkorg(c, patientKort, patientRad, valFor),
     });
   });
   // Runda 6, r1: NEWS2-larmen loggas på patienten en gång per session och mätomgång, som raderna om återinsättning.
@@ -1509,6 +1513,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   r7r5Rutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal });
   // Runda 7, r6 (bhv-rutter.js).
   bhvRutter({ rutt, kravInloggad, medPatient, medMinJournal, valFor });
+  // Runda 8, r1 (labb-rutter.js).
+  labbRutter({ rutt, kravInloggad, medPatient, valFor });
   // Runda 7, r2: nyheter, övningar och intyg, och tillgänglighetsredogörelsen med testernas status.
   utbildningRutter({ rutt, kravInloggad });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
@@ -1547,6 +1553,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (!sess && !UTAN_SESSION.has(url.pathname)) sess = skapaSession(req, server);
     // Runda 7, r4: en förberedd omorganisation genomförs av systemet den dag den gäller, före allt annat i anropet.
     if (sess) systemforvaltningEfterDatum(sess.s.db);
+    // Runda 8, r1: det simulerade laboratoriet svarar på det som har hunnit bli klart.
+    if (sess) labbEfterTid(sess.s.db);
     if (sess) Object.assign(c, { s: sess.s, sid: sess.sid, ny: sess.ny, db: sess.s.db, ...inloggade(sess.s) });
     if (c.invanare && url.pathname.startsWith('/api/min/')) avvisaFranAnnanWebbplats(req);
     c.body = metod === 'GET' ? {} : await lasKropp(req);
@@ -1607,6 +1615,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const sess = hamtaSession(req);
     // Runda 7, r4: förberedda omorganisationer som gäller i dag genomförs först.
     if (sess) systemforvaltningEfterDatum(sess.s.db);
+    // Runda 8, r1: det simulerade laboratoriet svarar på det som har hunnit bli klart.
+    if (sess) labbEfterTid(sess.s.db);
     if (sess) Object.assign(c, { s: sess.s, db: sess.s.db, ...inloggade(sess.s) });
     if (c.invanare) avvisaFranAnnanWebbplats(req);
     const base = origin || `${url.protocol}//${url.host}`;

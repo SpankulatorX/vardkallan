@@ -17,6 +17,8 @@ export const MATTYPER = [
   ['egfr', 'eGFR', 'mL/min/1,73 m²'], ['kreatinin', 'Kreatinin', 'µmol/L'], ['hba1c', 'HbA1c', 'mmol/mol'], ['inr', 'PK (INR)', 'INR'],
   ['ntprobnp', 'NT-proBNP', 'ng/L'], ['hb', 'Hemoglobin', 'g/L'], ['glukos', 'Glukos', 'mmol/L'], ['kalium', 'Kalium', 'mmol/L'],
   ['pef', 'PEF', 'L/min'], ['troponin', 'Troponin T', 'ng/L'], ['tsh', 'TSH', 'mIE/L'],
+  // Runda 8, r1: SR som intern analys på avdelningen, när läkaren har ordinerat den som kontroll (Sussas testfall 3.5).
+  ['sr', 'SR', 'mm'],
 ];
 const ACVPU = [['A', 'Vaken'], ['C', 'Nytillkommen förvirring'], ['V', 'Reagerar på tilltal'], ['P', 'Reagerar på smärta'], ['U', 'Reagerar inte']];
 const GCS = {
@@ -128,7 +130,7 @@ export async function visa(el, ctx) {
     ${d.matvarden.length ? `<section aria-labelledby="mv-alla"><h3 id="mv-alla">Alla värden</h3>
       <div class="tabellrulle"><table class="tabell tat">
         <thead><tr><th scope="col">Tid</th><th scope="col">Mätvärde</th><th scope="col">Värde</th><th scope="col">Enhet där det togs</th><th scope="col">Registrerat av</th></tr></thead>
-        <tbody>${d.matvarden.map(m => `<tr><td>${esc(tidpunkt(m.tid))}</td><td>${esc(m.namn)}</td><td>${visatVarde(m)}</td><td>${esc(m.vardenhet.namn)}${migreradEtikett(m)}</td><td>${esc(m.registreradAv?.namn ?? '')}</td></tr>`).join('')}</tbody>
+        <tbody>${d.matvarden.map(m => `<tr><td>${esc(tidpunkt(m.tid))}</td><td>${esc(m.namn)}</td><td>${visatVarde(m)}</td><td>${esc(m.vardenhet.namn)}${migreradEtikett(m)}</td><td>${esc(m.registreradAv?.namn ?? '')}${m.bestallning ? `<span class="under-text">Svar från laboratoriet, beställt av ${esc(m.bestallning.bestalldAv ?? '')}</span>` : ''}</td></tr>`).join('')}</tbody>
       </table></div></section>` : '<p class="tom">Inga mätvärden som du kan se.</p>'}`;
 
   // Från en sökträff öppnas kurvan för mätvärdet.

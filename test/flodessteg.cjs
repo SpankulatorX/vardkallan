@@ -672,6 +672,31 @@ function skapa(BAS) {
     await synlig(page, '#tv-kurva-vikt .kurva-senaste', '9,6');
     await page.locator('#tv-kurva-vikt svg.tv-kurva').waitFor();
   };
+  // Runda 8, r1: ett paket som systemet föreslår beställs med ett klick, och provtagningen registreras med ett klick per rör.
+  startI['Provtagningen efter återställning'] = async (page) => {
+    await gaTill(page, '#/moduler');
+    await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()));
+    await gaTill(page, '#/provtagning');
+    await page.waitForSelector('.pt-patient');
+  };
+  GOR['bestall-paket'] = async (m, page) => {
+    await m.klicka(page.locator('a.patientlank', { hasText: 'Gunnar Åkesson' }).first(), 'Gunnar Åkesson i arbetslistan');
+    await page.waitForSelector('.tidslinje');
+    await m.klicka(page.locator('.snabbval a', { hasText: 'Beställ prover' }), 'Beställ prover');
+    await page.waitForSelector('#pr-forslag [data-bestall-paket]');
+    await m.klicka(page.locator('#pr-forslag [data-bestall-paket]').first(), 'Beställ vid det föreslagna paketet');
+    await synlig(page, '.notis', 'är beställt');
+    await synlig(page, '#pr-lista .pr-best', 'Beställd, väntar på provtagning');
+  };
+  GOR['registrera-provtagning'] = async (m, page) => {
+    const kort = page.locator('.pt-patient', { hasText: 'Elin Sandberg' }).locator('.pr-best', { hasText: 'B-Blodstatus' });
+    await m.klicka(kort.locator('[data-tagen]').first(), 'Tagen för det första röret');
+    await synlig(page, '.notis', 'rör kvar');
+    await page.waitForLoadState('networkidle');
+    await m.klicka(page.locator('.pt-patient', { hasText: 'Elin Sandberg' }).locator('.pr-best', { hasText: 'B-Blodstatus' }).locator('[data-tagen]').first(), 'Tagen för det andra röret');
+    await synlig(page, '.notis', 'proverna är skickade');
+    await synlig(page, '.pt-patient .pr-best', 'Skickad till laboratoriet');
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 

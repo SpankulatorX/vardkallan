@@ -28,6 +28,8 @@ import { tolkaGcs } from './skalor.js';
 import * as stod from './lakemedelsstod.js';
 // Runda 7, r3: posterna i faktureringsunderlaget som ChargeItem (ekonomi.js).
 import * as ekonomi from './ekonomi.js';
+// Runda 8, r1: beställning och svar som ServiceRequest, Specimen och DiagnosticReport (labb-fhir.js).
+import * as labbFhir from './labb-fhir.js';
 
 export const SYSTEM = {
   personnummer: 'http://electronichealth.se/identifier/personnummer',
@@ -233,19 +235,20 @@ export function observation(db, m) {
   if (m.typ === 'medvetande') {
     const k = ACVPU_KOD[m.varde];
     r.valueCodeableConcept = { ...(k ? { coding: [{ system: SYSTEM.loinc, ...k }] } : {}), text: beskrivning(m) ?? m.varde };
-    return r;
+    return labbFhir.utokaObservation(db, m, r);
   }
   if (m.typ === 'gcs') {
     const g = tolkaGcs(m.varde);
     r.valueQuantity = mangd(g.summa);
     r.component = kod.komponenter.map(c => ({ code: { coding: [{ system: SYSTEM.loinc, code: c.code, display: c.display }] }, valueQuantity: mangd(g[c.del]) }));
-    return r;
+    return labbFhir.utokaObservation(db, m, r);
   }
   if (m.typ === 'blodtryck') {
     const [sys, dia] = m.varde.split('/').map(Number);
     r.component = kod.komponenter.map((k, i) => ({ code: { coding: [{ system: SYSTEM.loinc, ...k }], text: i ? 'Diastoliskt blodtryck' : 'Systoliskt blodtryck' }, valueQuantity: mangd(i ? dia : sys) }));
   } else r.valueQuantity = mangd(m.varde_num ?? Number(m.varde));
-  return r;
+  // Runda 8, r1: ett svar från laboratoriet pekar på beställningen och provet och har referensintervall och tolkning.
+  return labbFhir.utokaObservation(db, m, r);
 }
 
 export function medicationRequest(db, o) {
@@ -508,6 +511,8 @@ function capabilityBas(base) {
       { type: 'Procedure', interaction: [{ code: 'read' }, { code: 'search-type' }], searchParam: [{ name: 'patient', type: 'reference' }] },
       // Runda 7, r3: posterna i faktureringsunderlaget.
       { type: 'ChargeItem', interaction: [{ code: 'read' }, { code: 'search-type' }], searchParam: [{ name: 'patient', type: 'reference' }] },
+      // Runda 8, r1: provtagningens rör och laboratoriernas svar.
+      ...labbFhir.TYPER.map(t => ({ type: t, interaction: [{ code: 'read' }, { code: 'search-type' }], searchParam: [{ name: 'patient', type: 'reference' }] })),
       ...DEFINITIONSTYPER.map(t => ({
         type: t, interaction: [{ code: 'read' }, { code: 'search-type' }], searchParam: [{ name: 'url', type: 'uri' }, { name: '_id', type: 'token' }],
       }))],
@@ -584,6 +589,10 @@ export function hantera(ctx) {
   if (typ === 'Procedure') return atgarder.hantera(ctx, delar, (resurser) => bundle(base, url, resurser));
   // Runda 7, r3: ChargeItem med samma behörighet och loggning som kostnadsrutan.
   if (typ === 'ChargeItem') return ekonomi.fhirHantera(ctx, delar, (resurser) => bundle(base, url, resurser));
+  // Runda 8, r1: labbeställningar, prov och svar med samma behörighet och loggning som fliken Prover.
+  if (labbFhir.TYPER.includes(typ) || (typ === 'ServiceRequest' && (labbFhir.arLabbId(id) || (!id && labbFhir.arLabbSokning(url))))) {
+    return labbFhir.hantera(ctx, delar, (resurser) => bundle(base, url, resurser));
+  }
   if (!TYPER.includes(typ) || delar.length > 2) throw new Fel(404, 'Okänd FHIR-resurs.', 'saknas');
   if (!personal) throw new Fel(401, 'Logga in först.', 'ej_inloggad');
 
@@ -717,6 +726,8 @@ export function hantera(ctx) {
   { const undantagen = undantag.fhirProvare(db, typ); rader = rader.filter(r => !undantagen(r)); }
   atk.logga(handling, atk.grund(), `fhir/${typ}${url.search}`);
   const resurser = rader.map(r => (typ === 'ServiceRequest' ? serviceRequest(db, r, kanRoll(personal, 'las_remiss')) : typ === 'EpisodeOfCare' ? episodeOfCare(db, r, forstaSynliga(atk, r)) : mappa(db, r)));
+  // Runda 8, r1: labbeställningarna står med bland patientens ServiceRequest.
+  if (typ === 'ServiceRequest') resurser.push(...labbFhir.serviceRequestsFor(db, personal, pid, ctx.valFor(pid)));
   // Runda 6, r1: NEWS2 räknat ur de synliga mätvärdena.
   if (typ === 'Observation') resurser.push(...news2Fhir(atk, db.query('SELECT * FROM patienter WHERE id = ?').get(pid), rader));
   return { status: 200, body: bundle(base, url, resurser) };

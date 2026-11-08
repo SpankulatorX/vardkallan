@@ -1426,3 +1426,50 @@ body.laslage #nyhetsruta { display: none; }
 
 /* Runda 7, r1: koden för ett testtillfälle, som visas en gång. */
 .st-kod { word-break: break-all; font-size: 1.1rem; }
+
+/* Runda 8, r1: beställning och svar, provtagningen och kontrollerna (fliken Prover och #/provtagning). */
+.pr-best { background: var(--yta); border: 1px solid var(--linje); border-radius: var(--r); padding: 12px 16px; margin-bottom: 10px; }
+.pr-best.pr-kritisk { border-color: var(--larm-kant); box-shadow: inset 4px 0 0 var(--larm); }
+.pr-best-huvud { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: baseline; }
+.pr-best-huvud h3, .pr-best-huvud h4 { margin: 0; font-size: 1rem; }
+.pr-steg { list-style: none; margin: 8px 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--f-xs); }
+.pr-steg li { display: flex; gap: 4px; align-items: flex-start; color: var(--dampad); }
+.pr-steg li.klar { color: var(--blak); }
+.pr-steg li .ikon { width: 14px; height: 14px; color: var(--ok); flex: none; margin-top: 1px; }
+.pr-punkt { width: 10px; height: 10px; border: 2px solid var(--linje-stark); border-radius: 50%; flex: none; margin: 2px 2px 0; }
+.pr-ror { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 6px; }
+.pr-ror li { display: flex; gap: 10px; align-items: center; padding: 6px 8px; border: 1px solid var(--linje); border-radius: 8px; background: var(--yta-2); }
+.pr-ror li.tagen { background: var(--ok-bg); border-color: #a9d2b6; }
+.pr-ror-nr { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--kalla-ljus); color: var(--kalla-mork); font-weight: 700; flex: none; }
+.pr-ror-text { flex: 1; min-width: 0; }
+.pr-ror-text .ikon { width: 12px; height: 12px; vertical-align: -1px; margin-right: 3px; color: var(--ok); }
+.pr-ror .knapp { flex: none; }
+.pr-svar { margin: 2px 0; }
+.pr-knappar { margin-top: 8px; }
+.pr-historik { margin-top: 6px; font-size: var(--f-xs); }
+.pr-form { background: var(--yta); border: 1px solid var(--linje); border-radius: var(--r); padding: 12px 16px; margin-bottom: 12px; }
+.pr-form h3 { margin-top: 0; }
+.pr-form h4 { margin: 10px 0 6px; font-size: .95rem; }
+.pr-paketlista { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 8px; }
+.pr-paket { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; padding: 8px 10px; border: 1px solid var(--kalla-mellan); border-radius: 8px; background: var(--kalla-ljus); }
+.pr-paket-text { flex: 1 1 260px; min-width: 0; }
+.pr-utelamnad { display: flex; gap: 4px; align-items: flex-start; }
+.pr-utelamnad .ikon { width: 13px; height: 13px; flex: none; margin-top: 1px; }
+.pr-analyser { list-style: none; margin: 4px 0 8px; padding: 0; max-height: 320px; overflow-y: auto; }
+.pr-analyser li[hidden] { display: none; }
+.pr-kontrollval .kryssfalt { display: inline-flex; margin-right: 16px; }
+.pr-avslutad td { color: var(--dampad); }
+.pr-etiketter { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.pr-etikett { display: grid; gap: 2px; padding: 8px 10px; border: 1px dashed var(--linje-stark); border-radius: 6px; background: #ffffff; color: #000000; font-size: var(--f-xs); }
+.pr-etikett svg.streckkod { width: 100%; height: auto; max-height: 64px; }
+.pt-patient { border-top: 1px solid var(--linje); padding-top: 8px; margin-top: 8px; }
+.pt-patient > h3 { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font-size: 1.05rem; margin: 4px 0 8px; }
+.pt-uppgifter { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.pt-uppgifter li { display: flex; gap: 10px; align-items: flex-start; padding: 6px 8px; border: 1px solid var(--linje); border-radius: 8px; background: var(--yta); }
+.pt-tid { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 3.2rem; }
+.pt-text { flex: 1; min-width: 0; }
+.pt-uppf { display: grid; gap: 4px; margin: 0; }
+.pt-uppf div { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.pt-uppf dt { font-weight: 600; min-width: 13rem; }
+.pt-uppf dd { margin: 0; }
+@media (max-width: 600px) { .pr-ror li { flex-wrap: wrap; } .pt-uppf dt { min-width: 0; } }

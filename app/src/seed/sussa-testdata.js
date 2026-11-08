@@ -79,3 +79,11 @@ export const ANKOMNA_5_6 = ['sus22', 'sus06', 'sus23', 'sus12', 'sus19'];
 // Testfall 4.4: 30 osignerade anteckningar för läkaren i öppenvården, tio för var och en av de tre patienterna
 // (Bilaga F1:3 tabell 14).
 export const OSIGNERADE_4_4 = { patienter: ['sus08', 'sus09', 'sus10'], perPatient: 10 };
+
+// Runda 8, r1: testfall 3.3 (Bilaga F1:4). Beställningen som läkaren gjorde dagen före testet, med Sussas fyra analyser,
+// att ta på morgonen. Läkaren i Sussas testdata spelas av läkaren på kardiologen.
+export const TREVIS_3_3 = { av: 'lak-kard', analyser: ['blodstatus', 'b12', 'folat', 'urinodling'], anamnes: 'Trötthet och sveda vid miktion.', klocka: '07:30' };
+// Testfall 3.4: provsvaren från vårdcentralen är beställda av läkaren där, som spelar Sussas beställande läkare.
+export const BERTIL_PK_BESTALLD_AV = 'lak-vc';
+// Testfall 3.5: kontrollerna i morgon klockan 7 (Bilaga F1:4).
+export const INGA_3_5 = { kontroller: ['puls', 'blodtryck', 'sr', 'temp', 'vikt', 'vatskebalans'] };
