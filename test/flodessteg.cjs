@@ -121,6 +121,19 @@ function skapa(BAS) {
     },
     // Runda 7, r3: ekonomens startsida med faktureringsunderlaget per vårdenhet för förra månaden.
     'Ekonomens startsida': async (page) => { await gaTill(page, '#/ekonomi'); await page.waitForSelector('#ek table'); await page.waitForSelector('#ek-exporter ul, #ek-exporter .tom:not(:has-text("Hämtar"))'); },
+    // Runda 7, r4: systemförvaltarens sidor efter återställning.
+    'Omorganisationen efter återställning': async (page) => {
+      await gaTill(page, '#/moduler');
+      await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()));
+      await gaTill(page, '#/omorganisation');
+      await page.waitForSelector('.sf-org');
+    },
+    'Reglerna efter återställning': async (page) => {
+      await gaTill(page, '#/moduler');
+      await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()));
+      await gaTill(page, '#/regler');
+      await page.waitForSelector('#sf-att-godkanna');
+    },
     'Inkorgen efter återställning': async (page) => {
       await gaTill(page, '#/arbetslista');
       await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
@@ -522,6 +535,24 @@ function skapa(BAS) {
     await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Utse');
     await synlig(page, '.notis', 'Göran Malm är utsedd till medicinskt ansvarig läkare');
     await synlig(page, '#la-medicinskt_ansvarig', 'Göran Malm');
+  };
+  // Runda 7, r4: systemförvaltningen. Namnbyte är förvalt och namnet markerat, och värdet i regeln likaså.
+  GOR['forbered-namnbyte'] = async (m, page) => {
+    await m.klicka(page.locator('tr[data-enhet="uso-kard-mott"] [data-forandra]'), 'Ändra vid Kardiologiska mottagningen');
+    await m.skriv(page.locator('dialog[open] #sf-namn'), 'Hjärtmottagningen USÖ', 'det nya namnet');
+    await synlig(page, 'dialog[open] [data-forhand]', 'byter namn till Hjärtmottagningen USÖ');
+    await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Förbered');
+    await synlig(page, '.notis', 'Förändringen är förberedd till');
+    await synlig(page, '#sf-forberedda ~ ul', 'Kardiologiska mottagningen byter namn till Hjärtmottagningen USÖ');
+  };
+  GOR['andra-demoregel'] = async (m, page) => {
+    await m.klicka(page.locator('tr[data-nyckel="tidbok.paminnelse_timmar"] [data-andra]'), 'Ändra vid Påminnelse före en bokad tid');
+    await m.skriv(page.locator('dialog[open] #sf-varde'), '72', 'det nya värdet');
+    await m.skriv(page.locator('dialog[open] #sf-motivering'), 'Patienterna hinner boka om en dag tidigare.', 'motiveringen');
+    await synlig(page, 'dialog[open] [data-forhand]', 'påminnelsefönstret');
+    await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Skicka för godkännande');
+    await synlig(page, '.notis', 'väntar på att en annan systemförvaltare godkänner den');
+    await synlig(page, '#sf-mina ~ ul', '72 timmar');
   };
   GOR['godkanna-mall'] = async (m, page) => {
     await m.klicka(page.locator('#ik-mallar ~ ul [data-granska="0"]'), 'Granska');

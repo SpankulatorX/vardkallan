@@ -27,8 +27,10 @@ const FILER = [
   '/js/vyer/patient-tillampningar.js', '/tillampningar/blodtryck/index.html', '/tillampningar/blodtryck/app.js', '/tillampningar/blodtryck/app.css',
   '/js/planering-ui.js', '/js/vyer/min-vardbegaran.js',
   '/js/ekonomi-ui.js', '/js/vyer/ekonomi.js',
+  '/js/vyer/systemforvaltning.js',
 ];
 // Runda 6, r5: listan har tillämpningsfliken och demotillämpningen Blodtryck över tid (/tillampningar/blodtryck/).
+// Runda 7, r4: listan har systemförvaltningens vy.
 const TIDSGRANS_MS = 4000;
 
 self.addEventListener('install', (e) => {

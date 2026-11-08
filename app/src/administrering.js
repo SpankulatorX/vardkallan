@@ -18,6 +18,8 @@ import * as lakemedel from './lakemedel.js';
 import { tillaggUt, ADMINISTRATIONSSATT } from './ordinationsmallar.js';
 import { lokalTid, datumI, klocka } from './lakemedelsprocess.js';
 import { administreringsvarningar, maxPerDygn, minstaIntervallMs, DEMOREGLER_PROCESS, FONSTER_FORE_MIN, FONSTER_EFTER_MIN } from './lakemedelsregler.js';
+// Runda 7, r4: parametrar som systemförvaltningen kan ändra.
+import * as konfiguration from './konfiguration.js';
 // Delegering för undersköterskan (runda 5, HSLF-FS 2017:37 9 kap.).
 import * as delegering from './delegering.js';
 // Läkemedelsprocessen, del 2 (runda 6, r2): trappschema, muntlig ordination, generellt direktiv, läkemedelstyper,
@@ -131,6 +133,8 @@ export function lista(atk, { dag = idag() } = {}) {
   atk.krav('las_lakemedel');
   const db = atk.db;
   const nu = Date.now();
+  // Runda 7, r4: dosfönstret kan ändras av systemförvaltningen (konfiguration.js).
+  const fonster = { fore: konfiguration.varde(db, 'lakemedel.dosfonster_fore_min', new Date(nu)), efter: konfiguration.varde(db, 'lakemedel.dosfonster_efter_min', new Date(nu)) };
   const ordRader = lakemedel.synligaOrdinationer(atk);
   const allaAdm = synligaAdministreringar(atk, { ordinationer: ordRader }).map(a => administreringUt(db, a));
   // Runda 6, r2: en makulerad registrering räknas inte. Dosen blir att ge igen, och den syns bland de senaste.
@@ -189,8 +193,8 @@ export function lista(atk, { dag = idag() } = {}) {
       let status;
       if (slutlig) status = slutlig.status;
       else if (ior) status = 'iordningstalld';
-      else if (nu < ms - FONSTER_FORE_MIN * 60_000) status = 'kommande';
-      else if (nu <= ms + FONSTER_EFTER_MIN * 60_000) status = 'att_ge';
+      else if (nu < ms - fonster.fore * 60_000) status = 'kommande';
+      else if (nu <= ms + fonster.efter * 60_000) status = 'att_ge';
       else status = 'forsenad';
       const perm_ = underPermission(perm, ms);
       doser.push({
@@ -370,6 +374,8 @@ function underlag(atk, inp, atgard) {
       .filter(a => atc.get(a.lakemedel_id) === lm.atc && (a.status === 'given' || a.status === 'overlamnad') && a.tid && Date.parse(a.tid) >= fran)
       .map(a => ({ tid: a.tid, planerad: a.planerad, ordinationId: a.ordination_id, antal: a.antal, status: a.status, av: personNamn(db, a.utford_av) }));
     varningar = administreringsvarningar({ ordination: o, aktivVid: orad ? aktivVid(db, orad, tidVarning) : null, lakemedel: lm, planerad, tid: tidVarning, antal, tidigare, nu,
+      // Runda 7, r4: dosfönstret kan ändras av systemförvaltningen (konfiguration.js).
+      fonsterForeMin: konfiguration.varde(db, 'lakemedel.dosfonster_fore_min', new Date(nu)),
       // Den givna mängden är dosen gånger antalet (säkerhetsgranskningen av runda 5), så att antal inte kringgår
       // varningen för en dos som avviker från ordinationen. Utan angiven dos räknas ordinationens dos per enhet.
       dos: (inp.dos == null || inp.dos === '') && antal === 1 ? null : dos != null ? dos * antal : null });

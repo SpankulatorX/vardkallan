@@ -51,7 +51,8 @@ export function minstaIntervallMs(o) {
 //   antal        antal enheter (tabletter, doser) i dosen
 //   tidigare     tidigare doser av samma substans: [{ tid, planerad, ordinationId, antal, av, status }]
 //   dos          dosen som anges när den skiljer sig från ordinationens, annars null
-export function administreringsvarningar({ ordination, aktivVid, lakemedel, planerad, tid, antal = 1, tidigare = [], nu = Date.now(), dos = null }) {
+// Runda 7, r4: fonsterForeMin är systemförvaltningens värde (konfiguration.js), med FONSTER_FORE_MIN som standard.
+export function administreringsvarningar({ ordination, aktivVid, lakemedel, planerad, tid, antal = 1, tidigare = [], nu = Date.now(), dos = null, fonsterForeMin = FONSTER_FORE_MIN }) {
   const ut = [];
   // Dos som avviker från ordinationen: bara när en annan dos än ordinationens anges.
   const avvikelse = ordination ? dosavvikelse(ordination, dos) : null;
@@ -68,8 +69,8 @@ export function administreringsvarningar({ ordination, aktivVid, lakemedel, plan
       ut.push({ niva: 'allvarlig', regel: 'dubbel_dos', text: `Dosen ${nar(planerad, nu)} är redan ${samma.status === 'overlamnad' ? 'överlämnad' : 'given'} ${nar(samma.tid, nu)} av ${samma.av}. Ges den igen får patienten dubbel dos.` });
     }
     const fore = Date.parse(planerad) - tid;
-    if (!samma && fore > FONSTER_FORE_MIN * 60_000) {
-      ut.push({ niva: 'allvarlig', regel: 'for_tidig', text: `Dosen är ordinerad ${nar(planerad, nu)}, om ${timmar(fore)}. En dos får ges högst ${FONSTER_FORE_MIN} minuter före dostiden. Ges den nu blir det för kort tid till nästa dos.` });
+    if (!samma && fore > fonsterForeMin * 60_000) {
+      ut.push({ niva: 'allvarlig', regel: 'for_tidig', text: `Dosen är ordinerad ${nar(planerad, nu)}, om ${timmar(fore)}. En dos får ges högst ${fonsterForeMin} minuter före dostiden. Ges den nu blir det för kort tid till nästa dos.` });
     }
   }
   if (ordination && !ut.some(v => v.regel === 'dubbel_dos')) {

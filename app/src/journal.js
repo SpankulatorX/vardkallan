@@ -3,6 +3,9 @@ import { Fel, iso, idag, giltigtDatum, MATTYPER_ENHET } from './db.js';
 import { kanRoll, vardenhetFor } from './atkomst.js';
 // Skalor och poängmodeller (runda 6, r1): systemet räknar GCS och skriver texten för de kodade mätvärdena.
 import { ACVPU, tolkaGcs, gcsText, nrsText } from './skalor.js';
+// Runda 7, r4: undantag från visning (undantag.js) och enhetens namn när anteckningen skrevs (omorganisation.js).
+import { filtreraVisning, undantagnaUt, provare as undantagProvare } from './undantag.js';
+import { namnVid } from './omorganisation.js';
 
 // Mallar per anteckningstyp. Omvårdnadsanteckningen följer VIPS-sökorden.
 export const MALLAR = [
@@ -38,7 +41,7 @@ export function anteckningUt(db, a, { full = true } = {}) {
   const ersatt = ersattAv(db, a.id);
   const ut = {
     id: a.id, patientId: a.patient_id, typ: a.typ, kategori: a.kategori,
-    enhet: { id: a.enhet_id, namn: enhetsnamn(db, a.enhet_id) }, vardkontaktId: a.vardkontakt_id,
+    enhet: { id: a.enhet_id, namn: namnVid(db, a.enhet_id, a.skapad) }, vardkontaktId: a.vardkontakt_id,
     forfattare: personalKort(db, a.forfattare_id), skapad: a.skapad, andrad: a.andrad, status: a.status,
     signerad: a.signerad_tid ? { tid: a.signerad_tid, av: personalKort(db, a.signerad_av) } : null,
     version: a.version, ersatterId: a.ersatter_id, rattelseOrsak: a.rattelse_orsak, ersattAvId: ersatt, ersatt: ersatt != null,
@@ -55,7 +58,8 @@ function synligaAnteckningar(atk, { baraAktuella = true } = {}) {
   let rader = db.query('SELECT * FROM anteckningar WHERE patient_id = ? ORDER BY skapad DESC, id DESC').all(atk.patientId);
   rader = rader.filter(a => a.status === 'signerad' || a.forfattare_id === atk.personal.id);
   if (baraAktuella) rader = rader.filter(a => ersattAv(db, a.id) == null);
-  return atk.filtrera(rader, a => lasHandling(a.kategori));
+  // Runda 7, r4: undantagen prövas efter behörighetsmotorn, så att en spärrad anteckning varken visas eller räknas.
+  return filtreraVisning(atk, atk.filtrera(rader, a => lasHandling(a.kategori)), 'anteckning');
 }
 
 export function listaAnteckningar(atk) {
@@ -63,7 +67,7 @@ export function listaAnteckningar(atk) {
   const rader = synligaAnteckningar(atk);
   return {
     anteckningar: rader.map(a => anteckningUt(atk.db, a, { full: false })),
-    dolda: { kraverVal: atk.doldaVal, sparrade: atk.doldaSparr },
+    dolda: { kraverVal: atk.doldaVal, sparrade: atk.doldaSparr, undantagna: undantagnaUt(atk) },
   };
 }
 
@@ -86,6 +90,9 @@ export function hamtaAnteckningRad(db, id) {
 export function hamtaAnteckning(atk, a) {
   if (a.status !== 'signerad' && a.forfattare_id !== atk.personal.id) throw new Fel(404, 'Anteckningen finns inte.', 'saknas');
   atk.krav(lasHandling(a.kategori), { resurs: { enhet_id: a.enhet_id }, beskrivning: `anteckning:${a.id}` });
+  // Runda 7, r4: en anteckning som är undantagen från visning visas inte heller när den öppnas direkt.
+  const u = undantagProvare(atk.db, 'visning')(a, 'anteckning');
+  if (u) throw new Fel(404, `Anteckningen visas inte. Systemförvaltningen har undantagit den från visning från ${u.gallerFran}: ${u.motivering}`, 'saknas');
   const ut = anteckningUt(atk.db, a);
   ut.versioner = versionskedja(atk.db, a.id).map(v => anteckningUt(atk.db, v));
   return ut;
@@ -218,12 +225,13 @@ export function beskrivning(m) {
 
 export function synligaMatvarden(atk) {
   const rader = atk.db.query('SELECT * FROM matvarden WHERE patient_id = ? ORDER BY tid DESC, id DESC').all(atk.patientId);
-  return atk.filtrera(rader, 'las_matvarden');
+  // Runda 7, r4: undantag från visning, efter behörighetsmotorn.
+  return filtreraVisning(atk, atk.filtrera(rader, 'las_matvarden'), 'matvarde');
 }
 
 export function listaMatvarden(atk) {
   atk.krav('las_matvarden');
-  return { matvarden: synligaMatvarden(atk).map(m => matvardeUt(atk.db, m)), dolda: { kraverVal: atk.doldaVal, sparrade: atk.doldaSparr } };
+  return { matvarden: synligaMatvarden(atk).map(m => matvardeUt(atk.db, m)), dolda: { kraverVal: atk.doldaVal, sparrade: atk.doldaSparr, undantagna: undantagnaUt(atk) } };
 }
 
 export function registreraMatvarde(atk, { typ, varde, enhet, tid }) {

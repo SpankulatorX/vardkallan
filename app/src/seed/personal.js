@@ -17,6 +17,9 @@ export const YRKEN = {
   verksamhetschef: 'Verksamhetschef',
   // Runda 7, r3: ekonomen tar fram faktureringsunderlag och sköter prislistorna, och läser inte journalen.
   ekonom: 'Ekonom',
+  // Runda 7, r4: systemförvaltaren konfigurerar regler och parametrar, förbereder omorganisationer, beslutar om
+  // undantag från visning och publicering och följer upp lagringen. Läser inte journalen (Sussa 12.1 och KD1.1.3).
+  systemforvaltare: 'Systemförvaltare',
 };
 
 export const PERSONAL = [
@@ -63,4 +66,9 @@ export const PERSONAL = [
   // Runda 7, r3: ekonomen på regionkansliet, som exporterar faktureringsunderlag och sköter prislistorna (Sussa 7.1).
   // r7: true betyder att personen läggs in också i en sandlåda från före runda 7 (ekonomi-schema.js).
   { id: 'eko', namn: 'Fredrik Alm', yrke: 'ekonom', titel: 'Ekonom (vårdfakturering)', enhet: 'rk', demo: true, r7: true },
+  // Runda 7, r4: systemförvaltningen på regionkansliet (Sussa 12.1). En ändring av regler och parametrar godkänns av en
+  // annan systemförvaltare än den som föreslog den (fyra ögon), så det finns två, och båda går att logga in som.
+  // r7: true betyder att personen läggs in också i en sandlåda från före runda 7 (systemforvaltning-schema.js).
+  { id: 'sysf', namn: 'Tomas Lindh', yrke: 'systemforvaltare', titel: 'Systemförvaltare (applikationskonfiguration)', enhet: 'rk', demo: true, r7: true },
+  { id: 'sysf-2', namn: 'Nora Ekholm', yrke: 'systemforvaltare', titel: 'Systemförvaltare', enhet: 'rk', demo: true, r7: true },
 ];

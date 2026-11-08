@@ -8,6 +8,8 @@
 // Samma behörighet som läsningen: varje rad filtreras i behörighetsmotorn innan den prövas mot frågan, så att en träff
 // i en spärrad del eller en annan vårdenhet utan aktivt val aldrig räknas, markeras eller nämns. Svaret är detsamma som
 // om uppgiften inte fanns. Sökningen loggas som en läsning, med söktermen och antalet synliga träffar i syftet.
+// Runda 7, r4: undantag från visning.
+import { provare as undantagProvare } from './undantag.js';
 import { Fel } from './db.js';
 import { kanRoll } from './atkomst.js';
 import * as journal from './journal.js';
@@ -103,7 +105,9 @@ function synligaAnteckningar(atk) {
   if (!kanRoll(atk.personal, 'las_journal') && !kanRoll(atk.personal, 'las_omvardnad')) return [];
   const rader = atk.db.query(`SELECT * FROM anteckningar a WHERE patient_id = ? AND (status = 'signerad' OR forfattare_id = ?)
     AND NOT EXISTS (SELECT 1 FROM anteckningar b WHERE b.ersatter_id = a.id) ORDER BY skapad DESC, id DESC`).all(atk.patientId, atk.personal.id);
-  return atk.filtrera(rader, a => journal.lasHandling(a.kategori));
+  // Runda 7, r4: en anteckning som är undantagen från visning hittas inte heller vid sökning.
+  const undantagen = undantagProvare(atk.db, 'visning');
+  return atk.filtrera(rader, a => journal.lasHandling(a.kategori)).filter(a => !undantagen(a, 'anteckning'));
 }
 
 export function sok(atk, fraga) {

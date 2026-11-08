@@ -1,6 +1,8 @@
 // FHIR R4-API. Samma behörighetsmotor och samma loggning som /api (D9).
 import { Fel, idag } from './db.js';
 import { Atkomst, kanRoll, visningsnamn, vardenhetFor } from './atkomst.js';
+// Runda 7, r4: undantag från FHIR för externa tillämpningar.
+import * as undantag from './undantag.js';
 import { MATTYPER, lasHandling, beskrivning } from './journal.js';
 import { synligaVistelser } from './vardkontakt.js';
 import * as logg from './logg.js';
@@ -655,6 +657,9 @@ export function hantera(ctx) {
     atk.krav(handling, { resurs: egenRemiss ? null : { enhet_id: enhetId, gemensam: GEMENSAM.has(typ) }, beskrivning: `fhir/${typ}/${id}` });
     const ordEnhet = ORDINATIONSENHET[typ]?.(db, rad);
     if (ordEnhet) atk.krav(handling, { resurs: { enhet_id: ordEnhet, gemensam: true }, beskrivning: `fhir/${typ}/${id}` });
+    // Runda 7, r4: uppgifter som systemförvaltningen har undantagit från FHIR för externa tillämpningar. Prövas efter
+    // behörigheten, så att svaret för den som inte har åtkomst är detsamma som förut.
+    if (undantag.fhirProvare(db, typ)(rad)) throw new Fel(404, 'Resursen finns inte.', 'saknas');
     atk.logga(handling, atk.grund(), `fhir/${typ}/${id}`);
     return { status: 200, body: typ === 'ServiceRequest' ? serviceRequest(db, rad, kanRoll(personal, 'las_remiss')) : typ === 'EpisodeOfCare' ? episodeOfCare(db, rad, forstaSynliga(atk, rad)) : mappa(db, rad) };
   }
@@ -679,11 +684,15 @@ export function hantera(ctx) {
     // Vårdtillfällena tas med när användaren får se någon av vistelserna, med bara de platserna.
     const vt = new Map(rader.filter(r => vardtillfalle(typ, r)).map(r => [r.id, synligaVistelser(atk, r)]));
     rader = [...rader.filter(r => vardtillfalle(typ, r) && vt.get(r.id).length), ...atk.filtrera(rader.filter(r => !vardtillfalle(typ, r)), handling)];
+    // Runda 7, r4: vårdkontakter från en vårdenhet som är undantagen från FHIR.
+    { const undantagen = undantag.fhirProvare(db, typ); rader = rader.filter(r => vardtillfalle(typ, r) || !undantagen(r)); }
     for (const [, synliga] of vt) for (const v of synliga.slice(0, 1)) atk.krav(handling, { resurs: { enhet_id: v.enhet_id } });
     atk.logga(handling, atk.grund(), `fhir/${typ}${url.search}`);
     return { status: 200, body: bundle(base, url, rader.map(r => (vardtillfalle(typ, r) ? vardtillfalleEncounter(db, r, vt.get(r.id)) : encounter(db, r)))) };
   } else rader = atk.filtrera(rader, handling, { gemensam: GEMENSAM.has(typ) });
   if (ORDINATIONSENHET[typ]) rader = rader.filter(r => { const e = ORDINATIONSENHET[typ](db, r); return !e || atk.filtrera([{ enhet_id: e }], handling, { gemensam: true }).length; });
+  // Runda 7, r4: undantag från FHIR, prövat efter behörigheten.
+  { const undantagen = undantag.fhirProvare(db, typ); rader = rader.filter(r => !undantagen(r)); }
   atk.logga(handling, atk.grund(), `fhir/${typ}${url.search}`);
   const resurser = rader.map(r => (typ === 'ServiceRequest' ? serviceRequest(db, r, kanRoll(personal, 'las_remiss')) : typ === 'EpisodeOfCare' ? episodeOfCare(db, r, forstaSynliga(atk, r)) : mappa(db, r)));
   // Runda 6, r1: NEWS2 räknat ur de synliga mätvärdena.

@@ -22,6 +22,8 @@ import { loggaRad } from './logg.js';
 import * as fhir from './fhir.js';
 import * as identitet from './identitet.js';
 import { zip } from './zip.js';
+// Runda 7, r4: parametrar som systemförvaltningen kan ändra.
+import * as konfiguration from './konfiguration.js';
 
 export const GALLRING_AR = 10;
 export const BESLUTSTYPER = {
@@ -108,7 +110,9 @@ export function registreraBeslut(db, personal, inp) {
       omfattning = { urval: 'patient' };
     }
   } else if (typ === 'gallring') {
-    omfattning = { urval: 'regel', ar: GALLRING_AR, fore: addDagar(idag(), -Math.round(GALLRING_AR * 365.25)) };
+    // Runda 7, r4: åren kan ändras av systemförvaltningen, aldrig under tio (konfiguration.js). GALLRING_AR är standardvärdet.
+    const ar = konfiguration.varde(db, 'arkiv.gallring_ar');
+    omfattning = { urval: 'regel', ar, fore: addDagar(idag(), -Math.round(ar * 365.25)) };
   } else {
     patientId = typeof inp.patientId === 'string' ? identitet.gallandeId(db, inp.patientId) : null;
     if (!patientId || !patientRad(db, patientId)) throw new Fel(400, 'Ange patienten som beslutet gäller.', 'ogiltig', { falt: ['patientId'] });

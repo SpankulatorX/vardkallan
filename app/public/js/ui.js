@@ -82,8 +82,10 @@ export const HANDLING = {
 // Runda 7, r3: ekonomi.
 Object.assign(HANDLING, { faktureringsunderlag: 'Tog fram faktureringsunderlag', prislista: 'Läste eller ändrade prislistor', las_kostnader: 'Såg kostnaderna i vårdprocessen',
   fardigbehandlad: 'Registrerade medicinskt färdigbehandlad', hjalpmedel: 'Registrerade utlämnat hjälpmedel', lma: 'Registrerade LMA-kort' });
+// Runda 7, r4: systemförvaltningen.
+Object.assign(HANDLING, { konfigurera: 'Föreslog eller beslutade om en ändring av regler och parametrar', omorganisera: 'Förberedde eller avbröt en omorganisation', undanta: 'Föreslog eller beslutade om ett undantag från visning', lagring: 'Kontrollerade säkerhetskopian' });
 Object.assign(HANDLING, { bevaka: 'Lade upp eller avslutade bevakning', bevaka_enhet: 'Lade upp bevakning för vårdenheten', las_tidbok: 'Läste tidboken', statistik: 'Såg statistik utan personuppgifter' });
-export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare', arkivarie: 'Arkivarie', uppfoljning: 'Analytiker (uppföljning)', kommun: 'Kommunens personal (simulerad)', farmaceut: 'Farmaceut', verksamhetschef: 'Verksamhetschef', ekonom: 'Ekonom' };
+export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare', arkivarie: 'Arkivarie', uppfoljning: 'Analytiker (uppföljning)', kommun: 'Kommunens personal (simulerad)', farmaceut: 'Farmaceut', verksamhetschef: 'Verksamhetschef', ekonom: 'Ekonom', systemforvaltare: 'Systemförvaltare' };
 
 // Anrop mot API:t. Svarstiden läses från Server-Timing. Fel kastas som ApiFel med serverns text och kod.
 export class ApiFel extends Error {

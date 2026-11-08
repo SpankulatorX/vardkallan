@@ -1,6 +1,8 @@
 // API för utskrifter och utlämnanden (utskrift.js), kontrasignering (kontrasignering.js), arkiv, gallring och radering
 // (arkiv.js) och datauttaget för uppföljning (datauttag.js). Servern lämnar sina hjälpare hit, så att routningen för de
 // här delarna ligger samlad. All behörighet prövas i behörighetsmotorn och varje åtkomst loggas, som i resten av API:t.
+// Runda 7, r4: gallringsåren kan ändras av systemförvaltningen.
+import * as konfiguration from './konfiguration.js';
 import { Fel } from './db.js';
 import { kanRoll } from './atkomst.js';
 import * as logg from './logg.js';
@@ -81,7 +83,7 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, versi
   });
 
   // Arkiv, gallring och radering (Sussa 5.4.2 och 5.3.1.7). Bara arkivarien, och bara efter ett registrerat beslut.
-  rutt('GET', '/api/arkiv/typer', (c) => { kravRoll(c, 'registrera_arkivbeslut'); return { typer: arkiv.BESLUTSTYPER, gallringAr: arkiv.GALLRING_AR }; });
+  rutt('GET', '/api/arkiv/typer', (c) => { kravRoll(c, 'registrera_arkivbeslut'); return { typer: arkiv.BESLUTSTYPER, gallringAr: konfiguration.varde(c.db, 'arkiv.gallring_ar') }; });
   rutt('GET', '/api/arkiv/beslut', (c) => {
     kravRoll(c, 'registrera_arkivbeslut');
     loggUtanPatient(c, 'registrera_arkivbeslut', 'administrativ', 'arkiv:beslut');
