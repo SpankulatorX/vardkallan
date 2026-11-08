@@ -1180,6 +1180,25 @@ mark { background: var(--obs-bg); color: inherit; outline: 1px solid var(--obs-k
   .kallelse-filer { margin-left: 0; }
 }
 
+/* Runda 7, r7: kravsidan med vikt, Cambios svar, avtalets signaler och bör-krav och målbild. */
+.sussa-taggar { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.tagg-vikt { background: var(--kalla-ljus); border-color: var(--kalla-mellan); color: var(--kalla-mork); }
+.tagg-exkluderat { background: var(--larm-bg); border-color: var(--larm-kant); color: var(--larm); white-space: normal; }
+.tagg-uppskjutet { background: var(--obs-bg); border-color: var(--obs-kant); color: var(--obs); }
+.tagg-a1-ja { background: var(--ok-bg); border-color: #b5d9c0; color: var(--ok); }
+.tagg-a1-delvis { background: var(--obs-bg); border-color: var(--obs-kant); color: var(--obs); }
+.tagg-a1-nej { background: var(--larm-bg); border-color: var(--larm-kant); color: var(--larm); }
+.sussa-genvag { margin: 4px 0 10px; }
+.sussa-a1-delar { list-style: none; margin: 4px 0; padding: 0; max-width: 90ch; }
+.sussa-a1-delar li { margin: 4px 0; color: var(--blak); }
+.sussa-om ul.sussa-a1-delar + p, .sussa-om p + p { margin-top: 6px; }
+.sussa-signaler li { padding: 4px 0; }
+.sussa-maskerat { font-style: italic; color: var(--blak-2); }
+.bor-poster { margin: 4px 0 0 54px; font-size: var(--f-s); max-width: 90ch; }
+.bor-poster li { padding: 3px 0; }
+@media (max-width: 640px) {
+  .bor-poster { margin-left: 0; }
+}
 /* Runda 7, r6: tillväxtkurvor och barnhälsovård. Punkternas form bär källan, så att färgen inte är enda bäraren. */
 .tv-kurvor { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
 .tv-kurva { max-width: 520px; }

@@ -222,6 +222,11 @@ export const FLODEN = [
     id: 'boka-kedja', namn: 'Boka provtagning före läkarbesök', roll: 'adm-kard', start: 'Vårdadministratörens startsida', budget: 3,
     motivering: 'Sussa 3.4.1.4 och 3.4.2.2. Ett klick på Boka tid vid återbesöket och ett på det förslag som systemet visar först. Systemet föreslår läkarbesöket och provtagningen samma dag med rätt mellanrum, bokar båda och skickar en kallelse som säger när provtagningen är. Ett klick räknas med för att visa fler förslag.',
   },
+  // Runda 7, r7: kravsidan visar vad Sussa värderade högst och som Vårdkällan ännu inte uppfyller (K2).
+  {
+    id: 'kravviktning', namn: 'Visa de tio högst viktade kriterierna som inte är uppfyllda', roll: 'adm-kard', start: 'Kravsidan', budget: 2,
+    motivering: 'K2. Ett klick på genvägen ovanför filtren, som väljer utvärderingskriterier som inte är uppfyllda i demon, sorterar dem efter vikten i Sussas utvärdering och visar de tio första med vikt och signaler från avtalet. Budgeten har plats för ett klick till.',
+  },
   // Runda 7, r6: tillväxt i barnhälsovården (Sussa 4.1.1.4 och 4.1.1.6).
   {
     id: 'tillvaxt-bhv', namn: 'Registrera längd och vikt vid ett BHV-besök och se kurvan', roll: 'lak-vc', start: 'Översikten för ett barn på barnavårdscentralen', budget: 4,

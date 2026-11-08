@@ -156,18 +156,18 @@ describe('Tidbok', () => {
     const b = d.query("SELECT * FROM bokningar WHERE patient_id = 'p14'").get();
     expect(d.query("SELECT count(*) AS n FROM kallelser WHERE bokning_id = ? AND typ = 'paminnelse'").get(b.id).n).toBe(0);
     const start = Date.parse(d.query('SELECT start FROM tider WHERE id = ?').get(b.tid_id).start);
-    // Räknar bara påminnelsen för den här bokningen, eftersom en annan bokning kan ligga samma dag (runda 7, r6).
-    const antal = () => d.query("SELECT count(*) AS n FROM kallelser WHERE bokning_id = ? AND typ = 'paminnelse'").get(b.id).n;
+    // Räkna bara den här bokningens påminnelser: andra tider i demoläget kan ligga i samma fönster beroende på dagens datum.
+    const paminnelser = () => d.query("SELECT count(*) AS n FROM kallelser WHERE bokning_id = ? AND typ = 'paminnelse'").get(b.id).n;
     tidbok.skickaPaminnelser(d, start - 3 * 86400_000);
-    expect(antal()).toBe(0);
-    tidbok.skickaPaminnelser(d, start - 47 * 3600_000);
-    expect(antal()).toBe(1);
+    expect(paminnelser()).toBe(0);
+    expect(tidbok.skickaPaminnelser(d, start - 47 * 3600_000)).toBeGreaterThanOrEqual(1);
+    expect(paminnelser()).toBe(1);
     const p = d.query("SELECT * FROM kallelser WHERE bokning_id = ? AND typ = 'paminnelse'").get(b.id);
     expect(p).toMatchObject({ kanal: 'min_journal', status: 'skickad', skapad_av: null });
     expect(p.text).toContain('Påminnelse');
     // Bara en påminnelse per bokning.
     tidbok.skickaPaminnelser(d, start - 46 * 3600_000);
-    expect(antal()).toBe(1);
+    expect(paminnelser()).toBe(1);
   });
 
   test('väntelistan lyfter den som riskerar att passera gränsen, och omprioritering kräver orsak och sparas', async () => {

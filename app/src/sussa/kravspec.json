@@ -1,6 +1,6 @@
 {
- "kalla": "Kravspecifikation lösning, Framtidens vårdinformationsstöd, Sussa samverkan, dnr 16RS2022, utdrag i Konkurrensverkets dnr 883/2023 aktbilaga 3, utlämnad 2026-11-03",
- "utdrag": "Utdraget innehåller kapitel 1 till 6 och 11 med 305 krav och utvärderingskriterier i originalnumreringen. Kapitel 7 till 10 och 12 ingår inte i utdraget. Kapitel 1 innehåller inga krav. Texterna är avskrivna från de skannade sidorna, med rättad stavning och med tankstreck ersatta av kommatecken.",
+ "kalla": "Kravspecifikation lösning och Kravspecifikation drift och teknik, Framtidens vårdinformationsstöd, Sussa samverkan, dnr 16RS2022. Kapitel 1 till 6 och 11 ur Konkurrensverkets dnr 883/2023 aktbilaga 3, utlämnad 2026-11-03. Kapitel 7 till 10, 12 och driftspecifikationen ur Region Örebro läns originaldokument, utlämnade 2026-11-04 till 2026-11-06.",
+ "utdrag": "Registret innehåller hela kravspecifikationen för lösningen, kapitel 1 till 12, och kravspecifikationen för drift och teknik, med originalnumreringen. Kapitel 1 innehåller inga krav. Driftspecifikationens poster har prefixet KD. Kapitel 1 till 6 och 11 är avskrivna från de skannade sidorna hos Konkurrensverket och jämförda med originaldokumenten. Texterna har rättad stavning och tankstreck ersatta av kommatecken.",
  "kapitel": [
   {
    "nr": "1",
@@ -35,22 +35,22 @@
   {
    "nr": "7",
    "rubrik": "Ekonomi",
-   "ingar": false
+   "ingar": true
   },
   {
    "nr": "8",
    "rubrik": "Användbarhet och tillgänglighet",
-   "ingar": false
+   "ingar": true
   },
   {
    "nr": "9",
    "rubrik": "Styrning och samverkan",
-   "ingar": false
+   "ingar": true
   },
   {
    "nr": "10",
    "rubrik": "Utbildning",
-   "ingar": false
+   "ingar": true
   },
   {
    "nr": "11",
@@ -60,16 +60,15 @@
   {
    "nr": "12",
    "rubrik": "Underhåll och support",
-   "ingar": false
+   "ingar": true
+  },
+  {
+   "nr": "KD1",
+   "rubrik": "Kravspecifikation drift och teknik, driftstjänst",
+   "ingar": true
   }
  ],
- "saknadeKapitel": [
-  "7",
-  "8",
-  "9",
-  "10",
-  "12"
- ],
+ "saknadeKapitel": [],
  "avsnitt": [
   {
    "id": "1",
@@ -688,6 +687,97 @@
    "sammanfattning": "Beställningar av datauttag till forskare, engångsuttag eller återkommande, behöver hanteras i en funktion. Den ska stödja administration av beställningar, dokumentation av prövning, urval, aggregeringar, behörigheter, pseudonymisering, patientmedgivanden samt utdataformat och leveranssätt."
   },
   {
+   "id": "7",
+   "rubrik": "Ekonomi",
+   "kapitel": "7",
+   "sida": null,
+   "sammanfattning": "Behov finns att Kärnsystemet kan hantera ekonomi i form av att skapa underlag för fakturering, underhålla prisuppgifter, prisberäkningar och betalningsmottagare, se löpande kostnader i en vårdprocess och göra ekonomisk uppföljning av producerad vård. I samband med patientens ankomstregistering och incheckning vid vårdkontakt ska Kärnsystemet kunna hantera betalning av patientavgift."
+  },
+  {
+   "id": "7.1",
+   "rubrik": "Ekonomi och ekonomisk uppföljning",
+   "kapitel": "7",
+   "sida": null,
+   "sammanfattning": "Behov av funktionalitet för att Kärnsystemet kan skapa underlag för fakturering och hantera prislistor och prisberäkningar. Ekonomisk information bör kunna visualiseras i kärnsystemet om så önskas."
+  },
+  {
+   "id": "7.1.1",
+   "rubrik": "Faktureringsunderlag",
+   "kapitel": "7",
+   "sida": null,
+   "sammanfattning": "Fakturering av utförd vård sker från respektive landstings befintliga ekonomisystem. Gemensamt för samtliga landsting är användningen av egenutvecklade lösningar som sammanställer data till ekonomisystemen som underlag för fakturering. Data sammanställs från många olika källor. Behov finns att effektivisera processen att sammanställa faktureringsunderlaget."
+  },
+  {
+   "id": "7.1.2",
+   "rubrik": "Visualisering",
+   "kapitel": "7",
+   "sida": null,
+   "sammanfattning": "Behov av att ekonomisk information kan visas i Kärnsystemet i pågående patients vårdprocess. Priser på läkemedel, hjälpmedel, behandlingar mm bör kunna visas i Kärnsystemet. Behov av analys och uppföljning kravställs generellt i kapitel 6.2.1."
+  },
+  {
+   "id": "8",
+   "rubrik": "Användbarhet och tillgänglighet",
+   "kapitel": "8",
+   "sida": null,
+   "sammanfattning": "I kapitlet beskrivs de olika perspektiven som gäller för användarcentrerad design, användbarhet och tillgänglighet. Dessa tre perspektiv är en viktig förutsättning för att säkerställa en långsiktig utveckling av Kärnsystemet i enlighet med beställarens och användarnas behov."
+  },
+  {
+   "id": "8.1",
+   "rubrik": "Användarcentrerad design",
+   "kapitel": "8",
+   "sida": null,
+   "sammanfattning": "Användarcentrerad design krävs för att utveckla användbara och tillgängliga system. ISO 9241-210: 2010 Användarcentrerad design för interaktiva system, är framtagen för att tillhandahålla krav och rekommendationer för användarcentrerade designprinciper och aktiviteter."
+  },
+  {
+   "id": "8.2",
+   "rubrik": "Användbarhet",
+   "kapitel": "8",
+   "sida": null,
+   "sammanfattning": "Användbarhet definieras enligt ISO 9241-11:1998 Riktlinjer för användbarhet, som ”den utsträckning i vilken en specifik användare kan använda en produkt för att uppnå specifika mål, med ändamålsenlighet, effektivitet och tillfredsställelse, i Ett givet sammanhang.” Användbarhet fokuserar på användarnas behov och innebär att om en produkt uppfyller dessa behov i en specifik kontext är produkten därmed användbar."
+  },
+  {
+   "id": "8.3",
+   "rubrik": "Tillgänglighet",
+   "kapitel": "8",
+   "sida": null,
+   "sammanfattning": "Tillgänglighet definieras enligt ISO 26800:2011: Ergonomi Allmänna principer och begrepp, som en form av användbarhet ”Tillgänglighet är den utsträckning i vilken produkter, system, tjänster, miljöer och inrättningar kan användas av personer från en grupp med bredast möjliga spektrum av egenskaper och förmågor så att dessa personer kan uppnå ett visst mål i ett särskilt användningssammanhang."
+  },
+  {
+   "id": "8.4",
+   "rubrik": "Fokus på verksamhets- och patientnytta samt att stödja användarnas behov",
+   "kapitel": "8",
+   "sida": null,
+   "sammanfattning": "För att uppnå hög användbarhet och tillgänglighet räcker det inte med att uppfylla användarnas behov utan det måste även skapa nytta för verksamheten/vårdorganisationen och patienten. Målet med Framtidens vårdinformationsstöd är ett modernt verktyg som ger förutsättningar att förbättra och förnya vårdens utförande."
+  },
+  {
+   "id": "9",
+   "rubrik": "Styrning och samverkan",
+   "kapitel": "9",
+   "sida": null,
+   "sammanfattning": "Kapitel 9 Styrning och samverkan."
+  },
+  {
+   "id": "9.1",
+   "rubrik": "Generellt under avtalsperioden",
+   "kapitel": "9",
+   "sida": null,
+   "sammanfattning": "Beställaren efterfrågar en leverantör som fyller rollen som strategisk och proaktiv samarbetspartner. Beställaren förväntar sig att anbudsgivaren arbetar aktivt med en väl fungerande modell för samverkan med sina kunder, både under implementations- och i förvaltningsfasen samt driver en aktiv utveckling av produkter och tjänster, föreslår innovativa lösningar och förbättringspotential av upphandlad lösning."
+  },
+  {
+   "id": "10",
+   "rubrik": "Utbildning",
+   "kapitel": "10",
+   "sida": null,
+   "sammanfattning": "Kapitel 10 Utbildning."
+  },
+  {
+   "id": "10.1",
+   "rubrik": "Kontinuerlig kompetensutveckling",
+   "kapitel": "10",
+   "sida": null,
+   "sammanfattning": "Beställaren vill skapa förutsättningar för en kontinuerlig kompetensutveckling hos personalen inom hälso- och sjukvården. En viktig del är att användarna av Kärnsystemet får möjlighet att lära sig att använda Kärnsystemet optimalt, för att nå bästa patientsäkerhet och verksamhetsnytta. De behöver tillgång till flexibla och behovsanpassade utbildningsmetoder utifrån sina behov i olika roller och situationer."
+  },
+  {
    "id": "11",
    "rubrik": "Implementation av kärnsystemet och driftstjänsten",
    "kapitel": "11",
@@ -714,6 +804,146 @@
    "kapitel": "11",
    "sida": 116,
    "sammanfattning": "Specialområdena (beställning och svar, SIP/SPU, bildhantering, tillväxt, operationsplanering, IVA/anestesi, obstetrik och cytostatika) införs efter behov under avtalstiden och i olika takt hos landstingen. Anbudet ska innehålla en plan för varje specialområde, och anbudsgivaren ombeds beskriva hur ett optimalt införande i förhållande till grundimplementationen kan ske."
+  },
+  {
+   "id": "12",
+   "rubrik": "Underhåll och support",
+   "kapitel": "12",
+   "sida": null,
+   "sammanfattning": "I underhåll och support ingår applikationskonfiguration, test och support. Ledorden är enkelhet och tydlighet i nära samarbete mellan kund och leverantör där kontinuerlig kompetensutveckling är en framgångsfaktor."
+  },
+  {
+   "id": "12.1",
+   "rubrik": "Applikationskonfiguration",
+   "kapitel": "12",
+   "sida": null,
+   "sammanfattning": "Ett kontinuerligt förändrings- och utvecklingsarbete i vården ställer krav på att Kärnsystemet kan anpassas efter verksamhetens behov på ett effektivt och säkert sätt över tid."
+  },
+  {
+   "id": "12.2",
+   "rubrik": "Test",
+   "kapitel": "12",
+   "sida": null,
+   "sammanfattning": "Vår målbild är att nya leveranser är väl testade av leverantör så att acceptanstest kan genomföras för att kunna utvärdera att systemet fungerar enligt överenskommelse."
+  },
+  {
+   "id": "12.3",
+   "rubrik": "Support",
+   "kapitel": "12",
+   "sida": null,
+   "sammanfattning": "Supporten av Kärnsystemet är central såväl ur ett verksamhets- som ett tekniknära perspektiv. Vårdverksamhet bedrivs dygnet runt, alla dagar på året vilket bekräftas av ställda SLA på Kärnsystemets tillgänglighet och tillgängligheten till adekvat svensktalande support måste återspegla detta faktum."
+  },
+  {
+   "id": "KD1",
+   "rubrik": "Driftstjänst",
+   "kapitel": "KD1",
+   "sida": null,
+   "sammanfattning": "Med driftstjänst avses drift av upphandlat Kärnsystem inklusive eventuellt beställda specialområden samt löpande underhåll, support och livscykelhantering av det samma. Kärnsystemet tillgängliggörs för slutanvändarna i enlighet med överenskomna SLA:er via en modern, robust, tillgänglig, tillförlitlig och kostnadseffektiv drifttjänst, och leveransen utförs på ett professionellt och marknadsmässigt sätt."
+  },
+  {
+   "id": "KD1.1",
+   "rubrik": "Drift, teknik och underhåll",
+   "kapitel": "KD1",
+   "sida": null,
+   "sammanfattning": "Kravkapitlet innehåller kravställning på områdena (1) drift samt maskin- och programvara, (2) datakommunikation, (3) datalagring samt (4) följsamhet mot klient och klientplattform. Beställarens målbild är att Anbudsgivaren levererar avtalad drifttjänst som ett helhetsåtagande och tar ansvar för hela den avtalade leveransen."
+  },
+  {
+   "id": "KD1.1.1",
+   "rubrik": "Krav på drift samt maskin- och programvara",
+   "kapitel": "KD1",
+   "sida": null,
+   "sammanfattning": "Beställaren emotser att presenterad lösning är enkel och robust, tillgänglig med prestanda i enlighet med SLA såväl under pågående drift som vid planerat underhåll."
+  },
+  {
+   "id": "KD1.1.2",
+   "rubrik": "Krav på datakommunikation",
+   "kapitel": "KD1",
+   "sida": null,
+   "sammanfattning": "Kärnsystemet ställer höga krav på datakommunikation för att ge användarna en god upplevd prestanda och tillgänglighet. Anbudsgivaren ansvarar för all datakommunikation fram till en given överlämningspunkt. Denna överlämningspunkt utgörs av en så kallad Customer-premises equipment (CPE). Efter denna CPE ansvarar Beställare för datakommunikation."
+  },
+  {
+   "id": "KD1.1.3",
+   "rubrik": "Krav på datalagring",
+   "kapitel": "KD1",
+   "sida": null,
+   "sammanfattning": "Kärnsystemet ställer höga krav på datalagring och möjlighet att effektivt hantera stora samtidiga datamängder då det förutspås att bild- och videohantering successivt kommer att bli ett allt större inslag i den moderna vården."
+  },
+  {
+   "id": "KD1.1.4",
+   "rubrik": "Krav på följsamhet mot klient och klientplattform",
+   "kapitel": "KD1",
+   "sida": null,
+   "sammanfattning": "Beställarens målbild är att Kärnsystemet kan tillgängliggöras via olika klienter, enheter och mobila enheter beroende på aktuell kontext. Se bilaga K1 - Nulägesbeskrivning för en mer detaljerad bild av aktuellt nuläge, användningsmönster etc. Beställaren tillhandahåller klienter som följer det landstingsgemensamma initiativet eKlient."
+  },
+  {
+   "id": "KD1.2",
+   "rubrik": "Kärnsystemets och drifttjänstens tillgänglighet och servicenivå",
+   "kapitel": "KD1",
+   "sida": null,
+   "sammanfattning": "Vårdverksamheten bedrivs dygnet runt, året om och tillgängligheten till Kärnsystemet måste spegla detta faktum. Tillgänglighetskraven på Kärnsystemet och drifttjänsten, återfinns i de service level agreements (SLA) som redovisas i bilaga DU2 avtalade servicenivåer (SLA)."
+  },
+  {
+   "id": "KD1.2.1",
+   "rubrik": "Krav på tillgänglighet och servicenivå",
+   "kapitel": "KD1",
+   "sida": null,
+   "sammanfattning": "Regler för servicenivåhantering, månatlig rapportering av servicenivåutfall, en baseline för accepterade svarstider och hantering av saknad redundans."
+  },
+  {
+   "id": "KD1.3",
+   "rubrik": "Krav på operativa driftsprocesser",
+   "kapitel": "KD1",
+   "sida": null,
+   "sammanfattning": "Beställarens målbild är att samtliga tjänsteleveranser och interaktionen mellan Anbudsgivare och Beställare utförs enligt modell som följer ITIL, lägst version 3/2011 och vid behov på lagen (1993:584) om medicintekniska produkter med tillhörande föreskrifter. Anbudsgivarens och Beställarens processer måste fungera tillsammans i ett enhetligt och definierat gränssnitt."
+  },
+  {
+   "id": "KD1.3.1",
+   "rubrik": "Krav på processhandbok",
+   "kapitel": "KD1",
+   "sida": null,
+   "sammanfattning": "Alla överenskomna driftsprocesser ska definieras och dokumenteras i en processhandbok som hålls uppdaterad under hela avtalsperioden."
+  },
+  {
+   "id": "KD1.3.2",
+   "rubrik": "Krav på incidenthantering",
+   "kapitel": "KD1",
+   "sida": null,
+   "sammanfattning": "Beställarens målbild är att incidenthanteringsprocessen säkerställer att alla incidenter tas emot, hanteras och löses enligt SLA. Anbudsgivaren driver och leder arbetet med att åtgärda incidenter inom ramen för offererat Kärnsystem. Beställaren har en incident SPOC (single point of contact) som får information via Anbudsgivarens incident SPOC vid allvarliga incidenter (Incidenter av felprioritet 1-2)."
+  },
+  {
+   "id": "KD1.3.3",
+   "rubrik": "Krav på problemhantering",
+   "kapitel": "KD1",
+   "sida": null,
+   "sammanfattning": "Beställarens målbild är att problemhanteringsprocessen aktivt verkar för att tidigare incidenter inte upprepas men också proaktivt arbetar för att minska risken att nya incidenter uppkommer. Anbudsgivaren identifierar problem där Incident Management har initierat en problemrapport för vidare bearbetning i Problem Management eller genom analys av incidenttrender."
+  },
+  {
+   "id": "KD1.3.4",
+   "rubrik": "Krav på ändringshantering",
+   "kapitel": "KD1",
+   "sida": null,
+   "sammanfattning": "Beställarens målbild är att ändringshanteringsprocessen hanterar ändringar i produktionsmiljön samt i övriga miljöer. Ändringar som påverkar någon av de tekniska miljöerna hanteras i det gemensamma CAB-forumet innan driftsättning sker. Anbudsgivaren levererar beslutsunderlag till Beställarens CAB-forum via av Anbudsgivaren definierat och Beställare godkänt malldokument."
+  },
+  {
+   "id": "KD1.3.5",
+   "rubrik": "Krav på releasehanteringsprocess",
+   "kapitel": "KD1",
+   "sida": null,
+   "sammanfattning": "Beställarens målbild är att releasehanteringsprocessen ansvarar för planering, schemaläggning och kontroll när releaser flyttas från utveckling till acceptanstest- och produktionsmiljö. Processen säkerställer att kalendern för releaser och själva införandet av releaser planeras och genomförs på ett effektivt och funktionellt sätt i gränssnitten mellan: Arbetet utförs av Anbudsgivaren i nära kontakt med Beställare."
+  },
+  {
+   "id": "KD1.3.6",
+   "rubrik": "Krav på beställningshantering",
+   "kapitel": "KD1",
+   "sida": null,
+   "sammanfattning": "Beställarens målbild är att beställningshanteringsprocessen säkerställer att relevanta beställningar hanteras och kommuniceras effektivt med Kunden, Beställaren samt Anbudsgivaren, beroende på behov. Anbudsgivaren har ett enhetligt sätt att hantera Kärnsystemsrelaterade beställningar. En beställningsprocess med rutiner och mallar tas fram av Parterna under Anbudsgivarens ledning, under införandeprojektet."
+  },
+  {
+   "id": "KD1.3.7",
+   "rubrik": "Krav på övriga processer",
+   "kapitel": "KD1",
+   "sida": null,
+   "sammanfattning": "Beställaren anser att det kan finnas fler processer som är nödvändiga för leveransen och önskar att Anbudsgivaren anger de processer, utöver de ovanstående, som Anbudsgivaren anser borde definieras och överenskommas i Processhandboken."
   }
  ],
  "poster": [
@@ -4860,6 +5090,218 @@
    "kompletterar": []
   },
   {
+   "id": "7.1.1.1",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Faktureringsunderlag",
+   "avsnitt": "7.1",
+   "kapitel": "7",
+   "sida": null,
+   "text": "Kärnsystemet ska kunna generera och exportera transaktionsposter som underlag till fakturering. Kravet kompletteras med utvärderingskriterium 7.1.1.2",
+   "mervarden": [],
+   "kompletterar": [
+    "7.1.1.2"
+   ]
+  },
+  {
+   "id": "7.1.1.2",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Faktureringsunderlag",
+   "avsnitt": "7.1",
+   "kapitel": "7",
+   "sida": null,
+   "text": "Beskriv hantering av faktureringsunderlag till ekonomisystem.",
+   "mervarden": [
+    "Flexibilitet kring hantering av prislistor och prisuträkning",
+    "Hantering av betalningsmottagare och avtal",
+    "Möjlighet att exportera faktureringsunderlag för vårdhändelser, material, hjälpmedel och läkemedel",
+    "Hantering av Diagnose Related Group (DRG)",
+    "Hantering av medicinskt färdigbehandlad",
+    "Informationsinnehåll i underlagets överensstämmelse med den nationella tjänsten för utomlänsvård"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "7.1.2.1",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Ekonomisk visualisering",
+   "avsnitt": "7.1",
+   "kapitel": "7",
+   "sida": null,
+   "text": "Behov av tydlig information kopplat till ekonomiska aspekter kring vårdtillfälle och patient. Kärnsystemet bör hantera funktionalitet för visualisering av kostnader baserat på en pågående patients vårdprocess. Beskriv lösningen.",
+   "mervarden": [
+    "Tydlighet, effektivitet och omfattning av information som visualiseras",
+    "Visa kostnader på läkemedel, hjälpmedel och material",
+    "Stöd för rabatter och högkostnadsskydd",
+    "Visa kostnader baserat på DRG eller annan prisberäkningsmodell"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "8.4.1.1",
+   "typ": "krav_vid_anbud",
+   "rubrik": "Fokus på verksamhets- och patientnytta samt att stödja användarnas behov",
+   "avsnitt": "8.4",
+   "kapitel": "8",
+   "sida": null,
+   "text": "Anbudsgivaren ska tillämpa en process vid utveckling och anpassning som baseras på principer för användarcentrerad design samt säkerställer att Kärnsystemet kontinuerligt uppvisar hög användbarhet och tillgänglighet. Kravet kompletteras med utvärderingskriterium 8.4.1.2 och 8.4.1.3.",
+   "mervarden": [],
+   "kompletterar": [
+    "8.4.1.2",
+    "8.4.1.3"
+   ]
+  },
+  {
+   "id": "8.4.1.2",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Användarcentrerad design",
+   "avsnitt": "8.4",
+   "kapitel": "8",
+   "sida": null,
+   "text": "Beskriv processen som kommer att tillämpas vid utveckling och anpassning samt följsamhet mot principer för användarcentrerad design i enlighet med ISO/FDIS 9241-210 Human-Centred Design Process for Interactive Systems.",
+   "mervarden": [
+    "Hög grad av följsamhet mot principerna inom användarcentrerad design:",
+    "Kartläggning och analys av användare; deras behov, förutsättningar, ev. uppgifter och mål samt användningssammanhang",
+    "Utifrån användargrupperna; ställa upp mål, krav och kriterier på systemet i användningen",
+    "Utforma alternativa designlösningar; som skisser och prototyper",
+    "Utvärdera designlösningar med användare gentemot mål och krav, användbarhetstestningar"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "8.4.1.3",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Användbarhet och tillgänglighet",
+   "avsnitt": "8.4",
+   "kapitel": "8",
+   "sida": null,
+   "text": "Beskriv hur anbudsgivaren avser att tillämpa standarder och riktlinjer inom användbarhets- och tillgänglighetsområdena vid utveckling och anpassning av Kärnsystemet.",
+   "mervarden": [
+    "Följsamhet mot:",
+    "ISO 9241-11:1998, Riktlinjer för användbarhet",
+    "EN 301 549 Accessibility requirements for public procurement of ICT products and services in Europe. Hur Kärnsystemet är anpassat vid synskada, hörselskada, färgblindhet, begränsad kognitionsförmåga."
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "9.1.1.1",
+   "typ": "krav_vid_anbud",
+   "rubrik": "Generellt under avtalsperioden",
+   "avsnitt": "9.1",
+   "kapitel": "9",
+   "sida": null,
+   "text": "Anbudet ska innehålla en beskrivning av samverkansmodell och samverkansorganisation för det totala åtagandet som sträcker sig över hela avtalsperioden. Kravet kompletteras med utvärderingskriterium 9.1.1.2 och 9.1.1.3 där anbudsgivaren beskrivningar kommer att ligga till grund för samverkansform under avtalstiden.",
+   "mervarden": [],
+   "kompletterar": [
+    "9.1.1.2",
+    "9.1.1.3"
+   ]
+  },
+  {
+   "id": "9.1.1.2",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Samverkan landstingsgemensamt",
+   "avsnitt": "9.1",
+   "kapitel": "9",
+   "sida": null,
+   "text": "Beskriv hur samverkansorganisationen kan se ut i termer av roller, processer och verktyg, forum inklusive dess periodicitet och agendor för den övergripande landstingsgemensamma styrningen av leveransen på såväl strategisk, taktisk som operativ nivå. Detaljerad utvärdering av följsamhet mot ITIL genomförs i bilaga KD Kravspecifikation Drift med bilagor.",
+   "mervarden": [
+    "Trovärdig, flexibel och sammanhängande ur ett helhetsperspektiv"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "9.1.1.3",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Samverkan enskilda myndigheter",
+   "avsnitt": "9.1",
+   "kapitel": "9",
+   "sida": null,
+   "text": "Beskriv hur samverkansorganisationen kan se ut i termer av roller, processer och relevanta verktyg, forum och dess periodicitet och agendor för det enskilda landstingets styrning av leveransen på såväl strategisk, taktisk som operativ nivå. Detaljerad utvärdering av följsamhet mot ITIL genomförs i bilaga KD Kravspecifikation Drift med bilagor.",
+   "mervarden": [
+    "Trovärdig, flexibel och sammanhängande ur ett helhetsperspektiv"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "10.1.1.1",
+   "typ": "krav_vid_anbud",
+   "rubrik": "Kontinuerlig kompetensutveckling",
+   "avsnitt": "10.1",
+   "kapitel": "10",
+   "sida": null,
+   "text": "Anbudsgivaren ska ha ett utbildningskoncept för Kärnsystemet som vidareutvecklas och kvalitetssäkras fortlöpande. Kravet kompletteras med utvärderingskriterium 10.1.1.3.",
+   "mervarden": [],
+   "kompletterar": [
+    "10.1.1.3"
+   ]
+  },
+  {
+   "id": "10.1.1.2",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Kontinuerlig kompetensutveckling",
+   "avsnitt": "10.1",
+   "kapitel": "10",
+   "sida": null,
+   "text": "Anbudsgivaren ska tillhandahålla utbildningsmaterial i Kärnsystemet på svenska, motsvarande nivå C1.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "10.1.1.3",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Utbildning användare",
+   "avsnitt": "10.1",
+   "kapitel": "10",
+   "sida": null,
+   "text": "Behov av behovsanpassade utbildningsmetoder för att under hela avtalstiden utbilda nya och befintliga användare på ett effektivt och ändamålsenligt sätt. Beskriv ert utbildningskoncept.",
+   "mervarden": [
+    "Tillgänglighet till olika kanaler för utbildning (t ex onlinehjälp, e-learning, instruktionsfilmer)",
+    "Lättillgänglighet och oberoende av tid och plats",
+    "Attraktivt och tilltalande",
+    "Omfattning och kvalitet",
+    "Tydlighet",
+    "Innovativt/nytänk",
+    "Möjlighet att påverka konceptet",
+    "Tidseffektivt och flexibelt",
+    "Utveckling och kvalitetssäkring över tid",
+    "Möjlighet till uppföljning och utvärdering"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "10.1.1.4",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Förändrat gränssnitt",
+   "avsnitt": "10.1",
+   "kapitel": "10",
+   "sida": null,
+   "text": "Beskriv hur användarna av Kärnsystemet vid nya versioner och andra förändringar i Kärnsystemet uppmärksammas på ny funktionalitet och vad som är förändrat/nytt i gränssnittet.",
+   "mervarden": [
+    "Anpassningsbart för olika målgrupper och utifrån förändringens omfattning",
+    "Innovativt/nytänk",
+    "Lättillgängligt för användarna",
+    "Effektivt att informera alla användare"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "10.1.1.5",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Certifierade användare",
+   "avsnitt": "10.1",
+   "kapitel": "10",
+   "sida": null,
+   "text": "Behov av möjlighet till certifiering av utbildare och användare. Beskriv om detta kan hanteras och i så fall hur.",
+   "mervarden": [
+    "Omfattning",
+    "Möjlighet att påverka innehåll och målgrupper",
+    "Möjlighet att följa upp",
+    "Tidsstyrning/giltighet",
+    "Innovativt/nytänk"
+   ],
+   "kompletterar": []
+  },
+  {
    "id": "11.1.1.1",
    "typ": "krav_vid_anbud",
    "rubrik": "Förslag på förändringsarbete i samarbete",
@@ -5214,6 +5656,920 @@
    "kapitel": "11",
    "sida": 119,
    "text": "Landstingen har idag olika utgångslägen och har ännu inte tagit ställning till när specialområden ska införas. Beställaren önskar att anbudsgivaren beskriver hur ett optimalt införande av specialområden bör genomföras (ordningsföljd, paketering av flera specialområden tillsammans, i förhållande till grundimplementationen etc.) och vilka samordningsvinster som uppnås. Vi ser att en förutsättning om specialområden implementeras i samband med grundimplementationen är att Beställaren anger detta i samband med uppstart av grundimplementationsprojektet. Beskrivningen utvärderas ej.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "12.1.1.1",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Applikationskonfiguration",
+   "avsnitt": "12.1",
+   "kapitel": "12",
+   "sida": null,
+   "text": "Det ska gå att hantera organisationsförändringar. Kravet kompletteras med utvärderingskriterium 12.1.1.4.",
+   "mervarden": [],
+   "kompletterar": [
+    "12.1.1.4"
+   ]
+  },
+  {
+   "id": "12.1.1.2",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Applikationskonfiguration",
+   "avsnitt": "12.1",
+   "kapitel": "12",
+   "sida": null,
+   "text": "Leverantören ska vara ansvarig för applikationskonfiguration i Kärnsystemet.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "12.1.1.3",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Applikationskonfiguration",
+   "avsnitt": "12.1",
+   "kapitel": "12",
+   "sida": null,
+   "text": "Det ska vara möjligt att konfigurera parametrar och regler i Kärnsystemet.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "12.1.1.4",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Omorganisation",
+   "avsnitt": "12.1",
+   "kapitel": "12",
+   "sida": null,
+   "text": "Behov av att Kärnsystemet kan hantera omorganisation. Beskriv hur omorganisationer hanteras i Kärnsystemet, hur pågående patientflöden påverkas, vilka förberedelser som kan utföras i förväg samt om det krävs någon manuell hantering.",
+   "mervarden": [
+    "Följsamhet mot nationell HSA policy, se bilaga K6 - HSA- organisationsförändringar-i- vårdgivarstrukturen",
+    "Förändringen kan förberedas",
+    "Liten manuell hantering",
+    "Tidseffektivt och enkelt för verksamheten och systemförvaltningen"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "12.1.1.5",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Applikationskonfiguration",
+   "avsnitt": "12.1",
+   "kapitel": "12",
+   "sida": null,
+   "text": "Behov av att Beställaren kan utföra viss applikationskonfiguration själv. Beskriv vilken typ av applikationskonfiguration som kan utföras av kunden.",
+   "mervarden": [
+    "Effektivitet i processen mellan kund och leverantör",
+    "Tydlighet i roller och uppgifter",
+    "Smidigt för verksamheten"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "12.1.1.6",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Administration",
+   "avsnitt": "12.1",
+   "kapitel": "12",
+   "sida": null,
+   "text": "Behov av att kunna förändra konfiguration i de delar som Administration innehåller Beskriv hur en förändring av konfigurationen kan gå till och vad som eventuellt inte går att förändra.",
+   "mervarden": [
+    "Förändringar kan göras på ett ställe och slår igenom i hela Kärnsystemet",
+    "Tidseffektiv och enkel ärendehantering",
+    "Graden av användbarhet",
+    "Flexibilitet",
+    "Tydlighet gällande respons och spårbarhet"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "12.1.1.7",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Strukturerad information",
+   "avsnitt": "12.1",
+   "kapitel": "12",
+   "sida": null,
+   "text": "Behov av att kunna förändra konfiguration i de delar som Strukturerad information innehåller Beskriv hur en förändring av konfigurationen kan gå till och vad som eventuellt inte går att förändra.",
+   "mervarden": [
+    "Förändringar kan göras på ett ställe och slår igenom i hela Kärnsystemet",
+    "Tidseffektiv och enkel ärendehantering",
+    "Graden av användbarhet",
+    "Flexibilitet",
+    "Tydlighet gällande respons och spårbarhet"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "12.1.1.8",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Läkemedel",
+   "avsnitt": "12.1",
+   "kapitel": "12",
+   "sida": null,
+   "text": "Behov av att kunna förändra konfiguration i de delar som Läkemedel innehåller. Beskriv hur en förändring av konfigurationen kan gå till och vad som eventuellt inte går att förändra.",
+   "mervarden": [
+    "Förändringar kan göras på ett ställe och slår igenom i hela Kärnsystemet",
+    "Tidseffektiv och enkel ärendehantering",
+    "Graden av användbarhet",
+    "Flexibilitet",
+    "Tydlighet gällande respons och spårbarhet"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "12.1.1.9",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Beställning och svar",
+   "avsnitt": "12.1",
+   "kapitel": "12",
+   "sida": null,
+   "text": "Behov av att kunna förändra konfiguration i de delar som Beställning och svar innehåller. Beskriv hur en förändring av konfigurationen kan gå till och vad som eventuellt inte går att förändra.",
+   "mervarden": [
+    "Förändringar kan göras på ett ställe och slår igenom i hela Kärnsystemet",
+    "Tidseffektiv och enkel ärendehantering",
+    "Graden av användbarhet",
+    "Flexibilitet",
+    "Tydlighet gällande respons och spårbarhet",
+    "Enkelhet och flexibilitet i administration av paketlösningar av analyser och undersökningspaket där flera mottagare ingår",
+    "Kunna välja vilken information som ska föras över till mottagande system",
+    "Flexibel hantering av etiketter och provtagningsanvisningar"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "12.1.1.10",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Undantas från visning",
+   "avsnitt": "12.1",
+   "kapitel": "12",
+   "sida": null,
+   "text": "Behov av att information kan undantas från visning i Kärnsystemet och/eller undantas från publicering till externa applikationer och/eller nationella tjänster.",
+   "mervarden": [
+    "Hur specifik information och enheter som ska undantas från visning i Kärnsystemet hanteras",
+    "Hur specifik information kan undantas från publicering till externa applikationer och/eller nationella tjänster",
+    "Enkelhet och tydlighet i vilken information som kan/ har undantagits från visning",
+    "Säkerhet och patientintegritet",
+    "Flexibilitet"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "12.2.1.1",
+   "typ": "krav_vid_anbud",
+   "rubrik": "Test",
+   "avsnitt": "12.2",
+   "kapitel": "12",
+   "sida": null,
+   "text": "Anbudsgivaren ska arbeta efter en beprövad och standardiserad testmetod vid leverans av Kärnsystemet under avtalstiden. Kompletteras med utvärderingskriterium 12.2.1.3.",
+   "mervarden": [],
+   "kompletterar": [
+    "12.2.1.3"
+   ]
+  },
+  {
+   "id": "12.2.1.2",
+   "typ": "krav_vid_anbud",
+   "rubrik": "Test",
+   "avsnitt": "12.2",
+   "kapitel": "12",
+   "sida": null,
+   "text": "Anbudsgivaren ska ansvara för planering och genomförande av nödvändiga tester inför överlämning till acceptanstest. Inklusive test av integrationer som leverantören ansvarar för.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "12.2.1.3",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Testmetod och process",
+   "avsnitt": "12.2",
+   "kapitel": "12",
+   "sida": null,
+   "text": "Behov av en beprövad och standardiserad testmetod för att säkerställa leveranser med hög kvalitet inför acceptanstest. Beskriv metod och process.",
+   "mervarden": [
+    "Trovärdighet i beskrivning",
+    "Tydlig och enkel att följa",
+    "Testmetodens täckningsgrad i relation till Kärnsystemets omfattning"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "12.3.1.1",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Support",
+   "avsnitt": "12.3",
+   "kapitel": "12",
+   "sida": null,
+   "text": "Anbudsgivaren ska tillhandahålla handhavanderelaterad, applikationsrelaterad, teknikrelaterad och behörighetsrelaterad (ej HSA) support 24/7/365 i Kärnsystemet, och i enlighet med överenskomna SLA:er. Kravet kompletteras med utvärderingskriterium 12.3.1.4.",
+   "mervarden": [],
+   "kompletterar": [
+    "12.3.1.4"
+   ]
+  },
+  {
+   "id": "12.3.1.2",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Support",
+   "avsnitt": "12.3",
+   "kapitel": "12",
+   "sida": null,
+   "text": "Anbudsgivaren ska ha ärendehanteringssystem som Beställaren ska ha åtkomst till. Kravet kompletteras med utvärderingskriterium 12.3.1.5.",
+   "mervarden": [],
+   "kompletterar": [
+    "12.3.1.5"
+   ]
+  },
+  {
+   "id": "12.3.1.3",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Support",
+   "avsnitt": "12.3",
+   "kapitel": "12",
+   "sida": null,
+   "text": "Anbudsgivarens supportpersonal ska tala svenska flytande, i tal och skrift motsvarande nivå C1 och vara väl införstådda med Kärnsystemets funktionalitet och systemuppbyggnad.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "12.3.1.4",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Support",
+   "avsnitt": "12.3",
+   "kapitel": "12",
+   "sida": null,
+   "text": "Beskriv ert föreslagna upplägg, process och verktyg avseende support i enlighet med ovanstående mål och obligatoriska krav.",
+   "mervarden": [
+    "Tillgänglighet till olika kanaler för support (t ex telefonsupport, chat, mail)",
+    "Tidseffektivt process",
+    "Effektiv handhavanderelaterad och applikationsrelaterad support där anbudsgivarens åtkomst till personuppgifter begränsas till vad som är absolut nödvändigt",
+    "Innovationsförmåga/nytänk",
+    "Tydlighet i beskrivning av rutiner som används i supportprocessen",
+    "Kontinuerlig vidareutveckling och förädling av supportprocessen"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "12.3.1.5",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Ärendehantering",
+   "avsnitt": "12.3",
+   "kapitel": "12",
+   "sida": null,
+   "text": "Beskriv processen för ärendehantering i enlighet med beskriven supportprocess ovan samt förväntningar och krav på kunden.",
+   "mervarden": [
+    "Möjlighet till integration mellan kundens och leverantörens ärendehanteringssystem",
+    "Sammanhållen ärendeprocess där båda parter kan ta del av information",
+    "Möjlighet för kunden att verka i leverantörens ärendehanteringssystem",
+    "Lättillgänglighet",
+    "Enkelhet",
+    "Innovationsförmåga/nytänk"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.1.1",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på drift samt maskin- och programvara",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska tillhandahålla löpande drift av upphandlat Kärnsystem som ett helhetsåtagande vilket ska omfatta samtliga de aktiviteter och infrastrukturkomponenter som behövs för att ge Beställaren tillgång till Kärnsystemet samt dess funktionalitet i enlighet med angivna SLA:er samt övriga i förfrågningsunderlaget ställda krav. Kravet kompletteras med utvärderingskriterium 1.1.1.9.",
+   "mervarden": [],
+   "kompletterar": [
+    "KD1.1.1.9"
+   ]
+  },
+  {
+   "id": "KD1.1.1.2",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på drift samt maskin- och programvara",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivare ska tillse att de datahallar som används för drift av Kärnsystemet över tiden uppfyller kraven för driftsåtagandet samt säkerställa att datahallar har funktion samt tillgänglighet och prestanda för att leverera tjänsterna enligt avtalade servicenivåer. Detta inkluderar, men är inte begränsat till lokaler, ström, kylning, säkerhet, fastighetsskötsel och reservström.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.1.3",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på drift samt maskin- och programvara",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Driftstjänsten ska tillhandahållas på så sätt att Beställaren utan några funktionella, ekonomiska, juridiska eller andra konsekvenser för övriga landsting inom SUSSA-samarbetet kan genomföra B- och C integrationer, kan påverka service- och uppgraderingstidpunkter och kan självständigt genomföra en exit.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.1.4",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på drift samt maskin- och programvara",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska tillhandahålla den maskinvara och annan utrustning som krävs för att fullgöra driftsåtagandet samt säkerställa att maskinvaran har funktion samt tillgänglighet och prestanda för att leverera enligt avtalad servicenivå. I detta åtagande ingår även att Anbudsgivaren livscykelhanterar driftmiljön.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.1.5",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på drift samt maskin- och programvara",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Utöver produktionsmiljön ska Anbudsgivaren inom ramen för åtagandet tillhandahålla följande miljöer: Acceptanstestmiljö Utbildningsmiljö Testmiljö Ovanstående miljöer ska utgå från en kopia av produktionsmiljön och vara dimensionerade för de SLA:er som definierats för ”Övriga miljöer” (se Avtalsdokument för detaljer). Acceptanstestmiljö ska dimensioneras för 100 samtidiga användare och populeras med skarpa data men data avseende patientuppgifter ska vara avidentifierad. Utbildnings- och testmiljön ska dimensioneras för 500 respektive 100 samtidiga användare och populeras med fiktiva data.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.1.6",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på drift samt maskin- och programvara",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivare ska utföra tekniskt underhåll inklusive releaser och versionsbyten av såväl Kärnsystemet som driftkomponenter så att otillgänglighet till Kärnsystemet och andra användarupplevda störningar minimeras till såväl tid som frekvens. Kravet kompletteras med utvärderingskriterium 1.1.1.12.",
+   "mervarden": [],
+   "kompletterar": [
+    "KD1.1.1.12"
+   ]
+  },
+  {
+   "id": "KD1.1.1.7",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på drift samt maskin- och programvara",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Drift ska ske miljövänligt och energieffektivt. Kravet kompletteras med utvärderingskriterium 1.1.1.13.",
+   "mervarden": [],
+   "kompletterar": [
+    "KD1.1.1.13"
+   ]
+  },
+  {
+   "id": "KD1.1.1.8",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på drift samt maskin- och programvara",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska tillhandahålla den programvara som behövs för att fullgöra Avtalet. Beställare tillhandahåller klienter i enlighet med eKlient samt övrig programvara och IT-infrastruktur som explicit anges i detta förfrågningsunderlag. Se även kravställning under kapitel 1.1.4 ”Följsamhet mot klient och klientplattform” för ytterligare detaljer kring detta krav och hänvisning till relevanta bilagor.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.1.9",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Helhetsåtagande",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Beskriv lösning för att ta ett helhetsansvar för den dagliga driften av Kärnsystemet inklusive efterfrågade övriga miljöer. Beskrivningen bör minst omfatta infrastrukturell design, datahallslösning inklusive dess fysiska placering/-ar, leveransorganisation, lösningens självständighet från övriga Beställare samt en beskrivning av eventuella tekniska krav som ställs på Kärnsystemets omgivande infrastruktur.",
+   "mervarden": [
+    "En infrastrukturell design som bidrar till prestanda och tillgänglighet i enlighet med SLA-villkor",
+    "En lösning som är designad för skalbarhet och som flexibelt kan tillhandahålla rätt kapacitet trots ökade eller minskade volymer",
+    "Tjänstebeskrivningar där innehållet är strukturerat, tydligt och minst motsvarar beställarens behov i enlighet med denna kravspecifikation",
+    "Tydlig ansvarsfördelning mellan Beställaren och Anbudsgivaren"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.1.10",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Monitorera kapacitetsbrister",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Behov av att proaktivt fånga upp och åtgärda kapacitetsbrister i drifttjänsten. Beskriv de processer och rutiner som finns för att monitorera/övervaka och upptäcka eventuella kapacitetsbrister.",
+   "mervarden": [
+    "Lösning och organisation (utifrån process- och rutinbeskrivningar) för att monitorera/övervaka och proaktivt upptäcka eventuella kapacitetsbrister i drifttjänstens samtliga resurser.",
+    "Proaktivitet och graden av automatisering i monitorering/övervakning."
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.1.11",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Kärnsystemets autonomitet",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Behov av att Kärnsystemet fungerar autonomt ur ett driftperspektiv gällande integrationer med andra verksamhetssystem. Med autonomt menas att Kärnsystemet i sig inte är beroende av integrerade system utan kan fungera för användaren men med begränsad funktionalitet ifall integrerade system är otillgängliga. Beskriv hur offererad lösning lever upp till detta och i beskrivningen beakta särskilt felhantering i samband med synkrona integrationer.",
+   "mervarden": [
+    "Enhetlig felhantering avseende integrerade system med tydlighet (tydliga meddelanden) mot användaren.",
+    "Graden av autonomitet hos Kärnsystemet."
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.1.12",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Underhåll och tillgänglighet",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Behov av att planerat underhåll av såväl Kärnsystemet som driftkomponenter sker med bibehållen tillgänglighet och prestanda för användaren samt hur såväl Kärnsystemets- som driftlösningens design är optimerad för detta.",
+   "mervarden": [
+    "Planerat underhåll av Kärnsystemet och driftkomponenter utförs med bibehållen tillgänglighet och prestanda för användaren.",
+    "Planerat underhåll av Kärnsystemet och driftkomponenter är minimerat till såväl tid som frekvens."
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.1.13",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Miljövänlighet och energieffektivitet",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Beskriv hur driftåtagandet sker på ett miljövänligt och energieffektivt sätt.",
+   "mervarden": [
+    "I hur hög utsträckning drift sker på miljöcertifierad hårdvara",
+    "Att offererade datacenter har ett lågt värde avseende Power Useage Effectiveness (PUE)",
+    "I hur hög utsträckning miljövänliga alternativ väljs vid inköp av el"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.2.1",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på datakommunikation",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska tillhandahålla, konfigurera och löpande underhålla nödvändig kommunikationsutrustning och förbindelser för att uppnå avtalad servicenivå, fram till avtalad överlämningspunkt (CPE).",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.2.2",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Datakommunikation",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Behov av en lösning för datakommunikation som är säker, robust, modern, högpresterande och som tillser att Beställaren inte drabbas av prestandaförluster. Beskriv lösning för datakommunikation, t.ex. avseende länkar, diversitet/framföringsvägar, protokoll, möjlighet till nätverksprioritering (Quality of Service - QoS), nätverksövervakning, stöd för Internet Protocol version 6 (IPv6), dubblerade och redundanta nätverkskomponenter samt trafikmätning av prestanda.",
+   "mervarden": [
+    "Hur väl nätverksarkitektur och offererad datakommunikationslösning bidrar till uppfyllnad av behov."
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.3.1",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på datalagring",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska tillhandahålla den datalagring som krävs. Kravet kompletteras med utvärderingskriterium 1.1.3.5.",
+   "mervarden": [],
+   "kompletterar": [
+    "KD1.1.3.5"
+   ]
+  },
+  {
+   "id": "KD1.1.3.2",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på datalagring",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska utföra och ansvara för säkerhetskopiering av lagrat data. Kravet kompletteras med utvärderingskriterium 1.1.3.6.",
+   "mervarden": [],
+   "kompletterar": [
+    "KD1.1.3.6"
+   ]
+  },
+  {
+   "id": "KD1.1.3.3",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på datalagring",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska ha implementerade och beskrivna backup- och återläsningsrutiner som möjliggör ett återskapande till ett konsistent och fungerande system för användarna. Kravet kompletteras med utvärderingskriterium 1.1.3.6.",
+   "mervarden": [],
+   "kompletterar": [
+    "KD1.1.3.6"
+   ]
+  },
+  {
+   "id": "KD1.1.3.4",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på datalagring",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska erbjuda en teknisk lagringsarkitektur som organiserar datalagringen så att respektive huvudmans (landsting/region) information enkelt kan särskiljas och extraheras. Kravet kompletteras med utvärderingskriterium 1.1.3.5.",
+   "mervarden": [],
+   "kompletterar": [
+    "KD1.1.3.5"
+   ]
+  },
+  {
+   "id": "KD1.1.3.5",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Datalagring",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Beskriv lösning för datalagring, ur perspektiven datalagringsarkitektur/-design, teknisk arkitektur för särskiljning av respektive huvudmans data/information, verktyg och rutiner för att proaktivt analysera systemets volymförändringar på backup och datalagring samt hur data kan flyttas mellan olika lagringslösningar med olika kvalitet och prestanda beroende på hur tillgång till data efterfrågas över tiden och vilka konsekvenser det får på tillgänglighet, prestanda och kostnader.",
+   "mervarden": [
+    "Hur flexibelt data kan flyttas mellan olika lagringslösningar med olika kvalitet och prestanda",
+    "Hur väl offererad datalagringslösning klarar av kraftigt ökade datamängder och lagringsvolymer",
+    "Hur väl den tekniska arkitekturen för offererad datalagringslösning klarar av att särskilja och extrahera respektive huvudmans (inom SUSSA-samarbetet) information"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.3.6",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Dataförlust",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Beskriv lösning för att tillse att Beställare inte drabbas av dataförlust. Exempel på scenarion som behöver täckas in är fatala fel i infrastrukturen (krascher), störningar i datakommunikationen, förhindrande av dataläckage, applikatoriska fel samt backup- och återläsningsrutiner.",
+   "mervarden": [
+    "I hur hög utsträckning offererad datalagringslösning inklusive leveransorganisationen och dess processer/rutiner bidrar till en säker och robust datalagring som tillser att Beställare inte drabbas av dataförluster (proaktivitet)",
+    "I hur hög utsträckning offererad datalagringslösning inklusive leveransorganisationen och dess processer/rutiner bidrar till en snabb och säker återställning till avtalat läge vid händelse av fatala fel i infrastrukturen, störningar i datakommunikationen, applikatoriska fel etc. (reaktivitet)"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.4.1",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på följsamhet mot klient och klientplattform",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Kärnsystemet ska kunna tillhandahållas på klienter som följer eKlients riktlinjer, policys och roadmaps, i enlighet med följande bifogade dokument: Bilaga KD1 Handledning_eklient_livscykelplaner.pdf Bilaga KD2 Livscykelplaner_eklient.pdf Bilaga KD3 Eklient_standard_mobila_enheter_och_applikationer_1.0.pdf Bilaga KD4 Paketeringspolicy_eklient.pdf Kravet kompletteras med utvärderingskriterium 1.1.4.5.",
+   "mervarden": [],
+   "kompletterar": [
+    "KD1.1.4.5"
+   ]
+  },
+  {
+   "id": "KD1.1.4.2",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på följsamhet mot klient och klientplattform",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska vid uppgradering av klientprogramvara tillhandahålla klientpaket i enlighet med aktuell version av eKlients paketeringspolicy, Bilaga KD4, för närvarande version 2.61. Beställare ombesörjer installation på användarnas klienter.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.4.3",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på följsamhet mot klient och klientplattform",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Kärnsystemet ska vara följsamt mot olika bildskärmsegenskaper. Kravet kompletteras med utvärderingskriterium 1.1.4.10.",
+   "mervarden": [],
+   "kompletterar": [
+    "KD1.1.4.10"
+   ]
+  },
+  {
+   "id": "KD1.1.4.4",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Klient och klientplattform",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Behov av att Kärnsystemet kan tillgängliggöras via olika klienter, enheter och mobila enheter beroende på aktuell kontext. Beskriv vilka olika klienter och klientplattformar som stöds inklusive vilka versioner (t.ex. webbklient/webbgränssnitt, tjock klient/klientgränssnitt, mobila klienter) och eventuella tekniska krav i anslutning till detta.",
+   "mervarden": [
+    "Kärnsystemets flexibilitet mot klient, klientplattform och dess versioner, dvs så få hårda beroenden som möjligt",
+    "En tydlighet och transparens kring vilka krav som ställs på klient och klientplattform",
+    "En väl dokumenterad och genomarbetad livscykelplan för den egna klientapplikationen",
+    "Klientapplikationens oberoende till olika sorters enheter/devices"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.4.5",
+   "typ": "utvarderingskriterium",
+   "rubrik": "eKlient",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Beskriv Kärnsystemets följsamhet mot konceptet eKlient idag och dess livscykelplaner samt följsamhet mot eventuella andra relevanta livscykelplaner.",
+   "mervarden": [
+    "Hur väl Kärnsystemets livscykelplan följer eKlients livscykelplan",
+    "Hur väl Kärnsystemets följsamhet är mot andra relevanta livscykelplaner avseende mjukvara"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.4.6",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Plug-ins",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Behov av en klientlösning som är säker och kräver ett minimum av underhåll. Beskriva vilka eventuella plug-ins/insticksprogram som Kärnsystemet ställer krav på.",
+   "mervarden": [
+    "Ett så litet beroende som möjligt av plug-ins",
+    "I hur hög utsträckning plug-in är självständiga till Beställarnas klienter i form av rättigheter och konfiguration"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.4.7",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Klientvirtualisering",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Behov av en okomplicerad och användarvänlig access till Kärnsystemet samt en lösning som ger goda förutsättningar för integration med, och användandet av, omgivande systemkomponenter i Beställarens IT-miljö. Beskriv ifall Kärnsystemet kräver klientvirtualisering, orsaken till detta samt vilka på marknaden förekommande virtualiseringslösningar som kan användas.",
+   "mervarden": [
+    "Ifall Kärnsystemet och/eller driftlösningen inte kräver klientvirtualisering för att leva upp till ställda SLA-krav och övriga krav inom ramen för detta förfrågningsunderlag.",
+    "Graden av flexibilitet hos Kärnsystemet mot vedertagna virtualiseringstekniker."
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.4.8",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Tredjepartsprodukter",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Behov av ett så litet beroende till övriga klientspecifika tredjepartsprodukter som möjligt. Beskriv vilka klientspecifika Tredjepartsprodukter i övrigt som offererad Lösning har ett beroende till och varför.",
+   "mervarden": [
+    "Att Kärnsystemet och driftlösningen har ett så litet beroende till övriga klientspecifika tredjepartsprodukter som möjligt"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.4.9",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Klientuppgradering",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Behov av att förstå processen för, samt eventuella krav på Beställaren avseende, klientuppgradering för de olika klienttyper som stöds. Beskriv processen för klientuppgradering inklusive vilka roller som är involverade, hur klient- och uppgraderingspaket ska distribueras samt i vilket format.",
+   "mervarden": [
+    "Hur väl processen för klientuppgradering är dokumenterad och genomarbetad (avseende implementation, test, mjukvaruberoenden, versionshantering med kompabilitet/samexistens).",
+    "Minimerad påverkan på användarnas tillgänglighet till Kärnsystemet i samband med planerat underhåll i uppgraderingsprocessen.",
+    "Hur väl processen för klientuppgradering förhåller sig till aktuell version av eKlients paketeringspolicy (version 2.61), Bilaga KD4."
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.1.4.10",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Bildskärm",
+   "avsnitt": "KD1.1",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Behov av en modern och flexibel följsamhet följsamt mot olika bildskärmsegenskaper. Beskriv hur Kärnsystemet hanterar följsamheten mot olika bildskärmegenskaper på olika typer av klienter/enheter, hur Kärnsystemet förhåller sig till responsiv design, bildskärmsupplösningar och bildskärmsstorlekar, multipla bildskärmar samt eventuella krav på min- och/eller max-upplösning samt rekommenderade bildskärmsstorlekar.",
+   "mervarden": [
+    "Flexibilitet och automatanpassning av grafiskt användargränssnitt/graphical user interface (GUI) gentemot olika bildskärmsegenskaper så som storlek och upplösning",
+    "Designens responsivitet gentemot olika typer av enheter"
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.2.1.1",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på tillgänglighet och servicenivå",
+   "avsnitt": "KD1.2",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska ta fram och underhålla regler och anvisningar för servicenivåhantering, inklusive de eventuella verktyg som ska användas. Beställare ska godkänna regler och anvisningar innan de kan börja nyttjas.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.2.1.2",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på tillgänglighet och servicenivå",
+   "avsnitt": "KD1.2",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska övervaka och månatligen rapportera servicenivåutfall till Beställaren. Kravet kompletteras med utvärderingskriterium 1.2.1.5",
+   "mervarden": [],
+   "kompletterar": [
+    "KD1.2.1.5"
+   ]
+  },
+  {
+   "id": "KD1.2.1.3",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på tillgänglighet och servicenivå",
+   "avsnitt": "KD1.2",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska under grundimplementationen tillsammans med Beställare definiera en baseline avseende accepterade svarstider. Svarstid mäts från och till en klient placerad vid CPE, se definition under kapitel ”1.1.2 Krav på datakommunikation”. Utifrån denna baseline ska svarstider/prestanda mätas och rapporteras på månatlig basis genom Anbudsgivarens försorg. Negativa avvikelser från denna baseline efter driftstart ska hanteras som en incident.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.2.1.4",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på tillgänglighet och servicenivå",
+   "avsnitt": "KD1.2",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Om avtalad redundans saknas och detta inte lett till någon explicit incident ska detta hanteras som en incident av felprioritet 2. Om incident inträffat som resultat av avsaknad av redundans klassas incident enligt prioriteringsmodell för incidenter.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.2.1.5",
+   "typ": "utvarderingskriterium",
+   "rubrik": "SLA-uppföljning",
+   "avsnitt": "KD1.2",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Behov av att på ett strukturerat sätt löpande följa upp och återredovisaa utfall i förhållande till SLA. Beskriv hur SLA:er följs upp och återrapporteras.",
+   "mervarden": [
+    "Strukturerad och effektiv uppföljning av SLA - såväl avseende organisation, process, verktyg m.m.",
+    "Strukturerad, effektiv och användarvänlig återrapportering av SLA - såväl avseende organisation, process, verktyg m.m."
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.3.1.1",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på processhandbok",
+   "avsnitt": "KD1.3",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Alla överenskomna processer ska under Anbudsgivarens ansvar definieras och överenskommas med respektive Beställare i detalj under implementationsfasen, vilket omfattar minst de processer som anges i detta kravkapitel. Processerna ska dokumenteras i Processhandboken.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.3.1.2",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på processhandbok",
+   "avsnitt": "KD1.3",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Processhandboken ska hållas uppdaterad under hela avtalsperioden. Anbudsgivaren ansvarar för denna åtgärd. Alla uppdateringar och ändringar ska skriftligen överenskommas med Beställare innan de börjar gälla.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.3.1.3",
+   "typ": "utvarderingskriterium",
+   "rubrik": "Processhandbok",
+   "avsnitt": "KD1.3",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ombeds beskriva hur de tänkt utforma Processhandboken samt hur de avser att involvera respektive Beställare i detta arbete.",
+   "mervarden": [
+    "Graden av tydlighet och struktur i Processhandboken samt hur den ajourhålls.",
+    "Begränsad omfattning på Beställarens involvering i framtagandet av processbeskrivningar."
+   ],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.3.2.1",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på incidenthantering",
+   "avsnitt": "KD1.3",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska ha en Incidenthanteringsprocess som följer ITIL, minst version 3/2011.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.3.2.2",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på incidenthantering",
+   "avsnitt": "KD1.3",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Vid incidenter av prioritet 1 och 2 ska incidentuppföljningsmöten genomföras där Anbudsgivaren redogör för Incidenten, konsekvenser av den, orsaken till den samt vad man har genomfört och kommer att genomföra för att undvika att samma typ av Incidenter uppstår igen.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.3.2.3",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på incidenthantering",
+   "avsnitt": "KD1.3",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Om incident av prioritet 1 inte är löst inom 2 timmar ska process för Major Incident initieras.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.3.2.4",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på incidenthantering",
+   "avsnitt": "KD1.3",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska beskriva rekommenderad process för Incidenthantering (Incident Management). Beskriv roller som respektive aktör (Anbudsgivare/Beställare) har i processen samt hur rapportering av incidenter rekommenderas gå till. Beskriv även processen för Major Incident.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.3.3.1",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på problemhantering",
+   "avsnitt": "KD1.3",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska ha en Problemhanteringsprocess som följer ITIL, minst version 3/2011.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.3.3.2",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på problemhantering",
+   "avsnitt": "KD1.3",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska beskriva rekommenderad process för Problemhantering (Problem Management) samt hur rapportering av problem till Beställaren rekommenderas gå till.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.3.4.1",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på ändringshantering",
+   "avsnitt": "KD1.3",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska ha en Ändringshanteringsprocess som följer ITIL, minst version 3/2011.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.3.4.2",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på ändringshantering",
+   "avsnitt": "KD1.3",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska beskriva rekommenderad process för Ändringshantering (Change Management) samt hur rapportering av ändringar/ändringsförslag till Beställaren rekommenderas gå till.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.3.5.1",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på releasehanteringsprocess",
+   "avsnitt": "KD1.3",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska ha en Releasehanteringsprocess som följer ITIL, minst version 3/2011.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.3.5.2",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på releasehanteringsprocess",
+   "avsnitt": "KD1.3",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska beskriva rekommenderad process för Releaseshantering (Release Management).",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.3.6.1",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på beställningshantering",
+   "avsnitt": "KD1.3",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska ha en Beställningshanteringsprocess som följer ITIL, minst version 3/2011.",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.3.6.2",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på beställningshantering",
+   "avsnitt": "KD1.3",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska beskriva rekommenderad process för Beställningshantering (Request Management).",
+   "mervarden": [],
+   "kompletterar": []
+  },
+  {
+   "id": "KD1.3.7.1",
+   "typ": "krav_vid_leverans",
+   "rubrik": "Krav på övriga processer",
+   "avsnitt": "KD1.3",
+   "kapitel": "KD1",
+   "sida": null,
+   "text": "Anbudsgivaren ska beskriva de övriga processer som rekommenderas ingå i Processhandboken och därmed implementeras för att reglera gränsytan mellan Anbudsgivare och Beställare.",
    "mervarden": [],
    "kompletterar": []
   }
