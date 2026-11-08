@@ -22,6 +22,8 @@ import { ACVPU_KOD } from './kodverk.js';
 import { tolkaGcs } from './skalor.js';
 // Läkemedelsprocessen, del 2 (runda 6, r2).
 import * as stod from './lakemedelsstod.js';
+// Runda 7, r3: posterna i faktureringsunderlaget som ChargeItem (ekonomi.js).
+import * as ekonomi from './ekonomi.js';
 
 export const SYSTEM = {
   personnummer: 'http://electronichealth.se/identifier/personnummer',
@@ -494,6 +496,8 @@ function capabilityBas(base) {
       })), ...tidbokFhir.capabilityResurser(),
       // Runda 6, r1: åtgärder med KVÅ.
       { type: 'Procedure', interaction: [{ code: 'read' }, { code: 'search-type' }], searchParam: [{ name: 'patient', type: 'reference' }] },
+      // Runda 7, r3: posterna i faktureringsunderlaget.
+      { type: 'ChargeItem', interaction: [{ code: 'read' }, { code: 'search-type' }], searchParam: [{ name: 'patient', type: 'reference' }] },
       ...DEFINITIONSTYPER.map(t => ({
         type: t, interaction: [{ code: 'read' }, { code: 'search-type' }], searchParam: [{ name: 'url', type: 'uri' }, { name: '_id', type: 'token' }],
       }))],
@@ -554,6 +558,8 @@ export function hantera(ctx) {
   if (!personal && ctx.invanare) return hanteraInvanare(ctx, delar);
   // Runda 6, r1: Procedure (åtgärder med KVÅ) har en egen hanterare med samma behörighet och loggning.
   if (typ === 'Procedure') return atgarder.hantera(ctx, delar, (resurser) => bundle(base, url, resurser));
+  // Runda 7, r3: ChargeItem med samma behörighet och loggning som kostnadsrutan.
+  if (typ === 'ChargeItem') return ekonomi.fhirHantera(ctx, delar, (resurser) => bundle(base, url, resurser));
   if (!TYPER.includes(typ) || delar.length > 2) throw new Fel(404, 'Okänd FHIR-resurs.', 'saknas');
   if (!personal) throw new Fel(401, 'Logga in först.', 'ej_inloggad');
 

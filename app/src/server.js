@@ -53,6 +53,7 @@ import * as planering from './planering.js';
 import * as tidbokFhir from './tidbok-fhir.js';
 // Runda 7, r3: ekonomi, faktureringsunderlag och kostnader i vårdprocessen (Sussa 7.1).
 import { registreraRutter as ekonomiRutter } from './ekonomi-rutter.js';
+import * as ekonomi from './ekonomi.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -1360,6 +1361,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   };
   // Runda 6, r4: språket för kallelserna.
   MIN_DELAR.sprak = planering.minSprak;
+  // Runda 7, r3: patienten ser hela sitt högkostnadsskydd, med alla avgifter (ekonomi.js).
+  MIN_DELAR.hogkostnadsskydd = ekonomi.minHogkostnadsskydd;
   rutt('GET', '/api/min/journal/:id', (c, id) => medMinJournal(c, id, 'min:journal', (atk) => minJournal.huvud(atk)));
   rutt('GET', '/api/min/journal/:id/:del', (c, id, del) => {
     if (!Object.hasOwn(MIN_DELAR, del)) throw new Fel(404, 'Okänd adress.', 'saknas');

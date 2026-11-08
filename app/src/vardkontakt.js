@@ -339,26 +339,44 @@ export function avgiftFor(db, patient, v, { synliga = null } = {}) {
   const fran = new Date(Date.parse(v.start) - 365 * 86400_000).toISOString();
   const tidigare = db.query(`SELECT * FROM vardkontakter WHERE patient_id = ? AND typ <> 'slutenvard' AND kalla = 'vardkallan' AND id <> ? AND start >= ? AND start < ?
     AND (planerad = 0 OR ankomst IS NOT NULL) ORDER BY start, id`).all(patient.id, v.id ?? 0, fran, v.start);
+  const r = raknaSkydd(synliga ? synliga(tidigare) : tidigare, patient, AVGIFT_DEMO.hogkostnadsskydd);
+  const kvar = Math.max(0, AVGIFT_DEMO.hogkostnadsskydd - r.betalt);
+  // Runda 7, r3: som e-frikortet. Svaret säger bara att frikort gäller och till när, eller avgiften att betala, aldrig
+  // hur mycket som är betalt eller hur nära taket patienten är. En avgift som taket har satt ned har samma text som en
+  // hel avgift, så att texten inte röjer besök som den som läser inte får se.
+  if (kvar === 0) return { ...ut(0, `Frikort gäller till och med ${r.frikortTill}.`), frikort: true, frikortTill: r.frikortTill };
+  return ut(Math.min(kvar, g.belopp), `${g.text} Avgift enligt högkostnadsskyddet.`);
+}
+
+// Runda 7, r3: avgifterna inom högkostnadsskyddet i tidsordning, och till när frikortet gäller: tolv månader från det
+// första besöket som räknas (demoregel).
+function raknaSkydd(kontakter, patient, grans) {
   let betalt = 0;
-  for (const t of synliga ? synliga(tidigare) : tidigare) betalt += Math.min(grundavgift(t, patient).belopp, Math.max(0, AVGIFT_DEMO.hogkostnadsskydd - betalt));
-  const kvar = Math.max(0, AVGIFT_DEMO.hogkostnadsskydd - betalt);
-  if (kvar === 0) return ut(0, `Högkostnadsskyddet på ${AVGIFT_DEMO.hogkostnadsskydd} kr är nått, så besöket är avgiftsfritt.`);
-  if (kvar < g.belopp) return ut(kvar, `${g.text} Högkostnadsskyddet nås med det här besöket.`);
-  return ut(g.belopp, g.text);
+  let forsta = null;
+  const avgifter = [];
+  for (const t of kontakter) {
+    const b = Math.min(grundavgift(t, patient).belopp, Math.max(0, grans - betalt));
+    if (b > 0 && !forsta) forsta = datumAv(new Date(Date.parse(t.start)));
+    if (b > 0) avgifter.push({ kontakt: t, belopp: b });
+    betalt += b;
+  }
+  return { betalt, avgifter, frikortTill: forsta ? addDagar(forsta, 364) : null };
 }
 
 // Runda 7, r3: högkostnadsskyddet för patienten i dag, med samma räkning som avgiften: hur mycket som har betalats inom
 // skyddet de senaste tolv månaderna och hur mycket som återstår till frikort. synliga filtrerar kontakterna på det
 // anroparen får se (inre sekretess och spärr), så att beloppet aldrig röjer ett besök som är dolt (ekonomi.js).
-export function hogkostnadsskyddet(db, patient, nu = Date.now(), { synliga = null } = {}) {
+export function hogkostnadsskyddet(db, patient, nu = Date.now(), { synliga = null, medAvgifter = false } = {}) {
   const grans = AVGIFT_DEMO.hogkostnadsskydd;
   if (lmaFor(db, patient.id, datumAv(new Date(nu)))) return { grans, betalt: 0, kvar: grans, frikort: false, lma: true, demoregler: true };
   const fran = new Date(nu - 365 * 86400_000).toISOString();
   const tidigare = db.query(`SELECT * FROM vardkontakter WHERE patient_id = ? AND typ <> 'slutenvard' AND kalla = 'vardkallan' AND start >= ? AND start <= ?
     AND (planerad = 0 OR ankomst IS NOT NULL) ORDER BY start, id`).all(patient.id, fran, new Date(nu).toISOString());
-  let betalt = 0;
-  for (const t of synliga ? synliga(tidigare) : tidigare) betalt += Math.min(grundavgift(t, patient).belopp, Math.max(0, grans - betalt));
-  return { grans, betalt, kvar: Math.max(0, grans - betalt), frikort: betalt >= grans, lma: false, demoregler: true };
+  const r = raknaSkydd(synliga ? synliga(tidigare) : tidigare, patient, grans);
+  const ut = { grans, betalt: r.betalt, kvar: Math.max(0, grans - r.betalt), frikort: r.betalt >= grans, lma: false, demoregler: true };
+  if (ut.frikort) ut.frikortTill = r.frikortTill;
+  if (medAvgifter) ut.avgifter = r.avgifter;
+  return ut;
 }
 
 // Vårdtillfällen (6.1.1.5). Avdelningar som kan ta emot inneliggande patienter: arbetsplatser som inte är mottagningar,

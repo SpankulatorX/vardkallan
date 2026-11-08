@@ -14,11 +14,12 @@
 // adress, bara identiteten och att fakturan går genom Skatteverket (simulerat).
 import { createHash } from 'node:crypto';
 import { Fel, iso, idag, addDagar, datumAv, giltigtDatum } from './db.js';
-import { kanRoll, vardenhetFor, enheterUnder, alder } from './atkomst.js';
+import { Atkomst, kanRoll, vardenhetFor, enheterUnder, alder, aktivaSparrar } from './atkomst.js';
 import { loggaRad } from './logg.js';
 import { avgiftFor, hogkostnadsskyddet, pagandeFor } from './vardkontakt.js';
 import { formatera } from './identitet.js';
-import { KVA } from './kodverk.js';
+import { KVA, SYSTEM } from './kodverk.js';
+import { CS } from './fhir-definitioner.js';
 import { HANDLING_FOR } from './atgarder.js';
 import * as samordnad from './samordnad.js';
 import { DEMO, KATEGORIER, DRG_DEMO, DRG_OGRUPPERAD, EGEN_REGION, folkbokforing, lmaFor } from './ekonomi-schema.js';
@@ -279,6 +280,7 @@ function sammanhang(db, nu) {
     fb: (vt) => minne(`fb|${vt.id}`, () => fardigbehandlad(db, vt, { nu })),
     vard: (p, datum) => minne(`vb|${p.id}|${datum}`, () => vardbetalare(db, p, datum)),
     avg: (p, datum) => minne(`ab|${p.id}|${datum}`, () => avgiftsbetalare(db, p, datum)),
+    sparr: (pid) => minne(`sp|${pid}`, () => aktivaSparrar(db, pid).length > 0),
     hushall: (p, datum) => minne(`hh|${p.id}|${datum}`, () => minderarig(p, datum) && vardnadshavareFor(db, p).skyddad),
     enhet: (id) => minne(`e|${id}`, () => { const e = enhetRad(db, vardenhetFor(db, id)); return e ? { id: e.id, hsaId: e.hsa_id, namn: e.namn } : null; }),
   };
@@ -305,13 +307,16 @@ function post(c, { id, typ, tid, enhetId, kontakt = null, kod, text: t, antal = 
   // En post i ett vårdtillfälle ersätts med DRG och debiteras inte för sig.
   const iVt = Boolean(vt) && typ !== 'drg' && typ !== 'patientavgift' && b.typ !== 'kommun';
   const debiteras = Boolean(b.debiteras) && !iVt && !b.vantar;
+  // En patient med en spärr får minsta möjliga uppgifter i underlaget: posten pekar bara på vårdkontakten på den egna
+  // vårdenheten, inte på vårdtillfället eller hälsoärendet, som kan omfatta andra vårdenheter (beslut i runda 7).
+  const minst = c.sparr(patientId) && typ !== 'drg';
   return {
     id, typ, datum, tid, vardenhet: c.enhet(enhetId), enhet: enhetKort(c.db, enhetId),
-    vardkontaktId: kontakt?.id ?? null, vardtillfalleId: vt?.id ?? (typ === 'drg' ? extra.vardtillfalleId : null) ?? null, halsoarendeId: kontakt?.halsoarende_id ?? null,
-    sammanhallandeId: vt ? `vardtillfalle:${vt.id}` : typ === 'drg' ? `vardtillfalle:${extra.vardtillfalleId}` : kontakt ? `vardkontakt:${kontakt.id}` : null,
+    vardkontaktId: kontakt?.id ?? null, vardtillfalleId: minst ? null : vt?.id ?? (typ === 'drg' ? extra.vardtillfalleId : null) ?? null, halsoarendeId: minst ? null : kontakt?.halsoarende_id ?? null,
+    sammanhallandeId: vt && !minst ? `vardtillfalle:${vt.id}` : typ === 'drg' ? `vardtillfalle:${extra.vardtillfalleId}` : kontakt ? `vardkontakt:${kontakt.id}` : null,
     kalla, kod, text: t, antal, aPris, belopp: aPris * antal,
     prislista: prislista ? { version: prislista.version, giltigFran: prislista.giltig_fran } : null,
-    betalare: b, debiteras, ingarI: iVt && b.debiteras ? 'drg' : null,
+    betalare: b, debiteras, ingarI: iVt && b.debiteras && !minst ? 'drg' : null,
     status: b.vantar ? 'vantar' : debiteras ? 'faktureras' : 'intern', patient: patientDel(p, c.hushall(p, datum)), demo: true, ...extra,
   };
 }
@@ -324,7 +329,7 @@ function avgiftPost(c, v, tid) {
   const b = c.avg(p, datumI(tid));
   let status = 'faktureras';
   let statusText = 'Ingen betalning registrerad vid besöket. Fakturan skickas till betalningsmottagaren.';
-  if (a.belopp === 0) { status = /Högkostnadsskyddet .* är nått/.test(a.text) ? 'frikort' : 'avgiftsfri'; statusText = STATUS[status]; }
+  if (a.belopp === 0) { status = a.frikort ? 'frikort' : 'avgiftsfri'; statusText = STATUS[status]; }
   else if (finns(c.db, 'betalningar')) {
     const bet = c.db.query('SELECT x.* FROM betalningar x JOIN bokningar b ON b.id = x.bokning_id WHERE b.vardkontakt_id = ? ORDER BY x.id DESC').get(v.id);
     if (bet?.satt === 'kort') { status = 'betald'; statusText = `Betald med kort vid besöket, kvitto ${bet.kvitto}.`; }
@@ -421,15 +426,18 @@ function hjalpmedelPoster(c, h, kontakt) {
 }
 
 function drgPost(c, vt) {
-  const g = drgFor(c.db, vt, { nu: c.nu });
   const ve = vardenhetFor(c.db, vt.enhet_id);
+  // För en patient med en spärr räknas vårdtiden och inskrivningen bara på vistelserna på den egna vårdenheten.
+  const egna = c.sparr(vt.patient_id) ? c.db.query(`SELECT * FROM vardkontakter WHERE vardtillfalle_id = ? AND enhet_id IN (${enheterUnder(c.db, ve).map(() => '?').join(', ')}) ORDER BY start`).all(vt.id, ...enheterUnder(c.db, ve)) : null;
+  const g = drgFor(c.db, vt, { nu: c.nu, ...(egna?.length ? { dygn: egna.reduce((s, v) => s + vardtid(v.start, v.slut, c.nu), 0) } : {}) });
+  const inskriven = egna?.length ? egna[0].start : vt.inskriven;
   const pl = c.pris(ve, datumI(vt.utskriven));
   const p = c.patient(vt.patient_id);
   const b = c.vard(p, datumI(vt.utskriven));
   const fb = c.fb(vt);
   const r = post(c, { id: `drg:vt${vt.id}`, typ: 'drg', tid: vt.utskriven, enhetId: ve, kod: g.kod, text: g.text, aPris: g.belopp, kalla: `vardtillfalle:${vt.id}`, prislista: pl,
-    patientId: vt.patient_id, betalare: b, extra: { vardtillfalleId: vt.id, drg: { kod: g.kod, vikt: g.vikt, vardtid: g.vardtid, ytterfallDygn: g.ytterfallDygn ?? 0, huvuddiagnosFran: g.huvuddiagnosFran ?? null, forklaring: g.forklaring },
-      inskriven: vt.inskriven, utskriven: vt.utskriven, ...(fb.datum ? { fardigbehandlad: fb.datum } : {}) } });
+    patientId: vt.patient_id, betalare: b, extra: { vardtillfalleId: vt.id, drg: { kod: g.kod, vikt: g.vikt, vardtid: g.vardtid, ytterfallDygn: g.ytterfallDygn ?? 0 },
+      tidigareHuvuddiagnos: g.huvuddiagnosFran === 'tidigare_kontakt', inskriven, utskriven: vt.utskriven, ...(fb.datum ? { fardigbehandlad: fb.datum } : {}) } });
   // Ett vårdtillfälle som inte går att gruppera väntar.
   if (g.kod === DRG_OGRUPPERAD.kod) return { ...r, status: 'vantar', debiteras: false, statusText: g.forklaring };
   return r;
@@ -488,7 +496,7 @@ export function sammanstallning(rader) {
   if (utl) varningar.push(`${st(utl, 'post gäller', 'poster gäller')} patienter utan svensk identitet. Ersättning från andra länder hanteras inte i demon.`);
   const ogr = n(r => r.typ === 'drg' && r.kod === DRG_OGRUPPERAD.kod);
   if (ogr) varningar.push(`${st(ogr, 'vårdtillfälle kan', 'vårdtillfällen kan')} inte grupperas eftersom huvuddiagnosen saknas.`);
-  const tidig = n(r => r.typ === 'drg' && r.drg?.huvuddiagnosFran === 'tidigare_kontakt');
+  const tidig = n(r => r.typ === 'drg' && r.tidigareHuvuddiagnos);
   if (tidig) varningar.push(`${st(tidig, 'vårdtillfälle är grupperat', 'vårdtillfällen är grupperade')} på en huvuddiagnos från en kontakt före inskrivningen.`);
   const utan = n(r => r.typ !== 'drg' && !r.vardkontaktId);
   if (utan) varningar.push(`${st(utan, 'post saknar', 'poster saknar')} vårdkontakt och har inget sammanhållande id.`);
@@ -550,7 +558,8 @@ const platt = (r) => ({
   adress: r.patient.adress, postnr: r.patient.postnr, ort: r.patient.ort, forsandelse: r.patient.forsandelse, drgKod: r.drg?.kod ?? '', drgVikt: r.drg?.vikt ?? '',
   fardigbehandlad: r.fardigbehandlad ?? '', prislista: r.prislista?.version ?? '', demo: 'ja',
 });
-const utan = (r) => { const { tid, enhet, ...rest } = r; return rest; };
+// Underlaget innehåller inga diagnoskoder utöver DRG-gruppen och inga interna fält.
+const utan = (r) => { const { tid, enhet, tidigareHuvuddiagnos, ...rest } = r; return rest; };
 
 // Underlaget till den nationella tjänsten för utomlänsvård (simulerad): en grupp per hemregion med vårdtillfällen och
 // besök, identitet, vårdande vårdenhet, vårdform, datum, DRG och belopp.
@@ -626,10 +635,41 @@ const summera = (rader) => {
   return [...m.values()].sort((a, b) => b.belopp - a.belopp);
 };
 
+// Beloppen i kostnadsrutan räknas bara på de besök användaren får se.
+const MIN_JOURNAL = 'Beloppet gäller de besök du kan se. Patienten ser hela högkostnadsskyddet i Min journal.';
 function hogkostnadText(h) {
   if (h.lma) return { ...h, text: 'Patienten är asylsökande med LMA-kort och betalar den lägre avgiften. Högkostnadsskyddet gäller inte i demon.' };
-  if (h.frikort) return { ...h, text: `Patienten har frikort: ${h.grans} kr är betalt inom högkostnadsskyddet de senaste tolv månaderna, räknat på de besök du har behörighet till.` };
-  return { ...h, text: `Patienten har betalat ${h.betalt} kr av ${h.grans} kr inom högkostnadsskyddet de senaste tolv månaderna, räknat på de besök du har behörighet till. ${h.kvar} kr återstår till frikort.` };
+  if (h.frikort) return { ...h, text: `Patienten har frikort: ${h.grans} kr är betalt inom högkostnadsskyddet de senaste tolv månaderna. ${MIN_JOURNAL}` };
+  return { ...h, text: `Patienten har betalat ${h.betalt} kr av ${h.grans} kr inom högkostnadsskyddet de senaste tolv månaderna. ${h.kvar} kr återstår till frikort. ${MIN_JOURNAL}` };
+}
+
+// Läkemedel och åtgärder visas bara när rollen och behörighetsmotorn släpper igenom dem, som i journalen.
+function synligaRader(atk, alla) {
+  const pers = atk.personal;
+  return alla.filter((r) => {
+    if (r.typ === 'lakemedel') return atk.prova('las_lakemedel', { enhet_id: r.enhet?.id, gemensam: true }).tillaten;
+    if (r.typ === 'atgard' || (r.typ === 'material' && /^(atgard|lakemedelsgenomgang|administrering):/.test(r.kalla))) {
+      const h = r.typ === 'atgard' ? HANDLING_FOR[r.kod] : r.kalla.startsWith('administrering:') ? 'las_lakemedel' : HANDLING_FOR[alla.find(x => x.typ === 'atgard' && x.kalla === r.kalla)?.kod];
+      return Boolean(h) && kanRoll(pers, h) && atk.prova(h, { enhet_id: r.enhet?.id, gemensam: h === 'las_lakemedel' }).tillaten;
+    }
+    return true;
+  });
+}
+
+// Avgiften för en kontakt räknas om med bara de besök användaren får se, samma filter som för högkostnadsskyddet, så att
+// ett belopp eller en text som taket har påverkat aldrig röjer besök på en spärrad eller annan vårdenhet. Statusen
+// räknas bara ur det som inte beror på taket: den omräknade avgiften, om betalningsmottagaren väntar och om en
+// kortbetalning finns. Den ofiltrerade postens status används aldrig.
+function synligAvgift(atk, p, r, synligaBesok) {
+  const db = atk.db;
+  const vkId = /^vardkontakt:(\d+)$/.exec(r.kalla)?.[1];
+  if (!vkId) return { datum: r.datum, tid: r.tid, text: r.text, belopp: r.belopp, status: r.status, statusText: r.statusText ?? STATUS[r.status], rad: r };
+  const v = db.query('SELECT * FROM vardkontakter WHERE id = ?').get(Number(vkId));
+  const a = avgiftFor(db, p, v, { synliga: synligaBesok });
+  const b = avgiftsbetalare(db, p, r.datum);
+  const kort = finns(db, 'betalningar') && Boolean(db.query("SELECT 1 FROM betalningar x JOIN bokningar k ON k.id = x.bokning_id WHERE k.vardkontakt_id = ? AND x.satt = 'kort'").get(v.id));
+  const status = a.belopp === 0 ? (a.frikort ? 'frikort' : 'avgiftsfri') : b.vantar ? 'vantar' : kort ? 'betald' : 'faktureras';
+  return { datum: r.datum, tid: r.tid, text: `Patientavgift. ${a.text}`, belopp: a.belopp, status, statusText: status === 'vantar' ? b.text : STATUS[status], rad: r };
 }
 
 // Kostnadsrutan för ett vårdtillfälle eller en vårdkontakt. Utan val visas det pågående vårdtillfället, annars dagens
@@ -684,32 +724,10 @@ export function kostnader(atk, q = {}, nu = Date.now()) {
   const c = sammanhang(db, nu);
   const alla = posterForKontakter(c, synliga);
   // Läkemedel och åtgärder visas bara när rollen och behörighetsmotorn släpper igenom dem, som i journalen.
-  const syns = (r) => {
-    if (r.typ === 'lakemedel') return atk.prova('las_lakemedel', { enhet_id: r.enhet?.id, gemensam: true }).tillaten;
-    if (r.typ === 'atgard' || (r.typ === 'material' && /^(atgard|lakemedelsgenomgang|administrering):/.test(r.kalla))) {
-      const h = r.typ === 'atgard' ? HANDLING_FOR[r.kod] : r.kalla.startsWith('administrering:') ? 'las_lakemedel' : HANDLING_FOR[alla.find(x => x.typ === 'atgard' && x.kalla === r.kalla)?.kod];
-      return Boolean(h) && kanRoll(pers, h) && atk.prova(h, { enhet_id: r.enhet?.id, gemensam: h === 'las_lakemedel' }).tillaten;
-    }
-    return true;
-  };
-  const rader = alla.filter(syns);
-  // Avgiften för en kontakt räknas här om med bara de besök användaren får se, samma filter som för högkostnadsskyddet,
-  // så att ett belopp eller en text som taket har påverkat aldrig röjer besök på en spärrad eller annan vårdenhet.
-  // Betalningen visas bara som betald eller inte, utan belopp.
-  const avgifter = rader.filter(r => r.typ === 'patientavgift').map(r => {
-    const vkId = /^vardkontakt:(\d+)$/.exec(r.kalla)?.[1];
-    if (!vkId) return { datum: r.datum, text: r.text, belopp: r.belopp, status: r.status, statusText: r.statusText ?? STATUS[r.status] };
-    const v = db.query('SELECT * FROM vardkontakter WHERE id = ?').get(Number(vkId));
-    const a = avgiftFor(db, p, v, { synliga: synligaBesok });
-    // Statusen räknas bara ur det som inte beror på taket: den omräknade avgiften, om betalningsmottagaren väntar och om
-    // en kortbetalning finns. Den ofiltrerade postens status används aldrig.
-    const b = avgiftsbetalare(db, p, r.datum);
-    const kort = finns(db, 'betalningar') && Boolean(db.query("SELECT 1 FROM betalningar x JOIN bokningar k ON k.id = x.bokning_id WHERE k.vardkontakt_id = ? AND x.satt = 'kort'").get(v.id));
-    const status = a.belopp === 0 ? (/Högkostnadsskyddet .* är nått/.test(a.text) ? 'frikort' : 'avgiftsfri') : b.vantar ? 'vantar' : kort ? 'betald' : 'faktureras';
-    return { datum: r.datum, text: `Patientavgift. ${a.text}`, belopp: a.belopp, status, statusText: status === 'vantar' ? b.text : STATUS[status] };
-  });
+  const rader = synligaRader(atk, alla);
+  const avgifter = rader.filter(r => r.typ === 'patientavgift').map(r => synligAvgift(atk, p, r, synligaBesok));
   const sedan = synliga.reduce((m, v) => (v.start < m ? v.start : m), synliga[0].start);
-  const ut = { typ, id: mal.id, sedan, pagar: typ === 'vardtillfalle' ? !mal.utskriven : !mal.slut, patientavgifter: avgifter, demo: full ? DEMO : DEMO_AVGIFT };
+  const ut = { typ, id: mal.id, sedan, pagar: typ === 'vardtillfalle' ? !mal.utskriven : !mal.slut, patientavgifter: avgifter.map(({ tid, rad, ...x }) => x), demo: full ? DEMO : DEMO_AVGIFT };
   if (full) {
     const kost = rader.filter(r => r.typ !== 'patientavgift');
     ut.kategorier = ['vardkontakt', 'varddygn', 'lakemedel', 'material', 'atgard', 'hjalpmedel'].map(t => ({ typ: t, text: TYPTEXT[t], antal: kost.filter(r => r.typ === t).reduce((s, r) => s + r.antal, 0), belopp: kost.filter(r => r.typ === t).reduce((s, r) => s + r.belopp, 0) })).filter(k => k.antal);
@@ -766,4 +784,79 @@ export function registreraLma(atk, body = {}) {
   const r = atk.db.query('INSERT INTO lma_kort (patient_id, nummer, giltig_till, registrerad, av) VALUES (?, ?, ?, ?, ?)').run(atk.patientId, nummer, body.giltigTill, iso(), atk.personal.id);
   atk.logga('lma', atk.grund(), `lma:${r.lastInsertRowid}`);
   return [201, { id: Number(r.lastInsertRowid), nummer, giltigTill: body.giltigTill, text: 'LMA-kortet är registrerat. Patienten betalar den lägre avgiften för asylsökande och Migrationsverket blir betalningsmottagare för vården (simulerat).' }];
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Min journal: patienten ser hela sitt högkostnadsskydd, med varje avgift som räknas, var och när. Det är patientens
+// egna uppgifter, och spärrar mellan vårdenheter gäller inte patientens egen läsning.
+export function minHogkostnadsskydd(atk, nu = Date.now()) {
+  const db = atk.db;
+  const p = db.query('SELECT * FROM patienter WHERE id = ?').get(atk.patientId);
+  const h = hogkostnadsskyddet(db, p, nu, { medAvgifter: true });
+  const avgifter = (h.avgifter ?? []).map(a => ({ datum: datumI(a.kontakt.ankomst ?? a.kontakt.start), vardenhet: enhetKort(db, vardenhetFor(db, a.kontakt.enhet_id))?.namn ?? null, belopp: a.belopp }));
+  const text = h.lma ? 'Du är asylsökande med LMA-kort och betalar den lägre avgiften. Högkostnadsskyddet gäller inte i demon.'
+    : h.frikort ? `Du har frikort till och med ${h.frikortTill}. Du har betalat ${h.grans} kr inom högkostnadsskyddet de senaste tolv månaderna.`
+      : `Du har betalat ${h.betalt} kr av ${h.grans} kr inom högkostnadsskyddet de senaste tolv månaderna. När du har betalat ${h.kvar} kr till får du frikort.`;
+  return { grans: h.grans, betalt: h.betalt, kvar: h.kvar, frikort: h.frikort, frikortTill: h.frikortTill ?? null, lma: h.lma, avgifter, text, demoregler: true, demo: DEMO_AVGIFT };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// FHIR: ChargeItem (runda 7, r3). En resurs per post för patientens vårdkontakter, med samma behörighet och filter som
+// kostnadsrutan: vårdkontakterna prövas med las_kostnader, läkemedel och åtgärder med samma handlingar som i journalen,
+// och vårdadministratören får bara patientavgifterna, omräknade på de besök hen får se. DRG-posten finns bara i
+// faktureringsunderlaget.
+const fhirId = (id) => id.replace(/:/g, '.');
+const KALLA_TABELL = { vk: 'vardkontakter', a: 'atgarder', lg: 'lakemedelsgenomgangar', adm: 'administreringar', h: 'hjalpmedel_utlamnade' };
+function patientForFhirId(db, id) {
+  const m = /^[a-z]+\.(vk|a|lg|adm|h)(\d{1,9})(\.|$)/.exec(id ?? '');
+  if (!m || !finns(db, KALLA_TABELL[m[1]])) return null;
+  return db.query(`SELECT patient_id FROM ${KALLA_TABELL[m[1]]} WHERE id = ?`).get(Number(m[2]))?.patient_id ?? null;
+}
+
+export function chargeItems(atk, nu = Date.now()) {
+  const db = atk.db;
+  const p = db.query('SELECT * FROM patienter WHERE id = ?').get(atk.patientId);
+  const full = kanRoll(atk.personal, 'las_lakemedel');
+  const kontakter = db.query("SELECT * FROM vardkontakter WHERE patient_id = ? AND kalla = 'vardkallan' ORDER BY start, id").all(atk.patientId)
+    .filter(v => (!v.planerad || v.ankomst) && Date.parse(v.start) <= nu);
+  const synliga = atk.filtrera(kontakter, 'las_kostnader');
+  const synligaBesok = (rader) => atk.filtrera(rader, 'las_admin');
+  const rader = synligaRader(atk, posterForKontakter(sammanhang(db, nu), synliga));
+  const poster = [
+    ...(full ? rader.filter(r => r.typ !== 'patientavgift').map(r => ({ rad: r, belopp: r.belopp, text: r.text })) : []),
+    ...rader.filter(r => r.typ === 'patientavgift').map(r => { const a = synligAvgift(atk, p, r, synligaBesok); return { rad: r, belopp: a.belopp, text: a.text }; }),
+  ];
+  return poster.map(({ rad: r, belopp, text: t }) => ({
+    resourceType: 'ChargeItem', id: fhirId(r.id), meta: { tag: [{ system: `${CS}/kalla`, code: 'vardkallan' }] }, status: 'billable',
+    code: { ...(r.typ === 'atgard' && KVA[r.kod] ? { coding: [{ system: SYSTEM.kva, code: r.kod, display: KVA[r.kod] }] } : {}), text: t },
+    subject: { reference: `Patient/${atk.patientId}` }, ...(r.vardkontaktId ? { context: { reference: `Encounter/${r.vardkontaktId}` } } : {}),
+    occurrenceDateTime: r.tid, performingOrganization: { reference: `Organization/${r.vardenhet.id}` }, quantity: { value: r.antal },
+    priceOverride: { value: belopp, currency: 'SEK' },
+  }));
+}
+
+// GET /fhir/ChargeItem?patient=<id> och GET /fhir/ChargeItem/<id>. ctx som i fhir.hantera.
+export function fhirHantera(ctx, delar, bundle) {
+  const { db, personal, url } = ctx;
+  if (!personal) throw new Fel(401, 'Logga in först.', 'ej_inloggad');
+  if (delar.length > 2) throw new Fel(404, 'Okänd FHIR-resurs.', 'saknas');
+  const [, id] = delar;
+  let pid;
+  if (id) {
+    pid = patientForFhirId(db, id);
+    if (!pid) throw new Fel(404, 'Resursen finns inte.', 'saknas');
+  } else {
+    pid = (url.searchParams.get('patient') ?? url.searchParams.get('subject') ?? '').replace(/^Patient\//, '');
+    if (!pid) throw new Fel(400, 'Sökparametern patient krävs.', 'ogiltig');
+    if (!db.query('SELECT 1 FROM patienter WHERE id = ?').get(pid)) throw new Fel(404, 'Patienten finns inte.', 'saknas');
+  }
+  const resurs = id ? `fhir/ChargeItem/${id}` : `fhir/ChargeItem${url.search}`;
+  const atk = new Atkomst(db, personal, pid, ctx.valFor(pid), 'las_kostnader');
+  atk.krav('las_kostnader', { beskrivning: resurs });
+  const resurser = chargeItems(atk);
+  atk.logga('las_kostnader', atk.grund(), resurs);
+  if (!id) return { status: 200, body: bundle(resurser) };
+  const r = resurser.find(x => x.id === id);
+  if (!r) throw new Fel(404, 'Resursen finns inte.', 'saknas');
+  return { status: 200, body: r };
 }

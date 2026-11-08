@@ -348,7 +348,7 @@ describe('Vårdkontakt', () => {
     for (let i = 0; i < 6; i++) { const t = new Date(Date.now() - (i + 2) * 86400_000).toISOString(); ins.run(t, t); }
     const a = avgiftFor(d, p('p06'), vk('oppenvard', 'besok'));
     expect(a.belopp).toBe(0);
-    expect(a.text).toContain('Högkostnadsskyddet');
+    expect(a.text).toContain('Frikort gäller till och med');
   });
 
   test('översikten och tidslinjen visar informationen per vårdkontakt och per vårdtillfälle', async () => {

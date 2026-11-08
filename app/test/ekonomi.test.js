@@ -5,7 +5,8 @@ import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import { byggSeed, migrera, idag, addDagar, datumAv } from '../src/db.js';
 import * as ekonomi from '../src/ekonomi.js';
 import { BASPRISER, DRG_DEMO, FOLKBOKFORING_DEMO } from '../src/ekonomi-schema.js';
-import { avgiftFor } from '../src/vardkontakt.js';
+import { avgiftFor, kontaktUt } from '../src/vardkontakt.js';
+import * as tidbok from '../src/tidbok.js';
 import { slaSamman } from '../src/identitet.js';
 import { verifiera } from '../src/logg.js';
 import { atk, personal, testserver, klient, sandlada } from './hjalp.js';
@@ -515,6 +516,128 @@ describe('Ekonomi: avgifter som taket har påverkat', () => {
     expect(vy(med)).toBe(vy(utan));
     expect(med.ut.aktuell.patientavgifter[0]).toMatchObject({ belopp: 200, status: 'faktureras' });
     expect(JSON.stringify(med.ut)).not.toContain('nås med');
+  });
+});
+
+describe('Ekonomi: avgiften visas som e-frikortet', () => {
+  // David Nordin (p15) har en bokad tid i dag på kardiologiska mottagningen. Besök på psykiatrin är dolda för
+  // vårdadministratören där. Avgiften ska vara rätt, men svaret får inte röja hur nära taket patienten är.
+  // Samma sandlåda: först utan dolda besök, sedan med ett dolt besök i taget.
+  const sandlada1 = () => {
+    const d = byggSeed();
+    const ins = d.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, slut, plats, orsak, kalla, kontaktsatt) VALUES ('p15', 'uso-psyk', 'oppenvard', ?, ?, 'Mottagning', 'Samtal', 'vardkallan', 'besok')");
+    let n = 0;
+    const dolt = () => { const t = new Date(Date.now() - (30 + n++ * 15) * 86400_000).toISOString(); ins.run(t, new Date(Date.parse(t) + 1800_000).toISOString()); };
+    const b = d.query("SELECT b.* FROM bokningar b JOIN tider t ON t.id = b.tid_id WHERE b.patient_id = 'p15' AND t.relativ = 1").get();
+    const v = d.query('SELECT * FROM vardkontakter WHERE id = ?').get(b.vardkontakt_id);
+    return { d, b, v, dolt };
+  };
+  const visning = ({ d, b, v }) => ({ kontakt: kontaktUt(d, v, personal(d, 'adm-kard')).avgift, bokning: (({ demoregler, ...r }) => r)(tidbok.avgiftForBokning(d, b)) });
+  const utanBelopp = (x) => JSON.parse(JSON.stringify(x, (k, val) => (['belopp', 'frikort', 'frikortTill', 'satt'].includes(k) ? undefined : val)));
+
+  test('i vårdkontaktslistan och tidbokens betalning skiljer sig svaret med och utan dolda besök bara i beloppet och frikortsstatusen', () => {
+    const s1 = sandlada1();
+    const utan = visning(s1);
+    expect(utan.kontakt.belopp).toBe(200);
+    // Så många dolda besök att dagens avgift blir nedsatt men inte noll, och sedan så många att patienten har frikort.
+    let nedsatt = null;
+    for (let i = 0; i < 10 && !nedsatt; i++) { s1.dolt(); const x = visning(s1); if (x.kontakt.belopp > 0 && x.kontakt.belopp < 200) nedsatt = x; }
+    expect(nedsatt).toBeTruthy();
+    expect(utanBelopp(nedsatt)).toEqual(utanBelopp(utan));
+    expect(nedsatt.kontakt.text).toContain('enligt högkostnadsskyddet');
+    for (let i = 0; i < 3; i++) s1.dolt();
+    const frikort = visning(s1);
+    expect(frikort.kontakt).toMatchObject({ belopp: 0, frikort: true });
+    expect(frikort.kontakt.text).toMatch(/^Frikort gäller till och med \d{4}-\d{2}-\d{2}\./);
+    expect(frikort.bokning).toMatchObject({ belopp: 0, satt: 'frikort' });
+    // Aldrig summan av betalda avgifter, antal besök eller hur nära taket patienten är.
+    for (const x of [utan, nedsatt, frikort]) {
+      const s = JSON.stringify(x);
+      for (const ord of ['nås', 'återstår', 'kr av', '1450', '1 450', 'betalat', 'besök i år']) expect(s).not.toContain(ord);
+    }
+  });
+
+  test('patienten ser hela högkostnadsskyddet i Min journal, med alla besök, och ingen annan når det', async () => {
+    const k = klient(app);
+    expect((await k.post('/api/login/invanare', { invanareId: 'inv-p15' })).status).toBe(200);
+    const r = await k.get('/api/min/journal/p15/hogkostnadsskydd');
+    expect(r.status).toBe(200);
+    expect(r.data).toMatchObject({ grans: 1450, demoregler: true });
+    expect(r.data.betalt + r.data.kvar).toBe(1450);
+    expect(Array.isArray(r.data.avgifter)).toBe(true);
+    expect(r.data.text).toContain('högkostnadsskyddet');
+    expect((await k.get('/api/min/journal/p01/hogkostnadsskydd')).status).toBeGreaterThanOrEqual(403);
+    expect(db(k).query("SELECT * FROM atkomstlogg WHERE invanare_id = 'inv-p15' AND resurs = 'min:hogkostnadsskydd' ORDER BY id DESC").get()).toBeTruthy();
+    // Kostnadsrutan säger att beloppet gäller de besök användaren kan se, och var patienten ser hela skyddet.
+    const l = await inloggad('lak-kard');
+    expect((await l.get('/api/patient/p01/kostnader')).data.hogkostnadsskydd.text).toContain('Patienten ser hela högkostnadsskyddet i Min journal');
+  });
+});
+
+describe('Ekonomi: export för en spärrad vårdenhet', () => {
+  test('underlaget för en vårdenhet som patienten har spärrat har minsta möjliga uppgifter och inget om andra vårdenheter', () => {
+    const d = byggSeed();
+    // Emil Sjölund (p22) låg först på psykiatrin och ligger nu på hjärtintensiven. Han spärrar psykiatrin.
+    d.query("INSERT INTO sparrar (patient_id, enhet_id, registrerad) VALUES ('p22', 'uso-psyk', ?)").run(idag());
+    const v = vt(d, 'p22');
+    const psykStart = d.query("SELECT min(start) AS s FROM vardkontakter WHERE patient_id = 'p22' AND enhet_id = 'uso-psyk'").get().s;
+    const kardStart = d.query("SELECT min(start) AS s FROM vardkontakter WHERE patient_id = 'p22' AND enhet_id = 'uso-kard-hia'").get().s;
+    const period = { fran: datumAv(new Date(v.inskriven)), till: idag() };
+    const eko = personal(d, 'eko');
+    const psyk = JSON.parse(ekonomi.exportera(d, eko, { vardenhet: 'uso-psyk', ...period, format: 'json' }).text).poster.filter(r => r.patient.id === 'p22');
+    expect(psyk.length).toBeGreaterThan(0);
+    for (const r of psyk) {
+      expect(r.vardtillfalleId).toBeNull();
+      expect(r.halsoarendeId).toBeNull();
+      expect(r.ingarI).toBeNull();
+      expect(r.sammanhallandeId).toMatch(/^vardkontakt:/);
+    }
+    const sPsyk = JSON.stringify(psyk);
+    for (const x of ['kard', 'Hjärt', 'I48', 'F32', 'DRG-05']) expect(sPsyk).not.toContain(x);
+    // Kardiologins underlag för samma patient nämner inte psykiatrin, och DRG räknas på dygnen där.
+    const kardText = ekonomi.exportera(d, eko, { vardenhet: 'uso-kard', ...period, format: 'json' }).text;
+    const kard = JSON.parse(kardText).poster.filter(r => r.patient.id === 'p22');
+    expect(kard.length).toBeGreaterThan(0);
+    const s = JSON.stringify(kard);
+    for (const x of ['psyk', 'Psyk', 'F32', 'I48', psykStart]) expect(s).not.toContain(x);
+    for (const r of kard.filter(x => x.typ === 'drg')) expect(Date.parse(r.inskriven)).toBeGreaterThanOrEqual(Date.parse(kardStart));
+    // Inga diagnoskoder utöver DRG-gruppen, för någon patient.
+    expect(kardText).not.toMatch(/huvuddiagnosen|"huvuddiagnosFran"/);
+  });
+});
+
+describe('Ekonomi: ChargeItem i FHIR', () => {
+  test('ChargeItem med samma behörighet och loggning som kostnadsrutan', async () => {
+    const k = await inloggad('lak-kard');
+    const r = await k.get('/fhir/ChargeItem?patient=p01');
+    expect(r.status).toBe(200);
+    expect(r.data.resourceType).toBe('Bundle');
+    const poster = r.data.entry.map(e => e.resource);
+    expect(poster.length).toBeGreaterThan(0);
+    for (const c of poster) {
+      expect(c).toMatchObject({ resourceType: 'ChargeItem', status: 'billable', subject: { reference: 'Patient/p01' } });
+      expect(c.id).toMatch(/^[A-Za-z0-9\-.]{1,64}$/);
+      expect(c.priceOverride.currency).toBe('SEK');
+    }
+    expect(poster.some(c => c.code.text.includes('Vårddygn'))).toBe(true);
+    expect(db(k).query("SELECT * FROM atkomstlogg WHERE handling = 'las_kostnader' AND patient_id = 'p01' AND resurs LIKE 'fhir/ChargeItem%' ORDER BY id DESC").get()).toBeTruthy();
+    const en = await k.get(`/fhir/ChargeItem/${poster[0].id}`);
+    expect(en.status).toBe(200);
+    expect(en.data.id).toBe(poster[0].id);
+    expect((await k.get('/fhir/ChargeItem/finns.inte.1')).status).toBe(404);
+    const cap = (await k.get('/fhir/metadata')).data;
+    expect(cap.rest[0].resource.some(x => x.type === 'ChargeItem')).toBe(true);
+    // Vårdadministratören får bara patientavgifterna, och undersköterskan inget.
+    await k.logga('adm-kard');
+    const adm = (await k.get('/fhir/ChargeItem?patient=p01')).data;
+    expect(JSON.stringify(adm)).not.toMatch(/Vårddygn|VK-NPL|QD008/);
+    await k.logga('usk-kard');
+    expect((await k.get('/fhir/ChargeItem?patient=p01')).status).toBe(403);
+    // Spärr: en post från en spärrad vårdenhet finns inte och nämns inte.
+    const d = byggSeed();
+    d.query("INSERT INTO sparrar (patient_id, enhet_id, registrerad) VALUES ('p22', 'uso-psyk', ?)").run(idag());
+    const s = JSON.stringify(ekonomi.chargeItems(atk(d, 'lak-kard', 'p22', { andra_enheter: true }, 'las_kostnader')));
+    for (const x of ['psyk', 'Allmänpsykiatriska']) expect(s).not.toContain(x);
   });
 });
 

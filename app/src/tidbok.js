@@ -858,7 +858,8 @@ export function avgiftForBokning(db, b) {
   if (!v) return null;
   const a = avgiftFor(db, patientRad(db, b.patient_id), v);
   if (!a) return null;
-  const frikort = /Högkostnadsskyddet .* är nått/.test(a.text);
+  // Runda 7, r3: avgiften säger bara att frikort gäller, som e-frikortet.
+  const frikort = Boolean(a.frikort);
   return { ...a, satt: a.belopp === 0 ? (frikort ? 'frikort' : 'avgiftsfri') : null, frikort };
 }
 
@@ -866,7 +867,7 @@ const BETALSATT = { kort: 'Kort', faktura: 'Faktura', frikort: 'Frikort', avgift
 function registreraBetalning(db, b, a, satt, { av = null, avInvanare = null } = {}) {
   const nr = db.query('SELECT count(*) AS n FROM betalningar').get().n + 1;
   const kvitto = `VK-DEMO-${String(nr).padStart(5, '0')}`;
-  const text = satt === 'frikort' ? 'Frikort, högkostnadsskyddet är nått.' : satt === 'avgiftsfri' ? 'Avgiftsfritt.' : satt === 'kort' ? 'Kortbetalning, simulerad. Inga pengar dras.' : 'Faktura, simulerad. Ingen faktura skickas.';
+  const text = satt === 'frikort' ? (a.frikortTill ? `Frikort gäller till och med ${a.frikortTill}.` : 'Frikort.') : satt === 'avgiftsfri' ? 'Avgiftsfritt.' : satt === 'kort' ? 'Kortbetalning, simulerad. Inga pengar dras.' : 'Faktura, simulerad. Ingen faktura skickas.';
   db.query('INSERT INTO betalningar (bokning_id, patient_id, belopp, satt, tid, av, av_invanare, kvitto, text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
     .run(b.id, b.patient_id, a.belopp, satt, iso(), av, avInvanare, kvitto, text);
 }

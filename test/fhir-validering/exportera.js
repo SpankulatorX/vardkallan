@@ -38,7 +38,9 @@ const lagg = (b) => { for (const e of b.entry ?? []) sett.set(`${e.resource.reso
 // Alla patientresurser i fhir.js och bokningarna i tidbok-fhir.js. Kontrollen sist i filen gör körningen röd om en
 // resurstyp som API:t kan lämna ut inte kom med, så att listan följer med när en ny resurstyp tillkommer.
 const TYPER = ['Patient', 'Encounter', 'EpisodeOfCare', 'Condition', 'Observation', 'MedicationRequest', 'MedicationAdministration', 'List',
-  'AllergyIntolerance', 'Flag', 'ServiceRequest', 'Composition', 'Appointment', 'Procedure', 'CarePlan'];
+  'AllergyIntolerance', 'Flag', 'ServiceRequest', 'Composition', 'Appointment', 'Procedure', 'CarePlan',
+  // Runda 7, r3: posterna i faktureringsunderlaget.
+  'ChargeItem'];
 for (const roll of ['lak-kard', 'ssk-kard', 'adm-kard', 'lak-vc', 'lak-psyk', 'lak-akut']) {
   for (const { id } of db.query('SELECT id FROM patienter').all()) {
     const val = { [id]: { andra_enheter: true, nodatkomst: true, samtycke_sparr: true } };
@@ -77,6 +79,8 @@ if (![...sett.values()].some(r => r.resourceType === 'Composition' && r.attester
 if (![...sett.values()].some(r => r.resourceType === 'Encounter' && r.id.startsWith('vt-'))) saknas.push('Encounter för vårdtillfälle');
 // Runda 6, r1: NEWS2 som härledd Observation, GCS med komponenter, medvetandegrad som kodat värde och Procedure med KVÅ.
 if (!antal.Procedure) saknas.push('Procedure');
+// Runda 7, r3.
+if (!antal.ChargeItem) saknas.push('ChargeItem');
 for (const [namn, f] of [['NEWS2', (r) => r.id.startsWith('news2-')], ['GCS', (r) => r.code?.text === 'GCS'], ['Medvetandegrad', (r) => r.code?.text === 'Medvetandegrad'], ['eGFR', (r) => r.code?.text === 'eGFR']]) {
   if (![...sett.values()].some(r => r.resourceType === 'Observation' && f(r))) saknas.push(`Observation för ${namn}`);
 }
