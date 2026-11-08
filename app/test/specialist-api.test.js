@@ -99,12 +99,13 @@ describe('API för specialistområdena', () => {
     expect((await k.get('/api/cytostatika/uppfoljning')).data.beredningar).toBe(2);
   });
 
-  test('nyheten om specialistområdena visas för läkare och sjuksköterskor i den aktuella versionen, men inte för undersköterskan', async () => {
+  test('nyheten om specialistområdena i version 0.9.0 visas för läkare och sjuksköterskor, men inte för undersköterskan', async () => {
     const ids = async (roll) => {
       const k = klient(app);
       await k.logga(roll);
       const n = (await k.get('/api/nyheter')).data;
-      return (n.alla.find(v => v.version === n.version)?.nyheter ?? []).map(x => x.id);
+      // Runda 10, r1: nyheten kom i 0.9.0 och läses ur historiken, så att testet inte beror på den aktuella versionen.
+      return (n.alla.find(v => v.version === '0.9.0')?.nyheter ?? []).map(x => x.id);
     };
     expect(await ids('lak-kard')).toEqual(expect.arrayContaining(['specialistomraden-api']));
     expect(await ids('ssk-kard')).toEqual(expect.arrayContaining(['specialistomraden-api']));

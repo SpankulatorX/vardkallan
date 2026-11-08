@@ -10,6 +10,9 @@ import { MATKOD, ACVPU_KOD, SYSTEM as KOD } from './kodverk.js';
 import { EXT, CS, UTTRYCK } from './fhir-definitioner.js';
 import * as fhir from './fhir.js';
 import * as tidbokFhir from './tidbok-fhir.js';
+// Runda 10, r1: listorna för överkänslighet och identiteternas system.
+import { OVERKANSLIGHET_AMNEN, OVERKANSLIGHET_REAKTIONER } from './uppmarksamhet-regler.js';
+import { FHIR_SYSTEM as ID_SYSTEM } from './identitet.js';
 
 // Resurstyperna som går att skapa och ändra, och vad gränssnittet gör för var och en.
 export const SKRIVBARA = {
@@ -22,12 +25,13 @@ export const SKRIVBARA = {
   Encounter: { skapa: true, andra: false, text: 'Inskrivning i slutenvård (class IMP). Systemet föreslår avdelningen och orsaken som i gränssnittet. Besök registreras, och patienter flyttas och skrivs ut, i gränssnittet.' },
   // Runda 9, r6: diagnoser på vårdkontakten, med samma funktion som när läkaren rättar en rapport (Sussa 2.5.1.1).
   Condition: { skapa: true, andra: false, text: 'Diagnoser registreras på en vårdkontakt med en kod ur ICD-10-SE, som i gränssnittet. Systemet sätter texten, datumet och om det är huvud- eller bidiagnos. En registrerad diagnos ändras inte.' },
+  // Runda 10, r1: överkänslighet och nya patienter, med samma funktioner som gränssnittet (Sussa 2.5.1.1).
+  AllergyIntolerance: { skapa: true, andra: false, text: 'Överkänslighet registreras med ämnet och reaktionen ur listan, som i gränssnittet. Systemet sätter ATC-koden och föreslår graden ur reaktionen, och uppmärksamhetsinformationen registreras med graden.' },
+  Patient: { skapa: true, andra: false, text: 'Nya patienter registreras med samma tolkning av numret och sökning efter dubbletter som i gränssnittet. Utan identitet skapar systemet ett reservnummer. Nya identiteter och sammanslagning görs i gränssnittet.' },
 };
 // Resurstyper som går att läsa men inte skriva, med förklaringen.
-export const INTE_SKRIVBARA = {
-  AllergyIntolerance: 'Överkänslighet registreras inte i gränssnittet i den här versionen, och därför inte heller via API:t. Graden bekräftas i patientens uppmärksamhetsinformation.',
-  Patient: 'Patienter registreras och får nya identiteter i gränssnittet, som tolkar numret och letar dubbletter. Den vägen finns inte i FHIR-API:t än.',
-};
+// Runda 10, r1: AllergyIntolerance och Patient går nu att skapa (SKRIVBARA ovan).
+export const INTE_SKRIVBARA = {};
 export const TABORT_TEXT = 'Journaluppgifter tas aldrig bort. En anteckning rättas med en ny version, ett läkemedel sätts ut och en dos makuleras, och det tidigare står kvar.';
 
 
@@ -248,6 +252,48 @@ const SKRIVARE = {
         status: data.fanns ? 200 : 201, typ: 'Condition', id: data.id, resurs: fhir.condition(db, rad),
         text: data.fanns ? 'Diagnosen fanns redan på vårdkontakten. Ingen ny registrerades.' : `Diagnosen är registrerad som ${data.typ === 'huvud' ? 'huvuddiagnos' : 'bidiagnos'}, som systemet avgjorde.`,
       };
+    },
+  },
+  // Runda 10, r1: överkänslighet med samma anrop som gränssnittet. Ämnet anges med ATC-koden eller namnet i listan, och
+  // reaktionen med texten i listan. Graden föreslår systemet ur reaktionen. criticality low ger besvärande, och high
+  // höjer en besvärande reaktion till skadlig.
+  AllergyIntolerance: {
+    skapa({ db, r, kor }) {
+      const pid = patientId(r.patient, 'AllergyIntolerance.patient');
+      if (!far(kor, 'skriv_journal')) throw new Fel(403, 'Din yrkesroll får inte registrera överkänslighet.', 'nekad');
+      const koder = Array.isArray(r.code?.coding) ? r.code.coding : [];
+      const atc = strang(koder.find(c => c?.system === KOD.atc)?.code);
+      const namn = strang(r.code?.text).toLowerCase();
+      const a = OVERKANSLIGHET_AMNEN.find(x => (atc ? x.atc === atc : namn && x.amne.toLowerCase() === namn));
+      if (!a) throw fel(`Ämnet finns inte i listan över överkänsligheter. Ange ATC-koden eller namnet som det står i listan: ${OVERKANSLIGHET_AMNEN.map(x => x.amne).join(', ')}.`, ['amne']);
+      const rtext = strang(r.reaction?.[0]?.manifestation?.[0]?.text).toLowerCase();
+      const reak = OVERKANSLIGHET_REAKTIONER.find(x => x.text.toLowerCase() === rtext || x.id === rtext);
+      if (!reak) throw fel(`Ange reaktionen i reaction.manifestation.text som den står i listan: ${OVERKANSLIGHET_REAKTIONER.map(x => x.text).join(', ')}.`, ['reaktion']);
+      const grad = r.criticality === 'low' ? 'besvarande' : r.criticality === 'high' && reak.grad === 'besvarande' ? 'skadlig' : undefined;
+      const { data } = kor('POST', `/api/patient/${pid}/overkanslighet`, { amne: a.id, reaktion: reak.id, ...(grad ? { grad } : {}) });
+      const rad = db.query('SELECT * FROM overkanslighet WHERE id = ?').get(data.overkanslighet.id);
+      return {
+        status: 201, typ: 'AllergyIntolerance', id: rad.id, resurs: fhir.allergyIntolerance(db, rad), varningar: data.varningar ?? [],
+        text: `Överkänsligheten är registrerad med graden ${data.grad === 'livshotande' ? 'livshotande' : data.grad === 'skadlig' ? 'skadlig' : 'besvärande'}${grad ? '' : ', som systemet föreslog ur reaktionen'}.`,
+      };
+    },
+  },
+  // Runda 10, r1: en ny patient med samma anrop som registreringen i gränssnittet, som tolkar numret och letar dubbletter.
+  Patient: {
+    skapa({ db, r, kor }) {
+      if (!far(kor, 'registrera_patient')) throw new Fel(403, 'Din yrkesroll får inte registrera patienter.', 'nekad');
+      const ids = Array.isArray(r.identifier) ? r.identifier : [];
+      if (ids.length > 1) throw fel('Ange högst en identitet. Fler identiteter registreras i gränssnittet.', ['identitet']);
+      const id = ids[0];
+      if (id && ![ID_SYSTEM.personnummer, ID_SYSTEM.samordningsnummer].includes(id.system)) {
+        throw fel(`Identiteten ska vara ett personnummer (${ID_SYSTEM.personnummer}) eller ett samordningsnummer (${ID_SYSTEM.samordningsnummer}). Utan identitet skapar systemet ett reservnummer.`, ['identitet']);
+      }
+      const n = Array.isArray(r.name) ? r.name[0] ?? {} : {};
+      const kon = r.gender === 'male' ? 'man' : r.gender === 'female' ? 'kvinna' : undefined;
+      const kropp = { identitet: id ? strang(id.value) : '', fornamn: strang(Array.isArray(n.given) ? n.given[0] : ''), efternamn: strang(n.family), ...(kon ? { kon } : {}), ...(r.birthDate ? { fodd: String(r.birthDate) } : {}) };
+      const { data } = kor('POST', '/api/patienter', kropp);
+      const p = db.query('SELECT * FROM patienter WHERE id = ?').get(data.patient.id);
+      return { status: 201, typ: 'Patient', id: p.id, resurs: fhir.patient(db, p, true), text: data.skapatReservnummer ? 'Patienten är registrerad med ett reservnummer som systemet skapade.' : 'Patienten är registrerad. Kön och födelsedatum kommer ur numret.' };
     },
   },
   Observation: {

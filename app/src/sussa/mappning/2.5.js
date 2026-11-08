@@ -57,7 +57,7 @@ export default [
       'FHIR-skrivning > Composition: final skapar och signerar, preliminary sparar ett utkast med samma mall som gränssnittet',
       'FHIR-skrivning > MedicationRequest: utsättning med status stopped, och antikoagulantia sätts bara ut med en plan',
       'FHIR-skrivning > nekad: fel roll, ingen vårdrelation och Min journal nekas och nekandet loggas',
-      'FHIR-skrivning > inget går att göra via API:t som gränssnittet inte tillåter: överkänslighet, borttagning och ändrade mätvärden',
+      'FHIR-skrivning > inget går att göra via API:t som gränssnittet inte tillåter: ändrad överkänslighet, borttagning och ändrade mätvärden',
       'Prenumerationer > Subscription skapas med samma behörighet som läsningen och bara till adresser som administratören har godkänt',
       'Prenumerationer > meddelandet innehåller bara id, och mottagaren hämtar resursen med sin egen behörighet',
       'Prenumerationer > inget meddelande om det som prenumeranten inte får läsa: spärrad vårdenhet, annan vårdenhet och osignerade utkast',

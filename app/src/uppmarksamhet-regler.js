@@ -101,3 +101,34 @@ export function foresla({ ordinationer = [], diagnoser = [], overkanslighet = []
   }
   return ut;
 }
+
+// Runda 10, r1: ämnena och reaktionerna när en överkänslighet registreras (uppmarksamhet.js registreraOverkanslighet).
+// kategori är FHIR:s AllergyIntolerance.category.
+export const OVERKANSLIGHET_AMNEN = [
+  { id: 'penicilliner', amne: 'Penicilliner', atc: 'J01C', kategori: 'medication' },
+  { id: 'cefalosporiner', amne: 'Cefalosporiner', atc: 'J01D', kategori: 'medication' },
+  { id: 'sulfonamider', amne: 'Sulfonamider och trimetoprim', atc: 'J01E', kategori: 'medication' },
+  { id: 'makrolider', amne: 'Makrolider', atc: 'J01FA', kategori: 'medication' },
+  { id: 'kinoloner', amne: 'Kinoloner', atc: 'J01MA', kategori: 'medication' },
+  { id: 'nsaid', amne: 'NSAID (antiinflammatoriska läkemedel)', atc: 'M01A', kategori: 'medication' },
+  { id: 'acetylsalicylsyra', amne: 'Acetylsalicylsyra', atc: 'N02BA01', kategori: 'medication' },
+  { id: 'opioider', amne: 'Opioider', atc: 'N02A', kategori: 'medication' },
+  { id: 'jodkontrast', amne: 'Jodhaltiga kontrastmedel', atc: 'V08A', kategori: 'medication' },
+  { id: 'jordnot', amne: 'Jordnöt', atc: null, kategori: 'food' },
+  { id: 'notter', amne: 'Nötter', atc: null, kategori: 'food' },
+  { id: 'agg', amne: 'Ägg', atc: null, kategori: 'food' },
+  { id: 'skaldjur', amne: 'Skaldjur', atc: null, kategori: 'food' },
+  { id: 'latex', amne: 'Latex', atc: null, kategori: 'environment' },
+  { id: 'getingstick', amne: 'Getingstick', atc: null, kategori: 'environment' },
+  { id: 'bistick', amne: 'Bistick', atc: null, kategori: 'environment' },
+  { id: 'nickel', amne: 'Nickel', atc: null, kategori: 'environment' },
+];
+// Reaktionerna och den grad som systemet föreslår för var och en (demoregel).
+export const OVERKANSLIGHET_REAKTIONER = [
+  { id: 'anafylaxi', text: 'Anafylaxi', grad: 'livshotande' },
+  { id: 'andning', text: 'Svullnad i svalget eller andningsbesvär', grad: 'livshotande' },
+  { id: 'urtikaria', text: 'Urtikaria och svullnad i huden', grad: 'skadlig' },
+  { id: 'utslag', text: 'Hudutslag', grad: 'besvarande' },
+  { id: 'mage', text: 'Illamående, kräkningar eller diarré', grad: 'besvarande' },
+];
+export const amneFor = (amne) => OVERKANSLIGHET_AMNEN.find(a => a.amne === amne) ?? null;

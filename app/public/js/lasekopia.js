@@ -37,7 +37,8 @@
 import { ApiFel } from './ui.js';
 
 const DB = 'vardkallan-lasekopia';
-const DB_VERSION = 2;
+// Runda 10, r1: version 3 har förrådet ko för skrivkön.
+const DB_VERSION = 3;
 const SS_NYCKEL = 'vk_lasnyckel';
 export const MAX_ALDER_MS = 8 * 3600_000;
 
@@ -69,6 +70,7 @@ function oppnaDb() {
       if (!db.objectStoreNames.contains('poster')) db.createObjectStore('poster', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('reserv')) db.createObjectStore('reserv', { keyPath: 'personalId' });
       if (!db.objectStoreNames.contains('logg')) db.createObjectStore('logg', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('ko')) db.createObjectStore('ko', { keyPath: 'id' });
     };
     r.onsuccess = () => { r.result.onversionchange = () => r.result.close(); ja(r.result); };
     r.onerror = () => nej(r.error);
@@ -167,6 +169,7 @@ export async function oppna() {
   if (!post) return null;
   if (!giltig(post)) { await taBortPost('kopia'); return null; }
   try { kopia = await dekryptera(post); } catch { await taBortPost('kopia'); return null; }
+  await tillampaKo();
   return { skapad: kopia.skapad, session: { ...kopia.session, inloggad: true }, patienter: Object.keys(kopia.patienter).length };
 }
 
@@ -179,6 +182,7 @@ export async function oppnaMedReserv(k, i, post) {
   info = { ...i };
   kopia = v;
   medReserv = true;
+  await tillampaKo();
   return { skapad: v.skapad, session: { ...v.session, inloggad: true, reserv: true }, patienter: Object.keys(v.patienter).length, reserv: true };
 }
 
@@ -270,12 +274,16 @@ export async function hamtaLogg() {
   return ut.sort((a, b) => a.tid.localeCompare(b.tid));
 }
 
-const SAKNAS = 'Det här finns inte i läskopian. Under avbrottet går det att läsa arbetslistan och, för patienterna i läskopian, patienthuvudet, översikten, läkemedlen och de senaste anteckningarna.';
+const SAKNAS = 'Det här finns inte i läskopian. Under avbrottet går det att läsa arbetslistan och, för patienterna i läskopian, patienthuvudet, översikten, läkemedlen, mätvärdena, remisserna och de senaste anteckningarna.';
 const ej = (fel, kod = 'ej_i_laskopian') => new ApiFel(0, { fel, kod });
 
 // Besvarar ett anrop från läskopian, i samma form som servern. Varje läsning av patientuppgifter loggas lokalt.
-export function svara(vag, metod = 'GET') {
-  if (metod !== 'GET') throw ej('Under avbrottet går det inte att spara eller ändra något, eftersom det inte skulle nå journalen. Vänta tills förbindelsen är tillbaka.', 'laslage');
+// Runda 10, r1: en dos eller ett mätvärde som gränssnittet skickar med ko läggs i skrivkön. Allt annat skrivande stoppas.
+export function svara(vag, metod = 'GET', { data, ko = false } = {}) {
+  if (metod !== 'GET') {
+    if (ko && kopia) return koa(decodeURI(vag.split('?')[0]), data);
+    throw ej('Under avbrottet går det inte att spara eller ändra något, eftersom det inte skulle nå journalen. Vänta tills förbindelsen är tillbaka.', 'laslage');
+  }
   if (!kopia) throw ej('Servern svarar inte, och det finns ingen läskopia i den här fliken. Vänta tills förbindelsen är tillbaka.', 'natverk');
   const p = decodeURI(vag.split('?')[0]);
   const ut = (v) => structuredClone(v);
@@ -295,6 +303,9 @@ export function svara(vag, metod = 'GET') {
     // administreringar inte behöver något nytt här. En kopia från en äldre version har bara läkemedelslistan.
     const lm = post.lakemedelsdel?.delar ?? (post.lakemedel ? { lakemedel: 'las_lakemedel' } : {});
     if (Object.hasOwn(lm, del) && post[del]) { logga(m[1], lm[del]); return ut(post[del]); }
+    // Runda 10, r1: mätvärdena och remisserna, med den läshandling som servern anger.
+    const jd = post.journaldel?.delar ?? {};
+    if (Object.hasOwn(jd, del) && post[del]) { logga(m[1], jd[del]); return ut(post[del]); }
     if (del === 'anteckningar' && post.anteckningar) {
       logga(m[1], kopia.session.behorigheter?.includes('las_journal') ? 'las_journal' : 'las_omvardnad');
       return ut(post.anteckningar);
@@ -310,4 +321,92 @@ export function svara(vag, metod = 'GET') {
     throw ej('Anteckningen finns inte i läskopian. Bara de senaste anteckningarna kopieras.');
   }
   throw ej(SAKNAS);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Runda 10, r1: skrivkön (Sussa 2.3.1.4). Under ett avbrott kan en dos ges och ett mätvärde registreras för en patient i
+// läskopian. Registreringen krypteras med läskopians nyckel, med radens id, läskopians id och personen som additional
+// data, och sparas i förrådet ko tills servern har tagit emot den (POST /api/skrivko, skrivko.js). Servern har nyckeln
+// och dekrypterar själv, så kön kan skickas också efter att fliken har stängts, av samma person i samma webbläsare.
+// I läskopian märks registreringen som inte sparad i journalen, så att ingen tror att den redan finns där.
+// Metadata i klartext är bara radens id, läskopians id och när raden skapades.
+const koAad = (kopiaId, personalId, id) => new TextEncoder().encode(`vardkallan-skrivko|${kopiaId}|${personalId}|${id}`);
+const KOBARA = [
+  { re: /^\/api\/patient\/([\w-]+)\/matvarden$/, typ: 'matvarde', handling: 'registrera_matvarde' },
+  { re: /^\/api\/patient\/([\w-]+)\/administreringar$/, typ: 'dos', handling: 'ge_lakemedel' },
+];
+const harRatt = (h) => (kopia?.session?.behorigheter ?? []).includes(h);
+const vem = () => ({ id: kopia.session.personal?.id, namn: kopia.session.personal?.namn });
+
+// Visar en registrering i kön i den öppna läskopian, så att dosen inte ges igen och värdet syns i listan.
+function tillampa(rad) {
+  const post = kopia?.patienter?.[rad.patientId];
+  if (!post) return null;
+  if (rad.typ === 'matvarde') {
+    const lista = post.matvarden?.matvarden;
+    if (!lista) return null;
+    const t = post.matvarden.typer?.[rad.data.typ] ?? null;
+    const m = { id: `ko-${rad.id}`, typ: rad.data.typ, namn: t?.namn ?? rad.data.typ, varde: rad.data.varde, enhet: t?.enhet ?? '', tid: rad.gjord,
+      vardenhet: { namn: kopia.session.enhet?.namn ?? '' }, registreradAv: vem(), ejSparad: true };
+    if (!lista.some(x => x.id === m.id)) lista.unshift(m);
+    return m;
+  }
+  const a = post.administreringar;
+  if (!a) return null;
+  const adm = { status: 'given', tid: rad.gjord, utfordAv: vem(), ejSparad: true };
+  const d = rad.data.planerad ? (a.doser ?? []).find(x => x.ordinationId === rad.data.ordinationId && x.planerad === rad.data.planerad) : null;
+  if (d) { d.status = 'given'; d.forslag = null; d.administrering = adm; return { ...adm, lakemedel: d.lakemedel }; }
+  const v = [...(a.vidBehov ?? []), ...(a.utanTider ?? [])].find(x => x.ordinationId === rad.data.ordinationId);
+  if (v) { v.senaste = adm; v.kanGesNu = false; if (Array.isArray(v.givnaIdag)) v.givnaIdag.push(adm); return { ...adm, lakemedel: v.lakemedel }; }
+  return adm;
+}
+
+// Lägger en registrering i kön. Ger ett svar i samma form som servern, märkt koad och ejSparad.
+async function koa(p, data) {
+  const k = KOBARA.find(x => x.re.test(p));
+  if (!k) throw ej('Under avbrottet går det bara att ge doser och registrera mätvärden. Allt annat väntar tills förbindelsen är tillbaka.', 'laslage');
+  const pid = p.match(k.re)[1];
+  if (!kopia.patienter[pid]) throw ej('Patienten finns inte i läskopian, så registreringen kan inte sparas under avbrottet.');
+  if (!harRatt(k.handling)) throw ej('Din yrkesroll får inte göra det här.', 'nekad');
+  const gjord = typeof data?.tid === 'string' && Number.isFinite(Date.parse(data.tid)) && Date.parse(data.tid) <= Date.now() ? new Date(Date.parse(data.tid)).toISOString() : new Date().toISOString();
+  let innehall;
+  if (k.typ === 'matvarde') {
+    if (!data?.typ || data.varde == null || data.varde === '') throw ej('Ange mätvärdet.', 'ogiltig');
+    innehall = { typ: data.typ, varde: data.varde };
+  } else {
+    if ((data?.atgard ?? 'ge') !== 'ge' || !Number.isInteger(data?.ordinationId)) throw ej('Under avbrottet går det bara att registrera att en ordinerad dos ges.', 'laslage');
+    const doser = kopia.patienter[pid].administreringar?.doser ?? [];
+    const d = data.planerad ? doser.find(x => x.ordinationId === data.ordinationId && x.planerad === data.planerad) : null;
+    if (d && ['given', 'overlamnad'].includes(d.status)) throw ej(`Dosen är redan registrerad som ${d.status === 'given' ? 'given' : 'överlämnad'}${d.administrering?.ejSparad ? ' i kön på den här datorn' : ''}. Ges den igen får patienten dubbel dos.`, 'ogiltig');
+    innehall = { ordinationId: data.ordinationId, ...(data.planerad ? { planerad: data.planerad } : {}), ...(data.kontrollkod ? { kontrollkod: data.kontrollkod } : {}), ...(data.dos != null ? { dos: data.dos } : {}) };
+  }
+  const rad = { id: crypto.randomUUID(), typ: k.typ, patientId: pid, gjord, data: innehall };
+  const i = info;
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const krypt = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: koAad(i.kopiaId, i.personalId, rad.id) }, nyckel, new TextEncoder().encode(JSON.stringify(rad)));
+  await lagring.spara('ko', { id: rad.id, kopiaId: i.kopiaId, skapad: new Date().toISOString(), iv, data: krypt });
+  const visad = tillampa(rad);
+  if (k.typ === 'matvarde') return { ...(visad ?? { namn: data.typ, varde: data.varde, enhet: '' }), koad: true, ejSparad: true };
+  return { koad: true, administrering: { ...(visad ?? {}), status: 'given', tid: gjord, ejSparad: true }, varningar: [] };
+}
+
+// Läser kön för den öppna läskopian och visar raderna i kopian, när läsläget öppnas på nytt.
+async function tillampaKo() {
+  for (const r of await koRader().catch(() => [])) {
+    const rad = await lasKo(r);
+    if (rad) tillampa(rad);
+  }
+}
+// Alla rader i kön på datorn, krypterade.
+export async function koRader() {
+  try { return await lagring.alla('ko'); } catch { return []; }
+}
+// En rad i klartext, om den hör till den öppna läskopian och nyckeln finns i fliken. Annars null.
+export async function lasKo(r) {
+  if (!nyckel || !info || r.kopiaId !== info.kopiaId) return null;
+  try { return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: r.iv, additionalData: koAad(r.kopiaId, info.personalId, r.id) }, nyckel, r.data))); } catch { return null; }
+}
+export async function taBortKo(ids) {
+  if (!ids.length) return;
+  await forrad('ko', 'readwrite', s => { for (const id of ids) s.delete(id); });
 }

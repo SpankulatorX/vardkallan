@@ -45,6 +45,8 @@ import * as remissR8 from './remiss-r8.js';
 import * as labbFhir from './labb-fhir.js';
 // Runda 9, r6: versionen i CapabilityStatement och ändringsloggen (Sussa 2.5.1.1).
 import * as api from './api-andringar.js';
+// Runda 10, r1: kategorin för en överkänslighet.
+import { amneFor } from './uppmarksamhet-regler.js';
 
 export const SYSTEM = {
   personnummer: 'http://electronichealth.se/identifier/personnummer',
@@ -406,7 +408,8 @@ export function allergyIntolerance(db, o) {
     resourceType: 'AllergyIntolerance', id: String(o.id), meta: kallaMeta(o.kalla),
     clinicalStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical', code: 'active' }] },
     verificationStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-verification', code: 'confirmed' }] },
-    type: 'allergy', category: [o.atc ? 'medication' : 'food'], criticality: o.allvarlighet === 'allvarlig' ? 'high' : 'low',
+    // Runda 10, r1: kategorin ur listan med ämnen, så att till exempel latex är environment och inte food.
+    type: 'allergy', category: [amneFor(o.amne)?.kategori ?? (o.atc ? 'medication' : 'food')], criticality: o.allvarlighet === 'allvarlig' ? 'high' : 'low',
     code: { ...(o.atc ? { coding: [{ system: SYSTEM.atc, code: o.atc, ...(ATC[o.atc] ? { display: ATC[o.atc] } : {}) }] } : {}), text: o.amne },
     patient: ref('Patient', o.patient_id), recordedDate: o.datum,
     reaction: o.reaktion ? [{ manifestation: [{ text: o.reaktion }] }] : undefined,
@@ -520,7 +523,8 @@ export function auditEvent(r) {
 }
 
 // Runda 6, r5: skrivning via FHIR (fhir-skrivning.js), prenumerationer (prenumeration.js) och SMART on FHIR (smart.js).
-const SKRIV_INTERAKTIONER = { Observation: ['create'], Composition: ['create', 'update'], MedicationRequest: ['create', 'update'], ServiceRequest: ['create'], Condition: ['create'], Appointment: ['create'], Encounter: ['create'] };
+// Runda 10, r1: överkänslighet och nya patienter (fhir-skrivning.js).
+const SKRIV_INTERAKTIONER = { Observation: ['create'], Composition: ['create', 'update'], MedicationRequest: ['create', 'update'], ServiceRequest: ['create'], Condition: ['create'], Appointment: ['create'], Encounter: ['create'], AllergyIntolerance: ['create'], Patient: ['create'] };
 function medSkrivning(c, base) {
   const r = c.rest[0];
   for (const x of r.resource) for (const code of SKRIV_INTERAKTIONER[x.type] ?? []) x.interaction.push({ code });
@@ -547,10 +551,10 @@ function capabilityBas(base) {
     software: { name: 'Vårdkällan', version: api.VERSION ?? '0.0.0', ...(api.ANDRINGAR[0]?.version === api.VERSION ? { releaseDate: api.ANDRINGAR[0].datum } : {}) }, implementation: { description: 'Vårdkällan, öppen demo med påhittade patienter', url: `${base}/fhir` },
     rest: [{
       mode: 'server',
-      security: { description: 'Sessionskaka vk_sid. Samma behörighetskontroll och åtkomstloggning som gränssnittet. Med en session från Min journal når invånaren bara sina egna resurser, eller ett barns under 13 år, och Patient/[id]/$everything.' },
+      security: { description: 'Sessionskaka vk_sid. Samma behörighetskontroll och åtkomstloggning som gränssnittet. Med en session från Min journal når invånaren bara sina egna resurser, eller ett barns under 13 år, och Patient/[id]/$everything. Systemkonton för tillämpningar utan inloggad person använder SMART Backend Services.' },
       resource: [...TYPER.map(t => ({
         type: t, ...(PROFIL[t] ? { supportedProfile: [PROFIL[t]] } : {}), interaction: [{ code: 'read' }, { code: 'search-type' }],
-        ...(t === 'Patient' ? { operation: [{ name: 'everything', definition: 'http://hl7.org/fhir/OperationDefinition/Patient-everything', documentation: 'Bara med patientens session från Min journal, för den egna journalen eller ett barns under 13 år. Personalen läser varje resurstyp för sig, så att varje del prövas och loggas.' }] } : {}),
+        ...(t === 'Patient' ? { operation: [{ name: 'everything', definition: 'http://hl7.org/fhir/OperationDefinition/Patient-everything', documentation: 'Med patientens session från Min journal för den egna journalen eller ett barns under 13 år, och med personalens session för en patient som personalen får läsa. För personalen görs sökningen för varje resurstyp som yrkesrollen får läsa, så att varje del prövas och loggas för sig. Med åtkomstbiljett stöds operationen inte, eftersom omfånget prövas per resurstyp.' }] } : {}),
         searchParam: t === 'Patient' ? [{ name: '_id', type: 'token' }, { name: 'identifier', type: 'token' }]
           : ['Organization', 'Practitioner'].includes(t) ? [{ name: '_id', type: 'token' }] : [{ name: 'patient', type: 'reference' }],
       })), ...tidbokFhir.capabilityResurser(),
@@ -613,6 +617,35 @@ function handlingFor(typ, rad, personal) {
   return HANDLING[typ];
 }
 
+// Runda 10, r1: hela journalen för personalen. Patienten prövas först och operationen loggas, sedan görs sökningen för
+// varje resurstyp som yrkesrollen får läsa, med samma behörighet, filtrering och loggning som en vanlig sökning.
+const UTANFOR_EVERYTHING = new Set(['Patient', 'Organization', 'Practitioner', 'AuditEvent']);
+function rollFarLasa(personal, typ) {
+  if (typ === 'Composition') return kanRoll(personal, 'las_journal') || kanRoll(personal, 'las_omvardnad');
+  if (typ === 'ServiceRequest') return kanRoll(personal, 'las_remiss') || kanRoll(personal, 'las_remiss_status');
+  return Boolean(HANDLING[typ]) && kanRoll(personal, HANDLING[typ]);
+}
+function everythingPersonal(ctx, id) {
+  const { db, personal, base, url } = ctx;
+  const p = db.query('SELECT * FROM patienter WHERE id = ?').get(id);
+  if (!p) throw new Fel(404, 'Patienten finns inte.', 'saknas');
+  const pid = gallandeId(db, p.id);
+  const handling = kanRoll(personal, 'las_oversikt') ? 'las_oversikt' : 'las_admin';
+  const atk = new Atkomst(db, personal, pid, ctx.valFor(pid), handling);
+  atk.krav(handling, { beskrivning: `fhir/Patient/${id}/$everything` });
+  atk.logga(handling, atk.grund(), `fhir/Patient/${id}/$everything`);
+  const resurser = [patient(db, p, Boolean(ctx.valFor(pid).visa_identitet))];
+  for (const t of TYPER.filter(x => !UTANFOR_EVERYTHING.has(x) && rollFarLasa(personal, x))) {
+    try {
+      const r = hantera({ ...ctx, url: new URL(`${base}/fhir/${t}?patient=${encodeURIComponent(pid)}`) });
+      for (const e of r.body?.entry ?? []) resurser.push(e.resource);
+    } catch (e) {
+      if (!(e instanceof Fel) || ![400, 403, 404].includes(e.status)) throw e;
+    }
+  }
+  return { status: 200, body: bundle(base, url, resurser) };
+}
+
 // Huvudingång. ctx: { db, personal, valFor(patientId), url, base }. Returnerar { status, body }.
 export function hantera(ctx) {
   const { db, personal, url, base } = ctx;
@@ -640,6 +673,9 @@ export function hantera(ctx) {
   if (labbFhir.TYPER.includes(typ) || (typ === 'ServiceRequest' && (labbFhir.arLabbId(id) || (!id && labbFhir.arLabbSokning(url))))) {
     return labbFhir.hantera(ctx, delar, (resurser) => bundle(base, url, resurser));
   }
+  // Runda 10, r1: Patient/[id]/$everything för personalen. Varje resurstyp läses med sin vanliga sökning, så att varje
+  // del prövas och loggas för sig, och bara det som personen får se kommer med.
+  if (typ === 'Patient' && personal && delar.length === 3 && delar[2] === '$everything') return everythingPersonal(ctx, id);
   if (!TYPER.includes(typ) || delar.length > 2) throw new Fel(404, 'Okänd FHIR-resurs.', 'saknas');
   if (!personal) throw new Fel(401, 'Logga in först.', 'ej_inloggad');
 

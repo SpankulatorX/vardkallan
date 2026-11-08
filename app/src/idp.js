@@ -160,6 +160,8 @@ export function verifiera(biljett, { nu = Date.now(), forbruka = true } = {}) {
 export function loggaIn(db, attribut) {
   const p = db.query('SELECT * FROM personal WHERE hsa_id = ?').get(attribut.employeeHsaId);
   if (!p) throw new Fel(403, 'Personen i biljetten finns inte i katalogen.', 'nekad');
+  // Runda 10, r1: ett systemkonto för en extern tillämpning är ingen person och kan aldrig logga in (systemkonton.js).
+  if (p.yrke === 'systemkonto') throw new Fel(403, 'Ett systemkonto för en extern tillämpning kan inte logga in som en person.', 'nekad');
   if (!p.aktiv) throw new Fel(403, `${p.namn} finns inte längre som aktiv personal i katalogen och kan inte logga in. Kontakta din chef om du ska ha åtkomst.`, 'nekad');
   const u = uppdragFor(db, p);
   const fel = jamfor(p, u, attribut);

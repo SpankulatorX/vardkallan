@@ -100,6 +100,8 @@ import { registreraRutter as r9r5Rutter } from './runda9-r5-rutter.js';
 import * as miljoer from './miljoer.js';
 // Runda 9, r7: skanning, analys, folkhälsa, spårbarhet, forskningsuttag, in- och utfarter, restjournaler och signering.
 import { registreraRutter as r9r7Rutter } from './r9r7-rutter.js';
+// Runda 10, r1: överkänslighet och skrivkön för arbete utan uppkoppling (r10r1-rutter.js).
+import { registreraRutter as r10r1Rutter } from './r10r1-rutter.js';
 import * as levnadsvanor from './levnadsvanor.js';
 import * as folkhalsa from './folkhalsa.js';
 // Runda 9, r4: informationsstrukturen, fackspråket, kodverken och masterdatans källor (arkitektur-rutter.js).
@@ -129,6 +131,16 @@ const LASKOPIA_LAKEMEDEL = {
   lakemedel: { handling: 'las_lakemedel', hamta: (atk) => lakemedel.lista(atk) },
   // Dagens administreringar med givna doser (administrering.js).
   administreringar: { handling: 'las_lakemedel', hamta: (atk) => administrering.lista(atk) },
+};
+// Runda 10, r1: fler delar av journalen i läskopian (Sussa 2.3.1.4): mätvärdena och remisserna, med samma funktion och
+// läshandling som det vanliga anropet. Läsläget svarar på /api/patient/:id/<namn> ur kopian och loggar läsningen med
+// handlingen, på samma sätt som läkemedelsdelen. handling är en funktion av personen, eftersom remisserna läses med
+// olika handlingar för olika roller.
+const LASKOPIA_JOURNAL = {
+  matvarden: { handling: () => 'las_matvarden', hamta: (atk, p) => ({ ...vitalparametrar.matvardesvy(atk, p), mt: mtPatientvy(atk),
+    // Namn och enhet per typ, så att ett mätvärde som registreras under avbrottet kan visas i listan.
+    typer: Object.fromEntries(Object.entries(journal.MATTYPER).map(([k, v]) => [k, { namn: v.namn, enhet: v.enhet }])) }) },
+  remisser: { handling: (pers) => (kanRoll(pers, 'las_remiss') ? 'las_remiss' : 'las_remiss_status'), hamta: (atk) => remiss.forPatient(atk) },
 };
 // Varför utlämnandet till läskopian slutade, i loggen.
 const LASKOPIA_SLUT = {
@@ -708,6 +720,10 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       const lmDelar = Object.entries(LASKOPIA_LAKEMEDEL).filter(([, d]) => kanRoll(pers, d.handling));
       for (const [namn, d] of lmDelar) post[namn] = d.hamta(ny(d.handling));
       if (lmDelar.length) post.lakemedelsdel = { tid: lmTid, delar: Object.fromEntries(lmDelar.map(([namn, d]) => [namn, d.handling])) };
+      // Runda 10, r1: mätvärdena och remisserna för de roller som får läsa dem.
+      const jDelar = Object.entries(LASKOPIA_JOURNAL).map(([namn, d]) => [namn, d, d.handling(pers)]).filter(([, , h]) => kanRoll(pers, h));
+      for (const [namn, d, h] of jDelar) post[namn] = d.hamta(ny(h), pat);
+      if (jDelar.length) post.journaldel = { delar: Object.fromEntries(jDelar.map(([namn, , h]) => [namn, h])) };
       if (kanRoll(pers, 'las_journal') || kanRoll(pers, 'las_omvardnad')) {
         const l = journal.listaAnteckningar(ny('las_journal'));
         const senaste = l.anteckningar.slice(0, LASKOPIA_ANTECKNINGAR);
@@ -1706,6 +1722,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   r9r1Rutter({ rutt, kravInloggad, medPatient, valFor });
   // Runda 9, r7 (r9r7-rutter.js).
   r9r7Rutter({ rutt, kravInloggad, medPatient, valFor });
+  // Runda 10, r1 (r10r1-rutter.js).
+  r10r1Rutter({ rutt, kravInloggad, medPatient, valFor });
   // Runda 9, r4 (arkitektur-rutter.js).
   r9r4Rutter({ rutt, kravInloggad });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen

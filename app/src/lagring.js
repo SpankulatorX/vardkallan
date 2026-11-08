@@ -40,7 +40,9 @@ const SYSTEM = new Set(['omorganisationer', 'omorganisation_flyttar', 'lagringsm
   // Runda 9, r4: rapporterna från inläsningen av masterdata.
   'masterdata_synk',
   // Runda 9, r4: migreringsfilerna som har lästs in.
-  'migrering_filer']);
+  'migrering_filer',
+  // Runda 10, r1: systemkontona för det öppna API:t och använda klientintyg hör till förvaltningen (systemkonton.js).
+  'api_systemkonton', 'api_systemkonto_intyg']);
 // Tabeller vars koppling inte går att se på kolumnnamnen.
 const UTTRYCKLIGA = {
   dubblettforslag: { typ: 'patient', kolumner: ['fran_patient_id', 'till_patient_id'] },

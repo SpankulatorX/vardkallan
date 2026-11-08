@@ -153,7 +153,8 @@ describe('Öppet API hålls aktuellt', () => {
     const r = await klient(app).get('/api/oppet-api/andringar');
     expect(r.status).toBe(200);
     expect(r.data.version).toBe(VERSION);
-    expect(r.data.andringar[0].skrivning).toContain('Condition:create');
+    // Runda 10, r1: oberoende av vilken version som är den senaste.
+    expect(r.data.andringar.flatMap(a => a.skrivning)).toContain('Condition:create');
   });
 });
 

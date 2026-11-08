@@ -13,6 +13,9 @@ import { tackning } from './api-tackning.js';
 import { andringslogg } from './api-andringar.js';
 import * as forvaltning from './api-forvaltning.js';
 import { BEARER_FEL } from './fhir-definitioner.js';
+// Runda 10, r1: systemkonton utan inloggad person (SMART Backend Services, Sussa 2.5.1.2).
+import * as systemkonton from './systemkonton.js';
+import { loggaRad } from './logg.js';
 
 const FHIR_JSON = { 'Content-Type': 'application/fhir+json; charset=utf-8', 'Cache-Control': 'no-store' };
 const INGA_VAL = { andra_enheter: false, nodatkomst: false, samtycke_sparr: false, visa_identitet: false };
@@ -125,7 +128,11 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
     if (!b) return ogiltig('Åtkomstbiljetten är ogiltig, har gått ut eller har återkallats.');
     const s = b.s;
     // Runda 9, r5: personen och medarbetaruppdraget prövas mot masterdata som i sessionen (inloggade i server.js).
-    const personal = inloggade(s).personal;
+    // Runda 10, r1: för ett systemkonto prövas kontot i databasen vid varje anrop, så att en återkallelse gäller direkt.
+    const personal = b.system
+      ? (systemkonton.kontoFor(s.db, b.personalId) ? s.db.query("SELECT * FROM personal WHERE id = ? AND aktiv = 1 AND yrke = 'systemkonto'").get(b.personalId) : null)
+      : inloggade(s).personal;
+    if (b.system && !personal) { smartLager.aterkallaBiljett(b, 'Åtkomstbiljetten upphörde eftersom systemkontot är återkallat.'); return ogiltig('Systemkontot är återkallat.'); }
     if (!personal || personal.id !== b.personalId) return ogiltig('Personen är inte längre inloggad med ett gällande medarbetaruppdrag.');
     const delar = url.pathname.replace(/\/+$/, '').split('/').slice(2).map(decodeURIComponent);
     const [typ, id] = delar;
@@ -253,6 +260,8 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
 
     if (url.pathname === '/oauth/token' && req.method === 'POST') {
       const f = await formular();
+      // Runda 10, r1: ett systemkonto byter ett signerat klientintyg mot en biljett (SMART Backend Services).
+      if (f.get('grant_type') === 'client_credentials') return systemBiljett(f, base, json);
       if (f.get('grant_type') !== 'authorization_code') return json({ error: 'unsupported_grant_type' }, 400);
       try {
         const b = smartLager.bytKod({ kod: f.get('code'), verifierare: f.get('code_verifier'), omdirigering: f.get('redirect_uri'), klient: f.get('client_id') });
@@ -273,6 +282,35 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
       return new Response(null, { status: 200, headers: { 'Cache-Control': 'no-store' } });
     }
     return new Response('Okänd adress.', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+  }
+
+  // Runda 10, r1: biljetten för ett systemkonto. Kontot finns i en sandlåda, och id:t är slumpat och unikt, så sandlådan
+  // hittas på id:t i intyget. Intyget prövas sedan mot kontots offentliga nyckel i den sandlådan. Ett nekat intyg loggas
+  // på kontot när kontot finns.
+  function hittaKonto(id) {
+    for (const s of sessioner.values()) {
+      try { if (s.db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'api_systemkonton'").get() && s.db.query('SELECT 1 FROM api_systemkonton WHERE id = ?').get(id)) return s; } catch { /* stängd */ }
+    }
+    return null;
+  }
+  function systemBiljett(f, base, json) {
+    const nej = (text) => json({ error: 'invalid_client', error_description: text }, 401);
+    if (f.get('client_assertion_type') !== systemkonton.INTYG_TYP) return json({ error: 'invalid_request', error_description: `client_assertion_type ska vara ${systemkonton.INTYG_TYP}.` }, 400);
+    const intyg = f.get('client_assertion') ?? '';
+    const id = systemkonton.kontoIdI(intyg);
+    const s = id ? hittaKonto(id) : null;
+    if (!s) return nej('Systemkontot finns inte.');
+    let konto;
+    try { konto = systemkonton.provaIntyg(s.db, intyg, { aud: `${base}/oauth/token` }); } catch (e) {
+      if (!(e instanceof Fel)) throw e;
+      const rad = s.db.query('SELECT enhet_id FROM personal WHERE id = ?').get(id);
+      if (rad) loggaRad(s.db, { personal_id: id, enhet_id: rad.enhet_id, handling: 'tillampning', resurs: `systemkonto:${id}`, grund: 'nekad', resultat: 'nekad', syfte: `Ingen åtkomstbiljett: ${e.message}` });
+      return nej(e.message);
+    }
+    const omfang = systemkonton.beviljat(konto, f.get('scope'));
+    if (!omfang.length) return json({ error: 'invalid_scope', error_description: 'Systemkontot har inte fått något av det som begärdes.' }, 400);
+    const b = smartLager.nySystemBiljett(s, konto, omfang, { sekunder: systemkonton.BILJETT_SEKUNDER });
+    return json({ access_token: b.token, token_type: 'Bearer', expires_in: systemkonton.BILJETT_SEKUNDER, scope: omfang.join(' ') });
   }
 
   // Efter varje anrop: ändringarna i sandlådan ger meddelanden till prenumerationerna, som skickas i bakgrunden.
@@ -340,6 +378,22 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
     rutt('POST', '/api/oppet-api/arenden/:id/svar', (c, id) => [201, forvaltning.svara(c.db, kravInloggad(c), id, c.body)]);
     rutt('POST', '/api/oppet-api/arenden/:id/status', (c, id) => forvaltning.andraStatus(c.db, kravInloggad(c), id, c.body));
     rutt('GET', '/api/masterdata', (c) => { kravInloggad(c); return { delar: masterdata.oversikt(c.db) }; });
+    // Runda 10, r1: systemkonton för tillämpningar utan inloggad person (systemkonton.js).
+    rutt('GET', '/api/oppet-api/systemkonton', (c) => {
+      const p = kravInloggad(c);
+      if (!kanRoll(p, systemkonton.HANDLING)) throw new Fel(403, 'Bara systemförvaltaren ser systemkontona.', 'nekad');
+      return { konton: systemkonton.konton(c.db), mangder: Object.entries(systemkonton.MANGDER).map(([id, m]) => ({ id, namn: m.namn, typer: m.typer })),
+        vardenheter: c.db.query("SELECT id, namn FROM enheter WHERE typ = 'vardenhet' ORDER BY namn").all() };
+    });
+    rutt('POST', '/api/oppet-api/systemkonton/forslag', (c) => {
+      const p = kravInloggad(c);
+      if (!kanRoll(p, systemkonton.HANDLING)) throw new Fel(403, 'Bara systemförvaltaren registrerar systemkonton.', 'nekad');
+      return systemkonton.forslag(c.db, c.body);
+    });
+    rutt('POST', '/api/oppet-api/systemkonton', (c) => [201, systemkonton.registrera(c.db, kravInloggad(c), c.body)]);
+    rutt('POST', '/api/oppet-api/systemkonton/:id/aterkalla', (c, id) => systemkonton.aterkalla(c.db, kravInloggad(c), id, c.body, {
+      aterkallaBiljetter: (kid) => smartLager.aterkalla(c.s, 'Åtkomstbiljetten återkallades när systemförvaltaren återkallade systemkontot.', b => b.system && b.klient === kid),
+    }));
   }
 
   return {

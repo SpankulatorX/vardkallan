@@ -835,7 +835,8 @@ describe('Säkerhetsarkitektur', () => {
 describe('Nyheter i runda 9, r5', () => {
   test('nyheterna om inloggningen, miljöerna, certifikaten, e-arkivet, gallringen och skyddsbehovet går till rätt roller', async () => {
     const k = klient(app);
-    const ids = async (roll) => { await k.logga(roll); const r = (await k.get('/api/nyheter')).data; return r.alla.find(v => v.version === r.version)?.nyheter.map(n => n.id) ?? []; };
+    // Runda 10, r1: nyheterna kom i 0.9.0 och läses ur historiken, så att testet inte beror på den aktuella versionen.
+    const ids = async (roll) => { await k.logga(roll); const r = (await k.get('/api/nyheter')).data; return r.alla.find(v => v.version === '0.9.0')?.nyheter.map(n => n.id) ?? []; };
     expect(await ids('sysf')).toEqual(expect.arrayContaining(['inloggning-uppdrag', 'miljoer', 'certifikat', 'gallringsregler']));
     expect(await ids('ark')).toEqual(expect.arrayContaining(['inloggning-uppdrag', 'earkiv-leverans', 'gallringsregler']));
     expect(await ids('logg')).toEqual(expect.arrayContaining(['inloggning-uppdrag', 'skyddsbehov-logg']));

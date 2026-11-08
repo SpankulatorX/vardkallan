@@ -6,7 +6,7 @@
 // Med en reservkod (reservkopia.js) går läsläget att öppna också i en ny flik eller efter en omstart av webbläsaren.
 // Demoknappen "Simulera avbrott" gör att just den här fliken beter sig som om servern var nere. Servern är igång
 // för alla andra besökare.
-import { esc, api, avbrott, krokar, notis, tidpunkt, klockslag, ikon, dialog } from './ui.js';
+import { esc, api, avbrott, krokar, notis, tidpunkt, klockslag, ikon, dialog, felNotis } from './ui.js';
 import * as kopia from './lasekopia.js';
 import * as reserv from './reservkopia.js';
 import { S, rita, uppdateraInkorg, demoknappar, laddaEnheter } from './app.js';
@@ -128,6 +128,7 @@ function upptackt(tvinga = false) {
       demoknappar();
       starta();
       uppdateraReservStatus();
+      uppdateraKo();
       return true;
     } finally { pagar = null; }
   })();
@@ -185,7 +186,8 @@ function sparraSkrivning() {
   const rotar = [document.getElementById('innehall'), document.querySelector('.demorad'), ...document.querySelectorAll('dialog')].filter(Boolean);
   for (const rot of rotar) {
     for (const el of rot.querySelectorAll('button, input, select, textarea')) {
-      if (el.disabled || el.closest('[data-las-ok]') || el.matches('[data-a="avbrott"]')) continue;
+      // Runda 10, r1: knappar och formulär för skrivkön (data-ko-ok) går att använda för patienterna i läskopian.
+      if (el.disabled || el.closest('[data-las-ok]') || el.matches('[data-a="avbrott"]') || (el.closest('[data-ko-ok]') && meta)) continue;
       el.disabled = true;
       el.setAttribute('data-laslage-av', '');
       el.title = 'Avstängt under avbrottet. Inget kan sparas förrän servern svarar igen.';
@@ -209,7 +211,8 @@ function visaRad() {
     rubrik = 'Avbrott: läsläge med reservkod';
     text = `<p>Servern svarar inte. Du är inloggad med din reservkod och ser en läskopia från <strong data-laskopia-tid>${esc(tidpunkt(meta.skapad))}</strong>. Uppgifterna kan vara inaktuella: det som har ändrats efter den tiden syns inte.</p>
       ${alderRad('alla')}
-      <p>Allt skrivande är avstängt, eftersom inget kan sparas i journalen förrän servern svarar igen. Läskopian har arbetslistan och ${patienter}. Det du läser loggas krypterat på datorn och förs över till åtkomstloggen när förbindelsen är tillbaka, även om fliken stängs.</p>`;
+      <p>Allt skrivande är avstängt utom att ge doser och registrera mätvärden för patienterna i läskopian. De sparas krypterat på datorn, märks som inte sparade i journalen och skickas av sig själva när förbindelsen är tillbaka. Läskopian har arbetslistan och ${patienter}. Det du läser loggas krypterat på datorn och förs över till åtkomstloggen när förbindelsen är tillbaka, även om fliken stängs.</p>
+      ${koRad()}`;
   } else if (meta) {
     rubrik = 'Avbrott: läsläge';
     const om = minReserv
@@ -217,7 +220,8 @@ function visaRad() {
       : 'Stängs fliken eller startas webbläsaren om under avbrottet behövs en reservkod för att komma in igen.';
     text = `<p>Servern svarar inte. Du ser en läskopia från <strong data-laskopia-tid>${esc(tidpunkt(meta.skapad))}</strong>. Uppgifterna kan vara inaktuella: det som har ändrats efter den tiden syns inte.</p>
       ${alderRad('alla')}
-      <p>Allt skrivande är avstängt, eftersom inget kan sparas i journalen förrän servern svarar igen. Läskopian har arbetslistan och ${patienter}. Det du läser loggas här och skickas till åtkomstloggen när förbindelsen är tillbaka.</p>
+      <p>Allt skrivande är avstängt utom att ge doser och registrera mätvärden för patienterna i läskopian. De sparas krypterat på datorn, märks som inte sparade i journalen och skickas av sig själva när förbindelsen är tillbaka. Läskopian har arbetslistan och ${patienter}. Det du läser loggas här och skickas till åtkomstloggen när förbindelsen är tillbaka.</p>
+      ${koRad()}
       <p>${om}</p>`;
   } else {
     rubrik = 'Avbrott: servern svarar inte';
@@ -230,6 +234,95 @@ function visaRad() {
       <h2 id="avbrott-rubrik">${rubrik}</h2>${text}${sim}
     </div>${knappar.length ? `<div class="avbrott-knappar">${knappar.join('')}</div>` : ''}</div>`;
   el.hidden = false;
+}
+
+// Runda 10, r1: hur många registreringar som väntar i skrivkön på datorn och inte är sparade i journalen.
+let koAntal = 0;
+const koRad = () => (koAntal ? `<p class="ko-rad" data-ko-antal><strong>${koAntal === 1 ? 'En registrering väntar' : `${koAntal} registreringar väntar`} i kön på datorn och är inte sparade i journalen än.</strong> De skickas när förbindelsen är tillbaka.</p>` : '');
+export async function uppdateraKo() {
+  const fore = koAntal;
+  koAntal = (await kopia.koRader().catch(() => [])).length;
+  if (fore !== koAntal && avbrott.aktivt) visaRad();
+  return koAntal;
+}
+
+// Runda 10, r1: skickar skrivkön när servern svarar och personen är inloggad. Sparade rader raderas lokalt. En konflikt
+// med något som hände under avbrottet (till exempel att någon annan gav samma dos) visas, och personen avgör: registrera
+// ändå med motivering eller ta bort raden ur kön. Rader som servern avvisar visas och tas bort, så att de kan
+// registreras på nytt för hand. vantarBeslut håller reda på de rader som väntar på beslut i den här fliken.
+const vantarBeslut = new Set();
+let skickar = false;
+const tomtResultat = () => ({ sparade: 0, konflikter: [], avvisade: [] });
+export async function skickaKo({ fraga = true } = {}) {
+  if (skickar || avbrott.aktivt || avbrott.simulerat || !S.session?.inloggad) return null;
+  const alla = (await kopia.koRader()).filter(r => fraga || !vantarBeslut.has(r.id));
+  if (!alla.length) return null;
+  skickar = true;
+  const res = tomtResultat();
+  try {
+    const grupper = new Map();
+    for (const r of alla) { if (!grupper.has(r.kopiaId)) grupper.set(r.kopiaId, []); grupper.get(r.kopiaId).push(r); }
+    for (const [kopiaId, rader] of grupper) {
+      for (let i = 0; i < rader.length; i += 50) {
+        const omgang = rader.slice(i, i + 50);
+        let svar;
+        try {
+          svar = await medTidsgrans(api('/api/skrivko', { metod: 'POST', direkt: true, tyst: true, data: { kopiaId, rader: omgang.map(x => ({ id: x.id, iv: kopia.tillB64(x.iv), data: kopia.tillB64(x.data) })) } }), 15000);
+        } catch (e) {
+          // Läskopian finns inte i den här inloggningen, till exempel för en annan person: raderna stannar till dess.
+          if (e?.status === 404) break;
+          return res;
+        }
+        await hanteraKoSvar(svar.resultat, omgang, res, kopiaId);
+      }
+    }
+  } finally { skickar = false; }
+  if (res.sparade) notis(`${res.sparade === 1 ? 'En registrering' : `${res.sparade} registreringar`} från avbrottet är nu sparade i journalen med tiden då de gjordes.`);
+  for (const a of res.avvisade) notis(`En registrering från avbrottet kunde inte sparas: ${a.text} ${a.vad ? `Det gällde ${a.vad}. ` : ''}Registrera den på nytt om den gjordes.`, 'fel', { kvar: true });
+  await uppdateraKo();
+  if (fraga) for (const k of res.konflikter) await avgorKonflikt(k);
+  if (res.sparade || res.konflikter.length) rita();
+  return res;
+}
+async function hanteraKoSvar(resultat, omgang, res, kopiaId) {
+  const klara = [];
+  for (const x of resultat ?? []) {
+    if (!x.id) continue;
+    if (x.status === 'sparad' || x.status === 'kastad') {
+      klara.push(x.id);
+      vantarBeslut.delete(x.id);
+      if (x.status === 'sparad') res.sparade++;
+      continue;
+    }
+    if (x.status === 'konflikt') { vantarBeslut.add(x.id); res.konflikter.push({ ...x, kopiaId, rad: omgang.find(r => r.id === x.id) }); continue; }
+    const lokal = await kopia.lasKo(omgang.find(r => r.id === x.id) ?? {}).catch(() => null);
+    res.avvisade.push({ ...x, vad: lokal ? (lokal.typ === 'matvarde' ? `mätvärdet ${lokal.data.typ} ${lokal.data.varde}` : 'en given dos') : null });
+    klara.push(x.id);
+  }
+  await kopia.taBortKo(klara);
+}
+const REGELNAMN = { dubbel_dos: 'dubbel dos', for_tidig: 'för tidig dos', utan_ordination: 'dos utan ordination', max_per_dygn: 'högsta dygnsdos' };
+async function avgorKonflikt(k) {
+  const svar = await dialog(`<form><h2 id="dlg-rubrik">${ikon.varning}<span>Registrering från avbrottet: ${esc(k.vad)}</span></h2>
+    <p>Du gav dosen kl. ${esc(klockslag(k.gjord))} medan servern inte svarade. Sedan dess har något hänt i journalen, så dosen sparas inte utan ditt beslut.</p>
+    <ul class="varn-allvarlig">${k.varningar.map(v => `<li><strong>Allvarlig.</strong> ${esc(v.text)}</li>`).join('')}</ul>
+    <p>Gavs dosen, registrera den med en motivering, så att journalen stämmer med det som har hänt, och kontakta ansvarig läkare. Gavs den inte, ta bort den ur kön.</p>
+    ${(k.kraverKvittens ?? []).map((r, i) => `<div class="falt"><label for="ko-kv-${i}">Motivering (${esc(REGELNAMN[r] ?? r.replace(/_/g, ' '))})</label><textarea id="ko-kv-${i}" name="kv_${esc(r)}" rows="2" maxlength="500"></textarea></div>`).join('')}
+    <p class="dialog-fel form-fel" role="alert" hidden></p>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="registrera">Dosen gavs, registrera den</button><button type="button" class="knapp sekundar" data-varde="kasta">Dosen gavs inte, ta bort den</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avgör senare</button></div></form>`,
+  { validera: (d, _dl, v) => (v === 'registrera' && Object.values(d).some(x => String(x).trim().length < 3) ? 'Skriv en motivering med minst tre tecken.' : null) });
+  if (!svar) return;
+  const data = { kopiaId: k.kopiaId, rader: [{ id: k.rad.id, iv: kopia.tillB64(k.rad.iv), data: kopia.tillB64(k.rad.data) }] };
+  if (svar.val === 'kasta') data.kasta = [k.rad.id];
+  else data.kvitteringar = { [k.rad.id]: Object.entries(svar.data).map(([n, v]) => ({ regel: n.slice(3), motivering: String(v).trim() })) };
+  try {
+    const r = await api('/api/skrivko', { metod: 'POST', data, direkt: true });
+    const res = tomtResultat();
+    await hanteraKoSvar(r.resultat, [k.rad], res, k.kopiaId);
+    const ok = res.sparade || svar.val === 'kasta';
+    notis(svar.val === 'kasta' ? 'Dosen är borttagen ur kön och sparades inte.' : res.sparade ? 'Dosen är sparad i journalen med din motivering.' : 'Dosen kunde inte sparas.', ok ? 'ok' : 'fel');
+  } catch (e) { felNotis(e); }
+  await uppdateraKo();
 }
 
 // Hur gamla läkemedelsuppgifterna i läskopian är (Sussa 11.2.1.8), för en patient i läkemedelslistan och översikten
@@ -428,6 +521,8 @@ async function aterga() {
     meddelaLogg({ ...res, mottagna: 0 });
     await uppdateraInkorg();
     rita();
+    // Runda 10, r1: skrivkön skickas när personen är inloggad som förut.
+    if (s.inloggad && s.personal) await skickaKo();
     fornya({ nu: true });
     uppdateraReservStatus();
   } finally { atergar = false; }
@@ -488,6 +583,8 @@ export async function fornyaNu() {
     const ny = await api('/api/lasekopia', { direkt: true, tyst: true, bakgrund: true });
     if (!galler()) return;
     const skapad = await kopia.spara(ny);
+    // Runda 10, r1: rader som finns kvar i skrivkön, till exempel från en flik som stängdes, skickas när personen är inloggad.
+    skickaKo({ fraga: false }).catch(() => {});
     if (skapad) {
       senastSparad = Date.now();
       if (ny.fornyas?.intervallMs > 0) fornyaMs = ny.fornyas.intervallMs;

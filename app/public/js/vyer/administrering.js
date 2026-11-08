@@ -42,7 +42,7 @@ export function patientDoser(pid, l) {
     const vantarKontroll = a?.status === 'iordningstalld' && a.beredning?.kontroll?.kravs && !a.beredning.kontroll.av;
     const knappar = kan && d.forslag && omfattas(d) ? `
       ${bered ? `<button type="button" class="knapp liten" data-adm="iordningstall" data-pid="${esc(pid)}" data-ord="${d.ordinationId}" data-planerad="${esc(d.planerad)}" data-namn="${esc(d.lakemedel?.namn)}" data-bered="${esc(JSON.stringify(beredData(d)))}">Bered</button>`
-        : vantarKontroll ? '' : `<button type="button" class="knapp liten" data-adm="${d.forslag}" data-pid="${esc(pid)}" data-ord="${d.ordinationId}" data-planerad="${esc(d.planerad)}"${a?.iordningstalld?.kontrollkod ? ` data-kod="${esc(a.iordningstalld.kontrollkod)}"` : ''} data-namn="${esc(d.lakemedel?.namn)}">${d.forslag === 'overlamna' ? 'Lämna över' : 'Ge'}</button>`}
+        : vantarKontroll ? '' : `<button type="button" class="knapp liten" data-adm="${d.forslag}" data-pid="${esc(pid)}" data-ord="${d.ordinationId}" data-planerad="${esc(d.planerad)}"${a?.iordningstalld?.kontrollkod ? ` data-kod="${esc(a.iordningstalld.kontrollkod)}"` : ''} data-namn="${esc(d.lakemedel?.namn)}"${d.forslag === 'ge' ? ' data-ko-ok' : ''}>${d.forslag === 'overlamna' ? 'Lämna över' : 'Ge'}</button>`}
       <details class="adm-mer"><summary>Mer</summary><div class="knapprad">
         ${a?.status !== 'iordningstalld' && !bered ? `<button type="button" class="knapp liten sekundar" data-adm="iordningstall" data-pid="${esc(pid)}" data-ord="${d.ordinationId}" data-planerad="${esc(d.planerad)}" data-namn="${esc(d.lakemedel?.namn)}">Iordningsställ</button>` : ''}
         <button type="button" class="knapp liten sekundar" data-adm="efterhand" data-pid="${esc(pid)}" data-ord="${d.ordinationId}" data-planerad="${esc(d.planerad)}" data-namn="${esc(d.lakemedel?.namn)}">Given tidigare</button>
@@ -54,7 +54,7 @@ export function patientDoser(pid, l) {
       <td><time>${esc(klockslag(d.planerad))}</time>${datum(d.planerad) !== datum(idag()) ? `<span class="under-text">${esc(datum(d.planerad))}</span>` : ''}</td>
       <td><strong>${lmText(d)}</strong>${r6Taggar(d)}<span class="under-text">${esc(d.dosering)}${d.administrationssatt ? `, ${esc(d.administrationssatt.toLowerCase())}` : ''}${d.vardhandelse ? `. Inför ${esc(d.vardhandelse.text.toLowerCase())}` : ''}</span>${d.vardhandelse?.forklaring ? `<span class="under-text">${esc(d.vardhandelse.forklaring)}</span>` : ''}${d.spadning ? `<span class="under-text lms-spadning">${esc(d.spadning.text)}</span>` : ''}${r9Info(d)}</td>
       <td>${dosText(d)}</td>
-      <td><span class="tagg ${kl}">${esc(st)}</span>${d.underPermission ? ' <span class="tagg">Permission</span>' : ''}
+      <td><span class="tagg ${kl}">${esc(st)}</span>${d.underPermission ? ' <span class="tagg">Permission</span>' : ''}${a?.ejSparad ? ' <span class="tagg tagg-larm" data-ej-sparad>Inte sparad i journalen än</span>' : ''}
         ${a && a.status !== 'iordningstalld' ? `<span class="under-text">${vem(a)}${a.orsak ? `. ${esc(a.orsak)}` : ''}${d.antalRegistreringar > 1 ? `. Registrerad ${d.antalRegistreringar} gånger` : ''}</span>` : ''}
         ${a?.status === 'iordningstalld' ? `<span class="under-text">Iordningsställd ${esc(klockslag(a.iordningstalld.tid))} av ${esc(a.iordningstalld.av)}. Etikett ${esc(a.iordningstalld.kontrollkod)}</span>${r9Status(pid, a, kan)}` : ''}
         ${a && kan ? `<button type="button" class="knapp-lank" data-makulera-adm="${a.id}" data-pid="${esc(pid)}" data-text="${esc(`${d.lakemedel?.namn ?? ''}, ${STATUS[a.status]?.[0]?.toLowerCase() ?? ''} ${klockslag(a.tid ?? a.iordningstalld?.tid)}`)}">Makulera</button>` : ''}
@@ -66,7 +66,8 @@ export function patientDoser(pid, l) {
       <span class="under-text">${esc(v.dosering)}</span>
       <span class="under-text">${v.senaste ? `Senast given ${esc(tidpunkt(v.senaste.tid))} av ${esc(v.senaste.utfordAv?.namn ?? '')}${v.senaste.delegering ? `, med delegering från ${esc(v.senaste.delegering.utfardadAv)}` : ''}.` : 'Inte given det senaste dygnet.'}${v.max ? ` ${v.senasteDygnet} av högst ${v.max.antal} det senaste dygnet.` : ''}</span>
       ${v.varfor ? `<span class="under-text adm-varfor">${esc(v.varfor)}</span>` : ''}${inteDelegerad(v)}</div>
-      ${kan && omfattas(v) ? `<div class="adm-knappar"><button type="button" class="knapp liten${v.kanGesNu ? '' : ' sekundar'}" data-adm="ge" data-pid="${esc(pid)}" data-ord="${v.ordinationId}" data-namn="${esc(v.lakemedel?.namn)}">Ge</button>
+      ${v.senaste?.ejSparad ? '<span class="tagg tagg-larm" data-ej-sparad>Inte sparad i journalen än</span>' : ''}
+      ${kan && omfattas(v) ? `<div class="adm-knappar"><button type="button" class="knapp liten${v.kanGesNu ? '' : ' sekundar'}" data-adm="ge" data-pid="${esc(pid)}" data-ord="${v.ordinationId}" data-namn="${esc(v.lakemedel?.namn)}" data-ko-ok>Ge</button>
         <details class="adm-mer"><summary>Mer</summary><div class="knapprad"><button type="button" class="knapp liten sekundar" data-adm="efterhand" data-pid="${esc(pid)}" data-ord="${v.ordinationId}" data-namn="${esc(v.lakemedel?.namn)}">Given tidigare</button></div></details></div>` : ''}</li>`;
   const ut = (u) => `<li class="adm-vb"><div><strong>${lmText(u)}</strong> <span class="tagg">Utan fasta tider</span><span class="under-text">${esc(u.dosering)}</span>${r9Info(u)}
       ${u.givnaIdag.length ? `<span class="under-text">Given i dag ${u.givnaIdag.map(a => `${esc(klockslag(a.tid))}${a.dos != null ? ` (${dosText(a)})` : ''} av ${esc(a.utfordAv?.namn ?? '')}${a.delegering ? `, med delegering från ${esc(a.delegering.utfardadAv)}` : ''}`).join('; ')}.</span>` : ''}${inteDelegerad(u)}</div>
@@ -122,7 +123,8 @@ const kvittensHtml = (varningar, kraver = null) => {
 async function registrera(pid, data, namnText) {
   const vag = `/api/patient/${encodeURIComponent(pid)}/administreringar`;
   try {
-    return await api(vag, { metod: 'POST', data });
+    // Runda 10, r1: under ett avbrott läggs en given dos i skrivkön (ko), och servern prövar den när förbindelsen är tillbaka.
+    return await api(vag, { metod: 'POST', data, ko: data.atgard === 'ge' && !data.tid });
   } catch (e) {
     if (!(e.status === 400 && e.data?.varningar)) throw e;
     const svar = await dialog(`<form><h2 id="dlg-rubrik">${ikon.varning}<span>Varning: ${esc(namnText)}</span></h2>
@@ -205,6 +207,10 @@ export function koppla(el, ladda) {
       const r = await medKnapp(b, () => registrera(b.dataset.pid, data, namnText));
       if (!r) return;
       const a = r.administrering;
+      if (r.koad) {
+        notis(`${a.lakemedel?.namn ?? namnText} är given kl. ${klockslag(a.tid)}. Den är sparad i kön på den här datorn och inte i journalen än. Den skickas när förbindelsen är tillbaka.`, 'info');
+        return ladda();
+      }
       notis(`${a.lakemedel?.namn} ${KLAR[typ] ?? 'är registrerad'}${a.tid ? ` kl. ${klockslag(a.tid)}` : ''}.${a.iordningstalld && a.status === 'iordningstalld' ? ` Etikett ${a.iordningstalld.kontrollkod}.` : ''}`);
       ladda();
     } catch { /* notis visad */ }

@@ -67,8 +67,13 @@ export async function ritaForvaltning(el) {
     <section aria-labelledby="api-mott-rubrik"><h3 id="api-mott-rubrik">Godkända mottagare för prenumerationer</h3>
       <p class="under-text">Meddelanden om ändringar skickas bara till de här adresserna, och bara med id.</p>
       ${f ? '<button type="button" class="knapp" data-ny-mottagare>Godkänn en mottagare</button>' : ''}
-      <ul class="api-lista">${d.mottagare.map(m => mottagareRad(m, f)).join('')}</ul></section>`;
+      <ul class="api-lista">${d.mottagare.map(m => mottagareRad(m, f)).join('')}</ul></section>
+    ${f ? '<section aria-labelledby="api-sys-rubrik" data-systemkonton><h3 id="api-sys-rubrik">Systemkonton</h3><p class="tom">Hämtar.</p></section>' : ''}`;
   const igen = () => ritaForvaltning(el);
+  // Runda 10, r1: systemkonton för tillämpningar utan inloggad person, bara för systemförvaltaren.
+  const sys = f ? await api('/api/oppet-api/systemkonton', { tyst: true }).catch(() => null) : null;
+  const sysEl = el.querySelector('[data-systemkonton]');
+  if (sysEl && sys) sysEl.innerHTML = systemkontonHtml(sys);
   el.onclick = async (e) => {
     const b = e.target.closest('button');
     if (!b) return;
@@ -135,6 +140,14 @@ export async function ritaForvaltning(el) {
         notis('Mottagaren är godkänd.');
         return igen();
       }
+      if (b.matches('[data-nytt-systemkonto]') && sys) return nyttSystemkonto(sys, igen);
+      if (b.dataset.aterkallaS) {
+        const svar = await fraga('Återkalla systemkontot', falt({ namn: 'orsak', etikett: 'Varför?', typ: 'textarea', obligatorisk: true, attr: 'maxlength="300"', hjalp: 'Kontot får inga nya åtkomstbiljetter, de som finns slutar gälla och kontots prenumerationer avslutas.' }), 'Återkalla');
+        if (!svar) return;
+        const a = await medKnapp(b, () => api(`/api/oppet-api/systemkonton/${encodeURIComponent(b.dataset.aterkallaS)}/aterkalla`, { metod: 'POST', data: svar.data }));
+        notis(`Systemkontot är återkallat. ${a.avslutade === 1 ? 'En prenumeration avslutades.' : `${a.avslutade} prenumerationer avslutades.`}`);
+        return igen();
+      }
       const t = b.dataset.aterkallaT;
       const m = b.dataset.aterkallaM;
       if (t || m) {
@@ -145,4 +158,50 @@ export async function ritaForvaltning(el) {
       }
     } catch { /* felet visas som notis */ }
   };
+}
+
+// Runda 10, r1: systemkonton (SMART Backend Services). Systemförvaltaren väljer vad kontot ska få och för vilka
+// vårdenheter, och klistrar in tillämpningens offentliga nyckel. Systemet räknar fram omfånget och skriver vad kontot får.
+function systemkontonHtml(sys) {
+  const rad = (k) => `<li><strong>${esc(k.namn)}</strong>${k.aterkallad ? ` ${status('Återkallat')}` : ''} <span class="dampad">${esc(k.id)}</span>
+    <p class="under-text">${esc(k.syfte)} Får: ${esc(k.far)}</p><p class="under-text"><code>${esc(k.omfang.join(' '))}</code>. Aktiva prenumerationer: ${k.prenumerationer}.</p>
+    ${k.aterkallad ? '' : `<button type="button" class="knapp liten sekundar" data-aterkalla-s="${esc(k.id)}">Återkalla</button>`}</li>`;
+  return `<h3 id="api-sys-rubrik">Systemkonton</h3>
+    <p class="under-text">Ett systemkonto är för en tillämpning utan inloggad person, till exempel regionens vårddatalager. Tillämpningen hämtar en åtkomstbiljett med ett klientintyg som den signerar med sin privata nyckel (SMART Backend Services), och prenumererar på nya, ändrade och borttagna poster på kontots vårdenheter. Kontot får aldrig patienter med skyddade personuppgifter eller spärrade uppgifter, och varje läsning loggas.</p>
+    <button type="button" class="knapp" data-nytt-systemkonto>Registrera ett systemkonto</button>
+    ${sys.konton.length ? `<ul class="api-lista">${sys.konton.map(rad).join('')}</ul>` : '<p class="tom">Inga systemkonton ännu.</p>'}`;
+}
+async function nyttSystemkonto(sys, igen) {
+  let val = { mangder: [], vardenheter: [] };
+  const las = (dl) => ({ mangder: [...dl.querySelectorAll('input[name=mangd]:checked')].map(x => x.value), vardenheter: [...dl.querySelectorAll('input[name=ve]:checked')].map(x => x.value) });
+  const svar = await dialog(`<form><h2 id="dlg-rubrik">Registrera ett systemkonto</h2>
+    ${falt({ namn: 'namn', etikett: 'Namn', obligatorisk: true, attr: 'maxlength="80"', hjalp: 'Till exempel Regionens vårddatalager.' })}
+    ${falt({ namn: 'syfte', etikett: 'Varför behöver tillämpningen uppgifterna?', typ: 'textarea', obligatorisk: true, attr: 'maxlength="500"', hjalp: 'Syftet visas i åtkomstloggen och vid logggranskningen.' })}
+    <fieldset class="falt"><legend>Vad ska kontot få?</legend>${sys.mangder.map(m => `<label class="val"><input type="checkbox" name="mangd" value="${esc(m.id)}"${m.id === 'diagnoser' ? ' checked' : ''}> ${esc(m.namn[0].toUpperCase() + m.namn.slice(1))}</label>`).join('')}</fieldset>
+    <fieldset class="falt"><legend>Från vilka vårdenheter?</legend>${sys.vardenheter.map(v => `<label class="val"><input type="checkbox" name="ve" value="${esc(v.id)}"> ${esc(v.namn)}</label>`).join('')}</fieldset>
+    ${falt({ namn: 'nyckel', etikett: 'Tillämpningens offentliga nyckel (JWK)', typ: 'textarea', obligatorisk: true, attr: 'rows="4" spellcheck="false"', hjalp: 'En EC-nyckel på P-256 eller en RSA-nyckel som JSON. Bara den offentliga delen: den privata nyckeln stannar hos tillämpningen.' })}
+    <div data-forhand class="ruta liten" role="status"></div><p class="dialog-fel ruta ruta-larm" hidden></p>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Registrera</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`, {
+    validera: (d, dl) => {
+      val = las(dl);
+      if (!val.mangder.length) return 'Välj minst en informationsmängd.';
+      if (!val.vardenheter.length) return 'Välj minst en vårdenhet.';
+      try { JSON.parse(d.nyckel); } catch { return 'Nyckeln ska vara JSON med fälten kty, crv, x och y för en EC-nyckel, eller kty, n och e för en RSA-nyckel.'; }
+      return null;
+    },
+    onOpen: (dl) => {
+      const visa = async () => {
+        const ruta = dl.querySelector('[data-forhand]');
+        const v = las(dl);
+        if (!v.mangder.length || !v.vardenheter.length) { ruta.textContent = 'Välj vad kontot ska få och från vilka vårdenheter, så skriver systemet vad kontot får.'; return; }
+        try { const p = await api('/api/oppet-api/systemkonton/forslag', { metod: 'POST', data: v, tyst: true }); ruta.textContent = `Kontot får: ${p.far}`; } catch (x) { ruta.textContent = x.message; }
+      };
+      dl.addEventListener('change', visa);
+      visa();
+    },
+  });
+  if (!svar) return;
+  const k = await api('/api/oppet-api/systemkonton', { metod: 'POST', data: { namn: svar.data.namn, syfte: svar.data.syfte, ...val, nyckel: JSON.parse(svar.data.nyckel) } });
+  notis(`${k.namn} är registrerat. Kontots id, som tillämpningen använder som client_id, är ${k.id}.`, 'ok', { kvar: true });
+  return igen();
 }
