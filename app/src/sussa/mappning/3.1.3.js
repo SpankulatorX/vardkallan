@@ -67,7 +67,7 @@ const POSTERNA = [
       'Skanning > seeden har armband för de inskrivna patienterna',
     ],
     losning: 'Ett fält för streckkodsläsare (tangentbordsläge) högst upp i Vårdkällan, som tar emot armband, personnummer, provetiketter, etiketter på iordningställda doser och läkemedelsförpackningar med GS1-koder (artikelnummer, utgångsdatum, batch och serienummer). Patientens armband skrivs ut från journalen med en slumpmässig kod som inte innehåller personuppgifter.',
-    expert: 'Den som skannar väljer aldrig vad koden är. Systemet tolkar den, öppnar patienten, bockar av röret vid provtagningen och kontrollerar förpackningen mot ordinationen och utgångsdatumet, och stoppar ett rör, en dos eller ett armband som hör till en annan patient än den som är öppen. Varje skanning sparas med vem, var, när och resultatet.',
+    expert: 'Den som skannar väljer aldrig vad koden är. Systemet tolkar den, öppnar patienten, bockar av röret vid provtagningen, kontrollerar förpackningen mot ordinationen och utgångsdatumet, stoppar ett rör, en dos eller ett armband som hör till en annan patient än den som är öppen och sparar varje skanning med vem, var, när och resultatet.',
     anmarkning: 'I demon är förpackningens artikelnummer NPL-pack-id, eftersom katalogen saknar GTIN. Batch och utgångsdatum sparas med skanningen men inte på den givna dosen. Riktiga läsare är inte provade. Medicintekniska produkter har ingen egen kodtyp än.' },
   { id: '3.1.3.7', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: 'Röstinmatning är inte byggd.' },

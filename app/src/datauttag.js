@@ -76,7 +76,7 @@ export const SCHEMA = {
     beskrivning: 'En rad per mätvärde och provsvar, utan kommentarer.',
     falt: {
       rad: 'Radens stabila nyckel.', patient: 'Patientens pseudonym.', aldersgrupp: 'Ålder vid mätningen i femårsgrupper.', kon: '"kvinna" eller "man".',
-      vardenhet: 'Vårdenhetens HSA-id.', vardkontakt: 'Vårdkontaktens radnyckel i tabellen Vardkontakt, eller tomt.', typ: 'Mätvärdets typ, till exempel "blodtryck" eller "hba1c".',
+      vardenhet: 'Vårdenhetens HSA-id.', vardkontakt: 'Vårdkontaktens radnyckel i tabellen med vårdkontakter, eller tomt.', typ: 'Mätvärdets typ, till exempel "blodtryck" eller "hba1c".',
       varde: 'Värdet som tal, eller som text för blodtryck (systoliskt/diastoliskt) och medvetandegrad.', enhet: 'Måttenheten.', datum: 'Datum för mätningen.',
     },
   },
@@ -101,7 +101,7 @@ export const SCHEMA = {
     falt: {
       rad: 'Radens stabila nyckel.', patient: 'Patientens pseudonym.', vardenhet: 'Vårdenhetens HSA-id.', vardkontakt: 'Vårdkontaktens radnyckel.',
       vardform: 'Vårdformen.', kontaktsatt: 'Kontaktsättet, eller tomt.', datum: 'Kontaktens datum.',
-      avgiftsbelagd: 'true när besöket har en avgift i prislistan för patientens ålder och kontaktsättet, utan hänsyn till högkostnadsskydd och LMA-kort.',
+      avgiftsbelagd: 'Sant när besöket har en avgift i prislistan för patientens ålder och kontaktsättet, utan hänsyn till högkostnadsskydd och LMA-kort.',
     },
   },
 };
@@ -239,7 +239,7 @@ export const KVALITETSREGLER = {
   obligatoriska: 'Obligatoriska fält har ett värde.',
   koder: 'Koderna är giltiga: ICD-10-SE för diagnoser, ATC för läkemedel och kända typer för mätvärden och vårdformer.',
   datum: 'Datumen är giltiga och står i ordning: början före slut, inskrivning före utskrivning och skrivning före signering.',
-  referenser: 'En hänvisning till en vårdkontakt pekar på en rad i tabellen Vardkontakt.',
+  referenser: 'En hänvisning till en vårdkontakt pekar på en rad i tabellen med vårdkontakter.',
 };
 const OBLIGATORISKA = {
   Vardkontakt: ['rad', 'patient', 'vardenhet', 'vardform', 'startdatum'], Diagnos: ['rad', 'patient', 'vardenhet', 'kod', 'datum'], Ordination: ['rad', 'patient', 'vardenhet', 'atc', 'startdatum', 'status'],
@@ -247,16 +247,23 @@ const OBLIGATORISKA = {
   Anteckning: ['rad', 'patient', 'vardenhet', 'typ', 'kategori', 'status', 'datum'], Vardtillfalle: ['rad', 'patient', 'vardenhet', 'inskrivenDatum'], Patientavgift: ['rad', 'patient', 'vardenhet', 'vardkontakt', 'datum'],
 };
 const KANDA_VARDFORMER = ['oppenvard', 'akut', 'slutenvard', 'hemsjukvard', 'dagkirurgi'];
+// Koderna som kontrolleras per tabell.
+const KODREGEL = {
+  Diagnos: (r) => !r.kod || /^[A-Z]\d{2}(\.\d{1,2})?$/.test(r.kod),
+  Ordination: (r) => !r.atc || /^[A-Z]\d{2}[A-Z]{0,2}\d{0,2}$/.test(r.atc),
+  Matvarde: (r, mattyper) => Object.hasOwn(mattyper, r.typ),
+  Vardkontakt: (r) => KANDA_VARDFORMER.includes(r.vardform),
+  Patientavgift: (r) => KANDA_VARDFORMER.includes(r.vardform),
+};
 export function kvalitet(data) {
-  const vardkontakter = new Set((data.Vardkontakt ?? []).map(r => r.rad));
+  const vardkontakter = new Set((data[TYPER[0]] ?? []).map(r => r.rad));
   const { MATTYPER } = require('./journal.js');
   const ut = {};
   for (const t of TYPER) {
     const avvikelser = Object.fromEntries(Object.keys(KVALITETSREGLER).map(r => [r, []]));
     for (const r of data[t] ?? []) {
       if (OBLIGATORISKA[t].some(f => r[f] == null || r[f] === '')) avvikelser.obligatoriska.push(r.rad);
-      const felKod = (t === 'Diagnos' && r.kod && !/^[A-Z]\d{2}(\.\d{1,2})?$/.test(r.kod)) || (t === 'Ordination' && r.atc && !/^[A-Z]\d{2}[A-Z]{0,2}\d{0,2}$/.test(r.atc))
-        || (t === 'Matvarde' && !Object.hasOwn(MATTYPER, r.typ)) || (['Vardkontakt', 'Patientavgift'].includes(t) && !KANDA_VARDFORMER.includes(r.vardform));
+      const felKod = Object.hasOwn(KODREGEL, t) && !KODREGEL[t](r, MATTYPER);
       if (felKod) avvikelser.koder.push(r.rad);
       const datum = Object.entries(r).filter(([f, v]) => /[dD]atum$/.test(f) && v != null);
       const fore = (a, b) => r[a] && r[b] && r[a] > r[b];
