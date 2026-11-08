@@ -7,9 +7,10 @@
 // head-circumference-for-age och body-mass-index-for-age, 0 till 5 år, filerna *_zscores.xlsx). Värdena är avskrivna
 // utan ändring och avrundade till fyra decimaler för L och M och fem för S. Filernas SHA-256 står i docs/kodkontroll.md.
 //
-// Licens: WHO:s publikationer ges ut under CC BY-NC-SA 3.0 IGO (who.int, Copyright). Vårdkällan är ett demoprojekt
-// utan kommersiellt syfte och använder tabellen med angiven källa. Tabellen omfattas inte av Vårdkällans licens EUPL 1.2.
-// Den som använder Vårdkällan kommersiellt behöver WHO:s tillstånd eller en annan referens.
+// Licens: CC BY-NC-SA 3.0 IGO, med WHO som källa. Licenstexten står i LICENS-who-tillvaxt.txt i samma katalog. Filen
+// omfattas inte av Vårdkällans licens EUPL 1.2. Vårdkällan är ett demoprojekt utan kommersiellt syfte och använder
+// tabellen med angiven källa. Innan någon använder Vårdkällan kommersiellt ska tabellen bytas mot fritt licensierade
+// svenska referenser eller användas med ett tillstånd från WHO.
 //
 // De svenska referenserna som barnhälsovården använder (Göteborg 1974, Sverige 1981 och de nya referenserna från 2020
 // och 2021) används inte, eftersom referensvärdena inte finns utgivna under en fri licens (docs/kodkontroll.md).

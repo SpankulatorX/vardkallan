@@ -167,7 +167,8 @@ const MENY = {
       await page.waitForSelector('.roll');
       const n = await page.locator('.roll').count();
       // Runda 6, r6: verksamhetschefen är den trettonde.
-      if (n !== 13) throw new Error(`${n} roller`);
+      // Runda 7, r6: distriktssköterskan Hanna Lilja är demoroll i barnhälsovården.
+      if (n !== 14) throw new Error(`${n} roller`);
       await forvanta(page, '.demorad', 'Demo med påhittade patienter och testpersonnummer från Skatteverket. Inte för vård av riktiga patienter.');
       await forvanta(page, '.sidfot', 'Vårdkällan är ett fristående demoprojekt med öppen källkod (EUPL 1.2). Det är inte en tjänst från Region Örebro län.');
       await forvanta(page, '#roll-lak-akut-visar', 'Nödåtkomst');
@@ -989,6 +990,20 @@ const MENY = {
       if (await page.locator('#min-sparrform').count()) throw new Error('vårdnadshavaren kan begära spärr');
     });
 
+    // Runda 7, r6: distriktssköterskan ger MPR och får frågan om andra vaccinationer, som alla barn får.
+    await s('Hanna Lilja ger Ida MPR och svarar på frågan om vaccinationer som har getts någon annanstans', async () => {
+      await loggaIn(page, 'ssk-vc');
+      await gaTill(page, '#/patient/p61/tillvaxt');
+      await page.locator('[data-vaccin="mpr1"]').click();
+      const dl = page.locator('dialog[open]');
+      await dl.waitFor();
+      await forvanta(page, 'dialog[open] legend', 'någon annanstans');
+      if (await dl.locator('[data-dolda-vaccinationer]').count()) throw new Error('varningen om dolda vaccinationer visas utan att det finns några');
+      await dl.locator('#dlg-andra-nej').check();
+      await bild(page, '99-vaccination-fraga');
+      await dl.locator('[data-varde="ok"]').click();
+      await forvanta(page, '.notis', 'är registrerad');
+    });
     // Runda 7, r6: vårdnadshavaren ser barnets tillväxt och skickar en mätning hemifrån.
     await s('Linnea Holmqvist ser Idas kurvor och vaccinationer i Min journal och skickar en mätning hemifrån', async () => {
       await loggaInPatient(page, 'inv-vh02');

@@ -137,12 +137,12 @@ describe('Barnhälsovårdens program', () => {
   test('vaccinationen prövas mot programmet och får ATC och dos av systemet', () => {
     const db = fast();
     const a = atk(db, 'lak-vc', {}, 'vaccinera');
-    const [s, v] = bhv.vaccinera(a, pat(db), { vaccinId: 'mpr1' }, vardkontakt.knyt, NU);
+    const [s, v] = bhv.vaccinera(a, pat(db), { vaccinId: 'mpr1', andraVaccinationer: 'nej' }, vardkontakt.knyt, NU);
     expect(s).toBe(201);
     expect(v).toMatchObject({ vaccinId: 'mpr1', atc: 'J07BD52', dos: 1, atcText: ATC.J07BD52 });
     expect(db.query('SELECT vardkontakt_id FROM vaccinationer WHERE id = ?').get(v.id).vardkontakt_id).toBeGreaterThan(0);
-    expect(() => bhv.vaccinera(a, pat(db), { vaccinId: 'mpr1' }, vardkontakt.knyt, NU)).toThrow('är redan given');
-    expect(() => bhv.vaccinera(a, pat(db), { vaccinId: 'bcg' }, vardkontakt.knyt, NU)).toThrow('ökad risk för tuberkulos');
+    expect(() => bhv.vaccinera(a, pat(db), { vaccinId: 'mpr1', andraVaccinationer: 'nej' }, vardkontakt.knyt, NU)).toThrow('är redan given');
+    expect(() => bhv.vaccinera(a, pat(db), { vaccinId: 'bcg', andraVaccinationer: 'nej' }, vardkontakt.knyt, NU)).toThrow('ökad risk för tuberkulos');
     expect(() => db.query('UPDATE vaccinationer SET dos = 2 WHERE id = ?').run(v.id)).toThrow('En registrerad vaccination ändras inte');
   });
 
@@ -169,19 +169,63 @@ describe('Barnhälsovårdens program', () => {
     expect(bhv.lakarbesok(atk(db, 'lak-vc', {}, 'boka_bhv'), pat(db), {})[1].text).toContain('BVC-läkaren');
   });
 
-  test('en vaccination från en annan vårdenhet röjs inte i skälet utan aktivt val, och förslagen räknar bara synliga tider', () => {
+  test('före varje dos frågar systemet alltid om vaccinationer som har getts någon annanstans', () => {
+    const db = fast();
+    const a = atk(db, 'lak-vc', {}, 'vaccinera');
+    let fel;
+    try { bhv.vaccinera(a, pat(db), { vaccinId: 'mpr1' }, vardkontakt.knyt, NU); } catch (e) { fel = e; }
+    expect(fel).toMatchObject({ status: 400, kod: 'kraver_fraga', message: bhv.FRAGA_ANDRA });
+    expect(() => bhv.vaccinera(a, pat(db), { vaccinId: 'mpr1', andraVaccinationer: 'ja' }, vardkontakt.knyt, NU)).toThrow('Registrera inte dosen förrän');
+    expect(bhv.vaccinera(a, pat(db), { vaccinId: 'mpr1', andraVaccinationer: 'nej' }, vardkontakt.knyt, NU)[0]).toBe(201);
+  });
+
+  test('en vaccination som kräver aktivt val ger en varning utan vårdenhet, vaccin eller datum, och dosen kan ges efter en bekräftelse som loggas', () => {
     const db = fast();
     db.query("INSERT INTO vaccinationer (patient_id, enhet_id, vaccin_id, atc, dos, tid, registrerad) VALUES ('p61', 'uso-akut', 'mpr1', 'J07BD52', 1, ?, ?)").run('2026-11-01T10:00:00Z', '2026-11-01T10:00:00Z');
     const v = bhv.vy(atk(db, 'lak-vc'), pat(db), { nu: NU });
     expect(v.bhv.vaccinationer.some(x => x.vaccinId === 'mpr1')).toBe(false);
-    expect(JSON.stringify(v)).not.toContain('Akutmottagningen');
-    expect(() => bhv.vaccinera(atk(db, 'lak-vc', { andra_enheter: true }, 'vaccinera'), pat(db), { vaccinId: 'mpr1' }, vardkontakt.knyt, NU)).toThrow('är redan given');
+    expect(v.bhv.doldaVaccinationer).toEqual({ kraverVal: true, text: bhv.VARNING_DOLDA });
+    for (const s of ['Akutmottagningen', 'uso-akut', '2026-11-01']) expect(JSON.stringify(v)).not.toContain(s);
+    const a = atk(db, 'lak-vc', {}, 'vaccinera');
+    let fel;
+    try { bhv.vaccinera(a, pat(db), { vaccinId: 'mpr1', andraVaccinationer: 'nej' }, vardkontakt.knyt, NU); } catch (e) { fel = e; }
+    expect(fel).toMatchObject({ status: 409, kod: 'kraver_bekraftelse', message: 'Barnet har vaccinationer registrerade på en annan vårdenhet. Gör ett aktivt val för att se dem innan du ger dosen.' });
+    for (const s of ['Akutmottagningen', 'uso-akut', '2026-11-01', 'J07BD52', 'Mässling', 'mpr1']) expect(JSON.stringify({ m: fel.message, e: fel.extra })).not.toContain(s);
+    const [st] = bhv.vaccinera(a, pat(db), { vaccinId: 'mpr1', andraVaccinationer: 'nej', bekraftaDolda: true }, vardkontakt.knyt, NU);
+    expect(st).toBe(201);
+    expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p61' AND handling = 'vaccinera' AND syfte LIKE 'Dosen gavs utan aktivt val%'").get().n).toBe(1);
+    // Med ett aktivt val syns vaccinationen, och skälet säger att dosen redan är given.
+    expect(() => bhv.vaccinera(atk(db, 'lak-vc', { andra_enheter: true }, 'vaccinera'), pat(db), { vaccinId: 'mpr1', andraVaccinationer: 'nej' }, vardkontakt.knyt, NU)).toThrow('är redan given');
+  });
+
+  test('en vaccination bakom en spärr röjs aldrig: ingen varning, bara den vanliga frågan som alla barn får', () => {
+    const db = fast();
+    db.query("INSERT INTO sparrar (patient_id, enhet_id, registrerad) VALUES ('p61', 'uso-psyk', '2026-10-01')").run();
+    db.query("INSERT INTO vaccinationer (patient_id, enhet_id, vaccin_id, atc, dos, tid, registrerad) VALUES ('p61', 'uso-psyk', 'mpr1', 'J07BD52', 1, ?, ?)").run('2026-11-01T10:00:00Z', '2026-11-01T10:00:00Z');
+    const v = bhv.vy(atk(db, 'lak-vc', { andra_enheter: true }), pat(db), { nu: NU });
+    expect(v.bhv.doldaVaccinationer).toEqual({ kraverVal: false, text: null });
+    const a = atk(db, 'lak-vc', { andra_enheter: true }, 'vaccinera');
+    let fel;
+    try { bhv.vaccinera(a, pat(db), { vaccinId: 'mpr1' }, vardkontakt.knyt, NU); } catch (e) { fel = e; }
+    expect(fel).toMatchObject({ status: 400, kod: 'kraver_fraga', message: bhv.FRAGA_ANDRA });
+    expect(bhv.vaccinera(a, pat(db), { vaccinId: 'mpr1', andraVaccinationer: 'nej' }, vardkontakt.knyt, NU)[0]).toBe(201);
+    expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p61' AND syfte LIKE 'Dosen gavs utan aktivt val%'").get().n).toBe(0);
+  });
+
+  test('sjuksköterskor gör barnhälsovårdens flöde med ett uppdrag på barnavårdscentralen, och utan uppdrag nekas det', () => {
+    const db = fast();
+    expect(bhv.uppdrag(db, pers(db, 'ssk-vc'))).toMatchObject({ enhet: 'vc-tybble-bvc' });
+    expect(bhv.session(db, pers(db, 'ssk-vc'))).toMatchObject({ enhet: 'vc-tybble', uppdrag: true });
+    expect(bhv.vaccinera(atk(db, 'ssk-vc', {}, 'vaccinera'), pat(db), { vaccinId: 'mpr1', andraVaccinationer: 'nej' }, vardkontakt.knyt, NU)[0]).toBe(201);
+    db.query("UPDATE bhv_uppdrag SET till = '2026-01-01' WHERE personal_id = 'ssk-vc'").run();
+    expect(bhv.session(db, pers(db, 'ssk-vc'))).toBeNull();
+    expect(() => bhv.boka(atk(db, 'ssk-vc', {}, 'boka_bhv'), pat(db), { besokId: '30m' }, NU)).toThrow('uppdrag på barnavårdscentralen');
   });
 
   test('bara barnavårdscentralen där barnet är inskrivet bokar och vaccinerar', () => {
     const db = fast();
     const a = new Atkomst(db, pers(db, 'lak-kard'), 'p61', { nodatkomst: true }, 'vaccinera');
-    expect(() => bhv.vaccinera(a, pat(db), { vaccinId: 'mpr1' }, vardkontakt.knyt, NU)).toThrow('Barnet är inskrivet i barnhälsovården på en annan vårdenhet');
+    expect(() => bhv.vaccinera(a, pat(db), { vaccinId: 'mpr1', andraVaccinationer: 'nej' }, vardkontakt.knyt, NU)).toThrow('Barnet är inskrivet i barnhälsovården på en annan vårdenhet');
     expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p61' AND handling = 'vaccinera' AND resultat = 'nekad'").get().n).toBe(1);
     const adm = new Atkomst(db, pers(db, 'adm-kard'), 'p61', {}, 'boka_bhv');
     expect(() => bhv.boka(adm, pat(db), { besokId: '18m' }, NU)).toThrow('Yrkesrollen får inte boka hälsobesök');
@@ -276,6 +320,26 @@ describe('Rapportering till Svenska barnhälsovårdsregistret', () => {
   });
 });
 
+describe('Licens för tillväxtreferensen', () => {
+  test('WHO-tabellen har en egen licensfil och omfattas inte av EUPL', async () => {
+    const { readFileSync, existsSync } = await import('node:fs');
+    const kod = readFileSync(new URL('../src/seed/who-tillvaxt.js', import.meta.url), 'utf8');
+    expect(kod).toContain('CC BY-NC-SA 3.0 IGO');
+    expect(kod).toContain('LICENS-who-tillvaxt.txt');
+    const fil = new URL('../src/seed/LICENS-who-tillvaxt.txt', import.meta.url);
+    expect(existsSync(fil)).toBe(true);
+    const licens = readFileSync(fil, 'utf8');
+    for (const s of ['CC BY-NC-SA 3.0 IGO', 'World Health Organization', 'https://creativecommons.org/licenses/by-nc-sa/3.0/igo/', 'omfattas inte av EUPL', 'who-tillvaxt.js']) expect(licens).toContain(s);
+  });
+
+  test('barn med skyddade personuppgifter undantas från registret enligt en konstant', () => {
+    expect(bhvq.UNDANTA_SKYDDAD).toBe(true);
+    const db = fast();
+    db.query("UPDATE patienter SET skyddad = 1 WHERE id = 'p61'").run();
+    expect(bhvq.sammanstall(db, pers(db, 'lak-vc')).undantagna).toEqual({ motsatt: 0, skyddad: 1 });
+  });
+});
+
 describe('Plan för införande av tillväxt', () => {
   test('planen har alla delar som Sussa 11.3.1.1 kräver och visas på barnavårdscentralens sida', async () => {
     const { PLAN, DELAR_11_3_1_1 } = await import('../src/bhv-plan.js');
@@ -305,7 +369,7 @@ describe('API för barnhälsovården', () => {
 
   test('läkaren på barnavårdscentralen ser tillväxten och registrerar vikt och längd', async () => {
     const k = await inloggad('lak-vc');
-    expect((await k.get('/api/session')).data.bhv).toEqual({ enhet: 'vc-tybble' });
+    expect((await k.get('/api/session')).data.bhv).toEqual({ enhet: 'vc-tybble', uppdrag: false });
     const d = (await k.get('/api/patient/p61/tillvaxt')).data;
     expect(d.kurvor).toHaveLength(4);
     expect(d.kan).toEqual({ registrera: true, vaccinera: true, boka: true });
@@ -321,7 +385,7 @@ describe('API för barnhälsovården', () => {
     expect((await k.get('/api/session')).data.bhv).toBeNull();
     const r = await k.get('/api/patient/p61/tillvaxt');
     expect(r.status).toBe(403);
-    expect((await k.get('/api/bhv/bhvq')).data.barn).toEqual([]);
+    expect((await k.get('/api/bhv/bhvq')).status).toBe(403);
   });
 
   test('vårdnadshavaren läser kurvorna i Min journal och skickar en mätning, och andra invånare får inget', async () => {

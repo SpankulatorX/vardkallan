@@ -63,6 +63,9 @@ CREATE TABLE IF NOT EXISTS vaccinationer (
 CREATE TRIGGER IF NOT EXISTS vaccination_andras_ej BEFORE UPDATE OF vaccin_id, atc, dos, tid, givet_av, batch ON vaccinationer
   BEGIN SELECT RAISE(ABORT, 'En registrerad vaccination ändras inte'); END;
 CREATE TRIGGER IF NOT EXISTS vaccination_raderas_ej BEFORE DELETE ON vaccinationer BEGIN SELECT RAISE(ABORT, 'En registrerad vaccination raderas inte'); END;
+CREATE TABLE IF NOT EXISTS bhv_uppdrag (
+  personal_id TEXT PRIMARY KEY, enhet_id TEXT NOT NULL, fran TEXT NOT NULL, till TEXT, text TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS bhvq_utskick (
   id INTEGER PRIMARY KEY, tid TEXT NOT NULL, enhet_id TEXT NOT NULL, av TEXT NOT NULL, antal_barn INTEGER NOT NULL, antal_observationer INTEGER NOT NULL,
   undantagna INTEGER NOT NULL, kvittens TEXT NOT NULL, innehall TEXT NOT NULL
@@ -108,6 +111,7 @@ export function seeda(db, { bas = new Date() } = {}) {
   db.query('INSERT OR IGNORE INTO personal (id, namn, yrke, titel, enhet_id, hsa_id, demo, aktiv) VALUES (?, ?, ?, ?, ?, ?, 0, 1)')
     .run(BVC_SSK, 'Maja Lindholm', 'sjukskoterska', 'Sjuksköterska (BHV-sjuksköterska)', BVC, 'SE2321000164-VKP410');
   seedaSchema(db, bas);
+  seedaUppdrag(db, bas);
   const b = BARN;
   db.query(`INSERT INTO patienter (id, personnummer, fornamn, efternamn, kon, fodd, adress, postnr, ort, telefon, kontaktperson, skyddad)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`).run(b.id, b.pnr, b.fornamn, b.efternamn, b.kon, b.fodd, b.adress, b.postnr, b.ort, b.telefon, b.kontaktperson);
@@ -167,6 +171,19 @@ export function seeda(db, { bas = new Date() } = {}) {
     .run(b.id, 'vc-tybble', lokalTid(addDagar(b.fodd, 340), '12:00'), 'Magsjuk en vecka, åt dåligt', BVC_SSK, lokalTid(addDagar(b.fodd, 365), '10:00'));
 }
 
+// Uppdragen på barnavårdscentralen: BHV-sjuksköterskan och distriktssköterskan på vårdcentralen, som arbetar på
+// barnavårdscentralen en del av veckan. En sjuksköterska utan uppdrag gör inte hälsobesöken och vaccinationerna.
+export const UPPDRAG = [
+  { personal: BVC_SSK, text: 'BHV-sjuksköterska' },
+  { personal: 'ssk-vc', text: 'Distriktssköterska med uppdrag i barnhälsovården' },
+];
+function seedaUppdrag(db, bas = new Date()) {
+  for (const u of UPPDRAG) {
+    if (!db.query('SELECT 1 FROM personal WHERE id = ?').get(u.personal)) continue;
+    db.query('INSERT OR IGNORE INTO bhv_uppdrag (personal_id, enhet_id, fran, till, text) VALUES (?, ?, ?, NULL, ?)').run(u.personal, BVC, addDagar(datumAv(bas), -365), u.text);
+  }
+}
+
 // Barnet och vårdnadshavarna i Min journal. Barnet kan inte logga in självt.
 function seedaInvanare(db) {
   if (!db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'invanare'").get()) return;
@@ -202,6 +219,7 @@ export function sakra(db) {
   sakraSchema(db);
   if (!db.query('SELECT 1 FROM patienter WHERE id = ?').get(BARN.id)) seeda(db, { bas: new Date() });
   else seedaInvanare(db);
+  seedaUppdrag(db);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -210,14 +228,29 @@ export function sakra(db) {
 export const inskrivning = (db, pid) => db.query('SELECT * FROM bhv_inskrivning WHERE patient_id = ?').get(pid) ?? null;
 // Har personalens vårdenhet barnhälsovård? Används för menyn och för listorna.
 export const harBhv = (db, personal) => Boolean(personal && db.query('SELECT 1 FROM bhv_inskrivning WHERE enhet_id = ? LIMIT 1').get(vardenhetFor(db, personal.enhet_id)));
+// Sjuksköterskans gällande uppdrag på en barnavårdscentral, eller null.
+export function uppdrag(db, personal, dag = datumAv(new Date())) {
+  const u = personal && db.query('SELECT * FROM bhv_uppdrag WHERE personal_id = ?').get(personal.id);
+  if (!u || u.fran > dag || (u.till && u.till < dag)) return null;
+  return { enhet: u.enhet_id, text: u.text, fran: u.fran, till: u.till };
+}
+// Läkarna på vårdcentralen är BVC-läkare. En sjuksköterska arbetar i barnhälsovården med ett uppdrag på
+// barnavårdscentralen.
+export const arbetarIBhv = (db, personal) => personal?.yrke === 'lakare' || Boolean(uppdrag(db, personal));
 export function session(db, personal) {
-  if (!personal || !['lakare', 'sjukskoterska'].includes(personal.yrke) || !harBhv(db, personal)) return null;
-  return { enhet: vardenhetFor(db, personal.enhet_id) };
+  if (!personal || !['lakare', 'sjukskoterska'].includes(personal.yrke) || !harBhv(db, personal) || !arbetarIBhv(db, personal)) return null;
+  return { enhet: vardenhetFor(db, personal.enhet_id), uppdrag: personal.yrke === 'sjukskoterska' };
 }
 
 // Barnet ska vara inskrivet i barnhälsovården på användarens vårdenhet för att besök ska kunna bokas och vacciner ges
 // enligt programmet. Annars förklarar systemet varför.
+function kravUppdrag(atk, handling) {
+  if (arbetarIBhv(atk.db, atk.personal)) return;
+  atk.logga(handling, 'nekad', `bhv:${handling}`, 'nekad');
+  throw new Fel(403, 'Du har inget uppdrag på barnavårdscentralen. Hälsobesöken och vaccinationerna enligt programmet görs av sjuksköterskor med uppdrag där.', 'nekad');
+}
 function kravInskriven(atk, handling) {
+  kravUppdrag(atk, handling);
   const ins = inskrivning(atk.db, atk.patientId);
   if (!ins || ins.enhet_id !== vardenhetFor(atk.db, atk.personal.enhet_id)) {
     atk.logga(handling, 'nekad', `bhv:${handling}`, 'nekad');
@@ -291,7 +324,8 @@ export function vy(atk, p, { fran = null, till = null, nu = Date.now() } = {}) {
   const handelser = synliga(atk, 'tillvaxt_handelser');
   const ut = bygg(db, p, { matvarden: rader, upp, hemma, handelser, nu, fran: datumParam(fran), till: datumParam(till) });
   ut.hemmatningar = hemma.map(h => hemmatningUt(db, h));
-  ut.kan = { registrera: kanRoll(atk.personal, 'registrera_matvarde'), vaccinera: kanRoll(atk.personal, 'vaccinera'), boka: kanRoll(atk.personal, 'boka_bhv') };
+  const iBhv = arbetarIBhv(db, atk.personal);
+  ut.kan = { registrera: kanRoll(atk.personal, 'registrera_matvarde'), vaccinera: kanRoll(atk.personal, 'vaccinera') && iBhv, boka: kanRoll(atk.personal, 'boka_bhv') && iBhv };
   ut.bhv = bhvDel(atk, p, nu);
   ut.uppgiftstyper = UPPGIFTER;
   ut.dolda = { kraverVal: atk.doldaVal, sparrade: atk.doldaSparr };
@@ -310,13 +344,15 @@ function bhvDel(atk, p, nu) {
   if (!ins || !kanRoll(atk.personal, 'las_oversikt')) return { inskriven: Boolean(ins) && kanRoll(atk.personal, 'las_oversikt'), program: null };
   const egen = ins.enhet_id === vardenhetFor(db, atk.personal.enhet_id);
   const a = new Atkomst(db, atk.personal, p.id, atk.val, 'las_oversikt');
-  const vacc = a.filtrera(db.query('SELECT * FROM vaccinationer WHERE patient_id = ? ORDER BY tid').all(p.id), 'las_oversikt');
+  const allaVacc = db.query('SELECT * FROM vaccinationer WHERE patient_id = ? ORDER BY tid').all(p.id);
+  const vacc = a.filtrera(allaVacc, 'las_oversikt');
+  const kraverVal = doldaKraverVal(a, allaVacc);
   const besok = a.filtrera(db.query('SELECT * FROM bhv_besok WHERE patient_id = ? ORDER BY tid').all(p.id), 'las_oversikt');
   const upp = uppgifter(synliga(a, 'tillvaxt_uppgifter', 'las_oversikt'));
   const prog = P.program({ fodd: p.fodd, nu, besok: besok.map(b => ({ besokId: b.besok_id, status: b.status, tid: b.tid })), givna: vacc.map(v => ({ vaccinId: v.vaccin_id, tid: v.tid })), tbRisk: upp.tb_risk?.varde === 1 });
   return {
     inskriven: true, egenEnhet: egen, enhet: { id: ins.enhet_id, namn: enhetsnamn(db, ins.enhet_id) }, fran: ins.fran, bhvqMotsatt: Boolean(ins.bhvq_motsatt),
-    program: prog, vaccinationer: vacc.map(v => vaccinationUt(db, v)),
+    program: prog, vaccinationer: vacc.map(v => vaccinationUt(db, v)), doldaVaccinationer: { kraverVal, text: kraverVal ? VARNING_DOLDA : null },
     forslag: egen && prog.nasta && kanRoll(atk.personal, 'boka_bhv') ? forslagFor(db, p, prog.nasta, nu, (enhetId) => atk.prova('las_admin', { enhet_id: enhetId }).tillaten) : [],
   };
 }
@@ -424,15 +460,31 @@ export function registreraHandelse(atk, p, body = {}) {
 
 // POST /api/patient/:id/vaccination { vaccinId, batch? }: systemet sätter dos, ATC, tid och vårdkontakt och prövar mot
 // programmet att dosen får ges nu. Det säger på vanlig svenska varför när den inte får det.
+// Före varje dos frågar systemet alltid, för alla barn, om vaccinationer som barnet har fått någon annanstans. Frågan
+// är densamma oavsett vad som finns i journalen, så att den aldrig röjer något.
+export const FRAGA_ANDRA = 'Har barnet fått vaccinationer någon annanstans, till exempel på en annan vårdenhet eller utomlands? Fråga vårdnadshavaren innan du ger dosen.';
+export const SVAR_JA = 'Registrera inte dosen förrän du vet vilka vaccinationer barnet har fått. Fråga vårdnadshavaren eller titta i barnets vaccinationskort.';
+// En vaccination som bara är dold för att den kräver ett aktivt val varnar systemet för, utan vårdenhet, vaccin eller
+// datum. En vaccination bakom en spärr ger ingen varning, eftersom en spärr aldrig röjs.
+export const VARNING_DOLDA = 'Barnet har vaccinationer registrerade på en annan vårdenhet. Gör ett aktivt val för att se dem innan du ger dosen.';
+function doldaKraverVal(a, rader) {
+  return rader.some(r => { const x = a.prova('las_oversikt', { enhet_id: r.enhet_id }); return !x.tillaten && x.krav === 'kraver_val'; });
+}
+
 export function vaccinera(atk, p, body = {}, knyt, nu = Date.now()) {
   atk.krav('vaccinera');
   kravInskriven(atk, 'vaccinera');
   const db = atk.db;
   const v = P.vaccinRad(body.vaccinId);
   if (!v) throw new Fel(400, 'Okänt vaccin i programmet.', 'ogiltig', { falt: ['vaccinId'] });
+  if (body.andraVaccinationer === 'ja') throw new Fel(400, SVAR_JA, 'ogiltig', { falt: ['andraVaccinationer'] });
+  if (body.andraVaccinationer !== 'nej') throw new Fel(400, FRAGA_ANDRA, 'kraver_fraga', { falt: ['andraVaccinationer'] });
   // Bara det användaren får se prövas, så att ett skäl aldrig röjer en vaccination bakom inre sekretess eller spärr.
   const a = new Atkomst(db, atk.personal, p.id, atk.val, 'las_oversikt');
-  const givna = a.filtrera(db.query('SELECT * FROM vaccinationer WHERE patient_id = ?').all(p.id), 'las_oversikt').map(v => ({ vaccinId: v.vaccin_id, tid: v.tid }));
+  const allaVacc = db.query('SELECT * FROM vaccinationer WHERE patient_id = ?').all(p.id);
+  const dolda = doldaKraverVal(a, allaVacc);
+  if (dolda && body.bekraftaDolda !== true) throw new Fel(409, VARNING_DOLDA, 'kraver_bekraftelse');
+  const givna = a.filtrera(allaVacc, 'las_oversikt').map(v => ({ vaccinId: v.vaccin_id, tid: v.tid }));
   const tb = uppgifter(a.filtrera(db.query("SELECT * FROM tillvaxt_uppgifter WHERE patient_id = ? AND typ = 'tb_risk'").all(p.id), 'las_oversikt')).tb_risk?.varde === 1;
   const prov = P.provaVaccin(v, { fodd: p.fodd, nu, givna, tbRisk: tb });
   if (!prov.ok) throw new Fel(400, prov.skal, 'ogiltig', { falt: ['vaccinId'] });
@@ -442,7 +494,7 @@ export function vaccinera(atk, p, body = {}, knyt, nu = Date.now()) {
     .run(p.id, atk.personal.enhet_id, v.id, v.atc, v.dos, t, atk.personal.id, batch, iso());
   const ut = vaccinationUt(db, db.query('SELECT * FROM vaccinationer WHERE id = ?').get(r.lastInsertRowid));
   knyt(atk, 'vaccinationer', ut, body);
-  atk.logga('vaccinera', atk.grund(), `vaccination:${ut.id}`);
+  atk.logga('vaccinera', atk.grund(), `vaccination:${ut.id}`, 'tillaten', dolda ? 'Dosen gavs utan aktivt val, efter bekräftelse att barnet har vaccinationer registrerade på en annan vårdenhet.' : null);
   return [201, { ...ut, text: `${v.text} är registrerad.` }];
 }
 
@@ -610,7 +662,7 @@ export function inkorg(db, personal, valFor = () => ({}), nu = Date.now()) {
     for (const h of db.query("SELECT * FROM hemmatningar WHERE patient_id = ? AND status = 'vantar' AND enhet_id = ? ORDER BY tid").all(p.id, vardenhetFor(db, personal.enhet_id))) {
       ut.hemmatningarAttBekrafta.push({ patientId: p.id, id: h.id, namn: T.MATT[h.typ].namn, varde: h.varde, enhet: T.MATT[h.typ].enhet, tid: h.tid, href: `#/patient/${encodeURIComponent(p.id)}/tillvaxt` });
     }
-    if (kanRoll(personal, 'boka_bhv')) {
+    if (kanRoll(personal, 'boka_bhv') && arbetarIBhv(db, personal)) {
       const prog = P.program({ fodd: p.fodd, nu, besok: db.query('SELECT besok_id AS besokId, status, tid FROM bhv_besok WHERE patient_id = ?').all(p.id) });
       const n = prog.nasta;
       if (n && n.status === 'nu') ut.bhvAttBoka.push({ patientId: p.id, besokId: n.id, text: n.text, till: n.till, vacciner: n.vacciner.filter(x => !x.given).map(x => x.text), href: `#/patient/${encodeURIComponent(p.id)}/tillvaxt` });

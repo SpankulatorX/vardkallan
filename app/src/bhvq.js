@@ -13,9 +13,13 @@ import { Atkomst, kanRoll, vardenhetFor, enheterUnder } from './atkomst.js';
 import { K11 } from './kodverk.js';
 import * as T from './tillvaxt.js';
 import * as P from './bhv-program.js';
+import { arbetarIBhv } from './bhv.js';
 
 export const MOTTAGARE = 'Svenska barnhälsovårdsregistret (simulerad mottagare)';
 export const DEMOREGEL = 'Demoregel: barn med skyddade personuppgifter rapporteras inte till registret. Det är vårdgivarens beslut, inte en regel i patientdatalagen.';
+// Försiktig demoregel: barn med skyddade personuppgifter rapporteras inte. Den ska bli en parameter på
+// konfigurationssidan för demoregler när en sådan finns; tills dess är den en konstant här.
+export const UNDANTA_SKYDDAD = true;
 const TABELLER = ['matvarden', 'tillvaxt_uppgifter', 'bhv_besok', 'vaccinationer'];
 
 const ttmmdd = (tid) => tid.slice(0, 10).replaceAll('-', '');
@@ -82,13 +86,14 @@ function forBarn(db, p, ve, sista) {
 // Förhandsgranskningen: vad som skulle skickas, vilka barn som har fel och vilka som är undantagna.
 export function sammanstall(db, personal, valFor = () => ({})) {
   if (!kanRoll(personal, 'rapportera_bhvq')) throw new Fel(403, 'Din yrkesroll har inte behörighet till det här.', 'nekad');
+  if (!arbetarIBhv(db, personal)) throw new Fel(403, 'Du har inget uppdrag på barnavårdscentralen. Rapporteringen görs av läkare och sjuksköterskor med uppdrag där.', 'nekad');
   const ve = vardenhetFor(db, personal.enhet_id);
   const sista = senast(db, ve);
   const undantagna = { motsatt: 0, skyddad: 0 };
   const barn = [];
   for (const p of db.query('SELECT p.*, i.bhvq_motsatt FROM bhv_inskrivning i JOIN patienter p ON p.id = i.patient_id WHERE i.enhet_id = ? AND p.sammanslagen_till IS NULL ORDER BY p.id').all(ve)) {
     if (p.bhvq_motsatt) { undantagna.motsatt++; continue; }
-    if (p.skyddad) { undantagna.skyddad++; continue; }
+    if (p.skyddad && UNDANTA_SKYDDAD) { undantagna.skyddad++; continue; }
     const atk = new Atkomst(db, personal, p.id, valFor(p.id), 'las_matvarden');
     if (!atk.prova('las_matvarden').tillaten) continue;
     const r = forBarn(db, p, ve, sista);

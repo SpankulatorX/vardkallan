@@ -73,3 +73,5 @@ docker run --rm -v "$PWD/app:/app" -w /app oven/bun:1.3.14-alpine bun test
 ## Licens
 
 EUPL 1.2, Europeiska unionens licens för öppen källkod. Se `LICENSE`.
+
+Undantag: filen `app/src/seed/who-tillvaxt.js` med WHO:s tillväxtstandard omfattas inte av EUPL. Den har licensen CC BY-NC-SA 3.0 IGO med WHO som källa, och licenstexten står i `app/src/seed/LICENS-who-tillvaxt.txt`. Den får inte användas kommersiellt utan tillstånd från WHO.

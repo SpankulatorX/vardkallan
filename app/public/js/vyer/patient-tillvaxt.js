@@ -165,7 +165,9 @@ function koppla(el, ctx, d) {
         const r = await medKnapp(b, () => api(`/api/patient/${id}/bhv/boka`, { metod: 'POST', data: { besokId: d.bhv.program.nasta.id } }));
         notis(r.text); ctx.ladda();
       } else if (b.dataset.vaccin) {
-        const r = await medKnapp(b, () => api(`/api/patient/${id}/vaccination`, { metod: 'POST', data: { vaccinId: b.dataset.vaccin } }));
+        const data = await vaccinFraga(d, b.dataset.vaccin);
+        if (!data) return;
+        const r = await medKnapp(b, () => api(`/api/patient/${id}/vaccination`, { metod: 'POST', data }));
         notis(r.text); ctx.ladda();
       } else if (b.hasAttribute('data-lakarbesok')) {
         const r = await medKnapp(b, () => api(`/api/patient/${id}/bhv/lakarbesok`, { metod: 'POST', data: { snart: b.dataset.lakarbesok === 'snart', orsak: b.dataset.orsak } }));
@@ -176,4 +178,25 @@ function koppla(el, ctx, d) {
   el.querySelector('#tv-bhvq')?.addEventListener('change', async (e) => {
     try { const r = await api(`/api/patient/${id}/bhv/bhvq`, { metod: 'POST', data: { motsatt: e.target.checked } }); notis(r.text); } catch { e.target.checked = !e.target.checked; }
   });
+}
+
+// Före varje dos: frågan om vaccinationer som barnet har fått någon annanstans, som alla barn får, och varningen när
+// vaccinationer på en annan vårdenhet bara syns efter ett aktivt val. Varningen säger inget om vilken vårdenhet,
+// vilket vaccin eller när.
+async function vaccinFraga(d, vaccinId) {
+  const v = d.bhv.program.attGe.find(x => x.id === vaccinId);
+  const dold = d.bhv.doldaVaccinationer?.kraverVal;
+  const svar = await dialog(`<form><h2 id="dlg-rubrik">Ge ${esc(v?.text ?? 'dosen')}</h2>
+    ${dold ? `<div class="ruta ruta-larm" data-dolda-vaccinationer>${ikon.varning}<div><p>${esc(d.bhv.doldaVaccinationer.text)}</p>
+      <div class="kryssfalt"><input type="checkbox" id="dlg-dolda" name="dolda" value="ja"><label for="dlg-dolda">Jag ger dosen utan att se dem. Det loggas.</label></div></div></div>` : ''}
+    <fieldset class="kryssgrupp"><legend>Har barnet fått vaccinationer någon annanstans, till exempel på en annan vårdenhet eller utomlands? Fråga vårdnadshavaren.</legend>
+      <div class="kryssfalt"><input type="radio" id="dlg-andra-nej" name="andra" value="nej"><label for="dlg-andra-nej">Nej, inga andra vaccinationer</label></div>
+      <div class="kryssfalt"><input type="radio" id="dlg-andra-ja" name="andra" value="ja"><label for="dlg-andra-ja">Ja, eller vårdnadshavaren vet inte</label></div>
+    </fieldset>
+    <p class="dialog-fel form-fel" role="alert" hidden></p>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Registrera given</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`,
+  { validera: (x) => (!x.andra ? 'Svara på frågan om andra vaccinationer.' : x.andra === 'ja' ? 'Registrera inte dosen förrän du vet vilka vaccinationer barnet har fått. Fråga vårdnadshavaren eller titta i barnets vaccinationskort.' : dold && x.dolda !== 'ja' ? 'Gör ett aktivt val för att se vaccinationerna, eller bekräfta att du ger dosen utan att se dem.' : null),
+    onOpen: (dl) => dl.querySelector('#dlg-andra-nej').focus() });
+  if (!svar) return null;
+  return { vaccinId, andraVaccinationer: 'nej', ...(dold ? { bekraftaDolda: true } : {}) };
 }

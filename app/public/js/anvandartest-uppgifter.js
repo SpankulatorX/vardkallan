@@ -286,7 +286,7 @@ export const UPPGIFTER = [
   },
   // Runda 7, r6: tillväxt i barnhälsovården (Sussa 4.1).
   {
-    id: 'tillvaxt-bhv', namn: 'Registrera längd och vikt vid ett BHV-besök och se kurvan', roll: 'lak-vc', start: 'Översikten för ett barn på barnavårdscentralen',
+    id: 'tillvaxt-bhv', namn: 'Registrera längd och vikt vid ett BHV-besök och se kurvan', roll: 'ssk-vc', start: 'Översikten för ett barn på barnavårdscentralen',
     text: 'Ida Holmqvist är på besök hos barnavårdscentralen. Hon väger 9,6 kg och är 82 cm lång. Registrera måtten och se hur hon följer sin kurva.',
     kontroll: { notis: 'är registrerat' },
   },

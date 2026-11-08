@@ -29,7 +29,7 @@ export default [
   },
   {
     id: '4.1.1.2', kategori: 'system', egna: ['D9'], avsedd: 'delvis',
-    tester: [`${TV}z-värden och referenslinjer räknas enligt WHO:s tabeller`, `${TV}korrigerad ålder för för tidigt födda till två år, och målängd ur föräldrarnas längd`],
+    tester: [`${TV}z-värden och referenslinjer räknas enligt WHO:s tabeller`, `${TV}korrigerad ålder för för tidigt födda till två år, och målängd ur föräldrarnas längd`, 'Licens för tillväxtreferensen > WHO-tabellen har en egen licensfil och omfattas inte av EUPL'],
     losning: 'Kurvorna bygger på WHO:s tillväxtstandard 0 till 5 år (L, M och S per månad för vikt, längd, huvudomfång och BMI efter ålder, pojkar och flickor). För ett barn som är fött före vecka 37 räknas korrigerad ålder till två år.',
     expert: 'Systemet väljer referens efter barnets kön och ålder och korrigerar för för tidig födsel själv, så ingen behöver välja kurvblad.',
     anmarkning: 'De svenska referenserna som barnhälsovården använder finns inte utgivna under en fri licens och används inte (docs/kodkontroll.md). Prematurkurvor, kurvor för syndrom och WHO:s referens efter fem år saknas. WHO:s tabell används under CC BY-NC-SA 3.0 IGO.',
@@ -49,6 +49,7 @@ export default [
       `${KF}huvudomfång har LOINC och vitalparameterprofilen, och K11:s koder finns`,
       `${RQ}systemet sammanställer barnets uppgifter med koderna i K11 och skickar till den simulerade mottagaren`,
       `${HM}vårdnadshavaren registrerar en mätning som väntar tills barnavårdscentralen bekräftar den`,
+      `${PR}sjuksköterskor gör barnhälsovårdens flöde med ett uppdrag på barnavårdscentralen, och utan uppdrag nekas det`,
       KB,
     ],
     losning: 'Vikt, längd och huvudomfång registreras i ett formulär vid besöket, i en transaktion med samma tid och vårdkontakt. Födelsevikt, födelselängd, huvudomfång vid födelsen, graviditetslängd och föräldrarnas längd registreras som egna uppgifter. Alla observationer i K11 utom sitthöjd har registrets Snomed CT-kod. Vårdnadshavaren kan skicka en mätning från hemmet som barnavårdscentralen bekräftar.',
@@ -74,6 +75,7 @@ export default [
     tester: [
       `${RQ}systemet sammanställer barnets uppgifter med koderna i K11 och skickar till den simulerade mottagaren`,
       `${RQ}ett orimligt värde hålls kvar med en förklaring och en länk, och undantagen räknas`,
+      'Licens för tillväxtreferensen > barn med skyddade personuppgifter undantas från registret enligt en konstant',
       `${AP}FHIR: vaccinationerna är Immunization med ATC och dos, med samma behörighet och loggning, och invånaren ser dem utan personal`,
       `${KF}huvudomfång har LOINC och vitalparameterprofilen, och K11:s koder finns`,
     ],

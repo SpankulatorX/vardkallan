@@ -229,7 +229,7 @@ export const FLODEN = [
   },
   // Runda 7, r6: tillväxt i barnhälsovården (Sussa 4.1.1.4 och 4.1.1.6).
   {
-    id: 'tillvaxt-bhv', namn: 'Registrera längd och vikt vid ett BHV-besök och se kurvan', roll: 'lak-vc', start: 'Översikten för ett barn på barnavårdscentralen', budget: 4,
+    id: 'tillvaxt-bhv', namn: 'Registrera längd och vikt vid ett BHV-besök och se kurvan', roll: 'ssk-vc', start: 'Översikten för ett barn på barnavårdscentralen', budget: 4,
     motivering: 'Sussa 4.1.1.4 och 4.1.1.6. Ett klick på fliken Tillväxt, där vikten redan har fokus, ett fältbyte till längden och ett klick för att registrera. Systemet sätter tid, vårdkontakt och kod, räknar BMI, SD och percentil och ritar kurvan direkt. Ett steg räknas med för huvudomfånget, som mäts vid de flesta besök det första året.',
   },
 ];

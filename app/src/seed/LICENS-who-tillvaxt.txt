@@ -1,0 +1,17 @@
+Licens för filen who-tillvaxt.js
+
+Filen who-tillvaxt.js i den här katalogen innehåller WHO:s tillväxtstandard för barn 0 till 5 år (WHO Child Growth
+Standards, 2006): L, M och S per månad för vikt, längd, huvudomfång och BMI efter ålder. Värdena är avskrivna utan
+ändring ur WHO:s tabeller med z-värden, hämtade från cdn.who.int 2026-11-08.
+
+Källa: World Health Organization (WHO), WHO Child Growth Standards, https://www.who.int/tools/child-growth-standards
+
+Licens: Creative Commons Erkännande-Ickekommersiell-DelaLika 3.0 IGO (CC BY-NC-SA 3.0 IGO),
+https://creativecommons.org/licenses/by-nc-sa/3.0/igo/
+
+Filen omfattas inte av EUPL 1.2, som gäller resten av Vårdkällan. Den får användas utan kommersiellt syfte med angiven
+källa, och ändringar ska delas under samma licens. Kommersiell användning kräver tillstånd från WHO
+(https://www.who.int/about/policies/publishing/permissions). Innan Vårdkällan används kommersiellt ska filen bytas mot
+fritt licensierade svenska referenser eller användas med ett tillstånd från WHO.
+
+WHO har inte granskat eller godkänt Vårdkällan.

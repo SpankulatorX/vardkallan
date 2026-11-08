@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T08:25:35.378Z",
-  "bas": "http://127.0.0.1:18177",
+  "tid": "2026-11-08T09:11:18.419Z",
+  "bas": "http://127.0.0.1:18176",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "7bbebb194703f42b7e8e8b6b574c5d73286b2f4b8ffb248af7af473e0060f499",
+  "gransnittHash": "4d9a70d5b756eae4d6eafd6c79b702e96bf61c2d7a129af2c6761023cae7924f",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -870,6 +870,25 @@
       "steg": [
         "klick: De tio högst viktade kriterierna som inte är uppfyllda"
       ]
+    },
+    {
+      "id": "tillvaxt-bhv",
+      "namn": "Registrera längd och vikt vid ett BHV-besök och se kurvan",
+      "roll": "ssk-vc",
+      "start": "Översikten för ett barn på barnavårdscentralen",
+      "budget": 4,
+      "motivering": "Sussa 4.1.1.4 och 4.1.1.6. Ett klick på fliken Tillväxt, där vikten redan har fokus, ett fältbyte till längden och ett klick för att registrera. Systemet sätter tid, vårdkontakt och kod, räknar BMI, SD och percentil och ritar kurvan direkt. Ett steg räknas med för huvudomfånget, som mäts vid de flesta besök det första året.",
+      "klick": 2,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Tillväxt",
+        "har redan fokus: vikten",
+        "fältbyte: längden",
+        "klick: Registrera"
+      ]
     }
   ],
   "tester": [
@@ -1063,6 +1082,10 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Visa de tio högst viktade kriterierna som inte är uppfyllda inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera längd och vikt vid ett BHV-besök och se kurvan inom budget",
       "status": "grön"
     }
   ]
