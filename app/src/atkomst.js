@@ -132,6 +132,13 @@ for (const r of ['lakare', 'sjukskoterska', 'vardadministrator']) ROLLER[r].push
 ROLLER.uppfoljning.push('statistik_region');
 for (const h of ['bevaka_enhet', 'las_tidbok', 'statistik', 'statistik_region']) UTAN_PATIENT.add(h);
 
+// Runda 7, r1: fysioterapeuten (paramedicinare i Sussas testfall) läser journalen och skriver i omvårdnadskategorin,
+// registrerar mätvärden, skickar, tar emot, bedömer och besvarar remisser och läser tidboken (Bilaga F1:3 tabell 4).
+// Inga läkemedel ordineras eller ges, och nödåtkomst finns inte.
+ROLLER.fysioterapeut = ['las_oversikt', 'las_journal', 'las_omvardnad', 'skriv_omvardnad', 'las_lakemedel', 'las_matvarden', 'registrera_matvarde',
+  'las_diagnoser', 'las_remiss', 'remittera', 'mottag_remiss', 'bedom_remiss', 'svara_remiss', 'kvittera_svar', 'las_admin', 'sok', 'andra_enheter',
+  'samtycke_sparr', 'visa_identitet', 'skriv_ut', 'las_vardplan', 'vardplan_atgard', 'bevaka', 'bevaka_enhet', 'las_tidbok', 'statistik'];
+
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
 
 // Den vårdenhet en enhet hör till. Inre sekretess gäller per vårdenhet.

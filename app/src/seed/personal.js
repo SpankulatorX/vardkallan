@@ -15,6 +15,8 @@ export const YRKEN = {
   farmaceut: 'Farmaceut',
   // Runda 6, r6: verksamhetschefen utser uppdragen i läkemedelshanteringen och läser inte journalen.
   verksamhetschef: 'Verksamhetschef',
+  // Runda 7, r1: paramedicinare i Sussas användbarhetstester.
+  fysioterapeut: 'Fysioterapeut',
 };
 
 export const PERSONAL = [
@@ -58,4 +60,7 @@ export const PERSONAL = [
   { id: 'vch-kard', namn: 'Ulrika Sandell', yrke: 'verksamhetschef', titel: 'Verksamhetschef', enhet: 'uso-kard', demo: true, r6: true },
   // En sjuksköterska på hjärtintensiven som systemet föreslår som reservkontrollant för narkotikaförbrukningen.
   { id: 'ssk-hia', namn: 'Petra Nyberg', yrke: 'sjukskoterska', titel: 'Sjuksköterska', enhet: 'uso-kard-hia', r6: true },
+  // Runda 7, r1: en fysioterapeut på kardiologiska mottagningen (hjärtrehabilitering), som spelar paramedicinaren i Sussas
+  // testfall. Sist i listan, så att de andras HSA-id inte ändras.
+  { id: 'fys-kard', namn: 'Jenny Holmberg', yrke: 'fysioterapeut', titel: 'Fysioterapeut (hjärtrehabilitering)', enhet: 'uso-kard-mott', demo: true },
 ];

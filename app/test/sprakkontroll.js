@@ -161,6 +161,8 @@ PNG JPEG iCalendar
 `.trim().split(/\s+/));
 // Runda 6, r5: det öppna API:t för skrivning och externa tillämpningar.
 for (const w of ['SMART', 'PKCE', 'OAuth', 'IP', 'GET', 'POST', 'PUT', 'Subscription', 'Parameters', 'SSRF']) TILLATNA.add(w);
+// Runda 7, r1: standarden för dialogprinciperna i Sussas expertgranskning (ISO 9241-110) och källan till tidsmodellen.
+for (const w of ['ISO', 'ACM', 'Newell']) TILLATNA.add(w);
 // Fraser med engelska ord som är namn på standarder, rubriker, parametrar och tekniska begrepp. Ett tomt värde i data
 // beskrivs som tomt, inte som null (beslut 2026-11-03).
 export const FRASER = ['HL7 Sweden', '$everything', 'pull request', 'Server-Timing', 'X-Content-Type-Options', 'Content-Type', 'Content-Disposition',
@@ -170,6 +172,8 @@ export const FRASER = ['HL7 Sweden', '$everything', 'pull request', 'Server-Timi
   'Royal College of Physicians', 'National Early Warning Score', 'Glasgow Coma Scale', 'specialist registrar',
   // Runda 6, r5: standarden för externa tillämpningar och HTTP-rubriken för åtkomstbiljetter.
   'SMART on FHIR', 'SMART App Launch', 'WWW-Authenticate', 'Subscriptions R5 Backport', 'rest-hook'];
+// Runda 7, r1: tidsmodellen för uppskattad tid i Sussas testfall.
+FRASER.push('keystroke-level model', 'Communications of the ACM');
 
 // Svenska ord som ofta skrivs utan å, ä eller ö. Formen utan prickar är inget eget ord.
 export const UTAN_PRICKAR = new Map(Object.entries({

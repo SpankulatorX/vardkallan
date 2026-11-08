@@ -109,6 +109,8 @@ describe('Seed', () => {
       ['far-kard', 'Elsa Nordin', 'farmaceut', 'uso-kard'],
       // Runda 6, r6: verksamhetschefen på kardiologen.
       ['vch-kard', 'Ulrika Sandell', 'verksamhetschef', 'uso-kard'],
+      // Runda 7, r1: paramedicinaren i Sussas testfall.
+      ['fys-kard', 'Jenny Holmberg', 'fysioterapeut', 'uso-kard-mott'],
     ]);
   });
 

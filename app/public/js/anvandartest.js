@@ -332,6 +332,7 @@ function visaStart(main) {
       <section class="ruta at-info" aria-labelledby="at-matning-rubrik">
         <h2 id="at-matning-rubrik">Vad som mäts</h2>
         <p>För varje uppgift räknas klick, fältbyten och tangenttryck på samma sätt som i klickbudgeten, tiden och om uppgiftens mål syntes på skärmen. Det som skrivs i fälten sparas inte. Inget skickas till servern. Resultatet finns bara i den här webbläsarfliken tills det laddas ner eller kopieras, och raderas när testet avslutas.</p>
+        <p><a href="#/sussatest">Sussas testfall med SUS och expertgranskning</a> är formulären för att testa Vårdkällan på samma sätt som Cosmic testades i upphandlingen.</p>
       </section>
       <form id="at-start" class="ruta" novalidate>
         <h2>Starta testet</h2>

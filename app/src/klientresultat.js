@@ -31,20 +31,25 @@ const lasJson = (fil) => {
 
 let cache = null;
 // Läser båda filerna. Hashen av public/ räknas en gång per process, eftersom filerna inte ändras medan servern kör.
-export function lasKlientresultat({ klickbudget, klienttester, publicDir = PUBLIC } = {}) {
-  const nyckel = `${klickbudget}|${klienttester}|${publicDir}`;
+// Runda 7, r1: sussatestfall är sussa-testfall.json från test/sussa-testfall.cjs, Sussas användbarhetstester.
+export function lasKlientresultat({ klickbudget, klienttester, sussatestfall = null, publicDir = PUBLIC } = {}) {
+  const nyckel = `${klickbudget}|${klienttester}|${sussatestfall}|${publicDir}`;
   if (!cache || cache.nyckel !== nyckel) cache = { nyckel, hash: existsSync(publicDir) ? gransnittHash(publicDir) : null };
   const hash = cache.hash;
   const kb = lasJson(klickbudget);
   const kt = lasJson(klienttester);
   const aktuell = (x) => Boolean(x && hash && x.gransnittHash === hash);
   const tester = [];
-  for (const [fil, aktiv] of [[kt, aktuell(kt)], [kb, aktuell(kb)]]) {
+  // Runda 7, r1: Sussas testfall.
+  const st = lasJson(sussatestfall);
+  for (const [fil, aktiv] of [[kt, aktuell(kt)], [kb, aktuell(kb)], [st, aktuell(st)]]) {
     for (const t of fil?.tester ?? []) tester.push({ namn: t.namn, status: aktiv ? t.status : 'inaktuell' });
   }
   return {
     tester,
     klienttester: kt ? { tid: kt.tid, antal: kt.tester?.length ?? 0, godkanda: (kt.tester ?? []).filter(t => t.status === 'grön').length, aktuell: aktuell(kt) } : null,
     klickbudget: kb ? { tid: kb.tid, regler: kb.regler, floden: kb.floden, aktuell: aktuell(kb) } : null,
+    // Runda 7, r1: resultatet per testfall och sammanställningen enligt Sussas modell (Bilaga F1:2).
+    sussaTestfall: st ? { tid: st.tid, aktuell: aktuell(st), webblasare: st.webblasare, klm: st.klm, klmSteg: st.klmSteg, testfall: st.testfall, ejGenomforbara: st.ejGenomforbara, sammanstallning: st.sammanstallning } : null,
   };
 }

@@ -51,6 +51,8 @@ import { skapaOppetApi } from './oppet-api.js';
 import { registreraRutter as r4Rutter, inkorg as r4Inkorg, period as r4Period } from './planering-rutter.js';
 import * as planering from './planering.js';
 import * as tidbokFhir from './tidbok-fhir.js';
+// Runda 7, r1: demoläget för Sussas användbarhetstester (sussa-demo.js).
+import * as sussaDemo from './sussa-demo.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -154,7 +156,9 @@ async function statisk(path) {
 
 export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.0.0.0', origin = process.env.ORIGIN || '',
   sessionFil = process.env.SESSION_FIL || '', testresultat = process.env.TESTRESULTAT || join(import.meta.dir, '..', 'test-resultat.json'),
-  klientresultat = { klickbudget: process.env.KLICKBUDGET || join(import.meta.dir, '..', 'klickbudget.json'), klienttester: process.env.KLIENTTESTER || join(import.meta.dir, '..', 'klienttest-resultat.json') },
+  klientresultat = { klickbudget: process.env.KLICKBUDGET || join(import.meta.dir, '..', 'klickbudget.json'), klienttester: process.env.KLIENTTESTER || join(import.meta.dir, '..', 'klienttest-resultat.json'),
+    // Runda 7, r1: Sussas användbarhetstester (test/sussa-testfall.cjs).
+    sussatestfall: process.env.SUSSATESTFALL || join(import.meta.dir, '..', 'sussa-testfall.json') },
   nyaPerTimme = Number(process.env.NYA_PER_TIMME || 60),
   // Runda 6, r5: mottagaradresser och sändning för prenumerationerna, utbytbara i testerna.
   oppetApiVal = {} } = {}) {
@@ -988,6 +992,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // Runda 5, r4: förhandsvisningen av en avvisning, och avvisningen med beslut om läkemedel som väntar på en vårdhändelse.
   rutt('GET', '/api/remiss/:id/avvisning', (c, id) => medRemiss(c, id, 'bedom_remiss', (atk, r) => remissavvisning.forhandsvisa(atk, r)));
   rutt('POST', '/api/demo/remiss-vardhandelse', (c) => { kravInloggad(c); return remissavvisning.demo(c.db, c.personal); });
+  // Runda 7, r1: testpatienterna och datan för Sussas testfall läggs in i den inloggades sandlåda.
+  rutt('POST', '/api/demo/sussa-testfall', (c) => sussaDemo.laddaTestdata(c.db, kravInloggad(c)));
   rutt('POST', '/api/remiss/:id/bedom', (c, id) => medRemiss(c, id, 'bedom_remiss', (atk, r) => {
     if (c.body.beslut === 'avvisad') return remissavvisning.avvisa(atk, r, c.body);
     const ut = remiss.bedom(atk, r, c.body);

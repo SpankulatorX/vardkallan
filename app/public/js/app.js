@@ -33,6 +33,8 @@ import { bevakningVy, uppfoljningVy, samverkanVy, inkorgAntal } from './vyer/r3.
 import * as lakemedelsstod from './vyer/lakemedelsstod.js';
 // Runda 6, r6: verksamhetschefens uppdrag i läkemedelshanteringen.
 import * as lakemedelsansvar from './vyer/lakemedelsansvar.js';
+// Runda 7, r1: Sussas testfall med testpersoner, SUS och expertgranskning.
+import * as sussatest from './vyer/sussatest.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -110,6 +112,8 @@ const RUTTER = [
   [/^#\/api$/, oppetApi, () => true],
   [/^#\/drift$/, drift, () => true, true],
   [/^#\/anvandartest$/, anvandartest, () => true, true],
+  // Runda 7, r1.
+  [/^#\/sussatest$/, sussatest, () => true, true],
   [/^#\/patient\/([\w-]+)(?:\/([a-z]+))?(?:\/([\w-]+))?$/, patient, () => !utanJournal()],
 ];
 

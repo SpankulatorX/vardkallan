@@ -4,6 +4,8 @@
 // samt Misstag att inte upprepa.
 import { existsSync, readFileSync } from 'node:fs';
 import { FLODEN } from './klickbudget.js';
+// Runda 7, r1: Sussas användbarhetstester (sussa-testfall.js) är användarscenarierna för K4.
+import { KORNINGSTESTER as SUSSA_KORNINGAR, TEST_REGISTER as SUSSA_REGISTERTESTER } from './sussa-testfall.js';
 // Runda 6, r6: testerna för ansvarsuppdragen och godkännandet av läkemedelsmallar.
 import { T as R6, TESTER_ANSVAR } from './sussa/lakemedelsansvar-r6.js';
 const TESTER_MALLAR = [R6.mallInkorg, R6.mallSakerhet, R6.substans, R6.kbMall];
@@ -43,9 +45,11 @@ export const KRAV = [
     'Sussas kravspecifikation med originalnummer finns nu för kapitel 1 till 12 och för driftspecifikationen: 389 poster, varav 201 utvärderingskriterier, i Sussa-registret med koppling till tester och till kraven här. Kapitel 1 till 6 och 11 kommer från Konkurrensverkets utdrag och resten från regionens originaldokument. Kraven K, D, L och M kommer från rapportens ramverk.'),
   k('K2', 'Svarsmappning från kriterier till leverantörens FVIS-krav', `${RAPPORT}, Kravspårbarhet`, 'planerat', '/krav', [], 'Kräver bilaga A1, den avtalade specifikationen med leverantörens svar på kraven, som inte är tillgänglig. Sussas krav och kriterier finns nu med originalnummer, men inte leverantörens svar på dem.'),
   k('K3', 'Prioritetssignal för krav som exkluderades eller sköts upp', `${RAPPORT}, Kravspårbarhet`, 'planerat', '/krav', [], 'Kräver bilaga 1 till Tilläggsavtal 3, som begärdes ut från Konkurrensverket 2026-11-03.'),
-  k('K4', 'Varje krav bryts ned till automatiserade testfall och ett användarscenario', `${RAPPORT}, Kravspårbarhet`, 'delvis', '/krav',
-    [`${KR}saknade eller röda tester ger delvis`, `${KR}planerade krav förblir planerade`],
-    'Automatiska tester körs i bygget och bygget stoppas om de är röda. Användarscenarier med verkliga användare saknas.'),
+  { ...k('K4', 'Varje krav bryts ned till automatiserade testfall och ett användarscenario', `${RAPPORT}, Kravspårbarhet`, 'delvis', '/krav',
+    [`${KR}saknade eller röda tester ger delvis`, `${KR}planerade krav förblir planerade`,
+      // Runda 7, r1: Sussas 34 testfall för användbarhetstesterna av Cosmic är användarscenarier som spelas i gränssnittet.
+      ...SUSSA_REGISTERTESTER, ...SUSSA_KORNINGAR],
+    'Automatiska tester körs i bygget och bygget stoppas om de är röda. Som användarscenarier används Sussas 34 testfall från användbarhetstesterna av Cosmic (Bilaga F1:4), med samma mätningar som när Cosmic utvärderades (Bilaga F1:2): ett skript spelar varje testfall som Vårdkällan kan genomföra i gränssnittet med rätt roll, kontrollerar slutvillkoret, räknar klick och tecken och uppskattar tiden för en människa. Testfall som Vårdkällan inte klarar står som kan inte genomföras med vad som saknas. Tidsklassen per testfall är Vårdkällans egen bedömning, eftersom Sussa aldrig lämnade ut den. Användartester med verkliga användare, SUS och expertgranskning finns som formulär men är inte gjorda.'), bilaga: 'sussaTestfall' },
   k('K5', 'Bör-krav och målbild som separat backlogg', `${RAPPORT}, Kravspårbarhet`, 'planerat', '/krav'),
 
   // Icke-funktionella krav och design
@@ -254,6 +258,8 @@ export function kravregister(resultat, register = KRAV, klient = null) {
     if (s === 'uppfyllt_demo' && !allaGrona) s = 'delvis';
     const ut = { id: x.id, rubrik: x.rubrik, kalla: x.kalla, status: s, avsedd: x.status, var: x.var, tester, anmarkning: x.anmarkning };
     if (x.bilaga === 'klickbudget') ut.klickbudget = klient?.klickbudget ?? null;
+    // Runda 7, r1: resultatet av Sussas testfall per testfall (K4).
+    if (x.bilaga === 'sussaTestfall') ut.sussaTestfall = klient?.sussaTestfall ?? null;
     return ut;
   });
   const summa = { uppfyllt_demo: 0, delvis: 0, planerat: 0 };

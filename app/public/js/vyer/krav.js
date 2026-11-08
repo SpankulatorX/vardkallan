@@ -1,6 +1,8 @@
 // Kravspårbarhet: Sussas kravspecifikation med originalnummer (standardvyn) och det egna ramverket K, D, L och M.
 // Varje krav och post visas med status och de automatiska tester som visar det.
 import { esc, api, tidpunkt, ikon, vyRubrik } from '../ui.js';
+// Runda 7, r1: resultatet av Sussas användbarhetstester under K4.
+import { sussaTestfallTabell } from '../sussa-testfall-ui.js';
 
 export const namn = 'krav';
 
@@ -85,7 +87,7 @@ async function visaSussa(yta, q) {
       <p>Region Örebro läns kravspecifikation för upphandlingen av journalsystemet Cosmic, med Sussas originalnummer. Varje post visar kravtexten, hur Vårdkällan möter den, hur systemet tar expertrollen och vilka automatiska tester som visar det. En post räknas som uppfylld i demon bara om alla dess tester finns och är gröna, och en post utan tester är planerad. Uppfyllt i demon betyder inte att Vårdkällan uppfyller kraven i en upphandling.</p>
       <p class="liten">Källa: ${esc(d.kalla)}. ${esc(d.utdrag)}</p>
     </div>
-    <p class="ruta ruta-info sussa-utdrag">${ikon.info}<span>Kapitel 7 till 10 och 12 ingår inte i utdraget: ${esc(saknade.join(', '))}. Registret innehåller kapitel 1 till 6 och 11, och kapitel 1 har inga krav.</span></p>
+    ${saknade.length ? `<p class="ruta ruta-info sussa-utdrag">${ikon.info}<span>Kapitlen ${esc(saknade.join(', '))} ingår inte i utdraget.</span></p>` : ''}
     ${testkorning(d.testresultat)}
     <div class="tabellrulle sussa-summa-rulle"><table class="tabell siffertabell sussa-summa">
       <caption>Sammanställning av ${d.poster.length} poster per kategori och status</caption>
@@ -206,6 +208,7 @@ function kravRad(k) {
     ${k.avsedd !== k.status ? `<p class="ruta ruta-larm liten">Avsett som ${esc(STATUS[k.avsedd].toLowerCase())}, men alla tester är inte gröna.</p>` : ''}
     ${k.anmarkning ? `<p class="krav-anm">${esc(k.anmarkning)}</p>` : ''}
     ${'klickbudget' in k ? klickbudgetTabell(k.klickbudget) : ''}
+    ${'sussaTestfall' in k ? sussaTestfallTabell(k.sussaTestfall) : ''}
     ${k.tester.length ? `<details class="testlista"><summary>${k.tester.length === 1 ? 'Ett test' : `${k.tester.length} tester`}, ${k.tester.filter(x => x.status === 'grön').length} gröna</summary><ul>${testrader(k.tester)}</ul></details>` : '<p class="dampad liten">Inga automatiska tester än.</p>'}
   </li>`;
 }
