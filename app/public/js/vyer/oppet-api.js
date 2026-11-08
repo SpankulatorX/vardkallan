@@ -3,6 +3,8 @@ import { esc, api, raa, tal, vyRubrik } from '../ui.js';
 import { arLogggranskare } from '../app.js';
 // Runda 7, r5: tabellen över tjänstekontrakten i K10.
 import { ritaTjanstekontrakt } from '../tjanstekontrakt.js';
+// Runda 9, r6: ändringsloggen, utvecklarna och förvaltningen av API:t.
+import { ritaAndringslogg, utvecklare, ritaForvaltning } from '../oppet-api-forvaltning.js';
 
 export const namn = 'oppet-api';
 
@@ -31,6 +33,9 @@ export async function visa(main) {
     </div>
     <section class="api-tackning" aria-labelledby="api-tackning-rubrik"><h2 id="api-tackning-rubrik">Vad går att göra via API:t?</h2><p class="under-text">Varje vanligt flöde i gränssnittet, och om det går att göra via det öppna API:t.</p><div id="api-tackning"></div></section>
     <section class="api-tackning" aria-labelledby="tk-rubrik"><h2 id="tk-rubrik">Nationella tjänstekontrakt</h2><div id="tk"><p class="tom">Hämtar tjänstekontrakten.</p></div></section>
+    <section class="api-tackning" aria-labelledby="api-andr-rubrik"><h2 id="api-andr-rubrik">Ändringslogg</h2><div id="api-andringar"><p class="tom">Hämtar ändringsloggen.</p></div></section>
+    <section class="api-tackning" aria-labelledby="api-utv-rubrik"><h2 id="api-utv-rubrik">För utvecklare</h2>${utvecklare()}</section>
+    <section class="api-tackning" aria-labelledby="api-forv-rubrik"><h2 id="api-forv-rubrik">Ärenden, tillämpningar och mottagare</h2><div id="api-forvaltning"><p class="tom">Hämtar.</p></div></section>
     <div class="api-delad">
       <ul class="api-exempel" aria-label="Exempel på anrop">${exempel.map(([v, t], i) => `<li><button type="button" class="api-knapp" data-vag="${esc(v)}"${i === 0 ? ' aria-pressed="true"' : ' aria-pressed="false"'}><code>GET ${esc(v)}</code><span>${esc(t)}</span></button></li>`).join('')}</ul>
       <section class="api-svar" aria-labelledby="api-svar-rubrik" aria-live="polite">
@@ -56,6 +61,9 @@ export async function visa(main) {
   }).catch(() => {});
   // Runda 7, r5.
   ritaTjanstekontrakt(main.querySelector('#tk')).catch(() => {});
+  // Runda 9, r6.
+  ritaAndringslogg(main.querySelector('#api-andringar')).catch(() => {});
+  ritaForvaltning(main.querySelector('#api-forvaltning')).catch(() => {});
   main.querySelector('.api-exempel').addEventListener('click', (e) => { const b = e.target.closest('.api-knapp'); if (b) kor(b).catch(() => {}); });
   await kor(main.querySelector('.api-knapp'));
 }

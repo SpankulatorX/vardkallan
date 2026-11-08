@@ -2,6 +2,45 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "0.9.0",
+      "datum": "2026-11-08",
+      "nyheter": [
+        {
+          "id": "oppet-api-arenden",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "vardadministrator",
+            "systemforvaltare"
+          ],
+          "omfattning": "liten",
+          "var": "#/api",
+          "rubrik": "Begär ny information i det öppna API:t",
+          "text": "Sidan Öppet API har en ändringslogg och ärenden. Saknas information som en tillämpning behöver, skriv ett ärende. Systemet svarar direkt om informationen redan finns."
+        },
+        {
+          "id": "oppet-api-forvaltning",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "stor",
+          "var": "#/api",
+          "rubrik": "Registrera tillämpningar och godkänn mottagare",
+          "text": "Under Öppet API registrerar du externa tillämpningar och godkänner mottagare för prenumerationer. Systemet föreslår behörigheten och skriver vad tillämpningen får ur det du väljer."
+        },
+        {
+          "id": "systemuppbyggnad",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "liten",
+          "var": "#/drift",
+          "rubrik": "Systemuppbyggnad och totalkostnad",
+          "text": "Sidan Svarstider visar systemets moduler med tillverkare och krav, de fem perspektiven på systemuppbyggnaden och en uppskattad kostnad per användare."
+        }
+      ]
+    },
+    {
       "version": "0.8.0",
       "datum": "2026-11-08",
       "nyheter": [

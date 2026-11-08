@@ -12,6 +12,7 @@ Demon använder bara påhittade patienter och testpersonnummer från Skatteverke
 
 ## Det här finns i första versionen
 
+- Ett öppet API som hålls aktuellt: CapabilityStatement anger versionen, ändringsloggen visar vad som kom i varje version och bygget stoppas om de inte stämmer med servern. Systemförvaltaren registrerar externa tillämpningar och godkänner mottagare för prenumerationer, och personal och utvecklare lämnar ärenden om information som saknas. Vid sängen skannar sjuksköterskan patientens armband i mobilen och ser bara den patientens doser. En lagkravsmatris kopplar lagarna till funktionerna och testerna, och systemuppbyggnaden med alla moduler räknas fram ur källkoden.
 - Patientöversikt, journalanteckningar med signering och rättelser som aldrig skriver över tidigare version, läkemedelslista, mätvärden, diagnoser, remisser och inkorg.
 - Behörighet enligt patientdatalagen och HSLF-FS 2016:40: vårdrelation, inre sekretess med aktivt val, spärr med spärrmarkering och samtycke, nödåtkomst och minsta nödvändiga åtkomst per yrkesroll. All kontroll sker på servern.
 - Skyddade personuppgifter skyddas i hela kedjan, även i väntrum och uppropning.

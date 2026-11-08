@@ -232,14 +232,14 @@ describe('FHIR-skrivning', () => {
     expect(egen.data.issue[0].expression).toContain('ServiceRequest.performer');
   });
 
-  test('inget går att göra via API:t som gränssnittet inte tillåter: diagnoser, överkänslighet, borttagning och ändrade mätvärden', async () => {
+  test('inget går att göra via API:t som gränssnittet inte tillåter: överkänslighet, borttagning och ändrade mätvärden', async () => {
     const k = klient(app);
     await k.logga('lak-kard');
-    const cond = await fhirAnrop(k, 'POST', '/fhir/Condition', { resourceType: 'Condition', subject: { reference: 'Patient/p01' }, code: { text: 'Hypertoni' } });
-    expect(cond.status).toBe(405);
-    expect(cond.data.issue[0]).toMatchObject({ code: 'not-supported' });
-    expect(cond.data.issue[0].diagnostics).toContain('inte via API:t i den här versionen');
-    expect((await fhirAnrop(k, 'POST', '/fhir/AllergyIntolerance', { resourceType: 'AllergyIntolerance', patient: { reference: 'Patient/p01' } })).status).toBe(405);
+    // Runda 9, r6: diagnoser går nu att registrera via API:t (runda9-r6.test.js), men inte ändra.
+    expect((await fhirAnrop(k, 'PUT', '/fhir/Condition/1', { resourceType: 'Condition', id: '1', subject: { reference: 'Patient/p01' } })).status).toBe(405);
+    const ai = await fhirAnrop(k, 'POST', '/fhir/AllergyIntolerance', { resourceType: 'AllergyIntolerance', patient: { reference: 'Patient/p01' } });
+    expect(ai.status).toBe(405);
+    expect(ai.data.issue[0]).toMatchObject({ code: 'not-supported' });
     const bort = await fhirAnrop(k, 'DELETE', '/fhir/Composition/1');
     expect(bort.status).toBe(405);
     expect(bort.data.issue[0].diagnostics).toContain('Journaluppgifter tas aldrig bort');

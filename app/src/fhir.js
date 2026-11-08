@@ -34,6 +34,8 @@ import * as ekonomi from './ekonomi.js';
 import * as remissR8 from './remiss-r8.js';
 // Runda 8, r1: beställning och svar som ServiceRequest, Specimen och DiagnosticReport (labb-fhir.js).
 import * as labbFhir from './labb-fhir.js';
+// Runda 9, r6: versionen i CapabilityStatement och ändringsloggen (Sussa 2.5.1.1).
+import * as api from './api-andringar.js';
 
 export const SYSTEM = {
   personnummer: 'http://electronichealth.se/identifier/personnummer',
@@ -500,7 +502,7 @@ export function auditEvent(r) {
 }
 
 // Runda 6, r5: skrivning via FHIR (fhir-skrivning.js), prenumerationer (prenumeration.js) och SMART on FHIR (smart.js).
-const SKRIV_INTERAKTIONER = { Observation: ['create'], Composition: ['create', 'update'], MedicationRequest: ['create', 'update'], ServiceRequest: ['create'] };
+const SKRIV_INTERAKTIONER = { Observation: ['create'], Composition: ['create', 'update'], MedicationRequest: ['create', 'update'], ServiceRequest: ['create'], Condition: ['create'], Appointment: ['create'], Encounter: ['create'] };
 function medSkrivning(c, base) {
   const r = c.rest[0];
   for (const x of r.resource) for (const code of SKRIV_INTERAKTIONER[x.type] ?? []) x.interaction.push({ code });
@@ -520,13 +522,13 @@ export function capability(base) {
 function capabilityBas(base) {
   return {
     resourceType: 'CapabilityStatement', status: 'active', date: idag(), kind: 'instance', fhirVersion: '4.0.1', format: ['application/fhir+json'],
-    software: { name: 'Vårdkällan', version: '0.1.0' }, implementation: { description: 'Vårdkällan, öppen demo med påhittade patienter', url: `${base}/fhir` },
+    software: { name: 'Vårdkällan', version: api.VERSION ?? '0.0.0', ...(api.ANDRINGAR[0]?.version === api.VERSION ? { releaseDate: api.ANDRINGAR[0].datum } : {}) }, implementation: { description: 'Vårdkällan, öppen demo med påhittade patienter', url: `${base}/fhir` },
     rest: [{
       mode: 'server',
       security: { description: 'Sessionskaka vk_sid. Samma behörighetskontroll och åtkomstloggning som gränssnittet. Med en session från Min journal når invånaren bara sina egna resurser, eller ett barns under 13 år, och Patient/[id]/$everything.' },
       resource: [...TYPER.map(t => ({
         type: t, ...(PROFIL[t] ? { supportedProfile: [PROFIL[t]] } : {}), interaction: [{ code: 'read' }, { code: 'search-type' }],
-        ...(t === 'Patient' ? { operation: [{ name: 'everything', definition: 'http://hl7.org/fhir/OperationDefinition/Patient-everything' }] } : {}),
+        ...(t === 'Patient' ? { operation: [{ name: 'everything', definition: 'http://hl7.org/fhir/OperationDefinition/Patient-everything', documentation: 'Bara med patientens session från Min journal, för den egna journalen eller ett barns under 13 år. Personalen läser varje resurstyp för sig, så att varje del prövas och loggas.' }] } : {}),
         searchParam: t === 'Patient' ? [{ name: '_id', type: 'token' }, { name: 'identifier', type: 'token' }]
           : ['Organization', 'Practitioner'].includes(t) ? [{ name: '_id', type: 'token' }] : [{ name: 'patient', type: 'reference' }],
       })), ...tidbokFhir.capabilityResurser(),

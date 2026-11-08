@@ -57,23 +57,17 @@ describe('Nyheter', () => {
     const lak = nyheter.nyheter(d, pers(d, 'lak-kard'));
     expect(lak.version).toBe(nyheter.AKTUELL);
     expect(lak.ruta.version).toBe(nyheter.AKTUELL);
-    // Runda 8, r5: version 0.8.0 är den aktuella, och de tidigare versionernas nyheter läses i historiken.
-    expect(lak.ruta.nyheter.map(n => n.id)).toContain('tobaksvanor');
-    expect(lak.ruta.nyheter.map(n => n.id)).toContain('avdelningens-planering');
-    // Verksamhetschefens nyhet visas inte för läkaren, och den stora förändringen står före den lilla.
-    expect(lak.ruta.nyheter.map(n => n.id)).not.toContain('egna-ovningar');
-    // Runda 8, r2: version 0.8.0 är den aktuella.
-    expect(lak.ruta.nyheter.map(n => n.id)).toContain('remiss-signera-bedoma');
-    // Vårdadministratörens nyhet visas inte för läkaren, och den stora förändringen står före den lilla.
-    expect(lak.ruta.nyheter.map(n => n.id)).not.toContain('remiss-pa-uppdrag');
-    // Runda 8, r1: den aktuella versionen är 0.8.0, och 0.7.0 är den förra.
-    expect(lak.ruta.nyheter.map(n => n.id)).toContain('bestallning-och-svar');
-    // Sjuksköterskans nyhet visas inte för läkaren, och den stora förändringen står före den lilla.
-    expect(lak.ruta.nyheter.map(n => n.id)).not.toContain('prover-och-kontroller');
-    expect(lak.ruta.nyheter[0].omfattning).toBe('stor');
+    // Runda 9, r6: testet beror inte på vilken version som är den aktuella. Version 0.8.0 läses i historiken, och den
+    // aktuella versionens ruta har de stora förändringarna före de små.
+    const version = (x, v) => x.alla.find(y => y.version === v)?.nyheter.map(n => n.id) ?? [];
+    const atta = version(lak, '0.8.0');
+    expect(atta).toEqual(expect.arrayContaining(['tobaksvanor', 'avdelningens-planering', 'remiss-signera-bedoma', 'bestallning-och-svar']));
+    // Andra rollers nyheter visas inte för läkaren.
+    for (const id of ['egna-ovningar', 'remiss-pa-uppdrag', 'prover-och-kontroller']) expect(atta).not.toContain(id);
+    const omf = lak.ruta.nyheter.map(n => n.omfattning);
+    expect(omf).toEqual([...omf].sort((a, b) => (a === 'stor' ? 0 : 1) - (b === 'stor' ? 0 : 1)));
     // Historiken har också de tidigare versionernas nyheter för läkaren, men inte de som gäller andra roller.
     expect(lak.alla.map(v => v.version)).toEqual(nyheter.NYHETER.map(v => v.version));
-    const version = (x, v) => x.alla.find(y => y.version === v).nyheter.map(n => n.id);
     expect(version(lak, '0.7.0')).toContain('hjalp-och-intyg');
     expect(version(lak, '0.7.0')).not.toContain('intyg-enhet');
     const forra = version(lak, '0.6.0');
@@ -81,12 +75,14 @@ describe('Nyheter', () => {
     expect(forra).not.toContain('resurser');
     expect(forra).not.toContain('vardbegaran');
     const vch = nyheter.nyheter(d, pers(d, 'vch-kard'));
-    expect(vch.ruta.nyheter.map(n => n.id)).toEqual(expect.arrayContaining(['egna-ovningar', 'ovningar-vardenhet', 'sussa-testfall-08', 'sussa-tema-3', 'planering-i-loggen']));
+    expect(version(vch, '0.8.0')).toEqual(expect.arrayContaining(['egna-ovningar', 'ovningar-vardenhet', 'sussa-testfall-08', 'sussa-tema-3', 'planering-i-loggen']));
     expect(version(vch, '0.7.0')).toEqual(expect.arrayContaining(['intyg-enhet', 'hjalp-och-intyg']));
     // Invånaren ser det som gäller alla, men inte personalens nyheter.
     const inv = nyheter.nyheter(d, { personal: null, invanare: { id: 'inv-p01' } });
     expect(inv.roll).toBe('invanare');
-    expect(inv.ruta.nyheter.map(n => n.id).sort()).toEqual(['planering-i-loggen', 'sussa-tema-3', 'sussa-testfall-08', 'version-1-0']);
+    expect(version(inv, '0.8.0').sort()).toEqual(['planering-i-loggen', 'sussa-tema-3', 'sussa-testfall-08', 'version-1-0']);
+    // Personalens nyheter om det öppna API:t visas inte för invånaren.
+    expect(version(inv, nyheter.AKTUELL)).not.toContain('oppet-api-arenden');
     expect(version(inv, '0.7.0')).toEqual(['hog-kontrast', 'nyhetsrutan', 'utloggning']);
     expect(version(inv, '0.6.0')).toEqual(['vardbegaran']);
   });

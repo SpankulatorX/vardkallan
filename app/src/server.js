@@ -79,6 +79,8 @@ import * as anvandartestSvar from './anvandartest-svar.js';
 // Runda 8, r5: tobaksvanor, epikrisens förslag, flera mätvärden och villkoren för version 1.0.
 import * as tobak from './tobak.js';
 import { registreraRutter as r5Rutter } from './r5-rutter.js';
+// Runda 9, r6: systemuppbyggnaden (Sussa 2.1.1.1).
+import * as arkitektur from './arkitektur.js';
 import { villkor10 } from './version.js';
 // Runda 8, r2: remiss på uppdrag, fördelning, remisskonferens och extern pappersremiss (remiss-r8.js).
 import * as remissR8 from './remiss-r8.js';
@@ -1525,6 +1527,16 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   const MAL_P95 = 200;
   const medMal = (rader) => rader.map(r => ({ ...r, inomMal: r.p95 <= MAL_P95 }));
   rutt('GET', '/api/drift', (c) => ({ startad, sandladar: sessioner.size, mal: { p95Ms: MAL_P95 }, server: medMal(serverMatning.sammanstall()), sandlada: c.s ? medMal(c.s.matning.sammanstall()) : [], ...utdata.drift(c.db) }));
+  // Runda 9, r6: systemuppbyggnaden med modulerna, de fem perspektiven och totalkostnaden ur serverns eget minne och
+  // svarstider (arkitektur.js, Sussa 2.1.1.1). Inga patientuppgifter.
+  rutt('GET', '/api/arkitektur', () => {
+    const tider = serverMatning.sammanstall();
+    const p95 = tider.length ? Math.max(...tider.map(t => t.p95 ?? 0)) : null;
+    // Minnet per sandlåda är databasens storlek i minnet, i snitt över sandlådorna.
+    const storlek = [...sessioner.values()].map(x => { try { const p = x.db.query('PRAGMA page_count').get().page_count; return p * x.db.query('PRAGMA page_size').get().page_size; } catch { return 0; } });
+    const mb = storlek.length ? storlek.reduce((a, b) => a + b, 0) / storlek.length / 1048576 : null;
+    return arkitektur.arkitektur({ matning: mb ? { mbPerSandlada: Math.round(mb * 10) / 10, p95Ms: p95, sandladar: sessioner.size } : null });
+  });
   utdataRutter({ rutt, kravInloggad, medPatient, valFor, version: APPVERSION });
   // Runda 6, r3.
   r3Rutter({ rutt, kravInloggad, medPatient, valFor });

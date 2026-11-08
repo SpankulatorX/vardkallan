@@ -173,6 +173,8 @@ for (const w of ['BVC', 'BHV', 'BHVQ', 'BHVQ-SIM', 'BCG', 'EPDS', 'MPR', 'HPV', 
 for (const w of ['EN', 'WCAG', 'AA', 'ISO']) TILLATNA.add(w);
 // Runda 8, r1: beställning och svar, analyserna och provrören och FHIR-resurserna för svar och prov.
 for (const w of ['LPK', 'TPK', 'EDTA', 'NT', 'PAD', 'SR', 'B12', 'DiagnosticReport', 'Specimen']) TILLATNA.add(w);
+// Runda 9, r6: koden för slutenvård i FHIR (IMP), metoden PATCH, EHR launch i SMART on FHIR och DOS-lagen.
+for (const w of ['IMP', 'PATCH', 'EHR', 'DOS', 'DOS-lagen']) TILLATNA.add(w);
 // Runda 7, r1: källan till tidsmodellen i Sussas testfall.
 for (const w of ['ACM', 'Newell']) TILLATNA.add(w);
 // Fraser med engelska ord som är namn på standarder, rubriker, parametrar och tekniska begrepp. Ett tomt värde i data

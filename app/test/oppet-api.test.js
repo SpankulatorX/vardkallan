@@ -459,6 +459,18 @@ const GOR_VIA_API = {
     const r = await k.raw('PUT', `/fhir/MedicationRequest/${id}`, { resourceType: 'MedicationRequest', id: String(id), status: 'stopped', intent: 'order', subject: { reference: 'Patient/p01' }, extension: [{ url: `${EXT}/utsattningsplan`, valueCode: 'avslutad' }] });
     expect(r.data.status).toBe('stopped');
   },
+  // Runda 9, r6: inskrivning och bokning av en remiss via FHIR.
+  inskrivning: async () => {
+    const k = await fhirKlient('ssk-kard');
+    const r = await k.raw('POST', '/fhir/Encounter', { resourceType: 'Encounter', status: 'in-progress', class: { code: 'IMP' }, subject: { reference: 'Patient/p11' }, reasonCode: [{ text: 'Elkonvertering' }] });
+    expect(r.status).toBe(201);
+  },
+  'boka-remiss': async () => {
+    const k = await fhirKlient('adm-kard');
+    const remiss = sandlada(app, k).db.query("SELECT remiss_id FROM vantelista WHERE patient_id = 'p10' AND status = 'vantar' AND remiss_id IS NOT NULL").get().remiss_id;
+    const r = await k.raw('POST', '/fhir/Appointment', { resourceType: 'Appointment', status: 'booked', basedOn: [{ reference: `ServiceRequest/${remiss}` }] });
+    expect(r.status).toBe(201);
+  },
   'extern-tillampning': async () => {
     const k = await fhirKlient('lak-kard');
     const { svar } = await startaFranJournalen(k);
