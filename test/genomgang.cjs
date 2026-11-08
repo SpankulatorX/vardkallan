@@ -166,6 +166,8 @@ for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].inde
 // Forskningsuttag för uppföljningen, arkivarien och verksamhetschefen, före Utbildning.
 for (const k of ['klinisk', 'sjukskoterska', 'vardadministrator', 'psykiatri', 'uppfoljning', 'bvc']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Analys och statistik');
 for (const k of ['uppfoljning', 'arkiv', 'verksamhetschef']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Forskningsuttag');
+// Runda 9, r7: läkarna och verksamhetschefen har vårdenhetens signeringslista.
+for (const k of ['klinisk', 'psykiatri', 'bvc', 'verksamhetschef']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Signeringslista');
 
 (async () => {
   const browser = await chromium.launch();

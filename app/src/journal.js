@@ -10,6 +10,8 @@ import { namnVid } from './omorganisation.js';
 import * as tobak from './tobak.js';
 // Runda 9, r7: mallen för levnadsvanorna alkohol, fysisk aktivitet och matvanor (levnadsvanor.js).
 import * as levnadsvanor from './levnadsvanor.js';
+// Runda 9, r7: signaturen med det simulerade SITHS-kortet (signering.js).
+import * as signering from './signering.js';
 
 // Mallar per anteckningstyp. Omvårdnadsanteckningen följer VIPS-sökorden.
 export const MALLAR = [
@@ -175,6 +177,8 @@ export function signera(atk, a) {
     tobak.vidSignering(atk, a, t);
     // Runda 9, r7: samtalen om levnadsvanor registreras som åtgärder med KVÅ-koden.
     levnadsvanor.vidSignering(atk, a, t);
+    // Runda 9, r7: signaturen över innehållet.
+    signering.vidSignering(atk.db, a.id);
   })();
   return anteckningUt(atk.db, hamtaAnteckningRad(atk.db, a.id));
 }
@@ -199,6 +203,8 @@ export function ratta(atk, a, { orsak, sokord, tobak: tobakSvar, levnadsvanor: l
     .run(a.patient_id, a.enhet_id, a.vardkontakt_id, a.typ, a.kategori, JSON.stringify(s), atk.personal.id, t, t, atk.personal.id, a.id, orsak.trim(), a.version + 1);
   if (tb) tobak.spara(atk.db, Number(r.lastInsertRowid), tb);
   if (lv) levnadsvanor.spara(atk.db, Number(r.lastInsertRowid), lv);
+  // Runda 9, r7: rättelsen signeras med en egen signatur.
+  signering.vidSignering(atk.db, Number(r.lastInsertRowid));
   const ny = hamtaAnteckningRad(atk.db, r.lastInsertRowid);
   const ut = anteckningUt(atk.db, ny);
   ut.versioner = versionskedja(atk.db, ny.id).map(v => anteckningUt(atk.db, v));

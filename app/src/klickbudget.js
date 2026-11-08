@@ -322,4 +322,13 @@ export const FLODEN = [
     id: 'registrera-provtagning', namn: 'Registrera provtagning', roll: 'ssk-kard', start: 'Provtagningen efter återställning', budget: 2,
     motivering: 'Sussa 4.4.2.6 och testfall 3.3. Rören står i provtagningsordning med etiketter, och ett klick på Tagen per rör registrerar provtagningen. Systemet sätter tid och provtagare och skickar proverna till laboratoriet när alla rör är tagna. Patienten har två rör.',
   },
+  // Runda 9, r7: streckkodsläsaren och de färdiga patientgrupperna.
+  {
+    id: 'skanna-armband', namn: 'Öppna patienten genom att skanna armbandet', roll: 'ssk-kard', start: 'Arbetslistan efter inloggning', budget: 2,
+    motivering: 'Sussa 3.1.3.6. Fältet Skanna i toppraden tar emot läsaren: ett fältbyte och läsarens Enter. Systemet tolkar koden, prövar behörigheten och öppnar patienten. Utan fältet fångas en skanning också när fokus inte står i ett textfält, och då är det inget steg alls.',
+  },
+  {
+    id: 'patientgrupp', namn: 'Visa en färdig patientgrupp', roll: 'lak-vc', start: 'Arbetslistan efter inloggning', budget: 3,
+    motivering: 'Sussa 6.2.1.2. Ett klick på Analys och statistik och ett på Visa gruppen för den färdiga grupp som är förvald. Systemet skriver vad gruppen betyder och varför varje patient är med, och räknar bara på det som läkaren får se.',
+  },
 ];

@@ -7,6 +7,7 @@ import * as analys from './analys.js';
 import * as folkhalsa from './folkhalsa.js';
 import * as vardformer from './vardformer.js';
 import * as forskning from './forskning.js';
+import * as signering from './signering.js';
 
 export function sakraR9r7(db, bas = new Date()) {
   vardformer.sakra(db);
@@ -14,6 +15,7 @@ export function sakraR9r7(db, bas = new Date()) {
   levnadsvanor.sakra(db);
   analys.sakra(db);
   forskning.sakra(db);
+  signering.sakra(db);
   folkhalsa.sakra(db);
   folkhalsa.seeda(db, bas);
   return db;

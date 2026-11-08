@@ -19,7 +19,7 @@ export default [
     anmarkning: 'Signeringen görs med den inloggade sessionen. SITHS-kortet är simulerat och ingen elektronisk underskrift med certifikat görs.',
   },
   {
-    id: '3.1.11.2', kategori: 'system', egna: ['L1'], avsedd: 'delvis',
+    id: '3.1.11.2', kategori: 'system', egna: ['L1'], avsedd: 'uppfyllt_demo',
     tester: [
       `${J}signerad anteckning kan inte ändras via API-funktionen`,
       `${J}signerad anteckning kan inte ändras i databasen (trigger)`,
@@ -27,10 +27,14 @@ export default [
       `${J}annan än författaren kan inte ändra eller signera utkast`,
       `${GK}Skriva och signera en daganteckning inom budget`,
       `${J}rättelse skapar ny version och den gamla finns kvar oförändrad`,
+      // Runda 9, r7: signering av flera utkast i inkorgen (runda 7), signaturen med kortet och signeringslistan.
+      'Sussas testfall > Granska och signera alla: varje utkast signeras för sig och bara av författaren',
+      'Signering > en signering sparar en signatur över anteckningens innehåll med det simulerade SITHS-kortet, och den går att kontrollera',
+      'Signering > signeringslistan visar vårdenhetens osignerade poster per författare utan patientuppgifter',
     ],
-    losning: 'Signering av egna utkast, med rättelse som ny version.',
-    expert: 'Utkast syns bara för författaren tills de signeras, och systemet säger på vanlig svenska varför en signerad anteckning inte kan ändras.',
-    anmarkning: 'Signering med certifikat, signering av flera anteckningar samtidigt och signeringslistor saknas.',
+    losning: 'Signering av egna utkast, en och en eller flera samtidigt med Granska och signera alla i inkorgen, där varje utkast signeras för sig. Vid signeringen sparas en signatur över anteckningens innehåll med den inloggades simulerade SITHS-kort, och den kan kontrolleras när som helst. En rättelse är en ny version med egen signatur, och den signerade versionen låses för redigering av databasen. Verksamhetschefen och läkarna ser vårdenhetens osignerade poster per författare i signeringslistan.',
+    expert: 'Systemet låser den signerade anteckningen, signerar innehållet med kortet utan att någon behöver göra något extra och visar chefen vilka utkast som väntar och hur länge, utan patientuppgifter.',
+    anmarkning: 'SITHS-kortet och dess nyckel är simulerade. Anteckningar som signerades före runda 9 och migrerade anteckningar har ingen signatur. Anpassning av vad som visas vid signeringen per yrkesgrupp är inte byggd.',
   },
   {
     id: '3.1.11.3', kategori: 'system', egna: ['L1'], avsedd: 'uppfyllt_demo',

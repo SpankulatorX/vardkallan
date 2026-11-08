@@ -36,7 +36,7 @@ const FILER = [
   '/js/remiss-r8-ui.js',
   '/js/labb-ui.js', '/js/vyer/patient-prover.js', '/js/vyer/provtagning.js',
   '/js/bokning-r8.js', '/js/vyer/avdelning.js',
-  '/js/levnadsvanor-regler.js', '/js/skanner.js', '/js/vyer/analys.js', '/js/vyer/forskning.js', '/js/vyer/patient-levnadsvanor.js',
+  '/js/levnadsvanor-regler.js', '/js/skanner.js', '/js/vyer/analys.js', '/js/vyer/forskning.js', '/js/vyer/signeringslista.js', '/js/vyer/patient-levnadsvanor.js',
 ];
 // Runda 9, r7: listan har levnadsvanorna, streckkodsläsaren, analysen och forskningsuttagen.
 // Runda 8, r3: listan har fri bokning, teambesök, gruppträffar och avdelningens planering.

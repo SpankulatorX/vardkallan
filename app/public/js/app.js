@@ -61,6 +61,7 @@ import * as avdelning from './vyer/avdelning.js';
 // Runda 9, r7: analys och statistik, forskningsuttag och streckkodsläsaren.
 import * as analys from './vyer/analys.js';
 import * as forskning from './vyer/forskning.js';
+import * as signeringslista from './vyer/signeringslista.js';
 import * as skanner from './skanner.js';
 
 // Globalt tillstånd.
@@ -121,6 +122,7 @@ const MENY = [
   // Runda 9, r7: patientgrupper, statistik, folkhälsa och ledtider, och beställningar av forskningsuttag.
   ['#/analys', 'Analys och statistik', 'krav', () => pa('patientgrupp', 'statistik', 'statistik_region')],
   ['#/forskning', 'Forskningsuttag', 'arkiv', () => pa('forskning_bestall', 'forskning_godkann')],
+  ['#/signeringslista', 'Signeringslista', 'penna', () => far('signeringslista')],
   // Runda 7, r2: övningar och intyg för all personal (Sussa 10.1.1.5).
   ['#/utbildning', 'Utbildning', 'person', () => far('utbildning')],
   // Runda 7, r1: testledaren läser och exporterar svaren från användartesterna.
@@ -144,6 +146,7 @@ const RUTTER = [
   // Runda 9, r7.
   [/^#\/analys$/, analys, () => pa('patientgrupp', 'statistik', 'statistik_region')],
   [/^#\/forskning$/, forskning, () => pa('forskning_bestall', 'forskning_godkann')],
+  [/^#\/signeringslista$/, signeringslista, () => far('signeringslista')],
   [/^#\/avdelning\/patient\/([\w-]+)$/, avdelning.patient, () => far('las_planering')],
   [/^#\/avdelning\/resurs\/([\w-]+)$/, avdelning.resurs, () => far('las_planering')],
   [/^#\/sok$/, sok, () => far('sok')],

@@ -7,6 +7,9 @@ import * as folkhalsa from './folkhalsa.js';
 import * as sparbarhet from './sparbarhet.js';
 import * as vardformer from './vardformer.js';
 import * as forskning from './forskning.js';
+import * as signering from './signering.js';
+import * as journal from './journal.js';
+import { Fel } from './db.js';
 import * as vardkontakt from './vardkontakt.js';
 import { kanRoll } from './atkomst.js';
 
@@ -41,6 +44,18 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor }) {
   rutt('POST', '/api/vardkontakt/:id/besok-slut', (c, id) => medKontakt(c, id, 'registrera_vardkontakt', (atk, v) => vardformer.avslutaBesok(atk, v)));
   rutt('POST', '/api/vardkontakt/:id/overgang', (c, id) => medKontakt(c, id, 'vardtillfalle', (atk, v) => vardformer.franDagkirurgi(atk, v, c.body)));
   rutt('POST', '/api/patient/:id/dagkirurgi', (c, id) => { kravInloggad(c); return medPatient(c, id, 'registrera_vardkontakt', (atk) => vardformer.registreraDagkirurgi(atk, c.body)); });
+  // Sussa 3.1.11.2: signaturen och vårdenhetens signeringslista.
+  rutt('GET', '/api/anteckning/:id/signatur', (c, id) => {
+    kravInloggad(c);
+    const a = journal.hamtaAnteckningRad(c.db, id);
+    return medPatient(c, a.patient_id, journal.lasHandling(a.kategori), (atk) => {
+      if (a.status !== 'signerad' && a.forfattare_id !== c.personal.id) throw new Fel(404, 'Anteckningen finns inte.', 'saknas');
+      atk.krav(journal.lasHandling(a.kategori), { resurs: { enhet_id: a.enhet_id }, beskrivning: `signatur:${a.id}` });
+      return signering.kontrollera(atk, a);
+    });
+  });
+  rutt('GET', '/api/signeringslista', (c) => signering.lista(c.db, kravInloggad(c)));
+
   // Sussa 6.3.3.1: beställningar av forskningsuttag.
   rutt('GET', '/api/forskning', (c) => forskning.lista(c.db, kravInloggad(c)));
   rutt('POST', '/api/forskning', (c) => [201, forskning.registrera(c.db, kravInloggad(c), c.body)]);
