@@ -157,7 +157,10 @@ describe('Vårdkontakt', () => {
     expect(p.data.status).toBe('planerad');
     expect((await k.post('/api/patient/p11/vardkontakter', { planerad: true, start: '2001-01-01T08:00:00.000Z', orsak: 'Gammal' })).status).toBe(400);
     // Ett planerat besök om en halvtimme: när patienten kommer registreras ankomsten på det, inte ett nytt besök.
-    const snart = new Date(Date.now() + 30 * 60_000).toISOString();
+    // Om en halvtimme, men inte efter midnatt i svensk tid: då blir besöket i stället två minuter sedan, vilket systemet
+    // godtar för ett planerat besök. Testet blev rött när det kördes efter 23.30.
+    const minuter = Number(new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()).replace(':', '').replace(/^(\d\d)(\d\d)$/, (m, h, mi) => String(Number(h) * 60 + Number(mi))));
+    const snart = new Date(Date.now() + (24 * 60 - minuter > 35 ? 30 : -2) * 60_000).toISOString();
     const b = await k.post('/api/patient/p11/vardkontakter', { planerad: true, start: snart, orsak: 'Arbetsprov' });
     const ank = await k.post('/api/patient/p11/vardkontakter', {});
     expect(ank.status).toBe(200);

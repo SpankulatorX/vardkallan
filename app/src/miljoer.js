@@ -88,6 +88,9 @@ export function avidentifiera(db) {
           .run(`tmp-${p.id}`, n.fornamn, n.efternamn, p.id);
       }
       for (const p of patienter) db.query('UPDATE patienter SET personnummer = ? WHERE id = ?').run(nya.get(p.id).personnummer, p.id);
+      // Invånarnas nummer blir tillfälliga först, som patienternas, så att ett nytt nummer aldrig krockar med en annan
+      // invånares gamla nummer som ännu inte är bytt. De får sina slutliga nummer längre ned.
+      if (tabeller(db).includes('invanare')) db.exec("UPDATE invanare SET personnummer = 'tmp-inv-' || id");
       // Alla andra textvärden i alla tabeller utom patienterna: namn och nummer byts ut där de står.
       for (const t of tabeller(db)) {
         if (t === 'patienter') continue;

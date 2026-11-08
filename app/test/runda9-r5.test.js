@@ -1,6 +1,7 @@
 // Runda 9, r5: behörighet, säkerhet, arkiv och miljöer (Sussa kapitel 5 och KD1.1.1.5). Testnamnen finns i
 // src/sussa/runda9-r5.js och används av mappningen.
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import * as miljoerModul from '../src/miljoer.js';
 import { generateKeyPairSync, createHash, randomBytes } from 'node:crypto';
 import { testserver, klient, sandlada, nyDb } from './hjalp.js';
 import * as idp from '../src/idp.js';
@@ -861,3 +862,16 @@ test('ett certifikat går att läsa också när serienumrets första slumpade by
   const utf = pki.skapaUtfardare({ cn: 'Prov', o: 'Prov', serie });
   expect(utf.cert.serialNumber.length).toBe(24);
 });
+
+// Avidentifieringen ger slumpade nya personnummer. Ett nytt nummer fick krocka med en annan invånares gamla nummer som
+// ännu inte var bytt, och då blev det 400 ungefär en gång på sju. Testet skapar miljön många gånger.
+test('en acceptanstestmiljö kan alltid skapas, också när ett nytt personnummer är en annan invånares gamla', () => {
+  for (let i = 0; i < 40; i++) {
+    const prod = nyDb();
+    const { db } = miljoerModul.skapa(prod, 'acceptanstest');
+    const pnr = db.query('SELECT personnummer FROM invanare').all().map(r => r.personnummer);
+    expect(new Set(pnr).size).toBe(pnr.length);
+    expect(pnr.some(x => x.startsWith('tmp-'))).toBe(false);
+  }
+});
+
