@@ -53,6 +53,8 @@ import * as tidsgrans from './tidsgrans.js';
 kontrast.init();
 // Runda 7, r1: Sussas testfall med testpersoner, SUS och expertgranskning.
 import * as sussatest from './vyer/sussatest.js';
+// Runda 8, r3: avdelningens planerade händelser och en resurs planering.
+import * as avdelning from './vyer/avdelning.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -124,6 +126,10 @@ const RUTTER = [
   [/^#\/vantelista$/, vantelista, () => far('vantelista')],
   [/^#\/incheckning$/, incheckning, () => far('checka_in')],
   [/^#\/arbetslista$/, arbetslista, () => !utanJournal()],
+  // Runda 8, r3.
+  [/^#\/avdelning$/, avdelning, () => far('las_planering')],
+  [/^#\/avdelning\/patient\/([\w-]+)$/, avdelning.patient, () => far('las_planering')],
+  [/^#\/avdelning\/resurs\/([\w-]+)$/, avdelning.resurs, () => far('las_planering')],
   [/^#\/sok$/, sok, () => far('sok')],
   [/^#\/inkorg$/, inkorg, () => !utanJournal()],
   [/^#\/administrering$/, administrering, () => far('las_lakemedel')],

@@ -259,6 +259,24 @@ export const FLODEN = [
     id: 'nyheter', namn: 'Läsa nyheterna och stänga dem', roll: 'lak-kard', start: 'Arbetslistan med nyheterna efter en ny version', budget: 1,
     motivering: 'Sussa 10.1.1.4. Nyheterna för rollen visas själva efter en ny version, utan att användaren behöver leta, och läses där de står. Ett klick på Stäng nyheterna, och de kommer inte tillbaka förrän nästa version.',
   },
+  // Runda 8, r3: fri bokning, teambesök, gruppträff och avdelningens planering (Sussa 3.4.1, 3.4.2 och testfall 5.1 till
+  // 5.3 och 7.1).
+  {
+    id: 'boka-fri', namn: 'Boka en patient fritt', roll: 'adm-kard', start: 'Vårdadministratörens startsida', budget: 4,
+    motivering: 'Sussa 3.4.2.2 och testfall 5.1. Ett klick på Boka besök, där sökfältet har fokus, och Enter. Med en enda träff väljer systemet patienten och visar besökstyp, vårdgivare och de lämpligaste tiderna, och ett klick på en tid bokar den, skapar vårdkontakten och skickar kallelsen. Budgeten har plats för att välja patienten bland flera träffar.',
+  },
+  {
+    id: 'boka-team', namn: 'Boka ett teambesök', roll: 'adm-kard', start: 'Vårdadministratörens startsida', budget: 5,
+    motivering: 'Sussa 3.4.1.5 och testfall 5.2. Ett klick på Boka teambesök, där sökfältet har fokus, och Enter. Systemet föreslår teamet och tider då alla och ett rum är lediga hela besöket, och ett klick bokar allt och skickar kallelsen. Budgeten har plats för att ändra teamet med två klick.',
+  },
+  {
+    id: 'grupp-lagg-till', namn: 'Lägga till en patient i en gruppträff', roll: 'adm-kard', start: 'Vårdadministratörens startsida', budget: 3,
+    motivering: 'Testfall 5.3. Ett klick på Lägg till patient vid gruppträffen, där sökfältet har fokus, Enter och ett klick på träffen. Systemet bokar platsen, skriver kallelsen och räknar platserna kvar, och när träffen är full sätter det patienten på gruppens väntelista.',
+  },
+  {
+    id: 'avdelningens-handelser', namn: 'Överblicka dagens händelser på avdelningen', roll: 'ssk-kard', start: 'Arbetslistan efter inloggning', budget: 1,
+    motivering: 'Sussa 3.4.1.6 och testfall 7.1. Ett klick på Avdelningens planering i arbetslistan. Vyn visar allt som är planerat för avdelningens patienter i dag i tidsordning: uppgifter, läkemedel att ge och bokade tider, med vem som ansvarar.',
+  },
   // Runda 7, r2: varningen före utloggningen (bilaga K2 1.6.1, justerbar tidsgräns).
   {
     id: 'forlang-inloggning', namn: 'Fortsätta arbeta när inloggningen snart går ut', roll: 'lak-kard', start: 'Arbetslistan när inloggningen snart går ut', budget: 1,

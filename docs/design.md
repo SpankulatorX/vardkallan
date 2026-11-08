@@ -1128,6 +1128,45 @@ Region Örebro län testade Cosmic och de andra anbuden med 34 testfall i 7 tema
 
 Det som saknas för de 16 testfall som inte kan genomföras: vårdadministratören skickar inga remisser och remisser kan inte fördelas till en namngiven läkare, sättas på remisskonferens eller registreras från papper (2.2 till 2.5), labbeställning och ordination av kontroller finns inte (3.1 till 3.3 och 3.5), en mall för tobaksvanor med fasta svar finns inte (4.1), bokning av en valfri patient på vald tid, teambesök och bokning till gruppbesök finns inte (5.1 till 5.3), och planerade händelser och arbetsuppgifter på en vårdavdelning finns inte (7.1 till 7.4).
 
+## Bokning, del 3, och avdelningens planering (runda 8, r3: bokning-r8.js, avdelningsplan.js och r8r3-rutter.js, Sussa 3.1.2.2, 3.4.1.2, 3.4.1.5, 3.4.1.6, 3.4.1.8, 3.4.2.1 och 3.4.2.2, testfall 5.1 till 5.3 och 7.1 till 7.4)
+
+### Fri bokning (testfall 5.1)
+
+Boka besök i Dagens arbete öppnar en dialog där sökfältet har fokus. Med en enda träff med vårdrelation väljer systemet patienten själv. Systemet väljer besökstyp (återbesök om patienten har varit på vårdenheten förut, annars nybesök), vårdgivare (den patienten har träffat förut, ur tidigare bokningar och anteckningar på vårdenheten) och de lämpligaste tiderna med tidbokens förslagsregler (`foreslaTider`). Besökstyp och vårdgivare går att ändra i dialogen, och förslagen räknas om. Ett klick bokar: bokningen blir en planerad vårdkontakt, sjukresa bokas om patienten behöver det, en vårdhändelse som en läkemedelsdos väntar på får sin tid och kallelsen skickas. Bokningen har ingen post på väntelistan, så en avbokning lägger inte patienten på väntelistan.
+
+En patient utan vårdrelation eller remiss till vårdenheten kan inte bokas, som i resten av tidboken. Gruppträffar, teambesök, ingrepp och provtagning bokas på sina egna sätt.
+
+### Teambesök (testfall 5.2)
+
+Boka teambesök föreslår teamet: den läkare och den sjuksköterska som patienten har träffat förut, annars den första läkaren och sjuksköterskan med schema på vårdenheten. Teamet går att ändra med kryssrutor (två till fyra vårdgivare med schema på den egna vårdenheten). Systemet letar 30 dagar framåt efter en tid på 60 minuter mellan klockan 8 och 16 en dag då alla arbetar på mottagningen (schemat har tider den dagen), då ingen av dem har en bokad tid, en gruppträff eller ett annat teambesök som överlappar, då ett behandlingsrum är ledigt och då patienten inte har en annan tid som användaren får se. Bokningen skapar tiden (tidstypen `team`) i den första vårdgivarens schema, läkaren först, och sparar alla vårdgivare i `teambesok_deltagare`. Därefter är teamets vanliga tider som överlappar besöket inte lediga (`teamKrock` i `tidbok.arLedig`). Kallelsen säger vilka vårdgivare patienten träffar. Ett teambesök bokas om genom att avbokas och bokas på nytt. Arbetstiderna är demoregler.
+
+### Gruppträffar (testfall 5.3)
+
+Dagens arbete visar gruppträffarna från i dag och 60 dagar framåt med platser kvar, deltagarna och gruppens väntelista. Lägg till patient öppnar en dialog som står kvar, så att flera patienter läggs till i följd. Systemet bokar platsen och skriver kallelsen, som går ut med de andras när vårdadministratören skickar gruppens kallelser (tidbok.js, `kallaGrupp`). Har gruppens kallelser redan skickats går den nya patientens kallelse ut direkt. När träffen är full hamnar patienten på gruppens väntelista (`gruppvantelista`), och när en plats blir ledig föreslår systemet den som har väntat längst, som får platsen med ett klick. Deltagare och väntande visas bara för patienter med vårdrelation på vårdenheten, som i tidboken.
+
+### Avdelningens planering (testfall 7.1 till 7.4)
+
+Avdelningens planering nås från arbetslistan av läkare, sjuksköterskor, undersköterskor och fysioterapeuter (handlingen `las_planering`). Avdelningen är förvald: användarens egen arbetsplats om den är en avdelning, annars den avdelning på vårdenheten som har flest inskrivna. Vyn visar dagens händelser för de inskrivna patienterna per tid, per patient eller per yrkesroll, och för ett urval av patienter som användaren markerar:
+
+- planerade uppgifter (`planerade_uppgifter`): provtagning, kontroll, omläggning, sjukgymnastik, teamrond, undersökning, förberedelse, konsultation, samtal och transport,
+- läkemedel att ge i dag ur ordinationerna (administrering.js), med samma behörighet som Läkemedel att ge,
+- bokade tider på andra arbetsplatser, på den egna vårdenheten eller efter aktivt val. En tid på en spärrad vårdenhet syns aldrig, och svaret är detsamma med och utan en dold tid,
+- planerade uppgifter från andra moduler genom `registreraKalla(namn, fn)`.
+
+När en uppgift planeras skriver användaren vad som ska göras. Systemet avgör typen ur orden i texten, vem som brukar göra det (yrkesrollen) och hur lång tid det tar, och föreslår nästa hela timme. En ansvarig person går att välja bland personalen på vårdenheten. Läkare, sjuksköterskor och fysioterapeuter planerar (`planera`), och alla fyra registrerar att en uppgift är utförd med ett klick (`utfora_uppgift`). En uppgift raderas aldrig: den stryks med en orsak.
+
+Patientens planering visar tre dagar bakåt och tre framåt (högst en månad), och en persons planering visar veckan med uppgifterna där personen är ansvarig, tiderna i personens scheman och teambesöken. En rad för en patient som användaren inte har vårdrelation till visas bara som upptagen tid. Varje patient som visas prövas i behörighetsmotorn och loggas med `las_planering`.
+
+#### Planerade uppgifter från andra moduler
+
+Ordinerade kontroller och provtagningar (runda 8, r1) ansluts med `registreraKalla` i avdelningsplan.js. En källa är en funktion `(db, { patientId, fran, till })` som returnerar rader med `{ id, tid, slut, typ, typText, text, enhet_id, yrke, ansvarig_id, status }`, där `tid` och `slut` är ISO-tider och `status` är `planerad`, `utford` eller `struken`. Raderna prövas på sin `enhet_id` som allt annat i vyn. Så länge ingen källa är ansluten är kontrollerna i Sussas testdata planerade uppgifter av typen kontroll.
+
+### Testdata och det som är simulerat eller saknas
+
+- `POST /api/demo/sussa-testfall` ger patienterna i testfall 5.1 till 5.3 ett tidigare besök på Kardiologiska mottagningen och en påhittad adress, och fysioterapeuten ett schema med gruppträffen. `POST /api/demo/sussa-avdelning` skriver in fyra patienter till på Avdelning 72 och lägger in händelserna i Bilaga F1:3 tabell 17, eftersom de inskrivningarna inte ska finnas i de andra testfallen.
+- Kallelserna med brev och sms är simulerade. Teambesökens arbetstider och uppgifternas längd och yrkesroller är demoregler.
+- Planerade uppgifter finns ännu inte i FHIR (Task). Valen i avdelningens planering sparas inte på servern, och uppgifter kan inte upprepas av sig själva.
+
 ## Godkännandekriterier för första versionen
 
 - `bun test` grönt, med tester för varje regel i behörighetsmotorn, loggkedjan och triggrarna, signering och rättelse, obligatoriska fält och varningar i läkemedel, NLL som inte svarar i tid och avstämning, remissens statuskedja och larm, FHIR-svarens form.

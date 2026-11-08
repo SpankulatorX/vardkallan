@@ -365,7 +365,8 @@ function skapa(BAS) {
     },
     // Runda 7, r2: nyhetsrutan.
     nyheter: async (m, page) => {
-      await synlig(page, '.nyhetsruta', 'Hjälp i sammanhanget och övningar med intyg');
+      // Runda 8, r3: en nyhet för läkaren i version 0.8.0.
+      await synlig(page, '.nyhetsruta', 'Avdelningens planering');
       await m.klicka(page.locator('[data-a="stang-nyheter"]'), 'Stäng nyheterna');
       await page.waitForFunction(() => !document.querySelector('.nyhetsruta'));
       await synlig(page, '.notis', 'Nyheterna är stängda');
@@ -629,6 +630,34 @@ function skapa(BAS) {
     await m.klicka(page.locator('dialog[open] .forslag-knapp').first(), 'det första förslaget med provtagning och läkarbesök');
     await synlig(page, '.notis', 'Gunnar Åkesson har fått en tid');
     await synlig(page, '.notis', 'provtagning');
+  };
+  // Runda 8, r3: fri bokning, teambesök, gruppträff och avdelningens planering.
+  GOR['boka-fri'] = async (m, page) => {
+    await m.klicka(page.locator('#idag [data-atgard="r8_fri"]'), 'Boka besök');
+    await m.skriv(page.locator('dialog[open] #r8-sok'), 'Viklund', 'sökfältet');
+    await m.tangent('Enter', 'sök');
+    await page.locator('dialog[open] .forslag-knapp').first().waitFor();
+    await m.klicka(page.locator('dialog[open] .forslag-knapp').first(), 'den första föreslagna tiden');
+    await synlig(page, '.notis', 'Anna Viklund har fått en tid');
+  };
+  GOR['boka-team'] = async (m, page) => {
+    await m.klicka(page.locator('#idag [data-atgard="r8_team"]'), 'Boka teambesök');
+    await m.skriv(page.locator('dialog[open] #r8-sok'), 'Viklund', 'sökfältet');
+    await m.tangent('Enter', 'sök');
+    await page.locator('dialog[open] .forslag-knapp').first().waitFor();
+    await m.klicka(page.locator('dialog[open] .forslag-knapp').first(), 'den första föreslagna tiden');
+    await synlig(page, '.notis', 'Anna Viklund har fått ett teambesök');
+  };
+  GOR['grupp-lagg-till'] = async (m, page) => {
+    await m.klicka(page.locator('#idag-grupper li', { hasText: 'Hjärtskola' }).locator('[data-atgard="r8_grupp"]'), 'Lägg till patient vid Hjärtskola');
+    await m.skriv(page.locator('dialog[open] #r8-sok'), 'Mikael Svensson', 'sökfältet');
+    await m.tangent('Enter', 'sök');
+    await m.klicka(page.locator('dialog[open] [data-r8-patient]', { hasText: 'Mikael Svensson' }).first(), 'träffen');
+    await synlig(page, '.notis', 'Mikael Svensson har fått en plats på Hjärtskola');
+  };
+  GOR['avdelningens-handelser'] = async (m, page) => {
+    await m.klicka(page.locator('.snabbval a[href="#/avdelning"]'), 'Avdelningens planering');
+    await synlig(page, '#av .av-tabell tr', 'Provtagning, blodprover');
   };
   // Runda 7, r5: granska och skicka månadens rapport till patientregistret.
   GOR['rapport-par'] = async (m, page) => {

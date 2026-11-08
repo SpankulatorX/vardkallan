@@ -454,6 +454,10 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
       await granskaHar(`${roll} ${h}`);
     }
     for (const extra of ['#/nyheter', '#/tillganglighet']) { await gaTill(page, extra); vyLista.push([roll, extra]); await granskaHar(`${roll} ${extra}`, { fokus: false }); }
+    // Runda 8, r3: avdelningens planering, patientens planering och en persons vecka nås från arbetslistan, inte från menyn.
+    if (['lak-kard', 'ssk-kard', 'usk-kard', 'fys-kard'].includes(roll)) {
+      for (const extra of ['#/avdelning', '#/avdelning/patient/p01', '#/avdelning/resurs/lak-kard']) { await gaTill(page, extra); vyLista.push([roll, extra]); await granskaHar(`${roll} ${extra}`); }
+    }
     if (JOURNAL_ROLLER.includes(roll)) {
       await gaTill(page, '#/patient/p01');
       for (const h of await flikarFor(page)) {
@@ -675,13 +679,14 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     const ruta = p.locator('.nyhetsruta');
     await ruta.waitFor();
     const text = await ruta.textContent();
-    if (!/Se vilka på vårdenheten som har giltigt intyg/.test(text)) throw new Error('verksamhetschefens nyhet saknas');
-    if (/Ordinera ur mallar/.test(text)) throw new Error('rutan visar en äldre version');
+    // Runda 8, r3: i version 0.8.0 har verksamhetschefen nyheten för alla, men inte avdelningens planering.
+    if (!/Planerade händelser i loggen/.test(text) || /Avdelningens planering/.test(text)) throw new Error('verksamhetschefens nyhet saknas');
+    if (/Ordinera ur mallar|Se vilka på vårdenheten/.test(text)) throw new Error('rutan visar en äldre version');
     await p.click('[data-a="stang-nyheter"]');
     await p.waitForFunction(() => !document.querySelector('.nyhetsruta'));
     await loggaIn(p, 'lak-kard');
     await ruta.waitFor();
-    if (/Se vilka på vårdenheten/.test(await ruta.textContent())) throw new Error('läkaren ser verksamhetschefens nyhet');
+    if (!/Avdelningens planering/.test(await ruta.textContent())) throw new Error('läkaren ser inte sin nyhet');
     await loggaIn(p, 'vch-kard');
     if (await p.locator('.nyhetsruta').count()) throw new Error('rutan kommer tillbaka efter att den har stängts');
     await gaTill(p, '#/nyheter');

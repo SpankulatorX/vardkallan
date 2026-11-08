@@ -2,6 +2,64 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "0.8.0",
+      "datum": "2026-11-08",
+      "nyheter": [
+        {
+          "id": "boka-fritt",
+          "roller": [
+            "vardadministrator"
+          ],
+          "omfattning": "liten",
+          "var": "#/idag",
+          "rubrik": "Boka ett besök utan väntelista",
+          "text": "Med Boka besök i Dagens arbete söker du patienten, och systemet föreslår besökstyp, vårdgivare och de lämpligaste tiderna. Ett klick bokar tiden och skickar kallelsen."
+        },
+        {
+          "id": "teambesok",
+          "roller": [
+            "vardadministrator"
+          ],
+          "omfattning": "liten",
+          "var": "#/idag",
+          "rubrik": "Teambesök med flera vårdgivare",
+          "text": "Med Boka teambesök föreslår systemet patientens läkare och sjuksköterska och hittar tider då alla och ett rum är lediga hela besöket."
+        },
+        {
+          "id": "grupptraffar",
+          "roller": [
+            "vardadministrator"
+          ],
+          "omfattning": "liten",
+          "var": "#/idag",
+          "rubrik": "Lägg till patienter i en gruppträff",
+          "text": "Gruppträffarna visas i Dagens arbete med platser kvar. Lägg till patienter en i taget, och när träffen är full hamnar patienten på gruppens väntelista."
+        },
+        {
+          "id": "avdelningens-planering",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska",
+            "fysioterapeut"
+          ],
+          "omfattning": "stor",
+          "var": "#/avdelning",
+          "rubrik": "Avdelningens planering",
+          "text": "Från arbetslistan når du allt som är planerat för avdelningens patienter i dag: uppgifter som provtagning, omläggning och sjukgymnastik, läkemedel att ge och bokade tider. Visa per tid, per patient eller per yrkesroll, planeringen för en patient flera dagar bakåt och framåt och en persons vecka."
+        },
+        {
+          "id": "planering-i-loggen",
+          "roller": [
+            "alla"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Planerade händelser i loggen",
+          "text": "Åtkomstloggen och Vem har läst min journal visar när någon har sett patientens planerade händelser på avdelningen, planerat en uppgift eller registrerat att den är utförd."
+        }
+      ]
+    },
+    {
       "version": "0.7.0",
       "datum": "2026-11-08",
       "nyheter": [

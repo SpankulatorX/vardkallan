@@ -334,6 +334,27 @@ export const UPPGIFTER = [
     text: 'Vårdkällan har fått en ny version. Läs vad som är nytt för dig som läkare, och se sedan till att nyheterna inte står kvar.',
     kontroll: { notis: 'Nyheterna är stängda' },
   },
+  // Runda 8, r3: fri bokning, teambesök, gruppträff och avdelningens planering (Sussa 3.4.1, 3.4.2, testfall 5.1 till 5.3 och 7.1).
+  {
+    id: 'boka-fri', namn: 'Boka en patient fritt', roll: 'adm-kard', start: 'Vårdadministratörens startsida',
+    text: 'Anna Viklund ringer och vill komma på ett besök. Hon står inte på väntelistan. Ge henne en tid.',
+    kontroll: { notis: 'Anna Viklund har fått en tid' },
+  },
+  {
+    id: 'boka-team', namn: 'Boka ett teambesök', roll: 'adm-kard', start: 'Vårdadministratörens startsida',
+    text: 'Anna Viklund ska träffa både läkaren och sjuksköterskan vid samma besök. Boka ett besök med båda.',
+    kontroll: { notis: 'Anna Viklund har fått ett teambesök' },
+  },
+  {
+    id: 'grupp-lagg-till', namn: 'Lägga till en patient i en gruppträff', roll: 'adm-kard', start: 'Vårdadministratörens startsida',
+    text: 'Mikael Svensson ska gå i Hjärtskolan. Ge honom en plats på nästa träff.',
+    kontroll: { notis: 'Mikael Svensson har fått en plats' },
+  },
+  {
+    id: 'avdelningens-handelser', namn: 'Överblicka dagens händelser på avdelningen', roll: 'ssk-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Du börjar ditt pass på avdelningen. Ta reda på vad som är planerat för patienterna klockan 11 i dag.',
+    kontroll: { sel: '#av .av-tabell', text: 'Provtagning, blodprover' },
+  },
   // Runda 7, r2: varningen före utloggningen (K2 1.6.1).
   {
     id: 'forlang-inloggning', namn: 'Fortsätta arbeta när inloggningen snart går ut', roll: 'lak-kard', start: 'Arbetslistan när inloggningen snart går ut',

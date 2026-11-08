@@ -21,7 +21,10 @@ export const alderKon = (p) => `${esc(p.alder)} år, ${esc((KON[p.kon] ?? p.kon)
 
 export async function visa(main) {
   // Runda 6, r4: läkare och sjuksköterskor når sitt schema i tidboken härifrån, utan att boka.
-  const tidbok = far('las_tidbok') && !far('boka') ? `<nav class="snabbval" aria-label="Tidboken"><ul><li><a class="knapp liten sekundar" href="#/tidbok">${ikon.klocka}<span>Min tidbok</span></a></li></ul></nav>` : '';
+  // Runda 8, r3: avdelningens planerade händelser för den som arbetar på en avdelning.
+  const planering = far('las_planering') ? `<li><a class="knapp liten sekundar" href="#/avdelning">${ikon.kalender}<span>Avdelningens planering</span></a></li>` : '';
+  const tidbok = far('las_tidbok') && !far('boka') ? `<nav class="snabbval" aria-label="Tidboken"><ul><li><a class="knapp liten sekundar" href="#/tidbok">${ikon.klocka}<span>Min tidbok</span></a></li>${planering}</ul></nav>`
+    : planering ? `<nav class="snabbval" aria-label="Planering"><ul>${planering}</ul></nav>` : '';
   main.innerHTML = vyRubrik('Arbetslista', `Patienter med vårdrelation på ${esc(S.session.enhet.vardenhet?.namn ?? S.session.enhet.namn)}.`) + `${hjalpRuta('oppna-patient')}${tidbok}<div id="lista"><p class="tom">Hämtar arbetslistan.</p></div>`;
   const rader = await api('/api/arbetslista');
   const el = main.querySelector('#lista');

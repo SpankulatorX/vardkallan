@@ -188,6 +188,16 @@ ROLLER.fysioterapeut = ['las_oversikt', 'las_journal', 'las_omvardnad', 'skriv_o
 // Rollen kom till efter utbildningens block ovan, så den får övningarna här (runda 7, r2: all personal gör övningarna).
 ROLLER.fysioterapeut.push('utbildning');
 
+// Runda 8, r3: avdelningens planerade händelser och en resurs planering (avdelningsplan.js). Läkare, sjuksköterskor,
+// undersköterskor och fysioterapeuter ser vad som är planerat för patienterna och registrerar att en uppgift är utförd.
+// Läkare, sjuksköterskor och fysioterapeuter planerar uppgifter. Varje patient prövas med vårdrelation, spärr och inre
+// sekretess som all annan åtkomst.
+Object.assign(HANDLINGAR, {
+  las_planering: 'se planerade händelser på avdelningen', planera: 'planera uppgifter på avdelningen', utfora_uppgift: 'registrera att en planerad uppgift är utförd',
+});
+for (const r of ['lakare', 'sjukskoterska', 'underskoterska', 'fysioterapeut']) ROLLER[r].push('las_planering', 'utfora_uppgift');
+for (const r of ['lakare', 'sjukskoterska', 'fysioterapeut']) ROLLER[r].push('planera');
+
 // Runda 7, r1: testledaren för användartesterna är uppföljningsrollen, som läser och exporterar svaren utan patientuppgifter.
 HANDLINGAR.anvandartest_las = 'läsa och exportera svaren från användartester';
 ROLLER.uppfoljning.push('anvandartest_las');

@@ -1426,3 +1426,20 @@ body.laslage #nyhetsruta { display: none; }
 
 /* Runda 7, r1: koden för ett testtillfälle, som visas en gång. */
 .st-kod { word-break: break-all; font-size: 1.1rem; }
+
+/* Runda 8, r3: fri bokning, teambesök, gruppträffar och avdelningens planering. */
+.r8-sokrad { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.r8-sokrad input { flex: 1 1 14em; min-width: 0; }
+.r8-traffar { display: grid; gap: 6px; margin: 8px 0; }
+.r8-val { display: flex; gap: 12px; flex-wrap: wrap; margin: 8px 0; }
+.r8-val label, .r8-team label { display: flex; gap: 6px; align-items: center; }
+.r8-team { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 8px 0; border: 1px solid var(--kalla-mellan); border-radius: var(--r); padding: 8px 12px; }
+.r8-grupper .knapprad { margin-top: 4px; }
+.av-verktyg { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 0 0 12px; }
+.av-verktyg [role=group] { display: flex; flex-wrap: wrap; gap: 6px; }
+.av-patienter { border: 1px solid var(--kalla-mellan); border-radius: var(--r); padding: 8px 12px; margin: 0 0 12px; }
+.av-patienter ul { display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 0; padding: 0; }
+.av-patienter li { display: flex; gap: 6px; align-items: baseline; }
+.av-tabell tr.av-utford td { color: var(--dampad); }
+.av-typ { margin-right: 4px; }
+.av-dag.av-idag h2 { color: var(--kalla); }

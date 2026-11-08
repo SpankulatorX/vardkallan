@@ -37,8 +37,12 @@ export const TIDSTYPER = {
   // Runda 6, r4: ett ingrepp kräver lokal och utrustning (planering-bas.js), och provtagningen bokas före läkarbesöket.
   ingrepp: { text: 'Ingrepp', min: 90, kontaktsatt: 'besok', fysisk: true },
   provtagning: { text: 'Provtagning', min: 15, kontaktsatt: 'besok', fysisk: true },
+  // Runda 8, r3: ett teambesök med två eller fler vårdgivare (bokning-r8.js). Tiden skapas när besöket bokas.
+  team: { text: 'Teambesök', min: 60, kontaktsatt: 'besok', fysisk: true },
 };
 export const YRKESROLL = { lakare: 'läkare', sjukskoterska: 'sjuksköterska' };
+// Runda 8, r3: fysioterapeuten leder gruppträffar och ingår i teambesök (bokning-r8.js).
+YRKESROLL.fysioterapeut = 'fysioterapeut';
 // Tidstyper som patienten någonsin kan boka, boka om och avboka själv i Min journal (beslut 2026-11-03). Ett nybesök
 // eller en gruppträff bokas alltid av mottagningen, också om en mottagning skulle öppna dem i sina regler.
 export const EGENBOKNING_TIDSTYPER = ['aterbesok', 'telefon', 'video'];
@@ -115,6 +119,15 @@ CREATE TABLE IF NOT EXISTS kanalval (patient_id TEXT PRIMARY KEY, kanal TEXT NOT
 CREATE TABLE IF NOT EXISTS bevakningar (
   id INTEGER PRIMARY KEY, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, text TEXT NOT NULL, forfaller TEXT NOT NULL, vantelista_id INTEGER,
   skapad TEXT NOT NULL, skapad_av TEXT, klar TEXT, klar_av TEXT
+);
+-- Runda 8, r3 (bokning-r8.js): vårdgivarna i ett teambesök, och väntelistan till en gruppträff.
+CREATE TABLE IF NOT EXISTS teambesok_deltagare (
+  id INTEGER PRIMARY KEY, bokning_id INTEGER NOT NULL, enhet_id TEXT NOT NULL, personal_id TEXT NOT NULL, start TEXT NOT NULL, slut TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_teambesok_personal ON teambesok_deltagare (personal_id, start);
+CREATE TABLE IF NOT EXISTS gruppvantelista (
+  id INTEGER PRIMARY KEY, tid_id INTEGER NOT NULL, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'vantar',
+  skapad TEXT NOT NULL, skapad_av TEXT, bokning_id INTEGER, CHECK (status IN ('vantar', 'bokad', 'struken'))
 );
 `;
 
@@ -316,7 +329,13 @@ function plats(db, schema, tidstyp) {
 
 // Bokningar som tar en plats på tiden.
 const aktiva = (db, tidId) => db.query("SELECT count(*) AS n FROM bokningar WHERE tid_id = ? AND status IN ('bokad', 'incheckad')").get(tidId).n;
-export const arLedig = (db, tid) => aktiva(db, tid.id) < tid.platser;
+export const arLedig = (db, tid) => aktiva(db, tid.id) < tid.platser && !teamKrock(db, tid);
+// Runda 8, r3: en tid är inte ledig när vårdgivaren är bokad på ett teambesök som överlappar den (bokning-r8.js).
+export function teamKrock(db, tid) {
+  return Boolean(db.query(`SELECT 1 FROM teambesok_deltagare d JOIN bokningar b ON b.id = d.bokning_id
+    WHERE d.personal_id = (SELECT personal_id FROM scheman WHERE id = ?) AND b.status IN ('bokad', 'incheckad') AND d.start < ? AND d.slut > ? AND b.tid_id <> ? LIMIT 1`)
+    .get(tid.schema_id, tid.slut, tid.start, tid.id));
+}
 
 // Konummer vid incheckning: K och löpnummer per vårdenhet och dag. Väntrummet ropar upp med numret, aldrig med namn.
 function konummerFor(db, tid, nar) {
@@ -330,7 +349,7 @@ function konummerFor(db, tid, nar) {
 // En bokning skapar en planerad vårdkontakt på mottagningen. Den ger vårdrelation bara om den som bokar redan hade
 // vårdrelation till patienten (som en kontakt som vårdkontakt.js skapar). Patienten själv bokar bara där patienten
 // redan har vårdrelation.
-function skapaBokning(db, { patientId, tid, orsak, av = null, avInvanare = null, vantelistaId = null, remissId = null, bokad = iso(), relation = 1, ersatter = null }) {
+export function skapaBokning(db, { patientId, tid, orsak, av = null, avInvanare = null, vantelistaId = null, remissId = null, bokad = iso(), relation = 1, ersatter = null }) {
   const schema = schemaRad(db, tid.schema_id);
   const tt = TIDSTYPER[tid.tidstyp];
   const text = orsak || tid.rubrik || tt.text;
@@ -969,7 +988,15 @@ const FORBEREDELSER = {
   // Runda 6, r4.
   ingrepp: 'Kom en halvtimme före tiden.',
   provtagning: 'Kom fem minuter före tiden.',
+  // Runda 8, r3.
+  team: 'Du träffar flera vårdgivare vid samma besök. Kom gärna tio minuter före tiden.',
 };
+// Runda 8, r3: vårdgivarna i ett teambesök, till exempel "läkare Sara Lindqvist och sjuksköterska Lina Persson".
+export function teamVem(db, bokningId) {
+  const rader = db.query('SELECT d.personal_id, s.yrkesroll, p.namn, p.yrke FROM teambesok_deltagare d JOIN personal p ON p.id = d.personal_id LEFT JOIN scheman s ON s.personal_id = d.personal_id WHERE d.bokning_id = ? GROUP BY d.id ORDER BY d.id').all(bokningId);
+  const delar = rader.map(r => `${YRKESROLL[r.yrkesroll ?? r.yrke] ?? ''} ${r.namn}`.trim());
+  return delar.length > 1 ? `${delar.slice(0, -1).join(', ')} och ${delar.at(-1)}` : delar[0] ?? '';
+}
 
 // Kallelsen skrivs av systemet ur bokningen: tid, plats, vårdgivarens yrke, förberedelser och avgift. Den innehåller
 // aldrig journaltext, diagnos eller remissens frågeställning, bara det en kallelse behöver.
@@ -994,7 +1021,10 @@ export function kallelseText(db, b, typ = 'kallelse', tillagg = {}) {
   }
   const avgift = !b.patient_id ? 'Avgift: systemet räknar avgiften för varje patient.' : !a ? '' : a.belopp === 0 ? 'Avgift: ingen avgift.' : `Avgift: ${a.belopp} kronor. Har du frikort betalar du inget. Avgifterna i demon är påhittade.`;
   const ttText = r4.ingrepp ? plan.INGREPP[r4.ingrepp].text : tt.text;
-  const vem = tid.tidstyp === 'grupp' ? `${tid.rubrik ?? 'Gruppträff'}, ledd av ${YRKESROLL[schema.yrkesroll]} ${vg?.namn ?? ''}` : `${ttText} hos ${YRKESROLL[schema.yrkesroll]} ${vg?.namn ?? ''}`;
+  const vem = tid.tidstyp === 'grupp' ? `${tid.rubrik ?? 'Gruppträff'}, ledd av ${YRKESROLL[schema.yrkesroll]} ${vg?.namn ?? ''}`
+    // Runda 8, r3: ett teambesök med alla vårdgivarna.
+    : tid.tidstyp === 'team' && b.id ? `Teambesök med ${teamVem(db, b.id)}`
+      : `${ttText} hos ${YRKESROLL[schema.yrkesroll]} ${vg?.namn ?? ''}`;
   const andra = 'Kan du inte komma? Boka om eller avboka i Min journal senast 24 timmar före, eller ring mottagningen.';
   const incheck = tt.fysisk ? 'Checka in i Min journal eller på skärmen i väntrummet när du kommer.' : null;
   const plats = `${r4.lokal ? `${r4.lokal}, ` : ''}${tt.fysisk ? ort : `${tt.text}, ${ort}`}`;
@@ -1044,7 +1074,7 @@ export function skickaKallelse(db, b, typ, { av = null, tid = iso(), kanal = nul
 }
 
 // En gruppträffs kallelser skrivs när platsen bokas men skickas när vårdadministratören bekräftar att träffen blir av.
-function forberedKallelse(db, b) {
+export function forberedKallelse(db, b) {
   db.query("INSERT INTO kallelser (bokning_id, patient_id, typ, text, status, skapad) VALUES (?, ?, 'kallelse', ?, 'vantar', ?)").run(b.id, b.patient_id, kallelseText(db, b), iso());
 }
 
@@ -1189,7 +1219,7 @@ export function patientensBokningar(atk) {
   const ve = vardenhetFor(db, atk.personal.enhet_id);
   const poster = kanRoll(atk.personal, 'boka') ? db.query("SELECT * FROM vantelista WHERE patient_id = ? AND enhet_id = ? AND status = 'vantar'").all(atk.patientId, ve).map(v => vantelistaUt(db, v)) : [];
   return {
-    kommande: kommande.map(b => ({ ...b, kanOmbokas: kanRoll(atk.personal, 'boka') && b.status === 'bokad' && b.tid.tidstyp !== 'grupp' && b.kedja?.roll !== 'fore' && vardenhetFor(db, b.tid.mottagning.id) === ve })),
+    kommande: kommande.map(b => ({ ...b, kanOmbokas: kanRoll(atk.personal, 'boka') && b.status === 'bokad' && !['grupp', 'team'].includes(b.tid.tidstyp) && b.kedja?.roll !== 'fore' && vardenhetFor(db, b.tid.mottagning.id) === ve })),
     tidigare, vantelista: poster, dolda: { kraverVal: atk.doldaVal, sparrade: atk.doldaSparr },
   };
 }

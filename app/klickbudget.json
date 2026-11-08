@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T10:24:01.607Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-08T12:15:32.493Z",
+  "bas": "http://127.0.0.1:18183",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "6861eabb78763a405740bf97897dd10fff8989df56b204f9e50a1ab598fbf78a",
+  "gransnittHash": "d7872f4578aed18dc4298ccc4fd3b138510ca44b5aa7c58097a9ce84f13b9b8a",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -995,6 +995,79 @@
       ]
     },
     {
+      "id": "boka-fri",
+      "namn": "Boka en patient fritt",
+      "roll": "adm-kard",
+      "start": "Vårdadministratörens startsida",
+      "budget": 4,
+      "motivering": "Sussa 3.4.2.2 och testfall 5.1. Ett klick på Boka besök, där sökfältet har fokus, och Enter. Med en enda träff väljer systemet patienten och visar besökstyp, vårdgivare och de lämpligaste tiderna, och ett klick på en tid bokar den, skapar vårdkontakten och skickar kallelsen. Budgeten har plats för att välja patienten bland flera träffar.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 1,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Boka besök",
+        "har redan fokus: sökfältet",
+        "tangent Enter: sök",
+        "klick: den första föreslagna tiden"
+      ]
+    },
+    {
+      "id": "boka-team",
+      "namn": "Boka ett teambesök",
+      "roll": "adm-kard",
+      "start": "Vårdadministratörens startsida",
+      "budget": 5,
+      "motivering": "Sussa 3.4.1.5 och testfall 5.2. Ett klick på Boka teambesök, där sökfältet har fokus, och Enter. Systemet föreslår teamet och tider då alla och ett rum är lediga hela besöket, och ett klick bokar allt och skickar kallelsen. Budgeten har plats för att ändra teamet med två klick.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 1,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Boka teambesök",
+        "har redan fokus: sökfältet",
+        "tangent Enter: sök",
+        "klick: den första föreslagna tiden"
+      ]
+    },
+    {
+      "id": "grupp-lagg-till",
+      "namn": "Lägga till en patient i en gruppträff",
+      "roll": "adm-kard",
+      "start": "Vårdadministratörens startsida",
+      "budget": 3,
+      "motivering": "Testfall 5.3. Ett klick på Lägg till patient vid gruppträffen, där sökfältet har fokus, Enter och ett klick på träffen. Systemet bokar platsen, skriver kallelsen och räknar platserna kvar, och när träffen är full sätter det patienten på gruppens väntelista.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 1,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Lägg till patient vid Hjärtskola",
+        "har redan fokus: sökfältet",
+        "tangent Enter: sök",
+        "klick: träffen"
+      ]
+    },
+    {
+      "id": "avdelningens-handelser",
+      "namn": "Överblicka dagens händelser på avdelningen",
+      "roll": "ssk-kard",
+      "start": "Arbetslistan efter inloggning",
+      "budget": 1,
+      "motivering": "Sussa 3.4.1.6 och testfall 7.1. Ett klick på Avdelningens planering i arbetslistan. Vyn visar allt som är planerat för avdelningens patienter i dag i tidsordning: uppgifter, läkemedel att ge och bokade tider, med vem som ansvarar.",
+      "klick": 1,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "steg": [
+        "klick: Avdelningens planering"
+      ]
+    },
+    {
       "id": "forlang-inloggning",
       "namn": "Fortsätta arbeta när inloggningen snart går ut",
       "roll": "lak-kard",
@@ -1230,6 +1303,22 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Läsa nyheterna och stänga dem inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Boka en patient fritt inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Boka ett teambesök inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Lägga till en patient i en gruppträff inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Överblicka dagens händelser på avdelningen inom budget",
       "status": "grön"
     },
     {

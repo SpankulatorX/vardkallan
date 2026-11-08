@@ -79,3 +79,72 @@ export const ANKOMNA_5_6 = ['sus22', 'sus06', 'sus23', 'sus12', 'sus19'];
 // Testfall 4.4: 30 osignerade anteckningar för läkaren i öppenvården, tio för var och en av de tre patienterna
 // (Bilaga F1:3 tabell 14).
 export const OSIGNERADE_4_4 = { patienter: ['sus08', 'sus09', 'sus10'], perPatient: 10 };
+
+// Runda 8, r3: testfall 5.1 till 5.3 (Bilaga F1:3 tabell 15 och Bilaga F1:4). Patienterna har varit på mottagningen
+// förut, hos läkaren och för Sven Markström också hos sjuksköterskan, så att systemet föreslår samma vårdgivare igen.
+// Mottagningen motsvarar Vårdcentral Backen, Mottagning 1. Adresserna är påhittade och bara för demon.
+export const TIDIGARE_BESOK_5 = [
+  { patient: 'sus11', hos: ['lak-kard'] },
+  { patient: 'sus10', hos: ['lak-kard', 'ssk-kardmott'] },
+  { patient: 'sus08', hos: ['lak-kard'] },
+  { patient: 'sus09', hos: ['lak-kard'] },
+  { patient: 'sus12', hos: ['lak-kard'] },
+];
+// Gruppträffen i testfall 5.3: fysioterapeuten på mottagningen leder den, 60 minuter, åtta platser, klockan 11.45.
+export const GRUPP_5_3 = { schema: 'sch-kard-jenny', personal: 'fys-kard', enhet: 'uso-kard-mott', rubrik: 'Hjärtrehabilitering i grupp', dag: 3, klocka: '11:45', minuter: 60, platser: 8,
+  patienter: ['sus10', 'sus08', 'sus09', 'sus12', 'sus11'] };
+
+// Runda 8, r3: tema 7, gemensamma vyer (Bilaga F1:3 tabell 17). De planerade händelserna på Medicinkliniken, Avdelning A,
+// som här är Avdelning 72. dag är dagar från testet, klocka svensk tid. ansvarig är den personal som Sussa namnger: den
+// slutenvårdsläkare som Sussa nämner motsvaras av överläkaren på kardiologen (ol-kard). Rader där Sussa bara anger
+// yrkesroller får ingen namngiven ansvarig, och systemet tar yrkesrollen ur uppgiften.
+export const INSKRIVNA_7 = [
+  { patient: 'sus02', plats: 'Avd 72, sal 9', orsak: 'Utredning inför röntgen' },
+  { patient: 'sus05', plats: 'Avd 72, sal 10', orsak: 'Utredning' },
+  { patient: 'sus08', plats: 'Avd 72, sal 11', orsak: 'Bröstsmärta' },
+  { patient: 'sus14', plats: 'Avd 72, sal 12', orsak: 'Feber och infektion' },
+];
+export const RESURS_7_4 = 'ol-kard';
+const A = RESURS_7_4;
+export const HANDELSER_7 = [
+  { patient: 'sus01', text: 'Temperatur, puls, blodtryck', dag: -4, klocka: '07:00' },
+  { patient: 'sus01', text: 'EKG', dag: 0, klocka: '15:00' },
+  { patient: 'sus01', text: 'Kontroll b-glukos', dag: -4, klocka: '11:30' },
+  { patient: 'sus01', text: 'Längd, vikt', dag: -3, klocka: '08:00' },
+  { patient: 'sus01', text: 'Sutur ut', dag: -3, klocka: '13:00' },
+  { patient: 'sus01', text: 'Omläggning', dag: -3, klocka: '08:00' },
+  { patient: 'sus01', text: 'Deltagande i distansmöte med anhöriga', dag: -3, klocka: '10:00', ansvarig: A },
+  { patient: 'sus01', text: 'Teamrond', dag: -2, klocka: '11:00' },
+  { patient: 'sus01', text: 'Till röntgen', dag: -2, klocka: '14:00' },
+  { patient: 'sus01', text: 'Kontroll blodsocker. Inspektion hudkostym', dag: -1, klocka: '07:30' },
+  { patient: 'sus01', text: 'Provtagning, blodprover', dag: 0, klocka: '11:00' },
+  { patient: 'sus01', text: 'Ultraljud, urinblåsa', dag: 0, klocka: '17:00' },
+  { patient: 'sus01', text: 'Omläggning', dag: 0, klocka: '14:00' },
+  { patient: 'sus01', text: 'Temperatur, puls, blodtryck', dag: 0, klocka: '13:00' },
+  { patient: 'sus01', text: 'Distansmöte, ortopedkonsult på annat sjukhus', dag: 0, klocka: '17:00', ansvarig: A },
+  { patient: 'sus02', text: 'Dricka kontrast', dag: 0, klocka: '11:00' },
+  { patient: 'sus02', text: 'Till röntgen, labb 12', dag: -3, klocka: '12:00' },
+  { patient: 'sus02', text: 'Sjukgymnastik', dag: -2, klocka: '12:00' },
+  { patient: 'sus03', text: 'Börja fasta', dag: 0, klocka: '11:00' },
+  { patient: 'sus03', text: 'Till röntgen, labb 3', dag: -1, klocka: '14:00' },
+  { patient: 'sus03', text: 'Provtagning, elstatus med mera', dag: -1, klocka: '16:00' },
+  { patient: 'sus04', text: 'Såromläggning', dag: 0, klocka: '11:00' },
+  { patient: 'sus04', text: 'Sjukgymnastik', dag: -1, klocka: '16:00' },
+  { patient: 'sus04', text: 'Hjärteko på fysiologen', dag: 0, klocka: '15:00' },
+  { patient: 'sus05', text: 'Teamrond med onkologen', dag: 0, klocka: '11:00', ansvarig: A },
+  { patient: 'sus05', text: 'Omläggning CVK', dag: -1, klocka: '14:00' },
+  { patient: 'sus05', text: 'Samtal med läkaren', dag: 0, klocka: '14:00', ansvarig: A },
+  { patient: 'sus08', text: 'Provtagning', dag: -3, klocka: '14:00' },
+  { patient: 'sus08', text: 'EKG', dag: -2, klocka: '09:00' },
+  { patient: 'sus08', text: 'Sjukgymnastik', dag: 0, klocka: '11:00' },
+  { patient: 'sus08', text: 'Provtagning', dag: -1, klocka: '15:00' },
+  { patient: 'sus08', text: 'Provtagning', dag: 0, klocka: '15:00' },
+  { patient: 'sus14', text: 'Infektionskonsult med infektionsläkaren', dag: 0, klocka: '11:00', ansvarig: A },
+  { patient: 'sus14', text: 'Sjukgymnastik', dag: 0, klocka: '16:00' },
+  { patient: 'sus14', text: 'Teamrond med kirurgläkaren', dag: 0, klocka: '09:00', ansvarig: A },
+  { patient: 'sus14', text: 'Slangbyte CVK', dag: 0, klocka: '12:00' },
+  { patient: 'sus14', text: 'Anhöriga vill prata med läkaren', dag: 0, klocka: '14:00', ansvarig: A },
+  { patient: 'sus16', text: 'Vikt, blodtryck, puls, temperatur', dag: -2, klocka: '09:00' },
+  { patient: 'sus16', text: 'Dricka kontrast', dag: -1, klocka: '12:00' },
+  { patient: 'sus16', text: 'Samtal med läkaren', dag: 0, klocka: '12:00', ansvarig: A },
+];

@@ -8,6 +8,8 @@ import { patientCell, pnrCell } from './arbetslista.js';
 import { valjTid, valjBetalsatt, tidText, kl, kr, gransHtml, kallelseHtml, dagar } from '../tidbok-ui.js';
 // Runda 6, r4: fritt vald period, anpassningsbar vy och egna bevakningar.
 import { nyBevakning, bevakningKlar, anpassaVy, datumKort } from '../planering-ui.js';
+// Runda 8, r3: fri bokning, teambesök och gruppträffar.
+import { bokaFri, bokaTeam, laggTillIGrupp, gePlats, grupperHtml } from '../bokning-r8.js';
 
 export const namn = 'idag';
 
@@ -78,6 +80,8 @@ export async function visa(main, _p, _q, ctx = {}) {
 // aktuell säger om vyn fortfarande visas. Har användaren gått vidare medan svaret hämtades ritas inget.
 async function rita(main, aktuell) {
   const s = await api(`/api/idag${period ? `?fran=${period.fran}&till=${period.till}` : ''}`);
+  // Runda 8, r3: gruppträffarna med platser kvar och gruppens väntelista.
+  s.grupper = (await api('/api/grupptraffar').catch(() => ({ grupper: [] }))).grupper;
   if (!aktuell()) return;
   const kvar = s.antal.kvarAttCheckaIn;
   const dag = new Date().toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Stockholm' });
@@ -87,6 +91,8 @@ async function rita(main, aktuell) {
   const patientRubrik = iDag ? (kvar ? `Patienter i dag, ${kvar} kvar att checka in` : 'Patienter i dag') : s.period.fran === s.period.till ? `Patienter ${datumKort(s.period.fran)}` : `Patienter ${datumKort(s.period.fran)} till ${datumKort(s.period.till)}`;
   main.innerHTML = vyRubrik('Dagens arbete', `${esc(s.vardenhet.namn)}, ${esc(dag)}. Systemet har ordnat dagens arbete. Varje rad har en nästa åtgärd.`) + `${hjalpRuta('boka')}<div id="idag">
     <nav class="snabbval" aria-label="Tidboken"><ul>
+      <li><button type="button" class="knapp liten" data-atgard="r8_fri">${ikon.plus}<span>Boka besök</span></button></li>
+      <li><button type="button" class="knapp liten sekundar" data-atgard="r8_team">${ikon.plus}<span>Boka teambesök</span></button></li>
       <li><a class="knapp liten sekundar" href="#/tidbok">${ikon.klocka}<span>Tidbok</span></a></li>
       <li><a class="knapp liten sekundar" href="#/vantelista">${ikon.lista}<span>Väntelista</span></a></li>
       <li><a class="knapp liten sekundar" href="#/incheckning">${ikon.kort}<span>Incheckningsskärm i väntrummet</span></a></li>
@@ -98,6 +104,7 @@ async function rita(main, aktuell) {
     ${visas('remisser') ? sektion('remisser', 'Remisser som väntar på tid', s.remisser.length, posterHtml(s.remisser, true), 'Alla accepterade remisser har fått tid.') : ''}
     ${visas('vantelista') ? sektion('vantelista', 'Väntelistan', s.vantelista.length, posterHtml(s.vantelista, false), 'Ingen väntar på tid.') : ''}
     ${visas('kallelser') ? sektion('kallelser', 'Kallelser som behöver gå ut', s.kallelser.length, kallelserHtml(s), 'Alla kallelser är skickade. Påminnelser går ut av sig själva.') : ''}
+    ${s.grupper.length ? sektion('grupper', 'Gruppträffar', s.grupper.length, grupperHtml(s.grupper), '') : ''}
     ${visas('bevakningar') ? sektion('bevakningar', iDag ? 'Bevakningar som har löpt ut' : 'Bevakningar till och med periodens slut', s.bevakningar.length, bevakningarHtml(s), 'Inga bevakningar har löpt ut.') : ''}
     ${s.vy?.sektioner && s.vy.sektioner.length < 5 ? '<p class="dampad liten">Vissa delar är dolda. Välj Anpassa vyn för att visa dem.</p>' : ''}
     <p class="hjalp">${esc(s.demoregler)} Patientavgifterna är demoregler.</p></div>`;
@@ -142,6 +149,11 @@ export async function bokaPost(id, namn) {
 
 async function utfor(b, s) {
   const typ = b.dataset.atgard;
+  // Runda 8, r3: fri bokning, teambesök och gruppträffar (bokning-r8.js).
+  if (typ === 'r8_fri') return bokaFri();
+  if (typ === 'r8_team') return bokaTeam();
+  if (typ === 'r8_grupp') return laggTillIGrupp(s.grupper[Number(b.dataset.grupp)]);
+  if (typ === 'r8_plats') return gePlats(b.dataset.gvl);
   if (typ === 'checka_in') {
     const d = s.dagens.find(x => String(x.id) === b.dataset.bokning);
     const r = await medKnapp(b, () => api(`/api/bokning/${d.id}/checka-in`, { metod: 'POST', data: {} }));
