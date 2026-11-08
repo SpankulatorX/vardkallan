@@ -14,6 +14,7 @@ import * as stod from '../src/lakemedelsstod.js';
 import * as mallar from '../src/ordinationsmallar.js';
 import * as vardplan from '../src/vardplan.js';
 import * as konfiguration from '../src/konfiguration.js';
+import * as vaccinationsprogram from '../src/vaccinationsprogram.js';
 import { UTSATTNINGSREGLER } from '../src/lakemedelsregler.js';
 import { verifiera } from '../src/logg.js';
 import { atk, personal, testserver, klient, sandlada } from './hjalp.js';
@@ -425,6 +426,39 @@ describe('Kollegakontroll av högriskläkemedel', () => {
     const v = fel(() => administrering.spara(ssk(db, 'p01'), ny));
     const kvitt = (v?.extra?.kraverKvittens ?? []).map(regel => ({ regel, motivering: 'Ny dos efter ändringen' }));
     expect(administrering.spara(ssk(db, 'p01'), { ...ny, kvitteradeVarningar: kvitt }).administrering.kollegakontroll).toBeNull();
+  });
+
+  test(T.kkGammal.split(' > ')[1], () => {
+    const db = sandladaKl('13:30');
+    // En godkänd ändring från när opioidparametern var ja eller nej, och skräp i en annan grupps parameter.
+    const rad = (nyckel, varde) => db.query(`INSERT INTO konfig_andringar (slag, nyckel, varde, forra, giltig_fran, motivering, foreslagen_av, foreslagen, status, beslutad_av, beslutad, galler_fran)
+      VALUES ('parameter', ?, ?, NULL, ?, 'Äldre värde', 'sysf', ?, 'godkand', 'sysf-2', ?, ?)`).run(nyckel, JSON.stringify(varde), addDagar(idag(), -1), iso(), iso(), addDagar(idag(), -1));
+    rad(hogrisk.KATEGORIER.opioider.parameter, true);
+    rad(hogrisk.KATEGORIER.elektrolyter.parameter, 'kanske');
+    const lm = (id) => db.query('SELECT * FROM katalog WHERE id = ?').get(id);
+    const k = (id, o, pid = 'p01') => hogrisk.kategorierFor(db, { lm: lm(id), o, patientId: pid }).map(x => x.id);
+    // true blir förvalet: injektionen kontrolleras, tabletten till en vuxen inte.
+    expect(k('VK-NPL-0031', { administrationssatt: 'intramuskulart' })).toEqual(['opioider']);
+    expect(k('VK-NPL-0030', { administrationssatt: 'peroralt' })).toEqual([]);
+    expect(k('VK-EGEN-0001', null)).toEqual(['elektrolyter']);
+    expect(hogrisk.aktiv(db, 'opioider')).toBe(true);
+    expect(hogrisk.aktiv(db, 'elektrolyter')).toBe(true);
+    // Inga doser kastar fel: en dos som inte är en opioid ges som vanligt, och en injektion kräver kollegan.
+    const furo = db.query("SELECT o.id FROM ordinationer o JOIN katalog k ON k.id = o.lakemedel_id WHERE o.patient_id = 'p01' AND k.namn LIKE 'Alvedon%' AND o.status = 'aktiv'").get();
+    expect(administrering.kontroll(ssk(db, 'p01'), { ordinationId: furo.id }).varningar).toBeDefined();
+    expect(administrering.lista(ssk(db, 'p01', 'ssk-kard', 'las_lakemedel')).vidBehov.length).toBeGreaterThan(0);
+    const o = oxi(db);
+    expect(fel(() => administrering.spara(ssk(db, 'p01'), { ordinationId: o.id }))?.extra?.kollegakontroll).toBe(true);
+    // false blir en tom lista: opioider kontrolleras inte.
+    rad(hogrisk.KATEGORIER.opioider.parameter, false);
+    expect(k('VK-NPL-0031', { administrationssatt: 'intramuskulart' })).toEqual([]);
+    expect(hogrisk.aktiv(db, 'opioider')).toBe(false);
+    // Vaccinationsparametrarna med fel typ ger förvalen.
+    rad('vaccination.vattkoppor_alder_manader', 'arton');
+    rad('vaccination.riskgrupp_alder_ar', null);
+    rad('vaccination.riskgrupper', 'J44');
+    expect(vaccinationsprogram.regler(db)).toMatchObject({ vattkopporManader: null, riskAlder: 65 });
+    expect(vaccinationsprogram.regler(db).riskPrefix).toContain('I50');
   });
 
   test(T.kkInkorg.split(' > ')[1], async () => {

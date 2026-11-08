@@ -94,16 +94,30 @@ const arBarn = (db, patientId, nu) => {
 
 // Grupperna som gäller för dosen, bland dem som systemförvaltaren har slagit på i dag. o är ordinationen med tillägg
 // (spadning och administrationssatt), eller null för en dos utan ordination.
+// Säkerhetsgranskningen av runda 10 (beslut 2026-11-08): ett sparat värde av fel typ, till exempel ja eller nej från när
+// opioidparametern inte var en lista, stänger aldrig av kontrollen och stoppar inga doser. För opioiderna blir true
+// förvalslistan och false en tom lista, en lista används som den är och allt annat ger förvalslistan. För de andra
+// grupperna stänger bara false av kontrollen.
+function opioidLista(db, nu) {
+  const v = konfiguration.varde(db, KATEGORIER.opioider.parameter, new Date(nu));
+  const standard = () => [...konfiguration.parametrar()[KATEGORIER.opioider.parameter].standard];
+  const lista = Array.isArray(v) ? v.filter(x => typeof x === 'string') : v === false ? [] : standard();
+  return lista.map(x => x.toLocaleLowerCase('sv'));
+}
+const janej = (db, nyckel, nu) => konfiguration.varde(db, nyckel, new Date(nu)) !== false;
+
 export function kategorierFor(db, { lm, o = null, patientId = null, nu = Date.now() }) {
   const tillsatser = (o?.spadning?.tillsatser ?? []).map(t => katalog(db, t.lakemedelId) ?? { namn: t.namn, atc: null }).filter(Boolean);
-  const opioidSatt = konfiguration.varde(db, KATEGORIER.opioider.parameter, new Date(nu)).map(v => v.toLocaleLowerCase('sv'));
+  // Administrationssätten räknas bara för en opioid, så att parametern aldrig påverkar andra läkemedel.
+  const opioid = Boolean(lm?.atc?.startsWith('N02A') || lm?.atc?.startsWith('N01AH'));
+  const opioidSatt = opioid ? opioidLista(db, nu) : [];
   const x = { lm, tillsatser, spadning: o?.spadning ?? null, satt: sattFor(lm, o), infusionSatt: o?.administrationssatt ?? null, barn: arBarn(db, patientId ?? o?.patient_id ?? o?.patientId, nu), opioidSatt };
   return Object.entries(KATEGORIER)
-    .filter(([, k]) => k.match(x) && (k.lista || konfiguration.varde(db, k.parameter, new Date(nu)) === true))
+    .filter(([, k]) => k.match(x) && (k.lista || janej(db, k.parameter, nu)))
     .map(([id, k]) => ({ id, rubrik: k.rubrik, varfor: k.varfor }));
 }
 
-export const aktiv = (db, id, nu = Date.now()) => { const v = konfiguration.varde(db, KATEGORIER[id].parameter, new Date(nu)); return Array.isArray(v) ? v.length > 0 : v === true; };
+export const aktiv = (db, id, nu = Date.now()) => (KATEGORIER[id].lista ? opioidLista(db, nu).length > 0 : janej(db, KATEGORIER[id].parameter, nu));
 
 export const varforText = (kat) => `${kat.map(k => k.varfor).join(' ')} En annan sjuksköterska eller läkare kontrollerar dosen i sin egen inloggning innan den ges.`;
 

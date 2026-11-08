@@ -28,8 +28,13 @@ export const riskgrupperFor = R.riskgrupperFor;
 // och diagnoserna som ger ökad risk.
 export function regler(db, nu = Date.now()) {
   const d = new Date(nu);
-  const m = konfiguration.varde(db, 'vaccination.vattkoppor_alder_manader', d);
-  return { vattkopporManader: m > 0 ? m : null, riskAlder: konfiguration.varde(db, 'vaccination.riskgrupp_alder_ar', d), riskPrefix: konfiguration.varde(db, 'vaccination.riskgrupper', d) };
+  // Ett sparat värde av fel typ ger förvalet (säkerhetsgranskningen av runda 10).
+  const P = konfiguration.parametrar();
+  const heltal = (nyckel) => { const v = konfiguration.varde(db, nyckel, d); return Number.isInteger(v) && v >= P[nyckel].min && v <= P[nyckel].max ? v : P[nyckel].standard; };
+  const m = heltal('vaccination.vattkoppor_alder_manader');
+  const prefix = konfiguration.varde(db, 'vaccination.riskgrupper', d);
+  return { vattkopporManader: m > 0 ? m : null, riskAlder: heltal('vaccination.riskgrupp_alder_ar'),
+    riskPrefix: Array.isArray(prefix) && prefix.every(x => typeof x === 'string') ? prefix : [...P['vaccination.riskgrupper'].standard] };
 }
 
 export const SCHEMA = `

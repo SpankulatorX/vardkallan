@@ -300,6 +300,21 @@ function forvarningUt(db, f) {
 // i demon kommer den från demons egen kontroll för simuleringar (/api/demo/ambulans/forvarning). Personnumret kopplas
 // till patienten av den simulerade tjänsten om det finns. En förvarning ger ingen åtkomst och ingen vårdrelation.
 export const MAX_FORVARNINGAR = 30;
+export const MAX_FORVARNINGAR_PER_TIMME = 20;
+// Svaret till den simulerade ambulansen säger aldrig vem patienten är, bara om personnumret gick att koppla till en
+// patient (säkerhetsgranskningen av runda 10, beslut 2026-11-08). Identiteten visas bara på akutens tavla.
+const ambulansSvar = (f) => ({ id: f.id, tid: f.tid, beraknad: f.beraknad, kontaktorsak: f.kontaktorsak, forslagPrioritet: JSON.parse(f.forslag)?.prioritet ?? null, identifierad: Boolean(f.patient_id) });
+
+// Anropet från den simulerade ambulansen: kräver en session i demon och har ett tak per session och timme.
+export function forvarningFranAmbulansen(c, body = {}) {
+  if (c.ny || !c.s) throw new Fel(401, 'Öppna demon först. Den simulerade ambulansen skickar förvarningar till samma sandlåda som sidan.', 'ingen_session');
+  const nu = Date.now();
+  c.s.ambulansTider = (c.s.ambulansTider ?? []).filter(t => t > nu - 3600_000);
+  if (c.s.ambulansTider.length >= MAX_FORVARNINGAR_PER_TIMME) throw new Fel(429, `Högst ${MAX_FORVARNINGAR_PER_TIMME} förvarningar per timme i demon. Vänta en stund.`, 'for_manga');
+  const r = forvarning(c.db, body);
+  c.s.ambulansTider.push(nu);
+  return r;
+}
 export function forvarning(db, body = {}) {
   // Ett tak per sandlåda, eftersom vem som helst i demon kan skicka förvarningar.
   if (db.query('SELECT count(*) AS n FROM akut_forvarningar WHERE mottagen IS NULL').get().n >= MAX_FORVARNINGAR) throw new Fel(429, `Det finns redan ${MAX_FORVARNINGAR} förvarningar som inte är mottagna. Ta emot eller återställ demon först.`, 'for_manga');
@@ -314,7 +329,7 @@ export function forvarning(db, body = {}) {
   const tr = triage({ kontaktorsak: orsak, vitaler: v });
   const id = Number(db.query('INSERT INTO akut_forvarningar (enhet_id, tid, patient_id, kontaktorsak, beraknad, vitaler, forslag) VALUES (?, ?, ?, ?, ?, ?, ?)')
     .run(AKUT, iso(), p?.id ?? null, orsak, new Date(Date.now() + min * 60000).toISOString(), JSON.stringify(v), JSON.stringify(tr)).lastInsertRowid);
-  return [201, forvarningUt(db, db.query('SELECT * FROM akut_forvarningar WHERE id = ?').get(id))];
+  return [201, ambulansSvar(db.query('SELECT * FROM akut_forvarningar WHERE id = ?').get(id))];
 }
 
 // Ankomsten via API:t: från en förvarning eller direkt.

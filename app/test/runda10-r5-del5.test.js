@@ -173,7 +173,7 @@ describe('Akutmottagningen', () => {
     // Förvarningen kommer från den simulerade ambulansen, en egen avsändare.
     const f = await k.post('/api/demo/ambulans/forvarning', { personnummer: '194601198882', kontaktorsak: 'Misstänkt stroke', minuter: 10, vitaler: { ...STABIL, systoliskt: 185 } });
     expect(f.status).toBe(201);
-    expect(f.data).toMatchObject({ fran: 'Ambulansen (simulerad)', kontaktorsak: 'Misstänkt stroke', forslagPrioritet: 'orange', patientId: 'p06' });
+    expect(f.data).toMatchObject({ kontaktorsak: 'Misstänkt stroke', forslagPrioritet: 'orange', identifierad: true });
     const d = (await k.get('/api/akut')).data;
     expect(d.forvarningar.some(x => x.id === f.data.id)).toBe(true);
     // När ambulansen kommer blir förvarningen en ankomst med de prehospitala uppgifterna. Triagen görs i sitt eget steg.
@@ -184,7 +184,7 @@ describe('Akutmottagningen', () => {
     expect(s.db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p06' AND resurs = ?").get(`akut:forvarning:${f.data.id}:mottagen`).n).toBe(1);
     // Ett personnummer som inte finns ger ingen patient, och mottagningen tar aldrig patienten från anropet.
     const okand = await k.post('/api/demo/ambulans/forvarning', { personnummer: '191212121212', kontaktorsak: 'Trafikolycka', minuter: 5, vitaler: STABIL });
-    expect(okand.data.patientId).toBeNull();
+    expect(okand.data.identifierad).toBe(false);
     const nej = await k.post('/api/akut/ankomst', { forvarningId: okand.data.id, patientId: 'p07' });
     expect(nej.status).toBe(400);
     expect(nej.data.fel).toContain('reservnummer');
@@ -194,6 +194,35 @@ describe('Akutmottagningen', () => {
     const oppna = s.db.query('SELECT count(*) AS n FROM akut_forvarningar WHERE mottagen IS NULL').get().n;
     for (let i = oppna; i < akut.MAX_FORVARNINGAR; i++) akut.forvarning(s.db, { kontaktorsak: 'Fall', vitaler: STABIL });
     expect((await k.post('/api/demo/ambulans/forvarning', { kontaktorsak: 'Fall', vitaler: STABIL })).status).toBe(429);
+  });
+
+  test(T.akAmbulansSvar.split(' > ')[1], async () => {
+    // En session i demon, utan inloggning, som sidan har.
+    const k = klient(app);
+    await k.get('/api/session');
+    const s = sandlada(app, k);
+    // Malin Engberg (p03) har skyddad identitet. Svaret säger bara att patienten är identifierad.
+    for (const pnr of ['198404162383', '194601198882', '191212121212']) {
+      const r = await k.post('/api/demo/ambulans/forvarning', { personnummer: pnr, kontaktorsak: 'Fall', minuter: 5, vitaler: STABIL });
+      expect(r.status).toBe(201);
+      expect(Object.keys(r.data).sort()).toEqual(['beraknad', 'forslagPrioritet', 'id', 'identifierad', 'kontaktorsak', 'tid']);
+      expect(JSON.stringify(r.data)).not.toMatch(/p03|p06|Malin|Engberg|Birgitta|Nyman|skyddad|198404|194601|patientId|namn/);
+    }
+    // Identiteten syns bara på akutens tavla, och aldrig namnet för en patient med skyddad identitet.
+    await k.logga('lak-akut');
+    const fv = (await k.get('/api/akut')).data.forvarningar;
+    const malin = fv.find(f => f.patientId === 'p03');
+    expect(malin).toMatchObject({ skyddad: true, namn: null });
+    await k.logga('lak-kard');
+    expect((await k.get('/api/akut')).data.forvarningar).toEqual([]);
+    // Utan session nekas anropet.
+    const utan = klient(app);
+    expect((await utan.post('/api/demo/ambulans/forvarning', { kontaktorsak: 'Fall', vitaler: STABIL })).status).toBe(401);
+    // Taket per session och timme.
+    let senast = null;
+    for (let i = 0; i < akut.MAX_FORVARNINGAR_PER_TIMME; i++) senast = await k.post('/api/demo/ambulans/forvarning', { kontaktorsak: 'Fall', vitaler: STABIL });
+    expect(senast.status).toBe(429);
+    void s;
   });
 
   test(T.akDirekt.split(' > ')[1], async () => {
