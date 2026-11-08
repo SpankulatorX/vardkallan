@@ -120,31 +120,10 @@ async function laggTill(pid) {
     <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Registrera</button><button type="button" class="knapp sekundar" data-varde="overk">Registrera en överkänslighet</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div>`,
   { validera: (d, _dl, varde) => (varde === 'ok' && !d.term ? 'Välj en uppgift i listan.' : null) });
   if (!svar) return false;
-  // Runda 10, r1: en ny överkänslighet registreras i en egen dialog.
-  if (svar.val === 'overk') return registreraOverkanslighet(pid);
+  // Runda 10, r1: en ny överkänslighet registreras i överkänslighetens eget flöde (runda 10, r2).
+  if (svar.val === 'overk') return nyOverkanslighet(pid);
   await api(`/api/patient/${encodeURIComponent(pid)}/uppmarksamhet`, { metod: 'POST', data: { term: svar.data.term } });
   notis('Uppmärksamhetsinformationen är registrerad.');
-  return true;
-}
-
-// Runda 10, r1: registrering av överkänslighet. Läkaren väljer ämnet och reaktionen, och systemet sätter koden,
-// föreslår graden ur reaktionen och varnar om något i läkemedelslistan omfattas.
-const GRADTEXT = { livshotande: 'Livshotande', skadlig: 'Skadlig', besvarande: 'Besvärande' };
-const KATEGORITEXT = { medication: 'Läkemedel', food: 'Livsmedel', environment: 'Övrigt' };
-async function registreraOverkanslighet(pid) {
-  const v = await api('/api/overkanslighet/val');
-  const grupper = Object.keys(KATEGORITEXT).map(k => `<optgroup label="${KATEGORITEXT[k]}">${v.amnen.filter(a => a.kategori === k).map(a => `<option value="${esc(a.id)}">${esc(a.amne)}</option>`).join('')}</optgroup>`).join('');
-  const svar = await dialog(`<h2 id="dlg-rubrik">Registrera överkänslighet</h2>
-    <p>Välj ämnet och reaktionen. Systemet sätter koden, föreslår graden ur reaktionen och varnar om något i läkemedelslistan omfattas.</p>
-    <form><div class="falt"><label for="ok-amne">Ämne</label><select id="ok-amne" name="amne" required>${grupper}</select></div>
-    <fieldset class="um-val"><legend>Reaktion</legend>${v.reaktioner.map((r, i) => `<label><input type="radio" name="reaktion" value="${esc(r.id)}" data-grad="${esc(r.grad)}"${i ? '' : ' checked'}> ${esc(r.text)}<span class="under-text">Systemet föreslår graden ${esc(GRADTEXT[r.grad].toLowerCase())}.</span></label>`).join('')}</fieldset>
-    <div class="falt"><label for="ok-grad">Grad</label><select id="ok-grad" name="grad"><option value="">Systemets förslag ur reaktionen</option>${Object.keys(GRADTEXT).map(g => `<option value="${g}">${GRADTEXT[g]}</option>`).join('')}</select></div>
-    <p class="dialog-fel" role="alert" hidden></p></form>
-    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Registrera</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div>`);
-  if (!svar) return false;
-  const r = await api(`/api/patient/${encodeURIComponent(pid)}/overkanslighet`, { metod: 'POST', data: { amne: svar.data.amne, reaktion: svar.data.reaktion, ...(svar.data.grad ? { grad: svar.data.grad } : {}) } });
-  notis(`Överkänsligheten mot ${r.overkanslighet.amne.toLowerCase()} är registrerad med graden ${GRADTEXT[r.grad].toLowerCase()}.`);
-  for (const w of r.varningar ?? []) notis(w.text, 'fel', { kvar: true });
   return true;
 }
 
@@ -231,6 +210,8 @@ async function nyOverkanslighet(pid) {
   // Graden skickas bara när användaren har valt den själv. Annars avgör servern den ur reaktionen.
   const r = await api(`/api/patient/${encodeURIComponent(pid)}/overkanslighet`, { metod: 'POST', data: { amne: svar.data.amne, reaktion: svar.data.reaktion, ...(valdGrad ? { allvarlighet: svar.data.allvarlighet } : {}) } });
   notis(`Överkänslighet mot ${r.amne.toLowerCase()} är registrerad${r.atc ? ` med ATC-kod ${r.atc}` : ''}.`);
+  // Runda 10, r1: varningar för läkemedel i listan som omfattas av överkänsligheten.
+  for (const w of r.varningar ?? []) notis(w.text, 'fel', { kvar: true });
   return true;
 }
 

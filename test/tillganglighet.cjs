@@ -509,10 +509,13 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
   } catch (e) { nytt('felmarkering', `sökningen: ${kort(e.message)}`); await sparat(page, 'fel'); }
 
   // Tangentbord utan mus (2.1.1 och 2.4.1): logga in, stäng nyheterna, öppna en patient och byt flik med tangenter.
+  // Runda 10, r1: sidan sparas som skärmbild när steget misslyckas, och felet säger var sidan var.
+  let tp = null;
   try {
     const k = await kontext({ width: 1440, height: 900 });
     await k.addInitScript(INIT);
     const p = await k.newPage();
+    tp = p;
     bevaka(p, 'tangentbord');
     await p.goto(`${BAS}/#/`);
     await p.waitForSelector('.roll');
@@ -549,7 +552,7 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     await vantaKlar(p);
     // Escape stänger en dialog och lämnar fokus där det var.
     await k.close();
-  } catch (e) { nytt('tangentbordFlode', kort(e.message)); }
+  } catch (e) { nytt('tangentbordFlode', `${kort(e.message)} (${tp?.url() ?? ''})`); if (tp) await sparat(tp, 'tangentbord'); }
 
   // Högkontrastläget: knappen och datorns inställning ger minst 7:1, och 4,5:1 för stor text.
   try {

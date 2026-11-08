@@ -10,6 +10,9 @@ import { Fel, iso, idag } from './db.js';
 import { kanRoll, vardenhetFor, aktivaSparrar } from './atkomst.js';
 import { ATC } from './kodverk.js';
 import { foreslagenGrad } from './uppmarksamhet-regler.js';
+// Runda 10, r1: uppmärksamhetsinformationen med grad och kod, och varningarna för läkemedel i listan som omfattas.
+import { bekraftaOverkanslighet } from './uppmarksamhet.js';
+import { synligaOrdinationer, aktuell as ordinationAktuell } from './lakemedel.js';
 
 export const HANDLING = 'registrera_overkanslighet';
 const LAS = 'las_oversikt';
@@ -109,7 +112,9 @@ const lasAllvarlighet = (v, reaktion) => {
   return v;
 };
 
-// Registrerar en ny överkänslighet på den inloggades vårdenhet. inp: { amne, reaktion, allvarlighet? }.
+// Registrerar en ny överkänslighet på den inloggades vårdenhet. inp: { amne, reaktion, allvarlighet?, grad? }.
+// Runda 10, r1: svaret har också graden i uppmärksamhetsinformationen (grad, gradBekraftad) och varningar för läkemedel
+// i listan som omfattas (varningar).
 export function registrera(atk, inp = {}) {
   atk.krav(HANDLING, { resurs: { enhet_id: atk.personal.enhet_id } });
   const db = atk.db;
@@ -129,7 +134,20 @@ export function registrera(atk, inp = {}) {
     return nyId;
   })();
   atk.logga(HANDLING, atk.grund(), `overkanslighet:${id}`);
-  return okUt(db, db.query('SELECT * FROM overkanslighet WHERE id = ?').get(id));
+  const o = db.query('SELECT * FROM overkanslighet WHERE id = ?').get(id);
+  // Runda 10, r1: en läkare bekräftar graden i uppmärksamhetsinformationen i samma steg, med ATC-koden. En sjuksköterska
+  // registrerar överkänsligheten, och systemet föreslår då graden för läkaren att bekräfta (uppmarksamhet-regler.js).
+  const grad = bekraftaOverkanslighet(atk, o, inp.grad ?? null);
+  return { ...okUt(db, o), grad: grad ?? foreslagenGrad(o), gradBekraftad: Boolean(grad), varningar: varningarFor(atk, o) };
+}
+
+// Runda 10, r1: läkemedel i listan som omfattas av överkänsligheten, bara bland de aktuella ordinationer som den
+// inloggade får se, så att en spärrad ordination aldrig röjs av en varning.
+function varningarFor(atk, o) {
+  if (!o.atc || !kanRoll(atk.personal, 'las_lakemedel')) return [];
+  return synligaOrdinationer(atk).filter(x => ordinationAktuell(x))
+    .map(x => atk.db.query('SELECT namn, atc FROM katalog WHERE id = ?').get(x.lakemedel_id)).filter(lm => lm?.atc?.startsWith(o.atc))
+    .map(lm => ({ niva: 'allvarlig', regel: 'overkanslighet', text: `${lm.namn} i läkemedelslistan har ATC-kod ${lm.atc} och omfattas av överkänsligheten. Kontakta förskrivaren om ordinationen ska sättas ut.` }));
 }
 
 // En gällande överkänslighet som den inloggade får se. En rad som inte finns, en avslutad rad och en rad som är dold får
