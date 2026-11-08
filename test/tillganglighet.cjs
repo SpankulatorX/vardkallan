@@ -675,13 +675,14 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     const ruta = p.locator('.nyhetsruta');
     await ruta.waitFor();
     const text = await ruta.textContent();
-    if (!/Se vilka på vårdenheten som har giltigt intyg/.test(text)) throw new Error('verksamhetschefens nyhet saknas');
-    if (/Ordinera ur mallar/.test(text)) throw new Error('rutan visar en äldre version');
+    // Runda 8, r1: version 0.8.0 har en nyhet för alla och ingen egen för verksamhetschefen.
+    if (!/Sussas testfall för beställning och svar/.test(text)) throw new Error('verksamhetschefens nyhet saknas');
+    if (/Se vilka på vårdenheten som har giltigt intyg/.test(text)) throw new Error('rutan visar en äldre version');
     await p.click('[data-a="stang-nyheter"]');
     await p.waitForFunction(() => !document.querySelector('.nyhetsruta'));
     await loggaIn(p, 'lak-kard');
     await ruta.waitFor();
-    if (/Se vilka på vårdenheten/.test(await ruta.textContent())) throw new Error('läkaren ser verksamhetschefens nyhet');
+    if (/Prover och kontroller/.test(await ruta.textContent())) throw new Error('läkaren ser sjuksköterskans nyhet');
     await loggaIn(p, 'vch-kard');
     if (await p.locator('.nyhetsruta').count()) throw new Error('rutan kommer tillbaka efter att den har stängts');
     await gaTill(p, '#/nyheter');
