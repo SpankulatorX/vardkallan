@@ -67,6 +67,8 @@ import * as analys from './vyer/analys.js';
 import * as forskning from './vyer/forskning.js';
 import * as signeringslista from './vyer/signeringslista.js';
 import * as skanner from './skanner.js';
+// Runda 10, r7: meddelanden från invånare, invånarnas begäranden, kassan, kapaciteten och kontorsstödet.
+import * as r10r7 from './vyer/r10r7.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -88,6 +90,9 @@ const MENY = [
   ['#/idag', 'Dagens arbete', 'kalender', () => far('boka')],
   ['#/tidbok', 'Tidbok', 'klocka', () => far('boka')],
   ['#/vantelista', 'Väntelista', 'ko', () => far('vantelista')],
+  // Runda 10, r7: vårdadministratörens kassa och vårdenhetens kapacitet.
+  ['#/kassa', 'Kassa', 'kort', () => far('kassa')],
+  ['#/kapacitet', 'Kapacitet', 'krav', () => far('kapacitet')],
   ['#/arbetslista', 'Arbetslista', 'lista', () => !utanJournal()],
   ['#/sok', 'Sök patient', 'sok', () => far('sok')],
   ['#/inkorg', 'Inkorg', 'inkorg', () => !utanJournal(), 'inkorg'],
@@ -99,6 +104,8 @@ const MENY = [
   ['#/provtagning', 'Prover och kontroller', 'lista', () => far('ta_prov') && !far('bestalla_prov')],
   // Runda 9, r2: intensivvården, för läkare, sjuksköterskor och undersköterskor på en vårdenhet med intensivvårdsavdelning.
   ['#/iva', 'Intensivvård', 'larm', () => Boolean(S.session?.iva)],
+  // Runda 10, r7: meddelanden från invånare till vårdenheten.
+  ['#/meddelanden', 'Meddelanden', 'inkorg', () => far('meddelande_invanare')],
   ['#/delegeringar', 'Delegeringar', 'nyckel', () => far('delegera')],
   // Runda 6, r3: tvångsvården på psykiatrin och kommunens samverkan.
   ['#/tvangsvard', 'Tvångsvård', 'klocka', () => Boolean(S.session?.r3?.tvangsvardsenhet)],
@@ -119,6 +126,8 @@ const MENY = [
   ['#/remisser', 'Remisser', 'remiss', () => pa('las_remiss', 'las_remiss_status')],
   ['#/vantrum', 'Väntrum (akuten)', 'vantrum', () => far('vantrum')],
   ['#/logg', 'Logguppföljning', 'logg', () => far('las_logg')],
+  // Runda 10, r7: invånarnas begäranden om spärr och loggutdrag.
+  ['#/begaran', 'Begäranden', 'lista', () => pa('registrera_sparr', 'las_logg')],
   ['#/arkiv', 'E-arkiv och gallring', 'arkiv', () => far('registrera_arkivbeslut')],
   ['#/datauttag', 'Datauttag', 'lista', () => far('datauttag')],
   ['#/planuppfoljning', 'Tvångsvård och samordning', 'krav', () => far('datauttag')],
@@ -131,6 +140,8 @@ const MENY = [
   ['#/analys', 'Analys och statistik', 'krav', () => pa('patientgrupp', 'statistik', 'statistik_region')],
   ['#/forskning', 'Forskningsuttag', 'arkiv', () => pa('forskning_bestall', 'forskning_godkann')],
   ['#/signeringslista', 'Signeringslista', 'penna', () => far('signeringslista')],
+  // Runda 10, r7: kontorsstödet, med kalenderprenumerationen, för dem som har en tidbok.
+  ['#/kontorsstod', 'Kontorsstöd', 'moduler', () => far('las_tidbok')],
   // Runda 7, r2: övningar och intyg för all personal (Sussa 10.1.1.5).
   ['#/utbildning', 'Utbildning', 'person', () => far('utbildning')],
   // Runda 7, r1: testledaren läser och exporterar svaren från användartesterna.
@@ -155,6 +166,14 @@ const RUTTER = [
   [/^#\/analys$/, analys, () => pa('patientgrupp', 'statistik', 'statistik_region')],
   [/^#\/forskning$/, forskning, () => pa('forskning_bestall', 'forskning_godkann')],
   [/^#\/signeringslista$/, signeringslista, () => far('signeringslista')],
+  // Runda 10, r7.
+  [/^#\/meddelanden$/, r10r7.meddelanden, () => far('meddelande_invanare')],
+  [/^#\/meddelanden\/(\d+)$/, r10r7.meddelanden, () => far('meddelande_invanare')],
+  [/^#\/begaran$/, r10r7.begaran, () => pa('registrera_sparr', 'las_logg')],
+  [/^#\/kassa$/, r10r7.kassa, () => far('kassa')],
+  [/^#\/kapacitet$/, r10r7.kapacitet, () => far('kapacitet')],
+  [/^#\/kontorsstod$/, r10r7.kontorsstod, () => far('las_tidbok')],
+  [/^#\/videomote\/([\w-]+)$/, r10r7.videomote, () => true, true],
   [/^#\/avdelning\/patient\/([\w-]+)$/, avdelning.patient, () => far('las_planering')],
   [/^#\/avdelning\/resurs\/([\w-]+)$/, avdelning.resurs, () => far('las_planering')],
   [/^#\/sok$/, sok, () => far('sok')],
@@ -216,6 +235,8 @@ const RUTTER_MIN = [
   // Runda 7, r2.
   [/^#\/nyheter$/, nyheter],
   [/^#\/tillganglighet$/, tillganglighet],
+  // Runda 10, r7: den simulerade mötessidan för ett videobesök.
+  [/^#\/videomote\/([\w-]+)$/, r10r7.videomote],
 ];
 
 // Enhetsträdet: varje enhet med sin vårdenhet. Inre sekretess och remisser räknas per vårdenhet.

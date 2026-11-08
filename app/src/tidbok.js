@@ -1499,7 +1499,7 @@ export function minAvboka(atk, bid) {
   const b = minBokning(atk, bid);
   const u = minBokningUt(db, b);
   if (!u.kan.avboka) throw new Fel(400, u.varforInte ?? 'Tiden kan inte avbokas här.', 'ogiltig');
-  avbokaRad(db, b, { ...ominvanare(atk), orsak: 'Avbokad av patienten i Min journal' });
+  avbokaRad(db, b, { ...ominvanare(atk), orsak: atk.relation === 'ombud' ? 'Avbokad av ombudet i Min journal' : 'Avbokad av patienten i Min journal' });
   atk.logga(`min:bokning:${b.id}:avbokad`, { handling: 'boka' });
   return { ok: true, id: b.id };
 }
@@ -1552,7 +1552,9 @@ export function minBoka(atk, body = {}) {
   if (tid.tidstyp !== v.tidstyp || s.yrkesroll !== v.yrkesroll || vardenhetFor(db, s.enhet_id) !== v.vardenhet.id) throw new Fel(400, 'Välj en av de föreslagna tiderna.', 'ogiltig', { falt: ['tidId'] });
   if (Date.parse(tid.start) - Date.now() < DEMOREGLER.egenGransTimmar * TIMME) throw new Fel(400, 'Tiden måste ligga minst 24 timmar fram.', 'ogiltig', { falt: ['tidId'] });
   if (!arLedig(db, tid)) throw new Fel(400, 'Tiden har just bokats av någon annan. Välj en annan.', 'ogiltig', { falt: ['tidId'] });
-  const b = skapaBokning(db, { patientId: atk.patient.id, tid, orsak: `${TIDSTYPER[tid.tidstyp].text}, bokad av patienten`, avInvanare: atk.invanare.id, relation: 1 });
+  // Runda 10, r7: ett ombud eller en vårdnadshavare bokar för patienten, och det står i orsaken.
+  const vem = atk.relation === 'ombud' ? 'ombudet' : atk.relation === 'vardnadshavare' ? 'vårdnadshavaren' : 'patienten';
+  const b = skapaBokning(db, { patientId: atk.patient.id, tid, orsak: `${TIDSTYPER[tid.tidstyp].text}, bokad av ${vem}`, avInvanare: atk.invanare.id, relation: 1 });
   skickaKallelse(db, b, 'kallelse');
   atk.logga(`min:bokning:${b.id}:bokad`, { handling: 'boka' });
   return [201, minBokningUt(db, bokningRad(db, b.id))];

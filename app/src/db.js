@@ -433,6 +433,8 @@ export function byggSeed(bas = nu()) {
   // Runda 9, r7: skanning, analys, folkhälsa, spårbarhet, forskningsuttag, in- och utfarter, restjournaler och
   // signering (schema-runda9-r7.js). Sist, eftersom seeden läser vårdkontakterna, anteckningarna och proverna.
   require('./schema-runda9-r7.js').sakraR9r7(db, bas);
+  // Runda 10, r7: ombud, meddelanden, kassan och kontorsstödet (schema-runda10-r7.js). Efter invånarna och ordinationerna.
+  require('./schema-runda10-r7.js').sakraR10r7(db, bas);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -551,6 +553,8 @@ export function migrera(db) {
   // Runda 9, r7: tabellerna för skanning, analys, folkhälsa, spårbarhet, forskningsuttag, in- och utfarter,
   // restjournaler och signering, med seeden relativt till i dag när en tabell är ny.
   require('./schema-runda9-r7.js').sakraR9r7(db, nu());
+  // Runda 10, r7: ombud, meddelanden, kassan och kontorsstödet, med seeden när den saknas.
+  require('./schema-runda10-r7.js').sakraR10r7(db, nu());
   return db;
 }
 

@@ -22,7 +22,8 @@ const INRIKTNINGAR = [
   { ord: /oro|ångest|nedstämd|sömn|deprim/i, enheter: ['uso-psyk'], text: 'Besväret låter som något som rör det psykiska, och du har kontakt med vårdenheten.' },
 ];
 // Ord som kan tyda på något akut (demoregel). Då ska invånaren ringa 112 i stället för att vänta på svar.
-const AKUT = /bröstsmärt|ont i bröstet|tryck över bröstet|svårt att andas|andnöd|kan inte andas|medvetslös|förlam|sluddr|kraftig blödning|ta mitt liv|självmord/i;
+// Runda 10, r7: samma ord används för meddelanden i Min journal (invanarmeddelanden.js).
+export const AKUT = /bröstsmärt|ont i bröstet|tryck över bröstet|svårt att andas|andnöd|kan inte andas|medvetslös|förlam|sluddr|kraftig blödning|ta mitt liv|självmord/i;
 export const AKUT_TEXT = 'Det du beskriver kan vara tecken på något akut. Ring 112 om du har allvarliga besvär eller blir sämre. En vårdbegäran läses inte direkt, utan i vårdenhetens vanliga arbete.';
 
 const enhet = (db, id) => { const e = db.query('SELECT id, namn FROM enheter WHERE id = ?').get(id); return e ? { id: e.id, namn: e.namn } : null; };

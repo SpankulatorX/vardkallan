@@ -1559,3 +1559,12 @@ td .tagg-referens, td .tagg-egen, td .tagg-ok { margin-left: 6px; }
 .diagram-etikett, .diagram-varde { font-size: 12px; fill: currentColor; }
 .armband-utskrift { border: 1px dashed var(--dampad); padding: 8px 12px; display: inline-block; background: #fff; color: #000; }
 @media (max-width: 720px) { .skanna { flex-basis: 100%; } }
+
+/* Runda 10, r7: meddelanden mellan invånare och vård, i Min journal och för personalen. */
+.meddelanden, .min-tradar { list-style: none; padding: 0; margin: 0 0 12px; }
+.meddelande { border-left: 3px solid var(--kalla); padding: 4px 12px; margin: 8px 0; }
+.meddelande-invanare { border-left-color: var(--dampad); }
+.meddelande-systemet { border-left-style: dashed; }
+.min-trad { margin: 8px 0; }
+.min-trad > details > summary { cursor: pointer; padding: 6px 0; }
+.min-ombud-rubrik { font-size: 1.1rem; margin-top: 20px; }

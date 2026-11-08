@@ -54,6 +54,8 @@ export const STARTPUNKT = {
   // Runda 9, r2: fliken Mätvärden efter återställning, och med en kopplad monitor vars värden väntar på godkännande.
   'Patientens mätvärden efter återställning': { hash: '#/patient/p01/matvarden', klar: '#mt-koppla', forbered: 'aterstall' },
   'Mätvärden med värden från en kopplad monitor': { hash: '#/patient/p01/matvarden', klar: '[data-mt-godkann]', forbered: 'koppla-monitor' },
+  // Runda 10, r7: kassan, efter uppgiften där vårdadministratören tar betalt.
+  'Kassan': { hash: '#/kassa', klar: '#kassa-dagens' },
 };
 
 export const UPPGIFTER = [
@@ -451,6 +453,37 @@ export const UPPGIFTER = [
     id: 'patientgrupp', namn: 'Visa en färdig patientgrupp', roll: 'lak-vc', start: 'Arbetslistan efter inloggning',
     text: 'Vårdcentralen vill veta vilka patienter med diabetes som har ett HbA1c över målnivån. Visa gruppen.',
     kontroll: { sel: '[data-grupp-ut]', text: 'Birgitta' },
+  },
+  // Runda 10, r7: meddelanden från invånare, kontorsstödet, kapaciteten och kassan.
+  {
+    id: 'fornya-recept', namn: 'Förnya ett recept som patienten har bett om i Min journal', roll: 'lak-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Gunnar Åkesson har bett om att få ett läkemedel förnyat i Min journal. Förnya receptet.',
+    kontroll: { notis: 'Receptet är förnyat' },
+  },
+  {
+    id: 'kalenderprenumeration', namn: 'Lägga in sin tidbok i kalenderprogrammet', roll: 'lak-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Du vill se dina bokade tider i kalendern på datorn och i telefonen. Ta fram adressen som kalenderprogrammet behöver.',
+    kontroll: { sel: '#kal-adress' },
+  },
+  {
+    id: 'svara-meddelande', namn: 'Svara på ett meddelande från en patient och avsluta', roll: 'ssk-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Gunnar Åkesson frågar i Min journal om han ska ta sina vätskedrivande tabletter före besöket. Svara att han ska ta dem som vanligt, och avsluta ärendet.',
+    kontroll: { notis: 'Svaret är skickat och ärendet avslutat' },
+  },
+  {
+    id: 'kapacitetsprognos', namn: 'Se vårdenhetens kapacitet och prognos för väntelistan', roll: 'adm-kard', start: 'Vårdadministratörens startsida',
+    text: 'Verksamhetschefen undrar när kön till mottagningen är borta och om någon riskerar att vänta för länge. Ta reda på det.',
+    kontroll: { sel: '#kap-grupper' },
+  },
+  {
+    id: 'kassa-avgift', namn: 'Ta betalt för en receptförnyelse i kassan', roll: 'adm-kard', start: 'Vårdadministratörens startsida',
+    text: 'Gunnar Åkesson, 19450202-4732, står i receptionen och vill betala för en receptförnyelse med kort. Ta betalt.',
+    kontroll: { notis: 'Betalt med kort' },
+  },
+  {
+    id: 'dagsavslut', namn: 'Göra dagsavslut i kassan', roll: 'adm-kard', start: 'Kassan',
+    text: 'Dagen är slut. Stäm av din kassa mot betalterminalen och gör dagsavslut.',
+    kontroll: { notis: 'Dagsavslutet är gjort' },
   },
 ];
 

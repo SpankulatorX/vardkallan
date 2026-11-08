@@ -8,6 +8,8 @@ import * as tider from './min-tider.js';
 import * as tillvaxt from './min-tillvaxt.js';
 // Runda 9, r2: patientens egna mätningar (mt-ui.js).
 import { minEgna } from '../mt-ui.js';
+// Runda 10, r7: meddelanden, vårdplaner och ombud (min-r10r7.js).
+import * as r10r7 from './min-r10r7.js';
 
 export const namn = 'min';
 
@@ -25,7 +27,14 @@ const FLIKAR = [
   ['remisser', 'Remisser', delar.remisser],
   ['logglista', 'Vem har läst', delar.logglista],
   ['sparrar', 'Spärrar', delar.sparrar],
+  // Runda 10, r7: meddelanden till vården, vårdplanen och ombud med fullmakt.
+  ['meddelanden', 'Meddelanden', r10r7.meddelanden],
+  ['vardplan', 'Vårdplan', r10r7.vardplan],
+  ['ombud', 'Ombud', r10r7.ombud],
 ];
+// Runda 10, r7: ett ombud ser bara tider, meddelanden och sin fullmakt, aldrig journalen.
+const OMBUD_FLIKAR = ['tider', 'meddelanden', 'ombud'];
+const synligFlik = (f, h) => (!f[3] || f[3](h)) && (h?.relation !== 'ombud' || OMBUD_FLIKAR.includes(f[0]));
 
 let huvud = null;
 const href = (pid, del, sub) => `#/min/${encodeURIComponent(pid)}${del && del !== 'oversikt' ? `/${del}` : ''}${sub ? `/${encodeURIComponent(sub)}` : ''}`;
@@ -42,6 +51,7 @@ function valAvJournal(main) {
         ? `<a class="min-journalval" href="${href(b.patientId)}">${ikon.person}<span><strong>${esc(b.namn)}</strong><span class="under-text">${esc(b.alder)} år. Du är vårdnadshavare.</span></span></a>`
         : `<div class="min-journalval min-journalval-stangd">${ikon.las}<span><strong>${esc(b.namn)}</strong><span class="under-text">${esc(b.skal ?? '')}</span></span></div>`}</li>`).join('')}
     </ul>
+    ${r10r7.ombudLista(S.session?.ombudFor ?? [], (pid) => href(pid, 'tider'))}
     ${egen ? '' : '<p class="dampad">Det finns ingen journal om dig själv i Vårdkällans demo.</p>'}`;
 }
 
@@ -54,13 +64,14 @@ function bandHtml(h) {
     </div>
     <ul class="band-signaler" aria-label="Markeringar">
       ${vh ? `<li class="signal signal-vh">${ikon.person}<span>Du läser som vårdnadshavare</span></li>` : ''}
+      ${h.relation === 'ombud' ? `<li class="signal signal-vh">${ikon.person}<span>Du är ombud med fullmakt</span></li>` : ''}
       ${h.patient.skyddad ? `<li class="signal signal-skydd">${ikon.skold}<span>Skyddade personuppgifter</span></li>` : ''}
       ${h.sparrar.length ? `<li class="signal signal-sparr">${ikon.las}<span>${h.sparrar.length === 1 ? 'En spärr' : `${h.sparrar.length} spärrar`} mot andra vårdenheter</span></li>` : ''}
     </ul>
   </header>`;
 }
 
-const flikarHtml = (pid, aktiv) => `<nav class="flikar min-flikar" aria-label="Journalens delar"><ul>${FLIKAR.filter(f => !f[3] || f[3](huvud)).map(([k, t]) =>
+const flikarHtml = (pid, aktiv) => `<nav class="flikar min-flikar" aria-label="Journalens delar"><ul>${FLIKAR.filter(f => synligFlik(f, huvud)).map(([k, t]) =>
   `<li><a href="${href(pid, k)}"${k === aktiv ? ' aria-current="page"' : ''}>${esc(t)}</a></li>`).join('')}</ul></nav>`;
 
 export async function visa(main, [pid, del, sub], q, ctx = {}) {
@@ -75,7 +86,7 @@ export async function visa(main, [pid, del, sub], q, ctx = {}) {
     huvud = null;
     return valAvJournal(main);
   }
-  const f = FLIKAR.find(x => x[0] === (del ?? 'oversikt')) ?? FLIKAR[0];
+  let f = FLIKAR.find(x => x[0] === (del ?? 'oversikt')) ?? FLIKAR[0];
   if (!ctx.sammaPatient || !huvud || huvud.patient.id !== pid || !main.querySelector('.min-vy')) {
     main.innerHTML = '<p class="tom">Öppnar journalen.</p>';
     try { huvud = await api(`/api/min/journal/${encodeURIComponent(pid)}`); } catch (e) {
@@ -89,6 +100,8 @@ export async function visa(main, [pid, del, sub], q, ctx = {}) {
     if (ctx.aktuell && !ctx.aktuell()) return;
     main.innerHTML = `<div class="min-vy">${bandHtml(huvud)}<div id="min-flikrad"></div><div class="min-del" id="min-del"></div></div>`;
   }
+  // Runda 10, r7: ett ombud börjar på Tider, och en flik som ombudet inte ser visas inte.
+  if (!synligFlik(f, huvud)) f = FLIKAR.find(x => x[0] === 'tider');
   // Den som bytte flik med tangentbordet behåller fokus på fliken när flikraden ritas om.
   const flikrad = main.querySelector('#min-flikrad');
   const hadeFokus = flikrad.contains(document.activeElement);

@@ -3,10 +3,12 @@
 import { TEST } from '../../krav.js';
 // Runda 9, r4: inläsningen av migreringsfiler.
 import { T } from '../runda9-r4.js';
+// Runda 10, r7: kapacitet, ombud, kassan, meddelanden och kontorsstödet (sussa/runda10-r7.js).
+import { medR10r7 } from '../runda10-r7.js';
 
 const { A, S } = TEST;
 
-export default [
+const AVSNITT = [
   { id: '5.1.1.1', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: 'Ingen koppling till kontorsinformationsstöd är byggd.' },
   {
@@ -37,3 +39,5 @@ export default [
     anmarkning: 'En registrerad demotillämpning. Byter användaren patient stängs tillämpningen med fliken; en tillämpning kan inte själv byta patient i journalen.',
   },
 ];
+
+export default medR10r7(AVSNITT);

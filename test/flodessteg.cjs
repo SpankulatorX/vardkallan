@@ -875,6 +875,66 @@ function skapa(BAS) {
     await m.klicka(page.locator('[data-grupp] [type="submit"]'), 'Visa gruppen');
     await synlig(page, '[data-grupp-ut]', 'Birgitta');
   };
+  // Runda 10, r7: meddelanden från invånare, kontorsstödet, kapaciteten, kassan och ombudet.
+  GOR['fornya-recept'] = async (m, page) => {
+    await m.klicka(page.locator('#meny a', { hasText: 'Meddelanden' }), 'Meddelanden');
+    await page.waitForSelector('#md-tabell');
+    await m.klicka(page.locator('#md-tabell tr', { hasText: 'Förnya ett recept' }).locator('a').first(), 'patientens begäran');
+    await page.waitForSelector('[data-md-utfall="fornyat"]');
+    await m.klicka(page.locator('[data-md-utfall="fornyat"]'), 'Receptet är förnyat');
+    await synlig(page, '.notis', 'Receptet är förnyat');
+  };
+  GOR['kalenderprenumeration'] = async (m, page) => {
+    await m.klicka(page.locator('#meny a', { hasText: 'Kontorsstöd' }), 'Kontorsstöd');
+    await page.waitForSelector('#kal-skapa');
+    await m.klicka(page.locator('#kal-skapa'), 'Skapa kalenderlänk');
+    await page.waitForSelector('#kal-adress');
+  };
+  GOR['svara-meddelande'] = async (m, page) => {
+    await m.klicka(page.locator('#meny a', { hasText: 'Meddelanden' }), 'Meddelanden');
+    await page.waitForSelector('#md-tabell');
+    await m.klicka(page.locator('#md-tabell tr', { hasText: 'En fråga till vården' }).locator('a').first(), 'meddelandet');
+    await page.waitForSelector('#md-text');
+    await m.skriv(page.locator('#md-text'), 'Ja, ta dem som vanligt.', 'svaret');
+    await m.klicka(page.locator('[data-md="svara-avsluta"]'), 'Svara och avsluta');
+    await synlig(page, '.notis', 'Svaret är skickat och ärendet avslutat');
+  };
+  GOR['kapacitetsprognos'] = async (m, page) => {
+    await m.klicka(page.locator('#meny a', { hasText: 'Kapacitet' }), 'Kapacitet');
+    await page.waitForSelector('#kap-grupper');
+  };
+  GOR['kassa-avgift'] = async (m, page) => {
+    await m.klicka(page.locator('#meny a', { hasText: 'Kassa' }), 'Kassa');
+    await page.waitForSelector('#kassa-pnr');
+    await m.skriv(page.locator('#kassa-pnr'), '19450202-4732', 'personnumret');
+    await m.klicka(page.locator('#kassa-ny [type="submit"]'), 'Registrera avgift');
+    await page.waitForSelector('[data-betala="kort"]');
+    await m.klicka(page.locator('[data-betala="kort"]'), 'Kort');
+    await synlig(page, '.notis', 'Betalt med kort');
+  };
+  startI['Kassan'] = async (page) => { await gaTill(page, '#/kassa'); await page.waitForSelector('#kassa-dagens'); };
+  GOR['dagsavslut'] = async (m, page) => {
+    await m.klicka(page.locator('#kassa-avslut'), 'Gör dagsavslut');
+    await page.waitForSelector('#kassa-avsluta-ok');
+    await m.klicka(page.locator('#kassa-avsluta-ok'), 'Stäm av och avsluta');
+    await synlig(page, '.notis', 'Dagsavslutet är gjort');
+  };
+  startI['Min journal för ombudet'] = async (page) => { await gaTill(page, '#/min'); await page.waitForSelector('[data-ombud]'); };
+  GOR['skicka-meddelande'] = async (m, page) => {
+    await m.klicka(page.locator('.min-flikar a', { hasText: /^Meddelanden$/ }), 'fliken Meddelanden');
+    await page.waitForSelector('#mn-text');
+    await m.skriv(page.locator('#mn-text'), 'Kan jag ta med min fru på besöket?', 'meddelandet');
+    await m.klicka(page.locator('#min-nytt [type="submit"]'), 'Skicka');
+    await synlig(page, '.notis', 'Meddelandet är skickat');
+  };
+  GOR['ombud-boka'] = async (m, page) => {
+    await m.klicka(page.locator('[data-ombud="p01"]'), 'Gunnar Åkesson');
+    await page.waitForSelector('[data-min="boka"]');
+    await m.klicka(page.locator('[data-min="boka"]').first(), 'Visa lediga tider');
+    await page.locator('dialog[open] .forslag-knapp').first().waitFor();
+    await m.klicka(page.locator('dialog[open] .forslag-knapp').first(), 'den första föreslagna tiden');
+    await synlig(page, '.notis', 'Din tid är bokad');
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 

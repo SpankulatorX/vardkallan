@@ -198,6 +198,10 @@ FRASER.push('keystroke-level model', 'Communications of the ACM');
 // intensivvården (MAP är medelartärtrycket, KDIGO riktlinjen för akut njurskada).
 for (const w of ['MDC', 'IHE', 'PCD', 'ORU', 'MSH', 'PID', 'OBR', 'OBX', 'NM', 'ACK', 'MSA', 'AE', 'AR', 'LN', 'VARDKALLAN', 'ÅÅÅÅMMDDTTMMSS', 'MAP', 'KDIGO']) TILLATNA.add(w);
 FRASER.push('IHE PCD Technical Framework', 'Point-of-Care Device Implementation Guide', 'request till ordinationen');
+// Runda 10, r7: kontorsstödet. Word-dokument i Office Open XML, standarderna för kalender, e-post och telefoni, och
+// Microsoft Graph och WebDAV för SharePoint, och rubriken som märker ett simulerat e-postmeddelande.
+for (const w of ['Word', 'DOCX', 'IEC', 'RFC', 'HMAC', 'MIME', 'URI', 'REST', 'WebDAV', 'REQUEST', 'PUBLISH', 'iMIP', 'Outlook', 'Excel', 'Teams', 'SharePoint', 'Graph', 'Microsoft', 'Office', 'LibreOffice']) TILLATNA.add(w);
+FRASER.push('Office Open XML', 'X-Vardkallan-Simulerad');
 
 // Svenska ord som ofta skrivs utan å, ä eller ö. Formen utan prickar är inget eget ord.
 export const UTAN_PRICKAR = new Map(Object.entries({

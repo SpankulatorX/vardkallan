@@ -359,6 +359,73 @@
           "omfattning": "liten",
           "rubrik": "Sökorden får kod i Snomed CT",
           "text": "Systemet ger sökorden i dina anteckningar kod i Snomed CT, en del av det nationella fackspråket, så att journalen kan läsas av andra system. Du väljer sökord som förut och ser aldrig koden."
+        },
+        {
+          "id": "meddelanden-invanare",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "fysioterapeut",
+            "vardadministrator"
+          ],
+          "omfattning": "stor",
+          "var": "#/meddelanden",
+          "rubrik": "Meddelanden från patienter",
+          "text": "Patienter, vårdnadshavare och ombud kan skriva till vårdenheten i Min journal. Under Meddelanden läser du det som systemet har skickat till din yrkesroll, svarar och avslutar. När läkaren förnyar ett recept eller utfärdar ett intyg skapar systemet avgiften och svaret själv."
+        },
+        {
+          "id": "kassa-dagsavslut",
+          "roller": [
+            "vardadministrator"
+          ],
+          "omfattning": "stor",
+          "var": "#/kassa",
+          "rubrik": "Kassa med återbetalning och dagsavslut",
+          "text": "Under Kassa tar du betalt för receptförnyelser och intyg, återbetalar en betalning med ett klick på orsaken och gör dagsavslut. Systemet räknar kassan per betalsätt och stämmer av den mot betalterminalen, som är simulerad."
+        },
+        {
+          "id": "kapacitet-prognos",
+          "roller": [
+            "vardadministrator"
+          ],
+          "omfattning": "liten",
+          "var": "#/kapacitet",
+          "rubrik": "Kapacitet och prognos för väntelistan",
+          "text": "Sidan Kapacitet visar tolv veckor framåt när kön är borta, hur många som riskerar att passera sin gräns och hur många fler tider som behövs."
+        },
+        {
+          "id": "begaranden",
+          "roller": [
+            "vardadministrator",
+            "logggranskare"
+          ],
+          "omfattning": "liten",
+          "var": "#/begaran",
+          "rubrik": "Patienternas begäranden",
+          "text": "En begäran om spärr eller loggutdrag från Min journal hamnar under Begäranden hos den som ska utföra den. Ett klick, och patienten får beskedet i Min journal."
+        },
+        {
+          "id": "kontorsstod",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "fysioterapeut",
+            "vardadministrator"
+          ],
+          "omfattning": "liten",
+          "var": "#/kontorsstod",
+          "rubrik": "Tidboken i din kalender och Word-dokument",
+          "text": "Under Kontorsstöd skapar du en hemlig länk som lägger in dina bokade tider i Outlook eller ett annat kalenderprogram, utan patientuppgifter. En anteckning kan tas ut som Word-dokument, och en tid i tidboken har möteslänk och uppringning."
+        },
+        {
+          "id": "min-meddelanden-ombud",
+          "roller": [
+            "invanare"
+          ],
+          "omfattning": "stor",
+          "var": "#/min",
+          "rubrik": "Skriv till vården och ge fullmakt till ett ombud",
+          "text": "I Min journal kan du skriva till vården, be om att få ett recept förnyat, se och kommentera din vårdplan och betala avgifter. Du kan också ge en anhörig fullmakt att boka dina tider och skriva till vården åt dig, utan att den kan läsa din journal."
         }
       ]
     },

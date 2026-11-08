@@ -353,4 +353,38 @@ export const FLODEN = [
     id: 'patientgrupp', namn: 'Visa en färdig patientgrupp', roll: 'lak-vc', start: 'Arbetslistan efter inloggning', budget: 3,
     motivering: 'Sussa 6.2.1.2. Ett klick på Analys och statistik och ett på Visa gruppen för den färdiga grupp som är förvald. Systemet skriver vad gruppen betyder och varför varje patient är med, och räknar bara på det som läkaren får se.',
   },
+  // Runda 10, r7: meddelanden från invånare, kontorsstödet, kapaciteten, kassan och ombudet (Sussa 3.4.1.5, 3.4.2.3,
+  // 3.4.4.1, 3.4.4.4, 3.7.1.1, 3.7.1.3 och 5.1.1.1).
+  {
+    id: 'fornya-recept', namn: 'Förnya ett recept som patienten har bett om i Min journal', roll: 'lak-kard', start: 'Arbetslistan efter inloggning', budget: 3,
+    motivering: 'Sussa 3.4.4.4 och 3.7.1.3. Ett klick på Meddelanden, ett på patientens begäran och ett på Receptet är förnyat. Systemet skapar avgiften för förnyelsen och skriver svaret till patienten, så läkaren skriver ingenting.',
+  },
+  {
+    id: 'kalenderprenumeration', namn: 'Lägga in sin tidbok i kalenderprogrammet', roll: 'lak-kard', start: 'Arbetslistan efter inloggning', budget: 2,
+    motivering: 'Sussa 5.1.1.1. Ett klick på Kontorsstöd och ett på Skapa kalenderlänk. Länken läggs in som prenumeration i Outlook eller ett annat kalenderprogram, som sedan hämtar tiderna själv varje timme.',
+  },
+  {
+    id: 'svara-meddelande', namn: 'Svara på ett meddelande från en patient och avsluta', roll: 'ssk-kard', start: 'Arbetslistan efter inloggning', budget: 4,
+    motivering: 'Sussa 3.7.1.1. Ett klick på Meddelanden, ett på meddelandet, ett fältbyte till svaret och ett klick på Svara och avsluta. Systemet har skickat meddelandet till sjuksköterskan ur vad det gäller och aviserar patienten om svaret.',
+  },
+  {
+    id: 'kapacitetsprognos', namn: 'Se vårdenhetens kapacitet och prognos för väntelistan', roll: 'adm-kard', start: 'Vårdadministratörens startsida', budget: 1,
+    motivering: 'Sussa 3.4.1.5. Ett klick på Kapacitet. Systemet har redan räknat lediga tider mot väntelistan och remisserna för tolv veckor, när kön är borta och vilka förslag som behövs.',
+  },
+  {
+    id: 'kassa-avgift', namn: 'Ta betalt för en receptförnyelse i kassan', roll: 'adm-kard', start: 'Vårdadministratörens startsida', budget: 4,
+    motivering: 'Sussa 3.4.4.4. Ett klick på Kassa, ett fältbyte till personnumret, ett klick på Registrera avgift och ett på Kort. Förnyelse av recept är förvald, och systemet räknar avgiften ur ålder, LMA-kort och frikort.',
+  },
+  {
+    id: 'dagsavslut', namn: 'Göra dagsavslut i kassan', roll: 'adm-kard', start: 'Kassan', budget: 2,
+    motivering: 'Sussa 3.4.4.1. Ett klick på Gör dagsavslut och ett på Stäm av och avsluta. Systemet har räknat kassan per betalsätt och fyllt i terminalens belopp, så kassören skriver något bara när det inte stämmer.',
+  },
+  {
+    id: 'skicka-meddelande', namn: 'Skriva ett meddelande till vården i Min journal', roll: 'inv-p01', start: 'Min journal för patienten', budget: 3,
+    motivering: 'Sussa 3.7.1.1 och 3.7.1.3. Ett klick på Meddelanden, ett fältbyte till texten och ett klick på Skicka. En fråga till vården är förvald, och systemet väljer vårdenheten där patienten senast hade kontakt.',
+  },
+  {
+    id: 'ombud-boka', namn: 'Boka en tid för patienten som ombud', roll: 'inv-om01', start: 'Min journal för ombudet', budget: 3,
+    motivering: 'Sussa 3.4.2.3. Ett klick på patienten som fullmakten gäller, som öppnar patientens tider, ett på Visa lediga tider och ett på den tid som systemet föreslår först. Ombudet ser bara tider och meddelanden, och bokningen loggas på patienten.',
+  },
 ];

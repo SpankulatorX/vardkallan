@@ -198,7 +198,7 @@ const GRUND = {
   samtycke_sparr: 'Med ditt samtycke', nodatkomst: 'Nödåtkomst', logggranskning: 'Logggranskning', nekad: 'Nekades',
   egen_atkomst: 'Egen åtkomst', vardnadshavare: 'Vårdnadshavare',
 };
-const VEM = { du: 'Du', patienten: 'Patienten själv', vardnadshavare: 'Vårdnadshavare', invanare: 'En annan person' };
+const VEM = { du: 'Du', patienten: 'Patienten själv', vardnadshavare: 'Vårdnadshavare', invanare: 'En annan person', ombud: 'Ditt ombud' };
 const VIA = { fhir: 'via det öppna API:t', laskopia: 'till läskopian för avbrott', laslage: 'i läsläget under ett avbrott', min_journal: 'i Min journal' };
 
 function loggRad(r) {

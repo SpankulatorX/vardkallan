@@ -7,6 +7,8 @@ import { far, uppdateraInkorg } from '../app.js';
 import { nollstall } from './patient.js';
 // Runda 7, r5: invändningen mot kvalitetsregistret.
 import { invandningIJournalen } from '../rapportfel.js';
+// Runda 10, r7: ombud med fullmakt (r10r7.js).
+import { ombudIJournalen } from './r10r7.js';
 
 const STATUS = { gallande: 'Gällande', tidigare: 'Tidigare', ovrig: 'Extra identitet' };
 const kon = (k) => (k === 'man' ? 'Man' : k === 'kvinna' ? 'Kvinna' : '');
@@ -166,6 +168,8 @@ export async function visa(el, ctx) {
 
   // Runda 7, r5: patientens invändning mot kvalitetsregistret, för läkaren och sjuksköterskan.
   if (far('kvalitetsregister')) invandningIJournalen(el, ctx.id).catch(() => {});
+  // Runda 10, r7: patientens ombud med fullmakt, och vårdadministratörens registrering av en skriftlig fullmakt.
+  ombudIJournalen(el, ctx.id).catch(() => {});
   const form = el.querySelector('#id-form');
   if (form) {
     tolkaMedan(form.identitet, form.querySelector('#id-tolkning'));

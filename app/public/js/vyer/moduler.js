@@ -24,10 +24,14 @@ const FINNS = [
   ['Cytostatika och blodprodukter', 'Cytostatika ur behandlingsregim med dos efter kroppsyta eller njurfunktion, provkontroll, beredningsorder och dubbelkontroll, och blodbeställning med blodgruppering, bastest och kontroll vid sängen. Finns i API:t. Beredningsenheten och blodcentralen är simulerade.', '#/api'],
   ['Bilder och media', 'Bilder i journalen med import från fil, kamera, Min journal och remissbilagor, jämförelse över tid och studier i ett simulerat multimediaarkiv. Finns i API:t, gränssnittet är inte byggt än.', '#/api'],
   ['Migreringsavstämning och kravspårbarhet', 'Avstämning av migrerade poster och ett kravregister där varje krav pekar på sina automatiska tester.', '#/migrering'],
+  // Runda 10, r7.
+  ['Kassa och patientavgifter', 'Avgifter för besök, hjälpmedel, receptförnyelse och intyg som systemet räknar, betalning mot en simulerad betalterminal, återbetalning med kvitto, kassaredovisning per kassör och betalsätt och dagsavslut som inte kan ändras.', null],
+  ['Meddelanden och ombud i Min journal', 'Patienten, vårdnadshavaren och ett ombud med fullmakt skriver till vården, och systemet skickar meddelandet till rätt vårdenhet och yrkesroll. Ombudet bokar tider men läser aldrig journalen. Patienten ser och kommenterar sin vårdplan. Inloggningen och sms är simulerade.', null],
+  ['Kapacitet och prognos', 'Lediga tider mot väntelistan och de inkomna remisserna tolv veckor framåt, när kön är borta, vilka som riskerar att passera sin gräns och förslag på fler tider. Prognosen är en demoregel.', null],
+  ['Kontorsstöd', 'Personalens tidbok som kalenderprenumeration, journaltext och rapporter som Word-dokument, inbjudan, uppringning och möteslänk för en tid. Microsofts tjänster är simulerade.', null],
 ];
 
 const PLANERAT = [
-  ['Kassa och resursbokning', 'Kassaredovisning, återbetalning, LMA-kort och avgifter för hjälpmedel, recept och intyg, och bokning av lokaler, utrustning och transporter.'],
   ['Samordnad vårdplanering med kommunen', 'Planering vid utskrivning från sluten vård och informationsutbyte med kommunernas vård och omsorg.'],
   ['Anestesi och intensivvård', 'Anestesijournal och övervakning inom intensivvården. Operationsplaneringen finns i API:t sedan runda 9.'],
   ['Gränssnitt för specialistområdena', 'Vyer i journalen för operation, graviditet och förlossning, cytostatika, blodprodukter och bilder, som i dag bara finns i API:t.'],

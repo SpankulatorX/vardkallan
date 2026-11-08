@@ -104,6 +104,9 @@ import * as levnadsvanor from './levnadsvanor.js';
 import * as folkhalsa from './folkhalsa.js';
 // Runda 9, r4: informationsstrukturen, fackspråket, kodverken och masterdatans källor (arkitektur-rutter.js).
 import { registreraRutter as r9r4Rutter, efterTid as masterdataEfterTid } from './arkitektur-rutter.js';
+// Runda 10, r7: ombud, meddelanden, begäranden, vårdplanen i Min journal, kassan, kapaciteten och kontorsstödet.
+import { registreraRutter as r10r7Rutter, MIN_DELAR as r10r7MinDelar, kalenderSvar } from './r10r7-rutter.js';
+import { skapaKalenderlager } from './kontorsstod.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -1607,6 +1610,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   MIN_DELAR.tillvaxt = minTillvaxt;
   // Runda 9, r2: patientens egna mätningar med status (medicinteknik.js).
   MIN_DELAR.egenmatning = (atk) => mtMinaMatningar(atk, journal.MATTYPER);
+  // Runda 10, r7: meddelanden, ombud, vårdplaner, avgifter för tjänster och möteslänkar (r10r7-rutter.js).
+  Object.assign(MIN_DELAR, r10r7MinDelar);
   rutt('GET', '/api/min/journal/:id', (c, id) => medMinJournal(c, id, 'min:journal', (atk) => minJournal.huvud(atk)));
   rutt('GET', '/api/min/journal/:id/:del', (c, id, del) => {
     if (!Object.hasOwn(MIN_DELAR, del)) throw new Fel(404, 'Okänd adress.', 'saknas');
@@ -1708,6 +1713,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   r9r7Rutter({ rutt, kravInloggad, medPatient, valFor });
   // Runda 9, r4 (arkitektur-rutter.js).
   r9r4Rutter({ rutt, kravInloggad });
+  // Runda 10, r7 (r10r7-rutter.js). Kalenderlänkarna finns som HMAC i minnet och i sandlådan.
+  const kalender = skapaKalenderlager();
+  r10r7Rutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal, kalender });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
   // visas direkt (bara i den egna sandlådan).
   const kravNagon = (c) => { if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad'); };
@@ -1732,6 +1740,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (url.pathname === '/api/health') return json({ ok: true, sandladar: sessioner.size, version: APPVERSION, gransnitt: gransnittVersion() });
     // Runda 9, r5: länken till en ny miljö byter session utan att skapa en sandlåda.
     if (req.method === 'GET' && /^\/api\/miljoer\/oppna\/[A-Za-z0-9_-]{32}$/.test(url.pathname)) return oppnaMiljo(req, url);
+    // Runda 10, r7: kalenderprenumerationen hämtas av ett kalenderprogram utan session (r10r7-rutter.js).
+    if (req.method === 'GET' && url.pathname.startsWith('/api/kalender/')) { const k = kalenderSvar(url, { kalender, sessioner }); if (k) return k; }
     const metod = req.method;
     // Runda 7, r1: klientens adress, för gränsen per skapare av testtillfällen.
     c.ip = klientIp(req, server);

@@ -5,6 +5,8 @@ import { esc, api, notis, felNotis, medKnapp } from '../ui.js';
 import { valjTid, valjBetalsatt, tidText, kr } from '../tidbok-ui.js';
 // Runda 6, r4: kallelsen som PDF och för kalendern, kallelser utan förbokad tid och språket för kallelserna.
 import { kallelseFiler } from '../planering-ui.js';
+// Runda 10, r7: avgifter för recept och intyg och möteslänkar för videobesök (min-r10r7.js).
+import { tiderTillagg } from './min-r10r7.js';
 
 const del = (pid, v = '') => `/api/min/journal/${encodeURIComponent(pid)}${v}`;
 const STATUS = { bokad: 'Bokad', incheckad: 'Incheckad', ombokad: 'Ombokad', avbokad: 'Avbokad' };
@@ -45,8 +47,9 @@ const hogkostnadHtml = (hk) => `<section class="ov-sektion min-hogkostnad" aria-
 
 export async function visa(el, ctx) {
   // Runda 7, r3: högkostnadsskyddet hämtas samtidigt. Patienten ser hela skyddet med alla avgifter.
-  const [t, hk] = await Promise.all([api(del(ctx.pid, '/tider')), api(del(ctx.pid, '/hogkostnadsskydd')).catch(() => null)]);
+  const [t, hk, extra] = await Promise.all([api(del(ctx.pid, '/tider')), api(del(ctx.pid, '/hogkostnadsskydd')).catch(() => null), tiderTillagg(ctx.pid)]);
   if (!ctx.aktuell()) return;
+  t.tjanstavgifter = extra.avgifter;
   el.innerHTML = `<div class="flikhuvud"><h2>Tider</h2></div>
     ${t.kanal.forklaring ? `<p class="ruta ruta-info liten">${esc(t.kanal.forklaring)}</p>` : ''}
     ${t.kallelserUtanTid?.length ? `<ul class="min-tider">${t.kallelserUtanTid.map(ramKort).join('')}</ul>` : ''}
@@ -57,17 +60,27 @@ export async function visa(el, ctx) {
       <p class="hjalp">Du kan boka de tider som mottagningarna där du redan får vård öppnar för det.</p></section>` : ''}
     ${t.tidigare.length ? `<section class="ov-sektion" aria-labelledby="min-tidigare"><div class="sektion-huvud"><h3 id="min-tidigare">Tidigare och ändrade tider</h3></div>
       <ul class="enkel-lista">${t.tidigare.map(b => `<li>${esc(tidText(b.start))}, ${esc(b.tidstypText)}, ${esc(b.mottagning)} <span class="tagg">${esc(STATUS[b.status] ?? b.status)}</span></li>`).join('')}</ul></section>` : ''}
+    ${extra.html}
     ${hk ? hogkostnadHtml(hk) : ''}
     ${t.sprak ? sprakHtml(t.sprak) : ''}
     <p class="hjalp">${esc(t.demoregler)}</p>`;
   el.addEventListener('click', async (e) => {
-    const b = e.target.closest('[data-min]');
+    const b = e.target.closest('[data-min], [data-avgift-betala]');
     if (!b) return;
     try { if (await atgard(b, t, ctx)) await ctx.ladda(); } catch (err) { felNotis(err); }
   });
 }
 
 async function atgard(b, t, ctx) {
+  // Runda 10, r7: en avgift för en receptförnyelse eller ett intyg.
+  if (b.dataset.avgiftBetala) {
+    const avg = t.tjanstavgifter.find(x => String(x.id) === b.dataset.avgiftBetala);
+    const satt = await valjBetalsatt({ belopp: avg.belopp, text: avg.text }, 'Du');
+    if (!satt) return false;
+    const r = await api(del(ctx.pid, `/avgift/${avg.id}/betala`), { metod: 'POST', data: { satt } });
+    notis(`Betalt. Kvitto ${r.betalning?.kvitto ?? ''}.`);
+    return true;
+  }
   const a = b.dataset.min;
   const bok = t.kommande.find(x => String(x.id) === b.dataset.id);
   const post = (vag, data = {}) => api(del(ctx.pid, vag), { metod: 'POST', data });
