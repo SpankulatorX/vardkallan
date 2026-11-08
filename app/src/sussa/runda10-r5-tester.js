@@ -42,6 +42,7 @@ export const T = {
   vpRegister: `${VP}varje dos som ges rapporteras till det simulerade vaccinationsregistret med kvittens`,
   vpBehorighet: `${VP}vaccinationerna kräver vårdrelation, och nödåtkomst ger bara läsning`,
   vpBhvEgen: `${VP}barnhälsovården registrerar bara vaccin i sitt eget program och hänvisar andra vacciner till vaccinationsprogrammens flöde, som prövar dem`,
+  vpParameter: `${VP}åldern för vattkoppor, åldersgränsen och riskgrupperna är parametrar som systemförvaltaren sätter med fyra ögon, och programmet följer dem`,
   vpFhir: `${VP}FHIR: vaccinationerna i programmen är Immunization med samma behörighet`,
   // Sammanhållen journalföring (3.2.2.3).
   sjSamtycke: `${SJ}uppgifter från en annan vårdgivare hämtas först efter vårdrelation, samtycke och ett aktivt val`,

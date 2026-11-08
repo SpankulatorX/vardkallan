@@ -18,9 +18,19 @@ import { Atkomst } from './atkomst.js';
 import * as R from './vaccinationsprogram-regler.js';
 import * as register from './vaccinationsregister.js';
 import { vaccinationUt as bhvVaccinationUt, FRAGA_ANDRA, VARNING_DOLDA } from './bhv.js';
+import * as konfiguration from './konfiguration.js';
 
 export const { VACCINER, KALLOR, PROGRAM } = R;
 export const program = R.program;
+export const riskgrupperFor = R.riskgrupperFor;
+
+// Reglerna som systemförvaltaren har satt (konfiguration.js): åldern för vattkoppor (0 betyder inte satt), åldersgränsen
+// och diagnoserna som ger ökad risk.
+export function regler(db, nu = Date.now()) {
+  const d = new Date(nu);
+  const m = konfiguration.varde(db, 'vaccination.vattkoppor_alder_manader', d);
+  return { vattkopporManader: m > 0 ? m : null, riskAlder: konfiguration.varde(db, 'vaccination.riskgrupp_alder_ar', d), riskPrefix: konfiguration.varde(db, 'vaccination.riskgrupper', d) };
+}
 
 export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS vaccination_kalla (
@@ -60,7 +70,8 @@ function underlag(atk) {
   const alla = db.query('SELECT * FROM vaccinationer WHERE patient_id = ? ORDER BY tid').all(atk.patientId);
   const synliga = a.filtrera(alla, 'las_oversikt');
   const diagnoser = a.filtrera(db.query('SELECT * FROM diagnoser WHERE patient_id = ?').all(atk.patientId), 'las_diagnoser');
-  return { a, synliga, dolda: doldaKraverVal(a, alla), riskgrupper: R.riskgrupperFor(diagnoser) };
+  const r = regler(db);
+  return { a, synliga, dolda: doldaKraverVal(a, alla), riskgrupper: R.riskgrupperFor(diagnoser, r.riskPrefix), regler: r };
 }
 
 // GET /api/patient/:id/vaccinationsprogram
@@ -68,7 +79,7 @@ export function forPatient(atk, p, nu = Date.now()) {
   atk.krav('las_oversikt');
   const db = atk.db;
   const u = underlag(atk);
-  const prog = R.program({ fodd: p.fodd, nu, givna: u.synliga.map(v => ({ vaccinId: v.vaccin_id, tid: v.tid })), riskgrupper: u.riskgrupper });
+  const prog = R.program({ fodd: p.fodd, nu, givna: u.synliga.map(v => ({ vaccinId: v.vaccin_id, tid: v.tid })), riskgrupper: u.riskgrupper, regler: u.regler });
   const kan = atk.prova('vaccinera');
   return {
     program: prog, riskgrupper: u.riskgrupper, vaccinationer: u.synliga.map(v => vaccinationUt(db, v)).reverse(),
@@ -100,7 +111,7 @@ export function vaccinera(atk, p, body = {}, knyt, nu = Date.now()) {
   if (body.andraVaccinationer !== 'nej') throw new Fel(400, 'Har patienten fått vaccinationer någon annanstans, till exempel av elevhälsan, på en annan vårdenhet eller utomlands? Fråga innan du ger dosen.', 'kraver_fraga', { falt: ['andraVaccinationer'] });
   const u = underlag(atk);
   if (u.dolda && body.bekraftaDolda !== true) throw new Fel(409, VARNING_DOLDA.replace('Barnet', 'Patienten'), 'kraver_bekraftelse');
-  const pr = R.prova(v, { fodd: p.fodd, nu, givna: u.synliga.map(x => ({ vaccinId: x.vaccin_id, tid: x.tid })), riskgrupper: u.riskgrupper });
+  const pr = R.prova(v, { fodd: p.fodd, nu, givna: u.synliga.map(x => ({ vaccinId: x.vaccin_id, tid: x.tid })), riskgrupper: u.riskgrupper, regler: u.regler });
   if (!pr.ok) throw new Fel(400, pr.skal, 'ogiltig', { falt: ['vaccinId'] });
   const batch = typeof body.batch === 'string' && body.batch.trim() ? body.batch.trim().slice(0, 40) : null;
   const r = db.query('INSERT INTO vaccinationer (patient_id, enhet_id, vaccin_id, atc, dos, tid, givet_av, batch, registrerad) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')

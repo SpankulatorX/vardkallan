@@ -7,7 +7,9 @@ import { T } from '../src/sussa/runda10-r5-tester.js';
 import * as vp from '../src/vaccinationsprogram.js';
 import * as register from '../src/vaccinationsregister.js';
 import { ATC } from '../src/kodverk.js';
-import { testserver, klient, sandlada } from './hjalp.js';
+import { testserver, klient, sandlada, personal } from './hjalp.js';
+import * as konfiguration from '../src/konfiguration.js';
+import { byggSeed } from '../src/db.js';
 
 let app;
 beforeAll(() => { app = testserver(); });
@@ -161,6 +163,40 @@ describe('Vaccinationsprogram', () => {
     // För en vuxen i programmet för riskgrupper godtas dosen efter kontrollen.
     await k.logga('ssk-kard');
     expect((await k.post('/api/patient/p01/vaccinationsprogram/vaccination', { vaccinId: 'pneumokocker', andraVaccinationer: 'nej' })).status).toBe(201);
+  });
+
+  test(T.vpParameter.split(' > ')[1], async () => {
+    // Utan värde visas vattkoppor med förklaringen, och med ett värde planeras dosen från åldern.
+    const utan = vp.program({ fodd: '2025-09-01', nu: ms('2027-03-01'), givna: [] });
+    expect(utan.rader.find(r => r.id === 'vzv1')).toMatchObject({ status: 'ej_faststalld' });
+    expect(utan.rader.find(r => r.id === 'vzv1').skal).toContain('inte satt');
+    const med = vp.program({ fodd: '2025-09-01', nu: ms('2027-03-01'), givna: [], regler: { vattkopporManader: 18 } });
+    expect(med.rader.find(r => r.id === 'vzv1')).toMatchObject({ status: 'nu', nar: 'Vid 18 månaders ålder' });
+    expect(med.attGe.map(v => v.id)).toContain('vzv1');
+    const tidigt = vp.program({ fodd: '2026-06-01', nu: ms('2027-03-01'), givna: [], regler: { vattkopporManader: 18 } });
+    expect(tidigt.rader.find(r => r.id === 'vzv1').skal).toContain('2027-12-01');
+    // Före 1 januari 2027 planeras ingen dos, också med åldern satt.
+    expect(vp.program({ fodd: '2025-09-01', nu: ms('2026-11-10'), givna: [], regler: { vattkopporManader: 12 } }).rader.find(r => r.id === 'vzv1').skal).toContain('1 januari 2027');
+    // Åldersgränsen och riskgrupperna.
+    expect(vp.program({ fodd: '1956-01-01', nu: ms('2026-11-10'), givna: [], regler: { riskAlder: 75 } }).attGe).toEqual([]);
+    expect(vp.program({ fodd: '1956-01-01', nu: ms('2026-11-10'), givna: [] }).attGe.map(v => v.id)).toEqual(['influensa', 'pneumokocker']);
+    expect(vp.riskgrupperFor([{ kod: 'J44.9' }], ['E11'])).toEqual([]);
+    expect(vp.riskgrupperFor([{ kod: 'E11.9' }], ['E11'])).toEqual([{ id: 'diabetes', text: 'Diabetes (E11.9)' }]);
+    // Parametrarna ändras av systemförvaltaren med fyra ögon och slår igenom i programmet.
+    const db = byggSeed();
+    const P = konfiguration.parametrar();
+    expect(P['vaccination.vattkoppor_alder_manader']).toMatchObject({ typ: 'heltal', standard: 0, omrade: 'vaccination' });
+    expect(P['vaccination.riskgrupp_alder_ar']).toMatchObject({ typ: 'heltal', standard: 65 });
+    expect(P['vaccination.riskgrupper']).toMatchObject({ typ: 'lista' });
+    expect(P['vaccination.riskgrupp_alder_ar'].beskrivning).toContain('stämmas av mot Folkhälsomyndighetens föreskrifter');
+    expect(konfiguration.prova('vaccination.riskgrupper', ['J44', 'XYZ']).ok).toBe(false);
+    const sf = personal(db, 'sysf');
+    const { andring } = konfiguration.foresla(db, sf, { nyckel: 'vaccination.vattkoppor_alder_manader', varde: 18, giltigFran: '2026-11-08', motivering: 'Folkhälsomyndighetens föreskrift' });
+    expect(vp.regler(db).vattkopporManader).toBeNull();
+    konfiguration.godkann(db, personal(db, 'sysf-2'), andring.id, {});
+    expect(vp.regler(db).vattkopporManader).toBe(18);
+    expect(vp.regler(db)).toMatchObject({ riskAlder: 65 });
+    expect(vp.regler(db).riskPrefix).toContain('J44');
   });
 
   test(T.vpFhir.split(' > ')[1], async () => {

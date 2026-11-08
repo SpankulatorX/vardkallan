@@ -10,7 +10,8 @@
 //   - programmet för riskgrupper: influensa varje säsong och pneumokocker, för den som är 65 år eller äldre eller har en
 //     diagnos som ger ökad risk.
 // Åldrarna, intervallen, säsongen och riskgrupperna är förenklade demoregler, inte Folkhälsomyndighetens föreskrifter
-// ordagrant.
+// ordagrant. Åldern för vattkoppor, åldersgränsen för riskgrupperna och diagnoserna som ger ökad risk är parametrar som
+// systemförvaltaren sätter (konfiguration.js), och skickas in som regler. Utan regler gäller förvalen.
 const DAG = 86400_000;
 const AR = 365;
 
@@ -49,7 +50,8 @@ export function sasongFor(nu) {
   return { pagar: false, fran: `${ar}-${SASONG.fran}`, till: `${ar + 1}-${SASONG.till}` };
 }
 
-// Diagnoser som ger ökad risk (ICD-10-prefix), demoregler.
+export const STANDARD = { vattkopporManader: null, riskAlder: 65 };
+// Diagnoser som ger ökad risk (ICD-10-prefix), demoregler. Grupperna ger texten, och parametern avgör vilka koder som räknas.
 export const RISKGRUPPER = [
   { id: 'hjarta', text: 'Kronisk hjärtsjukdom', prefix: ['I50', 'I25', 'I42'] },
   { id: 'lunga', text: 'Kronisk lungsjukdom', prefix: ['J44', 'J45', 'J84'] },
@@ -58,13 +60,19 @@ export const RISKGRUPPER = [
   { id: 'lever', text: 'Kronisk leversjukdom', prefix: ['K70', 'K74'] },
   { id: 'immun', text: 'Nedsatt immunförsvar', prefix: ['D80', 'D81', 'D82', 'D83', 'D84', 'B20'] },
 ];
-// Riskgrupperna ur diagnoskoderna, med den första koden för varje grupp.
-export function riskgrupperFor(diagnoser = []) {
+export const STANDARD_PREFIX = RISKGRUPPER.flatMap(g => g.prefix);
+// Riskgrupperna ur diagnoskoderna, med den första koden för varje grupp. prefix är de koder som parametern räknar.
+export function riskgrupperFor(diagnoser = [], prefix = STANDARD_PREFIX) {
   const ut = [];
+  const tillatna = new Set(prefix);
   for (const g of RISKGRUPPER) {
-    const d = diagnoser.find(x => g.prefix.some(p => x.kod?.startsWith(p)));
+    const d = diagnoser.find(x => g.prefix.some(p => tillatna.has(p) && x.kod?.startsWith(p)));
     if (d) ut.push({ id: g.id, text: `${g.text} (${d.kod})` });
   }
+  // Koder i parametern som inte hör till någon av grupperna.
+  const ovriga = [...tillatna].filter(p => !STANDARD_PREFIX.includes(p));
+  const d = diagnoser.find(x => ovriga.some(p => x.kod?.startsWith(p)));
+  if (d) ut.push({ id: 'ovrig', text: `Diagnos som ger ökad risk (${d.kod})` });
   return ut;
 }
 
@@ -77,17 +85,26 @@ const alderDagar = (fodd, nu) => Math.floor((nu - Date.parse(`${fodd}T00:00:00Z`
 const datumEfter = (fodd, dagar) => new Date(Date.parse(`${fodd}T12:00:00Z`) + dagar * DAG).toISOString().slice(0, 10);
 
 // Kan dosen ges nu? Ger { ok, status, skal, varfor }. status: nu, kommande, given, ej_aktuell, ej_faststalld.
-export function prova(v, { fodd, nu = Date.now(), givna = [], riskgrupper = [] }) {
+export function prova(v, { fodd, nu = Date.now(), givna = [], riskgrupper = [], regler = {} }) {
+  const r = { ...STANDARD, ...regler };
   const dagar = alderDagar(fodd, nu);
   const ar = alderAr(fodd, nu);
   if (v.foddFran) {
     if (fodd < v.foddFran) return { ok: false, status: 'ej_aktuell', skal: `${v.text} ingår för barn födda ${v.foddFran} eller senare.` };
-    return { ok: false, status: 'ej_faststalld', skal: `Vaccination mot vattkoppor ingår i barnvaccinationsprogrammet från 1 januari 2027 för barn födda 1 juli 2025 eller senare. Folkhälsomyndigheten har inte fastställt åldern för dosen, så systemet kan inte planera den än.` };
+    if (!r.vattkopporManader) return { ok: false, status: 'ej_faststalld', skal: 'Vaccination mot vattkoppor ingår i barnvaccinationsprogrammet från 1 januari 2027 för barn födda 1 juli 2025 eller senare. Åldern för dosen är inte satt, eftersom Folkhälsomyndigheten inte har fastställt den. Systemförvaltaren sätter den när föreskriften finns, och då planerar systemet dosen.' };
+    if (givna.some(x => x.vaccinId === v.id)) return { ok: false, status: 'given', skal: `${v.text} är redan given.` };
+    if (datumI(nu) < v.fran) return { ok: false, status: 'kommande', skal: `Vaccination mot vattkoppor ingår i programmet från 1 januari 2027. Dosen ges vid ${r.vattkopporManader} månaders ålder.` };
+    // Åldern räknas i hela kalendermånader från födelsedagen.
+    const f = new Date(`${fodd}T12:00:00Z`);
+    f.setUTCMonth(f.getUTCMonth() + r.vattkopporManader);
+    const franDatum = f.toISOString().slice(0, 10);
+    if (datumI(nu) < franDatum) return { ok: false, status: 'kommande', skal: `${v.text} ges vid ${r.vattkopporManader} månaders ålder, från ${franDatum}.` };
+    return { ok: true, status: 'nu', skal: '' };
   }
   if (v.program === 'riskgrupper') {
     const risk = riskgrupper[0] ?? null;
-    if (ar < 65 && !risk) return { ok: false, status: 'ej_aktuell', skal: `${v.text} erbjuds den som är 65 år eller äldre eller tillhör en riskgrupp.` };
-    const varfor = ar >= 65 ? `Patienten är ${ar} år.` : `Patienten har ${risk.text.charAt(0).toLowerCase()}${risk.text.slice(1)}.`;
+    if (ar < r.riskAlder && !risk) return { ok: false, status: 'ej_aktuell', skal: `${v.text} erbjuds den som är ${r.riskAlder} år eller äldre eller tillhör en riskgrupp.` };
+    const varfor = ar >= r.riskAlder ? `Patienten är ${ar} år.` : `Patienten har ${risk.text.charAt(0).toLowerCase()}${risk.text.slice(1)}.`;
     if (v.sasong) {
       const s = sasongFor(nu);
       if (!s.pagar) return { ok: false, status: 'kommande', varfor, skal: `Vaccination mot influensa ges under säsongen, som börjar ${s.fran}.` };
@@ -111,13 +128,14 @@ export function prova(v, { fodd, nu = Date.now(), givna = [], riskgrupper = [] }
 
 // Programmet för en person: varje dos med status, och vilka doser som kan ges nu. Barnens doser visas till 18 år, och
 // programmet för riskgrupper från 18 år.
-export function program({ fodd, nu = Date.now(), givna = [], riskgrupper = [] }) {
+export function program({ fodd, nu = Date.now(), givna = [], riskgrupper = [], regler = {} }) {
+  const r = { ...STANDARD, ...regler };
   const ar = alderAr(fodd, nu);
   const rader = VACCINER.filter(v => (v.program === 'barn' ? ar < 18 : ar >= 18))
-    .map(v => ({ v, p: prova(v, { fodd, nu, givna, riskgrupper }) }))
+    .map(v => ({ v, p: prova(v, { fodd, nu, givna, riskgrupper, regler: r }) }))
     .filter(({ p }) => p.status !== 'ej_aktuell' || p.varfor)
     .map(({ v, p }) => ({
-      id: v.id, text: v.text, program: v.program, programText: PROGRAM[v.program], sjukdomar: v.sjukdomar, nar: v.nar, ges: v.ges, atc: v.atc,
+      id: v.id, text: v.text, program: v.program, programText: PROGRAM[v.program], sjukdomar: v.sjukdomar, nar: v.foddFran && r.vattkopporManader ? `Vid ${r.vattkopporManader} månaders ålder` : v.nar, ges: v.ges, atc: v.atc,
       status: p.status, skal: p.skal || null, varfor: p.varfor ?? null,
       given: givna.filter(g => g.vaccinId === v.id).map(g => g.tid).sort().at(-1) ?? null,
     }));

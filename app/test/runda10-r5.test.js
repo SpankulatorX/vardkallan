@@ -252,14 +252,21 @@ describe('Kunskapsgenererande stöd', () => {
 });
 
 describe('Kollegakontroll av högriskläkemedel', () => {
-  const oxi = (db) => ordinera(db, 'p01', { lakemedelId: 'VK-NPL-0030', dosering: '1 kapsel vid behov', dos: 5, dosEnhet: 'mg', typ: 'vid_behov', vidBehov: true });
+  // Morfin intramuskulärt vid behov: en opioid som ges parenteralt och inte bereds (beslut 2026-11-08).
+  const oxi = (db) => ordinera(db, 'p01', { lakemedelId: 'VK-NPL-0031', dosering: '5 mg intramuskulärt vid behov', dos: 5, dosEnhet: 'mg', typ: 'vid_behov', vidBehov: true, administrationssatt: 'intramuskulart' });
 
   test(T.kkGrupper.split(' > ')[1], () => {
     const db = byggSeed();
     const lm = (id) => db.query('SELECT * FROM katalog WHERE id = ?').get(id);
-    const k = (id, o = null) => hogrisk.kategorierFor(db, { lm: lm(id), o }).map(x => x.id);
-    expect(k('VK-NPL-0030')).toEqual(['opioider']);
+    const k = (id, o = null, patientId = 'p01') => hogrisk.kategorierFor(db, { lm: lm(id), o, patientId }).map(x => x.id);
+    // Opioider: parenteralt till vuxna och alla administrationssätt till barn under 18 år (beslut 2026-11-08).
+    expect(k('VK-NPL-0030', { administrationssatt: 'peroralt' })).toEqual([]);
+    expect(k('VK-NPL-0030')).toEqual([]);
+    expect(k('VK-NPL-0031', { administrationssatt: 'intramuskulart' })).toEqual(['opioider']);
+    expect(k('VK-NPL-0031', { administrationssatt: 'intravenost' })).toEqual(['opioider']);
     expect(k('VK-NPL-0031')).toEqual(['opioider']);
+    expect(k('VK-NPL-0030', { administrationssatt: 'peroralt' }, 'p61')).toEqual(['opioider']);
+    expect(k('VK-NPL-0030', null, 'p09')).toEqual(['opioider']);
     expect(k('VK-EGEN-0001')).toEqual(['elektrolyter']);
     expect(k('VK-NPL-0051')).toEqual(['elektrolyter']);
     // Glukos med Addex-Magnesium som tillsats.
@@ -276,8 +283,9 @@ describe('Kollegakontroll av högriskläkemedel', () => {
     const cyto = db.query("SELECT id FROM katalog WHERE atc LIKE 'L01%' LIMIT 1").get();
     if (cyto) expect(k(cyto.id)).toEqual(['cytostatika']);
     // Parametrarna finns för varje grupp och är påslagna från början.
+    expect(konfiguration.parametrar()[hogrisk.KATEGORIER.opioider.parameter]).toMatchObject({ typ: 'lista', omrade: 'lakemedel', standard: ['intravenöst', 'subkutant', 'intramuskulärt', 'epiduralt', 'intratekalt', 'barn under 18 år'] });
     for (const [id, x] of Object.entries(hogrisk.KATEGORIER)) {
-      expect(konfiguration.parametrar()[x.parameter]).toMatchObject({ typ: 'janej', standard: true, omrade: 'lakemedel' });
+      if (id !== 'opioider') expect(konfiguration.parametrar()[x.parameter]).toMatchObject({ typ: 'janej', standard: true, omrade: 'lakemedel' });
       expect(konfiguration.parametrar()[x.parameter].beskrivning).toContain(x.varfor);
       expect(hogrisk.aktiv(db, id)).toBe(true);
     }
@@ -295,6 +303,9 @@ describe('Kollegakontroll av högriskläkemedel', () => {
     expect(utan.status).toBe(400);
     expect(utan.extra).toMatchObject({ kollegakontroll: true, iordningstall: true });
     expect(utan.message).toContain('Välj Iordningsställ');
+    // En opioid i tablettform till en vuxen kräver ingen kollega.
+    const tablett = ordinera(db, 'p01', { lakemedelId: 'VK-NPL-0030', dosering: '1 kapsel vid behov', dos: 5, dosEnhet: 'mg', typ: 'vid_behov', vidBehov: true });
+    expect(administrering.lista(ssk(db, 'p01', 'ssk-kard', 'las_lakemedel')).vidBehov.find(d => d.ordinationId === tablett.id).kollegakontroll).toBeUndefined();
     // Iordningsställd: dosen väntar på kontroll.
     const ior = administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, atgard: 'iordningstall' });
     expect(ior.administrering.kollegakontroll).toMatchObject({ av: null, iordningstalldAv: { id: 'ssk-kard' } });
@@ -359,21 +370,25 @@ describe('Kollegakontroll av högriskläkemedel', () => {
     const sf = personal(db, 'sysf');
     const sf2 = personal(db, 'sysf-2');
     const nyckel = hogrisk.KATEGORIER.opioider.parameter;
-    const f = konfiguration.forhandsvisa(db, sf, { nyckel, varde: false, giltigFran: idag() });
+    // Ett administrationssätt som inte finns förklaras.
+    expect(konfiguration.prova(nyckel, ['intravenöst', 'i örat']).ok).toBe(false);
+    // Systemförvaltaren tar bort intramuskulärt ur listan.
+    const ny = ['intravenöst', 'subkutant', 'epiduralt', 'intratekalt', 'barn under 18 år'];
+    const f = konfiguration.forhandsvisa(db, sf, { nyckel, varde: ny, giltigFran: idag() });
     expect(f.ok).toBe(true);
-    expect(f.effekt[0]).toContain('utan kollegakontroll');
-    const { andring } = konfiguration.foresla(db, sf, { nyckel, varde: false, giltigFran: idag(), motivering: 'Prövning av en ny rutin' });
+    expect(f.effekt[0]).toContain('intravenöst');
+    const { andring } = konfiguration.foresla(db, sf, { nyckel, varde: ny, giltigFran: idag(), motivering: 'Prövning av en ny rutin' });
     // Ändringen gäller först när en annan systemförvaltare har godkänt den.
     expect(hogrisk.aktiv(db, 'opioider')).toBe(true);
     expect(fel(() => konfiguration.godkann(db, sf, andring.id, {})).status).toBe(403);
     konfiguration.godkann(db, sf2, andring.id, {});
-    expect(hogrisk.aktiv(db, 'opioider')).toBe(false);
-    // En opioid ges nu utan kollegakontroll, och andra grupper kontrolleras som förut.
+    expect(hogrisk.aktiv(db, 'opioider')).toBe(true);
+    // En intramuskulär opioid ges nu utan kollegakontroll, och andra grupper kontrolleras som förut.
     const o = oxi(db);
     expect(administrering.spara(ssk(db, 'p01'), { ordinationId: o.id }).administrering.status).toBe('given');
     expect(hogrisk.aktiv(db, 'elektrolyter')).toBe(true);
     // En sjuksköterska kan inte ändra parametern.
-    expect(fel(() => konfiguration.foresla(db, personal(db, 'ssk-kard'), { nyckel, varde: true, motivering: 'x' })).status).toBe(403);
+    expect(fel(() => konfiguration.foresla(db, personal(db, 'ssk-kard'), { nyckel, varde: ['intravenöst'], motivering: 'x' })).status).toBe(403);
   });
 
   test(T.kkSparad.split(' > ')[1], () => {
@@ -394,7 +409,7 @@ describe('Kollegakontroll av högriskläkemedel', () => {
     expect(fel(() => hogrisk.provaAdministrering(db, { atgard: 'ge', lm: paracetamol, o: null, ior: iorRad }))?.message).toContain('hör inte till');
     // Parametern stängs av mellan iordningsställandet och givandet: dosen är redan iordningsställd med kontroll.
     const sf = personal(db, 'sysf');
-    const { andring } = konfiguration.foresla(db, sf, { nyckel: hogrisk.KATEGORIER.opioider.parameter, varde: false, giltigFran: idag(), motivering: 'Ny rutin' });
+    const { andring } = konfiguration.foresla(db, sf, { nyckel: hogrisk.KATEGORIER.opioider.parameter, varde: [], giltigFran: idag(), motivering: 'Ny rutin' });
     konfiguration.godkann(db, personal(db, 'sysf-2'), andring.id, {});
     expect(hogrisk.aktiv(db, 'opioider')).toBe(false);
     const avstangd = fel(() => administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, kontrollkod: kod }));

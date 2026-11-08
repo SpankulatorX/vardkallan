@@ -30,7 +30,7 @@ CREATE TRIGGER IF NOT EXISTS kollegakontroll_andras_ej BEFORE UPDATE ON kollegak
 export const sakra = (db) => db.exec(SCHEMA);
 
 const ADDEX = /^Addex/i;
-const arInfusion = ({ spadning, satt }) => Boolean(spadning) || satt === 'intravenost';
+const arInfusion = ({ spadning, infusionSatt }) => Boolean(spadning) || infusionSatt === 'intravenost';
 // Grupperna. match får läkemedlet, tillsatserna (katalograder), beredningen och administrationssättet.
 export const KATEGORIER = {
   elektrolyter: {
@@ -40,10 +40,13 @@ export const KATEGORIER = {
     // Addex. En isoton basvätska som natriumklorid 9 mg/ml är ingen koncentrerad elektrolyt.
     match: ({ lm, tillsatser }) => [lm, ...tillsatser].filter(Boolean).some(x => (x.atc?.startsWith('B05XA') && /koncentrat/i.test(x.form ?? '')) || ADDEX.test(x.namn ?? '')),
   },
+  // Opioider per administrationssätt (beslut 2026-11-08): parameterns lista avgör, och "barn under 18 år" gäller alla
+  // administrationssätt till barn. Förvalet är de parenterala sätten och barn.
   opioider: {
-    rubrik: 'Opioider', parameter: 'lakemedel.kollegakontroll.opioider',
+    rubrik: 'Opioider', parameter: 'lakemedel.kollegakontroll.opioider', lista: true,
     varfor: 'Opioider är narkotika, och en för hög dos kan ge andningsdepression.',
-    match: ({ lm }) => Boolean(lm?.atc?.startsWith('N02A') || lm?.atc?.startsWith('N01AH')),
+    match: ({ lm, satt, barn, opioidSatt }) => Boolean((lm?.atc?.startsWith('N02A') || lm?.atc?.startsWith('N01AH'))
+      && ((barn && opioidSatt.includes('barn under 18 år')) || (satt && opioidSatt.includes(satt)))),
   },
   insulininfusion: {
     rubrik: 'Insulininfusion', parameter: 'lakemedel.kollegakontroll.insulininfusion',
@@ -64,17 +67,43 @@ export const KATEGORIER = {
 
 const katalog = (db, id) => db.query('SELECT * FROM katalog WHERE id = ?').get(id);
 
+// Ordinationens administrationssätt med orden i parametern. Utan angivet sätt avgör läkemedelsformen, och en infusion
+// eller en beredning ges intravenöst.
+const SATT_ORD = { intravenost: 'intravenöst', subkutant: 'subkutant', intramuskulart: 'intramuskulärt', epiduralt: 'epiduralt', intratekalt: 'intratekalt',
+  peroralt: 'peroralt', sublingualt: 'under tungan', transdermalt: 'på huden', kutant: 'på huden', rektalt: 'rektalt', nasalt: 'i näsan', sond: 'peroralt' };
+function sattFor(lm, o) {
+  if (o?.administrationssatt) return SATT_ORD[o.administrationssatt] ?? o.administrationssatt;
+  if (o?.spadning) return 'intravenöst';
+  const f = lm?.form ?? '';
+  if (/infusion/i.test(f)) return 'intravenöst';
+  if (/injektion/i.test(f)) return /subkutan|penna/i.test(f) ? 'subkutant' : 'intravenöst';
+  if (/plåster/i.test(f)) return 'på huden';
+  if (/sublingual|munhål/i.test(f)) return 'under tungan';
+  if (/supp|rektal/i.test(f)) return 'rektalt';
+  if (/nässpray/i.test(f)) return 'i näsan';
+  return 'peroralt';
+}
+const arBarn = (db, patientId, nu) => {
+  const p = patientId ? db.query('SELECT fodd FROM patienter WHERE id = ?').get(patientId) : null;
+  if (!p) return false;
+  const d = new Date(nu).toISOString().slice(0, 10);
+  const [y, m, dd] = p.fodd.split('-').map(Number);
+  const [ty, tm, td] = d.split('-').map(Number);
+  return ty - y - (tm < m || (tm === m && td < dd) ? 1 : 0) < 18;
+};
+
 // Grupperna som gäller för dosen, bland dem som systemförvaltaren har slagit på i dag. o är ordinationen med tillägg
 // (spadning och administrationssatt), eller null för en dos utan ordination.
-export function kategorierFor(db, { lm, o = null, nu = Date.now() }) {
+export function kategorierFor(db, { lm, o = null, patientId = null, nu = Date.now() }) {
   const tillsatser = (o?.spadning?.tillsatser ?? []).map(t => katalog(db, t.lakemedelId) ?? { namn: t.namn, atc: null }).filter(Boolean);
-  const x = { lm, tillsatser, spadning: o?.spadning ?? null, satt: o?.administrationssatt ?? null };
+  const opioidSatt = konfiguration.varde(db, KATEGORIER.opioider.parameter, new Date(nu)).map(v => v.toLocaleLowerCase('sv'));
+  const x = { lm, tillsatser, spadning: o?.spadning ?? null, satt: sattFor(lm, o), infusionSatt: o?.administrationssatt ?? null, barn: arBarn(db, patientId ?? o?.patient_id ?? o?.patientId, nu), opioidSatt };
   return Object.entries(KATEGORIER)
-    .filter(([, k]) => k.match(x) && konfiguration.varde(db, k.parameter, new Date(nu)) === true)
+    .filter(([, k]) => k.match(x) && (k.lista || konfiguration.varde(db, k.parameter, new Date(nu)) === true))
     .map(([id, k]) => ({ id, rubrik: k.rubrik, varfor: k.varfor }));
 }
 
-export const aktiv = (db, id, nu = Date.now()) => konfiguration.varde(db, KATEGORIER[id].parameter, new Date(nu)) === true;
+export const aktiv = (db, id, nu = Date.now()) => { const v = konfiguration.varde(db, KATEGORIER[id].parameter, new Date(nu)); return Array.isArray(v) ? v.length > 0 : v === true; };
 
 export const varforText = (kat) => `${kat.map(k => k.varfor).join(' ')} En annan sjuksköterska eller läkare kontrollerar dosen i sin egen inloggning innan den ges.`;
 
@@ -84,7 +113,7 @@ export const varforText = (kat) => `${kat.map(k => k.varfor).join(' ')} En annan
 // kollegakontroll som inte är gjord ges aldrig, oavsett vilka grupper som gäller i dag och vad anropet anger. Dosens
 // läkemedel och ordination tas från den iordningsställda raden på servern, och ett anrop vars läkemedel eller
 // ordination inte stämmer med dosen avvisas. En avstängd grupp gäller bara doser som iordningsställs efter ändringen.
-export function provaAdministrering(db, { atgard, lm, o, ior, beredning: ber, efterhand, nu = Date.now() }) {
+export function provaAdministrering(db, { atgard, lm, o, ior, beredning: ber, efterhand, patientId = null, nu = Date.now() }) {
   if ((atgard === 'ge' || atgard === 'overlamna' || atgard === 'ej_given') && ior) {
     if (ior.lakemedel_id !== lm?.id || (ior.ordination_id ?? null) !== (o?.id ?? null)) {
       throw new Fel(400, 'Etiketten hör inte till det läkemedel och den ordination som anges. Kontrollera patienten och läkemedlet innan något ges.', 'ogiltig', { falt: ['kontrollkod'] });
@@ -95,7 +124,7 @@ export function provaAdministrering(db, { atgard, lm, o, ior, beredning: ber, ef
     if (k && !k.kontrollerad_tid) throw new Fel(400, `${namn} väntar på kollegakontroll. ${k.varfor} Be en kollega välja Kontrollera dosen.`, 'ogiltig', { kollegakontroll: true });
     return null;
   }
-  const kat = kategorierFor(db, { lm, o, nu });
+  const kat = kategorierFor(db, { lm, o, patientId, nu });
   if (!kat.length) return null;
   if (atgard === 'iordningstall') {
     if (ber) {

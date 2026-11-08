@@ -54,7 +54,7 @@ const POSTER = {
     avsedd: 'uppfyllt_demo',
     tester: [T.loForslag, T.loSkicka, T.loSparr, T.loBehorighet, T.loKommun, T.kkFlode, T.kkSjalv, T.kkBeredning, T.kkParameter, T.kkSparad, T.kkInkorg, flode('lakemedelsberattelse')],
     losning: 'Läkemedelsbehandlingen följer patienten genom vårdprocesserna: den gemensamma läkemedelslistan, ordination, iordningsställande med kollegakontroll av högriskläkemedel, administrering, utsättning, läkemedelsgenomgång och vid utskrivningen överföringen av läkemedelsberättelsen, läkemedelslistan och epikrisen till nästa vårdgivare: vårdcentralen där patienten är listad och kommunen i den samordnade planeringen. Mottagaren kvitterar, och avsändaren ser kvittensen.',
-    expert: 'Systemet tar fram berättelsen och listan, väljer mottagarna och avgör vilka doser en kollega ska kontrollera, så läkaren skickar med ett klick och sjuksköterskan inte behöver kunna listan över högriskläkemedel.',
+    expert: 'Systemet tar fram berättelsen och listan, väljer mottagarna och avgör vilka doser en kollega ska kontrollera, också ur administrationssättet och patientens ålder för opioider, så läkaren skickar med ett klick och sjuksköterskan inte behöver kunna listan över högriskläkemedel.',
     anmarkning: 'Kommunen är en simulerad part. NLL är simulerad. Vårdgivare utanför Vårdkällan får inte överföringen elektroniskt i demon, utöver den simulerade kommunen.',
   },
   '3.5.1.5': {
@@ -68,11 +68,11 @@ const POSTER = {
   },
   '3.5.1.7': {
     avsedd: 'uppfyllt_demo',
-    tester: [T.vpProgram, T.vpRiskgrupp, T.vpRegistrera, T.vpRegister, T.vpBehorighet, T.vpBhvEgen, T.vpFhir, flode('vaccination-riskgrupp'),
+    tester: [T.vpProgram, T.vpRiskgrupp, T.vpRegistrera, T.vpRegister, T.vpBehorighet, T.vpBhvEgen, T.vpParameter, T.vpFhir, flode('vaccination-riskgrupp'),
       'Barnhälsovårdens program > besöken och vaccinationerna följer barnets ålder, och systemet säger varför en dos inte kan ges'],
     losning: 'Barnvaccinationsprogrammet i barnhälsovården till fem år och fortsättningen med elevhälsans doser (MPR dos 2, HPV i två doser och difteri, stelkramp och kikhosta dos 5), vattkoppor för barn födda 1 juli 2025 eller senare och programmet för riskgrupper (influensa varje säsong och pneumokocker) under fliken Vaccinationer. Doser som har getts någon annanstans, till exempel av elevhälsan, registreras med källan. Varje dos som ges i Vårdkällan rapporteras till vaccinationsregistret. I FHIR är vaccinationerna Immunization.',
     expert: 'Systemet räknar ut vilka doser som gäller ur ålder, givna doser och riskgrupp i diagnoserna, föreslår dosen med skälet, prövar ordning, intervall och säsong och rapporterar dosen själv, så ingen behöver kunna programmen eller rapportera för hand.',
-    anmarkning: 'Vaccinationsregistret är simulerat. Åldrarna, intervallen, säsongen och riskgrupperna är förenklade demoregler. Folkhälsomyndigheten har inte fastställt åldern för vaccination mot vattkoppor, så dosen visas men kan inte planeras.',
+    anmarkning: 'Vaccinationsregistret är simulerat. Åldern för vaccination mot vattkoppor, åldersgränsen 65 år och diagnosgrupperna i programmet för riskgrupper är parametrar som systemförvaltaren sätter med fyra ögon. Åldersgränsen och diagnosgrupperna är förenklade demoregler och ska stämmas av mot Folkhälsomyndighetens föreskrifter före verklig användning, och så länge åldern för vattkoppor inte är satt visas dosen utan planering. Intervallen och influensasäsongen är förenklade demoregler.',
   },
 };
 

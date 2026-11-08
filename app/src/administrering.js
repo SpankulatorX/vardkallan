@@ -261,7 +261,7 @@ function dagensTillagg(db, o, u, dag) {
   const ber = beredning.beredningsinfo(lm, u.spadning);
   if (ber) ut.beredning = ber;
   // Runda 10, r5: ett högriskläkemedel som en kollega kontrollerar. I en beredning är kontrollen beredningens.
-  const kat = hogrisk.kategorierFor(db, { lm, o: u });
+  const kat = hogrisk.kategorierFor(db, { lm, o: u, patientId: o.patient_id });
   if (kat.length) {
     if (ber) Object.assign(ber, { dubbelkontroll: true, varfor: ber.dubbelkontroll ? ber.varfor : hogrisk.varforText(kat) });
     else ut.kollegakontroll = { kravs: true, kategorier: kat.map(k => ({ id: k.id, rubrik: k.rubrik })), varfor: hogrisk.varforText(kat) };
@@ -396,7 +396,7 @@ function underlag(atk, inp, atgard) {
   const ber = atgard === 'iordningstall' ? beredning.forbered(db, { lm, spadning: o?.spadning ?? null, nu }, inp.beredning) : null;
   if (atgard === 'ge' || atgard === 'overlamna') beredning.provaGe(db, { lm, spadning: o?.spadning ?? null, ior, efterhand: inp.tid != null && nu - tid > EFTERHAND_MS, nu });
   // Runda 10, r5: kollegakontroll av högriskläkemedel (hogriskkontroll.js). En beredning får kontrollen i beredningen.
-  const kollega = hogrisk.provaAdministrering(db, { atgard, lm, o, ior, beredning: ber, efterhand: inp.tid != null && nu - tid > EFTERHAND_MS, nu });
+  const kollega = hogrisk.provaAdministrering(db, { atgard, lm, o, ior, beredning: ber, efterhand: inp.tid != null && nu - tid > EFTERHAND_MS, patientId: atk.patientId, nu });
   const armband = atgard === 'ge' ? beredning.provaArmband(atk, inp.armband, ior?.kontrollkod ?? null) : null;
   // Runda 6, r2: en muntlig ordination som inte är signerad och ett generellt direktiv vars tillfällen är använda
   // stoppas med en förklaring. I ett trappschema är dosen den dagens dos.

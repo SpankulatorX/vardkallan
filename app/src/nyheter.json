@@ -381,7 +381,7 @@
           "omfattning": "stor",
           "var": "#/administrering",
           "rubrik": "Kollegakontroll av högriskläkemedel",
-          "text": "Koncentrerade elektrolyter, opioider, insulin- och heparininfusion och cytostatika iordningsställs och kontrolleras av en kollega i sin egen inloggning innan dosen ges. Systemförvaltaren styr vilka grupper som kontrolleras."
+          "text": "Koncentrerade elektrolyter, opioider som ges parenteralt eller till barn, insulin- och heparininfusion och cytostatika iordningsställs och kontrolleras av en kollega i sin egen inloggning innan dosen ges. Systemförvaltaren styr vilka grupper och administrationssätt som kontrolleras."
         },
         {
           "id": "r10r5-lakemedelsberattelse",
