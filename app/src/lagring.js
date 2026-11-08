@@ -14,6 +14,9 @@ import { createHash } from 'node:crypto';
 import { Fel, iso } from './db.js';
 import { kanRoll } from './atkomst.js';
 import { loggaRad, verifiera as verifieraLogg } from './logg.js';
+import { fhirJournal } from './arkiv.js';
+import { zip } from './zip.js';
+import { datumAv } from './db.js';
 import * as sakerhetslogg from './sakerhetslogg.js';
 
 const ENHETSKOLUMNER = ['enhet_id', 'vardenhet_id', 'fran_enhet_id', 'till_enhet_id', 'registrerad_enhet'];
@@ -23,7 +26,7 @@ const GEMENSAMMA = new Set(['katalog', 'installningar', 'migrering', 'forpacknin
   'tidboksregler', 'konfig_andringar', 'fhir_andringar_last', 'visningsregler']);
 // Tabeller som hör till systemförvaltningen och inte till en huvudman i ett uttag.
 // Datauttaget för uppföljning byggs om ur uppgifterna och följer inte med i ett uttag.
-const SYSTEM = new Set(['omorganisationer', 'omorganisation_flyttar', 'lagringsmatningar', 'sqlite_sequence', 'datauttag']);
+const SYSTEM = new Set(['omorganisationer', 'omorganisation_flyttar', 'lagringsmatningar', 'sqlite_sequence', 'datauttag', 'uttagsbeslut', 'uttagsfiler']);
 // Tabeller vars koppling inte går att se på kolumnnamnen.
 const UTTRYCKLIGA = {
   dubblettforslag: { typ: 'patient', kolumner: ['fran_patient_id', 'till_patient_id'] },
@@ -34,6 +37,12 @@ const UTTRYCKLIGA = {
   vardplan_mal: { typ: 'via', kolumn: 'plan_id', tabell: 'vardplaner' },
   vardplan_atgarder: { typ: 'via', kolumn: 'plan_id', tabell: 'vardplaner' },
 };
+
+// Vad den som lägger till en tabell gör när den inte går att knyta till en huvudman, på sidan Lagring. Testet av
+// klassningen (test/systemforvaltning.test.js) säger samma sak med namnen på listorna i koden.
+export function oklassadeFel(lista) {
+  return `Tabellerna ${lista.join(', ')} går inte att knyta till en huvudman och kommer inte med i ett uttag. Den som har lagt till tabellen klassar den i listan över uttryckliga klassningar i app/src/lagring.js, efter en enhetskolumn, en patientkolumn eller en annan tabell som raden pekar på, eller som gemensam eller systemets egen. Se docs/design.md, avsnittet Lagring.`;
+}
 
 const tabeller = (db) => db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all().map(r => r.name);
 const kolumner = (db, t) => db.query(`PRAGMA table_info("${t}")`).all().map(k => k.name);
@@ -229,14 +238,115 @@ export function oversikt(db, personal) {
     storsta: [...per].sort((a, b) => b.rader - a.rader).slice(0, 8),
     oklassade: per.filter(x => x.klass === 'oklassad').map(x => x.tabell),
     huvudman: hm, matningar,
+    uttag: db.query('SELECT * FROM uttagsbeslut ORDER BY id DESC LIMIT 20').all().map(b => uttagsbeslutUt(db, b, personal)), skal: SKAL,
+    oklassadeText: per.some(x => x.klass === 'oklassad') ? oklassadeFel(per.filter(x => x.klass === 'oklassad').map(x => x.tabell)) : null,
     rutin: [
       'Säkerhetskopian är en konsistent ögonblicksbild av hela databasen, tagen i en enda operation, så att den aldrig innehåller en halv ändring.',
       'Kopian läses in i en ny databas och jämförs tabell för tabell. Triggrarna, indexen, databasens integritet och loggarnas hashkedjor kontrolleras.',
       'Provet körs automatiskt i bygget vid varje ändring och kan köras här när som helst. Resultatet sparas med storlek och tid, så att volymen kan följas över tiden.',
       'Varje uppgift hör till en huvudman genom enheten den registrerades på, och en huvudmans uppgifter kan tas ut för sig till en egen databas med samma tabeller och triggrar.',
     ],
-    anmarkning: 'I demon är databasen en sandlåda i minnet per besökare, och sandlådorna sparas till disk när servern stängs. Lagringsklasser med olika prestanda och kopior på flera platser hör till driften och finns inte i demon.',
+    anmarkning: 'I demon är databasen en sandlåda i minnet per besökare, och sandlådorna sparas till disk när servern stängs. En uttagsfil från demon är märkt som demodata. Lagringsklasser med olika prestanda och kopior på flera platser hör till driften och finns inte i demon.',
   };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Uttag som fil (KD1.1.3.4). Att en huvudman kan ta med sig sina uppgifter är poängen med ett öppet system. Uttaget
+// kräver ett beslut med diarienummer och skäl, godkänt av en annan systemförvaltare, och varje patient i filen loggas.
+// Filen är en ZIP med ett manifest med kontrollsummor, en NDJSON-fil per tabell och ett FHIR-bundle per patient.
+
+export const SKAL = {
+  systembyte: 'Byte av journalsystem', samarbete_upphor: 'Samarbetet upphör', myndighet: 'Beslut av IVO eller domstol', annat: 'Annat skäl',
+};
+const DEMOTEXT = 'Demodata från Vårdkällans demo. Patienterna är påhittade och personnumren är Skatteverkets testpersonnummer. Inte riktiga uppgifter.';
+const personnamn = (db, id) => (id ? db.query('SELECT namn FROM personal WHERE id = ?').get(id)?.namn ?? id : null);
+
+function uttagsbeslutUt(db, b, personal = null) {
+  return {
+    id: b.id, huvudman: { id: b.huvudman, namn: db.query('SELECT namn FROM enheter WHERE id = ?').get(b.huvudman)?.namn ?? b.huvudman },
+    diarienummer: b.diarienummer, skal: b.skal, skalText: SKAL[b.skal] ?? b.skal, motivering: b.motivering,
+    beslutatAv: personnamn(db, b.beslutat_av), beslutat: b.beslutat, status: b.status, godkantAv: personnamn(db, b.godkant_av), godkant: b.godkant,
+    kanGodkanna: Boolean(personal && b.status === 'vantar' && b.beslutat_av !== personal.id),
+    filer: db.query('SELECT count(*) AS n FROM uttagsfiler WHERE beslut_id = ?').get(b.id).n,
+  };
+}
+const hamtaBeslut = (db, id) => {
+  const b = db.query('SELECT * FROM uttagsbeslut WHERE id = ?').get(Number(id));
+  if (!b) throw new Fel(404, 'Beslutet finns inte.', 'saknas');
+  return b;
+};
+
+export function beslutaUttag(db, personal, { huvudman: hm, diarienummer, skal, motivering } = {}, nu = new Date()) {
+  kravRoll(personal);
+  const dnr = typeof diarienummer === 'string' ? diarienummer.trim() : '';
+  if (dnr.length < 3 || dnr.length > 60) throw new Fel(400, 'Ange beslutets diarienummer. Ett uttag av en huvudmans uppgifter görs bara efter ett registrerat beslut.', 'ogiltig', { falt: ['diarienummer'] });
+  if (!SKAL[skal]) throw new Fel(400, 'Välj skäl för uttaget, till exempel byte av journalsystem eller att samarbetet upphör.', 'ogiltig', { falt: ['skal'] });
+  const m = typeof motivering === 'string' ? motivering.trim() : '';
+  if (m.length < 5 || m.length > 500) throw new Fel(400, 'Beskriv kort vad beslutet gäller.', 'ogiltig', { falt: ['motivering'] });
+  if (!huvudman_lista(db).some(h => h.id === hm)) throw new Fel(400, 'Välj en huvudman.', 'ogiltig', { falt: ['huvudman'] });
+  const r = db.query('INSERT INTO uttagsbeslut (huvudman, diarienummer, skal, motivering, beslutat_av, beslutat) VALUES (?, ?, ?, ?, ?, ?)').run(hm, dnr, skal, m, personal.id, iso(nu));
+  loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, handling: 'lagring', resurs: `uttagsbeslut:${r.lastInsertRowid}`, grund: 'administrativ', syfte: dnr });
+  return { beslut: uttagsbeslutUt(db, hamtaBeslut(db, r.lastInsertRowid), personal) };
+}
+
+export function godkannUttag(db, personal, id, nu = new Date()) {
+  kravRoll(personal);
+  const b = hamtaBeslut(db, id);
+  if (b.status !== 'vantar') throw new Fel(409, 'Beslutet är redan godkänt.', 'ogiltig');
+  if (b.beslutat_av === personal.id) throw new Fel(403, 'Fyra ögon: en annan systemförvaltare än den som registrerade beslutet måste godkänna uttaget.', 'nekad');
+  db.query("UPDATE uttagsbeslut SET status = 'godkant', godkant_av = ?, godkant = ? WHERE id = ?").run(personal.id, iso(nu), b.id);
+  loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, handling: 'lagring', resurs: `uttagsbeslut:${b.id}`, grund: 'administrativ', syfte: b.diarienummer });
+  sakerhetslogg.logga(db, { typ: 'andrad_behorighet', personal_id: personal.id, enhet_id: personal.enhet_id, beskrivning: `Uttag av ${uttagsbeslutUt(db, b).huvudman.namn}s uppgifter godkänt, beslut ${b.diarienummer}.` });
+  return { beslut: uttagsbeslutUt(db, hamtaBeslut(db, b.id), personal) };
+}
+
+const sha256 = (b) => createHash('sha256').update(b).digest('hex');
+
+// Filen för ett godkänt beslut. Varje patient i filen loggas i åtkomstloggen med beslutets diarienummer som syfte.
+export function uttagsfil(db, personal, id, nu = new Date()) {
+  kravRoll(personal);
+  const b = hamtaBeslut(db, id);
+  if (b.status !== 'godkant') throw new Fel(409, 'Uttaget väntar på att en annan systemförvaltare godkänner beslutet.', 'ogiltig');
+  const u = uttag(db, b.huvudman);
+  try {
+    const filer = [];
+    const manifestTabeller = [];
+    let rader = 0;
+    for (const [t, n] of Object.entries(u.antal)) {
+      if (!n) continue;
+      const text = u.db.query(`SELECT * FROM "${t}" ORDER BY rowid`).all().map(r => JSON.stringify(r)).join('\n') + '\n';
+      const data = Buffer.from(text, 'utf8');
+      filer.push({ namn: `tabeller/${t}.ndjson`, data });
+      manifestTabeller.push({ namn: t, fil: `tabeller/${t}.ndjson`, rader: n, klass: u.klass[t].typ, sha256: sha256(data) });
+      rader += n;
+    }
+    const patienter = u.db.query('SELECT id FROM patienter ORDER BY id').all().map(r => r.id);
+    const fhir = [];
+    for (const pid of patienter) {
+      const data = Buffer.from(JSON.stringify(fhirJournal(u.db, pid)), 'utf8');
+      filer.push({ namn: `fhir/${pid}.json`, data });
+      fhir.push({ patient: pid, fil: `fhir/${pid}.json`, sha256: sha256(data) });
+    }
+    const beslut = uttagsbeslutUt(db, b);
+    const manifest = {
+      format: 'vardkallan-uttag', version: 1, demodata: true, text: DEMOTEXT, skapad: iso(nu), skapadAv: personal.namn,
+      huvudman: beslut.huvudman, beslut: { diarienummer: b.diarienummer, skal: beslut.skalText, motivering: b.motivering, beslutatAv: beslut.beslutatAv, godkantAv: beslut.godkantAv },
+      patienter: patienter.length, rader, tabeller: manifestTabeller, fhir,
+      beskrivning: 'En NDJSON-fil per tabell med en rad per post, som i databasen, och ett FHIR R4-bundle per patient med huvudmannens uppgifter. Kontrollsummorna är SHA-256.',
+    };
+    const data = zip([
+      { namn: 'LASMIG.txt', data: `${DEMOTEXT}\n\nUttag av ${beslut.huvudman.namn}s uppgifter enligt beslut ${b.diarienummer} (${beslut.skalText}).\nmanifest.json beskriver filerna och har en kontrollsumma för var och en.\n` },
+      { namn: 'manifest.json', data: JSON.stringify(manifest, null, 2) },
+      ...filer,
+    ], nu);
+    const summa = sha256(data);
+    const logg = db.transaction(() => {
+      for (const pid of patienter) loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, patient_id: pid, handling: 'lagring', resurs: `uttag:${b.id}`, grund: 'administrativ', syfte: b.diarienummer });
+      db.query('INSERT INTO uttagsfiler (beslut_id, tid, av, sha256, byte, patienter, rader) VALUES (?, ?, ?, ?, ?, ?, ?)').run(b.id, iso(nu), personal.id, summa, data.length, patienter.length, rader);
+    });
+    logg();
+    return { data, sha256: summa, filnamn: `demodata-uttag-${b.huvudman}-${datumAv(nu)}.zip`, manifest };
+  } finally { u.db.close(); }
 }
 
 // Kontrollerar att ett uttag bara har huvudmannens enheter och patienter som har något hos huvudmannen.

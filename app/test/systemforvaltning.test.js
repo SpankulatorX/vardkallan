@@ -266,6 +266,50 @@ describe('Systemförvaltning', () => {
     expect(omorganisation.oversikt(db, sysf(db), nu).forandringar[0]).toMatchObject({ status: 'genomford', resultat: [{ id: 'namnbyte', antal: 1 }] });
   });
 
+  test(`omorganisation: ett namnbyte kräver inte fyra ögon, loggas och kan ångras fram till datumet`, () => {
+    const db = byggSeed();
+    const nu = new Date();
+    const { omorganisation: f } = omorganisation.forbered(db, sysf(db), { typ: 'namnbyte', datum: imorgon(nu), plan: { enhet: 'uso-med', namn: 'Internmedicinska kliniken USÖ' } }, nu);
+    expect(f).toMatchObject({ status: 'forberedd', kraverGodkannande: false, vantarPaGodkannande: false });
+    expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE handling = 'omorganisera' AND resurs = ? AND personal_id = 'sysf'").get(`omorganisation:${f.id}`).n).toBe(1);
+    expect(omorganisation.avbryt(db, sysf(db), f.id, nu).omorganisation.status).toBe('avbruten');
+    expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE handling = 'omorganisera' AND resurs = ?").get(`omorganisation:${f.id}`).n).toBe(2);
+    omorganisation.genomforForfallna(db, new Date(nu.getTime() + DAG));
+    expect(db.query("SELECT namn FROM enheter WHERE id = 'uso-med'").get().namn).toBe('Medicinska kliniken USÖ');
+    // När datumet har kommit och bytet är genomfört går det inte att ångra.
+    const { omorganisation: g } = omorganisation.forbered(db, sysf(db), { typ: 'namnbyte', datum: datumAv(nu), plan: { enhet: 'uso-med', namn: 'Internmedicinska kliniken USÖ' } }, nu);
+    expect(g.status).toBe('genomford');
+    expect(fel(() => omorganisation.avbryt(db, sysf(db), g.id, nu)).status).toBe(409);
+  });
+
+  test(`omorganisation: personalen som registrerar spärrar ser att patienten kan tillfrågas om spärren ska gälla den nya vårdenheten, utan att något röjs för andra, och ingen spärr sätts automatiskt`, () => {
+    const db = byggSeed();
+    const nu = new Date();
+    const sparrar = db.query('SELECT * FROM sparrar').all();
+    forberedOchGodkann(db, { typ: 'sammanslagning', datum: datumAv(nu), plan: { gamla: ['uso-kard', 'uso-psyk'], namn: 'Hjärt- och psykiatrikliniken USÖ' } }, nu);
+    const ny = db.query("SELECT id FROM enheter WHERE namn = 'Hjärt- och psykiatrikliniken USÖ'").get().id;
+    expect(db.query('SELECT * FROM sparrar').all()).toEqual(sparrar);
+    // Vårdadministratören på den nya vårdenheten registrerar spärrar och ser frågan, utan att den gamla enheten nämns.
+    const adm = personal(db, 'adm-kard');
+    expect(adm.enhet_id).toBe(ny);
+    const fragor = omorganisation.sparrFragor(db, adm, nu);
+    expect(fragor).toEqual([expect.objectContaining({ patientId: 'p04', vardenhet: { id: ny, namn: 'Hjärt- och psykiatrikliniken USÖ' } })]);
+    expect(fragor[0].text).toContain('kan tillfrågas om spärren också ska gälla Hjärt- och psykiatrikliniken USÖ');
+    expect(JSON.stringify(fragor)).not.toContain('Allmänpsykiatriska');
+    // Andra ser ingenting: läkaren på samma vårdenhet, systemförvaltaren och personal på andra vårdenheter.
+    for (const id of ['lak-kard', 'sysf', 'lak-akut', 'ssk-kard']) expect(omorganisation.sparrFragor(db, personal(db, id), nu)).toEqual([]);
+    // Spärren registreras som en vanlig spärr bara när patienten själv har beslutat det.
+    expect(fel(() => omorganisation.registreraSparr(db, adm, 'p04', {}, nu)).message).toContain('patienten själv');
+    expect(fel(() => omorganisation.registreraSparr(db, personal(db, 'lak-kard'), 'p04', { patientensBeslut: true }, nu)).status).toBe(403);
+    expect(fel(() => omorganisation.registreraSparr(db, adm, 'p01', { patientensBeslut: true }, nu)).status).toBe(400);
+    omorganisation.registreraSparr(db, adm, 'p04', { patientensBeslut: true }, nu);
+    expect(db.query("SELECT enhet_id FROM sparrar WHERE patient_id = 'p04' AND aktiv = 1 ORDER BY id").all().map(r => r.enhet_id)).toEqual(['uso-psyk', ny]);
+    expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE handling = 'registrera_sparr' AND patient_id = 'p04' AND personal_id = 'adm-kard'").get().n).toBe(1);
+    expect(omorganisation.sparrFragor(db, adm, nu)).toEqual([]);
+    // Den nya spärren gäller som andra spärrar: andra vårdenheter behöver samtycke för den nya enhetens uppgifter.
+    expect(lasa(db, 'lak-akut', 'p04', ny, { nodatkomst: { syfte: 'Prov' } })).toMatchObject({ tillaten: false, krav: 'kraver_samtycke' });
+  });
+
   test(`omorganisation: vid namnbyte är det samma enhet, och spärren gäller som förut`, () => {
     const db = byggSeed();
     const nu = new Date();
@@ -585,6 +629,33 @@ describe('Systemförvaltning', () => {
     expect(fel(() => undantag.oversikt(db, personal(db, 'lak-kard'), nu)).status).toBe(403);
   });
 
+  test(`undantag: ett undantag som inte längre är tillåtet kan varken godkännas eller avslutas via konfigurationens väg, och varje väg prövar samma sak`, async () => {
+    const k = klient(app);
+    await k.logga('sysf');
+    const db = sandlada(app, k).db;
+    const nu = new Date();
+    // Nora Ekholm föreslår att Vårdcentralen Kumla undantas från visning när den inte har några pågående vårdkontakter.
+    const pagaende = (v) => db.query("SELECT count(*) AS n FROM vardkontakter WHERE enhet_id = 'vc-kumla' AND slut IS NULL AND coalesce(planerad, 0) = 0 AND coalesce(automatisk, 0) = 0").get().n;
+    expect(pagaende()).toBe(0);
+    const { andring } = undantag.foresla(db, sysf2(db), { omfang: 'enhet', varde: 'vc-kumla', kanaler: ['visning'], giltigFran: datumAv(nu), motivering: 'Prov.' }, nu);
+    // Sedan får vårdcentralen en pågående vårdkontakt, och undantaget skulle dölja uppgifter i pågående vård.
+    db.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, orsak) VALUES ('p13', 'vc-kumla', 'oppenvard', ?, 'Prov')").run(nu.toISOString());
+    // Konfigurationens rutter gäller bara parametrar: ett undantag där ger 404, både vid godkännande och avslag.
+    expect((await k.post(`/api/konfiguration/${andring.id}/godkann`, {})).status).toBe(404);
+    expect((await k.post(`/api/konfiguration/${andring.id}/avsluta`, { kommentar: 'Nej.' })).status).toBe(404);
+    // Undantagsrutten prövar undantaget igen och stoppar det.
+    const r = await k.post(`/api/undantag/${andring.id}/godkann`, {});
+    expect(r.status).toBe(400);
+    expect(r.data.fel).toContain('pågående vård');
+    // Den gemensamma godkännandefunktionen prövar samma sak, vilken väg som än används.
+    expect(fel(() => konfiguration.godkann(db, sysf(db), andring.id, {}, nu)).message).toContain('pågående vård');
+    expect(db.query('SELECT status FROM konfig_andringar WHERE id = ?').get(andring.id).status).toBe('vantar');
+    // En parameter går inte att godkänna via undantagens rutt.
+    const seedad = db.query("SELECT id FROM konfig_andringar WHERE slag = 'parameter' AND status = 'vantar'").get().id;
+    expect((await k.post(`/api/undantag/${seedad}/godkann`, {})).status).toBe(404);
+    expect(fel(() => konfiguration.godkann(db, sysf(db), seedad, {}, nu, { slag: 'undantag' })).status).toBe(404);
+  });
+
   test(`undantag: översikten visar tydligt vad som är undantaget, och ett undantag kan avslutas`, () => {
     const db = byggSeed();
     const nu = new Date();
@@ -615,7 +686,16 @@ describe('Systemförvaltning', () => {
   test(`lagring: varje tabell klassas efter huvudman, och ingen tabell är oklassad`, () => {
     const db = byggSeed();
     const k = lagring.klassa(db);
-    expect(Object.entries(k).filter(([, v]) => v.typ === 'oklassad').map(([t]) => t)).toEqual([]);
+    const oklassade = Object.entries(k).filter(([, v]) => v.typ === 'oklassad').map(([t]) => t);
+    // En tabell som en annan del har lagt till och som inte klassas av sina kolumner: felet säger exakt vad man gör.
+    if (oklassade.length) {
+      throw new Error(`Tabellerna ${oklassade.join(', ')} går inte att knyta till en huvudman och kommer inte med i ett uttag. Lägg till var och en i UTTRYCKLIGA i app/src/lagring.js: `
+        + "{ typ: 'enhet', kolumner: ['<kolumn>'] } om raden har en enhet i en kolumn med ett annat namn, "
+        + "{ typ: 'patient', kolumner: ['<kolumn>'] } om den har patientens id i en kolumn med ett annat namn, eller "
+        + "{ typ: 'via', kolumn: '<kolumn>', tabell: '<tabell>' } om den pekar på en rad i en annan tabell. "
+        + 'En tabell utan patientuppgifter som ska följa med i varje uttag läggs i stället i GEMENSAMMA, och en tabell som bara hör till systemet i SYSTEM. Se docs/design.md, avsnittet Lagring.');
+    }
+    expect(lagring.oklassadeFel(['ny_tabell'])).toContain('docs/design.md, avsnittet Lagring');
     expect(k.anteckningar).toMatchObject({ typ: 'enhet', kolumner: ['enhet_id'] });
     expect(k.remisser).toMatchObject({ typ: 'enhet', kolumner: ['fran_enhet_id', 'till_enhet_id'] });
     expect(k.ordination_historik).toEqual({ typ: 'via', kolumn: 'ordination_id', tabell: 'ordinationer' });
@@ -688,6 +768,95 @@ describe('Systemförvaltning', () => {
       expect(r.kontroller.filter(k => !k.ok).map(k => k.id)).toEqual(['rader', 'triggrar']);
       expect(r.kontroller.find(k => k.id === 'rader').detalj).toBe('installningar');
     } finally { m.close(); }
+  });
+
+  // Läser en ZIP-fil utan komprimering (som zip.js skriver): namn och innehåll per fil.
+  const lasZip = (buf) => {
+    const ut = {};
+    let i = 0;
+    while (buf.readUInt32LE(i) === 0x04034b50) {
+      const storlek = buf.readUInt32LE(i + 18);
+      const namnLangd = buf.readUInt16LE(i + 26);
+      const extra = buf.readUInt16LE(i + 28);
+      const namn = buf.subarray(i + 30, i + 30 + namnLangd).toString('utf8');
+      const start = i + 30 + namnLangd + extra;
+      ut[namn] = buf.subarray(start, start + storlek);
+      i = start + storlek;
+    }
+    return ut;
+  };
+  const sha = (b) => require('node:crypto').createHash('sha256').update(b).digest('hex');
+
+  test(`lagring: uttaget som fil kräver ett beslut med diarienummer och skäl, och fyra ögon`, () => {
+    const db = byggSeed();
+    const nu = new Date();
+    const f = (inp) => fel(() => lagring.beslutaUttag(db, sysf(db), inp, nu));
+    expect(f({ huvudman: 'rol', skal: 'systembyte', motivering: 'Regionen byter journalsystem.' }).message).toContain('diarienummer');
+    expect(f({ huvudman: 'rol', diarienummer: 'RS 2026-123', motivering: 'x' }).message).toContain('skäl');
+    expect(f({ huvudman: 'finns-inte', diarienummer: 'RS 2026-123', skal: 'systembyte', motivering: 'Regionen byter journalsystem.' }).status).toBe(400);
+    expect(fel(() => lagring.beslutaUttag(db, personal(db, 'lak-kard'), { huvudman: 'rol', diarienummer: 'RS 2026-123', skal: 'systembyte', motivering: 'Regionen byter journalsystem.' }, nu)).status).toBe(403);
+    const { beslut } = lagring.beslutaUttag(db, sysf(db), { huvudman: 'rol', diarienummer: 'RS 2026-123', skal: 'systembyte', motivering: 'Regionen byter journalsystem.' }, nu);
+    expect(beslut).toMatchObject({ status: 'vantar', huvudman: { id: 'rol', namn: 'Region Örebro län' }, skalText: 'Byte av journalsystem', kanGodkanna: false });
+    expect(fel(() => lagring.uttagsfil(db, sysf(db), beslut.id, nu)).message).toContain('väntar på');
+    expect(fel(() => lagring.godkannUttag(db, sysf(db), beslut.id, nu)).message).toContain('Fyra ögon');
+    expect(fel(() => db.query("UPDATE uttagsbeslut SET status = 'godkant', godkant_av = beslutat_av WHERE id = ?").run(beslut.id))).not.toBeNull();
+    expect(lagring.godkannUttag(db, sysf2(db), beslut.id, nu).beslut).toMatchObject({ status: 'godkant', godkantAv: 'Nora Ekholm' });
+    expect(fel(() => db.query('DELETE FROM uttagsbeslut').run())).not.toBeNull();
+  });
+
+  test(`lagring: filen har bara huvudmannens uppgifter, ett manifest med kontrollsummor, NDJSON per tabell och FHIR per patient, och är märkt som demodata`, () => {
+    const db = byggSeed();
+    const nu = new Date();
+    andraHuvudman(db);
+    const { beslut } = lagring.beslutaUttag(db, sysf(db), { huvudman: 'rv', diarienummer: 'DL 2026-9', skal: 'samarbete_upphor', motivering: 'Samarbetet om journalsystemet upphör.' }, nu);
+    lagring.godkannUttag(db, sysf2(db), beslut.id, nu);
+    const u = lagring.uttagsfil(db, sysf(db), beslut.id, nu);
+    expect(u.data.subarray(0, 2).toString()).toBe('PK');
+    expect(u.sha256).toBe(sha(u.data));
+    expect(u.filnamn).toMatch(/^demodata-uttag-rv-\d{4}-\d{2}-\d{2}\.zip$/);
+    const filer = lasZip(u.data);
+    const manifest = JSON.parse(filer['manifest.json'].toString());
+    expect(manifest).toMatchObject({ format: 'vardkallan-uttag', demodata: true, huvudman: { id: 'rv' }, beslut: { diarienummer: 'DL 2026-9', skal: 'Samarbetet upphör', beslutatAv: 'Tomas Lindh', godkantAv: 'Nora Ekholm' }, patienter: 2 });
+    expect(manifest.text).toContain('Demodata');
+    expect(filer['LASMIG.txt'].toString()).toContain('Demodata');
+    // Varje fil i manifestet finns och har rätt kontrollsumma.
+    for (const x of [...manifest.tabeller, ...manifest.fhir]) expect(sha(filer[x.fil])).toBe(x.sha256);
+    const ndjson = (t) => filer[`tabeller/${t}.ndjson`].toString().split('\n').filter(Boolean).map(r => JSON.parse(r));
+    expect(ndjson('patienter').map(r => r.id).sort()).toEqual(['p01', 'px1']);
+    expect([...new Set(ndjson('vardkontakter').map(r => r.enhet_id))]).toEqual(['rv-med']);
+    expect(ndjson('anteckningar').map(r => r.patient_id)).toEqual(['px1']);
+    expect(ndjson('enheter').map(r => r.id).sort()).toEqual(['rv', 'rv-med']);
+    // FHIR per patient, med bara huvudmannens uppgifter.
+    const bundle = JSON.parse(filer['fhir/px1.json'].toString());
+    expect(bundle).toMatchObject({ resourceType: 'Bundle', type: 'collection' });
+    expect(bundle.entry.some(e => e.resource.resourceType === 'Patient')).toBe(true);
+    const p01 = JSON.parse(filer['fhir/p01.json'].toString());
+    expect(p01.entry.filter(e => e.resource.resourceType === 'Encounter').length).toBe(1);
+    expect(JSON.stringify(p01)).not.toContain('uso-kard');
+  });
+
+  test(`lagring: varje patient i uttaget loggas, och filen hämtas genom API:t bara av systemförvaltaren`, async () => {
+    const k = klient(app);
+    await k.logga('sysf');
+    const db = sandlada(app, k).db;
+    const r = await k.post('/api/lagring/uttag', { huvudman: 'rol', diarienummer: 'RS 2026-77', skal: 'systembyte', motivering: 'Regionen byter journalsystem.' });
+    expect(r.status).toBe(201);
+    expect((await k.get(`/api/lagring/uttag/${r.data.beslut.id}/fil`)).status).toBe(409);
+    lagring.godkannUttag(db, sysf2(db), r.data.beslut.id);
+    const fil = await fetch(`${app.url}/api/lagring/uttag/${r.data.beslut.id}/fil`, { headers: { Cookie: k.kaka() } });
+    expect(fil.status).toBe(200);
+    expect(fil.headers.get('content-type')).toBe('application/zip');
+    expect(fil.headers.get('content-disposition')).toContain('demodata-uttag-rol-');
+    const data = Buffer.from(await fil.arrayBuffer());
+    expect(fil.headers.get('x-kontrollsumma')).toBe(sha(data));
+    const patienter = JSON.parse(lasZip(data)['manifest.json'].toString()).patienter;
+    const loggade = db.query("SELECT DISTINCT patient_id FROM atkomstlogg WHERE handling = 'lagring' AND resurs = ? AND personal_id = 'sysf'").all(`uttag:${r.data.beslut.id}`);
+    expect(loggade.length).toBe(patienter);
+    expect(patienter).toBeGreaterThan(10);
+    expect((await k.get('/api/lagring')).data.uttag[0]).toMatchObject({ status: 'godkant', filer: 1 });
+    const l = klient(app);
+    await l.logga('lak-kard');
+    expect((await l.get(`/api/lagring/uttag/${r.data.beslut.id}/fil`)).status).toBe(403);
   });
 
   test(`lagring: provåterläsningen i sandlådan kontrollerar tabeller, triggrar, integritet och loggarnas hashkedjor och sparas utan patientuppgifter`, async () => {

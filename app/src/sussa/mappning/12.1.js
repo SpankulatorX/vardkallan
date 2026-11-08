@@ -15,6 +15,8 @@ const OMORG = [
   `${S}omorganisation: vid namnbyte är det samma enhet, och spärren gäller som förut`,
   `${S}omorganisation: en omorganisation som ändrar åtkomsten kräver fyra ögon och genomförs först när en annan systemförvaltare har godkänt den`,
   `${S}omorganisation: en mottagare hos en annan vårdgivare avvisas med en förklaring`,
+  `${S}omorganisation: ett namnbyte kräver inte fyra ögon, loggas och kan ångras fram till datumet`,
+  `${S}omorganisation: personalen som registrerar spärrar ser att patienten kan tillfrågas om spärren ska gälla den nya vårdenheten, utan att något röjs för andra, och ingen spärr sätts automatiskt`,
   `${S}omorganisation: nedläggning stänger vårdenheten, mottagaren tar över det som pågår, och en stängd vårdenhet tar inte emot remisser`,
   `${S}omorganisation: delning fördelar arbetsplatserna och personalen på de nya vårdenheterna och flyttar tidbokens tider framåt`,
   `${S}omorganisation: systemet stoppar ett namn som redan finns, ett datum bakåt i tiden och en enhet som redan ingår i en förberedd förändring`,
@@ -41,6 +43,7 @@ const UNDANTAG = [
   `${S}undantag: publiceringen till nationella tjänster (simulerad) räknar bort det undantagna`,
   `${S}undantag: systemet stoppar ett undantag som skulle dölja uppgifter i pågående vård och förklarar varför`,
   `${S}undantag: översikten visar tydligt vad som är undantaget, och ett undantag kan avslutas`,
+  `${S}undantag: ett undantag som inte längre är tillåtet kan varken godkännas eller avslutas via konfigurationens väg, och varje väg prövar samma sak`,
 ];
 
 const KONFIG_LOSNING = 'Sidan Regler och parametrar samlar demoreglerna och parametrarna som systemet använder, per område, med gällande värde, kommande värde och ändringar som väntar. En ändring föreslås med giltighetsdatum och motivering, godkänns av en annan systemförvaltare (fyra ögon, också som en kontroll i databasen) och läses sedan av den modul som använder parametern, så att den slår igenom i hela systemet från dagen den gäller. Historiken visar varje ändring med vem som föreslog och godkände, och beslutade ändringar kan inte ändras eller raderas.';

@@ -20,8 +20,9 @@ export function registreraRutter({ rutt, kravInloggad }) {
   rutt('GET', '/api/konfiguration', (c) => konfiguration.oversikt(c.db, kravInloggad(c)));
   rutt('POST', '/api/konfiguration/forhandsvisa', (c) => { const p = kravInloggad(c); return forhand(() => konfiguration.forhandsvisa(c.db, p, c.body)); });
   rutt('POST', '/api/konfiguration', (c) => [201, konfiguration.foresla(c.db, kravInloggad(c), c.body)]);
-  rutt('POST', '/api/konfiguration/:id/godkann', (c, id) => konfiguration.godkann(c.db, kravInloggad(c), id, c.body));
-  rutt('POST', '/api/konfiguration/:id/avsluta', (c, id) => konfiguration.avsluta(c.db, kravInloggad(c), id, c.body));
+  // Konfigurationens rutter når bara parametrar. Ett undantag godkänns och avslutas genom undantagens rutter.
+  rutt('POST', '/api/konfiguration/:id/godkann', (c, id) => konfiguration.godkann(c.db, kravInloggad(c), id, c.body, new Date(), { slag: 'parameter' }));
+  rutt('POST', '/api/konfiguration/:id/avsluta', (c, id) => konfiguration.avsluta(c.db, kravInloggad(c), id, c.body, new Date(), { slag: 'parameter' }));
 
   rutt('GET', '/api/undantag', (c) => undantag.oversikt(c.db, kravInloggad(c)));
   rutt('POST', '/api/undantag/forhandsvisa', (c) => { const p = kravInloggad(c); return forhand(() => undantag.forhandsvisa(c.db, p, c.body)); });
@@ -37,6 +38,19 @@ export function registreraRutter({ rutt, kravInloggad }) {
 
   rutt('GET', '/api/lagring', (c) => lagring.oversikt(c.db, kravInloggad(c)));
   rutt('POST', '/api/lagring/prov', (c) => lagring.provaAterlasning(c.db, kravInloggad(c)));
+  rutt('POST', '/api/lagring/uttag', (c) => [201, lagring.beslutaUttag(c.db, kravInloggad(c), c.body)]);
+  rutt('POST', '/api/lagring/uttag/:id/godkann', (c, id) => lagring.godkannUttag(c.db, kravInloggad(c), id));
+  rutt('GET', '/api/lagring/uttag/:id/fil', (c, id) => {
+    const f = lagring.uttagsfil(c.db, kravInloggad(c), id);
+    return new Response(f.data, { headers: { 'Content-Type': 'application/zip', 'Content-Disposition': `attachment; filename="${f.filnamn}"`, 'X-Kontrollsumma': f.sha256, 'Cache-Control': 'no-store' } });
+  });
+  // Patientens eget beslut att en spärr också ska gälla den nya vårdenheten efter en omorganisation.
+  rutt('POST', '/api/patient/:id/sparr', (c, id) => omorganisation.registreraSparr(c.db, kravInloggad(c), id, c.body));
+}
+
+// Inkorgen för den som registrerar spärrar: patienter som kan tillfrågas efter en omorganisation.
+export function inkorg(c) {
+  return { sparrFragor: omorganisation.sparrFragor(c.db, c.personal) };
 }
 
 // Körs vid varje anrop med en sandlåda: genomför förberedda omorganisationer som gäller i dag. Ett fel stoppar aldrig

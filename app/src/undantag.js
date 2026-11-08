@@ -186,22 +186,16 @@ export function foresla(db, personal, { omfang, varde, kanaler, giltigFran, moti
   return { andring: undantagAndringUt(db, db.query('SELECT * FROM konfig_andringar WHERE id = ?').get(r.lastInsertRowid), personal) };
 }
 
-// Godkänner ett undantag. Det prövas igen, eftersom läget kan ha ändrats sedan det föreslogs (till exempel en ny
-// pågående vårdkontakt på vårdenheten).
+// Godkänner ett undantag. Den gemensamma godkännandefunktionen prövar det igen (konfiguration.js), eftersom läget kan ha
+// ändrats sedan det föreslogs, till exempel en ny pågående vårdkontakt på vårdenheten.
 export function godkann(db, personal, id, inp, nu = new Date()) {
   kravRoll(personal);
-  const a = db.query("SELECT * FROM konfig_andringar WHERE id = ? AND slag = 'undantag'").get(Number(id));
-  if (!a) throw new Fel(404, 'Undantaget finns inte.', 'saknas');
-  const [omfang, ...rest] = a.nyckel.split(':');
-  const p = prova(db, { omfang, varde: rest.join(':'), kanaler: JSON.parse(a.varde).kanaler }, nu);
-  if (a.status === 'vantar' && a.foreslagen_av !== personal.id && !p.ok) throw new Fel(400, `Undantaget kan inte godkännas: ${p.varfor}`, 'ogiltig');
-  godkannAndring(db, personal, id, inp, nu);
+  godkannAndring(db, personal, id, inp, nu, { slag: 'undantag' });
   return { andring: undantagAndringUt(db, db.query('SELECT * FROM konfig_andringar WHERE id = ?').get(Number(id)), personal) };
 }
 export function avsluta(db, personal, id, inp, nu = new Date()) {
   kravRoll(personal);
-  if (!db.query("SELECT 1 FROM konfig_andringar WHERE id = ? AND slag = 'undantag'").get(Number(id))) throw new Fel(404, 'Undantaget finns inte.', 'saknas');
-  avslutaAndring(db, personal, id, inp, nu);
+  avslutaAndring(db, personal, id, inp, nu, { slag: 'undantag' });
   return { andring: undantagAndringUt(db, db.query('SELECT * FROM konfig_andringar WHERE id = ?').get(Number(id)), personal) };
 }
 

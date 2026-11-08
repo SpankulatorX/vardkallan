@@ -9,14 +9,17 @@ const L = {
   schema: `${S}lagring: uttaget har samma tabeller, index och triggrar som originalet`,
   vacuum: `${S}lagring: säkerhetskopia till fil med VACUUM INTO och återläsning ger ett konsistent läge med alla tabeller, rader och triggrar`,
   underkand: `${S}lagring: en kopia som skiljer sig från originalet underkänns`,
+  filBeslut: `${S}lagring: uttaget som fil kräver ett beslut med diarienummer och skäl, och fyra ögon`,
+  filInnehall: `${S}lagring: filen har bara huvudmannens uppgifter, ett manifest med kontrollsummor, NDJSON per tabell och FHIR per patient, och är märkt som demodata`,
+  filLogg: `${S}lagring: varje patient i uttaget loggas, och filen hämtas genom API:t bara av systemförvaltaren`,
   prov: `${S}lagring: provåterläsningen i sandlådan kontrollerar tabeller, triggrar, integritet och loggarnas hashkedjor och sparas utan patientuppgifter`,
 };
 const LOSNING_KOPIA = 'Säkerhetskopian är en konsistent ögonblicksbild av hela databasen, tagen i en enda operation (SQLite VACUUM INTO till en fil, eller serialize i minnet). Återläsningen läser in kopian i en ny databas och jämför tabell för tabell och rad för rad, kontrollerar att alla triggrar och index finns och verkar, att databasen är hel och att åtkomstloggens och säkerhetsloggens hashkedjor håller. Provet körs automatiskt i bygget, och systemförvaltaren kan köra det i sandlådan från sidan Lagring.';
 const EXPERT_KOPIA = 'Systemet gör hela jämförelsen själv och säger vilken kontroll som inte höll och i vilken tabell. Ingen behöver veta hur databasen är byggd för att se att återläsningen ger ett fungerande system.';
 const ANM_KOPIA = 'I demon är varje besökares sandlåda en databas i minnet, som sparas till disk när servern stängs. Schemalagda säkerhetskopior, kopior på flera platser och återställning till en viss tidpunkt hör till driften och finns inte i demon.';
-const LOSNING_HUVUDMAN = 'Varje uppgift hör till en huvudman genom den enhet den registrerades på: enheten leder upp till en vårdgivare. En tabell utan enhet hör till huvudmannen genom patienten, och en tabell som pekar på en annan rad genom den raden. En huvudmans uppgifter tas ut till en egen databas med samma tabeller, index och triggrar, och systemet kontrollerar att uttaget inte har någon rad från en annan huvudman.';
+const LOSNING_HUVUDMAN = 'Varje uppgift hör till en huvudman genom den enhet den registrerades på: enheten leder upp till en vårdgivare. En tabell utan enhet hör till huvudmannen genom patienten, och en tabell som pekar på en annan rad genom den raden. En huvudmans uppgifter tas ut till en egen databas med samma tabeller, index och triggrar, och systemet kontrollerar att uttaget inte har någon rad från en annan huvudman. Som fil tas uppgifterna ut efter ett beslut med diarienummer och skäl som en annan systemförvaltare har godkänt: en ZIP med ett manifest med kontrollsummor (SHA-256), en NDJSON-fil per tabell och ett FHIR R4-bundle per patient, och varje patient i filen loggas.';
 const EXPERT_HUVUDMAN = 'Systemet klassar själv varje tabell efter dess kolumner, så att en ny tabell kommer med utan att någon behöver komma ihåg det. En tabell som inte går att klassa tas inte med i ett uttag och visas på sidan Lagring, hellre än att den läcker till en annan huvudman.';
-const ANM_HUVUDMAN = 'Demon har en huvudman, Region Örebro län, och den simulerade kommunen. Testet lägger in en andra påhittad region och visar att uppgifterna särskiljs. Uttaget visas för systemförvaltaren som en kontroll med antal och lämnas inte ut som fil i demon.';
+const ANM_HUVUDMAN = 'Demon har en huvudman, Region Örebro län, och den simulerade kommunen. Testet lägger in en andra påhittad region och visar att uppgifterna särskiljs. En uttagsfil från demon är märkt som demodata. Den andra systemförvaltaren går inte att logga in som, så i demon godkänns ett beslut om uttag bara i testerna.';
 
 export default [
   { id: 'KD1.1.1.1', kategori: 'leverantor', egna: [], tester: [], avsedd: 'planerat',
@@ -63,7 +66,7 @@ export default [
   },
   {
     id: 'KD1.1.3.4', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
-    tester: [L.klassa, L.uttag, L.schema, L.prov],
+    tester: [L.klassa, L.uttag, L.schema, L.filBeslut, L.filInnehall, L.filLogg, L.prov],
     losning: LOSNING_HUVUDMAN,
     expert: EXPERT_HUVUDMAN,
     anmarkning: ANM_HUVUDMAN,

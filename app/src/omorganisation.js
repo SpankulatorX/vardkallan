@@ -31,7 +31,7 @@
 // bevakningar, listning, personalen och tidbokens scheman framåt. Varje flytt sparas med värdet före och efter
 // (omorganisation_flyttar). Inget som har hänt skrivs om.
 import { Fel, iso, addDagar, giltigtDatum, datumAv, lokalTid } from './db.js';
-import { kanRoll, vardenhetFor, harVardrelation, glomForegangare } from './atkomst.js';
+import { kanRoll, vardenhetFor, harVardrelation, glomForegangare, foregangare, visningsnamn, visningsPnr } from './atkomst.js';
 import { loggaRad } from './logg.js';
 import * as sakerhetslogg from './sakerhetslogg.js';
 
@@ -567,4 +567,33 @@ export function namnVid(db, enhetId, tid) {
     if (r) return r.namn;
   } catch { /* äldre sandlåda */ }
   return db.query('SELECT namn FROM enheter WHERE id = ?').get(enhetId)?.namn ?? enhetId;
+}
+
+// Efter en omorganisation: patienter med en spärr mot en stängd vårdenhet som har gått upp i min vårdenhet, och som kan
+// tillfrågas om spärren också ska gälla min vårdenhet (HSA 2.4). Visas bara för den som registrerar spärrar
+// (vårdadministratören), bara för patienter med vårdrelation hit, och utan att nämna den spärrade enheten. Ingen spärr
+// sätts av sig själv.
+export function sparrFragor(db, personal, nu = new Date()) {
+  if (!kanRoll(personal, 'registrera_sparr')) return [];
+  const ve = vardenhetFor(db, personal.enhet_id);
+  const gamla = [...foregangare(db, ve)];
+  if (!gamla.length) return [];
+  const namn = enhet(db, ve)?.namn ?? ve;
+  const rader = db.query(`SELECT DISTINCT patient_id FROM sparrar WHERE aktiv = 1 AND enhet_id IN (${ph(gamla)})
+    AND patient_id NOT IN (SELECT patient_id FROM sparrar WHERE aktiv = 1 AND enhet_id = ?) ORDER BY patient_id`).all(...gamla, ve);
+  return rader.map(r => db.query('SELECT * FROM patienter WHERE id = ?').get(r.patient_id)).filter(p => p && harVardrelation(db, p.id, ve, nu)).map(p => ({
+    patientId: p.id, patient: visningsnamn(p), personnummer: visningsPnr(p), skyddad: Boolean(p.skyddad), vardenhet: { id: ve, namn },
+    text: `Patienten har en spärr mot en vårdenhet som har gått upp i ${namn} och kan tillfrågas om spärren också ska gälla ${namn}. Ingen spärr sätts utan patientens eget beslut.`,
+  }));
+}
+
+// Registrerar patientens beslut som en vanlig spärr mot min vårdenhet.
+export function registreraSparr(db, personal, patientId, { patientensBeslut } = {}, nu = new Date()) {
+  if (!kanRoll(personal, 'registrera_sparr')) throw new Fel(403, 'Din yrkesroll registrerar inte spärrar.', 'nekad');
+  if (patientensBeslut !== true) throw new Fel(400, 'En spärr registreras bara när patienten själv har beslutat att den ska gälla, i samtal eller på blankett.', 'ogiltig', { falt: ['patientensBeslut'] });
+  const fraga = sparrFragor(db, personal, nu).find(f => f.patientId === patientId);
+  if (!fraga) throw new Fel(400, 'Patienten har ingen spärr från en omorganisation som kan gälla din vårdenhet.', 'ogiltig');
+  db.query('INSERT INTO sparrar (patient_id, enhet_id, registrerad) VALUES (?, ?, ?)').run(patientId, fraga.vardenhet.id, datumAv(nu));
+  loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, patient_id: patientId, handling: 'registrera_sparr', resurs: `sparr:${fraga.vardenhet.id}`, grund: 'administrativ', syfte: 'Patientens eget beslut efter en omorganisation' });
+  return { ok: true, vardenhet: fraga.vardenhet };
 }

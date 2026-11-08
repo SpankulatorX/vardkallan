@@ -81,6 +81,9 @@ export async function visa(main) {
   // Runda 6, r4: egna bevakningar som har löpt ut, med en patient eller för vårdenheten.
   const egnaBev = (d.egnaBevakningar ?? []).map(x => `<li class="ik-ater"><div class="ik-text"><span class="ik-rubrik">${x.patient ? `<a href="#/patient/${encodeURIComponent(x.patient.id)}">${esc(pnamn(x.patient))}</a>` : 'Vårdenheten'}: ${esc(x.text)}</span>
     <span class="under-text">${x.enhetsniva ? 'För hela vårdenheten' : 'Din bevakning'}, datum ${esc(x.datum)}. Lagd av ${esc(x.skapadAv?.namn ?? '')}.</span></div><div class="ik-knappar"><button type="button" class="knapp liten sekundar" data-egen-bev="${x.id}">Klar</button></div></li>`);
+  // Runda 7, r4: patienter som kan tillfrågas om spärren ska gälla en ny vårdenhet efter en omorganisation.
+  const sparrFr = (d.sparrFragor ?? []).map((x, i) => `<li class="ik-ater"><div class="ik-text"><span class="ik-rubrik">${esc(pnamn(x.patient ? { namn: x.patient, skyddad: x.skyddad } : null))}, ${esc(x.personnummer)}</span>
+    <span class="under-text">${esc(x.text)}</span></div><div class="ik-knappar"><button type="button" class="knapp liten sekundar" data-sparr-fraga="${i}">Registrera patientens beslut</button></div></li>`);
   const yrke = S.session?.personal?.yrke;
   // Runda 6, r2: har användaren hunnit gå vidare till en annan vy, eller loggat ut, medan inkorgen hämtades finns
   // inget att visa den i.
@@ -97,6 +100,7 @@ export async function visa(main) {
     ${S.session.behorigheter.includes('ordinera') ? sektion('atersatt', 'Läkemedel att sätta in igen', atersatt, 'Inget läkemedel ska sättas in igen efter ett uppehåll i dag eller i morgon.', 'Antikoagulantia som gör uppehåll inför ett ingrepp. Systemet påminner dagen före återinsättningen och fyller i ordinationen ur den tidigare.') : ''}
     ${S.session.behorigheter.includes('delegera') && (S.session.personal.yrke === 'sjukskoterska' || deleg.length) ? sektion('deleg', 'Delegeringar som går ut', deleg, 'Inga delegeringar går ut de närmaste 30 dagarna.', 'Undersköterskornas delegeringar att ge läkemedel. Följ upp dem och registrera nya innan de går ut.') : ''}
     ${S.session.behorigheter.includes('sla_samman') ? sektion('dubb', 'Troliga dubbletter', dubb, 'Inga troliga dubbletter.', 'Journaler som systemet tror gäller samma person, till exempel ett reservnummer och ett personnummer med samma namn och födelsedatum.') : ''}
+    ${sparrFr.length ? sektion('sparrfragor', 'Spärrar att fråga patienten om', sparrFr, '', 'En vårdenhet där patienten har en spärr har gått upp i din vårdenhet. Spärren gäller som förut mot den gamla enhetens uppgifter. Patienten kan själv besluta att den också ska gälla här.') : ''}
     ${inkorgSektioner(d, sektion, rad)}
     ${S.session.behorigheter.includes('bevaka_enhet') ? sektion('egnabev', 'Bevakningar', egnaBev, 'Inga bevakningar har löpt ut.', 'Bevakningar som du eller någon på vårdenheten har lagt upp, med datum och ansvarig.') : ''}
     ${sektion('larm', 'Larm', larm, 'Inga larm.', 'Remisser där mottagningskvittens, svar eller kvittens av svaret har uteblivit för länge.')}
@@ -116,6 +120,8 @@ export async function visa(main) {
   main.querySelector('#ik').addEventListener('click', async (e) => {
     const gr = e.target.closest('[data-granska]');
     if (gr) { if (await granska(gr, d.mallarAttGodkanna[Number(gr.dataset.granska)])) visa(main); return; }
+    const sf = e.target.closest('[data-sparr-fraga]');
+    if (sf) { if (await sparrBeslut(sf, d.sparrFragor[Number(sf.dataset.sparrFraga)])) visa(main); return; }
     const sg = e.target.closest('[data-signera]');
     if (sg) return signeraMuntlig(sg, sg.dataset.signera, async () => { await uppdateraInkorg(); visa(main); });
     const b = e.target.closest('[data-avsluta],[data-vh-igen],[data-vh-nod]');
@@ -184,6 +190,21 @@ async function avsluta(b, x) {
   try {
     await medKnapp(b, () => api(`/api/ordination/${encodeURIComponent(x.ordinationId)}/aterinsattning/avsluta`, { metod: 'POST', data: { orsak } }));
     notis(`Behandlingen med ${x.lakemedel} är avslutad.`);
+    await uppdateraInkorg();
+    return true;
+  } catch { return false; }
+}
+
+// Runda 7, r4: patientens eget beslut att spärren också ska gälla den nya vårdenheten registreras som en vanlig spärr.
+async function sparrBeslut(knapp, f) {
+  const svar = await dialog(`<form><h2 id="dlg-rubrik">Spärr för ${esc(f.patient)}</h2>
+    <p>${esc(f.text)}</p>
+    <div class="kryssfalt"><input type="checkbox" id="ik-sparr-beslut" name="beslut" value="ja" required><label for="ik-sparr-beslut">Patienten har själv beslutat att spärren ska gälla ${esc(f.vardenhet.namn)}</label></div>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Registrera spärren</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`);
+  if (!svar) return false;
+  try {
+    await medKnapp(knapp, () => api(`/api/patient/${encodeURIComponent(f.patientId)}/sparr`, { metod: 'POST', data: { patientensBeslut: svar.data.beslut === 'ja' } }));
+    notis(`Spärren gäller nu också ${f.vardenhet.namn}.`);
     await uppdateraInkorg();
     return true;
   } catch { return false; }

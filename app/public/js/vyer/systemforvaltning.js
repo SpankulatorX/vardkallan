@@ -343,7 +343,14 @@ export const lagring = {
       <section class="lm-sektion" aria-labelledby="sf-l-huvudman"><h2 id="sf-l-huvudman">Uppgifter per huvudman</h2>
         <div class="tabellrulle"><table class="tabell"><thead><tr><th scope="col">Huvudman</th><th scope="col" class="tal">Rader</th><th scope="col" class="tal">Patienter</th><th scope="col">Uttag</th></tr></thead><tbody>
           ${o.huvudman.map(h => `<tr><th scope="row">${esc(h.namn)}</th><td class="tal">${tal(h.rader, 0)}</td><td class="tal">${tal(h.patienter, 0)}</td><td>${h.kontroll.ok ? ikon.bock : ikon.varning} ${esc(h.kontroll.text)}</td></tr>`).join('')}</tbody></table></div>
-        ${o.oklassade.length ? `<p class="ruta ruta-larm liten">Tabeller som inte går att knyta till en huvudman och därför inte tas med i ett uttag: ${esc(o.oklassade.join(', '))}.</p>` : ''}</section>
+        ${o.oklassadeText ? `<p class="ruta ruta-larm liten">${esc(o.oklassadeText)}</p>` : ''}</section>
+      <section class="lm-sektion" aria-labelledby="sf-l-uttag"><h2 id="sf-l-uttag">Uttag som fil</h2>
+        <p class="liten">En huvudman kan ta med sig sina uppgifter, till exempel vid byte av journalsystem. Uttaget kräver ett beslut med diarienummer och skäl, och en annan systemförvaltare godkänner det. Filen har ett manifest med kontrollsummor, en NDJSON-fil per tabell och ett FHIR-bundle per patient, och varje patient i filen loggas.</p>
+        ${o.uttag.length ? `<ul class="inkorg-lista">${o.uttag.map(u => `<li class="ik-ater sf-uttag"><div class="ik-text"><span class="ik-rubrik">${esc(u.huvudman.namn)}, beslut ${esc(u.diarienummer)}</span>
+          <span class="under-text">${esc(u.skalText)}: ${esc(u.motivering)} Registrerat av ${esc(u.beslutatAv)} ${esc(tidpunkt(u.beslutat))}.</span>
+          <span class="under-text">${u.status === 'godkant' ? `Godkänt av ${esc(u.godkantAv)}.${u.filer ? ` Filen har tagits ut ${u.filer} ${u.filer === 1 ? 'gång' : 'gånger'}.` : ''}` : 'Väntar på att en annan systemförvaltare godkänner beslutet.'}</span></div>
+          <div class="ik-knappar">${u.kanGodkanna ? `<button type="button" class="knapp liten" data-godkann-uttag="${u.id}">Godkänn</button>` : ''}${u.status === 'godkant' ? `<a class="knapp liten" href="/api/lagring/uttag/${u.id}/fil" download data-hamta-uttag>Hämta filen</a>` : ''}</div></li>`).join('')}</ul>` : ''}
+        <button type="button" class="knapp sekundar" data-nytt-uttag>Registrera beslut om uttag</button></section>
       <section class="lm-sektion" aria-labelledby="sf-l-volym"><h2 id="sf-l-volym">Volym</h2>
         <p>Databasen är ${esc(storlek(o.byte))} med ${tal(o.rader, 0)} rader i ${o.tabeller} tabeller.</p>
         <div class="tabellrulle"><table class="tabell"><thead><tr><th scope="col">Största tabellerna</th><th scope="col" class="tal">Rader</th></tr></thead><tbody>
@@ -351,6 +358,13 @@ export const lagring = {
         ${o.matningar.length > 1 ? `<p class="liten">Tidigare mätningar: ${o.matningar.slice(1).map(m => `${esc(tidpunkt(m.tid))} ${esc(storlek(m.byte))}`).join(', ')}.</p>` : ''}</section>
       <section class="lm-sektion" aria-labelledby="sf-l-rutin"><h2 id="sf-l-rutin">Rutinen</h2><ul>${o.rutin.map(r => `<li>${esc(r)}</li>`).join('')}</ul><p class="demoregel">${esc(o.anmarkning)}</p></section>`;
     el.addEventListener('click', async (e) => {
+      const g = e.target.closest('[data-godkann-uttag]');
+      if (g) {
+        try { await medKnapp(g, () => api(`/api/lagring/uttag/${g.dataset.godkannUttag}/godkann`, { metod: 'POST', data: {} })); notis('Uttaget är godkänt. Filen kan hämtas.'); } catch { /* notis visad */ }
+        return lagring.visa(main);
+      }
+      const n = e.target.closest('[data-nytt-uttag]');
+      if (n) return nyttUttag(main, o, n);
       const b = e.target.closest('[data-prova]');
       if (!b) return;
       try {
@@ -364,3 +378,21 @@ export const lagring = {
     });
   },
 };
+
+// Beslut om uttag: huvudmannen, diarienumret, skälet och vad beslutet gäller. Systemet föreslår den första huvudmannen.
+async function nyttUttag(main, o, knapp) {
+  const svar = await dialog(`<form><h2 id="dlg-rubrik">Registrera beslut om uttag</h2>
+    <div class="falt"><label for="sf-ut-hm">Huvudman</label><select id="sf-ut-hm" name="huvudman">${o.huvudman.map(h => `<option value="${esc(h.id)}">${esc(h.namn)}</option>`).join('')}</select></div>
+    <div class="falt"><label for="sf-ut-dnr">Beslutets diarienummer <span class="obl">(obligatoriskt)</span></label><input id="sf-ut-dnr" name="diarienummer" required maxlength="60"></div>
+    <div class="falt"><label for="sf-ut-skal">Skäl</label><select id="sf-ut-skal" name="skal">${Object.entries(o.skal).map(([k, t]) => `<option value="${esc(k)}">${esc(t)}</option>`).join('')}</select></div>
+    <div class="falt"><label for="sf-ut-mot">Vad beslutet gäller <span class="obl">(obligatoriskt)</span></label><textarea id="sf-ut-mot" name="motivering" rows="2" required maxlength="500"></textarea></div>
+    <p class="liten">En annan systemförvaltare godkänner beslutet innan filen kan hämtas.</p>
+    <p class="dialog-fel form-fel" role="alert" hidden></p>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Registrera beslutet</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`, { klass: 'dialog-bred' });
+  if (!svar) return;
+  try {
+    await medKnapp(knapp, () => api('/api/lagring/uttag', { metod: 'POST', data: svar.data }));
+    notis('Beslutet är registrerat och väntar på att en annan systemförvaltare godkänner det.');
+  } catch { /* notis visad */ }
+  lagring.visa(main);
+}

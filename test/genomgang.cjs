@@ -1306,6 +1306,14 @@ const MENY = {
       await forvanta(page, '.notis', 'Säkerhetskopian lästes tillbaka och allt stämmer');
       await forvanta(page, '[data-provresultat]', 'Triggrarna stoppar ändring och radering av loggen i kopian');
       await bild(page, '103-lagring');
+      // Uttag som fil: ett beslut med diarienummer och skäl, som en annan systemförvaltare godkänner (fyra ögon).
+      await page.click('[data-nytt-uttag]');
+      await page.locator('dialog[open] #sf-ut-dnr').fill('RS 2026-1234');
+      await page.locator('dialog[open] #sf-ut-mot').fill('Regionen byter journalsystem och tar med sig sina uppgifter.');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', 'väntar på att en annan systemförvaltare godkänner det');
+      await forvanta(page, '#sf-l-uttag ~ ul', 'beslut RS 2026-1234');
+      await forvanta(page, '#sf-l-uttag ~ ul', 'Väntar på att en annan systemförvaltare godkänner beslutet');
       await page.waitForLoadState('networkidle');
     });
     await allaVyer(page, 'Tomas Lindh', MENY.systemforvaltare);

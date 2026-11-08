@@ -251,24 +251,36 @@ export function foresla(db, personal, { nyckel, varde: inmatat, giltigFran, moti
   return { andring: andringUt(db, hamta(db, id), personal) };
 }
 
-function hamta(db, id) {
+// En ändring med id. Med slag (parameter eller undantag) ger en ändring av ett annat slag 404, så att varje rutt bara
+// når sina egna ändringar.
+function hamta(db, id, slag = null) {
   const a = db.query('SELECT * FROM konfig_andringar WHERE id = ?').get(Number(id));
-  if (!a) throw new Fel(404, 'Ändringen finns inte.', 'saknas');
+  if (!a || (slag && a.slag !== slag)) throw new Fel(404, 'Ändringen finns inte.', 'saknas');
   return a;
 }
 
+// Prövar ändringen igen före godkännandet, eftersom reglerna eller läget kan ha ändrats sedan den föreslogs. Samma prövning
+// för parametrar och undantag, vilken väg godkännandet än kommer.
+function proverIgen(db, a, nu) {
+  if (a.slag === 'parameter') {
+    const p = prova(a.nyckel, JSON.parse(a.varde));
+    if (!p.ok) throw new Fel(400, `Ändringen kan inte godkännas: ${p.varfor}`, 'ogiltig');
+    return;
+  }
+  const [omfang, ...rest] = a.nyckel.split(':');
+  const p = require('./undantag.js').prova(db, { omfang, varde: rest.join(':'), kanaler: JSON.parse(a.varde).kanaler }, nu);
+  if (!p.ok) throw new Fel(400, `Undantaget kan inte godkännas: ${p.varfor}`, 'ogiltig');
+}
+
 // Godkänner en ändring som någon annan har föreslagit. Värdet kontrolleras igen, eftersom reglerna kan ha ändrats.
-export function godkann(db, personal, id, { kommentar } = {}, nu = new Date()) {
-  const a = hamta(db, id);
+export function godkann(db, personal, id, { kommentar } = {}, nu = new Date(), { slag = null } = {}) {
+  const a = hamta(db, id, slag);
   kravRoll(personal, a.slag === 'undantag' ? 'undanta' : 'konfigurera');
   if (a.status !== 'vantar') throw new Fel(409, 'Ändringen är redan beslutad.', 'ogiltig');
   if (a.foreslagen_av === personal.id) {
     throw new Fel(403, 'Fyra ögon: en annan systemförvaltare än den som föreslog ändringen måste godkänna den.', 'nekad');
   }
-  if (a.slag === 'parameter') {
-    const p = prova(a.nyckel, JSON.parse(a.varde));
-    if (!p.ok) throw new Fel(400, `Ändringen kan inte godkännas: ${p.varfor}`, 'ogiltig');
-  }
+  proverIgen(db, a, nu);
   const dag = datumAv(nu);
   const galler = a.giltig_fran < dag ? dag : a.giltig_fran;
   db.query("UPDATE konfig_andringar SET status = 'godkand', beslutad_av = ?, beslutad = ?, beslut_kommentar = ?, galler_fran = ? WHERE id = ?")
@@ -280,8 +292,8 @@ export function godkann(db, personal, id, { kommentar } = {}, nu = new Date()) {
 }
 
 // Avslår en ändring (någon annan än förslagsställaren) eller återkallar den (förslagsställaren själv).
-export function avsluta(db, personal, id, { kommentar } = {}, nu = new Date()) {
-  const a = hamta(db, id);
+export function avsluta(db, personal, id, { kommentar } = {}, nu = new Date(), { slag = null } = {}) {
+  const a = hamta(db, id, slag);
   kravRoll(personal, a.slag === 'undantag' ? 'undanta' : 'konfigurera');
   if (a.status !== 'vantar') throw new Fel(409, 'Ändringen är redan beslutad.', 'ogiltig');
   const egen = a.foreslagen_av === personal.id;

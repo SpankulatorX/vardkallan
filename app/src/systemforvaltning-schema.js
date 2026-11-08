@@ -72,6 +72,25 @@ CREATE TABLE IF NOT EXISTS enhetsnamn (
 );
 ${bestaende('enhetsnamn', 'Ett tidigare namn')}
 
+-- Beslut om uttag av en huvudmans uppgifter som fil (KD1.1.3.4): diarienummer, skäl och fyra ögon. Ett beslut raderas
+-- aldrig och ändras inte när det är godkänt. Varje fil som tas ut sparas med kontrollsumma i uttagsfiler.
+CREATE TABLE IF NOT EXISTS uttagsbeslut (
+  id INTEGER PRIMARY KEY, huvudman TEXT NOT NULL, diarienummer TEXT NOT NULL, skal TEXT NOT NULL, motivering TEXT NOT NULL,
+  beslutat_av TEXT NOT NULL, beslutat TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'vantar', godkant_av TEXT, godkant TEXT,
+  CHECK (status IN ('vantar', 'godkant')), CHECK (godkant_av IS NULL OR godkant_av <> beslutat_av),
+  CHECK (status <> 'godkant' OR godkant_av IS NOT NULL), CHECK (length(trim(diarienummer)) >= 3)
+);
+CREATE TRIGGER IF NOT EXISTS uttagsbeslut_raderas_ej BEFORE DELETE ON uttagsbeslut BEGIN SELECT RAISE(ABORT, 'Ett beslut om uttag raderas inte'); END;
+CREATE TRIGGER IF NOT EXISTS uttagsbeslut_andras_ej BEFORE UPDATE ON uttagsbeslut
+  WHEN OLD.status <> 'vantar' OR NEW.id IS NOT OLD.id OR NEW.huvudman IS NOT OLD.huvudman OR NEW.diarienummer IS NOT OLD.diarienummer
+    OR NEW.skal IS NOT OLD.skal OR NEW.motivering IS NOT OLD.motivering OR NEW.beslutat_av IS NOT OLD.beslutat_av OR NEW.beslutat IS NOT OLD.beslutat
+  BEGIN SELECT RAISE(ABORT, 'Ett godkänt beslut om uttag ändras inte'); END;
+CREATE TABLE IF NOT EXISTS uttagsfiler (
+  id INTEGER PRIMARY KEY, beslut_id INTEGER NOT NULL, tid TEXT NOT NULL, av TEXT NOT NULL, sha256 TEXT NOT NULL, byte INTEGER NOT NULL,
+  patienter INTEGER NOT NULL, rader INTEGER NOT NULL
+);
+${bestaende('uttagsfiler', 'En uttagsfil')}
+
 -- Mätningar av lagringen och provåterläsningarna (KD1.1.3.5 och KD1.1.3.6). resultat är JSON utan patientuppgifter.
 CREATE TABLE IF NOT EXISTS lagringsmatningar (
   id INTEGER PRIMARY KEY, tid TEXT NOT NULL, byte INTEGER NOT NULL, rader INTEGER NOT NULL, tabeller INTEGER NOT NULL,

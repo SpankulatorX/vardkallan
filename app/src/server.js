@@ -52,7 +52,7 @@ import { registreraRutter as r4Rutter, inkorg as r4Inkorg, period as r4Period } 
 import * as planering from './planering.js';
 import * as tidbokFhir from './tidbok-fhir.js';
 // Runda 7, r4: systemförvaltningen, med konfiguration, omorganisation, undantag och lagring.
-import { registreraRutter as systemforvaltningRutter, efterDatum as systemforvaltningEfterDatum } from './systemforvaltning-rutter.js';
+import { registreraRutter as systemforvaltningRutter, efterDatum as systemforvaltningEfterDatum, inkorg as systemforvaltningInkorg } from './systemforvaltning-rutter.js';
 import * as konfiguration from './konfiguration.js';
 import * as undantag from './undantag.js';
 import * as omorganisation from './omorganisation.js';
@@ -1125,6 +1125,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...lakemedelsansvarInkorg(c),
       // Runda 6, r4: egna bevakningar som har löpt ut, den inloggades och vårdenhetens.
       ...r4Inkorg(c),
+      // Runda 7, r4: patienter som kan tillfrågas om en spärr efter en omorganisation, för vårdadministratören.
+      ...systemforvaltningInkorg(c),
     });
   });
   // Runda 6, r1: NEWS2-larmen loggas på patienten en gång per session och mätomgång, som raderna om återinsättning.
