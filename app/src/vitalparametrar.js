@@ -207,7 +207,9 @@ export function basfakta(atk, p) {
   ut.listning = l ? { vardenhet: { id: l.enhet_id, namn: enhetsnamn(db, l.enhet_id) }, fran: l.fran } : null;
   if (kanRoll(pers, 'las_oversikt')) {
     const ok = journal.synligOverkanslighet(new Atkomst(db, pers, p.id, atk.val, 'las_oversikt')) ?? [];
-    ut.overkanslighet = ok.map(o => ({ amne: o.amne, atc: o.atc, allvarlighet: o.allvarlighet, registrerad: { datum: o.datum, vardenhet: o.vardenhet }, kallaEtikett: o.kallaEtikett }));
+    // Runda 10, r2: id, version och vem, så att uppgiften kan ändras och avslutas i sitt eget flöde (overkanslighet.js).
+    ut.overkanslighet = ok.map(o => ({ id: o.id, amne: o.amne, atc: o.atc, allvarlighet: o.allvarlighet, reaktion: o.reaktion, version: o.version,
+      registrerad: { datum: o.datum, vardenhet: o.vardenhet, av: o.registreradAv?.namn ?? null }, kallaEtikett: o.kallaEtikett }));
     ut.fhir.overkanslighet = ok.map(o => `AllergyIntolerance/${o.id}`);
     ut.uppmarksamhet = uppmarksamhet.symbolFor(db, pers, p.id, atk.val);
   } else { ut.overkanslighet = null; ut.uppmarksamhet = null; }

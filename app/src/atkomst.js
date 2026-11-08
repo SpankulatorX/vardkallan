@@ -546,3 +546,9 @@ ROLLER.arkivarie.push('forskning_godkann');
 ROLLER.verksamhetschef.push('forskning_godkann', 'signeringslista');
 ROLLER.lakare.push('signeringslista');
 for (const h of ['patientgrupp', 'forskning_bestall', 'forskning_godkann', 'signeringslista']) UTAN_PATIENT.add(h);
+
+// Runda 10, r2: basfakta (overkanslighet.js, Sussa 3.1.6.2). Läkare och sjuksköterskor registrerar, ändrar och avslutar
+// överkänslighet på sin egen vårdenhet med vårdrelation till patienten.
+Object.assign(HANDLINGAR, { registrera_overkanslighet: 'registrera, ändra och avsluta överkänslighet' });
+ROLLER.lakare.push('registrera_overkanslighet');
+ROLLER.sjukskoterska.push('registrera_overkanslighet');

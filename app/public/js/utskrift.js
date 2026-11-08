@@ -5,7 +5,28 @@ import { esc, api, dialog, notis, felNotis, tidpunkt, datum, ikon } from './ui.j
 
 const KON = { kvinna: 'Kvinna', man: 'Man' };
 
-function dialogHtml(f) {
+// Runda 10, r2: urvalet. Allt, ett datumintervall eller valda poster. Intervallet och posterna kommer från servern, och
+// det som är förvalt är allt, så att den vanliga utskriften är lika snabb som förut.
+const TYPTEXT = { ordination: 'Läkemedel', diagnos: 'Diagnos', anteckning: 'Anteckning', matvarde: 'Mätvärde', remiss: 'Remiss', vardkontakt: 'Vårdkontakt' };
+function urvalHtml(f, valda) {
+  const u = f.urval;
+  if (!u) return '';
+  const posterHtml = u.poster.map((p, i) => `<label class="val-rad"><input type="checkbox" name="post" value="${esc(p.typ)}:${esc(p.id)}"${valda.has(`${p.typ}:${p.id}`) ? ' checked' : ''} id="ut-post-${i}"><span>${esc(TYPTEXT[p.typ] ?? p.typ)}: ${esc(p.rubrik)}<span class="under-text">${esc(p.tid ? (String(p.tid).length > 10 ? tidpunkt(p.tid) : datum(p.tid)) : '')}${p.enhet ? `, ${esc(p.enhet)}` : ''}</span></span></label>`).join('');
+  return `<details class="ruta" data-urval${valda.size ? ' open' : ''}><summary>Urval</summary>
+      <fieldset class="valgrupp"><legend>Vad i delarna som tas med</legend>
+        <label class="val-rad"><input type="radio" name="urval" value="allt"${valda.size ? '' : ' checked'}><span>Allt i de valda delarna</span></label>
+        <label class="val-rad"><input type="radio" name="urval" value="intervall"><span>Ett datumintervall<span class="under-text">Aktuella läkemedel och vårdkontakter är med om de gällde någon dag i intervallet.</span></span></label>
+        <div class="falt-rad" data-intervall hidden>
+          <div class="falt"><label for="ut-fran">Från</label><input id="ut-fran" name="fran" type="date" value="${esc(u.fran)}"></div>
+          <div class="falt"><label for="ut-till">Till</label><input id="ut-till" name="till" type="date" value="${esc(u.till)}"></div>
+        </div>
+        <label class="val-rad"><input type="radio" name="urval" value="poster"${valda.size ? ' checked' : ''}><span>Valda poster<span class="under-text">Bara de poster som är markerade nedan skrivs ut.</span></span></label>
+        <div class="kryss-lista" data-poster${valda.size ? '' : ' hidden'}>${posterHtml || '<p class="dampad liten">Inga poster att välja.</p>'}</div>
+      </fieldset>
+    </details>`;
+}
+
+function dialogHtml(f, valda = new Set()) {
   const forsta = f.forslag[0];
   return `<h2 id="dlg-rubrik">Skriv ut journalen</h2>
     <p class="dampad">Utskriften innehåller bara det du får se. Den får ett utskrifts-id som står på varje sida, och den loggas.</p>
@@ -19,6 +40,7 @@ function dialogHtml(f) {
         ${f.delar.map(d => `<label class="val-rad"><input type="checkbox" name="del" value="${esc(d.id)}"${forsta.delar.includes(d.id) ? ' checked' : ''}><span>${esc(d.rubrik)}</span></label>`).join('')}
         ${f.ingarInte.length ? `<p class="dampad liten">Ingår inte för din yrkesroll: ${esc(f.ingarInte.join(', '))}.</p>` : ''}
       </fieldset>
+      ${urvalHtml(f, valda)}
       <label class="val-rad" data-utlamnas-rad><input type="checkbox" name="utlamnas"${forsta.utlamnasTill ? ' checked' : ''}><span>Kopian lämnas ut till patienten<span class="under-text">Registreras som utlämnad journalhandling, med vem och när.</span></span></label>
       <label class="val-rad"><input type="checkbox" name="avidentifierad"><span>Utan namn och personnummer<span class="under-text">För granskning eller undervisning. Fritexten kan ändå peka ut patienten.</span></span></label>
       <p class="dialog-fel" role="alert" hidden></p>
@@ -26,16 +48,28 @@ function dialogHtml(f) {
     <div class="knapprad"><button type="button" class="knapp text" data-varde="avbryt">Avbryt</button><button type="button" class="knapp" data-varde="ok">${ikon.logg}<span>Skriv ut</span></button></div>`;
 }
 
-// Öppnar dialogen och skriver ut. Returnerar utskriften, eller null om den avbröts.
-export async function skrivUt(patientId) {
+// Öppnar dialogen och skriver ut. Returnerar utskriften, eller null om den avbröts. Med poster ([{ typ, id }]) är de
+// förvalda, till exempel när en enskild anteckning skrivs ut från journalen.
+export async function skrivUt(patientId, { poster = null } = {}) {
   let f;
   try { f = await api(`/api/patient/${encodeURIComponent(patientId)}/utskrift/forslag`); } catch (e) { felNotis(e); return null; }
+  const valda = new Set((poster ?? []).map(p => `${p.typ}:${p.id}`));
+  if (valda.size) {
+    // Delarna följer de förvalda posterna, och syftet är en kopia av just dem.
+    const delar = [...new Set((f.urval?.poster ?? []).filter(p => valda.has(`${p.typ}:${p.id}`)).map(p => p.del))];
+    f = { ...f, forslag: [{ id: 'valda', syfte: valda.size === 1 ? 'Kopia av en journalanteckning' : 'Kopia av valda uppgifter ur journalen', delar, utlamnasTill: null, skal: 'Det du valde att skriva ut.' }, ...f.forslag] };
+  }
   let val = null;
-  const svar = await dialog(dialogHtml(f), {
+  const svar = await dialog(dialogHtml(f, valda), {
     klass: 'dialog-bred',
     onOpen: (dl) => {
       const form = dl.querySelector('form');
       form.addEventListener('change', (e) => {
+        if (e.target.name === 'urval') {
+          dl.querySelector('[data-intervall]').hidden = e.target.value !== 'intervall';
+          dl.querySelector('[data-poster]').hidden = e.target.value !== 'poster';
+          return;
+        }
         if (e.target.name !== 'syfte') {
           if (e.target.name === 'avidentifierad' && e.target.checked) form.utlamnas.checked = false;
           return;
@@ -57,6 +91,17 @@ export async function skrivUt(patientId) {
       if (syfte.length < 3) return 'Skriv syftet med utskriften.';
       if (form.utlamnas.checked && form.avidentifierad.checked) return 'En kopia till patienten skrivs ut med patientens namn och personnummer.';
       val = { syfte, delar, utlamnasTill: form.utlamnas.checked ? 'Patienten' : null, avidentifierad: form.avidentifierad.checked };
+      const urval = form.querySelector('[name="urval"]:checked')?.value ?? 'allt';
+      if (urval === 'intervall') {
+        if (!form.fran.value && !form.till.value) return 'Välj ett datum för intervallet.';
+        if (form.fran.value && form.till.value && form.fran.value > form.till.value) return 'Intervallet slutar före det börjar.';
+        Object.assign(val, { fran: form.fran.value || null, till: form.till.value || null });
+      } else if (urval === 'poster') {
+        const p = [...form.querySelectorAll('[name="post"]:checked')].map(c => { const [typ, id] = c.value.split(':'); return { typ, id: Number(id) }; })
+          .filter(x => delar.includes(f.urval.poster.find(y => y.typ === x.typ && y.id === x.id)?.del));
+        if (!p.length) return 'Markera minst en post i de valda delarna.';
+        val.poster = p;
+      }
       return null;
     },
   });

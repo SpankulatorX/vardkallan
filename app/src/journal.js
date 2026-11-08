@@ -380,6 +380,8 @@ export function overkanslighetUt(db, o) {
   return {
     id: o.id, amne: o.amne, atc: o.atc, reaktion: o.reaktion, allvarlighet: o.allvarlighet, datum: o.datum,
     vardenhet: { id: o.enhet_id, namn: enhetsnamn(db, o.enhet_id) }, kalla: o.kalla, kallaEtikett: kallaEtikett(o.kalla, o.datum),
+    // Runda 10, r2: versionen och vem som registrerade den gällande versionen (overkanslighet.js).
+    version: o.version ?? 1, registreradAv: o.registrerad_av ? personalKort(db, o.registrerad_av) : null,
   };
 }
 

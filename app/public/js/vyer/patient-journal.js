@@ -7,6 +7,8 @@ import { doldaRad, kravRuta } from './patient.js';
 import { dokumenterasHtml, kopplaDokumenteras, nyKontaktData, kontaktNotis } from './patient-vardkontakt.js';
 import * as kontrasignering from '../kontrasignering.js';
 import { satUppAterbesok } from './patient-tider.js';
+// Runda 10, r2: en enskild anteckning skrivs ut för sig (Sussa 3.1.9.4).
+import * as utskrift from '../utskrift.js';
 // Runda 8, r5: mallen för tobaksvanor med fasta svarsalternativ, och epikrisen med systemets förslag.
 import * as tobak from './patient-tobak.js';
 // Runda 9, r7: mallen för levnadsvanor har samma gränssnitt som mallen för tobaksvanor.
@@ -86,11 +88,12 @@ async function lasAnteckning(las, ctx, id) {
   const kanRatta = !senaste.ersatt && senaste.status === 'signerad' && kanSkriva(senaste.kategori) && enhetsVardenhet(senaste.enhet.id) === minVardenhet();
   // Runda 5, r1: från en signerad anteckning föreslår systemet återbesöket ur anteckningens planering (Sussa 3.4.1.1).
   const kanAterbesok = senaste.status === 'signerad' && far('skriv_journal');
+  const kanSkrivaUt = senaste.status === 'signerad' && far('skriv_ut');
   las.innerHTML = `<article class="anteckning" aria-labelledby="ant-rubrik">
       ${anteckningHuvud(senaste, 'ant-rubrik', a.id !== senaste.id ? `<p class="ruta ruta-info liten">Du öppnade version ${a.version}. Här visas den gällande versionen ${senaste.version}.</p>` : '')}
       ${sokordHtml(senaste.sokord)}
       ${kontrasignering.html(a, senaste)}
-      ${kanRatta || kanAterbesok ? `<div class="knapprad" data-skriv>${kanRatta ? `<button type="button" class="knapp sekundar" data-ratta>${ikon.penna}<span>Rätta anteckningen</span></button>` : ''}${kanAterbesok ? `<button type="button" class="knapp sekundar" data-aterbesok>${ikon.kalender}<span>Återbesök</span></button>` : ''}</div>` : ''}
+      ${kanRatta || kanAterbesok || kanSkrivaUt ? `<div class="knapprad" data-skriv>${kanRatta ? `<button type="button" class="knapp sekundar" data-ratta>${ikon.penna}<span>Rätta anteckningen</span></button>` : ''}${kanAterbesok ? `<button type="button" class="knapp sekundar" data-aterbesok>${ikon.kalender}<span>Återbesök</span></button>` : ''}${kanSkrivaUt ? `<button type="button" class="knapp sekundar" data-skriv-ut-anteckning>${ikon.logg}<span>Skriv ut anteckningen</span></button>` : ''}</div>` : ''}
       ${aldre.length ? `<section class="versioner" aria-labelledby="ver-rubrik"><h3 id="ver-rubrik">Tidigare versioner</h3>
         <p class="dampad liten">En signerad anteckning ändras aldrig. En rättelse blir en ny version, och den tidigare står kvar överstruken men läsbar.</p>
         ${aldre.map(v => `<div class="version-gammal">
@@ -100,6 +103,7 @@ async function lasAnteckning(las, ctx, id) {
     </article>`;
   las.querySelector('[data-ratta]')?.addEventListener('click', () => rattaForm(las, ctx, senaste));
   las.querySelector('[data-aterbesok]')?.addEventListener('click', () => satUppAterbesok(ctx.id, ctx.patient?.namn ?? 'patienten', senaste.id).catch(felNotis));
+  las.querySelector('[data-skriv-ut-anteckning]')?.addEventListener('click', () => utskrift.skrivUt(ctx.id, { poster: [{ typ: 'anteckning', id: senaste.id }] }));
   kontrasignering.koppla(las, a, () => ctx.ladda());
 }
 

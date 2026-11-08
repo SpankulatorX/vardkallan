@@ -4,6 +4,9 @@ import { TEST } from '../../krav.js';
 
 const { GK } = TEST;
 const U = 'Utskrift > ';
+// Runda 10, r2: urval och menprövning (test/utskrift-urval.test.js).
+const UU = 'Utskrift, urval > ';
+const UM = 'Utskrift, menprövning > ';
 
 export default [
   {
@@ -35,27 +38,34 @@ export default [
     ],
     losning: 'Utlämnande av journalhandlingar registreras med mottagare, handling, menprövning, vem och när (patientdatalagen 3 kap. 11 §), i samma steg som utskriften när kopian lämnas till patienten. Originalhandlingar som ska tillbaka får ett datum, och återlämnandet registreras med ett klick.',
     expert: 'Systemet fyller i beskrivningen ur utskriften, föreslår mottagare och datum för återlämnande och påminner i vårdenhetens inkorg när en handling inte har kommit tillbaka.',
-    anmarkning: 'Patientens begäran om journalkopia i Min journal är inte byggd. Menprövningen registreras som text; systemet gör ingen prövning.',
+    anmarkning: 'Patientens begäran om journalkopia i Min journal är inte byggd. Menprövningen görs av den som lämnar ut. Systemet föreslår beslut och grund men prövar inte själv.',
   },
   {
-    id: '3.1.9.4', kategori: 'system', egna: ['L4'], avsedd: 'delvis',
+    id: '3.1.9.4', kategori: 'system', egna: ['L4'], avsedd: 'uppfyllt_demo',
     tester: [
       `${U}syftet och delarna föreslås ur sammanhanget`,
       `${U}skyddad identitet maskeras i utskriften och en avidentifierad utskrift saknar namn och personnummer`,
       `${U}en roll eller enhet utan behörighet nekas, och delar som rollen inte får läsa kommer inte med`,
+      `${UU}ett datumintervall tar bara med poster från intervallet, och urvalet står i utskriften`,
+      `${UU}en enskild anteckning skrivs ut för sig, och loggen, posterna och kontrollsumman gäller just urvalet`,
+      `${UU}valda poster ur flera delar skrivs ut, och en post som inte syns för den inloggade avvisas utan att röja den`,
+      `${UU}förslaget erbjuder datumintervall och de poster som går att välja, och bara de som rollen får läsa`,
     ],
-    losning: 'Fördefinierade utskrifter efter syfte, fritt urval av delar, avidentifierad utskrift och skydd av patientens identitet. Utskriften kan sparas som PDF i webbläsaren.',
-    expert: 'Systemet föreslår syfte och delar ur patientens läge och erbjuder bara de delar rollen får läsa.',
-    anmarkning: 'Central utskriftstjänst, utskrift av en enskild anteckning eller ett datumintervall och val av enstaka poster finns inte.',
+    losning: 'Utskrift av hela journalen eller av delar: fördefinierade utskrifter efter syfte, fritt val av delar, ett datumintervall, valda poster och en enskild anteckning direkt från journalen. Avidentifierad utskrift och skydd av patientens identitet. Utskriften går till den skrivare som datorn har, eller sparas som PDF i webbläsarens utskriftsdialog.',
+    expert: 'Systemet föreslår syfte, delar och intervall ur patientens läge, erbjuder bara de delar och poster rollen får läsa och säger i utskriften vad urvalet var och vad som inte kom med.',
+    anmarkning: 'Utskriften skickas till skrivaren genom webbläsaren. En central utskriftstjänst med köer och skrivarval på servern hör till driftmiljön och finns inte i demon, och servern skapar ingen egen PDF.',
   },
   {
-    id: '3.1.9.5', kategori: 'system', egna: ['L4'], avsedd: 'delvis',
+    id: '3.1.9.5', kategori: 'system', egna: ['L4'], avsedd: 'uppfyllt_demo',
     tester: [
       `${U}varje utskrift loggas och sparas med utskrifts-id, och sparade utskrifter går inte att ändra`,
       `${U}utlämnande och återlämnande registreras, och utlämnandet går bara att komplettera med återlämnandet`,
+      `${UM}menprövningen registreras strukturerat med beslut, grund och vem, och systemet föreslår grunden ur mottagaren`,
+      `${UM}logggranskaren söker utlämnanden på mottagare över alla patienter, och sökningen loggas`,
+      `${UM}sökningen på mottagare maskerar skyddad identitet`,
     ],
-    losning: 'Loggning av varje utskrift, utlämnande och återlämnande, sökning på utskrifts-id i logguppföljningen och en flik per patient med utskrifter och utlämnanden.',
-    expert: 'Systemet loggar och kopplar ihop utskrift och utlämnande själv, så att en utlämnad handling hittas med id:t på papperet.',
-    anmarkning: 'Menprövningen registreras som text. Det finns ingen sökning på mottagare över alla patienter.',
+    losning: 'Loggning av varje utskrift, utlämnande och återlämnande. Menprövningen registreras med beslut, grund och vem som prövade, och kan inte ändras. Logggranskaren söker en utskrift på id:t som står på papperet och utlämnanden på mottagare över alla patienter, och varje patient har en flik med utskrifter och utlämnanden.',
+    expert: 'Systemet loggar och kopplar ihop utskrift och utlämnande själv, föreslår menprövningens grund ur mottagaren och sätter den som registrerar som den som prövade, så att en utlämnad handling hittas med id:t på papperet eller med mottagaren.',
+    anmarkning: 'Lagrummen i menprövningen är ett urval för demon. Ett beslut att inte lämna ut, som är ett myndighetsbeslut med överklagandehänvisning, registreras inte här.',
   },
 ];

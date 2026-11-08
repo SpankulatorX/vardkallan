@@ -1,0 +1,198 @@
+// Runda 10, r2: basfakta, överkänslighet i ett eget flöde (Sussa 3.1.6.2). Läkare och sjuksköterskor registrerar en ny
+// överkänslighet, ändrar den som en ny version och avslutar den med en orsak. Tabellen overkanslighet har de gällande
+// uppgifterna, som basfakta, uppmärksamhetssymbolen, varningarna vid ordination, FHIR och Min journal redan läser, och
+// varje händelse sparas i overkanslighet_handelser med när, var, av vem och varför.
+//
+// Systemet är experten: det slår upp ATC-koden ur ämnet (en lista med vanliga ämnen och läkemedelskatalogen), föreslår
+// allvarlighetsgraden ur reaktionen och förklarar varför. Användaren behöver inte kunna ATC-koderna. En överkänslighet
+// hör till vårdenheten där den registrerades, så att spärr och inre sekretess gäller som för annan journalinformation.
+import { Fel, iso, idag } from './db.js';
+import { kanRoll, vardenhetFor } from './atkomst.js';
+import { ATC } from './kodverk.js';
+import { foreslagenGrad } from './uppmarksamhet-regler.js';
+
+export const HANDLING = 'registrera_overkanslighet';
+const LAS = 'las_oversikt';
+
+export const ALLVARLIGHET = { allvarlig: 'Allvarlig', mattlig: 'Måttlig', lindrig: 'Lindrig' };
+
+// Vanliga ämnen. ATC-koderna finns i kodverk.ATC (WHO:s index), och ett ämne som inte är ett läkemedel har ingen kod.
+const AMNEN = [
+  { amne: 'Penicilliner', atc: 'J01C', ord: ['penicillin', 'penicilliner', 'betalaktam'] },
+  { amne: 'Antiinflammatoriska läkemedel (NSAID)', atc: 'M01A', ord: ['nsaid', 'nsaid-preparat', 'antiinflammatoriska'] },
+  { amne: 'Acetylsalicylsyra', atc: 'B01AC06', ord: ['asa', 'acetylsalicylsyra', 'trombyl', 'aspirin'] },
+  { amne: 'Latex', atc: null, ord: ['latex', 'gummi'] },
+  { amne: 'Jordnöt', atc: null, ord: ['jordnöt', 'jordnötter'] },
+  { amne: 'Nötter', atc: null, ord: ['nöt', 'nötter', 'hasselnöt', 'cashew'] },
+  { amne: 'Ägg', atc: null, ord: ['ägg'] },
+  { amne: 'Skaldjur', atc: null, ord: ['skaldjur', 'räkor', 'kräftdjur'] },
+  { amne: 'Bi- och getingstick', atc: null, ord: ['bi', 'geting', 'getingstick', 'bistick', 'insektsstick'] },
+  { amne: 'Nickel', atc: null, ord: ['nickel'] },
+  { amne: 'Plåster och tejp', atc: null, ord: ['plåster', 'tejp'] },
+];
+
+const norm = (s) => String(s ?? '').trim().toLocaleLowerCase('sv');
+const versal = (s) => (s ? s.charAt(0).toLocaleUpperCase('sv') + s.slice(1) : s);
+
+// Ämnen som systemet känner igen: listan och läkemedelskatalogens substanser, för förslagen i formuläret.
+export function amnen(db) {
+  const katalog = db.query('SELECT DISTINCT substans, atc FROM katalog ORDER BY substans').all()
+    .map(k => ({ amne: versal(k.substans), atc: k.atc })).filter(k => k.atc && Object.hasOwn(ATC, k.atc));
+  const sett = new Set();
+  return { amnen: [...AMNEN.map(({ amne, atc }) => ({ amne, atc })), ...katalog].filter(a => !sett.has(norm(a.amne)) && sett.add(norm(a.amne))) };
+}
+
+// Allvarlighetsgraden ur reaktionen. Anafylaxi, svullnad i svalget, andningsbesvär och blodtrycksfall är allvarliga.
+const ALLVARLIGT = /anafylax|svullnad i svalg|svalgsvullnad|andningsbesvär|andnöd|bronkospasm|blodtrycksfall|chock|medvetslös|quincke|angioödem/i;
+const MATTLIGT = /urtikaria|nässelutslag|utslag|eksem|svullnad|kräk|diarré|feber/i;
+export function foreslaAllvarlighet(reaktion) {
+  if (ALLVARLIGT.test(reaktion ?? '')) return { allvarlighet: 'allvarlig', varfor: 'Reaktionen kan vara livshotande, så systemet föreslår allvarlig.' };
+  if (MATTLIGT.test(reaktion ?? '')) return { allvarlighet: 'mattlig', varfor: 'Reaktionen ger tydliga besvär men är inte livshotande, så systemet föreslår måttlig.' };
+  return { allvarlighet: 'lindrig', varfor: 'Reaktionen beskriver lindriga besvär, så systemet föreslår lindrig.' };
+}
+
+// Ämnet tolkat: namn, ATC-kod och om det är ett läkemedel, med en förklaring på vanlig svenska.
+export function tolkaAmne(db, amne) {
+  const q = norm(amne);
+  if (!q) return null;
+  const lista = AMNEN.find(a => norm(a.amne) === q || a.ord.includes(q));
+  if (lista) return { amne: lista.amne, atc: lista.atc, lakemedel: Boolean(lista.atc), kalla: 'lista' };
+  const k = db.query('SELECT substans, namn, atc FROM katalog WHERE lower(substans) = ?1 OR lower(namn) = ?1 LIMIT 1').get(q)
+    ?? db.query("SELECT substans, namn, atc FROM katalog WHERE lower(namn) LIKE ?1 || ' %' LIMIT 1").get(q);
+  if (k?.atc) return { amne: versal(k.substans), atc: k.atc, lakemedel: true, kalla: 'katalog' };
+  return { amne: versal(String(amne).trim()), atc: null, lakemedel: false, kalla: 'fritext' };
+}
+
+// Förslaget för formuläret: ämnet med ATC-kod och allvarlighetsgraden ur reaktionen. Inga patientuppgifter.
+export function forslag(db, personal, { amne, reaktion } = {}) {
+  if (!kanRoll(personal, HANDLING)) throw new Fel(403, 'Din yrkesroll registrerar inte överkänslighet.', 'nekad');
+  const t = tolkaAmne(db, amne);
+  if (!t) throw new Fel(400, 'Skriv vad patienten är överkänslig mot.', 'ogiltig', { falt: ['amne'] });
+  const a = foreslaAllvarlighet(reaktion);
+  const varfor = [];
+  if (t.atc) varfor.push(`Systemet hittade ATC-kod ${t.atc}${ATC[t.atc] ? ` (${ATC[t.atc]})` : ''}. Vid ordination varnar systemet för alla läkemedel inom koden.`);
+  else if (t.kalla === 'lista') varfor.push(`${t.amne} är inte ett läkemedel och har ingen ATC-kod.`);
+  else varfor.push(`Systemet hittade ingen ATC-kod för ${t.amne}. Om det är ett läkemedel, skriv substansens namn, annars ger en ordination ingen varning.`);
+  varfor.push(a.varfor);
+  return { ...t, allvarlighet: a.allvarlighet, varfor };
+}
+
+const enhetsnamn = (db, id) => db.query('SELECT namn FROM enheter WHERE id = ?').get(id)?.namn ?? id;
+const personKort = (db, id) => {
+  const p = id && db.query('SELECT id, namn, titel FROM personal WHERE id = ?').get(id);
+  return p ? { id: p.id, namn: p.namn, titel: p.titel } : null;
+};
+const okUt = (db, o) => ({
+  id: o.id, amne: o.amne, atc: o.atc, reaktion: o.reaktion, allvarlighet: o.allvarlighet, allvarlighetText: ALLVARLIGHET[o.allvarlighet] ?? o.allvarlighet,
+  datum: o.datum, version: o.version ?? 1, vardenhet: { id: o.enhet_id, namn: enhetsnamn(db, o.enhet_id) },
+  registrerad: o.registrerad ?? null, registreradAv: personKort(db, o.registrerad_av), kalla: o.kalla,
+});
+const handelseUt = (db, h) => ({
+  id: h.id, overkanslighetId: h.overkanslighet_id, version: h.version, handelse: h.handelse, amne: h.amne, atc: h.atc, reaktion: h.reaktion,
+  allvarlighet: h.allvarlighet, allvarlighetText: ALLVARLIGHET[h.allvarlighet] ?? h.allvarlighet, orsak: h.orsak, tid: h.tid,
+  av: personKort(db, h.av), vardenhet: { id: vardenhetFor(db, h.av_enhet), namn: enhetsnamn(db, vardenhetFor(db, h.av_enhet)) },
+});
+
+function handelse(db, o, typ, personal, orsak = null) {
+  db.query(`INSERT INTO overkanslighet_handelser (overkanslighet_id, patient_id, enhet_id, version, handelse, amne, atc, reaktion, allvarlighet, orsak, tid, av, av_enhet)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(o.id, o.patient_id, o.enhet_id, o.version ?? 1, typ, o.amne, o.atc, o.reaktion, o.allvarlighet, orsak, iso(), personal.id, personal.enhet_id);
+}
+
+const lasText = (v, falt, min, max, text) => {
+  const s = typeof v === 'string' ? v.trim() : '';
+  if (s.length < min || s.length > max) throw new Fel(400, text, 'ogiltig', { falt: [falt] });
+  return s;
+};
+const lasAllvarlighet = (v, reaktion) => {
+  if (v == null || v === '') return foreslaAllvarlighet(reaktion).allvarlighet;
+  if (!Object.hasOwn(ALLVARLIGHET, v)) throw new Fel(400, 'Välj allvarlig, måttlig eller lindrig.', 'ogiltig', { falt: ['allvarlighet'] });
+  return v;
+};
+
+// Registrerar en ny överkänslighet på den inloggades vårdenhet. inp: { amne, reaktion, allvarlighet? }.
+export function registrera(atk, inp = {}) {
+  atk.krav(HANDLING, { resurs: { enhet_id: atk.personal.enhet_id } });
+  const db = atk.db;
+  const t = tolkaAmne(db, lasText(inp.amne, 'amne', 2, 120, 'Skriv vad patienten är överkänslig mot.'));
+  const reaktion = lasText(inp.reaktion, 'reaktion', 2, 300, 'Beskriv reaktionen, till exempel utslag eller andningsbesvär.');
+  const allvarlighet = lasAllvarlighet(inp.allvarlighet, reaktion);
+  // Samma ämne två gånger på samma vårdgivare är en dubblett. Bara rader som den inloggade får se jämförs, så att en
+  // spärrad rad inte röjs av en dubblettkontroll.
+  const synliga = atk.filtrera(db.query('SELECT * FROM overkanslighet WHERE patient_id = ?').all(atk.patientId), LAS, { gemensam: true });
+  if (synliga.some(o => norm(o.amne) === norm(t.amne))) throw new Fel(400, `Överkänslighet mot ${t.amne.toLowerCase()} är redan registrerad. Ändra den i stället.`, 'ogiltig', { falt: ['amne'] });
+  const tid = iso();
+  const id = db.transaction(() => {
+    const r = db.query(`INSERT INTO overkanslighet (patient_id, enhet_id, amne, atc, reaktion, allvarlighet, datum, kalla, version, registrerad, registrerad_av)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'vardkallan', 1, ?, ?)`).run(atk.patientId, atk.personal.enhet_id, t.amne, t.atc, reaktion, allvarlighet, idag(), tid, atk.personal.id);
+    const nyId = Number(r.lastInsertRowid);
+    handelse(db, db.query('SELECT * FROM overkanslighet WHERE id = ?').get(nyId), 'registrerad', atk.personal);
+    return nyId;
+  })();
+  atk.logga(HANDLING, atk.grund(), `overkanslighet:${id}`);
+  return okUt(db, db.query('SELECT * FROM overkanslighet WHERE id = ?').get(id));
+}
+
+// En gällande överkänslighet som den inloggade får se. En rad som inte finns och en rad som är dold får samma svar.
+export function hamta(atk, id) {
+  const db = atk.db;
+  const o = Number.isInteger(Number(id)) ? db.query('SELECT * FROM overkanslighet WHERE id = ?').get(Number(id)) : null;
+  if (!o || o.patient_id !== atk.patientId) throw new Fel(404, 'Överkänsligheten finns inte bland det du kan se.', 'saknas');
+  if (!atk.filtrera([o], LAS, { gemensam: true }).length) throw new Fel(404, 'Överkänsligheten finns inte bland det du kan se.', 'saknas');
+  return o;
+}
+export const patientFor = (db, id) => (Number.isInteger(Number(id)) ? db.query('SELECT patient_id FROM overkanslighet WHERE id = ?').get(Number(id))?.patient_id ?? null : null);
+
+// Ändrar en överkänslighet som en ny version. inp: { amne?, reaktion?, allvarlighet?, orsak }.
+export function andra(atk, id, inp = {}) {
+  atk.krav(HANDLING, { resurs: { enhet_id: atk.personal.enhet_id } });
+  const db = atk.db;
+  const o = hamta(atk, id);
+  const orsak = lasText(inp.orsak, 'orsak', 3, 300, 'Skriv varför uppgiften ändras. Orsaken visas i historiken.');
+  const t = inp.amne != null ? tolkaAmne(db, lasText(inp.amne, 'amne', 2, 120, 'Skriv vad patienten är överkänslig mot.')) : { amne: o.amne, atc: o.atc };
+  const reaktion = inp.reaktion != null ? lasText(inp.reaktion, 'reaktion', 2, 300, 'Beskriv reaktionen.') : o.reaktion;
+  // En ny reaktion ger ett nytt förslag på allvarlighetsgrad, om inte en grad anges.
+  const allvarlighet = inp.allvarlighet != null ? lasAllvarlighet(inp.allvarlighet, reaktion) : inp.reaktion != null ? foreslaAllvarlighet(reaktion).allvarlighet : o.allvarlighet;
+  if (t.amne === o.amne && t.atc === o.atc && reaktion === o.reaktion && allvarlighet === o.allvarlighet) {
+    throw new Fel(400, 'Uppgifterna är desamma som förut, så ingenting ändras.', 'ogiltig', { falt: ['reaktion'] });
+  }
+  db.transaction(() => {
+    db.query('UPDATE overkanslighet SET amne = ?, atc = ?, reaktion = ?, allvarlighet = ?, version = version + 1, registrerad = ?, registrerad_av = ? WHERE id = ?')
+      .run(t.amne, t.atc, reaktion, allvarlighet, iso(), atk.personal.id, o.id);
+    const ny = db.query('SELECT * FROM overkanslighet WHERE id = ?').get(o.id);
+    handelse(db, ny, 'andrad', atk.personal, orsak);
+    // En bekräftad grad gäller den tidigare reaktionen. När systemets förslag ändras ska graden bekräftas på nytt.
+    if (foreslagenGrad(ny) !== foreslagenGrad(o)) {
+      db.query("UPDATE uppmarksamhet SET status = 'avslutad', avslutad = ?, avslutad_av = ?, avslutad_orsak = ? WHERE kalla_typ = 'overkanslighet' AND kalla_id = ? AND status = 'aktiv'")
+        .run(iso(), atk.personal.id, 'Överkänsligheten är ändrad, och graden bekräftas på nytt.', o.id);
+    }
+  })();
+  atk.logga(HANDLING, atk.grund(), `overkanslighet:${o.id}`);
+  return okUt(db, db.query('SELECT * FROM overkanslighet WHERE id = ?').get(o.id));
+}
+
+// Avslutar en överkänslighet med en orsak. Den försvinner ur basfakta och uppmärksamhetssymbolen, och historiken visar
+// den med vem som avslutade den och varför.
+export function avsluta(atk, id, inp = {}) {
+  atk.krav(HANDLING, { resurs: { enhet_id: atk.personal.enhet_id } });
+  const db = atk.db;
+  const o = hamta(atk, id);
+  const orsak = lasText(inp.orsak, 'orsak', 3, 300, 'Skriv varför överkänsligheten avslutas, till exempel att en provokation var negativ.');
+  db.transaction(() => {
+    handelse(db, o, 'avslutad', atk.personal, orsak);
+    db.query("UPDATE uppmarksamhet SET status = 'avslutad', avslutad = ?, avslutad_av = ?, avslutad_orsak = ? WHERE kalla_typ = 'overkanslighet' AND kalla_id = ? AND status = 'aktiv'")
+      .run(iso(), atk.personal.id, orsak, o.id);
+    db.query('DELETE FROM overkanslighet WHERE id = ?').run(o.id);
+  })();
+  atk.logga(HANDLING, atk.grund(), `overkanslighet:${o.id}`);
+  return handelseUt(db, db.query("SELECT * FROM overkanslighet_handelser WHERE overkanslighet_id = ? AND handelse = 'avslutad' ORDER BY id DESC").get(o.id));
+}
+
+// De gällande överkänsligheterna och historiken för patienten, med samma behörighet som basfakta.
+export function forPatient(atk) {
+  atk.krav(LAS);
+  const db = atk.db;
+  const aktuella = atk.filtrera(db.query('SELECT * FROM overkanslighet WHERE patient_id = ? ORDER BY datum DESC, id DESC').all(atk.patientId), LAS, { gemensam: true });
+  const historik = atk.filtrera(db.query('SELECT * FROM overkanslighet_handelser WHERE patient_id = ? ORDER BY tid DESC, id DESC').all(atk.patientId), LAS, { gemensam: true });
+  const kan = kanRoll(atk.personal, HANDLING) && atk.prova(HANDLING, { enhet_id: atk.personal.enhet_id }).tillaten;
+  return { aktuella: aktuella.map(o => okUt(db, o)), historik: historik.map(h => handelseUt(db, h)), kan: { registrera: kan }, allvarlighet: ALLVARLIGHET };
+}

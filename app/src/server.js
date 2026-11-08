@@ -104,6 +104,8 @@ import * as levnadsvanor from './levnadsvanor.js';
 import * as folkhalsa from './folkhalsa.js';
 // Runda 9, r4: informationsstrukturen, fackspråket, kodverken och masterdatans källor (arkitektur-rutter.js).
 import { registreraRutter as r9r4Rutter, efterTid as masterdataEfterTid } from './arkitektur-rutter.js';
+// Runda 10, r2: vyer, presentation, sökning, utskrifter och loggning.
+import { registreraRutter as r10r2Rutter } from './runda10-r2-rutter.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -1708,6 +1710,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   r9r7Rutter({ rutt, kravInloggad, medPatient, valFor });
   // Runda 9, r4 (arkitektur-rutter.js).
   r9r4Rutter({ rutt, kravInloggad });
+  // Runda 10, r2 (runda10-r2-rutter.js).
+  r10r2Rutter({ rutt, kravInloggad, medPatient, valFor, patientKort });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
   // visas direkt (bara i den egna sandlådan).
   const kravNagon = (c) => { if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad'); };
