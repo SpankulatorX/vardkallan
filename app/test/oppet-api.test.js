@@ -354,7 +354,8 @@ describe('Masterdata', () => {
     expect(db.query('SELECT id, hsa_id AS hsaId, namn FROM enheter ORDER BY rowid').all()).toEqual(f.organisation().map(e => ({ id: e.id, hsaId: e.hsaId, namn: e.namn })));
     expect(db.query('SELECT id FROM personal ORDER BY id').all().map(p => p.id)).toEqual(f.personal().map(p => p.id).sort());
     expect(db.query("SELECT hsa_id FROM personal WHERE id = 'lak-kard'").get().hsa_id).toBe(f.personal().find(p => p.id === 'lak-kard').hsaId);
-    expect(f.organisation().length).toBe(ENHETER.length + 1); // Runda 6, r4: vårdenheten för egna vårdbegäranden.
+    // Runda 6, r4: vårdenheten för egna vårdbegäranden. Runda 8, r2: avsändaren av externa pappersremisser.
+    expect(f.organisation().length).toBe(ENHETER.length + 2);
     for (const del of Object.keys(masterdata.KONTRAKT)) expect(masterdata.validera(del, masterdata.kalla(del)[del]()).fel).toEqual([]);
   });
 

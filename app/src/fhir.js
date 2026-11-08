@@ -28,6 +28,8 @@ import { tolkaGcs } from './skalor.js';
 import * as stod from './lakemedelsstod.js';
 // Runda 7, r3: posterna i faktureringsunderlaget som ChargeItem (ekonomi.js).
 import * as ekonomi from './ekonomi.js';
+// Runda 8, r2: extern pappersremiss och fördelning i ServiceRequest (remiss-r8.js).
+import * as remissR8 from './remiss-r8.js';
 
 export const SYSTEM = {
   personnummer: 'http://electronichealth.se/identifier/personnummer',
@@ -402,6 +404,10 @@ export function serviceRequest(db, r, klinisk = true) {
     performer: [ref('Organization', r.till_enhet_id, enhetsnamn(db, r.till_enhet_id))],
     extension: [{ url: `${EXT}/remisstatus`, valueCode: r.status }, { url: `${EXT}/svar-senast`, valueDate: r.svar_senast }],
   };
+  // Runda 8, r2: en extern pappersremiss har remittenten och enheten som avsändare, och en fördelad remiss läkaren som utförare.
+  const r8 = remissR8.fhirTillagg(db, r);
+  if (r8.requester) ut.requester = r8.requester;
+  if (r8.performerLakare) ut.performer.push(r8.performerLakare);
   if (klinisk) {
     ut.reasonCode = [{ text: r.fragestallning }];
     const note = [r.anamnes && { text: r.anamnes }, r.motivering && { text: `Motivering: ${r.motivering}` }, r.svar && { text: `Svar: ${r.svar}` }].filter(Boolean);

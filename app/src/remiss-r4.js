@@ -12,6 +12,8 @@ import { createHash } from 'node:crypto';
 import { Fel, iso, idag, addDagar, giltigtDatum } from './db.js';
 import { vardenhetFor, kanRoll } from './atkomst.js';
 import * as remiss from './remiss.js';
+// Runda 8, r2: extern pappersremiss (remiss-r8.js).
+import * as r8 from './remiss-r8.js';
 
 // Avsändaren av en egen vårdbegäran från invånaren (vardbegaran.js), som en enhet utan vårdenhet.
 export const EGEN = 'min-journal';
@@ -273,6 +275,8 @@ export function vidarebefordra(atk, r, body = {}) {
   }
   const egen = db.query('SELECT * FROM egen_vardbegaran WHERE remiss_id = ?').get(r.id);
   if (egen) db.query('INSERT INTO egen_vardbegaran VALUES (?, ?, ?, ?, ?)').run(ny, egen.invanare_id, egen.patient_id, egen.skal, egen.skapad);
+  // Runda 8, r2: en extern pappersremiss går vidare med samma avsändare.
+  r8.kopieraExtern(db, r.id, ny);
   atk.logga('bedom_remiss', atk.grund(), `remiss:${r.id}:vidarebefordrad:${ny}`);
   return { gammal: remiss.remissUt(db, remiss.hamtaRad(db, r.id)), ny: remiss.remissUt(db, remiss.hamtaRad(db, ny)) };
 }

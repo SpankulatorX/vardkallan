@@ -7,6 +7,8 @@ import { kallaEtikett } from './journal.js';
 import { remissTillagg, EGEN } from './remiss-r4.js';
 import * as konfiguration from './konfiguration.js';
 import { arStangd } from './omorganisation.js';
+// Runda 8, r2: remiss på uppdrag, fördelning, remisskonferens och extern pappersremiss (remiss-r8.js).
+import * as r8 from './remiss-r8.js';
 
 export const PRIORITETER = ['akut', 'skyndsam', 'normal'];
 export const LARMGRANS = { mottagningskvittensTimmar: 2, svarKvittensDagar: 3 };
@@ -50,6 +52,8 @@ export function remissUt(db, r, { klinisk = true, patient = null } = {}) {
   if (patient) ut.patient = { id: patient.id, namn: visningsnamn(patient), personnummer: visningsPnr(patient), skyddad: Boolean(patient.skyddad) };
   // Runda 6, r4: bilagorna (för den som läser kliniska uppgifter, annars bara antalet), vidarebefordran och egen vårdbegäran.
   Object.assign(ut, remissTillagg(db, r, klinisk));
+  // Runda 8, r2: på uppdrag, fördelning, remisskonferens, beslut på uppdrag och extern avsändare.
+  Object.assign(ut, r8.remissTillagg(db, r, klinisk));
   return ut;
 }
 
@@ -105,7 +109,8 @@ const fel = (text) => new Fel(400, text, 'ogiltig');
 
 export function mottag(atk, r) {
   kravMottagare(atk, r);
-  atk.krav('mottag_remiss');
+  // Runda 8, r2: en extern pappersremiss ger ingen vårdrelation förrän den tas emot, så rollen räcker för att ta emot den.
+  r8.kravMottag(atk, r);
   if (r.status !== 'skickad') throw fel('Remissen är redan mottagen.');
   atk.db.query("UPDATE remisser SET status = 'mottagen', mottagen_tid = ?, mottagen_av = ? WHERE id = ?").run(iso(), atk.personal.id, r.id);
   return remissUt(atk.db, hamtaRad(atk.db, r.id), { klinisk: kanRoll(atk.personal, 'las_remiss') });
@@ -131,7 +136,8 @@ export function svara(atk, r, { svar }) {
   atk.db.query("UPDATE remisser SET status = 'besvarad', besvarad_tid = ?, besvarad_av = ?, svar = ? WHERE id = ?").run(iso(), atk.personal.id, s, r.id);
   // Runda 6, r4: en egen vårdbegäran har ingen remitterande vårdenhet som kvitterar svaret. Svaret går till patienten i
   // Min journal, och systemet kvitterar det, så att vårdrelationen genom begäran upphör som för en kvitterad remiss.
-  if (r.fran_enhet_id === EGEN) atk.db.query("UPDATE remisser SET status = 'svar_kvitterat', svar_kvitterat_tid = besvarad_tid WHERE id = ?").run(r.id);
+  // Runda 8, r2: svaret på en extern pappersremiss skickas med post, och systemet kvitterar det på samma sätt.
+  if (r.fran_enhet_id === EGEN || r.fran_enhet_id === r8.EXTERN) atk.db.query("UPDATE remisser SET status = 'svar_kvitterat', svar_kvitterat_tid = besvarad_tid WHERE id = ?").run(r.id);
   return remissUt(atk.db, hamtaRad(atk.db, r.id));
 }
 
