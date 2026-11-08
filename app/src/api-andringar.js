@@ -15,9 +15,10 @@ export const ANDRINGAR = [
   // Patient/$everything för personalen (Sussa 2.5.1.1 och 2.5.1.2).
   {
     version: '0.10.0', datum: '2026-11-08',
-    text: 'Systemkonton för tillämpningar utan inloggad person med SMART Backend Services, prenumerationer på alla poster av en typ på kontots vårdenheter, registrering av överkänslighet och nya patienter via API:t och Patient/$everything för personalen.',
-    resurser: [], skrivning: ['AllergyIntolerance:create', 'Patient:create'],
-    annat: ['SMART Backend Services med client_credentials och private_key_jwt för systemkonton', 'Prenumerationer på en population för systemkonton', 'Patient/[id]/$everything för personalen'],
+    text: 'Systemkonton för tillämpningar utan inloggad person med SMART Backend Services och pseudonymer som förval, prenumerationer på alla poster av en typ på kontots vårdenheter, registrering av överkänslighet och nya patienter, makulering av doser och provbeställningar via API:t och Patient/$everything för personalen.',
+    resurser: [], skrivning: ['AllergyIntolerance:create', 'Patient:create', 'MedicationAdministration:delete', 'ServiceRequest:delete'],
+    annat: ['SMART Backend Services med client_credentials och private_key_jwt för systemkonton', 'Prenumerationer på en population för systemkonton', 'Patient/[id]/$everything för personalen',
+      'Makulering med DELETE eller $makulera och en orsak', 'Pseudonymer för systemkonton utan omfånget för identitet'],
   },
   {
     version: '0.9.0', datum: '2026-11-08',

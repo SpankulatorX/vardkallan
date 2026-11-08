@@ -524,7 +524,10 @@ export function auditEvent(r) {
 
 // Runda 6, r5: skrivning via FHIR (fhir-skrivning.js), prenumerationer (prenumeration.js) och SMART on FHIR (smart.js).
 // Runda 10, r1: överkänslighet och nya patienter (fhir-skrivning.js).
-const SKRIV_INTERAKTIONER = { Observation: ['create'], Composition: ['create', 'update'], MedicationRequest: ['create', 'update'], ServiceRequest: ['create'], Condition: ['create'], Appointment: ['create'], Encounter: ['create'], AllergyIntolerance: ['create'], Patient: ['create'] };
+const SKRIV_INTERAKTIONER = { Observation: ['create'], Composition: ['create', 'update'], MedicationRequest: ['create', 'update'], ServiceRequest: ['create'], Condition: ['create'], Appointment: ['create'], Encounter: ['create'], AllergyIntolerance: ['create'], Patient: ['create'],
+  // Runda 10, r1: makulering med DELETE eller $makulera (fhir-skrivning.js makulera).
+  MedicationAdministration: ['delete'] };
+SKRIV_INTERAKTIONER.ServiceRequest = [...SKRIV_INTERAKTIONER.ServiceRequest, 'delete'];
 function medSkrivning(c, base) {
   const r = c.rest[0];
   for (const x of r.resource) for (const code of SKRIV_INTERAKTIONER[x.type] ?? []) x.interaction.push({ code });

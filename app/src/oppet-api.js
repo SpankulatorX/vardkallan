@@ -77,6 +77,26 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
     // Runda 9, r6: en resurstyp som CapabilityStatement inte anger finns inte, varken för läsning eller skrivning.
     if (!kandaTyper().has(typ)) return fhirSvar(fhir.utfall(404, 'saknas', 'Okänd FHIR-resurs.'), 404);
     const metod = req.method;
+    // Runda 10, r1: makulering med DELETE eller $makulera (fhir-skrivning.js makulera).
+    if ((metod === 'DELETE' && delar.length === 2) || (metod === 'POST' && delar.length === 3 && delar[2] === '$makulera')) {
+      let orsak = url.searchParams.get('orsak');
+      if (metod === 'POST') {
+        const p = lastResurs ?? await lasResurs(req);
+        orsak = p?.resourceType === 'Parameters' && Array.isArray(p.parameter) ? p.parameter.find(x => x?.name === 'orsak')?.valueString ?? null : null;
+      }
+      const loggM = `fhir/${typ}/${id}/$makulera${klient ? `?klient=${klient}` : ''}`;
+      let ut;
+      try {
+        ut = skrivning.makulera({ db: c.db, personal: c.personal, typ, id, orsak, kor: (m, v, k) => kor(c, m, v, k, loggM) });
+      } catch (e) {
+        if (e instanceof Fel) return fhirSvar(skrivning.utfall(typ, e), e.status);
+        throw e;
+      }
+      const prefer = req.headers.get('prefer') ?? '';
+      if (/return=minimal/.test(prefer)) return fhirSvar(null, 200);
+      if (/return=OperationOutcome/i.test(prefer)) return fhirSvar(skrivning.lyckat(ut.text), 200);
+      return fhirSvar(ut.resurs, 200);
+    }
     if (metod === 'POST' && delar.length !== 1) throw new Fel(400, 'En ny resurs skapas med POST på resurstypen, till exempel POST /fhir/Observation.', 'ogiltig');
     if ((metod === 'PUT' || metod === 'DELETE') && delar.length !== 2) throw new Fel(400, 'Ange resursens id i adressen.', 'ogiltig');
     const resurs = metod === 'DELETE' ? null : lastResurs ?? await lasResurs(req);
@@ -138,11 +158,23 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
     const [typ, id] = delar;
     // Med en biljett godtas bara /fhir/<typ> och /fhir/<typ>/<id>, så att omfånget alltid prövas mot den typ som
     // faktiskt lämnas ut. Operationer och compartment-sökningar (till exempel Patient/<id>/$everything) nekas.
-    if (delar.length < 1 || delar.length > 2 || delar.some(d => d.startsWith('$'))) {
+    // Runda 10, r1: $makulera på en resurs är tillåten, med omfånget för att ta bort (d).
+    const makul = (req.method === 'DELETE' && delar.length === 2) || (req.method === 'POST' && delar.length === 3 && delar[2] === '$makulera');
+    if (!makul && (delar.length < 1 || delar.length > 2 || delar.some(d => d.startsWith('$')))) {
       return fhirSvar(fhir.utfall(403, 'nekad', 'Operationen stöds inte med åtkomstbiljett.'), 403, { 'WWW-Authenticate': BEARER_FEL.omfang });
     }
     // En skrivning gäller patienten i resursen (subject eller patient), eller patienten för resursen som ändras.
     const resurs = ['POST', 'PUT'].includes(req.method) ? await lasResurs(req) : null;
+    // Runda 10, r1: en makulering prövas mot omfånget för att ta bort och mot patienten för resursen. Ett systemkonto
+    // prövas i makuleringen, som bara tillåter det som kontot självt har skrivit.
+    if (makul) {
+      const nek = b.system ? null : smart.provaOmfang(b, { metod: 'DELETE', typ, malPatient: malPatient(s.db, typ, id, url) });
+      if (nek) return fhirSvar(fhir.utfall(403, 'nekad', nek), 403, { 'WWW-Authenticate': BEARER_FEL.omfang });
+      const c = { s: utanVal(s), db: s.db, personal, invanare: null };
+      const svar = await skriv(req, url, c, delar, { klient: b.klient, resurs });
+      efterAnrop(s, basFor(url));
+      return pseudonymer(b, s) ? pseudonymSvar(svar, s, b) : svar;
+    }
     const iResursen = (resurs?.subject ?? resurs?.patient)?.reference?.replace(/^.*Patient\//, '') ?? null;
     const krit = typ === 'Subscription' && typeof resurs?.criteria === 'string' ? new URLSearchParams(resurs.criteria.split('?')[1] ?? '').get('patient')?.replace(/^Patient\//, '') : null;
     // Runda 9, r6 (säkerhetsgranskningen): en bokning gäller remissens patient, oavsett vad resursen säger på andra
@@ -158,16 +190,33 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
     if (req.method !== 'GET') {
       const svar = await skriv(req, url, c, delar, { klient: b.klient, resurs });
       efterAnrop(s, basFor(url));
-      return svar;
+      // Runda 10, r1: också svaret på en skrivning, till exempel en prenumeration, går genom pseudonymerna.
+      return pseudonymer(b, s) ? pseudonymSvar(svar, s, b) : svar;
     }
-    if (typ === 'Subscription') return prenumerationLas(url, c, delar);
+    if (typ === 'Subscription') return pseudonymer(b, s) ? pseudonymSvar(prenumerationLas(url, c, delar), s, b) : prenumerationLas(url, c, delar);
+    // Runda 10, r1: ett systemkonto utan omfånget för identitet ser patienterna med kontots pseudonym. Anropet översätts
+    // från pseudonym till id, och svaret görs om innan det lämnar servern.
+    const pseudo = pseudonymer(b, s);
+    const tr = pseudo ? systemkonton.oversattAnrop(s.db, b.personalId, url) : { url };
+    if (tr.fel) return fhirSvar(fhir.utfall(tr.fel.status, tr.fel.kod, tr.fel.message), tr.fel.status);
     // Tillämpningens namn följer med till loggen som en del av resursen.
-    const loggUrl = new URL(url);
+    const loggUrl = new URL(tr.url);
     loggUrl.searchParams.set('_klient', b.klient);
     const base = basFor(url);
     const r = fhir.hantera({ db: s.db, personal, invanare: null, nekade: null, valFor: () => INGA_VAL, url: loggUrl, base });
     if (r.body?.resourceType === 'Bundle') r.body.link = [{ relation: 'self', url: `${base}${url.pathname}${url.search}` }];
-    return fhirSvar(r.body, r.status);
+    return fhirSvar(pseudo ? systemkonton.pseudonymisera(s.db, b.personalId, r.body) : r.body, r.status);
+  }
+
+  // Runda 10, r1: om svaren till en biljett ska ha pseudonymer: ett systemkonto utan omfånget för identitet, eller ett
+  // konto vars val av identitet inte längre gäller.
+  const pseudonymer = (b, s) => Boolean(b.system && !(b.identitet && systemkonton.kontoFor(s.db, b.personalId)?.identitet));
+  async function pseudonymSvar(svar, s, b) {
+    const text = await svar.text();
+    if (!text) return new Response(null, { status: svar.status, headers: svar.headers });
+    let data;
+    try { data = JSON.parse(text); } catch { return new Response(text, { status: svar.status, headers: svar.headers }); }
+    return fhirSvar(systemkonton.pseudonymisera(s.db, b.personalId, data), svar.status);
   }
 
   // Ingången från servern för /fhir. Ger ett svar, eller null när den vanliga läsningen med sessionen ska göras.

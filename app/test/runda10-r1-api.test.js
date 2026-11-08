@@ -32,9 +32,11 @@ const medBiljett = (token, vag, init = {}) => fetch(`${app.url}${vag}`, { ...ini
 
 const KONTO = { namn: 'Regionens vårddatalager', syfte: 'Uppföljning av diagnoser och vårdkontakter i regionens vårddatalager.', mangder: ['diagnoser'], vardenheter: ['uso-kard'], nyckel: offentlig };
 // Ett systemkonto i sandlådan, registrerat av systemförvaltaren.
+// Runda 10, r1: kontona i de här testerna har valt namn och personnummer. Pseudonymerna prövas för sig nedan.
+const IDENT = { identitet: true, identitetMotivering: 'Vårddatalagret knyter posterna till patientens personnummer.' };
 async function nyttKonto(k, extra = {}) {
   await k.logga('sysf');
-  const r = await k.post('/api/oppet-api/systemkonton', { ...KONTO, ...extra });
+  const r = await k.post('/api/oppet-api/systemkonton', { ...KONTO, ...IDENT, ...extra });
   if (r.status !== 201) throw new Error(JSON.stringify(r.data));
   return r.data;
 }
@@ -84,7 +86,7 @@ describe('Systemkonton', () => {
     expect(ok.status).toBe(200);
     expect(ok.data).toMatchObject({ token_type: 'Bearer', expires_in: 300, scope: 'system/Condition.rs system/Patient.r' });
     // Utan scope får kontot allt som det har fått.
-    expect((await biljett(intyg(konto.id))).data.scope).toBe('system/Condition.rs system/Patient.r system/Subscription.crds');
+    expect((await biljett(intyg(konto.id))).data.scope).toBe('system/Condition.rs system/Patient.r system/Subscription.crds vardkallan/identitet');
     const nu = Math.floor(Date.now() / 1000);
     const jti = randomUUID();
     expect((await biljett(intyg(konto.id, { jti }))).status).toBe(200);

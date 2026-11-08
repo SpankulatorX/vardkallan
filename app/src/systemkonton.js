@@ -15,7 +15,7 @@
 // - Varje läsning och varje meddelande loggas på patienten med kontot som den som läste och grunden systemkonto.
 // - Den privata nyckeln sparas aldrig i Vårdkällan. En nyckel med privat del avvisas.
 // - Ett återkallat konto får inga biljetter, dess biljetter slutar gälla och dess prenumerationer avslutas.
-import { createPublicKey, verify, randomBytes } from 'node:crypto';
+import { createPublicKey, verify, randomBytes, createHmac } from 'node:crypto';
 import { Fel, iso } from './db.js';
 import { kanRoll, vardenhetFor } from './atkomst.js';
 import { loggaRad } from './logg.js';
@@ -35,13 +35,29 @@ export const MANGDER = {
   overkanslighet: { namn: 'överkänsligheter', typer: ['AllergyIntolerance'], handling: 'las_oversikt' },
   vardkontakter: { namn: 'vårdkontakter', typer: ['Encounter'], handling: 'las_admin' },
 };
-// Patienten behövs för att posterna ska kunna knytas till rätt person, och prenumerationerna för att få meddelanden.
+// Patienten behövs för att posterna ska kunna knytas till samma person, och prenumerationerna för att få meddelanden.
 const ALLTID = ['system/Patient.r', 'system/Subscription.crds'];
+// Runda 10, r1: patientens namn och personnummer är ett eget omfång. Utan det får kontot en pseudonym per konto och
+// patient i stället för patientens id, och inga direkta identifierare i någon resurs, sökning eller prenumeration.
+export const IDENTITET = 'vardkallan/identitet';
+// Den hemliga nyckeln för pseudonymerna. Den sparas aldrig i databasen. I driften sätts den med
+// SYSTEMKONTO_PSEUDONYMNYCKEL, så att pseudonymerna är stabila över omstarter. Utan den slumpas en nyckel när servern startar.
+const PSEUDONYMNYCKEL = process.env.SYSTEMKONTO_PSEUDONYMNYCKEL ? Buffer.from(process.env.SYSTEMKONTO_PSEUDONYMNYCKEL) : randomBytes(32);
+// Pseudonymen för en patient hos ett konto: HMAC-SHA256 med den hemliga nyckeln över kontots id och patientens id.
+// Den är stabil för kontot och olika mellan konton, och går inte att räkna tillbaka utan nyckeln.
+export const pseudonym = (kontoId, patientId) => `ps-${createHmac('sha256', PSEUDONYMNYCKEL).update(`${kontoId}|${patientId}`).digest('base64url').slice(0, 24)}`;
+// Patienten bakom en pseudonym för kontot, eller null.
+export function patientFranPseudonym(db, kontoId, ps) {
+  if (typeof ps !== 'string' || !/^ps-[A-Za-z0-9_-]{24}$/.test(ps)) return null;
+  for (const { id } of db.query('SELECT id FROM patienter').all()) if (pseudonym(kontoId, id) === ps) return id;
+  return null;
+}
 
 export function sakraSchema(db) {
   db.exec(`CREATE TABLE IF NOT EXISTS api_systemkonton (
     id TEXT PRIMARY KEY, namn TEXT NOT NULL, syfte TEXT NOT NULL, vardenheter TEXT NOT NULL, mangder TEXT NOT NULL, omfang TEXT NOT NULL,
-    nyckel TEXT NOT NULL, far TEXT NOT NULL, registrerad TEXT NOT NULL, registrerad_av TEXT NOT NULL, aterkallad TEXT, aterkallad_av TEXT, orsak TEXT);
+    nyckel TEXT NOT NULL, far TEXT NOT NULL, registrerad TEXT NOT NULL, registrerad_av TEXT NOT NULL, aterkallad TEXT, aterkallad_av TEXT, orsak TEXT,
+    identitet INTEGER NOT NULL DEFAULT 0, identitet_motivering TEXT);
   CREATE TABLE IF NOT EXISTS api_systemkonto_intyg (konto_id TEXT NOT NULL, jti TEXT NOT NULL, utgar TEXT NOT NULL, PRIMARY KEY (konto_id, jti));`);
 }
 const harSchema = (db) => Boolean(db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'api_systemkonton'").get());
@@ -64,11 +80,12 @@ export function kontoFor(db, id) {
   return {
     id: r.id, namn: r.namn, vardenheter: JSON.parse(r.vardenheter), mangder, omfang: JSON.parse(r.omfang),
     handlingar: [...new Set(mangder.map(m => MANGDER[m].handling))], typer: mangder.flatMap(m => MANGDER[m].typer),
+    identitet: Boolean(r.identitet),
   };
 }
 
 // Systemets förslag ur informationsmängderna och vårdenheterna: omfånget och texten om vad kontot får.
-export function forslag(db, { mangder, vardenheter } = {}) {
+export function forslag(db, { mangder, vardenheter, identitet = false } = {}) {
   const m = Array.isArray(mangder) ? [...new Set(mangder.map(String))] : [];
   if (!m.length) throw new Fel(400, 'Välj minst en informationsmängd som kontot ska få, till exempel diagnoser.', 'ogiltig', { falt: ['mangder'] });
   const okand = m.find(x => !Object.hasOwn(MANGDER, x));
@@ -77,8 +94,9 @@ export function forslag(db, { mangder, vardenheter } = {}) {
   if (!v.length) throw new Fel(400, 'Välj de vårdenheter vars uppgifter kontot ska få.', 'ogiltig', { falt: ['vardenheter'] });
   const enheter = v.map(id => db.query('SELECT id, namn, typ FROM enheter WHERE id = ?').get(id));
   if (enheter.some(e => !e || e.typ !== 'vardenhet')) throw new Fel(400, 'Välj vårdenheter ur listan. En arbetsplats hör till sin vårdenhet.', 'ogiltig', { falt: ['vardenheter'] });
-  const omfang = [...m.flatMap(x => MANGDER[x].typer.map(t => `system/${t}.rs`)), ...ALLTID];
-  const far = `Läsa ${lista(m.map(x => MANGDER[x].namn))} som har registrerats på ${lista(enheter.map(e => e.namn))}, och patientens namn och identitet för de posterna. `
+  const omfang = [...m.flatMap(x => MANGDER[x].typer.map(t => `system/${t}.rs`)), ...ALLTID, ...(identitet === true ? [IDENTITET] : [])];
+  const vem = identitet === true ? 'och patientens namn och personnummer för de posterna' : 'med en pseudonym för patienten, som är stabil för kontot, men aldrig patientens namn eller personnummer';
+  const far = `Läsa ${lista(m.map(x => MANGDER[x].namn))} som har registrerats på ${lista(enheter.map(e => e.namn))}, ${vem}. `
     + 'Kontot får meddelanden om nya, ändrade och borttagna poster med bara id. Aldrig patienter med skyddade personuppgifter, aldrig spärrade uppgifter och aldrig något från andra vårdenheter.';
   return { mangder: m, vardenheter: enheter.map(e => e.id), omfang, far };
 }
@@ -102,6 +120,7 @@ const kontoUt = (db, r) => ({
   id: r.id, namn: r.namn, syfte: r.syfte, vardenheter: JSON.parse(r.vardenheter).map(id => ({ id, namn: db.query('SELECT namn FROM enheter WHERE id = ?').get(id)?.namn ?? id })),
   mangder: JSON.parse(r.mangder), omfang: JSON.parse(r.omfang), far: r.far, nyckel: { kty: JSON.parse(r.nyckel).kty, kid: JSON.parse(r.nyckel).kid ?? null },
   registrerad: r.registrerad, aterkallad: r.aterkallad, orsak: r.orsak,
+  identitet: Boolean(r.identitet), identitetMotivering: r.identitet_motivering ?? null,
   prenumerationer: db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'prenumerationer'").get()
     ? db.query("SELECT COUNT(*) n FROM prenumerationer WHERE personal_id = ? AND status = 'aktiv'").get(r.id).n : 0,
 });
@@ -117,7 +136,12 @@ export function registrera(db, personal, body = {}) {
   const syfte = text(body.syfte, 500);
   if (syfte.length < 10) throw new Fel(400, 'Beskriv kort varför tillämpningen behöver uppgifterna, så att logggranskningen kan bedöma åtkomsten.', 'ogiltig', { falt: ['syfte'] });
   if (PERSONNUMMER.test(namn) || PERSONNUMMER.test(syfte)) throw new Fel(400, 'Texten ser ut att innehålla ett personnummer. Ett systemkonto beskrivs utan patientuppgifter.', 'ogiltig', { falt: ['syfte'] });
-  const f = forslag(db, body);
+  // Förvalet är pseudonym. Namn och personnummer kräver ett uttryckligt val med en motivering.
+  const identitet = body.identitet === true;
+  const motivering = text(body.identitetMotivering, 500);
+  if (identitet && motivering.length < 10) throw new Fel(400, 'Motivera varför kontot behöver patientens namn och personnummer. Utan motivering får kontot en pseudonym för varje patient.', 'ogiltig', { falt: ['identitetMotivering'] });
+  if (PERSONNUMMER.test(motivering)) throw new Fel(400, 'Texten ser ut att innehålla ett personnummer. Ett systemkonto beskrivs utan patientuppgifter.', 'ogiltig', { falt: ['identitetMotivering'] });
+  const f = forslag(db, { ...body, identitet });
   const nyckel = provaNyckel(body.nyckel);
   if (db.query('SELECT COUNT(*) n FROM api_systemkonton').get().n >= TAK.konton) throw new Fel(409, `Demon har plats för ${TAK.konton} systemkonton.`, 'ogiltig');
   // Id:t är kontots client_id. Det är slumpat och unikt över alla sandlådor, eftersom biljetten begärs utan sandlåda.
@@ -125,9 +149,9 @@ export function registrera(db, personal, body = {}) {
   const nu = iso();
   db.query('INSERT INTO personal (id, namn, yrke, titel, enhet_id, hsa_id, demo, aktiv) VALUES (?, ?, ?, ?, ?, ?, 0, 1)')
     .run(id, `Systemkonto: ${namn}`, 'systemkonto', 'Systemkonto för en extern tillämpning', f.vardenheter[0], `SE2321000164-${id.toUpperCase()}`);
-  db.query('INSERT INTO api_systemkonton (id, namn, syfte, vardenheter, mangder, omfang, nyckel, far, registrerad, registrerad_av) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(id, namn, syfte, JSON.stringify(f.vardenheter), JSON.stringify(f.mangder), JSON.stringify(f.omfang), JSON.stringify(nyckel), f.far, nu, personal.id);
-  logga(db, personal, `api:systemkonto:${id}`, `Systemkontot ${namn} registrerades med omfånget ${f.omfang.join(' ')}.`);
+  db.query('INSERT INTO api_systemkonton (id, namn, syfte, vardenheter, mangder, omfang, nyckel, far, registrerad, registrerad_av, identitet, identitet_motivering) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(id, namn, syfte, JSON.stringify(f.vardenheter), JSON.stringify(f.mangder), JSON.stringify(f.omfang), JSON.stringify(nyckel), f.far, nu, personal.id, identitet ? 1 : 0, identitet ? motivering : null);
+  logga(db, personal, `api:systemkonto:${id}`, `Systemkontot ${namn} registrerades med omfånget ${f.omfang.join(' ')}.${identitet ? ` Namn och personnummer: ${motivering}` : ' Patienterna visas med pseudonym.'}`);
   return kontoUt(db, db.query('SELECT * FROM api_systemkonton WHERE id = ?').get(id));
 }
 
@@ -217,4 +241,77 @@ export function prova(db, konto, { patient, handling, resurs }) {
   if (!konto.vardenheter.includes(enhet)) return { tillaten: false, skal: 'Uppgiften är registrerad på en vårdenhet som systemkontot inte har fått.' };
   if (sparrade.includes(enhet)) return { tillaten: false, skal: 'Uppgiften är spärrad och lämnas inte ut till systemkonton.' };
   return { tillaten: true };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Runda 10, r1: pseudonymer för ett konto utan omfånget för identitet.
+
+// Patienten i anropets adress översätts från pseudonym till id. Ett riktigt id avvisas, så att kontot aldrig kan knyta
+// ihop posterna med patientens id, och sökning på personnummer avvisas. Ger { url } eller { fel }.
+export function oversattAnrop(db, kontoId, url) {
+  const ny = new URL(url);
+  const delar = ny.pathname.replace(/\/+$/, '').split('/').slice(2).map(decodeURIComponent);
+  if (ny.searchParams.has('identifier')) return { fel: new Fel(400, 'Systemkontot söker inte på personnummer. Ange patienten med kontots pseudonym.', 'ogiltig') };
+  if (delar[0] === 'Patient' && delar[1]) {
+    const pid = patientFranPseudonym(db, kontoId, delar[1]);
+    if (!pid) return { fel: new Fel(404, 'Resursen finns inte.', 'saknas') };
+    ny.pathname = `/fhir/Patient/${encodeURIComponent(pid)}${delar.length > 2 ? `/${delar.slice(2).join('/')}` : ''}`;
+  }
+  for (const k of ['patient', 'subject', '_id']) {
+    const v = ny.searchParams.get(k);
+    if (v == null) continue;
+    const pid = patientFranPseudonym(db, kontoId, v.replace(/^Patient\//, ''));
+    if (!pid) return { fel: new Fel(400, 'Ange patienten med kontots pseudonym, som den står i Patient.id och i referenserna.', 'ogiltig') };
+    ny.searchParams.set(k, pid);
+  }
+  return { url: ny };
+}
+
+const pnrVarianter = (p) => {
+  const n = String(p.personnummer ?? '');
+  return n.length === 12 ? [n, `${n.slice(0, 8)}-${n.slice(8)}`, `${n.slice(2, 8)}-${n.slice(8)}`, n.slice(2)] : n ? [n] : [];
+};
+const PSEUDONYM_CS = 'https://vardkallan.404haven.se/fhir/CodeSystem/pseudonym';
+// Gör om ett FHIR-svar för kontot: varje referens till en patient får pseudonymen, en Patient-resurs blir en
+// pseudonymiserad resurs med bara kön och födelseår, och som ett extra skydd ersätts varje text med namnet eller
+// personnumret för en patient som svaret gäller.
+export function pseudonymisera(db, kontoId, body) {
+  const patienter = new Map();
+  const hamta = (pid) => {
+    if (!patienter.has(pid)) patienter.set(pid, db.query('SELECT * FROM patienter WHERE id = ?').get(pid) ?? null);
+    return patienter.get(pid);
+  };
+  const ref = (v) => v.replace(/(^|\/)Patient\/([A-Za-z0-9_-]{1,40})(?=$|[/?#&])/g, (m, fore, pid) => (hamta(pid) ? `${fore}Patient/${pseudonym(kontoId, pid)}` : m));
+  const patientResurs = (r) => ({
+    resourceType: 'Patient', id: pseudonym(kontoId, r.id), meta: { tag: [{ system: PSEUDONYM_CS, code: 'pseudonym', display: 'Pseudonym för systemkontot' }] },
+    identifier: [{ system: `https://vardkallan.404haven.se/fhir/pseudonym/${kontoId}`, value: pseudonym(kontoId, r.id) }],
+    ...(r.gender ? { gender: r.gender } : {}), ...(r.birthDate ? { birthDate: String(r.birthDate).slice(0, 4) } : {}),
+  });
+  const ga = (v) => {
+    if (Array.isArray(v)) return v.map(ga);
+    if (v && typeof v === 'object') {
+      if (v.resourceType === 'Patient' && typeof v.id === 'string' && hamta(v.id)) return patientResurs(v);
+      const ut = {};
+      for (const [k, x] of Object.entries(v)) {
+        // En referens till en patient har aldrig namnet som display.
+        if (k === 'display' && typeof v.reference === 'string' && /(^|\/)Patient\//.test(v.reference)) continue;
+        ut[k] = ga(x);
+      }
+      return ut;
+    }
+    return typeof v === 'string' && v.includes('Patient/') ? ref(v) : v;
+  };
+  const ut = ga(body);
+  const kanda = [...patienter.entries()].filter(([, p]) => p);
+  const forbjudna = kanda.flatMap(([, p]) => [`${p.fornamn} ${p.efternamn}`, ...pnrVarianter(p)]).filter(t => t.length >= 6);
+  const ids = new Map(kanda.map(([pid]) => [pid, pseudonym(kontoId, pid)]));
+  // Extra skydd: inga texter med namnet eller personnumret, och ett patient-id som står ensamt byts mot pseudonymen.
+  const skydda = (v) => {
+    if (Array.isArray(v)) return v.map(skydda);
+    if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, skydda(x)]));
+    if (typeof v !== 'string') return v;
+    if (ids.has(v)) return ids.get(v);
+    return forbjudna.reduce((t, f) => t.split(f).join('[skyddad uppgift]'), v);
+  };
+  return skydda(ut);
 }

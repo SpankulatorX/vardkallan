@@ -10,6 +10,8 @@ import { MATKOD, ACVPU_KOD, SYSTEM as KOD } from './kodverk.js';
 import { EXT, CS, UTTRYCK } from './fhir-definitioner.js';
 import * as fhir from './fhir.js';
 import * as tidbokFhir from './tidbok-fhir.js';
+// Runda 10, r1: provbeställningar som makuleras.
+import * as labbFhir from './labb-fhir.js';
 // Runda 10, r1: listorna för överkänslighet och identiteternas system.
 import { OVERKANSLIGHET_AMNEN, OVERKANSLIGHET_REAKTIONER } from './uppmarksamhet-regler.js';
 import { FHIR_SYSTEM as ID_SYSTEM } from './identitet.js';
@@ -33,6 +35,49 @@ export const SKRIVBARA = {
 // Runda 10, r1: AllergyIntolerance och Patient går nu att skapa (SKRIVBARA ovan).
 export const INTE_SKRIVBARA = {};
 export const TABORT_TEXT = 'Journaluppgifter tas aldrig bort. En anteckning rättas med en ny version, ett läkemedel sätts ut och en dos makuleras, och det tidigare står kvar.';
+
+// Runda 10, r1: borttagning på ett kontrollerat sätt är makulering (Sussa 2.5.1.2). DELETE på en resurs, eller
+// POST <resurs>/$makulera med Parameters { orsak }, gör samma makulering som gränssnittet, med samma behörighet, orsak
+// som krav, historiken kvar och loggning. Makuleringen kräver varken kontrasignering eller fyra ögon i gränssnittet, och
+// därför inte heller här. En resurs som inte går att makulera ger 405 med vad man gör i stället.
+export const MAKULERBARA = {
+  MedicationAdministration: 'En given, överlämnad eller inte given dos makuleras med orsak, som i läkemedelslistan. Den står kvar som makulerad, med orsaken.',
+  ServiceRequest: 'En provbeställning (ServiceRequest/labb-<id>) makuleras med orsak så länge laboratoriet inte har svarat. Hela beställningen makuleras och står kvar med status revoked.',
+};
+export const INTE_MAKULERBARA = {
+  Composition: 'En anteckning makuleras inte. Den rättas med en ny version (PUT med tillägget rattelseorsak), och den tidigare versionen står kvar.',
+  MedicationRequest: 'En ordination makuleras inte. Den sätts ut med status stopped och en orsak (PUT), och står kvar i läkemedelslistan.',
+  Observation: 'Ett mätvärde makuleras inte via API:t, eftersom gränssnittet inte heller gör det. Registrera ett nytt värde. Ett felaktigt värde från utrustning bedöms i patientens mätvärden.',
+  Condition: 'En diagnos makuleras inte. Den rättas på vårdkontakten i gränssnittet, och rättelsen syns i historiken.',
+  ServiceRequest: 'En remiss makuleras inte via API:t. Den makuleras eller dras tillbaka i gränssnittet, där mottagarens status prövas. Provbeställningar (ServiceRequest/labb-<id>) går att makulera.',
+};
+export function makulera({ db, personal, typ, id, orsak, kor }) {
+  const labbId = typ === 'ServiceRequest' ? /^labb-(\d{1,9})$/.exec(String(id ?? ''))?.[1] : null;
+  if (!Object.hasOwn(MAKULERBARA, typ) || (typ === 'ServiceRequest' && !labbId)) {
+    throw ejStod(Object.hasOwn(INTE_MAKULERBARA, typ) ? `Journaluppgifter tas aldrig bort. ${INTE_MAKULERBARA[typ]}` : `${typ} makuleras inte. ${TABORT_TEXT}`);
+  }
+  const o = strang(orsak);
+  if (o.length < 3) throw fel('Ange varför uppgiften makuleras, med minst tre tecken: parametern orsak i adressen vid DELETE, eller orsak i Parameters vid $makulera. Orsaken sparas och syns i historiken.', ['orsak']);
+  if (typ === 'MedicationAdministration') {
+    const rad = /^\d{1,9}$/.test(String(id)) ? db.query('SELECT * FROM administreringar WHERE id = ?').get(Number(id)) : null;
+    if (!rad) throw new Fel(404, 'Resursen finns inte.', 'saknas');
+    egetForSystemkonto(personal, [rad.registrerad_av, rad.utford_av, rad.iordningstalld_av]);
+    kor('POST', `/api/patient/${encodeURIComponent(rad.patient_id)}/makulera`, { typ: 'administrering', id: rad.id, orsak: o });
+    return { status: 200, typ, id: rad.id, resurs: fhir.medicationAdministration(db, db.query('SELECT * FROM administreringar WHERE id = ?').get(rad.id)), text: 'Dosen är makulerad. Den står kvar med orsaken.' };
+  }
+  const analys = db.query("SELECT a.*, b.registrerad_av AS b_av FROM labb_analyser a JOIN labb_bestallningar b ON b.id = a.bestallning_id WHERE a.id = ?").get(Number(labbId));
+  if (!analys) throw new Fel(404, 'Resursen finns inte.', 'saknas');
+  egetForSystemkonto(personal, [analys.b_av]);
+  const { data } = kor('POST', `/api/labb/${analys.bestallning_id}/makulera`, { orsak: o });
+  const b = db.query('SELECT * FROM labb_bestallningar WHERE id = ?').get(analys.bestallning_id);
+  return { status: 200, typ, id: `labb-${analys.id}`, resurs: labbFhir.serviceRequest(db, b, db.query('SELECT * FROM labb_analyser WHERE id = ?').get(analys.id)), text: data?.text ?? 'Beställningen är makulerad.' };
+}
+// Ett systemkonto får bara makulera det som kontot självt har skrivit. Prövas innan något om uppgiften lämnas ut.
+function egetForSystemkonto(personal, upphov) {
+  if (personal?.yrke === 'systemkonto' && !upphov.includes(personal.id)) {
+    throw new Fel(403, 'Ett systemkonto får bara makulera det som kontot självt har skrivit.', 'nekad');
+  }
+}
 
 
 // OperationOutcome med svensk text. issue är det huvudsakliga felet, sedan en rad per varning.

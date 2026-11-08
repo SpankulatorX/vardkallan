@@ -132,7 +132,9 @@ export function skapaSmart({ nu = () => Date.now() } = {}) {
   // Runda 10, r1: en biljett för ett systemkonto efter ett prövat klientintyg (systemkonton.js). Den gäller i fem minuter.
   function nySystemBiljett(s, konto, omfang, { sekunder = 300 } = {}) {
     const token = slump();
-    const b = { token, s, system: true, personalId: konto.id, enhetId: konto.vardenheter[0], patientId: null, klient: konto.id, omfang: tolkaOmfang(omfang.join(' ')), skapad: nu(), utgar: nu() + sekunder * 1000 };
+    const b = { token, s, system: true, personalId: konto.id, enhetId: konto.vardenheter[0], patientId: null, klient: konto.id, omfang: tolkaOmfang(omfang.join(' ')), skapad: nu(), utgar: nu() + sekunder * 1000,
+      // Runda 10, r1: patientens namn och personnummer bara med omfånget för identitet, annars pseudonymer.
+      identitet: omfang.includes('vardkallan/identitet') };
     biljetter.set(token, b);
     sysLogga(s, b, `systemkonto:${konto.id}`, `Åtkomstbiljett till systemkontot ${konto.namn} utfärdad efter ett signerat klientintyg, giltig i ${sekunder / 60} minuter, med omfånget ${omfang.join(' ')}.`);
     return b;

@@ -44,6 +44,17 @@ export const R10 = {
   patient: `${FS10}Patient: en ny patient registreras via API:t med samma tolkning av numret och dubblettkontroll som gränssnittet`,
   everything: `${FS10}Patient/$everything för personalen: varje resurstyp prövas och loggas för sig, och bara det personen får se kommer med`,
   uiOverk: 'Gränssnitt > Uppmärksamhet > läkaren registrerar en överkänslighet med ämnet och reaktionen, och den syns i patienthuvudet med graden',
+  // Makulering via API:t och identiteten för systemkonton (app/test/runda10-r1-makulering.test.js).
+  makulering: [
+    'Makulering via API:t > DELETE och $makulera makulerar en dos med samma regler som gränssnittet: orsak krävs, historiken står kvar och makuleringen loggas',
+    'Makulering via API:t > makuleringen prövas som i gränssnittet: fel roll och en annan vårdenhet nekas, och en dos som inte finns ger 404',
+    'Makulering via API:t > en provbeställning makuleras via API:t, och en resurs som inte går att makulera ger 405 med vad man gör i stället',
+    'Makulering via API:t > ett systemkonto får bara makulera det som kontot självt har skrivit',
+  ],
+  identitet: [
+    'Identitet för systemkonton > förvalet är pseudonym: kontot ser aldrig patientens namn eller personnummer i resurser, sökningar eller prenumerationer',
+    'Identitet för systemkonton > namn och personnummer kräver att systemförvaltaren väljer det med en motivering, och då får kontot dem',
+  ],
 };
 
 export default [
@@ -86,10 +97,11 @@ export default [
       R6.conditionSkapa, R6.bokning, R6.inskrivning, R6.mottagare, R6.provas,
       // Runda 10, r1: systemkonton med SMART Backend Services och prenumerationer på en population.
       R10.registrera, R10.backend, R10.lasning, R10.population, R10.aterkallat, R10.uiKonto, R10.allergy, R10.patient,
+      ...R10.makulering, ...R10.identitet,
     ],
-    losning: 'Integrationsmönster: förfrågan och svar (REST med FHIR R4) och händelser (Subscription med rest-hook), för tillämpningar som startas av en person (SMART on FHIR) och för systemkonton utan inloggad person (SMART Backend Services, med ett klientintyg som tillämpningen signerar med sin privata nyckel). Kategoriserade informationsmängder: ett systemkonto, till exempel regionens vårddatalager eller engagemangsindex, prenumererar på alla poster av en typ (diagnoser, mätvärden, läkemedel, överkänsligheter eller vårdkontakter) på sina vårdenheter och får meddelanden om nya, ändrade och borttagna poster med bara id. Därefter hämtar det posten med sin egen biljett. Branschstandarder: FHIR R4, SMART App Launch och Backend Services, OAuth 2.0 och Subscriptions Backport. Responsivitet: versionen i CapabilityStatement, ändringsloggen och ärenden för ny information. Kontrollerat läsa, skapa, uppdatera och ta bort: skrivningen går genom samma funktioner och regler som gränssnittet, och en borttagning besvaras med hur uppgiften rättas eller makuleras.',
+    losning: 'Integrationsmönster: förfrågan och svar (REST med FHIR R4) och händelser (Subscription med rest-hook), för tillämpningar som startas av en person (SMART on FHIR) och för systemkonton utan inloggad person (SMART Backend Services, med ett klientintyg som tillämpningen signerar med sin privata nyckel). Kategoriserade informationsmängder: ett systemkonto, till exempel regionens vårddatalager eller engagemangsindex, prenumererar på alla poster av en typ (diagnoser, mätvärden, läkemedel, överkänsligheter eller vårdkontakter) på sina vårdenheter och får meddelanden om nya, ändrade och borttagna poster med bara id. Därefter hämtar det posten med sin egen biljett. Branschstandarder: FHIR R4, SMART App Launch och Backend Services, OAuth 2.0 och Subscriptions Backport. Responsivitet: versionen i CapabilityStatement, ändringsloggen och ärenden för ny information. Kontrollerat läsa, skapa, uppdatera och ta bort: skrivningen går genom samma funktioner och regler som gränssnittet. Att ta bort är att makulera: DELETE eller $makulera på en dos eller en provbeställning gör samma makulering som gränssnittet, med samma behörighet, orsak som krav, historiken kvar och loggning, och en resurs som inte går att makulera besvaras med 405 och vad man gör i stället, till exempel att en anteckning rättas med en ny version. Ett systemkonto får patientens namn och personnummer bara när systemförvaltaren har valt det med en motivering, och annars en pseudonym per konto och patient.',
     expert: 'Systemet prövar varje skrivning, varje läsning och varje meddelande mot behörighetsmotorn, förklarar på svenska varför något inte går och skickar aldrig patientuppgifter i ett meddelande, så att ingen integration behöver bygga in patientdatalagens regler. Systemförvaltaren väljer bara vad ett systemkonto ska få: systemet räknar fram omfånget och spärrar själv skyddad identitet, spärrade uppgifter och andra vårdenheter.',
-    anmarkning: 'Borttagning görs aldrig, eftersom journaluppgifter rättas eller makuleras och det tidigare står kvar (patientdatalagen), och API:t säger hur. Meddelandena simuleras i demon och skickas bara med WEBHOOK_SKICKA=1. Systemkontona gäller den sandlåda där de registrerades.',
+    anmarkning: 'Ingenting raderas: en makulerad uppgift står kvar med orsaken (patientdatalagen). Makulering kräver varken kontrasignering eller fyra ögon i gränssnittet, och därför inte heller via API:t. Meddelandena simuleras i demon och skickas bara med WEBHOOK_SKICKA=1. Systemkontona gäller den sandlåda där de registrerades, och nyckeln för pseudonymerna slumpas när servern startar om SYSTEMKONTO_PSEUDONYMNYCKEL inte är satt.',
   },
   {
     id: '2.5.1.3', kategori: 'system', egna: ['D9'], avsedd: 'uppfyllt_demo',
