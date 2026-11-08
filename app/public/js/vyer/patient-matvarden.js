@@ -1,7 +1,7 @@
 // Mätvärden (Sussa 3.1.3.9 och 3.1.3.5): NEWS2 som systemet räknar ur vitalparametrarna med vad som ska göras, en
 // kurva per mätvärde med referensintervall, alla värden i en tabell och registrering av ett värde eller en hel
 // NEWS2-kontroll. Medvetandegrad, GCS och smärta väljs i listor med text, och systemet räknar summan och poängen.
-import { esc, api, tidpunkt, datum, notis, medKnapp, migreradEtikett, tal, ikon } from '../ui.js';
+import { esc, api, tidpunkt, datum, notis, medKnapp, migreradEtikett, tal, ikon, faltFel } from '../ui.js';
 // Runda 7, r2: hjälp i sammanhanget.
 import { hjalpRuta } from '../hjalp.js';
 import { far } from '../app.js';
@@ -124,6 +124,7 @@ export async function visa(el, ctx) {
     ${news2Html(d.news2, kanReg && d.news2?.galler)}
     <div id="news2-plats"></div>
     ${kanReg ? registrering() : ''}
+    ${kanReg ? '<div id="flera-plats"><p class="knapprad"><button type="button" class="knapp liten sekundar" data-flera-ny>Längd, vikt, blodtryck och puls på en gång</button></p></div>' : ''}
     ${kurvorHtml(d.kurvor ?? [], markerad)}
     ${d.matvarden.length ? `<section aria-labelledby="mv-alla"><h3 id="mv-alla">Alla värden</h3>
       <div class="tabellrulle"><table class="tabell tat">
@@ -137,6 +138,8 @@ export async function visa(el, ctx) {
     if (k) { k.scrollIntoView({ block: 'center' }); k.querySelector('h4')?.focus({ preventScroll: true }); }
   }
   el.querySelector('[data-news2-ny]')?.addEventListener('click', () => news2Form(el, ctx));
+  // Runda 8, r5: flera mätvärden på en gång.
+  el.querySelector('[data-flera-ny]')?.addEventListener('click', () => fleraForm(el, ctx));
 
   const form = el.querySelector('#mv-form');
   if (!form) return;
@@ -264,3 +267,41 @@ function news2Form(el, ctx) {
   });
 }
 
+
+// Runda 8, r5: längd, vikt, blodtryck och puls i ett formulär (Sussa testfall 4.2). Allt sparas på en gång med samma tid
+// och vårdkontakt, och systemet räknar BMI ur längd och vikt. Fält som lämnas tomma registreras inte.
+const FLERA = [['langd', 'Längd', 'cm', 'decimal'], ['vikt', 'Vikt', 'kg', 'decimal'], ['blodtryck', 'Blodtryck', 'mmHg', 'text'], ['puls', 'Puls', 'slag/min', 'numeric']];
+function fleraForm(el, ctx) {
+  const plats = el.querySelector('#flera-plats');
+  plats.innerHTML = `<form class="mv-form" id="flera-form" novalidate aria-labelledby="fl-reg">
+    <h3 id="fl-reg" tabindex="-1">Längd, vikt, blodtryck och puls</h3>
+    <p class="hjalp">Fyll i de värden som har tagits. Tiden är nu, och systemet räknar BMI.</p>
+    <div class="falt-rad">${FLERA.map(([k, n, enhet, im]) => `<div class="falt smal"><label for="fl-${k}">${esc(n)}</label><div class="med-enhet"><input id="fl-${k}" name="${k}" inputmode="${im}" autocomplete="off"${k === 'blodtryck' ? ' placeholder="120/80"' : ''}><span class="enhet">${esc(enhet)}</span></div></div>`).join('')}</div>
+    <p class="news2-forhand" aria-live="polite" data-bmi></p>
+    <p class="form-fel" role="alert" hidden></p>
+    <div class="knapprad"><button type="submit" class="knapp">Registrera</button><button type="button" class="knapp text" data-avbryt>Avbryt</button></div>
+  </form>`;
+  const form = plats.querySelector('form');
+  const tal = (v) => Number(String(v).trim().replace(',', '.'));
+  form.addEventListener('input', () => {
+    const l = tal(form.langd.value);
+    const v = tal(form.vikt.value);
+    form.querySelector('[data-bmi]').textContent = l > 0 && v > 0 ? `BMI ${(Math.round((v / ((l / 100) ** 2)) * 10) / 10).toString().replace('.', ',')}` : '';
+  });
+  form.querySelector('[data-avbryt]').addEventListener('click', () => { ctx.ladda(); });
+  form.querySelector('#fl-langd').focus();
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(FLERA.map(([k]) => [k, form[k].value.trim()]).filter(([, v]) => v));
+    if (!Object.keys(data).length) { faltFel(form, { message: 'Fyll i minst ett mätvärde.', data: { falt: ['langd'] } }); form.querySelector('#fl-langd').focus(); return; }
+    try {
+      const r = await medKnapp(form.querySelector('[type=submit]'), () => api(`/api/patient/${encodeURIComponent(ctx.id)}/matvarden/flera`, { metod: 'POST', data }), form);
+      notis(r.text);
+      kontaktNotis(r);
+      ctx.ladda();
+    } catch (err) {
+      const f = err?.data?.falt?.[0];
+      if (f && form[f]) { form[f].setAttribute('aria-invalid', 'true'); form[f].focus(); }
+    }
+  });
+}

@@ -18,7 +18,7 @@ function minaHtml(o) {
     <h2 id="ut-intyg-rubrik">Ditt intyg</h2>
     <p data-intyg>${intygHtml(o.intyg)} <span class="dampad">${giltigHtml(o.intyg)}</span></p>
     ${utb ? `<p data-utbildare>${intygHtml(o.utbildare)} <span class="dampad">Utbildarintyget gäller till ${esc(datum(o.utbildare.giltigtTill))}. Du kan ändra övningarna.</span></p>` : ''}
-    <p class="dampad liten">${esc(o.kurs)} för ${esc(o.rollText.toLowerCase())}, version ${o.version} av övningarna. ${o.ovningar.length} övningar. Alla svar ska vara rätt, och intyget gäller i ett år. ${esc(o.utbildningsmiljo)}</p>
+    <p class="dampad liten">${esc(o.kurs)} för ${esc(o.rollText.toLowerCase())}, version ${o.version} av övningarna. ${o.ovningar.length} övningar${o.vardenhet?.antalEgna ? `, varav ${o.vardenhet.antalEgna} som ${esc(o.vardenhet.namn)} har lagt till (version ${o.vardenhet.version})` : ''}. Alla svar ska vara rätt, och intyget gäller i ett år. ${esc(o.utbildningsmiljo)}</p>
   </section>`;
 }
 
@@ -27,7 +27,7 @@ function ovningarHtml(o) {
     <h2 id="ut-ov-rubrik">Övningar</h2>
     <form id="ovningar" class="ovningar" novalidate>
       ${o.ovningar.map((x, i) => `<fieldset class="ovning" data-ovning="${esc(x.id)}">
-        <legend><span class="ovning-nr">Övning ${i + 1}.</span> ${esc(x.fraga)}</legend>
+        <legend><span class="ovning-nr">Övning ${i + 1}.</span> ${esc(x.fraga)}${x.enhet ? ` <span class="tagg">${esc(o.vardenhet?.namn ?? 'Vårdenhetens egen')}</span>` : ''}</legend>
         ${x.alternativ.map(a => `<div class="ovning-val"><input type="radio" id="ov-${esc(x.id)}-${esc(a.id)}" name="${esc(x.id)}" value="${esc(a.id)}"><label for="ov-${esc(x.id)}-${esc(a.id)}">${esc(a.text)}</label></div>`).join('')}
         ${x.prova ? `<p class="liten"><a href="${esc(x.prova)}">Pröva i demon</a></p>` : ''}
         <p class="ovning-svar" data-svar="${esc(x.id)}" hidden></p>
@@ -81,7 +81,11 @@ function redigeraOvning(x, i, r) {
 }
 
 function redigeraHtml(r) {
-  return `<p>Version ${r.version} gäller nu. Ändra, lägg till eller ta bort övningar och spara en ny version. Den förra versionen finns kvar i historiken, och intyg som redan är utfärdade gäller. Systemet prövar övningarna innan de sparas och säger vad som saknas.</p>
+  // Runda 8, r5: vårdgivarens övningar eller vårdenhetens egna, med var sin historik.
+  const enhet = r.omfang === 'enhet';
+  const lage = enhet && !r.version ? `${esc(r.vardenhet.namn)} har inga egna övningar än. Lägg till en övning och spara den första versionen.` : `Version ${r.version} gäller nu. Ändra, lägg till eller ta bort övningar och spara en ny version.`;
+  return `<h3>${enhet ? `Egna övningar för ${esc(r.vardenhet.namn)}` : 'Vårdgivarens övningar'}</h3>
+    <p>${lage} Den förra versionen finns kvar i historiken, och intyg som redan är utfärdade gäller. Systemet prövar övningarna innan de sparas och säger vad som saknas.${enhet ? ' De egna övningarna görs av personalen på vårdenheten utöver vårdgivarens.' : ''}</p>
     <form id="ov-redigera" novalidate>
       <div id="ov-red-lista">${r.ovningar.map((x, i) => redigeraOvning(x, i, r)).join('')}</div>
       <div class="knapprad"><button type="button" class="knapp sekundar" data-ny-ovning>${ikon.plus}<span>Lägg till en övning</span></button></div>
@@ -130,7 +134,7 @@ function kopplaRedigering(el, r) {
     // Övningarna som tas bort räknas inte, så felets nummer gäller listan som skickas.
     const kvar = [...form.querySelectorAll('.ov-red')].filter(d => !d.querySelector('[name="bort"]').checked);
     try {
-      const svar = await medKnapp(form.querySelector('[data-a="spara-ovningar"]'), () => api('/api/utbildning/ovningar', { metod: 'POST', data: { ovningar: lasOvningar(form), andring: form.andring.value } }), form);
+      const svar = await medKnapp(form.querySelector('[data-a="spara-ovningar"]'), () => api('/api/utbildning/ovningar', { metod: 'POST', data: { omfang: r.omfang ?? 'vardgivare', ovningar: lasOvningar(form), andring: form.andring.value } }), form);
       notis(svar.text);
       kopplaRedigering(el, svar);
     } catch (e) {
@@ -154,16 +158,19 @@ export async function visa(main) {
   const o = await api('/api/utbildning');
   const e = o.enhet ? await api('/api/utbildning/enhet') : null;
   const el = main.querySelector('#utbildning');
-  el.innerHTML = `${minaHtml(o)}${e ? `<div id="ut-enhet">${enhetHtml(e)}</div>` : ''}${ovningarHtml(o)}${o.kanAndra ? `<section aria-labelledby="ut-red-rubrik" data-ov-redigera>
+  const egna = o.kanAndraEnhet ? `<button type="button" class="knapp sekundar" data-oppna-enhet>Ändra egna övningar för ${esc(o.kanAndraEnhet.namn)}</button>` : '';
+  el.innerHTML = `${minaHtml(o)}${e ? `<div id="ut-enhet">${enhetHtml(e)}</div>` : ''}${ovningarHtml(o)}${o.kanAndra || o.kanAndraEnhet ? `<section aria-labelledby="ut-red-rubrik" data-ov-redigera>
       <h2 id="ut-red-rubrik">Ändra övningarna</h2>
-      <div id="ov-red-yta"><p>Du är ${o.enhet ? 'verksamhetschef' : 'utbildare'} och kan ändra övningarna för alla yrkesroller.</p><div class="knapprad"><button type="button" class="knapp sekundar" data-oppna-redigering>Ändra övningarna</button></div></div>
+      <div id="ov-red-yta"><p>Du är ${o.enhet ? 'verksamhetschef' : 'utbildare'} och kan ändra vårdgivarens övningar för alla yrkesroller${o.kanAndraEnhet ? ` och de egna övningarna för ${esc(o.kanAndraEnhet.namn)}` : ''}.</p><div class="knapprad">${o.kanAndra ? '<button type="button" class="knapp sekundar" data-oppna-redigering>Ändra övningarna</button>' : ''}${egna}</div></div>
     </section>` : ''}${hjalpLista()}`;
 
-  el.querySelector('[data-oppna-redigering]')?.addEventListener('click', async (ev) => {
-    const r = await medKnapp(ev.currentTarget, () => api('/api/utbildning/ovningar'));
+  const oppna = (omfang) => async (ev) => {
+    const r = await medKnapp(ev.currentTarget, () => api(`/api/utbildning/ovningar${omfang === 'enhet' ? '?omfang=enhet' : ''}`));
     kopplaRedigering(el, r);
-    el.querySelector('#ov-red-yta details summary')?.focus();
-  });
+    (el.querySelector('#ov-red-yta details summary') ?? el.querySelector('#ov-red-yta [data-ny-ovning]'))?.focus();
+  };
+  el.querySelector('[data-oppna-redigering]')?.addEventListener('click', oppna('vardgivare'));
+  el.querySelector('[data-oppna-enhet]')?.addEventListener('click', oppna('enhet'));
   el.querySelector('#ut-enhet')?.addEventListener('click', async (ev) => {
     const b = ev.target.closest('[data-utbildare]');
     if (!b) return;

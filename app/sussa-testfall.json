@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T10:41:43.843Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-08T11:58:53.261Z",
+  "bas": "http://127.0.0.1:18185",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "6861eabb78763a405740bf97897dd10fff8989df56b204f9e50a1ab598fbf78a",
+  "gransnittHash": "dd10f066aee0ae1431450e79bc26a83124f0e6117df54def40a8a72d7ed7b731",
   "kalla": "Region Örebro län, upphandlingen Framtidens vårdinformationsstöd (Sussa samverkan, dnr 16RS2022): Bilaga F1:4 Testfall, Bilaga F1:2 Modell för att testa och utvärdera användbarhet, Bilaga F1:3 Information till anbudsgivare och Bilaga F1 Utvärderingsmodell, versionerna 2018-03-07.",
   "klm": {
     "kalla": "Card, Moran och Newell 1980, Communications of the ACM 23(7), s. 396 till 410",
@@ -43,15 +43,15 @@
       "tecken": 323,
       "uppmatt": 29,
       "inomBudget": true,
-      "skriptetsTidMs": 5327,
-      "uppskattadTidS": 169,
+      "skriptetsTidMs": 4973,
+      "uppskattadTidS": 168.6,
       "klmDelar": {
         "klick": 47.7,
         "listval": 4,
         "faltbyten": 20.7,
         "tecken": 90.4,
         "tangenter": 0.8,
-        "svarstid": 5.3
+        "svarstid": 5
       },
       "steg": [
         "klick: Gerda Ström i arbetslistan",
@@ -122,15 +122,15 @@
       "tecken": 316,
       "uppmatt": 28,
       "inomBudget": true,
-      "skriptetsTidMs": 4111,
-      "uppskattadTidS": 162,
+      "skriptetsTidMs": 4220,
+      "uppskattadTidS": 162.1,
       "klmDelar": {
         "klick": 39.8,
         "listval": 11.9,
         "faltbyten": 17.3,
         "tecken": 88.5,
         "tangenter": 0.6,
-        "svarstid": 4.1
+        "svarstid": 4.2
       },
       "steg": [
         "klick: Elin Arnström i arbetslistan",
@@ -197,7 +197,7 @@
       "tecken": 131,
       "uppmatt": 31,
       "inomBudget": true,
-      "skriptetsTidMs": 3021,
+      "skriptetsTidMs": 3035,
       "uppskattadTidS": 112.8,
       "klmDelar": {
         "klick": 21.2,
@@ -265,15 +265,15 @@
       "tecken": 72,
       "uppmatt": 12,
       "inomBudget": true,
-      "skriptetsTidMs": 2230,
-      "uppskattadTidS": 55,
+      "skriptetsTidMs": 2787,
+      "uppskattadTidS": 55.5,
       "klmDelar": {
         "klick": 29.2,
         "listval": 0,
         "faltbyten": 3.5,
         "tecken": 20.2,
         "tangenter": 0,
-        "svarstid": 2.2
+        "svarstid": 2.8
       },
       "steg": [
         "klick: Läkemedel att ge i menyn",
@@ -316,15 +316,15 @@
       "tecken": 99,
       "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 310,
-      "uppskattadTidS": 46.8,
+      "skriptetsTidMs": 398,
+      "uppskattadTidS": 46.9,
       "klmDelar": {
         "klick": 8,
         "listval": 4,
         "faltbyten": 6.9,
         "tecken": 27.7,
         "tangenter": 0,
-        "svarstid": 0.3
+        "svarstid": 0.4
       },
       "steg": [
         "klick: Mira Axelsson i arbetslistan",
@@ -360,15 +360,15 @@
       "tecken": 99,
       "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 308,
-      "uppskattadTidS": 46.8,
+      "skriptetsTidMs": 367,
+      "uppskattadTidS": 46.9,
       "klmDelar": {
         "klick": 8,
         "listval": 4,
         "faltbyten": 6.9,
         "tecken": 27.7,
         "tangenter": 0,
-        "svarstid": 0.3
+        "svarstid": 0.4
       },
       "steg": [
         "klick: Mira Axelsson i arbetslistan",
@@ -404,8 +404,8 @@
       "tecken": 99,
       "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 303,
-      "uppskattadTidS": 46.8,
+      "skriptetsTidMs": 335,
+      "uppskattadTidS": 46.9,
       "klmDelar": {
         "klick": 8,
         "listval": 4,
@@ -448,7 +448,7 @@
       "tecken": 70,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 282,
+      "skriptetsTidMs": 318,
       "uppskattadTidS": 30.5,
       "klmDelar": {
         "klick": 10.6,
@@ -491,7 +491,7 @@
       "tecken": 70,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 307,
+      "skriptetsTidMs": 335,
       "uppskattadTidS": 30.5,
       "klmDelar": {
         "klick": 10.6,
@@ -534,7 +534,7 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 320,
+      "skriptetsTidMs": 335,
       "uppskattadTidS": 13.6,
       "klmDelar": {
         "klick": 13.3,
@@ -577,8 +577,8 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 287,
-      "uppskattadTidS": 13.5,
+      "skriptetsTidMs": 309,
+      "uppskattadTidS": 13.6,
       "klmDelar": {
         "klick": 13.3,
         "listval": 0,
@@ -620,8 +620,8 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 281,
-      "uppskattadTidS": 13.5,
+      "skriptetsTidMs": 339,
+      "uppskattadTidS": 13.6,
       "klmDelar": {
         "klick": 13.3,
         "listval": 0,
@@ -642,6 +642,147 @@
       "tidspoang": 10
     },
     {
+      "nr": "4.1",
+      "titel": "Skapa anteckning",
+      "tema": 4,
+      "roll": "Läkare öppenvård",
+      "demoroll": "lak-vc",
+      "tidsklass": 6,
+      "tidsklassSkal": "Fem frågor med fasta svar och en kommentar.",
+      "budget": 6,
+      "motivering": "Ett klick på patienten i arbetslistan och ett på Dokumentera tobaksvanor i översikten. Ett klick på Dagligen för cigaretter sätter svaret Ja själv och flyttar fokus till antalet, och systemet föreslår kvalificerat rådgivande samtal med KVÅ-kod. Ett klick på Erbjudet och accepterat, ett fältbyte för kommentaren och ett klick för att signera.",
+      "avvikelser": [
+        "Tiden för besöket är nu, eftersom Sussas datum ligger före testet. Besöket är på Vårdcentralen Tybble för läkaren och på Kardiologiska mottagningen för sjuksköterskan och fysioterapeuten.",
+        "Undersköterskan och vårdadministratören skriver inte anteckningar i Vårdkällan och kan därför inte spela testfallet. Undersköterskan ser tobaksvanorna i översikten.",
+        "Sussas fråga om rökare ja eller nej följer den nationella vägledningen: om patienten använder tobak eller nikotin, och per produkt dagligen, ibland eller slutat. Erbjuden och accepterad rökavvänjning är ett val, Erbjudet och accepterat."
+      ],
+      "slut": "Informationen är inmatad på ett strukturerat sätt i journalen.",
+      "uppnatt": true,
+      "klick": 5,
+      "listval": 0,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "tecken": 68,
+      "uppmatt": 6,
+      "inomBudget": true,
+      "skriptetsTidMs": 415,
+      "uppskattadTidS": 36.2,
+      "klmDelar": {
+        "klick": 13.3,
+        "listval": 0,
+        "faltbyten": 3.5,
+        "tecken": 19,
+        "tangenter": 0,
+        "svarstid": 0.4
+      },
+      "steg": [
+        "klick: Berit Strandhall i arbetslistan",
+        "klick: Dokumentera tobaksvanor",
+        "klick: Dagligen för cigaretter",
+        "har redan fokus: antalet cigaretter per dag",
+        "klick: Erbjudet och accepterat",
+        "fältbyte: kommentaren",
+        "klick: Signera"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "4.1",
+      "titel": "Skapa anteckning",
+      "tema": 4,
+      "roll": "Sjuksköterska slutenvård",
+      "demoroll": "ssk-kard",
+      "tidsklass": 6,
+      "tidsklassSkal": "Fem frågor med fasta svar och en kommentar.",
+      "budget": 6,
+      "motivering": "Samma steg som för läkaren, från arbetslistan på Kardiologiska kliniken. Tobaksvanorna skrivs och läses med samma behörighet som omvårdnadsanteckningar.",
+      "avvikelser": [
+        "Tiden för besöket är nu, eftersom Sussas datum ligger före testet. Besöket är på Vårdcentralen Tybble för läkaren och på Kardiologiska mottagningen för sjuksköterskan och fysioterapeuten.",
+        "Undersköterskan och vårdadministratören skriver inte anteckningar i Vårdkällan och kan därför inte spela testfallet. Undersköterskan ser tobaksvanorna i översikten.",
+        "Sussas fråga om rökare ja eller nej följer den nationella vägledningen: om patienten använder tobak eller nikotin, och per produkt dagligen, ibland eller slutat. Erbjuden och accepterad rökavvänjning är ett val, Erbjudet och accepterat."
+      ],
+      "slut": "Informationen är inmatad på ett strukturerat sätt i journalen.",
+      "uppnatt": true,
+      "klick": 5,
+      "listval": 0,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "tecken": 68,
+      "uppmatt": 6,
+      "inomBudget": true,
+      "skriptetsTidMs": 395,
+      "uppskattadTidS": 36.1,
+      "klmDelar": {
+        "klick": 13.3,
+        "listval": 0,
+        "faltbyten": 3.5,
+        "tecken": 19,
+        "tangenter": 0,
+        "svarstid": 0.4
+      },
+      "steg": [
+        "klick: Berit Strandhall i arbetslistan",
+        "klick: Dokumentera tobaksvanor",
+        "klick: Dagligen för cigaretter",
+        "har redan fokus: antalet cigaretter per dag",
+        "klick: Erbjudet och accepterat",
+        "fältbyte: kommentaren",
+        "klick: Signera"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "4.1",
+      "titel": "Skapa anteckning",
+      "tema": 4,
+      "roll": "Paramedicinare",
+      "demoroll": "fys-kard",
+      "tidsklass": 6,
+      "tidsklassSkal": "Fem frågor med fasta svar och en kommentar.",
+      "budget": 6,
+      "motivering": "Samma steg som för läkaren. Fysioterapeuten skriver omvårdnadsanteckningar och därmed tobaksvanor.",
+      "avvikelser": [
+        "Tiden för besöket är nu, eftersom Sussas datum ligger före testet. Besöket är på Vårdcentralen Tybble för läkaren och på Kardiologiska mottagningen för sjuksköterskan och fysioterapeuten.",
+        "Undersköterskan och vårdadministratören skriver inte anteckningar i Vårdkällan och kan därför inte spela testfallet. Undersköterskan ser tobaksvanorna i översikten.",
+        "Sussas fråga om rökare ja eller nej följer den nationella vägledningen: om patienten använder tobak eller nikotin, och per produkt dagligen, ibland eller slutat. Erbjuden och accepterad rökavvänjning är ett val, Erbjudet och accepterat."
+      ],
+      "slut": "Informationen är inmatad på ett strukturerat sätt i journalen.",
+      "uppnatt": true,
+      "klick": 5,
+      "listval": 0,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "tecken": 68,
+      "uppmatt": 6,
+      "inomBudget": true,
+      "skriptetsTidMs": 441,
+      "uppskattadTidS": 36.2,
+      "klmDelar": {
+        "klick": 13.3,
+        "listval": 0,
+        "faltbyten": 3.5,
+        "tecken": 19,
+        "tangenter": 0,
+        "svarstid": 0.4
+      },
+      "steg": [
+        "klick: Berit Strandhall i arbetslistan",
+        "klick: Dokumentera tobaksvanor",
+        "klick: Dagligen för cigaretter",
+        "har redan fokus: antalet cigaretter per dag",
+        "klick: Erbjudet och accepterat",
+        "fältbyte: kommentaren",
+        "klick: Signera"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
       "nr": "4.2",
       "titel": "Registrera mätvärden",
       "tema": 4,
@@ -649,43 +790,39 @@
       "demoroll": "lak-vc",
       "tidsklass": 6,
       "tidsklassSkal": "Fyra mätvärden.",
-      "budget": 15,
-      "motivering": "Ett klick på patienten i arbetslistan och ett på Registrera mätvärde, där värdefältet för blodtryck redan har fokus, och ett klick för att registrera. Sedan för längd, vikt och puls två klick för att välja mätvärdet i listan, ett fältbyte för värdet och ett klick för att registrera. Tiden och vårdkontakten sätter systemet.",
+      "budget": 7,
+      "motivering": "Ett klick på patienten i arbetslistan, ett på Registrera mätvärde och ett på formuläret för längd, vikt, blodtryck och puls, där längden har fokus. Ett fältbyte vardera för vikt, blodtryck och puls och ett klick för att registrera alla fyra. Tiden och vårdkontakten sätter systemet, och BMI räknas själv.",
       "avvikelser": [
-        "Tiden för besöket är nu, eftersom Sussas datum ligger före testet."
+        "Tiden för besöket är nu, eftersom Sussas datum ligger före testet.",
+        "Formuläret för flera värden byggdes i runda 8 för testfallet. I runda 7 krävde testfallet 15 steg, med ett val i listan för varje mätvärde."
       ],
       "slut": "Mätvärdena är inmatade i journalen.",
       "uppnatt": true,
-      "klick": 12,
-      "listval": 3,
+      "klick": 4,
+      "listval": 0,
       "faltbyten": 3,
       "tangenter": 0,
       "tecken": 13,
-      "uppmatt": 15,
+      "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 525,
-      "uppskattadTidS": 42.3,
+      "skriptetsTidMs": 317,
+      "uppskattadTidS": 24.9,
       "klmDelar": {
-        "klick": 15.9,
-        "listval": 11.9,
+        "klick": 10.6,
+        "listval": 0,
         "faltbyten": 10.4,
         "tecken": 3.6,
         "tangenter": 0,
-        "svarstid": 0.5
+        "svarstid": 0.3
       },
       "steg": [
         "klick: Sara Sandmark i arbetslistan",
         "klick: Registrera mätvärde",
-        "har redan fokus: blodtrycket",
-        "klick: Registrera",
-        "lista (2 klick): mätvärdet Längd",
-        "fältbyte: värdet för längd",
-        "klick: Registrera",
-        "lista (2 klick): mätvärdet Vikt",
-        "fältbyte: värdet för vikt",
-        "klick: Registrera",
-        "lista (2 klick): mätvärdet Puls",
-        "fältbyte: värdet för puls",
+        "klick: Längd, vikt, blodtryck och puls på en gång",
+        "har redan fokus: längden",
+        "fältbyte: vikten",
+        "fältbyte: blodtrycket",
+        "fältbyte: pulsen",
         "klick: Registrera"
       ],
       "brister": [],
@@ -700,43 +837,39 @@
       "demoroll": "ssk-kard",
       "tidsklass": 6,
       "tidsklassSkal": "Fyra mätvärden.",
-      "budget": 15,
+      "budget": 7,
       "motivering": "Samma steg som för läkaren i öppenvården, från arbetslistan på avdelningen.",
       "avvikelser": [
-        "Tiden för besöket är nu, eftersom Sussas datum ligger före testet."
+        "Tiden för besöket är nu, eftersom Sussas datum ligger före testet.",
+        "Formuläret för flera värden byggdes i runda 8 för testfallet. I runda 7 krävde testfallet 15 steg, med ett val i listan för varje mätvärde."
       ],
       "slut": "Mätvärdena är inmatade i journalen.",
       "uppnatt": true,
-      "klick": 12,
-      "listval": 3,
+      "klick": 4,
+      "listval": 0,
       "faltbyten": 3,
       "tangenter": 0,
       "tecken": 13,
-      "uppmatt": 15,
+      "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 548,
-      "uppskattadTidS": 42.3,
+      "skriptetsTidMs": 317,
+      "uppskattadTidS": 24.9,
       "klmDelar": {
-        "klick": 15.9,
-        "listval": 11.9,
+        "klick": 10.6,
+        "listval": 0,
         "faltbyten": 10.4,
         "tecken": 3.6,
         "tangenter": 0,
-        "svarstid": 0.5
+        "svarstid": 0.3
       },
       "steg": [
         "klick: Sara Sandmark i arbetslistan",
         "klick: Registrera mätvärde",
-        "har redan fokus: blodtrycket",
-        "klick: Registrera",
-        "lista (2 klick): mätvärdet Längd",
-        "fältbyte: värdet för längd",
-        "klick: Registrera",
-        "lista (2 klick): mätvärdet Vikt",
-        "fältbyte: värdet för vikt",
-        "klick: Registrera",
-        "lista (2 klick): mätvärdet Puls",
-        "fältbyte: värdet för puls",
+        "klick: Längd, vikt, blodtryck och puls på en gång",
+        "har redan fokus: längden",
+        "fältbyte: vikten",
+        "fältbyte: blodtrycket",
+        "fältbyte: pulsen",
         "klick: Registrera"
       ],
       "brister": [],
@@ -751,43 +884,39 @@
       "demoroll": "usk-kard",
       "tidsklass": 6,
       "tidsklassSkal": "Fyra mätvärden.",
-      "budget": 15,
+      "budget": 7,
       "motivering": "Samma steg som för läkaren i öppenvården, från arbetslistan på avdelningen.",
       "avvikelser": [
-        "Tiden för besöket är nu, eftersom Sussas datum ligger före testet."
+        "Tiden för besöket är nu, eftersom Sussas datum ligger före testet.",
+        "Formuläret för flera värden byggdes i runda 8 för testfallet. I runda 7 krävde testfallet 15 steg, med ett val i listan för varje mätvärde."
       ],
       "slut": "Mätvärdena är inmatade i journalen.",
       "uppnatt": true,
-      "klick": 12,
-      "listval": 3,
+      "klick": 4,
+      "listval": 0,
       "faltbyten": 3,
       "tangenter": 0,
       "tecken": 13,
-      "uppmatt": 15,
+      "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 520,
-      "uppskattadTidS": 42.3,
+      "skriptetsTidMs": 343,
+      "uppskattadTidS": 24.9,
       "klmDelar": {
-        "klick": 15.9,
-        "listval": 11.9,
+        "klick": 10.6,
+        "listval": 0,
         "faltbyten": 10.4,
         "tecken": 3.6,
         "tangenter": 0,
-        "svarstid": 0.5
+        "svarstid": 0.3
       },
       "steg": [
         "klick: Sara Sandmark i arbetslistan",
         "klick: Registrera mätvärde",
-        "har redan fokus: blodtrycket",
-        "klick: Registrera",
-        "lista (2 klick): mätvärdet Längd",
-        "fältbyte: värdet för längd",
-        "klick: Registrera",
-        "lista (2 klick): mätvärdet Vikt",
-        "fältbyte: värdet för vikt",
-        "klick: Registrera",
-        "lista (2 klick): mätvärdet Puls",
-        "fältbyte: värdet för puls",
+        "klick: Längd, vikt, blodtryck och puls på en gång",
+        "har redan fokus: längden",
+        "fältbyte: vikten",
+        "fältbyte: blodtrycket",
+        "fältbyte: pulsen",
         "klick: Registrera"
       ],
       "brister": [],
@@ -802,37 +931,36 @@
       "demoroll": "lak-kard",
       "tidsklass": 15,
       "tidsklassSkal": "Fyra textfält med längre texter och en signering.",
-      "budget": 8,
-      "motivering": "Ett klick på patienten i arbetslistan och ett på Ny anteckning, två klick för att välja mallen Epikris, ett fältbyte vardera för Orsak till vård, Förlopp och Uppföljning och ett klick för att signera. Det pågående vårdtillfället är förvalt som vårdkontakt.",
+      "budget": 4,
+      "motivering": "Ett klick på patienten i arbetslistan och ett på Skriv epikris vid vårdtillfället. Systemet har skrivit orsaken till vården och diagnosen sepsis med kod ur vårdtillfället, och fokus står i Förlopp. Ett fältbyte till Uppföljning och ett klick för att signera. Det pågående vårdtillfället är förvalt som vårdkontakt.",
       "avvikelser": [
         "Vårdtillfället pågår på Avdelning 72 i stället för Infektionskliniken, och började tre dagar före testet.",
-        "Vårdkällans epikris har sökorden Orsak till vård, Förlopp, Läkemedelsförändringar och Uppföljning. Diagnosen skrivs under Orsak till vård, vårdförloppet och bedömningen under Förlopp och planeringen under Uppföljning."
+        "Vårdkällans epikris har sökorden Orsak till vård, Förlopp, Läkemedelsförändringar och Uppföljning. Systemet skriver diagnosen under Orsak till vård, och vårdförloppet och bedömningen skrivs under Förlopp och planeringen under Uppföljning.",
+        "Förslaget till epikrisen byggdes i runda 8. I runda 7 krävde testfallet 8 steg."
       ],
       "slut": "Informationen är inmatad och anteckningen är signerad.",
       "uppnatt": true,
-      "klick": 5,
-      "listval": 1,
-      "faltbyten": 3,
+      "klick": 3,
+      "listval": 0,
+      "faltbyten": 1,
       "tangenter": 0,
-      "tecken": 321,
-      "uppmatt": 8,
+      "tecken": 308,
+      "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 1234,
-      "uppskattadTidS": 113.4,
+      "skriptetsTidMs": 1245,
+      "uppskattadTidS": 98.9,
       "klmDelar": {
         "klick": 8,
-        "listval": 4,
-        "faltbyten": 10.4,
-        "tecken": 89.9,
+        "listval": 0,
+        "faltbyten": 3.5,
+        "tecken": 86.2,
         "tangenter": 0,
         "svarstid": 1.2
       },
       "steg": [
         "klick: Anna Karlsson i arbetslistan",
-        "klick: Ny anteckning",
-        "lista (2 klick): mallen Epikris",
-        "fältbyte: Orsak till vård",
-        "fältbyte: Förlopp",
+        "klick: Skriv epikris",
+        "har redan fokus: Förlopp",
         "fältbyte: Uppföljning",
         "klick: Signera"
       ],
@@ -863,7 +991,7 @@
       "tecken": 0,
       "uppmatt": 3,
       "inomBudget": true,
-      "skriptetsTidMs": 458,
+      "skriptetsTidMs": 488,
       "uppskattadTidS": 8.4,
       "klmDelar": {
         "klick": 8,
@@ -904,7 +1032,7 @@
       "tecken": 37,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 302,
+      "skriptetsTidMs": 298,
       "uppskattadTidS": 21.5,
       "klmDelar": {
         "klick": 10.6,
@@ -949,7 +1077,7 @@
       "tecken": 0,
       "uppmatt": 1,
       "inomBudget": true,
-      "skriptetsTidMs": 43,
+      "skriptetsTidMs": 46,
       "uppskattadTidS": 2.7,
       "klmDelar": {
         "klick": 2.7,
@@ -988,8 +1116,8 @@
       "tecken": 0,
       "uppmatt": 1,
       "inomBudget": true,
-      "skriptetsTidMs": 107,
-      "uppskattadTidS": 2.8,
+      "skriptetsTidMs": 91,
+      "uppskattadTidS": 2.7,
       "klmDelar": {
         "klick": 2.7,
         "listval": 0,
@@ -1027,7 +1155,7 @@
       "tecken": 26,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 298,
+      "skriptetsTidMs": 342,
       "uppskattadTidS": 18.5,
       "klmDelar": {
         "klick": 10.6,
@@ -1072,7 +1200,7 @@
       "tecken": 0,
       "uppmatt": 3,
       "inomBudget": true,
-      "skriptetsTidMs": 193,
+      "skriptetsTidMs": 198,
       "uppskattadTidS": 8.1,
       "klmDelar": {
         "klick": 8,
@@ -1113,7 +1241,7 @@
       "tecken": 37,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 226,
+      "skriptetsTidMs": 230,
       "uppskattadTidS": 22,
       "klmDelar": {
         "klick": 8,
@@ -1156,7 +1284,7 @@
       "tecken": 37,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 255,
+      "skriptetsTidMs": 247,
       "uppskattadTidS": 22,
       "klmDelar": {
         "klick": 8,
@@ -1164,7 +1292,7 @@
         "faltbyten": 3.5,
         "tecken": 10.4,
         "tangenter": 0,
-        "svarstid": 0.3
+        "svarstid": 0.2
       },
       "steg": [
         "klick: Mira Axelsson i arbetslistan",
@@ -1199,7 +1327,7 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 175,
+      "skriptetsTidMs": 229,
       "uppskattadTidS": 12.1,
       "klmDelar": {
         "klick": 8,
@@ -1241,7 +1369,7 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 200,
+      "skriptetsTidMs": 223,
       "uppskattadTidS": 12.1,
       "klmDelar": {
         "klick": 8,
@@ -1283,7 +1411,7 @@
       "tecken": 7,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 281,
+      "skriptetsTidMs": 276,
       "uppskattadTidS": 11.3,
       "klmDelar": {
         "klick": 5.3,
@@ -1325,7 +1453,7 @@
       "tecken": 7,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 276,
+      "skriptetsTidMs": 284,
       "uppskattadTidS": 11.3,
       "klmDelar": {
         "klick": 5.3,
@@ -1418,20 +1546,6 @@
         "Läkare slutenvård"
       ],
       "saknas": "En ordination av kontroller och mätvärden till avdelningen finns inte. Mätvärden registreras när de har tagits."
-    },
-    {
-      "nr": "4.1",
-      "titel": "Skapa anteckning",
-      "roller": [
-        "Läkare slutenvård",
-        "Läkare öppenvård",
-        "Sjuksköterska öppenvård",
-        "Sjuksköterska slutenvård",
-        "Undersköterska",
-        "Paramedicinare",
-        "Medicinsk sekreterare"
-      ],
-      "saknas": "En mall för tobaksvanor med fasta svarsalternativ finns inte. Anteckningarna har sökord med fritext."
     },
     {
       "nr": "5.1",
@@ -1559,6 +1673,18 @@
       "status": "grön"
     },
     {
+      "namn": "Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (läkare öppenvård) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (paramedicinare) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
       "namn": "Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (läkare öppenvård) når slutvillkoret inom klickbudgeten",
       "status": "grön"
     },
@@ -1626,24 +1752,24 @@
   "sammanstallning": {
     "alla": {
       "antal": 34,
-      "malupfyllelse": 4.85,
-      "effektivitet": 5.29,
+      "malupfyllelse": 5.15,
+      "effektivitet": 5.59,
       "poang": {
         "malupfyllelse": 5,
         "effektivitet": 5
       }
     },
     "genomforda": {
-      "antal": 18,
-      "malupfyllelse": 9.17,
+      "antal": 19,
+      "malupfyllelse": 9.21,
       "effektivitet": 10,
       "poang": {
         "malupfyllelse": 10,
         "effektivitet": 10
       }
     },
-    "antalGenomforda": 18,
+    "antalGenomforda": 19,
     "antal": 34,
-    "korningar": 28
+    "korningar": 31
   }
 }

@@ -2,6 +2,8 @@
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 import { TEST, klickbudgetTest } from '../../krav.js';
 import { FLODEN } from '../../klickbudget.js';
+// Runda 8, r5: tilläggen för tobaksvanor, epikrisen, mätvärdena, övningarna och parametrarna (sussa/runda8-r5.js).
+import { medR8r5 } from '../runda8-r5.js';
 
 const { J, KV, FS, MJ, GK } = TEST;
 // Runda 6, r1: skalor, NEWS2 och kurvor (skalor.js och vitalparametrar.js).
@@ -9,7 +11,7 @@ const SK = 'Skalor > ';
 const MV = 'Mätvärden och NEWS2 > ';
 const N2L = 'NEWS2-larm i inkorgen > ';
 
-export default [
+const POSTERNA = [
   {
     id: '3.1.3.1', kategori: 'system', egna: ['L1', 'D11'], avsedd: 'delvis',
     tester: [
@@ -81,3 +83,4 @@ export default [
   { id: '3.1.3.10', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: 'Rättstavning och grammatikkontroll med medicinska termer är inte byggd.' },
 ];
+export default medR8r5(POSTERNA);

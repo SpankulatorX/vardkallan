@@ -61,6 +61,9 @@ export async function visa(el, ctx) {
   if (d.matvarden) {
     delar.push(sektion('mv', 'Senaste mätvärden', d.matvarden.length ? `<dl class="matvarden-kort">${d.matvarden.map(m => `<div><dt>${esc(m.namn)}</dt><dd>${varde(m)}<span class="under-text">${esc(tidpunkt(m.tid))}</span></dd></div>`).join('')}</dl>` : tomRad('Inga mätvärden.'), `<a class="sektion-lank" href="${ctx.href('matvarden')}">Alla mätvärden</a>`));
   }
+  // Runda 8, r5: tobaksvanorna. Systemet visar den senaste dokumentationen, eller att den saknas, och ett klick öppnar
+  // mallen med fasta svarsalternativ.
+  if (d.tobak) delar.push(sektion('tobak', 'Tobak och nikotin', tobakHtml(d.tobak, ctx)));
   if (d.anteckningar) {
     delar.push(sektion('ant', 'Senaste anteckningar', d.anteckningar.length ? `<ul class="ant-lista">${d.anteckningar.map(a => `<li><a href="${ctx.href('journal', a.id)}"><span class="ant-typ">${esc(a.typ)}</span>${a.status === 'utkast' ? ' <span class="tagg tagg-utkast">Utkast</span>' : ''}</a>
       <span class="under-text">${esc(tidpunkt(a.signerad?.tid ?? a.skapad))}, ${esc(a.enhet.namn)}, ${esc(a.forfattare?.namn ?? '')}</span>${migreradEtikett(a)}<p class="sammanfattning">${esc(a.sammanfattning)}</p></li>`).join('')}</ul>` : tomRad('Inga anteckningar som du kan se.'), `<a class="sektion-lank" href="${ctx.href('journal')}">Hela journalen</a>`));
@@ -111,3 +114,12 @@ function tidslinjeRad(t, ctx) {
 }
 
 export const nllChip = (s) => `<span class="nll nll-${esc(s)}">${esc(NLL[s] ?? s)}</span>`;
+
+// Runda 8, r5.
+function tobakHtml(t, ctx) {
+  const s = t.senaste;
+  const text = s ? `<p><a href="${ctx.href('journal', s.anteckningId)}">${esc(s.text)}</a></p><p class="under-text">Dokumenterat ${esc(datum(s.tid))}, ${esc(s.enhet?.namn ?? '')}</p>`
+    : tomRad('Tobaksvanorna är inte dokumenterade.');
+  const knapp = pa('skriv_omvardnad') ? `<p class="knapprad tat" data-skriv><a class="knapp liten sekundar" href="${ctx.href('journal', 'tobak')}" data-tobak-ny>${ikon.penna}<span>${s ? 'Uppdatera tobaksvanor' : 'Dokumentera tobaksvanor'}</span></a></p>` : '';
+  return text + knapp;
+}

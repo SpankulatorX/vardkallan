@@ -18,12 +18,14 @@ const GRUPP = [['K', 'Spårbarhet från krav till test'], ['D', 'Icke-funktionel
 
 export async function visa(main, _p, q) {
   const vy = ['egna', 'bor'].includes(q.get('vy')) ? q.get('vy') : 'sussa';
-  main.innerHTML = vyRubrik('Kravspårbarhet') + `<nav class="flikar" aria-label="Kravregister"><ul>
+  // Runda 8, r5: villkoren för version 1.0 överst, räknade av servern.
+  main.innerHTML = vyRubrik('Kravspårbarhet') + '<section class="version-ruta" id="kr-version" aria-labelledby="kr-version-rubrik"><h2 id="kr-version-rubrik">Version och villkoren för 1.0</h2><p class="tom">Hämtar villkoren.</p></section>' + `<nav class="flikar" aria-label="Kravregister"><ul>
       <li><a href="#/krav"${vy === 'sussa' ? ' aria-current="page"' : ''}>Sussas kravspecifikation</a></li>
       <li><a href="#/krav?vy=bor"${vy === 'bor' ? ' aria-current="page"' : ''}>Bör-krav och målbild</a></li>
       <li><a href="#/krav?vy=egna"${vy === 'egna' ? ' aria-current="page"' : ''}>Eget ramverk</a></li>
     </ul></nav><div id="kr-vy"></div>`;
   const yta = main.querySelector('#kr-vy');
+  visaVersion(main.querySelector('#kr-version'));
   if (vy === 'egna') await visaEgna(yta, q);
   else if (vy === 'bor') await visaBor(yta);
   else await visaSussa(yta, q);
@@ -326,4 +328,16 @@ function kravRad(k) {
     ${'sussaTestfall' in k ? sussaTestfallTabell(k.sussaTestfall) : ''}
     ${k.tester.length ? `<details class="testlista"><summary>${k.tester.length === 1 ? 'Ett test' : `${k.tester.length} tester`}, ${k.tester.filter(x => x.status === 'grön').length} gröna</summary><ul>${testrader(k.tester)}</ul></details>` : '<p class="dampad liten">Inga automatiska tester än.</p>'}
   </li>`;
+}
+
+// Runda 8, r5: versionen och de fyra villkoren för 1.0. Rutan hämtas för sig, så att resten av sidan inte väntar på den.
+async function visaVersion(el) {
+  let v;
+  try { v = await api('/api/krav/version'); } catch { const t = el.querySelector('.tom'); if (t) t.textContent = 'Villkoren kunde inte hämtas.'; return; }
+  if (!el.isConnected) return;
+  el.innerHTML = `<h2 id="kr-version-rubrik">Version ${esc(v.version ?? '')} och villkoren för 1.0</h2>
+    <p>${esc(v.princip)}</p>
+    <ul class="version-villkor">${v.villkor.map(x => `<li class="test test-${x.uppfyllt ? 'ok' : 'fel'}" data-villkor="${esc(x.id)}">${x.uppfyllt ? ikon.bock : ikon.kryss}<span><strong>${esc(x.rubrik)}.</strong> <span class="sr">${x.uppfyllt ? 'Uppfyllt' : 'Inte uppfyllt'}: </span>${esc(x.text)}</span></li>`).join('')}</ul>
+    <p><strong>${esc(v.text)}</strong></p>
+    <p class="liten dampad">${esc(v.inteVarden)}</p>`;
 }

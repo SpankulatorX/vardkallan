@@ -11,8 +11,9 @@ export const HJALP = {
   },
   daganteckning: {
     rubrik: 'Skriva en anteckning',
-    steg: ['Välj Ny anteckning. Mallen Daganteckning är förvald.', 'Skriv under de sökord som behövs, till exempel Aktuellt och Bedömning.', 'Välj Signera, eller Spara utkast om du vill fortsätta senare.'],
-    systemet: 'Anteckningen knyts till den pågående vårdkontakten. En signerad anteckning ändras aldrig, den rättas med en ny version där den gamla finns kvar.',
+    steg: ['Välj Ny anteckning. Mallen Daganteckning är förvald.', 'Skriv under de sökord som behövs, till exempel Aktuellt och Bedömning.', 'Välj Signera, eller Spara utkast om du vill fortsätta senare.',
+      'Tobaksvanor dokumenteras med Dokumentera tobaksvanor i översikten, och en epikris med Skriv epikris vid vårdtillfället.'],
+    systemet: 'Anteckningen knyts till den pågående vårdkontakten. I mallen för tobaksvanor skriver systemet texten ur svaren och föreslår stödet med KVÅ-kod, och i epikrisen skriver det orsaken till vården ur vårdtillfället och diagnoserna. En signerad anteckning ändras aldrig, den rättas med en ny version där den gamla finns kvar.',
   },
   ordinera: {
     rubrik: 'Ordinera eller sätta ut ett läkemedel',
@@ -21,13 +22,13 @@ export const HJALP = {
   },
   inkorg: {
     rubrik: 'Inkorgen',
-    steg: ['Raderna är det som väntar på dig: osignerade anteckningar, remissvar att kvittera, larm och påminnelser.', 'Klicka på en rad för att läsa, och kvittera eller signera där.'],
+    steg: ['Raderna är det som väntar på dig: osignerade anteckningar, remissvar att kvittera, larm och påminnelser.', 'Klicka på en rad för att läsa, och kvittera eller signera där.', 'Har du flera osignerade anteckningar visar Granska och signera alla dem i en lista, och ett klick signerar alla.'],
     systemet: 'Systemet lägger själv in det som saknar kvittens eller har gått över tiden, och släpper inget förrän det är åtgärdat.',
   },
   matvarde: {
     rubrik: 'Registrera ett mätvärde',
-    steg: ['Välj mätvärde. Blodtryck är förvalt.', 'Skriv värdet, till exempel 128/82, och välj Registrera.', 'För NEWS2 välj Registrera NEWS2-kontroll och fyll i vitalparametrarna.'],
-    systemet: 'Enheten och koden sätts av systemet. Ett värde utanför referensintervallet markeras med text och ring i kurvan, och NEWS2 räknas själv och larmar i inkorgen när det behövs.',
+    steg: ['Välj mätvärde. Blodtryck är förvalt.', 'Skriv värdet, till exempel 128/82, och välj Registrera.', 'Längd, vikt, blodtryck och puls på en gång registrerar alla fyra i ett formulär.', 'För NEWS2 välj Registrera NEWS2-kontroll och fyll i vitalparametrarna.'],
+    systemet: 'Enheten och koden sätts av systemet, och BMI räknas ur längd och vikt. Ett värde utanför referensintervallet markeras med text och ring i kurvan, och NEWS2 räknas själv och larmar i inkorgen när det behövs.',
   },
   'ge-dos': {
     rubrik: 'Ge en dos',
@@ -43,6 +44,12 @@ export const HJALP = {
     rubrik: 'Söka patient och nödåtkomst',
     steg: ['Skriv namn eller personnummer i valfritt format och tryck Enter.', 'Öppna träffen. Saknas vårdrelation föreslår systemet rätt väg: samtycke, aktivt val eller nödåtkomst.', 'Nödåtkomst kräver ett syfte och intyg om att patienten inte kan samtycka.'],
     systemet: 'Systemet avgör själv om du har skrivit ett personnummer, samordningsnummer, reservnummer eller namn och förklarar vad som är fel. Varje sökning och nödåtkomst loggas.',
+  },
+  // Runda 8, r5: systemförvaltarens sida Regler och parametrar.
+  regler: {
+    rubrik: 'Ändra en regel eller parameter',
+    steg: ['Välj Ändra på regelns rad.', 'Skriv eller välj det nya värdet, från vilket datum det ska gälla och varför. Systemet visar effekten i dag och säger om värdet inte är rimligt.', 'En annan systemförvaltare godkänner ändringen under Att godkänna.'],
+    systemet: 'Ändringen gäller först när den är godkänd, och aldrig bakåt i tiden. Regler som följer av lag eller av behörighetsmodellen går inte att ändra här, och sidan säger varför.',
   },
   boka: {
     rubrik: 'Boka en tid',

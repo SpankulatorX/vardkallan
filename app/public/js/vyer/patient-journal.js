@@ -7,6 +7,8 @@ import { doldaRad, kravRuta } from './patient.js';
 import { dokumenterasHtml, kopplaDokumenteras, nyKontaktData, kontaktNotis } from './patient-vardkontakt.js';
 import * as kontrasignering from '../kontrasignering.js';
 import { satUppAterbesok } from './patient-tider.js';
+// Runda 8, r5: mallen för tobaksvanor med fasta svarsalternativ, och epikrisen med systemets förslag.
+import * as tobak from './patient-tobak.js';
 
 let mallar = null;
 const filter = { enhet: '', typ: '' };
@@ -59,6 +61,9 @@ export async function visa(el, ctx) {
 
   const las = el.querySelector('#j-las');
   if (ctx.sub === 'ny') return nyForm(las, ctx, egnaMallar);
+  // Runda 8, r5: direkt till mallen för tobaksvanor, och till epikrisen med systemets förslag.
+  if (ctx.sub === 'tobak') return nyForm(las, ctx, egnaMallar, { typ: 'Tobaksvanor' });
+  if (ctx.sub === 'epikris') return nyEpikris(las, ctx, egnaMallar);
   const id = ctx.sub ?? ant.find(a => a.status === 'signerad')?.id ?? ant[0]?.id;
   if (!id) { las.innerHTML = '<p class="tom">Det finns inga anteckningar än.</p>'; return; }
   await lasAnteckning(las, ctx, id);
@@ -121,9 +126,25 @@ async function aktuellKontakt(ctx) {
   try { return await api(`/api/patient/${encodeURIComponent(ctx.id)}/vardkontakt/aktuell`); } catch { return null; }
 }
 
-async function nyForm(las, ctx, egnaMallar) {
+// Runda 8, r5: innehållet i formuläret för en mall. En strukturerad mall (tobaksvanor) har fasta svarsalternativ i
+// stället för sökord.
+const innehall = (m, varden = {}) => (m.strukturerad ? tobak.falt(varden) : `<fieldset class="sokordsfalt"><legend>Sökord</legend><div id="ny-sokord">${sokordFalt(m.sokord, varden)}</div></fieldset>`);
+const fokusForsta = (form) => {
+  const tom = [...form.querySelectorAll('#ny-sokord textarea')].find(t => !t.value.trim());
+  (tom ?? form.querySelector('#ny-sokord textarea') ?? form.querySelector('h2'))?.focus();
+};
+
+// Runda 8, r5: epikrisen med det som systemet kan skriva ur vårdtillfället, diagnoserna och läkemedlen.
+async function nyEpikris(las, ctx, egnaMallar) {
+  let f = null;
+  try { f = await api(`/api/patient/${encodeURIComponent(ctx.id)}/epikris/forslag`); } catch { /* utan förslag */ }
+  if (!ctx.aktuell()) return;
+  return nyForm(las, ctx, egnaMallar, { typ: 'Epikris', varden: f?.sokord ?? {}, info: f?.text ?? null });
+}
+
+async function nyForm(las, ctx, egnaMallar, { typ = 'Daganteckning', varden = {}, info = null } = {}) {
   if (!egnaMallar.length) { las.innerHTML = '<p class="tom">Din yrkesroll kan inte skriva anteckningar.</p>'; return; }
-  const forval = egnaMallar.find(m => m.typ === 'Daganteckning') ?? egnaMallar[0];
+  const forval = egnaMallar.find(m => m.typ === typ) ?? egnaMallar.find(m => m.typ === 'Daganteckning') ?? egnaMallar[0];
   const dok = await aktuellKontakt(ctx);
   const kontakt = { val: null };
   las.innerHTML = `<form class="ant-form" id="ant-form" novalidate aria-labelledby="ny-rubrik">
@@ -132,7 +153,8 @@ async function nyForm(las, ctx, egnaMallar) {
     <div class="falt-rad">
       <div class="falt"><label for="ny-mall">Mall</label><select id="ny-mall" name="typ">${egnaMallar.map(m => `<option${m === forval ? ' selected' : ''}>${esc(m.typ)}</option>`).join('')}</select></div>
     </div>
-    <fieldset class="sokordsfalt"><legend>Sökord</legend><div id="ny-sokord">${sokordFalt(forval.sokord)}</div></fieldset>
+    ${info ? `<p class="ruta ruta-info liten" data-forslag-info>${esc(info)}</p>` : ''}
+    <div id="ny-innehall">${innehall(forval, varden)}</div>
     <p class="form-fel" role="alert" hidden></p>
     <div class="knapprad"><button type="button" class="knapp sekundar" data-spara>Spara utkast</button><button type="button" class="knapp" data-signera>Signera</button><a class="knapp text" href="${ctx.href('journal')}">Avbryt</a></div>
     <p class="hjalp">Ett utkast syns bara för dig. När du signerar kan anteckningen inte längre ändras, bara rättas.</p>
@@ -140,16 +162,22 @@ async function nyForm(las, ctx, egnaMallar) {
   const form = las.querySelector('form');
   const ritaKontakt = () => { const k = form.querySelector('#ny-kontakt'); k.innerHTML = dokumenterasHtml(dok, kontakt.val); kopplaDokumenteras(k, dok, kontakt, ritaKontakt); };
   if (dok) kopplaDokumenteras(form.querySelector('#ny-kontakt'), dok, kontakt, ritaKontakt);
+  const mall = () => egnaMallar.find(x => x.typ === form.typ.value);
+  const kopplaMall = () => { if (mall().strukturerad) tobak.koppla(form, { alder: ctx.patient?.alder ?? null }); };
   form.typ.addEventListener('change', () => {
-    const m = egnaMallar.find(x => x.typ === form.typ.value);
-    form.querySelector('#ny-sokord').innerHTML = sokordFalt(m.sokord);
+    form.querySelector('#ny-innehall').innerHTML = innehall(mall());
+    kopplaMall();
   });
+  kopplaMall();
   const spara = async (knapp, signera) => {
-    const sokord = lasSokord(form);
-    if (!sokord.length) { faltFel(form, { message: 'Skriv något under minst ett sökord.', data: {} }); form.querySelector('textarea')?.focus(); return; }
+    // Runda 8, r5: en strukturerad mall skickar svaren, och systemet skriver texten.
+    const strukturerad = mall().strukturerad;
+    const sokord = strukturerad ? null : lasSokord(form);
+    if (!strukturerad && !sokord.length) { faltFel(form, { message: 'Skriv något under minst ett sökord.', data: {} }); form.querySelector('textarea')?.focus(); return; }
     try {
       const ny = await medKnapp(knapp, async () => {
-        const x = await api(`/api/patient/${encodeURIComponent(ctx.id)}/anteckningar`, { metod: 'POST', data: { typ: form.typ.value, sokord, ...nyKontaktData(kontakt) } });
+        const innehallet = strukturerad ? { tobak: tobak.las(form) } : { sokord };
+        const x = await api(`/api/patient/${encodeURIComponent(ctx.id)}/anteckningar`, { metod: 'POST', data: { typ: form.typ.value, ...innehallet, ...nyKontaktData(kontakt) } });
         if (signera) await api(`/api/anteckning/${x.id}/signera`, { metod: 'POST', data: {} });
         return x;
       }, form);
@@ -161,12 +189,14 @@ async function nyForm(las, ctx, egnaMallar) {
   };
   form.querySelector('[data-spara]').addEventListener('click', e => spara(e.currentTarget, false));
   form.querySelector('[data-signera]').addEventListener('click', e => spara(e.currentTarget, true));
-  // Fokus i första sökordet, så att det går att börja skriva direkt. Formuläret har rubriken som namn.
-  form.querySelector('#ny-sokord textarea')?.focus();
+  // Fokus i första tomma sökordet, så att det går att börja skriva direkt. Formuläret har rubriken som namn.
+  fokusForsta(form);
 }
 
 async function utkastForm(las, ctx, a) {
   const mall = mallar.find(m => m.typ === a.typ);
+  // Runda 8, r5: ett utkast i en strukturerad mall ändras med svaren.
+  if (mall?.strukturerad) return strukturForm(las, ctx, a, 'utkast');
   const varden = Object.fromEntries(a.sokord.map(s => [s.sokord, s.text]));
   const lista = [...new Set([...(mall?.sokord ?? []), ...a.sokord.map(s => s.sokord)])];
   las.innerHTML = `<form class="ant-form" novalidate aria-labelledby="utk-rubrik">
@@ -196,6 +226,7 @@ async function utkastForm(las, ctx, a) {
 
 function rattaForm(las, ctx, a) {
   const mall = mallar.find(m => m.typ === a.typ);
+  if (mall?.strukturerad) return strukturForm(las, ctx, a, 'ratta');
   const varden = Object.fromEntries(a.sokord.map(s => [s.sokord, s.text]));
   const lista = [...new Set([...(mall?.sokord ?? []), ...a.sokord.map(s => s.sokord)])];
   las.innerHTML = `<form class="ant-form" novalidate aria-labelledby="ratt-rubrik">
@@ -218,4 +249,37 @@ function rattaForm(las, ctx, a) {
       location.hash = ctx.href('journal', ny.id);
     } catch { /* felet visas i formuläret */ }
   });
+}
+
+// Runda 8, r5: ett utkast eller en rättelse i mallen för tobaksvanor. Svaren fylls i från anteckningen.
+function strukturForm(las, ctx, a, lage) {
+  const ratta = lage === 'ratta';
+  las.innerHTML = `<form class="ant-form" novalidate aria-labelledby="st-rubrik">
+    <h2 id="st-rubrik" tabindex="-1">${ratta ? `Rätta ${esc(a.typ.toLowerCase())}` : `${esc(a.typ)}, utkast`}</h2>
+    <p class="ant-meta">${ratta ? `Version ${a.version}, signerad ${esc(tidpunkt(a.signerad?.tid))} av ${esc(a.signerad?.av?.namn ?? '')}. Rättelsen blir version ${a.version + 1} och signeras direkt. Den nuvarande versionen står kvar överstruken.` : `Skapat ${esc(tidpunkt(a.skapad))}. Bara du ser utkastet.`}</p>
+    ${ratta ? '<div class="falt"><label for="ratt-orsak">Orsak till rättelsen <span class="obl">(obligatoriskt)</span></label><input id="ratt-orsak" name="orsak" required minlength="3" maxlength="300" autocomplete="off"></div>' : ''}
+    ${tobak.falt(a.tobak?.svar ?? {})}
+    <p class="form-fel" role="alert" hidden></p>
+    <div class="knapprad">${ratta ? '<button type="button" class="knapp" data-spara>Signera rättelsen</button><button type="button" class="knapp text" data-avbryt>Avbryt</button>' : '<button type="button" class="knapp sekundar" data-spara>Spara utkast</button><button type="button" class="knapp" data-signera>Signera</button>'}</div>
+  </form>`;
+  const form = las.querySelector('form');
+  tobak.koppla(form, { alder: ctx.patient?.alder ?? null, svar: a.tobak?.svar ?? {} });
+  form.querySelector('h2').focus();
+  form.querySelector('[data-avbryt]')?.addEventListener('click', () => ctx.ladda());
+  const spara = async (knapp, signera) => {
+    if (ratta && form.orsak.value.trim().length < 3) { faltFel(form, { message: 'Ange orsaken till rättelsen.', data: { falt: ['orsak'] } }); return; }
+    try {
+      const ny = await medKnapp(knapp, async () => {
+        if (ratta) return api(`/api/anteckning/${a.id}/ratta`, { metod: 'POST', data: { orsak: form.orsak.value.trim(), tobak: tobak.las(form) } });
+        await api(`/api/anteckning/${a.id}`, { metod: 'PUT', data: { tobak: tobak.las(form) } });
+        if (signera) await api(`/api/anteckning/${a.id}/signera`, { metod: 'POST', data: {} });
+        return null;
+      }, form);
+      notis(ratta ? 'Rättelsen är signerad. Den tidigare versionen finns kvar, överstruken.' : signera ? 'Anteckningen är signerad.' : 'Utkastet är sparat.');
+      await uppdateraInkorg();
+      if (ny) location.hash = ctx.href('journal', ny.id); else ctx.ladda();
+    } catch { /* felet visas i formuläret */ }
+  };
+  form.querySelector('[data-spara]').addEventListener('click', e => spara(e.currentTarget, false));
+  form.querySelector('[data-signera]')?.addEventListener('click', e => spara(e.currentTarget, true));
 }

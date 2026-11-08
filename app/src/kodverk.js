@@ -270,6 +270,10 @@ export const KVA = {
   QD008: 'Övervakning av vitala tecken',
   PA001: 'Bedömning av medvetandefunktioner',
   XV015: 'Läkemedelsgenomgång, enkel, enligt Socialstyrelsens föreskrift och allmänna råd',
+  // Runda 8, r5: stöd vid tobaks- och nikotinbruk, som systemet föreslår ur mallen för tobaksvanor (tobak-regler.js).
+  DV111: 'Enkla råd om tobaks- och nikotinbruk',
+  DV112: 'Rådgivande samtal om tobaks- och nikotinbruk',
+  DV113: 'Kvalificerat rådgivande samtal om tobaks- och nikotinbruk',
 };
 
 // Runda 7, r6: koderna för Svenska barnhälsovårdsregistret ordagrant ur bilaga K11 till Sussas förfrågningsunderlag,

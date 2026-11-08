@@ -252,30 +252,38 @@ export const TESTFALL = [
   }),
 
   // Tema 4: Strukturerad information
+  // Runda 8, r5: testfall 4.1 med mallen för tobaksvanor (tobak-regler.js och tobak.js).
   t('4.1', 'Skapa anteckning', ['lakare_slutenvard', 'lakare_oppenvard', 'ssk_oppenvard', 'ssk_slutenvard', 'underskoterska', 'paramedicinare', 'medicinsk_sekreterare'], {
     syfte: 'Mata in strukturerad information om rökning i Berit Strandhalls journal.',
     mal: ['Rökare ja, 25 cigaretter per dag, rökavvänjning erbjuden och accepterad, och en kommentar.'],
     slut: 'Informationen är inmatad på ett strukturerat sätt i journalen.',
     tidsklass: 6, tidsklassSkal: 'Fem frågor med fasta svar och en kommentar.',
-    saknas: 'En mall för tobaksvanor med fasta svarsalternativ finns inte. Anteckningarna har sökord med fritext.',
+    korningar: [kor('lakare_oppenvard', 6, 'Ett klick på patienten i arbetslistan och ett på Dokumentera tobaksvanor i översikten. Ett klick på Dagligen för cigaretter sätter svaret Ja själv och flyttar fokus till antalet, och systemet föreslår kvalificerat rådgivande samtal med KVÅ-kod. Ett klick på Erbjudet och accepterat, ett fältbyte för kommentaren och ett klick för att signera.'),
+      kor('ssk_slutenvard', 6, 'Samma steg som för läkaren, från arbetslistan på Kardiologiska kliniken. Tobaksvanorna skrivs och läses med samma behörighet som omvårdnadsanteckningar.'),
+      kor('paramedicinare', 6, 'Samma steg som för läkaren. Fysioterapeuten skriver omvårdnadsanteckningar och därmed tobaksvanor.')],
+    avvikelser: ['Tiden för besöket är nu, eftersom Sussas datum ligger före testet. Besöket är på Vårdcentralen Tybble för läkaren och på Kardiologiska mottagningen för sjuksköterskan och fysioterapeuten.',
+      'Undersköterskan och vårdadministratören skriver inte anteckningar i Vårdkällan och kan därför inte spela testfallet. Undersköterskan ser tobaksvanorna i översikten.',
+      'Sussas fråga om rökare ja eller nej följer den nationella vägledningen: om patienten använder tobak eller nikotin, och per produkt dagligen, ibland eller slutat. Erbjuden och accepterad rökavvänjning är ett val, Erbjudet och accepterat.'],
   }),
   t('4.2', 'Registrera mätvärden', ['lakare_slutenvard', 'lakare_oppenvard', 'ssk_oppenvard', 'ssk_slutenvard', 'underskoterska', 'medicinsk_sekreterare'], {
     syfte: 'Registrera mätvärden strukturerat i Sara Sandmarks journal.',
     mal: ['Längd 165 cm, vikt 75 kg, blodtryck 140/90 mmHg och puls 83 slag per minut.'],
     slut: 'Mätvärdena är inmatade i journalen.',
     tidsklass: 6, tidsklassSkal: 'Fyra mätvärden.',
-    korningar: [kor('lakare_oppenvard', 15, 'Ett klick på patienten i arbetslistan och ett på Registrera mätvärde, där värdefältet för blodtryck redan har fokus, och ett klick för att registrera. Sedan för längd, vikt och puls två klick för att välja mätvärdet i listan, ett fältbyte för värdet och ett klick för att registrera. Tiden och vårdkontakten sätter systemet.'),
-      kor('ssk_slutenvard', 15, 'Samma steg som för läkaren i öppenvården, från arbetslistan på avdelningen.'),
-      kor('underskoterska', 15, 'Samma steg som för läkaren i öppenvården, från arbetslistan på avdelningen.')],
-    avvikelser: ['Tiden för besöket är nu, eftersom Sussas datum ligger före testet.'],
+    // Runda 8, r5: alla fyra värdena i ett formulär, 7 steg i stället för 15.
+    korningar: [kor('lakare_oppenvard', 7, 'Ett klick på patienten i arbetslistan, ett på Registrera mätvärde och ett på formuläret för längd, vikt, blodtryck och puls, där längden har fokus. Ett fältbyte vardera för vikt, blodtryck och puls och ett klick för att registrera alla fyra. Tiden och vårdkontakten sätter systemet, och BMI räknas själv.'),
+      kor('ssk_slutenvard', 7, 'Samma steg som för läkaren i öppenvården, från arbetslistan på avdelningen.'),
+      kor('underskoterska', 7, 'Samma steg som för läkaren i öppenvården, från arbetslistan på avdelningen.')],
+    avvikelser: ['Tiden för besöket är nu, eftersom Sussas datum ligger före testet.', 'Formuläret för flera värden byggdes i runda 8 för testfallet. I runda 7 krävde testfallet 15 steg, med ett val i listan för varje mätvärde.'],
   }),
   t('4.3', 'Skapa slutanteckning eller epikris', ['lakare_slutenvard', 'ssk_slutenvard', 'medicinsk_sekreterare'], {
     syfte: 'Skapa en epikris strukturerat i Anna Karlssons journal.',
     mal: ['Epikris för vårdtillfället på avdelningen med diagnosen sepsis.', 'Vårdförlopp, bedömning och planering med Sussas texter.', 'Signera.'],
     slut: 'Informationen är inmatad och anteckningen är signerad.',
     tidsklass: 15, tidsklassSkal: 'Fyra textfält med längre texter och en signering.',
-    korningar: [kor('lakare_slutenvard', 8, 'Ett klick på patienten i arbetslistan och ett på Ny anteckning, två klick för att välja mallen Epikris, ett fältbyte vardera för Orsak till vård, Förlopp och Uppföljning och ett klick för att signera. Det pågående vårdtillfället är förvalt som vårdkontakt.')],
-    avvikelser: ['Vårdtillfället pågår på Avdelning 72 i stället för Infektionskliniken, och började tre dagar före testet.', 'Vårdkällans epikris har sökorden Orsak till vård, Förlopp, Läkemedelsförändringar och Uppföljning. Diagnosen skrivs under Orsak till vård, vårdförloppet och bedömningen under Förlopp och planeringen under Uppföljning.'],
+    // Runda 8, r5: epikrisen från vårdtillfället med systemets förslag, 4 steg i stället för 8.
+    korningar: [kor('lakare_slutenvard', 4, 'Ett klick på patienten i arbetslistan och ett på Skriv epikris vid vårdtillfället. Systemet har skrivit orsaken till vården och diagnosen sepsis med kod ur vårdtillfället, och fokus står i Förlopp. Ett fältbyte till Uppföljning och ett klick för att signera. Det pågående vårdtillfället är förvalt som vårdkontakt.')],
+    avvikelser: ['Vårdtillfället pågår på Avdelning 72 i stället för Infektionskliniken, och började tre dagar före testet.', 'Vårdkällans epikris har sökorden Orsak till vård, Förlopp, Läkemedelsförändringar och Uppföljning. Systemet skriver diagnosen under Orsak till vård, och vårdförloppet och bedömningen skrivs under Förlopp och planeringen under Uppföljning.', 'Förslaget till epikrisen byggdes i runda 8. I runda 7 krävde testfallet 8 steg.'],
   }),
   t('4.4', 'Signera', ['lakare_slutenvard', 'lakare_oppenvard', 'ssk_oppenvard', 'ssk_slutenvard', 'paramedicinare'], {
     syfte: 'Signera alla egna osignerade poster, 30 för läkare och 20 för övriga.',

@@ -14,12 +14,17 @@ import { K11 } from './kodverk.js';
 import * as T from './tillvaxt.js';
 import * as P from './bhv-program.js';
 import { arbetarIBhv } from './bhv.js';
+// Runda 8, r5: undantaget för skyddade personuppgifter är en parameter på sidan Regler och parametrar.
+import { varde as parameter } from './konfiguration.js';
 
 export const MOTTAGARE = 'Svenska barnhälsovårdsregistret (simulerad mottagare)';
 export const DEMOREGEL = 'Demoregel: barn med skyddade personuppgifter rapporteras inte till registret. Det är vårdgivarens beslut, inte en regel i patientdatalagen.';
-// Försiktig demoregel: barn med skyddade personuppgifter rapporteras inte. Den ska bli en parameter på
-// konfigurationssidan för demoregler när en sådan finns; tills dess är den en konstant här.
+// Försiktig demoregel: barn med skyddade personuppgifter rapporteras inte. Runda 8, r5: regeln är parametern
+// rapportering.bhvq_undanta_skyddad på sidan Regler och parametrar (konfiguration.js), och konstanten är dess
+// standardvärde. Systemförvaltaren ändrar den med fyra ögon och ett datum.
 export const UNDANTA_SKYDDAD = true;
+export const undantaSkyddad = (db, nu = new Date()) => parameter(db, 'rapportering.bhvq_undanta_skyddad', nu);
+export const demoregel = (db, nu = new Date()) => (undantaSkyddad(db, nu) ? DEMOREGEL : 'Barn med skyddade personuppgifter rapporteras till registret med personnumret men utan namn. Det är vårdgivarens beslut, som systemförvaltningen har registrerat under Regler och parametrar.');
 const TABELLER = ['matvarden', 'tillvaxt_uppgifter', 'bhv_besok', 'vaccinationer'];
 
 const ttmmdd = (tid) => tid.slice(0, 10).replaceAll('-', '');
@@ -90,10 +95,11 @@ export function sammanstall(db, personal, valFor = () => ({})) {
   const ve = vardenhetFor(db, personal.enhet_id);
   const sista = senast(db, ve);
   const undantagna = { motsatt: 0, skyddad: 0 };
+  const undanta = undantaSkyddad(db);
   const barn = [];
   for (const p of db.query('SELECT p.*, i.bhvq_motsatt FROM bhv_inskrivning i JOIN patienter p ON p.id = i.patient_id WHERE i.enhet_id = ? AND p.sammanslagen_till IS NULL ORDER BY p.id').all(ve)) {
     if (p.bhvq_motsatt) { undantagna.motsatt++; continue; }
-    if (p.skyddad && UNDANTA_SKYDDAD) { undantagna.skyddad++; continue; }
+    if (p.skyddad && undanta) { undantagna.skyddad++; continue; }
     const atk = new Atkomst(db, personal, p.id, valFor(p.id), 'las_matvarden');
     if (!atk.prova('las_matvarden').tillaten) continue;
     const r = forBarn(db, p, ve, sista);
@@ -105,7 +111,7 @@ export function sammanstall(db, personal, valFor = () => ({})) {
     sedan: sista.tid, forraKvittens: sista.kvittens, barn, undantagna,
     antal: { barn: klara.length, observationer: klara.reduce((s, b) => s + b.antal, 0), medFel: barn.filter(b => b.fel.length).length },
     text: barn.length ? `${klara.length} ${klara.length === 1 ? 'barn' : 'barn'} med ${klara.reduce((s, b) => s + b.antal, 0)} nya uppgifter kan skickas.${barn.some(b => b.fel.length) ? ' Barn med fel hålls kvar tills felet är rättat.' : ''}` : 'Det finns inget nytt att rapportera sedan förra utskicket.',
-    demoregel: DEMOREGEL,
+    demoregel: demoregel(db),
   };
 }
 

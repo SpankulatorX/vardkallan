@@ -3,6 +3,8 @@
 // visning och publicering, och lagring med provåterläsning. Systemet fyller i datum och förslag, förhandsvisar effekten
 // medan man skriver och förklarar varför ett värde inte går. Inga patientuppgifter visas, bara antal.
 import { esc, api, datum, tidpunkt, notis, medKnapp, dialog, vyRubrik, ikon, tal } from '../ui.js';
+// Runda 8, r5: hjälpen i sammanhanget.
+import { hjalpRuta } from '../hjalp.js';
 
 // Förhandsvisning medan man skriver, med en kort paus så att inte varje tangent blir ett anrop.
 function medForhandsvisning(dl, hamta, rita) {
@@ -68,7 +70,8 @@ async function beslut(main, e, bas, visaIgen) {
 export const regler = {
   namn: 'regler',
   async visa(main) {
-    main.innerHTML = vyRubrik('Regler och parametrar', 'Demoreglerna och parametrarna som systemet använder, på ett ställe. En ändring gäller från ett datum och först när en annan systemförvaltare har godkänt den.') + '<div id="sf-regler"><p class="tom">Hämtar.</p></div>';
+    // Runda 8, r5: hjälpen i sammanhanget.
+    main.innerHTML = vyRubrik('Regler och parametrar', 'Demoreglerna och parametrarna som systemet använder, på ett ställe. En ändring gäller från ett datum och först när en annan systemförvaltare har godkänt den.') + hjalpRuta('regler') + '<div id="sf-regler"><p class="tom">Hämtar.</p></div>';
     const o = await api('/api/konfiguration');
     const el = main.querySelector('#sf-regler');
     if (!el) return;
@@ -97,12 +100,18 @@ export const regler = {
 async function andraParameter(main, o, nyckel, knapp) {
   const p = o.grupper.flatMap(g => g.parametrar).find(x => x.nyckel === nyckel);
   const lista = p.typ === 'lista';
+  // Runda 8, r5: en regel med svaret ja eller nej väljs med två alternativ. Det som inte gäller nu är förvalt.
+  const janej = p.typ === 'janej';
   const varde = lista ? p.varde.join(', ') : String(p.varde);
+  const vardeFalt = janej
+    ? `<fieldset class="kryssgrupp"><legend>Nytt värde</legend>${[['ja', p.text?.true], ['nej', p.text?.false]].map(([v, t]) => `<div class="kryssfalt"><input type="radio" id="sf-varde-${v}" name="varde" value="${v}"${(p.varde ? 'ja' : 'nej') !== v ? ' checked' : ''}><label for="sf-varde-${v}">${esc(t ?? v)}</label></div>`).join('')}
+      <p class="hjalp">Gäller nu: ${esc(p.vardeText)}.</p></fieldset>`
+    : `<div class="falt"><label for="sf-varde">${lista ? 'Sökorden, i ordning, med komma emellan' : `Nytt värde i ${esc(p.enhet)}`}</label>
+      ${lista ? `<textarea id="sf-varde" name="varde" rows="3" required>${esc(varde)}</textarea>` : `<input id="sf-varde" name="varde" inputmode="numeric" value="${esc(varde)}" required>`}
+      ${lista ? '' : `<p class="hjalp">Mellan ${esc(p.min)} och ${esc(p.max)} ${esc(p.enhet)}. Gäller nu: ${esc(p.vardeText)}.</p>`}</div>`;
   const svar = await dialog(`<form><h2 id="dlg-rubrik">${esc(p.rubrik)}</h2>
     <p class="liten">${esc(p.beskrivning)}</p>
-    <div class="falt"><label for="sf-varde">${lista ? 'Sökorden, i ordning, med komma emellan' : `Nytt värde i ${esc(p.enhet)}`}</label>
-      ${lista ? `<textarea id="sf-varde" name="varde" rows="3" required>${esc(varde)}</textarea>` : `<input id="sf-varde" name="varde" inputmode="numeric" value="${esc(varde)}" required>`}
-      ${lista ? '' : `<p class="hjalp">Mellan ${esc(p.min)} och ${esc(p.max)} ${esc(p.enhet)}. Gäller nu: ${esc(p.vardeText)}.</p>`}</div>
+    ${vardeFalt}
     <div class="falt smal"><label for="sf-fran">Gäller från</label><input id="sf-fran" name="giltigFran" type="date" value="${esc(o.forvalDatum)}" min="${esc(o.forvalDatum.slice(0, 10))}"></div>
     <div class="falt"><label for="sf-motivering">Varför behövs ändringen? <span class="obl">(obligatoriskt)</span></label><textarea id="sf-motivering" name="motivering" rows="2" required maxlength="1000"></textarea></div>
     <div class="sf-forhand" data-forhand aria-live="polite"></div>
@@ -110,9 +119,10 @@ async function andraParameter(main, o, nyckel, knapp) {
     <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Skicka för godkännande</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`, {
     klass: 'dialog-bred',
     onOpen: (dl) => {
-      const f = dl.querySelector('#sf-varde');
-      f.focus(); f.select();
-      medForhandsvisning(dl, () => tyst('/api/konfiguration/forhandsvisa', { nyckel, varde: f.value, giltigFran: dl.querySelector('#sf-fran').value }),
+      const f = dl.querySelector('#sf-varde') ?? dl.querySelector('[name="varde"]:checked');
+      f.focus(); if (!janej) f.select();
+      const las = () => (janej ? dl.querySelector('[name="varde"]:checked')?.value : f.value);
+      medForhandsvisning(dl, () => tyst('/api/konfiguration/forhandsvisa', { nyckel, varde: las(), giltigFran: dl.querySelector('#sf-fran').value }),
         (r) => (r.ok
           ? `<div class="ruta ruta-info liten"><p><strong>Effekt</strong></p><ul>${r.effekt.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>`
           : `<p class="ruta ruta-larm liten" role="status">${esc(r.varfor)}</p>`));

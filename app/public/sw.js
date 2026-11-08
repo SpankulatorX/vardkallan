@@ -32,7 +32,9 @@ const FILER = [
   '/js/tillvaxt-kurva.js', '/js/vyer/patient-tillvaxt.js', '/js/vyer/min-tillvaxt.js', '/js/vyer/bhv.js',
   '/js/nyheter.js', '/js/hjalp.js', '/js/kontrast.js', '/js/vyer/nyheter.js', '/js/vyer/utbildning.js', '/js/vyer/tillganglighet.js', '/js/tidsgrans.js',
   '/js/sussa-formular.js', '/js/sussa-testfall-ui.js', '/js/vyer/sussatest.js',
+  '/js/tobak-regler.js', '/js/vyer/patient-tobak.js',
 ];
+// Runda 8, r5: listan har mallen för tobaksvanor (tobak-regler.js och patient-tobak.js).
 // Runda 7, r5: listan har rapporteringen, rättningarna i inkorgen och tabellen över tjänstekontrakten.
 // Runda 7, r2: listan har nyhetsrutan, hjälpen, högkontrastläget, nyheterna, utbildningen och tillgänglighetsredogörelsen.
 // Runda 7, r1: formulären och resultatet för Sussas användbarhetstester.

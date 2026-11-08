@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T10:24:01.607Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-08T11:41:38.475Z",
+  "bas": "http://127.0.0.1:18185",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "6861eabb78763a405740bf97897dd10fff8989df56b204f9e50a1ab598fbf78a",
+  "gransnittHash": "dd10f066aee0ae1431450e79bc26a83124f0e6117df54def40a8a72d7ed7b731",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -1009,6 +1009,67 @@
       "steg": [
         "klick: Fortsätt arbeta"
       ]
+    },
+    {
+      "id": "tobaksvanor",
+      "namn": "Fylla i tobaksmallen i en anteckning",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 4,
+      "motivering": "Sussa testfall 4.1. Ett klick på Dokumentera tobaksvanor i översikten, ett klick på Dagligen för cigaretter, som flyttar fokus till antalet och sätter svaret Ja själv, ett klick på Erbjudet och accepterat för det stöd som systemet föreslår och ett klick för att signera. Systemet räknar ut åtgärden och KVÅ-koden ur svaren och patientens ålder.",
+      "klick": 4,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 4,
+      "inomBudget": true,
+      "steg": [
+        "klick: Dokumentera tobaksvanor i översikten",
+        "klick: Dagligen för cigaretter",
+        "har redan fokus: antalet cigaretter per dag",
+        "klick: Erbjudet och accepterat",
+        "klick: Signera"
+      ]
+    },
+    {
+      "id": "epikris",
+      "namn": "Skriva och signera en epikris",
+      "roll": "lak-kard",
+      "start": "Översikten för en inlagd patient",
+      "budget": 3,
+      "motivering": "Sussa testfall 4.3. Ett klick på Skriv epikris vid vårdtillfället. Systemet har skrivit orsaken till vården ur vårdtillfället och diagnoserna och läkemedelsförändringarna ur ordinationerna, och fokus står i Förlopp. Ett fältbyte till Uppföljning och ett klick för att signera.",
+      "klick": 2,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Skriv epikris",
+        "har redan fokus: Förlopp",
+        "fältbyte: Uppföljning",
+        "klick: Signera"
+      ]
+    },
+    {
+      "id": "grundmatningar",
+      "namn": "Registrera längd, vikt, blodtryck och puls",
+      "roll": "ssk-kard",
+      "start": "Patientens översikt",
+      "budget": 6,
+      "motivering": "Sussa testfall 4.2. Ett klick på Registrera mätvärde och ett på formuläret för flera värden, där längden har fokus, ett fältbyte vardera för vikt, blodtryck och puls och ett klick för att registrera. Tiden och vårdkontakten sätter systemet, och BMI räknas själv.",
+      "klick": 3,
+      "faltbyten": 3,
+      "tangenter": 0,
+      "uppmatt": 6,
+      "inomBudget": true,
+      "steg": [
+        "klick: Registrera mätvärde",
+        "klick: Längd, vikt, blodtryck och puls på en gång",
+        "har redan fokus: längden",
+        "fältbyte: vikten",
+        "fältbyte: blodtrycket",
+        "fältbyte: pulsen",
+        "klick: Registrera"
+      ]
     }
   ],
   "tester": [
@@ -1234,6 +1295,18 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Fortsätta arbeta när inloggningen snart går ut inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Fylla i tobaksmallen i en anteckning inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Skriva och signera en epikris inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera längd, vikt, blodtryck och puls inom budget",
       "status": "grön"
     }
   ]

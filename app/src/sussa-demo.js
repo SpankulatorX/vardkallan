@@ -81,6 +81,11 @@ export function laddaTestdata(db, personal, { nu = new Date() } = {}) {
       .run('sus06', 'vc-tybble', 'uso-kard', 'lak-vc', 'Svår andfåddhet vid ansträngning. Bedömning?', 'Kvinna med tilltagande andfåddhet sedan en månad.', 'normal',
         addDagar(basDatum, 10), 'bedomd', T(-20, '10:00'), T(-20, '11:00'), 'adm-kard', T(-18, '09:00'), 'lak-kard', 'accepterad');
 
+    // Runda 8, r5: Berit Strandhall (testfall 4.1): ett besök på vårdcentralen i dag och ett på kardiologiska
+    // mottagningen, så att läkaren i öppenvården, sjuksköterskan och fysioterapeuten har henne i arbetslistan.
+    vk('sus05', 'vc-tybble', { start: M(-25), plats: 'Mottagning', orsak: 'Mottagningsbesök', av: 'lak-vc' });
+    vk('sus05', 'uso-kard-mott', { start: M(-35), plats: 'Kardiologiska mottagningen', orsak: 'Mottagningsbesök' });
+
     // Anna Karlsson (testfall 4.3): inlagd på Avdelning 72 sedan tre dagar med sepsis, med de anteckningar som Sussa
     // anger som underlag för epikrisen (Bilaga F1:3 tabell 13).
     const anna = vardtillfalle('sus07', 'uso-kard-72', { inskriven: T(-3, '15:00'), plats: 'Avd 72, sal 4', orsak: 'Feber och frossa', av: 'ssk-kard' });

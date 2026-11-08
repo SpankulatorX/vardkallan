@@ -3,6 +3,8 @@
 // Runda 7, r6: tillväxt och barnhälsovård (tillvaxt.js, bhv-program.js, bhv.js och bhvq.js).
 import { TEST, klickbudgetTest } from '../../krav.js';
 import { FLODEN } from '../../klickbudget.js';
+// Runda 8, r5: tilläggen för tobaksvanor, epikrisen, mätvärdena, övningarna och parametrarna (sussa/runda8-r5.js).
+import { medR8r5 } from '../runda8-r5.js';
 
 const { GK } = TEST;
 const TV = 'Tillväxt > ';
@@ -13,7 +15,7 @@ const KF = 'Kodverk och FHIR för tillväxt > ';
 const AP = 'API för barnhälsovården > ';
 const KB = klickbudgetTest(FLODEN.find(f => f.id === 'tillvaxt-bhv'));
 
-export default [
+const POSTERNA = [
   {
     id: '4.1.1.1', kategori: 'system', egna: ['D6'], avsedd: 'uppfyllt_demo',
     tester: [
@@ -91,3 +93,4 @@ export default [
     anmarkning: 'Indikatorerna är fasta och kan inte väljas, och det finns ingen uppföljning för regionen.',
   },
 ];
+export default medR8r5(POSTERNA);

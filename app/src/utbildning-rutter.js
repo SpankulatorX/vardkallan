@@ -17,7 +17,8 @@ export function registreraRutter({ rutt, kravInloggad }) {
   rutt('POST', '/api/utbildning/ratta', (c) => utbildning.ratta(c.db, kravInloggad(c), c.body.svar));
   rutt('GET', '/api/utbildning/enhet', (c) => utbildning.enhet(c.db, kravInloggad(c)));
   // Övningarna som data med versioner, och utbildarintygen.
-  rutt('GET', '/api/utbildning/ovningar', (c) => utbildning.redigera(c.db, kravInloggad(c)));
+  // Runda 8, r5: ?omfang=enhet ger vårdenhetens egna övningar, och omfang i kroppen sparar dem.
+  rutt('GET', '/api/utbildning/ovningar', (c) => utbildning.redigera(c.db, kravInloggad(c), { omfang: c.url.searchParams.get('omfang') ?? 'vardgivare' }));
   rutt('POST', '/api/utbildning/ovningar', (c) => [201, utbildning.sparaVersion(c.db, kravInloggad(c), c.body)]);
   rutt('POST', '/api/utbildning/utbildare', (c) => [201, utbildning.utfardaUtbildare(c.db, kravInloggad(c), c.body.personalId)]);
 }

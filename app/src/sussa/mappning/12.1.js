@@ -2,6 +2,8 @@
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 // Runda 7, r4: systemförvaltningen (konfiguration.js, omorganisation.js, undantag.js och systemforvaltning-rutter.js).
 import { TEST } from '../../krav.js';
+// Runda 8, r5: tilläggen för tobaksvanor, epikrisen, mätvärdena, övningarna och parametrarna (sussa/runda8-r5.js).
+import { medR8r5 } from '../runda8-r5.js';
 
 const { GK } = TEST;
 const S = 'Systemförvaltning > ';
@@ -54,7 +56,7 @@ const OMORG_LOSNING = 'Systemförvaltaren förbereder ett namnbyte, en ny enhet,
 const OMORG_EXPERT = 'Systemet följer HSA:s regler för organisationsförändringar (bilaga K6) utan att systemförvaltaren behöver kunna dem: det föreslår datum, överordnad enhet och mottagare, stoppar ett namn som redan finns, ett datum bakåt i tiden, en enhet i en annan förändring och en mottagare hos en annan vårdgivare, och låter vårdrelationen följa med medan patientens spärr gäller som förut mot den gamla vårdenhetens uppgifter, också för efterföljarens personal. Det som systemet inte kan göra själv (nya uppdrag i läkemedelshanteringen, nya delegeringar och ändringen i HSA-katalogen) står i förhandsvisningen, och en förändring som ändrar åtkomsten godkänns av en andra systemförvaltare.';
 const OMORG_ANM = 'Kopplingen till HSA-katalogen är inte byggd, och HSA-id för nya enheter är påhittade. Demon har ingen schemalagd körning, så en förberedd förändring genomförs vid första anropet den dag den gäller. En enhet som har stängts går inte att öppna igen i demon. Vid delning följer personal och uppgifter som hör till vårdenheten själv den första nya vårdenheten. Uppdrag i läkemedelshanteringen avslutas och delegeringar gäller inte längre, så att verksamhetschefen och den som delegerar beslutar på nytt.';
 
-export default [
+const POSTERNA = [
   {
     id: '12.1.1.1', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
     tester: [...OMORG, ROLL],
@@ -117,3 +119,4 @@ export default [
     anmarkning: 'Publiceringen till nationella tjänster är simulerad: sidan visar vad som skulle publiceras och vad som är undantaget, och en producent av ett tjänstekontrakt prövar varje rad med samma funktion. Undantag på enskilda uppgifter (en viss anteckning) finns inte, bara på typ och vårdenhet.',
   },
 ];
+export default medR8r5(POSTERNA);

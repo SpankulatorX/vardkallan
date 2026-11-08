@@ -264,4 +264,17 @@ export const FLODEN = [
     id: 'forlang-inloggning', namn: 'Fortsätta arbeta när inloggningen snart går ut', roll: 'lak-kard', start: 'Arbetslistan när inloggningen snart går ut', budget: 1,
     motivering: 'K2 1.6.1. Fem minuter före utloggningen visar systemet en varning med fokus på knappen Fortsätt arbeta. Ett klick, eller Enter, förlänger inloggningen. Inget behöver skrivas.',
   },
+  // Runda 8, r5: tobaksvanorna, epikrisen och flera mätvärden på en gång (Sussas tema 4).
+  {
+    id: 'tobaksvanor', namn: 'Fylla i tobaksmallen i en anteckning', roll: 'lak-kard', start: 'Patientens översikt', budget: 4,
+    motivering: 'Sussa testfall 4.1. Ett klick på Dokumentera tobaksvanor i översikten, ett klick på Dagligen för cigaretter, som flyttar fokus till antalet och sätter svaret Ja själv, ett klick på Erbjudet och accepterat för det stöd som systemet föreslår och ett klick för att signera. Systemet räknar ut åtgärden och KVÅ-koden ur svaren och patientens ålder.',
+  },
+  {
+    id: 'epikris', namn: 'Skriva och signera en epikris', roll: 'lak-kard', start: 'Översikten för en inlagd patient', budget: 3,
+    motivering: 'Sussa testfall 4.3. Ett klick på Skriv epikris vid vårdtillfället. Systemet har skrivit orsaken till vården ur vårdtillfället och diagnoserna och läkemedelsförändringarna ur ordinationerna, och fokus står i Förlopp. Ett fältbyte till Uppföljning och ett klick för att signera.',
+  },
+  {
+    id: 'grundmatningar', namn: 'Registrera längd, vikt, blodtryck och puls', roll: 'ssk-kard', start: 'Patientens översikt', budget: 6,
+    motivering: 'Sussa testfall 4.2. Ett klick på Registrera mätvärde och ett på formuläret för flera värden, där längden har fokus, ett fältbyte vardera för vikt, blodtryck och puls och ett klick för att registrera. Tiden och vårdkontakten sätter systemet, och BMI räknas själv.',
+  },
 ];

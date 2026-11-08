@@ -675,18 +675,19 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     const ruta = p.locator('.nyhetsruta');
     await ruta.waitFor();
     const text = await ruta.textContent();
-    if (!/Se vilka på vårdenheten som har giltigt intyg/.test(text)) throw new Error('verksamhetschefens nyhet saknas');
-    if (/Ordinera ur mallar/.test(text)) throw new Error('rutan visar en äldre version');
+    // Runda 8, r5: version 0.8.0.
+    if (!/Vårdenhetens egna övningar/.test(text)) throw new Error('verksamhetschefens nyhet saknas');
+    if (/Ordinera ur mallar|Se vilka på vårdenheten som har giltigt intyg/.test(text)) throw new Error('rutan visar en äldre version');
     await p.click('[data-a="stang-nyheter"]');
     await p.waitForFunction(() => !document.querySelector('.nyhetsruta'));
     await loggaIn(p, 'lak-kard');
     await ruta.waitFor();
-    if (/Se vilka på vårdenheten/.test(await ruta.textContent())) throw new Error('läkaren ser verksamhetschefens nyhet');
+    if (/Vårdenhetens egna övningar/.test(await ruta.textContent())) throw new Error('läkaren ser verksamhetschefens nyhet');
     await loggaIn(p, 'vch-kard');
     if (await p.locator('.nyhetsruta').count()) throw new Error('rutan kommer tillbaka efter att den har stängts');
     await gaTill(p, '#/nyheter');
     const alla = await p.locator('main').textContent();
-    if (!/Se vilka på vårdenheten som har giltigt intyg/.test(alla) || !/Uppdrag i läkemedelshanteringen/.test(alla)) throw new Error('nyheterna går inte att läsa igen');
+    if (!/Vårdenhetens egna övningar/.test(alla) || !/Se vilka på vårdenheten som har giltigt intyg/.test(alla) || !/Uppdrag i läkemedelshanteringen/.test(alla)) throw new Error('nyheterna går inte att läsa igen');
     await p.screenshot({ path: join(UT, 'r7r2-nyheter.png') });
     await k.close();
   });
@@ -699,6 +700,8 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
       ['lak-kard', '#/arbetslista', 'oppna-patient'], ['lak-kard', '#/patient/p01/journal', 'daganteckning'], ['lak-kard', '#/patient/p01/lakemedel', 'ordinera'],
       ['lak-kard', '#/inkorg', 'inkorg'], ['ssk-kard', '#/patient/p01/matvarden', 'matvarde'], ['ssk-kard', '#/administrering', 'ge-dos'],
       ['lak-vc', '#/patient/p01/remisser', 'remiss'], ['lak-akut', '#/sok', 'sok'], ['adm-kard', '#/idag', 'boka'],
+      // Runda 8, r5.
+      ['sysf', '#/regler', 'regler'],
     ];
     let inl = null;
     for (const [roll, h, id] of STALLEN) {
