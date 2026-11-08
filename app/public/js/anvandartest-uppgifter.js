@@ -414,6 +414,17 @@ export const UPPGIFTER = [
     text: 'Du har tagit blodproverna på Elin Sandberg, blodstatus och CRP. Registrera att proverna är tagna och skicka dem till laboratoriet.',
     kontroll: { notis: 'proverna är skickade' },
   },
+  // Runda 9, r7: streckkodsläsaren och de färdiga patientgrupperna.
+  {
+    id: 'skanna-armband', namn: 'Öppna patienten genom att skanna armbandet', roll: 'ssk-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Gunnar Åkesson har ett armband med streckkod. Skanna armbandet så att hans journal öppnas. Utan läsare skriver du koden från armbandet i fältet Skanna.',
+    kontroll: { sel: '.patientband h1', text: 'Gunnar Åkesson' },
+  },
+  {
+    id: 'patientgrupp', namn: 'Visa en färdig patientgrupp', roll: 'lak-vc', start: 'Arbetslistan efter inloggning',
+    text: 'Vårdcentralen vill veta vilka patienter med diabetes som har ett HbA1c över målnivån. Visa gruppen.',
+    kontroll: { sel: '[data-grupp-ut]', text: 'Birgitta' },
+  },
 ];
 
 // Deltagarens bakgrund. Bara val, inga fritextfält, så att inga identifierande uppgifter samlas in.

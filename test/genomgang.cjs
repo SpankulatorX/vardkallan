@@ -1724,7 +1724,9 @@ for (const k of ['klinisk', 'psykiatri', 'bvc', 'verksamhetschef']) MENY[k].spli
         // Runda 8, r1: beställning och svar.
         'bestall-paket', 'registrera-provtagning',
         // Runda 8, r3: bokning och avdelningens planering.
-        'boka-fri', 'boka-team', 'grupp-lagg-till', 'avdelningens-handelser']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'boka-fri', 'boka-team', 'grupp-lagg-till', 'avdelningens-handelser',
+        // Runda 9, r7: streckkodsläsaren och patientgrupperna.
+        'skanna-armband', 'patientgrupp']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

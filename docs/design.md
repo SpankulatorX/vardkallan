@@ -1343,7 +1343,7 @@ En beställning av forskningsuttag får diarienummer och anger forskare, studie,
 
 ### Det som är simulerat eller saknas
 
-Laboratoriet, NLL och prenumeranterna är simulerade. Förpackningens artikelnummer är NPL-pack-id i demon. Analysen räknas på journalens tabeller vid varje fråga, inte i ett datalager. Patientens medgivande till forskning, externa datakällor i folkhälsoarbetet och notifieringar till invånare är inte byggda. Röstinmatning, rättstavning, in- och utfarter, skannade restjournaler, donation, anpassningsbara journalvyer och signeringslistan (övriga poster i r7) är inte byggda i den här rundan.
+Laboratoriet, NLL och prenumeranterna är simulerade. Förpackningens artikelnummer är NPL-pack-id i demon. Analysen räknas på journalens tabeller vid varje fråga, inte i ett datalager. Patientens medgivande till forskning, externa datakällor i folkhälsoarbetet och notifieringar till invånare är inte byggda. SITHS-kortet som signerar anteckningarna är simulerat. Röstinmatning, rättstavning, in- och utfarter, skannade restjournaler, donation och anpassningsbara journalvyer är inte byggda i den här rundan.
 
 ## Godkännandekriterier för första versionen
 
