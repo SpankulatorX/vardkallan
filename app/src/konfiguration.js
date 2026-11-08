@@ -204,6 +204,44 @@ Object.assign(HELTAL, {
     },
   },
 });
+// Runda 9, r7: målvärden för ledtiderna i subprocesserna (sparbarhet.js, Sussa 6.1.1.4). Systemförvaltaren sätter målen,
+// och uppföljningen av remiss, provtagning och läkemedelsöverföring visar andelen inom målet. Standardvärdena är
+// Vårdkällans demoförslag, inte regionens mål.
+OMRADEN.uppfoljning = { rubrik: 'Uppföljning och ledtider', sussa: '6.1.1.4' };
+const andelInom = (rader, grans) => (rader.length ? Math.round(rader.filter(x => x <= grans).length / rader.length * 100) : null);
+Object.assign(HELTAL, {
+  'ledtid.remiss_svar_dagar': {
+    omrade: 'uppfoljning', rubrik: 'Mål för ledtiden från remiss till svar', enhet: 'dagar', standard: 14, min: 1, max: 180, anvands: 'sparbarhet.js och uppföljningen av subprocesser',
+    beskrivning: 'Så många dagar får det ta från att en remiss skickas till att den är besvarad. Uppföljningen visar andelen remisser inom målet.',
+    minVarfor: 'Kortare än ett dygn är inget rimligt mål för en remiss som ska bedömas och besvaras.',
+    maxVarfor: 'Längre än ett halvår är inget mål som går att följa upp.',
+    effekt: (db, nytt, forra) => {
+      const d = db.query('SELECT skickad_tid, besvarad_tid FROM remisser WHERE besvarad_tid IS NOT NULL').all().map(r => (Date.parse(r.besvarad_tid) - Date.parse(r.skickad_tid)) / DAG);
+      return [`Med ${dagar(nytt)} är ${andelInom(d, nytt) ?? 0} procent av de besvarade remisserna inom målet, mot ${andelInom(d, forra) ?? 0} procent med ${dagar(forra)}.`];
+    },
+  },
+  'ledtid.labb_svar_timmar': {
+    omrade: 'uppfoljning', rubrik: 'Mål för ledtiden från provtagning till svar', enhet: 'timmar', standard: 24, min: 1, max: 336, anvands: 'sparbarhet.js och uppföljningen av subprocesser',
+    beskrivning: 'Så många timmar får det ta från att provet tas till att svaret kommer från laboratoriet.',
+    minVarfor: 'Kortare än en timme hinner inget laboratorium svara på.',
+    maxVarfor: 'Längre än två veckor är inget mål som går att följa upp för vanliga prover.',
+    effekt: (db, nytt, forra) => {
+      if (!harTabell(db, 'labb_analyser')) return [];
+      const t = db.query('SELECT a.besvarad_tid, p.provtagen_tid FROM labb_analyser a JOIN labb_prov p ON p.id = a.prov_id WHERE a.besvarad_tid IS NOT NULL AND p.provtagen_tid IS NOT NULL').all().map(r => (Date.parse(r.besvarad_tid) - Date.parse(r.provtagen_tid)) / TIMME);
+      return [`Med ${timmar(nytt)} är ${andelInom(t, nytt) ?? 0} procent av svaren inom målet, mot ${andelInom(t, forra) ?? 0} procent med ${timmar(forra)}.`];
+    },
+  },
+  'ledtid.nll_kvittens_minuter': {
+    omrade: 'uppfoljning', rubrik: 'Mål för ledtiden från överföring till kvittens från NLL', enhet: 'minuter', standard: 5, min: 1, max: 120, anvands: 'sparbarhet.js och uppföljningen av subprocesser',
+    beskrivning: 'Så många minuter får det ta från att en ordination skickas till Nationella läkemedelslistan till att kvittensen kommer.',
+    minVarfor: 'Kortare än en minut går inte att skilja från att kvittensen kommer direkt.',
+    maxVarfor: 'Längre än två timmar betyder att apoteket kan sakna ordinationen när patienten kommer.',
+    effekt: (db, nytt, forra) => {
+      const m = db.query("SELECT skickad, svar_tid FROM nll_meddelanden WHERE svar_tid IS NOT NULL AND status = 'kvitterad'").all().map(r => (Date.parse(r.svar_tid) - Date.parse(r.skickad)) / 60_000);
+      return [`Med ${minuter(nytt)} är ${andelInom(m, nytt) ?? 0} procent av överföringarna inom målet, mot ${andelInom(m, forra) ?? 0} procent med ${minuter(forra)}.`];
+    },
+  },
+});
 // Paketens innehåll: en lista med analysernas namn ur katalogen. Varje namn prövas mot katalogen, så att ett paket aldrig
 // innehåller en analys som laboratoriet inte kan ta emot.
 const labbAnalysNamn = new Map(LABB_ANALYSER.map(a => [a.namn.toLocaleLowerCase('sv'), a]));

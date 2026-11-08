@@ -1550,3 +1550,12 @@ td .tagg-referens, td .tagg-egen, td .tagg-ok { margin-left: 6px; }
 .iva-kurvor { grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); }
 .iva-handelser li { display: flex; gap: 8px; }
 .mt-format td { overflow-wrap: anywhere; }
+/* Runda 9, r7: streckkodsläsaren i toppraden, diagrammen i analysen och armbandet. */
+.skanna { flex: 0 1 260px; }
+.skanna input { width: 100%; font-size: 0.875rem; padding: 4px 8px; }
+.diagram { margin: 12px 0; }
+.diagram svg { width: 100%; max-width: 640px; height: auto; }
+.diagram-stapel { fill: var(--kalla); }
+.diagram-etikett, .diagram-varde { font-size: 12px; fill: currentColor; }
+.armband-utskrift { border: 1px dashed var(--dampad); padding: 8px 12px; display: inline-block; background: #fff; color: #000; }
+@media (max-width: 720px) { .skanna { flex-basis: 100%; } }

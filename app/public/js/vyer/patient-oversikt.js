@@ -69,6 +69,8 @@ export async function visa(el, ctx) {
   // Runda 8, r5: tobaksvanorna. Systemet visar den senaste dokumentationen, eller att den saknas, och ett klick öppnar
   // mallen med fasta svarsalternativ.
   if (d.tobak) delar.push(sektion('tobak', 'Tobak och nikotin', tobakHtml(d.tobak, ctx)));
+  // Runda 9, r7: levnadsvanorna och systemets rekommendation när patienten ingår i en folkhälsoinsats.
+  if (d.levnadsvanor) delar.push(sektion('levnadsvanor', 'Levnadsvanor', levnadsvanorHtml(d, ctx)));
   if (d.anteckningar) {
     delar.push(sektion('ant', 'Senaste anteckningar', d.anteckningar.length ? `<ul class="ant-lista">${d.anteckningar.map(a => `<li><a href="${ctx.href('journal', a.id)}"><span class="ant-typ">${esc(a.typ)}</span>${a.status === 'utkast' ? ' <span class="tagg tagg-utkast">Utkast</span>' : ''}</a>
       <span class="under-text">${esc(tidpunkt(a.signerad?.tid ?? a.skapad))}, ${esc(a.enhet.namn)}, ${esc(a.forfattare?.namn ?? '')}</span>${migreradEtikett(a)}<p class="sammanfattning">${esc(a.sammanfattning)}</p></li>`).join('')}</ul>` : tomRad('Inga anteckningar som du kan se.'), `<a class="sektion-lank" href="${ctx.href('journal')}">Hela journalen</a>`));
@@ -119,6 +121,16 @@ function tidslinjeRad(t, ctx) {
 }
 
 export const nllChip = (s) => `<span class="nll nll-${esc(s)}">${esc(NLL[s] ?? s)}</span>`;
+
+// Runda 9, r7.
+function levnadsvanorHtml(d, ctx) {
+  const s = d.levnadsvanor.senaste;
+  const rek = (d.folkhalsa ?? []).map(f => `<p class="ruta ruta-info liten">${ikon.info}<span>${esc(f.text)}</span></p>`).join('');
+  const text = s ? `<p><a href="${ctx.href('journal', s.anteckningId)}">${esc(s.text)}</a></p><p class="under-text">Dokumenterat ${esc(datum(s.tid))}, ${esc(s.enhet?.namn ?? '')}</p>`
+    : tomRad('Alkohol, fysisk aktivitet och matvanor är inte dokumenterade.');
+  const knapp = pa('skriv_omvardnad') ? `<p class="knapprad tat"><a class="knapp liten sekundar" href="${ctx.href('journal', 'levnadsvanor')}" data-levnadsvanor-ny>${ikon.penna}<span>${s ? 'Uppdatera levnadsvanor' : 'Dokumentera levnadsvanor'}</span></a></p>` : '';
+  return rek + text + knapp;
+}
 
 // Runda 8, r5.
 function tobakHtml(t, ctx) {

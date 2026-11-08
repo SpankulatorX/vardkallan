@@ -39,10 +39,12 @@ const FILER = [
   '/js/oppet-api-forvaltning.js',
   '/js/mt-ui.js', '/js/vyer/iva.js',
   '/js/vyer/forbrukning.js',
+  '/js/levnadsvanor-regler.js', '/js/skanner.js', '/js/vyer/analys.js', '/js/vyer/forskning.js', '/js/vyer/signeringslista.js', '/js/vyer/patient-levnadsvanor.js',
 ];
 // Runda 9, r1: listan har förbrukningsartiklarna (vyer/forbrukning.js).
 // Runda 9, r2: listan har medicinteknisk utrustning i fliken Mätvärden och intensivvårdens vy (mt-ui.js och iva.js).
 // Runda 9, r6: listan har ändringsloggen, utvecklarna och förvaltningen av det öppna API:t (oppet-api-forvaltning.js).
+// Runda 9, r7: listan har levnadsvanorna, streckkodsläsaren, analysen och forskningsuttagen.
 // Runda 8, r3: listan har fri bokning, teambesök, gruppträffar och avdelningens planering.
 // Runda 8, r5: listan har mallen för tobaksvanor (tobak-regler.js och patient-tobak.js).
 // Runda 8, r2: remiss på uppdrag, fördelning, remisskonferens och pappersremiss (remiss-r8-ui.js).

@@ -168,6 +168,12 @@ for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].inde
 MENY.kardiologi = [...MENY.klinisk];
 MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård');
 for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].indexOf('Prover och kontroller') + 1, 0, 'Intensivvård');
+// Runda 9, r7: Analys och statistik för läkare, sjuksköterskor, vårdadministratörer och uppföljningen, och
+// Forskningsuttag för uppföljningen, arkivarien och verksamhetschefen, före Utbildning.
+for (const k of ['klinisk', 'sjukskoterska', 'vardadministrator', 'psykiatri', 'uppfoljning', 'bvc', 'fysioterapeut']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Analys och statistik');
+for (const k of ['uppfoljning', 'arkiv', 'verksamhetschef']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Forskningsuttag');
+// Runda 9, r7: läkarna och verksamhetschefen har vårdenhetens signeringslista.
+for (const k of ['klinisk', 'psykiatri', 'bvc', 'verksamhetschef']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Signeringslista');
 
 (async () => {
   const browser = await chromium.launch();
@@ -813,7 +819,7 @@ for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].inde
       await forvanta(page, '.ant-form h2', 'Ny anteckning');
       const mallar = await page.locator('select[name="typ"] option').allTextContents();
       // Runda 8, r5: sjuksköterskan skriver också tobaksvanor, som har kategorin omvårdnad.
-      if (JSON.stringify(mallar) !== JSON.stringify(['Omvårdnadsanteckning', 'Tobaksvanor'])) throw new Error(`mallar ${mallar}`);
+      if (JSON.stringify(mallar) !== JSON.stringify(['Omvårdnadsanteckning', 'Tobaksvanor', 'Levnadsvanor'])) throw new Error(`mallar ${mallar}`);
       await page.fill('textarea[data-sokord="Sömn"]', 'Sov hela natten.');
       await page.click('.ant-form [data-signera]');
       await forvanta(page, '.anteckning', 'Sov hela natten.');
@@ -1760,7 +1766,9 @@ for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].inde
         // Runda 9, r2: medicinteknisk utrustning och intensivvården.
         'koppla-monitor', 'godkanna-mt', 'iva-oversikt',
         // Runda 9, r1: förbrukningsartiklar.
-        'forbrukning-mall']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'forbrukning-mall',
+        // Runda 9, r7: streckkodsläsaren och patientgrupperna.
+        'skanna-armband', 'patientgrupp']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

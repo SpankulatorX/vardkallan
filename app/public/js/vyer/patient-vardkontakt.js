@@ -127,7 +127,9 @@ export function sektionHtml(d, ctx) {
       ${innehall ? `<span class="under-text">${esc(innehall)}</span>` : ''}
       ${sparning ? `<span class="under-text">${sparning}</span>` : ''}
       ${v.avgift ? `<span class="under-text">Patientavgift ${esc(kr(v.avgift.belopp))}. ${esc(v.avgift.text)}</span>` : ''}${migreradEtikett(v)}
-      ${v.kanAndras && v.status !== 'avslutad' ? `<span class="knapprad tat" data-skriv><button type="button" class="knapp text liten" data-vk="andra" data-id="${v.id}">Ändra</button><button type="button" class="knapp text liten" data-vk="avsluta" data-id="${v.id}">Avsluta kontakten</button></span>` : ''}
+      ${v.besokSlut ? `<span class="under-text">Besöket slutade ${esc(tidpunkt(v.besokSlut))}.</span>` : ''}
+      ${v.kanAndras && v.status !== 'avslutad' ? `<span class="knapprad tat" data-skriv><button type="button" class="knapp text liten" data-vk="andra" data-id="${v.id}">Ändra</button>${v.typ !== 'slutenvard' && !v.besokSlut ? `<button type="button" class="knapp text liten" data-vk="besok-slut" data-id="${v.id}">Besöket är slut</button>` : ''}<button type="button" class="knapp text liten" data-vk="avsluta" data-id="${v.id}">Avsluta kontakten</button></span>` : ''}
+      <span class="knapprad tat"><button type="button" class="knapp text liten" data-vk="handelser" data-id="${v.id}">Händelser och kringsystem</button></span>
     </li>`;
   }).join('')}</ul>` : '<p class="tom liten">Inga vårdkontakter som du kan se.</p>';
   delar.push(lista);
@@ -147,7 +149,7 @@ function vardtillfalleHtml(vt, ctx) {
     <details class="vt-historik"><summary>Vårdtillfällets händelser (${vt.handelser.length})</summary><ol>${vt.handelser.map(h => `<li><span class="vt-handelse">${esc(h.text)}</span> ${esc(tidpunkt(h.tid))}${h.plats ? `, ${esc(h.plats)}` : ''}${h.detalj ? `. ${esc(h.detalj)}` : ''}${h.av ? `. ${esc(h.av.namn)}` : ''}</li>`).join('')}</ol></details>
     ${kan ? `<div class="knapprad tat" data-skriv>
       ${vt.status === 'permission' ? '<button type="button" class="knapp liten sekundar" data-vk="ater">Åter från permission</button>' : '<button type="button" class="knapp liten sekundar" data-vk="flytta">Flytta</button><button type="button" class="knapp liten sekundar" data-vk="permission">Permission</button>'}
-      <button type="button" class="knapp liten sekundar" data-vk="skriv-ut">Skriv ut</button>${epikris}</div>` : epikris ? `<div class="knapprad tat" data-skriv>${epikris}</div>` : ''}
+      <button type="button" class="knapp liten sekundar" data-vk="skriv-ut">Skriv ut</button><button type="button" class="knapp liten sekundar" data-vk="hemsjukvard">Skriv ut till hemsjukvård</button><button type="button" class="knapp liten sekundar" data-vk="armband">Armband</button>${epikris}</div>` : epikris ? `<div class="knapprad tat" data-skriv>${epikris}</div>` : ''}
   </div>`;
 }
 
@@ -191,10 +193,38 @@ export function koppla(el, d, ctx, ladda) {
     if (handling === 'permission') return permission(vt, kor);
     if (handling === 'ater') return kor(() => api(`/api/vardtillfalle/${vt.id}/permission/avsluta`, { metod: 'POST', data: {} }), 'Patienten är åter från permission.');
     if (handling === 'skriv-ut') return skrivUt(vt, kor);
+    // Runda 9, r7: utskrivning till hemsjukvård, patientens armband, besökets sluttid och händelsekedjan.
+    if (handling === 'hemsjukvard') return kor(() => api(`/api/vardtillfalle/${vt.id}/overgang`, { metod: 'POST', data: { till: 'hemsjukvard' } }), (r) => r.text);
+    if (handling === 'armband') return armband(pid);
+    if (handling === 'besok-slut') return kor(() => api(`/api/vardkontakt/${b.dataset.id}/besok-slut`, { metod: 'POST', data: {} }), (r) => r.text);
+    if (handling === 'handelser') return handelser(b.dataset.id);
     const v = d.vardkontakter.find(x => String(x.id) === b.dataset.id);
     if (handling === 'andra' && v) return andra(v, kor);
     if (handling === 'avsluta' && v) return kor(() => api(`/api/vardkontakt/${v.id}/avsluta`, { metod: 'POST', data: {} }), 'Vårdkontakten är avslutad.');
   });
+}
+
+// Runda 9, r7: patientens armband med streckkod, och händelsekedjan med kringsystemen för en vårdkontakt.
+async function armband(pid) {
+  try {
+    const a = await api(`/api/patient/${pid}/armband`, { metod: 'POST', data: {} });
+    await dialog(`<div><h2 id="dlg-rubrik">Armband</h2><div class="armband-utskrift"><p><strong>${esc(a.patient.namn)}</strong><br>${esc(a.patient.personnummer)}</p>${a.svg}</div>
+      <p class="hjalp">Koden innehåller inga personuppgifter. Skanna armbandet för att öppna patienten eller kontrollera att ett rör eller en dos hör till rätt patient.</p>
+      <div class="knapprad"><button type="button" class="knapp" data-skriv-armband>Skriv ut</button><button type="button" class="knapp sekundar" data-varde="avbryt">Stäng</button></div></div>`,
+    { onOpen: (dl) => dl.querySelector('[data-skriv-armband]').addEventListener('click', () => window.print()) });
+  } catch (e) { felNotis(e); }
+}
+async function handelser(id) {
+  try {
+    const h = await api(`/api/vardkontakt/${id}/handelser`);
+    await dialog(`<div><h2 id="dlg-rubrik">Händelser i vårdkontakten</h2>
+      <p class="under-text">Process-id ${esc(h.vardkontakt.processId)}</p>
+      ${h.vardformer.length > 1 ? `<p>Vårdformer: ${h.vardformer.map(x => esc(x.dold ? x.vardformText : `${x.vardformText} ${datum(x.start)}${x.faktiskBesokstidMinuter != null ? `, ${x.faktiskBesokstidMinuter} minuter` : ''}`)).join(' till ')}</p>` : ''}
+      <div class="tabellrulle"><table class="tabell"><thead><tr><th scope="col">Tid</th><th scope="col">System</th><th scope="col">Händelse</th><th scope="col">Korrelations-id</th></tr></thead>
+      <tbody>${h.handelser.map(x => `<tr><td>${esc(tidpunkt(x.tid))}</td><td>${esc(x.system)}</td><td>${esc(x.handelse)}</td><td><code>${esc(x.korrelationId ?? '')}</code></td></tr>`).join('')}</tbody></table></div>
+      <p class="hjalp">${esc(h.anmarkning)}</p>
+      <div class="knapprad"><button type="button" class="knapp sekundar" data-varde="avbryt">Stäng</button></div></div>`);
+  } catch (e) { felNotis(e); }
 }
 
 async function registrera(s, pid, kor) {

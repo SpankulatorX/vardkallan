@@ -344,4 +344,13 @@ export const FLODEN = [
     id: 'forbrukning-mall', namn: 'Förskriva förbrukningsartiklar ur en mall', roll: 'lak-vc', start: 'Översikten för en patient med insulin', budget: 2,
     motivering: 'Sussa 3.5.4.2 och 3.5.4.4. Ett klick till läkemedelsfliken och ett på Förskriv mallen vid den mall som systemet föreslår ur läkemedelslistan. Systemet väljer pennkanyler, lansetter och kanylburk, tar bort teststickorna som redan är förskrivna, räknar mängden för tre månader ur antalet injektioner och skriver anvisningen, giltigheten och uppföljningen.',
   },
+  // Runda 9, r7: streckkodsläsaren och de färdiga patientgrupperna.
+  {
+    id: 'skanna-armband', namn: 'Öppna patienten genom att skanna armbandet', roll: 'ssk-kard', start: 'Arbetslistan efter inloggning', budget: 2,
+    motivering: 'Sussa 3.1.3.6. Fältet Skanna i toppraden tar emot läsaren: ett fältbyte och läsarens Enter. Systemet tolkar koden, prövar behörigheten och öppnar patienten. Utan fältet fångas en skanning också när fokus inte står i ett textfält, och då är det inget steg alls.',
+  },
+  {
+    id: 'patientgrupp', namn: 'Visa en färdig patientgrupp', roll: 'lak-vc', start: 'Arbetslistan efter inloggning', budget: 3,
+    motivering: 'Sussa 6.2.1.2. Ett klick på Analys och statistik och ett på Visa gruppen för den färdiga grupp som är förvald. Systemet skriver vad gruppen betyder och varför varje patient är med, och räknar bara på det som läkaren får se.',
+  },
 ];

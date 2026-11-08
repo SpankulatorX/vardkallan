@@ -252,6 +252,13 @@ describe('Åtgärder med KVÅ', () => {
       // Runda 9, r3: operationerna i demon.
       JKA21: 'Laparoskopisk kolecystektomi', JEA01: 'Laparoskopisk appendektomi', NFB49: 'Primär total höftledsplastik med cement',
       NGB49: 'Primär totalprotes i knäled med cement',
+      // Runda 9, r7: stödet vid alkohol, fysisk aktivitet och matvanor och skötseln av in- och utfarter, ordagrant ur
+      // E-hälsomyndighetens fil kva-inkl-beskrivningstexter-2026.xlsx.
+      DV121: 'Enkla råd om alkoholvanor', DV122: 'Rådgivande samtal om alkoholvanor', DV123: 'Kvalificerat rådgivande samtal om alkoholvanor',
+      DV131: 'Enkla råd om fysisk aktivitet', DV132: 'Rådgivande samtal om fysisk aktivitet', DV133: 'Kvalificerat rådgivande samtal om fysisk aktivitet',
+      DV141: 'Enkla råd om matvanor', DV142: 'Rådgivande samtal om matvanor', DV143: 'Kvalificerat rådgivande samtal om matvanor',
+      DV200: 'Utfärdande av recept på fysisk aktivitet (FaR)',
+      QD004: 'Skötsel av central venkateter', QD005: 'Skötsel av perifer venkateter', DK028: 'Skötsel av urinkateter', DV150: 'Skötsel av dränage', DV065: 'Sondmatning',
     });
     expect(SYSTEM.kva).toBe('urn:oid:1.2.752.116.1.3.2.1.4');
   });

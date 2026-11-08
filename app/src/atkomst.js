@@ -523,3 +523,26 @@ export function alder(fodd, idag) {
   const [ty, tm, td] = idag.split('-').map(Number);
   return ty - y - (tm < m || (tm === m && td < d) ? 1 : 0);
 }
+
+// Runda 9, r7: patientgruppering och folkhälsoinsatser (analys.js och folkhalsa.js, Sussa 6.2.1.2 och 6.2.2.1),
+// forskningsuttag (forskning.js, Sussa 6.3.3.1), in- och utfarter (infarter.js, Sussa 3.1.3.3), skannade restjournaler
+// (restjournal.js, Sussa 3.1.10.1) och signeringslistan (signering.js, Sussa 3.1.11.2). Läkare och sjuksköterskor
+// grupperar patienter som de har vårdrelation till på den egna vårdenheten, och analysen räknas bara på uppgifter som
+// de får se utan aktivt val. Uppföljningsrollen ser grupperna som antal för regionen (statistik_region). En beställning
+// av forskningsuttag registreras av uppföljningsrollen och godkänns av två andra personer: arkivarien, som gör
+// sekretessprövningen, och verksamhetschefen, som ansvarar för uppgifterna. Ingen av dem läser journalen. In- och
+// utfarter registreras av läkare och sjuksköterskor och läses med omvårdnadsanteckningarna. En restjournal skannas in
+// av vårdadministratören, läkaren eller sjuksköterskan och läses med journalen. Verksamhetschefen och läkaren ser
+// vårdenhetens osignerade poster utan patientuppgifter.
+Object.assign(HANDLINGAR, {
+  patientgrupp: 'gruppera patienter med vårdrelation på vårdenheten', forskning_bestall: 'registrera och lämna ut beställningar av forskningsuttag',
+  forskning_godkann: 'godkänna beställningar av forskningsuttag', infart: 'registrera och avveckla in- och utfarter',
+  restjournal: 'skanna in restjournaler', signeringslista: 'se vårdenhetens osignerade poster',
+});
+for (const r of ['lakare', 'sjukskoterska']) ROLLER[r].push('patientgrupp', 'infart', 'restjournal');
+ROLLER.vardadministrator.push('restjournal');
+ROLLER.uppfoljning.push('forskning_bestall');
+ROLLER.arkivarie.push('forskning_godkann');
+ROLLER.verksamhetschef.push('forskning_godkann', 'signeringslista');
+ROLLER.lakare.push('signeringslista');
+for (const h of ['patientgrupp', 'forskning_bestall', 'forskning_godkann', 'signeringslista']) UTAN_PATIENT.add(h);

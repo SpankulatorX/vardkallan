@@ -10,6 +10,10 @@ import { filtreraVisning, undantagnaUt, provare as undantagProvare } from './und
 import { namnVid } from './omorganisation.js';
 // Runda 8, r5: mallen för tobaks- och nikotinvanor med fasta svarsalternativ (tobak.js).
 import * as tobak from './tobak.js';
+// Runda 9, r7: mallen för levnadsvanorna alkohol, fysisk aktivitet och matvanor (levnadsvanor.js).
+import * as levnadsvanor from './levnadsvanor.js';
+// Runda 9, r7: signaturen med det simulerade SITHS-kortet (anteckningssignatur.js).
+import * as signering from './anteckningssignatur.js';
 
 // Mallar per anteckningstyp. Omvårdnadsanteckningen följer VIPS-sökorden.
 export const MALLAR = [
@@ -21,6 +25,8 @@ export const MALLAR = [
   { typ: 'Akutanteckning', kategori: 'lakare', sokord: ['Kontaktorsak', 'Prioritet', 'Anamnes', 'Status', 'Bedömning', 'Åtgärd'] },
   // Runda 8, r5: en strukturerad mall. Sökorden skriver systemet ur svaren (tobak.js), så de går inte att ändra.
   tobak.MALL,
+  // Runda 9, r7: en strukturerad mall på samma sätt som tobaksvanorna.
+  levnadsvanor.MALL,
 ];
 const MALL = Object.fromEntries(MALLAR.map(m => [m.typ, m]));
 
@@ -56,6 +62,8 @@ export function anteckningUt(db, a, { full = true } = {}) {
   if (full) ut.sokord = sokord;
   // Runda 8, r5: svaren i mallen för tobaksvanor lämnas ut tillsammans med anteckningen.
   if (full && a.typ === tobak.TYP) ut.tobak = tobak.ut(db, a.id);
+  // Runda 9, r7.
+  if (full && a.typ === levnadsvanor.TYP) ut.levnadsvanor = levnadsvanor.ut(db, a.id);
   if (!full) ut.sammanfattning = sokord.map(s => `${s.sokord}: ${s.text}`).join(' ').slice(0, 200);
   return ut;
 }
@@ -124,21 +132,24 @@ function valideraVardkontakt(db, patientId, vardkontaktId) {
   return vk.id;
 }
 
-export function skapaAnteckning(atk, { typ, vardkontaktId, sokord, tobak: tobakSvar }) {
+export function skapaAnteckning(atk, { typ, vardkontaktId, sokord, tobak: tobakSvar, levnadsvanor: lvSvar }) {
   const mall = MALL[typ];
   if (!mall) throw new Fel(400, 'Okänd anteckningstyp.', 'ogiltig', { falt: ['typ'] });
   atk.krav(skrivHandling(mall.kategori));
   // Runda 8, r5: i mallen för tobaksvanor skriver systemet sökorden ur svaren.
   const t = typ === tobak.TYP ? tobak.forbered(atk, tobakSvar) : null;
-  const s = t ? t.sokord : valideraSokord(sokord);
+  // Runda 9, r7: i mallen för levnadsvanor skriver systemet sökorden ur svaren.
+  const lv = typ === levnadsvanor.TYP ? levnadsvanor.forbered(atk, lvSvar) : null;
+  const s = t ? t.sokord : lv ? lv.sokord : valideraSokord(sokord);
   const vk = valideraVardkontakt(atk.db, atk.patientId, vardkontaktId);
   const r = atk.db.query(`INSERT INTO anteckningar (patient_id, enhet_id, vardkontakt_id, typ, kategori, sokord, forfattare_id, skapad, status)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'utkast')`).run(atk.patientId, atk.personal.enhet_id, vk, typ, mall.kategori, JSON.stringify(s), atk.personal.id, iso());
   if (t) tobak.spara(atk.db, Number(r.lastInsertRowid), t);
+  if (lv) levnadsvanor.spara(atk.db, Number(r.lastInsertRowid), lv);
   return anteckningUt(atk.db, hamtaAnteckningRad(atk.db, r.lastInsertRowid));
 }
 
-export function andraUtkast(atk, a, { sokord, vardkontaktId, tobak: tobakSvar }) {
+export function andraUtkast(atk, a, { sokord, vardkontaktId, tobak: tobakSvar, levnadsvanor: lvSvar }) {
   if (a.status === 'signerad') throw new Fel(400, 'En signerad anteckning kan inte ändras. Gör en rättelse i stället.', 'ogiltig');
   if (a.forfattare_id !== atk.personal.id) throw new Fel(403, 'Bara författaren kan ändra ett utkast.', 'nekad');
   atk.krav(skrivHandling(a.kategori));
@@ -146,7 +157,11 @@ export function andraUtkast(atk, a, { sokord, vardkontaktId, tobak: tobakSvar })
   const t = a.typ === tobak.TYP && tobakSvar !== undefined ? tobak.forbered(atk, tobakSvar) : null;
   if (a.typ === tobak.TYP && sokord !== undefined) throw new Fel(400, 'Texten i en anteckning om tobaksvanor skrivs av systemet ur svaren. Ändra svaren i stället.', 'ogiltig', { falt: ['sokord'] });
   if (t) tobak.spara(atk.db, a.id, t);
-  const s = t ? t.sokord : sokord === undefined ? JSON.parse(a.sokord) : valideraSokord(sokord);
+  // Runda 9, r7: ett utkast om levnadsvanor ändras med svaren, aldrig med sökorden.
+  const lv = a.typ === levnadsvanor.TYP && lvSvar !== undefined ? levnadsvanor.forbered(atk, lvSvar) : null;
+  if (a.typ === levnadsvanor.TYP && sokord !== undefined) throw new Fel(400, 'Texten i en anteckning om levnadsvanor skrivs av systemet ur svaren. Ändra svaren i stället.', 'ogiltig', { falt: ['sokord'] });
+  if (lv) levnadsvanor.spara(atk.db, a.id, lv);
+  const s = t ? t.sokord : lv ? lv.sokord : sokord === undefined ? JSON.parse(a.sokord) : valideraSokord(sokord);
   const vk = vardkontaktId === undefined ? a.vardkontakt_id : valideraVardkontakt(atk.db, atk.patientId, vardkontaktId);
   atk.db.query('UPDATE anteckningar SET sokord = ?, vardkontakt_id = ?, andrad = ? WHERE id = ?').run(JSON.stringify(s), vk, iso(), a.id);
   return anteckningUt(atk.db, hamtaAnteckningRad(atk.db, a.id));
@@ -162,12 +177,16 @@ export function signera(atk, a) {
     atk.db.query("UPDATE anteckningar SET status = 'signerad', signerad_tid = ?, signerad_av = ? WHERE id = ?").run(t, atk.personal.id, a.id);
     // Runda 8, r5: hölls samtalet om tobak vid besöket registreras åtgärden med KVÅ-koden.
     tobak.vidSignering(atk, a, t);
+    // Runda 9, r7: samtalen om levnadsvanor registreras som åtgärder med KVÅ-koden.
+    levnadsvanor.vidSignering(atk, a, t);
+    // Runda 9, r7: signaturen över innehållet.
+    signering.vidSignering(atk.db, a.id);
   })();
   return anteckningUt(atk.db, hamtaAnteckningRad(atk.db, a.id));
 }
 
 // Rättelse enligt HSLF-FS 2016:40 6 kap.: den signerade versionen står kvar och en ny version ersätter den.
-export function ratta(atk, a, { orsak, sokord, tobak: tobakSvar }) {
+export function ratta(atk, a, { orsak, sokord, tobak: tobakSvar, levnadsvanor: lvSvar }) {
   if (a.status !== 'signerad') throw new Fel(400, 'Bara signerade anteckningar rättas. Ett utkast ändras direkt.', 'ogiltig');
   if (ersattAv(atk.db, a.id) != null) throw new Fel(400, 'Anteckningen har redan rättats. Rätta den senaste versionen.', 'ogiltig');
   if (typeof orsak !== 'string' || orsak.trim().length < 3) throw new Fel(400, 'Ange orsak till rättelsen.', 'ogiltig', { falt: ['orsak'] });
@@ -177,12 +196,17 @@ export function ratta(atk, a, { orsak, sokord, tobak: tobakSvar }) {
   }
   // Runda 8, r5: en rättelse av tobaksvanorna görs med svaren, och den nya versionen får egna svar.
   const tb = a.typ === tobak.TYP ? tobak.forbered(atk, tobakSvar) : null;
-  const s = tb ? tb.sokord : valideraSokord(sokord);
+  // Runda 9, r7.
+  const lv = a.typ === levnadsvanor.TYP ? levnadsvanor.forbered(atk, lvSvar) : null;
+  const s = tb ? tb.sokord : lv ? lv.sokord : valideraSokord(sokord);
   const t = iso();
   const r = atk.db.query(`INSERT INTO anteckningar (patient_id, enhet_id, vardkontakt_id, typ, kategori, sokord, forfattare_id, skapad, status,
     signerad_tid, signerad_av, ersatter_id, rattelse_orsak, version, kalla) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'signerad', ?, ?, ?, ?, ?, 'vardkallan')`)
     .run(a.patient_id, a.enhet_id, a.vardkontakt_id, a.typ, a.kategori, JSON.stringify(s), atk.personal.id, t, t, atk.personal.id, a.id, orsak.trim(), a.version + 1);
   if (tb) tobak.spara(atk.db, Number(r.lastInsertRowid), tb);
+  if (lv) levnadsvanor.spara(atk.db, Number(r.lastInsertRowid), lv);
+  // Runda 9, r7: rättelsen signeras med en egen signatur.
+  signering.vidSignering(atk.db, Number(r.lastInsertRowid));
   const ny = hamtaAnteckningRad(atk.db, r.lastInsertRowid);
   const ut = anteckningUt(atk.db, ny);
   ut.versioner = versionskedja(atk.db, ny.id).map(v => anteckningUt(atk.db, v));

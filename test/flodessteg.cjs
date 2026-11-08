@@ -862,6 +862,19 @@ function skapa(BAS) {
     await synlig(page, '.notis', 'Insulin med penna är förskriven');
     await synlig(page, '.fb-sektion', 'Pennkanyler 4 mm');
   };
+  // Runda 9, r7: koden på armbandet hämtas utan att räknas, och skannas sedan i fältet Skanna.
+  GOR['skanna-armband'] = async (m, page) => {
+    const kod = await page.evaluate(() => fetch('/api/patient/p01/armband', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.json()).then(x => x.kod));
+    await m.skriv(page.locator('#skanna-falt'), kod, 'skanna armbandet');
+    await m.tangent('Enter', 'läsarens Enter');
+    await synlig(page, '.patientband h1', 'Gunnar Åkesson');
+  };
+  GOR['patientgrupp'] = async (m, page) => {
+    await m.klicka(page.locator('#meny a', { hasText: 'Analys och statistik' }), 'Analys och statistik');
+    await page.waitForSelector('[data-grupp]');
+    await m.klicka(page.locator('[data-grupp] [type="submit"]'), 'Visa gruppen');
+    await synlig(page, '[data-grupp-ut]', 'Birgitta');
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 

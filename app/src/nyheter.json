@@ -248,6 +248,79 @@
           "omfattning": "liten",
           "rubrik": "Klinisk läkemedelsprövning",
           "text": "En prövare inkluderar patienten i en studie under Läkemedel, och systemet registrerar uppmärksamhetsinformationen och varnar vid ordination utanför studien. Prövarens lista finns under Direktiv och uppföljning."
+        },
+        {
+          "id": "r9r7-skanning",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska",
+            "vardadministrator",
+            "fysioterapeut"
+          ],
+          "omfattning": "liten",
+          "var": "#/arbetslista",
+          "rubrik": "Skanna armband, rör och förpackningar",
+          "text": "Fältet Skanna högst upp tar emot en streckkodsläsare. Ett armband öppnar patienten, ett rör bockas av vid provtagningen, och en förpackning kontrolleras mot ordinationen och utgångsdatumet. Systemet stoppar ett rör eller en dos som hör till en annan patient."
+        },
+        {
+          "id": "r9r7-analys",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "vardadministrator",
+            "uppfoljning"
+          ],
+          "omfattning": "stor",
+          "var": "#/analys",
+          "rubrik": "Analys och statistik",
+          "text": "Sidan Analys och statistik har färdiga patientgrupper, till exempel diabetes med HbA1c över målnivån, statistik med tabell och diagram, och ledtiderna för remisser, prover och överföringar till NLL mot målen. Urval och resultat kan sparas och delas."
+        },
+        {
+          "id": "r9r7-levnadsvanor",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "fysioterapeut"
+          ],
+          "omfattning": "stor",
+          "var": "#/arbetslista",
+          "rubrik": "Levnadsvanor och folkhälsoinsatser",
+          "text": "Översikten visar Levnadsvanor. Svara på frågorna om alkohol, fysisk aktivitet och matvanor, så räknar systemet risken och föreslår stöd med KVÅ-kod. En folkhälsoinsats startas på sidan Analys och statistik och följer hur många i riskgruppen som har fått stöd."
+        },
+        {
+          "id": "r9r7-vardformer",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "vardadministrator"
+          ],
+          "omfattning": "liten",
+          "var": "#/arbetslista",
+          "rubrik": "Hemsjukvård, dagkirurgi och besökstid",
+          "text": "Ett vårdtillfälle kan skrivas ut till hemsjukvård i ett steg, i samma hälsoärende. Knappen Besöket är slut registrerar besökstiden utan att kontakten avslutas, och Händelser och kringsystem visar allt som hänt i kontakten, också provsvar och överföringar till NLL."
+        },
+        {
+          "id": "r9r7-forskning",
+          "roller": [
+            "uppfoljning",
+            "arkivarie",
+            "verksamhetschef"
+          ],
+          "omfattning": "stor",
+          "var": "#/forskning",
+          "rubrik": "Forskningsuttag",
+          "text": "Sidan Forskningsuttag hanterar beställningar av datauttag till forskare, med etikprövning, urval ur datauttaget och godkännande av arkivarien och verksamhetschefen. Varje utlämnande loggas med en kontrollsumma."
+        },
+        {
+          "id": "r9r7-datauttag",
+          "roller": [
+            "uppfoljning"
+          ],
+          "omfattning": "liten",
+          "var": "#/datauttag",
+          "rubrik": "Fler tabeller och kontrollregler i datauttaget",
+          "text": "Datauttaget har nu mätvärden, anteckningar utan text, vårdtillfällen och patientavgifter. Manifestet visar kontrollreglerna per tabell, och en veckas uppdateringar sparas så att ändringarna kan läsas sedan vilken av dem som helst."
         }
       ]
     },

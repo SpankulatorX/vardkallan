@@ -117,8 +117,13 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, versi
     kravRoll(c, 'datauttag');
     if (!datauttag.TYPER.includes(typ)) throw new Fel(404, 'Det finns ingen sådan tabell i datauttaget.', 'saknas');
     const andringar = c.url.searchParams.get('andringar') === '1';
-    const text = datauttag.ndjson(c.db, typ, { andringar });
-    loggUtanPatient(c, 'datauttag', 'uppfoljning', `datauttag:${typ}${andringar ? ':andringar' : ''}`);
+    // Runda 9, r7: ändringarna sedan en äldre sparad uppdatering (?sedan=id ur manifestets historik).
+    const sedanText = c.url.searchParams.get('sedan');
+    const sedan = sedanText && /^\d{1,9}$/.test(sedanText) ? Number(sedanText) : null;
+    if (sedanText && sedan == null) throw new Fel(400, 'Ange uppdateringens id ur manifestets historik.', 'ogiltig');
+    const text = datauttag.ndjson(c.db, typ, { andringar, sedan });
+    if (text == null) throw new Fel(404, 'Den uppdateringen sparas inte längre. Läs hela tabellen i stället.', 'saknas');
+    loggUtanPatient(c, 'datauttag', 'uppfoljning', `datauttag:${typ}${andringar ? ':andringar' : ''}${sedan != null ? `:sedan:${sedan}` : ''}`);
     return new Response(text, { status: 200, headers: { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store' } });
   });
 }

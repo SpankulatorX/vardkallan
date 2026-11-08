@@ -16,7 +16,9 @@ import { vardenhetFor, aktivaSparrar } from './atkomst.js';
 
 const TZ = 'Europe/Stockholm';
 export const UPPDATERAS_KLOCKAN = 2;
-const BEHALL = 2;
+// Runda 9, r7: en veckas uppdateringar sparas, så att den som har missat en uppdatering kan läsa ändringarna sedan den
+// uppdatering den senast läste (Sussa 6.3.1.5).
+export const BEHALL = 7;
 
 const datumI = (iso) => (iso ? new Date(iso).toLocaleDateString('sv-SE', { timeZone: TZ }) : null);
 const arAv = (fodd, datum) => {
@@ -40,9 +42,10 @@ export const SCHEMA = {
       aldersgrupp: 'Patientens ålder vid kontaktens början i femårsgrupper, 90- för 90 år och äldre.',
       kon: '"kvinna" eller "man".',
       vardenhet: 'Vårdenhetens HSA-id (påhittat i demon).', vardenhetNamn: 'Vårdenhetens namn.',
-      vardform: '"oppenvard", "akut" eller "slutenvard".', kontaktsatt: '"besok", "telefon", "video", "hembesok", eller tomt i slutenvård.',
+      vardform: '"oppenvard", "akut", "slutenvard", "hemsjukvard" eller "dagkirurgi".', kontaktsatt: '"besok", "telefon", "video", "hembesok", eller tomt i slutenvård.',
       startdatum: 'Datum i svensk tid.', slutdatum: 'Datum i svensk tid, eller tomt om kontakten pågår.',
       vardtidDagar: 'Antal vårddygn för slutenvård, annars tomt.', kalla: '"vardkallan", "migrerad:VAS" eller "migrerad:Cosmic".',
+      besoksMinuter: 'Den faktiska besökstiden i minuter, från ankomsten till att besöket slutade, eller tomt.',
     },
   },
   Diagnos: {
@@ -66,6 +69,39 @@ export const SCHEMA = {
       rad: 'Radens stabila nyckel.', franVardenhet: 'Remitterande vårdenhets HSA-id.', tillVardenhet: 'Mottagande vårdenhets HSA-id.',
       prioritet: '"akut", "skyndsam" eller "normal".', status: '"skickad", "mottagen", "bedomd", "besvarad" eller "svar_kvitterat".', beslut: '"accepterad", "avvisad" eller tomt.',
       skickadDatum: 'Datum.', dagarTillMottagen: 'Dagar från skickad till mottagningskvittens.', dagarTillSvar: 'Dagar från skickad till svar.',
+    },
+  },
+  // Runda 9, r7: mätvärden, anteckningar utan fritext, vårdtillfällen och patientavgifter (Sussa 6.3.1.3).
+  Matvarde: {
+    beskrivning: 'En rad per mätvärde och provsvar, utan kommentarer.',
+    falt: {
+      rad: 'Radens stabila nyckel.', patient: 'Patientens pseudonym.', aldersgrupp: 'Ålder vid mätningen i femårsgrupper.', kon: '"kvinna" eller "man".',
+      vardenhet: 'Vårdenhetens HSA-id.', vardkontakt: 'Vårdkontaktens radnyckel i tabellen med vårdkontakter, eller tomt.', typ: 'Mätvärdets typ, till exempel "blodtryck" eller "hba1c".',
+      varde: 'Värdet som tal, eller som text för blodtryck (systoliskt/diastoliskt) och medvetandegrad.', enhet: 'Måttenheten.', datum: 'Datum för mätningen.',
+    },
+  },
+  Anteckning: {
+    beskrivning: 'En rad per journalanteckning i den gällande versionen, utan text: bara typ, kategori, vårdenhet och tid.',
+    falt: {
+      rad: 'Radens stabila nyckel.', patient: 'Patientens pseudonym.', vardenhet: 'Vårdenhetens HSA-id.', vardkontakt: 'Vårdkontaktens radnyckel, eller tomt.',
+      typ: 'Anteckningstypen, till exempel "Daganteckning".', kategori: '"lakare" eller "omvardnad".', status: '"signerad" eller "utkast".', datum: 'Datum när anteckningen skrevs.',
+      signeradDatum: 'Datum för signeringen, eller tomt.', version: 'Versionsnumret. Över 1 betyder att anteckningen har rättats.', kalla: '"vardkallan", "migrerad:VAS" eller "migrerad:Cosmic".',
+    },
+  },
+  Vardtillfalle: {
+    beskrivning: 'En rad per vårdtillfälle i slutenvård, från inskrivning till utskrivning.',
+    falt: {
+      rad: 'Radens stabila nyckel.', patient: 'Patientens pseudonym.', aldersgrupp: 'Ålder vid inskrivningen i femårsgrupper.', kon: '"kvinna" eller "man".',
+      vardenhet: 'HSA-id för vårdenheten med det medicinska ansvaret.', inskrivenDatum: 'Datum för inskrivningen.', utskrivenDatum: 'Datum för utskrivningen, eller tomt om patienten är inskriven.',
+      vardtidDagar: 'Antal vårddygn, eller tomt om patienten är inskriven.', vistelser: 'Antal vistelser på avdelningar under vårdtillfället.',
+    },
+  },
+  Patientavgift: {
+    beskrivning: 'En rad per vårdkontakt i öppenvård, akut, hemsjukvård och dagkirurgi med om besöket är avgiftsbelagt enligt prislistan. Beloppet lämnas inte ut, eftersom det beror på högkostnadsskyddet och på om patienten har LMA-kort.',
+    falt: {
+      rad: 'Radens stabila nyckel.', patient: 'Patientens pseudonym.', vardenhet: 'Vårdenhetens HSA-id.', vardkontakt: 'Vårdkontaktens radnyckel.',
+      vardform: 'Vårdformen.', kontaktsatt: 'Kontaktsättet, eller tomt.', datum: 'Kontaktens datum.',
+      avgiftsbelagd: 'Sant när besöket har en avgift i prislistan för patientens ålder och kontaktsättet, utan hänsyn till högkostnadsskydd och LMA-kort.',
     },
   },
 };
@@ -99,8 +135,10 @@ export function nastaUppdatering(t) {
 }
 
 // Bygger raderna ur databasen. Spärrade uppgifter och patienter med skyddade personuppgifter kommer inte med.
-export function bygg(db) {
-  const k = nyckel(db);
+// Runda 9, r7: ett forskningsuttag (forskning.js) bygger samma rader med en egen nyckel per beställning, så att
+// pseudonymerna inte går att koppla till uppföljningens eller till en annan studies.
+export function bygg(db, { pseudonymnyckel = null } = {}) {
+  const k = pseudonymnyckel ?? nyckel(db);
   const hsa = new Map(db.query('SELECT id, hsa_id, namn FROM enheter').all().map(e => [e.id, e]));
   const ve = (id) => hsa.get(vardenhetFor(db, id));
   const patienter = new Map(db.query('SELECT id, fodd, kon, skyddad, sammanslagen_till FROM patienter').all().map(p => [p.id, p]));
@@ -130,6 +168,7 @@ export function bygg(db) {
       rad: pseudonym(k, `vardkontakt:${v.id}`), ...person(p, start), vardenhet: e?.hsa_id ?? null, vardenhetNamn: e?.namn ?? null,
       vardform: v.typ, kontaktsatt: v.kontaktsatt ?? null, startdatum: start, slutdatum: slut,
       vardtidDagar: v.typ === 'slutenvard' && v.slut ? Math.max(1, Math.round((Date.parse(v.slut) - Date.parse(v.start)) / 86400_000)) : null, kalla: v.kalla,
+      besoksMinuter: v.besok_slut ? Math.max(0, Math.round((Date.parse(v.besok_slut) - Date.parse(v.ankomst ?? v.start)) / 60_000)) : null,
     });
   }
   for (const d of db.query('SELECT * FROM diagnoser ORDER BY id').all()) {
@@ -153,7 +192,89 @@ export function bygg(db) {
       dagarTillMottagen: dagar(r.skickad_tid, r.mottagen_tid), dagarTillSvar: dagar(r.skickad_tid, r.besvarad_tid),
     });
   }
+  // Runda 9, r7: mätvärden, anteckningar, vårdtillfällen och patientavgifter, med samma regler som de andra tabellerna.
+  const vk = (id) => (id ? pseudonym(k, `vardkontakt:${id}`) : null);
+  for (const m of db.query('SELECT * FROM matvarden ORDER BY id').all()) {
+    const p = far(m.patient_id, m.enhet_id);
+    if (!p) continue;
+    const d = datumI(m.tid);
+    data.Matvarde.push({ rad: pseudonym(k, `matvarde:${m.id}`), ...person(p, d), vardenhet: ve(m.enhet_id)?.hsa_id ?? null, vardkontakt: vk(m.vardkontakt_id), typ: m.typ, varde: m.varde_num ?? m.varde, enhet: m.matt_enhet || null, datum: d });
+  }
+  for (const a of db.query('SELECT * FROM anteckningar WHERE id NOT IN (SELECT ersatter_id FROM anteckningar WHERE ersatter_id IS NOT NULL) ORDER BY id').all()) {
+    const p = far(a.patient_id, a.enhet_id);
+    if (!p) continue;
+    data.Anteckning.push({ rad: pseudonym(k, `anteckning:${a.id}`), patient: pseudonym(k, `patient:${p.id}`), vardenhet: ve(a.enhet_id)?.hsa_id ?? null, vardkontakt: vk(a.vardkontakt_id),
+      typ: a.typ, kategori: a.kategori, status: a.status, datum: datumI(a.skapad), signeradDatum: datumI(a.signerad_tid), version: a.version, kalla: a.kalla });
+  }
+  for (const t of db.query('SELECT * FROM vardtillfallen ORDER BY id').all()) {
+    const p = far(t.patient_id, t.enhet_id);
+    if (!p) continue;
+    const vistelser = db.query("SELECT enhet_id FROM vardkontakter WHERE vardtillfalle_id = ? AND typ = 'slutenvard'").all(t.id);
+    if (vistelser.some(x => sparrad(t.patient_id, x.enhet_id))) { utelamnat.sparrade++; continue; }
+    const inn = datumI(t.inskriven);
+    data.Vardtillfalle.push({ rad: pseudonym(k, `vardtillfalle:${t.id}`), ...person(p, inn), vardenhet: ve(t.enhet_id)?.hsa_id ?? null, inskrivenDatum: inn, utskrivenDatum: datumI(t.utskriven),
+      vardtidDagar: t.utskriven ? Math.max(1, Math.round((Date.parse(t.utskriven) - Date.parse(t.inskriven)) / 86400_000)) : null, vistelser: vistelser.length });
+  }
+  // Patientavgiften: bara om besöket är avgiftsbelagt enligt prislistan för patientens ålder och kontaktsättet. Beloppet
+  // lämnas inte ut, eftersom det beror på högkostnadsskyddet (som kan röja kontakter på en spärrad vårdenhet) och på om
+  // patienten har LMA-kort (som röjer att patienten är asylsökande).
+  const { AVGIFT_DEMO } = require('./vardkontakt.js');
+  for (const v of db.query("SELECT * FROM vardkontakter WHERE kalla = 'vardkallan' AND typ <> 'slutenvard' ORDER BY id").all()) {
+    const p = far(v.patient_id, v.enhet_id);
+    if (!p) continue;
+    const d = datumI(v.start);
+    const ar = arAv(p.fodd, d);
+    const pris = v.typ === 'akut' ? AVGIFT_DEMO.akut : AVGIFT_DEMO[v.kontaktsatt ?? 'besok'] ?? AVGIFT_DEMO.besok;
+    data.Patientavgift.push({ rad: pseudonym(k, `avgift:${v.id}`), patient: pseudonym(k, `patient:${p.id}`), vardenhet: ve(v.enhet_id)?.hsa_id ?? null, vardkontakt: vk(v.id),
+      vardform: v.typ, kontaktsatt: v.kontaktsatt ?? null, datum: d, avgiftsbelagd: ar >= AVGIFT_DEMO.friUnder && ar < AVGIFT_DEMO.friFran && pris > 0 });
+  }
   return { data, utelamnat };
+}
+
+// Kvalitetssäkring av uttaget (Sussa 6.3.1.5): kontrollregler per rad, på samma sätt som rapporterna till myndigheter
+// kontrolleras före sändning (myndighetsrapport.js). En rad som inte klarar en regel kommer ändå med, men räknas och
+// pekas ut med sin radnyckel i manifestet, så att mottagaren kan välja att lägga den åt sidan.
+const DATUMFORMAT = /^\d{4}-\d{2}-\d{2}$/;
+export const KVALITETSREGLER = {
+  obligatoriska: 'Obligatoriska fält har ett värde.',
+  koder: 'Koderna är giltiga: ICD-10-SE för diagnoser, ATC för läkemedel och kända typer för mätvärden och vårdformer.',
+  datum: 'Datumen är giltiga och står i ordning: början före slut, inskrivning före utskrivning och skrivning före signering.',
+  referenser: 'En hänvisning till en vårdkontakt pekar på en rad i tabellen med vårdkontakter.',
+};
+const OBLIGATORISKA = {
+  Vardkontakt: ['rad', 'patient', 'vardenhet', 'vardform', 'startdatum'], Diagnos: ['rad', 'patient', 'vardenhet', 'kod', 'datum'], Ordination: ['rad', 'patient', 'vardenhet', 'atc', 'startdatum', 'status'],
+  Remiss: ['rad', 'franVardenhet', 'tillVardenhet', 'prioritet', 'status', 'skickadDatum'], Matvarde: ['rad', 'patient', 'vardenhet', 'typ', 'varde', 'datum'],
+  Anteckning: ['rad', 'patient', 'vardenhet', 'typ', 'kategori', 'status', 'datum'], Vardtillfalle: ['rad', 'patient', 'vardenhet', 'inskrivenDatum'], Patientavgift: ['rad', 'patient', 'vardenhet', 'vardkontakt', 'datum'],
+};
+const KANDA_VARDFORMER = ['oppenvard', 'akut', 'slutenvard', 'hemsjukvard', 'dagkirurgi'];
+// Koderna som kontrolleras per tabell.
+const KODREGEL = {
+  Diagnos: (r) => !r.kod || /^[A-Z]\d{2}(\.\d{1,2})?$/.test(r.kod),
+  Ordination: (r) => !r.atc || /^[A-Z]\d{2}[A-Z]{0,2}\d{0,2}$/.test(r.atc),
+  Matvarde: (r, mattyper) => Object.hasOwn(mattyper, r.typ),
+  Vardkontakt: (r) => KANDA_VARDFORMER.includes(r.vardform),
+  Patientavgift: (r) => KANDA_VARDFORMER.includes(r.vardform),
+};
+export function kvalitet(data) {
+  const vardkontakter = new Set((data[TYPER[0]] ?? []).map(r => r.rad));
+  const { MATTYPER } = require('./journal.js');
+  const ut = {};
+  for (const t of TYPER) {
+    const avvikelser = Object.fromEntries(Object.keys(KVALITETSREGLER).map(r => [r, []]));
+    for (const r of data[t] ?? []) {
+      if (OBLIGATORISKA[t].some(f => r[f] == null || r[f] === '')) avvikelser.obligatoriska.push(r.rad);
+      const felKod = Object.hasOwn(KODREGEL, t) && !KODREGEL[t](r, MATTYPER);
+      if (felKod) avvikelser.koder.push(r.rad);
+      const datum = Object.entries(r).filter(([f, v]) => /[dD]atum$/.test(f) && v != null);
+      const fore = (a, b) => r[a] && r[b] && r[a] > r[b];
+      if (datum.some(([, v]) => !DATUMFORMAT.test(v) || Number.isNaN(Date.parse(v))) || fore('startdatum', 'slutdatum') || fore('inskrivenDatum', 'utskrivenDatum') || fore('datum', 'signeradDatum')) avvikelser.datum.push(r.rad);
+      if (Object.hasOwn(r, 'vardkontakt') && r.vardkontakt && !vardkontakter.has(r.vardkontakt)) avvikelser.referenser.push(r.rad);
+    }
+    const felaktiga = new Set(Object.values(avvikelser).flat());
+    ut[t] = { kontrollerade: (data[t] ?? []).length, godkanda: (data[t] ?? []).length - felaktiga.size,
+      avvikelser: Object.fromEntries(Object.entries(avvikelser).map(([r, l]) => [r, { antal: l.length, rader: l.slice(0, 20) }])) };
+  }
+  return ut;
 }
 
 // Skillnaden mot föregående uppdatering per tabell: nya, ändrade och borttagna rader.
@@ -180,6 +301,11 @@ export function uppdatera(db, nu = new Date()) {
     .run(nu.toISOString(), JSON.stringify(data), JSON.stringify(antal), JSON.stringify(andringar), JSON.stringify(utelamnat));
   db.query('DELETE FROM datauttag WHERE id NOT IN (SELECT id FROM datauttag ORDER BY id DESC LIMIT ?)').run(BEHALL);
   return senaste(db);
+}
+
+// Runda 9, r7: de sparade uppdateringarna, nyast först, utan data.
+export function historik(db) {
+  return db.query('SELECT id, tid, antal FROM datauttag ORDER BY id DESC').all().map(r => ({ id: r.id, tid: r.tid, antal: JSON.parse(r.antal) }));
 }
 
 export function senaste(db) {
@@ -215,14 +341,27 @@ export function manifest(db, base) {
       text: 'Uppgifter från en vårdenhet som patienten har spärrat, och alla uppgifter om patienter med skyddade personuppgifter, finns inte i uttaget. Antalet utelämnade rader står här, men inte vilka.',
     },
     dokumentation: `${base}/api/datauttag/schema`, error: [],
+    // Runda 9, r7: kontrollreglerna per rad och de sparade uppdateringarna.
+    kvalitet: { regler: KVALITETSREGLER, tabeller: kvalitet(s.data) },
+    historik: historik(db).map(h => ({ ...h, url: `${base}/api/datauttag/{typ}?sedan=${h.id}` })),
   };
 }
 
 // Raderna i en tabell som NDJSON. Med andringar: bara det som är nytt eller ändrat sedan föregående uppdatering, och de
 // borttagna raderna med bara sin nyckel. Varje rad får då fältet _andring.
-export function ndjson(db, typ, { andringar = false, nu = new Date() } = {}) {
+export function ndjson(db, typ, { andringar = false, sedan = null, nu = new Date() } = {}) {
   const s = uppdateraOmDags(db, nu);
   const rader = s.data[typ];
+  // Runda 9, r7: ändringarna sedan en äldre sparad uppdatering än den föregående.
+  if (sedan != null) {
+    const forr = db.query('SELECT data FROM datauttag WHERE id = ?').get(Number(sedan));
+    if (!forr) return null;
+    const d = skillnad(JSON.parse(forr.data), s.data)[typ];
+    const ny = new Set(d.ny);
+    const andrad = new Set(d.andrad);
+    const ut = [...rader.filter(r => ny.has(r.rad)).map(r => ({ ...r, _andring: 'ny' })), ...rader.filter(r => andrad.has(r.rad)).map(r => ({ ...r, _andring: 'andrad' })), ...d.borttagen.map(rad => ({ rad, _andring: 'borttagen' }))];
+    return ut.map(r => JSON.stringify(r)).join('\n') + (ut.length ? '\n' : '');
+  }
   if (!andringar) return rader.map(r => JSON.stringify(r)).join('\n') + (rader.length ? '\n' : '');
   const a = s.andringar[typ];
   const ny = new Set(a.ny);
