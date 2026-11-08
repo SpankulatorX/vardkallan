@@ -429,6 +429,66 @@ describe('Ekonomi: kostnader i vårdprocessen', () => {
   });
 });
 
+describe('Ekonomi: skydd i underlaget och högkostnadsskyddet', () => {
+  // Barnet Leo Bergström (p09) har en vårdkontakt i dag på kardiologiska mottagningen, och vårdnadshavaren är
+  // Johanna Bergström (inv-vh01).
+  const VARDNADSHAVARE = ['Johanna', '19861214-2383', '198612142383'];
+  const BARNETS_ADRESS = ['Lövstagatan', '702 13'];
+  const underlag = (d) => ekonomi.exportera(d, personal(d, 'eko'), { vardenhet: 'uso-kard', fran: addDagar(idag(), -1), till: idag(), format: 'json' }).text;
+  const underlagCsv = (d) => ekonomi.exportera(d, personal(d, 'eko'), { vardenhet: 'uso-kard', fran: addDagar(idag(), -1), till: idag(), format: 'csv' }).text;
+
+  test('ett barn med skyddade personuppgifter: varken vårdnadshavarens namn och identitet eller adressen finns i underlaget', () => {
+    const d = byggSeed();
+    expect(underlag(d)).toContain('Johanna Bergström');
+    d.query("UPDATE patienter SET skyddad = 1 WHERE id = 'p09'").run();
+    for (const text of [underlag(d), underlagCsv(d)]) {
+      for (const s of [...VARDNADSHAVARE, ...BARNETS_ADRESS, 'Leo']) expect(text).not.toContain(s);
+      expect(text).toContain('Skatteverket');
+    }
+    const r = JSON.parse(underlag(d)).poster.find(x => x.patient.id === 'p09' && x.typ === 'patientavgift');
+    expect(r.betalare).toMatchObject({ typ: 'vardnadshavare', namn: null, identitet: null, skyddad: true });
+  });
+
+  test('en vårdnadshavare med skyddade personuppgifter: namn, identitet och barnets adress lämnas inte ut', () => {
+    const d = byggSeed();
+    // Vårdnadshavaren har en egen journal med skyddade personuppgifter. Skyddet följer personen, inte barnet.
+    d.query("INSERT INTO patienter (id, personnummer, fornamn, efternamn, kon, fodd, skyddad) VALUES ('pvh', '198612142383', 'Johanna', 'Bergström', 'kvinna', '1986-12-14', 1)").run();
+    d.query("UPDATE invanare SET patient_id = 'pvh' WHERE id = 'inv-vh01'").run();
+    for (const text of [underlag(d), underlagCsv(d)]) {
+      for (const s of [...VARDNADSHAVARE, ...BARNETS_ADRESS]) expect(text).not.toContain(s);
+      expect(text).toContain('Skatteverket');
+    }
+    const r = JSON.parse(underlag(d)).poster.find(x => x.patient.id === 'p09' && x.typ === 'patientavgift');
+    expect(r.betalare).toMatchObject({ typ: 'vardnadshavare', namn: null, identitet: null, skyddad: true });
+    expect(r.patient).toMatchObject({ adress: null, postnr: null, ort: null });
+  });
+
+  test('högkostnadsskyddet räknas bara på de kontakter användaren får se: en spärrad enhet utan och med samtycke', () => {
+    const d = byggSeed();
+    // Elin Sandberg (p04) spärrar psykiatrin. Ett besök där för 30 dagar sedan får inte synas i beloppen utan samtycke.
+    const t = new Date(Date.now() - 30 * 86400_000).toISOString();
+    d.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, slut, plats, orsak, kalla, kontaktsatt) VALUES ('p04', 'uso-psyk', 'oppenvard', ?, ?, 'Mottagning', 'Samtal', 'vardkallan', 'besok')")
+      .run(t, new Date(Date.parse(t) + 1800_000).toISOString());
+    const utan = ekonomi.kostnader(atk(d, 'lak-kard', 'p04', {}, 'las_kostnader'), {});
+    const med = ekonomi.kostnader(atk(d, 'lak-kard', 'p04', { samtycke_sparr: true }, 'las_kostnader'), {});
+    expect(med.hogkostnadsskydd.betalt - utan.hogkostnadsskydd.betalt).toBe(200);
+    expect(utan.hogkostnadsskydd.betalt + utan.hogkostnadsskydd.kvar).toBe(1450);
+    // Inte heller texten eller något annat i svaret röjer besöket.
+    for (const s of ['psyk', 'Samtal']) expect(JSON.stringify(utan)).not.toContain(s);
+    expect(utan.hogkostnadsskydd.text).not.toContain(`${med.hogkostnadsskydd.betalt} kr av`);
+    expect(utan.hogkostnadsskydd.text).toContain(`${utan.hogkostnadsskydd.betalt} kr av`);
+    // Inre sekretess utan spärr: en annan vårdenhets besök räknas först efter aktivt val.
+    const d2 = byggSeed();
+    d2.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, slut, plats, orsak, kalla, kontaktsatt) VALUES ('p01', 'uso-ort', 'oppenvard', ?, ?, 'Mottagning', 'Knä', 'vardkallan', 'besok')")
+      .run(t, new Date(Date.parse(t) + 1800_000).toISOString());
+    const a = ekonomi.kostnader(atk(d2, 'lak-kard', 'p01', {}, 'las_kostnader'), {}).hogkostnadsskydd;
+    const b = ekonomi.kostnader(atk(d2, 'lak-kard', 'p01', { andra_enheter: true }, 'las_kostnader'), {}).hogkostnadsskydd;
+    expect(b.betalt).toBeGreaterThanOrEqual(a.betalt);
+    // Patient 1 är 81 år och betalar inget, så beloppet är detsamma. Ett frikort röjs inte av ett dolt besök.
+    expect(a.frikort).toBe(false);
+  });
+});
+
 describe('Ekonomi: sandlådor och roller', () => {
   test('en sandlåda från före runda 7 får tabellerna, prislistorna och ekonomen', () => {
     const d = byggSeed();

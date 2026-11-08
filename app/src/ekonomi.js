@@ -151,22 +151,33 @@ export function vardbetalare(db, patient, datum) {
     text: 'Patienten är folkbokförd i länet. Ingen faktura skickas, och raden är underlag för kostnadsredovisning och uppföljning.' };
 }
 
+// Vårdnadshavaren för ett barn, och om skyddade personuppgifter gäller. Invånaren har ingen egen skyddsflagga, så
+// skyddet hämtas ur vårdnadshavarens egen journal (samma person, kopplad eller med samma personnummer). Är barnet eller
+// någon vårdnadshavare skyddad lämnas varken namn, identitet eller adress ut, eftersom de pekar ut hushållet.
+function vardnadshavareFor(db, barn) {
+  const alla = finns(db, 'vardnadshavare') ? db.query('SELECT i.* FROM vardnadshavare v JOIN invanare i ON i.id = v.invanare_id WHERE v.barn_id = ? ORDER BY i.id').all(barn.id) : [];
+  const skyddadPerson = (i) => Boolean(db.query('SELECT 1 FROM patienter WHERE skyddad = 1 AND (id = ? OR personnummer = ?)').get(i.patient_id ?? '', i.personnummer));
+  return { vh: alla[0] ?? null, skyddad: Boolean(barn.skyddad) || alla.some(skyddadPerson) };
+}
+const minderarig = (patient, datum) => (patient.id_typ ?? 'personnummer') !== 'reservnummer' && alder(patient.fodd, datum) < 18;
+
 // Vem som betalar patientavgiften: patienten, eller vårdnadshavaren för ett barn under 18 år.
 export function avgiftsbetalare(db, patient, datum) {
   const typ = patient.id_typ ?? 'personnummer';
   if (typ === 'reservnummer') return { typ: 'okand_identitet', namn: null, identitet: null, vantar: true, text: 'Patienten har reservnummer. Avgiften faktureras när identiteten är fastställd.' };
   if (alder(patient.fodd, datum) < 18) {
-    if (patient.skyddad) return { typ: 'vardnadshavare', namn: null, identitet: null, skyddad: true, text: 'Vårdnadshavare för ett barn med skyddade personuppgifter. Fakturan går genom Skatteverket, och varken namn eller adress lämnas ut. Simulerat i demon.' };
-    const vh = finns(db, 'vardnadshavare') ? db.query('SELECT i.* FROM vardnadshavare v JOIN invanare i ON i.id = v.invanare_id WHERE v.barn_id = ? ORDER BY i.id').get(patient.id) : null;
+    const { vh, skyddad } = vardnadshavareFor(db, patient);
+    if (skyddad) return { typ: 'vardnadshavare', namn: null, identitet: null, skyddad: true, text: 'Vårdnadshavare där barnet eller vårdnadshavaren har skyddade personuppgifter. Fakturan går genom Skatteverkets förmedling, och varken namn, identitet eller adress lämnas ut. Simulerat i demon.' };
     if (vh) return { typ: 'vardnadshavare', namn: `${vh.fornamn} ${vh.efternamn}`, identitet: formatera('personnummer', vh.personnummer), text: 'Patienten är under 18 år, så vårdnadshavaren betalar avgiften.' };
     return { typ: 'vardnadshavare', namn: null, identitet: null, vantar: true, text: 'Patienten är under 18 år. Vårdnadshavaren hämtas ur folkbokföringen, som inte finns i demon.' };
   }
   return { typ: 'patient', namn: patient.skyddad ? null : `${patient.fornamn} ${patient.efternamn}`, identitet: identitetText(patient), skyddad: Boolean(patient.skyddad), text: 'Patienten betalar avgiften själv.' };
 }
 
-// Patienten i underlaget. Namn och adress lämnas aldrig ut för en patient med skyddade personuppgifter.
-function patientDel(p) {
-  const skydd = Boolean(p.skyddad);
+// Patienten i underlaget. Namn och adress lämnas aldrig ut för en patient med skyddade personuppgifter, och inte heller
+// barnets adress när en vårdnadshavare är skyddad (hushallSkyddat).
+function patientDel(p, hushallSkyddat = false) {
+  const skydd = Boolean(p.skyddad) || hushallSkyddat;
   return {
     id: p.id, identitet: identitetText(p), identitetstyp: p.id_typ ?? 'personnummer', skyddad: skydd,
     namn: skydd ? null : `${p.fornamn} ${p.efternamn}`, adress: skydd ? null : p.adress ?? null, postnr: skydd ? null : p.postnr ?? null, ort: skydd ? null : p.ort ?? null,
@@ -268,6 +279,7 @@ function sammanhang(db, nu) {
     fb: (vt) => minne(`fb|${vt.id}`, () => fardigbehandlad(db, vt, { nu })),
     vard: (p, datum) => minne(`vb|${p.id}|${datum}`, () => vardbetalare(db, p, datum)),
     avg: (p, datum) => minne(`ab|${p.id}|${datum}`, () => avgiftsbetalare(db, p, datum)),
+    hushall: (p, datum) => minne(`hh|${p.id}|${datum}`, () => minderarig(p, datum) && vardnadshavareFor(db, p).skyddad),
     enhet: (id) => minne(`e|${id}`, () => { const e = enhetRad(db, vardenhetFor(db, id)); return e ? { id: e.id, hsaId: e.hsa_id, namn: e.namn } : null; }),
   };
 }
@@ -300,7 +312,7 @@ function post(c, { id, typ, tid, enhetId, kontakt = null, kod, text: t, antal = 
     kalla, kod, text: t, antal, aPris, belopp: aPris * antal,
     prislista: prislista ? { version: prislista.version, giltigFran: prislista.giltig_fran } : null,
     betalare: b, debiteras, ingarI: iVt && b.debiteras ? 'drg' : null,
-    status: b.vantar ? 'vantar' : debiteras ? 'faktureras' : 'intern', patient: patientDel(p), demo: true, ...extra,
+    status: b.vantar ? 'vantar' : debiteras ? 'faktureras' : 'intern', patient: patientDel(p, c.hushall(p, datum)), demo: true, ...extra,
   };
 }
 
@@ -616,8 +628,8 @@ const summera = (rader) => {
 
 function hogkostnadText(h) {
   if (h.lma) return { ...h, text: 'Patienten är asylsökande med LMA-kort och betalar den lägre avgiften. Högkostnadsskyddet gäller inte i demon.' };
-  if (h.frikort) return { ...h, text: `Patienten har frikort: ${h.grans} kr är betalt inom högkostnadsskyddet de senaste tolv månaderna, och öppenvården är avgiftsfri.` };
-  return { ...h, text: `Patienten har betalat ${h.betalt} kr av ${h.grans} kr inom högkostnadsskyddet de senaste tolv månaderna. ${h.kvar} kr återstår till frikort.` };
+  if (h.frikort) return { ...h, text: `Patienten har frikort: ${h.grans} kr är betalt inom högkostnadsskyddet de senaste tolv månaderna, räknat på de besök du har behörighet till.` };
+  return { ...h, text: `Patienten har betalat ${h.betalt} kr av ${h.grans} kr inom högkostnadsskyddet de senaste tolv månaderna, räknat på de besök du har behörighet till. ${h.kvar} kr återstår till frikort.` };
 }
 
 // Kostnadsrutan för ett vårdtillfälle eller en vårdkontakt. Utan val visas det pågående vårdtillfället, annars dagens
@@ -662,7 +674,8 @@ export function kostnader(atk, q = {}, nu = Date.now()) {
       synliga = [mal];
     }
   }
-  const hog = hogkostnadText(hogkostnadsskyddet(db, p, nu));
+  // Bara de kontakter användaren får se räknas, så att beloppet inte röjer ett besök på en spärrad eller annan vårdenhet.
+  const hog = hogkostnadText(hogkostnadsskyddet(db, p, nu, { synliga: (rader) => atk.filtrera(rader, 'las_admin') }));
   if (!typ) {
     atk.logga('las_kostnader', atk.grund(), 'kostnader:ingen');
     return { aktuell: null, hogkostnadsskydd: hog, demo: full ? DEMO : DEMO_AVGIFT };
@@ -679,7 +692,11 @@ export function kostnader(atk, q = {}, nu = Date.now()) {
     return true;
   };
   const rader = alla.filter(syns);
-  const avgifter = rader.filter(r => r.typ === 'patientavgift').map(r => ({ datum: r.datum, text: r.text, belopp: r.belopp, status: r.status, statusText: r.statusText ?? STATUS[r.status] }));
+  // Avgiften räknas på alla patientens besök, så skälet till en avgiftsfri kontakt (frikort) visas inte här, eftersom det
+  // kan bero på besök som användaren inte får se.
+  const avgifter = rader.filter(r => r.typ === 'patientavgift').map(r => (r.status === 'frikort' || r.status === 'avgiftsfri'
+    ? { datum: r.datum, text: 'Patientavgift.', belopp: 0, status: 'avgiftsfri', statusText: 'Ingen avgift.' }
+    : { datum: r.datum, text: r.text, belopp: r.belopp, status: r.status, statusText: r.statusText ?? STATUS[r.status] }));
   const sedan = synliga.reduce((m, v) => (v.start < m ? v.start : m), synliga[0].start);
   const ut = { typ, id: mal.id, sedan, pagar: typ === 'vardtillfalle' ? !mal.utskriven : !mal.slut, patientavgifter: avgifter, demo: full ? DEMO : DEMO_AVGIFT };
   if (full) {

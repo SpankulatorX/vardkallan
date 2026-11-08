@@ -346,16 +346,16 @@ export function avgiftFor(db, patient, v) {
 }
 
 // Runda 7, r3: högkostnadsskyddet för patienten i dag, med samma räkning som avgiften: hur mycket som har betalats inom
-// skyddet de senaste tolv månaderna och hur mycket som återstår till frikort. Räknas över alla vårdenheter, eftersom
-// skyddet gäller patienten och inte en vårdenhet, men talar inte om var eller när avgifterna betalades (ekonomi.js).
-export function hogkostnadsskyddet(db, patient, nu = Date.now()) {
+// skyddet de senaste tolv månaderna och hur mycket som återstår till frikort. synliga filtrerar kontakterna på det
+// anroparen får se (inre sekretess och spärr), så att beloppet aldrig röjer ett besök som är dolt (ekonomi.js).
+export function hogkostnadsskyddet(db, patient, nu = Date.now(), { synliga = null } = {}) {
   const grans = AVGIFT_DEMO.hogkostnadsskydd;
   if (lmaFor(db, patient.id, datumAv(new Date(nu)))) return { grans, betalt: 0, kvar: grans, frikort: false, lma: true, demoregler: true };
   const fran = new Date(nu - 365 * 86400_000).toISOString();
   const tidigare = db.query(`SELECT * FROM vardkontakter WHERE patient_id = ? AND typ <> 'slutenvard' AND kalla = 'vardkallan' AND start >= ? AND start <= ?
     AND (planerad = 0 OR ankomst IS NOT NULL) ORDER BY start, id`).all(patient.id, fran, new Date(nu).toISOString());
   let betalt = 0;
-  for (const t of tidigare) betalt += Math.min(grundavgift(t, patient).belopp, Math.max(0, grans - betalt));
+  for (const t of synliga ? synliga(tidigare) : tidigare) betalt += Math.min(grundavgift(t, patient).belopp, Math.max(0, grans - betalt));
   return { grans, betalt, kvar: Math.max(0, grans - betalt), frikort: betalt >= grans, lma: false, demoregler: true };
 }
 
