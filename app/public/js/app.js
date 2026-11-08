@@ -1,5 +1,5 @@
 // Vårdkällan: sessionen, ramen och routningen. Varje vy är en modul med visa(main, parametrar).
-import { esc, api, avbrytAllaAnrop, krokar, notis, felNotis, ikon, tal, medKnapp, avbrott } from './ui.js';
+import { esc, api, avbrytAllaAnrop, krokar, nySession, notis, felNotis, ikon, tal, medKnapp, avbrott } from './ui.js';
 import * as avbrottslage from './avbrott.js';
 import { satNyckel } from './lasekopia.js';
 import * as inloggning from './vyer/inloggning.js';
@@ -498,6 +498,7 @@ export async function loggaIn(personalId, knapp) {
   // Runda 7, r2: en förnyelse av läskopian för den förra inloggningen får inte fortsätta.
   avbrottslage.stoppaFornyelse();
   const s = await medKnapp(knapp, () => api('/api/login', { metod: 'POST', data: { personalId } }));
+  nySession();
   S.session = s;
   // Ny inloggning, ny nyckel: en tidigare persons läskopia raderas, och personens reservkopia från en tidigare
   // inloggning också, eftersom den inte går att förnya utan reservkoden.
@@ -519,6 +520,7 @@ export async function loggaInInvanare(invanareId, knapp) {
   const forra = S.session?.personal?.id ?? null;
   const loggen = await avbrottslage.skickaLoggar().catch(() => null);
   const s = await medKnapp(knapp, () => api('/api/login/invanare', { metod: 'POST', data: { invanareId } }));
+  nySession();
   S.session = s;
   S.inkorg = null;
   await avbrottslage.rensa({ personalId: forra }).catch(() => {});

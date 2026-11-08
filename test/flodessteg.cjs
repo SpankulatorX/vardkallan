@@ -921,7 +921,7 @@ function skapa(BAS) {
   };
   // Runda 10, r2: utskrift av en anteckning, överkänslighet och sökning över patienter.
   GOR['skriv-ut-anteckning'] = async (m, page) => {
-    await m.klicka(page.locator('.flikar a', { hasText: 'Journal' }), 'fliken Journal');
+    await m.klicka(page.locator('.flikar a', { hasText: /^Journal$/ }), 'fliken Journal');
     await m.klicka(page.locator('[data-skriv-ut-anteckning]'), 'Skriv ut anteckningen');
     await m.klicka(page.locator('dialog [data-varde="ok"]'), 'Skriv ut');
     await synlig(page, '.utskrift-ram', 'Journalanteckningar');

@@ -126,6 +126,11 @@ export function lasServerTiming(h) {
   return m ? Number(m[1]) : null;
 }
 
+// Runda 10: varje inloggning är en ny session. Ett anrop som startade i en tidigare session (till exempel på
+// inloggningssidan) och svarar 401 efter inloggningen loggar inte ut den nya sessionen.
+let session = 0;
+export const nySession = () => { session++; };
+
 // Pågående anrop avbryts vid utloggning, så att ett anrop som når servern efter utloggningen inte ger 401.
 const pagaende = new Set();
 export function avbrytAllaAnrop() { for (const k of pagaende) k.abort(); pagaende.clear(); }
@@ -142,6 +147,7 @@ export async function api(vag, { metod = 'GET', data, tyst = false, direkt = fal
   if (!direkt && (avbrott.aktivt || avbrott.simulerat)) return franKopia(vag, metod, { data, ko });
   let r;
   const t0 = performance.now();
+  const iSession = session;
   const kontroll = new AbortController();
   pagaende.add(kontroll);
   try {
@@ -169,7 +175,7 @@ export async function api(vag, { metod = 'GET', data, tyst = false, direkt = fal
   try { j = txt ? JSON.parse(txt) : {}; } catch { j = { fel: 'Servern gav ett svar som inte gick att läsa.' }; }
   if (!r.ok) {
     const e = new ApiFel(r.status, j);
-    if (r.status === 401 && !tyst) krokar.vid401?.(e);
+    if (r.status === 401 && !tyst && iSession === session) krokar.vid401?.(e);
     if (r.status === 429) krokar.vid429?.(e);
     throw e;
   }
