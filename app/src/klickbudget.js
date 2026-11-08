@@ -226,4 +226,9 @@ export const FLODEN = [
     id: 'rapport-par', namn: 'Granska och skicka månadens rapport till patientregistret', roll: 'uppf', start: 'Rapporteringssidan efter återställning', budget: 3,
     motivering: 'Sussa 6.3.2.2. Systemet har redan sammanställt rapporten ur vårdtillfällena, vårdkontakterna, diagnoserna och åtgärderna och kontrollerat den mot Socialstyrelsens filspecifikation. Ett klick på Granska, som visar felen, det som inte rapporteras och filerna, ett på Skicka och ett för att bekräfta. Kontakter med fel hålls kvar och följer med av sig själv nästa månad, så att ingen behöver komma ihåg dem.',
   },
+  // Runda 7, r7: kravsidan visar vad Sussa värderade högst och som Vårdkällan ännu inte uppfyller (K2).
+  {
+    id: 'kravviktning', namn: 'Visa de tio högst viktade kriterierna som inte är uppfyllda', roll: 'adm-kard', start: 'Kravsidan', budget: 2,
+    motivering: 'K2. Ett klick på genvägen ovanför filtren, som väljer utvärderingskriterier som inte är uppfyllda i demon, sorterar dem efter vikten i Sussas utvärdering och visar de tio första med vikt och signaler från avtalet. Budgeten har plats för ett klick till.',
+  },
 ];

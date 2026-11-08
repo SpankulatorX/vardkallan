@@ -33,6 +33,8 @@ export const STARTPUNKT = {
   'Inkorgen efter återställning': { hash: '#/inkorg', klar: '#ik-mallar', forbered: 'aterstall' },
   // Runda 7, r5: uppföljningsrollens rapportering, efter återställning.
   'Rapporteringssidan efter återställning': { hash: '#/rapportering', klar: '[data-granska="par"]', forbered: 'aterstall' },
+  // Runda 7, r7.
+  'Kravsidan': { hash: '#/krav', klar: '#sussa-lista details.sussapost' },
 };
 
 export const UPPGIFTER = [
@@ -281,6 +283,12 @@ export const UPPGIFTER = [
     id: 'rapport-par', namn: 'Granska och skicka månadens rapport till patientregistret', roll: 'uppf', start: 'Rapporteringssidan efter återställning',
     text: 'Du ansvarar för regionens rapportering till Socialstyrelsen. Se efter att månadens rapport till patientregistret ser rimlig ut och skicka den.',
     kontroll: { notis: 'Rapporten är skickad' },
+  },
+  // Runda 7, r7: kravsidan (K2).
+  {
+    id: 'kravviktning', namn: 'Visa de tio högst viktade kriterierna som inte är uppfyllda', roll: 'adm-kard', start: 'Kravsidan',
+    text: 'Du följer upp journalsystemet mot regionens kravspecifikation. Ta fram de tio utvärderingskriterier som regionen värderade högst och som ännu inte är uppfyllda.',
+    kontroll: { sel: '#sa-vikt', text: 'De 10 högst viktade' },
   },
 ];
 

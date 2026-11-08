@@ -84,6 +84,8 @@ function skapa(BAS) {
     'Översikten för en patient på mottagningen': async (page) => { await gaTill(page, '#/patient/p11'); await page.waitForSelector('.tidslinje'); },
     'Översikten för en inlagd patient': async (page) => { await gaTill(page, '#/patient/p04'); await page.waitForSelector('.tidslinje'); },
     'Vårdadministratörens startsida': async (page) => { await gaTill(page, '#/idag'); await page.waitForSelector('#idag-dagens'); },
+    // Runda 7, r7: kravsidan med Sussas kravspecifikation.
+    'Kravsidan': async (page) => { await gaTill(page, '#/krav'); await page.waitForSelector('#sussa-lista details.sussapost'); },
     'Översikten för en patient med bokad tid': async (page) => { await gaTill(page, '#/patient/p15'); await page.waitForSelector('.ov-tider'); },
     // Runda 6, r3: patient 21 med vårdintyg från akutmottagningen väntar på beslut om intagning.
     'Översikten för en patient som väntar på beslut om intagning': async (page) => { await gaTill(page, '#/patient/p21'); await page.waitForSelector('.tidslinje'); },
@@ -564,6 +566,14 @@ function skapa(BAS) {
     await m.klicka(page.locator('[data-skicka="par"]'), 'Skicka till patientregistret');
     await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Bekräfta');
     await synlig(page, '.notis', 'Rapporten är skickad till den simulerade mottagaren');
+  };
+  // Runda 7, r7: de tio högst viktade kriterierna som inte är uppfyllda, med det högst viktade först.
+  GOR['kravviktning'] = async (m, page) => {
+    await m.klicka(page.locator('#sf-arbetslista'), 'De tio högst viktade kriterierna som inte är uppfyllda');
+    await synlig(page, '#sa-vikt', 'De 10 högst viktade');
+    const id = await page.locator('#sussa-lista details.sussapost').evaluateAll(d => d.map(x => x.dataset.id));
+    if (id.length !== 10 || id[0] !== 'KD1.1.1.9') throw new Error(`listan visade ${id.length} poster och först ${id[0]}`);
+    await synlig(page, '#sussa-lista .sussapost', 'Vikt 4,64 %');
   };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
