@@ -78,4 +78,8 @@ export const PERSONAL = [
   // Runda 7, r1: en fysioterapeut på kardiologiska mottagningen (hjärtrehabilitering), som spelar paramedicinaren i Sussas
   // testfall. Sist i listan, så att de andras HSA-id inte ändras.
   { id: 'fys-kard', namn: 'Jenny Holmberg', yrke: 'fysioterapeut', titel: 'Fysioterapeut (hjärtrehabilitering)', enhet: 'uso-kard-mott', demo: true },
+  // Runda 9, r3: barnmorskan och läkaren på kvinnoklinikens förlossning (obstetrik.js). Barnmorskan har sjuksköterskans
+  // behörigheter i demon. Ingen av dem går att logga in som.
+  { id: 'bm-uso', namn: 'Sofia Ekdahl', yrke: 'sjukskoterska', titel: 'Barnmorska', enhet: 'uso-kk-forl' },
+  { id: 'lak-kk', namn: 'Johanna Rehn', yrke: 'lakare', titel: 'Läkare (obstetrik)', enhet: 'uso-kk' },
 ];

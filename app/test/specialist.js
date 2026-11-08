@@ -24,7 +24,7 @@ export function ledigtPnr(db, { kon, ar }) {
 export function nyPatient(db, { id, kon = 'K', ar = 1990, enhet, fornamn = 'Testa', efternamn = 'Testsson', skyddad = 0, listning = false, start = BAS }) {
   const pnr = ledigtPnr(db, { kon, ar });
   const fodd = `${pnr.slice(0, 4)}-${pnr.slice(4, 6)}-${pnr.slice(6, 8)}`;
-  db.query('INSERT INTO patienter (id, personnummer, fornamn, efternamn, kon, fodd, skyddad) VALUES (?, ?, ?, ?, ?, ?, ?)').run(id, pnr, fornamn, efternamn, kon, fodd, skyddad);
+  db.query('INSERT INTO patienter (id, personnummer, fornamn, efternamn, kon, fodd, skyddad) VALUES (?, ?, ?, ?, ?, ?, ?)').run(id, pnr, fornamn, efternamn, kon === 'K' ? 'kvinna' : 'man', fodd, skyddad);
   if (listning) db.query('INSERT INTO listningar (patient_id, enhet_id, fran) VALUES (?, ?, ?)').run(id, enhet, '2020-01-01');
   else db.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak) VALUES (?, ?, 'slutenvard', ?, 'Avdelning', 'Planerad vård')").run(id, enhet, new Date(start.getTime() - 86400_000).toISOString());
   return db.query('SELECT * FROM patienter WHERE id = ?').get(id);
