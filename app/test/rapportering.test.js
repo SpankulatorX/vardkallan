@@ -357,6 +357,37 @@ describe('Myndighetsrapportering i API:t', () => {
     expect(JSON.stringify((await k.get('/api/inkorg')).data.rapportfel)).not.toContain('Hemlig orsak');
   });
 
+  test('inkorgen följer det aktuella läget när en vårdkontakt flyttas eller personalen byter enhet efter att sammanställningen har sparats', async () => {
+    const k = await inloggad('lak-kard');
+    const db = sdb(k);
+    const per = mr.period('par', new Date());
+    const datum = addDagar(per.fran, 9);
+    const { vk } = vardtillfalle(db, { pid: 'p01', inskr: datum, utskr: addDagar(datum, 2) });
+    expect((await k.get('/api/inkorg')).data.rapportfel.some(x => x.vardkontaktId === vk)).toBe(true);
+    // Vårdkontakten flyttas till ortopedin utan att något annat ändras. Kardiologen ser inte längre felet.
+    db.query("UPDATE vardkontakter SET enhet_id = 'uso-ort' WHERE id = ?").run(vk);
+    expect((await k.get('/api/inkorg')).data.rapportfel.some(x => x.vardkontaktId === vk)).toBe(false);
+    db.query("UPDATE vardkontakter SET enhet_id = 'uso-kard-72' WHERE id = ?").run(vk);
+    expect((await k.get('/api/inkorg')).data.rapportfel.some(x => x.vardkontaktId === vk)).toBe(true);
+    // Läkaren byter enhet. Felet på kardiologen syns inte längre för henne.
+    db.query("UPDATE personal SET enhet_id = 'uso-ort' WHERE id = 'lak-kard'").run();
+    expect((await k.get('/api/inkorg')).data.rapportfel.some(x => x.vardkontaktId === vk)).toBe(false);
+    db.query("UPDATE personal SET enhet_id = 'uso-kard' WHERE id = 'lak-kard'").run();
+  });
+
+  test('den sparade sammanställningen görs om när en spärr eller en vårdenhet ändras', () => {
+    const db = rensad();
+    const { vk } = vardtillfalle(db, { pid: 'p05', enhet: 'uso-med', plats: 'uso-med' });
+    diagnos(db, { pid: 'p05', enhet: 'uso-med', vk, kod: 'I48.0' });
+    const forsta = mr.sammanstallCachad(db, 'par', { nu: NU });
+    expect(forsta.undantag.some(u => u.nyckel === 'sparrade')).toBe(false);
+    db.query("INSERT INTO sparrar (patient_id, enhet_id, registrerad) VALUES ('p05', 'uso-med', '2035-01-01')").run();
+    expect(mr.sammanstallCachad(db, 'par', { nu: NU }).undantag.find(u => u.nyckel === 'sparrade')?.antal).toBe(1);
+    db.query("UPDATE enheter SET namn = 'Medicinska kliniken USÖ, ny' WHERE id = 'uso-med'").run();
+    db.query("UPDATE vardtillfallen SET enhet_id = 'kkoga-ort'").run();
+    expect(mr.sammanstallCachad(db, 'par', { nu: NU }).filer.find(f => f.kod === 'SV_AD').text).toContain(';55011;311;');
+  });
+
   test('kvalitetsregistrets återkoppling sparas och kan läsas', async () => {
     const u = await inloggad('uppf');
     const r = await u.post('/api/rapportering/kvalitetsregister/skicka');

@@ -111,18 +111,22 @@ export function inkorg(c, patientKort, patientRad, valFor) {
   // Vårdtillfällesdatabasen har samma fel som patientregistrets slutenvård.
   for (const id of lakare ? ['par', 'mfr'] : ['par', 'viv']) {
     for (const f of mr.sammanstallCachad(c.db, id).fel) {
-      if (!atgarder.includes(f.atgard) || !f.patientId || f.enhet?.id !== min) continue;
+      if (!atgarder.includes(f.atgard)) continue;
+      // Vårdenheten och patienten slås upp i databasen nu, inte i den sparade sammanställningen.
+      const plats = mr.aktuellPlats(c.db, f);
+      if (!plats || plats.vardenhet !== min) continue;
       const nyckel = `${f.regel}:${f.radNyckel}`;
       if (sett.has(nyckel)) continue;
-      const atk = new Atkomst(c.db, p, f.patientId, valFor(c.s, f.patientId), handling);
-      if (!atk.prova(handling, { enhet_id: f.enhet.id }).tillaten) continue;
+      const atk = new Atkomst(c.db, p, plats.patientId, valFor(c.s, plats.patientId), handling);
+      const prov = atk.prova(handling, { enhet_id: plats.enhetId });
+      if (!prov.tillaten) continue;
       sett.add(nyckel);
       const resurs = `inkorg:rapportfel:${nyckel}`;
-      if (!loggade.has(resurs)) { loggade.add(resurs); atk.logga(handling, atk.prova(handling, { enhet_id: f.enhet.id }).grund, resurs); }
+      if (!loggade.has(resurs)) { loggade.add(resurs); atk.logga(handling, prov.grund, resurs); }
       const vk = f.vardkontaktId ? c.db.query('SELECT * FROM vardkontakter WHERE id = ?').get(f.vardkontaktId) : null;
       ut.push({
-        nyckel, regel: f.regel, atgard: f.atgard, text: f.text, detalj: f.detalj, datum: f.datum, rapporter: [mr.RAPPORTER[id].namn], patientId: f.patientId,
-        patient: patientKort(patientRad(c.db, f.patientId)), vardkontaktId: f.vardkontaktId,
+        nyckel, regel: f.regel, atgard: f.atgard, text: f.text, detalj: f.detalj, datum: f.datum, rapporter: [mr.RAPPORTER[id].namn], patientId: plats.patientId,
+        patient: patientKort(patientRad(c.db, plats.patientId)), vardkontaktId: f.vardkontaktId,
         forslag: f.atgard === 'diagnos' && vk ? mr.diagnosforslag(c.db, vk) : [],
       });
     }

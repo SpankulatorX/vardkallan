@@ -717,22 +717,29 @@ export function demoRapportfel(db, nu = new Date()) {
   return { vardtillfalleId: vt, vardkontaktId: vk, akutId: akut };
 }
 
-// Sammanställningen för inkorgen, som hämtas ofta. Den görs om bara när något som rapporterna bygger på har ändrats
-// (ett fingeravtryck av tabellerna) eller när månaden har bytts. Skickade rapporter ändrar inte felen.
+// Sammanställningen för inkorgen, som hämtas ofta. Den sparas och görs om när någon tabell som rapporterna läser har
+// ändrats, när en ny tabell har tillkommit eller när månaden har bytts. Ändringarna räknas av tillfälliga triggrar
+// (TEMP), som bara finns i sandlådans anslutning och aldrig följer med när databasen sparas. Den sparade
+// sammanställningen används bara för rapportens innehåll. Behörigheten i inkorgen prövas alltid mot databasen.
+export const LASTA_TABELLER = ['vardtillfallen', 'vardtillfalle_handelser', 'vardkontakter', 'diagnoser', 'atgarder', 'anteckningar', 'vantelista',
+  'bokningar', 'tider', 'scheman', 'patienter', 'identiteter', 'listningar', 'sparrar', 'enheter', 'personal', 'remisser', 'tvangsvard_perioder',
+  'tvangsvard_handelser', 'administreringar', 'katalog', 'ordinationer', 'matvarden', 'halsoarenden', 'kvalitetsregister_motsatt', 'myndighetsrapporter'];
 const CACHE = new WeakMap();
-const AVTRYCK = [
-  ['vardtillfallen', 'count(*), max(id), count(utskriven)'], ['vardkontakter', 'count(*), max(id), count(slut), count(ankomst)'],
-  ['diagnoser', 'count(*), max(id), sum(length(kod) + length(typ))'], ['atgarder', 'count(*), max(id)'], ['anteckningar', 'count(*), max(id)'],
-  ['vantelista', 'count(*), max(id), sum(length(status)), count(mal)'], ['bokningar', 'count(*), max(id), sum(length(status))'],
-  ['patienter', 'count(*), sum(length(personnummer) + length(coalesce(id_typ, 0))), count(sammanslagen_till)'],
-  ['tvangsvard_handelser', 'count(*), max(id)'], ['administreringar', 'count(*), max(id)'],
-];
+function sakraRaknare(db) {
+  db.exec('CREATE TEMP TABLE IF NOT EXISTS rapport_andring (id INTEGER PRIMARY KEY CHECK (id = 1), n INTEGER NOT NULL); INSERT OR IGNORE INTO temp.rapport_andring VALUES (1, 0);');
+  for (const t of LASTA_TABELLER) {
+    if (!finnsTabell(db, t)) continue;
+    for (const h of ['INSERT', 'UPDATE', 'DELETE']) db.exec(`CREATE TEMP TRIGGER IF NOT EXISTS rapport_andring_${t}_${h.toLowerCase()} AFTER ${h} ON main.${t} BEGIN UPDATE temp.rapport_andring SET n = n + 1; END`);
+  }
+}
 function avtryck(db, nu) {
-  const delar = [manadAv(nu)];
-  for (const [t, uttryck] of AVTRYCK) if (finnsTabell(db, t)) delar.push(Object.values(db.query(`SELECT ${uttryck} FROM ${t}`).get()).join(':'));
-  return delar.join('|');
+  sakraRaknare(db);
+  const n = db.query('SELECT n FROM temp.rapport_andring WHERE id = 1').get().n;
+  const tabeller = db.query("SELECT count(*) AS n FROM sqlite_master WHERE type = 'table'").get().n;
+  return `${manadAv(nu)}|${n}|${tabeller}`;
 }
 export function sammanstallCachad(db, rapportId, { nu = new Date() } = {}) {
+  sakra(db);
   const nyckel = avtryck(db, nu);
   let m = CACHE.get(db);
   if (!m) { m = new Map(); CACHE.set(db, m); }
@@ -741,4 +748,20 @@ export function sammanstallCachad(db, rapportId, { nu = new Date() } = {}) {
   const s = sammanstall(db, rapportId, { nu });
   m.set(rapportId, { nyckel, s });
   return s;
+}
+
+// Felets aktuella vårdenhet och patient, ur databasen: vårdkontakten om felet har en, annars vårdtillfället eller posten
+// på väntelistan. Inkorgen prövar behörigheten mot detta och aldrig mot den sparade sammanställningen.
+export function aktuellPlats(db, f) {
+  let rad = null;
+  if (f.vardkontaktId) rad = db.query('SELECT patient_id, enhet_id FROM vardkontakter WHERE id = ?').get(f.vardkontaktId);
+  else {
+    const m = /^(F-VT|VT|VL|TV)(\d+)$/.exec(f.radNyckel ?? '');
+    const tabell = m && { VL: 'vantelista', TV: 'tvangsvard_perioder' }[m[1]] || 'vardtillfallen';
+    if (m) rad = db.query(`SELECT patient_id, enhet_id FROM ${tabell} WHERE id = ?`).get(Number(m[2]));
+  }
+  if (!rad) return null;
+  const p = db.query('SELECT id, sammanslagen_till FROM patienter WHERE id = ?').get(rad.patient_id);
+  if (!p || p.sammanslagen_till) return null;
+  return { patientId: p.id, enhetId: rad.enhet_id, vardenhet: vardenhetFor(db, rad.enhet_id) };
 }

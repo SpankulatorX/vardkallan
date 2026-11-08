@@ -37,6 +37,8 @@ export default [
       `${A}en yttre orsak registreras i inkorgen ur svaren, och en kod som systemet inte känner till nekas`,
       `${A}demoläget ger ett fel på kardiologen och ett på akutmottagningen i rätt inkorg`,
       `${A}väntelistans fritext visas inte för uppföljningsrollen, bara för vårdadministratören efter prövningen`,
+      `${A}inkorgen följer det aktuella läget när en vårdkontakt flyttas eller personalen byter enhet efter att sammanställningen har sparats`,
+      `${A}den sparade sammanställningen görs om när en spärr eller en vårdenhet ändras`,
       'Gränssnitt > Klickbudget > Granska och skicka månadens rapport till patientregistret inom budget',
     ],
     losning: 'Sidan Rapportering för uppföljningsrollen med patientregistret (slutenvård, specialiserad öppenvård, åtgärder, läkemedelstillförsel och psykiatrisk vårdform enligt HSLF-FS 2023:33 i lydelsen enligt HSLF-FS 2025:44), väntande i specialiserad vård enligt Socialstyrelsens filspecifikation för väntetidsdatabasen, Vårdtillfällesdatabasen i ett antaget format och medicinska födelseregistret enligt HSLF-FS 2024:5. Systemet sammanställer filerna själv ur vårdtillfällen, vårdkontakter, diagnoser, åtgärder, givna läkemedel, tvångsvårdens beslut och väntelistan, kontrollerar dem mot filspecifikationen och visar varje fel på svenska. Felen hamnar i inkorgen hos den som kan rätta dem. Mappningen mot sjukhus- och verksamhetskoder visas med källor. Mottagarna är simulerade.',
