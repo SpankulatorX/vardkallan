@@ -47,8 +47,8 @@ import { fhirKategori as remissKategori } from './remiss-r10.js';
 import * as labbFhir from './labb-fhir.js';
 // Runda 9, r6: versionen i CapabilityStatement och ändringsloggen (Sussa 2.5.1.1).
 import * as api from './api-andringar.js';
-// Runda 10, r1: kategorin för en överkänslighet.
-import { amneFor } from './uppmarksamhet-regler.js';
+// Runda 10, r1: ämnen som inte är läkemedel eller livsmedel, för kategorin i AllergyIntolerance.
+const MILJO = new Set(['latex', 'nickel', 'bi- och getingstick', 'plåster och tejp']);
 
 export const SYSTEM = {
   personnummer: 'http://electronichealth.se/identifier/personnummer',
@@ -412,8 +412,8 @@ export function allergyIntolerance(db, o) {
     clinicalStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical', code: o.status === 'avslutad' ? 'inactive' : 'active' }] },
     ...(o.status === 'avslutad' ? { note: [{ time: o.avslutad, text: `Avslutad: ${o.avslut_orsak ?? ''}` }] } : {}),
     verificationStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-verification', code: 'confirmed' }] },
-    // Runda 10, r1: kategorin ur listan med ämnen, så att till exempel latex är environment och inte food.
-    type: 'allergy', category: [amneFor(o.amne)?.kategori ?? (o.atc ? 'medication' : 'food')], criticality: o.allvarlighet === 'allvarlig' ? 'high' : 'low',
+    // Runda 10, r1: latex, nickel, insektsstick och plåster är environment och inte food.
+    type: 'allergy', category: [o.atc ? 'medication' : MILJO.has(String(o.amne ?? '').toLocaleLowerCase('sv')) ? 'environment' : 'food'], criticality: o.allvarlighet === 'allvarlig' ? 'high' : 'low',
     code: { ...(o.atc ? { coding: [{ system: SYSTEM.atc, code: o.atc, ...(ATC[o.atc] ? { display: ATC[o.atc] } : {}) }] } : {}), text: o.amne },
     patient: ref('Patient', o.patient_id), recordedDate: o.datum,
     reaction: o.reaktion ? [{ manifestation: [{ text: o.reaktion }] }] : undefined,

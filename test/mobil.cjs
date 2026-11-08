@@ -286,12 +286,14 @@ const KONTEXT = { viewport: { width: 360, height: 760 }, locale: 'sv-SE', timezo
     const lagg = page.locator('[data-um-lagg]').first();
     if (!(await lagg.isVisible())) await page.locator('.signal-um summary').first().click();
     await page.locator('[data-um-lagg]').first().click();
+    // Knappen i dialogen öppnar överkänslighetens eget flöde (runda 10, r2).
     await page.click('dialog[open] [data-varde="overk"]');
     await page.waitForSelector('dialog[open] #ok-amne');
-    await page.selectOption('dialog[open] #ok-amne', 'latex');
-    await page.check('dialog[open] input[name="reaktion"][value="urtikaria"]');
+    await page.fill('dialog[open] #ok-amne', 'Latex');
+    await page.fill('dialog[open] #ok-reaktion', 'Nässelutslag');
+    await synlig(page, 'dialog[open] [data-ok-forslag]', 'måttlig');
     await page.click('dialog[open] [data-varde="ok"]');
-    await synlig(page, '.notis', 'Överkänsligheten mot latex är registrerad med graden skadlig');
+    await synlig(page, '.notis', 'Överkänslighet mot latex är registrerad');
     await synlig(page, '.patientband', 'Latex');
     await kontrolleraMobil('patienthuvudet med överkänsligheten');
   });

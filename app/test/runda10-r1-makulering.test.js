@@ -116,6 +116,23 @@ describe('Makulering via API:t', () => {
   });
 });
 
+describe('Skrivning för systemkonton', () => {
+  test('ett systemkonto kan inte registrera överkänslighet eller annat som kontot inte får skriva, och inget sparas', async () => {
+    const k = klient(app);
+    const kt = await konto(k, { mangder: ['diagnoser', 'overkanslighet'] });
+    const token = await biljett(kt.id);
+    const db = sandlada(app, k).db;
+    const fore = db.query("SELECT COUNT(*) n FROM overkanslighet WHERE patient_id = 'p01'").get().n;
+    const r = await medBiljett(token, '/fhir/AllergyIntolerance', { method: 'POST', body: JSON.stringify({ resourceType: 'AllergyIntolerance', patient: { reference: 'Patient/p01' }, code: { text: 'Latex' }, reaction: [{ manifestation: [{ text: 'Utslag' }] }] }) });
+    expect(r.status).toBe(403);
+    expect(db.query("SELECT COUNT(*) n FROM overkanslighet WHERE patient_id = 'p01'").get().n).toBe(fore);
+    // Också om omfånget hade släppt igenom anropet nekar behörighetsmotorn, eftersom kontot bara har läshandlingar.
+    const { prova } = await import('../src/atkomst.js');
+    const pers = db.query('SELECT * FROM personal WHERE id = ?').get(kt.id);
+    expect(prova(db, { personal: pers, patient: 'p01', handling: 'registrera_overkanslighet', resurs: { enhet_id: 'uso-kard' } }).tillaten).toBe(false);
+  });
+});
+
 describe('Identitet för systemkonton', () => {
   test('förvalet är pseudonym: kontot ser aldrig patientens namn eller personnummer i resurser, sökningar eller prenumerationer', async () => {
     const k = klient(app);

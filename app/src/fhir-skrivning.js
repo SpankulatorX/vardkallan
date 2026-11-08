@@ -14,9 +14,9 @@ import * as tidbokFhir from './tidbok-fhir.js';
 import { fhirTyp as remissTyp } from './remiss-r10.js';
 // Runda 10, r1: provbeställningar som makuleras.
 import * as labbFhir from './labb-fhir.js';
-// Runda 10, r1: listorna för överkänslighet och identiteternas system.
-import { OVERKANSLIGHET_AMNEN, OVERKANSLIGHET_REAKTIONER } from './uppmarksamhet-regler.js';
+// Runda 10, r1: identiteternas system och ATC-kodernas namn för överkänslighet.
 import { FHIR_SYSTEM as ID_SYSTEM } from './identitet.js';
+import * as overkanslighet from './overkanslighet.js';
 
 // Resurstyperna som går att skapa och ändra, och vad gränssnittet gör för var och en.
 export const SKRIVBARA = {
@@ -30,7 +30,7 @@ export const SKRIVBARA = {
   // Runda 9, r6: diagnoser på vårdkontakten, med samma funktion som när läkaren rättar en rapport (Sussa 2.5.1.1).
   Condition: { skapa: true, andra: false, text: 'Diagnoser registreras på en vårdkontakt med en kod ur ICD-10-SE, som i gränssnittet. Systemet sätter texten, datumet och om det är huvud- eller bidiagnos. En registrerad diagnos ändras inte.' },
   // Runda 10, r1: överkänslighet och nya patienter, med samma funktioner som gränssnittet (Sussa 2.5.1.1).
-  AllergyIntolerance: { skapa: true, andra: false, text: 'Överkänslighet registreras med ämnet och reaktionen ur listan, som i gränssnittet. Systemet sätter ATC-koden och föreslår graden ur reaktionen, och uppmärksamhetsinformationen registreras med graden.' },
+  AllergyIntolerance: { skapa: true, andra: false, text: 'Överkänslighet registreras med ämnet och reaktionen, med samma funktion som Ny överkänslighet i gränssnittet. Systemet slår upp ATC-koden ur ämnet, föreslår allvarlighetsgraden ur reaktionen och varnar för läkemedel i listan som omfattas. En överkänslighet ändras och avslutas i gränssnittet.' },
   Patient: { skapa: true, andra: false, text: 'Nya patienter registreras med samma tolkning av numret och sökning efter dubbletter som i gränssnittet. Utan identitet skapar systemet ett reservnummer. Nya identiteter och sammanslagning görs i gränssnittet.' },
 };
 // Resurstyper som går att läsa men inte skriva, med förklaringen.
@@ -301,27 +301,29 @@ const SKRIVARE = {
       };
     },
   },
-  // Runda 10, r1: överkänslighet med samma anrop som gränssnittet. Ämnet anges med ATC-koden eller namnet i listan, och
-  // reaktionen med texten i listan. Graden föreslår systemet ur reaktionen. criticality low ger besvärande, och high
-  // höjer en besvärande reaktion till skadlig.
+  // Runda 10, r1: överkänslighet med samma anrop som Ny överkänslighet i gränssnittet (overkanslighet.js registrera, runda
+  // 10, r2), så att samma behörighet, dubblettkontroll, vårdenhet och historik gäller. Ämnet anges med text eller med en
+  // ATC-kod, som systemet gör om till ämnets namn, och reaktionen med text. criticality high ger allvarlig och low lindrig,
+  // annars föreslår systemet graden ur reaktionen.
   AllergyIntolerance: {
     skapa({ db, r, kor }) {
       const pid = patientId(r.patient, 'AllergyIntolerance.patient');
-      if (!far(kor, 'skriv_journal')) throw new Fel(403, 'Din yrkesroll får inte registrera överkänslighet.', 'nekad');
+      // Yrkesrollen prövas först, eftersom den inte röjer något om någon patient.
+      if (!far(kor, 'registrera_overkanslighet')) throw new Fel(403, 'Din yrkesroll registrerar inte överkänslighet.', 'nekad');
       const koder = Array.isArray(r.code?.coding) ? r.code.coding : [];
       const atc = strang(koder.find(c => c?.system === KOD.atc)?.code);
-      const namn = strang(r.code?.text).toLowerCase();
-      const a = OVERKANSLIGHET_AMNEN.find(x => (atc ? x.atc === atc : namn && x.amne.toLowerCase() === namn));
-      if (!a) throw fel(`Ämnet finns inte i listan över överkänsligheter. Ange ATC-koden eller namnet som det står i listan: ${OVERKANSLIGHET_AMNEN.map(x => x.amne).join(', ')}.`, ['amne']);
-      const rtext = strang(r.reaction?.[0]?.manifestation?.[0]?.text).toLowerCase();
-      const reak = OVERKANSLIGHET_REAKTIONER.find(x => x.text.toLowerCase() === rtext || x.id === rtext);
-      if (!reak) throw fel(`Ange reaktionen i reaction.manifestation.text som den står i listan: ${OVERKANSLIGHET_REAKTIONER.map(x => x.text).join(', ')}.`, ['reaktion']);
-      const grad = r.criticality === 'low' ? 'besvarande' : r.criticality === 'high' && reak.grad === 'besvarande' ? 'skadlig' : undefined;
-      const { data } = kor('POST', `/api/patient/${pid}/overkanslighet`, { amne: a.id, reaktion: reak.id, ...(grad ? { grad } : {}) });
-      const rad = db.query('SELECT * FROM overkanslighet WHERE id = ?').get(data.overkanslighet.id);
+      // En ATC-kod blir ämnet som gränssnittet känner igen: en vanlig grupp ur listan eller en substans i katalogen.
+      const kand = atc ? overkanslighet.amnen(db).amnen.find(a => a.atc === atc)?.amne ?? null : null;
+      const amne = strang(r.code?.text) || kand || '';
+      if (!amne) throw fel(atc ? `ATC-koden ${atc} finns inte bland ämnena som systemet känner igen. Ange ämnet med text i AllergyIntolerance.code.text.` : 'Ange ämnet i AllergyIntolerance.code, med text eller med en ATC-kod.', ['amne']);
+      const reaktion = strang(r.reaction?.[0]?.manifestation?.[0]?.text) || strang(r.reaction?.[0]?.description);
+      if (!reaktion) throw fel('Beskriv reaktionen i AllergyIntolerance.reaction.manifestation.text, till exempel utslag eller andningsbesvär.', ['reaktion']);
+      const allvarlighet = r.criticality === 'high' ? 'allvarlig' : r.criticality === 'low' ? 'lindrig' : undefined;
+      const { data } = kor('POST', `/api/patient/${pid}/overkanslighet`, { amne, reaktion, ...(allvarlighet ? { allvarlighet } : {}) });
+      const rad = db.query('SELECT * FROM overkanslighet WHERE id = ?').get(data.id);
       return {
         status: 201, typ: 'AllergyIntolerance', id: rad.id, resurs: fhir.allergyIntolerance(db, rad), varningar: data.varningar ?? [],
-        text: `Överkänsligheten är registrerad med graden ${data.grad === 'livshotande' ? 'livshotande' : data.grad === 'skadlig' ? 'skadlig' : 'besvärande'}${grad ? '' : ', som systemet föreslog ur reaktionen'}.`,
+        text: `Överkänsligheten är registrerad${rad.atc ? ` med ATC-kod ${rad.atc}` : ''} och allvarlighetsgraden ${rad.allvarlighet}${allvarlighet ? '' : ', som systemet föreslog ur reaktionen'}.`,
       };
     },
   },

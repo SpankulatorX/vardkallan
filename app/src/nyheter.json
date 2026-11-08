@@ -16,16 +16,6 @@
           "text": "Under Öppet API registrerar du ett systemkonto för en tillämpning utan inloggad person, till exempel regionens vårddatalager. Du väljer vad kontot ska få och för vilka vårdenheter, och systemet räknar fram resten."
         },
         {
-          "id": "overkanslighet-registrera",
-          "roller": [
-            "lakare"
-          ],
-          "omfattning": "liten",
-          "var": "#/arbetslista",
-          "rubrik": "Registrera överkänslighet",
-          "text": "Under Lägg till uppmärksamhetsinformation registrerar du en överkänslighet. Välj ämnet och reaktionen, så föreslår systemet graden och varnar om något i läkemedelslistan omfattas."
-        },
-        {
           "id": "skrivko-avbrott",
           "roller": [
             "sjukskoterska",
