@@ -443,6 +443,9 @@ export function byggSeed(bas = nu()) {
   require('./schema-runda9-r7.js').sakraR9r7(db, bas);
   // Runda 10, r2: överkänslighetens händelser och vyernas förval per vårdenhet (schema-runda10-r2.js).
   require('./schema-runda10-r2.js').sakraR10r2(db);
+  // Runda 10, r5: kollegakontroll, läkemedelsöverföring, vaccinationsprogram, sammanhållen journalföring och akutflödet
+  // (schema-runda10-r5.js).
+  require('./schema-runda10-r5.js').sakraR10r5(db, bas);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -567,6 +570,8 @@ export function migrera(db) {
   require('./schema-runda9-r7.js').sakraR9r7(db, nu());
   // Runda 10, r2 (schema-runda10-r2.js).
   require('./schema-runda10-r2.js').sakraR10r2(db);
+  // Runda 10, r5 (schema-runda10-r5.js).
+  require('./schema-runda10-r5.js').sakraR10r5(db, nu());
   return db;
 }
 

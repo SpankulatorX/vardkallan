@@ -15,6 +15,9 @@ import * as stod from './lakemedelsstod.js';
 import * as provning from './kliniskprovning.js';
 // Runda 8, r4: dosändring i en pågående ordination, med ny dosering från ett datum.
 import { tillampaDosandringar, planerade as planeradeDosandringar } from './dosandring.js';
+// Runda 10, r5: kunskapsstödet vid varningarna.
+import * as kunskapsstod from './kunskapsstod.js';
+import * as utfallsstod from './utfallsstod.js';
 
 export const DEMOREGLER = 'Varningarna är demoregler för att visa flödet. De är inte kliniskt beslutsstöd och inte CE-märkta.';
 export const TYPER = ['staende', 'vid_behov', 'tillfallig'];
@@ -181,7 +184,8 @@ export function varningar(db, patientId, lm, aktiva, { overkanslighet = [], egfr
     if (egfr < 30) ut.push({ niva: 'allvarlig', regel: 'metformin_egfr', text: `Metformin vid eGFR ${egfr}. Under 30 ska metformin inte användas.` });
     else if (egfr < 45) ut.push({ niva: 'observera', regel: 'metformin_egfr', text: `Metformin vid eGFR ${egfr}. Dosen bör begränsas när eGFR är 30 till 44.` });
   }
-  return ut;
+  // Runda 10, r5: varför systemet varnar, vad användaren kan göra och källan (kunskapsstod.js).
+  return kunskapsstod.berika(ut);
 }
 
 // Senaste eGFR för säkerhetskontrollerna (varningar vid ordination, ordinationsförslag och läkemedelsgenomgång). Ett
@@ -205,7 +209,8 @@ export function kontroll(atk, inp) {
   atk.krav('ordinera');
   const o = validera(atk.db, inp, { full: false });
   const u = underlag(atk);
-  return { varningar: varningar(atk.db, atk.patientId, o.lm, u.aktiva, u), demoregler: true, anmarkning: DEMOREGLER };
+  // Runda 10, r5: vid varje varning hur ofta den har kvitterats på vårdenheten (utfallsstod.js, Sussa 3.2.1.3).
+  return { varningar: utfallsstod.vidVarningar(atk.db, atk.personal, varningar(atk.db, atk.patientId, o.lm, u.aktiva, u)), demoregler: true, anmarkning: DEMOREGLER };
 }
 
 function historik(db, ordId, personalId, handelse, detalj = null) {
@@ -322,7 +327,8 @@ export function behandlingsdagar(atk, o, synliga = null) {
 export function utsattningskontroll(atk, o) {
   atk.krav('ordinera', { resurs: { enhet_id: o.enhet_id, gemensam: true } });
   const lm = lakemedelRad(atk.db, o.lakemedel_id);
-  const varningar = o.status === 'aktiv' && lm ? utsattningsvarningar({ lakemedel: lm, behandlingDagar: behandlingsdagar(atk, o) }) : [];
+  // Runda 10, r5: med kunskapsstödets förklaring (kunskapsstod.js).
+  const varningar = o.status === 'aktiv' && lm ? kunskapsstod.berika(utsattningsvarningar({ lakemedel: lm, behandlingDagar: behandlingsdagar(atk, o) })) : [];
   return { varningar, ...(varningar.some(v => v.plan) ? { planer: planforslag(atk, o) } : {}), demoregler: true, anmarkning: DEMOREGLER_PROCESS };
 }
 

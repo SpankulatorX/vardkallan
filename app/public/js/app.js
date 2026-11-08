@@ -306,7 +306,9 @@ export async function uppdateraInkorg() {
       // Runda 8, r1: beställning och svar.
       + labbInkorgAntal(d)
       // Runda 9, r1: beredningar att kontrollera.
-      + (d.beredningarAttKontrollera?.length ?? 0);
+      + (d.beredningarAttKontrollera?.length ?? 0)
+      // Runda 10, r5: kollegakontroller och läkemedelsberättelser att kvittera.
+      + (d.kollegakontrollerAttGora?.length ?? 0) + (d.lakemedelsoverforingar?.length ?? 0);
   } catch { S.inkorg = null; }
   const el = document.querySelector('[data-raknare="inkorg"]');
   if (el) { el.textContent = S.inkorg ? String(S.inkorg) : ''; el.hidden = !S.inkorg; }

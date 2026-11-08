@@ -182,6 +182,8 @@ for (const w of ['IMP', 'PATCH', 'EHR', 'DOS', 'DOS-lagen']) TILLATNA.add(w);
 for (const w of ['JWT', 'JWKS', 'ES256', 'OpenID', 'IdP', 'ECDSA', 'P-256', 'SHA-256', 'X.509', 'CA', 'R7e']) TILLATNA.add(w);
 // Runda 7, r1: källan till tidsmodellen i Sussas testfall.
 for (const w of ['ACM', 'Newell']) TILLATNA.add(w);
+// Runda 10, r5: förkortningar och namn i kunskapsstödet (kunskapsstod.js) och akutflödet.
+for (const w of ['ACE', 'NOAK', 'LDL', 'Downton', 'SGLT2-hämmare', 'Addex', 'Addex-Magnesium']) TILLATNA.add(w);
 // Runda 9, r3: blodgrupperna, cytostatikaregimerna och dosberäkningen (AUC och GFR i Calverts formel) och CTG.
 for (const w of ['AB', 'EC', 'AUC', 'GFR', 'CTG']) TILLATNA.add(w);
 // Fraser med engelska ord som är namn på standarder, rubriker, parametrar och tekniska begrepp. Ett tomt värde i data

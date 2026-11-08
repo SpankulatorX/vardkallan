@@ -108,6 +108,7 @@ function news2Html(n, kanReg) {
       : '<p class="tom liten">Inga vitalparametrar som du kan se.</p>'}
     ${n.serie.length > 1 ? `<div class="news2-kurva">${news2Svg(n.serie)}</div>` : ''}
     <p class="under-text">${esc(n.demoregel)} Källa: ${esc(n.kalla)}. Syremättnaden räknas med skala 1.</p>
+    ${n.kunskap ? `<details class="liten"><summary>${esc(n.kunskap.rubrik)}</summary><p>${esc(n.kunskap.text)}</p><p class="demoregel">Källa: ${esc(n.kunskap.kalla)}. ${esc(n.kunskap.demomarkning)}</p></details>` : ''}
   </section>`;
 }
 

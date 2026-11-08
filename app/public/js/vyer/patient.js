@@ -24,6 +24,8 @@ import * as tillampningar from './patient-tillampningar.js';
 import * as tillvaxt from './patient-tillvaxt.js';
 // Runda 8, r1: beställning och svar och kontrollerna till avdelningen (Sussa 4.4).
 import * as prover from './patient-prover.js';
+// Runda 10, r5: vaccinationsprogrammen.
+import * as vaccinationer from './patient-vaccinationer.js';
 
 export const namn = 'patient';
 
@@ -36,6 +38,8 @@ const FLIKAR = [
   ['prover', 'Prover', () => far('las_prover'), prover],
   // Runda 7, r6: tillväxt för barn och ungdomar. Villkoret får patienthuvudet, och fliken visas innan huvudet är hämtat.
   ['tillvaxt', 'Tillväxt', (h) => far('las_matvarden') && (!h || h.alder < 18), tillvaxt],
+  // Runda 10, r5: de nationella vaccinationsprogrammen för barn efter fem år och för riskgrupper (Sussa 3.5.1.7).
+  ['vaccinationer', 'Vaccinationer', () => far('las_oversikt') && pa('vaccinera', 'las_journal'), vaccinationer],
   ['remisser', 'Remisser', () => pa('las_remiss', 'las_remiss_status'), remisserFlik],
   ['logglista', 'Logglista', () => true, logglista],
   ['identitet', 'Identitet', () => pa('las_oversikt', 'las_admin'), identitet],

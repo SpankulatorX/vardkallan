@@ -12,6 +12,8 @@ import * as vagar from '../src/ordinationsvagar.js';
 import * as dosandring from '../src/dosandring.js';
 import * as vidimering from '../src/vidimering.js';
 import * as fhir from '../src/fhir.js';
+// Runda 10, r5: kollegakontrollen av beredningen.
+import * as beredning from '../src/beredning.js';
 import { verifiera } from '../src/logg.js';
 import * as nyheter from '../src/nyheter.js';
 import { atk, testserver, klient, sandlada } from './hjalp.js';
@@ -132,6 +134,9 @@ describe('Tillsatser i infusion', () => {
     // Runda 9, r1: blandningen bereds med batchnumret, och systemet räknar fram resten ur ordinationen.
     const ior = administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('14:00'), atgard: 'iordningstall', beredning: { batch: 'MG2611' } });
     expect(ior.administrering.status).toBe('iordningstalld');
+    // Runda 10, r5: Addex-Magnesium är en koncentrerad elektrolyt, så en kollega kontrollerar beredningen i sin egen
+    // inloggning innan blandningen ges (hogriskkontroll.js, beslut 2026-11-08).
+    beredning.kontrollera(atk(db, 'ssk-hia', 'p01', {}, 'ge_lakemedel'), ior.administrering.beredning.id, { batch: 'MG2611' });
     const ut = administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('14:00'), kontrollkod: ior.administrering.iordningstalld.kontrollkod });
     expect(ut.administrering.status).toBe('given');
     expect(administrering.vatskebalans(ssk(db, 'p01', 'las_matvarden')).poster.find(p => p.administreringId === ut.id).volymMl).toBe(1020);

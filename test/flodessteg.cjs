@@ -909,6 +909,44 @@ function skapa(BAS) {
     await m.klicka(page.locator('#remissform [type="submit"]'), 'Skicka');
     await synlig(page, '.notis', 'Konsultationen är skickad');
   };
+  // Runda 10, r5: läkemedelsberättelsen, vaccinationen, sammanhållen journalföring och ankomsten till akuten.
+  const efterAterstallning = async (page, hash, vanta) => {
+    await gaTill(page, '#/arbetslista');
+    await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()));
+    await gaTill(page, hash);
+    await page.waitForSelector(vanta);
+  };
+  startI['Översikten för den inlagda patienten efter återställning'] = (page) => efterAterstallning(page, '#/patient/p01', '.tidslinje');
+  startI['Väntrummet efter återställning'] = (page) => efterAterstallning(page, '#/vantrum', '.akut-tavla');
+  GOR['lakemedelsberattelse'] = async (m, page) => {
+    await m.klicka(page.locator('.flikar a', { hasText: 'Läkemedel' }), 'fliken Läkemedel');
+    await page.waitForSelector('[data-ov-skicka]');
+    await m.klicka(page.locator('[data-ov-skicka]'), 'Skicka läkemedelsberättelsen');
+    await synlig(page, '.notis', 'är skickade till Vårdcentralen Tybble');
+  };
+  GOR['vaccination-riskgrupp'] = async (m, page) => {
+    await m.klicka(page.locator('.flikar a', { hasText: 'Vaccinationer' }), 'fliken Vaccinationer');
+    await page.waitForSelector('[data-vp-ge="pneumokocker"]');
+    await m.klicka(page.locator('[data-vp-ge="pneumokocker"]'), 'Ge dosen');
+    await page.locator('dialog[open] [data-varde="ok"]').waitFor();
+    await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Registrera dosen');
+    await synlig(page, '.notis', 'rapporterad till vaccinationsregistret');
+  };
+  GOR['sammanhallen'] = async (m, page) => {
+    await page.waitForSelector('.sj-form');
+    await m.klicka(page.locator('.sj-form [data-sj-samtycke]'), 'patienten samtycker');
+    await m.klicka(page.locator('.sj-form [type="submit"]'), 'Hämta uppgifter');
+    await synlig(page, '.tidslinje', 'Annan vårdgivare');
+  };
+  GOR['akut-ankomst'] = async (m, page) => {
+    await m.klicka(page.locator('[data-ak="ankomst"]'), 'Ny ankomst');
+    await page.locator('dialog[open] #ak-sok').waitFor();
+    await m.skriv(page.locator('dialog[open] #ak-sok'), '19660319-3373', 'personnumret');
+    await m.skriv(page.locator('dialog[open] #ak-orsak'), 'Bröstsmärta', 'kontaktorsaken');
+    await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Registrera ankomsten');
+    await synlig(page, '.notis', 'Ankomsten är registrerad');
+    await synlig(page, '.akut-tavla', 'Bröstsmärta');
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 

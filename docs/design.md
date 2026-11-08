@@ -1726,6 +1726,40 @@ Uppställningen per funktionellt krav tar nu med varje krav i kapitel 3 och 4, m
 
 Under ett avbrott går bara givna doser och mätvärden att registrera. Meddelandena till prenumerationerna simuleras i demon (`WEBHOOK_SKICKA=1` skickar dem), och systemkontona gäller den sandlåda där de registrerades. Mobilen är samma app i webbläsaren, prövad i Chromium med en skärm som är 360 px bred.
 
+## Processtöd, kunskapsstöd, vårdprocesser, högflödesmottagning, läkemedel och vaccination (runda 10, r5: kunskapsstod.js, utfallsstod.js, hogriskkontroll.js, lakemedelsoverforing.js, vaccinationsprogram.js, vaccinationsregister.js, sammanhallen.js och akutflode.js, Sussa 3.2.1.1 till 3.2.1.3, 3.2.2.3, 3.2.3.5, 3.5.1.1, 3.5.1.5 och 3.5.1.7)
+
+### Processtöd med integrerat kunskapsstöd (kunskapsstod.js)
+
+Processtödet är vårdplanerna. Varje standardplan har ett vårdförlopp med steg, och ett steg är klart när dess åtgärder är utförda. Systemet räknar fram nästa steg och visar riktlinjens text och källan i planen och redan när planen föreslås. Vid varje varning i ordinationen, administreringen och utsättningen står varför systemet varnar, vad användaren kan göra och källan. Vid ordinationen visar läkemedelsinformationen substansens egenskaper, dosering, dosering vid patientens eGFR och om läkemedlet är olämpligt för äldre. eGFR räknas med samma regel som säkerhetskontrollerna: från alla vårdenheter utan aktivt val, men aldrig från en spärrad vårdenhet utan samtycke. NEWS2 visas med vad poängen betyder. Texterna är Vårdkällans sammanfattningar av källorna och inte granskade av vården. Läkemedelsuppslaget är en simulerad katalog, och Sil och Janusmed är inte anslutna.
+
+### Beslutsstödstrappan och det kunskapsgenererande stödet (utfallsstod.js)
+
+Steg 1 är dokumentationen och visualiseringen, steg 2 reglerna som prövar journalens uppgifter mot kunskap, och steg 3 utfallen som systemet räknar fram ur vårdenhetens egna data: hur många avslutade planer ur samma standardplan som nådde alla mål och hur lång tid de tog, hur ofta en varning har kvitterats och hur ofta en substans sätts ut inom 30 dagar. Utfallen visas där beslutet fattas. Bara vårdenhetens egna rader räknas. Varje tal är 0 eller minst 5, och en andel visas bara när både de som nådde utfallet och de som inte gjorde det är 0 eller minst 5, så att ett litet tal aldrig kan räknas fram som en skillnad. Ingen MDR-bedömning är gjord.
+
+### Kollegakontroll av högriskläkemedel (hogriskkontroll.js)
+
+Koncentrerade elektrolyter (också tillsatser som Addex), opioider, insulininfusion, heparininfusion och cytostatika kontrolleras av en kollega innan dosen ges. Opioider kontrolleras per administrationssätt: förvalet är de parenterala sätten (intravenöst, subkutant, intramuskulärt, epiduralt och intratekalt) och alla opioider till barn under 18 år, så en tablett till en vuxen kontrolleras inte. Systemet avgör gruppen ur ordinationen. En dos som bereds kontrolleras i beredningen, och andra doser iordningsställs först. Kontrollen görs av en annan sjuksköterska eller läkare med vårdrelation på samma vårdenhet, i sin egen inloggning, och den som iordningsställde kan aldrig kontrollera själv. Den sparade kontrollen avgör: en iordningsställd dos med en kontroll som inte är gjord ges aldrig, oavsett vad anropet anger, och dosens läkemedel och ordination tas från den iordningsställda raden. Grupperna är parametrar som systemförvaltaren styr med fyra ögon, och för opioider är parametern listan över administrationssätt. En avstängd grupp gäller bara doser som iordningsställs efter ändringen.
+
+### Läkemedelsberättelsen till nästa vårdgivare (lakemedelsoverforing.js)
+
+När ett vårdtillfälle är pågående eller avslutat de senaste 30 dagarna tar systemet fram läkemedelsberättelsen, den aktuella läkemedelslistan och den signerade epikrisen och väljer mottagarna: vårdcentralen där patienten är listad och kommunen när en samordnad planering vid utskrivning pågår. Läkaren skickar med ett klick, och mottagaren kvitterar i inkorgen. Innehållet tas fram utan samtycke till spärrade uppgifter, och en spärr på den egna vårdenheten kräver patientens samtycke innan något skickas. Bara avsändarens och mottagarens vårdenheter ser överföringen. Kommunen, som är simulerad, får listan och berättelsen men inte epikrisen. Det som har skickats ändras och raderas aldrig.
+
+### Nationella vaccinationsprogram (vaccinationsprogram.js och vaccinationsregister.js)
+
+Barnhälsovårdens program till fem år finns sedan runda 7. Fliken Vaccinationer har fortsättningen: MPR dos 2, HPV i två doser och difteri, stelkramp och kikhosta dos 5, som oftast ges av elevhälsan, vattkoppor för barn födda 1 juli 2025 eller senare och programmet för riskgrupper med influensa varje säsong och pneumokocker, för den som är 65 år eller äldre eller har en diagnos som ger ökad risk. Riskgruppen räknas bara ur diagnoser som användaren får se. En dos som har getts någon annanstans registreras med källan. Varje dos som ges i Vårdkällan, också i barnhälsovården, rapporteras av systemet till det simulerade vaccinationsregistret, med kvittens. Barnhälsovårdens registrering godtar bara vacciner i sitt eget program och hänvisar andra till fliken Vaccinationer. Åldern för vaccination mot vattkoppor, åldersgränsen 65 år och diagnosgrupperna för riskgrupperna är parametrar som systemförvaltaren sätter med fyra ögon. Så länge åldern för vattkoppor inte är satt visas dosen med en förklaring, och när den är satt planeras dosen. Åldersgränsen och diagnosgrupperna är förenklade demoregler som ska stämmas av mot Folkhälsomyndighetens föreskrifter före verklig användning.
+
+### Sammanhållen journalföring (sammanhallen.js)
+
+Uppgifter från en annan vårdgivare hämtas efter vårdrelation, patientens samtycke och ett aktivt val med syfte, eller vid nödåtkomst utan samtycke, och visas i samma tidslinje med vårdgivare, vårdenhet, yrkesroll, den som skapade uppgiften och tiden. Spärrade uppgifter lämnas aldrig ut av den andra vårdgivaren. Valet ligger bland sessionens aktiva val och är bundet till person och vårdenhet, så det följer aldrig med till nästa inloggning eller uppdrag. Varje hämtning loggas med grunden samtycke eller nödåtkomst. Samtycket kan återkallas. Den andra vårdgivaren är simulerad.
+
+### Högflödesmottagningen (akutflode.js)
+
+Väntrummet har en flödestavla för akutmottagningens personal: ankomst med könummer och akutbesök, triage där systemet räknar prioriteten ur NEWS2 och kontaktorsaken, steg, planerade och utförda aktiviteter, läkarbedömning, beslut, utregistrering och inskrivning på avdelningen från akutbesöket. Förvarningar kommer från den simulerade ambulansen, som är en egen avsändare. Ankomsten tar bara patient och kontaktorsak från anropet, och prioriteten sätts bara i triagen. Akutbesöket ger vårdrelation först när en annan person än den som registrerade ankomsten möter patienten i triagen, bedömningen eller en aktivitet, och det loggas. Utanför akutmottagningen syns bara könummer, prioritet, steg och väntetid, och namn visas aldrig för en patient med skyddad identitet. Ledtiderna följs upp per prioritet utan patientuppgifter. Triagen är en demoregel, inte RETTS.
+
+### Det som är simulerat eller saknas
+
+Den andra vårdgivaren, ambulansen, kommunen, vaccinationsregistret och läkemedelsuppslaget är simulerade. Ingen av reglerna är granskad av vården, och ingen MDR-bedömning är gjord.
+
 ## Godkännandekriterier för första versionen
 
 - `bun test` grönt, med tester för varje regel i behörighetsmotorn, loggkedjan och triggrarna, signering och rättelse, obligatoriska fält och varningar i läkemedel, NLL som inte svarar i tid och avstämning, remissens statuskedja och larm, FHIR-svarens form.

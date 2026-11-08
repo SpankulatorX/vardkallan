@@ -165,7 +165,9 @@ export const TESTFALL = [
     slut: 'Instruktionerna är upplästa, alla fyra läkemedel är administrerade och det är dokumenterat att patienten kräktes upp premedicineringen.',
     tidsklass: 15, tidsklassSkal: 'Fyra administreringar, ett iordningställande och en avvikelse som ska dokumenteras.',
     korningar: [kor('ssk_slutenvard', 12, 'Ett klick på Läkemedel att ge, ett på Ge för paracetamol, Mer och Iordningsställ för glukoslösningen med Addex-Magnesium och sedan Ge, Ge för Stesolid och Ge för Zopiklon vid behov (7). Instruktionerna står i doseringen i listan, och för infusionen med tillsatsen räknar systemet koncentrationen och hastigheten. Kräkningen dokumenteras med ett klick på patienten, fliken Översikt, Ny anteckning, där omvårdnadsanteckningen är förvald, ett fältbyte för sökordet Elimination och Signera (5).')],
-    avvikelser: ['Ordinationerna gjordes i går och dosen ska ges i dag vid den hela timmen före testet. Glukosen med Addex-Magnesium är en ordination med tillsats. Att patienten kräktes upp premedicineringen registreras inte på dosen utan i en omvårdnadsanteckning.'],
+    avvikelser: ['Ordinationerna gjordes i går och dosen ska ges i dag vid den hela timmen före testet. Glukosen med Addex-Magnesium är en ordination med tillsats. Att patienten kräktes upp premedicineringen registreras inte på dosen utan i en omvårdnadsanteckning.',
+      // Runda 10, r5: kollegakontrollen av högriskläkemedel (beslut 2026-11-08).
+      'Addex-Magnesium är en koncentrerad elektrolyt, så en kollega kontrollerar beredningen i sin egen inloggning innan glukosen ges. I körningen gör läkaren Sara Lindqvist kontrollen, och hennes steg räknas inte i sjuksköterskans klick.'],
   }),
 
   // Tema 2: Vårdbegäran

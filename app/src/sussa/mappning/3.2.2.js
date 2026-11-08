@@ -1,5 +1,7 @@
 // Sussa 3.2.2 Vårdplaner och vårdprocesser: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
+// Runda 10, r5: processtöd, kunskapsstöd, vårdprocesser, högflödesmottagning, läkemedel och vaccination (sussa/runda10-r5.js).
+import { medR10r5 } from '../runda10-r5.js';
 import { TEST, klickbudgetTest } from '../../krav.js';
 import { FLODEN } from '../../klickbudget.js';
 
@@ -7,7 +9,7 @@ const { A, S } = TEST;
 const VP = 'Vårdplan > ';
 const flode = (id) => klickbudgetTest(FLODEN.find(f => f.id === id));
 
-export default [
+const POSTERNA = [
   {
     id: '3.2.2.1', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
     tester: [
@@ -48,3 +50,4 @@ export default [
     anmarkning: 'Information som skapas utanför Vårdkällan, hos andra vårdgivare eller i kringsystem, hämtas inte. Migreringen gäller seedens poster.',
   },
 ];
+export default medR10r5(POSTERNA);

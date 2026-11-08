@@ -6,6 +6,8 @@
 // registrera_matvarde, och raderna filtreras på vårdenhet (inre sekretess, aktivt val och spärr), så att kurvor, larm
 // och förslag bara bygger på det användaren får se. Vaccinationer läses med las_oversikt och registreras med vaccinera.
 // Besöken bokas med boka_bhv av läkare och sjuksköterskor på den vårdenhet där barnet är inskrivet i barnhälsovården.
+// Runda 10, r5: rapporteringen till det simulerade vaccinationsregistret.
+import { rapportera as rapporteraVaccination } from './vaccinationsregister.js';
 import { Fel, iso, datumAv, addDagar, lokalTid } from './db.js';
 import { Atkomst, ROLLER, HANDLINGAR, kanRoll, vardenhetFor, enheterUnder, harVardrelation, alder } from './atkomst.js';
 import * as journal from './journal.js';
@@ -358,7 +360,7 @@ function bhvDel(atk, p, nu) {
 }
 
 export const vaccinationUt = (db, v) => {
-  const d = P.vaccinRad(v.vaccin_id);
+  const d = P.vaccinRadVisning(v.vaccin_id);
   return { id: v.id, vaccinId: v.vaccin_id, text: d?.text ?? v.vaccin_id, sjukdomar: d?.sjukdomar ?? null, atc: v.atc, atcText: ATC[v.atc] ?? null, dos: v.dos, tid: v.tid, batch: v.batch,
     vardenhet: { id: v.enhet_id, namn: enhetsnamn(db, v.enhet_id) }, givetAv: personKort(db, v.givet_av)?.namn ?? null };
 };
@@ -476,6 +478,8 @@ export function vaccinera(atk, p, body = {}, knyt, nu = Date.now()) {
   kravInskriven(atk, 'vaccinera');
   const db = atk.db;
   const v = P.vaccinRad(body.vaccinId);
+  // Runda 10, r5: ett vaccin i de andra vaccinationsprogrammen registreras i deras flöde, som prövar det.
+  if (!v && P.iAndraProgram(body.vaccinId)) throw new Fel(400, 'Vaccinet ingår inte i barnhälsovårdens program. Registrera dosen under Vaccinationer i journalen, där systemet prövar den mot vaccinationsprogrammen för äldre barn och riskgrupper.', 'ogiltig', { falt: ['vaccinId'] });
   if (!v) throw new Fel(400, 'Okänt vaccin i programmet.', 'ogiltig', { falt: ['vaccinId'] });
   if (body.andraVaccinationer === 'ja') throw new Fel(400, SVAR_JA, 'ogiltig', { falt: ['andraVaccinationer'] });
   if (body.andraVaccinationer !== 'nej') throw new Fel(400, FRAGA_ANDRA, 'kraver_fraga', { falt: ['andraVaccinationer'] });
@@ -492,6 +496,8 @@ export function vaccinera(atk, p, body = {}, knyt, nu = Date.now()) {
   const t = new Date(nu).toISOString();
   const r = db.query('INSERT INTO vaccinationer (patient_id, enhet_id, vaccin_id, atc, dos, tid, givet_av, batch, registrerad) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
     .run(p.id, atk.personal.enhet_id, v.id, v.atc, v.dos, t, atk.personal.id, batch, iso());
+  // Runda 10, r5: dosen rapporteras av systemet till det simulerade vaccinationsregistret (vaccinationsregister.js).
+  rapporteraVaccination(db, Number(r.lastInsertRowid));
   const ut = vaccinationUt(db, db.query('SELECT * FROM vaccinationer WHERE id = ?').get(r.lastInsertRowid));
   knyt(atk, 'vaccinationer', ut, body);
   atk.logga('vaccinera', atk.grund(), `vaccination:${ut.id}`, 'tillaten', dolda ? 'Dosen gavs utan aktivt val, efter bekräftelse att barnet har vaccinationer registrerade på en annan vårdenhet.' : null);

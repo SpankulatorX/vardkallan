@@ -1,10 +1,12 @@
 // Sussa 3.2.1 Processtöd med integrerat kunskaps- och kliniskt beslutsstöd: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
+// Runda 10, r5: processtöd, kunskapsstöd, vårdprocesser, högflödesmottagning, läkemedel och vaccination (sussa/runda10-r5.js).
+import { medR10r5 } from '../runda10-r5.js';
 import { TEST } from '../../krav.js';
 
 const { M } = TEST;
 
-export default [
+const POSTERNA = [
   {
     id: '3.2.1.1', kategori: 'system', egna: ['D10', 'L11'], avsedd: 'delvis',
     tester: [
@@ -39,3 +41,4 @@ export default [
     anmarkning: 'Kunskapsgenererande system saknas, och reglerna är demoregler utan MDR-bedömning.',
   },
 ];
+export default medR10r5(POSTERNA);

@@ -16,7 +16,8 @@ import { InvanareAtkomst, journaler, synligKedja, provsvarVisas, MAX_NEKADE } fr
 import { aktivaSparrar } from './atkomst.js';
 import { tillaggUt } from './ordinationsmallar.js';
 // Runda 7, r6: vaccinerna i barnvaccinationsprogrammet.
-import { vaccinRad } from './bhv-program.js';
+// Runda 10, r5: visningen slår också upp vaccinerna i de andra vaccinationsprogrammen.
+import { vaccinRadVisning as vaccinRad } from './bhv-program.js';
 import { FHIR_SYSTEM as ID_SYSTEM, identiteterFor, delaOid, maskera, gallandeId, allaPatientIdn, hittaPaToken } from './identitet.js';
 // Tidboken: Schedule, Slot och Appointment (tidbok-fhir.js).
 import * as tidbokFhir from './tidbok-fhir.js';
@@ -606,16 +607,26 @@ export function carePlan(db, p) {
 
 // Runda 7, r6: en vaccination i barnvaccinationsprogrammet som Immunization. Vaccinet kodas med ATC, och dosen i serien
 // står i protocolApplied.
+// Runda 10, r5: programmet för riskgrupper får sitt eget namn i series, och en dos som har getts någon annanstans är
+// inte från primärkällan och har källan i reportOrigin (vaccinationsprogram.js).
 export function immunization(db, v) {
   const d = vaccinRad(v.vaccin_id);
+  const annan = v.kalla === 'annan' ? vaccinationKalla(db, v.id) : null;
   return {
     resourceType: 'Immunization', id: String(v.id), meta: kallaMeta(v.kalla), status: 'completed',
     vaccineCode: { coding: [{ system: SYSTEM.atc, code: v.atc, ...(ATC[v.atc] ? { display: ATC[v.atc] } : {}) }], text: d?.text ?? v.vaccin_id },
     patient: ref('Patient', v.patient_id), ...(v.vardkontakt_id ? { encounter: ref('Encounter', v.vardkontakt_id) } : {}),
-    occurrenceDateTime: v.tid, recorded: v.registrerad, primarySource: true, ...(v.batch ? { lotNumber: v.batch } : {}),
+    occurrenceDateTime: v.tid, recorded: v.registrerad, primarySource: !annan, ...(annan ? { reportOrigin: { text: annan.text } } : {}), ...(v.batch ? { lotNumber: v.batch } : {}),
     performer: [{ actor: v.givet_av ? ref('Practitioner', v.givet_av, personNamn(db, v.givet_av)) : ref('Organization', v.enhet_id, enhetsnamn(db, v.enhet_id)) }],
-    protocolApplied: [{ series: 'Barnvaccinationsprogrammet', authority: { display: 'Folkhälsomyndigheten' }, doseNumberPositiveInt: v.dos }],
+    protocolApplied: [{ series: d?.program === 'riskgrupper' ? 'Särskilt vaccinationsprogram för riskgrupper' : 'Barnvaccinationsprogrammet', authority: { display: 'Folkhälsomyndigheten' }, doseNumberPositiveInt: v.dos }],
   };
+}
+// Källan för en dos som har getts någon annanstans, utan att fhir.js importerar vaccinationsprogram.js.
+function vaccinationKalla(db, id) {
+  try {
+    const k = db.query('SELECT typ, text FROM vaccination_kalla WHERE vaccination_id = ?').get(id);
+    return k ? { text: k.text ?? (k.typ === 'elevhalsan' ? 'Elevhälsan' : 'Annan vårdgivare eller utomlands') } : { text: 'Annan vårdgivare' };
+  } catch { return { text: 'Annan vårdgivare' }; }
 }
 
 const MAPPA = { Immunization: immunization, CarePlan: carePlan, Encounter: encounter, EpisodeOfCare: episodeOfCare, Condition: condition, Observation: observation, MedicationRequest: medicationRequest, AllergyIntolerance: allergyIntolerance, Flag: flag, ServiceRequest: serviceRequest, Composition: composition, MedicationAdministration: medicationAdministration, List: list };

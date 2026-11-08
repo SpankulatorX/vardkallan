@@ -176,6 +176,78 @@ const JANEJ = {
   },
 };
 
+// Runda 10, r5: kollegakontroll av högriskläkemedel (hogriskkontroll.js, beslut 2026-11-08). Systemförvaltaren styr
+// vilka grupper en kollega kontrollerar innan dosen ges. Gruppernas id och regler finns i hogriskkontroll.js, och ett
+// test håller listorna lika. Effekten räknas bara med antal doser som väntar på kontroll.
+const HOGRISK = [
+  ['elektrolyter', 'koncentrerade elektrolyter, också tillsatser som Addex', 'Koncentrerade elektrolyter kan ge livshotande hjärtrytmrubbningar vid fel mängd eller för snabb infusion.'],
+  ['opioider', 'opioider', 'Opioider är narkotika, och en för hög dos kan ge andningsdepression.'],
+  ['insulininfusion', 'insulininfusion', 'Ett räknefel i en insulininfusion kan ge livshotande lågt blodsocker.'],
+  ['heparininfusion', 'heparininfusion', 'Ett räknefel i en heparininfusion kan ge allvarlig blödning eller blodpropp.'],
+  ['cytostatika', 'cytostatika', 'Cytostatika har ett smalt terapeutiskt fönster, och en felaktig dos kan ge allvarliga skador.'],
+];
+for (const [id, namn, varfor] of HOGRISK.filter(([id]) => id !== 'opioider')) {
+  JANEJ[`lakemedel.kollegakontroll.${id}`] = {
+    omrade: 'lakemedel', rubrik: `Kollegakontroll: ${namn}`, typ: 'janej', standard: true, anvands: 'hogriskkontroll.js och beredning.js',
+    text: { true: 'En kollega kontrollerar dosen innan den ges', false: 'Ingen kollegakontroll' },
+    beskrivning: `Om en annan sjuksköterska eller läkare ska kontrollera iordningsställandet eller beredningen innan dosen ges. ${varfor} Kontrollen görs alltid i kollegans egen inloggning.`,
+    effekt: (db, nytt) => {
+      const n = harTabell(db, 'kollegakontroller') ? db.query("SELECT count(*) AS n FROM kollegakontroller WHERE kontrollerad_tid IS NULL AND kategorier LIKE ?").get(`%"${id}"%`).n : 0;
+      return [nytt ? `Från dagen ändringen gäller kontrollerar en kollega varje ny dos av ${namn} innan den ges.` : `Från dagen ändringen gäller ges doser av ${namn} utan kollegakontroll. ${st(n, 'dos', 'doser')} som redan väntar på kontroll ska fortfarande kontrolleras.`];
+    },
+  };
+}
+
+// Opioider kontrolleras per administrationssätt (beslut 2026-11-08): förvalet är de parenterala sätten och alla opioider
+// till barn under 18 år. Listan har orden som systemförvaltaren ser, och hogriskkontroll.js översätter ordinationens
+// administrationssätt till dem. En tom lista betyder att opioider inte kontrolleras.
+export const OPIOID_SATT = ['intravenöst', 'subkutant', 'intramuskulärt', 'epiduralt', 'intratekalt', 'peroralt', 'under tungan', 'på huden', 'rektalt', 'i näsan', 'barn under 18 år'];
+const OPIOID_STANDARD = ['intravenöst', 'subkutant', 'intramuskulärt', 'epiduralt', 'intratekalt', 'barn under 18 år'];
+const opioidparameter = () => ({
+  omrade: 'lakemedel', rubrik: 'Kollegakontroll: opioider', enhet: 'administrationssätt', typ: 'lista', standard: [...OPIOID_STANDARD], anvands: 'hogriskkontroll.js och beredning.js',
+  beskrivning: `De administrationssätt där en annan sjuksköterska eller läkare kontrollerar en opioid innan dosen ges, i sin egen inloggning. Opioider är narkotika, och en för hög dos kan ge andningsdepression. "barn under 18 år" betyder alla administrationssätt till barn. Möjliga värden: ${OPIOID_SATT.join(', ')}.`,
+  provaLista: (lista) => {
+    const okand = lista.find(x => !OPIOID_SATT.includes(x.toLocaleLowerCase('sv')));
+    if (okand) return `${okand} är inget administrationssätt som kan väljas. Möjliga värden: ${OPIOID_SATT.join(', ')}.`;
+    if (new Set(lista.map(x => x.toLocaleLowerCase('sv'))).size !== lista.length) return 'Samma administrationssätt finns två gånger.';
+    return null;
+  },
+  tomTillaten: true,
+  effekt: (db, nytt) => [nytt.length ? `Från dagen ändringen gäller kontrollerar en kollega opioider som ges ${nytt.map(x => x.toLocaleLowerCase('sv')).join(', ')}.` : 'Från dagen ändringen gäller ges opioider utan kollegakontroll. Doser som redan väntar på kontroll ska fortfarande kontrolleras.'],
+});
+
+// Runda 10, r5: vaccinationsprogrammen (vaccinationsprogram.js, Sussa 3.5.1.7). Åldern för vattkoppor sätts när
+// Folkhälsomyndigheten har fastställt den, och åldersgränsen och riskgrupperna för programmet för riskgrupper är
+// förenklade demoregler. Diagnosgrupperna är ICD-10-prefix med tre tecken.
+OMRADEN.vaccination = { rubrik: 'Vaccinationsprogram', sussa: '3.5.1.7' };
+const AVSTAM = 'Värdet är en förenklad demoregel och ska stämmas av mot Folkhälsomyndighetens föreskrifter före verklig användning.';
+Object.assign(HELTAL, {
+  'vaccination.vattkoppor_alder_manader': {
+    omrade: 'vaccination', rubrik: 'Ålder för vaccination mot vattkoppor', enhet: 'månader', standard: 0, min: 0, max: 72, anvands: 'vaccinationsprogram.js',
+    beskrivning: 'Åldern i månader då barn födda 1 juli 2025 eller senare får dosen mot vattkoppor, enligt Folkhälsomyndighetens föreskrift. 0 betyder att åldern inte är satt, och då visas dosen men planeras inte.',
+    minVarfor: '0 betyder att åldern inte är satt.', maxVarfor: 'Barnvaccinationsprogrammets doser före skolstarten ges före sex års ålder.',
+    effekt: (db, nytt) => [nytt ? `Dosen mot vattkoppor planeras vid ${nytt} månaders ålder.` : 'Dosen mot vattkoppor visas utan planering, eftersom åldern inte är satt.'],
+  },
+  'vaccination.riskgrupp_alder_ar': {
+    omrade: 'vaccination', rubrik: 'Ålder för programmet för riskgrupper', enhet: 'år', standard: 65, min: 50, max: 90, anvands: 'vaccinationsprogram.js',
+    beskrivning: `Från den åldern föreslår systemet influensa och pneumokocker också utan en diagnos som ger ökad risk. ${AVSTAM}`,
+    minVarfor: 'Programmet för riskgrupper gäller äldre personer.', maxVarfor: 'En så hög gräns gör att de flesta äldre inte får något förslag.',
+    effekt: (db, nytt, forra) => [`Influensa och pneumokocker föreslås från ${nytt} år i stället för ${forra} år.`],
+  },
+});
+const RISK_STANDARD = ['I50', 'I25', 'I42', 'J44', 'J45', 'J84', 'E10', 'E11', 'N18', 'K70', 'K74', 'D80', 'D81', 'D82', 'D83', 'D84', 'B20'];
+const riskparameter = () => ({
+  omrade: 'vaccination', rubrik: 'Diagnoser som ger ökad risk i programmet för riskgrupper', enhet: 'diagnoskoder', typ: 'lista', standard: [...RISK_STANDARD], anvands: 'vaccinationsprogram.js',
+  beskrivning: `ICD-10-koder med tre tecken, till exempel J44. En patient med en sådan diagnos får förslag på influensa och pneumokocker oavsett ålder. ${AVSTAM}`,
+  provaLista: (lista) => {
+    const fel = lista.find(x => !/^[A-Z]\d{2}$/.test(x));
+    if (fel) return `${fel} är ingen ICD-10-kod med tre tecken, till exempel J44.`;
+    if (lista.length > 60) return 'Högst 60 diagnoskoder.';
+    return null;
+  },
+  effekt: (db, nytt) => [`Systemet räknar ${nytt.length} diagnoskoder som riskgrupp.`],
+});
+
 // Runda 8, r1: beställning och svar (labb.js, Sussa 12.1.1.9). Svarstiden för det simulerade laboratoriet, larmet för
 // prov som inte är tagna och paketens innehåll, som systemförvaltningen ändrar på ett ställe och som slår igenom i
 // förslagen, i beställningarna och i inkorgen. Katalogen importeras som data, inte modulen som använder parametrarna.
@@ -381,6 +453,9 @@ export function parametrar() {
     for (const m of journalMallar().filter(x => !x.strukturerad)) alla[`journal.sokord.${m.typ}`] = sokordsparameter(m);
     // Runda 8, r1: paketen i beställning och svar.
     for (const pk of LABB_PAKET) alla[`labb.paket.${pk.id}`] = labbPaketparameter(pk);
+    // Runda 10, r5: opioider per administrationssätt och riskgrupperna i vaccinationsprogrammen.
+    alla['lakemedel.kollegakontroll.opioider'] = opioidparameter();
+    alla['vaccination.riskgrupper'] = riskparameter();
   }
   return alla;
 }
@@ -420,6 +495,8 @@ export function prova(nyckel, inmatat) {
     const lista = (Array.isArray(inmatat) ? inmatat : String(inmatat ?? '').split(/[,\n]/)).map(s => String(s).trim()).filter(Boolean);
     // Runda 8, r1: en lista med egen prövning, som paketen i beställning och svar.
     if (def.provaLista) {
+      // Runda 10, r5: en lista som får vara tom (opioider utan kollegakontroll).
+      if (!lista.length && def.tomTillaten) return { ok: true, varde: [] };
       const fel = def.provaLista(lista);
       if (fel) return { ok: false, varfor: fel };
       return { ok: true, varde: lista.map(s => labbAnalysNamn.get(s.toLocaleLowerCase('sv'))?.namn ?? s) };

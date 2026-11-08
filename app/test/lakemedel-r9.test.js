@@ -17,6 +17,8 @@ import * as provning from '../src/kliniskprovning.js';
 import * as uppmarksamhet from '../src/uppmarksamhet.js';
 import * as vagar from '../src/ordinationsvagar.js';
 import { verifiera } from '../src/logg.js';
+// Runda 10, r5: kollegakontrollen av högriskläkemedel.
+import * as hogrisk from '../src/hogriskkontroll.js';
 import { slaSamman } from '../src/identitet.js';
 import { personal } from './hjalp.js';
 import { atk, testserver, klient } from './hjalp.js';
@@ -125,6 +127,8 @@ describe('Doser i flytande form och gasform', () => {
     expect(dos.flytande.text).toContain('aldrig upp i en spruta för injektion');
     const ior = administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('14:00'), atgard: 'iordningstall' });
     expect(beredning.etikett(ssk(db, 'p01', 'las_lakemedel'), ior.id).flytande.volymMl).toBe(5);
+    // Runda 10, r5: en oral lösning till en vuxen kontrolleras inte av en kollega (beslut 2026-11-08).
+    expect(ior.administrering.kollegakontroll).toBeNull();
     const k = administrering.kontroll(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('14:00'), volymMl: 50 });
     expect(k.varningar.find(v => v.regel === 'avvikande_volym')).toMatchObject({ kraverKvittens: true });
     expect(administrering.kontroll(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('14:00'), volymMl: 5 }).varningar.some(v => v.regel === 'avvikande_volym')).toBe(false);

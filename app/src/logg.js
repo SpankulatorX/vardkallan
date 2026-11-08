@@ -14,6 +14,8 @@ GRUNDER.push('ekonomi');
 GRUNDER.push('uppgiftsskyldighet', 'kvalitetsregister');
 // Runda 10, r1: läsningar och meddelanden till ett systemkonto för en extern tillämpning (systemkonton.js).
 GRUNDER.push('systemkonto');
+// Runda 10, r5: sammanhållen journalföring med en annan vårdgivare efter patientens samtycke (sammanhallen.js).
+GRUNDER.push('samtycke');
 export const INVANARGRUNDER = ['egen_atkomst', 'vardnadshavare'];
 const NOLL = '0'.repeat(64);
 const FALT = ['id', 'tid', 'personal_id', 'enhet_id', 'patient_id', 'handling', 'resurs', 'grund', 'syfte', 'resultat'];

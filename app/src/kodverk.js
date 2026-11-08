@@ -92,6 +92,9 @@ export const ATC = {
   'J07BH01': 'rota virus, live attenuated', 'J07CA09': 'diphtheria-haemophilus influenzae B-pertussis-poliomyelitis-tetanus-hepatitis B',
   'J07AL02': 'pneumococcus, purified polysaccharides antigen conjugated', 'J07BD52': 'measles, combinations with mumps and rubella, live attenuated',
   'J07CA02': 'diphtheria-pertussis-poliomyelitis-tetanus', 'J07AN01': 'tuberculosis, live attenuated',
+  // Runda 10, r5: vaccinerna efter fem års ålder och för riskgrupper, enligt WHO:s ATC/DDD-index.
+  'J07BM03': 'papillomavirus (human types 6, 11, 16, 18, 31, 33, 45, 52, 58)', 'J07AJ52': 'pertussis, purified antigen, combinations with toxoids',
+  'J07BB02': 'influenza, inactivated, split virus or surface antigen', 'J07BK01': 'varicella, live attenuated',
 };
 
 // Läkemedelsprodukter ordagrant ur Läkemedelsverkets NPL, totalfilen 2026-11-01_Total_NPL.zip (NPL 4.5): namn

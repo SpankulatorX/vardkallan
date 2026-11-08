@@ -1,5 +1,7 @@
 // Sussa 3.2.3 Processtöd för specifika vårdprocesser: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
+// Runda 10, r5: processtöd, kunskapsstöd, vårdprocesser, högflödesmottagning, läkemedel och vaccination (sussa/runda10-r5.js).
+import { medR10r5 } from '../runda10-r5.js';
 import { TEST, klickbudgetTest } from '../../krav.js';
 import { FLODEN } from '../../klickbudget.js';
 
@@ -11,7 +13,7 @@ const BEHORIGHET = [
   `${TV}skyddad identitet maskeras i bevakningen, och nödåtkomst ger bara läsning`,
 ];
 
-export default [
+const POSTERNA = [
   {
     id: '3.2.3.1', kategori: 'system', egna: ['L3'], avsedd: 'uppfyllt_demo',
     tester: [
@@ -71,3 +73,4 @@ export default [
     anmarkning: 'In- och utregistrering, triage, logistik mellan stegen och flödesöversikt för akutmottagningen saknas.',
   },
 ];
+export default medR10r5(POSTERNA);

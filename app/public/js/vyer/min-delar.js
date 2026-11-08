@@ -197,6 +197,8 @@ const GRUND = {
   egen_enhet: 'Vårdrelation', vardrelation: 'Vårdrelation', administrativ: 'Administrativ uppgift', aktivt_val: 'Aktivt val',
   samtycke_sparr: 'Med ditt samtycke', nodatkomst: 'Nödåtkomst', logggranskning: 'Logggranskning', nekad: 'Nekades',
   egen_atkomst: 'Egen åtkomst', vardnadshavare: 'Vårdnadshavare',
+  // Runda 10, r5: sammanhållen journalföring med en annan vårdgivare.
+  samtycke: 'Med ditt samtycke till sammanhållen journalföring',
 };
 const VEM = { du: 'Du', patienten: 'Patienten själv', vardnadshavare: 'Vårdnadshavare', invanare: 'En annan person' };
 const VIA = { fhir: 'via det öppna API:t', laskopia: 'till läskopian för avbrott', laslage: 'i läsläget under ett avbrott', min_journal: 'i Min journal' };
