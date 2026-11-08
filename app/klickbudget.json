@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T13:03:17.658Z",
-  "bas": "http://127.0.0.1:18111",
+  "tid": "2026-11-08T14:41:04.457Z",
+  "bas": "http://127.0.0.1:18192",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "8e9feefc1902f3987d5f3d6f1e22d65d9a092dc52c8755f67e0fe616178b0121",
+  "gransnittHash": "e24c9989f89e871f6625364ea41eedf8926d966f30da0cb7dca4a117a8616941",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -1255,6 +1255,73 @@
         "klick: Tagen för det första röret",
         "klick: Tagen för det andra röret"
       ]
+    },
+    {
+      "id": "koppla-monitor",
+      "namn": "Koppla en patientmonitor till patienten",
+      "roll": "ssk-kard",
+      "start": "Patientens mätvärden efter återställning",
+      "budget": 2,
+      "motivering": "Sussa 3.6.1.5. Med en streckkodsläsare skannas monitorns streckkod i fältet, som är ett fältbyte och Enter. I demon väljs monitorn med ett klick i listan över utrustning på vårdenheten, vilket motsvarar skanningen. Systemet hittar utrustningen, knyter den till patienten och den pågående vårdkontakten och avslutar en tidigare koppling när monitorn flyttas.",
+      "klick": 1,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "steg": [
+        "klick: Patientmonitor DEMO-MON-0001 i listan, i stället för att skanna"
+      ]
+    },
+    {
+      "id": "godkanna-mt",
+      "namn": "Godkänna värden från monitorn",
+      "roll": "ssk-kard",
+      "start": "Mätvärden med värden från en kopplad monitor",
+      "budget": 1,
+      "motivering": "Sussa 3.6.1.6. Ett klick på Godkänn vid värdena som väntar. Systemet godkänner alla värden från utrustningen som sjuksköterskan får se på sin vårdenhet, och de räknas sedan i NEWS2, larm och beslutsstöd.",
+      "klick": 1,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "steg": [
+        "klick: Godkänn vid värdena från monitorn"
+      ]
+    },
+    {
+      "id": "iva-oversikt",
+      "namn": "Öppna intensivvårdens översikt och övervakningen av en patient",
+      "roll": "lak-kard",
+      "start": "Arbetslistan efter inloggning",
+      "budget": 2,
+      "motivering": "Sussa 4.6.1.2. Ett klick på Intensivvård i menyn och ett på patienten. Översikten har redan räknat larm, förslag, infusioner och vätskebalans för alla patienter på avdelningen, med de mest akuta först.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Intensivvård i menyn",
+        "klick: patienten i översikten"
+      ]
+    },
+    {
+      "id": "egen-matning",
+      "namn": "Lämna en egen mätning i Min journal",
+      "roll": "inv-p01",
+      "start": "Min journal för patienten",
+      "budget": 3,
+      "motivering": "Sussa 3.6.1.7. Ett klick på Egna mätningar, ett fältbyte till värdet och ett klick för att skicka. Blodtryck är förvalt, tiden är nu och systemet väljer själv vårdenheten som tar emot mätningen.",
+      "klick": 2,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Egna mätningar",
+        "fältbyte: blodtrycket",
+        "klick: Skicka"
+      ]
     }
   ],
   "tester": [
@@ -1532,6 +1599,22 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Registrera provtagning inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Koppla en patientmonitor till patienten inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Godkänna värden från monitorn inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Öppna intensivvårdens översikt och övervakningen av en patient inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Lämna en egen mätning i Min journal inom budget",
       "status": "grön"
     }
   ]
