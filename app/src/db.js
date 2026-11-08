@@ -88,7 +88,10 @@ CREATE TABLE matvarden (
 );
 CREATE TABLE overkanslighet (
   id INTEGER PRIMARY KEY, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, amne TEXT NOT NULL, atc TEXT,
-  reaktion TEXT, allvarlighet TEXT NOT NULL, datum TEXT NOT NULL, kalla TEXT NOT NULL DEFAULT 'vardkallan'
+  reaktion TEXT, allvarlighet TEXT NOT NULL, datum TEXT NOT NULL, kalla TEXT NOT NULL DEFAULT 'vardkallan',
+  -- Runda 10, r2: version, vem som registrerade och avslut (overkanslighet.js). En överkänslighet raderas aldrig.
+  version INTEGER NOT NULL DEFAULT 1, registrerad TEXT, registrerad_av TEXT,
+  status TEXT NOT NULL DEFAULT 'aktiv', avslutad TEXT, avslutad_av TEXT, avslut_orsak TEXT
 );
 CREATE TABLE katalog (
   id TEXT PRIMARY KEY, namn TEXT NOT NULL, substans TEXT NOT NULL, styrka TEXT, form TEXT, atc TEXT NOT NULL, npl TEXT

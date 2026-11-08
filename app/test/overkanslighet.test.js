@@ -140,4 +140,56 @@ describe('Basfakta, överkänslighet', () => {
       expect(t).not.toContain(pat.personnummer.slice(0, 8));
     }
   });
+
+  // Säkerhetsgranskningen av runda 10, r2: ändring och avslut prövas mot radens egen vårdenhet och vårdgivare, och en
+  // överkänslighet raderas aldrig.
+  test('en annan vårdenhets rad hos samma vårdgivare får ändras och avslutas, och avslutet lämnar raden kvar med historiken', async () => {
+    const k = await inloggad('lak-kard');
+    const d = db(k);
+    const pc = d.query("SELECT * FROM overkanslighet WHERE patient_id = 'p01' AND amne = 'Penicilliner'").get();
+    expect(pc.enhet_id).toBe('uso-med');
+    const a = await k.post(`/api/overkanslighet/${pc.id}/andra`, { reaktion: 'Urtikaria, svullnad i ansiktet och andningsbesvär', orsak: 'Kompletterat efter samtal med patienten.' });
+    expect(a.status).toBe(200);
+    expect(a.data).toMatchObject({ version: 2, vardenhet: { id: 'uso-med' } });
+    const r = await k.post(`/api/overkanslighet/${pc.id}/avsluta`, { orsak: 'Negativ provokation med penicillin V.' });
+    expect(r.status).toBe(200);
+    const kvar = d.query('SELECT * FROM overkanslighet WHERE id = ?').get(pc.id);
+    expect(kvar).toMatchObject({ status: 'avslutad', avslutad_av: 'lak-kard', avslut_orsak: 'Negativ provokation med penicillin V.' });
+    expect(kvar.avslutad).toBeTruthy();
+    expect((await k.get('/api/patient/p01/basfakta')).data.overkanslighet.some(o => o.id === pc.id)).toBe(false);
+    const hist = (await k.get('/api/patient/p01/overkanslighet')).data;
+    expect(hist.aktuella.some(o => o.id === pc.id)).toBe(false);
+    expect(hist.historik.filter(h => h.overkanslighetId === pc.id).map(h => h.handelse)).toEqual(['avslutad', 'andrad']);
+    // FHIR visar den avslutade som inaktiv, så att historiken går att följa.
+    const fhir = JSON.stringify((await k.get('/fhir/AllergyIntolerance?patient=p01')).data);
+    expect(fhir).toContain('"code":"inactive"');
+    // Raden raderas aldrig, och en avslutad rad kan inte ändras igen.
+    expect(() => d.query('DELETE FROM overkanslighet WHERE id = ?').run(pc.id)).toThrow();
+    expect((await k.post(`/api/overkanslighet/${pc.id}/andra`, { reaktion: 'Utslag', orsak: 'Försök efter avslut' })).status).toBe(404);
+  });
+
+  test('en rad hos en annan vårdgivare och en spärrad vårdenhets rad kan inte ändras eller avslutas, och felet röjer inget', async () => {
+    const k = await inloggad('lak-kard');
+    const d = db(k);
+    const kommun = Number(d.query("INSERT INTO overkanslighet (patient_id, enhet_id, amne, atc, reaktion, allvarlighet, datum, kalla) VALUES ('p01', 'kommun-demo', 'Plåster och tejp', NULL, 'Rodnad', 'lindrig', '2025-02-01', 'vardkallan')").run().lastInsertRowid);
+    const ka = await k.post(`/api/overkanslighet/${kommun}/andra`, { reaktion: 'Utslag', orsak: 'Försök från regionen' });
+    const kb = await k.post(`/api/overkanslighet/${kommun}/avsluta`, { orsak: 'Försök från regionen' });
+    expect([403, 404]).toContain(ka.status);
+    expect(kb.status).toBe(ka.status);
+    expect(d.query('SELECT * FROM overkanslighet WHERE id = ?').get(kommun)).toMatchObject({ reaktion: 'Rodnad', version: 1 });
+    // En spärrad vårdenhets rad: samma 404 som en rad som inte finns.
+    const dold = Number(d.query("INSERT INTO overkanslighet (patient_id, enhet_id, amne, atc, reaktion, allvarlighet, datum, kalla) VALUES ('p04', 'uso-psyk', 'Escitalopram', 'N06AB10', 'Utslag', 'mattlig', '2025-01-01', 'vardkallan')").run().lastInsertRowid);
+    const finns = await k.post('/api/overkanslighet/999998/andra', { reaktion: 'Utslag', orsak: 'Försök på en rad som inte finns' });
+    const sparr = await k.post(`/api/overkanslighet/${dold}/andra`, { reaktion: 'Utslag', orsak: 'Försök på en rad som inte finns' });
+    expect(sparr.status).toBe(404);
+    expect(sparr.data).toEqual(finns.data);
+    // Inte heller med patientens samtycke till att visa den spärrade raden.
+    await k.post('/api/patient/p04/val', { typ: 'samtycke_sparr', syfte: 'Patienten samtycker' });
+    expect((await k.post(`/api/overkanslighet/${dold}/avsluta`, { orsak: 'Försök med samtycke' })).status).toBe(403);
+    expect(d.query('SELECT status FROM overkanslighet WHERE id = ?').get(dold).status).toBe('aktiv');
+    // Fel roll.
+    const usk = await inloggad('usk-kard');
+    const pc = db(usk).query("SELECT id FROM overkanslighet WHERE patient_id = 'p01' AND amne = 'Penicilliner'").get().id;
+    expect((await usk.post(`/api/overkanslighet/${pc}/avsluta`, { orsak: 'Försök av undersköterskan' })).status).toBe(403);
+  });
 });

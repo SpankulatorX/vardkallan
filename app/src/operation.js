@@ -384,7 +384,7 @@ function forloppUt(db, an, f) {
 // Det som systemet fyller i på checklistan ur journalen: allergierna som den inloggade får se och blodbeställningen.
 export function checklistaUnderlag(atk, an) {
   lasRad(atk, an, 'las_operation');
-  const allergier = atk.filtrera(atk.db.query('SELECT * FROM overkanslighet WHERE patient_id = ?').all(an.patient_id), 'las_oversikt', { gemensam: true }).map(o => o.amne);
+  const allergier = atk.filtrera(atk.db.query("SELECT * FROM overkanslighet WHERE patient_id = ? AND status = 'aktiv'").all(an.patient_id), 'las_oversikt', { gemensam: true }).map(o => o.amne);
   const prover = proverFor(atk, an);
   const blod = INGREPP[an.kva].blod ? prover.filter(p => ['blodgruppering', 'bastest'].includes(p.analys)) : [];
   return {

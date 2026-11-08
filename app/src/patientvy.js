@@ -305,7 +305,7 @@ export function lakemedel(atk) {
   const ord = db.query('SELECT * FROM ordinationer WHERE patient_id = ? ORDER BY start DESC, id DESC').all(atk.patientId).map(o => ordinationInvanare(db, o));
   return {
     aktuella: ord.filter(o => o.aktuell), tidigare: ord.filter(o => !o.aktuell),
-    overkanslighet: db.query('SELECT * FROM overkanslighet WHERE patient_id = ? ORDER BY datum DESC, id DESC').all(atk.patientId).map(o => overkanslighetUt(db, o)),
+    overkanslighet: db.query("SELECT * FROM overkanslighet WHERE patient_id = ? AND status = 'aktiv' ORDER BY datum DESC, id DESC").all(atk.patientId).map(o => overkanslighetUt(db, o)),
   };
 }
 

@@ -6,8 +6,8 @@ const flytt = `(NEW.patient_id IS NOT OLD.patient_id
 
 export const SCHEMA_R10R2 = `
 -- Varje händelse för en överkänslighet (Sussa 3.1.6.2): registrerad, ändrad (en ny version) och avslutad, med uppgifterna
--- som de var efter händelsen, när, var, av vem och varför. Tabellen overkanslighet har de gällande uppgifterna, och
--- historiken här ändras och raderas aldrig. Bara en sammanslagning av två journaler (identitet.js) får flytta raderna.
+-- som de var efter händelsen, när, var, av vem och varför. Tabellen overkanslighet har de gällande uppgifterna med
+-- status, och historiken här ändras och raderas aldrig. Bara en sammanslagning av två journaler (identitet.js) får flytta raderna.
 CREATE TABLE IF NOT EXISTS overkanslighet_handelser (
   id INTEGER PRIMARY KEY, overkanslighet_id INTEGER NOT NULL, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, version INTEGER NOT NULL,
   handelse TEXT NOT NULL, amne TEXT NOT NULL, atc TEXT, reaktion TEXT, allvarlighet TEXT NOT NULL, orsak TEXT,
@@ -24,6 +24,11 @@ CREATE TRIGGER IF NOT EXISTS overkanslighet_handelser_andras_ej BEFORE UPDATE ON
     AND NEW.allvarlighet IS OLD.allvarlighet AND NEW.orsak IS OLD.orsak AND NEW.tid IS OLD.tid AND NEW.av IS OLD.av AND NEW.av_enhet IS OLD.av_enhet)
   BEGIN SELECT RAISE(ABORT, 'En händelse för en överkänslighet ändras inte'); END;
 
+-- En överkänslighet raderas aldrig: den avslutas med status och orsak. Bara gallring och radering efter beslut (arkiv.js)
+-- släpper triggern, som för andra journaltabeller.
+CREATE TRIGGER IF NOT EXISTS overkanslighet_raderas_ej BEFORE DELETE ON overkanslighet
+  BEGIN SELECT RAISE(ABORT, 'En överkänslighet raderas inte, den avslutas'); END;
+
 -- Förval för vyerna på vårdenhetsnivå (Sussa 3.1.2.1 och 3.1.2.3). Systemförvaltningen sätter förvalet för en vårdenhet
 -- och en vy, till exempel vilka delar av översikten som visas och i vilken ordning. Användarens egna val går före.
 CREATE TABLE IF NOT EXISTS vyforval_vardenhet (
@@ -39,6 +44,9 @@ export function sakraR10r2(db) {
     if (!kol.includes('version')) db.exec('ALTER TABLE overkanslighet ADD COLUMN version INTEGER NOT NULL DEFAULT 1');
     if (!kol.includes('registrerad')) db.exec('ALTER TABLE overkanslighet ADD COLUMN registrerad TEXT');
     if (!kol.includes('registrerad_av')) db.exec('ALTER TABLE overkanslighet ADD COLUMN registrerad_av TEXT');
+    // En avslutad överkänslighet ligger kvar med status, vem, när och varför. Den raderas aldrig.
+    if (!kol.includes('status')) db.exec("ALTER TABLE overkanslighet ADD COLUMN status TEXT NOT NULL DEFAULT 'aktiv'");
+    for (const k of ['avslutad', 'avslutad_av', 'avslut_orsak']) if (!kol.includes(k)) db.exec(`ALTER TABLE overkanslighet ADD COLUMN ${k} TEXT`);
   }
   db.exec(SCHEMA_R10R2);
 }

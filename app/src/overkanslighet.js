@@ -7,7 +7,7 @@
 // allvarlighetsgraden ur reaktionen och förklarar varför. Användaren behöver inte kunna ATC-koderna. En överkänslighet
 // hör till vårdenheten där den registrerades, så att spärr och inre sekretess gäller som för annan journalinformation.
 import { Fel, iso, idag } from './db.js';
-import { kanRoll, vardenhetFor } from './atkomst.js';
+import { kanRoll, vardenhetFor, aktivaSparrar } from './atkomst.js';
 import { ATC } from './kodverk.js';
 import { foreslagenGrad } from './uppmarksamhet-regler.js';
 
@@ -118,7 +118,7 @@ export function registrera(atk, inp = {}) {
   const allvarlighet = lasAllvarlighet(inp.allvarlighet, reaktion);
   // Samma ämne två gånger på samma vårdgivare är en dubblett. Bara rader som den inloggade får se jämförs, så att en
   // spärrad rad inte röjs av en dubblettkontroll.
-  const synliga = atk.filtrera(db.query('SELECT * FROM overkanslighet WHERE patient_id = ?').all(atk.patientId), LAS, { gemensam: true });
+  const synliga = atk.filtrera(db.query("SELECT * FROM overkanslighet WHERE patient_id = ? AND status = 'aktiv'").all(atk.patientId), LAS, { gemensam: true });
   if (synliga.some(o => norm(o.amne) === norm(t.amne))) throw new Fel(400, `Överkänslighet mot ${t.amne.toLowerCase()} är redan registrerad. Ändra den i stället.`, 'ogiltig', { falt: ['amne'] });
   const tid = iso();
   const id = db.transaction(() => {
@@ -132,12 +132,42 @@ export function registrera(atk, inp = {}) {
   return okUt(db, db.query('SELECT * FROM overkanslighet WHERE id = ?').get(id));
 }
 
-// En gällande överkänslighet som den inloggade får se. En rad som inte finns och en rad som är dold får samma svar.
+// En gällande överkänslighet som den inloggade får se. En rad som inte finns, en avslutad rad och en rad som är dold får
+// samma svar.
+const SAKNAS = 'Överkänsligheten finns inte bland det du kan se.';
 export function hamta(atk, id) {
   const db = atk.db;
-  const o = Number.isInteger(Number(id)) ? db.query('SELECT * FROM overkanslighet WHERE id = ?').get(Number(id)) : null;
-  if (!o || o.patient_id !== atk.patientId) throw new Fel(404, 'Överkänsligheten finns inte bland det du kan se.', 'saknas');
-  if (!atk.filtrera([o], LAS, { gemensam: true }).length) throw new Fel(404, 'Överkänsligheten finns inte bland det du kan se.', 'saknas');
+  const o = Number.isInteger(Number(id)) ? db.query("SELECT * FROM overkanslighet WHERE id = ? AND status = 'aktiv'").get(Number(id)) : null;
+  if (!o || o.patient_id !== atk.patientId) throw new Fel(404, SAKNAS, 'saknas');
+  if (!atk.filtrera([o], LAS, { gemensam: true }).length) throw new Fel(404, SAKNAS, 'saknas');
+  return o;
+}
+
+// Vårdgivaren (huvudmannen) för en enhet: den vårdgivare eller kommun som enheten leder upp till, som huvudman() i
+// lagring.js.
+function vardgivareFor(db, enhetId) {
+  let e = db.query('SELECT id, typ, forald_id FROM enheter WHERE id = ?').get(enhetId);
+  for (let i = 0; i < 10 && e && e.forald_id && !['vardgivare', 'kommun'].includes(e.typ); i++) e = db.query('SELECT id, typ, forald_id FROM enheter WHERE id = ?').get(e.forald_id);
+  return e?.id ?? enhetId;
+}
+
+// Säkerhetsgranskningen av runda 10, r2: en överkänslighet är gemensam information inom vårdgivaren. Den som får
+// registrera ändrar och avslutar en rad som hör till en vårdenhet hos den egna vårdgivaren, aldrig en rad hos en annan
+// vårdgivare och aldrig en spärrad vårdenhets rad, inte heller med patientens samtycke till att visa den. Behörigheten
+// prövas mot radens egen enhet.
+function hamtaForAndring(atk, id) {
+  const db = atk.db;
+  const o = hamta(atk, id);
+  if (vardgivareFor(db, o.enhet_id) !== vardgivareFor(db, atk.personal.enhet_id)) {
+    atk.logga(HANDLING, 'nekad', `overkanslighet:${o.id}`, 'nekad');
+    throw new Fel(403, 'Överkänsligheten är registrerad hos en annan vårdgivare och ändras där.', 'nekad');
+  }
+  const ve = vardenhetFor(db, o.enhet_id);
+  if (ve !== vardenhetFor(db, atk.personal.enhet_id) && aktivaSparrar(db, o.patient_id).includes(ve)) {
+    atk.logga(HANDLING, 'nekad', `overkanslighet:${o.id}`, 'nekad');
+    throw new Fel(403, 'Uppgiften är spärrad av patienten och kan bara ändras på vårdenheten där den registrerades.', 'nekad');
+  }
+  if (!atk.prova(HANDLING, { enhet_id: o.enhet_id, gemensam: true }).tillaten) throw new Fel(404, SAKNAS, 'saknas');
   return o;
 }
 export const patientFor = (db, id) => (Number.isInteger(Number(id)) ? db.query('SELECT patient_id FROM overkanslighet WHERE id = ?').get(Number(id))?.patient_id ?? null : null);
@@ -146,7 +176,7 @@ export const patientFor = (db, id) => (Number.isInteger(Number(id)) ? db.query('
 export function andra(atk, id, inp = {}) {
   atk.krav(HANDLING, { resurs: { enhet_id: atk.personal.enhet_id } });
   const db = atk.db;
-  const o = hamta(atk, id);
+  const o = hamtaForAndring(atk, id);
   const orsak = lasText(inp.orsak, 'orsak', 3, 300, 'Skriv varför uppgiften ändras. Orsaken visas i historiken.');
   const t = inp.amne != null ? tolkaAmne(db, lasText(inp.amne, 'amne', 2, 120, 'Skriv vad patienten är överkänslig mot.')) : { amne: o.amne, atc: o.atc };
   const reaktion = inp.reaktion != null ? lasText(inp.reaktion, 'reaktion', 2, 300, 'Beskriv reaktionen.') : o.reaktion;
@@ -170,18 +200,18 @@ export function andra(atk, id, inp = {}) {
   return okUt(db, db.query('SELECT * FROM overkanslighet WHERE id = ?').get(o.id));
 }
 
-// Avslutar en överkänslighet med en orsak. Den försvinner ur basfakta och uppmärksamhetssymbolen, och historiken visar
-// den med vem som avslutade den och varför.
+// Avslutar en överkänslighet med en orsak. Raden ligger kvar med status, vem, när och varför, men är inte längre gällande:
+// den försvinner ur basfakta, uppmärksamhetssymbolen och varningarna, och historiken visar avslutet.
 export function avsluta(atk, id, inp = {}) {
   atk.krav(HANDLING, { resurs: { enhet_id: atk.personal.enhet_id } });
   const db = atk.db;
-  const o = hamta(atk, id);
+  const o = hamtaForAndring(atk, id);
   const orsak = lasText(inp.orsak, 'orsak', 3, 300, 'Skriv varför överkänsligheten avslutas, till exempel att en provokation var negativ.');
   db.transaction(() => {
     handelse(db, o, 'avslutad', atk.personal, orsak);
     db.query("UPDATE uppmarksamhet SET status = 'avslutad', avslutad = ?, avslutad_av = ?, avslutad_orsak = ? WHERE kalla_typ = 'overkanslighet' AND kalla_id = ? AND status = 'aktiv'")
       .run(iso(), atk.personal.id, orsak, o.id);
-    db.query('DELETE FROM overkanslighet WHERE id = ?').run(o.id);
+    db.query("UPDATE overkanslighet SET status = 'avslutad', avslutad = ?, avslutad_av = ?, avslut_orsak = ? WHERE id = ?").run(iso(), atk.personal.id, orsak, o.id);
   })();
   atk.logga(HANDLING, atk.grund(), `overkanslighet:${o.id}`);
   return handelseUt(db, db.query("SELECT * FROM overkanslighet_handelser WHERE overkanslighet_id = ? AND handelse = 'avslutad' ORDER BY id DESC").get(o.id));
@@ -191,7 +221,7 @@ export function avsluta(atk, id, inp = {}) {
 export function forPatient(atk) {
   atk.krav(LAS);
   const db = atk.db;
-  const aktuella = atk.filtrera(db.query('SELECT * FROM overkanslighet WHERE patient_id = ? ORDER BY datum DESC, id DESC').all(atk.patientId), LAS, { gemensam: true });
+  const aktuella = atk.filtrera(db.query("SELECT * FROM overkanslighet WHERE patient_id = ? AND status = 'aktiv' ORDER BY datum DESC, id DESC").all(atk.patientId), LAS, { gemensam: true });
   const historik = atk.filtrera(db.query('SELECT * FROM overkanslighet_handelser WHERE patient_id = ? ORDER BY tid DESC, id DESC').all(atk.patientId), LAS, { gemensam: true });
   const kan = kanRoll(atk.personal, HANDLING) && atk.prova(HANDLING, { enhet_id: atk.personal.enhet_id }).tillaten;
   return { aktuella: aktuella.map(o => okUt(db, o)), historik: historik.map(h => handelseUt(db, h)), kan: { registrera: kan }, allvarlighet: ALLVARLIGHET };

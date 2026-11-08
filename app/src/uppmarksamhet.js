@@ -73,7 +73,7 @@ function raderFor(db, pid, atk = null) {
   const filtrera = (rader) => (atk ? atk.filtrera(rader, ATKOMST_LAS, { gemensam: true }) : rader);
   const grader = graderFor(db, pid);
   const ovr = filtrera(db.query("SELECT * FROM uppmarksamhet WHERE patient_id = ? AND status = 'aktiv' AND kategori <> 'overkanslighet' ORDER BY registrerad, id").all(pid));
-  const ok = filtrera(db.query('SELECT * FROM overkanslighet WHERE patient_id = ? ORDER BY datum, id').all(pid)).map(o => ({ o, bekr: grader.get(o.id) ?? null }));
+  const ok = filtrera(db.query("SELECT * FROM overkanslighet WHERE patient_id = ? AND status = 'aktiv' ORDER BY datum, id").all(pid)).map(o => ({ o, bekr: grader.get(o.id) ?? null }));
   return { ovr, ok };
 }
 

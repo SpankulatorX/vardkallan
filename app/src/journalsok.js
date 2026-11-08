@@ -238,7 +238,7 @@ export function villkorUrFraga(db, fraga) {
   }
   if (atc.length) villkor.lakemedel = { atc: [...new Set(atc)] };
   if (!villkor.diagnoser && !villkor.lakemedel) {
-    throw new Fel(400, `Systemet kunde inte göra "${t.fraga}" till ett villkor. Sök över patienter på en diagnos, ett läkemedel eller en läkemedelsgrupp, till exempel I48, förmaksflimmer, Waran eller blodförtunnande. Fritext söks i en patients journal.`, 'ogiltig', { falt: ['q'] });
+    throw new Fel(400, `Systemet kunde inte göra "${t.fraga}" till ett villkor. Sök över patienter på en diagnos, ett läkemedel eller en läkemedelsgrupp, till exempel I48, förmaksflimmer, Waran eller blodförtunnande. Fritext söks i journalen för en patient i taget.`, 'ogiltig', { falt: ['q'] });
   }
   return { villkor, tolkning: `Söker patienter med ${beskrivning.join(' eller ')}.`, fraga: t.fraga };
 }
