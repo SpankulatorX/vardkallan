@@ -21,6 +21,8 @@ import { kanRoll, vardenhetFor, enheterUnder, alder, harVardrelation } from './a
 import * as journal from './journal.js';
 import * as lakemedel from './lakemedel.js';
 import * as remiss from './remiss.js';
+// Runda 7, r3: patientavgiften för asylsökande med LMA-kort (ekonomi-schema.js).
+import { lmaFor, AVGIFT_LMA } from './ekonomi-schema.js';
 
 export const KONTAKTSATT = { besok: 'Besök', telefon: 'Telefon', video: 'Video', hembesok: 'Hembesök' };
 const PLATS = { telefon: 'Telefonkontakt', video: 'Videobesök', hembesok: 'Hembesök' };
@@ -322,6 +324,14 @@ export function avgiftFor(db, patient, v) {
   if (!patient || (v.kalla && v.kalla !== 'vardkallan')) return null;
   const g = grundavgift(v, patient);
   const ut = (belopp, text) => ({ belopp, text: `${text} Demoregel, inte en regions avgifter.`, demoregler: true });
+  // Runda 7, r3: en asylsökande med giltigt LMA-kort betalar den lägre avgiften och omfattas inte av högkostnadsskyddet.
+  const lma = lmaFor(db, patient.id, datumAv(new Date(Date.parse(v.start))));
+  if (lma) {
+    const ar = alder(patient.fodd, datumAv(new Date(Date.parse(v.start))));
+    const typ = v.typ === 'akut' ? 'akut' : v.typ === 'slutenvard' ? 'slutenvard' : (v.kontaktsatt ?? 'besok');
+    const b = ar < AVGIFT_LMA.friUnder ? 0 : (AVGIFT_LMA[typ] ?? AVGIFT_LMA.besok);
+    return { ...ut(b, ar < AVGIFT_LMA.friUnder ? 'Asylsökande barn med LMA-kort betalar ingen avgift.' : `Asylsökande med LMA-kort betalar ${b} kr.`), lma: true };
+  }
   if (g.slutenvard || g.belopp === 0) return ut(g.belopp, g.text);
   // Högkostnadsskyddet: avgifterna för öppenvård under de senaste tolv månaderna, i tidsordning.
   const fran = new Date(Date.parse(v.start) - 365 * 86400_000).toISOString();
@@ -333,6 +343,20 @@ export function avgiftFor(db, patient, v) {
   if (kvar === 0) return ut(0, `Högkostnadsskyddet på ${AVGIFT_DEMO.hogkostnadsskydd} kr är nått, så besöket är avgiftsfritt.`);
   if (kvar < g.belopp) return ut(kvar, `${g.text} Högkostnadsskyddet nås med det här besöket.`);
   return ut(g.belopp, g.text);
+}
+
+// Runda 7, r3: högkostnadsskyddet för patienten i dag, med samma räkning som avgiften: hur mycket som har betalats inom
+// skyddet de senaste tolv månaderna och hur mycket som återstår till frikort. Räknas över alla vårdenheter, eftersom
+// skyddet gäller patienten och inte en vårdenhet, men talar inte om var eller när avgifterna betalades (ekonomi.js).
+export function hogkostnadsskyddet(db, patient, nu = Date.now()) {
+  const grans = AVGIFT_DEMO.hogkostnadsskydd;
+  if (lmaFor(db, patient.id, datumAv(new Date(nu)))) return { grans, betalt: 0, kvar: grans, frikort: false, lma: true, demoregler: true };
+  const fran = new Date(nu - 365 * 86400_000).toISOString();
+  const tidigare = db.query(`SELECT * FROM vardkontakter WHERE patient_id = ? AND typ <> 'slutenvard' AND kalla = 'vardkallan' AND start >= ? AND start <= ?
+    AND (planerad = 0 OR ankomst IS NOT NULL) ORDER BY start, id`).all(patient.id, fran, new Date(nu).toISOString());
+  let betalt = 0;
+  for (const t of tidigare) betalt += Math.min(grundavgift(t, patient).belopp, Math.max(0, grans - betalt));
+  return { grans, betalt, kvar: Math.max(0, grans - betalt), frikort: betalt >= grans, lma: false, demoregler: true };
 }
 
 // Vårdtillfällen (6.1.1.5). Avdelningar som kan ta emot inneliggande patienter: arbetsplatser som inte är mottagningar,

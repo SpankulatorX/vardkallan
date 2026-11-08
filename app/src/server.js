@@ -51,6 +51,8 @@ import { skapaOppetApi } from './oppet-api.js';
 import { registreraRutter as r4Rutter, inkorg as r4Inkorg, period as r4Period } from './planering-rutter.js';
 import * as planering from './planering.js';
 import * as tidbokFhir from './tidbok-fhir.js';
+// Runda 7, r3: ekonomi, faktureringsunderlag och kostnader i vårdprocessen (Sussa 7.1).
+import { registreraRutter as ekonomiRutter } from './ekonomi-rutter.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -1410,6 +1412,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   oppetApi.registreraRutter({ rutt, kravInloggad, medPatient });
   // Runda 6, r4 (planering-rutter.js).
   r4Rutter({ rutt, kravInloggad, kravRoll, medPatient, medMinJournal });
+  // Runda 7, r3 (ekonomi-rutter.js).
+  ekonomiRutter({ rutt, kravInloggad, medPatient });
 
   // Endpoints som inte behöver en sandlåda.
   const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/krav/sussa', '/api/drift', '/api/lasekopia/krypterad-logg']);

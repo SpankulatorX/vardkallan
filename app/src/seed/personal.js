@@ -15,6 +15,8 @@ export const YRKEN = {
   farmaceut: 'Farmaceut',
   // Runda 6, r6: verksamhetschefen utser uppdragen i läkemedelshanteringen och läser inte journalen.
   verksamhetschef: 'Verksamhetschef',
+  // Runda 7, r3: ekonomen tar fram faktureringsunderlag och sköter prislistorna, och läser inte journalen.
+  ekonom: 'Ekonom',
 };
 
 export const PERSONAL = [
@@ -58,4 +60,7 @@ export const PERSONAL = [
   { id: 'vch-kard', namn: 'Ulrika Sandell', yrke: 'verksamhetschef', titel: 'Verksamhetschef', enhet: 'uso-kard', demo: true, r6: true },
   // En sjuksköterska på hjärtintensiven som systemet föreslår som reservkontrollant för narkotikaförbrukningen.
   { id: 'ssk-hia', namn: 'Petra Nyberg', yrke: 'sjukskoterska', titel: 'Sjuksköterska', enhet: 'uso-kard-hia', r6: true },
+  // Runda 7, r3: ekonomen på regionkansliet, som exporterar faktureringsunderlag och sköter prislistorna (Sussa 7.1).
+  // r7: true betyder att personen läggs in också i en sandlåda från före runda 7 (ekonomi-schema.js).
+  { id: 'eko', namn: 'Fredrik Alm', yrke: 'ekonom', titel: 'Ekonom (vårdfakturering)', enhet: 'rk', demo: true, r7: true },
 ];
