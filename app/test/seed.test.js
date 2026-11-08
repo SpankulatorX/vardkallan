@@ -117,6 +117,8 @@ describe('Seed', () => {
       // Runda 7, r4: systemförvaltaren på regionkansliet.
       ['sysf', 'Tomas Lindh', 'systemforvaltare', 'rk'],
       ['sysf-2', 'Nora Ekholm', 'systemforvaltare', 'rk'],
+      // Runda 7, r1: paramedicinaren i Sussas testfall.
+      ['fys-kard', 'Jenny Holmberg', 'fysioterapeut', 'uso-kard-mott'],
     ]);
   });
 

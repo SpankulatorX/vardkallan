@@ -8,6 +8,8 @@ COPY scripts ./scripts
 COPY test ./test
 # Playwright-testerna av gränssnittet (test/avbrott.cjs, test/anvandartest.cjs och test/klickbudget.cjs) körs före bygget. Resultaten följer med här.
 COPY klickbudget.json klienttest-resultat.json ./
+# Runda 7, r1: Sussas användbarhetstester (test/sussa-testfall.cjs).
+COPY sussa-testfall.json ./
 RUN bun scripts/kor-tester.js
 
 FROM oven/bun:1.3.14-alpine
@@ -16,7 +18,7 @@ COPY package.json ./
 COPY src ./src
 COPY public ./public
 COPY --from=test /app/test-resultat.json ./test-resultat.json
-COPY klickbudget.json klienttest-resultat.json ./
+COPY klickbudget.json klienttest-resultat.json sussa-testfall.json ./
 ENV NODE_ENV=production PORT=8080
 RUN mkdir -p /data && chown bun:bun /data
 USER bun

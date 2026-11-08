@@ -179,6 +179,19 @@ for (const r of Object.keys(ROLLER)) ROLLER[r].push('utbildning');
 ROLLER.verksamhetschef.push('intyg_enhet');
 UTAN_PATIENT.add('utbildning');
 UTAN_PATIENT.add('intyg_enhet');
+// Runda 7, r1: fysioterapeuten (paramedicinare i Sussas testfall) läser journalen och skriver i omvårdnadskategorin,
+// registrerar mätvärden, skickar, tar emot, bedömer och besvarar remisser och läser tidboken (Bilaga F1:3 tabell 4).
+// Inga läkemedel ordineras eller ges, och nödåtkomst finns inte.
+ROLLER.fysioterapeut = ['las_oversikt', 'las_journal', 'las_omvardnad', 'skriv_omvardnad', 'las_lakemedel', 'las_matvarden', 'registrera_matvarde',
+  'las_diagnoser', 'las_remiss', 'remittera', 'mottag_remiss', 'bedom_remiss', 'svara_remiss', 'kvittera_svar', 'las_admin', 'sok', 'andra_enheter',
+  'samtycke_sparr', 'visa_identitet', 'skriv_ut', 'las_vardplan', 'vardplan_atgard', 'bevaka', 'bevaka_enhet', 'las_tidbok', 'statistik'];
+// Rollen kom till efter utbildningens block ovan, så den får övningarna här (runda 7, r2: all personal gör övningarna).
+ROLLER.fysioterapeut.push('utbildning');
+
+// Runda 7, r1: testledaren för användartesterna är uppföljningsrollen, som läser och exporterar svaren utan patientuppgifter.
+HANDLINGAR.anvandartest_las = 'läsa och exportera svaren från användartester';
+ROLLER.uppfoljning.push('anvandartest_las');
+UTAN_PATIENT.add('anvandartest_las');
 
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
 

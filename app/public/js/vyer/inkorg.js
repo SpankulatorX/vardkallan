@@ -124,6 +124,8 @@ export async function visa(main) {
     ${sektion('svar', 'Okvitterade remissvar', svar, 'Inga remissvar väntar på dig.', 'Svar på remisser från din vårdenhet som ingen har kvitterat än.')}
     ${sektion('nll', 'NLL-avvikelser', nll, 'Inga avvikelser mot Nationella läkemedelslistan.', 'Ordinationer från din vårdenhet där NLL inte svarade i tid eller svarade med fel.')}
   </div>${S.session.personal.yrke === 'vardadministrator' ? '<p class="dampad liten">Som vårdadministratör ser du larm om remissernas status men ingen journaltext.</p>' : ''}`;
+  // Runda 7, r1: alla egna utkast granskas i en lista och signeras med ett klick (Sussas testfall 4.4).
+  signeraAllaKnapp(main, d.osigneradeAnteckningar);
   // Runda 5, r4: avsluta behandlingen efter ett uppehåll och sätta upp en avbokad vårdhändelse igen.
   // Runda 6, r4: en egen bevakning markeras som klar.
   // Runda 7, r5: rättningar före rapportering.
@@ -224,4 +226,32 @@ async function sparrBeslut(knapp, f) {
     await uppdateraInkorg();
     return true;
   } catch { return false; }
+}
+// Runda 7, r1: Granska och signera alla. Listan visar varje utkast med patient, typ, tid, vårdenhet och texten, med en
+// länk till hela anteckningen. Varje utkast signeras med samma anrop och samma kontroller som ett i taget, så servern
+// prövar författaren och behörigheten för varje anteckning. De som inte gick att signera står kvar med orsaken.
+function signeraAllaKnapp(main, utkast) {
+  const sek = main.querySelector('#ik-osign')?.closest('section');
+  if (!sek || utkast.length < 2) return;
+  sek.querySelector('h2').insertAdjacentHTML('afterend', `<p class="knapprad"><button type="button" class="knapp liten" data-signera-alla>Granska och signera alla (${utkast.length})</button></p>`);
+  sek.querySelector('[data-signera-alla]').addEventListener('click', async (e) => {
+    const b = e.currentTarget;
+    const svar = await dialog(`<form><h2 id="dlg-rubrik">Granska och signera ${utkast.length} anteckningar</h2>
+      <p>Läs igenom utkasten. Öppna en anteckning för att läsa eller ändra hela texten innan du signerar. En signerad anteckning kan bara rättas med en ny version.</p>
+      <ol class="ik-granska">${utkast.map(a => `<li><strong>${esc(a.typ)}, ${esc(pnamn(a.patient))}</strong> <span class="under-text">${esc(tidpunkt(a.skapad))}, ${esc(a.enhet.namn)}</span><span class="under-text">${esc(a.sammanfattning)}</span> <a class="liten" href="#/patient/${encodeURIComponent(a.patientId)}/journal/${a.id}">Öppna</a></li>`).join('')}</ol>
+      <p class="dialog-fel form-fel" role="alert" hidden></p>
+      <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Signera alla ${utkast.length}</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`,
+    { klass: 'dialog-bred', onOpen: (dl) => dl.querySelector('[data-varde="ok"]').focus() });
+    if (!svar) return;
+    const kvar = [];
+    await medKnapp(b, async () => {
+      for (const a of utkast) {
+        try { await api(`/api/anteckning/${encodeURIComponent(a.id)}/signera`, { metod: 'POST', data: {}, tyst: true }); } catch (err) { kvar.push(`${a.typ}, ${pnamn(a.patient)}: ${err?.message ?? 'kunde inte signeras'}`); }
+      }
+    }).catch(() => {});
+    const klara = utkast.length - kvar.length;
+    notis(kvar.length ? `${klara} av ${utkast.length} anteckningar är signerade. Kvar: ${kvar.join(' ')}` : `${klara} anteckningar är signerade.`, kvar.length ? 'info' : undefined);
+    await uppdateraInkorg();
+    visa(main);
+  });
 }

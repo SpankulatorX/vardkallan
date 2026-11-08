@@ -51,6 +51,8 @@ import * as tidsgrans from './tidsgrans.js';
 
 // Högkontrastläget sätts innan något ritas, så att sidan inte blinkar till i vanliga färger.
 kontrast.init();
+// Runda 7, r1: Sussas testfall med testpersoner, SUS och expertgranskning.
+import * as sussatest from './vyer/sussatest.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -106,6 +108,8 @@ const MENY = [
   ['#/rapportering', 'Rapportering', 'arkiv', () => far('myndighetsrapport')],
   // Runda 7, r2: övningar och intyg för all personal (Sussa 10.1.1.5).
   ['#/utbildning', 'Utbildning', 'person', () => far('utbildning')],
+  // Runda 7, r1: testledaren läser och exporterar svaren från användartesterna.
+  ['#/sussatest', 'Användartester', 'krav', () => far('anvandartest_las')],
   ['#/migrering', 'Migreringsavstämning', 'migrering', () => true],
   ['#/krav', 'Kravspårbarhet', 'krav', () => true],
   ['#/moduler', 'Moduler', 'moduler', () => true],
@@ -158,6 +162,8 @@ const RUTTER = [
   [/^#\/api$/, oppetApi, () => true],
   [/^#\/drift$/, drift, () => true, true],
   [/^#\/anvandartest$/, anvandartest, () => true, true],
+  // Runda 7, r1.
+  [/^#\/sussatest$/, sussatest, () => true, true],
   [/^#\/patient\/([\w-]+)(?:\/([a-z]+))?(?:\/([\w-]+))?$/, patient, () => !utanJournal()],
 ];
 

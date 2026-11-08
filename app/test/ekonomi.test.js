@@ -5,6 +5,7 @@ import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import { byggSeed, migrera, idag, addDagar, datumAv } from '../src/db.js';
 import * as ekonomi from '../src/ekonomi.js';
 import { BASPRISER, DRG_DEMO, FOLKBOKFORING_DEMO } from '../src/ekonomi-schema.js';
+import { KATALOG } from '../src/seed/lakemedel-katalog.js';
 import { avgiftFor, kontaktUt } from '../src/vardkontakt.js';
 import * as tidbok from '../src/tidbok.js';
 import { slaSamman } from '../src/identitet.js';
@@ -33,7 +34,8 @@ describe('Ekonomi: prislistor', () => {
       expect(p).toMatchObject({ enhet_id: e });
       expect(p.poster.vardkontakt.besok.pris).toBeGreaterThan(0);
       expect(p.poster.vardtillfalle.varddygn.pris).toBeGreaterThan(0);
-      expect(Object.keys(p.poster.lakemedel).length).toBe(50);
+      // Varje produkt i läkemedelskatalogen har ett pris.
+      expect(Object.keys(p.poster.lakemedel).length).toBe(KATALOG.length);
     }
     const h = ekonomi.prislistaHistorik(d, 'uso-kard');
     expect(h.versioner.length).toBe(2);

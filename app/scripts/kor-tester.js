@@ -34,7 +34,8 @@ for (const m of text.matchAll(/<(\/?)(testsuites|testsuite|testcase|failure|erro
 try { unlinkSync(xml); } catch { /* ingen fil */ }
 
 // Testerna av gränssnittet körs i Playwright före bygget och följer med som klickbudget.json och klienttest-resultat.json.
-const klient = lasKlientresultat({ klickbudget: join(rot, 'klickbudget.json'), klienttester: join(rot, 'klienttest-resultat.json') });
+// Runda 7, r1: och Sussas användbarhetstester som sussa-testfall.json.
+const klient = lasKlientresultat({ klickbudget: join(rot, 'klickbudget.json'), klienttester: join(rot, 'klienttest-resultat.json'), sussatestfall: join(rot, 'sussa-testfall.json') });
 const namn = new Set([...tester, ...klient.tester].map(t => t.namn));
 const inaktuella = klient.tester.filter(t => t.status === 'inaktuell').length;
 if (inaktuella) console.warn(`${inaktuella} tester av gränssnittet är inaktuella: public/ har ändrats sedan Playwright-testerna kördes.`);

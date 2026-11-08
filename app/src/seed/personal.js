@@ -20,6 +20,8 @@ export const YRKEN = {
   // Runda 7, r4: systemförvaltaren konfigurerar regler och parametrar, förbereder omorganisationer, beslutar om
   // undantag från visning och publicering och följer upp lagringen. Läser inte journalen (Sussa 12.1 och KD1.1.3).
   systemforvaltare: 'Systemförvaltare',
+  // Runda 7, r1: paramedicinare i Sussas användbarhetstester.
+  fysioterapeut: 'Fysioterapeut',
 };
 
 export const PERSONAL = [
@@ -73,4 +75,7 @@ export const PERSONAL = [
   // r7: true betyder att personen läggs in också i en sandlåda från före runda 7 (systemforvaltning-schema.js).
   { id: 'sysf', namn: 'Tomas Lindh', yrke: 'systemforvaltare', titel: 'Systemförvaltare (applikationskonfiguration)', enhet: 'rk', demo: true, r7: true },
   { id: 'sysf-2', namn: 'Nora Ekholm', yrke: 'systemforvaltare', titel: 'Systemförvaltare', enhet: 'rk', demo: true, r7: true },
+  // Runda 7, r1: en fysioterapeut på kardiologiska mottagningen (hjärtrehabilitering), som spelar paramedicinaren i Sussas
+  // testfall. Sist i listan, så att de andras HSA-id inte ändras.
+  { id: 'fys-kard', namn: 'Jenny Holmberg', yrke: 'fysioterapeut', titel: 'Fysioterapeut (hjärtrehabilitering)', enhet: 'uso-kard-mott', demo: true },
 ];

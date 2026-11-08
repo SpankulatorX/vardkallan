@@ -3,7 +3,7 @@
 // demopatienternas påhittade namn. Modulen beror inte på db.js.
 import { YRKEN } from './personal.js';
 
-const JOURNAL = ['lakare', 'sjukskoterska', 'underskoterska', 'vardadministrator', 'farmaceut'];
+const JOURNAL = ['lakare', 'sjukskoterska', 'underskoterska', 'vardadministrator', 'farmaceut', 'fysioterapeut'];
 const ALLA = Object.keys(YRKEN);
 
 const o = (id, roller, fraga, alternativ, ratt, forklaring, prova = null) => ({ id, roller, fraga, alternativ: alternativ.map(([a, text]) => ({ id: a, text })), ratt, forklaring, prova });

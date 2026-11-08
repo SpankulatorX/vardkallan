@@ -1,5 +1,7 @@
 # Läkemedelskontroll
 
+Runda 7: katalogen har utökats till 103 produkter, kontrollerade mot NPL:s totalfil 2026-11-03. Kontrollen beskrivs i `docs/kodkontroll.md` (avsnittet Runda 7).
+
 Kontroll av läkemedelskatalogen och ordinationerna i seeden mot Läkemedelsverkets öppna register, gjord 2026-11-01. Kontrollen hör till kodkontrollen i `docs/kodkontroll.md`. Facit står i `app/src/kodverk.js` (`NPL`), katalogen i `app/src/seed/lakemedel-katalog.js`, och testerna i `app/test/kodverk.test.js` stoppar bygget om katalogen eller ordinationerna avviker.
 
 ## Sammanfattning

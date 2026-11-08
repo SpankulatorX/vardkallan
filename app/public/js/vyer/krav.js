@@ -1,6 +1,8 @@
 // Kravspårbarhet: Sussas kravspecifikation med originalnummer (standardvyn) och det egna ramverket K, D, L och M.
 // Varje krav och post visas med status och de automatiska tester som visar det.
 import { esc, api, tidpunkt, ikon, vyRubrik } from '../ui.js';
+// Runda 7, r1: resultatet av Sussas användbarhetstester under K4.
+import { sussaTestfallTabell } from '../sussa-testfall-ui.js';
 
 export const namn = 'krav';
 
@@ -321,6 +323,7 @@ function kravRad(k) {
     ${k.avsedd !== k.status ? `<p class="ruta ruta-larm liten">Avsett som ${esc(STATUS[k.avsedd].toLowerCase())}, men alla tester är inte gröna.</p>` : ''}
     ${k.anmarkning ? `<p class="krav-anm">${esc(k.anmarkning)}</p>` : ''}
     ${'klickbudget' in k ? klickbudgetTabell(k.klickbudget) : ''}
+    ${'sussaTestfall' in k ? sussaTestfallTabell(k.sussaTestfall) : ''}
     ${k.tester.length ? `<details class="testlista"><summary>${k.tester.length === 1 ? 'Ett test' : `${k.tester.length} tester`}, ${k.tester.filter(x => x.status === 'grön').length} gröna</summary><ul>${testrader(k.tester)}</ul></details>` : '<p class="dampad liten">Inga automatiska tester än.</p>'}
   </li>`;
 }

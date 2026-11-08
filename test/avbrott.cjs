@@ -810,6 +810,11 @@ const undersok = (page, kod, nyckelB64) => page.evaluate(async ({ kod, nyckelB64
     // Samma person är inloggad i webbläsarens session, så arbetet fortsätter som vanligt.
     await synlig(p, '.inloggad', 'Sara Lindqvist');
     anta((await lagrat(p)).logg.length === 0, 'loggen finns kvar lokalt');
+    // Runda 7, r1: inloggningen som logggranskare nedan delar sessionskaka med sidan. Sidan hämtar fortfarande journalen
+    // och förnyar läskopian efter avbrottet, och ett sådant anrop som hann iväg efter bytet fick 403 och gav ibland ett
+    // konsolfel. Sidan får bli klar och stängs därför först.
+    await p.waitForLoadState('networkidle');
+    await p.close();
     await c.request.post(`${BAS}/api/login`, { data: { personalId: 'logg' }, headers: { Origin: BAS } });
     const ll = await (await c.request.get(`${BAS}/api/patient/p01/logglista`)).json();
     anta(ll.rader.filter(x => x.resurs?.startsWith('laslage:')).length === rader, 'raderna från reservläget saknas i åtkomstloggen');

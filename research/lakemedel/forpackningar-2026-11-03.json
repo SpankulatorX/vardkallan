@@ -3400,5 +3400,3839 @@
     "parallelldistribuerad": false
    }
   ]
+ },
+ "51": {
+  "npl": "19660112000039",
+  "namn": "Addex-Magnesium",
+  "forpackningar": [
+   {
+    "nplpackid": "19741001100075",
+    "text": "Injektionsflaska, 10 ml",
+    "avregistrerad": "2004-12-30",
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101106010",
+    "text": "Injektionsflaska, 10 x 10 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "52": {
+  "npl": "19880617000116",
+  "namn": "Alvedon forte",
+  "forpackningar": [
+   {
+    "nplpackid": "20260120100095",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "19880401100374",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": "2011-03-31",
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100927100167",
+    "text": "Blister, 100 x 1 tablett (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20260120100118",
+    "text": "Blister, 15 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100927100174",
+    "text": "Blister, 50 x 1 tablett (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101109714",
+    "text": "Blister, 50 x 1 tablett (endos) (gammal formulering)",
+    "avregistrerad": "2011-03-31",
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20260120100101",
+    "text": "Burk, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "19951001100085",
+    "text": "Plastburk, 150 tabletter (dosdispensering och sjukhusförpackning)",
+    "avregistrerad": "2011-03-31",
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "53": {
+  "npl": "20120904000099",
+  "namn": "Atrovent",
+  "forpackningar": [
+   {
+    "nplpackid": "20130502100022",
+    "text": "Spraybehållare med munstycke, 200 doser",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "54": {
+  "npl": "19870213000054",
+  "namn": "Atrovent",
+  "forpackningar": [
+   {
+    "nplpackid": "10010101108717",
+    "text": "Endosbehållare, 60 st (60 x 2 ml)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101123574",
+    "text": "Endosbehållare, 60 x 1 ml",
+    "avregistrerad": "2010-03-02",
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "55": {
+  "npl": "19990604000040",
+  "namn": "Atrovent",
+  "forpackningar": [
+   {
+    "nplpackid": "10010101123581",
+    "text": "Endosbehållare, 60 x 1 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "56": {
+  "npl": "19960412000037",
+  "namn": "Rinivent",
+  "forpackningar": [
+   {
+    "nplpackid": "19960401100311",
+    "text": "Glasflaska med dospump, 180 doser (15 ml)",
+    "avregistrerad": "2016-06-16",
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20160616100120",
+    "text": "Glasflaska med dospump, 180 doser (15 ml)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "57": {
+  "npl": "19930122000023",
+  "namn": "Glucos Baxter 25 mg/ml buffrad",
+  "forpackningar": [
+   {
+    "nplpackid": "10010101112738",
+    "text": "Infusionsbehållare, 1 x 1000 ml (Clear-Flex)",
+    "avregistrerad": "2026-03-05",
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101112691",
+    "text": "Infusionsbehållare, 1 x 500 ml (Clear-Flex)",
+    "avregistrerad": "2026-03-05",
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101112707",
+    "text": "Infusionspåse, 1 x 1000 ml (Viaflo)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20111125100156",
+    "text": "Infusionspåse, 1 x 1000 ml (Viaflo) (tillförslutande infusionsport)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101112745",
+    "text": "Infusionspåse, 1 x 500 ml (Viaflo)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20111125100125",
+    "text": "Infusionspåse, 1 x 500 ml (Viaflo) (tillförslutande infusionsport)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101112721",
+    "text": "Infusionspåse, 10 x 1000 ml (Viaflo)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20111125100132",
+    "text": "Infusionspåse, 10 x 1000 ml (Viaflo) (tillförslutande infusionsport)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20240604100056",
+    "text": "Infusionspåse, 12 x 1000 ml (Viaflo)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20240604100063",
+    "text": "Infusionspåse, 12 x 1000 ml (Viaflo) (tillförslutande infusionsport)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101112714",
+    "text": "Infusionspåse, 20 x 500 ml (Viaflo)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20111125100149",
+    "text": "Infusionspåse, 20 x 500 ml (Viaflo) (tillförslutande infusionsport)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "58": {
+  "npl": "20141125000095",
+  "namn": "Kloramfenikol Santen",
+  "forpackningar": [
+   {
+    "nplpackid": "20150225100086",
+    "text": "Flaska, 1 x 10 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "59": {
+  "npl": "20141125000118",
+  "namn": "Kloramfenikol Santen",
+  "forpackningar": [
+   {
+    "nplpackid": "20150225100109",
+    "text": "Tub, 1 x 3,5 g",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20200819100081",
+    "text": "Tub, 1 x 4,3 g",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "60": {
+  "npl": "20050409000020",
+  "namn": "Metformin Teva",
+  "forpackningar": [
+   {
+    "nplpackid": "20120611100129",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050525100246",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050525100260",
+    "text": "Blister, 120 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120130100099",
+    "text": "Blister, 180 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20060623100055",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050525100284",
+    "text": "Blister, 200 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050525100222",
+    "text": "Blister, 250 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050525100239",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050525100314",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050525100253",
+    "text": "Blister, 300 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050525100307",
+    "text": "Blister, 40 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050525100291",
+    "text": "Blister, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050525100321",
+    "text": "Blister, 56 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20060309100089",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050525100277",
+    "text": "Blister, 90 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20220203100077",
+    "text": "Burk, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20220203100121",
+    "text": "Burk, 105 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20220203100114",
+    "text": "Burk, 180 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20220203100107",
+    "text": "Burk, 200 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20220203100091",
+    "text": "Burk, 250 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20220203100084",
+    "text": "Burk, 400 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "61": {
+  "npl": "20130713000050",
+  "namn": "Morfin Alternova",
+  "forpackningar": [
+   {
+    "nplpackid": "20130917100013",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130917100037",
+    "text": "Blister, 25 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130917100020",
+    "text": "Blister, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130917100044",
+    "text": "Burk, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "62": {
+  "npl": "20090718000014",
+  "namn": "Paracetamol Fresenius Kabi",
+  "forpackningar": [
+   {
+    "nplpackid": "20181210100262",
+    "text": "Ampull, 10 x 10 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20091106100101",
+    "text": "Injektionsflaska, 10 x 100 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20091106100156",
+    "text": "Injektionsflaska, 10 x 50 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20091106100132",
+    "text": "Injektionsflaska, 100 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20091106100125",
+    "text": "Injektionsflaska, 12 x 100 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20091106100163",
+    "text": "Injektionsflaska, 12 x 50 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20091106100095",
+    "text": "Injektionsflaska, 20 x 100 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20091106100118",
+    "text": "Injektionsflaska, 20 x 50 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20091106100149",
+    "text": "Injektionsflaska, 50 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130118100041",
+    "text": "Påse, 20 x 100 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130118100065",
+    "text": "Påse, 20 x 50 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130118100010",
+    "text": "Påse, 50 x 100 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130118100058",
+    "text": "Påse, 50 x 50 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130118100034",
+    "text": "Påse, 60 x 100 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130118100027",
+    "text": "Påse, 60 x 50 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "63": {
+  "npl": "20040416000250",
+  "namn": "Sertralin Teva Pharma",
+  "forpackningar": [
+   {
+    "nplpackid": "20040223103359",
+    "text": "Blister, 10 tabl",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20040223103304",
+    "text": "Blister, 100 tabl",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20040223103335",
+    "text": "Blister, 100 x 1 tabl (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20040223103373",
+    "text": "Blister, 14 tabl",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20040223103441",
+    "text": "Blister, 15 tabl",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20040223103458",
+    "text": "Blister, 20 tabl",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20040223103489",
+    "text": "Blister, 28 tabl",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20040223103403",
+    "text": "Blister, 28 x 1 tabl (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20040223103298",
+    "text": "Blister, 30 tabl",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20040223103410",
+    "text": "Blister, 30 x 1 tabl (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20040223103311",
+    "text": "Blister, 50 tabl",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20040223103397",
+    "text": "Blister, 50 x 1 tabl (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20040223103472",
+    "text": "Blister, 60 tabl",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20040223103465",
+    "text": "Blister, 7 tabl",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20040223103328",
+    "text": "Blister, 98 tabl",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20040223103342",
+    "text": "Blister, 98 x 1 tabl (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20040223103427",
+    "text": "Burk, 100 tabl",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20040223103366",
+    "text": "Burk, 250 tabl",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20040223103434",
+    "text": "Burk, 500 tabl",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "64": {
+  "npl": "19670228000021",
+  "namn": "Stesolid",
+  "forpackningar": [
+   {
+    "nplpackid": "20000823100028",
+    "text": "Blister, 50 x 1 tablett (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101106126",
+    "text": "Burk, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101106140",
+    "text": "Burk, 25 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101106133",
+    "text": "Burk, 250 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20031119100095",
+    "text": "Burk, 500 tabletter (dosdispensering och sjukhusförpackning)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "65": {
+  "npl": "19670228000038",
+  "namn": "Stesolid",
+  "forpackningar": [
+   {
+    "nplpackid": "20000823100035",
+    "text": "Blister, 50 x 1 tablett (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101106157",
+    "text": "Burk, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101106164",
+    "text": "Burk, 25 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101106171",
+    "text": "Burk, 250 tabletter (dosdispensering)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "66": {
+  "npl": "20081114000012",
+  "namn": "Zopiklon Pilum",
+  "forpackningar": [
+   {
+    "nplpackid": "20081208100758",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20081208100772",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20081208100765",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110512100519",
+    "text": "Burk, 1000 tabletter (dosdispensering)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20160530100046",
+    "text": "Burk, 250 tabletter (dosdispensering)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120420100129",
+    "text": "Burk, 500 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "67": {
+  "npl": "20041011000034",
+  "namn": "Metoprolol Sandoz",
+  "forpackningar": [
+   {
+    "nplpackid": "20050107100152",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050107100138",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20150827100118",
+    "text": "Blister, 112 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050107100213",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050107100183",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050107100220",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050107100190",
+    "text": "Blister, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050107100121",
+    "text": "Blister, 50 x 1 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050808100635",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20180426100103",
+    "text": "Blister, 90 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050107100206",
+    "text": "Burk, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050107100176",
+    "text": "Burk, 250 tabletter, (dosdispensering)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050107100169",
+    "text": "Burk, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050107100145",
+    "text": "Burk, 500 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050808100642",
+    "text": "Burk, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "68": {
+  "npl": "20100610000095",
+  "namn": "Bisoprolol Teva",
+  "forpackningar": [
+   {
+    "nplpackid": "20100630100171",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100630100164",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100630100379",
+    "text": "Blister, 21 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100630100157",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100630100102",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100630100133",
+    "text": "Blister, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100630100140",
+    "text": "Blister, 56 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100630100126",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100630100119",
+    "text": "Blister, 90 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "69": {
+  "npl": "20001201000022",
+  "namn": "Bisoprolol Teva",
+  "forpackningar": [
+   {
+    "nplpackid": "20001201100135",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20020115100031",
+    "text": "Blister, 100 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20001201100098",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20001201100081",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20001201100111",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20001201100142",
+    "text": "Blister, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20001201100128",
+    "text": "Blister, 56 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20001201100104",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20250128100050",
+    "text": "Blister, 84 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20051025100019",
+    "text": "Blister, 84 tabletter",
+    "avregistrerad": "2014-02-19",
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20250128100043",
+    "text": "Blister, 90 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20051025100026",
+    "text": "Blister, 90 tabletter",
+    "avregistrerad": "2014-02-19",
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20020115100048",
+    "text": "Blister, 98 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "70": {
+  "npl": "19821217000083",
+  "namn": "Spironolakton Pfizer",
+  "forpackningar": [
+   {
+    "nplpackid": "10010101107871",
+    "text": "Blister, 49 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101107857",
+    "text": "Burk, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101107864",
+    "text": "Burk, 250 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "71": {
+  "npl": "19821217000090",
+  "namn": "Spironolakton Pfizer",
+  "forpackningar": [
+   {
+    "nplpackid": "10010101107895",
+    "text": "Blister, 49 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101107888",
+    "text": "Burk, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101107901",
+    "text": "Burk, 250 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "72": {
+  "npl": "20041208000014",
+  "namn": "Enalapril Krka",
+  "forpackningar": [
+   {
+    "nplpackid": "20091002100014",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050207100021",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050602100053",
+    "text": "Blister, 100 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20160811100789",
+    "text": "Blister, 110 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20160811100796",
+    "text": "Blister, 120 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20060407101391",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050207100014",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050207100038",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050602100046",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050207100045",
+    "text": "Blister, 98 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050722100018",
+    "text": "Burk, 250 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "73": {
+  "npl": "20041208000038",
+  "namn": "Enalapril Krka",
+  "forpackningar": [
+   {
+    "nplpackid": "20090102100382",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050207100120",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050602100084",
+    "text": "Blister, 100 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20160811100826",
+    "text": "Blister, 110 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20160811100833",
+    "text": "Blister, 120 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050629100135",
+    "text": "Blister, 14 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050207100106",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050207100113",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050602100091",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050207100090",
+    "text": "Blister, 98 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050722100032",
+    "text": "Burk, 250 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "74": {
+  "npl": "20111221000084",
+  "namn": "Oxikodon Actavis",
+  "forpackningar": [
+   {
+    "nplpackid": "20120820100064",
+    "text": "Blister (barnskyddande), 10 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101370",
+    "text": "Blister (barnskyddande), 100 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120820100071",
+    "text": "Blister (barnskyddande), 14 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101455",
+    "text": "Blister (barnskyddande), 20 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101387",
+    "text": "Blister (barnskyddande), 28 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101448",
+    "text": "Blister (barnskyddande), 30 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101394",
+    "text": "Blister (barnskyddande), 50 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101462",
+    "text": "Blister (barnskyddande), 56 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101424",
+    "text": "Blister (barnskyddande), 90 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101400",
+    "text": "Blister (barnskyddande), 98 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140523100598",
+    "text": "Blister, 10 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140523100611",
+    "text": "Blister, 100 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140523100550",
+    "text": "Blister, 14 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140523100581",
+    "text": "Blister, 20 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140523100543",
+    "text": "Blister, 28 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140523100574",
+    "text": "Blister, 30 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140523100604",
+    "text": "Blister, 50 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140523100529",
+    "text": "Blister, 56 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140523100567",
+    "text": "Blister, 90 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140523100536",
+    "text": "Blister, 98 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101479",
+    "text": "Burk, 100 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101431",
+    "text": "Burk, 250 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101417",
+    "text": "Burk, 56 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130827100196",
+    "text": "Burk, 98 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "75": {
+  "npl": "20040916002969",
+  "namn": "Mirtazapin Krka",
+  "forpackningar": [
+   {
+    "nplpackid": "20041110100468",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100475",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100536",
+    "text": "Blister, 100 x1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100406",
+    "text": "Blister, 14 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050125100042",
+    "text": "Blister, 18 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100543",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100529",
+    "text": "Blister, 200 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100482",
+    "text": "Blister, 250 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100512",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100413",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100437",
+    "text": "Blister, 300 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100420",
+    "text": "Blister, 48 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100451",
+    "text": "Blister, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100444",
+    "text": "Blister, 500 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100505",
+    "text": "Blister, 56 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100550",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100499",
+    "text": "Blister, 70 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100567",
+    "text": "Blister, 90 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050125100035",
+    "text": "Blister, 96 tablettet",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20071216100017",
+    "text": "Burk, 250 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "76": {
+  "npl": "20090220000083",
+  "namn": "Losartan Krka",
+  "forpackningar": [
+   {
+    "nplpackid": "20090820100206",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090227100014",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20170307100032",
+    "text": "Blister, 112 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090820100251",
+    "text": "Blister, 14 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090820100268",
+    "text": "Blister, 15 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090820100220",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090227100038",
+    "text": "Blister, 21 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090227100076",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090227100083",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090227100021",
+    "text": "Blister, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090820100244",
+    "text": "Blister, 56 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090227100052",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090227100069",
+    "text": "Blister, 7 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090820100213",
+    "text": "Blister, 84 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090820100237",
+    "text": "Blister, 90 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090227100045",
+    "text": "Blister, 98 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20201208100293",
+    "text": "Burk, 250 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "77": {
+  "npl": "20090220000113",
+  "namn": "Losartan Krka",
+  "forpackningar": [
+   {
+    "nplpackid": "20090227100274",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090227100373",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20170307100018",
+    "text": "Blister, 112 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090227100342",
+    "text": "Blister, 14 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090227100366",
+    "text": "Blister, 15 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090820100374",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090227100328",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090227100281",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090227100298",
+    "text": "Blister, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090227100335",
+    "text": "Blister, 56 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090227100304",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090227100311",
+    "text": "Blister, 7 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090820100367",
+    "text": "Blister, 84 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090820100350",
+    "text": "Blister, 90 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090227100359",
+    "text": "Blister, 98 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20201103100213",
+    "text": "Burk, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "78": {
+  "npl": "20060518000040",
+  "namn": "Amlodipin Krka",
+  "forpackningar": [
+   {
+    "nplpackid": "20060629100363",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20060629100462",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20060629100493",
+    "text": "Blister, 100 x 1 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20160901100293",
+    "text": "Blister, 112 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20160901100309",
+    "text": "Blister, 120 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20060629100370",
+    "text": "Blister, 14 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20060629100387",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20060629100479",
+    "text": "Blister, 200 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20060629100486",
+    "text": "Blister, 250 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20060629100394",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20060629100400",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20060629100417",
+    "text": "Blister, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20060629100424",
+    "text": "Blister, 56 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20060629100431",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20060629100448",
+    "text": "Blister, 90 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20060629100455",
+    "text": "Blister, 98 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "79": {
+  "npl": "20070404000047",
+  "namn": "Atorvastatin Krka",
+  "forpackningar": [
+   {
+    "nplpackid": "20070531100306",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100412",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100313",
+    "text": "Blister, 14 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100320",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100337",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100344",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100429",
+    "text": "Blister, 4 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100351",
+    "text": "Blister, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100368",
+    "text": "Blister, 56 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100375",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100290",
+    "text": "Blister, 7 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100382",
+    "text": "Blister, 84 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100399",
+    "text": "Blister, 90 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100405",
+    "text": "Blister, 98 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "80": {
+  "npl": "20070404000054",
+  "namn": "Atorvastatin Krka",
+  "forpackningar": [
+   {
+    "nplpackid": "20070531100450",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100566",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100467",
+    "text": "Blister, 14 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100474",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100481",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100498",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100436",
+    "text": "Blister, 4 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100504",
+    "text": "Blister, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100511",
+    "text": "Blister, 56 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100528",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100443",
+    "text": "Blister, 7 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100535",
+    "text": "Blister, 84 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100542",
+    "text": "Blister, 90 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070531100559",
+    "text": "Blister, 98 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "81": {
+  "npl": "20041018000297",
+  "namn": "Simvastatin Krka",
+  "forpackningar": [
+   {
+    "nplpackid": "20041202100130",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041202100048",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050413100051",
+    "text": "Blister, 100 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041202100062",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041202100116",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041202100079",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041202100109",
+    "text": "Blister, 40 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041202100123",
+    "text": "Blister, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041202100093",
+    "text": "Blister, 56 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041202100147",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041202100086",
+    "text": "Blister, 84 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041202100055",
+    "text": "Blister, 98 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "82": {
+  "npl": "20041018000310",
+  "namn": "Simvastatin Krka",
+  "forpackningar": [
+   {
+    "nplpackid": "20041202100314",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041202100369",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050413100075",
+    "text": "Blister, 100 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041202100352",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041202100345",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041202100284",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041202100291",
+    "text": "Blister, 40 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041202100307",
+    "text": "Blister, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041202100321",
+    "text": "Blister, 56 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041202100338",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041202100260",
+    "text": "Blister, 84 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041202100277",
+    "text": "Blister, 98 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20200428100045",
+    "text": "Burk, 250 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "83": {
+  "npl": "20130409000111",
+  "namn": "Jardiance",
+  "forpackningar": [
+   {
+    "nplpackid": "20130624100153",
+    "text": "Blister, 10 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130624100146",
+    "text": "Blister, 100 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20160331100092",
+    "text": "Blister, 100 x 1 tabletter (endos) (PD: Cross Pharma AB)",
+    "avregistrerad": "2020-06-30",
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20130624100139",
+    "text": "Blister, 14 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130624100092",
+    "text": "Blister, 28 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130624100160",
+    "text": "Blister, 30 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20160128100113",
+    "text": "Blister, 30 x 1 tabletter (endos) (PD: Orifarm AB)",
+    "avregistrerad": null,
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20160421100148",
+    "text": "Blister, 30 x 1 tabletter (endos) (PD: Paranova Läkemedel AB)",
+    "avregistrerad": null,
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20180815100028",
+    "text": "Blister, 30 x 1 tabletter (endos) (PD: Pharmachim AB)",
+    "avregistrerad": "2022-01-31",
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20130624100085",
+    "text": "Blister, 60 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130624100115",
+    "text": "Blister, 7 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130624100108",
+    "text": "Blister, 70 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130624100122",
+    "text": "Blister, 90 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20160809100319",
+    "text": "Blister, 90 x 1 tabletter (endos) (PD: Abacus Medicine A/S)",
+    "avregistrerad": null,
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20160314100132",
+    "text": "Blister, 90 x 1 tabletter (endos) (PD: Medartuum AB)",
+    "avregistrerad": null,
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20160128100106",
+    "text": "Blister, 90 x 1 tabletter (endos) (PD: Orifarm AB)",
+    "avregistrerad": null,
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20160106100029",
+    "text": "Blister, 90 x 1 tabletter (endos) (PD: Paranova Läkemedel AB)",
+    "avregistrerad": null,
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20200625100121",
+    "text": "Blister, 90 x 1 tabletter (endos) (PD: Pharmachim AB)",
+    "avregistrerad": "2022-01-31",
+    "parallelldistribuerad": true
+   }
+  ]
+ },
+ "84": {
+  "npl": "19740301000047",
+  "namn": "Levaxin",
+  "forpackningar": [
+   {
+    "nplpackid": "10010101106485",
+    "text": "Blister, 98 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101106478",
+    "text": "Burk, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101106492",
+    "text": "Burk, 250 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "85": {
+  "npl": "20000407000102",
+  "namn": "Levaxin",
+  "forpackningar": [
+   {
+    "nplpackid": "20061215100026",
+    "text": "Blister, 98 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101128906",
+    "text": "Burk, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "10010101128890",
+    "text": "Burk, 250 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "86": {
+  "npl": "20090716000078",
+  "namn": "Omeprazol Sandoz",
+  "forpackningar": [
+   {
+    "nplpackid": "20100108100733",
+    "text": "Blister, 100 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100689",
+    "text": "Blister, 14 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100740",
+    "text": "Blister, 140 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100696",
+    "text": "Blister, 15 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100627",
+    "text": "Blister, 28 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100580",
+    "text": "Blister, 280 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100573",
+    "text": "Blister, 30 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100702",
+    "text": "Blister, 50 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100597",
+    "text": "Blister, 500 kapslar (sjukhusförpackning)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100764",
+    "text": "Blister, 56 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100634",
+    "text": "Blister, 60 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100528",
+    "text": "Blister, 7 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100665",
+    "text": "Blister, 90 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100757",
+    "text": "Blister, 98 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100566",
+    "text": "Burk, 100 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100719",
+    "text": "Burk, 14 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100542",
+    "text": "Burk, 15 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100603",
+    "text": "Burk, 28 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100610",
+    "text": "Burk, 30 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100672",
+    "text": "Burk, 5 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100658",
+    "text": "Burk, 50 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100726",
+    "text": "Burk, 56 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100535",
+    "text": "Burk, 60 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100641",
+    "text": "Burk, 7 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100108100559",
+    "text": "Burk, 90 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140618100267",
+    "text": "Plastburk, 105 kapslar",
+    "avregistrerad": "2014-07-03",
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "87": {
+  "npl": "20060817000055",
+  "namn": "Ibuprofen Orifarm",
+  "forpackningar": [
+   {
+    "nplpackid": "20070509100079",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100192",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100208",
+    "text": "Blister, 105 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100062",
+    "text": "Blister, 14 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100086",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100048",
+    "text": "Blister, 20 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100093",
+    "text": "Blister, 21 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100109",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100123",
+    "text": "Blister, 29 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100130",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100147",
+    "text": "Blister, 35 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100154",
+    "text": "Blister, 49 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100161",
+    "text": "Blister, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100178",
+    "text": "Blister, 56 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100031",
+    "text": "Blister, 7 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100116",
+    "text": "Blister, 98 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100185",
+    "text": "Blister, 99 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100055",
+    "text": "Burk, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100239",
+    "text": "Burk, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100246",
+    "text": "Burk, 200 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100253",
+    "text": "Burk, 250 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100215",
+    "text": "Burk, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100260",
+    "text": "Burk, 300 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100222",
+    "text": "Burk, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "88": {
+  "npl": "20060817000086",
+  "namn": "Ibuprofen Orifarm",
+  "forpackningar": [
+   {
+    "nplpackid": "20070509100581",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100697",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100703",
+    "text": "Blister, 105 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100604",
+    "text": "Blister, 14 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100710",
+    "text": "Blister, 196 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100727",
+    "text": "Blister, 200 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100734",
+    "text": "Blister, 203 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100741",
+    "text": "Blister, 245 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100758",
+    "text": "Blister, 250 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100765",
+    "text": "Blister, 252 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100598",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100611",
+    "text": "Blister, 29 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100628",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100635",
+    "text": "Blister, 35 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100642",
+    "text": "Blister, 49 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100659",
+    "text": "Blister, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100666",
+    "text": "Blister, 56 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100574",
+    "text": "Blister, 7 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100673",
+    "text": "Blister, 98 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100680",
+    "text": "Blister, 99 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100772",
+    "text": "Burk, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100802",
+    "text": "Burk, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100819",
+    "text": "Burk, 200 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100826",
+    "text": "Burk, 250 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100789",
+    "text": "Burk, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100833",
+    "text": "Burk, 300 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20070509100796",
+    "text": "Burk, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "89": {
+  "npl": "20040607002803",
+  "namn": "Naproxen Orifarm",
+  "forpackningar": [
+   {
+    "nplpackid": "20031030100105",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20031030100082",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20031030100075",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20031030100129",
+    "text": "Blister, 200 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20031030100112",
+    "text": "Blister, 300 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140512100028",
+    "text": "Blister, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20031030100099",
+    "text": "Blister, 50 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "90": {
+  "npl": "20111221000077",
+  "namn": "Oxikodon Actavis",
+  "forpackningar": [
+   {
+    "nplpackid": "20120820100057",
+    "text": "Blister (barnskyddande), 10 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101295",
+    "text": "Blister (barnskyddande), 100 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120820100040",
+    "text": "Blister (barnskyddande), 14 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101301",
+    "text": "Blister (barnskyddande), 20 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101325",
+    "text": "Blister (barnskyddande), 28 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101318",
+    "text": "Blister (barnskyddande), 30 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101332",
+    "text": "Blister (barnskyddande), 50 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101271",
+    "text": "Blister (barnskyddande), 56 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101288",
+    "text": "Blister (barnskyddande), 98 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101363",
+    "text": "Blister, (barnskyddande) 90 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140523100475",
+    "text": "Blister, 10 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140523100482",
+    "text": "Blister, 100 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140523100505",
+    "text": "Blister, 14 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140523100444",
+    "text": "Blister, 20 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140523100420",
+    "text": "Blister, 28 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140523100512",
+    "text": "Blister, 30 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140523100468",
+    "text": "Blister, 50 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140523100437",
+    "text": "Blister, 56 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140523100451",
+    "text": "Blister, 90 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140523100499",
+    "text": "Blister, 98 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101264",
+    "text": "Burk, 100 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101349",
+    "text": "Burk, 250 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20120313101356",
+    "text": "Burk, 56 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130827100189",
+    "text": "Burk, 98 kapslar",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "91": {
+  "npl": "20130410000032",
+  "namn": "Escitalopram Krka",
+  "forpackningar": [
+   {
+    "nplpackid": "20130717100176",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130717100015",
+    "text": "Blister, 14 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130717100206",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130717100183",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130717100169",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130717100237",
+    "text": "Blister, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130717100190",
+    "text": "Blister, 56 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130717100213",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130717100220",
+    "text": "Blister, 90 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "92": {
+  "npl": "20130410000063",
+  "namn": "Escitalopram Krka",
+  "forpackningar": [
+   {
+    "nplpackid": "20130722100499",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130722100475",
+    "text": "Blister, 14 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130722100451",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130722100437",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130722100505",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130722100444",
+    "text": "Blister, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130722100482",
+    "text": "Blister, 56 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130722100512",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130722100468",
+    "text": "Blister, 90 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "93": {
+  "npl": "20040916002952",
+  "namn": "Mirtazapin Krka",
+  "forpackningar": [
+   {
+    "nplpackid": "20041110100239",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100284",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100383",
+    "text": "Blister, 100 x1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100246",
+    "text": "Blister, 14 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050125100011",
+    "text": "Blister, 18 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100307",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100314",
+    "text": "Blister, 200 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100345",
+    "text": "Blister, 250 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100369",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100390",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100277",
+    "text": "Blister, 300 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100291",
+    "text": "Blister, 48 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100352",
+    "text": "Blister, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100321",
+    "text": "Blister, 500 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100253",
+    "text": "Blister, 56 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100376",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100338",
+    "text": "Blister, 70 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041110100260",
+    "text": "Blister, 90 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050125100028",
+    "text": "Blister, 96 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050421100258",
+    "text": "Burk, 250 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20050421100265",
+    "text": "Burk, 500 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "94": {
+  "npl": "20110113000058",
+  "namn": "Donepezil Krka",
+  "forpackningar": [
+   {
+    "nplpackid": "20111208100110",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110425100149",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110425100224",
+    "text": "Blister, 14 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110425100163",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110425100200",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110425100170",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110425100156",
+    "text": "Blister, 50 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110425100194",
+    "text": "Blister, 56 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110425100187",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110425100217",
+    "text": "Blister, 7 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110425100132",
+    "text": "Blister, 84 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20111208100127",
+    "text": "Blister, 90 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110425100125",
+    "text": "Blister, 98 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20201103100206",
+    "text": "Burk, 250 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "95": {
+  "npl": "19840309000053",
+  "namn": "Prednisolon Pfizer",
+  "forpackningar": [
+   {
+    "nplpackid": "19920701100206",
+    "text": "Blister, 49 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "19840101100081",
+    "text": "Burk, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130602100038",
+    "text": "Burk, 24 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "19840101100098",
+    "text": "Burk, 25 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20121112100038",
+    "text": "Burk, 98 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "96": {
+  "npl": "20100501000012",
+  "namn": "Eliquis",
+  "forpackningar": [
+   {
+    "nplpackid": "20100617100811",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130423100163",
+    "text": "Blister, 10 tabletter (PD: Orifarm AB)",
+    "avregistrerad": null,
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20100617100842",
+    "text": "Blister, 100 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20121119100062",
+    "text": "Blister, 168 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20221027100182",
+    "text": "Blister, 168 tabletter     (PD: Ebb Medical AB)",
+    "avregistrerad": null,
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20201104100083",
+    "text": "Blister, 168 tabletter (PD: Abacus Medicine A/S)",
+    "avregistrerad": null,
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20210301100093",
+    "text": "Blister, 168 tabletter (PD: Medartuum AB)",
+    "avregistrerad": null,
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20100617100828",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130423100156",
+    "text": "Blister, 20 tabletter (PD: Orifarm AB)",
+    "avregistrerad": null,
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20140416100179",
+    "text": "Blister, 200 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20260423100099",
+    "text": "Blister, 56 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100617100835",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130423100149",
+    "text": "Blister, 60 tabletter (PD: Orifarm AB)",
+    "avregistrerad": null,
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20100617100804",
+    "text": "Blister, 60 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "97": {
+  "npl": "20101127000028",
+  "namn": "Xarelto",
+  "forpackningar": [
+   {
+    "nplpackid": "20160525100242",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110221100046",
+    "text": "Blister, 10 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20121128100459",
+    "text": "Blister, 100 (10x10x1) tabletter (endos, multipack)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110221100060",
+    "text": "Blister, 100 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110221100084",
+    "text": "Blister, 14 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110221100077",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20140210100160",
+    "text": "Blister, 28 tabletter (PD: Medartuum AB)",
+    "avregistrerad": null,
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20130618100183",
+    "text": "Blister, 28 tabletter (PD: Pharmachim AB)",
+    "avregistrerad": "2022-01-31",
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20110221100053",
+    "text": "Blister, 42 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110221100039",
+    "text": "Blister, 98 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20170814100037",
+    "text": "Blister, 98 tabletter (PD: Abacus Medicine A/S)",
+    "avregistrerad": null,
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20130614100200",
+    "text": "Blister, 98 tabletter (PD: Cross Pharma AB)",
+    "avregistrerad": "2020-07-05",
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20140210100177",
+    "text": "Blister, 98 tabletter (PD: Medartuum AB)",
+    "avregistrerad": null,
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20160418100298",
+    "text": "Blister, 98 tabletter (PD: Orifarm AB)",
+    "avregistrerad": null,
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20130626100106",
+    "text": "Blister, 98 tabletter (PD: Pharmachim AB)",
+    "avregistrerad": "2022-01-31",
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20150706100277",
+    "text": "Burk, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20180621100151",
+    "text": "Burk, 14 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "98": {
+  "npl": "20071124000010",
+  "namn": "Xarelto",
+  "forpackningar": [
+   {
+    "nplpackid": "20080118100230",
+    "text": "Blister, 10 tabletter (PP/alu)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080118100193",
+    "text": "Blister, 10 tabletter (PVC/PVDC/alu)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100520100762",
+    "text": "Blister, 10 x 1 tabletter (PP/alu) (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100520100755",
+    "text": "Blister, 10 x 1 tabletter (PVC/PVDC/alu) (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20121128100473",
+    "text": "Blister, 100  (10x10x1) tabletter (PP/alu) (endos, multipack)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080118100254",
+    "text": "Blister, 100  x 1 tabletter (PP/alu) (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080118100216",
+    "text": "Blister, 100 x 1 tabletter (PVC/PVDC/alu) (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20170428100027",
+    "text": "Blister, 14 tabletter (PP/alu)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20170428100034",
+    "text": "Blister, 28 tabletter (PP/alu)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080118100209",
+    "text": "Blister, 30 tabletter  (PVC/PVDC/alu)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080118100247",
+    "text": "Blister, 30 tabletter (PP/alu)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130611100210",
+    "text": "Blister, 30 tabletter (PP/alu) (PD: Orifarm AB)",
+    "avregistrerad": null,
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20080118100223",
+    "text": "Blister, 5 tabletter  (PP/alu)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080118100186",
+    "text": "Blister, 5 tabletter (PVC/PVDC/alu)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20170428100041",
+    "text": "Blister, 98 tabletter (PP/alu)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20170428100058",
+    "text": "Burk, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "99": {
+  "npl": "20150304000108",
+  "namn": "Brilique",
+  "forpackningar": [
+   {
+    "nplpackid": "20150612100019",
+    "text": "Blister, 14 tabletter (kalenderblister)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20150612100057",
+    "text": "Blister, 168 tabletter (kalenderblister)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20220110100016",
+    "text": "Blister, 168 tabletter (kalenderblister) (PD: Orifarm AB)",
+    "avregistrerad": null,
+    "parallelldistribuerad": true
+   },
+   {
+    "nplpackid": "20150612100040",
+    "text": "Blister, 180 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20150612100026",
+    "text": "Blister, 56 tabletter (kalenderblister)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20150612100033",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "100": {
+  "npl": "19891208000279",
+  "namn": "Trombyl",
+  "forpackningar": [
+   {
+    "nplpackid": "10010101110970",
+    "text": "Blister, 49 x 1 tabletter (endos)",
+    "avregistrerad": "2009-09-30",
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20090403100371",
+    "text": "Blister, 50 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20170810100031",
+    "text": "Blister, 98 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "19891001100572",
+    "text": "Burk, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "101": {
+  "npl": "20040607008683",
+  "namn": "Levaxin",
+  "forpackningar": [
+   {
+    "nplpackid": "20041029100818",
+    "text": "Blister, 98 x 1 tabletter (endos)",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20041029100801",
+    "text": "Burk, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "102": {
+  "npl": "20151002000087",
+  "namn": "Metformin Sandoz",
+  "forpackningar": [
+   {
+    "nplpackid": "20170619100270",
+    "text": "Blister, 120 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20190225100518",
+    "text": "Blister, 180 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20170619100157",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20170619100256",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20170619100287",
+    "text": "Blister, 300 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20170619100263",
+    "text": "Blister, 60 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20190225100501",
+    "text": "Blister, 90 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20170619100294",
+    "text": "Burk, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20210622100017",
+    "text": "Burk, 100 tabletter, med torkmedel",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20170619100300",
+    "text": "Burk, 200 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20210622100024",
+    "text": "Burk, 200 tabletter, med torkmedel",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ "103": {
+  "npl": "20070919000037",
+  "namn": "Amoxicillin Sandoz",
+  "forpackningar": [
+   {
+    "nplpackid": "20080213100050",
+    "text": "Blister, 10 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080213100128",
+    "text": "Blister, 100 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080213100135",
+    "text": "Blister, 1000 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080213100067",
+    "text": "Blister, 12 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080213100074",
+    "text": "Blister, 14 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080213100081",
+    "text": "Blister, 16 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080213100098",
+    "text": "Blister, 20 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080213100104",
+    "text": "Blister, 28 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080213100111",
+    "text": "Blister, 30 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080213100043",
+    "text": "Blister, 7 tabletter",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
  }
 }

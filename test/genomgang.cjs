@@ -148,7 +148,7 @@ const MENY = {
   psykiatri: ['Arbetslista', 'Sök patient', 'Inkorg', 'Delegeringar', 'Tvångsvård', 'Direktiv och uppföljning', 'Remisser', 'Väntrum (akuten)', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   kommun: ['Samverkan', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 7, r5: uppföljningsrollen granskar och skickar rapporterna till myndigheter och register.
-  uppfoljning: ['Datauttag', 'Tvångsvård och samordning', 'Rapportering', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  uppfoljning: ['Datauttag', 'Tvångsvård och samordning', 'Rapportering', 'Utbildning', 'Användartester', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 6, r6: verksamhetschefen utser uppdragen i läkemedelshanteringen och fastställer generella direktiv.
   verksamhetschef: ['Läkemedelsansvar', 'Direktiv och uppföljning', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 7, r3: ekonomen tar fram faktureringsunderlaget och sköter prislistorna.
@@ -157,6 +157,8 @@ const MENY = {
   systemforvaltare: ['Regler och parametrar', 'Omorganisation', 'Undantag från visning', 'Lagring', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 7, r6: läkaren på Vårdcentralen Tybble har Barnhälsovård, eftersom vårdenheten har en barnavårdscentral.
   bvc: ['Arbetslista', 'Sök patient', 'Inkorg', 'Delegeringar', 'Direktiv och uppföljning', 'Barnhälsovård', 'Remisser', 'Väntrum (akuten)', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  // Runda 7, r1: fysioterapeuten, paramedicinaren i Sussas testfall.
+  fysioterapeut: ['Arbetslista', 'Sök patient', 'Inkorg', 'Remisser', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
 };
 
 (async () => {
@@ -168,13 +170,13 @@ const MENY = {
 
   try {
     // Utan inloggning
-    await s('inloggningssidan visar de sjutton demorollerna och demoraden', async () => {
+    await s('inloggningssidan visar de arton demorollerna och demoraden', async () => {
       await page.goto(`${BAS}/`);
       await page.waitForSelector('.roll');
       const n = await page.locator('.roll').count();
       // Runda 6, r6: verksamhetschefen är den trettonde. Runda 7: ekonomen (r3), de två systemförvaltarna (r4) och
-      // distriktssköterskan Hanna Lilja i barnhälsovården (r6).
-      if (n !== 17) throw new Error(`${n} roller`);
+      // distriktssköterskan Hanna Lilja i barnhälsovården (r6), och fysioterapeuten i Sussas testfall (r1).
+      if (n !== 18) throw new Error(`${n} roller`);
       await forvanta(page, '.demorad', 'Demo med påhittade patienter och testpersonnummer från Skatteverket. Inte för vård av riktiga patienter.');
       await forvanta(page, '.sidfot', 'Vårdkällan är ett fristående demoprojekt med öppen källkod (EUPL 1.2). Det är inte en tjänst från Region Örebro län.');
       await forvanta(page, '#roll-lak-akut-visar', 'Nödåtkomst');
@@ -407,10 +409,6 @@ const MENY = {
       await forvanta(page, '.sussa-summa tfoot', 'Totalt');
       await forvanta(page, '#sf-antal', 'Visar 389 av 389 poster.');
       if (await page.locator('#sf-kapitel option[value="7"]').isDisabled()) throw new Error('kapitel 7 går inte att välja');
-      // Runda 7: registret har hela kravspecifikationen (389 poster, kapitel 1 till 12 och driften).
-      await forvanta(page, '.ingress-block', 'dnr 16RS2022');
-      await forvanta(page, '.sussa-summa tfoot', 'Totalt');
-      await forvanta(page, '#sf-antal', 'Visar 389 av 389 poster.');
       await page.evaluate(() => document.getElementById('notiser').replaceChildren());
       await bild(page, '60-sussa-krav');
       // Kapitel, status och kategori filtrerar listan och sparas i adressen.
@@ -1558,6 +1556,97 @@ const MENY = {
       await page.waitForLoadState('networkidle');
     });
     await allaVyer(page, 'Nora Ekholm', MENY.systemforvaltare);
+    // Runda 7, r1: fysioterapeuten och Sussas testfall. Testdatan läggs in i demoläget, och fysioterapeuten besvarar
+    // en remiss som paramedicinare.
+    await s('Jenny Holmberg lägger in Sussas testdata och besvarar remissen för Sara Sandmark som paramedicinare', async () => {
+      await loggaIn(page, 'fys-kard');
+      await forvanta(page, '.inloggad', 'Jenny Holmberg');
+      await gaTill(page, '#/sussatest');
+      await forvanta(page, '.st-info', 'Underlag för riktiga användartester senare');
+      await page.click('[data-st="testdata"]');
+      await forvanta(page, '.notis', 'Sussas testpatienter är inlagda');
+      await gaTill(page, '#/arbetslista');
+      await page.locator('a.patientlank', { hasText: 'Sara Sandmark' }).first().click();
+      await page.waitForSelector('.tidslinje');
+      await page.click('.flikar a:text-is("Remisser")');
+      await page.locator('[data-remiss-atgard="svara"]').first().click();
+      await page.locator('dialog[open] textarea').fill('Tack för remissen. Vi har träffat Sara och gett henne rätt behandling.');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', 'Svaret är skickat till remittenten');
+      await page.waitForLoadState('networkidle');
+    });
+    await allaVyer(page, 'Jenny Holmberg', MENY.fysioterapeut);
+    await s('Per Holm granskar sina 30 utkast och signerar alla med ett klick', async () => {
+      await loggaIn(page, 'lak-vc');
+      await page.waitForFunction(() => document.querySelector('#lista') && !/Hämtar/.test(document.querySelector('#lista').textContent));
+      await page.evaluate(async () => { await fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()); await fetch('/api/demo/sussa-testfall', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()); });
+      await page.goto('about:blank');
+      await gaTill(page, '#/inkorg');
+      await page.click('[data-signera-alla]');
+      await forvanta(page, 'dialog[open] .ik-granska', 'Henrik Lundin');
+      await bild(page, '111-signera-alla');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', '30 anteckningar är signerade');
+      await forvanta(page, '#ik-osign ~ .tom', 'Inga osignerade anteckningar');
+      await page.waitForLoadState('networkidle');
+    });
+    // Runda 7, r1: testledaren skapar ett testtillfälle med en kod som visas en gång, testpersonen svarar med koden och
+    // testledaren läser och exporterar bara det tillfället med samma kod.
+    let testkod = null;
+    await s('Daniel Sund är testledare och skapar ett testtillfälle med en kod som visas en gång', async () => {
+      await loggaIn(page, 'uppf');
+      await page.click('#meny-lista a[href="#/sussatest"]');
+      await vantaVy(page);
+      await forvanta(page, '#st-tillfallen ~ p', 'Koden visas bara en gång');
+      await page.click('[data-st="skapa"]');
+      testkod = (await (await forvanta(page, '[data-st-kod]', '')).textContent()).trim();
+      if (!/^[A-Za-z0-9_-]{32,}$/.test(testkod)) throw new Error(`koden har fel form: ${testkod}`);
+      await forvanta(page, '#st-serverlista', 'Inga svar i tillfället än');
+    });
+    await s('formuläret för Sussas testfall räknar SUS och expertgranskningen och sparar med koden utan patientuppgifter', async () => {
+      await loggaIn(page, 'lak-vc');
+      await gaTill(page, '#/sussatest');
+      await page.evaluate(() => localStorage.removeItem('vk_sussatest'));
+      await gaTill(page, '#/moduler');
+      await gaTill(page, '#/sussatest');
+      await forvanta(page, '.st-sparas', 'raderas 90 dagar efter det senaste svaret');
+      await page.fill('#st-tkod', testkod);
+      await page.fill('#st-kod', '19450207');
+      for (let i = 1; i <= 10; i++) await page.locator(`#st-sus label.sus-val:has(input[name="sus${i}"][value="${i % 2 ? 4 : 2}"])`).click();
+      await forvanta(page, '[data-st-sus]', '75 av 100, 2 utvärderingspoäng');
+      await page.click('#st-sus [type="submit"]');
+      await forvanta(page, '#st-sus .form-fel', 'Sex siffror i rad tas inte emot');
+      await page.fill('#st-kod', 'L03');
+      await page.click('#st-sus [type="submit"]');
+      await forvanta(page, '.notis', 'SUS-svaret för L03 är sparat: 75 av 100');
+      await forvanta(page, '.notis', 'Svaret för L03 är sparat på servern');
+      await page.fill('#st-granskare', 'E01');
+      for (let i = 1; i <= 7; i++) await page.locator(`label[for="st-p${i}-${i < 7 ? 10 : 5}"]`).click();
+      await forvanta(page, '[data-st-expert]', '65 av 70, 10 utvärderingspoäng');
+      await page.click('#st-expert [type="submit"]');
+      await forvanta(page, '.notis', 'Granskningen är sparad: 65 av 70');
+      await forvanta(page, '#st-lista', 'Medelvärde SUS 75 av 100');
+      const lagrat = await page.evaluate(() => JSON.stringify(localStorage) + JSON.stringify(sessionStorage));
+      if (/Sandmark|Danielsson|19450207/.test(lagrat) || lagrat.includes(testkod)) throw new Error('webbläsaren har sparat patientuppgifter eller koden');
+      await bild(page, '112-sussatest', true);
+      await page.evaluate(() => localStorage.removeItem('vk_sussatest'));
+    });
+    await s('Daniel Sund läser och exporterar svaren i sitt tillfälle med koden och raderar tillfället', async () => {
+      await loggaIn(page, 'uppf');
+      await page.click('#meny-lista a[href="#/sussatest"]');
+      await vantaVy(page);
+      if (await page.locator('[data-st-kod]').count()) throw new Error('koden visas igen');
+      await page.fill('#st-lkod', testkod);
+      await page.click('#st-oppna [type="submit"]');
+      await forvanta(page, '#st-serverlista', 'L03');
+      await forvanta(page, '#st-serverlista', 'Användbarhetsexpert');
+      const csv = await page.evaluate(async (kod) => (await fetch('/api/anvandartest/svar/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kod, format: 'csv' }) })).text(), testkod);
+      if (!csv.startsWith('id;typ;roll;pseudonym;datum;testfall') || !csv.includes('L03') || /Sandmark|Danielsson|19450207/.test(csv)) throw new Error('exporten är fel');
+      await bild(page, '113-anvandartester-server');
+      await page.click('[data-st="radera-tillfalle"]');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', 'Testtillfället är raderat med 2 svar');
+    });
     await s('Sara granskar den ändrade mallen i inkorgen och godkänner den', async () => {
       await loggaIn(page, 'lak-kard');
       await page.waitForFunction(() => document.querySelector('#lista') && !/Hämtar/.test(document.querySelector('#lista').textContent));
@@ -1663,7 +1752,9 @@ const MENY = {
   };
   const vantaHamtat = (p) => p.waitForFunction(() => ![...document.querySelectorAll('main .tom, main .laddar')].some(e => /^Hämtar/.test(e.textContent)), null, { timeout: 8000 }).catch(() => {});
   const MOBILROLLER = [['lak-kard', 'Sara Lindqvist'], ['ssk-kard', 'Johan Ek'], ['usk-kard', 'Amira Haddad'], ['lak-akut', 'Erik Nyström'], ['lak-vc', 'Per Holm'],
-    ['lak-psyk', 'Lena Ström'], ['adm-kard', 'Karin Berg'], ['logg', 'Mats Wall'], ['ark', 'Ingela Nord'], ['uppf', 'Daniel Sund'], ['kom-bist', 'Lisa Ahlgren'], ['far-kard', 'Elsa Nordin'], ['vch-kard', 'Ulrika Sandell'], ['eko', 'Fredrik Alm'], ['sysf', 'Tomas Lindh'], ['sysf-2', 'Nora Ekholm']];
+    ['lak-psyk', 'Lena Ström'], ['adm-kard', 'Karin Berg'], ['logg', 'Mats Wall'], ['ark', 'Ingela Nord'], ['uppf', 'Daniel Sund'], ['kom-bist', 'Lisa Ahlgren'], ['far-kard', 'Elsa Nordin'], ['vch-kard', 'Ulrika Sandell'], ['eko', 'Fredrik Alm'], ['sysf', 'Tomas Lindh'], ['sysf-2', 'Nora Ekholm'],
+    // Runda 7, r1.
+    ['fys-kard', 'Jenny Holmberg']];
   try {
     if (!fel.length) {
       await s('mobil: inloggningen på 360 px', async () => {

@@ -171,6 +171,8 @@ for (const k of KONTRAKT) TILLATNA.add(k.kontrakt);
 for (const w of ['BVC', 'BHV', 'BHVQ', 'BHVQ-SIM', 'BCG', 'EPDS', 'MPR', 'HPV', 'SD', 'Immunization', 'Snomed', 'K11', 'NKRR', 'IGO', 'CC', 'BY-NC-SA']) TILLATNA.add(w);
 // Runda 7, r2: tillgänglighetsredogörelsen hänvisar till standarderna EN 301 549, WCAG 2.1 nivå AA och ISO 9241.
 for (const w of ['EN', 'WCAG', 'AA', 'ISO']) TILLATNA.add(w);
+// Runda 7, r1: källan till tidsmodellen i Sussas testfall.
+for (const w of ['ACM', 'Newell']) TILLATNA.add(w);
 // Fraser med engelska ord som är namn på standarder, rubriker, parametrar och tekniska begrepp. Ett tomt värde i data
 // beskrivs som tomt, inte som null (beslut 2026-11-03).
 export const FRASER = ['HL7 Sweden', '$everything', 'pull request', 'Server-Timing', 'X-Content-Type-Options', 'Content-Type', 'Content-Disposition',
@@ -182,6 +184,8 @@ export const FRASER = ['HL7 Sweden', '$everything', 'pull request', 'Server-Timi
   'SMART on FHIR', 'SMART App Launch', 'WWW-Authenticate', 'Subscriptions R5 Backport', 'rest-hook',
   // Runda 7, r2: mediefrågorna för datorns inställningar för kontrast och rörelse.
   'prefers-contrast: more', 'forced-colors: active', 'prefers-reduced-motion: reduce', 'X-Inloggning-Gar-Ut'];
+// Runda 7, r1: tidsmodellen för uppskattad tid i Sussas testfall.
+FRASER.push('keystroke-level model', 'Communications of the ACM');
 
 // Svenska ord som ofta skrivs utan å, ä eller ö. Formen utan prickar är inget eget ord.
 export const UTAN_PRICKAR = new Map(Object.entries({

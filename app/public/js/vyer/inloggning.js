@@ -30,6 +30,8 @@ const VISAR = {
   // Runda 7, r4.
   'sysf': 'Systemförvaltare: ändrar regler och parametrar med giltighetsdatum och fyra ögon, förbereder omorganisationer som systemet genomför på dagen, beslutar om undantag från visning och kontrollerar säkerhetskopian. Läser inte journalen.',
   'sysf-2': 'Den andra systemförvaltaren: finns för att godkänna det som Tomas Lindh föreslår, till exempel ändrade regler, en sammanslagning eller ett uttag, eftersom ingen godkänner sina egna ändringar (fyra ögon).',
+  // Runda 7, r1: paramedicinaren i Sussas testfall.
+  'fys-kard': 'Fysioterapeut på kardiologiska mottagningen: läser journalen, skriver anteckningar, registrerar mätvärden och skickar, tar emot och besvarar remisser. Ordinerar och ger inga läkemedel.',
   'vch-kard': 'Verksamhetschef på kardiologen: utser medicinskt ansvarig läkare, mallansvarig läkare och läkemedelsansvariga sjuksköterskor med systemets förslag, och påminns när ett uppdrag saknas eller ansvarsdokumentet inte har setts över på ett år. Läser inte journalen.',
   // Runda 7, r3.
   'eko': 'Ekonom på regionkansliet: hämtar faktureringsunderlaget per vårdenhet och månad med ett klick, eftersom systemet redan har skapat posterna, och ändrar prislistorna med giltighetstid och historik. Läser inte journalen.',

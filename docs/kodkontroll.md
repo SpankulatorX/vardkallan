@@ -315,3 +315,29 @@ Vaccinerna kodas med ATC, kontrollerade mot WHO:s ATC/DDD-index (atcddd.fhi.no) 
 Koderna för Svenska barnhälsovårdsregistret står ordagrant som i bilaga K11 till förfrågningsunderlaget (Informationsspecifikation Svenska barnhälsovårdsregistret, Formulär Bedömningar, version 1.7, 2017-04-11) i `app/src/kodverk.js` (`K11`): Snomed CT för tillväxtens observationer (till exempel 27113001 kroppsvikt, 248334005 kroppslängd, 363812007 huvudomfång, 364589006 födelsevikt, 412726003 graviditetslängd vid födelse och 53851000052106 längd hos biologisk mor), kontakttyp 2 och 3 ur V-TIM 2.2 och befattningskoderna ur KV_befattning, med OID:erna i bilagans sammanställning. Koderna är inte kontrollerade mot den gällande utgåvan av Snomed CT, som kräver licens, och en kod kan ha ersatts sedan 2017. Sitthöjd (248335006) registreras inte.
 
 Huvudomfång har LOINC 9843-4 Head Occipital-frontal circumference, kontrollerad via tx.fhir.org 2026-11-08, och FHIR R4:s vitalparameterprofil headcircum. ICD-10-SE Z00.1 Rutinmässig hälsoundersökning av barn utan besvär eller utan att diagnos registrerats står ordagrant som i Socialstyrelsens icd-10-se.tsv (samma fil som ovan, sha256 696c0c02178dabce2c99802898e98cb5c7c4a3af1f78c5cc1c2ad29f5eaabae8).
+## Runda 7: läkemedelskatalogen utökad till 103 produkter (2026-11-08)
+
+Sussas användbarhetstester kräver en läkemedelskatalog med minst 100 läkemedel, varav 22 namngivna (Bilaga F1:3 tabell 6). Katalogen hade 50 produkter. 53 nya är tillagda, alla kontrollerade mot Läkemedelsverkets NPL och med förpackningar som i runda 6.
+
+| Källa | Version och kontrollsumma | Användning |
+|---|---|---|
+| NPL, Nationellt produktregister för läkemedel (Läkemedelsverket), totalfil `2026-11-03_Total_NPL.zip` från npl.mpa.se/MpaProductExport/4.5/ | NPL 4.5, schema `npl-schema_12.2`, 44 444 produkter, 63 185 679 byte, sha256 06b74dd8e01c20f0237dca98db187ffb59095727cb0e0dab25c3380686465fc9 | Namn (`medprodnamelegal`), styrka, beredningsform och substansbeskrivning med NPL:s svenska text, ATC-kod, administrationsvägar, godkännandedatum, avregistreringsdatum, stoppad försäljning och förpackningar |
+| WHO:s ATC/DDD-index (atcddd.fhi.no), hämtat 2026-11-08 | En sida per kod | ATC-benämningen för de sex nya koderna |
+
+Kontrollen gjordes med tre skript som läser filerna som data (`python3 -I`, filerna i en egen katalog under `$TMPDIR`):
+
+1. `research/lakemedel/npl-index.py` bygger ett index över alla produkter i totalfilen.
+2. `research/lakemedel/katalog-runda7.py` väljer varje ny produkt på namn, styrka och form och stoppar om produkten inte finns exakt en gång, är avregistrerad, har stoppad försäljning eller saknar en förpackning som inte är avregistrerad eller parallelldistribuerad.
+3. `research/lakemedel/katalog-runda7-js.py` skriver produkterna i `app/src/seed/lakemedel-katalog.js` och facit i `app/src/kodverk.js` (`NPL`), och `forpackningar.py` och `forpackningar-seed.py` skriver förpackningarna som förut.
+
+Testerna i `app/test/kodverk.test.js` jämför varje produkt i katalogen med facit (namn, styrka, form, substans och ATC-kod) och kräver en ATC-kod ur WHO:s register, och testerna i `app/test/lakemedelsstod.test.js` kräver förpackningar för varje produkt.
+
+**Sussas 22 läkemedel.** Sex fanns redan (Alvedon 500 mg, Metformin 500 mg, Morfin injektionsvätska 10 mg/ml, Sertralin 50 mg, Waran 2,5 mg och Zopiklon 5 mg). Sexton är nya: Addex-Magnesium 1 mmol/ml, Alvedon forte 1 g, Atrovent 20 mikrogram/dos inhalationsspray, Atrovent 0,25 mg/ml och 0,5 mg/ml för nebulisator, Kloramfenikol Santen ögondroppar 5 mg/ml och ögonsalva 10 mg/g, Metformin Teva 850 mg, Morfin Alternova 10 mg tablett, Sertralin Teva Pharma 100 mg, Stesolid 5 mg och 10 mg, Zopiklon Pilum 7,5 mg och tre ersättare:
+
+- Atrovent Nasal 21 mikrogram/dos finns inte längre i NPL. Samma substans, styrka och form heter i dag Rinivent (19960412000037).
+- Paracetamol Panpharma infusion finns inte i NPL. Paracetamol Fresenius Kabi 10 mg/ml infusionsvätska (20090718000014) har samma substans, styrka och form.
+- Glukos 25 mg/ml buffrad är Glucos Baxter 25 mg/ml buffrad (19930122000023). NPL anger ingen styrka för den, eftersom styrkan står i namnet, så styrkan är tom i katalogen och i facit.
+
+**Fler styrkor.** 37 produkter är fler styrkor av substanser som redan fanns, till exempel Metoprolol Sandoz 100 mg, Atorvastatin Krka 10 och 20 mg och Eliquis 2,5 mg, så att katalogen har minst 100 produkter utan fler nya ATC-koder. Ramipril fick ingen ny styrka, eftersom en ordination via FHIR med bara ATC-koden C09AA05 annars skulle bli tvetydig.
+
+**ATC.** Sex nya koder med WHO:s benämning: B05BA03 carbohydrates, B05XA05 magnesium sulfate, N05BA01 diazepam, R01AX03 ipratropium bromide, R03BB01 ipratropium bromide och S01AA01 chloramphenicol. Två nya administrationsvägar: OCUL (ögat) och NASA (näsan).
