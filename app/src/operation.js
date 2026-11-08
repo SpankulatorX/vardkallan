@@ -23,7 +23,10 @@ import * as kontroller from './kontroller.js';
 import * as labb from './labb.js';
 import { ANALYS } from './labb-katalog.js';
 import { tabell, finns, personNamn, enhetsnamn, enhetKort, textFalt, iso, tid as giltigTid, MIN, DAG, kravRoll, vardkontaktFor,
-  provaRad, loggaPatient, matvarde } from './specialist-hjalp.js';
+  provaRad, loggaPatient, matvarde, lasRad, andraRad } from './specialist-hjalp.js';
+// Säkerhetsgranskningen: varje anmälan binds till patienten och prövas på den anmälande vårdenheten.
+const ANDRA = 'Operationen hanteras av den anmälande vårdenheten.';
+const andraOp = (atk, an, handling) => andraRad(atk, an, handling, 'las_operation', ANDRA);
 
 export const DEMOREGEL = 'Demoregel, inte ett kliniskt beslutsstöd. Salarna och teamet är påhittade.';
 
@@ -171,6 +174,7 @@ export function forberedelser(atk, an) {
 
 // Beställer de prover som saknas, med beställningen till laboratoriet och blodcentralen som vanligt (labb.js).
 export function bestallProver(atk, an, nu = new Date()) {
+  lasRad(atk, an, 'las_operation');
   const saknas = proverFor(atk, an).filter(p => p.status === 'saknas').map(p => p.analys);
   if (!saknas.length) throw new Fel(409, 'Alla prover före operationen är redan beställda.', 'ogiltig');
   return labb.bestall(atk, { analyser: saknas, kvitteraDubbletter: true, kommentar: `Inför operation: ${INGREPP[an.kva].namn}` }, nu);
@@ -272,7 +276,7 @@ function teamForslag(db, an) {
 
 // Första lediga tiden i en sal på sjukhuset från i morgon (akut: i dag), vardagar inom salstiden.
 export function planeringsforslag(atk, an, nu = new Date()) {
-  atk.krav('operation_planera');
+  andraOp(atk, an, 'operation_planera');
   const db = atk.db;
   if (an.status !== 'vantar') throw new Fel(409, 'Operationen är redan planerad eller genomförd.', 'ogiltig');
   const salar = salarFor(db, an.enhet_id);
@@ -310,7 +314,7 @@ export function kallelseText(an, plan) {
 
 export function planera(atk, an, body = {}, nu = new Date()) {
   const db = atk.db;
-  atk.krav('operation_planera');
+  andraOp(atk, an, 'operation_planera');
   const f = planeringsforslag(atk, an, nu);
   const sal = body.sal ?? f.sal.id;
   if (!finns(SAL, sal) || !salarFor(db, an.enhet_id).some(s => s.id === sal)) throw new Fel(400, 'Salen finns inte på sjukhuset.', 'ogiltig', { falt: ['sal'] });
@@ -341,7 +345,7 @@ export function planera(atk, an, body = {}, nu = new Date()) {
 // Stryker en planerad operation med orsak. Patienten står kvar på väntelistan med samma prioritet och mål.
 export function stryk(atk, an, body = {}, nu = new Date()) {
   const db = atk.db;
-  atk.krav('operation_planera');
+  andraOp(atk, an, 'operation_planera');
   const plan = planeringFor(db, an.id);
   if (!plan || an.status !== 'planerad') throw new Fel(409, 'Bara en planerad operation som inte har börjat kan strykas.', 'ogiltig');
   if (!finns(STRYKORSAKER, body.orsak)) throw new Fel(400, 'Välj orsaken till att operationen stryks.', 'ogiltig', { falt: ['orsak'] });
@@ -355,7 +359,7 @@ export function stryk(atk, an, body = {}, nu = new Date()) {
 
 // Anestesiläkarens bedömning före operationen.
 export function anestesibedomning(atk, an, body = {}, nu = new Date()) {
-  atk.krav('operation_anmala');
+  andraOp(atk, an, 'operation_anmala');
   const asa = Number(body.asa);
   if (!Number.isInteger(asa) || asa < 1 || asa > 5) throw new Fel(400, 'ASA-klassen är 1 till 5.', 'ogiltig', { falt: ['asa'] });
   atk.db.query('UPDATE op_anmalningar SET asa = ? WHERE id = ?').run(asa, an.id);
@@ -379,6 +383,7 @@ function forloppUt(db, an, f) {
 
 // Det som systemet fyller i på checklistan ur journalen: allergierna som den inloggade får se och blodbeställningen.
 export function checklistaUnderlag(atk, an) {
+  lasRad(atk, an, 'las_operation');
   const allergier = atk.filtrera(atk.db.query('SELECT * FROM overkanslighet WHERE patient_id = ?').all(an.patient_id), 'las_oversikt', { gemensam: true }).map(o => o.amne);
   const prover = proverFor(atk, an);
   const blod = INGREPP[an.kva].blod ? prover.filter(p => ['blodgruppering', 'bastest'].includes(p.analys)) : [];
@@ -401,7 +406,7 @@ function sakraForlopp(db, an, nu) {
 // registrerat och, när ingreppet har ett implantat, implantatet.
 export function checklista(atk, an, body = {}, nu = new Date()) {
   const db = atk.db;
-  atk.krav('operation_registrera');
+  andraOp(atk, an, 'operation_registrera');
   if (!finns(CHECKLISTA, body.del)) throw new Fel(400, 'Delen av checklistan finns inte.', 'ogiltig', { falt: ['del'] });
   const f = sakraForlopp(db, an, nu);
   const def = CHECKLISTA[body.del];
@@ -423,7 +428,7 @@ export function checklista(atk, an, body = {}, nu = new Date()) {
 // ingreppet som åtgärd med KVÅ på vårdkontakten.
 export function registrera(atk, an, body = {}, nu = new Date()) {
   const db = atk.db;
-  atk.krav('operation_registrera');
+  andraOp(atk, an, 'operation_registrera');
   if (!finns(HANDELSE, body.handelse)) throw new Fel(400, 'Händelsen finns inte.', 'ogiltig', { falt: ['handelse'] });
   if (!['planerad', 'pagar'].includes(an.status)) throw new Fel(409, an.status === 'vantar' ? 'Operationen är inte planerad.' : 'Operationen är redan avslutad.', 'ogiltig');
   const f = sakraForlopp(db, an, nu);
@@ -455,7 +460,7 @@ export function registrera(atk, an, body = {}, nu = new Date()) {
 
 export function implantat(atk, an, body = {}, nu = new Date()) {
   const db = atk.db;
-  atk.krav('operation_registrera');
+  andraOp(atk, an, 'operation_registrera');
   if (an.status !== 'pagar') throw new Fel(409, 'Implantat registreras under operationen.', 'ogiltig');
   const artikel = textFalt(body.artikel, 100), tillverkare = textFalt(body.tillverkare, 100), lot = textFalt(body.lot, 40);
   if (!artikel || !tillverkare) throw new Fel(400, 'Ange implantatets artikel och tillverkare.', 'ogiltig', { falt: [!artikel ? 'artikel' : 'tillverkare'] });
@@ -471,7 +476,7 @@ export function implantat(atk, an, body = {}, nu = new Date()) {
 
 export function kontroll(atk, an, body = {}, nu = new Date()) {
   const db = atk.db;
-  atk.krav('operation_registrera');
+  andraOp(atk, an, 'operation_registrera');
   if (an.status !== 'uppvak') throw new Fel(409, 'Patienten är inte på uppvakningen.', 'ogiltig');
   atk.krav('registrera_matvarde');
   const varden = body.varden && typeof body.varden === 'object' ? body.varden : {};
@@ -486,7 +491,7 @@ export function kontroll(atk, an, body = {}, nu = new Date()) {
 // värden som den inloggade får se räknas.
 export function uppvakning(atk, an, nu = new Date()) {
   const db = atk.db;
-  atk.krav('las_operation');
+  lasRad(atk, an, 'las_operation');
   const f = forloppFor(db, an.id);
   if (!f?.ut_sal) throw new Fel(409, 'Patienten har inte kommit till uppvakningen.', 'ogiltig');
   const mv = atk.filtrera(db.query('SELECT * FROM matvarden WHERE patient_id = ? AND tid >= ? ORDER BY tid DESC, id DESC').all(an.patient_id, f.ut_sal), 'las_matvarden');
@@ -523,7 +528,7 @@ export function overrapportText(atk, an, u) {
 // de postoperativa kontrollerna till avdelningen när den inloggade får ordinera kontroller.
 export function skrivUt(atk, an, body = {}, nu = new Date()) {
   const db = atk.db;
-  atk.krav('operation_registrera');
+  andraOp(atk, an, 'operation_registrera');
   if (an.status !== 'uppvak') throw new Fel(409, 'Patienten är inte på uppvakningen.', 'ogiltig');
   const u = uppvakning(atk, an, nu);
   if (!u.kanSkrivasUt) throw new Fel(409, u.text, 'ogiltig');

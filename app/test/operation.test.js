@@ -257,4 +257,24 @@ describe('Operationsplanering', () => {
     expect(a.doldaSparr).toBe(true);
     expect(JSON.stringify(r)).toBe(utan);
   });
+
+  test('säkerhet: en operationsanmälan för en annan patient ger 404 för varje åtgärd, och en annan vårdenhet ändrar inte operationen ens med aktivt val', () => {
+    const db = sandlada();
+    ny(db, 'op1'); ny(db, 'op2');
+    const a = anmal(db);
+    const an = rad(db, a.id);
+    const A = (h) => atk(db, 'lak-kkoga', 'op2', h);
+    for (const f of [() => op.bestallProver(A('bestalla_prov'), an, BAS), () => op.planeringsforslag(A('operation_planera'), an, BAS), () => op.planera(A('operation_planera'), an, {}, BAS),
+      () => op.stryk(A('operation_planera'), an, { orsak: 'tidsbrist' }, BAS), () => op.anestesibedomning(A('operation_anmala'), an, { asa: 2 }, BAS), () => op.checklistaUnderlag(A('las_operation'), an),
+      () => op.checklista(A('operation_registrera'), an, { del: 'fore_anestesi', bekraftade: ALLA('fore_anestesi') }, BAS), () => op.registrera(A('operation_registrera'), an, { handelse: 'in_sal' }, BAS),
+      () => op.implantat(A('operation_registrera'), an, {}, BAS), () => op.kontroll(A('operation_registrera'), an, {}, BAS), () => op.uppvakning(A('las_operation'), an, BAS), () => op.skrivUt(A('operation_registrera'), an, {}, BAS)]) {
+      try { f(); throw new Error('ingen 404'); } catch (e) { expect([e.status, e.message]).toEqual([404, 'Uppgiften finns inte.']); }
+    }
+    db.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak) VALUES ('op1', 'uso-ort', 'slutenvard', ?, 'Avdelning', 'Vård')").run(BAS.toISOString());
+    expect(() => op.planera(atk(db, 'lak-ort', 'op1', 'operation_planera'), an, {}, BAS)).toThrow('aktivt val');
+    expect(() => op.planera(atk(db, 'lak-ort', 'op1', 'operation_planera', { andra_enheter: true }), an, {}, BAS)).toThrow('anmälande vårdenheten');
+    expect(op.checklistaUnderlag(atk(db, 'lak-ort', 'op1', 'las_operation', { andra_enheter: true }), an).allergier).toBe('Ingen registrerad överkänslighet.');
+    sparr(db, 'op1', 'kkoga-ort');
+    expect(() => op.checklistaUnderlag(atk(db, 'lak-ort', 'op1', 'las_operation', { andra_enheter: true }), an)).toThrow('spärrade');
+  });
 });

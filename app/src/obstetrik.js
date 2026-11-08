@@ -23,7 +23,10 @@ import * as identitet from './identitet.js';
 import * as labb from './labb.js';
 import { ANALYS } from './labb-katalog.js';
 import { tolkaBlodgrupp } from './blod.js';
-import { tabell, finns, personNamn, enhetKort, iso, DAG, TIMME, kravRoll, vardkontaktFor, matvarde } from './specialist-hjalp.js';
+import { tabell, finns, personNamn, enhetKort, iso, DAG, TIMME, kravRoll, vardkontaktFor, matvarde, lasRad, andraRad } from './specialist-hjalp.js';
+// Säkerhetsgranskningen: varje graviditet och förlossning binds till patienten och prövas på sin vårdenhet.
+const andraGrav = (atk, g) => andraRad(atk, g, 'graviditet', 'las_graviditet', 'Graviditetsjournalen förs av den vårdenhet som skrev in graviditeten.');
+const andraForl = (atk, f) => andraRad(atk, f, 'graviditet', 'las_graviditet', 'Förlossningsjournalen förs av förlossningens vårdenhet.');
 
 export const DEMOREGEL = 'Demoregel, inte ett kliniskt beslutsstöd. Programmet och gränserna är förenklade.';
 export const GRAVIDITETSDAGAR = 280;
@@ -143,6 +146,7 @@ export function program(atk, g, risk, nu = new Date()) {
 const lasJson = (s, standard) => { try { return JSON.parse(s); } catch { return standard; } };
 export function graviditetUt(atk, g, nu = new Date()) {
   const db = atk.db;
+  lasRad(atk, g, 'las_graviditet');
   const risk = riskbedomning(atk, g, nu);
   const dagar = dagarFor(g, datumAv(nu));
   const f = db.query('SELECT * FROM forlossningar WHERE graviditet_id = ? ORDER BY id DESC').get(g.id);
@@ -188,7 +192,7 @@ export function registrera(atk, body = {}, nu = new Date()) {
 
 // Ultraljud senare i graviditeten: BPD räknas om när ultraljudet skiljer mer än sju dagar från den nuvarande.
 export function ultraljud(atk, g, body = {}, nu = new Date()) {
-  atk.krav('graviditet');
+  andraGrav(atk, g);
   const datum = body.datum ?? datumAv(nu);
   const dagar = Number(body.veckor) * 7 + Number(body.dagar ?? 0);
   if (!giltigtDatum(datum) || !Number.isInteger(dagar) || dagar < 42 || dagar > 300) throw new Fel(400, 'Ange graviditetslängden vid ultraljudet i veckor och dagar.', 'ogiltig', { falt: ['veckor'] });
@@ -200,6 +204,7 @@ export function ultraljud(atk, g, body = {}, nu = new Date()) {
 
 // Prover som ska tas enligt provschemat vid nästa besök och som inte redan är beställda efter inskrivningen.
 export function proverAttTa(atk, g, nu = new Date()) {
+  lasRad(atk, g, 'las_graviditet');
   const p = program(atk, g, riskbedomning(atk, g, nu), nu);
   if (!p.nasta) return [];
   const bestallda = new Set(labb.synligaBestallningar(atk).filter(b => !b.makulerad_tid && b.skapad >= iso(Date.parse(lokalTid(p.nasta.datum, '00:00')) - 14 * DAG))
@@ -216,7 +221,7 @@ export function bestallProver(atk, g, nu = new Date()) {
 // Besöket hos barnmorskan. Blodtryck och vikt blir också mätvärden i journalen.
 export function besok(atk, g, body = {}, nu = new Date()) {
   const db = atk.db;
-  atk.krav('graviditet');
+  andraGrav(atk, g);
   if (g.status !== 'pagaende') throw new Fel(409, 'Graviditeten är avslutad.', 'ogiltig');
   const dagar = dagarFor(g, datumAv(nu));
   const varningar = [];
@@ -292,6 +297,7 @@ export function forlossningUt(atk, f) {
 
 export function startaForlossning(atk, g, body = {}, nu = new Date()) {
   const db = atk.db;
+  lasRad(atk, g, 'las_graviditet');
   atk.krav('graviditet');
   if (g.status !== 'pagaende') throw new Fel(409, 'Graviditeten är redan avslutad.', 'ogiltig');
   if (db.query("SELECT 1 FROM forlossningar WHERE graviditet_id = ? AND status = 'pagaende'").get(g.id)) throw new Fel(409, 'Förlossningen är redan startad.', 'ogiltig');
@@ -305,7 +311,7 @@ export function startaForlossning(atk, g, body = {}, nu = new Date()) {
 
 export function partogram(atk, f, body = {}, nu = new Date()) {
   const db = atk.db;
-  atk.krav('graviditet');
+  andraForl(atk, f);
   if (f.status !== 'pagaende') throw new Fel(409, 'Förlossningen är avslutad.', 'ogiltig');
   const oppning = Number(body.oppning);
   if (!Number.isInteger(oppning) || oppning < 0 || oppning > 10) throw new Fel(400, 'Modermunnens öppning anges i hela centimeter, 0 till 10.', 'ogiltig', { falt: ['oppning'] });
@@ -325,7 +331,7 @@ export function partogram(atk, f, body = {}, nu = new Date()) {
 // en vårdkontakt på förlossningen och BB där det vårdas.
 export function fodelse(atk, f, body = {}, nu = new Date()) {
   const db = atk.db;
-  atk.krav('graviditet');
+  andraForl(atk, f);
   atk.krav('registrera_patient');
   if (f.status !== 'pagaende') throw new Fel(409, 'Förlossningen är avslutad.', 'ogiltig');
   const g = graviditetRad(db, f.graviditet_id);

@@ -73,4 +73,25 @@ export function matvarde(atk, typ, varde, tidpunkt) {
   return Number(r.lastInsertRowid);
 }
 
+// Runda 9, r3, säkerhetsgranskningen: en rad som hämtas på id binds till patienten i anropet, och radens vårdenhet prövas
+// i behörighetsmotorn (inre sekretess, aktivt val, spärr och samtycke) innan något om den lämnas ut eller ändras.
+export const SAKNAS = 'Uppgiften finns inte.';
+export function bunden(atk, rad) {
+  if (!rad || rad.patient_id !== atk.patientId) throw new Fel(404, SAKNAS, 'saknas');
+  return rad;
+}
+export function lasRad(atk, rad, handling) {
+  bunden(atk, rad);
+  atk.krav(handling, { resurs: { enhet_id: rad.enhet_id } });
+  return rad;
+}
+// Det som ändrar något kräver dessutom handlingen och att den inloggade arbetar på radens vårdenhet. Ett aktivt val eller
+// ett samtycke ger aldrig rätt att ändra en annan vårdenhets uppgifter.
+export function andraRad(atk, rad, handling, lasHandling, text) {
+  lasRad(atk, rad, lasHandling);
+  atk.krav(handling);
+  if (vardenhetFor(atk.db, atk.personal.enhet_id) !== vardenhetFor(atk.db, rad.enhet_id)) throw new Fel(403, text, 'nekad');
+  return rad;
+}
+
 export { vardenhetFor };

@@ -7,7 +7,8 @@ import { BAS, sandlada, nyPatient, atk, pers, sparr, efter } from './specialist.
 
 const IDAG = datumAv(BAS);
 const mvc = (db, pid = 'gr1', h = 'graviditet', val = {}) => atk(db, 'ssk-vc', pid, h, val);
-const bm = (db, pid = 'gr1', h = 'graviditet') => atk(db, 'bm-uso', pid, h);
+// Förlossningen läser graviditetsjournalen från vårdcentralen efter ett aktivt val.
+const bm = (db, pid = 'gr1', h = 'graviditet') => atk(db, 'bm-uso', pid, h, { andra_enheter: true });
 const ny = (db, id = 'gr1', extra = {}) => nyPatient(db, { id, enhet: 'vc-tybble', listning: true, ar: 1993, kon: 'K', fornamn: 'Moa', efternamn: 'Graviddotter', ...extra });
 const grav = (db, body, pid = 'gr1', nu = BAS) => obs.registrera(mvc(db, pid), body, nu);
 const rad = (db, id) => obs.graviditetRad(db, id);
@@ -152,5 +153,24 @@ describe('Graviditet och förlossning', () => {
     const r = las({ andra_enheter: true });
     expect(r.graviditeter).toEqual([]);
     expect(JSON.stringify(r)).toBe(utan);
+  });
+
+  test('säkerhet: en graviditet eller förlossning för en annan patient ger 404, och förlossningen läser graviditetsjournalen först efter ett aktivt val', () => {
+    const db = sandlada();
+    const f = tillForlossning(db);
+    const g = rad(db, obs.forlossningRad(db, f.id).graviditet_id);
+    ny(db, 'gr9');
+    const A = (roll) => atk(db, roll, 'gr9', 'graviditet');
+    for (const x of [() => obs.ultraljud(A('ssk-vc'), g, { veckor: 12 }, BAS), () => obs.besok(A('ssk-vc'), g, {}, BAS), () => obs.bestallProver(A('ssk-vc'), g, BAS),
+      () => obs.graviditetUt(A('ssk-vc'), g, BAS), () => obs.startaForlossning(A('bm-uso'), g, {}, BAS), () => obs.partogram(A('bm-uso'), obs.forlossningRad(db, f.id), { oppning: 5 }, BAS),
+      () => obs.fodelse(A('bm-uso'), obs.forlossningRad(db, f.id), {}, BAS)]) {
+      try { x(); throw new Error('ingen 404'); } catch (e) { expect([e.status, e.message]).toEqual([404, 'Uppgiften finns inte.']); }
+    }
+    ny(db, 'gr8');
+    db.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak) VALUES ('gr8', 'uso-kk-forl', 'slutenvard', ?, 'Förlossningen', 'Förlossning')").run(BAS.toISOString());
+    const g8 = rad(db, grav(db, { sistaMens: addDagar(IDAG, -39 * 7) }, 'gr8').id);
+    expect(() => obs.startaForlossning(atk(db, 'bm-uso', 'gr8', 'graviditet'), g8, {}, BAS)).toThrow('aktivt val');
+    expect(() => obs.besok(atk(db, 'bm-uso', 'gr8', 'graviditet', { andra_enheter: true }), g8, { blodtryck: '120/80' }, BAS)).toThrow('vårdenhet som skrev in graviditeten');
+    expect(obs.startaForlossning(atk(db, 'bm-uso', 'gr8', 'graviditet', { andra_enheter: true }), g8, {}, BAS).status).toBe('pagaende');
   });
 });

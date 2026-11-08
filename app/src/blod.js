@@ -15,10 +15,10 @@
 //
 // Blodcentralen, enhetsnumren och reglerna är simulerade demoregler och inget kliniskt beslutsstöd.
 import { Fel, datumAv } from './db.js';
-import { vardenhetFor, kanRoll } from './atkomst.js';
+import { Atkomst, vardenhetFor, enheterUnder, kanRoll, visningsnamn } from './atkomst.js';
 import * as labb from './labb.js';
 import { BASTEST_TIMMAR, ANALYS } from './labb-katalog.js';
-import { tabell, finns, personNamn, enhetKort, textFalt, iso, MIN, TIMME, vardkontaktFor } from './specialist-hjalp.js';
+import { tabell, finns, personNamn, enhetKort, textFalt, iso, MIN, TIMME, vardkontaktFor, andraRad, provaRad, loggaPatient } from './specialist-hjalp.js';
 
 export const DEMOREGEL = 'Demoregel, inte ett kliniskt beslutsstöd. Blodcentralen och enhetsnumren är simulerade.';
 export const BLODCENTRAL = 'Blodcentralen USÖ (simulerad)';
@@ -33,7 +33,7 @@ export const STATUS = tabell({
   vantar_prov: 'Väntar på blodgruppering och bastest', utreds: 'Blodcentralen utreder', beredd: 'Förenlighetsprövad och beredd',
   utlamnad: 'Utlämnad till avdelningen', avslutad: 'Avslutad', makulerad: 'Makulerad',
 });
-export const ENHETSSTATUS = tabell({ reserverad: 'Reserverad på blodcentralen', utlamnad: 'Utlämnad', pagar: 'Transfusion pågår', transfunderad: 'Transfunderad', aterlamnad: 'Återlämnad' });
+export const ENHETSSTATUS = tabell({ reserverad: 'Reserverad på blodcentralen', utlamnad: 'Utlämnad', vantar_kontroll: 'Väntar på kontroll vid sängen', kontrollerad: 'Kontrollerad vid sängen', pagar: 'Transfusion pågår', transfunderad: 'Transfunderad', aterlamnad: 'Återlämnad' });
 
 export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS blod_bestallningar (
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS blod_bestallningar (
 CREATE INDEX IF NOT EXISTS ix_blod_best_patient ON blod_bestallningar (patient_id);
 CREATE TABLE IF NOT EXISTS blod_enheter (
   id INTEGER PRIMARY KEY AUTOINCREMENT, bestallning_id INTEGER NOT NULL, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, enhetsnummer TEXT NOT NULL UNIQUE,
-  blodgrupp TEXT NOT NULL, hallbar TEXT NOT NULL, status TEXT NOT NULL, utlamnad_tid TEXT, start_tid TEXT, slut_tid TEXT, given_av TEXT, kontrollerad_av TEXT,
+  blodgrupp TEXT NOT NULL, hallbar TEXT NOT NULL, status TEXT NOT NULL, utlamnad_tid TEXT, forberedd_tid TEXT, forberedd_av TEXT, kontrollerad_tid TEXT, kontrollerad_av TEXT, start_tid TEXT, slut_tid TEXT, given_av TEXT,
   reaktion TEXT, aterlamnad_tid TEXT, aterlamnad_orsak TEXT
 );
 CREATE TABLE IF NOT EXISTS blod_historik (
@@ -196,15 +196,13 @@ export function forPatient(atk, nu = new Date()) {
   return { bestallningar: rader.map(b => bestallningUt(atk, bestallningRad(atk.db, b.id), nu)), demoregel: DEMOREGEL };
 }
 
-const egenVardenhet = (atk, b) => {
-  if (vardenhetFor(atk.db, atk.personal.enhet_id) !== vardenhetFor(atk.db, b.enhet_id)) throw new Fel(403, 'Blodet hanteras av den beställande vårdenheten.', 'nekad');
-};
+const ANDRA = 'Blodet hanteras av den beställande vårdenheten.';
+const andra = (atk, rad) => andraRad(atk, rad, 'ge_lakemedel', 'las_prover', ANDRA);
 
 // Hämtning från blodcentralen till avdelningen. Transfusionen ska starta inom 30 minuter.
 export function utlamna(atk, b, nu = new Date()) {
   const db = atk.db;
-  atk.krav('ge_lakemedel');
-  egenVardenhet(atk, b);
+  andra(atk, b);
   blodcentralen(atk, b, nu);
   b = bestallningRad(db, b.id);
   if (b.status !== 'beredd') throw new Fel(409, b.status === 'vantar_prov' ? 'Blodet är inte berett än. Blodcentralen väntar på blodgruppering och bastest.' : `Blodet kan inte lämnas ut: ${STATUS[b.status].toLocaleLowerCase('sv')}.`, 'ogiltig');
@@ -216,35 +214,93 @@ export function utlamna(atk, b, nu = new Date()) {
   return bestallningUt(atk, bestallningRad(db, b.id), nu);
 }
 
-// Kontrollen vid sängen och starten av transfusionen. armband är det som läses från patientens id-band, enhetsnummer
-// det som läses från påsen och kontrollant den andra personen som har gjort kontrollen.
-export function starta(atk, e, body = {}, nu = new Date()) {
-  const db = atk.db;
-  atk.krav('ge_lakemedel');
-  const b = bestallningRad(db, e.bestallning_id);
-  egenVardenhet(atk, b);
-  if (e.status !== 'utlamnad') throw new Fel(409, 'Enheten är inte utlämnad till avdelningen.', 'ogiltig');
+const forSent = (e, nu) => {
   if (nu.getTime() > Date.parse(e.utlamnad_tid) + STARTA_INOM_MINUTER * MIN) throw new Fel(409, `Det har gått mer än ${STARTA_INOM_MINUTER} minuter sedan blodet lämnades ut. Återlämna enheten till blodcentralen.`, 'for_sent');
-  const p = db.query('SELECT personnummer FROM patienter WHERE id = ?').get(e.patient_id);
+};
+// Id-bandet, påsens enhetsnummer och blodgruppen, som var och en av de två personerna läser och prövar själv.
+function lasVidSangen(atk, b, e, body, nu) {
+  const p = atk.db.query('SELECT personnummer FROM patienter WHERE id = ?').get(e.patient_id);
   if (String(body.armband ?? '').replace(/\D/g, '') !== p.personnummer) throw new Fel(409, 'Id-bandet hör inte till patienten som blodet är berett för. Ge inte blodet.', 'fel_patient');
   if (body.enhetsnummer !== e.enhetsnummer) throw new Fel(409, 'Enhetsnumret på påsen stämmer inte med den beredda enheten. Ge inte blodet.', 'fel_enhet');
   const t = transfusionsprover(atk, nu);
   if (!t.blodgrupp || !forenlig(b.produkt, e.blodgrupp, t.blodgrupp)) throw new Fel(409, `Enhetens blodgrupp ${e.blodgrupp} är inte förenlig med patientens${t.blodgrupp ? ` blodgrupp ${t.blodgrupp}` : ''}. Ge inte blodet och kontakta blodcentralen.`, 'oforenlig');
-  const k = typeof body.kontrollant === 'string' ? db.query('SELECT * FROM personal WHERE id = ? AND aktiv = 1').get(body.kontrollant) : null;
-  if (!k || k.id === atk.personal.id || !kanRoll(k, 'ge_lakemedel') || vardenhetFor(db, k.enhet_id) !== vardenhetFor(db, atk.personal.enhet_id)) {
-    throw new Fel(400, 'Kontrollen vid sängen görs av två personer. Välj en annan sjuksköterska eller läkare på vårdenheten som har kontrollerat med dig.', 'ogiltig', { falt: ['kontrollant'] });
+}
+
+// De som får göra kontrollen vid sängen: sjuksköterskor och läkare på vårdenheten som får läsa beställningen i
+// behörighetsmotorn, aldrig den som förberedde transfusionen.
+export function kontrollKandidater(db, e) {
+  const ve = vardenhetFor(db, e.enhet_id);
+  return db.query("SELECT * FROM personal WHERE aktiv = 1 AND yrke IN ('sjukskoterska', 'lakare') ORDER BY namn").all()
+    .filter(p => p.id !== e.forberedd_av && vardenhetFor(db, p.enhet_id) === ve && kanRoll(p, 'ge_lakemedel')
+      && new Atkomst(db, p, e.patient_id, {}, 'las_prover').prova('las_prover', { enhet_id: e.enhet_id }).tillaten)
+    .map(p => ({ id: p.id, namn: p.namn }));
+}
+
+// Den som ska ge blodet förbereder vid sängen: id-band, enhetsnummer och blodgrupp. Enheten väntar sedan på att en
+// andra person kontrollerar den i sin egen inloggning.
+export function forbered(atk, e, body = {}, nu = new Date()) {
+  const db = atk.db;
+  andra(atk, e);
+  const b = bestallningRad(db, e.bestallning_id);
+  if (e.status !== 'utlamnad') throw new Fel(409, 'Enheten är inte utlämnad till avdelningen.', 'ogiltig');
+  forSent(e, nu);
+  lasVidSangen(atk, b, e, body, nu);
+  db.query("UPDATE blod_enheter SET status = 'vantar_kontroll', forberedd_tid = ?, forberedd_av = ? WHERE id = ?").run(iso(nu), atk.personal.id, e.id);
+  historik(db, b, atk.personal.id, 'forberedd', `Enhet ${e.enhetsnummer} förberedd vid sängen. Väntar på kontroll av en andra person.`, iso(nu));
+  return { ...bestallningUt(atk, b, nu), kontroll: { forberedd: personNamn(db, atk.personal.id), kandidater: kontrollKandidater(db, enhetRad(db, e.id)) } };
+}
+
+// Enheter som väntar på kontroll vid sängen på den inloggades vårdenhet, utom de som den inloggade själv förberedde.
+export function vantandeKontroller(db, personal, valFor) {
+  sakra(db);
+  if (!kanRoll(personal, 'ge_lakemedel')) return { kontroller: [] };
+  const enheter = enheterUnder(db, vardenhetFor(db, personal.enhet_id));
+  const ut = [];
+  for (const e of db.query(`SELECT * FROM blod_enheter WHERE status = 'vantar_kontroll' AND forberedd_av <> ? AND enhet_id IN (${enheter.map(() => '?').join(', ')}) ORDER BY forberedd_tid`).all(personal.id, ...enheter)) {
+    const r = provaRad(db, personal, valFor, e, 'las_prover');
+    if (!r.tillaten) continue;
+    loggaPatient(db, personal, e.patient_id, 'las_prover', r.grund, '/api/blod/kontroller');
+    const p = db.query('SELECT * FROM patienter WHERE id = ?').get(e.patient_id);
+    ut.push({ enhetId: e.id, enhetsnummer: e.enhetsnummer, blodgrupp: e.blodgrupp, forberedd: { tid: e.forberedd_tid, av: personNamn(db, e.forberedd_av) },
+      patient: { id: p.id, namn: visningsnamn(p, valFor(p.id).visa_identitet) } });
   }
-  db.query("UPDATE blod_enheter SET status = 'pagar', start_tid = ?, given_av = ?, kontrollerad_av = ? WHERE id = ?").run(iso(nu), atk.personal.id, k.id, e.id);
-  historik(db, b, atk.personal.id, 'start', `Enhet ${e.enhetsnummer} (${e.blodgrupp}) startad. Kontrollerad vid sängen med ${k.namn}.`, iso(nu));
+  return { kontroller: ut };
+}
+
+// Kontrollen görs av den andra personen i sin egen inloggning, som själv läser id-bandet och enhetsnumret.
+export function kontrollera(atk, e, body = {}, nu = new Date()) {
+  const db = atk.db;
+  andra(atk, e);
+  const b = bestallningRad(db, e.bestallning_id);
+  if (e.status !== 'vantar_kontroll') throw new Fel(409, 'Enheten väntar inte på kontroll.', 'ogiltig');
+  if (e.forberedd_av === atk.personal.id) throw new Fel(409, 'Den som förberedde transfusionen kan inte kontrollera den själv. En annan sjuksköterska eller läkare kontrollerar i sin egen inloggning.', 'samma_person');
+  if (!kontrollKandidater(db, e).some(k => k.id === atk.personal.id)) throw new Fel(403, 'Du kan inte kontrollera transfusionen.', 'nekad');
+  forSent(e, nu);
+  lasVidSangen(atk, b, e, body, nu);
+  db.query("UPDATE blod_enheter SET status = 'kontrollerad', kontrollerad_tid = ?, kontrollerad_av = ? WHERE id = ?").run(iso(nu), atk.personal.id, e.id);
+  historik(db, b, atk.personal.id, 'kontrollerad', `Enhet ${e.enhetsnummer} kontrollerad vid sängen.`, iso(nu));
+  return bestallningUt(atk, b, nu);
+}
+
+// Starten av transfusionen, efter kontrollen och av någon av de två som har gjort den.
+export function starta(atk, e, nu = new Date()) {
+  const db = atk.db;
+  andra(atk, e);
+  const b = bestallningRad(db, e.bestallning_id);
+  if (e.status !== 'kontrollerad' || !e.kontrollerad_av) throw new Fel(409, 'Enheten är inte dubbelkontrollerad. Den andra personen bekräftar kontrollen i sin egen inloggning.', 'kontroll');
+  if (![e.forberedd_av, e.kontrollerad_av].includes(atk.personal.id)) throw new Fel(403, 'Transfusionen startas av någon av de två som har kontrollerat enheten.', 'nekad');
+  forSent(e, nu);
+  const annan = personNamn(db, e.kontrollerad_av === atk.personal.id ? e.forberedd_av : e.kontrollerad_av);
+  db.query("UPDATE blod_enheter SET status = 'pagar', start_tid = ?, given_av = ? WHERE id = ?").run(iso(nu), atk.personal.id, e.id);
+  historik(db, b, atk.personal.id, 'start', `Enhet ${e.enhetsnummer} (${e.blodgrupp}) startad. Kontrollerad vid sängen med ${annan}.`, iso(nu));
   return bestallningUt(atk, bestallningRad(db, b.id), nu);
 }
 
 // Avslutad transfusion, med eventuell reaktion. När alla enheter är transfunderade eller återlämnade är beställningen klar.
 export function avsluta(atk, e, body = {}, nu = new Date()) {
   const db = atk.db;
-  atk.krav('ge_lakemedel');
+  andra(atk, e);
   const b = bestallningRad(db, e.bestallning_id);
-  egenVardenhet(atk, b);
   if (e.status !== 'pagar') throw new Fel(409, 'Transfusionen av enheten har inte startat.', 'ogiltig');
   const reaktion = textFalt(body.reaktion, 300) || null;
   db.query("UPDATE blod_enheter SET status = 'transfunderad', slut_tid = ?, reaktion = ? WHERE id = ?").run(iso(nu), reaktion, e.id);
@@ -255,10 +311,9 @@ export function avsluta(atk, e, body = {}, nu = new Date()) {
 
 export function aterlamna(atk, e, body = {}, nu = new Date()) {
   const db = atk.db;
-  atk.krav('ge_lakemedel');
+  andra(atk, e);
   const b = bestallningRad(db, e.bestallning_id);
-  egenVardenhet(atk, b);
-  if (!['utlamnad', 'reserverad'].includes(e.status)) throw new Fel(409, 'Enheten kan inte återlämnas.', 'ogiltig');
+  if (!['utlamnad', 'reserverad', 'vantar_kontroll', 'kontrollerad'].includes(e.status)) throw new Fel(409, 'Enheten kan inte återlämnas.', 'ogiltig');
   const orsak = textFalt(body.orsak, 200) || (e.utlamnad_tid && nu.getTime() > Date.parse(e.utlamnad_tid) + STARTA_INOM_MINUTER * MIN ? `Inte startad inom ${STARTA_INOM_MINUTER} minuter` : '');
   if (!orsak) throw new Fel(400, 'Ange varför enheten återlämnas.', 'ogiltig', { falt: ['orsak'] });
   db.query("UPDATE blod_enheter SET status = 'aterlamnad', aterlamnad_tid = ?, aterlamnad_orsak = ? WHERE id = ?").run(iso(nu), orsak, e.id);

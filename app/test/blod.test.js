@@ -4,7 +4,7 @@ import { describe, test, expect } from 'bun:test';
 import * as blod from '../src/blod.js';
 import * as labb from '../src/labb.js';
 import { blodgruppFor } from '../src/labb-katalog.js';
-import { BAS, sandlada, nyPatient, atk, sparr, efter } from './specialist.js';
+import { BAS, sandlada, nyPatient, atk, pers, sparr, efter } from './specialist.js';
 
 const ny = (db, id = 'bl1', extra = {}) => nyPatient(db, { id, enhet: 'kkoga-ort', ar: 1952, kon: 'M', ...extra });
 const lak = (db, pid = 'bl1', h = 'bestalla_prov') => atk(db, 'lak-kkoga', pid, h);
@@ -14,6 +14,13 @@ function taOchSvara(db, labbId, pid, nu) {
   const b = labb.bestallningRad(db, labbId);
   for (const p of labb.bestallningUt(db, b).prov) labb.taProv(atk(db, 'ssk-kkoga', pid, 'ta_prov'), labb.provRad(db, p.id), nu);
   labb.forfallnaSvar(db, new Date(nu.getTime() + 25 * 60_000));
+}
+// Dubbelkontrollen: sjuksköterskan förbereder vid sängen, läkaren kontrollerar i sin egen session och transfusionen startar.
+function startaMedKontroll(db, e, pnr, nu) {
+  const las = { armband: pnr, enhetsnummer: e.enhetsnummer };
+  blod.forbered(ssk(db), blod.enhetRad(db, e.id), las, nu);
+  blod.kontrollera(lak(db, 'bl1', 'ge_lakemedel'), blod.enhetRad(db, e.id), las, new Date(nu.getTime() + 60_000));
+  return blod.starta(ssk(db), blod.enhetRad(db, e.id), new Date(nu.getTime() + 120_000));
 }
 function berett(db, pid = 'bl1', body = { produkt: 'erytrocyter', antal: 2, indikation: 'Postoperativ anemi, Hb 72' }, demo = null) {
   const b = blod.bestall(lak(db, pid), body, BAS);
@@ -73,13 +80,13 @@ describe('Blodprodukter', () => {
     expect(u.enheter.every(e => e.status === 'utlamnad' && e.startaSenast === efter(80).toISOString())).toBe(true);
     const p = db.query("SELECT personnummer FROM patienter WHERE id = 'bl1'").get().personnummer;
     const [e1, e2] = u.enheter;
-    blod.starta(ssk(db), blod.enhetRad(db, e1.id), { armband: p, enhetsnummer: e1.enhetsnummer, kontrollant: 'lak-kkoga' }, efter(55));
+    startaMedKontroll(db, e1, p, efter(55));
     blod.avsluta(ssk(db), blod.enhetRad(db, e1.id), {}, efter(115));
     const slut = blod.aterlamna(ssk(db), blod.enhetRad(db, e2.id), { orsak: 'Hb stigit, en enhet räckte' }, efter(116));
     expect(slut.status).toBe('avslutad');
     expect(slut.enheter.map(e => e.status)).toEqual(['transfunderad', 'aterlamnad']);
     expect(slut.enheter[0]).toMatchObject({ givenAv: 'Tove Ahlström', kontrolleradAv: 'Ingrid Moberg', reaktion: null });
-    expect(slut.historik.map(h => h.handelse)).toEqual(['upprattad', 'beredd', 'utlamnad', 'start', 'transfunderad', 'aterlamnad', 'avslutad']);
+    expect(slut.historik.map(h => h.handelse)).toEqual(['upprattad', 'beredd', 'utlamnad', 'forberedd', 'kontrollerad', 'start', 'transfunderad', 'aterlamnad', 'avslutad']);
     expect(slut.historik.find(h => h.handelse === 'beredd').av).toBe('Blodcentralen USÖ (simulerad)');
   });
 
@@ -91,19 +98,48 @@ describe('Blodprodukter', () => {
     const u = blod.utlamna(ssk(db), blod.bestallningRad(db, b.id), efter(50));
     const p = db.query("SELECT personnummer FROM patienter WHERE id = 'bl1'").get().personnummer;
     const e = blod.enhetRad(db, u.enheter[0].id);
-    const kontroll = { armband: p, enhetsnummer: e.enhetsnummer, kontrollant: 'lak-kkoga' };
-    expect(() => blod.starta(ssk(db), e, { ...kontroll, armband: '191212121212' }, efter(52))).toThrow('Id-bandet hör inte till patienten');
-    expect(() => blod.starta(ssk(db), e, { ...kontroll, enhetsnummer: 'DEMO00000999' }, efter(52))).toThrow('Enhetsnumret på påsen stämmer inte');
-    expect(() => blod.starta(ssk(db), e, { ...kontroll, kontrollant: 'ssk-kkoga' }, efter(52))).toThrow('två personer');
-    expect(() => blod.starta(ssk(db), e, { ...kontroll, kontrollant: 'ssk-kard' }, efter(52))).toThrow('två personer');
+    const kontroll = { armband: p, enhetsnummer: e.enhetsnummer };
+    expect(() => blod.forbered(ssk(db), e, { ...kontroll, armband: '191212121212' }, efter(52))).toThrow('Id-bandet hör inte till patienten');
+    expect(() => blod.forbered(ssk(db), e, { ...kontroll, enhetsnummer: 'DEMO00000999' }, efter(52))).toThrow('Enhetsnumret på påsen stämmer inte');
     // En enhet med en oförenlig blodgrupp stoppas: RhD-positivt blod till en RhD-negativ patient.
     db.query("UPDATE blod_enheter SET blodgrupp = 'A+' WHERE id = ?").run(e.id);
-    expect(() => blod.starta(ssk(db), blod.enhetRad(db, e.id), kontroll, efter(52))).toThrow('Enhetens blodgrupp A+ är inte förenlig med patientens blodgrupp A-');
+    expect(() => blod.forbered(ssk(db), blod.enhetRad(db, e.id), kontroll, efter(52))).toThrow('Enhetens blodgrupp A+ är inte förenlig med patientens blodgrupp A-');
     db.query("UPDATE blod_enheter SET blodgrupp = 'O-' WHERE id = ?").run(e.id);
-    expect(blod.starta(ssk(db), blod.enhetRad(db, e.id), kontroll, efter(53)).enheter[0].status).toBe('pagar');
+    expect(startaMedKontroll(db, blod.enhetRad(db, e.id), p, efter(53)).enheter[0].status).toBe('pagar');
     const e2 = blod.enhetRad(db, u.enheter[1].id);
-    expect(() => blod.starta(ssk(db), e2, { ...kontroll, enhetsnummer: e2.enhetsnummer }, efter(81))).toThrow('mer än 30 minuter');
+    expect(() => blod.forbered(ssk(db), e2, { ...kontroll, enhetsnummer: e2.enhetsnummer }, efter(81))).toThrow('mer än 30 minuter');
     expect(blod.aterlamna(ssk(db), e2, {}, efter(82)).enheter[1]).toMatchObject({ status: 'aterlamnad', aterlamnad: { orsak: 'Inte startad inom 30 minuter' } });
+  });
+
+  test('dubbelkontrollen vid sängen: den andra personen bekräftar i sin egen session, den som förberedde kan inte kontrollera själv och ett id i anropet räcker inte', () => {
+    const db = sandlada();
+    ny(db);
+    const b = berett(db);
+    const u = blod.utlamna(ssk(db), blod.bestallningRad(db, b.id), efter(50));
+    const p = db.query("SELECT personnummer FROM patienter WHERE id = 'bl1'").get().personnummer;
+    const e = () => blod.enhetRad(db, u.enheter[0].id);
+    const las = { armband: p, enhetsnummer: e().enhetsnummer };
+    expect(() => blod.starta(ssk(db), e(), efter(51), { kontrollant: 'lak-kkoga' })).toThrow('inte dubbelkontrollerad');
+    const f = blod.forbered(ssk(db), e(), las, efter(51));
+    expect(f.kontroll).toMatchObject({ forberedd: 'Tove Ahlström', kandidater: [{ id: 'lak-kkoga', namn: 'Ingrid Moberg' }] });
+    expect(() => blod.kontrollera(ssk(db), e(), las, efter(52))).toThrow('Den som förberedde transfusionen kan inte kontrollera den själv');
+    expect(blod.vantandeKontroller(db, pers(db, 'lak-kkoga'), () => ({})).kontroller.map(k => k.enhetsnummer)).toEqual([las.enhetsnummer]);
+    expect(blod.vantandeKontroller(db, pers(db, 'ssk-kkoga'), () => ({})).kontroller).toEqual([]);
+    expect(() => blod.starta(ssk(db), e(), efter(52))).toThrow('inte dubbelkontrollerad');
+    blod.kontrollera(lak(db, 'bl1', 'ge_lakemedel'), e(), las, efter(53));
+    expect(() => blod.starta(atk(db, 'lak-kkoga', 'bl1', 'ge_lakemedel'), e(), efter(54)).enheter[0].status).not.toThrow();
+  });
+
+  test('säkerhet: en blodbeställning eller enhet för en annan patient ger 404 för varje åtgärd', () => {
+    const db = sandlada();
+    ny(db); ny(db, 'bl2');
+    const b = berett(db);
+    const best = blod.bestallningRad(db, b.id), e = blod.enhetRad(db, b.enheter[0].id);
+    const A = (h) => atk(db, 'ssk-kkoga', 'bl2', h);
+    for (const f of [() => blod.utlamna(A('ge_lakemedel'), best, BAS), () => blod.forbered(A('ge_lakemedel'), e, {}, BAS), () => blod.kontrollera(A('ge_lakemedel'), e, {}, BAS),
+      () => blod.starta(A('ge_lakemedel'), e, BAS), () => blod.avsluta(A('ge_lakemedel'), e, {}, BAS), () => blod.aterlamna(A('ge_lakemedel'), e, { orsak: 'x' }, BAS)]) {
+      try { f(); throw new Error('ingen 404'); } catch (x) { expect([x.status, x.message]).toEqual([404, 'Uppgiften finns inte.']); }
+    }
   });
 
   test('förenligheten: erytrocyter efter AB0 och RhD, plasma åt andra hållet och trombocyter AB0-lika', () => {
@@ -136,7 +172,8 @@ describe('Blodprodukter', () => {
     db.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak) VALUES ('bl1', 'uso-ort', 'slutenvard', ?, 'Avdelning', 'Vård')").run(BAS.toISOString());
     expect(() => blod.bestall(ssk(db, 'bl1', 'bestalla_prov'), { indikation: 'Anemi' }, BAS)).toThrow('Yrkesrollen får inte beställa prover');
     const b = berett(db);
-    expect(() => blod.utlamna(atk(db, 'lak-ort', 'bl1', 'ge_lakemedel'), blod.bestallningRad(db, b.id), efter(50))).toThrow('beställande vårdenheten');
+    expect(() => blod.utlamna(atk(db, 'lak-ort', 'bl1', 'ge_lakemedel'), blod.bestallningRad(db, b.id), efter(50))).toThrow('aktivt val');
+    expect(() => blod.utlamna(atk(db, 'lak-ort', 'bl1', 'ge_lakemedel', { andra_enheter: true }), blod.bestallningRad(db, b.id), efter(50))).toThrow('beställande vårdenheten');
     const las = (val) => blod.forPatient(atk(db, 'lak-ort', 'bl1', 'las_prover', val), efter(50));
     expect(las({ andra_enheter: true }).bestallningar.length).toBe(1);
     const utan = JSON.stringify(las({}));

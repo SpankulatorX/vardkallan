@@ -19,7 +19,8 @@ import { Fel, datumAv, addDagar, lokalTid } from './db.js';
 import { vardenhetFor, enheterUnder, kanRoll, alder } from './atkomst.js';
 import * as labb from './labb.js';
 import { svg as streckkodSvg } from './streckkod.js';
-import { tabell, finns, personNamn, enhetKort, textFalt, iso, DAG, TIMME, kravRoll, vardkontaktFor } from './specialist-hjalp.js';
+import { tabell, finns, personNamn, enhetKort, textFalt, iso, DAG, TIMME, kravRoll, vardkontaktFor, lasRad, andraRad, provaRad, loggaPatient } from './specialist-hjalp.js';
+import { Atkomst, visningsnamn } from './atkomst.js';
 
 export const DEMOREGEL = 'Demoregel, inte ett kliniskt beslutsstöd. Regimerna och beredningsenheten är simulerade.';
 export const BEREDNINGSENHET = 'Cytostatikaberedningen (simulerad)';
@@ -60,7 +61,7 @@ CREATE TABLE IF NOT EXISTS cyto_cykler (
 CREATE TABLE IF NOT EXISTS cyto_doser (
   id INTEGER PRIMARY KEY AUTOINCREMENT, cykel_id INTEGER NOT NULL, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, lakemedel TEXT NOT NULL, ordning INTEGER NOT NULL,
   dos_mg REAL NOT NULL, berakning TEXT NOT NULL, etikett TEXT NOT NULL UNIQUE, status TEXT NOT NULL, beredd_tid TEXT, volym_ml REAL, mottagen_tid TEXT, mottagen_av TEXT,
-  given_tid TEXT, given_av TEXT, kontrollerad_av TEXT
+  iordningstalld_tid TEXT, iordningstalld_av TEXT, kontrollerad_tid TEXT, kontrollerad_av TEXT, given_tid TEXT, given_av TEXT
 );
 CREATE TABLE IF NOT EXISTS cyto_historik (
   id INTEGER PRIMARY KEY, behandling_id INTEGER NOT NULL, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, tid TEXT NOT NULL, personal_id TEXT, handelse TEXT NOT NULL, detalj TEXT
@@ -78,6 +79,8 @@ const rad = (db, tabell, id, text) => { sakra(db); const r = db.query(`SELECT * 
 export const behandlingRad = (db, id) => rad(db, 'cyto_behandlingar', id, 'Behandlingen finns inte.');
 export const cykelRad = (db, id) => rad(db, 'cyto_cykler', id, 'Cykeln finns inte.');
 export const dosRad = (db, id) => rad(db, 'cyto_doser', id, 'Dosen finns inte.');
+const ANDRA = 'Kuren hanteras av den ordinerande vårdenheten.';
+const andraKur = (atk, rad, handling) => andraRad(atk, rad, handling, 'las_cytostatika', ANDRA);
 const lakemedelFor = (regim, id) => REGIMER[regim].lakemedel.find(l => l.id === id);
 export const etikettFor = (id) => `VKC${String(id).padStart(8, '0')}`;
 
@@ -176,6 +179,7 @@ export function ordinera(atk, body = {}, nu = new Date()) {
 // tre dygnen räknas.
 export function provkontroll(atk, c, nu = new Date()) {
   const db = atk.db;
+  lasRad(atk, c, 'las_cytostatika');
   const b = behandlingRad(db, c.behandling_id);
   labb.forfallnaSvar(db, nu);
   const mv = atk.filtrera(db.query('SELECT * FROM matvarden WHERE patient_id = ? AND tid >= ? ORDER BY tid DESC, id DESC').all(c.patient_id, iso(nu.getTime() - PROV_TIMMAR * TIMME)), 'las_matvarden');
@@ -202,7 +206,7 @@ export function bestallProver(atk, c, nu = new Date()) {
 // Läkaren godkänner kuren. Det går bara när provsvaren tillåter den. Beredningsordern går då till beredningsenheten.
 export function godkann(atk, c, nu = new Date()) {
   const db = atk.db;
-  atk.krav('ordinera_cytostatika');
+  andraKur(atk, c, 'ordinera_cytostatika');
   if (c.status !== 'planerad') throw new Fel(409, 'Kuren är redan godkänd eller avslutad.', 'ogiltig');
   const p = provkontroll(atk, c, nu);
   if (!p.ok) throw new Fel(409, p.text, 'prov');
@@ -218,7 +222,7 @@ export function godkann(atk, c, nu = new Date()) {
 // Dosjustering för en kur som inte är godkänd: andelen av full dos och orsaken. Doserna räknas om.
 export function dosjustera(atk, c, body = {}, nu = new Date()) {
   const db = atk.db;
-  atk.krav('ordinera_cytostatika');
+  andraKur(atk, c, 'ordinera_cytostatika');
   if (c.status !== 'planerad') throw new Fel(409, 'Doserna kan bara ändras innan kuren är godkänd.', 'ogiltig');
   const andel = Number(body.dosandel);
   if (![50, 60, 75, 80, 90, 100].includes(andel)) throw new Fel(400, 'Välj andel av full dos: 50, 60, 75, 80, 90 eller 100 procent.', 'ogiltig', { falt: ['dosandel'] });
@@ -236,7 +240,7 @@ export function dosjustera(atk, c, body = {}, nu = new Date()) {
 
 export function skjutUpp(atk, c, body = {}, nu = new Date()) {
   const db = atk.db;
-  atk.krav('ordinera_cytostatika');
+  andraKur(atk, c, 'ordinera_cytostatika');
   if (c.status !== 'planerad') throw new Fel(409, 'Bara en kur som inte är godkänd kan skjutas upp.', 'ogiltig');
   const dagar = body.dagar == null ? 7 : Number(body.dagar);
   if (!Number.isInteger(dagar) || dagar < 1 || dagar > 28) throw new Fel(400, 'Skjut upp kuren 1 till 28 dagar.', 'ogiltig', { falt: ['dagar'] });
@@ -252,6 +256,7 @@ export function skjutUpp(atk, c, body = {}, nu = new Date()) {
 // Beredningsordern för en godkänd kur: dos, volym ur stamlösningen, bärarlösning, total volym, infusionstid och etikett.
 export function beredningsorder(atk, c) {
   const db = atk.db;
+  lasRad(atk, c, 'las_cytostatika');
   const b = behandlingRad(db, c.behandling_id);
   const p = db.query('SELECT * FROM patienter WHERE id = ?').get(c.patient_id);
   const doser = db.query('SELECT * FROM cyto_doser WHERE cykel_id = ? ORDER BY ordning').all(c.id);
@@ -275,7 +280,7 @@ export function beredningsorder(atk, c) {
 // Den simulerade beredningsenheten bereder en godkänd kur: dubbelkontroll av beräkning och volym, och etiketterna.
 export function bered(atk, c, nu = new Date()) {
   const db = atk.db;
-  atk.krav('ge_cytostatika');
+  andraKur(atk, c, 'ge_cytostatika');
   if (c.status !== 'godkand') throw new Fel(409, 'Kuren är inte godkänd av läkaren, så beredningsenheten bereder den inte.', 'ogiltig');
   const b = behandlingRad(db, c.behandling_id);
   const order = beredningsorder(atk, c);
@@ -286,50 +291,109 @@ export function bered(atk, c, nu = new Date()) {
   return beredningsorder(atk, cykelRad(db, c.id));
 }
 
-const egenVardenhet = (atk, d) => {
-  if (vardenhetFor(atk.db, atk.personal.enhet_id) !== vardenhetFor(atk.db, d.enhet_id)) throw new Fel(403, 'Kuren ges av den ordinerande vårdenheten.', 'nekad');
-};
-
 // Mottagningen på avdelningen: etiketten läses och måste vara den beredda dosens.
 export function taEmot(atk, d, body = {}, nu = new Date()) {
   const db = atk.db;
-  atk.krav('ge_cytostatika');
-  egenVardenhet(atk, d);
+  andraKur(atk, d, 'ge_cytostatika');
   if (d.status !== 'beredd') throw new Fel(409, d.status === 'att_bereda' ? 'Dosen är inte beredd än.' : 'Dosen är redan mottagen.', 'ogiltig');
   if (body.streckkod !== d.etikett) throw new Fel(409, 'Streckkoden stämmer inte med den beredda dosen. Ta inte emot påsen och kontakta beredningsenheten.', 'fel_etikett');
   db.query("UPDATE cyto_doser SET status = 'mottagen', mottagen_tid = ?, mottagen_av = ? WHERE id = ?").run(iso(nu), atk.personal.id, d.id);
   return { mottagen: true, etikett: d.etikett };
 }
 
-// Administreringen vid sängen: id-band, etikett, dubbelkontroll av en andra person, hållbarhet och ordningen i regimen.
-// För peroral behandling är det överlämnandet till patienten, med tabletterna och instruktionen.
-export function ge(atk, d, body = {}, nu = new Date()) {
+// Id-bandet och etiketten läses av den som iordningställer och, var för sig, av den som kontrollerar.
+function lasVidSangen(db, d, body) {
+  const p = db.query('SELECT personnummer FROM patienter WHERE id = ?').get(d.patient_id);
+  if (String(body.armband ?? '').replace(/\D/g, '') !== p.personnummer) throw new Fel(409, 'Id-bandet hör inte till patienten som kuren är ordinerad för. Ge inte kuren.', 'fel_patient');
+  if (body.streckkod !== d.etikett) throw new Fel(409, 'Etiketten stämmer inte med dosen. Ge inte kuren.', 'fel_etikett');
+}
+const hallbarKvar = (d, l, nu) => {
+  if (!l.po && nu.getTime() > Date.parse(d.beredd_tid) + HALLBAR_TIMMAR * TIMME) throw new Fel(409, `Beredningen är äldre än ${HALLBAR_TIMMAR} timmar. Ge den inte och kontakta beredningsenheten.`, 'for_sent');
+};
+
+// De som får göra dubbelkontrollen: sjuksköterskor och läkare på vårdenheten som får läsa behandlingen i
+// behörighetsmotorn, aldrig den som iordningställde dosen. Förslaget ger ingen åtkomst som personen inte redan har.
+export function kontrollKandidater(db, d) {
+  const ve = vardenhetFor(db, d.enhet_id);
+  return db.query("SELECT * FROM personal WHERE aktiv = 1 AND yrke IN ('sjukskoterska', 'lakare') ORDER BY namn").all()
+    .filter(p => p.id !== d.iordningstalld_av && vardenhetFor(db, p.enhet_id) === ve && kanRoll(p, 'ge_cytostatika')
+      && new Atkomst(db, p, d.patient_id, {}, 'las_cytostatika').prova('las_cytostatika', { enhet_id: d.enhet_id }).tillaten)
+    .map(p => ({ id: p.id, namn: p.namn }));
+}
+
+// Iordningställandet vid sängen: den som ska ge kuren läser id-band och etikett. Dosen väntar sedan på att en andra
+// person kontrollerar den i sin egen inloggning. Ordningen i regimen och hållbarheten prövas här.
+export function iordningstall(atk, d, body = {}, nu = new Date()) {
   const db = atk.db;
-  atk.krav('ge_cytostatika');
-  egenVardenhet(atk, d);
+  andraKur(atk, d, 'ge_cytostatika');
   const c = cykelRad(db, d.cykel_id);
   const b = behandlingRad(db, c.behandling_id);
   const l = lakemedelFor(b.regim, d.lakemedel);
   if (c.status !== 'godkand') throw new Fel(409, 'Kuren är inte godkänd av läkaren.', 'ogiltig');
-  if (d.status !== (l.po ? 'beredd' : 'mottagen')) throw new Fel(409, l.po ? 'Tabletterna är inte iordningställda.' : d.status === 'beredd' ? 'Ta emot dosen och läs etiketten först.' : 'Dosen är redan given eller inte beredd.', 'ogiltig');
-  if (!l.po && nu.getTime() > Date.parse(d.beredd_tid) + HALLBAR_TIMMAR * TIMME) throw new Fel(409, `Beredningen är äldre än ${HALLBAR_TIMMAR} timmar. Ge den inte och kontakta beredningsenheten.`, 'for_sent');
-  const p = db.query('SELECT personnummer FROM patienter WHERE id = ?').get(d.patient_id);
-  if (String(body.armband ?? '').replace(/\D/g, '') !== p.personnummer) throw new Fel(409, 'Id-bandet hör inte till patienten som kuren är ordinerad för. Ge inte kuren.', 'fel_patient');
-  if (body.streckkod !== d.etikett) throw new Fel(409, 'Etiketten stämmer inte med dosen. Ge inte kuren.', 'fel_etikett');
+  if (d.status !== (l.po ? 'beredd' : 'mottagen')) throw new Fel(409, l.po ? 'Tabletterna är inte iordningställda av beredningsenheten.' : d.status === 'beredd' ? 'Ta emot dosen och läs etiketten först.' : 'Dosen är redan iordningställd eller given.', 'ogiltig');
+  hallbarKvar(d, l, nu);
+  lasVidSangen(db, d, body);
   const fore = db.query("SELECT * FROM cyto_doser WHERE cykel_id = ? AND ordning < ? AND status NOT IN ('given', 'overlamnad') ORDER BY ordning").get(c.id, d.ordning);
   if (fore) throw new Fel(409, `Ge ${lakemedelFor(b.regim, fore.lakemedel).namn.toLocaleLowerCase('sv')} först. Regimen har en bestämd ordning.`, 'ordning');
-  const k = typeof body.kontrollant === 'string' ? db.query('SELECT * FROM personal WHERE id = ? AND aktiv = 1').get(body.kontrollant) : null;
-  if (!k || k.id === atk.personal.id || !kanRoll(k, 'ge_cytostatika') || vardenhetFor(db, k.enhet_id) !== vardenhetFor(db, atk.personal.enhet_id)) {
-    throw new Fel(400, 'Cytostatika dubbelkontrolleras av två personer. Välj en annan sjuksköterska eller läkare på vårdenheten som har kontrollerat med dig.', 'ogiltig', { falt: ['kontrollant'] });
+  db.query("UPDATE cyto_doser SET status = 'vantar_kontroll', iordningstalld_tid = ?, iordningstalld_av = ? WHERE id = ?").run(iso(nu), atk.personal.id, d.id);
+  historik(db, b, atk.personal.id, 'iordningstalld', `${l.namn} ${d.dos_mg} mg iordningställd vid sängen. Väntar på dubbelkontroll.`, iso(nu));
+  return { ...behandlingUt(atk, b, nu), kontroll: { status: 'vantar_kontroll', iordningstalldAv: personNamn(db, atk.personal.id), kandidater: kontrollKandidater(db, dosRad(db, d.id)) } };
+}
+
+// Doser som väntar på dubbelkontroll på den inloggades vårdenhet. Den som iordningställde ser inte sin egen dos här, och
+// en patient som den inloggade inte får se finns inte med alls. Varje patient som visas loggas.
+export function vantandeKontroller(db, personal, valFor) {
+  sakra(db);
+  if (!kanRoll(personal, 'ge_cytostatika')) return { kontroller: [] };
+  const enheter = enheterUnder(db, vardenhetFor(db, personal.enhet_id));
+  const ut = [];
+  for (const d of db.query(`SELECT * FROM cyto_doser WHERE status = 'vantar_kontroll' AND iordningstalld_av <> ? AND enhet_id IN (${enheter.map(() => '?').join(', ')}) ORDER BY iordningstalld_tid`).all(personal.id, ...enheter)) {
+    const r = provaRad(db, personal, valFor, d, 'las_cytostatika');
+    if (!r.tillaten) continue;
+    loggaPatient(db, personal, d.patient_id, 'las_cytostatika', r.grund, '/api/cytostatika/kontroller');
+    const p = db.query('SELECT * FROM patienter WHERE id = ?').get(d.patient_id);
+    const b = behandlingRad(db, cykelRad(db, d.cykel_id).behandling_id);
+    ut.push({ dosId: d.id, etikett: d.etikett, lakemedel: lakemedelFor(b.regim, d.lakemedel).namn, dos: d.dos_mg, iordningstalld: { tid: d.iordningstalld_tid, av: personNamn(db, d.iordningstalld_av) },
+      patient: { id: p.id, namn: visningsnamn(p, valFor(p.id).visa_identitet) } });
   }
+  return { kontroller: ut };
+}
+
+// Dubbelkontrollen görs av den andra personen i sin egen inloggning, som själv läser id-bandet och etiketten.
+export function kontrollera(atk, d, body = {}, nu = new Date()) {
+  const db = atk.db;
+  andraKur(atk, d, 'ge_cytostatika');
+  if (d.status !== 'vantar_kontroll') throw new Fel(409, 'Dosen väntar inte på dubbelkontroll.', 'ogiltig');
+  if (d.iordningstalld_av === atk.personal.id) throw new Fel(409, 'Den som iordningställde dosen kan inte kontrollera den själv. En annan sjuksköterska eller läkare kontrollerar i sin egen inloggning.', 'samma_person');
+  if (!kontrollKandidater(db, d).some(k => k.id === atk.personal.id)) throw new Fel(403, 'Du kan inte dubbelkontrollera dosen.', 'nekad');
+  lasVidSangen(db, d, body);
+  const b = behandlingRad(db, cykelRad(db, d.cykel_id).behandling_id);
+  db.query("UPDATE cyto_doser SET status = 'kontrollerad', kontrollerad_tid = ?, kontrollerad_av = ? WHERE id = ?").run(iso(nu), atk.personal.id, d.id);
+  historik(db, b, atk.personal.id, 'kontrollerad', `${lakemedelFor(b.regim, d.lakemedel).namn} ${d.dos_mg} mg dubbelkontrollerad.`, iso(nu));
+  return behandlingUt(atk, b, nu);
+}
+
+// Administreringen, eller överlämnandet av peroral behandling, efter dubbelkontrollen. Bara den som iordningställde
+// eller kontrollerade dosen ger den.
+export function ge(atk, d, nu = new Date()) {
+  const db = atk.db;
+  andraKur(atk, d, 'ge_cytostatika');
+  const c = cykelRad(db, d.cykel_id);
+  const b = behandlingRad(db, c.behandling_id);
+  const l = lakemedelFor(b.regim, d.lakemedel);
+  if (['given', 'overlamnad'].includes(d.status)) throw new Fel(409, 'Dosen är redan given.', 'ogiltig');
+  if (d.status !== 'kontrollerad' || !d.kontrollerad_av) throw new Fel(409, 'Dosen är inte dubbelkontrollerad. Den andra personen bekräftar kontrollen i sin egen inloggning.', 'kontroll');
+  if (![d.iordningstalld_av, d.kontrollerad_av].includes(atk.personal.id)) throw new Fel(403, 'Dosen ges av någon av de två som har kontrollerat den.', 'nekad');
+  hallbarKvar(d, l, nu);
   let instruktion = null;
+  const annan = personNamn(db, d.kontrollerad_av === atk.personal.id ? d.iordningstalld_av : d.kontrollerad_av);
   db.transaction(() => {
-    db.query('UPDATE cyto_doser SET status = ?, given_tid = ?, given_av = ?, kontrollerad_av = ? WHERE id = ?').run(l.po ? 'overlamnad' : 'given', iso(nu), atk.personal.id, k.id, d.id);
+    db.query('UPDATE cyto_doser SET status = ?, given_tid = ?, given_av = ? WHERE id = ?').run(l.po ? 'overlamnad' : 'given', iso(nu), atk.personal.id, d.id);
     if (l.po) {
       const t = tabletter(d.dos_mg, l.tabletter);
       instruktion = `Ta ${t.map(x => `${x.antal} ${x.antal === 1 ? 'tablett' : 'tabletter'} à ${x.styrka} mg`).join(' och ')} morgon och kväll, inom en halvtimme efter måltid, dag ${l.dagar[0]} till ${l.dagar.at(-1)} från ${c.dag1}. Kontakta mottagningen vid feber över 38 grader, diarré eller ömhet i händer och fötter.`;
     }
-    historik(db, b, atk.personal.id, l.po ? 'overlamnad' : 'given', `${l.namn} ${d.dos_mg} mg${l.po ? ' per tillfälle överlämnat till patienten' : ' given'}, dubbelkontrollerad med ${k.namn}.`, iso(nu));
+    historik(db, b, atk.personal.id, l.po ? 'overlamnad' : 'given', `${l.namn} ${d.dos_mg} mg${l.po ? ' per tillfälle överlämnat till patienten' : ' given'}, dubbelkontrollerad med ${annan}.`, iso(nu));
     if (!db.query("SELECT 1 FROM cyto_doser WHERE cykel_id = ? AND status NOT IN ('given', 'overlamnad')").get(c.id)) {
       db.query("UPDATE cyto_cykler SET status = 'klar' WHERE id = ?").run(c.id);
       if (c.nummer >= b.cykler) {
@@ -344,7 +408,7 @@ export function ge(atk, d, body = {}, nu = new Date()) {
 // Nästa cykel planeras av systemet när kuren är klar, med längd och vikt från journalen så att doserna följer patienten.
 export function nastaCykel(atk, b, nu = new Date()) {
   const db = atk.db;
-  atk.krav('ordinera_cytostatika');
+  andraKur(atk, b, 'ordinera_cytostatika');
   const sista = db.query('SELECT * FROM cyto_cykler WHERE behandling_id = ? ORDER BY nummer DESC').get(b.id);
   if (b.status !== 'pagaende' || sista.status !== 'klar') throw new Fel(409, b.status !== 'pagaende' ? 'Behandlingen är avslutad.' : 'Den pågående cykeln är inte klar.', 'ogiltig');
   const dag1 = addDagar(sista.dag1, REGIMER[b.regim].intervall);
