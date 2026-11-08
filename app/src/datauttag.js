@@ -100,7 +100,7 @@ export const SCHEMA = {
     beskrivning: 'En rad per vårdkontakt med patientavgiften enligt demoreglerna.',
     falt: {
       rad: 'Radens stabila nyckel.', patient: 'Patientens pseudonym.', vardenhet: 'Vårdenhetens HSA-id.', vardkontakt: 'Vårdkontaktens radnyckel.',
-      vardform: 'Vårdformen.', datum: 'Kontaktens datum.', belopp: 'Avgiften i kronor.', avgiftsfri: 'true när kontakten är avgiftsfri.',
+      vardform: 'Vårdformen.', datum: 'Kontaktens datum.', belopp: 'Avgiften i kronor, räknad med högkostnadsskyddet för de kontakter som finns i uttaget. Tomt när beloppet skulle röja att patienten har LMA-kort.', avgiftsfri: 'true när kontakten är avgiftsfri, eller tomt som beloppet.',
     },
   },
 };
@@ -134,8 +134,10 @@ export function nastaUppdatering(t) {
 }
 
 // Bygger raderna ur databasen. Spärrade uppgifter och patienter med skyddade personuppgifter kommer inte med.
-export function bygg(db) {
-  const k = nyckel(db);
+// Runda 9, r7: ett forskningsuttag (forskning.js) bygger samma rader med en egen nyckel per beställning, så att
+// pseudonymerna inte går att koppla till uppföljningens eller till en annan studies.
+export function bygg(db, { pseudonymnyckel = null } = {}) {
+  const k = pseudonymnyckel ?? nyckel(db);
   const hsa = new Map(db.query('SELECT id, hsa_id, namn FROM enheter').all().map(e => [e.id, e]));
   const ve = (id) => hsa.get(vardenhetFor(db, id));
   const patienter = new Map(db.query('SELECT id, fodd, kon, skyddad, sammanslagen_till FROM patienter').all().map(p => [p.id, p]));
@@ -217,10 +219,13 @@ export function bygg(db) {
     const p = far(v.patient_id, v.enhet_id);
     if (!p) continue;
     let a = null;
-    try { a = avgiftFor(db, db.query('SELECT * FROM patienter WHERE id = ?').get(v.patient_id), v); } catch { a = null; }
+    // Högkostnadsskyddet räknas bara på kontakter som får komma med, så att beloppet aldrig röjer en kontakt på en
+    // spärrad vårdenhet. Ett belopp för en patient med LMA-kort röjer att patienten är asylsökande och lämnas tomt.
+    const synliga = (lista) => lista.filter(x => !sparrad(v.patient_id, x.enhet_id));
+    try { a = avgiftFor(db, db.query('SELECT * FROM patienter WHERE id = ?').get(v.patient_id), v, { synliga }); } catch { a = null; }
     if (!a) continue;
     data.Patientavgift.push({ rad: pseudonym(k, `avgift:${v.id}`), patient: pseudonym(k, `patient:${p.id}`), vardenhet: ve(v.enhet_id)?.hsa_id ?? null, vardkontakt: vk(v.id),
-      vardform: v.typ, datum: datumI(v.start), belopp: a.belopp ?? 0, avgiftsfri: !(a.belopp > 0) });
+      vardform: v.typ, datum: datumI(v.start), belopp: a.lma ? null : a.belopp ?? 0, avgiftsfri: a.lma ? null : !(a.belopp > 0) });
   }
   return { data, utelamnat };
 }

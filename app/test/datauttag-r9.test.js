@@ -39,6 +39,26 @@ describe('Datauttag, runda 9', () => {
     expect(mv.every(r => kontakter.has(r.vardkontakt))).toBe(true);
   });
 
+  test('patientavgiften röjer varken kontakter på en spärrad vårdenhet eller ett LMA-kort', () => {
+    const db = nyDb();
+    const avgifter = () => JSON.stringify(datauttag.bygg(db).data.Patientavgift);
+    const fore = avgifter();
+    const alla = () => JSON.stringify(datauttag.bygg(db).data);
+    const foreAlla = alla();
+    // Elin Sandberg (p04) får många avgiftsbelagda besök på den spärrade psykiatrin, som skulle fylla högkostnadsskyddet.
+    for (let i = 1; i <= 8; i++) db.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, kontaktsatt, start, slut, plats, orsak, kalla) VALUES ('p04', 'uso-psyk', 'oppenvard', 'besok', ?, ?, 'Mottagning', 'Samtal', 'vardkallan')")
+      .run(new Date(Date.now() - i * 86400_000).toISOString(), new Date(Date.now() - i * 86400_000 + 3600_000).toISOString());
+    expect(avgifter()).toBe(fore);
+    expect(alla()).toBe(foreAlla);
+    // En patient med LMA-kort får inget belopp i uttaget.
+    const v = db.query("SELECT v.patient_id, v.start FROM vardkontakter v WHERE kalla = 'vardkallan' AND typ = 'oppenvard' AND patient_id = 'p13' LIMIT 1").get()
+      ?? db.query("SELECT v.patient_id, v.start FROM vardkontakter v WHERE kalla = 'vardkallan' AND typ = 'oppenvard' AND patient_id NOT IN ('p04', 'p03') LIMIT 1").get();
+    db.query("INSERT INTO lma_kort (patient_id, nummer, giltig_till, registrerad, av) VALUES (?, 'DEMO-LMA-1', '2030-01-01', '2020-01-01T00:00:00Z', 'adm-kard')").run(v.patient_id);
+    const lma = datauttag.bygg(db).data.Patientavgift.filter(r => r.datum === v.start.slice(0, 10));
+    expect(lma.length).toBeGreaterThan(0);
+    expect(lma.some(r => r.belopp === null && r.avgiftsfri === null)).toBe(true);
+  });
+
   test('kontrollreglerna per rad står i manifestet och pekar ut rader som inte klarar dem', () => {
     const data = {
       Vardkontakt: [{ rad: 'k1', patient: 'x', vardenhet: 'h', vardform: 'oppenvard', startdatum: '2026-11-02', slutdatum: '2026-11-01' }],
