@@ -1616,6 +1616,83 @@ Schemat körs i början av varje anrop i sandlådan. Varje del som hämtas från
 
 Systemförvaltaren läser in ett uttag ur ett annat journalsystem som en FHIR R4 Bundle av typen collection: vårdkontakter (Encounter), diagnoser (Condition), mätvärden (Observation) och anteckningar (Composition). Ett Parameters-element först anger källsystemet och källsystemets antal per typ. Patienten anges med personnummer, vårdenheten med HSA-id i `meta.tag` och anteckningens författare med HSA-id. Filen förhandsvisas och läggs fram, och först när en annan systemförvaltare har godkänt den (fyra ögon) förs varje post som går att läsa in i en transaktion med källan `migrerad:<källsystem>`, och varje post som inte går att läsa blir en avvikelse med orsaken. Avstämningen lägger till antalet i källan, antalet som fördes över och antalet som går att läsa tillbaka. Samma fil läses inte in två gånger, varje patient som fick uppgifter loggas på den som godkände med grunden administrativ, en migrerad anteckning har källsystemet som författare (`migrering:<källsystem>`, utan signerande personal) och författaren och signeringstiden i källsystemet sparas som uppgifter om källan (`migrering_metadata`) och visas märkta som migrerade, aldrig som en nuvarande personal med samma HSA-id, och en migrerad vårdkontakt ger ingen vårdrelation. En migrerad diagnos behåller texten den hade i källan. En fil kan ha högst 500 poster och 64 kB i demon, och ordinationer, remisser och överkänslighet läses inte in från fil. Sidan har ett simulerat exempeluttag ur VAS.
 
+## Formulär, kroppsbild, röstinmatning och rättstavning (runda 10, r3: formularmotor.js, stavning.js, public/js/formularmotor-regler.js, rost-regler.js, rostinmatning.js, stavning-ui.js och r10r3-rutter.js, Sussa 3.1.3.1, 3.1.3.2, 3.1.3.5, 3.1.3.7, 3.1.3.10, 3.1.7.1 och 5.1.1.3)
+
+### Formulär som data (formularmotor.js, sidan Formulär)
+
+Verksamhetens formulär är data och inte kod. Systemförvaltaren bygger ett formulär på sidan Formulär: frågor med de
+fördefinierade datatyperna fritext, heltal, tal med decimaler, datum, ja eller nej, ett fast svar, flera fasta svar, bild
+med markeringar och mätvärde, där varje datatyp har sin validering. Ett mätvärde får mätvärdets gränser och enhet ur
+journalen. Fasta svar kan ge poäng och ha en kod i ICD-10-SE, KVÅ eller Snomed CT, och koderna kontrolleras mot
+kodverken (Snomed CT med kontrollsiffran). Poängen räknas till en skala där varje möjlig summa har precis en tolkning, och
+en tolkning kan ha en kod, som Fallbenägenhet (R29.6) vid hög fallrisk. Regler visar en fråga, kräver ett svar eller ger
+en varning, och ett villkor kan bara bygga på en tidigare fråga eller på poängen, så att reglerna aldrig går runt i en
+ring. En fråga kan fyllas i av systemet med patientens ålder, det senaste mätvärdet eller diagnoserna. Formuläret hör
+till omvårdnaden eller läkarnas dokumentation, som avgör vem som får skriva och läsa det, och kan begränsas till vissa
+yrken och vårdenheter. Systemet sätter nycklarna, förhandsvisar formuläret och texten som svaren ger medan det byggs,
+förklarar varje fel på vanlig svenska och föreslår koder ur kodverken för svar vars text står i en kodtitel.
+
+Varje ändring är en ny version som gäller först när en annan systemförvaltare har godkänt den (fyra ögon), och den
+gällande versionen används tills dess. Namnet är anteckningens typ och följer formuläret i alla versioner. En version
+ändras och raderas aldrig (triggrar i tabellen `formular`), högst en version gäller, och ett formulär som avvecklas
+används inte för nya anteckningar medan det som har skrivits med det visas som förut. Seeden har Fallriskbedömning och
+Sårdokumentation, en ny version av fallriskbedömningen som väntar på godkännande och en ifylld fallriskbedömning.
+
+Ett ifyllt formulär är en vanlig journalanteckning med formulärets namn som typ. Systemet skriver anteckningens text ur
+svaren under sökord som har en kod i fackspråket, och svaren sparas strukturerat bredvid med formulärets version
+(`formular_svar`), så att ett utkast och en rättelse fylls i med samma version. Svaren i en signerad anteckning ändras
+aldrig, och en rättelse får egna svar. Formulären lämnas ut i FHIR som Questionnaire och svaren som
+QuestionnaireResponse, med anteckningens behörighet och loggning.
+
+Information registreras en gång. Åldern tas ur personnumret och kan inte skrivas fel. Ett mätvärde fylls i med det
+senaste värdet som den som fyller i får se, med källan utskriven, och lämnas det oförändrat registreras det inte igen. Ett
+nytt värde registreras bland mätvärdena när anteckningen signeras, i signeringens transaktion, och finns sedan i
+kurvorna, NEWS2 och nästa formulär. En rättelse ändrar aldrig ett registrerat mätvärde: det rättas under Mätvärden.
+Förifyllnaden bygger bara på det som anroparen får se efter behörighetsmotorn, spärr och inre sekretess, och ett
+mätvärde på en spärrad vårdenhet ändrar inte svaret.
+
+### Kroppsbilden
+
+Kroppsbilden framifrån och bakifrån är rektanglar i procent av bilden, och samma regioner ritas i gränssnittet och
+används av servern, så att det man ser och det systemet räknar med är detsamma. Ett klick lägger en numrerad markering,
+och systemet skriver vilken kroppsdel och sida den ligger på. Framifrån ligger patientens högra sida till vänster i bilden
+och bakifrån till höger, vilket systemet räknar med. En markering utanför kroppen sparas inte, och systemet säger varför.
+När en signerad anteckning läses visas bilden med markeringarna.
+
+### Röstinmatning (rostinmatning.js och rost-regler.js)
+
+Knappen Diktera i anteckningens sökord startar webbläsarens taligenkänning (Web Speech API) på svenska. Systemet ber om
+lokal igenkänning när webbläsaren har den. Annars kan webbläsaren skicka ljudet till sin leverantörs tjänst, vilket rutan
+säger. I demon finns bara påhittade patienter, och i drift behövs en motor som regionen godkänner. Det som sägs blir text i
+det sökord som dikteras, och röstkommandon ger punkt, kommatecken, frågetecken, kolon, ny rad, nytt stycke, nästa och
+föregående sökord, gå till ett sökord, ångra och sluta diktera. Ordet komma är ett vanligt verb och blir inget
+kommatecken. Systemet sätter stor bokstav och mellanslag. Dikteringen hör till den patient som var öppen när den startade:
+rutan visar namn och personnummer, och byter man sida avbryts den och det som inte är skrivet kastas. Texten blir ett
+utkast som sparas och signeras med knapparna, och kommandot signera ger bara en förklaring. Sökord med dikterad text märks
+som dikterade i anteckningen. Klickbudgeten provar dikteringen med en simulerad igenkänning och kontrollerar att inget
+skickas till servern förrän läkaren signerar.
+
+### Rättstavning och grammatik (stavning.js och stavning-ui.js)
+
+Textfälten har webbläsarens stavningskontroll på svenska, som sköter den allmänna svenskan. Servern kontrollerar
+medicinska termer och grammatik en kort stund efter att man slutat skriva och när man lämnar fältet. Ordlistan byggs ur
+Vårdkällans medicinska ordlista (seed/stavning-ordlista.js, version 1), titlarna i ICD-10-SE och KVÅ,
+läkemedelskatalogen, mätvärdena och sökorden, och visar källa och utgåva för varje del. Ett ord som inte finns och som
+ligger nära en term markeras med förslag, och systemet känner igen böjningar och sammansättningar. Grammatiken
+kontrolleras för samma ord två gånger, liten bokstav efter punkt, mellanslag före och efter skiljetecken, två mellanslag
+och särskrivning av medicinska termer. Möjliga fel visas under fältet, och ett klick byter ordet. Varje person har en egen
+ordlista med ord som inte markeras. Texten som kontrolleras sparas och loggas aldrig. Engelska kan väljas i API:t med
+`sprak: "en"`.
+
+### Det som är simulerat eller saknas
+
+Igenkänningen av tal görs av webbläsaren och är inte provad med riktiga mikrofoner i vården. Röstinmatningen finns i
+anteckningarnas sökord, inte i formulärens frågor. Grammatiken är regler för vanliga fel, inte en fullständig
+grammatikkontroll, och den allmänna stavningen sköts av webbläsaren. Bilden i formulären är kroppsbilden, och egna
+bilder går inte att lägga in i ett formulär. Villkor och regler skrivs i byggaren som korta rader. Poängen i seedens
+fallriskbedömning är en demoregel och inte en validerad skala. Formulären används som journalanteckningar, inte i
+remisser eller i Min journal.
+
 ## Godkännandekriterier för första versionen
 
 - `bun test` grönt, med tester för varje regel i behörighetsmotorn, loggkedjan och triggrarna, signering och rättelse, obligatoriska fält och varningar i läkemedel, NLL som inte svarar i tid och avstämning, remissens statuskedja och larm, FHIR-svarens form.

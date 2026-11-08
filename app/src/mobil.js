@@ -29,6 +29,9 @@ export const MOBILA = {
   'kvittera-svar': mobil('rorelse', 'Ett remissvar kvitteras i mobilen.'),
   'sok-journal': mobil('rorelse', 'Sökningen i journalen fungerar i mobilen.'),
   'egen-ombokning': mobil('patienten', 'Patienten bokar om sin tid i Min journal i mobilen.'),
+  // Runda 10, r3: såret dokumenteras vid sängen, och anteckningen dikteras i mobilen.
+  'formular-sar': mobil('sangen', 'Såret dokumenteras vid sängen, och läget markeras med fingret på kroppsbilden.'),
+  diktera: mobil('rorelse', 'Anteckningen dikteras i mobilen, till exempel direkt efter ett hembesök.'),
 };
 const SKRIVBORD = 'Flödet hör till skrivbordet, där formulär, tabeller och listor över många patienter eller tider får plats. Det går att öppna i mobilen, men är inte gjort för den.';
 

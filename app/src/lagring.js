@@ -27,7 +27,9 @@ const GEMENSAMMA = new Set(['katalog', 'installningar', 'migrering', 'forpacknin
   // Runda 7, r2: övningarna i utbildningen gäller hela vårdgivaren.
   'ovningsversioner',
   // Runda 9, r4: kodverkens utgåvor gäller hela vårdgivaren.
-  'kodverk_utgavor']);
+  'kodverk_utgavor',
+  // Runda 10, r3: formulären gäller hela vårdgivaren (formularmotor.js).
+  'formular']);
 // Tabeller som hör till systemförvaltningen och inte till en huvudman i ett uttag.
 // Datauttaget för uppföljning byggs om ur uppgifterna och följer inte med i ett uttag.
 // Runda 9, r5: de gemensamma tabellerna kopieras till en ny utbildnings- eller testmiljö (miljoer.js).

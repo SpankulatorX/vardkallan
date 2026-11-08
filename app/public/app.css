@@ -1559,3 +1559,37 @@ td .tagg-referens, td .tagg-egen, td .tagg-ok { margin-left: 6px; }
 .diagram-etikett, .diagram-varde { font-size: 12px; fill: currentColor; }
 .armband-utskrift { border: 1px dashed var(--dampad); padding: 8px 12px; display: inline-block; background: #fff; color: #000; }
 @media (max-width: 720px) { .skanna { flex-basis: 100%; } }
+
+/* Runda 10, r3: formulär med kroppsbild, röstinmatning, rättstavning och systemförvaltarens formulärbyggare. */
+.formular .fm-fraga { margin: 10px 0; }
+.formular .fm-fraga[hidden] { display: none; }
+.fm-bilder { display: flex; flex-wrap: wrap; gap: 16px; }
+.fm-bild { margin: 0; text-align: center; }
+.fm-bild figcaption { font-size: var(--f-s); color: var(--dampad); }
+.fm-kropp { width: 130px; height: 260px; cursor: crosshair; touch-action: manipulation; }
+.fm-kropp.las { cursor: default; }
+.fm-region { fill: var(--kalla-ljus); stroke: var(--kalla-mellan); stroke-width: 0.4; }
+.fm-kropp:not(.las) .fm-region:hover { fill: var(--yta-2); }
+.fm-markering circle { fill: var(--larm); stroke: #fff; stroke-width: 0.6; }
+.fm-markering text { fill: #fff; font-size: 4px; font-weight: 700; pointer-events: none; }
+.fm-markeringar { padding-left: 22px; }
+.fm-markeringar li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0; }
+.fm-markeringar input { flex: 1 1 160px; min-width: 0; }
+.fm-region-text { font-weight: 600; }
+.fm-las { margin: 8px 0; }
+.fm-las-rubrik { font-weight: 600; margin: 0 0 4px; }
+.diktat { margin: 4px 0 8px; }
+.diktat-ruta p { margin: 0 0 4px; }
+.diktat-hor { color: var(--dampad); font-style: italic; min-height: 1.2em; }
+textarea.dikteras { outline: 3px solid var(--kalla); outline-offset: 1px; }
+.stavning { font-size: var(--f-s); }
+.stavning ul { margin: 4px 0; padding-left: 18px; }
+.stavning li { margin: 4px 0; }
+.stavning-rubrik { margin: 4px 0 0; color: var(--dampad); }
+.stavning-ord { font-weight: 700; text-decoration: underline wavy var(--larm); text-underline-offset: 3px; }
+.stavning-ord.grammatik { text-decoration-color: var(--kalla); }
+.fb-delad { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 24px; align-items: start; }
+.fb-fragor { padding-left: 0; list-style: none; }
+.fb-fraga { border: 1px solid var(--linje); border-radius: var(--r); padding: 10px 12px; margin: 10px 0; background: var(--yta); }
+.fb-forhand { position: sticky; top: 12px; border: 1px solid var(--linje); border-radius: var(--r); padding: 12px; background: var(--yta-2); max-height: calc(100vh - 24px); overflow: auto; }
+@media (max-width: 900px) { .fb-delad { grid-template-columns: minmax(0, 1fr); } .fb-forhand { position: static; max-height: none; } }

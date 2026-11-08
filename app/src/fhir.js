@@ -558,6 +558,9 @@ function capabilityBas(base) {
       { type: 'Procedure', interaction: [{ code: 'read' }, { code: 'search-type' }], searchParam: [{ name: 'patient', type: 'reference' }] },
       // Runda 7, r3: posterna i faktureringsunderlaget.
       { type: 'ChargeItem', interaction: [{ code: 'read' }, { code: 'search-type' }], searchParam: [{ name: 'patient', type: 'reference' }] },
+      // Runda 10, r3: formulären och svaren i dem.
+      { type: 'Questionnaire', interaction: [{ code: 'read' }, { code: 'search-type' }], searchParam: [{ name: 'url', type: 'uri' }, { name: '_id', type: 'token' }] },
+      { type: 'QuestionnaireResponse', interaction: [{ code: 'read' }, { code: 'search-type' }], searchParam: [{ name: 'patient', type: 'reference' }] },
       // Runda 8, r1: provtagningens rör och laboratoriernas svar.
       ...labbFhir.TYPER.map(t => ({ type: t, interaction: [{ code: 'read' }, { code: 'search-type' }], searchParam: [{ name: 'patient', type: 'reference' }] })),
       ...DEFINITIONSTYPER.map(t => ({
@@ -636,6 +639,8 @@ export function hantera(ctx) {
   if (typ === 'Procedure') return atgarder.hantera(ctx, delar, (resurser) => bundle(base, url, resurser));
   // Runda 7, r3: ChargeItem med samma behörighet och loggning som kostnadsrutan.
   if (typ === 'ChargeItem') return ekonomi.fhirHantera(ctx, delar, (resurser) => bundle(base, url, resurser));
+  // Runda 10, r3: formulären och svaren i dem, med anteckningens behörighet och loggning (formularmotor.js).
+  if (typ === 'Questionnaire' || typ === 'QuestionnaireResponse') return require('./formularmotor.js').fhirHantera(ctx, delar, (resurser) => bundle(base, url, resurser));
   // Runda 8, r1: labbeställningar, prov och svar med samma behörighet och loggning som fliken Prover.
   if (labbFhir.TYPER.includes(typ) || (typ === 'ServiceRequest' && (labbFhir.arLabbId(id) || (!id && labbFhir.arLabbSokning(url))))) {
     return labbFhir.hantera(ctx, delar, (resurser) => bundle(base, url, resurser));

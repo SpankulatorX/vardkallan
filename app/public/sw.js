@@ -41,7 +41,9 @@ const FILER = [
   '/js/vyer/forbrukning.js',
   '/js/levnadsvanor-regler.js', '/js/skanner.js', '/js/vyer/analys.js', '/js/vyer/forskning.js', '/js/vyer/signeringslista.js', '/js/vyer/patient-levnadsvanor.js',
   '/js/vyer/kodverk.js', '/exempel/uttag-vas.json',
+  '/js/formularmotor-regler.js', '/js/vyer/patient-formular.js', '/js/vyer/formularbyggare.js', '/js/rost-regler.js', '/js/rostinmatning.js', '/js/stavning-ui.js',
 ];
+// Runda 10, r3: listan har formulären, kroppsbilden, röstinmatningen och rättstavningen.
 // Runda 9, r1: listan har förbrukningsartiklarna (vyer/forbrukning.js).
 // Runda 9, r2: listan har medicinteknisk utrustning i fliken Mätvärden och intensivvårdens vy (mt-ui.js och iva.js).
 // Runda 9, r6: listan har ändringsloggen, utvecklarna och förvaltningen av det öppna API:t (oppet-api-forvaltning.js).

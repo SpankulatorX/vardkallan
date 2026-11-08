@@ -875,6 +875,85 @@ function skapa(BAS) {
     await m.klicka(page.locator('[data-grupp] [type="submit"]'), 'Visa gruppen');
     await synlig(page, '[data-grupp-ut]', 'Birgitta');
   };
+  // Runda 10, r3: röstinmatningen med en simulerad taligenkänning, som ger det som sägs som slutliga resultat. Inget
+  // sparas förrän läkaren signerar: skriptet kontrollerar att ingen anteckning skickas till servern under dikteringen.
+  GOR.diktera = async (m, page) => {
+    await page.evaluate((fraser) => {
+      window.__vkTaligenkanning = class {
+        start() {
+          let i = 0;
+          const nasta = () => {
+            if (this.stopp || i >= fraser.length) return;
+            this.onresult?.({ resultIndex: 0, results: [{ 0: { transcript: fraser[i++] }, isFinal: true, length: 1 }] });
+            setTimeout(nasta, 80);
+          };
+          setTimeout(nasta, 80);
+        }
+        stop() { this.stopp = true; setTimeout(() => this.onend?.(), 0); }
+        abort() { this.stopp = true; }
+      };
+    }, ['pigg och äter bra punkt inga bröstsmärtor punkt', 'gå till bedömning stabil kommatecken fortsatt plan punkt', 'sluta diktera']);
+    const skickat = [];
+    const lyssna = (r) => { if (r.method() !== 'GET' && /\/api\/(patient\/[^/]+\/anteckningar|anteckning\/)/.test(r.url())) skickat.push(r.url()); };
+    page.on('request', lyssna);
+    try {
+      await m.klicka(page.locator('.snabbval a', { hasText: 'Ny anteckning' }), 'Ny anteckning');
+      await page.waitForSelector('#ant-form [data-diktera]');
+      await m.klicka(page.locator('#ant-form [data-diktera]'), 'Diktera');
+      await synlig(page, '#ant-form [data-diktat]', 'Dikteringen är klar');
+      if (await page.locator('textarea[data-sokord="Aktuellt"]').inputValue() !== 'Pigg och äter bra. Inga bröstsmärtor.') throw new Error('det dikterade hamnade inte i Aktuellt');
+      if (await page.locator('textarea[data-sokord="Bedömning"]').inputValue() !== 'Stabil, fortsatt plan.') throw new Error('det dikterade hamnade inte i Bedömning');
+      if (skickat.length) throw new Error(`något skickades till servern under dikteringen: ${skickat.join(', ')}`);
+    } finally { page.off('request', lyssna); }
+    await m.klicka(page.locator('.ant-form [data-signera]'), 'Signera');
+    await synlig(page, '.anteckning', 'Pigg och äter bra. Inga bröstsmärtor.');
+    await synlig(page, '.anteckning .sokord', 'Dikterad');
+    await synlig(page, '.anteckning .ant-fakta', 'Signerad');
+  };
+  // Runda 10, r3: rättstavningen föreslår den medicinska termen under fältet.
+  GOR.stavning = async (m, page) => {
+    await m.klicka(page.locator('.snabbval a', { hasText: 'Ny anteckning' }), 'Ny anteckning');
+    await page.waitForSelector('#ant-form');
+    await m.skriv(page.locator('textarea[data-sokord="Aktuellt"]'), 'Hosta och feber sedan tre dagar. Misstänkt pnemoni.', 'sökordet Aktuellt');
+    await m.klicka(page.locator('.stavning [data-byt]', { hasText: 'Byt till pneumoni' }), 'Byt till pneumoni');
+    await m.klicka(page.locator('.ant-form [data-signera]'), 'Signera');
+    await synlig(page, '.anteckning', 'Misstänkt pneumoni.');
+  };
+  // Runda 10, r3: sårdokumentationen med kroppsbilden. Klicket görs på höger häl i vyn bakifrån.
+  GOR['formular-sar'] = async (m, page) => {
+    await m.klicka(page.locator('.snabbval a', { hasText: 'Ny anteckning' }), 'Ny anteckning');
+    await page.waitForSelector('#ant-form');
+    await m.valj(page.locator('#ny-mall'), 'Sårdokumentation', 'mallen Sårdokumentation');
+    await page.waitForSelector('[data-formular="sar"] svg.fm-kropp[data-vy="bak"]');
+    await page.waitForFunction(() => document.querySelector('#fm-vikt')?.value);
+    const bak = page.locator('svg.fm-kropp[data-vy="bak"]');
+    const ruta = await bak.boundingBox();
+    await m.klicka({ waitFor: (o) => bak.waitFor(o), click: () => bak.click({ position: { x: ruta.width * 0.56, y: ruta.height * 0.95 } }) }, 'höger häl i kroppsbilden');
+    await m.skriv(page.locator('[data-bildfalt="lage"] [data-markering] input').first(), 'Rodnad som inte bleknar', 'beskrivningen av markeringen');
+    await m.klicka(page.locator('#fm-sartyp-trycksar'), 'Trycksår');
+    await m.skriv(page.locator('#fm-langd'), '2', 'längden');
+    await m.skriv(page.locator('#fm-bredd'), '1,5', 'bredden');
+    await m.klicka(page.locator('.ant-form [data-signera]'), 'Signera');
+    await synlig(page, '.anteckning', 'höger häl: Rodnad som inte bleknar');
+    await synlig(page, '.anteckning', 'Vikt: 81,6 kg (senaste mätvärdet');
+    await page.waitForSelector('.anteckning .fm-las svg .fm-markering');
+  };
+  // Runda 10, r3: formulärbyggaren. Förslaget gäller först när en annan systemförvaltare har godkänt det.
+  startI['Systemförvaltarens formulär'] = async (page) => { await gaTill(page, '#/formular'); await page.waitForSelector('#fb-lista [data-nytt]'); };
+  GOR['bygga-formular'] = async (m, page) => {
+    await m.klicka(page.locator('#fb-lista [data-nytt]'), 'Nytt formulär');
+    await page.waitForSelector('.fb-form');
+    await m.skriv(page.locator('#fb-namn'), 'Munhälsa', 'namnet');
+    await m.skriv(page.locator('#fb-0-fraga'), 'Har patienten ont i munnen?', 'första frågan');
+    await m.klicka(page.locator('[data-ny-fraga]'), 'Lägg till fråga');
+    await m.skriv(page.locator('#fb-1-fraga'), 'Behöver patienten hjälp med munvården?', 'andra frågan');
+    await synlig(page, '[data-forhand]', 'Formuläret går att använda');
+    await m.klicka(page.locator('[data-foresla]'), 'Föreslå formuläret');
+    await m.skriv(page.locator('#fb-motivering'), 'Munhälsan dokumenteras på samma sätt på alla avdelningar.', 'motiveringen');
+    await m.klicka(page.locator('dialog [data-varde="ok"]'), 'Föreslå');
+    await synlig(page, '.notis', 'Formuläret är föreslaget');
+    await synlig(page, '#fb-lista', 'Munhälsa');
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 
