@@ -446,7 +446,8 @@ describe('Meddelanden från invånare', () => {
     expect(a.status).toBe(200);
     expect(a.data).toMatchObject({ status: 'avslutad', utfall: 'fornyat', avgift: { belopp: 100 } });
     expect(a.data.meddelanden.at(-1)).toMatchObject({ fran: 'systemet' });
-    expect(a.data.meddelanden.at(-1).text).toContain('Avgiften är 100 kr');
+    expect(a.data.meddelanden.at(-1).text).toContain('ser du i Min journal under Tider');
+    expect(a.data.meddelanden.at(-1).text).not.toContain('kr');
     const avg = db(k).query('SELECT * FROM tjanstavgifter WHERE kalla = ? AND kalla_id = ?').get('meddelande', recept.id);
     expect(avg).toMatchObject({ patient_id: 'p01', tjanst: 'receptfornyelse', belopp: 100, enhet_id: 'uso-kard', skapad_av: 'lak-kard' });
     // Sjuksköterskan kan inte förnya, och ärendet ligger kvar till läkaren.
@@ -719,6 +720,69 @@ describe('Kassan', () => {
     expect(r.status).toBe(201);
     expect(r.data.avgift.belopp).toBe(100);
     expect(r.data.avgift.text).not.toContain('Frikort');
+  });
+
+  test(namn(T10.kassaRiktig), async () => {
+    // Samma patient med och utan besök på en spärrad vårdenhet, som personalen inte ser. Med de dolda besöken har
+    // patienten frikort, så den riktiga avgiften är noll.
+    const bygg = (medDolda) => {
+      const d = nyDb();
+      const besok = (enhet, i) => d.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, kontaktsatt, start, slut, orsak, kalla, planerad, skapad) VALUES ('p20', ?, 'oppenvard', 'besok', ?, ?, 'Besök', 'vardkallan', 0, ?)")
+        .run(enhet, new Date(Date.now() - i * 9 * 86400_000).toISOString(), new Date(Date.now() - i * 9 * 86400_000 + 3600_000).toISOString(), iso());
+      const pt = d.query("SELECT * FROM patienter WHERE id = 'p20'").get();
+      // Patienten loggar in i Min journal i demon, så den får en invånare.
+      if (!d.query("SELECT 1 FROM invanare WHERE patient_id = 'p20'").get()) d.query("INSERT INTO invanare (id, personnummer, fornamn, efternamn, fodd, patient_id) VALUES ('inv-p20', ?, ?, ?, ?, 'p20')").run(pt.personnummer, pt.fornamn, pt.efternamn, pt.fodd);
+      const atk = new Atkomst(d, d.query("SELECT * FROM personal WHERE id = 'adm-kard'").get(), 'p20', {}, 'checka_in');
+      const synliga = (r) => atk.filtrera(r, 'las_admin');
+      for (let i = 1; hogkostnadsskyddet(d, pt, Date.now(), { synliga }).kvar > 450 && i < 20; i++) besok('uso-kard', i);
+      if (medDolda) {
+        d.query("INSERT INTO sparrar (patient_id, enhet_id, registrerad) VALUES ('p20', 'uso-psyk', ?)").run(idag());
+        for (let i = 21; i <= 23; i++) besok('uso-psyk', i);
+      }
+      // En begäran om att förnya ett recept, som läkaren svarar på.
+      const tid = Number(d.query("INSERT INTO meddelandetradar (patient_id, enhet_id, typ, yrkesroll, skapad, skapad_av_invanare, relation) VALUES ('p20', 'uso-kard', 'recept', 'lakare', ?, 'inv-p20', 'egen')").run(iso()).lastInsertRowid);
+      d.query("INSERT INTO invanarmeddelanden (trad_id, patient_id, enhet_id, fran, invanare_id, text, tid) VALUES (?, 'p20', 'uso-kard', 'invanare', 'inv-p20', 'Förnya, tack.', ?)").run(tid, iso());
+      return { d, pt, tid };
+    };
+    const utanTid = (x) => JSON.parse(JSON.stringify(x, (k, v) => (['id', 'skapad', 'tid', 'avslutad', 'senast'].includes(k) ? undefined : v)));
+    const kor = async (medDolda) => {
+      const { d, pt, tid } = bygg(medDolda);
+      const k = await inloggad('lak-kard');
+      const s = sandlada(app, k);
+      s.db = d;
+      const trad = (await k.post(`/api/meddelanden/${tid}/avsluta`, { utfall: 'fornyat' })).data;
+      som(s, 'adm-kard');
+      const ny = (await k.post('/api/kassa/avgift', { personnummer: '19450512-4752', tjanst: 'receptfornyelse' })).data;
+      const betald = (await k.post(`/api/kassa/avgift/${ny.avgift.id}/betala`, { satt: 'kort' })).data;
+      const kassan = (await k.get('/api/kassa')).data;
+      somInv(s, 'inv-p20');
+      const min = (await k.get('/api/min/journal/p20/avgifter')).data;
+      return { d, pt, trad, ny, betald, kassan, min };
+    };
+    const utan = await kor(false);
+    const med = await kor(true);
+    // Det sparade beloppet är det riktiga, räknat på alla patientens besök, oavsett vem som registrerade avgiften.
+    const sparade = med.d.query("SELECT kalla, belopp, grund FROM tjanstavgifter WHERE patient_id = 'p20' ORDER BY id").all();
+    expect(sparade).toEqual([{ kalla: 'meddelande', belopp: 0, grund: 'frikort' }, { kalla: 'kassa', belopp: 0, grund: 'frikort' }]);
+    expect(utan.d.query("SELECT belopp FROM tjanstavgifter WHERE patient_id = 'p20' ORDER BY id").all().map(r => r.belopp)).toEqual([100, 100]);
+    // Personalens svar är detsamma med och utan de dolda besöken.
+    expect(JSON.stringify(utanTid(med.trad))).toBe(JSON.stringify(utanTid(utan.trad)));
+    expect(JSON.stringify(utanTid(med.ny))).toBe(JSON.stringify(utanTid(utan.ny)));
+    expect(JSON.stringify(utanTid(med.betald))).toBe(JSON.stringify(utanTid(utan.betald)));
+    expect(med.betald).toMatchObject({ belopp: 100, status: 'betald' });
+    // Skillnaden återbetalas av sig själv. Kassan visar en återbetalning utan orsak och utan patientuppgifter.
+    expect(med.d.query('SELECT belopp, automatisk FROM aterbetalningar').all()).toEqual([{ belopp: 100, automatisk: 1 }]);
+    expect(utan.d.query('SELECT count(*) AS n FROM aterbetalningar').get().n).toBe(0);
+    const rad = med.kassan.kassorer.find(x => x.du).rader.find(x => x.kalla === 'aterbetalning');
+    expect(rad).toMatchObject({ slag: 'Återbetalning', belopp: -100 });
+    for (const x of ['Frikort', 'högkostnad', med.pt.efternamn, med.pt.personnummer.slice(0, 8)]) expect(JSON.stringify(med.kassan.kassorer)).not.toContain(x);
+    expect(med.kassan.kassorer.find(x => x.du).summa).toMatchObject({ kort: 0, aterbetalt: 100, netto: 0 });
+    // Patienten ser det riktiga beloppet, frikortet och återbetalningen i Min journal.
+    const minKassa = med.min.avgifter.find(a => a.betalning);
+    expect(minKassa).toMatchObject({ belopp: 0, grund: 'frikort' });
+    expect(minKassa.aterbetalning.text).toContain('100 kr tillbaka');
+    expect(med.min.avgifter.find(a => !a.betalning)).toMatchObject({ belopp: 0, status: 'frikort' });
+    expect(utan.min.avgifter.find(a => a.betalning).aterbetalning).toBeNull();
   });
 
   test(namn(T10.betala), async () => {

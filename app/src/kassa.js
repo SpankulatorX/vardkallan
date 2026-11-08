@@ -40,7 +40,8 @@ CREATE TRIGGER IF NOT EXISTS kassabetalning_raderas_ej BEFORE DELETE ON kassabet
 CREATE TABLE IF NOT EXISTS aterbetalningar (
   id INTEGER PRIMARY KEY, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, kalla TEXT NOT NULL, kalla_id INTEGER NOT NULL, belopp INTEGER NOT NULL,
   satt TEXT NOT NULL, orsak TEXT NOT NULL, tid TEXT NOT NULL, av TEXT NOT NULL, kvitto TEXT NOT NULL, terminal TEXT, text TEXT NOT NULL,
-  CHECK (kalla IN ('bokning', 'tjanst')), CHECK (satt IN ('kort', 'faktura')), UNIQUE (kalla, kalla_id)
+  automatisk INTEGER NOT NULL DEFAULT 0,
+  CHECK (kalla IN ('bokning', 'tjanst')), CHECK (satt IN ('kort', 'faktura'))
 );
 CREATE TRIGGER IF NOT EXISTS aterbetalning_andras_ej BEFORE UPDATE OF kalla, kalla_id, belopp, satt, orsak, tid, av, kvitto, terminal, text ON aterbetalningar
   BEGIN SELECT RAISE(ABORT, 'En återbetalning ändras inte'); END;
@@ -87,8 +88,12 @@ function inomSkyddet(db, patient, tjanst, belopp, text, synliga) {
   const fran = new Date(Date.now() - 365 * 86400_000).toISOString();
   const typer = ['receptfornyelse', 'intyg'].filter(t => ingar(db, t));
   const rader = finns(db) && typer.length ? db.query(`SELECT * FROM tjanstavgifter WHERE patient_id = ? AND skapad >= ? AND tjanst IN (${typer.map(() => '?').join(', ')})
-    AND id NOT IN (SELECT a.id FROM tjanstavgifter a JOIN kassabetalningar b ON b.avgift_id = a.id JOIN aterbetalningar r ON r.kalla = 'tjanst' AND r.kalla_id = b.id)`).all(patient.id, fran, ...typer) : [];
-  const tjanster = (synliga ? synliga(rader) : rader).reduce((s, r) => s + r.belopp, 0);
+    AND id NOT IN (SELECT a.id FROM tjanstavgifter a JOIN kassabetalningar b ON b.avgift_id = a.id JOIN aterbetalningar r ON r.kalla = 'tjanst' AND r.kalla_id = b.id AND r.automatisk = 0)`).all(patient.id, fran, ...typer) : [];
+  // Med filter räknas det som faktiskt är betalt för de synliga avgifterna, eftersom det sparade beloppet är det riktiga
+  // och kan bero på sådant som anroparen inte ser.
+  const betalt = (r) => (db.query('SELECT coalesce(sum(belopp), 0) AS n FROM kassabetalningar WHERE avgift_id = ?').get(r.id).n
+    - db.query("SELECT coalesce(sum(x.belopp), 0) AS n FROM aterbetalningar x JOIN kassabetalningar b ON x.kalla = 'tjanst' AND x.kalla_id = b.id WHERE b.avgift_id = ?").get(r.id).n);
+  const tjanster = synliga ? synliga(rader).reduce((s, r) => s + betalt(r), 0) : rader.reduce((s, r) => s + r.belopp, 0);
   const kvar = Math.max(0, hk.kvar - tjanster);
   if (kvar === 0) return { belopp: 0, grund: 'frikort', text: 'Frikort gäller, eftersom högkostnadsskyddet är nått.' };
   return { belopp: Math.min(kvar, belopp), grund: 'avgift', text: `${text} Avgiften ingår i högkostnadsskyddet.` };
@@ -116,10 +121,11 @@ const kvittoFor = (db, prefix, tabell) => `${prefix}${String(db.query(`SELECT co
 // Den simulerade betalterminalen. Den godkänner alltid och svarar med en referens. Inga pengar dras.
 const terminalRef = (db, slag) => `TERMINAL-DEMO-${slag}-${String(db.query('SELECT (SELECT count(*) FROM kassabetalningar) + (SELECT count(*) FROM aterbetalningar) AS n').get().n + 1).padStart(5, '0')}`;
 
-// Skapar avgiften. Är den noll registrerar systemet det själv, och då finns inget att betala.
-export function skapaAvgift(db, { patient, enhetId, tjanst, intygstyp = null, av = null, kalla = 'kassa', kallaId = null, synliga = null }) {
+// Skapar avgiften med det riktiga beloppet, räknat på alla patientens besök och avgifter utan filter, så att beloppet
+// aldrig beror på vem som registrerar den. Patientens rätt till frikort gäller oavsett var besöken gjordes.
+export function skapaAvgift(db, { patient, enhetId, tjanst, intygstyp = null, av = null, kalla = 'kassa', kallaId = null }) {
   sakra(db);
-  const a = avgiftFor(db, patient, tjanst, intygstyp, idag(), { synliga });
+  const a = avgiftFor(db, patient, tjanst, intygstyp, idag());
   const id = Number(db.query(`INSERT INTO tjanstavgifter (patient_id, enhet_id, tjanst, intygstyp, belopp, grund, text, skapad, skapad_av, kalla, kalla_id)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(patient.id, vardenhetFor(db, enhetId), tjanst, tjanst === 'intyg' ? intygstyp : null, a.belopp, a.grund, a.text, iso(), av, kalla, kallaId).lastInsertRowid);
   return db.query('SELECT * FROM tjanstavgifter WHERE id = ?').get(id);
@@ -127,14 +133,25 @@ export function skapaAvgift(db, { patient, enhetId, tjanst, intygstyp = null, av
 
 const personNamn = (db, id) => (id ? db.query('SELECT namn FROM personal WHERE id = ?').get(id)?.namn ?? null : null);
 const betalningFor = (db, avgiftId) => db.query('SELECT * FROM kassabetalningar WHERE avgift_id = ?').get(avgiftId) ?? null;
-const aterFor = (db, kalla, id) => db.query('SELECT * FROM aterbetalningar WHERE kalla = ? AND kalla_id = ?').get(kalla, id) ?? null;
+// En återbetalning som någon har gjort, och summan av det som systemet har återbetalat av sig självt.
+const aterFor = (db, kalla, id) => db.query('SELECT * FROM aterbetalningar WHERE kalla = ? AND kalla_id = ? AND automatisk = 0').get(kalla, id) ?? null;
+const autoFor = (db, kalla, id) => db.query('SELECT coalesce(sum(belopp), 0) AS n FROM aterbetalningar WHERE kalla = ? AND kalla_id = ? AND automatisk = 1').get(kalla, id).n;
 
-export function avgiftUt(db, a) {
+// Avgiften som den som tittar ser. Personalen ser avgiften räknad med sitt eget filter, aldrig det riktiga beloppet om det
+// beror på sådant som personalen inte får se. Utan filter, för patienten och systemet, är det det riktiga beloppet.
+export function visatFor(db, a, synliga = null) {
+  if (!synliga) return { belopp: a.belopp, grund: a.grund, text: a.text };
+  const p = db.query('SELECT * FROM patienter WHERE id = ?').get(a.patient_id);
+  return avgiftFor(db, p, a.tjanst, a.intygstyp, datumAv(new Date(a.skapad)), { synliga });
+}
+
+export function avgiftUt(db, a, { synliga = null } = {}) {
   const b = betalningFor(db, a.id);
   const r = b ? aterFor(db, 'tjanst', b.id) : null;
-  const status = r ? 'aterbetald' : b ? 'betald' : a.belopp === 0 ? a.grund : 'att_betala';
+  const v = visatFor(db, a, synliga);
+  const status = r ? 'aterbetald' : b ? 'betald' : v.belopp === 0 ? v.grund : 'att_betala';
   return {
-    id: a.id, tjanst: a.tjanst, tjanstText: a.tjanst === 'intyg' ? INTYGSTYPER[a.intygstyp]?.text ?? 'Intyg' : TJANSTER[a.tjanst], belopp: a.belopp, text: a.text, status,
+    id: a.id, tjanst: a.tjanst, tjanstText: a.tjanst === 'intyg' ? INTYGSTYPER[a.intygstyp]?.text ?? 'Intyg' : TJANSTER[a.tjanst], belopp: v.belopp, grund: v.grund, text: v.text, status,
     statusText: { aterbetald: 'Återbetald', betald: 'Betald', att_betala: 'Att betala', avgiftsfri: 'Avgiftsfri', frikort: 'Frikort' }[status],
     skapad: a.skapad, skapadAv: personNamn(db, a.skapad_av), skapadAvSystemet: a.kalla === 'meddelande',
     betalning: b ? { id: b.id, satt: b.satt, sattText: BETALSATT[b.satt], tid: b.tid, kvitto: b.kvitto, text: b.text, av: b.av_invanare ? 'Min journal' : personNamn(db, b.av) } : null,
@@ -142,14 +159,26 @@ export function avgiftUt(db, a) {
   };
 }
 
-function betalaRad(db, a, satt, { av = null, avInvanare = null } = {}) {
-  if (a.belopp === 0) throw new Fel(400, 'Det finns ingen avgift att betala.', 'ogiltig');
+function betalaRad(db, a, satt, { av = null, avInvanare = null } = {}, belopp = a.belopp) {
+  if (belopp === 0) throw new Fel(400, 'Det finns ingen avgift att betala.', 'ogiltig');
   if (betalningFor(db, a.id)) throw new Fel(400, 'Avgiften är redan betald.', 'ogiltig');
   if (!Object.hasOwn(BETALSATT, satt ?? '')) throw new Fel(400, 'Välj kort eller faktura.', 'ogiltig', { falt: ['satt'] });
   const terminal = satt === 'kort' ? terminalRef(db, 'KOP') : null;
   const text = satt === 'kort' ? `Kortbetalning i den simulerade betalterminalen, referens ${terminal}. Inga pengar dras.` : 'Faktura, simulerad. Ingen faktura skickas.';
   db.query('INSERT INTO kassabetalningar (avgift_id, patient_id, enhet_id, belopp, satt, tid, av, av_invanare, kvitto, terminal, text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(a.id, a.patient_id, a.enhet_id, a.belopp, satt, iso(), av, avInvanare, kvittoFor(db, 'VK-DEMO-T-', 'kassabetalningar'), terminal, text);
+    .run(a.id, a.patient_id, a.enhet_id, belopp, satt, iso(), av, avInvanare, kvittoFor(db, 'VK-DEMO-T-', 'kassabetalningar'), terminal, text);
+  return db.query('SELECT * FROM kassabetalningar WHERE avgift_id = ?').get(a.id);
+}
+
+// Är det riktiga beloppet lägre än det som kassören tog betalt återbetalar systemet skillnaden samma väg av sig självt.
+// Kassan visar återbetalningen utan orsak, och bara patienten får beskedet.
+function aterbetalaSkillnad(db, a, b) {
+  const skillnad = b.belopp - a.belopp;
+  if (skillnad <= 0) return;
+  const terminal = b.satt === 'kort' ? terminalRef(db, 'RETUR') : null;
+  const text = b.satt === 'kort' ? `${skillnad} kr tillbaka till kortet i den simulerade betalterminalen, referens ${terminal}. Inga pengar flyttas.` : `Kreditfaktura på ${skillnad} kr, simulerad. Ingen faktura skickas.`;
+  db.query('INSERT INTO aterbetalningar (patient_id, enhet_id, kalla, kalla_id, belopp, satt, orsak, tid, av, kvitto, terminal, text, automatisk) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)')
+    .run(b.patient_id, b.enhet_id, 'tjanst', b.id, skillnad, b.satt, 'hogkostnadsskydd', iso(), b.av ?? 'systemet', kvittoFor(db, 'VK-DEMO-R-', 'aterbetalningar'), terminal, text);
 }
 
 // --- Vårdadministratörens kassa --------------------------------------------------------------------------------------
@@ -166,13 +195,16 @@ export function patientFranNummer(db, text, far) {
   return h.patientId;
 }
 
+// Filtret för personalens vyer: det som personalen får se, som i ekonomi.js.
+export const synligaFor = (atk) => (rader) => atk.filtrera(rader, 'las_admin');
+
 // POST /api/patient/:id/tjanstavgift { tjanst, intygstyp? }. atk har handlingen checka_in (vårdrelation hit).
 export function registreraAvgift(atk, p, body = {}) {
   kravKassa(atk.personal);
   atk.krav('checka_in');
-  const a = skapaAvgift(atk.db, { patient: p, enhetId: atk.personal.enhet_id, tjanst: body.tjanst, intygstyp: body.intygstyp, av: atk.personal.id, synliga: (r) => atk.filtrera(r, 'las_admin') });
+  const a = skapaAvgift(atk.db, { patient: p, enhetId: atk.personal.enhet_id, tjanst: body.tjanst, intygstyp: body.intygstyp, av: atk.personal.id });
   atk.logga('checka_in', atk.grund(), `tjanstavgift:${a.id}`);
-  return [201, { avgift: avgiftUt(atk.db, a), patient: { namn: visningsnamn(p, atk.val?.visa_identitet), personnummer: visningsPnr(p, atk.val?.visa_identitet) } }];
+  return [201, { avgift: avgiftUt(atk.db, a, { synliga: synligaFor(atk) }), patient: { namn: visningsnamn(p, atk.val?.visa_identitet), personnummer: visningsPnr(p, atk.val?.visa_identitet) } }];
 }
 
 // Patientens avgifter för tjänster på min vårdenhet.
@@ -180,16 +212,19 @@ export function patientensAvgifter(atk) {
   atk.krav('checka_in');
   const db = atk.db;
   if (!finns(db)) return { avgifter: [] };
-  return { avgifter: db.query('SELECT * FROM tjanstavgifter WHERE patient_id = ? AND enhet_id = ? ORDER BY id DESC').all(atk.patientId, minVe(db, atk.personal)).map(a => avgiftUt(db, a)) };
+  return { avgifter: db.query('SELECT * FROM tjanstavgifter WHERE patient_id = ? AND enhet_id = ? ORDER BY id DESC').all(atk.patientId, minVe(db, atk.personal)).map(a => avgiftUt(db, a, { synliga: synligaFor(atk) })) };
 }
 
 export function betala(atk, a, body = {}) {
   kravKassa(atk.personal);
   atk.krav('checka_in');
   if (a.enhet_id !== minVe(atk.db, atk.personal)) throw new Fel(403, 'Avgiften hör till en annan vårdenhet.', 'nekad');
-  betalaRad(atk.db, a, body.satt, { av: atk.personal.id });
+  // Kassören tar betalt det belopp som kassören ser, och systemet återbetalar en skillnad mot det riktiga beloppet.
+  const synliga = synligaFor(atk);
+  const b = betalaRad(atk.db, a, body.satt, { av: atk.personal.id }, visatFor(atk.db, a, synliga).belopp);
+  aterbetalaSkillnad(atk.db, a, b);
   atk.logga('checka_in', atk.grund(), `tjanstavgift:${a.id}:betald:${body.satt}`);
-  return avgiftUt(atk.db, a);
+  return avgiftUt(atk.db, a, { synliga });
 }
 
 // En betalning i kassan: en patientavgift vid besöket (betalningar i tidbok.js) eller en avgift för en tjänst.
@@ -215,6 +250,9 @@ export function aterbetala(atk, bet, body = {}) {
   if (!['kort', 'faktura'].includes(bet.satt) || bet.belopp <= 0) throw new Fel(400, 'Det finns inget betalt belopp att återbetala. Frikort och avgiftsfria besök betalas inte.', 'ogiltig');
   if (!Object.hasOwn(ORSAKER, body.orsak ?? '')) throw new Fel(400, 'Välj varför avgiften ska återbetalas.', 'ogiltig', { falt: ['orsak'] });
   if (aterFor(db, bet.kalla, bet.id)) throw new Fel(400, 'Betalningen är redan återbetald.', 'ogiltig');
+  // Det som systemet redan har återbetalat av sig självt räknas bort, utan att någon orsak visas.
+  bet = { ...bet, belopp: bet.belopp - autoFor(db, bet.kalla, bet.id) };
+  if (bet.belopp <= 0) throw new Fel(400, 'Betalningen är redan återbetald.', 'ogiltig');
   const terminal = bet.satt === 'kort' ? terminalRef(db, 'RETUR') : null;
   const text = bet.satt === 'kort' ? `${bet.belopp} kr tillbaka till kortet i den simulerade betalterminalen, referens ${terminal}. Inga pengar flyttas.` : `Kreditfaktura på ${bet.belopp} kr, simulerad. Ingen faktura skickas.`;
   const kvitto = kvittoFor(db, 'VK-DEMO-R-', 'aterbetalningar');
@@ -239,7 +277,7 @@ function transaktioner(db, ve, datum) {
       ut.push({ nyckel: `tjanst:${b.id}`, kalla: 'tjanst', id: b.id, tid: b.tid, kvitto: b.kvitto, slag: b.tjanst === 'intyg' ? 'Intyg' : TJANSTER[b.tjanst], satt: b.satt, belopp: b.belopp, av: b.av, avInvanare: Boolean(b.av_invanare) });
     }
     for (const r of db.query('SELECT * FROM aterbetalningar WHERE enhet_id = ? ORDER BY id').all(ve).filter(x => pa(x.tid))) {
-      ut.push({ nyckel: `aterbetalning:${r.id}`, kalla: 'aterbetalning', id: r.id, tid: r.tid, kvitto: r.kvitto, slag: `Återbetalning (${ORSAKER[r.orsak].toLowerCase()})`, satt: r.satt, belopp: -r.belopp, av: r.av, avInvanare: false, avser: `${r.kalla}:${r.kalla_id}` });
+      ut.push({ nyckel: `aterbetalning:${r.id}`, kalla: 'aterbetalning', id: r.id, tid: r.tid, kvitto: r.kvitto, slag: r.automatisk ? 'Återbetalning' : `Återbetalning (${ORSAKER[r.orsak].toLowerCase()})`, satt: r.satt, belopp: -r.belopp, av: r.av, avInvanare: false, avser: `${r.kalla}:${r.kalla_id}` });
     }
   }
   return ut.sort((a, b) => a.tid.localeCompare(b.tid));
@@ -264,7 +302,8 @@ export function kassa(db, personal, { datum = idag() } = {}) {
   const alla = transaktioner(db, ve, datum);
   const avslut = db.query('SELECT * FROM kassaavslut WHERE enhet_id = ? AND datum = ? ORDER BY id').all(ve, datum);
   const avslutade = new Set(avslut.flatMap(a => JSON.parse(a.transaktioner)));
-  const aterbetalda = new Set(db.query('SELECT kalla, kalla_id FROM aterbetalningar WHERE enhet_id = ?').all(ve).map(r => `${r.kalla}:${r.kalla_id}`));
+  const aterbetalda = new Set(db.query('SELECT kalla, kalla_id FROM aterbetalningar WHERE enhet_id = ? AND automatisk = 0').all(ve).map(r => `${r.kalla}:${r.kalla_id}`));
+  const auto = new Map(db.query('SELECT kalla, kalla_id, sum(belopp) AS n FROM aterbetalningar WHERE enhet_id = ? AND automatisk = 1 GROUP BY kalla, kalla_id').all(ve).map(r => [`${r.kalla}:${r.kalla_id}`, r.n]));
   const kassorer = new Map();
   for (const r of alla) {
     const k = r.avInvanare ? 'min_journal' : r.av ?? 'systemet';
@@ -274,7 +313,7 @@ export function kassa(db, personal, { datum = idag() } = {}) {
   const rad = (r) => ({
     nyckel: r.nyckel, kalla: r.kalla, id: r.id, tid: r.tid, kvitto: r.kvitto, slag: r.slag, satt: r.satt, sattText: { kort: 'Kort', faktura: 'Faktura', frikort: 'Frikort', avgiftsfri: 'Avgiftsfritt' }[r.satt],
     belopp: r.belopp, avslutad: avslutade.has(r.nyckel),
-    kanAterbetalas: r.kalla !== 'aterbetalning' && ['kort', 'faktura'].includes(r.satt) && r.belopp > 0 && !aterbetalda.has(`${r.kalla}:${r.id}`),
+    kanAterbetalas: r.kalla !== 'aterbetalning' && ['kort', 'faktura'].includes(r.satt) && r.belopp - (auto.get(`${r.kalla}:${r.id}`) ?? 0) > 0 && !aterbetalda.has(`${r.kalla}:${r.id}`),
   });
   return {
     datum, vardenhet: { id: ve, namn: db.query('SELECT namn FROM enheter WHERE id = ?').get(ve)?.namn ?? ve }, idag: datum === idag(),
@@ -334,7 +373,12 @@ export function minaAvgifter(atk) {
 // Patienten ser inte vem i personalen som tog betalt eller återbetalade, bara att det är gjort.
 function minAvgiftUt(db, a) {
   const x = avgiftUt(db, a);
-  return { ...x, skapadAv: null, betalning: x.betalning ? { ...x.betalning, av: x.betalning.av === 'Min journal' ? 'Min journal' : 'Vårdenheten' } : null, aterbetalning: x.aterbetalning ? { ...x.aterbetalning, av: null } : null };
+  // Patienten ser det riktiga beloppet och den återbetalning som systemet gjorde av sig självt, med förklaringen.
+  const b = betalningFor(db, a.id);
+  const auto = b ? autoFor(db, 'tjanst', b.id) : 0;
+  const aterbetalning = x.aterbetalning ? { ...x.aterbetalning, av: null }
+    : auto ? { text: `Du har fått ${auto} kr tillbaka, eftersom avgiften enligt högkostnadsskyddet är lägre än det du betalade.`, belopp: auto } : null;
+  return { ...x, skapadAv: null, betalning: x.betalning ? { ...x.betalning, av: x.betalning.av === 'Min journal' ? 'Min journal' : 'Vårdenheten' } : null, aterbetalning };
 }
 export function minBetala(atk, aid, body = {}) {
   const db = atk.db;

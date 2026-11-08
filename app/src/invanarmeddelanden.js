@@ -120,7 +120,7 @@ export const synligFor = (atk, t) => atk.relation !== 'ombud' || (!t.ordination_
 const synligaTradar = (atk, villkor = '') => atk.db.query(`SELECT * FROM meddelandetradar WHERE patient_id = ? ${villkor} ORDER BY id DESC`).all(atk.patientId).filter(t => synligFor(atk, t));
 export const OMBUD_NEJ = 'Som ombud kan du inte be om förnyade recept eller kommentera vårdplanen, eftersom det gäller journalen. Det kan patienten själv eller en vårdnadshavare göra.';
 
-function tradUt(db, t, { forInvanare, ombud = false }) {
+function tradUt(db, t, { forInvanare, ombud = false, synliga = null }) {
   const m = meddelandenFor(db, t.id);
   const ordination = t.ordination_id ? db.query('SELECT k.namn, k.styrka FROM ordinationer o JOIN katalog k ON k.id = o.lakemedel_id WHERE o.id = ?').get(t.ordination_id) : null;
   const plan = t.plan_id ? db.query('SELECT rubrik FROM vardplaner WHERE id = ?').get(t.plan_id) : null;
@@ -129,7 +129,8 @@ function tradUt(db, t, { forInvanare, ombud = false }) {
     id: t.id, typ: t.typ, typText: TYPER[t.typ]?.text, vardenhet: enhetNamn(db, t.enhet_id), yrkesrollText: YRKE[t.yrkesroll], status: t.status, statusText: STATUS[t.status],
     skapad: t.skapad, avslutad: t.avslutad, utfall: t.utfall,
     galler: ombud && (t.ordination_id || t.plan_id) ? null : ordination ? `${ordination.namn} ${ordination.styrka ?? ''}`.trim() : plan ? plan.rubrik : t.intygstyp ? kassa.INTYGSTYPER[t.intygstyp]?.text ?? null : null,
-    avgift: avgift ? { belopp: avgift.belopp, text: avgift.text } : null,
+    // Personalen ser avgiften räknad med sitt eget filter, patienten det riktiga beloppet (kassa.js).
+    avgift: avgift ? (({ belopp, text }) => ({ belopp, text }))(kassa.visatFor(db, avgift, forInvanare ? null : synliga)) : null,
     skrivetAv: forInvanare ? null : { egen: 'Patienten', vardnadshavare: 'Vårdnadshavaren', ombud: 'Ombudet' }[t.relation],
     meddelanden: m.map(x => ({
       id: x.id, fran: x.fran, tid: x.tid, text: x.text,
@@ -271,7 +272,7 @@ export function vardTrad(atk, t) {
   atk.logga('meddelande_invanare', atk.grund(), `meddelande:${t.id}`);
   const lakare = kanRoll(atk.personal, 'ordinera');
   return {
-    ...tradUt(db, t, { forInvanare: false }), utfall: t.utfall, utfallVal: utfallFor(t),
+    ...tradUt(db, t, { forInvanare: false, synliga: kassa.synligaFor(atk) }), utfall: t.utfall, utfallVal: utfallFor(t),
     kanAvsluta: t.status !== 'avslutad' && (!['recept', 'intyg'].includes(t.typ) || lakare),
     varforInte: ['recept', 'intyg'].includes(t.typ) && !lakare ? 'En läkare förnyar recept och utfärdar intyg. Ärendet ligger kvar till läkaren.' : null,
     forslag: t.typ === 'recept' ? 'Systemet skapar avgiften för förnyelsen och skriver svaret till patienten när du väljer Receptet är förnyat.' : t.typ === 'intyg' ? 'Systemet skapar avgiften för intyget och skriver svaret till patienten när du väljer Intyget är utfärdat.' : null,
@@ -314,11 +315,12 @@ export function vardAvsluta(atk, t, body = {}) {
   let avgift = null;
   if (utfall === 'fornyat' || utfall === 'utfardat') {
     const p = db.query('SELECT * FROM patienter WHERE id = ?').get(t.patient_id);
-    const a = kassa.skapaAvgift(db, { patient: p, enhetId: t.enhet_id, tjanst: utfall === 'fornyat' ? 'receptfornyelse' : 'intyg', intygstyp: t.intygstyp, av: atk.personal.id, kalla: 'meddelande', kallaId: t.id, synliga: (r) => atk.filtrera(r, 'las_admin') });
+    const a = kassa.skapaAvgift(db, { patient: p, enhetId: t.enhet_id, tjanst: utfall === 'fornyat' ? 'receptfornyelse' : 'intyg', intygstyp: t.intygstyp, av: atk.personal.id, kalla: 'meddelande', kallaId: t.id });
     avgift = a;
     // Svaret nämner inte läkemedlet, eftersom ett ombud kan läsa tråden. Vad tråden gäller visas för patienten.
     const vad = utfall === 'fornyat' ? 'Receptet är förnyat och finns på apoteket.' : `Intyget (${kassa.INTYGSTYPER[t.intygstyp]?.text.toLowerCase()}) är utfärdat och skickas till dig.`;
-    const om = a.belopp > 0 ? ` Avgiften är ${a.belopp} kr, och du kan betala den i Min journal under Tider eller få en faktura.` : ` ${a.text}`;
+    // Svaret nämner inte beloppet, eftersom personalen kan läsa tråden. Patienten ser avgiften under Tider.
+    const om = ' Avgiften, om det finns någon, ser du i Min journal under Tider, och du kan betala den där.';
     db.query("INSERT INTO invanarmeddelanden (trad_id, patient_id, enhet_id, fran, personal_id, text, tid, avisering) VALUES (?, ?, ?, 'systemet', NULL, ?, ?, ?)").run(t.id, t.patient_id, t.enhet_id, `${vad}${om}`, iso(), avisera(db, t));
   }
   db.query("UPDATE meddelandetradar SET status = 'avslutad', avslutad = ?, avslutad_av = ?, utfall = ?, avgift_id = ? WHERE id = ?").run(t0, atk.personal.id, utfall, avgift?.id ?? null, t.id);
