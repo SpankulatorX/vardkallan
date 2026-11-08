@@ -481,12 +481,17 @@ describe('Beredning och skanning via API', () => {
     app = app ?? testserver();
     const k = klient(app);
     await k.logga('lak-kard');
-    const o = await k.post('/api/patient/p01/lakemedel', { lakemedelId: 'VK-EGEN-0002', dosering: '1000 ml natriumklorid med 20 mmol kaliumklorid under 8 timmar', dos: 1000, dosEnhet: 'ml', tider: ['23'],
+    // Dosen läggs nästa hel timme i svensk tid, och listan läses för den dagen, så att testet inte beror på klockslaget
+    // (med tiden 23 försvann dosen när testet kördes efter 23).
+    const sv = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', hour: '2-digit', hourCycle: 'h23' }).format(new Date());
+    const timme = (Number(sv) + 1) % 24;
+    const dagQ = timme === 0 ? `?dag=${addDagar(idag(), 1)}` : '';
+    const o = await k.post('/api/patient/p01/lakemedel', { lakemedelId: 'VK-EGEN-0002', dosering: '1000 ml natriumklorid med 20 mmol kaliumklorid under 8 timmar', dos: 1000, dosEnhet: 'ml', tider: [String(timme).padStart(2, '0')],
       typ: 'tillfallig', ordinationsorsak: 'Hypokalemi', uppfoljningsdatum: addDagar(idag(), 3), administrationssatt: 'intravenost', spadning: { volymMl: 1000, tidMin: 480, tillsatser: [{ lakemedelId: 'VK-EGEN-0001', mangd: 20 }] } });
     expect(o.status).toBe(201);
     const id = o.data.ordination.id;
     await k.logga('ssk-kard');
-    const lista = await k.get('/api/patient/p01/administreringar');
+    const lista = await k.get(`/api/patient/p01/administreringar${dagQ}`);
     const dos = lista.data.doser.find(d => d.ordinationId === id);
     expect(dos.beredning.dubbelkontroll).toBe(true);
     const ior = await k.post('/api/patient/p01/administreringar', { ordinationId: id, planerad: dos.planerad, atgard: 'iordningstall', beredning: { batch: 'K1234' } });
