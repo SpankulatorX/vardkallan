@@ -1709,7 +1709,9 @@ const MENY = {
       await page.fill('#at-kod', 'G01');
       for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut', 'sok-journal', 'news2', 'ordinera-mall', 'dos-efterhand', 'utse-mal', 'godkanna-mall', 'extern-tillampning', 'boka-ingrepp', 'boka-kedja', 'kravviktning', 'exportera-underlag', 'lamna-ut-hjalpmedel', 'forbered-namnbyte', 'andra-demoregel', 'rapport-par', 'tillvaxt-bhv', 'andra-dos', 'nyheter', 'forlang-inloggning',
         // Runda 8, r5.
-        'tobaksvanor', 'epikris', 'grundmatningar']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'tobaksvanor', 'epikris', 'grundmatningar',
+        // Runda 8, r2.
+        'remiss-pa-uppdrag', 'fordela-remiss', 'registrera-pappersremiss']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

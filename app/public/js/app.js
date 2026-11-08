@@ -258,7 +258,9 @@ export async function uppdateraInkorg() {
       // Rättningar före rapportering till myndigheter och register (runda 7, r5).
       + (d.rapportfel?.length ?? 0)
       // Runda 7, r6: barnhälsovården.
-      + (d.tillvaxtLarm?.length ?? 0) + (d.hemmatningarAttBekrafta?.length ?? 0) + (d.bhvAttBoka?.length ?? 0);
+      + (d.tillvaxtLarm?.length ?? 0) + (d.hemmatningarAttBekrafta?.length ?? 0) + (d.bhvAttBoka?.length ?? 0)
+      // Runda 8, r2: remisser att signera på uppdrag och remisser fördelade till läkaren.
+      + (d.remisserAttSignera?.length ?? 0) + (d.remisserAttBedoma?.length ?? 0);
   } catch { S.inkorg = null; }
   const el = document.querySelector('[data-raknare="inkorg"]');
   if (el) { el.textContent = S.inkorg ? String(S.inkorg) : ''; el.hidden = !S.inkorg; }

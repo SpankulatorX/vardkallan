@@ -83,3 +83,5 @@ export const EGNA_BEVAKNINGAR = [
 // Vårdenheten som tar emot egna vårdbegäranden från Min journal (runda 6, r4, remiss-r4.js). Står här så att
 // masterdatans filadapter (masterdata.js) har den med.
 export const MIN_JOURNAL_ENHET = { id: 'min-journal', hsa: 'DEMO-MINJOURNAL', namn: 'Egen vårdbegäran via Min journal', kortnamn: 'Min journal', typ: 'etjanst' };
+// Runda 8, r2: avsändaren av en pappersremiss från en vårdgivare utanför Vårdkällan (remiss-r8.js).
+export const EXTERN_ENHET = { id: 'extern', hsa: 'DEMO-EXTERN', namn: 'Vårdgivare utanför Vårdkällan', kortnamn: 'Extern', typ: 'extern' };

@@ -124,6 +124,47 @@
           "omfattning": "liten",
           "rubrik": "Flera muntliga ordinationer i följd",
           "text": "När du dokumenterar ännu en muntlig ordination för samma patient fyller systemet i läkaren och skälet från den förra, så att du bara väljer läkemedlet."
+        },
+        {
+          "id": "remiss-pa-uppdrag",
+          "roller": [
+            "vardadministrator"
+          ],
+          "omfattning": "stor",
+          "var": "#/remisser",
+          "rubrik": "Remiss på uppdrag och pappersremisser",
+          "text": "Du skriver en remiss på uppdrag av en läkare med Remiss på uppdrag i patientens översikt, och systemet föreslår läkaren. Remissen skickas när läkaren har signerat. Inskannade pappersremisser registrerar du under Remisser, och någon annan på vårdenheten tar emot dem."
+        },
+        {
+          "id": "remiss-fordela-konferens",
+          "roller": [
+            "vardadministrator",
+            "fysioterapeut"
+          ],
+          "omfattning": "stor",
+          "var": "#/remisser?vy=konferens",
+          "rubrik": "Fördela remisser och remisskonferens",
+          "text": "En inkommande remiss fördelas till en läkare med två klick, och systemet föreslår bakjouren. Med Till remisskonferens hamnar remissen på nästa konferens, som systemet väljer."
+        },
+        {
+          "id": "remiss-signera-bedoma",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "stor",
+          "var": "#/inkorg",
+          "rubrik": "Remisser att signera, att bedöma och på konferens",
+          "text": "Remisser som skrivits på ditt uppdrag och remisser som fördelats till dig står i inkorgen. På remisskonferensen bedömer du remisserna i följd med ett klick per beslut, och när du accepterar väljer du inom vilken tid besöket ska ske."
+        },
+        {
+          "id": "sussa-testfall-08",
+          "roller": [
+            "alla"
+          ],
+          "omfattning": "liten",
+          "var": "#/krav",
+          "rubrik": "Fler av Sussas användbarhetstester",
+          "text": "Fler av Sussas användbarhetstester går att genomföra i Vårdkällan, bland annat de om vårdbegäran. Resultatet per testfall finns på kravsidan."
         }
       ]
     },

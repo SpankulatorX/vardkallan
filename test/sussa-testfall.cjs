@@ -254,6 +254,82 @@ function floden(D) {
       await m.klicka(page.locator('#remissform [type="submit"]'), 'Skicka remissen');
       await synlig(page, '.notis', 'Remissen är skickad');
     },
+    // Runda 8, r2: remiss på uppdrag (2.2), fördelning och bedömning (2.3), fördelning och remisskonferens på uppdrag
+    // (2.4) och en extern pappersremiss (2.5).
+    '2.2': async (m, page) => {
+      await sok(m, page, 'Mira', 'Mira Axelsson');
+      await m.klicka(page.locator('.snabbval a', { hasText: 'Remiss på uppdrag' }), 'Remiss på uppdrag');
+      await page.waitForSelector('#uppdragform');
+      const vald = await page.locator('#ru-lakare').inputValue();
+      if (vald !== D.UPPDRAG_2_2.uppdragsgivare) throw new Error(`systemet föreslog ${vald} som uppdragsgivare`);
+      await m.valj(page.locator('#ru-till'), D.UPPDRAG_2_2.tillEnhetId, 'mottagare Ortopediska kliniken USÖ');
+      await m.skriv(page.locator('#ru-fraga'), D.REMISS_2_1.fragestallning, 'frågeställning');
+      await m.skriv(page.locator('#ru-anamnes'), D.REMISS_2_1.anamnes, 'anamnes');
+      await m.klicka(page.locator('#uppdragform [type="submit"]'), 'Skicka till läkaren för signering');
+      await synlig(page, '.notis', 'väntar på signering av Sara Lindqvist');
+      await synlig(page, '.r8-uppdrag', 'Väntar på signering av Sara Lindqvist');
+    },
+    '2.3': async (m, page) => {
+      const kort = (namn, atgard) => page.locator('article.remiss', { hasText: namn }).filter({ has: page.locator(`[data-remiss-atgard="${atgard}"]`) }).first();
+      await m.klicka(page.locator('#meny-lista a[href="#/remisser"]'), 'Remisser i menyn');
+      await page.waitForSelector('article.remiss');
+      await m.klicka(kort('Berit Strandhall', 'fordela').locator('[data-remiss-atgard="fordela"]'), 'Fördela för Berit Strandhall');
+      await m.klicka(page.locator('dialog[open] [data-varde="ol-kard"]'), 'bakjouren Göran Malm');
+      await synlig(page, '.notis', 'fördelad till Göran Malm');
+      await page.waitForLoadState('networkidle');
+      await m.klicka(kort('Gerda Ström', 'bedom').locator('[data-remiss-atgard="bedom"]'), 'Bedöm för Gerda Ström');
+      await page.locator('dialog[open] #tr-60').waitFor();
+      await m.klicka(page.locator('dialog[open] #tr-60'), 'Inom två månader');
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Spara bedömningen');
+      await synlig(page, '.notis', 'inom två månader');
+      await page.waitForLoadState('networkidle');
+      await m.klicka(kort('Elin Arnström', 'bedom').locator('[data-remiss-atgard="bedom"]'), 'Bedöm för Elin Arnström');
+      await page.locator('dialog[open] #b-avv').waitFor();
+      await m.klicka(page.locator('dialog[open] #b-avv'), 'Avvisa');
+      await m.skriv(page.locator('dialog[open] #b-mot'), D.AVVISNING_2_3, 'svarstexten');
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Spara bedömningen');
+      await synlig(page, '.notis', 'Remissen är avvisad');
+      await page.waitForLoadState('networkidle');
+      await m.klicka(kort('Trevis Ljung', 'vidarebefordra').locator('[data-remiss-atgard="vidarebefordra"]'), 'Skicka vidare för Trevis Ljung');
+      await page.locator('dialog[open] #vb-till').waitFor();
+      await m.valj(page.locator('dialog[open] #vb-till'), 'uso-psyk', 'Allmänpsykiatriska kliniken USÖ');
+      await m.skriv(page.locator('dialog[open] #vb-mot'), D.VIDAREBEFORDRAN_2_3, 'motiveringen');
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Skicka vidare');
+      await synlig(page, '.notis', 'skickad vidare till Allmänpsykiatriska kliniken USÖ');
+      await page.waitForLoadState('networkidle');
+      await synlig(page, 'article.remiss', 'Fördelad till Göran Malm');
+    },
+    '2.4': async (m, page) => {
+      const kort = (namn, atgard) => page.locator('article.remiss', { hasText: namn }).filter({ has: page.locator(`[data-remiss-atgard="${atgard}"]`) }).first();
+      await m.klicka(page.locator('#meny-lista a[href="#/remisser"]'), 'Remisser i menyn');
+      await page.waitForSelector('article.remiss');
+      await m.klicka(kort('Bertil Danielsson', 'fordela').locator('[data-remiss-atgard="fordela"]'), 'Fördela för Bertil Danielsson');
+      await m.klicka(page.locator('dialog[open] [data-varde="ol-kard"]'), 'bakjouren Göran Malm');
+      await synlig(page, '.notis', 'fördelad till Göran Malm');
+      for (const namn of ['Sara Sandmark', 'Anna Karlsson', 'Sven Markström']) {
+        await page.waitForLoadState('networkidle');
+        await m.klicka(kort(namn, 'konferens').locator('[data-remiss-atgard="konferens"]'), `Till remisskonferens för ${namn}`);
+        await synlig(page, '.notis', 'står på remisskonferensen');
+      }
+      await page.waitForLoadState('networkidle');
+      for (const namn of ['Sara Sandmark', 'Anna Karlsson', 'Sven Markström']) await synlig(page, `article.remiss:has-text("${namn}")`, 'På remisskonferensen');
+      await synlig(page, 'article.remiss:has-text("Bertil Danielsson")', 'Fördelad till Göran Malm');
+    },
+    '2.5': async (m, page) => {
+      const r = D.SKANNAD_2_5.remiss;
+      await m.klicka(page.locator('#meny-lista a[href="#/remisser"]'), 'Remisser i menyn');
+      await m.klicka(page.locator('.r8-skannade li', { hasText: r.enhet }).locator('[data-skann]'), 'Registrera vid den inskannade remissen');
+      await page.locator('dialog[open] #ex-patient').waitFor();
+      await m.skriv(page.locator('dialog[open] #ex-patient'), 'Trevis Ljung', 'patienten');
+      await synlig(page, 'dialog[open] [data-vald]', 'Trevis Ljung');
+      await m.skriv(page.locator('dialog[open] #ex-enhet'), r.enhet, 'avsändande enhet');
+      await m.datum(page.locator('dialog[open] #ex-datum'), r.remissdatum, 'remissdatum');
+      await m.skriv(page.locator('dialog[open] #ex-fraga'), r.fragestallning, 'frågeställning');
+      await m.skriv(page.locator('dialog[open] #ex-anamnes'), r.anamnes, 'anamnes');
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Registrera');
+      await synlig(page, '.notis', `Pappersremissen från ${r.enhet} är registrerad`);
+      await synlig(page, 'article.remiss:has-text("Trevis Ljung")', `Pappersremiss från ${r.enhet}`);
+    },
     '2.6': async (m, page) => {
       await oppnaFranLista(m, page, 'Sara Sandmark');
       await m.klicka(page.locator('.flikar a', { hasText: 'Remisser' }), 'fliken Remisser');
@@ -349,9 +425,12 @@ function floden(D) {
       await page.locator('dialog[open]').waitFor();
       const orsak = page.locator('dialog[open] input[name="orsak"]');
       if (await orsak.count() && !(await orsak.inputValue())) await m.skriv(orsak, 'Akut besök, oplanerat', 'orsaken');
+      // Runda 8, r2: Gerda Ström har en remiss till vårdenheten i testdatan för testfall 2.3, och då föreslår systemet
+      // orsaken ur remissen. Slutvillkoret är att kontakten med den orsak som registrerades syns.
+      const registrerad = (await orsak.count()) ? await orsak.inputValue() : 'Akut besök, oplanerat';
       await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Registrera');
       await synlig(page, '.notis', 'är registrerat');
-      await synlig(page, '.vk-lista', 'Akut besök, oplanerat');
+      await synlig(page, '.vk-lista', registrerad);
     },
     '5.8': async (m, page) => {
       await m.klicka(page.locator('#meny-lista a[href="#/vantelista"]'), 'Väntelista i menyn');

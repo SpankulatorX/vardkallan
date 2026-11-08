@@ -12,9 +12,10 @@ import { PERSONAL } from './seed/personal.js';
 import { PATIENTER } from './seed/patienter.js';
 import { IDENTITETSPATIENTER } from './seed/identiteter.js';
 import { TIDBOK_PERSONAL } from './seed/tidbok.js';
-import { PROVTAGNING_PERSONAL, MIN_JOURNAL_ENHET } from './seed/planering.js';
+import { PROVTAGNING_PERSONAL, MIN_JOURNAL_ENHET, EXTERN_ENHET } from './seed/planering.js';
 
-const ENHETSTYPER = ['vardgivare', 'sjukhus', 'vardenhet', 'arbetsplats', 'forvaltning', 'kommun', 'etjanst'];
+// Runda 8, r2: extern är avsändaren av pappersremisser från vårdgivare utanför Vårdkällan.
+const ENHETSTYPER = ['vardgivare', 'sjukhus', 'vardenhet', 'arbetsplats', 'forvaltning', 'kommun', 'etjanst', 'extern'];
 // Kontraktet per del: obligatoriska fält och en kontroll per post. Fel beskrivs på svenska.
 export const KONTRAKT = {
   organisation: {
@@ -36,7 +37,7 @@ export function filadapter() {
   return {
     id: 'fil', namn: 'Fil (seeden)', beskrivning: 'Läser seeden i app/src/seed. Demons enda källa.',
     // Runda 6, r4: vårdenheten för egna vårdbegäranden från Min journal.
-    organisation: () => [...ENHETER, MIN_JOURNAL_ENHET].map(e => ({ id: e.id, hsaId: e.hsa, namn: e.namn, kortnamn: e.kortnamn ?? null, typ: e.typ, forald: e.forald ?? null })),
+    organisation: () => [...ENHETER, MIN_JOURNAL_ENHET, EXTERN_ENHET].map(e => ({ id: e.id, hsaId: e.hsa, namn: e.namn, kortnamn: e.kortnamn ?? null, typ: e.typ, forald: e.forald ?? null })),
     // Personalen i seed/personal.js och personalen i tidbokens scheman (seed/tidbok.js).
     personal: () => [
       ...PERSONAL.map((p, i) => ({ id: p.id, hsaId: `SE2321000164-VKP${String(i + 1).padStart(3, '0')}`, namn: p.namn, yrke: p.yrke, titel: p.titel, enhetId: p.enhet, demo: Boolean(p.demo), aktiv: p.aktiv !== false })),

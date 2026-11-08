@@ -282,4 +282,17 @@ export const FLODEN = [
     id: 'grundmatningar', namn: 'Registrera längd, vikt, blodtryck och puls', roll: 'ssk-kard', start: 'Patientens översikt', budget: 6,
     motivering: 'Sussa testfall 4.2. Ett klick på Registrera mätvärde och ett på formuläret för flera värden, där längden har fokus, ett fältbyte vardera för vikt, blodtryck och puls och ett klick för att registrera. Tiden och vårdkontakten sätter systemet, och BMI räknas själv.',
   },
+  // Runda 8, r2: remiss på uppdrag, fördelning till en namngiven läkare och pappersremiss (Sussa 3.3.1.2 till 3.3.1.5).
+  {
+    id: 'remiss-pa-uppdrag', namn: 'Skriva en remiss på uppdrag av en läkare', roll: 'adm-kard', start: 'Patientens översikt', budget: 6,
+    motivering: 'Sussa 3.3.1.4 och testfall 2.2. Ett klick på Remiss på uppdrag, där mottagaren har fokus, två klick för att välja mottagare i listan, ett fältbyte vardera för frågeställning och anamnes och ett klick för att skicka till läkaren. Systemet föreslår uppdragsgivaren ur patientens tider och vårdkontakter och fyller i prioritet och sista svarsdatum. Remissen skickas när läkaren har signerat den i inkorgen.',
+  },
+  {
+    id: 'fordela-remiss', namn: 'Fördela en remiss till en läkare', roll: 'adm-kard', start: 'Inkommande remisser efter återställning', budget: 2,
+    motivering: 'Sussa 3.3.1.5 och testfall 2.3 och 2.4. Ett klick på Fördela och ett på läkaren. Systemet föreslår bakjouren först, visar hur många remisser varje läkare har att bedöma och kvitterar mottagningen.',
+  },
+  {
+    id: 'registrera-pappersremiss', namn: 'Registrera en pappersremiss', roll: 'adm-kard', start: 'Inkommande remisser efter återställning', budget: 6,
+    motivering: 'Sussa 3.3.1.2 och testfall 2.5. Ett klick på Registrera vid den inskannade remissen, där patientfältet har fokus och systemet väljer patienten när sökningen ger en träff, ett fältbyte vardera för avsändande enhet, frågeställning och anamnes och ett klick för att registrera. Remissdatumet är förvalt till i dag, och budgeten har plats för att ändra det.',
+  },
 ];

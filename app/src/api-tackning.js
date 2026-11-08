@@ -60,6 +60,10 @@ export const TACKNING = {
   // Runda 7, r2: nyhetsrutan hör till gränssnittet.
   'forlang-inloggning': nej('Inloggningen och varningen före utloggningen hör till gränssnittet. API:t för tillämpningar har egna åtkomstbiljetter.'),
   nyheter: nej('Nyheterna hör till gränssnittet och har ingen FHIR-resurs. De står i en fil i källkoden med version och roller och läses av gränssnittet.'),
+  // Runda 8, r2: remiss på uppdrag, fördelning och pappersremiss görs i personalens API. FHIR-API:t visar resultatet.
+  'remiss-pa-uppdrag': nej('Remiss på uppdrag kräver läkarens signering i inkorgen och görs bara i gränssnittet. Den signerade remissen läses som ServiceRequest.', [a('GET', '/fhir/ServiceRequest?patient={id}')]),
+  'fordela-remiss': nej('Fördelningen görs bara i gränssnittet. Den fördelade läkaren står som utförare i ServiceRequest.performer.', [a('GET', '/fhir/ServiceRequest?patient={id}')]),
+  'registrera-pappersremiss': nej('Pappersremisser registreras bara i gränssnittet, från den inskannade remissen. Remissen läses som ServiceRequest med remittenten som requester.', [a('GET', '/fhir/ServiceRequest?patient={id}')]),
 };
 
 // Täckningen för alla flöden i klickbudgeten, i samma ordning.

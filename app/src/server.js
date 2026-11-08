@@ -76,6 +76,8 @@ import * as anvandartestSvar from './anvandartest-svar.js';
 import * as tobak from './tobak.js';
 import { registreraRutter as r5Rutter } from './r5-rutter.js';
 import { villkor10 } from './version.js';
+// Runda 8, r2: remiss på uppdrag, fördelning, remisskonferens och extern pappersremiss (remiss-r8.js).
+import * as remissR8 from './remiss-r8.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -1092,6 +1094,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (c.body.beslut === 'avvisad') return remissavvisning.avvisa(atk, r, c.body);
     const ut = remiss.bedom(atk, r, c.body);
     if (c.body.beslut === 'accepterad') ut.vantelista = tidbok.efterBedomning(c.db, remiss.hamtaRad(c.db, r.id), c.body);
+    // Runda 8, r2: läkaren väljer inom vilken tid besöket ska ske, med ett förval som systemet räknar ur prioriteten.
+    if (c.body.beslut === 'accepterad') ut.vantelista = remissR8.sattTidsram(c.db, ut.vantelista, c.body);
     // En avvisad remiss är inte längre grund för de tider som bokades på den.
     if (c.body.beslut === 'avvisad') ut.avbokade = tidbok.efterAvvisning(c.db, remiss.hamtaRad(c.db, r.id), c.personal);
     return ut;
@@ -1221,6 +1225,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...r7r5Inkorg(c, patientKort, patientRad, valFor),
       // Runda 7, r6: avvikande tillväxt, mätningar hemma att bekräfta och hälsobesök att boka i barnhälsovården.
       ...bhvInkorg(c, patientKort, patientRad, valFor),
+      // Runda 8, r2: remisser att signera som har skrivits på läkarens uppdrag, och remisser fördelade till läkaren.
+      ...remissR8.inkorg(c, patientKort, patientRad),
     });
   });
   // Runda 6, r1: NEWS2-larmen loggas på patienten en gång per session och mätomgång, som raderna om återinsättning.
@@ -1526,6 +1532,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   oppetApi.registreraRutter({ rutt, kravInloggad, medPatient });
   // Runda 6, r4 (planering-rutter.js).
   r4Rutter({ rutt, kravInloggad, kravRoll, medPatient, medMinJournal });
+  // Runda 8, r2 (remiss-r8.js).
+  remissR8.registreraRutter({ rutt, kravInloggad, medPatient, efterBedomning: tidbok.efterBedomning, efterAvvisning: tidbok.efterAvvisning,
+    knyt: (atk, ut, body) => vardkontakt.knyt(atk, 'remisser', ut, body) });
   // Runda 7, r3 (ekonomi-rutter.js).
   ekonomiRutter({ rutt, kravInloggad, medPatient });
   // Runda 7, r4: systemförvaltningen.

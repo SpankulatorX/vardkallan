@@ -454,6 +454,18 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
       await granskaHar(`${roll} ${h}`);
     }
     for (const extra of ['#/nyheter', '#/tillganglighet']) { await gaTill(page, extra); vyLista.push([roll, extra]); await granskaHar(`${roll} ${extra}`, { fokus: false }); }
+    // Runda 8, r2: remisskonferensen med en remiss på, för läkaren och vårdadministratören.
+    if (['lak-kard', 'adm-kard'].includes(roll)) {
+      await page.evaluate(async () => {
+        const d = await (await fetch('/api/remisser?riktning=inkommande')).json();
+        const r = d.remisser.find(x => ['skickad', 'mottagen'].includes(x.status) && !x.konferens);
+        if (r) await (await fetch(`/api/remiss/${r.id}/remisskonferens`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).text();
+      });
+      await gaTill(page, '#/remisser?vy=konferens');
+      await page.waitForSelector('.r8-konferens');
+      vyLista.push([roll, '#/remisser?vy=konferens']);
+      await granskaHar(`${roll} #/remisser?vy=konferens`, { fokus: false });
+    }
     if (JOURNAL_ROLLER.includes(roll)) {
       await gaTill(page, '#/patient/p01');
       for (const h of await flikarFor(page)) {

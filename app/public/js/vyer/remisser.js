@@ -3,6 +3,9 @@ import { esc, api, datum, tidpunkt, notis, felNotis, dialog, ikon, PRIORITET_REM
 import { far, minVardenhet, uppdateraInkorg, enhetLista, laddaEnheter } from '../app.js';
 // Runda 6, r4: bilagor, vidarebefordran och ledtider.
 import { ledtiderHtml, lasFil, BILAGA_TEXT } from '../planering-ui.js';
+// Runda 8, r2: fördelning, remisskonferens, på uppdrag och pappersremiss.
+import * as r8 from '../remiss-r8-ui.js';
+import { S } from '../app.js';
 
 export const namn = 'remisser';
 
@@ -44,6 +47,8 @@ function kedja(r) {
 export function atgarder(r) {
   const ve = minVardenhet();
   const a = [];
+  // Runda 8, r2: den som registrerade en pappersremiss tar inte emot och handlägger den inte.
+  if (r.extern?.registreradAv?.id && r.extern.registreradAv.id === S.session?.personal?.id) return a;
   if (r.status === 'skickad' && r.till.id === ve && far('mottag_remiss')) a.push(['mottag', 'Kvittera mottagen']);
   if (r.status === 'mottagen' && r.till.id === ve && far('bedom_remiss')) a.push(['bedom', 'Bedöm']);
   if (r.status === 'bedomd' && r.beslut === 'accepterad' && r.till.id === ve && far('svara_remiss')) a.push(['svara', 'Svara']);
@@ -51,6 +56,8 @@ export function atgarder(r) {
   // Runda 6, r4: mottagaren skickar vidare före bedömningen, och avsändaren kompletterar med en bilaga fram till svaret.
   if (['skickad', 'mottagen'].includes(r.status) && r.till.id === ve && far('bedom_remiss')) a.push(['vidarebefordra', 'Skicka vidare']);
   if ((['skickad', 'mottagen'].includes(r.status) || (r.status === 'bedomd' && r.beslut === 'accepterad')) && r.fran.id === ve && far('remittera')) a.push(['bilaga', 'Komplettera med bilaga']);
+  // Runda 8, r2: fördela till en läkare och sätta på remisskonferens.
+  a.push(...r8.atgarder(r));
   return a;
 }
 
@@ -60,7 +67,8 @@ function r4Html(r, klinisk) {
     : !klinisk && r.antalBilagor ? `<p class="dampad liten">${esc(r.antalBilagor)} ${r.antalBilagor === 1 ? 'bilaga' : 'bilagor'}. Bilagor är journalhandlingar och visas inte för vårdadministratörer.</p>` : '';
   const vb = r.vidarebefordrad ? `<p class="ruta ruta-info liten">Vidarebefordrad till ${esc(r.vidarebefordrad.till.namn)} ${esc(tidpunkt(r.vidarebefordrad.tid))}${r.vidarebefordrad.av ? ` av ${esc(r.vidarebefordrad.av.namn)}` : ''}.${r.vidarebefordrad.motivering ? ` ${esc(r.vidarebefordrad.motivering)}` : ''}</p>` : '';
   const fran = r.vidarebefordradFran ? `<p class="ruta ruta-info liten">Vidarebefordrad från ${esc(r.vidarebefordradFran.fran.namn)} ${esc(tidpunkt(r.vidarebefordradFran.tid))}.${r.vidarebefordradFran.motivering ? ` ${esc(r.vidarebefordradFran.motivering)}` : ''}</p>` : '';
-  return `${bilagor}${vb}${fran}`;
+  // Runda 8, r2: på uppdrag, fördelning, konferens, beslut på uppdrag och pappersremiss.
+  return `${bilagor}${vb}${fran}${r8.kortHtml(r)}`;
 }
 
 export function remissKort(r, { visaPatient = false, markerad = false } = {}) {
@@ -106,6 +114,7 @@ export function kopplaAtgarder(behallare, hamta, efter) {
           <div class="radio"><input type="radio" id="b-acc" name="beslut" value="accepterad" checked><label for="b-acc">Acceptera</label></div>
           <div class="radio"><input type="radio" id="b-avv" name="beslut" value="avvisad"><label for="b-avv">Avvisa</label></div>
         </fieldset>
+        ${r8.tidsramHtml(r.prioritet)}
         <div class="falt"><label for="b-mot">Motivering <span class="obl">(obligatorisk vid avvisning)</span></label><textarea id="b-mot" name="motivering" rows="3" maxlength="2000"></textarea></div>
         <div class="b-avvisning" data-avvisning hidden></div>
         <p class="dialog-fel form-fel" role="alert" hidden></p>
@@ -114,7 +123,7 @@ export function kopplaAtgarder(behallare, hamta, efter) {
         validera: (x) => (x.beslut === 'avvisad' && x.motivering.trim().length < 3 ? 'En avvisad remiss måste ha en motivering.' : null),
         onOpen: (dl) => {
           const plats = dl.querySelector('[data-avvisning]');
-          const visa = () => { plats.hidden = !(dl.querySelector('#b-avv').checked && plats.innerHTML); };
+          const visa = () => { plats.hidden = !(dl.querySelector('#b-avv').checked && plats.innerHTML); dl.querySelector('[data-tidsram]').hidden = dl.querySelector('#b-avv').checked; };
           dl.querySelectorAll('input[name="beslut"]').forEach(r => r.addEventListener('change', visa));
           forhand.then((f) => {
             if (!f || (!f.vardhandelser.length && !f.dolda) || !plats.isConnected) return;
@@ -126,9 +135,18 @@ export function kopplaAtgarder(behallare, hamta, efter) {
       });
       if (!svar) return;
       data = { beslut: svar.data.beslut, motivering: svar.data.motivering.trim() };
+      // Runda 8, r2: inom vilken tid besöket ska ske.
+      if (data.beslut === 'accepterad' && svar.data.besokInomDagar) data.besokInomDagar = Number(svar.data.besokInomDagar);
       if (data.beslut === 'avvisad' && avvisning?.vardhandelser.length) {
         data.vardhandelser = avvisning.vardhandelser.map(v => ({ ordinationId: v.ordinationId, val: svar.data[`vh_${v.ordinationId}`], orsak: svar.data[`orsak_${v.ordinationId}`] }));
       }
+    } else if (typ === 'fordela') {
+      // Runda 8, r2: ett klick på läkaren fördelar remissen.
+      await r8.fordela(r, efter);
+      return;
+    } else if (typ === 'konferens') {
+      await r8.tillKonferens(r, efter);
+      return;
     } else if (typ === 'vidarebefordra') {
       // Runda 6, r4: systemet kvitterar mottagningen och skickar remissen vidare med samma avsändare.
       await laddaEnheter();
@@ -179,7 +197,7 @@ export function kopplaAtgarder(behallare, hamta, efter) {
       const utsatta = (ny.vardhandelser ?? []).filter(v => v.val === 'satt_ut').map(v => avvisning?.vardhandelser.find(x => x.ordinationId === v.ordinationId)?.lakemedel).filter(Boolean);
       if (utsatta.length) notis(`Remissen är avvisad, och ${utsatta.join(' och ')} är utsatt.`);
       if (ny.dolda) notis(ny.dolda, 'info');
-      if (!utsatta.length) notis({ mottag: 'Remissen är kvitterad som mottagen.', bedom: ny.beslut === 'avvisad' ? 'Remissen är avvisad. Remittenten ser motiveringen.' : 'Remissen är accepterad.', svara: 'Svaret är skickat till remittenten.', kvittera: 'Svaret är kvitterat. Remisskedjan är avslutad.' }[typ]);
+      if (!utsatta.length) notis({ mottag: 'Remissen är kvitterad som mottagen.', bedom: ny.beslut === 'avvisad' ? 'Remissen är avvisad. Remittenten ser motiveringen.' : `Remissen är accepterad.${ny.vantelista?.besokInomDagar ? ` Besöket ska ske ${r8.TIDSRAMAR.find(t => t.dagar === ny.vantelista.besokInomDagar)?.text}.` : ''}`, svara: 'Svaret är skickat till remittenten.', kvittera: 'Svaret är kvitterat. Remisskedjan är avslutad.' }[typ]);
       await uppdateraInkorg();
       efter(ny);
     } catch (err) { felNotis(err); if (b.isConnected) b.disabled = false; }
@@ -200,16 +218,21 @@ function avvisningHtml(f) {
 
 export async function visa(main, _p, q) {
   const riktning = q.get('riktning') === 'utgaende' ? 'utgaende' : 'inkommande';
+  // Runda 8, r2: remisskonferensen som en egen delflik.
+  const konferens = q.get('vy') === 'konferens' && (far('remisskonferens') || far('bedom_remiss'));
   const markerad = q.get('remiss');
   main.innerHTML = vyRubrik('Remisser', 'Remisser till och från din vårdenhet. Varje steg kvitteras, och uteblivna steg ger larm i inkorgen.') + `
     <nav class="delflikar" aria-label="Riktning"><ul>
-      <li><a href="#/remisser?riktning=inkommande"${riktning === 'inkommande' ? ' aria-current="page"' : ''}>Inkommande</a></li>
-      <li><a href="#/remisser?riktning=utgaende"${riktning === 'utgaende' ? ' aria-current="page"' : ''}>Utgående</a></li>
+      <li><a href="#/remisser?riktning=inkommande"${riktning === 'inkommande' && !konferens ? ' aria-current="page"' : ''}>Inkommande</a></li>
+      <li><a href="#/remisser?riktning=utgaende"${riktning === 'utgaende' && !konferens ? ' aria-current="page"' : ''}>Utgående</a></li>
+      ${far('remisskonferens') || far('bedom_remiss') ? `<li><a href="#/remisser?vy=konferens"${konferens ? ' aria-current="page"' : ''}>Remisskonferens</a></li>` : ''}
     </ul></nav>
-    <div id="remisslista"><p class="tom">Hämtar remisser.</p></div><div id="remiss-ledtider"></div>`;
+    <div id="remiss-skannade"></div><div id="remisslista"><p class="tom">Hämtar remisser.</p></div><div id="remiss-ledtider"></div>`;
   // Runda 6, r4: ledtider och avvikelser för vårdenheten, utan personuppgifter.
   if (far('statistik')) api('/api/remisser/statistik', { tyst: true }).then(s => { const p = main.querySelector('#remiss-ledtider'); if (p) p.innerHTML = ledtiderHtml(s); }).catch(() => {});
   const el = main.querySelector('#remisslista');
+  // Runda 8, r2: konferensen i stället för listan, och de inskannade pappersremisserna ovanför de inkommande.
+  if (konferens) { await r8.konferensVy(el, { remissKort, kopplaAtgarder }); return; }
   let lista = [];
   const rita = async () => {
     const d = await api(`/api/remisser?riktning=${riktning}`);
@@ -222,5 +245,10 @@ export async function visa(main, _p, q) {
     if (markerad) el.querySelector(`#remiss-${CSS.escape(markerad)}`)?.scrollIntoView({ block: 'center' });
   };
   kopplaAtgarder(el, (id) => lista.find(r => String(r.id) === String(id)), () => rita().catch(felNotis));
+  if (riktning === 'inkommande') {
+    const sk = main.querySelector('#remiss-skannade');
+    const skannade = () => r8.skannadeSektion(sk, () => { skannade(); rita().catch(felNotis); });
+    skannade();
+  }
   await rita();
 }
