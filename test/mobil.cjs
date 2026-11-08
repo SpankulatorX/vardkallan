@@ -199,8 +199,10 @@ const KONTEXT = { viewport: { width: 360, height: 760 }, locale: 'sv-SE', timezo
       await page.waitForLoadState('networkidle');
       await page.waitForFunction(() => ![...document.querySelectorAll('main .tom, main .laddar')].some(e => /^Hämtar/.test(e.textContent)), null, { timeout: 8000 }).catch(() => {});
     };
+    // En kontext för alla roller, så att testet inte skapar en ny sandlåda per roll (servern begränsar nya sandlådor per
+    // adress och timme). loggaIn väntar tills sidan är klar innan nästa roll loggar in.
+    await nyKontext();
     for (const r of ['lak-kard', 'ssk-kard', 'usk-kard', 'lak-akut', 'lak-vc', 'lak-psyk', 'adm-kard', 'logg', 'ark', 'uppf', 'kom-bist', 'far-kard', 'vch-kard', 'eko', 'sysf', 'fys-kard']) {
-      await nyKontext();
       await loggaIn(page, r);
       const lankar = await page.locator('#meny-lista a').evaluateAll(a => a.map(x => [x.getAttribute('href'), x.textContent.trim()]));
       if (!lankar.length) throw new Error(`${r} har ingen meny`);
@@ -210,7 +212,6 @@ const KONTEXT = { viewport: { width: 360, height: 760 }, locale: 'sv-SE', timezo
         await kontrolleraMobil(`${r}, ${text}`);
       }
     }
-    await nyKontext();
     await loggaIn(page, 'lak-kard');
     await gaTill(page, '#/patient/p01');
     await page.waitForSelector('.tidslinje');
@@ -221,6 +222,8 @@ const KONTEXT = { viewport: { width: 360, height: 760 }, locale: 'sv-SE', timezo
       await vanta();
       await kontrolleraMobil(`journalen, ${text}`);
     }
+    // Sidan får bli klar innan nästa test byter kontext, så att inget anrop kommer efter att kontexten har stängts.
+    await page.waitForLoadState('networkidle');
   });
 
   // Runda 10, r1: i hemsjukvården, hos patienten och utan uppkoppling (Sussa 2.3.1.2 och 2.3.1.4). Mätvärdet registreras

@@ -1261,6 +1261,9 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
       await page.click('dialog[open] [data-varde="ok"]');
       await forvanta(page, '.notis', 'är registrerad som huvuddiagnos');
       // Inkorgen ritas om efter rättningen. Den väntas in, så att utloggningen inte avbryter den.
+      // Runda 10, r1: förnyelsen av läskopian efter en skrivning startar efter en kort stund och är större nu, med
+      // mätvärden och remisser. Den får också bli klar före utloggningen.
+      await page.waitForTimeout(800);
       await page.waitForLoadState('networkidle');
       await loggaIn(page, 'lak-akut');
       await gaTill(page, '#/inkorg');
