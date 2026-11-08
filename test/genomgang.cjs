@@ -165,8 +165,6 @@ const MENY = {
 for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].indexOf('Läkemedel att ge') + 1, 0, 'Prover och kontroller');
 // Runda 9, r2: på Kardiologiska kliniken, som har Hjärtintensiven, har läkaren, sjuksköterskan och undersköterskan
 // Intensivvård. Läkaren på akuten har det inte.
-MENY.kardiologi = [...MENY.klinisk];
-MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård');
 for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].indexOf('Prover och kontroller') + 1, 0, 'Intensivvård');
 // Runda 9, r7: Analys och statistik för läkare, sjuksköterskor, vårdadministratörer och uppföljningen, och
 // Forskningsuttag för uppföljningen, arkivarien och verksamhetschefen, före Utbildning.
@@ -174,6 +172,9 @@ for (const k of ['klinisk', 'sjukskoterska', 'vardadministrator', 'psykiatri', '
 for (const k of ['uppfoljning', 'arkiv', 'verksamhetschef']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Forskningsuttag');
 // Runda 9, r7: läkarna och verksamhetschefen har vårdenhetens signeringslista.
 for (const k of ['klinisk', 'psykiatri', 'bvc', 'verksamhetschef']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Signeringslista');
+// Runda 9, r2: läkarens meny på Kardiologiska kliniken är läkarens meny med Intensivvård, och kopieras när den är klar.
+MENY.kardiologi = [...MENY.klinisk];
+MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård');
 
 (async () => {
   const browser = await chromium.launch();

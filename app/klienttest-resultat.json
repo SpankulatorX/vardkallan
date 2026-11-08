@@ -1,9 +1,85 @@
 {
-  "tid": "2026-11-08T14:52:25.427Z",
-  "bas": "http://127.0.0.1:18196",
+  "tid": "2026-11-08T16:29:50.131Z",
+  "bas": "http://127.0.0.1:18110",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "4708b5fe0ccf91a05939d9a73811161ff0bd6652cf78e455d715dc66d19b843e",
+  "gransnittHash": "a4958a5c3ab9d28741b854b75e1242d4f99e5c0f3dc0b43cbe303f6d4c69169e",
   "tester": [
+    {
+      "namn": "Gränssnitt > Mobil > Öppna patient från arbetslistan går i 360 px",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Mobil > Läsa senaste anteckning går i 360 px",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Mobil > Registrera blodtryck går i 360 px",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Mobil > Kvittera remissvar går i 360 px",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Mobil > Ge en dos går i 360 px",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Mobil > Ge en dos med delegering går i 360 px",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Mobil > Patienten bokar om sin tid i Min journal går i 360 px",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Mobil > Söka i journalen och öppna träffen går i 360 px",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Mobil > Registrera en NEWS2-kontroll går i 360 px",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Mobil > Registrera en dos i efterhand går i 360 px",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Mobil > Överblicka dagens händelser på avdelningen går i 360 px",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Mobil > Registrera längd, vikt, blodtryck och puls går i 360 px",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Mobil > Registrera provtagning går i 360 px",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Mobil > varje roll har sin startsida och menyn i 360 px utan sidledsrullning och med knappar på minst 40 px",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Mobil > patienten läser sin journal, sina tider och vem som läst journalen i Min journal i 360 px",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Mobil > vid sängen identifierar armbandet patienten i Läkemedel att ge, och bara patientens doser visas",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Mobil > förbindelsen bryts och kommer tillbaka från en annan adress utan att inloggningen tappas",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Öppet API > ändringsloggen visar versionen, och läkaren skickar ett ärende om en saknad informationsmängd",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Öppet API > systemförvaltaren registrerar en tillämpning, ser vad den får och kan återkalla den",
+      "status": "inaktuell"
+    },
     {
       "namn": "Gränssnitt > Avbrott > läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB",
       "status": "grön"
@@ -210,82 +286,6 @@
     },
     {
       "namn": "Gränssnitt > Utbildning > övningarna ger ett intyg med giltighetstid, och verksamhetschefen ser vårdenhetens intyg",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Mobil > Öppna patient från arbetslistan går i 360 px",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Mobil > Läsa senaste anteckning går i 360 px",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Mobil > Registrera blodtryck går i 360 px",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Mobil > Kvittera remissvar går i 360 px",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Mobil > Ge en dos går i 360 px",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Mobil > Ge en dos med delegering går i 360 px",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Mobil > Patienten bokar om sin tid i Min journal går i 360 px",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Mobil > Söka i journalen och öppna träffen går i 360 px",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Mobil > Registrera en NEWS2-kontroll går i 360 px",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Mobil > Registrera en dos i efterhand går i 360 px",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Mobil > Överblicka dagens händelser på avdelningen går i 360 px",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Mobil > Registrera längd, vikt, blodtryck och puls går i 360 px",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Mobil > Registrera provtagning går i 360 px",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Mobil > varje roll har sin startsida och menyn i 360 px utan sidledsrullning och med knappar på minst 40 px",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Mobil > patienten läser sin journal, sina tider och vem som läst journalen i Min journal i 360 px",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Mobil > vid sängen identifierar armbandet patienten i Läkemedel att ge, och bara patientens doser visas",
-      "status": "röd"
-    },
-    {
-      "namn": "Gränssnitt > Mobil > förbindelsen bryts och kommer tillbaka från en annan adress utan att inloggningen tappas",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Öppet API > ändringsloggen visar versionen, och läkaren skickar ett ärende om en saknad informationsmängd",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Öppet API > systemförvaltaren registrerar en tillämpning, ser vad den får och kan återkalla den",
       "status": "grön"
     }
   ]
