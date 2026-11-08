@@ -2,9 +2,19 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
-      "version": "0.10.0",
+      "version": "1.0.0",
       "datum": "2026-11-08",
       "nyheter": [
+        {
+          "id": "version-1-0-klar",
+          "roller": [
+            "alla"
+          ],
+          "omfattning": "stor",
+          "var": "#/krav",
+          "rubrik": "Vårdkällan 1.0",
+          "text": "Alla fyra villkoren för version 1.0 är uppfyllda: ingen post i kategorin system är planerad, alla kärnsystemets poster i kapitel 2, 3, 5 och 6 är uppfyllda i demon, alla 34 testfall går att genomföra inom tidsgränserna och säkerhetsgranskningen har inga öppna fynd. Demon är funktionellt komplett mot kravspecifikationen. Den kan ännu inte användas i vården, och kravsidan förklarar vad som återstår för det."
+        },
         {
           "id": "systemkonton",
           "roller": [

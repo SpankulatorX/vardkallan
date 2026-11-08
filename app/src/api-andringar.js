@@ -14,7 +14,7 @@ export const ANDRINGAR = [
   // Runda 10, r1: systemkonton, prenumerationer på en population, överkänslighet och patienter via API:t och
   // Patient/$everything för personalen (Sussa 2.5.1.1 och 2.5.1.2).
   {
-    version: '0.10.0', datum: '2026-11-08',
+    version: '1.0.0', datum: '2026-11-08',
     text: 'Systemkonton för tillämpningar utan inloggad person med SMART Backend Services och pseudonymer som förval, prenumerationer på alla poster av en typ på kontots vårdenheter, registrering av överkänslighet och nya patienter, makulering av doser och provbeställningar via API:t och Patient/$everything för personalen.',
     // Runda 10, r3: formulären och svaren i dem.
     resurser: ['Questionnaire', 'QuestionnaireResponse'], skrivning: ['AllergyIntolerance:create', 'Patient:create', 'MedicationAdministration:delete', 'ServiceRequest:delete'],

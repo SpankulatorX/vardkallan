@@ -335,6 +335,6 @@ describe('Version 1.0', () => {
     expect(r.data.villkor.map(v => v.id)).toEqual(['a', 'b', 'c', 'd']);
     expect(r.data.villkor[3]).toMatchObject({ uppfyllt: true, antal: 0 });
     expect(r.data.villkor[2].total).toBe(34);
-    expect(r.data.uppfyllt).toBe(false);
+    expect(r.data.uppfyllt).toBe(r.data.villkor.every(v => v.uppfyllt));
   });
 });

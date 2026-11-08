@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T20:11:37.080Z",
-  "bas": "http://127.0.0.1:18201",
+  "tid": "2026-11-08T21:38:58.100Z",
+  "bas": "http://127.0.0.1:18110",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "74e8d3bb6f16c2648b54909cdd771a531b2cb72929d79014d9756da90f7d04ad",
+  "gransnittHash": "3983aa076c7adfef96c2db442439434ef4761d8a1e8c1b97a000df82f1f38b62",
   "kalla": "Region Örebro län, upphandlingen Framtidens vårdinformationsstöd (Sussa samverkan, dnr 16RS2022): Bilaga F1:4 Testfall, Bilaga F1:2 Modell för att testa och utvärdera användbarhet, Bilaga F1:3 Information till anbudsgivare och Bilaga F1 Utvärderingsmodell, versionerna 2018-03-07.",
   "klm": {
     "kalla": "Card, Moran och Newell 1980, Communications of the ACM 23(7), s. 396 till 410",
@@ -43,15 +43,15 @@
       "tecken": 200,
       "uppmatt": 22,
       "inomBudget": true,
-      "skriptetsTidMs": 5566,
-      "uppskattadTidS": 119.3,
+      "skriptetsTidMs": 5426,
+      "uppskattadTidS": 119.2,
       "klmDelar": {
         "klick": 39.8,
         "listval": 4,
         "faltbyten": 13.8,
         "tecken": 56,
         "tangenter": 0.3,
-        "svarstid": 5.6
+        "svarstid": 5.4
       },
       "steg": [
         "klick: Gerda Ström i arbetslistan",
@@ -110,15 +110,15 @@
       "tecken": 152,
       "uppmatt": 16,
       "inomBudget": true,
-      "skriptetsTidMs": 5721,
-      "uppskattadTidS": 90.7,
+      "skriptetsTidMs": 4886,
+      "uppskattadTidS": 89.9,
       "klmDelar": {
         "klick": 31.8,
         "listval": 0,
         "faltbyten": 10.4,
         "tecken": 42.6,
         "tangenter": 0.3,
-        "svarstid": 5.7
+        "svarstid": 4.9
       },
       "steg": [
         "klick: Elin Arnström i arbetslistan",
@@ -172,7 +172,7 @@
       "tecken": 50,
       "uppmatt": 18,
       "inomBudget": true,
-      "skriptetsTidMs": 3113,
+      "skriptetsTidMs": 3039,
       "uppskattadTidS": 62.1,
       "klmDelar": {
         "klick": 26.5,
@@ -180,7 +180,7 @@
         "faltbyten": 10.4,
         "tecken": 14,
         "tangenter": 0.3,
-        "svarstid": 3.1
+        "svarstid": 3
       },
       "steg": [
         "klick: Trevis Ljung i arbetslistan",
@@ -218,7 +218,8 @@
       "budget": 12,
       "motivering": "Ett klick på Läkemedel att ge, ett på Ge för paracetamol, Mer och Iordningsställ för glukoslösningen med Addex-Magnesium och sedan Ge, Ge för Stesolid och Ge för Zopiklon vid behov (7). Instruktionerna står i doseringen i listan, och för infusionen med tillsatsen räknar systemet koncentrationen och hastigheten. Kräkningen dokumenteras med ett klick på patienten, fliken Översikt, Ny anteckning, där omvårdnadsanteckningen är förvald, ett fältbyte för sökordet Elimination och Signera (5).",
       "avvikelser": [
-        "Ordinationerna gjordes i går och dosen ska ges i dag vid den hela timmen före testet. Glukosen med Addex-Magnesium är en ordination med tillsats. Att patienten kräktes upp premedicineringen registreras inte på dosen utan i en omvårdnadsanteckning."
+        "Ordinationerna gjordes i går och dosen ska ges i dag vid den hela timmen före testet. Glukosen med Addex-Magnesium är en ordination med tillsats. Att patienten kräktes upp premedicineringen registreras inte på dosen utan i en omvårdnadsanteckning.",
+        "Addex-Magnesium är en koncentrerad elektrolyt, så en kollega kontrollerar beredningen i sin egen inloggning innan glukosen ges. I körningen gör läkaren Sara Lindqvist kontrollen, och hennes steg räknas inte i sjuksköterskans klick."
       ],
       "slut": "Instruktionerna är upplästa, alla fyra läkemedel är administrerade och det är dokumenterat att patienten kräktes upp premedicineringen.",
       "uppnatt": true,
@@ -229,15 +230,15 @@
       "tecken": 78,
       "uppmatt": 12,
       "inomBudget": true,
-      "skriptetsTidMs": 3154,
-      "uppskattadTidS": 57.6,
+      "skriptetsTidMs": 5186,
+      "uppskattadTidS": 59.6,
       "klmDelar": {
         "klick": 29.2,
         "listval": 0,
         "faltbyten": 3.5,
         "tecken": 21.8,
         "tangenter": 0,
-        "svarstid": 3.2
+        "svarstid": 5.2
       },
       "steg": [
         "klick: Läkemedel att ge i menyn",
@@ -281,7 +282,7 @@
       "tecken": 99,
       "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 387,
+      "skriptetsTidMs": 381,
       "uppskattadTidS": 46.9,
       "klmDelar": {
         "klick": 8,
@@ -325,7 +326,7 @@
       "tecken": 99,
       "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 396,
+      "skriptetsTidMs": 386,
       "uppskattadTidS": 46.9,
       "klmDelar": {
         "klick": 8,
@@ -369,7 +370,7 @@
       "tecken": 99,
       "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 357,
+      "skriptetsTidMs": 366,
       "uppskattadTidS": 46.9,
       "klmDelar": {
         "klick": 8,
@@ -414,8 +415,8 @@
       "tecken": 103,
       "uppmatt": 9,
       "inomBudget": true,
-      "skriptetsTidMs": 530,
-      "uppskattadTidS": 51.1,
+      "skriptetsTidMs": 472,
+      "uppskattadTidS": 51,
       "klmDelar": {
         "klick": 10.6,
         "listval": 4,
@@ -463,15 +464,15 @@
       "tecken": 172,
       "uppmatt": 15,
       "inomBudget": true,
-      "skriptetsTidMs": 874,
-      "uppskattadTidS": 89,
+      "skriptetsTidMs": 788,
+      "uppskattadTidS": 88.9,
       "klmDelar": {
         "klick": 29.2,
         "listval": 4,
         "faltbyten": 6.9,
         "tecken": 48.2,
         "tangenter": 0,
-        "svarstid": 0.9
+        "svarstid": 0.8
       },
       "steg": [
         "klick: Remisser i menyn",
@@ -517,7 +518,7 @@
       "tecken": 172,
       "uppmatt": 15,
       "inomBudget": true,
-      "skriptetsTidMs": 953,
+      "skriptetsTidMs": 940,
       "uppskattadTidS": 89.1,
       "klmDelar": {
         "klick": 29.2,
@@ -525,7 +526,7 @@
         "faltbyten": 6.9,
         "tecken": 48.2,
         "tangenter": 0,
-        "svarstid": 1
+        "svarstid": 0.9
       },
       "steg": [
         "klick: Remisser i menyn",
@@ -570,7 +571,7 @@
       "tecken": 0,
       "uppmatt": 6,
       "inomBudget": true,
-      "skriptetsTidMs": 547,
+      "skriptetsTidMs": 502,
       "uppskattadTidS": 16.4,
       "klmDelar": {
         "klick": 15.9,
@@ -615,15 +616,15 @@
       "tecken": 158,
       "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 782,
-      "uppskattadTidS": 66.8,
+      "skriptetsTidMs": 743,
+      "uppskattadTidS": 66.7,
       "klmDelar": {
         "klick": 8,
         "listval": 0,
         "faltbyten": 13.8,
         "tecken": 44.2,
         "tangenter": 0,
-        "svarstid": 0.8
+        "svarstid": 0.7
       },
       "steg": [
         "klick: Remisser i menyn",
@@ -661,7 +662,7 @@
       "tecken": 70,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 308,
+      "skriptetsTidMs": 309,
       "uppskattadTidS": 30.5,
       "klmDelar": {
         "klick": 10.6,
@@ -704,7 +705,7 @@
       "tecken": 70,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 325,
+      "skriptetsTidMs": 299,
       "uppskattadTidS": 30.5,
       "klmDelar": {
         "klick": 10.6,
@@ -749,8 +750,8 @@
       "tecken": 0,
       "uppmatt": 3,
       "inomBudget": true,
-      "skriptetsTidMs": 338,
-      "uppskattadTidS": 8.3,
+      "skriptetsTidMs": 297,
+      "uppskattadTidS": 8.2,
       "klmDelar": {
         "klick": 8,
         "listval": 0,
@@ -792,7 +793,7 @@
       "tecken": 0,
       "uppmatt": 3,
       "inomBudget": true,
-      "skriptetsTidMs": 311,
+      "skriptetsTidMs": 341,
       "uppskattadTidS": 8.3,
       "klmDelar": {
         "klick": 8,
@@ -834,7 +835,7 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 279,
+      "skriptetsTidMs": 284,
       "uppskattadTidS": 12.2,
       "klmDelar": {
         "klick": 8,
@@ -877,7 +878,7 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 306,
+      "skriptetsTidMs": 265,
       "uppskattadTidS": 12.2,
       "klmDelar": {
         "klick": 8,
@@ -919,7 +920,7 @@
       "tecken": 0,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 376,
+      "skriptetsTidMs": 366,
       "uppskattadTidS": 11,
       "klmDelar": {
         "klick": 10.6,
@@ -961,7 +962,7 @@
       "tecken": 0,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 371,
+      "skriptetsTidMs": 367,
       "uppskattadTidS": 11,
       "klmDelar": {
         "klick": 10.6,
@@ -1003,7 +1004,7 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 336,
+      "skriptetsTidMs": 304,
       "uppskattadTidS": 13.6,
       "klmDelar": {
         "klick": 13.3,
@@ -1046,7 +1047,7 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 332,
+      "skriptetsTidMs": 315,
       "uppskattadTidS": 13.6,
       "klmDelar": {
         "klick": 13.3,
@@ -1089,8 +1090,8 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 318,
-      "uppskattadTidS": 13.6,
+      "skriptetsTidMs": 275,
+      "uppskattadTidS": 13.5,
       "klmDelar": {
         "klick": 13.3,
         "listval": 0,
@@ -1132,15 +1133,15 @@
       "tecken": 0,
       "uppmatt": 9,
       "inomBudget": true,
-      "skriptetsTidMs": 1267,
-      "uppskattadTidS": 25.1,
+      "skriptetsTidMs": 464,
+      "uppskattadTidS": 24.3,
       "klmDelar": {
         "klick": 23.9,
         "listval": 0,
         "faltbyten": 0,
         "tecken": 0,
         "tangenter": 0,
-        "svarstid": 1.3
+        "svarstid": 0.5
       },
       "steg": [
         "klick: Inga Strand i arbetslistan",
@@ -1179,7 +1180,7 @@
       "tecken": 0,
       "uppmatt": 9,
       "inomBudget": true,
-      "skriptetsTidMs": 488,
+      "skriptetsTidMs": 451,
       "uppskattadTidS": 24.3,
       "klmDelar": {
         "klick": 23.9,
@@ -1228,7 +1229,7 @@
       "tecken": 68,
       "uppmatt": 6,
       "inomBudget": true,
-      "skriptetsTidMs": 601,
+      "skriptetsTidMs": 553,
       "uppskattadTidS": 36.3,
       "klmDelar": {
         "klick": 13.3,
@@ -1275,7 +1276,7 @@
       "tecken": 68,
       "uppmatt": 6,
       "inomBudget": true,
-      "skriptetsTidMs": 477,
+      "skriptetsTidMs": 448,
       "uppskattadTidS": 36.2,
       "klmDelar": {
         "klick": 13.3,
@@ -1283,7 +1284,7 @@
         "faltbyten": 3.5,
         "tecken": 19,
         "tangenter": 0,
-        "svarstid": 0.5
+        "svarstid": 0.4
       },
       "steg": [
         "klick: Berit Strandhall i arbetslistan",
@@ -1322,7 +1323,7 @@
       "tecken": 68,
       "uppmatt": 6,
       "inomBudget": true,
-      "skriptetsTidMs": 472,
+      "skriptetsTidMs": 455,
       "uppskattadTidS": 36.2,
       "klmDelar": {
         "klick": 13.3,
@@ -1368,7 +1369,7 @@
       "tecken": 13,
       "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 396,
+      "skriptetsTidMs": 370,
       "uppskattadTidS": 25,
       "klmDelar": {
         "klick": 10.6,
@@ -1415,15 +1416,15 @@
       "tecken": 13,
       "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 390,
-      "uppskattadTidS": 25,
+      "skriptetsTidMs": 349,
+      "uppskattadTidS": 24.9,
       "klmDelar": {
         "klick": 10.6,
         "listval": 0,
         "faltbyten": 10.4,
         "tecken": 3.6,
         "tangenter": 0,
-        "svarstid": 0.4
+        "svarstid": 0.3
       },
       "steg": [
         "klick: Sara Sandmark i arbetslistan",
@@ -1462,7 +1463,7 @@
       "tecken": 13,
       "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 389,
+      "skriptetsTidMs": 371,
       "uppskattadTidS": 25,
       "klmDelar": {
         "klick": 10.6,
@@ -1510,15 +1511,15 @@
       "tecken": 308,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 659,
-      "uppskattadTidS": 98.3,
+      "skriptetsTidMs": 604,
+      "uppskattadTidS": 98.2,
       "klmDelar": {
         "klick": 8,
         "listval": 0,
         "faltbyten": 3.5,
         "tecken": 86.2,
         "tangenter": 0,
-        "svarstid": 0.7
+        "svarstid": 0.6
       },
       "steg": [
         "klick: Anna Karlsson i arbetslistan",
@@ -1554,7 +1555,7 @@
       "tecken": 0,
       "uppmatt": 3,
       "inomBudget": true,
-      "skriptetsTidMs": 640,
+      "skriptetsTidMs": 606,
       "uppskattadTidS": 8.6,
       "klmDelar": {
         "klick": 8,
@@ -1597,15 +1598,15 @@
       "tecken": 11,
       "uppmatt": 3,
       "inomBudget": true,
-      "skriptetsTidMs": 264,
-      "uppskattadTidS": 8.9,
+      "skriptetsTidMs": 179,
+      "uppskattadTidS": 8.8,
       "klmDelar": {
         "klick": 5.3,
         "listval": 0,
         "faltbyten": 0,
         "tecken": 3.1,
         "tangenter": 0.3,
-        "svarstid": 0.3
+        "svarstid": 0.2
       },
       "steg": [
         "klick: Boka besök i Dagens arbete",
@@ -1640,7 +1641,7 @@
       "tecken": 14,
       "uppmatt": 3,
       "inomBudget": true,
-      "skriptetsTidMs": 138,
+      "skriptetsTidMs": 108,
       "uppskattadTidS": 9.6,
       "klmDelar": {
         "klick": 5.3,
@@ -1683,15 +1684,15 @@
       "tecken": 61,
       "uppmatt": 14,
       "inomBudget": true,
-      "skriptetsTidMs": 783,
-      "uppskattadTidS": 43.1,
+      "skriptetsTidMs": 622,
+      "uppskattadTidS": 43,
       "klmDelar": {
         "klick": 23.9,
         "listval": 0,
         "faltbyten": 0,
         "tecken": 17.1,
         "tangenter": 1.4,
-        "svarstid": 0.8
+        "svarstid": 0.6
       },
       "steg": [
         "klick: Lägg till patient vid gruppträffen",
@@ -1740,7 +1741,7 @@
       "tecken": 37,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 345,
+      "skriptetsTidMs": 328,
       "uppskattadTidS": 21.6,
       "klmDelar": {
         "klick": 10.6,
@@ -1785,7 +1786,7 @@
       "tecken": 0,
       "uppmatt": 1,
       "inomBudget": true,
-      "skriptetsTidMs": 70,
+      "skriptetsTidMs": 51,
       "uppskattadTidS": 2.7,
       "klmDelar": {
         "klick": 2.7,
@@ -1824,8 +1825,8 @@
       "tecken": 0,
       "uppmatt": 1,
       "inomBudget": true,
-      "skriptetsTidMs": 101,
-      "uppskattadTidS": 2.8,
+      "skriptetsTidMs": 87,
+      "uppskattadTidS": 2.7,
       "klmDelar": {
         "klick": 2.7,
         "listval": 0,
@@ -1864,7 +1865,7 @@
       "tecken": 5,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 321,
+      "skriptetsTidMs": 319,
       "uppskattadTidS": 12.6,
       "klmDelar": {
         "klick": 10.6,
@@ -1908,7 +1909,7 @@
       "tecken": 0,
       "uppmatt": 3,
       "inomBudget": true,
-      "skriptetsTidMs": 278,
+      "skriptetsTidMs": 224,
       "uppskattadTidS": 8.2,
       "klmDelar": {
         "klick": 8,
@@ -1916,7 +1917,7 @@
         "faltbyten": 0,
         "tecken": 0,
         "tangenter": 0,
-        "svarstid": 0.3
+        "svarstid": 0.2
       },
       "steg": [
         "klick: Väntelista i menyn",
@@ -1949,8 +1950,8 @@
       "tecken": 37,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 270,
-      "uppskattadTidS": 22,
+      "skriptetsTidMs": 294,
+      "uppskattadTidS": 22.1,
       "klmDelar": {
         "klick": 8,
         "listval": 0,
@@ -1992,8 +1993,8 @@
       "tecken": 37,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 327,
-      "uppskattadTidS": 22.1,
+      "skriptetsTidMs": 275,
+      "uppskattadTidS": 22,
       "klmDelar": {
         "klick": 8,
         "listval": 0,
@@ -2035,15 +2036,15 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 256,
-      "uppskattadTidS": 12.2,
+      "skriptetsTidMs": 201,
+      "uppskattadTidS": 12.1,
       "klmDelar": {
         "klick": 8,
         "listval": 4,
         "faltbyten": 0,
         "tecken": 0,
         "tangenter": 0,
-        "svarstid": 0.3
+        "svarstid": 0.2
       },
       "steg": [
         "klick: Fatima Baskar i arbetslistan",
@@ -2077,15 +2078,15 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 259,
-      "uppskattadTidS": 12.2,
+      "skriptetsTidMs": 186,
+      "uppskattadTidS": 12.1,
       "klmDelar": {
         "klick": 8,
         "listval": 4,
         "faltbyten": 0,
         "tecken": 0,
         "tangenter": 0,
-        "svarstid": 0.3
+        "svarstid": 0.2
       },
       "steg": [
         "klick: Fatima Baskar i arbetslistan",
@@ -2119,7 +2120,7 @@
       "tecken": 7,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 266,
+      "skriptetsTidMs": 285,
       "uppskattadTidS": 11.3,
       "klmDelar": {
         "klick": 5.3,
@@ -2161,7 +2162,7 @@
       "tecken": 7,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 316,
+      "skriptetsTidMs": 271,
       "uppskattadTidS": 11.3,
       "klmDelar": {
         "klick": 5.3,
@@ -2204,8 +2205,8 @@
       "tecken": 0,
       "uppmatt": 1,
       "inomBudget": true,
-      "skriptetsTidMs": 91,
-      "uppskattadTidS": 2.7,
+      "skriptetsTidMs": 104,
+      "uppskattadTidS": 2.8,
       "klmDelar": {
         "klick": 2.7,
         "listval": 0,
@@ -2244,8 +2245,8 @@
       "tecken": 0,
       "uppmatt": 1,
       "inomBudget": true,
-      "skriptetsTidMs": 100,
-      "uppskattadTidS": 2.8,
+      "skriptetsTidMs": 99,
+      "uppskattadTidS": 2.7,
       "klmDelar": {
         "klick": 2.7,
         "listval": 0,
@@ -2284,8 +2285,8 @@
       "tecken": 0,
       "uppmatt": 1,
       "inomBudget": true,
-      "skriptetsTidMs": 128,
-      "uppskattadTidS": 2.8,
+      "skriptetsTidMs": 91,
+      "uppskattadTidS": 2.7,
       "klmDelar": {
         "klick": 2.7,
         "listval": 0,
@@ -2323,7 +2324,7 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 402,
+      "skriptetsTidMs": 418,
       "uppskattadTidS": 13.7,
       "klmDelar": {
         "klick": 13.3,
@@ -2366,15 +2367,15 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 480,
-      "uppskattadTidS": 13.7,
+      "skriptetsTidMs": 366,
+      "uppskattadTidS": 13.6,
       "klmDelar": {
         "klick": 13.3,
         "listval": 0,
         "faltbyten": 0,
         "tecken": 0,
         "tangenter": 0,
-        "svarstid": 0.5
+        "svarstid": 0.4
       },
       "steg": [
         "klick: Avdelningens planering i arbetslistan",
@@ -2409,7 +2410,7 @@
       "tecken": 0,
       "uppmatt": 2,
       "inomBudget": true,
-      "skriptetsTidMs": 197,
+      "skriptetsTidMs": 188,
       "uppskattadTidS": 5.5,
       "klmDelar": {
         "klick": 5.3,
@@ -2449,7 +2450,7 @@
       "tecken": 0,
       "uppmatt": 2,
       "inomBudget": true,
-      "skriptetsTidMs": 215,
+      "skriptetsTidMs": 210,
       "uppskattadTidS": 5.5,
       "klmDelar": {
         "klick": 5.3,
@@ -2489,7 +2490,7 @@
       "tecken": 0,
       "uppmatt": 2,
       "inomBudget": true,
-      "skriptetsTidMs": 206,
+      "skriptetsTidMs": 199,
       "uppskattadTidS": 5.5,
       "klmDelar": {
         "klick": 5.3,
@@ -2529,7 +2530,7 @@
       "tecken": 0,
       "uppmatt": 2,
       "inomBudget": true,
-      "skriptetsTidMs": 220,
+      "skriptetsTidMs": 195,
       "uppskattadTidS": 5.5,
       "klmDelar": {
         "klick": 5.3,

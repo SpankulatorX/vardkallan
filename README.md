@@ -85,6 +85,8 @@ Det som inte är byggt än (bland annat riktiga integrationer mot nationella tj�
 
 Version 0.x är ett demosystem under uppbyggnad, och varje runda höjer det andra talet: 0.8 är runda 8. Version 1.0 betyder att demon är funktionellt komplett mot kravspecifikationen, och den sätts när fyra villkor är uppfyllda: ingen post i kategorin system är planerad, kärnsystemets poster i kapitel 2, 3, 5 och 6 är uppfyllda i demon, alla Sussas 34 testfall går att genomföra inom Sussas tidsgränser och säkerhetsgranskningen har inga öppna fynd. Servern räknar villkoren ur kravregistret, testresultaten och listan med öppna säkerhetsfynd, och kravsidan visar dem överst.
 
+Version 1.0 sattes den 8 november 2026, efter runda 10, när alla fyra villkoren var uppfyllda.
+
 Version 1.0 betyder inte att Vårdkällan kan användas i vården. Det kräver riktiga integrationer (Nationell patientöversikt, Nationella läkemedelslistan och laboratorier), troligen CE-märkning som medicinteknisk produkt, en driftorganisation, en extern säkerhetsgranskning, migrering av befintliga journaler och det som kravspecifikationen kräver av leverantören.
 
 ## Kör lokalt
