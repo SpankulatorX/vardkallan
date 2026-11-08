@@ -388,6 +388,10 @@ export function byggSeed(bas = nu()) {
   // Runda 6, r6: uppdragen i läkemedelshanteringen och godkännandena av mallarna. Sist, eftersom seeden läser
   // personalen från tidboken och mallarna från runda 6, r2.
   seedaLakemedelsansvar(db, bas);
+  // Runda 7, r6: barnhälsovården, med Barnavårdscentralen Tybble och ett barn med programmet fram till i dag (bhv.js).
+  // Efter tidboken, eftersom BHV-sjuksköterskans schema läggs i den.
+  require('./bhv.js').seeda(db, { bas });
+  sakraIdentitetsschema(db);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -476,6 +480,9 @@ export function migrera(db) {
   sakraR1Schema(db);
   // Runda 6, r6: en äldre sandlåda får verksamhetschefen, uppdragen och godkännandena relativt till i dag.
   seedaLakemedelsansvar(db, nu());
+  // Runda 7, r6: barnhälsovårdens tabeller och seed för en sandlåda från före runda 7.
+  require('./bhv.js').sakra(db);
+  sakraIdentitetsschema(db);
   return db;
 }
 
@@ -486,6 +493,8 @@ export const MATTYPER_ENHET = {
   glukos: 'mmol/L', kalium: 'mmol/L', pef: 'L/min', troponin: 'ng/L', tsh: 'mIE/L',
   // Runda 6, r1: medvetandegrad och GCS har ingen enhet, smärta anges i poäng av 10 och syrgas i liter per minut.
   medvetande: '', syrgas: 'L/min', smarta: 'av 10', gcs: 'poäng',
+  // Runda 7, r6: huvudomfång i barnhälsovården.
+  huvudomfang: 'cm',
 };
 
 // Mallen byggs om när dagen byter, så att demon alltid ligger kring dagens datum.

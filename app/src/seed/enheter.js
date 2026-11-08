@@ -19,6 +19,8 @@ export const ENHETER = [
   { id: 'kkoga-ort', hsa: 'SE2321000164-VK0310', namn: 'Ortopediska kliniken Karlskoga lasarett', typ: 'vardenhet', forald: 'kkoga' },
   { id: 'primarvard', hsa: 'SE2321000164-VK0400', namn: 'Primärvården', typ: 'sjukhus', forald: 'rol' },
   { id: 'vc-tybble', hsa: 'SE2321000164-VK0410', namn: 'Vårdcentralen Tybble', typ: 'vardenhet', forald: 'primarvard' },
+  // Runda 7, r6: barnavårdscentralen är en arbetsplats på Vårdcentralen Tybble.
+  { id: 'vc-tybble-bvc', hsa: 'SE2321000164-VK0411', namn: 'Barnavårdscentralen Tybble', kortnamn: 'BVC Tybble', typ: 'arbetsplats', forald: 'vc-tybble' },
   { id: 'vc-kumla', hsa: 'SE2321000164-VK0420', namn: 'Vårdcentralen Kumla', typ: 'vardenhet', forald: 'primarvard' },
   { id: 'rk', hsa: 'SE2321000164-VK0900', namn: 'Regionkansliet', typ: 'forvaltning', forald: 'rol' },
   // Runda 6, r3: kommunen i samordnad planering (SIP och SPU) är en simulerad part med påhittat id. Den hör inte till

@@ -9,6 +9,8 @@ import { EXT, CS, DEFINITIONER } from './fhir-definitioner.js';
 import { InvanareAtkomst, journaler, synligKedja, provsvarVisas, MAX_NEKADE } from './patientvy.js';
 import { aktivaSparrar } from './atkomst.js';
 import { tillaggUt } from './ordinationsmallar.js';
+// Runda 7, r6: vaccinerna i barnvaccinationsprogrammet.
+import { vaccinRad } from './bhv-program.js';
 import { FHIR_SYSTEM as ID_SYSTEM, identiteterFor, delaOid, maskera, gallandeId, allaPatientIdn, hittaPaToken } from './identitet.js';
 // Tidboken: Schedule, Slot och Appointment (tidbok-fhir.js).
 import * as tidbokFhir from './tidbok-fhir.js';
@@ -39,6 +41,8 @@ export const SYSTEM = {
 export const TYPER = ['Patient', 'Encounter', 'EpisodeOfCare', 'Condition', 'Observation', 'MedicationRequest', 'AllergyIntolerance', 'Flag', 'ServiceRequest', 'Composition', 'Organization', 'Practitioner', 'AuditEvent', 'MedicationAdministration', 'List'];
 // Runda 6, r3: vårdplanen är en CarePlan (vardplan.js), med samma behörighet som i gränssnittet.
 TYPER.push('CarePlan');
+// Runda 7, r6: vaccinationerna i barnhälsovården är Immunization, med samma behörighet som i gränssnittet (bhv.js).
+TYPER.push('Immunization');
 // Profiler som resurserna påstår att de följer i meta.profile. Bara de som validerats utan fel (docs/fhir-validering.md):
 // HL7 Swedens basprofiler (hl7se.fhir.base 1.1.0) och FHIR R4:s vitalparameterprofiler.
 export const SEBAS = 'http://hl7.se/fhir/ig/base/StructureDefinition';
@@ -56,6 +60,8 @@ const HANDLING = {
   MedicationAdministration: 'las_lakemedel', List: 'las_lakemedel',
   // Runda 6, r3.
   CarePlan: 'las_vardplan',
+  // Runda 7, r6.
+  Immunization: 'las_oversikt',
 };
 const TABELL = {
   Encounter: 'vardkontakter', EpisodeOfCare: 'halsoarenden', Condition: 'diagnoser', Observation: 'matvarden', MedicationRequest: 'ordinationer',
@@ -63,6 +69,8 @@ const TABELL = {
   MedicationAdministration: 'administreringar', List: 'vidimeringar',
   // Runda 6, r3.
   CarePlan: 'vardplaner',
+  // Runda 7, r6.
+  Immunization: 'vaccinationer',
 };
 // Ett vårdtillfälle är ett eget Encounter med id vt-<nummer>, som vårdkontakterna på avdelningarna är en del av (partOf).
 const VT_ID = /^vt-(\d{1,9})$/;
@@ -525,7 +533,21 @@ export function carePlan(db, p) {
   };
 }
 
-const MAPPA = { CarePlan: carePlan, Encounter: encounter, EpisodeOfCare: episodeOfCare, Condition: condition, Observation: observation, MedicationRequest: medicationRequest, AllergyIntolerance: allergyIntolerance, Flag: flag, ServiceRequest: serviceRequest, Composition: composition, MedicationAdministration: medicationAdministration, List: list };
+// Runda 7, r6: en vaccination i barnvaccinationsprogrammet som Immunization. Vaccinet kodas med ATC, och dosen i serien
+// står i protocolApplied.
+export function immunization(db, v) {
+  const d = vaccinRad(v.vaccin_id);
+  return {
+    resourceType: 'Immunization', id: String(v.id), meta: kallaMeta(v.kalla), status: 'completed',
+    vaccineCode: { coding: [{ system: SYSTEM.atc, code: v.atc, ...(ATC[v.atc] ? { display: ATC[v.atc] } : {}) }], text: d?.text ?? v.vaccin_id },
+    patient: ref('Patient', v.patient_id), ...(v.vardkontakt_id ? { encounter: ref('Encounter', v.vardkontakt_id) } : {}),
+    occurrenceDateTime: v.tid, recorded: v.registrerad, primarySource: true, ...(v.batch ? { lotNumber: v.batch } : {}),
+    performer: [{ actor: v.givet_av ? ref('Practitioner', v.givet_av, personNamn(db, v.givet_av)) : ref('Organization', v.enhet_id, enhetsnamn(db, v.enhet_id)) }],
+    protocolApplied: [{ series: 'Barnvaccinationsprogrammet', authority: { display: 'Folkhälsomyndigheten' }, doseNumberPositiveInt: v.dos }],
+  };
+}
+
+const MAPPA = { Immunization: immunization, CarePlan: carePlan, Encounter: encounter, EpisodeOfCare: episodeOfCare, Condition: condition, Observation: observation, MedicationRequest: medicationRequest, AllergyIntolerance: allergyIntolerance, Flag: flag, ServiceRequest: serviceRequest, Composition: composition, MedicationAdministration: medicationAdministration, List: list };
 
 function handlingFor(typ, rad, personal) {
   if (typ === 'Composition') return lasHandling(rad?.kategori ?? 'lakare');
@@ -740,6 +762,12 @@ export const MAPPA_INVANARE = {
     delete r.requester;
     const note = [rr.motivering && { text: `Motivering: ${rr.motivering}` }, rr.svar && { text: `Svar: ${rr.svar}` }].filter(Boolean);
     if (note.length) r.note = note; else delete r.note;
+    return r;
+  },
+  // Runda 7, r6: vaccinationerna, utan personalens id, som i Min journal.
+  Immunization: (db, v) => {
+    const r = immunization(db, v);
+    r.performer = r.performer.map(x => ({ actor: utanPersonalId(x.actor) }));
     return r;
   },
   Composition: (db, a) => {

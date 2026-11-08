@@ -51,6 +51,9 @@ import { skapaOppetApi } from './oppet-api.js';
 import { registreraRutter as r4Rutter, inkorg as r4Inkorg, period as r4Period } from './planering-rutter.js';
 import * as planering from './planering.js';
 import * as tidbokFhir from './tidbok-fhir.js';
+// Runda 7, r6: barnhälsovården, tillväxt och rapporteringen till Svenska barnhälsovårdsregistret (bhv-rutter.js).
+import { registreraRutter as bhvRutter, inkorg as bhvInkorg, session as bhvSession } from './bhv-rutter.js';
+import { minTillvaxt } from './bhv.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -355,6 +358,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       if (p.yrke === 'underskoterska' && !delegering.giltigNu(s.db, p).giltig) ut.behorigheter = ut.behorigheter.filter(h => h !== 'ge_lakemedel');
       // Runda 6, r3: om personalen arbetar på en vårdenhet med psykiatrisk tvångsvård.
       ut.r3 = r3.session(s.db, p);
+      // Runda 7, r6: om personalens vårdenhet har barnhälsovård.
+      ut.bhv = bhvSession(s.db, p);
       sakraKopia(s);
       ut.lasnyckel = s.lasnyckel;
     }
@@ -1115,6 +1120,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...lakemedelsansvarInkorg(c),
       // Runda 6, r4: egna bevakningar som har löpt ut, den inloggades och vårdenhetens.
       ...r4Inkorg(c),
+      // Runda 7, r6: avvikande tillväxt, mätningar hemma att bekräfta och hälsobesök att boka i barnhälsovården.
+      ...bhvInkorg(c, patientKort, patientRad, valFor),
     });
   });
   // Runda 6, r1: NEWS2-larmen loggas på patienten en gång per session och mätomgång, som raderna om återinsättning.
@@ -1358,6 +1365,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   };
   // Runda 6, r4: språket för kallelserna.
   MIN_DELAR.sprak = planering.minSprak;
+  // Runda 7, r6: barnets tillväxtkurvor och vaccinationer för vårdnadshavaren.
+  MIN_DELAR.tillvaxt = minTillvaxt;
   rutt('GET', '/api/min/journal/:id', (c, id) => medMinJournal(c, id, 'min:journal', (atk) => minJournal.huvud(atk)));
   rutt('GET', '/api/min/journal/:id/:del', (c, id, del) => {
     if (!Object.hasOwn(MIN_DELAR, del)) throw new Fel(404, 'Okänd adress.', 'saknas');
@@ -1410,6 +1419,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   oppetApi.registreraRutter({ rutt, kravInloggad, medPatient });
   // Runda 6, r4 (planering-rutter.js).
   r4Rutter({ rutt, kravInloggad, kravRoll, medPatient, medMinJournal });
+  // Runda 7, r6 (bhv-rutter.js).
+  bhvRutter({ rutt, kravInloggad, medPatient, medMinJournal, valFor });
 
   // Endpoints som inte behöver en sandlåda.
   const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/krav/sussa', '/api/drift', '/api/lasekopia/krypterad-logg']);

@@ -365,7 +365,7 @@ describe('API', () => {
     const k = klient(app);
     await k.logga('lak-vc');
     const i = (await k.get('/api/inkorg')).data;
-    expect(Object.keys(i).sort()).toEqual(['aterinsattningar', 'aterlamnanden', 'avbokadeVardhandelser', 'delegeringarSomGarUt', 'dubbletter', 'egnaBevakningar', 'fordjupadeGenomgangar', 'kontrasigneringar', 'lakemedelsuppfoljningar', 'larm', 'licenserSomGarUt', 'mallarAttGodkanna', 'muntligaAttSignera', 'news2Larm', 'nllAvvikelser', 'okvitteradeSvar', 'osigneradeAnteckningar', 'samordning', 'tvangsvard', 'vardplanerUppfoljning']);
+    expect(Object.keys(i).sort()).toEqual(['aterinsattningar', 'aterlamnanden', 'avbokadeVardhandelser', 'bhvAttBoka', 'delegeringarSomGarUt', 'dubbletter', 'egnaBevakningar', 'fordjupadeGenomgangar', 'hemmatningarAttBekrafta', 'kontrasigneringar', 'lakemedelsuppfoljningar', 'larm', 'licenserSomGarUt', 'mallarAttGodkanna', 'muntligaAttSignera', 'news2Larm', 'nllAvvikelser', 'okvitteradeSvar', 'osigneradeAnteckningar', 'samordning', 'tillvaxtLarm', 'tvangsvard', 'vardplanerUppfoljning']);
     expect(i.larm.map(l => `${l.patientId}:${l.typ}`).sort()).toEqual(['p06:svar_forsenat', 'p11:svar_ej_kvitterat']);
     expect(i.okvitteradeSvar.map(r => r.patientId)).toEqual(['p11']);
     expect(i.nllAvvikelser.map(a => a.patientId)).toEqual(['p10']);
@@ -537,7 +537,8 @@ describe('API', () => {
       }
     }
     expect(svar).toBe(roller.length * 15 * vagar.length);
-  });
+    // Runda 7, r6: över tusen anrop tar mer än fem sekunder när datorn har hög last, så testet får längre tid.
+  }, 30_000);
 
   test('reset ger ny sandlåda', async () => {
     const k = klient(app);

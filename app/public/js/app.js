@@ -33,6 +33,8 @@ import { bevakningVy, uppfoljningVy, samverkanVy, inkorgAntal } from './vyer/r3.
 import * as lakemedelsstod from './vyer/lakemedelsstod.js';
 // Runda 6, r6: verksamhetschefens uppdrag i läkemedelshanteringen.
 import * as lakemedelsansvar from './vyer/lakemedelsansvar.js';
+// Runda 7, r6: barnhälsovårdens sida med rapporteringen till registret och uppföljningen.
+import * as barnhalsovard from './vyer/bhv.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -67,6 +69,8 @@ const MENY = [
   // Runda 6, r6: verksamhetschefen utser uppdragen i läkemedelshanteringen.
   ['#/lakemedelsansvar', 'Läkemedelsansvar', 'nyckel', () => far('lakemedelsansvar')],
   ['#/lakemedelsstod', 'Direktiv och uppföljning', 'piller', () => pa('faststalla_direktiv', 'ordinera_direktiv')],
+  // Runda 7, r6: barnhälsovården, för läkare och sjuksköterskor på en vårdenhet med barnavårdscentral.
+  ['#/bhv', 'Barnhälsovård', 'person', () => Boolean(S.session?.bhv)],
   ['#/remisser', 'Remisser', 'remiss', () => pa('las_remiss', 'las_remiss_status')],
   ['#/vantrum', 'Väntrum (akuten)', 'vantrum', () => far('vantrum')],
   ['#/logg', 'Logguppföljning', 'logg', () => far('las_logg')],
@@ -94,6 +98,7 @@ const RUTTER = [
   [/^#\/delegeringar$/, delegeringar, () => far('delegera') || S.session?.personal?.yrke === 'underskoterska'],
   [/^#\/lakemedelsstod$/, lakemedelsstod, () => pa('faststalla_direktiv', 'ordinera_direktiv')],
   [/^#\/lakemedelsansvar$/, lakemedelsansvar, () => far('lakemedelsansvar')],
+  [/^#\/bhv$/, barnhalsovard, () => Boolean(S.session?.bhv)],
   [/^#\/remisser$/, remisser, () => pa('las_remiss', 'las_remiss_status')],
   [/^#\/vantrum$/, vantrum, () => far('vantrum')],
   [/^#\/logg$/, logg, () => far('las_logg')],
@@ -193,7 +198,9 @@ export async function uppdateraInkorg() {
       // Mallar att godkänna (runda 6, r6).
       + (d.mallarAttGodkanna?.length ?? 0)
       // Egna bevakningar som har löpt ut (runda 6, r4).
-      + (d.egnaBevakningar?.length ?? 0);
+      + (d.egnaBevakningar?.length ?? 0)
+      // Runda 7, r6: barnhälsovården.
+      + (d.tillvaxtLarm?.length ?? 0) + (d.hemmatningarAttBekrafta?.length ?? 0) + (d.bhvAttBoka?.length ?? 0);
   } catch { S.inkorg = null; }
   const el = document.querySelector('[data-raknare="inkorg"]');
   if (el) { el.textContent = S.inkorg ? String(S.inkorg) : ''; el.hidden = !S.inkorg; }

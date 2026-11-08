@@ -55,6 +55,8 @@ export const ICD10SE = {
   'U82.1': 'Resistens mot meticillin',
   'Z22.3': 'Bärare av andra specificerade patogena bakterier',
   'Z30.4': 'Övervakning av förskrivna preventivläkemedel',
+  // Runda 7, r6: hälsobesöken i barnhälsovården.
+  'Z00.1': 'Rutinmässig hälsoundersökning av barn utan besvär eller utan att diagnos registrerats',
   'Z91.0': 'Allergi och annan överkänslighet som inte beror på läkemedel och biologiska substanser i den egna sjukhistorien',
 };
 
@@ -81,6 +83,10 @@ export const ATC = {
   // Grupper som överkänslighet och varningsregler använder.
   'J01C': 'BETA-LACTAM ANTIBACTERIALS, PENICILLINS', 'M01A': 'ANTIINFLAMMATORY AND ANTIRHEUMATIC PRODUCTS, NON-STEROIDS',
   'B01AA': 'Vitamin K antagonists', 'B01AB': 'Heparin group', 'B01AE': 'Direct thrombin inhibitors', 'B01AF': 'Direct factor Xa inhibitors',
+  // Runda 7, r6: vaccinerna i barnvaccinationsprogrammet, kontrollerade mot WHO:s ATC/DDD-index 2026-11-08.
+  'J07BH01': 'rota virus, live attenuated', 'J07CA09': 'diphtheria-haemophilus influenzae B-pertussis-poliomyelitis-tetanus-hepatitis B',
+  'J07AL02': 'pneumococcus, purified polysaccharides antigen conjugated', 'J07BD52': 'measles, combinations with mumps and rubella, live attenuated',
+  'J07CA02': 'diphtheria-pertussis-poliomyelitis-tetanus', 'J07AN01': 'tuberculosis, live attenuated',
 };
 
 // Läkemedelsprodukter ordagrant ur Läkemedelsverkets NPL, totalfilen 2026-11-01_Total_NPL.zip (NPL 4.5): namn
@@ -181,6 +187,9 @@ export const MATKOD = {
   smarta: { kategori: 'survey', coding: [{ system: SYSTEM.loinc, code: '72514-3', display: 'Pain severity - 0-10 verbal numeric rating [Score] - Reported' }], ucum: '{score}' },
   gcs: { kategori: 'survey', coding: [{ system: SYSTEM.loinc, code: '9269-2', display: 'Glasgow coma score total' }], ucum: '{score}',
     komponenter: [{ del: 'e', code: '9267-6', display: 'Glasgow coma score eye opening' }, { del: 'v', code: '9270-0', display: 'Glasgow coma score verbal' }, { del: 'm', code: '9268-4', display: 'Glasgow coma score motor' }] },
+  // Runda 7, r6: huvudomfång i barnhälsovården, med vitalparameterprofilen för huvudomfång. Kontrollerat mot LOINC via
+  // tx.fhir.org 2026-11-08.
+  huvudomfang: vp('9843-4', 'Head Occipital-frontal circumference', 'cm', 'headcircum'),
 };
 
 // Svarskoderna för medvetandegraden. A, V, P och U finns i LOINC:s svarslista LL1845-8 för 67775-7. C, nytillkommen
@@ -203,4 +212,39 @@ export const KVA = {
   QD008: 'Övervakning av vitala tecken',
   PA001: 'Bedömning av medvetandefunktioner',
   XV015: 'Läkemedelsgenomgång, enkel, enligt Socialstyrelsens föreskrift och allmänna råd',
+};
+
+// Runda 7, r6: koderna för Svenska barnhälsovårdsregistret ordagrant ur bilaga K11 till Sussas förfrågningsunderlag,
+// Informationsspecifikation Svenska barnhälsovårdsregistret, Formulär Bedömningar, version 1.7 (2017-04-11). Snomed CT
+// i svensk version. Koderna är inte kontrollerade mot den gällande utgåvan av Snomed CT, som kräver licens (se
+// docs/kodkontroll.md). OID:n står i bilagans sammanställning av kodverk.
+export const K11 = {
+  oid: {
+    snomed: '1.2.752.116.2.1.1', personnummer: '1.2.752.129.2.1.3.1', atc: '1.2.752.129.2.2.3.1.1', kvalitetsregister: '1.2.752.129.2.2.3.23',
+    kontakttyp: '1.2.752.129.2.2.2.25', befattning: '1.2.752.129.2.2.1.4',
+  },
+  // Tillväxt: Observation. format är registrets format (N är en siffra).
+  tillvaxt: {
+    fodelsevikt: { kod: '364589006', text: 'födelsevikt', enhet: 'kg', format: 'N,NNN', decimaler: 3, max: 9.999 },
+    fodelselangd: { kod: '169886007', text: 'födelselängd', enhet: 'cm', format: 'NN,N', decimaler: 1, max: 99.9 },
+    fodelse_huvudomfang: { kod: '169876006', text: 'huvudomfång vid födsel', enhet: 'cm', format: 'NN,N', decimaler: 1, max: 99.9 },
+    graviditetslangd: { kod: '412726003', text: 'graviditetslängd vid födelse', enhet: 'veckor', format: 'NN', decimaler: 0, max: 99 },
+    vikt: { kod: '27113001', text: 'kroppsvikt', enhet: 'kg', format: 'NNN,NNN', decimaler: 3, max: 999.999 },
+    langd: { kod: '248334005', text: 'kroppslängd', enhet: 'cm', format: 'NNN,N', decimaler: 1, max: 999.9 },
+    huvudomfang: { kod: '363812007', text: 'huvudomfång', enhet: 'cm', format: 'NN,N', decimaler: 1, max: 99.9 },
+    langd_mor: { kod: '53851000052106', text: 'längd hos biologisk mor', enhet: 'cm', format: 'NNN', decimaler: 0, max: 999 },
+    langd_far: { kod: '53861000052109', text: 'längd hos biologisk far', enhet: 'cm', format: 'NNN', decimaler: 0, max: 999 },
+  },
+  // Besök: Vårdkontakt, kontakttyp ur V-TIM 2.2.
+  besok: { mottagning: { kod: '2', text: 'öppenvårdsbesök' }, hem: { kod: '3', text: 'hembesök' } },
+  // Mottagningsbesök: Hälso- och sjukvårdspersonal, befattning ur KV_befattning.
+  befattning: {
+    sjukskoterska: { kod: '206018', text: 'Sjuksköterska, barn och ungdom' }, barnlakare: { kod: '201010', text: 'överläkare' },
+    allmanlakare: { kod: '201011', text: 'Distriktsläkare/Specialist allmänmedicin' },
+  },
+  // Vaccination: Observation. Registret tar emot ökad risk för tuberkulos och BCG-vaccination.
+  vaccination: {
+    risk: { typ: { kod: '80943009', text: 'riskfaktor' }, varde: { kod: '707085002', text: 'Hög risk för tuberkulos' } },
+    bcg: { typ: { kod: '408864009', text: 'vaccinationsstatus' }, varde: { kod: '473170005', text: 'anamnes på BCG-vaccination' } },
+  },
 };

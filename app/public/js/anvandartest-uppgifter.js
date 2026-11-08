@@ -31,6 +31,8 @@ export const STARTPUNKT = {
   // Runda 6, r6.
   'Verksamhetschefens startsida': { hash: '#/lakemedelsansvar', klar: '#la-pam', forbered: 'aterstall' },
   'Inkorgen efter återställning': { hash: '#/inkorg', klar: '#ik-mallar', forbered: 'aterstall' },
+  // Runda 7, r6: barnet på Barnavårdscentralen Tybble.
+  'Översikten för ett barn på barnavårdscentralen': { hash: '#/patient/p61', klar: '.tidslinje', forbered: 'aterstall' },
 };
 
 export const UPPGIFTER = [
@@ -273,6 +275,12 @@ export const UPPGIFTER = [
     id: 'boka-kedja', namn: 'Boka provtagning före läkarbesök', roll: 'adm-kard', start: 'Vårdadministratörens startsida',
     text: 'Gunnar Åkesson ska på återbesök efter elkonverteringen och behöver lämna blodprov en stund före besöket. Ge honom tid för båda.',
     kontroll: { notis: 'Gunnar Åkesson har fått en tid' },
+  },
+  // Runda 7, r6: tillväxt i barnhälsovården (Sussa 4.1).
+  {
+    id: 'tillvaxt-bhv', namn: 'Registrera längd och vikt vid ett BHV-besök och se kurvan', roll: 'lak-vc', start: 'Översikten för ett barn på barnavårdscentralen',
+    text: 'Ida Holmqvist är på besök hos barnavårdscentralen. Hon väger 9,6 kg och är 82 cm lång. Registrera måtten och se hur hon följer sin kurva.',
+    kontroll: { notis: 'är registrerat' },
   },
 ];
 

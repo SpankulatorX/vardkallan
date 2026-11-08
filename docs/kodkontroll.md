@@ -248,3 +248,49 @@ Källa: Klassifikation av vårdåtgärder (KVÅ) 2026, giltig från 2026-01-01, 
 OID: urn:oid:1.2.752.116.1.3.2.1.4, som står som aktiv för Klassifikation av vårdåtgärder (KVÅ) i Socialstyrelsens OID-serie (socialstyrelsens-oid-serie-2025-10-17.xlsx, länkad från socialstyrelsen.se/statistik-och-data/klassifikationer-och-koder/andra-kodverk/oid/, hämtad 2026-11-03, sha256 169cc3108f2469a576478922fe4e3e09590dbf1762b9b5507075c795616aaa44). Äldre OID:er för filerna med koder och kodtexter (till exempel 1.2.752.116.1.3.2.3.4) står som inaktiva i samma fil. HL7:s terminologiserver har inte KVÅ, så validatorn kan inte kontrollera koderna.
 
 Andra koder som passar men inte används än: DF026 Elkonvertering, defibrillering av förmaksflimmer, planerat (för vårdhändelsen elkonvertering), XV016 Läkemedelsgenomgång, fördjupad och XV017 Läkemedelsberättelse.
+
+## Tillväxt och barnhälsovård (runda 7, r6)
+
+### Referensvärden för tillväxt
+
+Barnhälsovården i Sverige använder svenska referenser: Göteborg 1974 (kurvorna i BHV-journal 2000 och 2006), Sverige 1981 och nyare referenser från 2020 och 2021 (Rikshandboken i barnhälsovård, Tillväxtkurvor och tillväxtreferenser, godkänd 2022-08-08, läst 2026-11-08). Referensvärdena är publicerade i vetenskapliga artiklar och i kurvblad som säljs, men ingen av dem finns utgiven under en fri licens, och Rikshandboken säger inget om villkoren för att använda dem i ett it-system. De används därför inte i Vårdkällan.
+
+Vårdkällan använder WHO:s tillväxtstandard 0 till 5 år (WHO Child Growth Standards, 2006). Rikshandboken nämner den som den tredje referensen och att NEXT-gruppen 2011 rekommenderade att journalsystem har en svensk referens och WHO:s. Rikshandboken rekommenderar inte WHO:s kurvor för huvudomfång i Norden, och det står under kurvorna.
+
+Licens: WHO:s publikationer ges ut under CC BY-NC-SA 3.0 IGO, och kommersiell användning kräver WHO:s tillstånd (who.int, Copyright, läst 2026-11-08). WHO:s R-paket anthro, som har samma tabeller, har licensen GPL-3.0 (github.com/WorldHealthOrganization/anthro). Vårdkällan är ett demoprojekt utan kommersiellt syfte och använder tabellen med angiven källa. Tabellen ligger i en egen fil (`app/src/seed/who-tillvaxt.js`) och omfattas inte av Vårdkällans licens EUPL 1.2.
+
+Källa: WHO:s tabeller med z-värden, hämtade från cdn.who.int 2026-11-08. L, M och S per månad, 0 till 60 månader, för pojkar och flickor. Längden är liggande längd till 24 månader och stående från 25 månader.
+
+| Fil | SHA-256 |
+|---|---|
+| wfa_boys_0-to-5-years_zscores.xlsx | f8f5a77b944ff7a8c1524e76f9d33f8a93cc423d23c2e7f2b10ba6b96a428e69 |
+| wfa_girls_0-to-5-years_zscores.xlsx | 01e9a6fda2f3723dbc74d3c86bfbfcb9f6d474367d1d7b4a804501a2debd2ef1 |
+| lhfa_boys_0-to-2-years_zscores.xlsx | ccfd8e455141c9a39dd728d99b7d7e080a925b06ea4a4d7592229665713dba54 |
+| lhfa_boys_2-to-5-years_zscores.xlsx | a44ed06039e0a9dd6920e4a4d928395c541c9732662e49eacd489d2194ccc80d |
+| lhfa_girls_0-to-2-years_zscores.xlsx | 6757f5eb96b51ab5cdb4828105929c78b1fb3d73b0fd8fa65682ad9f60f8c083 |
+| lhfa_girls_2-to-5-years_zscores.xlsx | a976c56a6d36885cc32bf77c5539ca066e396ef2adad06011cd71d9eb0f0eb5c |
+| hcfa-boys-0-5-zscores.xlsx | 296038a15de807ee74940627bd1ddc638e68b223b410b4ca3ccf1ff4a8b5770a |
+| hcfa-girls-0-5-zscores.xlsx | 134cd53ca39f0f55b0b3c2bc6c94278c83d9945842bc64088464f73effcd12e7 |
+| bmi_boys_0-to-2-years_zcores.xlsx | 1d5e9e0062795ec5e7b06f1e36c23bea32d6f554840bef5a755cc0b47858e1b0 |
+| bmi_boys_2-to-5-years_zscores.xlsx | 874063e82b4592e4d2dc8b7534861d759541548abe38269fba50ba3861e9aff1 |
+| bmi_girls_0-to-2-years_zscores.xlsx | daf06e553ef31c7100cbb7f27fa9ddc8a9e9326167865b07ee8c1268931e1eb6 |
+| bmi_girls_2-to-5-years_zscores.xlsx | 9e27264b319e9290fc32b7896894da6c5b41b4f471695f2e13016cae8f329973 |
+
+Ett test räknar om värdet vid +2 SD för vikt hos flickor vid 12 månader, -2 SD för längd hos flickor vid 24 månader, medianen för huvudomfång hos pojkar vid 6 månader och +1 SD för BMI hos flickor vid 36 månader ur L, M och S och jämför med kolumnerna SD2, SD2neg, SD0 och SD1 i samma filer (11,5 kg, 80,0 cm, 43,3 cm och 16,8).
+
+### Besöksprogram och vaccinationer
+
+| Del | Källa | Läst |
+|---|---|---|
+| Hälsobesöken | Region Örebro län, Kravspecifikation barnhälsovård Hälsoval 2026, bilaga 1 (översikt) och bilaga 2 (för alla), Dnr 25RS8809, vardgivare.regionorebrolan.se, som bygger på Rikshandboken i barnhälsovård | 2026-11-08 |
+| Vaccinationerna | Folkhälsomyndigheten, Barnvaccinationsprogram, uppdaterad 2026-04-16, folkhalsomyndigheten.se | 2026-11-08 |
+| Rotavirus | Folkhälsomyndigheten, För personal inom barnhälsovården om vaccination mot rotavirus: två doser vid 6 veckor och 3 månader, eller tre doser till 5 månader, minst 4 veckor mellan doserna, och vaccinationen påbörjas inte efter 12 veckors ålder | 2026-11-08 |
+| Vattkoppor | Regeringen, pressmeddelanden 2025-09 och 2026-07: vaccinationen ingår i barnvaccinationsprogrammet, förordningen gäller från 1 november 2026 och vaccinet erbjuds från 1 januari 2027 för barn födda 1 juli 2025 eller senare (1177). Åldern för dosen stod inte på Folkhälsomyndighetens sida, så vaccinet finns inte med i demon | 2026-11-08 |
+
+Vaccinerna kodas med ATC, kontrollerade mot WHO:s ATC/DDD-index (atcddd.fhi.no) 2026-11-08: J07BH01 rota virus, live attenuated, J07CA09 diphtheria-haemophilus influenzae B-pertussis-poliomyelitis-tetanus-hepatitis B, J07AL02 pneumococcus, purified polysaccharides antigen conjugated, J07BD52 measles, combinations with mumps and rubella, live attenuated, J07CA02 diphtheria-pertussis-poliomyelitis-tetanus och J07AN01 tuberculosis, live attenuated.
+
+### Bilaga K11 och övriga koder
+
+Koderna för Svenska barnhälsovårdsregistret står ordagrant som i bilaga K11 till förfrågningsunderlaget (Informationsspecifikation Svenska barnhälsovårdsregistret, Formulär Bedömningar, version 1.7, 2017-04-11) i `app/src/kodverk.js` (`K11`): Snomed CT för tillväxtens observationer (till exempel 27113001 kroppsvikt, 248334005 kroppslängd, 363812007 huvudomfång, 364589006 födelsevikt, 412726003 graviditetslängd vid födelse och 53851000052106 längd hos biologisk mor), kontakttyp 2 och 3 ur V-TIM 2.2 och befattningskoderna ur KV_befattning, med OID:erna i bilagans sammanställning. Koderna är inte kontrollerade mot den gällande utgåvan av Snomed CT, som kräver licens, och en kod kan ha ersatts sedan 2017. Sitthöjd (248335006) registreras inte.
+
+Huvudomfång har LOINC 9843-4 Head Occipital-frontal circumference, kontrollerad via tx.fhir.org 2026-11-08, och FHIR R4:s vitalparameterprofil headcircum. ICD-10-SE Z00.1 Rutinmässig hälsoundersökning av barn utan besvär eller utan att diagnos registrerats står ordagrant som i Socialstyrelsens icd-10-se.tsv (samma fil som ovan, sha256 696c0c02178dabce2c99802898e98cb5c7c4a3af1f78c5cc1c2ad29f5eaabae8).

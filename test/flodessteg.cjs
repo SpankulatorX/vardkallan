@@ -84,6 +84,13 @@ function skapa(BAS) {
     'Översikten för en patient på mottagningen': async (page) => { await gaTill(page, '#/patient/p11'); await page.waitForSelector('.tidslinje'); },
     'Översikten för en inlagd patient': async (page) => { await gaTill(page, '#/patient/p04'); await page.waitForSelector('.tidslinje'); },
     'Vårdadministratörens startsida': async (page) => { await gaTill(page, '#/idag'); await page.waitForSelector('#idag-dagens'); },
+    // Runda 7, r6: barnet på Barnavårdscentralen Tybble, efter återställning så att inga mätningar från förra körningen finns.
+    'Översikten för ett barn på barnavårdscentralen': async (page) => {
+      await gaTill(page, '#/arbetslista');
+      await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()));
+      await gaTill(page, '#/patient/p61');
+      await page.waitForSelector('.tidslinje');
+    },
     'Översikten för en patient med bokad tid': async (page) => { await gaTill(page, '#/patient/p15'); await page.waitForSelector('.ov-tider'); },
     // Runda 6, r3: patient 21 med vårdintyg från akutmottagningen väntar på beslut om intagning.
     'Översikten för en patient som väntar på beslut om intagning': async (page) => { await gaTill(page, '#/patient/p21'); await page.waitForSelector('.tidslinje'); },
@@ -549,6 +556,18 @@ function skapa(BAS) {
     await m.klicka(page.locator('dialog[open] .forslag-knapp').first(), 'det första förslaget med provtagning och läkarbesök');
     await synlig(page, '.notis', 'Gunnar Åkesson har fått en tid');
     await synlig(page, '.notis', 'provtagning');
+  };
+  // Runda 7, r6: vikt och längd vid ett besök i barnhälsovården. Vikten har fokus när fliken öppnas, och kurvan visar
+  // det nya värdet direkt.
+  GOR['tillvaxt-bhv'] = async (m, page) => {
+    await m.klicka(page.locator('.flikar a', { hasText: 'Tillväxt' }), 'fliken Tillväxt');
+    await page.waitForSelector('#tv-form');
+    await m.skriv(page.locator('#tv-vikt'), '9,6', 'vikten');
+    await m.skriv(page.locator('#tv-langd'), '82', 'längden');
+    await m.klicka(page.locator('#tv-form [type="submit"]'), 'Registrera');
+    await synlig(page, '.notis', 'Vikt 9,6 kg');
+    await synlig(page, '#tv-kurva-vikt .kurva-senaste', '9,6');
+    await page.locator('#tv-kurva-vikt svg.tv-kurva').waitFor();
   };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }

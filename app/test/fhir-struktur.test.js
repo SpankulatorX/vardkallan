@@ -59,8 +59,9 @@ describe('FHIR-struktur', () => {
   test('vitalparametrar följer FHIR R4:s vitalparameterprofiler', () => {
     const vital = avTyp('Observation').filter(o => o.category?.[0]?.coding?.[0]?.code === 'vital-signs');
     expect(vital.length).toBeGreaterThan(20);
-    const ucum = { heartrate: ['/min'], resprate: ['/min'], bodytemp: ['Cel'], bodyweight: ['kg'], bodyheight: ['cm'], oxygensat: ['%'], bp: ['mm[Hg]'] };
-    const kod = { heartrate: '8867-4', resprate: '9279-1', bodytemp: '8310-5', bodyweight: '29463-7', bodyheight: '8302-2', oxygensat: '2708-6', bp: '85354-9' };
+    const ucum = { heartrate: ['/min'], resprate: ['/min'], bodytemp: ['Cel'], bodyweight: ['kg'], bodyheight: ['cm'], oxygensat: ['%'], bp: ['mm[Hg]'], headcircum: ['cm'] };
+    // Runda 7, r6: huvudomfång i barnhälsovården.
+    const kod = { heartrate: '8867-4', resprate: '9279-1', bodytemp: '8310-5', bodyweight: '29463-7', bodyheight: '8302-2', oxygensat: '2708-6', bp: '85354-9', headcircum: '9843-4' };
     for (const o of vital) {
       const profil = o.meta.profile[0].split('/').pop();
       expect(kod[profil]).toBeDefined();
@@ -92,7 +93,7 @@ describe('FHIR-struktur', () => {
   });
 
   test('meta.profile bara för profiler som validerats', () => {
-    const tillatna = new Set([...Object.values(fhir.PROFIL), ...['bp', 'heartrate', 'resprate', 'bodytemp', 'bodyweight', 'bodyheight', 'oxygensat'].map(p => `http://hl7.org/fhir/StructureDefinition/${p}`)]);
+    const tillatna = new Set([...Object.values(fhir.PROFIL), ...['bp', 'heartrate', 'resprate', 'bodytemp', 'bodyweight', 'bodyheight', 'oxygensat', 'headcircum'].map(p => `http://hl7.org/fhir/StructureDefinition/${p}`)]);
     for (const r of resurser) for (const p of r.meta?.profile ?? []) expect(tillatna.has(p)).toBe(true);
     for (const t of ['Patient', 'Organization', 'Practitioner']) expect(avTyp(t).every(r => r.meta.profile[0] === fhir.PROFIL[t])).toBe(true);
     for (const t of ['Encounter', 'Condition', 'MedicationRequest', 'AllergyIntolerance', 'ServiceRequest', 'Composition', 'AuditEvent']) expect(avTyp(t).some(r => r.meta?.profile)).toBe(false);

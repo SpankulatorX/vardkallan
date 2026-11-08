@@ -17,6 +17,8 @@ import { planerFlik, tvangsvardFlik } from './r3.js';
 import * as journalsok from './patient-sok.js';
 // Runda 6, r5: externa tillämpningar med SMART on FHIR (Sussa 5.1.1.4).
 import * as tillampningar from './patient-tillampningar.js';
+// Runda 7, r6: tillväxt och barnhälsovård (Sussa 4.1).
+import * as tillvaxt from './patient-tillvaxt.js';
 
 export const namn = 'patient';
 
@@ -25,6 +27,8 @@ const FLIKAR = [
   ['journal', 'Journal', () => pa('las_journal', 'las_omvardnad'), journal],
   ['lakemedel', 'Läkemedel', () => far('las_lakemedel'), lakemedel],
   ['matvarden', 'Mätvärden', () => far('las_matvarden'), matvarden],
+  // Runda 7, r6: tillväxt för barn och ungdomar. Villkoret får patienthuvudet, och fliken visas innan huvudet är hämtat.
+  ['tillvaxt', 'Tillväxt', (h) => far('las_matvarden') && (!h || h.alder < 18), tillvaxt],
   ['remisser', 'Remisser', () => pa('las_remiss', 'las_remiss_status'), remisserFlik],
   ['logglista', 'Logglista', () => true, logglista],
   ['identitet', 'Identitet', () => pa('las_oversikt', 'las_admin'), identitet],
@@ -152,7 +156,7 @@ export function kravRuta(e) {
 }
 
 function flikarHtml(id, aktiv) {
-  return `<nav class="flikar" aria-label="Journalens delar"><ul>${FLIKAR.filter(f => f[2]() && !f[4]?.dold).map(([k, t]) =>
+  return `<nav class="flikar" aria-label="Journalens delar"><ul>${FLIKAR.filter(f => f[2](huvud) && !f[4]?.dold).map(([k, t]) =>
     `<li><a href="${href(id, k === 'oversikt' ? null : k)}"${k === aktiv ? ' aria-current="page"' : ''}>${esc(t)}</a></li>`).join('')}</ul></nav>`;
 }
 

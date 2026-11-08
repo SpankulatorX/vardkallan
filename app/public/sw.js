@@ -26,8 +26,10 @@ const FILER = [
   '/js/vyer/lakemedelsstod.js', '/js/vyer/lakemedelsansvar.js',
   '/js/vyer/patient-tillampningar.js', '/tillampningar/blodtryck/index.html', '/tillampningar/blodtryck/app.js', '/tillampningar/blodtryck/app.css',
   '/js/planering-ui.js', '/js/vyer/min-vardbegaran.js',
+  '/js/tillvaxt-kurva.js', '/js/vyer/patient-tillvaxt.js', '/js/vyer/min-tillvaxt.js', '/js/vyer/bhv.js',
 ];
 // Runda 6, r5: listan har tillämpningsfliken och demotillämpningen Blodtryck över tid (/tillampningar/blodtryck/).
+// Runda 7, r6: och tillväxtkurvorna och barnhälsovården (tillvaxt-kurva.js, patient-tillvaxt.js, min-tillvaxt.js och bhv.js).
 const TIDSGRANS_MS = 4000;
 
 self.addEventListener('install', (e) => {

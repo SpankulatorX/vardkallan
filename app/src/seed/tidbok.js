@@ -8,6 +8,8 @@
 export const TIDBOK_PERSONAL = [
   { id: 'lak-kard2', namn: 'Magnus Öberg', yrke: 'lakare', titel: 'Läkare', enhet: 'uso-kard', hsa: 'SE2321000164-VKP201' },
   { id: 'ssk-kardmott', namn: 'Lina Persson', yrke: 'sjukskoterska', titel: 'Sjuksköterska (hjärtsviktssjuksköterska)', enhet: 'uso-kard-mott', hsa: 'SE2321000164-VKP202' },
+  // Runda 7, r6: BHV-sjuksköterskan på Barnavårdscentralen Tybble. Hennes schema läggs in av bhv.js.
+  { id: 'ssk-bvc', namn: 'Maja Lindholm', yrke: 'sjukskoterska', titel: 'Sjuksköterska (BHV-sjuksköterska)', enhet: 'vc-tybble-bvc', hsa: 'SE2321000164-VKP410' },
 ];
 
 // Ett schema per vårdgivare och mottagning. Mallen säger vilka tider som finns en vanlig dag.
