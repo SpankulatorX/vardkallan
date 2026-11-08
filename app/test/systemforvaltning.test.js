@@ -55,7 +55,8 @@ describe('Systemförvaltning', () => {
     await k.logga('sysf');
     const s = (await k.get('/api/session')).data;
     expect(s.personal).toMatchObject({ namn: 'Tomas Lindh', yrke: 'systemforvaltare', yrkeText: 'Systemförvaltare' });
-    expect(s.behorigheter).toEqual(['konfigurera', 'omorganisera', 'undanta', 'lagring']);
+    // Runda 7, r2: all personal gör övningarna i utbildningen.
+    expect(s.behorigheter).toEqual(['konfigurera', 'omorganisera', 'undanta', 'lagring', 'utbildning']);
     expect((await k.get('/api/patient/p01')).status).toBe(403);
     expect((await k.get('/api/arbetslista')).data).toEqual([]);
     // Den andra systemförvaltaren finns för fyra ögon och går att logga in som, direkt efter den första.

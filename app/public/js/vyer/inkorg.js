@@ -1,5 +1,7 @@
 // Inkorgen: osignerade anteckningar, okvitterade remissvar, larm och NLL-avvikelser. Varje rad leder till rätt ställe.
 import { esc, api, tidpunkt, ikon, vyRubrik, NLL, dialog, medKnapp, notis } from '../ui.js';
+// Runda 7, r2: hjälp i sammanhanget.
+import { hjalpRuta } from '../hjalp.js';
 import { S, uppdateraInkorg } from '../app.js';
 // Runda 6, r3: tvångsvård, vårdplaner och samordnad planering.
 import { inkorgSektioner } from './r3.js';
@@ -30,7 +32,7 @@ function sektion(id, rubrik, rader, tomText, forklaring) {
 const rad = (href, rubrik, detalj, klass = '') => `<li class="${klass}"><a href="${href}"><span class="ik-rubrik">${rubrik}</span><span class="under-text">${detalj}</span></a>${ikon.pil}</li>`;
 
 export async function visa(main) {
-  main.innerHTML = vyRubrik('Inkorg', 'Det som väntar på dig eller din vårdenhet. Inget försvinner förrän det är åtgärdat.') + '<div id="ik"><p class="tom">Hämtar inkorgen.</p></div>';
+  main.innerHTML = vyRubrik('Inkorg', 'Det som väntar på dig eller din vårdenhet. Inget försvinner förrän det är åtgärdat.') + hjalpRuta('inkorg') + '<div id="ik"><p class="tom">Hämtar inkorgen.</p></div>';
   const d = await api('/api/inkorg');
   await uppdateraInkorg();
   const pat = (id, flik, sub) => `#/patient/${encodeURIComponent(id)}${flik ? `/${flik}` : ''}${sub ? `/${sub}` : ''}`;

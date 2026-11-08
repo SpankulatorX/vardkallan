@@ -2,6 +2,8 @@
 // kurva per mätvärde med referensintervall, alla värden i en tabell och registrering av ett värde eller en hel
 // NEWS2-kontroll. Medvetandegrad, GCS och smärta väljs i listor med text, och systemet räknar summan och poängen.
 import { esc, api, tidpunkt, datum, notis, medKnapp, migreradEtikett, tal, ikon } from '../ui.js';
+// Runda 7, r2: hjälp i sammanhanget.
+import { hjalpRuta } from '../hjalp.js';
 import { far } from '../app.js';
 import { doldaRad } from './patient.js';
 import { varde as vardeHtml } from './patient-oversikt.js';
@@ -118,7 +120,7 @@ export async function visa(el, ctx) {
   if (!ctx.aktuell()) return;
   const kanReg = far('registrera_matvarde');
   const markerad = ctx.sub && ctx.sub !== 'ny' ? ctx.sub : null;
-  el.innerHTML = `<div class="flikhuvud"><h2>Mätvärden</h2></div>${doldaRad(d.dolda)}
+  el.innerHTML = `<div class="flikhuvud"><h2>Mätvärden</h2></div>${kanReg ? hjalpRuta('matvarde') : ''}${doldaRad(d.dolda)}
     ${news2Html(d.news2, kanReg && d.news2?.galler)}
     <div id="news2-plats"></div>
     ${kanReg ? registrering() : ''}

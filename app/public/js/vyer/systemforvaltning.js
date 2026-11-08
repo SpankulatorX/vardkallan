@@ -338,7 +338,7 @@ export const lagring = {
     el.innerHTML = `
       <section class="inkorg-sektion" aria-labelledby="sf-l-prov"><h2 id="sf-l-prov">Säkerhetskopiering och återläsning</h2>
         ${senaste ? `<p class="${senaste.godkand ? 'ruta ruta-ok' : 'ruta ruta-larm'} liten">${senaste.godkand ? ikon.bock : ikon.varning} Senaste provåterläsning ${esc(tidpunkt(senaste.tid))}: ${senaste.godkand ? 'godkänd' : 'underkänd'}, ${esc(storlek(senaste.byte))}, ${tal(senaste.rader, 0)} rader i ${senaste.tabeller} tabeller, ${senaste.ms} ms.</p>` : '<p class="liten">Ingen provåterläsning är gjord i den här sandlådan än. Den körs också automatiskt i bygget.</p>'}
-        <button type="button" class="knapp" data-prova>Prova säkerhetskopiering och återläsning</button>
+        <button type="button" class="knapp" data-prova>Pröva säkerhetskopiering och återläsning</button>
         <div data-provresultat aria-live="polite"></div></section>
       <section class="lm-sektion" aria-labelledby="sf-l-huvudman"><h2 id="sf-l-huvudman">Uppgifter per huvudman</h2>
         <div class="tabellrulle"><table class="tabell"><thead><tr><th scope="col">Huvudman</th><th scope="col" class="tal">Rader</th><th scope="col" class="tal">Patienter</th><th scope="col">Uttag</th></tr></thead><tbody>

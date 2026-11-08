@@ -25,6 +25,8 @@ import { sakraLakemedelsstod, seedaLakemedelsstod } from './lakemedelsstod-schem
 import { seedaLakemedelsansvar } from './lakemedelsansvar-schema.js';
 // Runda 7, r4: systemförvaltningen, med konfiguration, omorganisation, undantag och lagring (systemforvaltning-schema.js).
 import { sakraSystemforvaltning } from './systemforvaltning-schema.js';
+// Runda 7, r2: nyhetsrutan och intygen från övningarna (utbildning-schema.js).
+import { sakraUtbildning, seedaUtbildning } from './utbildning-schema.js';
 // Runda 6, r5: masterdata från utbytbara källor (masterdata.js).
 import { forSeed as masterdataForSeed } from './masterdata.js';
 // Runda 7, r3: ekonomi (ekonomi-schema.js).
@@ -400,6 +402,9 @@ export function byggSeed(bas = nu()) {
   // Efter tidboken, eftersom BHV-sjuksköterskans schema läggs i den.
   require('./bhv.js').seeda(db, { bas });
   sakraIdentitetsschema(db);
+  // Runda 7, r2: nyhetsrutan och intygen.
+  sakraUtbildning(db);
+  seedaUtbildning(db, bas);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -495,6 +500,8 @@ export function migrera(db) {
   // Runda 7, r6: barnhälsovårdens tabeller och seed för en sandlåda från före runda 7.
   require('./bhv.js').sakra(db);
   sakraIdentitetsschema(db);
+  // Runda 7, r2: en äldre sandlåda får nyhetsrutan och seedens intyg relativt till i dag.
+  if (sakraUtbildning(db)) seedaUtbildning(db, nu());
   return db;
 }
 

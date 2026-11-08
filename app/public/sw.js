@@ -30,8 +30,10 @@ const FILER = [
   '/js/vyer/systemforvaltning.js',
   '/js/vyer/rapportering.js', '/js/rapportfel.js', '/js/tjanstekontrakt.js',
   '/js/tillvaxt-kurva.js', '/js/vyer/patient-tillvaxt.js', '/js/vyer/min-tillvaxt.js', '/js/vyer/bhv.js',
+  '/js/nyheter.js', '/js/hjalp.js', '/js/kontrast.js', '/js/vyer/nyheter.js', '/js/vyer/utbildning.js', '/js/vyer/tillganglighet.js', '/js/tidsgrans.js',
 ];
 // Runda 7, r5: listan har rapporteringen, rättningarna i inkorgen och tabellen över tjänstekontrakten.
+// Runda 7, r2: listan har nyhetsrutan, hjälpen, högkontrastläget, nyheterna, utbildningen och tillgänglighetsredogörelsen.
 // Runda 6, r5: listan har tillämpningsfliken och demotillämpningen Blodtryck över tid (/tillampningar/blodtryck/).
 // Runda 7, r4: listan har systemförvaltningens vy. r6: och tillväxtkurvorna och barnhälsovården (tillvaxt-kurva.js, patient-tillvaxt.js, min-tillvaxt.js och bhv.js).
 const TIDSGRANS_MS = 4000;

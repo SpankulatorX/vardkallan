@@ -1,5 +1,7 @@
 // Journalen: anteckningar per enhet och typ, läsning med versioner, ny anteckning från mall, utkast, signering och rättelse.
 import { esc, api, tidpunkt, datum, migreradEtikett, notis, faltFel, medKnapp, ikon, ApiFel, felNotis } from '../ui.js';
+// Runda 7, r2: hjälp i sammanhanget.
+import { hjalpRuta } from '../hjalp.js';
 import { far, S, minVardenhet, uppdateraInkorg, vardenhetAv as enhetsVardenhet } from '../app.js';
 import { doldaRad, kravRuta } from './patient.js';
 import { dokumenterasHtml, kopplaDokumenteras, nyKontaktData, kontaktNotis } from './patient-vardkontakt.js';
@@ -27,7 +29,7 @@ export async function visa(el, ctx) {
   // I läsläget vid avbrott kommer listan från läskopian, som bara har de senaste anteckningarna.
   const urKopia = lista.totalt > lista.iLaskopian
     ? `<p class="ruta ruta-info liten">Läskopian har de ${lista.iLaskopian} senaste av patientens ${lista.totalt} anteckningar som du kan se.</p>` : '';
-  el.innerHTML = `<h2 class="sr">Journal</h2>${urKopia}${doldaRad(lista.dolda)}
+  el.innerHTML = `<h2 class="sr">Journal</h2>${egnaMallar.length ? hjalpRuta('daganteckning') : ''}${urKopia}${doldaRad(lista.dolda)}
     <div class="journal-delad">
       <div class="journal-lista">
         <div class="journal-verktyg">

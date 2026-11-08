@@ -976,6 +976,70 @@ Avtalets tillägg 2020 (bilaga A1.7, Konceptuell överenskommelse 2020-06-01) ut
 **FHIR.** Huvudomfång är en Observation med LOINC 9843-4 och vitalparameterprofilen headcircum. Vaccinationerna är Immunization med ATC, dosnummer i `protocolApplied` och batch, med samma behörighet och loggning som gränssnittet. Invånaren får dem utan personalens id.
 
 **Det som är simulerat eller saknas.** Mottagaren för registret är simulerad och tjänstekontrakten GetObservation och GetActivities är inte anslutna. Svenska referenser, prematurkurvor, kurvor för syndrom, pubertetsdata, sitthöjd, amning, screening, EPDS och föräldragrupper (övriga klasser i K11) saknas. Koderna i K11 är inte kontrollerade mot gällande Snomed CT. Larmen, tidsfönstren, intervallen och målängden är demoregler.
+## Tillgänglighet, skärmanpassning, nyheter och utbildning (runda 7, r2: Sussa 8.4.1.3, KD1.1.4.3, KD1.1.4.10, 10.1.1.2 till 10.1.1.5)
+
+Underlag: bilaga K2, Tillgänglighetskrav enligt EN 301 549, i förfrågningsunderlaget (25 krav i WCAG-numrering), kapitel 8 och 10 i kravspecifikationen och Kravspecifikation drift och teknik, avsnitt 1.1.4.
+
+### Tillgänglighetskontrollen (test/tillganglighet.cjs)
+
+Ett Playwright-skript går igenom alla vyer i menyn för var och en av de tretton demorollerna, journalens flikar för fem roller, Min journal, nyheterna, tillgänglighetsredogörelsen och de offentliga sidorna, och prövar det som går att pröva automatiskt i WCAG 2.1 nivå AA, som EN 301 549 kapitel 9 och 11 hänvisar till. Kontrollerna är skrivna i skriptet, utan en extern tillgänglighetsmotor, så att de går att läsa och köras utan nätet:
+
+- Kontrast med WCAG:s formel för varje synligt textelement, mot bakgrunden lager för lager (en gradient räknas med sin sämsta färg): 4,5:1, och 3:1 för stor text. Fältens ramar och fokusmarkeringen: 3:1.
+- Namn på varje fält, knapp, länk och ram. Ett namn får inte komma bara från platshållaren.
+- Textalternativ för bilder och symboler, eller att de är dolda för hjälpmedel.
+- En rubrik på nivå 1 i huvudinnehållet och inga hoppade rubriknivåer. Dialoger har rubrik.
+- Landmärken: sidhuvud, huvudinnehåll och sidfot, och allt synligt innehåll i ett landmärke. Demoraden är ett eget landmärke.
+- Språket svenska och en egen sidtitel per vy.
+- Tabbordning: 46 tabbsteg per vy (sex från början av sidan och 40 från vyns rubrik). Varje element som får fokus ska synas och ha en synlig fokusmarkering, fokus får inte fastna (ett datumfält tar emot tabb för dag, månad och år, och webbläsarens egen kalenderknapp i fältet har webbläsarens markering) och inte byta sida eller öppna en dialog. Inget får ha positivt tabindex.
+- Allt som ser klickbart ut (pekaren är en hand, eller elementet har `data-a`) ska gå att nå med tabb.
+- Färg som enda bärare: små färgade element utan text, länkar i löptext som inte är understrukna och kurvor där serierna bara skiljs med färg.
+- Inget ljud, ingen video, inga rasterbilder (bilder av text) och inga animationer som pågår mer än fem sekunder.
+- Förstoring till 200 procent (640 px bred vy) och omflyttning vid 320 px: ingen rullning i sidled och ingen text som klipps av. Breda tabeller får rulla i sin egen ruta.
+- Skärmarna: mobil 360 px, platta 768 och 1024 px och stor skärm 2560 px, utan rullning i sidled. På stor skärm får ett stycke inte rymma mer än omkring 170 tecken per rad (samma som på en vanlig skärm), och innehållet sträcks inte ut över 1500 px.
+- Flöden med bara tangentbordet: länken Hoppa till innehållet är första tabbstoppet, inloggning, att stänga nyheterna (fokus går då till vyns rubrik), att öppna en patient och byta flik.
+- Ett fel från servern i ett formulär markeras med `aria-invalid`, beskrivs i text som hör till fältet med `aria-errormessage` och får fokus.
+- Högkontrastläget med knappen och med datorns inställning: 7:1 för text och 4,5:1 för stor text. Minskade rörelser: inga animationer, övergångar eller mjuk rullning.
+
+Felen som skriptet hittade första gången och som är rättade: demoraden låg utanför landmärken (nu ett `aside` med namn), stegen i remissens statuskedja efter en avvisning hade för låg kontrast genom genomskinlighet (nu dämpad färg och streckad punkt), feltexten i ett formulär var inte kopplad till fältet, och textraderna blev mycket långa på stor skärm.
+
+### Tillgänglighetsredogörelsen (tillganglighet.js)
+
+Registret har varje krav i K2 med EN 301 549-nummer, nivå, avsedd status, hur det prövas (automatiskt test, bedömning av en människa eller båda) och testerna. Statusen räknas som i kravregistret: ett krav som ska vara uppfyllt eller inte tillämpligt är det bara när alla dess tester är gröna, annars delvis. Det som bara kan bedömas av människor (sensoriska kännetecken, att länktexter, rubriker och felförslag beskriver syftet, vid inmatning och förebyggande av fel) är märkt så och prövas inte automatiskt. 2.2.1 Justerbar tidsgräns är uppfyllt med varningen före utloggningen (se nedan), och felmeddelanden står kvar tills de stängs. Registret har också sju krav i WCAG 2.1 som K2 inte nämner och hur systemet är anpassat för synskada, hörselskada, färgblindhet och begränsad kognitionsförmåga. Sidan `#/tillganglighet` (öppen utan inloggning, länkad från sidfoten) visar registret med testernas status, och `docs/tillganglighet.md` skrivs ur samma register med `bun scripts/tillganglighet-md.js`.
+
+### Färg, kontrast och rörelse (Sussa 8.4.1.3)
+
+- Ingen information bärs bara av färg. Status har text och symbol, larm har symbol och text, uppmärksamhetssymbolen har sina delar på fasta platser och ett textalternativ, och i kurvorna har punkter utanför referensintervallet en ring och den andra serien är streckad.
+- Knappen Hög kontrast i demoraden ger mörkare text, vita ytor, tjockare ramar, understrukna länkar och tjockare fokusmarkering. Valet sparas i webbläsaren (`localStorage`, `vk-kontrast`), och utan val följer systemet datorns inställning (`prefers-contrast: more` och tvingade färger). Läget sätts som `data-kontrast` på `html` innan något ritas. Med tvingade färger i Windows får statusmarkeringar ramar och kurvorna systemfärger.
+- Med minskade rörelser i datorn (`prefers-reduced-motion: reduce`) finns inga animationer, övergångar eller mjuk rullning.
+
+### Skärmanpassning (KD1.1.4.3 och KD1.1.4.10)
+
+Gränssnittet är responsivt från 320 till 2560 px utan minsta upplösning: under 900 px blir menyn en knapp, under 640 px blir knapparna minst 40 px höga och patienthuvudet följer med sidan, och från 1800 px begränsas innehållet till 1500 px och stycken till 80 em. Text och symboler är vektorer och typsnitt, så hög upplösning ger skarp text. Flera skärmar fungerar genom att journalen kan öppnas i flera fönster med samma inloggning. Rekommendation för arbete med journalen: minst 1280 px bredd. Prövat i Chromium, inte på riktiga plattor eller telefoner.
+
+### Inloggningens tidsgräns och varningen före utloggningen (K2 1.6.1, WCAG 2.2.1)
+
+- Inloggningen går ut efter 30 minuter utan aktivitet (`INLOGGNING_MINUTER`), för personalen och för invånaren i Min journal. Sandlådan finns kvar, så det som har sparats, också utkast, finns efter en ny inloggning. Förut gällde bara sandlådans 8 timmar, och varje anrop i bakgrunden förlängde den, så en öppen flik loggades aldrig ut.
+- Anrop som gränssnittet gör av sig självt (förnyelsen av läskopian) har rubriken `X-Vk-Bakgrund: 1` och räknas inte som aktivitet. Varje svar till en inloggad har rubriken `X-Inloggning-Gar-Ut` med tiden då inloggningen går ut.
+- Fem minuter innan visar `js/tidsgrans.js` en varning med `role="alertdialog"`, som skärmläsare läser upp, och fokus på knappen Fortsätt arbeta. Knappen förlänger inloggningen på servern (`POST /api/session/forlang`), hur många gånger som helst (klickbudget 1). Gör användaren inget sparar systemet text i en öppen anteckning eller remiss med formulärens egna knappar för utkast, loggar ut och säger vad som sparades. Utloggningen står i säkerhetsloggen. Under ett avbrott loggas ingen ut, eftersom läskopian då behövs.
+- Demoläget `POST /api/demo/inloggning-gar-ut { sekunder }` flyttar tiden i den egna sessionen så att varningen syns direkt.
+- Text i andra formulär än anteckning och remiss, till exempel en ordination som inte är sparad, har inga utkast och sparas inte.
+
+### Kapplöpningen med läskopian vid snabba rollbyten
+
+Testet hittade 401 från `/api/lasekopia` när roller byttes snabbt. Felet fanns också i main (2 av 15 rollbyten i samma följd). Förnyelsen av läskopian väntade först på nyckeln i webbläsaren och skickade sedan sitt anrop, också om användaren hade loggat ut under tiden. Nu stoppar varje utloggning och inloggning en förnyelse som har börjat (`stoppaFornyelse` i `js/avbrott.js`), och förnyelsen prövar före och efter anropet att samma person fortfarande är inloggad. Undantaget i testet är borttaget.
+
+### Nyheter vid ny version (nyheter.js och nyheter.json, Sussa 10.1.1.4)
+
+`app/src/nyheter.json` har nyheterna per version med datum, och varje nyhet har roller (yrken, `invanare`, `personal` eller `alla`), omfattning (`stor` när arbetssättet ändras, annars `liten`), rubrik, text och adressen där förändringen finns. Den senaste versionen ska vara samma som `version` i `package.json`, vilket ett test prövar. Efter inloggning visar en ruta mellan sidhuvudet och arbetsytan den aktuella versionens nyheter för rollen, med de stora förändringarna först och märkta Ändrat arbetssätt. Rutan stängs med ett klick (klickbudget 1), och vad användaren har stängt sparas per användare och version i sandlådan (`nyheter_stangda`), så rutan kommer tillbaka först vid nästa version. Den som aldrig har loggat in förut får bara det som är nytt nu, inte hela historiken. Alla nyheter för rollen går att läsa igen under `#/nyheter`.
+
+### Hjälp och övningar med intyg (hjalp.js och utbildning.js, Sussa 10.1.1.5)
+
+- Hjälp i sammanhanget: en utfällbar ruta Hjälp i de vanligaste flödena (arbetslistan, anteckning, ordination, inkorgen, mätvärden, Läkemedel att ge, remiss, sök och nödåtkomst och Dagens arbete) som säger vad användaren gör och vad systemet gör åt användaren, och länkar till övningarna. Rutan visas bara för den som kan göra flödet.
+- Under Utbildning (alla personalroller) gör användaren övningarna för sin yrkesroll: tre till sju kunskapsfrågor om hur Vårdkällan fungerar, med demopatienterna Gunnar Åkesson och Elin Sandberg och en länk till samma ställe i demon när rollen når det. Servern rättar (rätt svar lämnas aldrig ut före rättningen), förklarar varje svar och utfärdar ett intyg som gäller i 365 dagar när alla är rätt. Intygen (`utbildningsintyg`) ändras och raderas aldrig.
+- Verksamhetschefen ser vilka som arbetar på vårdenheten och deras intyg: giltigt, går ut inom 30 dagar, har gått ut eller saknas, med de som behöver göra övningarna först. Seeden har intyg i alla lägen på Kardiologiska kliniken, men inte för Sara Lindqvist och Amira Haddad, så att den som provar demon kan göra övningarna själv.
+- Övningarna är data med versioner (`ovningsversioner`). Seeden lägger in övningarna i `seed/ovningar.js` som version 1. Verksamhetschefen och utbildarna ändrar övningarna under Utbildning: fråga, yrkesroller, svarsalternativ, vilket som är rätt, förklaring och länk till demon, och kan lägga till och ta bort övningar. Systemet prövar varje övning innan den sparas (2 till 5 alternativ, ett rätt, minst en yrkesroll, varje yrkesroll har minst en övning) och säger vilken övning och vad som saknas, med fokus på fältet. Varje ändring är en ny version med vem, när och vad som ändrades, och en version ändras och raderas aldrig. Ett intyg säger vilken version det gäller, och intyg som redan är utfärdade gäller efter en ändring.
+- En utbildare är den som har ett giltigt utbildarintyg (`utbildarintyg`, ett år). Verksamhetschefen utfärdar det i tabellen över vårdenhetens intyg till någon på vårdenheten som själv har ett giltigt intyg. Det är ingen egen inloggningsroll. Seeden har Johan Ek som utbildare.
+- Demon är utbildningsmiljön. Övningarna gäller hela vårdgivaren, inte en vårdenhet i taget, och praktiska prov i journalen finns inte.
 
 ## Beslutade avvägningar (3 november 2026)
 

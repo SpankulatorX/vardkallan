@@ -169,6 +169,8 @@ for (const w of ['PAR', 'MFR', 'VIV', 'SKR', 'MVO', 'BB', 'SOSNYK', 'FV', 'RAS',
 for (const k of KONTRAKT) TILLATNA.add(k.kontrakt);
 // Runda 7, r6: barnhälsovården, vaccinerna och registret (BHVQ), och FHIR-resursen för vaccinationer.
 for (const w of ['BVC', 'BHV', 'BHVQ', 'BHVQ-SIM', 'BCG', 'EPDS', 'MPR', 'HPV', 'SD', 'Immunization', 'Snomed', 'K11', 'NKRR', 'IGO', 'CC', 'BY-NC-SA']) TILLATNA.add(w);
+// Runda 7, r2: tillgänglighetsredogörelsen hänvisar till standarderna EN 301 549, WCAG 2.1 nivå AA och ISO 9241.
+for (const w of ['EN', 'WCAG', 'AA', 'ISO']) TILLATNA.add(w);
 // Fraser med engelska ord som är namn på standarder, rubriker, parametrar och tekniska begrepp. Ett tomt värde i data
 // beskrivs som tomt, inte som null (beslut 2026-11-03).
 export const FRASER = ['HL7 Sweden', '$everything', 'pull request', 'Server-Timing', 'X-Content-Type-Options', 'Content-Type', 'Content-Disposition',
@@ -177,7 +179,9 @@ export const FRASER = ['HL7 Sweden', '$everything', 'pull request', 'Server-Timi
   // Runda 6, r1: källorna för NEWS2 och GCS och en titel i NEWS2 som citeras.
   'Royal College of Physicians', 'National Early Warning Score', 'Glasgow Coma Scale', 'specialist registrar',
   // Runda 6, r5: standarden för externa tillämpningar och HTTP-rubriken för åtkomstbiljetter.
-  'SMART on FHIR', 'SMART App Launch', 'WWW-Authenticate', 'Subscriptions R5 Backport', 'rest-hook'];
+  'SMART on FHIR', 'SMART App Launch', 'WWW-Authenticate', 'Subscriptions R5 Backport', 'rest-hook',
+  // Runda 7, r2: mediefrågorna för datorns inställningar för kontrast och rörelse.
+  'prefers-contrast: more', 'forced-colors: active', 'prefers-reduced-motion: reduce', 'X-Inloggning-Gar-Ut'];
 
 // Svenska ord som ofta skrivs utan å, ä eller ö. Formen utan prickar är inget eget ord.
 export const UTAN_PRICKAR = new Map(Object.entries({

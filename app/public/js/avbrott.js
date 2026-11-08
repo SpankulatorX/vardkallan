@@ -471,14 +471,22 @@ export async function loggaUtUnderAvbrott() {
 }
 
 // Hämtar en ny läskopia från servern och sparar den krypterad.
+// Runda 7, r2: varje utloggning och inloggning stoppar en förnyelse som redan har börjat. Annars kunde förnyelsen, som
+// först väntar på nyckeln i webbläsaren, skicka sitt anrop efter utloggningen och få 401 (kapplöpning vid snabba byten).
+let fornyelseNr = 0;
+export function stoppaFornyelse() { fornyelseNr++; clearTimeout(fornyaTimer); }
 export async function fornyaNu() {
   const vem = S.session?.personal?.id;
   if (!vem || avbrott.aktivt || avbrott.simulerat) return;
+  const nr = fornyelseNr;
+  const galler = () => nr === fornyelseNr && S.session?.personal?.id === vem && !avbrott.aktivt;
   senastFornyad = Date.now();
   try {
     await kopia.satNyckel(S.session.lasnyckel, vem);
-    const ny = await api('/api/lasekopia', { direkt: true, tyst: true });
-    if (S.session?.personal?.id !== vem || avbrott.aktivt) return;
+    if (!galler()) return;
+    // Förnyelsen görs av gränssnittet självt och räknas inte som aktivitet för inloggningen.
+    const ny = await api('/api/lasekopia', { direkt: true, tyst: true, bakgrund: true });
+    if (!galler()) return;
     const skapad = await kopia.spara(ny);
     if (skapad) {
       senastSparad = Date.now();

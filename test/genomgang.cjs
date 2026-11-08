@@ -129,33 +129,34 @@ async function valDialog(page, knappSel, { intyg = false, bildnamn } = {}) {
   await page.waitForLoadState('networkidle');
 }
 
+// Runda 7, r2: all personal har Utbildning (övningar och intyg, Sussa 10.1.1.5) före Migreringsavstämning.
 const MENY = {
   // Läkaren registrerar också delegeringar (runda 5, r4).
   // Runda 6, r2: läkaren och sjuksköterskan har Direktiv och uppföljning.
-  klinisk: ['Arbetslista', 'Sök patient', 'Inkorg', 'Delegeringar', 'Direktiv och uppföljning', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  klinisk: ['Arbetslista', 'Sök patient', 'Inkorg', 'Delegeringar', 'Direktiv och uppföljning', 'Remisser', 'Väntrum (akuten)', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Sjuksköterskan registrerar delegeringar, och undersköterskan med delegering ger läkemedel (runda 5).
-  sjukskoterska: ['Arbetslista', 'Sök patient', 'Inkorg', 'Läkemedel att ge', 'Delegeringar', 'Direktiv och uppföljning', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  sjukskoterska: ['Arbetslista', 'Sök patient', 'Inkorg', 'Läkemedel att ge', 'Delegeringar', 'Direktiv och uppföljning', 'Remisser', 'Väntrum (akuten)', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 6, r2: farmaceuten i den fördjupade läkemedelsgenomgången.
-  farmaceut: ['Arbetslista', 'Sök patient', 'Inkorg', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
-  underskoterska: ['Arbetslista', 'Sök patient', 'Inkorg', 'Läkemedel att ge', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
-  utanRemiss: ['Arbetslista', 'Sök patient', 'Inkorg', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  farmaceut: ['Arbetslista', 'Sök patient', 'Inkorg', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  underskoterska: ['Arbetslista', 'Sök patient', 'Inkorg', 'Läkemedel att ge', 'Väntrum (akuten)', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  utanRemiss: ['Arbetslista', 'Sök patient', 'Inkorg', 'Väntrum (akuten)', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Vårdadministratören har tidboken först: dagens arbete, tidbok och väntelista (Sussa 3.4.1 till 3.4.4).
-  vardadministrator: ['Dagens arbete', 'Tidbok', 'Väntelista', 'Arbetslista', 'Sök patient', 'Inkorg', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
-  logg: ['Sök patient', 'Logguppföljning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
-  arkiv: ['E-arkiv och gallring', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  vardadministrator: ['Dagens arbete', 'Tidbok', 'Väntelista', 'Arbetslista', 'Sök patient', 'Inkorg', 'Remisser', 'Väntrum (akuten)', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  logg: ['Sök patient', 'Logguppföljning', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  arkiv: ['E-arkiv och gallring', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 6, r3: Lena Ström på psykiatrin har bevakningen av tvångsvården, och kommunen (simulerad) har Samverkan.
-  psykiatri: ['Arbetslista', 'Sök patient', 'Inkorg', 'Delegeringar', 'Tvångsvård', 'Direktiv och uppföljning', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
-  kommun: ['Samverkan', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  psykiatri: ['Arbetslista', 'Sök patient', 'Inkorg', 'Delegeringar', 'Tvångsvård', 'Direktiv och uppföljning', 'Remisser', 'Väntrum (akuten)', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  kommun: ['Samverkan', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 7, r5: uppföljningsrollen granskar och skickar rapporterna till myndigheter och register.
-  uppfoljning: ['Datauttag', 'Tvångsvård och samordning', 'Rapportering', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  uppfoljning: ['Datauttag', 'Tvångsvård och samordning', 'Rapportering', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 6, r6: verksamhetschefen utser uppdragen i läkemedelshanteringen och fastställer generella direktiv.
-  verksamhetschef: ['Läkemedelsansvar', 'Direktiv och uppföljning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  verksamhetschef: ['Läkemedelsansvar', 'Direktiv och uppföljning', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 7, r3: ekonomen tar fram faktureringsunderlaget och sköter prislistorna.
-  ekonom: ['Faktureringsunderlag', 'Prislistor', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  ekonom: ['Faktureringsunderlag', 'Prislistor', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 7, r4: systemförvaltaren har regler och parametrar, omorganisation, undantag och lagring.
-  systemforvaltare: ['Regler och parametrar', 'Omorganisation', 'Undantag från visning', 'Lagring', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  systemforvaltare: ['Regler och parametrar', 'Omorganisation', 'Undantag från visning', 'Lagring', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 7, r6: läkaren på Vårdcentralen Tybble har Barnhälsovård, eftersom vårdenheten har en barnavårdscentral.
-  bvc: ['Arbetslista', 'Sök patient', 'Inkorg', 'Delegeringar', 'Direktiv och uppföljning', 'Barnhälsovård', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  bvc: ['Arbetslista', 'Sök patient', 'Inkorg', 'Delegeringar', 'Direktiv och uppföljning', 'Barnhälsovård', 'Remisser', 'Väntrum (akuten)', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
 };
 
 (async () => {
@@ -1616,7 +1617,7 @@ const MENY = {
       await forvanta(page, 'main h1', 'Användartest');
       await forvanta(page, '.at-info', 'Alla patienter i demon är påhittade');
       await page.fill('#at-kod', 'G01');
-      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut', 'sok-journal', 'news2', 'ordinera-mall', 'dos-efterhand', 'utse-mal', 'godkanna-mall', 'extern-tillampning', 'boka-ingrepp', 'boka-kedja', 'kravviktning', 'exportera-underlag', 'lamna-ut-hjalpmedel', 'forbered-namnbyte', 'andra-demoregel', 'rapport-par', 'tillvaxt-bhv']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut', 'sok-journal', 'news2', 'ordinera-mall', 'dos-efterhand', 'utse-mal', 'godkanna-mall', 'extern-tillampning', 'boka-ingrepp', 'boka-kedja', 'kravviktning', 'exportera-underlag', 'lamna-ut-hjalpmedel', 'forbered-namnbyte', 'andra-demoregel', 'rapport-par', 'tillvaxt-bhv', 'nyheter', 'forlang-inloggning']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

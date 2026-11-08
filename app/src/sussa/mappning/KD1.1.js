@@ -1,5 +1,7 @@
 // Sussa KD1.1 Drift, teknik och underhåll: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
+// Runda 7, r2: posterna för tillgänglighet och skärmanpassning ersätts ur sussa/runda7-r2.js.
+import { medR7r2 } from '../runda7-r2.js';
 
 // Runda 7, r4: lagringen (lagring.js och test/systemforvaltning.test.js).
 const S = 'Systemförvaltning > ';
@@ -21,7 +23,7 @@ const LOSNING_HUVUDMAN = 'Varje uppgift hör till en huvudman genom den enhet de
 const EXPERT_HUVUDMAN = 'Systemet klassar själv varje tabell efter dess kolumner, så att en ny tabell kommer med utan att någon behöver komma ihåg det. En tabell som inte går att klassa tas inte med i ett uttag och visas på sidan Lagring, hellre än att den läcker till en annan huvudman.';
 const ANM_HUVUDMAN = 'Demon har en huvudman, Region Örebro län, och den simulerade kommunen. Testet lägger in en andra påhittad region och visar att uppgifterna särskiljs. En uttagsfil från demon är märkt som demodata. Beslutet om uttag godkänns av den andra systemförvaltaren, som är en egen demoroll.';
 
-export default [
+const AVSNITT = [
   { id: 'KD1.1.1.1', kategori: 'leverantor', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: "Gäller leverantörens åtagande, drift eller process och inte systemets funktion." },
   { id: 'KD1.1.1.2', kategori: 'leverantor', egna: [], tester: [], avsedd: 'planerat',
@@ -106,3 +108,4 @@ export default [
   { id: 'KD1.1.4.10', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: "Bildskärm är inte byggt ännu (runda 7)." },
 ];
+export default medR7r2(AVSNITT);

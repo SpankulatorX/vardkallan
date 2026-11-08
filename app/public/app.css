@@ -466,7 +466,8 @@ legend { font-weight: 600; font-size: var(--f-s); padding: 0; margin-bottom: 6px
 .steg-klar .steg-punkt { background: var(--kalla); border-color: var(--kalla); }
 .steg-avvisad .steg-punkt { background: var(--blak-2); border-color: var(--blak-2); }
 .steg-nasta .steg-punkt { border-color: var(--kalla); box-shadow: 0 0 0 3px var(--kalla-ljus); }
-.steg-stoppad { opacity: 0.55; }
+.steg-stoppad .steg-text, .steg-stoppad .steg-text strong { color: var(--dampad); }
+.steg-stoppad .steg-punkt { border-style: dashed; }
 .steg-stoppad .steg-text strong { text-decoration: line-through; }
 .steg-text { display: flex; flex-direction: column; padding: 1px 6px 0 8px; min-width: 0; position: relative; z-index: 1; background: var(--yta); }
 .steg-vantar .steg-text strong { color: var(--dampad); font-weight: 600; }
@@ -1280,3 +1281,130 @@ mark { background: var(--obs-bg); color: inherit; outline: 1px solid var(--obs-k
 .tv-bhvq { margin-top: 10px; }
 .tv-forslag .forslag-lista { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 6px; }
 .tv-forslag .forslag-lista li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* Runda 7, r2: tillgänglighet (Sussa 8.4.1.3), skärmanpassning (KD1.1.4.3 och KD1.1.4.10), nyhetsrutan (10.1.1.4),
+   hjälpen i sammanhanget och övningarna med intyg (10.1.1.5). */
+
+/* Felmeddelanden står kvar tills de stängs. Bara stängknappen tar emot klick, så att notiserna inte skymmer något. */
+.notis-stang { pointer-events: auto; flex: none; margin: -4px -8px -4px 4px; display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: var(--r); background: transparent; color: #fff; cursor: pointer; }
+.notis-stang:hover { background: rgba(255, 255, 255, 0.16); }
+.notis-stang:focus-visible { outline-color: #fff; }
+.notis > span { flex: 1; }
+
+/* Datum- och tidsfält tar emot fokus i sina delar (dag, månad, år), och då gäller inte :focus-visible i alla webbläsare. */
+input[type="date"]:focus, input[type="time"]:focus, input[type="datetime-local"]:focus { outline: 3px solid var(--fokus); outline-offset: 0; border-color: var(--fokus); }
+
+/* Knappen Hög kontrast visar sitt läge. */
+.kontrastknapp[aria-pressed="true"] { background: var(--blak); border-color: var(--blak); color: #fff; }
+/* I läsläget vid avbrott går nyheterna inte att stänga, så rutan visas inte. */
+body.laslage #nyhetsruta { display: none; }
+
+/* Nyhetsrutan efter en ny version. Den ligger mellan sidhuvudet och arbetsytan och skymmer inget. */
+.nyhetsruta { background: var(--kalla-ljus); border-bottom: 1px solid var(--kalla-mellan); }
+.nyhetsruta-inre { padding: 10px 20px 12px; max-width: 1400px; }
+.nyhetsruta h2 { font-size: var(--f-l); margin-bottom: 6px; }
+.nyhetslista { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 6px 24px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); }
+.nyhet p { margin: 2px 0 0; max-width: 90ch; }
+.nyhet-rubrik { font-weight: 700; }
+.nyhet-liten p { font-size: var(--f-s); }
+.nyhet .tagg { margin-left: 8px; }
+.tagg-stor { background: var(--yta); border-color: var(--kalla-mellan); color: var(--kalla-mork); }
+.nyhetsruta .knapprad { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.nyhetsversion h2 { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+
+/* Hjälp i sammanhanget. Stängd tills den öppnas. */
+.flodeshjalp { margin: 0 0 12px; max-width: 78ch; border: 1px solid var(--kalla-mellan); border-radius: var(--r); background: var(--yta); }
+.flodeshjalp > summary { display: flex; align-items: center; gap: 8px; padding: 6px 12px; cursor: pointer; font-weight: 600; color: var(--kalla-mork); min-height: 36px; }
+.flodeshjalp-ikon { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 2px solid currentColor; font-size: 12px; font-weight: 700; flex: none; }
+.flodeshjalp-inre { padding: 0 14px 10px; border-top: 1px solid var(--linje); }
+.flodeshjalp-inre ol { margin: 8px 0; padding-left: 22px; }
+.flodeshjalp-inre p { margin: 6px 0 0; }
+
+/* Övningar och intyg. Statusen har alltid text och symbol, inte bara färg. */
+.intyg { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; }
+.intyg-giltigt { color: var(--ok); }
+.intyg-gar_ut { color: var(--obs); }
+.intyg-utgatt { color: var(--larm); }
+.intyg-saknas { color: var(--blak-2); }
+.ovningar { max-width: 80ch; }
+.ovning { border: 1px solid var(--linje); border-radius: var(--r); background: var(--yta); margin: 0 0 12px; padding: 10px 14px 12px; }
+.ovning legend { font-weight: 600; padding: 0 4px; }
+.ovning-nr { color: var(--kalla-mork); }
+.ovning-val { display: flex; gap: 8px; align-items: flex-start; margin: 6px 0; }
+.ovning-val input { margin-top: 3px; flex: none; accent-color: var(--kalla); width: 18px; height: 18px; }
+.ovning.obesvarad { border-color: var(--larm); border-width: 2px; }
+.ovning-svar { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0 0; padding: 8px 10px; border-radius: var(--r); }
+.ovning-ratt { background: var(--ok-bg); color: var(--ok); }
+.ovning-fel { background: var(--larm-bg); color: var(--larm); }
+.ovning-svar .ikon { margin-top: 2px; }
+
+/* Tillgänglighetsredogörelsen. */
+.tg-lista { display: grid; gap: 6px; }
+.tg-krav { border: 1px solid var(--linje); border-radius: var(--r); background: var(--yta); padding: 8px 12px; }
+.tg-krav > summary { display: grid; grid-template-columns: 3.4em minmax(0, 1fr) auto; gap: 10px; align-items: baseline; cursor: pointer; list-style: none; }
+.tg-krav > summary::-webkit-details-marker { display: none; }
+.tg-innehall { margin: 8px 0 0 calc(3.4em + 10px); }
+.tg-innehall p { max-width: 80ch; }
+.tg-h { font-size: var(--f-m); margin: 8px 0 4px; }
+.tg-status { display: inline-flex; align-items: center; gap: 5px; font-size: var(--f-xs); font-weight: 600; padding: 0 9px; border-radius: 10px; line-height: 20px; white-space: nowrap; border: 1px solid; }
+.tg-uppfyllt { color: var(--ok); background: var(--ok-bg); border-color: #b5d9c0; }
+.tg-delvis { color: var(--obs); background: var(--obs-bg); border-color: var(--obs-kant); }
+.tg-ej { color: var(--larm); background: var(--larm-bg); border-color: var(--larm-kant); }
+.tg-ej_tillampligt { color: var(--blak-2); background: var(--yta-2); border-color: var(--linje-stark); border-style: dashed; }
+.tg-anpassning { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0 12px; }
+@media (max-width: 640px) {
+  .tg-krav > summary { grid-template-columns: minmax(0, 1fr) auto; row-gap: 2px; }
+  .tg-krav > summary .krav-id { grid-column: 1 / -1; }
+  .tg-innehall { margin-left: 0; }
+  .nyhetsruta-inre { padding: 10px 16px 12px; }
+  .notis-stang { width: 40px; height: 40px; }
+}
+
+/* Varningen innan inloggningen går ut (K2 1.6.1). Den ligger överst och skymmer inget viktigt. */
+.tidsgrans { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 80; width: min(560px, calc(100vw - 32px)); background: var(--yta); color: var(--blak); border: 2px solid var(--obs-kant); border-left: 6px solid var(--obs); border-radius: var(--r); padding: 12px 16px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18); }
+.tidsgrans h2 { font-size: var(--f-l); margin-bottom: 6px; }
+.tidsgrans p { margin: 0 0 10px; }
+
+/* Ändra övningarna: en utfällbar ruta per övning. */
+.ov-red { border: 1px solid var(--linje); border-radius: var(--r); background: var(--yta); margin: 0 0 8px; padding: 6px 12px; max-width: 90ch; }
+.ov-red > summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+.ov-red-inre { padding: 6px 0 4px; }
+.ov-red-grupp { border: 0; padding: 0; margin: 8px 0; }
+.ov-red-grupp legend { font-weight: 600; font-size: var(--f-s); margin-bottom: 4px; }
+.ov-kryss { display: inline-flex; gap: 6px; align-items: center; margin: 2px 14px 2px 0; }
+.ov-alt { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: 6px 8px; align-items: center; margin: 4px 0; }
+.ov-alt-ratt { font-size: var(--f-s); white-space: nowrap; }
+@media (max-width: 640px) { .ov-alt { grid-template-columns: auto minmax(0, 1fr); } .ov-alt input[type="text"] { grid-column: 1 / -1; } }
+[data-ov-redigera] h3 { margin: 18px 0 6px; }
+#ov-redigera .falt { max-width: 90ch; }
+
+/* Stor skärm (KD1.1.4.10): textrader blir inte längre än att de går att läsa, och innehållet sträcks inte ut. */
+.innehall p { max-width: 80em; }
+@media (min-width: 1800px) { .innehall { max-width: 1500px; } }
+
+/* Minskade rörelser i datorn: inga animationer, övergångar eller mjuk rullning. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+}
+
+/* Högkontrastläget: knappen Hög kontrast eller datorns inställning (js/kontrast.js sätter data-kontrast). Minst 7:1 för
+   text, mörkare ramar och understrukna länkar. */
+:root[data-kontrast="hog"] {
+  --grund: #ffffff; --yta: #ffffff; --yta-2: #ffffff; --blak: #000000; --blak-2: #1b2a2e; --dampad: #2e3d40;
+  --linje: #5d6e6b; --linje-stark: #1b2a2e; --kalla: #0a4344; --kalla-mork: #062c2d; --kalla-ljus: #e8f2f1; --kalla-mellan: #2f6e6e;
+  --larm: #7d0c10; --larm-bg: #ffffff; --larm-kant: #7d0c10; --obs: #4d2f00; --obs-bg: #ffffff; --obs-kant: #4d2f00;
+  --ok: #0f4526; --ok-bg: #ffffff; --skydd: #3d2466; --skydd-bg: #ffffff; --skydd-kant: #3d2466; --sparr: #1d2c4a; --sparr-bg: #ffffff; --sparr-kant: #1d2c4a;
+  --fokus: #0b3d99;
+}
+:root[data-kontrast="hog"] a:not(.knapp):not([class*="knapp"]) { text-decoration: underline; }
+:root[data-kontrast="hog"] .demorad { background: #ffffff; color: #000000; border-bottom: 2px solid #000000; }
+:root[data-kontrast="hog"] .knapp, :root[data-kontrast="hog"] .tagg, :root[data-kontrast="hog"] .ruta, :root[data-kontrast="hog"] input,
+:root[data-kontrast="hog"] select, :root[data-kontrast="hog"] textarea { border-width: 2px; }
+:root[data-kontrast="hog"] :focus-visible { outline-width: 4px; }
+
+/* Tvingade färger i Windows: ramar som annars bara är bakgrundsfärg blir synliga. */
+@media (forced-colors: active) {
+  .tagg, .tg-status, .kravstatus, .intyg, .raknare, .nyhetsruta, .flodeshjalp, .ovning-svar { border: 1px solid CanvasText; }
+  .kurva-linje, .kurva-axel { stroke: CanvasText; }
+  .kurva-punkt { fill: CanvasText; }
+  .kurva-ref { fill: Canvas; stroke: CanvasText; stroke-dasharray: 2 2; }
+}

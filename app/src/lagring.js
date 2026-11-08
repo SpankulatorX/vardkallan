@@ -23,10 +23,14 @@ const ENHETSKOLUMNER = ['enhet_id', 'vardenhet_id', 'fran_enhet_id', 'till_enhet
 // Tabeller som inte hör till en enskild huvudman: kodverk, katalog och systemets egna inställningar. De följer med i
 // varje uttag. Inga patientuppgifter finns i dem.
 const GEMENSAMMA = new Set(['katalog', 'installningar', 'migrering', 'forpackningar', 'produkttyper', 'substansmallar', 'paketversioner', 'ordinationspaket',
-  'tidboksregler', 'konfig_andringar', 'fhir_andringar_last', 'visningsregler']);
+  'tidboksregler', 'konfig_andringar', 'fhir_andringar_last', 'visningsregler',
+  // Runda 7, r2: övningarna i utbildningen gäller hela vårdgivaren.
+  'ovningsversioner']);
 // Tabeller som hör till systemförvaltningen och inte till en huvudman i ett uttag.
 // Datauttaget för uppföljning byggs om ur uppgifterna och följer inte med i ett uttag.
-const SYSTEM = new Set(['omorganisationer', 'omorganisation_flyttar', 'lagringsmatningar', 'sqlite_sequence', 'datauttag', 'uttagsbeslut', 'uttagsfiler']);
+const SYSTEM = new Set(['omorganisationer', 'omorganisation_flyttar', 'lagringsmatningar', 'sqlite_sequence', 'datauttag', 'uttagsbeslut', 'uttagsfiler',
+  // Runda 7, r2: vilka nyheter en användare har stängt hör till inloggningen och inte till en huvudman.
+  'nyheter_stangda']);
 // Tabeller vars koppling inte går att se på kolumnnamnen.
 const UTTRYCKLIGA = {
   dubblettforslag: { typ: 'patient', kolumner: ['fran_patient_id', 'till_patient_id'] },

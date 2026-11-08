@@ -436,3 +436,24 @@ Nya handlingar för läkare och sjuksköterskor: `vaccinera`, `boka_bhv` och `ra
 - Min journal: `GET /api/min/journal/:id/tillvaxt` ger kurvorna, vaccinationerna, besöken i programmet och mätningarna hemma, utan larm, id och personal. `POST /api/min/journal/:id/tillvaxt { vikt?, langd?, huvudomfang?, datum? }` (201) bara för vårdnadshavaren.
 - FHIR: `Immunization` (läsning och sökning med `patient`), med handlingen `las_oversikt`. Huvudomfång är en `Observation` med vitalparameterprofilen `headcircum`.
 
+## Nyheter, utbildning och tillgänglighet (runda 7, r2, Sussa 8.4.1.3, 10.1.1.4 och 10.1.1.5)
+
+Inget här rör en patient. Nyheterna och övningarna har inga patientuppgifter utom demopatienternas påhittade namn.
+
+- `GET /api/nyheter` (personal och invånare, annars 401) ger `{ version, roll, ruta, alla }`. `version` är den version som körs (den senaste i `app/src/nyheter.json`, samma som `version` i `package.json`). `roll` är yrket eller `invanare`. `ruta` är `{ version, datum, nyheter }` med den aktuella versionens nyheter för rollen, eller `null` när användaren har stängt dem eller inget är nytt för rollen. `alla` är alla versioner med nyheter för rollen, den senaste först. En nyhet är `{ id, rubrik, text, omfattning: stor|liten, var }`, där `var` är adressen i gränssnittet där förändringen finns, och de stora står först.
+- `POST /api/nyheter/stang { version }` stänger rutan för användaren och versionen och svarar som `GET /api/nyheter`. En okänd version ger 400. Att stänga igen ändrar inget.
+- `GET /api/utbildning` (personal) ger `{ kurs, giltigDagar, utbildningsmiljo, roll, rollText, ovningar, intyg, enhet }`. `ovningar` är `[{ id, fraga, alternativ: [{ id, text }], prova }]` utan rätt svar, där `prova` är en adress i demon som rollen når, eller `null`. `intyg` är `{ status: giltigt|gar_ut|utgatt|saknas, text, giltigtTill, utfardat, dagarKvar }`. `enhet` är true för vårdenhetens verksamhetschef.
+- `POST /api/utbildning/ratta { svar: { <övning>: <alternativ> } }` rättar. Alla övningar ska vara besvarade, annars 400 med `falt` (de obesvarade). Svar: `{ godkand, antalRatt, antal, resultat: [{ id, ratt, rattSvar, forklaring }], text, intyg }`. Alla rätt ger ett intyg som gäller i 365 dagar.
+- `GET /api/utbildning/enhet` (bara vårdenhetens verksamhetschef, annars 403) ger `{ vardenhet, personer: [{ id, namn, titel, yrke, status, text, giltigtTill, utfardat, dagarKvar }], summa, garUtDagar }`, med de som behöver göra övningarna först.
+- `GET /api/tillganglighet` (utan inloggning och utan sandlåda) ger tillgänglighetsredogörelsen: `{ kalla, krav, tillagg, anpassning, summa }`. Varje krav är `{ id, rubrik, en, wcag, niva, avsedd, status, statusText, bedomning: automatisk|manuell|bada, manuell, hur, tester: [{ namn, status }], anmarkning }`, och `status` är `uppfyllt`, `delvis`, `ej` eller `ej_tillampligt` räknat ur testerna.
+- `GET /api/session` har `utbildning` i `behorigheter` för all personal, och verksamhetschefen också `intyg_enhet`.
+- `GET /api/utbildning` har också `version` (övningarnas version), `utbildare` (utbildarintygets status) och `kanAndra`. Ett intyg har `version`. `GET /api/utbildning/enhet` har för varje person `utbildare` och `kanBliUtbildare`.
+- `GET /api/utbildning/ovningar` (verksamhetschefen och utbildare, annars 403) ger `{ version, ovningar, historik: [{ version, tid, av, andring, antal }], roller, prova }`, där övningarna har `roller`, `alternativ: [{ id, text }]`, `ratt`, `forklaring` och `prova`. `POST /api/utbildning/ovningar { ovningar, andring }` (201) sparar en ny version. Ett fel ger 400 med `falt` som `"<plats>.<fält>"`, till exempel `"0.fraga"`, eller `andring`.
+- `POST /api/utbildning/utbildare { personalId }` (201, bara vårdenhetens verksamhetschef) utfärdar ett utbildarintyg som gäller i ett år till någon på vårdenheten med giltigt intyg, och svarar som `GET /api/utbildning/enhet` med `text`.
+
+## Inloggningens tidsgräns (runda 7, r2, K2 1.6.1)
+
+- Inloggningen går ut efter `INLOGGNING_MINUTER` (standard 30) minuter utan aktivitet. Nästa anrop görs då som utloggad, och sandlådan finns kvar. Ett anrop med rubriken `X-Vk-Bakgrund: 1` räknas inte som aktivitet.
+- Varje svar till en inloggad har rubriken `X-Inloggning-Gar-Ut` (ISO-tid). `GET /api/session` och inloggningssvaren har `inloggning: { garUt, minuter, varningMinuter }` när någon är inloggad.
+- `POST /api/session/forlang` (inloggad, annars 401) förlänger inloggningen och ger `{ inloggning }`.
+- `POST /api/demo/inloggning-gar-ut { sekunder }` (inloggad) sätter tiden så att inloggningen går ut om så många sekunder (5 till hela tiden, standard 270), i den egna sessionen.
