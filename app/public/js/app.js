@@ -58,6 +58,8 @@ kontrast.init();
 import * as sussatest from './vyer/sussatest.js';
 // Runda 8, r3: avdelningens planerade händelser och en resurs planering.
 import * as avdelning from './vyer/avdelning.js';
+// Runda 9, r2: intensivvårdens översikt och övervakning.
+import * as iva from './vyer/iva.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -88,6 +90,8 @@ const MENY = [
   // Runda 8, r1: rören att ta och kontrollerna i dag, för sjuksköterskan och undersköterskan. Läkaren tar prover från
   // patientens flik Prover.
   ['#/provtagning', 'Prover och kontroller', 'lista', () => far('ta_prov') && !far('bestalla_prov')],
+  // Runda 9, r2: intensivvården, för läkare, sjuksköterskor och undersköterskor på en vårdenhet med intensivvårdsavdelning.
+  ['#/iva', 'Intensivvård', 'larm', () => Boolean(S.session?.iva)],
   ['#/delegeringar', 'Delegeringar', 'nyckel', () => far('delegera')],
   // Runda 6, r3: tvångsvården på psykiatrin och kommunens samverkan.
   ['#/tvangsvard', 'Tvångsvård', 'klocka', () => Boolean(S.session?.r3?.tvangsvardsenhet)],
@@ -141,6 +145,9 @@ const RUTTER = [
   [/^#\/administrering$/, administrering, () => far('las_lakemedel')],
   // Runda 8, r1.
   [/^#\/provtagning$/, provtagning, () => far('ta_prov')],
+  // Runda 9, r2.
+  [/^#\/iva$/, iva, () => Boolean(S.session?.iva)],
+  [/^#\/iva\/([\w-]+)$/, iva.patient, () => Boolean(S.session?.iva)],
   // Delegeringar (runda 5): sjuksköterskan och läkaren registrerar, undersköterskan ser sina egna.
   [/^#\/delegeringar$/, delegeringar, () => far('delegera') || S.session?.personal?.yrke === 'underskoterska'],
   [/^#\/lakemedelsstod$/, lakemedelsstod, () => pa('faststalla_direktiv', 'ordinera_direktiv')],

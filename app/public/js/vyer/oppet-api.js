@@ -31,6 +31,7 @@ export async function visa(main) {
     </div>
     <section class="api-tackning" aria-labelledby="api-tackning-rubrik"><h2 id="api-tackning-rubrik">Vad går att göra via API:t?</h2><p class="under-text">Varje vanligt flöde i gränssnittet, och om det går att göra via det öppna API:t.</p><div id="api-tackning"></div></section>
     <section class="api-tackning" aria-labelledby="tk-rubrik"><h2 id="tk-rubrik">Nationella tjänstekontrakt</h2><div id="tk"><p class="tom">Hämtar tjänstekontrakten.</p></div></section>
+    <section class="api-tackning" aria-labelledby="mt-format-rubrik"><h2 id="mt-format-rubrik">Medicinteknisk utrustning</h2><div id="mt-format"><p class="tom">Hämtar formaten.</p></div></section>
     <div class="api-delad">
       <ul class="api-exempel" aria-label="Exempel på anrop">${exempel.map(([v, t], i) => `<li><button type="button" class="api-knapp" data-vag="${esc(v)}"${i === 0 ? ' aria-pressed="true"' : ' aria-pressed="false"'}><code>GET ${esc(v)}</code><span>${esc(t)}</span></button></li>`).join('')}</ul>
       <section class="api-svar" aria-labelledby="api-svar-rubrik" aria-live="polite">
@@ -56,6 +57,14 @@ export async function visa(main) {
   }).catch(() => {});
   // Runda 7, r5.
   ritaTjanstekontrakt(main.querySelector('#tk')).catch(() => {});
+  // Runda 9, r2: formaten och profilerna för medicinteknisk utrustning (Sussa 3.6.1.4).
+  fetch('/mt/format').then(r => r.json()).then((d) => {
+    const el = main.querySelector('#mt-format');
+    if (!el) return;
+    el.innerHTML = `<p class="under-text">Patientmonitorer och infusionspumpar skickar till Vårdkällan med en egen nyckel för varje utrustning (Authorization: Bearer). Värdena tas bara emot när utrustningen är kopplad till en patient. ${esc(d.demo)}</p>
+      <div class="tabellrulle"><table class="tabell mt-format"><thead><tr><th scope="col">Format</th><th scope="col">Adress</th><th scope="col">Innehåll och profil</th></tr></thead><tbody>${Object.values(d.format).map(f => `<tr><td>${esc(f.namn)}</td><td><code>POST ${esc(f.adress)}</code><br><span class="under-text">${esc(f.innehall)}</span></td><td>${esc(f.text)} ${esc(f.profil)}</td></tr>`).join('')}</tbody></table></div>
+      <p class="under-text">Högst ${esc(d.tak.perMinut)} meddelanden per minut och ${esc(d.tak.varden)} värden per meddelande för varje utrustning.</p>`;
+  }).catch(() => {});
   main.querySelector('.api-exempel').addEventListener('click', (e) => { const b = e.target.closest('.api-knapp'); if (b) kor(b).catch(() => {}); });
   await kor(main.querySelector('.api-knapp'));
 }

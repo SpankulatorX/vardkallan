@@ -6,6 +6,8 @@ import * as delar from './min-delar.js';
 import * as tider from './min-tider.js';
 // Runda 7, r6: barnets tillväxt för vårdnadshavaren.
 import * as tillvaxt from './min-tillvaxt.js';
+// Runda 9, r2: patientens egna mätningar (mt-ui.js).
+import { minEgna } from '../mt-ui.js';
 
 export const namn = 'min';
 
@@ -16,6 +18,8 @@ const FLIKAR = [
   ['diagnoser', 'Diagnoser', delar.diagnoser],
   ['lakemedel', 'Läkemedel', delar.lakemedel],
   ['provsvar', 'Provsvar', delar.provsvar],
+  // Runda 9, r2: egna mätningar som patienten lämnar till vården.
+  ['egenmatning', 'Egna mätningar', minEgna],
   // Runda 7, r6: visas för barn och ungdomar. Villkoret får huvudet.
   ['tillvaxt', 'Tillväxt', tillvaxt.visa, (h) => !h || h.patient.alder < 18],
   ['remisser', 'Remisser', delar.remisser],

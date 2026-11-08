@@ -22,6 +22,8 @@ export const OMRADEN = {
   bestallning: { rubrik: 'Beställning och svar', sussa: '12.1.1.9' },
   // Runda 8, r5: utloggningen efter en tid utan aktivitet, som kunden själv konfigurerar (Sussa 12.1.1.5).
   sakerhet: { rubrik: 'Säkerhet', sussa: '12.1.1.5' },
+  // Runda 9, r2: gränserna och trenderna som systemet prövar i intensivvården (iva.js, Sussa 4.6.1.3).
+  iva: { rubrik: 'Anestesi och intensivvård', sussa: '4.6.1.3' },
 };
 
 const DAG = 86400_000;
@@ -224,6 +226,38 @@ const sokordsparameter = (m) => ({
     if (!nya.length && !borta.length) ut.push('Samma sökord i en annan ordning.');
     ut.push('Anteckningar som redan är skrivna ändras inte. De visar sina sökord som när de skrevs.');
     return ut;
+  },
+});
+
+// Runda 9, r2: parametrarna för analysen i intensivvården (iva.js). Standardvärdena är samma som iva.STANDARD (testat).
+Object.assign(HELTAL, {
+  'iva.map_lag': {
+    omrade: 'iva', rubrik: 'Larm för lågt medelartärtryck', enhet: 'mmHg', standard: 65, min: 50, max: 90, anvands: 'iva.js',
+    beskrivning: 'Ett medelartärtryck (MAP) under gränsen i två godkända värden i rad ger larm i intensivvårdens översikt, och i ett värde en varning.',
+    minVarfor: 'Under 50 mmHg är perfusionen av hjärna och njurar redan hotad, och larmet kommer för sent.',
+    maxVarfor: 'Över 90 mmHg larmar systemet för de flesta patienter med normalt blodtryck, och larm som alltid syns slutar läsas.',
+    effekt: (db, nytt, forra) => [`Larmet för lågt medelartärtryck kommer under ${nytt} mmHg i stället för under ${forra} mmHg.`],
+  },
+  'iva.saturation_lag': {
+    omrade: 'iva', rubrik: 'Larm för låg syremättnad', enhet: 'procent', standard: 90, min: 80, max: 95, anvands: 'iva.js',
+    beskrivning: 'En godkänd syremättnad under gränsen ger larm i intensivvårdens översikt.',
+    minVarfor: 'Under 80 procent är hypoxin redan allvarlig, och larmet kommer för sent.',
+    maxVarfor: 'Över 95 procent larmar systemet för patienter med kronisk lungsjukdom som har ett lägre mål.',
+    effekt: (db, nytt, forra) => [`Larmet för låg syremättnad kommer under ${nytt} procent i stället för under ${forra} procent.`],
+  },
+  'iva.trend_minuter': {
+    omrade: 'iva', rubrik: 'Fönster för trenden i medelartärtrycket', enhet: 'minuter', standard: 60, min: 15, max: 240, anvands: 'iva.js',
+    beskrivning: 'Systemet varnar när medelartärtrycket har sjunkit med minst 20 procent jämfört med ett värde så här många minuter tidigare.',
+    minVarfor: 'Kortare än en kvart gör att vanliga svängningar ger varningar.',
+    maxVarfor: 'Längre än fyra timmar gör att ett blodtrycksfall upptäcks för sent.',
+    effekt: (db, nytt, forra) => [`Trenden jämförs med värdet ${minuter(nytt)} tidigare i stället för ${minuter(forra)}.`],
+  },
+  'iva.oliguri_timmar': {
+    omrade: 'iva', rubrik: 'Timmar med låg urinproduktion innan varning', enhet: 'timmar', standard: 2, min: 1, max: 12, anvands: 'iva.js',
+    beskrivning: 'Systemet varnar när urinen har varit under 0,5 ml per kilo och timme i så här många timmar i följd.',
+    minVarfor: 'En enda timme med låg urin beror ofta på att urinen registrerades sent.',
+    maxVarfor: 'KDIGO räknar akut njurskada från sex timmar, och en varning efter mer än tolv timmar kommer för sent.',
+    effekt: (db, nytt, forra) => [`Varningen för låg urinproduktion kommer efter ${timmar(nytt)} i stället för ${timmar(forra)}.`],
   },
 });
 

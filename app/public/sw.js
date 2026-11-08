@@ -36,7 +36,9 @@ const FILER = [
   '/js/remiss-r8-ui.js',
   '/js/labb-ui.js', '/js/vyer/patient-prover.js', '/js/vyer/provtagning.js',
   '/js/bokning-r8.js', '/js/vyer/avdelning.js',
+  '/js/mt-ui.js', '/js/vyer/iva.js',
 ];
+// Runda 9, r2: listan har medicinteknisk utrustning i fliken Mätvärden och intensivvårdens vy (mt-ui.js och iva.js).
 // Runda 8, r3: listan har fri bokning, teambesök, gruppträffar och avdelningens planering.
 // Runda 8, r5: listan har mallen för tobaksvanor (tobak-regler.js och patient-tobak.js).
 // Runda 8, r2: remiss på uppdrag, fördelning, remisskonferens och pappersremiss (remiss-r8-ui.js).
@@ -67,6 +69,8 @@ self.addEventListener('fetch', (e) => {
   // Runda 6, r5: inloggningen för externa tillämpningar och tillämpningarna själva går aldrig via cachen. En tillämpning
   // behöver servern för att få sin åtkomst, så den kan inte användas i läsläget ändå.
   if (url.pathname.startsWith('/oauth/') || url.pathname.startsWith('/tillampningar/')) return;
+  // Runda 9, r2: mottagningen från medicinteknisk utrustning går aldrig via cachen.
+  if (url.pathname === '/mt' || url.pathname.startsWith('/mt/')) return;
   e.respondWith(hamta(req, url));
 });
 

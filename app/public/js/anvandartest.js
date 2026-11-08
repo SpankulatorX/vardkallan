@@ -123,6 +123,8 @@ const FORBERED = {
   aterstall: async () => { await aterstallDemo(); },
   // Runda 7, r2: demoläget flyttar inloggningens tid så att varningen före utloggningen visas direkt.
   'inloggning-gar-ut': async () => { await aterstallDemo(); await api('/api/demo/inloggning-gar-ut', { metod: 'POST', data: { sekunder: 240 } }); },
+  // Runda 9, r2: en simulerad monitor kopplas till Gunnar Åkesson, så att värden väntar på godkännande.
+  'koppla-monitor': async () => { await aterstallDemo(); await api('/api/patient/p01/mt/koppla', { metod: 'POST', data: { streckkod: 'MT-MON-0001' } }); },
 };
 
 // Uppgiften börjar på samma sätt som i skriptet: vid byte av demoroll loggas rollen in och demon återställs, så att

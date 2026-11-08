@@ -49,6 +49,9 @@ export const STARTPUNKT = {
   'Inkommande remisser efter återställning': { hash: '#/remisser', klar: '.r8-skannade [data-skann]', forbered: 'aterstall' },
   // Runda 8, r1: provtagningen för sjuksköterskan, efter återställning.
   'Provtagningen efter återställning': { hash: '#/provtagning', klar: '.pt-patient', forbered: 'aterstall' },
+  // Runda 9, r2: fliken Mätvärden efter återställning, och med en kopplad monitor vars värden väntar på godkännande.
+  'Patientens mätvärden efter återställning': { hash: '#/patient/p01/matvarden', klar: '#mt-koppla', forbered: 'aterstall' },
+  'Mätvärden med värden från en kopplad monitor': { hash: '#/patient/p01/matvarden', klar: '[data-mt-godkann]', forbered: 'koppla-monitor' },
 };
 
 export const UPPGIFTER = [
@@ -413,6 +416,22 @@ export const UPPGIFTER = [
     id: 'registrera-provtagning', namn: 'Registrera provtagning', roll: 'ssk-kard', start: 'Provtagningen efter återställning',
     text: 'Du har tagit blodproverna på Elin Sandberg, blodstatus och CRP. Registrera att proverna är tagna och skicka dem till laboratoriet.',
     kontroll: { notis: 'proverna är skickade' },
+  },
+  // Runda 9, r2: medicinteknisk utrustning och intensivvården (Sussa 3.6.1 och 4.6).
+  {
+    id: 'koppla-monitor', namn: 'Koppla en patientmonitor till patienten', roll: 'ssk-kard', start: 'Patientens mätvärden efter återställning',
+    text: 'Gunnar Åkesson ska övervakas med patientmonitorn DEMO-MON-0001 i stället för med manuella kontroller. Se till att monitorns värden kommer till hans journal.',
+    kontroll: { notis: 'är kopplad till patienten' },
+  },
+  {
+    id: 'godkanna-mt', namn: 'Godkänna värden från monitorn', roll: 'ssk-kard', start: 'Mätvärden med värden från en kopplad monitor',
+    text: 'Du har kontrollerat Gunnar Åkesson och ser att monitorns värden stämmer. Se till att värdena räknas när NEWS2 och larmen räknas fram.',
+    kontroll: { notis: 'för diagnostiskt bruk' },
+  },
+  {
+    id: 'iva-oversikt', namn: 'Öppna intensivvårdens översikt och övervakningen av en patient', roll: 'lak-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Du ska gå rond på Hjärtintensiven. Skaffa dig en bild av hur patienterna där mår, och titta närmare på den första patienten.',
+    kontroll: { sel: '#iva-analys' },
   },
 ];
 

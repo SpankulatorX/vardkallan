@@ -8,6 +8,8 @@ import { far } from '../app.js';
 import { doldaRad } from './patient.js';
 import { varde as vardeHtml } from './patient-oversikt.js';
 import { kontaktRad, nyKontaktData, kontaktNotis } from './patient-vardkontakt.js';
+// Runda 9, r2: medicinteknisk utrustning och patientens egna mätningar (mt-ui.js).
+import { utrustningHtml, egnaHtml, koppla as kopplaMt, klassEtikett } from '../mt-ui.js';
 
 // Typer och enheter enligt API:t. Blodtryck står först, eftersom det är det vanligaste.
 export const MATTYPER = [
@@ -50,7 +52,8 @@ function kurvaSvg(k) {
   const serier = k.serier.map((_, s) => {
     const p = pkt.map(q => [x(q.tid), y(q.varden[s]), q]);
     const linje = p.length > 1 ? `<polyline class="kurva-linje${s ? ' kurva-andra' : ''}" points="${p.map(([a, b]) => `${a.toFixed(1)},${b.toFixed(1)}`).join(' ')}"/>` : '';
-    return linje + p.map(([a, b, q]) => `<circle class="kurva-punkt${s ? ' kurva-andra' : ''}${!s && q.utanfor ? ' kurva-utanfor' : ''}" cx="${a.toFixed(1)}" cy="${b.toFixed(1)}" r="${!s && q.utanfor ? 4 : 3}"/>`).join('');
+    // Runda 9, r2: ett värde från utrustning som inte är godkänt är en ihålig punkt.
+    return linje + p.map(([a, b, q]) => `<circle class="kurva-punkt${s ? ' kurva-andra' : ''}${!s && q.utanfor ? ' kurva-utanfor' : ''}${q.kalla === 'utrustning' && !q.godkand ? ' kurva-referens' : ''}" cx="${a.toFixed(1)}" cy="${b.toFixed(1)}" r="${!s && q.utanfor ? 4 : 3}"/>`).join('');
   }).join('');
   const etikett = (v) => tal(Math.round(v * 10) / 10, 1);
   const besk = `${k.namn}: ${pkt.length} värden från ${datum(pkt[0].tid)} till ${datum(pkt.at(-1).tid)}. ${ref ? `Referens ${ref.lag != null ? `från ${etikett(ref.lag)}` : ''} ${ref.hog != null ? `till ${etikett(ref.hog)}` : ''}. ` : ''}${pkt.filter(p => p.utanfor).length} utanför.`;
@@ -127,12 +130,14 @@ export async function visa(el, ctx) {
     <div id="news2-plats"></div>
     ${kanReg ? registrering() : ''}
     ${kanReg ? '<div id="flera-plats"><p class="knapprad"><button type="button" class="knapp liten sekundar" data-flera-ny>Längd, vikt, blodtryck och puls på en gång</button></p></div>' : ''}
+    ${utrustningHtml(d)}
     ${kurvorHtml(d.kurvor ?? [], markerad)}
     ${d.matvarden.length ? `<section aria-labelledby="mv-alla"><h3 id="mv-alla">Alla värden</h3>
       <div class="tabellrulle"><table class="tabell tat">
         <thead><tr><th scope="col">Tid</th><th scope="col">Mätvärde</th><th scope="col">Värde</th><th scope="col">Enhet där det togs</th><th scope="col">Registrerat av</th></tr></thead>
-        <tbody>${d.matvarden.map(m => `<tr><td>${esc(tidpunkt(m.tid))}</td><td>${esc(m.namn)}</td><td>${visatVarde(m)}</td><td>${esc(m.vardenhet.namn)}${migreradEtikett(m)}</td><td>${esc(m.registreradAv?.namn ?? '')}${m.bestallning ? `<span class="under-text">Svar från laboratoriet, beställt av ${esc(m.bestallning.bestalldAv ?? '')}</span>` : ''}</td></tr>`).join('')}</tbody>
-      </table></div></section>` : '<p class="tom">Inga mätvärden som du kan se.</p>'}`;
+        <tbody>${d.matvarden.map(m => `<tr><td>${esc(tidpunkt(m.tid))}</td><td>${esc(m.namn)}</td><td>${visatVarde(m)}</td><td>${esc(m.vardenhet.namn)}${migreradEtikett(m)}</td><td>${esc(m.registreradAv?.namn ?? '')}${m.bestallning ? `<span class="under-text">Svar från laboratoriet, beställt av ${esc(m.bestallning.bestalldAv ?? '')}</span>` : ''}${klassEtikett(m.klass)}</td></tr>`).join('')}</tbody>
+      </table></div></section>` : '<p class="tom">Inga mätvärden som du kan se.</p>'}
+    ${egnaHtml(d)}`;
 
   // Från en sökträff öppnas kurvan för mätvärdet.
   if (markerad) {
@@ -140,6 +145,7 @@ export async function visa(el, ctx) {
     if (k) { k.scrollIntoView({ block: 'center' }); k.querySelector('h4')?.focus({ preventScroll: true }); }
   }
   el.querySelector('[data-news2-ny]')?.addEventListener('click', () => news2Form(el, ctx));
+  kopplaMt(el, ctx);
   // Runda 8, r5: flera mätvärden på en gång.
   el.querySelector('[data-flera-ny]')?.addEventListener('click', () => fleraForm(el, ctx));
 

@@ -188,6 +188,10 @@ export const FRASER = ['HL7 Sweden', '$everything', 'pull request', 'Server-Timi
   'prefers-contrast: more', 'forced-colors: active', 'prefers-reduced-motion: reduce', 'X-Inloggning-Gar-Ut'];
 // Runda 7, r1: tidsmodellen för uppskattad tid i Sussas testfall.
 FRASER.push('keystroke-level model', 'Communications of the ACM');
+// Runda 9, r2: medicinteknisk utrustning (HL7 v2 och IHE PCD-01, MDC ur IEEE 11073, segmenten och svaren i HL7 v2) och
+// intensivvården (MAP är medelartärtrycket, KDIGO riktlinjen för akut njurskada).
+for (const w of ['MDC', 'IHE', 'PCD', 'ORU', 'MSH', 'PID', 'OBR', 'OBX', 'NM', 'ACK', 'MSA', 'AE', 'AR', 'LN', 'VARDKALLAN', 'ÅÅÅÅMMDDTTMMSS', 'MAP', 'KDIGO']) TILLATNA.add(w);
+FRASER.push('IHE PCD Technical Framework', 'Point-of-Care Device Implementation Guide', 'request till ordinationen');
 
 // Svenska ord som ofta skrivs utan å, ä eller ö. Formen utan prickar är inget eget ord.
 export const UTAN_PRICKAR = new Map(Object.entries({
@@ -208,6 +212,8 @@ const BADA_GILTIGA = new Set(['andra', 'har', 'sa', 'var', 'man', 'fora', 'kar',
   'ska', 'sma', 'ar', 'aga', 'rakna', 'fran', 'tid', 'stall', 'galla', 'vagt', 'agda', 'vagen', 'lagre', 'fall', 'bar', 'kan', 'band',
   'stod', 'blad', 'trad', 'vant', 'vanta', 'atta', 'tog', 'gar', 'ange', 'anga', 'lage', 'lagt', 'lag', 'lak', 'form', 'fortsatt',
   'svar', 'val', 'natt', 'mats', 'saker', 'faller', 'ersatts', 'behovs', 'alder']);
+// Runda 9, r2: mata in (skriva in) och mäta (mätvärden) finns båda i texterna.
+BADA_GILTIGA.add('mata');
 
 // Interna anteckningar och råd till oss själva, som aldrig ska visas för användaren.
 export const INTERN = /\b(TODO|FIXME|XXX|HACK)\b|\b([Tt]änk på att|[Kk]om ihåg att|[Ss]äg inte|[Gg]löm inte att|OBS! [Ii]ntern|[Ii]ntern anteckning)/;

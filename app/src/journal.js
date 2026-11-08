@@ -1,5 +1,7 @@
 // Journalanteckningar med signering och rättelse, diagnoser, mätvärden, vårdkontakter och översikt.
 import { Fel, iso, idag, giltigtDatum, MATTYPER_ENHET } from './db.js';
+// Runda 9, r2: klassen för värden från utrustning och patientens egna mätningar.
+import { klassFor } from './mt-klass.js';
 import { kanRoll, vardenhetFor } from './atkomst.js';
 // Skalor och poängmodeller (runda 6, r1): systemet räknar GCS och skriver texten för de kodade mätvärdena.
 import { ACVPU, tolkaGcs, gcsText, nrsText } from './skalor.js';
@@ -243,6 +245,9 @@ export function matvardeUt(db, m) {
   // Runda 8, r1: ett svar från laboratoriet visar beställningen och vem som beställde (labb.js).
   const lb = labbKoppling(db, m.id);
   if (lb) ut.bestallning = lb;
+  // Runda 9, r2: ett värde från medicinteknisk utrustning eller patientens egen mätning har sin klass (mt-klass.js).
+  const kl = klassFor(db, m);
+  if (kl) ut.klass = kl;
   return ut;
 }
 function labbKoppling(db, id) {

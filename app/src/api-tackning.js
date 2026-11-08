@@ -64,6 +64,11 @@ export const TACKNING = {
   'remiss-pa-uppdrag': nej('Remiss på uppdrag kräver läkarens signering i inkorgen och görs bara i gränssnittet. Den signerade remissen läses som ServiceRequest.', [a('GET', '/fhir/ServiceRequest?patient={id}')]),
   'fordela-remiss': nej('Fördelningen görs bara i gränssnittet. Den fördelade läkaren står som utförare i ServiceRequest.performer.', [a('GET', '/fhir/ServiceRequest?patient={id}')]),
   'registrera-pappersremiss': nej('Pappersremisser registreras bara i gränssnittet, från den inskannade remissen. Remissen läses som ServiceRequest med remittenten som requester.', [a('GET', '/fhir/ServiceRequest?patient={id}')]),
+  // Runda 9, r2: kopplingen och godkännandet görs med personalens API. Utrustningen själv skickar till mottagningen.
+  'koppla-monitor': nej('Kopplingen görs i gränssnittet eller med personalens API. Utrustningen skickar sedan sina värden till mottagningen med sin egen nyckel, i FHIR eller HL7 v2.', [a('POST', '/api/patient/{id}/mt/koppla'), a('POST', '/mt/fhir'), a('POST', '/mt/hl7v2')]),
+  'godkanna-mt': nej('Godkännandet görs i gränssnittet eller med personalens API. Klassen läses i FHIR som status preliminary eller final i Observation.', [a('POST', '/api/patient/{id}/mt/godkann'), a('GET', '/fhir/Observation?patient={id}')]),
+  'iva-oversikt': nej('Översikten och övervakningen hämtas med personalens API. Mätvärdena läses också som Observation och doserna som MedicationAdministration.', [a('GET', '/api/iva'), a('GET', '/api/patient/{id}/iva'), a('GET', '/fhir/Observation?patient={id}')]),
+  'egen-matning': nej('Patienten lämnar mätningen i Min journal. Invånarens FHIR-API kan bara läsa, och mätningen läses som Observation med patienten som utförare.', [a('POST', '/api/min/journal/{id}/egenmatning')]),
 };
 
 // Täckningen för alla flöden i klickbudgeten, i samma ordning.

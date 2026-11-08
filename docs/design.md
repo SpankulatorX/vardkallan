@@ -1313,6 +1313,53 @@ Ordinerade kontroller och provtagningar (runda 8, r1) ansluts med `registreraKal
 - Kallelserna med brev och sms är simulerade. Teambesökens arbetstider och uppgifternas längd och yrkesroller är demoregler.
 - Planerade uppgifter finns ännu inte i FHIR (Task). Valen i avdelningens planering sparas inte på servern, och uppgifter kan inte upprepas av sig själva.
 
+## Medicinteknisk utrustning, anestesi och intensivvård (runda 9, r2: medicinteknik.js, mt-klass.js, iva.js och medicinteknik-rutter.js, Sussa 3.5.2.19, 3.6.1 och 4.6)
+
+Patientmonitorer och infusionspumpar skickar mätvärden och doser till journalen genom en egen mottagning, och värdena blir vanliga mätvärden och givna doser med källan utrustning. Intensivvården har en egen sida som bygger på dem och på läkemedlen och vätskebalansen som redan finns.
+
+### Mottagningen och formaten (Sussa 3.6.1.1 och 3.6.1.4)
+
+- `POST /mt/fhir` tar emot en FHIR R4 Bundle (collection, transaction eller batch) med en Device, Observation för mätvärden och MedicationAdministration för pumpens rapporter. `POST /mt/hl7v2` tar emot HL7 v2.6 ORU^R01 enligt IHE PCD-01. Koderna är LOINC eller IEEE 11073-10101 (MDC) och enheterna UCUM eller MDC (`KODER` i medicinteknik.js). Svaret är ett OperationOutcome eller ett ACK med MSA AA eller AE och förklaringen på svenska.
+- Varje utrustning har en egen nyckel (Authorization: Bearer), som personal på utrustningens vårdenhet skapar med `POST /api/mt/utrustning/:id/nyckel` och som visas en gång. Nyckeln finns bara som HMAC med en hemlig nyckel (`MT_NYCKEL`, annars slumpad vid start), i minnet kopplad till sandlådan och i `mt_utrustning.nyckel_hmac`. En ny nyckel ersätter den gamla. Varje nyckel får skicka högst 60 meddelanden per minut och 100 värden per meddelande.
+- Allt eller inget i ett meddelande sparas. Ett meddelande avvisas när formatet, koden, enheten, värdet eller tiden är fel, när utrustningen i meddelandet inte är den som nyckeln hör till, när utrustningen inte var kopplad vid värdets tid och när meddelandet anger en annan patient än kopplingen. Varje meddelande, mottaget eller avvisat, sparas i `mt_meddelanden` med orsaken. Samma värde från samma utrustning och tid sparas en gång.
+- Formaten och profilerna står i CapabilityStatement (`rest[0].documentation`), på sidan Öppet API och som JSON på `GET /mt/format`.
+
+### Koppling till patienten (Sussa 3.6.1.5)
+
+- Utrustningen kopplas när patientens journal är öppen genom att dess streckkod skannas (`POST /api/patient/:id/mt/koppla { streckkod, armband?, ordinationId? }`). Armbandet kontrolleras mot patientens personnummer och tidigare identiteter. En pump kopplas till en aktiv infusion, och systemet väljer den själv när det bara finns en. Läkare, sjuksköterskor och undersköterskor kopplar, bara med vårdrelation på utrustningens vårdenhet.
+- En koppling har start och slut, ändras och raderas aldrig (triggrar), och varje koppling och avslut loggas i åtkomstloggen. När utrustningen kopplas till en ny patient avslutas den förra kopplingen samtidigt, och avslutet loggas på den förra patienten utan att något om den patienten lämnas ut.
+
+### Klassning och godkännande (Sussa 3.6.1.6 och 3.6.1.7, mt-klass.js)
+
+- Ett mätvärde med källan `utrustning` eller `patient` är referens tills en läkare eller sjuksköterska på vårdenheten har godkänt det (`POST /api/patient/:id/mt/godkann { ids?, kalla?, beslut? }`). Godkännandet sparas i `matvarde_bedomningar`, som inte ändras, och sätter `matvarden.vidimerad`.
+- `kvalitetssakrad(m)` avgör vilka värden som räknas. NEWS2, larmen i inkorgen, basfakta (vikt och BMI), vikten i läkemedelsvyerna, dosen per kilo i intensivvården och analysen i intensivvården räknar bara kvalitetssäkrade värden. Min journal visar värden från utrustning först när de är godkända.
+- Patientens egna mätningar (`POST /api/min/journal/:id/egenmatning`, högst 30 per dygn) skickas av systemet till vårdenheten som vårdar patienten (pågående vårdkontakt, annars listningen, annars den senaste vårdkontakten). De visas för vården i en egen tabell och inte i kurvorna, och patienten ser om mätningen är bedömd.
+- I FHIR har ett sådant mätvärde status preliminary tills det är godkänt, en hänvisning till utrustningen i `device` eller patienten som `performer`, och källan `utrustning` eller `patient` i kodsystemet Källa.
+
+### Pumpen (Sussa 3.5.2.19)
+
+- En rapport från pumpen (MedicationAdministration med `request`, `effectivePeriod`, `dosage.rateQuantity` i mL/h eller `dosage.dose` i mL och kategorin bolus) blir en administrering med status given och källan utrustning, med dosen räknad ur koncentrationen, och ett intag i vätskebalansen. Den som kopplade pumpen står som den som gav dosen.
+- Varje rapport kontrolleras mot det ordinerade intervallet per kilo och timme, bolusdosen och den högsta dygnsdosen (demoregler). Varningarna visas i Läkemedel att ge och i patientens mätvärden, och sjuksköterskan eller läkaren kvitterar dem med vad som gjordes. `GET /api/mt/pumpar` ger pumparna på den egna vårdenheten.
+
+### Den simulerade utrustningen
+
+Demon har åtta simulerade utrustningar (`UTRUSTNING`). En kopplad simulerad monitor skickar puls, syremättnad, andningsfrekvens, temperatur och blodtryck var femte minut, och en pump rapporterar var femtonde minut, genom samma mottagning som en riktig utrustning (`efterTid`, som körs vid varje anrop till sandlådan, högst tre timmar bakåt). Värdena räknas fram ur patientens senaste värden med ett lugnt deterministiskt brus. Knappen Hämta värden nu skickar direkt.
+
+### Intensivvården (Sussa 4.6.1.1 till 4.6.1.7, iva.js)
+
+- Hjärtintensiven på Kardiologiska kliniken är demons intensivvårdsavdelning med åtta platser (`IVA_ENHETER`). Sidan Intensivvård finns för läkare, sjuksköterskor och undersköterskor på en vårdenhet med intensivvårdsavdelning.
+- Översikten (`GET /api/iva`) har varje patient med en pågående vårdkontakt på avdelningen, med senaste värden, NEWS2, analysen, utrustningen, infusionerna och vätskebalansen, de mest akuta först. Varje patient loggas en gång per session. Övervakningen (`GET /api/patient/:id/iva`) har kurvor över de senaste timmarna, medelartärtrycket, infusionerna, bolusarna och vätskorna och vätskebalansen per timme.
+- Analysen (`analysera`) prövar reglerna i `IVA_REGLER` mot de senaste godkända värdena. Gränserna för medelartärtryck, syremättnad, trendfönster och oliguri är parametrar i konfiguration.js (området Anestesi och intensivvård). Värden som inte är godkända räknas inte, men ger en observation när de skulle ha gett larm.
+- Kontinuerliga infusioner ordineras ur ett protokoll (`PROTOKOLL`, i demon morfin) med dos per kilo och timme på den godkända vikten. Systemet räknar hastigheten i ml/h och föreslår titrering ur det senaste godkända värdet för protokollets parameter inom det ordinerade intervallet, med andningsfrekvensen som säkerhetsparameter. Sjuksköterskan eller läkaren titrerar (`iva_titreringar`), aldrig undersköterskan.
+- Anestesibedömningen (`GET` och `POST /api/patient/:id/anestesi`) hämtar läkemedel med observationer, överkänslighet, diagnoser, vikt, BMI och tidigare bedömningar, föreslår ASA-klass ur diagnoserna och räknar fastan ur den planerade tiden. Bedömningen sparas med underlaget och ändras aldrig. Bara det som läkaren får se hämtas.
+- Uppföljningen (`GET /api/iva/uppfoljning`) räknar vårddygn, beläggning, medelvårdtid, vårdtyngd och tre kvalitetsindikatorer per avdelning utan personuppgifter.
+
+### Det som är simulerat eller saknas
+
+- All utrustning är simulerad, och ingen riktig medicinteknisk utrustning eller gateway är ansluten. Pumpen styrs inte från Vårdkällan.
+- Operationsanmälan finns inte, så anestesibedömningen knyts till vårdkontakten. Anestesijournal under ingreppet, vasoaktiva läkemedel och sedering (som inte finns i katalogen), vårdtyngd enligt NEMS eller NAS, SAPS 3 och rapportering till Svenska Intensivvårdsregistret saknas.
+- Reglerna, protokollet och vårdtyngden är demoregler och inte kliniskt beslutsstöd.
+
 ## Godkännandekriterier för första versionen
 
 - `bun test` grönt, med tester för varje regel i behörighetsmotorn, loggkedjan och triggrarna, signering och rättelse, obligatoriska fält och varningar i läkemedel, NLL som inte svarar i tid och avstämning, remissens statuskedja och larm, FHIR-svarens form.

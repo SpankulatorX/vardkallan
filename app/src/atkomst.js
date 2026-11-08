@@ -230,6 +230,18 @@ Object.assign(HANDLINGAR, {
 ROLLER.lakare.push('las_prover', 'bestalla_prov', 'ta_prov', 'vidimera_provsvar', 'ordinera_kontroll');
 ROLLER.sjukskoterska.push('las_prover', 'bestalla_prov_uppdrag', 'ta_prov');
 ROLLER.underskoterska.push('las_prover', 'bestalla_prov_uppdrag', 'ta_prov');
+// Runda 9, r2: medicinteknisk utrustning, anestesi och intensivvård (medicinteknik.js och iva.js, Sussa 3.6.1 och 4.6).
+// Läkare, sjuksköterskor och undersköterskor kopplar utrustning till patienten på den egna vårdenheten. Läkare och
+// sjuksköterskor godkänner värden från utrustning och patientens egna mätningar för diagnostiskt bruk. Läkaren gör
+// anestesibedömningen.
+Object.assign(HANDLINGAR, {
+  koppla_utrustning: 'koppla medicinteknisk utrustning till patienter',
+  godkanna_matvarde: 'godkänna mätvärden från utrustning och patientens egna mätningar för diagnostiskt bruk',
+  anestesibedomning: 'göra anestesibedömningar',
+});
+ROLLER.lakare.push('koppla_utrustning', 'godkanna_matvarde', 'anestesibedomning');
+ROLLER.sjukskoterska.push('koppla_utrustning', 'godkanna_matvarde');
+ROLLER.underskoterska.push('koppla_utrustning');
 
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
 

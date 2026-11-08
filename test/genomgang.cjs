@@ -95,7 +95,8 @@ async function loggaInPatient(page, id) {
   await page.waitForSelector('[data-a="loggaut"]');
   await vantaVy(page);
 }
-const MIN_FLIKAR = ['Översikt', 'Tider', 'Anteckningar', 'Diagnoser', 'Läkemedel', 'Provsvar', 'Remisser', 'Vem har läst', 'Spärrar'];
+// Runda 9, r2: Egna mätningar efter Provsvar.
+const MIN_FLIKAR = ['Översikt', 'Tider', 'Anteckningar', 'Diagnoser', 'Läkemedel', 'Provsvar', 'Egna mätningar', 'Remisser', 'Vem har läst', 'Spärrar'];
 async function minFlik(page, text) {
   await page.click(`.min-flikar a:text-is("${text}")`);
   await page.waitForLoadState('networkidle');
@@ -162,6 +163,11 @@ const MENY = {
 };
 // Runda 8, r1: sjuksköterskan och undersköterskan har Prover och kontroller direkt efter Läkemedel att ge.
 for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].indexOf('Läkemedel att ge') + 1, 0, 'Prover och kontroller');
+// Runda 9, r2: på Kardiologiska kliniken, som har Hjärtintensiven, har läkaren, sjuksköterskan och undersköterskan
+// Intensivvård. Läkaren på akuten har det inte.
+MENY.kardiologi = [...MENY.klinisk];
+MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård');
+for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].indexOf('Prover och kontroller') + 1, 0, 'Intensivvård');
 
 (async () => {
   const browser = await chromium.launch();
@@ -206,7 +212,7 @@ for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].inde
       await saknas(page, 'Engberg');
       await bild(page, '02-arbetslista', true);
     });
-    await allaVyer(page, 'Sara Lindqvist', MENY.klinisk);
+    await allaVyer(page, 'Sara Lindqvist', MENY.kardiologi);
     // Runda 6, r1: sökning i journalen, kurvor och NEWS2.
     await s('Sara söker på blodtryck i journalen, ser tolkningen och öppnar kurvan med referensintervall', async () => {
       await gaTill(page, '#/patient/p01');
@@ -1718,7 +1724,9 @@ for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].inde
         // Runda 8, r1: beställning och svar.
         'bestall-paket', 'registrera-provtagning',
         // Runda 8, r3: bokning och avdelningens planering.
-        'boka-fri', 'boka-team', 'grupp-lagg-till', 'avdelningens-handelser']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'boka-fri', 'boka-team', 'grupp-lagg-till', 'avdelningens-handelser',
+        // Runda 9, r2: medicinteknisk utrustning och intensivvården.
+        'koppla-monitor', 'godkanna-mt', 'iva-oversikt']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

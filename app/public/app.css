@@ -1505,3 +1505,32 @@ body.laslage #nyhetsruta { display: none; }
 .av-tabell tr.av-utford td { color: var(--dampad); }
 .av-typ { margin-right: 4px; }
 .av-dag.av-idag h2 { color: var(--kalla); }
+/* Runda 9, r2: medicinteknisk utrustning, patientens egna mätningar och intensivvården. */
+.kurva-punkt.kurva-referens { fill: var(--yta); stroke-dasharray: 2 1.5; }
+.tagg-referens { background: var(--obs-bg); border-color: var(--obs-kant); color: var(--obs); white-space: normal; }
+.tagg-egen { border-style: dashed; border-color: var(--linje-stark); white-space: normal; }
+td .tagg-referens, td .tagg-egen, td .tagg-ok { margin-left: 6px; }
+.ruta-obs { background: var(--obs-bg); border-color: var(--obs-kant); color: var(--obs); }
+.ruta-obs:has(> .ikon), .ruta-larm:has(> .ikon) { display: flex; gap: 10px; }
+.mt-vantar { display: flex; gap: 10px; }
+.mt-kopplingar, .mt-utrustning, .iva-analys, .iva-kort, .iva-handelser, .iva-infusioner { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 8px; }
+.mt-koppling { border: 1px solid var(--kalla-mellan); border-radius: var(--r); padding: 8px 12px; display: grid; gap: 6px; }
+.mt-koppling .knapprad { margin: 0; }
+.mt-koppla { border-top: 1px solid var(--linje); margin-top: 12px; padding-top: 8px; }
+.mt-utrustning { grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
+.mt-utrustning li { display: flex; flex-direction: column; gap: 2px; }
+.mt-pump { display: flex; gap: 8px; align-items: flex-start; margin: 0; }
+.mt-kvittera { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
+.mt-kvittera input { flex: 1 1 12em; min-width: 0; }
+.iva-oversikt td, .iva-oversikt th { vertical-align: top; }
+.iva-oversikt .under-text { display: block; }
+.iva-kort { gap: 2px; margin: 0; font-size: var(--f-xs); }
+.iva-varden { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 8px; margin: 0 0 12px; }
+.iva-varden div { border: 1px solid var(--kalla-mellan); border-radius: var(--r); padding: 6px 10px; }
+.iva-varden dt { font-weight: 600; }
+.iva-varden dd { margin: 0; }
+.iva-varden dd .under-text { display: block; }
+.iva-analys li { display: flex; gap: 8px; margin: 0; }
+.iva-kurvor { grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); }
+.iva-handelser li { display: flex; gap: 8px; }
+.mt-format td { overflow-wrap: anywhere; }
