@@ -320,7 +320,9 @@ function grundavgift(v, patient) {
   return { belopp: b, text: b === 0 ? `${KONTAKTSATT[k]} är avgiftsfritt.` : `${KONTAKTSATT[k] ?? 'Besök'} i öppenvård.` };
 }
 
-export function avgiftFor(db, patient, v) {
+// Runda 7, r3: synliga filtrerar de tidigare kontakterna på det anroparen får se, så att en avgift som taket har
+// påverkat inte röjer besök som är dolda (ekonomi.js). Utan filter räknas alla, som vid betalningen.
+export function avgiftFor(db, patient, v, { synliga = null } = {}) {
   if (!patient || (v.kalla && v.kalla !== 'vardkallan')) return null;
   const g = grundavgift(v, patient);
   const ut = (belopp, text) => ({ belopp, text: `${text} Demoregel, inte en regions avgifter.`, demoregler: true });
@@ -338,7 +340,7 @@ export function avgiftFor(db, patient, v) {
   const tidigare = db.query(`SELECT * FROM vardkontakter WHERE patient_id = ? AND typ <> 'slutenvard' AND kalla = 'vardkallan' AND id <> ? AND start >= ? AND start < ?
     AND (planerad = 0 OR ankomst IS NOT NULL) ORDER BY start, id`).all(patient.id, v.id ?? 0, fran, v.start);
   let betalt = 0;
-  for (const t of tidigare) betalt += Math.min(grundavgift(t, patient).belopp, Math.max(0, AVGIFT_DEMO.hogkostnadsskydd - betalt));
+  for (const t of synliga ? synliga(tidigare) : tidigare) betalt += Math.min(grundavgift(t, patient).belopp, Math.max(0, AVGIFT_DEMO.hogkostnadsskydd - betalt));
   const kvar = Math.max(0, AVGIFT_DEMO.hogkostnadsskydd - betalt);
   if (kvar === 0) return ut(0, `Högkostnadsskyddet på ${AVGIFT_DEMO.hogkostnadsskydd} kr är nått, så besöket är avgiftsfritt.`);
   if (kvar < g.belopp) return ut(kvar, `${g.text} Högkostnadsskyddet nås med det här besöket.`);

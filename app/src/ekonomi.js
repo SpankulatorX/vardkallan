@@ -675,7 +675,8 @@ export function kostnader(atk, q = {}, nu = Date.now()) {
     }
   }
   // Bara de kontakter användaren får se räknas, så att beloppet inte röjer ett besök på en spärrad eller annan vårdenhet.
-  const hog = hogkostnadText(hogkostnadsskyddet(db, p, nu, { synliga: (rader) => atk.filtrera(rader, 'las_admin') }));
+  const synligaBesok = (rader) => atk.filtrera(rader, 'las_admin');
+  const hog = hogkostnadText(hogkostnadsskyddet(db, p, nu, { synliga: synligaBesok }));
   if (!typ) {
     atk.logga('las_kostnader', atk.grund(), 'kostnader:ingen');
     return { aktuell: null, hogkostnadsskydd: hog, demo: full ? DEMO : DEMO_AVGIFT };
@@ -692,11 +693,17 @@ export function kostnader(atk, q = {}, nu = Date.now()) {
     return true;
   };
   const rader = alla.filter(syns);
-  // Avgiften räknas på alla patientens besök, så skälet till en avgiftsfri kontakt (frikort) visas inte här, eftersom det
-  // kan bero på besök som användaren inte får se.
-  const avgifter = rader.filter(r => r.typ === 'patientavgift').map(r => (r.status === 'frikort' || r.status === 'avgiftsfri'
-    ? { datum: r.datum, text: 'Patientavgift.', belopp: 0, status: 'avgiftsfri', statusText: 'Ingen avgift.' }
-    : { datum: r.datum, text: r.text, belopp: r.belopp, status: r.status, statusText: r.statusText ?? STATUS[r.status] }));
+  // Avgiften för en kontakt räknas här om med bara de besök användaren får se, samma filter som för högkostnadsskyddet,
+  // så att ett belopp eller en text som taket har påverkat aldrig röjer besök på en spärrad eller annan vårdenhet.
+  // Betalningen visas bara som betald eller inte, utan belopp.
+  const avgifter = rader.filter(r => r.typ === 'patientavgift').map(r => {
+    const vkId = /^vardkontakt:(\d+)$/.exec(r.kalla)?.[1];
+    if (!vkId) return { datum: r.datum, text: r.text, belopp: r.belopp, status: r.status, statusText: r.statusText ?? STATUS[r.status] };
+    const v = db.query('SELECT * FROM vardkontakter WHERE id = ?').get(Number(vkId));
+    const a = avgiftFor(db, p, v, { synliga: synligaBesok });
+    const status = a.belopp === 0 ? (/Högkostnadsskyddet .* är nått/.test(a.text) ? 'frikort' : 'avgiftsfri') : r.status === 'betald' ? 'betald' : r.status === 'vantar' ? 'vantar' : 'faktureras';
+    return { datum: r.datum, text: `Patientavgift. ${a.text}`, belopp: a.belopp, status, statusText: status === 'betald' ? 'Betald vid besöket.' : status === 'vantar' ? r.statusText : STATUS[status] };
+  });
   const sedan = synliga.reduce((m, v) => (v.start < m ? v.start : m), synliga[0].start);
   const ut = { typ, id: mal.id, sedan, pagar: typ === 'vardtillfalle' ? !mal.utskriven : !mal.slut, patientavgifter: avgifter, demo: full ? DEMO : DEMO_AVGIFT };
   if (full) {

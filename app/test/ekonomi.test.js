@@ -489,6 +489,33 @@ describe('Ekonomi: skydd i underlaget och högkostnadsskyddet', () => {
   });
 });
 
+describe('Ekonomi: avgifter som taket har påverkat', () => {
+  test('en dold kontakt som gör nästa synliga avgift nedsatt men inte noll ändrar inte svaret i kostnadsrutan', () => {
+    // Elin Sandberg (p04) spärrar psykiatrin och har ett akutbesök för 400 kr på en annan vårdenhet. Fem besök på
+    // psykiatrin för 1 000 kr gör att dagens besök på kardiologin i verkligheten kostar 50 kr i stället för 200 kr.
+    // Rutan ska se ut som om de dolda besöken inte fanns.
+    const bygg = (medDolda) => {
+      const d = byggSeed();
+      const ins = d.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, slut, plats, orsak, kalla, kontaktsatt) VALUES ('p04', ?, 'oppenvard', ?, ?, 'Mottagning', ?, 'vardkallan', 'besok')");
+      if (medDolda) for (let i = 0; i < 5; i++) { const t = new Date(Date.now() - (40 + i * 20) * 86400_000).toISOString(); ins.run('uso-psyk', t, new Date(Date.parse(t) + 1800_000).toISOString(), 'Samtal'); }
+      const t = new Date(Date.now() - 2 * 3600_000).toISOString();
+      const id = Number(ins.run('uso-kard-mott', t, new Date(Date.parse(t) + 1800_000).toISOString(), 'Återbesök').lastInsertRowid);
+      const v = d.query('SELECT * FROM vardkontakter WHERE id = ?').get(id);
+      return { d, v, ut: ekonomi.kostnader(atk(d, 'lak-kard', 'p04', {}, 'las_kostnader'), { vardkontakt: id }) };
+    };
+    const med = bygg(true);
+    const utan = bygg(false);
+    // Kontroll: med de dolda besöken är den verkliga avgiften nedsatt men inte noll.
+    const verklig = avgiftFor(med.d, med.d.query("SELECT * FROM patienter WHERE id = 'p04'").get(), med.v);
+    expect(verklig.belopp).toBeGreaterThan(0);
+    expect(verklig.belopp).toBeLessThan(200);
+    const vy = (x) => ({ avgifter: x.ut.aktuell.patientavgifter.map(({ datum, ...r }) => r), hog: x.ut.hogkostnadsskydd });
+    expect(vy(med)).toEqual(vy(utan));
+    expect(med.ut.aktuell.patientavgifter[0].belopp).toBe(200);
+    expect(JSON.stringify(med.ut)).not.toContain('nås med');
+  });
+});
+
 describe('Ekonomi: sandlådor och roller', () => {
   test('en sandlåda från före runda 7 får tabellerna, prislistorna och ekonomen', () => {
     const d = byggSeed();
