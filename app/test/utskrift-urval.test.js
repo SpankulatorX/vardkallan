@@ -1,4 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { MALLAR } from '../src/journal.js';
 import { createHash } from 'node:crypto';
 import { testserver, klient, sandlada } from './hjalp.js';
 
@@ -87,7 +88,11 @@ describe('Utskrift, urval', () => {
     const f = (await k.get('/api/patient/p01/utskrift/forslag')).data;
     expect(f.urval).toMatchObject({ fran: expect.any(String), till: expect.any(String) });
     expect(f.urval.poster.every(p => p.typ !== 'diagnos')).toBe(true);
-    expect(f.urval.poster.filter(p => p.typ === 'anteckning').every(p => p.rubrik === 'Omvårdnadsanteckning')).toBe(true);
+    // Undersköterskan läser bara omvårdnadens anteckningar, också ifyllda formulär som Fallriskbedömning (runda 10, r3).
+    const lakar = new Set(MALLAR.filter(m => m.kategori !== 'omvardnad').map(m => m.typ));
+    const anteckningar = f.urval.poster.filter(p => p.typ === 'anteckning');
+    expect(anteckningar.length).toBeGreaterThan(0);
+    expect(anteckningar.filter(p => lakar.has(p.rubrik))).toEqual([]);
   });
 });
 
