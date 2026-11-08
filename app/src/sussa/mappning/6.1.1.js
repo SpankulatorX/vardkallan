@@ -47,21 +47,30 @@ export default [
     anmarkning: 'Regeln för att föreslå avslut är en demoregel. Den som inte ser alla kontakter i ett ärende kan inte avsluta eller slå ihop det. Figur 2 och 3 i kravspecifikationen ingår inte i utdraget.',
   },
   {
-    id: '6.1.1.3', kategori: 'system', egna: ['D9'], avsedd: 'delvis',
-    tester: [`${VK}ordinationen, mätvärdet och remissen i FHIR pekar på sin vårdkontakt`],
-    losning: 'Vårdkontakten är det gemensamma id:t mot andra system: i FHIR pekar Observation, MedicationRequest, ServiceRequest och Composition på sitt Encounter, och vårdkontakterna pekar på vårdtillfälle och hälsoärende. Överföringen till den simulerade NLL hör till ordinationen och därmed till vårdkontakten.',
-    expert: 'Kopplingen sätts av systemet när uppgiften sparas, så ett kringsystem kan para ihop sina data med journalen utan att någon anger ett process-id.',
-    anmarkning: 'Inga riktiga kringsystem är anslutna, och händelser i kringsystem kan inte läsas tillbaka och följas i Vårdkällan.',
+    id: '6.1.1.3', kategori: 'system', egna: ['D9'], avsedd: 'uppfyllt_demo',
+    tester: [`${VK}ordinationen, mätvärdet och remissen i FHIR pekar på sin vårdkontakt`,
+      // Runda 9, r7: händelsekedjan per vårdkontakt med kringsystemen (sparbarhet.js).
+      'Spårbarhet > en labbeställning kan följas från vårdkontakten till svaret med samma korrelations-id',
+      'Spårbarhet > överföringen till NLL och svaret från NLL syns i händelsekedjan, och varje del följer sin behörighet',
+      'Spårbarhet > en ordination eller kontakt på en spärrad vårdenhet röjs aldrig, inte heller genom en prenumerationsnotis'],
+    losning: 'Vårdkontakten har ett process-id och är det gemensamma id:t mot andra system: i FHIR pekar Observation, MedicationRequest, ServiceRequest och Composition på sitt Encounter. Händelsekedjan för en vårdkontakt håller samman det som hände i Vårdkällan och anropen till kringsystemen: beställningarna till laboratoriet med beställningsnumret som korrelations-id och svaren som kom tillbaka, överföringarna till NLL med meddelandets id och kvittensen, och notiserna till prenumeranterna i det öppna API:t, med tid för anrop och svar och ledtiden.',
+    expert: 'Systemet sätter process-id och korrelations-id själv när uppgiften sparas och skickas och ställer samman kedjan, så att ingen behöver ange eller leta upp ett id för att para ihop data mellan kärnsystemet och kringsystemen.',
+    anmarkning: 'Laboratoriet, NLL och prenumeranterna är simulerade. Rapporterna till myndigheter och register är sammanställningar per period och hör inte till en enskild kontakt.',
   },
   {
-    id: '6.1.1.4', kategori: 'system', egna: ['D1'], avsedd: 'delvis',
+    id: '6.1.1.4', kategori: 'system', egna: ['D1'], avsedd: 'uppfyllt_demo',
     tester: [
       `${R}statuskedjan skickad, mottagen, bedömd, besvarad, svar kvitterat`,
       `${VK}hälsoärende föreslås ur en remisskedja`,
+      // Runda 9, r7: målvärden och uppföljning av subprocesserna (sparbarhet.js och konfiguration.js).
+      'Subprocesser > målvärdena för ledtiderna är parametrar som systemförvaltaren sätter, med samma standard som modulen',
+      'Subprocesser > remiss, provtagning och läkemedelsöverföring följs upp per steg mot målvärdena, utan personuppgifter',
+      'Beställning och svar > uppföljningen av kvalitet och produktion räknar antal och ledtider utan personuppgifter',
+      'Spårbarhet > en labbeställning kan följas från vårdkontakten till svaret med samma korrelations-id',
     ],
-    losning: 'Remissen är en subprocess med tidpunkt för varje steg, från skickad till kvitterat svar, och den är knuten till kontakten som skickade den och till kontakten hos mottagaren som var svaret på den.',
-    expert: 'Systemet bevakar stegen och larmar när ett steg uteblir, och knyter mottagarens nya kontakt till remissen utan att någon gör det själv.',
-    anmarkning: 'Målvärden för ledtider och uppföljning per subprocess är inte byggda. Provhantering finns inte.',
+    losning: 'Remiss, provtagning och läkemedelsöverföring till NLL är subprocesser med tidpunkt för varje steg, knutna till vårdkontakten. Uppföljningen av subprocesserna visar medianen per steg och totalt, andelen inom målvärdet och de långsammaste med korrelations-id, för den egna vårdenheten eller hela vårdgivaren. Målvärdena sätter systemförvaltaren på sidan Regler och parametrar, med fyra ögon och giltighetsdatum.',
+    expert: 'Systemet bevakar stegen och larmar när ett steg uteblir, räknar ledtiderna själv och jämför dem med målet, och förhandsvisar hur många som hamnar inom ett nytt mål innan det godkänns.',
+    anmarkning: 'Målvärdena i demon är Vårdkällans förslag, inte regionens mål. Medianer och andelar som bygger på färre än fem visas inte.',
   },
   {
     id: '6.1.1.5', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
@@ -81,14 +90,19 @@ export default [
     anmarkning: 'Vårdplatser och sängar är fritext. Det finns ingen beläggningsöversikt och ingen planerad flytt. Vistelser, händelser och platser på andra vårdenheter visas bara efter aktivt val, också för kliniken med det medicinska ansvaret.',
   },
   {
-    id: '6.1.1.6', kategori: 'system', egna: [], avsedd: 'delvis',
+    id: '6.1.1.6', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
     tester: [
       `${VK}inskrivning från akuten skapar ett vårdtillfälle och avslutar akutbesöket`,
       `${VK}planerad kontakt på distans, och ankomsten registreras på den planerade`,
       `${VK}all vårdinformation i seeden är knuten till en vårdkontakt hos samma patient`,
+      // Runda 9, r7: hemsjukvård, dagkirurgi och faktisk besökstid (vardformer.js).
+      'Vårdformer > utskrivning till hemsjukvård görs i ett steg, med föregående kontakt och samma hälsoärende',
+      'Vårdformer > en dagkirurgisk kontakt där patienten blir kvar skrivs in i samma hälsoärende',
+      'Vårdformer > den faktiska besökstiden registreras utan att kontakten avslutas',
+      'Vårdformer > en dagkirurgisk kontakt eller uppföljning kan inte bakdateras eller läggas mer än ett år fram',
     ],
-    losning: 'Öppenvård, akutbesök och slutenvård är samma slags vårdkontakt. Ett akutbesök som leder till inskrivning blir den föregående kontakten i vårdtillfället, och för en planerad kontakt registreras den faktiska ankomsttiden.',
-    expert: 'Systemet avslutar akutbesöket och knyter det till inskrivningen, och registrerar ankomsten på den planerade kontakten när patienten kommer, så att ingen behöver registrera samma sak två gånger.',
-    anmarkning: 'Figur 4 i kravspecifikationen ingår inte i utdraget. Övergångar från slutenvård till öppenvård, som hemsjukvård och dagkirurgi, är inte byggda, och den faktiska sluttiden för ett besök registreras bara när kontakten avslutas.',
+    losning: 'Öppenvård, akutbesök, slutenvård, hemsjukvård och dagkirurgi är samma slags vårdkontakt. Ett akutbesök eller en dagkirurgisk kontakt som leder till inskrivning blir den föregående kontakten, och utskrivningen till hemsjukvård eller öppenvård görs i ett steg med den nya kontakten i samma hälsoärende. För öppenvård, akutbesök, hemsjukvård och dagkirurgi registreras ankomsten och när besöket slutade, utan att kontakten avslutas, och systemet räknar besökstiden. Händelsekedjan för kontakten visar övergångarna mellan vårdformerna.',
+    expert: 'Den som skriver ut väljer bara vårdformen som följer. Systemet fyller i typ, enhet, plats, orsak, föregående kontakt och hälsoärende, skapar ett hälsoärende om det saknas och föreslår första hembesöket till nästa vardag.',
+    anmarkning: 'Figur 4 i kravspecifikationen ingår inte i textutdraget, så lösningen bygger på texten om vårdformsövergångar och faktisk besökstid. Hemsjukvården ligger på den vårdenhet som skrev ut patienten, och kommunal hemsjukvård är inte byggd.',
   },
 ];
