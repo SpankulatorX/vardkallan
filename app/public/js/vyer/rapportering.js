@@ -1,7 +1,7 @@
 // Rapportering till myndigheter och register (runda 7, r5, Sussa 6.3.2): patientregistret, väntetiderna,
 // Vårdtillfällesdatabasen, medicinska födelseregistret och ett demoregister för hjärtsvikt. Systemet sammanställer och
 // kontrollerar varje rapport själv, och uppföljningsrollen granskar och skickar. Inga patientuppgifter visas här:
-// felen saknar patient, och exempelraderna visas med personnumret dolt. Mottagarna är simulerade.
+// felen saknar patient, och filerna visas bara med hur många rader som har varje fält ifyllt. Mottagarna är simulerade.
 import { esc, api, vyRubrik, tidpunkt, datum, ikon, dialog, medKnapp, notis, plural } from '../ui.js';
 
 export const namn = 'rapportering';
@@ -24,12 +24,13 @@ function kort(r) {
 }
 
 function detalj(d) {
-  const fel = d.felLista.map(f => `<li><strong>${esc(f.enhet?.namn ?? 'Vårdgivaren')}</strong>${f.datum ? `, ${esc(datum(f.datum))}` : ''}: ${esc(f.text)}
+  const fel = d.felLista.map(f => `<li><strong>${esc(f.enhet?.namn ?? 'Vårdgivaren')}</strong>: ${esc(f.text)}
     <span class="under-text">${esc(f.vem)} rättar.${f.iInkorgen ? ' Felet ligger i deras inkorg.' : ''}${f.lank ? ` <a href="${esc(f.lank)}">Visa mappningen</a>` : ''}</span></li>`).join('');
   const und = d.undantag.map(u => `<tr><th scope="row">${esc(u.text)}<span class="under-text">${esc(u.bestammelse)}</span></th><td class="tal">${u.antal}</td><td>${u.ingar ? 'Rapporteras' : 'Rapporteras inte'}</td></tr>`).join('');
   const filer = d.filer.map(f => `<tr><th scope="row"><code>${esc(f.namn)}</code><span class="under-text">${esc(f.rubrik)}</span></th><td class="tal">${f.antal}</td><td><code>${esc(kortSha(f.sha256))}</code></td></tr>`).join('');
-  const exempel = d.filer.filter(f => f.exempel.length).map(f => `<details class="ruta"><summary>${esc(f.rubrik)}, de första raderna</summary>
-    <p class="under-text">Fälten: ${esc(f.falt.join(', '))}. Personnumret visas inte här.</p><pre class="kodblock">${esc(f.exempel.map(x => x.join(';')).join('\n'))}</pre></details>`).join('');
+  // Filernas innehåll visas inte, bara hur många rader som har varje fält ifyllt, så att inget pekar ut en patient.
+  const ifyllda = d.filer.filter(f => f.antal).map(f => `<details class="ruta"><summary>${esc(f.rubrik)}, ifyllda fält</summary>
+    <div class="tabellrulle"><table class="tabell siffertabell"><thead><tr><th scope="col">Fält</th><th scope="col" class="tal">Ifyllt på rader</th></tr></thead><tbody>${f.ifyllda.map(x => `<tr><td>${esc(x.falt)}</td><td class="tal">${x.ifyllda} av ${f.antal}</td></tr>`).join('')}</tbody></table></div></details>`).join('');
   const skickaText = d.fel ? `Skicka ${plural(d.antal.kontakter - d.kvarhallna, 'kontakt', 'kontakter')}` : 'Skicka';
   return `<section class="rapport-detalj" aria-labelledby="rd-rubrik">
     <h2 id="rd-rubrik">${esc(d.namn)}, ${esc(d.period.text)}</h2>
@@ -41,7 +42,7 @@ function detalj(d) {
     ${d.varningLista.length ? `<h3>Att känna till</h3><ul class="rapport-varn">${d.varningLista.map(v => `<li>${esc(v.text)}</li>`).join('')}</ul>` : ''}
     ${und ? `<h3>Det som inte rapporteras eller rapporteras trots ett skydd</h3><div class="tabellrulle"><table class="tabell"><thead><tr><th scope="col">Vad</th><th scope="col" class="tal">Antal</th><th scope="col">Rapporteras</th></tr></thead><tbody>${und}</tbody></table></div>` : ''}
     <h3>Filerna</h3><div class="tabellrulle"><table class="tabell"><thead><tr><th scope="col">Fil</th><th scope="col" class="tal">Rader</th><th scope="col">SHA-256</th></tr></thead><tbody>${filer}</tbody></table></div>
-    ${exempel}
+    ${ifyllda}
     <div class="knapprad"><button type="button" class="knapp" data-skicka="${esc(d.id)}">${esc(skickaText)} till ${esc(d.kortnamn === 'Kvalitetsregister' ? 'kvalitetsregistret' : d.namn.toLowerCase())}</button></div>
   </section>`;
 }

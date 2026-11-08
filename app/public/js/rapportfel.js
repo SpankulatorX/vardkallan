@@ -12,7 +12,7 @@ export function rapportfelSektion(d, sektion) {
   const rader = (d.rapportfel ?? []).map((r, i) => {
     const knapp = KNAPP[r.atgard];
     const lank = LANK[r.atgard]?.(r);
-    return `<li class="ik-ater"><div class="ik-text"><span class="ik-rubrik"><a href="#/patient/${encodeURIComponent(r.patientId)}">${esc(pnamn(r.patient))}</a>: ${esc(r.text)}</span>
+    return `<li class="ik-ater"><div class="ik-text"><span class="ik-rubrik rf-rubrik"><a href="#/patient/${encodeURIComponent(r.patientId)}">${esc(pnamn(r.patient))}</a>: ${esc(r.text)}${r.detalj ? ` (${esc(r.detalj)})` : ''}</span>
       <span class="under-text">${esc(r.rapporter.join(', '))}${r.datum ? `, vårdkontakt ${esc(datum(r.datum))}` : ''}. Kontakten hålls kvar och följer med av sig själv i nästa rapport när det är rättat.</span></div>
       <div class="ik-knappar">${knapp ? `<button type="button" class="knapp liten" data-rapportfel="${i}">${esc(knapp)}</button>` : lank ? `<a class="knapp liten sekundar" href="${esc(lank)}">Rätta</a>` : ''}</div></li>`;
   });

@@ -1210,3 +1210,6 @@ mark { background: var(--obs-bg); color: inherit; outline: 1px solid var(--obs-k
 @media (max-width: 640px) {
   .bor-poster { margin-left: 0; }
 }
+/* Runda 7, r5: raden i inkorgen har en länk till patienten följd av text, så den är ett vanligt textblock. */
+.ik-rubrik.rf-rubrik { display: block; }
+.inkorg-lista .rf-rubrik a { display: inline; padding: 0; color: var(--kalla); text-decoration: underline; }

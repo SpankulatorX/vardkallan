@@ -2,8 +2,8 @@
 // tjänstekontrakten med den simulerade RIV-TA-producenten (tjanstekontrakt.js). Servern lämnar sina hjälpare hit, så
 // att routningen ligger samlad. All behörighet prövas i behörighetsmotorn och varje åtkomst loggas.
 //
-// Uppföljningsrollen ser rapporterna, felen och antalen, men inga patientuppgifter: felen har ingen patient, och filernas
-// exempelrader visas med personnumret dolt. När rapporten skickas loggas varje patient som finns med i filerna.
+// Uppföljningsrollen ser rapporterna, felen och antalen, men inga patientuppgifter: felen har ingen patient, och
+// filerna visas bara med hur många rader som har varje fält ifyllt. När rapporten skickas loggas varje patient i filerna.
 import { Fel } from './db.js';
 import { Atkomst, kanRoll, vardenhetFor } from './atkomst.js';
 import * as logg from './logg.js';
@@ -11,13 +11,14 @@ import * as mr from './myndighetsrapport.js';
 import { KALLOR } from './rapportkoder.js';
 import * as tk from './tjanstekontrakt.js';
 
-// Det uppföljningsrollen får se av ett fel: ingen patient, ingen vårdkontakt och ingen länk in i journalen.
+// Det uppföljningsrollen får se av ett fel: ingen patient, ingen vårdkontakt, inget datum, ingen detalj ur journalen och
+// ingen länk in i journalen. Vårdenheten och vem som rättar räcker för att följa upp.
 const VEM = { diagnos: 'Läkare på vårdenheten', yttre_orsak: 'Läkare på vårdenheten', identitet: 'Vårdadministratör på vårdenheten', aktivitet: 'Vårdadministratör på vårdenheten', vantelista: 'Vårdadministratör på vårdenheten', mappning: 'Den som förvaltar rapporteringen' };
-const felUtanPatient = (f, i) => ({ nyckel: `${f.rapport}:${f.regel}:${i + 1}`, rapport: f.rapport, regel: f.regel, text: f.text, enhet: f.enhet, datum: f.datum, atgard: f.atgard,
+const felUtanPatient = (f, i) => ({ nyckel: `${f.rapport}:${f.regel}:${i + 1}`, rapport: f.rapport, regel: f.regel, text: f.text, enhet: f.enhet, atgard: f.atgard,
   vem: VEM[f.atgard], iInkorgen: ['diagnos', 'yttre_orsak', 'identitet', 'aktivitet', 'vantelista'].includes(f.atgard), lank: f.atgard === 'mappning' ? '#/rapportering?visa=mappning' : null });
-// Exempelrader ur en fil, med personnumret dolt.
-const PNR_FALT = new Set(['Personnummer', 'Den förlöstas personnummer']);
-const exempel = (f) => f.rader.slice(0, 3).map(r => r.map((v, i) => (PNR_FALT.has(f.falt[i]) && v ? '************' : v)));
+// Filerna visas utan rader: bara hur många rader som har varje fält ifyllt. Alla fält i en rad, också datum, tider och
+// id, kan tillsammans peka ut en patient, så inga värden lämnas ut till rapporteringsrollen.
+const ifyllda = (f) => f.falt.map((namn, i) => ({ falt: namn, ifyllda: f.rader.filter(r => String(r[i] ?? '') !== '').length }));
 
 function sammanfattning(db, s) {
   const senast = mr.historik(db, s.rapport.id)[0] ?? null;
@@ -54,7 +55,7 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor }) {
     loggUtanPatient(c, `rapport:${id}:granska`);
     return {
       ...sammanfattning(c.db, s),
-      filer: s.filer.map(f => ({ kod: f.kod, namn: f.namn, rubrik: f.rubrik, falt: f.falt, antal: f.antal, sha256: f.sha256, exempel: exempel(f) })),
+      filer: s.filer.map(f => ({ kod: f.kod, namn: f.namn, rubrik: f.rubrik, falt: f.falt, antal: f.antal, sha256: f.sha256, ifyllda: ifyllda(f) })),
       felLista: s.fel.map(felUtanPatient), varningLista: s.varningar.map(v => ({ text: v.text })), undantag: s.undantag, format: s.format,
     };
   });
@@ -118,7 +119,7 @@ export function inkorg(c, patientKort, patientRad, valFor) {
       if (!loggade.has(resurs)) { loggade.add(resurs); atk.logga(handling, atk.prova(handling, { enhet_id: f.enhet.id }).grund, resurs); }
       const vk = f.vardkontaktId ? c.db.query('SELECT * FROM vardkontakter WHERE id = ?').get(f.vardkontaktId) : null;
       ut.push({
-        nyckel, regel: f.regel, atgard: f.atgard, text: f.text, datum: f.datum, rapporter: [mr.RAPPORTER[id].namn], patientId: f.patientId,
+        nyckel, regel: f.regel, atgard: f.atgard, text: f.text, detalj: f.detalj, datum: f.datum, rapporter: [mr.RAPPORTER[id].namn], patientId: f.patientId,
         patient: patientKort(patientRad(c.db, f.patientId)), vardkontaktId: f.vardkontaktId,
         forslag: f.atgard === 'diagnos' && vk ? mr.diagnosforslag(c.db, vk) : [],
       });

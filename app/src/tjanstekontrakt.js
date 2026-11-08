@@ -9,7 +9,8 @@
 // som i FHIR och i gränssnittet. Varje anrop loggas med kontraktets namn i loggens resurs.
 import { randomBytes } from 'node:crypto';
 import { Fel } from './db.js';
-import { vardenhetFor } from './atkomst.js';
+import { vardenhetFor, kanRoll } from './atkomst.js';
+import { loggaRad } from './logg.js';
 import { hittaPaToken, gallandeId } from './identitet.js';
 import * as fhir from './fhir.js';
 
@@ -99,6 +100,12 @@ export const K10_RADER = 81;
 const OID = { personnummer: '1.2.752.129.2.1.3.1', samordningsnummer: '1.2.752.129.2.1.3.3', icd10se: '1.2.752.116.1.1.1', kva: '1.2.752.116.1.3.2.1.4' };
 export const PRODUCENTER = ['GetCareDocumentation', 'GetDiagnosis', 'GetAlertInformation', 'GetCareContacts'];
 const RESURSER = { GetCareDocumentation: ['Composition'], GetDiagnosis: ['Condition'], GetAlertInformation: ['Flag', 'AllergyIntolerance'], GetCareContacts: ['Encounter'] };
+// Handlingen i behörighetsmotorn per resurs, som i FHIR-API:t.
+const ROLL_HANDLING = {
+  Composition: (p) => (kanRoll(p, 'las_journal') ? 'las_journal' : 'las_omvardnad'), Condition: () => 'las_diagnoser',
+  Flag: () => 'las_oversikt', AllergyIntolerance: () => 'las_oversikt', Encounter: () => 'las_admin',
+};
+const NEKAD = 'Du har inte behörighet till uppgifterna, eller så finns ingen sådan patient. Försöket är loggat.';
 const TABELL = { Composition: 'anteckningar', Condition: 'diagnoser', Flag: 'uppmarksamhet', AllergyIntolerance: 'overkanslighet', Encounter: 'vardkontakter' };
 
 const datumRiv = (iso) => (iso ? new Date(iso).toLocaleString('sv-SE', { timeZone: 'Europe/Stockholm' }).replace(/[- :]/g, '').slice(0, 14) : null);
@@ -115,8 +122,19 @@ export function anropa(ctx, kontrakt, body = {}) {
   if (!pidText) throw new Fel(400, 'Ange patientens personnummer eller samordningsnummer i patientId.id.', 'ogiltig', { falt: ['patientId'] });
   const typ = body.patientId?.type ?? OID.personnummer;
   if (![OID.personnummer, OID.samordningsnummer].includes(typ)) throw new Fel(400, 'Typen i patientId ska vara OID:n för personnummer eller samordningsnummer.', 'ogiltig', { falt: ['patientId'] });
+  // Rollen prövas före uppslaget, och en patient som inte finns ger samma svar som en patient utan behörighet, så att
+  // producenten inte röjer vilka patienter som finns. Ett uppslag som inte ger någon patient loggas som nekat.
+  const handlingar = RESURSER[kontrakt].map(t => ROLL_HANDLING[t](personal));
+  const resurs = `riv/${kontrakt}`;
+  if (handlingar.some(h => !kanRoll(personal, h))) {
+    loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, handling: handlingar[0], resurs, grund: 'nekad', resultat: 'nekad' });
+    throw new Fel(403, NEKAD, 'nekad');
+  }
   const funnen = hittaPaToken(db, pidText);
-  if (!funnen) throw new Fel(404, 'Patienten finns inte.', 'saknas');
+  if (!funnen) {
+    loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, handling: handlingar[0], resurs, grund: 'nekad', resultat: 'nekad' });
+    throw new Fel(403, NEKAD, 'nekad');
+  }
   const pid = gallandeId(db, funnen);
   const enheter = new Set((body.careUnitHSAId ?? []).map(String));
   const start = body.datePeriod?.start ? String(body.datePeriod.start) : null;
@@ -126,7 +144,12 @@ export function anropa(ctx, kontrakt, body = {}) {
   for (const typRes of RESURSER[kontrakt]) {
     // Samma prövning och loggning som FHIR-API:t. Kontraktets namn står i loggens resurs.
     const u = new URL(`${base}/fhir/${typRes}?patient=${encodeURIComponent(pid)}&_kontrakt=${kontrakt}`);
-    const svar = fhir.hantera({ db, personal, invanare: null, nekade: null, valFor: ctx.valFor, url: u, base });
+    let svar;
+    try { svar = fhir.hantera({ db, personal, invanare: null, nekade: null, valFor: ctx.valFor, url: u, base }); } catch (e) {
+      // Nekandet är redan loggat på patienten i behörighetsmotorn. Svaret är detsamma som för en patient som inte finns.
+      if (e instanceof Fel && (e.status === 403 || e.status === 404)) throw new Fel(403, NEKAD, 'nekad');
+      throw e;
+    }
     for (const e of svar.body.entry ?? []) lista.push(rivPost(db, kontrakt, e.resource, { id: pidText.replace(/\D/g, ''), type: typ }, vardgivare));
   }
   const filtrerad = lista.filter(x => x

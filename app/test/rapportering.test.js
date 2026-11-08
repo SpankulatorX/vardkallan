@@ -156,6 +156,9 @@ describe('Myndighetsrapportering', () => {
     expect(f.slice(15, 21)).toEqual(['1977', '1', '1880', '4', '0', 'XS915']);
     expect(f[24]).toBe('2035-03-20T00:00:00');
     expect(s.fel.map(x => [x.regel, x.radNyckel, x.atgard])).toEqual([['aktivitet', `VL${okand}`, 'aktivitet'], ['maldatum', `VL${ater}`, 'vantelista']]);
+    // Felets text innehåller ingen fritext ur journalen. Väntelistans orsak finns bara i detaljen, som visas efter prövningen.
+    expect(s.fel[0].text).not.toContain('saknas i förteckningen');
+    expect(s.fel[0].detalj).toBe('Ingrepp som saknas i förteckningen');
     expect(s.format.ok).toBe(true);
   });
 
@@ -235,19 +238,25 @@ describe('Myndighetsrapportering i API:t', () => {
     expect((await u.get('/api/rapportering/okand')).status).toBe(404);
   });
 
-  test('granskningen visar fel och exempelrader utan patientuppgifter', async () => {
+  test('granskningen visar fel och fältens ifyllnad utan patientuppgifter', async () => {
     const u = await inloggad('uppf');
     const db = sdb(u);
     const per = mr.period('par', new Date());
     const datum = addDagar(per.fran, 10);
-    vardtillfalle(db, { pid: 'p01', inskr: datum, utskr: addDagar(datum, 2) });
+    const { vt } = vardtillfalle(db, { pid: 'p01', inskr: datum, utskr: addDagar(datum, 2) });
+    const ok = vardtillfalle(db, { pid: 'p05', inskr: addDagar(datum, 1), utskr: addDagar(datum, 3) });
+    diagnos(db, { pid: 'p05', vk: ok.vk, kod: 'I48.0' });
     const r = (await u.get('/api/rapportering/par')).data;
+    // Inga rader ur filerna, inga id, födelsedatum eller tider för vårdkontakterna (säkerhetsgranskningen efter r5).
+    const uppgifter = ['p01', 'p05', '194502024732', '196503143254', '19450202', '19650314', `VT${vt}`, `VT${ok.vt}`, datum, datum.replaceAll('-', ''), addDagar(datum, 3).replaceAll('-', ''), 'Kardiologiska kliniken USÖ;'];
+    for (const x of uppgifter) expect({ x, finns: JSON.stringify(r).includes(x) }).toEqual({ x, finns: false });
+    expect(r.filer.find(f => f.kod === 'SV_AD').exempel).toBeUndefined();
+    expect(r.filer.find(f => f.kod === 'SV_AD').ifyllda.length).toBe(11);
     const fel = r.felLista.filter(f => f.regel === 'huvuddiagnos' && f.enhet.id === 'uso-kard');
     expect(fel.length).toBeGreaterThan(0);
     expect(fel[0]).toMatchObject({ vem: 'Läkare på vårdenheten', iInkorgen: true, lank: null });
     const text = JSON.stringify(r);
     for (const x of ['p01', '194502024732', '19450202', 'Gunnar', 'Åkesson', 'patientId', 'vardkontaktId']) expect(text).not.toContain(x);
-    expect(r.filer.find(f => f.kod === 'SV_AD').exempel.every(x => x[1] === '' || x[1] === '************')).toBe(true);
     expect(r.undantag.length).toBeGreaterThan(0);
   });
 
@@ -331,6 +340,21 @@ describe('Myndighetsrapportering i API:t', () => {
     expect(akut.some(x => x.vardkontaktId === d.vardkontaktId)).toBe(false);
     await k.logga('ssk-kard');
     expect((await k.post('/api/demo/rapportfel')).status).toBe(403);
+  });
+
+  test('väntelistans fritext visas inte för uppföljningsrollen, bara för vårdadministratören efter prövningen', async () => {
+    const k = await inloggad('uppf');
+    const db = sdb(k);
+    const per = mr.period('viv', new Date());
+    db.query("INSERT INTO vantelista (patient_id, enhet_id, tidstyp, yrkesroll, prioritet, orsak, fran, skapad) VALUES ('p01', 'uso-kard', 'ingrepp', 'lakare', 'normal', 'Hemlig orsak ur journalen', ?, ?)").run(per.fran, new Date(per.fran).toISOString());
+    const r = (await k.get('/api/rapportering/viv')).data;
+    expect(r.felLista.some(f => f.regel === 'aktivitet')).toBe(true);
+    expect(JSON.stringify(r)).not.toContain('Hemlig orsak');
+    await k.logga('adm-kard');
+    const rad = (await k.get('/api/inkorg')).data.rapportfel.find(x => x.regel === 'aktivitet');
+    expect(rad.detalj).toBe('Hemlig orsak ur journalen');
+    await k.logga('lak-psyk');
+    expect(JSON.stringify((await k.get('/api/inkorg')).data.rapportfel)).not.toContain('Hemlig orsak');
   });
 
   test('kvalitetsregistrets återkoppling sparas och kan läsas', async () => {

@@ -1,3 +1,6 @@
+// Felens text är generisk och innehåller aldrig fritext eller koder ur journalen, eftersom uppföljningsrollen ser den utan
+// vårdrelation. Det som behövs för att hitta posten står i detalj, som bara visas i inkorgen efter behörighetsprövningen.
+//
 // Rapportering till myndigheter och register (runda 7, r5, Sussa 6.3.2 och avtalets tillägg 2020, A1.7 punkt 4).
 // Systemet sammanställer varje rapport själv ur det som redan är registrerat: vårdtillfällen, vårdkontakter, diagnoser,
 // åtgärder, givna läkemedel, tvångsvårdens beslut, väntelistan, remisser och förlossningar. Det kontrollerar raderna mot
@@ -209,7 +212,7 @@ function laggFel(ctx, f) {
   if (ctx.fel.some(x => x.nyckel === nyckel)) return;
   const e = ctx.enheter.get(f.enhetId);
   ctx.fel.push({ nyckel, rapport: ctx.rapportId, regel: f.regel, text: f.text, radNyckel: f.radNyckel, enhet: e ? { id: e.id, namn: e.namn } : null,
-    patientId: f.patientId ?? null, vardkontaktId: f.vardkontaktId ?? null, datum: f.datum ?? null, atgard: f.atgard });
+    patientId: f.patientId ?? null, vardkontaktId: f.vardkontaktId ?? null, datum: f.datum ?? null, atgard: f.atgard, detalj: f.detalj ?? null });
   if (f.radNyckel) ctx.kvarhallna.add(f.radNyckel);
 }
 
@@ -239,7 +242,7 @@ function kontrolleraDiagnoser(ctx, { diagnoser, radNyckel, patientId, vardkontak
     const kand = ICD10SE[d.kod] || K.tolkaYttreOrsak(d.kod) || K.FORLOSSNING[d.kod.slice(0, 3)] || /^Z37\.\d$/.test(d.kod);
     if (!kand || kod.length < 4 || kod.length > 5) {
       laggFel(ctx, { regel: 'kod', radNyckel, patientId, vardkontaktId, enhetId: ve, datum, atgard: 'diagnos',
-        text: `Diagnoskoden ${d.kod} kan inte rapporteras. Registret tar emot koder ur ICD-10-SE med fyra eller fem tecken utan punkt. Registrera en giltig diagnos för vårdkontakten.` });
+        text: 'En diagnoskod kan inte rapporteras. Registret tar emot koder ur ICD-10-SE med fyra eller fem tecken utan punkt. Registrera en giltig diagnos för vårdkontakten.', detalj: d.kod });
       ok = false;
     }
   }
@@ -427,7 +430,7 @@ function byggViv(ctx) {
     const aktivitet = Object.entries(K.VIV_AKTIVITET).find(([ord]) => v.orsak.toLowerCase().includes(ord))?.[1] ?? null;
     if ((fas === '2' || fas === '3') && !aktivitet) {
       laggFel(ctx, { regel: 'aktivitet', radNyckel: nyckel, patientId: p.id, enhetId: k.ve, atgard: 'aktivitet', datum: v.fran,
-        text: `Väntelistans post "${v.orsak}" saknar aktivitet ur väntetidsdatabasens vårdutbudsförteckning, som krävs för operationer och undersökningar. Ange vilket ingrepp patienten väntar på.` });
+        text: 'En post på väntelistan saknar aktivitet ur väntetidsdatabasens vårdutbudsförteckning, som krävs för operationer och undersökningar. Ange vilket ingrepp patienten väntar på.', detalj: v.orsak });
       continue;
     }
     if (fas === '4' && !v.mal) {
@@ -485,7 +488,7 @@ function byggVtd(ctx) {
 }
 
 // Medicinska födelseregistret: förlossningar som avslutades under perioden. En förlossning är ett vårdtillfälle med en
-// diagnos för förlossning (O80 till O84). Vårdkållan har ingen förlossningsjournal, så de flesta av de 66 frågorna i FV1
+// diagnos för förlossning (O80 till O84). Vårdkällan har ingen förlossningsjournal, så de flesta av de 66 frågorna i FV1
 // lämnas tomma och redovisas som saknade.
 function byggMfr(ctx) {
   const { db, period: per } = ctx;

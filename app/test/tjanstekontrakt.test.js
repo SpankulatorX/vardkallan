@@ -89,7 +89,18 @@ describe('Tjänstekontrakt', () => {
     const okand = await k.post('/api/riv/GetVaccinationHistory', fraga('194502024732'));
     expect(okand.status).toBe(404);
     expect(okand.data.fel).toContain('inte producent');
-    expect((await k.post('/api/riv/GetDiagnosis', fraga('191212121212'))).status).toBe(404);
+    // En patient som inte finns och en patient utan behörighet ger samma svar, och uppslaget loggas.
+    const finnsInte = await k.post('/api/riv/GetDiagnosis', fraga('191212121212'));
+    const utanGrund = await k.post('/api/riv/GetDiagnosis', fraga('194505124752'));
+    expect(finnsInte.status).toBe(403);
+    expect(utanGrund.status).toBe(403);
+    expect(finnsInte.data).toEqual(utanGrund.data);
+    expect(db(k).query("SELECT count(*) AS n FROM atkomstlogg WHERE resultat = 'nekad' AND resurs = 'riv/GetDiagnosis' AND patient_id IS NULL").get().n).toBe(1);
+    expect(db(k).query("SELECT count(*) AS n FROM atkomstlogg WHERE resultat = 'nekad' AND patient_id = 'p20'").get().n).toBeGreaterThan(0);
+    // Rollen prövas före uppslaget: uppföljningsrollen får samma svar för en patient som inte finns.
+    await k.logga('uppf');
+    expect((await k.post('/api/riv/GetDiagnosis', fraga('191212121212'))).data).toEqual((await k.post('/api/riv/GetDiagnosis', fraga('194502024732'))).data);
+    await k.logga('lak-kard');
     expect((await k.post('/api/riv/GetDiagnosis', {})).status).toBe(400);
     expect((await k.post('/api/riv/GetDiagnosis', fraga('194502024732', { logicalAddress: 'SE0000000000-0000' }))).data.fel).toContain('logiska adressen');
     expect((await k.post('/api/riv/GetDiagnosis', { patientId: { id: '194502024732', type: '1.2.3' } })).status).toBe(400);
