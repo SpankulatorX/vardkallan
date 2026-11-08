@@ -27,10 +27,19 @@ const KONTAKTTYP = { AMB: 'besok', IMP: 'slutenvard', EMER: 'akut', HH: 'hembeso
 // Mätvärdestypen för en kod i NPU eller LOINC, ur kodverk.js.
 const MATTYP = new Map(Object.entries(MATKOD).flatMap(([typ, k]) => k.coding.map(c => [`${c.system}|${c.code}`, typ])));
 
+// migrering_filer har varje fil som har lagts fram: själva filen, förhandsvisningen eller rapporten, och vem som lade
+// fram och godkände den. migrering_metadata har uppgifterna om källan för varje migrerad anteckning, som vem som skrev
+// och signerade den i källsystemet. De pekar aldrig på en nuvarande personal i Vårdkällan.
 export function sakerstall(db) {
-  db.exec(`CREATE TABLE IF NOT EXISTS migrering_filer (id INTEGER PRIMARY KEY, hash TEXT NOT NULL UNIQUE, kalla TEXT NOT NULL, tid TEXT NOT NULL,
-    av TEXT NOT NULL, rapport TEXT NOT NULL)`);
+  db.exec(`CREATE TABLE IF NOT EXISTS migrering_filer (id INTEGER PRIMARY KEY, hash TEXT NOT NULL, kalla TEXT NOT NULL, fil TEXT NOT NULL,
+    status TEXT NOT NULL, foreslagen_av TEXT NOT NULL, foreslagen TEXT NOT NULL, beslutad_av TEXT, beslutad TEXT, kommentar TEXT, rapport TEXT NOT NULL)`);
+  db.exec(`CREATE TABLE IF NOT EXISTS migrering_metadata (tabell TEXT NOT NULL, rad_id INTEGER NOT NULL, fil_id INTEGER NOT NULL, kalla TEXT NOT NULL,
+    forfattare TEXT, forfattare_hsa TEXT, signerad TEXT, PRIMARY KEY (tabell, rad_id))`);
 }
+
+// Författaren till en migrerad anteckning är källsystemet, aldrig en nuvarande personal. Identiteten har ingen rad i
+// personal, och journal.js visar uppgifterna om källan i stället.
+export const migreringsidentitet = (kalla) => `migrering:${kalla}`;
 
 const datum = (s) => (typeof s === 'string' && /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : null);
 const tid = (s) => (typeof s === 'string' && !Number.isNaN(Date.parse(s)) && /^\d{4}-\d{2}-\d{2}/.test(s) ? new Date(s).toISOString() : null);
@@ -95,13 +104,16 @@ function tolkaPost(db, r) {
   if (r.resourceType === 'Composition') {
     const t = tid(r.date);
     if (!t) return { fel: 'Anteckningen saknar datum.' };
-    const forf = (r.author ?? []).map(a => a?.identifier).find(i => i?.system === HSA_SYSTEM);
-    const pers = forf ? db.query('SELECT id FROM personal WHERE hsa_id = ?').get(String(forf.value ?? '')) : null;
-    if (!pers) return { fel: 'Anteckningens författare saknas eller finns inte i personalkatalogen med HSA-id.' };
+    // Författaren i källsystemet sparas som en uppgift om källan, med namn och HSA-id som de står i filen. Den kopplas
+    // aldrig till en nuvarande personal med samma HSA-id, eftersom den som läser in filen då kunde få en anteckning att
+    // se ut som signerad av en kollega.
+    const forf = (r.author ?? []).find(a => a?.identifier?.system === HSA_SYSTEM || typeof a?.display === 'string');
+    const forfattare = typeof forf?.display === 'string' && forf.display.trim() ? forf.display.trim().slice(0, 120) : null;
+    const forfattareHsa = forf?.identifier?.system === HSA_SYSTEM && /^[A-Z0-9-]{6,40}$/.test(String(forf.identifier.value ?? '')) ? String(forf.identifier.value) : null;
     const sokord = (r.section ?? []).map(s => ({ sokord: String(s?.title ?? '').trim().slice(0, 80), text: String(s?.text?.div ?? '').replace(/<[^>]*>/g, '').trim().slice(0, 8000) })).filter(s => s.sokord && s.text);
     if (!sokord.length) return { fel: 'Anteckningen har inga sökord med text.' };
     const typ = (typeof r.title === 'string' && r.title.trim().slice(0, 60)) || 'Anteckning';
-    return { rad: { patient_id: p.id, enhet_id: e.id, typ, kategori: /omvårdnad/i.test(typ) ? 'omvardnad' : 'lakare', sokord: JSON.stringify(sokord), forfattare_id: pers.id, skapad: t, status: 'signerad', signerad_tid: t, signerad_av: pers.id } };
+    return { rad: { patient_id: p.id, enhet_id: e.id, typ, kategori: /omvårdnad/i.test(typ) ? 'omvardnad' : 'lakare', sokord: JSON.stringify(sokord), skapad: t, status: 'signerad', signerad_tid: t, forfattare, forfattareHsa } };
   }
   return { fel: `Resurstypen ${r.resourceType} migreras inte.` };
 }
@@ -111,7 +123,7 @@ const TABELL = {
   Condition: (db, r, kalla) => db.query('INSERT INTO diagnoser (patient_id, enhet_id, kod, text, typ, datum, kalla) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id').get(r.patient_id, r.enhet_id, r.kod, r.text, r.typ, r.datum, kalla).id,
   Observation: (db, r, kalla) => db.query('INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, matt_enhet, tid, kalla) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id').get(r.patient_id, r.enhet_id, r.typ, r.varde, r.varde_num, r.matt_enhet, r.tid, kalla).id,
   Composition: (db, r, kalla) => db.query(`INSERT INTO anteckningar (patient_id, enhet_id, typ, kategori, sokord, forfattare_id, skapad, status, signerad_tid, signerad_av, kalla)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`).get(r.patient_id, r.enhet_id, r.typ, r.kategori, r.sokord, r.forfattare_id, r.skapad, r.status, r.signerad_tid, r.signerad_av, kalla).id,
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?) RETURNING id`).get(r.patient_id, r.enhet_id, r.typ, r.kategori, r.sokord, migreringsidentitet(kalla.slice(9)), r.skapad, r.status, r.signerad_tid, kalla).id,
 };
 
 // Prövar filen utan att skriva något: källan, antalet per typ och avvikelserna. Används av förhandsvisningen och inläsningen.
@@ -137,35 +149,76 @@ function prova(db, fil) {
 const kravRoll = (personal) => { if (!kanRoll(personal, 'konfigurera')) throw new Fel(403, 'Bara systemförvaltningen läser in migreringsfiler.', 'nekad'); };
 const hash = (fil) => createHash('sha256').update(JSON.stringify(fil)).digest('hex');
 const avvikelserUt = (p) => p.tolkade.filter(t => t.fel).map(t => ({ post: t.index + 1, typ: t.typ, orsak: t.fel }));
+const forhand = (p) => ({ kalla: p.kalla, perTyp: Object.values(p.perTyp), avvikelser: avvikelserUt(p).slice(0, 50), antalAvvikelser: avvikelserUt(p).length });
+const STATUS = { vantar: 'Väntar på godkännande', inlast: 'Inläst', avslagen: 'Avslagen', aterkallad: 'Återkallad' };
+const personnamn = (db, id) => (id ? db.query('SELECT namn FROM personal WHERE id = ?').get(id)?.namn ?? id : null);
+const loggaAtgard = (db, personal, id) => loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, handling: 'konfigurera', resurs: `migrering:${id}`, grund: 'administrativ' });
+const redan = (db, h) => db.query("SELECT status, foreslagen, beslutad FROM migrering_filer WHERE hash = ? AND status IN ('vantar', 'inlast') ORDER BY id DESC LIMIT 1").get(h);
 
 // Förhandsvisningen: vad som skulle föras över och vad som blir avvikelser. Inga patientuppgifter i svaret.
 export function forhandsvisa(db, personal, fil) {
   kravRoll(personal);
   const p = prova(db, fil);
   sakerstall(db);
-  const fanns = db.query('SELECT tid FROM migrering_filer WHERE hash = ?').get(hash(fil));
-  return { kalla: p.kalla, perTyp: Object.values(p.perTyp), avvikelser: avvikelserUt(p).slice(0, 50), antalAvvikelser: avvikelserUt(p).length, redanInlast: fanns ? fanns.tid : null };
+  const f = redan(db, hash(fil));
+  return { ...forhand(p), redanInlast: f?.status === 'inlast' ? f.beslutad : null, vantar: f?.status === 'vantar' };
 }
 
-// Läser in filen i en transaktion och stämmer av. Ger rapporten.
-export function lasIn(db, personal, fil, nu = new Date()) {
+export function filUt(db, f, personal = null) {
+  return {
+    ...JSON.parse(f.rapport),
+    id: f.id, kalla: f.kalla, status: f.status, statusText: STATUS[f.status], tid: f.beslutad ?? f.foreslagen,
+    foreslagenAv: personnamn(db, f.foreslagen_av), foreslagen: f.foreslagen, beslutadAv: personnamn(db, f.beslutad_av), beslutad: f.beslutad, kommentar: f.kommentar,
+    egen: Boolean(personal && f.foreslagen_av === personal.id), kanGodkanna: Boolean(personal && f.status === 'vantar' && f.foreslagen_av !== personal.id),
+  };
+}
+function hamta(db, id) {
+  sakerstall(db);
+  const f = db.query('SELECT * FROM migrering_filer WHERE id = ?').get(Number(id));
+  if (!f) throw new Fel(404, 'Filen finns inte.', 'saknas');
+  return f;
+}
+
+// Lägger fram en förhandsvisad fil. Ingenting skrivs i journalerna förrän en annan systemförvaltare har godkänt den.
+export function foresla(db, personal, fil, nu = new Date()) {
   kravRoll(personal);
   const p = prova(db, fil);
   sakerstall(db);
   const h = hash(fil);
-  const fanns = db.query('SELECT tid FROM migrering_filer WHERE hash = ?').get(h);
-  if (fanns) throw new Fel(409, `Filen lästes redan in ${fanns.tid.slice(0, 16).replace('T', ' ')}. Samma uttag läses inte in två gånger, så att inget blir dubbelt i journalen.`, 'ogiltig');
+  const f = redan(db, h);
+  if (f?.status === 'inlast') throw new Fel(409, `Filen lästes redan in ${f.beslutad.slice(0, 16).replace('T', ' ')}. Samma uttag läses inte in två gånger, så att inget blir dubbelt i journalen.`, 'ogiltig');
+  if (f) throw new Fel(409, 'Samma fil väntar redan på godkännande.', 'ogiltig');
+  const id = Number(db.query("INSERT INTO migrering_filer (hash, kalla, fil, status, foreslagen_av, foreslagen, rapport) VALUES (?, ?, ?, 'vantar', ?, ?, ?)")
+    .run(h, p.kalla, JSON.stringify(fil), personal.id, iso(nu), JSON.stringify(forhand(p))).lastInsertRowid);
+  loggaAtgard(db, personal, id);
+  return { fil: filUt(db, hamta(db, id), personal) };
+}
+
+// Godkänner en framlagd fil och läser in den i en transaktion. Fyra ögon: den som lade fram filen kan inte godkänna den.
+// Filen prövas igen, eftersom journalerna kan ha ändrats sedan förhandsvisningen. Ger rapporten.
+export function godkann(db, personal, id, { kommentar } = {}, nu = new Date()) {
+  kravRoll(personal);
+  const rad = hamta(db, id);
+  if (rad.status !== 'vantar') throw new Fel(409, 'Filen är redan beslutad.', 'ogiltig');
+  if (rad.foreslagen_av === personal.id) throw new Fel(403, 'Fyra ögon: en annan systemförvaltare än den som lade fram filen måste godkänna den innan något skrivs i journalerna.', 'nekad');
+  const p = prova(db, JSON.parse(rad.fil));
   const kalla = `migrerad:${p.kalla}`;
-  let rapport;
+  const rapport = { fil: rad.id, kalla: p.kalla, tid: iso(nu), perTyp: [], avvikelser: 0 };
   db.exec('BEGIN');
   try {
-    const filId = Number(db.query('INSERT INTO migrering_filer (hash, kalla, tid, av, rapport) VALUES (?, ?, ?, ?, ?)').run(h, p.kalla, iso(nu), personal.id, '{}').lastInsertRowid);
-    rapport = { fil: filId, kalla: p.kalla, tid: iso(nu), perTyp: [], avvikelser: 0 };
     const patienter = new Set();
     for (const [typ, t] of Object.entries(p.perTyp)) {
-      const ids = p.tolkade.filter(x => x.typ === typ && x.rad).map(x => { patienter.add(x.rad.patient_id); return TABELL[typ](db, x.rad, kalla); });
+      const ids = p.tolkade.filter(x => x.typ === typ && x.rad).map(x => {
+        patienter.add(x.rad.patient_id);
+        const radId = TABELL[typ](db, x.rad, kalla);
+        if (typ === 'Composition') {
+          db.query('INSERT INTO migrering_metadata (tabell, rad_id, fil_id, kalla, forfattare, forfattare_hsa, signerad) VALUES (?, ?, ?, ?, ?, ?, ?)')
+            .run('anteckningar', radId, rad.id, p.kalla, x.rad.forfattare, x.rad.forfattareHsa, x.rad.signerad_tid);
+        }
+        return radId;
+      });
       // Verifieringen läser tillbaka det som fördes in.
-      const tabell = { Encounter: 'vardkontakter', Condition: 'diagnoser', Observation: 'matvarden', Composition: 'anteckningar' }[typ];
+      const tabell = DATATYP[typ];
       const verifierade = ids.length ? db.query(`SELECT count(*) AS n FROM ${tabell} WHERE kalla = ? AND id IN (${ids.map(() => '?').join(', ')})`).get(kalla, ...ids).n : 0;
       db.query(`INSERT INTO migrering (datatyp, kalla, antal_kalla, antal_overforda, antal_verifierade) VALUES (?, ?, ?, ?, ?)
         ON CONFLICT (datatyp, kalla) DO UPDATE SET antal_kalla = antal_kalla + excluded.antal_kalla, antal_overforda = antal_overforda + excluded.antal_overforda,
@@ -182,16 +235,38 @@ export function lasIn(db, personal, fil, nu = new Date()) {
         `Post ${x.index + 1} i filen: ${x.fel}`, 'Rätta posten i källsystemet och läs in den i en ny fil.');
       rapport.avvikelser++;
     }
-    // Varje patient som fick migrerade uppgifter loggas, med systemförvaltaren och grunden administrativ.
-    for (const pid of patienter) loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, patient_id: pid, handling: 'konfigurera', resurs: `migrering:${rapport.fil}`, grund: 'administrativ' });
-    db.query('UPDATE migrering_filer SET rapport = ? WHERE id = ?').run(JSON.stringify(rapport), rapport.fil);
+    // Varje patient som fick migrerade uppgifter loggas, med systemförvaltaren som godkände och grunden administrativ.
+    for (const pid of patienter) loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, patient_id: pid, handling: 'konfigurera', resurs: `migrering:${rad.id}`, grund: 'administrativ' });
+    db.query("UPDATE migrering_filer SET status = 'inlast', beslutad_av = ?, beslutad = ?, kommentar = ?, rapport = ? WHERE id = ?")
+      .run(personal.id, iso(nu), typeof kommentar === 'string' && kommentar.trim() ? kommentar.trim().slice(0, 500) : null, JSON.stringify(rapport), rad.id);
     db.exec('COMMIT');
   } catch (e) { db.exec('ROLLBACK'); throw e; }
   return rapport;
 }
 
-// Filerna som har lästs in, för migreringssidan. Inga patientuppgifter.
-export function filer(db) {
-  const har = db.query("SELECT 1 FROM sqlite_master WHERE name = 'migrering_filer'").get();
-  return har ? db.query('SELECT id, kalla, tid, rapport FROM migrering_filer ORDER BY id DESC LIMIT 20').all().map(f => ({ id: f.id, kalla: f.kalla, tid: f.tid, ...JSON.parse(f.rapport) })) : [];
+// Avslår en framlagd fil (en annan systemförvaltare, med kommentar) eller återkallar den (den som lade fram den).
+export function avsluta(db, personal, id, { kommentar } = {}, nu = new Date()) {
+  kravRoll(personal);
+  const rad = hamta(db, id);
+  if (rad.status !== 'vantar') throw new Fel(409, 'Filen är redan beslutad.', 'ogiltig');
+  const egen = rad.foreslagen_av === personal.id;
+  const k = typeof kommentar === 'string' ? kommentar.trim().slice(0, 500) : '';
+  if (!egen && !k) throw new Fel(400, 'Skriv varför filen avslås, så att den som lade fram den vet vad som behöver rättas.', 'ogiltig', { falt: ['kommentar'] });
+  db.query('UPDATE migrering_filer SET status = ?, beslutad_av = ?, beslutad = ?, kommentar = ? WHERE id = ?').run(egen ? 'aterkallad' : 'avslagen', personal.id, iso(nu), k || null, rad.id);
+  loggaAtgard(db, personal, rad.id);
+  return { fil: filUt(db, hamta(db, rad.id), personal) };
 }
+
+// Filerna som har lagts fram, för migreringssidan: de som väntar och de som är beslutade. Inga patientuppgifter.
+export function filer(db, personal = null) {
+  const har = db.query("SELECT 1 FROM sqlite_master WHERE name = 'migrering_filer'").get();
+  return har ? db.query('SELECT * FROM migrering_filer ORDER BY id DESC LIMIT 20').all().map(f => filUt(db, f, personal)) : [];
+}
+
+// Uppgifterna om källan för en migrerad anteckning, eller null (journal.js).
+export function kallaUppgifter(db, radId) {
+  const har = db.query("SELECT 1 FROM sqlite_master WHERE name = 'migrering_metadata'").get();
+  const m = har ? db.query("SELECT * FROM migrering_metadata WHERE tabell = 'anteckningar' AND rad_id = ?").get(radId) : null;
+  return m ? { kalla: m.kalla, forfattare: m.forfattare, forfattareHsa: m.forfattare_hsa, signerad: m.signerad } : null;
+}
+

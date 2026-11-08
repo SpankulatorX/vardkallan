@@ -49,8 +49,11 @@ export function registreraRutter({ rutt, kravInloggad }) {
 // Migreringen: förhandsvisa och läsa in ett uttag ur ett annat journalsystem, och filerna som har lästs in.
 export function registreraMigrering({ rutt, kravInloggad }) {
   rutt('POST', '/api/migrering/forhandsvisa', (c) => { kravInloggad(c); return migreringsimport.forhandsvisa(c.db, personal(c), c.body.fil); });
-  rutt('POST', '/api/migrering/las-in', (c) => { kravInloggad(c); return [201, migreringsimport.lasIn(c.db, personal(c), c.body.fil)]; });
-  rutt('GET', '/api/migrering/filer', (c) => { kravInloggad(c); const p = personal(c); if (!kanRoll(p, 'konfigurera')) throw new Fel(403, 'Bara systemförvaltningen läser in migreringsfiler.', 'nekad'); return { filer: migreringsimport.filer(c.db) }; });
+  // Fyra ögon: en systemförvaltare lägger fram den förhandsvisade filen, och en annan godkänner den innan något skrivs.
+  rutt('POST', '/api/migrering/filer', (c) => { kravInloggad(c); return [201, migreringsimport.foresla(c.db, personal(c), c.body.fil)]; });
+  rutt('POST', '/api/migrering/filer/:id/godkann', (c, f) => { kravInloggad(c); return migreringsimport.godkann(c.db, personal(c), id(f), c.body); });
+  rutt('POST', '/api/migrering/filer/:id/avsluta', (c, f) => { kravInloggad(c); return migreringsimport.avsluta(c.db, personal(c), id(f), c.body); });
+  rutt('GET', '/api/migrering/filer', (c) => { kravInloggad(c); const p = personal(c); if (!kanRoll(p, 'konfigurera')) throw new Fel(403, 'Bara systemförvaltningen läser in migreringsfiler.', 'nekad'); return { filer: migreringsimport.filer(c.db, p) }; });
 }
 
 // Schemat för masterdatan körs i början av varje anrop, som det simulerade laboratoriet.

@@ -46,6 +46,8 @@ const UTTRYCKLIGA = {
   stickprov: { typ: 'via', kolumn: 'av', tabell: 'personal' },
   vardplan_mal: { typ: 'via', kolumn: 'plan_id', tabell: 'vardplaner' },
   vardplan_atgarder: { typ: 'via', kolumn: 'plan_id', tabell: 'vardplaner' },
+  // Runda 9, r4: uppgifterna om källan för en migrerad anteckning följer anteckningen.
+  migrering_metadata: { typ: 'via', kolumn: 'rad_id', tabell: 'anteckningar' },
 };
 
 // Vad den som lägger till en tabell gör när den inte går att knyta till en huvudman, på sidan Lagring. Testet av

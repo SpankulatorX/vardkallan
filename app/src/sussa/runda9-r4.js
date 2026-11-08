@@ -31,6 +31,8 @@ export const T = {
   mdApi: `${MD}API: systemförvaltaren läser in en del direkt, och andra roller får inte`,
   mgImport: `${MG}en migreringsfil valideras, läses in med källa och stäms av mot antalet i filen`,
   mgAvvikelse: `${MG}en post som inte går att läsa in blir en avvikelse med orsak, och samma fil två gånger läses inte in igen`,
+  mgFyraOgon: `${MG}en förhandsvisad fil skrivs i journalerna först när en annan systemförvaltare har godkänt den`,
+  mgForfattare: `${MG}en migrerad anteckning får aldrig en nuvarande personal som författare eller signerande, och källans författare följer med märkt`,
   mgBehorighet: `${MG}bara systemförvaltningen läser in, posterna märks som migrerade och syns i patientens tidslinje`,
 };
 

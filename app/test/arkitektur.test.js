@@ -13,6 +13,7 @@ import * as migrering from '../src/migreringsimport.js';
 import * as mr from '../src/myndighetsrapport.js';
 import { fhirTyper } from '../src/arkitektur-rutter.js';
 import { MALLAR } from '../src/journal.js';
+import * as journal from '../src/journal.js';
 import { harVardrelation } from '../src/atkomst.js';
 import { KVA, ICD10SE, SYSTEM } from '../src/kodverk.js';
 import { addDagar, datumAv } from '../src/db.js';
@@ -171,7 +172,15 @@ describe('Förvaltning av kodverk', () => {
     expect(f.jamforelse.nya).toEqual([{ kod: 'U07.1', text: 'Covid-19, virus identifierat' }]);
     expect(f.jamforelse.andrade).toEqual([{ kod: 'E03.9', fore: 'Hypotyreos, ospecificerad', efter: 'Hypotyreos, ospecificerad (ny text)' }]);
     expect(f.jamforelse.borttagna.map(b => b.kod)).toEqual(['H66.9']);
-    expect(f.effekt.join(' ')).toContain(`${n} diagnoser i journalen har en sådan kod. De står kvar som de dokumenterades.`);
+    // Antalet räknas bara inom systemförvaltarens egen vårdgivare, och ett antal under 5 visas som färre än 5.
+    expect(n).toBeLessThan(5);
+    expect(f.effekt.join(' ')).toContain('Färre än 5 diagnoser hos den egna vårdgivaren har en sådan kod. De står kvar som de dokumenterades.');
+    const ins = db.query("INSERT INTO diagnoser (patient_id, enhet_id, kod, text, typ, datum) VALUES ('p01', ?, 'H66.9', 'Mellanöreinflammation', 'bi', '2026-01-01')");
+    for (let i = 0; i < 6; i++) ins.run('kommun-demo');
+    const k = (x) => kv.forhandsvisa(db, sysf(db), { kodverk: 'icd10se', version: '2027', giltigFran: '2027-01-01', koder: ICD_2027 }, NU).effekt.join(' ').includes(x);
+    expect(k('Färre än 5 diagnoser hos den egna vårdgivaren')).toBe(true);
+    for (let i = 0; i < 6; i++) ins.run('uso-kard');
+    expect(k(`${n + 6} diagnoser hos den egna vårdgivaren har en sådan kod`)).toBe(true);
     const p = kv.forhandsvisa(db, sysf(db), { kodverk: 'icd10se', version: '2027', koder: 'I10.9;Hypertoni\nI10.9;Hypertoni igen\nhej;Fel form\nE11.9;' }, NU);
     expect(p.ok).toBe(false);
     expect(p.fel).toEqual([
@@ -413,6 +422,9 @@ const uttag = ({ antal = {}, extra = [] } = {}) => ({
   ],
 });
 
+// Runda 9, r4: en fil läses in när en annan systemförvaltare har godkänt den förhandsvisade filen (fyra ögon).
+const inlast = (db, fil, nu = NU) => migrering.godkann(db, sysf2(db), migrering.foresla(db, sysf(db), fil, nu).fil.id, {}, nu);
+
 describe('Migrering', () => {
   test(namn(T.mgImport), () => {
     const db = nyDb();
@@ -422,7 +434,7 @@ describe('Migrering', () => {
     expect(f).toMatchObject({ kalla: 'VAS', antalAvvikelser: 1, redanInlast: null });
     expect(f.perTyp.find(t => t.datatyp === 'diagnoser')).toMatchObject({ iKallan: 2, iFilen: 2, kanForasOver: 1 });
     expect(db.query("SELECT count(*) AS n FROM diagnoser WHERE kod = 'I50.9'").get().n).toBe(n0);
-    const r = migrering.lasIn(db, sysf(db), uttag(), NU);
+    const r = inlast(db, uttag());
     expect(db.query("SELECT count(*) AS n FROM diagnoser WHERE kod = 'I50.9'").get().n).toBe(n0 + 1);
     expect(r.perTyp.map(t => [t.datatyp, t.iKallan, t.overforda, t.verifierade])).toEqual([['vardkontakter', 1, 1, 1], ['diagnoser', 2, 1, 1], ['matvarden', 1, 1, 1]]);
     expect(db.query("SELECT kalla, text, typ FROM diagnoser WHERE kod = 'I50.9' AND patient_id = 'p01' AND datum = '2012-05-02'").get()).toEqual({ kalla: 'migrerad:VAS', text: 'Hjärtsvikt, ospecificerad', typ: 'bi' });
@@ -436,12 +448,12 @@ describe('Migrering', () => {
 
   test(namn(T.mgAvvikelse), () => {
     const db = nyDb();
-    const r = migrering.lasIn(db, sysf(db), uttag({ antal: { Observation: 3 } }), NU);
+    const r = inlast(db, uttag({ antal: { Observation: 3 } }));
     expect(r.avvikelser).toBe(2);
     const av = db.query("SELECT patient_id, datatyp, beskrivning FROM migrering_avvikelser WHERE kalla = 'migrerad:VAS' ORDER BY id DESC LIMIT 2").all();
     expect(av.map(x => x.beskrivning)).toEqual(expect.arrayContaining(['2 av 3 poster som källsystemet räknade finns inte i filen.', 'Post 4 i filen: Patienten finns inte i Vårdkällan. Posten förs in när patienten är registrerad.']));
     expect(av.find(x => x.datatyp === 'diagnoser').patient_id).toBe('');
-    const e = fel(() => migrering.lasIn(db, sysf2(db), uttag({ antal: { Observation: 3 } }), NU));
+    const e = fel(() => migrering.foresla(db, sysf2(db), uttag({ antal: { Observation: 3 } }), NU));
     expect(e.status).toBe(409);
     expect(e.message).toContain('Samma uttag läses inte in två gånger');
     // Exempeluttaget som systemförvaltaren kan hämta på migreringssidan ger en avvikelse och visar poster som saknas.
@@ -457,17 +469,66 @@ describe('Migrering', () => {
     const k = klient(app);
     await k.logga('lak-kard');
     expect((await k.post('/api/migrering/forhandsvisa', { fil: uttag() })).status).toBe(403);
-    expect((await k.post('/api/migrering/las-in', { fil: uttag() })).status).toBe(403);
+    expect((await k.post('/api/migrering/filer', { fil: uttag() })).status).toBe(403);
     await k.logga('sysf');
-    const r = await k.post('/api/migrering/las-in', { fil: uttag() });
-    expect(r.status).toBe(201);
+    const f = await k.post('/api/migrering/filer', { fil: uttag() });
+    expect(f.status).toBe(201);
+    await k.logga('sysf-2');
+    const r = await k.post(`/api/migrering/filer/${f.data.fil.id}/godkann`, {});
+    expect(r.status).toBe(200);
     const db = sandlada(app, k).db;
     expect(db.query("SELECT handling, grund FROM atkomstlogg WHERE patient_id = 'p01' AND resurs = ?").get(`migrering:${r.data.fil}`)).toEqual({ handling: 'konfigurera', grund: 'administrativ' });
-    expect((await k.get('/api/migrering/filer')).data.filer[0]).toMatchObject({ kalla: 'VAS', avvikelser: 1 });
+    expect((await k.get('/api/migrering/filer')).data.filer[0]).toMatchObject({ kalla: 'VAS', status: 'inlast', avvikelser: 1, foreslagenAv: 'Tomas Lindh', beslutadAv: 'Nora Ekholm' });
     // Avstämningen visar den nya avvikelsen, och läkaren ser den migrerade diagnosen märkt i tidslinjen.
     expect((await k.get('/api/migrering')).data.avvikelser.some(a => a.beskrivning.includes('Patienten finns inte i Vårdkällan'))).toBe(true);
     await k.logga('lak-kard');
     const o = (await k.get('/api/patient/p01')).data;
     expect(JSON.stringify(o)).toContain('migrerad:VAS');
+  });
+
+  test(namn(T.mgFyraOgon), () => {
+    const db = nyDb();
+    const n0 = db.query('SELECT count(*) AS n FROM diagnoser').get().n;
+    const { fil } = migrering.foresla(db, sysf(db), uttag(), NU);
+    expect(fil).toMatchObject({ status: 'vantar', egen: true, kanGodkanna: false, kalla: 'VAS', antalAvvikelser: 1 });
+    // Ingenting skrivs i journalerna förrän en annan systemförvaltare har godkänt filen.
+    expect(db.query('SELECT count(*) AS n FROM diagnoser').get().n).toBe(n0);
+    expect(fel(() => migrering.godkann(db, sysf(db), fil.id, {}, NU)).message).toContain('Fyra ögon');
+    expect(fel(() => migrering.foresla(db, sysf2(db), uttag(), NU)).status).toBe(409);
+    expect(fel(() => migrering.godkann(db, personal(db, 'lak-kard'), fil.id, {}, NU)).status).toBe(403);
+    const r = migrering.godkann(db, sysf2(db), fil.id, {}, NU);
+    expect(r.perTyp.find(t => t.datatyp === 'diagnoser').overforda).toBe(1);
+    expect(fel(() => migrering.godkann(db, sysf2(db), fil.id, {}, NU)).status).toBe(409);
+    // Avslag kräver en kommentar, och den som lade fram filen kan återkalla den.
+    const andra = migrering.foresla(db, sysf(db), uttag({ antal: { Encounter: 4 } }), NU).fil;
+    expect(fel(() => migrering.avsluta(db, sysf2(db), andra.id, {}, NU)).message).toContain('Skriv varför');
+    expect(migrering.avsluta(db, sysf(db), andra.id, {}, NU).fil.status).toBe('aterkallad');
+  });
+
+  test(namn(T.mgForfattare), () => {
+    const db = nyDb();
+    const not = { resource: { resourceType: 'Composition', meta: tag('SE2321000164-VK0120'), status: 'final', title: 'Mottagningsanteckning', date: '2012-05-02T09:00:00Z',
+      subject: { identifier: { system: PNR, value: '194502024732' } },
+      // Författaren i källsystemet har samma HSA-id som en nuvarande läkare i Vårdkällan.
+      author: [{ identifier: { system: migrering.HSA_SYSTEM, value: personal(db, 'lak-kard').hsa_id }, display: 'Läkare i VAS' }],
+      section: [{ title: 'Bedömning', text: { div: '<div>Stabil hjärtsvikt.</div>' } }] } };
+    inlast(db, uttag({ extra: [not] }));
+    const a = db.query("SELECT * FROM anteckningar WHERE kalla = 'migrerad:VAS' AND skapad = '2012-05-02T09:00:00.000Z'").get();
+    const nuvarande = new Set(db.query('SELECT id FROM personal').all().map(p => p.id));
+    expect(a.signerad_av).toBeNull();
+    expect(nuvarande.has(a.forfattare_id)).toBe(false);
+    expect(a.forfattare_id).toBe('migrering:VAS');
+    expect(db.query("SELECT count(*) AS n FROM anteckningar a JOIN migrering_metadata m ON m.tabell = 'anteckningar' AND m.rad_id = a.id WHERE a.signerad_av IN (SELECT id FROM personal) OR a.forfattare_id IN (SELECT id FROM personal)").get().n).toBe(0);
+    // Författaren och signeringen i källsystemet följer med som uppgifter om källan, tydligt märkta i journalen.
+    const ut = journal.anteckningUt(db, a);
+    expect(ut.forfattare).toMatchObject({ id: null, namn: 'Läkare i VAS', titel: 'Författare i VAS, migrerad' });
+    expect(ut.signerad).toMatchObject({ tid: '2012-05-02T09:00:00.000Z', av: { id: null, namn: 'Läkare i VAS' }, iKallan: true });
+    expect(ut.kallaEtikett).toContain('Migrerad från VAS');
+    expect(ut.kallaUppgifter).toEqual({ kalla: 'VAS', forfattare: 'Läkare i VAS', forfattareHsa: personal(db, 'lak-kard').hsa_id, signerad: '2012-05-02T09:00:00.000Z' });
+    // En anteckning utan författare i källan läses ändå in, med källsystemet som författare.
+    const utan = { resource: { ...not.resource, date: '2012-05-03T09:00:00Z', author: [] } };
+    inlast(db, uttag({ extra: [utan] }));
+    const b = db.query("SELECT * FROM anteckningar WHERE skapad = '2012-05-03T09:00:00.000Z'").get();
+    expect(journal.anteckningUt(db, b).forfattare.namn).toBe('Okänd författare i VAS');
   });
 });

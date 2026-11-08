@@ -145,26 +145,38 @@ export function jamfor(fore, efter) {
 }
 
 // Hur många uppgifter i journalen som har koder som tas bort eller får ny text. Bara antal, inga patientuppgifter.
+// Uppgifter i journalen räknas bara inom systemförvaltarens egen vårdgivare (huvudmannen för dess enhet), och ett antal
+// under 5 visas som färre än 5, så att antalet inte pekar ut enskilda patienter. Katalogen är inga patientuppgifter.
 const ANVANDNING = {
-  icd10se: { tabell: 'diagnoser', kolumn: 'kod', vad: 'diagnoser' },
-  kva: { tabell: 'atgarder', kolumn: 'kod', vad: 'åtgärder' },
-  atc: { tabell: 'katalog', kolumn: 'atc', vad: 'läkemedel i katalogen' },
+  icd10se: { tabell: 'diagnoser', kolumn: 'kod', vad: 'diagnoser', journal: true },
+  kva: { tabell: 'atgarder', kolumn: 'kod', vad: 'åtgärder', journal: true },
+  atc: { tabell: 'katalog', kolumn: 'atc', vad: 'läkemedel i katalogen', journal: false },
 };
-export function anvandning(db, id, koder) {
+export function anvandning(db, id, koder, personal = null) {
   const a = Object.hasOwn(ANVANDNING, id) ? ANVANDNING[id] : null;
-  if (!a || !koder.length) return { antal: 0, vad: a?.vad ?? 'uppgifter' };
-  const fraga = db.query(`SELECT count(*) AS n FROM ${a.tabell} WHERE ${a.kolumn} = ?`);
-  return { antal: koder.reduce((s, k) => s + fraga.get(k).n, 0), vad: a.vad };
+  if (!a || !koder.length) return { antal: 0, vad: a?.vad ?? 'uppgifter', text: null };
+  const ph = koder.map(() => '?').join(', ');
+  if (!a.journal) {
+    const antal = db.query(`SELECT count(*) AS n FROM ${a.tabell} WHERE ${a.kolumn} IN (${ph})`).get(...koder).n;
+    return { antal, vad: a.vad, text: antal ? `${antal} ${a.vad} har en sådan kod.` : null };
+  }
+  const huvudman = require('./lagring.js').huvudman(db);
+  const egen = personal ? huvudman.get(personal.enhet_id) : null;
+  const enheter = [...huvudman].filter(([, h]) => h === egen).map(([e]) => e);
+  const antal = enheter.length
+    ? db.query(`SELECT count(*) AS n FROM ${a.tabell} WHERE ${a.kolumn} IN (${ph}) AND enhet_id IN (${enheter.map(() => '?').join(', ')})`).get(...koder, ...enheter).n : 0;
+  const tal = antal > 0 && antal < 5 ? 'Färre än 5' : String(antal);
+  return { antal: antal < 5 ? null : antal, vad: a.vad, text: antal ? `${tal} ${a.vad} hos den egna vårdgivaren har en sådan kod.` : null };
 }
 
-function effekt(db, id, j, def) {
+function effekt(db, id, j, def, personal) {
   const ut = [];
   if (j.nya.length) ut.push(`${j.nya.length} nya ${j.nya.length === 1 ? 'kod' : 'koder'} går att välja.`);
   if (j.andrade.length) ut.push(`${j.andrade.length} ${j.andrade.length === 1 ? 'kod får' : 'koder får'} ny text. Uppgifter som redan är dokumenterade visar texten som den var.`);
   if (j.borttagna.length) {
-    const a = anvandning(db, id, j.borttagna.map(b => b.kod));
+    const a = anvandning(db, id, j.borttagna.map(b => b.kod), personal);
     ut.push(`${j.borttagna.length} ${j.borttagna.length === 1 ? 'kod tas' : 'koder tas'} bort och går inte att välja för nya uppgifter.`
-      + (a.antal ? ` ${a.antal} ${a.vad} i journalen har en sådan kod. De står kvar som de dokumenterades.` : ''));
+      + (a.text ? ` ${a.text} De står kvar som de dokumenterades.` : ''));
   }
   if (!j.nya.length && !j.andrade.length && !j.borttagna.length) ut.push(`Utgåvan har samma koder och texter som ${def.namn} som gäller i dag.`);
   return ut;
@@ -211,7 +223,7 @@ export function forhandsvisa(db, personal, body = {}, nu = new Date()) {
   const f = provaForslag(db, body, nu);
   return {
     kodverk: f.id, namn: f.namn, version: f.version, giltigFran: f.giltigFran, ok: f.prov.ok, fel: f.prov.fel, antal: Object.keys(f.prov.koder).length,
-    jamforelse: f.jamforelse, effekt: f.jamforelse ? [...effekt(db, f.id, f.jamforelse, f.def), `Gäller från ${f.giltigFran}, när en annan systemförvaltare har godkänt utgåvan.`] : [],
+    jamforelse: f.jamforelse, effekt: f.jamforelse ? [...effekt(db, f.id, f.jamforelse, f.def, personal), `Gäller från ${f.giltigFran}, när en annan systemförvaltare har godkänt utgåvan.`] : [],
   };
 }
 

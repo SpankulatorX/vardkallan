@@ -1550,14 +1550,14 @@ for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].inde
       await bild(page, '105-kodverk');
       await page.waitForLoadState('networkidle');
     });
-    await s('Tomas Lindh läser in ett simulerat uttag ur VAS, och avvikelserna syns i avstämningen', async () => {
+    await s('Tomas Lindh lägger fram ett simulerat uttag ur VAS, och inget skrivs förrän en kollega har godkänt det', async () => {
       await gaTill(page, '#/migrering');
       await page.locator('#mig-fil').setInputFiles(join(__dirname, '..', 'app', 'public', 'exempel', 'uttag-vas.json'));
       await forvanta(page, '#mig-forhand', 'Från VAS');
       await forvanta(page, '#mig-forhand', 'HSA-id som inte finns i Vårdkällan');
-      await page.click('#mig-las-in');
-      await forvanta(page, '.notis', 'Filen är inläst: 3 poster förda över och 3 avvikelser');
-      await forvanta(page, '#mig-avv ~ ul', 'poster som källsystemet räknade finns inte i filen');
+      await page.click('#mig-lagg-fram');
+      await forvanta(page, '.notis', 'Inget är skrivet i journalerna ännu');
+      await forvanta(page, '#mig-vantar ~ ul', 'Uttag ur VAS');
       await bild(page, '106-migreringsfil');
       await page.waitForLoadState('networkidle');
     });
@@ -1590,6 +1590,16 @@ for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].inde
       await page.waitForLoadState('networkidle');
     });
     // Runda 9, r4: fyra ögon på kodverket som Tomas Lindh skapade.
+    await s('Nora Ekholm godkänner uttaget ur VAS som Tomas Lindh lade fram, och avvikelserna syns i avstämningen', async () => {
+      await gaTill(page, '#/migrering');
+      const rad = page.locator('#mig-vantar ~ ul li', { hasText: 'Framlagd av Tomas Lindh' });
+      await rad.waitFor();
+      await rad.locator('[data-mig-godkann]').click();
+      await forvanta(page, '.notis', 'Filen är inläst: 3 poster förda över och 3 avvikelser');
+      await forvanta(page, '#mig-avv ~ ul', 'poster som källsystemet räknade finns inte i filen');
+      await forvanta(page, '#mig-inlasta ~ ul', 'godkänd av Nora Ekholm');
+      await page.waitForLoadState('networkidle');
+    });
     await s('Nora Ekholm godkänner det lokala kodverket som Tomas Lindh skapade', async () => {
       await gaTill(page, '#/kodverk');
       const rad = page.locator('#kv-att-godkanna ~ ul li', { hasText: 'Besöksorsaker på akuten' });
