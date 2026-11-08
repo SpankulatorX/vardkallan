@@ -38,9 +38,6 @@ function bevaka(page, namn) {
     if (m.type() !== 'error') return;
     // 403 och 404 där demon visar nekad åtkomst, och 400 när testet själv framkallar ett fel i ett formulär.
     if (/Failed to load resource: the server responded with a status of 40[034]/.test(m.text())) return;
-    // Läskopian förnyas i bakgrunden och kan hinna fråga efter utloggningen, när testet byter roll snabbt. Det svaret
-    // (401) gäller inte tillgängligheten.
-    if (/status of 401/.test(m.text()) && /\/api\/lasekopia/.test(m.location()?.url ?? '')) return;
     sidfel.push(`[${namn}] konsolfel: ${m.text()}`);
   });
 }
@@ -213,7 +210,7 @@ function granskaSida({ kontrastKrav = 4.5, storKrav = 3 } = {}) {
   }
 
   // Landmärken: ett huvudinnehåll, ett sidhuvud och en sidfot, och allt synligt innehåll i ett landmärke.
-  const LANDMARKE = 'header, nav, main, footer, aside, form[aria-label], form[aria-labelledby], section[aria-label], section[aria-labelledby], [role="banner"], [role="navigation"], [role="main"], [role="contentinfo"], [role="complementary"], [role="region"], [role="search"], dialog, [role="dialog"], [role="alert"], [role="status"], [aria-live], .hoppa';
+  const LANDMARKE = 'header, nav, main, footer, aside, form[aria-label], form[aria-labelledby], section[aria-label], section[aria-labelledby], [role="banner"], [role="navigation"], [role="main"], [role="contentinfo"], [role="complementary"], [role="region"], [role="search"], dialog, [role="dialog"], [role="alertdialog"], [role="alert"], [role="status"], [aria-live], .hoppa';
   if (document.querySelectorAll('main').length !== 1) ut.landmarken.push(`${document.querySelectorAll('main').length} huvudinnehåll`);
   if (!document.querySelector('header:not(main header):not(article header):not(section header)')) ut.landmarken.push('inget sidhuvud');
   if (!document.querySelector('body > footer, footer.sidfot')) ut.landmarken.push('ingen sidfot');
@@ -594,6 +591,45 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     await k.close();
   } catch (e) { nytt('rorelse', kort(e.message)); }
 
+  // Justerbar tidsgräns (K2 1.6.1): varningen fem minuter före utloggningen läses upp, Fortsätt arbeta förlänger, och text
+  // som inte är sparad blir ett utkast som finns kvar efter en ny inloggning.
+  try {
+    const k = await kontext({ width: 1440, height: 900 });
+    await k.addInitScript(INIT);
+    const p = await k.newPage();
+    bevaka(p, 'tidsgräns');
+    await loggaIn(p, 'lak-kard');
+    const demo = (sekunder) => p.evaluate(async (s) => { const { api } = await import('/js/ui.js'); await api('/api/demo/inloggning-gar-ut', { metod: 'POST', data: { sekunder: s } }); }, sekunder);
+    await demo(200);
+    await p.waitForSelector('#tidsgrans');
+    const v = await p.evaluate(() => {
+      const el = document.getElementById('tidsgrans');
+      const namn = document.getElementById(el.getAttribute('aria-labelledby'))?.textContent;
+      const besk = document.getElementById(el.getAttribute('aria-describedby'))?.textContent;
+      return { roll: el.getAttribute('role'), namn, besk, fokus: document.activeElement?.dataset?.a };
+    });
+    if (v.roll !== 'alertdialog' || !v.namn || !/loggas ut klockan/.test(v.besk ?? '')) nytt('tidsgrans', `varningen läses inte upp som en varning med namn och text (${JSON.stringify(v)})`);
+    if (v.fokus !== 'forlang') nytt('tidsgrans', 'fokus står inte på Fortsätt arbeta');
+    await p.keyboard.press('Enter');
+    await p.waitForFunction(() => !document.getElementById('tidsgrans'));
+    const garUt = await p.evaluate(async () => (await (await fetch('/api/session')).json()).inloggning?.garUt);
+    if (!(Date.parse(garUt) > Date.now() + 29 * 60_000)) nytt('tidsgrans', `Fortsätt arbeta förlängde inte inloggningen (${garUt})`);
+    // Text i en ny anteckning, och sedan låter användaren tiden gå ut.
+    await gaTill(p, '#/patient/p01/journal/ny');
+    await p.fill('textarea[data-sokord="Aktuellt"]', 'Text som inte hann sparas före utloggningen.');
+    await demo(24);
+    await p.waitForSelector('#tidsgrans');
+    await p.waitForSelector('.roll', { timeout: 20000 });
+    const notiser = await p.locator('#notiser').textContent();
+    if (!/sparat som utkast/.test(notiser)) nytt('tidsgrans', `utloggningen säger inte att texten är sparad (${notiser.trim().slice(0, 120)})`);
+    await p.click('[data-roll="lak-kard"]');
+    await p.waitForSelector('[data-a="loggaut"]');
+    await vantaKlar(p);
+    const utkast = await p.evaluate(async () => JSON.stringify((await (await fetch('/api/patient/p01/anteckningar')).json()).anteckningar.filter(a => a.status === 'utkast')));
+    if (!utkast.includes('Text som inte hann sparas')) nytt('tidsgrans', 'texten finns inte som utkast efter den nya inloggningen');
+    await k.close();
+  } catch (e) { nytt('tidsgrans', kort(e.message)); }
+
   // Förstoring, omflyttning och skärmarna. Varje vy i listan visas i varje storlek.
   const STORLEKAR = [
     { namn: 'zoom', vp: { width: 640, height: 450 }, kontroll: 'zoom', etikett: '200 procent (640 px)' },
@@ -680,6 +716,35 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     }
     await k.close();
   });
+  await provaUtb(G.redigera, async () => {
+    const k = await kontext({ width: 1440, height: 900 });
+    await k.addInitScript(INIT);
+    const p = await k.newPage();
+    bevaka(p, 'redigera');
+    await loggaIn(p, 'vch-kard');
+    await gaTill(p, '#/utbildning');
+    await p.click('[data-utbildare="far-kard"]');
+    await p.waitForFunction(() => /Elsa Nordin är utbildare/.test(document.getElementById('notiser').textContent));
+    await loggaIn(p, 'far-kard');
+    await gaTill(p, '#/utbildning');
+    if (!/Du kan ändra övningarna/.test(await p.locator('[data-utbildare]').textContent())) throw new Error('utbildaren ser inte att hon kan ändra övningarna');
+    await p.click('[data-oppna-redigering]');
+    const forsta = p.locator('.ov-red').first();
+    await forsta.locator('summary').click();
+    // Ett fel prövas först: en tom fråga.
+    await forsta.locator('[name="fraga"]').fill('');
+    await p.fill('#ov-andring', 'Tydligare fråga om loggen.');
+    await p.click('[data-a="spara-ovningar"]');
+    await p.waitForFunction(() => /Övning 1: frågan ska vara/.test(document.getElementById('ov-red-fel')?.textContent ?? ''));
+    if (!(await p.evaluate(() => document.activeElement?.name === 'fraga' && document.activeElement.getAttribute('aria-invalid') === 'true'))) throw new Error('fältet med fel får inte fokus och markering');
+    await forsta.locator('[name="fraga"]').fill('Vad händer när du läser journalen för en patient i Vårdkällan?');
+    await p.click('[data-a="spara-ovningar"]');
+    await p.waitForFunction(() => /Version 2 av övningarna är sparad/.test(document.getElementById('notiser').textContent));
+    const h = await p.locator('[data-ov-historik] tbody tr').first().textContent();
+    if (!/2/.test(h) || !/Elsa Nordin/.test(h) || !/Tydligare fråga om loggen/.test(h)) throw new Error(`historiken visar inte den nya versionen: ${h}`);
+    await p.screenshot({ path: join(UT, 'r7r2-ovningar.png'), fullPage: false });
+    await k.close();
+  });
   await provaUtb(G.intyg, async () => {
     const k = await kontext({ width: 1440, height: 900 });
     await k.addInitScript(INIT);
@@ -718,6 +783,7 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     [G.kontrast, ['kontrast']], [G.komponentkontrast, ['komponent']], [G.farg, ['farg']], [G.zoom, ['zoom']], [G.omflyttning, ['omflyttning']],
     [G.tangentbord, ['tangentbord']], [G.fokusordning, ['fokusordning']], [G.synligtFokus, ['synligtFokus']], [G.tangentbordFlode, ['tangentbordFlode']],
     [G.vidFokus, ['vidFokus']], [G.felmarkering, ['felmarkering']], [G.hogKontrast, ['hogKontrast']], [G.rorelse, ['rorelse']], [G.skarmar, ['skarmar']],
+    [G.tidsgrans, ['tidsgrans']],
   ];
   for (const [namn, kontroller] of tillg) {
     const lista = kontroller.flatMap(k => [...(fynd[k] ?? [])]);

@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T09:05:16.628Z",
+  "tid": "2026-11-08T09:44:52.742Z",
   "bas": "http://127.0.0.1:18172",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "1755eb494a9bd8987992e284e8939c024aef2a4225b1842020f88448f08d1b47",
+  "gransnittHash": "b5b0c012f61a2d30fd7dab6ae9c12f94f1f6dbee65a1659dc15f4bd49c758578",
   "tester": [
     {
       "namn": "Gränssnitt > Avbrott > läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB",
@@ -193,11 +193,19 @@
       "status": "grön"
     },
     {
+      "namn": "Gränssnitt > Tillgänglighet > fem minuter före utloggningen läser skärmläsare upp en varning, Fortsätt arbeta förlänger inloggningen och osparad text finns kvar som utkast efter en ny inloggning",
+      "status": "grön"
+    },
+    {
       "namn": "Gränssnitt > Utbildning > nyhetsrutan visar rollens nyheter efter inloggning, stängs med ett klick och går att läsa igen",
       "status": "grön"
     },
     {
       "namn": "Gränssnitt > Utbildning > hjälpen i sammanhanget finns i de vanligaste flödena och går att öppna med tangentbordet",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Utbildning > verksamhetschefen utser en utbildare, och utbildaren ändrar en övning som sparas som en ny version med historik",
       "status": "grön"
     },
     {

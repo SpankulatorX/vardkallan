@@ -33,6 +33,7 @@ export const STARTPUNKT = {
   'Inkorgen efter återställning': { hash: '#/inkorg', klar: '#ik-mallar', forbered: 'aterstall' },
   // Runda 7, r2: efter en återställning har ingen stängt nyheterna.
   'Arbetslistan med nyheterna efter en ny version': { hash: '#/arbetslista', klar: '.nyhetsruta', forbered: 'aterstall' },
+  'Arbetslistan när inloggningen snart går ut': { hash: '#/arbetslista', klar: '#tidsgrans', forbered: 'inloggning-gar-ut' },
 };
 
 export const UPPGIFTER = [
@@ -281,6 +282,12 @@ export const UPPGIFTER = [
     id: 'nyheter', namn: 'Läsa nyheterna och stänga dem', roll: 'lak-kard', start: 'Arbetslistan med nyheterna efter en ny version',
     text: 'Vårdkällan har fått en ny version. Läs vad som är nytt för dig som läkare, och se sedan till att nyheterna inte står kvar.',
     kontroll: { notis: 'Nyheterna är stängda' },
+  },
+  // Runda 7, r2: varningen före utloggningen (K2 1.6.1).
+  {
+    id: 'forlang-inloggning', namn: 'Fortsätta arbeta när inloggningen snart går ut', roll: 'lak-kard', start: 'Arbetslistan när inloggningen snart går ut',
+    text: 'Du har varit borta från datorn en stund, och Vårdkällan varnar för att du snart loggas ut. Du vill fortsätta arbeta.',
+    kontroll: { notis: 'Du är inloggad' },
   },
 ];
 

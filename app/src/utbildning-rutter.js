@@ -16,4 +16,8 @@ export function registreraRutter({ rutt, kravInloggad }) {
   rutt('GET', '/api/utbildning', (c) => utbildning.oversikt(c.db, kravInloggad(c)));
   rutt('POST', '/api/utbildning/ratta', (c) => utbildning.ratta(c.db, kravInloggad(c), c.body.svar));
   rutt('GET', '/api/utbildning/enhet', (c) => utbildning.enhet(c.db, kravInloggad(c)));
+  // Övningarna som data med versioner, och utbildarintygen.
+  rutt('GET', '/api/utbildning/ovningar', (c) => utbildning.redigera(c.db, kravInloggad(c)));
+  rutt('POST', '/api/utbildning/ovningar', (c) => [201, utbildning.sparaVersion(c.db, kravInloggad(c), c.body)]);
+  rutt('POST', '/api/utbildning/utbildare', (c) => [201, utbildning.utfardaUtbildare(c.db, kravInloggad(c), c.body.personalId)]);
 }

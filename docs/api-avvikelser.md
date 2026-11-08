@@ -391,3 +391,13 @@ Inget här rör en patient. Nyheterna och övningarna har inga patientuppgifter 
 - `GET /api/utbildning/enhet` (bara vårdenhetens verksamhetschef, annars 403) ger `{ vardenhet, personer: [{ id, namn, titel, yrke, status, text, giltigtTill, utfardat, dagarKvar }], summa, garUtDagar }`, med de som behöver göra övningarna först.
 - `GET /api/tillganglighet` (utan inloggning och utan sandlåda) ger tillgänglighetsredogörelsen: `{ kalla, krav, tillagg, anpassning, summa }`. Varje krav är `{ id, rubrik, en, wcag, niva, avsedd, status, statusText, bedomning: automatisk|manuell|bada, manuell, hur, tester: [{ namn, status }], anmarkning }`, och `status` är `uppfyllt`, `delvis`, `ej` eller `ej_tillampligt` räknat ur testerna.
 - `GET /api/session` har `utbildning` i `behorigheter` för all personal, och verksamhetschefen också `intyg_enhet`.
+- `GET /api/utbildning` har också `version` (övningarnas version), `utbildare` (utbildarintygets status) och `kanAndra`. Ett intyg har `version`. `GET /api/utbildning/enhet` har för varje person `utbildare` och `kanBliUtbildare`.
+- `GET /api/utbildning/ovningar` (verksamhetschefen och utbildare, annars 403) ger `{ version, ovningar, historik: [{ version, tid, av, andring, antal }], roller, prova }`, där övningarna har `roller`, `alternativ: [{ id, text }]`, `ratt`, `forklaring` och `prova`. `POST /api/utbildning/ovningar { ovningar, andring }` (201) sparar en ny version. Ett fel ger 400 med `falt` som `"<plats>.<fält>"`, till exempel `"0.fraga"`, eller `andring`.
+- `POST /api/utbildning/utbildare { personalId }` (201, bara vårdenhetens verksamhetschef) utfärdar ett utbildarintyg som gäller i ett år till någon på vårdenheten med giltigt intyg, och svarar som `GET /api/utbildning/enhet` med `text`.
+
+## Inloggningens tidsgräns (runda 7, r2, K2 1.6.1)
+
+- Inloggningen går ut efter `INLOGGNING_MINUTER` (standard 30) minuter utan aktivitet. Nästa anrop görs då som utloggad, och sandlådan finns kvar. Ett anrop med rubriken `X-Vk-Bakgrund: 1` räknas inte som aktivitet.
+- Varje svar till en inloggad har rubriken `X-Inloggning-Gar-Ut` (ISO-tid). `GET /api/session` och inloggningssvaren har `inloggning: { garUt, minuter, varningMinuter }` när någon är inloggad.
+- `POST /api/session/forlang` (inloggad, annars 401) förlänger inloggningen och ger `{ inloggning }`.
+- `POST /api/demo/inloggning-gar-ut { sekunder }` (inloggad) sätter tiden så att inloggningen går ut om så många sekunder (5 till hela tiden, standard 270), i den egna sessionen.

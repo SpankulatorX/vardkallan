@@ -173,7 +173,7 @@ export const FRASER = ['HL7 Sweden', '$everything', 'pull request', 'Server-Timi
   // Runda 6, r5: standarden för externa tillämpningar och HTTP-rubriken för åtkomstbiljetter.
   'SMART on FHIR', 'SMART App Launch', 'WWW-Authenticate', 'Subscriptions R5 Backport', 'rest-hook',
   // Runda 7, r2: mediefrågorna för datorns inställningar för kontrast och rörelse.
-  'prefers-contrast: more', 'forced-colors: active', 'prefers-reduced-motion: reduce'];
+  'prefers-contrast: more', 'forced-colors: active', 'prefers-reduced-motion: reduce', 'X-Inloggning-Gar-Ut'];
 
 // Svenska ord som ofta skrivs utan å, ä eller ö. Formen utan prickar är inget eget ord.
 export const UTAN_PRICKAR = new Map(Object.entries({

@@ -121,6 +121,8 @@ const FORBERED = {
   },
   // Runda 6, r2: bara återställning, så att patienten är som i seeden.
   aterstall: async () => { await aterstallDemo(); },
+  // Runda 7, r2: demoläget flyttar inloggningens tid så att varningen före utloggningen visas direkt.
+  'inloggning-gar-ut': async () => { await aterstallDemo(); await api('/api/demo/inloggning-gar-ut', { metod: 'POST', data: { sekunder: 240 } }); },
 };
 
 // Uppgiften börjar på samma sätt som i skriptet: vid byte av demoroll loggas rollen in och demon återställs, så att

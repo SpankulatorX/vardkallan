@@ -1259,6 +1259,24 @@ body.laslage #nyhetsruta { display: none; }
   .notis-stang { width: 40px; height: 40px; }
 }
 
+/* Varningen innan inloggningen går ut (K2 1.6.1). Den ligger överst och skymmer inget viktigt. */
+.tidsgrans { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 80; width: min(560px, calc(100vw - 32px)); background: var(--yta); color: var(--blak); border: 2px solid var(--obs-kant); border-left: 6px solid var(--obs); border-radius: var(--r); padding: 12px 16px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18); }
+.tidsgrans h2 { font-size: var(--f-l); margin-bottom: 6px; }
+.tidsgrans p { margin: 0 0 10px; }
+
+/* Ändra övningarna: en utfällbar ruta per övning. */
+.ov-red { border: 1px solid var(--linje); border-radius: var(--r); background: var(--yta); margin: 0 0 8px; padding: 6px 12px; max-width: 90ch; }
+.ov-red > summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+.ov-red-inre { padding: 6px 0 4px; }
+.ov-red-grupp { border: 0; padding: 0; margin: 8px 0; }
+.ov-red-grupp legend { font-weight: 600; font-size: var(--f-s); margin-bottom: 4px; }
+.ov-kryss { display: inline-flex; gap: 6px; align-items: center; margin: 2px 14px 2px 0; }
+.ov-alt { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: 6px 8px; align-items: center; margin: 4px 0; }
+.ov-alt-ratt { font-size: var(--f-s); white-space: nowrap; }
+@media (max-width: 640px) { .ov-alt { grid-template-columns: auto minmax(0, 1fr); } .ov-alt input[type="text"] { grid-column: 1 / -1; } }
+[data-ov-redigera] h3 { margin: 18px 0 6px; }
+#ov-redigera .falt { max-width: 90ch; }
+
 /* Stor skärm (KD1.1.4.10): textrader blir inte längre än att de går att läsa, och innehållet sträcks inte ut. */
 .innehall p { max-width: 80em; }
 @media (min-width: 1800px) { .innehall { max-width: 1500px; } }

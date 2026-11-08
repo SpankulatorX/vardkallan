@@ -8,6 +8,7 @@ const GU = 'Gränssnitt > Utbildning > ';
 const NY = 'Nyheter > ';
 const UB = 'Övningar och intyg > ';
 const TG = 'Tillgänglighetsredogörelse > ';
+const TI = 'Inloggningens tidsgräns > ';
 
 export const PREFIX = { GT, GU };
 
@@ -37,6 +38,10 @@ export const G = {
   hjalp: `${GU}hjälpen i sammanhanget finns i de vanligaste flödena och går att öppna med tangentbordet`,
   intyg: `${GU}övningarna ger ett intyg med giltighetstid, och verksamhetschefen ser vårdenhetens intyg`,
   kbNyheter: `${GK}Läsa nyheterna och stänga dem inom budget`,
+  // Runda 7, r2, andra omgången: varningen före utloggningen och övningarna som data.
+  tidsgrans: `${GT}fem minuter före utloggningen läser skärmläsare upp en varning, Fortsätt arbeta förlänger inloggningen och osparad text finns kvar som utkast efter en ny inloggning`,
+  redigera: `${GU}verksamhetschefen utser en utbildare, och utbildaren ändrar en övning som sparas som en ny version med historik`,
+  kbForlang: `${GK}Fortsätta arbeta när inloggningen snart går ut inom budget`,
 };
 
 // Servertesterna i app/test/utbildning.test.js.
@@ -55,10 +60,17 @@ export const S = {
   tgStatus: `${TG}ett krav är uppfyllt bara när alla dess tester är gröna, och det som bara kan bedömas av människor är märkt`,
   tgApi: `${TG}API: tillganglighet går att läsa utan inloggning`,
   tgDok: `${TG}docs/tillganglighet.md skrivs ur samma register som sidan och tar upp varje krav`,
+  ovVersion: `${UB}verksamhetschefen och en utbildare ändrar övningarna som en ny version med historik, och ingen annan gör det`,
+  ovProva: `${UB}en ändrad övning prövas innan den sparas, och systemet säger vad som saknas`,
+  ovUtbildare: `${UB}verksamhetschefen utfärdar utbildarintyg bara till någon på vårdenheten med giltigt intyg`,
+  tiUt: `${TI}inloggningen går ut efter en tid utan aktivitet, men sandlådan och utkasten finns kvar efter en ny inloggning`,
+  tiBakgrund: `${TI}anrop i bakgrunden förlänger inte inloggningen, och Fortsätt arbeta gör det`,
+  tiRubrik: `${TI}varje svar till en inloggad säger när inloggningen går ut, och utloggningen står i säkerhetsloggen`,
 };
 
 const ALLA_A11Y = [G.media, G.alt, G.namn, G.rubriker, G.landmarken, G.sprak, G.kontrast, G.komponentkontrast, G.farg, G.zoom, G.omflyttning,
-  G.tangentbord, G.fokusordning, G.synligtFokus, G.tangentbordFlode, G.vidFokus, G.felmarkering, G.hogKontrast, G.rorelse, S.tgK2, S.tgStatus, S.tgApi, S.tgDok];
+  G.tangentbord, G.fokusordning, G.synligtFokus, G.tangentbordFlode, G.vidFokus, G.felmarkering, G.hogKontrast, G.rorelse, S.tgK2, S.tgStatus, S.tgApi, S.tgDok,
+  G.tidsgrans, G.kbForlang, S.tiUt, S.tiBakgrund, S.tiRubrik];
 
 // Posterna som rundan bygger. De ersätter avsnittsfilens planerade poster.
 const POSTER = {
@@ -66,7 +78,7 @@ const POSTER = {
     kategori: 'system', avsedd: 'delvis', tester: ALLA_A11Y,
     losning: 'Gränssnittet prövas i varje bygge mot det som går att kontrollera automatiskt i WCAG 2.1 nivå AA, som EN 301 549 kapitel 9 och 11 hänvisar till: kontrast, namn på fält och knappar, textalternativ, rubrikordning, landmärken, språk, tabbordning, synligt fokus, tangentbord utan mus, förstoring till 200 procent och omflyttning vid 320 px, för varje vy och varje demoroll. Ingen information bärs bara av färg: status, larm, uppmärksamhetssymbolen och kurvorna har text eller form. Ett högkontrastläge finns, och systemet följer datorns inställningar för hög kontrast och minskade rörelser. Tillgänglighetsredogörelsen på sidan Tillgänglighet och i docs/tillganglighet.md visar varje krav i bilaga K2 med status och hur det är testat.',
     expert: 'Systemet följer självt datorns inställningar för kontrast och rörelse, bär varje statusvärde med text och form och förklarar fel på vanlig svenska vid fältet, så att ingen behöver ställa in något eller tolka färger.',
-    anmarkning: 'De automatiska kontrollerna är skrivna i projektet, utan en extern tillgänglighetsmotor. Det som bara kan bedömas av människor, till exempel att rubriker och länktexter beskriver syftet och att språket är begripligt, är märkt så i redogörelsen och inte prövat med användare med funktionsnedsättning. Ingen granskning med skärmläsare är gjord. ISO 9241-11 följs genom användartestet med SUS (docs/anvandartest.md), som ännu inte är genomfört med vårdpersonal. Sessionen går ut efter 8 timmar utan varning, vilket inte uppfyller K2 1.6.1.',
+    anmarkning: 'De automatiska kontrollerna är skrivna i projektet, utan en extern tillgänglighetsmotor. Det som bara kan bedömas av människor, till exempel att rubriker och länktexter beskriver syftet och att språket är begripligt, är märkt så i redogörelsen och inte prövat med användare med funktionsnedsättning. Ingen granskning med skärmläsare är gjord. ISO 9241-11 följs genom användartestet med SUS (docs/anvandartest.md), som ännu inte är genomfört med vårdpersonal.',
   },
   'KD1.1.4.3': {
     kategori: 'system', avsedd: 'uppfyllt_demo', tester: [G.skarmar, G.omflyttning, G.zoom],
@@ -99,10 +111,10 @@ const POSTER = {
     anmarkning: 'Vad användaren har stängt sparas i demons sandlåda och följer inte med till en annan dator.',
   },
   '10.1.1.5': {
-    kategori: 'system', avsedd: 'delvis', tester: [S.ovRoll, S.ovIntyg, S.ovGiltighet, S.ovEnhet, S.ovText, S.ovAndras, G.intyg, G.hjalp],
-    losning: 'Under Utbildning gör varje användare övningarna för sin yrkesroll med demopatienter och får ett intyg som gäller i ett år när alla svar är rätt. Verksamhetschefen ser vilka på vårdenheten som har giltigt intyg, vilka som går ut inom 30 dagar och vilka som saknar intyg. Hjälpen i sammanhanget länkar till övningarna.',
-    expert: 'Systemet väljer övningarna efter yrkesrollen, rättar på servern och förklarar varje svar, räknar giltighetstiden och vet själv vilka som arbetar på vårdenheten.',
-    anmarkning: 'Övningarna är kunskapsfrågor om hur systemet fungerar, inte praktiska prov i journalen. Certifiering av utbildare och ett sätt för verksamheten att ändra övningarna utan att ändra koden finns inte. Intygen gäller bara i demon.',
+    kategori: 'system', avsedd: 'delvis', tester: [S.ovRoll, S.ovIntyg, S.ovGiltighet, S.ovEnhet, S.ovText, S.ovAndras, S.ovVersion, S.ovProva, S.ovUtbildare, G.intyg, G.redigera, G.hjalp],
+    losning: 'Under Utbildning gör varje användare övningarna för sin yrkesroll med demopatienter och får ett intyg som gäller i ett år när alla svar är rätt. Verksamhetschefen ser vilka på vårdenheten som har giltigt intyg, vilka som går ut inom 30 dagar och vilka som saknar intyg, och utfärdar utbildarintyg till den som själv har ett giltigt intyg. Övningarna är data med versioner: verksamhetschefen och utbildarna ändrar dem i gränssnittet, och varje ändring sparas som en ny version med vem, när och vad som ändrades. Hjälpen i sammanhanget länkar till övningarna.',
+    expert: 'Systemet väljer övningarna efter yrkesrollen, rättar på servern och förklarar varje svar, räknar giltighetstiden, prövar en ändrad övning innan den sparas och säger vad som saknas, och vet själv vilka som arbetar på vårdenheten och vilka som är utbildare.',
+    anmarkning: 'Övningarna är kunskapsfrågor om hur systemet fungerar, inte praktiska prov i journalen. Övningarna gäller hela vårdgivaren, inte en vårdenhet i taget. Utbildare är ett intyg, ingen egen inloggningsroll. Intygen gäller bara i demon.',
   },
 };
 

@@ -9,7 +9,7 @@ import * as utbildning from '../src/utbildning.js';
 import { KRAV, TILLAGG, ANPASSNING, STATUS, BEDOMNING, redogorelse, tillganglighetTester, markdown } from '../src/tillganglighet.js';
 import { YRKEN } from '../src/seed/personal.js';
 import { prova } from './sprakkontroll.js';
-import { personal, testserver, klient } from './hjalp.js';
+import { personal, testserver, klient, sandlada } from './hjalp.js';
 
 const APP = join(import.meta.dir, '..');
 let app;
@@ -17,6 +17,7 @@ beforeAll(() => { app = testserver(); });
 afterAll(() => app.stopp());
 
 const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
+const klon = (x) => JSON.parse(JSON.stringify(x));
 const pers = (d, id) => ({ personal: personal(d, id), invanare: null });
 const NU = new Date('2026-11-08T10:00:00Z');
 const DAG = 86400_000;
@@ -123,7 +124,7 @@ describe('Övningar och intyg', () => {
     const d = byggSeed();
     for (const yrke of Object.keys(YRKEN)) expect(utbildning.ovningarFor(yrke).length).toBeGreaterThanOrEqual(3);
     for (const x of utbildning.OVNINGAR) {
-      expect(x.alternativ.some(([id]) => id === x.ratt)).toBe(true);
+      expect(x.alternativ.some(a => a.id === x.ratt)).toBe(true);
       expect(x.forklaring.length).toBeGreaterThan(20);
     }
     const o = utbildning.oversikt(d, personal(d, 'lak-kard'), { nu: NU });
@@ -214,7 +215,7 @@ describe('Övningar och intyg', () => {
 
   test('övningarna och nyheterna innehåller inga patientuppgifter utom demopatienternas namn, och texterna är svenska', () => {
     const texter = [];
-    for (const x of utbildning.OVNINGAR) texter.push(x.fraga, x.forklaring, ...x.alternativ.map(a => a[1]));
+    for (const x of utbildning.OVNINGAR) texter.push(x.fraga, x.forklaring, ...x.alternativ.map(a => a.text));
     for (const v of nyheter.NYHETER) for (const n of v.nyheter) texter.push(n.rubrik, n.text);
     texter.push(utbildning.UTBILDNINGSMILJO);
     const alla = texter.join('\n');
@@ -229,6 +230,153 @@ describe('Övningar och intyg', () => {
     const d = byggSeed();
     expect(fel(() => d.query("UPDATE utbildningsintyg SET giltigt_till = '2099-01-01' WHERE personal_id = 'ssk-kard'").run())?.message).toContain('ändras inte');
     expect(fel(() => d.query("DELETE FROM utbildningsintyg WHERE personal_id = 'ssk-kard'").run())?.message).toContain('raderas inte');
+  });
+
+  test('verksamhetschefen och en utbildare ändrar övningarna som en ny version med historik, och ingen annan gör det', async () => {
+    const d = byggSeed(NU);
+    const vch = personal(d, 'vch-kard');
+    // Johan Ek är utbildare i seeden.
+    expect(utbildning.kanAndra(d, personal(d, 'ssk-kard'), NU)).toBe(true);
+    expect(utbildning.kanAndra(d, vch, NU)).toBe(true);
+    for (const id of ['lak-kard', 'adm-kard', 'usk-kard', 'logg', 'lak-akut']) {
+      expect(utbildning.kanAndra(d, personal(d, id), NU)).toBe(false);
+      expect(fel(() => utbildning.redigera(d, personal(d, id), { nu: NU }))).toMatchObject({ status: 403 });
+      expect(fel(() => utbildning.sparaVersion(d, personal(d, id), { ovningar: utbildning.OVNINGAR, andring: 'Försök att ändra' }, { nu: NU }))).toMatchObject({ status: 403 });
+    }
+    const r = utbildning.redigera(d, vch, { nu: NU });
+    expect(r.version).toBe(1);
+    expect(r.historik.map(h => h.version)).toEqual([1]);
+    // Den som ändrar ser rätt svar och förklaring.
+    expect([typeof r.ovningar[0].ratt, typeof r.ovningar[0].forklaring]).toEqual(['string', 'string']);
+    const ny = klon(r.ovningar);
+    ny[0].fraga = 'Vad händer när du läser journalen för en patient i Vårdkällan?';
+    const v2 = utbildning.sparaVersion(d, personal(d, 'ssk-kard'), { ovningar: ny, andring: 'Tydligare fråga om loggen.' }, { nu: NU });
+    expect(v2).toMatchObject({ version: 2, text: expect.stringContaining('Version 2') });
+    expect(v2.historik[0]).toMatchObject({ version: 2, av: 'Johan Ek', andring: 'Tydligare fråga om loggen.', tid: NU.toISOString() });
+    // Den nya versionen gäller för övningarna, och den förra finns kvar och ändras aldrig.
+    expect(utbildning.oversikt(d, personal(d, 'lak-kard'), { nu: NU }).ovningar[0].fraga).toBe(ny[0].fraga);
+    expect(utbildning.oversikt(d, personal(d, 'lak-kard'), { nu: NU }).version).toBe(2);
+    expect(fel(() => d.query('UPDATE ovningsversioner SET andring = ? WHERE version = 1').run('x'))?.message).toContain('ändras inte');
+    expect(fel(() => d.query('DELETE FROM ovningsversioner WHERE version = 1').run())?.message).toContain('raderas inte');
+    // Ett intyg säger vilken version av övningarna det gäller.
+    const lak = personal(d, 'lak-kard');
+    const svar = Object.fromEntries(utbildning.ovningarFor('lakare', ny).map(x => [x.id, x.ratt]));
+    expect(utbildning.ratta(d, lak, svar, { nu: NU }).intyg).toMatchObject({ status: 'giltigt', version: 2 });
+    // Samma via API:t.
+    const k = klient(app);
+    await k.logga('lak-kard');
+    expect((await k.get('/api/utbildning/ovningar')).status).toBe(403);
+    await k.logga('vch-kard');
+    const g = await k.get('/api/utbildning/ovningar');
+    expect(g.status).toBe(200);
+    const lista = klon(g.data.ovningar);
+    lista[1].forklaring = 'Systemet räknar ut det som går och förklarar resten på vanlig svenska.';
+    const p = await k.post('/api/utbildning/ovningar', { ovningar: lista, andring: 'Kortare förklaring.' });
+    expect(p.status).toBe(201);
+    expect(p.data.version).toBe(2);
+  });
+
+  test('en ändrad övning prövas innan den sparas, och systemet säger vad som saknas', () => {
+    const d = byggSeed(NU);
+    const vch = personal(d, 'vch-kard');
+    const bas = utbildning.redigera(d, vch, { nu: NU }).ovningar;
+    const med = (fn) => { const l = klon(bas); fn(l); return l; };
+    const spara = (ovningar, andring = 'En ändring.') => fel(() => utbildning.sparaVersion(d, vch, { ovningar, andring }, { nu: NU }));
+    expect(spara(bas)).toMatchObject({ status: 400, message: 'Inget har ändrats i övningarna.' });
+    expect(spara(med(l => { l[0].fraga = 'Ny fråga om loggen här.'; }), '')).toMatchObject({ status: 400, extra: { falt: ['andring'] } });
+    expect(spara(med(l => { l[0].fraga = 'Kort'; }))).toMatchObject({ status: 400, message: expect.stringContaining('Övning 1: frågan ska vara 10 till 300 tecken') });
+    expect(spara(med(l => { l[2].alternativ = [l[2].alternativ[0]]; }))).toMatchObject({ message: expect.stringContaining('Övning 3: en övning ska ha 2 till 5 svarsalternativ') });
+    expect(spara(med(l => { l[0].ratt = 'x'; }))).toMatchObject({ message: expect.stringContaining('välj vilket svarsalternativ som är rätt') });
+    expect(spara(med(l => { l[0].roller = ['chef']; }))).toMatchObject({ message: expect.stringContaining('välj minst en yrkesroll') });
+    expect(spara(med(l => { l[1].id = l[0].id; }))).toMatchObject({ message: expect.stringContaining('finns redan') });
+    expect(spara(med(l => { l[0].prova = 'https://exempel.se'; }))).toMatchObject({ message: expect.stringContaining('länken till demon') });
+    // Varje yrkesroll ska ha minst en övning: utan arkivariens övningar går det inte att spara.
+    const utanArkiv = med(l => { for (const x of l) x.roller = x.roller.filter(r => r !== 'arkivarie'); l.splice(l.findIndex(x => !x.roller.length), 1); });
+    expect(spara(utanArkiv)).toMatchObject({ message: expect.stringContaining('Ingen övning finns för arkivarie') });
+    // En ny övning med två alternativ går att spara, och alternativen får id efter ordningen.
+    const v = utbildning.sparaVersion(d, vch, { ovningar: [...bas, { id: 'ny-ovning', roller: ['lakare'], fraga: 'Var ser du nyheterna igen?', alternativ: [{ id: 'a', text: 'Under Nyheter.' }, { id: 'b', text: 'Ingenstans.' }], ratt: 'a', forklaring: 'Alla nyheter för rollen finns under Nyheter.' }], andring: 'Ny övning om nyheterna.' }, { nu: NU });
+    expect(v.ovningar.at(-1)).toMatchObject({ id: 'ny-ovning', ratt: 'a', prova: null });
+  });
+
+  test('verksamhetschefen utfärdar utbildarintyg bara till någon på vårdenheten med giltigt intyg', async () => {
+    const d = byggSeed(NU);
+    const vch = personal(d, 'vch-kard');
+    const e = utbildning.enhet(d, vch, { nu: NU });
+    expect(e.personer.find(p => p.id === 'ssk-kard')).toMatchObject({ utbildare: { status: 'giltigt', text: 'Utbildare' }, kanBliUtbildare: false });
+    expect(e.personer.find(p => p.id === 'far-kard')).toMatchObject({ utbildare: { status: 'saknas' }, kanBliUtbildare: true });
+    expect(e.personer.find(p => p.id === 'lak-kard')).toMatchObject({ kanBliUtbildare: false });
+    // Utan eget giltigt intyg, på en annan vårdenhet eller av någon annan än verksamhetschefen går det inte.
+    expect(fel(() => utbildning.utfardaUtbildare(d, vch, 'lak-kard', { nu: NU }))).toMatchObject({ status: 400, message: expect.stringContaining('har inget giltigt intyg') });
+    expect(fel(() => utbildning.utfardaUtbildare(d, vch, 'ol-kard', { nu: NU }))).toMatchObject({ status: 400 });
+    expect(fel(() => utbildning.utfardaUtbildare(d, vch, 'lak-akut', { nu: NU }))).toMatchObject({ status: 400, message: 'Välj någon som arbetar på din vårdenhet.' });
+    expect(fel(() => utbildning.utfardaUtbildare(d, personal(d, 'ssk-kard'), 'far-kard', { nu: NU }))).toMatchObject({ status: 403 });
+    const r = utbildning.utfardaUtbildare(d, vch, 'far-kard', { nu: NU });
+    expect(r.text).toContain('Elsa Nordin är utbildare');
+    expect(utbildning.kanAndra(d, personal(d, 'far-kard'), NU)).toBe(true);
+    // Utbildarintyget går ut efter ett år, och då får personen inte längre ändra övningarna.
+    expect(utbildning.kanAndra(d, personal(d, 'far-kard'), new Date(NU.getTime() + 366 * DAG))).toBe(false);
+    expect(fel(() => d.query("DELETE FROM utbildarintyg WHERE personal_id = 'far-kard'").run())?.message).toContain('raderas inte');
+    const k = klient(app);
+    await k.logga('vch-kard');
+    expect((await k.post('/api/utbildning/utbildare', { personalId: 'far-kard' })).status).toBe(201);
+  });
+});
+
+describe('Inloggningens tidsgräns', () => {
+  const s = (k) => sandlada(app, k);
+  test('inloggningen går ut efter en tid utan aktivitet, men sandlådan och utkasten finns kvar efter en ny inloggning', async () => {
+    const k = klient(app);
+    await k.logga('lak-kard');
+    const u = await k.post('/api/patient/p01/anteckningar', { typ: 'Daganteckning', sokord: [{ sokord: 'Aktuellt', text: 'Påbörjad text före utloggningen.' }] });
+    expect(u.status).toBe(201);
+    const db = s(k).db;
+    s(k).aktiv = Date.now() - 31 * 60_000;
+    const r = await k.get('/api/inkorg');
+    expect(r.status).toBe(401);
+    expect((await k.get('/api/session')).data.inloggad).toBe(false);
+    // Samma sandlåda, och utloggningen står i säkerhetsloggen.
+    expect(s(k).db).toBe(db);
+    const rad = db.query("SELECT * FROM sakerhetslogg WHERE typ = 'utloggning' ORDER BY id DESC LIMIT 1").get();
+    expect(rad).toMatchObject({ personal_id: 'lak-kard', beskrivning: 'Utloggning efter 30 minuter utan aktivitet.' });
+    await k.logga('lak-kard');
+    const a = await k.get('/api/patient/p01/anteckningar');
+    expect(a.data.anteckningar.some(x => x.status === 'utkast' && JSON.stringify(x).includes('Påbörjad text'))).toBe(true);
+  });
+
+  test('anrop i bakgrunden förlänger inte inloggningen, och Fortsätt arbeta gör det', async () => {
+    const k = klient(app);
+    await k.logga('ssk-kard');
+    const tio = Date.now() - 10 * 60_000;
+    s(k).aktiv = tio;
+    const b = await k.raw('GET', '/api/inkorg', undefined, { 'X-Vk-Bakgrund': '1' });
+    expect(b.status).toBe(200);
+    expect(Date.parse(b.headers.get('x-inloggning-gar-ut'))).toBe(tio + 30 * 60_000);
+    const f = await k.post('/api/session/forlang', {});
+    expect(f.status).toBe(200);
+    expect(Date.parse(f.data.inloggning.garUt)).toBeGreaterThan(Date.now() + 29 * 60_000);
+    // Demoläget flyttar tiden så att varningen visas direkt, bara i den egna sandlådan.
+    const dm = await k.post('/api/demo/inloggning-gar-ut', { sekunder: 60 });
+    expect(Date.parse(dm.data.inloggning.garUt)).toBeLessThan(Date.now() + 61_000);
+    expect(Date.parse(dm.headers.get('x-inloggning-gar-ut'))).toBe(Date.parse(dm.data.inloggning.garUt));
+    const ute = klient(app);
+    expect((await ute.post('/api/session/forlang', {})).status).toBe(401);
+  });
+
+  test('varje svar till en inloggad säger när inloggningen går ut, och utloggningen står i säkerhetsloggen', async () => {
+    const k = klient(app);
+    const fore = await k.get('/api/session');
+    expect(fore.headers.get('x-inloggning-gar-ut')).toBeNull();
+    expect(fore.data.inloggning).toBeUndefined();
+    await k.logga('adm-kard');
+    const r = await k.get('/api/session');
+    expect(r.data.inloggning).toMatchObject({ minuter: 30, varningMinuter: 5 });
+    expect(r.headers.get('x-inloggning-gar-ut')).toBe(r.data.inloggning.garUt);
+    // Invånaren i Min journal har samma tidsgräns.
+    const i = klient(app);
+    await i.post('/api/login/invanare', { invanareId: 'inv-p01' });
+    s(i).aktiv = Date.now() - 40 * 60_000;
+    expect((await i.get('/api/min/journal/p01')).status).toBe(401);
+    expect(s(i).db.query("SELECT * FROM sakerhetslogg WHERE typ = 'utloggning' ORDER BY id DESC LIMIT 1").get()).toMatchObject({ invanare_id: 'inv-p01' });
   });
 });
 
@@ -265,7 +413,9 @@ describe('Tillgänglighetsredogörelse', () => {
       if (x.bedomning === 'bada') expect(x.manuell).toBe(true);
     }
     // Det som inte är uppfyllt sägs rakt ut.
-    expect(r.krav.find(x => x.id === '2.2.1').status).toBe('ej');
+    // 2.2.1 är uppfyllt sedan varningen före utloggningen kom, och sägs annars rakt ut.
+    expect(r.krav.find(x => x.id === '2.2.1').status).toBe('uppfyllt');
+    expect(tom.krav.find(x => x.id === '2.2.1').status).toBe('delvis');
     expect(r.summa.uppfyllt + r.summa.delvis + r.summa.ej + r.summa.ej_tillampligt).toBe(25);
   });
 

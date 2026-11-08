@@ -159,6 +159,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   sessionFil = process.env.SESSION_FIL || '', testresultat = process.env.TESTRESULTAT || join(import.meta.dir, '..', 'test-resultat.json'),
   klientresultat = { klickbudget: process.env.KLICKBUDGET || join(import.meta.dir, '..', 'klickbudget.json'), klienttester: process.env.KLIENTTESTER || join(import.meta.dir, '..', 'klienttest-resultat.json') },
   nyaPerTimme = Number(process.env.NYA_PER_TIMME || 60),
+  // Runda 7, r2 (K2 1.6.1): inloggningen går ut efter så här många minuter utan aktivitet.
+  inloggningMinuter = Number(process.env.INLOGGNING_MINUTER || 30),
   // Runda 6, r5: mottagaradresser och sändning för prenumerationerna, utbytbara i testerna.
   oppetApiVal = {} } = {}) {
   const sessioner = new Map();
@@ -238,8 +240,35 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (!s) return null;
     s.sist = Date.now();
     sessioner.delete(sid); sessioner.set(sid, s);
+    kontrolleraInloggning(s, req);
     return { sid, s };
   }
+
+  // Runda 7, r2 (K2 1.6.1, justerbar tidsgräns): inloggningen går ut efter en tid utan aktivitet, men sandlådan finns
+  // kvar, så att utkast och annat som sparats finns efter en ny inloggning. Anrop som gränssnittet gör av sig självt
+  // (förnyelsen av läskopian) har rubriken X-Vk-Bakgrund och räknas inte som aktivitet. Gränssnittet varnar fem
+  // minuter innan, och knappen Fortsätt arbeta är ett anrop som räknas.
+  const INLOGGNING_MS = inloggningMinuter * 60_000;
+  const VARNING_MINUTER = 5;
+  const inloggad = (s) => Boolean(s.personalId || s.invanareId);
+  function kontrolleraInloggning(s, req) {
+    const nu = Date.now();
+    if (inloggad(s) && s.aktiv && nu - s.aktiv > INLOGGNING_MS) loggaUtInaktiv(s);
+    if (!s.aktiv || req.headers.get('x-vk-bakgrund') !== '1') s.aktiv = nu;
+  }
+  function loggaUtInaktiv(s) {
+    const fore = inloggade(s);
+    const akt = aktuellKopia(s);
+    if (akt) akt.stangd = new Date().toISOString();
+    avslutaKopia(s, akt, 'utloggning');
+    oppetApi.aterkalla(s, 'Åtkomstbiljetten återkallades när inloggningen gick ut efter en tid utan aktivitet.');
+    s.personalId = null; s.invanareId = null; s.val = {}; s.lasnyckel = null; s.oppnade = new Set();
+    try {
+      sakerhetslogg.logga(s.db, { typ: 'utloggning', personal_id: fore.personal?.id ?? null, invanare_id: fore.invanare?.id ?? null, enhet_id: fore.personal?.enhet_id ?? null,
+        beskrivning: `Utloggning efter ${inloggningMinuter} minuter utan aktivitet.` });
+    } catch (e) { console.error('Säkerhetsloggen:', e.message); }
+  }
+  const inloggningUt = (s) => (s && inloggad(s) ? { garUt: new Date((s.aktiv ?? Date.now()) + INLOGGNING_MS).toISOString(), minuter: inloggningMinuter, varningMinuter: VARNING_MINUTER } : null);
   function skapaSession(req, server) {
     const k = `${klientIp(req, server)}:${Math.floor(Date.now() / 3600_000)}`;
     const n = (nyaPerIp.get(k) ?? 0) + 1;
@@ -272,7 +301,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       for (const x of JSON.parse(readFileSync(sessionFil, 'utf8'))) {
         if (x.v !== SPARVERSION || x.sist < grans || !/^[A-Za-z0-9_-]{32}$/.test(x.sid)) continue;
         const s = {
-          db: lasSandlada(x.db), personalId: x.personalId, invanareId: x.personalId ? null : x.invanareId ?? null, val: x.val ?? {}, sist: x.sist, matning: new Matning(200),
+          db: lasSandlada(x.db), personalId: x.personalId, invanareId: x.personalId ? null : x.invanareId ?? null, val: x.val ?? {}, sist: x.sist, aktiv: x.aktiv ?? x.sist, matning: new Matning(200),
           lasnyckel: x.lasnyckel ?? null, oppnade: new Set(x.oppnade ?? []),
           kopior: new Map((x.kopior ?? []).map(([id, k]) => [id, { ...k, patienter: new Map(k.patienter), loggIds: new Set(k.loggIds) }])),
         };
@@ -291,7 +320,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   function spara() {
     if (!sessionFil) return 0;
     const lista = [...sessioner].map(([sid, x]) => ({
-      v: SPARVERSION, sid, personalId: x.personalId, invanareId: x.invanareId, val: x.val, sist: x.sist, db: Buffer.from(x.db.serialize()).toString('base64'),
+      v: SPARVERSION, sid, personalId: x.personalId, invanareId: x.invanareId, val: x.val, sist: x.sist, aktiv: x.aktiv, db: Buffer.from(x.db.serialize()).toString('base64'),
       lasnyckel: x.lasnyckel, oppnade: [...x.oppnade],
       kopior: [...x.kopior].map(([id, k]) => [id, { ...k, patienter: [...k.patienter], loggIds: [...k.loggIds] }]),
     }));
@@ -347,6 +376,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const p = personalRad(s.db, s.personalId);
     const inv = p ? null : minJournal.invanareRad(s.db, s.invanareId);
     const ut = { inloggad: Boolean(p || inv), demoDatum: installning(s.db, 'seed_datum') ?? idag() };
+    // Runda 7, r2: när inloggningen går ut utan aktivitet, så att gränssnittet kan varna.
+    if (p || inv) ut.inloggning = inloggningUt(s);
     if (inv) Object.assign(ut, { roll: 'invanare' }, minJournal.sessionDel(s.db, inv));
     if (p) {
       const ve = vardenhetFor(s.db, p.enhet_id);
@@ -1415,6 +1446,16 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   r4Rutter({ rutt, kravInloggad, kravRoll, medPatient, medMinJournal });
   // Runda 7, r2: nyheter, övningar och intyg, och tillgänglighetsredogörelsen med testernas status.
   utbildningRutter({ rutt, kravInloggad });
+  // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
+  // visas direkt (bara i den egna sandlådan).
+  const kravNagon = (c) => { if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad'); };
+  rutt('POST', '/api/session/forlang', (c) => { kravNagon(c); return { inloggning: inloggningUt(c.s) }; });
+  rutt('POST', '/api/demo/inloggning-gar-ut', (c) => {
+    kravNagon(c);
+    const sek = Math.max(5, Math.min(inloggningMinuter * 60, Math.round(Number(c.body.sekunder) || 270)));
+    c.s.aktiv = Date.now() - INLOGGNING_MS + sek * 1000;
+    return { inloggning: inloggningUt(c.s) };
+  });
   rutt('GET', '/api/tillganglighet', () => {
     const resultat = lasTestresultat(testresultat);
     return tillganglighet([...(resultat?.tester ?? []), ...lasKlientresultat(klientresultat).tester]);
@@ -1453,7 +1494,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       sessioner.set(c.sid, c.s);
       c.ny = true;
     }
-    return json(ut, status, c.ny ? { 'Set-Cookie': kaka(c.sid) } : {});
+    // Runda 7, r2: varje svar till en inloggad säger när inloggningen går ut, så att gränssnittet kan varna i tid.
+    const garUt = inloggningUt(c.s)?.garUt;
+    return json(ut, status, { ...(c.ny ? { 'Set-Cookie': kaka(c.sid) } : {}), ...(garUt ? { 'X-Inloggning-Gar-Ut': garUt } : {}) });
   }
 
   // Sessionskakan är SameSite=Lax, så en länk från en annan webbplats skickar med den. Invånarens läsningar loggas, och

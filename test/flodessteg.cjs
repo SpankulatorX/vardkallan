@@ -130,6 +130,16 @@ function skapa(BAS) {
       await gaTill(page, '#/arbetslista');
       await page.waitForSelector('.nyhetsruta [data-a="stang-nyheter"]');
     },
+    // Runda 7, r2: demoläget flyttar inloggningens tid så att varningen före utloggningen visas direkt.
+    'Arbetslistan när inloggningen snart går ut': async (page) => {
+      await gaTill(page, '#/arbetslista');
+      await page.evaluate(async () => {
+        await fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text());
+        const { api } = await import('/js/ui.js');
+        await api('/api/demo/inloggning-gar-ut', { metod: 'POST', data: { sekunder: 240 } });
+      });
+      await page.waitForSelector('#tidsgrans [data-a="forlang"]');
+    },
     'Läkemedel att ge efter återställning': async (page) => {
       await gaTill(page, '#/arbetslista');
       // Runda 6, r5: svaret läses till slut, annars räknar Playwright anropet som pågående och väntar förgäves på ett
@@ -315,6 +325,13 @@ function skapa(BAS) {
       await synlig(page, '.notis', 'Video är registrerat till');
     },
     // Läkemedelsprocessen (Sussa 3.5.2).
+    // Runda 7, r2: varningen före utloggningen.
+    'forlang-inloggning': async (m, page) => {
+      await synlig(page, '#tidsgrans', 'Du loggas snart ut');
+      await m.klicka(page.locator('#tidsgrans [data-a="forlang"]'), 'Fortsätt arbeta');
+      await page.waitForFunction(() => !document.getElementById('tidsgrans'));
+      await synlig(page, '.notis', 'Du är inloggad');
+    },
     // Runda 7, r2: nyhetsrutan.
     nyheter: async (m, page) => {
       await synlig(page, '.nyhetsruta', 'Hjälp i sammanhanget och övningar med intyg');

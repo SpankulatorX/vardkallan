@@ -90,7 +90,7 @@ export class ApiFel extends Error {
   }
 }
 // ejLaslage: när den ger true används aldrig läsläget eller läskopian (Min journal).
-export const krokar = { svarstid: null, vid401: null, vid429: null, efterSkrivning: null, ejLaslage: null };
+export const krokar = { svarstid: null, vid401: null, vid429: null, efterSkrivning: null, ejLaslage: null, inloggning: null };
 
 // Avbrott (D4). När servern inte svarar går gränssnittet över till läsläge: läsningar besvaras från den krypterade
 // läskopian i webbläsaren och skrivningar stoppas. avbrott.js sätter upptackt (kontrollerar att servern verkligen är
@@ -113,9 +113,15 @@ export function lasServerTiming(h) {
 // Pågående anrop avbryts vid utloggning, så att ett anrop som når servern efter utloggningen inte ger 401.
 const pagaende = new Set();
 export function avbrytAllaAnrop() { for (const k of pagaende) k.abort(); pagaende.clear(); }
+// Runda 7, r2: väntar tills inga anrop pågår, till exempel när utkast sparas innan inloggningen går ut.
+export async function vantaPaAnrop(maxMs = 5000) {
+  const slut = Date.now() + maxMs;
+  while (pagaende.size && Date.now() < slut) await new Promise(r => setTimeout(r, 50));
+}
 
 // direkt: anropet går alltid till servern, också i läsläget (hälsokontrollen, läskopian och loggen från läsläget).
-export async function api(vag, { metod = 'GET', data, tyst = false, direkt = false } = {}) {
+// bakgrund: anropet görs av gränssnittet självt och räknas inte som aktivitet för inloggningen (runda 7, r2).
+export async function api(vag, { metod = 'GET', data, tyst = false, direkt = false, bakgrund = false } = {}) {
   if (krokar.ejLaslage?.()) direkt = true;
   if (!direkt && (avbrott.aktivt || avbrott.simulerat)) return franKopia(vag, metod);
   let r;
@@ -125,7 +131,7 @@ export async function api(vag, { metod = 'GET', data, tyst = false, direkt = fal
   try {
     r = await fetch(vag, {
       method: metod,
-      headers: data !== undefined ? { 'Content-Type': 'application/json' } : {},
+      headers: { ...(data !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(bakgrund ? { 'X-Vk-Bakgrund': '1' } : {}) },
       body: data !== undefined ? JSON.stringify(data) : undefined,
       credentials: 'same-origin',
       signal: kontroll.signal,
@@ -140,6 +146,8 @@ export async function api(vag, { metod = 'GET', data, tyst = false, direkt = fal
   if (!direkt && NERE.has(r.status) && await avbrott.upptackt?.()) return franKopia(vag, metod);
   const st = lasServerTiming(r.headers.get('server-timing'));
   krokar.svarstid?.({ vag, metod, server: st, totalt: performance.now() - t0, status: r.status });
+  const garUt = r.headers.get('x-inloggning-gar-ut');
+  if (garUt) krokar.inloggning?.(garUt);
   const txt = await r.text();
   let j = {};
   try { j = txt ? JSON.parse(txt) : {}; } catch { j = { fel: 'Servern gav ett svar som inte gick att läsa.' }; }
@@ -165,7 +173,7 @@ export async function raa(vag) {
 }
 
 // Notiser. typ: ok | fel | info
-export function notis(text, typ = 'ok') {
+export function notis(text, typ = 'ok', { kvar = false } = {}) {
   const el = document.createElement('div');
   el.className = `notis notis-${typ}`;
   el.setAttribute('role', typ === 'fel' ? 'alert' : 'status');
@@ -176,7 +184,7 @@ export function notis(text, typ = 'ok') {
   while (behallare.children.length > 3) behallare.firstElementChild.remove();
   // Runda 7, r2 (K2 1.6.1, justerbar tidsgräns): ett fel står kvar tills det stängs, eller tills tre nyare notiser har
   // kommit. Andra notiser bekräftar något som också syns på sidan och försvinner efter en stund.
-  if (typ === 'fel') {
+  if (typ === 'fel' || kvar) {
     const stang = document.createElement('button');
     stang.type = 'button';
     stang.className = 'notis-stang';

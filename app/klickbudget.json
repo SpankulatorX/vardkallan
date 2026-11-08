@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T08:59:21.611Z",
+  "tid": "2026-11-08T09:38:58.599Z",
   "bas": "http://127.0.0.1:18172",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "1755eb494a9bd8987992e284e8939c024aef2a4225b1842020f88448f08d1b47",
+  "gransnittHash": "b5b0c012f61a2d30fd7dab6ae9c12f94f1f6dbee65a1659dc15f4bd49c758578",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -870,6 +870,22 @@
       "steg": [
         "klick: Stäng nyheterna"
       ]
+    },
+    {
+      "id": "forlang-inloggning",
+      "namn": "Fortsätta arbeta när inloggningen snart går ut",
+      "roll": "lak-kard",
+      "start": "Arbetslistan när inloggningen snart går ut",
+      "budget": 1,
+      "motivering": "K2 1.6.1. Fem minuter före utloggningen visar systemet en varning med fokus på knappen Fortsätt arbeta. Ett klick, eller Enter, förlänger inloggningen. Inget behöver skrivas.",
+      "klick": 1,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "steg": [
+        "klick: Fortsätt arbeta"
+      ]
     }
   ],
   "tester": [
@@ -1063,6 +1079,10 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Läsa nyheterna och stänga dem inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Fortsätta arbeta när inloggningen snart går ut inom budget",
       "status": "grön"
     }
   ]

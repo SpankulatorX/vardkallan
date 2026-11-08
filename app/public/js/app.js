@@ -39,6 +39,7 @@ import * as kontrast from './kontrast.js';
 import * as nyheter from './vyer/nyheter.js';
 import * as utbildning from './vyer/utbildning.js';
 import * as tillganglighet from './vyer/tillganglighet.js';
+import * as tidsgrans from './tidsgrans.js';
 
 // Högkontrastläget sätts innan något ritas, så att sidan inte blinkar till i vanliga färger.
 kontrast.init();
@@ -176,6 +177,8 @@ krokar.svarstid = (t) => {
   }
 };
 krokar.vid401 = () => {
+  avbrottslage.stoppaFornyelse();
+  tidsgrans.stopp();
   const varInloggad = Boolean(S.session?.inloggad);
   S.session = { inloggad: false };
   // Sessionen finns inte längre, så flikens läskopia och nyckel gäller inte heller.
@@ -184,6 +187,8 @@ krokar.vid401 = () => {
   ramNyckel = null;
   if (location.hash !== '#/') location.hash = '#/'; else rita();
 };
+// Runda 7, r2: servern säger i varje svar när inloggningen går ut, och tidsgrans.js varnar fem minuter innan.
+krokar.inloggning = (iso) => tidsgrans.satt(iso);
 krokar.vid429 = () => notis('Det har kommit många nya besök från din adress. Vänta en stund och försök sedan igen.', 'info');
 
 // Ett anrop som avbröts vid utloggning är inget fel. Omritningar efter en sparad ändring väntas inte alltid in,
@@ -368,6 +373,8 @@ export function demoknappar() {
 }
 
 export async function loggaIn(personalId, knapp) {
+  // Runda 7, r2: en förnyelse av läskopian för den förra inloggningen får inte fortsätta.
+  avbrottslage.stoppaFornyelse();
   const s = await medKnapp(knapp, () => api('/api/login', { metod: 'POST', data: { personalId } }));
   S.session = s;
   // Ny inloggning, ny nyckel: en tidigare persons läskopia raderas, och personens reservkopia från en tidigare
@@ -386,6 +393,7 @@ export async function loggaIn(personalId, knapp) {
 // Inloggning i Min journal. En läskopia som personal har lämnat i webbläsaren raderas, eftersom invånaren aldrig får en.
 // Åtkomster från läsläget som väntar på datorn skickas först, och den förra personens reservkopia raderas.
 export async function loggaInInvanare(invanareId, knapp) {
+  avbrottslage.stoppaFornyelse();
   const forra = S.session?.personal?.id ?? null;
   const loggen = await avbrottslage.skickaLoggar().catch(() => null);
   const s = await medKnapp(knapp, () => api('/api/login/invanare', { metod: 'POST', data: { invanareId } }));
@@ -399,7 +407,10 @@ export async function loggaInInvanare(invanareId, knapp) {
 }
 
 // Utloggning. Används av knappen Logga ut och av användartestet när uppgifterna är klara.
-export async function loggaUt() {
+export async function loggaUt({ text = null } = {}) {
+  // Runda 7, r2: förnyelsen av läskopian stoppas först, så att inget anrop når servern efter utloggningen.
+  avbrottslage.stoppaFornyelse();
+  tidsgrans.stopp();
   avbrytAllaAnrop();
   if (avbrott.aktivt) {
     const klarPaServern = await avbrottslage.loggaUtUnderAvbrott();
@@ -421,7 +432,7 @@ export async function loggaUt() {
   ramNyckel = null;
   // Nästa person ska inte se föregående persons meddelanden.
   document.getElementById('notiser').replaceChildren();
-  notis('Du är utloggad.', 'info');
+  if (text) notis(text, 'info', { kvar: true }); else notis('Du är utloggad.', 'info');
   avbrottslage.meddelaLogg(loggen);
   if (location.hash === '#/') rita(); else location.hash = '#/';
 }
