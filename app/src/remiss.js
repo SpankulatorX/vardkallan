@@ -9,6 +9,8 @@ import * as konfiguration from './konfiguration.js';
 import { arStangd } from './omorganisation.js';
 // Runda 8, r2: remiss på uppdrag, fördelning, remisskonferens och extern pappersremiss (remiss-r8.js).
 import * as r8 from './remiss-r8.js';
+// Runda 10, r6: konsultation, urval och kvittens av beslut på uppdrag (remiss-r10.js).
+import * as r10 from './remiss-r10.js';
 
 export const PRIORITETER = ['akut', 'skyndsam', 'normal'];
 export const LARMGRANS = { mottagningskvittensTimmar: 2, svarKvittensDagar: 3 };
@@ -54,6 +56,8 @@ export function remissUt(db, r, { klinisk = true, patient = null } = {}) {
   Object.assign(ut, remissTillagg(db, r, klinisk));
   // Runda 8, r2: på uppdrag, fördelning, remisskonferens, beslut på uppdrag och extern avsändare.
   Object.assign(ut, r8.remissTillagg(db, r, klinisk));
+  // Runda 10, r6: remiss eller konsultation, vårdansvaret och läkarens kvittens av ett beslut på uppdrag.
+  r10.utoka(db, r, klinisk, ut);
   return ut;
 }
 
@@ -94,8 +98,10 @@ export function skapa(atk, inp) {
   if (!PRIORITETER.includes(prioritet)) falt.push('prioritet');
   if (!giltigtDatum(inp?.svarSenast) || inp.svarSenast < idag()) falt.push('svarSenast');
   if (falt.length) throw new Fel(400, 'Kontrollera mottagare, frågeställning, prioritet och sista svarsdatum.', 'ogiltig', { falt });
-  const r = db.query(`INSERT INTO remisser (patient_id, fran_enhet_id, till_enhet_id, avsandare_id, fragestallning, anamnes, prioritet, svar_senast, status, skickad_tid)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'skickad', ?)`).run(atk.patientId, min, till.id, atk.personal.id, fragestallning, anamnes, prioritet, inp.svarSenast, iso());
+  // Runda 10, r6: remiss, där vårdansvaret går över, eller konsultation, där det stannar hos remittenten. Förvalet är remiss.
+  const typ = r10.tolkaTyp(inp?.typ);
+  const r = db.query(`INSERT INTO remisser (patient_id, fran_enhet_id, till_enhet_id, avsandare_id, fragestallning, anamnes, prioritet, svar_senast, status, skickad_tid, typ)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'skickad', ?, ?)`).run(atk.patientId, min, till.id, atk.personal.id, fragestallning, anamnes, prioritet, inp.svarSenast, iso(), typ);
   return remissUt(db, hamtaRad(db, r.lastInsertRowid));
 }
 
@@ -130,6 +136,9 @@ export function bedom(atk, r, { beslut, motivering }) {
 export function svara(atk, r, { svar }) {
   kravMottagare(atk, r);
   atk.krav('svara_remiss');
+  // Runda 10, r6: en konsultation besvaras direkt. Systemet kvitterar mottagningen och registrerar bedömningen först.
+  const s0 = typeof svar === 'string' ? svar.trim() : '';
+  if (r10.arKonsultation(r) && s0.length >= 3 && s0.length <= 8000) r = r10.forberedKonsultationssvar(atk, r, { kravMottag: r8.kravMottag });
   if (r.status !== 'bedomd' || r.beslut !== 'accepterad') throw fel('Bara en accepterad remiss kan besvaras.');
   const s = typeof svar === 'string' ? svar.trim() : '';
   if (s.length < 3 || s.length > 8000) throw new Fel(400, 'Skriv ett svar.', 'ogiltig', { falt: ['svar'] });

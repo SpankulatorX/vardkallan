@@ -159,6 +159,7 @@ CT USÖ SVT LMA FVIS JMIR VK DELETE CHECK ÅÅÅÅ MM DD NNNN ÅÅÅÅMMDD VKÅ�
 workern workerns Playwright Webcert Thomas Wall Wennberg Waran Warfarin Eliquis Brilique webb
 LPT LRV SPU HSL SoL IVO CarePlan GCS NRS ACVPU CKD-EPI warfarin
 PNG JPEG iCalendar
+ANA HFE EEG
 `.trim().split(/\s+/));
 // Runda 6, r5: det öppna API:t för skrivning och externa tillämpningar.
 for (const w of ['SMART', 'PKCE', 'OAuth', 'IP', 'GET', 'POST', 'PUT', 'Subscription', 'Parameters', 'SSRF']) TILLATNA.add(w);

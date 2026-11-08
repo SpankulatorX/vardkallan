@@ -20,6 +20,15 @@ export const DISCIPLINER = tabell({
   patologi: { namn: 'Klinisk patologi', fhir: 'SP' },
   // Runda 9, r3: blodgruppering, bastest och blodprodukter till blodcentralen (blod.js, Sussa 4.4.2.12).
   transfusionsmedicin: { namn: 'Transfusionsmedicin', fhir: 'BLB' },
+  // Runda 10, r6: klinisk immunologi och klinisk genetik, med svar i text från producentsystemen (produktionssystem.js,
+  // Sussa 5.1.4.5). fhir är avdelningen i HL7 v2 tabell 0074.
+  klinisk_immunologi: { namn: 'Klinisk immunologi', fhir: 'IMM' },
+  klinisk_genetik: { namn: 'Klinisk genetik', fhir: 'GE' },
+  // Runda 10, r6: undersökningar utan provtagning, där den utförande enheten kallar patienten och svarar med ett
+  // utlåtande: klinisk fysiologi, klinisk neurofysiologi och radiologi.
+  klinisk_fysiologi: { namn: 'Klinisk fysiologi', fhir: 'EC' },
+  klinisk_neurofysiologi: { namn: 'Klinisk neurofysiologi', fhir: 'EN' },
+  radiologi: { namn: 'Radiologi', fhir: 'RAD' },
 });
 
 // De simulerade laboratorierna. Klinisk kemi har tre utförande laboratorier (Sussa 4.4.1.2), och systemet väljer det
@@ -32,6 +41,12 @@ export const LABORATORIER = [
   { id: 'lab-pat-uso', hsa: 'SE2321000164-VKL103', namn: 'Klinisk patologi USÖ (simulerat laboratorium)', kort: 'Klinisk patologi', disciplin: 'patologi', sjukhus: [] },
   // Runda 9, r3: den simulerade blodcentralen.
   { id: 'lab-blod-uso', hsa: 'SE2321000164-VKL104', namn: 'Blodcentralen USÖ (simulerad)', kort: 'Blodcentralen', disciplin: 'transfusionsmedicin', sjukhus: [] },
+  // Runda 10, r6: de simulerade laboratorierna för klinisk immunologi och klinisk genetik.
+  { id: 'lab-imm-uso', hsa: 'SE2321000164-VKL105', namn: 'Klinisk immunologi USÖ (simulerat laboratorium)', kort: 'Klinisk immunologi', disciplin: 'klinisk_immunologi', sjukhus: [] },
+  { id: 'lab-gen-uso', hsa: 'SE2321000164-VKL106', namn: 'Klinisk genetik USÖ (simulerat laboratorium)', kort: 'Klinisk genetik', disciplin: 'klinisk_genetik', sjukhus: [] },
+  { id: 'lab-fys-uso', hsa: 'SE2321000164-VKL107', namn: 'Klinisk fysiologi USÖ (simulerad)', kort: 'Klinisk fysiologi', disciplin: 'klinisk_fysiologi', sjukhus: [] },
+  { id: 'lab-nfys-uso', hsa: 'SE2321000164-VKL108', namn: 'Klinisk neurofysiologi USÖ (simulerad)', kort: 'Klinisk neurofysiologi', disciplin: 'klinisk_neurofysiologi', sjukhus: [] },
+  { id: 'lab-rad-uso', hsa: 'SE2321000164-VKL109', namn: 'Röntgenkliniken USÖ (simulerad)', kort: 'Röntgen', disciplin: 'radiologi', sjukhus: [] },
 ];
 export const LAB = tabell(Object.fromEntries(LABORATORIER.map(l => [l.id, l])));
 
@@ -44,6 +59,9 @@ export const ROR = tabell({
   heparin: { namn: 'Litiumheparinrör med gel', beskrivning: 'vänd röret försiktigt fem gånger', farg: 'ljusgrön propp', ordning: 4, material: 'Plasma', fhir: 'PLAS', snomed: '119297000', snomedText: 'Blood specimen' },
   edta: { namn: 'EDTA-rör', beskrivning: 'vänd röret försiktigt åtta gånger', farg: 'lila propp', ordning: 5, material: 'Helblod', fhir: 'BLD', snomed: '119297000', snomedText: 'Blood specimen' },
   urin: { namn: 'Urinodlingsrör med borsyra', beskrivning: 'mittstråleurin, helst morgonurin', farg: 'grön kork', ordning: 6, material: 'Urin', fhir: 'UR', snomed: '122575003', snomedText: 'Urine specimen' },
+  // Runda 10, r6: en undersökning har inget prov. Systemet skickar beställningen direkt, och den utförande enheten
+  // kallar patienten. utanProv gör att den inte står på provtagningslistan och inte blir en Specimen.
+  undersokning: { namn: 'Undersökning', beskrivning: 'ingen provtagning, den utförande enheten kallar patienten', farg: 'ingen', ordning: 8, material: 'Undersökning', utanProv: true },
   vavnad: { namn: 'Burk med formalin', beskrivning: 'vävnaden ska täckas helt av formalinet', farg: 'vit kork', ordning: 7, material: 'Vävnad', fhir: 'TISS', snomed: '119376003', snomedText: 'Tissue specimen' },
 });
 
@@ -73,6 +91,13 @@ export const ANALYSER = [
   // transfusion (BASTEST_TIMMAR, demoregel), och blodgrupperingen behöver bara göras om när den saknas.
   a('blodgruppering', 'B-Blodgruppering (AB0 och RhD)', 'transfusionsmedicin', 'edta', { transfusion: true, dubblettTimmar: 24 * 365, ord: ['blodgruppering', 'blodgrupp', 'ab0', 'rhd'] }),
   a('bastest', 'B-Bastest (antikroppsscreening)', 'transfusionsmedicin', 'edta', { transfusion: true, dubblettTimmar: 72, ord: ['bastest', 'antikroppsscreening', 'blodbeställning', 'transfusion'] }),
+  // Runda 10, r6: analyser med svar i text. utlatande är det simulerade laboratoriets svar, och laboratoriets eget svar
+  // kommer genom producentsystemet (produktionssystem.js).
+  a('ana', 'S-ANA (antinukleära antikroppar)', 'klinisk_immunologi', 'serum', { utlatande: 'ANA negativ. Inga antinukleära antikroppar påvisade.', dubblettTimmar: 24 * 30, ord: ['ana', 'antinukleära antikroppar', 'reumatisk sjukdom', 'sle', 'ledvärk'] }),
+  a('ekg', 'Vilo-EKG', 'klinisk_fysiologi', 'undersokning', { utlatande: 'Sinusrytm 68 per minut. Normalt vilo-EKG.', dubblettTimmar: 24, ord: ['ekg', 'vilo-ekg', 'hjärtklappning', 'arytmi', 'bröstsmärta'] }),
+  a('eeg', 'EEG', 'klinisk_neurofysiologi', 'undersokning', { utlatande: 'Normal bakgrundsaktivitet. Ingen epileptiform aktivitet.', anamnes: true, dubblettTimmar: 24 * 30, ord: ['eeg', 'kramp', 'epilepsi', 'medvetandeförlust'] }),
+  a('rtg_lungor', 'Röntgen lungor', 'radiologi', 'undersokning', { utlatande: 'Inga infiltrat. Normal hjärtstorlek. Ingen pleuravätska.', anamnes: true, dubblettTimmar: 24, ord: ['röntgen', 'lungröntgen', 'lunginflammation', 'pneumoni', 'hosta'] }),
+  a('hfe', 'B-HFE-genotyp (hemokromatos)', 'klinisk_genetik', 'edta', { utlatande: 'Ingen av varianterna C282Y och H63D i HFE-genen påvisad.', anamnes: true, dubblettTimmar: 24 * 365, ord: ['hfe', 'hemokromatos', 'järninlagring', 'ferritin'] }),
 ];
 export const ANALYS = tabell(Object.fromEntries(ANALYSER.map(x => [x.id, x])));
 

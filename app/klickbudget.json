@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T16:05:27.713Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-08T17:43:56.529Z",
+  "bas": "http://127.0.0.1:18206",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "a4958a5c3ab9d28741b854b75e1242d4f99e5c0f3dc0b43cbe303f6d4c69169e",
+  "gransnittHash": "6b2a4a9ff4541db60813a3085f9d26cee073d3b539b0467934ebaa49288110d4",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -1373,6 +1373,27 @@
         "klick: Analys och statistik",
         "klick: Visa gruppen"
       ]
+    },
+    {
+      "id": "skicka-konsultation",
+      "namn": "Skicka en konsultation",
+      "roll": "lak-vc",
+      "start": "Patientens översikt",
+      "budget": 7,
+      "motivering": "Sussa 3.3.1.4. Ett klick på Skicka remiss, där formuläret öppnas med mottagaren i fokus, ett klick på Fråga om råd, två klick för att välja mottagare i listan, ett fältbyte vardera för frågeställning och anamnes och ett klick för att skicka. Prioritet och sista svarsdatum är förvalda, och systemet förklarar vad valet betyder för vårdansvaret.",
+      "klick": 5,
+      "faltbyten": 2,
+      "tangenter": 0,
+      "uppmatt": 7,
+      "inomBudget": true,
+      "steg": [
+        "klick: Skicka remiss",
+        "klick: Fråga om råd, vårdansvaret stannar hos oss",
+        "lista (2 klick): mottagare Kardiologiska kliniken",
+        "fältbyte: frågeställning",
+        "fältbyte: anamnes",
+        "klick: Skicka"
+      ]
     }
   ],
   "tester": [
@@ -1678,6 +1699,10 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Visa en färdig patientgrupp inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Skicka en konsultation inom budget",
       "status": "grön"
     }
   ]

@@ -41,6 +41,8 @@ import { planerade as planeradeDosandringar } from './dosandring.js';
 import * as ekonomi from './ekonomi.js';
 // Runda 8, r2: extern pappersremiss och fördelning i ServiceRequest (remiss-r8.js).
 import * as remissR8 from './remiss-r8.js';
+// Runda 10, r6: remiss eller konsultation som kategori i ServiceRequest (remiss-r10.js).
+import { fhirKategori as remissKategori } from './remiss-r10.js';
 // Runda 8, r1: beställning och svar som ServiceRequest, Specimen och DiagnosticReport (labb-fhir.js).
 import * as labbFhir from './labb-fhir.js';
 // Runda 9, r6: versionen i CapabilityStatement och ändringsloggen (Sussa 2.5.1.1).
@@ -437,6 +439,8 @@ export function serviceRequest(db, r, klinisk = true) {
   const status = r.status === 'svar_kvitterat' ? 'completed' : r.beslut === 'avvisad' ? 'revoked' : 'active';
   const ut = {
     resourceType: 'ServiceRequest', id: String(r.id), meta: kallaMeta(r.kalla), status, intent: 'order',
+    // Runda 10, r6: remiss, där vårdansvaret går över, eller konsultation, där det stannar hos remittenten.
+    category: remissKategori(CS, r),
     priority: { akut: 'stat', skyndsam: 'urgent', normal: 'routine' }[r.prioritet] ?? 'routine',
     subject: ref('Patient', r.patient_id), ...(r.vardkontakt_id ? { encounter: ref('Encounter', r.vardkontakt_id) } : {}), authoredOn: r.skickad_tid,
     // Runda 6, r4: en egen vårdbegäran från Min journal har patienten som avsändare.

@@ -67,7 +67,8 @@ export function delmangd() {
   for (const [kva, k] of Object.entries(ATGARDER)) ut.push({ grupp: 'åtgärd', text: KVA[kva], kva, ...k });
   for (const f of Object.values(FYND)) ut.push({ grupp: 'fynd', text: f.text, code: f.snomed, display: f.display });
   const prov = new Map();
-  for (const r of Object.values(ROR)) if (!prov.has(r.snomed)) prov.set(r.snomed, { grupp: 'provtyp', text: r.material, code: r.snomed, display: r.snomedText });
+  // Runda 10, r6: en undersökning utan provtagning har ingen provtyp.
+  for (const r of Object.values(ROR)) if (r.snomed && !prov.has(r.snomed)) prov.set(r.snomed, { grupp: 'provtyp', text: r.material, code: r.snomed, display: r.snomedText });
   ut.push(...prov.values());
   return ut;
 }

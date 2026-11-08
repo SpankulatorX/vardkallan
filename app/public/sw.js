@@ -34,6 +34,7 @@ const FILER = [
   '/js/sussa-formular.js', '/js/sussa-testfall-ui.js', '/js/vyer/sussatest.js',
   '/js/tobak-regler.js', '/js/vyer/patient-tobak.js',
   '/js/remiss-r8-ui.js',
+  '/js/remiss-r10-ui.js',
   '/js/labb-ui.js', '/js/vyer/patient-prover.js', '/js/vyer/provtagning.js',
   '/js/bokning-r8.js', '/js/vyer/avdelning.js',
   '/js/oppet-api-forvaltning.js',
@@ -42,6 +43,7 @@ const FILER = [
   '/js/levnadsvanor-regler.js', '/js/skanner.js', '/js/vyer/analys.js', '/js/vyer/forskning.js', '/js/vyer/signeringslista.js', '/js/vyer/patient-levnadsvanor.js',
   '/js/vyer/kodverk.js', '/exempel/uttag-vas.json',
 ];
+// Runda 10, r6: listan har remiss eller konsultation, urvalet i remissöversikten och kvittensen av beslut på uppdrag (remiss-r10-ui.js).
 // Runda 9, r1: listan har förbrukningsartiklarna (vyer/forbrukning.js).
 // Runda 9, r2: listan har medicinteknisk utrustning i fliken Mätvärden och intensivvårdens vy (mt-ui.js och iva.js).
 // Runda 9, r6: listan har ändringsloggen, utvecklarna och förvaltningen av det öppna API:t (oppet-api-forvaltning.js).

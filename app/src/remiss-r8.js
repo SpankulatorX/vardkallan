@@ -25,6 +25,8 @@ import { sparaBilaga } from './remiss-r4.js';
 import { arStangd } from './omorganisation.js';
 import { pdf } from './filformat.js';
 import { EXTERN_ENHET } from './seed/planering.js';
+// Runda 10, r6: remiss eller konsultation (remiss-r10.js).
+import * as r10 from './remiss-r10.js';
 
 // Avsändaren av en remiss från en vårdgivare utanför Vårdkällan, som en enhet utan vårdenhet (som Min journal).
 export const EXTERN = EXTERN_ENHET.id;
@@ -235,6 +237,8 @@ function uppdragUt(db, u, { visaText = false, forslag = null } = {}) {
     fran: enhet(db, u.enhet_id), till: enhet(db, u.till_enhet_id), prioritet: u.prioritet, svarSenast: u.svar_senast, skapad: u.skapad,
     signerad: u.signerad_tid, remissId: u.remiss_id ?? null, avslutad: u.avslutad_tid ? { tid: u.avslutad_tid, av: person(db, u.avslutad_av) } : null,
     fragestallning: visaText ? u.fragestallning : null, anamnes: visaText ? (u.anamnes ?? '') : null, forslag: visaText ? forslag : null,
+    // Runda 10, r6.
+    typ: u.typ ?? 'remiss',
   };
 }
 
@@ -253,15 +257,17 @@ function validera(db, atk, body) {
   const svarSenast = body?.svarSenast ?? addDagar(idag(), 14);
   if (!giltigtDatum(svarSenast) || svarSenast < idag()) falt.push('svarSenast');
   if (falt.length) throw new Fel(400, 'Kontrollera mottagare, frågeställning, prioritet och sista svarsdatum.', 'ogiltig', { falt });
-  return { till: till.id, fragestallning, anamnes: typeof body?.anamnes === 'string' ? body.anamnes.trim().slice(0, 8000) : '', prioritet, svarSenast, uppdragsgivare: body.uppdragsgivareId };
+  // Runda 10, r6: remiss eller konsultation.
+  const typ = r10.tolkaTyp(body?.typ);
+  return { typ, till: till.id, fragestallning, anamnes: typeof body?.anamnes === 'string' ? body.anamnes.trim().slice(0, 8000) : '', prioritet, svarSenast, uppdragsgivare: body.uppdragsgivareId };
 }
 
 export function skapaUppdrag(atk, body = {}) {
   atk.krav('remittera_pa_uppdrag');
   const db = atk.db;
   const v = validera(db, atk, body);
-  const id = Number(db.query(`INSERT INTO remiss_pa_uppdrag (patient_id, enhet_id, skriven_av, uppdragsgivare_id, till_enhet_id, fragestallning, anamnes, prioritet, svar_senast, skapad)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(atk.patientId, minVe(atk), atk.personal.id, v.uppdragsgivare, v.till, v.fragestallning, v.anamnes, v.prioritet, v.svarSenast, iso()).lastInsertRowid);
+  const id = Number(db.query(`INSERT INTO remiss_pa_uppdrag (patient_id, enhet_id, skriven_av, uppdragsgivare_id, till_enhet_id, fragestallning, anamnes, prioritet, svar_senast, skapad, typ)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(atk.patientId, minVe(atk), atk.personal.id, v.uppdragsgivare, v.till, v.fragestallning, v.anamnes, v.prioritet, v.svarSenast, iso(), v.typ).lastInsertRowid);
   atk.logga('remittera_pa_uppdrag', atk.grund(), `remiss_pa_uppdrag:${id}`);
   return [201, uppdragUt(db, db.query('SELECT * FROM remiss_pa_uppdrag WHERE id = ?').get(id))];
 }
@@ -310,7 +316,7 @@ export function signera(atk, u, body = {}, { knyt = (x) => x } = {}) {
   if (u.status !== 'vantar_signering') throw ogiltig(u.status === 'signerad' ? 'Remissen är redan signerad och skickad.' : 'Remissen är tillbakatagen.');
   const f = body?.medAnteckning ? forslagUrAnteckning(atk, u) : null;
   const anamnes = [u.anamnes, f ? `Ur ${f.kalla}: ${f.text}` : null].filter(Boolean).join('\n\n');
-  const ut = knyt(remiss.skapa(atk, { tillEnhetId: u.till_enhet_id, fragestallning: u.fragestallning, anamnes, prioritet: u.prioritet, svarSenast: u.svar_senast }));
+  const ut = knyt(remiss.skapa(atk, { tillEnhetId: u.till_enhet_id, fragestallning: u.fragestallning, anamnes, prioritet: u.prioritet, svarSenast: u.svar_senast, typ: u.typ ?? 'remiss' }));
   db.query("UPDATE remiss_pa_uppdrag SET status = 'signerad', signerad_tid = ?, remiss_id = ? WHERE id = ?").run(iso(), ut.id, u.id);
   atk.logga('remittera', atk.grund(), `remiss_pa_uppdrag:${u.id}:signerad:${ut.id}`);
   return [201, { ...remiss.remissUt(db, remiss.hamtaRad(db, ut.id)), ...(ut.vardkontakt ? { vardkontakt: ut.vardkontakt } : {}) }];
@@ -461,8 +467,10 @@ export function beslutPaUppdrag(atk, r, body = {}, { efterBedomning, efterAvvisn
   db.query('INSERT OR REPLACE INTO remiss_beslut_pa_uppdrag (remiss_id, registrerad_av, ansvarig_id, tid) VALUES (?, ?, ?, ?)').run(r.id, atk.personal.id, ansvarig.id, nu);
   const rad = remiss.hamtaRad(db, r.id);
   const ut = utFor(atk, r.id);
-  if (body.beslut === 'accepterad') ut.vantelista = sattTidsram(db, efterBedomning(db, rad, body), { besokInomDagar: body.besokInomDagar ?? forvaldTidsram(r.prioritet) });
-  else ut.avbokade = efterAvvisning(db, rad, atk.personal);
+  // Runda 10, r6: en accepterad konsultation sätter inte patienten på väntelistan, eftersom vårdansvaret stannar hos remittenten.
+  if (body.beslut === 'accepterad') {
+    if (!r10.arKonsultation(rad)) ut.vantelista = sattTidsram(db, efterBedomning(db, rad, body), { besokInomDagar: body.besokInomDagar ?? forvaldTidsram(r.prioritet) });
+  } else ut.avbokade = efterAvvisning(db, rad, atk.personal);
   atk.logga('registrera_beslut_pa_uppdrag', atk.grund(), `remiss:${r.id}:${body.beslut}:pa_uppdrag:${ansvarig.id}`);
   return ut;
 }

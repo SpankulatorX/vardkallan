@@ -452,6 +452,12 @@ export const UPPGIFTER = [
     text: 'Vårdcentralen vill veta vilka patienter med diabetes som har ett HbA1c över målnivån. Visa gruppen.',
     kontroll: { sel: '[data-grupp-ut]', text: 'Birgitta' },
   },
+  // Runda 10, r6: konsultation, där vårdansvaret stannar hos remittenten.
+  {
+    id: 'skicka-konsultation', namn: 'Skicka en konsultation', roll: 'lak-vc', start: 'Patientens översikt',
+    text: 'Du vill fråga kardiologiska kliniken om Gunnar Åkessons blåsljud behöver följas upp, men ha kvar ansvaret för honom på vårdcentralen. Skicka frågan.',
+    kontroll: { notis: 'Konsultationen är skickad' },
+  },
 ];
 
 // Deltagarens bakgrund. Bara val, inga fritextfält, så att inga identifierande uppgifter samlas in.

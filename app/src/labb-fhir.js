@@ -42,7 +42,8 @@ export function serviceRequest(db, b, a) {
     subject: ref('Patient', b.patient_id), ...(b.vardkontakt_id ? { encounter: ref('Encounter', b.vardkontakt_id) } : {}),
     occurrenceDateTime: db.query('SELECT planerad FROM labb_prov WHERE id = ?').get(a.prov_id)?.planerad ?? b.planerad,
     authoredOn: b.skapad, requester: ref('Practitioner', b.ansvarig_id, personNamn(db, b.ansvarig_id)),
-    performer: [labRef(a.lab_id)], specimen: [ref('Specimen', `labb-${a.prov_id}`)],
+    // Runda 10, r6: en undersökning har inget prov och därför ingen Specimen.
+    performer: [labRef(a.lab_id)], ...(ROR[db.query('SELECT ror FROM labb_prov WHERE id = ?').get(a.prov_id)?.ror]?.utanProv ? {} : { specimen: [ref('Specimen', `labb-${a.prov_id}`)] }),
     ...(b.anamnes || b.makulerad_orsak ? { note: [b.anamnes && { text: `Anamnes: ${b.anamnes}` }, b.makulerad_orsak && { text: `Makulerad: ${b.makulerad_orsak}` }].filter(Boolean) } : {}),
   };
 }
@@ -133,7 +134,7 @@ export function hantera(ctx, delar, bundle) {
   labb.sakraLabb(db);
   const resursFor = (b) => {
     if (typ === 'ServiceRequest') return analyserFor(db, b).map(a => serviceRequest(db, b, a));
-    if (typ === 'Specimen') return db.query('SELECT * FROM labb_prov WHERE bestallning_id = ? AND borttagen = 0 ORDER BY id').all(b.id).map(p => specimen(db, b, p));
+    if (typ === 'Specimen') return db.query('SELECT * FROM labb_prov WHERE bestallning_id = ? AND borttagen = 0 ORDER BY id').all(b.id).filter(p => !ROR[p.ror]?.utanProv).map(p => specimen(db, b, p));
     return [...new Set(analyserFor(db, b).map(a => a.lab_id))].map(l => diagnosticReport(db, b, l));
   };
   if (id) {

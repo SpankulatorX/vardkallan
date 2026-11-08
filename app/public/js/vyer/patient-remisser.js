@@ -11,6 +11,8 @@ import { lasFil, BILAGA_TEXT } from '../planering-ui.js';
 import { felNotis } from '../ui.js';
 // Runda 8, r2: remiss på uppdrag av en läkare, och remisser att signera för läkaren.
 import { uppdragForm, uppdragSektion, kopplaUppdrag } from '../remiss-r8-ui.js';
+// Runda 10, r6: remiss eller konsultation.
+import { typFalt, valdTyp } from '../remiss-r10-ui.js';
 
 export async function visa(el, ctx) {
   const kan = far('remittera');
@@ -63,7 +65,7 @@ let tidigare = [];
 
 // Sparar formuläret som utkast och laddar upp valda bilagor. Returnerar utkastet.
 async function sparaUtkast(ctx, form) {
-  const data = { tillEnhetId: form.tillEnhetId.value || null, prioritet: form.prioritet.value, svarSenast: form.svarSenast.value, fragestallning: form.fragestallning.value.trim(), anamnes: form.anamnes.value.trim() };
+  const data = { tillEnhetId: form.tillEnhetId.value || null, prioritet: form.prioritet.value, svarSenast: form.svarSenast.value, fragestallning: form.fragestallning.value.trim(), anamnes: form.anamnes.value.trim(), typ: valdTyp(form) };
   const u = form.dataset.utkastId ? await api(`/api/remissutkast/${form.dataset.utkastId}`, { metod: 'PUT', data })
     : await api(`/api/patient/${encodeURIComponent(ctx.id)}/remissutkast`, { metod: 'POST', data });
   form.dataset.utkastId = u.id;
@@ -81,6 +83,7 @@ function remissForm(plats, ctx, utkast = null, lista = tidigare) {
     <h3 id="rf-rubrik" tabindex="-1">${utkast ? 'Utkast till remiss' : 'Ny remiss'}</h3>
     <div data-kontakt-plats></div>
     ${!utkast && egna.length ? `<div class="falt"><label for="rf-ater">Utgå från en tidigare remiss</label><select id="rf-ater"><option value="">Ny remiss</option>${egna.map(r => `<option value="${r.id}">${esc(r.till.namn)}, ${esc(r.fragestallning.slice(0, 60))}</option>`).join('')}</select></div>` : ''}
+    ${typFalt('rf', utkast?.typ ?? 'remiss')}
     <div class="falt-rad">
       <div class="falt bred"><label for="rf-till">Till vårdenhet <span class="obl">(obligatoriskt)</span></label><select id="rf-till" name="tillEnhetId" required><option value="">Välj mottagare</option>${enheter.map(e => `<option value="${esc(e.id)}">${esc(e.namn)}</option>`).join('')}</select></div>
       <div class="falt"><label for="rf-prio">Prioritet</label><select id="rf-prio" name="prioritet"><option value="normal">Normal</option><option value="skyndsam">Skyndsam</option><option value="akut">Akut</option></select></div>
@@ -115,7 +118,7 @@ function remissForm(plats, ctx, utkast = null, lista = tidigare) {
   form.querySelector('[data-stang]').addEventListener('click', () => { plats.innerHTML = ''; });
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const data = { tillEnhetId: form.tillEnhetId.value, prioritet: form.prioritet.value, svarSenast: form.svarSenast.value, fragestallning: form.fragestallning.value.trim(), anamnes: form.anamnes.value.trim(), ...nyKontaktData(kontakt) };
+    const data = { tillEnhetId: form.tillEnhetId.value, prioritet: form.prioritet.value, svarSenast: form.svarSenast.value, fragestallning: form.fragestallning.value.trim(), anamnes: form.anamnes.value.trim(), typ: valdTyp(form), ...nyKontaktData(kontakt) };
     // Runda 6, r4: med bilagor eller från ett utkast skickas remissen genom utkastet, så att bilagorna följer med.
     const viaUtkast = form.dataset.utkastId || form.bilagor.files.length;
     try {
@@ -124,7 +127,7 @@ function remissForm(plats, ctx, utkast = null, lista = tidigare) {
         const u = await sparaUtkast(ctx, form);
         return api(`/api/remissutkast/${u.id}/skicka`, { metod: 'POST', data: nyKontaktData(kontakt) });
       }, form);
-      notis(`Remissen är skickad till ${r.till.namn}. Den väntar nu på mottagningskvittens.`);
+      notis(`${r.konsultation ? 'Konsultationen' : 'Remissen'} är skickad till ${r.till.namn}. Den väntar nu på mottagningskvittens.`);
       kontaktNotis(r);
       ctx.ladda();
     } catch { /* felet visas i formuläret */ }

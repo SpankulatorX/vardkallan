@@ -14,6 +14,8 @@ import { vardenhetFor, kanRoll } from './atkomst.js';
 import * as remiss from './remiss.js';
 // Runda 8, r2: extern pappersremiss (remiss-r8.js).
 import * as r8 from './remiss-r8.js';
+// Runda 10, r6: remiss eller konsultation (remiss-r10.js).
+import * as r10 from './remiss-r10.js';
 
 // Avsändaren av en egen vårdbegäran från invånaren (vardbegaran.js), som en enhet utan vårdenhet.
 export const EGEN = 'min-journal';
@@ -154,6 +156,8 @@ function utkastUt(db, u) {
   return {
     id: u.id, status: u.status, patientId: u.patient_id, fran: enhet(u.enhet_id), till: enhet(u.till_enhet_id), fragestallning: u.fragestallning ?? '', anamnes: u.anamnes ?? '',
     prioritet: u.prioritet, svarSenast: u.svar_senast, skapad: u.skapad, andrad: u.andrad, remissId: u.remiss_id ?? null, bilagor: bilagorFor(db, 'utkast_id', u.id),
+    // Runda 10, r6.
+    typ: u.typ ?? 'remiss',
   };
 }
 // Bara den som skrev utkastet ser och ändrar det. Andra får samma svar som när det inte finns.
@@ -181,6 +185,8 @@ function faltUr(db, atk, body, u = {}) {
     if (!giltigtDatum(body.svarSenast) || body.svarSenast < idag()) throw new Fel(400, 'Välj ett sista svarsdatum från i dag.', 'ogiltig', { falt: ['svarSenast'] });
     ut.svar_senast = body.svarSenast;
   }
+  // Runda 10, r6: remiss eller konsultation.
+  if (body.typ !== undefined) ut.typ = r10.tolkaTyp(body.typ);
   return { ...u, ...ut };
 }
 
@@ -194,13 +200,13 @@ export function skapaUtkast(atk, body = {}) {
     const r = synliga.find(x => x.id === Number(body.franRemissId));
     if (!r || r.fragestallning == null) throw new Fel(400, 'Den remissen kan inte återanvändas här.', 'ogiltig', { falt: ['franRemissId'] });
     const min = vardenhetFor(db, atk.personal.enhet_id);
-    grund = { till_enhet_id: r.till.id !== min ? r.till.id : null, fragestallning: r.fragestallning, anamnes: r.anamnes ?? '', prioritet: r.prioritet };
+    grund = { till_enhet_id: r.till.id !== min ? r.till.id : null, fragestallning: r.fragestallning, anamnes: r.anamnes ?? '', prioritet: r.prioritet, typ: r.typ ?? 'remiss' };
   }
   const f = faltUr(db, atk, body, grund);
   const nu = iso();
-  const id = Number(db.query(`INSERT INTO remiss_utkast (patient_id, enhet_id, skapad_av, till_enhet_id, fragestallning, anamnes, prioritet, svar_senast, skapad, andrad)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(atk.patientId, vardenhetFor(db, atk.personal.enhet_id), atk.personal.id, f.till_enhet_id ?? null, f.fragestallning ?? null,
-    f.anamnes ?? null, f.prioritet ?? 'normal', f.svar_senast ?? addDagar(idag(), SVAR_DAGAR), nu, nu).lastInsertRowid);
+  const id = Number(db.query(`INSERT INTO remiss_utkast (patient_id, enhet_id, skapad_av, till_enhet_id, fragestallning, anamnes, prioritet, svar_senast, skapad, andrad, typ)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(atk.patientId, vardenhetFor(db, atk.personal.enhet_id), atk.personal.id, f.till_enhet_id ?? null, f.fragestallning ?? null,
+    f.anamnes ?? null, f.prioritet ?? 'normal', f.svar_senast ?? addDagar(idag(), SVAR_DAGAR), nu, nu, f.typ ?? 'remiss').lastInsertRowid);
   atk.logga('remittera', atk.grund(), `remissutkast:${id}`);
   return [201, utkastUt(db, db.query('SELECT * FROM remiss_utkast WHERE id = ?').get(id))];
 }
@@ -225,7 +231,7 @@ export function skickaUtkast(atk, u, { knyt = (x) => x } = {}) {
   atk.krav('remittera');
   const db = atk.db;
   if (u.status !== 'utkast') throw new Fel(400, 'Utkastet är redan skickat.', 'ogiltig');
-  const ut = knyt(remiss.skapa(atk, { tillEnhetId: u.till_enhet_id, fragestallning: u.fragestallning ?? '', anamnes: u.anamnes ?? '', prioritet: u.prioritet, svarSenast: u.svar_senast }));
+  const ut = knyt(remiss.skapa(atk, { tillEnhetId: u.till_enhet_id, fragestallning: u.fragestallning ?? '', anamnes: u.anamnes ?? '', prioritet: u.prioritet, svarSenast: u.svar_senast, typ: u.typ ?? 'remiss' }));
   db.query('UPDATE remiss_bilagor SET remiss_id = ? WHERE utkast_id = ?').run(ut.id, u.id);
   db.query("UPDATE remiss_utkast SET status = 'skickad', remiss_id = ?, andrad = ? WHERE id = ?").run(ut.id, iso(), u.id);
   atk.logga('remittera', atk.grund(), `remissutkast:${u.id}:skickad:${ut.id}`);
@@ -277,6 +283,8 @@ export function vidarebefordra(atk, r, body = {}) {
   if (egen) db.query('INSERT INTO egen_vardbegaran VALUES (?, ?, ?, ?, ?)').run(ny, egen.invanare_id, egen.patient_id, egen.skal, egen.skapad);
   // Runda 8, r2: en extern pappersremiss går vidare med samma avsändare.
   r8.kopieraExtern(db, r.id, ny);
+  // Runda 10, r6: en konsultation går vidare som konsultation.
+  r10.kopieraTyp(db, r.id, ny);
   atk.logga('bedom_remiss', atk.grund(), `remiss:${r.id}:vidarebefordrad:${ny}`);
   return { gammal: remiss.remissUt(db, remiss.hamtaRad(db, r.id)), ny: remiss.remissUt(db, remiss.hamtaRad(db, ny)) };
 }

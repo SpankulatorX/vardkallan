@@ -89,6 +89,10 @@ import { villkor10 } from './version.js';
 import { registreraRutter as r9r1Rutter, inkorg as r9r1Inkorg } from './r9r1-rutter.js';
 // Runda 8, r2: remiss på uppdrag, fördelning, remisskonferens och extern pappersremiss (remiss-r8.js).
 import * as remissR8 from './remiss-r8.js';
+// Runda 10, r6: konsultation, urval i remissöversikten och kvittens av beslut på uppdrag (remiss-r10.js).
+import * as remissR10 from './remiss-r10.js';
+// Runda 10, r6: producentsystem för beställning och svar genom det öppna gränssnittet (produktionssystem.js).
+import * as produktionssystem from './produktionssystem.js';
 // Runda 9, r2: medicinteknisk utrustning, anestesi och intensivvård (medicinteknik.js och iva.js).
 import { registreraRutter as mtRutter, skapaMottagning as mtMottagning, efterTid as mtEfterTid } from './medicinteknik-rutter.js';
 import { skapaNyckellager as mtNyckellager, patientvy as mtPatientvyFor, minaMatningar as mtMinaMatningar } from './medicinteknik.js';
@@ -1190,7 +1194,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     kravInloggad(c);
     if (!kanRoll(c.personal, 'las_remiss') && !kanRoll(c.personal, 'las_remiss_status')) throw new Fel(403, 'Din yrkesroll har inte tillgång till remisser.', 'nekad');
     const riktning = c.url.searchParams.get('riktning') === 'utgaende' ? 'utgaende' : 'inkommande';
-    return { riktning, remisser: remiss.lista(c.db, c.personal, riktning) };
+    // Runda 10, r6: urval på typ, status, prioritet och tid, med antalet per val bland de egna remisserna.
+    return { riktning, ...remissR10.urval(remiss.lista(c.db, c.personal, riktning), c.url.searchParams) };
   });
   const medRemiss = (c, id, handling, fn) => {
     kravInloggad(c);
@@ -1219,9 +1224,11 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('POST', '/api/remiss/:id/bedom', (c, id) => medRemiss(c, id, 'bedom_remiss', (atk, r) => {
     if (c.body.beslut === 'avvisad') return remissavvisning.avvisa(atk, r, c.body);
     const ut = remiss.bedom(atk, r, c.body);
-    if (c.body.beslut === 'accepterad') ut.vantelista = tidbok.efterBedomning(c.db, remiss.hamtaRad(c.db, r.id), c.body);
+    // Runda 10, r6: en accepterad konsultation sätter inte patienten på väntelistan, eftersom vårdansvaret stannar hos remittenten.
+    const vantelista = c.body.beslut === 'accepterad' && !remissR10.arKonsultation(r);
+    if (vantelista) ut.vantelista = tidbok.efterBedomning(c.db, remiss.hamtaRad(c.db, r.id), c.body);
     // Runda 8, r2: läkaren väljer inom vilken tid besöket ska ske, med ett förval som systemet räknar ur prioriteten.
-    if (c.body.beslut === 'accepterad') ut.vantelista = remissR8.sattTidsram(c.db, ut.vantelista, c.body);
+    if (vantelista) ut.vantelista = remissR8.sattTidsram(c.db, ut.vantelista, c.body);
     // En avvisad remiss är inte längre grund för de tider som bokades på den.
     if (c.body.beslut === 'avvisad') ut.avbokade = tidbok.efterAvvisning(c.db, remiss.hamtaRad(c.db, r.id), c.personal);
     return ut;
@@ -1353,6 +1360,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...bhvInkorg(c, patientKort, patientRad, valFor),
       // Runda 8, r2: remisser att signera som har skrivits på läkarens uppdrag, och remisser fördelade till läkaren.
       ...remissR8.inkorg(c, patientKort, patientRad),
+      // Runda 10, r6: beslut som har registrerats på läkarens uppdrag och väntar på läkarens kvittens.
+      ...remissR10.inkorg(c, patientKort, patientRad),
       // Runda 8, r1: provsvar att vidimera, beställningar på uppdrag att signera och kritiska provsvar.
       ...labbInkorg(c, patientKort, patientRad, valFor),
       // Runda 9, r1: beredningar som väntar på kontroll av en annan sjuksköterska eller läkare, utan patientuppgifter.
@@ -1680,6 +1689,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // Runda 8, r2 (remiss-r8.js).
   remissR8.registreraRutter({ rutt, kravInloggad, medPatient, efterBedomning: tidbok.efterBedomning, efterAvvisning: tidbok.efterAvvisning,
     knyt: (atk, ut, body) => vardkontakt.knyt(atk, 'remisser', ut, body) });
+  // Runda 10, r6 (remiss-r10.js).
+  remissR10.registreraRutter({ rutt, kravInloggad, medPatient, remissUt: remiss.remissUt, hamtaRad: remiss.hamtaRad });
   // Runda 7, r3 (ekonomi-rutter.js).
   ekonomiRutter({ rutt, kravInloggad, medPatient });
   // Runda 7, r4: systemförvaltningen.
@@ -1700,6 +1711,10 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   const mtNycklar = mtNyckellager();
   mtRutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal, nycklar: mtNycklar });
   const mtMottag = mtMottagning({ nycklar: mtNycklar, finns: (s) => [...sessioner.values()].includes(s), maxKropp: MAX_KROPP });
+  // Runda 10, r6: producentsystemen anropar /ps med anslutningens nyckel, utan session.
+  const psNycklar = produktionssystem.skapaNyckellager();
+  produktionssystem.registreraRutter({ rutt, kravInloggad, nycklar: psNycklar });
+  const psApi = produktionssystem.skapaProducentApi({ nycklar: psNycklar, finns: (s) => [...sessioner.values()].includes(s), maxKropp: MAX_KROPP });
   // Runda 9, r5: skyddsbehov, signering och certifikat, e-arkivet och miljöerna (runda9-r5-rutter.js).
   r9r5Rutter({ rutt, kravInloggad, kravRoll, medPatient, version: APPVERSION });
   // Runda 9, r1 (r9r1-rutter.js).
@@ -1850,6 +1865,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
         else if (url.pathname.startsWith('/oauth/')) svar = await oppetApi.oauth(req, url, c, { arbetslista });
         // Runda 9, r2: mottagningen från medicinteknisk utrustning, med utrustningens nyckel och utan session.
         else if (url.pathname === '/mt' || url.pathname.startsWith('/mt/')) svar = await mtMottag(req, url);
+        // Runda 10, r6: producentsystemen för beställning och svar.
+        else if (url.pathname === '/ps' || url.pathname.startsWith('/ps/')) svar = await psApi(req, url);
         else if (req.method !== 'GET' && req.method !== 'HEAD') svar = new Response('Metoden stöds inte.', { status: 405 });
         else svar = (await statisk(url.pathname)) ?? new Response('Sidan finns inte.', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
       } catch (e) {

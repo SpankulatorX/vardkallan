@@ -353,4 +353,9 @@ export const FLODEN = [
     id: 'patientgrupp', namn: 'Visa en färdig patientgrupp', roll: 'lak-vc', start: 'Arbetslistan efter inloggning', budget: 3,
     motivering: 'Sussa 6.2.1.2. Ett klick på Analys och statistik och ett på Visa gruppen för den färdiga grupp som är förvald. Systemet skriver vad gruppen betyder och varför varje patient är med, och räknar bara på det som läkaren får se.',
   },
+  // Runda 10, r6: konsultation, där vårdansvaret stannar hos remittenten (Sussa 3.3.1.4).
+  {
+    id: 'skicka-konsultation', namn: 'Skicka en konsultation', roll: 'lak-vc', start: 'Patientens översikt', budget: 7,
+    motivering: 'Sussa 3.3.1.4. Ett klick på Skicka remiss, där formuläret öppnas med mottagaren i fokus, ett klick på Fråga om råd, två klick för att välja mottagare i listan, ett fältbyte vardera för frågeställning och anamnes och ett klick för att skicka. Prioritet och sista svarsdatum är förvalda, och systemet förklarar vad valet betyder för vårdansvaret.',
+  },
 ];
