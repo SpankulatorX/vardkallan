@@ -54,6 +54,8 @@ export const TACKNING = {
   'ordinera-mall': nej('Mallar med flera ordinationer används bara i gränssnittet. Varje ordination kan göras för sig med MedicationRequest.'),
   'dos-efterhand': nej('Som att ge en dos.'),
   'extern-tillampning': ja([a('GET', '/fhir/.well-known/smart-configuration'), a('GET', '/oauth/authorize'), a('POST', '/oauth/token'), a('GET', '/fhir/Observation?patient={id}')], 'Det här flödet är API:t: tillämpningen startas med SMART on FHIR och läser med sin åtkomstbiljett.'),
+  // Runda 7, r2: nyhetsrutan hör till gränssnittet.
+  nyheter: nej('Nyheterna hör till gränssnittet och har ingen FHIR-resurs. De står i en fil i källkoden med version och roller och läses av gränssnittet.'),
 };
 
 // Täckningen för alla flöden i klickbudgeten, i samma ordning.

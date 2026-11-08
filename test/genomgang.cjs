@@ -129,26 +129,27 @@ async function valDialog(page, knappSel, { intyg = false, bildnamn } = {}) {
   await page.waitForLoadState('networkidle');
 }
 
+// Runda 7, r2: all personal har Utbildning (övningar och intyg, Sussa 10.1.1.5) före Migreringsavstämning.
 const MENY = {
   // Läkaren registrerar också delegeringar (runda 5, r4).
   // Runda 6, r2: läkaren och sjuksköterskan har Direktiv och uppföljning.
-  klinisk: ['Arbetslista', 'Sök patient', 'Inkorg', 'Delegeringar', 'Direktiv och uppföljning', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  klinisk: ['Arbetslista', 'Sök patient', 'Inkorg', 'Delegeringar', 'Direktiv och uppföljning', 'Remisser', 'Väntrum (akuten)', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Sjuksköterskan registrerar delegeringar, och undersköterskan med delegering ger läkemedel (runda 5).
-  sjukskoterska: ['Arbetslista', 'Sök patient', 'Inkorg', 'Läkemedel att ge', 'Delegeringar', 'Direktiv och uppföljning', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  sjukskoterska: ['Arbetslista', 'Sök patient', 'Inkorg', 'Läkemedel att ge', 'Delegeringar', 'Direktiv och uppföljning', 'Remisser', 'Väntrum (akuten)', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 6, r2: farmaceuten i den fördjupade läkemedelsgenomgången.
-  farmaceut: ['Arbetslista', 'Sök patient', 'Inkorg', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
-  underskoterska: ['Arbetslista', 'Sök patient', 'Inkorg', 'Läkemedel att ge', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
-  utanRemiss: ['Arbetslista', 'Sök patient', 'Inkorg', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  farmaceut: ['Arbetslista', 'Sök patient', 'Inkorg', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  underskoterska: ['Arbetslista', 'Sök patient', 'Inkorg', 'Läkemedel att ge', 'Väntrum (akuten)', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  utanRemiss: ['Arbetslista', 'Sök patient', 'Inkorg', 'Väntrum (akuten)', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Vårdadministratören har tidboken först: dagens arbete, tidbok och väntelista (Sussa 3.4.1 till 3.4.4).
-  vardadministrator: ['Dagens arbete', 'Tidbok', 'Väntelista', 'Arbetslista', 'Sök patient', 'Inkorg', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
-  logg: ['Sök patient', 'Logguppföljning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
-  arkiv: ['E-arkiv och gallring', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  vardadministrator: ['Dagens arbete', 'Tidbok', 'Väntelista', 'Arbetslista', 'Sök patient', 'Inkorg', 'Remisser', 'Väntrum (akuten)', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  logg: ['Sök patient', 'Logguppföljning', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  arkiv: ['E-arkiv och gallring', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 6, r3: Lena Ström på psykiatrin har bevakningen av tvångsvården, och kommunen (simulerad) har Samverkan.
-  psykiatri: ['Arbetslista', 'Sök patient', 'Inkorg', 'Delegeringar', 'Tvångsvård', 'Direktiv och uppföljning', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
-  kommun: ['Samverkan', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
-  uppfoljning: ['Datauttag', 'Tvångsvård och samordning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  psykiatri: ['Arbetslista', 'Sök patient', 'Inkorg', 'Delegeringar', 'Tvångsvård', 'Direktiv och uppföljning', 'Remisser', 'Väntrum (akuten)', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  kommun: ['Samverkan', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  uppfoljning: ['Datauttag', 'Tvångsvård och samordning', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 6, r6: verksamhetschefen utser uppdragen i läkemedelshanteringen och fastställer generella direktiv.
-  verksamhetschef: ['Läkemedelsansvar', 'Direktiv och uppföljning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  verksamhetschef: ['Läkemedelsansvar', 'Direktiv och uppföljning', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
 };
 
 (async () => {
@@ -392,11 +393,13 @@ const MENY = {
       await gaTill(page, '#/krav');
       await forvanta(page, '.flikar a[aria-current="page"]', 'Sussas kravspecifikation');
       await forvanta(page, '.testkorning', 'tester gröna');
-      await forvanta(page, '.sussa-utdrag', 'Kapitel 7 till 10 och 12 ingår inte i utdraget');
+      // Runda 7: hela kravspecifikationen finns i registret, 389 poster i alla kapitel, så rutan om kapitel som inte
+      // ingår visas inte längre.
+      if (await page.locator('.sussa-utdrag').count()) throw new Error('rutan om kapitel som inte ingår visas fast alla ingår');
       await forvanta(page, '.ingress-block', 'dnr 16RS2022');
       await forvanta(page, '.sussa-summa tfoot', 'Totalt');
-      await forvanta(page, '#sf-antal', 'Visar 305 av 305 poster.');
-      if (!(await page.locator('#sf-kapitel option[value="7"]').isDisabled())) throw new Error('kapitel 7 går att välja fast det inte ingår');
+      await forvanta(page, '#sf-antal', 'Visar 389 av 389 poster.');
+      if (await page.locator('#sf-kapitel option[value="7"]').isDisabled()) throw new Error('kapitel 7 går inte att välja fast det ingår');
       await page.evaluate(() => document.getElementById('notiser').replaceChildren());
       await bild(page, '60-sussa-krav');
       // Kapitel, status och kategori filtrerar listan och sparas i adressen.
@@ -412,7 +415,7 @@ const MENY = {
       if (!kategorier.length || kategorier.some(t => !t.includes('nationell tjänst'))) throw new Error('kategorifiltret visade andra kategorier');
       await page.selectOption('#sf-kategori', '');
       await page.fill('#sf-sok', '3.5.2.6');
-      await forvanta(page, '#sf-antal', 'Visar 1 av 305 poster.');
+      await forvanta(page, '#sf-antal', 'Visar 1 av 389 poster.');
       if (!page.url().includes('sok=3.5.2.6')) throw new Error(`filtret sparades inte i adressen: ${page.url()}`);
       await page.fill('#sf-sok', 'vätskebalans');
       if ((await page.locator('details.sussapost').count()) < 3) throw new Error('textsökningen hittade för få poster');
@@ -446,7 +449,8 @@ const MENY = {
       await page.click('.delflikar a:has-text("Alla")');
       await page.waitForURL(/vy=egna$/);
       await forvanta(page, '.delflikar a[aria-current]', 'Alla');
-      await forvanta(page, '.krav-anm', 'originalnummer finns nu för kapitel 1 till 6 och 11');
+      // Runda 7: hela kravspecifikationen med originalnummer.
+      await forvanta(page, '.krav-anm', 'originalnummer finns nu för kapitel 1 till 12');
       await page.locator('.testlista summary').first().click();
       await bild(page, '14-kravsparbarhet');
     });
@@ -1267,7 +1271,7 @@ const MENY = {
       await forvanta(page, 'main h1', 'Användartest');
       await forvanta(page, '.at-info', 'Alla patienter i demon är påhittade');
       await page.fill('#at-kod', 'G01');
-      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut', 'sok-journal', 'news2', 'ordinera-mall', 'dos-efterhand', 'utse-mal', 'godkanna-mall', 'extern-tillampning', 'boka-ingrepp', 'boka-kedja']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut', 'sok-journal', 'news2', 'ordinera-mall', 'dos-efterhand', 'utse-mal', 'godkanna-mall', 'extern-tillampning', 'boka-ingrepp', 'boka-kedja', 'nyheter']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');
@@ -1337,7 +1341,7 @@ const MENY = {
         }
       });
       await s('mobil: Sussas kravspecifikation på 360 px', async () => {
-        await mp.goto(`${BAS}/#/krav`); await mp.waitForSelector('#sf-antal:has-text("Visar 305")');
+        await mp.goto(`${BAS}/#/krav`); await mp.waitForSelector('#sf-antal:has-text("Visar 389")');
         await ingenSidledsrullning('Sussas krav');
         await mp.selectOption('#sf-status', 'uppfyllt_demo');
         await mp.waitForSelector('details.sussapost');

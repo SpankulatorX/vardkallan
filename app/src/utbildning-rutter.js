@@ -1,0 +1,19 @@
+// API för nyhetsrutan (Sussa 10.1.1.4) och övningarna med intyg (Sussa 10.1.1.5), runda 7, r2. Inget här rör en
+// patient: nyheterna och övningarna innehåller inga patientuppgifter utom demopatienternas namn, och intygen gäller
+// personalen. Behörigheten prövas i utbildning.js.
+import { Fel } from './db.js';
+import * as nyheter from './nyheter.js';
+import * as utbildning from './utbildning.js';
+
+export function registreraRutter({ rutt, kravInloggad }) {
+  const inloggad = (c) => {
+    if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad');
+    return { personal: c.personal ?? null, invanare: c.personal ? null : c.invanare ?? null };
+  };
+  rutt('GET', '/api/nyheter', (c) => nyheter.nyheter(c.db, inloggad(c)));
+  rutt('POST', '/api/nyheter/stang', (c) => nyheter.stang(c.db, inloggad(c), c.body.version));
+
+  rutt('GET', '/api/utbildning', (c) => utbildning.oversikt(c.db, kravInloggad(c)));
+  rutt('POST', '/api/utbildning/ratta', (c) => utbildning.ratta(c.db, kravInloggad(c), c.body.svar));
+  rutt('GET', '/api/utbildning/enhet', (c) => utbildning.enhet(c.db, kravInloggad(c)));
+}

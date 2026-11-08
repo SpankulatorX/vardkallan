@@ -56,7 +56,8 @@ describe('Ansvarsuppdrag för läkemedel', () => {
   test('verksamhetschefen utser en medicinskt ansvarig läkare med ett år förifyllt, och det loggas och syns i säkerhetsloggen', async () => {
     const k = klient(app);
     await k.logga('vch-kard');
-    expect((await k.get('/api/session')).data.behorigheter).toEqual(['lakemedelsansvar', 'faststalla_direktiv']);
+    // Runda 7, r2: all personal gör övningar, och verksamhetschefen ser vårdenhetens intyg.
+    expect((await k.get('/api/session')).data.behorigheter).toEqual(['lakemedelsansvar', 'faststalla_direktiv', 'utbildning', 'intyg_enhet']);
     const f = (await k.get('/api/lakemedelsansvar')).data.uppdrag.find(u => u.typ === 'medicinskt_ansvarig').forslag[0];
     const r = await k.post('/api/lakemedelsansvar/uppdrag', { typ: 'medicinskt_ansvarig', personalId: f.personalId });
     expect(r.status).toBe(201);

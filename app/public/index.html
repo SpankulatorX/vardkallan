@@ -13,17 +13,19 @@
 </head>
 <body>
 <a class="hoppa" href="#innehall">Hoppa till innehållet</a>
-<div class="demorad" role="note">
+<aside class="demorad" aria-label="Om demon och visning">
   <p>Demo med påhittade patienter och testpersonnummer från Skatteverket. Inte för vård av riktiga patienter.</p>
   <div class="demoknappar">
+    <button type="button" class="knapp liten demoknapp kontrastknapp" data-a="kontrast" data-las-ok aria-pressed="false">Hög kontrast</button>
     <button type="button" class="knapp liten demoknapp" data-a="avbrott" hidden>Simulera avbrott</button>
     <button type="button" class="knapp liten demoknapp" data-a="aterstall">Återställ demon</button>
   </div>
-</div>
+</aside>
 <div id="avbrott" class="avbrottsrad" role="alert" hidden></div>
 <div id="ram"><p class="laddar-sida">Startar Vårdkällan.</p></div>
 <footer class="sidfot">
   <p>Vårdkällan är ett fristående demoprojekt med <a href="https://github.com/SpankulatorX/vardkallan">öppen källkod</a> (EUPL 1.2). Det är inte en tjänst från Region Örebro län.</p>
+  <p><a href="#/tillganglighet">Tillgänglighet</a></p>
 </footer>
 <div id="notiser" aria-live="polite" aria-atomic="false"></div>
 <noscript><p class="noscript">Vårdkällan behöver JavaScript.</p></noscript>

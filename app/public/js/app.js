@@ -33,6 +33,15 @@ import { bevakningVy, uppfoljningVy, samverkanVy, inkorgAntal } from './vyer/r3.
 import * as lakemedelsstod from './vyer/lakemedelsstod.js';
 // Runda 6, r6: verksamhetschefens uppdrag i läkemedelshanteringen.
 import * as lakemedelsansvar from './vyer/lakemedelsansvar.js';
+// Runda 7, r2: nyhetsrutan, utbildningen, tillgänglighetsredogörelsen och högkontrastläget.
+import * as nyhetsruta from './nyheter.js';
+import * as kontrast from './kontrast.js';
+import * as nyheter from './vyer/nyheter.js';
+import * as utbildning from './vyer/utbildning.js';
+import * as tillganglighet from './vyer/tillganglighet.js';
+
+// Högkontrastläget sätts innan något ritas, så att sidan inte blinkar till i vanliga färger.
+kontrast.init();
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -73,6 +82,8 @@ const MENY = [
   ['#/arkiv', 'E-arkiv och gallring', 'arkiv', () => far('registrera_arkivbeslut')],
   ['#/datauttag', 'Datauttag', 'lista', () => far('datauttag')],
   ['#/planuppfoljning', 'Tvångsvård och samordning', 'krav', () => far('datauttag')],
+  // Runda 7, r2: övningar och intyg för all personal (Sussa 10.1.1.5).
+  ['#/utbildning', 'Utbildning', 'person', () => far('utbildning')],
   ['#/migrering', 'Migreringsavstämning', 'migrering', () => true],
   ['#/krav', 'Kravspårbarhet', 'krav', () => true],
   ['#/moduler', 'Moduler', 'moduler', () => true],
@@ -104,6 +115,10 @@ const RUTTER = [
   [/^#\/tvangsvard$/, bevakningVy, () => Boolean(S.session?.r3?.tvangsvardsenhet)],
   [/^#\/planuppfoljning$/, uppfoljningVy, () => far('datauttag') || Boolean(S.session?.r3?.tvangsvardsenhet)],
   [/^#\/samverkan$/, samverkanVy, () => far('samverkan')],
+  // Runda 7, r2: utbildningen, nyheterna och tillgänglighetsredogörelsen (öppen utan inloggning).
+  [/^#\/utbildning$/, utbildning, () => far('utbildning')],
+  [/^#\/nyheter$/, nyheter, () => arPersonal()],
+  [/^#\/tillganglighet$/, tillganglighet, () => true, true],
   [/^#\/migrering$/, migrering, () => true],
   [/^#\/krav$/, krav, () => true, true],
   [/^#\/moduler$/, moduler, () => true, true],
@@ -119,6 +134,9 @@ const RUTTER_MIN = [
   [/^#\/krav$/, krav],
   [/^#\/moduler$/, moduler],
   [/^#\/drift$/, drift],
+  // Runda 7, r2.
+  [/^#\/nyheter$/, nyheter],
+  [/^#\/tillganglighet$/, tillganglighet],
 ];
 
 // Enhetsträdet: varje enhet med sin vårdenhet. Inre sekretess och remisser räknas per vårdenhet.
@@ -242,11 +260,14 @@ function ritaRam(route) {
       ${utanJournal() ? '' : `<button type="button" class="knapp text liten reservknapp" data-a="reservkod">${ikon.nyckel}<span data-reserv-text>Reservkod</span></button>`}
       <button type="button" class="knapp sekundar liten" data-a="loggaut">${ikon.ut}<span>Logga ut</span></button>
     </div></header>
+    <div id="nyhetsruta"></div>
     <div class="arbetsyta">
       <nav class="meny" id="meny" aria-label="Huvudmeny"><ul id="meny-lista">${menyHtml(route)}</ul></nav>
       <main id="innehall" class="innehall" tabindex="-1"></main>
     </div>`;
   avbrottslage.uppdateraReservStatus();
+  // Runda 7, r2: nyheterna för rollen efter en ny version, en gång per inloggning och ram.
+  nyhetsruta.visa();
   return document.getElementById('innehall');
 }
 
@@ -260,8 +281,10 @@ function ritaRamInvanare(ram, sess) {
       </div>
       <button type="button" class="knapp sekundar liten" data-a="loggaut">${ikon.ut}<span>Logga ut</span></button>
     </div></header>
+    <div id="nyhetsruta"></div>
     <main id="innehall" class="innehall min-innehall" tabindex="-1"></main>
-    <nav class="min-om" aria-label="Om Vårdkällan"><p>Min journal är en del av Vårdkällan, ett öppet journalsystem.</p><ul><li><a href="#/krav">Kravspårbarhet</a></li><li><a href="#/moduler">Moduler</a></li><li><a href="#/drift">Svarstider</a></li></ul></nav>`;
+    <nav class="min-om" aria-label="Om Vårdkällan"><p>Min journal är en del av Vårdkällan, ett öppet journalsystem.</p><ul><li><a href="#/krav">Kravspårbarhet</a></li><li><a href="#/moduler">Moduler</a></li><li><a href="#/drift">Svarstider</a></li><li><a href="#/nyheter">Nyheter</a></li></ul></nav>`;
+  nyhetsruta.visa();
   return document.getElementById('innehall');
 }
 
@@ -427,6 +450,11 @@ document.addEventListener('click', async (e) => {
   } else if (a === 'avbrott') {
     await avbrottslage.simulera();
     notis('Avbrottet är simulerat. Den här fliken beter sig som om servern var nere. Servern är igång för alla andra.', 'info');
+  } else if (a === 'kontrast') {
+    // Runda 7, r2: högkontrastläget.
+    kontrast.vaxla();
+  } else if (a === 'stang-nyheter') {
+    try { await nyhetsruta.stang(b); } catch { /* notis visad */ }
   } else if (a === 'meny') {
     const nav = document.getElementById('meny');
     const oppen = nav.classList.toggle('oppen');

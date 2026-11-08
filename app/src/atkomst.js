@@ -132,6 +132,14 @@ for (const r of ['lakare', 'sjukskoterska', 'vardadministrator']) ROLLER[r].push
 ROLLER.uppfoljning.push('statistik_region');
 for (const h of ['bevaka_enhet', 'las_tidbok', 'statistik', 'statistik_region']) UTAN_PATIENT.add(h);
 
+// Runda 7, r2: övningar och intyg i utbildningsmiljön (utbildning.js, Sussa 10.1.1.5). All personal gör övningarna för
+// sin yrkesroll, och verksamhetschefen ser intygen för sin vårdenhet. Inget av det rör en patient.
+Object.assign(HANDLINGAR, { utbildning: 'göra övningar och få intyg', intyg_enhet: 'se intygen för vårdenheten' });
+for (const r of Object.keys(ROLLER)) ROLLER[r].push('utbildning');
+ROLLER.verksamhetschef.push('intyg_enhet');
+UTAN_PATIENT.add('utbildning');
+UTAN_PATIENT.add('intyg_enhet');
+
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
 
 // Den vårdenhet en enhet hör till. Inre sekretess gäller per vårdenhet.

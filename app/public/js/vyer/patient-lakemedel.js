@@ -1,6 +1,8 @@
 // Läkemedelslistan: ordinationer med NLL-status, ordination med obligatoriska fält och varningar, utsättning och avstämning mot NLL.
 import { esc, api, datum, tidpunkt, migreradEtikett, notis, felNotis, faltFel, medKnapp, dialog, ikon, ORDTYP, idag, plusDagar } from '../ui.js';
 import { far } from '../app.js';
+// Runda 7, r2: hjälp i sammanhanget.
+import { hjalpRuta } from '../hjalp.js';
 import { doldaRad } from './patient.js';
 import { nllChip } from './patient-oversikt.js';
 import { lakemedelsalderRad } from '../avbrott.js';
@@ -38,6 +40,7 @@ export async function visa(el, ctx) {
   el.innerHTML = `<div class="flikhuvud"><h2>Läkemedel</h2>
       <div class="knapprad">${kanOrdinera ? `<button type="button" class="knapp" data-ny aria-expanded="false" aria-controls="ordform">${ikon.plus}<span>Ordinera</span></button><button type="button" class="knapp sekundar" data-mall aria-expanded="false">Ordinera från mall</button>`
         : far('registrera_muntlig_ordination') ? '<button type="button" class="knapp sekundar" data-muntlig aria-expanded="false">Muntlig ordination</button><p class="dampad liten">Din yrkesroll kan läsa läkemedelslistan men inte ordinera. Dokumentera en muntlig ordination från en läkare, eller ordinera enligt ett generellt direktiv.</p>' : '<p class="dampad liten">Din yrkesroll kan läsa läkemedelslistan men inte ordinera.</p>'}</div></div>
+    ${kanOrdinera ? hjalpRuta('ordinera') : ''}
     ${lakemedelsalderRad(ctx.id)}
     ${doldaRad(d.dolda)}
     <p class="dampad liten">Läkemedelslistan är gemensam för vårdgivaren och följer Nationella läkemedelslistan (NLL). Varje ändring skickas till NLL och kvitteras. I demon är NLL simulerad.</p>

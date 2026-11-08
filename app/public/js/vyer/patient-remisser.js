@@ -1,5 +1,7 @@
 // Patientens remisser och formuläret för att skicka en ny.
 import { esc, api, notis, medKnapp, ikon, idag, plusDagar } from '../ui.js';
+// Runda 7, r2: hjälp i sammanhanget.
+import { hjalpRuta } from '../hjalp.js';
 import { far, minVardenhet, enhetLista, laddaEnheter } from '../app.js';
 import { doldaRad } from './patient.js';
 import { remissKort, kopplaAtgarder } from './remisser.js';
@@ -14,7 +16,7 @@ export async function visa(el, ctx) {
   if (!ctx.aktuell()) return;
   let lista = d.remisser;
   tidigare = lista;
-  el.innerHTML = `<div class="flikhuvud"><h2>Remisser</h2>${kan ? `<button type="button" class="knapp" data-ny aria-expanded="false" aria-controls="remissform">${ikon.remiss}<span>Skicka remiss</span></button>` : ''}</div>
+  el.innerHTML = `<div class="flikhuvud"><h2>Remisser</h2>${kan ? `<button type="button" class="knapp" data-ny aria-expanded="false" aria-controls="remissform">${ikon.remiss}<span>Skicka remiss</span></button>` : ''}</div>${kan ? hjalpRuta('remiss') : ''}
     ${doldaRad(d.dolda)}
     ${u.utkast.length ? `<section class="ov-sektion" aria-labelledby="rf-utkast"><div class="sektion-huvud"><h3 id="rf-utkast">Dina utkast</h3></div><ul class="enkel-lista">${u.utkast.map(x => `<li><strong>${esc(x.till?.namn ?? 'Mottagare inte vald')}</strong>${x.fragestallning ? `, ${esc(x.fragestallning.slice(0, 80))}` : ''}
       <span class="under-text">Sparat ${esc(x.andrad.slice(0, 10))}${x.bilagor.length ? `, ${x.bilagor.length} ${x.bilagor.length === 1 ? 'bilaga' : 'bilagor'}` : ''}. Utkastet syns bara för dig.</span>

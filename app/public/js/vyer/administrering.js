@@ -3,6 +3,8 @@
 // ordination och högsta dygnsdos visas innan något sparas, och en allvarlig varning kvitteras med motivering. Samma
 // delar används i avdelningens lista (#/administrering) och i patientens läkemedelsflik.
 import { esc, api, notis, felNotis, medKnapp, dialog, ikon, vyRubrik, tom, klockslag, tidpunkt, datum, idag } from '../ui.js';
+// Runda 7, r2: hjälp i sammanhanget.
+import { hjalpRuta } from '../hjalp.js';
 import { far } from '../app.js';
 import { patientCell } from './arbetslista.js';
 // Runda 6, r2: makulering av en felaktig registrering.
@@ -204,7 +206,7 @@ async function angeHandelsetid(b, ladda) {
 
 // Avdelningens lista (#/administrering).
 export async function visa(main) {
-  main.innerHTML = vyRubrik('Läkemedel att ge', 'Dagens doser för de inneliggande patienterna, framräknade ur ordinationerna.') + '<div id="adm"><p class="tom">Hämtar.</p></div>';
+  main.innerHTML = vyRubrik('Läkemedel att ge', 'Dagens doser för de inneliggande patienterna, framräknade ur ordinationerna.') + hjalpRuta('ge-dos') + '<div id="adm"><p class="tom">Hämtar.</p></div>';
   const d = await api('/api/administreringar');
   const el = main.querySelector('#adm');
   // Har användaren hunnit gå vidare till en annan vy medan listan hämtades finns inget att visa den i.

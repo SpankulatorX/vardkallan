@@ -1,6 +1,8 @@
 // Sök patient i hela regionen på namn eller identitet. Sökningen loggas. Systemet avgör självt om frågan är ett namn
 // eller ett nummer (personnummer, samordningsnummer, reservnummer eller OID), och hittar också tidigare identiteter.
 import { esc, api, vyRubrik, tom, faltFel, ikon } from '../ui.js';
+// Runda 7, r2: hjälp i sammanhanget.
+import { hjalpRuta } from '../hjalp.js';
 import { arLogggranskare, far } from '../app.js';
 import { patientCell, pnrCell, alderKon } from './arbetslista.js';
 import { registreringHtml, kopplaRegistrering } from './patient-identitet.js';
@@ -13,7 +15,7 @@ export async function visa(main, _p, q) {
   const fraga = q.get('q') ?? '';
   main.innerHTML = vyRubrik('Sök patient', arLogggranskare()
     ? 'Sök fram en patient för att se patientens logglista.'
-    : 'Sök på namn, personnummer, samordningsnummer eller reservnummer i hela regionen. Att patienten hittas betyder inte att du får öppna journalen.') + `
+    : 'Sök på namn, personnummer, samordningsnummer eller reservnummer i hela regionen. Att patienten hittas betyder inte att du får öppna journalen.') + `${arLogggranskare() ? '' : hjalpRuta('sok')}
     <form class="sokform" id="sokform" role="search">
       <div class="falt"><label for="sokfalt">Namn eller personnummer</label>
         <div class="sokrad"><input id="sokfalt" name="q" type="search" value="${esc(fraga)}" autocomplete="off" minlength="2" required aria-describedby="sok-hjalp" data-fokus><button class="knapp" type="submit">Sök</button></div>

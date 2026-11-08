@@ -174,7 +174,19 @@ export function notis(text, typ = 'ok') {
   behallare.append(el);
   // Högst tre notiser åt gången; den äldsta försvinner först.
   while (behallare.children.length > 3) behallare.firstElementChild.remove();
-  setTimeout(() => el.remove(), typ === 'fel' ? 7000 : 4200);
+  // Runda 7, r2 (K2 1.6.1, justerbar tidsgräns): ett fel står kvar tills det stängs, eller tills tre nyare notiser har
+  // kommit. Andra notiser bekräftar något som också syns på sidan och försvinner efter en stund.
+  if (typ === 'fel') {
+    const stang = document.createElement('button');
+    stang.type = 'button';
+    stang.className = 'notis-stang';
+    stang.setAttribute('aria-label', 'Stäng meddelandet');
+    stang.innerHTML = ikon.kryss;
+    stang.addEventListener('click', () => el.remove());
+    el.append(stang);
+    return;
+  }
+  setTimeout(() => el.remove(), 4200);
 }
 export function felNotis(e) {
   if (e?.status === 401 || e?.status === 429 || e?.kod === 'avbruten') return;
@@ -231,10 +243,16 @@ export async function medKnapp(knapp, fn, form = null) {
 
 // Visar fältfel från ett 400-svar i ett formulär.
 export function faltFel(form, e, namn = {}) {
-  form.querySelectorAll('[aria-invalid]').forEach(x => x.removeAttribute('aria-invalid'));
   const ruta = form.querySelector('.form-fel');
+  // Runda 7, r2 (K2 1.9.1): feltexten hör till fältet med aria-errormessage, så att hjälpmedel läser den vid fältet.
+  if (ruta && !ruta.id) ruta.id = `fel-${Math.random().toString(36).slice(2, 8)}`;
+  form.querySelectorAll('[aria-invalid]').forEach(x => { x.removeAttribute('aria-invalid'); x.removeAttribute('aria-errormessage'); });
   const falt = e?.data?.falt ?? [];
-  for (const f of falt) form.querySelector(`[name="${namn[f] ?? f}"]`)?.setAttribute('aria-invalid', 'true');
+  for (const f of falt) {
+    const el = form.querySelector(`[name="${namn[f] ?? f}"]`);
+    el?.setAttribute('aria-invalid', 'true');
+    if (el && ruta) el.setAttribute('aria-errormessage', ruta.id);
+  }
   if (ruta) { ruta.textContent = e?.message ?? ''; ruta.hidden = !e; }
   if (falt.length) form.querySelector(`[name="${namn[falt[0]] ?? falt[0]}"]`)?.focus();
 }

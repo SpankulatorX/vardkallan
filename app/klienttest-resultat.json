@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-03T20:08:49.167Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-08T09:05:16.628Z",
+  "bas": "http://127.0.0.1:18172",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "13eabf8b55b1e8b3d8bff5a7b35f313e930797cd0b5a730d421f2e2789c3e147",
+  "gransnittHash": "1755eb494a9bd8987992e284e8939c024aef2a4225b1842020f88448f08d1b47",
   "tester": [
     {
       "namn": "Gränssnitt > Avbrott > läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB",
@@ -110,6 +110,98 @@
     },
     {
       "namn": "Gränssnitt > Användartest > testläget rensas när testet avslutas",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > inget ljud, ingen video, inga bilder av text och inget som blinkar eller rör sig av sig självt",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > varje bild och symbol har ett textalternativ eller är dold för hjälpmedel",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > varje formulärfält, knapp och länk har ett namn som beskriver syftet",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > varje vy har en rubrik på nivå 1 och rubrikerna hoppar inte över någon nivå",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > allt innehåll ligger i landmärken: sidhuvud, meny, huvudinnehåll och sidfot",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > sidan har språket svenska och varje vy har en egen sidtitel",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > texten har minst 4,5:1 i kontrast och stor text minst 3:1, i alla vyer för alla roller",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > fältens ramar och fokusmarkeringen har minst 3:1 mot bakgrunden",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > status, larm, uppmärksamhetssymbolen och kurvorna har text eller form utöver färgen",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > texten går att förstora till 200 procent utan att innehåll eller funktion försvinner",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > vid 320 px bredd behövs ingen rullning i sidled",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > allt som går att klicka på går att nå med tangentbordet",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > tabbordningen följer sidans ordning, utan positivt tabindex och utan tangentbordsfälla",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > varje element som får fokus med tabb har en synlig fokusmarkering",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > inloggning, att öppna en patient, byta flik och stänga nyheterna går med bara tangentbordet",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > att ett element får fokus byter inte sida och öppnar inget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > ett fel i ett formulär markeras vid fältet och beskrivs med text",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > högkontrastläget ger minst 7:1 i kontrast och följer datorns inställning",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > med minskade rörelser i datorn finns inga animationer eller övergångar",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > alla vyer fungerar på mobil, platta och stor skärm utan rullning i sidled och utan för långa textrader",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Utbildning > nyhetsrutan visar rollens nyheter efter inloggning, stängs med ett klick och går att läsa igen",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Utbildning > hjälpen i sammanhanget finns i de vanligaste flödena och går att öppna med tangentbordet",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Utbildning > övningarna ger ett intyg med giltighetstid, och verksamhetschefen ser vårdenhetens intyg",
       "status": "grön"
     }
   ]

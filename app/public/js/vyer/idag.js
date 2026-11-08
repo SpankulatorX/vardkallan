@@ -2,6 +2,8 @@
 // väntar på tid, väntelistan, kallelser som behöver gå ut och bevakningar som har löpt ut. Varje rad har en enda nästa
 // åtgärd. Systemet har redan räknat ut ordningen, tiderna, kallelserna och avgifterna.
 import { esc, api, vyRubrik, notis, felNotis, medKnapp, dialog, ikon } from '../ui.js';
+// Runda 7, r2: hjälp i sammanhanget.
+import { hjalpRuta } from '../hjalp.js';
 import { patientCell, pnrCell } from './arbetslista.js';
 import { valjTid, valjBetalsatt, tidText, kl, kr, gransHtml, kallelseHtml, dagar } from '../tidbok-ui.js';
 // Runda 6, r4: fritt vald period, anpassningsbar vy och egna bevakningar.
@@ -83,7 +85,7 @@ async function rita(main, aktuell) {
   const visas = (id) => !s.vy?.sektioner || s.vy.sektioner.includes(id);
   const iDag = s.period.fran === s.period.till && s.period.fran === s.datum;
   const patientRubrik = iDag ? (kvar ? `Patienter i dag, ${kvar} kvar att checka in` : 'Patienter i dag') : s.period.fran === s.period.till ? `Patienter ${datumKort(s.period.fran)}` : `Patienter ${datumKort(s.period.fran)} till ${datumKort(s.period.till)}`;
-  main.innerHTML = vyRubrik('Dagens arbete', `${esc(s.vardenhet.namn)}, ${esc(dag)}. Systemet har ordnat dagens arbete. Varje rad har en nästa åtgärd.`) + `<div id="idag">
+  main.innerHTML = vyRubrik('Dagens arbete', `${esc(s.vardenhet.namn)}, ${esc(dag)}. Systemet har ordnat dagens arbete. Varje rad har en nästa åtgärd.`) + `${hjalpRuta('boka')}<div id="idag">
     <nav class="snabbval" aria-label="Tidboken"><ul>
       <li><a class="knapp liten sekundar" href="#/tidbok">${ikon.klocka}<span>Tidbok</span></a></li>
       <li><a class="knapp liten sekundar" href="#/vantelista">${ikon.lista}<span>Väntelista</span></a></li>

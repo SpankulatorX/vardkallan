@@ -85,7 +85,7 @@ async function visaSussa(yta, q) {
       <p>Region Örebro läns kravspecifikation för upphandlingen av journalsystemet Cosmic, med Sussas originalnummer. Varje post visar kravtexten, hur Vårdkällan möter den, hur systemet tar expertrollen och vilka automatiska tester som visar det. En post räknas som uppfylld i demon bara om alla dess tester finns och är gröna, och en post utan tester är planerad. Uppfyllt i demon betyder inte att Vårdkällan uppfyller kraven i en upphandling.</p>
       <p class="liten">Källa: ${esc(d.kalla)}. ${esc(d.utdrag)}</p>
     </div>
-    <p class="ruta ruta-info sussa-utdrag">${ikon.info}<span>Kapitel 7 till 10 och 12 ingår inte i utdraget: ${esc(saknade.join(', '))}. Registret innehåller kapitel 1 till 6 och 11, och kapitel 1 har inga krav.</span></p>
+    ${saknade.length ? `<p class="ruta ruta-info sussa-utdrag">${ikon.info}<span>Kapitel som inte ingår i registret: ${esc(saknade.join(', '))}.</span></p>` : ''}
     ${testkorning(d.testresultat)}
     <div class="tabellrulle sussa-summa-rulle"><table class="tabell siffertabell sussa-summa">
       <caption>Sammanställning av ${d.poster.length} poster per kategori och status</caption>

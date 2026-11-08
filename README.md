@@ -41,6 +41,9 @@ Demon använder bara påhittade patienter och testpersonnummer från Skatteverke
 - Kravspårbarhet: varje krav visas med de automatiska tester som visar att det är uppfyllt. Bygget stoppas om ett test är rött. Testerna och FHIR-valideringen mot HL7:s validator körs på GitHub vid varje ändring (`.github/workflows/test.yml`). En språkkontroll i bygget stoppar engelska ord, tankstreck, ellipser och saknade å, ä och ö i allt som visas.
 - Sussas kravspecifikation för Cosmic med originalnummer (kapitel 1 till 6 och 11, 305 poster, utlämnad av Konkurrensverket 2026-11-03) på sidan Kravspårbarhet: varje post med kravtext, Vårdkällans lösning, hur systemet tar expertrollen och testerna som visar det. Grundprincipen är att systemet är experten, inte användaren (`docs/design.md`).
 
+- Tillgänglighet enligt EN 301 549: varje vy för varje roll prövas automatiskt mot det som går att pröva i WCAG 2.1 nivå AA (kontrast, namn, rubriker, landmärken, tangentbord, synligt fokus, 200 procents förstoring och 320 px bredd) och på mobil, platta och stor skärm. Ingen information bärs bara av färg, knappen Hög kontrast ger starkare färger, och systemet följer datorns inställningar för hög kontrast och minskade rörelser. Tillgänglighetsredogörelsen (länken Tillgänglighet längst ned och `docs/tillganglighet.md`) visar varje krav i förfrågningsunderlagets bilaga K2 med status och hur det är testat.
+- Efter en ny version visar en kort ruta det som är nytt för just den rollen, och den stängs med ett klick och kan läsas igen under Nyheter. Hjälp i sammanhanget förklarar de vanligaste flödena, och under Utbildning gör personalen övningar med demopatienter och får ett intyg som gäller i ett år. Verksamhetschefen ser vilka på vårdenheten som har giltigt intyg.
+
 Det som inte är byggt än (bland annat kassa och resursbokning, specialområden som anestesi och intensivvård och cytostatika, och riktiga integrationer mot nationella tjänster) visas som planerat på sidan Moduler.
 
 ## Kör lokalt
@@ -67,6 +70,7 @@ docker run --rm -v "$PWD/app:/app" -w /app oven/bun:1.3.14-alpine bun test
 - `app/src/seed/`: påhittade verksamheter, personal och patienter.
 - `app/public/`: webbgränssnittet, JavaScript utan byggsteg.
 - `app/test/`: automatiska tester. `test/genomgang.cjs`: genomgång i webbläsaren av alla demoroller och av Min journal, och av varje vy på 360 px med knappar som är minst 40 px höga.
+- `test/tillganglighet.cjs`: tillgänglighetskontrollen i webbläsaren av alla vyer för alla demoroller, och skärmarna mobil, platta och stor skärm. Resultatet visas på sidan Tillgänglighet och i `docs/tillganglighet.md`.
 - `docs/anvandartest.md`: testprotokoll för användartest med personer som arbetar i vården, med testläget i demon på `#/anvandartest`.
 
 ## Licens
