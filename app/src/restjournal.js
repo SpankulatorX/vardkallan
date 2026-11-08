@@ -41,11 +41,11 @@ export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS restjournaler (
   id INTEGER PRIMARY KEY AUTOINCREMENT, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, vardkontakt_id INTEGER, dokumenttyp TEXT NOT NULL, period_fran TEXT,
   period_till TEXT, ursprung TEXT, namn TEXT NOT NULL, typ TEXT NOT NULL, storlek INTEGER NOT NULL, sha256 TEXT NOT NULL, data BLOB NOT NULL, text TEXT,
-  identitet TEXT NOT NULL, skannad TEXT NOT NULL, skannad_av TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'journal', makulerad TEXT, makulerad_av TEXT, makulerad_orsak TEXT,
+  text_ofullstandig INTEGER NOT NULL DEFAULT 0, identitet TEXT NOT NULL, skannad TEXT NOT NULL, skannad_av TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'journal', makulerad TEXT, makulerad_av TEXT, makulerad_orsak TEXT,
   CHECK (status IN ('journal', 'makulerad')), CHECK (identitet IN ('personnummer', 'bekraftad'))
 );
 CREATE INDEX IF NOT EXISTS ix_restjournaler_patient ON restjournaler (patient_id);
-CREATE TRIGGER IF NOT EXISTS restjournaler_andras_ej BEFORE UPDATE OF enhet_id, dokumenttyp, period_fran, period_till, ursprung, namn, typ, storlek, sha256, data, text, identitet, skannad, skannad_av ON restjournaler
+CREATE TRIGGER IF NOT EXISTS restjournaler_andras_ej BEFORE UPDATE OF enhet_id, dokumenttyp, period_fran, period_till, ursprung, namn, typ, storlek, sha256, data, text, text_ofullstandig, identitet, skannad, skannad_av ON restjournaler
   BEGIN SELECT RAISE(ABORT, 'En skannad restjournal ändras inte. Makulera den och skanna in den igen.'); END;
 CREATE TRIGGER IF NOT EXISTS restjournaler_makuleras_en_gang BEFORE UPDATE OF status ON restjournaler WHEN OLD.status <> 'journal'
   BEGIN SELECT RAISE(ABORT, 'Restjournalen är redan makulerad.'); END;
@@ -65,15 +65,19 @@ export function restjournalRad(db, id) {
 // ---- Textlagret i en PDF -----------------------------------------------------------------------------------------
 // En skanner med OCR lägger texten i PDF:en som textobjekt. Systemet läser strängarna i Tj och TJ ur varje innehållsström,
 // också komprimerade med FlateDecode. Inget körs ur filen, och en ström som inte går att läsa hoppas över.
+// Säkerhetsgranskningen i runda 10: en liten fil kan ha en ström som packas upp till hundratals MB. Varje ström packas
+// därför upp till högst perStrom byte, alla strömmar i filen delar budgeten totalt, högst strommar strömmar läses och
+// läsningen slutar vid tecken tecken. Når filen en gräns är texten ofullständig, men dokumentet sparas ändå.
+export const PDF_GRANS = Object.freeze({ perStrom: 200_000, totalt: 1_000_000, strommar: 50, tecken: 20_000 });
 const PDF_ESC = { n: '\n', r: '\r', t: '\t', b: '\b', f: '\f', '(': '(', ')': ')', '\\': '\\' };
 function pdfStrang(s) {
   return s.replace(/\\([nrtbf()\\]|[0-7]{1,3})/g, (_, x) => (PDF_ESC[x] ?? String.fromCharCode(parseInt(x, 8) & 0xff)));
 }
-export function pdfText(buf) {
+export function pdfText(buf, grans = PDF_GRANS) {
   const s = buf.toString('latin1');
   const rader = [];
-  let pos = 0;
-  for (let n = 0; n < 200; n++) {
+  let pos = 0, kvar = grans.totalt, tecken = 0, lasta = 0, ofullstandig = false;
+  while (true) {
     const start = s.indexOf('stream', pos);
     if (start < 0) break;
     const huvud = s.slice(Math.max(0, start - 300), start);
@@ -81,18 +85,29 @@ export function pdfText(buf) {
     const slut = s.indexOf('endstream', fran);
     if (slut < 0) break;
     pos = slut + 9;
+    if (lasta >= grans.strommar || kvar <= 0 || tecken >= grans.tecken) { ofullstandig = true; break; }
+    lasta++;
     let data = buf.subarray(fran, slut);
     if (/\/FlateDecode/.test(huvud.slice(huvud.lastIndexOf('<<')))) {
-      try { data = inflateSync(data); } catch { continue; }
-    }
+      try { data = inflateSync(data, { maxOutputLength: Math.min(grans.perStrom, kvar) }); } catch (e) {
+        // En ström som packas upp till mer än gränsen läses inte alls, och texten är ofullständig.
+        if (e?.code === 'ERR_BUFFER_TOO_LARGE' || e instanceof RangeError) ofullstandig = true;
+        continue;
+      }
+    } else if (data.length > Math.min(grans.perStrom, kvar)) { ofullstandig = true; continue; }
+    kvar -= data.length;
     const t = data.toString('latin1');
     if (!/\b(Tj|TJ)\b/.test(t)) continue;
     for (const m of t.matchAll(/\(((?:\\.|[^\\)])*)\)\s*Tj|\[((?:\\.|[^\]])*)\]\s*TJ/g)) {
-      if (m[1] != null) rader.push(pdfStrang(m[1]));
-      else rader.push([...m[2].matchAll(/\(((?:\\.|[^\\)])*)\)/g)].map(x => pdfStrang(x[1])).join(''));
+      const rad = m[1] != null ? pdfStrang(m[1]) : [...m[2].matchAll(/\(((?:\\.|[^\\)])*)\)/g)].map(x => pdfStrang(x[1])).join('');
+      rader.push(rad);
+      tecken += rad.length + 1;
+      if (tecken >= grans.tecken) break;
     }
   }
-  return rader.join('\n').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '').trim().slice(0, 20000);
+  const text = rader.join('\n').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '').trim();
+  if (text.length > grans.tecken) ofullstandig = true;
+  return { text: text.slice(0, grans.tecken), ofullstandig };
 }
 
 // ---- Systemets förslag ur texten ------------------------------------------------------------------------------------
@@ -131,8 +146,8 @@ function identitet(p, pnr, bekraftat) {
 
 function lasFil(body) {
   const fil = tolkaMedia(body.fil);
-  const text = fil.typ === 'application/pdf' ? pdfText(fil.buf) : '';
-  return { ...fil, text, sha256: createHash('sha256').update(fil.buf).digest('hex') };
+  const { text, ofullstandig } = fil.typ === 'application/pdf' ? pdfText(fil.buf) : { text: '', ofullstandig: false };
+  return { ...fil, text, ofullstandig, sha256: createHash('sha256').update(fil.buf).digest('hex') };
 }
 
 // Samma fil för patienten, bland det som inte ligger på en spärrad vårdenhet, så att svaret inte röjer en spärrad restjournal.
@@ -150,7 +165,7 @@ export function tolka(atk, p, body = {}, nu = new Date()) {
   const f = forslag(fil.text, nu);
   const egen = String(p.personnummer).slice(-10);
   return {
-    namn: fil.namn, typ: fil.typ, storlek: fil.buf.length, sha256: fil.sha256, harText: Boolean(fil.text), utdrag: fil.text.slice(0, 400),
+    namn: fil.namn, typ: fil.typ, storlek: fil.buf.length, sha256: fil.sha256, harText: Boolean(fil.text), utdrag: fil.text.slice(0, 400), textOfullstandig: fil.ofullstandig,
     dokumenttyp: f.dokumenttyp, periodFran: f.periodFran, periodTill: f.periodTill,
     identitet: f.personnummer.length ? (f.personnummer.includes(egen) ? 'stammer' : 'annan') : 'saknas',
     text: f.personnummer.length
@@ -184,9 +199,9 @@ export function skanna(atk, p, body = {}, nu = new Date()) {
   if (db.query("SELECT count(*) AS n FROM restjournaler WHERE patient_id = ? AND status = 'journal'").get(atk.patientId).n >= MAX_PER_PATIENT) {
     throw new Fel(409, `Patienten har redan ${MAX_PER_PATIENT} skannade restjournaler i demon.`, 'tak');
   }
-  const r = db.query(`INSERT INTO restjournaler (patient_id, enhet_id, vardkontakt_id, dokumenttyp, period_fran, period_till, ursprung, namn, typ, storlek, sha256, data, text, identitet, skannad, skannad_av)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(atk.patientId, atk.personal.enhet_id, vardkontaktFor(atk, nu), dokumenttyp, periodFran, periodTill,
-    textFalt(body.ursprung, 120) || null, fil.namn, fil.typ, fil.buf.length, fil.sha256, fil.buf, fil.text || null, id, iso(nu), atk.personal.id);
+  const r = db.query(`INSERT INTO restjournaler (patient_id, enhet_id, vardkontakt_id, dokumenttyp, period_fran, period_till, ursprung, namn, typ, storlek, sha256, data, text, text_ofullstandig, identitet, skannad, skannad_av)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(atk.patientId, atk.personal.enhet_id, vardkontaktFor(atk, nu), dokumenttyp, periodFran, periodTill,
+    textFalt(body.ursprung, 120) || null, fil.namn, fil.typ, fil.buf.length, fil.sha256, fil.buf, fil.text || null, fil.ofullstandig ? 1 : 0, id, iso(nu), atk.personal.id);
   return restjournalUt(db, restjournalRad(db, r.lastInsertRowid), { kvitto: !kanRoll(atk.personal, LAS) });
 }
 
@@ -197,11 +212,12 @@ export const ETIKETT = 'Skannad pappersjournal';
 export function restjournalUt(db, r, { kvitto = false } = {}) {
   const bas = { id: r.id, namn: r.namn, sha256: r.sha256, storlek: r.storlek, skannad: { tid: r.skannad, av: personNamn(db, r.skannad_av) }, status: r.status };
   if (kvitto) return bas;
+  // Runda 10, r4, säkerhetsgranskningen: texten är ofullständig när filen nådde gränserna för textlagret.
   return {
     ...bas, typ: r.typ, bild: r.typ.startsWith('image/'), dokumenttyp: r.dokumenttyp, dokumenttypText: DOKUMENTTYPER[r.dokumenttyp] ?? r.dokumenttyp,
     period: { fran: r.period_fran, till: r.period_till, text: period(r) }, ursprung: r.ursprung, vardenhet: enhetKort(db, r.enhet_id),
     identitet: r.identitet === 'personnummer' ? 'Personnumret i dokumentet är patientens.' : 'Den som skannade bekräftade att dokumentet gäller patienten.',
-    harText: Boolean(r.text), utdrag: r.text ? r.text.slice(0, 300) : null, url: `/api/restjournal/${r.id}/fil`, kallaEtikett: ETIKETT,
+    harText: Boolean(r.text), textOfullstandig: Boolean(r.text_ofullstandig), utdrag: r.text ? r.text.slice(0, 300) : null, url: `/api/restjournal/${r.id}/fil`, kallaEtikett: ETIKETT,
     makulerad: r.status === 'makulerad' ? { tid: r.makulerad, av: personNamn(db, r.makulerad_av), orsak: ORSAKER[r.makulerad_orsak] ?? r.makulerad_orsak } : null,
   };
 }

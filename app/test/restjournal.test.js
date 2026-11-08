@@ -36,7 +36,7 @@ describe('Skannade restjournaler', () => {
     // Textlagret läses också när strömmen är komprimerad, som från de flesta skannrar.
     const strom = deflateSync(Buffer.from('BT /F1 11 Tf 50 790 Td (Epikris 2001-05-03) Tj ET', 'latin1'));
     const komp = Buffer.concat([Buffer.from(`%PDF-1.4\n1 0 obj\n<< /Length ${strom.length} /Filter /FlateDecode >>\nstream\n`, 'latin1'), strom, Buffer.from('\nendstream\nendobj\n%%EOF\n', 'latin1')]);
-    expect(restjournal.pdfText(komp)).toBe('Epikris 2001-05-03');
+    expect(restjournal.pdfText(komp)).toEqual({ text: 'Epikris 2001-05-03', ofullstandig: false });
     expect(restjournal.forslag('Epikris 2001-05-03')).toMatchObject({ dokumenttyp: 'epikris', periodFran: '2001-05-03' });
     // Personnummer känns igen med och utan sekel, men ett datum är inget personnummer.
     expect(restjournal.personnummerI('Pat 450202-4732 och 19121212-1212, besök 2004-11-02')).toEqual(['4502024732', '1212121212']);
@@ -157,6 +157,39 @@ describe('Skannade restjournaler', () => {
     const data = b64(journalPdf(['HEMLIGTORD i akutens pappersjournal.']));
     expect((await k.post('/api/patient/p01/restjournaler/tolka', { fil: { namn: 'x.pdf', data } })).data.redanSkannad).toBe(false);
     expect((await k.post('/api/patient/p01/restjournaler', { fil: { namn: 'x.pdf', data } })).status).toBe(201);
+  });
+
+  // Säkerhetsgranskningen i runda 10: en liten fil med en ström som packas upp till många MB fick inte fylla minnet.
+  test('en komprimerad ström som packas upp till mer än budgeten stoppas snabbt, och dokumentet sparas med texten märkt som ofullständig', async () => {
+    // 30 MB blanksteg packas till omkring 30 kB, under taket för en fil.
+    const bomb = deflateSync(Buffer.alloc(30 * 1024 * 1024, 0x20), { level: 9 });
+    const pdfBomb = Buffer.concat([Buffer.from(`%PDF-1.4\n1 0 obj\n<< /Length ${bomb.length} /Filter /FlateDecode >>\nstream\n`, 'latin1'), bomb, Buffer.from('\nendstream\nendobj\n%%EOF\n', 'latin1')]);
+    expect(pdfBomb.length).toBeLessThan(restjournal.MAX_BYTE ?? 40 * 1024);
+    Bun.gc(true);
+    const fore = process.memoryUsage().rss;
+    const t0 = performance.now();
+    const r = restjournal.pdfText(pdfBomb);
+    expect(performance.now() - t0).toBeLessThan(1000);
+    expect(r).toEqual({ text: '', ofullstandig: true });
+    expect(process.memoryUsage().rss - fore).toBeLessThan(20 * 1024 * 1024);
+    // Gränserna: högst 200 000 byte per ström, en gemensam budget och högst 20 000 tecken.
+    expect(restjournal.PDF_GRANS).toMatchObject({ perStrom: 200_000, tecken: 20_000 });
+    expect(restjournal.PDF_GRANS.totalt).toBeLessThanOrEqual(1_000_000);
+    // Många små strömmar läses bara upp till taket.
+    const del = Buffer.from(`BT (${'x'.repeat(900)}) Tj ET`, 'latin1');
+    const manga = Buffer.from(['%PDF-1.4', ...Array.from({ length: 40 }, (_, i) => `${i + 1} 0 obj << /Length ${del.length} >>\nstream\n${del.toString('latin1')}\nendstream endobj`), '%%EOF'].join('\n'), 'latin1');
+    const m = restjournal.pdfText(manga);
+    expect(m.ofullstandig).toBe(true);
+    expect(m.text.length).toBeLessThanOrEqual(20_000);
+    // Dokumentet sparas ändå, med bilden och kontrollsumman, och texten är märkt som ofullständig.
+    const k = await inloggad('ssk-kard');
+    const f = await k.post('/api/patient/p01/restjournaler/tolka', { fil: { namn: 'bomb.pdf', data: b64(pdfBomb) } });
+    expect(f.status).toBe(200);
+    expect(f.data.textOfullstandig).toBe(true);
+    const s = await k.post('/api/patient/p01/restjournaler', { fil: { namn: 'bomb.pdf', data: b64(pdfBomb) }, bekraftat: true });
+    expect(s.status).toBe(201);
+    expect(s.data).toMatchObject({ textOfullstandig: true, harText: false, storlek: pdfBomb.length });
+    expect(s.data.sha256).toMatch(/^[0-9a-f]{64}$/);
   });
 
   test('ett dokument som skannats till fel patient makuleras med orsak, raderas inte och försvinner ur kronologin', async () => {
