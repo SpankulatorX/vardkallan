@@ -574,3 +574,8 @@ UTAN_PATIENT.add('vyforval');
 // (systemkonton.js, Sussa 2.5.1.2). Rollen läser bara: vilka informationsmängder och vårdenheter ett visst konto får
 // prövas i provaSystemkonto. Rollen kan aldrig logga in och är ingen personal, så den har inga övningar.
 ROLLER.systemkonto = ['las_oversikt', 'las_diagnoser', 'las_matvarden', 'las_lakemedel', 'las_admin'];
+// Runda 10, r4: dokumentation vid donation (donation.js, Sussa 3.1.12.1). Läkare och sjuksköterskor med vårdrelation
+// dokumenterar donationsutredningen och den avlidnes inställning. Dödsfallet, transplantationen och
+// donationsanteckningen kräver dessutom läkarens skriv_journal.
+Object.assign(HANDLINGAR, { donation: 'dokumentera donationsutredningar och inställningen till donation' });
+for (const r of ['lakare', 'sjukskoterska']) ROLLER[r].push('donation');

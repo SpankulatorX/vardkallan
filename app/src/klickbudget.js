@@ -406,4 +406,17 @@ export const FLODEN = [
     id: 'bygga-formular', namn: 'Bygga ett formulär och föreslå det', roll: 'sysf', start: 'Systemförvaltarens formulär', budget: 5,
     motivering: 'Sussa 5.1.1.3. Ett klick på Nytt formulär, där fokus står i namnet, ett fältbyte till första frågan, ett klick på Lägg till fråga, där fokus flyttas till den nya frågan, ett klick på Föreslå och ett för att skicka med motiveringen. Systemet sätter nycklarna, förhandsvisar formuläret och säger vad som behöver ändras.',
   },
+  // Runda 10, r4: in- och utfarter, skannade restjournaler och donation (Sussa 3.1.3.3, 3.1.10.1 och 3.1.12.1).
+  {
+    id: 'registrera-infart', namn: 'Registrera en perifer venkateter', roll: 'ssk-kard', start: 'Patientens översikt', budget: 4,
+    motivering: 'Sussa 3.1.3.3 och 3.1.3.8. Ett klick på fliken In- och utfarter, ett fältbyte till Var den sitter och ett klick på Registrera. Perifer venkateter och den vanligaste storleken är förvalda, och systemet sätter tiden, vårdkontakten, KVÅ-koden och nästa skötsel. Budgeten har ett steg till för att välja en annan typ i listan.',
+  },
+  {
+    id: 'skanna-restjournal', namn: 'Skanna in en restjournal', roll: 'adm-kard', start: 'Patientens översikt', budget: 4,
+    motivering: 'Sussa 3.1.10.1 och 3.1.10.2. Ett klick på fliken Restjournaler, ett på Skannat dokument och ett på Spara restjournalen. Valet av fil i datorns fönster är ett steg till, som sidan inte ser. Systemet läser texten, föreslår dokumenttyp och period, kontrollerar personnumret och sätter vårdenhet, tid och den som skannade.',
+  },
+  {
+    id: 'starta-donation', namn: 'Pröva donation efter ett dödsfall på intensivvården', roll: 'lak-kard', start: 'Inkorgen med ett förslag om donation', budget: 2,
+    motivering: 'Sussa 3.1.12.1. Ett klick på förslaget i inkorgen och ett på Starta donationsutredning. Systemet har redan identifierat den möjliga donatorn, slår upp Donationsregistret (simulerat) och bockar av det som går att räkna ut i checklistan.',
+  },
 ];

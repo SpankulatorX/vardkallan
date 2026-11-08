@@ -17,6 +17,8 @@ import * as analys from './analys.js';
 import * as journal from './journal.js';
 import * as lakemedel from './lakemedel.js';
 import { ICD10SE, MATKOD } from './kodverk.js';
+// Runda 10, r4: skannade restjournaler.
+import * as restjournal from './restjournal.js';
 
 const MAX_TRAFFAR = 100;
 const sv = (s) => String(s ?? '').toLocaleLowerCase('sv-SE');
@@ -191,6 +193,9 @@ export function sok(atk, fraga, filterInp = {}) {
       antalSokord: traffDelar.length, utkast: a.status !== 'signerad', vardenhet: { id: a.enhet_id, namn: enhetsnamn(db, a.enhet_id) }, kalla: a.kalla,
       kallaEtikett: journal.kallaEtikett(a.kalla, a.skapad), ref: { flik: 'journal', sub: String(a.id) } });
   }
+
+  // Runda 10, r4: texten i skannade restjournaler (restjournal.js), med samma behörighet som listan.
+  if (kanRoll(atk.personal, restjournal.LAS)) traffar.push(...restjournal.sokTraffar(atk, [...new Set([...ordAnt, t.ord].filter(o => o.length >= 2))], markera));
 
   traffar.sort((x, y) => String(y.tid).localeCompare(String(x.tid)));
   // Runda 10, r2: varje träff får sin vårdenhet, och filtren räknas på alla synliga träffar, så att användaren ser vad

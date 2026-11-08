@@ -55,12 +55,15 @@ const nyOkKnapp = (u) => (kanOk(u) ? ' <button type="button" class="knapp liten 
 function postRad(p, u) {
   const grad = p.kategori === 'overkanslighet' ? ` <span class="tagg ${p.grad === 'livshotande' ? 'tagg-larm' : ''}">${esc(GRAD[p.grad] ?? '')}${p.bekraftad ? '' : ', föreslagen'}</span>` : '';
   const kod = p.kod ? ` <span class="kod">${esc(p.kod.system === 'atc' ? 'ATC' : 'ICD-10-SE')} ${esc(p.kod.kod)}</span>` : '';
+  // Runda 10, r4: begreppet i Snomed CT ur Socialstyrelsens kodverkslista, och reaktionen vid en överkänslighet.
+  const sct = p.nationell?.snomed?.[0] ? ` <span class="kod">Snomed CT ${esc(p.nationell.snomed[0].kod)}</span>` : '';
+  const reaktion = p.reaktion ? `<span class="under-text">Reaktion: ${esc(p.reaktion.term)} (${esc(p.reaktion.typ.toLowerCase())}${p.reaktion.snomed ? `, Snomed CT ${esc(p.reaktion.snomed.kod)}` : ''}).</span>` : '';
   const vem = p.registrerad?.av ? `av ${esc(p.registrerad.av)}, ${esc(p.registrerad.vardenhet?.namn ?? '')}` : `på ${esc(p.registrerad?.vardenhet?.namn ?? '')}`;
   const nar = p.registrerad?.tid?.length > 10 ? tidpunkt(p.registrerad.tid) : datum(p.registrerad?.tid);
   const gradAv = p.gradBekraftad?.av ? ` Graden bekräftad av ${esc(p.gradBekraftad.av)} ${esc(datum(p.gradBekraftad.tid))}.` : '';
   const avsluta = kanSkriva(u) && p.id && p.kategori !== 'overkanslighet' ? ` <button type="button" class="knapp liten sekundar" data-um-avsluta="${esc(p.id)}" data-um-term="${esc(p.term)}">Avsluta</button>` : '';
-  return `<li><strong>${esc(p.term)}</strong>${grad}${kod}${avsluta}${okKnappar(p, u)}
-    <span class="under-text">${esc(p.undergruppText ?? '')}. ${esc(p.motivering ?? '')}</span>
+  return `<li><strong>${esc(p.term)}</strong>${grad}${kod}${sct}${avsluta}${okKnappar(p, u)}
+    <span class="under-text">${esc(p.undergruppText ?? '')}. ${esc(p.motivering ?? '')}</span>${reaktion}
     <span class="under-text">Registrerad ${esc(nar)} ${vem}.${gradAv}</span>${migreradEtikett(p)}</li>`;
 }
 
@@ -112,10 +115,12 @@ export function forslagRader(h) {
 
 async function laggTill(pid) {
   const { termer } = await api('/api/uppmarksamhet/termer');
-  const grupper = [...new Set(termer.map(t => t.kategoriText))];
+  // Runda 10, r4: listan är Socialstyrelsens kodverkslista, grupperad efter undergrupp.
+  const grupper = [...new Set(termer.map(t => t.undergruppText))];
   const svar = await dialog(`<h2 id="dlg-rubrik">Lägg till uppmärksamhetsinformation</h2>
     <p>Överkänslighet, läkemedelsbehandling, smitta och implantat hämtar systemet själv ur journalen och föreslår. Här finns det som systemet inte kan räkna ut. Välj i listan.</p>
-    <form>${grupper.map(g => `<fieldset class="um-val"><legend>${esc(g)}</legend>${termer.filter(t => t.kategoriText === g).map(t => `<label><input type="radio" name="term" value="${esc(t.id)}"> ${esc(t.term)}<span class="under-text">${esc(t.motivering)}</span></label>`).join('')}</fieldset>`).join('')}
+    <form>${grupper.map(g => `<fieldset class="um-val"><legend>${esc(g)}</legend>${termer.filter(t => t.undergruppText === g).map(t => `<label><input type="radio" name="term" value="${esc(t.id)}"> ${esc(t.term)}${t.motivering ? `<span class="under-text">${esc(t.motivering)}</span>` : ''}</label>`).join('')}</fieldset>`).join('')}
+    <p class="under-text">Termerna är Socialstyrelsens kodverkslista för uppmärksamhetsinformation, version 6.1.2.</p>
     <p class="dialog-fel" role="alert" hidden></p></form>
     <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Registrera</button><button type="button" class="knapp sekundar" data-varde="overk">Registrera en överkänslighet</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div>`,
   { validera: (d, _dl, varde) => (varde === 'ok' && !d.term ? 'Välj en uppgift i listan.' : null) });

@@ -70,6 +70,20 @@ export const NEWS2_PARAMETRAR = [
   { id: 'temp', namn: 'Temperatur', enhet: '°C', poang: (v) => steg(v, [[35.0, 3], [36.0, 1], [38.0, 0], [39.0, 1]], 2) },
 ];
 
+// Runda 10, r4: SpO2 skala 2 i Chart 1, för patienter med andningssvikt med hyperkapné där målet för syremättnaden är
+// 88 till 92 procent. Läkaren beslutar om skalan. På luft ger 88 procent och högre 0 poäng. Med syrgas ger 93 procent
+// och högre poäng, eftersom syremättnaden då är över målet: 93 till 94 ger 1, 95 till 96 ger 2 och 97 eller mer 3.
+export const SKALA2_MAL = 'Målet för syremättnaden är 88 till 92 procent (SpO2 skala 2 i NEWS2).';
+export function saturationSkala2(v, syrgas) {
+  if (v <= 83) return 3;
+  if (v <= 85) return 2;
+  if (v <= 87) return 1;
+  if (v <= 92 || !(syrgas > 0)) return 0;
+  if (v <= 94) return 1;
+  if (v <= 96) return 2;
+  return 3;
+}
+
 // Chart 2 och Chart 4: risknivå, hur ofta kontrollerna ska göras och vad som ska göras.
 export const NEWS2_ATGARD = {
   0: { risk: 'lag', riskText: 'Låg risk', frekvens: 'Kontroller minst var 12:e timme', timmar: 12,
@@ -89,15 +103,18 @@ const tal = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 // Räknar NEWS2 ur värdena { andningsfrekvens, saturation, syrgas, systoliskt, puls, medvetande, temp }. syrgas är
 // liter per minut, 0 för luft. Saknas ett värde är poängen inte komplett: den räknas inte ihop, men en parameter med 3
 // poäng ger ändå larm, eftersom en enskild parameter med 3 poäng kräver åtgärd i sig (Chart 2).
-export function news2(varden) {
+// skala 2 räknar syremättnaden med SpO2 skala 2. Då behövs också uppgiften om luft eller syrgas för att poängen ska räknas.
+export function news2(varden, { skala = 1 } = {}) {
   const delar = [];
   const saknas = [];
   for (const p of NEWS2_PARAMETRAR) {
     const v = p.id === 'medvetande' ? (typeof varden[p.id] === 'string' && ACVPU[varden[p.id]] ? varden[p.id] : null) : tal(varden[p.id]);
     if (v == null) { saknas.push(p.namn); continue; }
-    const poang = p.poang(v);
+    const skala2 = skala === 2 && p.id === 'saturation';
+    if (skala2 && tal(varden.syrgas) == null) { saknas.push(p.namn); continue; }
+    const poang = skala2 ? saturationSkala2(v, tal(varden.syrgas)) : p.poang(v);
     const visning = p.id === 'medvetande' ? `${v}, ${ACVPU[v].text.toLowerCase()}` : p.id === 'syrgas' ? (v > 0 ? `Syrgas ${String(v).replace('.', ',')} L/min` : 'Luft') : `${String(v).replace('.', ',')} ${p.enhet}`;
-    delar.push({ parameter: p.id, namn: p.namn, varde: v, visning, poang });
+    delar.push({ parameter: p.id, namn: skala2 ? `${p.namn}, skala 2` : p.namn, varde: v, visning, poang });
   }
   const komplett = saknas.length === 0;
   const summa = delar.reduce((s, d) => s + d.poang, 0);
@@ -109,7 +126,7 @@ export function news2(varden) {
     risk: a?.risk ?? null, riskText: a?.riskText ?? null, frekvens: a?.frekvens ?? null, kontrollInomTimmar: a?.timmar ?? null,
     atgard: a?.atgard ?? [], larm: niva === 'hog' || niva === 'medel' || niva === 'rod',
     text: news2Text({ komplett, summa, rod, saknas, a }),
-    kalla: NEWS2_KALLA, demoregel: DEMOREGEL,
+    kalla: NEWS2_KALLA, demoregel: DEMOREGEL, skala,
   };
 }
 
@@ -191,7 +208,7 @@ function news2Varde(r) {
   const v = r.varde_num ?? Number(r.varde);
   return Number.isFinite(v) ? v : null;
 }
-export function news2Omgangar(rader) {
+export function news2Omgangar(rader, { skala = 1 } = {}) {
   const relevanta = rader.filter(r => arNews2Typ(r.typ)).map(r => ({ ...r, ms: Date.parse(r.tid) })).filter(r => Number.isFinite(r.ms))
     .sort((a, b) => a.ms - b.ms || a.id - b.id);
   const tider = [...new Set(relevanta.map(r => r.ms))];
@@ -200,6 +217,6 @@ export function news2Omgangar(rader) {
     for (const r of relevanta) if (r.ms <= t && r.ms > t - OMGANG_MS) senaste[NEWS2_TYPER[r.typ]] = r;
     const varden = Object.fromEntries(Object.entries(senaste).map(([k, r]) => [k, news2Varde(r)]));
     const vid = relevanta.filter(r => r.ms === t);
-    return { tid: new Date(t).toISOString(), ankareId: Math.max(...vid.map(r => r.id)), anvanda: Object.values(senaste).map(r => r.id), resultat: news2(varden) };
+    return { tid: new Date(t).toISOString(), ankareId: Math.max(...vid.map(r => r.id)), anvanda: Object.values(senaste).map(r => r.id), resultat: news2(varden, { skala }) };
   });
 }

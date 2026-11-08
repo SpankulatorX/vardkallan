@@ -4,12 +4,14 @@ import { TEST, klickbudgetTest } from '../../krav.js';
 import { FLODEN } from '../../klickbudget.js';
 
 const { M, F, FS } = TEST;
+// Runda 10, r4: Socialstyrelsens kodverkslista (sussa/runda10-r4.js).
+import { UMI } from '../runda10-r4.js';
 const UM = 'Uppmärksamhetsinformation > ';
 const bekrafta = klickbudgetTest(FLODEN.find(f => f.id === 'uppmarksamhet'));
 
 export default [
   {
-    id: '3.1.5.1', kategori: 'system', egna: ['D9', 'D10'], avsedd: 'delvis',
+    id: '3.1.5.1', kategori: 'system', egna: ['D9', 'D10'], avsedd: 'uppfyllt_demo',
     tester: [
       `${UM}strukturen följer huvudgrupperna och undergrupperna i Socialstyrelsens tabell`,
       `${UM}överkänsligheterna som redan finns ingår, med grad, och syns i symbolen`,
@@ -18,10 +20,11 @@ export default [
       `${UM}FHIR: Flag och AllergyIntolerance med samma behörighet och loggning`,
       `${FS}varje tillägg och eget kodsystem har en publicerad definition`,
       `${M}varning: överkänslighet med matchande ATC-prefix`,
+      ...UMI,
     ],
-    losning: 'Uppmärksamhetsinformationen är en egen struktur med Socialstyrelsens fyra huvudgrupper (medicinska tillstånd och behandlingar, smitta, överkänslighet och särskild vårdrutin) och deras undergrupper. Överkänslighet har graderna livshotande, skadlig och besvärande. De överkänsligheter som redan är registrerade ingår direkt. Uppgifterna kodas med ATC och ICD-10-SE och lämnas ut i FHIR som Flag och AllergyIntolerance.',
-    expert: 'Systemet läser läkemedelslistan, diagnoserna och överkänsligheterna och föreslår själv uppmärksamhetsinformation med rätt huvudgrupp, undergrupp, kod och grad. Läkaren bekräftar med ett klick, och ingen uppgift skrivs in två gånger.',
-    anmarkning: 'Strukturen följer huvudgrupperna och undergrupperna i Socialstyrelsens tabell (instruktionen för ändringsförslag, 2025-09-30). Kodverkslistan med Snomed CT-termer och motiveringar är inte inläst, eftersom Socialstyrelsens länkar till specifikationen inte svarade när den söktes, och Snomed CT används inte i demon. Förslagsreglerna är Vårdkällans egna demoregler. Ingen överföring till NPÖ.',
+    losning: 'Uppmärksamhetsinformationen är en egen struktur med Socialstyrelsens fyra huvudgrupper (medicinska tillstånd och behandlingar, smitta, överkänslighet och särskild vårdrutin) och deras undergrupper. Överkänslighet har graderna livshotande, skadlig och besvärande. De överkänsligheter som redan är registrerade ingår direkt. Termerna, koderna och motiveringarna är Socialstyrelsens kodverkslista till informationsspecifikationen version 6.1.2, med 94 termer, ICD-10-SE, ATC och Snomed CT, inläst som data. Varje registrering och varje förslag är en term ur listan med dess koder och motivering, och överkänslighetens reaktion får sin term som varningsinformation eller observandum. Uppgifterna lämnas ut i FHIR som Flag och AllergyIntolerance, med Snomed CT när begreppet finns i den internationella utgåvan.',
+    expert: 'Systemet läser läkemedelslistan, diagnoserna och överkänsligheterna och föreslår själv rätt term ur Socialstyrelsens kodverkslista, med huvudgrupp, undergrupp, koder, motivering och grad. Läkaren bekräftar med ett klick, och ingen behöver kunna kodverkslistan, Snomed CT eller ICD-10-SE.',
+    anmarkning: 'Kodverkslistan är version 6.1.2 (2025-12-15) från E-hälsomyndighetens sida om uppmärksamhetsinformation, där Socialstyrelsens specifikation numera publiceras. Snomed CT kräver licens. Begreppen finns därför bara som id, och texten är kodverkslistans egna rubriker och motiveringar, inte de svenska beskrivningarna i Snomed CT. Vid verklig användning läses den svenska utgåvan in från källan, som andra kodverk i masterdatan. Snomed CT-begrepp i den svenska utgåvans namnrymd lämnas inte ut i FHIR, eftersom validatorn bara har den internationella utgåvan. Att systemet föreslår en term ur journalen är Vårdkällans demoregel. Termer som registrerades före runda 10 med andra namn står kvar som de skrevs. Överföring till NPÖ står inte i kravtexten och är inte byggd.',
   },
   {
     id: '3.1.5.2', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',

@@ -121,6 +121,9 @@ import * as presentationsvyer from './presentationsvyer.js';
 // Runda 10, r3: formulärmotorn och rättstavningen (r10r3-rutter.js), och formulären bland mallarna.
 import { registreraRutter as r10r3Rutter } from './r10r3-rutter.js';
 import { mallarFor as formularMallar } from './formularmotor.js';
+// Runda 10, r4: in- och utfarter, restjournaler och donation (runda10-r4-rutter.js).
+import { registreraRutter as r10r4Rutter, tidslinje as r10r4Tidslinje, inkorg as r10r4Inkorg } from './runda10-r4-rutter.js';
+import { avlidenFor } from './avliden.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -547,6 +550,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       basfakta: vitalparametrar.basfakta(atk, p),
       ...identitetIHuvud(c, p),
       ...utdata.huvud(db, p),
+      // Runda 10, r4: en avliden patient är märkt med datum (avliden.js).
+      avliden: avlidenFor(db, p.id),
     };
   }
 
@@ -584,6 +589,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...(rem ?? []).map(r => ({ tid: r.tider.skickad, typ: 'remiss', rubrik: `Remiss till ${r.till.namn}`, text: r.fragestallning ?? r.status, enhet: r.fran, kalla: r.kalla, kallaEtikett: r.kallaEtikett, ref: { typ: 'remiss', id: r.id } })),
       // Runda 10, r5: uppgifter från en annan vårdgivare genom sammanhållen journalföring, efter samtycke och aktivt val.
       ...sammanhallen.tidslinje(atk, c.s),
+      // Runda 10, r4: in- och utfarter och skannade restjournaler, med samma behörighet som deras egna vyer.
+      ...r10r4Tidslinje(atk),
     ].sort((a, b) => String(b.tid).localeCompare(String(a.tid)));
     // Vårdkontakter, vårdtillfällen och hälsoärenden (vardkontakt.js), byggt av det som redan är filtrerat ovan.
     const vardstruktur = vardkontakt.oversiktDel(atk, { vk, ant, dia, mv, ord, rem });
@@ -684,7 +691,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     return rader.map(p => ({ id: p.id, namn: visningsnamn(p), personnummer: visningsPnr(p), alder: alder(p.fodd, idag()), kon: p.kon, skyddad: Boolean(p.skyddad), vardrelation: harVardrelation(db, p.id, ve),
       identitetstyp: p.id_typ ?? 'personnummer', typText: identitet.TYPER[p.id_typ ?? 'personnummer'].text, traffPa: traffar.get(p.id) ?? null,
       // Runda 6, r1: uppmärksamhetssymbolen med samma regler som i patienthuvudet (Sussa 3.1.5.2).
-      uppmarksamhet: uppmarksamhet.symbolFor(db, c.personal, p.id, valFor(c.s, p.id)) }));
+      uppmarksamhet: uppmarksamhet.symbolFor(db, c.personal, p.id, valFor(c.s, p.id)),
+      // Runda 10, r4: en avliden patient är märkt med datum också i sökningen.
+      avliden: avlidenFor(db, p.id) }));
   }
 
   function vantrum(c) {
@@ -1216,7 +1225,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
 
   // Runda 6, r1: listan med kurvorna och NEWS2 i samma anrop (vitalparametrar.js).
   // Runda 9, r2: med utrustningen och värdena som väntar på bedömning (medicinteknik.js).
-  rutt('GET', '/api/patient/:id/matvarden', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_matvarden', (atk, p) => ({ ...vitalparametrar.matvardesvy(atk, p), mt: mtPatientvy(atk) })); });
+  rutt('GET', '/api/patient/:id/matvarden', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_matvarden', (atk, p) => ({ ...vitalparametrar.matvardesvy(atk, p, c.url.searchParams), mt: mtPatientvy(atk) })); });
   rutt('POST', '/api/patient/:id/matvarden', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'registrera_matvarde', (atk) => vardkontakt.knyt(atk, 'matvarden', journal.registreraMatvarde(atk, c.body), c.body))]; });
 
   rutt('GET', '/api/patient/:id/remisser', (c, id) => {
@@ -1404,6 +1413,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...r9r1Inkorg(c, patientKort, patientRad, valFor),
       // Runda 10, r5: doser av högriskläkemedel som väntar på kollegakontroll, utan patientuppgifter.
       ...r10r5Inkorg(c, patientKort, patientRad, valFor),
+      // Runda 10, r4: förslag om donation till vårdenhetens donationsansvariga (donation.js).
+      ...r10r4Inkorg(c, patientKort, patientRad, valFor),
     });
   });
   // Runda 6, r1: NEWS2-larmen loggas på patienten en gång per session och mätomgång, som raderna om återinsättning.
@@ -1769,6 +1780,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   r10r2Rutter({ rutt, kravInloggad, medPatient, valFor, patientKort });
   // Runda 10, r3 (r10r3-rutter.js).
   r10r3Rutter({ rutt, kravInloggad, medPatient });
+  // Runda 10, r4 (runda10-r4-rutter.js).
+  r10r4Rutter({ rutt, kravInloggad, medPatient, valFor });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
   // visas direkt (bara i den egna sandlådan).
   const kravNagon = (c) => { if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad'); };

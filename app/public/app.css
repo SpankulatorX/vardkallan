@@ -1609,3 +1609,20 @@ textarea.dikteras { outline: 3px solid var(--kalla); outline-offset: 1px; }
 .fb-fraga { border: 1px solid var(--linje); border-radius: var(--r); padding: 10px 12px; margin: 10px 0; background: var(--yta); }
 .fb-forhand { position: sticky; top: 12px; border: 1px solid var(--linje); border-radius: var(--r); padding: 12px; background: var(--yta-2); max-height: calc(100vh - 24px); overflow: auto; }
 @media (max-width: 900px) { .fb-delad { grid-template-columns: minmax(0, 1fr); } .fb-forhand { position: static; max-height: none; } }
+/* Runda 10, r4: in- och utfarter, skannade restjournaler, donation och inmatningen av mätvärden. */
+.if-lista, .rj-lista, .dn-lista { list-style: none; padding: 0; margin: 0 0 16px; display: grid; gap: 8px; }
+.if-rad, .rj-rad, .dn-punkt { border: 1px solid var(--kalla-mellan); border-radius: var(--r); padding: 8px 12px; }
+.if-rad { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; }
+.if-rad p, .rj-rad p, .dn-punkt p { margin: 2px 0; }
+.if-text { flex: 1 1 20rem; min-width: 0; }
+.if-forsenad { border-color: var(--obs-kant); }
+.rj-rad.markerad { outline: 2px solid var(--kalla); }
+.rj-utdrag { white-space: pre-line; font-size: var(--f-xs); overflow-wrap: anywhere; }
+.dn-register { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 0 0 12px; }
+.dn-register dt { font-weight: 600; }
+.dn-register dd { margin: 0; }
+.tagg-maskinell { background: var(--obs-bg); border-color: var(--obs-kant); color: var(--obs); }
+.mv-urval { align-items: flex-end; }
+td .tagg + .under-text { display: block; }
+.tagg-avliden, .signal-avliden { background: var(--obs-bg); border-color: var(--obs-kant); color: var(--obs); }
+td .tagg-avliden { margin-left: 6px; }

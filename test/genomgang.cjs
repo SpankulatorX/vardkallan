@@ -611,7 +611,8 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
       await gaTill(page, '#/patient/p01');
       await forvanta(page, '.ruta-info', 'Journaltext, diagnoser och läkemedel visas inte');
       const flikar = await page.locator('.flikar a').allTextContents();
-      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Remisser', 'Logglista', 'Identitet', 'Utskrifter'])) throw new Error(`flikar ${flikar}`);
+      // Runda 10, r4: vårdadministratören skannar in restjournaler men läser dem inte.
+      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Restjournaler', 'Remisser', 'Logglista', 'Identitet', 'Utskrifter'])) throw new Error(`flikar ${flikar}`);
       if (await page.locator('.signal-overk').count()) throw new Error('överkänslighet visas för vårdadministratören');
       if (await page.locator('.signal-um, .um-forslag').count()) throw new Error('uppmärksamhetsinformation visas för vårdadministratören');
       await bild(page, '19-vardadministrator', true);
@@ -761,14 +762,14 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
       const um = page.locator('.vantrum-tabell tr', { has: page.locator('.skyddad-namn') }).locator('.um-lank');
       if (!(await um.count())) throw new Error('väntrummet visar ingen symbol för den skyddade patienten');
       if (!(await um.getAttribute('title')).includes('Särskild vårdrutin')) throw new Error('symbolen saknar textbeskrivning');
-      await saknas(page, 'Avböjer blodtransfusion');
+      await saknas(page, 'Patienten accepterar ej blod- eller plasmatransfusion');
       await bild(page, '21-vantrum', true);
       await gaTill(page, '#/arbetslista');
       const rad = page.locator('#lista tr', { hasText: 'Ahmed Hassan' });
       if (!(await rad.locator('.um-lank').getAttribute('title')).includes('Smitta')) throw new Error('arbetslistan visar inte smitta för Ahmed Hassan');
       await saknas(page, 'MRSA');
       await rad.locator('.um-lank').click();
-      await forvanta(page, '.patientband .signal-um summary', 'Bärare av MRSA');
+      await forvanta(page, '.patientband .signal-um summary', 'MRSA (meticillinresistenta Staphylococcus aureus)');
     });
     await allaVyer(page, 'Erik Nyström', MENY.klinisk);
     await s('Erik Nyström söker Thomas Lindberg, som akuten saknar vårdrelation med', async () => {
@@ -863,8 +864,8 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
       const flikar = await page.locator('.flikar a').allTextContents();
       // Runda 6, r3: undersköterskan ser vårdplanerna och registrerar sina egna åtgärder under Planer.
       // Runda 8, r1: och fliken Prover, där undersköterskan tar prover och beställer på uppdrag.
-      // Runda 10, r2: och fliken Uppföljning (Sussa 3.1.2.2).
-      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Journal', 'Läkemedel', 'Mätvärden', 'Prover', 'Logglista', 'Identitet', 'Utskrifter', 'Planer', 'Tillämpningar', 'Uppföljning'])) throw new Error(`flikar ${flikar}`);
+      // Runda 10, r2: och fliken Uppföljning (Sussa 3.1.2.2). Runda 10, r4: och In- och utfarter med omvårdnaden.
+      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Journal', 'Läkemedel', 'Mätvärden', 'In- och utfarter', 'Prover', 'Logglista', 'Identitet', 'Utskrifter', 'Planer', 'Tillämpningar', 'Uppföljning'])) throw new Error(`flikar ${flikar}`);
       if (await page.locator('#ov-dia').count()) throw new Error('diagnoser visas');
       await page.click('.flikar a:has-text("Journal")');
       await page.waitForSelector('.j-grupp');
@@ -1835,7 +1836,9 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
         // Runda 10, r5: läkemedelsberättelsen, vaccinationen, sammanhållen journalföring och ankomsten till akuten.
         'lakemedelsberattelse', 'vaccination-riskgrupp', 'sammanhallen', 'akut-ankomst',
         // Runda 10, r3: röstinmatning, rättstavning, sårdokumentation och formulärbyggaren.
-        'diktera', 'stavning', 'formular-sar', 'bygga-formular']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'diktera', 'stavning', 'formular-sar', 'bygga-formular',
+        // Runda 10, r4: in- och utfarter, restjournaler och donation.
+        'registrera-infart', 'skanna-restjournal', 'starta-donation']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

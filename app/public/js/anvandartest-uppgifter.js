@@ -59,6 +59,8 @@ export const STARTPUNKT = {
   'Mätvärden med värden från en kopplad monitor': { hash: '#/patient/p01/matvarden', klar: '[data-mt-godkann]', forbered: 'koppla-monitor' },
   // Runda 10, r3: systemförvaltarens formulär.
   'Systemförvaltarens formulär': { hash: '#/formular', klar: '#fb-lista [data-nytt]' },
+  // Runda 10, r4: inkorgen med förslaget om donation efter ett dödsfall på hjärtintensiven.
+  'Inkorgen med ett förslag om donation': { hash: '#/inkorg', klar: 'section[aria-labelledby="ik-donation"] li', forbered: 'donation' },
 };
 
 export const UPPGIFTER = [
@@ -520,6 +522,22 @@ export const UPPGIFTER = [
     id: 'bygga-formular', namn: 'Bygga ett formulär och föreslå det', roll: 'sysf', start: 'Systemförvaltarens formulär',
     text: 'Avdelningarna vill dokumentera munhälsa. Bygg ett formulär som heter Munhälsa med två frågor: om patienten har ont i munnen och om patienten behöver hjälp med munvården. Föreslå det för godkännande.',
     kontroll: { notis: 'Formuläret är föreslaget' },
+  },
+  // Runda 10, r4: in- och utfarter, skannade restjournaler och donation.
+  {
+    id: 'registrera-infart', namn: 'Registrera en perifer venkateter', roll: 'ssk-kard', start: 'Patientens översikt',
+    text: 'Du har satt en perifer venkateter i Gunnar Åkessons högra handrygg. Registrera den.',
+    kontroll: { notis: 'är registrerad' },
+  },
+  {
+    id: 'skanna-restjournal', namn: 'Skanna in en restjournal', roll: 'adm-kard', start: 'Patientens översikt',
+    text: 'Gunnar Åkessons gamla pappersjournal är skannad till en PDF. Skanna in den i hans journal.',
+    kontroll: { notis: 'Restjournalen är inskannad' },
+  },
+  {
+    id: 'starta-donation', namn: 'Pröva donation efter ett dödsfall på intensivvården', roll: 'lak-kard', start: 'Inkorgen med ett förslag om donation',
+    text: 'Karl-Erik Brandt har avlidit på hjärtintensiven, och du är donationsansvarig läkare. Pröva om han kan bli donator.',
+    kontroll: { notis: 'Donationsutredningen är startad' },
   },
 ];
 

@@ -26,6 +26,8 @@ export { STYR_LAKEMEDEL };
 import * as plan from './planering-bas.js';
 // Runda 7, r4: parametrar som systemförvaltningen kan ändra.
 import * as konfiguration from './konfiguration.js';
+// Runda 10, r4: en avliden patient får inga nya tider och inga kallelser (avliden.js).
+import * as avliden from './avliden.js';
 
 // Tidstyperna. kontaktsatt är vårdkontaktens kontaktsätt, och fysiska besök checkas in.
 export const TIDSTYPER = {
@@ -350,6 +352,8 @@ function konummerFor(db, tid, nar) {
 // vårdrelation till patienten (som en kontakt som vårdkontakt.js skapar). Patienten själv bokar bara där patienten
 // redan har vårdrelation.
 export function skapaBokning(db, { patientId, tid, orsak, av = null, avInvanare = null, vantelistaId = null, remissId = null, bokad = iso(), relation = 1, ersatter = null }) {
+  // Runda 10, r4: ingen ny tid för en patient som har avlidit.
+  avliden.kravInteAvliden(db, patientId);
   const schema = schemaRad(db, tid.schema_id);
   const tt = TIDSTYPER[tid.tidstyp];
   const text = orsak || tid.rubrik || tt.text;
@@ -1061,6 +1065,13 @@ function kallelseTillagg(db, b, tillagg = {}) {
 // Skickar en kallelse, en påminnelse eller ett besked om ändring. Sms och brev är simulerade, och det står i raden.
 export function skickaKallelse(db, b, typ, { av = null, tid = iso(), kanal = null, tillagg = {} } = {}) {
   const p = patientRad(db, b.patient_id);
+  // Runda 10, r4: till en patient som har avlidit skickas ingen kallelse, påminnelse eller sms. Raden visar varför.
+  const dod = avliden.avlidenFor(db, b.patient_id);
+  if (dod) {
+    const id = Number(db.query(`INSERT INTO kallelser (bokning_id, patient_id, typ, kanal, mottagare, text, status, skapad, skickad, skapad_av, forklaring)
+      VALUES (?, ?, ?, NULL, NULL, ?, 'kan_inte', ?, NULL, ?, ?)`).run(b.id, b.patient_id, typ, `${avliden.ORSAK} ${dod.datum}.`, tid, av, `${avliden.ORSAK} ${dod.datum}. Ingen kallelse, påminnelse eller sms skickas.`).lastInsertRowid);
+    return { ...db.query('SELECT * FROM kallelser WHERE id = ?').get(id), sprak: 'sv' };
+  }
   const k = kanalFor(db, p, { typ });
   const valtKanal = kanal && !p.skyddad ? kanal : k.kanal;
   const mottagare = valtKanal === k.kanal ? k.mottagare : valtKanal === 'sms' ? p.telefon : valtKanal === 'brev' ? `${p.adress}, ${p.postnr} ${p.ort}` : 'Min journal';
@@ -1100,6 +1111,23 @@ const kallelserFor = (db, bokningId) => db.query('SELECT k.*, coalesce(s.sprak, 
 
 // Påminnelserna går ut av sig själva 48 timmar före tiden. Demon har ingen schemalagd körning, så servern skickar dem
 // när tidboken eller Min journal används.
+// Runda 10, r4: när patienten har avlidit avbokas alla kommande tider med orsak, utan avbokningsbesked, och posterna på
+// väntelistan avslutas. Ger antalet avbokade tider.
+export function avbokaVidDodsfall(db, patientId, { av = null, nu = new Date() } = {}) {
+  const kommande = db.query("SELECT b.* FROM bokningar b JOIN tider t ON t.id = b.tid_id WHERE b.patient_id = ? AND b.status = 'bokad' AND t.start > ? ORDER BY t.start").all(patientId, nu.toISOString());
+  let n = 0;
+  for (const b of kommande) {
+    if (bokningRad(db, b.id).status !== 'bokad') continue;
+    avbokaRad(db, b, { av, orsak: avliden.ORSAK, kallelse: false });
+    n++;
+  }
+  for (const v of db.query("SELECT * FROM vantelista WHERE patient_id = ? AND status = 'vantar'").all(patientId)) {
+    db.query("UPDATE vantelista SET status = 'avslutad' WHERE id = ?").run(v.id);
+    vlHandelse(db, v.id, 'avslutad', { av, detalj: `${avliden.ORSAK}. Systemet avslutade posten.` });
+  }
+  return n;
+}
+
 export function skickaPaminnelser(db, nu = Date.now()) {
   // Runda 7, r4: timmarna kan ändras av systemförvaltningen (konfiguration.js). DEMOREGLER har standardvärdet.
   const grans = new Date(nu + konfiguration.varde(db, 'tidbok.paminnelse_timmar', new Date(nu)) * TIMME).toISOString();

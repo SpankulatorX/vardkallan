@@ -107,9 +107,30 @@ function news2Html(n, kanReg) {
         <tbody>${a.delar.map(d => `<tr${d.poang === 3 ? ' class="rad-larm"' : ''}><th scope="row">${esc(d.namn)}</th><td>${esc(d.visning)}</td><td>${esc(d.poang)}</td></tr>`).join('')}</tbody></table></details>`
       : '<p class="tom liten">Inga vitalparametrar som du kan se.</p>'}
     ${n.serie.length > 1 ? `<div class="news2-kurva">${news2Svg(n.serie)}</div>` : ''}
-    <p class="under-text">${esc(n.demoregel)} Källa: ${esc(n.kalla)}. Syremättnaden räknas med skala 1.</p>
+    ${skalaHtml(n.skala)}
+    <p class="under-text">${esc(n.demoregel)} Källa: ${esc(n.kalla)}.</p>
     ${n.kunskap ? `<details class="liten"><summary>${esc(n.kunskap.rubrik)}</summary><p>${esc(n.kunskap.text)}</p><p class="demoregel">Källa: ${esc(n.kunskap.kalla)}. ${esc(n.kunskap.demomarkning)}</p></details>` : ''}
   </section>`;
+}
+
+// Runda 10, r4: skalan för syremättnaden. Läkaren får systemets förslag om skala 2 och beslutar med ett klick.
+function skalaHtml(sk) {
+  if (!sk) return '';
+  return `<div class="news2-skala"><p class="under-text">${esc(sk.text)}${sk.beslut ? ` Beslutat ${esc(tidpunkt(sk.beslut.tid))} av ${esc(sk.beslut.av ?? '')}.` : ''}</p>
+    ${sk.forslag ? `<p class="ruta ruta-info liten">${ikon.info}<span>${esc(sk.forslag.text)}</span></p><p class="knapprad"><button type="button" class="knapp liten" data-skala="2">Använd skala 2</button></p>` : ''}
+    ${sk.skala === 2 && sk.kanBesluta ? '<p class="knapprad"><button type="button" class="knapp liten sekundar" data-skala="1">Använd skala 1 igen</button></p>' : ''}</div>`;
+}
+
+// Runda 10, r4: urvalet i listan efter mätvärde, hur värdet kom in och period. Kurvorna och NEWS2 visar alla värden.
+const PERIODER = [['', 'Hela tiden'], ['1', 'Senaste dygnet'], ['7', 'Senaste veckan'], ['30', 'Senaste 30 dagarna']];
+function urvalHtml(u) {
+  if (!u) return '';
+  const val = (namn, id, lista, vald, etikett) => `<div class="falt smal"><label for="${id}">${etikett}</label><select id="${id}" name="${namn}">${lista.map(([v, t]) => `<option value="${esc(v)}"${String(vald ?? '') === v ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></div>`;
+  return `<form class="falt-rad mv-urval" id="mv-urval" aria-label="Urval av mätvärden">
+    ${val('typ', 'mv-u-typ', [['', 'Alla mätvärden'], ...u.typer.map(t => [t.id, t.text])], u.typ, 'Mätvärde')}
+    ${val('inmatning', 'mv-u-inm', [['', 'Alla sätt'], ...u.inmatningar.map(t => [t.id, t.text])], u.inmatning, 'Inmatning')}
+    ${val('dagar', 'mv-u-dagar', PERIODER, u.dagar, 'Period')}
+    <p class="under-text" aria-live="polite">${u.antal} av ${u.totalt} värden.</p></form>`;
 }
 
 function kurvorHtml(kurvor, markerad) {
@@ -121,8 +142,11 @@ function kurvorHtml(kurvor, markerad) {
   </article>`).join('')}</div></section>`;
 }
 
+let urval = new URLSearchParams();
+let urvalFor = null;
 export async function visa(el, ctx) {
-  const d = await api(`/api/patient/${encodeURIComponent(ctx.id)}/matvarden`);
+  if (urvalFor !== ctx.id) { urval = new URLSearchParams(); urvalFor = ctx.id; }
+  const d = await api(`/api/patient/${encodeURIComponent(ctx.id)}/matvarden${urval.toString() ? `?${urval}` : ''}`);
   if (!ctx.aktuell()) return;
   const kanReg = far('registrera_matvarde');
   const markerad = ctx.sub && ctx.sub !== 'ny' ? ctx.sub : null;
@@ -133,10 +157,10 @@ export async function visa(el, ctx) {
     ${kanReg ? '<div id="flera-plats"><p class="knapprad"><button type="button" class="knapp liten sekundar" data-flera-ny>Längd, vikt, blodtryck och puls på en gång</button></p></div>' : ''}
     ${utrustningHtml(d)}
     ${kurvorHtml(d.kurvor ?? [], markerad)}
-    ${d.matvarden.length ? `<section aria-labelledby="mv-alla"><h3 id="mv-alla">Alla värden</h3>
+    ${d.matvarden.length || d.urval?.totalt ? `<section aria-labelledby="mv-alla"><h3 id="mv-alla">Alla värden</h3>${urvalHtml(d.urval)}
       <div class="tabellrulle"><table class="tabell tat">
-        <thead><tr><th scope="col">Tid</th><th scope="col">Mätvärde</th><th scope="col">Värde</th><th scope="col">Enhet där det togs</th><th scope="col">Registrerat av</th></tr></thead>
-        <tbody>${d.matvarden.map(m => `<tr${m.ejSparad ? ' data-ej-sparad' : ''}><td>${esc(tidpunkt(m.tid))}${m.ejSparad ? ' <span class="tagg tagg-larm">Inte sparat i journalen än</span>' : ''}</td><td>${esc(m.namn)}</td><td>${visatVarde(m)}</td><td>${esc(m.vardenhet.namn)}${migreradEtikett(m)}</td><td>${esc(m.registreradAv?.namn ?? '')}${m.bestallning ? `<span class="under-text">Svar från laboratoriet, beställt av ${esc(m.bestallning.bestalldAv ?? '')}</span>` : ''}${klassEtikett(m.klass)}</td></tr>`).join('')}</tbody>
+        <thead><tr><th scope="col">Tid</th><th scope="col">Mätvärde</th><th scope="col">Värde</th><th scope="col">Enhet där det togs</th><th scope="col">Registrerat av</th><th scope="col">Inmatning</th></tr></thead>
+        <tbody>${d.matvarden.map(m => `<tr${m.ejSparad ? ' data-ej-sparad' : ''}><td>${esc(tidpunkt(m.tid))}${m.ejSparad ? ' <span class="tagg tagg-larm">Inte sparat i journalen än</span>' : ''}</td><td>${esc(m.namn)}</td><td>${visatVarde(m)}</td><td>${esc(m.vardenhet.namn)}${migreradEtikett(m)}</td><td>${esc(m.registreradAv?.namn ?? '')}${m.bestallning ? `<span class="under-text">Svar från laboratoriet, beställt av ${esc(m.bestallning.bestalldAv ?? '')}</span>` : ''}${klassEtikett(m.klass)}</td><td><span class="tagg${m.inmatning?.maskinell ? ' tagg-maskinell' : ''}">${esc(m.inmatning?.maskinell ? 'Maskinellt' : m.inmatning?.typ === 'manuell' ? 'Manuellt' : m.inmatning?.typ === 'patient' ? 'Patienten' : 'Migrerat')}</span><span class="under-text">${esc(m.inmatning?.text ?? '')}</span></td></tr>`).join('')}</tbody>
       </table></div></section>` : '<p class="tom">Inga mätvärden som du kan se.</p>'}
     ${egnaHtml(d)}`;
 
@@ -145,7 +169,19 @@ export async function visa(el, ctx) {
     const k = el.querySelector(`#kurva-${CSS.escape(markerad)}`);
     if (k) { k.scrollIntoView({ block: 'center' }); k.querySelector('h4')?.focus({ preventScroll: true }); }
   }
-  el.querySelector('[data-news2-ny]')?.addEventListener('click', () => news2Form(el, ctx));
+  el.querySelector('[data-news2-ny]')?.addEventListener('click', () => news2Form(el, ctx, d.news2?.skala?.skala ?? 1));
+  // Runda 10, r4: skalan för syremättnaden och urvalet i listan.
+  el.querySelectorAll('[data-skala]').forEach(b => b.addEventListener('click', async () => {
+    try {
+      await medKnapp(b, () => api(`/api/patient/${encodeURIComponent(ctx.id)}/news2-skala`, { metod: 'POST', data: { skala: Number(b.dataset.skala) } }));
+      notis(b.dataset.skala === '2' ? 'Syremättnaden räknas nu med skala 2, med målet 88 till 92 procent.' : 'Syremättnaden räknas med skala 1 igen.');
+      ctx.ladda();
+    } catch { /* felet visas som notis */ }
+  }));
+  el.querySelector('#mv-urval')?.addEventListener('change', (e) => {
+    urval = new URLSearchParams([...new FormData(e.currentTarget)].filter(([, v]) => v));
+    ctx.ladda();
+  });
   kopplaMt(el, ctx);
   // Runda 8, r5: flera mätvärden på en gång.
   el.querySelector('[data-flera-ny]')?.addEventListener('click', () => fleraForm(el, ctx));
@@ -233,7 +269,7 @@ function registrering() {
 // samma tid och vårdkontakt.
 const N2 = [['andningsfrekvens', 'Andningsfrekvens', 'andetag/min', 'numeric'], ['saturation', 'Syremättnad', '%', 'numeric'], ['blodtryck', 'Blodtryck', 'mmHg', 'text'],
   ['puls', 'Puls', 'slag/min', 'numeric'], ['temp', 'Temperatur', '°C', 'decimal']];
-function news2Form(el, ctx) {
+function news2Form(el, ctx, skala = 1) {
   const plats = el.querySelector('#news2-plats');
   plats.innerHTML = `<form class="mv-form news2-form" id="news2-form" novalidate aria-labelledby="n2-reg">
     <h3 id="n2-reg" tabindex="-1">NEWS2-kontroll</h3>
@@ -261,7 +297,7 @@ function news2Form(el, ctx) {
     clearTimeout(timer);
     timer = setTimeout(async () => {
       try {
-        const r = await api('/api/news2/berakna', { metod: 'POST', data: varden(), tyst: true });
+        const r = await api('/api/news2/berakna', { metod: 'POST', data: { ...varden(), skala }, tyst: true });
         form.querySelector('[data-forhand]').textContent = r.text;
       } catch { /* förhandsvisningen är bara ett stöd */ }
     }, 250);

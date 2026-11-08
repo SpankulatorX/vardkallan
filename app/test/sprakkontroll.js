@@ -203,6 +203,9 @@ FRASER.push('keystroke-level model', 'Communications of the ACM');
 // intensivvården (MAP är medelartärtrycket, KDIGO riktlinjen för akut njurskada).
 for (const w of ['MDC', 'IHE', 'PCD', 'ORU', 'MSH', 'PID', 'OBR', 'OBX', 'NM', 'ACK', 'MSA', 'AE', 'AR', 'LN', 'VARDKALLAN', 'ÅÅÅÅMMDDTTMMSS', 'MAP', 'KDIGO']) TILLATNA.add(w);
 FRASER.push('IHE PCD Technical Framework', 'Point-of-Care Device Implementation Guide', 'request till ordinationen');
+// Runda 10, r4: in- och utfarterna (perifer och central venkateter, PICC och kvarliggande urinkateter), OCR för de
+// skannade restjournalerna och den simulerade donationskoordinatorn (DAS, donationsansvarig sjuksköterska).
+for (const w of ['PVK', 'PICC', 'CVK', 'KAD', 'OCR', 'GS1', 'DAS', 'DAL']) TILLATNA.add(w);
 
 // Svenska ord som ofta skrivs utan å, ä eller ö. Formen utan prickar är inget eget ord.
 export const UTAN_PRICKAR = new Map(Object.entries({

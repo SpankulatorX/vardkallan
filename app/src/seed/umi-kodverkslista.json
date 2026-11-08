@@ -1,0 +1,1927 @@
+{
+ "kalla": {
+  "namn": "Informationsspecifikation för uppmärksamhetsinformation, version 6.1.2, bilaga kodverkslista (2025-12-9984-bilaga-kodverkslista.xlsx)",
+  "utgivare": "Socialstyrelsen, publicerad av E-hälsomyndigheten",
+  "publicerad": "2025-12-15",
+  "hamtad": "2026-11-08",
+  "url": "https://www.ehalsomyndigheten.se/verksamhet/ndi/interoperabilitet/uppmarksamhetsinformation/",
+  "sha256": "deb89adce3e87447e1b5aba11a6be716326a69a37aa598b884be21eb7c048db9",
+  "snomed": "SCTSE 2025_1",
+  "normalisering": "Termerna, reaktionerna och motiveringarna är kodverkslistans egna rubriker och texter, ordagranna utom att blanktecken är sammanslagna och att ett tankstreck i en term är ersatt med ett kommatecken. Snomed CT-begreppen finns bara som id. Snomed CT kräver licens, och begreppens svenska beskrivningar finns därför inte här. Vid verklig användning läses den svenska utgåvan in från källan, som andra kodverk i masterdatan."
+ },
+ "undergrupper": {
+  "annat_tillstand": {
+   "oid": "1.2.752.116.3.1.16.1.1",
+   "urval": "59821000052101"
+  },
+  "behandling": {
+   "oid": "1.2.752.116.3.1.16.1.2",
+   "urval": "59831000052104"
+  },
+  "implantat": {
+   "oid": "1.2.752.116.3.1.16.1.3",
+   "urval": "59841000052105"
+  },
+  "transplantat": {
+   "oid": "1.2.752.116.3.1.16.1.4",
+   "urval": "113471000052100"
+  },
+  "smittamne": {
+   "oid": "1.2.752.116.3.1.16.1.5",
+   "urval": "59851000052108"
+  },
+  "smittsam_sjukdom": {
+   "oid": "1.2.752.116.3.1.16.1.6",
+   "urval": "60661000052106"
+  },
+  "kemikalie": {
+   "oid": null,
+   "urval": "59871000052102"
+  },
+  "information": {
+   "oid": null,
+   "urval": "59881000052100"
+  },
+  "beslut": {
+   "oid": null,
+   "urval": "103491000052103"
+  }
+ },
+ "termer": [
+  {
+   "id": "angioneurotiskt-odem",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Angioneurotiskt ödem",
+   "icd": [
+    "T78.3"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "41291007"
+    }
+   ],
+   "material": [],
+   "motivering": "Patienten kan få akut svullnad i hud och slemhinnor i ansiktet och övre luftvägarna. Kan ha ett snabbt förlopp med plötsligt luftvägshinder och andningssvikt som följd om behandling inte sätts in snabbt."
+  },
+  {
+   "id": "langt-qt-syndrom-lqts",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Långt QT-syndrom (LQTS)",
+   "icd": [
+    "I49.8E"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "9651007"
+    }
+   ],
+   "material": [],
+   "motivering": "En ledningsstörning i hjärtat som gör att patienten riskerar livshotande arytmier. Patienterna måste undvika ett antal läkemedel som förlänger QT-tiden."
+  },
+  {
+   "id": "pulmonell-hypertension",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Pulmonell hypertension",
+   "icd": [
+    "I27.0",
+    "I27.2"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "70995007"
+    }
+   ],
+   "material": [],
+   "motivering": "Pulmonell hypertoni är förhöjt blodtryck i lungkretsloppet. Beroende på den bakomliggande orsaken kan patienter vara utsatta för hjärtsvikt, andningssvikt och blodproppar."
+  },
+  {
+   "id": "addisons-sjukdom",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Addisons sjukdom",
+   "icd": [
+    "E27.1"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "373662000"
+    },
+    {
+     "kod": "363732003"
+    }
+   ],
+   "material": [],
+   "motivering": "Patienten har behov av kortisonsubstitution i samband med annat insjuknande, till exempel infektion."
+  },
+  {
+   "id": "malign-hypertermikanslighet",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Malign hypertermikänslighet",
+   "icd": [
+    "T88.3"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "405501007"
+    }
+   ],
+   "material": [],
+   "motivering": "Malign hypertermi är ett tillstånd där vissa läkemedel vid narkos kan ge en livshotande temperaturstegring. Patienter med denna benägenhet måste undvika utlösande läkemedel i framtiden."
+  },
+  {
+   "id": "koagulationsrubbningar",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Koagulationsrubbningar",
+   "icd": [
+    "D66.9",
+    "D67.9",
+    "D68.0",
+    "D68.1",
+    "D68.2",
+    "D68.3",
+    "D68.4",
+    "D68.5",
+    "D68.6",
+    "D68.8",
+    "D68.9"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "64779008"
+    }
+   ],
+   "material": [],
+   "motivering": "Blödningsrubbningar som orsakar fördröjd blodkoagulering så att patienten kan dö av blodförlust eller skador på organen. Särskild försiktighet måste iakttas vid operation och vid akut skada."
+  },
+  {
+   "id": "trombocytrelaterad-sjukdom-med-okad-blodningstendens",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Trombocytrelaterad sjukdom med ökad blödningstendens",
+   "icd": [
+    "D69.0",
+    "D69.1",
+    "D69.3",
+    "D69.4",
+    "D69.5",
+    "D69.6",
+    "M31.1"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "53891000052101"
+    },
+    {
+     "kod": "126729006"
+    }
+   ],
+   "material": [],
+   "motivering": "Brist på eller dysfunktionella blodplättar orsakar fördröjd blodkoagulering så att patienten kan dö av blodförlust eller skador på organ. Särskild försiktighet måste iakttas vid operation och vid akut skada."
+  },
+  {
+   "id": "trombofili",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Trombofili",
+   "icd": [
+    "D68.5",
+    "D68.6"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "234467004"
+    }
+   ],
+   "material": [],
+   "motivering": "Patienter med onormal tendens att få blodproppar. Blodproppar kan koncentrera sig till lungorna och hjärnan och orsaka livshotande komplikationer. Speciella förebyggande åtgärder måste vidtas i olika behandlingar."
+  },
+  {
+   "id": "myasthenia-gravis",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Myasthenia gravis",
+   "icd": [
+    "G70.0"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "91637004"
+    }
+   ],
+   "material": [],
+   "motivering": "En autoimmun sjukdom i nervsystemet som påverkar andningen. Upp till en femtedel av patienterna kan uppleva kriser där de utvecklar akut andningssvikt. Kräver försiktighet vid anestesi. Läkemedelsbehandlingen kan ge kolinerga kriser."
+  },
+  {
+   "id": "akut-intermittent-porfyri",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Akut intermittent porfyri",
+   "icd": [
+    "E80.2A"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "234422006"
+    }
+   ],
+   "material": [],
+   "motivering": "Porfyri är en störning av ämnesomsättningen av hem. Patienter kan få en rad svåra symptom från centrala nervsystemet, hjärtat, gastrointestinala systemet och huden. De bör undvika ett urval av läkemedel och mat, exakt vilka avgörs av varianten på porfyri. För akuta porfyrier är reaktionerna snabbare och justering av handläggning mer brådskande. Här har vi valt de porfyrier som påverkas kraftigt av vissa läkemedel."
+  },
+  {
+   "id": "porfyria-variegata",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Porfyria variegata",
+   "icd": [
+    "E80.2D"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "58275005"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "hereditar-koproporfyri",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Hereditär koproporfyri",
+   "icd": [
+    "E80.2B"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "7425008"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "alad-bristporfyri",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "ALAD-bristporfyri",
+   "icd": [
+    "E80.2W"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "64081000"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "pseudokolinesterasbrist",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Pseudokolinesterasbrist",
+   "icd": [
+    "E88.0",
+    "E88.0W"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "360631004"
+    }
+   ],
+   "material": [],
+   "motivering": "Pseudokolinesterasbrist är enzymbrist som leder till att muskelavslappnande medel bryts ner långsammare än normalt vilket kan orsaka förlamning och andningssvikt under lång tid efter administrering."
+  },
+  {
+   "id": "anestesiproblem",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Anestesiproblem",
+   "icd": [
+    "T88.2",
+    "T88.3",
+    "T88.5"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "33211000"
+    }
+   ],
+   "material": [],
+   "motivering": "Konstaterade anestesikomplikationer vars konsekvenser beror på såväl komplikationens natur och nu aktuell situation."
+  },
+  {
+   "id": "svarintuberad",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Svårintuberad",
+   "icd": [
+    "T88.4"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "718447001"
+    }
+   ],
+   "material": [],
+   "motivering": "Konstaterad intubationssvårighet som kan medföra svårigheter vid nya intubationsförsök."
+  },
+  {
+   "id": "aspleni",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Aspleni",
+   "icd": [
+    "D73.0",
+    "Q89.0"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "707147002"
+    }
+   ],
+   "material": [],
+   "motivering": "Patienter utan fungerande mjälte riskerar att få svåra infektioner av kapselbärande bakterier."
+  },
+  {
+   "id": "svar-kombinerad-immunbrist-scid",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Svår kombinerad immunbrist (SCID)",
+   "icd": [
+    "D81"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "31323000"
+    }
+   ],
+   "material": [],
+   "motivering": "patienter med svårare immunbristtillstånd av denna typ uppvisar inte typiska symptom vid infektion"
+  },
+  {
+   "id": "agranulocytos",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Agranulocytos",
+   "icd": [
+    "D70.9A"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "17182001"
+    }
+   ],
+   "material": [],
+   "motivering": "patienter med svårare immunbristtillstånd av denna typ uppvisar inte typiska symptom vid infektion"
+  },
+  {
+   "id": "kostmanns-sjukdom",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Kostmanns sjukdom",
+   "icd": [
+    "D70.9B"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "770942003"
+    }
+   ],
+   "material": [],
+   "motivering": "patienter med svårare immunbristtillstånd av denna typ uppvisar inte typiska symptom vid infektion"
+  },
+  {
+   "id": "shwachmans-syndrom",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Shwachmans syndrom",
+   "icd": [
+    "D70.9D"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "89454001"
+    }
+   ],
+   "material": [],
+   "motivering": "patienter med svårare immunbristtillstånd av denna typ uppvisar inte typiska symptom vid infektion"
+  },
+  {
+   "id": "storning-av-neutrofilfunktion",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Störning av neutrofilfunktion",
+   "icd": [
+    "D71.9"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "203551000052109"
+    }
+   ],
+   "material": [],
+   "motivering": "patienter med svårare immunbristtillstånd av denna typ uppvisar inte typiska symptom vid infektion"
+  },
+  {
+   "id": "anlagd-av-fistel",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Anlagd AV-fistel",
+   "icd": [
+    "I77.0"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "439784005"
+    }
+   ],
+   "material": [],
+   "motivering": "Patient med AV-fistel har/har haft/planeras för hemodialys via denna. Viktigt att inte skada den till exempel genom att stoppa blodflöde i samma arm."
+  },
+  {
+   "id": "maple-syrup-urine-disease-msud",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Maple-syrup-urine disease [MSUD]",
+   "icd": [
+    "E71.0"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "27718001"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "rubbning-i-omsattningen-av-grenade-aminosyror-ospecificerad",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Rubbning i omsättningen av grenade aminosyror, ospecificerad",
+   "icd": [
+    "E71.2"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "116020001"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "rubbningar-i-fettsyraomsattningen",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Rubbningar i fettsyraomsättningen",
+   "icd": [
+    "E71.3"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "39929009"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "hyperleucin-isoleucinemi",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Hyperleucin-isoleucinemi",
+   "icd": [
+    "E71.1A"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "7046009"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "isovalerisk-acidemi",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Isovalerisk acidemi",
+   "icd": [
+    "E71.1B"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "87827003"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "metylmalonisk-acidemi",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Metylmalonisk acidemi",
+   "icd": [
+    "E71.1C"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "42393006"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "propionisk-acidemi",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Propionisk acidemi",
+   "icd": [
+    "E71.1D"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "69080001"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "karnitincykel-transportdefekter",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Karnitincykel/transportdefekter",
+   "icd": [
+    "E71.3A"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "1156591005"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "betaoxidationsrubbningar",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Betaoxidationsrubbningar",
+   "icd": [
+    "E71.3B"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "1156591005"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "acyl-co-enzym-a-dehydrogenas-brist",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Acyl-co-enzym A-dehydrogenas-brist",
+   "icd": [
+    "E71.3C"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "82319005"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "rubbningar-i-urinamnesomsattningen",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Rubbningar i urinämnesomsättningen",
+   "icd": [
+    "E72.2"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "36444000"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "rubbningar-i-lysin-och-hydroxylysinomsattningen",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Rubbningar i lysin- och hydroxylysinomsättningen",
+   "icd": [
+    "E72.3"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "237929000"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "arginobarnstenssyruri",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Arginobärnstenssyruri",
+   "icd": [
+    "E72.2B"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "41013004"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "citrullinemi",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Citrullinemi",
+   "icd": [
+    "E72.2C"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "398680004"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "glykogeninlagringssjukdom",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Glykogeninlagringssjukdom",
+   "icd": [
+    "E74.0"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "29633007"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "rubbningar-i-fruktosomsattningen",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Rubbningar i fruktosomsättningen",
+   "icd": [
+    "E74.1"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "39452003"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "rubbningar-i-pyruvatomsattning-och-glukoneogenes",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Rubbningar i pyruvatomsättning och glukoneogenes",
+   "icd": [
+    "E74.4"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "190760009"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "amnesomsattningssjukdom-ospecificerad",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Ämnesomsättningssjukdom, ospecificerad",
+   "icd": [
+    "E88.9"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "75934005"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "andra-specificerade-rubbningar-i-purin-och-pyrimidinomsattni",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Andra specificerade rubbningar i purin- och pyrimidinomsättningen",
+   "icd": [
+    "E79.8"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "238006008"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "mitokondriell-myopati-som-ej-klassificeras-pa-annan-plats",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Mitokondriell myopati som ej klassificeras på annan plats",
+   "icd": [
+    "G71.3"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "16851005"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "kongenital-binjurebarkshyperplasi-cah",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Kongenital binjurebarkshyperplasi (CAH)",
+   "icd": [
+    "E25.0"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "237751000"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "food-protein-induced-enterocolitis-syndrome-fpies",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Food protein induced enterocolitis syndrome (FPIES)",
+   "icd": [
+    "K52.2"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "737315000"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "anlagt-av-graft",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "Anlagt AV-graft",
+   "icd": [
+    "I77.0"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "439218000"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "sallsynt-halsotillstand-som-behover-uppmarksammas-sarskilt",
+   "kategori": "medicinskt",
+   "undergrupp": "annat_tillstand",
+   "term": "sällsynt hälsotillstånd som behöver uppmärksammas särskilt",
+   "icd": [],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "614151000052101"
+    }
+   ],
+   "material": [],
+   "motivering": "Koden ”Patient med sällsynt hälsotillstånd som behöver uppmärksammas särskilt” ska användas i Uppmärksamhetsinformation (UMI) när patienten har ett sällsynt hälsotillstånd som behöver uppmärksammas särskilt och som uppfyller kriterierna för uppmärksamhetsinformation, se Socialstyrelsens hemsida. Koden ska inte användas när patienten har en diagnos som redan omfattas av befintliga tillstånd i UMI, eller för tillstånd som normalt kan hanteras inom ramen för ordinarie handläggning inom hälso- och sjukvård såsom mottagningsverksamhet, vårdförberedelse eller planerad vård. UMI bör för denna patientgrupp i första hand införas av läkare med god kännedom om tillståndet och/eller ansvarig läkare med god kännedom om patientens vårdbehov och omständigheter. Bedömningen ska göras med beaktande av att UMI ska användas restriktivt. Om journalsystemet och regionala rutiner tillåter, kan ytterligare information om tillståndet eller hänvisning till särskilt vårdtillfälle/journalanteckning med fördel inkluderas"
+  },
+  {
+   "id": "antikoagulantiabehandling",
+   "kategori": "medicinskt",
+   "undergrupp": "behandling",
+   "term": "Antikoagulantiabehandling",
+   "icd": [
+    "Z92.1"
+   ],
+   "kombination": false,
+   "atc": [
+    "B01AA",
+    "B01AB",
+    "B01AE",
+    "B01AF"
+   ],
+   "snomed": [],
+   "material": [],
+   "motivering": "Behandlingen medför fördröjd blodkoagulering så att patienten kan dö av blodförlust eller skador på organen. Särskild försiktighet måste iakttas vid operation och vid akut skada."
+  },
+  {
+   "id": "warfarinbehandling",
+   "kategori": "medicinskt",
+   "undergrupp": "behandling",
+   "term": "Warfarinbehandling",
+   "icd": [
+    "Z92.1"
+   ],
+   "kombination": false,
+   "atc": [
+    "B01AA03"
+   ],
+   "snomed": [],
+   "material": [],
+   "motivering": "Behandlingen medför fördröjd blodkoagulering så att patienten kan dö av blodförlust eller skador på organen. Särskild försiktighet måste iakttas vid operation och vid akut skada."
+  },
+  {
+   "id": "cytostatikabehandling",
+   "kategori": "medicinskt",
+   "undergrupp": "behandling",
+   "term": "Cytostatikabehandling",
+   "icd": [],
+   "kombination": false,
+   "atc": [
+    "L01"
+   ],
+   "snomed": [],
+   "material": [],
+   "motivering": "Kemoterapi, cytostatika, ger vanligen en ökad risk för blödning och infektioner, särskilt i vissa faser under respektive behandling."
+  },
+  {
+   "id": "immunmodulerande-behandling",
+   "kategori": "medicinskt",
+   "undergrupp": "behandling",
+   "term": "Immunmodulerande behandling",
+   "icd": [],
+   "kombination": false,
+   "atc": [
+    "L03A",
+    "L04"
+   ],
+   "snomed": [],
+   "material": [],
+   "motivering": "Patienter med immunterapi har ofta en ökad infektionsrisk."
+  },
+  {
+   "id": "beroende-av-icke-invasiv-ventilation",
+   "kategori": "medicinskt",
+   "undergrupp": "behandling",
+   "term": "Beroende av icke-invasiv ventilation",
+   "icd": [],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "243142003"
+    }
+   ],
+   "material": [],
+   "motivering": "Sköra patienter med risk för snabb akut försämring. Syns ej på \"utsidan\" att de har ventilator. Risk för allvarlig patientskada vid felbehandling."
+  },
+  {
+   "id": "dialysbehandling",
+   "kategori": "medicinskt",
+   "undergrupp": "behandling",
+   "term": "Dialysbehandling",
+   "icd": [
+    "Z99.2"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "385971003"
+    }
+   ],
+   "material": [],
+   "motivering": "Patienter med dialysbehandling har nedsatt förmåga att ta hand om läkemedel och födoämnen som elimineras via njurarna, till exempel banan som är naturligt kaliumrik."
+  },
+  {
+   "id": "implanterbar-defibrillator-icd-implantable-cardioverter-defi",
+   "kategori": "medicinskt",
+   "undergrupp": "implantat",
+   "term": "Implanterbar defibrillator (ICD, implantable cardioverter-defibrillator)",
+   "icd": [
+    "Z95.0"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "72506001"
+    }
+   ],
+   "material": [],
+   "motivering": "Patienter med en implanterbar defibrillator har ökad risk för arytmier. Magnetiska metallföremål i/på kroppen som inte kan tas loss medför en risk för vävnadsskada när ett magnetfält anläggs under magnetkameraundersökning."
+  },
+  {
+   "id": "pacemaker",
+   "kategori": "medicinskt",
+   "undergrupp": "implantat",
+   "term": "Pacemaker",
+   "icd": [
+    "Z95.0"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "14106009"
+    }
+   ],
+   "material": [],
+   "motivering": "Patienter med pacemaker kan ha ökad risk för arytmier. Magnetiska metallföremål i/på kroppen som inte kan tas loss medför en risk för vävnadsskada när ett magnetfält anläggs under magnetkameraundersökning."
+  },
+  {
+   "id": "mekanisk-hjartklaffprotes",
+   "kategori": "medicinskt",
+   "undergrupp": "implantat",
+   "term": "Mekanisk hjärtklaffprotes",
+   "icd": [
+    "Z95.2",
+    "Z95.4"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "705991002"
+    }
+   ],
+   "material": [],
+   "motivering": "Patient med mekanisk hjärtklaffprotes har ökad trombosbenägenhet. Det är därför viktigt med adekvat antikoagulantiaterapi, som i sin tur kan ge ökad blödningsbenägenhet. Magnetiska metallföremål i/på kroppen som inte kan tas loss medför en risk för vävnadsskada när ett magnetfält anläggs under magnetkameraundersökning."
+  },
+  {
+   "id": "intrakraniella-coils",
+   "kategori": "medicinskt",
+   "undergrupp": "implantat",
+   "term": "Intrakraniella coils",
+   "icd": [],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "72821000052105"
+    }
+   ],
+   "material": [],
+   "motivering": "Magnetiska intrakraniella metaller kan riskera skador vid anläggning av magnetfält, till exempel vid magnetkameraundersökningar."
+  },
+  {
+   "id": "intrakraniella-vaskulara-clips",
+   "kategori": "medicinskt",
+   "undergrupp": "implantat",
+   "term": "Intrakraniella vaskulära clips",
+   "icd": [],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "72811000052102"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "shunt-i-centrala-nervsystemet",
+   "kategori": "medicinskt",
+   "undergrupp": "implantat",
+   "term": "Shunt i centrala nervsystemet",
+   "icd": [
+    "Z98.2"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "258593008"
+    }
+   ],
+   "material": [],
+   "motivering": "Patienter med dränage av cerebrospinalvätska kan få problem med avflödeshinder och förhöjt intrakraniellt tryck."
+  },
+  {
+   "id": "trakealstent",
+   "kategori": "medicinskt",
+   "undergrupp": "implantat",
+   "term": "Trakealstent",
+   "icd": [],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "360100007"
+    }
+   ],
+   "material": [],
+   "motivering": "Patienter med trakealstent har ökad risk för infektioner och risk för skada vid intubation."
+  },
+  {
+   "id": "insulinpump",
+   "kategori": "medicinskt",
+   "undergrupp": "implantat",
+   "term": "Insulinpump",
+   "icd": [],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "69805005"
+    }
+   ],
+   "material": [],
+   "motivering": "Patienter med insulinpump har en risk för såväl sänkt som förhöjt blodsocker. Magnetiska metallföremål i/på kroppen som inte kan tas loss medför en risk för vävnadsskada när ett magnetfält anläggs under magnetkameraundersökning."
+  },
+  {
+   "id": "artificiell-uretrasfinkter",
+   "kategori": "medicinskt",
+   "undergrupp": "implantat",
+   "term": "Artificiell Uretrasfinkter",
+   "icd": [
+    "Z96.0"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "261680000"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "cochleaimplantat",
+   "kategori": "medicinskt",
+   "undergrupp": "implantat",
+   "term": "Cochleaimplantat",
+   "icd": [
+    "Z96.2"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "43252007"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "neurostimulator-i-centrala-nervsystemet",
+   "kategori": "medicinskt",
+   "undergrupp": "implantat",
+   "term": "Neurostimulator i centrala nervsystemet",
+   "icd": [
+    "Z96.8"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "1351253007"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "vagusnervstimulator",
+   "kategori": "medicinskt",
+   "undergrupp": "implantat",
+   "term": "Vagusnervstimulator",
+   "icd": [
+    "Z96.8"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "447033006"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "frenikusstimulator-diafragmal-pacemaker",
+   "kategori": "medicinskt",
+   "undergrupp": "implantat",
+   "term": "Frenikusstimulator/diafragmal pacemaker",
+   "icd": [
+    "Z96.8"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "705545001"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "hjartpump-for-vanster-kammare",
+   "kategori": "medicinskt",
+   "undergrupp": "implantat",
+   "term": "Hjärtpump för vänster kammare",
+   "icd": [
+    "Z99.4"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "360066001"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "pacemakerelektrod",
+   "kategori": "medicinskt",
+   "undergrupp": "implantat",
+   "term": "Pacemakerelektrod",
+   "icd": [
+    "Z95.0"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "360125003"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "transkutant-benledarimplantat",
+   "kategori": "medicinskt",
+   "undergrupp": "implantat",
+   "term": "Transkutant benledarimplantat",
+   "icd": [
+    "Z96.2"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "1010731003"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "stamcellstransplanterad",
+   "kategori": "medicinskt",
+   "undergrupp": "transplantat",
+   "term": "Stamcellstransplanterad",
+   "icd": [
+    "Z94.8"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "413781000052107"
+    }
+   ],
+   "material": [
+    {
+     "kod": "413679007"
+    },
+    {
+     "kod": "413604003"
+    },
+    {
+     "kod": "413478009"
+    }
+   ],
+   "motivering": "Benmärgstransplanterade patienter har initialt kraftigt ökad infektionskänslighet."
+  },
+  {
+   "id": "hjarttransplanterad",
+   "kategori": "medicinskt",
+   "undergrupp": "transplantat",
+   "term": "Hjärttransplanterad",
+   "icd": [
+    "Z94.1"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "739024006"
+    }
+   ],
+   "material": [
+    {
+     "kod": "420291005"
+    }
+   ],
+   "motivering": "Organmottagare har risk för avstötningsreaktioner samt ökad risk för infektioner på grund av immunsupprimerande läkemedelsbehandling."
+  },
+  {
+   "id": "levertransplanterad",
+   "kategori": "medicinskt",
+   "undergrupp": "transplantat",
+   "term": "Levertransplanterad",
+   "icd": [
+    "Z94.4"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "737297006"
+    }
+   ],
+   "material": [
+    {
+     "kod": "421751001"
+    }
+   ],
+   "motivering": "Organmottagare har risk för avstötningsreaktioner samt ökad risk för infektioner på grund av immunsupprimerande läkemedelsbehandling."
+  },
+  {
+   "id": "lungtransplanterad",
+   "kategori": "medicinskt",
+   "undergrupp": "transplantat",
+   "term": "Lungtransplanterad",
+   "icd": [
+    "Z94.2"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "737296002"
+    }
+   ],
+   "material": [
+    {
+     "kod": "421525000"
+    }
+   ],
+   "motivering": "Organmottagare har risk för avstötningsreaktioner samt ökad risk för infektioner på grund av immunsupprimerande läkemedelsbehandling."
+  },
+  {
+   "id": "njurtransplanterad",
+   "kategori": "medicinskt",
+   "undergrupp": "transplantat",
+   "term": "Njurtransplanterad",
+   "icd": [
+    "Z94.0"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "737295003"
+    }
+   ],
+   "material": [
+    {
+     "kod": "420852008"
+    }
+   ],
+   "motivering": "Organmottagare har risk för avstötningsreaktioner samt ökad risk för infektioner på grund av immunsupprimerande läkemedelsbehandling."
+  },
+  {
+   "id": "pankreastransplanterad",
+   "kategori": "medicinskt",
+   "undergrupp": "transplantat",
+   "term": "Pankreastransplanterad",
+   "icd": [
+    "Z94.8"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "73111000052103"
+    }
+   ],
+   "material": [
+    {
+     "kod": "421263007"
+    }
+   ],
+   "motivering": "Organmottagare har risk för avstötningsreaktioner samt ökad risk för infektioner på grund av immunsupprimerande läkemedelsbehandling."
+  },
+  {
+   "id": "tarmtransplanterad",
+   "kategori": "medicinskt",
+   "undergrupp": "transplantat",
+   "term": "Tarmtransplanterad",
+   "icd": [
+    "Z94.8"
+   ],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "73131000052108"
+    }
+   ],
+   "material": [
+    {
+     "kod": "73341000052100"
+    }
+   ],
+   "motivering": "Organmottagare har risk för avstötningsreaktioner samt ökad risk för infektioner på grund av immunsupprimerande läkemedelsbehandling."
+  },
+  {
+   "id": "mrsa-meticillinresistenta-staphylococcus-aureus",
+   "kategori": "smitta",
+   "undergrupp": "smittamne",
+   "term": "MRSA (meticillinresistenta Staphylococcus aureus)",
+   "icd": [
+    "Z22.3C",
+    "B95.6",
+    "U82.1"
+   ],
+   "kombination": true,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "432415000"
+    }
+   ],
+   "material": [],
+   "motivering": "Förekomst av MRSA påverkar valet av antibiotika för den enskilda patienten."
+  },
+  {
+   "id": "vre-vankomycinresistenta-enterokocker",
+   "kategori": "smitta",
+   "undergrupp": "smittamne",
+   "term": "VRE (vankomycinresistenta enterokocker)",
+   "icd": [
+    "Z22.3W",
+    "B95.2",
+    "U83.0"
+   ],
+   "kombination": true,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "431109006"
+    }
+   ],
+   "material": [],
+   "motivering": "Förekomst av VRE påverkar valet av antibiotika för den enskilda patienten."
+  },
+  {
+   "id": "tarmbakterier-som-bildar-esbl-extended-spectrum-beta-lactama",
+   "kategori": "smitta",
+   "undergrupp": "smittamne",
+   "term": "Tarmbakterier som bildar ESBL (Extended Spectrum Beta-Lactamase)",
+   "icd": [
+    "Z22.1",
+    "B96.1",
+    "U82.2"
+   ],
+   "kombination": true,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "762988003"
+    }
+   ],
+   "material": [],
+   "motivering": "Förekomst av ESBL påverkar valet av antibiotika för den enskilda patienten."
+  },
+  {
+   "id": "tarmbakterier-som-bildar-esbl-carba",
+   "kategori": "smitta",
+   "undergrupp": "smittamne",
+   "term": "Tarmbakterier som bildar ESBL CARBA",
+   "icd": [
+    "Z22.1",
+    "B96.1",
+    "U82.2C"
+   ],
+   "kombination": true,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "61751000052107"
+    }
+   ],
+   "material": [],
+   "motivering": "Förekomst av ESBL-CARBA påverkar valet av antibiotika för den enskilda patienten."
+  },
+  {
+   "id": "blodsmitta-hos-gravid",
+   "kategori": "smitta",
+   "undergrupp": "smittsam_sjukdom",
+   "term": "Blodsmitta hos gravid",
+   "icd": [],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "64301000052105"
+    }
+   ],
+   "material": [],
+   "motivering": "Vid förekomst av blodsmitta hos den gravida kvinnan ökar risken att smittan överförs till barnet om inte särskilda anpassningar av vårdrutiner görs."
+  },
+  {
+   "id": "klorhexidin",
+   "kategori": "overkanslighet",
+   "undergrupp": "kemikalie",
+   "term": "Klorhexidin",
+   "icd": [],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "373568007"
+    }
+   ],
+   "material": [],
+   "motivering": "En av de kända orsakerna till perioperativ anafylaxi."
+  },
+  {
+   "id": "latex",
+   "kategori": "overkanslighet",
+   "undergrupp": "kemikalie",
+   "term": "Latex",
+   "icd": [],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "111088007"
+    }
+   ],
+   "material": [],
+   "motivering": "IgE-medierad latexallergi kan undvikas med syntetiska handskar och puderfria latexhandskar."
+  },
+  {
+   "id": "taurolidin",
+   "kategori": "overkanslighet",
+   "undergrupp": "kemikalie",
+   "term": "Taurolidin",
+   "icd": [],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "281000220103"
+    }
+   ],
+   "material": [],
+   "motivering": null
+  },
+  {
+   "id": "hotbild-mot-patient",
+   "kategori": "vardrutin",
+   "undergrupp": "information",
+   "term": "Hotbild mot patient",
+   "icd": [],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "60781000052105"
+    }
+   ],
+   "material": [],
+   "motivering": "När patienten har en hotbild mot sig behöver hälso- och sjukvården vara medveten om detta för att inte exponera patienten för risker av misstag."
+  },
+  {
+   "id": "deltagare-i-klinisk-lakemedelsprovning",
+   "kategori": "vardrutin",
+   "undergrupp": "information",
+   "term": "Deltagare i klinisk läkemedelsprövning",
+   "icd": [],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "713670002"
+    }
+   ],
+   "material": [],
+   "motivering": "Om patienten ingår i klinisk läkemedelsprövning bör denna information finnas tillgänglig för att monitorera patientens situation samt undvika kontraindicerade åtgärder."
+  },
+  {
+   "id": "deltar-i-klinisk-provning",
+   "kategori": "vardrutin",
+   "undergrupp": "information",
+   "term": "Deltar i klinisk prövning",
+   "icd": [],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "1304232008"
+    }
+   ],
+   "material": [],
+   "motivering": "Om patienten ingår i klinisk prövning bör denna information finnas tillgänglig för att monitorera patientens situation samt undvika kontraindicerade åtgärder."
+  },
+  {
+   "id": "patienten-accepterar-ej-blod-eller-plasmatransfusion",
+   "kategori": "vardrutin",
+   "undergrupp": "information",
+   "term": "Patienten accepterar ej blod- eller plasmatransfusion",
+   "icd": [],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "699128009"
+    }
+   ],
+   "material": [],
+   "motivering": "Vanligtvis är hälso- och sjukvård frivillig och då bör patientens eventuella avståndstaganden från viss vård (till exempel mottagande av blod- eller plasmatransfusion) framgå."
+  },
+  {
+   "id": "patienten-accepterar-ej-autolog-blodtransfusion-eller-cellsa",
+   "kategori": "vardrutin",
+   "undergrupp": "information",
+   "term": "Patienten accepterar ej autolog blodtransfusion eller cellsaver",
+   "icd": [],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "60761000052104"
+    }
+   ],
+   "material": [],
+   "motivering": "Vanligtvis är hälso- och sjukvård frivillig och då bör patientens eventuella avståndstaganden från viss vård (till exempel behandling med autolog blodtransfusion eller cellsaver) framgå."
+  },
+  {
+   "id": "lakarbeslut-finns-om-att-inte-utfora-hjart-lungraddning",
+   "kategori": "vardrutin",
+   "undergrupp": "beslut",
+   "term": "Läkarbeslut finns om att inte utföra hjärt-lungräddning",
+   "icd": [],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "61921000052102"
+    }
+   ],
+   "material": [],
+   "motivering": "När hjärt-lungräddning har bedömts inte vara aktuell för patienten behöver denna bedömning finnas tillgänglig."
+  },
+  {
+   "id": "lakarbeslut-finns-om-att-avsluta-livsuppehallande-behandling",
+   "kategori": "vardrutin",
+   "undergrupp": "beslut",
+   "term": "Läkarbeslut finns om att avsluta livsuppehållande behandling",
+   "icd": [],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "61931000052100"
+    }
+   ],
+   "material": [],
+   "motivering": "När livsuppehållande behandling har bedömts inte vara aktuell för patienten behöver denna bedömning finnas tillgänglig."
+  },
+  {
+   "id": "lakarbeslut-finns-fran-brytpunktssamtal",
+   "kategori": "vardrutin",
+   "undergrupp": "beslut",
+   "term": "Läkarbeslut finns från brytpunktssamtal",
+   "icd": [],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "60741000052100"
+    }
+   ],
+   "material": [],
+   "motivering": "När beslut från brytpunktssamtal finns behöver denna information finnas tillgänglig."
+  },
+  {
+   "id": "forskrivningsrestriktioner",
+   "kategori": "vardrutin",
+   "undergrupp": "beslut",
+   "term": "Förskrivningsrestriktioner",
+   "icd": [],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "133571000052106"
+    }
+   ],
+   "material": [],
+   "motivering": "Patient som undergår behandling mot läkemedelsberoende är särskilt aktuell för att inte förskrivas läkemedel som kan inverka negativt på den behandlingen."
+  },
+  {
+   "id": "hanvisning-finns-till-en-specifik-vardenhet",
+   "kategori": "vardrutin",
+   "undergrupp": "beslut",
+   "term": "Hänvisning finns till en specifik vårdenhet",
+   "icd": [],
+   "kombination": false,
+   "atc": [],
+   "snomed": [
+    {
+     "kod": "306103005"
+    }
+   ],
+   "material": [],
+   "motivering": "När patienten har en särskild lämplig vårdenhet anvisad sig, bör denna information finnas tillgänglig."
+  }
+ ],
+ "reaktioner": {
+  "varning": [
+   {
+    "term": "Allvarlig arytmi",
+    "snomed": {
+     "kod": "53931000052108"
+    },
+    "utreds": false
+   },
+   {
+    "term": "Anafylaktisk reaktion",
+    "snomed": {
+     "kod": "39579001"
+    },
+    "utreds": false
+   },
+   {
+    "term": "Angioödem",
+    "snomed": {
+     "kod": "41291007"
+    },
+    "utreds": false
+   },
+   {
+    "term": "Astma",
+    "snomed": {
+     "kod": "195967001"
+    },
+    "utreds": false
+   },
+   {
+    "term": "Blodtrycksfall",
+    "snomed": {
+     "kod": "255329004"
+    },
+    "utreds": true
+   },
+   {
+    "term": "Förvirring",
+    "snomed": {
+     "kod": "286933003"
+    },
+    "utreds": false
+   },
+   {
+    "term": "Generaliserade kramper",
+    "snomed": {
+     "kod": "246545002"
+    },
+    "utreds": false
+   },
+   {
+    "term": "Larynxödem",
+    "snomed": {
+     "kod": "51599000"
+    },
+    "utreds": false
+   },
+   {
+    "term": "Stevens-Johnsons syndrom",
+    "snomed": {
+     "kod": "73442001"
+    },
+    "utreds": false
+   },
+   {
+    "term": "Svår urtikaria",
+    "snomed": {
+     "kod": "53921000052106"
+    },
+    "utreds": false
+   },
+   {
+    "term": "Sänkt medvetandegrad",
+    "snomed": {
+     "kod": "443371007"
+    },
+    "utreds": false
+   },
+   {
+    "term": "Toxisk epidermal nekrolys",
+    "snomed": {
+     "kod": "23067006"
+    },
+    "utreds": false
+   }
+  ],
+  "observandum": [
+   {
+    "term": "Diarré",
+    "snomed": {
+     "kod": "62315008"
+    },
+    "utreds": false
+   },
+   {
+    "term": "Hudrodnad",
+    "snomed": {
+     "kod": "247441003"
+    },
+    "utreds": false
+   },
+   {
+    "term": "Hudsvullnad",
+    "snomed": {
+     "kod": "300886007"
+    },
+    "utreds": false
+   },
+   {
+    "term": "Klåda",
+    "snomed": {
+     "kod": "418290006"
+    },
+    "utreds": false
+   },
+   {
+    "term": "Kräkningar",
+    "snomed": {
+     "kod": "422400008"
+    },
+    "utreds": false
+   },
+   {
+    "term": "Lindrig till medelsvår urtikaria",
+    "snomed": {
+     "kod": "53911000052103"
+    },
+    "utreds": false
+   },
+   {
+    "term": "Irritation i mun och svalg",
+    "snomed": {
+     "kod": "53901000052100"
+    },
+    "utreds": false
+   },
+   {
+    "term": "Irritation i näsa",
+    "snomed": {
+     "kod": "70076002"
+    },
+    "utreds": false
+   },
+   {
+    "term": "Irritation i ögon",
+    "snomed": {
+     "kod": "473460002"
+    },
+    "utreds": false
+   },
+   {
+    "term": "Tungandning",
+    "snomed": {
+     "kod": "267036007"
+    },
+    "utreds": false
+   }
+  ]
+ }
+}

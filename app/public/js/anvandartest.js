@@ -125,6 +125,8 @@ const FORBERED = {
   'inloggning-gar-ut': async () => { await aterstallDemo(); await api('/api/demo/inloggning-gar-ut', { metod: 'POST', data: { sekunder: 240 } }); },
   // Runda 9, r2: en simulerad monitor kopplas till Gunnar Åkesson, så att värden väntar på godkännande.
   'koppla-monitor': async () => { await aterstallDemo(); await api('/api/patient/p01/mt/koppla', { metod: 'POST', data: { streckkod: 'MT-MON-0001' } }); },
+  // Runda 10, r4: Karl-Erik Brandt på hjärtintensiven har avlidit, så att förslaget om donation ligger i inkorgen.
+  donation: async () => { await aterstallDemo(); await api('/api/demo/donation', { metod: 'POST', data: {} }); await api('/api/patient/p10/dodsfall', { metod: 'POST', data: { kriterier: 'direkta' } }); },
 };
 
 // Uppgiften börjar på samma sätt som i skriptet: vid byte av demoroll loggas rollen in och demon återställs, så att

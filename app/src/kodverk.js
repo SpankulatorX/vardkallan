@@ -55,6 +55,12 @@ export const ICD10SE = {
   'U82.1': 'Resistens mot meticillin',
   'Z22.3': 'Bärare av andra specificerade patogena bakterier',
   'Z30.4': 'Övervakning av förskrivna preventivläkemedel',
+  // Runda 10, r4: transplanterade organ (donation.js) och andningssvikt med hyperkapné, som gör att systemet föreslår
+  // skala 2 för syremättnaden i NEWS2 (syremattnad-skala.js). Ordagrant ur icd-10-se.tsv (docs/kodkontroll.md).
+  'Z94.0': 'Njurtransplanterad', 'Z94.1': 'Hjärttransplanterad', 'Z94.2': 'Lungtransplanterad', 'Z94.3': 'Hjärt- och lungtransplanterad',
+  'Z94.4': 'Levertransplanterad', 'Z94.7': 'Kornealtransplanterad', 'Z94.8': 'Andra specificerade transplantationstillstånd',
+  'J96.01': 'Akut respiratorisk insufficiens - hypoxi med hyperkapné', 'J96.11': 'Kronisk respiratorisk insufficiens - hypoxi med hyperkapné',
+  'J96.91': 'Respiratorisk insufficiens, ospecificerad - hypoxi med hyperkapné',
   // Runda 7, r6: hälsobesöken i barnhälsovården.
   'Z00.1': 'Rutinmässig hälsoundersökning av barn utan besvär eller utan att diagnos registrerats',
   'Z91.0': 'Allergi och annan överkänslighet som inte beror på läkemedel och biologiska substanser i den egna sjukhistorien',
@@ -308,6 +314,20 @@ export const KVA = {
   DK028: 'Skötsel av urinkateter',
   DV150: 'Skötsel av dränage',
   DV065: 'Sondmatning',
+  // Runda 10, r4: insättning, byte och avveckling av in- och utfarter (infarter.js) och undersökning av en möjlig donator
+  // (donation.js), ordagrant ur samma fil (docs/kodkontroll.md).
+  SP021: 'Inläggning av perifer venkateter',
+  DP028: 'Byte av perifer venkateter',
+  DP029: 'Avlägsnande av perifer venkateter',
+  SP105: 'Inläggning av perifert insatt central kateter (PICC)',
+  DF007: 'Avlägsnande av central venkateter (CVK) UNS',
+  TKC20: 'Kateterisering av urinblåsa genom urinröret',
+  DK021: 'Avlägsnande av urinkateter inlagd genom urinröret',
+  DK010: 'Inläggande av suprapubisk kateter',
+  DK023: 'Avlägsnande av suprapubisk kateter/cystostomikateter',
+  TJD00: 'Nasogastrisk eller nasogastroduodenal sond',
+  DV005: 'Avlägsnande av dränage',
+  AV124: 'Undersökning av potentiell donator',
 };
 
 // Runda 7, r6: koderna för Svenska barnhälsovårdsregistret ordagrant ur bilaga K11 till Sussas förfrågningsunderlag,

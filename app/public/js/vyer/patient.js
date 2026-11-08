@@ -26,6 +26,10 @@ import * as tillvaxt from './patient-tillvaxt.js';
 import * as prover from './patient-prover.js';
 // Runda 10, r5: vaccinationsprogrammen.
 import * as vaccinationer from './patient-vaccinationer.js';
+// Runda 10, r4: in- och utfarter, skannade restjournaler och donation.
+import * as infarter from './patient-infarter.js';
+import * as restjournaler from './patient-restjournaler.js';
+import * as donation from './patient-donation.js';
 
 export const namn = 'patient';
 
@@ -55,6 +59,12 @@ const FLIKAR = [
   ['uppfoljning', 'Uppföljning', () => far('las_oversikt'), uppfoljningFlik],
   ['utbildningslage', 'Utbildningsläge', () => far('las_oversikt'), utbildningFlik, { dold: true }],
 ];
+
+// Runda 10, r4: In- och utfarter efter Mätvärden, Restjournaler efter Journal och Donation för läkare och sjuksköterskor
+// på en vårdenhet med intensivvård. Fliken Donation visas också när transplantationer ska registreras.
+FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'matvarden') + 1, 0, ['infarter', 'In- och utfarter', () => far('las_omvardnad'), infarter]);
+FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'journal') + 1, 0, ['restjournaler', 'Restjournaler', () => pa('las_journal', 'restjournal'), restjournaler]);
+FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'remisser') + 1, 0, ['donation', 'Donation', () => far('donation'), donation]);
 
 let huvud = null;
 
@@ -92,6 +102,7 @@ function bandHtml(h) {
     </div>
     <ul class="band-signaler" aria-label="Uppmärksamhetssignaler och markeringar">
       ${h.uppmarksamhet ? uppmarksamhet.bandSignal(h) : overkanslighetSignal(h)}
+      ${h.avliden ? `<li class="signal signal-avliden"><span>${esc(h.avliden.text)}</span></li>` : ''}
       ${h.skyddad ? `<li class="signal signal-skydd">${ikon.skold}<span>Skyddade personuppgifter${h.identitetVisad ? ', identiteten visas' : ''}</span></li>` : ''}
       ${h.sparrmarkering ? `<li class="signal signal-sparr">${ikon.las}<span>Det finns spärrade uppgifter</span></li>` : ''}
     </ul>

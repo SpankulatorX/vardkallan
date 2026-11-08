@@ -36,6 +36,18 @@ export const UPPDRAG = {
   narkotikakontroll: { namn: 'Sjuksköterska med ansvar för kontroll av narkotikaförbrukningen', yrke: 'sjukskoterska', kalla: 'Gröna häftet 1.4.5', utsesAv: 'Enhetschefen, i demon verksamhetschefen', reserv: true,
     utan: 'Gröna häftet 1.4.5 kräver minst en ordinarie och en reservkontrollant på en vårdenhet som hanterar narkotiska läkemedel.' },
 };
+// Runda 10, r4: de donationsansvariga på en vårdenhet med intensivvårdsavdelning (donation.js, Sussa 3.1.12.1). De får
+// förslaget att pröva donation när en patient avlider på intensivvården. Samma mekanism som läkemedelsuppdragen:
+// verksamhetschefen utser per vårdenhet, med period och omfattning. bara avgör vilka vårdenheter som ska ha uppdraget.
+const harIva = (db, ve) => { const { IVA_ENHETER } = require('./iva.js'); return enheterUnder(db, ve).some(e => Object.hasOwn(IVA_ENHETER, e)); };
+Object.assign(UPPDRAG, {
+  donationsansvarig_lakare: { namn: 'Donationsansvarig läkare', yrke: 'lakare', kalla: 'Lag (1995:831) om transplantation m.m. och vårdgivarens rutin för donation', utsesAv: 'Verksamhetschefen', ensam: true, bara: harIva,
+    utan: 'Utan donationsansvarig läkare går förslaget att pröva donation efter ett dödsfall på intensivvårdsavdelningen inte till någon.' },
+  donationsansvarig_ssk: { namn: 'Donationsansvarig sjuksköterska', yrke: 'sjukskoterska', kalla: 'Lag (1995:831) om transplantation m.m. och vårdgivarens rutin för donation', utsesAv: 'Verksamhetschefen', ensam: true, bara: harIva,
+    utan: 'Utan donationsansvarig sjuksköterska går förslaget att pröva donation efter ett dödsfall på intensivvårdsavdelningen bara till läkaren.' },
+});
+const forEnhet = (db, ve, typ) => !UPPDRAG[typ].bara || UPPDRAG[typ].bara(db, ve);
+
 // Namnet på uppdraget, med reservkontrollanten för sig.
 const namnFor = (typ, reserv) => (reserv ? 'Reservkontrollant för narkotikaförbrukningen' : UPPDRAG[typ].namn);
 export const TYPER = Object.keys(UPPDRAG);
@@ -199,7 +211,7 @@ export function paminnelser(db, ve) {
   if (!harTabell(db) || !hanterarLakemedel(db, ve)) return [];
   const ut = [];
   const namnVe = enhetsnamn(db, ve);
-  for (const typ of TYPER) {
+  for (const typ of TYPER.filter(x => forEnhet(db, ve, x))) {
     const t = UPPDRAG[typ];
     const g = gallande(db, ve, typ);
     const delar = t.reserv ? [false, true] : [false];
@@ -249,7 +261,7 @@ export function oversikt(db, personal) {
   loggaUtan(db, personal, 'lakemedelsuppdrag', 'tillaten', 'lakemedelsansvar');
   return {
     vardenhet: { id: ve, namn: enhetsnamn(db, ve) }, verksamhetschef: vc ? { id: vc.id, namn: vc.namn } : null, kanAndra: chef, ledningsansvar: LEDNINGSANSVAR,
-    uppdrag: TYPER.map(typ => {
+    uppdrag: TYPER.filter(x => forEnhet(db, ve, x)).map(typ => {
       const t = UPPDRAG[typ];
       const g = gallande(db, ve, typ);
       const rader = alla.filter(u => u.typ === typ);
@@ -282,8 +294,8 @@ function kravChef(db, personal, resurs) {
 export function utse(db, personal, inp = {}) {
   const ve = kravChef(db, personal, 'lakemedelsuppdrag:ny');
   if (['verksamhetschef', 'ledningsansvar'].includes(inp.typ)) throw new Fel(400, LEDNINGSANSVAR, 'ogiltig', { falt: ['typ'] });
-  const t = UPPDRAG[inp.typ];
-  if (!t) throw new Fel(400, `Välj ett av uppdragen: ${TYPER.map(x => UPPDRAG[x].namn.toLowerCase()).join(', ')}.`, 'ogiltig', { falt: ['typ'] });
+  const t = Object.hasOwn(UPPDRAG, inp.typ ?? '') && forEnhet(db, ve, inp.typ) ? UPPDRAG[inp.typ] : null;
+  if (!t) throw new Fel(400, `Välj ett av uppdragen: ${TYPER.filter(x => forEnhet(db, ve, x)).map(x => UPPDRAG[x].namn.toLowerCase()).join(', ')}.`, 'ogiltig', { falt: ['typ'] });
   const reserv = Boolean(t.reserv && inp.reserv === true);
   const fran = inp.fran == null || inp.fran === '' ? idag() : inp.fran;
   if (!giltigtDatum(fran) || fran < idag() || fran > addDagar(idag(), 90)) throw new Fel(400, 'Uppdraget börjar i dag eller inom 90 dagar.', 'ogiltig', { falt: ['fran'] });

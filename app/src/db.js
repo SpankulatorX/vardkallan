@@ -449,6 +449,8 @@ export function byggSeed(bas = nu()) {
   // Runda 10, r5: kollegakontroll, läkemedelsöverföring, vaccinationsprogram, sammanhållen journalföring och akutflödet
   // (schema-runda10-r5.js).
   require('./schema-runda10-r5.js').sakraR10r5(db, bas);
+  // Runda 10, r4: in- och utfarter, restjournaler och donation (runda10-r4-rutter.js), med seeden när en tabell är ny.
+  require('./runda10-r4-rutter.js').sakra(db, bas);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -577,6 +579,8 @@ export function migrera(db) {
   require('./schema-runda10-r5.js').sakraR10r5(db, nu());
   // Runda 10, r3: formulärmotorns tabeller och formulär i en sandlåda från före runda 10. Inga anteckningar läggs in.
   require('./formularmotor.js').seeda(db, nu());
+  // Runda 10, r4: samma tabeller och seed för en sandlåda från före runda 10.
+  require('./runda10-r4-rutter.js').sakra(db, nu());
   return db;
 }
 

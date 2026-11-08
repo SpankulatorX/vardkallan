@@ -365,7 +365,7 @@ describe('API', () => {
     const k = klient(app);
     await k.logga('lak-vc');
     const i = (await k.get('/api/inkorg')).data;
-    expect(Object.keys(i).sort()).toEqual(['aterinsattningar', 'aterlamnanden', 'avbokadeVardhandelser', 'beredningarAttKontrollera', 'beslutAttKvittera', 'bhvAttBoka', 'blodAvvikelser', 'delegeringarSomGarUt', 'dubbletter', 'egnaBevakningar', 'fordjupadeGenomgangar', 'hemmatningarAttBekrafta', 'kollegakontrollerAttGora', 'kontrasigneringar', 'labbAttSignera', 'lakemedelsoverforingar', 'lakemedelsuppfoljningar', 'larm', 'licenserSomGarUt', 'mallarAttGodkanna', 'muntligaAttSignera', 'news2Larm', 'nllAvvikelser', 'okvitteradeSvar', 'osigneradeAnteckningar', 'provsvarAttVidimera', 'provsvarKritiska', 'rapportfel', 'remisserAttBedoma', 'remisserAttSignera', 'samordning', 'sparrFragor', 'tillvaxtLarm', 'tvangsvard', 'vardplanerUppfoljning']);
+    expect(Object.keys(i).sort()).toEqual(['aterinsattningar', 'aterlamnanden', 'avbokadeVardhandelser', 'beredningarAttKontrollera', 'beslutAttKvittera', 'bhvAttBoka', 'blodAvvikelser', 'delegeringarSomGarUt', 'donationsforslag', 'dubbletter', 'egnaBevakningar', 'fordjupadeGenomgangar', 'hemmatningarAttBekrafta', 'kollegakontrollerAttGora', 'kontrasigneringar', 'labbAttSignera', 'lakemedelsoverforingar', 'lakemedelsuppfoljningar', 'larm', 'licenserSomGarUt', 'mallarAttGodkanna', 'muntligaAttSignera', 'news2Larm', 'nllAvvikelser', 'okvitteradeSvar', 'osigneradeAnteckningar', 'provsvarAttVidimera', 'provsvarKritiska', 'rapportfel', 'remisserAttBedoma', 'remisserAttSignera', 'samordning', 'sparrFragor', 'tillvaxtLarm', 'tvangsvard', 'vardplanerUppfoljning']);
     expect(i.larm.map(l => `${l.patientId}:${l.typ}`).sort()).toEqual(['p06:svar_forsenat', 'p11:svar_ej_kvitterat']);
     expect(i.okvitteradeSvar.map(r => r.patientId)).toEqual(['p11']);
     expect(i.nllAvvikelser.map(a => a.patientId)).toEqual(['p10']);
@@ -449,7 +449,8 @@ describe('API', () => {
     const tider = o.tidslinje.map(t => t.tid);
     expect([...tider].sort().reverse()).toEqual(tider);
     // Migrerade poster ligger i samma kronologi som ny dokumentation, och vårdtillfällets händelser med dem.
-    expect(new Set(o.tidslinje.map(t => t.typ))).toEqual(new Set(['vardkontakt', 'vardtillfalle', 'anteckning', 'ordination', 'remiss']));
+    // Runda 10, r4: och de in- och utfarter som patienten har fått under vårdtillfället (seeden i infarter.js).
+    expect(new Set(o.tidslinje.map(t => t.typ))).toEqual(new Set(['vardkontakt', 'vardtillfalle', 'anteckning', 'ordination', 'remiss', 'infart']));
     expect(o.matvarden.find(m => m.typ === 'vikt').varde).toBe(81.6);
     expect(o.lakemedel.every(l => l.aktuell)).toBe(true);
     const h = (await k.get('/api/patient/p01')).data;

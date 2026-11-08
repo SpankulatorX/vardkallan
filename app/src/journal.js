@@ -2,6 +2,8 @@
 import { Fel, iso, idag, giltigtDatum, MATTYPER_ENHET } from './db.js';
 // Runda 9, r2: klassen för värden från utrustning och patientens egna mätningar.
 import { klassFor } from './mt-klass.js';
+// Runda 10, r4: hur mätvärdet kom in i journalen.
+import { inmatning } from './matvarde-inmatning.js';
 import { kanRoll, vardenhetFor } from './atkomst.js';
 // Skalor och poängmodeller (runda 6, r1): systemet räknar GCS och skriver texten för de kodade mätvärdena.
 import { ACVPU, tolkaGcs, gcsText, nrsText } from './skalor.js';
@@ -29,6 +31,9 @@ export const MALLAR = [
   tobak.MALL,
   // Runda 9, r7: en strukturerad mall på samma sätt som tobaksvanorna.
   levnadsvanor.MALL,
+  // Runda 10, r4: donationsanteckningen, som systemet skriver ur donationens checklista (donation.js). Samma sökord som
+  // MALL i donation.js.
+  { typ: 'Donationsanteckning', kategori: 'lakare', sokord: ['Aktuellt', 'Bedömning', 'Närstående', 'Åtgärd'] },
 ];
 const MALL = Object.fromEntries(MALLAR.map(m => [m.typ, m]));
 // Runda 10, r3: mallen för en anteckningstyp, en av de fasta eller ett formulär som gäller och som personen får fylla i.
@@ -312,6 +317,8 @@ export function matvardeUt(db, m) {
   // Runda 9, r2: ett värde från medicinteknisk utrustning eller patientens egen mätning har sin klass (mt-klass.js).
   const kl = klassFor(db, m);
   if (kl) ut.klass = kl;
+  // Runda 10, r4: hur värdet kom in, manuellt, maskinellt, räknat, migrerat eller från patienten (matvarde-inmatning.js).
+  ut.inmatning = inmatning(m, { labb: Boolean(lb), vem: ut.registreradAv?.namn ?? null });
   return ut;
 }
 function labbKoppling(db, id) {
