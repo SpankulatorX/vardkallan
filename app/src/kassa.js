@@ -77,33 +77,37 @@ export const DEMOREGLER = `Demoregler: förnyelse av recept kostar ${RECEPTFORNY
 // Runda 10, r7: om avgiften ingår i högkostnadsskyddet är en parameter per avgiftstyp (konfiguration.js). Ingår den sätts
 // avgiften ned till det som återstår, räknat på besöken och på de avgifter för tjänster som ingår, och med frikort är den
 // noll. Texten säger aldrig hur mycket som är betalt, som e-frikortet.
+// Säkerhetsgranskningen: synliga filtrerar besöken och avgifterna på det anroparen får se (inre sekretess, aktivt val
+// och spärr), som i ekonomi.js och vardkontakt.js, så att beloppet, frikortet och texten aldrig röjer besök som är
+// dolda. Texten är densamma för fullt och nedsatt belopp. Utan filter, som för patienten i Min journal, räknas allt.
 const ingar = (db, tjanst) => { try { return konfiguration.varde(db, `avgift.hogkostnadsskydd_${tjanst}`) === true; } catch { return false; } };
-function inomSkyddet(db, patient, tjanst, belopp, text) {
-  const hk = hogkostnadsskyddet(db, patient);
+function inomSkyddet(db, patient, tjanst, belopp, text, synliga) {
+  const hk = hogkostnadsskyddet(db, patient, Date.now(), { synliga });
   if (hk.frikort) return { belopp: 0, grund: 'frikort', text: `Frikort gäller till och med ${hk.frikortTill}.` };
   const fran = new Date(Date.now() - 365 * 86400_000).toISOString();
   const typer = ['receptfornyelse', 'intyg'].filter(t => ingar(db, t));
-  const tjanster = finns(db) && typer.length ? db.query(`SELECT coalesce(sum(belopp), 0) AS n FROM tjanstavgifter WHERE patient_id = ? AND skapad >= ? AND tjanst IN (${typer.map(() => '?').join(', ')})
-    AND id NOT IN (SELECT a.id FROM tjanstavgifter a JOIN kassabetalningar b ON b.avgift_id = a.id JOIN aterbetalningar r ON r.kalla = 'tjanst' AND r.kalla_id = b.id)`).get(patient.id, fran, ...typer).n : 0;
+  const rader = finns(db) && typer.length ? db.query(`SELECT * FROM tjanstavgifter WHERE patient_id = ? AND skapad >= ? AND tjanst IN (${typer.map(() => '?').join(', ')})
+    AND id NOT IN (SELECT a.id FROM tjanstavgifter a JOIN kassabetalningar b ON b.avgift_id = a.id JOIN aterbetalningar r ON r.kalla = 'tjanst' AND r.kalla_id = b.id)`).all(patient.id, fran, ...typer) : [];
+  const tjanster = (synliga ? synliga(rader) : rader).reduce((s, r) => s + r.belopp, 0);
   const kvar = Math.max(0, hk.kvar - tjanster);
   if (kvar === 0) return { belopp: 0, grund: 'frikort', text: 'Frikort gäller, eftersom högkostnadsskyddet är nått.' };
-  return kvar < belopp ? { belopp: kvar, grund: 'avgift', text: `${text} Avgiften är nedsatt enligt högkostnadsskyddet.` } : { belopp, grund: 'avgift', text: `${text} Avgiften ingår i högkostnadsskyddet.` };
+  return { belopp: Math.min(kvar, belopp), grund: 'avgift', text: `${text} Avgiften ingår i högkostnadsskyddet.` };
 }
 
-export function avgiftFor(db, patient, tjanst, intygstyp = null, dag = idag()) {
+export function avgiftFor(db, patient, tjanst, intygstyp = null, dag = idag(), { synliga = null } = {}) {
   const ar = alder(patient.fodd, dag);
   if (tjanst === 'intyg') {
     const t = Object.hasOwn(INTYGSTYPER, intygstyp ?? '') ? INTYGSTYPER[intygstyp] : null;
     if (!t) throw new Fel(400, 'Välj vilket intyg det gäller.', 'ogiltig', { falt: ['intygstyp'] });
     if (t.belopp === 0) return { belopp: 0, grund: 'avgiftsfri', text: t.fri };
-    if (ingar(db, 'intyg') && !lmaFor(db, patient.id, dag)) return inomSkyddet(db, patient, 'intyg', t.belopp, `${t.text}.`);
+    if (ingar(db, 'intyg') && !lmaFor(db, patient.id, dag)) return inomSkyddet(db, patient, 'intyg', t.belopp, `${t.text}.`, synliga);
     return { belopp: t.belopp, grund: 'avgift', text: `${t.text}: ${t.belopp} kr. Intyg omfattas inte av frikortet.` };
   }
   if (tjanst !== 'receptfornyelse') throw new Fel(400, 'Välj förnyelse av recept eller intyg.', 'ogiltig', { falt: ['tjanst'] });
   if (ar < AVGIFT_DEMO.friUnder || ar >= AVGIFT_DEMO.friFran) return { belopp: 0, grund: 'avgiftsfri', text: `Avgiftsfritt för patienter under ${AVGIFT_DEMO.friUnder} år och från ${AVGIFT_DEMO.friFran} år.` };
   if (lmaFor(db, patient.id, dag)) return { belopp: 50, grund: 'lma', text: 'Asylsökande med LMA-kort betalar 50 kr.' };
-  if (ingar(db, 'receptfornyelse')) return inomSkyddet(db, patient, 'receptfornyelse', RECEPTFORNYELSE, 'Förnyelse av recept.');
-  const hk = hogkostnadsskyddet(db, patient);
+  if (ingar(db, 'receptfornyelse')) return inomSkyddet(db, patient, 'receptfornyelse', RECEPTFORNYELSE, 'Förnyelse av recept.', synliga);
+  const hk = hogkostnadsskyddet(db, patient, Date.now(), { synliga });
   if (hk.frikort) return { belopp: 0, grund: 'frikort', text: `Frikort gäller till och med ${hk.frikortTill}.` };
   return { belopp: RECEPTFORNYELSE, grund: 'avgift', text: `Förnyelse av recept: ${RECEPTFORNYELSE} kr.` };
 }
@@ -113,9 +117,9 @@ const kvittoFor = (db, prefix, tabell) => `${prefix}${String(db.query(`SELECT co
 const terminalRef = (db, slag) => `TERMINAL-DEMO-${slag}-${String(db.query('SELECT (SELECT count(*) FROM kassabetalningar) + (SELECT count(*) FROM aterbetalningar) AS n').get().n + 1).padStart(5, '0')}`;
 
 // Skapar avgiften. Är den noll registrerar systemet det själv, och då finns inget att betala.
-export function skapaAvgift(db, { patient, enhetId, tjanst, intygstyp = null, av = null, kalla = 'kassa', kallaId = null }) {
+export function skapaAvgift(db, { patient, enhetId, tjanst, intygstyp = null, av = null, kalla = 'kassa', kallaId = null, synliga = null }) {
   sakra(db);
-  const a = avgiftFor(db, patient, tjanst, intygstyp);
+  const a = avgiftFor(db, patient, tjanst, intygstyp, idag(), { synliga });
   const id = Number(db.query(`INSERT INTO tjanstavgifter (patient_id, enhet_id, tjanst, intygstyp, belopp, grund, text, skapad, skapad_av, kalla, kalla_id)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(patient.id, vardenhetFor(db, enhetId), tjanst, tjanst === 'intyg' ? intygstyp : null, a.belopp, a.grund, a.text, iso(), av, kalla, kallaId).lastInsertRowid);
   return db.query('SELECT * FROM tjanstavgifter WHERE id = ?').get(id);
@@ -166,7 +170,7 @@ export function patientFranNummer(db, text, far) {
 export function registreraAvgift(atk, p, body = {}) {
   kravKassa(atk.personal);
   atk.krav('checka_in');
-  const a = skapaAvgift(atk.db, { patient: p, enhetId: atk.personal.enhet_id, tjanst: body.tjanst, intygstyp: body.intygstyp, av: atk.personal.id });
+  const a = skapaAvgift(atk.db, { patient: p, enhetId: atk.personal.enhet_id, tjanst: body.tjanst, intygstyp: body.intygstyp, av: atk.personal.id, synliga: (r) => atk.filtrera(r, 'las_admin') });
   atk.logga('checka_in', atk.grund(), `tjanstavgift:${a.id}`);
   return [201, { avgift: avgiftUt(atk.db, a), patient: { namn: visningsnamn(p, atk.val?.visa_identitet), personnummer: visningsPnr(p, atk.val?.visa_identitet) } }];
 }

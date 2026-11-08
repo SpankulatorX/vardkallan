@@ -314,7 +314,7 @@ export function vardAvsluta(atk, t, body = {}) {
   let avgift = null;
   if (utfall === 'fornyat' || utfall === 'utfardat') {
     const p = db.query('SELECT * FROM patienter WHERE id = ?').get(t.patient_id);
-    const a = kassa.skapaAvgift(db, { patient: p, enhetId: t.enhet_id, tjanst: utfall === 'fornyat' ? 'receptfornyelse' : 'intyg', intygstyp: t.intygstyp, av: atk.personal.id, kalla: 'meddelande', kallaId: t.id });
+    const a = kassa.skapaAvgift(db, { patient: p, enhetId: t.enhet_id, tjanst: utfall === 'fornyat' ? 'receptfornyelse' : 'intyg', intygstyp: t.intygstyp, av: atk.personal.id, kalla: 'meddelande', kallaId: t.id, synliga: (r) => atk.filtrera(r, 'las_admin') });
     avgift = a;
     // Svaret nämner inte läkemedlet, eftersom ett ombud kan läsa tråden. Vad tråden gäller visas för patienten.
     const vad = utfall === 'fornyat' ? 'Receptet är förnyat och finns på apoteket.' : `Intyget (${kassa.INTYGSTYPER[t.intygstyp]?.text.toLowerCase()}) är utfärdat och skickas till dig.`;

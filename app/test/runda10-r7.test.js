@@ -7,7 +7,7 @@ import * as kontorsstod from '../src/kontorsstod.js';
 import * as konfiguration from '../src/konfiguration.js';
 import { packaUpp } from '../src/zip.js';
 import { idag, addDagar, iso } from '../src/db.js';
-import { harVardrelation } from '../src/atkomst.js';
+import { harVardrelation, Atkomst } from '../src/atkomst.js';
 import { hogkostnadsskyddet } from '../src/vardkontakt.js';
 
 // Runda 10, r7 (Sussa 3.4.1.5, 3.4.2.3, 3.4.4.1, 3.4.4.4, 3.7.1.1, 3.7.1.3 och 5.1.1.1): ombud med fullmakt, meddelanden
@@ -668,6 +668,57 @@ describe('Kassan', () => {
     expect(kassa.avgiftFor(d, pt, 'receptfornyelse')).toMatchObject({ belopp: 0, grund: 'frikort' });
     // Intyget ingår fortfarande inte.
     expect(kassa.avgiftFor(d, pt, 'intyg', 'resa').belopp).toBe(300);
+  });
+
+  test(namn(T10.kassaSynlig), async () => {
+    // Patienten har besök på kardiologen, som kassören ser, och på en vårdenhet med spärr, som kassören inte ser.
+    const bygg = (medDolda) => {
+      const d = nyDb();
+      const besok = (enhet, i) => d.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, kontaktsatt, start, slut, orsak, kalla, planerad, skapad) VALUES ('p02', ?, 'oppenvard', 'besok', ?, ?, 'Besök', 'vardkallan', 0, ?)")
+        .run(enhet, new Date(Date.now() - i * 9 * 86400_000).toISOString(), new Date(Date.now() - i * 9 * 86400_000 + 3600_000).toISOString(), iso());
+      const pt = d.query("SELECT * FROM patienter WHERE id = 'p02'").get();
+      const adm = d.query("SELECT * FROM personal WHERE id = 'adm-kard'").get();
+      const atk = new Atkomst(d, adm, 'p02', {}, 'checka_in');
+      const synliga = (r) => atk.filtrera(r, 'las_admin');
+      // Synliga besök tills 450 kr eller mindre återstår till frikortet.
+      for (let i = 1; hogkostnadsskyddet(d, pt, Date.now(), { synliga }).kvar > 450 && i < 20; i++) besok('uso-kard', i);
+      if (medDolda) {
+        d.query("INSERT INTO sparrar (patient_id, enhet_id, registrerad) VALUES ('p02', 'uso-psyk', ?)").run(idag());
+        for (let i = 21; i <= 23; i++) besok('uso-psyk', i);
+        kassa.skapaAvgift(d, { patient: pt, enhetId: 'uso-psyk', tjanst: 'receptfornyelse' });
+      }
+      return { d, pt, synliga, besok };
+    };
+    const ja = (d, typ) => d.query("INSERT INTO konfig_andringar (slag, nyckel, varde, giltig_fran, motivering, foreslagen_av, foreslagen, status, beslutad_av, beslutad, galler_fran) VALUES ('parameter', ?, 'true', ?, 'Test', 'sf-1', ?, 'godkand', 'sf-2', ?, ?)").run(`avgift.hogkostnadsskydd_${typ}`, idag(), iso(), iso(), idag());
+    for (const medParameter of [false, true]) {
+      const utan = bygg(false);
+      const med = bygg(true);
+      if (medParameter) for (const x of [utan, med]) { ja(x.d, 'receptfornyelse'); ja(x.d, 'intyg'); }
+      for (const [tjanst, typ] of [['receptfornyelse', null], ['intyg', 'forsakring']]) {
+        const a = kassa.avgiftFor(utan.d, utan.pt, tjanst, typ, idag(), { synliga: utan.synliga });
+        const b = kassa.avgiftFor(med.d, med.pt, tjanst, typ, idag(), { synliga: med.synliga });
+        expect(JSON.stringify(b)).toBe(JSON.stringify(a));
+        expect(b.text).not.toContain('nedsatt');
+        if (medParameter && tjanst === 'intyg') expect(b.belopp).toBeLessThan(700);
+      }
+      // Utan filter, som i Min journal där patienten ser allt, räknas de dolda besöken, och då gäller frikort.
+      expect(kassa.avgiftFor(med.d, med.pt, 'receptfornyelse').grund).toBe('frikort');
+    }
+    // När de synliga avgifterna når taket gäller frikort, också i kassan.
+    const fri = bygg(true);
+    ja(fri.d, 'receptfornyelse');
+    for (let i = 30; i <= 33; i++) fri.besok('uso-kard', i);
+    expect(kassa.avgiftFor(fri.d, fri.pt, 'receptfornyelse', null, idag(), { synliga: fri.synliga })).toMatchObject({ belopp: 0, grund: 'frikort' });
+    // I kassan räknas avgiften med kassörens filter, och de dolda besöken ändrar inte beloppet.
+    const k = await inloggad('adm-kard');
+    const s = sandlada(app, k);
+    const m = bygg(true);
+    ja(m.d, 'receptfornyelse');
+    s.db = m.d;
+    const r = await k.post('/api/kassa/avgift', { personnummer: '19660319-3373', tjanst: 'receptfornyelse' });
+    expect(r.status).toBe(201);
+    expect(r.data.avgift.belopp).toBe(100);
+    expect(r.data.avgift.text).not.toContain('Frikort');
   });
 
   test(namn(T10.betala), async () => {
