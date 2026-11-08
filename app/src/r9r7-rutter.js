@@ -4,6 +4,10 @@
 import * as skanning from './skanning.js';
 import * as analys from './analys.js';
 import * as folkhalsa from './folkhalsa.js';
+import * as sparbarhet from './sparbarhet.js';
+import * as vardformer from './vardformer.js';
+import * as vardkontakt from './vardkontakt.js';
+import { kanRoll } from './atkomst.js';
 
 export function registreraRutter({ rutt, kravInloggad, medPatient, valFor }) {
   // Sussa 3.1.3.6: streckkodsläsaren och patientens armband.
@@ -23,4 +27,22 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor }) {
   rutt('POST', '/api/folkhalsa/insatser', (c) => [201, folkhalsa.starta(c.db, kravInloggad(c), c.body)]);
   rutt('GET', '/api/folkhalsa/insatser/:id', (c, id) => folkhalsa.insats(c.db, kravInloggad(c), id));
   rutt('POST', '/api/folkhalsa/insatser/:id/avsluta', (c, id) => folkhalsa.avsluta(c.db, kravInloggad(c), id));
+
+  // Sussa 6.1.1.3, 6.1.1.4 och 6.1.1.6: händelsekedjan per vårdkontakt, subprocesserna och vårdformerna.
+  const medKontakt = (c, id, handling, fn) => {
+    kravInloggad(c);
+    const v = vardkontakt.hamtaKontakt(c.db, id);
+    return medPatient(c, v.patient_id, handling, (atk) => fn(atk, vardkontakt.hamtaKontakt(c.db, v.id)));
+  };
+  const lasning = (c) => (kanRoll(c.personal, 'las_oversikt') ? 'las_oversikt' : 'las_admin');
+  rutt('GET', '/api/vardkontakt/:id/handelser', (c, id) => medKontakt(c, id, lasning(c), (atk, v) => sparbarhet.handelsekedja(atk, v)));
+  rutt('GET', '/api/sparbarhet/subprocesser', (c) => sparbarhet.subprocesser(c.db, kravInloggad(c), { dagar: Math.min(365, Math.max(7, Number(c.url.searchParams.get('dagar')) || 90)) }));
+  rutt('POST', '/api/vardkontakt/:id/besok-slut', (c, id) => medKontakt(c, id, 'registrera_vardkontakt', (atk, v) => vardformer.avslutaBesok(atk, v)));
+  rutt('POST', '/api/vardkontakt/:id/overgang', (c, id) => medKontakt(c, id, 'vardtillfalle', (atk, v) => vardformer.franDagkirurgi(atk, v, c.body)));
+  rutt('POST', '/api/patient/:id/dagkirurgi', (c, id) => { kravInloggad(c); return medPatient(c, id, 'registrera_vardkontakt', (atk) => vardformer.registreraDagkirurgi(atk, c.body)); });
+  rutt('POST', '/api/vardtillfalle/:id/overgang', (c, id) => {
+    kravInloggad(c);
+    const vt = vardkontakt.hamtaVardtillfalle(c.db, id);
+    return medPatient(c, vt.patient_id, 'vardtillfalle', (atk) => vardformer.franSlutenvard(atk, vt, c.body));
+  });
 }

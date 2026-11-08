@@ -5,8 +5,10 @@ import * as skanning from './skanning.js';
 import * as levnadsvanor from './levnadsvanor.js';
 import * as analys from './analys.js';
 import * as folkhalsa from './folkhalsa.js';
+import * as vardformer from './vardformer.js';
 
 export function sakraR9r7(db, bas = new Date()) {
+  vardformer.sakra(db);
   skanning.sakra(db);
   levnadsvanor.sakra(db);
   analys.sakra(db);
