@@ -33,6 +33,8 @@ import { bevakningVy, uppfoljningVy, samverkanVy, inkorgAntal } from './vyer/r3.
 import * as lakemedelsstod from './vyer/lakemedelsstod.js';
 // Runda 6, r6: verksamhetschefens uppdrag i läkemedelshanteringen.
 import * as lakemedelsansvar from './vyer/lakemedelsansvar.js';
+// Runda 7, r5: rapportering till myndigheter och register.
+import * as rapportering from './vyer/rapportering.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -73,6 +75,8 @@ const MENY = [
   ['#/arkiv', 'E-arkiv och gallring', 'arkiv', () => far('registrera_arkivbeslut')],
   ['#/datauttag', 'Datauttag', 'lista', () => far('datauttag')],
   ['#/planuppfoljning', 'Tvångsvård och samordning', 'krav', () => far('datauttag')],
+  // Runda 7, r5.
+  ['#/rapportering', 'Rapportering', 'arkiv', () => far('myndighetsrapport')],
   ['#/migrering', 'Migreringsavstämning', 'migrering', () => true],
   ['#/krav', 'Kravspårbarhet', 'krav', () => true],
   ['#/moduler', 'Moduler', 'moduler', () => true],
@@ -104,6 +108,8 @@ const RUTTER = [
   [/^#\/tvangsvard$/, bevakningVy, () => Boolean(S.session?.r3?.tvangsvardsenhet)],
   [/^#\/planuppfoljning$/, uppfoljningVy, () => far('datauttag') || Boolean(S.session?.r3?.tvangsvardsenhet)],
   [/^#\/samverkan$/, samverkanVy, () => far('samverkan')],
+  // Runda 7, r5.
+  [/^#\/rapportering$/, rapportering, () => far('myndighetsrapport')],
   [/^#\/migrering$/, migrering, () => true],
   [/^#\/krav$/, krav, () => true, true],
   [/^#\/moduler$/, moduler, () => true, true],
@@ -193,7 +199,9 @@ export async function uppdateraInkorg() {
       // Mallar att godkänna (runda 6, r6).
       + (d.mallarAttGodkanna?.length ?? 0)
       // Egna bevakningar som har löpt ut (runda 6, r4).
-      + (d.egnaBevakningar?.length ?? 0);
+      + (d.egnaBevakningar?.length ?? 0)
+      // Rättningar före rapportering till myndigheter och register (runda 7, r5).
+      + (d.rapportfel?.length ?? 0);
   } catch { S.inkorg = null; }
   const el = document.querySelector('[data-raknare="inkorg"]');
   if (el) { el.textContent = S.inkorg ? String(S.inkorg) : ''; el.hidden = !S.inkorg; }

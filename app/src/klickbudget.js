@@ -221,5 +221,9 @@ export const FLODEN = [
   {
     id: 'boka-kedja', namn: 'Boka provtagning före läkarbesök', roll: 'adm-kard', start: 'Vårdadministratörens startsida', budget: 3,
     motivering: 'Sussa 3.4.1.4 och 3.4.2.2. Ett klick på Boka tid vid återbesöket och ett på det förslag som systemet visar först. Systemet föreslår läkarbesöket och provtagningen samma dag med rätt mellanrum, bokar båda och skickar en kallelse som säger när provtagningen är. Ett klick räknas med för att visa fler förslag.',
+  },  // Runda 7, r5: rapportering till myndigheter och register (Sussa 6.3.2.2 och avtalets tillägg 2020).
+  {
+    id: 'rapport-par', namn: 'Granska och skicka månadens rapport till patientregistret', roll: 'uppf', start: 'Rapporteringssidan efter återställning', budget: 3,
+    motivering: 'Sussa 6.3.2.2. Systemet har redan sammanställt rapporten ur vårdtillfällena, vårdkontakterna, diagnoserna och åtgärderna och kontrollerat den mot Socialstyrelsens filspecifikation. Ett klick på Granska, som visar felen, det som inte rapporteras och filerna, ett på Skicka och ett för att bekräfta. Kontakter med fel hålls kvar och följer med av sig själv nästa månad, så att ingen behöver komma ihåg dem.',
   },
 ];

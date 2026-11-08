@@ -6,6 +6,8 @@ import { createHash } from 'node:crypto';
 export const GRUNDER = ['egen_enhet', 'vardrelation', 'aktivt_val', 'samtycke_sparr', 'nodatkomst', 'administrativ', 'logggranskning', 'nekad', 'egen_atkomst', 'vardnadshavare', 'arkivbeslut', 'uppfoljning'];
 // Runda 6, r3: kommunens part i samordnad planering (samordnad.js) har grunden samverkan.
 GRUNDER.push('samverkan');
+// Runda 7, r5: uppgifter som lämnas till ett register enligt lag (uppgiftsskyldighet) och till ett kvalitetsregister.
+GRUNDER.push('uppgiftsskyldighet', 'kvalitetsregister');
 export const INVANARGRUNDER = ['egen_atkomst', 'vardnadshavare'];
 const NOLL = '0'.repeat(64);
 const FALT = ['id', 'tid', 'personal_id', 'enhet_id', 'patient_id', 'handling', 'resurs', 'grund', 'syfte', 'resultat'];

@@ -9,6 +9,8 @@ import { symbolSvg, symbolText, harNagot } from '../uppmarksamhet.js';
 import { signeraMuntlig } from './lakemedelsstod.js';
 // Runda 6, r4: egna bevakningar.
 import { bevakningKlar } from '../planering-ui.js';
+// Runda 7, r5: fel i rapporterna till myndigheter och register, som läkaren och vårdadministratören rättar här.
+import { rapportfelSektion, rapportfelKlick } from '../rapportfel.js';
 
 export const namn = 'inkorg';
 
@@ -87,6 +89,7 @@ export async function visa(main) {
   if (!main.querySelector('#ik') || !S.session?.personal) return;
 
   main.querySelector('#ik').innerHTML = `<div class="inkorg-rutnat">
+    ${rapportfelSektion(d, sektion)}
     ${news2.length ? sektion('news2', 'NEWS2 som kräver åtgärd', news2, '', 'Patienter på vårdenheten där NEWS2 eller ett enskilt värde kräver åtgärd enligt NEWS2 (Royal College of Physicians 2017). Systemet räknar poängen ur vitalparametrarna. Demoregel, inte kliniskt beslutsstöd.') : ''}
     ${yrke === 'lakare' || muntl.length ? sektion('muntlig', 'Muntliga ordinationer att signera', muntl, 'Inga muntliga ordinationer väntar på din signering.', 'Ordinationer som du lämnade muntligt eller per telefon och som en sjuksköterska har dokumenterat. De skickas till NLL när du har signerat.') : ''}
     ${S.session.behorigheter.includes('utvardera_lakemedel') && yrke === 'lakare' ? sektion('uppf', 'Uppföljning av läkemedel', uppf, 'Inga uppföljningar har passerat.', 'Läkemedel där uppföljningsdatumet har passerat. Utvärdera effekt och biverkan, och systemet föreslår nästa uppföljning.') : ''}
@@ -108,6 +111,8 @@ export async function visa(main) {
   </div>${S.session.personal.yrke === 'vardadministrator' ? '<p class="dampad liten">Som vårdadministratör ser du larm om remissernas status men ingen journaltext.</p>' : ''}`;
   // Runda 5, r4: avsluta behandlingen efter ett uppehåll och sätta upp en avbokad vårdhändelse igen.
   // Runda 6, r4: en egen bevakning markeras som klar.
+  // Runda 7, r5: rättningar före rapportering.
+  main.querySelector('#ik').addEventListener('click', (e) => { rapportfelKlick(e, d, async () => { await uppdateraInkorg(); visa(main); }); });
   main.querySelector('#ik').addEventListener('click', async (e) => {
     const b = e.target.closest('[data-egen-bev]');
     if (!b) return;

@@ -26,7 +26,9 @@ const FILER = [
   '/js/vyer/lakemedelsstod.js', '/js/vyer/lakemedelsansvar.js',
   '/js/vyer/patient-tillampningar.js', '/tillampningar/blodtryck/index.html', '/tillampningar/blodtryck/app.js', '/tillampningar/blodtryck/app.css',
   '/js/planering-ui.js', '/js/vyer/min-vardbegaran.js',
+  '/js/vyer/rapportering.js', '/js/rapportfel.js', '/js/tjanstekontrakt.js',
 ];
+// Runda 7, r5: listan har rapporteringen, rättningarna i inkorgen och tabellen över tjänstekontrakten.
 // Runda 6, r5: listan har tillämpningsfliken och demotillämpningen Blodtryck över tid (/tillampningar/blodtryck/).
 const TIDSGRANS_MS = 4000;
 

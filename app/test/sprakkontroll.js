@@ -2,6 +2,7 @@
 // serverns felmeddelanden och varningar i src/, och prövar dem mot reglerna i docs/design.md: svenska, inga engelska
 // ord utom tillåtna lånord och egennamn, inga tankstreck eller ellipser, korrekt å, ä och ö och inga interna
 // anteckningar.
+import { KONTRAKT } from '../src/tjanstekontrakt.js';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
@@ -161,6 +162,9 @@ PNG JPEG iCalendar
 `.trim().split(/\s+/));
 // Runda 6, r5: det öppna API:t för skrivning och externa tillämpningar.
 for (const w of ['SMART', 'PKCE', 'OAuth', 'IP', 'GET', 'POST', 'PUT', 'Subscription', 'Parameters', 'SSRF']) TILLATNA.add(w);
+// Runda 7, r5: rapporteringen till myndigheter och register och tjänstekontrakten i K10, med kontraktens namn.
+for (const w of ['PAR', 'MFR', 'VIV', 'SKR', 'MVO', 'BB', 'SOSNYK', 'FV', 'RAS', 'MRA', 'SGLT2', 'PADL', 'PU', 'TGP', 'RIV', 'TA', 'RIV-TA', 'LT', 'YK', 'TV', 'KR', 'NKRR']) TILLATNA.add(w);
+for (const k of KONTRAKT) TILLATNA.add(k.kontrakt);
 // Fraser med engelska ord som är namn på standarder, rubriker, parametrar och tekniska begrepp. Ett tomt värde i data
 // beskrivs som tomt, inte som null (beslut 2026-11-03).
 export const FRASER = ['HL7 Sweden', '$everything', 'pull request', 'Server-Timing', 'X-Content-Type-Options', 'Content-Type', 'Content-Disposition',

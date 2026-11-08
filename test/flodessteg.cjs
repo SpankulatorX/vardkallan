@@ -123,6 +123,13 @@ function skapa(BAS) {
       await gaTill(page, '#/inkorg');
       await page.waitForSelector('#ik-mallar');
     },
+    // Runda 7, r5: uppföljningsrollens rapportering, efter återställning, så att ingen rapport har skickats förut.
+    'Rapporteringssidan efter återställning': async (page) => {
+      await gaTill(page, '#/datauttag');
+      await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()));
+      await gaTill(page, '#/rapportering');
+      await page.waitForSelector('[data-granska="par"]');
+    },
     'Läkemedel att ge efter återställning': async (page) => {
       await gaTill(page, '#/arbetslista');
       // Runda 6, r5: svaret läses till slut, annars räknar Playwright anropet som pågående och väntar förgäves på ett
@@ -549,6 +556,14 @@ function skapa(BAS) {
     await m.klicka(page.locator('dialog[open] .forslag-knapp').first(), 'det första förslaget med provtagning och läkarbesök');
     await synlig(page, '.notis', 'Gunnar Åkesson har fått en tid');
     await synlig(page, '.notis', 'provtagning');
+  };
+  // Runda 7, r5: granska och skicka månadens rapport till patientregistret.
+  GOR['rapport-par'] = async (m, page) => {
+    await m.klicka(page.locator('[data-granska="par"]'), 'Granska patientregistret');
+    await synlig(page, '.rapport-detalj', 'Filerna');
+    await m.klicka(page.locator('[data-skicka="par"]'), 'Skicka till patientregistret');
+    await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Bekräfta');
+    await synlig(page, '.notis', 'Rapporten är skickad till den simulerade mottagaren');
   };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }

@@ -132,6 +132,20 @@ for (const r of ['lakare', 'sjukskoterska', 'vardadministrator']) ROLLER[r].push
 ROLLER.uppfoljning.push('statistik_region');
 for (const h of ['bevaka_enhet', 'las_tidbok', 'statistik', 'statistik_region']) UTAN_PATIENT.add(h);
 
+// Runda 7, r5: rapportering till myndigheter och register (myndighetsrapport.js). Uppföljningsrollen granskar och
+// skickar rapporterna, som systemet sammanställer, och läser aldrig journalen. Läkaren registrerar en diagnos eller en
+// yttre orsak på en vårdkontakt när en rapport saknar den, och vården registrerar att en patient motsätter sig
+// registrering i ett kvalitetsregister (patientdatalagen 7 kap. 2 §).
+Object.assign(HANDLINGAR, {
+  myndighetsrapport: 'granska och skicka rapporter till myndigheter och register', registrera_diagnos: 'registrera diagnoser på en vårdkontakt',
+  kvalitetsregister: 'registrera att patienten motsätter sig registrering i ett kvalitetsregister',
+});
+ROLLER.uppfoljning.push('myndighetsrapport');
+UTAN_PATIENT.add('myndighetsrapport');
+ROLLER.lakare.push('registrera_diagnos', 'kvalitetsregister');
+ROLLER.sjukskoterska.push('kvalitetsregister');
+ROLLER.vardadministrator.push('kvalitetsregister');
+
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
 
 // Den vårdenhet en enhet hör till. Inre sekretess gäller per vårdenhet.

@@ -238,7 +238,7 @@ describe('FHIR-skrivning', () => {
     const cond = await fhirAnrop(k, 'POST', '/fhir/Condition', { resourceType: 'Condition', subject: { reference: 'Patient/p01' }, code: { text: 'Hypertoni' } });
     expect(cond.status).toBe(405);
     expect(cond.data.issue[0]).toMatchObject({ code: 'not-supported' });
-    expect(cond.data.issue[0].diagnostics).toContain('Diagnoser registreras inte i gränssnittet');
+    expect(cond.data.issue[0].diagnostics).toContain('inte via API:t i den här versionen');
     expect((await fhirAnrop(k, 'POST', '/fhir/AllergyIntolerance', { resourceType: 'AllergyIntolerance', patient: { reference: 'Patient/p01' } })).status).toBe(405);
     const bort = await fhirAnrop(k, 'DELETE', '/fhir/Composition/1');
     expect(bort.status).toBe(405);

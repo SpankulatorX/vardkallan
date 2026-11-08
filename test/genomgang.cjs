@@ -146,7 +146,8 @@ const MENY = {
   // Runda 6, r3: Lena Ström på psykiatrin har bevakningen av tvångsvården, och kommunen (simulerad) har Samverkan.
   psykiatri: ['Arbetslista', 'Sök patient', 'Inkorg', 'Delegeringar', 'Tvångsvård', 'Direktiv och uppföljning', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   kommun: ['Samverkan', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
-  uppfoljning: ['Datauttag', 'Tvångsvård och samordning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  // Runda 7, r5: uppföljningsrollen granskar och skickar rapporterna till myndigheter och register.
+  uppfoljning: ['Datauttag', 'Tvångsvård och samordning', 'Rapportering', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 6, r6: verksamhetschefen utser uppdragen i läkemedelshanteringen och fastställer generella direktiv.
   verksamhetschef: ['Läkemedelsansvar', 'Direktiv och uppföljning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
 };
@@ -1097,6 +1098,42 @@ const MENY = {
       await bild(page, '75-datauttag', true);
     });
     await allaVyer(page, 'Daniel Sund', MENY.uppfoljning);
+    // Runda 7, r5: rapportering till myndigheter och register. Läkarna rättar felen i inkorgen med systemets förslag,
+    // och uppföljningsrollen granskar rapporten utan patientuppgifter.
+    await s('Sara Lindqvist och Erik Nyström rättar fel i rapporten till patientregistret från inkorgen', async () => {
+      await loggaIn(page, 'lak-kard');
+      const ok = await page.evaluate(async () => (await fetch('/api/demo/rapportfel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).ok);
+      if (!ok) throw new Error('Demoläget för rapportfel kunde inte skapas');
+      await gaTill(page, '#/inkorg');
+      await forvanta(page, '#ik-rapportfel', 'Att rätta före rapportering');
+      await page.locator('#ik-rapportfel ~ ul li', { hasText: 'Huvuddiagnos saknas' }).first().locator('[data-rapportfel]').click();
+      await forvanta(page, 'dialog[open]', 'Systemets förslag');
+      await bild(page, '77-rapportfel-diagnos');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', 'är registrerad som huvuddiagnos');
+      await loggaIn(page, 'lak-akut');
+      await gaTill(page, '#/inkorg');
+      await page.locator('#ik-rapportfel ~ ul li', { hasText: 'utan yttre orsak' }).first().locator('[data-rapportfel]').click();
+      await forvanta(page, 'dialog[open]', 'Vad gjorde patienten?');
+      await page.selectOption('dialog[open] #rf-mekanism', 'W01');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', 'W01.99');
+    });
+    await s('Daniel Sund granskar rapporten till patientregistret utan patientuppgifter och ser tjänstekontrakten', async () => {
+      await loggaIn(page, 'uppf');
+      await gaTill(page, '#/rapportering');
+      await forvanta(page, '.rapport-kort', 'Patientregistret');
+      await forvanta(page, '.rapport-kort', 'Medicinska födelseregistret');
+      await page.click('[data-granska="par"]');
+      await forvanta(page, '.rapport-detalj', 'Filerna');
+      await forvanta(page, '.rapport-detalj', 'SV_AD_18_');
+      await saknas(page, 'Åkesson');
+      await saknas(page, '19450202');
+      await bild(page, '78-rapportering', true);
+      await gaTill(page, '#/api');
+      await forvanta(page, '#tk', 'GetCareDocumentation');
+      await forvanta(page, '#tk', 'Simulerad producent');
+    });
     // Runda 6, r3: kommunens part i samordnad planering (simulerad) ser bara det som regionen har skickat.
     await s('Lisa Ahlgren på kommunen ser inskrivningsmeddelandet men ingen journal', async () => {
       await loggaIn(page, 'kom-bist');
@@ -1267,7 +1304,7 @@ const MENY = {
       await forvanta(page, 'main h1', 'Användartest');
       await forvanta(page, '.at-info', 'Alla patienter i demon är påhittade');
       await page.fill('#at-kod', 'G01');
-      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut', 'sok-journal', 'news2', 'ordinera-mall', 'dos-efterhand', 'utse-mal', 'godkanna-mall', 'extern-tillampning', 'boka-ingrepp', 'boka-kedja']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut', 'sok-journal', 'news2', 'ordinera-mall', 'dos-efterhand', 'utse-mal', 'godkanna-mall', 'extern-tillampning', 'boka-ingrepp', 'boka-kedja', 'rapport-par']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');
