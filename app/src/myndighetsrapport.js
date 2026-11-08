@@ -716,3 +716,29 @@ export function demoRapportfel(db, nu = new Date()) {
   db.query("INSERT INTO diagnoser (patient_id, enhet_id, vardkontakt_id, kod, text, typ, datum) VALUES ('p05', 'uso-akut', ?, 'S83.5', ?, 'huvud', ?)").run(akut, ICD10SE['S83.5'], dag);
   return { vardtillfalleId: vt, vardkontaktId: vk, akutId: akut };
 }
+
+// Sammanställningen för inkorgen, som hämtas ofta. Den görs om bara när något som rapporterna bygger på har ändrats
+// (ett fingeravtryck av tabellerna) eller när månaden har bytts. Skickade rapporter ändrar inte felen.
+const CACHE = new WeakMap();
+const AVTRYCK = [
+  ['vardtillfallen', 'count(*), max(id), count(utskriven)'], ['vardkontakter', 'count(*), max(id), count(slut), count(ankomst)'],
+  ['diagnoser', 'count(*), max(id), sum(length(kod) + length(typ))'], ['atgarder', 'count(*), max(id)'], ['anteckningar', 'count(*), max(id)'],
+  ['vantelista', 'count(*), max(id), sum(length(status)), count(mal)'], ['bokningar', 'count(*), max(id), sum(length(status))'],
+  ['patienter', 'count(*), sum(length(personnummer) + length(coalesce(id_typ, 0))), count(sammanslagen_till)'],
+  ['tvangsvard_handelser', 'count(*), max(id)'], ['administreringar', 'count(*), max(id)'],
+];
+function avtryck(db, nu) {
+  const delar = [manadAv(nu)];
+  for (const [t, uttryck] of AVTRYCK) if (finnsTabell(db, t)) delar.push(Object.values(db.query(`SELECT ${uttryck} FROM ${t}`).get()).join(':'));
+  return delar.join('|');
+}
+export function sammanstallCachad(db, rapportId, { nu = new Date() } = {}) {
+  const nyckel = avtryck(db, nu);
+  let m = CACHE.get(db);
+  if (!m) { m = new Map(); CACHE.set(db, m); }
+  const c = m.get(rapportId);
+  if (c?.nyckel === nyckel) return c.s;
+  const s = sammanstall(db, rapportId, { nu });
+  m.set(rapportId, { nyckel, s });
+  return s;
+}

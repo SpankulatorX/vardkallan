@@ -107,8 +107,10 @@ export function inkorg(c, patientKort, patientRad, valFor) {
   const loggade = (c.s.rapportfelLoggad ??= new Set());
   const ut = [];
   const sett = new Set();
-  for (const id of ['par', 'mfr', 'viv', 'vtd']) {
-    for (const f of mr.sammanstall(c.db, id).fel) {
+  // Läkaren rättar diagnoser i patientregistret och födelseregistret, vårdadministratören identiteter och väntelistan.
+  // Vårdtillfällesdatabasen har samma fel som patientregistrets slutenvård.
+  for (const id of lakare ? ['par', 'mfr'] : ['par', 'viv']) {
+    for (const f of mr.sammanstallCachad(c.db, id).fel) {
       if (!atgarder.includes(f.atgard) || !f.patientId || f.enhet?.id !== min) continue;
       const nyckel = `${f.regel}:${f.radNyckel}`;
       if (sett.has(nyckel)) continue;
