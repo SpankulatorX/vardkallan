@@ -46,6 +46,8 @@ export const GRUND = {
   arkivbeslut: 'Arkivbeslut', uppfoljning: 'Uppföljning',
   // Runda 6, r3: kommunens part i samordnad planering.
   samverkan: 'Samverkan med kommunen',
+  // Runda 7, r3: ekonomens faktureringsunderlag och prislistor.
+  ekonomi: 'Ekonomi',
 };
 export const NLL = { skickad: 'Skickas', kvitterad: 'Kvitterad av NLL', okand_kontrolleras: 'Okänd, kontrolleras', fel: 'Fel från NLL',
   // Runda 6, r2: muntlig ordination och läkemedel som inte skickas till NLL.
@@ -77,8 +79,11 @@ export const HANDLING = {
   lakemedelsansvar: 'Läste eller ändrade uppdrag i läkemedelshanteringen', godkanna_mall: 'Godkände eller läste läkemedelsmallar',
 };
 // Runda 6, r4: bevakningar och tidboken.
+// Runda 7, r3: ekonomi.
+Object.assign(HANDLING, { faktureringsunderlag: 'Tog fram faktureringsunderlag', prislista: 'Läste eller ändrade prislistor', las_kostnader: 'Såg kostnaderna i vårdprocessen',
+  fardigbehandlad: 'Registrerade medicinskt färdigbehandlad', hjalpmedel: 'Registrerade utlämnat hjälpmedel', lma: 'Registrerade LMA-kort' });
 Object.assign(HANDLING, { bevaka: 'Lade upp eller avslutade bevakning', bevaka_enhet: 'Lade upp bevakning för vårdenheten', las_tidbok: 'Läste tidboken', statistik: 'Såg statistik utan personuppgifter' });
-export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare', arkivarie: 'Arkivarie', uppfoljning: 'Analytiker (uppföljning)', kommun: 'Kommunens personal (simulerad)', farmaceut: 'Farmaceut', verksamhetschef: 'Verksamhetschef' };
+export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare', arkivarie: 'Arkivarie', uppfoljning: 'Analytiker (uppföljning)', kommun: 'Kommunens personal (simulerad)', farmaceut: 'Farmaceut', verksamhetschef: 'Verksamhetschef', ekonom: 'Ekonom' };
 
 // Anrop mot API:t. Svarstiden läses från Server-Timing. Fel kastas som ApiFel med serverns text och kod.
 export class ApiFel extends Error {

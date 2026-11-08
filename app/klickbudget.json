@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-03T20:14:05.689Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-08T08:38:47.973Z",
+  "bas": "http://127.0.0.1:18173",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "13eabf8b55b1e8b3d8bff5a7b35f313e930797cd0b5a730d421f2e2789c3e147",
+  "gransnittHash": "c8c1392da45b5267c447ea40a2070a1674b50893768c354cc2789077b78ef910",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -854,6 +854,22 @@
         "klick: Boka tid vid återbesöket",
         "klick: det första förslaget med provtagning och läkarbesök"
       ]
+    },
+    {
+      "id": "exportera-underlag",
+      "namn": "Exportera faktureringsunderlag för en månad",
+      "roll": "eko",
+      "start": "Ekonomens startsida",
+      "budget": 3,
+      "motivering": "Sussa 7.1.1.1 och 7.1.1.2. Ett klick på CSV för vårdenheten. Systemet har redan skapat posterna ur det som har hänt, räknat priserna ur prislistan och betalningsmottagarna, och förra månaden är förvald eftersom den är avslutad. Budgeten har plats för att välja en annan månad i listan.",
+      "klick": 1,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "steg": [
+        "klick: CSV för vårdenheten"
+      ]
     }
   ],
   "tester": [
@@ -1043,6 +1059,10 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Boka provtagning före läkarbesök inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Exportera faktureringsunderlag för en månad inom budget",
       "status": "grön"
     }
   ]

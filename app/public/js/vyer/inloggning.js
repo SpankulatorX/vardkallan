@@ -26,6 +26,8 @@ const VISAR = {
   'far-kard': 'Klinisk apotekare på kardiologen: läser läkemedelslistan och mätvärdena och gör farmaceutens bedömning i den fördjupade läkemedelsgenomgången, som läkaren startar och avslutar. Läser inte journalanteckningar.',
   // Runda 6, r6.
   'vch-kard': 'Verksamhetschef på kardiologen: utser medicinskt ansvarig läkare, mallansvarig läkare och läkemedelsansvariga sjuksköterskor med systemets förslag, och påminns när ett uppdrag saknas eller ansvarsdokumentet inte har setts över på ett år. Läser inte journalen.',
+  // Runda 7, r3.
+  'eko': 'Ekonom på regionkansliet: hämtar faktureringsunderlaget per vårdenhet och månad med ett klick, eftersom systemet redan har skapat posterna, och ändrar prislistorna med giltighetstid och historik. Läser inte journalen.',
 };
 
 // Vad några av patienterna visar i Min journal.

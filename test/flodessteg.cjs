@@ -117,6 +117,8 @@ function skapa(BAS) {
       await gaTill(page, '#/lakemedelsansvar');
       await page.waitForSelector('#la-pam');
     },
+    // Runda 7, r3: ekonomens startsida med faktureringsunderlaget per vårdenhet för förra månaden.
+    'Ekonomens startsida': async (page) => { await gaTill(page, '#/ekonomi'); await page.waitForSelector('#ek table'); await page.waitForSelector('#ek-exporter ul, #ek-exporter .tom:not(:has-text("Hämtar"))'); },
     'Inkorgen efter återställning': async (page) => {
       await gaTill(page, '#/arbetslista');
       await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
@@ -549,6 +551,14 @@ function skapa(BAS) {
     await m.klicka(page.locator('dialog[open] .forslag-knapp').first(), 'det första förslaget med provtagning och läkarbesök');
     await synlig(page, '.notis', 'Gunnar Åkesson har fått en tid');
     await synlig(page, '.notis', 'provtagning');
+  };
+  // Runda 7, r3: underlaget för den första vårdenheten med poster hämtas som CSV med ett klick.
+  GOR['exportera-underlag'] = async (m, page) => {
+    const rad = page.locator('#ek tbody tr', { has: page.locator('[data-export="csv"]') }).first();
+    const [fil] = await Promise.all([page.waitForEvent('download'), m.klicka(rad.locator('[data-export="csv"]'), 'CSV för vårdenheten')]);
+    if (!/^faktureringsunderlag-[\w-]+-\d{4}-\d{2}\.csv$/.test(fil.suggestedFilename())) throw new Error(`filen heter ${fil.suggestedFilename()}`);
+    await synlig(page, '.notis', 'är exporterat');
+    await synlig(page, '#ek-exporter', 'CSV');
   };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }

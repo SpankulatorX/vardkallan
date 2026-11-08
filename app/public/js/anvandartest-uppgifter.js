@@ -31,6 +31,8 @@ export const STARTPUNKT = {
   // Runda 6, r6.
   'Verksamhetschefens startsida': { hash: '#/lakemedelsansvar', klar: '#la-pam', forbered: 'aterstall' },
   'Inkorgen efter återställning': { hash: '#/inkorg', klar: '#ik-mallar', forbered: 'aterstall' },
+  // Runda 7, r3.
+  'Ekonomens startsida': { hash: '#/ekonomi', klar: '#ek table' },
 };
 
 export const UPPGIFTER = [
@@ -273,6 +275,12 @@ export const UPPGIFTER = [
     id: 'boka-kedja', namn: 'Boka provtagning före läkarbesök', roll: 'adm-kard', start: 'Vårdadministratörens startsida',
     text: 'Gunnar Åkesson ska på återbesök efter elkonverteringen och behöver lämna blodprov en stund före besöket. Ge honom tid för båda.',
     kontroll: { notis: 'Gunnar Åkesson har fått en tid' },
+  },
+  // Runda 7, r3.
+  {
+    id: 'exportera-underlag', namn: 'Exportera faktureringsunderlag för en månad', roll: 'eko', start: 'Ekonomens startsida',
+    text: 'Du är ekonom på regionkansliet. Ekonomisystemet behöver förra månadens faktureringsunderlag för en vårdenhet. Hämta underlaget som en fil.',
+    kontroll: { notis: 'är exporterat' },
   },
 ];
 

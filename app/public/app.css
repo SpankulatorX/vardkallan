@@ -1179,3 +1179,25 @@ mark { background: var(--obs-bg); color: inherit; outline: 1px solid var(--obs-k
   .idag-period input[type="date"] { flex: 1 1 140px; }
   .kallelse-filer { margin-left: 0; }
 }
+
+/* Runda 7, r3: ekonomi, faktureringsunderlag, prislistor och kostnader i vårdprocessen. */
+.ek-val { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin: 0 0 12px; }
+.ek-val select { width: auto; min-width: 14ch; }
+.ek-val p { flex-basis: 100%; margin: 0; }
+.ek-tabell th[scope="row"] { min-width: 18ch; }
+.ek-tabell .knapprad { flex-wrap: nowrap; }
+.ek-varning { display: flex; gap: 4px; align-items: flex-start; color: var(--blak-2); }
+.ek-varning .ikon { flex: 0 0 auto; width: 14px; height: 14px; margin-top: 1px; }
+.ek-detaljer { margin-top: 4px; font-weight: 400; }
+.ek-grupper { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 4px 18px; }
+.ek-grupper h3 { font-size: var(--f-s); margin: 6px 0 2px; }
+.ek-status { min-width: 14ch; }
+.pl-kategori { margin: 0 0 10px; }
+.pl-kategori > summary { font-weight: 600; cursor: pointer; padding: 4px 0; }
+.ov-kostnader .ek-kostnad { margin: 4px 0 8px; }
+.ov-kostnader .ek-lista summary { cursor: pointer; }
+.ek-drg, .ek-fardig, .ek-hog { margin: 6px 0; }
+@media (max-width: 640px) {
+  .ek-tabell .knapprad { flex-wrap: wrap; }
+  .ek-val select { flex: 1 1 100%; }
+}

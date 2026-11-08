@@ -9,6 +9,8 @@ import * as utskrift from '../utskrift.js';
 import * as tider from './patient-tider.js';
 // Runda 6, r3: tvångsvård, vårdplaner och samordnad planering i översikten.
 import * as r3 from './r3.js';
+// Runda 7, r3: kostnaderna i vårdprocessen, avgifter och högkostnadsskydd.
+import * as ekonomi from '../ekonomi-ui.js';
 
 // När frågeställningen inte visas för rollen skickar servern remissens status i stället.
 const REMISSTATUS = { skickad: 'Status: skickad', mottagen: 'Status: mottagen', bedomd: 'Status: bedömd', besvarad: 'Status: besvarad', svar_kvitterat: 'Status: svaret är kvitterat' };
@@ -40,7 +42,8 @@ function snabbval(ctx) {
 
 export async function visa(el, ctx) {
   // Bokade tider (tidboken) hämtas samtidigt med översikten.
-  const [d, t] = await Promise.all([api(`/api/patient/${encodeURIComponent(ctx.id)}/oversikt`), tider.hamta(ctx.id)]);
+  // Runda 7, r3: kostnaderna hämtas samtidigt, för de roller som ser dem.
+  const [d, t, kost] = await Promise.all([api(`/api/patient/${encodeURIComponent(ctx.id)}/oversikt`), tider.hamta(ctx.id), ekonomi.hamta(ctx.id)]);
   if (!ctx.aktuell()) return;
   const delar = [];
   // Runda 6, r3: tvångsvården först, eftersom fristerna räknas i timmar.
@@ -67,6 +70,8 @@ export async function visa(el, ctx) {
   }
   delar.push(tider.sektionHtml(t));
   delar.push(vardkontakt.sektionHtml(d, ctx));
+  // Runda 7, r3.
+  delar.push(ekonomi.sektionHtml(kost));
   const k = d.kontakt;
   delar.push(sektion('kontakt', 'Kontaktuppgifter', ctx.patient.skyddad
     ? '<p class="dampad">Adress, telefon och kontaktperson visas aldrig för en patient med skyddade personuppgifter, inte heller efter Visa identitet.</p>'
@@ -91,6 +96,7 @@ export async function visa(el, ctx) {
   el.querySelector('[data-utskrift]')?.addEventListener('click', () => utskrift.skrivUt(ctx.id));
   el.querySelector('[data-aterbesok]')?.addEventListener('click', () => tider.satUppAterbesok(ctx.id, ctx.patient?.namn ?? 'patienten').catch(felNotis));
   tider.koppla(el, t, ctx, () => ctx.ladda());
+  ekonomi.koppla(el, kost, ctx, () => ctx.ladda());
   r3.kopplaOversikt(el, d, ctx);
 }
 

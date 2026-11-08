@@ -33,6 +33,8 @@ import { bevakningVy, uppfoljningVy, samverkanVy, inkorgAntal } from './vyer/r3.
 import * as lakemedelsstod from './vyer/lakemedelsstod.js';
 // Runda 6, r6: verksamhetschefens uppdrag i läkemedelshanteringen.
 import * as lakemedelsansvar from './vyer/lakemedelsansvar.js';
+// Runda 7, r3: ekonomens faktureringsunderlag och prislistor.
+import * as ekonomi from './vyer/ekonomi.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -44,7 +46,8 @@ export const arInvanare = () => Boolean(S.session?.inloggad && S.session.roll ==
 export const arLogggranskare = () => S.session?.personal?.yrke === 'logggranskare';
 // Arkivarien och uppföljningsrollen läser inte journalen och har ingen arbetslista (Sussa 5.4.2 och 6.3.1).
 // Runda 6, r6: verksamhetschefen läser inte heller journalen.
-export const utanJournal = () => ['logggranskare', 'arkivarie', 'uppfoljning', 'kommun', 'verksamhetschef'].includes(S.session?.personal?.yrke);
+// Runda 7, r3: ekonomen läser inte heller journalen.
+export const utanJournal = () => ['logggranskare', 'arkivarie', 'uppfoljning', 'kommun', 'verksamhetschef', 'ekonom'].includes(S.session?.personal?.yrke);
 export const minVardenhet = () => S.session?.enhet?.vardenhet?.id ?? null;
 export const pa = (...h) => h.some(far);
 
@@ -73,6 +76,9 @@ const MENY = [
   ['#/arkiv', 'E-arkiv och gallring', 'arkiv', () => far('registrera_arkivbeslut')],
   ['#/datauttag', 'Datauttag', 'lista', () => far('datauttag')],
   ['#/planuppfoljning', 'Tvångsvård och samordning', 'krav', () => far('datauttag')],
+  // Runda 7, r3: ekonomen.
+  ['#/ekonomi', 'Faktureringsunderlag', 'lista', () => far('faktureringsunderlag')],
+  ['#/prislistor', 'Prislistor', 'kort', () => far('prislista')],
   ['#/migrering', 'Migreringsavstämning', 'migrering', () => true],
   ['#/krav', 'Kravspårbarhet', 'krav', () => true],
   ['#/moduler', 'Moduler', 'moduler', () => true],
@@ -104,6 +110,9 @@ const RUTTER = [
   [/^#\/tvangsvard$/, bevakningVy, () => Boolean(S.session?.r3?.tvangsvardsenhet)],
   [/^#\/planuppfoljning$/, uppfoljningVy, () => far('datauttag') || Boolean(S.session?.r3?.tvangsvardsenhet)],
   [/^#\/samverkan$/, samverkanVy, () => far('samverkan')],
+  // Runda 7, r3.
+  [/^#\/ekonomi$/, ekonomi, () => far('faktureringsunderlag')],
+  [/^#\/prislistor$/, ekonomi.prislistor, () => far('prislista')],
   [/^#\/migrering$/, migrering, () => true],
   [/^#\/krav$/, krav, () => true, true],
   [/^#\/moduler$/, moduler, () => true, true],
@@ -137,7 +146,7 @@ export const vardenhetAv = (id) => enhetMap.get(id)?.vardenhet ?? id;
 export const enhetLista = () => [...enhetMap.values()];
 
 // Vårdadministratören börjar på dagens arbete, där systemet har ordnat det som ska göras i dag.
-export const hem = () => (arInvanare() ? '#/min' : arLogggranskare() ? '#/logg' : far('registrera_arkivbeslut') ? '#/arkiv' : far('datauttag') ? '#/datauttag' : far('samverkan') ? '#/samverkan' : far('lakemedelsansvar') ? '#/lakemedelsansvar' : far('boka') ? '#/idag' : '#/arbetslista');
+export const hem = () => (arInvanare() ? '#/min' : arLogggranskare() ? '#/logg' : far('registrera_arkivbeslut') ? '#/arkiv' : far('datauttag') ? '#/datauttag' : far('samverkan') ? '#/samverkan' : far('lakemedelsansvar') ? '#/lakemedelsansvar' : far('faktureringsunderlag') ? '#/ekonomi' : far('boka') ? '#/idag' : '#/arbetslista');
 
 // Logotypen: en droppe över en våg, en källa.
 export const logotyp = (storlek = 30) => `<svg class="logotyp" width="${storlek}" height="${storlek}" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="9" fill="currentColor"/><path d="M16 5.2c-3.3 4.7-6.1 8.1-6.1 11.6a6.1 6.1 0 0 0 12.2 0c0-3.5-2.8-6.9-6.1-11.6z" fill="#fff"/><path d="M7.5 26.2c2.8-1.7 5.7-1.7 8.5 0s5.7 1.7 8.5 0" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`;
