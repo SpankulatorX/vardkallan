@@ -9,6 +9,9 @@ import { Fel, addDagar, datumAv, lokalTid } from './db.js';
 import { Atkomst } from './atkomst.js';
 import * as tidbok from './tidbok.js';
 import { SUSSA_PATIENTER, BERTIL_PK, BERTIL_EPIKRIS, ANKOMNA_5_6, OSIGNERADE_4_4 } from './seed/sussa-testdata.js';
+// Runda 8, r2: remisserna i testfall 2.3 och 2.4 och den inskannade pappersremissen i testfall 2.5.
+import { REMISSER_2_3, SKANNAD_2_5 } from './seed/sussa-testdata.js';
+import { laggTillSkanning } from './remiss-r8.js';
 
 const MIN = 60_000;
 const kon = (pnr) => (Number(pnr[10]) % 2 === 1 ? 'man' : 'kvinna');
@@ -71,7 +74,8 @@ export function laddaTestdata(db, personal, { nu = new Date() } = {}) {
     // Mira Axelsson (testfall 2.1 och 6.1): på vårdcentralen i dag med en hudförändring, och på kardiologiska mottagningen
     // med feber och frossa, där hon skrivs in akut.
     vk('sus17', 'vc-tybble', { start: M(-40), plats: 'Mottagning', orsak: 'Hudförändring på låret' });
-    vk('sus17', 'uso-kard-mott', { start: M(-30), plats: 'Kardiologiska mottagningen', orsak: 'Feber och frossa' });
+    // Runda 8, r2: läkaren på mottagningen registrerade besöket, så att systemet föreslår henne som uppdragsgivare (2.2).
+    vk('sus17', 'uso-kard-mott', { start: M(-30), plats: 'Kardiologiska mottagningen', orsak: 'Feber och frossa', av: 'lak-kard' });
 
     // Sara Sandmark (testfall 2.6, 4.2 och 5.6): en accepterad remiss från vårdcentralen till kardiologen, ett besök på
     // mottagningen i dag och ett besök på vårdcentralen i dag.
@@ -140,7 +144,15 @@ export function laddaTestdata(db, personal, { nu = new Date() } = {}) {
     vk('sus02', 'uso-kard-mott', { start: T(-30, '10:00'), slut: T(-30, '10:30'), plats: 'Kardiologiska mottagningen', orsak: 'Besök' });
     vk('sus13', 'uso-kard-mott', { start: T(-40, '13:00'), slut: T(-40, '13:30'), plats: 'Kardiologiska mottagningen', orsak: 'Besök' });
     vk('sus20', 'uso-kard-mott', { start: T(-50, '11:00'), slut: T(-50, '11:30'), plats: 'Kardiologiska mottagningen', orsak: 'Besök' });
+
+    // Runda 8, r2: tio inkommande remisser från vårdcentralen till kardiologen (Medicinkliniken, Mottagning 1 i
+    // Sussas testdata), kvitterade som mottagna och inte bedömda (testfall 2.3 och 2.4).
+    const insR = db.query(`INSERT INTO remisser (patient_id, fran_enhet_id, till_enhet_id, avsandare_id, fragestallning, anamnes, prioritet, svar_senast, status,
+      skickad_tid, mottagen_tid, mottagen_av, kalla) VALUES (?, 'vc-tybble', 'uso-kard', 'lak-vc', ?, ?, ?, ?, 'mottagen', ?, ?, 'adm-kard', 'vardkallan')`);
+    REMISSER_2_3.forEach((r, i) => insR.run(r.patient, r.fragestallning, r.anamnes, r.prioritet ?? 'normal', addDagar(basDatum, 20), T(-3, `${String(8 + i).padStart(2, '0')}:00`), T(-2, `${String(8 + i).padStart(2, '0')}:30`)));
   })();
+  // Runda 8, r2: pappersremissen från Behandlingshemmet Löparen är redan inskannad till kardiologen (testfall 2.5).
+  laggTillSkanning(db, 'uso-kard', SKANNAD_2_5.namn, SKANNAD_2_5.rader, nu);
 
   // Tidboken görs med tidbokens egna funktioner, så att väntelistan, bokningarna, vårdkontakterna och kallelserna blir
   // som när vårdadministratören bokar.

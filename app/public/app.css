@@ -1426,3 +1426,9 @@ body.laslage #nyhetsruta { display: none; }
 
 /* Runda 7, r1: koden för ett testtillfälle, som visas en gång. */
 .st-kod { word-break: break-all; font-size: 1.1rem; }
+
+/* Runda 8, r2: tidsramen i bedömningen, läkarna i fördelningen och knapparna på remisskonferensen. */
+.r8-tidsram .radiogrupp { flex-wrap: wrap; }
+.r8-lakare li { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .75rem; margin-bottom: .5rem; }
+.r8-konf-knappar { margin: -.5rem 0 1rem; }
+.r8-traffar .ruta { margin-top: .5rem; }

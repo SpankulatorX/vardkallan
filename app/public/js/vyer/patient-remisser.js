@@ -9,14 +9,21 @@ import { kontaktRad, nyKontaktData, kontaktNotis } from './patient-vardkontakt.j
 // Runda 6, r4: utkast, bilagor och återanvändning av en tidigare remiss.
 import { lasFil, BILAGA_TEXT } from '../planering-ui.js';
 import { felNotis } from '../ui.js';
+// Runda 8, r2: remiss på uppdrag av en läkare, och remisser att signera för läkaren.
+import { uppdragForm, uppdragSektion, kopplaUppdrag } from '../remiss-r8-ui.js';
 
 export async function visa(el, ctx) {
   const kan = far('remittera');
+  // Runda 8, r2: vårdadministratören skriver remisser på uppdrag, och läkaren ser dem som väntar på signering.
+  const paUppdrag = far('remittera_pa_uppdrag');
+  const uppdragLista = (paUppdrag || far('remittera')) ? api(`/api/patient/${encodeURIComponent(ctx.id)}/remiss-pa-uppdrag`, { tyst: true }).catch(() => ({ uppdrag: [] })) : Promise.resolve({ uppdrag: [] });
   const [d, , u] = await Promise.all([api(`/api/patient/${encodeURIComponent(ctx.id)}/remisser`), laddaEnheter(), kan ? api(`/api/patient/${encodeURIComponent(ctx.id)}/remissutkast`, { tyst: true }).catch(() => ({ utkast: [] })) : { utkast: [] }]);
+  const uppd = await uppdragLista;
   if (!ctx.aktuell()) return;
   let lista = d.remisser;
   tidigare = lista;
-  el.innerHTML = `<div class="flikhuvud"><h2>Remisser</h2>${kan ? `<button type="button" class="knapp" data-ny aria-expanded="false" aria-controls="remissform">${ikon.remiss}<span>Skicka remiss</span></button>` : ''}</div>${kan ? hjalpRuta('remiss') : ''}
+  el.innerHTML = `<div class="flikhuvud"><h2>Remisser</h2>${kan ? `<button type="button" class="knapp" data-ny aria-expanded="false" aria-controls="remissform">${ikon.remiss}<span>Skicka remiss</span></button>` : ''}${paUppdrag ? `<button type="button" class="knapp" data-uppdrag aria-expanded="false" aria-controls="uppdragform">${ikon.remiss}<span>Skriv remiss på uppdrag</span></button>` : ''}</div>${kan ? hjalpRuta('remiss') : ''}
+    ${uppdragSektion(uppd.uppdrag)}
     ${doldaRad(d.dolda)}
     ${u.utkast.length ? `<section class="ov-sektion" aria-labelledby="rf-utkast"><div class="sektion-huvud"><h3 id="rf-utkast">Dina utkast</h3></div><ul class="enkel-lista">${u.utkast.map(x => `<li><strong>${esc(x.till?.namn ?? 'Mottagare inte vald')}</strong>${x.fragestallning ? `, ${esc(x.fragestallning.slice(0, 80))}` : ''}
       <span class="under-text">Sparat ${esc(x.andrad.slice(0, 10))}${x.bilagor.length ? `, ${x.bilagor.length} ${x.bilagor.length === 1 ? 'bilaga' : 'bilagor'}` : ''}. Utkastet syns bara för dig.</span>
@@ -39,6 +46,14 @@ export async function visa(el, ctx) {
       else if (t) { await api(`/api/remissutkast/${t.dataset.utkastBort}/ta-bort`, { metod: 'POST', data: {} }); notis('Utkastet är borttaget.'); ctx.ladda(); }
     } catch (err) { felNotis(err); }
   });
+  // Runda 8, r2: remiss på uppdrag, med uppdragsgivaren förvald av systemet.
+  el.querySelector('[data-uppdrag]')?.addEventListener('click', (e) => {
+    const plats = el.querySelector('#remissform-plats');
+    e.currentTarget.setAttribute('aria-expanded', 'true');
+    uppdragForm(plats, ctx, () => ctx.ladda());
+  });
+  if (el.querySelector('.r8-uppdrag')) kopplaUppdrag(el.querySelector('.r8-uppdrag'), () => ctx.ladda());
+  if (ctx.sub === 'uppdrag' && paUppdrag) el.querySelector('[data-uppdrag]').click();
   // Från snabbvalet Skicka remiss i översikten (remisser/ny) öppnas formuläret direkt.
   if (ctx.sub === 'ny' && kan) el.querySelector('[data-ny]').click();
 }

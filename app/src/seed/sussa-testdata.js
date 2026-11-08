@@ -79,3 +79,34 @@ export const ANKOMNA_5_6 = ['sus22', 'sus06', 'sus23', 'sus12', 'sus19'];
 // Testfall 4.4: 30 osignerade anteckningar för läkaren i öppenvården, tio för var och en av de tre patienterna
 // (Bilaga F1:3 tabell 14).
 export const OSIGNERADE_4_4 = { patienter: ['sus08', 'sus09', 'sus10'], perPatient: 10 };
+
+// Runda 8, r2: de tio remisserna till Medicinkliniken, Mottagning 1, i testfall 2.3 och 2.4 (Bilaga F1:4). Sussa
+// anger patienterna men inte remissernas innehåll, så frågeställningarna är påhittade.
+export const REMISSER_2_3 = [
+  { patient: 'sus05', fragestallning: 'Bröstsmärtor vid ansträngning. Bedömning?', anamnes: 'Kvinna med tryck över bröstet vid promenader sedan en månad.', prioritet: 'skyndsam' },
+  { patient: 'sus02', fragestallning: 'Hjärtklappning. Bedömning och eventuell utredning?', anamnes: 'Episoder med hjärtklappning några gånger i veckan.' },
+  { patient: 'sus03', fragestallning: 'Trötthet och lätt andfåddhet. Hjärtsjukdom?', anamnes: 'Ingen utredning i primärvården än.' },
+  { patient: 'sus04', fragestallning: 'Konsultation: oro och sömnsvårigheter, hjärtklappning vid oro.', anamnes: 'Normalt EKG. Besvären verkar höra till det psykiska.' },
+  { patient: 'sus01', fragestallning: 'Tilltagande bensvullnad. Hjärtsvikt?', anamnes: 'Man med ökande ödem och andfåddhet nattetid.', prioritet: 'skyndsam' },
+  { patient: 'sus06', fragestallning: 'Blåsljud. Ekokardiografi?', anamnes: 'Nyupptäckt blåsljud vid hälsokontroll.' },
+  { patient: 'sus07', fragestallning: 'Förmaksflimmer. Ställningstagande till elkonvertering?', anamnes: 'Förmaksflimmer sedan två månader, antikoagulerad.' },
+  { patient: 'sus10', fragestallning: 'Svimning vid träning. Bedömning?', anamnes: 'Ung man som svimmade under fotbollsträning.' },
+  { patient: 'sus19', fragestallning: 'Högt blodtryck trots tre läkemedel.', anamnes: 'Blodtryck omkring 160/100 trots behandling.' },
+  { patient: 'sus18', fragestallning: 'Kontroll efter hjärtinfarkt för fem år sedan.', anamnes: 'Besvärsfri. Önskar kontroll.' },
+];
+
+// Runda 8, r2: pappersremissen i testfall 2.5 (Bilaga F1:4), redan inskannad. Avsändaren och texterna är Sussas.
+export const SKANNAD_2_5 = {
+  namn: 'Pappersremiss från Behandlingshemmet Löparen.pdf',
+  rader: ['Remiss (pappersremiss, inskannad)', 'Påhittad remiss ur Sussas testdata.', 'Patient: Trevis Ljung', 'Remissdatum: 2017-12-07', 'Från: Behandlingshemmet Löparen',
+    'Frågeställning: Psykossjukdom', 'Anamnes: Har bott här två år. Behandlingen har varit framgångsrik. Nu flyttar han hem och behöver följas upp.'],
+  remiss: { patient: 'sus04', remissdatum: '2017-12-07', enhet: 'Behandlingshemmet Löparen', fragestallning: 'Psykossjukdom', anamnes: 'Har bott här två år. Behandlingen har varit framgångsrik. Nu flyttar han hem och behöver följas upp.' },
+};
+
+// Runda 8, r2: remissen på uppdrag i testfall 2.2 (Bilaga F1:4): samma texter som 2.1 och ortopedkliniken som mottagare.
+export const UPPDRAG_2_2 = { tillEnhetId: 'uso-ort', uppdragsgivare: 'lak-kard' };
+
+// Runda 8, r2: svarstexten när Elin Arnströms remiss avvisas och motiveringen när Trevis Ljungs remiss skickas vidare
+// (testfall 2.3, Bilaga F1:4).
+export const AVVISNING_2_3 = 'Tack för remissen. I första hand bör en initial utredning göras på primärvårdsnivå. Följ behandlingslinje som finns på intranätet.';
+export const VIDAREBEFORDRAN_2_3 = 'Begäran om konsultation gäller psykiatrin.';

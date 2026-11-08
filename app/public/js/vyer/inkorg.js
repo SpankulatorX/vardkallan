@@ -13,6 +13,8 @@ import { signeraMuntlig } from './lakemedelsstod.js';
 import { bevakningKlar } from '../planering-ui.js';
 // Runda 7, r5: fel i rapporterna till myndigheter och register, som läkaren och vårdadministratören rättar här.
 import { rapportfelSektion, rapportfelKlick } from '../rapportfel.js';
+// Runda 8, r2: remisser att signera som har skrivits på läkarens uppdrag, och remisser fördelade till läkaren.
+import { signera as signeraRemiss } from '../remiss-r8-ui.js';
 
 export const namn = 'inkorg';
 
@@ -93,6 +95,11 @@ export async function visa(main) {
     <span class="under-text">${esc(x.text)} Mätt ${esc(tidpunkt(x.tid))}.</span><span class="under-text ik-atgard">${esc(x.nastaSteg)}</span></a>${ikon.pil}</li>`);
   const tvHemma = (d.hemmatningarAttBekrafta ?? []).map(x => rad(esc(x.href), `Mätning hemma, ${esc(pnamn(x.patient))}`, `${esc(x.namn)} ${esc(String(x.varde).replace('.', ','))} ${esc(x.enhet)}, mätt ${esc(tidpunkt(x.tid))}. Bekräfta eller avvisa i fliken Tillväxt.`));
   const tvBoka = (d.bhvAttBoka ?? []).map(x => rad(esc(x.href), `${esc(x.text)}, ${esc(pnamn(x.patient))}`, `Ska göras senast ${esc(x.till)}.${x.vacciner.length ? ` Vaccination: ${esc(x.vacciner.join(', ').toLowerCase())}.` : ''} Systemet föreslår tider i fliken Tillväxt.`));
+  // Runda 8, r2: remisser på uppdrag att signera och fördelade remisser att bedöma.
+  const r8sign = (d.remisserAttSignera ?? []).map(x => `<li class="ik-ater"><div class="ik-text"><span class="ik-rubrik">Remiss till ${esc(x.till.namn)}, ${esc(pnamn(x.patient))}${sym(x.patient)}</span>
+    <span class="under-text">${esc(x.fragestallning)} Skriven ${esc(tidpunkt(x.skapad))} av ${esc(x.skrivenAv?.namn ?? '')} på ditt uppdrag.</span></div><div class="ik-knappar"><button type="button" class="knapp liten" data-r8-signera="${x.id}">Granska och signera</button></div></li>`);
+  const r8bed = (d.remisserAttBedoma ?? []).map(x => rad(`#/remisser?riktning=inkommande&remiss=${x.id}`, `Remiss från ${esc(x.fran?.namn ?? '')}, ${esc(pnamn(x.patient))}${sym(x.patient)}`,
+    `${esc(x.fragestallning ?? '')} Fördelad till dig ${esc(tidpunkt(x.fordelad.tid))} av ${esc(x.fordelad.av?.namn ?? '')}. Svar senast ${esc(x.svarSenast)}.`));
   const harBhv = Boolean(S.session?.bhv);
   const yrke = S.session?.personal?.yrke;
   // Runda 6, r2: har användaren hunnit gå vidare till en annan vy, eller loggat ut, medan inkorgen hämtades finns
@@ -105,6 +112,8 @@ export async function visa(main) {
     ${tvHemma.length ? sektion('tvhemma', 'Mätningar hemma att bekräfta', tvHemma, '', 'Mätningar som vårdnadshavare har skickat i Min journal. De räknas på kurvan när du har bekräftat dem.') : ''}
     ${harBhv && tvBoka.length ? sektion('tvboka', 'Hälsobesök att boka', tvBoka, '', 'Barn som ska ha ett besök i barnhälsovårdens program nu och som inte har någon tid.') : ''}
     ${news2.length ? sektion('news2', 'NEWS2 som kräver åtgärd', news2, '', 'Patienter på vårdenheten där NEWS2 eller ett enskilt värde kräver åtgärd enligt NEWS2 (Royal College of Physicians 2017). Systemet räknar poängen ur vitalparametrarna. Demoregel, inte kliniskt beslutsstöd.') : ''}
+    ${yrke === 'lakare' || r8sign.length ? sektion('r8sign', 'Remisser att signera', r8sign, 'Inga remisser väntar på din signering.', 'Remisser som en vårdadministratör har skrivit på ditt uppdrag. De skickas när du har signerat, med dig som remittent.') : ''}
+    ${yrke === 'lakare' || r8bed.length ? sektion('r8bed', 'Remisser att bedöma', r8bed, 'Inga remisser är fördelade till dig.', 'Inkommande remisser som har fördelats till dig för bedömning.') : ''}
     ${yrke === 'lakare' || muntl.length ? sektion('muntlig', 'Muntliga ordinationer att signera', muntl, 'Inga muntliga ordinationer väntar på din signering.', 'Ordinationer som du lämnade muntligt eller per telefon och som en sjuksköterska har dokumenterat. De skickas till NLL när du har signerat.') : ''}
     ${S.session.behorigheter.includes('utvardera_lakemedel') && yrke === 'lakare' ? sektion('uppf', 'Uppföljning av läkemedel', uppf, 'Inga uppföljningar har passerat.', 'Läkemedel där uppföljningsdatumet har passerat. Utvärdera effekt och biverkan, och systemet föreslår nästa uppföljning.') : ''}
     ${['lakare', 'farmaceut'].includes(yrke) ? sektion('fordj', 'Fördjupade läkemedelsgenomgångar', fordj, 'Inga fördjupade genomgångar väntar på dig.', yrke === 'farmaceut' ? 'Genomgångar på din vårdenhet som väntar på farmaceutens bedömning.' : 'Genomgångar på din vårdenhet som pågår.') : ''}
@@ -140,6 +149,8 @@ export async function visa(main) {
     if (gr) { if (await granska(gr, d.mallarAttGodkanna[Number(gr.dataset.granska)])) visa(main); return; }
     const sf = e.target.closest('[data-sparr-fraga]');
     if (sf) { if (await sparrBeslut(sf, d.sparrFragor[Number(sf.dataset.sparrFraga)])) visa(main); return; }
+    const r8s = e.target.closest('[data-r8-signera]');
+    if (r8s) { if (await signeraRemiss(r8s.dataset.r8Signera)) visa(main); return; }
     const sg = e.target.closest('[data-signera]');
     if (sg) return signeraMuntlig(sg, sg.dataset.signera, async () => { await uppdateraInkorg(); visa(main); });
     const b = e.target.closest('[data-avsluta],[data-vh-igen],[data-vh-nod]');

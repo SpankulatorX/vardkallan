@@ -45,6 +45,8 @@ export const STARTPUNKT = {
   // Runda 7, r2: efter en återställning har ingen stängt nyheterna.
   'Arbetslistan med nyheterna efter en ny version': { hash: '#/arbetslista', klar: '.nyhetsruta', forbered: 'aterstall' },
   'Arbetslistan när inloggningen snart går ut': { hash: '#/arbetslista', klar: '#tidsgrans', forbered: 'inloggning-gar-ut' },
+  // Runda 8, r2: de inkommande remisserna och den inskannade pappersremissen efter återställning.
+  'Inkommande remisser efter återställning': { hash: '#/remisser', klar: '.r8-skannade [data-skann]', forbered: 'aterstall' },
 };
 
 export const UPPGIFTER = [
@@ -339,6 +341,22 @@ export const UPPGIFTER = [
     id: 'forlang-inloggning', namn: 'Fortsätta arbeta när inloggningen snart går ut', roll: 'lak-kard', start: 'Arbetslistan när inloggningen snart går ut',
     text: 'Du har varit borta från datorn en stund, och Vårdkällan varnar för att du snart loggas ut. Du vill fortsätta arbeta.',
     kontroll: { notis: 'Du är inloggad' },
+  },
+  // Runda 8, r2: remiss på uppdrag, fördelning och pappersremiss (Sussas testfall 2.2 till 2.5).
+  {
+    id: 'remiss-pa-uppdrag', namn: 'Skriva en remiss på uppdrag av en läkare', roll: 'adm-kard', start: 'Patientens översikt',
+    text: 'Läkaren som Gunnar Åkesson har en tid hos ber dig skriva en remiss till ortopeden om knäsmärta sedan tre månader. Skriv remissen åt läkaren, så att läkaren bara behöver signera den.',
+    kontroll: { notis: 'väntar på signering av' },
+  },
+  {
+    id: 'fordela-remiss', namn: 'Fördela en remiss till en läkare', roll: 'adm-kard', start: 'Inkommande remisser efter återställning',
+    text: 'Bakjouren ska bedöma de inkommande remisserna i dag. Se till att bakjouren får en av remisserna som inte är bedömda.',
+    kontroll: { notis: 'Remissen är fördelad till' },
+  },
+  {
+    id: 'registrera-pappersremiss', namn: 'Registrera en pappersremiss', roll: 'adm-kard', start: 'Inkommande remisser efter återställning',
+    text: 'En remiss om Gunnar Åkesson har kommit på papper från Läkarhuset Ekbacken och är redan inskannad. Frågan gäller bröstsmärtor. Registrera remissen så att den kan handläggas.',
+    kontroll: { notis: 'är registrerad och står bland de inkommande remisserna' },
   },
 ];
 

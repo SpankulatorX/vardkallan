@@ -141,6 +141,14 @@ function skapa(BAS) {
       await gaTill(page, '#/regler');
       await page.waitForSelector('#sf-att-godkanna');
     },
+    // Runda 8, r2: de inkommande remisserna och den inskannade pappersremissen efter återställning.
+    'Inkommande remisser efter återställning': async (page) => {
+      await gaTill(page, '#/moduler');
+      await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()));
+      await gaTill(page, '#/remisser');
+      await page.waitForSelector('article.remiss');
+      await page.waitForSelector('.r8-skannade [data-skann]');
+    },
     'Inkorgen efter återställning': async (page) => {
       await gaTill(page, '#/arbetslista');
       await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
@@ -365,7 +373,8 @@ function skapa(BAS) {
     },
     // Runda 7, r2: nyhetsrutan.
     nyheter: async (m, page) => {
-      await synlig(page, '.nyhetsruta', 'Hjälp i sammanhanget och övningar med intyg');
+      // Runda 8, r2: läkarens nyhet i version 0.8.0.
+      await synlig(page, '.nyhetsruta', 'Remisser att signera, att bedöma och på konferens');
       await m.klicka(page.locator('[data-a="stang-nyheter"]'), 'Stäng nyheterna');
       await page.waitForFunction(() => !document.querySelector('.nyhetsruta'));
       await synlig(page, '.notis', 'Nyheterna är stängda');
@@ -671,6 +680,34 @@ function skapa(BAS) {
     await synlig(page, '.notis', 'Vikt 9,6 kg');
     await synlig(page, '#tv-kurva-vikt .kurva-senaste', '9,6');
     await page.locator('#tv-kurva-vikt svg.tv-kurva').waitFor();
+  };
+  // Runda 8, r2: remiss på uppdrag, fördelning och pappersremiss.
+  GOR['remiss-pa-uppdrag'] = async (m, page) => {
+    await m.klicka(page.locator('.snabbval a', { hasText: 'Remiss på uppdrag' }), 'Remiss på uppdrag');
+    await page.waitForSelector('#uppdragform');
+    if (!(await page.locator('#ru-lakare').inputValue())) throw new Error('systemet föreslog ingen uppdragsgivare');
+    await m.valj(page.locator('#ru-till'), 'uso-ort', 'mottagare Ortopediska kliniken USÖ');
+    await m.skriv(page.locator('#ru-fraga'), 'Knäsmärta sedan tre månader. Bedömning?', 'frågeställning');
+    await m.skriv(page.locator('#ru-anamnes'), 'Svullnad efter ansträngning.', 'anamnes');
+    await m.klicka(page.locator('#uppdragform [type="submit"]'), 'Skicka till läkaren för signering');
+    await synlig(page, '.notis', 'väntar på signering av');
+  };
+  GOR['fordela-remiss'] = async (m, page) => {
+    const kort = page.locator('article.remiss').filter({ has: page.locator('[data-remiss-atgard="fordela"]') }).first();
+    await m.klicka(kort.locator('[data-remiss-atgard="fordela"]'), 'Fördela');
+    await m.klicka(page.locator('dialog[open] .forslag-knapp').first(), 'den läkare som systemet föreslår först');
+    await synlig(page, '.notis', 'Remissen är fördelad till');
+  };
+  GOR['registrera-pappersremiss'] = async (m, page) => {
+    await m.klicka(page.locator('.r8-skannade [data-skann]').first(), 'Registrera vid den inskannade remissen');
+    await page.locator('dialog[open] #ex-patient').waitFor();
+    await m.skriv(page.locator('dialog[open] #ex-patient'), 'Gunnar Åkesson', 'patienten');
+    await synlig(page, 'dialog[open] [data-vald]', 'Gunnar Åkesson');
+    await m.skriv(page.locator('dialog[open] #ex-enhet'), 'Läkarhuset Ekbacken', 'avsändande enhet');
+    await m.skriv(page.locator('dialog[open] #ex-fraga'), 'Bröstsmärtor. Bedömning?', 'frågeställning');
+    await m.skriv(page.locator('dialog[open] #ex-anamnes'), 'Påhittad pappersremiss i demon.', 'anamnes');
+    await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Registrera');
+    await synlig(page, '.notis', 'Pappersremissen från Läkarhuset Ekbacken är registrerad');
   };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }

@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T10:24:01.607Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-08T11:41:07.639Z",
+  "bas": "http://127.0.0.1:18182",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "6861eabb78763a405740bf97897dd10fff8989df56b204f9e50a1ab598fbf78a",
+  "gransnittHash": "74978990bc148650d3dfe26c85e8cbcf825d92a9849df150fb0f6707b9e7b1c8",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -1009,6 +1009,64 @@
       "steg": [
         "klick: Fortsätt arbeta"
       ]
+    },
+    {
+      "id": "remiss-pa-uppdrag",
+      "namn": "Skriva en remiss på uppdrag av en läkare",
+      "roll": "adm-kard",
+      "start": "Patientens översikt",
+      "budget": 6,
+      "motivering": "Sussa 3.3.1.4 och testfall 2.2. Ett klick på Remiss på uppdrag, där mottagaren har fokus, två klick för att välja mottagare i listan, ett fältbyte vardera för frågeställning och anamnes och ett klick för att skicka till läkaren. Systemet föreslår uppdragsgivaren ur patientens tider och vårdkontakter och fyller i prioritet och sista svarsdatum. Remissen skickas när läkaren har signerat den i inkorgen.",
+      "klick": 4,
+      "faltbyten": 2,
+      "tangenter": 0,
+      "uppmatt": 6,
+      "inomBudget": true,
+      "steg": [
+        "klick: Remiss på uppdrag",
+        "lista (2 klick): mottagare Ortopediska kliniken USÖ",
+        "fältbyte: frågeställning",
+        "fältbyte: anamnes",
+        "klick: Skicka till läkaren för signering"
+      ]
+    },
+    {
+      "id": "fordela-remiss",
+      "namn": "Fördela en remiss till en läkare",
+      "roll": "adm-kard",
+      "start": "Inkommande remisser efter återställning",
+      "budget": 2,
+      "motivering": "Sussa 3.3.1.5 och testfall 2.3 och 2.4. Ett klick på Fördela och ett på läkaren. Systemet föreslår bakjouren först, visar hur många remisser varje läkare har att bedöma och kvitterar mottagningen.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Fördela",
+        "klick: den läkare som systemet föreslår först"
+      ]
+    },
+    {
+      "id": "registrera-pappersremiss",
+      "namn": "Registrera en pappersremiss",
+      "roll": "adm-kard",
+      "start": "Inkommande remisser efter återställning",
+      "budget": 6,
+      "motivering": "Sussa 3.3.1.2 och testfall 2.5. Ett klick på Registrera vid den inskannade remissen, där patientfältet har fokus och systemet väljer patienten när sökningen ger en träff, ett fältbyte vardera för avsändande enhet, frågeställning och anamnes och ett klick för att registrera. Remissdatumet är förvalt till i dag, och budgeten har plats för att ändra det.",
+      "klick": 2,
+      "faltbyten": 3,
+      "tangenter": 0,
+      "uppmatt": 5,
+      "inomBudget": true,
+      "steg": [
+        "klick: Registrera vid den inskannade remissen",
+        "har redan fokus: patienten",
+        "fältbyte: avsändande enhet",
+        "fältbyte: frågeställning",
+        "fältbyte: anamnes",
+        "klick: Registrera"
+      ]
     }
   ],
   "tester": [
@@ -1234,6 +1292,18 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Fortsätta arbeta när inloggningen snart går ut inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Skriva en remiss på uppdrag av en läkare inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Fördela en remiss till en läkare inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera en pappersremiss inom budget",
       "status": "grön"
     }
   ]

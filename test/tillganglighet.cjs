@@ -454,6 +454,18 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
       await granskaHar(`${roll} ${h}`);
     }
     for (const extra of ['#/nyheter', '#/tillganglighet']) { await gaTill(page, extra); vyLista.push([roll, extra]); await granskaHar(`${roll} ${extra}`, { fokus: false }); }
+    // Runda 8, r2: remisskonferensen med en remiss på, för läkaren och vårdadministratören.
+    if (['lak-kard', 'adm-kard'].includes(roll)) {
+      await page.evaluate(async () => {
+        const d = await (await fetch('/api/remisser?riktning=inkommande')).json();
+        const r = d.remisser.find(x => ['skickad', 'mottagen'].includes(x.status) && !x.konferens);
+        if (r) await (await fetch(`/api/remiss/${r.id}/remisskonferens`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).text();
+      });
+      await gaTill(page, '#/remisser?vy=konferens');
+      await page.waitForSelector('.r8-konferens');
+      vyLista.push([roll, '#/remisser?vy=konferens']);
+      await granskaHar(`${roll} #/remisser?vy=konferens`, { fokus: false });
+    }
     if (JOURNAL_ROLLER.includes(roll)) {
       await gaTill(page, '#/patient/p01');
       for (const h of await flikarFor(page)) {
@@ -675,18 +687,19 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     const ruta = p.locator('.nyhetsruta');
     await ruta.waitFor();
     const text = await ruta.textContent();
-    if (!/Se vilka på vårdenheten som har giltigt intyg/.test(text)) throw new Error('verksamhetschefens nyhet saknas');
-    if (/Ordinera ur mallar/.test(text)) throw new Error('rutan visar en äldre version');
+    // Runda 8, r2: version 0.8.0 är den aktuella, och verksamhetschefen har nyheten som gäller alla.
+    if (!/Fler av Sussas användbarhetstester/.test(text)) throw new Error('verksamhetschefens nyhet saknas');
+    if (/Se vilka på vårdenheten som har giltigt intyg/.test(text)) throw new Error('rutan visar en äldre version');
     await p.click('[data-a="stang-nyheter"]');
     await p.waitForFunction(() => !document.querySelector('.nyhetsruta'));
     await loggaIn(p, 'lak-kard');
     await ruta.waitFor();
-    if (/Se vilka på vårdenheten/.test(await ruta.textContent())) throw new Error('läkaren ser verksamhetschefens nyhet');
+    if (/Remiss på uppdrag och pappersremisser/.test(await ruta.textContent())) throw new Error('läkaren ser vårdadministratörens nyhet');
     await loggaIn(p, 'vch-kard');
     if (await p.locator('.nyhetsruta').count()) throw new Error('rutan kommer tillbaka efter att den har stängts');
     await gaTill(p, '#/nyheter');
     const alla = await p.locator('main').textContent();
-    if (!/Se vilka på vårdenheten som har giltigt intyg/.test(alla) || !/Uppdrag i läkemedelshanteringen/.test(alla)) throw new Error('nyheterna går inte att läsa igen');
+    if (!/Fler av Sussas användbarhetstester/.test(alla) || !/Se vilka på vårdenheten som har giltigt intyg/.test(alla) || !/Uppdrag i läkemedelshanteringen/.test(alla)) throw new Error('nyheterna går inte att läsa igen');
     await p.screenshot({ path: join(UT, 'r7r2-nyheter.png') });
     await k.close();
   });

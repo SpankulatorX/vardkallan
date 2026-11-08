@@ -2,6 +2,53 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "0.8.0",
+      "datum": "2026-11-08",
+      "nyheter": [
+        {
+          "id": "remiss-pa-uppdrag",
+          "roller": [
+            "vardadministrator"
+          ],
+          "omfattning": "stor",
+          "var": "#/remisser",
+          "rubrik": "Remiss på uppdrag och pappersremisser",
+          "text": "Du skriver en remiss på uppdrag av en läkare med Remiss på uppdrag i patientens översikt, och systemet föreslår läkaren. Remissen skickas när läkaren har signerat. Inskannade pappersremisser registrerar du under Remisser, och någon annan på vårdenheten tar emot dem."
+        },
+        {
+          "id": "remiss-fordela-konferens",
+          "roller": [
+            "vardadministrator",
+            "fysioterapeut"
+          ],
+          "omfattning": "stor",
+          "var": "#/remisser?vy=konferens",
+          "rubrik": "Fördela remisser och remisskonferens",
+          "text": "En inkommande remiss fördelas till en läkare med två klick, och systemet föreslår bakjouren. Med Till remisskonferens hamnar remissen på nästa konferens, som systemet väljer."
+        },
+        {
+          "id": "remiss-signera-bedoma",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "stor",
+          "var": "#/inkorg",
+          "rubrik": "Remisser att signera, att bedöma och på konferens",
+          "text": "Remisser som skrivits på ditt uppdrag och remisser som fördelats till dig står i inkorgen. På remisskonferensen bedömer du remisserna i följd med ett klick per beslut, och när du accepterar väljer du inom vilken tid besöket ska ske."
+        },
+        {
+          "id": "sussa-testfall-08",
+          "roller": [
+            "alla"
+          ],
+          "omfattning": "liten",
+          "var": "#/krav",
+          "rubrik": "Fler av Sussas användbarhetstester",
+          "text": "Fler av Sussas användbarhetstester går att genomföra i Vårdkällan, bland annat de om vårdbegäran. Resultatet per testfall finns på kravsidan."
+        }
+      ]
+    },
+    {
       "version": "0.7.0",
       "datum": "2026-11-08",
       "nyheter": [

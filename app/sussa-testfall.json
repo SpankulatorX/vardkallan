@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T10:41:43.843Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-08T11:51:11.246Z",
+  "bas": "http://127.0.0.1:18182",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "6861eabb78763a405740bf97897dd10fff8989df56b204f9e50a1ab598fbf78a",
+  "gransnittHash": "74978990bc148650d3dfe26c85e8cbcf825d92a9849df150fb0f6707b9e7b1c8",
   "kalla": "Region Örebro län, upphandlingen Framtidens vårdinformationsstöd (Sussa samverkan, dnr 16RS2022): Bilaga F1:4 Testfall, Bilaga F1:2 Modell för att testa och utvärdera användbarhet, Bilaga F1:3 Information till anbudsgivare och Bilaga F1 Utvärderingsmodell, versionerna 2018-03-07.",
   "klm": {
     "kalla": "Card, Moran och Newell 1980, Communications of the ACM 23(7), s. 396 till 410",
@@ -43,15 +43,15 @@
       "tecken": 323,
       "uppmatt": 29,
       "inomBudget": true,
-      "skriptetsTidMs": 5327,
-      "uppskattadTidS": 169,
+      "skriptetsTidMs": 5009,
+      "uppskattadTidS": 168.6,
       "klmDelar": {
         "klick": 47.7,
         "listval": 4,
         "faltbyten": 20.7,
         "tecken": 90.4,
         "tangenter": 0.8,
-        "svarstid": 5.3
+        "svarstid": 5
       },
       "steg": [
         "klick: Gerda Ström i arbetslistan",
@@ -122,15 +122,15 @@
       "tecken": 316,
       "uppmatt": 28,
       "inomBudget": true,
-      "skriptetsTidMs": 4111,
-      "uppskattadTidS": 162,
+      "skriptetsTidMs": 4219,
+      "uppskattadTidS": 162.1,
       "klmDelar": {
         "klick": 39.8,
         "listval": 11.9,
         "faltbyten": 17.3,
         "tecken": 88.5,
         "tangenter": 0.6,
-        "svarstid": 4.1
+        "svarstid": 4.2
       },
       "steg": [
         "klick: Elin Arnström i arbetslistan",
@@ -197,15 +197,15 @@
       "tecken": 131,
       "uppmatt": 31,
       "inomBudget": true,
-      "skriptetsTidMs": 3021,
-      "uppskattadTidS": 112.8,
+      "skriptetsTidMs": 3087,
+      "uppskattadTidS": 112.9,
       "klmDelar": {
         "klick": 21.2,
         "listval": 19.8,
         "faltbyten": 31.1,
         "tecken": 36.7,
         "tangenter": 1.1,
-        "svarstid": 3
+        "svarstid": 3.1
       },
       "steg": [
         "klick: Trevis Ljung i arbetslistan",
@@ -265,15 +265,15 @@
       "tecken": 72,
       "uppmatt": 12,
       "inomBudget": true,
-      "skriptetsTidMs": 2230,
-      "uppskattadTidS": 55,
+      "skriptetsTidMs": 2575,
+      "uppskattadTidS": 55.3,
       "klmDelar": {
         "klick": 29.2,
         "listval": 0,
         "faltbyten": 3.5,
         "tecken": 20.2,
         "tangenter": 0,
-        "svarstid": 2.2
+        "svarstid": 2.6
       },
       "steg": [
         "klick: Läkemedel att ge i menyn",
@@ -316,7 +316,7 @@
       "tecken": 99,
       "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 310,
+      "skriptetsTidMs": 304,
       "uppskattadTidS": 46.8,
       "klmDelar": {
         "klick": 8,
@@ -360,15 +360,15 @@
       "tecken": 99,
       "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 308,
-      "uppskattadTidS": 46.8,
+      "skriptetsTidMs": 394,
+      "uppskattadTidS": 46.9,
       "klmDelar": {
         "klick": 8,
         "listval": 4,
         "faltbyten": 6.9,
         "tecken": 27.7,
         "tangenter": 0,
-        "svarstid": 0.3
+        "svarstid": 0.4
       },
       "steg": [
         "klick: Mira Axelsson i arbetslistan",
@@ -404,15 +404,15 @@
       "tecken": 99,
       "uppmatt": 7,
       "inomBudget": true,
-      "skriptetsTidMs": 303,
-      "uppskattadTidS": 46.8,
+      "skriptetsTidMs": 382,
+      "uppskattadTidS": 46.9,
       "klmDelar": {
         "klick": 8,
         "listval": 4,
         "faltbyten": 6.9,
         "tecken": 27.7,
         "tangenter": 0,
-        "svarstid": 0.3
+        "svarstid": 0.4
       },
       "steg": [
         "klick: Mira Axelsson i arbetslistan",
@@ -421,6 +421,254 @@
         "fältbyte: frågeställning",
         "fältbyte: anamnes",
         "klick: Skicka remissen"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "2.2",
+      "titel": "Upprätta och skicka vårdbegäran på uppdrag",
+      "tema": 2,
+      "roll": "Medicinsk sekreterare",
+      "demoroll": "adm-kard",
+      "tidsklass": 9,
+      "tidsklassSkal": "Som testfall 2.1 med en uppdragsgivare.",
+      "budget": 9,
+      "motivering": "Ett klick på Sök patient, där sökfältet har fokus, Enter och ett klick på träffen. Ett klick på Remiss på uppdrag, där mottagaren har fokus, två klick för att välja mottagare i listan, ett fältbyte vardera för frågeställning och anamnes och ett klick för att skicka till läkaren. Uppdragsgivaren är förvald, eftersom läkaren registrerade patientens besök, och prioritet och sista svarsdatum har förval.",
+      "avvikelser": [
+        "Uppdragsgivaren är läkaren Sara Lindqvist på Kardiologiska kliniken USÖ, som motsvarar Medicinkliniken. Mottagaren är Ortopediska kliniken USÖ.",
+        "Remissen skickas när läkaren har signerat den i sin inkorg, med läkaren som remittent. Testfallet slutar när remissen väntar på signering."
+      ],
+      "slut": "Vårdbegäran är skickad.",
+      "uppnatt": true,
+      "klick": 6,
+      "listval": 1,
+      "faltbyten": 2,
+      "tangenter": 1,
+      "tecken": 103,
+      "uppmatt": 9,
+      "inomBudget": true,
+      "skriptetsTidMs": 448,
+      "uppskattadTidS": 51,
+      "klmDelar": {
+        "klick": 10.6,
+        "listval": 4,
+        "faltbyten": 6.9,
+        "tecken": 28.8,
+        "tangenter": 0.3,
+        "svarstid": 0.4
+      },
+      "steg": [
+        "klick: Sök patient i menyn",
+        "har redan fokus: sökfältet",
+        "tangent Enter: sök",
+        "klick: träffen Mira Axelsson",
+        "klick: Remiss på uppdrag",
+        "lista (2 klick): mottagare Ortopediska kliniken USÖ",
+        "fältbyte: frågeställning",
+        "fältbyte: anamnes",
+        "klick: Skicka till läkaren för signering"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "2.3",
+      "titel": "Ta emot vårdbegäran",
+      "tema": 2,
+      "roll": "Läkare slutenvård",
+      "demoroll": "lak-kard",
+      "tidsklass": 15,
+      "tidsklassSkal": "Fyra remisser med fyra olika beslut.",
+      "budget": 15,
+      "motivering": "Ett klick på Remisser i menyn. Berit Strandhall: Fördela och ett klick på bakjouren, som systemet föreslår först (2). Gerda Ström: Bedöm, ett klick på Inom två månader och spara (3). Elin Arnström: Bedöm, Avvisa, ett fältbyte för svarstexten och spara (4). Trevis Ljung: Skicka vidare, två klick för psykiatriska kliniken i listan, ett fältbyte för motiveringen och ett klick för att skicka (5).",
+      "avvikelser": [
+        "Remisserna kommer från Vårdcentralen Tybble till Kardiologiska kliniken USÖ, som motsvarar Medicinkliniken, Mottagning 1. Läkaren i öppenvården arbetar på vårdcentralen och spelar därför inte testfallet.",
+        "Bakjouren är överläkaren Göran Malm (demoregel), som systemet föreslår först.",
+        "Väntelistan för besök om två månader är tidsramen Inom två månader när remissen accepteras. Psykiatriska kliniken är Allmänpsykiatriska kliniken USÖ, och vidarebefordran har en motivering som avsändaren ser."
+      ],
+      "slut": "De fyra remisserna är fördelade, prioriterade, avvisade eller vidareskickade.",
+      "uppnatt": true,
+      "klick": 13,
+      "listval": 1,
+      "faltbyten": 2,
+      "tangenter": 0,
+      "tecken": 172,
+      "uppmatt": 15,
+      "inomBudget": true,
+      "skriptetsTidMs": 898,
+      "uppskattadTidS": 89.1,
+      "klmDelar": {
+        "klick": 29.2,
+        "listval": 4,
+        "faltbyten": 6.9,
+        "tecken": 48.2,
+        "tangenter": 0,
+        "svarstid": 0.9
+      },
+      "steg": [
+        "klick: Remisser i menyn",
+        "klick: Fördela för Berit Strandhall",
+        "klick: bakjouren Göran Malm",
+        "klick: Bedöm för Gerda Ström",
+        "klick: Inom två månader",
+        "klick: Spara bedömningen",
+        "klick: Bedöm för Elin Arnström",
+        "klick: Avvisa",
+        "fältbyte: svarstexten",
+        "klick: Spara bedömningen",
+        "klick: Skicka vidare för Trevis Ljung",
+        "lista (2 klick): Allmänpsykiatriska kliniken USÖ",
+        "fältbyte: motiveringen",
+        "klick: Skicka vidare"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "2.3",
+      "titel": "Ta emot vårdbegäran",
+      "tema": 2,
+      "roll": "Paramedicinare",
+      "demoroll": "fys-kard",
+      "tidsklass": 15,
+      "tidsklassSkal": "Fyra remisser med fyra olika beslut.",
+      "budget": 15,
+      "motivering": "Samma steg som för läkaren: fysioterapeuten på kardiologiska mottagningen tar emot remisserna till kardiologen.",
+      "avvikelser": [
+        "Remisserna kommer från Vårdcentralen Tybble till Kardiologiska kliniken USÖ, som motsvarar Medicinkliniken, Mottagning 1. Läkaren i öppenvården arbetar på vårdcentralen och spelar därför inte testfallet.",
+        "Bakjouren är överläkaren Göran Malm (demoregel), som systemet föreslår först.",
+        "Väntelistan för besök om två månader är tidsramen Inom två månader när remissen accepteras. Psykiatriska kliniken är Allmänpsykiatriska kliniken USÖ, och vidarebefordran har en motivering som avsändaren ser."
+      ],
+      "slut": "De fyra remisserna är fördelade, prioriterade, avvisade eller vidareskickade.",
+      "uppnatt": true,
+      "klick": 13,
+      "listval": 1,
+      "faltbyten": 2,
+      "tangenter": 0,
+      "tecken": 172,
+      "uppmatt": 15,
+      "inomBudget": true,
+      "skriptetsTidMs": 890,
+      "uppskattadTidS": 89.1,
+      "klmDelar": {
+        "klick": 29.2,
+        "listval": 4,
+        "faltbyten": 6.9,
+        "tecken": 48.2,
+        "tangenter": 0,
+        "svarstid": 0.9
+      },
+      "steg": [
+        "klick: Remisser i menyn",
+        "klick: Fördela för Berit Strandhall",
+        "klick: bakjouren Göran Malm",
+        "klick: Bedöm för Gerda Ström",
+        "klick: Inom två månader",
+        "klick: Spara bedömningen",
+        "klick: Bedöm för Elin Arnström",
+        "klick: Avvisa",
+        "fältbyte: svarstexten",
+        "klick: Spara bedömningen",
+        "klick: Skicka vidare för Trevis Ljung",
+        "lista (2 klick): Allmänpsykiatriska kliniken USÖ",
+        "fältbyte: motiveringen",
+        "klick: Skicka vidare"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "2.4",
+      "titel": "Ta emot vårdbegäran på uppdrag",
+      "tema": 2,
+      "roll": "Medicinsk sekreterare",
+      "demoroll": "adm-kard",
+      "tidsklass": 15,
+      "tidsklassSkal": "Fyra remisser, varav tre till samma konferens.",
+      "budget": 6,
+      "motivering": "Ett klick på Remisser i menyn. Bertil Danielsson: Fördela och ett klick på bakjouren, som systemet föreslår först (2). Sara Sandmark, Anna Karlsson och Sven Markström: ett klick vardera på Till remisskonferens (3). Systemet väljer nästa konferens och kvitterar mottagningen.",
+      "avvikelser": [
+        "Remisskonferensen är vårdenhetens nästa, tisdag eller torsdag klockan 8 (demoregel). Bakjouren är överläkaren Göran Malm (demoregel).",
+        "På konferensen bedömer läkarna remisserna i följd med ett klick per beslut, och vårdadministratören kan registrera besluten på uppdrag med läkaren som ansvarig. Det ingår inte i testfallet."
+      ],
+      "slut": "En remiss är fördelad till bakjouren och de övriga står på remisskonferens.",
+      "uppnatt": true,
+      "klick": 6,
+      "listval": 0,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "tecken": 0,
+      "uppmatt": 6,
+      "inomBudget": true,
+      "skriptetsTidMs": 496,
+      "uppskattadTidS": 16.4,
+      "klmDelar": {
+        "klick": 15.9,
+        "listval": 0,
+        "faltbyten": 0,
+        "tecken": 0,
+        "tangenter": 0,
+        "svarstid": 0.5
+      },
+      "steg": [
+        "klick: Remisser i menyn",
+        "klick: Fördela för Bertil Danielsson",
+        "klick: bakjouren Göran Malm",
+        "klick: Till remisskonferens för Sara Sandmark",
+        "klick: Till remisskonferens för Anna Karlsson",
+        "klick: Till remisskonferens för Sven Markström"
+      ],
+      "brister": [],
+      "malpoang": 10,
+      "tidspoang": 10
+    },
+    {
+      "nr": "2.5",
+      "titel": "Registrera en extern vårdbegäran",
+      "tema": 2,
+      "roll": "Medicinsk sekreterare",
+      "demoroll": "adm-kard",
+      "tidsklass": 9,
+      "tidsklassSkal": "Fem uppgifter som skrivs av från papper.",
+      "budget": 7,
+      "motivering": "Ett klick på Remisser i menyn och ett på Registrera vid den inskannade remissen, där patientfältet har fokus och systemet väljer patienten när namnet ger en träff. Ett fältbyte vardera för avsändande enhet (ur den simulerade HSA-katalogen), remissdatum, frågeställning och anamnes, och ett klick för att registrera. Remissdatumet är förvalt till i dag och skrivs om.",
+      "avvikelser": [
+        "Pappersremissen är redan inskannad och blir bilaga till remissen. Den går in bland de inkommande remisserna och ger vårdrelation först när någon annan än den som registrerade den har tagit emot den (beslut 2026-11-08).",
+        "Behandlingshemmet Löparen finns i den simulerade HSA-katalogen."
+      ],
+      "slut": "Remissen är inregistrerad.",
+      "uppnatt": true,
+      "klick": 3,
+      "listval": 0,
+      "faltbyten": 4,
+      "tangenter": 0,
+      "tecken": 158,
+      "uppmatt": 7,
+      "inomBudget": true,
+      "skriptetsTidMs": 640,
+      "uppskattadTidS": 66.6,
+      "klmDelar": {
+        "klick": 8,
+        "listval": 0,
+        "faltbyten": 13.8,
+        "tecken": 44.2,
+        "tangenter": 0,
+        "svarstid": 0.6
+      },
+      "steg": [
+        "klick: Remisser i menyn",
+        "klick: Registrera vid den inskannade remissen",
+        "har redan fokus: patienten",
+        "fältbyte: avsändande enhet",
+        "fältbyte: remissdatum",
+        "fältbyte: frågeställning",
+        "fältbyte: anamnes",
+        "klick: Registrera"
       ],
       "brister": [],
       "malpoang": 10,
@@ -448,7 +696,7 @@
       "tecken": 70,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 282,
+      "skriptetsTidMs": 294,
       "uppskattadTidS": 30.5,
       "klmDelar": {
         "klick": 10.6,
@@ -491,7 +739,7 @@
       "tecken": 70,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 307,
+      "skriptetsTidMs": 278,
       "uppskattadTidS": 30.5,
       "klmDelar": {
         "klick": 10.6,
@@ -534,8 +782,8 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 320,
-      "uppskattadTidS": 13.6,
+      "skriptetsTidMs": 271,
+      "uppskattadTidS": 13.5,
       "klmDelar": {
         "klick": 13.3,
         "listval": 0,
@@ -577,7 +825,7 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 287,
+      "skriptetsTidMs": 283,
       "uppskattadTidS": 13.5,
       "klmDelar": {
         "klick": 13.3,
@@ -620,7 +868,7 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 281,
+      "skriptetsTidMs": 289,
       "uppskattadTidS": 13.5,
       "klmDelar": {
         "klick": 13.3,
@@ -663,8 +911,8 @@
       "tecken": 13,
       "uppmatt": 15,
       "inomBudget": true,
-      "skriptetsTidMs": 525,
-      "uppskattadTidS": 42.3,
+      "skriptetsTidMs": 493,
+      "uppskattadTidS": 42.2,
       "klmDelar": {
         "klick": 15.9,
         "listval": 11.9,
@@ -714,8 +962,8 @@
       "tecken": 13,
       "uppmatt": 15,
       "inomBudget": true,
-      "skriptetsTidMs": 548,
-      "uppskattadTidS": 42.3,
+      "skriptetsTidMs": 502,
+      "uppskattadTidS": 42.2,
       "klmDelar": {
         "klick": 15.9,
         "listval": 11.9,
@@ -765,8 +1013,8 @@
       "tecken": 13,
       "uppmatt": 15,
       "inomBudget": true,
-      "skriptetsTidMs": 520,
-      "uppskattadTidS": 42.3,
+      "skriptetsTidMs": 501,
+      "uppskattadTidS": 42.2,
       "klmDelar": {
         "klick": 15.9,
         "listval": 11.9,
@@ -817,7 +1065,7 @@
       "tecken": 321,
       "uppmatt": 8,
       "inomBudget": true,
-      "skriptetsTidMs": 1234,
+      "skriptetsTidMs": 1284,
       "uppskattadTidS": 113.4,
       "klmDelar": {
         "klick": 8,
@@ -825,7 +1073,7 @@
         "faltbyten": 10.4,
         "tecken": 89.9,
         "tangenter": 0,
-        "svarstid": 1.2
+        "svarstid": 1.3
       },
       "steg": [
         "klick: Anna Karlsson i arbetslistan",
@@ -863,15 +1111,15 @@
       "tecken": 0,
       "uppmatt": 3,
       "inomBudget": true,
-      "skriptetsTidMs": 458,
-      "uppskattadTidS": 8.4,
+      "skriptetsTidMs": 355,
+      "uppskattadTidS": 8.3,
       "klmDelar": {
         "klick": 8,
         "listval": 0,
         "faltbyten": 0,
         "tecken": 0,
         "tangenter": 0,
-        "svarstid": 0.5
+        "svarstid": 0.4
       },
       "steg": [
         "klick: Inkorg i menyn",
@@ -904,7 +1152,7 @@
       "tecken": 37,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 302,
+      "skriptetsTidMs": 262,
       "uppskattadTidS": 21.5,
       "klmDelar": {
         "klick": 10.6,
@@ -949,7 +1197,7 @@
       "tecken": 0,
       "uppmatt": 1,
       "inomBudget": true,
-      "skriptetsTidMs": 43,
+      "skriptetsTidMs": 41,
       "uppskattadTidS": 2.7,
       "klmDelar": {
         "klick": 2.7,
@@ -988,8 +1236,8 @@
       "tecken": 0,
       "uppmatt": 1,
       "inomBudget": true,
-      "skriptetsTidMs": 107,
-      "uppskattadTidS": 2.8,
+      "skriptetsTidMs": 91,
+      "uppskattadTidS": 2.7,
       "klmDelar": {
         "klick": 2.7,
         "listval": 0,
@@ -1016,7 +1264,8 @@
       "budget": 5,
       "motivering": "Ett klick på Sök patient, där sökfältet har fokus, Enter och ett klick på träffen. Ett klick på Registrera vårdkontakt, där besök och nu är förvalda och orsaksfältet har fokus, och ett klick för att registrera.",
       "avvikelser": [
-        "Jourmottagningen motsvaras av ett oplanerat besök på Kardiologiska mottagningen."
+        "Jourmottagningen motsvaras av ett oplanerat besök på Kardiologiska mottagningen.",
+        "Gerda Ström har en remiss till kardiologen i testdatan för testfall 2.3 (runda 8), så systemet föreslår orsaken ur remissen."
       ],
       "slut": "Gerda Ström är ankomstregistrerad.",
       "uppnatt": true,
@@ -1024,16 +1273,16 @@
       "listval": 0,
       "faltbyten": 0,
       "tangenter": 1,
-      "tecken": 26,
+      "tecken": 5,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 298,
-      "uppskattadTidS": 18.5,
+      "skriptetsTidMs": 283,
+      "uppskattadTidS": 12.6,
       "klmDelar": {
         "klick": 10.6,
         "listval": 0,
         "faltbyten": 0,
-        "tecken": 7.3,
+        "tecken": 1.4,
         "tangenter": 0.3,
         "svarstid": 0.3
       },
@@ -1043,7 +1292,6 @@
         "tangent Enter: sök",
         "klick: träffen Gerda Ström",
         "klick: Registrera vårdkontakt",
-        "har redan fokus: orsaken",
         "klick: Registrera"
       ],
       "brister": [],
@@ -1072,7 +1320,7 @@
       "tecken": 0,
       "uppmatt": 3,
       "inomBudget": true,
-      "skriptetsTidMs": 193,
+      "skriptetsTidMs": 170,
       "uppskattadTidS": 8.1,
       "klmDelar": {
         "klick": 8,
@@ -1113,7 +1361,7 @@
       "tecken": 37,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 226,
+      "skriptetsTidMs": 286,
       "uppskattadTidS": 22,
       "klmDelar": {
         "klick": 8,
@@ -1121,7 +1369,7 @@
         "faltbyten": 3.5,
         "tecken": 10.4,
         "tangenter": 0,
-        "svarstid": 0.2
+        "svarstid": 0.3
       },
       "steg": [
         "klick: Mira Axelsson i arbetslistan",
@@ -1156,7 +1404,7 @@
       "tecken": 37,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 255,
+      "skriptetsTidMs": 246,
       "uppskattadTidS": 22,
       "klmDelar": {
         "klick": 8,
@@ -1164,7 +1412,7 @@
         "faltbyten": 3.5,
         "tecken": 10.4,
         "tangenter": 0,
-        "svarstid": 0.3
+        "svarstid": 0.2
       },
       "steg": [
         "klick: Mira Axelsson i arbetslistan",
@@ -1199,7 +1447,7 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 175,
+      "skriptetsTidMs": 186,
       "uppskattadTidS": 12.1,
       "klmDelar": {
         "klick": 8,
@@ -1241,7 +1489,7 @@
       "tecken": 0,
       "uppmatt": 5,
       "inomBudget": true,
-      "skriptetsTidMs": 200,
+      "skriptetsTidMs": 216,
       "uppskattadTidS": 12.1,
       "klmDelar": {
         "klick": 8,
@@ -1283,7 +1531,7 @@
       "tecken": 7,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 281,
+      "skriptetsTidMs": 278,
       "uppskattadTidS": 11.3,
       "klmDelar": {
         "klick": 5.3,
@@ -1325,7 +1573,7 @@
       "tecken": 7,
       "uppmatt": 4,
       "inomBudget": true,
-      "skriptetsTidMs": 276,
+      "skriptetsTidMs": 274,
       "uppskattadTidS": 11.3,
       "klmDelar": {
         "klick": 5.3,
@@ -1347,40 +1595,6 @@
     }
   ],
   "ejGenomforbara": [
-    {
-      "nr": "2.2",
-      "titel": "Upprätta och skicka vårdbegäran på uppdrag",
-      "roller": [
-        "Medicinsk sekreterare"
-      ],
-      "saknas": "Vårdadministratören kan inte skicka remisser, och en remiss på uppdrag av en annan remittent finns inte."
-    },
-    {
-      "nr": "2.3",
-      "titel": "Ta emot vårdbegäran",
-      "roller": [
-        "Läkare slutenvård",
-        "Läkare öppenvård",
-        "Paramedicinare"
-      ],
-      "saknas": "Att fördela en remiss till en namngiven läkare finns inte. Accepterad remiss hamnar på väntelistan, avvisning med motivering och vidarebefordran finns."
-    },
-    {
-      "nr": "2.4",
-      "titel": "Ta emot vårdbegäran på uppdrag",
-      "roller": [
-        "Medicinsk sekreterare"
-      ],
-      "saknas": "Remisskonferens och fördelning till en namngiven läkare finns inte. Vårdadministratören kvitterar mottagna remisser men bedömer dem inte."
-    },
-    {
-      "nr": "2.5",
-      "titel": "Registrera en extern vårdbegäran",
-      "roller": [
-        "Medicinsk sekreterare"
-      ],
-      "saknas": "Att registrera en remiss på papper från en vårdgivare utanför Vårdkällan finns inte."
-    },
     {
       "nr": "3.1",
       "titel": "Upprätta en labbeställning",
@@ -1539,6 +1753,26 @@
       "status": "grön"
     },
     {
+      "namn": "Gränssnitt > Sussas testfall > 2.2 Upprätta och skicka vårdbegäran på uppdrag (medicinsk sekreterare) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 2.3 Ta emot vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 2.3 Ta emot vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 2.4 Ta emot vårdbegäran på uppdrag (medicinsk sekreterare) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Sussas testfall > 2.5 Registrera en extern vårdbegäran (medicinsk sekreterare) når slutvillkoret inom klickbudgeten",
+      "status": "grön"
+    },
+    {
       "namn": "Gränssnitt > Sussas testfall > 2.6 Besvara en vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten",
       "status": "grön"
     },
@@ -1626,24 +1860,24 @@
   "sammanstallning": {
     "alla": {
       "antal": 34,
-      "malupfyllelse": 4.85,
-      "effektivitet": 5.29,
+      "malupfyllelse": 6.03,
+      "effektivitet": 6.47,
       "poang": {
         "malupfyllelse": 5,
         "effektivitet": 5
       }
     },
     "genomforda": {
-      "antal": 18,
-      "malupfyllelse": 9.17,
+      "antal": 22,
+      "malupfyllelse": 9.32,
       "effektivitet": 10,
       "poang": {
         "malupfyllelse": 10,
         "effektivitet": 10
       }
     },
-    "antalGenomforda": 18,
+    "antalGenomforda": 22,
     "antal": 34,
-    "korningar": 28
+    "korningar": 33
   }
 }
