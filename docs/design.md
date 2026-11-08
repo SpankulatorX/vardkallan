@@ -1504,6 +1504,58 @@ visas med journalens behörighet och loggning.
 Det som saknas står i Sussa-registrets anmärkningar: gränssnitt, FHIR för graviditet, cytostatika, blod och bilder,
 datauttaget för uppföljningarna, anestesijournal, CTG, regimbibliotek med godkännande och DICOM.
 
+## Läkemedel, förbrukningsartiklar och beställningar (runda 9, r1: beredning.js, forbrukning.js, egenadministrering.js, lakemedelsbestallning.js, lakemedelsstatistik.js, kliniskprovning.js, direktiv-vardgivare.js och r9r1-rutter.js, Sussa 3.5.1.4, 3.5.1.8, 3.5.1.11, 3.5.2.4, 3.5.2.10, 3.5.2.12, 3.5.2.14, 3.5.2.15, 3.5.2.17, 3.5.2.18, 3.5.2.20, 3.5.3.3, 3.5.4.1 till 3.5.4.4 och 3.5.5.1)
+
+### Beredning med kontroll och etikett (3.5.1.4, 3.5.2.17)
+
+Systemet vet ur ordinationen om en dos ska beredas: ett läkemedel som späds från en stamlösning eller ett pulver, eller en basvätska som får en tillsats. En basvätska utan tillsats är färdig att ge. I Läkemedel att ge är knappen för en sådan dos Bered i stället för Ge. Dialogen visar vad som ska göras, ur spädningen i ordinationen, och den som bereder anger bara batchnumret eller skannar förpackningen. En skannad förpackningskod (GS1 med GTIN, utgångsdatum och batch, med eller utan parenteser) fyller i batch och utgångsdatum. Lösningen och volymen tas från ordinationen, och en annan lösning, en annan volym eller en förpackning som har gått ut stoppas med en förklaring.
+
+Beredningen sparas med iordningsställandet (tabellen `beredningar`) med det systemet räknade fram, batch, utgångsdatum, hur länge den håller och vem som beredde. En beredning med kaliumklorid som tillsats eller med morfin kontrolleras av en annan sjuksköterska eller läkare på samma vårdenhet innan dosen ges, aldrig av den som beredde. Kontrollanten skriver batchnumret som den läser på förpackningen, och det ska stämma. Väntande kontroller syns i inkorgen som ett antal, utan patientuppgifter. En dos med beredning ges bara när kontrollen är gjord och beredningen håller (fyra timmar för bensylpenicillin, annars ett dygn), och en dos som ska beredas ges inte utan iordningsställande, utom när den registreras i efterhand. Beredningen ändras och raderas aldrig, och bara kontrollen fylls i, en gång.
+
+Varje iordningsställd dos har en etikett med streckkod (Code 128, streckkod.js) som bara innehåller kontrollkoden. Etiketten har patientens namn och personnummer (för skyddad identitet bara när identiteten är vald att visas), läkemedlet, dosen och dostiden, och för en beredning lösningen, volymen, koncentrationen, tillsatserna, batch, hållbarhet och vem som beredde och kontrollerade. Den skrivs ut som PDF för etikettskrivare eller A4-ark, som provetiketterna.
+
+### Doser i flytande form och gasform (3.5.2.17)
+
+En oral lösning ordineras i mg, och systemet räknar volymen i ml ur styrkan och säger vilken oral spruta som används (1, 5 eller 10 ml, eller medicinbägare). En dos under 0,1 ml går inte att mäta upp säkert och ger en allvarlig varning. När sjuksköterskan anger den uppmätta volymen och den avviker mer än fem procent varnar systemet och kräver motivering. Syrgas (en egen demopost, `VK-EGEN-0003`, ATC V03AN01) ordineras i liter per minut. Systemet väljer utrustningen ur flödet (grimma 0,5 till 4, mask 5 till 10 och mask med reservoarpåse 10 till 15 liter per minut), sätter målet för saturationen till 92 till 96 procent om inget annat anges och skriver doseringen. Ett flöde som utrustningen inte ger stoppas både vid ordinationen och när dosen ges, och den senaste saturationen utanför målet ger en observation, bara ur mätvärden som användaren får se.
+
+### Patientnära skanning (3.5.2.18)
+
+Ett fält i Läkemedel att ge tar emot etikettens och armbandets kod, som en streckkodsläsare skriver med Enter efter. Armbandet har koden `VKA-<journalnummer>`, aldrig personnumret, och kan visas och skrivas ut. Servern kontrollerar att etiketten hör till en iordningsställd dos för just den patient vars armband skannas, bland de doser som användaren får se. Ett armband för en annan patient stoppas utan att den andra patienten röjs, och en etikett för en spärrad vårdenhets dos ger samma svar som en okänd etikett. Dosen ges med båda koderna, servern prövar armbandet på nytt, och skanningen sparas med dosen (`administrering_skanning`).
+
+### Egenadministrering i slutenvården (3.5.2.12)
+
+Läkaren kan markera en ordination så att patienten sköter läkemedlet själv. Systemet tillåter det inte för blodprodukter, intravenösa läkemedel och narkotika (opioider och bensodiazepiner) och säger varför. Doserna kommer inte med bland sjuksköterskans doser att ge, utan visas under Patienten tar själv med dagens dostider. Sjuksköterskan kvitterar intaget eller registrerar att det inte togs, med orsak, och en dostid som har passerat utan kvittens markeras. Ett kvitterat intag ändras och raderas aldrig (`egenintag`).
+
+### Förbrukningsartiklar (3.5.4.1 till 3.5.4.4)
+
+Nio påhittade artiklar i tre grupper: egenkontroll (teststickor för blodsocker och keton, lansetter), tillförsel (pennkanyler, insulinsprutor, kanylburk) och stomi (påse, platta, hudskydd), med påhittade varunummer. Ur läkemedelslistan och diagnoserna föreslår systemet mallar med en eller flera förskrivningar: Insulin med penna, Egenkontroll av blodsocker och Stomi. Mängden per uttag räknas för 90 dagar ur behandlingen, till exempel ett antal pennkanyler som är antalet injektioner per dygn, och anvisningen skrivs av systemet. Förskrivningen gäller ett år, och uppföljningen sätts en månad före slutet med förskrivaren som ansvarig. En artikel som redan är giltig förskrivs inte en gång till, och systemet föreslår förnyelse. En mängd som är mer än en och en halv gång behovet kräver motivering, och en artikel som inte passar läkemedelslistan eller diagnoserna ger en observation.
+
+En förskrivning ändras (mängd, uttag, anvisning, uppföljning), förnyas, sätts ut och sätts in igen i sin egen rad, och varje händelse finns kvar i historiken med vem, vilken vårdenhet och när (`forbrukningsforskrivningar` och `forbrukning_historik`). En förskrivning från en annan förskrivare registreras med vem och när och skickas inte till NLL. Läkaren och sjuksköterskan förskriver med vårdrelation på sin vårdenhet, och en förskrivning ändras bara på den vårdenhet där den gjordes. Listan är en del av läkemedelslistan och gemensam för vårdgivaren, men en spärrad vårdenhets förskrivning visas inte och styr inga förslag eller kontroller. Läkemedelsfliken visar giltiga, utgångna och utsatta förskrivningar med filter på grupp och sortering på giltighet, artikel eller uppföljning.
+
+### Beställningar av extempore, licens och blodprodukter (3.5.2.4)
+
+Systemet föreslår ur ordinationerna vad som ska beställas och från vem: extempore från apoteket, med mängden för sju dagar, och blodprodukter från blodcentralen, med antal enheter ur dosen. Läkaren söker licens för ett licensläkemedel hos Läkemedelsverket med en motivering. Systemet säger när en licens redan gäller och när den behöver förlängas, och registrerar en beviljad licens själv, så att den bevakas vid ordination och dos. De tre parterna är simulerade och svarar när demoknappen Simulera svar används, med status och händelser (`lakemedelsbestallningar`).
+
+### Läkemedelsberättelsen i epikrisen (3.5.1.11)
+
+Epikrisens förslag har läkemedelsberättelsen under Läkemedelsförändringar: den som läkaren har sparat vid en läkemedelsgenomgång under vårdtillfället, annars den som systemet tar fram ur historiken för det pågående vårdtillfället. Bara genomgångar som läkaren får se räknas.
+
+### Klinisk läkemedelsprövning (3.5.5.1, kliniskprovning.js)
+
+En prövning har studienummer, titel, sponsor, prövande vårdenhet, ansvarig prövare, prövare, prövningsläkemedel och de läkemedel som studieprotokollet inte tillåter samtidigt (demon har den påhittade studien DEMO-HF-01 på Kardiologiska kliniken). En prövare på den prövande vårdenheten inkluderar patienten med randomiseringskod i läkemedelsfliken, och systemet registrerar själv uppmärksamhetsinformationen (medicinsk behandling) med studienummer och ansvarig prövare. Prövningsläkemedlet till någon utanför studien, och ett läkemedel som protokollet inte tillåter till en deltagare, ger en allvarlig varning med prövarens namn. Prövningsläkemedlet ordineras, iordningsställs och ges som andra läkemedel. Prövaren ser studiens deltagare med pågående ordinationer och givna doser på sidan Direktiv och uppföljning, och varje patient i listan loggas. Ett deltagande på en spärrad vårdenhet syns inte och ger ingen varning. När deltagandet avslutas med orsak avslutas också uppmärksamhetsinformationen.
+
+### Generella direktiv på vårdgivarens nivå (3.5.2.15, direktiv-vardgivare.js)
+
+Ett generellt direktiv kan fastställas för hela vårdgivaren av den läkare som vårdgivaren har utsett (tabellen `vardgivarens_lakemedelsuppdrag`, i demon Sara Lindqvist). Det gäller på alla vårdenheter hos vårdgivaren och prövas mot patienten som vårdenhetens egna direktiv, men gäller inte i en kommun. Verksamhetschefen och den medicinskt ansvariga läkaren fastställer som förut för sin vårdenhet, och systemet säger vem som fastställer för hela vårdgivaren till den som försöker utan uppdraget. Samma läkare upphäver direktivet.
+
+### Uppföljning på vårdgivarens nivå (3.5.2.20) och vätskebalans framåt (3.5.3.3)
+
+Uppföljningen (rollen med `statistik_region`) ser i Datauttag per läkemedel antal vårdenheter, patienter, förskrivna och nya ordinationer, givna doser, andel utvärderade, effekt, biverkningar och passerade uppföljningar över alla vårdenheter hos vårdgivaren, för 30, 90 eller 365 dagar. Makulerade doser räknas inte, och ett läkemedel med färre än tre patienter visas bara med antal vårdenheter. Läsningen loggas utan patient. Den förväntade vätskebalansen kan visas 24, 48 eller 72 timmar framåt, med den ackumulerade mängden in per post och förlusterna i samma takt som det senaste dygnet.
+
+### Det som är simulerat eller saknas
+
+Vilka beredningar som kontrolleras av en annan person, hållbarheten, gränserna för syrgas, reglerna för egenadministrering, artiklarna, varunumren, mängderna och mallarna för förbrukningsartiklar är demoregler. Att sjuksköterskor förskriver förbrukningsartiklar utan särskild förskrivningsrätt är en demoregel. Ingen streckkodsläsare eller etikettskrivare är ansluten. NLL, apoteket, Läkemedelsverket och blodcentralen är simulerade. Beredningen, skanningen, förbrukningsartiklarna och beställningarna finns i gränssnittet och API:t men inte i FHIR-API:t. Vaccinationsprogrammen utöver barnhälsovården är inte byggda i rundan. Studien och prövningsläkemedlet är påhittade, och redovisning till sponsorn och avblindning finns inte.
+
 ## Godkännandekriterier för första versionen
 
 - `bun test` grönt, med tester för varje regel i behörighetsmotorn, loggkedjan och triggrarna, signering och rättelse, obligatoriska fält och varningar i läkemedel, NLL som inte svarar i tid och avstämning, remissens statuskedja och larm, FHIR-svarens form.

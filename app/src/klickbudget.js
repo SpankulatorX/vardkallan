@@ -339,4 +339,9 @@ export const FLODEN = [
     id: 'egen-matning', namn: 'Lämna en egen mätning i Min journal', roll: 'inv-p01', start: 'Min journal för patienten', budget: 3,
     motivering: 'Sussa 3.6.1.7. Ett klick på Egna mätningar, ett fältbyte till värdet och ett klick för att skicka. Blodtryck är förvalt, tiden är nu och systemet väljer själv vårdenheten som tar emot mätningen.',
   },
+  // Runda 9, r1: förbrukningsartiklar ur en mall (Sussa 3.5.4.2 och 3.5.4.4).
+  {
+    id: 'forbrukning-mall', namn: 'Förskriva förbrukningsartiklar ur en mall', roll: 'lak-vc', start: 'Översikten för en patient med insulin', budget: 2,
+    motivering: 'Sussa 3.5.4.2 och 3.5.4.4. Ett klick till läkemedelsfliken och ett på Förskriv mallen vid den mall som systemet föreslår ur läkemedelslistan. Systemet väljer pennkanyler, lansetter och kanylburk, tar bort teststickorna som redan är förskrivna, räknar mängden för tre månader ur antalet injektioner och skriver anvisningen, giltigheten och uppföljningen.',
+  },
 ];

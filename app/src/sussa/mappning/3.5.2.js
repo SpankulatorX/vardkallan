@@ -7,6 +7,8 @@ import { medR6 } from '../lakemedelsansvar-r6.js';
 // Runda 8, r4: produktmallar, tillsatser, administrationssätt och dosändring.
 import { medR8r4 } from '../lakemedel-r8.js';
 import { TEST } from '../../krav.js';
+// Runda 9, r1.
+import { medR9r1 } from '../lakemedel-r9.js';
 // Runda 5, r1: vårdhändelsen i tidboken (app/test/vardhandelse.test.js).
 import { T as TB } from '../tidbok-tester.js';
 // Runda 9, r2: medicinteknisk utrustning.
@@ -302,4 +304,5 @@ const AVSNITT = [
   },
 ];
 // Runda 6, r2: posterna som byggdes i läkemedelsprocessen, del 2, ersätts ur sussa/lakemedel-r2.js.
-export default medR8r4(medR6(medR2(AVSNITT)));
+// Runda 9, r1: beredning, etikett, skanning och resten av läkemedelsprocessen (sussa/lakemedel-r9.js).
+export default medR9r1(medR8r4(medR6(medR2(AVSNITT))));

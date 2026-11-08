@@ -264,6 +264,18 @@ ROLLER.lakare.push('las_operation', 'operation_anmala', 'operation_planera', 'op
 ROLLER.sjukskoterska.push('las_operation', 'operation_planera', 'operation_registrera', 'las_graviditet', 'graviditet', 'las_cytostatika', 'ge_cytostatika');
 ROLLER.underskoterska.push('las_operation');
 
+// Runda 9, r1: förbrukningsartiklar (forbrukning.js, Sussa 3.5.4). Läkaren och sjuksköterskan förskriver artiklar för
+// egenkontroll, tillförsel av läkemedel och stomi. Att sjuksköterskor i demon förskriver utan särskild behörighet är en
+// demoregel: i verkligheten krävs förskrivningsrätt, till exempel som diabetes- eller stomisjuksköterska.
+Object.assign(HANDLINGAR, { forskriva_forbrukning: 'förskriva förbrukningsartiklar' });
+ROLLER.lakare.push('forskriva_forbrukning');
+ROLLER.sjukskoterska.push('forskriva_forbrukning');
+// Runda 9, r1: beställning av extempore och blodprodukter från de simulerade externa parterna (lakemedelsbestallning.js,
+// Sussa 3.5.2.4). En licensansökan kräver ordinationsrätt.
+Object.assign(HANDLINGAR, { bestalla_lakemedel: 'beställa extempore och blodprodukter' });
+ROLLER.lakare.push('bestalla_lakemedel');
+ROLLER.sjukskoterska.push('bestalla_lakemedel');
+
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
 
 // Runda 7, r4: omorganisation (omorganisation.js, HSA:s regler för organisationsförändringar, bilaga K6). En vårdenhet

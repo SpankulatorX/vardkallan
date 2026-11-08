@@ -853,6 +853,15 @@ function skapa(BAS) {
     await synlig(page, '.notis', 'Mätningen är skickad');
     await synlig(page, '.min-del table', 'Inte bedömd ännu');
   };
+  // Runda 9, r1: förbrukningsartiklar ur den mall som systemet föreslår.
+  startI['Översikten för en patient med insulin'] = async (page) => { await gaTill(page, '#/patient/p06'); await page.waitForSelector('.tidslinje'); };
+  GOR['forbrukning-mall'] = async (m, page) => {
+    await m.klicka(page.locator('.flikar a', { hasText: 'Läkemedel' }), 'fliken Läkemedel');
+    await page.waitForSelector('.fb-sektion [data-fb-mall="insulin-penna"]');
+    await m.klicka(page.locator('.fb-sektion [data-fb-mall="insulin-penna"]'), 'Förskriv mallen Insulin med penna');
+    await synlig(page, '.notis', 'Insulin med penna är förskriven');
+    await synlig(page, '.fb-sektion', 'Pennkanyler 4 mm');
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 

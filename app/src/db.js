@@ -35,6 +35,8 @@ import { sakraEkonomi } from './ekonomi-schema.js';
 import { sakraDosandring } from './dosandring-schema.js';
 // Runda 8, r5: tobaksvanorna och vårdenheternas egna övningar.
 import { sakraR5 } from './schema-runda8-r5.js';
+// Runda 9, r1: beredning, patientnära skanning, gas och förbrukningsartiklar (schema-runda9-r1.js).
+import { sakraR9r1, seedaR9r1 } from './schema-runda9-r1.js';
 
 // Fel som API:t svarar med. kod: nekad | saknas | ogiltig | kraver_val | kraver_samtycke
 export class Fel extends Error {
@@ -425,6 +427,9 @@ export function byggSeed(bas = nu()) {
   require('./labb-seed.js').seeda(db, { bas });
   // Runda 9, r3: tabellerna för operation, blodprodukter, graviditet och förlossning, cytostatika och bilder.
   require('./r9r3-rutter.js').sakra(db);
+  // Runda 9, r1 (schema-runda9-r1.js).
+  sakraR9r1(db);
+  seedaR9r1(db, bas);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -537,6 +542,9 @@ export function migrera(db) {
   require('./labb-seed.js').sakra(db);
   // Runda 9, r3: specialistområdenas tabeller. Inget läggs in i efterhand.
   require('./r9r3-rutter.js').sakra(db);
+  // Runda 9, r1: en sandlåda från före runda 9 får tabellerna och seedens poster.
+  sakraR9r1(db);
+  seedaR9r1(db, nu());
   return db;
 }
 

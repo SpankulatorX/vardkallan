@@ -61,7 +61,11 @@ function dosVolym(db, o, dos) {
 
 // GET /api/patient/:id/vatskebalans?dag&brytning&riktning&sortering. Svaret har samma fält som tidigare och dessutom
 // kalorier, beredd volym, vikt, ackumulerad balans och förväntad balans för de närmaste 24 timmarna.
-export function vatskebalans(atk, { dag = idag(), brytning = '00', riktning = null, sortering = 'tid' } = {}) {
+// Runda 9, r1: perioderna för den förväntade vätskebalansen, i timmar.
+export const PROGNOSER = [24, 48, 72];
+export function vatskebalans(atk, { dag = idag(), brytning = '00', riktning = null, sortering = 'tid', prognosTimmar = 24 } = {}) {
+  // Runda 9, r1: prognosen kan gälla 24, 48 eller 72 timmar framåt (Sussa 3.5.3.3).
+  const timmar = PROGNOSER.includes(Number(prognosTimmar)) ? Number(prognosTimmar) : 24;
   const db = atk.db;
   const vb = administrering.vatskebalans(atk, { dag, brytning });
   const adm = new Map(administrering.synligaAdministreringar(atk).map(a => [a.id, a]));
@@ -85,11 +89,11 @@ export function vatskebalans(atk, { dag = idag(), brytning = '00', riktning = nu
   // samma takt som det senaste dygnet, eftersom de inte går att ordinera.
   const nu = Date.now();
   const forvantat = [];
-  for (const d of [idag(), addDagar(idag(), 1)]) {
-    const l = administrering.lista(atk, { dag: d });
+  for (let n = 0; n <= timmar / 24; n++) {
+    const l = administrering.lista(atk, { dag: addDagar(idag(), n) });
     for (const x of l.doser) {
       const ms = Date.parse(x.planerad);
-      if (ms <= nu - 3600_000 || ms > nu + DAG || ['given', 'overlamnad', 'ej_given'].includes(x.status)) continue;
+      if (ms <= nu - 3600_000 || ms > nu + timmar * 3600_000 || ['given', 'overlamnad', 'ej_given'].includes(x.status)) continue;
       const o = ordn.get(x.ordinationId);
       const { volym, kcal } = dosVolym(db, o, x.dos);
       if (volym) forvantat.push({ tid: x.planerad, lakemedel: x.lakemedel.namn, volymMl: volym, kcal: r1(kcal), iordningstalld: x.status === 'iordningstalld' });
@@ -99,6 +103,11 @@ export function vatskebalans(atk, { dag = idag(), brytning = '00', riktning = nu
   const utDygn = administrering.vatskebalans(atk, { dag: datumI(nu - DAG), brytning: new Date(nu).toLocaleTimeString('sv-SE', { timeZone: 'Europe/Stockholm', hour: '2-digit', minute: '2-digit' }) });
   const utTakt = r1(utDygn.poster.filter(p => p.riktning === 'ut' && !p.makulerad).reduce((s, p) => s + p.volymMl, 0));
   const forvIn = r1(forvantat.reduce((s, x) => s + x.volymMl, 0));
+  // Runda 9, r1: förlusterna för hela perioden räknas i samma takt som det senaste dygnet, och varje förväntad post får
+  // den ackumulerade mängden in från nu.
+  const utPeriod = r1(utTakt * timmar / 24);
+  let ackIn = 0;
+  for (const x of forvantat) { ackIn += x.volymMl; x.ackumuleratIn = r1(ackIn); }
   // Ackumulerad balans genom dygnet, post för post i tidsordning.
   let acc = 0;
   const ackumulerad = [...giltiga].sort((a, b) => a.tid.localeCompare(b.tid)).map(p => { acc += p.riktning === 'in' ? p.volymMl : -p.volymMl; return { tid: p.tid, balans: r1(acc) }; });
@@ -116,8 +125,8 @@ export function vatskebalans(atk, { dag = idag(), brytning = '00', riktning = nu
   return {
     ...vb, poster, filter: { riktning: riktning === 'in' || riktning === 'ut' ? riktning : null, sortering: sortering === 'volym' ? 'volym' : 'tid' }, kcalIn,
     beredd: { poster: beredd, summaMl: r1(beredd.reduce((s, x) => s + x.volymMl, 0)) },
-    prognos: { timmar: 24, poster: forvantat, summaIn: forvIn, summaUt: utTakt, balans: r1(forvIn - utTakt), kcal: r1(forvantat.reduce((s, x) => s + x.kcal, 0)),
-      text: 'Förväntat in är doser med volym som är ordinerade de närmaste 24 timmarna och inte givna. Förväntat ut räknas som samma mängd som det senaste dygnet.' },
+    prognos: { timmar, val: PROGNOSER, poster: forvantat, summaIn: forvIn, summaUt: utPeriod, balans: r1(forvIn - utPeriod), kcal: r1(forvantat.reduce((s, x) => s + x.kcal, 0)),
+      text: `Förväntat in är doser med volym som är ordinerade de närmaste ${timmar} timmarna och inte givna. Förväntat ut räknas i samma takt som det senaste dygnet.` },
     ackumulerad, vikt, brytningar: ['00', '06', '07', '08'],
   };
 }

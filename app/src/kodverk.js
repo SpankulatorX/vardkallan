@@ -83,6 +83,8 @@ export const ATC = {
   // Runda 6, r2: läkemedelstyperna utanför NPL (seed/produkttyper.js), kontrollerade mot WHO:s ATC/DDD-index 2026-11-03.
   'A11DA01': 'thiamine (vit B1)', 'B05AX01': 'erythrocytes', 'B05AX03': 'blood plasma', 'B05XA01': 'potassium chloride',
   'B05XA03': 'sodium chloride', 'V06DB': 'Fat/carbohydrates/proteins/minerals/vitamins, combinations',
+  // Runda 9, r1: syrgas (seed/produkttyper.js), kontrollerad mot WHO:s ATC/DDD-index.
+  'V03AN01': 'oxygen', 'C03DA05': 'finerenone',
   // Grupper som överkänslighet och varningsregler använder.
   'J01C': 'BETA-LACTAM ANTIBACTERIALS, PENICILLINS', 'M01A': 'ANTIINFLAMMATORY AND ANTIRHEUMATIC PRODUCTS, NON-STEROIDS',
   'B01AA': 'Vitamin K antagonists', 'B01AB': 'Heparin group', 'B01AE': 'Direct thrombin inhibitors', 'B01AF': 'Direct factor Xa inhibitors',

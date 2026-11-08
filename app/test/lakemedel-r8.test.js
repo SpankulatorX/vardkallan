@@ -129,7 +129,8 @@ describe('Tillsatser i infusion', () => {
     // Iordningsställandet och dosen gäller hela blandningen, och volymen med tillsatsen räknas in i vätskebalansen.
     const dos = administrering.lista(ssk(db, 'p01', 'las_lakemedel')).doser.find(d => d.ordinationId === o.id);
     expect(dos.spadning.text).toContain('Addex-Magnesium');
-    const ior = administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('14:00'), atgard: 'iordningstall' });
+    // Runda 9, r1: blandningen bereds med batchnumret, och systemet räknar fram resten ur ordinationen.
+    const ior = administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('14:00'), atgard: 'iordningstall', beredning: { batch: 'MG2611' } });
     expect(ior.administrering.status).toBe('iordningstalld');
     const ut = administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('14:00'), kontrollkod: ior.administrering.iordningstalld.kontrollkod });
     expect(ut.administrering.status).toBe('given');

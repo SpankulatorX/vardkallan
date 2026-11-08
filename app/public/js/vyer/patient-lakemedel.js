@@ -11,6 +11,8 @@ import * as administrering from './administrering.js';
 // Läkemedelsprocessen, del 2 (runda 6, r2).
 import * as lms from './lakemedelsstod.js';
 import { S } from '../app.js';
+// Runda 9, r1: förbrukningsartiklar.
+import * as forbrukning from './forbrukning.js';
 
 let nastaOverforing = null;
 // Vätskebalansens val (dygnsbrytning, filter och sortering) gäller tills sidan laddas om (runda 6, r2).
@@ -25,7 +27,7 @@ const kanske = (p) => p.catch(() => null);
 
 export async function visa(el, ctx) {
   const pid = encodeURIComponent(ctx.id);
-  const [d, adm, vid, vb, dir, dygn, fg] = await Promise.all([
+  const [d, adm, vid, vb, dir, dygn, fg, fb, lb, kp] = await Promise.all([
     api(`/api/patient/${pid}/lakemedel`),
     kanske(api(`/api/patient/${pid}/administreringar`)),
     far('ordinera') ? kanske(api(`/api/patient/${pid}/vidimering`)) : null,
@@ -34,6 +36,10 @@ export async function visa(el, ctx) {
     far('ordinera_direktiv') ? kanske(api(`/api/patient/${pid}/direktiv`)) : null,
     kanske(api(`/api/patient/${pid}/doseringsoversikt`)),
     kanske(api(`/api/patient/${pid}/fordjupad-genomgang`)),
+    // Runda 9, r1: förbrukningsartiklar, beställningar och klinisk prövning.
+    kanske(forbrukning.hamta(ctx.id)),
+    kanske(api(`/api/patient/${pid}/lakemedelsbestallningar`)),
+    far('las_oversikt') ? kanske(api(`/api/patient/${pid}/provningar`)) : null,
   ]);
   if (!ctx.aktuell()) return;
   const kanOrdinera = far('ordinera');
@@ -51,14 +57,21 @@ export async function visa(el, ctx) {
     ${vid ? vidimeringPanel(vid) : ''}
     ${kanOrdinera ? nllDemo() : ''}
     <section aria-labelledby="lm-akt"><h3 id="lm-akt">Aktuella ordinationer <span class="antal">${aktuella.length}</span></h3>${lms.verktygsrad()}<div id="lm-akt-tabell">${tabell(lms.filtrera(aktuella), kanOrdinera, true)}</div></section>
+    <div id="lm-fb-plats"></div>
+    <div id="lm-lb-plats"></div>
+    <div id="lm-kp-plats"></div>
     ${lms.direktivSektion(dir)}
-    ${adm && (adm.doser.length || adm.vidBehov.length || adm.utanTider.length || adm.vantarPaHandelse.length || adm.kommandeHandelser?.length) ? `<section class="lm-sektion" aria-labelledby="lm-adm" id="lm-adm-sektion"><h3 id="lm-adm">Dagens administreringar</h3>${administrering.patientDoser(ctx.id, adm)}</section>` : ''}
+    ${adm && (adm.doser.length || adm.vidBehov.length || adm.utanTider.length || adm.vantarPaHandelse.length || adm.kommandeHandelser?.length || adm.egenadministrering?.length) ? `<section class="lm-sektion" aria-labelledby="lm-adm" id="lm-adm-sektion"><h3 id="lm-adm">Dagens administreringar</h3>${administrering.patientDoser(ctx.id, adm)}</section>` : ''}
     ${kanOrdinera && vid?.kan?.kan ? '<section class="lm-sektion" aria-labelledby="lm-genomgang"><h3 id="lm-genomgang">Läkemedelsgenomgång</h3><p class="liten">Systemet tar fram indikation, dubbelmedicinering, interaktioner, passerade uppföljningar och en läkemedelsberättelse ur historiken.</p><button type="button" class="knapp sekundar" data-genomgang>Gör läkemedelsgenomgång</button></section>' : ''}
     ${lms.doseringsSektion(dygn)}
     ${lms.fordjupadSektion(fg)}
     <div id="lm-vb-plats">${vb ? lms.vatskeSektion(vb) : ''}</div>
     ${ovriga.length ? `<section aria-labelledby="lm-utsatt"><h3 id="lm-utsatt">Utsatta och avslutade <span class="antal">${ovriga.length}</span></h3>${tabell(ovriga, kanOrdinera, false)}</section>` : ''}`;
   if (adm) administrering.koppla(el.querySelector('#lm-adm-sektion') ?? document.createElement('div'), () => ctx.ladda());
+  // Runda 9, r1: förbrukningsartiklarna, beställningarna och den kliniska prövningen.
+  if (fb) forbrukning.visa(el.querySelector('#lm-fb-plats'), ctx.id, fb);
+  if (lb) forbrukning.visaBestallningar(el.querySelector('#lm-lb-plats'), ctx.id, lb);
+  if (kp) forbrukning.visaProvningar(el.querySelector('#lm-kp-plats'), ctx.id, kp);
   // Runda 6, r2: filtrering och sortering ritar bara om tabellen.
   lms.kopplaVerktyg(el.querySelector('.lms-verktyg'), () => { el.querySelector('#lm-akt-tabell').innerHTML = tabell(lms.filtrera(aktuella), kanOrdinera, true); });
   // Vätskebalansens dygnsbrytning, filter och sortering hämtar om bara den delen.
@@ -565,6 +578,14 @@ function r6Tillagg(f) {
       ${s.basvatska ? (s.tillsatsVal ?? []).map((t, n) => `<div class="falt smal"><label for="o-sp-t${n}">${esc(t.namn[0].toUpperCase() + t.namn.slice(1))}, ${esc(t.enhet)}</label><input id="o-sp-t${n}" name="spTillsats${n}" data-tillsats="${esc(t.lakemedelId)}" inputmode="decimal"></div>`).join('') : ''}</div>
       <p class="hjalp">Systemet räknar koncentration och hastighet och visar dem vid iordningsställandet.</p></fieldset>`);
   }
+  // Runda 9, r1: syrgas i liter per minut med utrustning och mål. Utan vald utrustning väljer systemet ur flödet.
+  if (f.gas) {
+    const g = f.gas;
+    ut.push(`<fieldset class="o-gas"><legend>Syrgas, föreslagen av systemet</legend><p class="hjalp">${esc(g.text)}</p><div class="falt-rad">
+      <div class="falt"><label for="o-gas-u">Utrustning</label><select id="o-gas-u" name="gasUtrustning"><option value="">Systemet väljer ur flödet</option>${g.utrustningar.map(u => `<option value="${esc(u.id)}">${esc(u.namn[0].toUpperCase() + u.namn.slice(1))}, ${esc(String(u.min).replace('.', ','))} till ${esc(String(u.max))} l/min</option>`).join('')}</select></div>
+      <div class="falt smal"><label for="o-gas-min">Syremättnad från, procent</label><input id="o-gas-min" name="gasMalMin" inputmode="numeric" value="${esc(g.malMin)}"></div>
+      <div class="falt smal"><label for="o-gas-max">till, procent</label><input id="o-gas-max" name="gasMalMax" inputmode="numeric" value="${esc(g.malMax)}"></div></div></fieldset>`);
+  }
   if (f.trappning) {
     const t = f.trappning;
     ut.push(`<details class="o-trappning"><summary>${t.riktning === 'ned' ? 'Nedtrappning' : 'Upptrappning'} enligt schema</summary>
@@ -575,6 +596,9 @@ function r6Tillagg(f) {
       <div class="falt smal"><label for="o-tr-e">Slutdos mg</label><input id="o-tr-e" name="trSlut" inputmode="decimal" value="${esc(t.steg.at(-1).dos)}"></div></div>
       <p class="hjalp">Doseringen, dosen per dag och slutdatumet räknas fram av systemet och visas i Läkemedel att ge.</p></details>`);
   }
+  // Runda 9, r1: patienten sköter läkemedlet själv under vårdtiden. Systemet säger varför när det inte går.
+  if (!f.gas && f.produkttyp?.typ !== 'blodprodukt') ut.push(`<div class="kryssfalt o-egen"><input type="checkbox" id="o-egen" name="egenadministrering" value="ja"><label for="o-egen">Patienten sköter läkemedlet själv under vårdtiden</label>
+    <p class="hjalp">Doserna kommer inte med bland sjuksköterskans doser att ge. Sjuksköterskan kvitterar patientens intag.</p></div>`);
   return ut.join('');
 }
 function r6Data(form) {
@@ -586,6 +610,9 @@ function r6Data(form) {
       // Runda 8, r4: varje tillsats som har en mängd.
       tillsatser: [...form.querySelectorAll('[data-tillsats]')].filter(t => t.value.trim()).map(t => ({ lakemedelId: t.dataset.tillsats, mangd: n(t.value) })) };
   }
+  // Runda 9, r1.
+  if (form.egenadministrering?.checked) ut.egenadministrering = true;
+  if (form.gasMalMin) ut.gas = { utrustning: form.gasUtrustning.value || null, malMin: n(form.gasMalMin.value), malMax: n(form.gasMalMax.value) };
   if (form.querySelector('.o-trappning')?.open) ut.trappning = { riktning: form.trRiktning.value, startdos: n(form.trStart.value), steg: n(form.trSteg.value), dagar: n(form.trDagar.value), slutdos: n(form.trSlut.value) };
   return ut;
 }

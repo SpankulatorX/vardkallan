@@ -38,6 +38,8 @@ export const STARTPUNKT = {
   'Rapporteringssidan efter återställning': { hash: '#/rapportering', klar: '[data-granska="par"]', forbered: 'aterstall' },
   // Runda 7, r7.
   'Kravsidan': { hash: '#/krav', klar: '#sussa-lista details.sussapost' },
+  // Runda 9, r1: Birgitta Nyman tar insulin med penna, och demon återställs först.
+  'Översikten för en patient med insulin': { hash: '#/patient/p06', klar: '.tidslinje', forbered: 'aterstall' },
   // Runda 7, r3.
   'Ekonomens startsida': { hash: '#/ekonomi', klar: '#ek table' },
   // Runda 7, r6: barnet på Barnavårdscentralen Tybble.
@@ -432,6 +434,12 @@ export const UPPGIFTER = [
     id: 'iva-oversikt', namn: 'Öppna intensivvårdens översikt och övervakningen av en patient', roll: 'lak-kard', start: 'Arbetslistan efter inloggning',
     text: 'Du ska gå rond på Hjärtintensiven. Skaffa dig en bild av hur patienterna där mår, och titta närmare på den första patienten.',
     kontroll: { sel: '#iva-analys' },
+  },
+  // Runda 9, r1: förbrukningsartiklar ur en mall.
+  {
+    id: 'forbrukning-mall', namn: 'Förskriva förbrukningsartiklar ur en mall', roll: 'lak-vc', start: 'Översikten för en patient med insulin',
+    text: 'Birgitta Nyman tar insulin med penna och behöver pennkanyler och lansetter. Förskriv förbrukningsartiklarna som hon behöver.',
+    kontroll: { notis: 'Insulin med penna är förskriven' },
   },
 ];
 

@@ -25,6 +25,8 @@ import { kravVardande } from './administrering.js';
 // medicinskt ansvariga läkaren (lakemedelsansvar.js och mallgodkannande.js).
 import * as ansvar from './lakemedelsansvar.js';
 import * as godkannande from './mallgodkannande.js';
+// Runda 9, r1: generella direktiv på vårdgivarens nivå.
+import * as vgDirektiv from './direktiv-vardgivare.js';
 
 const personNamn = (db, id) => (id ? db.query('SELECT namn FROM personal WHERE id = ?').get(id)?.namn ?? id : null);
 const katalog = (db, id) => db.query('SELECT * FROM katalog WHERE id = ?').get(id);
@@ -34,7 +36,8 @@ const enhetsnamn = (db, id) => db.query('SELECT namn FROM enheter WHERE id = ?')
 
 // Ett fastställt beslut gäller för vårdenheten eller en avdelning under den. Användaren omfattas när beslutet gäller
 // hennes vårdenhet eller den avdelning hon arbetar på.
-const omfattar = (db, enhetId, personal) => enhetId === personal.enhet_id || enhetId === vardenhetFor(db, personal.enhet_id);
+// Runda 9, r1: ett direktiv på vårdgivarens nivå omfattar alla vårdenheter hos vårdgivaren (direktiv-vardgivare.js).
+const omfattar = (db, enhetId, personal) => enhetId === personal.enhet_id || enhetId === vardenhetFor(db, personal.enhet_id) || enhetId === vgDirektiv.vardgivareFor(db, personal.enhet_id);
 const giltigt = (b, dag = idag()) => !b.upphavt && b.giltigt_till >= dag && (b.giltigt_fran ?? '0000') <= dag;
 const loggaUtan = (db, personal, handling, resurs, resultat = 'tillaten') => loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, handling, resurs, grund: resultat === 'nekad' ? 'nekad' : 'administrativ', resultat });
 
@@ -305,11 +308,16 @@ function direktivUt(db, d) {
 export function direktivLista(db, personal) {
   if (!kanRoll(personal, 'ordinera_direktiv') && !kanRoll(personal, 'faststalla_direktiv')) throw new Fel(403, 'Din yrkesroll använder inte generella direktiv.', 'nekad');
   const ve = vardenhetFor(db, personal.enhet_id);
-  const rader = db.query('SELECT * FROM generella_direktiv ORDER BY id').all().filter(d => vardenhetFor(db, d.enhet_id) === ve);
+  // Runda 9, r1: också vårdgivarens direktiv, som gäller alla vårdenheter.
+  const vg = vgDirektiv.vardgivareFor(db, personal.enhet_id);
+  const rader = db.query('SELECT * FROM generella_direktiv ORDER BY id').all().filter(d => (d.enhet_id === vg ? true : vardenhetFor(db, d.enhet_id) === ve));
   loggaUtan(db, personal, kanRoll(personal, 'faststalla_direktiv') ? 'faststalla_direktiv' : 'ordinera_direktiv', 'generella_direktiv');
   // Runda 6, r6: verksamhetschefen och den medicinskt ansvariga läkaren fastställer, och systemet säger vem det är.
   const f = kanRoll(personal, 'faststalla_direktiv') ? ansvar.faststallaDirektiv(db, personal) : { kan: false, varfor: null };
-  return { direktiv: rader.map(d => ({ ...direktivUt(db, d), giltigt: giltigt(d), galler: omfattar(db, d.enhet_id, personal) })), kanFaststalla: f.kan, faststallaText: f.varfor, anmarkning: stod.DEMO_STOD };
+  const fv = vgDirektiv.kanFaststalla(db, personal);
+  return { direktiv: rader.map(d => ({ ...direktivUt(db, d), giltigt: giltigt(d), galler: omfattar(db, d.enhet_id, personal), vardgivarniva: d.enhet_id === vg })), kanFaststalla: f.kan, faststallaText: f.varfor,
+    // Runda 9, r1.
+    kanFaststallaVardgivare: fv.kan, vardgivareText: fv.kan ? null : fv.varfor, anmarkning: stod.DEMO_STOD };
 }
 
 const KONTRA = ['alder_under', 'alder_fran', 'egfr_under', 'systoliskt_under', 'bekrafta'];
@@ -318,17 +326,19 @@ const KONTRA = ['alder_under', 'alder_fran', 'egfr_under', 'systoliskt_under', '
 // tillfällen utan läkarkontakt. Det gäller högst ett år och omprövas sedan.
 export function faststallDirektiv(db, personal, inp = {}) {
   // Runda 6, r6: verksamhetschefen eller den medicinskt ansvariga läkaren på vårdenheten (Gröna häftet 1.4.2).
-  const f = kanRoll(personal, 'faststalla_direktiv') ? ansvar.faststallaDirektiv(db, personal) : { kan: false };
+  // Runda 9, r1: för hela vårdgivaren den läkare som vårdgivaren har utsett (direktiv-vardgivare.js).
+  const vg = inp.niva === 'vardgivare' ? vgDirektiv.kanFaststalla(db, personal) : null;
+  const f = vg ?? (kanRoll(personal, 'faststalla_direktiv') ? ansvar.faststallaDirektiv(db, personal) : { kan: false });
   if (!f.kan) {
     loggaUtan(db, personal, 'faststalla_direktiv', 'generella_direktiv', 'nekad');
     throw new Fel(403, f.varfor ?? 'Generella direktiv fastställs av verksamhetschefen eller den medicinskt ansvariga läkaren (HSLF-FS 2017:37 6 kap. 6 §).', 'nekad');
   }
   const lm = typeof inp.lakemedelId === 'string' ? katalog(db, inp.lakemedelId) : null;
-  const enhet = typeof inp.enhetId === 'string' ? inp.enhetId : vardenhetFor(db, personal.enhet_id);
+  const enhet = vg ? vg.vardgivare : typeof inp.enhetId === 'string' ? inp.enhetId : vardenhetFor(db, personal.enhet_id);
   const e = db.query('SELECT * FROM enheter WHERE id = ?').get(enhet);
   const falt = [];
   if (!lm) falt.push('lakemedelId');
-  if (!e || vardenhetFor(db, enhet) !== vardenhetFor(db, personal.enhet_id)) falt.push('enhetId');
+  if (!e || (!vg && vardenhetFor(db, enhet) !== vardenhetFor(db, personal.enhet_id))) falt.push('enhetId');
   const inn = {
     indikation: text(inp.indikation, 200), dosering: text(inp.dosering), dos: Number(inp.dos), dosEnhet: text(inp.dosEnhet, 20),
     administrationssatt: inp.administrationssatt ?? (lm ? mallar.administrationssatt(lm.form) : null), maxPerDygn: Number(inp.maxPerDygn),
@@ -354,13 +364,16 @@ export function faststallDirektiv(db, personal, inp = {}) {
 }
 
 export function upphavDirektiv(db, personal, id, { orsak } = {}) {
-  const f = kanRoll(personal, 'faststalla_direktiv') ? ansvar.faststallaDirektiv(db, personal) : { kan: false };
+  // Runda 9, r1: ett direktiv på vårdgivarens nivå prövas mot den som vårdgivaren har utsett.
+  const vgRad = db.query('SELECT enhet_id FROM generella_direktiv WHERE id = ?').get(Number(id));
+  const f = vgRad && vgRad.enhet_id === vgDirektiv.vardgivareFor(db, personal.enhet_id) ? vgDirektiv.kanFaststalla(db, personal)
+    : kanRoll(personal, 'faststalla_direktiv') ? ansvar.faststallaDirektiv(db, personal) : { kan: false };
   if (!f.kan) {
     loggaUtan(db, personal, 'faststalla_direktiv', `generellt_direktiv:${id}`, 'nekad');
     throw new Fel(403, f.varfor ?? 'Ett generellt direktiv upphävs av verksamhetschefen eller den medicinskt ansvariga läkaren.', 'nekad');
   }
   const d = db.query('SELECT * FROM generella_direktiv WHERE id = ?').get(Number(id));
-  if (!d || vardenhetFor(db, d.enhet_id) !== vardenhetFor(db, personal.enhet_id)) throw new Fel(404, 'Direktivet finns inte på din vårdenhet.', 'saknas');
+  if (!d || (d.enhet_id !== vgDirektiv.vardgivareFor(db, personal.enhet_id) && vardenhetFor(db, d.enhet_id) !== vardenhetFor(db, personal.enhet_id))) throw new Fel(404, 'Direktivet finns inte på din vårdenhet.', 'saknas');
   if (d.upphavt) throw new Fel(400, 'Direktivet är redan upphävt.', 'ogiltig');
   const o = text(orsak);
   if (o.length < 3) throw new Fel(400, 'Ange varför direktivet upphävs.', 'ogiltig', { falt: ['orsak'] });

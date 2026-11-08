@@ -38,7 +38,9 @@ const FILER = [
   '/js/bokning-r8.js', '/js/vyer/avdelning.js',
   '/js/oppet-api-forvaltning.js',
   '/js/mt-ui.js', '/js/vyer/iva.js',
+  '/js/vyer/forbrukning.js',
 ];
+// Runda 9, r1: listan har förbrukningsartiklarna (vyer/forbrukning.js).
 // Runda 9, r2: listan har medicinteknisk utrustning i fliken Mätvärden och intensivvårdens vy (mt-ui.js och iva.js).
 // Runda 9, r6: listan har ändringsloggen, utvecklarna och förvaltningen av det öppna API:t (oppet-api-forvaltning.js).
 // Runda 8, r3: listan har fri bokning, teambesök, gruppträffar och avdelningens planering.

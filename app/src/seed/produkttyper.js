@@ -20,4 +20,12 @@ export const PRODUKTER = [
     'Kosttillägg som dryck. Kalorierna räknas in i vätskebalansen. Demopost.', { kcalPerMl: 1.5 }),
   P(2, 'NUT', 'nutrition', 'Sondnäring 1 kcal/ml', 'sondnäring', '500 ml', 'sondnäring', 'V06DB',
     'Sondnäring. Kalorierna och volymen räknas in i vätskebalansen. Demopost.', { kcalPerMl: 1 }),
+  // Runda 9, r1: syrgas ur vårdenhetens centrala gasuttag, ordinerad i liter per minut (Sussa 3.5.2.17). I demon en egen
+  // post och inte en produkt ur NPL. ATC-koden är kontrollerad mot WHO:s ATC/DDD-index.
+  P(3, 'EGEN', 'egendefinierad', 'Medicinsk syrgas, egendefinierad', 'oxygen', '100 %', 'medicinsk gas för inhalation', 'V03AN01',
+    'Syrgas ur vårdenhetens gasuttag, ordinerad i liter per minut med utrustning och mål för saturationen. Demopost.'),
+  // Runda 9, r1: prövningsläkemedlet i den påhittade kliniska prövningen DEMO-HF-01 (Sussa 3.5.5.1). Substansen finns,
+  // men studien och produkten är påhittade.
+  P(4, 'EGEN', 'egendefinierad', 'Prövningsläkemedel DEMO-HF-01, egendefinierad', 'finerenon', '20 mg', 'filmdragerad tablett', 'C03DA05',
+    'Prövningsläkemedel i den påhittade kliniska prövningen DEMO-HF-01. Får bara ordineras till studiens deltagare. Demopost.'),
 ];
