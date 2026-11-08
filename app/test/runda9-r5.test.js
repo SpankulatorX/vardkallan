@@ -850,3 +850,13 @@ describe('Nyheter i runda 9, r5', () => {
     for (const id of ['inloggning-uppdrag', 'miljoer', 'certifikat', 'earkiv-leverans', 'gallringsregler', 'skyddsbehov-logg']) expect(invIds).not.toContain(id);
   });
 });
+
+// Ett serienummer vars första slumpade byte är 0 får inte kodas med en inledande nolla, eftersom DER kräver den kortaste
+// formen och certifikatet då inte går att läsa. Det hände ungefär en gång på 128 och stoppade servern när den startade.
+test('ett certifikat går att läsa också när serienumrets första slumpade byte är 0', () => {
+  const serie = pki.nySerie(Buffer.alloc(12, 0));
+  expect(serie[0]).toBeGreaterThan(0);
+  expect(serie[0] & 0x80).toBe(0);
+  const utf = pki.skapaUtfardare({ cn: 'Prov', o: 'Prov', serie });
+  expect(utf.cert.serialNumber.length).toBe(24);
+});

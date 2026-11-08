@@ -54,14 +54,17 @@ function bygg({ subjekt, publik, utfardare, privat, serie, fran, till, ca, sokva
 }
 
 const AR = 365.25 * 86400_000;
-const nySerie = () => { const b = randomBytes(12); b[0] &= 0x7f; return b; };
+// Serienumret är ett positivt heltal i den kortaste formen som DER kräver: första byten är 1 till 127, aldrig 0 (då
+// blir kodningen för lång och certifikatet går inte att läsa) och aldrig med den höga biten satt (då blir talet negativt).
+const nySerie = (b = randomBytes(12)) => { b[0] = (b[0] & 0x7f) || 0x01; return b; };
+export { nySerie };
 
 // En utfärdare med nyckelpar och certifikat. over är utfärdaren över, null för en rot.
 // Demons data går flera år bakåt, och ett svar från laboratoriet i seeden prövas vid sin egen tid. Därför gäller demons
 // certifikat från tio år bakåt.
-export function skapaUtfardare({ cn, o, over = null, fran = new Date(Date.now() - 10 * AR), till = new Date(Date.now() + 20 * AR) }) {
+export function skapaUtfardare({ cn, o, over = null, fran = new Date(Date.now() - 10 * AR), till = new Date(Date.now() + 20 * AR), serie = nySerie() }) {
   const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
-  const cert = bygg({ subjekt: { cn, o }, publik: publicKey, utfardare: over ? over.subjekt : null, privat: over ? over.privat : privateKey, serie: nySerie(), fran, till, ca: true, sokvagslangd: over ? 0 : 1 });
+  const cert = bygg({ subjekt: { cn, o }, publik: publicKey, utfardare: over ? over.subjekt : null, privat: over ? over.privat : privateKey, serie, fran, till, ca: true, sokvagslangd: over ? 0 : 1 });
   return { subjekt: { cn, o }, privat: privateKey, cert };
 }
 
