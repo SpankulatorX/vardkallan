@@ -21,6 +21,8 @@ import { Fel, iso } from './db.js';
 import { Atkomst, kanRoll, vardenhetFor } from './atkomst.js';
 import { lasHandling } from './journal.js';
 import { MATKOD } from './kodverk.js';
+import { loggaRad } from './logg.js';
+import { kontoFor } from './systemkonton.js';
 
 // Mottagaradresser som administratören har godkänt. Demons adresser ligger under .test, som aldrig går att slå upp, och
 // meddelandena simuleras (sparas utan att skickas) om inte servern startas med WEBHOOK_SKICKA=1.
@@ -142,13 +144,21 @@ export async function skickaPaRiktigt(adress, kropp, { uppslag = lookup, hamta =
 export const simulera = async () => ({ status: 'simulerad', svar: 'Simulerat i demon. Meddelandet sparades men skickades inte.' });
 
 // Kriterierna, till exempel Observation?patient=p01 eller Observation?patient=Patient/p01&code=http://loinc.org|85354-9.
-export function tolkaKriterier(text) {
+// Runda 10, r1: ett systemkonto prenumererar på en population, alla poster av en typ på kontots vårdenheter, med
+// kriterier utan patient, till exempel Condition eller Observation?code=http://loinc.org|85354-9. Då är patientId '*'.
+export function tolkaKriterier(text, { population = false } = {}) {
+  if (population && typeof text === 'string' && /^[A-Za-z]+$/.test(text.trim()) && Object.hasOwn(KALLOR, text.trim())) return { typ: text.trim(), patientId: '*', kod: null, text: text.trim() };
   const m = typeof text === 'string' ? text.trim().match(/^([A-Za-z]+)\?(.+)$/) : null;
   if (!m || !Object.hasOwn(KALLOR, m[1])) throw new Fel(400, `Kriterierna ska vara en sökning på en av ${Object.keys(KALLOR).join(', ')} med patient, till exempel Observation?patient=p01.`, 'ogiltig', { falt: ['criteria'] });
   const q = new URLSearchParams(m[2]);
   const okanda = [...q.keys()].filter(k => !['patient', 'subject', 'code'].includes(k));
   if (okanda.length) throw new Fel(400, `Sökparametern ${okanda[0]} stöds inte i prenumerationer. Använd patient och, för Observation, code.`, 'ogiltig', { falt: ['criteria'] });
   const pid = (q.get('patient') ?? q.get('subject') ?? '').replace(/^Patient\//, '');
+  if (population && !pid) {
+    const kod = q.get('code');
+    if (kod && m[1] !== 'Observation') throw new Fel(400, 'Sökparametern code stöds bara för Observation.', 'ogiltig', { falt: ['criteria'] });
+    return { typ: m[1], patientId: '*', kod: kod ? kod.split('|').pop() : null, text: text.trim() };
+  }
   if (!/^p\d{1,4}$/.test(pid)) throw new Fel(400, 'Prenumerationen gäller en patient. Ange patient i kriterierna, till exempel Observation?patient=p01.', 'ogiltig', { falt: ['criteria'] });
   const kod = q.get('code');
   if (kod && m[1] !== 'Observation') throw new Fel(400, 'Sökparametern code stöds bara för Observation.', 'ogiltig', { falt: ['criteria'] });
@@ -170,6 +180,9 @@ export function skapa(db, personal, resurs, { godkanda = GODKANDA_MOTTAGARE, kli
   if (!resurs || resurs.resourceType !== 'Subscription') throw new Fel(400, 'Kroppen ska vara en FHIR-resurs av typen Subscription.', 'ogiltig');
   if (resurs.channel?.type !== 'rest-hook') throw new Fel(400, 'Bara kanalen rest-hook stöds.', 'ogiltig', { falt: ['channel'] });
   if (resurs.channel.header?.length) throw new Fel(400, 'Rubriker i kanalen stöds inte. Mottagaren känner igen meddelandet på prenumerationens id.', 'ogiltig', { falt: ['channel'] });
+  // Runda 10, r1: ett systemkonto prenumererar på hela sin population (systemkonton.js). Behörighetsmotorn prövar varje
+  // meddelande mot kontots vårdenheter och informationsmängder, så kriterierna behöver inte ange vårdenheten.
+  if (personal.yrke === 'systemkonto') return skapaPopulation(db, personal, resurs, { godkanda, klient });
   const k = tolkaKriterier(resurs.criteria);
   provaMottagare(resurs.channel.endpoint, godkanda);
   if (!db.query('SELECT 1 FROM patienter WHERE id = ?').get(k.patientId)) throw new Fel(404, 'Patienten finns inte.', 'saknas');
@@ -182,6 +195,25 @@ export function skapa(db, personal, resurs, { godkanda = GODKANDA_MOTTAGARE, kli
     .run(personal.id, k.typ, k.patientId, k.kod, k.text, resurs.channel.endpoint, orsak, iso(), klient);
   const id = Number(r.lastInsertRowid);
   atk.logga(handling, atk.grund(), `fhir/Subscription/${id}`, 'tillaten', `Prenumeration på ${k.typ} till ${new URL(resurs.channel.endpoint).hostname}.`);
+  return db.query('SELECT * FROM prenumerationer WHERE id = ?').get(id);
+}
+
+// Runda 10, r1: en prenumeration på en population för ett systemkonto. Typen ska höra till kontots informationsmängder.
+function skapaPopulation(db, personal, resurs, { godkanda, klient }) {
+  const k = tolkaKriterier(resurs.criteria, { population: true });
+  provaMottagare(resurs.channel.endpoint, godkanda);
+  const handling = KALLOR[k.typ].handling({});
+  const konto = kontoFor(db, personal.id);
+  if (!konto || k.patientId !== '*' || !konto.typer.includes(k.typ) || !kanRoll(personal, handling)) {
+    throw new Fel(403, `Systemkontot har inte fått ${k.typ}. Systemförvaltaren väljer kontots informationsmängder på sidan Öppet API.`, 'nekad');
+  }
+  sakraSchema(db);
+  const orsak = typeof resurs.reason === 'string' && resurs.reason.trim() ? resurs.reason.trim().slice(0, 300) : 'Prenumeration från en extern tillämpning';
+  const r = db.query("INSERT INTO prenumerationer (personal_id, typ, patient_id, kod, kriterier, mottagare, status, orsak, skapad, klient) VALUES (?, ?, '*', ?, ?, ?, 'aktiv', ?, ?, ?)")
+    .run(personal.id, k.typ, k.kod, k.text, resurs.channel.endpoint, orsak, iso(), klient);
+  const id = Number(r.lastInsertRowid);
+  loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, handling, resurs: `fhir/Subscription/${id}`, grund: 'systemkonto',
+    syfte: `Prenumeration på alla ${k.typ} på systemkontots vårdenheter till ${new URL(resurs.channel.endpoint).hostname}.` });
   return db.query('SELECT * FROM prenumerationer WHERE id = ?').get(id);
 }
 
@@ -240,7 +272,8 @@ export function behandla(db, base) {
   for (const a of sista.values()) {
     const typ = TYP_FOR[a.tabell];
     for (const p of aktiva) {
-      if (p.typ !== typ || p.patient_id !== a.patient_id) continue;
+      // Runda 10, r1: en prenumeration på en population ('*') gäller alla patienter, och behörighetsmotorn avgör nedan.
+      if (p.typ !== typ || (p.patient_id !== '*' && p.patient_id !== a.patient_id) || !a.patient_id) continue;
       const rad = { id: a.rad_id, enhet_id: a.enhet_id, kategori: a.extra, status: a.villkor };
       const k = KALLOR[typ];
       if (k.villkor && a.handelse !== 'borttagen' && !k.villkor(rad)) continue;

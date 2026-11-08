@@ -12,6 +12,8 @@ GRUNDER.push('samverkan');
 GRUNDER.push('ekonomi');
 // Runda 7, r5: uppgifter som lämnas till ett register enligt lag (uppgiftsskyldighet) och till ett kvalitetsregister.
 GRUNDER.push('uppgiftsskyldighet', 'kvalitetsregister');
+// Runda 10, r1: läsningar och meddelanden till ett systemkonto för en extern tillämpning (systemkonton.js).
+GRUNDER.push('systemkonto');
 export const INVANARGRUNDER = ['egen_atkomst', 'vardnadshavare'];
 const NOLL = '0'.repeat(64);
 const FALT = ['id', 'tid', 'personal_id', 'enhet_id', 'patient_id', 'handling', 'resurs', 'grund', 'syfte', 'resultat'];

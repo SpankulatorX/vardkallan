@@ -13,6 +13,9 @@ import { tackning } from './api-tackning.js';
 import { andringslogg } from './api-andringar.js';
 import * as forvaltning from './api-forvaltning.js';
 import { BEARER_FEL } from './fhir-definitioner.js';
+// Runda 10, r1: systemkonton utan inloggad person (SMART Backend Services, Sussa 2.5.1.2).
+import * as systemkonton from './systemkonton.js';
+import { loggaRad } from './logg.js';
 
 const FHIR_JSON = { 'Content-Type': 'application/fhir+json; charset=utf-8', 'Cache-Control': 'no-store' };
 const INGA_VAL = { andra_enheter: false, nodatkomst: false, samtycke_sparr: false, visa_identitet: false };
@@ -74,6 +77,26 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
     // Runda 9, r6: en resurstyp som CapabilityStatement inte anger finns inte, varken för läsning eller skrivning.
     if (!kandaTyper().has(typ)) return fhirSvar(fhir.utfall(404, 'saknas', 'Okänd FHIR-resurs.'), 404);
     const metod = req.method;
+    // Runda 10, r1: makulering med DELETE eller $makulera (fhir-skrivning.js makulera).
+    if ((metod === 'DELETE' && delar.length === 2) || (metod === 'POST' && delar.length === 3 && delar[2] === '$makulera')) {
+      let orsak = url.searchParams.get('orsak');
+      if (metod === 'POST') {
+        const p = lastResurs ?? await lasResurs(req);
+        orsak = p?.resourceType === 'Parameters' && Array.isArray(p.parameter) ? p.parameter.find(x => x?.name === 'orsak')?.valueString ?? null : null;
+      }
+      const loggM = `fhir/${typ}/${id}/$makulera${klient ? `?klient=${klient}` : ''}`;
+      let ut;
+      try {
+        ut = skrivning.makulera({ db: c.db, personal: c.personal, typ, id, orsak, kor: (m, v, k) => kor(c, m, v, k, loggM) });
+      } catch (e) {
+        if (e instanceof Fel) return fhirSvar(skrivning.utfall(typ, e), e.status);
+        throw e;
+      }
+      const prefer = req.headers.get('prefer') ?? '';
+      if (/return=minimal/.test(prefer)) return fhirSvar(null, 200);
+      if (/return=OperationOutcome/i.test(prefer)) return fhirSvar(skrivning.lyckat(ut.text), 200);
+      return fhirSvar(ut.resurs, 200);
+    }
     if (metod === 'POST' && delar.length !== 1) throw new Fel(400, 'En ny resurs skapas med POST på resurstypen, till exempel POST /fhir/Observation.', 'ogiltig');
     if ((metod === 'PUT' || metod === 'DELETE') && delar.length !== 2) throw new Fel(400, 'Ange resursens id i adressen.', 'ogiltig');
     const resurs = metod === 'DELETE' ? null : lastResurs ?? await lasResurs(req);
@@ -125,17 +148,33 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
     if (!b) return ogiltig('Åtkomstbiljetten är ogiltig, har gått ut eller har återkallats.');
     const s = b.s;
     // Runda 9, r5: personen och medarbetaruppdraget prövas mot masterdata som i sessionen (inloggade i server.js).
-    const personal = inloggade(s).personal;
+    // Runda 10, r1: för ett systemkonto prövas kontot i databasen vid varje anrop, så att en återkallelse gäller direkt.
+    const personal = b.system
+      ? (systemkonton.kontoFor(s.db, b.personalId) ? s.db.query("SELECT * FROM personal WHERE id = ? AND aktiv = 1 AND yrke = 'systemkonto'").get(b.personalId) : null)
+      : inloggade(s).personal;
+    if (b.system && !personal) { smartLager.aterkallaBiljett(b, 'Åtkomstbiljetten upphörde eftersom systemkontot är återkallat.'); return ogiltig('Systemkontot är återkallat.'); }
     if (!personal || personal.id !== b.personalId) return ogiltig('Personen är inte längre inloggad med ett gällande medarbetaruppdrag.');
     const delar = url.pathname.replace(/\/+$/, '').split('/').slice(2).map(decodeURIComponent);
     const [typ, id] = delar;
     // Med en biljett godtas bara /fhir/<typ> och /fhir/<typ>/<id>, så att omfånget alltid prövas mot den typ som
     // faktiskt lämnas ut. Operationer och compartment-sökningar (till exempel Patient/<id>/$everything) nekas.
-    if (delar.length < 1 || delar.length > 2 || delar.some(d => d.startsWith('$'))) {
+    // Runda 10, r1: $makulera på en resurs är tillåten, med omfånget för att ta bort (d).
+    const makul = (req.method === 'DELETE' && delar.length === 2) || (req.method === 'POST' && delar.length === 3 && delar[2] === '$makulera');
+    if (!makul && (delar.length < 1 || delar.length > 2 || delar.some(d => d.startsWith('$')))) {
       return fhirSvar(fhir.utfall(403, 'nekad', 'Operationen stöds inte med åtkomstbiljett.'), 403, { 'WWW-Authenticate': BEARER_FEL.omfang });
     }
     // En skrivning gäller patienten i resursen (subject eller patient), eller patienten för resursen som ändras.
     const resurs = ['POST', 'PUT'].includes(req.method) ? await lasResurs(req) : null;
+    // Runda 10, r1: en makulering prövas mot omfånget för att ta bort och mot patienten för resursen. Ett systemkonto
+    // prövas i makuleringen, som bara tillåter det som kontot självt har skrivit.
+    if (makul) {
+      const nek = b.system ? null : smart.provaOmfang(b, { metod: 'DELETE', typ, malPatient: malPatient(s.db, typ, id, url) });
+      if (nek) return fhirSvar(fhir.utfall(403, 'nekad', nek), 403, { 'WWW-Authenticate': BEARER_FEL.omfang });
+      const c = { s: utanVal(s), db: s.db, personal, invanare: null };
+      const svar = await skriv(req, url, c, delar, { klient: b.klient, resurs });
+      efterAnrop(s, basFor(url));
+      return pseudonymer(b, s) ? pseudonymSvar(svar, s, b) : svar;
+    }
     const iResursen = (resurs?.subject ?? resurs?.patient)?.reference?.replace(/^.*Patient\//, '') ?? null;
     const krit = typ === 'Subscription' && typeof resurs?.criteria === 'string' ? new URLSearchParams(resurs.criteria.split('?')[1] ?? '').get('patient')?.replace(/^Patient\//, '') : null;
     // Runda 9, r6 (säkerhetsgranskningen): en bokning gäller remissens patient, oavsett vad resursen säger på andra
@@ -151,16 +190,33 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
     if (req.method !== 'GET') {
       const svar = await skriv(req, url, c, delar, { klient: b.klient, resurs });
       efterAnrop(s, basFor(url));
-      return svar;
+      // Runda 10, r1: också svaret på en skrivning, till exempel en prenumeration, går genom pseudonymerna.
+      return pseudonymer(b, s) ? pseudonymSvar(svar, s, b) : svar;
     }
-    if (typ === 'Subscription') return prenumerationLas(url, c, delar);
+    if (typ === 'Subscription') return pseudonymer(b, s) ? pseudonymSvar(prenumerationLas(url, c, delar), s, b) : prenumerationLas(url, c, delar);
+    // Runda 10, r1: ett systemkonto utan omfånget för identitet ser patienterna med kontots pseudonym. Anropet översätts
+    // från pseudonym till id, och svaret görs om innan det lämnar servern.
+    const pseudo = pseudonymer(b, s);
+    const tr = pseudo ? systemkonton.oversattAnrop(s.db, b.personalId, url) : { url };
+    if (tr.fel) return fhirSvar(fhir.utfall(tr.fel.status, tr.fel.kod, tr.fel.message), tr.fel.status);
     // Tillämpningens namn följer med till loggen som en del av resursen.
-    const loggUrl = new URL(url);
+    const loggUrl = new URL(tr.url);
     loggUrl.searchParams.set('_klient', b.klient);
     const base = basFor(url);
     const r = fhir.hantera({ db: s.db, personal, invanare: null, nekade: null, valFor: () => INGA_VAL, url: loggUrl, base });
     if (r.body?.resourceType === 'Bundle') r.body.link = [{ relation: 'self', url: `${base}${url.pathname}${url.search}` }];
-    return fhirSvar(r.body, r.status);
+    return fhirSvar(pseudo ? systemkonton.pseudonymisera(s.db, b.personalId, r.body) : r.body, r.status);
+  }
+
+  // Runda 10, r1: om svaren till en biljett ska ha pseudonymer: ett systemkonto utan omfånget för identitet, eller ett
+  // konto vars val av identitet inte längre gäller.
+  const pseudonymer = (b, s) => Boolean(b.system && !(b.identitet && systemkonton.kontoFor(s.db, b.personalId)?.identitet));
+  async function pseudonymSvar(svar, s, b) {
+    const text = await svar.text();
+    if (!text) return new Response(null, { status: svar.status, headers: svar.headers });
+    let data;
+    try { data = JSON.parse(text); } catch { return new Response(text, { status: svar.status, headers: svar.headers }); }
+    return fhirSvar(systemkonton.pseudonymisera(s.db, b.personalId, data), svar.status);
   }
 
   // Ingången från servern för /fhir. Ger ett svar, eller null när den vanliga läsningen med sessionen ska göras.
@@ -253,6 +309,8 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
 
     if (url.pathname === '/oauth/token' && req.method === 'POST') {
       const f = await formular();
+      // Runda 10, r1: ett systemkonto byter ett signerat klientintyg mot en biljett (SMART Backend Services).
+      if (f.get('grant_type') === 'client_credentials') return systemBiljett(f, base, json);
       if (f.get('grant_type') !== 'authorization_code') return json({ error: 'unsupported_grant_type' }, 400);
       try {
         const b = smartLager.bytKod({ kod: f.get('code'), verifierare: f.get('code_verifier'), omdirigering: f.get('redirect_uri'), klient: f.get('client_id') });
@@ -273,6 +331,35 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
       return new Response(null, { status: 200, headers: { 'Cache-Control': 'no-store' } });
     }
     return new Response('Okänd adress.', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+  }
+
+  // Runda 10, r1: biljetten för ett systemkonto. Kontot finns i en sandlåda, och id:t är slumpat och unikt, så sandlådan
+  // hittas på id:t i intyget. Intyget prövas sedan mot kontots offentliga nyckel i den sandlådan. Ett nekat intyg loggas
+  // på kontot när kontot finns.
+  function hittaKonto(id) {
+    for (const s of sessioner.values()) {
+      try { if (s.db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'api_systemkonton'").get() && s.db.query('SELECT 1 FROM api_systemkonton WHERE id = ?').get(id)) return s; } catch { /* stängd */ }
+    }
+    return null;
+  }
+  function systemBiljett(f, base, json) {
+    const nej = (text) => json({ error: 'invalid_client', error_description: text }, 401);
+    if (f.get('client_assertion_type') !== systemkonton.INTYG_TYP) return json({ error: 'invalid_request', error_description: `client_assertion_type ska vara ${systemkonton.INTYG_TYP}.` }, 400);
+    const intyg = f.get('client_assertion') ?? '';
+    const id = systemkonton.kontoIdI(intyg);
+    const s = id ? hittaKonto(id) : null;
+    if (!s) return nej('Systemkontot finns inte.');
+    let konto;
+    try { konto = systemkonton.provaIntyg(s.db, intyg, { aud: `${base}/oauth/token` }); } catch (e) {
+      if (!(e instanceof Fel)) throw e;
+      const rad = s.db.query('SELECT enhet_id FROM personal WHERE id = ?').get(id);
+      if (rad) loggaRad(s.db, { personal_id: id, enhet_id: rad.enhet_id, handling: 'tillampning', resurs: `systemkonto:${id}`, grund: 'nekad', resultat: 'nekad', syfte: `Ingen åtkomstbiljett: ${e.message}` });
+      return nej(e.message);
+    }
+    const omfang = systemkonton.beviljat(konto, f.get('scope'));
+    if (!omfang.length) return json({ error: 'invalid_scope', error_description: 'Systemkontot har inte fått något av det som begärdes.' }, 400);
+    const b = smartLager.nySystemBiljett(s, konto, omfang, { sekunder: systemkonton.BILJETT_SEKUNDER });
+    return json({ access_token: b.token, token_type: 'Bearer', expires_in: systemkonton.BILJETT_SEKUNDER, scope: omfang.join(' ') });
   }
 
   // Efter varje anrop: ändringarna i sandlådan ger meddelanden till prenumerationerna, som skickas i bakgrunden.
@@ -340,6 +427,22 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
     rutt('POST', '/api/oppet-api/arenden/:id/svar', (c, id) => [201, forvaltning.svara(c.db, kravInloggad(c), id, c.body)]);
     rutt('POST', '/api/oppet-api/arenden/:id/status', (c, id) => forvaltning.andraStatus(c.db, kravInloggad(c), id, c.body));
     rutt('GET', '/api/masterdata', (c) => { kravInloggad(c); return { delar: masterdata.oversikt(c.db) }; });
+    // Runda 10, r1: systemkonton för tillämpningar utan inloggad person (systemkonton.js).
+    rutt('GET', '/api/oppet-api/systemkonton', (c) => {
+      const p = kravInloggad(c);
+      if (!kanRoll(p, systemkonton.HANDLING)) throw new Fel(403, 'Bara systemförvaltaren ser systemkontona.', 'nekad');
+      return { konton: systemkonton.konton(c.db), mangder: Object.entries(systemkonton.MANGDER).map(([id, m]) => ({ id, namn: m.namn, typer: m.typer })),
+        vardenheter: c.db.query("SELECT id, namn FROM enheter WHERE typ = 'vardenhet' ORDER BY namn").all() };
+    });
+    rutt('POST', '/api/oppet-api/systemkonton/forslag', (c) => {
+      const p = kravInloggad(c);
+      if (!kanRoll(p, systemkonton.HANDLING)) throw new Fel(403, 'Bara systemförvaltaren registrerar systemkonton.', 'nekad');
+      return systemkonton.forslag(c.db, c.body);
+    });
+    rutt('POST', '/api/oppet-api/systemkonton', (c) => [201, systemkonton.registrera(c.db, kravInloggad(c), c.body)]);
+    rutt('POST', '/api/oppet-api/systemkonton/:id/aterkalla', (c, id) => systemkonton.aterkalla(c.db, kravInloggad(c), id, c.body, {
+      aterkallaBiljetter: (kid) => smartLager.aterkalla(c.s, 'Åtkomstbiljetten återkallades när systemförvaltaren återkallade systemkontot.', b => b.system && b.klient === kid),
+    }));
   }
 
   return {

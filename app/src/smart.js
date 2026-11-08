@@ -25,6 +25,8 @@ export const TILLAMPNINGAR = [
     beskrivning: 'Ett diagram över patientens blodtryck. En enkel demotillämpning som läser blodtrycket med SMART on FHIR.',
     omfang: ['launch', 'launch/patient', 'patient/Patient.read', 'patient/Observation.read'], kravs: 'las_matvarden',
     far: 'Läsa patientens namn och mätvärden. Inget annat, och bara det du själv får se utan aktiva val.',
+    // Runda 10, r1: källkoden, licensen och versionen.
+    kallkod: 'https://github.com/SpankulatorX/vardkallan', licens: 'EUPL-1.2', version: '1.0.0',
   },
 ];
 export const tillampning = (id) => TILLAMPNINGAR.find(t => t.id === id) ?? null;
@@ -33,7 +35,8 @@ const slump = () => randomBytes(32).toString('base64url');
 export const s256 = (verifierare) => createHash('sha256').update(verifierare).digest('base64url');
 
 // Omfång enligt SMART App Launch 1 (read, write, *) och 2 (c, r, u, d, s).
-const OMFANG = /^(patient|user)\/(\*|[A-Z][A-Za-z]{1,40})\.(read|write|\*|c?r?u?d?s?)$/;
+// Runda 10, r1: system/ för systemkonton utan inloggad person (SMART Backend Services, systemkonton.js).
+const OMFANG = /^(patient|user|system)\/(\*|[A-Z][A-Za-z]{1,40})\.(read|write|\*|c?r?u?d?s?)$/;
 export function tolkaOmfang(text) {
   const delar = String(text ?? '').split(/\s+/).filter(Boolean);
   const ut = [];
@@ -59,6 +62,8 @@ export function provaOmfang(biljett, { metod, typ, malPatient }) {
     if (o.niva === 'patient') {
       if (!biljett.patientId || malPatient !== biljett.patientId) continue;
     }
+    // Runda 10, r1: system/ gäller bara en biljett för ett systemkonto, och user/ bara en person.
+    if ((o.niva === 'system') !== Boolean(biljett.system)) continue;
     return null;
   }
   const patientOmfang = biljett.omfang.some(o => o.niva === 'patient' && (o.typ === '*' || o.typ === typ));
@@ -72,6 +77,10 @@ export function skapaSmart({ nu = () => Date.now() } = {}) {
   const starter = new Map();
   const koder = new Map();
   const biljetter = new Map();
+  // Runda 10, r1: en biljett för ett systemkonto (system: true) gäller kontot och inte en inloggad person.
+  const sysLogga = (s, b, resurs, syfte) => {
+    try { loggaRad(s.db, { personal_id: b.personalId, enhet_id: b.enhetId, handling: 'tillampning', resurs, grund: 'systemkonto', syfte, resultat: 'tillaten' }); } catch { /* sandlådan är stängd */ }
+  };
 
   // En sandlåda som redan är stängd kan inte loggas i. Då finns inte heller loggen kvar.
   const logga = (s, b, resurs, syfte) => {
@@ -117,7 +126,18 @@ export function skapaSmart({ nu = () => Date.now() } = {}) {
   }
   function aterkallaBiljett(b, orsak) {
     if (!biljetter.delete(b.token)) return;
-    logga(b.s, b, `tillampning:${b.klient}:slut`, orsak);
+    if (b.system) sysLogga(b.s, b, `systemkonto:${b.klient}:slut`, orsak);
+    else logga(b.s, b, `tillampning:${b.klient}:slut`, orsak);
+  }
+  // Runda 10, r1: en biljett för ett systemkonto efter ett prövat klientintyg (systemkonton.js). Den gäller i fem minuter.
+  function nySystemBiljett(s, konto, omfang, { sekunder = 300 } = {}) {
+    const token = slump();
+    const b = { token, s, system: true, personalId: konto.id, enhetId: konto.vardenheter[0], patientId: null, klient: konto.id, omfang: tolkaOmfang(omfang.join(' ')), skapad: nu(), utgar: nu() + sekunder * 1000,
+      // Runda 10, r1: patientens namn och personnummer bara med omfånget för identitet, annars pseudonymer.
+      identitet: omfang.includes('vardkallan/identitet') };
+    biljetter.set(token, b);
+    sysLogga(s, b, `systemkonto:${konto.id}`, `Åtkomstbiljett till systemkontot ${konto.namn} utfärdad efter ett signerat klientintyg, giltig i ${sekunder / 60} minuter, med omfånget ${omfang.join(' ')}.`);
+    return b;
   }
   // Biljetten bakom en Bearer-rubrik, eller null. En biljett vars person har loggat ut eller vars tid har gått ut är
   // ogiltig och tas bort, och utgången loggas.
@@ -125,11 +145,12 @@ export function skapaSmart({ nu = () => Date.now() } = {}) {
     const b = biljetter.get(token);
     if (!b) return null;
     if (b.utgar < nu()) { aterkallaBiljett(b, 'Åtkomstbiljetten gick ut.'); return null; }
-    if (b.s.personalId !== b.personalId || !finns(b.s)) { aterkallaBiljett(b, 'Åtkomstbiljetten upphörde eftersom personen inte längre är inloggad.'); return null; }
+    if ((!b.system && b.s.personalId !== b.personalId) || !finns(b.s)) { aterkallaBiljett(b, 'Åtkomstbiljetten upphörde eftersom personen inte längre är inloggad.'); return null; }
     return b;
   }
-  // Återkallar alla biljetter i en sandlåda, till exempel vid utloggning. filter väljer vilka.
-  function aterkalla(s, orsak, filter = () => true) {
+  // Återkallar alla biljetter i en sandlåda, till exempel vid utloggning. filter väljer vilka. Systemkontonas biljetter
+  // gäller ingen inloggad person och återkallas bara när filtret säger det (runda 10, r1).
+  function aterkalla(s, orsak, filter = (b) => !b.system) {
     let n = 0;
     for (const b of [...biljetter.values()]) if (b.s === s && filter(b)) { aterkallaBiljett(b, orsak); n++; }
     for (const [id, k] of koder) if (k.s === s) koder.delete(id);
@@ -141,7 +162,7 @@ export function skapaSmart({ nu = () => Date.now() } = {}) {
     for (const [id, k] of koder) if (k.utgar < nu()) koder.delete(id);
     for (const [id, st] of starter) if (st.utgar < nu()) starter.delete(id);
   }
-  return { nyStart, taStart, nyKod, bytKod, hitta, aterkalla, aterkallaBiljett, stada, biljetter, koder };
+  return { nyStart, taStart, nyKod, bytKod, hitta, aterkalla, aterkallaBiljett, stada, biljetter, koder, nySystemBiljett };
 }
 
 // Omfånget som tillämpningen får: det den begär och är registrerad för. En patientkontext kräver launch (från
@@ -155,10 +176,11 @@ export function konfiguration(base) {
   return {
     issuer: `${base}/fhir`,
     authorization_endpoint: `${base}/oauth/authorize`, token_endpoint: `${base}/oauth/token`, revocation_endpoint: `${base}/oauth/revoke`,
-    grant_types_supported: ['authorization_code'], response_types_supported: ['code'], code_challenge_methods_supported: ['S256'],
-    token_endpoint_auth_methods_supported: ['none'],
+    // Runda 10, r1: client_credentials med private_key_jwt för systemkonton (SMART Backend Services).
+    grant_types_supported: ['authorization_code', 'client_credentials'], response_types_supported: ['code'], code_challenge_methods_supported: ['S256'],
+    token_endpoint_auth_methods_supported: ['none', 'private_key_jwt'], token_endpoint_auth_signing_alg_values_supported: ['ES256', 'RS384'],
     scopes_supported: SMART_OMFANG,
-    capabilities: ['launch-ehr', 'launch-standalone', 'client-public', 'context-ehr-patient', 'context-standalone-patient', 'permission-patient', 'permission-user', 'permission-v1', 'permission-v2'],
+    capabilities: ['launch-ehr', 'launch-standalone', 'client-public', 'client-confidential-asymmetric', 'context-ehr-patient', 'context-standalone-patient', 'permission-patient', 'permission-user', 'permission-v1', 'permission-v2'],
   };
 }
 

@@ -2,6 +2,44 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "0.10.0",
+      "datum": "2026-11-08",
+      "nyheter": [
+        {
+          "id": "systemkonton",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "stor",
+          "var": "#/api",
+          "rubrik": "Systemkonton för vårddatalager och andra tillämpningar",
+          "text": "Under Öppet API registrerar du ett systemkonto för en tillämpning utan inloggad person, till exempel regionens vårddatalager. Du väljer vad kontot ska få och för vilka vårdenheter, och systemet räknar fram resten."
+        },
+        {
+          "id": "overkanslighet-registrera",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "var": "#/arbetslista",
+          "rubrik": "Registrera överkänslighet",
+          "text": "Under Lägg till uppmärksamhetsinformation registrerar du en överkänslighet. Välj ämnet och reaktionen, så föreslår systemet graden och varnar om något i läkemedelslistan omfattas."
+        },
+        {
+          "id": "skrivko-avbrott",
+          "roller": [
+            "sjukskoterska",
+            "underskoterska",
+            "lakare"
+          ],
+          "omfattning": "stor",
+          "var": "#/arbetslista",
+          "rubrik": "Ge doser och registrera mätvärden utan uppkoppling",
+          "text": "När servern inte svarar kan du ändå ge en dos och registrera mätvärden för patienterna i läskopian. Det sparas krypterat i mobilen eller datorn, märks som inte sparat i journalen och skickas av sig självt när förbindelsen är tillbaka."
+        }
+      ]
+    },
+    {
       "version": "0.9.0",
       "datum": "2026-11-08",
       "nyheter": [

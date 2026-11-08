@@ -155,5 +155,7 @@ export const UTTRYCK = {
   Appointment: { remissId: 'Appointment.basedOn', tidId: 'Appointment.slot', status: 'Appointment.status', patient: 'Appointment.participant' },
   Encounter: { klass: 'Encounter.class', enhetId: 'Encounter.serviceProvider', orsak: 'Encounter.reasonCode[0].text', plats: 'Encounter.location[0].location.display', status: 'Encounter.status' },
 };
-export const SMART_OMFANG = ['launch', 'launch/patient', 'patient/*.read', 'patient/*.rs', 'patient/*.write', 'user/*.read', 'user/*.rs', 'user/*.write', 'user/*.cruds'];
+export const SMART_OMFANG = ['launch', 'launch/patient', 'patient/*.read', 'patient/*.rs', 'patient/*.write', 'user/*.read', 'user/*.rs', 'user/*.write', 'user/*.cruds',
+  // Runda 10, r1: systemkonton (SMART Backend Services).
+  'system/*.rs'];
 export const BEARER_FEL = { ogiltig: 'Bearer error="invalid_token"', omfang: 'Bearer error="insufficient_scope"' };

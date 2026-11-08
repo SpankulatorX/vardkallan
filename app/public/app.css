@@ -740,7 +740,8 @@ body.testlage-aktivt #notiser { bottom: calc(var(--testlage-hojd, 64px) + 12px);
 @media (max-width: 640px) {
   .demorad { flex-direction: column; align-items: flex-start; gap: 6px; padding: 6px 16px; }
   .avbrott-inre { flex-wrap: wrap; padding: 10px 16px; }
-  .avbrott-knappar { flex-direction: row; flex-wrap: wrap; }
+  /* Runda 10, r1: knapparna radbryts inom skärmens bredd i stället för att göra sidan bredare. */
+  .avbrott-knappar { flex-direction: row; flex-wrap: wrap; flex: 1 1 100%; min-width: 0; }
   .klickbudget { margin-left: 0; }
   .topp-inre { padding: 8px 16px; gap: 10px; }
   .inloggad { order: 6; width: 100%; }
@@ -1514,7 +1515,7 @@ body.laslage #nyhetsruta { display: none; }
 .av-dag.av-idag h2 { color: var(--kalla); }
 
 /* Runda 9, r6: fältet för armbandet i Läkemedel att ge och sidan Öppet API för utvecklare och förvaltning. */
-.adm-skanna { margin: 0 0 1rem; }
+.adm-skanna, .adm-skanna-armband { margin: 0 0 1rem; }
 .adm-skanna-rad { display: flex; flex-wrap: wrap; gap: .5rem; }
 .adm-skanna-rad input { flex: 1 1 12rem; min-width: 0; }
 .api-andringar, .api-arenden, .api-lista { padding-left: 1.2rem; }

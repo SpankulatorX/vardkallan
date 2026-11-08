@@ -41,7 +41,10 @@ function bevaka(page, namn) {
 
 let felNr = 0;
 let felSida = null;
+// Runda 10, r1: AVBROTT_BARA=<del av namnet> kör bara de testerna, för felsökning. Resultatet skrivs då inte.
+const BARA = process.env.AVBROTT_BARA || null;
 async function test(namn, fn) {
+  if (BARA && !namn.includes(BARA)) return;
   const fore = sidfel.length;
   try {
     await fn();
@@ -821,11 +824,114 @@ const undersok = (page, kod, nyckelB64) => page.evaluate(async ({ kod, nyckelB64
     await c.close();
   });
 
+  // Runda 10, r1: skrivkön (Sussa 2.3.1.4). Sjuksköterskan ger en dos och registrerar ett mätvärde medan servern inte
+  // svarar. Det sparas krypterat på datorn, märks som inte sparat och skickas när förbindelsen är tillbaka. En dos som
+  // någon annan har gett under avbrottet blir en konflikt som hon själv avgör.
+  {
+    const c = await ny();
+    const p = await c.newPage();
+    bevaka(p, 'skrivko');
+    felSida = p;
+    const req = c.request;
+    // En ordination vid behov för p01, så att testet inte beror på vilka dostider som har passerat i dag.
+    const vidBehovFor = async () => (await (await req.get(`${BAS}/api/patient/p01/administreringar`)).json()).vidBehov;
+    const antalGivna = async (oid) => (await (await req.get(`${BAS}/api/patient/p01/administreringar`)).json()).vidBehov.find(v => v.ordinationId === oid)?.senasteDygnet ?? 0;
+    let oid = null;
+    await test('en dos och ett mätvärde som registreras under avbrottet märks som inte sparade och sparas när förbindelsen är tillbaka', async () => {
+      await loggaIn(p, 'lak-kard');
+      const lm = await (await req.get(`${BAS}/api/lakemedel/katalog?q=paracetamol`)).json();
+      const lmId = lm.find(x => x.atc === 'N02BE01' && /tablett/i.test(x.form ?? ''))?.id ?? lm.find(x => x.atc === 'N02BE01')?.id;
+      anta(lmId, 'hittade inget paracetamol i katalogen');
+      const o = await req.post(`${BAS}/api/patient/p01/lakemedel`, { headers: { Origin: BAS }, data: { lakemedelId: lmId, ordinationsorsak: 'Smärta', dosering: '1 g vid behov, högst 4 gånger per dygn', typ: 'vid_behov', vidBehov: true, uppfoljningsdatum: new Date(Date.now() + 14 * 86400_000).toISOString().slice(0, 10) } });
+      let od = await o.json();
+      if (o.status() === 400 && od.kraverKvittens) {
+        od = await (await req.post(`${BAS}/api/patient/p01/lakemedel`, { headers: { Origin: BAS }, data: { lakemedelId: lmId, ordinationsorsak: 'Smärta', dosering: '1 g vid behov, högst 4 gånger per dygn', typ: 'vid_behov', vidBehov: true, uppfoljningsdatum: new Date(Date.now() + 14 * 86400_000).toISOString().slice(0, 10), kvitteradeVarningar: od.kraverKvittens.map(regel => ({ regel, motivering: 'Prövat i testet av skrivkön.' })) } })).json();
+      }
+      oid = od.ordination?.id;
+      anta(oid, `ordinationen kunde inte sparas: ${JSON.stringify(od).slice(0, 200)}`);
+      await loggaIn(p, 'ssk-kard');
+      await p.goto(`${BAS}/#/patient/p01/lakemedel`);
+      await p.waitForSelector(`[data-adm="ge"][data-ord="${oid}"]`);
+      const kopiaFore = await vantaPaKopia(p, '');
+      // Läskopian förnyas efter ordinationen, så att dosen finns i den.
+      await p.evaluate(async () => (await import('/js/avbrott.js')).fornyaNu());
+      await vantaPaKopia(p, kopiaFore);
+      await p.click('[data-a="avbrott"]');
+      await synlig(p, '#avbrott h2', 'Avbrott: läsläge');
+      await synlig(p, '#avbrott', 'utom att ge doser och registrera mätvärden');
+      await p.goto(`${BAS}/#/patient/p01/lakemedel`);
+      const ge = p.locator(`[data-adm="ge"][data-ord="${oid}"]`);
+      await ge.waitFor();
+      anta(!(await ge.isDisabled()), 'knappen Ge är avstängd under avbrottet');
+      // Annat skrivande är fortfarande avstängt, till exempel att registrera att en dos inte gavs.
+      const ejGiven = p.locator('[data-adm="ej_given"]').first();
+      if (await ejGiven.count()) anta(await ejGiven.isDisabled(), 'Inte given går att klicka på under avbrottet');
+      await ge.click();
+      await synlig(p, '.notis', 'sparad i kön på den här datorn');
+      await synlig(p, '[data-ej-sparad]', 'Inte sparad i journalen än');
+      await p.click('.flikar a:has-text("Mätvärden")');
+      await p.waitForSelector('#mv-form');
+      await p.selectOption('#mv-typ', 'puls');
+      await p.fill('#mv-varde', '88');
+      await p.click('#mv-form [type=submit]');
+      await synlig(p, '.notis', 'sparat i kön på den här datorn');
+      await synlig(p, 'tr[data-ej-sparad]', 'Inte sparat i journalen än');
+      await synlig(p, '#avbrott', '2 registreringar väntar i kön');
+      // Kön är krypterad: inget i klartext i IndexedDB.
+      const ko = await p.evaluate(async () => {
+        const db = await new Promise((ja, nej) => { const q = indexedDB.open('vardkallan-lasekopia'); q.onsuccess = () => ja(q.result); q.onerror = () => nej(q.error); });
+        const rader = await new Promise((ja) => { const q = db.transaction('ko').objectStore('ko').getAll(); q.onsuccess = () => ja(q.result); });
+        db.close();
+        const text = rader.map(r => new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(r.data))).join(' ');
+        return { antal: rader.length, falt: rader[0] ? Object.keys(rader[0]).sort() : [], klartext: ['p01', 'puls', 'matvarde', 'ordinationId'].filter(t => text.includes(t)) };
+      });
+      anta(ko.antal === 2 && ko.klartext.length === 0, `kön i IndexedDB: ${JSON.stringify(ko)}`);
+      anta(JSON.stringify(ko.falt) === JSON.stringify(['data', 'id', 'iv', 'kopiaId', 'skapad']), `fälten i kön är ${ko.falt}`);
+      await bild(p, '42-avbrott-skrivko');
+      await p.click('[data-avbrott="avsluta"]');
+      await synlig(p, '.notis', '2 registreringar från avbrottet är nu sparade i journalen');
+      const mv = await (await req.get(`${BAS}/api/patient/p01/matvarden`)).json();
+      anta(mv.matvarden.some(m => m.typ === 'puls' && String(m.varde) === '88' && m.registreradAv?.namn === 'Johan Ek'), 'pulsen från kön finns inte i journalen');
+      anta(await antalGivna(oid) === 1, `dosen från kön är given ${await antalGivna(oid)} gånger`);
+      anta((await p.evaluate(async () => (await (await import('/js/lasekopia.js')).koRader()).length)) === 0, 'kön är inte tom');
+    });
+
+    await test('en dos som någon annan gav under avbrottet blir en konflikt som sjuksköterskan avgör, och dosen sparas inte två gånger', async () => {
+      anta(oid, 'ordinationen från förra testet saknas');
+      const kopiaFore = await p.evaluate(() => document.documentElement.dataset.laskopia ?? '');
+      await p.evaluate(async () => (await import('/js/avbrott.js')).fornyaNu());
+      await vantaPaKopia(p, kopiaFore);
+      await p.click('[data-a="avbrott"]');
+      await synlig(p, '#avbrott h2', 'Avbrott: läsläge');
+      await p.goto(`${BAS}/#/patient/p01/lakemedel`);
+      await p.locator(`[data-adm="ge"][data-ord="${oid}"]`).click();
+      await synlig(p, '.notis', 'sparad i kön på den här datorn');
+      // En kollega ger samma läkemedel på en annan dator medan den här fliken inte når servern.
+      const g = await req.post(`${BAS}/api/patient/p01/administreringar`, { headers: { Origin: BAS }, data: { ordinationId: oid, atgard: 'ge', kvitteradeVarningar: [{ regel: 'dubbel_dos', motivering: 'Prövat i testet av skrivkön.' }] } });
+      anta(g.ok(), `kollegans dos sparades inte: ${g.status()}`);
+      anta(await antalGivna(oid) === 2, 'kollegans dos räknades inte');
+      await p.click('[data-avbrott="avsluta"]');
+      const dl = p.locator('dialog[open]');
+      await dl.waitFor();
+      await synlig(p, 'dialog[open]', 'Registrering från avbrottet');
+      await synlig(p, 'dialog[open]', 'gavs senast');
+      await bild(p, '43-avbrott-skrivko-konflikt');
+      // Utan motivering går det inte att registrera, och sjuksköterskan tar bort dosen eftersom den inte gavs två gånger.
+      await dl.locator('[data-varde="registrera"]').click();
+      await synlig(p, 'dialog[open] .dialog-fel', 'motivering');
+      await dl.locator('[data-varde="kasta"]').click();
+      await synlig(p, '.notis', 'borttagen ur kön');
+      anta(await antalGivna(oid) === 2, `dosen sparades ändå: ${await antalGivna(oid)}`);
+      anta((await p.evaluate(async () => (await (await import('/js/lasekopia.js')).koRader()).length)) === 0, 'kön är inte tom');
+    });
+    await c.close();
+  }
+
   const version = browser.version();
   await browser.close();
   const { gransnittHash } = await import(pathToFileURL(join(APP, 'src', 'klientresultat.js')).href);
   // Testerna med samma prefix ersätts. Andra skripts tester i filen (test/anvandartest.cjs) behålls.
-  skrivKlienttester({ app: APP, prefix: PREFIX, tester, bas: BAS, webblasare: `Chromium ${version}`, gransnittHash: gransnittHash(join(APP, 'public')) });
+  if (!BARA) skrivKlienttester({ app: APP, prefix: PREFIX, tester, bas: BAS, webblasare: `Chromium ${version}`, gransnittHash: gransnittHash(join(APP, 'public')) });
   const roda = tester.filter(t => t.status !== 'grön');
   console.log(`\nAvbrott: ${tester.length - roda.length} av ${tester.length} gröna. Resultatet finns i app/klienttest-resultat.json`);
   if (sidfel.length) console.log(`Sidfel och konsolfel:\n  ${sidfel.join('\n  ')}`);

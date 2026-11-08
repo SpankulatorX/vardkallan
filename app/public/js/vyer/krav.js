@@ -281,7 +281,10 @@ function bilagaR6(p) {
       ${r.tester.length ? `<br><span class="dampad liten">${r.tester.filter(t => t.status === 'grön').length} av ${r.tester.length} tester gröna</span>` : ''}</li>`).join('')}</ul>`;
   }
   if (p.mobil) {
-    return `<h3>Mobila flöden per funktionellt krav</h3><p class="dampad liten">${esc(p.mobil.text)}</p><ul class="enkel-lista">${p.mobil.krav.map(k => `<li>
+    // Runda 10, r1: hur många krav som har mobila flöden, bara skrivbordets flöden, vyer i 360 px och inget i demon.
+    const antal = (l) => p.mobil.krav.filter(k => k.lage === l).length;
+    return `<h3>Mobila flöden per funktionellt krav</h3><p class="dampad liten">${esc(p.mobil.text)}</p>
+      <p class="liten">${antal('mobil')} krav har mobila flöden, ${antal('skrivbord')} har flöden för skrivbordet, ${antal('vyer')} har vyer som går att öppna i mobilen och ${antal('planerat')} är inte byggda.</p><ul class="enkel-lista">${p.mobil.krav.map(k => `<li>
       <a href="#/krav?post=${encodeURIComponent(k.id)}">${esc(k.id)}</a> ${esc(k.rubrik)}: ${k.mobila.length ? esc(k.mobila.join(', ')) : `<span class="dampad">${esc(k.varfor)}</span>`}</li>`).join('')}</ul>`;
   }
   return '';

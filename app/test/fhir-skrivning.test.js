@@ -232,12 +232,13 @@ describe('FHIR-skrivning', () => {
     expect(egen.data.issue[0].expression).toContain('ServiceRequest.performer');
   });
 
-  test('inget går att göra via API:t som gränssnittet inte tillåter: överkänslighet, borttagning och ändrade mätvärden', async () => {
+  // Runda 10, r1: överkänslighet går nu att registrera via API:t (runda10-r1-skrivning.test.js), men inte ändra.
+  test('inget går att göra via API:t som gränssnittet inte tillåter: ändrad överkänslighet, borttagning och ändrade mätvärden', async () => {
     const k = klient(app);
     await k.logga('lak-kard');
     // Runda 9, r6: diagnoser går nu att registrera via API:t (runda9-r6.test.js), men inte ändra.
     expect((await fhirAnrop(k, 'PUT', '/fhir/Condition/1', { resourceType: 'Condition', id: '1', subject: { reference: 'Patient/p01' } })).status).toBe(405);
-    const ai = await fhirAnrop(k, 'POST', '/fhir/AllergyIntolerance', { resourceType: 'AllergyIntolerance', patient: { reference: 'Patient/p01' } });
+    const ai = await fhirAnrop(k, 'PUT', '/fhir/AllergyIntolerance/1', { resourceType: 'AllergyIntolerance', id: '1', patient: { reference: 'Patient/p01' } });
     expect(ai.status).toBe(405);
     expect(ai.data.issue[0]).toMatchObject({ code: 'not-supported' });
     const bort = await fhirAnrop(k, 'DELETE', '/fhir/Composition/1');

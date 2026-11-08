@@ -28,6 +28,35 @@ export const R6 = {
     `${TK}okänt kontrakt, patient eller logisk adress ger ett fel på svenska`],
 };
 
+// Runda 10, r1: systemkonton, populationsprenumerationer och fler skrivningar (app/test/runda10-r1-api.test.js och
+// runda10-r1-skrivning.test.js) och gränssnittet för dem (test/mobil.cjs).
+const SY = 'Systemkonton > ';
+const FS10 = 'Fler skrivningar via API:t > ';
+export const R10 = {
+  registrera: `${SY}systemförvaltaren registrerar ett systemkonto, systemet räknar fram omfånget ur informationsmängderna och en privat nyckel sparas aldrig`,
+  backend: `${SY}SMART Backend Services: tillämpningen får en åtkomstbiljett med ett signerat klientintyg, och fel intyg nekas och loggas`,
+  lasning: `${SY}systemkontot läser bara sina vårdenheters poster ur sina informationsmängder, aldrig skyddad identitet eller spärrade uppgifter, och varje läsning loggas`,
+  population: `${SY}prenumeration på en population: varje ny diagnos på vårdenheten meddelas med bara id, och bara det som systemkontot får läsa`,
+  aterkallat: `${SY}ett återkallat systemkonto får ingen biljett, dess biljetter slutar gälla och dess prenumerationer avslutas`,
+  uiKonto: 'Gränssnitt > Öppet API > systemförvaltaren registrerar ett systemkonto för vårddatalagret, ser vad det får och kan återkalla det',
+  overkanslighet: `${FS10}Överkänslighet: läkaren registrerar en överkänslighet ur listan, systemet föreslår graden ur reaktionen och varnar för en ordination som omfattas`,
+  allergy: `${FS10}AllergyIntolerance: överkänsligheten registreras via API:t med samma funktion som gränssnittet, och fel roll, okänt ämne och dubblett nekas`,
+  patient: `${FS10}Patient: en ny patient registreras via API:t med samma tolkning av numret och dubblettkontroll som gränssnittet`,
+  everything: `${FS10}Patient/$everything för personalen: varje resurstyp prövas och loggas för sig, och bara det personen får se kommer med`,
+  uiOverk: 'Gränssnitt > Uppmärksamhet > läkaren registrerar en överkänslighet med ämnet och reaktionen, och den syns i patienthuvudet med graden',
+  // Makulering via API:t och identiteten för systemkonton (app/test/runda10-r1-makulering.test.js).
+  makulering: [
+    'Makulering via API:t > DELETE och $makulera makulerar en dos med samma regler som gränssnittet: orsak krävs, historiken står kvar och makuleringen loggas',
+    'Makulering via API:t > makuleringen prövas som i gränssnittet: fel roll och en annan vårdenhet nekas, och en dos som inte finns ger 404',
+    'Makulering via API:t > en provbeställning makuleras via API:t, och en resurs som inte går att makulera ger 405 med vad man gör i stället',
+    'Makulering via API:t > ett systemkonto får bara makulera det som kontot självt har skrivit',
+  ],
+  identitet: [
+    'Identitet för systemkonton > förvalet är pseudonym: kontot ser aldrig patientens namn eller personnummer i resurser, sökningar eller prenumerationer',
+    'Identitet för systemkonton > namn och personnummer kräver att systemförvaltaren väljer det med en motivering, och då får kontot dem',
+  ],
+};
+
 export default [
   {
     id: '2.5.1.1', kategori: 'system', egna: ['D9', 'M12'], avsedd: 'uppfyllt_demo',
@@ -42,13 +71,15 @@ export default [
       // Runda 9, r6: diagnoser via API:t, versionen i CapabilityStatement och ändringsloggen.
       R6.conditionSkapa, R6.conditionNekad, R6.capability, R6.andringslogg,
       'Gränssnitt > Öppet API > ändringsloggen visar versionen, och läkaren skickar ett ärende om en saknad informationsmängd',
+      // Runda 10, r1: överkänslighet och patienter via API:t, Patient/$everything för personalen och systemkonton.
+      R10.overkanslighet, R10.allergy, R10.patient, R10.everything, R10.uiOverk, R10.backend, R10.population,
     ],
-    losning: 'Öppet FHIR R4-API under /fhir för läsning, skrivning (mätvärden, anteckningar, diagnoser, ordinationer, remisser, bokning av en remiss och inskrivning), prenumerationer och externa tillämpningar med SMART on FHIR, med samma behörighet och loggning som gränssnittet. Koden är öppen under EUPL 1.2. Att gränssnittet hålls aktuellt syns i tre saker: CapabilityStatement anger programmets version, ändringsloggen (api-andringar.js) har en rad för varje resurstyp och skrivning med den version där den kom och visas på sidan Öppet API och i GET /api/oppet-api/andringar, och ett test prövar alla 145 resurstyper i FHIR R4 mot servern och stoppar bygget om CapabilityStatement anger något som servern inte har, eller tvärtom.',
+    losning: 'Öppet FHIR R4-API under /fhir för läsning, skrivning (mätvärden, anteckningar, diagnoser, överkänslighet, ordinationer, remisser, nya patienter, bokning av en remiss och inskrivning), Patient/$everything för personalen och invånaren, prenumerationer och externa tillämpningar med SMART on FHIR, också systemkonton utan inloggad person med SMART Backend Services, med samma behörighet och loggning som gränssnittet. Koden är öppen under EUPL 1.2. Att gränssnittet hålls aktuellt syns i tre saker: CapabilityStatement anger programmets version, ändringsloggen (api-andringar.js) har en rad för varje resurstyp och skrivning med den version där den kom och visas på sidan Öppet API och i GET /api/oppet-api/andringar, och ett test prövar alla 145 resurstyper i FHIR R4 mot servern och stoppar bygget om CapabilityStatement anger något som servern inte har, eller tvärtom.',
     expert: 'Skrivningen går genom samma funktioner som gränssnittet, så API:t kontrollerar själv reglerna, varnar på samma sätt och fyller i vårdkontakt, enhet, huvud- eller bidiagnos och förslag. Den som bygger en integration behöver inte känna reglerna, och bygget ser till att beskrivningen av API:t alltid stämmer med det som finns.',
-    anmarkning: 'Själva åtagandet att hålla gränssnittet aktuellt under en avtalstid är leverantörens och finns inte i koden. Överkänslighet går inte att skriva via API:t, eftersom gränssnittet inte heller kan registrera den, och patienter registreras bara i gränssnittet, där numret tolkas och dubbletter letas. Patient/$everything gäller bara invånarens session.',
+    anmarkning: 'Själva åtagandet att hålla gränssnittet aktuellt under en avtalstid är ett avtalsåtagande, och i koden syns det som versionen, ändringsloggen och testet som stoppar bygget. Patient/$everything stöds inte med en åtkomstbiljett, eftersom omfånget prövas per resurstyp: en tillämpning läser varje resurstyp för sig.',
   },
   {
-    id: '2.5.1.2', kategori: 'system', egna: ['D9'], avsedd: 'delvis',
+    id: '2.5.1.2', kategori: 'system', egna: ['D9'], avsedd: 'uppfyllt_demo',
     tester: [
       `${F}sökning ger Bundle searchset`,
       `${F}FHIR följer samma behörighet: nekad utan vårdrelation`,
@@ -57,17 +88,20 @@ export default [
       'FHIR-skrivning > Composition: final skapar och signerar, preliminary sparar ett utkast med samma mall som gränssnittet',
       'FHIR-skrivning > MedicationRequest: utsättning med status stopped, och antikoagulantia sätts bara ut med en plan',
       'FHIR-skrivning > nekad: fel roll, ingen vårdrelation och Min journal nekas och nekandet loggas',
-      'FHIR-skrivning > inget går att göra via API:t som gränssnittet inte tillåter: överkänslighet, borttagning och ändrade mätvärden',
+      'FHIR-skrivning > inget går att göra via API:t som gränssnittet inte tillåter: ändrad överkänslighet, borttagning och ändrade mätvärden',
       'Prenumerationer > Subscription skapas med samma behörighet som läsningen och bara till adresser som administratören har godkänt',
       'Prenumerationer > meddelandet innehåller bara id, och mottagaren hämtar resursen med sin egen behörighet',
       'Prenumerationer > inget meddelande om det som prenumeranten inte får läsa: spärrad vårdenhet, annan vårdenhet och osignerade utkast',
       'Prenumerationer > skydd mot SSRF: interna adresser, omdirigeringar, fel port och inloggningsuppgifter stoppas',
       // Runda 9, r6: diagnoser, bokning och inskrivning via API:t, och mottagarna som systemförvaltaren godkänner.
       R6.conditionSkapa, R6.bokning, R6.inskrivning, R6.mottagare, R6.provas,
+      // Runda 10, r1: systemkonton med SMART Backend Services och prenumerationer på en population.
+      R10.registrera, R10.backend, R10.lasning, R10.population, R10.aterkallat, R10.uiKonto, R10.allergy, R10.patient,
+      ...R10.makulering, ...R10.identitet,
     ],
-    losning: 'Läsa, skapa och uppdatera via FHIR R4 med samma regler som gränssnittet, och prenumerationer (Subscription med rest-hook) som meddelar nya, ändrade och borttagna poster med bara id. Integrationsmönstren är förfrågan och svar (REST) och händelser (prenumeration).',
-    expert: 'Systemet prövar varje skrivning och varje meddelande mot behörighetsmotorn, förklarar på svenska varför något inte går och skickar aldrig patientuppgifter i ett meddelande, så att ingen integration behöver bygga in patientdatalagens regler.',
-    anmarkning: 'Borttagning nekas med en förklaring, eftersom journaluppgifter rättas eller makuleras och aldrig tas bort. Prenumerationerna gäller en patient i taget: en prenumeration på en hel population (till exempel alla nya diagnoser på en vårdenhet för ett vårddatalager) och systemkonton för en tillämpning utan inloggad person (SMART Backend Services) finns inte. Meddelandena simuleras i demon och skickas bara med WEBHOOK_SKICKA=1. Mottagaradresserna godkänns av systemförvaltaren på sidan Öppet API, och när en adress återkallas avslutas varje prenumeration till den.',
+    losning: 'Integrationsmönster: förfrågan och svar (REST med FHIR R4) och händelser (Subscription med rest-hook), för tillämpningar som startas av en person (SMART on FHIR) och för systemkonton utan inloggad person (SMART Backend Services, med ett klientintyg som tillämpningen signerar med sin privata nyckel). Kategoriserade informationsmängder: ett systemkonto, till exempel regionens vårddatalager eller engagemangsindex, prenumererar på alla poster av en typ (diagnoser, mätvärden, läkemedel, överkänsligheter eller vårdkontakter) på sina vårdenheter och får meddelanden om nya, ändrade och borttagna poster med bara id. Därefter hämtar det posten med sin egen biljett. Branschstandarder: FHIR R4, SMART App Launch och Backend Services, OAuth 2.0 och Subscriptions Backport. Responsivitet: versionen i CapabilityStatement, ändringsloggen och ärenden för ny information. Kontrollerat läsa, skapa, uppdatera och ta bort: skrivningen går genom samma funktioner och regler som gränssnittet. Att ta bort är att makulera: DELETE eller $makulera på en dos eller en provbeställning gör samma makulering som gränssnittet, med samma behörighet, orsak som krav, historiken kvar och loggning, och en resurs som inte går att makulera besvaras med 405 och vad man gör i stället, till exempel att en anteckning rättas med en ny version. Ett systemkonto får patientens namn och personnummer bara när systemförvaltaren har valt det med en motivering, och annars en pseudonym per konto och patient.',
+    expert: 'Systemet prövar varje skrivning, varje läsning och varje meddelande mot behörighetsmotorn, förklarar på svenska varför något inte går och skickar aldrig patientuppgifter i ett meddelande, så att ingen integration behöver bygga in patientdatalagens regler. Systemförvaltaren väljer bara vad ett systemkonto ska få: systemet räknar fram omfånget och spärrar själv skyddad identitet, spärrade uppgifter och andra vårdenheter.',
+    anmarkning: 'Ingenting raderas: en makulerad uppgift står kvar med orsaken (patientdatalagen). Makulering kräver varken kontrasignering eller fyra ögon i gränssnittet, och därför inte heller via API:t. Meddelandena simuleras i demon och skickas bara med WEBHOOK_SKICKA=1. Systemkontona gäller den sandlåda där de registrerades, och nyckeln för pseudonymerna slumpas när servern startar om SYSTEMKONTO_PSEUDONYMNYCKEL inte är satt.',
   },
   {
     id: '2.5.1.3', kategori: 'system', egna: ['D9'], avsedd: 'uppfyllt_demo',

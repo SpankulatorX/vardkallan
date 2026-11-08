@@ -135,7 +135,7 @@ export async function visa(el, ctx) {
     ${d.matvarden.length ? `<section aria-labelledby="mv-alla"><h3 id="mv-alla">Alla värden</h3>
       <div class="tabellrulle"><table class="tabell tat">
         <thead><tr><th scope="col">Tid</th><th scope="col">Mätvärde</th><th scope="col">Värde</th><th scope="col">Enhet där det togs</th><th scope="col">Registrerat av</th></tr></thead>
-        <tbody>${d.matvarden.map(m => `<tr><td>${esc(tidpunkt(m.tid))}</td><td>${esc(m.namn)}</td><td>${visatVarde(m)}</td><td>${esc(m.vardenhet.namn)}${migreradEtikett(m)}</td><td>${esc(m.registreradAv?.namn ?? '')}${m.bestallning ? `<span class="under-text">Svar från laboratoriet, beställt av ${esc(m.bestallning.bestalldAv ?? '')}</span>` : ''}${klassEtikett(m.klass)}</td></tr>`).join('')}</tbody>
+        <tbody>${d.matvarden.map(m => `<tr${m.ejSparad ? ' data-ej-sparad' : ''}><td>${esc(tidpunkt(m.tid))}${m.ejSparad ? ' <span class="tagg tagg-larm">Inte sparat i journalen än</span>' : ''}</td><td>${esc(m.namn)}</td><td>${visatVarde(m)}</td><td>${esc(m.vardenhet.namn)}${migreradEtikett(m)}</td><td>${esc(m.registreradAv?.namn ?? '')}${m.bestallning ? `<span class="under-text">Svar från laboratoriet, beställt av ${esc(m.bestallning.bestalldAv ?? '')}</span>` : ''}${klassEtikett(m.klass)}</td></tr>`).join('')}</tbody>
       </table></div></section>` : '<p class="tom">Inga mätvärden som du kan se.</p>'}
     ${egnaHtml(d)}`;
 
@@ -171,7 +171,11 @@ export async function visa(el, ctx) {
     const data = { typ, varde: v, ...nyKontaktData(kontakt) };
     if (form.tid.value) data.tid = new Date(form.tid.value).toISOString();
     try {
-      const m = await medKnapp(form.querySelector('[type=submit]'), () => api(`/api/patient/${encodeURIComponent(ctx.id)}/matvarden`, { metod: 'POST', data }), form);
+      const m = await medKnapp(form.querySelector('[type=submit]'), () => api(`/api/patient/${encodeURIComponent(ctx.id)}/matvarden`, { metod: 'POST', data, ko: true }), form);
+      if (m.koad) {
+        notis(`${m.namn} ${m.varde} ${m.enhet} är sparat i kön på den här datorn och inte i journalen än. Det skickas när förbindelsen är tillbaka.`, 'info');
+        return ctx.ladda();
+      }
       notis(m.beskrivning ? `${m.namn}: ${m.beskrivning} Registrerat.` : `${m.namn} ${m.varde} ${m.enhet} är registrerat.`);
       kontaktNotis(m);
       ctx.ladda();
@@ -210,7 +214,8 @@ function lasVarde(form, typ) {
 }
 
 function registrering() {
-  return `<form class="mv-form" id="mv-form" novalidate aria-labelledby="mv-reg">
+  // Runda 10, r1: formuläret fungerar också under ett avbrott (data-ko-ok), och värdet läggs då i skrivkön.
+  return `<form class="mv-form" id="mv-form" novalidate aria-labelledby="mv-reg" data-ko-ok>
     <h3 id="mv-reg">Registrera mätvärde</h3>
     <div data-kontakt-plats></div>
     <div class="falt-rad">

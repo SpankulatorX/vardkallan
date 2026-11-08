@@ -13,11 +13,12 @@
 // Behörighet: att läsa kräver las_oversikt (läkare, sjuksköterska och undersköterska), att bekräfta, registrera och
 // avsluta kräver skriv_journal (läkare). Uppmärksamhetsinformation är gemensam som läkemedelslistan och överkänsligheten:
 // den kräver inget aktivt val mellan vårdenheter, men spärrar gäller. Servern loggar varje anrop som vanligt.
-import { Fel, iso } from './db.js';
+import { Fel, iso, idag } from './db.js';
 import { Atkomst, kanRoll, vardenhetFor } from './atkomst.js';
 import { synligaOrdinationer, aktuell as ordinationAktuell } from './lakemedel.js';
-import { synligaDiagnoser, kallaEtikett } from './journal.js';
-import { foresla, foreslagenGrad, REGLER } from './uppmarksamhet-regler.js';
+import { synligaDiagnoser, kallaEtikett, synligOverkanslighet, overkanslighetUt } from './journal.js';
+import { foresla, foreslagenGrad, REGLER, OVERKANSLIGHET_AMNEN, OVERKANSLIGHET_REAKTIONER } from './uppmarksamhet-regler.js';
+export { OVERKANSLIGHET_AMNEN, OVERKANSLIGHET_REAKTIONER, amneFor } from './uppmarksamhet-regler.js';
 
 export const KATEGORIER = {
   medicinskt: { namn: 'Medicinska tillstånd och behandlingar', kort: 'Medicinskt', undergrupper: {
@@ -250,3 +251,36 @@ export function avsluta(atk, r, { orsak } = {}) {
 }
 
 export const termer = () => ({ termer: TERMER.map(t => ({ ...t, kategoriText: KATEGORIER[t.kategori].namn, undergruppText: KATEGORIER[t.kategori].undergrupper[t.undergrupp] })), grader: GRADER, regler: REGLER.map(r => ({ id: r.id, beskrivning: r.beskrivning })) });
+
+// Runda 10, r1: registrering av överkänslighet (Sussa 2.5.1.1 och 3.1.5). Läkaren väljer ämnet och reaktionen ur korta
+// listor och behöver aldrig kunna ATC-koderna: systemet sätter koden, föreslår graden ur reaktionen, registrerar
+// uppmärksamhetsinformationen med graden och varnar om något i läkemedelslistan omfattas. Samma funktion används av
+// gränssnittet och av FHIR-API:t (AllergyIntolerance i fhir-skrivning.js). Ämnena är Vårdkällans demolista.
+// Listorna finns i uppmarksamhet-regler.js, så att fhir.js kan läsa kategorin utan att importera den här modulen.
+const efterId = (lista, id) => (typeof id === 'string' ? lista.find(x => x.id === id) ?? null : null);
+export const valOverkanslighet = () => ({ amnen: OVERKANSLIGHET_AMNEN, reaktioner: OVERKANSLIGHET_REAKTIONER, grader: GRADER });
+
+// POST /api/patient/:id/overkanslighet med { amne, reaktion, grad? }. Kräver skriv_journal (läkaren), som annan
+// uppmärksamhetsinformation. Ger { overkanslighet, grad, varningar, uppmarksamhet }.
+export function registreraOverkanslighet(atk, { amne, reaktion, grad } = {}) {
+  atk.krav(ATKOMST_SKRIV, { resurs: { enhet_id: atk.personal.enhet_id } });
+  const a = efterId(OVERKANSLIGHET_AMNEN, amne);
+  if (!a) throw new Fel(400, 'Välj ämnet i listan.', 'ogiltig', { falt: ['amne'] });
+  const r = efterId(OVERKANSLIGHET_REAKTIONER, reaktion);
+  if (!r) throw new Fel(400, 'Välj reaktionen i listan.', 'ogiltig', { falt: ['reaktion'] });
+  if (grad !== undefined && grad !== null && !Object.hasOwn(GRADER, grad)) throw new Fel(400, 'Välj livshotande, skadlig eller besvärande.', 'ogiltig', { falt: ['grad'] });
+  const g = grad ?? r.grad;
+  const db = atk.db;
+  // Bara det som användaren får se räknas som en dubblett, så att svaret aldrig röjer en spärrad uppgift.
+  const finns = (synligOverkanslighet(atk) ?? []).find(o => o.amne.toLowerCase() === a.amne.toLowerCase() || (a.atc && o.atc === a.atc));
+  if (finns) throw new Fel(409, `Överkänslighet mot ${a.amne.toLowerCase()} finns redan för patienten, registrerad ${finns.datum}.`, 'finns', { falt: ['amne'] });
+  const allvarlighet = g === 'besvarande' ? 'mindre allvarlig' : 'allvarlig';
+  const id = Number(db.query("INSERT INTO overkanslighet (patient_id, enhet_id, amne, atc, reaktion, allvarlighet, datum, kalla) VALUES (?, ?, ?, ?, ?, ?, ?, 'vardkallan')")
+    .run(atk.patientId, atk.personal.enhet_id, a.amne, a.atc, r.text, allvarlighet, idag()).lastInsertRowid);
+  insert(db, atk, { kategori: 'overkanslighet', undergrupp: a.atc ? 'aktiv_substans' : 'ovrigt', term: a.amne, motivering: r.text, grad: g,
+    kod: a.atc ? { system: 'atc', kod: a.atc } : null, kalla: { typ: 'overkanslighet', id }, regel: null });
+  // Varningar för läkemedel i listan som omfattas, bara bland ordinationer som användaren får se.
+  const varningar = a.atc ? synligaOrdinationer(atk).filter(o => ordinationAktuell(o)).map(o => ({ o, lm: db.query('SELECT namn, atc FROM katalog WHERE id = ?').get(o.lakemedel_id) }))
+    .filter(x => x.lm?.atc?.startsWith(a.atc)).map(x => ({ niva: 'allvarlig', regel: 'overkanslighet', text: `${x.lm.namn} i läkemedelslistan har ATC-kod ${x.lm.atc} och omfattas av överkänsligheten. Kontakta förskrivaren om ordinationen ska sättas ut.` })) : [];
+  return { overkanslighet: overkanslighetUt(db, db.query('SELECT * FROM overkanslighet WHERE id = ?').get(id)), grad: g, varningar, uppmarksamhet: forHuvud(atk) };
+}

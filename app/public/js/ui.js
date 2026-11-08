@@ -113,10 +113,11 @@ export const avbrott = { aktivt: false, simulerat: false, upptackt: null, svara:
 // Svar som betyder att servern bakom inte nås: 502 till 504 från Caddy och 52x från Cloudflare.
 const NERE = new Set([502, 503, 504, 520, 521, 522, 523, 524, 525, 526, 527, 530]);
 const natverkFel = () => new ApiFel(0, { fel: 'Det gick inte att nå servern. Kontrollera anslutningen och försök igen.', kod: 'natverk' });
-async function franKopia(vag, metod) {
+// Runda 10, r1: ko gör att en dos eller ett mätvärde läggs i skrivkön under ett avbrott (lasekopia.js).
+async function franKopia(vag, metod, extra = {}) {
   if (!avbrott.aktivt) await avbrott.upptackt?.(true);
   if (!avbrott.svara) throw natverkFel();
-  return avbrott.svara(vag, metod);
+  return avbrott.svara(vag, metod, extra);
 }
 
 export function lasServerTiming(h) {
@@ -135,9 +136,9 @@ export async function vantaPaAnrop(maxMs = 5000) {
 
 // direkt: anropet går alltid till servern, också i läsläget (hälsokontrollen, läskopian och loggen från läsläget).
 // bakgrund: anropet görs av gränssnittet självt och räknas inte som aktivitet för inloggningen (runda 7, r2).
-export async function api(vag, { metod = 'GET', data, tyst = false, direkt = false, bakgrund = false } = {}) {
+export async function api(vag, { metod = 'GET', data, tyst = false, direkt = false, bakgrund = false, ko = false } = {}) {
   if (krokar.ejLaslage?.()) direkt = true;
-  if (!direkt && (avbrott.aktivt || avbrott.simulerat)) return franKopia(vag, metod);
+  if (!direkt && (avbrott.aktivt || avbrott.simulerat)) return franKopia(vag, metod, { data, ko });
   let r;
   const t0 = performance.now();
   const kontroll = new AbortController();
@@ -152,12 +153,12 @@ export async function api(vag, { metod = 'GET', data, tyst = false, direkt = fal
     });
   } catch {
     if (kontroll.signal.aborted) throw new ApiFel(0, { fel: 'Anropet avbröts.', kod: 'avbruten' });
-    if (!direkt && await avbrott.upptackt?.()) return franKopia(vag, metod);
+    if (!direkt && await avbrott.upptackt?.()) return franKopia(vag, metod, { data, ko });
     throw natverkFel();
   } finally {
     pagaende.delete(kontroll);
   }
-  if (!direkt && NERE.has(r.status) && await avbrott.upptackt?.()) return franKopia(vag, metod);
+  if (!direkt && NERE.has(r.status) && await avbrott.upptackt?.()) return franKopia(vag, metod, { data, ko });
   const st = lasServerTiming(r.headers.get('server-timing'));
   krokar.svarstid?.({ vag, metod, server: st, totalt: performance.now() - t0, status: r.status });
   const garUt = r.headers.get('x-inloggning-gar-ut');

@@ -3,6 +3,8 @@
 import { Fel } from './db.js';
 import { loggaRad } from './logg.js';
 import { formatera, maskera } from './identitet.js';
+// Runda 10, r1: systemkonton för externa tillämpningar utan inloggad person (systemkonton.js).
+import * as systemkonton from './systemkonton.js';
 
 // Minsta åtkomst per yrkesroll (D8, PDL 4 kap. 2 §).
 export const ROLLER = {
@@ -375,6 +377,8 @@ export function prova(db, { personal, patient, handling, resurs = null, val = {}
   if (!kanRoll(personal, handling)) {
     return svar(false, 'nekad', null, `Yrkesrollen får inte ${HANDLINGAR[handling]}.`);
   }
+  // Runda 10, r1: ett systemkonto prövas mot sina vårdenheter och informationsmängder, aldrig med vårdrelation.
+  if (personal.yrke === 'systemkonto') return provaSystemkonto(db, personal, patient, handling, resurs);
   if (handling === 'las_logg') return svar(true, 'logggranskning');
   if (UTAN_PATIENT.has(handling)) return svar(true, GRUND_UTAN_PATIENT[personal.yrke] ?? 'administrativ');
 
@@ -410,8 +414,16 @@ export function prova(db, { personal, patient, handling, resurs = null, val = {}
   return svar(false, 'nekad', 'kraver_val', 'Uppgifterna kommer från en annan vårdenhet. Gör ett aktivt val för att visa dem.', sparrade);
 }
 
+// Runda 10, r1: systemkontot slås upp i databasen vid varje prövning, så att en återkallelse gäller direkt. Inga aktiva
+// val, ingen nödåtkomst och inget samtycke: det som inte är tillåtet är nekat.
+function provaSystemkonto(db, personal, patient, handling, resurs) {
+  const p = typeof patient === 'string' ? db.query('SELECT id, skyddad FROM patienter WHERE id = ?').get(patient) : patient;
+  const r = systemkonton.prova(db, systemkonton.kontoFor(db, personal.id), { patient: p, handling, resurs });
+  return r.tillaten ? svar(true, 'systemkonto') : svar(false, 'nekad', null, r.skal);
+}
+
 // Grunderna i den ordning de väger när ett anrop visar uppgifter på flera grunder.
-const VIKT = ['samtycke_sparr', 'nodatkomst', 'aktivt_val', 'egen_enhet', 'vardrelation', 'administrativ'];
+const VIKT = ['samtycke_sparr', 'nodatkomst', 'aktivt_val', 'egen_enhet', 'vardrelation', 'administrativ', 'systemkonto'];
 export function starkasteGrund(grunder, standard) {
   for (const g of VIKT) if (grunder.has(g)) return g;
   return standard;
@@ -463,7 +475,7 @@ export class Atkomst {
   }
 
   grund() {
-    return starkasteGrund(this.grunder, this.personal.yrke === 'vardadministrator' ? 'administrativ' : 'vardrelation');
+    return starkasteGrund(this.grunder, this.personal.yrke === 'vardadministrator' ? 'administrativ' : this.personal.yrke === 'systemkonto' ? 'systemkonto' : 'vardrelation');
   }
 
   logga(handling = this.handling, grund = this.grund(), resurs = null, resultat = 'tillaten', syfte = null) {
@@ -558,3 +570,7 @@ Object.assign(HANDLINGAR, { vyforval: 'sätta vårdenhetens förval för vyerna'
 ROLLER.systemforvaltare.push('vyforval');
 ROLLER.verksamhetschef.push('vyforval');
 UTAN_PATIENT.add('vyforval');
+// Runda 10, r1: systemkonton för externa tillämpningar utan inloggad person, till exempel ett regionalt vårddatalager
+// (systemkonton.js, Sussa 2.5.1.2). Rollen läser bara: vilka informationsmängder och vårdenheter ett visst konto får
+// prövas i provaSystemkonto. Rollen kan aldrig logga in och är ingen personal, så den har inga övningar.
+ROLLER.systemkonto = ['las_oversikt', 'las_diagnoser', 'las_matvarden', 'las_lakemedel', 'las_admin'];
