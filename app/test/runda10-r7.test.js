@@ -16,6 +16,8 @@ let app;
 beforeAll(() => { app = testserver(); });
 afterAll(() => app.stopp());
 
+// Testnamnen i T10 har avsnittet först (Ombud > ...), som describe ger. Här står bara resten.
+const namn = (t) => t.split(' > ').slice(1).join(' > ');
 const inloggad = async (roll) => { const k = klient(app); await k.logga(roll); return k; };
 const invanare = async (id) => { const k = klient(app); const r = await k.post('/api/login/invanare', { invanareId: id }); if (r.status !== 200) throw new Error(JSON.stringify(r.data)); return k; };
 const db = (k) => sandlada(app, k).db;
@@ -34,14 +36,15 @@ async function bokaSom(k, pid) {
 }
 
 describe('Ombud', () => {
-  test(T10.ombudBoka, async () => {
+  test(namn(T10.ombudBoka), async () => {
     // Thomas Lindberg (p02) ger Johanna Bergström fullmakt i Min journal.
     const p = await invanare('inv-p02');
     const lista = (await p.get('/api/min/journal/p02/ombud')).data;
     expect(lista.kanGe).toBe(true);
     const r = await p.post('/api/min/journal/p02/ombud', { personnummer: '19861214-2383' });
     expect(r.status).toBe(201);
-    expect(r.data.fullmakt).toMatchObject({ aktiv: true, ombud: { namn: 'Johanna Bergström' } });
+    expect(r.data.fullmakt).toMatchObject({ aktiv: true, ombud: { personnummer: '19861214-****' } });
+    expect((await p.get('/api/min/journal/p02/ombud')).data.fullmakter[0].ombud).toEqual({ namn: 'Johanna Bergström', personnummer: '19861214-2383' });
     expect(r.data.fullmakt.omfattning.map(x => x.id)).toEqual(['tider', 'meddelanden']);
     expect(r.data.fullmakt.giltigTill).toBe(addDagar(idag(), 365));
     // Det seedade ombudet Karin Åkesson bokar, bokar om och avbokar för Gunnar Åkesson (p01).
@@ -66,7 +69,7 @@ describe('Ombud', () => {
     expect(new Set(rader.map(x => x.grund))).toEqual(new Set(['ombud']));
   });
 
-  test(T10.ombudJournal, async () => {
+  test(namn(T10.ombudJournal), async () => {
     const o = await invanare('inv-om01');
     for (const del of ['oversikt', 'anteckningar', 'lakemedel', 'logglista', 'sparrar', 'vardplaner', 'avgifter', 'hogkostnadsskydd']) {
       const r = await o.get(`/api/min/journal/p01/${del}`);
@@ -100,7 +103,7 @@ describe('Ombud', () => {
     expect((await o.get('/api/min/journal/p01/tider')).status).toBe(404);
   });
 
-  test(T10.ombudVard, async () => {
+  test(namn(T10.ombudVard), async () => {
     const k = await inloggad('adm-kard');
     expect((await k.get('/api/patient/p01/fullmakter')).data.fullmakter[0]).toMatchObject({ aktiv: true, ombud: { namn: 'Karin Åkesson' }, kalla: 'min_journal' });
     // Utan skriftlig fullmakt registreras inget.
@@ -136,7 +139,7 @@ describe('Ombud', () => {
     expect(tak.data.fel).toContain('högst 3 ombud');
   });
 
-  test(T10.ombudInnehall, async () => {
+  test(namn(T10.ombudInnehall), async () => {
     const o = await invanare('inv-om01');
     const d = db(o);
     const ord = d.query("SELECT o.id, k.namn FROM ordinationer o JOIN katalog k ON k.id = o.lakemedel_id WHERE o.patient_id = 'p01'").all();
@@ -184,7 +187,7 @@ describe('Ombud', () => {
     expect((await o.post('/api/min/journal/p01/meddelanden', { typ: 'vardplan', text: 'Bra plan.', planId: planer[0].id })).status).toBe(201);
   });
 
-  test(T10.ombudTradar, async () => {
+  test(namn(T10.ombudTradar), async () => {
     const o = await invanare('inv-om01');
     const d = db(o);
     const s = sandlada(app, o);
@@ -226,7 +229,59 @@ describe('Ombud', () => {
     expect((await o.post(`/api/min/journal/p01/meddelanden/${recept.id}/svar`, { text: 'Tack.' })).status).toBe(200);
   });
 
-  test(T10.ombudLogg, async () => {
+  test(namn(T10.ombudUppslag), async () => {
+    // Thomas Lindberg (p02) ger fullmakt. Svaret visar aldrig namnet på den han anger, bara personnumret maskerat.
+    const p = await invanare('inv-p02');
+    const ok = await p.post('/api/min/journal/p02/ombud', { personnummer: '19861214-2383' });
+    expect(ok.status).toBe(201);
+    const oktext = JSON.stringify(ok.data);
+    for (const x of ['Johanna', 'Bergström', '2383']) expect(oktext).not.toContain(x);
+    expect(oktext).toContain('19861214-****');
+    expect(ok.data.fullmakt.giltigTill).toBeTruthy();
+    // I listan över fullmakter ser patienten ombudets namn.
+    expect((await p.get('/api/min/journal/p02/ombud')).data.fullmakter[0].ombud.namn).toBe('Johanna Bergström');
+    // Samma svar för en person som inte finns, en som är under 18 och en med skyddade personuppgifter.
+    const svar = [];
+    for (const pnr of ['19121212-1212', '20171211-2398', '19840416-2383']) {
+      const r = await p.post('/api/min/journal/p02/ombud', { personnummer: pnr });
+      svar.push({ status: r.status, data: r.data });
+    }
+    expect(svar[0].status).toBe(400);
+    expect(svar[1]).toEqual(svar[0]);
+    expect(svar[2]).toEqual(svar[0]);
+    expect(svar[0].data.fel).toContain('vårdenhet');
+    for (const x of ['Malin', 'Engberg', 'Leo', '18 år']) expect(JSON.stringify(svar)).not.toContain(x);
+    // En patient med skyddade personuppgifter kan inte ge fullmakt själv, med samma svar.
+    const sk = await invanare('inv-p03');
+    const r3 = await sk.post('/api/min/journal/p03/ombud', { personnummer: '19861214-2383' });
+    expect({ status: r3.status, data: r3.data }).toEqual(svar[0]);
+    // Misslyckade försök loggas på patienten.
+    expect(logg(p, "patient_id = 'p02' AND invanare_id = 'inv-p02' AND resurs = 'min:ombud:nekad' AND resultat = 'nekad'")).toHaveLength(3);
+    // Personalen registrerar en fullmakt för och till en person med skyddade personuppgifter, och då visas aldrig namnet.
+    const k = await inloggad('adm-kard');
+    const s = sandlada(app, k);
+    s.db = sandlada(app, sk).db;
+    const fs = await k.post('/api/patient/p03/fullmakter', { personnummer: '19861214-2383', skriftlig: true });
+    expect(fs.status).toBe(201);
+    const till = await k.post('/api/patient/p10/fullmakter', { personnummer: '19840416-2383', skriftlig: true });
+    expect(till.status).toBe(201);
+    expect(till.data.fullmakt.ombud).toEqual({ namn: 'Skyddad identitet', personnummer: '19840416-****' });
+    const lista = JSON.stringify((await k.get('/api/patient/p10/fullmakter')).data);
+    expect(lista).not.toContain('Engberg');
+    // Ombudet med skyddade personuppgifter ser patienten, och patienten med skyddade personuppgifter visas aldrig med namn.
+    somInv(s, 'inv-vh01');
+    const sess = JSON.stringify((await k.get('/api/session')).data.ombudFor);
+    expect(sess).not.toContain('Engberg');
+    expect(sess).toContain('Skyddad identitet');
+    // Taket: efter tio misslyckade försök stoppas fler försök, också med ett nummer som annars hade gått.
+    for (let i = 0; i < 7; i++) expect((await p.post('/api/min/journal/p02/ombud', { personnummer: '19121212-1212' })).status).toBe(400);
+    const tak = await p.post('/api/min/journal/p02/ombud', { personnummer: '19770123-2386' });
+    expect(tak.status).toBe(429);
+    expect(tak.data.fel).toContain('många försök');
+    expect((await p.get('/api/min/journal/p02/ombud')).data.fullmakter).toHaveLength(1);
+  });
+
+  test(namn(T10.ombudLogg), async () => {
     const o = await invanare('inv-om01');
     const bokad = await bokaSom(o, 'p01');
     expect(bokad.status).toBe(201);
@@ -243,7 +298,7 @@ describe('Ombud', () => {
 });
 
 describe('Meddelanden från invånare', () => {
-  test(T10.skriva, async () => {
+  test(namn(T10.skriva), async () => {
     const p = await invanare('inv-p01');
     const l = (await p.get('/api/min/journal/p01/meddelanden')).data;
     expect(l.mottagare.map(m => m.id)).toContain('uso-kard');
@@ -268,7 +323,7 @@ describe('Meddelanden från invånare', () => {
     expect(logg(p, "patient_id = 'p01' AND handling = 'invanare_meddelande'").length).toBeGreaterThanOrEqual(3);
   });
 
-  test(T10.vard, async () => {
+  test(namn(T10.vard), async () => {
     const k = await inloggad('ssk-kard');
     const l = (await k.get('/api/meddelanden')).data;
     const fraga = l.tradar.find(t => t.typ === 'fraga');
@@ -298,7 +353,7 @@ describe('Meddelanden från invånare', () => {
     expect((await k.post(`/api/min/journal/p01/meddelanden/${fraga.id}/svar`, { text: 'Tack' })).status).toBe(400);
   });
 
-  test(T10.recept, async () => {
+  test(namn(T10.recept), async () => {
     const k = await inloggad('lak-kard');
     const recept = (await k.get('/api/meddelanden')).data.tradar.find(t => t.typ === 'recept');
     expect(recept.tillDig).toBe(true);
@@ -327,7 +382,7 @@ describe('Meddelanden från invånare', () => {
     expect(u.data.avgift).toMatchObject({ belopp: 300 });
   });
 
-  test(T10.sakerhet, async () => {
+  test(namn(T10.sakerhet), async () => {
     const k = await inloggad('ssk-kard');
     const l = (await k.get('/api/meddelanden')).data;
     const text = JSON.stringify(l);
@@ -363,7 +418,7 @@ describe('Meddelanden från invånare', () => {
     expect(() => db(k).query('DELETE FROM meddelandetradar').run()).toThrow();
   });
 
-  test(T10.andra, async () => {
+  test(namn(T10.andra), async () => {
     const o = await invanare('inv-om01');
     const r = await o.post('/api/min/journal/p01/meddelanden', { typ: 'tid', text: 'Pappa behöver en tid efter klockan tio.', enhetId: 'uso-kard' });
     expect(r.status).toBe(201);
@@ -384,7 +439,7 @@ describe('Meddelanden från invånare', () => {
     expect(logg(v, "invanare_id = 'inv-om01' AND resurs = ?", `min:meddelanden:${r.data.trad.id}`)[0]).toMatchObject({ patient_id: 'p01', grund: 'ombud' });
   });
 
-  test(T10.begaran, async () => {
+  test(namn(T10.begaran), async () => {
     const p = await invanare('inv-p01');
     const sv = (await p.get('/api/min/journal/p01/sparrar')).data;
     const enhet = sv.vardenheter.find(e => !e.sparrad && e.id === 'uso-kard');
@@ -430,7 +485,7 @@ describe('Meddelanden från invånare', () => {
 });
 
 describe('Vårdplanen i Min journal', () => {
-  test(T10.planSe, async () => {
+  test(namn(T10.planSe), async () => {
     const p = await invanare('inv-p04');
     const v = (await p.get('/api/min/journal/p04/vardplaner')).data;
     expect(v.planer.length).toBeGreaterThan(0);
@@ -461,7 +516,7 @@ describe('Vårdplanen i Min journal', () => {
     expect(l).toMatchObject({ typ: 'vardplan', tillDig: true });
   });
 
-  test(T10.planOmbud, async () => {
+  test(namn(T10.planOmbud), async () => {
     const o = await invanare('inv-om01');
     expect((await o.get('/api/min/journal/p01/vardplaner')).status).toBe(403);
     // Vårdnadshavaren ser barnets vårdplan.
@@ -471,7 +526,7 @@ describe('Vårdplanen i Min journal', () => {
 });
 
 describe('Kassan', () => {
-  test(T10.avgift, async () => {
+  test(namn(T10.avgift), async () => {
     const d = nyDb();
     const p = (id) => d.query('SELECT * FROM patienter WHERE id = ?').get(id);
     expect(kassa.avgiftFor(d, p('p01'), 'receptfornyelse')).toMatchObject({ belopp: 100, grund: 'avgift' });
@@ -502,7 +557,7 @@ describe('Kassan', () => {
     expect(() => db(k).query('UPDATE tjanstavgifter SET belopp = 0').run()).toThrow();
   });
 
-  test(T10.betala, async () => {
+  test(namn(T10.betala), async () => {
     const k = await inloggad('adm-kard');
     const r = (await k.post('/api/kassa/avgift', { personnummer: '19450202-4732', tjanst: 'receptfornyelse' })).data.avgift;
     expect((await k.post(`/api/kassa/avgift/${r.id}/betala`, { satt: 'kontant' })).status).toBe(400);
@@ -537,7 +592,7 @@ describe('Kassan', () => {
     if (fri) expect((await k.post('/api/kassa/aterbetalning', { kalla: 'bokning', id: fri.id, orsak: 'fel_avgift' })).status).toBe(400);
   });
 
-  test(T10.avslut, async () => {
+  test(namn(T10.avslut), async () => {
     const k = await inloggad('adm-kard');
     const r = (await k.post('/api/kassa/avgift', { personnummer: '19450202-4732', tjanst: 'intyg', intygstyp: 'skola' })).data.avgift;
     await k.post(`/api/kassa/avgift/${r.id}/betala`, { satt: 'kort' });
@@ -571,7 +626,7 @@ describe('Kassan', () => {
     expect(() => db(k).query('DELETE FROM kassaavslut').run()).toThrow();
   });
 
-  test(T10.kassaSakerhet, async () => {
+  test(namn(T10.kassaSakerhet), async () => {
     const k = await inloggad('adm-kard');
     const r = (await k.post('/api/kassa/avgift', { personnummer: '19450202-4732', tjanst: 'receptfornyelse' })).data.avgift;
     await k.post(`/api/kassa/avgift/${r.id}/betala`, { satt: 'kort' });
@@ -600,7 +655,7 @@ describe('Kassan', () => {
     }
   });
 
-  test(T10.minBetala, async () => {
+  test(namn(T10.minBetala), async () => {
     const k = await inloggad('adm-kard');
     const r = (await k.post('/api/kassa/avgift', { personnummer: '19450202-4732', tjanst: 'intyg', intygstyp: 'resa' })).data.avgift;
     const s = sandlada(app, k);
@@ -625,7 +680,7 @@ describe('Kassan', () => {
 });
 
 describe('Kapacitet och prognos', () => {
-  test(T10.prognos, async () => {
+  test(namn(T10.prognos), async () => {
     const d = nyDb();
     const adm = d.query("SELECT * FROM personal WHERE id = 'adm-kard'").get();
     const k = kapacitet.prognos(d, adm, { dag: idag(), veckor: 16 });
@@ -655,7 +710,7 @@ describe('Kapacitet och prognos', () => {
     expect((await kl.get('/api/kapacitet?veckor=26')).data.veckor).toHaveLength(26);
   });
 
-  test(T10.risk, async () => {
+  test(namn(T10.risk), async () => {
     const d = nyDb();
     const adm = d.query("SELECT * FROM personal WHERE id = 'adm-kard'").get();
     // Sextio patienter med hög prioritet och gräns om tre dagar: tiderna räcker inte till dess.
@@ -674,7 +729,7 @@ describe('Kapacitet och prognos', () => {
     expect(k.grupper.some(x => x.forslag.some(f => f.typ === 'ledig'))).toBe(true);
   });
 
-  test(T10.kapSakerhet, async () => {
+  test(namn(T10.kapSakerhet), async () => {
     const k = await inloggad('adm-kard');
     const text = JSON.stringify((await k.get('/api/kapacitet')).data);
     const d = db(k);
@@ -692,7 +747,7 @@ describe('Kapacitet och prognos', () => {
 });
 
 describe('Kontorsstöd', () => {
-  test(T10.docx, async () => {
+  test(namn(T10.docx), async () => {
     const k = await inloggad('lak-kard');
     const a = db(k).query("SELECT id FROM anteckningar WHERE patient_id = 'p01' AND status = 'signerad' AND enhet_id IN ('uso-kard', 'uso-kard-72', 'uso-kard-mott') ORDER BY id LIMIT 1").get();
     const r = await fetch(`${app.url}/api/anteckning/${a.id}/docx`, { headers: { Cookie: k.kaka() } });
@@ -718,7 +773,7 @@ describe('Kontorsstöd', () => {
     expect(sd).toContain('<w:br/>');
   });
 
-  test(T10.rapporter, async () => {
+  test(namn(T10.rapporter), async () => {
     const k = await inloggad('adm-kard');
     for (const vag of ['/api/kassa/rapport.docx', '/api/kapacitet/rapport.docx']) {
       const r = await fetch(`${app.url}${vag}`, { headers: { Cookie: k.kaka() } });
@@ -733,7 +788,7 @@ describe('Kontorsstöd', () => {
     expect((await fetch(`${app.url}/api/kassa/rapport.docx`, { headers: { Cookie: k.kaka() } })).status).toBe(403);
   });
 
-  test(T10.kalender, async () => {
+  test(namn(T10.kalender), async () => {
     const k = await inloggad('lak-kard');
     expect((await k.get('/api/kalender')).data.finns).toBe(false);
     const r = await k.post('/api/kalender/lank');
@@ -780,7 +835,7 @@ describe('Kontorsstöd', () => {
     expect(lager.hitta(t2, [sess]).tak).toBe(true);
   });
 
-  test(T10.bokning, async () => {
+  test(namn(T10.bokning), async () => {
     const k = await inloggad('adm-kard');
     const d = db(k);
     const video = d.query("SELECT b.* FROM bokningar b JOIN tider t ON t.id = b.tid_id JOIN scheman s ON s.id = t.schema_id WHERE t.tidstyp = 'video' AND b.status = 'bokad' AND s.enhet_id IN ('uso-kard', 'uso-kard-mott') LIMIT 1").get();
@@ -824,7 +879,7 @@ describe('Kontorsstöd', () => {
     expect(kontorsstod.forBokning(d, { id: tb, patient_id: 'p03' }, tt, { skyddad: 1, telefon: '070-1' }).telefon.uri).toBeUndefined();
   });
 
-  test(T10.arkitektur, async () => {
+  test(namn(T10.arkitektur), async () => {
     const k = await inloggad('lak-kard');
     const a = (await k.get('/api/kontorsstod')).data;
     expect(a.omraden.map(o => o.id)).toEqual(['ordbehandling', 'rapporter', 'kalender', 'epost', 'telefoni', 'video', 'sharepoint']);

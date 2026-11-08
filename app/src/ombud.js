@@ -7,7 +7,7 @@
 // Systemet är experten: fullmakten gäller det som ett ombud brukar behöva (tider och meddelanden) i tolv månader
 // (demoregel), patienten skriver bara ombudets personnummer, och systemet säger på vanlig svenska varför något inte går.
 import { Fel, iso, idag, addDagar, datumAv } from './db.js';
-import { alder, kanRoll, formateraPnr, vardenhetFor } from './atkomst.js';
+import { alder, kanRoll, formateraPnr, vardenhetFor, maskeraPnr, SKYDDAD_NAMN } from './atkomst.js';
 
 export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS fullmakter (
@@ -56,6 +56,15 @@ export function fullmaktFor(db, invanare, patientId, resurs, dag = idag()) {
   return { fullmakt: f, tillaten: Boolean(k) && (k.del === null || omfattningAv(f).includes(k.del)) };
 }
 
+// Runda 10, r7 (säkerhetsgranskningen): en person med skyddade personuppgifter, eller som är kopplad till en sådan
+// patient, visas aldrig med namn eller fullt personnummer, varken som ombud eller som patient.
+function skyddadInvanare(db, inv) {
+  if (!inv) return false;
+  if (inv.patient_id && patientRad(db, inv.patient_id)?.skyddad) return true;
+  return Boolean(db.query('SELECT 1 FROM vardnadshavare v JOIN patienter p ON p.id = v.barn_id WHERE v.invanare_id = ? AND p.skyddad = 1').get(inv.id));
+}
+const personUt = (db, inv) => (skyddadInvanare(db, inv) ? { namn: SKYDDAD_NAMN, personnummer: maskeraPnr(inv.personnummer) } : { namn: namnAv(inv), personnummer: formateraPnr(inv.personnummer) });
+
 const fullmaktUt = (db, f, { forPatient = false } = {}) => {
   const o = invanareRad(db, f.ombud_id);
   const p = patientRad(db, f.patient_id);
@@ -63,7 +72,7 @@ const fullmaktUt = (db, f, { forPatient = false } = {}) => {
     id: f.id, omfattning: omfattningAv(f).map(x => ({ id: x, text: OMFATTNING[x] })), giltigTill: f.giltig_till, registrerad: f.registrerad,
     kalla: f.kalla, kallaText: f.kalla === 'vard' ? 'Registrerad av vården efter en skriftlig fullmakt' : 'Given i Min journal',
     aktiv: aktiv(f), aterkallad: f.aterkallad,
-    ...(forPatient ? { ombud: o ? { namn: namnAv(o), personnummer: formateraPnr(o.personnummer) } : null } : { patient: p ? { id: p.id, namn: namnAv(p) } : null }),
+    ...(forPatient ? { ombud: o ? personUt(db, o) : null } : { patient: p ? { id: p.id, namn: p.skyddad ? SKYDDAD_NAMN : namnAv(p) } : null }),
   };
 };
 
@@ -72,7 +81,7 @@ export function ombudFor(db, inv, dag = idag()) {
   if (!finns(db) || !inv) return [];
   return db.query('SELECT * FROM fullmakter WHERE ombud_id = ? AND aterkallad IS NULL ORDER BY id').all(inv.id).filter(f => aktiv(f, dag)).map(f => {
     const p = patientRad(db, f.patient_id);
-    return p ? { patientId: p.id, namn: namnAv(p), alder: alder(p.fodd, dag), relation: 'ombud', omfattning: omfattningAv(f), giltigTill: f.giltig_till } : null;
+    return p ? { patientId: p.id, namn: p.skyddad ? SKYDDAD_NAMN : namnAv(p), alder: alder(p.fodd, dag), relation: 'ombud', omfattning: omfattningAv(f), giltigTill: f.giltig_till } : null;
   }).filter(Boolean);
 }
 
@@ -90,10 +99,19 @@ export function minLista(atk) {
 }
 
 const siffror = (s) => String(s ?? '').replace(/\D/g, '');
-function kontrolleraOmbud(db, patient, personnummer) {
+// Samma svar för invånaren i alla fall där fullmakten inte kan registreras i Min journal, så att funktionen inte blir ett
+// uppslag från personnummer till person: personen finns inte, är för ung, har eller är kopplad till skyddade
+// personuppgifter, eller patienten själv har skyddade personuppgifter. Personalen får det exakta skälet.
+export const KAN_INTE = 'Fullmakten kan inte registreras här. Kontrollera personnumret. Går det ändå inte kan din vårdenhet hjälpa dig att registrera fullmakten.';
+export const MAX_FORSOK = 10;
+export const MAX_FORSOK_SESSION = 30;
+class KanInte extends Fel { constructor() { super(400, KAN_INTE, 'ogiltig', { falt: ['personnummer'] }); } }
+
+function kontrolleraOmbud(db, patient, personnummer, { invanare = false } = {}) {
   const pnr = siffror(personnummer);
   if (pnr.length !== 12) throw new Fel(400, 'Skriv ombudets personnummer med tolv siffror, till exempel 19770123-2386.', 'ogiltig', { falt: ['personnummer'] });
   const o = db.query('SELECT * FROM invanare WHERE personnummer = ?').get(pnr);
+  if (invanare && (!o || patient.skyddad || skyddadInvanare(db, o) || alder(o.fodd, idag()) < DEMOREGLER.ombudFranAlder)) throw new KanInte();
   if (!o) throw new Fel(400, 'Vi hittar ingen person med det personnumret bland demons påhittade personer. I demon kan bara de vara ombud.', 'ogiltig', { falt: ['personnummer'] });
   if (o.patient_id === patient.id) throw new Fel(400, 'Du kan inte ge fullmakt till dig själv.', 'ogiltig', { falt: ['personnummer'] });
   if (alder(o.fodd, idag()) < DEMOREGLER.ombudFranAlder) throw new Fel(400, `Ett ombud ska vara minst ${DEMOREGLER.ombudFranAlder} år.`, 'ogiltig', { falt: ['personnummer'] });
@@ -119,10 +137,22 @@ export function minGe(atk, body = {}) {
   const db = atk.db;
   if (atk.relation !== 'egen') throw new Fel(403, 'Bara patienten själv kan ge en fullmakt.', 'nekad');
   if (alder(atk.patient.fodd, idag()) < DEMOREGLER.geFranAlder) throw new Fel(403, `Du kan ge en fullmakt från ${DEMOREGLER.geFranAlder} års ålder.`, 'nekad');
-  const ombud = kontrolleraOmbud(db, atk.patient, body.personnummer);
+  // Tak för misslyckade försök per invånare och per sandlåda. Försöken räknas ur loggen, så de gäller också efter en
+  // ny inloggning.
+  const misslyckade = (villkor, ...arg) => db.query(`SELECT count(*) AS n FROM atkomstlogg WHERE resurs = 'min:ombud:nekad' AND resultat = 'nekad' ${villkor}`).get(...arg).n;
+  if (misslyckade('AND invanare_id = ?', atk.invanare.id) >= MAX_FORSOK || misslyckade('') >= MAX_FORSOK_SESSION) {
+    throw new Fel(429, 'Du har gjort många försök att registrera en fullmakt. Fler försök stoppas. Din vårdenhet kan hjälpa dig.', 'for_manga');
+  }
+  let ombud;
+  try { ombud = kontrolleraOmbud(db, atk.patient, body.personnummer, { invanare: true }); } catch (e) {
+    if (e instanceof KanInte) atk.logga('min:ombud:nekad', { handling: 'invanare_fullmakt', resultat: 'nekad' });
+    throw e;
+  }
   const f = infoga(db, { patient: atk.patient, ombud, omfattning: omfattningIn(body.omfattning), kalla: 'min_journal', avInvanare: atk.invanare.id });
   atk.logga(`min:ombud:${f.id}`, { handling: 'invanare_fullmakt' });
-  return [201, { fullmakt: fullmaktUt(db, f, { forPatient: true }), text: `${namnAv(ombud)} är ditt ombud till och med ${f.giltig_till}. Ombudet kan logga in med sin e-legitimation och se dina tider och meddelanden, men inte läsa din journal.` }];
+  // Svaret visar inte namnet på den som patienten angav, bara personnumret maskerat. Namnet står i listan över fullmakter.
+  const maskerat = maskeraPnr(ombud.personnummer);
+  return [201, { fullmakt: { ...fullmaktUt(db, f, { forPatient: true }), ombud: { personnummer: maskerat } }, text: `Fullmakten till ${maskerat} gäller till och med ${f.giltig_till}. Ombudet kan logga in med sin e-legitimation och se dina tider och meddelanden, men inte läsa din journal.` }];
 }
 
 // POST /api/min/journal/:id/ombud/:fid/aterkalla: patienten återkallar, eller ombudet avsäger sig fullmakten.
