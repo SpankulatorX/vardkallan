@@ -4,6 +4,8 @@ import { esc, api, tidpunkt, datum, ikon, vyRubrik, tom, GRUND, HANDLING, YRKE, 
 export const namn = 'logg';
 
 const FLAGGOR = [['alla', 'Alla'], ['vard', 'Vårdens åtkomster'], ['nodatkomst', 'Nödåtkomst'], ['nekad', 'Nekade försök'], ['samtycke', 'Samtycke till spärrade uppgifter'], ['arkiv', 'Arkiv och gallring']];
+// Runda 9, r5: åtkomster till uppgifter med mycket högt skyddsbehov (Sussa 5.3.1.2).
+FLAGGOR.push(['skyddsbehov', 'Mycket högt skyddsbehov']);
 
 export function kedjaRuta(hel, v) {
   return hel
@@ -46,7 +48,7 @@ export function loggTabell(rader, { visaPatient = true } = {}) {
       <td>${r.invanare ? '<span class="dampad">Min journal</span>' : esc(r.enhet?.namn ?? '')}</td>
       ${visaPatient ? `<td>${patientCell(r)}</td>` : ''}
       <td>${esc(HANDLING[r.handling] ?? r.handling)}${resursText(r)}</td>
-      <td><span class="grund grund-${esc(r.grund)}">${esc(GRUND[r.grund] ?? r.grund)}</span></td>
+      <td><span class="grund grund-${esc(r.grund)}">${esc(GRUND[r.grund] ?? r.grund)}</span>${r.skyddsniva === 3 ? '<span class="under-text">Mycket högt skyddsbehov</span>' : ''}</td>
       <td>${esc(r.syfte ?? '')}</td>
       <td>${r.resultat === 'nekad' ? `<span class="resultat-nekad">${ikon.las}Nekad</span>` : 'Tillåten'}${r.flaggad ? '<span class="sr">, flaggad för uppföljning</span>' : ''}</td>
     </tr>`).join('')}</tbody></table></div>`;
@@ -137,7 +139,7 @@ async function visaStickprov(main) {
     const a = s ?? d.aktuellt;
     const patient = (r) => (r.patient ? `${r.patient.skyddad ? 'Skyddad identitet' : esc(r.patient.namn)} <span class="pnr">${esc(r.patient.personnummer)}</span>` : '');
     el.innerHTML = `<div class="stickprov-huvud">
-        <p>${d.dags ? '<strong>Det är dags för ett nytt stickprov.</strong> ' : `Nästa stickprov föreslås ${esc(datum(d.nastaForeslas))}. `}Systemet drar ${esc(d.antal)} åtkomster slumpvis bland vårdens åtkomster de senaste ${esc(d.dagar)} dagarna, som inte har kontrollerats förut.</p>
+        <p>${d.dags ? '<strong>Det är dags för ett nytt stickprov.</strong> ' : `Nästa stickprov föreslås ${esc(datum(d.nastaForeslas))}. `}Systemet drar ${esc(d.antal)} åtkomster slumpvis bland vårdens åtkomster de senaste ${esc(d.dagar)} dagarna, som inte har kontrollerats förut. Åtkomster till uppgifter med mycket högt skyddsbehov kommer alltid med när de finns.</p>
         <button type="button" class="knapp${d.dags ? '' : ' sekundar'}" data-dra>${ikon.plus}<span>Dra ett nytt stickprov</span></button>
       </div>
       ${d.kvarTotalt ? `<p class="ruta ruta-info liten" data-kvar>${d.kvarTotalt === 1 ? 'En åtkomst återstår' : `${esc(d.kvarTotalt)} åtkomster återstår`} att granska.</p>` : d.stickprov.length ? '<p class="ruta ruta-info liten" data-kvar>Alla åtkomster i stickproven är granskade.</p>' : ''}
@@ -146,7 +148,7 @@ async function visaStickprov(main) {
         <ol class="stickprov-lista">${a.rader.map(r => `<li class="stickprov-rad${r.granskad ? ' granskad' : ''}${r.granskad?.bedomning === 'utreds' ? ' utreds' : ''}">
           <div class="sp-text"><span class="ik-rubrik">${esc(tidpunkt(r.tid))}, ${esc(r.personal?.namn ?? '')} (${esc(YRKE[r.personal?.yrke] ?? '')}), ${esc(r.enhet?.namn ?? '')}</span>
             <span class="under-text">${esc(HANDLING[r.handling] ?? r.handling)}. Grund: ${esc(GRUND[r.grund] ?? r.grund)}${r.syfte ? `. Syfte: ${esc(r.syfte.replace(/\.$/, ''))}` : ''}. Patient: ${patient(r)}</span>
-            <span class="under-text sp-kontrollera">${esc(r.kontrollera)}</span>
+            <span class="under-text sp-kontrollera">${esc(r.kontrollera)}</span>${r.skyddsorsak ? `<span class="under-text">Mycket högt skyddsbehov: ${esc(r.skyddsorsak)}</span>` : ''}
             ${r.granskad ? `<span class="under-text">${r.granskad.bedomning === 'utreds' ? `Ska utredas: ${esc(r.granskad.kommentar ?? '')}` : 'Befogad'}. Granskad ${esc(tidpunkt(r.granskad.tid))} av ${esc(r.granskad.av?.namn ?? '')}.</span>` : ''}</div>
           ${r.granskad ? '' : `<div class="ik-knappar"><button type="button" class="knapp liten" data-befogad="${esc(r.loggId)}">Befogad</button><button type="button" class="knapp liten sekundar" data-utreds="${esc(r.loggId)}">Utred</button></div>`}
         </li>`).join('')}</ol></section>` : tom('Inget stickprov är draget än.')}

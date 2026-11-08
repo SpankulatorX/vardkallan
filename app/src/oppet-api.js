@@ -114,8 +114,9 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
     const ogiltig = (text) => fhirSvar(fhir.utfall(401, 'ej_inloggad', text), 401, { 'WWW-Authenticate': BEARER_FEL.ogiltig });
     if (!b) return ogiltig('Åtkomstbiljetten är ogiltig, har gått ut eller har återkallats.');
     const s = b.s;
-    const personal = s.db.query('SELECT * FROM personal WHERE id = ?').get(b.personalId);
-    if (!personal) return ogiltig('Personen finns inte längre.');
+    // Runda 9, r5: personen och medarbetaruppdraget prövas mot masterdata som i sessionen (inloggade i server.js).
+    const personal = inloggade(s).personal;
+    if (!personal || personal.id !== b.personalId) return ogiltig('Personen är inte längre inloggad med ett gällande medarbetaruppdrag.');
     const delar = url.pathname.replace(/\/+$/, '').split('/').slice(2).map(decodeURIComponent);
     const [typ, id] = delar;
     // Med en biljett godtas bara /fhir/<typ> och /fhir/<typ>/<id>, så att omfånget alltid prövas mot den typ som

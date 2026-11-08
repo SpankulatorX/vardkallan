@@ -22,6 +22,8 @@ import { loggaRad } from './logg.js';
 import * as fhir from './fhir.js';
 import * as identitet from './identitet.js';
 import { zip } from './zip.js';
+// Runda 9, r5: mappningen mot e-arkivets dataelement och leveransen med kvittens (Sussa 5.4.2.3).
+import * as earkiv from './earkiv.js';
 // Runda 7, r4: parametrar som systemförvaltningen kan ändra.
 import * as konfiguration from './konfiguration.js';
 
@@ -151,7 +153,9 @@ export function beslutUt(db, b) {
     patient: b.patient_id ? patientKort(patientRad(db, b.patient_id)) : null,
     registrerad: b.registrerad, registreradAv: personNamn(db, b.registrerad_av),
     verkstallt: b.verkstallt, verkstalltAv: personNamn(db, b.verkstallt_av), resultat: b.resultat ? JSON.parse(b.resultat) : null,
-    exporter: db.query('SELECT * FROM arkivexporter WHERE beslut_id = ? ORDER BY tid').all(b.id).map(e => ({ id: e.id, tid: e.tid, av: personNamn(db, e.av), patienter: e.patienter, filer: e.filer, storlek: e.storlek, sha256: e.sha256 })),
+    exporter: db.query('SELECT * FROM arkivexporter WHERE beslut_id = ? ORDER BY tid').all(b.id).map(e => ({ id: e.id, tid: e.tid, av: personNamn(db, e.av), patienter: e.patienter, filer: e.filer, storlek: e.storlek, sha256: e.sha256,
+      // Runda 9, r5: leveransen till e-arkivet och kvittensen.
+      leverans: earkiv.leveransFor(db, e.id) })),
   };
 }
 export const listaBeslut = (db) => db.query('SELECT * FROM arkivbeslut ORDER BY id DESC').all().map(b => beslutUt(db, b));
@@ -241,6 +245,7 @@ Paketet följer FGS Paketstruktur 2.0 (E-ARK CSIP 2.1.0 och E-ARK SIP 2.1.0 i Ri
 - representations/rep_1/data/journal/<patient>-sparr-och-skydd.json: spärrar och skyddade personuppgifter, som gäller för den som tar emot paketet.
 - representations/rep_1/data/ovrigt/<patient>-atkomstlogg.ndjson: åtkomstloggen för patienten, en rad per åtkomst med hashkedjans värden. Loggen är inte en journalhandling och ligger därför för sig.
 - metadata/preservation/premis.xml: händelsen när paketet skapades.
+- metadata/descriptive/earkiv-index.xml: en post per journalhandling med e-arkivets dataelement, se mappningen nedan.
 
 ## Dataelement
 
@@ -260,9 +265,10 @@ Paketet följer FGS Paketstruktur 2.0 (E-ARK CSIP 2.1.0 och E-ARK SIP 2.1.0 i Ri
 | Vårdenhet | Organization |
 | Personal | Practitioner |
 
+${earkiv.mappningDok()}
 ## Det som saknas i demon
 
-XML-scheman för METS och PREMIS ligger inte i mappen schemas, eftersom demon inte har dem. I en riktig leverans ska de ligga där, och paketet ska kontrolleras mot leveransöverenskommelsen med e-arkivet.
+Mottagaren är ett simulerat e-arkiv, och dess dataelement är en förenklad uppsättning i demon och inte en verklig leveransöverenskommelse. E-arkivet kontrollerar paketet mot METS.xml, kontrollsummorna, mapparna och de obligatoriska dataelementen, men XML-scheman för METS och PREMIS ligger inte i mappen schemas, och paketet valideras inte mot schemana.
 `;
 }
 
@@ -294,6 +300,8 @@ ${lista.map(f => `      <file ID="${xml(f.id)}" MIMETYPE="${xml(f.mime)}" SIZE="
       </file>`).join('\n')}
     </fileGrp>`;
   const doc = filer.filter(f => f.grupp === 'Documentation');
+  // Runda 9, r5: indexet med e-arkivets dataelement är beskrivande metadata.
+  const desc = filer.filter(f => f.grupp === 'Descriptive');
   const rep = filer.filter(f => f.grupp === 'Representations');
   const pres = filer.filter(f => f.grupp === 'Preservation');
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -306,6 +314,7 @@ ${lista.map(f => `      <file ID="${xml(f.id)}" MIMETYPE="${xml(f.mime)}" SIZE="
     <agent ROLE="CREATOR" TYPE="OTHER" OTHERTYPE="SOFTWARE"><name>Vårdkällan</name><note csip:NOTETYPE="SOFTWARE VERSION">${xml(version ?? 'okänd')}</note></agent>
     <agent ROLE="ARCHIVIST" TYPE="ORGANIZATION"><name>${xml(arkivbildare)} (demo)</name></agent>
   </metsHdr>
+${desc.map(f => `  <dmdSec ID="dmd-${xml(f.id)}" CREATED="${tid}" STATUS="CURRENT"><mdRef LOCTYPE="URL" xlink:type="simple" xlink:href="${xml(f.relativ)}" MDTYPE="OTHER" OTHERMDTYPE="E-arkivindex" MIMETYPE="text/xml" SIZE="${f.data.length}" CREATED="${tid}" CHECKSUM="${f.sha}" CHECKSUMTYPE="SHA-256"/></dmdSec>`).join('\n')}
   <amdSec>
 ${pres.map(f => `    <digiprovMD ID="dp-${xml(f.id)}" STATUS="CURRENT"><mdRef LOCTYPE="URL" xlink:type="simple" xlink:href="${xml(f.relativ)}" MDTYPE="PREMIS" MIMETYPE="text/xml" SIZE="${f.data.length}" CREATED="${tid}" CHECKSUM="${f.sha}" CHECKSUMTYPE="SHA-256"/></digiprovMD>`).join('\n')}
   </amdSec>
@@ -316,7 +325,7 @@ ${grupp('Representations/rep_1', rep)}
   </fileSec>
   <structMap ID="struktur" TYPE="PHYSICAL" LABEL="CSIP">
     <div ID="rot" LABEL="${xml(objid)}">
-      <div ID="metadata" LABEL="Metadata" ADMID="${pres.map(f => `dp-${xml(f.id)}`).join(' ')}"/>
+      <div ID="metadata" LABEL="Metadata" ADMID="${pres.map(f => `dp-${xml(f.id)}`).join(' ')}"${desc.length ? ` DMDID="${desc.map(f => `dmd-${xml(f.id)}`).join(' ')}"` : ''}/>
       <div ID="dokumentation" LABEL="Documentation"><fptr FILEID="fg-Documentation"/></div>
       <div ID="scheman" LABEL="Schemas"><fptr FILEID="fg-Schemas"/></div>
       <div ID="rep1" LABEL="Representations/rep_1"><fptr FILEID="fg-Representations-rep_1"/></div>
@@ -357,6 +366,7 @@ export function exportera(db, personal, b, { version = null } = {}) {
     const logg = identitet.allaPatientIdn(db, pid).flatMap(id => db.query('SELECT * FROM atkomstlogg WHERE patient_id = ? ORDER BY id').all(id));
     lagg(`representations/rep_1/data/ovrigt/${pid}-atkomstlogg.ndjson`, logg.map(r => JSON.stringify(r)).join('\n') + (logg.length ? '\n' : ''), 'application/x-ndjson', 'Representations');
   }
+  lagg('metadata/descriptive/earkiv-index.xml', earkiv.indexXml(patienter.flatMap(pk => earkiv.index(db, pk.id))), 'text/xml', 'Descriptive');
   lagg('documentation/beskrivning.md', beskrivning(db, b, patienter, objid, tid), 'text/markdown', 'Documentation');
   lagg('metadata/preservation/premis.xml', premis(objid, tid, filer.length), 'text/xml', 'Preservation');
   const metsXml = mets(db, objid, tid, filer, version, enhetsnamn(db, 'rol'));

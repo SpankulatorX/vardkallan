@@ -82,6 +82,9 @@ import { registreraRutter as r5Rutter } from './r5-rutter.js';
 import { villkor10 } from './version.js';
 // Runda 8, r2: remiss på uppdrag, fördelning, remisskonferens och extern pappersremiss (remiss-r8.js).
 import * as remissR8 from './remiss-r8.js';
+// Runda 9, r5: inloggning med biljett från en autentiseringstjänst (Sussa 5.2.1.6 och 5.2.1.8).
+import * as idp from './idp.js';
+import { registreraRutter as r9r5Rutter } from './runda9-r5-rutter.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -306,10 +309,24 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (akt) akt.stangd = new Date().toISOString();
     avslutaKopia(s, akt, 'utloggning');
     oppetApi.aterkalla(s, 'Åtkomstbiljetten återkallades när inloggningen gick ut efter en tid utan aktivitet.');
-    s.personalId = null; s.invanareId = null; s.val = {}; s.lasnyckel = null; s.oppnade = new Set();
+    s.personalId = null; s.uppdrag = null; s.invanareId = null; s.val = {}; s.lasnyckel = null; s.oppnade = new Set();
     try {
       sakerhetslogg.logga(s.db, { typ: 'utloggning', personal_id: fore.personal?.id ?? null, invanare_id: fore.invanare?.id ?? null, enhet_id: fore.personal?.enhet_id ?? null,
         beskrivning: `Utloggning efter ${minuter} minuter utan aktivitet.` });
+    } catch (e) { console.error('Säkerhetsloggen:', e.message); }
+  }
+  // Runda 9, r5 (Sussa 5.2.1.8): behörigheten följer masterdata i varje anrop. När personen inte längre är aktiv eller
+  // medarbetaruppdraget i biljetten inte stämmer med masterdata, till exempel efter byte av vårdenhet, avslutas
+  // inloggningen som vid utloggning, och säkerhetsloggen får orsaken. Ingen behöver ta bort någon behörighet för hand.
+  function loggaUtOgiltigtUppdrag(s, p, orsak) {
+    const akt = aktuellKopia(s);
+    if (akt) akt.stangd = new Date().toISOString();
+    avslutaKopia(s, akt, 'utloggning');
+    oppetApi.aterkalla(s, 'Åtkomstbiljetten återkallades när medarbetaruppdraget upphörde.');
+    s.personalId = null; s.uppdrag = null; s.val = {}; s.lasnyckel = null; s.oppnade = new Set();
+    s.utloggadOrsak = orsak;
+    try {
+      sakerhetslogg.logga(s.db, { typ: 'utloggning', personal_id: p?.id ?? null, enhet_id: p?.enhet_id ?? null, beskrivning: `Inloggningen avslutades av systemet: ${orsak}` });
     } catch (e) { console.error('Säkerhetsloggen:', e.message); }
   }
   const inloggningUt = (s) => (s && inloggad(s) ? { garUt: new Date((s.aktiv ?? Date.now()) + inloggningMs(s)).toISOString(), minuter: minuterFor(s), varningMinuter: VARNING_MINUTER } : null);
@@ -347,7 +364,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       for (const x of JSON.parse(readFileSync(sessionFil, 'utf8'))) {
         if (x.v !== SPARVERSION || x.sist < grans || !/^[A-Za-z0-9_-]{32}$/.test(x.sid)) continue;
         const s = {
-          db: lasSandlada(x.db), personalId: x.personalId, invanareId: x.personalId ? null : x.invanareId ?? null, val: x.val ?? {}, sist: x.sist, aktiv: x.aktiv ?? x.sist, matning: new Matning(200),
+          db: lasSandlada(x.db), personalId: x.personalId, uppdrag: x.uppdrag ?? null, invanareId: x.personalId ? null : x.invanareId ?? null, val: x.val ?? {}, sist: x.sist, aktiv: x.aktiv ?? x.sist, matning: new Matning(200),
           lasnyckel: x.lasnyckel ?? null, oppnade: new Set(x.oppnade ?? []),
           kopior: new Map((x.kopior ?? []).map(([id, k]) => [id, { ...k, patienter: new Map(k.patienter), loggIds: new Set(k.loggIds) }])),
         };
@@ -356,6 +373,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
           s.lasnyckel = { id: slumpId(), ...s.lasnyckel };
           s.kopior.set(s.lasnyckel.id, { personalId: s.personalId, nyckel: s.lasnyckel.nyckel, giltigTill: s.lasnyckel.giltigTill, patienter: new Map(x.kopia ?? []), loggIds: new Set(x.kopiaLoggIds ?? []) });
         }
+        // Runda 9, r5: en session från en version före biljetterna får uppdraget ur masterdata.
+        if (s.personalId && !s.uppdrag) s.uppdrag = idp.uppdragUrMasterdata(s.db, s.db.query('SELECT * FROM personal WHERE id = ?').get(s.personalId));
         rensaKopior(s);
         sessioner.set(x.sid, s);
       }
@@ -366,7 +385,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   function spara() {
     if (!sessionFil) return 0;
     const lista = [...sessioner].map(([sid, x]) => ({
-      v: SPARVERSION, sid, personalId: x.personalId, invanareId: x.invanareId, val: x.val, sist: x.sist, aktiv: x.aktiv, db: Buffer.from(x.db.serialize()).toString('base64'),
+      v: SPARVERSION, sid, personalId: x.personalId, uppdrag: x.uppdrag ?? null, invanareId: x.invanareId, val: x.val, sist: x.sist, aktiv: x.aktiv, db: Buffer.from(x.db.serialize()).toString('base64'),
       lasnyckel: x.lasnyckel, oppnade: [...x.oppnade],
       kopior: [...x.kopior].map(([id, k]) => [id, { ...k, patienter: [...k.patienter], loggIds: [...k.loggIds] }]),
     }));
@@ -431,6 +450,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ut.personal = { id: p.id, namn: p.namn, yrke: p.yrke, yrkeText: YRKEN[p.yrke], titel: p.titel, hsaId: p.hsa_id };
       ut.enhet = { ...enhetKort(s.db, p.enhet_id), vardenhet: enhetKort(s.db, ve) };
       ut.behorigheter = ROLLER[p.yrke] ?? [];
+      // Runda 9, r5: medarbetaruppdraget ur biljetten från autentiseringstjänsten.
+      ut.uppdrag = idp.uppdragUt(s.db, s.uppdrag);
       // Undersköterskan har behörigheten att ge läkemedel bara med en giltig delegering i dag (runda 5).
       if (p.yrke === 'underskoterska' && !delegering.giltigNu(s.db, p).giltig) ut.behorigheter = ut.behorigheter.filter(h => h !== 'ge_lakemedel');
       // Runda 6, r3: om personalen arbetar på en vårdenhet med psykiatrisk tvångsvård.
@@ -799,7 +820,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // Personalens API:er kräver personalens inloggning. En invånare som är inloggad i Min journal får samma svar som den
   // som inte är inloggad alls, och omvänt för Min journal.
   const kravInloggad = (c) => {
-    if (!c.personal) throw new Fel(401, c.invanare ? 'Den här delen är för vårdens personal. Logga in med SITHS-kort.' : 'Logga in först.', 'ej_inloggad');
+    // Runda 9, r5: när systemet har avslutat inloggningen för att uppdraget upphörde säger svaret varför.
+    if (!c.personal) throw new Fel(401, c.invanare ? 'Den här delen är för vårdens personal. Logga in med SITHS-kort.' : c.s?.utloggadOrsak ? `Du är utloggad. ${c.s.utloggadOrsak} Logga in igen.` : 'Logga in först.', 'ej_inloggad');
     return c.personal;
   };
   const kravInvanare = (c) => {
@@ -819,13 +841,17 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('GET', '/api/demo/personal', (c) => c.db.query('SELECT * FROM personal WHERE demo = 1 ORDER BY rowid').all().map(p => ({
     id: p.id, namn: p.namn, yrke: p.yrke, yrkeText: YRKEN[p.yrke], titel: p.titel, enhet: enhetKort(c.db, p.enhet_id),
   })));
-  rutt('POST', '/api/login', (c) => {
-    const p = typeof c.body.personalId === 'string' ? c.db.query('SELECT * FROM personal WHERE id = ? AND demo = 1').get(c.body.personalId) : null;
-    if (!p) throw new Fel(400, 'Välj en av demorollerna.', 'ogiltig', { falt: ['personalId'] });
+  // Runda 9, r5 (Sussa 5.2.1.6 och 5.2.1.8): inloggningen går genom den simulerade autentiseringstjänsten (idp.js). Valet
+  // av demoroll är det simulerade SITHS-kortet: tjänsten utfärdar en signerad biljett, och personen, medarbetaruppdraget
+  // och behörigheten tas ur biljettens attribut, på samma sätt som för en biljett som kommer utifrån (/api/login/biljett).
+  function loggaInMedBiljett(c, biljett) {
+    const { personal: p, uppdrag } = idp.loggaIn(c.db, idp.verifiera(biljett));
     // Runda 6, r5: tillämpningarnas åtkomstbiljetter gäller inte efter en ny inloggning.
     oppetApi.aterkalla(c.s, 'Åtkomstbiljetten återkallades vid en ny inloggning.');
     avslutaKopia(c.s, aktuellKopia(c.s), 'inloggning');
     c.s.personalId = p.id;
+    c.s.uppdrag = uppdrag;
+    c.s.utloggadOrsak = null;
     c.s.invanareId = null;
     c.s.val = {};
     // Ny nyckel och ny läskopia vid varje inloggning, så att en tidigare persons kopia inte går att läsa. Den förra
@@ -835,7 +861,18 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     sakraKopia(c.s);
     c.rotera = true;
     return sessionUt(c.s);
+  }
+  rutt('POST', '/api/login', (c) => {
+    const p = typeof c.body.personalId === 'string' ? c.db.query('SELECT * FROM personal WHERE id = ? AND demo = 1').get(c.body.personalId) : null;
+    if (!p) throw new Fel(400, 'Välj en av demorollerna.', 'ogiltig', { falt: ['personalId'] });
+    return loggaInMedBiljett(c, idp.autentisera(c.db, p));
   });
+  // En biljett från en betrodd autentiseringstjänst. Personen behöver inte vara en demoroll, men måste vara aktiv i
+  // masterdata, och uppdraget i biljetten måste stämma med masterdata.
+  rutt('POST', '/api/login/biljett', (c) => loggaInMedBiljett(c, c.body.biljett));
+  // Autentiseringstjänstens publika nycklar och konfiguration (OpenID Connect Discovery), utan sandlåda.
+  rutt('GET', '/api/idp/jwks', () => idp.jwks());
+  rutt('GET', '/api/idp/.well-known/openid-configuration', (c) => idp.konfiguration(origin || `${c.url.protocol}//${c.url.host}`));
   // Utloggning efter ett avbrott kan ha med sig åtkomsterna från läsläget. De loggas innan sessionen avslutas,
   // eftersom de annars aldrig går att föra över.
   // Sessionen avslutas alltid, även om raderna inte går att ta emot.
@@ -857,7 +894,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       avslutaKopia(c.s, akt, 'utloggning');
       // Runda 6, r5: tillämpningarnas åtkomstbiljetter återkallas och återkallelsen loggas.
       oppetApi.aterkalla(c.s, 'Åtkomstbiljetten återkallades vid utloggning.');
-      c.s.personalId = null; c.s.invanareId = null; c.s.val = {}; c.s.lasnyckel = null; c.s.oppnade = new Set();
+      c.s.personalId = null; c.s.uppdrag = null; c.s.invanareId = null; c.s.val = {}; c.s.lasnyckel = null; c.s.oppnade = new Set();
     }
     return { ...sessionUt(c.s), ...(lasloggen ? { lasloggen } : {}) };
   });
@@ -868,7 +905,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const inv = minJournal.provaInloggning(c.db, c.body.invanareId);
     oppetApi.aterkalla(c.s, 'Åtkomstbiljetten återkallades när någon loggade in i Min journal i samma webbläsare.');
     c.s.invanareId = inv.id;
-    c.s.personalId = null;
+    c.s.personalId = null; c.s.uppdrag = null;
     c.s.val = {};
     // Personalens läskopia stängs som vid utloggning.
     const akt = aktuellKopia(c.s);
@@ -1450,7 +1487,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const atk = new Atkomst(c.db, c.personal, null, {}, 'las_logg');
     atk.krav('las_logg');
     const q = c.url.searchParams;
-    const flagga = ['nodatkomst', 'nekad', 'samtycke', 'vard', 'arkiv', 'alla'].includes(q.get('flagga')) ? q.get('flagga') : 'alla';
+    // Runda 9, r5: urvalet skyddsbehov visar åtkomster till uppgifter med mycket högt skyddsbehov.
+    const flagga = ['nodatkomst', 'nekad', 'samtycke', 'vard', 'arkiv', 'skyddsbehov', 'alla'].includes(q.get('flagga')) ? q.get('flagga') : 'alla';
     const datum = (v, slut) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? `${v}${slut ? 'T23:59:59.999Z' : 'T00:00:00.000Z'}` : v || null);
     const rader = medPatientKort(c.db, logg.lista(c.db, { flagga, fran: datum(q.get('fran'), false), till: datum(q.get('till'), true) }));
     atk.logga('las_logg', 'logggranskning', `logg:${flagga}`);
@@ -1557,6 +1595,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   utbildningRutter({ rutt, kravInloggad });
   // Runda 8, r5: epikrisens förslag och flera mätvärden på en gång (r5-rutter.js).
   r5Rutter({ rutt, kravInloggad, medPatient });
+  // Runda 9, r5: skyddsbehov, signering och certifikat, e-arkivet och miljöerna (runda9-r5-rutter.js).
+  r9r5Rutter({ rutt, kravInloggad, kravRoll, medPatient, version: APPVERSION });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
   // visas direkt (bara i den egna sandlådan).
   const kravNagon = (c) => { if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad'); };
@@ -1574,6 +1614,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
 
   // Endpoints som inte behöver en sandlåda.
   const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/krav/sussa', '/api/krav/version', '/api/drift', '/api/lasekopia/krypterad-logg', '/api/tillganglighet']);
+  // Runda 9, r5: autentiseringstjänstens nycklar och konfiguration.
+  for (const v of ['/api/idp/jwks', '/api/idp/.well-known/openid-configuration']) UTAN_SESSION.add(v);
 
   async function api(req, server, url, c) {
     if (url.pathname === '/api/health') return json({ ok: true, sandladar: sessioner.size, version: APPVERSION, gransnitt: gransnittVersion() });
@@ -1625,7 +1667,12 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
 
   // Den inloggade personalen eller invånaren, aldrig båda. Skulle båda vara satta räknas ingen som inloggad.
   function inloggade(s) {
-    const personal = personalRad(s.db, s.personalId);
+    let personal = personalRad(s.db, s.personalId);
+    // Runda 9, r5: medarbetaruppdraget prövas mot masterdata i varje anrop (idp.uppdragGaller).
+    if (personal) {
+      const orsak = idp.uppdragGaller(s.db, personal, s.uppdrag);
+      if (orsak) { loggaUtOgiltigtUppdrag(s, personal, orsak); personal = null; }
+    }
     const invanare = minJournal.invanareRad(s.db, s.invanareId);
     if (personal && invanare) return { personal: null, invanare: null };
     return { personal: personal ?? null, invanare };
@@ -1689,6 +1736,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
         const arFhir = url.pathname.startsWith('/fhir');
         if (e instanceof Fel) {
           c.felkod = e.kod;
+          // Runda 9, r5: orsaken till en misslyckad inloggning till säkerhetsloggen. Texten är serverns egen.
+          c.feltext = e.message;
           svar = arFhir
             ? new Response(JSON.stringify(fhir.utfall(e.status, e.kod, e.message)), { status: e.status, headers: { 'Content-Type': 'application/fhir+json; charset=utf-8', 'Cache-Control': 'no-store' } })
             : json({ fel: e.message, kod: e.kod, ...e.extra }, e.status, c.ny ? { 'Set-Cookie': kaka(c.sid) } : {});
@@ -1706,7 +1755,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       // Runda 6, r1: säkerhetshändelser i sandlådans säkerhetslogg (Sussa 5.3.1.12). Ett fel i loggningen stoppar aldrig svaret.
       if (c.s) {
         try {
-          sakerhetslogg.efterAnrop(c.s.db, { nyckel, status: svar.status, kod: c.felkod ?? null, fore: { personal: c.personal, invanare: c.invanare }, efter: inloggade(c.s) });
+          sakerhetslogg.efterAnrop(c.s.db, { nyckel, status: svar.status, kod: c.felkod ?? null, fel: c.feltext ?? null, fore: { personal: c.personal, invanare: c.invanare }, efter: inloggade(c.s) });
         } catch (e) { console.error('Säkerhetsloggen:', e.message); }
       }
       // Runda 6, r5: ändringarna i sandlådan ger meddelanden till prenumerationerna.

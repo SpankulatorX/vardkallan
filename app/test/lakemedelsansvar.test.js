@@ -213,7 +213,7 @@ describe('Avbokad vårdhändelse utan grund', () => {
     expect(rader(d, 'lak-psyk')).toEqual([expect.objectContaining({ ordinationId, mottagare: 'alla' })]);
     expect(rader(d, 'lak-psyk')[0].text).toContain('vårdenheten har ingen medicinskt ansvarig läkare');
     // Verksamhetschefen på psykiatrin får en påminnelse utan patientuppgifter.
-    d.query("INSERT INTO personal (id, namn, yrke, titel, enhet_id, hsa_id, demo) VALUES ('vch-psyk', 'Test Chef', 'verksamhetschef', 'Verksamhetschef', 'uso-psyk', 'X', 1)").run();
+    d.query("INSERT INTO personal (id, namn, yrke, titel, enhet_id, hsa_id, demo) VALUES ('vch-psyk', 'Test Chef', 'verksamhetschef', 'Verksamhetschef', 'uso-psyk', 'X-VCH-PSYK', 1)").run();
     d.query("INSERT INTO verksamhetschefer VALUES ('uso-psyk', 'vch-psyk')").run();
     await k.logga('vch-psyk');
     const o = (await k.get('/api/lakemedelsansvar')).data;

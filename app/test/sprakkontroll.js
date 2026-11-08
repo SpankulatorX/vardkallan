@@ -173,6 +173,8 @@ for (const w of ['BVC', 'BHV', 'BHVQ', 'BHVQ-SIM', 'BCG', 'EPDS', 'MPR', 'HPV', 
 for (const w of ['EN', 'WCAG', 'AA', 'ISO']) TILLATNA.add(w);
 // Runda 8, r1: beställning och svar, analyserna och provrören och FHIR-resurserna för svar och prov.
 for (const w of ['LPK', 'TPK', 'EDTA', 'NT', 'PAD', 'SR', 'B12', 'DiagnosticReport', 'Specimen']) TILLATNA.add(w);
+// Runda 9, r5: inloggning med biljett, signering och certifikat, e-arkivet och miljöerna.
+for (const w of ['JWT', 'JWKS', 'ES256', 'OpenID', 'IdP', 'ECDSA', 'P-256', 'SHA-256', 'X.509', 'CA', 'R7e']) TILLATNA.add(w);
 // Runda 7, r1: källan till tidsmodellen i Sussas testfall.
 for (const w of ['ACM', 'Newell']) TILLATNA.add(w);
 // Fraser med engelska ord som är namn på standarder, rubriker, parametrar och tekniska begrepp. Ett tomt värde i data

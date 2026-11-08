@@ -1,5 +1,7 @@
 // Åtkomstloggen. Varje rad kedjas till föregående med sha256, och databastriggrar stoppar ändring och radering.
 import { createHash } from 'node:crypto';
+// Runda 9, r5: skyddsnivån för varje rad (Sussa 5.3.1.2).
+import { MYCKET_HOGT_SQL, nivaForLoggrad } from './skyddsbehov.js';
 
 // egen_atkomst och vardnadshavare är invånarens läsning i Min journal. De är inte vårdens åtkomst och flaggas inte.
 // arkivbeslut är arkivariens export, gallring och radering efter ett registrerat beslut, och uppfoljning är datauttaget.
@@ -71,6 +73,8 @@ const FLAGGOR = {
   vard: 'l.invanare_id IS NULL',
   // Export till e-arkiv, gallring och radering efter beslut (arkiv.js).
   arkiv: "l.grund = 'arkivbeslut'",
+  // Runda 9, r5: åtkomst till uppgifter med mycket högt skyddsbehov (skyddsbehov.js, Sussa 5.3.1.2).
+  skyddsbehov: MYCKET_HOGT_SQL,
 };
 
 export function lista(db, { patientId = null, flagga = 'alla', fran = null, till = null, max = 500 } = {}) {
@@ -84,15 +88,16 @@ export function lista(db, { patientId = null, flagga = 'alla', fran = null, till
   // En rad från Min journal har invånaren i stället för personal. Patientens egen läsning visas utan namn (namnet är
   // patientens, som kan ha skyddad identitet), en vårdnadshavare med sitt namn.
   return db.query(`SELECT l.*, p.namn AS personal_namn, p.yrke AS personal_yrke, e.namn AS enhet_namn,
-      i.fornamn AS inv_fornamn, i.efternamn AS inv_efternamn, i.patient_id AS inv_patient
+      i.fornamn AS inv_fornamn, i.efternamn AS inv_efternamn, i.patient_id AS inv_patient, pt.skyddad AS pt_skyddad
     FROM atkomstlogg l LEFT JOIN personal p ON p.id = l.personal_id LEFT JOIN enheter e ON e.id = l.enhet_id
-      LEFT JOIN invanare i ON i.id = l.invanare_id
+      LEFT JOIN invanare i ON i.id = l.invanare_id LEFT JOIN patienter pt ON pt.id = l.patient_id
     WHERE ${villkor.join(' AND ')} ORDER BY l.id DESC LIMIT ?`).all(...arg).map(r => ({
     id: r.id, tid: r.tid, personal: r.personal_id ? { id: r.personal_id, namn: r.personal_namn, yrke: r.personal_yrke } : null,
     invanare: r.invanare_id ? invanareKort(r) : null,
     enhet: r.enhet_id ? { id: r.enhet_id, namn: r.enhet_namn } : null, patientId: r.patient_id, handling: r.handling,
     resurs: r.resurs, grund: r.grund, syfte: r.syfte, resultat: r.resultat,
     flaggad: r.grund === 'nodatkomst' || r.grund === 'samtycke_sparr' || r.resultat === 'nekad' || ['gallra', 'radera'].includes(r.handling), hash: r.hash,
+    skyddsniva: nivaForLoggrad(r, Boolean(r.pt_skyddad)),
   }));
 }
 
