@@ -6,24 +6,115 @@
       "datum": "2026-11-08",
       "nyheter": [
         {
-          "id": "hjalp-och-intyg", "roller": ["personal"], "omfattning": "stor", "var": "#/utbildning",
+          "id": "hjalp-och-intyg",
+          "roller": [
+            "personal"
+          ],
+          "omfattning": "stor",
+          "var": "#/utbildning",
           "rubrik": "Hjälp i sammanhanget och övningar med intyg",
           "text": "Knappen Hjälp finns i de vanligaste flödena och förklarar steg för steg vad du gör och vad systemet gör åt dig. Under Utbildning gör du korta övningar med demopatienter och får ett intyg som gäller i ett år."
         },
         {
-          "id": "intyg-enhet", "roller": ["verksamhetschef"], "omfattning": "stor", "var": "#/utbildning",
+          "id": "intyg-enhet",
+          "roller": [
+            "verksamhetschef"
+          ],
+          "omfattning": "stor",
+          "var": "#/utbildning",
           "rubrik": "Se vilka på vårdenheten som har giltigt intyg",
           "text": "Under Utbildning ser du vilka på vårdenheten som har ett giltigt intyg, vilka som går ut inom 30 dagar och vilka som saknar intyg."
         },
         {
-          "id": "hog-kontrast", "roller": ["alla"], "omfattning": "liten", "var": "#/tillganglighet",
+          "id": "hog-kontrast",
+          "roller": [
+            "alla"
+          ],
+          "omfattning": "liten",
+          "var": "#/tillganglighet",
           "rubrik": "Hög kontrast och tillgänglighetsredogörelse",
           "text": "Knappen Hög kontrast högst upp på sidan ger starkare färger och tydligare ramar. Systemet följer också datorns inställningar för hög kontrast och minskade rörelser. Länken Tillgänglighet längst ned visar hur Vårdkällan uppfyller kraven i EN 301 549."
         },
         {
-          "id": "nyhetsrutan", "roller": ["alla"], "omfattning": "liten", "var": "#/nyheter",
+          "id": "nyhetsrutan",
+          "roller": [
+            "alla"
+          ],
+          "omfattning": "liten",
+          "var": "#/nyheter",
           "rubrik": "Den här rutan",
           "text": "Den visar det som är nytt för din roll efter en ny version. Stäng den när du har läst. Alla nyheter finns kvar under Nyheter."
+        },
+        {
+          "id": "utloggning",
+          "roller": [
+            "personal",
+            "invanare"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Varning innan du loggas ut",
+          "text": "Har du inte gjort något på en stund visas en varning fem minuter innan du loggas ut, med en knapp för att fortsätta. Text i en öppen anteckning eller remiss sparas som utkast om du ändå loggas ut."
+        },
+        {
+          "id": "kostnader",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "vardadministrator"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Kostnader och högkostnadsskydd i översikten",
+          "text": "Översikten visar kostnaden hittills i vårdkontakten och patientens högkostnadsskydd. Läkare och sjuksköterskor lämnar ut hjälpmedel med två klick därifrån, och systemet skapar faktureringsunderlaget själv."
+        },
+        {
+          "id": "ekonomi",
+          "roller": [
+            "ekonom"
+          ],
+          "omfattning": "stor",
+          "var": "#/ekonomi",
+          "rubrik": "Faktureringsunderlag och prislistor",
+          "text": "Startsidan visar förra månadens underlag per vårdenhet, och du hämtar det som fil med ett klick. Prislistorna har versioner med giltighetstid och historik."
+        },
+        {
+          "id": "systemforvaltning",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "stor",
+          "var": "#/regler",
+          "rubrik": "Regler, omorganisationer, undantag och lagring",
+          "text": "Du ändrar regler och parametrar på ett ställe, förbereder omorganisationer med ett datum och beslutar om undantag. En annan systemförvaltare godkänner det som påverkar vem som har åtkomst."
+        },
+        {
+          "id": "rapportering",
+          "roller": [
+            "uppfoljning"
+          ],
+          "omfattning": "stor",
+          "var": "#/rapportering",
+          "rubrik": "Rapportering till myndigheter och register",
+          "text": "Systemet sammanställer och kontrollerar månadens rapporter till patientregistret, väntetiderna och medicinska födelseregistret. Fel hamnar hos den som kan rätta dem, och du skickar när rapporten är klar."
+        },
+        {
+          "id": "rapportfel",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "var": "#/inkorg",
+          "rubrik": "Rättningar inför rapporteringen",
+          "text": "Saknar en vårdkontakt diagnos eller yttre orsak inför rapporteringen till patientregistret står det i inkorgen, med systemets förslag på kod."
+        },
+        {
+          "id": "barnhalsovard",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "stor",
+          "rubrik": "Barnhälsovård med tillväxtkurvor",
+          "text": "Barn har en flik Tillväxt med kurvor för vikt, längd, huvudomfång och BMI. Systemet larmar vid avvikande tillväxt, föreslår nästa besök och vaccinationer i programmet och frågar alltid om vaccinationer som har getts någon annanstans."
         }
       ]
     },
@@ -32,42 +123,77 @@
       "datum": "2026-11-03",
       "nyheter": [
         {
-          "id": "journalsok", "roller": ["lakare", "sjukskoterska", "underskoterska", "farmaceut"], "omfattning": "stor",
+          "id": "journalsok",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska",
+            "farmaceut"
+          ],
+          "omfattning": "stor",
           "rubrik": "Sökning i journalen, kurvor och NEWS2",
           "text": "Sökfältet i patientens journal söker i anteckningar, diagnoser, läkemedel och mätvärden. Mätvärdena visas som kurvor med referensintervall, och systemet räknar NEWS2 ur vitalparametrarna."
         },
         {
-          "id": "mallar", "roller": ["lakare"], "omfattning": "stor",
+          "id": "mallar",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "stor",
           "rubrik": "Ordinera ur mallar med flera ordinationer",
           "text": "Under Läkemedel ordinerar du till exempel inför en elkonvertering med ett klick, och systemet föreslår upp- och nedtrappning, spädning och förpackning."
         },
         {
-          "id": "muntlig", "roller": ["sjukskoterska"], "omfattning": "liten",
+          "id": "muntlig",
+          "roller": [
+            "sjukskoterska"
+          ],
+          "omfattning": "liten",
           "rubrik": "Muntlig ordination och generella direktiv",
           "text": "Du dokumenterar en muntlig ordination som läkaren signerar i inkorgen, och ordinerar enligt generella direktiv där systemet prövar ramarna."
         },
         {
-          "id": "resurser", "roller": ["vardadministrator"], "omfattning": "stor",
+          "id": "resurser",
+          "roller": [
+            "vardadministrator"
+          ],
+          "omfattning": "stor",
           "rubrik": "Rum, utrustning och provtagning före läkarbesök",
           "text": "Ett ingrepp bokar läkare, rum och utrustning samtidigt, och provtagning före ett läkarbesök bokas med rätt mellanrum i ett klick."
         },
         {
-          "id": "ansvar", "roller": ["verksamhetschef"], "omfattning": "stor",
+          "id": "ansvar",
+          "roller": [
+            "verksamhetschef"
+          ],
+          "omfattning": "stor",
           "rubrik": "Uppdrag i läkemedelshanteringen",
           "text": "Under Läkemedelsansvar utser du medicinskt ansvarig läkare och de andra uppdragen, och systemet påminner när ett uppdrag saknas eller går ut."
         },
         {
-          "id": "stickprov", "roller": ["logggranskare"], "omfattning": "liten",
+          "id": "stickprov",
+          "roller": [
+            "logggranskare"
+          ],
+          "omfattning": "liten",
           "rubrik": "Export, säkerhetshändelser och stickprov",
           "text": "Logguppföljningen exporterar loggen till fil, visar säkerhetshändelser för sig och drar stickprov slumpvis."
         },
         {
-          "id": "genomgang", "roller": ["farmaceut"], "omfattning": "stor",
+          "id": "genomgang",
+          "roller": [
+            "farmaceut"
+          ],
+          "omfattning": "stor",
           "rubrik": "Fördjupad läkemedelsgenomgång",
           "text": "Du gör den fördjupade läkemedelsgenomgången tillsammans med läkaren, och systemet tar fram läkemedelsberättelsen."
         },
         {
-          "id": "vardbegaran", "roller": ["invanare"], "omfattning": "liten",
+          "id": "vardbegaran",
+          "roller": [
+            "invanare"
+          ],
+          "omfattning": "liten",
           "rubrik": "Skicka en egen vårdbegäran",
           "text": "I Min journal kan du skicka en egen vårdbegäran, och systemet föreslår vilken mottagning den ska till."
         }

@@ -71,7 +71,7 @@ describe('Nyheter', () => {
     // Invånaren ser det som gäller alla, men inte personalens nyheter.
     const inv = nyheter.nyheter(d, { personal: null, invanare: { id: 'inv-p01' } });
     expect(inv.roll).toBe('invanare');
-    expect(inv.ruta.nyheter.map(n => n.id)).toEqual(['hog-kontrast', 'nyhetsrutan']);
+    expect(inv.ruta.nyheter.map(n => n.id)).toEqual(['hog-kontrast', 'nyhetsrutan', 'utloggning']);
     expect(inv.alla[1].nyheter.map(n => n.id)).toEqual(['vardbegaran']);
   });
 
