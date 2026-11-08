@@ -37,6 +37,9 @@ export const MATORD = {
   vitalparametrar: ['andningsfrekvens', 'saturation', 'blodtryck', 'puls', 'temp'],
   medvetande: ['medvetande', 'gcs'], medvetandegrad: ['medvetande', 'gcs'], gcs: ['gcs'], glasgow: ['gcs'], acvpu: ['medvetande'],
   smärta: ['smarta'], nrs: ['smarta'], ont: ['smarta'], smärtskattning: ['smarta'], syrgas: ['syrgas'], syre: ['syrgas'],
+  // Runda 8, r1: svaren från laboratoriet och SR.
+  blodstatus: ['hb', 'lpk', 'tpk'], lpk: ['lpk'], leukocyter: ['lpk'], tpk: ['tpk'], trombocyter: ['tpk'], natrium: ['natrium'],
+  elstatus: ['natrium', 'kalium'], b12: ['kobalamin'], kobalamin: ['kobalamin'], folat: ['folat'], folsyra: ['folat'], sr: ['sr'], sänka: ['sr'],
 };
 
 // Läkemedelsgrupper med vanliga ord, som ATC-prefix ur WHO:s register.

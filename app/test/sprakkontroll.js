@@ -171,6 +171,8 @@ for (const k of KONTRAKT) TILLATNA.add(k.kontrakt);
 for (const w of ['BVC', 'BHV', 'BHVQ', 'BHVQ-SIM', 'BCG', 'EPDS', 'MPR', 'HPV', 'SD', 'Immunization', 'Snomed', 'K11', 'NKRR', 'IGO', 'CC', 'BY-NC-SA']) TILLATNA.add(w);
 // Runda 7, r2: tillgänglighetsredogörelsen hänvisar till standarderna EN 301 549, WCAG 2.1 nivå AA och ISO 9241.
 for (const w of ['EN', 'WCAG', 'AA', 'ISO']) TILLATNA.add(w);
+// Runda 8, r1: beställning och svar, analyserna och provrören och FHIR-resurserna för svar och prov.
+for (const w of ['LPK', 'TPK', 'EDTA', 'NT', 'PAD', 'SR', 'B12', 'DiagnosticReport', 'Specimen']) TILLATNA.add(w);
 // Runda 7, r1: källan till tidsmodellen i Sussas testfall.
 for (const w of ['ACM', 'Newell']) TILLATNA.add(w);
 // Fraser med engelska ord som är namn på standarder, rubriker, parametrar och tekniska begrepp. Ett tomt värde i data

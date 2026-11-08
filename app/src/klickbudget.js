@@ -295,4 +295,13 @@ export const FLODEN = [
     id: 'registrera-pappersremiss', namn: 'Registrera en pappersremiss', roll: 'adm-kard', start: 'Inkommande remisser efter återställning', budget: 6,
     motivering: 'Sussa 3.3.1.2 och testfall 2.5. Ett klick på Registrera vid den inskannade remissen, där patientfältet har fokus och systemet väljer patienten när sökningen ger en träff, ett fältbyte vardera för avsändande enhet, frågeställning och anamnes och ett klick för att registrera. Remissdatumet är förvalt till i dag, och budgeten har plats för att ändra det.',
   },
+  // Runda 8, r1: beställning och svar (Sussa 4.4.2.6 och testfall 3.1 och 3.3).
+  {
+    id: 'bestall-paket', namn: 'Beställa ett standardpaket med prover', roll: 'lak-kard', start: 'Arbetslistan efter inloggning', budget: 3,
+    motivering: 'Sussa 4.4.2.6 och testfall 3.1. Ett klick på patienten, ett på Beställ prover i översikten och ett på Beställ vid det paket som systemet föreslår ur vårdkontakten, diagnoserna och läkemedlen. Systemet väljer laboratorium, rör, provtagningsordning och anamnes, tar bort analyser som nyss är tagna och förklarar varför, och knyter beställningen till vårdkontakten.',
+  },
+  {
+    id: 'registrera-provtagning', namn: 'Registrera provtagning', roll: 'ssk-kard', start: 'Provtagningen efter återställning', budget: 2,
+    motivering: 'Sussa 4.4.2.6 och testfall 3.3. Rören står i provtagningsordning med etiketter, och ett klick på Tagen per rör registrerar provtagningen. Systemet sätter tid och provtagare och skickar proverna till laboratoriet när alla rör är tagna. Patienten har två rör.',
+  },
 ];

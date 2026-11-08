@@ -15,6 +15,8 @@ import { bevakningKlar } from '../planering-ui.js';
 import { rapportfelSektion, rapportfelKlick } from '../rapportfel.js';
 // Runda 8, r2: remisser att signera som har skrivits på läkarens uppdrag, och remisser fördelade till läkaren.
 import { signera as signeraRemiss } from '../remiss-r8-ui.js';
+// Runda 8, r1: kritiska provsvar, provsvar att vidimera och labbeställningar att signera.
+import { inkorgSektioner as labbSektioner, inkorgKlick as labbKlick } from '../labb-ui.js';
 
 export const namn = 'inkorg';
 
@@ -108,6 +110,7 @@ export async function visa(main) {
 
   main.querySelector('#ik').innerHTML = `<div class="inkorg-rutnat">
     ${rapportfelSektion(d, sektion)}
+    ${labbSektioner(d, sektion, (h) => S.session.behorigheter.includes(h))}
     ${harBhv || tvLarm.length ? sektion('tvlarm', 'Avvikande tillväxt', tvLarm, 'Inga barn på barnavårdscentralen har avvikande tillväxt.', 'Systemet jämför varje barns kurva med WHO:s standard och larmar när kurvor korsas eller ett värde ligger utanför två standardavvikelser. Demoregel, inte kliniskt beslutsstöd.') : ''}
     ${tvHemma.length ? sektion('tvhemma', 'Mätningar hemma att bekräfta', tvHemma, '', 'Mätningar som vårdnadshavare har skickat i Min journal. De räknas på kurvan när du har bekräftat dem.') : ''}
     ${harBhv && tvBoka.length ? sektion('tvboka', 'Hälsobesök att boka', tvBoka, '', 'Barn som ska ha ett besök i barnhälsovårdens program nu och som inte har någon tid.') : ''}
@@ -139,6 +142,8 @@ export async function visa(main) {
   // Runda 6, r4: en egen bevakning markeras som klar.
   // Runda 7, r5: rättningar före rapportering.
   main.querySelector('#ik').addEventListener('click', (e) => { rapportfelKlick(e, d, async () => { await uppdateraInkorg(); visa(main); }); });
+  // Runda 8, r1: vidimera och signera direkt i inkorgen.
+  main.querySelector('#ik').addEventListener('click', (e) => { labbKlick(e, () => visa(main)); });
   main.querySelector('#ik').addEventListener('click', async (e) => {
     const b = e.target.closest('[data-egen-bev]');
     if (!b) return;

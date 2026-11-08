@@ -415,6 +415,9 @@ export function byggSeed(bas = nu()) {
   sakraDosandring(db);
   // Runda 8, r5.
   sakraR5(db, bas);
+  // Runda 8, r1: beställning och svar och kontrollerna till avdelningen (labb-seed.js). Sist, eftersom beställningarna görs
+  // med modulernas egna funktioner, som läser vårdstrukturen, konfigurationen och undantagen.
+  require('./labb-seed.js').seeda(db, { bas });
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -518,6 +521,8 @@ export function migrera(db) {
   sakraDosandring(db);
   // Runda 8, r5: tobaksvanorna och vårdenheternas egna övningar i en sandlåda från före runda 8.
   sakraR5(db, nu());
+  // Runda 8, r1: tabellerna för beställning och svar och för kontrollerna. Inga beställningar läggs in i efterhand.
+  require('./labb-seed.js').sakra(db);
   return db;
 }
 
@@ -530,6 +535,8 @@ export const MATTYPER_ENHET = {
   medvetande: '', syrgas: 'L/min', smarta: 'av 10', gcs: 'poäng',
   // Runda 7, r6: huvudomfång i barnhälsovården.
   huvudomfang: 'cm',
+  // Runda 8, r1: svaren från det simulerade laboratoriet och SR.
+  lpk: '×10⁹/L', tpk: '×10⁹/L', natrium: 'mmol/L', kobalamin: 'pmol/L', folat: 'nmol/L', sr: 'mm',
 };
 
 // Mallen byggs om när dagen byter, så att demon alltid ligger kring dagens datum.

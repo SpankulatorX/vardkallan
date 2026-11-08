@@ -40,7 +40,9 @@ const lagg = (b) => { for (const e of b.entry ?? []) sett.set(`${e.resource.reso
 const TYPER = ['Patient', 'Encounter', 'EpisodeOfCare', 'Condition', 'Observation', 'MedicationRequest', 'MedicationAdministration', 'List',
   'AllergyIntolerance', 'Flag', 'ServiceRequest', 'Composition', 'Appointment', 'Procedure', 'CarePlan',
   // Runda 7, r3: posterna i faktureringsunderlaget. r6: vaccinationerna i barnhälsovården.
-  'ChargeItem', 'Immunization'];
+  'ChargeItem', 'Immunization',
+  // Runda 8, r1: provtagningens rör och laboratoriernas svar.
+  'DiagnosticReport', 'Specimen'];
 for (const roll of ['lak-kard', 'ssk-kard', 'adm-kard', 'lak-vc', 'lak-psyk', 'lak-akut']) {
   for (const { id } of db.query('SELECT id FROM patienter').all()) {
     const val = { [id]: { andra_enheter: true, nodatkomst: true, samtycke_sparr: true } };
@@ -81,6 +83,10 @@ if (![...sett.values()].some(r => r.resourceType === 'Encounter' && r.id.startsW
 if (!antal.Procedure) saknas.push('Procedure');
 // Runda 7, r3.
 if (!antal.ChargeItem) saknas.push('ChargeItem');
+// Runda 8, r1: labbeställningar som ServiceRequest, prov och svar.
+for (const t of ['DiagnosticReport', 'Specimen']) if (!antal[t]) saknas.push(t);
+if (![...sett.values()].some(r => r.resourceType === 'ServiceRequest' && r.id.startsWith('labb-'))) saknas.push('ServiceRequest för labbeställning');
+if (![...sett.values()].some(r => r.resourceType === 'Observation' && r.basedOn?.length)) saknas.push('Observation med basedOn');
 for (const [namn, f] of [['NEWS2', (r) => r.id.startsWith('news2-')], ['GCS', (r) => r.code?.text === 'GCS'], ['Medvetandegrad', (r) => r.code?.text === 'Medvetandegrad'], ['eGFR', (r) => r.code?.text === 'eGFR']]) {
   if (![...sett.values()].some(r => r.resourceType === 'Observation' && f(r))) saknas.push(`Observation för ${namn}`);
 }

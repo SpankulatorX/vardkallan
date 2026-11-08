@@ -152,6 +152,59 @@ const JANEJ = {
   },
 };
 
+// Runda 8, r1: beställning och svar (labb.js, Sussa 12.1.1.9). Svarstiden för det simulerade laboratoriet, larmet för
+// prov som inte är tagna och paketens innehåll, som systemförvaltningen ändrar på ett ställe och som slår igenom i
+// förslagen, i beställningarna och i inkorgen. Katalogen importeras som data, inte modulen som använder parametrarna.
+import { PAKET as LABB_PAKET, ANALYSER as LABB_ANALYSER } from './labb-katalog.js';
+Object.assign(HELTAL, {
+  'labb.svar_minuter': {
+    omrade: 'bestallning', rubrik: 'Svarstid för det simulerade laboratoriet', enhet: 'minuter', standard: 20, min: 1, max: 1440, anvands: 'labb.js',
+    beskrivning: 'Så lång tid efter att proverna har kommit till laboratoriet svarar det simulerade laboratoriet. Ett riktigt laboratorium svarar när analysen är klar.',
+    minVarfor: 'Kortare än en minut går inte att skilja från att svaret kommer direkt.',
+    maxVarfor: 'Längre än ett dygn gör att demon ser ut att ha tappat proverna.',
+    effekt: (db, nytt, forra, nu) => {
+      if (!harTabell(db, 'labb_analyser')) return [];
+      const n = (m) => db.query("SELECT count(*) AS n FROM labb_analyser WHERE status = 'mottagen' AND mottagen_tid <= ?").get(new Date(nu.getTime() - m * 60_000).toISOString()).n;
+      return [`Med ${minuter(nytt)} skulle laboratoriet svara på ${st(n(nytt), 'analys', 'analyser')} nu, mot ${n(forra)} med ${minuter(forra)}.`];
+    },
+  },
+  'labb.provtagning_larm_timmar': {
+    omrade: 'bestallning', rubrik: 'Prov som inte är tagna visas som försenade', enhet: 'timmar', standard: 4, min: 1, max: 72, anvands: 'labb.js och provtagningslistan',
+    beskrivning: 'Så många timmar efter den planerade provtagningstiden visas ett prov som inte är taget som försenat i provtagningslistan och i beställningen.',
+    minVarfor: 'Kortare än en timme gör att en vanlig provtagningsrunda visar nästan alla prov som försenade.',
+    maxVarfor: 'Längre än tre dygn gör att ett glömt prov syns för sent för att svaret ska vara till nytta.',
+    effekt: (db, nytt, forra, nu) => {
+      if (!harTabell(db, 'labb_prov')) return [];
+      const n = (h) => db.query('SELECT count(*) AS n FROM labb_prov p JOIN labb_bestallningar b ON b.id = p.bestallning_id WHERE p.provtagen_tid IS NULL AND p.borttagen = 0 AND b.makulerad_tid IS NULL AND p.planerad < ?').get(new Date(nu.getTime() - h * TIMME).toISOString()).n;
+      return [`I dag visas ${st(n(nytt), 'rör', 'rör')} som försenade med ${timmar(nytt)}, mot ${n(forra)} med ${timmar(forra)}.`];
+    },
+  },
+});
+// Paketens innehåll: en lista med analysernas namn ur katalogen. Varje namn prövas mot katalogen, så att ett paket aldrig
+// innehåller en analys som laboratoriet inte kan ta emot.
+const labbAnalysNamn = new Map(LABB_ANALYSER.map(a => [a.namn.toLocaleLowerCase('sv'), a]));
+const labbPaketparameter = (pk) => ({
+  omrade: 'bestallning', rubrik: `Paketet ${pk.namn}`, enhet: 'analyser', typ: 'lista', standard: pk.analyser.map(id => LABB_ANALYSER.find(a => a.id === id).namn), anvands: 'labb.js och beställningsformuläret',
+  beskrivning: `Analyserna i paketet ${pk.namn}, som systemet föreslår vid beställning. Skriv analysernas namn som i katalogen, åtskilda med kommatecken.`,
+  provaLista: (lista) => {
+    if (!lista.length) return 'Ett paket behöver minst en analys.';
+    if (lista.length > 20) return 'Ett paket kan ha högst 20 analyser. Ett större paket går inte att överblicka och ger prover som inte behövs.';
+    const sedda = new Set();
+    for (const s of lista) {
+      const a = labbAnalysNamn.get(s.toLocaleLowerCase('sv'));
+      if (!a) return `${s} finns inte i analyskatalogen. Skriv namnet som i katalogen, till exempel ${LABB_ANALYSER[0].namn} eller ${LABB_ANALYSER[1].namn}.`;
+      if (sedda.has(a.id)) return `${a.namn} står två gånger i paketet.`;
+      sedda.add(a.id);
+    }
+    return null;
+  },
+  effekt: (db, nytt, forra) => {
+    const nya = nytt.filter(s => !forra.includes(s));
+    const borta = forra.filter(s => !nytt.includes(s));
+    return [nya.length ? `Läggs till: ${nya.join(', ')}.` : '', borta.length ? `Tas bort: ${borta.join(', ')}.` : '', 'Beställningar som redan är gjorda ändras inte.'].filter(Boolean);
+  },
+});
+
 // Sökorden i journalens mallar (strukturerad information). Läses från journal.js när de behövs.
 let journalModul = null;
 const journalMallar = () => {
@@ -180,6 +233,8 @@ export function parametrar() {
     alla = { ...Object.fromEntries(Object.entries(HELTAL).map(([k, d]) => [k, { typ: 'heltal', ...d }])), ...JANEJ };
     // Runda 8, r5: en strukturerad mall (tobaksvanor) har inga sökord att ändra.
     for (const m of journalMallar().filter(x => !x.strukturerad)) alla[`journal.sokord.${m.typ}`] = sokordsparameter(m);
+    // Runda 8, r1: paketen i beställning och svar.
+    for (const pk of LABB_PAKET) alla[`labb.paket.${pk.id}`] = labbPaketparameter(pk);
   }
   return alla;
 }
@@ -217,6 +272,12 @@ export function prova(nyckel, inmatat) {
   }
   if (def.typ === 'lista') {
     const lista = (Array.isArray(inmatat) ? inmatat : String(inmatat ?? '').split(/[,\n]/)).map(s => String(s).trim()).filter(Boolean);
+    // Runda 8, r1: en lista med egen prövning, som paketen i beställning och svar.
+    if (def.provaLista) {
+      const fel = def.provaLista(lista);
+      if (fel) return { ok: false, varfor: fel };
+      return { ok: true, varde: lista.map(s => labbAnalysNamn.get(s.toLocaleLowerCase('sv'))?.namn ?? s) };
+    }
     if (!lista.length) return { ok: false, varfor: 'Mallen behöver minst ett sökord, annars har den som skriver inget att utgå från.' };
     if (lista.length > SOKORD_MAX) return { ok: false, varfor: `En mall kan ha högst ${SOKORD_MAX} sökord. Fler går inte att överblicka, och en anteckning kan alltid få fler sökord när den skrivs.` };
     const lang = lista.find(s => s.length > 80);

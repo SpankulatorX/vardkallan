@@ -248,6 +248,15 @@ export const MATKOD = {
   // Runda 7, r6: huvudomfång i barnhälsovården, med vitalparameterprofilen för huvudomfång. Kontrollerat mot LOINC via
   // tx.fhir.org 2026-11-08.
   huvudomfang: vp('9843-4', 'Head Occipital-frontal circumference', 'cm', 'headcircum'),
+  // Runda 8, r1: svaren från det simulerade laboratoriet (beställning och svar, Sussa 4.4) och SR som intern analys på
+  // avdelningen. Kontrollerade mot IFCC:s NPU-fil npu-codes-latest.csv (hämtad 2026-11-08, samma sha256 som 2026-11-03)
+  // och enheterna mot UCUM via tx.fhir.org, se docs/kodkontroll.md.
+  lpk: npu('NPU02593', '10*9/L'), // B, Leukocytes; num.c. = ? × 10⁹/L
+  tpk: npu('NPU03568', '10*9/L'), // B, Thrombocytes; num.c. = ? × 10⁹/L
+  natrium: npu('NPU03429', 'mmol/L'), // P, Sodium ion; subst.c. = ? mmol/L
+  kobalamin: npu('NPU01700', 'pmol/L'), // P, Cobalamin; subst.c. = ? pmol/L
+  folat: npu('NPU02070', 'nmol/L'), // P, Folate; subst.c. = ? nmol/L
+  sr: npu('NPU03404', 'mm'), // B, Sedimentation reaction; length(proc.) = ? mm
 };
 
 // Svarskoderna för medvetandegraden. A, V, P och U finns i LOINC:s svarslista LL1845-8 för 67775-7. C, nytillkommen

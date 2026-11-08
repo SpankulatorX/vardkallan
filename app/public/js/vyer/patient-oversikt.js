@@ -34,6 +34,9 @@ function snabbval(ctx) {
   if (far('remittera')) v.push([ctx.href('remisser', 'ny'), ikon.remiss, 'Skicka remiss']);
   // Runda 8, r2: vårdadministratören skriver remisser på uppdrag av en läkare.
   if (far('remittera_pa_uppdrag')) v.push([ctx.href('remisser', 'uppdrag'), ikon.remiss, 'Remiss på uppdrag']);
+  // Runda 8, r1: beställning av prover och ordination av kontroller (Sussa 4.4 och testfall 3.1, 3.2 och 3.5).
+  if (pa('bestalla_prov', 'bestalla_prov_uppdrag')) v.push([ctx.href('prover', 'ny'), ikon.plus, 'Beställ prover']);
+  if (far('ordinera_kontroll')) v.push([ctx.href('prover', 'kontroller'), ikon.klocka, 'Kontroller']);
   // Utskrift (Sussa 3.1.9): systemet föreslår syftet och delarna.
   const skrivUt = far('skriv_ut') ? `<li><button type="button" class="knapp liten sekundar" data-utskrift>${ikon.logg}<span>Skriv ut</span></button></li>` : '';
   // Runda 5, r1: återbesök som systemet föreslår ur planering, diagnos och senaste kontakt (Sussa 3.4.1.1).

@@ -224,26 +224,33 @@ export const TESTFALL = [
   }),
 
   // Tema 3: Beställning och svar
+  // Runda 8, r1: testfall 3.1 till 3.3, beställning och svar (labb.js).
   t('3.1', 'Upprätta en labbeställning', ['lakare_slutenvard', 'lakare_oppenvard'], {
     syfte: 'Upprätta labbeställningar för Hamid Burvall.',
     mal: ['P-CRP, B-Blodstatus och P-Kreatinin till kemlab i dag klockan 9.', 'Blododling till baktlab med anamnes.', 'Spara eller skicka.'],
     slut: 'Beställningen är sparad, skickad eller verkställd.',
     tidsklass: 9, tidsklassSkal: 'Fyra analyser till två laboratorier.',
-    saknas: 'Labbeställning finns inte. Provsvar visas som mätvärden, men ingen beställning går till ett laboratorium.',
+    korningar: [kor('lakare_slutenvard', 3, 'Ett klick på patienten i arbetslistan, ett på Beställ prover i översikten och ett på Beställ vid paketet Feber och frossa, som systemet föreslår ur vårdkontaktens orsak. Paketet har de fyra analyserna, systemet väljer klinisk kemi och klinisk mikrobiologi, rören och provtagningsordningen och fyller i anamnesen ur vårdkontakten.'),
+      kor('lakare_oppenvard', 3, 'Samma steg som för läkaren i slutenvården, från arbetslistan på vårdcentralen. Klinisk kemi är laboratoriet som hör till vårdcentralen.')],
+    avvikelser: ['Provtagningen är förvald till nu, inte till klockan 9, eftersom testet görs när patienten är på plats. Klockan 7 i morgon kan väljas.', 'Laboratorierna heter Klinisk kemi USÖ och Klinisk mikrobiologi och är simulerade.', 'Anamnesen skrivs inte: systemet hämtar den ur vårdkontakten, Inkommen med feber och frossa.'],
   }),
   t('3.2', 'Upprätta en labbeställning på uppdrag', ['ssk_oppenvard', 'ssk_slutenvard', 'underskoterska'], {
     syfte: 'Upprätta labbeställningar för Laura August på uppdrag av en namngiven läkare.',
     mal: ['Samma analyser som i testfall 3.1.', 'Spara eller skicka.'],
     slut: 'Beställningen är sparad, skickad eller verkställd.',
     tidsklass: 9, tidsklassSkal: 'Som testfall 3.1 med en uppdragsgivare.',
-    saknas: 'Labbeställning finns inte, inte heller på uppdrag.',
+    korningar: [kor('ssk_slutenvard', 5, 'Ett klick på patienten i arbetslistan och ett på Beställ prover i översikten, två klick för att välja den läkare som gav uppdraget och ett klick på Beställ vid paketet Feber och frossa. Läkaren signerar beställningen i inkorgen.'),
+      kor('underskoterska', 5, 'Samma steg som för sjuksköterskan. Undersköterskan beställer på uppdrag men inte själv.')],
+    avvikelser: ['Läkaren i Sussas testdata spelas av läkaren på kardiologen. Sjuksköterska i öppenvården har ingen egen demoroll.', 'Beställningen kan tas och skickas direkt, och läkaren signerar den i inkorgen.'],
   }),
   t('3.3', 'Registrera provtagning', ['ssk_oppenvard', 'ssk_slutenvard', 'underskoterska'], {
     syfte: 'Registrera provtagning utifrån en befintlig beställning för Trevis Ljung och skicka den.',
     mal: ['Hitta beställningen med blodstatus, B12, folat och urinodling.', 'Markera vilka prover som är tagna och skicka.'],
     slut: 'Beställningen är skickad.',
     tidsklass: 6, tidsklassSkal: 'En befintlig beställning med fyra prover att bocka av.',
-    saknas: 'Labbeställning och provtagning mot en beställning finns inte.',
+    korningar: [kor('ssk_slutenvard', 4, 'Ett klick på Prover och kontroller i menyn, där beställningen står under patienten med rören i provtagningsordning, och ett klick på Tagen för vart och ett av de tre rören: serumröret för B12 och folat, EDTA-röret för blodstatus och urinröret. Systemet sätter tid och provtagare och skickar proverna när alla rör är tagna.'),
+      kor('underskoterska', 4, 'Samma steg som för sjuksköterskan.')],
+    avvikelser: ['Beställningen gjordes dagen före testet i stället för 2017-11-26, så att den syns i demon. Proverna skickas av systemet när det sista röret är taget, och det finns ingen knapp att skicka med.'],
   }),
   t('3.4', 'Överblicka provsvar', ['lakare_slutenvard', 'lakare_oppenvard', 'ssk_slutenvard', 'ssk_oppenvard', 'underskoterska'], {
     syfte: 'Överblicka provsvaren för Bertil Danielsson och hitta ett visst provsvar.',
@@ -253,14 +260,17 @@ export const TESTFALL = [
     korningar: [kor('lakare_slutenvard', 5, 'Ett klick på patienten i arbetslistan och ett på fliken Mätvärden. Provet togs på vårdcentralen, så inre sekretess kräver ett aktivt val: ett klick på Visa uppgifter från andra vårdenheter, ett på det syfte som systemet föreslår och ett för att visa. Tabellen visar tid, värde och vårdenhet för varje provsvar, så svaret syns utan fler klick.'),
       kor('ssk_slutenvard', 5, 'Samma steg som för läkaren, med samma aktiva val för provsvaren från vårdcentralen.'),
       kor('underskoterska', 5, 'Samma steg som för läkaren. Undersköterskan läser mätvärden och provsvar men inte läkaranteckningar.')],
-    avvikelser: ['Provsvaren är tagna fem dagar till en vecka före testet i stället för i oktober 2017, så att de syns i demon. Beställande läkare visas inte, eftersom provsvaren inte har någon beställning, men vårdenheten och tiden visas.'],
+    avvikelser: ['Provsvaren är tagna fem dagar till en vecka före testet i stället för i oktober 2017, så att de syns i demon. Svaren från vårdcentralen visar beställande läkare (runda 8), läkaren på vårdcentralen, och svaren från ortopeden visar vårdenheten och tiden.'],
   }),
+  // Runda 8, r1: testfall 3.5, kontroller till avdelningen (kontroller.js).
   t('3.5', 'Upprätta en beställning eller ordination på intern analys eller mätvärde', ['lakare_oppenvard', 'lakare_slutenvard'], {
     syfte: 'Ordinera kontroller av mätvärden för Inga Strand.',
     mal: ['Puls, blodtryck, sänkningsreaktion, temperatur och vikt i morgon klockan 7.', 'Följ vätskebalansen det kommande dygnet.', 'Spara, signera eller verkställ.'],
     slut: 'Beställningen är sparad, signerad eller verkställd.',
     tidsklass: 9, tidsklassSkal: 'Sex kontroller vid samma tid.',
-    saknas: 'En ordination av kontroller och mätvärden till avdelningen finns inte. Mätvärden registreras när de har tagits.',
+    korningar: [kor('lakare_slutenvard', 9, 'Ett klick på patienten i arbetslistan och ett på Kontroller i översikten, ett klick på var och en av de sex kontrollerna och ett på Ordinera. Klockan 7 i morgon är förvald, och vätskebalansen följs ett dygn. Systemet lägger kontrollerna på avdelningen där patienten ligger, och sjuksköterskan ser dem som uppgifter med tid.'),
+      kor('lakare_oppenvard', 9, 'Samma steg som för läkaren i slutenvården. Kontrollerna görs på vårdcentralen, där patienten har sitt besök.')],
+    avvikelser: ['SR är en intern analys som tas på avdelningen och registreras som mätvärde, och vätskebalansen följs i läkemedelsprocessens vätskebalans.'],
   }),
 
   // Tema 4: Strukturerad information

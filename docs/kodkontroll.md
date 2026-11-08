@@ -346,3 +346,24 @@ Testerna i `app/test/kodverk.test.js` jämför varje produkt i katalogen med fac
 **Fler styrkor.** 37 produkter är fler styrkor av substanser som redan fanns, till exempel Metoprolol Sandoz 100 mg, Atorvastatin Krka 10 och 20 mg och Eliquis 2,5 mg, så att katalogen har minst 100 produkter utan fler nya ATC-koder. Ramipril fick ingen ny styrka, eftersom en ordination via FHIR med bara ATC-koden C09AA05 annars skulle bli tvetydig.
 
 **ATC.** Sex nya koder med WHO:s benämning: B05BA03 carbohydrates, B05XA05 magnesium sulfate, N05BA01 diazepam, R01AX03 ipratropium bromide, R03BB01 ipratropium bromide och S01AA01 chloramphenicol. Två nya administrationsvägar: OCUL (ögat) och NASA (näsan).
+
+## Runda 8: beställning och svar (2026-11-08)
+
+**NPU.** Sex nya mätvärdestyper för svaren från det simulerade laboratoriet och SR, kontrollerade mot IFCC:s NPU-fil (npu-codes-latest.csv, hämtad 2026-11-08, sha256 6c64b2208917ce072b8419b014781fcd7d12d30163c832486e675571877e9afc, samma fil som 2026-11-03). Alla är aktiva.
+
+| Mätvärde | Enhet i demon | NPU-kod | NPU-definition | UCUM |
+|---|---|---|---|---|
+| Leukocyter (LPK) | ×10⁹/L | NPU02593 | B, Leukocytes; num.c. = ? × 10⁹/L | 10*9/L |
+| Trombocyter (TPK) | ×10⁹/L | NPU03568 | B, Thrombocytes; num.c. = ? × 10⁹/L | 10*9/L |
+| Natrium | mmol/L | NPU03429 | P, Sodium ion; subst.c. = ? mmol/L | mmol/L |
+| Kobalamin (B12) | pmol/L | NPU01700 | P, Cobalamin; subst.c. = ? pmol/L | pmol/L |
+| Folat | nmol/L | NPU02070 | P, Folate; subst.c. = ? nmol/L | nmol/L |
+| SR | mm | NPU03404 | B, Sedimentation reaction; length(proc.) = ? mm | mm |
+
+Enheterna är kontrollerade mot UCUM via tx.fhir.org (`CodeSystem/$validate-code`): alla giltiga.
+
+**Snomed CT** (SNOMED CT International via tx.fhir.org, `CodeSystem/$lookup`, 2026-11-08): 108252007 Laboratory procedure (kategori för labbeställningar), 119297000 Blood specimen, 122575003 Urine specimen, 119376003 Tissue specimen, 264868006 No growth, 112283007 Escherichia coli och 3092008 Staphylococcus aureus (odlingarnas fynd).
+
+**HL7 Terminology** (tx.fhir.org): v2-0487 BLD, SER, PLAS, UR och TISS (provets typ), v2-0074 LAB, MB och SP (kategori för svaret) och v3-ObservationInterpretation H, L, HH, LL och N (tolkning). LOINC 11502-2 Laboratory report är koden för svaret.
+
+**Code 128.** Streckkoden på etiketterna (app/src/streckkod.js, kodtabell B) är jämförd bit för bit med zint 2.x (`zint -b 20 --dump`) för fem texter med bokstäver, siffror och specialtecken: samma mönster.

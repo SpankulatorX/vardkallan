@@ -165,6 +165,55 @@
           "var": "#/krav",
           "rubrik": "Fler av Sussas användbarhetstester",
           "text": "Fler av Sussas användbarhetstester går att genomföra i Vårdkällan, bland annat de om vårdbegäran. Resultatet per testfall finns på kravsidan."
+        },
+        {
+          "id": "bestallning-och-svar",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "stor",
+          "rubrik": "Beställ prover med ett klick",
+          "text": "Under Beställ prover i översikten föreslår systemet ett paket ur vårdkontakten, diagnoserna och läkemedlen, och ett klick beställer det. Systemet väljer laboratorium, rör och anamnes och tar bort prov som nyss är tagna. Svaren vidimerar du i inkorgen, och kritiska svar larmar."
+        },
+        {
+          "id": "ordinera-kontroller",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Ordinera kontroller till avdelningen",
+          "text": "Under Kontroller i översikten väljer du till exempel puls, blodtryck och vätskebalans. Klockan 7 på morgonen är förvald, och sjuksköterskan ser kontrollerna som uppgifter med tid."
+        },
+        {
+          "id": "prover-och-kontroller",
+          "roller": [
+            "sjukskoterska",
+            "underskoterska"
+          ],
+          "omfattning": "stor",
+          "var": "#/provtagning",
+          "rubrik": "Prover och kontroller",
+          "text": "Under Prover och kontroller i menyn står rören att ta i dag i provtagningsordning med etiketter. Ett klick på Tagen per rör registrerar provtagningen, och proverna skickas när alla rör är tagna. Du kan också beställa prover på uppdrag av en läkare."
+        },
+        {
+          "id": "labbpaket-parametrar",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "liten",
+          "var": "#/regler",
+          "rubrik": "Analyspaketen är parametrar",
+          "text": "Innehållet i analyspaketen, det simulerade laboratoriets svarstid och när ett prov visas som försenat ändras under Regler och parametrar, med fyra ögon och giltighetsdatum."
+        },
+        {
+          "id": "sussa-tema-3",
+          "roller": [
+            "alla"
+          ],
+          "omfattning": "liten",
+          "var": "#/krav",
+          "rubrik": "Sussas testfall för beställning och svar",
+          "text": "Sussas användbarhetstester för labbeställning, beställning på uppdrag, provtagning och ordination av kontroller genomförs nu i Vårdkällan, och kravsidan visar resultatet."
         }
       ]
     },

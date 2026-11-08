@@ -47,6 +47,8 @@ export const STARTPUNKT = {
   'Arbetslistan när inloggningen snart går ut': { hash: '#/arbetslista', klar: '#tidsgrans', forbered: 'inloggning-gar-ut' },
   // Runda 8, r2: de inkommande remisserna och den inskannade pappersremissen efter återställning.
   'Inkommande remisser efter återställning': { hash: '#/remisser', klar: '.r8-skannade [data-skann]', forbered: 'aterstall' },
+  // Runda 8, r1: provtagningen för sjuksköterskan, efter återställning.
+  'Provtagningen efter återställning': { hash: '#/provtagning', klar: '.pt-patient', forbered: 'aterstall' },
 };
 
 export const UPPGIFTER = [
@@ -379,6 +381,17 @@ export const UPPGIFTER = [
     id: 'registrera-pappersremiss', namn: 'Registrera en pappersremiss', roll: 'adm-kard', start: 'Inkommande remisser efter återställning',
     text: 'En remiss om Gunnar Åkesson har kommit på papper från Läkarhuset Ekbacken och är redan inskannad. Frågan gäller bröstsmärtor. Registrera remissen så att den kan handläggas.',
     kontroll: { notis: 'är registrerad och står bland de inkommande remisserna' },
+  },
+  // Runda 8, r1: beställning och svar (Sussa 4.4.2.6 och testfall 3.1 och 3.3).
+  {
+    id: 'bestall-paket', namn: 'Beställa ett standardpaket med prover', roll: 'lak-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Gunnar Åkesson ligger inne med hjärtsvikt. Beställ de prover som behövs för att följa upp hjärtsvikten.',
+    kontroll: { notis: 'är beställt' },
+  },
+  {
+    id: 'registrera-provtagning', namn: 'Registrera provtagning', roll: 'ssk-kard', start: 'Provtagningen efter återställning',
+    text: 'Du har tagit blodproverna på Elin Sandberg, blodstatus och CRP. Registrera att proverna är tagna och skicka dem till laboratoriet.',
+    kontroll: { notis: 'proverna är skickade' },
   },
 ];
 

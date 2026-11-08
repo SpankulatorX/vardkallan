@@ -19,6 +19,8 @@ import * as journalsok from './patient-sok.js';
 import * as tillampningar from './patient-tillampningar.js';
 // Runda 7, r6: tillväxt och barnhälsovård (Sussa 4.1).
 import * as tillvaxt from './patient-tillvaxt.js';
+// Runda 8, r1: beställning och svar och kontrollerna till avdelningen (Sussa 4.4).
+import * as prover from './patient-prover.js';
 
 export const namn = 'patient';
 
@@ -27,6 +29,8 @@ const FLIKAR = [
   ['journal', 'Journal', () => pa('las_journal', 'las_omvardnad'), journal],
   ['lakemedel', 'Läkemedel', () => far('las_lakemedel'), lakemedel],
   ['matvarden', 'Mätvärden', () => far('las_matvarden'), matvarden],
+  // Runda 8, r1: beställningar, provtagning, svar och kontroller.
+  ['prover', 'Prover', () => far('las_prover'), prover],
   // Runda 7, r6: tillväxt för barn och ungdomar. Villkoret får patienthuvudet, och fliken visas innan huvudet är hämtat.
   ['tillvaxt', 'Tillväxt', (h) => far('las_matvarden') && (!h || h.alder < 18), tillvaxt],
   ['remisser', 'Remisser', () => pa('las_remiss', 'las_remiss_status'), remisserFlik],

@@ -34,9 +34,11 @@ const FILER = [
   '/js/sussa-formular.js', '/js/sussa-testfall-ui.js', '/js/vyer/sussatest.js',
   '/js/tobak-regler.js', '/js/vyer/patient-tobak.js',
   '/js/remiss-r8-ui.js',
+  '/js/labb-ui.js', '/js/vyer/patient-prover.js', '/js/vyer/provtagning.js',
 ];
 // Runda 8, r5: listan har mallen för tobaksvanor (tobak-regler.js och patient-tobak.js).
 // Runda 8, r2: remiss på uppdrag, fördelning, remisskonferens och pappersremiss (remiss-r8-ui.js).
+// Runda 8, r1: listan har beställning och svar (labb-ui.js, patient-prover.js och provtagning.js).
 // Runda 7, r5: listan har rapporteringen, rättningarna i inkorgen och tabellen över tjänstekontrakten.
 // Runda 7, r2: listan har nyhetsrutan, hjälpen, högkontrastläget, nyheterna, utbildningen och tillgänglighetsredogörelsen.
 // Runda 7, r1: formulären och resultatet för Sussas användbarhetstester.

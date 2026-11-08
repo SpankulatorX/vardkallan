@@ -4,6 +4,8 @@
 import { TEST } from '../../krav.js';
 // Runda 8, r5: tilläggen för tobaksvanor, epikrisen, mätvärdena, övningarna och parametrarna (sussa/runda8-r5.js).
 import { medR8r5 } from '../runda8-r5.js';
+// Runda 8, r1: beställning och svar.
+import { T as LABB_T } from '../labb-r8.js';
 
 const { GK } = TEST;
 const S = 'Systemförvaltning > ';
@@ -106,10 +108,11 @@ const POSTERNA = [
   },
   {
     id: '12.1.1.9', kategori: 'system', egna: [], avsedd: 'delvis',
-    tester: [...KONFIG, GENOMSLAG],
-    losning: 'Larmgränserna för utebliven mottagningskvittens och för remissvar som inte har kvitterats är parametrar. Larmet och dess text följer det godkända värdet i inkorgen, remisslistan och FHIR.',
-    expert: 'Förhandsvisningen räknar hur många remisser som larmar i dag med det nya och det gamla värdet, så att effekten syns innan någon godkänner ändringen.',
-    anmarkning: 'Analyspaket, undersökningspaket med flera mottagare, etiketter och provtagningsanvisningar finns inte, eftersom labbeställning inte är byggd.',
+    // Runda 8, r1: paketen, svarstiden och när ett prov som inte är taget visas som försenat (labb.js).
+    tester: [...KONFIG, GENOMSLAG, LABB_T.konfig],
+    losning: 'Larmgränserna för utebliven mottagningskvittens och för remissvar som inte har kvitterats är parametrar, och sedan runda 8 också analyspaketens innehåll (paket med analyser till flera laboratorier), det simulerade laboratoriets svarstid och när ett prov som inte är taget visas som försenat. Ändringen slår igenom i förslagen, beställningarna, inkorgen och provtagningslistan.',
+    expert: 'Systemet prövar varje analys i ett paket mot katalogen och förklarar ett namn som inte finns, och förhandsvisningen visar vad ändringen betyder i dag.',
+    anmarkning: 'Vilken information som förs över till det mottagande systemet, etikettformatet per arbetsplats och provtagningsanvisningarna går inte att ändra som parametrar.',
   },
   {
     id: '12.1.1.10', kategori: 'system', egna: ['D8'], avsedd: 'delvis',

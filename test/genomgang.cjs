@@ -160,6 +160,8 @@ const MENY = {
   // Runda 7, r1: fysioterapeuten, paramedicinaren i Sussas testfall.
   fysioterapeut: ['Arbetslista', 'Sök patient', 'Inkorg', 'Remisser', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
 };
+// Runda 8, r1: sjuksköterskan och undersköterskan har Prover och kontroller direkt efter Läkemedel att ge.
+for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].indexOf('Läkemedel att ge') + 1, 0, 'Prover och kontroller');
 
 (async () => {
   const browser = await chromium.launch();
@@ -844,7 +846,8 @@ const MENY = {
       await gaTill(page, '#/patient/p01');
       const flikar = await page.locator('.flikar a').allTextContents();
       // Runda 6, r3: undersköterskan ser vårdplanerna och registrerar sina egna åtgärder under Planer.
-      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Journal', 'Läkemedel', 'Mätvärden', 'Logglista', 'Identitet', 'Utskrifter', 'Planer', 'Tillämpningar'])) throw new Error(`flikar ${flikar}`);
+      // Runda 8, r1: och fliken Prover, där undersköterskan tar prover och beställer på uppdrag.
+      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Journal', 'Läkemedel', 'Mätvärden', 'Prover', 'Logglista', 'Identitet', 'Utskrifter', 'Planer', 'Tillämpningar'])) throw new Error(`flikar ${flikar}`);
       if (await page.locator('#ov-dia').count()) throw new Error('diagnoser visas');
       await page.click('.flikar a:has-text("Journal")');
       await page.waitForSelector('.j-grupp');
@@ -1711,7 +1714,9 @@ const MENY = {
         // Runda 8, r5.
         'tobaksvanor', 'epikris', 'grundmatningar',
         // Runda 8, r2.
-        'remiss-pa-uppdrag', 'fordela-remiss', 'registrera-pappersremiss']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'remiss-pa-uppdrag', 'fordela-remiss', 'registrera-pappersremiss',
+        // Runda 8, r1: beställning och svar.
+        'bestall-paket', 'registrera-provtagning']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

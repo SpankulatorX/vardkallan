@@ -113,3 +113,10 @@ export const UPPDRAG_2_2 = { tillEnhetId: 'uso-ort', uppdragsgivare: 'lak-kard' 
 // (testfall 2.3, Bilaga F1:4).
 export const AVVISNING_2_3 = 'Tack för remissen. I första hand bör en initial utredning göras på primärvårdsnivå. Följ behandlingslinje som finns på intranätet.';
 export const VIDAREBEFORDRAN_2_3 = 'Begäran om konsultation gäller psykiatrin.';
+// Runda 8, r1: testfall 3.3 (Bilaga F1:4). Beställningen som läkaren gjorde dagen före testet, med Sussas fyra analyser,
+// att ta på morgonen. Läkaren i Sussas testdata spelas av läkaren på kardiologen.
+export const TREVIS_3_3 = { av: 'lak-kard', analyser: ['blodstatus', 'b12', 'folat', 'urinodling'], anamnes: 'Trötthet och sveda vid miktion.', klocka: '07:30' };
+// Testfall 3.4: provsvaren från vårdcentralen är beställda av läkaren där, som spelar Sussas beställande läkare.
+export const BERTIL_PK_BESTALLD_AV = 'lak-vc';
+// Testfall 3.5: kontrollerna i morgon klockan 7 (Bilaga F1:4).
+export const INGA_3_5 = { kontroller: ['puls', 'blodtryck', 'sr', 'temp', 'vikt', 'vatskebalans'] };
