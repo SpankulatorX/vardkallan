@@ -2,6 +2,8 @@
 // och registrering av en extern pappersremiss. Servern prövar all behörighet och fyller i det den kan räkna ut.
 import { esc, api, notis, felNotis, dialog, medKnapp, tidpunkt, datum, idag, ikon, PRIORITET_REMISS, tom } from './ui.js';
 import { far, minVardenhet, enhetLista, laddaEnheter, uppdateraInkorg, S } from './app.js';
+// Runda 10, r6: remiss eller konsultation.
+import { typFalt } from './remiss-r10-ui.js';
 
 // Tidsramarna när en remiss accepteras, som på servern (remiss-r8.js). Förvalet räknas ur prioriteten.
 export const TIDSRAMAR = [
@@ -122,6 +124,7 @@ export async function uppdragForm(plats, ctx, efter) {
   plats.innerHTML = `<form class="remissform" id="uppdragform" novalidate aria-labelledby="ru-rubrik">
     <h3 id="ru-rubrik" tabindex="-1">Remiss på uppdrag</h3>
     <p class="hjalp">${esc(f.text)} Du ser inte remissens text efter att den är skickad, eftersom den är journaltext.</p>
+    ${typFalt('ru')}
     <div class="falt-rad">
       <div class="falt bred"><label for="ru-lakare">Uppdragsgivare och remittent <span class="obl">(obligatoriskt)</span></label><select id="ru-lakare" name="uppdragsgivareId" required>
         ${forvald ? '' : '<option value="">Välj läkare</option>'}${f.uppdragsgivare.map(l => `<option value="${esc(l.id)}"${l.forvald ? ' selected' : ''}>${esc(l.namn)}, ${esc((l.titel ?? '').toLowerCase())}</option>`).join('')}</select>
@@ -165,7 +168,7 @@ export async function konferensVy(el, { remissKort, kopplaAtgarder }) {
     ${admin && d.remisser.length ? `<div class="falt"><label for="kf-ansvarig">Beslut som fattas av</label><select id="kf-ansvarig"><option value="">Välj läkare</option>${d.lakare.map(l => `<option value="${esc(l.id)}">${esc(l.namn)}, ${esc((l.titel ?? '').toLowerCase())}</option>`).join('')}</select>
       <p class="hjalp">Du registrerar de beslut som läkaren fattar på konferensen. Läkaren står som ansvarig för beslutet, och du ser ingen journaltext.</p></div>` : ''}
     <div id="kf-lista">${d.remisser.length ? d.remisser.map(r => `${remissKort(r, { visaPatient: true })}${(lakaren || admin) ? `<div class="knapprad r8-konf-knappar" data-konf-for="${r.id}">
-      <button type="button" class="knapp liten" data-konf="accepterad" data-id="${r.id}">Acceptera, besök ${esc(tidsramText(r.forvaldTidsram))}</button>
+      <button type="button" class="knapp liten" data-konf="accepterad" data-id="${r.id}">${r.konsultation ? 'Acceptera, besvaras med råd' : `Acceptera, besök ${esc(tidsramText(r.forvaldTidsram))}`}</button>
       <button type="button" class="knapp liten sekundar" data-konf="avvisad" data-id="${r.id}">Avvisa</button></div>` : ''}`).join('') : tom('Inga remisser står på remisskonferensen. Sätt en inkommande remiss på konferensen med Till remisskonferens.')}</div>
   </section>`;
   const lista = d.remisser;
@@ -189,7 +192,7 @@ export async function konferensVy(el, { remissKort, kopplaAtgarder }) {
     }
     try {
       const ny = await medKnapp(b, () => (lakaren ? api(`/api/remiss/${r.id}/bedom`, { metod: 'POST', data }) : api(`/api/remiss/${r.id}/beslut-pa-uppdrag`, { metod: 'POST', data: { ...data, ansvarigId } })));
-      notis(data.beslut === 'accepterad' ? `Remissen är accepterad. Besöket ska ske ${tidsramText(data.besokInomDagar)}.` : 'Remissen är avvisad. Remittenten ser motiveringen.');
+      notis(data.beslut === 'accepterad' ? (r.konsultation ? 'Konsultationen är accepterad och besvaras med råd.' : `Remissen är accepterad. Besöket ska ske ${tidsramText(data.besokInomDagar)}.`) : 'Remissen är avvisad. Remittenten ser motiveringen.');
       if (!lakaren) notis(`Beslutet är registrerat med ${ny.beslutPaUppdrag?.ansvarig?.namn ?? 'läkaren'} som ansvarig.`, 'info');
       await uppdateraInkorg();
       rita();

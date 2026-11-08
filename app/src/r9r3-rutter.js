@@ -57,6 +57,14 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
   rutt('GET', '/api/patient/:id/blod/forslag', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_prover', (atk) => blod.forslag(atk, { produkt: q(c, 'produkt') ?? undefined })); });
   rutt('POST', '/api/patient/:id/blod', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'bestalla_prov', (atk) => blod.bestall(atk, c.body))]; });
   rutt('GET', '/api/blod/kontroller', (c) => { kravInloggad(c); return blod.vantandeKontroller(c.db, c.personal, val(c)); });
+  // Runda 10, r6: den som beställde blodet kvitterar en avvikelse från transfusionskontrollen.
+  rutt('POST', '/api/blod/avvikelse/:aid/kvittera', (c, aid) => {
+    kravInloggad(c);
+    blod.sakra(c.db);
+    const a = /^\d{1,9}$/.test(String(aid)) ? c.db.query('SELECT patient_id FROM blod_avvikelser WHERE id = ?').get(Number(aid)) : null;
+    if (!a) throw new Fel(404, 'Avvikelsen finns inte.', 'saknas');
+    return medPatient(c, a.patient_id, 'las_prover', (atk) => blod.kvitteraAvvikelse(atk, aid));
+  });
   rutt('POST', '/api/blod/:bid/utlamna', (c, bid) => { kravInloggad(c); return medRad(c, blod.bestallningRad(c.db, bid), 'ge_lakemedel', (atk, r) => blod.utlamna(atk, r)); });
   const BLOD = { forbered: (atk, e, b) => blod.forbered(atk, e, b), kontrollera: (atk, e, b) => blod.kontrollera(atk, e, b), starta: (atk, e) => blod.starta(atk, e),
     avsluta: (atk, e, b) => blod.avsluta(atk, e, b), aterlamna: (atk, e, b) => blod.aterlamna(atk, e, b) };

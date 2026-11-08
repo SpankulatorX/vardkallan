@@ -442,6 +442,50 @@
           "var": "#/regler",
           "rubrik": "Vårdenheternas förval för vyerna",
           "text": "Under Regler och parametrar sätter du vårdenhetens förval för översikten per situation och för Dagens arbete. Förvalet ändrar bara vad som visas, aldrig vad någon får se."
+        },
+        {
+          "id": "remiss-konsultation",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "vardadministrator"
+          ],
+          "omfattning": "stor",
+          "var": "#/remisser",
+          "rubrik": "Konsultation eller remiss",
+          "text": "När du skriver en remiss väljer du om vårdansvaret ska lämnas över eller om du bara vill ha råd. En konsultation besvaras direkt med råd, och patienten sätts inte upp på mottagarens väntelista."
+        },
+        {
+          "id": "remiss-urval",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "vardadministrator"
+          ],
+          "omfattning": "liten",
+          "var": "#/remisser",
+          "rubrik": "Urval i remissöversikten",
+          "text": "Remisserna går att visa efter typ, status, prioritet och när de skickades. Varje val visar hur många remisser det ger."
+        },
+        {
+          "id": "remiss-beslut-kvittens",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "var": "#/inkorg",
+          "rubrik": "Kvittera beslut på uppdrag",
+          "text": "Ett beslut om en remiss som vårdadministratören har registrerat med dig som ansvarig hamnar i inkorgen. Kvittera att det stämmer, eller öppna remissen igen och bedöm den själv."
+        },
+        {
+          "id": "undersokningar-och-producentsystem",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "var": "#/arbetslista",
+          "rubrik": "Undersökningar och fler analyser",
+          "text": "Under Prover beställer du nu också vilo-EKG, EEG och lungröntgen, som skickas direkt till den utförande enheten utan provtagning, och analyser från klinisk immunologi och klinisk genetik. Svaret kommer som ett utlåtande att vidimera."
         }
       ]
     },

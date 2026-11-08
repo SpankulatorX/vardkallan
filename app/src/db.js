@@ -398,6 +398,11 @@ export function byggSeed(bas = nu()) {
   require('./remiss-r4.js').sakraRemissR4(db);
   // Runda 8, r2: remiss på uppdrag, fördelning, remisskonferens och extern pappersremiss (remiss-r8.js).
   require('./remiss-r8.js').sakraRemissR8(db);
+  // Runda 10, r6: remiss eller konsultation och kvittens av beslut på uppdrag (remiss-r10.js).
+  require('./remiss-r10.js').sakraRemissR10(db);
+  require('./remiss-r10.js').seedaKonsultation(db);
+  // Runda 10, r6: producentsystem för beställning och svar (produktionssystem.js).
+  require('./produktionssystem.js').sakra(db);
   sakraIdentitetsschema(db);
   // Runda 6, r1 (schema-runda6-r1.js).
   sakraR1Schema(db);
@@ -524,6 +529,10 @@ export function migrera(db) {
   require('./remiss-r4.js').sakraRemissR4(db);
   // Runda 8, r2: tabellerna för remiss på uppdrag, fördelning, remisskonferens och extern pappersremiss.
   require('./remiss-r8.js').sakraRemissR8(db);
+  // Runda 10, r6: remiss eller konsultation och kvittens av beslut på uppdrag.
+  require('./remiss-r10.js').sakraRemissR10(db);
+  // Runda 10, r6: producentsystem för beställning och svar.
+  require('./produktionssystem.js').sakra(db);
   // Runda 6, r1: tabellerna för åtgärder, säkerhetsloggen och stickproven finns inte i äldre sandlådor.
   sakraR1Schema(db);
   // Runda 6, r6: en äldre sandlåda får verksamhetschefen, uppdragen och godkännandena relativt till i dag.

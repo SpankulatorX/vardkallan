@@ -12,8 +12,12 @@ import { createHash } from 'node:crypto';
 import { Fel, iso, idag, addDagar, giltigtDatum } from './db.js';
 import { vardenhetFor, kanRoll } from './atkomst.js';
 import * as remiss from './remiss.js';
+// Runda 10, r6: bilagornas storlek och antal är parametrar som systemförvaltaren sätter (konfiguration.js).
+import { varde as konfig } from './konfiguration.js';
 // Runda 8, r2: extern pappersremiss (remiss-r8.js).
 import * as r8 from './remiss-r8.js';
+// Runda 10, r6: remiss eller konsultation (remiss-r10.js).
+import * as r10 from './remiss-r10.js';
 
 // Avsändaren av en egen vårdbegäran från invånaren (vardbegaran.js), som en enhet utan vårdenhet.
 export const EGEN = 'min-journal';
@@ -63,14 +67,21 @@ export function typFor(buf) {
   return null;
 }
 
+// Gränserna som gäller i dag. Utan databas, eller i en sandlåda utan parametrarna, gäller demons förval.
+export function bilagegranser(db, nu = new Date()) {
+  const las = (k, std) => { try { return db ? konfig(db, k, nu) : std; } catch { return std; } };
+  return { maxKb: las('remiss.bilaga_max_kb', MAX_BILAGA / 1024), maxAntal: las('remiss.bilagor_max', MAX_BILAGOR) };
+}
+
 // Läser och kontrollerar en bilaga ur anropet: { namn, data } med data i base64.
-export function tolkaBilaga(inp) {
+export function tolkaBilaga(inp, db = null) {
   const namn = typeof inp?.namn === 'string' ? inp.namn.replace(/[\\/\x00-\x1f]/g, '').trim().slice(0, 100) : '';
   if (!namn) throw new Fel(400, 'Bilagan behöver ett namn.', 'ogiltig', { falt: ['namn'] });
   if (typeof inp?.data !== 'string' || !/^[A-Za-z0-9+/=\s]+$/.test(inp.data)) throw new Fel(400, 'Filen kunde inte läsas.', 'ogiltig', { falt: ['data'] });
   const buf = Buffer.from(inp.data, 'base64');
   if (!buf.length) throw new Fel(400, 'Filen är tom.', 'ogiltig', { falt: ['data'] });
-  if (buf.length > MAX_BILAGA) throw new Fel(400, `Filen är för stor. En bilaga får vara högst 40 kB i demon.`, 'ogiltig', { falt: ['data'] });
+  const { maxKb } = bilagegranser(db);
+  if (buf.length > maxKb * 1024) throw new Fel(400, `Filen är för stor. En bilaga får vara högst ${maxKb} kB. Gränsen bestämmer systemförvaltningen.`, 'ogiltig', { falt: ['data'] });
   const typ = typFor(buf);
   if (!typ) throw new Fel(400, 'Filtypen stöds inte. Bifoga PDF, PNG, JPEG eller text. Systemet avgör typen ur filens innehåll.', 'ogiltig', { falt: ['data'] });
   return { namn, typ, buf };
@@ -78,7 +89,8 @@ export function tolkaBilaga(inp) {
 
 export function sparaBilaga(db, { remissId = null, utkastId = null, patientId, bilaga, av = null, avInvanare = null }) {
   const antal = db.query('SELECT count(*) AS n FROM remiss_bilagor WHERE (remiss_id = ? AND ? IS NOT NULL) OR (utkast_id = ? AND ? IS NOT NULL)').get(remissId, remissId, utkastId, utkastId).n;
-  if (antal >= MAX_BILAGOR) throw new Fel(400, `En remiss kan ha högst ${MAX_BILAGOR} bilagor i demon.`, 'ogiltig');
+  const { maxAntal } = bilagegranser(db);
+  if (antal >= maxAntal) throw new Fel(400, `En remiss kan ha högst ${maxAntal} bilagor. Gränsen bestämmer systemförvaltningen.`, 'ogiltig');
   const id = Number(db.query(`INSERT INTO remiss_bilagor (remiss_id, utkast_id, patient_id, namn, typ, storlek, sha256, data, skapad, skapad_av, skapad_av_invanare)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(remissId, utkastId, patientId, bilaga.namn, bilaga.typ, bilaga.buf.length,
     createHash('sha256').update(bilaga.buf).digest('hex'), bilaga.buf, iso(), av, avInvanare).lastInsertRowid);
@@ -140,7 +152,7 @@ export function kompletteraMedBilaga(atk, r, body) {
     throw new Fel(403, 'Bara den remitterande vårdenheten kan komplettera remissen.', 'nekad');
   }
   if (!['skickad', 'mottagen'].includes(r.status) && !(r.status === 'bedomd' && r.beslut === 'accepterad')) throw new Fel(400, 'Remissen är redan besvarad eller avslutad och kan inte kompletteras.', 'ogiltig');
-  const b = sparaBilaga(atk.db, { remissId: r.id, patientId: r.patient_id, bilaga: tolkaBilaga(body), av: atk.personal.id });
+  const b = sparaBilaga(atk.db, { remissId: r.id, patientId: r.patient_id, bilaga: tolkaBilaga(body, atk.db), av: atk.personal.id });
   atk.logga('remittera', atk.grund(), `remiss:${r.id}:bilaga:${b.id}`);
   return [201, b];
 }
@@ -154,6 +166,8 @@ function utkastUt(db, u) {
   return {
     id: u.id, status: u.status, patientId: u.patient_id, fran: enhet(u.enhet_id), till: enhet(u.till_enhet_id), fragestallning: u.fragestallning ?? '', anamnes: u.anamnes ?? '',
     prioritet: u.prioritet, svarSenast: u.svar_senast, skapad: u.skapad, andrad: u.andrad, remissId: u.remiss_id ?? null, bilagor: bilagorFor(db, 'utkast_id', u.id),
+    // Runda 10, r6.
+    typ: u.typ ?? 'remiss',
   };
 }
 // Bara den som skrev utkastet ser och ändrar det. Andra får samma svar som när det inte finns.
@@ -181,6 +195,8 @@ function faltUr(db, atk, body, u = {}) {
     if (!giltigtDatum(body.svarSenast) || body.svarSenast < idag()) throw new Fel(400, 'Välj ett sista svarsdatum från i dag.', 'ogiltig', { falt: ['svarSenast'] });
     ut.svar_senast = body.svarSenast;
   }
+  // Runda 10, r6: remiss eller konsultation.
+  if (body.typ !== undefined) ut.typ = r10.tolkaTyp(body.typ);
   return { ...u, ...ut };
 }
 
@@ -194,13 +210,13 @@ export function skapaUtkast(atk, body = {}) {
     const r = synliga.find(x => x.id === Number(body.franRemissId));
     if (!r || r.fragestallning == null) throw new Fel(400, 'Den remissen kan inte återanvändas här.', 'ogiltig', { falt: ['franRemissId'] });
     const min = vardenhetFor(db, atk.personal.enhet_id);
-    grund = { till_enhet_id: r.till.id !== min ? r.till.id : null, fragestallning: r.fragestallning, anamnes: r.anamnes ?? '', prioritet: r.prioritet };
+    grund = { till_enhet_id: r.till.id !== min ? r.till.id : null, fragestallning: r.fragestallning, anamnes: r.anamnes ?? '', prioritet: r.prioritet, typ: r.typ ?? 'remiss' };
   }
   const f = faltUr(db, atk, body, grund);
   const nu = iso();
-  const id = Number(db.query(`INSERT INTO remiss_utkast (patient_id, enhet_id, skapad_av, till_enhet_id, fragestallning, anamnes, prioritet, svar_senast, skapad, andrad)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(atk.patientId, vardenhetFor(db, atk.personal.enhet_id), atk.personal.id, f.till_enhet_id ?? null, f.fragestallning ?? null,
-    f.anamnes ?? null, f.prioritet ?? 'normal', f.svar_senast ?? addDagar(idag(), SVAR_DAGAR), nu, nu).lastInsertRowid);
+  const id = Number(db.query(`INSERT INTO remiss_utkast (patient_id, enhet_id, skapad_av, till_enhet_id, fragestallning, anamnes, prioritet, svar_senast, skapad, andrad, typ)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(atk.patientId, vardenhetFor(db, atk.personal.enhet_id), atk.personal.id, f.till_enhet_id ?? null, f.fragestallning ?? null,
+    f.anamnes ?? null, f.prioritet ?? 'normal', f.svar_senast ?? addDagar(idag(), SVAR_DAGAR), nu, nu, f.typ ?? 'remiss').lastInsertRowid);
   atk.logga('remittera', atk.grund(), `remissutkast:${id}`);
   return [201, utkastUt(db, db.query('SELECT * FROM remiss_utkast WHERE id = ?').get(id))];
 }
@@ -225,7 +241,7 @@ export function skickaUtkast(atk, u, { knyt = (x) => x } = {}) {
   atk.krav('remittera');
   const db = atk.db;
   if (u.status !== 'utkast') throw new Fel(400, 'Utkastet är redan skickat.', 'ogiltig');
-  const ut = knyt(remiss.skapa(atk, { tillEnhetId: u.till_enhet_id, fragestallning: u.fragestallning ?? '', anamnes: u.anamnes ?? '', prioritet: u.prioritet, svarSenast: u.svar_senast }));
+  const ut = knyt(remiss.skapa(atk, { tillEnhetId: u.till_enhet_id, fragestallning: u.fragestallning ?? '', anamnes: u.anamnes ?? '', prioritet: u.prioritet, svarSenast: u.svar_senast, typ: u.typ ?? 'remiss' }));
   db.query('UPDATE remiss_bilagor SET remiss_id = ? WHERE utkast_id = ?').run(ut.id, u.id);
   db.query("UPDATE remiss_utkast SET status = 'skickad', remiss_id = ?, andrad = ? WHERE id = ?").run(ut.id, iso(), u.id);
   atk.logga('remittera', atk.grund(), `remissutkast:${u.id}:skickad:${ut.id}`);
@@ -243,7 +259,7 @@ export function taBortUtkast(atk, u) {
 export function bilagaTillUtkast(atk, u, body) {
   atk.krav('remittera');
   if (u.status !== 'utkast') throw new Fel(400, 'Utkastet är redan skickat. Komplettera remissen i stället.', 'ogiltig');
-  const b = sparaBilaga(atk.db, { utkastId: u.id, patientId: u.patient_id, bilaga: tolkaBilaga(body), av: atk.personal.id });
+  const b = sparaBilaga(atk.db, { utkastId: u.id, patientId: u.patient_id, bilaga: tolkaBilaga(body, atk.db), av: atk.personal.id });
   atk.logga('remittera', atk.grund(), `remissutkast:${u.id}:bilaga:${b.id}`);
   return [201, b];
 }
@@ -277,6 +293,8 @@ export function vidarebefordra(atk, r, body = {}) {
   if (egen) db.query('INSERT INTO egen_vardbegaran VALUES (?, ?, ?, ?, ?)').run(ny, egen.invanare_id, egen.patient_id, egen.skal, egen.skapad);
   // Runda 8, r2: en extern pappersremiss går vidare med samma avsändare.
   r8.kopieraExtern(db, r.id, ny);
+  // Runda 10, r6: en konsultation går vidare som konsultation.
+  r10.kopieraTyp(db, r.id, ny);
   atk.logga('bedom_remiss', atk.grund(), `remiss:${r.id}:vidarebefordrad:${ny}`);
   return { gammal: remiss.remissUt(db, remiss.hamtaRad(db, r.id)), ny: remiss.remissUt(db, remiss.hamtaRad(db, ny)) };
 }

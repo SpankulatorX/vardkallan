@@ -366,4 +366,9 @@ export const FLODEN = [
     id: 'sok-journaler', namn: 'Söka bland vårdenhetens patienter på en diagnos', roll: 'lak-kard', start: 'Arbetslistan efter inloggning', budget: 3,
     motivering: 'Sussa 3.1.8.2. Ett klick på Sök patient, ett fältbyte till Sök i journalerna och Enter. Systemet gör om ordet förmaksflimmer till diagnoskoderna, prövar varje patient i behörighetsmotorn och säger varför patienten är med.',
   },
+  // Runda 10, r6: konsultation, där vårdansvaret stannar hos remittenten (Sussa 3.3.1.4).
+  {
+    id: 'skicka-konsultation', namn: 'Skicka en konsultation', roll: 'lak-vc', start: 'Patientens översikt', budget: 7,
+    motivering: 'Sussa 3.3.1.4. Ett klick på Skicka remiss, där formuläret öppnas med mottagaren i fokus, ett klick på Fråga om råd, två klick för att välja mottagare i listan, ett fältbyte vardera för frågeställning och anamnes och ett klick för att skicka. Prioritet och sista svarsdatum är förvalda, och systemet förklarar vad valet betyder för vårdansvaret.',
+  },
 ];

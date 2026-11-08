@@ -301,6 +301,8 @@ export async function uppdateraInkorg() {
       + (d.tillvaxtLarm?.length ?? 0) + (d.hemmatningarAttBekrafta?.length ?? 0) + (d.bhvAttBoka?.length ?? 0)
       // Runda 8, r2: remisser att signera på uppdrag och remisser fördelade till läkaren.
       + (d.remisserAttSignera?.length ?? 0) + (d.remisserAttBedoma?.length ?? 0)
+      // Runda 10, r6: beslut på uppdrag att kvittera.
+      + (d.beslutAttKvittera?.length ?? 0) + (d.blodAvvikelser?.length ?? 0)
       // Runda 8, r1: beställning och svar.
       + labbInkorgAntal(d)
       // Runda 9, r1: beredningar att kontrollera.

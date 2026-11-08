@@ -10,6 +10,8 @@ import { MATKOD, ACVPU_KOD, SYSTEM as KOD } from './kodverk.js';
 import { EXT, CS, UTTRYCK } from './fhir-definitioner.js';
 import * as fhir from './fhir.js';
 import * as tidbokFhir from './tidbok-fhir.js';
+// Runda 10, r6: remiss eller konsultation ur ServiceRequest.category (remiss-r10.js).
+import { fhirTyp as remissTyp } from './remiss-r10.js';
 
 // Resurstyperna som går att skapa och ändra, och vad gränssnittet gör för var och en.
 export const SKRIVBARA = {
@@ -351,6 +353,8 @@ const SKRIVARE = {
       const kropp = {
         tillEnhetId: till, fragestallning: strang(r.reasonCode?.[0]?.text), anamnes: (r.note ?? []).map(n => strang(n?.text)).filter(Boolean).join('\n\n'),
         prioritet, svarSenast: svar ?? addDagar(idag(), SVAR_SENAST_DAGAR),
+        // Runda 10, r6: konsultation när kategorin säger det, annars remiss.
+        ...(remissTyp(CS, r) ? { typ: remissTyp(CS, r) } : {}),
       };
       const { data } = kor('POST', `/api/patient/${pid}/remisser`, kropp);
       return { status: 201, typ: 'ServiceRequest', id: data.id, resurs: fhir.serviceRequest(db, db.query('SELECT * FROM remisser WHERE id = ?').get(data.id), true), text: `Remissen är skickad.${svar ? '' : ` Sista svarsdatum är ${kropp.svarSenast}, som i gränssnittet.`}` };

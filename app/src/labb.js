@@ -31,6 +31,8 @@ import * as signering from './signering.js';
 import { LAB, LABORATORIER, ROR, ANALYSER, ANALYS, PAKET, PAKETEN, SVARSVARDEN, FYND, DISCIPLINER, DEMOREGEL, finns as iKatalog } from './labb-katalog.js';
 // Runda 9, r3: blodcentralens svar.
 import { blodgruppFor, blodgruppText } from './labb-katalog.js';
+// Runda 10, r6: producentsystem som är anslutna genom det öppna gränssnittet (Sussa 5.1.4.5).
+import * as ps from './produktionssystem.js';
 
 export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS labb_bestallningar (
@@ -238,7 +240,7 @@ export function bestallningUt(db, b, personal = null, nu = new Date()) {
   const steg = [
     { steg: 'bestalld', text: b.pa_uppdrag ? `Beställd av ${personNamn(db, b.registrerad_av)} på uppdrag av ${personNamn(db, b.ansvarig_id)}` : `Beställd av ${personNamn(db, b.ansvarig_id)}`, tid: b.skapad, klar: true },
     ...(b.pa_uppdrag ? [{ steg: 'signerad', text: b.signerad_tid ? `Signerad av ${personNamn(db, b.ansvarig_id)}` : `Väntar på signering av ${personNamn(db, b.ansvarig_id)}`, tid: b.signerad_tid, klar: Boolean(b.signerad_tid) }] : []),
-    { steg: 'provtagen', text: provUt.every(p => p.provtagen) ? 'Provtagen' : `${provUt.filter(p => p.provtagen).length} av ${provUt.length} rör tagna`, tid: provUt.every(p => p.provtagen) ? tid(provUt, p => p.provtagen?.tid, true) : null, klar: provUt.length > 0 && provUt.every(p => p.provtagen) },
+    { steg: 'provtagen', text: provUt.length && provUt.every(p => ROR[p.ror]?.utanProv) ? 'Skickad till den utförande enheten' : provUt.every(p => p.provtagen) ? 'Provtagen' : `${provUt.filter(p => p.provtagen).length} av ${provUt.length} rör tagna`, tid: provUt.every(p => p.provtagen) ? tid(provUt, p => p.provtagen?.tid, true) : null, klar: provUt.length > 0 && provUt.every(p => p.provtagen) },
     { steg: 'mottagen', text: 'Mottagen av laboratoriet', tid: tid(aktiva, a => a.mottagen_tid), klar: aktiva.length > 0 && aktiva.every(a => a.mottagen_tid) },
     { steg: 'besvarad', text: besvarade.length === aktiva.length ? 'Besvarad' : `${besvarade.length} av ${aktiva.length} analyser besvarade`, tid: besvarade.length === aktiva.length ? tid(aktiva, a => a.besvarad_tid, true) : null, klar: aktiva.length > 0 && besvarade.length === aktiva.length },
     { steg: 'vidimerad', text: aktiva.every(a => a.vidimerad_tid) && aktiva.length ? `Vidimerad av ${personNamn(db, aktiva[0].vidimerad_av)}` : `Vidimeras av ${personNamn(db, b.ansvarig_id)}`, tid: aktiva.length && aktiva.every(a => a.vidimerad_tid) ? tid(aktiva, a => a.vidimerad_tid, true) : null, klar: aktiva.length > 0 && aktiva.every(a => a.vidimerad_tid) },
@@ -263,10 +265,12 @@ export function bestallningUt(db, b, personal = null, nu = new Date()) {
       overlata: status !== 'makulerad' && status !== 'vidimerad' && kanRoll(personal, 'bestalla_prov') && (personal.id === b.ansvarig_id || egenVe),
       vidimera: personal.id === b.ansvarig_id && besvarade.some(a => !a.vidimerad_tid),
       signera: personal.id === b.ansvarig_id && Boolean(b.pa_uppdrag) && !b.signerad_tid && status !== 'makulerad',
-      simuleraSvar: status !== 'makulerad' && aktiva.some(a => a.status === 'mottagen'),
+      simuleraSvar: status !== 'makulerad' && aktiva.some(a => a.status === 'mottagen' && !ps.arAnsluten(db, a.lab_id)),
       skicka: oppen && provUt.some(p => p.provtagen && !p.skickad),
     } : null,
     simulerat: 'Laboratoriet är simulerat. Svaren räknas fram av demon.',
+    // Runda 10, r6: laboratorier vars producentsystem är anslutna genom det öppna gränssnittet.
+    producentsystem: [...new Set(aktiva.map(a => a.lab_id))].filter(id => ps.arAnsluten(db, id)).map(id => ({ lab: labKort(id), text: 'Beställning, status och svar går genom laboratoriets producentsystem.' })),
   };
 }
 
@@ -436,6 +440,19 @@ function laggIn(db, b, rader) {
   }
 }
 
+// Runda 10, r6: en undersökning (klinisk fysiologi, neurofysiologi, radiologi) har inget prov att ta. Systemet skickar
+// den direkt till den utförande enheten, som kallar patienten och svarar med ett utlåtande.
+function skickaUndersokningar(db, b, personalId, nu) {
+  const rader = provFor(db, b.id).filter(p => ROR[p.ror]?.utanProv && !p.provtagen_tid);
+  if (!rader.length) return;
+  const tid = iso(nu);
+  for (const p of rader) {
+    db.query('UPDATE labb_prov SET provtagen_tid = ? WHERE id = ?').run(tid, p.id);
+    db.query("UPDATE labb_analyser SET status = 'provtagen' WHERE prov_id = ? AND status = 'bestalld'").run(p.id);
+  }
+  skicka(db, b, personalId, nu);
+}
+
 // Beställer. body: { paket, analyser: [id | { analys, planerad }], planerad, anamnes, kommentar, lakareId (på uppdrag),
 // laboratorier: { disciplin: labId }, kvitteraDubbletter }.
 export function bestall(atk, body = {}, nu = new Date()) {
@@ -462,13 +479,17 @@ export function bestall(atk, body = {}, nu = new Date()) {
   if (lista.length > 30) throw new Fel(400, 'En beställning kan ha högst 30 analyser.', 'ogiltig', { falt: ['analyser'] });
   const okand = lista.find(x => !iKatalog(ANALYS, x.analys));
   if (okand) throw new Fel(400, 'Analysen finns inte i katalogen.', 'ogiltig', { falt: ['analyser'] });
+  // Runda 10, r6: kontrolleras sedan mot laboratoriets egen katalog när producentsystemet har skickat en.
   const sedda = new Set();
   lista = lista.filter(x => (sedda.has(x.analys) ? false : (sedda.add(x.analys), true)));
   const rader = lista.map(x => {
     const def = ANALYS[x.analys];
     const valtLab = body.laboratorier?.[def.disciplin];
     if (valtLab != null && (!iKatalog(LAB, valtLab) || LAB[valtLab].disciplin !== def.disciplin)) throw new Fel(400, `Laboratoriet tar inte emot prov för ${DISCIPLINER[def.disciplin].namn.toLocaleLowerCase('sv')}.`, 'ogiltig', { falt: ['laboratorier'] });
-    return { analys: x.analys, lab: valtLab ?? labFor(db, pers.enhet_id, def.disciplin).id, planerad: x.planerad != null ? valideraTid(x.planerad, nu) : planerad };
+    const lab = valtLab ?? labFor(db, pers.enhet_id, def.disciplin).id;
+    const ej = ps.ejTillganglig(db, lab, x.analys);
+    if (ej) throw new Fel(400, ej, 'ogiltig', { falt: ['analyser'] });
+    return { analys: x.analys, lab, planerad: x.planerad != null ? valideraTid(x.planerad, nu) : planerad };
   });
   let anamnes = textFalt(body.anamnes, 500);
   if (!anamnes && rader.some(r => ANALYS[r.analys].anamnes)) {
@@ -491,6 +512,7 @@ export function bestall(atk, body = {}, nu = new Date()) {
     db.query('UPDATE labb_bestallningar SET nummer = ? WHERE id = ?').run(nummerFor(id, tid), id);
     b = bestallningRad(db, id);
     laggIn(db, b, rader);
+    skickaUndersokningar(db, b, pers.id, nu);
     const labb = [...new Set(rader.map(x => LAB[x.lab].kort))].join(' och ');
     historik(db, b, pers.id, uppdrag ? `Beställd på uppdrag av ${personNamn(db, ansvarig)}` : 'Beställd',
       // Bara att beställningen gjordes trots varning och för vilka analyser. Varningens skäl (värde, tid och vårdenhet)
@@ -539,6 +561,8 @@ export function makulera(atk, b, { orsak } = {}, nu = new Date()) {
     db.query('UPDATE labb_bestallningar SET makulerad_tid = ?, makulerad_av = ?, makulerad_orsak = ? WHERE id = ?').run(iso(nu), atk.personal.id, o, b.id);
     db.query("UPDATE labb_analyser SET status = 'makulerad' WHERE bestallning_id = ? AND status <> 'borttagen'").run(b.id);
     historik(db, b, atk.personal.id, 'Makulerad', `${o}${skickade.length ? ' Laboratoriet har fått makuleringen.' : ''}`, iso(nu));
+    // Runda 10, r6: ett anslutet producentsystem som har fått beställningen får en makulering i det öppna gränssnittet.
+    for (const labId of new Set(skickade.map(p => p.lab_id))) if (ps.arAnsluten(db, labId)) ps.laggIUtkorg(db, bestallningRad(db, b.id), labId, 'makulering', nu);
   })();
   return { bestallning: bestallningUt(db, bestallningRad(db, b.id), atk.personal, nu), text: `Beställningen ${b.nummer} är makulerad.${skickade.length ? ' Laboratoriet har fått makuleringen.' : ''}` };
 }
@@ -567,6 +591,7 @@ export function andra(atk, b, { taBort = [], laggTill = [], kvitteraDubbletter =
       if (!db.query("SELECT 1 FROM labb_analyser WHERE prov_id = ? AND status <> 'borttagen'").get(p.id)) db.query('UPDATE labb_prov SET borttagen = 1 WHERE id = ?').run(p.id);
     }
     laggIn(db, b, nya.map(id => ({ analys: id, lab: labFor(db, b.enhet_id, ANALYS[id].disciplin).id, planerad: b.planerad })));
+    skickaUndersokningar(db, b, atk.personal.id, nu);
     historik(db, b, atk.personal.id, 'Ändrad', [bort.length ? `Borttagen: ${bort.map(a => ANALYS[a.analys].namn).join(', ')}.` : '', nya.length ? `Tillagd: ${nya.map(id => ANALYS[id].namn).join(', ')}.` : '',
       dubb.size ? `Tillagd trots varning för ${[...dubb.values()].map(d => d.namn).join(', ')}.` : ''].filter(Boolean).join(' '), iso(nu));
   })();
@@ -626,12 +651,21 @@ function skicka(db, b, personalId, nu, { planerad = null } = {}) {
   const rader = provFor(db, b.id).filter(p => p.provtagen_tid && !p.skickad_tid && (!planerad || p.planerad === planerad));
   if (!rader.length) return [];
   const labb = new Set();
+  // Runda 10, r6: ett laboratorium med ett anslutet producentsystem får beställningen som ett meddelande i det öppna
+  // gränssnittet och kvitterar själv att proverna har kommit. Det simulerade laboratoriet kvitterar direkt.
+  const anslutna = new Set();
   for (const p of rader) {
     db.query('UPDATE labb_prov SET skickad_tid = ? WHERE id = ?').run(tid, p.id);
-    db.query("UPDATE labb_analyser SET status = 'mottagen', mottagen_tid = ? WHERE prov_id = ? AND status = 'provtagen'").run(tid, p.id);
+    if (ps.arAnsluten(db, p.lab_id)) {
+      db.query("UPDATE labb_analyser SET status = 'skickad' WHERE prov_id = ? AND status = 'provtagen'").run(p.id);
+      anslutna.add(p.lab_id);
+    } else db.query("UPDATE labb_analyser SET status = 'mottagen', mottagen_tid = ? WHERE prov_id = ? AND status = 'provtagen'").run(tid, p.id);
     labb.add(LAB[p.lab_id]?.kort ?? p.lab_id);
   }
-  historik(db, b, personalId, 'Skickad', `${rader.length} rör till ${[...labb].join(' och ')}. Laboratoriet har kvitterat att proverna har kommit.`, tid);
+  for (const labId of anslutna) ps.laggIUtkorg(db, b, labId, 'bestallning', nu);
+  const simulerade = [...labb].filter(k => ![...anslutna].some(id => (LAB[id]?.kort ?? id) === k));
+  const ror = rader.filter(p => !ROR[p.ror]?.utanProv).length;
+  historik(db, b, personalId, 'Skickad', `${ror ? `${ror} rör` : 'Beställningen'} till ${[...labb].join(' och ')}.${simulerade.length ? ` ${simulerade.join(' och ')} har tagit emot ${ror ? 'proverna' : 'beställningen'}.` : ''}${anslutna.size ? ` Beställningen är skickad till ${[...anslutna].map(id => LAB[id]?.kort ?? id).join(' och ')} genom producentsystemet.` : ''}`, tid);
   return [...labb];
 }
 // Skickar det som är taget nu, när resten tas senare.
@@ -699,6 +733,9 @@ function labbetsSvar(db, b, a) {
     if (fynd !== 'ingen_vaxt') { avvikande = 'fynd'; if (a.analys === 'blododling') kritisk = 1; }
   } else if (def.patologi) {
     text = demo.pad ?? 'Hudbiopsi med benign förändring utan atypi. Radikalt exciderad.';
+  } else if (def.utlatande) {
+    // Runda 10, r6: ett svar i text, till exempel från klinisk immunologi och klinisk genetik.
+    text = demo[a.analys] ?? def.utlatande;
   } else if (def.transfusion) {
     // Runda 9, r3: blodcentralens svar (blod.js). Ett positivt bastest är avvikande och kräver utredning före transfusion.
     if (a.analys === 'blodgruppering') text = `${blodgruppText(demo.blodgrupp ?? blodgruppFor(b.patient_id))}.`;
@@ -716,6 +753,13 @@ function besvara(db, b, a, nu) {
   const { meddelande, innehall: svar } = kanal({ meddelande: signering.signera('labb', { typ: 'labbsvar', mottagare: 'vardkallan', innehall: skickat, nu }), innehall: skickat });
   const mottaget = signering.taEmot(db, { typ: 'labbsvar', kalla: `labb_analyser:${a.id}`, enhetId: b.enhet_id, meddelande, innehall: svar, nu });
   if (!mottaget.godkant) return mottaget.orsak;
+  registreraSvar(db, b, a, svar, nu);
+  return null;
+}
+
+// Runda 10, r6: svaret blir mätvärden och text i journalen, på samma sätt från det simulerade laboratoriet och från ett
+// producentsystem genom det öppna gränssnittet (produktionssystem.js). svar har varden, text, fynd, avvikande och kritisk.
+export function registreraSvar(db, b, a, svar, nu = new Date()) {
   const insMv = db.query('INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, matt_enhet, tid, registrerad_av, kalla, vidimerad, vardkontakt_id) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, ?)');
   const insSv = db.query('INSERT INTO labb_svar (analys_rad_id, matvarde_id, patient_id, enhet_id) VALUES (?, ?, ?, ?)');
   for (const v of svar.varden) {
@@ -724,8 +768,10 @@ function besvara(db, b, a, nu) {
   }
   db.query("UPDATE labb_analyser SET status = 'besvarad', besvarad_tid = ?, svar_text = ?, fynd = ?, avvikande = ?, kritisk = ? WHERE id = ?")
     .run(iso(nu), svar.text, svar.fynd, svar.avvikande, svar.kritisk, a.id);
-  return null;
 }
+// Runda 10, r6: det simulerade laboratoriets svar och historiken, för det simulerade producentsystemet och mottagningen.
+export const simuleratSvar = (db, b, a) => labbetsSvar(db, b, a);
+export const historikRad = (db, b, personalId, handelse, detalj, tid) => historik(db, b, personalId, handelse, detalj, tid);
 
 // Runda 9, r5: svaret som det togs emot, ur journalen som den ser ut nu, för att kontrollera beviset i efterhand.
 export function mottagetSvar(db, analysId) {
@@ -746,8 +792,10 @@ export function forfallnaSvar(db, nu = new Date(), { bestallningId = null, alla 
   if (!finns(db) || fel.get(db) === datumAv(nu)) return 0;
   try {
     const grans = new Date(nu.getTime() - svarMinuter(db, nu) * MIN).toISOString();
-    const rader = db.query(`SELECT * FROM labb_analyser WHERE status = 'mottagen' ${alla ? '' : 'AND mottagen_tid <= ?'} ${bestallningId ? 'AND bestallning_id = ?' : ''} ORDER BY id`)
+    let rader = db.query(`SELECT * FROM labb_analyser WHERE status = 'mottagen' ${alla ? '' : 'AND mottagen_tid <= ?'} ${bestallningId ? 'AND bestallning_id = ?' : ''} ORDER BY id`)
       .all(...[...(alla ? [] : [grans]), ...(bestallningId ? [bestallningId] : [])]);
+    // Runda 10, r6: ett laboratorium med ett anslutet producentsystem svarar själv genom det öppna gränssnittet.
+    rader = rader.filter(a => !ps.arAnsluten(db, a.lab_id));
     if (!rader.length) return 0;
     const perBest = new Map();
     let besvarade = 0;
@@ -910,7 +958,8 @@ export function etiketter(atk, b, nu = new Date()) {
   return {
     nummer: b.nummer, skyddad: Boolean(p.skyddad && !visad),
     patient: { namn: visningsnamn(p, visad), personnummer: visningsPnr(p, visad) },
-    etiketter: u.prov.map(x => ({ etikett: x.etikett, ror: x.rorNamn, farg: x.farg, analyser: x.analyser, lab: x.lab?.kort, planerad: x.planerad, provtagen: x.provtagen?.tid ?? null })),
+    // Runda 10, r6: en undersökning har ingen etikett.
+    etiketter: u.prov.filter(x => !ROR[x.ror]?.utanProv).map(x => ({ etikett: x.etikett, ror: x.rorNamn, farg: x.farg, analyser: x.analyser, lab: x.lab?.kort, planerad: x.planerad, provtagen: x.provtagen?.tid ?? null })),
   };
 }
 

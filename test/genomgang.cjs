@@ -1822,7 +1822,9 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
         // Runda 9, r7: streckkodsläsaren och patientgrupperna.
         'skanna-armband', 'patientgrupp',
         // Runda 10, r2: utskrift av en anteckning, överkänslighet och sökning över patienter.
-        'skriv-ut-anteckning', 'registrera-overkanslighet', 'sok-journaler']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'skriv-ut-anteckning', 'registrera-overkanslighet', 'sok-journaler',
+        // Runda 10, r6: konsultation.
+        'skicka-konsultation']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

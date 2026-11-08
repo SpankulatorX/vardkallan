@@ -85,6 +85,11 @@ export const KODSYSTEM = [
   kodsystem('remisstatus', 'Remisstatus', 'Remisstatus', 'Remissens läge i statuskedjan.', [
     ['skickad', 'Skickad'], ['mottagen', 'Mottagen (kvittens)'], ['bedomd', 'Bedömd'], ['besvarad', 'Besvarad'], ['svar_kvitterat', 'Svar kvitterat'],
   ]),
+  // Runda 10, r6: remiss eller konsultation (remiss-r10.js).
+  kodsystem('remisstyp', 'Remisstyp', 'Remisstyp', 'Om vårdbegäran lämnar över vårdansvaret (remiss) eller ber om råd medan vårdansvaret stannar hos remittenten (konsultation).', [
+    ['remiss', 'Remiss', 'Vårdansvaret för det remissen gäller går över till mottagaren när remissen accepteras.'],
+    ['konsultation', 'Konsultation', 'Mottagaren svarar med råd, och vårdansvaret stannar hos remittenten.'],
+  ]),
 ];
 export const VARDEMANGDER = KODSYSTEM.map(vardemangd);
 

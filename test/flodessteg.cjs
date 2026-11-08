@@ -898,6 +898,17 @@ function skapa(BAS) {
     await m.tangent('Enter', 'sök');
     await synlig(page, '#journalertraffar', 'Söker patienter med');
   };
+  // Runda 10, r6: en konsultation skickas från samma formulär som en remiss, med ett klick på Fråga om råd.
+  GOR['skicka-konsultation'] = async (m, page) => {
+    await m.klicka(page.locator('.snabbval a', { hasText: 'Skicka remiss' }), 'Skicka remiss');
+    await page.waitForSelector('#remissform');
+    await m.klicka(page.locator('#rf-typ-konsultation'), 'Fråga om råd, vårdansvaret stannar hos oss');
+    await m.valj(page.locator('select[name="tillEnhetId"]'), 'uso-kard', 'mottagare Kardiologiska kliniken');
+    await m.skriv(page.locator('textarea[name="fragestallning"]'), 'Blåsljud utan symtom. Behöver hon följas upp?', 'frågeställning');
+    await m.skriv(page.locator('textarea[name="anamnes"]'), 'Nyupptäckt systoliskt blåsljud.', 'anamnes');
+    await m.klicka(page.locator('#remissform [type="submit"]'), 'Skicka');
+    await synlig(page, '.notis', 'Konsultationen är skickad');
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 

@@ -367,7 +367,9 @@ export function skapaBokning(db, { patientId, tid, orsak, av = null, avInvanare 
 // remissen (nybesök hos läkare, om läkaren inte angav något annat), prioriteten ur remissens prioritet och gränsen ur
 // vårdgarantin och remissens sista svarsdatum. Orsaken är avsändaren, aldrig frågeställningen.
 export function vantelistaFranRemiss(db, r, { av = null, tidstyp = 'nybesok', yrkesroll = 'lakare' } = {}) {
-  if (db.query('SELECT 1 FROM vantelista WHERE remiss_id = ?').get(r.id)) return null;
+  // Runda 10, r6: en avslutad post hindrar inte en ny, eftersom en remiss som läkaren öppnar igen efter ett beslut på
+  // uppdrag (remiss-r10.js) kan accepteras på nytt.
+  if (db.query("SELECT 1 FROM vantelista WHERE remiss_id = ? AND status <> 'avslutad'").get(r.id)) return null;
   if (!db.query('SELECT 1 FROM scheman s WHERE s.enhet_id IN (SELECT id FROM enheter WHERE id = ?1 OR forald_id = ?1)').get(r.till_enhet_id)) return null;
   const fran = datumAv(new Date(r.mottagen_tid ?? r.skickad_tid));
   const prioritet = ['akut', 'skyndsam'].includes(r.prioritet) ? 'hog' : 'normal';
