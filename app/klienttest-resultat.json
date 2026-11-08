@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T16:29:50.131Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-08T19:26:36.586Z",
+  "bas": "http://127.0.0.1:18205",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "a4958a5c3ab9d28741b854b75e1242d4f99e5c0f3dc0b43cbe303f6d4c69169e",
+  "gransnittHash": "bb4c372e0a488546eb32f265c4e4e76435a14ab7fbb5f7fcd6291fdfa0025b2d",
   "tester": [
     {
       "namn": "Gränssnitt > Mobil > Öppna patient från arbetslistan går i 360 px",

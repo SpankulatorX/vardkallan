@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T16:05:27.713Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-08T18:15:19.767Z",
+  "bas": "http://127.0.0.1:18205",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "a4958a5c3ab9d28741b854b75e1242d4f99e5c0f3dc0b43cbe303f6d4c69169e",
+  "gransnittHash": "bb4c372e0a488546eb32f265c4e4e76435a14ab7fbb5f7fcd6291fdfa0025b2d",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -1373,6 +1373,77 @@
         "klick: Analys och statistik",
         "klick: Visa gruppen"
       ]
+    },
+    {
+      "id": "lakemedelsberattelse",
+      "namn": "Skicka läkemedelsberättelsen till nästa vårdgivare",
+      "roll": "lak-kard",
+      "start": "Översikten för den inlagda patienten efter återställning",
+      "budget": 2,
+      "motivering": "Sussa 3.5.1.1. Ett klick till läkemedelsfliken och ett på Skicka läkemedelsberättelsen. Systemet har tagit fram berättelsen ur ordinationernas historik, den aktuella listan och epikrisen, och valt mottagarna själv: vårdcentralen där patienten är listad och kommunen i den samordnade planeringen.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Läkemedel",
+        "klick: Skicka läkemedelsberättelsen"
+      ]
+    },
+    {
+      "id": "vaccination-riskgrupp",
+      "namn": "Ge en vaccination i programmet för riskgrupper",
+      "roll": "lak-vc",
+      "start": "Översikten för den inlagda patienten efter återställning",
+      "budget": 3,
+      "motivering": "Sussa 3.5.1.7. Ett klick på fliken Vaccinationer, ett på Ge dosen vid den dos som systemet föreslår och ett för att registrera. Systemet har räknat ut att patienten ska ha dosen och varför, frågar om vaccinationer någon annanstans med nej förvalt, sätter ATC, dos och tid och rapporterar dosen till vaccinationsregistret.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Vaccinationer",
+        "klick: Ge dosen",
+        "klick: Registrera dosen"
+      ]
+    },
+    {
+      "id": "sammanhallen",
+      "namn": "Hämta uppgifter från en annan vårdgivare",
+      "roll": "lak-kard",
+      "start": "Översikten för den inlagda patienten efter återställning",
+      "budget": 2,
+      "motivering": "Sussa 3.2.2.3. Ett klick för patientens samtycke och ett på Hämta. Systemet föreslår syftet, registrerar samtycket och lägger uppgifterna från den andra vårdgivaren i tidslinjen med källan utskriven.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: patienten samtycker",
+        "klick: Hämta uppgifter"
+      ]
+    },
+    {
+      "id": "akut-ankomst",
+      "namn": "Registrera en ankomst på akutmottagningen",
+      "roll": "lak-akut",
+      "start": "Väntrummet efter återställning",
+      "budget": 4,
+      "motivering": "Sussa 3.2.3.5. Ett klick på Ny ankomst, personnumret, ett fältbyte till kontaktorsaken och ett klick för att registrera. Systemet sätter könumret, ankomsttiden och akutbesöket och lägger patienten på flödestavlan och i väntrummet.",
+      "klick": 2,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Ny ankomst",
+        "har redan fokus: personnumret",
+        "fältbyte: kontaktorsaken",
+        "klick: Registrera ankomsten"
+      ]
     }
   ],
   "tester": [
@@ -1678,6 +1749,22 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Visa en färdig patientgrupp inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Skicka läkemedelsberättelsen till nästa vårdgivare inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Ge en vaccination i programmet för riskgrupper inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Hämta uppgifter från en annan vårdgivare inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera en ankomst på akutmottagningen inom budget",
       "status": "grön"
     }
   ]
