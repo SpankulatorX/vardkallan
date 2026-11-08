@@ -1,35 +1,94 @@
 // Svaren från riktiga användartester av Vårdkällan (runda 7, r1): SUS efter ett testfall (mätning 3) och
 // expertgranskning mot ISO 9241-110 (mätning 4) enligt Sussas modell i Bilaga F1:2. Svaren sparas på servern i en egen
-// tabell, i en egen databas som alla sandlådor delar och som inte återställs med demon. Inga patientuppgifter och inget
-// namn sparas: bara testpersonens roll i testet, en pseudonym som testledaren sätter, datum, testfall och svaren. En
-// pseudonym eller kommentar som liknar ett personnummer eller ett datum tas inte emot, och andra fält i anropet sparas
-// inte. Poängen räknar servern. Bara testledaren, uppföljningsrollen, läser och exporterar svaren (anvandartest_las).
+// databas som alla sandlådor delar och som inte återställs med demon.
+//
+// Testtillfällen. Testledaren (uppföljningsrollen) skapar ett testtillfälle och får en slumpad kod med 192 bitar, som
+// visas en gång och bara sparas som sha256. Ett svar sparas bara med en giltig kod och knyts till tillfället, och
+// läsning, export och radering kräver både rollen och koden för just det tillfället. Ingen ser alltså andras tillfällen,
+// också i den publika demon där vem som helst kan logga in som uppföljningsrollen.
+//
+// Gränser. Högst MAX_PER_TILLFALLE svar per tillfälle, högst MAX_PER_MINUT svar per session och minut och högst
+// MAX_TILLFALLEN tillfällen totalt. Ett fullt tillfälle stoppar bara sig självt. Ett tillfälle utan aktivitet på
+// GALLRING_DAGAR dagar raderas med sina svar.
+//
+// Inga patientuppgifter och inget namn sparas: bara roll i testet, en pseudonym som testledaren sätter, datum, testfall
+// och svaren. En pseudonym eller kommentar som liknar ett personnummer eller ett datum tas inte emot, och andra fält i
+// anropet sparas inte. Poängen räknar servern.
 import { Database } from 'bun:sqlite';
+import { createHash, randomBytes } from 'node:crypto';
 import { Fel } from './db.js';
 import { TESTFALL } from './sussa-testfall.js';
-import { susPoang, expertpoang, utvarderingspoang, DIALOGPRINCIPER, PRINCIPPOANG, kodGiltig, kommentarGiltig, SPARAS, TESTROLLER as ROLLER } from '../public/js/sussa-formular.js';
+import { susPoang, expertpoang, utvarderingspoang, DIALOGPRINCIPER, PRINCIPPOANG, kodGiltig, kommentarGiltig, SPARAS, TESTROLLER as ROLLER, GALLRING_DAGAR } from '../public/js/sussa-formular.js';
 
 // Det som sparas och rollerna i testet står i public/js/sussa-formular.js, så att sidan visar samma sak innan någon svarar.
-export { SPARAS, TESTROLLER as ROLLER } from '../public/js/sussa-formular.js';
-export const MAX_SVAR = 10000;
+export { SPARAS, ROLLER, GALLRING_DAGAR };
+export const MAX_PER_TILLFALLE = 200;
+export const MAX_PER_MINUT = 10;
+export const MAX_TILLFALLEN = 2000;
+const DAG = 86400_000;
 
-const SCHEMA = `CREATE TABLE IF NOT EXISTS anvandartest_svar (
-  id INTEGER PRIMARY KEY, typ TEXT NOT NULL CHECK (typ IN ('sus', 'expert')), roll TEXT NOT NULL, pseudonym TEXT NOT NULL,
+const SCHEMA = `
+CREATE TABLE IF NOT EXISTS anvandartest_tillfallen (
+  id TEXT PRIMARY KEY, kod_hash TEXT NOT NULL UNIQUE, skapad TEXT NOT NULL, senast_aktiv TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS anvandartest_svar (
+  id INTEGER PRIMARY KEY, tillfalle_id TEXT NOT NULL, typ TEXT NOT NULL CHECK (typ IN ('sus', 'expert')), roll TEXT NOT NULL, pseudonym TEXT NOT NULL,
   datum TEXT NOT NULL, testfall TEXT NOT NULL, svar TEXT NOT NULL, poang REAL NOT NULL, utvarderingspoang INTEGER NOT NULL
-)`;
+);
+CREATE INDEX IF NOT EXISTS ix_anvandartest_svar_tillfalle ON anvandartest_svar (tillfalle_id);
+`;
 
 export function oppna(fil = ':memory:') {
   const db = new Database(fil, { create: true });
+  // En databas från före testtillfällena har svar utan tillfälle, som ingen kan läsa. Tabellen byggs om.
+  const kol = db.query("SELECT name FROM pragma_table_info('anvandartest_svar')").all().map(k => k.name);
+  if (kol.length && !kol.includes('tillfalle_id')) db.exec('DROP TABLE anvandartest_svar');
   db.exec(SCHEMA);
   return db;
 }
 
+const hash = (kod) => createHash('sha256').update(String(kod)).digest('hex');
 const datumSv = (nu) => nu.toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
 const ut = (r) => ({ id: r.id, typ: r.typ, roll: r.roll, pseudonym: r.pseudonym, datum: r.datum, testfall: r.testfall, svar: JSON.parse(r.svar), poang: r.poang, utvarderingspoang: r.utvarderingspoang });
 const fel = (text, falt) => new Fel(400, text, 'ogiltig', { falt });
+const tillfalleUt = (t) => ({ id: t.id, skapad: t.skapad, senastAktiv: t.senast_aktiv, raderas: datumSv(new Date(Date.parse(t.senast_aktiv) + GALLRING_DAGAR * DAG)) });
 
-// Sparar ett svar. Bara fälten typ, roll, pseudonym, testfall och svar läses ur anropet.
-export function spara(db, body = {}, { nu = new Date() } = {}) {
+// Raderar tillfällen utan aktivitet på GALLRING_DAGAR dagar, med deras svar.
+export function stada(db, { nu = new Date() } = {}) {
+  const grans = new Date(nu.getTime() - GALLRING_DAGAR * DAG).toISOString();
+  const gamla = db.query('SELECT id FROM anvandartest_tillfallen WHERE senast_aktiv < ?').all(grans).map(r => r.id);
+  let antalSvar = 0;
+  db.transaction(() => {
+    for (const id of gamla) {
+      antalSvar += db.query('DELETE FROM anvandartest_svar WHERE tillfalle_id = ?').run(id).changes;
+      db.query('DELETE FROM anvandartest_tillfallen WHERE id = ?').run(id);
+    }
+  })();
+  return { tillfallen: gamla.length, svar: antalSvar };
+}
+
+// Ett nytt testtillfälle. Koden lämnas ut här och aldrig igen.
+export function skapaTillfalle(db, { nu = new Date() } = {}) {
+  stada(db, { nu });
+  if (db.query('SELECT count(*) AS n FROM anvandartest_tillfallen').get().n >= MAX_TILLFALLEN) throw new Fel(400, 'Det finns redan för många testtillfällen. Radera ett tillfälle som inte används, eller vänta tills gamla tillfällen raderas.', 'ogiltig');
+  const kod = randomBytes(24).toString('base64url');
+  const id = `T-${randomBytes(6).toString('hex')}`;
+  const t = nu.toISOString();
+  db.query('INSERT INTO anvandartest_tillfallen (id, kod_hash, skapad, senast_aktiv) VALUES (?, ?, ?, ?)').run(id, hash(kod), t, t);
+  return { ...tillfalleUt(db.query('SELECT * FROM anvandartest_tillfallen WHERE id = ?').get(id)), kod };
+}
+
+// Tillfället för en kod. En saknad eller felaktig kod ger samma svar som ett raderat tillfälle.
+function tillfalleFor(db, kod) {
+  const t = typeof kod === 'string' && kod.length >= 22 && kod.length <= 100 ? db.query('SELECT * FROM anvandartest_tillfallen WHERE kod_hash = ?').get(hash(kod)) : null;
+  if (!t) throw new Fel(403, 'Koden för testtillfället saknas eller gäller inte. Fråga testledaren efter koden.', 'nekad');
+  return t;
+}
+
+// Sparar ett svar. Bara fälten kod, typ, roll, pseudonym, testfall och svar läses ur anropet. session är ett objekt per
+// inloggning, där tiderna för de senaste svaren hålls för gränsen per minut.
+export function spara(db, body = {}, { nu = new Date(), session = {} } = {}) {
+  const t = tillfalleFor(db, body.kod);
   const { typ, roll, pseudonym, testfall } = body;
   if (!['sus', 'expert'].includes(typ)) throw fel('Välj SUS eller expertgranskning.', ['typ']);
   if (!ROLLER.includes(roll)) throw fel('Välj rollen i testet ur listan.', ['roll']);
@@ -50,21 +109,28 @@ export function spara(db, body = {}, { nu = new Date() } = {}) {
     const e = expertpoang(svar.map(r => r.poang));
     p = { poang: e.summa, utvarderingspoang: e.poang };
   }
-  if (db.query('SELECT count(*) AS n FROM anvandartest_svar').get().n >= MAX_SVAR) throw new Fel(400, 'Lagringen för användartester är full. Exportera svaren och rensa lagringen först.', 'ogiltig');
-  const id = Number(db.query('INSERT INTO anvandartest_svar (typ, roll, pseudonym, datum, testfall, svar, poang, utvarderingspoang) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(typ, roll, pseudonym, datumSv(nu), testfall, JSON.stringify(svar), p.poang, p.utvarderingspoang).lastInsertRowid);
+  const ms = nu.getTime();
+  session.anvandartestSvar = (session.anvandartestSvar ?? []).filter(x => x > ms - 60_000);
+  if (session.anvandartestSvar.length >= MAX_PER_MINUT) throw new Fel(429, `Högst ${MAX_PER_MINUT} svar per minut. Vänta en stund och försök igen.`, 'for_manga');
+  if (db.query('SELECT count(*) AS n FROM anvandartest_svar WHERE tillfalle_id = ?').get(t.id).n >= MAX_PER_TILLFALLE) throw new Fel(400, `Testtillfället är fullt med ${MAX_PER_TILLFALLE} svar. Testledaren kan skapa ett nytt tillfälle.`, 'ogiltig');
+  session.anvandartestSvar.push(ms);
+  const id = Number(db.query('INSERT INTO anvandartest_svar (tillfalle_id, typ, roll, pseudonym, datum, testfall, svar, poang, utvarderingspoang) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(t.id, typ, roll, pseudonym, datumSv(nu), testfall, JSON.stringify(svar), p.poang, p.utvarderingspoang).lastInsertRowid);
+  db.query('UPDATE anvandartest_tillfallen SET senast_aktiv = ? WHERE id = ?').run(nu.toISOString(), t.id);
   return ut(db.query('SELECT * FROM anvandartest_svar WHERE id = ?').get(id));
 }
 
-export function lista(db) {
-  const svar = db.query('SELECT * FROM anvandartest_svar ORDER BY id').all().map(ut);
+// Svaren i ett tillfälle, med sammanställningen enligt Bilaga F1:2.
+export function lista(db, kod) {
+  const t = tillfalleFor(db, kod);
+  const svar = db.query('SELECT * FROM anvandartest_svar WHERE tillfalle_id = ? ORDER BY id').all(t.id).map(ut);
   const sus = svar.filter(s => s.typ === 'sus');
   const medel = sus.length ? Math.round((sus.reduce((a, s) => a + s.poang, 0) / sus.length) * 10) / 10 : null;
   const expert = svar.filter(s => s.typ === 'expert');
   const perRoll = {};
   for (const s of sus) perRoll[s.roll] = (perRoll[s.roll] ?? 0) + 1;
   return {
-    sparas: SPARAS, svar,
+    tillfalle: { ...tillfalleUt(t), antalSvar: svar.length, maxSvar: MAX_PER_TILLFALLE }, sparas: SPARAS, svar,
     sammanstallning: {
       sus: { antal: sus.length, medel, utvarderingspoang: utvarderingspoang('tillfredsstallelse', medel), perRoll },
       expert: { antal: expert.length, senaste: expert.at(-1) ? { pseudonym: expert.at(-1).pseudonym, datum: expert.at(-1).datum, summa: expert.at(-1).poang, utvarderingspoang: expert.at(-1).utvarderingspoang } : null },
@@ -72,14 +138,25 @@ export function lista(db) {
   };
 }
 
-// Exporten som fil: JSON med allt eller CSV med en rad per svar.
-export function exportera(db, format = 'json') {
-  const l = lista(db);
+// Exporten av ett tillfälle som fil: JSON med allt eller CSV med en rad per svar. Koden följer inte med.
+export function exportera(db, kod, format = 'json') {
+  const l = lista(db, kod);
   const dag = datumSv(new Date());
   if (format === 'csv') {
     const cell = (v) => { const s = String(v ?? ''); return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const rader = ['id;typ;roll;pseudonym;datum;testfall;poäng;utvärderingspoäng;svar', ...l.svar.map(s => [s.id, s.typ, s.roll, s.pseudonym, s.datum, s.testfall, s.poang, s.utvarderingspoang, JSON.stringify(s.svar)].map(cell).join(';'))];
-    return { text: `${rader.join('\n')}\n`, contentType: 'text/csv; charset=utf-8', namn: `anvandartester-${dag}.csv` };
+    return { text: `${rader.join('\n')}\n`, contentType: 'text/csv; charset=utf-8', namn: `anvandartester-${l.tillfalle.id}-${dag}.csv` };
   }
-  return { text: `${JSON.stringify({ format: 'vardkallan-anvandartester', exporterad: new Date().toISOString(), ...l }, null, 2)}\n`, contentType: 'application/json; charset=utf-8', namn: `anvandartester-${dag}.json` };
+  return { text: `${JSON.stringify({ format: 'vardkallan-anvandartester', exporterad: new Date().toISOString(), ...l }, null, 2)}\n`, contentType: 'application/json; charset=utf-8', namn: `anvandartester-${l.tillfalle.id}-${dag}.json` };
+}
+
+// Raderar ett tillfälle med alla dess svar.
+export function radera(db, kod) {
+  const t = tillfalleFor(db, kod);
+  let n = 0;
+  db.transaction(() => {
+    n = db.query('DELETE FROM anvandartest_svar WHERE tillfalle_id = ?').run(t.id).changes;
+    db.query('DELETE FROM anvandartest_tillfallen WHERE id = ?').run(t.id);
+  })();
+  return { ok: true, raderadeSvar: n };
 }

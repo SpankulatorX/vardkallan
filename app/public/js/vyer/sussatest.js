@@ -4,9 +4,9 @@
 //
 // Svaren sparas bara i den här webbläsaren (localStorage) och laddas ner som en fil. De innehåller ingen patientuppgift:
 // deltagarkoden är en kort kod som testledaren hittar på, och en kommentar med sex siffror i rad tas inte emot.
-import { esc, api, notis, vyRubrik, tal, tidpunkt, medKnapp } from '../ui.js';
+import { esc, api, notis, vyRubrik, tal, tidpunkt, medKnapp, dialog, felNotis } from '../ui.js';
 import { S, uppdateraInkorg, rita, far } from '../app.js';
-import { SUS_SUSSA, SUS_SUSSA_KALLA, SUS_SKALA_SUSSA, susPoang, utvarderingspoang, DIALOGPRINCIPER, PRINCIPPOANG, PRINCIPSKALA, expertpoang, kodGiltig, kommentarGiltig, SPARAS, TESTROLLER } from '../sussa-formular.js';
+import { SUS_SUSSA, SUS_SUSSA_KALLA, SUS_SKALA_SUSSA, susPoang, utvarderingspoang, DIALOGPRINCIPER, PRINCIPPOANG, PRINCIPSKALA, expertpoang, kodGiltig, kommentarGiltig, SPARAS, TESTROLLER, GALLRING_DAGAR } from '../sussa-formular.js';
 
 export const namn = 'sussatest';
 
@@ -52,9 +52,16 @@ export async function visa(main) {
   el.innerHTML = `<div class="ruta ruta-info st-info"><p><strong>Underlag för riktiga användartester senare.</strong> Inga testpersoner har fyllt i formulären än, och resultaten på kravsidan är skriptets mätning, inte en mätning med användare.</p></div>
     <section class="ruta st-sparas" aria-labelledby="st-sparas-rubrik">
       <h2 id="st-sparas-rubrik">Det här sparas när du svarar</h2>
-      <p>${inloggad ? 'Svaren sparas på servern, där bara testledaren kan läsa och exportera dem, och en kopia sparas i den här webbläsaren.' : 'Du är inte inloggad, så svaren sparas bara i den här webbläsaren. Logga in med demorollen för att spara dem på servern.'} Inga patientuppgifter och inte ditt namn sparas.</p>
+      <p>${inloggad ? 'Med koden för testtillfället sparas svaren på servern, där bara testledaren kan läsa och exportera dem med samma kod. En kopia sparas i den här webbläsaren.' : 'Du är inte inloggad, så svaren sparas bara i den här webbläsaren. Logga in med demorollen för att spara dem på servern.'} Inga patientuppgifter och inte ditt namn sparas.</p>
       <ul>${SPARAS.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+      ${inloggad ? '<div class="falt"><label for="st-tkod">Kod för testtillfället, från testledaren</label><input id="st-tkod" name="tkod" maxlength="100" autocomplete="off" spellcheck="false"></div>' : ''}
     </section>
+    ${far('anvandartest_las') ? `<section class="ruta" aria-labelledby="st-tillfallen"><h2 id="st-tillfallen">Testtillfällen (testledare)</h2>
+      <p class="liten">Skapa ett testtillfälle och ge koden till testpersonerna. Koden visas bara en gång. Svaren i ett tillfälle läses, exporteras och raderas bara med dess kod, så ingen annan testledare ser dem. Ett tillfälle tar emot högst 200 svar och raderas med alla svar ${GALLRING_DAGAR} dagar efter det senaste svaret.</p>
+      <p class="knapprad"><button type="button" class="knapp liten" data-st="skapa">Skapa testtillfälle</button></p>
+      <div id="st-nykod"></div>
+      <form id="st-oppna" class="falt-rad" novalidate><div class="falt"><label for="st-lkod">Kod för tillfället</label><input id="st-lkod" name="lkod" maxlength="100" autocomplete="off" spellcheck="false"></div><div class="falt knappfalt"><button type="submit" class="knapp liten">Visa svaren</button></div></form>
+      <div id="st-serverlista"></div></section>` : ''}
     <section class="ruta" aria-labelledby="st-fall">
       <h2 id="st-fall">Testfallen</h2>
       <p class="liten">Testpersonen loggar in med demorollen, och testledaren lägger in testdatan före varje testfall, så att varje testfall börjar från samma läge. Testfallet börjar på rollens startsida och är slut när slutvillkoret syns.</p>
@@ -99,7 +106,7 @@ export async function visa(main) {
       </form>
     </section>
     <section class="ruta" aria-labelledby="st-sparade"><h2 id="st-sparade">Sparade svar i den här webbläsaren</h2><div id="st-lista"></div></section>
-    ${far('anvandartest_las') ? '<section class="ruta" aria-labelledby="st-server"><h2 id="st-server">Svaren på servern</h2><div id="st-serverlista"><p class="tom liten">Hämtar svaren.</p></div></section>' : ''}`;
+`;
 
   const ritaLista = () => {
     const x = lasa();
@@ -115,28 +122,41 @@ export async function visa(main) {
   };
   ritaLista();
 
-  // Svaret sparas på servern utan patientuppgifter. Servern prövar fälten och räknar poängen själv.
+  // Svaret sparas på servern med koden för testtillfället, utan patientuppgifter. Servern prövar fälten och räknar poängen.
+  // Koden hålls bara i fältet och sparas aldrig i webbläsaren.
+  const tkod = () => el.querySelector('#st-tkod')?.value.trim() ?? '';
   const sparaServer = async (data) => {
+    if (!tkod()) { notis('Svaret är sparat i den här webbläsaren. Skriv koden för testtillfället för att spara det på servern.', 'info'); return; }
     try {
-      const r = await api('/api/anvandartest/svar', { metod: 'POST', data });
+      const r = await api('/api/anvandartest/svar', { metod: 'POST', data: { ...data, kod: tkod() } });
       notis(`Svaret för ${r.pseudonym} är sparat på servern: ${tal(r.poang, 1)} poäng, ${r.utvarderingspoang} utvärderingspoäng.`);
-      ritaServer();
     } catch { /* felet visas som notis, och kopian finns i webbläsaren */ }
   };
-  // Testledaren ser svaren på servern och exporterar dem.
+  // Testledaren: skapa ett tillfälle, visa, exportera och radera med koden.
+  const lkod = () => el.querySelector('#st-lkod')?.value.trim() ?? '';
   const ritaServer = async () => {
     const plats = el.querySelector('#st-serverlista');
-    if (!plats) return;
+    if (!plats || !lkod()) return;
     let d;
-    try { d = await api('/api/anvandartest/svar', { tyst: true }); } catch { plats.innerHTML = '<p class="tom liten">Svaren kunde inte hämtas.</p>'; return; }
+    try { d = await api('/api/anvandartest/svar/lista', { metod: 'POST', data: { kod: lkod() } }); } catch { plats.innerHTML = ''; return; }
     const s = d.sammanstallning;
-    plats.innerHTML = `${d.svar.length ? `<div class="tabellrulle"><table class="tabell st-serversvar"><thead><tr><th scope="col">Pseudonym</th><th scope="col">Roll</th><th scope="col">Datum</th><th scope="col">Testfall</th><th scope="col">Typ</th><th scope="col" class="tal">Poäng</th></tr></thead><tbody>
+    plats.innerHTML = `<p class="liten">Tillfälle ${esc(d.tillfalle.id)}, skapat ${esc(tidpunkt(d.tillfalle.skapad))}. ${d.tillfalle.antalSvar} av högst ${d.tillfalle.maxSvar} svar. Raderas ${esc(d.tillfalle.raderas)} om inget mer svar kommer.</p>
+      ${d.svar.length ? `<div class="tabellrulle"><table class="tabell st-serversvar"><thead><tr><th scope="col">Pseudonym</th><th scope="col">Roll</th><th scope="col">Datum</th><th scope="col">Testfall</th><th scope="col">Typ</th><th scope="col" class="tal">Poäng</th></tr></thead><tbody>
         ${d.svar.map(r => `<tr><td>${esc(r.pseudonym)}</td><td>${esc(r.roll)}</td><td>${esc(r.datum)}</td><td>${esc(r.testfall)}</td><td>${r.typ === 'sus' ? 'SUS' : 'Expertgranskning'}</td><td class="tal">${tal(r.poang, 1)}</td></tr>`).join('')}
-      </tbody></table></div>` : '<p class="tom liten">Inga svar är sparade på servern.</p>'}
+      </tbody></table></div>` : '<p class="tom liten">Inga svar i tillfället än.</p>'}
       <p class="liten">SUS: ${s.sus.antal} svar${s.sus.medel != null ? `, medelvärde ${tal(s.sus.medel, 1)}, ${s.sus.utvarderingspoang} utvärderingspoäng` : ''}. Expertgranskning: ${s.expert.antal}${s.expert.senaste ? `, den senaste ${s.expert.senaste.summa} av 70, ${s.expert.senaste.utvarderingspoang} utvärderingspoäng` : ''}.</p>
-      <p class="knapprad"><a class="knapp liten" href="/api/anvandartest/svar/export?format=csv" download>Exportera som CSV</a><a class="knapp liten sekundar" href="/api/anvandartest/svar/export?format=json" download>Exportera som JSON</a></p>`;
+      <p class="knapprad"><button type="button" class="knapp liten" data-st="export" data-format="csv">Exportera som CSV</button><button type="button" class="knapp liten sekundar" data-st="export" data-format="json">Exportera som JSON</button><button type="button" class="knapp liten sekundar" data-st="radera-tillfalle">Radera tillfället</button></p>`;
   };
-  ritaServer();
+  el.querySelector('#st-oppna')?.addEventListener('submit', (e) => { e.preventDefault(); ritaServer(); });
+  const exportera = async (format) => {
+    const r = await fetch('/api/anvandartest/svar/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kod: lkod(), format }) });
+    if (!r.ok) { notis('Exporten gick inte. Kontrollera koden.', 'fel'); return; }
+    const namnet = /filename="([^"]+)"/.exec(r.headers.get('content-disposition') ?? '')?.[1] ?? `anvandartester.${format}`;
+    const url = URL.createObjectURL(await r.blob());
+    const a = document.createElement('a');
+    a.href = url; a.download = namnet; document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
 
   const susForm = el.querySelector('#st-sus');
   const susSvar = () => Array.from({ length: 10 }, (_, i) => Number(susForm.querySelector(`[name="sus${i + 1}"]:checked`)?.value ?? NaN));
@@ -192,6 +212,26 @@ export async function visa(main) {
     if (!b) return;
     if (b.dataset.st === 'ladda') laddaNer(lasa());
     else if (b.dataset.st === 'radera') { spara(tom()); notis('Alla sparade svar är raderade i den här webbläsaren.'); ritaLista(); }
+    else if (b.dataset.st === 'skapa') {
+      try {
+        const t = await medKnapp(b, () => api('/api/anvandartest/tillfallen', { metod: 'POST', data: {} }));
+        el.querySelector('#st-nykod').innerHTML = `<div class="ruta ruta-info"><p>Testtillfälle ${esc(t.id)} är skapat. Koden visas bara nu. Skriv ner den och ge den till testpersonerna:</p><p><code class="st-kod" data-st-kod>${esc(t.kod)}</code></p></div>`;
+        el.querySelector('#st-lkod').value = t.kod;
+        ritaServer();
+      } catch { /* felet visas som notis */ }
+    }
+    else if (b.dataset.st === 'export') { try { await exportera(b.dataset.format); } catch (err) { felNotis(err); } }
+    else if (b.dataset.st === 'radera-tillfalle') {
+      const svar = await dialog(`<h2 id="dlg-rubrik">Radera testtillfället?</h2><p>Tillfället och alla dess svar raderas på servern och går inte att få tillbaka. Exportera svaren först om de behövs.</p><div class="knapprad"><button type="button" class="knapp" data-varde="ok">Radera</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div>`);
+      if (svar?.val !== 'ok') return;
+      try {
+        const r = await api('/api/anvandartest/tillfalle/radera', { metod: 'POST', data: { kod: lkod() } });
+        notis(`Testtillfället är raderat med ${r.raderadeSvar} svar.`);
+        el.querySelector('#st-lkod').value = '';
+        el.querySelector('#st-nykod').innerHTML = '';
+        el.querySelector('#st-serverlista').innerHTML = '';
+      } catch { /* felet visas som notis */ }
+    }
     else if (b.dataset.st === 'testdata') {
       try {
         await medKnapp(b, async () => { await api('/api/reset', { metod: 'POST', data: {} }); await api('/api/demo/sussa-testfall', { metod: 'POST', data: {} }); });

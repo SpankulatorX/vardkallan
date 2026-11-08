@@ -9,7 +9,9 @@ const KLICKBUDGET = 'Klickbudget > klickbudget.json täcker alla flöden med bud
 const SVAR = 'Användartestens svar > ';
 const SVARTESTER = [`${SVAR}sparas på servern med roll, pseudonym, datum, testfall och svar, och poängen räknas av servern`,
   `${SVAR}inga patientuppgifter eller namn: pseudonym med siffror som ett personnummer, kommentar med personnummer och okända fält avvisas`,
-  `${SVAR}bara testledaren (uppföljningsrollen) läser och exporterar svaren, som JSON och CSV`];
+  `${SVAR}läsning och export kräver både testledarens roll och koden för just det tillfället, så att ingen ser andras tillfällen`,
+  `${SVAR}skrivningen är begränsad per tillfälle och per session och minut, och ett fullt tillfälle stoppar bara sig självt`,
+  `${SVAR}tillfällen utan aktivitet på 90 dagar raderas med sina svar`];
 
 export default [
   {
@@ -22,7 +24,7 @@ export default [
   {
     id: '8.4.1.2', kategori: 'system', egna: ['K4', 'D6'], avsedd: 'delvis',
     tester: [TEST_REGISTER[0], TEST_REGISTER[5], SUS, EXPERT, ...SVARTESTER, ...KORNINGSTESTER],
-    losning: 'Användarcentrerad design enligt ISO 9241-210 i fyra steg: användarna och deras uppgifter är Sussas sju användargrupper och 34 testfall, målen är klickbudgeten och Sussas slutvillkor och tidsklasser, lösningarna prövas i demon, och utvärderingen görs med samma fyra mätningar som Sussa använde: måluppfyllelse och effektivitet mäts automatiskt för varje testfall, och för riktiga testpersoner finns SUS-formuläret med Sussas formulering och en checklista för expertgranskning mot de sju dialogprinciperna i ISO 9241-110, med poängen enligt Bilaga F1:2. Svaren sparas på servern utan patientuppgifter och utan namn, bara roll, pseudonym, datum, testfall och svar, och bara testledaren läser och exporterar dem.',
+    losning: 'Användarcentrerad design enligt ISO 9241-210 i fyra steg: användarna och deras uppgifter är Sussas sju användargrupper och 34 testfall, målen är klickbudgeten och Sussas slutvillkor och tidsklasser, lösningarna prövas i demon, och utvärderingen görs med samma fyra mätningar som Sussa använde: måluppfyllelse och effektivitet mäts automatiskt för varje testfall, och för riktiga testpersoner finns SUS-formuläret med Sussas formulering och en checklista för expertgranskning mot de sju dialogprinciperna i ISO 9241-110, med poängen enligt Bilaga F1:2. Svaren sparas på servern utan patientuppgifter och utan namn, bara roll, pseudonym, datum, testfall och svar, knutna till ett testtillfälle. Testledaren skapar tillfället och får en slumpad kod som visas en gång, och läsning, export och radering kräver både testledarens roll och koden. Ett tillfälle tar emot högst 200 svar och raderas 90 dagar efter det senaste svaret.',
     expert: 'Systemet räknar poängen för varje mätning och omvandlar dem till Sussas utvärderingspoäng, så att testledaren inte behöver kunna formlerna, och formulären sparar inga patientuppgifter.',
     anmarkning: 'SUS och expertgranskning är underlag för riktiga användartester senare: inga testpersoner har fyllt i formulären än, och ingen användbarhetsexpert har granskat systemet. Kartläggningen av användarna bygger på Sussas testfall, inte på egna intervjuer eller observationer. Skisser och prototyper i flera alternativ görs inte.',
   },

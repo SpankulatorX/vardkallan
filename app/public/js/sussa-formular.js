@@ -78,11 +78,14 @@ export const kodGiltig = (k) => typeof k === 'string' && KODMONSTER.test(k) && !
 export const kommentarGiltig = (t) => typeof t === 'string' && t.length <= 1000 && !/\d{6}/.test(t.replace(/[\s-]/g, ''));
 
 // Det som sparas på servern när en testperson svarar (src/anvandartest-svar.js), och som sidan visar innan.
+export const GALLRING_DAGAR = 90;
 export const SPARAS = [
+  'Testtillfället, med den kod som testledaren ger dig. Bara testledaren kan läsa svaren, och bara med samma kod.',
   'Din roll i testet, till exempel Läkare slutenvård. Inte ditt namn.',
   'En pseudonym som testledaren sätter, till exempel L03.',
   'Datum för testet, utan klockslag.',
   'Vilket testfall svaret gäller.',
   'Dina svar och poängen som systemet räknar. En kommentar i expertgranskningen får inte innehålla patientuppgifter.',
+  `Ett testtillfälle och alla dess svar raderas ${GALLRING_DAGAR} dagar efter det senaste svaret, eller tidigare om testledaren raderar det.`,
 ];
 export const TESTROLLER = ['Läkare öppenvård', 'Läkare slutenvård', 'Sjuksköterska slutenvård', 'Sjuksköterska öppenvård', 'Undersköterska', 'Paramedicinare', 'Medicinsk sekreterare', 'Användbarhetsexpert'];

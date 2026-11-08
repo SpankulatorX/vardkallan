@@ -1281,11 +1281,27 @@ const MENY = {
       await forvanta(page, '#ik-osign ~ .tom', 'Inga osignerade anteckningar');
       await page.waitForLoadState('networkidle');
     });
-    await s('formuläret för Sussas testfall räknar SUS och expertgranskningen och sparar utan patientuppgifter', async () => {
+    // Runda 7, r1: testledaren skapar ett testtillfälle med en kod som visas en gång, testpersonen svarar med koden och
+    // testledaren läser och exporterar bara det tillfället med samma kod.
+    let testkod = null;
+    await s('Daniel Sund är testledare och skapar ett testtillfälle med en kod som visas en gång', async () => {
+      await loggaIn(page, 'uppf');
+      await page.click('#meny-lista a[href="#/sussatest"]');
+      await vantaVy(page);
+      await forvanta(page, '#st-tillfallen ~ p', 'Koden visas bara en gång');
+      await page.click('[data-st="skapa"]');
+      testkod = (await (await forvanta(page, '[data-st-kod]', '')).textContent()).trim();
+      if (!/^[A-Za-z0-9_-]{32,}$/.test(testkod)) throw new Error(`koden har fel form: ${testkod}`);
+      await forvanta(page, '#st-serverlista', 'Inga svar i tillfället än');
+    });
+    await s('formuläret för Sussas testfall räknar SUS och expertgranskningen och sparar med koden utan patientuppgifter', async () => {
+      await loggaIn(page, 'lak-vc');
       await gaTill(page, '#/sussatest');
       await page.evaluate(() => localStorage.removeItem('vk_sussatest'));
       await gaTill(page, '#/moduler');
       await gaTill(page, '#/sussatest');
+      await forvanta(page, '.st-sparas', 'raderas 90 dagar efter det senaste svaret');
+      await page.fill('#st-tkod', testkod);
       await page.fill('#st-kod', '19450207');
       for (let i = 1; i <= 10; i++) await page.locator(`#st-sus label.sus-val:has(input[name="sus${i}"][value="${i % 2 ? 4 : 2}"])`).click();
       await forvanta(page, '[data-st-sus]', '75 av 100, 2 utvärderingspoäng');
@@ -1301,21 +1317,26 @@ const MENY = {
       await page.click('#st-expert [type="submit"]');
       await forvanta(page, '.notis', 'Granskningen är sparad: 65 av 70');
       await forvanta(page, '#st-lista', 'Medelvärde SUS 75 av 100');
-      const lagrat = await page.evaluate(() => localStorage.getItem('vk_sussatest'));
-      if (/Sandmark|Danielsson|19450207/.test(lagrat)) throw new Error('svaren innehåller patientuppgifter');
+      const lagrat = await page.evaluate(() => JSON.stringify(localStorage) + JSON.stringify(sessionStorage));
+      if (/Sandmark|Danielsson|19450207/.test(lagrat) || lagrat.includes(testkod)) throw new Error('webbläsaren har sparat patientuppgifter eller koden');
       await bild(page, '112-sussatest', true);
       await page.evaluate(() => localStorage.removeItem('vk_sussatest'));
     });
-    await s('Daniel Sund är testledare och ser svaren på servern utan patientuppgifter och kan exportera dem', async () => {
+    await s('Daniel Sund läser och exporterar svaren i sitt tillfälle med koden och raderar tillfället', async () => {
       await loggaIn(page, 'uppf');
       await page.click('#meny-lista a[href="#/sussatest"]');
       await vantaVy(page);
+      if (await page.locator('[data-st-kod]').count()) throw new Error('koden visas igen');
+      await page.fill('#st-lkod', testkod);
+      await page.click('#st-oppna [type="submit"]');
       await forvanta(page, '#st-serverlista', 'L03');
       await forvanta(page, '#st-serverlista', 'Användbarhetsexpert');
-      const href = await page.locator('#st-serverlista a', { hasText: 'Exportera som CSV' }).getAttribute('href');
-      const csv = await (await page.context().request.get(`${BAS}${href}`)).text();
+      const csv = await page.evaluate(async (kod) => (await fetch('/api/anvandartest/svar/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kod, format: 'csv' }) })).text(), testkod);
       if (!csv.startsWith('id;typ;roll;pseudonym;datum;testfall') || !csv.includes('L03') || /Sandmark|Danielsson|19450207/.test(csv)) throw new Error('exporten är fel');
       await bild(page, '113-anvandartester-server');
+      await page.click('[data-st="radera-tillfalle"]');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', 'Testtillfället är raderat med 2 svar');
     });
     await s('Sara granskar den ändrade mallen i inkorgen och godkänner den', async () => {
       await loggaIn(page, 'lak-kard');

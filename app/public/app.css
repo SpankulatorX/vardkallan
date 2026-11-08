@@ -1195,3 +1195,6 @@ mark { background: var(--obs-bg); color: inherit; outline: 1px solid var(--obs-k
 .st-skala dt { font-weight: 600; min-width: 5rem; }
 .st-skala dd { margin: 0; }
 .sussa-testfall .under-text { display: block; }
+
+/* Runda 7, r1: koden för ett testtillfälle, som visas en gång. */
+.st-kod { word-break: break-all; font-size: 1.1rem; }
