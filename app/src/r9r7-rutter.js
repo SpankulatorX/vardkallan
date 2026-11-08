@@ -48,9 +48,13 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor }) {
   rutt('GET', '/api/anteckning/:id/signatur', (c, id) => {
     kravInloggad(c);
     const a = journal.hamtaAnteckningRad(c.db, id);
+    // Samma prövning som när anteckningen öppnas (utkast, behörighet, spärr, inre sekretess och undantag från visning).
+    // Utan åtkomst är svaret detsamma som för en anteckning som inte finns. Det nekade försöket loggas av motorn.
     return medPatient(c, a.patient_id, journal.lasHandling(a.kategori), (atk) => {
-      if (a.status !== 'signerad' && a.forfattare_id !== c.personal.id) throw new Fel(404, 'Anteckningen finns inte.', 'saknas');
-      atk.krav(journal.lasHandling(a.kategori), { resurs: { enhet_id: a.enhet_id }, beskrivning: `signatur:${a.id}` });
+      try { journal.hamtaAnteckning(atk, a); } catch (e) {
+        if (e instanceof Fel && [403, 404].includes(e.status)) throw new Fel(404, 'Anteckningen finns inte.', 'saknas');
+        throw e;
+      }
       return signering.kontrollera(atk, a);
     });
   });
