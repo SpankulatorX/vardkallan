@@ -701,8 +701,12 @@ export function kostnader(atk, q = {}, nu = Date.now()) {
     if (!vkId) return { datum: r.datum, text: r.text, belopp: r.belopp, status: r.status, statusText: r.statusText ?? STATUS[r.status] };
     const v = db.query('SELECT * FROM vardkontakter WHERE id = ?').get(Number(vkId));
     const a = avgiftFor(db, p, v, { synliga: synligaBesok });
-    const status = a.belopp === 0 ? (/Högkostnadsskyddet .* är nått/.test(a.text) ? 'frikort' : 'avgiftsfri') : r.status === 'betald' ? 'betald' : r.status === 'vantar' ? 'vantar' : 'faktureras';
-    return { datum: r.datum, text: `Patientavgift. ${a.text}`, belopp: a.belopp, status, statusText: status === 'betald' ? 'Betald vid besöket.' : status === 'vantar' ? r.statusText : STATUS[status] };
+    // Statusen räknas bara ur det som inte beror på taket: den omräknade avgiften, om betalningsmottagaren väntar och om
+    // en kortbetalning finns. Den ofiltrerade postens status används aldrig.
+    const b = avgiftsbetalare(db, p, r.datum);
+    const kort = finns(db, 'betalningar') && Boolean(db.query("SELECT 1 FROM betalningar x JOIN bokningar k ON k.id = x.bokning_id WHERE k.vardkontakt_id = ? AND x.satt = 'kort'").get(v.id));
+    const status = a.belopp === 0 ? (/Högkostnadsskyddet .* är nått/.test(a.text) ? 'frikort' : 'avgiftsfri') : b.vantar ? 'vantar' : kort ? 'betald' : 'faktureras';
+    return { datum: r.datum, text: `Patientavgift. ${a.text}`, belopp: a.belopp, status, statusText: status === 'vantar' ? b.text : STATUS[status] };
   });
   const sedan = synliga.reduce((m, v) => (v.start < m ? v.start : m), synliga[0].start);
   const ut = { typ, id: mal.id, sedan, pagar: typ === 'vardtillfalle' ? !mal.utskriven : !mal.slut, patientavgifter: avgifter, demo: full ? DEMO : DEMO_AVGIFT };
