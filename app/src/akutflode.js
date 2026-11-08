@@ -299,7 +299,10 @@ function forvarningUt(db, f) {
 // Den simulerade ambulansen skickar en förvarning. Avsändaren är ambulansen (simulerad), aldrig en inloggad person, och
 // i demon kommer den från demons egen kontroll för simuleringar (/api/demo/ambulans/forvarning). Personnumret kopplas
 // till patienten av den simulerade tjänsten om det finns. En förvarning ger ingen åtkomst och ingen vårdrelation.
+export const MAX_FORVARNINGAR = 30;
 export function forvarning(db, body = {}) {
+  // Ett tak per sandlåda, eftersom vem som helst i demon kan skicka förvarningar.
+  if (db.query('SELECT count(*) AS n FROM akut_forvarningar WHERE mottagen IS NULL').get().n >= MAX_FORVARNINGAR) throw new Fel(429, `Det finns redan ${MAX_FORVARNINGAR} förvarningar som inte är mottagna. Ta emot eller återställ demon först.`, 'for_manga');
   const orsak = text(body.kontaktorsak);
   if (orsak.length < 2) throw new Fel(400, 'Skriv kontaktorsaken från ambulansen.', 'ogiltig', { falt: ['kontaktorsak'] });
   const pnr = typeof body.personnummer === 'string' ? body.personnummer.replace(/\D/g, '') : '';

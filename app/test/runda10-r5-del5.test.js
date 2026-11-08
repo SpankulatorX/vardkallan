@@ -190,6 +190,10 @@ describe('Akutmottagningen', () => {
     expect(nej.data.fel).toContain('reservnummer');
     expect((await k.post('/api/akut/ankomst', { forvarningId: okand.data.id, patientId: 'p999' })).status).toBe(400);
     expect(s.db.query("SELECT count(*) AS n FROM akutbesok WHERE patient_id IN ('p07', 'p999')").get().n).toBe(0);
+    // Ett tak per sandlåda för förvarningar som inte är mottagna.
+    const oppna = s.db.query('SELECT count(*) AS n FROM akut_forvarningar WHERE mottagen IS NULL').get().n;
+    for (let i = oppna; i < akut.MAX_FORVARNINGAR; i++) akut.forvarning(s.db, { kontaktorsak: 'Fall', vitaler: STABIL });
+    expect((await k.post('/api/demo/ambulans/forvarning', { kontaktorsak: 'Fall', vitaler: STABIL })).status).toBe(429);
   });
 
   test(T.akDirekt.split(' > ')[1], async () => {

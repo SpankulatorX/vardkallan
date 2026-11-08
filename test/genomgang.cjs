@@ -1819,7 +1819,9 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
         // Runda 9, r1: förbrukningsartiklar.
         'forbrukning-mall',
         // Runda 9, r7: streckkodsläsaren och patientgrupperna.
-        'skanna-armband', 'patientgrupp']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'skanna-armband', 'patientgrupp',
+        // Runda 10, r5: läkemedelsberättelsen, vaccinationen, sammanhållen journalföring och ankomsten till akuten.
+        'lakemedelsberattelse', 'vaccination-riskgrupp', 'sammanhallen', 'akut-ankomst']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');
