@@ -95,7 +95,8 @@ describe('Utskrift', () => {
     const usk = await inloggad('usk-kard');
     const u = (await skrivUt(usk, 'p01')).data;
     expect(antInSektion(u)).not.toContain('Daganteckning');
-    expect(sektion(u, 'anteckningar').rader.every(a => a.rubrik === 'Omvårdnadsanteckning')).toBe(true);
+    // Runda 10, r3: fallriskbedömningen i seeden är ett formulär i omvårdnaden.
+    expect(sektion(u, 'anteckningar').rader.every(a => ['Omvårdnadsanteckning', 'Fallriskbedömning'].includes(a.rubrik))).toBe(true);
     expect(sektion(u, 'diagnoser')).toBeUndefined();
     expect(u.utelamnat.join(' ')).toContain('Diagnoser');
     const adm = await inloggad('adm-kard');

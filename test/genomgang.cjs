@@ -172,6 +172,8 @@ for (const k of ['klinisk', 'sjukskoterska', 'vardadministrator', 'psykiatri', '
 for (const k of ['uppfoljning', 'arkiv', 'verksamhetschef']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Forskningsuttag');
 // Runda 9, r7: läkarna och verksamhetschefen har vårdenhetens signeringslista.
 for (const k of ['klinisk', 'psykiatri', 'bvc', 'verksamhetschef']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Signeringslista');
+// Runda 10, r3: systemförvaltaren har Formulär direkt efter Kodverk och masterdata.
+MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterdata') + 1, 0, 'Formulär');
 // Runda 9, r2: läkarens meny på Kardiologiska kliniken är läkarens meny med Intensivvård, och kopieras när den är klar.
 MENY.kardiologi = [...MENY.klinisk];
 MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård');
@@ -820,7 +822,8 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
       await forvanta(page, '.ant-form h2', 'Ny anteckning');
       const mallar = await page.locator('select[name="typ"] option').allTextContents();
       // Runda 8, r5: sjuksköterskan skriver också tobaksvanor, som har kategorin omvårdnad.
-      if (JSON.stringify(mallar) !== JSON.stringify(['Omvårdnadsanteckning', 'Tobaksvanor', 'Levnadsvanor'])) throw new Error(`mallar ${mallar}`);
+      // Runda 10, r3: och formulären Fallriskbedömning och Sårdokumentation, som sjuksköterskan får fylla i.
+      if (JSON.stringify(mallar) !== JSON.stringify(['Omvårdnadsanteckning', 'Tobaksvanor', 'Levnadsvanor', 'Fallriskbedömning', 'Sårdokumentation'])) throw new Error(`mallar ${mallar}`);
       await page.fill('textarea[data-sokord="Sömn"]', 'Sov hela natten.');
       await page.click('.ant-form [data-signera]');
       await forvanta(page, '.anteckning', 'Sov hela natten.');
@@ -866,7 +869,8 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
       await page.click('.flikar a:has-text("Journal")');
       await page.waitForSelector('.j-grupp');
       const typer = await page.locator('.j-typ').allTextContents();
-      if (typer.some(t => t !== 'Omvårdnadsanteckning')) throw new Error(`typer ${typer}`);
+      // Runda 10, r3: fallriskbedömningen i seeden är ett formulär i omvårdnaden.
+      if (typer.some(t => !['Omvårdnadsanteckning', 'Fallriskbedömning'].includes(t))) throw new Error(`typer ${typer}`);
       await page.click('.flikar a:has-text("Mätvärden")');
       await page.selectOption('#mv-typ', 'saturation');
       await page.fill('#mv-varde', '95');
@@ -1829,7 +1833,9 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
         // Runda 10, r6: konsultation.
         'skicka-konsultation',
         // Runda 10, r5: läkemedelsberättelsen, vaccinationen, sammanhållen journalföring och ankomsten till akuten.
-        'lakemedelsberattelse', 'vaccination-riskgrupp', 'sammanhallen', 'akut-ankomst']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'lakemedelsberattelse', 'vaccination-riskgrupp', 'sammanhallen', 'akut-ankomst',
+        // Runda 10, r3: röstinmatning, rättstavning, sårdokumentation och formulärbyggaren.
+        'diktera', 'stavning', 'formular-sar', 'bygga-formular']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

@@ -114,6 +114,9 @@ export const FHIR = {
   StructureDefinition: 'Tillämpad modell',
   CodeSystem: 'Tillämpad modell',
   ValueSet: 'Tillämpad modell',
+  // Runda 10, r3: formulären och svaren i dem (formularmotor.js).
+  Questionnaire: 'Tillämpad modell',
+  QuestionnaireResponse: 'Dokument',
 };
 
 // Klassar alla tabeller i en databas. En tabell med patientuppgifter som inte är klassad får den allmänna klassen.

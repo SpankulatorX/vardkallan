@@ -389,4 +389,21 @@ export const FLODEN = [
     id: 'akut-ankomst', namn: 'Registrera en ankomst på akutmottagningen', roll: 'lak-akut', start: 'Väntrummet efter återställning', budget: 4,
     motivering: 'Sussa 3.2.3.5. Ett klick på Ny ankomst, personnumret, ett fältbyte till kontaktorsaken och ett klick för att registrera. Systemet sätter könumret, ankomsttiden och akutbesöket och lägger patienten på flödestavlan och i väntrummet.',
   },
+  // Runda 10, r3: röstinmatning, rättstavning, formulär med kroppsbild och formulärbyggaren (Sussa 3.1.3 och 5.1.1.3).
+  {
+    id: 'diktera', namn: 'Diktera och signera en daganteckning', roll: 'lak-kard', start: 'Patientens översikt', budget: 3,
+    motivering: 'Sussa 3.1.3.2 och 3.1.3.7. Ett klick på Ny anteckning, ett på Diktera och ett för att signera. Resten görs med rösten: texten hamnar i det första tomma sökordet, gå till bedömning byter sökord och sluta diktera avslutar. Systemet sätter skiljetecken och stor bokstav, och signeringen görs alltid med knappen.',
+  },
+  {
+    id: 'stavning', namn: 'Rätta en felstavad medicinsk term i en anteckning', roll: 'lak-kard', start: 'Patientens översikt', budget: 3,
+    motivering: 'Sussa 3.1.3.10. Ett klick på Ny anteckning, där fokus står i Aktuellt, ett klick på förslaget som systemet visar under fältet och ett för att signera. Systemet kontrollerar texten själv när man slutar skriva.',
+  },
+  {
+    id: 'formular-sar', namn: 'Dokumentera ett sår med kroppsbilden', roll: 'ssk-kard', start: 'Patientens översikt', budget: 8,
+    motivering: 'Sussa 3.1.3.1, 3.1.3.5 och 5.1.1.3. Ett klick på Ny anteckning, två för att välja Sårdokumentation i listan, ett klick på hälen i kroppsbilden, där fokus flyttas till beskrivningen, ett klick på sårtypen, ett fältbyte vardera för längd och bredd och ett klick för att signera. Systemet skriver kroppsdelen och sidan, fyller i vikten ur mätvärdena och skriver anteckningens text.',
+  },
+  {
+    id: 'bygga-formular', namn: 'Bygga ett formulär och föreslå det', roll: 'sysf', start: 'Systemförvaltarens formulär', budget: 5,
+    motivering: 'Sussa 5.1.1.3. Ett klick på Nytt formulär, där fokus står i namnet, ett fältbyte till första frågan, ett klick på Lägg till fråga, där fokus flyttas till den nya frågan, ett klick på Föreslå och ett för att skicka med motiveringen. Systemet sätter nycklarna, förhandsvisar formuläret och säger vad som behöver ändras.',
+  },
 ];

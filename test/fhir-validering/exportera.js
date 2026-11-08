@@ -42,7 +42,9 @@ const TYPER = ['Patient', 'Encounter', 'EpisodeOfCare', 'Condition', 'Observatio
   // Runda 7, r3: posterna i faktureringsunderlaget. r6: vaccinationerna i barnhälsovården.
   'ChargeItem', 'Immunization',
   // Runda 8, r1: provtagningens rör och laboratoriernas svar.
-  'DiagnosticReport', 'Specimen'];
+  'DiagnosticReport', 'Specimen',
+  // Runda 10, r3: svaren i formulären.
+  'QuestionnaireResponse'];
 for (const roll of ['lak-kard', 'ssk-kard', 'adm-kard', 'lak-vc', 'lak-psyk', 'lak-akut']) {
   for (const { id } of db.query('SELECT id FROM patienter').all()) {
     const val = { [id]: { andra_enheter: true, nodatkomst: true, samtycke_sparr: true } };
@@ -52,6 +54,8 @@ for (const roll of ['lak-kard', 'ssk-kard', 'adm-kard', 'lak-vc', 'lak-psyk', 'l
   }
 }
 lagg(fraga('lak-kard', '/fhir/Organization'));
+// Runda 10, r3: formulären.
+lagg(fraga('lak-kard', '/fhir/Questionnaire'));
 lagg(fraga('lak-kard', '/fhir/Practitioner'));
 lagg(fraga('logg', '/fhir/AuditEvent'));
 // Tidboken: alla scheman och alla tider i dem, också de som har passerat.

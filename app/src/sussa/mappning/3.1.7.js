@@ -1,11 +1,12 @@
 // Sussa 3.1.7 Nolltolerans för dubbeldokumentation: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 import { TEST } from '../../krav.js';
+import { medR10r3 } from '../runda10-r3.js';
 
 const { A, M, MJ } = TEST;
 const VK = 'Vårdkontakt > ';
 
-export default [
+const POSTERNA = [
   {
     id: '3.1.7.1', kategori: 'system', egna: ['D2', 'L7'], avsedd: 'delvis',
     tester: [
@@ -22,3 +23,5 @@ export default [
     anmarkning: 'Principen gäller de delar som är byggda. Flöden mellan vårdgivare och mot nationella tjänster finns inte, och NLL är simulerad.',
   },
 ];
+// Runda 10, r3: förifyllnaden och formulärmotorn (sussa/runda10-r3.js).
+export default medR10r3(POSTERNA);

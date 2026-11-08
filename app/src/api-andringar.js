@@ -23,7 +23,8 @@ export const ANDRINGAR = [
   {
     version: '0.9.0', datum: '2026-11-08',
     text: 'Diagnoser, bokning av en remiss och inskrivning kan göras via API:t, och CapabilityStatement anger programmets version. Ändringsloggen finns på sidan Öppet API och i API:t.',
-    resurser: [], skrivning: ['Condition:create', 'Appointment:create', 'Encounter:create'],
+    // Runda 10, r3: formulären och svaren i dem kom efter 0.9.0 och följer med i nästa version.
+    resurser: ['Questionnaire', 'QuestionnaireResponse'], skrivning: ['Condition:create', 'Appointment:create', 'Encounter:create'],
     annat: ['Versionen i CapabilityStatement följer programmets version', 'Ändringsloggen i API:t'],
   },
   {

@@ -118,9 +118,10 @@ describe('FHIR', () => {
     expect(fraga(db, 'lak-kard', '/fhir/Patient?identifier=199812212398').total).toBe(0);
     // Med nödåtkomst går det.
     expect(fraga(db, 'lak-kard', '/fhir/Composition?patient=p12', { p12: { nodatkomst: true } }).total).toBeGreaterThan(0);
-    // Undersköterskan ser bara omvårdnadsanteckningar.
+    // Undersköterskan ser bara omvårdnadsanteckningar. Runda 10, r3: fallriskbedömningen i seeden är ett formulär i
+    // omvårdnaden.
     const usk = fraga(db, 'usk-kard', '/fhir/Composition?patient=p01').entry.map(e => e.resource.type.text);
-    expect(new Set(usk)).toEqual(new Set(['Omvårdnadsanteckning']));
+    expect(new Set(usk)).toEqual(new Set(['Omvårdnadsanteckning', 'Fallriskbedömning']));
   });
 
   test('FHIR följer inre sekretess och spärr', () => {

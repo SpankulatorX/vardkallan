@@ -438,6 +438,9 @@ export function byggSeed(bas = nu()) {
   // Runda 9, r1 (schema-runda9-r1.js).
   sakraR9r1(db);
   seedaR9r1(db, bas);
+  // Runda 10, r3: formulärmotorns tabeller och formulär, den personliga ordlistan och en ifylld fallriskbedömning
+  // (formularmotor.js). Före runda 9, r7, så att anteckningen får sin signatur med de andra.
+  require('./formularmotor.js').seeda(db, bas, { anteckning: true });
   // Runda 9, r7: skanning, analys, folkhälsa, spårbarhet, forskningsuttag, in- och utfarter, restjournaler och
   // signering (schema-runda9-r7.js). Sist, eftersom seeden läser vårdkontakterna, anteckningarna och proverna.
   require('./schema-runda9-r7.js').sakraR9r7(db, bas);
@@ -572,6 +575,8 @@ export function migrera(db) {
   require('./schema-runda10-r2.js').sakraR10r2(db);
   // Runda 10, r5 (schema-runda10-r5.js).
   require('./schema-runda10-r5.js').sakraR10r5(db, nu());
+  // Runda 10, r3: formulärmotorns tabeller och formulär i en sandlåda från före runda 10. Inga anteckningar läggs in.
+  require('./formularmotor.js').seeda(db, nu());
   return db;
 }
 

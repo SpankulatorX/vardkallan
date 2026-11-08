@@ -118,6 +118,9 @@ import { registreraRutter as r9r4Rutter, efterTid as masterdataEfterTid } from '
 // Runda 10, r2: vyer, presentation, sökning, utskrifter och loggning.
 import { registreraRutter as r10r2Rutter } from './runda10-r2-rutter.js';
 import * as presentationsvyer from './presentationsvyer.js';
+// Runda 10, r3: formulärmotorn och rättstavningen (r10r3-rutter.js), och formulären bland mallarna.
+import { registreraRutter as r10r3Rutter } from './r10r3-rutter.js';
+import { mallarFor as formularMallar } from './formularmotor.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -1071,7 +1074,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('GET', '/api/patient/:id/anteckningar', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_journal', (atk) => journal.listaAnteckningar(atk)); });
   rutt('POST', '/api/patient/:id/anteckningar', (c, id) => {
     kravInloggad(c);
-    return [201, medPatient(c, id, journal.skrivHandling(journal.MALLAR.find(m => m.typ === c.body.typ)?.kategori), (atk) => vardkontakt.knyt(atk, 'anteckningar', journal.skapaAnteckning(atk, c.body), c.body))];
+    // Runda 10, r3: kategorin för ett formulär kommer ur formulärets definition (journal.kategoriFor).
+    return [201, medPatient(c, id, journal.skrivHandling(journal.kategoriFor(c.db, c.body.typ)), (atk) => vardkontakt.knyt(atk, 'anteckningar', journal.skapaAnteckning(atk, c.body), c.body))];
   });
   const medAnteckning = (c, id, handling, fn) => {
     kravInloggad(c);
@@ -1083,7 +1087,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('POST', '/api/anteckning/:id/signera', (c, id) => medAnteckning(c, id, a => journal.skrivHandling(a.kategori), (atk, a) => journal.signera(atk, a)));
   rutt('POST', '/api/anteckning/:id/ratta', (c, id) => medAnteckning(c, id, a => journal.skrivHandling(a.kategori), (atk, a) => [201, journal.ratta(atk, a, c.body)]));
   // Runda 7, r4: mallarnas sökord kan ändras av systemförvaltningen (konfiguration.js).
-  rutt('GET', '/api/mallar', (c) => konfiguration.mallar(c.db));
+  // Runda 10, r3: och de formulär som den inloggade får fylla i (formularmotor.js).
+  rutt('GET', '/api/mallar', (c) => [...konfiguration.mallar(c.db), ...formularMallar(c.db, c.personal)]);
 
   rutt('GET', '/api/patient/:id/lakemedel', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_lakemedel', (atk) => lakemedel.lista(atk)); });
   rutt('GET', '/api/lakemedel/katalog', (c) => { kravInloggad(c); return lakemedel.sokKatalog(c.db, c.url.searchParams.get('q') ?? ''); });
@@ -1762,6 +1767,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   r9r4Rutter({ rutt, kravInloggad });
   // Runda 10, r2 (runda10-r2-rutter.js).
   r10r2Rutter({ rutt, kravInloggad, medPatient, valFor, patientKort });
+  // Runda 10, r3 (r10r3-rutter.js).
+  r10r3Rutter({ rutt, kravInloggad, medPatient });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
   // visas direkt (bara i den egna sandlådan).
   const kravNagon = (c) => { if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad'); };

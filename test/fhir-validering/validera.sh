@@ -20,7 +20,8 @@ kor Organization /data/Organization -profile http://hl7.se/fhir/ig/base/Structur
 kor Practitioner /data/Practitioner -profile http://hl7.se/fhir/ig/base/StructureDefinition/SEBasePractitioner
 ovriga=""
 for t in def Encounter EpisodeOfCare Condition Observation MedicationRequest MedicationAdministration List AllergyIntolerance Flag ServiceRequest Procedure \
-  Composition Schedule Slot Appointment AuditEvent CapabilityStatement Bundle CarePlan ChargeItem Immunization DiagnosticReport Specimen; do
+  Composition Schedule Slot Appointment AuditEvent CapabilityStatement Bundle CarePlan ChargeItem Immunization DiagnosticReport Specimen \
+  Questionnaire QuestionnaireResponse; do
   [ -d "$DATA/$t" ] && ovriga="$ovriga /data/$t"
 done
 kor R4 "$ovriga"

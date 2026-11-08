@@ -4,6 +4,8 @@ import { TEST, klickbudgetTest } from '../../krav.js';
 import { FLODEN } from '../../klickbudget.js';
 // Runda 8, r5: tilläggen för tobaksvanor, epikrisen, mätvärdena, övningarna och parametrarna (sussa/runda8-r5.js).
 import { medR8r5 } from '../runda8-r5.js';
+// Runda 10, r3: formulären, kroppsbilden, röstinmatningen och rättstavningen (sussa/runda10-r3.js).
+import { medR10r3 } from '../runda10-r3.js';
 
 const { J, KV, FS, MJ, GK } = TEST;
 // Runda 6, r1: skalor, NEWS2 och kurvor (skalor.js och vitalparametrar.js).
@@ -96,4 +98,4 @@ const POSTERNA = [
   { id: '3.1.3.10', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: 'Rättstavning och grammatikkontroll med medicinska termer är inte byggd.' },
 ];
-export default medR8r5(POSTERNA);
+export default medR10r3(medR8r5(POSTERNA));

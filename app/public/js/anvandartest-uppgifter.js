@@ -57,6 +57,8 @@ export const STARTPUNKT = {
   // Runda 9, r2: fliken Mätvärden efter återställning, och med en kopplad monitor vars värden väntar på godkännande.
   'Patientens mätvärden efter återställning': { hash: '#/patient/p01/matvarden', klar: '#mt-koppla', forbered: 'aterstall' },
   'Mätvärden med värden från en kopplad monitor': { hash: '#/patient/p01/matvarden', klar: '[data-mt-godkann]', forbered: 'koppla-monitor' },
+  // Runda 10, r3: systemförvaltarens formulär.
+  'Systemförvaltarens formulär': { hash: '#/formular', klar: '#fb-lista [data-nytt]' },
 };
 
 export const UPPGIFTER = [
@@ -497,6 +499,27 @@ export const UPPGIFTER = [
     id: 'akut-ankomst', namn: 'Registrera en ankomst på akutmottagningen', roll: 'lak-akut', start: 'Väntrummet efter återställning',
     text: 'Thomas Lindberg, 19660319-3373, kommer till akutmottagningen med bröstsmärta. Registrera ankomsten.',
     kontroll: { notis: 'Ankomsten är registrerad' },
+  },
+  // Runda 10, r3: röstinmatning, rättstavning, sårdokumentation med kroppsbilden och formulärbyggaren.
+  {
+    id: 'diktera', namn: 'Diktera och signera en daganteckning', roll: 'lak-kard', start: 'Patientens översikt',
+    text: 'Gunnar Åkesson är pigg och äter bra och har inga bröstsmärtor. Du bedömer honom som stabil. Diktera en daganteckning och signera den. Utan mikrofon skriver du texten.',
+    kontroll: { sel: '.anteckning .ant-fakta', text: 'Signerad' },
+  },
+  {
+    id: 'stavning', namn: 'Rätta en felstavad medicinsk term i en anteckning', roll: 'lak-kard', start: 'Patientens översikt',
+    text: 'Skriv en daganteckning om att Gunnar Åkesson har hosta och feber och att du misstänker pnemoni. Rätta stavningen med systemets förslag och signera.',
+    kontroll: { sel: '.anteckning', text: 'pneumoni' },
+  },
+  {
+    id: 'formular-sar', namn: 'Dokumentera ett sår med kroppsbilden', roll: 'ssk-kard', start: 'Patientens översikt',
+    text: 'Gunnar Åkesson har ett trycksår på höger häl, 2 gånger 1,5 cm, med en rodnad som inte bleknar. Dokumentera såret i formuläret Sårdokumentation och signera.',
+    kontroll: { sel: '.anteckning', text: 'höger häl' },
+  },
+  {
+    id: 'bygga-formular', namn: 'Bygga ett formulär och föreslå det', roll: 'sysf', start: 'Systemförvaltarens formulär',
+    text: 'Avdelningarna vill dokumentera munhälsa. Bygg ett formulär som heter Munhälsa med två frågor: om patienten har ont i munnen och om patienten behöver hjälp med munvården. Föreslå det för godkännande.',
+    kontroll: { notis: 'Formuläret är föreslaget' },
   },
 ];
 

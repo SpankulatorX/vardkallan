@@ -90,7 +90,7 @@ describe('Ärenden om API:t', () => {
   test('en begäran om ny information går från inkommen till levererad, och levererad kräver en version i ändringsloggen', async () => {
     const k = klient(app);
     await k.logga('lak-kard');
-    const ny = await k.post('/api/oppet-api/arenden', { typ: 'informationsmangd', rubrik: 'Levnadsvanor för vårddatalagret', text: 'Vårddatalagret behöver levnadsvanorna som strukturerade uppgifter.', resurstyp: 'QuestionnaireResponse', tjanstekontrakt: 'GetCareDocumentation' });
+    const ny = await k.post('/api/oppet-api/arenden', { typ: 'informationsmangd', rubrik: 'Levnadsvanor för vårddatalagret', text: 'Vårddatalagret behöver levnadsvanorna som strukturerade uppgifter.', resurstyp: 'NutritionOrder', tjanstekontrakt: 'GetCareDocumentation' });
     expect(ny.status).toBe(201);
     expect(ny.data).toMatchObject({ status: 'inkommen', typ: 'informationsmangd', skapadAv: 'Sara Lindqvist', nasta: [], svar: [] });
     const id = ny.data.id;

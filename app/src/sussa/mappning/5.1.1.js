@@ -1,12 +1,13 @@
 // Sussa 5.1.1 Generella behov kring arkitektur: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 import { TEST } from '../../krav.js';
+import { medR10r3 } from '../runda10-r3.js';
 // Runda 9, r4: inläsningen av migreringsfiler.
 import { T } from '../runda9-r4.js';
 
 const { A, S } = TEST;
 
-export default [
+const POSTERNA = [
   { id: '5.1.1.1', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: 'Ingen koppling till kontorsinformationsstöd är byggd.' },
   {
@@ -37,3 +38,5 @@ export default [
     anmarkning: 'En registrerad demotillämpning. Byter användaren patient stängs tillämpningen med fliken; en tillämpning kan inte själv byta patient i journalen.',
   },
 ];
+// Runda 10, r3: förifyllnaden och formulärmotorn (sussa/runda10-r3.js).
+export default medR10r3(POSTERNA);
