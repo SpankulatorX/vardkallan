@@ -5,7 +5,7 @@
 import { esc, api, notis, felNotis, medKnapp, dialog, ikon, vyRubrik, tom, klockslag, tidpunkt, datum, idag } from '../ui.js';
 // Runda 7, r2: hjälp i sammanhanget.
 import { hjalpRuta } from '../hjalp.js';
-import { far } from '../app.js';
+import { far, S } from '../app.js';
 import { patientCell } from './arbetslista.js';
 // Runda 6, r2: makulering av en felaktig registrering.
 import { makulera } from './lakemedelsstod.js';
@@ -37,10 +37,14 @@ export function patientDoser(pid, l) {
   const rad = (d) => {
     const [st, kl] = STATUS[d.status] ?? [d.status, ''];
     const a = d.administrering;
+    // Runda 9, r1: en dos som ska beredas föreslås att beredas först, och en beredning som väntar på kontroll ges inte.
+    const bered = d.beredning && a?.status !== 'iordningstalld';
+    const vantarKontroll = a?.status === 'iordningstalld' && a.beredning?.kontroll?.kravs && !a.beredning.kontroll.av;
     const knappar = kan && d.forslag && omfattas(d) ? `
-      <button type="button" class="knapp liten" data-adm="${d.forslag}" data-pid="${esc(pid)}" data-ord="${d.ordinationId}" data-planerad="${esc(d.planerad)}"${a?.iordningstalld?.kontrollkod ? ` data-kod="${esc(a.iordningstalld.kontrollkod)}"` : ''} data-namn="${esc(d.lakemedel?.namn)}">${d.forslag === 'overlamna' ? 'Lämna över' : 'Ge'}</button>
+      ${bered ? `<button type="button" class="knapp liten" data-adm="iordningstall" data-pid="${esc(pid)}" data-ord="${d.ordinationId}" data-planerad="${esc(d.planerad)}" data-namn="${esc(d.lakemedel?.namn)}" data-bered="${esc(JSON.stringify(beredData(d)))}">Bered</button>`
+        : vantarKontroll ? '' : `<button type="button" class="knapp liten" data-adm="${d.forslag}" data-pid="${esc(pid)}" data-ord="${d.ordinationId}" data-planerad="${esc(d.planerad)}"${a?.iordningstalld?.kontrollkod ? ` data-kod="${esc(a.iordningstalld.kontrollkod)}"` : ''} data-namn="${esc(d.lakemedel?.namn)}">${d.forslag === 'overlamna' ? 'Lämna över' : 'Ge'}</button>`}
       <details class="adm-mer"><summary>Mer</summary><div class="knapprad">
-        ${a?.status !== 'iordningstalld' ? `<button type="button" class="knapp liten sekundar" data-adm="iordningstall" data-pid="${esc(pid)}" data-ord="${d.ordinationId}" data-planerad="${esc(d.planerad)}" data-namn="${esc(d.lakemedel?.namn)}">Iordningsställ</button>` : ''}
+        ${a?.status !== 'iordningstalld' && !bered ? `<button type="button" class="knapp liten sekundar" data-adm="iordningstall" data-pid="${esc(pid)}" data-ord="${d.ordinationId}" data-planerad="${esc(d.planerad)}" data-namn="${esc(d.lakemedel?.namn)}">Iordningsställ</button>` : ''}
         <button type="button" class="knapp liten sekundar" data-adm="efterhand" data-pid="${esc(pid)}" data-ord="${d.ordinationId}" data-planerad="${esc(d.planerad)}" data-namn="${esc(d.lakemedel?.namn)}">Given tidigare</button>
         ${d.dos != null ? `<button type="button" class="knapp liten sekundar" data-adm="annan_dos" data-pid="${esc(pid)}" data-ord="${d.ordinationId}" data-planerad="${esc(d.planerad)}" data-dos="${esc(d.dos)}" data-enhet="${esc(d.dosEnhet ?? '')}" data-namn="${esc(d.lakemedel?.namn)}">Annan dos</button>` : ''}
         <button type="button" class="knapp liten sekundar" data-adm="ej_given" data-pid="${esc(pid)}" data-ord="${d.ordinationId}" data-planerad="${esc(d.planerad)}" data-namn="${esc(d.lakemedel?.namn)}">Inte given</button>
@@ -48,11 +52,11 @@ export function patientDoser(pid, l) {
       </div></details>` : '';
     return `<tr data-dos="${esc(d.nyckel)}">
       <td><time>${esc(klockslag(d.planerad))}</time>${datum(d.planerad) !== datum(idag()) ? `<span class="under-text">${esc(datum(d.planerad))}</span>` : ''}</td>
-      <td><strong>${lmText(d)}</strong>${r6Taggar(d)}<span class="under-text">${esc(d.dosering)}${d.administrationssatt ? `, ${esc(d.administrationssatt.toLowerCase())}` : ''}${d.vardhandelse ? `. Inför ${esc(d.vardhandelse.text.toLowerCase())}` : ''}</span>${d.vardhandelse?.forklaring ? `<span class="under-text">${esc(d.vardhandelse.forklaring)}</span>` : ''}${d.spadning ? `<span class="under-text lms-spadning">${esc(d.spadning.text)}</span>` : ''}</td>
+      <td><strong>${lmText(d)}</strong>${r6Taggar(d)}<span class="under-text">${esc(d.dosering)}${d.administrationssatt ? `, ${esc(d.administrationssatt.toLowerCase())}` : ''}${d.vardhandelse ? `. Inför ${esc(d.vardhandelse.text.toLowerCase())}` : ''}</span>${d.vardhandelse?.forklaring ? `<span class="under-text">${esc(d.vardhandelse.forklaring)}</span>` : ''}${d.spadning ? `<span class="under-text lms-spadning">${esc(d.spadning.text)}</span>` : ''}${r9Info(d)}</td>
       <td>${dosText(d)}</td>
       <td><span class="tagg ${kl}">${esc(st)}</span>${d.underPermission ? ' <span class="tagg">Permission</span>' : ''}
         ${a && a.status !== 'iordningstalld' ? `<span class="under-text">${vem(a)}${a.orsak ? `. ${esc(a.orsak)}` : ''}${d.antalRegistreringar > 1 ? `. Registrerad ${d.antalRegistreringar} gånger` : ''}</span>` : ''}
-        ${a?.status === 'iordningstalld' ? `<span class="under-text">Iordningsställd ${esc(klockslag(a.iordningstalld.tid))} av ${esc(a.iordningstalld.av)}. Etikett ${esc(a.iordningstalld.kontrollkod)}</span>` : ''}
+        ${a?.status === 'iordningstalld' ? `<span class="under-text">Iordningsställd ${esc(klockslag(a.iordningstalld.tid))} av ${esc(a.iordningstalld.av)}. Etikett ${esc(a.iordningstalld.kontrollkod)}</span>${r9Status(pid, a, kan)}` : ''}
         ${a && kan ? `<button type="button" class="knapp-lank" data-makulera-adm="${a.id}" data-pid="${esc(pid)}" data-text="${esc(`${d.lakemedel?.namn ?? ''}, ${STATUS[a.status]?.[0]?.toLowerCase() ?? ''} ${klockslag(a.tid ?? a.iordningstalld?.tid)}`)}">Makulera</button>` : ''}
         ${d.forslag ? inteDelegerad(d) : ''}</td>
       <td class="atgarder">${knappar}</td>
@@ -64,7 +68,7 @@ export function patientDoser(pid, l) {
       ${v.varfor ? `<span class="under-text adm-varfor">${esc(v.varfor)}</span>` : ''}${inteDelegerad(v)}</div>
       ${kan && omfattas(v) ? `<div class="adm-knappar"><button type="button" class="knapp liten${v.kanGesNu ? '' : ' sekundar'}" data-adm="ge" data-pid="${esc(pid)}" data-ord="${v.ordinationId}" data-namn="${esc(v.lakemedel?.namn)}">Ge</button>
         <details class="adm-mer"><summary>Mer</summary><div class="knapprad"><button type="button" class="knapp liten sekundar" data-adm="efterhand" data-pid="${esc(pid)}" data-ord="${v.ordinationId}" data-namn="${esc(v.lakemedel?.namn)}">Given tidigare</button></div></details></div>` : ''}</li>`;
-  const ut = (u) => `<li class="adm-vb"><div><strong>${lmText(u)}</strong> <span class="tagg">Utan fasta tider</span><span class="under-text">${esc(u.dosering)}</span>
+  const ut = (u) => `<li class="adm-vb"><div><strong>${lmText(u)}</strong> <span class="tagg">Utan fasta tider</span><span class="under-text">${esc(u.dosering)}</span>${r9Info(u)}
       ${u.givnaIdag.length ? `<span class="under-text">Given i dag ${u.givnaIdag.map(a => `${esc(klockslag(a.tid))}${a.dos != null ? ` (${dosText(a)})` : ''} av ${esc(a.utfordAv?.namn ?? '')}${a.delegering ? `, med delegering från ${esc(a.delegering.utfardadAv)}` : ''}`).join('; ')}.</span>` : ''}${inteDelegerad(u)}</div>
       ${kan && omfattas(u) ? `<button type="button" class="knapp liten sekundar" data-adm="fri" data-pid="${esc(pid)}" data-ord="${u.ordinationId}" data-namn="${esc(u.lakemedel?.namn)}">Ge dos</button>` : ''}</li>`;
   // Runda 5, r1: vårdhändelsen följer tidboken, och systemet förklarar varför dosen väntar (vardhandelse.js).
@@ -76,10 +80,11 @@ export function patientDoser(pid, l) {
   const kommande = (v) => `<li class="adm-vb"><div><strong>${lmText(v)}</strong> <span class="tagg">Ges ${esc(tidpunkt(v.administreras))}</span>
       <span class="under-text">Ges ${esc(handelseText(v.vardhandelse))}.${v.vardhandelse.foljerTidbok ? ' Tiden följer tidboken.' : ''}</span>
       ${v.vardhandelse.forklaring ? `<span class="under-text">${esc(v.vardhandelse.forklaring)}</span>` : ''}</div></li>`;
-  return `${l.permission ? `<p class="ruta ruta-info liten">${ikon.info}<span>Patienten är på permission till och med ${esc(datum(l.permission.till))}. Doserna under permissionen lämnas över till patienten.</span></p>` : ''}
+  return `${kan ? skannaForm(pid) : ''}${l.permission ? `<p class="ruta ruta-info liten">${ikon.info}<span>Patienten är på permission till och med ${esc(datum(l.permission.till))}. Doserna under permissionen lämnas över till patienten.</span></p>` : ''}
     ${l.doser.length ? `<div class="tabellrulle"><table class="tabell adm-tabell">
       <thead><tr><th scope="col">Tid</th><th scope="col">Läkemedel</th><th scope="col">Dos</th><th scope="col">Status</th><th scope="col"><span class="sr">Åtgärder</span></th></tr></thead>
       <tbody>${l.doser.map(rad).join('')}</tbody></table></div>` : '<p class="tom liten">Inga doser med fasta tider i dag.</p>'}
+    ${egenHtml(pid, l, kan)}
     ${l.vidBehov.length || l.utanTider.length || l.vantarPaHandelse.length || l.kommandeHandelser?.length ? `<ul class="adm-lista">${l.vidBehov.map(vb).join('')}${l.utanTider.map(ut).join('')}${l.vantarPaHandelse.map(vantar).join('')}${(l.kommandeHandelser ?? []).map(kommande).join('')}</ul>` : ''}
     ${(l.senaste ?? []).some(a => a.makulerad) ? `<p class="liten">Makulerade registreringar: ${l.senaste.filter(a => a.makulerad).map(a => `<span class="makulerad">${esc(a.lakemedel?.namn)} ${esc(klockslag(a.tid ?? a.iordningstalld?.tid))}</span> (${esc(a.makulerad.orsak)}, ${esc(a.makulerad.av)})`).join(', ')}.</p>` : ''}
     ${l.utanOrdination?.length ? `<p class="liten">Doser utan ordination det senaste dygnet: ${l.utanOrdination.map(a => `${esc(a.lakemedel?.namn)} ${esc(klockslag(a.tid))}`).join(', ')}.</p>` : ''}
@@ -134,7 +139,20 @@ const KLAR = { ge: 'är given', overlamna: 'är överlämnad till patienten', ej
 
 // Kopplar knapparna i el. ladda ritar om efter en ändring.
 export function koppla(el, ladda) {
+  // Runda 9, r1: patientnära skanning med streckkodsläsaren, som skriver koden och Enter.
+  el.addEventListener('keydown', (e) => {
+    const f = e.target.closest('.adm-skanna input');
+    if (f && e.key === 'Enter') { e.preventDefault(); skanning(f, ladda); }
+  });
   el.addEventListener('click', async (e) => {
+    // Runda 9, r1: etiketten, kontrollen av en beredning, armbandet och skanningen.
+    const eg = e.target.closest('[data-egen]');
+    if (eg) return kvitteraEgen(eg, ladda);
+    const r9 = e.target.closest('[data-etikett], [data-kontroll-ber], [data-armband], [data-skanna]');
+    if (r9?.dataset.etikett) return visaEtikett(r9.dataset.pid, r9.dataset.etikett);
+    if (r9?.dataset.kontrollBer) return kontrolleraBeredning(r9, ladda);
+    if (r9?.dataset.armband) return visaArmband(r9.dataset.armband);
+    if (r9 && r9.dataset.skanna != null) return skanning(r9.closest('.adm-skanna').querySelector('input'), ladda);
     const h = e.target.closest('[data-handelse]');
     if (h) return angeHandelsetid(h, ladda);
     const mk = e.target.closest('[data-makulera-adm]');
@@ -177,6 +195,11 @@ export function koppla(el, ladda) {
       data.atgard = 'ge';
       data.tid = lokalTill(svar.data.tid);
       if (svar.data.dos?.trim()) data.dos = Number(svar.data.dos.replace(',', '.'));
+    } else if (typ === 'iordningstall' && b.dataset.bered) {
+      // Runda 9, r1: beredningen. Systemet visar vad som ska göras, och den som bereder anger bara batchnumret.
+      const svar = await beredDialog(namnText, JSON.parse(b.dataset.bered));
+      if (!svar) return;
+      Object.assign(data, { atgard: 'iordningstall', beredning: svar });
     } else data.atgard = typ;
     try {
       const r = await medKnapp(b, () => registrera(b.dataset.pid, data, namnText));
@@ -224,4 +247,147 @@ export async function visa(main) {
       ${patientDoser(p.patient.id, p)}
     </section>`).join('')}`;
   koppla(el, () => visa(main));
+}
+
+// ---- Runda 9, r1: beredning med kontroll och etikett, flytande form, gas och patientnära skanning ----------------
+
+const beredData = (d) => ({ text: d.spadning?.text ?? '', dubbel: Boolean(d.beredning?.dubbelkontroll), varfor: d.beredning?.varfor ?? '', timmar: d.beredning?.hallbarTimmar ?? null });
+// Under doseringen: att dosen bereds, mängden i ml för en oral lösning och flödet för syrgas.
+const r9Info = (d) => [
+  d.beredning && `<span class="under-text"><span class="tagg">Bereds</span>${d.beredning.dubbelkontroll ? ' <span class="tagg">Kontroll av en annan person</span>' : ''} Håller ${esc(String(d.beredning.hallbarTimmar))} timmar efter beredningen.</span>`,
+  d.flytande && `<span class="under-text adm-flytande">${esc(d.flytande.text)}</span>`,
+  d.gas && `<span class="under-text adm-gas">${esc(d.gas.text)}</span>`,
+].filter(Boolean).join('');
+// Vid en iordningsställd dos: beredningen, kontrollen och etiketten.
+const r9Status = (pid, a, kan) => {
+  const b = a.beredning;
+  const jag = S.session?.personal?.id;
+  const kanKontrollera = kan && ['sjukskoterska', 'lakare'].includes(S.session?.personal?.yrke) && b?.bereddAv?.id !== jag;
+  return `${b ? `<span class="under-text">Batch ${esc(b.batch)}, håller till ${esc(klockslag(b.hallbarTill))}.${b.kontroll.kravs ? b.kontroll.av ? ` Kontrollerad av ${esc(b.kontroll.av.namn)}.` : ' <span class="tagg tagg-larm">Väntar på kontroll</span>' : ''}</span>` : ''}
+    <span class="knapprad">${b?.kontroll?.kravs && !b.kontroll.av && kanKontrollera ? `<button type="button" class="knapp liten" data-kontroll-ber="${b.id}" data-pid="${esc(pid)}" data-text="${esc(b.text ?? '')}" data-varfor="${esc(b.kontroll.varfor ?? '')}">Kontrollera beredning</button>` : ''}
+    <button type="button" class="knapp-lank" data-etikett="${a.id}" data-pid="${esc(pid)}">Etikett</button></span>`;
+};
+
+async function beredDialog(namnText, b) {
+  const svar = await dialog(`<form><h2 id="dlg-rubrik">Bered ${esc(namnText)}</h2>
+    <p class="ruta ruta-info liten">${ikon.info}<span>${esc(b.text)}</span></p>
+    ${b.dubbel ? `<p class="liten">${esc(b.varfor)}</p>` : ''}
+    <div class="falt"><label for="ber-batch">Batchnummer <span class="obl">(obligatoriskt)</span></label><input id="ber-batch" name="batch" autocomplete="off" required minlength="3" maxlength="80">
+      <span class="hjalp">Skanna förpackningen, så fyller systemet i batch och utgångsdatum, eller skriv batchnumret.</span></div>
+    <div class="falt"><label for="ber-utgang">Förpackningens utgångsdatum</label><input id="ber-utgang" name="utgang" type="date"></div>
+    <p class="liten">Beredningen håller ${esc(String(b.timmar ?? 24))} timmar. Etiketten finns vid dosen efter beredningen.</p>
+    <p class="dialog-fel form-fel" role="alert" hidden></p>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Registrera beredningen</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`,
+  { validera: (x) => (String(x.batch ?? '').trim().length < 3 ? 'Ange batchnumret, minst tre tecken, eller skanna förpackningen.' : null) });
+  if (!svar) return null;
+  const v = String(svar.data.batch).trim();
+  // En skannad förpackningskod (GS1) innehåller batch och utgångsdatum, och servern läser dem.
+  const kod = /^\(01\)|^01\d{14}/.test(v);
+  return { ...(kod ? { forpackningskod: v } : { batch: v }), ...(svar.data.utgang ? { utgang: svar.data.utgang } : {}) };
+}
+
+async function kontrolleraBeredning(b, ladda) {
+  const svar = await dialog(`<form><h2 id="dlg-rubrik">Kontrollera beredningen</h2>
+    <p>${esc(b.dataset.text)}</p><p class="liten">${esc(b.dataset.varfor)}</p>
+    <div class="falt"><label for="kb-batch">Batchnummer som du läser på förpackningen <span class="obl">(obligatoriskt)</span></label><input id="kb-batch" name="batch" autocomplete="off" required minlength="3" maxlength="20"></div>
+    <p class="dialog-fel form-fel" role="alert" hidden></p>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Beredningen är kontrollerad</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`);
+  if (!svar) return;
+  try {
+    await medKnapp(b, () => api(`/api/patient/${encodeURIComponent(b.dataset.pid)}/beredningar/${b.dataset.kontrollBer}/kontroll`, { metod: 'POST', data: { batch: svar.data.batch.trim() } }));
+    notis('Beredningen är kontrollerad. Dosen kan ges.');
+    ladda();
+  } catch { /* notis visad */ }
+}
+
+async function visaEtikett(pid, aid) {
+  try {
+    const e = await api(`/api/patient/${encodeURIComponent(pid)}/administreringar/${aid}/etikett`);
+    const pdf = `/api/patient/${encodeURIComponent(pid)}/administreringar/${aid}/etikett.pdf`;
+    const rad = (r) => `<span>${r.fet ? `<strong>${esc(r.text)}</strong>` : esc(r.text)}</span>`;
+    await dialog(`<div><h2 id="dlg-rubrik">Etikett ${esc(e.kontrollkod)}</h2>
+      ${e.skyddad ? '<p class="liten">Patienten har skyddade personuppgifter. Namn och personnummer står på etiketten först när du har valt att visa identiteten.</p>' : ''}
+      <div class="pr-etikett adm-etikett">${e.rader.slice(0, 2).map(rad).join('')}${e.svg}${e.rader.slice(2).map(rad).join('')}</div>
+      <div class="knapprad"><a class="knapp" href="${pdf}" target="_blank" rel="noopener">Skriv ut</a><a class="knapp sekundar" href="${pdf}?format=${e.format === 'a4' ? 'etikett' : 'a4'}" target="_blank" rel="noopener">${e.format === 'a4' ? 'En etikett per sida' : 'A4-ark'}</a><button type="button" class="knapp sekundar" data-varde="avbryt">Stäng</button></div></div>`, { klass: 'dialog-bred' });
+  } catch (x) { felNotis(x); }
+}
+
+async function visaArmband(pid) {
+  try {
+    const a = await api(`/api/patient/${encodeURIComponent(pid)}/armband`);
+    await dialog(`<div><h2 id="dlg-rubrik">Patientens armband</h2>
+      <p class="liten">Armbandet har patientens journalnummer i Vårdkällan som streckkod, aldrig personnumret. I demon kan koden skrivas i fältet för skanning.</p>
+      <div class="pr-etikett adm-etikett"><span><strong>${esc(a.patient.namn)}</strong></span><span>${esc(a.patient.personnummer)}</span>${a.svg}</div>
+      <div class="knapprad"><a class="knapp" href="/api/patient/${encodeURIComponent(pid)}/armband.pdf" target="_blank" rel="noopener">Skriv ut</a><button type="button" class="knapp sekundar" data-varde="avbryt">Stäng</button></div></div>`);
+  } catch (x) { felNotis(x); }
+}
+
+const skannaForm = (pid) => `<form class="adm-skanna" data-pid="${esc(pid)}" novalidate>
+  <div class="falt"><label for="sk-${esc(pid)}">Skanna etikett och armband</label><input id="sk-${esc(pid)}" name="kod" autocomplete="off">
+  <span class="hjalp">Streckkodsläsaren skriver koden. Skanna etiketten på dosen och patientens armband, i valfri ordning.</span></div>
+  <div class="knapprad"><button type="button" class="knapp liten sekundar" data-skanna>Kontrollera</button><button type="button" class="knapp-lank" data-armband="${esc(pid)}">Visa armbandet</button></div>
+  <p class="under-text adm-skannat" aria-live="polite"></p></form>`;
+
+// Varje skannad kod sparas tills både etiketten och armbandet finns. Sedan prövar servern dem, och dosen ges efter en
+// bekräftelse med båda koderna, som servern prövar på nytt.
+async function skanning(input, ladda) {
+  const form = input.closest('.adm-skanna');
+  const kod = input.value.trim();
+  input.value = '';
+  if (kod) {
+    if (/^VKA-/i.test(kod)) form.dataset.armband = kod; else form.dataset.etikett = kod;
+  }
+  const kvar = !form.dataset.etikett ? 'Skanna etiketten på dosen.' : !form.dataset.armband ? 'Skanna patientens armband.' : '';
+  form.querySelector('.adm-skannat').textContent = kvar;
+  if (kvar) { input.focus(); return; }
+  const pid = form.dataset.pid;
+  const koder = { etikett: form.dataset.etikett, armband: form.dataset.armband };
+  delete form.dataset.etikett;
+  delete form.dataset.armband;
+  try {
+    const r = await api(`/api/patient/${encodeURIComponent(pid)}/administreringar/skanna`, { metod: 'POST', data: koder });
+    const svar = await dialog(`<div><h2 id="dlg-rubrik">${ikon.info}<span>Skanningen stämmer</span></h2><p>${esc(r.text)}</p>
+      <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Ge</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></div>`);
+    if (!svar) return;
+    const ut = await registrera(pid, { ordinationId: r.ordinationId, ...(r.planerad ? { planerad: r.planerad } : {}), kontrollkod: r.kontrollkod, armband: r.armband, atgard: 'ge' }, r.lakemedel.namn);
+    if (!ut) return;
+    notis(`${ut.administrering.lakemedel?.namn} är given kl. ${klockslag(ut.administrering.tid)}, efter skanning av etikett och armband.`);
+    ladda();
+  } catch (e) {
+    if (form.isConnected) form.querySelector('.adm-skannat').textContent = e.message ?? '';
+    felNotis(e);
+  }
+}
+
+// ---- Runda 9, r1: ordinationer som patienten sköter själv ----------------------------------------------------------
+
+const EGEN_STATUS = { kommande: ['Kommande', ''], att_kvittera: ['Kvittera nu', 'tagg-pagaende'], ej_kvitterad: ['Inte kvitterad', 'tagg-larm'], tagen: ['Tagen', 'tagg-ok'], inte_tagen: ['Inte tagen', 'tagg-utkast'] };
+function egenHtml(pid, l, kan) {
+  const lista = l.egenadministrering ?? [];
+  if (!lista.length) return '';
+  const dos = (x, d) => {
+    const [st, kl] = EGEN_STATUS[d.status] ?? [d.status, ''];
+    const knappar = kan && !d.kvittens ? `<button type="button" class="knapp liten" data-egen="tagen" data-pid="${esc(pid)}" data-ord="${x.ordinationId}" data-planerad="${esc(d.planerad)}" data-namn="${esc(x.lakemedel?.namn)}">Tagen</button><button type="button" class="knapp liten sekundar" data-egen="inte" data-pid="${esc(pid)}" data-ord="${x.ordinationId}" data-planerad="${esc(d.planerad)}" data-namn="${esc(x.lakemedel?.namn)}">Inte tagen</button>` : '';
+    return `<li><time>${esc(klockslag(d.planerad))}</time> <span class="tagg ${kl}">${esc(st)}</span>${d.kvittens ? ` <span class="dampad liten">Kvitterad ${esc(klockslag(d.kvittens.tid))} av ${esc(d.kvittens.kvitteradAv)}${d.kvittens.orsak ? `: ${esc(d.kvittens.orsak)}` : ''}</span>` : ''} ${knappar}</li>`;
+  };
+  return `<h4 class="adm-egen-rubrik">Patienten tar själv</h4><ul class="adm-lista adm-egen">${lista.map(x => `<li class="adm-vb"><div><strong>${lmText(x)}</strong> <span class="tagg">Patienten tar själv</span>
+    <span class="under-text">${esc(x.dosering)}</span>
+    ${x.doser.length ? `<ul class="liten">${x.doser.map(d => dos(x, d)).join('')}</ul>` : `<span class="under-text">${x.senaste.length ? `Senast kvitterat ${esc(tidpunkt(x.senaste[0].tid))}.` : 'Inget intag kvitterat.'}</span>`}</div>
+    ${kan && x.vidBehov ? `<button type="button" class="knapp liten sekundar" data-egen="tagen" data-pid="${esc(pid)}" data-ord="${x.ordinationId}" data-namn="${esc(x.lakemedel?.namn)}">Registrera intag</button>` : ''}</li>`).join('')}</ul>`;
+}
+
+async function kvitteraEgen(b, ladda) {
+  const data = { ordinationId: Number(b.dataset.ord), ...(b.dataset.planerad ? { planerad: b.dataset.planerad } : {}), tagen: b.dataset.egen === 'tagen' };
+  if (!data.tagen) {
+    const svar = await dialog(`<form><h2 id="dlg-rubrik">${esc(b.dataset.namn)} togs inte</h2>
+      <div class="falt"><label for="egen-orsak">Orsak <span class="obl">(obligatoriskt)</span></label><textarea id="egen-orsak" name="orsak" rows="2" required minlength="3" maxlength="300"></textarea></div>
+      <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Registrera</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`);
+    if (!svar) return;
+    data.orsak = svar.data.orsak.trim();
+  }
+  try {
+    await medKnapp(b, () => api(`/api/patient/${encodeURIComponent(b.dataset.pid)}/egenintag`, { metod: 'POST', data }));
+    notis(`${b.dataset.namn}: intaget är ${data.tagen ? 'kvitterat' : 'registrerat som inte taget'}.`);
+    ladda();
+  } catch { /* notis visad */ }
 }

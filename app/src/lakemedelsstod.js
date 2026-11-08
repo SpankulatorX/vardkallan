@@ -10,6 +10,10 @@
 import { Fel, iso, idag, addDagar, giltigtDatum } from './db.js';
 import { datumI } from './lakemedelsprocess.js';
 import { vardenhetFor } from './atkomst.js';
+// Runda 9, r1: syrgas som läkemedel med utrustning och mål för saturationen (beredning.js), och ordinationer som
+// patienten sköter själv (egenadministrering.js).
+import * as r9r1 from './beredning.js';
+import * as egen from './egenadministrering.js';
 
 export const DEMO_STOD = 'Reglerna för spädning, tillsatser, upp- och nedtrappning och licenser är demoregler för att visa flödet. De är inte doseringsstöd och inte granskade av farmaceut eller läkare.';
 export const TYPTEXT = { godkand: 'Godkänt läkemedel', extempore: 'Extempore', licens: 'Licensläkemedel', egendefinierad: 'Egendefinierat läkemedel', blodprodukt: 'Blodprodukt', nutrition: 'Nutrition' };
@@ -316,6 +320,10 @@ export function tillaggUt(db, o) {
     EXISTS (SELECT 1 FROM paketordinationer WHERE ordination_id = ?1) AS p`).get(o.id);
   const f = lm?.npl ? forpackningUt(db, o.id, o.lakemedel_id, har.f ?? null) : null;
   if (f) ut.forpackning = f;
+  // Runda 9, r1: syrgasens utrustning och mål, och om patienten sköter ordinationen själv.
+  if (r9r1.arGas(lm)) { const g = r9r1.gasFor(db, o.id); if (g) ut.gas = { ...g, text: r9r1.gasText(g, o.dos) }; }
+  const eg = egen.egenFor(db, o.id);
+  if (eg) ut.egenadministrering = eg;
   if (!har.s && !har.t && !har.m && !har.d && !har.p) return ut;
   const sp = har.s ? db.query('SELECT * FROM ordination_spadning WHERE ordination_id = ?').get(o.id) : null;
   if (sp && lm) ut.spadning = beraknaSpadning(db, lm, o.dos, o.dos_enhet, { losning: sp.losning, volymMl: sp.volym_ml, tidMin: sp.tid_min, tillsatser: JSON.parse(sp.tillsatser) });
@@ -349,6 +357,11 @@ export function forbered(db, inp = {}) {
     const b = beraknaSpadning(db, lm, dos, kropp.dosEnhet ?? null, extra.spadning);
     if (kropp.volymMl == null || kropp.volymMl === '') kropp.volymMl = b.totalVolymMl;
   }
+  // Runda 9, r1: syrgas ordineras i liter per minut, och systemet väljer utrustningen ur flödet.
+  const gas = r9r1.forberedGas(lm, kropp, inp);
+  if (gas) { extra.gas = gas.gas; Object.assign(kropp, gas.kropp); }
+  // Runda 9, r1: en ordination som patienten sköter själv i slutenvården.
+  if (egen.forbered(db, lm, kropp, inp)) extra.egen = true;
   // Nutrition i ml räknas in i vätskebalansen med sin volym.
   if (produkttyp(db, lm.id).typ === 'nutrition' && kropp.dosEnhet === 'ml' && Number(kropp.dos) > 0 && (kropp.volymMl == null || kropp.volymMl === '')) kropp.volymMl = Number(kropp.dos);
   if (inp.forpackning != null) {
@@ -369,6 +382,9 @@ export function sparaTillagg(db, ordinationId, extra = {}) {
     db.query('INSERT INTO ordination_spadning (ordination_id, losning, volym_ml, tid_min, tillsatser) VALUES (?, ?, ?, ?, ?)')
       .run(ordinationId, extra.spadning.losning, extra.spadning.volymMl, extra.spadning.tidMin, JSON.stringify(extra.spadning.tillsatser));
   }
+  // Runda 9, r1.
+  if (extra.gas) r9r1.sparaGas(db, ordinationId, extra.gas);
+  if (extra.egen) egen.spara(db, ordinationId, db.query('SELECT ordinerad_av FROM ordinationer WHERE id = ?').get(ordinationId)?.ordinerad_av ?? 'okand');
   if (extra.trappning) {
     db.query('INSERT INTO ordination_trappning (ordination_id, riktning, steg) VALUES (?, ?, ?)').run(ordinationId, extra.trappning.riktning, JSON.stringify(extra.trappning.steg));
   }
@@ -381,6 +397,8 @@ export function forslagTillagg(db, lm, f) {
     spadning: spadningsforslag(lm, f.dos, f.dosEnhet), trappning: TRAPPMALLAR[lm.atc] ? trappforslag(lm) : null,
     // Runda 8, r4: ett koncentrat som bara ges som tillsats till en infusion.
     ...(TILLSATSER[lm.id] ? { tillsats: { text: `${lm.namn} är ett koncentrat som sätts till en infusion. Ordinera infusionen, till exempel glukos, och ange ${lm.namn} som tillsats där, så blir det en ordination som iordningsställs och ges tillsammans.` } } : {}),
+    // Runda 9, r1: syrgas föreslås i liter per minut, med utrustning och mål för saturationen.
+    ...(r9r1.arGas(lm) ? r9r1.gasForslag() : {}),
   };
 }
 

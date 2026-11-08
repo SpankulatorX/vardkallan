@@ -80,6 +80,9 @@ import * as anvandartestSvar from './anvandartest-svar.js';
 import * as tobak from './tobak.js';
 import { registreraRutter as r5Rutter } from './r5-rutter.js';
 import { villkor10 } from './version.js';
+// Runda 9, r1: beredning med kontroll och etikett, patientnära skanning, förbrukningsartiklar och mer i
+// läkemedelsprocessen (r9r1-rutter.js).
+import { registreraRutter as r9r1Rutter, inkorg as r9r1Inkorg } from './r9r1-rutter.js';
 // Runda 8, r2: remiss på uppdrag, fördelning, remisskonferens och extern pappersremiss (remiss-r8.js).
 import * as remissR8 from './remiss-r8.js';
 
@@ -1027,7 +1030,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     kravInloggad(c);
     // Runda 6, r2: med beredd volym, kalorier, vikt, förväntad balans, filter och sortering (lakemedelsvyer.js).
     return medPatient(c, id, 'las_matvarden', (atk) => lakemedelsvyer.vatskebalans(atk, { dag: dagParam(c), brytning: c.url.searchParams.get('brytning') ?? '00',
-      riktning: c.url.searchParams.get('riktning'), sortering: c.url.searchParams.get('sortering') ?? 'tid' }));
+      riktning: c.url.searchParams.get('riktning'), sortering: c.url.searchParams.get('sortering') ?? 'tid',
+      // Runda 9, r1: prognosen 24, 48 eller 72 timmar framåt.
+      prognosTimmar: c.url.searchParams.get('prognos') ?? 24 }));
   });
   rutt('POST', '/api/patient/:id/vatskebalans', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'registrera_matvarde', (atk) => vardkontakt.knyt(atk, 'vatskebalans', administrering.registreraVatska(atk, c.body), c.body))]; });
   // Delegering av läkemedelshantering (runda 5, HSLF-FS 2017:37 9 kap., delegering.js). Sjuksköterskan registrerar och
@@ -1233,6 +1238,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...remissR8.inkorg(c, patientKort, patientRad),
       // Runda 8, r1: provsvar att vidimera, beställningar på uppdrag att signera och kritiska provsvar.
       ...labbInkorg(c, patientKort, patientRad, valFor),
+      // Runda 9, r1: beredningar som väntar på kontroll av en annan sjuksköterska eller läkare, utan patientuppgifter.
+      ...r9r1Inkorg(c, patientKort, patientRad, valFor),
     });
   });
   // Runda 6, r1: NEWS2-larmen loggas på patienten en gång per session och mätomgång, som raderna om återinsättning.
@@ -1557,6 +1564,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   utbildningRutter({ rutt, kravInloggad });
   // Runda 8, r5: epikrisens förslag och flera mätvärden på en gång (r5-rutter.js).
   r5Rutter({ rutt, kravInloggad, medPatient });
+  // Runda 9, r1 (r9r1-rutter.js).
+  r9r1Rutter({ rutt, kravInloggad, medPatient, valFor });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
   // visas direkt (bara i den egna sandlådan).
   const kravNagon = (c) => { if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad'); };

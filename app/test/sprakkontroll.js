@@ -207,7 +207,9 @@ const BADA_GILTIGA = new Set(['andra', 'har', 'sa', 'var', 'man', 'fora', 'kar',
   'ror', 'tal', 'spar', 'ratt', 'del', 'del', 'rad', 'fyll', 'lan', 'na', 'gang', 'vag', 'sal', 'pas', 'tag', 'kort', 'ost', 'ser',
   'ska', 'sma', 'ar', 'aga', 'rakna', 'fran', 'tid', 'stall', 'galla', 'vagt', 'agda', 'vagen', 'lagre', 'fall', 'bar', 'kan', 'band',
   'stod', 'blad', 'trad', 'vant', 'vanta', 'atta', 'tog', 'gar', 'ange', 'anga', 'lage', 'lagt', 'lag', 'lak', 'form', 'fortsatt',
-  'svar', 'val', 'natt', 'mats', 'saker', 'faller', 'ersatts', 'behovs', 'alder']);
+  'svar', 'val', 'natt', 'mats', 'saker', 'faller', 'ersatts', 'behovs', 'alder',
+  // Runda 9, r1: mata in (Sussas testfall) och mäta upp en dos.
+  'mata']);
 
 // Interna anteckningar och råd till oss själva, som aldrig ska visas för användaren.
 export const INTERN = /\b(TODO|FIXME|XXX|HACK)\b|\b([Tt]änk på att|[Kk]om ihåg att|[Ss]äg inte|[Gg]löm inte att|OBS! [Ii]ntern|[Ii]ntern anteckning)/;

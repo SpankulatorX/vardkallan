@@ -20,12 +20,16 @@ export function taggar(o) {
   if (o.trappning?.idag?.steg) t.push(`<span class="tagg">${o.trappning.riktning === 'ned' ? 'Nedtrappning' : 'Upptrappning'}, steg ${o.trappning.idag.steg} av ${o.trappning.idag.antal}</span>`);
   if (o.uppfoljningPasserad) t.push('<span class="tagg tagg-larm">Uppföljningen har passerat</span>');
   if (o.sarskildObservation) t.push(`<span class="tagg tagg-obs" title="${esc(o.sarskildObservation)}">Särskild observation vid utsättning</span>`);
+  // Runda 9, r1: patienten sköter läkemedlet själv, och syrgasens utrustning.
+  if (o.egenadministrering) t.push('<span class="tagg">Patienten tar själv</span>');
   return t.join(' ');
 }
 // Det som står under doseringen: spädning, trappschemat i dag och förpackningen.
 export function underDosering(o) {
   return [
     o.spadning && `<span class="under-text lms-spadning">${esc(o.spadning.text)}</span>`,
+    // Runda 9, r1.
+    o.gas && `<span class="under-text">${esc(o.gas.text)}</span>`,
     o.trappning?.idag?.dosering && `<span class="under-text">I dag: ${esc(o.trappning.idag.dosering)}</span>`,
     o.forpackning && `<span class="under-text">Förpackning ${esc(o.forpackning.text)}, NPL-pack-id ${esc(o.forpackning.nplpackid)}${o.forpackning.vald ? '' : ' (förval)'}</span>`,
   ].filter(Boolean).join('');
@@ -274,9 +278,10 @@ export function vatskeSektion(vb) {
     <p class="liten dampad">Dygnet ${esc(tidpunkt(vb.fran))} till ${esc(tidpunkt(vb.till))}.</p>
     ${vb.poster.length ? `<ul class="liten lms-vbposter">${vb.poster.map(p => `<li class="${p.makulerad ? 'makulerad' : ''}">${esc(klockslag(p.tid))} ${p.riktning === 'in' ? 'In' : 'Ut'}: ${esc(p.typText)} ${ml(p.volymMl)} ml${p.kcal ? `, ${ml(p.kcal)} kcal` : ''}${p.automatisk ? ' <span class="tagg">Från administrering</span>' : ''} <span class="dampad">${esc(p.registreradAv ?? '')}</span>${p.makulerad ? ` <span class="dampad">Makulerad av ${esc(p.makulerad.av)}: ${esc(p.makulerad.orsak)}</span>` : kan && !p.automatisk ? ` <button type="button" class="knapp-lank" data-makulera-vb="${p.id}" data-text="${esc(`${p.typText} ${ml(p.volymMl)} ml kl. ${klockslag(p.tid)}`)}">Makulera</button>` : ''}</li>`).join('')}</ul>` : '<p class="tom liten">Inget registrerat det här dygnet.</p>'}
     ${vb.beredd.poster.length ? `<p class="liten">Iordningsställt, inte givet: ${vb.beredd.poster.map(b => `${esc(b.lakemedel)} ${ml(b.volymMl)} ml`).join(', ')}.</p>` : ''}
-    <h4>Förväntat de närmaste 24 timmarna</h4>
+    <h4>Förväntat de närmaste ${esc(String(vb.prognos.timmar))} timmarna</h4>
+    ${vb.prognos.val ? `<div class="lms-verktyg"><div class="falt"><label for="vb-prog">Period framåt</label><select id="vb-prog" data-vb="prognos">${vb.prognos.val.map(t => `<option value="${t}"${t === vb.prognos.timmar ? ' selected' : ''}>${t} timmar</option>`).join('')}</select></div></div>` : ''}
     <p class="vb-summa"><span>In ${ml(vb.prognos.summaIn)} ml</span><span>Ut ${ml(vb.prognos.summaUt)} ml</span><span>Balans ${vb.prognos.balans > 0 ? '+' : ''}${ml(vb.prognos.balans)} ml</span>${vb.prognos.kcal ? `<span>${ml(vb.prognos.kcal)} kcal</span>` : ''}</p>
-    ${vb.prognos.poster.length ? `<ul class="liten">${vb.prognos.poster.map(p => `<li>${esc(tidpunkt(p.tid))} ${esc(p.lakemedel)} ${ml(p.volymMl)} ml${p.iordningstalld ? ' <span class="tagg">Iordningsställd</span>' : ''}</li>`).join('')}</ul>` : ''}
+    ${vb.prognos.poster.length ? `<ul class="liten">${vb.prognos.poster.map(p => `<li>${esc(tidpunkt(p.tid))} ${esc(p.lakemedel)} ${ml(p.volymMl)} ml${p.ackumuleratIn != null ? `, sammanlagt ${ml(p.ackumuleratIn)} ml` : ''}${p.iordningstalld ? ' <span class="tagg">Iordningsställd</span>' : ''}</li>`).join('')}</ul>` : ''}
     <p class="dampad liten">${esc(vb.prognos.text)}</p>
     ${kan ? '<div class="knapprad"><button type="button" class="knapp liten sekundar" data-vatska="in">Registrera intag</button><button type="button" class="knapp liten sekundar" data-vatska="ut">Registrera förlust</button></div>' : ''}
   </section>`;
@@ -298,12 +303,16 @@ export async function visa(main) {
         <td>${esc(x.vardenhet.namn)}<span class="under-text">Fastställt av ${esc(x.faststalltAv)}, till ${esc(x.giltigtTill)}${x.upphavt ? `. Upphävt ${esc(datum(x.upphavt.tid))} av ${esc(x.upphavt.av)}: ${esc(x.upphavt.orsak)}` : ''}</span></td>
         ${d.kanFaststalla ? `<td class="atgarder">${x.giltigt ? `<button type="button" class="knapp liten sekundar" data-upphav="${x.id}">Upphäv</button>` : ''}</td>` : ''}</tr>`).join('')}</tbody></table></div>` : tom('Inga generella direktiv.')}
       ${d.kanFaststalla ? '<button type="button" class="knapp" data-nytt-direktiv>Fastställ ett direktiv</button>' : ''}
+      ${d.kanFaststallaVardgivare ? '<button type="button" class="knapp sekundar" data-nytt-direktiv="vardgivare">Fastställ för hela vårdgivaren</button>' : ''}
       ${!d.kanFaststalla && d.faststallaText ? `<p class="ruta ruta-info liten">${esc(d.faststallaText)}</p>` : ''}
       <p class="demoregel">${esc(d.anmarkning)}</p></section>
     ${g ? `<section class="lm-sektion" aria-labelledby="lms-upp"><h2 id="lms-upp">Uppföljning på vårdenhetens nivå</h2>
       <p class="liten">${esc(g.vardenhet ?? '')}: ${g.summa.pagaende} pågående ordinationer, ${g.summa.passerade} med passerad uppföljning, ${g.summa.utvarderade} utvärderade. ${esc(g.anmarkning)}</p>
       <div class="tabellrulle"><table class="tabell"><thead><tr><th scope="col">Substans</th><th scope="col">Pågående</th><th scope="col">Patienter</th><th scope="col">Passerad uppföljning</th><th scope="col">Utvärderade</th><th scope="col">God effekt</th><th scope="col">Biverkningar</th></tr></thead>
-      <tbody>${g.rader.map(r => `<tr><td>${esc(r.substans)}</td><td>${r.pagaende}</td><td>${r.patienter}</td><td>${r.passerade}</td><td>${r.utvarderade}</td><td>${r.andelGodEffekt == null ? '' : `${r.andelGodEffekt} %`}</td><td>${r.biverkningar}</td></tr>`).join('')}</tbody></table></div></section>` : ''}`;
+      <tbody>${g.rader.map(r => `<tr><td>${esc(r.substans)}</td><td>${r.pagaende}</td><td>${r.patienter}</td><td>${r.passerade}</td><td>${r.utvarderade}</td><td>${r.andelGodEffekt == null ? '' : `${r.andelGodEffekt} %`}</td><td>${r.biverkningar}</td></tr>`).join('')}</tbody></table></div></section>` : ''}
+    <div id="lms-kp"></div>`;
+  // Runda 9, r1: prövarens lista per klinisk prövning, med deltagare, ordinationer och givna doser (Sussa 3.5.5.1).
+  if (far('ordinera')) provningar(el.querySelector('#lms-kp'));
   el.addEventListener('click', async (e) => {
     const u = e.target.closest('[data-upphav]');
     if (u) {
@@ -314,12 +323,13 @@ export async function visa(main) {
       try { await api(`/api/direktiv/${u.dataset.upphav}/upphav`, { metod: 'POST', data: { orsak: svar.data.orsak } }); notis('Direktivet är upphävt.'); visa(main); } catch (x) { felNotis(x); }
       return;
     }
-    if (e.target.closest('[data-nytt-direktiv]')) return nyttDirektiv(main);
+    if (e.target.closest('[data-nytt-direktiv]')) return nyttDirektiv(main, e.target.closest('[data-nytt-direktiv]').dataset.nyttDirektiv || null);
   });
 }
 
-async function nyttDirektiv(main) {
-  const svar = await dialog(`<form><h2 id="dlg-rubrik">Fastställ ett generellt direktiv</h2>
+async function nyttDirektiv(main, niva = null) {
+  const svar = await dialog(`<form><h2 id="dlg-rubrik">Fastställ ett generellt direktiv${niva === 'vardgivare' ? ' för hela vårdgivaren' : ''}</h2>
+    ${niva === 'vardgivare' ? '<p class="liten">Direktivet gäller på alla vårdenheter hos vårdgivaren. Du fastställer det som den läkare som vårdgivaren har utsett.</p>' : ''}
     <div class="falt"><label for="nd-lm">Läkemedel</label><input id="nd-lm" name="sok" placeholder="Sök i katalogen" autocomplete="off"></div>
     <input type="hidden" name="lakemedelId"><ul class="lm-traffar" data-nd-traffar></ul>
     <div class="falt"><label for="nd-ind">Indikation</label><input id="nd-ind" name="indikation" maxlength="200" required></div>
@@ -347,8 +357,20 @@ async function nyttDirektiv(main) {
   const kontraindikationer = v.kontra.split('\n').map(x => x.trim()).filter(Boolean).map(text => ({ typ: 'bekrafta', text }));
   if (v.alder) kontraindikationer.push({ typ: 'alder_under', ar: Number(v.alder), text: `Patienten är under ${Number(v.alder)} år` });
   try {
-    await api('/api/direktiv', { metod: 'POST', data: { lakemedelId: v.lakemedelId, indikation: v.indikation, dosering: v.dosering, dos: Number(v.dos.replace(',', '.')), dosEnhet: v.dosEnhet, maxPerDygn: Number(v.maxPerDygn), minstaIntervallTimmar: Number(v.minstaIntervallTimmar.replace(',', '.')), maxTillfallen: Number(v.maxTillfallen), maxdosText: v.maxdosText, kontraindikationer } });
+    await api('/api/direktiv', { metod: 'POST', data: { ...(niva ? { niva } : {}), lakemedelId: v.lakemedelId, indikation: v.indikation, dosering: v.dosering, dos: Number(v.dos.replace(',', '.')), dosEnhet: v.dosEnhet, maxPerDygn: Number(v.maxPerDygn), minstaIntervallTimmar: Number(v.minstaIntervallTimmar.replace(',', '.')), maxTillfallen: Number(v.maxTillfallen), maxdosText: v.maxdosText, kontraindikationer } });
     notis('Direktivet är fastställt för din vårdenhet och gäller i ett år.');
     visa(main);
   } catch (e) { felNotis(e); }
+}
+
+// Runda 9, r1: de kliniska prövningar där den inloggade är prövare.
+async function provningar(plats) {
+  let d;
+  try { d = await api('/api/provningar'); } catch { return; }
+  if (!plats?.isConnected || !d.provningar.length) return;
+  plats.innerHTML = d.provningar.map(p => `<section class="lm-sektion" aria-labelledby="kp-${p.id}"><h2 id="kp-${p.id}">Klinisk prövning ${esc(p.studienummer)}</h2>
+    <p class="liten">${esc(p.titel)}. Ansvarig prövare ${esc(p.ansvarig.namn)}, ${esc(p.vardenhet.namn)}. Prövningsläkemedel ${esc(p.lakemedel?.namn ?? '')}. Pågår ${esc(p.start)} till ${esc(p.slut)}.</p>
+    ${p.deltagare.length ? `<div class="tabellrulle"><table class="tabell"><thead><tr><th scope="col">Deltagare</th><th scope="col">Inkluderad</th><th scope="col">Randomiseringskod</th><th scope="col">Pågående ordinationer</th><th scope="col">Givna doser</th></tr></thead>
+    <tbody>${p.deltagare.map(x => `<tr><td><a href="#/patient/${encodeURIComponent(x.patient.id)}/lakemedel">${esc(x.patient.namn)}</a><span class="under-text">${esc(x.patient.personnummer)}${x.aktiv ? '' : ', avslutat'}</span></td><td>${esc(datum(x.inkluderad))}</td><td>${esc(x.randomiseringskod ?? '')}</td><td>${x.ordinationer}</td><td>${x.givnaDoser}${x.senasteDos ? `<span class="under-text">Senast ${esc(datum(x.senasteDos))}</span>` : ''}</td></tr>`).join('')}</tbody></table></div>` : tom('Inga deltagare än. Inkludera en patient från patientens läkemedelsflik.')}
+    <p class="dampad liten">${esc(d.demoregel)}</p></section>`).join('');
 }

@@ -13,6 +13,8 @@ import { kanRoll } from './atkomst.js';
 import * as journal from './journal.js';
 import * as vardkontakt from './vardkontakt.js';
 import * as lakemedel from './lakemedel.js';
+// Runda 9, r1: läkemedelsberättelsen i epikrisens förslag (Sussa 3.5.1.11).
+import * as vidimering from './vidimering.js';
 
 const datumText = (t) => String(t ?? '').slice(0, 10);
 
@@ -47,6 +49,18 @@ export function epikrisForslag(atk, { vardtillfalleId = null } = {}) {
     const utsatta = lm.filter(({ o }) => o.utsatt_tid && o.utsatt_tid >= fran && o.utsatt_tid <= till).map(({ u, o }) => `Utsatt ${u.lakemedel?.namn ?? ''} ${u.lakemedel?.styrka ?? ''}${o.utsatt_orsak ? `, ${o.utsatt_orsak}` : ''}`.replace(/\s+,/, ','));
     const alla = [...nya, ...utsatta];
     if (alla.length) sokord['Läkemedelsförändringar'] = `${alla.join('. ')}.`;
+    // Runda 9, r1: läkemedelsberättelsen under Läkemedelsförändringar. Den som läkaren har sparat vid en
+    // läkemedelsgenomgång under vårdtillfället går först, annars den som systemet tar fram ur historiken för det
+    // pågående vårdtillfället. Bara genomgångar som läkaren får se räknas.
+    const genomgangar = atk.filtrera(db.query('SELECT * FROM lakemedelsgenomgangar WHERE patient_id = ? AND vardtillfalle_id = ? ORDER BY tid DESC, id DESC').all(atk.patientId, vt.id), 'las_lakemedel', { gemensam: true });
+    if (genomgangar.length) {
+      const g = genomgangar[0];
+      const av = db.query('SELECT namn FROM personal WHERE id = ?').get(g.av)?.namn ?? '';
+      sokord['Läkemedelsförändringar'] = `Ur läkemedelsgenomgången ${datumText(g.tid)} av ${av}:\n${g.berattelse}`;
+    } else if (!vt.utskriven) {
+      const b = vidimering.berattelse(atk);
+      if (b.period.vardtillfalleId === vt.id && b.text.includes('\n')) sokord['Läkemedelsförändringar'] = b.text;
+    }
   }
   return {
     vardtillfalle: { id: vt.id, inskriven: vt.inskriven, utskriven: vt.utskriven, orsak: vt.orsak },

@@ -230,6 +230,17 @@ Object.assign(HANDLINGAR, {
 ROLLER.lakare.push('las_prover', 'bestalla_prov', 'ta_prov', 'vidimera_provsvar', 'ordinera_kontroll');
 ROLLER.sjukskoterska.push('las_prover', 'bestalla_prov_uppdrag', 'ta_prov');
 ROLLER.underskoterska.push('las_prover', 'bestalla_prov_uppdrag', 'ta_prov');
+// Runda 9, r1: förbrukningsartiklar (forbrukning.js, Sussa 3.5.4). Läkaren och sjuksköterskan förskriver artiklar för
+// egenkontroll, tillförsel av läkemedel och stomi. Att sjuksköterskor i demon förskriver utan särskild behörighet är en
+// demoregel: i verkligheten krävs förskrivningsrätt, till exempel som diabetes- eller stomisjuksköterska.
+Object.assign(HANDLINGAR, { forskriva_forbrukning: 'förskriva förbrukningsartiklar' });
+ROLLER.lakare.push('forskriva_forbrukning');
+ROLLER.sjukskoterska.push('forskriva_forbrukning');
+// Runda 9, r1: beställning av extempore och blodprodukter från de simulerade externa parterna (lakemedelsbestallning.js,
+// Sussa 3.5.2.4). En licensansökan kräver ordinationsrätt.
+Object.assign(HANDLINGAR, { bestalla_lakemedel: 'beställa extempore och blodprodukter' });
+ROLLER.lakare.push('bestalla_lakemedel');
+ROLLER.sjukskoterska.push('bestalla_lakemedel');
 
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
 

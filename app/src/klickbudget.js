@@ -322,4 +322,9 @@ export const FLODEN = [
     id: 'registrera-provtagning', namn: 'Registrera provtagning', roll: 'ssk-kard', start: 'Provtagningen efter återställning', budget: 2,
     motivering: 'Sussa 4.4.2.6 och testfall 3.3. Rören står i provtagningsordning med etiketter, och ett klick på Tagen per rör registrerar provtagningen. Systemet sätter tid och provtagare och skickar proverna till laboratoriet när alla rör är tagna. Patienten har två rör.',
   },
+  // Runda 9, r1: förbrukningsartiklar ur en mall (Sussa 3.5.4.2 och 3.5.4.4).
+  {
+    id: 'forbrukning-mall', namn: 'Förskriva förbrukningsartiklar ur en mall', roll: 'lak-vc', start: 'Översikten för en patient med insulin', budget: 2,
+    motivering: 'Sussa 3.5.4.2 och 3.5.4.4. Ett klick till läkemedelsfliken och ett på Förskriv mallen vid den mall som systemet föreslår ur läkemedelslistan. Systemet väljer pennkanyler, lansetter och kanylburk, tar bort teststickorna som redan är förskrivna, räknar mängden för tre månader ur antalet injektioner och skriver anvisningen, giltigheten och uppföljningen.',
+  },
 ];

@@ -17,6 +17,8 @@ import * as godkannande from '../src/mallgodkannande.js';
 import * as uppf from '../src/lakemedelsuppfoljning.js';
 import * as vyer from '../src/lakemedelsvyer.js';
 import * as fhir from '../src/fhir.js';
+// Runda 9, r1: en infusion med kaliumklorid bereds och kontrolleras av en annan person innan den ges.
+import * as beredning from '../src/beredning.js';
 import { FORPACKNINGAR } from '../src/seed/forpackningar.js';
 import { KATALOG } from '../src/seed/lakemedel-katalog.js';
 import { verifiera } from '../src/logg.js';
@@ -301,7 +303,10 @@ describe('Spädning och tillsatser', () => {
     expect(o.nll_status).toBe('ej_aktuell');
     expect(fel(() => stod.valideraSpadning(db, nacl, 1000, 'ml', { volymMl: 1000, tidMin: 480, tillsatser: [{ lakemedelId: 'VK-EGEN-0001', mangd: 60 }] })).message).toContain('Högst 40 mmol/l');
     expect(fel(() => stod.valideraSpadning(db, nacl, 1000, 'ml', { volymMl: 1000, tidMin: 60, tillsatser: [{ lakemedelId: 'VK-EGEN-0001', mangd: 20 }] })).message).toContain('förläng infusionstiden');
-    const ut = administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('14:00') });
+    // Runda 9, r1: kaliumkloriden bereds med batch och kontrolleras av läkaren innan infusionen ges.
+    const ior = administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('14:00'), atgard: 'iordningstall', beredning: { batch: 'KCL2611' } });
+    beredning.kontrollera(atk(db, 'lak-kard', 'p01', {}, 'ge_lakemedel'), ior.administrering.beredning.id);
+    const ut = administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('14:00'), kontrollkod: ior.administrering.iordningstalld.kontrollkod });
     expect(administrering.vatskebalans(ssk(db, 'p01', 'las_matvarden')).poster.find(p => p.administreringId === ut.id).volymMl).toBe(1020);
   });
 });

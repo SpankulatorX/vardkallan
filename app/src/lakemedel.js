@@ -9,6 +9,8 @@ import { utsattningsvarningar, UTSATTNINGSREGLER, DEMOREGLER_PROCESS, UTSATTNING
 import { avslutFor } from './aterinsattning.js';
 // Läkemedelsprocessen, del 2 (runda 6, r2): läkemedelstyper, licenser, förpackning och listans flaggor.
 import * as stod from './lakemedelsstod.js';
+// Runda 9, r1: klinisk läkemedelsprövning (kliniskprovning.js).
+import * as provning from './kliniskprovning.js';
 // Runda 8, r4: dosändring i en pågående ordination, med ny dosering från ett datum.
 import { tillampaDosandringar, planerade as planeradeDosandringar } from './dosandring.js';
 
@@ -136,8 +138,10 @@ export function validera(db, inp, { full = true } = {}) {
 }
 
 // Demoregler för varningar före sparande.
-export function varningar(db, patientId, lm, aktiva, { overkanslighet = [], egfr = null, enhetId = null } = {}) {
+export function varningar(db, patientId, lm, aktiva, { overkanslighet = [], egfr = null, enhetId = null, studier = null } = {}) {
   const ut = [];
+  // Runda 9, r1: klinisk prövning, bara ur de deltaganden som användaren får se (kliniskprovning.js).
+  if (studier) ut.push(...provning.varningar(db, lm, studier));
   // Runda 6, r2: licensläkemedel, extempore och blodprodukter, prövat för den ordinerande vårdenheten.
   if (enhetId) ut.push(...stod.ordinationsvarningar(db, { lm, patientId, enhetId }));
   const lmFor = (o) => lakemedelRad(db, o.lakemedel_id);
@@ -188,7 +192,9 @@ export function underlag(atk) {
   const db = atk.db;
   const aktiva = synligaOrdinationer(atk).filter(arAktuell);
   const ok = atk.filtrera(db.query('SELECT * FROM overkanslighet WHERE patient_id = ?').all(atk.patientId), 'las_oversikt', { gemensam: true });
-  return { aktiva, overkanslighet: ok, egfr: egfrForSakerhet(atk), enhetId: atk.personal.enhet_id };
+  return { aktiva, overkanslighet: ok, egfr: egfrForSakerhet(atk), enhetId: atk.personal.enhet_id,
+    // Runda 9, r1: patientens deltagande i kliniska prövningar som användaren får se.
+    studier: provning.synligaDeltaganden(atk) };
 }
 
 export function kontroll(atk, inp) {

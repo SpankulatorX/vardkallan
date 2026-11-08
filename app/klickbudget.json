@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T13:03:17.658Z",
-  "bas": "http://127.0.0.1:18111",
+  "tid": "2026-11-08T14:59:34.018Z",
+  "bas": "http://127.0.0.1:18191",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "8e9feefc1902f3987d5f3d6f1e22d65d9a092dc52c8755f67e0fe616178b0121",
+  "gransnittHash": "ba1124e69b80acabaed82890fdf29d913867dd311608f7ed2fe9949ae5c45f5f",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -1255,6 +1255,23 @@
         "klick: Tagen för det första röret",
         "klick: Tagen för det andra röret"
       ]
+    },
+    {
+      "id": "forbrukning-mall",
+      "namn": "Förskriva förbrukningsartiklar ur en mall",
+      "roll": "lak-vc",
+      "start": "Översikten för en patient med insulin",
+      "budget": 2,
+      "motivering": "Sussa 3.5.4.2 och 3.5.4.4. Ett klick till läkemedelsfliken och ett på Förskriv mallen vid den mall som systemet föreslår ur läkemedelslistan. Systemet väljer pennkanyler, lansetter och kanylburk, tar bort teststickorna som redan är förskrivna, räknar mängden för tre månader ur antalet injektioner och skriver anvisningen, giltigheten och uppföljningen.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Läkemedel",
+        "klick: Förskriv mallen Insulin med penna"
+      ]
     }
   ],
   "tester": [
@@ -1532,6 +1549,10 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Registrera provtagning inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Förskriva förbrukningsartiklar ur en mall inom budget",
       "status": "grön"
     }
   ]

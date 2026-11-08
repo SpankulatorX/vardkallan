@@ -25,6 +25,9 @@ import * as delegering from './delegering.js';
 // Läkemedelsprocessen, del 2 (runda 6, r2): trappschema, muntlig ordination, generellt direktiv, läkemedelstyper,
 // spädning och makulering.
 import * as stod from './lakemedelsstod.js';
+// Runda 9, r1: beredning med kontroll och etikett, patientnära skanning och doser i flytande form och gasform.
+import * as beredning from './beredning.js';
+import * as egenadm from './egenadministrering.js';
 
 export const ATGARDER = { ge: 'Given', overlamna: 'Överlämnad till patienten', ej_given: 'Inte given', iordningstall: 'Iordningsställd' };
 const STATUS_FOR = { ge: 'given', overlamna: 'overlamnad', ej_given: 'ej_given', iordningstall: 'iordningstalld' };
@@ -107,6 +110,8 @@ export function administreringUt(db, a) {
     delegering: delegering.delegeringKort(db, a.delegering_id),
     // Runda 6, r2: en makulerad registrering finns kvar och visas överstruken med orsak.
     makulerad: stod.makuleringFor(db, 'administrering', a.id),
+    // Runda 9, r1: beredningen och skanningen finns bara för en dos som har iordningsställts med etikett.
+    ...(a.kontrollkod ? { beredning: beredning.forAdministrering(db, a.id), skannad: beredning.skanningFor(db, a.id) } : {}),
   };
 }
 
@@ -147,6 +152,8 @@ export function lista(atk, { dag = idag() } = {}) {
   // Runda 5, r1: doser inför en vårdhändelse som har fått en tid en senare dag, så att sjuksköterskan ser när läkemedlet
   // ska ges redan nu (vardhandelse.js).
   const kommandeHandelser = [];
+  // Runda 9, r1: ordinationer som patienten sköter själv.
+  const egenLista = [];
   for (const o of ordRader) {
     // Vårdhändelsen ur tidboken med namn och tid bara för den ordinerande vårdenheten eller efter aktivt val (runda 5).
     const t = tillaggUt(db, o.id, { full: atk.prova('las_lakemedel', { enhet_id: o.enhet_id }).tillaten });
@@ -157,6 +164,12 @@ export function lista(atk, { dag = idag() } = {}) {
     const lmRad = katalog(db, o.lakemedel_id);
     const deleg = (ms) => delegeringFor(atk, o, lmRad, t, ms);
     const egna = adm.filter(a => a.ordinationId === o.id);
+    // Runda 9, r1: en ordination som patienten sköter själv kommer inte med bland doserna att ge. Sjuksköterskan
+    // kvitterar patientens intag per dostid under Patienten tar själv.
+    if (u.egenadministrering) {
+      if (lakemedel.aktuell(o)) egenLista.push(egenRad(db, o, t, bas, dag, nu, fonster));
+      continue;
+    }
     if (o.vid_behov) {
       if (!lakemedel.aktuell(o)) continue;
       const givna = egna.filter(a => a.status === 'given' || a.status === 'overlamnad');
@@ -209,11 +222,25 @@ export function lista(atk, { dag = idag() } = {}) {
   return {
     dag, permission: perm ? { fran: perm.fran, till: perm.till } : null, doser, vidBehov, utanTider, vantarPaHandelse: vantar,
     kommandeHandelser: kommandeHandelser.sort((a, b) => a.administreras.localeCompare(b.administreras)),
+    egenadministrering: egenLista,
     utanOrdination: adm.filter(a => a.ordinationId == null && Date.parse(a.tid ?? a.registrerad) >= igar),
     senaste: allaAdm.filter(a => Date.parse(a.tid ?? a.iordningstalld?.tid ?? a.registrerad) >= igar).slice(0, 30),
     sammanfattning: { attGe: doser.filter(d => d.status === 'att_ge').length, forsenade: doser.filter(d => d.status === 'forsenad').length, givna: doser.filter(d => ['given', 'overlamnad'].includes(d.status)).length, totalt: doser.length },
     kan: kanVarda(atk, 'ge_lakemedel'), dolda: { sparrade: atk.doldaSparr }, demoregler: true, anmarkning: DEMOREGLER_PROCESS,
   };
+}
+
+// Runda 9, r1: en ordination som patienten sköter själv, med dagens dostider och om intaget är kvitterat. En dostid
+// som har passerat utan kvittens markeras, så att sjuksköterskan frågar patienten.
+function egenRad(db, o, t, bas, dag, nu, fonster) {
+  const intag = egenadm.intagFor(db, o.id);
+  const doser = (o.vid_behov ? [] : dostider(o, dag, t)).map(p => {
+    const ms = Date.parse(p);
+    const k = intag.find(i => i.planerad && Date.parse(i.planerad) === ms) ?? null;
+    const status = k ? (k.tagen ? 'tagen' : 'inte_tagen') : nu > ms + fonster.efter * 60_000 ? 'ej_kvitterad' : nu < ms - fonster.fore * 60_000 ? 'kommande' : 'att_kvittera';
+    return { planerad: p, status, kvittens: k };
+  });
+  return { ...bas, vidBehov: Boolean(o.vid_behov), egenadministrering: egenadm.egenFor(db, o.id), doser, senaste: intag.slice(0, 5) };
 }
 
 // Runda 6, r2: det som dosen i listan behöver ur ordinationens tillägg. Dosen och doseringen följer trappschemat den
@@ -226,6 +253,11 @@ function dagensTillagg(db, o, u, dag) {
   if (u.produkttyp && u.produkttyp.typ !== 'godkand') ut.produkttyp = u.produkttyp;
   if (u.muntlig) ut.muntlig = { lakare: u.muntlig.lakare.namn, signerad: Boolean(u.muntlig.signerad), gesUtanSigneringTill: u.muntlig.gesUtanSigneringTill };
   if (u.direktiv) ut.direktiv = { indikation: u.direktiv.indikation, maxTillfallen: u.direktiv.maxTillfallen };
+  // Runda 9, r1: om dosen ska beredas och kontrolleras av en annan person, och dosen i ml eller liter per minut.
+  const lm = katalog(db, o.lakemedel_id);
+  const ber = beredning.beredningsinfo(lm, u.spadning);
+  if (ber) ut.beredning = ber;
+  Object.assign(ut, beredning.dosform(db, o, lm));
   return ut;
 }
 
@@ -350,6 +382,11 @@ function underlag(atk, inp, atgard) {
   }
   if (atgard === 'iordningstall' && ior) throw new Fel(400, 'Dosen är redan iordningsställd.', 'ogiltig');
   if (!planerad && ior?.planerad) planerad = ior.planerad;
+  // Runda 9, r1: en dos som ska beredas registreras med beredningen när den iordningsställs, och ges bara när
+  // kontrollen är gjord och beredningen håller. Ett skannat armband prövas mot patienten.
+  const ber = atgard === 'iordningstall' ? beredning.forbered(db, { lm, spadning: o?.spadning ?? null, nu }, inp.beredning) : null;
+  if (atgard === 'ge' || atgard === 'overlamna') beredning.provaGe(db, { lm, spadning: o?.spadning ?? null, ior, efterhand: inp.tid != null && nu - tid > EFTERHAND_MS, nu });
+  const armband = atgard === 'ge' ? beredning.provaArmband(atk, inp.armband, ior?.kontrollkod ?? null) : null;
   // Runda 6, r2: en muntlig ordination som inte är signerad och ett generellt direktiv vars tillfällen är använda
   // stoppas med en förklaring. I ett trappschema är dosen den dagens dos.
   // Prövas både mot dosens tid och mot när registreringen görs (säkerhetsgranskning), så att en bakdaterad tid inte
@@ -381,12 +418,16 @@ function underlag(atk, inp, atgard) {
       dos: (inp.dos == null || inp.dos === '') && antal === 1 ? null : dos != null ? dos * antal : null });
     // Runda 6, r2: licensens giltighet och kontrollen vid sängen för blodprodukter.
     varningar.push(...stod.administreringsvarningar(db, { lm, patientId: atk.patientId, enhetId: atk.personal.enhet_id, ms: tidVarning, nu }));
+    // Runda 9, r1: uppmätt volym för en dos i flytande form, och flöde och saturation för syrgas.
+    varningar.push(...beredning.dosvarningar(atk, { orad, lm, dos: inp.dos == null || inp.dos === '' ? null : dos, volymMl: inp.volymMl ?? null }));
     if (atk.prova('las_lakemedel', {}).spärrade) {
       varningar.push({ niva: 'observation', regel: 'sparrade_uppgifter', text: 'Det finns spärrade uppgifter i journalen. Doser från en spärrad vårdenhet räknas inte in i kontrollen. Fråga patienten om samtycke att visa dem om det kan ha betydelse.' });
     }
   }
   const perm = permissionFor(db, atk.patientId);
-  return { orad, o, lm, tid, planerad, dos, antal, utfordAv, orsak, ior, varningar, tillagg, permission: underPermission(perm, planerad ? Date.parse(planerad) : tid), delegeringId };
+  return { orad, o, lm, tid, planerad, dos, antal, utfordAv, orsak, ior, varningar, tillagg, permission: underPermission(perm, planerad ? Date.parse(planerad) : tid), delegeringId,
+    // Runda 9, r1.
+    beredning: ber, armband };
 }
 
 // POST /api/patient/:id/administreringar/kontroll: varningarna innan något sparas.
@@ -434,6 +475,8 @@ export function spara(atk, inp = {}) {
       .run(status, tid, u.utfordAv, nu, atk.personal.id, efterhand, u.dos, u.antal, u.orsak || null, kv.length ? JSON.stringify(kv) : null, permission, volym,
         atk.personal.enhet_id, nyEnhet ? 1 : 0, u.delegeringId, u.ior.id);
     id = u.ior.id;
+    // Runda 9, r1: etiketten och armbandet som skannades vid sängen.
+    beredning.sparaSkanning(db, atk.personal, atk.patientId, id, u.ior.kontrollkod, u.armband);
   } else {
     const ior = atgard === 'iordningstall';
     const r = db.query(`INSERT INTO administreringar (patient_id, enhet_id, ordination_id, lakemedel_id, planerad, status, dos, dos_enhet, antal, tid, utford_av,
@@ -445,6 +488,8 @@ export function spara(atk, inp = {}) {
     id = Number(r.lastInsertRowid);
     // Etikettens kontrollkod för patientnära kontroll: dosens nummer och patientens journalnummer.
     if (ior) db.query('UPDATE administreringar SET kontrollkod = ? WHERE id = ?').run(`VK-ADM-${String(id).padStart(6, '0')}-${atk.patientId.toUpperCase()}`, id);
+    // Runda 9, r1: beredningen sparas med iordningsställandet.
+    if (ior) beredning.spara(db, atk.personal, atk.patientId, id, u.orad?.id ?? null, u.beredning, tid);
   }
   if (volym) {
     db.query("INSERT INTO vatskebalans (patient_id, enhet_id, riktning, typ, volym_ml, tid, registrerad, registrerad_av, administrering_id) VALUES (?, ?, 'in', 'lakemedel', ?, ?, ?, ?, ?)")

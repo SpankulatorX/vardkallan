@@ -276,7 +276,9 @@ export async function uppdateraInkorg() {
       // Runda 8, r2: remisser att signera på uppdrag och remisser fördelade till läkaren.
       + (d.remisserAttSignera?.length ?? 0) + (d.remisserAttBedoma?.length ?? 0)
       // Runda 8, r1: beställning och svar.
-      + labbInkorgAntal(d);
+      + labbInkorgAntal(d)
+      // Runda 9, r1: beredningar att kontrollera.
+      + (d.beredningarAttKontrollera?.length ?? 0);
   } catch { S.inkorg = null; }
   const el = document.querySelector('[data-raknare="inkorg"]');
   if (el) { el.textContent = S.inkorg ? String(S.inkorg) : ''; el.hidden = !S.inkorg; }

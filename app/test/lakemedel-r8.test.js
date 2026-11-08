@@ -129,7 +129,8 @@ describe('Tillsatser i infusion', () => {
     // Iordningsställandet och dosen gäller hela blandningen, och volymen med tillsatsen räknas in i vätskebalansen.
     const dos = administrering.lista(ssk(db, 'p01', 'las_lakemedel')).doser.find(d => d.ordinationId === o.id);
     expect(dos.spadning.text).toContain('Addex-Magnesium');
-    const ior = administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('14:00'), atgard: 'iordningstall' });
+    // Runda 9, r1: blandningen bereds med batchnumret, och systemet räknar fram resten ur ordinationen.
+    const ior = administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('14:00'), atgard: 'iordningstall', beredning: { batch: 'MG2611' } });
     expect(ior.administrering.status).toBe('iordningstalld');
     const ut = administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('14:00'), kontrollkod: ior.administrering.iordningstalld.kontrollkod });
     expect(ut.administrering.status).toBe('given');
@@ -270,7 +271,8 @@ describe('Muntlig ordination i följd', () => {
 describe('Nyheter för läkemedelsprocessen', () => {
   test('läkaren och sjuksköterskan får nyheterna om rundans läkemedelsfunktioner, och andra roller får dem inte', () => {
     const db = byggSeed();
-    const ids = (id) => (nyheter.nyheter(db, { personal: db.query('SELECT * FROM personal WHERE id = ?').get(id) }).ruta?.nyheter ?? []).map(n => n.id);
+    // Runda 9: nyheterna läses i historiken för version 0.8.0, så att testet inte beror på vilken version som är aktuell.
+    const ids = (id) => (nyheter.nyheter(db, { personal: db.query('SELECT * FROM personal WHERE id = ?').get(id) }).alla.find(v => v.version === '0.8.0')?.nyheter ?? []).map(n => n.id);
     expect(ids('lak-kard')).toEqual(expect.arrayContaining(['andra-dos', 'dosering-ur-produkten', 'tillsats-infusion']));
     expect(ids('lak-kard')).not.toContain('muntlig-i-foljd');
     expect(ids('ssk-kard')).toEqual(expect.arrayContaining(['dosering-ur-produkten', 'tillsats-infusion', 'muntlig-i-foljd']));

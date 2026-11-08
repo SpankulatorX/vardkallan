@@ -2,6 +2,100 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "0.9.0",
+      "datum": "2026-11-08",
+      "nyheter": [
+        {
+          "id": "beredning-etikett",
+          "roller": [
+            "sjukskoterska",
+            "lakare"
+          ],
+          "omfattning": "stor",
+          "rubrik": "Beredning med kontroll och etikett",
+          "text": "En dos som ska spädas eller få en tillsats bereds med knappen Bered i Läkemedel att ge. Systemet visar vad som ska göras, du anger batchnumret eller skannar förpackningen, och etiketten med streckkod finns vid dosen. Kaliumklorid och morfin kontrolleras av en kollega innan dosen ges."
+        },
+        {
+          "id": "patientnara-skanning",
+          "roller": [
+            "sjukskoterska",
+            "underskoterska",
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Skanna etikett och armband",
+          "text": "I Läkemedel att ge skannar du etiketten på dosen och patientens armband. Systemet kontrollerar att dosen hör till patienten innan den ges."
+        },
+        {
+          "id": "syrgas-oral-losning",
+          "roller": [
+            "sjukskoterska",
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Syrgas och orala lösningar",
+          "text": "Syrgas ordineras i liter per minut, och systemet väljer utrustningen och kontrollerar flödet. En oral lösning visas i ml med den spruta som ska användas."
+        },
+        {
+          "id": "forbrukningsartiklar",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "stor",
+          "rubrik": "Förbrukningsartiklar",
+          "text": "Under Läkemedel förskriver du teststickor, pennkanyler och stomiartiklar. Systemet föreslår det patienten behöver ur läkemedelslistan och räknar mängden, och du förnyar, ändrar och sätter ut med ett klick."
+        },
+        {
+          "id": "egenadministrering",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Patienten tar själv",
+          "text": "En ordination kan markeras så att patienten sköter läkemedlet själv under vårdtiden. Doserna visas under Patienten tar själv, där sjuksköterskan kvitterar intaget."
+        },
+        {
+          "id": "bestallning-licens-blod",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Beställ extempore, blod och licens",
+          "text": "Under Läkemedel beställer du extempore och blodprodukter ur ordinationen, och läkaren söker licens. Apoteket, blodcentralen och Läkemedelsverket är simulerade i demon."
+        },
+        {
+          "id": "epikris-lakemedelsberattelse",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Läkemedelsberättelsen i epikrisen",
+          "text": "Epikrisens förslag har läkemedelsberättelsen under Läkemedelsförändringar, ur läkemedelsgenomgången eller ur historiken."
+        },
+        {
+          "id": "lakemedel-vardgivare",
+          "roller": [
+            "uppfoljning"
+          ],
+          "omfattning": "stor",
+          "rubrik": "Läkemedel hos hela vårdgivaren",
+          "text": "Under Datauttag följer du upp förskrivning, administrering och utvärdering per läkemedel över alla vårdenheter, utan personuppgifter."
+        },
+        {
+          "id": "klinisk-provning",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Klinisk läkemedelsprövning",
+          "text": "En prövare inkluderar patienten i en studie under Läkemedel, och systemet registrerar uppmärksamhetsinformationen och varnar vid ordination utanför studien. Prövarens lista finns under Direktiv och uppföljning."
+        }
+      ]
+    },
+    {
       "version": "0.8.0",
       "datum": "2026-11-08",
       "nyheter": [

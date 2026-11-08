@@ -2,6 +2,8 @@
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 // Runda 6, r2.
 import { medR2 } from '../lakemedel-r2.js';
+// Runda 9, r1.
+import { medR9r1 } from '../lakemedel-r9.js';
 
 // Vätskebalansen (app/test/administrering.test.js).
 const VB = 'Vätskebalans > ';
@@ -25,4 +27,5 @@ const AVSNITT = [
     anmarkning: 'Förväntad vätskebalans framåt i tiden är inte byggd.' },
 ];
 // Runda 6, r2: posterna som byggdes i läkemedelsprocessen, del 2, ersätts ur sussa/lakemedel-r2.js.
-export default medR2(AVSNITT);
+// Runda 9, r1 (sussa/lakemedel-r9.js).
+export default medR9r1(medR2(AVSNITT));

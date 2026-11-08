@@ -209,10 +209,11 @@ function floden(D) {
       await m.klicka(dos('Paracetamol Fresenius Kabi').locator('[data-adm="ge"]'), 'Ge för Paracetamol');
       await synlig(page, '.notis', 'Paracetamol Fresenius Kabi är given');
       await page.waitForLoadState('networkidle');
-      await m.klicka(dos('Glucos Baxter').locator('.adm-mer summary'), 'Mer för Glucos');
-      await m.klicka(dos('Glucos Baxter').locator('[data-adm="iordningstall"]'), 'Iordningsställ');
-      await page.waitForTimeout(300);
-      if (await page.locator('dialog[open] [data-varde="ok"]').count()) await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'bekräfta iordningsställandet');
+      // Runda 9, r1: blandningen bereds. Systemet visar vad som ska göras, och sjuksköterskan anger batchnumret.
+      await m.klicka(dos('Glucos Baxter').locator('[data-adm="iordningstall"]'), 'Bered för Glucos');
+      await page.locator('dialog[open] #ber-batch').waitFor();
+      await m.skriv(page.locator('dialog[open] #ber-batch'), 'MG2611', 'batchnumret');
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Registrera beredningen');
       await synlig(page, '.notis', 'iordningsställd');
       await page.waitForLoadState('networkidle');
       await m.klicka(dos('Glucos Baxter').locator('[data-adm="ge"]'), 'Ge för Glucos');
