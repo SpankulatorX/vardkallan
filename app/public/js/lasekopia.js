@@ -386,6 +386,8 @@ async function koa(p, data) {
   const krypt = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: koAad(i.kopiaId, i.personalId, rad.id) }, nyckel, new TextEncoder().encode(JSON.stringify(rad)));
   await lagring.spara('ko', { id: rad.id, kopiaId: i.kopiaId, skapad: new Date().toISOString(), iv, data: krypt });
   const visad = tillampa(rad);
+  // Avbrottsraden räknar raderna i kön (avbrott.js).
+  try { window.dispatchEvent(new Event('vk-skrivko')); } catch { /* utan fönster */ }
   if (k.typ === 'matvarde') return { ...(visad ?? { namn: data.typ, varde: data.varde, enhet: '' }), koad: true, ejSparad: true };
   return { koad: true, administrering: { ...(visad ?? {}), status: 'given', tid: gjord, ejSparad: true }, varningar: [] };
 }

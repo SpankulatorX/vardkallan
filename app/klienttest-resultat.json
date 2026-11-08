@@ -1,291 +1,317 @@
 {
-  "tid": "2026-11-08T16:29:50.131Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-08T17:57:35.119Z",
+  "bas": "http://127.0.0.1:18201",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "a4958a5c3ab9d28741b854b75e1242d4f99e5c0f3dc0b43cbe303f6d4c69169e",
+  "gransnittHash": "e0867c5234fecc4c9d35dcab47a5d5c08acda904984957e4559269c82691e848",
   "tester": [
     {
-      "namn": "Gränssnitt > Mobil > Öppna patient från arbetslistan går i 360 px",
+      "namn": "Gränssnitt > Användartest > testläget räknar klick, fältbyten och tangenter som klickbudgetskriptet för samma flöden",
       "status": "inaktuell"
     },
     {
-      "namn": "Gränssnitt > Mobil > Läsa senaste anteckning går i 360 px",
+      "namn": "Gränssnitt > Användartest > enkäten ger SUS-poäng enligt standardformeln",
       "status": "inaktuell"
     },
     {
-      "namn": "Gränssnitt > Mobil > Registrera blodtryck går i 360 px",
+      "namn": "Gränssnitt > Användartest > resultatfilen laddas ner med datum, version, deltagarkod, uppgifter och SUS-poäng",
       "status": "inaktuell"
     },
     {
-      "namn": "Gränssnitt > Mobil > Kvittera remissvar går i 360 px",
+      "namn": "Gränssnitt > Användartest > hoppa över och hjälp registreras per uppgift",
       "status": "inaktuell"
     },
     {
-      "namn": "Gränssnitt > Mobil > Ge en dos går i 360 px",
+      "namn": "Gränssnitt > Användartest > inget anrop skickar testresultat till servern",
       "status": "inaktuell"
     },
     {
-      "namn": "Gränssnitt > Mobil > Ge en dos med delegering går i 360 px",
+      "namn": "Gränssnitt > Användartest > testläget rensas när testet avslutas",
       "status": "inaktuell"
     },
     {
-      "namn": "Gränssnitt > Mobil > Patienten bokar om sin tid i Min journal går i 360 px",
+      "namn": "Gränssnitt > Tillgänglighet > inget ljud, ingen video, inga bilder av text och inget som blinkar eller rör sig av sig självt",
       "status": "inaktuell"
     },
     {
-      "namn": "Gränssnitt > Mobil > Söka i journalen och öppna träffen går i 360 px",
+      "namn": "Gränssnitt > Tillgänglighet > varje bild och symbol har ett textalternativ eller är dold för hjälpmedel",
       "status": "inaktuell"
     },
     {
-      "namn": "Gränssnitt > Mobil > Registrera en NEWS2-kontroll går i 360 px",
+      "namn": "Gränssnitt > Tillgänglighet > varje formulärfält, knapp och länk har ett namn som beskriver syftet",
       "status": "inaktuell"
     },
     {
-      "namn": "Gränssnitt > Mobil > Registrera en dos i efterhand går i 360 px",
+      "namn": "Gränssnitt > Tillgänglighet > varje vy har en rubrik på nivå 1 och rubrikerna hoppar inte över någon nivå",
       "status": "inaktuell"
     },
     {
-      "namn": "Gränssnitt > Mobil > Överblicka dagens händelser på avdelningen går i 360 px",
+      "namn": "Gränssnitt > Tillgänglighet > allt innehåll ligger i landmärken: sidhuvud, meny, huvudinnehåll och sidfot",
       "status": "inaktuell"
     },
     {
-      "namn": "Gränssnitt > Mobil > Registrera längd, vikt, blodtryck och puls går i 360 px",
+      "namn": "Gränssnitt > Tillgänglighet > sidan har språket svenska och varje vy har en egen sidtitel",
       "status": "inaktuell"
     },
     {
-      "namn": "Gränssnitt > Mobil > Registrera provtagning går i 360 px",
+      "namn": "Gränssnitt > Tillgänglighet > texten har minst 4,5:1 i kontrast och stor text minst 3:1, i alla vyer för alla roller",
       "status": "inaktuell"
     },
     {
-      "namn": "Gränssnitt > Mobil > varje roll har sin startsida och menyn i 360 px utan sidledsrullning och med knappar på minst 40 px",
+      "namn": "Gränssnitt > Tillgänglighet > fältens ramar och fokusmarkeringen har minst 3:1 mot bakgrunden",
       "status": "inaktuell"
     },
     {
-      "namn": "Gränssnitt > Mobil > patienten läser sin journal, sina tider och vem som läst journalen i Min journal i 360 px",
+      "namn": "Gränssnitt > Tillgänglighet > status, larm, uppmärksamhetssymbolen och kurvorna har text eller form utöver färgen",
       "status": "inaktuell"
     },
     {
-      "namn": "Gränssnitt > Mobil > vid sängen identifierar armbandet patienten i Läkemedel att ge, och bara patientens doser visas",
+      "namn": "Gränssnitt > Tillgänglighet > texten går att förstora till 200 procent utan att innehåll eller funktion försvinner",
       "status": "inaktuell"
     },
     {
-      "namn": "Gränssnitt > Mobil > förbindelsen bryts och kommer tillbaka från en annan adress utan att inloggningen tappas",
+      "namn": "Gränssnitt > Tillgänglighet > vid 320 px bredd behövs ingen rullning i sidled",
       "status": "inaktuell"
     },
     {
-      "namn": "Gränssnitt > Öppet API > ändringsloggen visar versionen, och läkaren skickar ett ärende om en saknad informationsmängd",
+      "namn": "Gränssnitt > Tillgänglighet > allt som går att klicka på går att nå med tangentbordet",
       "status": "inaktuell"
     },
     {
-      "namn": "Gränssnitt > Öppet API > systemförvaltaren registrerar en tillämpning, ser vad den får och kan återkalla den",
+      "namn": "Gränssnitt > Tillgänglighet > tabbordningen följer sidans ordning, utan positivt tabindex och utan tangentbordsfälla",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > varje element som får fokus med tabb har en synlig fokusmarkering",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > inloggning, att öppna en patient, byta flik och stänga nyheterna går med bara tangentbordet",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > att ett element får fokus byter inte sida och öppnar inget",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > ett fel i ett formulär markeras vid fältet och beskrivs med text",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > högkontrastläget ger minst 7:1 i kontrast och följer datorns inställning",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > med minskade rörelser i datorn finns inga animationer eller övergångar",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > alla vyer fungerar på mobil, platta och stor skärm utan rullning i sidled och utan för långa textrader",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > fem minuter före utloggningen läser skärmläsare upp en varning, Fortsätt arbeta förlänger inloggningen och osparad text finns kvar som utkast efter en ny inloggning",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Utbildning > nyhetsrutan visar rollens nyheter efter inloggning, stängs med ett klick och går att läsa igen",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Utbildning > hjälpen i sammanhanget finns i de vanligaste flödena och går att öppna med tangentbordet",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Utbildning > verksamhetschefen utser en utbildare, och utbildaren ändrar en övning som sparas som en ny version med historik",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Utbildning > övningarna ger ett intyg med giltighetstid, och verksamhetschefen ser vårdenhetens intyg",
       "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > appen startar utan nät från service workern och visar läsläget",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > skrivande är avstängt i läsläget med en förklaring",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > åtkomster i läsläget når åtkomstloggen när servern svarar igen",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > simulerat avbrott ger läsläge medan servern svarar andra besökare",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > läskopian rensas vid utloggning",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > utloggning under avbrott loggar ut sessionen på servern, även om fliken stängs",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > läskopian används inte efter 8 timmar",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > läskopian förnyas av sig själv medan personen är inloggad",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > läsläget visar hur gammal läkemedelsinformationen är per patient och varnar efter 10 minuter",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > reservkoden väljs när webbläsaren är uppkopplad och bara den inslagna nyckeln sparas",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > efter omstart av webbläsaren utan nät visas vilka som har en reservkopia på datorn och när den går ut",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > fel reservkod ger väntetid och rätt reservkod öppnar läsläget",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > åtkomster med reservkod loggas krypterat och överlever att fliken stängs",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > när servern svarar igen mitt i läsläget med reservkod når åtkomsterna åtkomstloggen",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > utloggning raderar reservkopian, den inslagna nyckeln och loggen efter att loggen förts över",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > utloggning i en flik avslutar läsläget i webbläsarens andra flikar",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > en navigering direkt till en fil ersätter inte appen i service workerns cache",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > fem fel reservkoder raderar reservkopian och flikar kan inte pröva samtidigt",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > två personer på samma dator har var sin reservkopia som bara öppnas med egen kod",
-      "status": "grön"
+      "status": "inaktuell"
     },
     {
       "namn": "Gränssnitt > Avbrott > simulerat avbrott visar reservinloggningen när fliken stängs i demon",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > en dos och ett mätvärde som registreras under avbrottet märks som inte sparade och sparas när förbindelsen är tillbaka",
+      "status": "inaktuell",
+      "fel": "locator.isDisabled: Timeout 30000ms exceeded."
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > en dos som någon annan gav under avbrottet blir en konflikt som sjuksköterskan avgör, och dosen sparas inte två gånger",
+      "status": "inaktuell",
+      "fel": "page.waitForFunction: Timeout 10000ms exceeded."
+    },
+    {
+      "namn": "Gränssnitt > Mobil > Öppna patient från arbetslistan går i 360 px",
+      "status": "röd"
+    },
+    {
+      "namn": "Gränssnitt > Mobil > Läsa senaste anteckning går i 360 px",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Användartest > testläget räknar klick, fältbyten och tangenter som klickbudgetskriptet för samma flöden",
+      "namn": "Gränssnitt > Mobil > Registrera blodtryck går i 360 px",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Användartest > enkäten ger SUS-poäng enligt standardformeln",
+      "namn": "Gränssnitt > Mobil > Kvittera remissvar går i 360 px",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Användartest > resultatfilen laddas ner med datum, version, deltagarkod, uppgifter och SUS-poäng",
+      "namn": "Gränssnitt > Mobil > Ge en dos går i 360 px",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Användartest > hoppa över och hjälp registreras per uppgift",
+      "namn": "Gränssnitt > Mobil > Ge en dos med delegering går i 360 px",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Användartest > inget anrop skickar testresultat till servern",
+      "namn": "Gränssnitt > Mobil > Patienten bokar om sin tid i Min journal går i 360 px",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Användartest > testläget rensas när testet avslutas",
+      "namn": "Gränssnitt > Mobil > Söka i journalen och öppna träffen går i 360 px",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Tillgänglighet > inget ljud, ingen video, inga bilder av text och inget som blinkar eller rör sig av sig självt",
+      "namn": "Gränssnitt > Mobil > Registrera en NEWS2-kontroll går i 360 px",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Tillgänglighet > varje bild och symbol har ett textalternativ eller är dold för hjälpmedel",
+      "namn": "Gränssnitt > Mobil > Registrera en dos i efterhand går i 360 px",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Tillgänglighet > varje formulärfält, knapp och länk har ett namn som beskriver syftet",
+      "namn": "Gränssnitt > Mobil > Överblicka dagens händelser på avdelningen går i 360 px",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Tillgänglighet > varje vy har en rubrik på nivå 1 och rubrikerna hoppar inte över någon nivå",
+      "namn": "Gränssnitt > Mobil > Registrera längd, vikt, blodtryck och puls går i 360 px",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Tillgänglighet > allt innehåll ligger i landmärken: sidhuvud, meny, huvudinnehåll och sidfot",
+      "namn": "Gränssnitt > Mobil > Registrera provtagning går i 360 px",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Tillgänglighet > sidan har språket svenska och varje vy har en egen sidtitel",
+      "namn": "Gränssnitt > Mobil > varje roll har sin startsida och menyn i 360 px utan sidledsrullning och med knappar på minst 40 px",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Tillgänglighet > texten har minst 4,5:1 i kontrast och stor text minst 3:1, i alla vyer för alla roller",
+      "namn": "Gränssnitt > Mobil > patienten läser sin journal, sina tider och vem som läst journalen i Min journal i 360 px",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Tillgänglighet > fältens ramar och fokusmarkeringen har minst 3:1 mot bakgrunden",
+      "namn": "Gränssnitt > Mobil > vid sängen identifierar armbandet patienten i Läkemedel att ge, och bara patientens doser visas",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Tillgänglighet > status, larm, uppmärksamhetssymbolen och kurvorna har text eller form utöver färgen",
+      "namn": "Gränssnitt > Mobil > förbindelsen bryts och kommer tillbaka från en annan adress utan att inloggningen tappas",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Tillgänglighet > texten går att förstora till 200 procent utan att innehåll eller funktion försvinner",
+      "namn": "Gränssnitt > Mobil > varje vy i menyn för varje roll och varje flik i journalen går att öppna i 360 px utan sidledsrullning och med knappar på minst 40 px",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Tillgänglighet > vid 320 px bredd behövs ingen rullning i sidled",
+      "namn": "Gränssnitt > Mobil > i hemsjukvården utan uppkoppling registreras ett mätvärde i 360 px, märks som inte sparat och sparas när förbindelsen är tillbaka",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Tillgänglighet > allt som går att klicka på går att nå med tangentbordet",
+      "namn": "Gränssnitt > Öppet API > ändringsloggen visar versionen, och läkaren skickar ett ärende om en saknad informationsmängd",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Tillgänglighet > tabbordningen följer sidans ordning, utan positivt tabindex och utan tangentbordsfälla",
+      "namn": "Gränssnitt > Öppet API > systemförvaltaren registrerar en tillämpning, ser vad den får och kan återkalla den",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Tillgänglighet > varje element som får fokus med tabb har en synlig fokusmarkering",
+      "namn": "Gränssnitt > Öppet API > systemförvaltaren registrerar ett systemkonto för vårddatalagret, ser vad det får och kan återkalla det",
       "status": "grön"
     },
     {
-      "namn": "Gränssnitt > Tillgänglighet > inloggning, att öppna en patient, byta flik och stänga nyheterna går med bara tangentbordet",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Tillgänglighet > att ett element får fokus byter inte sida och öppnar inget",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Tillgänglighet > ett fel i ett formulär markeras vid fältet och beskrivs med text",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Tillgänglighet > högkontrastläget ger minst 7:1 i kontrast och följer datorns inställning",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Tillgänglighet > med minskade rörelser i datorn finns inga animationer eller övergångar",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Tillgänglighet > alla vyer fungerar på mobil, platta och stor skärm utan rullning i sidled och utan för långa textrader",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Tillgänglighet > fem minuter före utloggningen läser skärmläsare upp en varning, Fortsätt arbeta förlänger inloggningen och osparad text finns kvar som utkast efter en ny inloggning",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Utbildning > nyhetsrutan visar rollens nyheter efter inloggning, stängs med ett klick och går att läsa igen",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Utbildning > hjälpen i sammanhanget finns i de vanligaste flödena och går att öppna med tangentbordet",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Utbildning > verksamhetschefen utser en utbildare, och utbildaren ändrar en övning som sparas som en ny version med historik",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Utbildning > övningarna ger ett intyg med giltighetstid, och verksamhetschefen ser vårdenhetens intyg",
+      "namn": "Gränssnitt > Uppmärksamhet > läkaren registrerar en överkänslighet med ämnet och reaktionen, och den syns i patienthuvudet med graden",
       "status": "grön"
     }
   ]

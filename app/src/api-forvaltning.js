@@ -34,7 +34,12 @@ export function sakraSchema(db) {
     version TEXT, beslut TEXT, skapad TEXT NOT NULL, skapad_av TEXT NOT NULL, andrad TEXT, andrad_av TEXT);
   CREATE TABLE IF NOT EXISTS api_arende_svar (
     id INTEGER PRIMARY KEY, arende_id INTEGER NOT NULL, text TEXT NOT NULL, tid TEXT NOT NULL, av TEXT NOT NULL);`);
+  // Runda 10, r1: var tillämpningens källkod förvaltas, under vilken licens och vilken version som är registrerad.
+  const kolumner = new Set(db.query('PRAGMA table_info(api_tillampningar)').all().map(k => k.name));
+  for (const k of ['kallkod', 'licens', 'version']) if (!kolumner.has(k)) db.exec(`ALTER TABLE api_tillampningar ADD COLUMN ${k} TEXT`);
 }
+// Runda 10, r1: licenserna som en innovation kan ha. Öppen källkod föreslås, eftersom Vårdkällan är öppen under EUPL 1.2.
+export const LICENSER = ['EUPL-1.2', 'Apache-2.0', 'MIT', 'GPL-3.0', 'Sluten källkod hos utvecklaren'];
 
 const logga = (db, personal, resurs, syfte) => loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, handling: HANDLING, resurs, grund: 'administrativ', syfte });
 function kravForvaltare(personal) {
@@ -95,6 +100,8 @@ function provaAdress(adress, falt) {
 const tillampningUt = (r) => ({
   id: r.id, namn: r.namn, adress: r.adress, omdirigering: json(r.omdirigering), omfang: json(r.omfang), kravs: r.kravs, beskrivning: r.beskrivning, far: r.far,
   registrerad: r.registrerad, aterkallad: r.aterkallad, orsak: r.orsak, fast: false,
+  // Runda 10, r1.
+  kallkod: r.kallkod ?? null, licens: r.licens ?? null, version: r.version ?? null,
 });
 const harSchema = (db) => Boolean(db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'api_tillampningar'").get());
 
@@ -116,13 +123,26 @@ export function registreraTillampning(db, personal, body = {}) {
   const f = forslag(body.omfang);
   const adress = provaAdress(body.adress, 'adress');
   const omdirigering = (Array.isArray(body.omdirigering) && body.omdirigering.length ? body.omdirigering : [adress]).slice(0, 5).map(a => provaAdress(a, 'omdirigering'));
+  // Runda 10, r1: källkoden för innovationen, licensen och versionen. Med en adress till källkoden föreslår systemet
+  // EUPL 1.2, utan adress sluten källkod hos utvecklaren, och version 1.0.0.
+  const kallkod = text(body.kallkod, 300);
+  if (kallkod) {
+    let u;
+    try { u = new URL(kallkod); } catch { u = null; }
+    if (!u || u.protocol !== 'https:' || u.username || u.password) throw new Fel(400, 'Ange adressen till källkoden som en https-adress, till exempel förrådet på GitHub eller GitLab.', 'ogiltig', { falt: ['kallkod'] });
+  }
+  const licens = body.licens == null || body.licens === '' ? (kallkod ? 'EUPL-1.2' : 'Sluten källkod hos utvecklaren') : String(body.licens);
+  if (!LICENSER.includes(licens)) throw new Fel(400, `Välj licensen i listan: ${LICENSER.join(', ')}.`, 'ogiltig', { falt: ['licens'] });
+  if (licens !== 'Sluten källkod hos utvecklaren' && !kallkod) throw new Fel(400, 'En tillämpning med öppen källkod behöver adressen till källkoden, så att kunden och andra samarbetspartner kan granska och vidareutveckla den.', 'ogiltig', { falt: ['kallkod'] });
+  const version = text(body.version, 20) || '1.0.0';
+  if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Fel(400, 'Ange versionen som tre tal, till exempel 1.0.0.', 'ogiltig', { falt: ['version'] });
   const id = namn.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'tillampning';
   if (aktivaTillampningar(db).some(t => t.id === id) || db.query('SELECT 1 FROM api_tillampningar WHERE id = ?').get(id)) {
     throw new Fel(409, 'Det finns redan en tillämpning med det namnet. Välj ett annat namn.', 'ogiltig', { falt: ['namn'] });
   }
   if (db.query('SELECT COUNT(*) n FROM api_tillampningar').get().n >= TAK.tillampningar) throw new Fel(409, `Demon har plats för ${TAK.tillampningar} tillämpningar.`, 'ogiltig');
-  db.query('INSERT INTO api_tillampningar (id, namn, adress, omdirigering, omfang, kravs, beskrivning, far, registrerad, registrerad_av) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(id, namn, adress, JSON.stringify(omdirigering), JSON.stringify(f.omfang), f.kravs, beskrivning, f.far, iso(), personal.id);
+  db.query('INSERT INTO api_tillampningar (id, namn, adress, omdirigering, omfang, kravs, beskrivning, far, registrerad, registrerad_av, kallkod, licens, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(id, namn, adress, JSON.stringify(omdirigering), JSON.stringify(f.omfang), f.kravs, beskrivning, f.far, iso(), personal.id, kallkod || null, licens, version);
   logga(db, personal, `api:tillampning:${id}`, `Tillämpningen ${namn} registrerades med omfånget ${f.omfang.join(' ')}.`);
   return tillampningUt(db.query('SELECT * FROM api_tillampningar WHERE id = ?').get(id));
 }
@@ -310,10 +330,14 @@ export function oversikt(db, personal) {
   const egnaM = harMottagare(db) ? db.query('SELECT * FROM api_mottagare ORDER BY id').all().map(mottagareUt) : [];
   return {
     forvaltare,
-    tillampningar: [...smart.TILLAMPNINGAR.map(t => ({ id: t.id, namn: t.namn, adress: t.adress, omfang: t.omfang, kravs: t.kravs, beskrivning: t.beskrivning, far: t.far, fast: true, aterkallad: null })),
+    tillampningar: [...smart.TILLAMPNINGAR.map(t => ({ id: t.id, namn: t.namn, adress: t.adress, omfang: t.omfang, kravs: t.kravs, beskrivning: t.beskrivning, far: t.far, fast: true, aterkallad: null,
+      // Runda 10, r1.
+      kallkod: t.kallkod ?? null, licens: t.licens ?? null, version: t.version ?? null })),
       ...egnaT.filter(t => forvaltare || !t.aterkallad)],
     mottagare: [...GODKANDA_MOTTAGARE.map(a => ({ adress: a, syfte: 'Fast i konfigurationen', fast: true, aterkallad: null })), ...egnaM.filter(m => forvaltare || !m.aterkallad)],
     arenden: arenden(db, personal),
     arendetyper: ARENDETYPER,
+    // Runda 10, r1.
+    licenser: LICENSER,
   };
 }

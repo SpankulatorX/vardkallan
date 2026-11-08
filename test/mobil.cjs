@@ -21,6 +21,8 @@ const UT = join(__dirname, 'skarmbilder');
 mkdirSync(UT, { recursive: true });
 const MOBIL = 'Gränssnitt > Mobil > ';
 const OPPET = 'Gränssnitt > Öppet API > ';
+// Runda 10, r1: registreringen av överkänslighet.
+const UPPM = 'Gränssnitt > Uppmärksamhet > ';
 const KONTEXT = { viewport: { width: 360, height: 760 }, locale: 'sv-SE', timezoneId: 'Europe/Stockholm', deviceScaleFactor: 2 };
 
 (async () => {
@@ -29,7 +31,7 @@ const KONTEXT = { viewport: { width: 360, height: 760 }, locale: 'sv-SE', timezo
   const { gransnittHash } = await import(pathToFileURL(join(APP, 'src', 'klientresultat.js')).href);
   const { synlig, gaTill, loggaIn, startI, GOR } = skapa(BAS);
   const browser = await chromium.launch();
-  const tester = { [MOBIL]: [], [OPPET]: [] };
+  const tester = { [MOBIL]: [], [OPPET]: [], [UPPM]: [] };
   const fel = [];
   let ctx = null;
   let page = null;
@@ -188,6 +190,107 @@ const KONTEXT = { viewport: { width: 360, height: 760 }, locale: 'sv-SE', timezo
     await synlig(page, '.api-lista li', 'Återkallad');
     await kontrolleraMobil('Öppet API för systemförvaltaren');
     await page.screenshot({ path: join(UT, '61-oppet-api-forvaltning.png'), fullPage: true });
+  });
+
+  // Runda 10, r1: varje vy i menyn för varje roll och varje flik i journalen i 360 px (Sussa 2.3.1.3). Uppställningen per
+  // funktionellt krav (app/src/mobil.js) säger att vyerna går att öppna i mobilen, och det här testet visar det.
+  await test(MOBIL, 'varje vy i menyn för varje roll och varje flik i journalen går att öppna i 360 px utan sidledsrullning och med knappar på minst 40 px', async () => {
+    const vanta = async () => {
+      await page.waitForLoadState('networkidle');
+      await page.waitForFunction(() => ![...document.querySelectorAll('main .tom, main .laddar')].some(e => /^Hämtar/.test(e.textContent)), null, { timeout: 8000 }).catch(() => {});
+    };
+    for (const r of ['lak-kard', 'ssk-kard', 'usk-kard', 'lak-akut', 'lak-vc', 'lak-psyk', 'adm-kard', 'logg', 'ark', 'uppf', 'kom-bist', 'far-kard', 'vch-kard', 'eko', 'sysf', 'fys-kard']) {
+      await nyKontext();
+      await loggaIn(page, r);
+      const lankar = await page.locator('#meny-lista a').evaluateAll(a => a.map(x => [x.getAttribute('href'), x.textContent.trim()]));
+      if (!lankar.length) throw new Error(`${r} har ingen meny`);
+      for (const [href, text] of lankar) {
+        await page.goto(`${BAS}/${href}`);
+        await vanta();
+        await kontrolleraMobil(`${r}, ${text}`);
+      }
+    }
+    await nyKontext();
+    await loggaIn(page, 'lak-kard');
+    await gaTill(page, '#/patient/p01');
+    await page.waitForSelector('.tidslinje');
+    const flikar = await page.locator('.flikar a').evaluateAll(a => a.map(x => [x.getAttribute('href'), x.textContent.trim()]));
+    if (flikar.length < 5) throw new Error(`journalen har bara ${flikar.length} flikar`);
+    for (const [href, text] of flikar) {
+      await page.goto(`${BAS}/${href}`);
+      await vanta();
+      await kontrolleraMobil(`journalen, ${text}`);
+    }
+  });
+
+  // Runda 10, r1: i hemsjukvården, hos patienten och utan uppkoppling (Sussa 2.3.1.2 och 2.3.1.4). Mätvärdet registreras
+  // i mobilen, märks som inte sparat och sparas när förbindelsen är tillbaka.
+  await test(MOBIL, 'i hemsjukvården utan uppkoppling registreras ett mätvärde i 360 px, märks som inte sparat och sparas när förbindelsen är tillbaka', async () => {
+    await nyKontext();
+    await loggaIn(page, 'ssk-kard');
+    await gaTill(page, '#/patient/p01/matvarden');
+    await page.waitForSelector('#mv-form');
+    await page.waitForFunction(() => Boolean(document.documentElement.dataset.laskopia), null, { timeout: 10000 });
+    await page.evaluate(async () => (await import('/js/avbrott.js')).simulera());
+    await synlig(page, '#avbrott h2', 'Avbrott: läsläge');
+    await gaTill(page, '#/patient/p01/matvarden');
+    await page.waitForSelector('#mv-form');
+    await page.selectOption('#mv-typ', 'saturation');
+    await page.fill('#mv-varde', '93');
+    await page.click('#mv-form [type=submit]');
+    await synlig(page, '.notis', 'sparat i kön på den här datorn');
+    await synlig(page, 'tr[data-ej-sparad]', 'Inte sparat i journalen än');
+    await kontrolleraMobil('mätvärden under avbrottet');
+    await page.screenshot({ path: join(UT, '63-mobil-skrivko.png') });
+    await page.click('[data-avbrott="avsluta"]');
+    await synlig(page, '.notis', 'från avbrottet är nu sparade i journalen');
+    const mv = await page.evaluate(async () => (await (await fetch('/api/patient/p01/matvarden')).json()).matvarden.filter(m => m.typ === 'saturation' && String(m.varde) === '93').length);
+    if (mv < 1) throw new Error('saturationen från kön finns inte i journalen');
+  });
+
+  // Runda 10, r1: systemförvaltaren registrerar ett systemkonto för vårddatalagret (Sussa 2.5.1.2).
+  await test(OPPET, 'systemförvaltaren registrerar ett systemkonto för vårddatalagret, ser vad det får och kan återkalla det', async () => {
+    const { generateKeyPairSync } = require('node:crypto');
+    const jwk = generateKeyPairSync('ec', { namedCurve: 'P-256' }).publicKey.export({ format: 'jwk' });
+    await nyKontext();
+    await loggaIn(page, 'sysf');
+    await gaTill(page, '#/api');
+    await page.waitForSelector('[data-nytt-systemkonto]');
+    await page.click('[data-nytt-systemkonto]');
+    await page.fill('dialog[open] input[name="namn"]', 'Regionens vårddatalager');
+    await page.fill('dialog[open] textarea[name="syfte"]', 'Uppföljning av diagnoser i regionens vårddatalager.');
+    await page.check('dialog[open] input[name="ve"][value="uso-kard"]');
+    await synlig(page, 'dialog[open] [data-forhand]', 'Kardiologiska kliniken USÖ');
+    await page.fill('dialog[open] textarea[name="nyckel"]', JSON.stringify(jwk));
+    await page.click('dialog[open] [data-varde="ok"]');
+    await synlig(page, '.notis', 'client_id');
+    const rad = page.locator('[data-systemkonton] .api-lista li', { hasText: 'Regionens vårddatalager' });
+    await rad.waitFor();
+    await synlig(page, '[data-systemkonton] .api-lista li', 'system/Condition.rs');
+    await kontrolleraMobil('Öppet API, systemkonton');
+    await rad.locator('[data-aterkalla-s]').click();
+    await page.fill('dialog[open] textarea[name="orsak"]', 'Prövningen är klar.');
+    await page.click('dialog[open] [data-varde="ok"]');
+    await synlig(page, '[data-systemkonton] .api-lista li', 'Återkallat');
+  });
+
+  // Runda 10, r1: läkaren registrerar en överkänslighet ur listan, och systemet föreslår graden (Sussa 2.5.1.1 och 3.1.5).
+  await test(UPPM, 'läkaren registrerar en överkänslighet med ämnet och reaktionen, och den syns i patienthuvudet med graden', async () => {
+    await nyKontext();
+    await loggaIn(page, 'lak-kard');
+    await gaTill(page, '#/patient/p01');
+    await page.waitForSelector('.patientband h1');
+    const lagg = page.locator('[data-um-lagg]').first();
+    if (!(await lagg.isVisible())) await page.locator('.signal-um summary').first().click();
+    await page.locator('[data-um-lagg]').first().click();
+    await page.click('dialog[open] [data-varde="overk"]');
+    await page.waitForSelector('dialog[open] #ok-amne');
+    await page.selectOption('dialog[open] #ok-amne', 'latex');
+    await page.check('dialog[open] input[name="reaktion"][value="urtikaria"]');
+    await page.click('dialog[open] [data-varde="ok"]');
+    await synlig(page, '.notis', 'Överkänsligheten mot latex är registrerad med graden skadlig');
+    await synlig(page, '.patientband', 'Latex');
+    await kontrolleraMobil('patienthuvudet med överkänsligheten');
   });
 
   const version = browser.version();

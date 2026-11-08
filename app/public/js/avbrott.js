@@ -155,6 +155,8 @@ export function init() {
   setInterval(fornyaOmDags, TITTA_MS);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') fornyaOmDags(); });
   window.addEventListener('online', fornyaOmDags);
+  // Runda 10, r1: en ny rad i skrivkön räknas in i avbrottsraden.
+  window.addEventListener('vk-skrivko', () => { uppdateraKo(); });
 }
 function fornyaOmDags() {
   const nu = Date.now();

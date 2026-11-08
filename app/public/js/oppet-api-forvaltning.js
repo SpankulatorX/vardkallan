@@ -38,6 +38,7 @@ function arendeRad(a) {
 function tillampningRad(t, forvaltare) {
   return `<li><strong>${esc(t.namn)}</strong>${t.aterkallad ? ` ${status('Återkallad')}` : t.fast ? ` ${status('Demons egen')}` : ''}
     <p class="under-text">${esc(t.beskrivning)} Får: ${esc(t.far)}</p><p class="under-text"><code>${esc(t.omfang.join(' '))}</code></p>
+    ${t.licens ? `<p class="under-text">Version ${esc(t.version ?? '')}, ${esc(t.licens)}.${t.kallkod ? ` Källkoden: <a href="${esc(t.kallkod)}" rel="noopener noreferrer">${esc(t.kallkod)}</a>` : ''}</p>` : ''}
     ${forvaltare && !t.fast && !t.aterkallad ? `<button type="button" class="knapp liten sekundar" data-aterkalla-t="${esc(t.id)}">Återkalla</button>` : ''}</li>`;
 }
 function mottagareRad(m, forvaltare) {
@@ -110,6 +111,9 @@ export async function ritaForvaltning(el) {
           ${falt({ namn: 'namn', etikett: 'Namn', obligatorisk: true, attr: 'maxlength="80"' })}
           ${falt({ namn: 'beskrivning', etikett: 'Vad gör tillämpningen?', typ: 'textarea', obligatorisk: true, attr: 'maxlength="500"' })}
           ${falt({ namn: 'adress', etikett: 'Adress', obligatorisk: true, varde: '/tillampningar/blodtryck/index.html', hjalp: 'En sökväg på samma server eller en https-adress.' })}
+          ${falt({ namn: 'kallkod', etikett: 'Adress till källkoden', typ: 'url', hjalp: 'Förrådet där samarbetspartnern förvaltar källkoden, till exempel på GitHub. Behövs för öppen källkod.' })}
+          ${falt({ namn: 'licens', etikett: 'Licens', alternativ: [['', 'Systemets förslag: EUPL-1.2 med källkod, annars sluten källkod'], ...(d.licenser ?? []).map(l => [l, l])] })}
+          ${falt({ namn: 'version', etikett: 'Version', varde: '1.0.0', attr: 'maxlength="20" inputmode="decimal"' })}
           <fieldset class="falt"><legend>Vad ska tillämpningen läsa?</legend>${RESURSER.map(([t, n]) => `<label class="val"><input type="checkbox" name="las" value="${t}"${t === 'Patient' ? ' checked' : ''}> ${esc(n)}</label>`).join('')}</fieldset>
           <div data-forhand class="ruta liten" role="status"></div><p class="dialog-fel ruta ruta-larm" hidden></p>
           <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Registrera</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`, {
@@ -128,7 +132,8 @@ export async function ritaForvaltning(el) {
           },
         });
         if (!svar) return;
-        const t = await api('/api/oppet-api/tillampningar', { metod: 'POST', data: { namn: svar.data.namn, beskrivning: svar.data.beskrivning, adress: svar.data.adress, omfang: valda.map(v => `patient/${v}.read`).join(' ') } });
+        const t = await api('/api/oppet-api/tillampningar', { metod: 'POST', data: { namn: svar.data.namn, beskrivning: svar.data.beskrivning, adress: svar.data.adress, omfang: valda.map(v => `patient/${v}.read`).join(' '),
+          kallkod: svar.data.kallkod || null, licens: svar.data.licens || null, version: svar.data.version || null } });
         notis(`${t.namn} är registrerad. Den syns under Tillämpningar i journalen.`);
         return igen();
       }

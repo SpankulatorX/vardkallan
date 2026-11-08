@@ -141,7 +141,8 @@ export function sussaRegister(resultat, klient = null, { mappning = MAPPNING, po
       ...avtalPost(p.id),
       // Runda 9, r6: lagkravsmatrisen med status per rad ur testerna (lagmatris.js).
       ...(p.id === '2.7.1.2' ? { lagmatris: lagmatris(status) } : {}),
-      ...(p.id === '2.3.1.3' ? { mobil: { text: 'Krav i kapitel 3 och 4 som har flöden i klickbudgeten, och vilka av dem som är gjorda för mobilen och prövas i 360 px.', krav: perKrav(poster, mappning, klickbudgetTest) } } : {}),
+      // Runda 10, r1: varje krav i kapitel 3 och 4, med de mobila flödena eller varför kravet inte har några.
+      ...(p.id === '2.3.1.3' ? { mobil: { text: 'Varje funktionellt krav i kapitel 3 och 4: de flöden som är gjorda för mobilen och prövas i 360 px, och för övriga krav hur de fungerar i mobilen.', krav: perKrav(poster, mappning, klickbudgetTest) } } : {}),
     };
   });
   return {

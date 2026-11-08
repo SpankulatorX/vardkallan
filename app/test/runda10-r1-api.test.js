@@ -195,3 +195,24 @@ describe('Systemkonton', () => {
     expect(sandlada(app, k).db.query('SELECT status FROM prenumerationer WHERE id = ?').get(Number(s.data.id)).status).toBe('avslutad');
   });
 });
+
+describe('Innovationsramverket', () => {
+  test('en tillämpning registreras med källkoden, licensen och versionen, och öppen källkod kräver adressen till källkoden', async () => {
+    const k = klient(app);
+    await k.logga('sysf');
+    const t = { namn: 'Vätska i mobilen', beskrivning: 'Visar vätskebalansen i mobilen för hemsjukvården.', adress: '/tillampningar/blodtryck/index.html', omfang: 'patient/Observation.read' };
+    // Utan källkod föreslår systemet sluten källkod hos utvecklaren och version 1.0.0.
+    const utan = await k.post('/api/oppet-api/tillampningar', t);
+    expect(utan.data).toMatchObject({ licens: 'Sluten källkod hos utvecklaren', version: '1.0.0', kallkod: null });
+    // Med källkod föreslår systemet EUPL 1.2.
+    const med = await k.post('/api/oppet-api/tillampningar', { ...t, namn: 'Vätska i plattan', kallkod: 'https://github.com/exempel/vatska', version: '2.1.0' });
+    expect(med.data).toMatchObject({ licens: 'EUPL-1.2', version: '2.1.0', kallkod: 'https://github.com/exempel/vatska' });
+    for (const fel of [{ licens: 'MIT' }, { kallkod: 'http://github.com/x' }, { kallkod: 'inte en adress' }, { licens: 'Fri', kallkod: 'https://github.com/x/y' }, { version: 'ett', kallkod: 'https://github.com/x/y' }]) {
+      expect([fel, (await k.post('/api/oppet-api/tillampningar', { ...t, namn: 'Vätska igen', ...fel })).status]).toEqual([fel, 400]);
+    }
+    const o = (await k.get('/api/oppet-api/forvaltning')).data;
+    expect(o.licenser).toContain('EUPL-1.2');
+    expect(o.tillampningar.find(x => x.id === 'blodtryck')).toMatchObject({ kallkod: 'https://github.com/SpankulatorX/vardkallan', licens: 'EUPL-1.2' });
+    expect(o.tillampningar.find(x => x.id === 'vatska-i-plattan').kallkod).toBe('https://github.com/exempel/vatska');
+  });
+});

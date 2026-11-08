@@ -25,6 +25,8 @@ export const TILLAMPNINGAR = [
     beskrivning: 'Ett diagram över patientens blodtryck. En enkel demotillämpning som läser blodtrycket med SMART on FHIR.',
     omfang: ['launch', 'launch/patient', 'patient/Patient.read', 'patient/Observation.read'], kravs: 'las_matvarden',
     far: 'Läsa patientens namn och mätvärden. Inget annat, och bara det du själv får se utan aktiva val.',
+    // Runda 10, r1: källkoden, licensen och versionen.
+    kallkod: 'https://github.com/SpankulatorX/vardkallan', licens: 'EUPL-1.2', version: '1.0.0',
   },
 ];
 export const tillampning = (id) => TILLAMPNINGAR.find(t => t.id === id) ?? null;

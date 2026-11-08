@@ -275,7 +275,8 @@ export async function visa(main) {
 // rätt dos ges till rätt patient. Behörigheten prövas på servern innan något om patienten visas.
 function skannaArmband(el) {
   const form = document.createElement('form');
-  form.className = 'adm-skanna';
+  // Runda 10, r1: en egen klass, så att Enter i fältet inte fångas av skanningen av etikett och armband vid en dos.
+  form.className = 'adm-skanna-armband';
   form.innerHTML = `<label for="adm-kod">Skanna patientens armband</label><div class="adm-skanna-rad"><input id="adm-kod" name="kod" autocomplete="off" spellcheck="false" maxlength="200" aria-describedby="adm-kod-svar">
     <button type="submit" class="knapp sekundar">Visa patienten</button></div><p id="adm-kod-svar" class="under-text" role="status"></p>`;
   el.prepend(form);
