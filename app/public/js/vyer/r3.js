@@ -2,6 +2,8 @@
 // Fliken Planer, fliken Tvångsvård, delar av översikten och inkorgen, bevakningen av tvångsvården, uppföljningen och
 // kommunens vy. Servern räknar alla frister och föreslår nästa steg. Gränssnittet visar dem och skickar det användaren
 // bekräftar, och fälten i ett steg kommer från servern.
+// Runda 10, r5: vårdförloppet med kunskapsstöd och vårdenhetens utfall (Sussa 3.2.1).
+import * as kunskap from '../kunskapsstod-ui.js';
 import { esc, api, datum, tidpunkt, ikon, vyRubrik, dialog, notis, felNotis, falt, tom } from '../ui.js';
 import { far, pa, S } from '../app.js';
 
@@ -80,7 +82,8 @@ async function satUppMall(ctx, mall) {
     <div class="dialog-text"><p>${esc(f.varfor)}</p>
     <h3>Mål</h3><ul class="enkel-lista">${f.mal.map(m => `<li>${esc(m)}</li>`).join('')}</ul>
     <h3>Åtgärder</h3><ul class="enkel-lista">${f.atgarder.map(a => `<li>${esc(a.text)} <span class="dampad">${esc(a.ansvarigText)}${a.dagligen ? ', dagligen' : ''}</span></li>`).join('')}</ul>
-    <p>Uppföljning ${esc(f.uppfoljning)}. Planen kan anpassas efter patienten när den är upprättad.</p><p class="demoregel">${esc(d.demoregler)}</p></div>
+    <p>Uppföljning ${esc(f.uppfoljning)}. Planen kan anpassas efter patienten när den är upprättad.</p>
+    ${kunskap.vardforloppHtml(f.vardforlopp)}${kunskap.utfallHtml(f.utfall)}<p class="demoregel">${esc(d.demoregler)}</p></div>
     <div class="knapprad"><button type="button" class="knapp" data-varde="ok" autofocus>Upprätta vårdplanen</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div>`, { klass: 'dialog-bred' });
   if (svar?.val !== 'ok') return false;
   const r = await api(`/api/patient/${encodeURIComponent(ctx.id)}/vardplaner`, { metod: 'POST', data: { mall } });
@@ -204,7 +207,9 @@ function planHtml(p) {
     <h3>${esc(p.rubrik)} <span class="tagg">${esc(p.statusText)}</span>${p.standard ? ' <span class="tagg">Standardplan</span>' : ''}</h3>
     <p class="dampad liten">${esc(p.enhet.namn)}, upprättad ${esc(tidpunkt(p.skapad))} av ${esc(p.skapadAv?.namn ?? '')}. Följs upp ${esc(p.uppfoljning)}.${p.grund ? ` ${esc(p.grund)}` : ''}</p>
     ${p.avvikelser.length ? `<ul class="r3-avvikelser">${p.avvikelser.map(a => `<li class="tagg tagg-larm">${esc(a.text)}</li>`).join('')}</ul>` : ''}
+    ${p.status !== 'avslutad' ? kunskap.vardforloppHtml(p.vardforlopp) : ''}
     <h4>Mål</h4><ul class="enkel-lista">${p.mal.map(m => `<li>${esc(m.text)} <span class="dampad">${esc(m.statusText)}</span></li>`).join('')}</ul>
+    ${p.utfall ? kunskap.utfallHtml(p.utfall) : ''}
     <h4>Åtgärder</h4><ul class="enkel-lista">${p.atgarder.map(a => `<li>${esc(a.text)} <span class="dampad">${esc(a.ansvarigText)}${a.dagligen ? ', dagligen' : ''}</span>${a.senastUtford ? `<span class="under-text">Senast ${esc(tidpunkt(a.senastUtford))}${a.utfordAvSystemet ? ', registrerat som mätvärde' : a.utfordAv ? ` av ${esc(a.utfordAv.namn)}` : ''}</span>` : ''}${utfora.has(a.id) ? ` <button type="button" class="knapp liten sekundar" data-skriv data-vp="utfort" data-plan="${p.id}" data-atgard="${a.id}">Utförd</button>` : ''}</li>`).join('')}</ul>
     ${p.kan.andra ? `<div class="knapprad" data-skriv>${p.status === 'aktiv' ? `<button type="button" class="knapp liten" data-vp="uppfoljning" data-plan="${p.id}">Följ upp</button><button type="button" class="knapp liten sekundar" data-vp="atgard" data-plan="${p.id}">Lägg till åtgärd</button><button type="button" class="knapp liten sekundar" data-vp="mal" data-plan="${p.id}">Lägg till mål</button><button type="button" class="knapp liten sekundar" data-vp="pausa" data-plan="${p.id}">Uppehåll</button>` : `<button type="button" class="knapp liten" data-vp="ateruppta" data-plan="${p.id}">Återuppta</button>`}<button type="button" class="knapp liten sekundar" data-vp="avsluta" data-plan="${p.id}">Avsluta</button></div>` : ''}
     <details><summary>Historik (${p.historik.length})</summary><ol class="enkel-lista">${p.historik.map(h => `<li>${esc(h.text)}<span class="under-text">${esc(tidpunkt(h.tid))}, ${esc(h.av?.namn ?? '')}, ${esc(h.enhet?.namn ?? '')}</span></li>`).join('')}</ol></details>

@@ -163,9 +163,11 @@ function nastaKonummer(db) {
   return `A${String(max >= 99 ? 1 : max + 1).padStart(2, '0')}`;
 }
 
-// Registrerar ankomsten. Ger raden. ger_vardrelation är 0 för en ankomst som personalen registrerar, och 1 för en
-// ankomst från ambulansens förvarning, som kommer från en annan part.
-export function registreraAnkomst(db, pers, { patientId, kontaktorsak, ankomstsatt = 'egen', prehospital = null, prioritet = null, triageData = null } = {}) {
+// Registrerar ankomsten. Ger raden. Ankomsten ger aldrig vårdrelation (ger_vardrelation 0), inte heller efter en
+// förvarning: relationen uppstår först när en annan person än den som registrerade bekräftar den i triagen, bedömningen
+// eller en aktivitet (bekraftaRelation). Prioriteten och triagen sätts bara i triagens eget steg (säkerhetsgranskningen
+// av runda 10, beslut 2026-11-08). ankomstsatt och prehospital kommer bara från en förvarning, aldrig från anropet.
+export function registreraAnkomst(db, pers, { patientId, kontaktorsak, ankomstsatt = 'egen', prehospital = null } = {}) {
   const p = typeof patientId === 'string' ? db.query('SELECT * FROM patienter WHERE id = ? AND sammanslagen_till IS NULL').get(patientId) : null;
   if (!p) throw new Fel(400, 'Välj patienten. Saknas personnummer, registrera patienten med reservnummer först.', 'ogiltig', { falt: ['patientId'] });
   const orsak = text(kontaktorsak);
@@ -173,20 +175,21 @@ export function registreraAnkomst(db, pers, { patientId, kontaktorsak, ankomstsa
   if (db.query('SELECT 1 FROM akutbesok WHERE patient_id = ? AND utregistrerad IS NULL').get(p.id)) throw new Fel(400, 'Patienten är redan registrerad på akutmottagningen.', 'ogiltig');
   const t = iso();
   const konummer = nastaKonummer(db);
-  const relation = ankomstsatt === 'ambulans' ? 1 : 0;
+  const relation = 0;
   const vk = Number(db.query(`INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak, kalla, skapad, skapad_av, ger_vardrelation)
     VALUES (?, ?, 'akut', ?, 'Akutmottagningen', ?, 'vardkallan', ?, ?, ?)`).run(p.id, AKUT, t, orsak, t, pers.id, relation).lastInsertRowid);
-  const vr = Number(db.query("INSERT INTO vantrum (patient_id, enhet_id, konummer, ankomst, prioritet, orsak) VALUES (?, ?, ?, ?, ?, ?)").run(p.id, AKUT, konummer, t, prioritet ?? 'ej_triagerad', orsak).lastInsertRowid);
-  const id = Number(db.query(`INSERT INTO akutbesok (patient_id, enhet_id, vardkontakt_id, vantrum_id, konummer, ankomst, ankomstsatt, kontaktorsak, registrerad_av, prioritet, triage, triage_tid, triage_av, prehospital)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(p.id, AKUT, vk, vr, konummer, t, ankomstsatt, orsak, pers.id, prioritet, triageData ? JSON.stringify(triageData) : null,
-    triageData ? t : null, triageData ? pers.id : null, prehospital ? JSON.stringify(prehospital) : null).lastInsertRowid);
+  const vr = Number(db.query("INSERT INTO vantrum (patient_id, enhet_id, konummer, ankomst, prioritet, orsak) VALUES (?, ?, ?, ?, ?, ?)").run(p.id, AKUT, konummer, t, 'ej_triagerad', orsak).lastInsertRowid);
+  const id = Number(db.query(`INSERT INTO akutbesok (patient_id, enhet_id, vardkontakt_id, vantrum_id, konummer, ankomst, ankomstsatt, kontaktorsak, registrerad_av, prehospital)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(p.id, AKUT, vk, vr, konummer, t, ankomstsatt === 'ambulans' ? 'ambulans' : 'egen', orsak, pers.id, prehospital ? JSON.stringify(prehospital) : null).lastInsertRowid);
   logga(db, pers, p.id, 'registrera_vardkontakt', `akut:${id}:ankomst`);
   return besokUt(db, hamta(db, id));
 }
 
 // Ger vårdrelation till akutbesöket när en annan person än den som registrerade ankomsten möter patienten.
 function bekraftaRelation(db, b, pers) {
-  if (b.registrerad_av !== pers.id) db.query('UPDATE vardkontakter SET ger_vardrelation = 1 WHERE id = ?').run(b.vardkontakt_id);
+  if (b.registrerad_av === pers.id) return;
+  const r = db.query('UPDATE vardkontakter SET ger_vardrelation = 1 WHERE id = ? AND coalesce(ger_vardrelation, 1) = 0').run(b.vardkontakt_id);
+  if (r.changes) logga(db, pers, b.patient_id, 'registrera_vardkontakt', `akut:${b.id}:vardrelation`);
 }
 
 const MATT = [['andningsfrekvens', 'andningsfrekvens', 'andetag/min'], ['saturation', 'saturation', '%'], ['puls', 'puls', 'slag/min'], ['temp', 'temp', '°C']];
@@ -293,10 +296,10 @@ function forvarningUt(db, f) {
     namn: p ? (p.skyddad ? null : visningsnamn(p)) : null, skyddad: Boolean(p?.skyddad), forslagPrioritet: forslag?.prioritet ?? null, forslag,
   };
 }
-// Den simulerade ambulansen skickar en förvarning. I demon görs det av akutmottagningens personal i gränssnittet, märkt
-// som simulering. Personnumret kopplas till patienten om det finns, och annars registreras patienten vid ankomsten.
-export function forvarning(db, pers, body = {}) {
-  kravAkut(db, pers, ['lakare', 'sjukskoterska']);
+// Den simulerade ambulansen skickar en förvarning. Avsändaren är ambulansen (simulerad), aldrig en inloggad person, och
+// i demon kommer den från demons egen kontroll för simuleringar (/api/demo/ambulans/forvarning). Personnumret kopplas
+// till patienten av den simulerade tjänsten om det finns. En förvarning ger ingen åtkomst och ingen vårdrelation.
+export function forvarning(db, body = {}) {
   const orsak = text(body.kontaktorsak);
   if (orsak.length < 2) throw new Fel(400, 'Skriv kontaktorsaken från ambulansen.', 'ogiltig', { falt: ['kontaktorsak'] });
   const pnr = typeof body.personnummer === 'string' ? body.personnummer.replace(/\D/g, '') : '';
@@ -308,7 +311,6 @@ export function forvarning(db, pers, body = {}) {
   const tr = triage({ kontaktorsak: orsak, vitaler: v });
   const id = Number(db.query('INSERT INTO akut_forvarningar (enhet_id, tid, patient_id, kontaktorsak, beraknad, vitaler, forslag) VALUES (?, ?, ?, ?, ?, ?, ?)')
     .run(AKUT, iso(), p?.id ?? null, orsak, new Date(Date.now() + min * 60000).toISOString(), JSON.stringify(v), JSON.stringify(tr)).lastInsertRowid);
-  if (p) logga(db, pers, p.id, 'vantrum', `akut:forvarning:${id}`);
   return [201, forvarningUt(db, db.query('SELECT * FROM akut_forvarningar WHERE id = ?').get(id))];
 }
 
@@ -318,14 +320,17 @@ export function ankomst(db, pers, body = {}) {
   if (body.forvarningId != null) {
     const f = db.query('SELECT * FROM akut_forvarningar WHERE id = ? AND mottagen IS NULL').get(Number(body.forvarningId));
     if (!f) throw new Fel(404, 'Förvarningen finns inte eller är redan mottagen.', 'saknas');
-    const pid = f.patient_id ?? body.patientId;
+    // Patienten tas bara från förvarningen, aldrig från anropet till mottagningen.
+    if (!f.patient_id) throw new Fel(400, 'Ambulansen har inte kunnat identifiera patienten. Registrera patienten med reservnummer och registrera ankomsten direkt, med ambulansens uppgifter i kontaktorsaken.', 'ogiltig', { falt: ['forvarningId'] });
     const tr = JSON.parse(f.forslag);
-    const b = registreraAnkomst(db, pers, { patientId: pid, kontaktorsak: f.kontaktorsak, ankomstsatt: 'ambulans', prehospital: { fran: PREHOSPITAL, tid: f.tid, vitaler: JSON.parse(f.vitaler) },
-      prioritet: tr.prioritet, triageData: { varfor: [...tr.varfor, 'Prioriteten kommer från ambulansens vitalparametrar.'], news2: tr.news2, prioritetText: tr.prioritetText } });
-    db.query('UPDATE akut_forvarningar SET mottagen = ?, besok_id = ?, patient_id = ? WHERE id = ?').run(iso(), b.id, pid, f.id);
+    const b = registreraAnkomst(db, pers, { patientId: f.patient_id, kontaktorsak: f.kontaktorsak, ankomstsatt: 'ambulans',
+      prehospital: { fran: PREHOSPITAL, tid: f.tid, vitaler: JSON.parse(f.vitaler), forslagPrioritet: tr.prioritet, forslag: tr.varfor } });
+    db.query('UPDATE akut_forvarningar SET mottagen = ?, besok_id = ? WHERE id = ?').run(iso(), b.id, f.id);
+    logga(db, pers, f.patient_id, 'registrera_vardkontakt', `akut:forvarning:${f.id}:mottagen`);
     return [201, besokUt(db, hamta(db, b.id))];
   }
-  return [201, registreraAnkomst(db, pers, body)];
+  // Den direkta vägen tar bara patient och kontaktorsak från anropet.
+  return [201, registreraAnkomst(db, pers, { patientId: body.patientId, kontaktorsak: body.kontaktorsak })];
 }
 
 // ---- Ledtider per prioritet, utan patientuppgifter -----------------------------------------------------------------

@@ -58,5 +58,7 @@ export const T = {
   akUt: `${AK}utregistreringen avslutar besöket, och överföringen till slutenvård skriver in patienten`,
   akSkyddad: `${AK}flödestavlan visar aldrig namn för en skyddad patient och bara könummer utanför akutmottagningen`,
   akLedtider: `${AK}ledtiderna följs upp per prioritet utan patientuppgifter`,
+  akDirekt: `${AK}den direkta ankomsten tar bara patient och kontaktorsak från anropet, och ankomstsätt, prioritet, triage och prehospitala uppgifter ignoreras`,
+  akRelation: `${AK}vårdrelationen uppstår bara när en annan person bekräftar den, också efter en förvarning, och bekräftelsen loggas`,
   akPrehospital: `${AK}en förvarning från ambulansen tas emot och blir en ankomst med prehospitala uppgifter`,
 };

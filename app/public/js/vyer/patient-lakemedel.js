@@ -1,4 +1,6 @@
 // Läkemedelslistan: ordinationer med NLL-status, ordination med obligatoriska fält och varningar, utsättning och avstämning mot NLL.
+// Runda 10, r5: kunskapsstödet vid varningarna och läkemedelsinformationen (Sussa 3.5.1.5).
+import * as kunskap from '../kunskapsstod-ui.js';
 import { esc, api, datum, tidpunkt, migreradEtikett, notis, felNotis, faltFel, medKnapp, dialog, ikon, ORDTYP, idag, plusDagar } from '../ui.js';
 import { far } from '../app.js';
 // Runda 7, r2: hjälp i sammanhanget.
@@ -157,7 +159,7 @@ export async function visa(el, ctx) {
       const planer = k.planer ?? null;
       const svar = await dialog(`<form><h2 id="dlg-rubrik">Sätt ut ${esc(o.lakemedel?.namn)}</h2>
           ${k.varningar.length ? `<div class="varningslista" role="alert"><h3>${ikon.varning}<span>Särskilda observationer vid utsättning</span></h3>
-            <ul>${k.varningar.map(x => `<li><strong>${x.niva === 'allvarlig' ? 'Allvarlig.' : 'Observera.'}</strong> ${esc(x.text)}${x.forslag ? ` <em>${esc(x.forslag)}</em>` : ''}</li>`).join('')}</ul>
+            <ul>${k.varningar.map(kunskap.varningHtml).join('')}</ul>
             <p class="demoregel">${esc(k.anmarkning ?? 'Varningarna är demoregler, inte kliniskt beslutsstöd.')}</p></div>` : ''}
           ${planer ? `<fieldset class="ut-planer"><legend>Planen</legend>
             <div class="knapprad">${planer.map(p => `<button type="button" class="knapp sekundar liten" data-plan="${esc(p.typ)}" aria-pressed="false">${esc(p.text)}${p.ersattMed ? `: ${esc(p.ersattMed)}` : ''}</button>`).join('')}</div>
@@ -338,6 +340,7 @@ function ordinationsForm(plats, ctx, tidigare = null, { muntlig = false } = {}) 
       <ul class="lm-traffar" id="lm-traffar" aria-label="Träffar i läkemedelskatalogen"></ul>
       <p class="hjalp" id="lm-valt" aria-live="polite">Inget läkemedel valt.</p>
     </div>
+    <details class="lm-kunskap-ruta" data-lm-kunskap hidden><summary>Om läkemedlet och patienten</summary><div data-lm-kunskap-innehall></div></details>
     <div class="falt-rad">
       <div class="falt bred"><label for="o-dosering">Dosering <span class="obl">(obligatoriskt)</span></label><input id="o-dosering" name="dosering" required maxlength="300" placeholder="Till exempel 1 tablett morgon och kväll"></div>
       <div class="falt smal"><label for="o-dos">Dos</label><input id="o-dos" name="dos" inputmode="decimal"></div>
@@ -429,6 +432,16 @@ function ordinationsForm(plats, ctx, tidigare = null, { muntlig = false } = {}) 
     visadeVarningar = null;
     rorda.clear();
     form.dosering.focus();
+    // Runda 10, r5: läkemedelsinformationen för patienten hämtas i bakgrunden (Sussa 3.5.1.5).
+    const kr = form.querySelector('[data-lm-kunskap]');
+    if (kr) {
+      kr.hidden = true;
+      api(`/api/patient/${encodeURIComponent(ctx.id)}/lakemedelsinfo/${encodeURIComponent(b.lm)}`, { tyst: true, bakgrund: true }).then(info => {
+        if (form.lakemedelId.value !== b.lm) return;
+        kr.querySelector('[data-lm-kunskap-innehall]').innerHTML = kunskap.lakemedelsinfoHtml(info);
+        kr.hidden = false;
+      }).catch(() => {});
+    }
     // Fördefinierad ordination (Sussa 3.5.1.3): systemet föreslår dos, administrationssätt, tider och uppföljning ur
     // produkten och patienten. Förskrivaren ändrar bara det som avviker.
     try {
@@ -672,8 +685,8 @@ function visaVarningar(form, k) {
   const ut = form.querySelector('#varningar');
   ut.innerHTML = `<div class="varningslista" role="alert">
     <h4>${ikon.varning}<span>${k.varningar.length === 1 ? 'En varning' : `${k.varningar.length} varningar`} före sparande</span></h4>
-    ${allv.length ? `<ul class="varn-allvarlig">${allv.map(v => `<li><strong>Allvarlig.</strong> ${esc(v.text)}</li>`).join('')}</ul>` : ''}
-    ${obs.length ? `<ul class="varn-observera">${obs.map(v => `<li><strong>Observera.</strong> ${esc(v.text)}</li>`).join('')}</ul>` : ''}
+    ${allv.length ? `<ul class="varn-allvarlig">${allv.map(kunskap.varningHtml).join('')}</ul>` : ''}
+    ${obs.length ? `<ul class="varn-observera">${obs.map(kunskap.varningHtml).join('')}</ul>` : ''}
     ${regler.map((r, n) => `<div class="falt"><label for="kv-${n}">Motivering för att ordinera trots varningen (${esc(r.replace(/_/g, ' '))}) <span class="obl">(obligatoriskt)</span></label><textarea id="kv-${n}" rows="2" data-motivering="${esc(r)}" maxlength="500"></textarea></div>`).join('')}
     <p class="demoregel">${esc(k.anmarkning ?? 'Varningarna är demoregler, inte kliniskt beslutsstöd.')}</p>
   </div>`;

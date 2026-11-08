@@ -169,18 +169,62 @@ describe('Akutmottagningen', () => {
 
   test(T.akPrehospital.split(' > ')[1], async () => {
     const k = await inloggad('lak-akut');
-    const f = await k.post('/api/akut/forvarning', { personnummer: '194601198882', kontaktorsak: 'Misstänkt stroke', minuter: 10, vitaler: { ...STABIL, systoliskt: 185 } });
+    const s = sandlada(app, k);
+    // Förvarningen kommer från den simulerade ambulansen, en egen avsändare.
+    const f = await k.post('/api/demo/ambulans/forvarning', { personnummer: '194601198882', kontaktorsak: 'Misstänkt stroke', minuter: 10, vitaler: { ...STABIL, systoliskt: 185 } });
     expect(f.status).toBe(201);
-    expect(f.data).toMatchObject({ fran: 'Ambulansen (simulerad)', kontaktorsak: 'Misstänkt stroke', forslagPrioritet: 'orange' });
+    expect(f.data).toMatchObject({ fran: 'Ambulansen (simulerad)', kontaktorsak: 'Misstänkt stroke', forslagPrioritet: 'orange', patientId: 'p06' });
     const d = (await k.get('/api/akut')).data;
     expect(d.forvarningar.some(x => x.id === f.data.id)).toBe(true);
-    // När ambulansen kommer blir förvarningen en ankomst med de prehospitala uppgifterna och triagen gjord.
+    // När ambulansen kommer blir förvarningen en ankomst med de prehospitala uppgifterna. Triagen görs i sitt eget steg.
     const a = await k.post('/api/akut/ankomst', { forvarningId: f.data.id });
     expect(a.status).toBe(201);
-    expect(a.data).toMatchObject({ ankomstsatt: 'ambulans', kontaktorsak: 'Misstänkt stroke', prioritet: 'orange', prehospital: { fran: 'Ambulansen (simulerad)' } });
+    expect(a.data).toMatchObject({ ankomstsatt: 'ambulans', kontaktorsak: 'Misstänkt stroke', prioritet: null, triage: null, prehospital: { fran: 'Ambulansen (simulerad)', forslagPrioritet: 'orange' } });
     expect((await k.get('/api/akut')).data.forvarningar.some(x => x.id === f.data.id)).toBe(false);
-    // Ett personnummer som inte finns ger en reservidentitet att registrera, utan att röja något.
-    const okand = await k.post('/api/akut/forvarning', { personnummer: '191212121212', kontaktorsak: 'Trafikolycka', minuter: 5, vitaler: STABIL });
+    expect(s.db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p06' AND resurs = ?").get(`akut:forvarning:${f.data.id}:mottagen`).n).toBe(1);
+    // Ett personnummer som inte finns ger ingen patient, och mottagningen tar aldrig patienten från anropet.
+    const okand = await k.post('/api/demo/ambulans/forvarning', { personnummer: '191212121212', kontaktorsak: 'Trafikolycka', minuter: 5, vitaler: STABIL });
     expect(okand.data.patientId).toBeNull();
+    const nej = await k.post('/api/akut/ankomst', { forvarningId: okand.data.id, patientId: 'p07' });
+    expect(nej.status).toBe(400);
+    expect(nej.data.fel).toContain('reservnummer');
+    expect((await k.post('/api/akut/ankomst', { forvarningId: okand.data.id, patientId: 'p999' })).status).toBe(400);
+    expect(s.db.query("SELECT count(*) AS n FROM akutbesok WHERE patient_id IN ('p07', 'p999')").get().n).toBe(0);
+  });
+
+  test(T.akDirekt.split(' > ')[1], async () => {
+    const k = await inloggad('lak-akut');
+    const s = sandlada(app, k);
+    const r = await k.post('/api/akut/ankomst', { patientId: 'p20', kontaktorsak: 'Yrsel', ankomstsatt: 'ambulans', prioritet: 'rod', triageData: { varfor: ['Påhittad'] }, prehospital: { fran: 'Ambulansen (simulerad)' } });
+    expect(r.status).toBe(201);
+    expect(r.data).toMatchObject({ ankomstsatt: 'egen', prioritet: null, triage: null, prehospital: null, steg: 'vantar_triage' });
+    const b = s.db.query('SELECT * FROM akutbesok WHERE id = ?').get(r.data.id);
+    expect(b.triage_av).toBeNull();
+    expect(s.db.query('SELECT ger_vardrelation FROM vardkontakter WHERE id = ?').get(b.vardkontakt_id).ger_vardrelation).toBe(0);
+    // Triagen räknas av systemet: en prioritet i anropet godtas inte.
+    const t = await k.post(`/api/akut/${r.data.id}/triage`, { vitaler: STABIL, prioritet: 'rod' });
+    expect(t.data.prioritet).toBe('gron');
+  });
+
+  test(T.akRelation.split(' > ')[1], async () => {
+    const k = await inloggad('lak-akut');
+    const s = sandlada(app, k);
+    const rel = (id) => s.db.query('SELECT v.ger_vardrelation AS g FROM akutbesok b JOIN vardkontakter v ON v.id = b.vardkontakt_id WHERE b.id = ?').get(id).g;
+    // Samma person registrerar och triagerar: ingen vårdrelation.
+    const egen = (await k.post('/api/akut/ankomst', { patientId: 'p21', kontaktorsak: 'Hosta' })).data;
+    await k.post(`/api/akut/${egen.id}/triage`, { vitaler: STABIL });
+    await k.post(`/api/akut/${egen.id}/bedomning`, {});
+    expect(rel(egen.id)).toBe(0);
+    // En förvarning som personalen själv skickar och tar emot ger inte heller någon vårdrelation.
+    const f = (await k.post('/api/demo/ambulans/forvarning', { personnummer: '194601198882', kontaktorsak: 'Bröstsmärta', minuter: 3, vitaler: STABIL })).data;
+    const a = (await k.post('/api/akut/ankomst', { forvarningId: f.id })).data;
+    await k.post(`/api/akut/${a.id}/triage`, { vitaler: STABIL });
+    expect(rel(a.id)).toBe(0);
+    // När en annan person triagerar eller bedömer patienten bekräftas relationen, och det loggas.
+    const b = akut.registreraAnkomst(s.db, s.db.query("SELECT * FROM personal WHERE id = 'ssk-akut'").get(), { patientId: 'p61', kontaktorsak: 'Feber' });
+    expect(rel(b.id)).toBe(0);
+    await k.post(`/api/akut/${b.id}/triage`, { vitaler: STABIL });
+    expect(rel(b.id)).toBe(1);
+    expect(s.db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p61' AND resurs = ? AND personal_id = 'lak-akut'").get(`akut:${b.id}:vardrelation`).n).toBe(1);
   });
 });
