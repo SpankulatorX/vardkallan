@@ -51,6 +51,11 @@ import { skapaOppetApi } from './oppet-api.js';
 import { registreraRutter as r4Rutter, inkorg as r4Inkorg, period as r4Period } from './planering-rutter.js';
 import * as planering from './planering.js';
 import * as tidbokFhir from './tidbok-fhir.js';
+// Runda 7, r4: systemförvaltningen, med konfiguration, omorganisation, undantag och lagring.
+import { registreraRutter as systemforvaltningRutter, efterDatum as systemforvaltningEfterDatum } from './systemforvaltning-rutter.js';
+import * as konfiguration from './konfiguration.js';
+import * as undantag from './undantag.js';
+import * as omorganisation from './omorganisation.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -442,7 +447,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       vardkontakter: vk.map(v => vardkontakt.kontaktUt(db, v, pers)),
       vardstruktur,
       kontakt: { adress: p.skyddad ? null : p.adress, postnr: p.skyddad ? null : p.postnr, ort: p.skyddad ? null : p.ort, telefon: p.skyddad ? null : p.telefon, kontaktperson: p.skyddad ? null : p.kontaktperson },
-      dolda: { kraverVal: atk.doldaVal, sparrade: atk.doldaSparr },
+      // Runda 7, r4: undantagna uppgifter står med antal och motivering (undantag.js).
+      dolda: { kraverVal: atk.doldaVal, sparrade: atk.doldaSparr, undantagna: undantag.undantagnaUt(atk) },
       // Runda 6, r3: vårdplaner, tvångsvård, samordnad planering och förslag om hälsoärenden (r3-rutter.js).
       r3: r3.oversikt(atk),
     };
@@ -454,6 +460,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (p.yrke === 'logggranskare') return [];
     // Runda 6, r6: verksamhetschefen läser inte journalen och har ingen arbetslista.
     if (p.yrke === 'verksamhetschef') return [];
+    // Runda 7, r4: systemförvaltaren läser inte journalen.
+    if (p.yrke === 'systemforvaltare') return [];
     const ve = vardenhetFor(db, p.enhet_id);
     const enheter = db.query("SELECT id FROM enheter WHERE id = ? OR (forald_id = ? AND typ = 'arbetsplats')").all(ve, ve).map(r => r.id);
     const ph = enheter.map(() => '?').join(', ');
@@ -549,7 +557,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const kopia = sakraKopia(s);
     const { lasnyckel: _, ...session } = sessionUt(s);
     const alla = db.query('SELECT * FROM enheter').all();
-    const nod = (e) => ({ id: e.id, hsaId: e.hsa_id, namn: e.namn, kortnamn: e.kortnamn, typ: e.typ, barn: alla.filter(b => b.forald_id === e.id).map(nod) });
+    // Runda 7, r4: en enhet som har stängts vid en omorganisation är märkt, så att den inte går att välja som mottagare.
+    const nod = (e) => ({ id: e.id, hsaId: e.hsa_id, namn: e.namn, kortnamn: e.kortnamn, typ: e.typ, ...(omorganisation.arStangd(c.db, e.id) ? { stangd: true } : {}), barn: alla.filter(b => b.forald_id === e.id).map(nod) });
     const ut = {
       kopiaId: s.lasnyckel.id, skapad: new Date().toISOString(), giltigTill: s.lasnyckel.giltigTill, session,
       fornyas: { intervallMs: LASKOPIA_FORNYA_MS, lakemedelMaxMs: LASKOPIA_LAKEMEDEL_MAX_MS },
@@ -842,7 +851,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('PUT', '/api/anteckning/:id', (c, id) => medAnteckning(c, id, a => journal.skrivHandling(a.kategori), (atk, a) => journal.andraUtkast(atk, a, c.body)));
   rutt('POST', '/api/anteckning/:id/signera', (c, id) => medAnteckning(c, id, a => journal.skrivHandling(a.kategori), (atk, a) => journal.signera(atk, a)));
   rutt('POST', '/api/anteckning/:id/ratta', (c, id) => medAnteckning(c, id, a => journal.skrivHandling(a.kategori), (atk, a) => [201, journal.ratta(atk, a, c.body)]));
-  rutt('GET', '/api/mallar', () => journal.MALLAR);
+  // Runda 7, r4: mallarnas sökord kan ändras av systemförvaltningen (konfiguration.js).
+  rutt('GET', '/api/mallar', (c) => konfiguration.mallar(c.db));
 
   rutt('GET', '/api/patient/:id/lakemedel', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_lakemedel', (atk) => lakemedel.lista(atk)); });
   rutt('GET', '/api/lakemedel/katalog', (c) => { kravInloggad(c); return lakemedel.sokKatalog(c.db, c.url.searchParams.get('q') ?? ''); });
@@ -1410,6 +1420,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   oppetApi.registreraRutter({ rutt, kravInloggad, medPatient });
   // Runda 6, r4 (planering-rutter.js).
   r4Rutter({ rutt, kravInloggad, kravRoll, medPatient, medMinJournal });
+  // Runda 7, r4: systemförvaltningen.
+  systemforvaltningRutter({ rutt, kravInloggad });
 
   // Endpoints som inte behöver en sandlåda.
   const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/krav/sussa', '/api/drift', '/api/lasekopia/krypterad-logg']);
@@ -1428,6 +1440,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (traff === 'metod') throw new Fel(405, 'Metoden stöds inte.', 'ogiltig');
     let sess = hamtaSession(req);
     if (!sess && !UTAN_SESSION.has(url.pathname)) sess = skapaSession(req, server);
+    // Runda 7, r4: en förberedd omorganisation genomförs av systemet den dag den gäller, före allt annat i anropet.
+    if (sess) systemforvaltningEfterDatum(sess.s.db);
     if (sess) Object.assign(c, { s: sess.s, sid: sess.sid, ny: sess.ny, db: sess.s.db, ...inloggade(sess.s) });
     if (c.invanare && url.pathname.startsWith('/api/min/')) avvisaFranAnnanWebbplats(req);
     c.body = metod === 'GET' ? {} : await lasKropp(req);
@@ -1484,6 +1498,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const r5 = await oppetApi.fhir(req, url, c);
     if (r5) return r5;
     const sess = hamtaSession(req);
+    // Runda 7, r4: förberedda omorganisationer som gäller i dag genomförs först.
+    if (sess) systemforvaltningEfterDatum(sess.s.db);
     if (sess) Object.assign(c, { s: sess.s, db: sess.s.db, ...inloggade(sess.s) });
     if (c.invanare) avvisaFranAnnanWebbplats(req);
     const base = origin || `${url.protocol}//${url.host}`;

@@ -57,7 +57,8 @@ async function sparaUtkast(ctx, form) {
 
 function remissForm(plats, ctx, utkast = null, lista = tidigare) {
   const min = minVardenhet();
-  const enheter = enhetLista().filter(e => e.typ === 'vardenhet' && e.id !== min).sort((a, b) => a.namn.localeCompare(b.namn, 'sv'));
+  // Runda 7, r4: en vårdenhet som har stängts vid en omorganisation går inte att välja.
+  const enheter = enhetLista().filter(e => e.typ === 'vardenhet' && e.id !== min && !e.stangd).sort((a, b) => a.namn.localeCompare(b.namn, 'sv'));
   const egna = (lista ?? []).filter(r => r.fragestallning != null && r.fran.id === min);
   plats.innerHTML = `<form class="remissform" id="remissform" novalidate aria-labelledby="rf-rubrik"${utkast ? ` data-utkast-id="${utkast.id}"` : ''}>
     <h3 id="rf-rubrik" tabindex="-1">${utkast ? 'Utkast till remiss' : 'Ny remiss'}</h3>

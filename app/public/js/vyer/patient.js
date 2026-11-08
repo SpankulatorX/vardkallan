@@ -138,6 +138,8 @@ export function doldaRad(dolda) {
   if (dolda.kraverVal > 0 && !huvudText) {
     r.push(`<div class="behorighet behorighet-liten">${ikon.info}<p>${dolda.kraverVal === 1 ? 'En post' : `${dolda.kraverVal} poster`} från andra vårdenheter visas inte.</p>${far('andra_enheter') ? '<button type="button" class="knapp liten sekundar" data-val="andra_enheter">Visa uppgifter från andra vårdenheter</button>' : ''}</div>`);
   }
+  // Runda 7, r4: uppgifter som systemförvaltningen har undantagit från visning, med antal och motivering.
+  for (const u of dolda.undantagna ?? []) r.push(`<div class="behorighet behorighet-liten behorighet-undantag">${ikon.info}<p>${esc(u.text)}</p></div>`);
   if (dolda.sparrade && !document.querySelector('[data-sparr-rad]')) {
     r.push(`<div class="behorighet behorighet-sparr behorighet-liten">${ikon.las}<p>Det finns spärrade uppgifter som inte visas.</p>${far('samtycke_sparr') ? '<button type="button" class="knapp liten sekundar" data-val="samtycke_sparr">Patienten samtycker till att spärren tillfälligt hävs</button>' : ''}</div>`);
   }

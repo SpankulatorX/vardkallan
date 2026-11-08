@@ -149,6 +149,8 @@ const MENY = {
   uppfoljning: ['Datauttag', 'Tvångsvård och samordning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 6, r6: verksamhetschefen utser uppdragen i läkemedelshanteringen och fastställer generella direktiv.
   verksamhetschef: ['Läkemedelsansvar', 'Direktiv och uppföljning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  // Runda 7, r4: systemförvaltaren har regler och parametrar, omorganisation, undantag och lagring.
+  systemforvaltare: ['Regler och parametrar', 'Omorganisation', 'Undantag från visning', 'Lagring', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
 };
 
 (async () => {
@@ -160,12 +162,12 @@ const MENY = {
 
   try {
     // Utan inloggning
-    await s('inloggningssidan visar de tretton demorollerna och demoraden', async () => {
+    await s('inloggningssidan visar de fjorton demorollerna och demoraden', async () => {
       await page.goto(`${BAS}/`);
       await page.waitForSelector('.roll');
       const n = await page.locator('.roll').count();
-      // Runda 6, r6: verksamhetschefen är den trettonde.
-      if (n !== 13) throw new Error(`${n} roller`);
+      // Runda 6, r6: verksamhetschefen är den trettonde. Runda 7, r4: systemförvaltaren är den fjortonde.
+      if (n !== 14) throw new Error(`${n} roller`);
       await forvanta(page, '.demorad', 'Demo med påhittade patienter och testpersonnummer från Skatteverket. Inte för vård av riktiga patienter.');
       await forvanta(page, '.sidfot', 'Vårdkällan är ett fristående demoprojekt med öppen källkod (EUPL 1.2). Det är inte en tjänst från Region Örebro län.');
       await forvanta(page, '#roll-lak-akut-visar', 'Nödåtkomst');
@@ -392,11 +394,10 @@ const MENY = {
       await gaTill(page, '#/krav');
       await forvanta(page, '.flikar a[aria-current="page"]', 'Sussas kravspecifikation');
       await forvanta(page, '.testkorning', 'tester gröna');
-      await forvanta(page, '.sussa-utdrag', 'Kapitel 7 till 10 och 12 ingår inte i utdraget');
+      // Runda 7: registret har hela kravspecifikationen (389 poster, kapitel 1 till 12 och driften).
       await forvanta(page, '.ingress-block', 'dnr 16RS2022');
       await forvanta(page, '.sussa-summa tfoot', 'Totalt');
-      await forvanta(page, '#sf-antal', 'Visar 305 av 305 poster.');
-      if (!(await page.locator('#sf-kapitel option[value="7"]').isDisabled())) throw new Error('kapitel 7 går att välja fast det inte ingår');
+      await forvanta(page, '#sf-antal', 'Visar 389 av 389 poster.');
       await page.evaluate(() => document.getElementById('notiser').replaceChildren());
       await bild(page, '60-sussa-krav');
       // Kapitel, status och kategori filtrerar listan och sparas i adressen.
@@ -412,7 +413,7 @@ const MENY = {
       if (!kategorier.length || kategorier.some(t => !t.includes('nationell tjänst'))) throw new Error('kategorifiltret visade andra kategorier');
       await page.selectOption('#sf-kategori', '');
       await page.fill('#sf-sok', '3.5.2.6');
-      await forvanta(page, '#sf-antal', 'Visar 1 av 305 poster.');
+      await forvanta(page, '#sf-antal', 'Visar 1 av 389 poster.');
       if (!page.url().includes('sok=3.5.2.6')) throw new Error(`filtret sparades inte i adressen: ${page.url()}`);
       await page.fill('#sf-sok', 'vätskebalans');
       if ((await page.locator('details.sussapost').count()) < 3) throw new Error('textsökningen hittade för få poster');
@@ -446,7 +447,7 @@ const MENY = {
       await page.click('.delflikar a:has-text("Alla")');
       await page.waitForURL(/vy=egna$/);
       await forvanta(page, '.delflikar a[aria-current]', 'Alla');
-      await forvanta(page, '.krav-anm', 'originalnummer finns nu för kapitel 1 till 6 och 11');
+      await forvanta(page, '.krav-anm', 'originalnummer finns nu för kapitel 1 till 12');
       await page.locator('.testlista summary').first().click();
       await bild(page, '14-kravsparbarhet');
     });
@@ -1244,6 +1245,70 @@ const MENY = {
       await page.waitForLoadState('networkidle');
     });
     await allaVyer(page, 'Ulrika Sandell', MENY.verksamhetschef);
+
+    // Tomas Lindh, systemförvaltare (runda 7, r4)
+    await s('Tomas Lindh godkänner kollegans ändring av en regel och ser att den gäller', async () => {
+      await loggaIn(page, 'sysf');
+      await forvanta(page, 'main h1', 'Regler och parametrar');
+      await forvanta(page, '#sf-att-godkanna ~ ul', 'Larm när mottagningskvittensen dröjer');
+      await forvanta(page, '#sf-att-godkanna ~ ul', 'Föreslagen av Nora Ekholm');
+      await forvanta(page, '#sf-lasta ~ ul', 'Åtkomstloggen och säkerhetsloggen');
+      await saknas(page, 'Gunnar');
+      await bild(page, '99-regler', true);
+      await page.click('#sf-att-godkanna ~ ul [data-godkann]');
+      await forvanta(page, '.notis', 'Ändringen är godkänd');
+      await forvanta(page, 'tr[data-nyckel="remiss.mottagningskvittens_timmar"]', '4 timmar');
+      await forvanta(page, '#sf-historik ~ .tabellrulle', 'Nora Ekholm');
+      await page.click('tr[data-nyckel="arkiv.gallring_ar"] [data-andra]');
+      await page.locator('dialog[open] #sf-varde').fill('8');
+      await forvanta(page, 'dialog[open] [data-forhand]', 'patientdatalagen 3 kap. 17 §');
+      await bild(page, '100-regel-rimlighet');
+      await page.click('dialog[open] [data-varde="avbryt"]');
+      await page.waitForLoadState('networkidle');
+    });
+    await s('Tomas Lindh förbereder en sammanslagning och ser vad som påverkas, bara med antal', async () => {
+      await gaTill(page, '#/omorganisation');
+      await page.click('tr[data-enhet="uso-kard"] [data-forandra]');
+      await page.locator('dialog[open] #sf-typ').selectOption('sammanslagning');
+      await page.locator('dialog[open] input[name="gamla"][value="uso-med"]').check();
+      await page.locator('dialog[open] #sf-namn').fill('Hjärt- och medicinkliniken USÖ');
+      await forvanta(page, 'dialog[open] [data-forhand]', 'Pågående vårdkontakter: 4.');
+      await forvanta(page, 'dialog[open] [data-forhand]', 'kodas inte om');
+      await saknas(page, 'Gunnar');
+      await bild(page, '101-omorganisation');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', 'Förändringen är förberedd till');
+      await forvanta(page, '#sf-forberedda ~ ul', 'slås samman till Hjärt- och medicinkliniken USÖ');
+      // Sammanslagningen ändrar vem som har åtkomst och väntar på en annan systemförvaltares godkännande (fyra ögon).
+      await forvanta(page, '#sf-forberedda ~ ul', 'väntar på att en annan systemförvaltare godkänner den');
+      await page.waitForLoadState('networkidle');
+    });
+    await s('Tomas Lindh föreslår ett undantag, och systemet stoppar ett som skulle dölja pågående vård', async () => {
+      await gaTill(page, '#/undantag');
+      await forvanta(page, '#sf-u-regler ~ ul', 'gäller aldrig Min journal');
+      await page.click('[data-nytt-undantag]');
+      await page.locator('dialog[open] #sf-u-omfang').selectOption('enhet');
+      await page.locator('dialog[open] #sf-u-varde').selectOption('uso-kard');
+      await page.locator('dialog[open] input[name="kanaler"][value="visning"]').check();
+      await forvanta(page, 'dialog[open] [data-forhand]', 'kan inte döljas');
+      await page.locator('dialog[open] input[name="kanaler"][value="visning"]').uncheck();
+      await page.locator('dialog[open] #sf-u-motivering').fill('Kliniken deltar i en studie med egen rapportering.');
+      await forvanta(page, 'dialog[open] [data-forhand]', 'publiceras inte till nationella tjänster');
+      await bild(page, '102-undantag');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', 'väntar på att en annan systemförvaltare godkänner det');
+      await page.waitForLoadState('networkidle');
+    });
+    await s('Tomas Lindh provar säkerhetskopian och ser uppgifterna per huvudman', async () => {
+      await gaTill(page, '#/lagring');
+      await forvanta(page, '#sf-l-huvudman ~ .tabellrulle', 'Region Örebro län');
+      await page.click('[data-prova]');
+      await forvanta(page, '.notis', 'Säkerhetskopian lästes tillbaka och allt stämmer');
+      await forvanta(page, '[data-provresultat]', 'Triggrarna stoppar ändring och radering av loggen i kopian');
+      await bild(page, '103-lagring');
+      await page.waitForLoadState('networkidle');
+    });
+    await allaVyer(page, 'Tomas Lindh', MENY.systemforvaltare);
     await s('Sara granskar den ändrade mallen i inkorgen och godkänner den', async () => {
       await loggaIn(page, 'lak-kard');
       await page.waitForFunction(() => document.querySelector('#lista') && !/Hämtar/.test(document.querySelector('#lista').textContent));
@@ -1267,7 +1332,7 @@ const MENY = {
       await forvanta(page, 'main h1', 'Användartest');
       await forvanta(page, '.at-info', 'Alla patienter i demon är påhittade');
       await page.fill('#at-kod', 'G01');
-      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut', 'sok-journal', 'news2', 'ordinera-mall', 'dos-efterhand', 'utse-mal', 'godkanna-mall', 'extern-tillampning', 'boka-ingrepp', 'boka-kedja']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+      for (const id of ['oppna-patient', 'las-anteckning', 'daganteckning', 'ordinera', 'utsattning', 'uppmarksamhet', 'kvittera-svar', 'nodatkomst', 'reservnummer', 'sla-samman', 'halsoarende', 'inskrivning', 'flytta', 'utskrivning', 'registrera-besok', 'planera-video', 'utskrift', 'begar-kontrasignering', 'kontrasignera', 'ge-dos', 'vidimera', 'utsattning-varning', 'boka-remiss', 'checka-in', 'gruppkallelse', 'omboka', 'aterbesok', 'utsattning-plan', 'ge-dos-delegering', 'registrera-delegering', 'aterinsattning', 'avsluta-aterinsattning', 'avvisa-remiss-satt-ut', 'vardplan', 'intagningsbeslut', 'sok-journal', 'news2', 'ordinera-mall', 'dos-efterhand', 'utse-mal', 'godkanna-mall', 'extern-tillampning', 'boka-ingrepp', 'boka-kedja', 'forbered-namnbyte', 'andra-demoregel']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');
@@ -1313,7 +1378,7 @@ const MENY = {
   };
   const vantaHamtat = (p) => p.waitForFunction(() => ![...document.querySelectorAll('main .tom, main .laddar')].some(e => /^Hämtar/.test(e.textContent)), null, { timeout: 8000 }).catch(() => {});
   const MOBILROLLER = [['lak-kard', 'Sara Lindqvist'], ['ssk-kard', 'Johan Ek'], ['usk-kard', 'Amira Haddad'], ['lak-akut', 'Erik Nyström'], ['lak-vc', 'Per Holm'],
-    ['lak-psyk', 'Lena Ström'], ['adm-kard', 'Karin Berg'], ['logg', 'Mats Wall'], ['ark', 'Ingela Nord'], ['uppf', 'Daniel Sund'], ['kom-bist', 'Lisa Ahlgren'], ['far-kard', 'Elsa Nordin'], ['vch-kard', 'Ulrika Sandell']];
+    ['lak-psyk', 'Lena Ström'], ['adm-kard', 'Karin Berg'], ['logg', 'Mats Wall'], ['ark', 'Ingela Nord'], ['uppf', 'Daniel Sund'], ['kom-bist', 'Lisa Ahlgren'], ['far-kard', 'Elsa Nordin'], ['vch-kard', 'Ulrika Sandell'], ['sysf', 'Tomas Lindh']];
   try {
     if (!fel.length) {
       await s('mobil: inloggningen på 360 px', async () => {
@@ -1337,7 +1402,7 @@ const MENY = {
         }
       });
       await s('mobil: Sussas kravspecifikation på 360 px', async () => {
-        await mp.goto(`${BAS}/#/krav`); await mp.waitForSelector('#sf-antal:has-text("Visar 305")');
+        await mp.goto(`${BAS}/#/krav`); await mp.waitForSelector('#sf-antal:has-text("Visar 389")');
         await ingenSidledsrullning('Sussas krav');
         await mp.selectOption('#sf-status', 'uppfyllt_demo');
         await mp.waitForSelector('details.sussapost');

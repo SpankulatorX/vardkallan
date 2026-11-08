@@ -28,6 +28,9 @@ export const STARTPUNKT = {
   // Runda 6, r2: demon återställs först, som i test/flodessteg.cjs.
   'Patientens läkemedelsflik': { hash: '#/patient/p01/lakemedel', klar: '.lm-tabell', forbered: 'aterstall' },
   'Läkemedel att ge efter återställning': { hash: '#/administrering', klar: '.adm-patient', forbered: 'aterstall' },
+  // Runda 7, r4: systemförvaltarens sidor.
+  'Omorganisationen efter återställning': { hash: '#/omorganisation', klar: '.sf-org', forbered: 'aterstall' },
+  'Reglerna efter återställning': { hash: '#/regler', klar: '#sf-att-godkanna', forbered: 'aterstall' },
   // Runda 6, r6.
   'Verksamhetschefens startsida': { hash: '#/lakemedelsansvar', klar: '#la-pam', forbered: 'aterstall' },
   'Inkorgen efter återställning': { hash: '#/inkorg', klar: '#ik-mallar', forbered: 'aterstall' },
@@ -273,6 +276,17 @@ export const UPPGIFTER = [
     id: 'boka-kedja', namn: 'Boka provtagning före läkarbesök', roll: 'adm-kard', start: 'Vårdadministratörens startsida',
     text: 'Gunnar Åkesson ska på återbesök efter elkonverteringen och behöver lämna blodprov en stund före besöket. Ge honom tid för båda.',
     kontroll: { notis: 'Gunnar Åkesson har fått en tid' },
+  },
+  // Runda 7, r4: systemförvaltningen.
+  {
+    id: 'forbered-namnbyte', namn: 'Förbereda ett namnbyte för en enhet', roll: 'sysf', start: 'Omorganisationen efter återställning',
+    text: 'Kardiologiska mottagningen ska heta Hjärtmottagningen USÖ från nästa månad. Förbered namnbytet.',
+    kontroll: { notis: 'Förändringen är förberedd till' },
+  },
+  {
+    id: 'andra-demoregel', namn: 'Ändra en demoregel', roll: 'sysf', start: 'Reglerna efter återställning',
+    text: 'Patienterna vill få påminnelsen om sin bokade tid tre dygn i förväg i stället för två. Ändra regeln.',
+    kontroll: { notis: 'väntar på att en annan systemförvaltare godkänner den' },
   },
 ];
 

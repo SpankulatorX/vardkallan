@@ -12,6 +12,8 @@
 // Nödåtkomst ger bara läsning. Varje ändring loggas på patienten.
 import { Fel, iso } from './db.js';
 import { kanRoll, vardenhetFor } from './atkomst.js';
+// Runda 7, r4: parametrar som systemförvaltningen kan ändra.
+import * as konfiguration from './konfiguration.js';
 
 export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS halsoarende_historik (
@@ -73,10 +75,12 @@ export function forslag(atk, nu = Date.now()) {
     const [forsta, ...ovriga] = lista.sort((a, b) => a.id - b.id);
     for (const o of ovriga) ut.push({ typ: 'sla_ihop', halsoarendeId: forsta.id, med: o.id, text: `Ärendena ${forsta.rubrik} och ${o.rubrik} har samma diagnoskategori (${k}). Slå ihop dem?` });
   }
-  const grans = new Date(nu - DEMOREGEL_AVSLUTA_DAGAR * 86400_000).toISOString();
+  // Runda 7, r4: dagarna kan ändras av systemförvaltningen (konfiguration.js). DEMOREGEL_AVSLUTA_DAGAR är standardvärdet.
+  const avslutaDagar = konfiguration.varde(db, 'halsoarende.avsluta_dagar', new Date(nu));
+  const grans = new Date(nu - avslutaDagar * 86400_000).toISOString();
   for (const h of synliga) {
     const vk = kontakter(db, h.id);
-    if (vk.length && vk.every(v => v.slut && v.slut < grans)) ut.push({ typ: 'avsluta', halsoarendeId: h.id, text: `Ärendet ${h.rubrik} har inga vårdkontakter de senaste ${DEMOREGEL_AVSLUTA_DAGAR} dagarna. Avsluta det? (demoregel)` });
+    if (vk.length && vk.every(v => v.slut && v.slut < grans)) ut.push({ typ: 'avsluta', halsoarendeId: h.id, text: `Ärendet ${h.rubrik} har inga vårdkontakter de senaste ${avslutaDagar} dagarna. Avsluta det? (demoregel)` });
   }
   return ut;
 }

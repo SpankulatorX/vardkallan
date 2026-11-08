@@ -132,7 +132,46 @@ for (const r of ['lakare', 'sjukskoterska', 'vardadministrator']) ROLLER[r].push
 ROLLER.uppfoljning.push('statistik_region');
 for (const h of ['bevaka_enhet', 'las_tidbok', 'statistik', 'statistik_region']) UTAN_PATIENT.add(h);
 
+// Runda 7, r4: systemförvaltningen (systemforvaltning-rutter.js). Systemförvaltaren konfigurerar regler och parametrar,
+// förbereder omorganisationer, beslutar om undantag från visning och publicering och följer upp lagringen. Ingen av
+// handlingarna rör en enskild patient, och systemförvaltaren läser inte journalen.
+Object.assign(HANDLINGAR, {
+  konfigurera: 'föreslå och godkänna ändringar av regler och parametrar', omorganisera: 'förbereda omorganisationer',
+  undanta: 'undanta uppgifter från visning och publicering', lagring: 'följa upp lagring, säkerhetskopiering och uttag per huvudman',
+});
+ROLLER.systemforvaltare = ['konfigurera', 'omorganisera', 'undanta', 'lagring'];
+for (const h of ROLLER.systemforvaltare) UTAN_PATIENT.add(h);
+
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
+
+// Runda 7, r4: omorganisation (omorganisation.js, HSA:s regler för organisationsförändringar, bilaga K6). En vårdenhet
+// som stängs vid en sammanslagning, delning eller nedläggning får en eller flera efterföljare inom samma vårdgivare.
+// Bara vårdrelationen följer med till efterföljaren (harVardrelation), så att patienter som nyss har vårdats på den
+// gamla enheten kan fortsätta vårdas. Uppgifterna stannar på den gamla vårdenheten och är för efterföljarens personal
+// en annan vårdenhets uppgifter: de visas efter ett aktivt val, och en spärr mot den gamla enheten gäller som förut och
+// kräver patientens samtycke. Föregångarens uppgifter blir aldrig fria för att man arbetar på efterföljaren. Raden läggs
+// in först den dag förändringen gäller.
+// Svaret sparas per databas tills nästa omorganisation genomförs (glomForegangare), eftersom prova() anropas för varje rad.
+const foregangareCache = new WeakMap();
+export const glomForegangare = (db) => foregangareCache.delete(db);
+export function foregangare(db, vardenhet) {
+  let c = foregangareCache.get(db);
+  if (!c) { c = new Map(); foregangareCache.set(db, c); }
+  if (!c.has(vardenhet)) c.set(vardenhet, raknaForegangare(db, vardenhet));
+  return c.get(vardenhet);
+}
+function raknaForegangare(db, vardenhet) {
+  const ut = new Set();
+  let nya = [vardenhet];
+  try {
+    for (let i = 0; i < 6 && nya.length; i++) {
+      const ph = nya.map(() => '?').join(', ');
+      nya = db.query(`SELECT gammal_id FROM enhet_efterfoljare WHERE ny_id IN (${ph})`).all(...nya).map(r => r.gammal_id).filter(g => !ut.has(g) && g !== vardenhet);
+      for (const g of nya) ut.add(g);
+    }
+  } catch { /* en sandlåda utan tabellen har inga omorganisationer */ }
+  return ut;
+}
 
 // Den vårdenhet en enhet hör till. Inre sekretess gäller per vårdenhet.
 export function vardenhetFor(db, enhetId) {
@@ -160,7 +199,8 @@ export function enheterUnder(db, vardenhet) {
 // ankomst om ingen avslutar den, så att en bokning eller ett uteblivet besök aldrig blir en bestående vårdrelation.
 // utanPlanerade räknar bort bokningarna, för att se om patienten har någon annan grund (tidbok.js efterAvvisning).
 export function harVardrelation(db, patientId, vardenhet, nu = new Date(), { utanPlanerade = false } = {}) {
-  const enheter = enheterUnder(db, vardenhet);
+  // Runda 7, r4: vårdrelationen följer med till efterföljaren när en vårdenhet stängs vid en omorganisation.
+  const enheter = [vardenhet, ...foregangare(db, vardenhet)].flatMap(v => enheterUnder(db, v));
   const ph = enheter.map(() => '?').join(', ');
   const grans = new Date(nu.getTime() - RELATION_DAGAR * 86400_000).toISOString();
   const vk = db.query(`SELECT 1 FROM vardkontakter WHERE patient_id = ? AND enhet_id IN (${ph}) AND coalesce(ger_vardrelation, 1) = 1

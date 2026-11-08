@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-03T20:14:05.689Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-08T08:48:22.806Z",
+  "bas": "http://127.0.0.1:18174",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "13eabf8b55b1e8b3d8bff5a7b35f313e930797cd0b5a730d421f2e2789c3e147",
+  "gransnittHash": "c252b92fa456c2a241fe0b8d1a2b597b9e103c49faea0e48019065fa08a6fd7d",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -854,6 +854,43 @@
         "klick: Boka tid vid återbesöket",
         "klick: det första förslaget med provtagning och läkarbesök"
       ]
+    },
+    {
+      "id": "forbered-namnbyte",
+      "namn": "Förbereda ett namnbyte för en enhet",
+      "roll": "sysf",
+      "start": "Omorganisationen efter återställning",
+      "budget": 4,
+      "motivering": "Sussa 12.1.1.1 och 12.1.1.4. Ett klick på Ändra vid enheten, där namnbyte är förvalt och det nuvarande namnet är markerat så att det nya skrivs direkt, och ett klick på Förbered. Systemet föreslår datumet (första dagen i nästa månad), förhandsvisar medan man skriver vad som påverkas, kontrollerar att namnet inte redan finns och genomför bytet själv på dagen. Budgeten har plats för att ändra datumet.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Ändra vid Kardiologiska mottagningen",
+        "har redan fokus: det nya namnet",
+        "klick: Förbered"
+      ]
+    },
+    {
+      "id": "andra-demoregel",
+      "namn": "Ändra en demoregel",
+      "roll": "sysf",
+      "start": "Reglerna efter återställning",
+      "budget": 3,
+      "motivering": "Sussa 12.1.1.3, 12.1.1.5 och 12.1.1.6. Ett klick på Ändra vid regeln, där det nuvarande värdet är markerat så att det nya skrivs direkt, ett fältbyte till den obligatoriska motiveringen och ett klick på Skicka för godkännande. Systemet föreslår att ändringen gäller från i morgon, visar effekten och förklarar direkt om värdet inte är rimligt. En annan systemförvaltare godkänner ändringen (fyra ögon).",
+      "klick": 2,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Ändra vid Påminnelse före en bokad tid",
+        "har redan fokus: det nya värdet",
+        "fältbyte: motiveringen",
+        "klick: Skicka för godkännande"
+      ]
     }
   ],
   "tester": [
@@ -1043,6 +1080,14 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Boka provtagning före läkarbesök inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Förbereda ett namnbyte för en enhet inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Ändra en demoregel inom budget",
       "status": "grön"
     }
   ]

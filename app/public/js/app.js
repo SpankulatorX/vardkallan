@@ -33,6 +33,8 @@ import { bevakningVy, uppfoljningVy, samverkanVy, inkorgAntal } from './vyer/r3.
 import * as lakemedelsstod from './vyer/lakemedelsstod.js';
 // Runda 6, r6: verksamhetschefens uppdrag i läkemedelshanteringen.
 import * as lakemedelsansvar from './vyer/lakemedelsansvar.js';
+// Runda 7, r4: systemförvaltningen.
+import * as systemforvaltning from './vyer/systemforvaltning.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -44,7 +46,8 @@ export const arInvanare = () => Boolean(S.session?.inloggad && S.session.roll ==
 export const arLogggranskare = () => S.session?.personal?.yrke === 'logggranskare';
 // Arkivarien och uppföljningsrollen läser inte journalen och har ingen arbetslista (Sussa 5.4.2 och 6.3.1).
 // Runda 6, r6: verksamhetschefen läser inte heller journalen.
-export const utanJournal = () => ['logggranskare', 'arkivarie', 'uppfoljning', 'kommun', 'verksamhetschef'].includes(S.session?.personal?.yrke);
+// Runda 7, r4: systemförvaltaren läser inte heller journalen.
+export const utanJournal = () => ['logggranskare', 'arkivarie', 'uppfoljning', 'kommun', 'verksamhetschef', 'systemforvaltare'].includes(S.session?.personal?.yrke);
 export const minVardenhet = () => S.session?.enhet?.vardenhet?.id ?? null;
 export const pa = (...h) => h.some(far);
 
@@ -67,6 +70,11 @@ const MENY = [
   // Runda 6, r6: verksamhetschefen utser uppdragen i läkemedelshanteringen.
   ['#/lakemedelsansvar', 'Läkemedelsansvar', 'nyckel', () => far('lakemedelsansvar')],
   ['#/lakemedelsstod', 'Direktiv och uppföljning', 'piller', () => pa('faststalla_direktiv', 'ordinera_direktiv')],
+  // Runda 7, r4: systemförvaltningen.
+  ['#/regler', 'Regler och parametrar', 'penna', () => far('konfigurera')],
+  ['#/omorganisation', 'Omorganisation', 'moduler', () => far('omorganisera')],
+  ['#/undantag', 'Undantag från visning', 'oga', () => far('undanta')],
+  ['#/lagring', 'Lagring', 'arkiv', () => far('lagring')],
   ['#/remisser', 'Remisser', 'remiss', () => pa('las_remiss', 'las_remiss_status')],
   ['#/vantrum', 'Väntrum (akuten)', 'vantrum', () => far('vantrum')],
   ['#/logg', 'Logguppföljning', 'logg', () => far('las_logg')],
@@ -94,6 +102,11 @@ const RUTTER = [
   [/^#\/delegeringar$/, delegeringar, () => far('delegera') || S.session?.personal?.yrke === 'underskoterska'],
   [/^#\/lakemedelsstod$/, lakemedelsstod, () => pa('faststalla_direktiv', 'ordinera_direktiv')],
   [/^#\/lakemedelsansvar$/, lakemedelsansvar, () => far('lakemedelsansvar')],
+  // Runda 7, r4: systemförvaltningen.
+  [/^#\/regler$/, systemforvaltning.regler, () => far('konfigurera')],
+  [/^#\/omorganisation$/, systemforvaltning.omorganisation, () => far('omorganisera')],
+  [/^#\/undantag$/, systemforvaltning.undantag, () => far('undanta')],
+  [/^#\/lagring$/, systemforvaltning.lagring, () => far('lagring')],
   [/^#\/remisser$/, remisser, () => pa('las_remiss', 'las_remiss_status')],
   [/^#\/vantrum$/, vantrum, () => far('vantrum')],
   [/^#\/logg$/, logg, () => far('las_logg')],
@@ -137,7 +150,7 @@ export const vardenhetAv = (id) => enhetMap.get(id)?.vardenhet ?? id;
 export const enhetLista = () => [...enhetMap.values()];
 
 // Vårdadministratören börjar på dagens arbete, där systemet har ordnat det som ska göras i dag.
-export const hem = () => (arInvanare() ? '#/min' : arLogggranskare() ? '#/logg' : far('registrera_arkivbeslut') ? '#/arkiv' : far('datauttag') ? '#/datauttag' : far('samverkan') ? '#/samverkan' : far('lakemedelsansvar') ? '#/lakemedelsansvar' : far('boka') ? '#/idag' : '#/arbetslista');
+export const hem = () => (arInvanare() ? '#/min' : arLogggranskare() ? '#/logg' : far('registrera_arkivbeslut') ? '#/arkiv' : far('datauttag') ? '#/datauttag' : far('samverkan') ? '#/samverkan' : far('lakemedelsansvar') ? '#/lakemedelsansvar' : far('konfigurera') ? '#/regler' : far('boka') ? '#/idag' : '#/arbetslista');
 
 // Logotypen: en droppe över en våg, en källa.
 export const logotyp = (storlek = 30) => `<svg class="logotyp" width="${storlek}" height="${storlek}" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="9" fill="currentColor"/><path d="M16 5.2c-3.3 4.7-6.1 8.1-6.1 11.6a6.1 6.1 0 0 0 12.2 0c0-3.5-2.8-6.9-6.1-11.6z" fill="#fff"/><path d="M7.5 26.2c2.8-1.7 5.7-1.7 8.5 0s5.7 1.7 8.5 0" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`;

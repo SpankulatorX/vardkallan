@@ -5,6 +5,8 @@
 // patienten som ett och samma objekt i API:t och i patienthuvudet. Allt byggs av det som användaren redan får se:
 // raderna filtreras i behörighetsmotorn (inre sekretess, spärr och aktivt val), så att varken kurvor, poäng, larm
 // eller basfakta kan röja något som är dolt. Reglerna står i skalor.js och är demoregler (D10).
+// Runda 7, r4: undantag från visning.
+import { undantagnaUt } from './undantag.js';
 import { Fel, iso } from './db.js';
 import { Atkomst, kanRoll, vardenhetFor, enheterUnder, harVardrelation, alder } from './atkomst.js';
 import * as journal from './journal.js';
@@ -98,7 +100,8 @@ export function news2Lage(rader, nu = Date.now()) {
 export function matvardesvy(atk, p) {
   atk.krav('las_matvarden');
   const rader = journal.synligaMatvarden(atk);
-  const dolda = { kraverVal: atk.doldaVal, sparrade: atk.doldaSparr };
+  // Runda 7, r4: mätvärden som är undantagna från visning står med antal och motivering (undantag.js).
+  const dolda = { kraverVal: atk.doldaVal, sparrade: atk.doldaSparr, undantagna: undantagnaUt(atk) };
   return {
     matvarden: rader.map(m => journal.matvardeUt(atk.db, m)), dolda,
     kurvor: kurvor(atk, p, rader), news2: news2For(atk, p, rader),

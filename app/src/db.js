@@ -23,6 +23,8 @@ import { sakraR1Schema, seedaR1 } from './schema-runda6-r1.js';
 import { sakraLakemedelsstod, seedaLakemedelsstod } from './lakemedelsstod-schema.js';
 // Runda 6, r6: ansvarsuppdrag för läkemedel och godkännande av läkemedelsmallar (lakemedelsansvar-schema.js).
 import { seedaLakemedelsansvar } from './lakemedelsansvar-schema.js';
+// Runda 7, r4: systemförvaltningen, med konfiguration, omorganisation, undantag och lagring (systemforvaltning-schema.js).
+import { sakraSystemforvaltning } from './systemforvaltning-schema.js';
 // Runda 6, r5: masterdata från utbytbara källor (masterdata.js).
 import { forSeed as masterdataForSeed } from './masterdata.js';
 
@@ -388,6 +390,8 @@ export function byggSeed(bas = nu()) {
   // Runda 6, r6: uppdragen i läkemedelshanteringen och godkännandena av mallarna. Sist, eftersom seeden läser
   // personalen från tidboken och mallarna från runda 6, r2.
   seedaLakemedelsansvar(db, bas);
+  // Runda 7, r4: systemförvaltningens tabeller och en ändring som väntar på godkännande.
+  sakraSystemforvaltning(db, bas);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -476,6 +480,8 @@ export function migrera(db) {
   sakraR1Schema(db);
   // Runda 6, r6: en äldre sandlåda får verksamhetschefen, uppdragen och godkännandena relativt till i dag.
   seedaLakemedelsansvar(db, nu());
+  // Runda 7, r4: systemförvaltningens tabeller och systemförvaltarna i en sandlåda från före runda 7.
+  sakraSystemforvaltning(db, nu());
   return db;
 }
 

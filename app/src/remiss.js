@@ -5,27 +5,34 @@ import { vardenhetFor, kanRoll, visningsnamn, visningsPnr } from './atkomst.js';
 import { kallaEtikett } from './journal.js';
 // Runda 6, r4: bilagor, vidarebefordran och egen vårdbegäran (remiss-r4.js).
 import { remissTillagg, EGEN } from './remiss-r4.js';
+import * as konfiguration from './konfiguration.js';
+import { arStangd } from './omorganisation.js';
 
 export const PRIORITETER = ['akut', 'skyndsam', 'normal'];
 export const LARMGRANS = { mottagningskvittensTimmar: 2, svarKvittensDagar: 3 };
+// Runda 7, r4: gränserna kan ändras av systemförvaltningen (konfiguration.js). LARMGRANS är standardvärdena.
+export const larmgranser = (db, nu = new Date()) => ({
+  mottagningskvittensTimmar: konfiguration.varde(db, 'remiss.mottagningskvittens_timmar', nu),
+  svarKvittensDagar: konfiguration.varde(db, 'remiss.svarskvittens_dagar', nu),
+});
 
 const enhet = (db, id) => ({ id, namn: db.query('SELECT namn FROM enheter WHERE id = ?').get(id)?.namn ?? id });
 const person = (db, id) => (id ? { id, namn: db.query('SELECT namn FROM personal WHERE id = ?').get(id)?.namn ?? id } : null);
 
 // Larm för en remiss vid en viss tidpunkt.
-export function larmFor(r, nu = new Date()) {
+export function larmFor(r, nu = new Date(), granser = LARMGRANS) {
   const larm = [];
   const t = nu.getTime();
   const dag = nu.toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
-  if (r.status === 'skickad' && t - Date.parse(r.skickad_tid) > LARMGRANS.mottagningskvittensTimmar * 3600_000) {
-    larm.push({ typ: 'saknar_mottagningskvittens', text: 'Mottagningskvittens saknas mer än 2 timmar efter att remissen skickades.', sedan: r.skickad_tid });
+  if (r.status === 'skickad' && t - Date.parse(r.skickad_tid) > granser.mottagningskvittensTimmar * 3600_000) {
+    larm.push({ typ: 'saknar_mottagningskvittens', text: `Mottagningskvittens saknas mer än ${granser.mottagningskvittensTimmar} ${granser.mottagningskvittensTimmar === 1 ? 'timme' : 'timmar'} efter att remissen skickades.`, sedan: r.skickad_tid });
   }
   const vantarSvar = ['skickad', 'mottagen'].includes(r.status) || (r.status === 'bedomd' && r.beslut === 'accepterad');
   if (vantarSvar && dag > r.svar_senast) {
     larm.push({ typ: 'svar_forsenat', text: `Svar saknas efter sista svarsdatum ${r.svar_senast}.`, sedan: r.svar_senast });
   }
-  if (r.status === 'besvarad' && t - Date.parse(r.besvarad_tid) > LARMGRANS.svarKvittensDagar * 86400_000) {
-    larm.push({ typ: 'svar_ej_kvitterat', text: 'Remissvaret har inte kvitterats av avsändaren efter 3 dagar.', sedan: r.besvarad_tid });
+  if (r.status === 'besvarad' && t - Date.parse(r.besvarad_tid) > granser.svarKvittensDagar * 86400_000) {
+    larm.push({ typ: 'svar_ej_kvitterat', text: `Remissvaret har inte kvitterats av avsändaren efter ${granser.svarKvittensDagar} ${granser.svarKvittensDagar === 1 ? 'dag' : 'dagar'}.`, sedan: r.besvarad_tid });
   }
   return larm;
 }
@@ -36,7 +43,7 @@ export function remissUt(db, r, { klinisk = true, patient = null } = {}) {
     prioritet: r.prioritet, svarSenast: r.svar_senast, status: r.status, beslut: r.beslut,
     tider: { skickad: r.skickad_tid, mottagen: r.mottagen_tid, bedomd: r.bedomd_tid, besvarad: r.besvarad_tid, svarKvitterat: r.svar_kvitterat_tid },
     av: { mottagen: person(db, r.mottagen_av), bedomd: person(db, r.bedomd_av), besvarad: person(db, r.besvarad_av), svarKvitterat: person(db, r.svar_kvitterat_av) },
-    larm: larmFor(r), kalla: r.kalla, kallaEtikett: kallaEtikett(r.kalla, r.skickad_tid),
+    larm: larmFor(r, new Date(), larmgranser(db)), kalla: r.kalla, kallaEtikett: kallaEtikett(r.kalla, r.skickad_tid),
     fragestallning: null, anamnes: null, motivering: null, svar: null,
   };
   if (klinisk) Object.assign(ut, { fragestallning: r.fragestallning, anamnes: r.anamnes, motivering: r.motivering, svar: r.svar });
@@ -71,6 +78,11 @@ export function skapa(atk, inp) {
   const till = typeof inp?.tillEnhetId === 'string' ? db.query("SELECT * FROM enheter WHERE id = ? AND typ = 'vardenhet'").get(inp.tillEnhetId) : null;
   const min = vardenhetFor(db, atk.personal.enhet_id);
   if (!till || till.id === min) falt.push('tillEnhetId');
+  // Runda 7, r4: en vårdenhet som har stängts vid en omorganisation tar inte emot remisser. Systemet säger vem som tar över.
+  if (till && arStangd(db, till.id)) {
+    const eft = db.query('SELECT e.namn FROM enhet_efterfoljare f JOIN enheter e ON e.id = f.ny_id WHERE f.gammal_id = ?').all(till.id).map(e => e.namn);
+    throw new Fel(400, `${till.namn} är stängd sedan en omorganisation.${eft.length ? ` Verksamheten finns nu på ${eft.join(' och ')}.` : ''}`, 'ogiltig', { falt: ['tillEnhetId'] });
+  }
   const fragestallning = typeof inp?.fragestallning === 'string' ? inp.fragestallning.trim() : '';
   if (fragestallning.length < 3 || fragestallning.length > 2000) falt.push('fragestallning');
   const anamnes = typeof inp?.anamnes === 'string' ? inp.anamnes.trim().slice(0, 8000) : '';
@@ -146,9 +158,10 @@ export function lista(db, personal, riktning = 'inkommande') {
 export function larmForEnhet(db, personal, nu = new Date()) {
   const min = vardenhetFor(db, personal.enhet_id);
   const ut = [];
+  const granser = larmgranser(db, nu);
   for (const r of db.query('SELECT * FROM remisser WHERE (fran_enhet_id = ? OR till_enhet_id = ?) AND status <> ?').all(min, min, 'svar_kvitterat')) {
     const p = db.query('SELECT * FROM patienter WHERE id = ?').get(r.patient_id);
-    for (const l of larmFor(r, nu)) {
+    for (const l of larmFor(r, nu, granser)) {
       if (l.typ === 'svar_ej_kvitterat' && r.fran_enhet_id !== min) continue;
       ut.push({ ...l, remissId: r.id, patientId: r.patient_id, patient: visningsnamn(p), riktning: r.fran_enhet_id === min ? 'utgaende' : 'inkommande' });
     }

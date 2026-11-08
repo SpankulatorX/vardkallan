@@ -25,6 +25,8 @@ const VISAR = {
   // Runda 6, r2.
   'far-kard': 'Klinisk apotekare på kardiologen: läser läkemedelslistan och mätvärdena och gör farmaceutens bedömning i den fördjupade läkemedelsgenomgången, som läkaren startar och avslutar. Läser inte journalanteckningar.',
   // Runda 6, r6.
+  // Runda 7, r4.
+  'sysf': 'Systemförvaltare: ändrar regler och parametrar med giltighetsdatum och fyra ögon, förbereder omorganisationer som systemet genomför på dagen, beslutar om undantag från visning och kontrollerar säkerhetskopian. Läser inte journalen.',
   'vch-kard': 'Verksamhetschef på kardiologen: utser medicinskt ansvarig läkare, mallansvarig läkare och läkemedelsansvariga sjuksköterskor med systemets förslag, och påminns när ett uppdrag saknas eller ansvarsdokumentet inte har setts över på ett år. Läser inte journalen.',
 };
 

@@ -24,6 +24,8 @@ import { synka as synkaVardhandelser, styrDos, sakraSchema as sakraVardhandelser
 export { STYR_LAKEMEDEL };
 // Runda 6, r4: resurser (lokaler, utrustning och sjukresor), tider i följd och kallelsens språk (planering-bas.js).
 import * as plan from './planering-bas.js';
+// Runda 7, r4: parametrar som systemförvaltningen kan ändra.
+import * as konfiguration from './konfiguration.js';
 
 // Tidstyperna. kontaktsatt är vårdkontaktens kontaktsätt, och fysiska besök checkas in.
 export const TIDSTYPER = {
@@ -1066,7 +1068,8 @@ const kallelserFor = (db, bokningId) => db.query('SELECT k.*, coalesce(s.sprak, 
 // Påminnelserna går ut av sig själva 48 timmar före tiden. Demon har ingen schemalagd körning, så servern skickar dem
 // när tidboken eller Min journal används.
 export function skickaPaminnelser(db, nu = Date.now()) {
-  const grans = new Date(nu + DEMOREGLER.paminnelseTimmar * TIMME).toISOString();
+  // Runda 7, r4: timmarna kan ändras av systemförvaltningen (konfiguration.js). DEMOREGLER har standardvärdet.
+  const grans = new Date(nu + konfiguration.varde(db, 'tidbok.paminnelse_timmar', new Date(nu)) * TIMME).toISOString();
   const rader = db.query(`SELECT b.* FROM bokningar b JOIN tider t ON t.id = b.tid_id WHERE b.status = 'bokad' AND t.start > ? AND t.start <= ?
     AND NOT EXISTS (SELECT 1 FROM kallelser k WHERE k.bokning_id = b.id AND k.typ = 'paminnelse')
     AND EXISTS (SELECT 1 FROM kallelser k WHERE k.bokning_id = b.id AND k.status = 'skickad' AND k.skapad < ?)`).all(new Date(nu).toISOString(), grans, new Date(nu - TIMME).toISOString());

@@ -21,6 +21,8 @@ import { kanRoll, vardenhetFor, enheterUnder } from './atkomst.js';
 import { loggaRad } from './logg.js';
 import { administrationssatt as sattUrForm, tillatnaSatt } from './ordinationsmallar.js';
 import { datumI } from './lakemedelsprocess.js';
+// Runda 7, r4: parametrar som systemförvaltningen kan ändra.
+import * as konfiguration from './konfiguration.js';
 
 export const FORESKRIFT = 'HSLF-FS 2017:37 9 kap.';
 export const DEMOREGLER_DELEGERING = 'Vilka läkemedelsformer som kan delegeras och att ett beslut gäller högst ett år är demoregler. En vårdgivare fastställer sina egna rutiner för delegering efter en riskanalys (HSLF-FS 2017:37 9 kap. 8 och 9 §§).';
@@ -244,6 +246,8 @@ export function paminnelser(db, personal) {
   const ve = vardenhetFor(db, personal.enhet_id);
   const dag = idag();
   const ut = [];
+  // Runda 7, r4: dagarna kan ändras av systemförvaltningen (konfiguration.js). PAMINN_DAGAR är standardvärdet.
+  const paminnDagar = konfiguration.varde(db, 'lakemedel.delegering_paminn_dagar');
   for (const p of mottagare(db, ve)) {
     // Kedjan börjar i de beslut som gäller i dag. Ett senare beslut förlänger den bara om det tar vid utan glapp.
     const aktuella = db.query('SELECT * FROM delegeringar WHERE personal_id = ? AND vardenhet_id = ? AND aterkallad_tid IS NULL AND till >= ? ORDER BY fran, id').all(p.id, ve, dag);
@@ -255,7 +259,7 @@ export function paminnelser(db, personal) {
       for (const d of aktuella) if (d.fran <= addDagar(sista.till, 1) && d.till > sista.till) { sista = d; langre = true; }
     }
     const kvar = Math.round((Date.parse(sista.till) - Date.parse(dag)) / 86400_000);
-    if (kvar > PAMINN_DAGAR) continue;
+    if (kvar > paminnDagar) continue;
     if (personal.yrke !== 'sjukskoterska' && sista.utfardad_av !== personal.id) continue;
     ut.push({
       personalId: p.id, namn: p.namn, delegeringId: sista.id, till: sista.till, dagarKvar: kvar,

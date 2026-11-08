@@ -11,6 +11,8 @@ import { Fel } from './db.js';
 import * as logg from './logg.js';
 import * as sakerhet from './sakerhetslogg.js';
 import { visningsnamn, visningsPnr } from './atkomst.js';
+// Runda 7, r4: parametrar som systemförvaltningen kan ändra.
+import * as konfiguration from './konfiguration.js';
 
 const MAX_EXPORT = 100000;
 export const STICKPROV_ANTAL = 10;
@@ -94,7 +96,8 @@ export const KONTROLLERA = {
 // Drar ett stickprov: slumpvis valda åtkomster av vårdens personal till patientuppgifter under de senaste dagarna, som
 // inte har funnits i ett tidigare stickprov. Logggranskningens egna läsningar och nekade försök (som redan flaggas)
 // räknas inte.
-export function dra(db, pers, { antal = STICKPROV_ANTAL, dagar = STICKPROV_DAGAR, nu = new Date() } = {}) {
+// Runda 7, r4: antalet kan ändras av systemförvaltningen (konfiguration.js). STICKPROV_ANTAL är standardvärdet.
+export function dra(db, pers, { antal = konfiguration.varde(db, 'logg.stickprov_antal'), dagar = STICKPROV_DAGAR, nu = new Date() } = {}) {
   const fran = new Date(nu.getTime() - dagar * 86400_000).toISOString();
   const till = nu.toISOString();
   const kandidater = db.query(`SELECT id FROM atkomstlogg WHERE personal_id IS NOT NULL AND patient_id IS NOT NULL AND invanare_id IS NULL
@@ -150,7 +153,7 @@ export function oversikt(db, { nu = new Date() } = {}) {
   const nasta = senaste ? new Date(Date.parse(senaste.skapad) + STICKPROV_INTERVALL_DAGAR * 86400_000).toISOString() : nu.toISOString();
   return {
     stickprov: alla.map(({ rader: _r, ...rest }) => rest), aktuellt: senaste, kvarTotalt: alla.reduce((s, x) => s + x.kvar, 0),
-    nastaForeslas: nasta, dags: Date.parse(nasta) <= nu.getTime(), antal: STICKPROV_ANTAL, dagar: STICKPROV_DAGAR, intervallDagar: STICKPROV_INTERVALL_DAGAR,
+    nastaForeslas: nasta, dags: Date.parse(nasta) <= nu.getTime(), antal: konfiguration.varde(db, 'logg.stickprov_antal', nu), dagar: STICKPROV_DAGAR, intervallDagar: STICKPROV_INTERVALL_DAGAR,
     regel: 'HSLF-FS 2016:40 4 kap. 9 b §: systematiska och återkommande stickprovskontroller av den åtkomst som har förekommit, och kontrollerna dokumenteras.',
   };
 }

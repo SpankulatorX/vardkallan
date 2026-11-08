@@ -77,8 +77,10 @@ export const HANDLING = {
   lakemedelsansvar: 'Läste eller ändrade uppdrag i läkemedelshanteringen', godkanna_mall: 'Godkände eller läste läkemedelsmallar',
 };
 // Runda 6, r4: bevakningar och tidboken.
+// Runda 7, r4: systemförvaltningen.
+Object.assign(HANDLING, { konfigurera: 'Föreslog eller beslutade om en ändring av regler och parametrar', omorganisera: 'Förberedde eller avbröt en omorganisation', undanta: 'Föreslog eller beslutade om ett undantag från visning', lagring: 'Kontrollerade säkerhetskopian' });
 Object.assign(HANDLING, { bevaka: 'Lade upp eller avslutade bevakning', bevaka_enhet: 'Lade upp bevakning för vårdenheten', las_tidbok: 'Läste tidboken', statistik: 'Såg statistik utan personuppgifter' });
-export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare', arkivarie: 'Arkivarie', uppfoljning: 'Analytiker (uppföljning)', kommun: 'Kommunens personal (simulerad)', farmaceut: 'Farmaceut', verksamhetschef: 'Verksamhetschef' };
+export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare', arkivarie: 'Arkivarie', uppfoljning: 'Analytiker (uppföljning)', kommun: 'Kommunens personal (simulerad)', farmaceut: 'Farmaceut', verksamhetschef: 'Verksamhetschef', systemforvaltare: 'Systemförvaltare' };
 
 // Anrop mot API:t. Svarstiden läses från Server-Timing. Fel kastas som ApiFel med serverns text och kod.
 export class ApiFel extends Error {
