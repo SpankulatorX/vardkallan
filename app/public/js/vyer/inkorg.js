@@ -106,6 +106,9 @@ export async function visa(main) {
     `${esc(x.fragestallning ?? '')} Fördelad till dig ${esc(tidpunkt(x.fordelad.tid))} av ${esc(x.fordelad.av?.namn ?? '')}. Svar senast ${esc(x.svarSenast)}.`));
   // Runda 10, r6: beslut som har registrerats på läkarens uppdrag och väntar på läkarens kvittens.
   const r10kv = r10.inkorgRader(d, { pnamn, sym });
+  // Runda 10, r6: avvikelser från transfusionskontrollen för den som beställde blodet.
+  const blodAvv = (d.blodAvvikelser ?? []).map(x => `<li class="ik-larm"><div class="ik-text"><span class="ik-rubrik">${ikon.larm}<span>${esc(x.produkt)}, ${esc(pnamn(x.patient))}${sym(x.patient)}</span></span>
+    <span class="under-text">${esc(x.orsak)} Beställning ${esc(x.nummer)}, ${esc(tidpunkt(x.tid))}.</span></div><div class="ik-knappar"><button type="button" class="knapp liten sekundar" data-blod-avvikelse="${x.id}">Kvittera</button></div></li>`);
   // Runda 9, r1: beredningar som väntar på kontroll av en annan sjuksköterska eller läkare. Inga patientuppgifter.
   const berKontroll = (d.beredningarAttKontrollera ?? []).map(x => rad(esc(x.lank), 'Beredningar att kontrollera', esc(x.text)));
   const harBhv = Boolean(S.session?.bhv);
@@ -122,6 +125,7 @@ export async function visa(main) {
     ${harBhv && tvBoka.length ? sektion('tvboka', 'Hälsobesök att boka', tvBoka, '', 'Barn som ska ha ett besök i barnhälsovårdens program nu och som inte har någon tid.') : ''}
     ${news2.length ? sektion('news2', 'NEWS2 som kräver åtgärd', news2, '', 'Patienter på vårdenheten där NEWS2 eller ett enskilt värde kräver åtgärd enligt NEWS2 (Royal College of Physicians 2017). Systemet räknar poängen ur vitalparametrarna. Demoregel, inte kliniskt beslutsstöd.') : ''}
     ${yrke === 'lakare' || r8sign.length ? sektion('r8sign', 'Remisser att signera', r8sign, 'Inga remisser väntar på din signering.', 'Remisser som en vårdadministratör har skrivit på ditt uppdrag. De skickas när du har signerat, med dig som remittent.') : ''}
+    ${blodAvv.length ? sektion('blodavv', 'Avvikelser i blodbeställningar', blodAvv, '', 'Blodbeställningar där blodcentralen inte kunde lämna ut blod, med orsaken. Inget blod är reserverat. Kvittera när du har läst och åtgärdat avvikelsen.') : ''}
     ${r10kv.length ? sektion('r10kv', 'Beslut på uppdrag att kvittera', r10kv, '', 'Beslut om remisser som en vårdadministratör har registrerat med dig som ansvarig, till exempel från remisskonferensen. Beslutet gäller redan. Kvittera att det stämmer, eller öppna remissen igen och bedöm den själv.') : ''}
     ${yrke === 'lakare' || r8bed.length ? sektion('r8bed', 'Remisser att bedöma', r8bed, 'Inga remisser är fördelade till dig.', 'Inkommande remisser som har fördelats till dig för bedömning.') : ''}
     ${yrke === 'lakare' || muntl.length ? sektion('muntlig', 'Muntliga ordinationer att signera', muntl, 'Inga muntliga ordinationer väntar på din signering.', 'Ordinationer som du lämnade muntligt eller per telefon och som en sjuksköterska har dokumenterat. De skickas till NLL när du har signerat.') : ''}
@@ -162,6 +166,9 @@ export async function visa(main) {
     if (gr) { if (await granska(gr, d.mallarAttGodkanna[Number(gr.dataset.granska)])) visa(main); return; }
     const sf = e.target.closest('[data-sparr-fraga]');
     if (sf) { if (await sparrBeslut(sf, d.sparrFragor[Number(sf.dataset.sparrFraga)])) visa(main); return; }
+    // Runda 10, r6: kvittera en avvikelse i en blodbeställning.
+    const ba = e.target.closest('[data-blod-avvikelse]');
+    if (ba) { try { await medKnapp(ba, () => api(`/api/blod/avvikelse/${ba.dataset.blodAvvikelse}/kvittera`, { metod: 'POST', data: {} })); notis('Avvikelsen är kvitterad.'); await uppdateraInkorg(); visa(main); } catch { /* felet visas som notis */ } return; }
     // Runda 10, r6: kvittera ett beslut på uppdrag, eller öppna remissen igen.
     if (e.target.closest('[data-r10-kvittera], [data-r10-underkann]')) { if (await r10.inkorgKlick(e)) visa(main); return; }
     const r8s = e.target.closest('[data-r8-signera]');

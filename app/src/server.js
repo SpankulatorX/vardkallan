@@ -93,6 +93,7 @@ import * as remissR8 from './remiss-r8.js';
 import * as remissR10 from './remiss-r10.js';
 // Runda 10, r6: producentsystem för beställning och svar genom det öppna gränssnittet (produktionssystem.js).
 import * as produktionssystem from './produktionssystem.js';
+import { avvikelserIInkorg as blodAvvikelserIInkorg } from './blod.js';
 // Runda 9, r2: medicinteknisk utrustning, anestesi och intensivvård (medicinteknik.js och iva.js).
 import { registreraRutter as mtRutter, skapaMottagning as mtMottagning, efterTid as mtEfterTid } from './medicinteknik-rutter.js';
 import { skapaNyckellager as mtNyckellager, patientvy as mtPatientvyFor, minaMatningar as mtMinaMatningar } from './medicinteknik.js';
@@ -1362,6 +1363,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...remissR8.inkorg(c, patientKort, patientRad),
       // Runda 10, r6: beslut som har registrerats på läkarens uppdrag och väntar på läkarens kvittens.
       ...remissR10.inkorg(c, patientKort, patientRad),
+      // Runda 10, r6: avvikelser från transfusionskontrollen för den som beställde blodet (blod.js).
+      ...blodAvvikelserIInkorg(c, patientKort, patientRad, valFor),
       // Runda 8, r1: provsvar att vidimera, beställningar på uppdrag att signera och kritiska provsvar.
       ...labbInkorg(c, patientKort, patientRad, valFor),
       // Runda 9, r1: beredningar som väntar på kontroll av en annan sjuksköterska eller läkare, utan patientuppgifter.

@@ -57,6 +57,11 @@ CREATE TABLE IF NOT EXISTS blod_historik (
 CREATE TRIGGER IF NOT EXISTS blod_historik_andras_ej BEFORE UPDATE OF bestallning_id, tid, personal_id, handelse, detalj ON blod_historik
   BEGIN SELECT RAISE(ABORT, 'Historiken för en blodbeställning ändras inte.'); END;
 CREATE TRIGGER IF NOT EXISTS blod_historik_raderas_ej BEFORE DELETE ON blod_historik BEGIN SELECT RAISE(ABORT, 'Historiken för en blodbeställning raderas inte.'); END;
+CREATE TABLE IF NOT EXISTS blod_avvikelser (
+  id INTEGER PRIMARY KEY, bestallning_id INTEGER NOT NULL, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, tid TEXT NOT NULL, kalla TEXT NOT NULL,
+  orsak TEXT NOT NULL, kvitterad_tid TEXT, kvitterad_av TEXT
+);
+CREATE INDEX IF NOT EXISTS ix_blod_avvikelser_best ON blod_avvikelser (bestallning_id);
 `;
 const har = new WeakSet();
 export function sakra(db) { if (!har.has(db)) { db.exec(SCHEMA); har.add(db); } }
@@ -156,28 +161,73 @@ export function bestall(atk, body = {}, nu = new Date()) {
   return bestallningUt(atk, bestallningRad(db, b.id), nu);
 }
 
-// Den simulerade blodcentralen: när blodgruppering och ett giltigt bastest finns förenlighetsprövar den och bereder
-// enheter med patientens blodgrupp. Ett positivt bastest gör att beställningen utreds. Körs när beställningen läses.
+// Runda 10, r6: transfusionskontrollen, som både den inbyggda simulerade blodcentralen och svaret från blodcentralens
+// producentsystem går igenom, så att den externa vägen aldrig är svagare än den interna. Blodgruppering och bastest
+// räknas bara ur beställningar som inte är makulerade och analyser som inte är borttagna eller makulerade, samma filter
+// som transfusionsprover. Blodgrupperingen ska gå att läsa, och flera blodgrupperingar ska ge samma blodgrupp.
+// Bastestet ska vara taget inom BASTEST_TIMMAR när produkten kräver det, och ett positivt bastest stoppar så länge
+// beställningen inte utreds. Svaren behöver inte vara vidimerade, eftersom laboratoriets svar gäller från när det kommer,
+// som i resten av beställning och svar. Kontrollen räknar på alla patientens svar, eftersom blodcentralen behöver dem,
+// men orsakerna nämner inga värden. Ger { ok, blodgrupp, bastest } eller { ok: false, vanta, positivt, orsak }.
+export function transfusionskontroll(db, b, nu = new Date(), { enhetsgrupp = null } = {}) {
+  labb.forfallnaSvar(db, nu);
+  const rader = db.query(`SELECT a.*, p.provtagen_tid FROM labb_analyser a JOIN labb_bestallningar lb ON lb.id = a.bestallning_id LEFT JOIN labb_prov p ON p.id = a.prov_id
+    WHERE a.patient_id = ? AND a.analys IN ('blodgruppering', 'bastest') AND lb.makulerad_tid IS NULL AND a.status NOT IN ('borttagen', 'makulerad')`).all(b.patient_id);
+  const nej = (orsak, extra = {}) => ({ ok: false, vanta: false, positivt: false, orsak, ...extra });
+  const pagar = (analys) => rader.some(a => a.analys === analys && a.status !== 'besvarad');
+  const grupper = rader.filter(a => a.analys === 'blodgruppering' && a.status === 'besvarad');
+  const lasta = [...new Set(grupper.map(a => tolkaBlodgrupp(a.svar_text)))];
+  if (!grupper.length) return nej(pagar('blodgruppering') ? 'Blodgrupperingen väntar på svar.' : 'Det finns ingen giltig blodgruppering. En makulerad beställning eller en borttagen analys räknas inte. Beställ en ny blodgruppering.', { vanta: pagar('blodgruppering') });
+  if (lasta.includes(null)) return nej('En blodgruppering går inte att läsa. Blodcentralen behöver en ny blodgruppering innan blod lämnas ut.');
+  if (lasta.length > 1) return nej('Blodgrupperingarna stämmer inte överens. Blodcentralen behöver en ny blodgruppering innan blod lämnas ut.');
+  const blodgrupp = lasta[0];
+  let bastest = null;
+  if (PRODUKTER[b.produkt].bastest) {
+    const grans = nu.getTime() - BASTEST_TIMMAR * TIMME;
+    const bas = rader.filter(a => a.analys === 'bastest' && a.status === 'besvarad' && Date.parse(a.provtagen_tid ?? a.besvarad_tid) >= grans).sort((x, y) => y.besvarad_tid.localeCompare(x.besvarad_tid))[0];
+    if (!bas) return nej(pagar('bastest') ? 'Bastestet väntar på svar.' : `Det finns inget giltigt bastest. Ett bastest gäller i ${BASTEST_TIMMAR} timmar efter provtagningen. Beställ ett nytt bastest.`, { vanta: pagar('bastest') });
+    bastest = { positivt: bas.avvikande === 'fynd', tid: bas.provtagen_tid ?? bas.besvarad_tid };
+    if (bastest.positivt && b.status !== 'utreds') return nej('Bastestet är positivt. Blod lämnas inte ut förrän blodcentralen har utrett antikroppen.', { positivt: true });
+  }
+  if (enhetsgrupp && !forenlig(b.produkt, enhetsgrupp, blodgrupp)) return nej(`Enheternas blodgrupp är inte förenlig med patientens blodgrupp för ${PRODUKTER[b.produkt].namn.toLocaleLowerCase('sv')}.`);
+  return { ok: true, blodgrupp, bastest };
+}
+
+// En avvikelse på beställningen, i inkorgen hos den som beställde. Samma orsak läggs bara in en gång så länge den inte
+// är kvitterad.
+export function avvikelse(db, b, orsak, kalla, nu = new Date()) {
+  sakra(db);
+  if (db.query('SELECT 1 FROM blod_avvikelser WHERE bestallning_id = ? AND orsak = ? AND kvitterad_tid IS NULL').get(b.id, orsak)) return;
+  db.query('INSERT INTO blod_avvikelser (bestallning_id, patient_id, enhet_id, tid, kalla, orsak) VALUES (?, ?, ?, ?, ?, ?)').run(b.id, b.patient_id, b.enhet_id, iso(nu), kalla, orsak);
+  historik(db, b, null, 'avvikelse', orsak, iso(nu));
+}
+
+// Den simulerade blodcentralen: när transfusionskontrollen går igenom förenlighetsprövar den och bereder enheter med
+// patientens blodgrupp. Ett positivt bastest gör att beställningen utreds. Ett svar som väntar gör inget, och annars får
+// beställningen en avvikelse. Körs när beställningen läses.
 export function blodcentralen(atk, b, nu = new Date()) {
   const db = atk.db;
   if (b.status !== 'vantar_prov') return;
   if (ps.arAnsluten(db, BLOD_LAB)) return;
-  const t = transfusionsprover(atk, nu);
-  if (!t.blodgrupp || (PRODUKTER[b.produkt].bastest && !t.bastest)) return;
-  if (t.bastest?.positivt) {
-    db.query("UPDATE blod_bestallningar SET status = 'utreds' WHERE id = ?").run(b.id);
-    historik(db, b, null, 'utreds', 'Bastestet är positivt. Blodcentralen utreder antikroppen och hör av sig innan blod kan lämnas ut.', iso(nu));
+  const k = transfusionskontroll(db, b, nu);
+  if (!k.ok) {
+    if (k.vanta) return;
+    if (k.positivt) {
+      db.query("UPDATE blod_bestallningar SET status = 'utreds' WHERE id = ?").run(b.id);
+      historik(db, b, null, 'utreds', 'Bastestet är positivt. Blodcentralen utreder antikroppen och hör av sig innan blod kan lämnas ut.', iso(nu));
+    }
+    avvikelse(db, b, k.orsak, 'blodcentralen', nu);
     return;
   }
   const hallbar = datumAv(new Date(nu.getTime() + PRODUKTER[b.produkt].hallbarDagar * 24 * TIMME));
   db.transaction(() => {
     for (let i = 0; i < b.antal; i++) {
       const r = db.query("INSERT INTO blod_enheter (bestallning_id, patient_id, enhet_id, enhetsnummer, blodgrupp, hallbar, status) VALUES (?, ?, ?, ?, ?, ?, 'reserverad')")
-        .run(b.id, b.patient_id, b.enhet_id, `tmp-${Math.random()}`, t.blodgrupp, hallbar);
+        .run(b.id, b.patient_id, b.enhet_id, `tmp-${Math.random()}`, k.blodgrupp, hallbar);
       db.query('UPDATE blod_enheter SET enhetsnummer = ? WHERE id = ?').run(`DEMO${String(r.lastInsertRowid).padStart(8, '0')}`, Number(r.lastInsertRowid));
     }
     db.query("UPDATE blod_bestallningar SET status = 'beredd' WHERE id = ?").run(b.id);
-    historik(db, b, null, 'beredd', `Förenlighetsprövad mot blodgrupp ${t.blodgrupp} och bastest från ${new Date(t.bastest?.tid ?? nu).toLocaleString('sv-SE', { timeZone: 'Europe/Stockholm' }).slice(0, 16)}. ${b.antal} enheter är reserverade.`, iso(nu));
+    historik(db, b, null, 'beredd', `Förenlighetsprövad mot blodgrupp ${k.blodgrupp}${k.bastest ? ` och bastest från ${new Date(k.bastest.tid).toLocaleString('sv-SE', { timeZone: 'Europe/Stockholm' }).slice(0, 16)}` : ''}. ${b.antal} enheter är reserverade.`, iso(nu));
   })();
 }
 
@@ -185,7 +235,8 @@ export function blodcentralen(atk, b, nu = new Date()) {
 // läses ur den senaste besvarade blodgrupperingen, och varje enhet ska vara förenlig med den. Allt kontrolleras innan
 // något sparas.
 export function patientensBlodgrupp(db, pid) {
-  const a = db.query("SELECT svar_text FROM labb_analyser WHERE patient_id = ? AND analys = 'blodgruppering' AND status = 'besvarad' ORDER BY besvarad_tid DESC LIMIT 1").get(pid);
+  const a = db.query(`SELECT a.svar_text FROM labb_analyser a JOIN labb_bestallningar lb ON lb.id = a.bestallning_id WHERE a.patient_id = ? AND a.analys = 'blodgruppering'
+    AND a.status = 'besvarad' AND lb.makulerad_tid IS NULL ORDER BY a.besvarad_tid DESC LIMIT 1`).get(pid);
   return a ? tolkaBlodgrupp(a.svar_text) : null;
 }
 export function franProducent(db, b, { status, orsak = '', enheter = [], blodgrupp = null }, nu = new Date()) {
@@ -206,9 +257,13 @@ export function franProducent(db, b, { status, orsak = '', enheter = [], blodgru
   }
   if (status !== 'completed') throw fel('Status ska vara "received", "in-progress", "rejected" eller "completed".');
   if (!/^(AB|A|B|O)[+-]$/.test(blodgrupp ?? '')) throw fel('Ange enheternas blodgrupp, till exempel O-, som en output med typen blodgrupp.');
-  const mottagare = patientensBlodgrupp(db, b.patient_id);
-  if (!mottagare) throw fel('Patientens blodgruppering är inte besvarad i Vårdkällan. Skicka svaret på blodgrupperingen först.');
-  if (!forenlig(b.produkt, blodgrupp, mottagare)) throw fel(`Blodgrupp ${blodgrupp} är inte förenlig med patientens blodgrupp ${mottagare} för ${PRODUKTER[b.produkt].namn.toLocaleLowerCase('sv')}. Enheterna tas inte emot.`);
+  // Samma transfusionskontroll som den inbyggda blodcentralen. Ett svar som inte klarar den reserverar inget, och
+  // beställningen får en avvikelse i inkorgen hos den som beställde.
+  const k = transfusionskontroll(db, b, nu, { enhetsgrupp: blodgrupp });
+  if (!k.ok) {
+    avvikelse(db, b, k.orsak, 'producentsystem', nu);
+    throw fel(`${k.orsak} Enheterna tas inte emot.`);
+  }
   if (enheter.length !== b.antal) throw fel(`Beställningen gäller ${b.antal} enheter. Skicka ett enhetsnummer per enhet.`);
   if (enheter.some(e => !/^[A-Z0-9]{6,20}$/.test(e)) || new Set(enheter).size !== enheter.length) throw fel('Ett enhetsnummer har 6 till 20 versaler eller siffror och får bara finnas en gång.');
   if (enheter.some(e => db.query('SELECT 1 FROM blod_enheter WHERE enhetsnummer = ?').get(e))) throw fel('Ett av enhetsnumren finns redan i Vårdkällan.');
@@ -232,6 +287,8 @@ export function bestallningUt(atk, b, nu = new Date()) {
       utlamnad: e.utlamnad_tid, start: e.start_tid, slut: e.slut_tid, givenAv: personNamn(db, e.given_av), kontrolleradAv: personNamn(db, e.kontrollerad_av), reaktion: e.reaktion,
       aterlamnad: e.aterlamnad_tid ? { tid: e.aterlamnad_tid, orsak: e.aterlamnad_orsak } : null,
       startaSenast: e.status === 'utlamnad' ? iso(Date.parse(e.utlamnad_tid) + STARTA_INOM_MINUTER * MIN) : null })),
+    // Runda 10, r6: avvikelserna från transfusionskontrollen.
+    avvikelser: db.query('SELECT * FROM blod_avvikelser WHERE bestallning_id = ? ORDER BY id').all(b.id).map(a => ({ id: a.id, tid: a.tid, orsak: a.orsak, kvitterad: a.kvitterad_tid ? { tid: a.kvitterad_tid, av: personNamn(db, a.kvitterad_av) } : null })),
     historik: db.query('SELECT * FROM blod_historik WHERE bestallning_id = ? ORDER BY id').all(b.id).map(h => ({ tid: h.tid, av: h.personal_id ? personNamn(db, h.personal_id) : BLODCENTRAL, handelse: h.handelse, detalj: h.detalj })),
     demoregel: DEMOREGEL,
   };
@@ -379,3 +436,40 @@ function klarOm(db, atk, b, nu) {
   historik(db, b, atk.personal.id, 'avslutad', 'Alla enheter är transfunderade eller återlämnade.', iso(nu));
 }
 
+
+// ---- Avvikelser i inkorgen (runda 10, r6) ----------------------------------------------------------------------------
+
+// Avvikelserna från transfusionskontrollen för den som beställde blodet. Varje rad visar en patient och loggas på
+// patienten en gång per session och avvikelse.
+export function avvikelserIInkorg(c, patientKort, patientRad, valFor) {
+  const p = c.personal;
+  const db = c.db;
+  if (!p || !db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'blod_avvikelser'").get()) return { blodAvvikelser: [] };
+  const loggade = (c.s.blodAvvikelseLoggad ??= new Set());
+  const ut = [];
+  for (const a of db.query('SELECT v.* FROM blod_avvikelser v JOIN blod_bestallningar b ON b.id = v.bestallning_id WHERE b.bestalld_av = ? AND v.kvitterad_tid IS NULL ORDER BY v.id').all(p.id)) {
+    const atk = new Atkomst(db, p, a.patient_id, valFor(c.s, a.patient_id), 'las_prover');
+    const g = atk.prova('las_prover', { enhet_id: a.enhet_id });
+    if (!g.tillaten) continue;
+    const resurs = `inkorg:blod_avvikelse:${a.id}`;
+    if (!loggade.has(resurs)) { loggade.add(resurs); atk.logga('las_prover', g.grund, resurs); }
+    const b = bestallningRad(db, a.bestallning_id);
+    ut.push({ id: a.id, bestallningId: b.id, nummer: b.nummer, produkt: PRODUKTER[b.produkt].namn, orsak: a.orsak, tid: a.tid, patientId: a.patient_id, patient: patientKort(patientRad(db, a.patient_id)) });
+  }
+  return { blodAvvikelser: ut };
+}
+
+// Den som beställde kvitterar avvikelsen i sin egen inloggning.
+export function kvitteraAvvikelse(atk, id, nu = new Date()) {
+  const db = atk.db;
+  const a = db.query('SELECT v.*, b.bestalld_av FROM blod_avvikelser v JOIN blod_bestallningar b ON b.id = v.bestallning_id WHERE v.id = ?').get(Number(id));
+  if (!a || a.patient_id !== atk.patientId) throw new Fel(404, 'Avvikelsen finns inte.', 'saknas');
+  if (a.bestalld_av !== atk.personal.id) {
+    atk.logga('las_prover', 'nekad', `blod_avvikelse:${a.id}`, 'nekad');
+    throw new Fel(403, 'Avvikelsen kvitteras av den som beställde blodet.', 'nekad');
+  }
+  atk.krav('las_prover', { resurs: { enhet_id: a.enhet_id } });
+  if (!a.kvitterad_tid) db.query('UPDATE blod_avvikelser SET kvitterad_tid = ?, kvitterad_av = ? WHERE id = ?').run(iso(nu), atk.personal.id, a.id);
+  atk.logga('las_prover', atk.grund(), `blod_avvikelse:${a.id}:kvitterad`);
+  return { ok: true, text: 'Avvikelsen är kvitterad.' };
+}
