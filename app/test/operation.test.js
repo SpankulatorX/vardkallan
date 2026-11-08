@@ -42,10 +42,10 @@ describe('Operationsplanering', () => {
     expect(() => anmal(db, 'op1', { kva: 'NFB49' })).toThrow('Ange sidan');
     expect(() => anmal(db, 'op1', { kva: 'constructor' })).toThrow('Välj ingreppet');
     const a = anmal(db);
-    expect(a).toMatchObject({ kva: 'NFB49', ingrepp: 'Primär total protes i höftled med cement', sida: 'höger', minuter: 100, anestesi: 'Regional anestesi (spinal)',
+    expect(a).toMatchObject({ kva: 'NFB49', ingrepp: 'Primär total höftledsplastik med cement', sida: 'höger', minuter: 100, anestesi: 'Regional anestesi (spinal)',
       status: 'vantar', malDatum: addDagar(datumAv(BAS), 90), prioritet: { id: 'inom_3_manader' } });
     expect(a.anmald.av).toBe('Ingrid Moberg');
-    const akut = anmal(db, 'op1', { kva: 'JEA00', prioritet: 'akut' });
+    const akut = anmal(db, 'op1', { kva: 'JEA01', prioritet: 'akut' });
     expect(akut).toMatchObject({ sida: null, anestesi: 'Generell anestesi', malDatum: addDagar(datumAv(BAS), 1) });
   });
 
@@ -71,7 +71,7 @@ describe('Operationsplanering', () => {
     const db = sandlada();
     ny(db, 'op1'); ny(db, 'op2'); ny(db, 'op3', 'kkoga-ort', { skyddad: 1 });
     anmal(db, 'op1', { kva: 'NGB49', sida: 'vanster' });
-    anmal(db, 'op2', { kva: 'JEA00', prioritet: 'akut' });
+    anmal(db, 'op2', { kva: 'JEA01', prioritet: 'akut' });
     anmal(db, 'op3', { kva: 'JKA21', prioritet: 'inom_2_veckor' });
     const v = op.vantelista(db, pers(db, 'ssk-kkoga'), () => ({}), BAS);
     expect(v.vantande.map(x => x.patient.id)).toEqual(['op2', 'op3', 'op1']);
@@ -135,7 +135,7 @@ describe('Operationsplanering', () => {
     op.checklista(s, rad(db, a.id), { del: 'fore_anestesi', bekraftade: ALLA('fore_anestesi') }, vid(5));
     const x = op.registrera(s, rad(db, a.id), { handelse: 'anestesistart' }, vid(10));
     expect(x.forlopp.tider.find(t => t.id === 'anestesistart').tid).toBe(vid(10).toISOString());
-    expect(() => op.registrera(s, rad(db, a.id), { handelse: 'knivtid' }, vid(20))).toThrow('före snitt (time out) är inte klar');
+    expect(() => op.registrera(s, rad(db, a.id), { handelse: 'knivtid' }, vid(20))).toThrow('före snitt är inte klar');
     op.checklista(s, rad(db, a.id), { del: 'fore_snitt', bekraftade: ALLA('fore_snitt') }, vid(25));
     expect(() => op.registrera(s, rad(db, a.id), { handelse: 'knivtid', tid: vid(8).toISOString() }, vid(30))).toThrow('kan inte vara före anestesistart');
     expect(() => op.registrera(s, rad(db, a.id), { handelse: 'anestesistart' }, vid(30))).toThrow('redan registrerad');
@@ -154,7 +154,7 @@ describe('Operationsplanering', () => {
     op.checklista(s, rad(db, a.id), { del: 'fore_snitt', bekraftade: ALLA('fore_snitt') }, vid(25));
     op.registrera(s, rad(db, a.id), { handelse: 'knivtid' }, vid(30));
     const slut = op.registrera(s, rad(db, a.id), { handelse: 'op_slut' }, vid(125));
-    expect(slut.forlopp.atgarder).toEqual([{ kod: 'NFB49', text: 'Primär total protes i höftled med cement', system: 'KVÅ' }]);
+    expect(slut.forlopp.atgarder).toEqual([{ kod: 'NFB49', text: 'Primär total höftledsplastik med cement', system: 'KVÅ' }]);
     expect(slut.forlopp.operationsminuter).toBe(95);
     expect(db.query("SELECT kod FROM atgarder WHERE patient_id = 'op1'").all().map(r => r.kod)).toEqual(['NFB49']);
     expect(() => op.checklista(s, rad(db, a.id), { del: 'fore_utflyttning', bekraftade: ALLA('fore_utflyttning') }, vid(130))).toThrow('Registrera implantatet');
@@ -192,7 +192,7 @@ describe('Operationsplanering', () => {
     // Sjuksköterskan skriver ut men ordinerar inte: systemet föreslår kontrollerna till läkaren.
     const r = op.skrivUt(s, rad(db, id), {}, vid(175));
     expect(r.status).toBe('klar');
-    expect(r.overrapport).toContain('Situation: Primär total protes i höftled med cement höger sida i regional anestesi (spinal), klar klockan');
+    expect(r.overrapport).toContain('Situation: Primär total höftledsplastik med cement höger sida i regional anestesi (spinal), klar klockan');
     expect(r.overrapport).toContain('Implantat: Höftprotes, cementerad stam (demo) (lot LOT-2026-114).');
     expect(r.overrapport).toContain('syremättnad 97');
     expect(r.postopForslag.kontroller).toEqual(op.POSTOP_KONTROLLER);
@@ -213,7 +213,7 @@ describe('Operationsplanering', () => {
     const a = op.anmal(atk(db, 'lak-ort', 'op9', 'operation_anmala'), { kva: 'NGB49', sida: 'hoger' }, BAS);
     op.planera(atk(db, 'lak-ort', 'op9', 'operation_planera'), op.anmalanRad(db, a.id), {}, BAS);
     const egen = op.oversikt(db, pers(db, 'lak-ort'), () => ({}), { datum: MORGON }, BAS);
-    expect(egen.salar[0].operationer[0]).toMatchObject({ anmalanId: a.id, ingrepp: 'Primär total protes i knäled med cement', status: 'planerad', patient: { id: 'op9' } });
+    expect(egen.salar[0].operationer[0]).toMatchObject({ anmalanId: a.id, ingrepp: 'Primär totalprotes i knäled med cement', status: 'planerad', patient: { id: 'op9' } });
     expect(egen.salar[0].belaggning).toBe(24);
     const annan = op.oversikt(db, pers(db, 'lak-kard'), () => ({}), { datum: MORGON }, BAS);
     expect(annan.salar[0].operationer).toEqual([{ start: lokalTid(MORGON, '07:30'), slut: lokalTid(MORGON, '09:30'), upptagen: true }]);
@@ -229,13 +229,13 @@ describe('Operationsplanering', () => {
     const pl = atk(db, 'ssk-kkoga', 'op2', 'operation_planera');
     op.planera(pl, rad(db, b.id), {}, BAS);
     op.stryk(pl, rad(db, b.id), { orsak: 'patient_sjuk' }, efter(30));
-    anmal(db, 'op3', { kva: 'JEA00', prioritet: 'akut' });
+    anmal(db, 'op3', { kva: 'JEA01', prioritet: 'akut' });
     const u = op.uppfoljning(db, pers(db, 'lak-kkoga'), { fran: datumAv(BAS), till: addDagar(datumAv(BAS), 6) }, efter(3 * 24 * 60));
     expect(u.vantande).toMatchObject({ antal: 2, overMal: 1 });
     expect(u.vantetid).toEqual({ genomforda: 1, medianDagar: 0, inomMal: 1 });
     expect(u.strukna).toEqual({ antal: 1, andel: 50, perOrsak: [{ orsak: 'Patienten är sjuk', antal: 1 }] });
     expect(u.salar.find(s => s.id === 'kkoga-sal-1')).toMatchObject({ planeradeMinuter: 130, tillgangligaMinuter: 5 * 510 });
-    expect(u.perIngrepp).toEqual([{ kva: 'NFB49', namn: 'Primär total protes i höftled med cement', antal: 1, medelMinuter: 95, beraknadeMinuter: 100 }]);
+    expect(u.perIngrepp).toEqual([{ kva: 'NFB49', namn: 'Primär total höftledsplastik med cement', antal: 1, medelMinuter: 95, beraknadeMinuter: 100 }]);
     const text = JSON.stringify(u);
     for (const x of ['op1', 'op2', 'Signe', 'Statistiksson', 'personnummer', 'anmalanId']) expect(text).not.toContain(x);
     expect(() => op.uppfoljning(db, pers(db, 'usk-kard'), {}, BAS)).toThrow('uppföljningen');

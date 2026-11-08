@@ -13,7 +13,7 @@ export const HANDLING_FOR = { QD008: 'las_matvarden', PA001: 'las_matvarden', XV
   // Runda 8, r5: stödet vid tobaksbruk bygger på anteckningen om tobaksvanor, som läses som en omvårdnadsanteckning.
   DV111: 'las_omvardnad', DV112: 'las_omvardnad', DV113: 'las_omvardnad',
   // Runda 9, r3: operationerna läses som operationsplaneringen.
-  JKA21: 'las_operation', JEA00: 'las_operation', NFB49: 'las_operation', NGB49: 'las_operation' };
+  JKA21: 'las_operation', JEA01: 'las_operation', NFB49: 'las_operation', NGB49: 'las_operation' };
 
 export function registreraAtgard(atk, { kod, tid, vardkontaktId = null, underlag = null }) {
   if (!KVA[kod]) throw new Fel(400, 'Okänd åtgärdskod.', 'ogiltig');

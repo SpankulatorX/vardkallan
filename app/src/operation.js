@@ -30,13 +30,13 @@ const andraOp = (atk, an, handling) => andraRad(atk, an, handling, 'las_operatio
 
 export const DEMOREGEL = 'Demoregel, inte ett kliniskt beslutsstöd. Salarna och teamet är påhittade.';
 
-// Ingreppen (KVÅ, demourval). minuter är beräknad operationstid, sida att sidan måste anges, implantat att ett
+// Ingreppen (KVÅ 2026, ett urval för demon). minuter är beräknad operationstid, sida att sidan måste anges, implantat att ett
 // implantat ska registreras och blod att blodgruppering och bastest ska finnas före operationen.
 export const INGREPP = tabell({
   JKA21: { kva: 'JKA21', namn: 'Laparoskopisk kolecystektomi', minuter: 75, anestesi: 'generell', sida: false, implantat: false, blod: false },
-  JEA00: { kva: 'JEA00', namn: 'Laparoskopisk appendektomi', minuter: 45, anestesi: 'generell', sida: false, implantat: false, blod: false },
-  NFB49: { kva: 'NFB49', namn: 'Primär total protes i höftled med cement', minuter: 100, anestesi: 'regional', sida: true, implantat: true, blod: true },
-  NGB49: { kva: 'NGB49', namn: 'Primär total protes i knäled med cement', minuter: 90, anestesi: 'regional', sida: true, implantat: true, blod: false },
+  JEA01: { kva: 'JEA01', namn: 'Laparoskopisk appendektomi', minuter: 45, anestesi: 'generell', sida: false, implantat: false, blod: false },
+  NFB49: { kva: 'NFB49', namn: 'Primär total höftledsplastik med cement', minuter: 100, anestesi: 'regional', sida: true, implantat: true, blod: true },
+  NGB49: { kva: 'NGB49', namn: 'Primär totalprotes i knäled med cement', minuter: 90, anestesi: 'regional', sida: true, implantat: true, blod: false },
 });
 export const ANESTESI = tabell({ generell: 'Generell anestesi', regional: 'Regional anestesi (spinal)', lokal: 'Lokalbedövning' });
 export const SIDA = tabell({ hoger: 'höger', vanster: 'vänster' });
@@ -62,7 +62,7 @@ export const CHECKLISTA = tabell({
   fore_anestesi: { namn: 'Före anestesi', punkter: { identitet: 'Patientens identitet är kontrollerad', ingrepp: 'Ingrepp och sida är bekräftade och markerade',
     samtycke: 'Patienten har fått information och samtyckt', utrustning: 'Anestesiutrustningen är kontrollerad', allergi: 'Kända allergier är genomgångna',
     luftvag: 'Risken för svår luftväg är bedömd', blodning: 'Risken för blödning är bedömd och blod finns om det behövs' } },
-  fore_snitt: { namn: 'Före snitt (time out)', punkter: { team: 'Teamet har presenterat sig med namn och roll', bekraftat: 'Patient, ingrepp och sida är bekräftade av teamet',
+  fore_snitt: { namn: 'Före snitt', punkter: { team: 'Teamet har presenterat sig med namn och roll', bekraftat: 'Patient, ingrepp och sida är bekräftade av teamet',
     antibiotika: 'Antibiotikaprofylax är given eller inte aktuell', kritiska: 'Förväntade kritiska moment är genomgångna', bilder: 'Nödvändiga bilder finns tillgängliga' } },
   fore_utflyttning: { namn: 'Innan patienten lämnar salen', punkter: { registrerat: 'Ingreppet är registrerat', rakning: 'Instrument, kompresser och nålar är räknade och stämmer',
     preparat: 'Preparat är märkta', utrustning: 'Problem med utrustning är rapporterade', uppvakning: 'Det viktigaste för uppvakningen är överlämnat' } },

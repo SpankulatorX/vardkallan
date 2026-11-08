@@ -247,6 +247,12 @@ Källa: Klassifikation av vårdåtgärder (KVÅ) 2026, giltig från 2026-01-01, 
 | DV111 | Enkla råd om tobaks- och nikotinbruk | en anteckning om tobaksvanor signeras med enkla råd givna vid besöket (runda 8) |
 | DV112 | Rådgivande samtal om tobaks- och nikotinbruk | som ovan, rådgivande samtal |
 | DV113 | Kvalificerat rådgivande samtal om tobaks- och nikotinbruk | som ovan, kvalificerat rådgivande samtal |
+| JKA21 | Laparoskopisk kolecystektomi | operationen är slut (runda 9, ingreppet i operationsanmälan) |
+| JEA01 | Laparoskopisk appendektomi | som ovan |
+| NFB49 | Primär total höftledsplastik med cement | som ovan |
+| NGB49 | Primär totalprotes i knäled med cement | som ovan |
+
+Runda 9, r3: de fyra operationerna kontrollerades 2026-11-08 mot samma fil (samma sha256), bladet med kirurgiska åtgärder (KKÅ). JEA00 är öppen appendektomi och JEA01 den laparoskopiska. Medicinskt verksamhetsområde 451 Obstetrisk och gynekologisk vård, som kvinnokliniken i demon har, fanns redan i den kontrollerade kodlistan över verksamhetsområden.
 
 OID: urn:oid:1.2.752.116.1.3.2.1.4, som står som aktiv för Klassifikation av vårdåtgärder (KVÅ) i Socialstyrelsens OID-serie (socialstyrelsens-oid-serie-2025-10-17.xlsx, länkad från socialstyrelsen.se/statistik-och-data/klassifikationer-och-koder/andra-kodverk/oid/, hämtad 2026-11-03, sha256 169cc3108f2469a576478922fe4e3e09590dbf1762b9b5507075c795616aaa44). Äldre OID:er för filerna med koder och kodtexter (till exempel 1.2.752.116.1.3.2.3.4) står som inaktiva i samma fil. HL7:s terminologiserver har inte KVÅ, så validatorn kan inte kontrollera koderna.
 

@@ -2,6 +2,23 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "0.9.0",
+      "datum": "2026-11-09",
+      "nyheter": [
+        {
+          "id": "specialistomraden-api",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "liten",
+          "var": "#/moduler",
+          "rubrik": "Operation, graviditet, cytostatika, blod och bilder i API:t",
+          "text": "Operationsplanering, graviditet och förlossning, cytostatika ur behandlingsregim, beställning av blodprodukter och bilder i journalen finns nu i det öppna API:t, med samma behörighet och loggning som journalen. Sidan Moduler beskriver vad som finns. Gränssnittet kommer senare."
+        }
+      ]
+    },
+    {
       "version": "0.8.0",
       "datum": "2026-11-08",
       "nyheter": [

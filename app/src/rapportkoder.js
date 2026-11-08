@@ -30,6 +30,8 @@ export const ENHETER = {
   'uso-inf': { sjukhus: 'uso', mvo: '121' },
   'uso-ort': { sjukhus: 'uso', mvo: '311' },
   'uso-psyk': { sjukhus: 'uso', mvo: '901', akut: '3', psykiatri: true },
+  // Runda 9, r3: kvinnokliniken med förlossningen (obstetrik.js).
+  'uso-kk': { sjukhus: 'uso', mvo: '451' },
   'lind-med': { sjukhus: 'lind', mvo: '101' },
   'kkoga-ort': { sjukhus: 'kkoga', mvo: '311' },
   'vc-tybble': { mvo: '011', primarvard: true },

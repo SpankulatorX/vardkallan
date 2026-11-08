@@ -99,6 +99,18 @@ describe('API för specialistområdena', () => {
     expect((await k.get('/api/cytostatika/uppfoljning')).data.beredningar).toBe(2);
   });
 
+  test('nyheten om specialistområdena visas för läkare och sjuksköterskor i den aktuella versionen, men inte för undersköterskan', async () => {
+    const ids = async (roll) => {
+      const k = klient(app);
+      await k.logga(roll);
+      const n = (await k.get('/api/nyheter')).data;
+      return (n.alla.find(v => v.version === n.version)?.nyheter ?? []).map(x => x.id);
+    };
+    expect(await ids('lak-kard')).toEqual(expect.arrayContaining(['specialistomraden-api']));
+    expect(await ids('ssk-kard')).toEqual(expect.arrayContaining(['specialistomraden-api']));
+    expect(await ids('usk-kard')).not.toContain('specialistomraden-api');
+  });
+
   test('bilder: en bild laddas upp och hämtas som fil med loggning, och patienten skickar en bild från Min journal till granskning', async () => {
     const { k, db } = await start();
     const m = await k.post('/api/patient/sp1/media', { bild: { namn: 'sar.png', data: PNG }, kalla: 'kamera', kroppsstalle: 'höger häl' });

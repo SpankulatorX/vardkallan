@@ -90,7 +90,7 @@ describe('Graviditet och förlossning', () => {
     expect(f.lage).toMatchObject({ id: 'normal' });
     const p = (o, min, fl = 140) => obs.partogram(bm(db), obs.forlossningRad(db, f.id), { oppning: o, fosterljud: fl, varkor: 4, tid: efter(min).toISOString() }, efter(min));
     expect(p(5, 60).lage.id).toBe('normal');
-    expect(p(6, 180).lage).toEqual({ id: 'over_varningslinje', text: 'Förloppet är långsammare än varningslinjen. Bedöm värkarna och tänk på att ta hål på hinnorna eller ge värkstimulering.' });
+    expect(p(6, 180).lage).toEqual({ id: 'over_varningslinje', text: 'Förloppet är långsammare än varningslinjen. Bedöm värkarna och överväg att ta hål på hinnorna eller ge värkstimulering.' });
     const r = p(7, 480, 100);
     expect(r.partogram.at(-1)).toMatchObject({ oppning: 7, varningslinje: 10, atgardslinje: 8, lage: 'over_atgardslinje' });
     expect(r.lage.text).toBe('Förloppet har passerat åtgärdslinjen. Tillkalla förlossningsläkaren nu.');

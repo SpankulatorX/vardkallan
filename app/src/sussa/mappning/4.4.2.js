@@ -3,6 +3,8 @@
 import { TEST } from '../../krav.js';
 // Runda 8, r1: beställning och svar (labb.js, labb-fhir.js, kontroller.js och labb-rutter.js).
 import { T, TESTFALL_3 } from '../labb-r8.js';
+// Runda 9, r3: blodprodukter (blod.js).
+import { BLOD } from '../runda9-r3.js';
 
 const { MJ } = TEST;
 const SIM = 'Laboratorierna är simulerade.';
@@ -85,8 +87,10 @@ export default [
     expert: 'Systemet visar koden som text och sätter den själv i FHIR, så att ingen behöver kunna kodverket.',
     anmarkning: 'KVÅ och standardiserade vårdförlopp i svar tas inte emot.',
   },
-  { id: '4.4.2.12', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
-    anmarkning: 'Beställning av blodprodukter till blodcentralen är inte byggd. Blodprodukter finns som demoposter i läkemedelsprocessen.' },
+  { id: '4.4.2.12', kategori: 'system', egna: [], tester: Object.values(BLOD), avsedd: 'delvis',
+    losning: 'Läkaren beställer erytrocyter, plasma eller trombocyter till den simulerade blodcentralen med antal och indikation. Blodgruppering och bastest beställs och besvaras som andra prover i beställning och svar. Blodcentralen förenlighetsprövar och bereder enheter, och varje enhet följs från utlämning via förberedelse och kontroll vid sängen till transfunderad eller återlämnad. Varje steg sparas med vem och när och visas i beställningen.',
+    expert: 'Systemet beställer själv blodgruppering och bastest som saknas, prövar bastestets giltighet i tre dygn, stoppar ett positivt bastest, kontrollerar id-band, enhetsnummer och blodgruppens förenlighet vid sängen, kräver en andra person som kontrollerar i sin egen inloggning och säger när blodet ska återlämnas.',
+    anmarkning: 'Delvis: blodcentralen, enhetsnumren och reglerna är simulerade och finns i API:t men ännu inte i ett eget gränssnitt. Transfusionen registreras i blodbeställningen och inte som en administrering i läkemedelslistan, och transfusionsreaktioner rapporteras bara som text.' },
   {
     id: '4.4.2.13', kategori: 'system', egna: [], avsedd: 'delvis',
     tester: [T.svar, T.vidimera, T.kritisk, T.undantag, `${MJ}provsvar visas när de är vidimerade eller efter 14 dagar, mätvärden direkt`],

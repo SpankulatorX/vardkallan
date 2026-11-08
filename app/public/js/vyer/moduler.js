@@ -18,16 +18,20 @@ const FINNS = [
   ['Barnhälsovård och tillväxt', 'Tillväxtkurvor med WHO:s tillväxtstandard och larm när kurvor korsas, barnhälsovårdens besöks- och vaccinationsprogram med bokning i tidboken, mätningar hemma från vårdnadshavaren och rapportering till Svenska barnhälsovårdsregistret med kontroll före utskicket. Registret är en simulerad mottagare, och larmen och tidsfönstren är demoregler.', null],
   // Runda 8, r1.
   ['Beställning och svar för laboratoriet', 'Labbeställning med paket som systemet föreslår, beställning på uppdrag, provtagning rör för rör med etiketter, svar med NPU-kod och referensintervall som läkaren vidimerar och kontroller till avdelningen. Laboratorierna är simulerade.', null],
+  // Runda 9, r3: specialistområdena, i det öppna API:t.
+  ['Operationsplanering', 'Operationsanmälan med väntelista, planering av sal, team och tid, WHO:s checklista för säker kirurgi, förloppet med KVÅ och implantat, uppvakning med överrapportering och uppföljning per vårdenhet. Finns i API:t, gränssnittet är inte byggt än. Salarna är påhittade.', '#/api'],
+  ['Graviditet och förlossning', 'Graviditetsjournal med beräknad partus, besöksprogram, provschema och riskbedömning, och förlossningsjournal med partogram och barnets egen journal, också vid flerbörd. Finns i API:t, gränssnittet är inte byggt än.', '#/api'],
+  ['Cytostatika och blodprodukter', 'Cytostatika ur behandlingsregim med dos efter kroppsyta eller njurfunktion, provkontroll, beredningsorder och dubbelkontroll, och blodbeställning med blodgruppering, bastest och kontroll vid sängen. Finns i API:t. Beredningsenheten och blodcentralen är simulerade.', '#/api'],
+  ['Bilder och media', 'Bilder i journalen med import från fil, kamera, Min journal och remissbilagor, jämförelse över tid och studier i ett simulerat multimediaarkiv. Finns i API:t, gränssnittet är inte byggt än.', '#/api'],
   ['Migreringsavstämning och kravspårbarhet', 'Avstämning av migrerade poster och ett kravregister där varje krav pekar på sina automatiska tester.', '#/migrering'],
 ];
 
 const PLANERAT = [
   ['Kassa och resursbokning', 'Kassaredovisning, återbetalning, LMA-kort och avgifter för hjälpmedel, recept och intyg, och bokning av lokaler, utrustning och transporter.'],
   ['Samordnad vårdplanering med kommunen', 'Planering vid utskrivning från sluten vård och informationsutbyte med kommunernas vård och omsorg.'],
-  ['Operation, anestesi och intensivvård', 'Operationsplanering, anestesijournal och övervakning inom intensivvården.'],
-  ['Cytostatika', 'Behandlingsregimer, ordination och beredning av cytostatika.'],
-  ['Förlossning', 'Graviditet, förlossningsjournal och partogram.'],
-  ['Beställning och svar för röntgen och fysiologi', 'Beställningar till bild- och funktionsmedicin, med svar och kvittens. Laboratoriet finns sedan runda 8.'],
+  ['Anestesi och intensivvård', 'Anestesijournal och övervakning inom intensivvården. Operationsplaneringen finns i API:t sedan runda 9.'],
+  ['Gränssnitt för specialistområdena', 'Vyer i journalen för operation, graviditet och förlossning, cytostatika, blodprodukter och bilder, som i dag bara finns i API:t.'],
+  ['Beställning och svar för röntgen och fysiologi', 'Beställningar till bild- och funktionsmedicin, med svar och kvittens. Laboratoriet finns sedan runda 8, och ett simulerat bildarkiv med utlåtande sedan runda 9.'],
   ['Diktat och taligenkänning', 'Diktering av anteckningar med taligenkänning och utskrift.'],
   ['Integrationer mot NLL, NPÖ, 1177 och e-remiss', 'Riktiga anslutningar till nationella tjänster. I demon är NLL simulerad och övriga saknas.'],
   ['Uppföljning och statistik', 'Verksamhetsuppföljning, kvalitetsregister och inrapportering till patientregistret.'],

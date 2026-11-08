@@ -278,7 +278,7 @@ export function partogramUt(rader) {
     return { tid: r.tid, oppning: r.oppning, fosterljud: r.fosterljud, varkor: r.varkor, varningslinje: Number(varn.toFixed(1)), atgardslinje: Number(atg.toFixed(1)), lage };
   });
 }
-const LAGE_TEXT = { latent: 'Latent fas.', normal: 'Förloppet följer varningslinjen.', over_varningslinje: 'Förloppet är långsammare än varningslinjen. Bedöm värkarna och tänk på att ta hål på hinnorna eller ge värkstimulering.',
+const LAGE_TEXT = { latent: 'Latent fas.', normal: 'Förloppet följer varningslinjen.', over_varningslinje: 'Förloppet är långsammare än varningslinjen. Bedöm värkarna och överväg att ta hål på hinnorna eller ge värkstimulering.',
   over_atgardslinje: 'Förloppet har passerat åtgärdslinjen. Tillkalla förlossningsläkaren nu.', fullt_vidgad: 'Modermunnen är fullt vidgad.' };
 
 export function forlossningUt(atk, f) {
