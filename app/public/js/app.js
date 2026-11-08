@@ -58,6 +58,10 @@ kontrast.init();
 import * as sussatest from './vyer/sussatest.js';
 // Runda 8, r3: avdelningens planerade händelser och en resurs planering.
 import * as avdelning from './vyer/avdelning.js';
+// Runda 9, r7: analys och statistik, forskningsuttag och streckkodsläsaren.
+import * as analys from './vyer/analys.js';
+import * as forskning from './vyer/forskning.js';
+import * as skanner from './skanner.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -114,6 +118,9 @@ const MENY = [
   ['#/prislistor', 'Prislistor', 'kort', () => far('prislista')],
   // Runda 7, r5.
   ['#/rapportering', 'Rapportering', 'arkiv', () => far('myndighetsrapport')],
+  // Runda 9, r7: patientgrupper, statistik, folkhälsa och ledtider, och beställningar av forskningsuttag.
+  ['#/analys', 'Analys och statistik', 'krav', () => pa('patientgrupp', 'statistik', 'statistik_region')],
+  ['#/forskning', 'Forskningsuttag', 'arkiv', () => pa('forskning_bestall', 'forskning_godkann')],
   // Runda 7, r2: övningar och intyg för all personal (Sussa 10.1.1.5).
   ['#/utbildning', 'Utbildning', 'person', () => far('utbildning')],
   // Runda 7, r1: testledaren läser och exporterar svaren från användartesterna.
@@ -134,6 +141,9 @@ const RUTTER = [
   [/^#\/arbetslista$/, arbetslista, () => !utanJournal()],
   // Runda 8, r3.
   [/^#\/avdelning$/, avdelning, () => far('las_planering')],
+  // Runda 9, r7.
+  [/^#\/analys$/, analys, () => pa('patientgrupp', 'statistik', 'statistik_region')],
+  [/^#\/forskning$/, forskning, () => pa('forskning_bestall', 'forskning_godkann')],
   [/^#\/avdelning\/patient\/([\w-]+)$/, avdelning.patient, () => far('las_planering')],
   [/^#\/avdelning\/resurs\/([\w-]+)$/, avdelning.resurs, () => far('las_planering')],
   [/^#\/sok$/, sok, () => far('sok')],
@@ -321,6 +331,7 @@ function ritaRam(route) {
         <span class="kort-ikon" aria-hidden="true">${ikon.kort}</span>
         <span class="vem"><strong>${esc(p.namn)}</strong><span>${esc(p.titel)}, ${esc(e.namn)}</span></span>
       </div>
+      ${skanner.faltHtml()}
       <a class="svarstid" id="svarstid" href="#/drift">${svarstidHtml()}</a>
       ${utanJournal() ? '' : `<button type="button" class="knapp text liten reservknapp" data-a="reservkod">${ikon.nyckel}<span data-reserv-text>Reservkod</span></button>`}
       <button type="button" class="knapp sekundar liten" data-a="loggaut">${ikon.ut}<span>Logga ut</span></button>

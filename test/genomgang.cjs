@@ -162,6 +162,10 @@ const MENY = {
 };
 // Runda 8, r1: sjuksköterskan och undersköterskan har Prover och kontroller direkt efter Läkemedel att ge.
 for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].indexOf('Läkemedel att ge') + 1, 0, 'Prover och kontroller');
+// Runda 9, r7: Analys och statistik för läkare, sjuksköterskor, vårdadministratörer och uppföljningen, och
+// Forskningsuttag för uppföljningen, arkivarien och verksamhetschefen, före Utbildning.
+for (const k of ['klinisk', 'sjukskoterska', 'vardadministrator', 'psykiatri', 'uppfoljning', 'bvc']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Analys och statistik');
+for (const k of ['uppfoljning', 'arkiv', 'verksamhetschef']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Forskningsuttag');
 
 (async () => {
   const browser = await chromium.launch();

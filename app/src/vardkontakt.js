@@ -71,6 +71,8 @@ export function kontaktUt(db, v, personal = null) {
     vardtillfalleId: v.vardtillfalle_id ?? null, halsoarendeId: v.halsoarende_id ?? null, foregaendeId: v.foregaende_id ?? null,
     automatisk: Boolean(v.automatisk), gerVardrelation: v.ger_vardrelation !== 0, skapad: v.skapad ?? v.start, skapadAv: personKort(db, v.skapad_av),
     andrad: v.andrad ?? null, andradAv: personKort(db, v.andrad_av),
+    // Runda 9, r7: när besöket faktiskt slutade, utan att kontakten avslutades (vardformer.js, Sussa 6.1.1.6).
+    besokSlut: v.besok_slut ?? null,
   };
   if (personal && kanRoll(personal, 'registrera_vardkontakt') && v.typ !== 'slutenvard') {
     const p = db.query('SELECT * FROM patienter WHERE id = ?').get(v.patient_id);
