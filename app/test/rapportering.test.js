@@ -214,7 +214,8 @@ describe('Myndighetsrapportering', () => {
     // Varje vårdenhet i demon har en kod eller är primärvård.
     const db = rensad();
     expect(mr.mappning(db).filter(e => e.saknas).map(e => e.id)).toEqual([]);
-    expect(Object.keys(ENHETER).length).toBe(10);
+    // Runda 9, r3: och kvinnokliniken.
+    expect(Object.keys(ENHETER).length).toBe(11);
   });
 });
 

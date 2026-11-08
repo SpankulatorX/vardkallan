@@ -27,6 +27,8 @@ import { referens, utanforReferens, ckdEpi2021 } from './skalor.js';
 // Mätvärden som systemförvaltningen har undantagit från visning visas inte heller som svar (Sussa 12.1.1.10).
 import { provare as undantagProvare } from './undantag.js';
 import { LAB, LABORATORIER, ROR, ANALYSER, ANALYS, PAKET, PAKETEN, SVARSVARDEN, FYND, DISCIPLINER, DEMOREGEL, finns as iKatalog } from './labb-katalog.js';
+// Runda 9, r3: blodcentralens svar.
+import { blodgruppFor, blodgruppText } from './labb-katalog.js';
 
 export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS labb_bestallningar (
@@ -691,6 +693,11 @@ function besvara(db, b, a, nu) {
     if (fynd !== 'ingen_vaxt') { avvikande = 'fynd'; if (a.analys === 'blododling') kritisk = 1; }
   } else if (def.patologi) {
     text = demo.pad ?? 'Hudbiopsi med benign förändring utan atypi. Radikalt exciderad.';
+  } else if (def.transfusion) {
+    // Runda 9, r3: blodcentralens svar (blod.js). Ett positivt bastest är avvikande och kräver utredning före transfusion.
+    if (a.analys === 'blodgruppering') text = `${blodgruppText(demo.blodgrupp ?? blodgruppFor(b.patient_id))}.`;
+    else if (demo.bastest === 'positiv') { text = 'Antikroppsscreening positiv. Blodcentralen utreder antikroppen innan blod kan lämnas ut.'; avvikande = 'fynd'; }
+    else text = 'Antikroppsscreening negativ.';
   }
   db.query("UPDATE labb_analyser SET status = 'besvarad', besvarad_tid = ?, svar_text = ?, fynd = ?, avvikande = ?, kritisk = ? WHERE id = ?")
     .run(iso(nu), text, fynd, avvikande, kritisk, a.id);

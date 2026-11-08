@@ -423,6 +423,8 @@ export function byggSeed(bas = nu()) {
   // Runda 8, r1: beställning och svar och kontrollerna till avdelningen (labb-seed.js). Sist, eftersom beställningarna görs
   // med modulernas egna funktioner, som läser vårdstrukturen, konfigurationen och undantagen.
   require('./labb-seed.js').seeda(db, { bas });
+  // Runda 9, r3: tabellerna för operation, blodprodukter, graviditet och förlossning, cytostatika och bilder.
+  require('./r9r3-rutter.js').sakra(db);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -533,6 +535,8 @@ export function migrera(db) {
   require('./iva.js').sakra(db);
   // Runda 8, r1: tabellerna för beställning och svar och för kontrollerna. Inga beställningar läggs in i efterhand.
   require('./labb-seed.js').sakra(db);
+  // Runda 9, r3: specialistområdenas tabeller. Inget läggs in i efterhand.
+  require('./r9r3-rutter.js').sakra(db);
   return db;
 }
 

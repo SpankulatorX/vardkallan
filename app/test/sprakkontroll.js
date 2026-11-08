@@ -177,6 +177,8 @@ for (const w of ['LPK', 'TPK', 'EDTA', 'NT', 'PAD', 'SR', 'B12', 'DiagnosticRepo
 for (const w of ['IMP', 'PATCH', 'EHR', 'DOS', 'DOS-lagen']) TILLATNA.add(w);
 // Runda 7, r1: källan till tidsmodellen i Sussas testfall.
 for (const w of ['ACM', 'Newell']) TILLATNA.add(w);
+// Runda 9, r3: blodgrupperna, cytostatikaregimerna och dosberäkningen (AUC och GFR i Calverts formel) och CTG.
+for (const w of ['AB', 'EC', 'AUC', 'GFR', 'CTG']) TILLATNA.add(w);
 // Fraser med engelska ord som är namn på standarder, rubriker, parametrar och tekniska begrepp. Ett tomt värde i data
 // beskrivs som tomt, inte som null (beslut 2026-11-03).
 export const FRASER = ['HL7 Sweden', '$everything', 'pull request', 'Server-Timing', 'X-Content-Type-Options', 'Content-Type', 'Content-Disposition',

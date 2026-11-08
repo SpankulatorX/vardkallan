@@ -1408,6 +1408,64 @@ Demon har åtta simulerade utrustningar (`UTRUSTNING`). En kopplad simulerad mon
 - Operationsanmälan finns inte, så anestesibedömningen knyts till vårdkontakten. Anestesijournal under ingreppet, vasoaktiva läkemedel och sedering (som inte finns i katalogen), vårdtyngd enligt NEMS eller NAS, SAPS 3 och rapportering till Svenska Intensivvårdsregistret saknas.
 - Reglerna, protokollet och vårdtyngden är demoregler och inte kliniskt beslutsstöd.
 
+## Specialistområden: operation, blodprodukter, graviditet och förlossning, cytostatika och bilder (runda 9, r3: operation.js, blod.js, obstetrik.js, cytostatika.js, bilder.js, specialist-hjalp.js och r9r3-rutter.js, Sussa 4.2, 4.4.2.12, 4.5, 4.7 och 4.8)
+
+Fem specialistområden i Sussas kapitel 4 har en grundfunktion i servern och i API:t. De bygger på det som redan finns:
+beställning och svar (labb.js) för prover och blodgruppering, åtgärder med KVÅ (atgarder.js) för ingreppen, kontrollerna
+till avdelningen (kontroller.js) för de postoperativa kontrollerna, identiteten (identitet.js) för barnets reservnummer,
+barnhälsovårdens födelseuppgifter (tillvaxt_uppgifter) och remissernas bilagor (remiss-r4.js). Inget eget gränssnitt finns
+ännu, och alla regler, salar, regimer, arkiv och blodcentralen är demoregler eller simulerade.
+
+Behörigheten följer resten av systemet. Nya handlingar: `las_operation`, `operation_anmala`, `operation_planera` och
+`operation_registrera`; `las_graviditet` och `graviditet`; `las_cytostatika`, `ordinera_cytostatika` och `ge_cytostatika`.
+Bilder läses och skrivs med journalens handlingar och blod med provbeställningens och läkemedlens. Varje rad som anges med
+id binds till patienten i anropet (annars 404), radens vårdenhet prövas i behörighetsmotorn med inre sekretess, aktivt
+val, spärr och samtycke, och det som ändrar något kräver dessutom att den inloggade arbetar på radens vårdenhet. Listor på
+enhetsnivå (väntelistan, dagens operationer, väntande kontroller och bilder) visar bara patienter som den inloggade får se
+och loggar varje patient. Dagens operationer visar en annan vårdenhets operation bara som upptagen tid. Uppföljningarna
+per vårdenhet kräver `statistik` och innehåller inga personuppgifter.
+
+**Operation.** Läkaren anmäler med ingrepp (fyra demokoder ur KVÅ i `KVA_DEMO`, se docs/kodkontroll.md), sida, prioritet
+och anestesiform. Systemet sätter operationstid, mål för väntetiden (ett dygn, två veckor eller vårdgarantins 90 dagar)
+och förberedelserna: proverna före operationen (blodgruppering och bastest vid risk för blödning), anestesibedömning och
+kallelse. Planeringen föreslår första lediga tid i en sal på sjukhuset med operatören och en operationssjuksköterska på
+vårdenheten och nekar dubbelbokning av sal och team. En struken operation får orsak och står kvar på väntelistan. Under
+operationen sätter systemet tiderna i ordning, WHO:s checklista för säker kirurgi (förkortad) måste vara klar före
+anestesi, snitt och utflyttning, ett ingrepp med implantat kräver implantatet med lot, och ingreppet blir en åtgärd med
+KVÅ (FHIR Procedure). Uppvakningen prövar kriterierna för utskrivning mot kontrollerna, och utskrivningen skriver
+överrapporteringen och ordinerar de postoperativa kontrollerna till avdelningen.
+
+**Blodprodukter.** Blodgruppering och bastest är analyser i disciplinen transfusionsmedicin till den simulerade
+blodcentralen. Blodgruppen räknas ur patientens id, och bastestet gäller i tre dygn. En blodbeställning beställer själv de
+prover som saknas, blodcentralen förenlighetsprövar och bereder enheter och ett positivt bastest stoppar beställningen.
+Varje enhet följs från utlämning via förberedelse vid sängen och kontroll av en andra person till transfunderad eller
+återlämnad, och blod som inte har startats inom 30 minuter ska återlämnas.
+
+**Graviditet och förlossning.** Barnmorskan skriver in graviditeten. Systemet räknar beräknad partus ur sista mens och
+väljer ultraljudet när det skiljer mer än sju dagar, lägger ut besöksprogrammet och provschemat efter vecka, risk och
+flerbörd, gör riskbedömningen ur journalen och varnar vid besöket. Förlossningsjournalen har partogram med varningslinje
+och åtgärdslinje. Vid födelsen får varje barn en journal med reservnummer kopplad till modern, och födelseuppgifterna förs
+till barnhälsovården. Förlossningen läser graviditetsjournalen från en annan vårdenhet först efter ett aktivt val. Demon
+har en kvinnoklinik på USÖ med förlossningen och BB, en barnmorska och en läkare, som inte går att logga in som.
+
+**Cytostatika.** Läkaren ordinerar ur tre demoregimer. Systemet räknar kroppsytan (Mosteller), njurfunktionen
+(Cockcroft-Gault, med tak 125) och doserna (per kvadratmeter eller Calverts formel), prövar provsvaren före kuren och
+låter läkaren dosjustera med orsak eller skjuta upp cykeln. Den godkända kuren blir en beredningsorder till en simulerad
+beredningsenhet med volym, bärarlösning, etikett och streckkod. Vid sängen iordningställer den som ska ge kuren med id-band
+och etikett, och dosen väntar på dubbelkontroll hos de andra behöriga på vårdenheten. Den andra personen bekräftar med
+en egen läsning i sin egen inloggning, aldrig den som iordningställde, och först därefter ges dosen, i regimens ordning.
+Samma dubbelkontroll gäller blodet.
+
+**Bilder och media.** PNG, JPEG och PDF (högst 40 kB i demon, 40 per patient) knyts till patient, vårdenhet, vårdkontakt
+och anteckning, med källan märkt: fil, kamera, Min journal, remissbilaga eller arkiv. Bilder av samma kroppsställe ställs
+i tidsordning. Patientens uppladdning i Min journal och patientens egna remissbilagor granskas av den mottagande
+vårdenheten innan de kommer in i journalen. En remissbilaga behåller avsändarens vårdenhet, så att en spärr gäller också
+i journalen. Undersökningar beställs till ett simulerat multimediaarkiv, som svarar med utlåtande och en bildlänk som
+visas med journalens behörighet och loggning.
+
+Det som saknas står i Sussa-registrets anmärkningar: gränssnitt, FHIR för graviditet, cytostatika, blod och bilder,
+datauttaget för uppföljningarna, anestesijournal, CTG, regimbibliotek med godkännande och DICOM.
+
 ## Godkännandekriterier för första versionen
 
 - `bun test` grönt, med tester för varje regel i behörighetsmotorn, loggkedjan och triggrarna, signering och rättelse, obligatoriska fält och varningar i läkemedel, NLL som inte svarar i tid och avstämning, remissens statuskedja och larm, FHIR-svarens form.

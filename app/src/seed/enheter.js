@@ -13,6 +13,9 @@ export const ENHETER = [
   { id: 'uso-inf', hsa: 'SE2321000164-VK0140', namn: 'Infektionskliniken USÖ', typ: 'vardenhet', forald: 'uso' },
   { id: 'uso-ort', hsa: 'SE2321000164-VK0150', namn: 'Ortopediska kliniken USÖ', typ: 'vardenhet', forald: 'uso' },
   { id: 'uso-psyk', hsa: 'SE2321000164-VK0160', namn: 'Allmänpsykiatriska kliniken USÖ', typ: 'vardenhet', forald: 'uso' },
+  // Runda 9, r3: kvinnokliniken med förlossningen och BB (obstetrik.js, Sussa 4.7).
+  { id: 'uso-kk', hsa: 'SE2321000164-VK0170', namn: 'Kvinnokliniken USÖ', typ: 'vardenhet', forald: 'uso' },
+  { id: 'uso-kk-forl', hsa: 'SE2321000164-VK0171', namn: 'Förlossningen och BB, USÖ', typ: 'arbetsplats', forald: 'uso-kk' },
   { id: 'lind', hsa: 'SE2321000164-VK0200', namn: 'Lindesbergs lasarett', typ: 'sjukhus', forald: 'rol' },
   { id: 'lind-med', hsa: 'SE2321000164-VK0210', namn: 'Medicinkliniken Lindesbergs lasarett', typ: 'vardenhet', forald: 'lind' },
   { id: 'kkoga', hsa: 'SE2321000164-VK0300', namn: 'Karlskoga lasarett', typ: 'sjukhus', forald: 'rol' },

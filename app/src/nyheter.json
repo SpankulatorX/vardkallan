@@ -89,6 +89,17 @@
           "var": "#/min",
           "rubrik": "Lämna egna mätningar",
           "text": "Under Egna mätningar i Min journal lämnar du blodtryck, puls, vikt och andra värden som du har mätt själv. De skickas till vårdenheten som vårdar dig, och vården bedömer dem."
+        },
+        {
+          "id": "specialistomraden-api",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "liten",
+          "var": "#/moduler",
+          "rubrik": "Operation, graviditet, cytostatika, blod och bilder i API:t",
+          "text": "Operationsplanering, graviditet och förlossning, cytostatika ur behandlingsregim, beställning av blodprodukter och bilder i journalen finns nu i det öppna API:t, med samma behörighet och loggning som journalen. Sidan Moduler beskriver vad som finns. Gränssnittet kommer senare."
         }
       ]
     },

@@ -249,6 +249,9 @@ describe('Åtgärder med KVÅ', () => {
       DV111: 'Enkla råd om tobaks- och nikotinbruk',
       DV112: 'Rådgivande samtal om tobaks- och nikotinbruk',
       DV113: 'Kvalificerat rådgivande samtal om tobaks- och nikotinbruk',
+      // Runda 9, r3: operationerna i demon.
+      JKA21: 'Laparoskopisk kolecystektomi', JEA01: 'Laparoskopisk appendektomi', NFB49: 'Primär total höftledsplastik med cement',
+      NGB49: 'Primär totalprotes i knäled med cement',
     });
     expect(SYSTEM.kva).toBe('urn:oid:1.2.752.116.1.3.2.1.4');
   });

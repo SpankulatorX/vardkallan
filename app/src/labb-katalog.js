@@ -18,6 +18,8 @@ export const DISCIPLINER = tabell({
   klinisk_kemi: { namn: 'Klinisk kemi', fhir: 'LAB' },
   mikrobiologi: { namn: 'Klinisk mikrobiologi', fhir: 'MB' },
   patologi: { namn: 'Klinisk patologi', fhir: 'SP' },
+  // Runda 9, r3: blodgruppering, bastest och blodprodukter till blodcentralen (blod.js, Sussa 4.4.2.12).
+  transfusionsmedicin: { namn: 'Transfusionsmedicin', fhir: 'BLB' },
 });
 
 // De simulerade laboratorierna. Klinisk kemi har tre utförande laboratorier (Sussa 4.4.1.2), och systemet väljer det
@@ -28,6 +30,8 @@ export const LABORATORIER = [
   { id: 'lab-kem-kkoga', hsa: 'SE2321000164-VKL301', namn: 'Klinisk kemi Karlskoga (simulerat laboratorium)', kort: 'Klinisk kemi Karlskoga', disciplin: 'klinisk_kemi', sjukhus: ['kkoga'] },
   { id: 'lab-mikro-uso', hsa: 'SE2321000164-VKL102', namn: 'Klinisk mikrobiologi USÖ (simulerat laboratorium)', kort: 'Klinisk mikrobiologi', disciplin: 'mikrobiologi', sjukhus: [] },
   { id: 'lab-pat-uso', hsa: 'SE2321000164-VKL103', namn: 'Klinisk patologi USÖ (simulerat laboratorium)', kort: 'Klinisk patologi', disciplin: 'patologi', sjukhus: [] },
+  // Runda 9, r3: den simulerade blodcentralen.
+  { id: 'lab-blod-uso', hsa: 'SE2321000164-VKL104', namn: 'Blodcentralen USÖ (simulerad)', kort: 'Blodcentralen', disciplin: 'transfusionsmedicin', sjukhus: [] },
 ];
 export const LAB = tabell(Object.fromEntries(LABORATORIER.map(l => [l.id, l])));
 
@@ -65,6 +69,10 @@ export const ANALYSER = [
   a('blododling', 'Blododling', 'mikrobiologi', 'blododling', { odling: true, anamnes: true, dubblettTimmar: 2, ord: ['blododling', 'odling', 'sepsis', 'bakterier i blodet'] }),
   a('urinodling', 'U-Odling', 'mikrobiologi', 'urin', { odling: true, anamnes: true, dubblettTimmar: 24, ord: ['urinodling', 'odling', 'urinvägsinfektion', 'uvi'] }),
   a('pad', 'PAD, vävnadsprov', 'patologi', 'vavnad', { patologi: true, anamnes: true, dubblettTimmar: 0, ord: ['pad', 'biopsi', 'vävnadsprov', 'patologi'] }),
+  // Runda 9, r3: blodgruppering och bastest (antikroppsscreening) till blodcentralen. Bastestet gäller i tre dygn inför en
+  // transfusion (BASTEST_TIMMAR, demoregel), och blodgrupperingen behöver bara göras om när den saknas.
+  a('blodgruppering', 'B-Blodgruppering (AB0 och RhD)', 'transfusionsmedicin', 'edta', { transfusion: true, dubblettTimmar: 24 * 365, ord: ['blodgruppering', 'blodgrupp', 'ab0', 'rhd'] }),
+  a('bastest', 'B-Bastest (antikroppsscreening)', 'transfusionsmedicin', 'edta', { transfusion: true, dubblettTimmar: 72, ord: ['bastest', 'antikroppsscreening', 'blodbeställning', 'transfusion'] }),
 ];
 export const ANALYS = tabell(Object.fromEntries(ANALYSER.map(x => [x.id, x])));
 
@@ -137,3 +145,16 @@ export const FREKVENSER = tabell({
   fore_maltid: { namn: 'Före måltid', klockslag: ['07:30', '11:30', '16:30'] },
   dygnet: { namn: 'Under ett dygn', dygn: true },
 });
+
+// Runda 9, r3: den simulerade blodcentralens svar. Blodgruppen räknas ur patientens id med ungefär den fördelning som
+// finns i Sverige, så att samma patient alltid får samma blodgrupp. Bastestet är negativt utom när demon säger annat.
+export const BASTEST_TIMMAR = 72;
+const BLODGRUPPER = [['A+', 37], ['O+', 32], ['B+', 10], ['AB+', 5], ['A-', 7], ['O-', 6], ['B-', 2], ['AB-', 1]];
+export function blodgruppFor(patientId) {
+  let h = 2166136261;
+  for (const c of String(patientId)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+  let x = (h >>> 0) % 100;
+  for (const [g, andel] of BLODGRUPPER) { if (x < andel) return g; x -= andel; }
+  return 'O+';
+}
+export const blodgruppText = (g) => `Blodgrupp ${g.replace(/[+-]$/, '')} RhD ${g.endsWith('+') ? 'positiv' : 'negativ'}`;
