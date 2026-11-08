@@ -2,9 +2,12 @@
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 import { TEST } from '../../krav.js';
 
+// Runda 8, r3: avdelningens planering (sussa/bokning-r8.js).
+import { medR8 } from '../bokning-r8.js';
+
 const { B, A, S } = TEST;
 
-export default [
+export default medR8([
   {
     id: '3.1.2.1', kategori: 'system', egna: ['D2', 'D8'], avsedd: 'delvis',
     tester: [
@@ -38,4 +41,4 @@ export default [
     expert: 'Systemet avgör självt vem som får se namn i väntrummet, så den som ropar upp behöver inte veta vem som har skyddad identitet.',
     anmarkning: 'Andra vyer utan personuppgifter, till exempel beläggningsöversikt eller vyer för utbildning, saknas.',
   },
-];
+]);

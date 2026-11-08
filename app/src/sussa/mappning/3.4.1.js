@@ -4,6 +4,8 @@ import { TEST } from '../../krav.js';
 import { T, flode } from '../tidbok-tester.js';
 // Runda 6, r4.
 import { medR4 } from '../planering-r4.js';
+// Runda 8, r3.
+import { medR8 } from '../bokning-r8.js';
 
 const { A, M, R, GK } = TEST;
 
@@ -77,4 +79,4 @@ const AVSNITT = [
 ];
 
 // Runda 6, r4: posterna som byggdes i planering och tidbok, del 2, och remiss, del 2, ersätts ur sussa/planering-r4.js.
-export default medR4(AVSNITT);
+export default medR8(medR4(AVSNITT));

@@ -57,6 +57,8 @@ import * as planering from './planering.js';
 import * as tidbokFhir from './tidbok-fhir.js';
 // Runda 7, r3: ekonomi, faktureringsunderlag och kostnader i vårdprocessen (Sussa 7.1).
 import { registreraRutter as ekonomiRutter } from './ekonomi-rutter.js';
+// Runda 8, r3: fri bokning, teambesök, gruppträffar och avdelningens planerade händelser (r8r3-rutter.js).
+import { registreraRutter as r8r3Rutter } from './r8r3-rutter.js';
 import * as ekonomi from './ekonomi.js';
 // Runda 7, r4: systemförvaltningen, med konfiguration, omorganisation, undantag och lagring.
 import { registreraRutter as systemforvaltningRutter, efterDatum as systemforvaltningEfterDatum, inkorg as systemforvaltningInkorg } from './systemforvaltning-rutter.js';
@@ -1526,6 +1528,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   utdataRutter({ rutt, kravInloggad, medPatient, valFor, version: APPVERSION });
   // Runda 6, r3.
   r3Rutter({ rutt, kravInloggad, medPatient, valFor });
+  // Runda 8, r3.
+  r8r3Rutter({ rutt, kravInloggad, medPatient, valFor });
   r1Rutter({ rutt, kravInloggad, medPatient, valFor });
   // Runda 6, r2: läkemedelsprocessen, del 2.
   lakemedelsstodRutter({ rutt, kravInloggad, medPatient });

@@ -15,6 +15,9 @@ import { laggTillSkanning } from './remiss-r8.js';
 // Runda 8, r1: tema 3, beställning och svar (labb.js och kontroller.js).
 import * as labb from './labb.js';
 import { TREVIS_3_3, BERTIL_PK_BESTALLD_AV } from './seed/sussa-testdata.js';
+// Runda 8, r3: testfall 5.1 till 5.3 och tema 7.
+import { TIDIGARE_BESOK_5, GRUPP_5_3, INSKRIVNA_7, HANDELSER_7 } from './seed/sussa-testdata.js';
+import * as avdelningsplan from './avdelningsplan.js';
 
 const MIN = 60_000;
 const kon = (pnr) => (Number(pnr[10]) % 2 === 1 ? 'man' : 'kvinna');
@@ -225,6 +228,67 @@ export function laddaTestdata(db, personal, { nu = new Date() } = {}) {
   for (const m of db.query("SELECT * FROM matvarden WHERE patient_id = 'sus01' AND typ = 'inr' AND enhet_id = 'vc-tybble' ORDER BY tid").all()) {
     labb.kopplaBefintligtSvar(db, { matvardeId: m.id, analys: 'pk', ansvarig: BERTIL_PK_BESTALLD_AV, bestalld: plus(m.tid, -30) });
   }
+  // Runda 8, r3: testfall 5.1 till 5.3.
+  laggTillBokningsdata(db, { nu, T, plus });
 
   return { ok: true, redan: false, patienter: SUSSA_PATIENTER.length };
+}
+
+// Runda 8, r3: testfall 5.1 till 5.3. Patienterna har varit på mottagningen förut, med en signerad anteckning av den de
+// träffade, och har en påhittad adress så att kallelsen kan skickas (som brev, simulerat). Fysioterapeuten får ett schema
+// med gruppträffen i testfall 5.3.
+function laggTillBokningsdata(db, { nu, T, plus }) {
+  const basDatum = datumAv(nu);
+  db.transaction(() => {
+    TIDIGARE_BESOK_5.forEach((b, i) => {
+      const start = T(-60 + i, '10:00');
+      const vk = Number(db.query(`INSERT INTO vardkontakter (patient_id, enhet_id, typ, kontaktsatt, start, slut, plats, orsak, kalla, planerad, skapad, automatisk, ger_vardrelation)
+        VALUES (?, 'uso-kard-mott', 'oppenvard', 'besok', ?, ?, 'Kardiologiska mottagningen', 'Besök', 'vardkallan', 0, ?, 0, 1)`).run(b.patient, start, plus(start, 30), start).lastInsertRowid);
+      b.hos.forEach((av, j) => {
+        const typ = j ? 'Omvårdnadsanteckning' : 'Mottagningsanteckning';
+        db.query(`INSERT INTO anteckningar (patient_id, enhet_id, vardkontakt_id, typ, kategori, sokord, forfattare_id, skapad, status, signerad_tid, signerad_av, version, kalla)
+          VALUES (?, 'uso-kard-mott', ?, ?, ?, ?, ?, ?, 'signerad', ?, ?, 1, 'vardkallan')`)
+          .run(b.patient, vk, typ, j ? 'omvardnad' : 'lakare', JSON.stringify([{ sokord: 'Aktuellt', text: 'Besök på mottagningen.' }]), av, plus(start, 10 + j), plus(start, 15 + j), av);
+      });
+      db.query("UPDATE patienter SET adress = ?, postnr = '702 10' WHERE id = ? AND adress IS NULL").run(`Påhittad gata ${i + 1} (demo)`, b.patient);
+    });
+    const g = GRUPP_5_3;
+    db.query('INSERT OR IGNORE INTO scheman (id, enhet_id, personal_id, yrkesroll) VALUES (?, ?, ?, ?)').run(g.schema, g.enhet, g.personal, 'fysioterapeut');
+    let dag = addDagar(basDatum, g.dag);
+    while ([0, 6].includes(new Date(`${dag}T12:00:00Z`).getUTCDay())) dag = addDagar(dag, 1);
+    const start = lokalTid(dag, g.klocka);
+    db.query("INSERT INTO tider (schema_id, start, slut, tidstyp, platser, rubrik, relativ) VALUES (?, ?, ?, 'grupp', ?, ?, 0)").run(g.schema, start, plus(start, g.minuter), g.platser, g.rubrik);
+  })();
+}
+
+// Runda 8, r3: tema 7, gemensamma vyer. Fyra patienter till skrivs in på Avdelning 72, och de planerade händelserna i
+// Bilaga F1:3 tabell 17 läggs in med Sussas dagar och klockslag räknade från i dag. Händelser som redan har varit är
+// utförda. Läggs in en gång per sandlåda, efter Sussas testdata (POST /api/demo/sussa-avdelning).
+export function laddaAvdelning(db, personal, { nu = new Date() } = {}) {
+  if (!personal) throw new Fel(401, 'Logga in först.', 'ej_inloggad');
+  if (!harTestdata(db)) laddaTestdata(db, personal, { nu });
+  avdelningsplan.sakra(db);
+  if (db.query("SELECT 1 FROM planerade_uppgifter WHERE kalla = 'sussa' LIMIT 1").get()) return { ok: true, redan: true };
+  const basDatum = datumAv(nu);
+  const T = (dag, klocka) => lokalTid(addDagar(basDatum, dag), klocka);
+  db.transaction(() => {
+    for (const x of INSKRIVNA_7) {
+      const inskriven = T(-2, '10:00');
+      const vt = Number(db.query("INSERT INTO vardtillfallen (patient_id, enhet_id, inskriven, utskriven, orsak, inskriven_av, kalla) VALUES (?, 'uso-kard', ?, NULL, ?, 'ssk-kard', 'vardkallan')").run(x.patient, inskriven, x.orsak).lastInsertRowid);
+      db.query("INSERT INTO vardtillfalle_handelser (vardtillfalle_id, typ, tid, enhet_id, plats, av, detalj) VALUES (?, 'inskrivning', ?, 'uso-kard-72', ?, 'ssk-kard', NULL)").run(vt, inskriven, x.plats);
+      db.query(`INSERT INTO vardkontakter (patient_id, enhet_id, typ, kontaktsatt, start, slut, plats, orsak, kalla, planerad, vardtillfalle_id, skapad, skapad_av, automatisk, ger_vardrelation)
+        VALUES (?, 'uso-kard-72', 'slutenvard', NULL, ?, NULL, ?, ?, 'vardkallan', 0, ?, ?, 'ssk-kard', 0, 1)`).run(x.patient, inskriven, x.plats, x.orsak, vt, inskriven);
+    }
+    const ins = db.query(`INSERT INTO planerade_uppgifter (patient_id, enhet_id, typ, text, start, slut, yrke, ansvarig_id, status, skapad, skapad_av, utford, utford_av, kalla)
+      VALUES (?, 'uso-kard-72', ?, ?, ?, ?, ?, ?, ?, ?, 'ssk-kard', ?, ?, 'sussa')`);
+    for (const h of HANDELSER_7) {
+      const typ = avdelningsplan.tolkaTyp(h.text);
+      const start = T(h.dag, h.klocka);
+      const slut = new Date(Date.parse(start) + avdelningsplan.TYPER[typ].min * MIN).toISOString();
+      const yrke = h.ansvarig ? db.query('SELECT yrke FROM personal WHERE id = ?').get(h.ansvarig).yrke : avdelningsplan.TYPER[typ].yrke;
+      const utford = Date.parse(slut) < nu.getTime() && h.dag < 0;
+      ins.run(h.patient, typ, h.text, start, slut, yrke, h.ansvarig ?? null, utford ? 'utford' : 'planerad', T(-5, '08:00'), utford ? slut : null, utford ? 'ssk-kard' : null);
+    }
+  })();
+  return { ok: true, redan: false, uppgifter: HANDELSER_7.length };
 }

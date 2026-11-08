@@ -4,9 +4,10 @@
 import { INGREPP } from './seed/planering.js';
 
 const TZ = 'Europe/Stockholm';
-const TIDSTYP_EN = { nybesok: 'New visit', aterbesok: 'Follow-up visit', telefon: 'Telephone appointment', video: 'Video appointment', grupp: 'Group session', ingrepp: 'Procedure', provtagning: 'Blood test' };
-const YRKE_EN = { lakare: 'doctor', sjukskoterska: 'nurse' };
+const TIDSTYP_EN = { nybesok: 'New visit', aterbesok: 'Follow-up visit', telefon: 'Telephone appointment', video: 'Video appointment', grupp: 'Group session', ingrepp: 'Procedure', provtagning: 'Blood test', team: 'Team visit' };
+const YRKE_EN = { lakare: 'doctor', sjukskoterska: 'nurse', fysioterapeut: 'physiotherapist' };
 const FORBEREDELSER_EN = {
+  team: 'You will meet several members of the care team at the same visit. Arrive ten minutes before your appointment.',
   nybesok: 'Please bring a list of the medicines you take. Arrive ten minutes before your appointment.',
   aterbesok: 'Please bring a list of the medicines you take. Arrive ten minutes before your appointment.',
   telefon: 'We will call you at the appointment time. Make sure you can talk undisturbed.',

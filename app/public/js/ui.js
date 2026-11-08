@@ -88,6 +88,8 @@ Object.assign(HANDLING, { bevaka: 'Lade upp eller avslutade bevakning', bevaka_e
 // Runda 8, r2: remiss på uppdrag, fördelning, remisskonferens och pappersremiss.
 Object.assign(HANDLING, { remittera_pa_uppdrag: 'Skrev remiss på uppdrag av en läkare', fordela_remiss: 'Fördelade remiss till en läkare', remisskonferens: 'Satte remiss på remisskonferens',
   registrera_beslut_pa_uppdrag: 'Registrerade beslut om remiss på uppdrag av en läkare', registrera_extern_remiss: 'Registrerade pappersremiss från en extern vårdgivare' });
+// Runda 8, r3: avdelningens planering.
+Object.assign(HANDLING, { las_planering: 'Såg planerade händelser', planera: 'Planerade eller strök en uppgift', utfora_uppgift: 'Registrerade en uppgift som utförd' });
 export const YRKE = { lakare: 'Läkare', sjukskoterska: 'Sjuksköterska', underskoterska: 'Undersköterska', vardadministrator: 'Vårdadministratör', logggranskare: 'Logggranskare', arkivarie: 'Arkivarie', uppfoljning: 'Analytiker (uppföljning)', kommun: 'Kommunens personal (simulerad)', farmaceut: 'Farmaceut', verksamhetschef: 'Verksamhetschef', ekonom: 'Ekonom', systemforvaltare: 'Systemförvaltare' };
 
 // Anrop mot API:t. Svarstiden läses från Server-Timing. Fel kastas som ApiFel med serverns text och kod.

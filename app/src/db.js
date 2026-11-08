@@ -408,6 +408,8 @@ export function byggSeed(bas = nu()) {
   // Efter tidboken, eftersom BHV-sjuksköterskans schema läggs i den.
   require('./bhv.js').seeda(db, { bas });
   sakraIdentitetsschema(db);
+  // Runda 8, r3: avdelningens planerade uppgifter (avdelningsplan.js), efter vårdtillfällena.
+  require('./avdelningsplan.js').seeda(db, { bas });
   // Runda 7, r2: nyhetsrutan och intygen.
   sakraUtbildning(db);
   seedaUtbildning(db, bas);
@@ -515,6 +517,8 @@ export function migrera(db) {
   // Runda 7, r6: barnhälsovårdens tabeller och seed för en sandlåda från före runda 7.
   require('./bhv.js').sakra(db);
   sakraIdentitetsschema(db);
+  // Runda 8, r3: avdelningens planerade uppgifter finns inte i sandlådor från före runda 8.
+  require('./avdelningsplan.js').sakra(db);
   // Runda 7, r2: en äldre sandlåda får nyhetsrutan och seedens intyg relativt till i dag.
   if (sakraUtbildning(db)) seedaUtbildning(db, nu());
   // Runda 8, r4: en sandlåda från före runda 8 får tabellen för dosändringar.

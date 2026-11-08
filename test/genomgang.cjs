@@ -1716,7 +1716,9 @@ for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].inde
         // Runda 8, r2.
         'remiss-pa-uppdrag', 'fordela-remiss', 'registrera-pappersremiss',
         // Runda 8, r1: beställning och svar.
-        'bestall-paket', 'registrera-provtagning']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'bestall-paket', 'registrera-provtagning',
+        // Runda 8, r3: bokning och avdelningens planering.
+        'boka-fri', 'boka-team', 'grupp-lagg-till', 'avdelningens-handelser']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

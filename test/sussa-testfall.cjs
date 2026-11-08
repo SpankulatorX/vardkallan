@@ -440,6 +440,42 @@ function floden(D) {
       await synlig(page, '.notis', 'Jonas Brun har fått en tid');
       await synlig(page, '.notis', 'Kallelsen är skickad');
     },
+    // Runda 8, r3: fri bokning, teambesök och gruppträff (testfall 5.1 till 5.3).
+    '5.1': async (m, page) => {
+      await m.klicka(page.locator('#idag [data-atgard="r8_fri"]'), 'Boka besök i Dagens arbete');
+      await m.skriv(page.locator('dialog[open] #r8-sok'), 'Helene Lund', 'sökfältet');
+      await m.tangent('Enter', 'sök');
+      await page.locator('dialog[open] .forslag-knapp').first().waitFor();
+      await synlig(page, 'dialog[open] .forslag-knapp', 'Återbesök hos Sara Lindqvist');
+      await m.klicka(page.locator('dialog[open] .forslag-knapp').first(), 'den första föreslagna tiden');
+      await synlig(page, '.notis', 'Helene Lund har fått en tid');
+      await synlig(page, '.notis', 'Kallelsen är skickad');
+    },
+    '5.2': async (m, page) => {
+      await m.klicka(page.locator('#idag [data-atgard="r8_team"]'), 'Boka teambesök i Dagens arbete');
+      await m.skriv(page.locator('dialog[open] #r8-sok'), 'Sven Markström', 'sökfältet');
+      await m.tangent('Enter', 'sök');
+      await page.locator('dialog[open] .forslag-knapp').first().waitFor();
+      await synlig(page, 'dialog[open] .forslag-knapp', 'Sara Lindqvist och sjuksköterska Lina Persson');
+      await m.klicka(page.locator('dialog[open] .forslag-knapp').first(), 'den första föreslagna tiden');
+      await synlig(page, '.notis', 'Sven Markström har fått ett teambesök');
+      await synlig(page, '.notis', 'Kallelsen är skickad');
+    },
+    '5.3': async (m, page) => {
+      await m.klicka(page.locator('#idag-grupper li', { hasText: 'Hjärtrehabilitering i grupp' }).locator('[data-atgard="r8_grupp"]'), 'Lägg till patient vid gruppträffen');
+      for (const namn of ['Sven Markström', 'Henrik Lundin', 'Hanna Korlen', 'Anton Ekrot', 'Helene Lund']) {
+        await m.skriv(page.locator('dialog[open] #r8-sok'), namn, 'sökfältet');
+        await m.tangent('Enter', `sök ${namn}`);
+        await m.klicka(page.locator('dialog[open] [data-r8-patient]', { hasText: namn }).first(), `träffen ${namn}`);
+        await synlig(page, 'dialog[open] .r8-besked', `${namn} har fått en plats`);
+      }
+      await synlig(page, 'dialog[open] #r8-kvar', '3');
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Klar');
+      await page.waitForLoadState('networkidle');
+      await m.klicka(page.locator('#idag-kallelser li', { hasText: 'Hjärtrehabilitering i grupp' }).locator('[data-atgard="kalla_grupp"]'), 'Skicka kallelser vid gruppen');
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'bekräfta');
+      await synlig(page, '.notis', '5 kallelser är skickade till Hjärtrehabilitering i grupp');
+    },
     '6.1': async (m, page) => {
       await oppnaFranLista(m, page, 'Mira Axelsson');
       await m.klicka(page.locator('[data-vk="skriv-in"]'), 'Skriv in');
@@ -509,6 +545,44 @@ function floden(D) {
       await synlig(page, '.notis', 'är ordinerat från i morgon kl. 07:00');
       for (const n of ['Puls', 'Blodtryck', 'SR', 'Temperatur', 'Vikt', 'Vätskebalans']) await synlig(page, '.pr-kontroller', n);
     },
+    // Runda 8, r3: avdelningens planering (testfall 7.1 till 7.4).
+    '7.1': async (m, page) => {
+      await m.klicka(page.locator('.snabbval a[href="#/avdelning"]'), 'Avdelningens planering i arbetslistan');
+      const rader = page.locator('#av .av-tabell tr[data-klocka="11.00"]');
+      await rader.first().waitFor();
+      await rader.filter({ hasText: 'Bertil Danielsson' }).filter({ hasText: 'Provtagning, blodprover' }).first().waitFor();
+      await rader.filter({ hasText: 'Henrik Lundin' }).filter({ hasText: 'Sjukgymnastik' }).first().waitFor();
+    },
+    '7.2': async (m, page) => {
+      await m.klicka(page.locator('.snabbval a[href="#/avdelning"]'), 'Avdelningens planering i arbetslistan');
+      const fyra = { 'Gerda Ström': 'Dricka kontrast', 'Elin Arnström': 'Börja fasta', 'Trevis Ljung': 'Såromläggning', 'Berit Strandhall': 'Teamrond med onkologen' };
+      for (const namn of Object.keys(fyra)) {
+        await page.waitForLoadState('networkidle');
+        await m.klicka(page.locator('#av-patienter label', { hasText: namn }).locator('input'), `markera ${namn}`);
+      }
+      await page.waitForLoadState('networkidle');
+      await page.locator('#av-patienter input:checked').nth(3).waitFor();
+      const rader = page.locator('#av .av-tabell tr[data-klocka="11.00"]');
+      for (const [namn, text] of Object.entries(fyra)) await rader.filter({ hasText: namn }).filter({ hasText: text }).first().waitFor();
+      const alla = await rader.allInnerTexts();
+      if (alla.some(t => !Object.keys(fyra).some(n => t.includes(n)))) throw new Error(`fler patienter än de fyra klockan 11: ${alla.join(' | ')}`);
+    },
+    '7.3': async (m, page) => {
+      await m.klicka(page.locator('.snabbval a[href="#/avdelning"]'), 'Avdelningens planering i arbetslistan');
+      await m.klicka(page.locator('#av-patienter li', { hasText: 'Bertil Danielsson' }).locator('a.av-plan'), 'Planering för Bertil Danielsson');
+      const rad = page.locator('.av-dag.av-idag tr[data-klocka="15.00"]');
+      await rad.first().waitFor();
+      const text = (await rad.allInnerTexts()).join(' ');
+      if (!text.includes('EKG')) throw new Error(`fel händelse klockan 15: ${text}`);
+    },
+    '7.4': async (m, page) => {
+      await m.klicka(page.locator('.snabbval a[href="#/avdelning"]'), 'Avdelningens planering i arbetslistan');
+      await m.klicka(page.locator('#av a.av-resurs', { hasText: 'Göran Malm' }).first(), 'Göran Malm vid en händelse');
+      const rad = page.locator('.av-dag.av-idag tr[data-klocka="11.00"]');
+      await rad.first().waitFor();
+      const text = (await rad.allInnerTexts()).join(' ');
+      if (!text.includes('Infektionskonsult')) throw new Error(`fel händelse klockan 11: ${text}`);
+    },
   };
 }
 
@@ -545,6 +619,8 @@ function floden(D) {
       const a = await post(page, '/api/reset');
       const b = await post(page, '/api/demo/sussa-testfall');
       if (!a.ok || !b.ok) throw new Error(`testdatan kunde inte läggas in: ${b.text}`);
+      // Runda 8, r3: tema 7 behöver fler inskrivna patienter och deras planerade händelser.
+      if (x.tema === 7) { const c = await post(page, '/api/demo/sussa-avdelning'); if (!c.ok) throw new Error(`avdelningens testdata kunde inte läggas in: ${c.text}`); }
       await startsida(page, k.demoroll);
       await m.borja();
       const t0 = Date.now();

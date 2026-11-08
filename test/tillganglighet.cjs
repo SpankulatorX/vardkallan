@@ -466,6 +466,10 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
       vyLista.push([roll, '#/remisser?vy=konferens']);
       await granskaHar(`${roll} #/remisser?vy=konferens`, { fokus: false });
     }
+    // Runda 8, r3: avdelningens planering, patientens planering och en persons vecka nås från arbetslistan, inte från menyn.
+    if (['lak-kard', 'ssk-kard', 'usk-kard', 'fys-kard'].includes(roll)) {
+      for (const extra of ['#/avdelning', '#/avdelning/patient/p01', '#/avdelning/resurs/lak-kard']) { await gaTill(page, extra); vyLista.push([roll, extra]); await granskaHar(`${roll} ${extra}`); }
+    }
     if (JOURNAL_ROLLER.includes(roll)) {
       await gaTill(page, '#/patient/p01');
       for (const h of await flikarFor(page)) {

@@ -317,26 +317,32 @@ export const TESTFALL = [
   }),
 
   // Tema 5: Administration
+  // Runda 8, r3: fri bokning i Dagens arbete (bokning-r8.js).
   t('5.1', 'Boka patient till ett besök', ['lakare_oppenvard', 'ssk_oppenvard', 'paramedicinare', 'medicinsk_sekreterare'], {
     syfte: 'Boka ett besök för Helene Lund hos en namngiven läkare på mottagningen.',
     mal: ['Ett besök på 30 minuter hos läkaren en viss dag och tid.', 'Skicka en kallelse.'],
     slut: 'Helene Lund är bokad till ett besök och en kallelse är skickad.',
     tidsklass: 6, tidsklassSkal: 'En bokning och en kallelse.',
-    saknas: 'En tid bokas för det patienten väntar på (en remiss eller en post på väntelistan), och systemet föreslår tiden. Att boka en patient som inte väntar på något, på en tid och hos en vårdgivare som användaren väljer, finns inte.',
+    korningar: [kor('medicinsk_sekreterare', 4, 'Ett klick på Boka besök i Dagens arbete, där sökfältet har fokus, och Enter. Det finns en träff, så systemet väljer patienten och visar sitt val: återbesök på 30 minuter hos läkaren som patienten har träffat förut, och de lämpligaste tiderna. Ett klick på den första tiden bokar den, skapar vårdkontakten och skickar kallelsen. Budgeten har plats för att välja patienten när det finns flera träffar.')],
+    avvikelser: ['Patienten står inte på väntelistan och har ingen remiss. Hon har varit på mottagningen förut, eftersom en bokning kräver vårdrelation, och läkaren är Sara Lindqvist på Kardiologiska mottagningen.', 'Systemet föreslår tiden, så användaren väljer inte klockslaget 13.30. Sussas datum ligger före testet. Vårdgivare och besökstyp går att ändra i dialogen.', 'Kallelsen skickas som brev till en påhittad adress, och breven är simulerade.'],
   }),
+  // Runda 8, r3: teambesök i Dagens arbete (bokning-r8.js).
   t('5.2', 'Boka ett teambesök', ['lakare_oppenvard', 'ssk_oppenvard', 'paramedicinare', 'medicinsk_sekreterare'], {
     syfte: 'Boka Sven Markström till en läkare och en sjuksköterska samtidigt.',
     mal: ['Besök på 60 minuter hos två vårdgivare.', 'Skicka en kallelse.'],
     slut: 'Sven Markström är bokad till ett teambesök och en kallelse är skickad.',
     tidsklass: 9, tidsklassSkal: 'En bokning med två resurser.',
-    saknas: 'Ett besök med två vårdgivare finns inte. Ingrepp bokar läkare, rum och utrustning samtidigt, men inte två personer.',
+    korningar: [kor('medicinsk_sekreterare', 5, 'Ett klick på Boka teambesök i Dagens arbete, där sökfältet har fokus, och Enter. Systemet väljer patienten, föreslår teamet (den läkare och den sjuksköterska som patienten har träffat förut) och visar tider då båda och ett behandlingsrum är lediga i 60 minuter. Ett klick på den första tiden bokar besöket och rummet och skickar kallelsen med båda vårdgivarna. Budgeten har plats för att ändra teamet med två klick.')],
+    avvikelser: ['Vårdgivarna är läkaren Sara Lindqvist och sjuksköterskan Lina Persson på Kardiologiska mottagningen, och patienten har träffat båda förut.', 'Systemet föreslår tiden, så användaren väljer inte klockslaget 10.45. Kallelsen skickas som brev till en påhittad adress, och breven är simulerade.'],
   }),
+  // Runda 8, r3: patienter läggs till i en gruppträff i Dagens arbete (bokning-r8.js).
   t('5.3', 'Boka ett gruppbesök', ['lakare_oppenvard', 'ssk_oppenvard', 'paramedicinare', 'medicinsk_sekreterare'], {
     syfte: 'Boka fem patienter till en fysioterapeut på samma tid.',
     mal: ['Fem patienter till samma gruppbesök på 60 minuter.', 'Skicka kallelse till alla.'],
     slut: 'De fem patienterna är bokade och en kallelse är skickad till alla.',
     tidsklass: 15, tidsklassSkal: 'Fem patienter till samma tid.',
-    saknas: 'Gruppträffar och gruppkallelser finns, men att lägga till patienter i en gruppträff i gränssnittet finns inte.',
+    korningar: [kor('medicinsk_sekreterare', 15, 'Ett klick på Lägg till patient vid gruppträffen i Dagens arbete. Dialogen står kvar med sökfältet i fokus: för varje patient Enter och ett klick på träffen, och systemet bokar platsen, skriver kallelsen och räknar platserna kvar (tio steg för fem patienter). Ett klick på Klar, ett på Skicka kallelser vid gruppen och ett för att bekräfta. Budgeten har plats för ett steg till.')],
+    avvikelser: ['Gruppträffen leds av fysioterapeuten Jenny Holmberg på Kardiologiska mottagningen, och patienterna har varit på mottagningen förut, eftersom en bokning kräver vårdrelation.', 'Gruppträffen ligger tre arbetsdagar efter testet klockan 11.45, eftersom Sussas datum ligger före testet. Kallelserna skickas som brev till påhittade adresser, och breven är simulerade.'],
   }),
   t('5.4', 'Omboka besök', ['lakare_oppenvard', 'ssk_oppenvard', 'paramedicinare', 'medicinsk_sekreterare'], {
     syfte: 'Susanne Svedin ringer för att boka om sitt besök, men det finns inga lediga tider.',
@@ -409,33 +415,46 @@ export const TESTFALL = [
   }),
 
   // Tema 7: Gemensamma vyer
+  // Runda 8, r3: avdelningens planering (avdelningsplan.js).
   t('7.1', 'Överblicka dagens arbete för din arbetsplats', ['lakare_slutenvard', 'ssk_slutenvard', 'paramedicinare', 'underskoterska'], {
     syfte: 'Visa den samlade bilden av dagens arbete på avdelningen.',
     mal: ['Ta fram dagens arbete på avdelningen.', 'Meddela vilka händelser som äger rum klockan 11.'],
     slut: 'Händelserna klockan 11 är funna: provtagning för en patient och sjukgymnastik för en annan.',
     tidsklass: 6, tidsklassSkal: 'En vy och en tid.',
-    saknas: 'Planerade händelser och arbetsuppgifter på en vårdavdelning (provtagning, omläggning, sjukgymnastik, teamrond) finns inte. Tidboken har mottagningens tider, och Läkemedel att ge har dagens doser.',
+    korningar: [kor('ssk_slutenvard', 1, 'Ett klick på Avdelningens planering i arbetslistan. Vyn visar dagens händelser för avdelningens patienter i tidsordning: uppgifter, läkemedel att ge och bokade tider.'),
+      kor('lakare_slutenvard', 1, 'Samma steg som för sjuksköterskan. Avdelningen är förvald, eftersom läkarens patienter ligger där.'),
+      kor('paramedicinare', 1, 'Samma steg som för sjuksköterskan. Fysioterapeuten på mottagningen ser avdelningen på samma vårdenhet.')],
+    avvikelser: ['Avdelningen är Avdelning 72, kardiologi. Sussas händelser ligger i dag med Sussas klockslag.', 'Kontrollerna i Sussas testdata (temperatur, puls, blodtryck och blodsocker) är planerade uppgifter här. Ordinerade kontroller ansluts när de finns.'],
   }),
+  // Runda 8, r3: avdelningens planering för ett urval av patienter (avdelningsplan.js).
   t('7.2', 'Överblicka dagens händelser för en grupp patienter', ['lakare_slutenvard', 'ssk_slutenvard', 'paramedicinare', 'underskoterska'], {
     syfte: 'Visa dagens händelser för fyra patienter på avdelningen.',
     mal: ['Visa händelserna för Gerda Ström, Elin Arnström, Trevis Ljung och Berit Strandhall.', 'Meddela vilka händelser som äger rum klockan 11.'],
     slut: 'Händelserna klockan 11 är funna för de fyra patienterna.',
     tidsklass: 6, tidsklassSkal: 'En vy med fyra patienter.',
-    saknas: 'Planerade händelser på avdelningen finns inte, se testfall 7.1.',
+    korningar: [kor('ssk_slutenvard', 5, 'Ett klick på Avdelningens planering i arbetslistan och ett klick per patient för att markera de fyra. Vyn visar då bara deras händelser, och valet står kvar tills sidan laddas om.'),
+      kor('underskoterska', 5, 'Samma steg som för sjuksköterskan.')],
+    avvikelser: ['Avdelningen är Avdelning 72, kardiologi.'],
   }),
+  // Runda 8, r3: en patients planering (avdelningsplan.js).
   t('7.3', 'Överblicka patientens planering', ['lakare_slutenvard', 'ssk_slutenvard', 'paramedicinare'], {
     syfte: 'Visa planerade händelser på avdelningen för en patient.',
     mal: ['Visa den samlade bilden av Bertil Danielssons händelser.', 'Meddela vilken händelse som äger rum klockan 15.'],
     slut: 'Händelsen klockan 15 är funnen. Rätt svar är EKG.',
     tidsklass: 6, tidsklassSkal: 'En patient och en tid.',
-    saknas: 'Planerade händelser på avdelningen finns inte, se testfall 7.1. Patientens bokade tider på mottagningar visas i översikten.',
+    korningar: [kor('lakare_slutenvard', 2, 'Ett klick på Avdelningens planering i arbetslistan och ett på Planering vid patienten. Vyn visar tre dagar bakåt och tre framåt, med dagen i dag markerad.'),
+      kor('ssk_slutenvard', 2, 'Samma steg som för läkaren.')],
+    avvikelser: ['Avdelningen är Avdelning 72, kardiologi.'],
   }),
+  // Runda 8, r3: en persons planering för veckan (avdelningsplan.js).
   t('7.4', 'Visualisera en specifik resurs arbetsplanering', ['lakare_slutenvard', 'ssk_slutenvard', 'paramedicinare'], {
     syfte: 'Visa en namngiven läkares arbetsuppgifter på avdelningen under en vecka.',
-    mal: ['Visa läkarens arbetsuppgifter under perioden.', 'Meddela vilken arbetsuppgift som äger rum klockan 15.30.'],
+    mal: ['Visa läkarens arbetsuppgifter under perioden.', 'Meddela vilken arbetsuppgift som äger rum klockan 11.'],
     slut: 'Läkarens händelse är funnen. Rätt svar är infektionskonsult.',
     tidsklass: 6, tidsklassSkal: 'En vy och en tid.',
-    saknas: 'Arbetsuppgifter på avdelningen per person finns inte. Tidboken visar mottagningens scheman.',
+    korningar: [kor('lakare_slutenvard', 2, 'Ett klick på Avdelningens planering i arbetslistan och ett på läkarens namn vid en händelse. Vyn visar läkarens vecka med uppgifterna på avdelningen, bokade tider och teambesök, och dagen i dag markerad.'),
+      kor('ssk_slutenvard', 2, 'Samma steg som för läkaren.')],
+    avvikelser: ['Läkaren är överläkaren Göran Malm på kardiologen, och perioden är veckan med testdagen i stället för Sussas datum i november 2017.'],
   }),
 ];
 

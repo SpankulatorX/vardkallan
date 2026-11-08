@@ -214,6 +214,58 @@
           "var": "#/krav",
           "rubrik": "Sussas testfall för beställning och svar",
           "text": "Sussas användbarhetstester för labbeställning, beställning på uppdrag, provtagning och ordination av kontroller genomförs nu i Vårdkällan, och kravsidan visar resultatet."
+        },
+        {
+          "id": "boka-fritt",
+          "roller": [
+            "vardadministrator"
+          ],
+          "omfattning": "liten",
+          "var": "#/idag",
+          "rubrik": "Boka ett besök utan väntelista",
+          "text": "Med Boka besök i Dagens arbete söker du patienten, och systemet föreslår besökstyp, vårdgivare och de lämpligaste tiderna. Ett klick bokar tiden och skickar kallelsen."
+        },
+        {
+          "id": "teambesok",
+          "roller": [
+            "vardadministrator"
+          ],
+          "omfattning": "liten",
+          "var": "#/idag",
+          "rubrik": "Teambesök med flera vårdgivare",
+          "text": "Med Boka teambesök föreslår systemet patientens läkare och sjuksköterska och hittar tider då alla och ett rum är lediga hela besöket."
+        },
+        {
+          "id": "grupptraffar",
+          "roller": [
+            "vardadministrator"
+          ],
+          "omfattning": "liten",
+          "var": "#/idag",
+          "rubrik": "Lägg till patienter i en gruppträff",
+          "text": "Gruppträffarna visas i Dagens arbete med platser kvar. Lägg till patienter en i taget, och när träffen är full hamnar patienten på gruppens väntelista."
+        },
+        {
+          "id": "avdelningens-planering",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska",
+            "fysioterapeut"
+          ],
+          "omfattning": "stor",
+          "var": "#/avdelning",
+          "rubrik": "Avdelningens planering",
+          "text": "Från arbetslistan når du allt som är planerat för avdelningens patienter i dag: uppgifter som provtagning, omläggning och sjukgymnastik, läkemedel att ge och bokade tider. Visa per tid, per patient eller per yrkesroll, planeringen för en patient flera dagar bakåt och framåt och en persons vecka."
+        },
+        {
+          "id": "planering-i-loggen",
+          "roller": [
+            "alla"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Planerade händelser i loggen",
+          "text": "Åtkomstloggen och Vem har läst min journal visar när någon har sett patientens planerade händelser på avdelningen, planerat en uppgift eller registrerat att den är utförd."
         }
       ]
     },

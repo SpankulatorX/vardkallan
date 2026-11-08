@@ -65,7 +65,7 @@ export async function visa(main) {
     <section class="ruta" aria-labelledby="st-fall">
       <h2 id="st-fall">Testfallen</h2>
       <p class="liten">Testpersonen loggar in med demorollen, och testledaren lägger in testdatan före varje testfall, så att varje testfall börjar från samma läge. Testfallet börjar på rollens startsida och är slut när slutvillkoret syns.</p>
-      ${inloggad ? `<p class="knapprad"><button type="button" class="knapp liten" data-st="testdata">Återställ demon och lägg in testdatan</button></p>` : '<p class="dampad liten">Logga in med en demoroll för att lägga in testdatan.</p>'}
+      ${inloggad ? `<p class="knapprad"><button type="button" class="knapp liten" data-st="testdata">Återställ demon och lägg in testdatan</button> <button type="button" class="knapp liten sekundar" data-st="testdata-avdelning">Lägg in avdelningens händelser för tema 7</button></p>` : '<p class="dampad liten">Logga in med en demoroll för att lägga in testdatan.</p>'}
       ${testfall.length ? `<div class="tabellrulle"><table class="tabell st-fall"><thead><tr><th scope="col">Testfall</th><th scope="col">Roll i demon</th><th scope="col">Slut när</th></tr></thead><tbody>
         ${testfall.map(t => `<tr><th scope="row">${esc(t.nr)} ${esc(t.titel)}</th><td>${t.genomfors ? esc(t.roller.join(', ')) : 'Kan inte genomföras'}</td><td class="liten">${esc(t.genomfors ? t.slut ?? '' : t.saknas ?? '')}</td></tr>`).join('')}
       </tbody></table></div>` : '<p class="tom liten">Testfallen kunde inte hämtas.</p>'}
@@ -230,6 +230,15 @@ export async function visa(main) {
         el.querySelector('#st-lkod').value = '';
         el.querySelector('#st-nykod').innerHTML = '';
         el.querySelector('#st-serverlista').innerHTML = '';
+      } catch { /* felet visas som notis */ }
+    }
+    // Runda 8, r3: tema 7 behöver fler inskrivna patienter, som inte ska finnas i de andra testfallen.
+    else if (b.dataset.st === 'testdata-avdelning') {
+      try {
+        await medKnapp(b, async () => { await api('/api/reset', { metod: 'POST', data: {} }); await api('/api/demo/sussa-testfall', { metod: 'POST', data: {} }); await api('/api/demo/sussa-avdelning', { metod: 'POST', data: {} }); });
+        notis('Demon är återställd och testdatan för tema 7 är inlagd: patienterna på avdelningen och deras planerade händelser.');
+        await uppdateraInkorg();
+        rita();
       } catch { /* felet visas som notis */ }
     }
     else if (b.dataset.st === 'testdata') {
