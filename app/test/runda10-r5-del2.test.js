@@ -112,12 +112,12 @@ describe('Läkemedelsöverföring', () => {
     const s = sandlada(app, k);
     // Utan vårdrelation, också med nödåtkomst, skickas ingenting.
     expect((await k.post('/api/patient/p13/lakemedelsoverforing', {})).status).toBe(403);
-    await k.post('/api/patient/p13/val', { nodatkomst: true });
+    expect((await k.post('/api/patient/p13/val', { typ: 'nodatkomst', syfte: 'Patienten är medvetslös' })).status).toBe(200);
     expect((await k.post('/api/patient/p13/lakemedelsoverforing', {})).status).toBe(403);
     expect((await k.post('/api/patient/p01/lakemedelsoverforing', {})).status).toBe(201);
     // En tredje vårdenhet, akuten, ser inte överföringen, inte ens med aktivt val.
     await k.logga('lak-akut');
-    await k.post('/api/patient/p01/val', { andra_enheter: true });
+    expect((await k.post('/api/patient/p01/val', { typ: 'andra_enheter', syfte: 'Uppföljning efter akutbesöket' })).status).toBe(200);
     const a = (await k.get('/api/patient/p01/lakemedelsoverforing')).data;
     expect(a.overforingar).toEqual([]);
     // Ett id i anropet ger ingen åtkomst: en annan vårdenhet kan inte kvittera.

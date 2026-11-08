@@ -1,0 +1,185 @@
+// Runda 10, r5, del 5: flödet på akutmottagningen, en högflödesmottagning (Sussa 3.2.3.5). Testnamnen finns i
+// src/sussa/runda10-r5-tester.js. Testerna räknar bara de besök de själva skapar.
+import { describe, test, expect, afterAll, beforeAll } from 'bun:test';
+import { T } from '../src/sussa/runda10-r5-tester.js';
+import * as akut from '../src/akutflode.js';
+import { testserver, klient, sandlada } from './hjalp.js';
+
+let app;
+beforeAll(() => { app = testserver(); });
+afterAll(() => app.stopp());
+async function inloggad(id) { const k = klient(app); await k.logga(id); return k; }
+const STABIL = { andningsfrekvens: 16, saturation: 97, syrgas: 0, systoliskt: 128, puls: 78, medvetande: 'A', temp: 37.0 };
+
+describe('Akutmottagningen', () => {
+  test(T.akAnkomst.split(' > ')[1], async () => {
+    const k = await inloggad('lak-akut');
+    const s = sandlada(app, k);
+    const r = await k.post('/api/akut/ankomst', { patientId: 'p02', kontaktorsak: 'Bröstsmärta sedan en timme' });
+    expect(r.status).toBe(201);
+    // Systemet sätter könumret, ankomsttiden, akutbesöket på akutmottagningen och första steget.
+    expect(r.data).toMatchObject({ konummer: expect.stringMatching(/^A\d{2}$/), steg: 'vantar_triage', prioritet: null, kontaktorsak: 'Bröstsmärta sedan en timme' });
+    const besok = s.db.query('SELECT * FROM akutbesok WHERE id = ?').get(r.data.id);
+    const vk = s.db.query('SELECT * FROM vardkontakter WHERE id = ?').get(besok.vardkontakt_id);
+    expect(vk).toMatchObject({ patient_id: 'p02', enhet_id: 'uso-akut', typ: 'akut', orsak: 'Bröstsmärta sedan en timme', slut: null });
+    // Könumret är nästa lediga och syns i väntrummet.
+    const vr = (await k.get('/api/vantrum')).data;
+    expect(vr.some(v => v.konummer === r.data.konummer)).toBe(true);
+    // En patient med ett pågående akutbesök registreras inte två gånger.
+    expect((await k.post('/api/akut/ankomst', { patientId: 'p02', kontaktorsak: 'Igen' })).status).toBe(400);
+    // Registreringen ger inte den som registrerade vårdrelation: det gör triagen eller bedömningen av en annan person.
+    expect(vk.ger_vardrelation).toBe(0);
+    // Bara akutmottagningens personal registrerar ankomster.
+    const kard = await inloggad('lak-kard');
+    expect((await kard.post('/api/akut/ankomst', { patientId: 'p06', kontaktorsak: 'Yrsel' })).status).toBe(403);
+    expect(r.data.kontaktorsak).toBe('Bröstsmärta sedan en timme');
+  });
+
+  test(T.akTriage.split(' > ')[1], async () => {
+    // Vitalparametrarna och kontaktorsaken ger prioriteten, och det strängaste vinner.
+    expect(akut.triage({ kontaktorsak: 'Fotledsskada', vitaler: STABIL })).toMatchObject({ prioritet: 'gron' });
+    const brost = akut.triage({ kontaktorsak: 'Bröstsmärta', vitaler: STABIL });
+    expect(brost.prioritet).toBe('orange');
+    expect(brost.varfor.join(' ')).toContain('Bröstsmärta');
+    const sjuk = akut.triage({ kontaktorsak: 'Feber', vitaler: { ...STABIL, andningsfrekvens: 26, saturation: 90, puls: 125, systoliskt: 95 } });
+    expect(sjuk.prioritet).toBe('rod');
+    expect(sjuk.news2.poang).toBeGreaterThanOrEqual(7);
+    // Saknas värden säger systemet vilka, och en parameter med 3 poäng räcker för orange.
+    const del = akut.triage({ kontaktorsak: 'Yrsel', vitaler: { saturation: 88 } });
+    expect(del.prioritet).toBe('orange');
+    expect(del.varfor.join(' ')).toContain('Mät också');
+    expect(akut.DEMOREGEL).toContain('inte RETTS');
+    // Triagen via API:t sparar vitalparametrarna på akutbesöket och ger vårdrelation till den andra personen.
+    const ssk = await inloggad('lak-akut');
+    const s = sandlada(app, ssk);
+    const besok = akut.registreraAnkomst(s.db, s.db.query("SELECT * FROM personal WHERE id = 'ssk-akut'").get(), { patientId: 'p06', kontaktorsak: 'Bröstsmärta' });
+    const r = await ssk.post(`/api/akut/${besok.id}/triage`, { vitaler: STABIL });
+    expect(r.status).toBe(200);
+    expect(r.data).toMatchObject({ prioritet: 'orange', steg: 'vantar_lakare', triage: { av: { id: 'lak-akut' } } });
+    const rad = s.db.query('SELECT * FROM akutbesok WHERE id = ?').get(besok.id);
+    expect(s.db.query("SELECT count(*) AS n FROM matvarden WHERE patient_id = 'p06' AND enhet_id = 'uso-akut' AND vardkontakt_id = ?").get(rad.vardkontakt_id).n).toBe(5);
+    expect(s.db.query('SELECT ger_vardrelation FROM vardkontakter WHERE id = ?').get(rad.vardkontakt_id).ger_vardrelation).toBe(1);
+    expect((await ssk.get('/api/patient/p06/oversikt')).status).toBe(200);
+  });
+
+  test(T.akTavla.split(' > ')[1], async () => {
+    const k = await inloggad('lak-akut');
+    const d = (await k.get('/api/akut')).data;
+    // Seedens väntande patienter finns på tavlan med steg och prioritet, högst prioritet först.
+    expect(d.tavla.length).toBeGreaterThanOrEqual(3);
+    const ordning = { rod: 0, orange: 1, gul: 2, gron: 3, bla: 4 };
+    const p = d.tavla.map(x => ordning[x.prioritet] ?? 9);
+    expect(p).toEqual([...p].sort((a, b) => a - b));
+    for (const x of d.tavla) {
+      expect(typeof x.konummer).toBe('string');
+      expect(typeof x.stegText).toBe('string');
+      expect(Array.isArray(x.aktiviteter)).toBe(true);
+      expect(typeof x.ledtider.vantatMin).toBe('number');
+    }
+    // Gruppering och urval: bara en prioritet, eller bara ett steg.
+    const gula = (await k.get('/api/akut?prioritet=gul')).data.tavla;
+    expect(gula.every(x => x.prioritet === 'gul')).toBe(true);
+    expect(d.steg.map(x => x.id)).toEqual(['vantar_triage', 'vantar_lakare', 'vantar_aktivitet', 'bedomd', 'beslut']);
+  });
+
+  test(T.akAktivitet.split(' > ')[1], async () => {
+    const k = await inloggad('lak-akut');
+    const s = sandlada(app, k);
+    const besok = akut.registreraAnkomst(s.db, s.db.query("SELECT * FROM personal WHERE id = 'ssk-akut'").get(), { patientId: 'p07', kontaktorsak: 'Andningsbesvär' });
+    await k.post(`/api/akut/${besok.id}/triage`, { vitaler: STABIL });
+    expect((await k.post(`/api/akut/${besok.id}/bedomning`, {})).data.steg).toBe('bedomd');
+    const a = await k.post(`/api/akut/${besok.id}/aktivitet`, { typ: 'rontgen' });
+    expect(a.status).toBe(201);
+    expect(a.data.steg).toBe('vantar_aktivitet');
+    const akt = a.data.aktiviteter.find(x => x.typ === 'rontgen');
+    expect(akt).toMatchObject({ text: 'Lungröntgen', planeradAv: { id: 'lak-akut' }, utford: null });
+    const u = await k.post(`/api/akut/${besok.id}/aktivitet/${akt.id}/utford`, {});
+    expect(u.data.aktiviteter.find(x => x.id === akt.id)).toMatchObject({ utfordAv: { id: 'lak-akut' } });
+    expect(typeof u.data.aktiviteter.find(x => x.id === akt.id).utford).toBe('string');
+    expect(u.data.steg).toBe('bedomd');
+    // En okänd aktivitet förklaras.
+    expect((await k.post(`/api/akut/${besok.id}/aktivitet`, { typ: 'okand' })).status).toBe(400);
+  });
+
+  test(T.akUt.split(' > ')[1], async () => {
+    const k = await inloggad('lak-akut');
+    const s = sandlada(app, k);
+    const ssk = s.db.query("SELECT * FROM personal WHERE id = 'ssk-akut'").get();
+    const hem = akut.registreraAnkomst(s.db, ssk, { patientId: 'p12', kontaktorsak: 'Skärsår i handen' });
+    await k.post(`/api/akut/${hem.id}/triage`, { vitaler: STABIL });
+    const ut = await k.post(`/api/akut/${hem.id}/utregistrera`, { beslut: 'hem' });
+    expect(ut.status).toBe(200);
+    expect(ut.data).toMatchObject({ steg: 'klar', beslut: 'hem' });
+    const rad = s.db.query('SELECT * FROM akutbesok WHERE id = ?').get(hem.id);
+    expect(s.db.query('SELECT slut FROM vardkontakter WHERE id = ?').get(rad.vardkontakt_id).slut).toBeTruthy();
+    expect((await k.get('/api/akut')).data.tavla.some(x => x.id === hem.id)).toBe(false);
+    // Överföring till slutenvård: systemet skriver in patienten på avdelningen, från akutbesöket.
+    const in = akut.registreraAnkomst(s.db, ssk, { patientId: 'p18', kontaktorsak: 'Hjärtsvikt med andnöd' });
+    await k.post(`/api/akut/${in.id}/triage`, { vitaler: STABIL });
+    const lagg = await k.post(`/api/akut/${in.id}/utregistrera`, { beslut: 'inlaggning', enhetId: 'uso-kard-72' });
+    expect(lagg.status).toBe(200);
+    expect(lagg.data).toMatchObject({ steg: 'klar', beslut: 'inlaggning', vardtillfalle: { enhet: { id: 'uso-kard' } } });
+    const vt = s.db.query("SELECT * FROM vardtillfallen WHERE patient_id = 'p18' AND utskriven IS NULL").get();
+    expect(vt).toBeTruthy();
+    // Utan beslut eller med en okänd avdelning stoppas utregistreringen med en förklaring.
+    const tredje = akut.registreraAnkomst(s.db, ssk, { patientId: 'p19', kontaktorsak: 'Yrsel' });
+    expect((await k.post(`/api/akut/${tredje.id}/utregistrera`, {})).status).toBe(400);
+    expect((await k.post(`/api/akut/${tredje.id}/utregistrera`, { beslut: 'inlaggning', enhetId: 'finns-inte' })).status).toBe(400);
+  });
+
+  test(T.akSkyddad.split(' > ')[1], async () => {
+    const k = await inloggad('lak-akut');
+    const d = (await k.get('/api/akut')).data;
+    // Malin Engberg (p03) har skyddad identitet: tavlan har inget namn eller personnummer för henne.
+    const skyddad = d.tavla.find(x => x.patientId === 'p03');
+    expect(skyddad).toMatchObject({ skyddad: true, namn: null });
+    expect(JSON.stringify(skyddad)).not.toMatch(/Malin|Engberg|198404162383/);
+    // Utanför akutmottagningen syns bara könummer, prioritet och väntetid.
+    const kard = await inloggad('lak-kard');
+    const r = await kard.get('/api/akut');
+    expect(r.status).toBe(200);
+    for (const x of r.data.tavla) expect(Object.keys(x).sort()).toEqual(['konummer', 'ledtider', 'prioritet', 'steg', 'stegText']);
+    expect(JSON.stringify(r.data)).not.toMatch(/p03|p13|Fotledsskada/);
+    // En administratör utan väntrum, till exempel arkivarien, når inte tavlan.
+    const ark = await inloggad('ark');
+    expect((await ark.get('/api/akut')).status).toBe(403);
+  });
+
+  test(T.akLedtider.split(' > ')[1], async () => {
+    const k = await inloggad('lak-akut');
+    const s = sandlada(app, k);
+    const ssk = s.db.query("SELECT * FROM personal WHERE id = 'ssk-akut'").get();
+    for (const pid of ['p02', 'p06', 'p07', 'p12', 'p18']) {
+      const b = akut.registreraAnkomst(s.db, ssk, { patientId: pid, kontaktorsak: 'Skärsår' });
+      await k.post(`/api/akut/${b.id}/triage`, { vitaler: STABIL });
+      await k.post(`/api/akut/${b.id}/bedomning`, {});
+      await k.post(`/api/akut/${b.id}/utregistrera`, { beslut: 'hem' });
+    }
+    const l = (await k.get('/api/akut/ledtider')).data;
+    const gron = l.perPrioritet.find(x => x.prioritet === 'gron');
+    expect(gron).toMatchObject({ visas: true, antal: 5 });
+    expect(typeof gron.medianTillTriageMin).toBe('number');
+    expect(typeof gron.medianTillLakareMin).toBe('number');
+    expect(typeof gron.medianVistelseMin).toBe('number');
+    // Färre än fem visas inte, och svaret har inga patientuppgifter.
+    expect(l.perPrioritet.filter(x => x.prioritet !== 'gron').every(x => x.visas === false || x.antal >= 5)).toBe(true);
+    expect(JSON.stringify(l)).not.toMatch(/p0\d|p1\d|personnummer|namn/);
+  });
+
+  test(T.akPrehospital.split(' > ')[1], async () => {
+    const k = await inloggad('lak-akut');
+    const f = await k.post('/api/akut/forvarning', { personnummer: '194601198882', kontaktorsak: 'Misstänkt stroke', minuter: 10, vitaler: { ...STABIL, systoliskt: 185 } });
+    expect(f.status).toBe(201);
+    expect(f.data).toMatchObject({ fran: 'Ambulansen (simulerad)', kontaktorsak: 'Misstänkt stroke', forslagPrioritet: 'orange' });
+    const d = (await k.get('/api/akut')).data;
+    expect(d.forvarningar.some(x => x.id === f.data.id)).toBe(true);
+    // När ambulansen kommer blir förvarningen en ankomst med de prehospitala uppgifterna och triagen gjord.
+    const a = await k.post('/api/akut/ankomst', { forvarningId: f.data.id });
+    expect(a.status).toBe(201);
+    expect(a.data).toMatchObject({ ankomstsatt: 'ambulans', kontaktorsak: 'Misstänkt stroke', prioritet: 'orange', prehospital: { fran: 'Ambulansen (simulerad)' } });
+    expect((await k.get('/api/akut')).data.forvarningar.some(x => x.id === f.data.id)).toBe(false);
+    // Ett personnummer som inte finns ger en reservidentitet att registrera, utan att röja något.
+    const okand = await k.post('/api/akut/forvarning', { personnummer: '191212121212', kontaktorsak: 'Trafikolycka', minuter: 5, vitaler: STABIL });
+    expect(okand.data.patientId).toBeNull();
+  });
+});

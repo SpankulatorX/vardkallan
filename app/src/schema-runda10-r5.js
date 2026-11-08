@@ -4,9 +4,13 @@
 // läses in.
 import * as hogrisk from './hogriskkontroll.js';
 import * as overforing from './lakemedelsoverforing.js';
+import * as vaccinationsprogram from './vaccinationsprogram.js';
+import * as sammanhallen from './sammanhallen.js';
 
 export function sakraR10r5(db) {
   hogrisk.sakra(db);
   overforing.sakra(db);
+  vaccinationsprogram.sakra(db);
+  sammanhallen.sakra(db);
   return db;
 }

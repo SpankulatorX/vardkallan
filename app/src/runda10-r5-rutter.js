@@ -11,6 +11,9 @@ import * as lakemedel from './lakemedel.js';
 import { OLAMPLIGA_ALDRE } from './lakemedelsregler.js';
 import { synligaAdministreringar, kravVardande } from './administrering.js';
 import * as overforing from './lakemedelsoverforing.js';
+import * as vaccinationsprogram from './vaccinationsprogram.js';
+import * as vardkontakt from './vardkontakt.js';
+import * as sammanhallen from './sammanhallen.js';
 
 // Läkemedelsinformationen för ett läkemedel och patienten: eGFR enligt samma regel som säkerhetskontrollerna (från alla
 // vårdenheter utan aktivt val men aldrig från en spärrad vårdenhet utan samtycke), patientens ålder och vårdenhetens
@@ -44,6 +47,14 @@ export function registreraRutter({ rutt, kravInloggad, medPatient }) {
     return medPatient(c, rad.patient_id, 'las_lakemedel', (atk) => overforing.kvittera(atk, rad));
   });
   rutt('GET', '/api/samverkan/:id/lakemedel', (c, id) => overforing.forKommun(c.db, kravInloggad(c), id));
+  // Sussa 3.5.1.7: de nationella vaccinationsprogrammen och rapporteringen till vaccinationsregistret (simulerat).
+  rutt('GET', '/api/patient/:id/vaccinationsprogram', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_oversikt', (atk, p) => vaccinationsprogram.forPatient(atk, p)); });
+  rutt('POST', '/api/patient/:id/vaccinationsprogram/vaccination', (c, id) => { kravInloggad(c); return medPatient(c, id, 'vaccinera', (atk, p) => vaccinationsprogram.vaccinera(atk, p, c.body, vardkontakt.knyt)); });
+  rutt('POST', '/api/patient/:id/vaccinationsprogram/tidigare', (c, id) => { kravInloggad(c); return medPatient(c, id, 'vaccinera', (atk, p) => vaccinationsprogram.tidigare(atk, p, c.body)); });
+  // Sussa 3.2.2.3: sammanhållen journalföring med en simulerad annan vårdgivare.
+  rutt('GET', '/api/patient/:id/sammanhallen', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_journal', (atk) => sammanhallen.lage(atk, c.s, { sortera: c.url.searchParams.get('sortera') ?? 'nyast', typ: c.url.searchParams.get('typ') })); });
+  rutt('POST', '/api/patient/:id/sammanhallen', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_journal', (atk) => sammanhallen.hamta(atk, c.s, c.body)); });
+  rutt('POST', '/api/patient/:id/sammanhallen/aterkalla', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_journal', (atk) => sammanhallen.aterkalla(atk, c.s)); });
   // Vilka grupper av högriskläkemedel som kontrolleras i dag.
   rutt('GET', '/api/kollegakontroll/grupper', (c) => { kravInloggad(c); return { grupper: Object.entries(hogrisk.KATEGORIER).map(([gid, k]) => ({ id: gid, rubrik: k.rubrik, varfor: k.varfor, pa: hogrisk.aktiv(c.db, gid) })) }; });
 }

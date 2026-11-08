@@ -103,6 +103,7 @@ import { registreraRutter as r9r7Rutter } from './r9r7-rutter.js';
 // Runda 10, r5: kunskapsstöd, utfall, kollegakontroll, läkemedelsöverföring, vaccinationsprogram, sammanhållen
 // journalföring och akutflödet (runda10-r5-rutter.js).
 import { registreraRutter as r10r5Rutter, inkorg as r10r5Inkorg } from './runda10-r5-rutter.js';
+import * as sammanhallen from './sammanhallen.js';
 import * as levnadsvanor from './levnadsvanor.js';
 import * as folkhalsa from './folkhalsa.js';
 // Runda 9, r4: informationsstrukturen, fackspråket, kodverken och masterdatans källor (arkitektur-rutter.js).
@@ -558,6 +559,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
         return h;
       }),
       ...(rem ?? []).map(r => ({ tid: r.tider.skickad, typ: 'remiss', rubrik: `Remiss till ${r.till.namn}`, text: r.fragestallning ?? r.status, enhet: r.fran, kalla: r.kalla, kallaEtikett: r.kallaEtikett, ref: { typ: 'remiss', id: r.id } })),
+      // Runda 10, r5: uppgifter från en annan vårdgivare genom sammanhållen journalföring, efter samtycke och aktivt val.
+      ...sammanhallen.tidslinje(atk, c.s),
     ].sort((a, b) => String(b.tid).localeCompare(String(a.tid)));
     // Vårdkontakter, vårdtillfällen och hälsoärenden (vardkontakt.js), byggt av det som redan är filtrerat ovan.
     const vardstruktur = vardkontakt.oversiktDel(atk, { vk, ant, dia, mv, ord, rem });

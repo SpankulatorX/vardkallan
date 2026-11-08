@@ -11,6 +11,8 @@
 // 1 januari 2027 (regeringen, smittskyddsförordningen i kraft 1 november 2026). Åldern för dosen är inte fastställd på
 // Folkhälsomyndighetens sida, så den finns inte med i demon.
 
+import { vaccinRad as ovrigtVaccin } from './vaccinationsprogram-regler.js';
+
 const DAG = 86400_000;
 export const KALLOR = {
   besok: 'Region Örebro län, Kravspecifikation barnhälsovård Hälsoval 2026, bilaga 1 och 2 (Dnr 25RS8809), som bygger på Rikshandboken i barnhälsovård',
@@ -59,7 +61,9 @@ export const VACCINER = [
   // BCG ges bara vid ökad risk för tuberkulos, efter bedömningen vid första hembesöket.
   V('bcg', 'Tuberkulos (BCG)', 'bcg', 1, 0, { atc: 'J07AN01', sjukdomar: 'Tuberkulos' }),
 ];
-export const vaccinRad = (id) => VACCINER.find(v => v.id === id) ?? null;
+// Runda 10, r5: vaccinerna i programmen efter fem års ålder och för riskgrupper (vaccinationsprogram-regler.js) slås upp
+// här också, så att text och sjukdomar följer med i listor, FHIR och Min journal.
+export const vaccinRad = (id) => VACCINER.find(v => v.id === id) ?? ovrigtVaccin(id) ?? null;
 // Vaccinationerna som ges senare av elevhälsan, för information.
 export const ELEVHALSAN = [
   { text: 'MPR, dos 2', nar: 'Årskurs 1 till 2' },

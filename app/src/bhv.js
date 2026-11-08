@@ -6,6 +6,8 @@
 // registrera_matvarde, och raderna filtreras på vårdenhet (inre sekretess, aktivt val och spärr), så att kurvor, larm
 // och förslag bara bygger på det användaren får se. Vaccinationer läses med las_oversikt och registreras med vaccinera.
 // Besöken bokas med boka_bhv av läkare och sjuksköterskor på den vårdenhet där barnet är inskrivet i barnhälsovården.
+// Runda 10, r5: rapporteringen till det simulerade vaccinationsregistret.
+import { rapportera as rapporteraVaccination } from './vaccinationsregister.js';
 import { Fel, iso, datumAv, addDagar, lokalTid } from './db.js';
 import { Atkomst, ROLLER, HANDLINGAR, kanRoll, vardenhetFor, enheterUnder, harVardrelation, alder } from './atkomst.js';
 import * as journal from './journal.js';
@@ -492,6 +494,8 @@ export function vaccinera(atk, p, body = {}, knyt, nu = Date.now()) {
   const t = new Date(nu).toISOString();
   const r = db.query('INSERT INTO vaccinationer (patient_id, enhet_id, vaccin_id, atc, dos, tid, givet_av, batch, registrerad) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
     .run(p.id, atk.personal.enhet_id, v.id, v.atc, v.dos, t, atk.personal.id, batch, iso());
+  // Runda 10, r5: dosen rapporteras av systemet till det simulerade vaccinationsregistret (vaccinationsregister.js).
+  rapporteraVaccination(db, Number(r.lastInsertRowid));
   const ut = vaccinationUt(db, db.query('SELECT * FROM vaccinationer WHERE id = ?').get(r.lastInsertRowid));
   knyt(atk, 'vaccinationer', ut, body);
   atk.logga('vaccinera', atk.grund(), `vaccination:${ut.id}`, 'tillaten', dolda ? 'Dosen gavs utan aktivt val, efter bekräftelse att barnet har vaccinationer registrerade på en annan vårdenhet.' : null);
