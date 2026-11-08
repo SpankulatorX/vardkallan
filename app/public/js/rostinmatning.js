@@ -7,9 +7,11 @@
 // och det som inte är skrivet kastas. Den dikterade texten hamnar i fälten som ett utkast, som sparas och signeras med
 // knapparna som vanligt, och rösten kan aldrig signera. Sökord med dikterad text märks, så att det syns i anteckningen.
 //
-// Igenkänningen görs lokalt i webbläsaren när den kan (processLocally). Annars kan webbläsaren skicka ljudet till sin
-// leverantörs tjänst, vilket står i rutan. I demon finns bara påhittade patienter.
-import { esc, notis } from './ui.js';
+// Patientens röst ska inte gå till en molntjänst. Igenkänningen görs på enheten när webbläsaren har en svensk modell för
+// det (processLocally). Annars visar Diktera första gången en förklaring att ljudet kan skickas till webbläsarens
+// leverantör och att demon bara har påhittade patienter, och användaren måste välja att fortsätta. Valet sparas per
+// användare på servern. I drift görs igenkänningen av en lokal motor på regionens egna servrar (docs/design.md).
+import { esc, notis, api, dialog } from './ui.js';
 import * as R from './rost-regler.js';
 
 // Motorn: webbläsarens taligenkänning. Testerna sätter window.__vkTaligenkanning till en simulerad motor.
@@ -28,6 +30,7 @@ export function koppla(form, { patient }) {
     return;
   }
   let rec = null;
+  let startar = false;
   let falt = null;
   const historik = [];
   const startHash = location.hash;
@@ -78,21 +81,40 @@ export function koppla(form, { patient }) {
       else if (d.kommando === 'signera') notis(d.text, 'info');
     }
   };
-  const starta = () => {
+  // Får dikteringen starta? På enheten alltid. Annars bara när användaren har valt webbläsarens tjänst, efter förklaringen.
+  const farStarta = async (Motor) => {
+    const lokal = await R.arLokal(Motor);
+    if (lokal) return { lokal };
+    let valt = false;
+    try { valt = (await api('/api/rost/val', { tyst: true })).molntjanst; } catch { /* frågan visas */ }
+    if (!R.behoverVal({ lokal, valt })) return { lokal };
+    const svar = await dialog(`<h2 id="dlg-rubrik">Taligenkänning i webbläsarens tjänst</h2>
+      <p data-moln-text>${esc(R.MOLN_TEXT)}</p>
+      <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Fortsätt med webbläsarens tjänst</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div>`, { klass: 'diktat-val' });
+    if (!svar) return null;
+    await api('/api/rost/val', { metod: 'POST', data: {} });
+    return { lokal };
+  };
+  const starta = async () => {
+    if (startar) return;
     const Motor = motor();
+    startar = true;
+    let tillat = null;
+    try { tillat = await farStarta(Motor); } catch { tillat = null; } finally { startar = false; }
+    if (!tillat || !form.isConnected || location.hash !== startHash) return;
+    const { lokal } = tillat;
     rec = new Motor();
     rec.lang = 'sv-SE';
     rec.continuous = true;
     rec.interimResults = true;
-    // Lokal igenkänning när webbläsaren har den, så att ljudet inte lämnar datorn.
-    const lokal = 'processLocally' in rec;
+    // Igenkänning på enheten, så att ljudet inte lämnar datorn.
     if (lokal) rec.processLocally = true;
     const aktiv = (sokordFalt().includes(document.activeElement) ? document.activeElement : null);
     ruta.hidden = false;
     ruta.innerHTML = `<div class="ruta ruta-info liten diktat-ruta" role="status">
         <p><strong>Diktering pågår i journalen för ${esc(patient.namn)}${patient.personnummer ? `, ${esc(patient.personnummer)}` : ''}.</strong> <span data-diktat-falt></span></p>
         <p class="diktat-hor" data-diktat-hor aria-live="off"></p>
-        <p class="hjalp">Säg nästa sökord, gå till och sökordets namn, punkt, kommatecken, ny rad, ångra eller sluta diktera. ${lokal ? 'Igenkänningen görs i webbläsaren.' : 'Webbläsaren kan skicka ljudet till sin leverantörs tjänst för igenkänningen. I demon finns bara påhittade patienter.'} Signeringen gör du själv med knappen.</p>
+        <p class="hjalp">Säg nästa sökord, gå till och sökordets namn, punkt, kommatecken, ny rad, ångra eller sluta diktera. ${lokal ? 'Igenkänningen görs på den här datorn.' : 'Igenkänningen görs i webbläsarens tjänst, som du har valt. I demon finns bara påhittade patienter.'} Signeringen gör du själv med knappen.</p>
       </div>`;
     markera(aktiv ?? sokordFalt().find(x => !x.value.trim()) ?? sokordFalt()[0]);
     rec.onresult = (e) => {

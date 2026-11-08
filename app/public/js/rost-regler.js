@@ -25,6 +25,17 @@ const FRASER = [
 ].sort((a, b) => b[0].split(' ').length - a[0].split(' ').length);
 export const SIGNERA_TEXT = 'Signeringen görs med knappen Signera, när du har läst texten. Rösten kan inte signera, så att inget som taligenkänningen har hört fel blir journal utan att någon har läst det.';
 
+// Patientens röst ska inte gå till en molntjänst. Igenkänningen görs på enheten när webbläsaren har en svensk modell för
+// det (SpeechRecognition.available med processLocally). Annars måste användaren först ha valt att låta webbläsarens
+// leverantör känna igen talet, efter förklaringen nedan. I drift görs igenkänningen av en lokal motor på regionens
+// servrar (docs/design.md).
+export const MOLN_TEXT = 'Webbläsaren kan inte känna igen tal på svenska på den här datorn. Om du fortsätter skickas ljudet till webbläsarens leverantör, som känner igen talet i sin tjänst. Det är godtagbart i demon, som bara har påhittade patienter, men i vården ska patientens röst aldrig lämna regionens egna servrar. Där görs igenkänningen av en lokal motor. Ditt val sparas, så att frågan inte kommer igen.';
+export async function arLokal(Motor) {
+  if (typeof Motor?.available !== 'function') return false;
+  try { return (await Motor.available({ langs: ['sv-SE'], processLocally: true })) === 'available'; } catch { return false; }
+}
+export const behoverVal = ({ lokal, valt }) => !lokal && !valt;
+
 const lagsta = (s) => s.toLocaleLowerCase('sv-SE');
 const skiljetecken = new Set(Object.values(SKILJETECKEN));
 
