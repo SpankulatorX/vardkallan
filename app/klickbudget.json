@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T09:43:53.819Z",
-  "bas": "http://127.0.0.1:18175",
+  "tid": "2026-11-08T10:24:01.607Z",
+  "bas": "http://127.0.0.1:18110",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "8d98f7b041eb9cceb23e85f4a4e87c2cf1bc415c36e2c24fbd7952bc57e66351",
+  "gransnittHash": "6861eabb78763a405740bf97897dd10fff8989df56b204f9e50a1ab598fbf78a",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -977,6 +977,38 @@
         "fältbyte: längden",
         "klick: Registrera"
       ]
+    },
+    {
+      "id": "nyheter",
+      "namn": "Läsa nyheterna och stänga dem",
+      "roll": "lak-kard",
+      "start": "Arbetslistan med nyheterna efter en ny version",
+      "budget": 1,
+      "motivering": "Sussa 10.1.1.4. Nyheterna för rollen visas själva efter en ny version, utan att användaren behöver leta, och läses där de står. Ett klick på Stäng nyheterna, och de kommer inte tillbaka förrän nästa version.",
+      "klick": 1,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "steg": [
+        "klick: Stäng nyheterna"
+      ]
+    },
+    {
+      "id": "forlang-inloggning",
+      "namn": "Fortsätta arbeta när inloggningen snart går ut",
+      "roll": "lak-kard",
+      "start": "Arbetslistan när inloggningen snart går ut",
+      "budget": 1,
+      "motivering": "K2 1.6.1. Fem minuter före utloggningen visar systemet en varning med fokus på knappen Fortsätt arbeta. Ett klick, eller Enter, förlänger inloggningen. Inget behöver skrivas.",
+      "klick": 1,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "steg": [
+        "klick: Fortsätt arbeta"
+      ]
     }
   ],
   "tester": [
@@ -1194,6 +1226,14 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Registrera längd och vikt vid ett BHV-besök och se kurvan inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Läsa nyheterna och stänga dem inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Fortsätta arbeta när inloggningen snart går ut inom budget",
       "status": "grön"
     }
   ]
