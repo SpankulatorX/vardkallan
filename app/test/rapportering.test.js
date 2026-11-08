@@ -466,4 +466,48 @@ describe('Myndighetsrapportering i API:t', () => {
     await v.post('/api/login/invanare', { invanareId: 'inv-vh01' });
     expect((await v.post('/api/min/journal/p09/kvalitetsregister/motsatt')).status).toBe(403);
   });
+
+  test('en diagnos som registreras via rapportfelet röjer inte dolda diagnoser, och två huvuddiagnoser rättas av den som får se båda', async () => {
+    const k = await inloggad('lak-kard');
+    const db = sdb(k);
+    const per = mr.period('par', new Date());
+    const datum = addDagar(per.fran, 13);
+    // Patient 4 har spärrat Allmänpsykiatriska kliniken. Vårdtillfället har en kontakt där med en dold huvuddiagnos (F32.1)
+    // och en dold bidiagnos med samma kod som läkaren sedan registrerar (I48.0).
+    const { vt, vk } = vardtillfalle(db, { pid: 'p04', inskr: datum, utskr: addDagar(datum, 2) });
+    const psyk = Number(db.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, slut, vardtillfalle_id) VALUES ('p04', 'uso-psyk', 'slutenvard', ?, ?, ?)").run(new Date(`${datum}T12:00:00Z`).toISOString(), new Date(`${addDagar(datum, 1)}T12:00:00Z`).toISOString(), vt).lastInsertRowid);
+    const dold = diagnos(db, { pid: 'p04', enhet: 'uso-psyk', vk: psyk, kod: 'F32.1', text: 'Medelsvår depressiv episod', datum });
+    const doldDubblett = diagnos(db, { pid: 'p04', enhet: 'uso-psyk', vk: psyk, kod: 'I48.0', typ: 'bi', text: 'Paroxysmalt förmaksflimmer', datum });
+    // Kontroll: samma registrering på ett vårdtillfälle utan dolda diagnoser.
+    const kontroll = vardtillfalle(db, { pid: 'p01', inskr: datum, utskr: addDagar(datum, 2) });
+    const r0 = await k.post(`/api/vardkontakt/${kontroll.vk}/diagnos`, { kod: 'I48.0' });
+    const r = await k.post(`/api/vardkontakt/${vk}/diagnos`, { kod: 'I48.0' });
+    expect(r.status).toBe(201);
+    // Svaret har samma form som kontrollens och nämner inte de dolda raderna.
+    expect(Object.keys(r.data).sort()).toEqual(Object.keys(r0.data).sort());
+    expect(r.data).toMatchObject({ kod: 'I48.0', typ: 'huvud' });
+    expect(r.data.fanns).toBeUndefined();
+    expect([dold, doldDubblett]).not.toContain(r.data.id);
+    const text = JSON.stringify(r.data);
+    for (const x of ['F32.1', 'Medelsvår', String(dold), String(doldDubblett), 'psyk']) expect({ x, finns: text.includes(x) }).toEqual({ x, finns: false });
+    // Nu har vårdtillfället två huvuddiagnoser. Rapportkontrollen fångar det.
+    const fel = mr.sammanstall(db, 'par').fel.find(f => f.radNyckel === `VT${vt}`);
+    expect(fel).toMatchObject({ regel: 'flera_huvud', atgard: 'huvuddiagnos' });
+    expect(fel.text).not.toContain('F32');
+    // Läkaren utan samtycke ser inte felet, och inkorgen nämner inte den dolda diagnosen.
+    const utan = (await k.get('/api/inkorg')).data;
+    expect(utan.rapportfel.some(x => x.regel === 'flera_huvud' && x.patientId === 'p04')).toBe(false);
+    expect(JSON.stringify(utan.rapportfel)).not.toContain('F32.1');
+    expect((await k.post(`/api/vardkontakt/${vk}/huvuddiagnos`, { diagnosId: r.data.id })).status).toBe(403);
+    // Med samtycke och aktivt val ser hon båda och väljer huvuddiagnos.
+    await k.post('/api/patient/p04/val', { typ: 'samtycke_sparr', syfte: 'Rätta rapporten till patientregistret' });
+    await k.post('/api/patient/p04/val', { typ: 'andra_enheter', syfte: 'Rätta rapporten till patientregistret' });
+    const rad = (await k.get('/api/inkorg')).data.rapportfel.find(x => x.regel === 'flera_huvud' && x.patientId === 'p04');
+    expect(rad.forslag.map(f => f.kod).sort()).toEqual(['F32.1', 'I48.0']);
+    expect((await k.post(`/api/vardkontakt/${vk}/huvuddiagnos`, { diagnosId: dold })).status).toBe(200);
+    expect(mr.sammanstall(db, 'par').fel.some(f => f.radNyckel === `VT${vt}`)).toBe(false);
+    expect(db.query('SELECT typ FROM diagnoser WHERE id = ?').get(r.data.id).typ).toBe('bi');
+    // Med samtycke är den dolda dubbletten synlig och registreras inte igen.
+    expect((await k.post(`/api/vardkontakt/${vk}/diagnos`, { kod: 'I48.0' })).data.fanns).toBe(true);
+  });
 });

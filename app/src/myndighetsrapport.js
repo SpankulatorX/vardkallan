@@ -254,7 +254,18 @@ function kontrolleraDiagnoser(ctx, { diagnoser, radNyckel, patientId, vardkontak
   const di = [];
   const yo = [];
   let huvudSatt = false;
+  // Två diagnoser registrerade som huvuddiagnos, till exempel på olika vårdenheter, avgör läkaren. Felet hamnar hos en
+  // läkare som får se båda, och texten nämner inga diagnoser.
+  const huvuddiagnoser = new Set(diagnoser.filter(d => d.typ === 'huvud' && !K.ejHuvuddiagnos(d.kod)).map(d => d.kod));
+  if (huvuddiagnoser.size > 1) {
+    laggFel(ctx, { regel: 'flera_huvud', radNyckel, patientId, vardkontaktId, enhetId: ve, datum, atgard: 'huvuddiagnos',
+      text: 'Vårdkontakten har mer än en huvuddiagnos. En läkare som får se diagnoserna väljer vilken som är huvuddiagnos.' });
+    ok = false;
+  }
+  const sett = new Set();
   for (const d of diagnoser) {
+    if (sett.has(d.kod)) continue;
+    sett.add(d.kod);
     if (K.arYttreOrsak(d.kod)) { yo.push(K.utanPunkt(d.kod)); continue; }
     const huvud = d.typ === 'huvud' && !K.ejHuvuddiagnos(d.kod) && !huvudSatt;
     if (huvud) huvudSatt = true;
@@ -699,6 +710,10 @@ export function registreraDiagnos(atk, vk, body = {}) {
   let text;
   let typ;
   const kontaktIdn = vk.vardtillfalle_id ? db.query('SELECT id FROM vardkontakter WHERE vardtillfalle_id = ?').all(vk.vardtillfalle_id).map(r => r.id) : [vk.id];
+  // Bara de diagnoser som läkaren får läsa räknas, både för huvud eller bi och för dubbletter, så att svaret aldrig
+  // varierar med dolda rader. Blir det två huvuddiagnoser fångar rapportkontrollen det och lägger rättningen hos den som
+  // får se båda.
+  const synliga = diagnoserFor(db, kontaktIdn).filter(d => atk.prova('las_diagnoser', { enhet_id: d.enhet_id }).tillaten);
   if (body.mekanism != null) {
     const y = K.yttreOrsak(String(body.mekanism), String(body.plats ?? '9'), String(body.aktivitet ?? '9'));
     if (!y) throw new Fel(400, 'Välj vad som hände, var det hände och vad patienten gjorde.', 'ogiltig', { falt: ['mekanism'] });
@@ -708,16 +723,42 @@ export function registreraDiagnos(atk, vk, body = {}) {
     kod = String(body.kod ?? '').trim().toUpperCase();
     text = ICD10SE[kod];
     if (!text) throw new Fel(400, `Koden ${kod || 'saknas'} finns inte bland de koder ur ICD-10-SE som systemet känner till. Välj en kod i listan.`, 'ogiltig', { falt: ['kod'] });
-    const harHuvud = diagnoserFor(db, kontaktIdn).some(d => d.typ === 'huvud' && !K.ejHuvuddiagnos(d.kod));
+    const harHuvud = synliga.some(d => d.typ === 'huvud' && !K.ejHuvuddiagnos(d.kod));
     typ = harHuvud ? 'bi' : 'huvud';
   }
-  const finns = diagnoserFor(db, kontaktIdn).find(d => d.kod === kod);
+  const finns = synliga.find(d => d.kod === kod);
   if (finns) return { id: finns.id, kod, text: finns.text, typ: finns.typ, fanns: true };
   const datum = datumSv(vk.ankomst ?? vk.start);
   const id = db.query("INSERT INTO diagnoser (patient_id, enhet_id, vardkontakt_id, kod, text, typ, datum, kalla) VALUES (?, ?, ?, ?, ?, ?, ?, 'vardkallan') RETURNING id")
     .get(vk.patient_id, vk.enhet_id, vk.id, kod, text, typ, datum).id;
   atk.logga('registrera_diagnos', atk.grund(), `vardkontakt:${vk.id}:diagnos:${id}`);
   return { id, kod, text, typ };
+}
+
+// Diagnoserna som är registrerade som huvuddiagnos på vårdkontakten eller vårdtillfället, för rättningen när de är fler än en.
+const kontakterFor = (db, vk) => (vk.vardtillfalle_id ? db.query('SELECT id FROM vardkontakter WHERE vardtillfalle_id = ?').all(vk.vardtillfalle_id).map(r => r.id) : [vk.id]);
+export function huvudForslag(db, vk) {
+  return diagnoserFor(db, kontakterFor(db, vk)).filter(d => d.typ === 'huvud' && !K.ejHuvuddiagnos(d.kod)).map(d => ({ id: d.id, kod: d.kod, text: d.text }));
+}
+
+// Läkaren väljer huvuddiagnos när det finns flera. Det går bara när läkaren får läsa varje diagnos på vårdtillfället och
+// registrera diagnoser på kontaktens vårdenhet. Annars blir svaret detsamma som för en vårdkontakt utan behörighet.
+export function valjHuvuddiagnos(atk, vk, body = {}) {
+  const db = atk.db;
+  atk.krav('registrera_diagnos', { resurs: { enhet_id: vk.enhet_id }, beskrivning: `vardkontakt:${vk.id}:huvuddiagnos` });
+  const alla = diagnoserFor(db, kontakterFor(db, vk));
+  if (!alla.every(d => atk.prova('las_diagnoser', { enhet_id: d.enhet_id }).tillaten)) {
+    atk.logga('registrera_diagnos', 'nekad', `vardkontakt:${vk.id}:huvuddiagnos`, 'nekad');
+    throw new Fel(403, 'Du har inte behörighet till alla diagnoser på vårdkontakten.', 'nekad');
+  }
+  const vald = alla.find(d => d.id === Number(body.diagnosId));
+  if (!vald || K.ejHuvuddiagnos(vald.kod)) throw new Fel(400, 'Välj en av diagnoserna.', 'ogiltig', { falt: ['diagnosId'] });
+  db.transaction(() => {
+    for (const d of alla) if (d.typ === 'huvud' && d.id !== vald.id) db.query("UPDATE diagnoser SET typ = 'bi' WHERE id = ?").run(d.id);
+    db.query("UPDATE diagnoser SET typ = 'huvud' WHERE id = ?").run(vald.id);
+  })();
+  atk.logga('registrera_diagnos', atk.grund(), `vardkontakt:${vk.id}:huvuddiagnos:${vald.id}`);
+  return { id: vald.id, kod: vald.kod, text: vald.text, typ: 'huvud' };
 }
 
 // Valen för en yttre orsak, för dialogen.
