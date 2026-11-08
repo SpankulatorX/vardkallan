@@ -28,7 +28,7 @@ export default [
     id: '11.2.1.7', kategori: 'leverantor', egna: ['K1', 'K4'], avsedd: 'delvis',
     tester: [
       `${KR}status uppfyllt_demo bara när alla tester är gröna`,
-      `${SR}alla 305 id finns exakt en gång, och varje post har en mappning`,
+      `${SR}alla 389 id finns exakt en gång, och varje post har en mappning`,
       `${SR}uppfyllt_demo kräver gröna tester`,
       `${A}krav visar kravregistret`,
     ],

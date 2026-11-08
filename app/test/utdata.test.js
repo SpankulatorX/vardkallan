@@ -476,7 +476,7 @@ describe('Datauttag', () => {
     const andra = datauttag.uppdateraOmDags(d, new Date('2026-11-04T01:30:00Z'));
     expect(andra.id).toBeGreaterThan(forsta.id);
     expect(andra.andringar.Diagnos.ny.length).toBe(1);
-    const inkr = datauttag.ndjson(d, 'Diagnos', { andringar: true }).trim().split('\n').map(x => JSON.parse(x));
+    const inkr = datauttag.ndjson(d, 'Diagnos', { andringar: true, nu: new Date('2026-11-04T01:31:00Z') }).trim().split('\n').map(x => JSON.parse(x));
     expect(inkr).toEqual([expect.objectContaining({ kod: 'I10.9', _andring: 'ny' })]);
     expect(d.query('SELECT count(*) AS n FROM datauttag').get().n).toBe(2);
   });

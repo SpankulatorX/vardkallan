@@ -220,8 +220,8 @@ export function manifest(db, base) {
 
 // Raderna i en tabell som NDJSON. Med andringar: bara det som är nytt eller ändrat sedan föregående uppdatering, och de
 // borttagna raderna med bara sin nyckel. Varje rad får då fältet _andring.
-export function ndjson(db, typ, { andringar = false } = {}) {
-  const s = uppdateraOmDags(db);
+export function ndjson(db, typ, { andringar = false, nu = new Date() } = {}) {
+  const s = uppdateraOmDags(db, nu);
   const rader = s.data[typ];
   if (!andringar) return rader.map(r => JSON.stringify(r)).join('\n') + (rader.length ? '\n' : '');
   const a = s.andringar[typ];

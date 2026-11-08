@@ -38,9 +38,9 @@ export const KRAV = [
   // Kravspårbarhet
   k('K1', 'Kravregister med id, källa, status och koppling till tester', `${RAPPORT}, Kravspårbarhet`, 'delvis', '/krav',
     [`${KR}alla krav K1 till K5, D1 till D12, L1 till L13 och M1 till M13 finns`, `${KR}status uppfyllt_demo bara när alla tester är gröna`, `${A}krav visar kravregistret`,
-      `${SR}alla 305 id finns exakt en gång, och varje post har en mappning`, `${SR}uppfyllt_demo kräver gröna tester`, `${SR}källan och de saknade kapitlen anges`,
+      `${SR}alla 389 id finns exakt en gång, och varje post har en mappning`, `${SR}uppfyllt_demo kräver gröna tester`, `${SR}källan anges och alla kapitel ingår`,
       `${SR}API: krav/sussa ger registret utan inloggning, med egna krav och testernas status`],
-    'Sussas kravspecifikation med originalnummer finns nu för kapitel 1 till 6 och 11: 305 poster, varav 165 utvärderingskriterier, i Sussa-registret med koppling till tester och till kraven här. Kapitel 7 till 10 och 12 ingår inte i utdraget från Konkurrensverket, och viktningsträdet för utvärderingskriterierna (bilaga F1:1) saknas. Kraven K, D, L och M kommer från rapportens ramverk.'),
+    'Sussas kravspecifikation med originalnummer finns nu för kapitel 1 till 12 och för driftspecifikationen: 389 poster, varav 201 utvärderingskriterier, i Sussa-registret med koppling till tester och till kraven här. Kapitel 1 till 6 och 11 kommer från Konkurrensverkets utdrag och resten från regionens originaldokument. Kraven K, D, L och M kommer från rapportens ramverk.'),
   k('K2', 'Svarsmappning från kriterier till leverantörens FVIS-krav', `${RAPPORT}, Kravspårbarhet`, 'planerat', '/krav', [], 'Kräver bilaga A1, den avtalade specifikationen med leverantörens svar på kraven, som inte är tillgänglig. Sussas krav och kriterier finns nu med originalnummer, men inte leverantörens svar på dem.'),
   k('K3', 'Prioritetssignal för krav som exkluderades eller sköts upp', `${RAPPORT}, Kravspårbarhet`, 'planerat', '/krav', [], 'Kräver bilaga 1 till Tilläggsavtal 3, som begärdes ut från Konkurrensverket 2026-11-03.'),
   k('K4', 'Varje krav bryts ned till automatiserade testfall och ett användarscenario', `${RAPPORT}, Kravspårbarhet`, 'delvis', '/krav',

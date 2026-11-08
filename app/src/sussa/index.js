@@ -74,6 +74,17 @@ import a6_3_3 from './mappning/6.3.3.js';
 import a11_1 from './mappning/11.1.js';
 import a11_2 from './mappning/11.2.js';
 import a11_3 from './mappning/11.3.js';
+// Runda 7: kapitel 7 till 10, 12 och driftspecifikationen (KD) ur Word-originalen.
+import a7_1 from './mappning/7.1.js';
+import a8_4 from './mappning/8.4.js';
+import a9_1 from './mappning/9.1.js';
+import a10_1 from './mappning/10.1.js';
+import a12_1 from './mappning/12.1.js';
+import a12_2 from './mappning/12.2.js';
+import a12_3 from './mappning/12.3.js';
+import aKD1_1 from './mappning/KD1.1.js';
+import aKD1_2 from './mappning/KD1.2.js';
+import aKD1_3 from './mappning/KD1.3.js';
 
 export const SPEC = spec;
 export const KATEGORIER = ['system', 'nationell', 'leverantor'];
@@ -88,6 +99,7 @@ export const AVSNITTSFILER = {
   '3.7.1': a3_7_1, '4.1': a4_1, '4.2': a4_2, '4.3': a4_3, '4.4.1': a4_4_1, '4.4.2': a4_4_2, '4.4.3': a4_4_3, '4.5': a4_5, '4.6': a4_6, '4.7': a4_7,
   '4.8': a4_8, '5.1.1': a5_1_1, '5.1.2': a5_1_2, '5.1.3': a5_1_3, '5.1.4': a5_1_4, '5.2': a5_2, '5.3': a5_3, '5.4.2': a5_4_2, '6.1.1': a6_1_1,
   '6.2.1': a6_2_1, '6.2.2': a6_2_2, '6.3.1': a6_3_1, '6.3.2': a6_3_2, '6.3.3': a6_3_3, '11.1': a11_1, '11.2': a11_2, '11.3': a11_3,
+  '7.1': a7_1, '8.4': a8_4, '9.1': a9_1, '10.1': a10_1, '12.1': a12_1, '12.2': a12_2, '12.3': a12_3, 'KD1.1': aKD1_1, 'KD1.2': aKD1_2, 'KD1.3': aKD1_3,
 };
 export const MAPPNING = Object.values(AVSNITTSFILER).flat();
 

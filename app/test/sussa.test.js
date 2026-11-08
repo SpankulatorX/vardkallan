@@ -8,12 +8,12 @@ const resultat = (tester) => ({ tid: '2026-11-03T10:00:00Z', bun: '1.3.14', anta
 const MAPPKATALOG = join(import.meta.dir, '..', 'src', 'sussa', 'mappning');
 
 describe('Sussa-registret', () => {
-  test('alla 305 id finns exakt en gång, och varje post har en mappning', () => {
+  test('alla 389 id finns exakt en gång, och varje post har en mappning', () => {
     const id = SPEC.poster.map(p => p.id);
-    expect(id.length).toBe(305);
-    expect(new Set(id).size).toBe(305);
+    expect(id.length).toBe(389);
+    expect(new Set(id).size).toBe(389);
     const mappade = MAPPNING.map(m => m.id);
-    expect(mappade.length).toBe(305);
+    expect(mappade.length).toBe(389);
     expect(new Set(mappade)).toEqual(new Set(id));
     // En fil per avsnitt med poster, och varje fil har just sitt avsnitts poster i dokumentets ordning.
     const avsnittMedPoster = [...new Set(SPEC.poster.map(p => p.avsnitt))];
@@ -30,9 +30,10 @@ describe('Sussa-registret', () => {
       expect(p.text.length).toBeGreaterThan(10);
       expect(Array.isArray(p.mervarden) && Array.isArray(p.kompletterar)).toBe(true);
     }
-    // Kriterierna och kraven räknas som i utdraget: 50 krav vid anbud, 90 krav vid leverans och 165 utvärderingskriterier.
+    // Kriterierna och kraven räknas som i originalen: 55 krav vid anbud, 133 krav vid leverans och 201 utvärderingskriterier
+    // (305 ur KKV-utdraget för kapitel 1 till 6 och 11, 84 ur Word-originalen för kapitel 7 till 10, 12 och driften).
     const typ = (t) => SPEC.poster.filter(p => p.typ === t).length;
-    expect([typ('krav_vid_anbud'), typ('krav_vid_leverans'), typ('utvarderingskriterium')]).toEqual([50, 90, 165]);
+    expect([typ('krav_vid_anbud'), typ('krav_vid_leverans'), typ('utvarderingskriterium')]).toEqual([55, 133, 201]);
   });
 
   test('varje post har en giltig kategori', () => {
@@ -74,8 +75,8 @@ describe('Sussa-registret', () => {
     // Utan testresultat kan inget i det riktiga registret vara uppfyllt.
     const r = sussaRegister(null);
     expect(r.summa.status.uppfyllt_demo).toBe(0);
-    expect(r.summa.status.delvis + r.summa.status.planerat).toBe(305);
-    expect(r.summa.kategori.system + r.summa.kategori.nationell + r.summa.kategori.leverantor).toBe(305);
+    expect(r.summa.status.delvis + r.summa.status.planerat).toBe(389);
+    expect(r.summa.kategori.system + r.summa.kategori.nationell + r.summa.kategori.leverantor).toBe(389);
     // Alla tester som registret pekar på finns, och de som avses vara uppfyllda blir det med gröna tester.
     const allaGrona = resultat(sussaTester().map(namn => ({ namn, status: 'grön' })));
     const fullt = sussaRegister(allaGrona);
@@ -94,17 +95,21 @@ describe('Sussa-registret', () => {
     }
   });
 
-  test('källan och de saknade kapitlen anges', () => {
-    expect(SPEC.kalla).toBe('Kravspecifikation lösning, Framtidens vårdinformationsstöd, Sussa samverkan, dnr 16RS2022, utdrag i Konkurrensverkets dnr 883/2023 aktbilaga 3, utlämnad 2026-11-03');
-    expect(SPEC.saknadeKapitel).toEqual(['7', '8', '9', '10', '12']);
-    expect(SPEC.kapitel.map(k => k.nr)).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']);
-    for (const k of SPEC.kapitel) expect(k.ingar).toBe(!SPEC.saknadeKapitel.includes(k.nr));
-    expect(SPEC.utdrag).toContain('Kapitel 7 till 10 och 12 ingår inte i utdraget');
-    expect(new Set(SPEC.poster.map(p => p.kapitel))).toEqual(new Set(['2', '3', '4', '5', '6', '11']));
+  test('källan anges och alla kapitel ingår', () => {
+    expect(SPEC.kalla).toContain('dnr 16RS2022');
+    expect(SPEC.kalla).toContain('Konkurrensverkets dnr 883/2023 aktbilaga 3');
+    expect(SPEC.kalla).toContain('originaldokument');
+    expect(SPEC.saknadeKapitel).toEqual([]);
+    expect(SPEC.kapitel.map(k => k.nr)).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'KD1']);
+    for (const k of SPEC.kapitel) expect(k.ingar).toBe(true);
+    expect(SPEC.utdrag).toContain('kapitel 1 till 12');
+    expect(new Set(SPEC.poster.map(p => p.kapitel))).toEqual(new Set(['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'KD1']));
+    // Driftspecifikationens processer och kapitel 9 gäller leverantören.
+    for (const a of ['9.1', 'KD1.2', 'KD1.3']) for (const m of AVSNITTSFILER[a]) expect(m.kategori).toBe('leverantor');
     for (const a of SPEC.avsnitt) expect(typeof a.rubrik === 'string' && typeof a.sammanfattning === 'string' && a.sammanfattning.length > 20).toBe(true);
     const r = sussaRegister(null);
     expect(r.kalla).toBe(SPEC.kalla);
-    expect(r.saknadeKapitel).toEqual(['7', '8', '9', '10', '12']);
+    expect(r.saknadeKapitel).toEqual([]);
     // Inga tankstreck eller ellipser i texterna som visas.
     const forbjudna = /[\u2014\u2013\u2026]/;
     expect(forbjudna.test(readFileSync(join(import.meta.dir, '..', 'src', 'sussa', 'kravspec.json'), 'utf8'))).toBe(false);
@@ -124,14 +129,14 @@ describe('Sussa-registret', () => {
       expect(r.status).toBe(200);
       const d = r.data;
       expect(d.kalla).toBe(SPEC.kalla);
-      expect(d.poster.length).toBe(305);
-      expect(d.kapitel.find(k => k.nr === '7')).toMatchObject({ ingar: false });
+      expect(d.poster.length).toBe(389);
+      expect(d.kapitel.find(k => k.nr === '7')).toMatchObject({ ingar: true });
       const p = d.poster.find(x => x.id === '3.5.2.6');
       expect(p).toMatchObject({ kapitel: '3', avsnitt: '3.5.2', kategori: 'system' });
       expect(p.text).toContain('ordinationsorsak');
       expect(p.egna.find(e => e.id === 'L7')).toMatchObject({ rubrik: expect.any(String), status: expect.any(String) });
       expect(p.tester.every(t => t.status === 'grön')).toBe(true);
-      expect(d.summa.status.uppfyllt_demo + d.summa.status.delvis + d.summa.status.planerat).toBe(305);
+      expect(d.summa.status.uppfyllt_demo + d.summa.status.delvis + d.summa.status.planerat).toBe(389);
       expect(d.summa.korstabell.nationell.planerat).toBeGreaterThan(0);
       expect(d.avsnitt.find(a => a.id === '3.5.2').rubrik).toBe('Process för läkemedelshantering');
     } finally { app.stopp(); rmSync(dir, { recursive: true }); }
