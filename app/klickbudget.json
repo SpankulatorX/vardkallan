@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T16:05:27.713Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-08T18:47:00.753Z",
+  "bas": "http://127.0.0.1:18203",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "a4958a5c3ab9d28741b854b75e1242d4f99e5c0f3dc0b43cbe303f6d4c69169e",
+  "gransnittHash": "5de6e5114380dbf46aadd0be33fd45ce0c40278a4bf51da5cbf93f9d1813f62a",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -1373,6 +1373,89 @@
         "klick: Analys och statistik",
         "klick: Visa gruppen"
       ]
+    },
+    {
+      "id": "diktera",
+      "namn": "Diktera och signera en daganteckning",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 3,
+      "motivering": "Sussa 3.1.3.2 och 3.1.3.7. Ett klick på Ny anteckning, ett på Diktera och ett för att signera. Resten görs med rösten: texten hamnar i det första tomma sökordet, gå till bedömning byter sökord och sluta diktera avslutar. Systemet sätter skiljetecken och stor bokstav, och signeringen görs alltid med knappen.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Ny anteckning",
+        "klick: Diktera",
+        "klick: Signera"
+      ]
+    },
+    {
+      "id": "stavning",
+      "namn": "Rätta en felstavad medicinsk term i en anteckning",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 3,
+      "motivering": "Sussa 3.1.3.10. Ett klick på Ny anteckning, där fokus står i Aktuellt, ett klick på förslaget som systemet visar under fältet och ett för att signera. Systemet kontrollerar texten själv när man slutar skriva.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Ny anteckning",
+        "har redan fokus: sökordet Aktuellt",
+        "klick: Byt till pneumoni",
+        "klick: Signera"
+      ]
+    },
+    {
+      "id": "formular-sar",
+      "namn": "Dokumentera ett sår med kroppsbilden",
+      "roll": "ssk-kard",
+      "start": "Patientens översikt",
+      "budget": 8,
+      "motivering": "Sussa 3.1.3.1, 3.1.3.5 och 5.1.1.3. Ett klick på Ny anteckning, två för att välja Sårdokumentation i listan, ett klick på hälen i kroppsbilden, där fokus flyttas till beskrivningen, ett klick på sårtypen, ett fältbyte vardera för längd och bredd och ett klick för att signera. Systemet skriver kroppsdelen och sidan, fyller i vikten ur mätvärdena och skriver anteckningens text.",
+      "klick": 6,
+      "faltbyten": 2,
+      "tangenter": 0,
+      "uppmatt": 8,
+      "inomBudget": true,
+      "steg": [
+        "klick: Ny anteckning",
+        "lista (2 klick): mallen Sårdokumentation",
+        "klick: höger häl i kroppsbilden",
+        "har redan fokus: beskrivningen av markeringen",
+        "klick: Trycksår",
+        "fältbyte: längden",
+        "fältbyte: bredden",
+        "klick: Signera"
+      ]
+    },
+    {
+      "id": "bygga-formular",
+      "namn": "Bygga ett formulär och föreslå det",
+      "roll": "sysf",
+      "start": "Systemförvaltarens formulär",
+      "budget": 5,
+      "motivering": "Sussa 5.1.1.3. Ett klick på Nytt formulär, där fokus står i namnet, ett fältbyte till första frågan, ett klick på Lägg till fråga, där fokus flyttas till den nya frågan, ett klick på Föreslå och ett för att skicka med motiveringen. Systemet sätter nycklarna, förhandsvisar formuläret och säger vad som behöver ändras.",
+      "klick": 4,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 5,
+      "inomBudget": true,
+      "steg": [
+        "klick: Nytt formulär",
+        "har redan fokus: namnet",
+        "fältbyte: första frågan",
+        "klick: Lägg till fråga",
+        "har redan fokus: andra frågan",
+        "klick: Föreslå formuläret",
+        "har redan fokus: motiveringen",
+        "klick: Föreslå"
+      ]
     }
   ],
   "tester": [
@@ -1678,6 +1761,22 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Visa en färdig patientgrupp inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Diktera och signera en daganteckning inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Rätta en felstavad medicinsk term i en anteckning inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Dokumentera ett sår med kroppsbilden inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Bygga ett formulär och föreslå det inom budget",
       "status": "grön"
     }
   ]
