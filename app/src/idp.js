@@ -111,7 +111,10 @@ export function autentisera(db, p, { nu = Date.now(), nonce = null } = {}) {
 export const utfarda = (pastaende) => signera({ alg: ALG, typ: 'JWT', kid: nyckel.kid }, pastaende, nyckel.privateKey);
 
 // Biljetter som redan har använts, med tiden de går ut. En biljett går bara att använda en gång.
+// Biljetterna går ut efter fem minuter, och bara biljetter med giltig signatur kommer hit, så listan är liten. Taket
+// skyddar ändå servern om någon skulle få tag på många giltiga biljetter.
 const anvanda = new Map();
+const MAX_ANVANDA = 20000;
 function stadaAnvanda(nu) { for (const [jti, exp] of anvanda) if (exp * 1000 < nu) anvanda.delete(jti); }
 
 const avvisa = (skal) => { throw new Fel(401, `Biljetten godtogs inte: ${skal}`, 'ogiltig_biljett'); };
@@ -146,7 +149,10 @@ export function verifiera(biljett, { nu = Date.now(), forbruka = true } = {}) {
   }
   stadaAnvanda(nu);
   if (anvanda.has(p.jti)) avvisa('den har redan använts.');
-  if (forbruka) anvanda.set(p.jti, p.exp);
+  if (forbruka) {
+    if (anvanda.size >= MAX_ANVANDA) throw new Fel(429, 'För många inloggningar just nu. Försök igen om en stund.', 'nekad');
+    anvanda.set(p.jti, p.exp);
+  }
   return p;
 }
 

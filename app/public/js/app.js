@@ -524,6 +524,9 @@ document.addEventListener('click', async (e) => {
   } else if (a === 'kontrast') {
     // Runda 7, r2: högkontrastläget.
     kontrast.vaxla();
+  } else if (a === 'tillbaka-miljo') {
+    // Runda 9, r5: tillbaka till produktionsmiljön, som sidan laddas om i.
+    try { await medKnapp(b, () => api('/api/miljoer/tillbaka', { metod: 'POST', data: {} })); location.href = '/'; } catch { /* notis visad */ }
   } else if (a === 'stang-nyheter') {
     try { await nyhetsruta.stang(b); } catch { /* notis visad */ }
   } else if (a === 'meny') {
@@ -535,11 +538,22 @@ document.addEventListener('click', async (e) => {
 
 window.addEventListener('hashchange', () => rita());
 
+// Runda 9, r5 (KD1.1.1.5): märkningen av en acceptanstest-, utbildnings- eller testmiljö överst på varje sida, med
+// vägen tillbaka till produktionsmiljön. Produktionsmiljön har ingen märkning utöver demoraden.
+function miljorad(m) {
+  const el = document.getElementById('miljorad');
+  if (!el || !m || m.typ === 'produktion') return;
+  el.innerHTML = `<p><strong>${esc(m.text)}.</strong> ${esc(m.beskrivning)}</p><button type="button" class="knapp liten sekundar" data-a="tillbaka-miljo">Tillbaka till produktionsmiljön</button>`;
+  el.hidden = false;
+  document.title = `${m.kort}: Vårdkällan`;
+}
+
 async function start() {
   avbrottslage.init();
   anvandartest.init();
   try {
     S.session = await api('/api/session', { tyst: true });
+    miljorad(S.session.miljo);
     // Åtkomster från ett tidigare läsläge som finns kvar på datorn, till exempel för att fliken stängdes, skickas nu.
     if (!avbrott.aktivt) avbrottslage.meddelaLogg(await avbrottslage.skickaLoggar().catch(() => null));
     if (!avbrott.aktivt) await avbrottslage.slutforUtloggning().catch(() => {});

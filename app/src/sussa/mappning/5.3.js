@@ -1,10 +1,12 @@
 // Sussa 5.3 Informationssäkerhet: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 import { TEST } from '../../krav.js';
+// Runda 9, r5: inloggning med biljett, skyddsbehov, signering, certifikat, e-arkiv, gallring och miljöer (sussa/runda9-r5.js).
+import { medR9r5 } from '../runda9-r5.js';
 
 const { B, A, L, J, M, F, MJ } = TEST;
 
-export default [
+export default medR9r5([
   { id: '5.3.1.1', kategori: 'leverantor', egna: ['D12'], tester: [], avsedd: 'planerat',
     anmarkning: 'Gäller leverantörens dokumenterade informationssäkerhetsarbete för tjänsteleveransen. Det finns inget sådant för demon.' },
   {
@@ -112,4 +114,4 @@ export default [
     expert: 'Säkerheten ligger i servern och databasen och inte i användarens val, så den gäller oavsett hur systemet anropas.',
     anmarkning: 'Ingen extern säkerhetsgranskning eller penetrationstest är gjord.',
   },
-];
+]);

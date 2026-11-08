@@ -106,6 +106,28 @@ const HELTAL = {
     maxVarfor: 'Mer än hundra år är längre än någon journal behöver bevaras.',
     effekt: (db, nytt, forra) => [`Gallringsförslaget omfattar journaler vars senaste uppgift är äldre än ${nytt} år i stället för ${forra} år. Inget gallras utan ett nytt beslut.`],
   },
+  // Runda 9, r5 (Sussa 5.4.2.4): gallring av delar av journalen, per informationsmängd, efter regionens egna beslut.
+  'arkiv.gallring_matvarden_ar': {
+    omrade: 'administration', rubrik: 'År innan mätvärden gallras för sig', enhet: 'år', standard: 100, min: 10, max: 100, anvands: 'arkiv.js',
+    beskrivning: 'Så många år efter mätningen tar ett gallringsbeslut med ett mätvärde, också när journalen i övrigt finns kvar. Standardvärdet 100 år betyder att mätvärden i praktiken gallras med hela journalen. Gallring görs alltid efter ett registrerat beslut.',
+    minVarfor: 'Ett mätvärde är en journalhandling och ska bevaras i minst tio år (patientdatalagen 3 kap. 17 §).',
+    maxVarfor: 'Mer än hundra år är längre än någon journal behöver bevaras.',
+    effekt: (db, nytt, forra, nu) => {
+      const n = (ar) => db.query('SELECT count(*) AS n FROM matvarden WHERE tid < ?').get(new Date(nu.getTime() - ar * 365.25 * DAG).toISOString()).n;
+      return [`Ett nytt gallringsbeslut skulle omfatta ${st(n(nytt), 'mätvärde', 'mätvärden')} med ${nytt} år, mot ${n(forra)} med ${forra} år. Inget gallras utan ett nytt beslut.`];
+    },
+  },
+  'arkiv.gallring_kallelser_ar': {
+    omrade: 'administration', rubrik: 'År innan kallelser och påminnelser gallras', enhet: 'år', standard: 2, min: 1, max: 100, anvands: 'arkiv.js',
+    beskrivning: 'Så många år efter att en kallelse eller påminnelse skickades tar ett gallringsbeslut med den. Kallelser är inte journalhandlingar, och bokningen och vårdkontakten finns kvar. Gallring görs alltid efter ett registrerat beslut.',
+    minVarfor: 'En kallelse behövs minst ett år, till exempel om patienten undrar varför den inte fick en tid eller om en avgift för ett uteblivet besök ifrågasätts.',
+    maxVarfor: 'Mer än hundra år är längre än någon uppgift behöver bevaras.',
+    effekt: (db, nytt, forra, nu) => {
+      if (!harTabell(db, 'kallelser')) return [];
+      const n = (ar) => db.query('SELECT count(*) AS n FROM kallelser WHERE coalesce(skickad, skapad) < ?').get(new Date(nu.getTime() - ar * 365.25 * DAG).toISOString()).n;
+      return [`Ett nytt gallringsbeslut skulle omfatta ${st(n(nytt), 'kallelse', 'kallelser')} med ${nytt} år, mot ${n(forra)} med ${forra} år. Inget gallras utan ett nytt beslut.`];
+    },
+  },
   'halsoarende.avsluta_dagar': {
     omrade: 'strukturerad', rubrik: 'Förslag att avsluta ett hälsoärende', enhet: 'dagar', standard: 180, min: 30, max: 730, anvands: 'halsoarende.js',
     beskrivning: 'När ett hälsoärende inte har haft någon vårdkontakt på så här många dagar föreslår systemet att det avslutas.',

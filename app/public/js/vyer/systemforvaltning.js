@@ -341,7 +341,8 @@ export const lagring = {
   namn: 'lagring',
   async visa(main) {
     main.innerHTML = vyRubrik('Lagring', 'Databasens storlek, varje huvudmans uppgifter för sig och provåterläsning av säkerhetskopian.') + '<div id="sf-lagring"><p class="tom">Hämtar.</p></div>';
-    const o = await api('/api/lagring');
+    // Runda 9, r5: miljöerna (KD1.1.1.5) och certifikaten och de signerade meddelandena (Sussa 5.3.1.5 och 5.3.1.8).
+    const [o, mi, ce] = await Promise.all([api('/api/lagring'), api('/api/miljoer'), api('/api/certifikat')]);
     const el = main.querySelector('#sf-lagring');
     if (!el) return;
     const senaste = o.matningar[0];
@@ -350,6 +351,8 @@ export const lagring = {
         ${senaste ? `<p class="${senaste.godkand ? 'ruta ruta-ok' : 'ruta ruta-larm'} liten">${senaste.godkand ? ikon.bock : ikon.varning} Senaste provåterläsning ${esc(tidpunkt(senaste.tid))}: ${senaste.godkand ? 'godkänd' : 'underkänd'}, ${esc(storlek(senaste.byte))}, ${tal(senaste.rader, 0)} rader i ${senaste.tabeller} tabeller, ${senaste.ms} ms.</p>` : '<p class="liten">Ingen provåterläsning är gjord i den här sandlådan än. Den körs också automatiskt i bygget.</p>'}
         <button type="button" class="knapp" data-prova>Pröva säkerhetskopiering och återläsning</button>
         <div data-provresultat aria-live="polite"></div></section>
+      ${miljoSektion(mi)}
+      ${certifikatSektion(ce)}
       <section class="lm-sektion" aria-labelledby="sf-l-huvudman"><h2 id="sf-l-huvudman">Uppgifter per huvudman</h2>
         <div class="tabellrulle"><table class="tabell"><thead><tr><th scope="col">Huvudman</th><th scope="col" class="tal">Rader</th><th scope="col" class="tal">Patienter</th><th scope="col">Uttag</th></tr></thead><tbody>
           ${o.huvudman.map(h => `<tr><th scope="row">${esc(h.namn)}</th><td class="tal">${tal(h.rader, 0)}</td><td class="tal">${tal(h.patienter, 0)}</td><td>${h.kontroll.ok ? ikon.bock : ikon.varning} ${esc(h.kontroll.text)}</td></tr>`).join('')}</tbody></table></div>
@@ -368,6 +371,13 @@ export const lagring = {
         ${o.matningar.length > 1 ? `<p class="liten">Tidigare mätningar: ${o.matningar.slice(1).map(m => `${esc(tidpunkt(m.tid))} ${esc(storlek(m.byte))}`).join(', ')}.</p>` : ''}</section>
       <section class="lm-sektion" aria-labelledby="sf-l-rutin"><h2 id="sf-l-rutin">Rutinen</h2><ul>${o.rutin.map(r => `<li>${esc(r)}</li>`).join('')}</ul><p class="demoregel">${esc(o.anmarkning)}</p></section>`;
     el.addEventListener('click', async (e) => {
+      // Runda 9, r5: ny miljö, återkallat certifikat och kontroll av ett bevis.
+      const ny = e.target.closest('[data-ny-miljo]');
+      if (ny) return nyMiljo(ny);
+      const ak = e.target.closest('[data-aterkalla-cert]');
+      if (ak) return aterkallaCert(main, ak);
+      const kb = e.target.closest('[data-kontrollera-bevis]');
+      if (kb) return kontrolleraBevis(kb);
       const g = e.target.closest('[data-godkann-uttag]');
       if (g) {
         try { await medKnapp(g, () => api(`/api/lagring/uttag/${g.dataset.godkannUttag}/godkann`, { metod: 'POST', data: {} })); notis('Uttaget är godkänt. Filen kan hämtas.'); } catch { /* notis visad */ }
@@ -388,6 +398,57 @@ export const lagring = {
     });
   },
 };
+
+// Runda 9, r5 (KD1.1.1.5): acceptanstest-, utbildnings- och testmiljö ur en kopia av sandlådan.
+function miljoSektion(mi) {
+  return `<section class="lm-sektion" aria-labelledby="sf-l-miljo"><h2 id="sf-l-miljo">Miljöer</h2>
+    <p class="liten">Det här är ${esc(mi.aktuell.text.toLowerCase())}. En ny miljö blir en egen sandlåda ur en kopia av den här. Acceptanstestmiljön har skarpa data med avidentifierade patientuppgifter, och utbildnings- och testmiljön har fiktiva patienter med samma regler och parametrar som här. Loggarna börjar om i den nya miljön.</p>
+    ${mi.aktuell.typ === 'produktion' ? `<div class="knapprad">${mi.typer.map(t => `<button type="button" class="knapp sekundar" data-ny-miljo="${esc(t.typ)}">Skapa ${esc(t.text.toLowerCase())}</button>`).join('')}</div>
+      <div data-miljo-ut aria-live="polite"></div>
+      ${mi.skapade.length ? `<p class="liten">Skapade härifrån: ${mi.skapade.map(m => `${esc(m.text)} ${esc(tidpunkt(m.skapad))}`).join(', ')}. Högst ${esc(String(mi.max))} åt gången.</p>` : ''}`
+    : '<p class="liten">Nya miljöer skapas ur produktionsmiljön. Använd knappen överst på sidan för att gå tillbaka dit.</p>'}
+  </section>`;
+}
+async function nyMiljo(b) {
+  const ut = b.closest('section').querySelector('[data-miljo-ut]');
+  try {
+    const r = await medKnapp(b, () => api('/api/miljoer', { metod: 'POST', data: { typ: b.dataset.nyMiljo } }));
+    ut.innerHTML = `<p class="ruta ruta-ok liten">${ikon.bock} ${esc(r.miljo.text)} är skapad. <a href="${esc(r.adress)}" data-oppna-miljo>Öppna ${esc(r.miljo.text.toLowerCase())}</a>. Länken gäller en gång i fem minuter.</p>`;
+    notis(`${r.miljo.text} är skapad.`);
+  } catch { /* notis visad */ }
+}
+
+// Runda 9, r5 (Sussa 5.3.1.5 och 5.3.1.8): certifikaten för instanserna, de betrodda utfärdarna och bevisen.
+const RIKTNING = { ut: 'Skickat', in: 'Mottaget' };
+const STATUSTEXT = { kvitterat: 'Kvitterat', mottaget: 'Mottaget', avvisat: 'Avvisat' };
+function certifikatSektion(ce) {
+  return `<section class="lm-sektion" aria-labelledby="sf-l-cert"><h2 id="sf-l-cert">Certifikat och signerade meddelanden</h2>
+    <p class="liten">Meddelanden till och från andra organisationer signeras med instansernas certifikat, och mottagaren svarar med en signerad kvittens. ${esc(ce.forklaring)}</p>
+    <div class="tabellrulle"><table class="tabell"><thead><tr><th scope="col">Instans</th><th scope="col">Utfärdat av</th><th scope="col">Gäller till</th><th scope="col">Status</th><th scope="col"><span class="sr">Åtgärd</span></th></tr></thead><tbody>
+      ${ce.instanser.map(i => `<tr><th scope="row">${esc(i.organisation)}<span class="under-text">${esc(i.roll)}</span></th><td>${esc(i.utfardare)}</td><td>${esc(datum(i.giltigTill))}</td>
+        <td>${i.kontroll ? `${ikon.varning} ${esc(i.kontroll)}` : `${ikon.bock} Gäller`}</td>
+        <td>${i.part !== 'vardkallan' && !i.aterkallat ? `<button type="button" class="knapp liten sekundar" data-aterkalla-cert="${esc(i.part)}">Återkalla</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
+    <p class="liten">Betrodda utfärdare: ${ce.betrodda.map(b => `${esc(b.amne)}, gäller till ${esc(datum(b.giltigTill))}`).join('. ')}.</p>
+    ${ce.meddelanden.senaste.length ? `<h3>Senaste signerade meddelanden</h3><ul class="inkorg-lista">${ce.meddelanden.senaste.slice(0, 8).map(m => `<li class="ik-ater"><div class="ik-text"><span class="ik-rubrik">${esc(m.typText)}</span>
+      <span class="under-text">${esc(RIKTNING[m.riktning])} ${esc(tidpunkt(m.tid))}, ${esc(m.motpart)}. ${esc(STATUSTEXT[m.status] ?? m.status)}${m.orsak ? `: ${esc(m.orsak)}` : '.'}</span><span class="under-text" data-bevis-ut></span></div>
+      <div class="ik-knappar"><button type="button" class="knapp liten sekundar" data-kontrollera-bevis="${esc(m.id)}">Kontrollera</button></div></li>`).join('')}</ul>` : '<p class="tom liten">Inga signerade meddelanden ännu.</p>'}
+  </section>`;
+}
+async function aterkallaCert(main, b) {
+  const ok = await dialog(`<h2 id="dlg-rubrik">${ikon.varning}<span>Återkalla certifikatet</span></h2>
+    <div class="dialog-text"><p>Certifikatet läggs i sandlådans spärrlista. Meddelanden som är signerade med det godtas inte längre, och Vårdkällan säger varför. Det gäller bara den här sandlådan.</p></div>
+    <div class="knapprad"><button type="button" class="knapp text" data-varde="avbryt">Avbryt</button><button type="button" class="knapp knapp-allvar" data-varde="ok">Återkalla</button></div>`, { klass: 'dialog-allvar' });
+  if (!ok) return;
+  try { await medKnapp(b, () => api('/api/certifikat/aterkalla', { metod: 'POST', data: { part: b.dataset.aterkallaCert } })); notis('Certifikatet är återkallat i sandlådan.'); } catch { /* notis visad */ }
+  lagring.visa(main);
+}
+async function kontrolleraBevis(b) {
+  const ut = b.closest('li').querySelector('[data-bevis-ut]');
+  try {
+    const r = await medKnapp(b, () => api(`/api/signerade/${encodeURIComponent(b.dataset.kontrolleraBevis)}/kontroll`));
+    ut.textContent = [r.signatur, r.kvittens, r.innehall].filter(Boolean).join(' ');
+  } catch { /* notis visad */ }
+}
 
 // Beslut om uttag: huvudmannen, diarienumret, skälet och vad beslutet gäller. Systemet föreslår den första huvudmannen.
 async function nyttUttag(main, o, knapp) {

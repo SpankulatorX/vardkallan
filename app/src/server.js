@@ -85,6 +85,7 @@ import * as remissR8 from './remiss-r8.js';
 // Runda 9, r5: inloggning med biljett från en autentiseringstjänst (Sussa 5.2.1.6 och 5.2.1.8).
 import * as idp from './idp.js';
 import { registreraRutter as r9r5Rutter } from './runda9-r5-rutter.js';
+import * as miljoer from './miljoer.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -441,6 +442,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const p = personalRad(s.db, s.personalId);
     const inv = p ? null : minJournal.invanareRad(s.db, s.invanareId);
     const ut = { inloggad: Boolean(p || inv), demoDatum: installning(s.db, 'seed_datum') ?? idag() };
+    // Runda 9, r5 (KD1.1.1.5): vilken miljö sandlådan är, så att gränssnittet kan märka den.
+    ut.miljo = miljoer.miljoFor(s.db);
     // Runda 7, r2: när inloggningen går ut utan aktivitet, så att gränssnittet kan varna.
     if (p || inv) ut.inloggning = inloggningUt(s);
     if (inv) Object.assign(ut, { roll: 'invanare' }, minJournal.sessionDel(s.db, inv));
@@ -844,8 +847,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // Runda 9, r5 (Sussa 5.2.1.6 och 5.2.1.8): inloggningen går genom den simulerade autentiseringstjänsten (idp.js). Valet
   // av demoroll är det simulerade SITHS-kortet: tjänsten utfärdar en signerad biljett, och personen, medarbetaruppdraget
   // och behörigheten tas ur biljettens attribut, på samma sätt som för en biljett som kommer utifrån (/api/login/biljett).
-  function loggaInMedBiljett(c, biljett) {
-    const { personal: p, uppdrag } = idp.loggaIn(c.db, idp.verifiera(biljett));
+  function loggaInMedBiljett(c, biljett, { forbruka = true } = {}) {
+    const { personal: p, uppdrag } = idp.loggaIn(c.db, idp.verifiera(biljett, { forbruka }));
     // Runda 6, r5: tillämpningarnas åtkomstbiljetter gäller inte efter en ny inloggning.
     oppetApi.aterkalla(c.s, 'Åtkomstbiljetten återkallades vid en ny inloggning.');
     avslutaKopia(c.s, aktuellKopia(c.s), 'inloggning');
@@ -865,7 +868,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('POST', '/api/login', (c) => {
     const p = typeof c.body.personalId === 'string' ? c.db.query('SELECT * FROM personal WHERE id = ? AND demo = 1').get(c.body.personalId) : null;
     if (!p) throw new Fel(400, 'Välj en av demorollerna.', 'ogiltig', { falt: ['personalId'] });
-    return loggaInMedBiljett(c, idp.autentisera(c.db, p));
+    // Biljetten skapas och prövas i samma anrop och lämnar aldrig servern, så den behöver inte sparas som använd.
+    return loggaInMedBiljett(c, idp.autentisera(c.db, p), { forbruka: false });
   });
   // En biljett från en betrodd autentiseringstjänst. Personen behöver inte vara en demoroll, men måste vara aktiv i
   // masterdata, och uppdraget i biljetten måste stämma med masterdata.
@@ -917,6 +921,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     return sessionUt(c.s);
   });
   rutt('POST', '/api/reset', (c) => {
+    // Runda 9, r5: en miljö återställs inte till demons sandlåda, eftersom den då skulle få fel märkning.
+    if (miljoer.miljoFor(c.db).typ !== 'produktion') throw new Fel(400, `Det här är en ${miljoer.miljoFor(c.db).text.toLowerCase()}. Den återställs inte. Gå tillbaka till produktionsmiljön och skapa en ny miljö där.`, 'ogiltig');
     oppetApi.aterkalla(c.s, 'Åtkomstbiljetten återkallades när sandlådan återställdes.');
     c.s.db.close();
     c.s.db = nySessionsDb();
@@ -928,6 +934,58 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     c.s.kopior = new Map(akt ? [[c.s.lasnyckel.id, { ...akt, patienter: new Map() }]] : []);
     return { ok: true, ...sessionUt(c.s) };
   });
+  // Runda 9, r5 (KD1.1.1.5): systemförvaltaren skapar en acceptanstest-, utbildnings- eller testmiljö ur en kopia av
+  // sandlådan (miljoer.js). Miljön blir en egen sandlåda. Svaret har en adress som gäller en gång i fem minuter och
+  // byter webbläsarens session till miljön. Taket per sandlåda och taket för nya besök från adressen gäller.
+  const miljoBiljetter = new Map();
+  const finnsSession = (s) => [...sessioner.values()].includes(s);
+  const sidFor = (s) => { for (const [sid, x] of sessioner) if (x === s) return sid; return null; };
+  const miljoerUt = (s) => ({
+    aktuell: miljoer.miljoFor(s.db), typer: Object.entries(miljoer.MILJOER).filter(([k]) => k !== 'produktion').map(([typ, m]) => ({ typ, ...m })), max: miljoer.MAX_PER_SANDLADA,
+    skapade: (s.miljoer ?? []).filter(m => finnsSession(m.s)).map(m => ({ typ: m.typ, text: miljoer.MILJOER[m.typ].text, skapad: m.skapad })),
+  });
+  rutt('GET', '/api/miljoer', (c) => { kravRoll(c, 'konfigurera'); return miljoerUt(c.s); });
+  rutt('POST', '/api/miljoer', (c) => {
+    kravRoll(c, 'konfigurera');
+    if (miljoer.miljoFor(c.db).typ !== 'produktion') throw new Fel(400, 'En ny miljö skapas ur produktionsmiljön. Gå tillbaka till produktionsmiljön först.', 'ogiltig');
+    const levande = (c.s.miljoer ?? []).filter(m => finnsSession(m.s));
+    if (levande.length >= miljoer.MAX_PER_SANDLADA) throw new Fel(429, `Sandlådan har redan ${miljoer.MAX_PER_SANDLADA} miljöer. De försvinner när de inte har använts på åtta timmar.`, 'nekad');
+    const k = `${c.ip ?? 'okänd'}:${Math.floor(Date.now() / 3600_000)}`;
+    const n = (nyaPerIp.get(k) ?? 0) + 1;
+    if (n > nyaPerTimme) throw new Fel(429, 'För många nya besök från din adress. Försök igen om en stund.', 'nekad');
+    nyaPerIp.set(k, n);
+    const { db, resultat } = miljoer.skapa(c.db, c.body.typ);
+    while (sessioner.size >= MAX_SESSIONER) { const aldsta = sessioner.keys().next().value; sessioner.get(aldsta).db.close(); sessioner.delete(aldsta); }
+    const ny = { db, personalId: null, invanareId: null, val: {}, sist: Date.now(), matning: new Matning(200), lasnyckel: null, oppnade: new Set(), kopior: new Map(), ursprung: c.s };
+    sessioner.set(slumpId(), ny);
+    const skapad = new Date().toISOString();
+    c.s.miljoer = [...levande, { typ: c.body.typ, s: ny, skapad }];
+    const biljett = slumpId();
+    miljoBiljetter.set(biljett, { s: ny, utgar: Date.now() + 5 * 60_000 });
+    return [201, { miljo: { typ: c.body.typ, ...miljoer.MILJOER[c.body.typ], skapad }, adress: `/api/miljoer/oppna/${biljett}`, resultat, ...miljoerUt(c.s) }];
+  });
+  // Tillbaka från en miljö till produktionsmiljön som den skapades ur, om den finns kvar.
+  rutt('POST', '/api/miljoer/tillbaka', (c) => {
+    const prod = c.s.ursprung;
+    const sid = prod && finnsSession(prod) ? sidFor(prod) : null;
+    if (!sid) throw new Fel(404, 'Produktionsmiljön som miljön skapades ur finns inte längre. Ladda om sidan för att börja om i en ny sandlåda.', 'saknas');
+    c.sid = sid;
+    c.ny = true;
+    return { ok: true, adress: '/' };
+  });
+  // Länken öppnas bara i webbläsaren som skapade miljön: anropet ska ha sessionskakan för produktionsmiljön. Annars
+  // skulle den som fick se länken också kunna gå tillbaka till den produktionsmiljön.
+  function oppnaMiljo(req, url) {
+    const text = (t, status) => new Response(t, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
+    const biljett = url.pathname.split('/').pop();
+    const b = miljoBiljetter.get(biljett);
+    for (const [t, x] of miljoBiljetter) if (x.utgar < Date.now()) miljoBiljetter.delete(t);
+    if (b && (!kakSid(req) || sessioner.get(kakSid(req)) !== b.s.ursprung)) return text('Länken till miljön kan bara öppnas i webbläsaren som skapade miljön.', 403);
+    miljoBiljetter.delete(biljett);
+    const sid = b && b.utgar >= Date.now() && finnsSession(b.s) ? sidFor(b.s) : null;
+    if (!sid) return text('Länken till miljön har redan använts eller gått ut. Skapa miljön igen.', 410);
+    return new Response(null, { status: 302, headers: { Location: '/', 'Set-Cookie': kaka(sid), 'Cache-Control': 'no-store' } });
+  }
   rutt('GET', '/api/enheter', (c) => {
     const alla = c.db.query('SELECT * FROM enheter').all();
     const nod = (e) => ({ id: e.id, hsaId: e.hsa_id, namn: e.namn, kortnamn: e.kortnamn, typ: e.typ, barn: alla.filter(b => b.forald_id === e.id).map(nod) });
@@ -1619,6 +1677,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
 
   async function api(req, server, url, c) {
     if (url.pathname === '/api/health') return json({ ok: true, sandladar: sessioner.size, version: APPVERSION, gransnitt: gransnittVersion() });
+    // Runda 9, r5: länken till en ny miljö byter session utan att skapa en sandlåda.
+    if (req.method === 'GET' && /^\/api\/miljoer\/oppna\/[A-Za-z0-9_-]{32}$/.test(url.pathname)) return oppnaMiljo(req, url);
     const metod = req.method;
     // Runda 7, r1: klientens adress, för gränsen per skapare av testtillfällen.
     c.ip = klientIp(req, server);

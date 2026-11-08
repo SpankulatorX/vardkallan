@@ -48,10 +48,10 @@ export const DATAELEMENT = [
   { namn: 'SkyddadePersonuppgifter', obligatorisk: true, kalla: 'Markeringen för skyddade personuppgifter, ja eller nej' },
   { namn: 'Dokumenttyp', obligatorisk: true, kalla: 'Anteckningens typ, eller slaget av journalhandling' },
   { namn: 'Dokumentdatum', obligatorisk: true, kalla: 'Signeringstiden för en anteckning, annars tiden då uppgiften registrerades' },
-  { namn: 'Vardenhet', obligatorisk: true, kalla: 'HSA-id för vårdenheten där uppgiften registrerades' },
-  { namn: 'UpprattadAv', obligatorisk: false, kalla: 'HSA-id för den som skrev, registrerade eller ordinerade' },
+  { namn: 'Vårdenhet', obligatorisk: true, kalla: 'HSA-id för vårdenheten där uppgiften registrerades' },
+  { namn: 'UpprättadAv', obligatorisk: false, kalla: 'HSA-id för den som skrev, registrerade eller ordinerade' },
   { namn: 'Version', obligatorisk: true, kalla: 'Anteckningens version, 1 för andra uppgifter' },
-  { namn: 'Sparr', obligatorisk: true, kalla: 'Om patienten har spärrat vårdenheten, ja eller nej' },
+  { namn: 'Spärr', obligatorisk: true, kalla: 'Om patienten har spärrat vårdenheten, ja eller nej' },
   { namn: 'Sekretess', obligatorisk: true, kalla: 'Alltid offentlighets- och sekretesslagen (2009:400) 25 kap. 1 §' },
   { namn: 'Fil', obligatorisk: true, kalla: 'Filen i paketet där journalhandlingen finns som HL7 FHIR R4' },
   { namn: 'Referens', obligatorisk: true, kalla: 'Resursens fullUrl i filen, till exempel urn:vardkallan:Composition/12' },
@@ -70,8 +70,8 @@ export function index(db, pid) {
       ut.push({
         Arkivbildare: vg ? `${vg} (demo)` : null, Informationstyp: INFORMATIONSTYP, Patientidentitet: p.personnummer, Patientnamn: `${p.fornamn} ${p.efternamn}`,
         SkyddadePersonuppgifter: p.skyddad ? 'ja' : 'nej', Dokumenttyp: h.typ(r), Dokumentdatum: String(h.datum(r) ?? '').slice(0, 19) || null,
-        Vardenhet: hsa(db, 'enheter', ve), UpprattadAv: hsa(db, 'personal', h.av(r)), Version: String(h.version ? h.version(r) : 1),
-        Sparr: sparrar.includes(ve) ? 'ja' : 'nej', Sekretess: 'Offentlighets- och sekretesslagen (2009:400) 25 kap. 1 §',
+        Vårdenhet: hsa(db, 'enheter', ve), UpprättadAv: hsa(db, 'personal', h.av(r)), Version: String(h.version ? h.version(r) : 1),
+        Spärr: sparrar.includes(ve) ? 'ja' : 'nej', Sekretess: 'Offentlighets- och sekretesslagen (2009:400) 25 kap. 1 §',
         Fil: `representations/rep_1/data/journal/${pid}.json`, Referens: `urn:vardkallan:${h.resurs}/${r.id}`, vardenhetNamn: enhetNamn(db, ve),
       });
     }
@@ -99,6 +99,8 @@ ${DATAELEMENT.map(d => `| ${d.namn} | ${d.obligatorisk ? 'ja' : 'nej'} | ${d.kal
 `;
 
 const sha = (b) => createHash('sha256').update(b).digest('hex').toUpperCase();
+// En fil per patient heter efter patienten. I kvittensen och i felen står bara mappen, så att svaret inte bär patientens id.
+const visaVag = (v) => v.replace(/^(representations\/rep_1\/data\/(?:journal|ovrigt)\/)[^/]+$/, '$1(en patients fil)');
 const MAPPAR = ['metadata/', 'metadata/descriptive/', 'metadata/preservation/', 'metadata/other/', 'representations/', 'representations/rep_1/', 'representations/rep_1/data/', 'schemas/', 'documentation/'];
 
 // E-arkivets mottagningskontroll av paketet. Ger { fel, filer, handlingar } där fel är en lista på vanlig svenska.
@@ -110,7 +112,7 @@ export function mottagningskontroll(paket) {
   if (!rot) return { fel: ['Paketet saknar en rotmapp med paketets id.'], filer: 0, handlingar: 0 };
   const mets = filer.get(`${rot}METS.xml`)?.data.toString('utf8');
   if (!mets) return { fel: ['METS.xml saknas.'], filer: 0, handlingar: 0 };
-  if (!mets.includes(`OBJID="${rot.slice(0, -1)}"`)) fel.push('OBJID i METS.xml stämmer inte med rotmappen.');
+  if (!mets.includes(`OBJID="${rot.slice(0, -1)}"`)) fel.push('Paketets id i METS.xml stämmer inte med rotmappen.');
   for (const [krav, text] of [['PROFILE="https://earksip.dilcis.eu/profile/E-ARK-SIP.xml"', 'profilen för E-ARK SIP'], ['csip:OAISPACKAGETYPE="SIP"', 'pakettypen SIP'],
     ['ROLE="CREATOR"', 'den som skapade paketet'], ['<structMap', 'en strukturkarta'], ['<dmdSec', 'den beskrivande metadatan']]) {
     if (!mets.includes(krav)) fel.push(`METS.xml saknar ${text}.`);
@@ -124,14 +126,14 @@ export function mottagningskontroll(paket) {
   for (const m of mets.matchAll(/<mdRef [^>]*?xlink:href="([^"]+)"[^>]*?SIZE="(\d+)"[^>]*?CHECKSUM="([0-9A-F]{64})"/g)) angivna.set(m[1], { storlek: Number(m[2]), sha: m[3] });
   for (const [vag, f] of angivna) {
     const fil = filer.get(rot + vag);
-    if (!fil) { fel.push(`Filen ${vag} finns i METS.xml men inte i paketet.`); continue; }
-    if (fil.data.length !== f.storlek) fel.push(`Filen ${vag} har en annan storlek än METS.xml anger.`);
-    if (sha(fil.data) !== f.sha) fel.push(`Filen ${vag} har en annan SHA-256 än METS.xml anger.`);
+    if (!fil) { fel.push(`Filen ${visaVag(vag)} finns i METS.xml men inte i paketet.`); continue; }
+    if (fil.data.length !== f.storlek) fel.push(`Filen ${visaVag(vag)} har en annan storlek än METS.xml anger.`);
+    if (sha(fil.data) !== f.sha) fel.push(`Filen ${visaVag(vag)} har en annan SHA-256 än METS.xml anger.`);
   }
   for (const n of filer.keys()) {
     const vag = n.slice(rot.length);
     if (!n.startsWith(rot) || n.endsWith('/') || vag === 'METS.xml') continue;
-    if (!angivna.has(vag)) fel.push(`Filen ${vag} finns i paketet men inte i METS.xml.`);
+    if (!angivna.has(vag)) fel.push(`Filen ${visaVag(vag)} finns i paketet men inte i METS.xml.`);
   }
   const idx = filer.get(`${rot}metadata/descriptive/earkiv-index.xml`)?.data.toString('utf8');
   let handlingar = 0;

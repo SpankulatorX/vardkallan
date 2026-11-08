@@ -2,6 +2,72 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "0.9.0",
+      "datum": "2026-11-08",
+      "nyheter": [
+        {
+          "id": "inloggning-uppdrag",
+          "roller": [
+            "personal"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Behörigheten följer ditt medarbetaruppdrag",
+          "text": "Du loggar in med SITHS-kortet som förut. Behörigheten tas nu ur medarbetaruppdraget i katalogen, och ändras din anställning eller vårdenhet loggas du ut och loggar in igen med det nya uppdraget."
+        },
+        {
+          "id": "miljoer",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "liten",
+          "var": "#/lagring",
+          "rubrik": "Acceptanstest-, utbildnings- och testmiljö",
+          "text": "Under Lagring skapar du en ny miljö ur en kopia av sandlådan med ett klick. Acceptanstestmiljön har avidentifierade patientuppgifter, och utbildnings- och testmiljön har fiktiva patienter med samma regler och parametrar. Miljön är märkt överst på varje sida."
+        },
+        {
+          "id": "certifikat",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "liten",
+          "var": "#/lagring",
+          "rubrik": "Certifikat och signerade meddelanden",
+          "text": "Under Lagring ser du certifikaten för laboratoriet, läkemedelslistan och e-arkivet och de signerade meddelandena med kvittenser. Systemet signerar och kontrollerar allt själv, och du kan kontrollera ett bevis i efterhand."
+        },
+        {
+          "id": "earkiv-leverans",
+          "roller": [
+            "arkivarie"
+          ],
+          "omfattning": "liten",
+          "var": "#/arkiv",
+          "rubrik": "Leverans till e-arkivet med kvittens",
+          "text": "Välj Leverera till e-arkivet vid ett beslut om leverans. Systemet bygger paketet med e-arkivets dataelement, skickar det och visar e-arkivets signerade kvittens eller vad som var fel."
+        },
+        {
+          "id": "gallringsregler",
+          "roller": [
+            "arkivarie",
+            "systemforvaltare"
+          ],
+          "omfattning": "liten",
+          "var": "#/arkiv",
+          "rubrik": "Gallring per informationsmängd",
+          "text": "Ett gallringsbeslut tar nu också med mätvärden och kallelser som är äldre än regionens regel, även när journalen finns kvar. Reglerna står på sidan E-arkiv och gallring och ändras under Regler och parametrar."
+        },
+        {
+          "id": "skyddsbehov-logg",
+          "roller": [
+            "logggranskare"
+          ],
+          "omfattning": "liten",
+          "var": "#/logg",
+          "rubrik": "Åtkomst till uppgifter med mycket högt skyddsbehov",
+          "text": "Välj Mycket högt skyddsbehov i logguppföljningen för att se åtkomsterna till tvångsvård, spärrade uppgifter och patienter med skyddade personuppgifter. Stickprovet tar alltid med sådana åtkomster."
+        }
+      ]
+    },
+    {
       "version": "0.8.0",
       "datum": "2026-11-08",
       "nyheter": [

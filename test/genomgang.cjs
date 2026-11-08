@@ -1067,6 +1067,13 @@ for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].inde
       await forvanta(page, '.kedja-hel', 'Loggkedjan är hel');
       await bild(page, '27-logg-nodatkomst', true);
     });
+    // Runda 9, r5 (Sussa 5.3.1.2): åtkomsterna till uppgifter med mycket högt skyddsbehov.
+    await s('Mats Wall tar fram åtkomsterna till uppgifter med mycket högt skyddsbehov', async () => {
+      await page.click('label[for="fl-skyddsbehov"]');
+      await page.waitForURL(/flagga=skyddsbehov/);
+      await vantaVy(page);
+      await forvanta(page, '.logg-tabell', 'Mycket högt skyddsbehov');
+    });
     await s('Mats Wall filtrerar på samtycke och nekade försök', async () => {
       await page.click('label[for="fl-samtycke"]');
       await page.waitForURL(/flagga=samtycke/);
@@ -1208,6 +1215,14 @@ for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].inde
       await forvanta(page, '.notis', 'Exportpaketet IP_');
       await forvanta(page, '.arkiv-lista', 'SHA-256');
       await bild(page, '74-arkiv-export', true);
+    });
+    // Runda 9, r5 (Sussa 5.4.2.3 och 5.4.2.4): leveransen till e-arkivet med kvittens och gallringsreglerna.
+    await s('Ingela Nord levererar paketet till e-arkivet och får en signerad kvittens, och ser gallringsreglerna', async () => {
+      await forvanta(page, '#ar-regler ~ dl', 'Kallelser och påminnelser');
+      await page.locator('[data-leverera]').first().click();
+      await forvanta(page, '.notis', 'mottaget och kvitterat av Simulerat e-arkiv (demo)');
+      await forvanta(page, '.arkiv-lista', 'Kvittensen är signerad');
+      await bild(page, '74b-arkiv-leverans', true);
     });
 
     // Daniel Sund, uppföljning (Sussa 6.3.1)
@@ -1530,6 +1545,23 @@ for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].inde
       await forvanta(page, '#sf-l-uttag ~ ul', 'beslut RS 2026-1234');
       await forvanta(page, '#sf-l-uttag ~ ul', 'Väntar på att en annan systemförvaltare godkänner beslutet');
       await page.waitForLoadState('networkidle');
+    });
+    // Runda 9, r5 (KD1.1.1.5, Sussa 5.3.1.5 och 5.3.1.8): certifikaten och en acceptanstestmiljö, som är märkt, och tillbaka.
+    await s('Tomas Lindh ser certifikaten, skapar en acceptanstestmiljö och går tillbaka till produktionsmiljön', async () => {
+      await gaTill(page, '#/lagring');
+      await forvanta(page, '#sf-l-cert ~ .tabellrulle', 'Simulerat laboratorium (demo)');
+      await page.click('[data-ny-miljo="acceptanstest"]');
+      await forvanta(page, '.notis', 'Acceptanstestmiljö är skapad');
+      await bild(page, '103b-miljoer');
+      await Promise.all([page.waitForLoadState('load'), page.click('[data-oppna-miljo]')]);
+      await forvanta(page, '#miljorad', 'Acceptanstestmiljö.');
+      await forvanta(page, '#miljorad', 'patientuppgifterna är avidentifierade');
+      await bild(page, '103c-acceptanstestmiljo');
+      await Promise.all([page.waitForURL(/\/(#.*)?$/), page.click('[data-a="tillbaka-miljo"]')]);
+      await page.waitForLoadState('load');
+      await page.locator('.inloggad').waitFor();
+      if (await page.locator('#miljorad').isVisible()) throw new Error('märkningen syns i produktionsmiljön');
+      await vantaVy(page);
     });
     await allaVyer(page, 'Tomas Lindh', MENY.systemforvaltare);
     // Fyra ögon på riktigt: Nora Ekholm loggar in i samma sandlåda och godkänner sammanslagningen som Tomas Lindh förberedde.

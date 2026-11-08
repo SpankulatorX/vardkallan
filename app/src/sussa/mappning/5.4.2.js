@@ -1,8 +1,10 @@
 // Sussa 5.4.2 Grundläggande behov: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
+// Runda 9, r5: inloggning med biljett, skyddsbehov, signering, certifikat, e-arkiv, gallring och miljöer (sussa/runda9-r5.js).
+import { medR9r5 } from '../runda9-r5.js';
 const A = 'Arkiv > ';
 
-export default [
+export default medR9r5([
   {
     id: '5.4.2.1', kategori: 'system', egna: ['M12'], avsedd: 'uppfyllt_demo',
     tester: [
@@ -37,4 +39,4 @@ export default [
     expert: 'Systemet räknar fram underlaget ur regeln och journalens sista uppgift, så att ingen behöver leta fram journaler eller kunna bevarandetiderna.',
     anmarkning: 'Gallringsregeln är en enda regel i koden (tio år efter sista uppgiften). Regionens egna gallringsbeslut per informationsmängd går inte att konfigurera i gränssnittet.',
   },
-];
+]);

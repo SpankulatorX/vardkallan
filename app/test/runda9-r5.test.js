@@ -14,6 +14,14 @@ import * as labb from '../src/labb.js';
 import * as arkiv from '../src/arkiv.js';
 import * as earkiv from '../src/earkiv.js';
 import { zip, packaUpp } from '../src/zip.js';
+import * as konfiguration from '../src/konfiguration.js';
+import { datumAv } from '../src/db.js';
+import * as logg from '../src/logg.js';
+import * as miljoer from '../src/miljoer.js';
+import TESTPERSONNUMMER from '../src/seed/testpersonnummer.json' with { type: 'json' };
+import * as hotmodell from '../src/hotmodell.js';
+import { sussaRegister } from '../src/sussa/index.js';
+import kravspec from '../src/sussa/kravspec.json' with { type: 'json' };
 
 let app;
 beforeAll(() => { app = testserver(); });
@@ -569,7 +577,9 @@ describe('E-arkiv', () => {
     const utan = zip([...filer].filter(([n]) => !n.endsWith('/p02.json')).map(([namn, f]) => (namn.endsWith('/') ? { namn } : { namn, data: f.data })));
     const saknas = earkiv.leverera(db, { objid, paket: utan });
     expect(saknas.status).toBe('avvisat');
-    expect(saknas.orsak).toContain('Filen representations/rep_1/data/journal/p02.json finns i METS.xml men inte i paketet.');
+    expect(saknas.orsak).toContain('Filen representations/rep_1/data/journal/(en patients fil) finns i METS.xml men inte i paketet.');
+    // Felen bär inte patientens id.
+    expect(JSON.stringify(saknas)).not.toContain('p02');
     expect(saknas.kontroll.fel).toContain('Journalhandling 1 i indexet pekar på en fil som inte finns.');
   });
 
@@ -585,5 +595,258 @@ describe('E-arkiv', () => {
     expect(idx).not.toContain('atkomstlogg');
     expect(idx).not.toContain('ovrigt/');
     expect([...idx.matchAll(/<Fil>([^<]+)<\/Fil>/g)].every(m => m[1] === 'representations/rep_1/data/journal/p01.json')).toBe(true);
+  });
+});
+
+describe('Gallringsregler', () => {
+  const beslut = (k, data) => k.post('/api/arkiv/beslut', { diarienummer: 'DEMO-2026-0110', beslutsdatum: '2026-11-01', ...data });
+  const arSedan = (ar) => new Date(Date.now() - ar * 365.25 * 86400_000).toISOString();
+  // Systemförvaltarna ändrar en regel med fyra ögon, som på sidan Regler och parametrar.
+  const andraRegel = (db, nyckel, varde) => {
+    const { andring } = konfiguration.foresla(db, pers(db, 'sysf'), { nyckel, varde, giltigFran: datumAv(new Date()), motivering: 'Regionens gallringsbeslut.' });
+    konfiguration.godkann(db, pers(db, 'sysf-2'), andring.id, {});
+  };
+
+  test('reglerna per informationsmängd är parametrar med lagens lägsta gräns, som systemförvaltaren ändrar med fyra ögon, och arkivarien ser dem', async () => {
+    const p = konfiguration.parametrar();
+    expect(p['arkiv.gallring_matvarden_ar'].standard).toBe(arkiv.GALLRING_MATVARDEN_AR);
+    expect(p['arkiv.gallring_kallelser_ar'].standard).toBe(arkiv.GALLRING_KALLELSER_AR);
+    expect(konfiguration.prova('arkiv.gallring_matvarden_ar', 5).varfor).toContain('patientdatalagen 3 kap. 17 §');
+    expect(konfiguration.prova('arkiv.gallring_kallelser_ar', 0).ok).toBe(false);
+    expect(konfiguration.prova('arkiv.gallring_matvarden_ar', 20)).toEqual({ ok: true, varde: 20 });
+    const k = klient(app);
+    await k.logga('ark');
+    const db = sandlada(app, k).db;
+    const fore = (await k.get('/api/arkiv/typer')).data.gallringsregler;
+    expect(fore.map(r => [r.mangd, r.ar])).toEqual([['journal', 10], ['matvarden', 100], ['kallelser', 2]]);
+    andraRegel(db, 'arkiv.gallring_matvarden_ar', 20);
+    expect((await k.get('/api/arkiv/typer')).data.gallringsregler.find(r => r.mangd === 'matvarden').ar).toBe(20);
+    // Beslutet tar med reglerna som de gäller när det registreras.
+    const b = (await beslut(k, { typ: 'gallring' })).data;
+    expect(b.omfattning.delar.map(d => [d.mangd, d.ar])).toEqual([['matvarden', 20], ['kallelser', 2]]);
+    andraRegel(db, 'arkiv.gallring_matvarden_ar', 30);
+    expect(arkiv.hamtaBeslut(db, b.id).omfattning).toContain('"ar":20');
+  });
+
+  test('ett gallringsbeslut gallrar mätvärden och kallelser som är äldre än regeln i journaler som finns kvar, och resten av journalen är orörd', async () => {
+    const k = klient(app);
+    await k.logga('ark');
+    const db = sandlada(app, k).db;
+    andraRegel(db, 'arkiv.gallring_matvarden_ar', 20);
+    andraRegel(db, 'arkiv.gallring_kallelser_ar', 1);
+    const ins = (tid) => Number(db.query("INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, matt_enhet, tid, kalla) VALUES ('p01', 'uso-kard', 'vikt', '80', 80, 'kg', ?, 'vardkallan')").run(tid).lastInsertRowid);
+    const gammal = ins(arSedan(30));
+    const ny = ins(arSedan(5));
+    const bokning = db.query("SELECT id FROM bokningar WHERE patient_id = 'p01' LIMIT 1").get()?.id ?? 1;
+    const kallelse = Number(db.query("INSERT INTO kallelser (bokning_id, patient_id, typ, kanal, text, status, skapad, skickad) VALUES (?, 'p01', 'kallelse', 'brev', 'Välkommen.', 'skickad', ?, ?)").run(bokning, arSedan(2), arSedan(2)).lastInsertRowid);
+    const fore = Object.fromEntries(['anteckningar', 'diagnoser', 'ordinationer', 'vardkontakter'].map(t => [t, db.query(`SELECT count(*) AS n FROM ${t} WHERE patient_id = 'p01'`).get().n]));
+    const b = (await beslut(k, { typ: 'gallring' })).data;
+    const u = (await k.get(`/api/arkiv/beslut/${b.id}/underlag`)).data;
+    // Hela journaler som förut, och delar av andra journaler per informationsmängd.
+    expect(u.patienter.map(p => p.id)).not.toContain('p01');
+    const mv = u.delar.find(d => d.mangd === 'matvarden');
+    expect(mv).toMatchObject({ text: 'Mätvärden', ar: 20 });
+    expect(mv.patienter.find(p => p.id === 'p01').antal).toBeGreaterThanOrEqual(1);
+    expect(u.delar.find(d => d.mangd === 'kallelser').patienter.some(p => p.id === 'p01')).toBe(true);
+    const v = await k.post(`/api/arkiv/beslut/${b.id}/verkstall`, {});
+    expect(v.status).toBe(200);
+    expect(v.data.resultat.delar.rader.matvarden).toBeGreaterThanOrEqual(1);
+    expect(db.query('SELECT id FROM matvarden WHERE id = ?').get(gammal)).toBeNull();
+    expect(db.query('SELECT id FROM matvarden WHERE id = ?').get(ny)).toMatchObject({ id: ny });
+    expect(db.query('SELECT id FROM kallelser WHERE id = ?').get(kallelse)).toBeNull();
+    for (const [t, n] of Object.entries(fore)) expect(db.query(`SELECT count(*) AS c FROM ${t} WHERE patient_id = 'p01'`).get().c).toBe(n);
+    expect(db.query("SELECT journal_forstord FROM patienter WHERE id = 'p01'").get().journal_forstord).toBeNull();
+    // Triggrarna är tillbaka.
+    expect(() => db.query('DELETE FROM kallelser WHERE patient_id = ?').run('p01')).toThrow();
+  });
+
+  test('gallringen av delar loggas per journal utan innehåll, åtkomstloggen är hel och beslutet kan bara verkställas en gång', async () => {
+    const k = klient(app);
+    await k.logga('ark');
+    const db = sandlada(app, k).db;
+    andraRegel(db, 'arkiv.gallring_matvarden_ar', 20);
+    db.query("INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, matt_enhet, tid, kalla) VALUES ('p02', 'uso-kard', 'vikt', '71', 71, 'kg', ?, 'vardkallan')").run(arSedan(25));
+    const b = (await beslut(k, { typ: 'gallring' })).data;
+    expect((await k.post(`/api/arkiv/beslut/${b.id}/verkstall`, {})).status).toBe(200);
+    const rad = db.query("SELECT * FROM atkomstlogg WHERE patient_id = 'p02' AND handling = 'gallra' ORDER BY id DESC").get();
+    expect(rad).toMatchObject({ grund: 'arkivbeslut', resurs: `beslut:${b.id}:delar`, personal_id: 'ark' });
+    expect(rad.syfte).toContain('1 mätvärde äldre än 20 år');
+    expect(rad.syfte).not.toContain('71');
+    expect(logg.verifiera(db).hel).toBe(true);
+    expect((await k.post(`/api/arkiv/beslut/${b.id}/verkstall`, {})).status).toBe(400);
+    // Bara arkivarien ser reglerna och verkställer.
+    await k.logga('lak-kard');
+    expect((await k.get('/api/arkiv/typer')).status).toBe(403);
+  });
+});
+
+describe('Miljöer', () => {
+  // Öppnar adressen till miljön och ger den nya sessionens kaka och id.
+  // Länken öppnas i webbläsaren som skapade miljön, med produktionsmiljöns kaka.
+  async function oppna(adress, prodKaka) {
+    const r = await fetch(`${app.url}${adress}`, { redirect: 'manual', headers: prodKaka ? { Cookie: prodKaka } : {} });
+    expect(r.status).toBe(302);
+    const kaka = r.headers.get('set-cookie').split(';')[0];
+    return { kaka, sid: kaka.split('=')[1] };
+  }
+  const medKaka = (kaka, vag, init = {}) => fetch(`${app.url}${vag}`, { ...init, headers: { Cookie: kaka, ...(init.headers ?? {}), ...(init.body ? { 'Content-Type': 'application/json' } : {}) } });
+
+  test('systemförvaltaren skapar en acceptanstestmiljö ur en kopia av sandlådan, med skarpa data och avidentifierade patientuppgifter', async () => {
+    const k = klient(app);
+    await k.logga('sysf');
+    const prod = sandlada(app, k).db;
+    const patienter = prod.query('SELECT * FROM patienter').all();
+    const r = await k.post('/api/miljoer', { typ: 'acceptanstest' });
+    expect(r.status).toBe(201);
+    expect(r.data.miljo).toMatchObject({ typ: 'acceptanstest', text: 'Acceptanstestmiljö' });
+    const { sid, kaka } = await oppna(r.data.adress, k.kaka());
+    const env = app.sessioner.get(sid).db;
+    // Skarpa data: journalens innehåll är detsamma.
+    for (const t of ['anteckningar', 'diagnoser', 'matvarden', 'ordinationer', 'vardkontakter', 'remisser']) {
+      expect(env.query(`SELECT count(*) AS n FROM ${t}`).get().n).toBe(prod.query(`SELECT count(*) AS n FROM ${t}`).get().n);
+    }
+    expect(env.query("SELECT kod FROM diagnoser WHERE patient_id = 'p01' ORDER BY id").all()).toEqual(prod.query("SELECT kod FROM diagnoser WHERE patient_id = 'p01' ORDER BY id").all());
+    // Avidentifierat: inga namn, personnummer, adresser eller telefonnummer finns kvar någonstans i patienternas rader.
+    const nya = env.query('SELECT * FROM patienter').all();
+    expect(nya).toHaveLength(patienter.length);
+    expect(nya.every(p => p.fornamn === 'Patient' && /^P\d{3}$/.test(p.efternamn) && p.adress === null && p.telefon === null && p.kontaktperson === null)).toBe(true);
+    const tillatna = new Set(TESTPERSONNUMMER);
+    expect(nya.every(p => tillatna.has(p.personnummer))).toBe(true);
+    const gamlaPnr = new Set(patienter.map(p => p.personnummer));
+    expect(nya.some(p => gamlaPnr.has(p.personnummer))).toBe(false);
+    const allt = env.query("SELECT name FROM sqlite_master WHERE type = 'table'").all().map(t => t.name)
+      .filter(t => env.query(`PRAGMA table_info("${t}")`).all().some(c => c.name === 'patient_id') || ['patienter', 'invanare'].includes(t))
+      .map(t => JSON.stringify(env.query(`SELECT * FROM "${t}"`).all())).join('\n');
+    for (const p of patienter) {
+      expect(allt).not.toContain(p.personnummer);
+      expect(allt).not.toContain(`${p.personnummer.slice(0, 8)}-${p.personnummer.slice(8)}`);
+      expect(allt).not.toContain(`${p.fornamn} ${p.efternamn}`);
+      if (p.adress) expect(allt).not.toContain(p.adress);
+    }
+    // Skyddad identitet följer med som markering, och loggarna börjar om i miljön.
+    expect(env.query('SELECT count(*) AS n FROM patienter WHERE skyddad = 1').get().n).toBe(prod.query('SELECT count(*) AS n FROM patienter WHERE skyddad = 1').get().n);
+    expect(env.query('SELECT count(*) AS n FROM atkomstlogg').get().n).toBe(0);
+    // Produktionsmiljön är oförändrad.
+    expect(prod.query('SELECT * FROM patienter').all()).toEqual(patienter);
+    // Miljön fungerar: en läkare loggar in i miljön.
+    expect((await medKaka(kaka, '/api/login', { method: 'POST', body: JSON.stringify({ personalId: 'lak-kard' }) })).status).toBe(200);
+    expect([...app.sessioner.values()].some(x => x.db === env && x.personalId === 'lak-kard')).toBe(true);
+  });
+
+  test('utbildnings- och testmiljön har fiktiva data och samma regler och parametrar som produktionsmiljön', async () => {
+    const k = klient(app);
+    await k.logga('sysf');
+    const prod = sandlada(app, k).db;
+    const { andring } = konfiguration.foresla(prod, pers(prod, 'sysf'), { nyckel: 'logg.stickprov_antal', varde: 25, giltigFran: datumAv(new Date()), motivering: 'Större urval.' });
+    konfiguration.godkann(prod, pers(prod, 'sysf-2'), andring.id, {});
+    // En patient som bara finns så i produktionen.
+    prod.query("UPDATE patienter SET fornamn = 'Endast', efternamn = 'Produktion' WHERE id = 'p02'").run();
+    for (const typ of ['utbildning', 'test']) {
+      const r = await k.post('/api/miljoer', { typ });
+      expect(r.status).toBe(201);
+      const { sid } = await oppna(r.data.adress, k.kaka());
+      const env = app.sessioner.get(sid).db;
+      expect(konfiguration.varde(env, 'logg.stickprov_antal')).toBe(25);
+      expect(r.data.resultat.kopierade).toContain('konfig_andringar');
+      // Fiktiva data: demons påhittade patienter, inte produktionens.
+      expect(env.query("SELECT efternamn FROM patienter WHERE id = 'p02'").get().efternamn).not.toBe('Produktion');
+      expect(env.query("SELECT personnummer FROM patienter WHERE id = 'p01'").get().personnummer).toBe(nyDb().query("SELECT personnummer FROM patienter WHERE id = 'p01'").get().personnummer);
+      expect(miljoer.miljoFor(env)).toMatchObject({ typ, text: miljoer.MILJOER[typ].text });
+    }
+  });
+
+  test('miljön är märkt i varje svar om sessionen och går inte att återställa, och det går att gå tillbaka till produktionsmiljön', async () => {
+    const k = klient(app);
+    await k.logga('sysf');
+    expect((await k.get('/api/session')).data.miljo).toMatchObject({ typ: 'produktion' });
+    const r = await k.post('/api/miljoer', { typ: 'test' });
+    const { kaka } = await oppna(r.data.adress, k.kaka());
+    const s = await (await medKaka(kaka, '/api/session')).json();
+    expect(s).toMatchObject({ inloggad: false, miljo: { typ: 'test', text: 'Testmiljö', kort: 'Test' } });
+    // Länken gäller en gång, och bara i webbläsaren som skapade miljön.
+    expect((await fetch(`${app.url}${r.data.adress}`, { redirect: 'manual', headers: { Cookie: k.kaka() } })).status).toBe(410);
+    const r2 = await k.post('/api/miljoer', { typ: 'utbildning' });
+    const annan = await fetch(`${app.url}${r2.data.adress}`, { redirect: 'manual' });
+    expect(annan.status).toBe(403);
+    expect(annan.headers.get('set-cookie')).toBeNull();
+    expect((await fetch(`${app.url}${r2.data.adress}`, { redirect: 'manual', headers: { Cookie: (await nySession()).kaka() } })).status).toBe(403);
+    expect((await fetch(`${app.url}${r2.data.adress}`, { redirect: 'manual', headers: { Cookie: k.kaka() } })).status).toBe(302);
+    expect((await medKaka(kaka, '/api/reset', { method: 'POST', body: '{}' })).status).toBe(400);
+    // Tillbaka till produktionsmiljön: sessionskakan byts till produktionens.
+    const t = await medKaka(kaka, '/api/miljoer/tillbaka', { method: 'POST', body: '{}' });
+    expect(t.status).toBe(200);
+    const tillbaka = t.headers.get('set-cookie').split(';')[0];
+    expect(tillbaka).toBe(k.kaka());
+    expect((await (await medKaka(tillbaka, '/api/session')).json()).miljo.typ).toBe('produktion');
+  });
+
+  test('bara systemförvaltaren skapar miljöer, högst tre per sandlåda och inte ur en annan miljö', async () => {
+    const l = klient(app);
+    await l.logga('lak-kard');
+    expect((await l.post('/api/miljoer', { typ: 'test' })).status).toBe(403);
+    const k = klient(app);
+    await k.logga('sysf');
+    expect((await k.post('/api/miljoer', { typ: 'produktion' })).status).toBe(400);
+    expect((await k.post('/api/miljoer', { typ: 'constructor' })).status).toBe(400);
+    const r = await k.post('/api/miljoer', { typ: 'test' });
+    await k.post('/api/miljoer', { typ: 'utbildning' });
+    await k.post('/api/miljoer', { typ: 'test' });
+    const fjarde = await k.post('/api/miljoer', { typ: 'test' });
+    expect(fjarde.status).toBe(429);
+    expect(fjarde.data.fel).toContain('redan 3 miljöer');
+    expect((await k.get('/api/miljoer')).data.skapade).toHaveLength(3);
+    // I en miljö skapas inga nya miljöer.
+    const { kaka } = await oppna(r.data.adress, k.kaka());
+    const inne = await medKaka(kaka, '/api/login', { method: 'POST', body: JSON.stringify({ personalId: 'sysf' }) });
+    const nyKaka = inne.headers.get('set-cookie')?.split(';')[0] ?? kaka;
+    const iMiljo = await medKaka(nyKaka, '/api/miljoer', { method: 'POST', body: JSON.stringify({ typ: 'test' }) });
+    expect(iMiljo.status).toBe(400);
+  });
+});
+
+describe('Säkerhetsarkitektur', () => {
+  test('hotmodellen har yttre och inre hot, och varje hot pekar på en kontroll, en princip och tester', () => {
+    expect(hotmodell.HOT.filter(h => h.slag === 'yttre').length).toBeGreaterThanOrEqual(5);
+    expect(hotmodell.HOT.filter(h => h.slag === 'inre').length).toBeGreaterThanOrEqual(5);
+    expect(new Set(hotmodell.HOT.map(h => h.id)).size).toBe(hotmodell.HOT.length);
+    for (const h of hotmodell.HOT) {
+      expect(['yttre', 'inre']).toContain(h.slag);
+      expect(h.hot.length).toBeGreaterThan(20);
+      expect(h.kontroll.length).toBeGreaterThan(20);
+      expect(h.principer.length).toBeGreaterThan(0);
+      for (const p of h.principer) expect(Object.keys(hotmodell.PRINCIPER)).toContain(p);
+      expect(h.tester.length).toBeGreaterThan(0);
+      // Testnamnen har formen Grupp > test, som i resten av registret.
+      for (const t of h.tester) expect(t).toMatch(/^[^>]+ > .+/);
+    }
+    // Hotmodellens tester är mappade på posten, så att bygget prövar dem.
+    const post = sussaRegister().poster.find(p => p.id === '5.3.1.18');
+    for (const t of hotmodell.HOTMODELL_TESTER) expect(post.tester.map(x => x.namn)).toContain(t);
+  });
+
+  test('varje princip i Sussas kravtext möts av minst ett hot i hotmodellen', () => {
+    const krav = kravspec.poster.find(p => p.id === '5.3.1.18');
+    const principer = Object.values(hotmodell.PRINCIPER);
+    for (const m of krav.mervarden) expect(principer.some(p => m.startsWith(p))).toBe(true);
+    for (const k of Object.keys(hotmodell.PRINCIPER)) expect(hotmodell.HOT.some(h => h.principer.includes(k))).toBe(true);
+  });
+});
+
+describe('Nyheter i runda 9, r5', () => {
+  test('nyheterna om inloggningen, miljöerna, certifikaten, e-arkivet, gallringen och skyddsbehovet går till rätt roller', async () => {
+    const k = klient(app);
+    const ids = async (roll) => { await k.logga(roll); const r = (await k.get('/api/nyheter')).data; return r.alla.find(v => v.version === r.version)?.nyheter.map(n => n.id) ?? []; };
+    expect(await ids('sysf')).toEqual(expect.arrayContaining(['inloggning-uppdrag', 'miljoer', 'certifikat', 'gallringsregler']));
+    expect(await ids('ark')).toEqual(expect.arrayContaining(['inloggning-uppdrag', 'earkiv-leverans', 'gallringsregler']));
+    expect(await ids('logg')).toEqual(expect.arrayContaining(['inloggning-uppdrag', 'skyddsbehov-logg']));
+    const lak = await ids('lak-kard');
+    expect(lak).toContain('inloggning-uppdrag');
+    for (const id of ['miljoer', 'certifikat', 'earkiv-leverans', 'gallringsregler', 'skyddsbehov-logg']) expect(lak).not.toContain(id);
+    // Invånaren får ingen av dem.
+    const i = klient(app);
+    await i.post('/api/login/invanare', { invanareId: 'inv-p01' });
+    const inv = (await i.get('/api/nyheter')).data;
+    const invIds = inv.alla.flatMap(v => v.nyheter.map(n => n.id));
+    for (const id of ['inloggning-uppdrag', 'miljoer', 'certifikat', 'earkiv-leverans', 'gallringsregler', 'skyddsbehov-logg']) expect(invIds).not.toContain(id);
   });
 });
