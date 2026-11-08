@@ -30,5 +30,23 @@ export async function visa(main) {
     </dl>
     <p class="dampad liten">Mätningen gäller demons server, de senaste 1 000 anropen per adress för servern och 200 för din sandlåda. Den säger inget om ett produktionssystem med tusentals användare.</p>
     ${tabell(d.sandlada, d.mal.p95Ms, 'Din sandlåda', 'dr-s')}
-    ${tabell(d.server, d.mal.p95Ms, 'Hela servern', 'dr-h')}`;
+    ${tabell(d.server, d.mal.p95Ms, 'Hela servern', 'dr-h')}
+    <div id="arkitektur"></div>`;
+  // Runda 9, r6: systemuppbyggnaden i fem perspektiv, modulerna med tillverkare och totalkostnaden (Sussa 2.1.1.1).
+  api('/api/arkitektur', { tyst: true }).then((a) => { main.querySelector('#arkitektur').innerHTML = arkitektur(a); }).catch(() => {});
+}
+
+function arkitektur(a) {
+  const k = a.totalkostnad;
+  const perSkikt = a.skikt.map(s => [s, a.moduler.filter(m => m.skikt === s)]);
+  return `<section aria-labelledby="dr-ark"><h2 id="dr-ark">Systemuppbyggnad</h2>
+    ${a.perspektiv.map(p => `<h3>${esc(p.rubrik)}</h3><p>${esc(p.text)}</p>`).join('')}
+    <ul class="ark-skikt">${perSkikt.map(([s, m]) => `<li><strong>${esc(s)}</strong>: ${m.length} moduler</li>`).join('')}</ul>
+    <details class="ark-moduler"><summary>Alla ${a.moduler.length} moduler med beskrivning och krav</summary>
+      ${perSkikt.map(([s, m]) => `<h4>${esc(s)}</h4><ul>${m.map(x => `<li><code>${esc(x.modul)}</code>. ${esc(x.beskrivning)}${x.krav.length ? ` <span class="dampad">Krav: ${x.krav.map(esc).join(', ')}.</span>` : ''}</li>`).join('')}</ul>`).join('')}
+    </details>
+    <h3>Komponenter från andra tillverkare</h3><ul>${a.komponenter.map(c => `<li><strong>${esc(c.namn)}</strong>, ${esc(c.tillverkare)}. ${esc(c.anvands)}</li>`).join('')}</ul>
+    <h3>Totalkostnad</h3>
+    ${k ? `<p>Ungefär ${tal(k.krPerAnvandareOchManad, 2)} kronor per anställd och månad, med ${tal(k.matning.mbPerSandlada, 1)} megabyte minne per inloggad i den här servern, ${k.samtidigaPerServer} samtidiga och ${k.anstalldaPerServer} anställda per server och ${tal(k.krPerServerOchManad, 0)} kronor per server och månad.</p>` : '<p class="tom">Ingen mätning ännu.</p>'}
+    <p class="dampad liten">Antaganden: ${esc(a.antaganden.text)} Det är en modell, inte en offert.</p></section>`;
 }

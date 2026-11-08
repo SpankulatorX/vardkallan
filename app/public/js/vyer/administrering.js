@@ -224,4 +224,35 @@ export async function visa(main) {
       ${patientDoser(p.patient.id, p)}
     </section>`).join('')}`;
   koppla(el, () => visa(main));
+  skannaArmband(el);
+}
+
+// Runda 9, r6: vid sängen identifieras patienten med armbandet (Sussa 2.3.1.1). En streckkodsläsare skriver koden och
+// Enter i fältet. Systemet tolkar koden (POST /api/skanna, Sussa 3.1.3.6) och visar bara den patientens doser, så att
+// rätt dos ges till rätt patient. Behörigheten prövas på servern innan något om patienten visas.
+function skannaArmband(el) {
+  const form = document.createElement('form');
+  form.className = 'adm-skanna';
+  form.innerHTML = `<label for="adm-kod">Skanna patientens armband</label><div class="adm-skanna-rad"><input id="adm-kod" name="kod" autocomplete="off" spellcheck="false" maxlength="200" aria-describedby="adm-kod-svar">
+    <button type="submit" class="knapp sekundar">Visa patienten</button></div><p id="adm-kod-svar" class="under-text" role="status"></p>`;
+  el.prepend(form);
+  const svar = form.querySelector('#adm-kod-svar');
+  const visaAlla = () => { el.querySelectorAll('.adm-patient').forEach(x => { x.hidden = false; }); };
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const kod = form.kod.value.trim();
+    if (!kod) { visaAlla(); svar.textContent = ''; return; }
+    try {
+      const r = await api('/api/skanna', { metod: 'POST', data: { kod, sammanhang: 'oppna' }, tyst: true });
+      const pid = r.patient?.id;
+      const sektion = pid ? el.querySelector(`#adm-${CSS.escape(pid)}`)?.closest('.adm-patient') : null;
+      if (!sektion) { visaAlla(); svar.textContent = 'Patienten har inga doser i listan.'; return; }
+      el.querySelectorAll('.adm-patient').forEach(x => { x.hidden = x !== sektion; });
+      svar.textContent = `${r.patient.namn}, ${r.patient.personnummer}. Bara patientens doser visas. Töm fältet för att se alla.`;
+      sektion.querySelector('button')?.focus();
+    } catch (x) {
+      visaAlla();
+      svar.textContent = x.status === 404 && /Okänd adress/.test(x.message) ? 'Inläsning av armband finns inte i den här versionen.' : x.message;
+    } finally { form.kod.value = ''; }
+  });
 }

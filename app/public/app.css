@@ -1505,3 +1505,12 @@ body.laslage #nyhetsruta { display: none; }
 .av-tabell tr.av-utford td { color: var(--dampad); }
 .av-typ { margin-right: 4px; }
 .av-dag.av-idag h2 { color: var(--kalla); }
+
+/* Runda 9, r6: fältet för armbandet i Läkemedel att ge och sidan Öppet API för utvecklare och förvaltning. */
+.adm-skanna { margin: 0 0 1rem; }
+.adm-skanna-rad { display: flex; flex-wrap: wrap; gap: .5rem; }
+.adm-skanna-rad input { flex: 1 1 12rem; min-width: 0; }
+.api-andringar, .api-arenden, .api-lista { padding-left: 1.2rem; }
+.api-andringar li, .api-arenden li, .api-lista li { margin-bottom: .75rem; overflow-wrap: anywhere; }
+.api-svar-lista { padding-left: 1rem; }
+.ark-moduler li, .lagmatris li { overflow-wrap: anywhere; margin-bottom: .4rem; }

@@ -11,6 +11,8 @@ import { T as R6, TESTER_ANSVAR } from './sussa/lakemedelsansvar-r6.js';
 const TESTER_MALLAR = [R6.mallInkorg, R6.mallSakerhet, R6.substans, R6.kbMall];
 // Runda 8, r5: villkoren för version 1.0 överst på kravsidan (version.js).
 import { TESTER_VERSION } from './sussa/runda8-r5.js';
+// Runda 9, r6: lagkravsmatrisen (Sussa 2.7.1.2).
+import { testerFor } from './lagmatris.js';
 
 const RAPPORT = 'Cosmic upphandling krav och kritik';
 const k = (id, rubrik, kalla, status, var_, tester = [], anmarkning = null) => ({ id, rubrik, kalla, status, var: var_, tester, anmarkning });
@@ -224,7 +226,9 @@ export const KRAV = [
     'Inte uppfyllt. FHIR R4 och HL7 Swedens basprofiler är validerade, men det europeiska utbytesformatet för journaler, CE-märkning och EHDS loggningskomponent finns inte.'),
   k('L11', 'MDR för beslutsstöd, läkemedelsvarningar och dosering', 'MDR (EU) 2017/745', 'planerat', null, [], 'Demon är inte CE-märkt. Varningarna är demoregler.'),
   k('L12', 'NIS2 genom cybersäkerhetslagen', 'Cybersäkerhetslagen (2025:1506)', 'planerat', null, []),
-  k('L13', 'GDPR, arkivlagen, säkerhetsskyddslagen och tillgänglighetslagen', 'Egen kunskap i anteckningarna, ska verifieras', 'planerat', null, []),
+  // Runda 9, r6: raderna i lagkravsmatrisen (lagmatris.js) för dataskyddsförordningen, arkivlagen och tillgänglighetslagen.
+  k('L13', 'GDPR, arkivlagen, säkerhetsskyddslagen och tillgänglighetslagen', 'Lagkravsmatrisen i Sussa 2.7.1.2', 'delvis', '/krav', testerFor('GDPR', 'Arkivlagen', 'DOS-lagen'),
+    'Lagkravsmatrisen under Sussa 2.7.1.2 kopplar dataskyddsförordningens artiklar 5, 15, 20, 25 och 32, arkivlagen och lagen om tillgänglighet till digital offentlig service till funktioner med tester. Register över behandlingar, konsekvensbedömning och säkerhetsskyddsanalys gör vårdgivaren och står som avgränsningar. Hänvisningarna är inte juridiskt granskade.'),
 
   // Misstag att inte upprepa
   k('M1', 'Driftstart trots kända brister: mätbara avbrottskriterier och stopprätt', `${RAPPORT}, Misstag att inte upprepa`, 'planerat', null, []),

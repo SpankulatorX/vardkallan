@@ -30,7 +30,9 @@ const GEMENSAMMA = new Set(['katalog', 'installningar', 'migrering', 'forpacknin
 // Datauttaget för uppföljning byggs om ur uppgifterna och följer inte med i ett uttag.
 const SYSTEM = new Set(['omorganisationer', 'omorganisation_flyttar', 'lagringsmatningar', 'sqlite_sequence', 'datauttag', 'uttagsbeslut', 'uttagsfiler',
   // Runda 7, r2: vilka nyheter en användare har stängt hör till inloggningen och inte till en huvudman.
-  'nyheter_stangda']);
+  'nyheter_stangda',
+  // Runda 9, r6: det öppna API:ts tillämpningar, mottagare och ärenden hör till förvaltningen (api-forvaltning.js).
+  'api_tillampningar', 'api_mottagare', 'api_arenden', 'api_arende_svar']);
 // Tabeller vars koppling inte går att se på kolumnnamnen.
 const UTTRYCKLIGA = {
   dubblettforslag: { typ: 'patient', kolumner: ['fran_patient_id', 'till_patient_id'] },

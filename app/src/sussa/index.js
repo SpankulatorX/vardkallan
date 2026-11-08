@@ -87,6 +87,11 @@ import aKD1_2 from './mappning/KD1.2.js';
 import aKD1_3 from './mappning/KD1.3.js';
 // Runda 7, r7: viktning, Cambios svar, avtalets signaler och bör-krav (K2, K3 och K5), se avtal.js.
 import { avtalPost, avtalRegister } from './avtal.js';
+// Runda 9, r6: lagkravsmatrisen för 2.7.1.2.
+import { lagmatris } from '../lagmatris.js';
+// Runda 9, r6: de mobila flödena per funktionellt krav för 2.3.1.3.
+import { perKrav } from '../mobil.js';
+import { klickbudgetTest } from '../krav.js';
 
 export const SPEC = spec;
 export const KATEGORIER = ['system', 'nationell', 'leverantor'];
@@ -134,6 +139,9 @@ export function sussaRegister(resultat, klient = null, { mappning = MAPPNING, po
       losning: m?.losning ?? null, expert: m?.expert ?? null, anmarkning: m?.anmarkning ?? null,
       // Runda 7, r7: vikt, Cambios svar och avtalets signaler.
       ...avtalPost(p.id),
+      // Runda 9, r6: lagkravsmatrisen med status per rad ur testerna (lagmatris.js).
+      ...(p.id === '2.7.1.2' ? { lagmatris: lagmatris(status) } : {}),
+      ...(p.id === '2.3.1.3' ? { mobil: { text: 'Krav i kapitel 3 och 4 som har flöden i klickbudgeten, och vilka av dem som är gjorda för mobilen och prövas i 360 px.', krav: perKrav(poster, mappning, klickbudgetTest) } } : {}),
     };
   });
   return {

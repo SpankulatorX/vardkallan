@@ -3,10 +3,34 @@
 import { TEST } from '../../krav.js';
 
 const { A, F, FS, MJ } = TEST;
+// Runda 9, r6: testerna i app/test/runda9-r6.test.js och runda9-r6-forvaltning.test.js.
+const OA = 'Öppet API hålls aktuellt > ';
+const FL = 'Fler flöden via API:t > ';
+const AR = 'Ärenden om API:t > ';
+const TM = 'Tillämpningar och mottagare > ';
+const TK = 'Tjänstekontrakt > ';
+export const R6 = {
+  conditionSkapa: `${OA}Condition: läkaren registrerar en diagnos på vårdkontakten med samma funktion som gränssnittet, och den loggas`,
+  conditionNekad: `${OA}Condition: fel roll, en vårdkontakt på en annan patient, en annan vårdenhet, en okänd kod och ett annat kodverk nekas med en förklaring`,
+  capability: `${OA}CapabilityStatement har versionen och listar varje resurstyp och operation som servern har, och inget annat`,
+  andringslogg: `${OA}ändringsloggen: den senaste versionen är CapabilityStatements, och varje resurstyp och skrivning har en rad`,
+  bokning: `${FL}Appointment: en remiss på väntelistan bokas via API:t med systemets förslag, med samma kontroller och loggning som i gränssnittet`,
+  bokningNekad: `${FL}Appointment: fel roll, en annan patient och en tid som inte passar remissen nekas med en förklaring`,
+  inskrivning: `${FL}Encounter: inskrivning via API:t med samma förslag på avdelning och orsak som knappen Skriv in`,
+  arendeKedja: `${AR}en begäran om ny information går från inkommen till levererad, och levererad kräver en version i ändringsloggen`,
+  arendeExpert: `${AR}systemet svarar direkt när det begärda redan finns, och ett ärende med ett personnummer avvisas`,
+  tillampning: `${TM}systemförvaltaren registrerar en tillämpning, systemet föreslår behörighet och text ur omfånget, och den startas från journalen`,
+  aterkallad: `${TM}en återkallad tillämpning kan inte startas, och dess åtkomstbiljetter återkallas direkt`,
+  provas: `${TM}bara systemförvaltaren registrerar, och adresser, omfång och namn prövas`,
+  mottagare: `${TM}systemförvaltaren godkänner en mottagare, en prenumeration till den kan skapas, och när mottagaren återkallas avslutas prenumerationen`,
+  tk: [`${TK}tabellen har alla tjänstekontrakt i K10 med roll, motsvarighet och status`, `${TK}GetDiagnosis svarar med patientens diagnoser i kontraktets struktur och loggas som FHIR`,
+    `${TK}GetCareDocumentation, GetAlertInformation och GetCareContacts svarar med samma behörighet som FHIR`, `${TK}producenten nekar fel roll och visar inte spärrade uppgifter`,
+    `${TK}okänt kontrakt, patient eller logisk adress ger ett fel på svenska`],
+};
 
 export default [
   {
-    id: '2.5.1.1', kategori: 'system', egna: ['D9', 'M12'], avsedd: 'delvis',
+    id: '2.5.1.1', kategori: 'system', egna: ['D9', 'M12'], avsedd: 'uppfyllt_demo',
     tester: [
       `${F}metadata är ett CapabilityStatement`,
       `${F}sökning ger Bundle searchset`,
@@ -15,10 +39,13 @@ export default [
       'FHIR-skrivning > MedicationRequest: samma varningar som läkemedelslistan, och en allvarlig varning kvitteras med motivering',
       'SMART on FHIR > EHR launch från journalen med PKCE ger en åtkomstbiljett för patienten, och varje anrop loggas',
       'Prenumerationer > meddelandet innehåller bara id, och mottagaren hämtar resursen med sin egen behörighet',
+      // Runda 9, r6: diagnoser via API:t, versionen i CapabilityStatement och ändringsloggen.
+      R6.conditionSkapa, R6.conditionNekad, R6.capability, R6.andringslogg,
+      'Gränssnitt > Öppet API > ändringsloggen visar versionen, och läkaren skickar ett ärende om en saknad informationsmängd',
     ],
-    losning: 'Öppet FHIR R4-API under /fhir för läsning, skrivning (mätvärden, anteckningar, ordinationer och remisser), prenumerationer och externa tillämpningar med SMART on FHIR, med samma behörighet och loggning som gränssnittet. Koden är öppen under EUPL 1.2.',
-    expert: 'Skrivningen går genom samma funktioner som gränssnittet, så API:t kontrollerar själv reglerna, varnar på samma sätt och fyller i vårdkontakt, enhet och förslag. Den som bygger en integration behöver inte känna reglerna.',
-    anmarkning: 'Att gränssnittet hålls aktuellt under en avtalstid är ett åtagande som inte finns. Diagnoser, överkänslighet och patienter går inte att skriva via API:t, eftersom gränssnittet inte heller kan det än.',
+    losning: 'Öppet FHIR R4-API under /fhir för läsning, skrivning (mätvärden, anteckningar, diagnoser, ordinationer, remisser, bokning av en remiss och inskrivning), prenumerationer och externa tillämpningar med SMART on FHIR, med samma behörighet och loggning som gränssnittet. Koden är öppen under EUPL 1.2. Att gränssnittet hålls aktuellt syns i tre saker: CapabilityStatement anger programmets version, ändringsloggen (api-andringar.js) har en rad för varje resurstyp och skrivning med den version där den kom och visas på sidan Öppet API och i GET /api/oppet-api/andringar, och ett test prövar alla 145 resurstyper i FHIR R4 mot servern och stoppar bygget om CapabilityStatement anger något som servern inte har, eller tvärtom.',
+    expert: 'Skrivningen går genom samma funktioner som gränssnittet, så API:t kontrollerar själv reglerna, varnar på samma sätt och fyller i vårdkontakt, enhet, huvud- eller bidiagnos och förslag. Den som bygger en integration behöver inte känna reglerna, och bygget ser till att beskrivningen av API:t alltid stämmer med det som finns.',
+    anmarkning: 'Själva åtagandet att hålla gränssnittet aktuellt under en avtalstid är leverantörens och finns inte i koden. Överkänslighet går inte att skriva via API:t, eftersom gränssnittet inte heller kan registrera den, och patienter registreras bara i gränssnittet, där numret tolkas och dubbletter letas. Patient/$everything gäller bara invånarens session.',
   },
   {
     id: '2.5.1.2', kategori: 'system', egna: ['D9'], avsedd: 'delvis',
@@ -30,18 +57,20 @@ export default [
       'FHIR-skrivning > Composition: final skapar och signerar, preliminary sparar ett utkast med samma mall som gränssnittet',
       'FHIR-skrivning > MedicationRequest: utsättning med status stopped, och antikoagulantia sätts bara ut med en plan',
       'FHIR-skrivning > nekad: fel roll, ingen vårdrelation och Min journal nekas och nekandet loggas',
-      'FHIR-skrivning > inget går att göra via API:t som gränssnittet inte tillåter: diagnoser, överkänslighet, borttagning och ändrade mätvärden',
+      'FHIR-skrivning > inget går att göra via API:t som gränssnittet inte tillåter: överkänslighet, borttagning och ändrade mätvärden',
       'Prenumerationer > Subscription skapas med samma behörighet som läsningen och bara till adresser som administratören har godkänt',
       'Prenumerationer > meddelandet innehåller bara id, och mottagaren hämtar resursen med sin egen behörighet',
       'Prenumerationer > inget meddelande om det som prenumeranten inte får läsa: spärrad vårdenhet, annan vårdenhet och osignerade utkast',
       'Prenumerationer > skydd mot SSRF: interna adresser, omdirigeringar, fel port och inloggningsuppgifter stoppas',
+      // Runda 9, r6: diagnoser, bokning och inskrivning via API:t, och mottagarna som systemförvaltaren godkänner.
+      R6.conditionSkapa, R6.bokning, R6.inskrivning, R6.mottagare, R6.provas,
     ],
     losning: 'Läsa, skapa och uppdatera via FHIR R4 med samma regler som gränssnittet, och prenumerationer (Subscription med rest-hook) som meddelar nya, ändrade och borttagna poster med bara id. Integrationsmönstren är förfrågan och svar (REST) och händelser (prenumeration).',
     expert: 'Systemet prövar varje skrivning och varje meddelande mot behörighetsmotorn, förklarar på svenska varför något inte går och skickar aldrig patientuppgifter i ett meddelande, så att ingen integration behöver bygga in patientdatalagens regler.',
-    anmarkning: 'Borttagning nekas med en förklaring, eftersom journaluppgifter rättas eller makuleras och aldrig tas bort. Prenumerationerna gäller en patient i taget; en prenumeration på en hel population (till exempel för ett vårddatalager) och systemkonton finns inte. Meddelandena simuleras i demon och skickas bara med WEBHOOK_SKICKA=1. Mottagaradresserna godkänns i konfigurationen, inte i ett gränssnitt för administratören.',
+    anmarkning: 'Borttagning nekas med en förklaring, eftersom journaluppgifter rättas eller makuleras och aldrig tas bort. Prenumerationerna gäller en patient i taget: en prenumeration på en hel population (till exempel alla nya diagnoser på en vårdenhet för ett vårddatalager) och systemkonton för en tillämpning utan inloggad person (SMART Backend Services) finns inte. Meddelandena simuleras i demon och skickas bara med WEBHOOK_SKICKA=1. Mottagaradresserna godkänns av systemförvaltaren på sidan Öppet API, och när en adress återkallas avslutas varje prenumeration till den.',
   },
   {
-    id: '2.5.1.3', kategori: 'system', egna: ['D9'], avsedd: 'delvis',
+    id: '2.5.1.3', kategori: 'system', egna: ['D9'], avsedd: 'uppfyllt_demo',
     tester: [
       `${F}Observation, AllergyIntolerance, Encounter, ServiceRequest, Composition, Organization och Practitioner har rätt form`,
       `${F}MedicationRequest använder ATC och har uppföljningsdatum`,
@@ -50,9 +79,11 @@ export default [
       'API-täckning > varje flöde i klickbudgeten är bedömt för API:t, och bedömningen gäller flöden som finns',
       'API-täckning > varje flöde som står som ja görs via det öppna API:t',
       'API-täckning > API: täckningen kan läsas utan inloggning',
+      // Runda 9, r6: tjänstekontrakten, bokning och inskrivning via API:t, ändringsloggen och ärendena för nya gränssnitt.
+      ...R6.tk, R6.bokning, R6.bokningNekad, R6.inskrivning, R6.andringslogg, R6.arendeKedja, R6.arendeExpert,
     ],
-    losning: 'All journalinformation i gränssnittet finns som FHIR R4-resurser. Ett test går igenom klickbudgetens vanliga flöden och gör vart och ett som går via API:t på riktigt, och sidan Öppet API listar för varje flöde om det går och annars vad som saknas.',
-    expert: 'Samma data och samma regler gäller i gränssnittet och i API:t, och listan över vad API:t räcker till räknas fram ur klickbudgeten, så den kan inte påstå mer än testet visar.',
-    anmarkning: 'Tio av klickbudgetens flöden går via API:t och två delvis. Resten finns bara i gränssnittet, bland annat administrering, inskrivning, bokning, kontrasignering och nödåtkomst (som aldrig ska gå via API:t). Mappning mot nationella tjänstekontrakt saknas.',
+    losning: 'Nuläge: all journalinformation i gränssnittet finns som FHIR R4-resurser, och sidan Öppet API listar för varje vanligt flöde i klickbudgeten om det går via API:t, med anropen, och annars vad som saknas. Ett test gör varje flöde som står som ja på riktigt, nu också bokning av en remiss (Appointment) och inskrivning (Encounter). Mappningen mot de nationella tjänstekontrakten i bilaga K10 finns i tjanstekontrakt.js, med fyra simulerade producenter. Utökning: ändringsloggen visar vilka informationsmängder som kom i vilken version. Process: på sidan Öppet API lämnar personal och samarbetspartner ett ärende om en saknad informationsmängd, ett attribut eller en mappning mot ett tjänstekontrakt. Systemförvaltaren bedömer, planerar till en version och markerar det som levererat, och levererat går bara när versionen finns i ändringsloggen.',
+    expert: 'Samma data och samma regler gäller i gränssnittet och i API:t, och listan över vad API:t räcker till räknas fram ur klickbudgeten, så den kan inte påstå mer än testet visar. När någon begär en resurstyp som redan finns svarar systemet direkt med hur den läses och skrivs.',
+    anmarkning: 'Tolv av klickbudgetens flöden går via API:t och två delvis. Resten finns bara i gränssnittet, bland annat administrering, kontrasignering (där anteckningen ska läsas först) och nödåtkomst, som med avsikt aldrig går via API:t. Tjänstekontrakten är simulerade utan tjänsteplattformen.',
   },
 ];

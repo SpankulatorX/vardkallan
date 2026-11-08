@@ -264,10 +264,27 @@ function sussaDetalj(p, d) {
     <h3>Vårdkällans lösning</h3><p>${p.losning ? esc(p.losning) : 'Inte byggt i Vårdkällan.'}</p>
     ${p.expert ? `<h3>Hur systemet är experten</h3><p>${esc(p.expert)}</p>` : ''}
     ${p.anmarkning ? `<h3>Det som saknas eller är simulerat</h3><p>${esc(p.anmarkning)}</p>` : ''}
+    ${bilagaR6(p)}
     ${p.avsedd !== p.status && p.avsedd !== 'planerat' ? `<p class="ruta ruta-larm liten">Avsett som ${esc(STATUS[p.avsedd].toLowerCase())}, men ${p.tester.length ? 'alla tester är inte gröna' : 'posten har inga tester'}.</p>` : ''}
     <h3>Tester</h3>${p.tester.length ? `<ul class="testrader">${testrader(p.tester)}</ul>` : '<p class="dampad">Inga automatiska tester än, därför planerad.</p>'}
     <h3>Kopplade egna krav</h3>${egna}
   </div>`;
+}
+
+// Runda 9, r6: lagkravsmatrisen under 2.7.1.2 och de mobila flödena per funktionellt krav under 2.3.1.3.
+const LAGSTATUS = { uppfylld: 'Uppfylld i demon', delvis: 'Delvis', avgransad: 'Avgränsning' };
+function bilagaR6(p) {
+  if (p.lagmatris) {
+    return `<h3>Lagkravsmatris</h3><p class="dampad liten">${esc(p.lagmatris.granskning)}</p><ul class="enkel-lista lagmatris">${p.lagmatris.rader.map(r => `<li>
+      <strong>${esc(r.lag)} ${esc(r.paragraf)}</strong> <span class="tagg">${esc(LAGSTATUS[r.status] ?? r.status)}</span><br>${esc(r.skyldighet)}
+      ${r.stod ? `<br><span class="under-text">Stöd i systemet: ${esc(r.stod)}</span>` : ''}${r.avgransning ? `<br><span class="under-text">Avgränsning: ${esc(r.avgransning)}</span>` : ''}
+      ${r.tester.length ? `<br><span class="dampad liten">${r.tester.filter(t => t.status === 'grön').length} av ${r.tester.length} tester gröna</span>` : ''}</li>`).join('')}</ul>`;
+  }
+  if (p.mobil) {
+    return `<h3>Mobila flöden per funktionellt krav</h3><p class="dampad liten">${esc(p.mobil.text)}</p><ul class="enkel-lista">${p.mobil.krav.map(k => `<li>
+      <a href="#/krav?post=${encodeURIComponent(k.id)}">${esc(k.id)}</a> ${esc(k.rubrik)}: ${k.mobila.length ? esc(k.mobila.join(', ')) : `<span class="dampad">${esc(k.varfor)}</span>`}</li>`).join('')}</ul>`;
+  }
+  return '';
 }
 
 // Bör-krav och målbild som en egen backlogg (K5). Varje rad hänger ihop med poster i Sussas kravspecifikation.

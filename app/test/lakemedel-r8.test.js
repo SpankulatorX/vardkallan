@@ -270,7 +270,8 @@ describe('Muntlig ordination i följd', () => {
 describe('Nyheter för läkemedelsprocessen', () => {
   test('läkaren och sjuksköterskan får nyheterna om rundans läkemedelsfunktioner, och andra roller får dem inte', () => {
     const db = byggSeed();
-    const ids = (id) => (nyheter.nyheter(db, { personal: db.query('SELECT * FROM personal WHERE id = ?').get(id) }).ruta?.nyheter ?? []).map(n => n.id);
+    // Runda 9, r6: nyheterna kom i version 0.8.0 och läses i historiken, så att testet inte beror på den aktuella versionen.
+    const ids = (id) => (nyheter.nyheter(db, { personal: db.query('SELECT * FROM personal WHERE id = ?').get(id) }).alla.find(v => v.version === '0.8.0')?.nyheter ?? []).map(n => n.id);
     expect(ids('lak-kard')).toEqual(expect.arrayContaining(['andra-dos', 'dosering-ur-produkten', 'tillsats-infusion']));
     expect(ids('lak-kard')).not.toContain('muntlig-i-foljd');
     expect(ids('ssk-kard')).toEqual(expect.arrayContaining(['dosering-ur-produkten', 'tillsats-infusion', 'muntlig-i-foljd']));

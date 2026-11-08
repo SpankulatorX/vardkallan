@@ -10,6 +10,8 @@ import * as prenumeration from './prenumeration.js';
 import * as smart from './smart.js';
 import * as masterdata from './masterdata.js';
 import { tackning } from './api-tackning.js';
+import { andringslogg } from './api-andringar.js';
+import * as forvaltning from './api-forvaltning.js';
 import { BEARER_FEL } from './fhir-definitioner.js';
 
 const FHIR_JSON = { 'Content-Type': 'application/fhir+json; charset=utf-8', 'Cache-Control': 'no-store' };
@@ -58,11 +60,16 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
     return (url.searchParams.get('patient') ?? url.searchParams.get('subject') ?? '').replace(/^Patient\//, '') || null;
   }
 
+  let kanda = null;
+  const kandaTyper = () => (kanda ??= new Set(fhir.capability('').rest[0].resource.map(r => r.type)));
+
   // Skrivningen: POST, PUT och DELETE på /fhir/<typ>[/<id>]. c har sandlådan och personen.
   async function skriv(req, url, c, delar, { klient = null, resurs: lastResurs } = {}) {
     const [typ, id] = delar;
     const base = basFor(url);
     if (typ === 'Subscription') return prenumerationSkriv(req, url, c, delar, { klient, resurs: lastResurs });
+    // Runda 9, r6: en resurstyp som CapabilityStatement inte anger finns inte, varken för läsning eller skrivning.
+    if (!kandaTyper().has(typ)) return fhirSvar(fhir.utfall(404, 'saknas', 'Okänd FHIR-resurs.'), 404);
     const metod = req.method;
     if (metod === 'POST' && delar.length !== 1) throw new Fel(400, 'En ny resurs skapas med POST på resurstypen, till exempel POST /fhir/Observation.', 'ogiltig');
     if ((metod === 'PUT' || metod === 'DELETE') && delar.length !== 2) throw new Fel(400, 'Ange resursens id i adressen.', 'ogiltig');
@@ -88,7 +95,7 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
     const [, id] = delar;
     try {
       if (req.method === 'POST' && delar.length === 1) {
-        const r = prenumeration.skapa(c.db, c.personal, resurs ?? await lasResurs(req), { godkanda, klient });
+        const r = prenumeration.skapa(c.db, c.personal, resurs ?? await lasResurs(req), { godkanda: forvaltning.godkandaMottagare(c.db, godkanda), klient });
         return fhirSvar(prenumeration.subscription(r), 201, { Location: `${basFor(url)}/fhir/Subscription/${r.id}` });
       }
       if (req.method === 'DELETE' && id) return fhirSvar(prenumeration.subscription(prenumeration.avsluta(c.db, c.personal, id)));
@@ -181,10 +188,12 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
 
     if (url.pathname === '/oauth/authorize' && req.method === 'GET') {
       const q = url.searchParams;
-      const t = smart.tillampning(q.get('client_id'));
+      // Runda 9, r6: tillämpningarna som systemförvaltaren har registrerat i sandlådan kommer med (api-forvaltning.js).
+      const sess0 = hamtaSession(req);
+      const t = forvaltning.tillampning(sess0?.s.db ?? null, q.get('client_id'));
       if (!t) return html(smart.felSida('Tillämpningen är inte registrerad i Vårdkällan.'), 400);
       const redirect = q.get('redirect_uri') ?? '';
-      if (!t.omdirigering.some(p => `${base}${p}` === redirect)) return html(smart.felSida('Adressen som tillämpningen vill komma tillbaka till är inte registrerad.'), 400);
+      if (!t.omdirigering.some(p => (p.startsWith('https://') ? p : `${base}${p}`) === redirect)) return html(smart.felSida('Adressen som tillämpningen vill komma tillbaka till är inte registrerad.'), 400);
       const state = q.get('state');
       if (q.get('response_type') !== 'code') return tillbaka(redirect, { error: 'unsupported_response_type', state });
       if (q.get('code_challenge_method') !== 'S256' || !/^[A-Za-z0-9_-]{43}$/.test(q.get('code_challenge') ?? '')) return tillbaka(redirect, { error: 'invalid_request', error_description: 'PKCE med S256 krävs.', state });
@@ -225,7 +234,9 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
       const pid = f.get('patient') ?? '';
       if (!arbetslista({ s, db: s.db, personal }).some(p => p.id === pid)) return html(smart.felSida('Patienten finns inte på din arbetslista.'), 400);
       const atk = new Atkomst(s.db, personal, pid, INGA_VAL, 'las_oversikt');
-      const prov = atk.prova(smart.tillampning(k.klient).kravs);
+      const kt = forvaltning.tillampning(s.db, k.klient);
+      if (!kt) return html(smart.felSida('Tillämpningen har återkallats.'), 400);
+      const prov = atk.prova(kt.kravs);
       if (!prov.tillaten) return tillbaka(k.omdirigering, { error: 'access_denied', state: k.state });
       return tillbaka(k.omdirigering, { code: smartLager.nyKod(s, { ...k, vantarPatient: false, patientId: pid, grund: prov.grund, launch: 'standalone' }), state: k.state });
     }
@@ -271,7 +282,7 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
       kravInloggad(c);
       const handling = kanRoll(c.personal, 'las_oversikt') ? 'las_oversikt' : 'las_admin';
       return medPatient(c, id, handling, (atk) => (atk.krav(handling), {
-        tillampningar: smart.TILLAMPNINGAR.filter(t => smart.kanStarta(c.personal, t)).map(t => ({
+        tillampningar: forvaltning.aktivaTillampningar(c.db).filter(t => smart.kanStarta(c.personal, t)).map(t => ({
           id: t.id, namn: t.namn, beskrivning: t.beskrivning, far: t.far, kanStartas: new Atkomst(c.db, c.personal, atk.patientId, INGA_VAL, t.kravs).prova(t.kravs).tillaten,
         })),
         villkor: 'En tillämpning får bara det du själv får se, utan aktiva val, nödåtkomst eller samtycke. Åtkomsten går ut efter 30 minuter och upphör när du stänger tillämpningen eller loggar ut.',
@@ -280,7 +291,7 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
     // Starten från journalen (EHR launch): en start som gäller i fem minuter, den här sandlådan, personen och patienten.
     rutt('POST', '/api/patient/:id/tillampningar/:klient/starta', (c, id, klient) => {
       kravInloggad(c);
-      const t = smart.tillampning(klient);
+      const t = forvaltning.tillampning(c.db, klient);
       if (!t || !smart.kanStarta(c.personal, t)) throw new Fel(403, 'Din yrkesroll har inte tillgång till tillämpningen.', 'nekad');
       return medPatient(c, id, t.kravs, (atk, p) => {
         const utan = new Atkomst(c.db, c.personal, p.id, INGA_VAL, t.kravs);
@@ -297,6 +308,21 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
       return { aterkallade: n };
     });
     rutt('GET', '/api/oppet-api/tackning', () => ({ floden: tackning() }));
+    // Runda 9, r6: ändringsloggen för API:t, som går att läsa utan inloggning (Sussa 2.5.1.1).
+    rutt('GET', '/api/oppet-api/andringar', () => andringslogg());
+    // Runda 9, r6: tillämpningar, mottagare och ärenden mellan kund och utvecklare (api-forvaltning.js).
+    rutt('GET', '/api/oppet-api/forvaltning', (c) => forvaltning.oversikt(c.db, kravInloggad(c)));
+    rutt('POST', '/api/oppet-api/tillampningar/forslag', (c) => { kravInloggad(c); return forvaltning.forslag(c.body.omfang); });
+    rutt('POST', '/api/oppet-api/tillampningar', (c) => [201, forvaltning.registreraTillampning(c.db, kravInloggad(c), c.body)]);
+    rutt('POST', '/api/oppet-api/tillampningar/:id/aterkalla', (c, id) => forvaltning.aterkallaTillampning(c.db, kravInloggad(c), id, c.body, {
+      aterkallaBiljetter: (klient) => smartLager.aterkalla(c.s, 'Åtkomstbiljetten återkallades när systemförvaltaren återkallade tillämpningen.', b => b.klient === klient),
+    }));
+    rutt('POST', '/api/oppet-api/mottagare', (c) => [201, forvaltning.godkannMottagare(c.db, kravInloggad(c), c.body, godkanda)]);
+    rutt('POST', '/api/oppet-api/mottagare/:id/aterkalla', (c, id) => forvaltning.aterkallaMottagare(c.db, kravInloggad(c), id, c.body));
+    rutt('GET', '/api/oppet-api/arenden', (c) => ({ arenden: forvaltning.arenden(c.db, kravInloggad(c)) }));
+    rutt('POST', '/api/oppet-api/arenden', (c) => [201, forvaltning.nyttArende(c.db, kravInloggad(c), c.body, { kapabilitet: fhir.capability('') })]);
+    rutt('POST', '/api/oppet-api/arenden/:id/svar', (c, id) => [201, forvaltning.svara(c.db, kravInloggad(c), id, c.body)]);
+    rutt('POST', '/api/oppet-api/arenden/:id/status', (c, id) => forvaltning.andraStatus(c.db, kravInloggad(c), id, c.body));
     rutt('GET', '/api/masterdata', (c) => { kravInloggad(c); return { delar: masterdata.oversikt(c.db) }; });
   }
 

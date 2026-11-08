@@ -1100,6 +1100,54 @@ Registreringen är en handling med patient som loggas på patienten, men den kr�
 
 **Det som är simulerat eller saknas.** Skannern och HSA-katalogen är simulerade, och enheterna i katalogen är påhittade. Utskick av svar med post är simulerat. Vårdbegäran elektroniskt till och från externa vårdgivare (e-remiss) finns inte. Beslut som registreras på uppdrag gäller direkt och behöver ingen kvittens av läkaren. Konsultation skiljs inte från remiss.
 
+## Systemuppbyggnad, öppet API, lagkrav och mobilitet (runda 9, r6: arkitektur.js, api-andringar.js, api-forvaltning.js, lagmatris.js och mobil.js, Sussa 2.1.1.1, 2.3.1.1 till 2.3.1.4, 2.5.1.1 till 2.5.1.3, 2.6.1.2 och 2.7.1.2)
+
+### Systemuppbyggnad i fem perspektiv (Sussa 2.1.1.1)
+
+Kravet ber om fem perspektiv. De står i `arkitektur.js` och visas under Systemuppbyggnad på sidan Svarstider och i `GET /api/arkitektur`.
+
+#### Kontextuell: det tekniska sammanhanget
+
+Ett kärnsystem som körs som en tjänst i en container. Personalen arbetar i en webbläsare och invånaren i Min journal. Externa system ansluter via FHIR R4, SMART on FHIR och prenumerationer. De nationella tjänsterna är simulerade och har var sin adapter.
+
+#### Konceptuell: funktionerna
+
+En journal per patient med vårdkontakter, anteckningar, diagnoser, mätvärden, läkemedel, remisser, provtagning, tidbok, planering och vårdplaner, och samma regler för behörighet och loggning i hela systemet.
+
+#### Logisk: moduler, skikt och mönster
+
+Fyra skikt: gränssnittet utan byggsteg, rutterna och API:t, verksamhetslogiken med regler och beslutsstöd i egna moduler, och data i SQLite med triggrar. Varje åtkomst till en patient prövas i behörighetsmotorn och loggas, och FHIR-API:t skriver genom samma rutter som gränssnittet.
+
+#### Fysisk (konceptuell): drift och nät
+
+En container med Bun och SQLite bakom en omvänd proxy med TLS. Varje besökare får en egen databas i minnet. Webbläsaren har en service worker och en krypterad läskopia för avbrott.
+
+#### Moduler med tillverkare (svarsbilaga K9)
+
+Förteckningen räknas fram ur källkoden vid varje start: varje fil i `app/src` och `app/public` med skikt, beskrivningen ur kommentaren överst i filen och de Sussa-id som filen stödjer (ur filens kommentar och ur mappningens lösning). Ett test stoppar bygget om en fil saknas eller saknar beskrivning. Komponenter från andra tillverkare (Bun, SQLite, Alpine, Playwright, HL7:s validator och typsnittet) står för sig.
+
+Lastmätningen i `app/test/runda9-r6-arkitektur.test.js` loggar in 20 användare med var sin sandlåda som läser journalen samtidigt, och p95 ska vara under 500 ms. Totalkostnaden räknas ur databasens storlek per sandlåda och uttalade antaganden om pris för en server, andelen samtidigt inloggade och drift. Det är en modell, inte en offert, och licenskostnad finns inte.
+
+### Det öppna API:t hålls aktuellt (Sussa 2.5.1.1 och 2.5.1.3)
+
+Diagnoser, bokning av en remiss och inskrivning går nu att göra via FHIR, genom samma rutter som gränssnittet. CapabilityStatement anger programmets version, och `api-andringar.js` är ändringsloggen med en rad för varje resurstyp och skrivning. Ett test prövar alla 145 resurstyper i FHIR R4 mot servern, för läsning och skrivning, och stoppar bygget om CapabilityStatement och servern inte stämmer, eller om ändringsloggen saknar något.
+
+### Förvaltningen av API:t och innovationsramverket (Sussa 2.5.1.2, 2.5.1.3 och 2.6.1.2)
+
+`api-forvaltning.js` har tre delar. Systemförvaltaren registrerar och återkallar tillämpningar på sidan Öppet API och väljer bara vad tillämpningen ska läsa: systemet räknar fram omfånget, handlingen i behörighetsmotorn och texten om vad tillämpningen får. Systemförvaltaren godkänner mottagare för prenumerationer, och när en mottagare återkallas avslutas prenumerationerna till den. Personal och samarbetspartner lämnar ärenden om saknad information, frågor och fel, och systemförvaltaren för dem vidare till en version. Ett ärende kan bara bli levererat i en version som finns i ändringsloggen, och systemet svarar direkt när den begärda resurstypen redan finns. Inga patientuppgifter får stå i ett ärende, och en text som liknar ett personnummer avvisas. Tabellerna hör till förvaltningen i lagringens klassning och har tak per sandlåda.
+
+Saknas: prenumeration på en hel population och systemkonton utan inloggad person (SMART Backend Services).
+
+### Lagkravsmatrisen (Sussa 2.7.1.2)
+
+`lagmatris.js` kopplar beställarens skyldigheter i fjorton lagar och föreskrifter till funktionerna och testerna. Det som bara organisationen eller tillverkaren kan uppfylla, som behovs- och riskanalysen, konsekvensbedömningen, CE-märkningen enligt MDR, riskhanteringen enligt cybersäkerhetslagen och säkerhetsskyddsanalysen, står som avgränsning med en förklaring. Statusen per rad räknas ur testerna och visas under posten på kravsidan. Hänvisningarna är inte juridiskt granskade.
+
+### Mobilitet (Sussa 2.3.1.1 till 2.3.1.4)
+
+`mobil.js` bedömer varje flöde i klickbudgeten för mobilen, efter perspektiven i figur 2: personalen vid sängen, personalen i rörelse och patienten i sin mobil. `test/mobil.cjs` gör varje mobilt flöde i 360 px med samma steg som klickbudgeten, prövar varje rolls startsida och meny, Min journal, att inloggningen håller när förbindelsen bryts och kommer tillbaka från en annan adress, och armbandet vid sängen. I Läkemedel att ge skannar sjuksköterskan armbandet, och systemet visar bara den patientens doser. Inläsningen bygger på den gemensamma funktionen för streckkoder (`POST /api/skanna`, Sussa 3.1.3.6). Uppställningen per funktionellt krav i kapitel 3 och 4 räknas ur registret.
+
+Saknas: skrivande under avbrott, med en kö för mätvärden och givna doser som skickas när förbindelsen är tillbaka, och en större läskopia.
+
 ## Beslutade avvägningar (3 november 2026)
 
 Projektägaren beslutade de här frågorna efter omgång 2 i runda 4:

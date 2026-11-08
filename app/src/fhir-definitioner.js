@@ -142,6 +142,10 @@ export const UTTRYCK = {
     plan: `MedicationRequest.extension('${EXT}/utsattningsplan')`, aterinsattning: `MedicationRequest.extension('${EXT}/aterinsattningsdatum')`,
   },
   ServiceRequest: { tillEnhetId: 'ServiceRequest.performer', fragestallning: 'ServiceRequest.reasonCode[0].text', prioritet: 'ServiceRequest.priority', svarSenast: `ServiceRequest.extension('${EXT}/svar-senast')` },
+  // Runda 9, r6.
+  Condition: { kod: 'Condition.code', vardkontaktId: 'Condition.encounter' },
+  Appointment: { remissId: 'Appointment.basedOn', tidId: 'Appointment.slot', status: 'Appointment.status' },
+  Encounter: { klass: 'Encounter.class', enhetId: 'Encounter.serviceProvider', orsak: 'Encounter.reasonCode[0].text', plats: 'Encounter.location[0].location.display', status: 'Encounter.status' },
 };
 export const SMART_OMFANG = ['launch', 'launch/patient', 'patient/*.read', 'patient/*.rs', 'patient/*.write', 'user/*.read', 'user/*.rs', 'user/*.write', 'user/*.cruds'];
 export const BEARER_FEL = { ogiltig: 'Bearer error="invalid_token"', omfang: 'Bearer error="insufficient_scope"' };
