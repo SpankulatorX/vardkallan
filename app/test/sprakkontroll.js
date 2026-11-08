@@ -206,6 +206,10 @@ FRASER.push('IHE PCD Technical Framework', 'Point-of-Care Device Implementation 
 // Runda 10, r4: in- och utfarterna (perifer och central venkateter, PICC och kvarliggande urinkateter), OCR för de
 // skannade restjournalerna och den simulerade donationskoordinatorn (DAS, donationsansvarig sjuksköterska).
 for (const w of ['PVK', 'PICC', 'CVK', 'KAD', 'OCR', 'GS1', 'DAS', 'DAL']) TILLATNA.add(w);
+// Runda 10, r7: kontorsstödet. Word-dokument i Office Open XML, standarderna för kalender, e-post och telefoni, och
+// Microsoft Graph och WebDAV för SharePoint, och rubriken som märker ett simulerat e-postmeddelande.
+for (const w of ['Word', 'DOCX', 'IEC', 'RFC', 'HMAC', 'MIME', 'URI', 'REST', 'WebDAV', 'REQUEST', 'PUBLISH', 'iMIP', 'Outlook', 'Excel', 'Teams', 'SharePoint', 'Graph', 'Microsoft', 'Office', 'LibreOffice']) TILLATNA.add(w);
+FRASER.push('Office Open XML', 'X-Vardkallan-Simulerad');
 
 // Svenska ord som ofta skrivs utan å, ä eller ö. Formen utan prickar är inget eget ord.
 export const UTAN_PRICKAR = new Map(Object.entries({

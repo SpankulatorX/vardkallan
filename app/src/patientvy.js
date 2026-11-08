@@ -22,6 +22,8 @@ import { forInvanare as uppmarksamhetForInvanare } from './uppmarksamhet.js';
 import { MATKOD } from './kodverk.js';
 import { YRKEN } from './seed/personal.js';
 import { kvalitetssakrad } from './mt-klass.js';
+// Runda 10, r7: ombud med fullmakt (ombud.js).
+import { fullmaktFor, ombudFor, forfragningar } from './ombud.js';
 
 export const PROVSVAR_SENAST_DAGAR = 14;
 export const BEGARANTYPER = ['sparr', 'hava_sparr', 'loggutdrag'];
@@ -66,6 +68,9 @@ export function sessionDel(db, inv, nu = new Date()) {
   return {
     invanare: { id: inv.id, namn: namnAv(inv), personnummer: formateraPnr(inv.personnummer), alder: alder(inv.fodd, aldersdag(nu)) },
     journaler: journaler(db, inv, nu),
+    // Runda 10, r7: patienterna som invånaren är ombud för (ombud.js).
+    ombudFor: ombudFor(db, inv),
+    ombudForfragningar: forfragningar(db, inv),
   };
 }
 
@@ -115,6 +120,23 @@ export class InvanareAtkomst {
   krav(resurs = null) {
     const p = patientRad(this.db, this.patientId);
     const r = provaInvanare(this.db, { invanare: this.invanare, patient: p });
+    // Runda 10, r7: ett ombud med giltig fullmakt når patientens tider och meddelanden, aldrig journalen (ombud.js).
+    const om = !r.tillaten && p && !r.relation ? fullmaktFor(this.db, this.invanare, p.id, resurs) : null;
+    if (om) {
+      if (!om.tillaten) {
+        // Samma tak för nekade försök som annars, så att ett ombud inte kan fylla patientens logglista.
+        if (this.nekade && this.nekade.antal >= MAX_NEKADE) throw new Fel(403, 'Du har gjort många försök att öppna delar som du inte har tillgång till. Fler försök stoppas.', 'nekad');
+        if (this.nekade) this.nekade.antal++;
+        this.patient = p;
+        this.logga(resurs, { grund: 'ombud', resultat: 'nekad' });
+        throw new Fel(403, 'Fullmakten gäller inte den här delen. Som ombud ser du bara det som fullmakten gäller, aldrig journalen.', 'nekad');
+      }
+      this.patient = p;
+      this.grund = 'ombud';
+      this.relation = 'ombud';
+      this.fullmakt = om.fullmakt;
+      return { tillaten: true, grund: 'ombud', relation: 'ombud', skal: '' };
+    }
     if (!r.tillaten) {
       if (this.nekade && this.nekade.antal >= MAX_NEKADE) {
         throw new Fel(403, 'Du har gjort många försök att öppna journaler som du inte har tillgång till. Fler försök stoppas.', 'nekad');
@@ -261,7 +283,9 @@ export function huvud(atk) {
   const { db, patient: p } = atk;
   return {
     patient: { id: p.id, namn: namnAv(p), personnummer: formateraPnr(p.personnummer), alder: alder(p.fodd, aldersdag(new Date())), kon: p.kon, skyddad: Boolean(p.skyddad) },
-    relation: atk.relation, vardgivare: vardgivare(db), sparrar: sparrarFor(db, p.id),
+    // Runda 10, r7: ett ombud ser inte patientens spärrar.
+    relation: atk.relation, vardgivare: vardgivare(db), sparrar: atk.relation === 'ombud' ? [] : sparrarFor(db, p.id),
+    ...(atk.relation === 'ombud' ? { ombud: { omfattning: JSON.parse(atk.fullmakt.omfattning), giltigTill: atk.fullmakt.giltig_till } } : {}),
     begransningar: {
       baraSignerade: true, provsvarSenastDagar: PROVSVAR_SENAST_DAGAR,
       regler: db.query("SELECT * FROM visningsregler WHERE visning <> 'direkt' ORDER BY id").all().map(r => ({
@@ -379,7 +403,7 @@ export function logglista(atk) {
   return {
     rader: rader.map(r => {
       const inv = r.invanare_id != null;
-      const vem = !inv ? 'personal' : r.invanare_id === jag ? 'du' : r.inv_patient === atk.patientId ? 'patienten' : r.grund === 'vardnadshavare' ? 'vardnadshavare' : 'invanare';
+      const vem = !inv ? 'personal' : r.invanare_id === jag ? 'du' : r.inv_patient === atk.patientId ? 'patienten' : r.grund === 'vardnadshavare' ? 'vardnadshavare' : r.grund === 'ombud' ? 'ombud' : 'invanare';
       const e = r.enhet_id ? enhetUt(db, r.enhet_id) : { vardenhet: null, arbetsplats: null };
       return {
         tid: r.tid, vem, vardgivare: inv ? null : vg, vardenhet: e.vardenhet, arbetsplats: e.arbetsplats,
@@ -397,6 +421,8 @@ export function logglista(atk) {
 const begaranUt = (db, b, jag) => ({
   id: b.id, typ: b.typ, vardenhet: b.enhet_id ? enhetsnamn(db, b.enhet_id) : null, meddelande: b.meddelande, skapad: b.skapad, status: b.status,
   egen: b.invanare_id === jag,
+  // Runda 10, r7: beskedet när vården har handlagt begäran (invanarmeddelanden.js).
+  besked: db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'begaran_beslut'").get() ? db.query('SELECT besked FROM begaran_beslut WHERE begaran_id = ?').get(b.id)?.besked ?? null : null,
 });
 export function sparrvy(atk) {
   const db = atk.db;

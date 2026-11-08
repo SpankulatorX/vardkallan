@@ -5,6 +5,8 @@ import { FLODEN } from '../../klickbudget.js';
 import { T } from '../tidbok-tester.js';
 // Runda 6, r4.
 import { medR4 } from '../planering-r4.js';
+// Runda 10, r7: kapacitet, ombud, kassan, meddelanden och kontorsstödet (sussa/runda10-r7.js).
+import { medR10r7 } from '../runda10-r7.js';
 
 const VK = 'Vårdkontakt > ';
 const flode = (id) => klickbudgetTest(FLODEN.find(f => f.id === id));
@@ -67,4 +69,4 @@ const AVSNITT = [
 ];
 
 // Runda 6, r4: posterna som byggdes i planering och tidbok, del 2, och remiss, del 2, ersätts ur sussa/planering-r4.js.
-export default medR4(AVSNITT);
+export default medR10r7(medR4(AVSNITT));

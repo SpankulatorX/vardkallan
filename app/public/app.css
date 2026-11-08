@@ -1626,3 +1626,11 @@ textarea.dikteras { outline: 3px solid var(--kalla); outline-offset: 1px; }
 td .tagg + .under-text { display: block; }
 .tagg-avliden, .signal-avliden { background: var(--obs-bg); border-color: var(--obs-kant); color: var(--obs); }
 td .tagg-avliden { margin-left: 6px; }
+/* Runda 10, r7: meddelanden mellan invånare och vård, i Min journal och för personalen. */
+.meddelanden, .min-tradar { list-style: none; padding: 0; margin: 0 0 12px; }
+.meddelande { border-left: 3px solid var(--kalla); padding: 4px 12px; margin: 8px 0; }
+.meddelande-invanare { border-left-color: var(--dampad); }
+.meddelande-systemet { border-left-style: dashed; }
+.min-trad { margin: 8px 0; }
+.min-trad > details > summary { cursor: pointer; padding: 6px 0; }
+.min-ombud-rubrik { font-size: 1.1rem; margin-top: 20px; }

@@ -4,6 +4,8 @@ import { TEST } from '../../krav.js';
 import { medR10r3 } from '../runda10-r3.js';
 // Runda 9, r4: inläsningen av migreringsfiler.
 import { T } from '../runda9-r4.js';
+// Runda 10, r7: kapacitet, ombud, kassan, meddelanden och kontorsstödet (sussa/runda10-r7.js).
+import { medR10r7 } from '../runda10-r7.js';
 
 const { A, S } = TEST;
 
@@ -39,4 +41,5 @@ const POSTERNA = [
   },
 ];
 // Runda 10, r3: förifyllnaden och formulärmotorn (sussa/runda10-r3.js).
-export default medR10r3(POSTERNA);
+// Runda 10, r7: kontorsstödet (sussa/runda10-r7.js).
+export default medR10r7(medR10r3(POSTERNA));

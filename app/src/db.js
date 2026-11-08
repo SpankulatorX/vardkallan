@@ -451,6 +451,8 @@ export function byggSeed(bas = nu()) {
   require('./schema-runda10-r5.js').sakraR10r5(db, bas);
   // Runda 10, r4: in- och utfarter, restjournaler och donation (runda10-r4-rutter.js), med seeden när en tabell är ny.
   require('./runda10-r4-rutter.js').sakra(db, bas);
+  // Runda 10, r7: ombud, meddelanden, kassan och kontorsstödet (schema-runda10-r7.js). Efter invånarna och ordinationerna.
+  require('./schema-runda10-r7.js').sakraR10r7(db, bas);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -581,6 +583,8 @@ export function migrera(db) {
   require('./formularmotor.js').seeda(db, nu());
   // Runda 10, r4: samma tabeller och seed för en sandlåda från före runda 10.
   require('./runda10-r4-rutter.js').sakra(db, nu());
+  // Runda 10, r7: ombud, meddelanden, kassan och kontorsstödet, med seeden när den saknas.
+  require('./schema-runda10-r7.js').sakraR10r7(db, nu());
   return db;
 }
 

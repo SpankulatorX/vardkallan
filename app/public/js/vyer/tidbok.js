@@ -8,6 +8,8 @@ import { valjTid, tidText, kl } from '../tidbok-ui.js';
 // tidboken, med sitt eget schema som förval, men bokar inte.
 import { far } from '../app.js';
 import { anpassaVy } from '../planering-ui.js';
+// Runda 10, r7: möteslänk, uppringning och inbjudan för en bokning (kontorsstödet).
+import { kontorsstodBokning } from './r10r7.js';
 
 export const namn = 'tidbok';
 
@@ -67,7 +69,7 @@ function tidRad(x, anon) {
   const vem = anon ? (upptagen ? '<span class="dampad">Upptagen</span>' : '<span class="tb-ledig">Ledig</span>')
     : x.bokningar.length ? x.bokningar.map(b => `<span class="tb-bokning">${patientCell(b.patient, `#/patient/${encodeURIComponent(b.patient.id)}`)} <span class="tagg${b.status === 'incheckad' ? ' tagg-pagaende' : ''}">${esc(b.statusText)}</span>${b.styrLakemedel ? ' <span class="tagg" title="' + esc(b.styrLakemedel) + '">Styr en läkemedelsdos</span>' : ''}
       ${b.resurser?.length ? `<span class="under-text">${esc(b.resurser.map(r => r.namn).join(', '))}</span>` : ''}${b.kedja ? ` <span class="tagg">${esc(b.kedja.roll === 'fore' ? 'Före läkarbesöket' : 'Med provtagning före')}</span>` : ''}
-      ${b.status === 'bokad' && x.platser === 1 && far('boka') && b.kedja?.roll !== 'fore' ? `<button type="button" class="knapp text liten" data-tb="omboka" data-id="${b.id}">Boka om</button><button type="button" class="knapp text liten" data-tb="avboka" data-id="${b.id}">Avboka</button>` : ''}</span>`).join('')
+      ${b.status === 'bokad' && x.platser === 1 && far('boka') && b.kedja?.roll !== 'fore' ? `<button type="button" class="knapp text liten" data-tb="omboka" data-id="${b.id}">Boka om</button><button type="button" class="knapp text liten" data-tb="avboka" data-id="${b.id}">Avboka</button>` : ''}${['bokad', 'incheckad'].includes(b.status) && x.platser === 1 ? `<button type="button" class="knapp text liten" data-tb="kontorsstod" data-id="${b.id}">Kontorsstöd</button>` : ''}</span>`).join('')
       : '<span class="tb-ledig">Ledig</span>';
   return `<li class="${upptagen ? 'tb-upptagen' : 'tb-fri'}"><span class="tb-klocka">${esc(kl(x.start))}</span><span class="tb-typ">${esc(x.rubrik ?? x.tidstypText)}${grupp}</span><span class="tb-vem">${vem}</span></li>`;
 }
@@ -100,4 +102,5 @@ async function atgard(b, t) {
   if (!bok) return;
   if (b.dataset.tb === 'omboka') await ombokaBokning(bok.id, bok.patient.namn);
   else if (b.dataset.tb === 'avboka') await avbokaBokning(bok.id, bok.patient.namn, bok.styrLakemedel);
+  else if (b.dataset.tb === 'kontorsstod') await kontorsstodBokning(bok.id);
 }

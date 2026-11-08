@@ -200,7 +200,7 @@ const GRUND = {
   // Runda 10, r5: sammanhållen journalföring med en annan vårdgivare.
   samtycke: 'Med ditt samtycke till sammanhållen journalföring',
 };
-const VEM = { du: 'Du', patienten: 'Patienten själv', vardnadshavare: 'Vårdnadshavare', invanare: 'En annan person' };
+const VEM = { du: 'Du', patienten: 'Patienten själv', vardnadshavare: 'Vårdnadshavare', invanare: 'En annan person', ombud: 'Ditt ombud' };
 const VIA = { fhir: 'via det öppna API:t', laskopia: 'till läskopian för avbrott', laslage: 'i läsläget under ett avbrott', min_journal: 'i Min journal' };
 
 function loggRad(r) {

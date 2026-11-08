@@ -16,6 +16,8 @@ GRUNDER.push('uppgiftsskyldighet', 'kvalitetsregister');
 GRUNDER.push('systemkonto');
 // Runda 10, r5: sammanhållen journalföring med en annan vårdgivare efter patientens samtycke (sammanhallen.js).
 GRUNDER.push('samtycke');
+// Runda 10, r7: ett ombud med fullmakt i Min journal (ombud.js) har grunden ombud.
+GRUNDER.push('ombud');
 export const INVANARGRUNDER = ['egen_atkomst', 'vardnadshavare'];
 const NOLL = '0'.repeat(64);
 const FALT = ['id', 'tid', 'personal_id', 'enhet_id', 'patient_id', 'handling', 'resurs', 'grund', 'syfte', 'resultat'];

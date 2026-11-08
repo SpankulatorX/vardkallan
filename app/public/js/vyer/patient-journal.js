@@ -101,11 +101,14 @@ async function lasAnteckning(las, ctx, id) {
   // Runda 5, r1: från en signerad anteckning föreslår systemet återbesöket ur anteckningens planering (Sussa 3.4.1.1).
   const kanAterbesok = senaste.status === 'signerad' && far('skriv_journal');
   const kanSkrivaUt = senaste.status === 'signerad' && far('skriv_ut');
+  // Runda 10, r7: en signerad anteckning kan tas ut som Word-dokument (kontorsstödet). Uttaget loggas på patienten.
+  const word = senaste.status === 'signerad' ? `<p class="liten"><a href="/api/anteckning/${encodeURIComponent(senaste.id)}/docx" download>Anteckningen som Word-dokument</a></p>` : '';
   las.innerHTML = `<article class="anteckning" aria-labelledby="ant-rubrik">
       ${anteckningHuvud(senaste, 'ant-rubrik', a.id !== senaste.id ? `<p class="ruta ruta-info liten">Du öppnade version ${a.version}. Här visas den gällande versionen ${senaste.version}.</p>` : '')}
       ${senaste.formular ? `<p class="under-text">Formuläret ${esc(senaste.formular.namn)}, version ${senaste.formular.version}. Texten är skriven av systemet ur svaren.</p>${formular.lasBild(senaste.formular)}` : ''}
       ${sokordHtml(senaste.sokord)}
       ${kontrasignering.html(a, senaste)}
+      ${word}
       ${kanRatta || kanAterbesok || kanSkrivaUt ? `<div class="knapprad" data-skriv>${kanRatta ? `<button type="button" class="knapp sekundar" data-ratta>${ikon.penna}<span>Rätta anteckningen</span></button>` : ''}${kanAterbesok ? `<button type="button" class="knapp sekundar" data-aterbesok>${ikon.kalender}<span>Återbesök</span></button>` : ''}${kanSkrivaUt ? `<button type="button" class="knapp sekundar" data-skriv-ut-anteckning>${ikon.logg}<span>Skriv ut anteckningen</span></button>` : ''}</div>` : ''}
       ${aldre.length ? `<section class="versioner" aria-labelledby="ver-rubrik"><h3 id="ver-rubrik">Tidigare versioner</h3>
         <p class="dampad liten">En signerad anteckning ändras aldrig. En rättelse blir en ny version, och den tidigare står kvar överstruken men läsbar.</p>

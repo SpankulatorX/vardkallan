@@ -673,7 +673,8 @@ test('Min journal > sandlåda sparad före Min journal får tabellerna när den 
   expect(verifiera(d).hel).toBe(true);
   const gammal = Buffer.from(d.serialize()).toString('base64');
   const ny = lasSandlada(gammal);
-  expect(ny.query('SELECT count(*) AS n FROM invanare').get().n).toBe(PATIENTER.length + 1 + BHV_INVANARE);
+  // Runda 10, r7: och ombudet med fullmakt (ombud.js), som läggs in när sandlådan läses in.
+  expect(ny.query('SELECT count(*) AS n FROM invanare').get().n).toBe(PATIENTER.length + 1 + BHV_INVANARE + 1);
   expect(ny.query('SELECT count(*) AS n FROM visningsregler').get().n).toBe(2);
   // Provsvar från före vidimeringen räknas som vidimerade när de togs. Mätvärden har ingen vidimering.
   expect(ny.query("SELECT count(*) AS n FROM matvarden WHERE typ = 'inr' AND vidimerad = tid").get().n).toBe(ny.query("SELECT count(*) AS n FROM matvarden WHERE typ = 'inr'").get().n);
@@ -687,6 +688,6 @@ test('Min journal > sandlåda sparad före Min journal får tabellerna när den 
   // En sandlåda med Min journal läses in oförändrad.
   const ren = nyDb();
   const igen = lasSandlada(Buffer.from(ren.serialize()).toString('base64'));
-  expect(igen.query('SELECT count(*) AS n FROM invanare').get().n).toBe(PATIENTER.length + 1 + BHV_INVANARE);
+  expect(igen.query('SELECT count(*) AS n FROM invanare').get().n).toBe(PATIENTER.length + 1 + BHV_INVANARE + 1);
   expect(Database.deserialize(ren.serialize()).query('SELECT count(*) AS n FROM visningsregler').get().n).toBe(2);
 });

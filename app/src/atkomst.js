@@ -579,3 +579,14 @@ ROLLER.systemkonto = ['las_oversikt', 'las_diagnoser', 'las_matvarden', 'las_lak
 // donationsanteckningen kräver dessutom läkarens skriv_journal.
 Object.assign(HANDLINGAR, { donation: 'dokumentera donationsutredningar och inställningen till donation' });
 for (const r of ['lakare', 'sjukskoterska']) ROLLER[r].push('donation');
+// Runda 10, r7: meddelanden från invånare, fullmakter för ombud, kassan och vårdenhetens kapacitet (invanarmeddelanden.js,
+// ombud.js, kassa.js och kapacitetsprognos.js). Läkare, sjuksköterskor, fysioterapeuter och vårdadministratörer läser och
+// besvarar meddelanden till sin vårdenhet, med vårdrelation som grund. Vårdadministratören registrerar skriftliga
+// fullmakter, har kassan och ser kapaciteten och prognosen för vårdenheten, utan patientuppgifter.
+Object.assign(HANDLINGAR, {
+  meddelande_invanare: 'läsa och besvara meddelanden från invånare till vårdenheten', fullmakt: 'registrera och återkalla fullmakter för ombud',
+  kassa: 'ta betalt, återbetala och göra dagsavslut i kassan', kapacitet: 'se vårdenhetens kapacitet och prognoser',
+});
+for (const r of ['lakare', 'sjukskoterska', 'fysioterapeut', 'vardadministrator']) ROLLER[r].push('meddelande_invanare');
+ROLLER.vardadministrator.push('fullmakt', 'kassa', 'kapacitet');
+for (const h of ['kassa', 'kapacitet']) UTAN_PATIENT.add(h);

@@ -97,6 +97,8 @@ async function loggaInPatient(page, id) {
 }
 // Runda 9, r2: Egna mätningar efter Provsvar.
 const MIN_FLIKAR = ['Översikt', 'Tider', 'Anteckningar', 'Diagnoser', 'Läkemedel', 'Provsvar', 'Egna mätningar', 'Remisser', 'Vem har läst', 'Spärrar'];
+// Runda 10, r7: meddelanden till vården, vårdplanen och ombud med fullmakt.
+MIN_FLIKAR.push('Meddelanden', 'Vårdplan', 'Ombud');
 async function minFlik(page, text) {
   await page.click(`.min-flikar a:text-is("${text}")`);
   await page.waitForLoadState('networkidle');
@@ -174,6 +176,17 @@ for (const k of ['uppfoljning', 'arkiv', 'verksamhetschef']) MENY[k].splice(MENY
 for (const k of ['klinisk', 'psykiatri', 'bvc', 'verksamhetschef']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Signeringslista');
 // Runda 10, r3: systemförvaltaren har Formulär direkt efter Kodverk och masterdata.
 MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterdata') + 1, 0, 'Formulär');
+// Runda 10, r7: läkare, sjuksköterskor, fysioterapeuter och vårdadministratörer har Meddelanden före Delegeringar, eller
+// efter Inkorg när de inte har Delegeringar, och Kontorsstöd före Utbildning. Vårdadministratören har Kassa och Kapacitet
+// efter Väntelista och Begäranden efter Väntrum, och logggranskaren Begäranden efter Logguppföljning.
+for (const k of ['klinisk', 'sjukskoterska', 'vardadministrator', 'psykiatri', 'bvc', 'fysioterapeut']) {
+  const fore = MENY[k].indexOf('Delegeringar');
+  MENY[k].splice(fore >= 0 ? fore : MENY[k].indexOf('Inkorg') + 1, 0, 'Meddelanden');
+  MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Kontorsstöd');
+}
+MENY.vardadministrator.splice(MENY.vardadministrator.indexOf('Väntelista') + 1, 0, 'Kassa', 'Kapacitet');
+MENY.vardadministrator.splice(MENY.vardadministrator.indexOf('Väntrum (akuten)') + 1, 0, 'Begäranden');
+MENY.logg.splice(MENY.logg.indexOf('Logguppföljning') + 1, 0, 'Begäranden');
 // Runda 9, r2: läkarens meny på Kardiologiska kliniken är läkarens meny med Intensivvård, och kopieras när den är klar.
 MENY.kardiologi = [...MENY.klinisk];
 MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård');
@@ -1838,7 +1851,9 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
         // Runda 10, r3: röstinmatning, rättstavning, sårdokumentation och formulärbyggaren.
         'diktera', 'stavning', 'formular-sar', 'bygga-formular',
         // Runda 10, r4: in- och utfarter, restjournaler och donation.
-        'registrera-infart', 'skanna-restjournal', 'starta-donation']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'registrera-infart', 'skanna-restjournal', 'starta-donation',
+        // Runda 10, r7: meddelanden, kontorsstödet, kapaciteten och kassan.
+        'fornya-recept', 'kalenderprenumeration', 'svara-meddelande', 'kapacitetsprognos', 'dagsavslut']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

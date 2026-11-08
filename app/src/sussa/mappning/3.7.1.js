@@ -1,10 +1,12 @@
 // Sussa 3.7.1 Kommunikation: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 import { TEST } from '../../krav.js';
+// Runda 10, r7: kapacitet, ombud, kassan, meddelanden och kontorsstödet (sussa/runda10-r7.js).
+import { medR10r7 } from '../runda10-r7.js';
 
 const { MJ } = TEST;
 
-export default [
+const AVSNITT = [
   {
     id: '3.7.1.1', kategori: 'system', egna: ['L4', 'L5'], avsedd: 'delvis',
     tester: [
@@ -33,3 +35,5 @@ export default [
     anmarkning: 'Patienten kan inte delta i planeringen, till exempel genom bokning, egen vårdbegäran eller meddelanden.',
   },
 ];
+
+export default medR10r7(AVSNITT);

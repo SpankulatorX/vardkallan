@@ -61,6 +61,8 @@ export const STARTPUNKT = {
   'Systemförvaltarens formulär': { hash: '#/formular', klar: '#fb-lista [data-nytt]' },
   // Runda 10, r4: inkorgen med förslaget om donation efter ett dödsfall på hjärtintensiven.
   'Inkorgen med ett förslag om donation': { hash: '#/inkorg', klar: 'section[aria-labelledby="ik-donation"] li', forbered: 'donation' },
+  // Runda 10, r7: kassan, efter uppgiften där vårdadministratören tar betalt.
+  'Kassan': { hash: '#/kassa', klar: '#kassa-avslut', forbered: 'kassa-besok' },
 };
 
 export const UPPGIFTER = [
@@ -538,6 +540,32 @@ export const UPPGIFTER = [
     id: 'starta-donation', namn: 'Pröva donation efter ett dödsfall på intensivvården', roll: 'lak-kard', start: 'Inkorgen med ett förslag om donation',
     text: 'Karl-Erik Brandt har avlidit på hjärtintensiven, och du är donationsansvarig läkare. Pröva om han kan bli donator.',
     kontroll: { notis: 'Donationsutredningen är startad' },
+  },
+  // Runda 10, r7: meddelanden från invånare, kontorsstödet, kapaciteten och kassan.
+  {
+    id: 'fornya-recept', namn: 'Förnya ett recept som patienten har bett om i Min journal', roll: 'lak-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Gunnar Åkesson har bett om att få ett läkemedel förnyat i Min journal. Förnya receptet.',
+    kontroll: { notis: 'Receptet är förnyat' },
+  },
+  {
+    id: 'kalenderprenumeration', namn: 'Lägga in sin tidbok i kalenderprogrammet', roll: 'lak-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Du vill se dina bokade tider i kalendern på datorn och i telefonen. Ta fram adressen som kalenderprogrammet behöver.',
+    kontroll: { sel: '#kal-adress' },
+  },
+  {
+    id: 'svara-meddelande', namn: 'Svara på ett meddelande från en patient och avsluta', roll: 'ssk-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Gunnar Åkesson frågar i Min journal om han ska ta sina vätskedrivande tabletter före besöket. Svara att han ska ta dem som vanligt, och avsluta ärendet.',
+    kontroll: { notis: 'Svaret är skickat och ärendet avslutat' },
+  },
+  {
+    id: 'kapacitetsprognos', namn: 'Se vårdenhetens kapacitet och prognos för väntelistan', roll: 'adm-kard', start: 'Vårdadministratörens startsida',
+    text: 'Verksamhetschefen undrar när kön till mottagningen är borta och om någon riskerar att vänta för länge. Ta reda på det.',
+    kontroll: { sel: '#kap-grupper' },
+  },
+  {
+    id: 'dagsavslut', namn: 'Göra dagsavslut i kassan', roll: 'adm-kard', start: 'Kassan',
+    text: 'Dagen är slut. Stäm av din kassa mot betalterminalen och gör dagsavslut.',
+    kontroll: { notis: 'Dagsavslutet är gjort' },
   },
 ];
 

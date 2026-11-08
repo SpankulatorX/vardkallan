@@ -127,6 +127,8 @@ const FORBERED = {
   'koppla-monitor': async () => { await aterstallDemo(); await api('/api/patient/p01/mt/koppla', { metod: 'POST', data: { streckkod: 'MT-MON-0001' } }); },
   // Runda 10, r4: Karl-Erik Brandt på hjärtintensiven har avlidit, så att förslaget om donation ligger i inkorgen.
   donation: async () => { await aterstallDemo(); await api('/api/demo/donation', { metod: 'POST', data: {} }); await api('/api/patient/p10/dodsfall', { metod: 'POST', data: { kriterier: 'direkta' } }); },
+  // Runda 10, r7: en patient checkas in och betalar med kort, så att kassan har en betalning att göra dagsavslut på.
+  'kassa-besok': async () => { await aterstallDemo(); await api('/api/demo/kassa-besok', { metod: 'POST', data: {} }); },
 };
 
 // Uppgiften börjar på samma sätt som i skriptet: vid byte av demoroll loggas rollen in och demon återställs, så att
