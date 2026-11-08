@@ -16,7 +16,7 @@ import { Fel, iso } from './db.js';
 import { kanRoll } from './atkomst.js';
 import { loggaRad } from './logg.js';
 import * as smart from './smart.js';
-import { provaMottagare, GODKANDA_MOTTAGARE } from './prenumeration.js';
+import { provaMottagare, GODKANDA_MOTTAGARE, KONFIGURERADE_DOMANER, inomKonfiguration } from './prenumeration.js';
 import { ANDRINGAR } from './api-andringar.js';
 
 export const HANDLING = 'forvalta_api';
@@ -149,12 +149,16 @@ const mottagareUt = (r) => ({ id: r.id, adress: r.adress, syfte: r.syfte, godkan
 const harMottagare = (db) => Boolean(db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'api_mottagare'").get());
 
 // Adresserna som får ta emot meddelanden: de fasta i konfigurationen och de som systemförvaltaren har godkänt.
-export function godkandaMottagare(db, fasta = GODKANDA_MOTTAGARE) {
+// Driftens konfiguration är ett tak (säkerhetsgranskningen av runda 9, r6): en mottagare i sandlådan räknas bara när den
+// också står i konfigurationen eller ligger under en konfigurerad domän, och med endastKonfiguration (när meddelanden
+// skickas på riktigt) gäller bara konfigurationens lista.
+export function godkandaMottagare(db, fasta = GODKANDA_MOTTAGARE, { domaner = KONFIGURERADE_DOMANER, endastKonfiguration = false } = {}) {
+  if (endastKonfiguration) return [...fasta];
   const egna = db && harMottagare(db) ? db.query('SELECT adress FROM api_mottagare WHERE aterkallad IS NULL').all().map(r => r.adress) : [];
-  return [...fasta, ...egna];
+  return [...fasta, ...egna.filter(a => inomKonfiguration(a, { fasta, domaner }))];
 }
 
-export function godkannMottagare(db, personal, body = {}, fasta = GODKANDA_MOTTAGARE) {
+export function godkannMottagare(db, personal, body = {}, fasta = GODKANDA_MOTTAGARE, { domaner = KONFIGURERADE_DOMANER, endastKonfiguration = false } = {}) {
   kravForvaltare(personal);
   sakraSchema(db);
   const syfte = text(body.syfte, 300);
@@ -167,7 +171,12 @@ export function godkannMottagare(db, personal, body = {}, fasta = GODKANDA_MOTTA
     u = provaMottagare(angiven.toString(), [`${angiven.origin}${angiven.pathname}`]);
   } catch (e) { throw new Fel(400, e instanceof Fel ? e.message : 'Mottagaradressen är inte en giltig adress.', 'ogiltig', { falt: ['adress'] }); }
   const adress = `${u.origin}${u.pathname}`;
-  if (godkandaMottagare(db, fasta).includes(adress)) throw new Fel(409, 'Adressen är redan godkänd.', 'ogiltig', { falt: ['adress'] });
+  if (!inomKonfiguration(adress, { fasta, domaner, endastKonfiguration })) {
+    throw new Fel(400, endastKonfiguration
+      ? 'Meddelanden skickas på riktigt, och då tar driften bara emot mottagare som står i serverns konfiguration. Be driften lägga till adressen där.'
+      : `Adressen ligger utanför de domäner som driften har godkänt (${domaner.join(', ')}). Be driften lägga till adressen eller domänen i serverns konfiguration.`, 'ogiltig', { falt: ['adress'] });
+  }
+  if (godkandaMottagare(db, fasta, { domaner }).includes(adress)) throw new Fel(409, 'Adressen är redan godkänd.', 'ogiltig', { falt: ['adress'] });
   if (db.query('SELECT COUNT(*) n FROM api_mottagare').get().n >= TAK.mottagare) throw new Fel(409, `Demon har plats för ${TAK.mottagare} mottagare.`, 'ogiltig');
   const id = Number(db.query('INSERT INTO api_mottagare (adress, syfte, godkand, godkand_av) VALUES (?, ?, ?, ?)').run(adress, syfte, iso(), personal.id).lastInsertRowid);
   logga(db, personal, `api:mottagare:${id}`, `Mottagaren ${u.hostname} godkändes: ${syfte}`);

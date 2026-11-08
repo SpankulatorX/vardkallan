@@ -144,7 +144,7 @@ export const UTTRYCK = {
   ServiceRequest: { tillEnhetId: 'ServiceRequest.performer', fragestallning: 'ServiceRequest.reasonCode[0].text', prioritet: 'ServiceRequest.priority', svarSenast: `ServiceRequest.extension('${EXT}/svar-senast')` },
   // Runda 9, r6.
   Condition: { kod: 'Condition.code', vardkontaktId: 'Condition.encounter' },
-  Appointment: { remissId: 'Appointment.basedOn', tidId: 'Appointment.slot', status: 'Appointment.status' },
+  Appointment: { remissId: 'Appointment.basedOn', tidId: 'Appointment.slot', status: 'Appointment.status', patient: 'Appointment.participant' },
   Encounter: { klass: 'Encounter.class', enhetId: 'Encounter.serviceProvider', orsak: 'Encounter.reasonCode[0].text', plats: 'Encounter.location[0].location.display', status: 'Encounter.status' },
 };
 export const SMART_OMFANG = ['launch', 'launch/patient', 'patient/*.read', 'patient/*.rs', 'patient/*.write', 'user/*.read', 'user/*.rs', 'user/*.write', 'user/*.cruds'];

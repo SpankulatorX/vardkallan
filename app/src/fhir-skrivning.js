@@ -180,6 +180,8 @@ const SKRIVARE = {
   Appointment: {
     skapa({ db, r, kor }) {
       if ((r.status ?? 'booked') !== 'booked') throw fel('En tid kan bara bokas via API:t, inte föreslås eller avbokas.', ['status']);
+      // Säkerhetsgranskningen av runda 9, r6: patienten är alltid remissens. Fält som inte finns i Appointment avvisas.
+      if (r.subject !== undefined || r.patient !== undefined) throw fel('Appointment har varken subject eller patient. Patienten anges i participant och är alltid remissens patient.', ['patient']);
       const remiss = referensId(r.basedOn?.[0], 'ServiceRequest');
       if (!remiss || !/^\d{1,9}$/.test(remiss)) throw fel('Ange remissen som tiden gäller som en referens till ServiceRequest i Appointment.basedOn.', ['remissId']);
       const patienter = (Array.isArray(r.participant) ? r.participant : []).map(p => referensId(p?.actor, 'Patient')).filter(Boolean);

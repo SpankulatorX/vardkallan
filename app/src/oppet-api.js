@@ -19,7 +19,10 @@ const INGA_VAL = { andra_enheter: false, nodatkomst: false, samtycke_sparr: fals
 const fhirSvar = (body, status = 200, extra = {}) => new Response(body == null ? null : JSON.stringify(body), { status, headers: { ...FHIR_JSON, ...extra } });
 
 export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaFranAnnanWebbplats, hamtaSession, inloggade, origin, maxKropp,
-  skicka = process.env.WEBHOOK_SKICKA === '1' ? prenumeration.skickaPaRiktigt : prenumeration.simulera, godkanda = prenumeration.GODKANDA_MOTTAGARE }) {
+  skicka = process.env.WEBHOOK_SKICKA === '1' ? prenumeration.skickaPaRiktigt : prenumeration.simulera, godkanda = prenumeration.GODKANDA_MOTTAGARE,
+  // Runda 9, r6 (säkerhetsgranskningen): domänerna som sandlådans mottagare måste ligga under, och att bara driftens lista
+  // gäller när meddelanden skickas på riktigt.
+  domaner = prenumeration.KONFIGURERADE_DOMANER, endastKonfiguration = process.env.WEBHOOK_SKICKA === '1' }) {
   const smartLager = smart.skapaSmart();
   const finns = (s) => [...sessioner.values()].includes(s);
   const basFor = (url) => origin || `${url.protocol}//${url.host}`;
@@ -95,7 +98,7 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
     const [, id] = delar;
     try {
       if (req.method === 'POST' && delar.length === 1) {
-        const r = prenumeration.skapa(c.db, c.personal, resurs ?? await lasResurs(req), { godkanda: forvaltning.godkandaMottagare(c.db, godkanda), klient });
+        const r = prenumeration.skapa(c.db, c.personal, resurs ?? await lasResurs(req), { godkanda: forvaltning.godkandaMottagare(c.db, godkanda, { domaner, endastKonfiguration }), klient });
         return fhirSvar(prenumeration.subscription(r), 201, { Location: `${basFor(url)}/fhir/Subscription/${r.id}` });
       }
       if (req.method === 'DELETE' && id) return fhirSvar(prenumeration.subscription(prenumeration.avsluta(c.db, c.personal, id)));
@@ -134,7 +137,13 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
     const resurs = ['POST', 'PUT'].includes(req.method) ? await lasResurs(req) : null;
     const iResursen = (resurs?.subject ?? resurs?.patient)?.reference?.replace(/^.*Patient\//, '') ?? null;
     const krit = typ === 'Subscription' && typeof resurs?.criteria === 'string' ? new URLSearchParams(resurs.criteria.split('?')[1] ?? '').get('patient')?.replace(/^Patient\//, '') : null;
-    const mal = req.method === 'POST' ? iResursen ?? krit : malPatient(s.db, typ, id, url);
+    // Runda 9, r6 (säkerhetsgranskningen): en bokning gäller remissens patient, oavsett vad resursen säger på andra
+    // ställen, så att en biljett för en patient aldrig kan boka en remiss för en annan.
+    const remissPatient = () => {
+      const rid = String(resurs?.basedOn?.[0]?.reference ?? '').match(/(?:^|\/)ServiceRequest\/(\d{1,9})$/)?.[1];
+      return rid ? s.db.query('SELECT patient_id FROM remisser WHERE id = ?').get(Number(rid))?.patient_id ?? null : null;
+    };
+    const mal = req.method === 'POST' ? (typ === 'Appointment' ? remissPatient() : iResursen ?? krit) : malPatient(s.db, typ, id, url);
     const nekad = smart.provaOmfang(b, { metod: req.method, typ, malPatient: mal });
     if (nekad) return fhirSvar(fhir.utfall(403, 'nekad', nekad), 403, { 'WWW-Authenticate': BEARER_FEL.omfang });
     const c = { s: utanVal(s), db: s.db, personal, invanare: null };
@@ -269,7 +278,13 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
   function efterAnrop(s, base) {
     let ut;
     try { ut = prenumeration.behandla(s.db, base); } catch (e) { console.error('Prenumerationerna:', e.message); return; }
+    // Varje meddelande prövas mot mottagarna igen när det skickas, med driftens konfiguration som tak.
+    const tillatna = forvaltning.godkandaMottagare(s.db, godkanda, { domaner, endastKonfiguration });
     for (const n of ut) {
+      if (!tillatna.includes(n.mottagare)) {
+        try { prenumeration.sparaUtfall(s.db, n.notisId, { status: 'misslyckad', svar: 'Mottagaren står inte i driftens konfiguration. Meddelandet skickades inte.' }); } catch { /* sandlådan är stängd */ }
+        continue;
+      }
       Promise.resolve(skicka(n.mottagare, n.kropp)).then((r) => { try { prenumeration.sparaUtfall(s.db, n.notisId, r); } catch { /* sandlådan är stängd */ } })
         .catch(() => { try { prenumeration.sparaUtfall(s.db, n.notisId, { status: 'misslyckad', svar: 'Meddelandet kunde inte skickas.' }); } catch { /* sandlådan är stängd */ } });
     }
@@ -317,7 +332,7 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
     rutt('POST', '/api/oppet-api/tillampningar/:id/aterkalla', (c, id) => forvaltning.aterkallaTillampning(c.db, kravInloggad(c), id, c.body, {
       aterkallaBiljetter: (klient) => smartLager.aterkalla(c.s, 'Åtkomstbiljetten återkallades när systemförvaltaren återkallade tillämpningen.', b => b.klient === klient),
     }));
-    rutt('POST', '/api/oppet-api/mottagare', (c) => [201, forvaltning.godkannMottagare(c.db, kravInloggad(c), c.body, godkanda)]);
+    rutt('POST', '/api/oppet-api/mottagare', (c) => [201, forvaltning.godkannMottagare(c.db, kravInloggad(c), c.body, godkanda, { domaner, endastKonfiguration })]);
     rutt('POST', '/api/oppet-api/mottagare/:id/aterkalla', (c, id) => forvaltning.aterkallaMottagare(c.db, kravInloggad(c), id, c.body));
     rutt('GET', '/api/oppet-api/arenden', (c) => ({ arenden: forvaltning.arenden(c.db, kravInloggad(c)) }));
     rutt('POST', '/api/oppet-api/arenden', (c) => [201, forvaltning.nyttArende(c.db, kravInloggad(c), c.body, { kapabilitet: fhir.capability('') })]);
