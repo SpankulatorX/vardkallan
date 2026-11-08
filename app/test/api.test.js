@@ -537,7 +537,8 @@ describe('API', () => {
       }
     }
     expect(svar).toBe(roller.length * 15 * vagar.length);
-  });
+  // Runda 7, r1: fjorton demoroller gör testet längre än standardgränsen på fem sekunder när alla filer körs samtidigt.
+  }, 20000);
 
   test('reset ger ny sandlåda', async () => {
     const k = klient(app);

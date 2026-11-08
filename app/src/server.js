@@ -1,6 +1,6 @@
 // Vårdkällan. Varje besökare får en egen sandlåda i minnet, en kopia av den seedade mallen.
 // Sandlådorna sparas till SESSION_FIL vid SIGTERM och läses in vid start.
-import { join, normalize } from 'node:path';
+import { join, normalize, dirname } from 'node:path';
 import { existsSync, readFileSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
 import { createDecipheriv } from 'node:crypto';
 import { Fel, nySessionsDb, lasSandlada, idag, installning } from './db.js';
@@ -53,6 +53,7 @@ import * as planering from './planering.js';
 import * as tidbokFhir from './tidbok-fhir.js';
 // Runda 7, r1: demoläget för Sussas användbarhetstester (sussa-demo.js).
 import * as sussaDemo from './sussa-demo.js';
+import * as anvandartestSvar from './anvandartest-svar.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -160,10 +161,15 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     // Runda 7, r1: Sussas användbarhetstester (test/sussa-testfall.cjs).
     sussatestfall: process.env.SUSSATESTFALL || join(import.meta.dir, '..', 'sussa-testfall.json') },
   nyaPerTimme = Number(process.env.NYA_PER_TIMME || 60),
+  // Runda 7, r1: svaren från riktiga användartester, i en egen databas som alla sandlådor delar. Bredvid sessionsfilen
+  // när den finns, annars bara i minnet.
+  anvandartestFil = process.env.ANVANDARTEST_FIL || (sessionFil ? join(dirname(sessionFil), 'anvandartest.sqlite') : ':memory:'),
   // Runda 6, r5: mottagaradresser och sändning för prenumerationerna, utbytbara i testerna.
   oppetApiVal = {} } = {}) {
   const sessioner = new Map();
   const nyaPerIp = new Map();
+  // Runda 7, r1.
+  const anvandartestDb = anvandartestSvar.oppna(anvandartestFil);
   const serverMatning = new Matning(1000);
   const startad = new Date().toISOString();
 
@@ -994,6 +1000,15 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('POST', '/api/demo/remiss-vardhandelse', (c) => { kravInloggad(c); return remissavvisning.demo(c.db, c.personal); });
   // Runda 7, r1: testpatienterna och datan för Sussas testfall läggs in i den inloggades sandlåda.
   rutt('POST', '/api/demo/sussa-testfall', (c) => sussaDemo.laddaTestdata(c.db, kravInloggad(c)));
+  // Runda 7, r1: svaren från riktiga användartester. Den som är inloggad med en demoroll sparar, och bara testledaren
+  // (uppföljningsrollen) läser och exporterar. Svaren har inga patientuppgifter och inget namn (anvandartest-svar.js).
+  rutt('POST', '/api/anvandartest/svar', (c) => { kravInloggad(c); return [201, anvandartestSvar.spara(anvandartestDb, c.body)]; });
+  rutt('GET', '/api/anvandartest/svar', (c) => { kravRoll(c, 'anvandartest_las'); return anvandartestSvar.lista(anvandartestDb); });
+  rutt('GET', '/api/anvandartest/svar/export', (c) => {
+    kravRoll(c, 'anvandartest_las');
+    const ut = anvandartestSvar.exportera(anvandartestDb, c.url.searchParams.get('format') === 'csv' ? 'csv' : 'json');
+    return new Response(ut.text, { status: 200, headers: { 'Content-Type': ut.contentType, 'Content-Disposition': `attachment; filename="${ut.namn}"`, 'Cache-Control': 'no-store' } });
+  });
   rutt('POST', '/api/remiss/:id/bedom', (c, id) => medRemiss(c, id, 'bedom_remiss', (atk, r) => {
     if (c.body.beslut === 'avvisad') return remissavvisning.avvisa(atk, r, c.body);
     const ut = remiss.bedom(atk, r, c.body);
@@ -1552,7 +1567,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
 
   return {
     server, sessioner, port: server.port, url: `http://127.0.0.1:${server.port}`, spara, oppetApi,
-    stopp() { clearInterval(stadning); server.stop(true); for (const s of sessioner.values()) s.db.close(); sessioner.clear(); },
+    stopp() { clearInterval(stadning); server.stop(true); for (const s of sessioner.values()) s.db.close(); sessioner.clear(); anvandartestDb.close(); },
   };
 }
 

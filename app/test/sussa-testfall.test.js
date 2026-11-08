@@ -8,6 +8,7 @@ import * as R from '../src/sussa-testfall.js';
 import { laddaTestdata } from '../src/sussa-demo.js';
 import { SUSSA_PATIENTER, BERTIL_PK, ANKOMNA_5_6, OSIGNERADE_4_4 } from '../src/seed/sussa-testdata.js';
 import { KRAV } from '../src/krav.js';
+import { KATALOG } from '../src/seed/lakemedel-katalog.js';
 import { SUS_SUSSA, susPoang, kodGiltig, kommentarGiltig, DIALOGPRINCIPER } from '../public/js/sussa-formular.js';
 
 const T = R.TEST_REGISTER;
@@ -67,6 +68,8 @@ describe('Sussas testfall', () => {
     expect(R.malpoang({ uppnatt: true, steg: 6, budget: 4 })).toBe(5);
     expect(R.malpoang({ uppnatt: true, steg: 7, budget: 4 })).toBe(2);
     expect(R.malpoang({ uppnatt: false, steg: 1, budget: 4 })).toBe(0);
+    // Brister mot principen om att systemet är experten ger högst 5.
+    expect(R.malpoang({ uppnatt: true, steg: 3, budget: 4, brister: ['ett fält som systemet borde ha fyllt i'] })).toBe(5);
   });
 
   test(namn(T[3]), () => {
@@ -104,7 +107,7 @@ describe('Sussas testfall', () => {
       expect({ nr: x.nr, budget: t.budget, tidsklass: t.tidsklass }).toEqual({ nr: x.nr, budget: k.budget, tidsklass: x.tidsklass });
       expect({ nr: x.nr, uppnatt: t.uppnatt, inomBudget: t.inomBudget, fel: t.fel ?? null }).toEqual({ nr: x.nr, uppnatt: true, inomBudget: true, fel: null });
       expect(t.uppmatt).toBe(t.klick + t.faltbyten + t.tangenter);
-      expect(t.malpoang).toBe(R.malpoang({ uppnatt: true, steg: t.uppmatt, budget: t.budget }));
+      expect(t.malpoang).toBe(R.malpoang({ uppnatt: true, steg: t.uppmatt, budget: t.budget, brister: k.brister }));
       expect(t.tidspoang).toBe(R.tidspoang(t.uppskattadTidS, t.tidsklass));
       expect(st.tester.find(y => y.namn === R.testfallTest(x, k))?.status).toBe('grön');
     }
@@ -214,6 +217,18 @@ describe('Sussas testfall', () => {
     expect(kodGiltig('Gerda Ström')).toBe(false);
     expect(kommentarGiltig('Bra flöde, men listan var lång.')).toBe(true);
     expect(kommentarGiltig('Patienten 19450207-3416 syntes')).toBe(false);
+  });
+
+  test('tema 1 genomförs med Sussas läkemedel i en katalog med minst 100 produkter', () => {
+    expect(KATALOG.length).toBeGreaterThanOrEqual(100);
+    const finns = (namn, styrka) => KATALOG.some(l => l.namn === namn && l.styrka === styrka);
+    for (const [n, s] of [['Addex-Magnesium', '1 mmol/ml'], ['Alvedon forte', '1 g'], ['Alvedon', '500 mg'], ['Atrovent', '20 mikrogram/dos'], ['Atrovent', '0,25 mg/ml'], ['Atrovent', '0,5 mg/ml'],
+      ['Rinivent', '21 mikrogram/dos'], ['Glucos Baxter 25 mg/ml buffrad', ''], ['Kloramfenikol Santen', '5 mg/ml'], ['Kloramfenikol Santen', '10 mg/g'], ['Metformin Sandoz', '500 mg'],
+      ['Metformin Teva', '850 mg'], ['Morfin Abcur', '10 mg/ml'], ['Morfin Alternova', '10 mg'], ['Paracetamol Fresenius Kabi', '10 mg/ml'], ['Sertralin Teva', '50 mg'],
+      ['Sertralin Teva Pharma', '100 mg'], ['Stesolid', '5 mg'], ['Stesolid', '10 mg'], ['Waran', '2,5 mg'], ['Zopiklon Pilum', '5 mg'], ['Zopiklon Pilum', '7,5 mg']]) {
+      expect({ n, s, finns: finns(n, s) }).toEqual({ n, s, finns: true });
+    }
+    for (const nr of ['1.1', '1.2', '1.3', '1.4']) expect(R.testfall(nr).korningar.length).toBeGreaterThan(0);
   });
 
   test('expertgranskningen har de sju dialogprinciperna i ISO 9241-110 och summan omvandlas till utvärderingspoäng', () => {

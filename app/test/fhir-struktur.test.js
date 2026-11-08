@@ -147,13 +147,16 @@ describe('FHIR-struktur', () => {
 
   // Runda 6, r2: förpackningens NPL-pack-id följer efter NPL-id, som i E-hälsomyndighetens NLL-profil (coding:nplpackid).
   test('MedicationRequest har NPL-id med E-hälsomyndighetens system', () => {
-    const npl = Object.fromEntries(KATALOG.map(l => [l.atc, l.npl]));
+    // Runda 7, r1: flera produkter kan ha samma ATC-kod, så NPL-id ska vara ett av dem med koden.
+    const npl = {};
+    for (const l of KATALOG) (npl[l.atc] ??= []).push(l.npl);
     const packs = new Map(FORPACKNINGAR.map(f => [f.nplpackid, f]));
     const lm = avTyp('MedicationRequest').map(m => m.medicationCodeableConcept.coding);
     expect(lm.length).toBeGreaterThan(40);
     for (const [atc, nplid, pack, ...ovr] of lm) {
       expect(ovr).toEqual([]);
-      expect(nplid).toEqual({ system: 'http://electronichealth.se/fhir/NamingSystem/nplid', code: npl[atc.code] });
+      expect(nplid.system).toBe('http://electronichealth.se/fhir/NamingSystem/nplid');
+      expect(npl[atc.code]).toContain(nplid.code);
       expect(pack.system).toBe('http://electronichealth.se/fhir/NamingSystem/nplpackid');
       expect(KATALOG.find(l => l.id === packs.get(pack.code).lakemedelId).npl).toBe(nplid.code);
       expect(pack.display).toBe(packs.get(pack.code).text);

@@ -75,6 +75,8 @@ const MENY = [
   ['#/arkiv', 'E-arkiv och gallring', 'arkiv', () => far('registrera_arkivbeslut')],
   ['#/datauttag', 'Datauttag', 'lista', () => far('datauttag')],
   ['#/planuppfoljning', 'Tvångsvård och samordning', 'krav', () => far('datauttag')],
+  // Runda 7, r1: testledaren läser och exporterar svaren från användartesterna.
+  ['#/sussatest', 'Användartester', 'krav', () => far('anvandartest_las')],
   ['#/migrering', 'Migreringsavstämning', 'migrering', () => true],
   ['#/krav', 'Kravspårbarhet', 'krav', () => true],
   ['#/moduler', 'Moduler', 'moduler', () => true],

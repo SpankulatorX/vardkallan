@@ -106,6 +106,36 @@ export function laddaTestdata(db, personal, { nu = new Date() } = {}) {
     // Fatima Baskar (testfall 6.2): inlagd på Avdelning 72 sedan två dagar.
     vardtillfalle('sus16', 'uso-kard-72', { inskriven: T(-2, '10:00'), plats: 'Avd 72, sal 6', orsak: 'Buksmärta', av: 'ssk-kard' });
 
+    // Tema 1, läkemedelshantering (Bilaga F1:3 tabell 7). Ordinationerna läggs in som i seeden, med NLL:s kvittens.
+    const insOrd = db.query(`INSERT INTO ordinationer (patient_id, enhet_id, lakemedel_id, dosering, dos, dos_enhet, tider, vid_behov, typ, orsak, uppfoljning, start, slut, status, ordinerad_av, skapad, nll_status, kalla)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'aktiv', ?, ?, 'kvitterad', 'vardkallan')`);
+    let kvittens = 9000;
+    const ordination = (pid, enhet, lm, { dosering, dos = null, dosEnhet = null, tider = [], typ = 'staende', orsak, uppfoljning, start, slut = null, av, skapad }) => {
+      const id = Number(insOrd.run(pid, enhet, lm, dosering, dos, dosEnhet, JSON.stringify(tider), typ === 'vid_behov' ? 1 : 0, typ, orsak, uppfoljning, start, slut, av, skapad).lastInsertRowid);
+      db.query('INSERT INTO ordination_historik (ordination_id, tid, personal_id, handelse, detalj) VALUES (?, ?, ?, ?, ?)').run(id, skapad, av, 'Ordinerad', dosering);
+      db.query('INSERT INTO nll_meddelanden (ordination_id, typ, skickad, status, svar_tid, kvittens, nll_registrerad) VALUES (?, ?, ?, ?, ?, ?, 1)')
+        .run(id, 'ny', plus(skapad, 0.05), 'kvitterad', plus(skapad, 0.1), `NLL-SUS-${++kvittens}`);
+      return id;
+    };
+    // Gerda Ström (testfall 1.1): på vårdcentralen i dag, med Waran, Metformin och Atrovent sedan tidigare.
+    vk('sus02', 'vc-tybble', { start: M(-20), plats: 'Mottagning', orsak: 'Läkemedelsgenomgång', av: 'lak-vc' });
+    const forr = T(-100, '10:00');
+    const gStart = addDagar(basDatum, -100);
+    ordination('sus02', 'vc-tybble', 'VK-NPL-0001', { dosering: 'Enligt ordination', orsak: 'Blodförtunnande', uppfoljning: addDagar(basDatum, 60), start: gStart, av: 'lak-vc', skapad: forr });
+    ordination('sus02', 'vc-tybble', 'VK-NPL-0020', { dosering: '1 tablett morgon och kväll', dos: 500, dosEnhet: 'mg', tider: ['08:00', '20:00'], orsak: 'Mot diabetes', uppfoljning: addDagar(basDatum, 60), start: gStart, av: 'lak-vc', skapad: forr });
+    ordination('sus02', 'vc-tybble', 'VK-NPL-0053', { dosering: '2 inhalationer 4 gånger dagligen', orsak: 'Mot andningsproblem', uppfoljning: addDagar(basDatum, 60), start: gStart, av: 'lak-vc', skapad: forr });
+    // Elin Arnström (1.2) och Trevis Ljung (1.3): inlagda på Avdelning 72.
+    vardtillfalle('sus03', 'uso-kard-72', { inskriven: T(-1, '13:00'), plats: 'Avd 72, sal 7', orsak: 'Utredning inför röntgen', av: 'ssk-kard' });
+    vardtillfalle('sus04', 'uso-kard-72', { inskriven: T(-1, '15:00'), plats: 'Avd 72, sal 8', orsak: 'Smärta', av: 'ssk-kard' });
+    // Bertil Danielsson (1.4): fyra ordinationer från i går att ge nu, med instruktionerna i doseringen.
+    const igar = addDagar(basDatum, -1);
+    const timme = `${new Date(nu.getTime()).toLocaleTimeString('sv-SE', { hour: '2-digit', timeZone: 'Europe/Stockholm' }).slice(0, 2)}:00`;
+    const bOrd = { start: igar, slut: basDatum, uppfoljning: addDagar(basDatum, 1), av: 'lak-kard', skapad: T(-1, '16:00'), tider: [timme], typ: 'tillfallig' };
+    ordination('sus01', 'uso-kard-72', 'VK-NPL-0062', { ...bOrd, dosering: '100 ml engångsdos. Ges som intravenös infusion under 15 minuter', dos: 1000, dosEnhet: 'mg', orsak: 'Smärta' });
+    ordination('sus01', 'uso-kard-72', 'VK-NPL-0057', { ...bOrd, dosering: '1000 ml med Addex-Magnesium 20 mmol. Ges på två timmar', orsak: 'Vätska och magnesium' });
+    ordination('sus01', 'uso-kard-72', 'VK-NPL-0065', { ...bOrd, dosering: '1 tablett som premedicinering 1 timme före röntgen', dos: 10, dosEnhet: 'mg', orsak: 'Premedicinering inför röntgen' });
+    ordination('sus01', 'uso-kard-72', 'VK-NPL-0044', { ...bOrd, slut: null, uppfoljning: addDagar(basDatum, 14), tider: [], typ: 'vid_behov', dosering: '1 tablett vid behov till natten', dos: 5, dosEnhet: 'mg', orsak: 'Sömn' });
+
     // Gerda Ström (testfall 5.7), Susanne Svedin (5.4) och Jonas Brun (5.8): tidigare besök på kardiologiska mottagningen.
     vk('sus02', 'uso-kard-mott', { start: T(-30, '10:00'), slut: T(-30, '10:30'), plats: 'Kardiologiska mottagningen', orsak: 'Besök' });
     vk('sus13', 'uso-kard-mott', { start: T(-40, '13:00'), slut: T(-40, '13:30'), plats: 'Kardiologiska mottagningen', orsak: 'Besök' });

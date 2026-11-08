@@ -76,3 +76,13 @@ export function expertpoang(poang) {
 export const KODMONSTER = /^[A-Za-z0-9-]{1,12}$/;
 export const kodGiltig = (k) => typeof k === 'string' && KODMONSTER.test(k) && !/\d{6}/.test(k);
 export const kommentarGiltig = (t) => typeof t === 'string' && t.length <= 1000 && !/\d{6}/.test(t.replace(/[\s-]/g, ''));
+
+// Det som sparas på servern när en testperson svarar (src/anvandartest-svar.js), och som sidan visar innan.
+export const SPARAS = [
+  'Din roll i testet, till exempel Läkare slutenvård. Inte ditt namn.',
+  'En pseudonym som testledaren sätter, till exempel L03.',
+  'Datum för testet, utan klockslag.',
+  'Vilket testfall svaret gäller.',
+  'Dina svar och poängen som systemet räknar. En kommentar i expertgranskningen får inte innehålla patientuppgifter.',
+];
+export const TESTROLLER = ['Läkare öppenvård', 'Läkare slutenvård', 'Sjuksköterska slutenvård', 'Sjuksköterska öppenvård', 'Undersköterska', 'Paramedicinare', 'Medicinsk sekreterare', 'Användbarhetsexpert'];

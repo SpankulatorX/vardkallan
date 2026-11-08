@@ -146,7 +146,7 @@ const MENY = {
   // Runda 6, r3: Lena Ström på psykiatrin har bevakningen av tvångsvården, och kommunen (simulerad) har Samverkan.
   psykiatri: ['Arbetslista', 'Sök patient', 'Inkorg', 'Delegeringar', 'Tvångsvård', 'Direktiv och uppföljning', 'Remisser', 'Väntrum (akuten)', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   kommun: ['Samverkan', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
-  uppfoljning: ['Datauttag', 'Tvångsvård och samordning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  uppfoljning: ['Datauttag', 'Tvångsvård och samordning', 'Användartester', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 6, r6: verksamhetschefen utser uppdragen i läkemedelshanteringen och fastställer generella direktiv.
   verksamhetschef: ['Läkemedelsansvar', 'Direktiv och uppföljning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 7, r1: fysioterapeuten, paramedicinaren i Sussas testfall.
@@ -1294,6 +1294,7 @@ const MENY = {
       await page.fill('#st-kod', 'L03');
       await page.click('#st-sus [type="submit"]');
       await forvanta(page, '.notis', 'SUS-svaret för L03 är sparat: 75 av 100');
+      await forvanta(page, '.notis', 'Svaret för L03 är sparat på servern');
       await page.fill('#st-granskare', 'E01');
       for (let i = 1; i <= 7; i++) await page.locator(`label[for="st-p${i}-${i < 7 ? 10 : 5}"]`).click();
       await forvanta(page, '[data-st-expert]', '65 av 70, 10 utvärderingspoäng');
@@ -1304,6 +1305,17 @@ const MENY = {
       if (/Sandmark|Danielsson|19450207/.test(lagrat)) throw new Error('svaren innehåller patientuppgifter');
       await bild(page, '112-sussatest', true);
       await page.evaluate(() => localStorage.removeItem('vk_sussatest'));
+    });
+    await s('Daniel Sund är testledare och ser svaren på servern utan patientuppgifter och kan exportera dem', async () => {
+      await loggaIn(page, 'uppf');
+      await page.click('#meny-lista a[href="#/sussatest"]');
+      await vantaVy(page);
+      await forvanta(page, '#st-serverlista', 'L03');
+      await forvanta(page, '#st-serverlista', 'Användbarhetsexpert');
+      const href = await page.locator('#st-serverlista a', { hasText: 'Exportera som CSV' }).getAttribute('href');
+      const csv = await (await page.context().request.get(`${BAS}${href}`)).text();
+      if (!csv.startsWith('id;typ;roll;pseudonym;datum;testfall') || !csv.includes('L03') || /Sandmark|Danielsson|19450207/.test(csv)) throw new Error('exporten är fel');
+      await bild(page, '113-anvandartester-server');
     });
     await s('Sara granskar den ändrade mallen i inkorgen och godkänner den', async () => {
       await loggaIn(page, 'lak-kard');

@@ -86,9 +86,10 @@ describe('Kodverk', () => {
     expect(ATC[WARFARIN]).toBe('warfarin');
     expect(ATC[METFORMIN]).toBe('metformin');
     // Katalogens NSAID och penicilliner fångas av prefixen, och inget annat läkemedel gör det.
-    const nsaid = KATALOG.filter(l => l.atc.startsWith(NSAID)).map(l => l.substans).sort();
+    // Runda 7, r1: katalogen har flera styrkor av samma substans, så substanserna räknas en gång var.
+    const nsaid = [...new Set(KATALOG.filter(l => l.atc.startsWith(NSAID)).map(l => l.substans))].sort();
     expect(nsaid).toEqual(['diklofenak', 'ibuprofen', 'naproxen']);
-    const pc = KATALOG.filter(l => l.atc.startsWith('J01C')).map(l => l.substans).sort();
+    const pc = [...new Set(KATALOG.filter(l => l.atc.startsWith('J01C')).map(l => l.substans))].sort();
     expect(pc).toEqual(['amoxicillin', 'bensylpenicillin', 'fenoximetylpenicillin', 'pivmecillinam']);
   });
 

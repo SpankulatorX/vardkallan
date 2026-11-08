@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T08:41:08.490Z",
+  "tid": "2026-11-08T09:24:47.558Z",
   "bas": "http://127.0.0.1:18171",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "63a3d25d4881876bbbc30f4c4592404bec38ca858974c741aaba46fc4f7cb1a9",
+  "gransnittHash": "ae3718db84c6ae2a7104d55d0bd47549770311f5c7f9451f5c8c5e2e26cbe07d",
   "tester": [
     {
       "namn": "Gränssnitt > Avbrott > läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB",

@@ -139,6 +139,11 @@ ROLLER.fysioterapeut = ['las_oversikt', 'las_journal', 'las_omvardnad', 'skriv_o
   'las_diagnoser', 'las_remiss', 'remittera', 'mottag_remiss', 'bedom_remiss', 'svara_remiss', 'kvittera_svar', 'las_admin', 'sok', 'andra_enheter',
   'samtycke_sparr', 'visa_identitet', 'skriv_ut', 'las_vardplan', 'vardplan_atgard', 'bevaka', 'bevaka_enhet', 'las_tidbok', 'statistik'];
 
+// Runda 7, r1: testledaren för användartesterna är uppföljningsrollen, som läser och exporterar svaren utan patientuppgifter.
+HANDLINGAR.anvandartest_las = 'läsa och exportera svaren från användartester';
+ROLLER.uppfoljning.push('anvandartest_las');
+UTAN_PATIENT.add('anvandartest_las');
+
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
 
 // Den vårdenhet en enhet hör till. Inre sekretess gäller per vårdenhet.

@@ -68,10 +68,10 @@ export function tidspoang(sek, tidsklass) {
 // svårigheter, 2 med svårigheter och 0 lyckades inte. Ett skript har inga svårigheter att observera, så Vårdkällan
 // räknar klickbudgeten som mått: inom budget ger 10, upp till en och en halv gång budgeten 5, mer 2. Ett testfall som
 // inte når slutvillkoret, eller som Vårdkällan inte kan genomföra, ger 0.
-export function malpoang({ uppnatt, steg, budget }) {
+export function malpoang({ uppnatt, steg, budget, brister = [] }) {
   if (!uppnatt) return 0;
   if (typeof budget !== 'number' || typeof steg !== 'number') return 0;
-  if (steg <= budget) return 10;
+  if (steg <= budget) return brister.length ? 5 : 10;
   if (steg <= budget * 1.5) return 5;
   return 2;
 }
@@ -123,7 +123,9 @@ export function klmTid({ klick = 0, listval = 0, faltbyten = 0, tecken = 0, tang
 //   saknas           vad Vårdkällan saknar för att genomföra testfallet.
 //   avvikelser       hur Vårdkällan avviker från Sussas text när testfallet genomförs.
 const t = (nr, titel, roller, rest) => ({ nr, tema: Number(nr.split('.')[0]), temaNamn: TEMAN[Number(nr.split('.')[0])], titel, roller, avvikelser: [], korningar: [], saknas: null, ...rest });
-const kor = (roll, budget, motivering) => ({ roll, demoroll: ROLLER[roll].demoroll, budget, motivering });
+// brister är det som testfallet når men inte på det sätt som principen om att systemet är experten kräver. Ett testfall
+// med brister får högst 5 poäng i måluppfyllelse (lyckades men med vissa svårigheter).
+const kor = (roll, budget, motivering, brister = []) => ({ roll, demoroll: ROLLER[roll].demoroll, budget, motivering, brister });
 
 export const TESTFALL = [
   // Tema 1: Läkemedelshantering
@@ -132,28 +134,32 @@ export const TESTFALL = [
     mal: ['Förskriv Alvedon 1 g tablett vid behov mot värk, tillsvidare.', 'Förskriv Kloramfenikol ögondroppar 5 mg/ml, 1 droppe 6 gånger dagligen i en vecka i höger öga, tidsbegränsat.', 'Förskriv Sertralin 50 mg, en halv tablett i 6 dagar och därefter en tablett varje morgon, med uppföljning om två veckor och provförpackning.', 'Ändra dosen av Metformin till 850 mg morgon och kväll och byt ut receptet mot ett nytt.', 'Skicka förskrivningen.'],
     slut: 'Tre läkemedel är förskrivna och dosen är ändrad.',
     tidsklass: 18, tidsklassSkal: 'Fyra läkemedel med var sin dosering, en upptrappning och en dosändring. Det största testfallet i temat.',
-    saknas: 'Läkemedelskatalogen har 50 produkter, inte minst 100, och saknar Alvedon 1 g, Kloramfenikol ögondroppar, Metformin 850 mg och Atrovent. Recept, provförpackning och utskick till apotek finns inte, eftersom kopplingen till NLL är simulerad.',
+    korningar: [kor('lakare_oppenvard', 29, 'Ett klick på patienten. Alvedon forte: Ordinera, träffen, där ordinationsorsaken får fokus, och två fältbyten med markering för att skriva om doseringen och dosen, och spara (7). Kloramfenikol: Ordinera, träffen, där doseringen får fokus, två klick för typen Tillfällig, ett fältbyte vardera för orsak och slutdatum, och spara (7). Sertralin: Ordinera, träffen, Upptrappning enligt schema, två steg för att ändra antalet dagar till 6, orsaken, uppföljning om två veckor och spara (8). Metformin: fliken Läkemedel, Sätt ut, där orsaken får fokus, bekräfta, Ordinera, träffen och spara (6). Provförpackningen med 10 tabletter är förvald.', ['Ögondropparna sparas med administrationssättet peroralt, eftersom ögat inte finns bland administrationssätten.', 'Systemet föreslår doseringen och dosen för Alvedon 500 mg också för Alvedon forte 1 g, så de skrivs om.'])],
+    avvikelser: ['Metformin har ingen dosändring: den gamla ordinationen sätts ut och den nya ordineras. Ordinationen skickas till NLL när den sparas, och NLL är simulerad.', 'Kloramfenikol är Kloramfenikol Santen och Metformin 850 mg är Metformin Teva. Recept och uttag på apotek finns inte i demon.'],
   }),
   t('1.2', 'Ordinera läkemedel', ['lakare_slutenvard'], {
     syfte: 'Ur en läkemedelskatalog med minst 100 läkemedel ordinera läkemedel till Elin Arnström.',
     mal: ['Paracetamol Panpharma 10 mg/ml infusion 100 ml som engångsordination, ges som intravenös infusion under 15 minuter.', 'Glukos 25 mg/ml buffrad 1000 ml med Addex Magnesium 20 mmol, ges på två timmar.', 'Stesolid 10 mg som premedicinering en timme före röntgen.'],
     slut: 'Läkemedlen är ordinerade.',
     tidsklass: 18, tidsklassSkal: 'En infusion, en blandning med tillsats och en ordination som hänger på en undersökning.',
-    saknas: 'Katalogen saknar Paracetamol Panpharma infusion, Glukos buffrad, Addex-Magnesium och Stesolid. Spädning och vårdhändelse finns, men inte för dessa produkter.',
+    korningar: [kor('lakare_slutenvard', 28, 'Ett klick på patienten. Paracetamol: Ordinera, träffen, där orsaken får fokus, två steg vardera för att skriva om doseringen och dosen, två klick för typen Tillfällig och spara (9). Glukos och Addex-Magnesium: Ordinera, träffen, där doseringen får fokus, två klick för typen, orsaken och spara (6 vardera). Stesolid: Ordinera, träffen, orsaken, Ges inför en planerad vårdhändelse, Ny vårdhändelse, där texten får fokus, och spara (6). En timme före är förvalt.', ['Systemet föreslår en dosering för tabletter till paracetamol som infusion, så doseringen, dosen och typen skrivs om.', 'Addex-Magnesium kan inte ordineras som tillsats i glukoslösningen, så den ordineras för sig med en hänvisning i doseringen.'])],
+    avvikelser: ['Paracetamol Panpharma finns inte i NPL, så infusionen är Paracetamol Fresenius Kabi 10 mg/ml. Den buffrade glukosen är Glucos Baxter 25 mg/ml buffrad.', 'Röntgen är en ny vårdhändelse som väntar på tid i tidboken.'],
   }),
   t('1.3', 'Ordinera läkemedel på uppdrag', ['ssk_slutenvard'], {
     syfte: 'Ordinera två läkemedel till Trevis Ljung på uppdrag av en namngiven läkare.',
     mal: ['Alvedon 1 g tablett mot smärta som engångsordination.', 'Morfin injektionsvätska 10 mg/ml, 1 ml intramuskulärt mot smärta, engångsordination.'],
     slut: 'De två läkemedlen är ordinerade.',
     tidsklass: 9, tidsklassSkal: 'Två ordinationer med en uppdragsgivare.',
-    saknas: 'Sjuksköterskan dokumenterar en muntlig ordination som läkaren signerar, men katalogen saknar Alvedon 1 g tablett.',
+    korningar: [kor('ssk_slutenvard', 31, 'Ett klick på patienten och ett på fliken Läkemedel. För varje läkemedel: Muntlig ordination, två klick för läkaren, ett fältbyte för varför behandlingen inte kan vänta, sökningen och träffen, och spara. Alvedon forte: två steg vardera för att skriva om doseringen och dosen och två för typen (14). Morfin: ett steg för doseringen, som har fokus, två för dosen, två för typen, två för intramuskulärt och ett för orsaken (15).', ['Systemet föreslår doseringen och dosen för Alvedon 500 mg också för Alvedon forte 1 g, så de skrivs om.', 'Läkaren och skälet till den muntliga ordinationen anges på nytt för det andra läkemedlet.'])],
+    avvikelser: ['Uppdragsgivaren är läkaren Sara Lindqvist, som signerar den muntliga ordinationen i sin inkorg.'],
   }),
   t('1.4', 'Administrera läkemedel', ['ssk_slutenvard'], {
     syfte: 'Utifrån ordinationslistan administrera fyra läkemedel till Bertil Danielsson.',
     mal: ['Ge Paracetamol Panpharma och läs upp instruktionen.', 'Iordningställ och ge Glukos med Addex-Magnesium och läs upp instruktionen.', 'Ge sömnmedicinen.', 'Ge premedicineringen inför röntgen.', 'Dokumentera att patienten kräktes upp premedicineringen.'],
     slut: 'Instruktionerna är upplästa, alla fyra läkemedel är administrerade och det är dokumenterat att patienten kräktes upp premedicineringen.',
     tidsklass: 15, tidsklassSkal: 'Fyra administreringar, ett iordningställande och en avvikelse som ska dokumenteras.',
-    saknas: 'Ordinationerna i Sussas testdata kräver produkter som katalogen saknar (Paracetamol Panpharma, Glukos buffrad, Addex-Magnesium och Stesolid).',
+    korningar: [kor('ssk_slutenvard', 12, 'Ett klick på Läkemedel att ge, ett på Ge för paracetamol, Mer och Iordningsställ för glukoslösningen och sedan Ge, Ge för Stesolid och Ge för Zopiklon vid behov (7). Instruktionerna står i doseringen i listan. Kräkningen dokumenteras med ett klick på patienten, fliken Översikt, Ny anteckning, där omvårdnadsanteckningen är förvald, ett fältbyte för sökordet Elimination och Signera (5).')],
+    avvikelser: ['Ordinationerna gjordes i går och dosen ska ges i dag vid den hela timmen före testet. Att patienten kräktes upp premedicineringen registreras inte på dosen utan i en omvårdnadsanteckning.'],
   }),
 
   // Tema 2: Vårdbegäran
@@ -418,6 +424,7 @@ export const TEST_REGISTER = [
   `${TEST}tidsuppskattningen följer keystroke-level model med den uppmätta svarstiden`,
   `${TEST}sussa-testfall.json har varje genomförbart testfall med registrets klickbudget och tidsklass, inom budget`,
   `${TEST}demoläget lägger in testpatienterna med Skatteverkets testpersonnummer och datan som testfallen behöver`,
+  `${TEST}tema 1 genomförs med Sussas läkemedel i en katalog med minst 100 produkter`,
 ];
 
 // Testnamnet för ett testfall som genomförs i gränssnittet (test/sussa-testfall.cjs).

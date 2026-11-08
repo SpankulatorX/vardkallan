@@ -5,14 +5,14 @@
 // Svaren sparas bara i den här webbläsaren (localStorage) och laddas ner som en fil. De innehåller ingen patientuppgift:
 // deltagarkoden är en kort kod som testledaren hittar på, och en kommentar med sex siffror i rad tas inte emot.
 import { esc, api, notis, vyRubrik, tal, tidpunkt, medKnapp } from '../ui.js';
-import { S, uppdateraInkorg, rita } from '../app.js';
-import { SUS_SUSSA, SUS_SUSSA_KALLA, SUS_SKALA_SUSSA, susPoang, utvarderingspoang, DIALOGPRINCIPER, PRINCIPPOANG, PRINCIPSKALA, expertpoang, kodGiltig, kommentarGiltig } from '../sussa-formular.js';
+import { S, uppdateraInkorg, rita, far } from '../app.js';
+import { SUS_SUSSA, SUS_SUSSA_KALLA, SUS_SKALA_SUSSA, susPoang, utvarderingspoang, DIALOGPRINCIPER, PRINCIPPOANG, PRINCIPSKALA, expertpoang, kodGiltig, kommentarGiltig, SPARAS, TESTROLLER } from '../sussa-formular.js';
 
 export const namn = 'sussatest';
 
 const NYCKEL = 'vk_sussatest';
 const FORMAT = 'vardkallan-sussatest';
-const GRUPPER = ['Läkare öppenvård', 'Läkare slutenvård', 'Sjuksköterska slutenvård', 'Sjuksköterska öppenvård', 'Undersköterska', 'Paramedicinare', 'Medicinsk sekreterare'];
+const GRUPPER = TESTROLLER.filter(r => r !== 'Användbarhetsexpert');
 
 const tom = () => ({ format: FORMAT, version: 1, sus: [], expert: [] });
 function lasa() {
@@ -49,7 +49,12 @@ export async function visa(main) {
   const el = main.querySelector('#st');
   const d = lasa();
   const inloggad = Boolean(S.session?.inloggad && S.session.personal);
-  el.innerHTML = `<div class="ruta ruta-info st-info"><p><strong>Underlag för riktiga användartester senare.</strong> Inga testpersoner har fyllt i formulären än, och resultaten på kravsidan är skriptets mätning, inte en mätning med användare. Svaren sparas bara i den här webbläsaren och laddas ner som en fil. Skriv inga patientuppgifter: deltagarkoden är en kort kod som du hittar på, till exempel L03.</p></div>
+  el.innerHTML = `<div class="ruta ruta-info st-info"><p><strong>Underlag för riktiga användartester senare.</strong> Inga testpersoner har fyllt i formulären än, och resultaten på kravsidan är skriptets mätning, inte en mätning med användare.</p></div>
+    <section class="ruta st-sparas" aria-labelledby="st-sparas-rubrik">
+      <h2 id="st-sparas-rubrik">Det här sparas när du svarar</h2>
+      <p>${inloggad ? 'Svaren sparas på servern, där bara testledaren kan läsa och exportera dem, och en kopia sparas i den här webbläsaren.' : 'Du är inte inloggad, så svaren sparas bara i den här webbläsaren. Logga in med demorollen för att spara dem på servern.'} Inga patientuppgifter och inte ditt namn sparas.</p>
+      <ul>${SPARAS.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+    </section>
     <section class="ruta" aria-labelledby="st-fall">
       <h2 id="st-fall">Testfallen</h2>
       <p class="liten">Testpersonen loggar in med demorollen, och testledaren lägger in testdatan före varje testfall, så att varje testfall börjar från samma läge. Testfallet börjar på rollens startsida och är slut när slutvillkoret syns.</p>
@@ -63,9 +68,9 @@ export async function visa(main) {
       <p class="dampad liten">Påståendena är Sussas svenska formulering av System Usability Scale. Källa: ${esc(SUS_SUSSA_KALLA)}.</p>
       <form id="st-sus" novalidate>
         <div class="falt-rad">
-          <div class="falt"><label for="st-kod">Deltagarkod</label><input id="st-kod" name="kod" maxlength="12" autocomplete="off" required></div>
+          <div class="falt"><label for="st-kod">Pseudonym, som testledaren sätter</label><input id="st-kod" name="kod" maxlength="12" autocomplete="off" required></div>
           <div class="falt"><label for="st-testfall">Testfall</label><select id="st-testfall" name="testfall"><option value="alla">Alla testfall i testpaketet</option>${testfall.filter(t => t.genomfors).map(t => `<option value="${esc(t.nr)}">${esc(t.nr)} ${esc(t.titel)}</option>`).join('')}</select></div>
-          <div class="falt"><label for="st-grupp">Användargrupp</label><select id="st-grupp" name="grupp">${GRUPPER.map(g => `<option>${esc(g)}</option>`).join('')}</select></div>
+          <div class="falt"><label for="st-grupp">Roll i testet</label><select id="st-grupp" name="grupp">${GRUPPER.map(g => `<option>${esc(g)}</option>`).join('')}</select></div>
         </div>
         <ol class="sus-lista">${SUS_SUSSA.map((p, i) => `<li><fieldset class="sus"><legend>${esc(p)}</legend>
           <div class="sus-skala"><span class="sus-anda" aria-hidden="true">${esc(SUS_SKALA_SUSSA[1])}</span>
@@ -80,7 +85,7 @@ export async function visa(main) {
       <h2 id="st-exp-rubrik">Expertgranskning mot ISO 9241-110 (mätning 4)</h2>
       <p class="dampad liten">Användbarhetsexperten bedömer systemet i sin helhet efter testerna. Varje dialogprincip får 10, 5, 2 eller 0 poäng, och summan av de sju omvandlas till utvärderingspoäng enligt Bilaga F1:2.</p>
       <form id="st-expert" novalidate>
-        <div class="falt"><label for="st-granskare">Granskarens kod</label><input id="st-granskare" name="kod" maxlength="12" autocomplete="off" required></div>
+        <div class="falt"><label for="st-granskare">Granskarens pseudonym</label><input id="st-granskare" name="kod" maxlength="12" autocomplete="off" required></div>
         <ol class="st-principer">${DIALOGPRINCIPER.map(p => `<li><fieldset><legend><strong>${esc(p.namn)}</strong></legend>
           <p class="liten">${esc(p.beskrivning)}</p>
           <ul class="liten st-fragor">${p.fragor.map(f => `<li>${esc(f)}</li>`).join('')}</ul>
@@ -93,7 +98,8 @@ export async function visa(main) {
         <div class="knapprad"><button type="submit" class="knapp">Spara granskningen</button></div>
       </form>
     </section>
-    <section class="ruta" aria-labelledby="st-sparade"><h2 id="st-sparade">Sparade svar</h2><div id="st-lista"></div></section>`;
+    <section class="ruta" aria-labelledby="st-sparade"><h2 id="st-sparade">Sparade svar i den här webbläsaren</h2><div id="st-lista"></div></section>
+    ${far('anvandartest_las') ? '<section class="ruta" aria-labelledby="st-server"><h2 id="st-server">Svaren på servern</h2><div id="st-serverlista"><p class="tom liten">Hämtar svaren.</p></div></section>' : ''}`;
 
   const ritaLista = () => {
     const x = lasa();
@@ -108,6 +114,29 @@ export async function visa(main) {
       ${x.sus.length || x.expert.length ? '<div class="knapprad"><button type="button" class="knapp liten" data-st="ladda">Ladda ner som fil</button><button type="button" class="knapp liten sekundar" data-st="radera">Radera alla svar</button></div>' : ''}`;
   };
   ritaLista();
+
+  // Svaret sparas på servern utan patientuppgifter. Servern prövar fälten och räknar poängen själv.
+  const sparaServer = async (data) => {
+    try {
+      const r = await api('/api/anvandartest/svar', { metod: 'POST', data });
+      notis(`Svaret för ${r.pseudonym} är sparat på servern: ${tal(r.poang, 1)} poäng, ${r.utvarderingspoang} utvärderingspoäng.`);
+      ritaServer();
+    } catch { /* felet visas som notis, och kopian finns i webbläsaren */ }
+  };
+  // Testledaren ser svaren på servern och exporterar dem.
+  const ritaServer = async () => {
+    const plats = el.querySelector('#st-serverlista');
+    if (!plats) return;
+    let d;
+    try { d = await api('/api/anvandartest/svar', { tyst: true }); } catch { plats.innerHTML = '<p class="tom liten">Svaren kunde inte hämtas.</p>'; return; }
+    const s = d.sammanstallning;
+    plats.innerHTML = `${d.svar.length ? `<div class="tabellrulle"><table class="tabell st-serversvar"><thead><tr><th scope="col">Pseudonym</th><th scope="col">Roll</th><th scope="col">Datum</th><th scope="col">Testfall</th><th scope="col">Typ</th><th scope="col" class="tal">Poäng</th></tr></thead><tbody>
+        ${d.svar.map(r => `<tr><td>${esc(r.pseudonym)}</td><td>${esc(r.roll)}</td><td>${esc(r.datum)}</td><td>${esc(r.testfall)}</td><td>${r.typ === 'sus' ? 'SUS' : 'Expertgranskning'}</td><td class="tal">${tal(r.poang, 1)}</td></tr>`).join('')}
+      </tbody></table></div>` : '<p class="tom liten">Inga svar är sparade på servern.</p>'}
+      <p class="liten">SUS: ${s.sus.antal} svar${s.sus.medel != null ? `, medelvärde ${tal(s.sus.medel, 1)}, ${s.sus.utvarderingspoang} utvärderingspoäng` : ''}. Expertgranskning: ${s.expert.antal}${s.expert.senaste ? `, den senaste ${s.expert.senaste.summa} av 70, ${s.expert.senaste.utvarderingspoang} utvärderingspoäng` : ''}.</p>
+      <p class="knapprad"><a class="knapp liten" href="/api/anvandartest/svar/export?format=csv" download>Exportera som CSV</a><a class="knapp liten sekundar" href="/api/anvandartest/svar/export?format=json" download>Exportera som JSON</a></p>`;
+  };
+  ritaServer();
 
   const susForm = el.querySelector('#st-sus');
   const susSvar = () => Array.from({ length: 10 }, (_, i) => Number(susForm.querySelector(`[name="sus${i + 1}"]:checked`)?.value ?? NaN));
@@ -125,6 +154,7 @@ export async function visa(main) {
     fel(susForm, null);
     const x = lasa();
     x.sus.push({ kod, testfall: susForm.testfall.value, grupp: susForm.grupp.value, svar: susSvar(), poang: p, tid: new Date().toISOString() });
+    if (inloggad) sparaServer({ typ: 'sus', roll: susForm.grupp.value, pseudonym: kod, testfall: susForm.testfall.value, svar: susSvar() });
     const ok = spara(x);
     notis(ok ? `SUS-svaret för ${kod} är sparat: ${tal(p, 1)} av 100.` : 'Svaret kunde inte sparas i den här webbläsaren.', ok ? 'ok' : 'fel');
     susForm.reset();
@@ -147,6 +177,7 @@ export async function visa(main) {
     const kommentarer = DIALOGPRINCIPER.map(p => expForm[`k${p.nr}`].value.trim());
     if (!kommentarer.every(kommentarGiltig)) return fel(expForm, 'En kommentar har sex siffror i rad. Skriv inga personnummer eller andra patientuppgifter.');
     fel(expForm, null);
+    if (inloggad) sparaServer({ typ: 'expert', roll: 'Användbarhetsexpert', pseudonym: kod, testfall: 'alla', svar: DIALOGPRINCIPER.map((pr, i) => ({ nr: pr.nr, poang: expPoang()[i], kommentar: kommentarer[i] })) });
     const x = lasa();
     x.expert.push({ kod, principer: DIALOGPRINCIPER.map((p, i) => ({ nr: p.nr, namn: p.namn, poang: expPoang()[i], kommentar: kommentarer[i] })), summa: r.summa, utvarderingspoang: r.poang, tid: new Date().toISOString() });
     const ok = spara(x);
