@@ -150,8 +150,8 @@ describe('Ombud', () => {
     expect(r.data.planer).toEqual([]);
     expect(r.data.typer.map(t => t.id)).not.toContain('recept');
     expect(r.data.typer.map(t => t.id)).not.toContain('vardplan');
-    // Den seedade tråden om receptet, som patienten själv startade, visas utan vad den gäller.
-    expect(r.data.tradar.some(t => t.typ === 'recept')).toBe(true);
+    // Den seedade tråden om receptet, som patienten själv startade, finns inte för ombudet.
+    expect(r.data.tradar.some(t => t.typ === 'recept')).toBe(false);
     const text = JSON.stringify(r.data);
     for (const x of hemligt) expect(text).not.toContain(x);
     for (const t of r.data.tradar) expect(t.galler).toBeNull();
@@ -169,11 +169,10 @@ describe('Ombud', () => {
     // När läkaren har förnyat receptet nämner svaret inte läkemedlet, så ombudet ser det inte heller där.
     const s = sandlada(app, o);
     som(s, 'lak-kard');
-    const rid = r.data.tradar.find(t => t.typ === 'recept').id;
+    const rid = d.query("SELECT id FROM meddelandetradar WHERE patient_id = 'p01' AND typ = 'recept'").get().id;
     expect((await o.post(`/api/meddelanden/${rid}/avsluta`, { utfall: 'fornyat' })).status).toBe(200);
     somInv(s, 'inv-om01');
     const efter = JSON.stringify((await o.get('/api/min/journal/p01/meddelanden')).data);
-    expect(efter).toContain('Receptet är förnyat');
     for (const x of hemligt) expect(efter).not.toContain(x);
     // Samma anrop för patienten själv fungerar som förut.
     somInv(sandlada(app, o), 'inv-p01');
@@ -183,6 +182,48 @@ describe('Ombud', () => {
     expect(p.typer.map(t => t.id)).toEqual(expect.arrayContaining(['recept', 'vardplan']));
     expect(p.tradar.find(t => t.typ === 'recept').galler).toBeTruthy();
     expect((await o.post('/api/min/journal/p01/meddelanden', { typ: 'vardplan', text: 'Bra plan.', planId: planer[0].id })).status).toBe(201);
+  });
+
+  test(T10.ombudTradar, async () => {
+    const o = await invanare('inv-om01');
+    const d = db(o);
+    const s = sandlada(app, o);
+    const lm = d.query("SELECT o.id, k.namn FROM ordinationer o JOIN katalog k ON k.id = o.lakemedel_id WHERE o.patient_id = 'p01' AND o.status = 'aktiv' ORDER BY o.id LIMIT 1").get();
+    const recept = d.query("SELECT * FROM meddelandetradar WHERE patient_id = 'p01' AND typ = 'recept'").get();
+    // En äldre systemrad i tråden som nämner läkemedlet, som den kan ha sett ut innan svaret skrevs om.
+    d.query("INSERT INTO invanarmeddelanden (trad_id, patient_id, enhet_id, fran, text, tid) VALUES (?, 'p01', 'uso-kard', 'systemet', ?, ?)").run(recept.id, `Receptet för ${lm.namn} är förnyat.`, iso());
+    // En tråd om en vårdplan som patienten har startat.
+    const plan = Number(d.query("INSERT INTO vardplaner (patient_id, enhet_id, mall, rubrik, uppfoljning, skapad, skapad_av) VALUES ('p01', 'uso-kard-72', NULL, 'Plan för andningen', ?, ?, 'ssk-kard')").run(addDagar(idag(), 7), iso()).lastInsertRowid);
+    somInv(s, 'inv-p01');
+    const pt = await o.post('/api/min/journal/p01/meddelanden', { typ: 'vardplan', planId: plan, text: 'Plan för andningen är bra.' });
+    expect(pt.status).toBe(201);
+    // Ombudet ser varken trådarna, texterna eller räknarna för dem.
+    somInv(s, 'inv-om01');
+    const fore = d.query("SELECT count(*) AS n FROM invanarmeddelanden WHERE trad_id IN (?, ?) AND lasd IS NULL AND fran <> 'invanare'").get(recept.id, pt.data.trad.id).n;
+    const r = await o.get('/api/min/journal/p01/meddelanden');
+    expect(r.status).toBe(200);
+    const text = JSON.stringify(r.data);
+    for (const x of [lm.namn, 'Plan för andningen', 'snart slut på tabletterna', `"id":${recept.id},`, `"id":${pt.data.trad.id},`]) expect(text).not.toContain(x);
+    expect(r.data.tradar.every(t => !['recept', 'vardplan'].includes(t.typ))).toBe(true);
+    // Läsningen markerar inte de dolda trådarnas svar som lästa.
+    expect(d.query("SELECT count(*) AS n FROM invanarmeddelanden WHERE trad_id IN (?, ?) AND lasd IS NULL AND fran <> 'invanare'").get(recept.id, pt.data.trad.id).n).toBe(fore);
+    // Ett svar i en dold tråd ger samma svar som i en tråd som inte finns.
+    const dold = await o.post(`/api/min/journal/p01/meddelanden/${recept.id}/svar`, { text: 'Hej' });
+    const saknas = await o.post('/api/min/journal/p01/meddelanden/999999/svar', { text: 'Hej' });
+    expect(dold.status).toBe(404);
+    expect(dold.data).toEqual(saknas.data);
+    // Taket för öppna meddelanden räknar bara ombudets synliga trådar, så att det inte röjer de dolda. Med de två dolda
+    // har patienten sex öppna trådar, men ombudet ser fyra och kan skriva ett till.
+    for (let i = 0; i < 3; i++) expect((await o.post('/api/min/journal/p01/meddelanden', { typ: 'fraga', text: `Fråga ${i}`, enhetId: 'uso-kard' })).status).toBe(201);
+    const r2 = (await o.get('/api/min/journal/p01/meddelanden')).data;
+    expect(r2.tradar).toHaveLength(4);
+    expect(r2.kanSkriva).toBe(true);
+    // Patienten själv ser trådarna och kan svara.
+    somInv(s, 'inv-p01');
+    const p = (await o.get('/api/min/journal/p01/meddelanden')).data;
+    expect(p.tradar.map(t => t.id)).toEqual(expect.arrayContaining([recept.id, pt.data.trad.id]));
+    expect(JSON.stringify(p)).toContain(lm.namn);
+    expect((await o.post(`/api/min/journal/p01/meddelanden/${recept.id}/svar`, { text: 'Tack.' })).status).toBe(200);
   });
 
   test(T10.ombudLogg, async () => {

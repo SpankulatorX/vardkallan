@@ -114,6 +114,10 @@ function avInvanare(db, t, invanareId) {
 // listas inte, recept och vårdplan kan inte väljas, och vad en tråd gäller visas inte när det kommer från en ordination
 // eller en plan, inte heller i en tråd som patienten själv startade.
 const OMBUD_UTAN = ['recept', 'vardplan'];
+// En tråd som gäller en ordination eller en plan finns inte för ett ombud: den visas inte, räknas inte, markeras inte
+// som läst och ger samma svar som en tråd som inte finns, eftersom texten i den kan nämna läkemedlet eller planen.
+export const synligFor = (atk, t) => atk.relation !== 'ombud' || (!t.ordination_id && !t.plan_id);
+const synligaTradar = (atk, villkor = '') => atk.db.query(`SELECT * FROM meddelandetradar WHERE patient_id = ? ${villkor} ORDER BY id DESC`).all(atk.patientId).filter(t => synligFor(atk, t));
 export const OMBUD_NEJ = 'Som ombud kan du inte be om förnyade recept eller kommentera vårdplanen, eftersom det gäller journalen. Det kan patienten själv eller en vårdnadshavare göra.';
 
 function tradUt(db, t, { forInvanare, ombud = false }) {
@@ -145,15 +149,16 @@ export function minLista(atk) {
   sakra(db);
   const pid = atk.patientId;
   const ombud = atk.relation === 'ombud';
-  const tradar = db.query('SELECT * FROM meddelandetradar WHERE patient_id = ? ORDER BY id DESC').all(pid);
+  const tradar = synligaTradar(atk);
   const ut = tradar.map(t => tradUt(db, t, { forInvanare: true, ombud }));
-  // Den som läser markeras som läst på vårdens svar.
-  db.query("UPDATE invanarmeddelanden SET lasd = ? WHERE patient_id = ? AND fran <> 'invanare' AND lasd IS NULL").run(iso(), pid);
+  // Den som läser markeras som läst på vårdens svar, bara i de trådar som den som läser ser.
+  const las = db.query("UPDATE invanarmeddelanden SET lasd = ? WHERE trad_id = ? AND fran <> 'invanare' AND lasd IS NULL");
+  for (const t of tradar) las.run(iso(), t.id);
   const typer = Object.entries(TYPER).filter(([k]) => !(ombud && OMBUD_UTAN.includes(k)) && (k !== 'vardplan' || planer(db, pid).length)).map(([id, t]) => ({ id, text: t.text }));
   return {
     tradar: ut, mottagare: mottagare(db, pid), typer, lakemedel: ombud ? [] : fornybara(db, pid), planer: ombud ? [] : planer(db, pid),
     intygstyper: Object.entries(kassa.INTYGSTYPER).map(([id, t]) => ({ id, text: t.text })),
-    kanSkriva: db.query("SELECT count(*) AS n FROM meddelandetradar WHERE patient_id = ? AND status <> 'avslutad'").get(pid).n < MAX_OPPNA,
+    kanSkriva: tradar.filter(t => t.status !== 'avslutad').length < MAX_OPPNA,
     demoregler: DEMOREGLER,
   };
 }
@@ -171,10 +176,11 @@ export function minSkapa(atk, body = {}) {
   const text = textIn(body.text);
   // Vid ord som kan tyda på något akut skickas inget förrän invånaren har läst rådet.
   if (AKUT.test(text) && body.akutLast !== true) return { skickat: false, akut: AKUT_TEXT };
-  if (db.query("SELECT count(*) AS n FROM meddelandetradar WHERE patient_id = ? AND status <> 'avslutad'").get(pid).n >= MAX_OPPNA) {
+  // Taken räknar bara de trådar som den som skriver ser, så att de inte röjer trådar som är dolda för ett ombud.
+  if (synligaTradar(atk, "AND status <> 'avslutad'").length >= MAX_OPPNA) {
     throw new Fel(400, `Du har ${MAX_OPPNA} meddelanden som vården inte har avslutat. Vänta på svar innan du skriver ett nytt.`, 'ogiltig');
   }
-  if (db.query('SELECT count(*) AS n FROM meddelandetradar WHERE patient_id = ?').get(pid).n >= MAX_PER_PATIENT) throw new Fel(400, 'Du har skickat många meddelanden. Ring vårdenheten.', 'ogiltig');
+  if (synligaTradar(atk).length >= MAX_PER_PATIENT) throw new Fel(400, 'Du har skickat många meddelanden. Ring vårdenheten.', 'ogiltig');
   let enhet = null;
   let ordinationId = null;
   let planId = null;
@@ -213,7 +219,7 @@ export function minSkapa(atk, body = {}) {
 export function minSvara(atk, tid, body = {}) {
   const db = atk.db;
   const t = tradRad(db, tid);
-  if (!t || t.patient_id !== atk.patientId) throw new Fel(404, 'Meddelandet finns inte.', 'saknas');
+  if (!t || t.patient_id !== atk.patientId || !synligFor(atk, t)) throw new Fel(404, 'Meddelandet finns inte.', 'saknas');
   if (t.status === 'avslutad') throw new Fel(400, 'Vården har avslutat ärendet. Skriv ett nytt meddelande om du har fler frågor.', 'ogiltig');
   const text = textIn(body.text);
   db.query("INSERT INTO invanarmeddelanden (trad_id, patient_id, enhet_id, fran, invanare_id, text, tid) VALUES (?, ?, ?, 'invanare', ?, ?, ?)").run(t.id, t.patient_id, t.enhet_id, atk.invanare.id, text, iso());

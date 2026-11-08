@@ -1,5 +1,5 @@
 {
-  "tid": "2026-11-08T17:59:04.626Z",
+  "tid": "2026-11-08T18:02:28.918Z",
   "bas": "http://127.0.0.1:18207",
   "webblasare": "Chromium 147.0.7727.15",
   "gransnittHash": "8c1b7fcd35c830ccbba8bd1859b4c73c4388d9b8ed4d80d45f0476825e78998f",
@@ -12,12 +12,14 @@
       "start": "Arbetslistan efter inloggning",
       "budget": 1,
       "motivering": "Ett klick på patientens namn. Översikten med läkemedel, diagnoser, mätvärden och senaste anteckningar ska synas direkt, utan flikbyte.",
-      "klick": 0,
+      "klick": 1,
       "faltbyten": 0,
       "tangenter": 0,
-      "uppmatt": 0,
-      "inomBudget": false,
-      "steg": []
+      "uppmatt": 1,
+      "inomBudget": true,
+      "steg": [
+        "klick: patientens namn i arbetslistan"
+      ]
     },
     {
       "id": "las-anteckning",
@@ -505,12 +507,15 @@
       "start": "Vårdadministratörens startsida",
       "budget": 2,
       "motivering": "Ett klick på Boka tid vid remissen och ett på den tid som systemet föreslår först. Tidstyp, yrkesroll, gränsen mot vårdgarantin och tidigare vårdgivare har systemet redan tagit hänsyn till, och kallelsen går ut av sig själv.",
-      "klick": 0,
+      "klick": 2,
       "faltbyten": 0,
       "tangenter": 0,
-      "uppmatt": 0,
-      "inomBudget": false,
-      "steg": []
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Boka tid vid remissen",
+        "klick: den första föreslagna tiden"
+      ]
     },
     {
       "id": "checka-in",
@@ -1515,7 +1520,7 @@
   "tester": [
     {
       "namn": "Gränssnitt > Klickbudget > Öppna patient från arbetslistan inom budget",
-      "status": "röd"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Klickbudget > Läsa senaste anteckning inom budget",
@@ -1623,7 +1628,7 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Boka tid för en remiss inom budget",
-      "status": "röd"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Klickbudget > Checka in en patient inom budget",
