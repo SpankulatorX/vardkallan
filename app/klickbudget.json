@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T16:05:27.713Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-08T18:02:35.643Z",
+  "bas": "http://127.0.0.1:18204",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "a4958a5c3ab9d28741b854b75e1242d4f99e5c0f3dc0b43cbe303f6d4c69169e",
+  "gransnittHash": "90c4d294fa93fe5eda078de8eb33c6d94d3c7ecfd6bdec5d7c37b8301e3c80c2",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -1373,6 +1373,59 @@
         "klick: Analys och statistik",
         "klick: Visa gruppen"
       ]
+    },
+    {
+      "id": "registrera-infart",
+      "namn": "Registrera en perifer venkateter",
+      "roll": "ssk-kard",
+      "start": "Patientens översikt",
+      "budget": 4,
+      "motivering": "Sussa 3.1.3.3 och 3.1.3.8. Ett klick på fliken In- och utfarter, ett fältbyte till Var den sitter och ett klick på Registrera. Perifer venkateter och den vanligaste storleken är förvalda, och systemet sätter tiden, vårdkontakten, KVÅ-koden och nästa skötsel. Budgeten har ett steg till för att välja en annan typ i listan.",
+      "klick": 2,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken In- och utfarter",
+        "fältbyte: var den sitter",
+        "klick: Registrera"
+      ]
+    },
+    {
+      "id": "skanna-restjournal",
+      "namn": "Skanna in en restjournal",
+      "roll": "adm-kard",
+      "start": "Patientens översikt",
+      "budget": 4,
+      "motivering": "Sussa 3.1.10.1 och 3.1.10.2. Ett klick på fliken Restjournaler, ett på Skannat dokument och ett på Spara restjournalen. Valet av fil i datorns fönster är ett steg till, som sidan inte ser. Systemet läser texten, föreslår dokumenttyp och period, kontrollerar personnumret och sätter vårdenhet, tid och den som skannade.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Restjournaler",
+        "klick: Skannat dokument",
+        "klick: Spara restjournalen"
+      ]
+    },
+    {
+      "id": "starta-donation",
+      "namn": "Pröva donation efter ett dödsfall på intensivvården",
+      "roll": "lak-kard",
+      "start": "Inkorgen med ett förslag om donation",
+      "budget": 2,
+      "motivering": "Sussa 3.1.12.1. Ett klick på förslaget i inkorgen och ett på Starta donationsutredning. Systemet har redan identifierat den möjliga donatorn, slår upp Donationsregistret (simulerat) och bockar av det som går att räkna ut i checklistan.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: förslaget Möjlig donator i inkorgen",
+        "klick: Starta donationsutredning"
+      ]
     }
   ],
   "tester": [
@@ -1678,6 +1731,18 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Visa en färdig patientgrupp inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera en perifer venkateter inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Skanna in en restjournal inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Pröva donation efter ett dödsfall på intensivvården inom budget",
       "status": "grön"
     }
   ]
