@@ -401,7 +401,9 @@ describe('Masterdata', () => {
     expect((await k.get('/api/masterdata')).status).toBe(401);
     await k.logga('lak-kard');
     const r = await k.get('/api/masterdata');
-    expect(r.data.delar.map(d => [d.del, d.kalla.id])).toEqual([['organisation', 'fil'], ['personal', 'fil'], ['befolkning', 'fil']]);
+    // Runda 9, r4: masterdatan har fler delar (masterdata.js), alla från filadaptern i demon.
+    expect(r.data.delar.map(d => [d.del, d.kalla.id]).slice(0, 3)).toEqual([['organisation', 'fil'], ['personal', 'fil'], ['befolkning', 'fil']]);
+    expect(r.data.delar.every(d => d.kalla.id === 'fil')).toBe(true);
     expect(r.data.delar.every(d => d.antal > 0)).toBe(true);
   });
 });

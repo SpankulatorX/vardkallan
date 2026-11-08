@@ -51,6 +51,12 @@ export const HJALP = {
     steg: ['Välj Ändra på regelns rad.', 'Skriv eller välj det nya värdet, från vilket datum det ska gälla och varför. Systemet visar effekten i dag och säger om värdet inte är rimligt.', 'En annan systemförvaltare godkänner ändringen under Att godkänna.'],
     systemet: 'Ändringen gäller först när den är godkänd, och aldrig bakåt i tiden. Regler som följer av lag eller av behörighetsmodellen går inte att ändra här, och sidan säger varför.',
   },
+  // Runda 9, r4: kodverken och masterdatan.
+  kodverk: {
+    rubrik: 'Lägga in en ny utgåva av ett kodverk',
+    steg: ['Välj Lägg in en ny utgåva, eller Nytt lokalt kodverk för verksamhetens egna koder.', 'Klistra in koderna med semikolon mellan kod och text. Systemet kontrollerar koderna och visar vad som är nytt, ändrat och borttaget.', 'En annan systemförvaltare godkänner utgåvan under Att godkänna.'],
+    systemet: 'En utgåva från en masterdatakälla läses in av systemet och läggs fram färdigjämförd. Diagnoser som redan har en borttagen kod står kvar som de dokumenterades.',
+  },
   boka: {
     rubrik: 'Boka en tid',
     steg: ['Dagens arbete visar remisser som väntar på tid, med dagar kvar mot vårdgarantin.', 'Välj Boka på raden och sedan en av tiderna som systemet föreslår.'],

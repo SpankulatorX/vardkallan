@@ -321,6 +321,44 @@
           "var": "#/datauttag",
           "rubrik": "Fler tabeller och kontrollregler i datauttaget",
           "text": "Datauttaget har nu mätvärden, anteckningar utan text, vårdtillfällen och patientavgifter. Manifestet visar kontrollreglerna per tabell, och en veckas uppdateringar sparas så att ändringarna kan läsas sedan vilken av dem som helst."
+        },
+        {
+          "id": "kodverk-och-masterdata",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "stor",
+          "var": "#/kodverk",
+          "rubrik": "Kodverk och masterdata på ett ställe",
+          "text": "Under Kodverk och masterdata lägger du in en ny utgåva av ett kodverk eller skapar ett lokalt kodverk. Systemet kontrollerar koderna och visar vad som ändras, och en kollega godkänner. Där ser du också när masterdatan senast lästes in och om en källa inte svarade."
+        },
+        {
+          "id": "migreringsfil",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "liten",
+          "var": "#/migrering",
+          "rubrik": "Läs in ett uttag ur ett annat journalsystem",
+          "text": "Under Migreringsavstämning läser du in ett uttag som FHIR Bundle. Systemet visar först vad som förs över och vilka poster som blir avvikelser, och stämmer av mot antalet i källan."
+        },
+        {
+          "id": "diagnoser-gallande-utgava",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Diagnoserna följer den utgåva som gäller",
+          "text": "När du registrerar en diagnos prövar systemet koden mot den utgåva av ICD-10-SE som gäller i dag och förklarar om en kod har tagits bort. Diagnoser som redan finns står kvar som de dokumenterades."
+        },
+        {
+          "id": "sokord-snomed",
+          "roller": [
+            "personal"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Sökorden får kod i Snomed CT",
+          "text": "Systemet ger sökorden i dina anteckningar kod i Snomed CT, en del av det nationella fackspråket, så att journalen kan läsas av andra system. Du väljer sökord som förut och ser aldrig koden."
         }
       ]
     },

@@ -341,3 +341,7 @@ export const K11 = {
     bcg: { typ: { kod: '408864009', text: 'vaccinationsstatus' }, varde: { kod: '473170005', text: 'anamnes på BCG-vaccination' } },
   },
 };
+
+// Runda 9, r4: Snomed CT, begreppssystemet i Nationellt fackspråk. Delmängden som Vårdkällan använder och kontrollen av
+// koderna finns i fackssprak.js, och förvaltningen av kodverkens utgåvor över tid i kodverksforvaltning.js.
+SYSTEM.snomed = 'http://snomed.info/sct';

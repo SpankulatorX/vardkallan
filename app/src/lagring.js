@@ -25,7 +25,9 @@ const ENHETSKOLUMNER = ['enhet_id', 'vardenhet_id', 'fran_enhet_id', 'till_enhet
 const GEMENSAMMA = new Set(['katalog', 'installningar', 'migrering', 'forpackningar', 'produkttyper', 'substansmallar', 'paketversioner', 'ordinationspaket',
   'tidboksregler', 'konfig_andringar', 'fhir_andringar_last', 'visningsregler',
   // Runda 7, r2: övningarna i utbildningen gäller hela vårdgivaren.
-  'ovningsversioner']);
+  'ovningsversioner',
+  // Runda 9, r4: kodverkens utgåvor gäller hela vårdgivaren.
+  'kodverk_utgavor']);
 // Tabeller som hör till systemförvaltningen och inte till en huvudman i ett uttag.
 // Datauttaget för uppföljning byggs om ur uppgifterna och följer inte med i ett uttag.
 // Runda 9, r5: de gemensamma tabellerna kopieras till en ny utbildnings- eller testmiljö (miljoer.js).
@@ -34,7 +36,11 @@ const SYSTEM = new Set(['omorganisationer', 'omorganisation_flyttar', 'lagringsm
   // Runda 7, r2: vilka nyheter en användare har stängt hör till inloggningen och inte till en huvudman.
   'nyheter_stangda',
   // Runda 9, r6: det öppna API:ts tillämpningar, mottagare och ärenden hör till förvaltningen (api-forvaltning.js).
-  'api_tillampningar', 'api_mottagare', 'api_arenden', 'api_arende_svar']);
+  'api_tillampningar', 'api_mottagare', 'api_arenden', 'api_arende_svar',
+  // Runda 9, r4: rapporterna från inläsningen av masterdata.
+  'masterdata_synk',
+  // Runda 9, r4: migreringsfilerna som har lästs in.
+  'migrering_filer']);
 // Tabeller vars koppling inte går att se på kolumnnamnen.
 const UTTRYCKLIGA = {
   dubblettforslag: { typ: 'patient', kolumner: ['fran_patient_id', 'till_patient_id'] },
@@ -44,6 +50,8 @@ const UTTRYCKLIGA = {
   stickprov: { typ: 'via', kolumn: 'av', tabell: 'personal' },
   vardplan_mal: { typ: 'via', kolumn: 'plan_id', tabell: 'vardplaner' },
   vardplan_atgarder: { typ: 'via', kolumn: 'plan_id', tabell: 'vardplaner' },
+  // Runda 9, r4: uppgifterna om källan för en migrerad anteckning följer anteckningen.
+  migrering_metadata: { typ: 'via', kolumn: 'rad_id', tabell: 'anteckningar' },
 };
 
 // Vad den som lägger till en tabell gör när den inte går att knyta till en huvudman, på sidan Lagring. Testet av

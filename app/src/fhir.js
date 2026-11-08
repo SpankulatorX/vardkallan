@@ -7,7 +7,7 @@ import { FORMAT as MT_FORMAT } from './medicinteknik.js';
 import { Atkomst, kanRoll, visningsnamn, vardenhetFor } from './atkomst.js';
 // Runda 7, r4: undantag från FHIR för externa tillämpningar.
 import * as undantag from './undantag.js';
-import { MATTYPER, lasHandling, beskrivning } from './journal.js';
+import { MATTYPER, lasHandling, beskrivning, anteckningUt } from './journal.js';
 import { synligaVistelser } from './vardkontakt.js';
 import * as logg from './logg.js';
 import { SYSTEM as KODSYSTEM, ICD10SE, ATC, MATKOD } from './kodverk.js';
@@ -28,6 +28,11 @@ import * as atgarder from './atgarder.js';
 import { news2Fhir } from './vitalparametrar.js';
 import { ACVPU_KOD } from './kodverk.js';
 import { tolkaGcs } from './skalor.js';
+// Runda 9, r4: sökorden har kod i Snomed CT när det finns en exakt motsvarighet (fackssprak.js).
+import { sokordKod as snomedForSokord } from './fackssprak.js';
+// Runda 9, r4: en migrerad anteckning har författaren i källsystemet som text, aldrig en referens till en nuvarande personal.
+const migreradForfattare = (db, a) => (String(a.forfattare_id).startsWith('migrering:') ? { display: anteckningUt(db, a, { full: false }).forfattare.namn } : null);
+const sokordKod = (sokord) => { const k = snomedForSokord(sokord); return k ? { code: { coding: [k], text: sokord } } : {}; };
 // Läkemedelsprocessen, del 2 (runda 6, r2).
 import * as stod from './lakemedelsstod.js';
 // Runda 8, r4: dosändring från ett senare datum.
@@ -469,11 +474,11 @@ export function composition(db, a) {
     resourceType: 'Composition', id: String(a.id), meta: kallaMeta(a.kalla),
     status: a.status === 'utkast' ? 'preliminary' : a.ersatter_id ? 'amended' : 'final',
     type: { text: a.typ }, subject: ref('Patient', a.patient_id), encounter: a.vardkontakt_id ? ref('Encounter', a.vardkontakt_id) : undefined,
-    date: a.signerad_tid ?? a.skapad, author: [ref('Practitioner', a.forfattare_id, personNamn(db, a.forfattare_id))], title: a.typ,
+    date: a.signerad_tid ?? a.skapad, author: [migreradForfattare(db, a) ?? ref('Practitioner', a.forfattare_id, personNamn(db, a.forfattare_id))], title: a.typ,
     custodian: ref('Organization', a.enhet_id, enhetsnamn(db, a.enhet_id)),
     ...(relatesTo.length ? { relatesTo } : {}),
     ...kontrasignerad(db, a),
-    ...(sokord.length ? { section: sokord.map(s => ({ title: s.sokord, text: { status: 'generated', div: `<div xmlns="http://www.w3.org/1999/xhtml">${escape(s.text)}</div>` } })) } : {}),
+    ...(sokord.length ? { section: sokord.map(s => ({ title: s.sokord, ...sokordKod(s.sokord), text: { status: 'generated', div: `<div xmlns="http://www.w3.org/1999/xhtml">${escape(s.text)}</div>` } })) } : {}),
   };
 }
 

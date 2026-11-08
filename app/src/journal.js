@@ -59,6 +59,16 @@ export function anteckningUt(db, a, { full = true } = {}) {
     version: a.version, ersatterId: a.ersatter_id, rattelseOrsak: a.rattelse_orsak, ersattAvId: ersatt, ersatt: ersatt != null,
     kalla: a.kalla, kallaEtikett: kallaEtikett(a.kalla, a.skapad),
   };
+  // Runda 9, r4: en anteckning som har lästs in från en migreringsfil har källsystemet som författare, aldrig en nuvarande
+  // personal. Författaren och signeringen i källsystemet visas som uppgifter om källan, märkta som migrerade.
+  if (String(a.forfattare_id).startsWith('migrering:')) {
+    const kalla = a.forfattare_id.slice(10);
+    const k = require('./migreringsimport.js').kallaUppgifter(db, a.id);
+    const vem = { id: null, namn: k?.forfattare ?? `Okänd författare i ${kalla}`, yrke: null, titel: `Författare i ${kalla}, migrerad` };
+    ut.forfattare = vem;
+    ut.signerad = a.signerad_tid ? { tid: a.signerad_tid, av: vem, iKallan: true } : null;
+    ut.kallaUppgifter = k;
+  }
   if (full) ut.sokord = sokord;
   // Runda 8, r5: svaren i mallen för tobaksvanor lämnas ut tillsammans med anteckningen.
   if (full && a.typ === tobak.TYP) ut.tobak = tobak.ut(db, a.id);

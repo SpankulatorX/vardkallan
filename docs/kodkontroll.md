@@ -373,3 +373,11 @@ Enheterna är kontrollerade mot UCUM via tx.fhir.org (`CodeSystem/$validate-code
 **HL7 Terminology** (tx.fhir.org): v2-0487 BLD, SER, PLAS, UR och TISS (provets typ), v2-0074 LAB, MB och SP (kategori för svaret) och v3-ObservationInterpretation H, L, HH, LL och N (tolkning). LOINC 11502-2 Laboratory report är koden för svaret.
 
 **Code 128.** Streckkoden på etiketterna (app/src/streckkod.js, kodtabell B) är jämförd bit för bit med zint 2.x (`zint -b 20 --dump`) för fem texter med bokstäver, siffror och specialtecken: samma mönster.
+
+## Runda 9: Snomed CT och Nationell informationsstruktur (2026-11-08)
+
+Delmängden av Snomed CT i `app/src/fackssprak.js` (sökorden i journalens mallar, åtgärderna med KVÅ och sökordet Tobak och nikotin) slogs upp en kod i taget med `CodeSystem/$lookup` på tx.fhir.org mot SNOMED CT International Edition, version `http://snomed.info/sct/900000000000207008/version/20250201`. Alla begrepp är aktiva, och den engelska föredragna termen står som display. Kandidaterna söktes fram med `ValueSet/$expand` med ett filter på termen. Sökord där inget begrepp motsvarar innehållet exakt (Andning/cirkulation, Hud/vävnad, Stöd och Kommentar) fick ingen kod. Provtyperna och fynden i beställning och svar kontrollerades i runda 8.
+
+Den svenska utgåvan (modul 45991000052106) finns inte på tx.fhir.org och kräver licens, så de svenska termerna och koderna ur bilaga K11 är inte kontrollerade mot den. I bygget kontrolleras varje identitet med Snomed CT:s kontrollsiffra (Verhoeff) och partitionen, 00 för den internationella utgåvan och 10 för en nationell.
+
+Informationsklasserna och begreppen i `app/src/informationsmodell-ni.json` är ordagranna ur Socialstyrelsens dokument Nationell informationsstruktur 2023:2 Modeller för hälso- och sjukvård (informationsstruktur.socialstyrelsen.se, hämtat via webbarkivet 2026-11-08, eftersom webbplatsen inte svarade). Begreppens definitioner står i dokumentet som definitioner enligt Socialstyrelsens termbank. Ansvaret för NI, Snomed CT och klassifikationerna flyttas till E-hälsomyndigheten.

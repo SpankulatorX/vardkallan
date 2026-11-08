@@ -1,0 +1,30 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "meta": { "source": "VAS" },
+  "entry": [
+    { "resource": { "resourceType": "Parameters", "parameter": [
+      { "name": "kalla", "valueString": "VAS" },
+      { "name": "antal.Encounter", "valueInteger": 1 },
+      { "name": "antal.Condition", "valueInteger": 2 },
+      { "name": "antal.Observation", "valueInteger": 2 },
+      { "name": "antal.Composition", "valueInteger": 1 }
+    ] } },
+    { "resource": { "resourceType": "Encounter", "status": "finished", "class": { "code": "AMB" },
+      "meta": { "tag": [{ "system": "urn:oid:1.2.752.129.2.1.4.1", "code": "SE2321000164-VK0120" }] },
+      "subject": { "identifier": { "system": "http://electronichealth.se/identifier/personnummer", "value": "194502024732" } },
+      "period": { "start": "2011-09-14T08:00:00Z", "end": "2011-09-14T08:40:00Z" }, "reasonCode": [{ "text": "Kontroll efter utskrivning, simulerat uttag" }] } },
+    { "resource": { "resourceType": "Condition",
+      "meta": { "tag": [{ "system": "urn:oid:1.2.752.129.2.1.4.1", "code": "SE2321000164-VK0120" }] },
+      "subject": { "identifier": { "system": "http://electronichealth.se/identifier/personnummer", "value": "194502024732" } },
+      "code": { "coding": [{ "system": "urn:oid:1.2.752.116.1.1.1", "code": "I10.9", "display": "Essentiell hypertoni (högt blodtryck utan känd orsak)" }] }, "recordedDate": "2011-09-14" } },
+    { "resource": { "resourceType": "Condition",
+      "meta": { "tag": [{ "system": "urn:oid:1.2.752.129.2.1.4.1", "code": "SE2321000164-VK0999" }] },
+      "subject": { "identifier": { "system": "http://electronichealth.se/identifier/personnummer", "value": "194502024732" } },
+      "code": { "coding": [{ "system": "urn:oid:1.2.752.116.1.1.1", "code": "E78.0" }] }, "recordedDate": "2011-09-14" } },
+    { "resource": { "resourceType": "Observation", "status": "final",
+      "meta": { "tag": [{ "system": "urn:oid:1.2.752.129.2.1.4.1", "code": "SE2321000164-VK0120" }] },
+      "subject": { "identifier": { "system": "http://electronichealth.se/identifier/personnummer", "value": "194502024732" } },
+      "code": { "coding": [{ "system": "http://npu-terminology.org", "code": "NPU19748" }] }, "valueQuantity": { "value": 4 }, "effectiveDateTime": "2011-09-14T07:30:00Z" } }
+  ]
+}

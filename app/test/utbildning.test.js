@@ -66,6 +66,9 @@ describe('Nyheter', () => {
     for (const id of ['egna-ovningar', 'remiss-pa-uppdrag', 'prover-och-kontroller']) expect(atta).not.toContain(id);
     const omf = lak.ruta.nyheter.map(n => n.omfattning);
     expect(omf).toEqual([...omf].sort((a, b) => (a === 'stor' ? 0 : 1) - (b === 'stor' ? 0 : 1)));
+    // Runda 9, r4: den aktuella versionens diagnosnyhet visas för läkaren, men inte systemförvaltarens kodverk.
+    expect(lak.ruta.nyheter.map(n => n.id)).toEqual(expect.arrayContaining(['diagnoser-gallande-utgava']));
+    expect(lak.ruta.nyheter.map(n => n.id)).not.toContain('kodverk-och-masterdata');
     // Historiken har också de tidigare versionernas nyheter för läkaren, men inte de som gäller andra roller.
     expect(lak.alla.map(v => v.version)).toEqual(nyheter.NYHETER.map(v => v.version));
     expect(version(lak, '0.7.0')).toContain('hjalp-och-intyg');
