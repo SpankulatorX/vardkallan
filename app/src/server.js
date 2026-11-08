@@ -40,6 +40,8 @@ import { registreraRutter as r1Rutter } from './sok-matvarden-logg-rutter.js';
 import * as vitalparametrar from './vitalparametrar.js';
 import * as sakerhetslogg from './sakerhetslogg.js';
 // Läkemedelsprocessen, del 2 (runda 6, r2).
+// Runda 8, r4: dosändring i en pågående ordination.
+import * as dosandring from './dosandring.js';
 import { registreraRutter as lakemedelsstodRutter, inkorg as lakemedelsstodInkorg } from './lakemedelsstod-rutter.js';
 import * as lakemedelsstod from './lakemedelsstod.js';
 import * as lakemedelsvyer from './lakemedelsvyer.js';
@@ -943,6 +945,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('POST', '/api/ordination/:id/utsatt', (c, id) => medOrdination(c, id, (atk, o) => lakemedel.utsatt(atk, o, c.body)));
   rutt('POST', '/api/ordination/:id/nll-avstam', (c, id) => medOrdination(c, id, (atk, o) => lakemedel.avstam(atk, o)));
   rutt('GET', '/api/ordination/:id/utsattning', (c, id) => medOrdination(c, id, (atk, o) => lakemedel.utsattningskontroll(atk, o)));
+  // Runda 8, r4: dosändring i en pågående ordination, med ny dosering från ett datum (dosandring.js).
+  rutt('GET', '/api/ordination/:id/dosandring', (c, id) => medOrdination(c, id, (atk, o) => dosandring.underlag(atk, o)));
+  rutt('POST', '/api/ordination/:id/dosandring', (c, id) => medOrdination(c, id, (atk, o) => dosandring.andra(atk, o, c.body)));
 
   // Läkemedelsprocessen (Sussa 3.5): administrering, vidimering, läkemedelsgenomgång, fördefinierade ordinationer,
   // planerad vårdhändelse och vätskebalans. Behörigheten prövas i administrering.js och vidimering.js, och varje

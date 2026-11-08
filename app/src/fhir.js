@@ -26,6 +26,8 @@ import { ACVPU_KOD } from './kodverk.js';
 import { tolkaGcs } from './skalor.js';
 // Läkemedelsprocessen, del 2 (runda 6, r2).
 import * as stod from './lakemedelsstod.js';
+// Runda 8, r4: dosändring från ett senare datum.
+import { planerade as planeradeDosandringar } from './dosandring.js';
 // Runda 7, r3: posterna i faktureringsunderlaget som ChargeItem (ekonomi.js).
 import * as ekonomi from './ekonomi.js';
 
@@ -304,6 +306,21 @@ function utokaMedicationRequest(db, o, r) {
   ].filter(Boolean);
   if (noter.length) r.note = [...(r.note ?? []), ...noter];
   if (t.muntlig) r.recorder = ref('Practitioner', t.muntlig.mottagenAv.id, t.muntlig.mottagenAv.namn);
+  // Runda 8, r4: en dosändring från ett senare datum blir en dosering per period, som trappschemat, och ett byte av
+  // styrka en not med den nya produkten.
+  // Två ändringar från samma dag: den senast gjorda gäller, som när de börjar gälla.
+  const planerade = (o.status === 'aktiv' && !t.trappning ? planeradeDosandringar(db, o.id) : []).filter((d, i, l) => l[i + 1]?.fran !== d.fran);
+  if (planerade.length) {
+    const forst = r.dosageInstruction[0];
+    const dagFore = (d) => new Date(Date.parse(`${d}T12:00:00Z`) - 86400_000).toISOString().slice(0, 10);
+    const period = (start, end) => ({ timing: { repeat: { boundsPeriod: { start, ...(end ? { end } : {}) } } } });
+    r.dosageInstruction = [{ sequence: 1, ...forst, ...period(o.start, dagFore(planerade[0].fran)) },
+      ...planerade.map((d, i) => ({ sequence: i + 2, text: d.dosering, asNeededBoolean: forst.asNeededBoolean, ...(forst.route ? { route: forst.route } : {}),
+        ...period(d.fran, planerade[i + 1] ? dagFore(planerade[i + 1].fran) : o.slut),
+        ...(d.dos != null && d.dosEnhet === 'mg' ? { doseAndRate: [{ doseQuantity: { value: d.dos, unit: 'mg', system: SYSTEM.ucum, code: 'mg' } }] } : {}) }))];
+    const byten = planerade.filter(d => d.lakemedel && d.lakemedel.id !== o.lakemedel_id);
+    if (byten.length) r.note = [...(r.note ?? []), ...byten.map(d => ({ text: `Från ${d.fran} byts produkten mot ${d.lakemedel.namn} ${d.lakemedel.styrka} ${d.lakemedel.form}.` }))];
+  }
   return r;
 }
 

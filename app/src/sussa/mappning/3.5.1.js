@@ -4,6 +4,8 @@
 import { medR2 } from '../lakemedel-r2.js';
 // Runda 6, r6: godkännande av läkemedelsmallar, vem som fastställer direktiv och vem som beslutar efter en avbokning.
 import { medR6 } from '../lakemedelsansvar-r6.js';
+// Runda 8, r4: produktmallar, tillsatser, administrationssätt och dosändring.
+import { medR8r4 } from '../lakemedel-r8.js';
 import { TEST } from '../../krav.js';
 
 const { B, A, M } = TEST;
@@ -127,4 +129,4 @@ const AVSNITT = [
   },
 ];
 // Runda 6, r2: posterna som byggdes i läkemedelsprocessen, del 2, ersätts ur sussa/lakemedel-r2.js.
-export default medR6(medR2(AVSNITT));
+export default medR8r4(medR6(medR2(AVSNITT)));

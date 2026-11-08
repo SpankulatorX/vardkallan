@@ -12,6 +12,8 @@ import { Fel, iso, idag } from './db.js';
 import { vardenhetFor } from './atkomst.js';
 import { loggaRad } from './logg.js';
 import { gallande, uppdragFor } from './lakemedelsansvar.js';
+// Runda 8, r4: beredningsformerna för mallens varianter.
+import { FORMGRUPPER } from './ordinationsmallar.js';
 
 const harTabell = (db) => Boolean(db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'mallgodkannanden'").get());
 const personNamn = (db, id) => (id ? db.query('SELECT namn FROM personal WHERE id = ?').get(id)?.namn ?? id : null);
@@ -51,6 +53,8 @@ function substansRader(m) {
     `${m.dosering}${m.typ ? `, ${TYPTEXT[m.typ] ?? m.typ}` : ''}${m.tider?.length ? `, kl. ${m.tider.join(', ')}` : ''}, uppföljning efter ${m.uppfoljning ?? 30} dagar.`,
     ...(m.aldre ? [`Från 75 år: ${m.aldre.dosering}.`] : []),
     ...(m.egfr ? [`Vid eGFR under 30: ${m.egfr.dosering}.`] : []),
+    // Runda 8, r4: varianterna för andra beredningsformer och styrkor.
+    ...(m.varianter ?? []).map(v => `${v.styrka ? `För ${v.styrka}` : `För ${FORMGRUPPER[v.form] ?? v.form}`}: ${v.dosering || 'dosering ur infusionen'}${v.typ ? `, ${TYPTEXT[v.typ] ?? v.typ}` : ''}.`),
   ];
 }
 

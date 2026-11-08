@@ -254,6 +254,11 @@ export const FLODEN = [
     id: 'tillvaxt-bhv', namn: 'Registrera längd och vikt vid ett BHV-besök och se kurvan', roll: 'ssk-vc', start: 'Översikten för ett barn på barnavårdscentralen', budget: 4,
     motivering: 'Sussa 4.1.1.4 och 4.1.1.6. Ett klick på fliken Tillväxt, där vikten redan har fokus, ett fältbyte till längden och ett klick för att registrera. Systemet sätter tid, vårdkontakt och kod, räknar BMI, SD och percentil och ritar kurvan direkt. Ett steg räknas med för huvudomfånget, som mäts vid de flesta besök det första året.',
   },
+  // Runda 8, r4: dosändring i en pågående ordination (Sussa 3.5.2.11 och 3.5.2.12, testfall 1.1).
+  {
+    id: 'andra-dos', namn: 'Ändra dosen i en pågående ordination', roll: 'lak-kard', start: 'Patientens översikt', budget: 4,
+    motivering: 'Sussa 3.5.2.12 och testfall 1.1. Ett klick till läkemedelslistan, ett på Ändra dos för raden, ett på den nya styrkan, där systemet fyller i doseringen och dosen, och ett för att spara. Ordinationen fortsätter med samma orsak och uppföljning, utan att sättas ut och ordineras på nytt, och den nya doseringen gäller från i dag om inget annat datum väljs.',
+  },
   // Runda 7, r2: nyhetsrutan efter en ny version (Sussa 10.1.1.4).
   {
     id: 'nyheter', namn: 'Läsa nyheterna och stänga dem', roll: 'lak-kard', start: 'Arbetslistan med nyheterna efter en ny version', budget: 1,

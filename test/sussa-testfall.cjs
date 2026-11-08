@@ -60,6 +60,8 @@ async function valjLakemedel(m, page, sok, namn) {
   await m.skriv(page.locator('#lm-sok'), sok, 'sök läkemedel');
   await m.klicka(page.locator('[data-lm]', { hasText: namn }).first(), `träffen ${namn}`);
   await page.waitForFunction(() => document.querySelector('#ordform input[name="lakemedelId"]')?.value);
+  // Runda 8, r4: systemets förslag ur produkten är ifyllt när förklaringen till förslaget visas.
+  await page.waitForSelector('#ordform #o-forslag:not([hidden])');
   await page.waitForTimeout(300);
 }
 async function sparaOrdination(m, page, namn) {
@@ -105,19 +107,22 @@ async function sok(m, page, sokord, namn) {
 // Flödena, ett per testfall. Varje flöde slutar med att kontrollera Sussas slutvillkor i gränssnittet.
 function floden(D) {
   return {
-    // Tema 1, läkemedelshantering (runda 7, r1).
+    // Tema 1, läkemedelshantering (runda 7, r1). Runda 8, r4: systemet föreslår doseringen ur produkten och
+    // administrationssättet ur beredningsformen, dosen ändras i den pågående ordinationen, en tillsats ordineras i
+    // infusionen och en muntlig ordination får läkaren och skälet från den förra.
     '1.1': async (m, page) => {
       await oppnaFranLista(m, page, 'Gerda Ström');
       // Första ordinationen från översikten, de följande från läkemedelsfliken som visas efter sparandet.
       const ny = async () => { const flik = page.locator('button[data-ny]:visible'); await m.klicka((await flik.count()) ? flik.first() : page.locator('.snabbval a', { hasText: 'Ordinera' }), 'Ordinera'); await page.waitForSelector('#ordform'); };
       await ny();
       await valjLakemedel(m, page, 'alvedon forte', 'Alvedon forte');
+      // Doseringen och dosen för 1 g tabletter kommer ur produkten.
+      await page.waitForFunction(() => document.querySelector('#ordform input[name="dos"]')?.value === '1000', null, { timeout: 10000 }).catch(() => { throw new Error('dosen för Alvedon forte är inte 1000 mg'); });
       await m.skriv(page.locator('#ordform input[name="ordinationsorsak"]'), 'Värk', 'ordinationsorsak');
-      await m.ersatt(page.locator('#ordform input[name="dosering"]'), '1 tablett 1 till 4 gånger dagligen vid behov, tillsvidare', 'dosering');
-      await m.ersatt(page.locator('#ordform input[name="dos"]'), '1000', 'dos');
       await sparaOrdination(m, page, 'Alvedon forte är ordinerat');
       await ny();
       await valjLakemedel(m, page, 'kloramfenikol', 'ögondroppar');
+      await page.waitForFunction(() => document.querySelector('#ordform select[name="administrationssatt"]')?.value === 'okulart', null, { timeout: 10000 }).catch(() => { throw new Error('ögondropparna har inte administrationssättet i ögat'); });
       await m.skriv(page.locator('#ordform input[name="dosering"]'), '1 droppe 6 gånger dagligen i höger öga i 1 vecka', 'dosering');
       await m.valj(page.locator('#ordform select[name="typ"]'), 'tillfallig', 'typen Tillfällig');
       await m.skriv(page.locator('#ordform input[name="ordinationsorsak"]'), 'Infektion', 'ordinationsorsak');
@@ -131,42 +136,33 @@ function floden(D) {
       await m.skriv(page.locator('#ordform input[name="ordinationsorsak"]'), 'Nedstämdhet', 'ordinationsorsak');
       await m.klicka(page.locator('#ordform [data-upp="14"]'), 'uppföljning om två veckor');
       await sparaOrdination(m, page, 'Sertralin Teva är ordinerat');
-      // Ny dos av Metformin: den gamla ordinationen sätts ut och den nya ordineras.
-      await m.klicka(page.locator('.flikar a', { hasText: 'Läkemedel' }), 'fliken Läkemedel');
-      await m.klicka(page.locator('.lm-tabell tr', { hasText: 'Metformin Sandoz' }).locator('[data-utsatt]'), 'Sätt ut för Metformin');
-      await m.skriv(page.locator('dialog[open] textarea'), 'Ny dos, ersätts med Metformin 850 mg', 'orsak');
-      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Sätt ut');
-      await synlig(page, '.notis', 'Metformin Sandoz är utsatt');
-      await m.klicka(page.locator('button[data-ny]:visible').first(), 'Ordinera i läkemedelsfliken');
-      await page.waitForSelector('#ordform');
-      await valjLakemedel(m, page, 'metformin teva', 'Metformin Teva 850');
-      await m.skriv(page.locator('#ordform input[name="ordinationsorsak"]'), 'Mot diabetes', 'ordinationsorsak');
-      await sparaOrdination(m, page, 'Metformin Teva är ordinerat');
+      // Ny dos av Metformin i den pågående ordinationen: styrkan 850 mg, där systemet fyller i doseringen och dosen.
+      await m.klicka(page.locator('.lm-tabell tr', { hasText: 'Metformin Sandoz' }).locator('[data-dosandring]'), 'Ändra dos för Metformin');
+      await m.klicka(page.locator('dialog[open] [data-styrka]', { hasText: '850 mg' }), 'styrkan 850 mg');
+      await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Ändra dosen');
+      await synlig(page, '.notis', 'dosen är ändrad');
+      await page.waitForSelector('.lm-tabell');
       for (const n of ['Alvedon forte', 'Kloramfenikol Santen', 'Sertralin Teva', 'Metformin Teva']) await synlig(page, '.lm-tabell', n);
+      await synlig(page, '.lm-tabell tr:has-text("Kloramfenikol Santen")', 'I ögat');
+      await synlig(page, '.lm-tabell tr:has-text("Metformin Teva")', '1 tablett morgon och kväll');
     },
     '1.2': async (m, page) => {
       await oppnaFranLista(m, page, 'Elin Arnström');
       // Första ordinationen från översikten, de följande från läkemedelsfliken som visas efter sparandet.
       const ny = async () => { const flik = page.locator('button[data-ny]:visible'); await m.klicka((await flik.count()) ? flik.first() : page.locator('.snabbval a', { hasText: 'Ordinera' }), 'Ordinera'); await page.waitForSelector('#ordform'); };
       await ny();
+      // Paracetamol som infusion: doseringen, dosen, typen och engångsdosen kommer ur produktens beredningsform.
       await valjLakemedel(m, page, 'paracetamol fresenius', 'Paracetamol Fresenius Kabi');
+      await page.waitForFunction(() => /infusion under 15 minuter/.test(document.querySelector('#ordform input[name="dosering"]')?.value ?? ''), null, { timeout: 10000 }).catch(() => { throw new Error('doseringen för paracetamol som infusion kommer inte ur produkten'); });
       await m.skriv(page.locator('#ordform input[name="ordinationsorsak"]'), 'Smärta', 'ordinationsorsak');
-      await m.ersatt(page.locator('#ordform input[name="dosering"]'), '100 ml engångsdos. Ges som intravenös infusion under 15 minuter', 'dosering');
-      await m.ersatt(page.locator('#ordform input[name="dos"]'), '1000', 'dos');
-      await m.valj(page.locator('#ordform select[name="typ"]'), 'tillfallig', 'typen Tillfällig');
       await sparaOrdination(m, page, 'Paracetamol Fresenius Kabi är ordinerat');
       await ny();
+      // Glukos med Addex-Magnesium som en ordination med tillsats. Systemet skriver doseringen ur infusionen.
       await valjLakemedel(m, page, 'glucos', 'Glucos Baxter');
-      await m.skriv(page.locator('#ordform input[name="dosering"]'), '1000 ml med Addex-Magnesium 20 mmol. Ges på två timmar', 'dosering');
-      await m.valj(page.locator('#ordform select[name="typ"]'), 'tillfallig', 'typen Tillfällig');
       await m.skriv(page.locator('#ordform input[name="ordinationsorsak"]'), 'Vätska och magnesium', 'ordinationsorsak');
+      await m.skriv(page.locator('#ordform [data-tillsats="VK-NPL-0051"]'), '20', 'Addex-Magnesium 20 mmol');
+      await m.ersatt(page.locator('#ordform input[name="spTid"]'), '120', 'infusionstiden 120 minuter');
       await sparaOrdination(m, page, 'Glucos Baxter');
-      await ny();
-      await valjLakemedel(m, page, 'addex', 'Addex-Magnesium');
-      await m.skriv(page.locator('#ordform input[name="dosering"]'), '20 mmol tillsätts i Glucos 1000 ml', 'dosering');
-      await m.valj(page.locator('#ordform select[name="typ"]'), 'tillfallig', 'typen Tillfällig');
-      await m.skriv(page.locator('#ordform input[name="ordinationsorsak"]'), 'Magnesium', 'ordinationsorsak');
-      await sparaOrdination(m, page, 'Addex-Magnesium är ordinerat');
       await ny();
       await valjLakemedel(m, page, 'stesolid', 'Stesolid 10');
       await m.skriv(page.locator('#ordform input[name="dosering"]'), '1 tablett som premedicinering 1 timme före röntgen', 'dosering');
@@ -175,7 +171,8 @@ function floden(D) {
       await m.klicka(page.locator('#ordform [data-vh="ny"]'), 'Ny vårdhändelse');
       await m.skriv(page.locator('#ordform input[name="vardhandelse"]'), 'Röntgen', 'vårdhändelsen');
       await sparaOrdination(m, page, 'Stesolid är ordinerat');
-      for (const n of ['Paracetamol Fresenius Kabi', 'Glucos Baxter', 'Addex-Magnesium', 'Stesolid']) await synlig(page, '.lm-tabell', n);
+      for (const n of ['Paracetamol Fresenius Kabi', 'Glucos Baxter', 'Stesolid']) await synlig(page, '.lm-tabell', n);
+      await synlig(page, '.lm-tabell tr:has-text("Glucos Baxter")', 'med 20 mmol Addex-Magnesium, intravenöst under 2 timmar');
     },
     '1.3': async (m, page) => {
       await oppnaFranLista(m, page, 'Trevis Ljung');
@@ -186,29 +183,28 @@ function floden(D) {
       await m.skriv(page.locator('#ordform input[name="omedelbar"]'), 'Svår smärta', 'varför behandlingen inte kan vänta');
       await valjLakemedel(m, page, 'alvedon forte', 'Alvedon forte');
       await m.skriv(page.locator('#ordform input[name="ordinationsorsak"]'), 'Smärta', 'ordinationsorsak');
-      await m.ersatt(page.locator('#ordform input[name="dosering"]'), '1 tablett, engångsordination', 'dosering');
-      await m.ersatt(page.locator('#ordform input[name="dos"]'), '1000', 'dos');
-      await m.valj(page.locator('#ordform select[name="typ"]'), 'tillfallig', 'typen Tillfällig');
+      await m.klicka(page.locator('#ordform [data-engangs]'), 'engångsdos');
       await sparaOrdination(m, page, 'Alvedon forte');
+      // Den andra muntliga ordinationen har läkaren och skälet från den första.
       await ny();
-      await m.valj(page.locator('#ordform select[name="lakareId"]'), 'lak-kard', 'läkaren Sara Lindqvist');
-      await m.skriv(page.locator('#ordform input[name="omedelbar"]'), 'Svår smärta', 'varför behandlingen inte kan vänta');
+      await page.waitForFunction(() => document.querySelector('#ordform input[name="omedelbar"]')?.value === 'Svår smärta');
+      if (await page.locator('#ordform select[name="lakareId"]').inputValue() !== 'lak-kard') throw new Error('läkaren är inte förvald i den andra muntliga ordinationen');
       await valjLakemedel(m, page, 'morfin abcur', 'Morfin Abcur');
-      await m.ersatt(page.locator('#ordform input[name="dosering"]'), '1 ml intramuskulärt, engångsordination', 'dosering');
-      await m.ersatt(page.locator('#ordform input[name="dos"]'), '10', 'dos');
-      await m.valj(page.locator('#ordform select[name="typ"]'), 'tillfallig', 'typen Tillfällig');
-      await m.valj(page.locator('#ordform select[name="administrationssatt"]'), 'intramuskulart', 'intramuskulärt');
       await m.skriv(page.locator('#ordform input[name="ordinationsorsak"]'), 'Smärta', 'ordinationsorsak');
+      await m.ersatt(page.locator('#ordform input[name="dos"]'), '10', 'dos');
+      await m.valj(page.locator('#ordform select[name="administrationssatt"]'), 'intramuskulart', 'intramuskulärt');
+      await m.klicka(page.locator('#ordform [data-engangs]'), 'engångsdos');
       await sparaOrdination(m, page, 'Morfin Abcur');
       for (const n of ['Alvedon forte', 'Morfin Abcur']) await synlig(page, '.lm-tabell', n);
+      await synlig(page, '.lm-tabell tr:has-text("Morfin Abcur")', '10 mg intramuskulärt som engångsdos');
     },
     '1.4': async (m, page) => {
       await m.klicka(page.locator('#meny-lista a[href="#/administrering"]'), 'Läkemedel att ge i menyn');
       await page.waitForSelector('.adm-patient');
       const bertil = page.locator('.adm-patient', { hasText: 'Bertil Danielsson' });
       // Instruktionerna står i doseringen, så att de kan läsas upp.
-      await bertil.locator('tr', { hasText: 'Ges som intravenös infusion under 15 minuter' }).first().waitFor();
-      await bertil.locator('tr', { hasText: 'Ges på två timmar' }).first().waitFor();
+      await bertil.locator('tr', { hasText: 'intravenös infusion under 15 minuter' }).first().waitFor();
+      await bertil.locator('tr', { hasText: 'med 20 mmol Addex-Magnesium, intravenöst under 2 timmar' }).first().waitFor();
       const dos = (namn) => bertil.locator('tr', { hasText: namn }).filter({ has: page.locator('[data-adm]') }).first();
       await m.klicka(dos('Paracetamol Fresenius Kabi').locator('[data-adm="ge"]'), 'Ge för Paracetamol');
       await synlig(page, '.notis', 'Paracetamol Fresenius Kabi är given');
@@ -221,7 +217,8 @@ function floden(D) {
       await page.waitForLoadState('networkidle');
       await m.klicka(dos('Glucos Baxter').locator('[data-adm="ge"]'), 'Ge för Glucos');
       if (await page.locator('dialog[open] [data-varde="ok"]').count()) await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'bekräfta');
-      await synlig(page, '.notis', 'Glucos Baxter');
+      // Runda 8, r4: notisen om iordningsställandet kan synas ännu, så skriptet väntar på notisen om den givna dosen.
+      await synlig(page, '.notis', 'buffrad är given');
       await page.waitForLoadState('networkidle');
       await m.klicka(dos('Stesolid').locator('[data-adm="ge"]'), 'Ge för Stesolid');
       await synlig(page, '.notis', 'Stesolid är given');
@@ -392,6 +389,8 @@ function floden(D) {
   const page = await ctx.newPage();
   page.on('pageerror', e => fel.push(`sidfel: ${e.message}`));
   page.on('response', r => { if (r.status() === 401) fel.push(`401: ${r.request().method()} ${r.url()}`); });
+  // Runda 8, r4: SUSSA_DEBUG=1 skriver varje felsvar från servern och stegen i varje testfall, för att felsöka ett flöde.
+  if (process.env.SUSSA_DEBUG) page.on('response', async r => { if (r.status() >= 400) console.log(`DEBUG ${r.status()} ${r.request().method()} ${r.url()} ${r.request().postData()} => ${await r.text().catch(() => '')}`); });
   page.on('console', msg => { if (msg.type() === 'error' && !/status of 403/.test(msg.text())) fel.push(`konsolfel: ${msg.text()}`); });
   const m = new SussaMatare(page);
   const resultat = [];
@@ -428,6 +427,7 @@ function floden(D) {
       r.tidspoang = R.tidspoang(r.uppskattadTidS, x.tidsklass);
       console.log(`${r.inomBudget ? 'ok ' : 'ÖVER'} ${x.nr} ${x.titel} (${k.demoroll}): ${r.uppmatt} steg (budget ${k.budget}), ${r.tecken} tecken, uppskattat ${r.uppskattadTidS} s, poäng ${r.malpoang} och ${r.tidspoang}`);
       if (!r.inomBudget) fel.push(`${x.nr} ${x.titel} (${k.demoroll}): ${r.uppmatt} steg, budget ${k.budget}`);
+      if (process.env.SUSSA_DEBUG) console.log(`  steg: ${m.steg.join('; ')}`);
     } catch (e) {
       r.fel = e.message.split('\n')[0];
       r.malpoang = 0; r.tidspoang = 0;

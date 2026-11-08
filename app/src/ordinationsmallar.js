@@ -19,13 +19,33 @@ export const ADMINISTRATIONSSATT = {
   peroralt: 'Peroralt', subkutant: 'Subkutant', intravenost: 'Intravenöst', inhalation: 'Inhalation', sublingualt: 'Under tungan', intramuskulart: 'Intramuskulärt',
   // Runda 6, r2: nutrition kan ges via sond.
   sond: 'Via sond',
+  // Runda 8, r4: administrationssätten för NPL:s läkemedelsformer som inte sväljs eller injiceras, så att ögondroppar
+  // aldrig sparas som perorala (Sussas testfall 1.1).
+  okulart: 'I ögat', aurikulart: 'I örat', nasalt: 'I näsan', kutant: 'På huden', transdermalt: 'Plåster på huden', rektalt: 'Rektalt', vaginalt: 'Vaginalt',
 };
+
+// Runda 8, r4: administrationssättet för en läkemedelsform som inte sväljs, injiceras eller inhaleras. Ögon- och
+// örondroppar, nässpray, plåster, salvor, stolpiller och vagitorier ges bara på sitt eget sätt. null för andra former.
+function lokaltSatt(form = '') {
+  if (/ögon/i.test(form)) return 'okulart';
+  if (/öron/i.test(form)) return 'aurikulart';
+  if (/näs/i.test(form)) return 'nasalt';
+  if (/depotplåster|transdermal/i.test(form)) return 'transdermalt';
+  if (/suppositori|rektal|klysma/i.test(form)) return 'rektalt';
+  if (/vagitori|vaginal/i.test(form)) return 'vaginalt';
+  if (/kräm|salva|\bkutan|liniment|gel\b|hudlösning/i.test(form)) return 'kutant';
+  return null;
+}
 
 // Administrationssättet ur läkemedelsformen i NPL.
 export function administrationssatt(form = '') {
   // Runda 6, r2: blodkomponenter ges intravenöst och sondnäring via sond.
   if (/blodkomponent/i.test(form)) return 'intravenost';
   if (/sondnäring/i.test(form)) return 'sond';
+  // Runda 8, r4: ögat, örat, näsan, huden, ändtarmen och slidan, och nebulisatorn som inhaleras.
+  const lokalt = lokaltSatt(form);
+  if (lokalt) return lokalt;
+  if (/nebulisator/i.test(form)) return 'inhalation';
   if (/sublingual/i.test(form)) return 'sublingualt';
   if (/inhalation/i.test(form)) return 'inhalation';
   if (/infusion/i.test(form) || /pulver till injektion/i.test(form)) return 'intravenost';
@@ -40,6 +60,10 @@ export function administrationssatt(form = '') {
 export function tillatnaSatt(form = '') {
   if (/blodkomponent/i.test(form)) return ['intravenost'];
   if (/sondnäring/i.test(form)) return ['sond'];
+  // Runda 8, r4: en lokal form har bara sitt eget administrationssätt.
+  const lokalt = lokaltSatt(form);
+  if (lokalt) return [lokalt];
+  if (/nebulisator/i.test(form)) return ['inhalation'];
   if (/^dryck$/i.test(form)) return ['peroralt', 'sond'];
   if (/sublingual/i.test(form)) return ['sublingualt'];
   if (/inhalation/i.test(form)) return ['inhalation'];
@@ -54,8 +78,63 @@ export function tillatnaSatt(form = '') {
 
 // Grundförslag ur produkten när det inte finns en mall: en dos om dagen på morgonen, med styrkan som dos.
 function grund(lm) {
+  // Runda 8, r4: droppar i ögat, örat eller näsan doseras i droppar, inte i produktens styrka.
+  if (/droppar/i.test(lm.form ?? '')) return { namn: null, dosering: '', dos: 1, dosEnhet: 'droppe', tider: [], typ: 'staende', uppfoljning: 30 };
   const m = /^([\d,]+)\s*(\S+)/.exec(lm.styrka ?? '');
   return { namn: null, dosering: '', dos: m ? Number(m[1].replace(',', '.')) : null, dosEnhet: m ? m[2] : null, tider: [], typ: 'staende', uppfoljning: 30 };
+}
+
+// Runda 8, r4: doseringsmallar per produkt och beredningsform. Systemet föreslår doseringen ur produkten, inte ur
+// substansen. En läkemedelsmall gäller den beredningsform den skrevs för (form, peroral om inget annat anges), och kan
+// ha varianter för andra former och styrkor. Utan en variant för produkten används mallen bara för samma form: en tablett
+// med en annan styrka får samma antal tabletter och dosen räknad ur styrkan, och en annan form får bara dosen ur styrkan.
+export const FORMGRUPPER = {
+  peroral: 'tabletter, kapslar och annat som sväljs', injektion: 'injektioner', infusion: 'infusioner', inhalation: 'inhalationer',
+  sublingual: 'läkemedel under tungan', ogon: 'ögondroppar och ögonsalvor', ora: 'örondroppar', nasa: 'nässprayer och näsdroppar',
+  hud: 'läkemedel på huden', rektal: 'läkemedel i ändtarmen', vaginal: 'läkemedel i slidan', blod: 'blodkomponenter', sond: 'sondnäring',
+};
+const GRUPP_FOR_SATT = { okulart: 'ogon', aurikulart: 'ora', nasalt: 'nasa', kutant: 'hud', transdermalt: 'hud', rektalt: 'rektal', vaginalt: 'vaginal', sond: 'sond', sublingualt: 'sublingual', inhalation: 'inhalation' };
+export function formgrupp(form = '') {
+  if (/blodkomponent/i.test(form)) return 'blod';
+  const satt = administrationssatt(form);
+  if (GRUPP_FOR_SATT[satt]) return GRUPP_FOR_SATT[satt];
+  if (/infusion/i.test(form) || /pulver till injektion/i.test(form)) return 'infusion';
+  if (/injektion/i.test(form)) return 'injektion';
+  return 'peroral';
+}
+const mgAv = (styrka) => { const m = /^([\d,]+)\s*(mg|g|mikrogram)$/.exec(styrka ?? ''); if (!m) return null; const v = Number(m[1].replace(',', '.')); return m[2] === 'g' ? v * 1000 : m[2] === 'mikrogram' ? v / 1000 : v; };
+const talText = (x) => String(Math.round(x * 1000) / 1000).replace('.', ',');
+// Mallen för just produkten: { mall, varfor } där mall är null när mallen inte passar produkten.
+export function produktmall(mall, lm) {
+  if (!mall) return { mall: null, varfor: [] };
+  const { varianter = [], ...bas } = mall;
+  const grupp = formgrupp(lm.form);
+  const mallform = bas.form ?? 'peroral';
+  // En variant för produktens form och styrka går före en variant för bara formen.
+  const passar = varianter.filter(v => (v.form ?? mallform) === grupp && (!v.styrka || v.styrka === lm.styrka));
+  const v = passar.find(x => x.styrka) ?? passar[0];
+  if (v) {
+    // Varianten ersätter mallens anpassningar för ålder och njurfunktion, som gäller mallens egen produkt.
+    const { aldre, egfr, ...b } = bas;
+    return { mall: { ...b, ...v, namn: v.namn ?? bas.namn }, varfor: [] };
+  }
+  if (grupp !== mallform) {
+    return { mall: null, varfor: [`Läkemedelsmallen ${bas.namn} gäller ${FORMGRUPPER[mallform]}, och ${lm.namn} är ${lm.form}. Systemet föreslår bara dosen ur produktens styrka.`] };
+  }
+  // Samma form med en annan styrka: samma antal tabletter eller kapslar, och dosen räknad ur produktens styrka. En mall
+  // som säger högsta antal per dygn (paracetamol) räknas inte om, eftersom högsta dosen då skulle ändras.
+  const styrka = mgAv(lm.styrka);
+  const ref = bas.styrka ? mgAv(bas.styrka) : bas.dosEnhet === 'mg' ? bas.dos : null;
+  if (styrka && ref && styrka !== ref && grupp === 'peroral') {
+    if (bas.skalas === false || !/tablett|kapsel/i.test(bas.dosering ?? '')) {
+      return { mall: null, varfor: [`Läkemedelsmallen ${bas.namn} gäller styrkan ${talText(ref)} mg och har ingen variant för ${lm.styrka}. Systemet föreslår bara dosen ur produktens styrka.`] };
+    }
+    const k = styrka / ref;
+    const om = (x) => (x && x.dos != null ? { ...x, dos: Math.round(x.dos * k * 1000) / 1000 } : x);
+    return { mall: { ...om(bas), aldre: om(bas.aldre), egfr: om(bas.egfr) },
+      varfor: [`Läkemedelsmallen ${bas.namn} gäller ${talText(ref)} mg. Doseringen har samma antal tabletter, och dosen är räknad för ${lm.styrka}.`] };
+  }
+  return { mall: bas, varfor: [] };
 }
 
 // Förslaget för produkten och patienten. Varje ändring mot mallen förklaras i varfor.
@@ -68,11 +147,13 @@ export function forslag(atk, lm) {
   const egfr = egfrForSakerhet(atk);
   // Runda 6, r6: den senaste versionen av läkemedelsmallen som är godkänd på användarens vårdenhet.
   const sm = substansmall(db, lm.atc, vardenhetFor(db, atk.personal.enhet_id));
-  const mall = sm?.mall ?? null;
+  // Runda 8, r4: mallen för just produkten och dess beredningsform (produktmall).
+  const pm = produktmall(sm?.mall ?? null, lm);
+  const mall = pm.mall;
   const f = { ...(mall ?? grund(lm)) };
-  const varfor = [];
+  const varfor = [...pm.varfor];
   if (mall) varfor.push(`Mallen ${mall.namn}.`);
-  else if (sm) varfor.push(`Läkemedelsmallen ${sm.namn} är inte godkänd på din vårdenhet av den läkare som ansvarar för läkemedelsmallarna, så systemet föreslår bara dosen ur produktens styrka.`);
+  else if (sm && !sm.mall) varfor.push(`Läkemedelsmallen ${sm.namn} är inte godkänd på din vårdenhet av den läkare som ansvarar för läkemedelsmallarna, så systemet föreslår bara dosen ur produktens styrka.`);
   if (mall?.aldre && ar != null && ar >= 75) { Object.assign(f, mall.aldre); varfor.push(mall.aldre.varfor); }
   if (mall?.egfr && egfr != null && egfr < 30) { Object.assign(f, mall.egfr); varfor.push(mall.egfr.varfor); }
   const satt = administrationssatt(lm.form);
@@ -80,6 +161,8 @@ export function forslag(atk, lm) {
     mall: mall ? lm.atc : null, mallnamn: mall?.namn ?? null, mallversion: sm?.mall ? { version: sm.version, godkand: sm.godkand } : null, dosering: f.dosering, dos: f.dos ?? null, dosEnhet: f.dosEnhet ?? null, tider: f.tider ?? [], typ: f.typ,
     vidBehov: f.typ === 'vid_behov', administrationssatt: satt, administrationssattText: ADMINISTRATIONSSATT[satt], tillatnaAdministrationssatt: tillatnaSatt(lm.form),
     uppfoljningsdatum: addDagar(idag(), f.uppfoljning ?? 30), volymMl: f.volym ?? null, vatskebalans: Boolean(f.volym), varfor, demoregler: true, anmarkning: DEMO_MALLAR,
+    // Runda 8, r4: en engångsdos (paracetamol som infusion) slutar samma dag som den börjar.
+    engangs: Boolean(f.engangs),
     // Runda 6, r2: läkemedelstyp, förpackningar i NPL, spädning och trappschema.
     ...forslagTillagg(db, lm, { dos: f.dos ?? null, dosEnhet: f.dosEnhet ?? null }),
   };

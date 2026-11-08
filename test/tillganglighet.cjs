@@ -671,22 +671,30 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     await k.addInitScript(INIT);
     const p = await k.newPage();
     bevaka(p, 'nyheter');
-    await loggaIn(p, 'vch-kard');
+    // Runda 8: vad rutan ska visa för rollen läses från servern, så att kontrollen gäller varje ny version. Läkaren och
+    // sjuksköterskan har nyheter i den aktuella versionen.
+    const nyheterFor = () => p.evaluate(() => fetch('/api/nyheter').then(r => r.json()));
+    await loggaIn(p, 'lak-kard');
+    const lak = await nyheterFor();
     const ruta = p.locator('.nyhetsruta');
     await ruta.waitFor();
     const text = await ruta.textContent();
-    if (!/Se vilka på vårdenheten som har giltigt intyg/.test(text)) throw new Error('verksamhetschefens nyhet saknas');
-    if (/Ordinera ur mallar/.test(text)) throw new Error('rutan visar en äldre version');
+    for (const n of lak.ruta.nyheter) if (!text.includes(n.rubrik)) throw new Error(`läkarens nyhet saknas: ${n.rubrik}`);
+    const aldre = lak.alla.slice(1).flatMap(v => v.nyheter.map(n => n.rubrik)).filter(r => !lak.ruta.nyheter.some(n => n.rubrik === r));
+    if (aldre.some(r => text.includes(r))) throw new Error('rutan visar en äldre version');
     await p.click('[data-a="stang-nyheter"]');
     await p.waitForFunction(() => !document.querySelector('.nyhetsruta'));
-    await loggaIn(p, 'lak-kard');
+    await loggaIn(p, 'ssk-kard');
+    const ssk = await nyheterFor();
     await ruta.waitFor();
-    if (/Se vilka på vårdenheten/.test(await ruta.textContent())) throw new Error('läkaren ser verksamhetschefens nyhet');
-    await loggaIn(p, 'vch-kard');
+    const sskText = await ruta.textContent();
+    const baraLakare = lak.ruta.nyheter.filter(n => !ssk.ruta.nyheter.some(x => x.id === n.id));
+    if (baraLakare.some(n => sskText.includes(n.rubrik))) throw new Error('sjuksköterskan ser läkarens nyhet');
+    await loggaIn(p, 'lak-kard');
     if (await p.locator('.nyhetsruta').count()) throw new Error('rutan kommer tillbaka efter att den har stängts');
     await gaTill(p, '#/nyheter');
     const alla = await p.locator('main').textContent();
-    if (!/Se vilka på vårdenheten som har giltigt intyg/.test(alla) || !/Uppdrag i läkemedelshanteringen/.test(alla)) throw new Error('nyheterna går inte att läsa igen');
+    if (!lak.alla.every(v => alla.includes(v.nyheter[0].rubrik))) throw new Error('nyheterna går inte att läsa igen');
     await p.screenshot({ path: join(UT, 'r7r2-nyheter.png') });
     await k.close();
   });

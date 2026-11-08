@@ -227,6 +227,19 @@ export function muntligaLakare(atk) {
     .map(p => ({ id: p.id, namn: p.namn, titel: p.titel }));
 }
 
+// Runda 8, r4: den muntliga ordination som sjuksköterskan själv dokumenterade senast för patienten, inom tiden då
+// läkemedlet får ges utan signering. Läkaren ordinerar ofta flera läkemedel i samma samtal, så systemet föreslår samma
+// läkare, sätt och skäl till nästa ordination (Sussas testfall 1.3). Bara en läkare som går att välja nu föreslås.
+export function senasteMuntlig(atk, nu = Date.now()) {
+  const db = atk.db;
+  const ve = vardenhetFor(db, atk.personal.enhet_id);
+  const fran = new Date(nu - stod.MUNTLIG_OMEDELBAR_TIMMAR * 3600_000).toISOString();
+  const m = db.query(`SELECT m.*, o.enhet_id FROM muntliga_ordinationer m JOIN ordinationer o ON o.id = m.ordination_id
+    WHERE o.patient_id = ? AND m.mottagen_av = ? AND m.mottagen >= ? ORDER BY m.mottagen DESC, m.ordination_id DESC LIMIT 1`).get(atk.patientId, atk.personal.id, fran);
+  if (!m || vardenhetFor(db, m.enhet_id) !== ve || !muntligaLakare(atk).some(l => l.id === m.lakare_id)) return null;
+  return { lakareId: m.lakare_id, satt: m.satt, omedelbar: m.omedelbar };
+}
+
 // POST /api/patient/:id/muntlig-ordination { ...ordination, lakareId, satt, omedelbar, kvitteradeVarningar? }.
 // Sjuksköterskan dokumenterar namnet på den som ordinerade och tiden (6 kap. 15 §). Ordinationen får bara lämnas
 // muntligt när patienten behöver omedelbar behandling (6 kap. 13 §), så det ska framgå varför.

@@ -2,6 +2,50 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "0.8.0",
+      "datum": "2026-11-08",
+      "nyheter": [
+        {
+          "id": "andra-dos",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "stor",
+          "rubrik": "Ändra dosen utan att sätta ut",
+          "text": "Knappen Ändra dos i läkemedelslistan ändrar dosen, doseringen, tiderna eller styrkan i en pågående ordination, från i dag eller ett senare datum. Ordinationen fortsätter med samma orsak och uppföljning, ändringen skickas till NLL och den gamla doseringen finns kvar i historiken."
+        },
+        {
+          "id": "dosering-ur-produkten",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Dosering och administrationssätt ur produkten",
+          "text": "Systemet föreslår doseringen för just den produkt och beredningsform du väljer, till exempel 1 g tabletter eller paracetamol som infusion, och administrationssättet ur formen, så att ögondroppar ges i ögat och nässpray i näsan. Knappen engångsdos gör en ordination som ges en gång i dag."
+        },
+        {
+          "id": "tillsats-infusion",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Tillsatser i infusionen",
+          "text": "En tillsats som Addex-Magnesium ordineras i infusionen, så att blandningen iordningsställs, ges och vidimeras som en ordination. Systemet skriver doseringen och räknar koncentrationen och hastigheten."
+        },
+        {
+          "id": "muntlig-i-foljd",
+          "roller": [
+            "sjukskoterska"
+          ],
+          "omfattning": "liten",
+          "rubrik": "Flera muntliga ordinationer i följd",
+          "text": "När du dokumenterar ännu en muntlig ordination för samma patient fyller systemet i läkaren och skälet från den förra, så att du bara väljer läkemedlet."
+        }
+      ]
+    },
+    {
       "version": "0.7.0",
       "datum": "2026-11-08",
       "nyheter": [

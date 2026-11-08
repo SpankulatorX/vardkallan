@@ -93,7 +93,8 @@ export function forpackningUt(db, ordinationId, lakemedelId, vald = undefined) {
   const c = cacheFor(db);
   const id = vald === undefined ? db.query('SELECT nplpackid FROM ordination_forpackning WHERE ordination_id = ?').get(ordinationId)?.nplpackid : vald;
   const v = id ? c.packs.get(id) : null;
-  if (v) return { nplpackid: v.nplpackid, text: v.text, vald: true };
+  // Runda 8, r4: efter en dosändring med en annan styrka gäller den nya produktens förpackning, inte den förra.
+  if (v && v.lakemedel_id === lakemedelId) return { nplpackid: v.nplpackid, text: v.text, vald: true };
   if (!c.forval.has(lakemedelId)) c.forval.set(lakemedelId, forpackningarFor(db, lakemedelId)[0] ?? null);
   const f = c.forval.get(lakemedelId);
   return f ? { nplpackid: f.nplpackid, text: f.text, vald: false } : null;
@@ -107,18 +108,24 @@ export const SPADNINGSREGLER = {
   N02AA01: { losningar: ['natriumklorid 9 mg/ml'], koncentration: 1, tidMin: null, maxKoncentration: 10 },
   A11DA01: { losningar: ['natriumklorid 9 mg/ml', 'glukos 50 mg/ml'], volymMl: 100, tidMin: 30, maxKoncentration: 5 },
   B05XA03: { basvatska: true, tidMin: 480 },
+  // Runda 8, r4: glukos med elektrolyter är en basvätska som en tillsats kan sättas till (Sussas testfall 1.2).
+  B05BA03: { basvatska: true, tidMin: 240 },
 };
 // Tillsatser som kan sättas till en infusion, med koncentration per ml och demogränser per liter och per timme.
 export const TILLSATSER = {
   'VK-EGEN-0001': { namn: 'kaliumklorid', enhet: 'mmol', perMl: 1, maxPerLiter: 40, maxPerTimme: 10 },
+  // Runda 8, r4: magnesiumsulfat som Addex-Magnesium, 1 mmol/ml (NPL), med demogränser.
+  'VK-NPL-0051': { namn: 'Addex-Magnesium', enhet: 'mmol', perMl: 1, maxPerLiter: 40, maxPerTimme: 10 },
 };
+// Runda 8, r4: tillsatserna som går att välja till en basvätska, med namn och enhet för formuläret.
+export const tillsatsVal = () => Object.entries(TILLSATSER).map(([lakemedelId, t]) => ({ lakemedelId, namn: t.namn, enhet: t.enhet }));
 const mgPer = (dos, enhet) => (enhet === 'g' ? dos * 1000 : enhet === 'mg' ? dos : null);
 const stamlosning = (lm) => { const m = /^([\d,]+)\s*mg\/ml$/.exec(lm?.styrka ?? ''); return m ? Number(m[1].replace(',', '.')) : null; };
 
 export function spadningsforslag(lm, dos, dosEnhet) {
   const r = SPADNINGSREGLER[lm?.atc];
   if (!r) return null;
-  if (r.basvatska) return { losning: null, volymMl: dosEnhet === 'ml' && dos ? dos : 1000, tidMin: r.tidMin, tillsatser: [], losningar: [], basvatska: true };
+  if (r.basvatska) return { losning: null, volymMl: dosEnhet === 'ml' && dos ? dos : 1000, tidMin: r.tidMin, tillsatser: [], losningar: [], basvatska: true, tillsatsVal: tillsatsVal(), namn: lm.namn };
   const mg = mgPer(dos, dosEnhet);
   const volymMl = r.koncentration && mg ? Math.round(mg / r.koncentration * 100) / 100 : r.volymMl;
   return { losning: r.losningar[0], volymMl, tidMin: r.tidMin, tillsatser: [], losningar: r.losningar };
@@ -372,6 +379,8 @@ export function forslagTillagg(db, lm, f) {
   return {
     produkttyp: produkttyp(db, lm.id), forpackningar: forpackningarFor(db, lm.id),
     spadning: spadningsforslag(lm, f.dos, f.dosEnhet), trappning: TRAPPMALLAR[lm.atc] ? trappforslag(lm) : null,
+    // Runda 8, r4: ett koncentrat som bara ges som tillsats till en infusion.
+    ...(TILLSATSER[lm.id] ? { tillsats: { text: `${lm.namn} är ett koncentrat som sätts till en infusion. Ordinera infusionen, till exempel glukos, och ange ${lm.namn} som tillsats där, så blir det en ordination som iordningsställs och ges tillsammans.` } } : {}),
   };
 }
 

@@ -131,8 +131,14 @@ export function laddaTestdata(db, personal, { nu = new Date() } = {}) {
     const igar = addDagar(basDatum, -1);
     const timme = `${new Date(nu.getTime()).toLocaleTimeString('sv-SE', { hour: '2-digit', timeZone: 'Europe/Stockholm' }).slice(0, 2)}:00`;
     const bOrd = { start: igar, slut: basDatum, uppfoljning: addDagar(basDatum, 1), av: 'lak-kard', skapad: T(-1, '16:00'), tider: [timme], typ: 'tillfallig' };
-    ordination('sus01', 'uso-kard-72', 'VK-NPL-0062', { ...bOrd, dosering: '100 ml engångsdos. Ges som intravenös infusion under 15 minuter', dos: 1000, dosEnhet: 'mg', orsak: 'Smärta' });
-    ordination('sus01', 'uso-kard-72', 'VK-NPL-0057', { ...bOrd, dosering: '1000 ml med Addex-Magnesium 20 mmol. Ges på två timmar', orsak: 'Vätska och magnesium' });
+    // Runda 8, r4: paracetamol som infusion med produktens dosering, och glukos med Addex-Magnesium som en ordination med
+    // tillsats, som iordningsställs och ges tillsammans.
+    const tillagg = (id, volym) => db.query("INSERT INTO ordination_tillagg (ordination_id, administrationssatt, volym_ml, vatskebalans) VALUES (?, 'intravenost', ?, 1)").run(id, volym);
+    tillagg(ordination('sus01', 'uso-kard-72', 'VK-NPL-0062', { ...bOrd, dosering: '1 g (100 ml) som intravenös infusion under 15 minuter, engångsdos', dos: 1000, dosEnhet: 'mg', orsak: 'Smärta' }), 100);
+    const glukos = ordination('sus01', 'uso-kard-72', 'VK-NPL-0057', { ...bOrd, dosering: '1000 ml Glucos Baxter 25 mg/ml buffrad med 20 mmol Addex-Magnesium, intravenöst under 2 timmar', dos: 1000, dosEnhet: 'ml', orsak: 'Vätska och magnesium' });
+    tillagg(glukos, 1020);
+    db.query('INSERT INTO ordination_spadning (ordination_id, losning, volym_ml, tid_min, tillsatser) VALUES (?, NULL, 1000, 120, ?)')
+      .run(glukos, JSON.stringify([{ lakemedelId: 'VK-NPL-0051', mangd: 20, enhet: 'mmol', volymMl: 20 }]));
     ordination('sus01', 'uso-kard-72', 'VK-NPL-0065', { ...bOrd, dosering: '1 tablett som premedicinering 1 timme före röntgen', dos: 10, dosEnhet: 'mg', orsak: 'Premedicinering inför röntgen' });
     ordination('sus01', 'uso-kard-72', 'VK-NPL-0044', { ...bOrd, slut: null, uppfoljning: addDagar(basDatum, 14), tider: [], typ: 'vid_behov', dosering: '1 tablett vid behov till natten', dos: 5, dosEnhet: 'mg', orsak: 'Sömn' });
 
