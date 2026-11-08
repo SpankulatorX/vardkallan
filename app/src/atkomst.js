@@ -265,7 +265,7 @@ ROLLER.sjukskoterska.push('las_operation', 'operation_planera', 'operation_regis
 ROLLER.underskoterska.push('las_operation');
 
 // Runda 9, r1: förbrukningsartiklar (forbrukning.js, Sussa 3.5.4). Läkaren och sjuksköterskan förskriver artiklar för
-// egenkontroll, tillförsel av läkemedel och stomi. Att sjuksköterskor i demon förskriver utan särskild behörighet är en
+// egenkontroll, tillförsel av läkemedel och stomi. I demon har alla sjuksköterskor förskrivningsrätt för förbrukningsartiklar, vilket är en
 // demoregel: i verkligheten krävs förskrivningsrätt, till exempel som diabetes- eller stomisjuksköterska.
 Object.assign(HANDLINGAR, { forskriva_forbrukning: 'förskriva förbrukningsartiklar' });
 ROLLER.lakare.push('forskriva_forbrukning');
