@@ -50,6 +50,26 @@ describe('Spårbarhet', () => {
     const psyk = db.query("SELECT id FROM vardkontakter WHERE patient_id = 'p04' AND enhet_id = 'uso-psyk' LIMIT 1").get();
     expect((await k.get(`/api/vardkontakt/${psyk.id}/handelser`)).status).toBe(403);
   });
+
+  test('en ordination eller kontakt på en spärrad vårdenhet röjs aldrig, inte heller genom en prenumerationsnotis', async () => {
+    const k = klient(app);
+    await k.logga('lak-kard');
+    const db = sandlada(app, k).db;
+    // Elin Sandberg (p04) vårdas på avdelning 72 och har en spärr för psykiatrin.
+    const v = db.query("SELECT id FROM vardkontakter WHERE patient_id = 'p04' AND enhet_id = 'uso-kard-72' AND typ = 'slutenvard' LIMIT 1").get();
+    require('../src/prenumeration.js').sakraSchema(db);
+    const fore = await k.get(`/api/vardkontakt/${v.id}/handelser`);
+    expect(fore.status).toBe(200);
+    const lm = db.query('SELECT id FROM katalog LIMIT 1').get().id;
+    const o = db.query(`INSERT INTO ordinationer (patient_id, enhet_id, lakemedel_id, dosering, typ, orsak, uppfoljning, start, ordinerad_av, skapad, vardkontakt_id)
+      VALUES ('p04', 'uso-psyk', ?, '1 x 1', 'staende', 'Depression', '2027-01-01', '2026-11-01', 'lak-psyk', '2026-11-01T10:00:00Z', ?)`).run(lm, v.id).lastInsertRowid;
+    db.query("INSERT INTO nll_meddelanden (ordination_id, typ, skickad, status) VALUES (?, 'ny', '2026-11-01T10:00:00Z', 'kvitterad')").run(o);
+    db.query("INSERT INTO prenumeration_notiser (prenumeration_id, nummer, tid, handelse, fokus, status) VALUES (1, 1, '2026-11-01T10:01:00Z', 'create', ?, 'levererad')").run(`MedicationRequest/${o}`);
+    const psyk = db.query("SELECT id FROM vardkontakter WHERE patient_id = 'p04' AND enhet_id = 'uso-psyk' LIMIT 1").get().id;
+    db.query("INSERT INTO prenumeration_notiser (prenumeration_id, nummer, tid, handelse, fokus, status) VALUES (1, 2, '2026-11-01T10:02:00Z', 'create', ?, 'levererad')").run(`Encounter/${psyk}`);
+    const efter = await k.get(`/api/vardkontakt/${v.id}/handelser`);
+    expect(JSON.stringify(efter.data)).toBe(JSON.stringify(fore.data));
+  });
 });
 
 describe('Subprocesser', () => {
@@ -118,6 +138,26 @@ describe('Vårdformer', () => {
     expect(dag.slut).toBeTruthy();
     expect(sluten.halsoarende_id).toBe(dag.halsoarende_id);
     expect(sluten.orsak).toContain('Kvar efter dagkirurgi');
+  });
+
+  test('en dagkirurgisk kontakt eller uppföljning kan inte bakdateras eller läggas mer än ett år fram', async () => {
+    const k = klient(app);
+    await k.logga('lak-kard');
+    const db = sandlada(app, k).db;
+    const bak = new Date(Date.now() - 200 * 86400_000).toISOString();
+    const fram = new Date(Date.now() + 500 * 86400_000).toISOString();
+    const antal = () => db.query("SELECT count(*) AS n FROM vardkontakter WHERE patient_id = 'p11'").get().n;
+    const fore = antal();
+    expect((await k.post('/api/patient/p11/dagkirurgi', { orsak: 'Elkonvertering', start: bak })).status).toBe(400);
+    expect((await k.post('/api/patient/p11/dagkirurgi', { orsak: 'Elkonvertering', start: fram })).status).toBe(400);
+    expect(antal()).toBe(fore);
+    // Utan tid gäller nu.
+    const nu = await k.post('/api/patient/p11/dagkirurgi', { orsak: 'Elkonvertering' });
+    expect(Math.abs(Date.parse(nu.data.start) - Date.now())).toBeLessThan(60_000);
+    const vt = db.query("SELECT id FROM vardtillfallen WHERE patient_id = 'p01' AND utskriven IS NULL").get();
+    expect((await k.post(`/api/vardtillfalle/${vt.id}/overgang`, { till: 'oppenvard', start: bak })).status).toBe(400);
+    expect((await k.post(`/api/vardtillfalle/${vt.id}/overgang`, { till: 'oppenvard', start: fram })).status).toBe(400);
+    expect(db.query('SELECT utskriven FROM vardtillfallen WHERE id = ?').get(vt.id).utskriven).toBeNull();
   });
 
   test('den faktiska besökstiden registreras utan att kontakten avslutas', async () => {

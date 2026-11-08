@@ -63,8 +63,10 @@ export function handelsekedja(atk, v) {
     }
   }
   // Nationella läkemedelslistan (simulerad). Korrelations-id är meddelandets id, som kvittensen pekar på.
+  // Läkemedelslistan är gemensam, men aldrig från en spärrad vårdenhet.
+  const synligOrdination = (o) => kanRoll(atk.personal, 'las_lakemedel') && atk.prova('las_lakemedel', { enhet_id: o.enhet_id, gemensam: true }).tillaten;
   for (const o of db.query('SELECT * FROM ordinationer WHERE vardkontakt_id = ?').all(v.id)) {
-    if (!synlig(o.enhet_id, 'las_lakemedel') && !(kanRoll(atk.personal, 'las_lakemedel') && atk.prova('las_lakemedel', { enhet_id: o.enhet_id, gemensam: true }).tillaten)) continue;
+    if (!synligOrdination(o)) continue;
     for (const m of db.query('SELECT * FROM nll_meddelanden WHERE ordination_id = ? ORDER BY id').all(o.id)) {
       const id = `NLL-${String(m.id).padStart(6, '0')}`;
       h.push({ tid: m.skickad, system: 'Vårdkällan', handelse: `Ordinationen överförd till NLL (${m.typ})`, korrelationId: id });
@@ -77,7 +79,7 @@ export function handelsekedja(atk, v) {
   if (harTabell(db, 'prenumeration_notiser') && kanRoll(atk.personal, 'las_oversikt')) {
     const fokus = new Set([`Encounter/${v.id}`,
       ...db.query('SELECT id, enhet_id FROM matvarden WHERE vardkontakt_id = ?').all(v.id).filter(m => synlig(m.enhet_id, 'las_matvarden')).map(m => `Observation/${m.id}`),
-      ...db.query('SELECT id FROM ordinationer WHERE vardkontakt_id = ?').all(v.id).map(o => `MedicationRequest/${o.id}`)]);
+      ...db.query('SELECT id, enhet_id FROM ordinationer WHERE vardkontakt_id = ?').all(v.id).filter(synligOrdination).map(o => `MedicationRequest/${o.id}`)]);
     for (const n of db.query('SELECT * FROM prenumeration_notiser ORDER BY id').all().filter(x => fokus.has(x.fokus))) {
       const id = `notis:${n.prenumeration_id}:${n.nummer}`;
       h.push({ tid: n.tid, system: 'Prenumerant i det öppna API:t', handelse: `Notis om ${n.fokus.split('/')[0]} (${n.handelse}), svar ${n.status}`, korrelationId: id });

@@ -55,6 +55,17 @@ export function avslutaBesok(atk, v, nu = new Date()) {
   return { ...vardkontakt.kontaktUt(atk.db, ny, atk.personal), ...besokUt(ny), text: `Besöket tog ${besokstid(ny)} minuter. Kontakten är fortfarande öppen för provsvar och dokumentation.` };
 }
 
+// Starttiden för en ny kontakt, med samma gränser som vid registrering av en vårdkontakt (vardkontakt.registrera): inte
+// tidigare än fem minuter före nu och högst ett år fram, så att en kontakt aldrig kan bakdateras och ge vårdrelation i
+// efterhand. Utan tid gäller standard (nu, eller nästa vardag för en uppföljning).
+function provaStart(start, standard) {
+  if (start == null || start === '') return standard;
+  const ms = typeof start === 'string' ? Date.parse(start) : NaN;
+  const nu = Date.now();
+  if (!Number.isFinite(ms) || ms < nu - 5 * 60_000 || ms > nu + 400 * 86400_000) throw new Fel(400, 'Tiden för kontakten ska ligga från nu och högst ett år framåt.', 'ogiltig', { falt: ['start'] });
+  return new Date(ms).toISOString();
+}
+
 // POST /api/patient/:id/dagkirurgi { orsak, start? }: en dagkirurgisk kontakt på den egna vårdenheten.
 export function registreraDagkirurgi(atk, body = {}) {
   atk.krav('registrera_vardkontakt');
@@ -62,7 +73,7 @@ export function registreraDagkirurgi(atk, body = {}) {
   const orsak = typeof body.orsak === 'string' ? body.orsak.trim().slice(0, 200) : '';
   if (orsak.length < 2) throw new Fel(400, 'Ange vilket ingrepp patienten kommer för.', 'ogiltig', { falt: ['orsak'] });
   const ve = vardenhetFor(db, atk.personal.enhet_id);
-  const t = typeof body.start === 'string' && Number.isFinite(Date.parse(body.start)) ? new Date(Date.parse(body.start)).toISOString() : iso();
+  const t = provaStart(body.start, iso());
   const r = db.query(`INSERT INTO vardkontakter (patient_id, enhet_id, typ, kontaktsatt, start, plats, orsak, kalla, planerad, skapad, skapad_av, ger_vardrelation)
     VALUES (?, ?, 'dagkirurgi', 'besok', ?, 'Dagkirurgi', ?, 'vardkallan', ?, ?, ?, ?)`).run(atk.patientId, ve, t, orsak, Date.parse(t) > Date.now() + 60_000 ? 1 : 0, iso(), atk.personal.id, vardkontakt.gerVardrelation(db, atk.personal, atk.patientId));
   const v = vardkontakt.hamtaKontakt(db, r.lastInsertRowid);
@@ -89,12 +100,12 @@ export function franSlutenvard(atk, vt, body = {}) {
   const db = atk.db;
   const till = body.till;
   if (!['hemsjukvard', 'oppenvard'].includes(till)) throw new Fel(400, 'Välj hemsjukvård eller öppenvård som fortsättning efter utskrivningen.', 'ogiltig', { falt: ['till'] });
+  const start = provaStart(body.start, nastaVardag());
   const vistelse = db.query("SELECT * FROM vardkontakter WHERE vardtillfalle_id = ? AND typ = 'slutenvard' ORDER BY start DESC, id DESC").get(vt.id);
   const ut = db.transaction(() => {
     const utskriven = vardkontakt.skrivUt(atk, vt);
     const sista = vardkontakt.hamtaKontakt(db, vistelse.id);
     const ha = halsoarende(db, atk.personal, sista);
-    const start = typeof body.start === 'string' && Number.isFinite(Date.parse(body.start)) ? new Date(Date.parse(body.start)).toISOString() : till === 'hemsjukvard' ? nastaVardag() : nastaVardag();
     const ve = vardenhetFor(db, sista.enhet_id);
     const mott = db.query("SELECT id FROM enheter WHERE forald_id = ? AND typ = 'arbetsplats' AND namn LIKE '%mottagning%' ORDER BY id").get(ve)?.id ?? ve;
     const r = db.query(`INSERT INTO vardkontakter (patient_id, enhet_id, typ, kontaktsatt, start, plats, orsak, kalla, planerad, foregaende_id, halsoarende_id, skapad, skapad_av, ger_vardrelation)
