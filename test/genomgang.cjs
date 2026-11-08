@@ -154,7 +154,7 @@ const MENY = {
   // Runda 7, r3: ekonomen tar fram faktureringsunderlaget och sköter prislistorna.
   ekonom: ['Faktureringsunderlag', 'Prislistor', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 7, r4: systemförvaltaren har regler och parametrar, omorganisation, undantag och lagring.
-  systemforvaltare: ['Regler och parametrar', 'Omorganisation', 'Undantag från visning', 'Lagring', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  systemforvaltare: ['Regler och parametrar', 'Omorganisation', 'Undantag från visning', 'Lagring', 'Kodverk och masterdata', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 7, r6: läkaren på Vårdcentralen Tybble har Barnhälsovård, eftersom vårdenheten har en barnavårdscentral.
   bvc: ['Arbetslista', 'Sök patient', 'Inkorg', 'Delegeringar', 'Direktiv och uppföljning', 'Barnhälsovård', 'Remisser', 'Väntrum (akuten)', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 7, r1: fysioterapeuten, paramedicinaren i Sussas testfall.
@@ -1531,6 +1531,36 @@ for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].inde
       await forvanta(page, '#sf-l-uttag ~ ul', 'Väntar på att en annan systemförvaltare godkänner beslutet');
       await page.waitForLoadState('networkidle');
     });
+    // Runda 9, r4: kodverken och masterdatan, och inläsningen av en migreringsfil.
+    await s('Tomas Lindh skapar ett lokalt kodverk, och systemet kontrollerar koderna och visar vad som tillkommer', async () => {
+      await gaTill(page, '#/kodverk');
+      await forvanta(page, '#kv-kodverk ~ .tabellrulle', 'ICD-10-SE');
+      await forvanta(page, '#kv-masterdata ~ .tabellrulle', 'Beställarregister');
+      await saknas(page, 'Gunnar');
+      await page.click('[data-nytt-lokalt]');
+      await page.locator('dialog[open] #kv-namn').fill('Besöksorsaker på akuten');
+      await page.locator('dialog[open] #kv-koder').fill('BRO;Bröstsmärta\nFAL;Fall\nBRO;Bröstsmärta igen');
+      await forvanta(page, 'dialog[open] [data-forhand]', 'BRO finns två gånger');
+      await page.locator('dialog[open] #kv-koder').fill('BRO;Bröstsmärta\nFAL;Fall\nAND;Andningsbesvär');
+      await forvanta(page, 'dialog[open] [data-forhand]', '3 nya koder går att välja');
+      await page.locator('dialog[open] #kv-motivering').fill('Akutens triage behöver egna besöksorsaker.');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', 'väntar på att en annan systemförvaltare godkänner den');
+      await forvanta(page, '#kv-mina ~ ul', 'Besöksorsaker på akuten 1');
+      await bild(page, '105-kodverk');
+      await page.waitForLoadState('networkidle');
+    });
+    await s('Tomas Lindh läser in ett simulerat uttag ur VAS, och avvikelserna syns i avstämningen', async () => {
+      await gaTill(page, '#/migrering');
+      await page.locator('#mig-fil').setInputFiles(join(__dirname, '..', 'app', 'public', 'exempel', 'uttag-vas.json'));
+      await forvanta(page, '#mig-forhand', 'Från VAS');
+      await forvanta(page, '#mig-forhand', 'HSA-id som inte finns i Vårdkällan');
+      await page.click('#mig-las-in');
+      await forvanta(page, '.notis', 'Filen är inläst: 3 poster förda över och 3 avvikelser');
+      await forvanta(page, '#mig-avv ~ ul', 'poster som källsystemet räknade finns inte i filen');
+      await bild(page, '106-migreringsfil');
+      await page.waitForLoadState('networkidle');
+    });
     await allaVyer(page, 'Tomas Lindh', MENY.systemforvaltare);
     // Fyra ögon på riktigt: Nora Ekholm loggar in i samma sandlåda och godkänner sammanslagningen som Tomas Lindh förberedde.
     await s('Nora Ekholm godkänner sammanslagningen som Tomas Lindh förberedde, men inte sina egna förslag', async () => {
@@ -1557,6 +1587,16 @@ for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].inde
       await page.click('dialog[open] [data-varde="ok"]');
       await forvanta(page, '#sf-mina ~ ul', '15 åtkomster');
       if (await page.locator('#sf-mina ~ ul [data-godkann]').count()) throw new Error('den egna ändringen gick att godkänna');
+      await page.waitForLoadState('networkidle');
+    });
+    // Runda 9, r4: fyra ögon på kodverket som Tomas Lindh skapade.
+    await s('Nora Ekholm godkänner det lokala kodverket som Tomas Lindh skapade', async () => {
+      await gaTill(page, '#/kodverk');
+      const rad = page.locator('#kv-att-godkanna ~ ul li', { hasText: 'Besöksorsaker på akuten' });
+      await rad.waitFor();
+      await rad.locator('[data-godkann]').click();
+      await forvanta(page, '.notis', 'Utgåvan är godkänd');
+      await forvanta(page, '#kv-historik ~ ul', 'Besöksorsaker på akuten 1');
       await page.waitForLoadState('networkidle');
     });
     await allaVyer(page, 'Nora Ekholm', MENY.systemforvaltare);

@@ -24,6 +24,9 @@ import * as atgarder from './atgarder.js';
 import { news2Fhir } from './vitalparametrar.js';
 import { ACVPU_KOD } from './kodverk.js';
 import { tolkaGcs } from './skalor.js';
+// Runda 9, r4: sökorden har kod i Snomed CT när det finns en exakt motsvarighet (fackssprak.js).
+import { sokordKod as snomedForSokord } from './fackssprak.js';
+const sokordKod = (sokord) => { const k = snomedForSokord(sokord); return k ? { code: { coding: [k], text: sokord } } : {}; };
 // Läkemedelsprocessen, del 2 (runda 6, r2).
 import * as stod from './lakemedelsstod.js';
 // Runda 8, r4: dosändring från ett senare datum.
@@ -458,7 +461,7 @@ export function composition(db, a) {
     custodian: ref('Organization', a.enhet_id, enhetsnamn(db, a.enhet_id)),
     ...(relatesTo.length ? { relatesTo } : {}),
     ...kontrasignerad(db, a),
-    ...(sokord.length ? { section: sokord.map(s => ({ title: s.sokord, text: { status: 'generated', div: `<div xmlns="http://www.w3.org/1999/xhtml">${escape(s.text)}</div>` } })) } : {}),
+    ...(sokord.length ? { section: sokord.map(s => ({ title: s.sokord, ...sokordKod(s.sokord), text: { status: 'generated', div: `<div xmlns="http://www.w3.org/1999/xhtml">${escape(s.text)}</div>` } })) } : {}),
   };
 }
 

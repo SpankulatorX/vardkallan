@@ -18,6 +18,8 @@ import { ICD10SE, KVA } from './kodverk.js';
 import { loggaRad } from './logg.js';
 import { lage } from './tvangsvard-regler.js';
 import * as K from './rapportkoder.js';
+// Runda 9, r4: kodverkens utgåvor över tid.
+import * as kodverksforvaltning from './kodverksforvaltning.js';
 
 const TZ = 'Europe/Stockholm';
 const pad = (n) => String(n).padStart(2, '0');
@@ -721,8 +723,9 @@ export function registreraDiagnos(atk, vk, body = {}) {
     typ = 'bi';
   } else {
     kod = String(body.kod ?? '').trim().toUpperCase();
-    text = ICD10SE[kod];
-    if (!text) throw new Fel(400, `Koden ${kod || 'saknas'} finns inte bland de koder ur ICD-10-SE som systemet känner till. Välj en kod i listan.`, 'ogiltig', { falt: ['kod'] });
+    // Runda 9, r4: koden prövas mot den utgåva av ICD-10-SE som gäller i dag (kodverksforvaltning.js).
+    text = kodverksforvaltning.text(db, 'icd10se', kod);
+    if (!text) throw new Fel(400, kodverksforvaltning.varforOgiltig(db, 'icd10se', kod), 'ogiltig', { falt: ['kod'] });
     const harHuvud = synliga.some(d => d.typ === 'huvud' && !K.ejHuvuddiagnos(d.kod));
     typ = harHuvud ? 'bi' : 'huvud';
   }
@@ -770,6 +773,8 @@ export const YTTRE_VAL = {
 };
 // Diagnoserna som går att välja när förslaget inte passar.
 export const DIAGNOSLISTA = Object.entries(ICD10SE).filter(([kod]) => !K.ejHuvuddiagnos(kod)).map(([kod, text]) => ({ kod, text }));
+// Runda 9, r4: listan ur den utgåva av ICD-10-SE som gäller i dag.
+export const diagnoslista = (db, nu = new Date()) => kodverksforvaltning.koderUt(db, 'icd10se', nu).koder.filter(d => !K.ejHuvuddiagnos(d.kod));
 
 // Demoläget för rättningarna i inkorgen (POST /api/demo/rapportfel, i den egna sandlådan, för genomgången och
 // användartestet): ett avslutat vårdtillfälle på kardiologen utan huvuddiagnos och ett besök på akutmottagningen med en

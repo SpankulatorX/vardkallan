@@ -25,12 +25,18 @@ const ENHETSKOLUMNER = ['enhet_id', 'vardenhet_id', 'fran_enhet_id', 'till_enhet
 const GEMENSAMMA = new Set(['katalog', 'installningar', 'migrering', 'forpackningar', 'produkttyper', 'substansmallar', 'paketversioner', 'ordinationspaket',
   'tidboksregler', 'konfig_andringar', 'fhir_andringar_last', 'visningsregler',
   // Runda 7, r2: övningarna i utbildningen gäller hela vårdgivaren.
-  'ovningsversioner']);
+  'ovningsversioner',
+  // Runda 9, r4: kodverkens utgåvor gäller hela vårdgivaren.
+  'kodverk_utgavor']);
 // Tabeller som hör till systemförvaltningen och inte till en huvudman i ett uttag.
 // Datauttaget för uppföljning byggs om ur uppgifterna och följer inte med i ett uttag.
 const SYSTEM = new Set(['omorganisationer', 'omorganisation_flyttar', 'lagringsmatningar', 'sqlite_sequence', 'datauttag', 'uttagsbeslut', 'uttagsfiler',
   // Runda 7, r2: vilka nyheter en användare har stängt hör till inloggningen och inte till en huvudman.
-  'nyheter_stangda']);
+  'nyheter_stangda',
+  // Runda 9, r4: rapporterna från inläsningen av masterdata.
+  'masterdata_synk',
+  // Runda 9, r4: migreringsfilerna som har lästs in.
+  'migrering_filer']);
 // Tabeller vars koppling inte går att se på kolumnnamnen.
 const UTTRYCKLIGA = {
   dubblettforslag: { typ: 'patient', kolumner: ['fran_patient_id', 'till_patient_id'] },

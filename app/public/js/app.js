@@ -37,6 +37,8 @@ import * as lakemedelsansvar from './vyer/lakemedelsansvar.js';
 import * as ekonomi from './vyer/ekonomi.js';
 // Runda 7, r4: systemförvaltningen.
 import * as systemforvaltning from './vyer/systemforvaltning.js';
+// Runda 9, r4: kodverken och masterdatan.
+import * as kodverk from './vyer/kodverk.js';
 // Runda 7, r5: rapportering till myndigheter och register.
 import * as rapportering from './vyer/rapportering.js';
 // Runda 7, r6: barnhälsovårdens sida med rapporteringen till registret och uppföljningen.
@@ -101,6 +103,8 @@ const MENY = [
   ['#/omorganisation', 'Omorganisation', 'moduler', () => far('omorganisera')],
   ['#/undantag', 'Undantag från visning', 'oga', () => far('undanta')],
   ['#/lagring', 'Lagring', 'arkiv', () => far('lagring')],
+  // Runda 9, r4.
+  ['#/kodverk', 'Kodverk och masterdata', 'lista', () => far('konfigurera')],
   // Runda 7, r6: barnhälsovården, för läkare och sjuksköterskor på en vårdenhet med barnavårdscentral.
   ['#/bhv', 'Barnhälsovård', 'person', () => Boolean(S.session?.bhv)],
   ['#/remisser', 'Remisser', 'remiss', () => pa('las_remiss', 'las_remiss_status')],
@@ -150,6 +154,8 @@ const RUTTER = [
   [/^#\/omorganisation$/, systemforvaltning.omorganisation, () => far('omorganisera')],
   [/^#\/undantag$/, systemforvaltning.undantag, () => far('undanta')],
   [/^#\/lagring$/, systemforvaltning.lagring, () => far('lagring')],
+  // Runda 9, r4.
+  [/^#\/kodverk$/, kodverk, () => far('konfigurera')],
   [/^#\/bhv$/, barnhalsovard, () => Boolean(S.session?.bhv)],
   [/^#\/remisser$/, remisser, () => pa('las_remiss', 'las_remiss_status')],
   [/^#\/vantrum$/, vantrum, () => far('vantrum')],

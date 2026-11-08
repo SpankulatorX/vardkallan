@@ -66,7 +66,7 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
   });
 
   // Rättningar: läkaren registrerar en diagnos eller en yttre orsak på vårdkontakten, som systemet föreslår.
-  rutt('GET', '/api/rapportering/rattning/val', (c) => { kravInloggad(c); return { yttreOrsak: mr.YTTRE_VAL, diagnoser: mr.DIAGNOSLISTA }; });
+  rutt('GET', '/api/rapportering/rattning/val', (c) => { kravInloggad(c); return { yttreOrsak: mr.YTTRE_VAL, diagnoser: mr.diagnoslista(c.db) }; });
   rutt('POST', '/api/vardkontakt/:id/diagnos', (c, id) => {
     kravInloggad(c);
     const vk = mr.kontaktForRattning(c.db, id);

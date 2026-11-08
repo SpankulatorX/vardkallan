@@ -205,6 +205,32 @@ const labbPaketparameter = (pk) => ({
   },
 });
 
+// Runda 9, r4: masterdata (masterdata.js, Sussa 5.1.2.3). Hur ofta systemet läser in masterdata från källorna, och för
+// varje del om den hämtas från en extern källa eller förvaltas i Vårdkällan. Delarna står här i stället för att
+// importeras från masterdata.js, och ett test håller listan lika med masterdata.KONTRAKT.
+OMRADEN.masterdata = { rubrik: 'Masterdata', sussa: '5.1.2.3' };
+export const MASTERDATA_DELAR = {
+  organisation: 'Organisation', personal: 'Personal', befolkning: 'Befolkning', lakemedel: 'Läkemedel', kodverk: 'Kodverk',
+  listning: 'Listning', scheman: 'Arbetsscheman', prislistor: 'Prislistor', bestallare: 'Beställarregister', forrad: 'Tillgänglighet i förrådet',
+};
+Object.assign(HELTAL, {
+  'masterdata.synk_timmar': {
+    omrade: 'masterdata', rubrik: 'Så ofta masterdata läses in från källorna', enhet: 'timmar', standard: 24, min: 1, max: 168, anvands: 'masterdata.js',
+    beskrivning: 'Så många timmar efter den senaste inläsningen läser systemet in masterdata från källorna igen. Svarar en källa inte försöker systemet igen efter en timme och använder under tiden de senast giltiga uppgifterna.',
+    minVarfor: 'Oftare än en gång i timmen ger källorna onödig belastning, och en ändring i en källa behöver sällan gälla snabbare än så.',
+    maxVarfor: 'Mer sällan än en gång i veckan gör att personal som slutat eller en ny skyddad identitet kan dröja för länge.',
+    effekt: (db, nytt, forra) => [`Masterdata läses in var ${timmar(nytt)} i stället för var ${timmar(forra)}.`],
+  },
+});
+for (const [del, namn] of Object.entries(MASTERDATA_DELAR)) {
+  JANEJ[`masterdata.extern.${del}`] = {
+    omrade: 'masterdata', rubrik: `${namn} som masterdata`, typ: 'janej', standard: true, anvands: 'masterdata.js',
+    text: { true: 'Hämtas från källan', false: 'Förvaltas i Vårdkällan' },
+    beskrivning: `Om ${namn.toLocaleLowerCase('sv')} hämtas från en extern masterdatakälla och läses in efter schemat, eller förvaltas i Vårdkällan och inte läses in.`,
+    effekt: (db, nytt) => [nytt ? `${namn} läses in från källan vid nästa inläsning.` : `${namn} läses inte längre in från källan. Uppgifterna som redan finns står kvar.`],
+  };
+}
+
 // Sökorden i journalens mallar (strukturerad information). Läses från journal.js när de behövs.
 let journalModul = null;
 const journalMallar = () => {

@@ -55,7 +55,8 @@ describe('Avdelningens planering', () => {
     const k = await avdelning('lak-kard');
     const p = (await k.get('/api/patient/sus01/planering')).data;
     const dag = p.dagar.find(x => x.datum === idag());
-    expect(dag.handelser.filter(h => kl(h.tid) === '15:00').map(h => h.text)).toEqual(['EKG']);
+    // Runda 9, r4: bara de planerade uppgifterna, eftersom engångsdoser kan vara planerade till samma klockslag som testet körs.
+    expect(dag.handelser.filter(h => h.kalla === 'planering' && kl(h.tid) === '15:00').map(h => h.text)).toEqual(['EKG']);
     expect(p.dagar.length).toBe(7);
     expect(p.dagar.flatMap(x => x.handelser).some(h => h.text === 'Sutur ut' && h.status === 'utford')).toBe(true);
     const r = (await k.get('/api/resurs/ol-kard/planering')).data;

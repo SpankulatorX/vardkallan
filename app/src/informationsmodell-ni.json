@@ -1,0 +1,100 @@
+{
+  "klasser": {
+    "Aktivitet": "Klassen aktivitet håller information om något som kan utföras av någon eller något inom hälso- och sjukvård och som är inriktat på visst resultat.",
+    "Annan person": "Klassen annan person håller information om en person som på något sätt är relaterad till patienten men som inte är patienten eller hälso- och sjukvårdspersonal.",
+    "Beslut": "Klassen beslut håller information om avgörande i viss fråga inom hälso- och sjukvård.",
+    "Beslutsstatus": "Klassen beslutsstatus håller information om vilken status ett visst beslut har.",
+    "Deltagande": "Klassen deltagande håller information om på vilket sätt exempelvis hälso- och sjukvårdspersonal, organisation, patient eller resurs deltar i ett visst givet sammanhang.",
+    "Dokument": "Klassen dokument håller information om samling av information som behandlas och fungerar som en enhet.",
+    "Hälso- och sjukvårdspersonal": "Klassen hälso- och sjukvårdspersonal håller information om person som i sitt uppdrag för en hälso- och sjukvårdsorganisation utför hälso- och sjukvård.",
+    "Individanpassad vårdprocess": "Klassen individanpassad vårdprocess håller information om den vårdprocess som är anpassad för en enskild patient.",
+    "Kommunikationssätt": "Klassen kommunikationssätt håller information om en persons sätt att kommunicera med sin omgivning.",
+    "Kroppsstruktur": "Klassen kroppsstruktur håller information om kroppens anatomiska delar såsom organ, lemmar och deras komponenter, inklusive sidoangivelse (lateralitet) och ytterligare precisering.",
+    "Observation": "Klassen observation håller information om tillstånd, problem, behov och omgivningsfaktorer som har observerats eller som i framtiden skulle kunna observeras om en patient.",
+    "Organisation": "Klassen organisation håller information om verksamhet med ansvar och befogenhet att tillvarata intressen som är gemensamma för de ingående medlemmarna eller intressenterna.",
+    "Patient": "Klassen patient håller information om person som erhåller eller är registrerad för att erhålla hälso- och sjukvård.",
+    "Person": "Klassen person håller information om den mänskliga individen.",
+    "Plats": "Klassen plats håller information om avgränsad geografisk eller fysisk yta med välbestämt läge.",
+    "Position": "Klassen position håller information om plats specificerat med longitud och latitud samt eventuellt altitud.",
+    "Remiss": "Klassen remiss håller information om vårdbegäran från hälso- och sjukvårdspersonal som utgör beställning av tjänst eller begäran om övertagande av vårdansvar för en patient.",
+    "Resurs": "Klassen resurs håller information om något som kan tas i anspråk för, krävs för genomförande av eller produceras i aktiviteter eller processer inom hälso- och sjukvård och som inte avser personer eller organisationer.",
+    "Samband": "Klassen samband håller information om hur två företeelser dokumenterade som uppgifter i patientjournal är relaterade till varandra.",
+    "Tillämpad modell": "Klassen tillämpad modell beskriver hur information om en specifik företeelse ska struktureras enligt en på förhand fastställd uppsättning uppgifter i patientjournal och tillhörande relationer.",
+    "Uppgift i patientjournal": "Klassen uppgift i patientjournal håller information om uppgifter som dokumenteras i patientjournalen.",
+    "Vårdbegäran": "Klassen vårdbegäran håller information om begäran om hälso- och sjukvård.",
+    "Vårdbegäran för egen räkning eller från tredje part": "Klassen vårdbegäran för egen räkning eller från tredje part håller information om vårdbegäran från patient, företrädare för patient eller tredje part.",
+    "Vårdkontakt": "Klassen vårdkontakt innehåller information om kontakt mellan patient och hälso- och sjukvårdspersonal då hälso- och sjukvård utförs."
+  },
+  "begrepp": {
+    "bedomning": {
+      "term": "bedömning",
+      "definition": "åtgärd i form av ett omdöme grundat på insamlad information",
+      "klass": "Aktivitet"
+    },
+    "diagnos": {
+      "term": "diagnos",
+      "definition": "bestämning och benämning av sjukdom, skada, störning eller förändring i kroppsfunktion",
+      "klass": "Observation"
+    },
+    "personal": {
+      "term": "hälso- och sjukvårdspersonal",
+      "definition": "person eller personer som i sitt yrke utför hälso- och sjukvård",
+      "klass": "Hälso- och sjukvårdspersonal"
+    },
+    "vardprocess": {
+      "term": "individanpassad vårdprocess",
+      "definition": "vårdprocess som är anpassad för en enskild patient",
+      "klass": "Individanpassad vårdprocess"
+    },
+    "ordination": {
+      "term": "ordination",
+      "definition": "beslut av behörig hälso- och sjukvårdspersonal som är avsett att påverka en patients hälsotillstånd genom en hälso- och sjukvårdsåtgärd",
+      "klass": "Beslut"
+    },
+    "patient": {
+      "term": "patient",
+      "definition": "person som erhåller eller är registrerad för att erhålla hälso- och sjukvård",
+      "klass": "Patient"
+    },
+    "patientjournal": {
+      "term": "patientjournal",
+      "definition": "en eller flera journalhandlingar som rör samma patient",
+      "klass": "Uppgift i patientjournal"
+    },
+    "remiss": {
+      "term": "remiss",
+      "definition": "vårdbegäran från hälso- och sjukvårdspersonal som utgör beställning av tjänst eller begäran om övertagande av vårdansvar för en patient",
+      "klass": "Remiss"
+    },
+    "samtycke": {
+      "term": "samtycke",
+      "definition": "frivillig, särskild och otvetydig viljeyttring genom vilken en person som tillfrågats om något, efter att ha fått information, godtar det frågan gäller",
+      "klass": "Beslut"
+    },
+    "sokorsak": {
+      "term": "sökorsak",
+      "definition": "orsak till vårdbegäran som anges av patient, företrädare för patient eller tredje part",
+      "klass": "Vårdbegäran för egen räkning eller från tredje part"
+    },
+    "vardatagande": {
+      "term": "vårdåtagande",
+      "definition": "beslut av mottagande vårdenhet att acceptera vårdbegäran",
+      "klass": "Beslut"
+    },
+    "vardbegaran": {
+      "term": "vårdbegäran",
+      "definition": "begäran om hälso- och sjukvård",
+      "klass": "Vårdbegäran"
+    },
+    "vardgivare": {
+      "term": "vårdgivare",
+      "definition": "statlig myndighet, region, kommun, annan juridisk person eller enskild näringsidkare som bedriver hälso- och sjukvårdsverksamhet",
+      "klass": "Organisation"
+    },
+    "vardkontakt": {
+      "term": "vårdkontakt",
+      "definition": "kontakt mellan patient och hälso- och sjukvårdspersonal då hälso- och sjukvård utförs",
+      "klass": "Vårdkontakt"
+    }
+  }
+}

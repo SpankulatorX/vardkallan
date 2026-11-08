@@ -82,6 +82,8 @@ import { registreraRutter as r5Rutter } from './r5-rutter.js';
 import { villkor10 } from './version.js';
 // Runda 8, r2: remiss på uppdrag, fördelning, remisskonferens och extern pappersremiss (remiss-r8.js).
 import * as remissR8 from './remiss-r8.js';
+// Runda 9, r4: informationsstrukturen, fackspråket, kodverken och masterdatans källor (arkitektur-rutter.js).
+import { registreraRutter as r9r4Rutter, efterTid as masterdataEfterTid } from './arkitektur-rutter.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -1557,6 +1559,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   utbildningRutter({ rutt, kravInloggad });
   // Runda 8, r5: epikrisens förslag och flera mätvärden på en gång (r5-rutter.js).
   r5Rutter({ rutt, kravInloggad, medPatient });
+  // Runda 9, r4 (arkitektur-rutter.js).
+  r9r4Rutter({ rutt, kravInloggad });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
   // visas direkt (bara i den egna sandlådan).
   const kravNagon = (c) => { if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad'); };
@@ -1595,6 +1599,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (sess) systemforvaltningEfterDatum(sess.s.db);
     // Runda 8, r1: det simulerade laboratoriet svarar på det som har hunnit bli klart.
     if (sess) labbEfterTid(sess.s.db);
+    // Runda 9, r4: masterdatan läses in från källorna efter schemat.
+    if (sess) masterdataEfterTid(sess.s.db);
     if (sess) Object.assign(c, { s: sess.s, sid: sess.sid, ny: sess.ny, db: sess.s.db, ...inloggade(sess.s) });
     if (c.invanare && url.pathname.startsWith('/api/min/')) avvisaFranAnnanWebbplats(req);
     c.body = metod === 'GET' ? {} : await lasKropp(req);
