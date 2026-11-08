@@ -55,10 +55,10 @@ describe('Bilder och media', () => {
       VALUES ('md1', 'vc-tybble', 'kkoga-ort', 'lak-vc', 'Bedömning av höftled', 'normal', '2026-12-01', 'skickad', ?)`).run(BAS.toISOString()).lastInsertRowid);
     const bild = sparaBilaga(db, { remissId: rid, patientId: 'md1', bilaga: { namn: 'rontgen.png', typ: 'image/png', buf: Buffer.from(PNG, 'base64') }, av: 'lak-vc' });
     const text = sparaBilaga(db, { remissId: rid, patientId: 'md1', bilaga: { namn: 'not.txt', typ: 'text/plain', buf: Buffer.from('text') }, av: 'lak-vc' });
-    const m = bilder.franRemissbilaga(lak(db), bild.id, { kroppsstalle: 'höger höft' }, BAS);
-    expect(m).toMatchObject({ kalla: { id: 'remissbilaga', text: 'Bilaga till remiss' }, beskrivning: `Bilaga till remiss ${rid}`, kroppsstalle: 'höger höft', namn: 'rontgen.png' });
-    expect(() => bilder.franRemissbilaga(lak(db), bild.id, {}, BAS)).toThrow('finns redan i journalen');
-    expect(() => bilder.franRemissbilaga(lak(db), text.id, {}, BAS)).toThrow('Textbilagor finns kvar i remissen');
+    const m = bilder.franRemissbilaga(lak(db, 'md1', 'skriv_journal', { andra_enheter: true }), bild.id, { kroppsstalle: 'höger höft' }, BAS);
+    expect(m).toMatchObject({ kalla: { id: 'remissbilaga', text: 'Bilaga till remiss' }, beskrivning: `Bilaga till remiss ${rid}`, kroppsstalle: 'höger höft', namn: 'rontgen.png', vardenhet: { id: 'vc-tybble' } });
+    expect(() => bilder.franRemissbilaga(lak(db, 'md1', 'skriv_journal', { andra_enheter: true }), bild.id, {}, BAS)).toThrow('finns redan i journalen');
+    expect(() => bilder.franRemissbilaga(lak(db, 'md1', 'skriv_journal', { andra_enheter: true }), text.id, {}, BAS)).toThrow('Textbilagor finns kvar i remissen');
     ny(db, 'md2');
     expect(() => bilder.franRemissbilaga(lak(db, 'md2'), bild.id, {}, BAS)).toThrow('Bilagan finns inte');
   });
@@ -118,11 +118,11 @@ describe('Bilder och media', () => {
     expect(() => bilder.fil(atk(db, 'lak-kard', 'md1', 'las_journal', { andra_enheter: true }), bilder.mediaRad(db, m.id))).toThrow('spärrade');
   });
 
-  test('taket: en patient har högst 40 bilder och en fil högst 200 kB i demon', () => {
+  test('taket: en patient har högst 40 bilder och en fil högst 40 kB i demon', () => {
     const db = sandlada();
     ny(db);
     const stor = Buffer.concat([Buffer.from(PNG, 'base64'), Buffer.alloc(bilder.MAX_BYTE)]).toString('base64');
-    expect(() => ladda(db, { bild: { namn: 'stor.png', data: stor } })).toThrow('högst 200 kB');
+    expect(() => ladda(db, { bild: { namn: 'stor.png', data: stor } })).toThrow('högst 40 kB');
     for (let i = 0; i < bilder.MAX_PER_PATIENT; i++) ladda(db, {});
     expect(() => ladda(db, {})).toThrow('redan 40 bilder');
   });
@@ -137,5 +137,38 @@ describe('Bilder och media', () => {
       try { f(); throw new Error('ingen 404'); } catch (e) { expect([e.status, e.message]).toEqual([404, 'Uppgiften finns inte.']); }
     }
     expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'md2' AND resurs LIKE 'media:%'").get().n).toBe(0);
+  });
+
+  test('säkerhet: patientens bild granskas bara av vårdenheten som den skickades till, inte av en annan vårdenhet med aktivt val', () => {
+    const db = sandlada();
+    const p = ny(db);
+    db.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak) VALUES ('md1', 'uso-kard-72', 'slutenvard', ?, 'Avd 72', 'Vård')").run(BAS.toISOString());
+    db.query('INSERT INTO invanare (id, personnummer, fornamn, efternamn, fodd, patient_id) VALUES (?, ?, ?, ?, ?, ?)').run('inv-md1', p.personnummer, p.fornamn, p.efternamn, p.fodd, 'md1');
+    const inv = new InvanareAtkomst(db, db.query("SELECT * FROM invanare WHERE id = 'inv-md1'").get(), 'md1');
+    inv.krav('min:bild');
+    const u = bilder.minLaddaUpp(inv, { enhetId: 'kkoga-ort', bild: { namn: 'sar.png', data: PNG } }, BAS);
+    expect(() => bilder.granska(atk(db, 'lak-kard', 'md1', 'skriv_journal', { andra_enheter: true }), bilder.mediaRad(db, u.id), {}, BAS))
+      .toThrow('Bilden granskas av den vårdenhet som patienten skickade den till.');
+    expect(bilder.mediaRad(db, u.id).status).toBe('vantar');
+  });
+
+  test('säkerhet: en remissbilaga behåller avsändarens vårdenhet, så att en spärr gäller också i journalen, och patientens egen bilaga granskas först', () => {
+    const db = sandlada();
+    ny(db);
+    db.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak) VALUES ('md1', 'uso-kard-72', 'slutenvard', ?, 'Avd 72', 'Vård')").run(BAS.toISOString());
+    const remiss = (fran) => Number(db.query(`INSERT INTO remisser (patient_id, fran_enhet_id, till_enhet_id, avsandare_id, fragestallning, prioritet, svar_senast, status, skickad_tid)
+      VALUES ('md1', ?, 'kkoga-ort', 'lak-kard', 'Bedömning', 'normal', '2026-12-01', 'skickad', ?)`).run(fran, BAS.toISOString()).lastInsertRowid);
+    const bilaga = (rid, avInvanare = null) => sparaBilaga(db, { remissId: rid, patientId: 'md1', bilaga: { namn: 'bild.png', typ: 'image/png', buf: Buffer.from(PNG, 'base64') }, av: avInvanare ? null : 'lak-kard', avInvanare });
+    const b = bilaga(remiss('uso-kard'));
+    sparr(db, 'md1', 'uso-kard');
+    expect(() => bilder.franRemissbilaga(lak(db), b.id, {}, BAS)).toThrow('spärrade');
+    const m = bilder.franRemissbilaga(lak(db, 'md1', 'skriv_journal', { samtycke_sparr: true }), b.id, {}, BAS);
+    expect(m.vardenhet.id).toBe('uso-kard');
+    expect(bilder.forPatient(lak(db, 'md1', 'las_journal', { andra_enheter: true }), BAS).bilder).toEqual([]);
+    expect(bilder.forPatient(lak(db, 'md1', 'las_journal', { andra_enheter: true, samtycke_sparr: true }), BAS).bilder.map(x => x.id)).toEqual([m.id]);
+    const egen = bilaga(remiss('min-journal'), 'inv-md1');
+    const e = bilder.franRemissbilaga(lak(db), egen.id, {}, BAS);
+    expect(e).toMatchObject({ status: 'vantar', vardenhet: { id: 'kkoga-ort' } });
+    expect(bilder.forPatient(lak(db, 'md1', 'las_journal'), BAS).bilder).toEqual([]);
   });
 });

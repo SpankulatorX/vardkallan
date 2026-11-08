@@ -17,11 +17,12 @@
 import { createHash } from 'node:crypto';
 import { Fel, datumAv } from './db.js';
 import { vardenhetFor, enheterUnder, harVardrelation, kanRoll, visningsnamn } from './atkomst.js';
-import { typFor, bilagaFil, bilagaRad } from './remiss-r4.js';
+import { typFor, bilagaFil, bilagaRad, EGEN } from './remiss-r4.js';
 import { OID_ROT } from './identitet.js';
-import { tabell, finns, personNamn, enhetKort, textFalt, iso, MIN, vardkontaktFor, provaRad, loggaPatient, bunden } from './specialist-hjalp.js';
+import { tabell, finns, personNamn, enhetKort, textFalt, iso, MIN, vardkontaktFor, provaRad, loggaPatient, bunden, andraRad } from './specialist-hjalp.js';
 
-export const MAX_BYTE = 200 * 1024;
+// Samma gräns som för remissernas bilagor, eftersom ett anrop till servern är högst 64 kB.
+export const MAX_BYTE = 40 * 1024;
 export const MAX_PER_PATIENT = 40;
 export const MAX_PER_SANDLADA = 4 * 1024 * 1024;
 export const MAX_VANTANDE = 5;
@@ -78,7 +79,7 @@ export function tolkaMedia(inp) {
   if (typeof inp?.data !== 'string' || !/^[A-Za-z0-9+/=\s]+$/.test(inp.data)) throw new Fel(400, 'Filen kunde inte läsas.', 'ogiltig', { falt: ['data'] });
   const buf = Buffer.from(inp.data, 'base64');
   if (!buf.length) throw new Fel(400, 'Filen är tom.', 'ogiltig', { falt: ['data'] });
-  if (buf.length > MAX_BYTE) throw new Fel(400, 'Filen är för stor. En bild får vara högst 200 kB i demon.', 'ogiltig', { falt: ['data'] });
+  if (buf.length > MAX_BYTE) throw new Fel(400, 'Filen är för stor. En bild får vara högst 40 kB i demon.', 'ogiltig', { falt: ['data'] });
   const typ = typFor(buf);
   if (!finns(TYPER, typ)) throw new Fel(400, 'Filtypen stöds inte. Ladda upp en bild i PNG eller JPEG, eller en PDF. Systemet avgör typen ur filens innehåll.', 'ogiltig', { falt: ['data'] });
   return { namn, typ, buf };
@@ -155,8 +156,16 @@ export function franRemissbilaga(atk, bilagaId, body = {}, nu = new Date()) {
   bilagaFil(atk, b);
   if (!finns(TYPER, b.typ)) throw new Fel(400, 'Bara bilder och PDF förs in i journalen. Textbilagor finns kvar i remissen.', 'ogiltig');
   if (db.query("SELECT 1 FROM media WHERE kalla = 'remissbilaga' AND kalla_ref = ? AND patient_id = ?").get(String(b.id), atk.patientId)) throw new Fel(409, 'Bilagan finns redan i journalen.', 'ogiltig');
-  const m = spara(db, { patientId: atk.patientId, enhetId: atk.personal.enhet_id, vardkontaktId: vardkontaktFor(atk, nu), kategori, fil: { namn: b.namn, typ: b.typ, buf: Buffer.from(b.data) },
-    kalla: 'remissbilaga', kallaRef: String(b.id), kroppsstalle: body.kroppsstalle, beskrivning: body.beskrivning ?? `Bilaga till remiss ${b.remiss_id}`, tagen: b.skapad, nu, av: atk.personal.id });
+  // Säkerhetsgranskningen: bilden behåller avsändarens vårdenhet, så att inre sekretess och en spärr mot avsändaren gäller
+  // också i journalen. En bilaga som patienten själv har skickat (egen vårdbegäran eller komplettering från Min journal)
+  // hör till den mottagande vårdenheten och kommer in i journalen först efter granskning, som en bild från Min journal.
+  const r = db.query('SELECT fran_enhet_id, till_enhet_id FROM remisser WHERE id = ?').get(b.remiss_id);
+  const franPatienten = Boolean(b.skapad_av_invanare) || r.fran_enhet_id === EGEN;
+  const franEnhet = !franPatienten && db.query('SELECT 1 FROM enheter WHERE id = ?').get(r.fran_enhet_id) ? r.fran_enhet_id : r.till_enhet_id;
+  atk.krav('las_journal', { resurs: { enhet_id: franEnhet }, beskrivning: `bilaga:${b.id}` });
+  const m = spara(db, { patientId: atk.patientId, enhetId: franEnhet, vardkontaktId: franPatienten ? null : vardkontaktFor(atk, nu), kategori: 'journal', fil: { namn: b.namn, typ: b.typ, buf: Buffer.from(b.data) },
+    kalla: 'remissbilaga', kallaRef: String(b.id), kroppsstalle: body.kroppsstalle, beskrivning: body.beskrivning ?? `Bilaga till remiss ${b.remiss_id}`, tagen: b.skapad, nu, av: atk.personal.id,
+    status: franPatienten ? 'vantar' : 'journal' });
   return mediaUt(db, m);
 }
 
@@ -205,9 +214,8 @@ export function vantande(db, personal, valFor) {
 
 export function granska(atk, m, body = {}, nu = new Date()) {
   const db = atk.db;
-  bunden(atk, m);
-  atk.krav('skriv_journal');
-  atk.krav('las_journal', { resurs: { enhet_id: m.enhet_id } });
+  // Säkerhetsgranskningen: granskningen är en ändring och görs av den vårdenhet som patienten skickade bilden till.
+  andraRad(atk, m, 'skriv_journal', 'las_journal', 'Bilden granskas av den vårdenhet som patienten skickade den till.');
   if (m.status !== 'vantar') throw new Fel(409, 'Bilden är redan granskad.', 'ogiltig');
   const godkann = body.godkann !== false;
   db.query('UPDATE media SET status = ?, granskad_tid = ?, granskad_av = ?, vardkontakt_id = ?, kroppsstalle = coalesce(?, kroppsstalle) WHERE id = ?')

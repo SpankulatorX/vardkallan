@@ -70,6 +70,8 @@ import { registreraRutter as bhvRutter, inkorg as bhvInkorg, session as bhvSessi
 import { minTillvaxt } from './bhv.js';
 // Runda 8, r1: beställning och svar, provtagning och kontrollerna till avdelningen (labb-rutter.js).
 import { registreraRutter as labbRutter, inkorg as labbInkorg, efterTid as labbEfterTid } from './labb-rutter.js';
+// Runda 9, r3: operation, blodprodukter, graviditet och förlossning, cytostatika och bilder (r9r3-rutter.js).
+import { registreraRutter as r9r3Rutter } from './r9r3-rutter.js';
 // Runda 7, r2: nyhetsrutan, övningarna med intyg och tillgänglighetsredogörelsen.
 import { registreraRutter as utbildningRutter } from './utbildning-rutter.js';
 import { redogorelse as tillganglighet } from './tillganglighet.js';
@@ -1553,6 +1555,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   bhvRutter({ rutt, kravInloggad, medPatient, medMinJournal, valFor });
   // Runda 8, r1 (labb-rutter.js).
   labbRutter({ rutt, kravInloggad, medPatient, valFor });
+  // Runda 9, r3 (r9r3-rutter.js).
+  r9r3Rutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal });
   // Runda 7, r2: nyheter, övningar och intyg, och tillgänglighetsredogörelsen med testernas status.
   utbildningRutter({ rutt, kravInloggad });
   // Runda 8, r5: epikrisens förslag och flera mätvärden på en gång (r5-rutter.js).
