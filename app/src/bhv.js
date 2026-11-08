@@ -360,7 +360,7 @@ function bhvDel(atk, p, nu) {
 }
 
 export const vaccinationUt = (db, v) => {
-  const d = P.vaccinRad(v.vaccin_id);
+  const d = P.vaccinRadVisning(v.vaccin_id);
   return { id: v.id, vaccinId: v.vaccin_id, text: d?.text ?? v.vaccin_id, sjukdomar: d?.sjukdomar ?? null, atc: v.atc, atcText: ATC[v.atc] ?? null, dos: v.dos, tid: v.tid, batch: v.batch,
     vardenhet: { id: v.enhet_id, namn: enhetsnamn(db, v.enhet_id) }, givetAv: personKort(db, v.givet_av)?.namn ?? null };
 };
@@ -478,6 +478,8 @@ export function vaccinera(atk, p, body = {}, knyt, nu = Date.now()) {
   kravInskriven(atk, 'vaccinera');
   const db = atk.db;
   const v = P.vaccinRad(body.vaccinId);
+  // Runda 10, r5: ett vaccin i de andra vaccinationsprogrammen registreras i deras flöde, som prövar det.
+  if (!v && P.iAndraProgram(body.vaccinId)) throw new Fel(400, 'Vaccinet ingår inte i barnhälsovårdens program. Registrera dosen under Vaccinationer i journalen, där systemet prövar den mot vaccinationsprogrammen för äldre barn och riskgrupper.', 'ogiltig', { falt: ['vaccinId'] });
   if (!v) throw new Fel(400, 'Okänt vaccin i programmet.', 'ogiltig', { falt: ['vaccinId'] });
   if (body.andraVaccinationer === 'ja') throw new Fel(400, SVAR_JA, 'ogiltig', { falt: ['andraVaccinationer'] });
   if (body.andraVaccinationer !== 'nej') throw new Fel(400, FRAGA_ANDRA, 'kraver_fraga', { falt: ['andraVaccinationer'] });

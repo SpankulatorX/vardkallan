@@ -143,6 +143,26 @@ describe('Vaccinationsprogram', () => {
     expect(s.db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p13' AND resurs = '/api/patient/p13/vaccinationsprogram' AND grund = 'nodatkomst'").get().n).toBe(1);
   });
 
+  test(T.vpBhvEgen.split(' > ')[1], async () => {
+    const k = await inloggad('ssk-vc');
+    const s = sandlada(app, k);
+    const fore = s.db.query("SELECT count(*) AS n FROM vaccinationer WHERE patient_id = 'p61'").get().n;
+    // Ett vaccin utanför barnhälsovårdens program nekas där, med en hänvisning till vaccinationsprogrammens flöde.
+    for (const id of ['pneumokocker', 'influensa', 'mpr2']) {
+      const r = await k.post('/api/patient/p61/vaccination', { vaccinId: id, andraVaccinationer: 'nej' });
+      expect(r.status).toBe(400);
+      expect(r.data.fel).toContain('Vaccinationer');
+    }
+    expect(s.db.query("SELECT count(*) AS n FROM vaccinationer WHERE patient_id = 'p61'").get().n).toBe(fore);
+    // I vaccinationsprogrammens flöde prövas samma vaccin mot programmet: för ett spädbarn går det inte.
+    const r2 = await k.post('/api/patient/p61/vaccinationsprogram/vaccination', { vaccinId: 'mpr2', andraVaccinationer: 'nej' });
+    expect(r2.status).toBe(400);
+    expect(r2.data.fel).toContain('tidigast');
+    // För en vuxen i programmet för riskgrupper godtas dosen efter kontrollen.
+    await k.logga('ssk-kard');
+    expect((await k.post('/api/patient/p01/vaccinationsprogram/vaccination', { vaccinId: 'pneumokocker', andraVaccinationer: 'nej' })).status).toBe(201);
+  });
+
   test(T.vpFhir.split(' > ')[1], async () => {
     const k = await inloggad('ssk-kard');
     const r = await k.post('/api/patient/p01/vaccinationsprogram/vaccination', { vaccinId: 'pneumokocker', andraVaccinationer: 'nej' });

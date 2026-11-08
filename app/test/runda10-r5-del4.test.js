@@ -3,7 +3,7 @@
 import { describe, test, expect, afterAll, beforeAll } from 'bun:test';
 import { T } from '../src/sussa/runda10-r5-tester.js';
 import * as sj from '../src/sammanhallen.js';
-import { testserver, klient, sandlada } from './hjalp.js';
+import { testserver, klient, sandlada, somPerson } from './hjalp.js';
 
 let app;
 beforeAll(() => { app = testserver(); });
@@ -92,6 +92,35 @@ describe('Sammanhållen journalföring', () => {
     expect(s.db.query("SELECT grund FROM atkomstlogg WHERE patient_id = 'p13' AND resurs LIKE 'sammanhallen:%' ORDER BY id DESC").get().grund).toBe('nodatkomst');
     // Nödåtkomsten registrerar inget samtycke.
     expect(s.db.query("SELECT count(*) AS n FROM sammanhallen_samtycken WHERE patient_id = 'p13'").get().n).toBe(0);
+  });
+
+  test(T.sjBunden.split(' > ')[1], async () => {
+    const k = await inloggad('lak-kard');
+    expect((await hamta(k, 'p01', { samtycke: true })).data.hamtad).toBe(true);
+    // Nästa person som loggar in i samma session får inte valet, fast samtycket finns på vårdenheten.
+    await k.logga('ssk-kard');
+    expect((await k.get('/api/patient/p01/sammanhallen')).data.hamtad).toBe(false);
+    expect((await k.get('/api/patient/p01/oversikt')).data.tidslinje.some(t => t.typ === 'extern')).toBe(false);
+    // Samma person som loggar in igen gör ett nytt aktivt val.
+    await k.logga('lak-kard');
+    expect((await k.get('/api/patient/p01/sammanhallen')).data.hamtad).toBe(false);
+    // Valet är bundet till personen och vårdenheten: byts personen eller uppdraget i sessionen gäller det inte.
+    expect((await hamta(k, 'p01')).data.hamtad).toBe(true);
+    const s = sandlada(app, k);
+    somPerson(s, 'lak-akut');
+    const r = await k.get('/api/patient/p01/sammanhallen');
+    expect(r.data.hamtad).toBe(false);
+    expect(JSON.stringify(r.data.poster)).toBe('[]');
+    somPerson(s, 'lak-kard');
+    expect((await k.get('/api/patient/p01/sammanhallen')).data.hamtad).toBe(true);
+    s.db.query("UPDATE personal SET enhet_id = 'uso-med' WHERE id = 'lak-kard'").run();
+    const annan = await k.get('/api/patient/p01/sammanhallen');
+    expect(annan.data?.hamtad ?? false).toBe(false);
+    s.db.query("UPDATE personal SET enhet_id = 'uso-kard' WHERE id = 'lak-kard'").run();
+    // Efter en utloggning finns inget val kvar.
+    await k.post('/api/logout', {});
+    await k.logga('lak-kard');
+    expect((await k.get('/api/patient/p01/sammanhallen')).data.hamtad).toBe(false);
   });
 
   test(T.sjLogg.split(' > ')[1], async () => {

@@ -73,7 +73,14 @@ function samtyckeFor(db, personal, patientId) {
   return db.query('SELECT * FROM sammanhallen_samtycken WHERE patient_id = ? AND aterkallat IS NULL ORDER BY id DESC').all(patientId).find(s => vardenhetFor(db, s.enhet_id) === ve) ?? null;
 }
 const samtyckeUt = (db, s) => (s ? { id: s.id, registrerat: s.registrerat, registreratAv: personKort(db, s.registrerat_av) } : null);
-const valFor = (sess, pid) => sess?.sammanhallen?.get(pid) ?? null;
+// Säkerhetsgranskningen av runda 10 (beslut 2026-11-08): valet ligger i sessionens aktiva val för patienten (s.val), så
+// att det rensas överallt där de aktiva valen rensas (inloggning, utloggning, inaktivitet, ogiltigt uppdrag, invånare och
+// återställning). Det är dessutom bundet till personen och vårdenheten som gjorde det, och gäller bara när båda stämmer.
+function valFor(sess, pid, atk) {
+  const v = sess?.val?.[pid]?.sammanhallen ?? null;
+  if (!v || !atk?.personal || v.personalId !== atk.personal.id || v.vardenhet !== vardenhetFor(atk.db, atk.personal.enhet_id)) return null;
+  return v;
+}
 
 function prova(atk) {
   const r = atk.krav('las_journal', { beskrivning: 'sammanhallen' });
@@ -90,7 +97,7 @@ function urval(poster, { sortera = 'nyast', typ = null } = {}) {
 export function lage(atk, sess, fraga = {}) {
   atk.krav('las_journal');
   const db = atk.db;
-  const val = valFor(sess, atk.patientId);
+  const val = valFor(sess, atk.patientId, atk);
   const samtycke = samtyckeFor(db, atk.personal, atk.patientId);
   // Ett aktivt val som bygger på samtycke upphör när samtycket återkallas.
   const giltigt = val && (val.grund === 'nodatkomst' ? atk.prova('las_journal').grund === 'nodatkomst' : Boolean(samtycke));
@@ -118,8 +125,8 @@ export function hamta(atk, sess, body = {}) {
     if (body.samtycke !== true) throw new Fel(400, 'Uppgifter från en annan vårdgivare hämtas bara om patienten samtycker. Fråga patienten och registrera samtycket.', 'ogiltig', { falt: ['samtycke'] });
     db.query('INSERT INTO sammanhallen_samtycken (patient_id, enhet_id, registrerat, registrerat_av) VALUES (?, ?, ?, ?)').run(atk.patientId, atk.personal.enhet_id, iso(), atk.personal.id);
   }
-  sess.sammanhallen ??= new Map();
-  sess.sammanhallen.set(atk.patientId, { grund, syfte, tid: iso() });
+  sess.val ??= {};
+  sess.val[atk.patientId] = { ...(sess.val[atk.patientId] ?? {}), sammanhallen: { grund, syfte, tid: iso(), personalId: atk.personal.id, vardenhet: vardenhetFor(db, atk.personal.enhet_id) } };
   atk.loggad = true;
   return lage(atk, sess, {});
 }
@@ -130,15 +137,15 @@ export function aterkalla(atk, sess) {
   const db = atk.db;
   const s = samtyckeFor(db, atk.personal, atk.patientId);
   if (s) db.query('UPDATE sammanhallen_samtycken SET aterkallat = ?, aterkallat_av = ? WHERE id = ?').run(iso(), atk.personal.id, s.id);
-  sess.sammanhallen?.delete(atk.patientId);
+  if (sess.val?.[atk.patientId]) delete sess.val[atk.patientId].sammanhallen;
   atk.logga('las_journal', atk.grund(), 'sammanhallen:samtycke:aterkallat');
   return lage(atk, sess, {});
 }
 
 // För översiktens tidslinje: de hämtade uppgifterna i samma form som Vårdkällans egna, när det aktiva valet gäller.
 export function tidslinje(atk, sess) {
-  if (!valFor(sess, atk.patientId) || !atk.prova('las_journal').tillaten) return [];
-  const val = valFor(sess, atk.patientId);
+  const val = valFor(sess, atk.patientId, atk);
+  if (!val || !atk.prova('las_journal').tillaten) return [];
   const giltigt = val.grund === 'nodatkomst' ? atk.prova('las_journal').grund === 'nodatkomst' : Boolean(samtyckeFor(atk.db, atk.personal, atk.patientId));
   if (!giltigt) return [];
   loggaHamtning(atk, val);

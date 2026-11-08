@@ -16,7 +16,8 @@ import { InvanareAtkomst, journaler, synligKedja, provsvarVisas, MAX_NEKADE } fr
 import { aktivaSparrar } from './atkomst.js';
 import { tillaggUt } from './ordinationsmallar.js';
 // Runda 7, r6: vaccinerna i barnvaccinationsprogrammet.
-import { vaccinRad } from './bhv-program.js';
+// Runda 10, r5: visningen slår också upp vaccinerna i de andra vaccinationsprogrammen.
+import { vaccinRadVisning as vaccinRad } from './bhv-program.js';
 import { FHIR_SYSTEM as ID_SYSTEM, identiteterFor, delaOid, maskera, gallandeId, allaPatientIdn, hittaPaToken } from './identitet.js';
 // Tidboken: Schedule, Slot och Appointment (tidbok-fhir.js).
 import * as tidbokFhir from './tidbok-fhir.js';

@@ -9,7 +9,7 @@ let app;
 beforeAll(() => { app = testserver(); });
 afterAll(() => app.stopp());
 async function inloggad(id) { const k = klient(app); await k.logga(id); return k; }
-const STABIL = { andningsfrekvens: 16, saturation: 97, syrgas: 0, systoliskt: 128, puls: 78, medvetande: 'A', temp: 37.0 };
+const STABIL = { andningsfrekvens: 16, saturation: 97, syrgas: 0, systoliskt: 128, diastoliskt: 80, puls: 78, medvetande: 'A', temp: 37.0 };
 
 describe('Akutmottagningen', () => {
   test(T.akAnkomst.split(' > ')[1], async () => {
@@ -18,13 +18,14 @@ describe('Akutmottagningen', () => {
     const r = await k.post('/api/akut/ankomst', { patientId: 'p02', kontaktorsak: 'Bröstsmärta sedan en timme' });
     expect(r.status).toBe(201);
     // Systemet sätter könumret, ankomsttiden, akutbesöket på akutmottagningen och första steget.
-    expect(r.data).toMatchObject({ konummer: expect.stringMatching(/^A\d{2}$/), steg: 'vantar_triage', prioritet: null, kontaktorsak: 'Bröstsmärta sedan en timme' });
+    expect(r.data.konummer).toMatch(/^A\d{2}$/);
+    expect(r.data).toMatchObject({ steg: 'vantar_triage', prioritet: null, kontaktorsak: 'Bröstsmärta sedan en timme' });
     const besok = s.db.query('SELECT * FROM akutbesok WHERE id = ?').get(r.data.id);
     const vk = s.db.query('SELECT * FROM vardkontakter WHERE id = ?').get(besok.vardkontakt_id);
     expect(vk).toMatchObject({ patient_id: 'p02', enhet_id: 'uso-akut', typ: 'akut', orsak: 'Bröstsmärta sedan en timme', slut: null });
     // Könumret är nästa lediga och syns i väntrummet.
     const vr = (await k.get('/api/vantrum')).data;
-    expect(vr.some(v => v.konummer === r.data.konummer)).toBe(true);
+    expect(vr.map(v => v.konummer)).toContain(r.data.konummer);
     // En patient med ett pågående akutbesök registreras inte två gånger.
     expect((await k.post('/api/akut/ankomst', { patientId: 'p02', kontaktorsak: 'Igen' })).status).toBe(400);
     // Registreringen ger inte den som registrerade vårdrelation: det gör triagen eller bedömningen av en annan person.
@@ -114,9 +115,9 @@ describe('Akutmottagningen', () => {
     expect(s.db.query('SELECT slut FROM vardkontakter WHERE id = ?').get(rad.vardkontakt_id).slut).toBeTruthy();
     expect((await k.get('/api/akut')).data.tavla.some(x => x.id === hem.id)).toBe(false);
     // Överföring till slutenvård: systemet skriver in patienten på avdelningen, från akutbesöket.
-    const in = akut.registreraAnkomst(s.db, ssk, { patientId: 'p18', kontaktorsak: 'Hjärtsvikt med andnöd' });
-    await k.post(`/api/akut/${in.id}/triage`, { vitaler: STABIL });
-    const lagg = await k.post(`/api/akut/${in.id}/utregistrera`, { beslut: 'inlaggning', enhetId: 'uso-kard-72' });
+    const inl = akut.registreraAnkomst(s.db, ssk, { patientId: 'p18', kontaktorsak: 'Hjärtsvikt med andnöd' });
+    await k.post(`/api/akut/${inl.id}/triage`, { vitaler: STABIL });
+    const lagg = await k.post(`/api/akut/${inl.id}/utregistrera`, { beslut: 'inlaggning', enhetId: 'uso-kard-72' });
     expect(lagg.status).toBe(200);
     expect(lagg.data).toMatchObject({ steg: 'klar', beslut: 'inlaggning', vardtillfalle: { enhet: { id: 'uso-kard' } } });
     const vt = s.db.query("SELECT * FROM vardtillfallen WHERE patient_id = 'p18' AND utskriven IS NULL").get();

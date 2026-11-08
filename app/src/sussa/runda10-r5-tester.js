@@ -41,12 +41,14 @@ export const T = {
   vpRegistrera: `${VP}en dos ges med prövning mot programmet, och en dos som har getts någon annanstans registreras med källan`,
   vpRegister: `${VP}varje dos som ges rapporteras till det simulerade vaccinationsregistret med kvittens`,
   vpBehorighet: `${VP}vaccinationerna kräver vårdrelation, och nödåtkomst ger bara läsning`,
+  vpBhvEgen: `${VP}barnhälsovården registrerar bara vaccin i sitt eget program och hänvisar andra vacciner till vaccinationsprogrammens flöde, som prövar dem`,
   vpFhir: `${VP}FHIR: vaccinationerna i programmen är Immunization med samma behörighet`,
   // Sammanhållen journalföring (3.2.2.3).
   sjSamtycke: `${SJ}uppgifter från en annan vårdgivare hämtas först efter vårdrelation, samtycke och ett aktivt val`,
   sjKronologi: `${SJ}de hämtade uppgifterna visas i samma kronologi med vårdgivare, vårdenhet, yrkesroll och tid utskrivna, och kan sorteras och väljas`,
   sjSparr: `${SJ}uppgifter som är spärrade hos den andra vårdgivaren hämtas aldrig och röjs inte`,
   sjNod: `${SJ}nödåtkomst utan samtycke hämtar uppgifterna och loggas som nödåtkomst, men aldrig spärrade`,
+  sjBunden: `${SJ}valet gäller bara den person och vårdenhet som gjorde det och följer aldrig med till nästa inloggning eller uppdrag`,
   sjLogg: `${SJ}varje hämtning loggas på patienten med vårdgivaren, och samtycket kan återkallas`,
   // Akutmottagningen (3.2.3.5).
   akAnkomst: `${AK}ankomsten registreras med ett klick: könummer, akutbesök och tid sätts av systemet`,

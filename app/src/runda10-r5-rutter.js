@@ -14,6 +14,7 @@ import * as overforing from './lakemedelsoverforing.js';
 import * as vaccinationsprogram from './vaccinationsprogram.js';
 import * as vardkontakt from './vardkontakt.js';
 import * as sammanhallen from './sammanhallen.js';
+import * as akut from './akutflode.js';
 
 // Läkemedelsinformationen för ett läkemedel och patienten: eGFR enligt samma regel som säkerhetskontrollerna (från alla
 // vårdenheter utan aktivt val men aldrig från en spärrad vårdenhet utan samtycke), patientens ålder och vårdenhetens
@@ -28,7 +29,7 @@ export function lakemedelsinfo(atk, p, lakemedelId) {
   return { ...info, utfall: utfallsstod.substans(atk.db, atk.personal, lm.atc) };
 }
 
-export function registreraRutter({ rutt, kravInloggad, medPatient }) {
+export function registreraRutter({ rutt, kravInloggad, medPatient, valFor }) {
   // Sussa 3.5.1.5: läkemedelsinformation vid ordination och administrering.
   rutt('GET', '/api/patient/:id/lakemedelsinfo/:lm', (c, id, lm) => { kravInloggad(c); return medPatient(c, id, 'las_lakemedel', (atk, p) => lakemedelsinfo(atk, p, decodeURIComponent(lm))); });
   // Sussa 3.2.1.3: vårdenhetens utfall för en standardplan, utan patientuppgifter.
@@ -55,6 +56,17 @@ export function registreraRutter({ rutt, kravInloggad, medPatient }) {
   rutt('GET', '/api/patient/:id/sammanhallen', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_journal', (atk) => sammanhallen.lage(atk, c.s, { sortera: c.url.searchParams.get('sortera') ?? 'nyast', typ: c.url.searchParams.get('typ') })); });
   rutt('POST', '/api/patient/:id/sammanhallen', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_journal', (atk) => sammanhallen.hamta(atk, c.s, c.body)); });
   rutt('POST', '/api/patient/:id/sammanhallen/aterkalla', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_journal', (atk) => sammanhallen.aterkalla(atk, c.s)); });
+  // Sussa 3.2.3.5: flödet på akutmottagningen. Behörigheten prövas i akutflode.js, och varje åtgärd loggas på patienten.
+  rutt('GET', '/api/akut', (c) => akut.tavla(c.db, kravInloggad(c), { prioritet: c.url.searchParams.get('prioritet'), steg: c.url.searchParams.get('steg') }));
+  rutt('GET', '/api/akut/ledtider', (c) => akut.ledtiderPerPrioritet(c.db, kravInloggad(c)));
+  rutt('POST', '/api/akut/ankomst', (c) => akut.ankomst(c.db, kravInloggad(c), c.body));
+  rutt('POST', '/api/akut/forvarning', (c) => akut.forvarning(c.db, kravInloggad(c), c.body));
+  rutt('POST', '/api/akut/:id/triage', (c, id) => akut.triagera(c.db, kravInloggad(c), akut.hamta(c.db, id), c.body));
+  rutt('POST', '/api/akut/:id/aktivitet', (c, id) => [201, akut.planera(c.db, kravInloggad(c), akut.hamta(c.db, id), c.body)]);
+  rutt('POST', '/api/akut/:id/aktivitet/:aid/utford', (c, id, aid) => akut.utford(c.db, kravInloggad(c), akut.hamta(c.db, id), aid));
+  rutt('POST', '/api/akut/:id/bedomning', (c, id) => akut.bedom(c.db, kravInloggad(c), akut.hamta(c.db, id)));
+  rutt('POST', '/api/akut/:id/beslut', (c, id) => akut.besluta(c.db, kravInloggad(c), akut.hamta(c.db, id), c.body));
+  rutt('POST', '/api/akut/:id/utregistrera', (c, id) => akut.utregistrera(c.db, kravInloggad(c), akut.hamta(c.db, id), c.body, (pid) => valFor(c.s, pid)));
   // Vilka grupper av högriskläkemedel som kontrolleras i dag.
   rutt('GET', '/api/kollegakontroll/grupper', (c) => { kravInloggad(c); return { grupper: Object.entries(hogrisk.KATEGORIER).map(([gid, k]) => ({ id: gid, rubrik: k.rubrik, varfor: k.varfor, pa: hogrisk.aktiv(c.db, gid) })) }; });
 }

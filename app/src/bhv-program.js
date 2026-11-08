@@ -61,9 +61,12 @@ export const VACCINER = [
   // BCG ges bara vid ökad risk för tuberkulos, efter bedömningen vid första hembesöket.
   V('bcg', 'Tuberkulos (BCG)', 'bcg', 1, 0, { atc: 'J07AN01', sjukdomar: 'Tuberkulos' }),
 ];
-// Runda 10, r5: vaccinerna i programmen efter fem års ålder och för riskgrupper (vaccinationsprogram-regler.js) slås upp
-// här också, så att text och sjukdomar följer med i listor, FHIR och Min journal.
-export const vaccinRad = (id) => VACCINER.find(v => v.id === id) ?? ovrigtVaccin(id) ?? null;
+// Barnhälsovårdens registrering slår bara upp i den egna listan (säkerhetsgranskningen av runda 10, beslut 2026-11-08).
+export const vaccinRad = (id) => VACCINER.find(v => v.id === id) ?? null;
+// Runda 10, r5: för visning (text och sjukdomar i listor, FHIR och Min journal) slås också vaccinerna i programmen efter
+// fem års ålder och för riskgrupper upp (vaccinationsprogram-regler.js). Används aldrig för att godta en registrering.
+export const vaccinRadVisning = (id) => vaccinRad(id) ?? ovrigtVaccin(id) ?? null;
+export const iAndraProgram = (id) => Boolean(ovrigtVaccin(id));
 // Vaccinationerna som ges senare av elevhälsan, för information.
 export const ELEVHALSAN = [
   { text: 'MPR, dos 2', nar: 'Årskurs 1 till 2' },
