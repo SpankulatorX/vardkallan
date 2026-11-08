@@ -164,7 +164,7 @@ const MENY = {
 for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].indexOf('Läkemedel att ge') + 1, 0, 'Prover och kontroller');
 // Runda 9, r7: Analys och statistik för läkare, sjuksköterskor, vårdadministratörer och uppföljningen, och
 // Forskningsuttag för uppföljningen, arkivarien och verksamhetschefen, före Utbildning.
-for (const k of ['klinisk', 'sjukskoterska', 'vardadministrator', 'psykiatri', 'uppfoljning', 'bvc']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Analys och statistik');
+for (const k of ['klinisk', 'sjukskoterska', 'vardadministrator', 'psykiatri', 'uppfoljning', 'bvc', 'fysioterapeut']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Analys och statistik');
 for (const k of ['uppfoljning', 'arkiv', 'verksamhetschef']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Forskningsuttag');
 // Runda 9, r7: läkarna och verksamhetschefen har vårdenhetens signeringslista.
 for (const k of ['klinisk', 'psykiatri', 'bvc', 'verksamhetschef']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Signeringslista');
@@ -813,7 +813,7 @@ for (const k of ['klinisk', 'psykiatri', 'bvc', 'verksamhetschef']) MENY[k].spli
       await forvanta(page, '.ant-form h2', 'Ny anteckning');
       const mallar = await page.locator('select[name="typ"] option').allTextContents();
       // Runda 8, r5: sjuksköterskan skriver också tobaksvanor, som har kategorin omvårdnad.
-      if (JSON.stringify(mallar) !== JSON.stringify(['Omvårdnadsanteckning', 'Tobaksvanor'])) throw new Error(`mallar ${mallar}`);
+      if (JSON.stringify(mallar) !== JSON.stringify(['Omvårdnadsanteckning', 'Tobaksvanor', 'Levnadsvanor'])) throw new Error(`mallar ${mallar}`);
       await page.fill('textarea[data-sokord="Sömn"]', 'Sov hela natten.');
       await page.click('.ant-form [data-signera]');
       await forvanta(page, '.anteckning', 'Sov hela natten.');
