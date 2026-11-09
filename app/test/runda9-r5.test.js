@@ -320,10 +320,11 @@ describe('Skyddsbehov', () => {
 });
 
 // Laboratoriets svar i en egen sandlåda: en beställning för patient 1 som är provtagen och skickad.
-const BAS = new Date('2026-11-08T09:00:00Z');
+// Hela timmen före nu, så att testet inte beror på vilken dag det körs.
+const BAS = new Date(Math.floor(Date.now() / 3_600_000) * 3_600_000 - 3_600_000);
 const T = (min) => new Date(BAS.getTime() + min * 60_000);
 function provtagen(db) {
-  const b = labb.bestall(new Atkomst(db, pers(db, 'lak-kard'), 'p01', {}, 'bestalla_prov'), { paket: 'feber' }, BAS).bestallning;
+  const b = labb.bestall(new Atkomst(db, pers(db, 'lak-kard'), 'p01', {}, 'bestalla_prov'), { paket: 'feber', kvitteraDubbletter: true }, BAS).bestallning;
   for (const p of b.prov) labb.taProv(new Atkomst(db, pers(db, 'ssk-kard'), 'p01', {}, 'ta_prov'), labb.provRad(db, p.id), T(5));
   return b;
 }

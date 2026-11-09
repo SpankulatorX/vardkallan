@@ -191,7 +191,7 @@ describe('Vaccinationsprogram', () => {
     expect(P['vaccination.riskgrupp_alder_ar'].beskrivning).toContain('stämmas av mot Folkhälsomyndighetens föreskrifter');
     expect(konfiguration.prova('vaccination.riskgrupper', ['J44', 'XYZ']).ok).toBe(false);
     const sf = personal(db, 'sysf');
-    const { andring } = konfiguration.foresla(db, sf, { nyckel: 'vaccination.vattkoppor_alder_manader', varde: 18, giltigFran: '2026-11-08', motivering: 'Folkhälsomyndighetens föreskrift' });
+    const { andring } = konfiguration.foresla(db, sf, { nyckel: 'vaccination.vattkoppor_alder_manader', varde: 18, giltigFran: idag(), motivering: 'Folkhälsomyndighetens föreskrift' });
     expect(vp.regler(db).vattkopporManader).toBeNull();
     konfiguration.godkann(db, personal(db, 'sysf-2'), andring.id, {});
     expect(vp.regler(db).vattkopporManader).toBe(18);
