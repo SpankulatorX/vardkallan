@@ -11,6 +11,13 @@ export const VERSION = (() => { try { return JSON.parse(readFileSync(join(import
 // resurser är resurstyperna som kom i versionen, skrivning är resurstyp och interaktion (Condition:create) och
 // annat är ändringar som inte är en resurstyp, till exempel SMART on FHIR.
 export const ANDRINGAR = [
+  // Runda 11, r7: tjänstekontrakten GetObservations och GetActivities har en simulerad producent (Sussa 4.1.1.7).
+  {
+    version: '1.1.0', datum: '2026-11-10',
+    text: 'Den simulerade producenten för tjänstekontrakt svarar också på GetObservations och GetActivities, med samma behörighet och loggning som FHIR.',
+    resurser: [], skrivning: [],
+    annat: ['GetObservations och GetActivities i den simulerade producenten för tjänstekontrakt'],
+  },
   // Runda 10, r1: systemkonton, prenumerationer på en population, överkänslighet och patienter via API:t och
   // Patient/$everything för personalen (Sussa 2.5.1.1 och 2.5.1.2).
   {

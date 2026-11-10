@@ -2,6 +2,36 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "1.1.0",
+      "datum": "2026-11-10",
+      "nyheter": [
+        {
+          "id": "iva-realtid-regler",
+          "roller": ["lakare", "sjukskoterska", "underskoterska"],
+          "omfattning": "stor",
+          "var": "#/iva",
+          "rubrik": "Intensivvården: realtid, egna gränser och vårdtyngd",
+          "text": "Övervakningen visar EKG, artärtryck, pletysmografi och andning i realtid från den simulerade monitorn, med monitorns larm. Läkaren sätter egna larmgränser för en patient, och en mildare gräns tystar aldrig avdelningens larm. Vätskebalansen räknar perspiratio och prognos till kl. 06 mot behandlingsmålen, och systemet föreslår vårdtyngden enligt NEMS. Övervakningen finns också som fliken Intensivvård i journalen, med överrapportering enligt SBAR."
+        },
+        {
+          "id": "tillvaxt-referens-pubertet-import",
+          "roller": ["lakare", "sjukskoterska"],
+          "omfattning": "stor",
+          "var": "#/sok",
+          "rubrik": "Tillväxt: WHO 5 till 19 år, pubertet och import",
+          "text": "Tillväxtkurvorna har WHO:s referens 5 till 19 år och kan byta referens, och du väljer vilka mått som visas. Sitthöjd och pubertet enligt Tanners stadier registreras, och systemet säger till när puberteten är tidig eller sen. Tidigare mätningar läses in från en fil eller ett simulerat journalsystem efter att systemet har granskat dem."
+        },
+        {
+          "id": "bhv-indikatorer",
+          "roller": ["lakare", "sjukskoterska", "uppfoljning"],
+          "omfattning": "liten",
+          "var": "#/bhv",
+          "rubrik": "Valbara indikatorer i barnhälsovården",
+          "text": "Barnavårdscentralen väljer vilka indikatorer som följs upp, och uppföljningsrollen ser dem för regionen under Rapportering, utan små tal."
+        }
+      ]
+    },
+    {
       "version": "1.0.0",
       "datum": "2026-11-08",
       "nyheter": [

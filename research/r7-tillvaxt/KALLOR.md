@@ -1,6 +1,6 @@
 # Källor för tillväxtreferenser (r7)
 
-Underlaget hämtades 2026-11-10. Alla filer ligger i `original/`, och `manifest.json` har URL, slutlig URL efter omdirigering, hämttid (UTC), HTTP-status, storlek och sha256 för varje fil. Tabellen i slutet av dokumentet listar samma uppgifter. Hjälpskripten ligger i `verktyg/`.
+Underlaget hämtades 2026-11-10. De nedladdade filerna sparas inte i repot, eftersom de är andras verk. `manifest.json` har URL, slutlig URL efter omdirigering, hämttid (UTC), HTTP-status, storlek och sha256 för varje fil. Tabellen i slutet av dokumentet listar samma uppgifter. Hjälpskripten ligger i `verktyg/`.
 
 ## 1. WHO Growth Reference 2007, 5 till 19 år
 
@@ -36,7 +36,7 @@ Hämtat: artikeln i PMC (PMC3637477), Crossref-posten och Fentons sida på ucalg
 
 - Artikeln: "Copyright © 2013 Fenton and Kim; licensee BioMed Central Ltd. This is an Open Access article distributed under the terms of the Creative Commons Attribution License (http://creativecommons.org/licenses/by/2.0)". Crossref anger samma licens.
 - Artikeln publicerar inte LMS-värdena. Den säger: "Exact z-score and centile calculators for the revised charts are available for download: http://ucalgary.ca/fenton. Data is available for research upon request."
-- Fentons sida (https://ucalgary.ca/resource/preterm-growth-chart): "Commercial Use: To obtain the Growth Chart Data for commercial use, please contact Ms. Jelena Matic at: jmatic@innovatecalgary.com" och "Research or Individual Use: To obtain the data for research or individual institution/hospital use, please send me an email at: tfenton@ucalgary.ca". Sidan säger inget om fri licens för data. Sidan visar nu också Fenton 2025.
+- Fentons sida (https://ucalgary.ca/resource/preterm-growth-chart): "Commercial Use: To obtain the Growth Chart Data for commercial use, please contact [kontaktperson på Innovate Calgary]" och "Research or Individual Use: To obtain the data for research or individual institution/hospital use, please send me an email at: tfenton@ucalgary.ca". Sidan säger inget om fri licens för data. Sidan visar nu också Fenton 2025.
 
 Slutsats: får inte användas. Artikeln är CC BY men innehåller inga koefficienter, och data lämnas bara ut på begäran (forskning) eller mot avtal (kommersiellt).
 

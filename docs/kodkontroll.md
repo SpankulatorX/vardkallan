@@ -389,3 +389,48 @@ KVÅ-koderna för in- och utfarterna och donationen kontrollerades i E-hälsomyn
 ICD-10-SE-koderna Z94.0 till Z94.4, Z94.7 och Z94.8 (transplantationerna) och J96.01, J96.11 och J96.91 (andningssvikt med hyperkapné, som ger förslaget om skala 2) kontrollerades i icd-10-se.tsv, samma fil och sha256 som ovan (696c0c02178dabce2c99802898e98cb5c7c4a3af1f78c5cc1c2ad29f5eaabae8).
 
 Kodverkslistan för uppmärksamhetsinformation är bilagan 2025-12-9984-bilaga-kodverkslista.xlsx till Informationsspecifikation för uppmärksamhetsinformation version 6.1.2, publicerad 2025-12-15 på E-hälsomyndighetens sida om uppmärksamhetsinformation (https://www.ehalsomyndigheten.se/verksamhet/ndi/interoperabilitet/uppmarksamhetsinformation/), hämtad 2026-11-08, sha256 deb89adce3e87447e1b5aba11a6be716326a69a37aa598b884be21eb7c048db9. Socialstyrelsens gamla länkar till specifikationen leder inte längre fram. Filen lästes som data med standardbiblioteket i Python, blad för blad, till `app/src/seed/umi-kodverkslista.json`: 94 termer med ICD-10-SE, ATC, Snomed CT och motivering, och reaktionerna vid överkänslighet. Termerna och motiveringarna är ordagranna, utom att blanktecken är sammanslagna och att tankstrecket i termen för implanterbar defibrillator är ersatt med ett kommatecken. Bladet Ändringar är inte inläst. Snomed CT-begreppen är inlästa bara som id, utan listans svenska beskrivningar ur Snomed CT, eftersom Snomed CT kräver licens. Varje Snomed CT-identitet i listan klarar kontrollsiffran och partitionen i bygget. Begreppen är inte uppslagna mot den svenska utgåvan, som kräver licens.
+
+## Runda 11, r7: tillväxtreferenser, bilaga K11, pubertet och intensivvårdens källor (2026-11-10)
+
+### Tillväxtreferenser och licenser
+
+Varje referens kontrollerades innan den användes. Källorna med URL, hämttid och sha256 för varje nedladdad fil finns i `research/r7-tillvaxt/manifest.json` och `research/r7-tillvaxt/KALLOR.md`. De nedladdade filerna sparas inte i repot.
+
+| Referens | Licens | Används |
+|---|---|---|
+| WHO Growth Reference 2007, 5 till 19 år (de Onis m.fl., Bull World Health Organ 2007;85:660-7): BMI och längd 61 till 228 månader och vikt 61 till 120 månader | CC BY-NC-SA 3.0 IGO enligt WHO:s upphovsrättspolicy och WHO:s villkor för webbplatsen. Samma tabeller ger WHO ut under GPL-3.0 i R-paketet anthroplus | Ja, i `app/src/seed/who2007-tillvaxt.js`, som inte omfattas av EUPL 1.2. Alla 792 rader är lika med anthroplus (commit 7cfcdb39026e9a55de55732bc3cf14c82261bcf7) |
+| Fenton 2013, prematurkurvor | Artikeln är CC BY 2.0 men har inga LMS-värden. Värdena lämnas ut på begäran för forskning och mot avtal för kommersiell användning | Nej |
+| INTERGROWTH-21st, prematurer och nyföddas storlek | Artikeln med ekvationerna för prematurer (Villar 2015) är CC BY-NC-ND 4.0, och tabellerna har upphovsrätt hos University of Oxford | Nej |
+| CDC, Downs syndrom (Zemel m.fl. 2015) | CDC ger ut kurvbladen som bilder. Värdena finns bara i tidskriftens tilläggstabeller under förlagets upphovsrätt | Nej |
+| Turners syndrom | Den turkiska referensen (2015) är CC BY men har värdena bara som bilder, och den japanska (2010) är CC BY-NC-ND | Nej |
+
+WHO-tabellerna lästes som data med standardbiblioteket i Python (zipfile och xml) och avrundades till fyra decimaler för L och M och fem för S, som tabellen för 0 till 5 år. Mellan 60 och 61 månader räknas övergången linjärt mellan tabellerna.
+
+### Bilaga K11 mot Snomed CT
+
+Koderna i `K11` slogs upp en i taget med `CodeSystem/$lookup` på tx.fhir.org mot SNOMED CT International Edition, version `http://snomed.info/sct/900000000000207008/version/20250201`, den 2026-11-10 (svaren i `research/r7-tillvaxt/snomed-uppslag.json`).
+
+| Kod | Begrepp | Resultat |
+|---|---|---|
+| 364589006 | Birth weight | Aktiv |
+| 169886007 | Birth length | Aktiv |
+| 169876006 | Birth head circumference | Aktiv |
+| 412726003 | Length of gestation at birth | Aktiv |
+| 27113001 | Body weight | Aktiv |
+| 248334005 | Length of body | Inaktiv sedan 2021-07-31. Aktiva begrepp i samma område är 1153637007 Body height och 1149101003 Recumbent body height |
+| 363812007 | Head circumference | Aktiv |
+| 248335006 | Sitting height | Aktiv |
+| 80943009, 707085002, 408864009, 473170005 | Tuberkulosrisk och BCG | Aktiva |
+| 53851000052106, 53861000052109 | Längd hos biologisk mor och far | Svensk utgåva, finns inte i den internationella utgåvan |
+
+Koderna står kvar ordagrant som i K11, också den inaktiva koden för kroppslängd, eftersom Svenska barnhälsovårdsregistret tar emot bilagans koder. Vid import läses både 248334005 och de två aktiva begreppen för längd. Koderna i den svenska utgåvan kontrolleras med kontrollsiffran (Verhoeff) och partitionen, eftersom den svenska utgåvan kräver licens. Kontrollen finns som `K11_KONTROLL` i `app/src/tillvaxt-r11.js` och i testet `Tillväxt, version 1.1 > sitthöjd registreras med K11:s kod`.
+
+### Pubertet och sitthöjd
+
+Tanners stadier registreras med Snomed CT 251811005 (bröst), 251805007 (genitalia) och 251817009 (pubesbehåring), alla aktiva i samma utgåva. Sitthöjd har 248335006 i K11 och i FHIR. LOINC har inget begrepp för sitthöjd som tx.fhir.org hittar, så sitthöjden har bara Snomed CT i FHIR.
+
+### Intensivvården
+
+NEMS följer Reis Miranda D, Moreno R, Iapichino G, Nine equivalents of nursing manpower use score (NEMS), Intensive Care Med 1997;23:760-5: nio poster med poängen 9, 6, 12, 3, 7, 12, 6, 5 och 6. Förslagen ur journalen, perspiratio, prognosen och rekommendationerna är demoregler.
+
+Läkemedlen för vasoaktiv infusion och sedering slogs upp i NPL:s totalfil 2026-11-10 (`research/r7-npl/RESULTAT.md`): Noradrenalin Abcur 1 mg/ml (20070331000011), Propofol-Lipuro 10 mg/ml (20000825000258), Midazolam Panpharma 5 mg/ml (20051112000024) och Furix 10 mg/ml (19801003000053), alla godkända. De är inte inlagda i katalogen, eftersom förpackningarna inte är inlästa.

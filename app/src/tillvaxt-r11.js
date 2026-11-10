@@ -281,48 +281,51 @@ export function simuleratSvar(p, nu = Date.now()) {
 // Indikatorer för uppföljning (4.1.1.8)
 
 const barnPa = (db, ve) => db.query('SELECT p.* FROM bhv_inskrivning i JOIN patienter p ON p.id = i.patient_id WHERE i.enhet_id = ? AND p.sammanslagen_till IS NULL').all(ve);
-const uppgift = (db, pid, typ) => db.query('SELECT 1 FROM tillvaxt_uppgifter WHERE patient_id = ? AND typ = ? LIMIT 1').get(pid, typ);
+// Bara uppgifter som är registrerade på vårdenheten räknas (e är vårdenhetens enheter), så att en uppgift på en annan
+// eller spärrad vårdenhet aldrig ändrar ett tal.
+const iEnh = (e) => `enhet_id IN (${e.map(() => '?').join(', ')})`;
+const uppgift = (db, pid, typ, e) => db.query(`SELECT 1 FROM tillvaxt_uppgifter WHERE patient_id = ? AND typ = ? AND ${iEnh(e)} LIMIT 1`).get(pid, typ, ...e);
 // Varje indikator räknar täljare och nämnare ur det som är registrerat på vårdenheten.
 export const INDIKATORER = [
-  { id: 'besok_i_tid', text: 'Hälsobesök gjorda i tid', raknar: (db, barn, nu) => {
+  { id: 'besok_i_tid', text: 'Hälsobesök gjorda i tid', raknar: (db, barn, nu, e) => {
     let n = 0, t = 0;
     for (const b of P.BESOK) for (const p of barn) {
       if (P.alderDagar(p.fodd, nu) <= b.fonster[1]) continue;
       n++;
-      const r = db.query("SELECT tid FROM bhv_besok WHERE patient_id = ? AND besok_id = ? AND status = 'genomfort'").get(p.id, b.id);
+      const r = db.query(`SELECT tid FROM bhv_besok WHERE patient_id = ? AND besok_id = ? AND status = 'genomfort' AND ${iEnh(e)}`).get(p.id, b.id, ...e);
       if (r) { const d = P.alderDagar(p.fodd, Date.parse(r.tid)); if (d >= b.fonster[0] && d <= b.fonster[1]) t++; }
     }
     return [t, n];
   } },
-  { id: 'besok_med_matt', text: 'Hälsobesök med alla mått i programmet', raknar: (db, barn) => {
+  { id: 'besok_med_matt', text: 'Hälsobesök med alla mått i programmet', raknar: (db, barn, nu, e) => {
     let n = 0, t = 0;
-    for (const p of barn) for (const r of db.query("SELECT * FROM bhv_besok WHERE patient_id = ? AND status = 'genomfort'").all(p.id)) {
+    for (const p of barn) for (const r of db.query(`SELECT * FROM bhv_besok WHERE patient_id = ? AND status = 'genomfort' AND ${iEnh(e)}`).all(p.id, ...e)) {
       const b = P.BESOK.find(x => x.id === r.besok_id);
       if (!b || !b.matt?.length) continue;
       n++;
-      if (db.query(`SELECT count(DISTINCT typ) AS n FROM matvarden WHERE vardkontakt_id = ? AND typ IN (${b.matt.map(() => '?').join(', ')})`).get(r.vardkontakt_id, ...b.matt).n === b.matt.length) t++;
+      if (db.query(`SELECT count(DISTINCT typ) AS n FROM matvarden WHERE vardkontakt_id = ? AND ${iEnh(e)} AND typ IN (${b.matt.map(() => '?').join(', ')})`).get(r.vardkontakt_id, ...e, ...b.matt).n === b.matt.length) t++;
     }
     return [t, n];
   } },
-  { id: 'vaccinationstackning', text: 'Vaccinationer i programmet givna i tid', raknar: (db, barn, nu) => {
+  { id: 'vaccinationstackning', text: 'Vaccinationer i programmet givna i tid', raknar: (db, barn, nu, e) => {
     let n = 0, t = 0;
     for (const v of P.VACCINER.filter(x => x.id !== 'bcg')) {
       const b = P.BESOK.find(x => x.vacciner.includes(v.id));
       const grans = b ? b.fonster[1] : v.alder + 60;
-      for (const p of barn.filter(x => P.alderDagar(x.fodd, nu) > grans)) { n++; if (db.query('SELECT 1 FROM vaccinationer WHERE patient_id = ? AND vaccin_id = ?').get(p.id, v.id)) t++; }
+      for (const p of barn.filter(x => P.alderDagar(x.fodd, nu) > grans)) { n++; if (db.query(`SELECT 1 FROM vaccinationer WHERE patient_id = ? AND vaccin_id = ? AND ${iEnh(e)}`).get(p.id, v.id, ...e)) t++; }
     }
     return [t, n];
   } },
-  { id: 'fodelsedata', text: 'Barn med födelsevikt, födelselängd, huvudomfång vid födelsen och graviditetslängd', raknar: (db, barn) => [barn.filter(p => ['fodelsevikt', 'fodelselangd', 'fodelse_huvudomfang', 'graviditetslangd'].every(t => uppgift(db, p.id, t))).length, barn.length] },
-  { id: 'malangd', text: 'Barn med båda föräldrarnas längd, så att målängden räknas', raknar: (db, barn) => [barn.filter(p => uppgift(db, p.id, 'langd_mor') && uppgift(db, p.id, 'langd_far')).length, barn.length] },
-  { id: 'tb_risk', text: 'Barn med bedömd risk för tuberkulos', raknar: (db, barn) => [barn.filter(p => uppgift(db, p.id, 'tb_risk')).length, barn.length] },
-  { id: 'hemmatningar', text: 'Mätningar hemma som hanterades inom sju dagar', raknar: (db, barn) => {
-    const r = barn.flatMap(p => db.query("SELECT skapad, hanterad_tid, status FROM hemmatningar WHERE patient_id = ?").all(p.id));
+  { id: 'fodelsedata', text: 'Barn med födelsevikt, födelselängd, huvudomfång vid födelsen och graviditetslängd', raknar: (db, barn, nu, e) => [barn.filter(p => ['fodelsevikt', 'fodelselangd', 'fodelse_huvudomfang', 'graviditetslangd'].every(t => uppgift(db, p.id, t, e))).length, barn.length] },
+  { id: 'malangd', text: 'Barn med båda föräldrarnas längd, så att målängden räknas', raknar: (db, barn, nu, e) => [barn.filter(p => uppgift(db, p.id, 'langd_mor', e) && uppgift(db, p.id, 'langd_far', e)).length, barn.length] },
+  { id: 'tb_risk', text: 'Barn med bedömd risk för tuberkulos', raknar: (db, barn, nu, e) => [barn.filter(p => uppgift(db, p.id, 'tb_risk', e)).length, barn.length] },
+  { id: 'hemmatningar', text: 'Mätningar hemma som hanterades inom sju dagar', raknar: (db, barn, nu, e) => {
+    const r = barn.flatMap(p => db.query(`SELECT skapad, hanterad_tid, status FROM hemmatningar WHERE patient_id = ? AND ${iEnh(e)}`).all(p.id, ...e));
     return [r.filter(x => x.status !== 'vantar' && Date.parse(x.hanterad_tid) - Date.parse(x.skapad) <= 7 * DAG).length, r.length];
   } },
-  { id: 'pubertet', text: 'Barn från tolv år med registrerat pubertetsstadium', raknar: (db, barn, nu) => {
+  { id: 'pubertet', text: 'Barn från tolv år med registrerat pubertetsstadium', raknar: (db, barn, nu, e) => {
     const aldre = barn.filter(p => T.alderManader(p.fodd, nu) >= 144);
-    return [aldre.filter(p => harTabell(db, 'tillvaxt_pubertet') && db.query('SELECT 1 FROM tillvaxt_pubertet WHERE patient_id = ? LIMIT 1').get(p.id)).length, aldre.length];
+    return [aldre.filter(p => harTabell(db, 'tillvaxt_pubertet') && db.query(`SELECT 1 FROM tillvaxt_pubertet WHERE patient_id = ? AND ${iEnh(e)} LIMIT 1`).get(p.id, ...e)).length, aldre.length];
   } },
 ];
 export const STANDARDVAL = ['besok_i_tid', 'besok_med_matt', 'vaccinationstackning'];
@@ -351,7 +354,7 @@ export function indikatorer(db, personal, nu = Date.now()) {
   const valda = valFor(db, ve);
   return {
     enhet: enhetsnamn(db, ve), antalBarn: barn.length, valda, katalog: INDIKATORER.map(i => ({ id: i.id, text: i.text, vald: valda.includes(i.id) })),
-    resultat: valda.map(id => { const i = PER_ID.get(id); const [t, n] = i.raknar(db, barn, nu); return { id, text: i.text, taljare: t, namnare: n, procent: n ? Math.round(t / n * 1000) / 10 : null }; }),
+    resultat: valda.map(id => { const i = PER_ID.get(id); const [t, n] = i.raknar(db, barn, nu, enheterUnder(db, ve)); return { id, text: i.text, taljare: t, namnare: n, procent: n ? Math.round(t / n * 1000) / 10 : null }; }),
     text: 'Indikatorerna räknas ur det som redan är registrerat. De visar antal, aldrig vilka barn det gäller.',
   };
 }
@@ -373,7 +376,7 @@ export function region(db, personal, nu = Date.now()) {
   const enheter = db.query('SELECT DISTINCT enhet_id FROM bhv_inskrivning ORDER BY enhet_id').all().map(r => r.enhet_id);
   const rader = enheter.map(ve => ({ ve, barn: barnPa(db, ve) }));
   const ut = INDIKATORER.map(i => {
-    const per = rader.map(({ ve, barn }) => ({ enhet: enhetsnamn(db, ve), varde: cell(i.raknar(db, barn, nu)) }));
+    const per = rader.map(({ ve, barn }) => ({ enhet: enhetsnamn(db, ve), varde: cell(i.raknar(db, barn, nu, enheterUnder(db, ve))) }));
     const visade = per.filter(x => x.varde.taljare != null);
     const t = visade.reduce((s, x) => s + x.varde.taljare, 0), n = visade.reduce((s, x) => s + x.varde.namnare, 0);
     return { id: i.id, text: i.text, enheter: per, region: visade.length ? cell([t, n]) : { taljare: null, namnare: null, procent: null, text: 'Inget underlag som kan visas' } };

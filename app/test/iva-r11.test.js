@@ -10,6 +10,7 @@ import * as vagform from '../src/iva-vagform.js';
 import * as vatska from '../src/iva-vatskemal.js';
 import * as nems from '../src/iva-nems.js';
 import '../src/r11r7-rutter.js';
+import { forRoll } from '../src/nyheter.js';
 
 let app;
 beforeAll(() => { app = testserver(); });
@@ -264,5 +265,14 @@ describe('Intensivvård, version 1.1', () => {
     expect(s.over).toBe(false);
     const t2 = (await k.get('/api/patient/p01/iva/tillagg')).data;
     expect(t2.sammanrakning.map(x => x.ordinationId)).toContain(oid);
+  });
+
+  test('nyheterna i version 1.1 för intensivvården och tillväxten visas för rätt roller', () => {
+    const ids = (roll) => forRoll(roll).find(v => v.version === '1.1.0')?.nyheter.map(n => n.id) ?? [];
+    expect(ids('lakare')).toEqual(expect.arrayContaining(['iva-realtid-regler', 'tillvaxt-referens-pubertet-import', 'bhv-indikatorer']));
+    expect(ids('underskoterska')).toEqual(expect.arrayContaining(['iva-realtid-regler']));
+    expect(ids('underskoterska')).not.toContain('tillvaxt-referens-pubertet-import');
+    expect(ids('uppfoljning')).toEqual(expect.arrayContaining(['bhv-indikatorer']));
+    expect(ids('invanare')).not.toContain('iva-realtid-regler');
   });
 });

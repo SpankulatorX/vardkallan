@@ -5,6 +5,8 @@ import { TEST, klickbudgetTest } from '../../krav.js';
 import { FLODEN } from '../../klickbudget.js';
 // Runda 8, r5: tilläggen för tobaksvanor, epikrisen, mätvärdena, övningarna och parametrarna (sussa/runda8-r5.js).
 import { medR8r5 } from '../runda8-r5.js';
+// Runda 11, r7: WHO 5 till 19 år, sitthöjd, pubertet, import och indikatorer (sussa/runda11-r7.js).
+import { medR11r7Tillvaxt } from '../runda11-r7.js';
 
 const { GK } = TEST;
 const TV = 'Tillväxt > ';
@@ -93,4 +95,4 @@ const POSTERNA = [
     anmarkning: 'Indikatorerna är fasta och kan inte väljas, och det finns ingen uppföljning för regionen.',
   },
 ];
-export default medR8r5(POSTERNA);
+export default medR11r7Tillvaxt(medR8r5(POSTERNA));

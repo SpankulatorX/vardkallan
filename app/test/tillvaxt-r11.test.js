@@ -200,6 +200,13 @@ describe('Tillväxt, version 1.1', () => {
     for (const x of ['p61', '202505062386', 'Holmqvist']) expect(text).not.toContain(x);
     // Regionens summa räknas bara på vårdenheter vars värden visas.
     for (const i of reg.indikatorer) if (i.enheter.every(e => e.varde.taljare == null)) expect(i.region.taljare).toBeNull();
+    // Uppgifter på en annan vårdenhet ändrar inte barnavårdscentralens tal: en vaccination och en födelseuppgift på
+    // psykiatrin räknas inte.
+    await k.post('/api/bhv/indikatorer', { indikatorer: R.INDIKATORER.map(i => i.id) });
+    const fore = JSON.stringify((await k.get('/api/bhv/indikatorer')).data.resultat);
+    db(k).query("INSERT INTO vaccinationer (patient_id, enhet_id, vaccin_id, atc, dos, tid, registrerad) VALUES ('p61', 'uso-psyk', 'mpr1', 'J07BD52', 1, ?, ?)").run(new Date().toISOString(), new Date().toISOString());
+    db(k).query("INSERT INTO tillvaxt_uppgifter (patient_id, enhet_id, typ, varde, tid, registrerad) VALUES ('p61', 'uso-psyk', 'tb_risk', 0, ?, ?)").run(new Date().toISOString(), new Date().toISOString());
+    expect(JSON.stringify((await k.get('/api/bhv/indikatorer')).data.resultat)).toBe(fore);
   });
 
   test('en pubertetsregistrering på en spärrad vårdenhet syns inte och ändrar inte bedömningen', async () => {
