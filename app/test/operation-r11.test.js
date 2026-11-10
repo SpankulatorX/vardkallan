@@ -10,6 +10,7 @@ import * as iva from '../src/iva.js';
 import * as aj from '../src/anestesijournal.js';
 import * as sg from '../src/sterilgods.js';
 import * as datauttag from '../src/datauttag.js';
+import * as opSeed from '../src/operation-seed.js';
 
 const MORGON = addDagar(datumAv(BAS), 1);
 const DAG = (n) => addDagar(datumAv(BAS), n);
@@ -151,6 +152,30 @@ describe('Operation 1.1', () => {
   });
 });
 
+describe('Operation 1.1, seeden', () => {
+  // Seeden lägger dagens operationer på fasta klockslag på seedens dag, också när sandlådan skapas kring midnatt.
+  for (const bas of [BAS, new Date('2026-11-12T22:30:00Z'), new Date('2026-11-12T23:30:00Z')]) {
+    test(`seeden har en genomförd operation för Margareta Forsberg, dagens program och väntelistan (${bas.toISOString()})`, () => {
+      const db = sandlada(bas);
+      opSeed.seeda(db, bas);
+      const dag = datumAv(bas);
+      const p07 = db.query("SELECT * FROM op_anmalningar WHERE patient_id = 'p07'").get();
+      expect(p07).toMatchObject({ status: 'klar', kva: 'NFB49', sida: 'vanster' });
+      const u = op.anmalanUt(atk(db, 'opk-kkoga', 'p07', 'las_operation'), p07, bas);
+      expect(u.forlopp.checklista.every(c => c.klar)).toBe(true);
+      expect(u.forlopp.implantat).toHaveLength(2);
+      expect(u.forlopp.uppvakning.overrapport).toContain('Under operationen: Bupivakain spinalt 10 mg');
+      expect(aj.journalFor(atk(db, 'opk-kkoga', 'p07', 'las_operation'), p07, bas).varden.length).toBeGreaterThan(20);
+      const o = op.oversikt(db, pers(db, 'opk-kkoga'), () => ({}), { datum: dag }, bas);
+      expect(o.salar.find(s => s.id === 'kkoga-sal-1').operationer.map(x => x.patient?.id)).toEqual(['p71', 'p72']);
+      const v = op.vantelista(db, pers(db, 'opk-kkoga'), () => ({}), bas);
+      expect(v.vantande.map(x => x.patient.id)).toEqual(['p75', 'p74']);
+      expect(v.vantande[0].overMal).toBe(true);
+      expect(op.anmalanUt(atk(db, 'opk-kkoga', 'p71', 'las_operation'), op.anmalanRad(db, o.salar[0].operationer[0].anmalanId), bas).forberedelser.punkter.find(x => x.id === 'anestesi').klar).toBe(true);
+    });
+  }
+});
+
 // ---- Anestesibedömningen, anestesijournalen, sterilgodset och materialet ------------------------------------------------
 const pat = (db, pid) => db.query('SELECT * FROM patienter WHERE id = ?').get(pid);
 const vikt = (db, pid, kg) => db.query("INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, tid) VALUES (?, 'kkoga-ort', 'vikt', ?, ?, ?)").run(pid, String(kg), kg, efter(-60).toISOString());
@@ -191,6 +216,12 @@ describe('Operation 1.1, anestesi och material', () => {
     expect(f.skalor.rcri.grund).toContain('Hjärtsvikt');
     expect(() => iva.sparaAnestesi(l, pat(db, 'op1'), { anmalanId: a.id, asa: 2, anestesiform: 'regional' }, BAS)).toThrow('samtycke');
     expect(() => iva.sparaAnestesi(atk(db, 'lak-kkoga', 'op2', 'anestesibedomning'), pat(db, 'op2'), { anmalanId: a.id, asa: 2, anestesiform: 'regional', samtycke: 'ja' }, BAS)).toThrow('Uppgiften finns inte');
+    // Säkerhetsgranskningen: en läkare på en annan vårdenhet, med vårdrelation och aktivt val, kopplar ingen bedömning till
+    // anmälan och ändrar inte ASA-klassen.
+    db.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak) VALUES ('op1', 'uso-ort', 'slutenvard', ?, 'Avdelning', 'Vård')").run(BAS.toISOString());
+    expect(() => iva.sparaAnestesi(atk(db, 'lak-ort', 'op1', 'anestesibedomning', { andra_enheter: true }), pat(db, 'op1'), { anmalanId: a.id, asa: 5, anestesiform: 'generell', samtycke: 'ja' }, efter(4))).toThrow('anmälande vårdenheten');
+    expect(rad(db, a.id).asa).toBe(null);
+    expect(db.query("SELECT count(*) AS n FROM op_historik WHERE anmalan_id = ? AND handelse = 'anestesibedomning'").get(a.id).n).toBe(0);
     const r = iva.sparaAnestesi(l, pat(db, 'op1'), { anmalanId: a.id, asa: 3, anestesiform: 'regional', samtycke: 'ja', ponvTidigare: true }, efter(5));
     expect(r.bedomning).toMatchObject({ anmalanId: a.id, ingrepp: 'Primär total höftledsplastik med cement', samtycke: 'ja', giltigTill: addDagar(datumAv(BAS), 180) });
     // Apfel: kvinna, icke-rökare, tidigare illamående och opioider efter operationen.

@@ -862,7 +862,9 @@ export function kontroll(atk, an, body = {}, nu = new Date()) {
   const typer = KRITERIER.map(k => k.typ).concat('temp').filter(t => varden[t] != null && varden[t] !== '');
   if (!typer.length) throw new Fel(400, 'Registrera minst ett värde.', 'ogiltig', { falt: ['varden'] });
   const t = giltigTid(body.tid, 'tid', nu, { bakat: 6 * 60 * MIN });
-  db.transaction(() => { for (const typ of typer) matvarde(atk, typ, varden[typ], t); })();
+  // Runda 11, r2: kontrollerna knyts till vårdkontakten, som all vårdinformation.
+  const vk = vardkontaktFor(atk, nu) ?? an.vardkontakt_id;
+  db.transaction(() => { for (const typ of typer) { const id = matvarde(atk, typ, varden[typ], t); if (vk) db.query("UPDATE matvarden SET vardkontakt_id = ? WHERE id = ?").run(vk, id); } })();
   return uppvakning(atk, an, nu);
 }
 

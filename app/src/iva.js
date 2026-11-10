@@ -27,6 +27,8 @@ import * as stod from './lakemedelsstod.js';
 import * as konfiguration from './konfiguration.js';
 import * as mt from './medicinteknik.js';
 import { kvalitetssakrad } from './mt-klass.js';
+// Runda 11, r2: samma prövning som när operationen ändras.
+import { andraRad } from './specialist-hjalp.js';
 
 export const DEMOREGEL = 'Reglerna för intensivvården är demoregler för att visa flödet. De är inte kliniskt beslutsstöd och inte CE-märkta.';
 // Intensivvårdsavdelningarna i demon och antalet vårdplatser. Hjärtintensiven på Kardiologiska kliniken är demons
@@ -466,14 +468,17 @@ export const SAMTYCKE = { ja: 'Patienten har fått information och samtycker til
 const APFEL_RISK = [10, 20, 40, 60, 80];
 const RCRI_RISK = [3.9, 6.0, 10.1, 15];
 // Anmälan till operation som bedömningen gäller. Raden binds till patienten och prövas på den anmälande vårdenheten.
-function anmalanFor(atk, anmalanId) {
+// Säkerhetsgranskningen: den som sparar en bedömning mot anmälan ändrar ASA-klassen och historiken, och prövas därför som
+// i operation.anestesibedomning: handlingen operation_anmala och arbete på den anmälande vårdenheten (andraRad).
+function anmalanFor(atk, anmalanId, { andra = false } = {}) {
   if (anmalanId == null || anmalanId === '') return null;
   const op = require('./operation.js');
   if (!/^\d{1,9}$/.test(String(anmalanId))) throw new Fel(404, 'Uppgiften finns inte.', 'saknas');
   let an;
   try { an = op.anmalanRad(atk.db, anmalanId); } catch { throw new Fel(404, 'Uppgiften finns inte.', 'saknas'); }
   if (an.patient_id !== atk.patientId) throw new Fel(404, 'Uppgiften finns inte.', 'saknas');
-  atk.krav('las_operation', { resurs: { enhet_id: an.enhet_id } });
+  if (andra) andraRad(atk, an, 'operation_anmala', 'las_operation', 'Operationen hanteras av den anmälande vårdenheten.');
+  else atk.krav('las_operation', { resurs: { enhet_id: an.enhet_id } });
   const plan = atk.db.query('SELECT start FROM op_planeringar WHERE anmalan_id = ? AND struken_tid IS NULL ORDER BY id DESC').get(an.id);
   return { an, ingrepp: op.INGREPP[an.kva], planerad: plan?.start ?? null };
 }
@@ -554,7 +559,7 @@ export function sparaAnestesi(atk, p, body = {}, nu = new Date()) {
   const db = atk.db;
   const falt = [];
   // Runda 11, r2: en bedömning inför en operation får ingreppet och tiden ur anmälan och kräver samtycket.
-  const kopplad = anmalanFor(atk, body.anmalanId);
+  const kopplad = anmalanFor(atk, body.anmalanId, { andra: true });
   if (kopplad) {
     body = { ...body, ingrepp: body.ingrepp || kopplad.ingrepp.namn, planerad: body.planerad || kopplad.planerad };
     if (!Object.hasOwn(SAMTYCKE, body.samtycke)) throw new Fel(400, 'Ange patientens samtycke till anestesin.', 'ogiltig', { falt: ['samtycke'] });
