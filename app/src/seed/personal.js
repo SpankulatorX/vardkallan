@@ -82,4 +82,12 @@ export const PERSONAL = [
   // behörigheter i demon. Ingen av dem går att logga in som.
   { id: 'bm-uso', namn: 'Sofia Ekdahl', yrke: 'sjukskoterska', titel: 'Barnmorska', enhet: 'uso-kk-forl' },
   { id: 'lak-kk', namn: 'Johanna Rehn', yrke: 'lakare', titel: 'Läkare (obstetrik)', enhet: 'uso-kk' },
+  // Runda 11, r2: operationsplaneringen och anestesin (operation.js och anestesijournal.js). Operationskoordinatorn på
+  // Ortopediska kliniken Karlskoga lasarett går att logga in som. Anestesiläkaren och anestesisjuksköterskan på de två
+  // opererande vårdenheterna planeras in i teamet av systemet. Titeln avgör rollen i teamet.
+  { id: 'opk-kkoga', namn: 'Therese Hedberg', yrke: 'sjukskoterska', titel: 'Operationskoordinator (operationssjuksköterska)', enhet: 'kkoga-ort', demo: true },
+  { id: 'lak-ane-kkoga', namn: 'Martin Ödman', yrke: 'lakare', titel: 'Anestesiläkare', enhet: 'kkoga-ort' },
+  { id: 'ssk-ane-kkoga', namn: 'Kajsa Strand', yrke: 'sjukskoterska', titel: 'Anestesisjuksköterska', enhet: 'kkoga-ort' },
+  { id: 'lak-ane-ort', namn: 'Gustav Fernlund', yrke: 'lakare', titel: 'Anestesiläkare', enhet: 'uso-ort' },
+  { id: 'ssk-ane-ort', namn: 'Ida Wedin', yrke: 'sjukskoterska', titel: 'Anestesisjuksköterska', enhet: 'uso-ort' },
 ];

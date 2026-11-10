@@ -129,9 +129,9 @@ describe('Operationsplanering', () => {
     expect(() => op.registrera(s, rad(db, a.id), { handelse: 'knivtid' }, vid(0))).toThrow('Registrera in på sal först');
     expect(op.registrera(s, rad(db, a.id), { handelse: 'in_sal' }, vid(0)).status).toBe('pagar');
     expect(() => op.registrera(s, rad(db, a.id), { handelse: 'anestesistart' }, vid(5))).toThrow('Checklistan före anestesi är inte klar');
-    expect(() => op.checklista(s, rad(db, a.id), { del: 'fore_anestesi', bekraftade: ['identitet'] }, vid(5))).toThrow('bekräfta ingrepp och sida');
+    expect(() => op.checklista(s, rad(db, a.id), { del: 'fore_anestesi', bekraftade: ['identitet'] }, vid(5))).toThrow('Ingrepp och operationsställe är bekräftade med patienten');
     const u = op.checklistaUnderlag(atk(db, 'ssk-kkoga', 'op1', 'las_operation'), rad(db, a.id));
-    expect(u).toEqual({ allergier: 'Ingen registrerad överkänslighet.', blod: 'Blodgruppering och bastest är inte klara. Beställ dem innan anestesin.' });
+    expect(u).toMatchObject({ allergier: 'Ingen registrerad överkänslighet.', blod: 'Blodgruppering och bastest är inte klara. Beställ dem innan anestesin.' });
     op.checklista(s, rad(db, a.id), { del: 'fore_anestesi', bekraftade: ALLA('fore_anestesi') }, vid(5));
     const x = op.registrera(s, rad(db, a.id), { handelse: 'anestesistart' }, vid(10));
     expect(x.forlopp.tider.find(t => t.id === 'anestesistart').tid).toBe(vid(10).toISOString());
