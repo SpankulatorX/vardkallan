@@ -5,6 +5,8 @@ import { TEST } from '../../krav.js';
 import { T, TESTFALL_3 } from '../labb-r8.js';
 // Runda 9, r3: blodprodukter (blod.js).
 import { BLOD } from '../runda9-r3.js';
+// Runda 11, r6: undersökningar, rättade svar, underlag, koder, patientnära analyser och Min journal (undersokningar.js).
+import { R6, R6_KB } from '../runda11-r6.js';
 
 const { MJ } = TEST;
 const SIM = 'Laboratorierna är simulerade.';
@@ -18,11 +20,11 @@ export default [
     anmarkning: SIM,
   },
   {
-    id: '4.4.2.2', kategori: 'system', egna: [], avsedd: 'delvis',
-    tester: [T.fhirBehorighet, T.planerat, T.kontrollUppgift],
-    losning: 'Fliken Prover visar patientens alla beställningar från alla vårdenheter som användaren får se, med inre sekretess och spärr, och kontrollerna som är ordinerade till avdelningen. Avdelningens planerade uppgifter per dag finns i API:t (GET /api/planerat).',
-    expert: 'Systemet samlar beställningarna och kontrollerna själv och prövar varje rad i behörighetsmotorn, så att inget dolt räknas eller visas.',
-    anmarkning: 'Röntgen, fysiologi och andra undersökningar finns inte, bara laboratorieprov och kontroller.',
+    id: '4.4.2.2', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
+    tester: [T.fhirBehorighet, T.planerat, T.kontrollUppgift, R6.planerat, R6.flera, R6.fysiologi, R6.api],
+    losning: 'Fliken Prover börjar med Planerat för patienten: alla prover som inte är tagna, undersökningar i radiologi, ultraljud, klinisk fysiologi och klinisk neurofysiologi med bokad tid eller senaste dag, och kontrollerna som är ordinerade, från alla vårdenheter som användaren får se, i tidsordning. Beställningarna med hela kedjan står under. Avdelningens planerade uppgifter per dag finns i API:t (GET /api/planerat).',
+    expert: 'Systemet samlar själv allt som är planerat i alla vårdprocesser och prövar varje rad i behörighetsmotorn, så att en beställning från en annan vårdenhet visas efter ett aktivt val och en spärrad inte alls.',
+    anmarkning: 'Röntgenkliniken, klinisk fysiologi och klinisk neurofysiologi är simulerade.',
   },
   {
     id: '4.4.2.3', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
@@ -39,32 +41,32 @@ export default [
     anmarkning: 'Referensintervallen och de kritiska gränserna är demovärden, inte ett laboratoriums egna.',
   },
   {
-    id: '4.4.2.5', kategori: 'system', egna: [], avsedd: 'delvis',
-    tester: [T.folja, T.samman, T.svar, T.kritisk, T.dubbHistorik],
+    id: '4.4.2.5', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
+    tester: [T.folja, T.samman, T.svar, T.kritisk, T.dubbHistorik, R6.minStatus, R6.minRegel, R6.rattatLast],
     losning: 'Beställningen som kort med kedjan, rören, svaren med avvikelse och historiken. Avvikande och kritiska svar står först i inkorgen och har en egen markering. Allt för en patient visas samlat, också efter att en journal med reservnummer har slagits samman med den gällande.',
-    expert: 'Systemet uppmärksammar själv avvikande och kritiska svar och ordnar inkorgen efter dem, och historiken innehåller aldrig något som bygger på uppgifter som läsaren inte får se.',
-    anmarkning: 'Patienten ser svaren i Min journal men inte beställningens status.',
+    expert: 'Systemet uppmärksammar själv avvikande och kritiska svar och ordnar inkorgen efter dem, och historiken innehåller aldrig något som bygger på uppgifter som läsaren inte får se. Patienten ser i Min journal statusen för varje beställning, den bokade tiden och förberedelsen, med vårdgivarens visningsregler, och svaret när läkaren har gått igenom det.',
+    anmarkning: 'Visningsreglerna för en vårdenhet i Min journal gäller också dess beställningar. Laboratorierna är simulerade.',
   },
   {
-    id: '4.4.2.6', kategori: 'system', egna: ['D6'], avsedd: 'delvis',
-    tester: [T.paket, T.dubb, T.dubbDold, T.anvisning, T.provtagning, T.uppdrag, T.signeraBehorighet, T.kbPaket, T.kbProv, ...TESTFALL_3['3.1'], ...TESTFALL_3['3.2'], ...TESTFALL_3['3.3']],
+    id: '4.4.2.6', kategori: 'system', egna: ['D6'], avsedd: 'uppfyllt_demo',
+    tester: [R6.underlag, R6.upprepad, R6.kreatinin, R6.egfr, R6.graviditet, R6.implantat, ...R6_KB.bestall, T.paket, T.dubb, T.dubbDold, T.anvisning, T.provtagning, T.uppdrag, T.signeraBehorighet, T.kbPaket, T.kbProv, ...TESTFALL_3['3.1'], ...TESTFALL_3['3.2'], ...TESTFALL_3['3.3']],
     losning: 'Beställning av en eller flera analyser i olika rör och till olika laboratorier, med provtagningstid per analys, anamnes och kommentar, beställning på uppdrag och provtagningsanvisning som PDF. Utförda och kvarstående rör syns i beställningen och i provtagningslistan.',
-    expert: 'Systemet föreslår paket och tar bort prov som nyss är tagna med en förklaring, räknat bara på det användaren får se, och fyller i laboratorium, rör, provtagningsordning och anamnes.',
-    anmarkning: `Underlag kan inte bifogas till en beställning. ${SIM}`,
+    expert: 'Systemet föreslår paket och tar bort prov som nyss är tagna med en förklaring, räknat bara på det användaren får se, och fyller i laboratorium, rör, provtagningsordning och anamnes. Underlag bifogas med filtypen avgjord ur innehållet. Före en undersökning kontrollerar systemet njurfunktionen före kontrast och lägger till P-Kreatinin när ett aktuellt värde saknas, och frågar om graviditet och implantat bara när undersökningen kräver det.',
+    anmarkning: `Underlaget är högst 40 kB per fil och sex per beställning i demon. ${SIM}`,
   },
   {
-    id: '4.4.2.7', kategori: 'system', egna: [], avsedd: 'delvis',
-    tester: [T.planerat, T.kontrollUppgift, T.apiKontroll, T.apiLista],
+    id: '4.4.2.7', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
+    tester: [T.planerat, T.kontrollUppgift, T.apiKontroll, T.apiLista, R6.planerat, R6.arbetslista, R6.fysiologi, R6.upprepad, ...R6_KB.boka],
     losning: 'Planerade och utförda prover och kontroller syns i fliken Prover, i provtagningslistan för vårdenheten och i API:t för avdelningens planerade uppgifter per dag, med status planerad, utförd eller försenad.',
-    expert: 'Systemet bockar själv av en kontroll när mätvärdet registreras i tid och visar ett prov som försenat när tiden har gått.',
-    anmarkning: 'Undersökningar utanför laboratoriet finns inte.',
+    expert: 'Systemet bockar själv av en kontroll när mätvärdet registreras i tid och visar ett prov som försenat när tiden har gått. Undersökningar visas med bokad tid eller senaste dag för prioriteten, och röntgenkliniken får den första lediga tiden föreslagen.',
+    anmarkning: 'Röntgenkliniken, klinisk fysiologi och klinisk neurofysiologi och deras tider är simulerade.',
   },
   {
-    id: '4.4.2.8', kategori: 'system', egna: [], avsedd: 'delvis',
-    tester: [T.paket, T.fhir],
+    id: '4.4.2.8', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
+    tester: [T.paket, T.fhir, R6.flera, R6.kreatinin, R6.svf],
     losning: 'En beställning blir en delbeställning per laboratorium (till exempel klinisk kemi och klinisk mikrobiologi) med egna rör och ett eget svar, under samma beställnings-id.',
-    expert: 'Systemet delar själv beställningen per laboratorium och rör.',
-    anmarkning: `Röntgen och ultraljud finns inte, bara laboratorierna. ${SIM}`,
+    expert: 'Systemet delar själv beställningen per laboratorium, rör och specialistsystem: prover, röntgen och ultraljud i samma beställning blir en beställning till varje system under samma beställnings-id, med egen status, egen bokning och eget svar.',
+    anmarkning: `Röntgen och ultraljud är två simulerade specialistsystem på samma röntgenklinik. ${SIM}`,
   },
   {
     id: '4.4.2.9', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
@@ -81,29 +83,29 @@ export default [
     anmarkning: 'Överlåtelsen gäller hela beställningen, inte enskilda analyser.',
   },
   {
-    id: '4.4.2.11', kategori: 'system', egna: ['D9'], avsedd: 'delvis',
-    tester: [T.svar, T.fhir, T.katalog],
+    id: '4.4.2.11', kategori: 'system', egna: ['D9'], avsedd: 'uppfyllt_demo',
+    tester: [T.svar, T.fhir, T.katalog, R6.koder, R6.utlatande, R6.svf, R6.underlagSvar],
     losning: 'Svaren tas emot med NPU-kod och UCUM-enhet, och odlingarnas fynd med Snomed CT, och lämnas ut i FHIR med samma koder.',
-    expert: 'Systemet visar koden som text och sätter den själv i FHIR, så att ingen behöver kunna kodverket.',
-    anmarkning: 'KVÅ och standardiserade vårdförlopp i svar tas inte emot.',
+    expert: 'Systemet visar koden som text och sätter den själv i FHIR, så att ingen behöver kunna kodverket. Svaren från röntgen och fysiologin tas emot med åtgärden i KVÅ, fyndet i Snomed CT och det standardiserade vårdförloppet, och en kod som inte har kodverkets form tas inte emot.',
+    anmarkning: 'Vårdkällan har ett utdrag ur KVÅ 2026 (docs/kodkontroll.md). En kod som saknas i utdraget tas emot med avsändarens text och märks som okänd.',
   },
   { id: '4.4.2.12', kategori: 'system', egna: [], tester: Object.values(BLOD), avsedd: 'delvis',
     losning: 'Läkaren beställer erytrocyter, plasma eller trombocyter till den simulerade blodcentralen med antal och indikation. Blodgruppering och bastest beställs och besvaras som andra prover i beställning och svar. Blodcentralen förenlighetsprövar och bereder enheter, och varje enhet följs från utlämning via förberedelse och kontroll vid sängen till transfunderad eller återlämnad. Varje steg sparas med vem och när och visas i beställningen.',
     expert: 'Systemet beställer själv blodgruppering och bastest som saknas, prövar bastestets giltighet i tre dygn, stoppar ett positivt bastest, kontrollerar id-band, enhetsnummer och blodgruppens förenlighet vid sängen, kräver en andra person som kontrollerar i sin egen inloggning och säger när blodet ska återlämnas.',
     anmarkning: 'Delvis: blodcentralen, enhetsnumren och reglerna är simulerade och finns i API:t men ännu inte i ett eget gränssnitt. Transfusionen registreras i blodbeställningen och inte som en administrering i läkemedelslistan, och transfusionsreaktioner rapporteras bara som text.' },
   {
-    id: '4.4.2.13', kategori: 'system', egna: [], avsedd: 'delvis',
-    tester: [T.svar, T.vidimera, T.kritisk, T.undantag, `${MJ}provsvar visas när de är vidimerade eller efter 14 dagar, mätvärden direkt`],
+    id: '4.4.2.13', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
+    tester: [R6.rattat, R6.rattatLast, R6.rattatPs, R6.rattatDemo, R6.underlagSvar, R6.fysiologi, R6.utlatande, T.svar, T.vidimera, T.kritisk, T.undantag, `${MJ}provsvar visas när de är vidimerade eller efter 14 dagar, mätvärden direkt`],
     losning: 'Nya svar hamnar i den ansvariga läkarens inkorg för vidimering, med avvikande och kritiska först, och kritiska svar larmar också sjuksköterskorna på vårdenheten. Min journal visar svaret när det är vidimerat.',
-    expert: 'Systemet larmar själv vid kritiska svar och ordnar inkorgen efter avvikelse.',
-    anmarkning: 'Uppdaterade svar (en rättelse från laboratoriet) och bifogade underlag i svaret finns inte.',
+    expert: 'Systemet larmar själv vid kritiska svar och ordnar inkorgen efter avvikelse. Ett rättat svar är märkt som rättat, den tidigare versionen finns kvar oförändrad, och den som läste den tidigare versionen får det rättade svaret i inkorgen. Kurvor och rapporter bifogade till svaret visas i beställningen.',
+    anmarkning: 'Laboratorierna och röntgenkliniken är simulerade, och demoknappen för ett rättat svar gäller bara de simulerade laboratorierna.',
   },
   {
-    id: '4.4.2.14', kategori: 'system', egna: [], avsedd: 'delvis',
-    tester: [T.kontroll, T.kontrollUppgift, ...TESTFALL_3['3.5']],
+    id: '4.4.2.14', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
+    tester: [T.kontroll, T.kontrollUppgift, ...TESTFALL_3['3.5'], R6.instrument, R6.instrumentEtikett],
     losning: 'Interna analyser på avdelningen, som SR och blodsocker, ordineras som kontroller och registreras som mätvärden bland laboratoriets svar, med samma kod och kurva.',
-    expert: 'Systemet bockar av kontrollen när värdet registreras, så att samma värde inte behöver dokumenteras två gånger.',
-    anmarkning: 'Patientnära instrument är inte anslutna. Värdet skrivs in för hand.',
+    expert: 'Systemet bockar av kontrollen när värdet registreras, så att samma värde inte behöver dokumenteras två gånger. En patientnära analys beställs som andra prover, och instrumentet skickar svaret genom det öppna gränssnittet med provets etikett, så att ingen skriver in värdet och svaret hamnar på rätt patient.',
+    anmarkning: 'Instrumentet är simulerat, men svaret går genom samma gränssnitt och kontroller som från ett riktigt.',
   },
   {
     id: '4.4.2.15', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',

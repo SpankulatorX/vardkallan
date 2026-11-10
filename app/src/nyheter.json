@@ -2,6 +2,92 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "1.1.0",
+      "datum": "2026-11-10",
+      "nyheter": [
+        {
+          "id": "r6-undersokningar",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska"
+          ],
+          "omfattning": "stor",
+          "var": "#/arbetslista",
+          "rubrik": "Röntgen, ultraljud och fysiologi i fliken Prover",
+          "text": "Du beställer röntgen, ultraljud, datortomografi, magnetkamera, EKG, arbetsprov, ekokardiografi, EEG och neurografi i samma formulär som proverna. Systemet kontrollerar njurfunktionen före kontrast och lägger till P-Kreatinin när ett aktuellt värde saknas, frågar om graviditet före strålning och om implantat före magnetkamera, och föreslår prioritet och vårdförlopp. Utlåtandet kommer med åtgärden i KVÅ och en länk till bilderna."
+        },
+        {
+          "id": "r6-planerat",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska"
+          ],
+          "omfattning": "liten",
+          "var": "#/arbetslista",
+          "rubrik": "Allt som är planerat för patienten",
+          "text": "Överst i fliken Prover står patientens planerade prover, undersökningar och kontroller från alla vårdenheter du får se, i tidsordning. En beställning kan upprepas, till exempel varje vecka i fyra veckor, och du kan bifoga underlag."
+        },
+        {
+          "id": "r6-rattade-svar",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska"
+          ],
+          "omfattning": "liten",
+          "var": "#/inkorg",
+          "rubrik": "Rättade svar",
+          "text": "När laboratoriet eller röntgen rättar ett svar finns den tidigare versionen kvar i beställningen, och du som läste den får det rättade svaret i inkorgen. Läkaren vidimerar det rättade svaret på nytt."
+        },
+        {
+          "id": "r6-patientnara",
+          "roller": [
+            "sjukskoterska",
+            "underskoterska",
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "var": "#/arbetslista",
+          "rubrik": "Patientnära analyser från instrumentet",
+          "text": "CRP, glukos, Hb och PK(INR) vid sängen beställs som andra prover. Instrumentet läser provets etikett och skickar svaret själv, så att du inte behöver skriva in värdet."
+        },
+        {
+          "id": "r6-rontgen",
+          "roller": [
+            "sjukskoterska",
+            "vardadministrator",
+            "lakare"
+          ],
+          "omfattning": "stor",
+          "var": "#/undersokningar",
+          "rubrik": "Röntgenklinikens arbetslista",
+          "text": "På röntgenkliniken ser du inkomna undersökningar efter prioritet och senaste dag, med frågeställningen och kontrollerna före undersökningen. Systemet föreslår den första lediga tiden, och ett klick bokar den."
+        },
+        {
+          "id": "r6-parametrar",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "liten",
+          "var": "#/regler",
+          "rubrik": "Fler parametrar för beställning och svar",
+          "text": "Under Regler och parametrar väljer du vad som förs över till laboratoriernas system, vilka arbetsplatser som har etikettskrivare och anvisningarna inför prover och undersökningar, med fyra ögon som för andra parametrar."
+        },
+        {
+          "id": "r6-min-bestallningar",
+          "roller": [
+            "invanare"
+          ],
+          "omfattning": "liten",
+          "var": "#/min",
+          "rubrik": "Dina beställda prover och undersökningar",
+          "text": "Under Provsvar ser du vilka prover och undersökningar som är beställda åt dig, när du har en tid och hur du förbereder dig. Svaret visas när läkaren har gått igenom det."
+        }
+      ]
+    },
+    {
       "version": "1.0.0",
       "datum": "2026-11-08",
       "nyheter": [

@@ -449,4 +449,13 @@ export const FLODEN = [
     id: 'ombud-boka', namn: 'Boka en tid för patienten som ombud', roll: 'inv-om01', start: 'Min journal för ombudet', budget: 3,
     motivering: 'Sussa 3.4.2.3. Ett klick på patienten som fullmakten gäller, som öppnar patientens tider, ett på Visa lediga tider och ett på den tid som systemet föreslår först. Ombudet ser bara tider och meddelanden, och bokningen loggas på patienten.',
   },
+  // Runda 11, r6: undersökningar i beställning och svar och röntgenklinikens bokning (Sussa 4.4.2.6 till 4.4.2.8).
+  {
+    id: 'bestall-undersokning', namn: 'Beställa en röntgenundersökning', roll: 'lak-kard', start: 'Översikten för den inlagda patienten efter återställning', budget: 4,
+    motivering: 'Sussa 4.4.2.6 och 4.4.2.8. Ett klick på Beställ prover i översikten, ett på Välj analyser, ett på undersökningen och ett på Beställ. Systemet fyller i frågeställningen ur vårdkontakten, föreslår prioriteten, kontrollerar strålning, kontrast och implantat och skickar beställningen till röntgenkliniken.',
+  },
+  {
+    id: 'boka-undersokning', namn: 'Boka en inkommen undersökning på röntgenkliniken', roll: 'rtg-ssk', start: 'Röntgenklinikens undersökningar efter återställning', budget: 1,
+    motivering: 'Sussa 4.4.2.7. Ett klick på Boka vid den undersökning som står först. Systemet har ordnat listan efter prioritet och senaste dag och föreslår den första lediga tiden i rätt rum.',
+  },
 ];

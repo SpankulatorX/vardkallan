@@ -3,6 +3,8 @@
 import { TEST } from '../../krav.js';
 // Runda 8, r1: beställning och svar (labb.js, labb-fhir.js, kontroller.js och labb-rutter.js).
 import { T, TESTFALL_3 } from '../labb-r8.js';
+// Runda 11, r6: rättade svar och signerade bevis (labb-svarsversioner.js).
+import { R6 } from '../runda11-r6.js';
 
 const { KV, FS, MJ } = TEST;
 const SIM = 'Laboratorierna är simulerade: svaren räknas fram av demon, och ingen kommunikation med ett riktigt producentsystem görs.';
@@ -38,9 +40,9 @@ export default [
   },
   {
     id: '4.4.1.5', kategori: 'system', egna: [], avsedd: 'delvis',
-    tester: [T.folja, T.unikt, T.etiketter],
-    losning: 'Det som går att visa i demon: spårbarhet för varje steg med vem och när, en historik som inte går att ändra, unika id för beställning och prov och etiketter som knyter röret till patienten.',
+    tester: [T.folja, T.unikt, T.etiketter, R6.rattat, R6.rattatPs, R6.instrumentEtikett, R6.parametrar, R6.koder],
+    losning: 'Bedömningen mot STAFS 2015:13 finns i docs/stafs-2015-13.md: spårbarhet för varje steg med vem och när, en historik som inte går att ändra, unika id för beställning och prov, etiketter som knyter röret till patienten, signerade svar, rättade svar med den tidigare versionen kvar och provtagningsanvisningar som ändras med fyra ögon.',
     expert: 'Systemet skriver själv historiken och id:n, så att spårbarheten inte beror på att någon kommer ihåg att dokumentera.',
-    anmarkning: 'Ingen bedömning mot STAFS 2015:13 är gjord. Kraven gäller i första hand laboratoriets egen verksamhet.',
+    anmarkning: 'Föreskrifterna gäller laboratoriets egen verksamhet, som ackrediteras mot SS-EN ISO 15189. Föreskriftens text är inte kontrollerad ordagrant, och bedömningen behöver granskas av den som ansvarar för laboratoriernas ackreditering.',
   },
 ];

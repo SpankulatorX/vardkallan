@@ -1678,6 +1678,47 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
       await page.waitForLoadState('networkidle');
     });
     await allaVyer(page, 'Nora Ekholm', MENY.systemforvaltare);
+    // Runda 11, r6: läkaren beställer röntgen och ultraljud i fliken Prover, och röntgensjuksköterskan bokar och
+    // registrerar undersökningen i röntgenklinikens arbetslista. Menyn räknas fram när alla tillägg i MENY är gjorda.
+    await s('Sara Lindqvist beställer röntgen och ultraljud för Gunnar Åkesson och ser dem bland det planerade', async () => {
+      await loggaIn(page, 'lak-kard');
+      await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()));
+      await gaTill(page, '#/patient/p01/prover');
+      await forvanta(page, '#pr-plan', 'Planerat för patienten');
+      await forvanta(page, '.pr-planerat', 'Ultraljud buk');
+      await page.click('[data-ny-prov]');
+      await page.click('#pr-valj summary');
+      await page.click('label[for="pr-a-rtg_kna"]');
+      await page.click('label[for="pr-a-ul_njurar"]');
+      await forvanta(page, '#pr-anamnes-etikett', 'Frågeställning');
+      await page.selectOption('#pr-prio', 'snart');
+      await bild(page, 'r6-bestall-undersokning');
+      await page.click('[data-bestall-valda]');
+      await forvanta(page, '.notis', 'är beställt');
+      await forvanta(page, '#pr-lista .pr-best', 'Röntgen knäled');
+      await forvanta(page, '.pr-planerat', 'Ultraljud njurar');
+      await page.waitForLoadState('networkidle');
+    });
+    await s('Linnea Forsman bokar en inkommen undersökning på röntgenkliniken och registrerar att den är gjord', async () => {
+      await loggaIn(page, 'rtg-ssk');
+      await forvanta(page, '.inloggad', 'Linnea Forsman');
+      await gaTill(page, '#/undersokningar');
+      await forvanta(page, '#us-boka', 'Att boka');
+      await forvanta(page, '#us', 'Röntgen höftled');
+      await bild(page, 'r6-rontgen-arbetslista');
+      await page.locator('#us [data-boka]').first().click();
+      await forvanta(page, '.notis', 'är bokad');
+      await page.locator('#us [data-utford]').first().click();
+      await forvanta(page, '.notis', 'Radiologen skriver utlåtandet');
+      await page.locator('#us [data-utlatande]').first().click();
+      await forvanta(page, '.notis', 'Utlåtandet');
+      await page.waitForLoadState('networkidle');
+    });
+    {
+      const rontgen = MENY.sjukskoterska.filter(x => !['Prover och kontroller', 'Intensivvård'].includes(x));
+      rontgen.splice(rontgen.indexOf('Läkemedel att ge') + 1, 0, 'Undersökningar');
+      await allaVyer(page, 'Linnea Forsman', rontgen);
+    }
     // Runda 7, r1: fysioterapeuten och Sussas testfall. Testdatan läggs in i demoläget, och fysioterapeuten besvarar
     // en remiss som paramedicinare.
     await s('Jenny Holmberg lägger in Sussas testdata och besvarar remissen för Sara Sandmark som paramedicinare', async () => {

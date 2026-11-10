@@ -671,4 +671,20 @@ function minStatus(x) {
 }
 export const MIN_REGEL = 'Beställningarna visas direkt med status. Svaren visas när läkaren har gått igenom dem, och senast 14 dagar efter provtagningen. En vårdenhet som inte visar sina anteckningar i Min journal visar inte heller sina beställningar.';
 
+// ---- Demons undersökningar ----------------------------------------------------------------------------------------
+
+// Läggs i mallen för nya sandlådor (db.js mallen), inte i byggSeed: Gunnar Åkesson (p01) på avdelning 72 har en
+// röntgen av höftleden som väntar på tid och ett ultraljud av buken som är bokat, så att röntgenklinikens arbetslista och
+// fliken Prover visar undersökningar från början. Allt är påhittat och röntgenkliniken är simulerad.
+export function seedaDemo(db, bas = new Date()) {
+  const pers = (id) => db.query('SELECT * FROM personal WHERE id = ?').get(id);
+  if (!pers('lak-kard') || !pers('rtg-ssk') || !db.query("SELECT 1 FROM patienter WHERE id = 'p01'").get()) return;
+  sakra(db);
+  const a = new Atkomst(db, pers('lak-kard'), 'p01', {}, 'bestalla_prov');
+  const t = (min) => new Date(bas.getTime() + min * MIN);
+  bestall(a, { analyser: ['rtg_hoft'], anamnes: 'Smärta i höger höft efter fall i går. Fraktur?', prioritet: 'snart', kvitteraDubbletter: true }, t(-90));
+  const ul = bestall(a, { analyser: ['ul_buk'], anamnes: 'Återkommande smärta under höger revbensbåge. Gallsten?', kvitteraDubbletter: true }, t(-26 * 60)).bestallning;
+  boka(db, pers('rtg-ssk'), ul.analyser[0].id, {}, t(-25 * 60));
+}
+
 export { DISCIPLINER };

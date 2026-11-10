@@ -135,12 +135,23 @@ function perTyp(rader) {
   return [...typer].map(([namn, v]) => `<li class="min-matt"><h4>${esc(namn)}</h4><ul class="min-varden">${v.map(m => `<li><span class="min-vardet">${varde(m)}</span><span class="under-text">${esc(tidpunkt(m.tid))}, ${plats(m)}</span>${migreradEtikett(m)}</li>`).join('')}</ul></li>`).join('');
 }
 
+// Runda 11, r6: beställda prover och undersökningar med status, bokad tid och förberedelse (Sussa 4.4.2.5).
+function bestallningarHtml(b) {
+  const rader = (b?.bestallningar ?? []).filter(x => !x.klar || x.analyser.some(a => a.utlatande));
+  return `<section aria-labelledby="min-best"><h3 id="min-best">Beställda prover och undersökningar</h3><p class="dampad liten">${esc(b?.regel ?? '')}</p>
+    ${rader.length ? `<ul class="enkel-lista min-bestallningar">${rader.map(x => `<li><strong>${esc(x.analyser.map(a => a.namn).join(', '))}</strong> <span class="tagg${x.klar ? ' tagg-ok' : ''}">${esc(x.status)}</span>
+      <span class="under-text">Beställd ${esc(datum(x.skapad))}, ${esc(x.vardenhet)}.</span>
+      ${x.analyser.map(a => `<span class="under-text">${esc(a.namn)}: ${esc(a.status)}${a.tid ? ` ${esc(tidpunkt(a.tid))}` : ''}${a.plats ? `, ${esc(a.plats)}` : ''}.${a.rattat ? ' Svaret är rättat.' : ''}</span>
+        ${a.forberedelse ? `<span class="under-text">Förbered dig: ${esc(a.forberedelse)}</span>` : ''}${a.utlatande ? `<span class="under-text">Utlåtande: ${esc(a.utlatande)}</span>` : ''}`).join('')}</li>`).join('')}</ul>` : tomRad('Inga beställningar pågår.')}</section>`;
+}
+
 export async function provsvar(el, ctx) {
-  const d = await del(ctx.pid, 'provsvar');
+  const [d, best] = await Promise.all([del(ctx.pid, 'provsvar'), del(ctx.pid, 'bestallningar').catch(() => null)]);
   if (!ctx.aktuell()) return;
   const vantar = d.vantar.length ? `<div class="ruta ruta-info">${ikon.klocka}<div><p>${d.vantar.length === 1 ? 'Ett provsvar är inte vidimerat' : `${esc(d.vantar.length)} provsvar är inte vidimerade`} än. Det visas när ansvarig läkare har gått igenom det, och senast ${esc(d.senastDagar)} dagar efter provtagningen.</p>
     <ul class="enkel-lista">${d.vantar.map(v => `<li>${esc(v.namn)}, provtaget ${esc(tidpunkt(v.provtagen))}<span class="under-text">Visas senast ${esc(datum(v.visasSenast))}</span></li>`).join('')}</ul></div></div>` : '';
   el.innerHTML = `${delrubrik('Provsvar och mätvärden')}${vantar}
+    ${best ? bestallningarHtml(best) : ''}
     <section aria-labelledby="min-labb"><h3 id="min-labb">Provsvar</h3>${d.provsvar.length ? `<ul class="min-matlista">${perTyp(d.provsvar)}</ul>` : tomRad('Inga provsvar att visa.')}</section>
     <section aria-labelledby="min-vital"><h3 id="min-vital">Mätvärden</h3><p class="dampad liten">Blodtryck, puls, vikt och andra mätningar visas direkt när de är registrerade.</p>${d.matvarden.length ? `<ul class="min-matlista">${perTyp(d.matvarden)}</ul>` : tomRad('Inga mätvärden.')}</section>`;
 }

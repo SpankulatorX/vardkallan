@@ -1921,3 +1921,45 @@ E-legitimationen, sms-aviseringen, betalterminalen, fakturan, e-posten, videomö
 - `bun test` grönt, med tester för varje regel i behörighetsmotorn, loggkedjan och triggrarna, signering och rättelse, obligatoriska fält och varningar i läkemedel, NLL som inte svarar i tid och avstämning, remissens statuskedja och larm, FHIR-svarens form.
 - En Playwright-genomgång av varje demoroll utan konsolfel.
 - Publik på https://vardkallan.404haven.se, verifierad utifrån.
+
+## Röntgen, fysiologi och andra undersökningar i beställning och svar (runda 11, r6: undersokningar.js, labb-svarsversioner.js, labb-underlag.js, patientnara.js, Sussa 4.4.1.5, 4.4.2.2, 4.4.2.5 till 4.4.2.8, 4.4.2.11, 4.4.2.13, 4.4.2.14 och 12.1.1.9)
+
+Radiologi (röntgen, datortomografi, magnetkamera), ultraljud, klinisk fysiologi (EKG, arbetsprov, ekokardiografi) och klinisk neurofysiologi (EEG, neurografi) beställs i fliken Prover i samma formulär och samma flöde som laboratorieprover. En beställning med prover, röntgen och ultraljud blir en beställning till varje specialistsystem under samma beställnings-id, med egen status, bokning och eget svar.
+
+### Systemet är experten
+
+- Systemet fyller i frågeställningen ur vårdkontakten, föreslår prioritet (akut vid en akut vårdkontakt, standardiserat vårdförlopp när orsaken passar ett vårdförlopp, annars rutin) och sätter senaste dag för undersökningen ur prioriteten.
+- Före jodkontrast kontrollerar systemet njurfunktionen: det senaste eGFR som beställaren får se, högst 90 dagar gammalt eller 7 dagar för en inneliggande patient. Under 30 stoppar beställningen, 30 till 44 kräver kvittens, och saknas ett aktuellt värde lägger systemet själv till P-Kreatinin, och röntgen bokar först när svaret har kommit. Ett nyare värde från en annan vårdenhet, som visas efter ett aktivt val, gör att systemet beställer P-Kreatinin. Ett värde på en spärrad vårdenhet räknas inte och nämns inte, och röntgen ställer sina egna kontrollfrågor vid besöket.
+- Före strålning frågar systemet om graviditet, bara för kvinnor 12 till 55 år. En pågående graviditet i journalen räknas som ja. Strålning mot buken stoppas vid graviditet eller när den inte är utesluten.
+- Före magnetkamera frågar systemet om implantat, om inte uppmärksamhetsinformationen redan visar ett. Med implantat eller okänt bokar röntgen först när MR-säkerheten är kontrollerad.
+- Känd överkänslighet mot kontrastmedel och metformin vid nedsatt njurfunktion ger en varning som följer med till röntgen.
+- En upprepad beställning blir en beställning per tillfälle, högst 60 dagar framåt, utan dubblettvarning för de egna delarna.
+- Allt som är planerat för patienten i alla vårdprocesser som användaren får se står överst i fliken Prover.
+
+### Röntgenklinikens arbetslista (vyer/undersokningar.js, #/undersokningar)
+
+Röntgensjuksköterskan Linnea Forsman på Röntgenkliniken USÖ (ny demoroll i runda 11) ser inkomna undersökningar efter prioritet och senaste dag, med frågeställningen, kontrollerna och underlagen. Systemet föreslår den första lediga tiden i rätt rum (vardagar 8 till 16, dygnet runt för akut), och ett klick bokar den. Hon registrerar när undersökningen är gjord, och studien läggs i multimediaarkivet (bilder.js, media_studier) med ett DICOM-uid. Radiologens utlåtande har åtgärden i KVÅ, fyndet i Snomed CT, vårdförloppet och studiens id, och den ansvariga läkaren vidimerar det. Arbetslistan innehåller det som beställningen skickar till den utförande enheten: identiteten (utan namn och fullständigt personnummer vid skyddad identitet), frågeställningen och kontrollerna. Den ger ingen åtkomst till journalen, och varje patient loggas med grunden utförande. Klinisk fysiologi och klinisk neurofysiologi har ingen personal i demon och bokar, utför och svarar själva, med kurvan som PDF i svaret. Demoknappen Simulera svar bokar och utför aldrig röntgenklinikens undersökningar.
+
+### Rättade svar och underlag
+
+Ett rättat svar från laboratoriet, röntgen eller ett producentsystem (DiagnosticReport med status corrected) ersätter svaret i journalen. Den tidigare versionen sparas oförändrad med värden, text, koder och vidimering, svaret vidimeras på nytt och den som läste den tidigare versionen får det rättade svaret i inkorgen. Varje version har sitt eget signerade bevis. Underlag (PNG, JPEG, PDF eller text, högst 40 kB och sex per beställning) bifogas till beställningen och till svaret och ändras aldrig.
+
+### Patientnära analyser
+
+CRP, glukos, Hb och PK(INR) vid sängen beställs som andra prover med ett kapillärprov. Instrumentet (simulerat) läser etiketten och skickar svaret genom det öppna gränssnittet för producentsystem, och Vårdkällan prövar att etiketten hör till analysen. Svaret blir ett mätvärde med samma kod som laboratoriets och bockar av en kontroll av samma mätvärde.
+
+### Min journal
+
+Under Provsvar ser patienten beställda prover och undersökningar med status, bokad tid, plats och förberedelse. Svaret och utlåtandet visas när läkaren har vidimerat det, och senast 14 dagar efter provtagningen. En vårdenhet vars anteckningar inte visas i Min journal visar inte heller sina beställningar.
+
+### Parametrar (Sussa 12.1.1.9)
+
+Systemförvaltaren väljer med fyra ögon vad som förs över till laboratoriets eller röntgenklinikens system (kommentar, underlag, vårdförlopp och prioritet, diagnoser), vilka arbetsplatser som har etikettskrivare och anvisningarna inför prover och undersökningar. Patientens identitet, beställnings-id, analyserna och frågeställningen förs alltid över.
+
+### STAFS 2015:13 (Sussa 4.4.1.5)
+
+Bedömningen finns i docs/stafs-2015-13.md. Föreskrifterna gäller laboratoriets egen verksamhet, och journalsystemet bidrar med beställningens innehåll, identifiering, spårbarhet, signerade och rättade svar och kodverk.
+
+### Det som är simulerat eller saknas
+
+Röntgenkliniken, klinisk fysiologi, klinisk neurofysiologi, radiologens utlåtanden, tiderna och rummen, det patientnära instrumentet och laboratorierna är simulerade. Gränserna för eGFR, åldern för graviditetsfrågan och prioriteternas tider är demoregler. Bilderna och arkivet görs i bilder.js, och utlåtandet länkar till studien med studiens id och uid.

@@ -6,6 +6,8 @@ import { TEST } from '../../krav.js';
 import { medR8r5 } from '../runda8-r5.js';
 // Runda 8, r1: beställning och svar.
 import { T as LABB_T } from '../labb-r8.js';
+// Runda 11, r6: vad som förs över, etikettskrivarna och anvisningarna (konfiguration.js).
+import { R6 } from '../runda11-r6.js';
 
 const { GK } = TEST;
 const S = 'Systemförvaltning > ';
@@ -107,12 +109,12 @@ const POSTERNA = [
     anmarkning: 'Läkemedelsvarningarnas regler, maxdoser och interaktioner är inte parametrar än. Ordinationsorsak och uppföljningsdatum krävs för NLL och kan inte göras frivilliga.',
   },
   {
-    id: '12.1.1.9', kategori: 'system', egna: [], avsedd: 'delvis',
+    id: '12.1.1.9', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
     // Runda 8, r1: paketen, svarstiden och när ett prov som inte är taget visas som försenat (labb.js).
-    tester: [...KONFIG, GENOMSLAG, LABB_T.konfig],
+    tester: [...KONFIG, GENOMSLAG, LABB_T.konfig, R6.parametrar, R6.etikett],
     losning: 'Larmgränserna för utebliven mottagningskvittens och för remissvar som inte har kvitterats är parametrar, och sedan runda 8 också analyspaketens innehåll (paket med analyser till flera laboratorier), det simulerade laboratoriets svarstid och när ett prov som inte är taget visas som försenat. Ändringen slår igenom i förslagen, beställningarna, inkorgen och provtagningslistan.',
     expert: 'Systemet prövar varje analys i ett paket mot katalogen och förklarar ett namn som inte finns, och förhandsvisningen visar vad ändringen betyder i dag.',
-    anmarkning: 'Vilken information som förs över till det mottagande systemet, etikettformatet per arbetsplats och provtagningsanvisningarna går inte att ändra som parametrar.',
+    anmarkning: 'Sedan runda 11 är också vad som förs över till laboratoriets eller röntgenklinikens system (kommentar, underlag, vårdförlopp och prioritet, diagnoser), vilka arbetsplatser som har etikettskrivare och anvisningarna inför prover och undersökningar parametrar. Patientens identitet, beställnings-id, analyserna och frågeställningen förs alltid över, eftersom laboratoriet inte kan ta emot en beställning utan dem.',
   },
   {
     id: '12.1.1.10', kategori: 'system', egna: ['D8'], avsedd: 'delvis',

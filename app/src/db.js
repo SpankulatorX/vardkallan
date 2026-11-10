@@ -607,6 +607,8 @@ export function mallen() {
   const d = idag();
   if (!mall || mall.datum !== d) {
     const db = byggSeed();
+    // Runda 11, r6: undersökningar som väntar på tid och är bokade på röntgenkliniken (undersokningar.js).
+    try { require('./undersokningar.js').seedaDemo(db); } catch (e) { console.error('Undersökningarna i demon kunde inte läggas in:', e.message); }
     mall = { datum: d, data: db.serialize() };
     db.close();
   }

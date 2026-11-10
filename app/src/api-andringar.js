@@ -11,6 +11,14 @@ export const VERSION = (() => { try { return JSON.parse(readFileSync(join(import
 // resurser är resurstyperna som kom i versionen, skrivning är resurstyp och interaktion (Condition:create) och
 // annat är ändringar som inte är en resurstyp, till exempel SMART on FHIR.
 export const ANDRINGAR = [
+  // Runda 11, r6: undersökningar, rättade svar, koder och underlag i svar och patientnära instrument genom gränssnittet
+  // för producentsystem (Sussa 4.4.2.11, 4.4.2.13 och 4.4.2.14).
+  {
+    version: '1.1.0', datum: '2026-11-10',
+    text: 'Undersökningar i radiologi, klinisk fysiologi och klinisk neurofysiologi med åtgärden i KVÅ, prioritet och vårdförlopp i ServiceRequest. Producentsystemen skickar rättade svar, koder och underlag, och patientnära instrument skickar sina svar med provets etikett.',
+    resurser: [], skrivning: [],
+    annat: ['DiagnosticReport med status corrected eller amended för ett rättat svar', 'DiagnosticReport.presentedForm för underlag i svaret', 'Koder i KVÅ och Snomed CT i DiagnosticReport.code och conclusionCode', 'DiagnosticReport.specimen med provets etikett från ett patientnära instrument', 'DiagnosticReport.imagingStudy med studiens DICOM-uid'],
+  },
   // Runda 10, r1: systemkonton, prenumerationer på en population, överkänslighet och patienter via API:t och
   // Patient/$everything för personalen (Sussa 2.5.1.1 och 2.5.1.2).
   {
