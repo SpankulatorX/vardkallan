@@ -22,8 +22,13 @@ function geMedKontroll(db, d, nu, pid = 'cy1') {
   const las = { armband: pnr(db, pid), streckkod: d.etikett };
   cyto.iordningstall(ssk(db, pid), cyto.dosRad(db, d.id), las, nu);
   cyto.kontrollera(lak(db, pid, 'ge_cytostatika'), cyto.dosRad(db, d.id), las, new Date(nu.getTime() + 60_000));
-  return cyto.ge(ssk(db, pid), cyto.dosRad(db, d.id), new Date(nu.getTime() + 120_000));
+  // Runda 11, r4: en infusion startas och avslutas, så att start, slut och takt registreras. Tabletter överlämnas.
+  if (d.peroral) return cyto.ge(ssk(db, pid), cyto.dosRad(db, d.id), new Date(nu.getTime() + 120_000));
+  cyto.startaInfusion(ssk(db, pid), cyto.dosRad(db, d.id), new Date(nu.getTime() + 120_000));
+  return cyto.avslutaInfusion(ssk(db, pid), cyto.dosRad(db, d.id), new Date(nu.getTime() + 180_000));
 }
+// Runda 11, r4: premedicineringen ges före den första cytostatikadosen.
+const gePremed = (db, pid = 'cy1', nu = efter(95)) => { for (const p of db.query("SELECT id FROM cyto_premed WHERE patient_id = ? AND status = 'ordinerad'").all(pid)) cyto.gePremed(ssk(db, pid), cyto.premedRad(db, p.id), { armband: pnr(db, pid) }, nu); };
 const pnr = (db, pid = 'cy1') => db.query('SELECT personnummer FROM patienter WHERE id = ?').get(pid).personnummer;
 // En godkänd och beredd EC-kur, mottagen på avdelningen.
 function berett(db) {
@@ -32,6 +37,7 @@ function berett(db) {
   cyto.godkann(lak(db), cyto.cykelRad(db, kur(b).id), BAS);
   const o = cyto.bered(ssk(db), cyto.cykelRad(db, kur(b).id), efter(60));
   for (const d of o.doser) cyto.taEmot(ssk(db), cyto.dosRad(db, d.id), { streckkod: d.etikett }, efter(90));
+  gePremed(db);
   return { b, o };
 }
 
@@ -149,7 +155,8 @@ describe('Cytostatika', () => {
     expect(() => cyto.kontrollera(lak(db, 'cy1', 'ge_cytostatika'), cyto.dosRad(db, epi.id), { ...las, streckkod: 'VKC00000999' }, efter(101))).toThrow('Etiketten stämmer inte');
     cyto.kontrollera(lak(db, 'cy1', 'ge_cytostatika'), cyto.dosRad(db, epi.id), las, efter(102));
     expect(cyto.dosRad(db, epi.id)).toMatchObject({ status: 'kontrollerad', kontrollerad_av: 'lak-lind' });
-    expect(cyto.ge(ssk(db), cyto.dosRad(db, epi.id), efter(103)).kurer[0].doser[0].status).toBe('given');
+    cyto.startaInfusion(ssk(db), cyto.dosRad(db, epi.id), efter(103));
+    expect(cyto.avslutaInfusion(ssk(db), cyto.dosRad(db, epi.id), efter(120)).kurer[0].doser[0].status).toBe('given');
   });
 
   test('säkerhet: en cykel, dos eller behandling för en annan patient ger 404 för varje åtgärd', () => {

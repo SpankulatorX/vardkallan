@@ -18,6 +18,8 @@ GRUNDER.push('systemkonto');
 GRUNDER.push('samtycke');
 // Runda 10, r7: ett ombud med fullmakt i Min journal (ombud.js) har grunden ombud.
 GRUNDER.push('ombud');
+// Runda 11, r4: beredningsenheten läser en beredningsorder som vårdenheten har skickat till den (cytostatika-beredning.js).
+GRUNDER.push('bestallning');
 export const INVANARGRUNDER = ['egen_atkomst', 'vardnadshavare'];
 const NOLL = '0'.repeat(64);
 const FALT = ['id', 'tid', 'personal_id', 'enhet_id', 'patient_id', 'handling', 'resurs', 'grund', 'syfte', 'resultat'];

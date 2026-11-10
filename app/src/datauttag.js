@@ -104,6 +104,18 @@ export const SCHEMA = {
       avgiftsbelagd: 'Sant när besöket har en avgift i prislistan för patientens ålder och kontaktsättet, utan hänsyn till högkostnadsskydd och LMA-kort.',
     },
   },
+  // Runda 11, r4: varje cytostatikados med regim, cykel, beredning och administrering (Sussa 4.8.1.7), för planering och
+  // uppföljning av kvalitet och produktion och för spårbarheten av administrerat cytostatika.
+  Cytostatikados: {
+    beskrivning: 'En rad per cytostatikados i en kur, utan dosering i fritext.',
+    falt: {
+      rad: 'Radens stabila nyckel.', patient: 'Patientens pseudonym.', aldersgrupp: 'Ålder vid kurens första dag i femårsgrupper.', kon: '"kvinna" eller "man".',
+      vardenhet: 'HSA-id för den ordinerande vårdenheten.', regim: 'Regimens id, till exempel "ec".', regimversion: 'Regimversionen i regimbiblioteket.', cykel: 'Cykelns nummer.',
+      lakemedel: 'Läkemedlets id i regimen.', dosandel: 'Andel av full dos i procent.', dosPerM2: 'Dosen i mg per kvadratmeter kroppsyta, avrundad.', status: 'Dosens status, till exempel "given", "overlamnad" eller "avbruten".',
+      dag1: 'Kurens första dag.', uppskjuten: 'Antal gånger kuren har skjutits upp.', bereddDatum: 'Datum för beredningen, eller tomt.', givenDatum: 'Datum när dosen gavs eller överlämnades, eller tomt.',
+      batch: 'Batcherna som dosen bereddes ur, kommaseparerade, eller tomt.', reaktioner: 'Antal reaktioner under infusionen.', extravasering: 'Sant om infusionen avbröts av en extravasering.',
+    },
+  },
 };
 export const TYPER = Object.keys(SCHEMA);
 
@@ -228,6 +240,23 @@ export function bygg(db, { pseudonymnyckel = null } = {}) {
     data.Patientavgift.push({ rad: pseudonym(k, `avgift:${v.id}`), patient: pseudonym(k, `patient:${p.id}`), vardenhet: ve(v.enhet_id)?.hsa_id ?? null, vardkontakt: vk(v.id),
       vardform: v.typ, kontaktsatt: v.kontaktsatt ?? null, datum: d, avgiftsbelagd: ar >= AVGIFT_DEMO.friUnder && ar < AVGIFT_DEMO.friFran && pris > 0 });
   }
+  // Runda 11, r4: cytostatikadoserna, med samma regler för spärr och skyddade personuppgifter som de andra tabellerna.
+  const harTabell = (t) => Boolean(db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(t));
+  if (harTabell('cyto_doser')) {
+    const cyto = require('./cytostatika.js');
+    cyto.sakra(db);
+    const ber = harTabell('cyto_beredningar') ? new Map(db.query('SELECT dos_id, batcher FROM cyto_beredningar').all().map(r => [r.dos_id, JSON.parse(r.batcher).map(x => x.batch).join(',')])) : new Map();
+    for (const d of db.query('SELECT d.*, c.dag1, c.nummer, c.bsa, c.dosandel, c.uppskjuten, c.behandling_id FROM cyto_doser d JOIN cyto_cykler c ON c.id = d.cykel_id ORDER BY d.id').all()) {
+      const p = far(d.patient_id, d.enhet_id);
+      if (!p) continue;
+      const b = db.query('SELECT * FROM cyto_behandlingar WHERE id = ?').get(d.behandling_id);
+      const h = db.query('SELECT typ FROM cyto_infusion WHERE dos_id = ?').all(d.id).map(x => x.typ);
+      data.Cytostatikados.push({ rad: pseudonym(k, `cytostatikados:${d.id}`), ...person(p, d.dag1), vardenhet: ve(d.enhet_id)?.hsa_id ?? null, regim: b.regim,
+        regimversion: b.regim_version ? db.query('SELECT version FROM cyto_regimversioner WHERE id = ?').get(b.regim_version)?.version ?? 1 : 1, cykel: d.nummer, lakemedel: d.lakemedel,
+        dosandel: d.dosandel, dosPerM2: Math.round(d.dos_mg / d.bsa), status: d.status, dag1: d.dag1, uppskjuten: d.uppskjuten, bereddDatum: datumI(d.beredd_tid), givenDatum: datumI(d.given_tid),
+        batch: ber.get(d.id) || null, reaktioner: h.filter(x => x === 'reaktion').length, extravasering: h.includes('extravasering') });
+    }
+  }
   return { data, utelamnat };
 }
 
@@ -245,6 +274,8 @@ const OBLIGATORISKA = {
   Vardkontakt: ['rad', 'patient', 'vardenhet', 'vardform', 'startdatum'], Diagnos: ['rad', 'patient', 'vardenhet', 'kod', 'datum'], Ordination: ['rad', 'patient', 'vardenhet', 'atc', 'startdatum', 'status'],
   Remiss: ['rad', 'franVardenhet', 'tillVardenhet', 'prioritet', 'status', 'skickadDatum'], Matvarde: ['rad', 'patient', 'vardenhet', 'typ', 'varde', 'datum'],
   Anteckning: ['rad', 'patient', 'vardenhet', 'typ', 'kategori', 'status', 'datum'], Vardtillfalle: ['rad', 'patient', 'vardenhet', 'inskrivenDatum'], Patientavgift: ['rad', 'patient', 'vardenhet', 'vardkontakt', 'datum'],
+  // Runda 11, r4.
+  Cytostatikados: ['rad', 'patient', 'vardenhet', 'regim', 'cykel', 'lakemedel', 'status', 'dag1'],
 };
 const KANDA_VARDFORMER = ['oppenvard', 'akut', 'slutenvard', 'hemsjukvard', 'dagkirurgi'];
 // Koderna som kontrolleras per tabell.

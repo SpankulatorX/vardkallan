@@ -187,9 +187,17 @@ for (const k of ['klinisk', 'sjukskoterska', 'vardadministrator', 'psykiatri', '
 MENY.vardadministrator.splice(MENY.vardadministrator.indexOf('Väntelista') + 1, 0, 'Kassa', 'Kapacitet');
 MENY.vardadministrator.splice(MENY.vardadministrator.indexOf('Väntrum (akuten)') + 1, 0, 'Begäranden');
 MENY.logg.splice(MENY.logg.indexOf('Logguppföljning') + 1, 0, 'Begäranden');
+// Runda 11, r4: läkare och sjuksköterskor har Blodcentralen, efter Inkorg eller Intensivvård, och sjuksköterskan på
+// kardiologen, som ger cytostatika, har Cytostatika före den. Farmaceuten på beredningsenheten har Beredning efter Inkorg.
+for (const k of ['klinisk', 'psykiatri', 'bvc']) MENY[k].splice(MENY[k].indexOf('Inkorg') + 1, 0, 'Blodcentralen');
+MENY.sjukskoterska.splice(MENY.sjukskoterska.indexOf('Intensivvård') + 1, 0, 'Cytostatika', 'Blodcentralen');
+MENY.beredning = [...MENY.farmaceut];
+MENY.beredning.splice(MENY.beredning.indexOf('Inkorg') + 1, 0, 'Beredning');
 // Runda 9, r2: läkarens meny på Kardiologiska kliniken är läkarens meny med Intensivvård, och kopieras när den är klar.
 MENY.kardiologi = [...MENY.klinisk];
 MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård');
+// Runda 11, r4: kardiologen ger cytostatika i demon, så läkaren där har Cytostatika efter Intensivvård.
+MENY.kardiologi.splice(MENY.kardiologi.indexOf('Intensivvård') + 1, 0, 'Cytostatika');
 
 (async () => {
   const browser = await chromium.launch();
@@ -200,13 +208,14 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
 
   try {
     // Utan inloggning
-    await s('inloggningssidan visar de arton demorollerna och demoraden', async () => {
+    await s('inloggningssidan visar de nitton demorollerna och demoraden', async () => {
       await page.goto(`${BAS}/`);
       await page.waitForSelector('.roll');
       const n = await page.locator('.roll').count();
       // Runda 6, r6: verksamhetschefen är den trettonde. Runda 7: ekonomen (r3), de två systemförvaltarna (r4) och
       // distriktssköterskan Hanna Lilja i barnhälsovården (r6), och fysioterapeuten i Sussas testfall (r1).
-      if (n !== 18) throw new Error(`${n} roller`);
+      // Runda 11, r4: farmaceuten på cytostatikaberedningen är den nittonde.
+      if (n !== 19) throw new Error(`${n} roller`);
       await forvanta(page, '.demorad', 'Demo med påhittade patienter och testpersonnummer från Skatteverket. Inte för vård av riktiga patienter.');
       await forvanta(page, '.sidfot', 'Vårdkällan är ett fristående demoprojekt med öppen källkod (EUPL 1.2). Det är inte en tjänst från Region Örebro län.');
       await forvanta(page, '#roll-lak-akut-visar', 'Nödåtkomst');
@@ -1819,6 +1828,103 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
       for (const x of ['DRG', 'Furosemid', 'Läkemedel', 'Vårddygn']) if (t.includes(x)) throw new Error(`kostnadsrutan för vårdadministratören visar ${x}`);
     });
 
+    // Runda 11, r4: cytostatika för Annika Holmgren (p17) från godkännandet via beredningsenheten till infusionen,
+    // regimbiblioteket, blod i journalen och på blodcentralen, och Anna Viklunds rapport i Min behandling (p11).
+    await s('Sara Lindqvist godkänner Annika Holmgrens cytostatikakur i fliken Cytostatika när systemet har prövat proverna och den kumulativa dosen', async () => {
+      await loggaIn(page, 'lak-kard');
+      await gaTill(page, '#/patient/p17/cytostatika');
+      await forvanta(page, '.cy-behandling h3', 'EC (epirubicin och cyklofosfamid)');
+      await forvanta(page, '.cy-behandling', 'Kumulativ dos.');
+      await forvanta(page, '.cy-behandling', 'Skillnad mot förra kuren');
+      await page.click('[data-cy-kur="godkann"]');
+      await forvanta(page, '.notis', 'Kuren är godkänd');
+      await forvanta(page, '.cy-dos', 'Hos beredningsenheten');
+      await bild(page, '120-cytostatika');
+    });
+    await s('Mona Fredin bereder kuren på beredningsenheten med batch och kontrollmätning och följer batchen till patienten', async () => {
+      await loggaIn(page, 'far-bered');
+      await gaTill(page, '#/beredning');
+      for (let i = 0; i < 2; i++) {
+        const f = page.locator('form[data-bd-bered]').first();
+        await f.waitFor();
+        const ml = (await f.locator('[id^="bd-mh-"]').textContent()).match(/Beräknat ([\d,]+) ml/)[1];
+        await f.locator('[name="uppmattMl"]').fill(ml);
+        await f.locator('[type="submit"]').click();
+        await forvanta(page, '.notis', 'är beredd och signerad');
+        await vantaVy(page);
+      }
+      await forvanta(page, '#bd-klara ~ ul', 'Annika Holmgren');
+      await bild(page, '121-beredning');
+      await page.locator('[data-bd-spara]').first().click();
+      await forvanta(page, '#bd-spar', 'Alla doser som är beredda ur batchen');
+    });
+    await allaVyer(page, 'Mona Fredin', MENY.beredning);
+    await s('Johan Ek tar emot kuren, ger premedicineringen och iordningställer epirubicinet vid sängen', async () => {
+      await loggaIn(page, 'ssk-kard');
+      await gaTill(page, '#/patient/p17/cytostatika');
+      for (let i = 0; i < 2; i++) {
+        const f = page.locator('form[data-cy-form="ta-emot"]').first();
+        await f.locator('[data-cy-las]').click();
+        await f.locator('[type="submit"]').click();
+        await forvanta(page, '.notis', 'Dosen är mottagen');
+        await vantaVy(page);
+        await page.locator('.cy-behandling').waitFor();
+      }
+      for (let i = 0; i < 2; i++) {
+        await page.locator('[data-cy-premed]').first().click();
+        await forvanta(page, '.notis', 'Premedicineringen är given');
+        await vantaVy(page);
+        await page.locator('.cy-behandling').waitFor();
+      }
+      const f = page.locator('form[data-cy-form="iordningstall"]').first();
+      await f.locator('[data-cy-las]').click();
+      await f.locator('[type="submit"]').click();
+      await forvanta(page, '.notis', 'väntar på dubbelkontroll');
+    });
+    await s('Sara dubbelkontrollerar i sin egen inloggning, startar infusionen med systemets takt och avslutar den', async () => {
+      await loggaIn(page, 'lak-kard');
+      await gaTill(page, '#/patient/p17/cytostatika');
+      const f = page.locator('form[data-cy-form="kontrollera"]').first();
+      await f.locator('[data-cy-las]').click();
+      await f.locator('[type="submit"]').click();
+      await forvanta(page, '.notis', 'Dosen är dubbelkontrollerad');
+      await vantaVy(page);
+      await page.locator('[data-cy-dos="starta"]').click();
+      await forvanta(page, '.notis', 'Infusionen är startad');
+      await forvanta(page, '.cy-dos', 'ml/h');
+      await vantaVy(page);
+      await page.locator('[data-cy-dos="avsluta"]').click();
+      await forvanta(page, '.notis', 'Infusionen är avslutad');
+    });
+    await s('Sara godkänner Göran Malms nya version av karboplatinregimen i regimbiblioteket', async () => {
+      await gaTill(page, '#/cytostatika/regimer');
+      await forvanta(page, '.ruta-obs', 'Version 2 väntar på godkännande');
+      await page.click('[data-rb-godkann]');
+      await forvanta(page, '.notis', 'gäller nu för nya ordinationer');
+      await forvanta(page, 'main h2', 'Karboplatin (AUC 5), version 2');
+    });
+    await s('Sara beställer blod till Annika i fliken Blod och följer beställningen på blodcentralen', async () => {
+      await gaTill(page, '#/patient/p17/blod');
+      await forvanta(page, '#bl-ny', 'saknas. Systemet beställer det med blodet.');
+      await page.fill('#bl-indikation', 'Anemi efter cytostatika');
+      await page.click('#bl-ny [type="submit"]');
+      await forvanta(page, '.notis', 'Blodet är beställt');
+      await forvanta(page, '.bl-kedja [aria-current="step"]', 'Blodgruppering och bastest');
+      await gaTill(page, '#/blodcentral');
+      await forvanta(page, '.bc-rad', 'Annika Holmgren');
+      await bild(page, '122-blodcentral');
+    });
+    await s('Anna Viklund rapporterar feber i Min behandling, och systemet säger att hon ska ringa mottagningen nu', async () => {
+      await loggaInPatient(page, 'inv-p11');
+      await gaTill(page, '#/min/p11/cytostatika');
+      await forvanta(page, '.min-cy', 'Ta 3 tabletter');
+      const f = page.locator('form[data-min-cy]');
+      await f.locator('[name="morgon"]').check();
+      await f.locator('[name="feber"]').fill('38,5');
+      await f.locator('[type="submit"]').click();
+      await forvanta(page, '.notis', 'Ring mottagningen nu');
+    });
+
     // Användartestet (D6). Hela testet med enkät och resultatfil testas i test/anvandartest.cjs.
     await s('användartestet startas från inloggningssidan och visar en uppgift i taget i listen', async () => {
       await page.click('[data-a="loggaut"]');
@@ -1853,7 +1959,9 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
         // Runda 10, r4: in- och utfarter, restjournaler och donation.
         'registrera-infart', 'skanna-restjournal', 'starta-donation',
         // Runda 10, r7: meddelanden, kontorsstödet, kapaciteten och kassan.
-        'fornya-recept', 'kalenderprenumeration', 'svara-meddelande', 'kapacitetsprognos', 'dagsavslut']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'fornya-recept', 'kalenderprenumeration', 'svara-meddelande', 'kapacitetsprognos', 'dagsavslut',
+        // Runda 11, r4: cytostatika, regimbiblioteket, blod och beredningsenheten.
+        'cyto-godkann', 'regim-godkann', 'blod-bestall', 'cyto-bered']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

@@ -28,4 +28,8 @@ export const PRODUKTER = [
   // men studien och produkten är påhittade.
   P(4, 'EGEN', 'egendefinierad', 'Prövningsläkemedel DEMO-HF-01, egendefinierad', 'finerenon', '20 mg', 'filmdragerad tablett', 'C03DA05',
     'Prövningsläkemedel i den påhittade kliniska prövningen DEMO-HF-01. Får bara ordineras till studiens deltagare. Demopost.'),
+  // Runda 11, r4: trombocyter från blodcentralen, så att varje blodprodukt i blodbeställningen blir en ordination i
+  // läkemedelslistan (blod.js). ATC-koden är kontrollerad mot WHO:s ATC-register.
+  P(3, 'BLOD', 'blodprodukt', 'Trombocytkoncentrat', 'trombocyter', '1 enhet', 'blodkomponent', 'B05AX02',
+    'Blodkomponent från blodcentralen. Demopost.'),
 ];

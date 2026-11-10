@@ -391,6 +391,12 @@ function underlag(atk, inp, atgard) {
   }
   if (atgard === 'iordningstall' && ior) throw new Fel(400, 'Dosen är redan iordningsställd.', 'ogiltig');
   if (!planerad && ior?.planerad) planerad = ior.planerad;
+  // Runda 11, r4: en blodprodukt ges bara från blodbeställningen, där id-band, enhetsnummer, blodgrupp och bastest prövas
+  // i den gemensamma transfusionskontrollen och en andra person kontrollerar i sin egen inloggning (blod.js). Ingen
+  // vanlig administrering med en kvitterad varning kan ersätta den kontrollen.
+  if (atgard !== 'ej_given' && stod.produkttyp(db, lm.id).typ === 'blodprodukt') {
+    throw new Fel(409, `${lm.namn} ges från blodbeställningen i fliken Blod. Där kontrollerar systemet id-bandet, enhetsnumret, blodgruppen och bastestet, och en andra person kontrollerar i sin egen inloggning.`, 'blod');
+  }
   // Runda 9, r1: en dos som ska beredas registreras med beredningen när den iordningsställs, och ges bara när
   // kontrollen är gjord och beredningen håller. Ett skannat armband prövas mot patienten.
   const ber = atgard === 'iordningstall' ? beredning.forbered(db, { lm, spadning: o?.spadning ?? null, nu }, inp.beredning) : null;

@@ -29,4 +29,7 @@ export const ENHETER = [
   // Runda 6, r3: kommunen i samordnad planering (SIP och SPU) är en simulerad part med påhittat id. Den hör inte till
   // vårdgivaren och har ingen journalåtkomst.
   { id: 'kommun-demo', hsa: 'DEMO-KOMMUN-0001', namn: 'Kommunen, socialtjänst och kommunal hälso- och sjukvård (simulerad)', kortnamn: 'Kommunen (simulerad)', typ: 'kommun', forald: null },
+  // Runda 11, r4: cytostatikaberedningen på USÖ (cytostatika-beredning.js, Sussa 4.8.1.5). En produktionsenhet utan
+  // patienter, som tar emot beredningsorder från vårdenheterna på sjukhuset. Sist, så att de andras ordning inte ändras.
+  { id: 'uso-bered', hsa: 'SE2321000164-VK0180', namn: 'Cytostatikaberedningen USÖ', kortnamn: 'Beredningen USÖ', typ: 'forvaltning', forald: 'uso' },
 ];

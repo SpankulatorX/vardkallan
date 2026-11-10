@@ -71,6 +71,10 @@ import * as signeringslista from './vyer/signeringslista.js';
 import * as skanner from './skanner.js';
 // Runda 10, r7: meddelanden från invånare, invånarnas begäranden, kassan, kapaciteten och kontorsstödet.
 import * as r10r7 from './vyer/r10r7.js';
+// Runda 11, r4: cytostatika på vårdenheten, regimbiblioteket, beredningsenheten och blodcentralen.
+import * as cytostatikaEnhet from './vyer/cytostatika-enhet.js';
+import * as cytostatikaberedning from './vyer/cytostatikaberedning.js';
+import * as blodcentral from './vyer/blodcentral.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -106,6 +110,11 @@ const MENY = [
   ['#/provtagning', 'Prover och kontroller', 'lista', () => far('ta_prov') && !far('bestalla_prov')],
   // Runda 9, r2: intensivvården, för läkare, sjuksköterskor och undersköterskor på en vårdenhet med intensivvårdsavdelning.
   ['#/iva', 'Intensivvård', 'larm', () => Boolean(S.session?.iva)],
+  // Runda 11, r4: cytostatika för läkare och sjuksköterskor på en vårdenhet som ger cytostatika, beredningsenheten för
+  // farmaceuten där, och blodcentralen för läkare och sjuksköterskor.
+  ['#/cytostatika', 'Cytostatika', 'piller', () => Boolean(S.session?.r11r4?.cytostatika)],
+  ['#/beredning', 'Beredning', 'lista', () => Boolean(S.session?.r11r4?.beredning)],
+  ['#/blodcentral', 'Blodcentralen', 'kort', () => far('las_prover') && far('bestalla_lakemedel')],
   // Runda 10, r7: meddelanden från invånare till vårdenheten.
   ['#/meddelanden', 'Meddelanden', 'inkorg', () => far('meddelande_invanare')],
   ['#/delegeringar', 'Delegeringar', 'nyckel', () => far('delegera')],
@@ -188,6 +197,11 @@ const RUTTER = [
   // Runda 9, r2.
   [/^#\/iva$/, iva, () => Boolean(S.session?.iva)],
   [/^#\/iva\/([\w-]+)$/, iva.patient, () => Boolean(S.session?.iva)],
+  // Runda 11, r4.
+  [/^#\/cytostatika$/, cytostatikaEnhet, () => far('las_cytostatika')],
+  [/^#\/cytostatika\/regimer$/, cytostatikaEnhet.regimer, () => far('las_cytostatika')],
+  [/^#\/beredning$/, cytostatikaberedning, () => Boolean(S.session?.r11r4?.beredning)],
+  [/^#\/blodcentral$/, blodcentral, () => far('las_prover') && far('bestalla_lakemedel')],
   // Delegeringar (runda 5): sjuksköterskan och läkaren registrerar, undersköterskan ser sina egna.
   [/^#\/delegeringar$/, delegeringar, () => far('delegera') || S.session?.personal?.yrke === 'underskoterska'],
   [/^#\/lakemedelsstod$/, lakemedelsstod, () => pa('faststalla_direktiv', 'ordinera_direktiv')],
@@ -320,6 +334,8 @@ export async function uppdateraInkorg() {
       + (d.lakemedelsuppfoljningar?.length ?? 0) + (d.muntligaAttSignera?.length ?? 0) + (d.fordjupadeGenomgangar?.length ?? 0) + (d.licenserSomGarUt?.length ?? 0)
       // Mallar att godkänna (runda 6, r6).
       + (d.mallarAttGodkanna?.length ?? 0)
+      // Runda 11, r4: regimversioner att godkänna och patienternas rapporter om cytostatika.
+      + (d.cytoRegimversioner?.length ?? 0) + (d.cytoRapporter?.length ?? 0)
       // Egna bevakningar som har löpt ut (runda 6, r4).
       + (d.egnaBevakningar?.length ?? 0)
       // Rättningar före rapportering till myndigheter och register (runda 7, r5).

@@ -82,4 +82,8 @@ export const PERSONAL = [
   // behörigheter i demon. Ingen av dem går att logga in som.
   { id: 'bm-uso', namn: 'Sofia Ekdahl', yrke: 'sjukskoterska', titel: 'Barnmorska', enhet: 'uso-kk-forl' },
   { id: 'lak-kk', namn: 'Johanna Rehn', yrke: 'lakare', titel: 'Läkare (obstetrik)', enhet: 'uso-kk' },
+  // Runda 11, r4: farmaceuten på cytostatikaberedningen, som bereder kurerna med batch och kontrollmätning, sköter lagret
+  // och följer en batch till patienterna (cytostatika-beredning.js). Går att logga in som. Sist, så att de andras HSA-id
+  // inte ändras.
+  { id: 'far-bered', namn: 'Mona Fredin', yrke: 'farmaceut', titel: 'Farmaceut, cytostatikaberedningen', enhet: 'uso-bered', demo: true },
 ];

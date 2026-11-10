@@ -63,6 +63,9 @@ export const STARTPUNKT = {
   'Inkorgen med ett förslag om donation': { hash: '#/inkorg', klar: 'section[aria-labelledby="ik-donation"] li', forbered: 'donation' },
   // Runda 10, r7: kassan, efter uppgiften där vårdadministratören tar betalt.
   'Kassan': { hash: '#/kassa', klar: '#kassa-avslut', forbered: 'kassa-besok' },
+  // Runda 11, r4: Annika Holmgren med cytostatika, och beredningsenheten med en godkänd kur.
+  'Journalen för patienten med cytostatika': { hash: '#/patient/p17', klar: '.patientband h1', forbered: 'aterstall' },
+  'Beredningsenheten med en godkänd kur': { hash: '#/nyheter', klar: 'main h1', forbered: 'cytostatika-kur' },
 };
 
 export const UPPGIFTER = [
@@ -566,6 +569,27 @@ export const UPPGIFTER = [
     id: 'dagsavslut', namn: 'Göra dagsavslut i kassan', roll: 'adm-kard', start: 'Kassan',
     text: 'Dagen är slut. Stäm av din kassa mot betalterminalen och gör dagsavslut.',
     kontroll: { notis: 'Dagsavslutet är gjort' },
+  },
+  // Runda 11, r4: cytostatika, regimbiblioteket, blod och beredningsenheten.
+  {
+    id: 'cyto-godkann', namn: 'Godkänna en cytostatikakur', roll: 'lak-kard', start: 'Journalen för patienten med cytostatika',
+    text: 'Annika Holmgren ska få sin andra kur EC i dag, och proverna är tagna. Godkänn kuren så att den kan beredas.',
+    kontroll: { notis: 'Kuren är godkänd' },
+  },
+  {
+    id: 'regim-godkann', namn: 'Godkänna en ny version av en cytostatikaregim', roll: 'lak-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Göran Malm har föreslagit en ny version av karboplatinregimen. Du är regimansvarig. Granska och godkänn den.',
+    kontroll: { notis: 'gäller nu för nya ordinationer' },
+  },
+  {
+    id: 'blod-bestall', namn: 'Beställa blod', roll: 'lak-kard', start: 'Journalen för patienten med cytostatika',
+    text: 'Annika Holmgren har fått blodbrist efter cytostatikan, Hb 88. Beställ två enheter erytrocyter.',
+    kontroll: { notis: 'Blodet är beställt' },
+  },
+  {
+    id: 'cyto-bered', namn: 'Bereda en cytostatikados på beredningsenheten', roll: 'far-bered', start: 'Beredningsenheten med en godkänd kur',
+    text: 'En kur till Annika Holmgren är godkänd. Bered den första dosen och signera beredningen.',
+    kontroll: { notis: 'är beredd och signerad' },
   },
 ];
 

@@ -102,7 +102,7 @@ describe('Ärenden om API:t', () => {
     expect((await k.post(`/api/oppet-api/arenden/${id}/status`, { status: 'levererad', version: '0.9.0' })).status).toBe(400);
     expect((await k.post(`/api/oppet-api/arenden/${id}/status`, { status: 'bedomd', beslut: 'Behovet är rimligt. Mappningen görs mot GetCareDocumentation.' })).data.status).toBe('bedomd');
     expect((await k.post(`/api/oppet-api/arenden/${id}/status`, { status: 'planerad' })).status).toBe(400);
-    expect((await k.post(`/api/oppet-api/arenden/${id}/status`, { status: 'planerad', version: '1.1.0' })).data).toMatchObject({ status: 'planerad', version: '1.1.0' });
+    expect((await k.post(`/api/oppet-api/arenden/${id}/status`, { status: 'planerad', version: '9.9.0' })).data).toMatchObject({ status: 'planerad', version: '9.9.0' });
     const ej = await k.post(`/api/oppet-api/arenden/${id}/status`, { status: 'levererad' });
     expect(ej.status).toBe(400);
     expect(ej.data.fel).toContain('finns inte i ändringsloggen');

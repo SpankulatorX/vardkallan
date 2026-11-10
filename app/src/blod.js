@@ -14,13 +14,15 @@
 //   - Varje steg sparas med vem och när och kan följas i beställningen.
 //
 // Blodcentralen, enhetsnumren och reglerna är simulerade demoregler och inget kliniskt beslutsstöd.
-import { Fel, datumAv } from './db.js';
+import { Fel, datumAv, addDagar } from './db.js';
 import { Atkomst, vardenhetFor, enheterUnder, kanRoll, visningsnamn } from './atkomst.js';
 import * as labb from './labb.js';
 import { BASTEST_TIMMAR, ANALYS } from './labb-katalog.js';
 import { tabell, finns, personNamn, enhetKort, textFalt, iso, MIN, TIMME, vardkontaktFor, andraRad, provaRad, loggaPatient } from './specialist-hjalp.js';
 // Runda 10, r6: blodcentralens producentsystem genom det öppna gränssnittet (produktionssystem.js, Sussa 5.1.4.5).
 import * as ps from './produktionssystem.js';
+// Runda 11, r4: id-bandets jämförelse (cytostatika.js).
+import { idNyckel } from './cytostatika.js';
 export const BLOD_LAB = 'lab-blod-uso';
 
 export const DEMOREGEL = 'Demoregel, inte ett kliniskt beslutsstöd. Blodcentralen och enhetsnumren är simulerade.';
@@ -36,7 +38,9 @@ export const STATUS = tabell({
   vantar_prov: 'Väntar på blodgruppering och bastest', utreds: 'Blodcentralen utreder', beredd: 'Förenlighetsprövad och beredd',
   utlamnad: 'Utlämnad till avdelningen', avslutad: 'Avslutad', makulerad: 'Makulerad',
 });
-export const ENHETSSTATUS = tabell({ reserverad: 'Reserverad på blodcentralen', utlamnad: 'Utlämnad', vantar_kontroll: 'Väntar på kontroll vid sängen', kontrollerad: 'Kontrollerad vid sängen', pagar: 'Transfusion pågår', transfunderad: 'Transfunderad', aterlamnad: 'Återlämnad' });
+export const ENHETSSTATUS = tabell({ reserverad: 'Reserverad på blodcentralen', utlamnad: 'Utlämnad', vantar_kontroll: 'Väntar på kontroll vid sängen', kontrollerad: 'Kontrollerad vid sängen', pagar: 'Transfusion pågår', transfunderad: 'Transfunderad', aterlamnad: 'Återlämnad',
+  // Runda 11, r4: en transfusion som stoppas vid en reaktion.
+  avbruten: 'Avbruten vid reaktion' });
 
 export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS blod_bestallningar (
@@ -63,8 +67,21 @@ CREATE TABLE IF NOT EXISTS blod_avvikelser (
 );
 CREATE INDEX IF NOT EXISTS ix_blod_avvikelser_best ON blod_avvikelser (bestallning_id);
 `;
+// Runda 11, r4: transfusionen som ordination och administrering i läkemedelslistan, och rapporterna om
+// transfusionsreaktioner till blodcentralen (hemovigilans).
+export const SCHEMA_R11 = `
+CREATE TABLE IF NOT EXISTS blod_ordinationer (bestallning_id INTEGER PRIMARY KEY, ordination_id INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS blod_administreringar (blodenhet_id INTEGER PRIMARY KEY, administrering_id INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS blod_reaktioner (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, bestallning_id INTEGER NOT NULL, blodenhet_id INTEGER NOT NULL, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, tid TEXT NOT NULL,
+  rapporterad_av TEXT NOT NULL, symtom TEXT NOT NULL, temp REAL, typ TEXT NOT NULL, allvarlighet TEXT NOT NULL, labb_bestallning_id INTEGER, status TEXT NOT NULL, mottagen TEXT
+);
+CREATE TRIGGER IF NOT EXISTS blod_reaktion_raderas_ej BEFORE DELETE ON blod_reaktioner BEGIN SELECT RAISE(ABORT, 'En rapport om en transfusionsreaktion raderas inte.'); END;
+CREATE TRIGGER IF NOT EXISTS blod_reaktion_andras_ej BEFORE UPDATE OF bestallning_id, blodenhet_id, patient_id, enhet_id, tid, rapporterad_av, symtom, temp, typ, allvarlighet ON blod_reaktioner
+  BEGIN SELECT RAISE(ABORT, 'En rapport om en transfusionsreaktion ändras inte.'); END;
+`;
 const har = new WeakSet();
-export function sakra(db) { if (!har.has(db)) { db.exec(SCHEMA); har.add(db); } }
+export function sakra(db) { if (!har.has(db)) { db.exec(SCHEMA); db.exec(SCHEMA_R11); har.add(db); } }
 
 const historik = (db, b, personalId, handelse, detalj, t) => db.query('INSERT INTO blod_historik (bestallning_id, patient_id, enhet_id, tid, personal_id, handelse, detalj) VALUES (?, ?, ?, ?, ?, ?, ?)')
   .run(b.id, b.patient_id, b.enhet_id, t, personalId, handelse, detalj);
@@ -149,6 +166,8 @@ export function bestall(atk, body = {}, nu = new Date()) {
     db.query('UPDATE blod_bestallningar SET nummer = ? WHERE id = ?').run(`VKBL-${String(iso(nu)).slice(0, 4)}-${String(id).padStart(6, '0')}`, id);
     const b = bestallningRad(db, id);
     historik(db, b, atk.personal.id, 'upprattad', `${antal} ${PRODUKTER[produkt].namn.toLocaleLowerCase('sv')} till ${BLODCENTRAL}.${f.saknas.length ? ` ${f.saknas.map(a => ANALYS[a].namn).join(' och ')} beställt.` : ''}`, iso(nu));
+    // Runda 11, r4: beställningen blir en tillfällig ordination i läkemedelslistan, som transfusionerna ges mot.
+    ordinationFor(db, atk, b, nu);
   })();
   const b = db.query('SELECT * FROM blod_bestallningar WHERE patient_id = ? ORDER BY id DESC LIMIT 1').get(atk.patientId);
   // Runda 10, r6: med ett anslutet producentsystem går beställningen till blodcentralen genom gränssnittet, och den
@@ -169,7 +188,9 @@ export function bestall(atk, body = {}, nu = new Date()) {
 // beställningen inte utreds. Svaren behöver inte vara vidimerade, eftersom laboratoriets svar gäller från när det kommer,
 // som i resten av beställning och svar. Kontrollen räknar på alla patientens svar, eftersom blodcentralen behöver dem,
 // men orsakerna nämner inga värden. Ger { ok, blodgrupp, bastest } eller { ok: false, vanta, positivt, orsak }.
-export function transfusionskontroll(db, b, nu = new Date(), { enhetsgrupp = null } = {}) {
+// Runda 11, r4: utrett betyder att blodcentralen redan har utrett ett positivt bastest för beställningen, så att kontrollen
+// vid sängen inte stoppar blod som blodcentralen har förenlighetsprövat efter utredningen.
+export function transfusionskontroll(db, b, nu = new Date(), { enhetsgrupp = null, utrett = false } = {}) {
   labb.forfallnaSvar(db, nu);
   const rader = db.query(`SELECT a.*, p.provtagen_tid FROM labb_analyser a JOIN labb_bestallningar lb ON lb.id = a.bestallning_id LEFT JOIN labb_prov p ON p.id = a.prov_id
     WHERE a.patient_id = ? AND a.analys IN ('blodgruppering', 'bastest') AND lb.makulerad_tid IS NULL AND a.status NOT IN ('borttagen', 'makulerad')`).all(b.patient_id);
@@ -187,7 +208,7 @@ export function transfusionskontroll(db, b, nu = new Date(), { enhetsgrupp = nul
     const bas = rader.filter(a => a.analys === 'bastest' && a.status === 'besvarad' && Date.parse(a.provtagen_tid ?? a.besvarad_tid) >= grans).sort((x, y) => y.besvarad_tid.localeCompare(x.besvarad_tid))[0];
     if (!bas) return nej(pagar('bastest') ? 'Bastestet väntar på svar.' : `Det finns inget giltigt bastest. Ett bastest gäller i ${BASTEST_TIMMAR} timmar efter provtagningen. Beställ ett nytt bastest.`, { vanta: pagar('bastest') });
     bastest = { positivt: bas.avvikande === 'fynd', tid: bas.provtagen_tid ?? bas.besvarad_tid };
-    if (bastest.positivt && b.status !== 'utreds') return nej('Bastestet är positivt. Blod lämnas inte ut förrän blodcentralen har utrett antikroppen.', { positivt: true });
+    if (bastest.positivt && b.status !== 'utreds' && !utrett) return nej('Bastestet är positivt. Blod lämnas inte ut förrän blodcentralen har utrett antikroppen.', { positivt: true });
   }
   if (enhetsgrupp && !forenlig(b.produkt, enhetsgrupp, blodgrupp)) return nej(`Enheternas blodgrupp är inte förenlig med patientens blodgrupp för ${PRODUKTER[b.produkt].namn.toLocaleLowerCase('sv')}.`);
   return { ok: true, blodgrupp, bastest };
@@ -284,11 +305,13 @@ export function bestallningUt(atk, b, nu = new Date()) {
     id: b.id, nummer: b.nummer, produkt: { id: b.produkt, namn: PRODUKTER[b.produkt].namn }, antal: b.antal, indikation: b.indikation, planerad: b.planerad,
     status: b.status, statusText: STATUS[b.status], bestalld: { tid: b.skapad, av: personNamn(db, b.bestalld_av) }, vardenhet: enhetKort(db, b.enhet_id), blodcentral: BLODCENTRAL,
     enheter: enheter.map(e => ({ id: e.id, enhetsnummer: e.enhetsnummer, blodgrupp: e.blodgrupp, hallbar: e.hallbar, status: e.status, statusText: ENHETSSTATUS[e.status],
-      utlamnad: e.utlamnad_tid, start: e.start_tid, slut: e.slut_tid, givenAv: personNamn(db, e.given_av), kontrolleradAv: personNamn(db, e.kontrollerad_av), reaktion: e.reaktion,
+      utlamnad: e.utlamnad_tid, start: e.start_tid, slut: e.slut_tid, givenAv: personNamn(db, e.given_av), forbereddAv: personNamn(db, e.forberedd_av), kontrolleradAv: personNamn(db, e.kontrollerad_av), reaktion: e.reaktion,
       aterlamnad: e.aterlamnad_tid ? { tid: e.aterlamnad_tid, orsak: e.aterlamnad_orsak } : null,
       startaSenast: e.status === 'utlamnad' ? iso(Date.parse(e.utlamnad_tid) + STARTA_INOM_MINUTER * MIN) : null })),
     // Runda 10, r6: avvikelserna från transfusionskontrollen.
     avvikelser: db.query('SELECT * FROM blod_avvikelser WHERE bestallning_id = ? ORDER BY id').all(b.id).map(a => ({ id: a.id, tid: a.tid, orsak: a.orsak, kvitterad: a.kvitterad_tid ? { tid: a.kvitterad_tid, av: personNamn(db, a.kvitterad_av) } : null })),
+    // Runda 11, r4: ordinationen i läkemedelslistan och rapporterna om transfusionsreaktioner.
+    ordinationId: ordinationIdFor(db, b.id), reaktioner: reaktionerFor(db, b.id),
     historik: db.query('SELECT * FROM blod_historik WHERE bestallning_id = ? ORDER BY id').all(b.id).map(h => ({ tid: h.tid, av: h.personal_id ? personNamn(db, h.personal_id) : BLODCENTRAL, handelse: h.handelse, detalj: h.detalj })),
     demoregel: DEMOREGEL,
   };
@@ -327,10 +350,16 @@ const forSent = (e, nu) => {
 // Id-bandet, påsens enhetsnummer och blodgruppen, som var och en av de två personerna läser och prövar själv.
 function lasVidSangen(atk, b, e, body, nu) {
   const p = atk.db.query('SELECT personnummer FROM patienter WHERE id = ?').get(e.patient_id);
-  if (String(body.armband ?? '').replace(/\D/g, '') !== p.personnummer) throw new Fel(409, 'Id-bandet hör inte till patienten som blodet är berett för. Ge inte blodet.', 'fel_patient');
+  // Runda 11, r4: samma jämförelse som för cytostatika, så att ett reservnummer med bokstäver går att läsa.
+  if (!idNyckel(body.armband) || idNyckel(body.armband) !== idNyckel(p.personnummer)) throw new Fel(409, 'Id-bandet hör inte till patienten som blodet är berett för. Ge inte blodet.', 'fel_patient');
   if (body.enhetsnummer !== e.enhetsnummer) throw new Fel(409, 'Enhetsnumret på påsen stämmer inte med den beredda enheten. Ge inte blodet.', 'fel_enhet');
   const t = transfusionsprover(atk, nu);
   if (!t.blodgrupp || !forenlig(b.produkt, e.blodgrupp, t.blodgrupp)) throw new Fel(409, `Enhetens blodgrupp ${e.blodgrupp} är inte förenlig med patientens${t.blodgrupp ? ` blodgrupp ${t.blodgrupp}` : ''}. Ge inte blodet och kontakta blodcentralen.`, 'oforenlig');
+  // Runda 11, r4: samma transfusionskontroll som blodcentralen och producentsystemet går igenom, också vid sängen. Ett
+  // bastest som har gått ut sedan blodet bereddes, eller en ny blodgruppering som inte stämmer, stoppar transfusionen.
+  const utrett = Boolean(atk.db.query("SELECT 1 FROM blod_historik WHERE bestallning_id = ? AND handelse = 'utreds'").get(b.id));
+  const k = transfusionskontroll(atk.db, b, nu, { enhetsgrupp: e.blodgrupp, utrett });
+  if (!k.ok) throw new Fel(409, `${k.orsak} Ge inte blodet.`, 'transfusionskontroll');
 }
 
 // De som får göra kontrollen vid sängen: sjuksköterskor och läkare på vårdenheten som får läsa beställningen i
@@ -398,8 +427,12 @@ export function starta(atk, e, nu = new Date()) {
   if (![e.forberedd_av, e.kontrollerad_av].includes(atk.personal.id)) throw new Fel(403, 'Transfusionen startas av någon av de två som har kontrollerat enheten.', 'nekad');
   forSent(e, nu);
   const annan = personNamn(db, e.kontrollerad_av === atk.personal.id ? e.forberedd_av : e.kontrollerad_av);
-  db.query("UPDATE blod_enheter SET status = 'pagar', start_tid = ?, given_av = ? WHERE id = ?").run(iso(nu), atk.personal.id, e.id);
-  historik(db, b, atk.personal.id, 'start', `Enhet ${e.enhetsnummer} (${e.blodgrupp}) startad. Kontrollerad vid sängen med ${annan}.`, iso(nu));
+  db.transaction(() => {
+    db.query("UPDATE blod_enheter SET status = 'pagar', start_tid = ?, given_av = ? WHERE id = ?").run(iso(nu), atk.personal.id, e.id);
+    historik(db, b, atk.personal.id, 'start', `Enhet ${e.enhetsnummer} (${e.blodgrupp}) startad. Kontrollerad vid sängen med ${annan}.`, iso(nu));
+    // Runda 11, r4: transfusionen är en administrering i läkemedelslistan, med enhetsnumret och de två som kontrollerade.
+    administreringFor(db, atk, b, e, annan, nu);
+  })();
   return bestallningUt(atk, bestallningRad(db, b.id), nu);
 }
 
@@ -430,7 +463,7 @@ export function aterlamna(atk, e, body = {}, nu = new Date()) {
 }
 
 function klarOm(db, atk, b, nu) {
-  const kvar = db.query("SELECT count(*) AS n FROM blod_enheter WHERE bestallning_id = ? AND status NOT IN ('transfunderad', 'aterlamnad')").get(b.id).n;
+  const kvar = db.query("SELECT count(*) AS n FROM blod_enheter WHERE bestallning_id = ? AND status NOT IN ('transfunderad', 'aterlamnad', 'avbruten')").get(b.id).n;
   if (kvar) return;
   db.query("UPDATE blod_bestallningar SET status = 'avslutad' WHERE id = ?").run(b.id);
   historik(db, b, atk.personal.id, 'avslutad', 'Alla enheter är transfunderade eller återlämnade.', iso(nu));
@@ -472,4 +505,157 @@ export function kvitteraAvvikelse(atk, id, nu = new Date()) {
   if (!a.kvitterad_tid) db.query('UPDATE blod_avvikelser SET kvitterad_tid = ?, kvitterad_av = ? WHERE id = ?').run(iso(nu), atk.personal.id, a.id);
   atk.logga('las_prover', atk.grund(), `blod_avvikelse:${a.id}:kvitterad`);
   return { ok: true, text: 'Avvikelsen är kvitterad.' };
+}
+
+// ---- Läkemedelslistan, hemovigilans och blodcentralens vy (runda 11, r4) ---------------------------------------------
+
+// Katalogens blodprodukter (seed/produkttyper.js).
+export const KATALOG_ID = tabell({ erytrocyter: 'VK-BLOD-0001', plasma: 'VK-BLOD-0002', trombocyter: 'VK-BLOD-0003' });
+// Ordinationen i läkemedelslistan för en blodbeställning: tillfällig, med antalet enheter och indikationen. En
+// blodprodukt skickas inte till NLL. Den gäller till dagen efter den planerade transfusionen.
+function ordinationFor(db, atk, b, nu) {
+  sakra(db);
+  const dag = datumAv(new Date(Date.parse(b.planerad)));
+  const start = dag < datumAv(nu) ? datumAv(nu) : dag;
+  const slut = addDagar(start, 1);
+  const r = db.query(`INSERT INTO ordinationer (patient_id, enhet_id, lakemedel_id, dosering, dos, dos_enhet, tider, vid_behov, typ, orsak, uppfoljning, start, slut, ordinerad_av, skapad, nll_status)
+    VALUES (?, ?, ?, ?, ?, 'enhet', '[]', 0, 'tillfallig', ?, ?, ?, ?, ?, ?, 'ej_aktuell')`)
+    .run(b.patient_id, b.enhet_id, KATALOG_ID[b.produkt], `${b.antal} ${b.antal === 1 ? 'enhet' : 'enheter'} enligt blodbeställning ${b.nummer}. Ges med kontrollen vid sängen.`, b.antal, b.indikation, slut, start, slut, atk.personal.id, iso(nu));
+  const id = Number(r.lastInsertRowid);
+  db.query('INSERT INTO ordination_historik (ordination_id, tid, personal_id, handelse, detalj) VALUES (?, ?, ?, ?, ?)').run(id, iso(nu), atk.personal.id, 'Ordinerad med blodbeställning', b.nummer);
+  db.query('INSERT INTO blod_ordinationer (bestallning_id, ordination_id) VALUES (?, ?)').run(b.id, id);
+}
+export const ordinationIdFor = (db, bestallningId) => { sakra(db); return db.query('SELECT ordination_id FROM blod_ordinationer WHERE bestallning_id = ?').get(bestallningId)?.ordination_id ?? null; };
+
+function administreringFor(db, atk, b, e, annan, nu) {
+  const ord = ordinationIdFor(db, b.id);
+  if (!ord) return;
+  const kv = JSON.stringify([{ regel: 'blodkontroll', motivering: `Kontrollerad vid sängen av ${personNamn(db, atk.personal.id)} och ${annan}, enhet ${e.enhetsnummer}, blodgrupp ${e.blodgrupp}.` }]);
+  const r = db.query(`INSERT INTO administreringar (patient_id, enhet_id, ordination_id, lakemedel_id, planerad, status, dos, dos_enhet, antal, tid, utford_av, registrerad, registrerad_av, kontrollkod, kvitterade_varningar, vardkontakt_id)
+    VALUES (?, ?, ?, ?, NULL, 'given', 1, 'enhet', 1, ?, ?, ?, ?, ?, ?, ?)`).run(e.patient_id, b.enhet_id, ord, KATALOG_ID[b.produkt], iso(nu), atk.personal.id, iso(nu), atk.personal.id, e.enhetsnummer, kv, b.vardkontakt_id);
+  db.query('INSERT INTO blod_administreringar (blodenhet_id, administrering_id) VALUES (?, ?)').run(e.id, Number(r.lastInsertRowid));
+}
+
+// Symtomen vid en transfusionsreaktion, och systemets klassning (demoregel efter hemovigilansens kategorier).
+export const SYMTOM = tabell({
+  feber: 'Feber', frossa: 'Frossa', urtikaria: 'Nässelutslag eller klåda', andnod: 'Andnöd', blodtrycksfall: 'Blodtrycksfall', ryggsmarta: 'Smärta i rygg eller bröst',
+  morkUrin: 'Mörk urin', takykardi: 'Hjärtklappning',
+});
+export const REAKTIONSTYPER = tabell({
+  hemolytisk: { namn: 'Misstänkt hemolytisk transfusionsreaktion', allvarlighet: 'allvarlig' },
+  anafylaktisk: { namn: 'Misstänkt anafylaktisk reaktion', allvarlighet: 'allvarlig' },
+  andning: { namn: 'Andningspåverkan efter transfusion', allvarlighet: 'allvarlig' },
+  febril: { namn: 'Febril icke-hemolytisk reaktion', allvarlighet: 'måttlig' },
+  allergisk: { namn: 'Lindrig allergisk reaktion', allvarlighet: 'lindrig' },
+  annan: { namn: 'Annan transfusionsreaktion', allvarlighet: 'måttlig' },
+});
+export function klassaReaktion(s, temp) {
+  const h = (x) => s.includes(x);
+  const feber = h('feber') || (temp != null && temp >= 38.5);
+  if (h('blodtrycksfall') && (feber || h('ryggsmarta') || h('morkUrin'))) return 'hemolytisk';
+  if (h('urtikaria') && (h('andnod') || h('blodtrycksfall'))) return 'anafylaktisk';
+  if (h('andnod')) return 'andning';
+  if (feber || h('frossa')) return 'febril';
+  if (h('urtikaria')) return 'allergisk';
+  return 'annan';
+}
+// Proverna som systemet beställer vid en reaktion: ny blodgruppering och bastest för att utesluta förväxling eller
+// antikropp, blodstatus och vid feber blododling.
+const reaktionsprover = (typ) => ['blodgruppering', 'bastest', 'blodstatus', ...(['hemolytisk', 'febril'].includes(typ) ? ['blododling'] : [])];
+const atgarderFor = (typ) => {
+  const a = ['Stoppa transfusionen och låt infarten sitta.', 'Kontrollera puls, blodtryck, andning, syremättnad och temperatur.', 'Spara blodpåsen och aggregatet och skicka dem till blodcentralen.'];
+  if (REAKTIONSTYPER[typ].allvarlighet === 'allvarlig') a.splice(1, 0, 'Larma läkaren nu.');
+  else a.push('Kontakta läkaren, som bedömer om en ny enhet kan ges.');
+  return a;
+};
+const reaktionUt = (db, r) => ({ id: r.id, tid: r.tid, av: personNamn(db, r.rapporterad_av), symtom: JSON.parse(r.symtom).map(x => SYMTOM[x]), temp: r.temp, typ: r.typ, typText: REAKTIONSTYPER[r.typ].namn,
+  allvarlighet: r.allvarlighet, atgarder: atgarderFor(r.typ), proverBestallda: Boolean(r.labb_bestallning_id), prover: reaktionsprover(r.typ).map(a => ANALYS[a].namn), status: r.status,
+  mottagen: r.mottagen ? { tid: r.mottagen, av: BLODCENTRAL } : null, enhetsnummer: db.query('SELECT enhetsnummer FROM blod_enheter WHERE id = ?').get(r.blodenhet_id)?.enhetsnummer ?? null });
+
+// POST /api/blodenhet/:id/reaktion { symtom: [...], temp }. En misstänkt transfusionsreaktion under eller inom ett dygn
+// efter transfusionen. Systemet klassar reaktionen, stoppar en pågående transfusion, säger vad som ska göras och skickar
+// rapporten till blodcentralen. Den som beställde blodet får också en avvikelse i inkorgen.
+export function reaktion(atk, e, body = {}, nu = new Date()) {
+  const db = atk.db;
+  andra(atk, e);
+  const b = bestallningRad(db, e.bestallning_id);
+  const efterSlut = e.status === 'transfunderad' && nu.getTime() <= Date.parse(e.slut_tid) + 24 * TIMME;
+  if (e.status !== 'pagar' && !efterSlut) throw new Fel(409, 'En transfusionsreaktion rapporteras under transfusionen eller inom ett dygn efter den.', 'ogiltig');
+  const symtom = Array.isArray(body.symtom) ? [...new Set(body.symtom)] : [];
+  if (!symtom.length || symtom.some(x => !finns(SYMTOM, x))) throw new Fel(400, 'Välj patientens symtom.', 'ogiltig', { falt: ['symtom'] });
+  const temp = body.temp == null || body.temp === '' ? null : Number(String(body.temp).replace(',', '.'));
+  if (temp != null && (!Number.isFinite(temp) || temp < 34 || temp > 43)) throw new Fel(400, 'Temperaturen ska vara mellan 34 och 43 grader.', 'ogiltig', { falt: ['temp'] });
+  const typ = klassaReaktion(symtom, temp);
+  const t = REAKTIONSTYPER[typ];
+  let id;
+  db.transaction(() => {
+    if (e.status === 'pagar') db.query("UPDATE blod_enheter SET status = 'avbruten', slut_tid = ?, reaktion = ? WHERE id = ?").run(iso(nu), t.namn, e.id);
+    id = Number(db.query("INSERT INTO blod_reaktioner (bestallning_id, blodenhet_id, patient_id, enhet_id, tid, rapporterad_av, symtom, temp, typ, allvarlighet, status, mottagen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'mottagen', ?)")
+      .run(b.id, e.id, e.patient_id, b.enhet_id, iso(nu), atk.personal.id, JSON.stringify(symtom), temp, typ, t.allvarlighet, iso(nu)).lastInsertRowid);
+    historik(db, b, atk.personal.id, 'reaktion', `Enhet ${e.enhetsnummer}: ${t.namn.toLocaleLowerCase('sv')}.${e.status === 'pagar' ? ' Transfusionen är stoppad.' : ''} Rapporten är skickad till blodcentralen.`, iso(nu));
+    avvikelse(db, b, `Transfusionsreaktion rapporterad för enhet ${e.enhetsnummer}: ${t.namn.toLocaleLowerCase('sv')}.`, 'hemovigilans', nu);
+    if (e.status === 'pagar') klarOm(db, atk, b, nu);
+  })();
+  return { ...bestallningUt(atk, bestallningRad(db, b.id), nu), reaktion: reaktionUt(db, db.query('SELECT * FROM blod_reaktioner WHERE id = ?').get(id)) };
+}
+
+// POST /api/blod/reaktion/:id/prover. Proverna efter reaktionen beställs med ett klick.
+export function reaktionProver(atk, id, nu = new Date()) {
+  const db = atk.db;
+  sakra(db);
+  const r = db.query('SELECT * FROM blod_reaktioner WHERE id = ?').get(Number(id));
+  if (!r || r.patient_id !== atk.patientId) throw new Fel(404, 'Rapporten finns inte.', 'saknas');
+  atk.krav('bestalla_prov', { resurs: { enhet_id: r.enhet_id } });
+  if (vardenhetFor(db, atk.personal.enhet_id) !== vardenhetFor(db, r.enhet_id)) throw new Fel(403, ANDRA, 'nekad');
+  if (r.labb_bestallning_id) throw new Fel(409, 'Proverna efter reaktionen är redan beställda.', 'ogiltig');
+  const l = labb.bestall(atk, { analyser: reaktionsprover(r.typ), kvitteraDubbletter: true, kommentar: `Efter transfusionsreaktion, ${REAKTIONSTYPER[r.typ].namn.toLocaleLowerCase('sv')}` }, nu);
+  db.query('UPDATE blod_reaktioner SET labb_bestallning_id = ? WHERE id = ?').run(l.bestallning.id, r.id);
+  return { ...l, reaktion: reaktionUt(db, db.query('SELECT * FROM blod_reaktioner WHERE id = ?').get(r.id)) };
+}
+export const reaktionerFor = (db, bestallningId) => { sakra(db); return db.query('SELECT * FROM blod_reaktioner WHERE bestallning_id = ? ORDER BY id').all(bestallningId).map(r => reaktionUt(db, r)); };
+
+// Om patienten har en blodbeställning som den inloggade får se, för journalens flikar.
+export function iHuvud(atk) {
+  sakra(atk.db);
+  if (!kanRoll(atk.personal, 'las_prover')) return false;
+  return atk.filtrera(atk.db.query('SELECT * FROM blod_bestallningar WHERE patient_id = ?').all(atk.patientId), 'las_prover').length > 0;
+}
+
+// Den simulerade blodcentralens lager per blodgrupp för erytrocyter (demoregel), minus de enheter som är reserverade
+// eller utlämnade i demon. Inga patientuppgifter.
+export const LAGER = tabell({ 'O-': 40, 'O+': 120, 'A-': 25, 'A+': 110, 'B-': 8, 'B+': 30, 'AB-': 4, 'AB+': 12 });
+const STEG = [['upprattad', 'Upprättad'], ['prover', 'Blodgruppering och bastest'], ['beredd', 'Förenlighetsprövad'], ['utlamnad', 'Utlämnad'], ['avslutad', 'Avslutad']];
+const stegFor = (b) => ({ vantar_prov: 1, utreds: 1, beredd: 2, utlamnad: 3, avslutad: 4, makulerad: 4 }[b.status]);
+
+// GET /api/blodcentral. Blodcentralen (simulerad) sedd från den egna vårdenheten: beställningarna i kedjan från
+// upprättad till avslutad, enheterna ute på avdelningen, rapporterna om transfusionsreaktioner och lagret. En patient
+// som den inloggade inte får se finns inte med, och varje patient som visas loggas.
+export function blodcentralVy(db, personal, valFor, nu = new Date()) {
+  sakra(db);
+  if (!kanRoll(personal, 'las_prover') || !kanRoll(personal, 'bestalla_lakemedel')) throw new Fel(403, 'Din yrkesroll följer inte blodbeställningar.', 'nekad');
+  const ve = vardenhetFor(db, personal.enhet_id);
+  const enheter = enheterUnder(db, ve);
+  const fran = iso(nu.getTime() - 14 * 24 * TIMME);
+  const ut = [];
+  for (const b of db.query(`SELECT * FROM blod_bestallningar WHERE enhet_id IN (${enheter.map(() => '?').join(', ')}) AND (status NOT IN ('avslutad', 'makulerad') OR skapad >= ?) ORDER BY skapad DESC`).all(...enheter, fran)) {
+    const g = provaRad(db, personal, valFor, b, 'las_prover');
+    if (!g.tillaten) continue;
+    loggaPatient(db, personal, b.patient_id, 'las_prover', g.grund, '/api/blodcentral');
+    blodcentralen(new Atkomst(db, personal, b.patient_id, valFor(b.patient_id), 'las_prover'), b, nu);
+    const bb = bestallningRad(db, b.id);
+    const p = db.query('SELECT * FROM patienter WHERE id = ?').get(b.patient_id);
+    const en = db.query('SELECT * FROM blod_enheter WHERE bestallning_id = ? ORDER BY id').all(b.id);
+    ut.push({ id: bb.id, nummer: bb.nummer, patient: { id: p.id, namn: visningsnamn(p, valFor(p.id).visa_identitet) }, produkt: PRODUKTER[bb.produkt].namn, antal: bb.antal, skapad: bb.skapad,
+      status: bb.status, statusText: STATUS[bb.status], steg: stegFor(bb),
+      enheter: en.map(e => ({ enhetsnummer: e.enhetsnummer, blodgrupp: e.blodgrupp, status: e.status, statusText: ENHETSSTATUS[e.status],
+        startaSenast: e.status === 'utlamnad' ? iso(Date.parse(e.utlamnad_tid) + STARTA_INOM_MINUTER * MIN) : null, forSent: e.status === 'utlamnad' && nu.getTime() > Date.parse(e.utlamnad_tid) + STARTA_INOM_MINUTER * MIN })),
+      reaktioner: reaktionerFor(db, bb.id) });
+  }
+  const anvanda = db.query("SELECT blodgrupp, count(*) AS n FROM blod_enheter WHERE status IN ('reserverad', 'utlamnad', 'vantar_kontroll', 'kontrollerad') GROUP BY blodgrupp").all();
+  return {
+    blodcentral: BLODCENTRAL, vardenhet: enhetKort(db, ve), steg: STEG.map(([id, namn]) => ({ id, namn })), bestallningar: ut,
+    lager: Object.entries(LAGER).map(([grupp, n]) => { const r = anvanda.find(x => x.blodgrupp === grupp)?.n ?? 0; return { blodgrupp: grupp, iLager: Math.max(0, n - r), reserverade: r, lagt: n - r < 10 }; }),
+    text: 'Blodcentralen är simulerad. Den förenlighetsprövar och bereder enheter när blodgruppering och bastest är klara, och tar emot rapporterna om transfusionsreaktioner.',
+    demoregel: DEMOREGEL,
+  };
 }

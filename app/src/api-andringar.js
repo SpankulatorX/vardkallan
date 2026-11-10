@@ -11,6 +11,13 @@ export const VERSION = (() => { try { return JSON.parse(readFileSync(join(import
 // resurser är resurstyperna som kom i versionen, skrivning är resurstyp och interaktion (Condition:create) och
 // annat är ändringar som inte är en resurstyp, till exempel SMART on FHIR.
 export const ANDRINGAR = [
+  // Runda 11, r4: cytostatika och blodprodukter i version 1.1.
+  {
+    version: '1.1.0', datum: '2026-11-10',
+    text: 'Regimbiblioteket med versioner och godkännande, beredningsenhetens arbetslista, lager, spårbarhet och kapacitet, infusionens händelser, premedicineringen, patientens rapporter om cytostatika i Min journal, transfusionsreaktioner och blodcentralens vy.',
+    resurser: [], skrivning: [],
+    annat: ['Regimbiblioteket och vårdenhetens vy för cytostatika', 'Beredningsenheten för cytostatika', 'Infusionens start, paus, reaktion, extravasering och slut', 'Transfusionsreaktioner och blodcentralens vy'],
+  },
   // Runda 10, r1: systemkonton, prenumerationer på en population, överkänslighet och patienter via API:t och
   // Patient/$everything för personalen (Sussa 2.5.1.1 och 2.5.1.2).
   {

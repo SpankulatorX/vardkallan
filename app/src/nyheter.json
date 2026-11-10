@@ -2,6 +2,64 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "1.1.0",
+      "datum": "2026-11-10",
+      "nyheter": [
+        {
+          "id": "cytostatika-journal",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "stor",
+          "var": "#/cytostatika",
+          "rubrik": "Cytostatika i journalen och på vårdenheten",
+          "text": "Fliken Cytostatika i journalen visar behandlingen ur regimbiblioteket med kurer, doser, premedicinering och kumulativ dos. Läkaren godkänner kuren när systemet har prövat provsvaren, den kumulativa dosen och beredningsenhetens platser. Sjuksköterskan tar emot beredningen, ger premedicineringen och kuren med dubbelkontroll och registrerar infusionens start, avbrott, reaktioner och slut. Menyvalet Cytostatika visar vårdenhetens kurer med nästa steg."
+        },
+        {
+          "id": "regimbibliotek",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "var": "#/cytostatika/regimer",
+          "rubrik": "Regimbiblioteket med versioner",
+          "text": "En ändrad cytostatikaregim är en ny version som en regimansvarig läkare godkänner i sin egen inloggning. Systemet skriver vad som ändras, och pågående behandlingar behåller sin version."
+        },
+        {
+          "id": "cytostatikaberedning",
+          "roller": [
+            "farmaceut"
+          ],
+          "omfattning": "stor",
+          "var": "#/beredning",
+          "rubrik": "Beredningsenheten",
+          "text": "Under Beredning finns arbetslistan med de godkända kurerna, där du signerar beredningen med batch och kontrollmätt volym, lagret med batcher och utgångsdatum, spårbarheten från en batch till patienterna och kapaciteten per dag."
+        },
+        {
+          "id": "blod-journal",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "stor",
+          "var": "#/blodcentral",
+          "rubrik": "Blod i journalen och blodcentralen",
+          "text": "Fliken Blod i journalen beställer blod och följer beställningen från upprättad till avslutad. Transfusionen står som en administrering i läkemedelslistan, och en transfusionsreaktion rapporteras till blodcentralen med systemets klassning, åtgärder och prover. Menyvalet Blodcentralen visar vårdenhetens beställningar, blodet på avdelningen och lagret."
+        },
+        {
+          "id": "min-behandling",
+          "roller": [
+            "invanare"
+          ],
+          "omfattning": "liten",
+          "var": "#/min",
+          "rubrik": "Min behandling",
+          "text": "Har du fått cytostatika i tablettform med dig hem finns fliken Min behandling. Där skriver du varje dag om du har tagit tabletterna och hur du mår, och systemet säger direkt om du ska ringa mottagningen."
+        }
+      ]
+    },
+    {
       "version": "1.0.0",
       "datum": "2026-11-08",
       "nyheter": [

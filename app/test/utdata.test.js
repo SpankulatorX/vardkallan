@@ -428,7 +428,7 @@ describe('Datauttag', () => {
     const m = (await k.get('/api/datauttag')).data;
     expect(m).toMatchObject({ requiresAccessToken: false, format: 'application/x-ndjson', error: [] });
     // Runda 9, r7: också mätvärden, anteckningar, vårdtillfällen och patientavgifter (Sussa 6.3.1.3).
-    expect(m.output.map(o => o.type)).toEqual(['Vardkontakt', 'Diagnos', 'Ordination', 'Remiss', 'Matvarde', 'Anteckning', 'Vardtillfalle', 'Patientavgift']);
+    expect(m.output.map(o => o.type)).toEqual(['Vardkontakt', 'Diagnos', 'Ordination', 'Remiss', 'Matvarde', 'Anteckning', 'Vardtillfalle', 'Patientavgift', 'Cytostatikados']);
     expect(m.output.every(o => o.count > 0 && o.url.endsWith(`/api/datauttag/${o.type}`))).toBe(true);
     const r = await raw(k, 'GET', '/api/datauttag/Diagnos');
     expect(r.headers.get('content-type')).toContain('application/x-ndjson');

@@ -84,10 +84,20 @@ describe('API för specialistområdena', () => {
     const cid = b.data.kurer[0].id;
     expect((await k.get(`/api/cytostatika/cykel/${cid}/provkontroll`)).data.ok).toBe(true);
     expect((await k.post(`/api/cytostatika/cykel/${cid}/godkann`, {})).data.kurer[0].status).toBe('godkand');
+    const fore = (await k.get('/api/cytostatika/uppfoljning')).data.beredningar;
+    // Runda 11, r4: en kur från USÖ bereds av farmaceuten på Cytostatikaberedningen USÖ i sin egen inloggning, med
+    // batch och kontrollmätning, och premedicineringen ges före kuren.
     await k.logga('ssk-kard');
-    const o = await k.post(`/api/cytostatika/cykel/${cid}/bered`, {});
+    expect((await k.post(`/api/cytostatika/cykel/${cid}/bered`, {})).status).toBe(409);
+    await k.logga('far-bered');
+    for (const x of (await k.get('/api/beredning/arbetslista')).data.attBereda.flatMap(y => y.doser).filter(y => b.data.kurer[0].doser.some(z => z.id === y.dosId))) {
+      expect((await k.post(`/api/beredning/dos/${x.dosId}/bered`, { batch: x.forslag[0].batch, uppmattMl: x.volymLakemedel })).status).toBe(200);
+    }
+    await k.logga('ssk-kard');
+    const o = await k.get(`/api/cytostatika/cykel/${cid}/beredningsorder`);
     const d = o.data.doser[0];
-    expect((await k.get(`/api/cytostatika/cykel/${cid}/beredningsorder`)).data.doser[0].etikett).toBe(d.etikett);
+    expect(d.status).toBe('beredd');
+    for (const p of (await k.get('/api/patient/sp1/cytostatika')).data.behandlingar[0].kurer[0].premedicinering) await k.post(`/api/cytostatika/premed/${p.id}/ge`, { armband: pnr(db, 'sp1') });
     await k.post(`/api/cytostatika/dos/${d.id}/ta-emot`, { streckkod: d.etikett });
     const las = { armband: pnr(db, 'sp1'), streckkod: d.etikett };
     expect((await k.post(`/api/cytostatika/dos/${d.id}/iordningstall`, las)).data.kontroll.status).toBe('vantar_kontroll');
@@ -95,8 +105,9 @@ describe('API för specialistområdena', () => {
     await k.logga('lak-kard');
     expect((await k.get('/api/cytostatika/kontroller')).data.kontroller.map(x => x.etikett)).toEqual([d.etikett]);
     expect((await k.post(`/api/cytostatika/dos/${d.id}/kontrollera`, las)).status).toBe(200);
-    expect((await k.post(`/api/cytostatika/dos/${d.id}/ge`, {})).data.kurer[0].doser[0].status).toBe('given');
-    expect((await k.get('/api/cytostatika/uppfoljning')).data.beredningar).toBe(2);
+    expect((await k.post(`/api/cytostatika/dos/${d.id}/starta`, {})).data.kurer[0].doser[0].status).toBe('pagar');
+    expect((await k.post(`/api/cytostatika/dos/${d.id}/avsluta`, {})).data.kurer[0].doser[0].status).toBe('given');
+    expect((await k.get('/api/cytostatika/uppfoljning')).data.beredningar).toBe(fore + 2);
   });
 
   test('nyheten om specialistområdena i version 0.9.0 visas för läkare och sjuksköterskor, men inte för undersköterskan', async () => {

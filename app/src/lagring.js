@@ -29,7 +29,10 @@ const GEMENSAMMA = new Set(['katalog', 'installningar', 'migrering', 'forpacknin
   // Runda 9, r4: kodverkens utgåvor gäller hela vårdgivaren.
   'kodverk_utgavor',
   // Runda 10, r3: formulären gäller hela vårdgivaren (formularmotor.js).
-  'formular']);
+  'formular',
+  // Runda 11, r4: regimbiblioteket gäller hela vårdgivaren, och beredningsenhetens lager och kapacitet är dess egna och
+  // innehåller inga patientuppgifter (cytostatika.js och cytostatika-beredning.js).
+  'cyto_regimversioner', 'cyto_lager', 'cyto_kapacitet']);
 // Tabeller som hör till systemförvaltningen och inte till en huvudman i ett uttag.
 // Datauttaget för uppföljning byggs om ur uppgifterna och följer inte med i ett uttag.
 // Runda 9, r5: de gemensamma tabellerna kopieras till en ny utbildnings- eller testmiljö (miljoer.js).
@@ -58,6 +61,10 @@ const UTTRYCKLIGA = {
   vardplan_atgarder: { typ: 'via', kolumn: 'plan_id', tabell: 'vardplaner' },
   // Runda 9, r4: uppgifterna om källan för en migrerad anteckning följer anteckningen.
   migrering_metadata: { typ: 'via', kolumn: 'rad_id', tabell: 'anteckningar' },
+  // Runda 11, r4: kontrollmätningen följer dosen, och kopplingarna till läkemedelslistan följer blodbeställningen och enheten.
+  cyto_kontrollmatningar: { typ: 'via', kolumn: 'dos_id', tabell: 'cyto_doser' },
+  blod_ordinationer: { typ: 'via', kolumn: 'bestallning_id', tabell: 'blod_bestallningar' },
+  blod_administreringar: { typ: 'via', kolumn: 'blodenhet_id', tabell: 'blod_enheter' },
 };
 
 // Vad den som lägger till en tabell gör när den inte går att knyta till en huvudman, på sidan Lagring. Testet av
