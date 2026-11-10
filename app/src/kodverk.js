@@ -259,6 +259,9 @@ export const MATKOD = {
   // Runda 7, r6: huvudomfång i barnhälsovården, med vitalparameterprofilen för huvudomfång. Kontrollerat mot LOINC via
   // tx.fhir.org 2026-11-08.
   huvudomfang: vp('9843-4', 'Head Occipital-frontal circumference', 'cm', 'headcircum'),
+  // Runda 11, r7: sitthöjd enligt bilaga K11 med Snomed CT 248335006 Sitting height (aktiv i International Edition
+  // 20250201, tx.fhir.org 2026-11-10). LOINC har inget begrepp för sitthöjd som tx.fhir.org hittar.
+  sitthojd: { kategori: 'exam', coding: [{ system: 'http://snomed.info/sct', code: '248335006', display: 'Sitting height' }], ucum: 'cm' },
   // Runda 8, r1: svaren från det simulerade laboratoriet (beställning och svar, Sussa 4.4) och SR som intern analys på
   // avdelningen. Kontrollerade mot IFCC:s NPU-fil npu-codes-latest.csv (hämtad 2026-11-08, samma sha256 som 2026-11-03)
   // och enheterna mot UCUM via tx.fhir.org, se docs/kodkontroll.md.
@@ -350,6 +353,8 @@ export const K11 = {
     huvudomfang: { kod: '363812007', text: 'huvudomfång', enhet: 'cm', format: 'NN,N', decimaler: 1, max: 99.9 },
     langd_mor: { kod: '53851000052106', text: 'längd hos biologisk mor', enhet: 'cm', format: 'NNN', decimaler: 0, max: 999 },
     langd_far: { kod: '53861000052109', text: 'längd hos biologisk far', enhet: 'cm', format: 'NNN', decimaler: 0, max: 999 },
+    // Runda 11, r7: sitthöjd ur bilaga K11.
+    sitthojd: { kod: '248335006', text: 'sitthöjd', enhet: 'cm', format: 'NNN,N', decimaler: 1, max: 999.9 },
   },
   // Besök: Vårdkontakt, kontakttyp ur V-TIM 2.2.
   besok: { mottagning: { kod: '2', text: 'öppenvårdsbesök' }, hem: { kod: '3', text: 'hembesök' } },

@@ -453,6 +453,8 @@ export function byggSeed(bas = nu()) {
   require('./runda10-r4-rutter.js').sakra(db, bas);
   // Runda 10, r7: ombud, meddelanden, kassan och kontorsstödet (schema-runda10-r7.js). Efter invånarna och ordinationerna.
   require('./schema-runda10-r7.js').sakraR10r7(db, bas);
+  // Runda 11, r7: intensivvårdens regler, andningsstöd, mål och NEMS och tillväxtens tabeller (schema-runda11-r7.js).
+  require('./schema-runda11-r7.js').sakraR11r7(db);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -585,6 +587,8 @@ export function migrera(db) {
   require('./runda10-r4-rutter.js').sakra(db, nu());
   // Runda 10, r7: ombud, meddelanden, kassan och kontorsstödet, med seeden när den saknas.
   require('./schema-runda10-r7.js').sakraR10r7(db, nu());
+  // Runda 11, r7 (schema-runda11-r7.js).
+  require('./schema-runda11-r7.js').sakraR11r7(db);
   return db;
 }
 
@@ -597,6 +601,8 @@ export const MATTYPER_ENHET = {
   medvetande: '', syrgas: 'L/min', smarta: 'av 10', gcs: 'poäng',
   // Runda 7, r6: huvudomfång i barnhälsovården.
   huvudomfang: 'cm',
+  // Runda 11, r7: sitthöjd.
+  sitthojd: 'cm',
   // Runda 8, r1: svaren från det simulerade laboratoriet och SR.
   lpk: '×10⁹/L', tpk: '×10⁹/L', natrium: 'mmol/L', kobalamin: 'pmol/L', folat: 'nmol/L', sr: 'mm',
 };

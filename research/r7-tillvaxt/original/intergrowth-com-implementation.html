@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+<link rel="canonical" href="https://intergrowth21.com/implementation" />
+<meta name="Generator" content="Drupal 11 (https://www.drupal.org)" />
+<meta name="MobileOptimized" content="width" />
+<meta name="HandheldFriendly" content="true" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" href="/themes/custom/intergrowth/favicon.ico" type="image/vnd.microsoft.icon" />
+
+    <title>Implementation | Intergrowth</title>
+    <link rel="stylesheet" media="all" href="/sites/default/files/css/css_JzAcGBDIgeNLezFlL-tinnfE-vVC1hitedjLKMU5ndk.css?delta=0&amp;language=en&amp;theme=intergrowth&amp;include=eJxNjFEKwyAQBS9k4pmedVHTbVbeatrcPhAo7c8wzMc8jBIzZ4eu2PAJbR_CQnuPGotagoanghZv_vtih5AtS-ggCtGrf1e_ss69z6TNq-Tgpw95xQSXCzIKLzI" />
+<link rel="stylesheet" media="all" href="/sites/default/files/css/css_3EHJEDzUVcOlSujk-FzhhqxDBswKFA2vBdDFVbgUpdg.css?delta=1&amp;language=en&amp;theme=intergrowth&amp;include=eJxNjFEKwyAQBS9k4pmedVHTbVbeatrcPhAo7c8wzMc8jBIzZ4eu2PAJbR_CQnuPGotagoanghZv_vtih5AtS-ggCtGrf1e_ss69z6TNq-Tgpw95xQSXCzIKLzI" />
+<link rel="stylesheet" media="all" href="//fonts.googleapis.com/css2?family=Oswald:wght@200;300;400;500;600;700&amp;display=swap" />
+<link rel="stylesheet" media="all" href="//fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500;700&amp;display=swap" />
+
+    <script type="application/json" data-drupal-selector="drupal-settings-json">{"path":{"baseUrl":"\/","pathPrefix":"","currentPath":"node\/26","currentPathIsAdmin":false,"isFront":false,"currentLanguage":"en"},"pluralDelimiter":"\u0003","gtag":{"tagId":"G-HBBM279GQG","consentMode":false,"otherIds":[],"events":[],"additionalConfigInfo":[]},"suppressDeprecationErrors":true,"ajaxPageState":{"libraries":"eJxViFsOQiEMBTfEhSWZQ2gKWihpwcfuNf7o_ZnMDKuy0GWBE38Q-NwRVzxDG4uMTR-rJhbNkNPqaOPoNHa4CUzTl_9-6J3MWqEwYWDDrJ6K7QmJvxP3mDtL80ol-MsX9ZTh9AY_RD9x","theme":"intergrowth","theme_token":null},"ajaxTrustedUrl":[],"klaro":{"config":{"elementId":"klaro","storageMethod":"cookie","cookieName":"klaro","cookieExpiresAfterDays":180,"cookieDomain":"","groupByPurpose":false,"acceptAll":true,"hideDeclineAll":false,"hideLearnMore":false,"learnMoreAsButton":false,"additionalClass":" hide-consent-dialog-title klaro-theme-intergrowth","disablePoweredBy":true,"htmlTexts":false,"autoFocus":true,"privacyPolicy":"\/privacy-policy","lang":"en","services":[{"name":"cms","default":true,"title":"Functional","description":"Store data (e.g. cookie for user session) in your browser (required to use this website).","purposes":["cms"],"callbackCode":"","onInit":"","onAccept":"","onDecline":"","cookies":[["^[SESS|SSESS]","",""]],"required":true,"optOut":false,"onlyOnce":false,"contextualConsentOnly":false,"contextualConsentText":"","wrapperIdentifier":[],"translations":{"en":{"title":"Functional"}}},{"name":"klaro","default":true,"title":"Consent manager","description":"Klaro! Cookie \u0026 Consent manager saves your consent status in the browser.","purposes":["cms"],"callbackCode":"","onInit":"","onAccept":"","onDecline":"","cookies":[["klaro","",""]],"required":true,"optOut":false,"onlyOnce":false,"contextualConsentOnly":false,"contextualConsentText":"","wrapperIdentifier":[],"translations":{"en":{"title":"Consent manager"}}},{"name":"vimeo","default":false,"title":"Vimeo","description":"Vimeo is a video sharing platform by Vimeo, LLC (USA).","purposes":["external_content"],"callbackCode":"","onInit":"","onAccept":"","onDecline":"","cookies":[],"required":false,"optOut":false,"onlyOnce":false,"contextualConsentOnly":false,"contextualConsentText":"","wrapperIdentifier":[],"translations":{"en":{"title":"Vimeo"}}},{"name":"youtube","default":false,"title":"YouTube","description":"YouTube is an online video sharing platform owned by Google.","purposes":["external_content"],"callbackCode":"","onInit":"","onAccept":"","onDecline":"","cookies":[],"required":false,"optOut":false,"onlyOnce":false,"contextualConsentOnly":false,"contextualConsentText":"","wrapperIdentifier":[],"translations":{"en":{"title":"YouTube"}}},{"name":"gtm","default":false,"title":"Google Tag Manager","description":"Manages and deploys marketing tags.","purposes":["analytics"],"callbackCode":"","onInit":"","onAccept":"","onDecline":"","cookies":[],"required":false,"optOut":false,"onlyOnce":false,"contextualConsentOnly":false,"contextualConsentText":"","wrapperIdentifier":[],"translations":{"en":{"title":"Google Tag Manager"}}}],"translations":{"en":{"consentModal":{"title":"Use of personal data and cookies","description":"Please choose the services and 3rd party applications we would like to use.\r\n","privacyPolicy":{"name":"privacy policy","text":"To learn more, please read our {privacyPolicy}.\r\n"}},"consentNotice":{"title":"Use of personal data and cookies","changeDescription":"There were changes since your last visit, please update your consent.","description":"We use cookies and process personal data for the following purposes: {purposes}.\r\n","learnMore":"Customise","privacyPolicy":{"name":"privacy policy"}},"ok":"Accept","save":"Save","decline":"Decline","close":"Close","acceptAll":"Accept all","acceptSelected":"Accept selected","service":{"disableAll":{"title":"Toggle all services","description":"Use this switch to enable\/disable all services."},"optOut":{"title":"(opt-out)","description":"This service is loaded by default (opt-out possible)."},"required":{"title":"(always required)","description":"This service is always required."},"purposes":"Purposes","purpose":"Purpose"},"contextualConsent":{"acceptAlways":"Always","acceptOnce":"Yes (this time)","description":"Load external content supplied by {title}?"},"poweredBy":"Powered by Klaro!","purposeItem":{"service":"Service","services":"Services"},"privacyPolicy":{"name":"privacy policy","text":"To learn more, please read our {privacyPolicy}.\r\n"},"purposes":{"cms":{"title":"Functional","description":""},"advertising":{"title":"Advertising and Marketing","description":""},"analytics":{"title":"Analytics","description":""},"livechat":{"title":"Live chat","description":""},"security":{"title":"Security","description":""},"styling":{"title":"Styling","description":""},"external_content":{"title":"Embedded external content","description":""}}}},"purposeOrder":["cms","advertising","analytics","livechat","security","styling","external_content"],"showNoticeTitle":true,"styling":{"theme":["light","left"]}},"dialog_mode":"notice","show_toggle_button":false,"toggle_button_icon":null,"show_close_button":false,"exclude_urls":[],"disable_urls":[]},"user":{"uid":0,"permissionsHash":"182fdbea6c5969ff845f2d6cd40c60b3e4ca98398bf7feaaed9b7fd582731cc8"}}</script>
+<script src="/sites/default/files/js/js_NFbvI3MGXVtOPE6ItikXUy4--dRwL0_Rcp9IcOGLTJ4.js?scope=header&amp;delta=0&amp;language=en&amp;theme=intergrowth&amp;include=eJxLz89Pz0mNL0lM108HEjrpqHy9xKzECp3MvJLUovSi_PKSDP30nPykxByd7JzEonx9MAkAcMoZ6Q"></script>
+<script src="/modules/contrib/klaro/js/klaro_placeholder.js" data-type="text/javascript" type="text/plain" data-name="gtm" data-src="/modules/contrib/google_tag/js/gtag.js?to8igy"></script>
+<script src="/libraries/klaro/dist/klaro-no-translations-no-css.js?to8igy" defer id="klaro-js"></script>
+
+  </head>
+  <body>
+        <a href="#main-content" class="visually-hidden focusable">
+      Skip to main content
+    </a>
+    
+      <div class="dialog-off-canvas-main-canvas" data-off-canvas-main-canvas>
+    
+
+
+
+<div  class="layout-container">
+            
+<header  class="header">
+  <div  class="header__inner">
+    <div  class="header__primary">
+      <div  class="header__branding">
+                  
+<a
+   class="logo-link"
+    href="/"
+>
+      
+
+  
+<img
+   class="logo__image"
+      src="/themes/custom/intergrowth/images/logo.png"
+      alt="Logo"
+      loading="lazy"
+/>
+    
+
+  
+<img
+   class="logo__image"
+      src="/themes/custom/intergrowth/images/Intergrowth_Logo.jpeg"
+      alt="Logo"
+      loading="lazy"
+/>
+    
+
+  
+<img
+   class="logo__image"
+      src="/themes/custom/intergrowth/images/intergrowth-logo.png"
+      alt="Logo"
+      loading="lazy"
+/>
+    
+
+  
+<img
+   class="logo__image"
+      src="/themes/custom/intergrowth/images/oxford-logo.png"
+      alt="Logo"
+      loading="lazy"
+/>
+  </a>
+              </div>
+      <div  class="header__menu">
+          <div  id="block-gtranslate" class="block">
+  
+      <h2 class="h2">Language</h2>
+    
+      
+<div class="gtranslate_wrapper"></div><script>window.gtranslateSettings = {"switcher_horizontal_position":"inline","switcher_vertical_position":"inline","horizontal_position":"inline","vertical_position":"inline","float_switcher_open_direction":"top","switcher_open_direction":"bottom","default_language":"en","native_language_names":0,"detect_browser_language":0,"add_new_line":1,"select_language_label":"Select Language","flag_size":16,"flag_style":"2d","globe_size":60,"alt_flags":[],"wrapper_selector":".gtranslate_wrapper","url_structure":"none","custom_domains":null,"languages":["en","ar","fr","it","pt","ru","es"],"custom_css":".gt_switcher:last-of-type {\r\n  display: none;\r\n}","flags_location":"\/modules\/contrib\/gtranslate\/flags\/"}</script><script>(function(){var js = document.createElement('script');js.setAttribute('src', '/modules/contrib/gtranslate/js/dwf.js');js.setAttribute('data-gt-orig-url', '/implementation');js.setAttribute('data-gt-orig-domain', 'intergrowth21.com');document.body.appendChild(js);})();</script>
+  </div>
+<nav role="navigation" aria-labelledby="block-intergrowth-main-menu-menu" id="block-intergrowth-main-menu">
+            
+  <h2 class="visually-hidden" id="block-intergrowth-main-menu-menu">Main navigation</h2>
+  
+
+        
+
+<input type="checkbox" class="check" id="check">
+<nav id="main-nav" class="main-nav">
+  <div id="toggle-expand" class="toggle-expand">
+    <div id="hamburger-menu" class="hamburger-menu">
+      <div class="bar bar-top"></div>
+      <div class="bar bar-middle"></div>
+      <div class="bar bar-bottom"></div>
+    </div>
+  </div>
+  
+
+
+    
+                          
+    
+<ul  class="main-menu">
+              
+<li  class="main-menu__item">
+                <a href="/" class="main-menu__link" data-drupal-link-system-path="&lt;front&gt;">Home</a>
+          </li>
+              
+<li  class="main-menu__item main-menu__item--with-sub">
+                <a href="/about-us" class="main-menu__link main-menu__link--with-sub">About</a>
+                  
+                                    
+    
+<ul  class="main-menu main-menu--sub main-menu--sub-1">
+                
+<li  class="main-menu__item main-menu__item--sub main-menu__item--sub-1">
+                <a href="/omphi-people" class="main-menu__link main-menu__link--sub main-menu__link--sub-1" data-drupal-link-system-path="node/19">OMPHI People</a>
+          </li>
+              
+<li  class="main-menu__item main-menu__item--sub main-menu__item--sub-1">
+                <a href="/omphi-fellows" class="main-menu__link main-menu__link--sub main-menu__link--sub-1" data-drupal-link-system-path="node/294">OMPHI Fellows</a>
+          </li>
+              
+<li  class="main-menu__item main-menu__item--sub main-menu__item--sub-1">
+                <a href="/our-partners" class="main-menu__link main-menu__link--sub main-menu__link--sub-1" data-drupal-link-system-path="node/79">Partners</a>
+          </li>
+              
+<li  class="main-menu__item main-menu__item--sub main-menu__item--sub-1">
+                <a href="/funders" class="main-menu__link main-menu__link--sub main-menu__link--sub-1" data-drupal-link-system-path="node/260">Funders</a>
+          </li>
+      </ul>
+  
+      </li>
+            
+<li  class="main-menu__item">
+                <a href="/intergrowth-21st-applications-calculators" class="main-menu__link" data-drupal-link-system-path="node/24">Tools</a>
+          </li>
+            
+<li  class="main-menu__item">
+                <a href="/courses" class="main-menu__link" data-drupal-link-system-path="node/15">Courses</a>
+          </li>
+            
+<li  class="main-menu__item">
+                <a href="/research-listing" class="main-menu__link" data-drupal-link-system-path="node/25">Research</a>
+          </li>
+            
+<li  class="main-menu__item">
+                <a href="/publications" class="main-menu__link" data-drupal-link-system-path="node/23">Publications</a>
+          </li>
+              
+<li  class="main-menu__item main-menu__item--active">
+                <a href="/implementation" class="main-menu__link main-menu__link--active is-active" data-drupal-link-system-path="node/26" aria-current="page">Implementation</a>
+          </li>
+            
+<li  class="main-menu__item">
+                <a href="/news" class="main-menu__link" data-drupal-link-system-path="node/12">News</a>
+          </li>
+      </ul>
+  
+  <div class="mobile-lower">
+    <div class="google-translate">
+      <div  class="block">
+  
+    
+      
+<div class="gtranslate_wrapper"></div><script>window.gtranslateSettings = {"switcher_horizontal_position":"inline","switcher_vertical_position":"inline","horizontal_position":"inline","vertical_position":"inline","float_switcher_open_direction":"top","switcher_open_direction":"bottom","default_language":"en","native_language_names":0,"detect_browser_language":0,"add_new_line":1,"select_language_label":"Select Language","flag_size":16,"flag_style":"2d","globe_size":60,"alt_flags":[],"wrapper_selector":".gtranslate_wrapper","url_structure":"none","custom_domains":null,"languages":["en","ar","fr","it","pt","ru","es"],"custom_css":".gt_switcher:last-of-type {\r\n  display: none;\r\n}","flags_location":"\/modules\/contrib\/gtranslate\/flags\/"}</script><script>(function(){var js = document.createElement('script');js.setAttribute('src', '/modules/contrib/gtranslate/js/dwf.js');js.setAttribute('data-gt-orig-url', '/implementation');js.setAttribute('data-gt-orig-domain', 'intergrowth21.com');document.body.appendChild(js);})();</script>
+  </div>
+
+    </div>
+  </div>
+</nav>
+
+  </nav>
+
+      </div>
+    </div>
+    <div  class="header__secondary">
+              
+          </div>
+  </div>
+</header>
+
+            
+    
+    
+    
+    <div  class="main">
+    <a id="main-content" tabindex="-1"></a>        <main role="main"  class="main-content">
+            <div>
+    <div data-drupal-messages-fallback class="hidden"></div>
+  <article class="node-type--landing-page is-promoted full clearfix">
+
+    <div class="content">
+
+              <div class="page-banner">
+              
+                    <div class="field field--name-field-banner field--type-entity-reference-revisions field--label-hidden field--item">
+  <div  class="paragraph paragraph--type--banner-item paragraph--view-mode--default" id="paragraph--74">
+      
+  </div>
+</div>
+              
+        </div>
+              
+              <div class="page-content">
+              
+            <div class="field field--name-field-paragraph field--type-entity-reference-revisions field--label-hidden field--items">
+                  <div class="field--item">  
+  <div class="paragraph paragraph--type--view-reference paragraph--view-mode--default">
+                    
+<h1  class="h1 paragraph paragraph--type--view-reference paragraph--view-mode--default">
+      Implementation of the INTERGROWTH-21st standards
+  </h1>
+                
+  </div></div>
+                  <div class="field--item">    <div  class="paragraph paragraph--type--two-column-content paragraph--view-mode--default" id="paragraph--1639">
+                <div class="two-column-content__wrapper">
+            <div class="two-column-content two-column-content__left">
+                    
+                    <div class="field field--name-field-left-column field--type-entity-reference-revisions field--label-hidden field--item">    <div class="paragraph paragraph--type--text-with-link paragraph--view-mode--default" id="paragraph--1637">
+        
+<div  class="paragraph paragraph--text_with_link paragraph--type--text-with-link paragraph--view-mode--default">
+            <div  class="paragraph__title">
+            
+<h2 class="paragraph-title">
+        
+                    <div class="field field--name-field-paragraph-title field--type-string field--label-hidden field--item">Maternal Training Toolkit</div>
+              
+</h2>
+        </div>
+                <div  class="paragraph__text">
+            
+
+            <div class="text-long"><p>The training tools currently available to maternal health professionals to apply the&nbsp;<a href="https://intergrowth21.com/tools-resources/gestational-weight-gain">Gestational Weight Gain in Pregnancy Standards</a>&nbsp;and&nbsp;<a href="https://intergrowth21.com/tools-resources/symphysis-fundal-height">Symphysis-Fundal Height Standards</a>&nbsp;are:</p></div>
+      
+        </div>
+                                                                                                                                                                                                                <div  class="paragraph__link">
+                <a class="button" href="https://intergrowth21.com/courses">E-learning modules on the evidence-based management of common pregnancy complic…</a>
+            </div>
+                                <div  class="paragraph__link">
+                <a class="button" href="https://www.medscinet.net/Intergrowth/patientinfodocs/BP%20protocol.pdf">Blood Pressure Measurement Protocol</a>
+            </div>
+                                <div  class="paragraph__link">
+                <a class="button" href="https://www.medscinet.net/Intergrowth/patientinfodocs/Measurement%20of%20Symphysis%20Fundus%20Height.pdf">Measurement of Symphysis Fundus Height Protocol</a>
+            </div>
+                                <div  class="paragraph__link">
+                <a class="button" href="https://www.medscinet.net/Intergrowth/patientinfodocs/Anthropometry%20Handbook%20April%202012.pdf">Anthropometry Handbook for Gestational Weight Gain</a>
+            </div>
+                                    </div>    </div>  
+</div>
+              
+            </div>
+            <div class="two-column-content two-column-content__right">
+                    
+                    <div class="field field--name-field-right-column field--type-entity-reference-revisions field--label-hidden field--item">    <div class="paragraph paragraph--type--text-with-link paragraph--view-mode--default" id="paragraph--1640">
+        
+<div  class="paragraph paragraph--text_with_link paragraph--type--text-with-link paragraph--view-mode--default">
+            <div  class="paragraph__title">
+            
+<h2 class="paragraph-title">
+        
+                    <div class="field field--name-field-paragraph-title field--type-string field--label-hidden field--item">Fetal Ultrasound</div>
+              
+</h2>
+        </div>
+                <div  class="paragraph__text">
+            
+
+            <div class="text-long"><p>The training tools currently available to ultrasonographers to apply the INTERGROWTH-21st&nbsp;<a href="https://intergrowth21.com/intergrowth-21st-applications-calculators">Pregnancy Dating Standards</a>&nbsp;and&nbsp;<a href="https://intergrowth21.com/tools-resources/fetal-growth">Fetal Growth Standards</a>&nbsp;are:</p><ul><li>Ultrasound Operations Manual:&nbsp;The aim of this manual is to ensure trained ultrasonographers are familiar with the standardized way measurements should be taken for the purposes of using the INTERGROWTH-21st&nbsp;fetal growth standards, including standardization of the way the equipment should be used, ultrasound findings are recorded, data is entered and transferred, and how to train, assess and certify these standardized techniques.</li><li>Correct Measurement of Fetal Crown Rump Length and Standardization of Ultrasonographers:&nbsp;The aim of this manual is to ensure all trained ultrasonographers are familiar with the standardized way crown-rump length measurements should be taken for the purposes of using the INTERGROWTH-21st&nbsp;fetal growth standards.</li></ul></div>
+      
+        </div>
+                                                                                                                                                                                                                <div  class="paragraph__link">
+                <a class="button" href="https://www.medscinet.net/Intergrowth/patientinfodocs/US%20Manual%20FINAL.pdf">Ultrasound Operations Manual</a>
+            </div>
+                                <div  class="paragraph__link">
+                <a class="button" href="http://www.medscinet.net/Intergrowth/patientinfodocs/CRLstandardisation_Website.pdf">Correct measurement of Crown Rump Length</a>
+            </div>
+                                    </div>    </div>  
+</div>
+              
+            </div>
+        </div>
+    </div>
+</div>
+                  <div class="field--item">    <div  class="paragraph paragraph--type--two-column-content paragraph--view-mode--default" id="paragraph--1642">
+                <div class="two-column-content__wrapper">
+            <div class="two-column-content two-column-content__left">
+                    
+                    <div class="field field--name-field-left-column field--type-entity-reference-revisions field--label-hidden field--item">    <div class="paragraph paragraph--type--text-with-link paragraph--view-mode--default" id="paragraph--1641">
+        
+<div  class="paragraph paragraph--text_with_link paragraph--type--text-with-link paragraph--view-mode--default">
+            <div  class="paragraph__title">
+            
+<h2 class="paragraph-title">
+        
+                    <div class="field field--name-field-paragraph-title field--type-string field--label-hidden field--item">Newborn Care</div>
+              
+</h2>
+        </div>
+                <div  class="paragraph__text">
+            
+
+            <div class="text-long"><p>The training tools currently available to newborn health professionals to apply the INTERGROWTH-21st&nbsp;<a href="https://intergrowth21.com/intergrowth-21st-applications-calculators">Newborn Size at Birth Standards</a>&nbsp;are:</p><ul><li>The&nbsp;Basic Neonatal Care&nbsp;manual: This manual can be used to train healthcare professionals on standardized definitions, treatment and management recommendations of neonatal morbidities.<br>&nbsp;</li><li>The&nbsp;Anthropompetry Handbook: This handbook describes the methods used to perform accurate, precise and standardized anthropometric measurements for all components of the INTERGROWTH-21st&nbsp;study, including:<br>1. Height and weight of pregnant mothers<br>2.&nbsp;Birth weight, length and head circumference of newborns<br>3.&nbsp;Weight, length and head circumference of preterm babies</li></ul></div>
+      
+        </div>
+                                                                                                                                                                                                                <div  class="paragraph__link">
+                <a class="button" href="https://www.medscinet.net/Intergrowth/patientinfodocs/Neonatal%20Manual%20Final.pdf">Basic Neonatal Care</a>
+            </div>
+                                <div  class="paragraph__link">
+                <a class="button" href="https://www.medscinet.net/Intergrowth/patientinfodocs/Anthropometry%20Handbook%20April%202012.pdf">Anthropompetry Handbook</a>
+            </div>
+                                    </div>    </div>  
+</div>
+              
+            </div>
+            <div class="two-column-content two-column-content__right">
+                    
+                    <div class="field field--name-field-right-column field--type-entity-reference-revisions field--label-hidden field--item">    <div class="paragraph paragraph--type--text-with-link paragraph--view-mode--default" id="paragraph--1643">
+        
+<div  class="paragraph paragraph--text_with_link paragraph--type--text-with-link paragraph--view-mode--default">
+            <div  class="paragraph__title">
+            
+<h2 class="paragraph-title">
+        
+                    <div class="field field--name-field-paragraph-title field--type-string field--label-hidden field--item">Neurodevelopment Assessment</div>
+              
+</h2>
+        </div>
+                <div  class="paragraph__text">
+            
+
+            <div class="text-long"><p>The training tools currently available to health professionals to apply the INTERGROWTH-21st&nbsp;<a href="https://intergrowth21.com/tools-resources/inter-nda">Neurodevelopment Assessment Package</a>&nbsp;are:</p><ul><li>Visual assessment:&nbsp;This manual details the technique for administering the Cardiff Acuity Tests and Cardiff Contrast tests for vision assessment in children.</li><li>Neuropsychological assessment (the INTER-NDA):&nbsp;assessment of cognition, language skills, motor skills, behavior, attention and social-emotional reactivity at age 2 years old.&nbsp;</li><li>Measurement of cortical auditory evoked response potential&nbsp;</li><li>Measurement of sleep-wake cycle and daytime physical activity:&nbsp;This manual details the technique for assessing sleep-wake cycles in children.</li></ul></div>
+      
+        </div>
+                                                                                                                                                                                                                <div  class="paragraph__link">
+                <a class="button" href="https://www.medscinet.net/Intergrowth/patientinfodocs/Vision%20manual%2012-12-13.pdf">Visual assessment </a>
+            </div>
+                                <div  class="paragraph__link">
+                <a class="button" href="https://www.medscinet.net/Intergrowth/patientinfodocs/INTER-NDA%20Manual%20July%202014.pdf">Neuropsychological assessment (the INTER-NDA)</a>
+            </div>
+                                <div  class="paragraph__link">
+                <a class="button" href="https://www.medscinet.net/Intergrowth/patientinfodocs/Cortical%20auditory%20ERP%20manual%20July%202014.pdf">Measurement of cortical auditory evoked response potential </a>
+            </div>
+                                <div  class="paragraph__link">
+                <a class="button" href="https://www.medscinet.net/Intergrowth/patientinfodocs/Sleep-wake%20cycle%20&amp;%20physical%20activity%20assessment%20manual%2012-12-13.pdf">Measurement of sleep-wake cycle and daytime physical activity</a>
+            </div>
+                                    </div>    </div>  
+</div>
+              
+            </div>
+        </div>
+    </div>
+</div>
+                  <div class="field--item">    <div  class="paragraph paragraph--type--two-column-content paragraph--view-mode--default" id="paragraph--1683">
+                <div class="two-column-content__wrapper">
+            <div class="two-column-content two-column-content__left">
+                    
+                    <div class="field field--name-field-left-column field--type-entity-reference-revisions field--label-hidden field--item">    <div class="paragraph paragraph--type--text-with-link paragraph--view-mode--default" id="paragraph--1682">
+        
+<div  class="paragraph paragraph--text_with_link paragraph--type--text-with-link paragraph--view-mode--default">
+            <div  class="paragraph__title">
+            
+<h2 class="paragraph-title">
+        
+                    <div class="field field--name-field-paragraph-title field--type-string field--label-hidden field--item">gigs Package</div>
+              
+</h2>
+        </div>
+                <div  class="paragraph__text">
+            
+
+            <div class="text-long"><p>Produced as part of the Guidance for International Growth Standards project at the London School of Hygiene &amp; Tropical Medicine, <strong>gigs</strong> provides a single, simple interface for working with the WHO Child Growth standards and outputs from the INTERGROWTH-21st project. You will find functions for converting from anthropometric measures (e.g.&nbsp;weight or length) to z-scores and centiles, and the inverse. Also included are functions for classifying newborn and infant growth according to literature-based cut-offs.</p><img src="/sites/default/files/inline-images/logo.png" data-entity-uuid="5ef30b78-e031-4ec0-bf97-46de9694b106" data-entity-type="file" alt="gigs logo" width="237" height="275" class="align-center" loading="lazy"><p><strong>gigs</strong> is of use to anyone interested in fetal and child growth, including child health researchers, policymakers, and clinicians. This package is best suited to growth data where the gestational age (GA) of each child is known, as the use of the growth standards included in <strong>gigs</strong> is GA-dependent. We recommend you check out the <a href="https://github.com/ropensci/gigs#available-international-growth-standards">available standards</a> section to see if your anthropometric measurements can be converted to z-scores/centiles by <strong>gigs</strong>. We recommend using <strong>gigs</strong> to generate continuous or categorical measures of fetal/newborn/child growth, which can then be used in downstream analyses.</p></div>
+      
+        </div>
+                                                                                                                                                                                                                <div  class="paragraph__link">
+                <a class="button" href="https://github.com/ropensci/gigs">gigs: Package</a>
+            </div>
+                                    </div>    </div>  
+</div>
+              
+            </div>
+            <div class="two-column-content two-column-content__right">
+                
+            </div>
+        </div>
+    </div>
+</div>
+                  <div class="field--item">        <div class="paragraph paragraph--type--text paragraph--view-mode--default" id="paragraph--1383">
+            
+                        
+<p  class="paragraph paragraph--type--text paragraph--view-mode--default">
+      
+
+            <div class="text-long"><p>The map below highlights the countries and hospitals that are using the INTERGROWTH-21st tools as part of their routine clinical care.&nbsp;</p>
+
+<p>If you are using the tools but not listed here, please email us at <em>intergrowth@wrh.ox.ac.uk</em></p></div>
+      
+  </p>
+                </div>
+  
+  </div>
+                  <div class="field--item">        <div class="paragraph paragraph--type--text paragraph--view-mode--default" id="paragraph--851">
+            
+                        
+<p  class="paragraph paragraph--type--text paragraph--view-mode--default">
+      
+
+            <div class="text-long"><p class="map-embed"><iframe frameborder="0" height="750px" src="//www.zeemaps.com/pub?group=4593020" width="1000px"></iframe></p>
+</div>
+      
+  </p>
+                </div>
+  
+  </div>
+              </div>
+        
+        </div>
+      
+            
+    </div>
+
+  </article>
+  
+  </div>
+
+      </main>
+  </div>
+            
+<footer  class="footer">
+  <div  class="footer__inner">
+    <div  class="footer__upper">
+      <div  class="footer__branding">
+                  
+<a
+   class="logo-link"
+    href="/"
+>
+    
+
+  
+<img
+   class="logo__image"
+      src="/themes/custom/intergrowth/images/logo.png"
+      alt="Logo"
+      loading="lazy"
+/>
+  
+
+  
+<img
+   class="logo__image"
+      src="/themes/custom/intergrowth/images/Intergrowth_Logo.jpeg"
+      alt="Logo"
+      loading="lazy"
+/>
+  
+
+  
+<img
+   class="logo__image"
+      src="/themes/custom/intergrowth/images/intergrowth-logo.png"
+      alt="Logo"
+      loading="lazy"
+/>
+  
+
+  
+<img
+   class="logo__image"
+      src="/themes/custom/intergrowth/images/oxford-logo.png"
+      alt="Logo"
+      loading="lazy"
+/>
+  </a>
+              </div>
+      <div  class="footer__menu">
+        
+      </div>
+    </div>
+    <div class="separator"></div>
+    <div  class="footer__lower">
+      <div  class="footer__copyright">
+        Updated: 9th November 2026
+      </div>
+      <a href="/privacy-policy"  class="footer__privacy-policy">
+        Privacy Policy
+      </a>
+    </div>
+  </div>
+</footer>
+
+      </div>
+
+  </div>
+
+    
+    <script src="/core/assets/vendor/jquery/jquery.min.js?v=4.0.0"></script>
+<script src="/sites/default/files/js/js_4XlHsxVzYWDcJJde5Dt-HoLTcsSvbrW7ykoOfmbzRyE.js?scope=footer&amp;delta=1&amp;language=en&amp;theme=intergrowth&amp;include=eJxLz89Pz0mNL0lM108HEjrpqHy9xKzECp3MvJLUovSi_PKSDP30nPykxByd7JzEonx9MAkAcMoZ6Q"></script>
+
+  </body>
+</html>

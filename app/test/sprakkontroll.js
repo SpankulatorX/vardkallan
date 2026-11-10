@@ -210,6 +210,10 @@ for (const w of ['PVK', 'PICC', 'CVK', 'KAD', 'OCR', 'GS1', 'DAS', 'DAL']) TILLA
 // Microsoft Graph och WebDAV för SharePoint, och rubriken som märker ett simulerat e-postmeddelande.
 for (const w of ['Word', 'DOCX', 'IEC', 'RFC', 'HMAC', 'MIME', 'URI', 'REST', 'WebDAV', 'REQUEST', 'PUBLISH', 'iMIP', 'Outlook', 'Excel', 'Teams', 'SharePoint', 'Graph', 'Microsoft', 'Office', 'LibreOffice']) TILLATNA.add(w);
 FRASER.push('Office Open XML', 'X-Vardkallan-Simulerad');
+// Runda 11, r7: intensivvården (NEMS med källan, PEEP, NIV, fuktvärmeväxlare HME och EKG-avledning II) och tillväxtens
+// referenser (WHO:s två referenser, licenserna och referenserna som inte får användas, CDC och Downs syndrom).
+for (const w of ['NEMS', 'PEEP', 'NIV', 'HME', 'II', 'CDC', 'BY-NC-ND', 'INTERGROWTH-21st', 'Fenton', 'Fentons', 'Tanner', 'Tanners', 'SBAR', 'GetObservations', 'GetActivities']) TILLATNA.add(w);
+FRASER.push('Nine equivalents of nursing manpower use score', 'Intensive Care Med', 'Reis Miranda', 'WHO Child Growth Standards', 'WHO Growth Reference', 'University of Oxford', 'Downs syndrom');
 
 // Svenska ord som ofta skrivs utan å, ä eller ö. Formen utan prickar är inget eget ord.
 export const UTAN_PRICKAR = new Map(Object.entries({

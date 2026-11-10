@@ -127,6 +127,8 @@ import { avlidenFor } from './avliden.js';
 // Runda 10, r7: ombud, meddelanden, begäranden, vårdplanen i Min journal, kassan, kapaciteten och kontorsstödet.
 import { registreraRutter as r10r7Rutter, MIN_DELAR as r10r7MinDelar, kalenderSvar } from './r10r7-rutter.js';
 import { skapaKalenderlager } from './kontorsstod.js';
+// Runda 11, r7: intensivvården och tillväxten (r11r7-rutter.js).
+import { registreraRutter as r11r7Rutter } from './r11r7-rutter.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -1790,6 +1792,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // Runda 10, r7 (r10r7-rutter.js). Kalenderlänkarna finns som HMAC i minnet och i sandlådan.
   const kalender = skapaKalenderlager();
   r10r7Rutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal, kalender });
+  // Runda 11, r7 (r11r7-rutter.js).
+  r11r7Rutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
   // visas direkt (bara i den egna sandlådan).
   const kravNagon = (c) => { if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad'); };

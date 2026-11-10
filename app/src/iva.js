@@ -28,6 +28,11 @@ import * as konfiguration from './konfiguration.js';
 import * as mt from './medicinteknik.js';
 import { kvalitetssakrad } from './mt-klass.js';
 
+// Runda 11, r7: krokar som andra moduler lägger till (iva-patientregler.js och r11r7-rutter.js). analys får
+// (atk, analys, { rader, nu }) och ger analysen med patientens egna regler, och rad får (atk, rad, { nu }) och ger raden i
+// översikten med det som modulen lägger till.
+export const KROKAR = { analys: [], rad: [] };
+const medKrokar = (atk, analys, x) => KROKAR.analys.reduce((a, f) => f(atk, a, x), analys);
 export const DEMOREGEL = 'Reglerna för intensivvården är demoregler för att visa flödet. De är inte kliniskt beslutsstöd och inte CE-märkta.';
 // Intensivvårdsavdelningarna i demon och antalet vårdplatser. Hjärtintensiven på Kardiologiska kliniken är demons
 // intensivvårdsavdelning.
@@ -382,15 +387,15 @@ export function oversikt(db, personal, valFor, { enhetId = null } = {}, nu = new
     const rader = journal.synligaMatvarden(atk).filter(m => m.kalla !== 'patient');
     const vatska = vatskaTimvis(atk, { timmar: 24 }, nu);
     const infusioner = infusionerFor(atk, rader, nu);
-    const analys = analysera({ rader, vatska, infusioner, params, nu });
+    const analys = medKrokar(atk, analysera({ rader, vatska, infusioner, params, nu }), { rader, nu });
     const n2 = vitalparametrar.news2For(atk, p, rader).aktuell;
-    patienter.push({
+    patienter.push(KROKAR.rad.reduce((r, f) => f(atk, r, { nu }), {
       patientId: p.id, namn: visningsnamn(p, val.visa_identitet), personnummer: visningsPnr(p, val.visa_identitet), alder: alder(p.fodd, idag()), plats: k.plats, sedan: k.start,
       orsak: k.orsak, varden: senasteVarden(rader), news2: n2 ? { poang: n2.poang, risk: n2.risk, komplett: n2.komplett, tid: n2.tid } : null,
       analys, larm: analys.filter(a => a.niva === 'larm').length, utrustning: mt.kopplingarFor(atk, { aktiva: true }).map(x => ({ id: x.id, typ: x.utrustning?.typ, text: `${x.utrustning?.typText} ${x.utrustning?.serienummer}` })),
       vantar: mt.attBedoma(atk, rader).length, infusioner: infusioner.map(i => ({ lakemedel: i.lakemedel, dos: i.dos, dosEnhet: i.dosEnhet, mlH: i.mlH })),
       vatska: { balans: vatska.balans, summaIn: vatska.summaIn, summaUt: vatska.summaUt },
-    });
+    }));
   }
   const ordning = (x) => (x.larm ? 0 : x.analys.some(a => a.niva === 'varning') ? 1 : 2);
   patienter.sort((a, b) => ordning(a) - ordning(b) || String(a.plats ?? '').localeCompare(String(b.plats ?? ''), 'sv'));
@@ -410,7 +415,7 @@ export function overvakning(atk, p, { timmar = 6 } = {}, nu = new Date()) {
   const fonster = alla.filter(m => Date.parse(m.tid) > nu.getTime() - h * TIMME && Date.parse(m.tid) <= nu.getTime() + 5 * MIN);
   const vatska = vatskaTimvis(atk, { timmar: 24 }, nu);
   const infusioner = infusionerFor(atk, alla, nu);
-  const analys = analysera({ rader: alla, vatska, infusioner, params: parametrar(db, nu), nu });
+  const analys = medKrokar(atk, analysera({ rader: alla, vatska, infusioner, params: parametrar(db, nu), nu }), { rader: alla, nu });
   const kurvor = vitalparametrar.kurvor(atk, p, fonster.filter(m => [...mt.MONITORTYPER, 'glukos', 'smarta'].includes(m.typ)));
   const mapSerie = fonster.filter(m => m.typ === 'blodtryck').sort((a, b) => a.tid.localeCompare(b.tid)).map(m => ({ tid: m.tid, map: map(m.varde), godkand: kvalitetssakrad(m) }));
   // Vätskor och läkemedel i en gemensam lista: infusionerna som pågår, bolusar och intag och förluster det senaste dygnet.

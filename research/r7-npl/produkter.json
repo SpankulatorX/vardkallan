@@ -1,0 +1,42 @@
+[
+  {
+    "npl": "20070331000011",
+    "namn": "Noradrenalin Abcur",
+    "substans": "Noradrenalin",
+    "styrka": "1 mg/ml",
+    "form": "Koncentrat till infusionsvätska, lösning",
+    "atc": "C01CA03",
+    "status": "godkänd läkemedel (MEP), inte avregistrerad, försäljning inte stoppad",
+    "godkand": "2009-07-03"
+  },
+  {
+    "npl": "20000825000258",
+    "namn": "Propofol-Lipuro",
+    "substans": "Propofol",
+    "styrka": "10 mg/ml",
+    "form": "Injektionsvätska/infusionsvätska, emulsion",
+    "atc": "N01AX10",
+    "status": "godkänd läkemedel (MEP), inte avregistrerad, försäljning inte stoppad",
+    "godkand": "2000-08-25"
+  },
+  {
+    "npl": "20051112000024",
+    "namn": "Midazolam Panpharma",
+    "substans": "Midazolam",
+    "styrka": "5 mg/ml",
+    "form": "Injektionsvätska, lösning",
+    "atc": "N05CD08",
+    "status": "godkänd läkemedel (MEP), inte avregistrerad, försäljning inte stoppad",
+    "godkand": "2006-10-06"
+  },
+  {
+    "npl": "19801003000053",
+    "namn": "Furix",
+    "substans": "Furosemid",
+    "styrka": "10 mg/ml",
+    "form": "Injektionsvätska, lösning",
+    "atc": "C03CA01",
+    "status": "godkänd läkemedel (MEP), inte avregistrerad, försäljning inte stoppad",
+    "godkand": "1980-10-03"
+  }
+]

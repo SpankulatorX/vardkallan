@@ -292,6 +292,8 @@ export const MATTYPER = {
   gcs: { namn: 'GCS', format: 'gcs' },
   // Runda 7, r6: huvudomfång i barnhälsovården (Sussa 4.1).
   huvudomfang: { namn: 'Huvudomfång', min: 20, max: 70 },
+  // Runda 11, r7: sitthöjd i barnhälsovården (Sussa 4.1.1.4).
+  sitthojd: { namn: 'Sitthöjd', min: 20, max: 130 },
   // Runda 8, r1: svaren från det simulerade laboratoriet och SR som intern analys på avdelningen (labb.js).
   lpk: { namn: 'Leukocyter (LPK)', min: 0, max: 500 },
   tpk: { namn: 'Trombocyter (TPK)', min: 0, max: 3000 },

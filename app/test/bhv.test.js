@@ -27,7 +27,7 @@ describe('Tillväxt', () => {
     expect(T.vardeVidZ(T.lms('langd', 'kvinna', 24), -2)).toBeCloseTo(80.0, 1);
     expect(T.vardeVidZ(T.lms('huvudomfang', 'man', 6), 0)).toBeCloseTo(43.3, 1);
     expect(T.vardeVidZ(T.lms('bmi', 'kvinna', 36), 1)).toBeCloseTo(16.8, 1);
-    expect(T.lms('vikt', 'man', 61)).toBeNull();
+    expect(T.lms('vikt', 'man', 61, 'who2006')).toBeNull();
     const linjer = T.referenslinjer('langd', 'man', 0, 12);
     expect(linjer.map(l => l.sd)).toEqual([-2, -1, 0, 1, 2]);
     expect(linjer[2].punkter[0]).toEqual([0, 49.884]);
@@ -102,7 +102,7 @@ describe('Tillväxt', () => {
     expect(vk).toHaveLength(1);
     expect(vk[0].vardkontakt_id).toBeGreaterThan(0);
     expect(ut.text).toContain('Vikt 9,4 kg');
-    expect(() => bhv.registrera(atk(db, 'lak-vc', {}, 'registrera_matvarde'), pat(db), {}, vardkontakt.knyt)).toThrow('Skriv vikt, längd eller huvudomfång.');
+    expect(() => bhv.registrera(atk(db, 'lak-vc', {}, 'registrera_matvarde'), pat(db), {}, vardkontakt.knyt)).toThrow('Skriv vikt, längd, huvudomfång eller sitthöjd.');
     expect(() => bhv.registrera(atk(db, 'lak-vc', {}, 'registrera_matvarde'), pat(db), { huvudomfang: 5 }, vardkontakt.knyt)).toThrow('Huvudomfång måste vara ett tal');
   });
 
@@ -357,7 +357,7 @@ describe('Kodverk och FHIR för tillväxt', () => {
     const o = fhir.observation(db, m);
     expect(o.meta.profile[0]).toBe('http://hl7.org/fhir/StructureDefinition/headcircum');
     expect(o.valueQuantity).toMatchObject({ unit: 'cm', system: 'http://unitsofmeasure.org', code: 'cm' });
-    expect(Object.keys(K11.tillvaxt)).toEqual(['fodelsevikt', 'fodelselangd', 'fodelse_huvudomfang', 'graviditetslangd', 'vikt', 'langd', 'huvudomfang', 'langd_mor', 'langd_far']);
+    expect(Object.keys(K11.tillvaxt)).toEqual(['fodelsevikt', 'fodelselangd', 'fodelse_huvudomfang', 'graviditetslangd', 'vikt', 'langd', 'huvudomfang', 'langd_mor', 'langd_far', 'sitthojd']);
   });
 });
 
