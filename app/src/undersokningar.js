@@ -99,7 +99,7 @@ export const bokning = (db, analysId) => (finns(db) ? db.query('SELECT * FROM un
 const inneliggande = (db, pid) => Boolean(db.query('SELECT 1 FROM vardtillfallen WHERE patient_id = ? AND utskriven IS NULL').get(pid));
 export function fragorFor(db, p, ids, nu = new Date()) {
   const defs = ids.map(id => ANALYS[id]).filter(Boolean);
-  const fertil = p.kon === 'K' && (() => { const a = alder(p.fodd, datumAv(nu)); return a >= 12 && a <= 55; })();
+  const fertil = ['kvinna', 'K'].includes(p.kon) && (() => { const a = alder(p.fodd, datumAv(nu)); return a >= 12 && a <= 55; })();
   return { graviditet: fertil && defs.some(d => d.stralning), implantat: defs.some(d => d.magnet) };
 }
 
@@ -456,7 +456,9 @@ function foreSvar(db, nu) {
 function foreSimulering(db, b, personalId, nu) {
   if (!finns(db)) return;
   for (const a of db.query("SELECT * FROM labb_analyser WHERE bestallning_id = ? AND status = 'mottagen'").all(b.id)) {
-    if (!arUndersokning(a.analys) || ps(db, a.lab_id)) continue;
+    // Säkerhetsgranskningen i runda 11: röntgenklinikens undersökningar bokas och görs bara i arbetslistan, där
+    // kontrollerna före undersökningen gäller. Demoknappen simulerar bara enheter utan egen personal i demon.
+    if (!arUndersokning(a.analys) || ps(db, a.lab_id) || harArbetslista(a.lab_id)) continue;
     const bk = bokning(db, a.id);
     if (bk?.utford_tid) continue;
     if (!bk?.bokad_tid) sparaBokning(db, b, a, { tid: iso(nu), av: null, nu });
@@ -514,6 +516,11 @@ function utoka(db, b, ut, personal, nu) {
       const steg = x.undersokning.utford ? 'Gjord, väntar på utlåtande' : x.undersokning.bokad ? `Bokad ${tidText(x.undersokning.bokad.tid)}` : x.undersokning.vantar.length ? x.undersokning.vantar[0].text : `Hos ${x.lab?.kort ?? 'den utförande enheten'}, väntar på tid`;
       x.statusText = steg;
     }
+  }
+  // Demoknappen Simulera svar visas bara när det simulerade laboratoriet har något att svara på direkt: inte för
+  // röntgenklinikens undersökningar innan de är gjorda, och inte för ett patientnära instrument.
+  if (ut.kan?.simuleraSvar) {
+    ut.kan.simuleraSvar = ut.analyser.some(x => x.status === 'mottagen' && !ps(db, x.lab?.id) && !LAB[x.lab?.id]?.instrument && (!x.undersokning || !harArbetslista(x.lab?.id) || x.undersokning.utford));
   }
   // Fynd som kan ge välgrundad misstanke om cancer: systemet påminner om vårdförloppet.
   const misstanke = ut.analyser.find(x => x.status === 'besvarad' && (x.koder ?? []).some(k => k.system === 'snomed' && k.kod !== '281900007'));
@@ -638,7 +645,7 @@ export function minBestallningar(atk, nu = new Date(), { PROVSVAR_SENAST_DAGAR =
     const x = labb.bestallningUt(db, b, null, nu);
     const svarVisas = (a) => Boolean(a.vidimerad) || (a.besvarad && Date.parse(a.besvarad) + PROVSVAR_SENAST_DAGAR * DAG <= nu.getTime());
     ut.push({
-      skapad: b.skapad, vardenhet: enhetsnamn(db, ve), status: MIN_STATUS[x.status], klar: x.status === 'vidimerad',
+      skapad: b.skapad, vardenhet: enhetsnamn(db, ve), status: minStatus(x), klar: x.status === 'vidimerad',
       analyser: x.analyser.filter(a => a.status !== 'borttagen').map(a => ({
         namn: a.namn, status: a.status === 'makulerad' ? 'Makulerad' : a.status === 'besvarad' ? (svarVisas(a) ? 'Svaret finns' : 'Läkaren går igenom svaret') : a.undersokning ? (a.undersokning.utford ? 'Undersökningen är gjord' : a.undersokning.bokad ? 'Tid bokad' : 'Väntar på tid') : a.status === 'bestalld' ? 'Provet är inte taget än' : 'Hos laboratoriet',
         tid: a.undersokning?.bokad && !a.undersokning.utford ? a.undersokning.bokad.tid : null, plats: a.undersokning?.bokad && !a.undersokning.utford ? LAB[a.lab.id]?.namn.replace(/ \(simulerad\)$/, '') : null,
@@ -650,6 +657,13 @@ export function minBestallningar(atk, nu = new Date(), { PROVSVAR_SENAST_DAGAR =
     });
   }
   return { bestallningar: ut, regel: MIN_REGEL, simulerat: SIMULERAT };
+}
+// Statusen som patienten förstår: en undersökning har inget prov att ta, så den räknas inte som provtagning.
+function minStatus(x) {
+  if (!['bestalld', 'delvis_provtagen', 'skickad'].includes(x.status)) return MIN_STATUS[x.status];
+  const ror = x.prov.filter(p => !ROR[p.ror]?.utanProv);
+  if (ror.some(p => !p.provtagen)) return ror.some(p => p.provtagen) ? 'Provtagning pågår' : 'Beställd';
+  return ror.length ? 'Hos laboratoriet' : 'Beställd';
 }
 export const MIN_REGEL = 'Beställningarna visas direkt med status. Svaren visas när läkaren har gått igenom dem, och senast 14 dagar efter provtagningen. En vårdenhet som inte visar sina anteckningar i Min journal visar inte heller sina beställningar.';
 

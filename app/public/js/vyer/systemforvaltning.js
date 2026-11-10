@@ -105,7 +105,7 @@ async function andraParameter(main, o, nyckel, knapp) {
   const lista = p.typ === 'lista';
   // Runda 8, r5: en regel med svaret ja eller nej väljs med två alternativ. Det som inte gäller nu är förvalt.
   const janej = p.typ === 'janej';
-  const varde = lista ? p.varde.join(', ') : String(p.varde);
+  const varde = lista ? p.varde.join(p.semikolon ? '; ' : ', ') : String(p.varde);
   const vardeFalt = janej
     ? `<fieldset class="kryssgrupp"><legend>Nytt värde</legend>${[['ja', p.text?.true], ['nej', p.text?.false]].map(([v, t]) => `<div class="kryssfalt"><input type="radio" id="sf-varde-${v}" name="varde" value="${v}"${(p.varde ? 'ja' : 'nej') !== v ? ' checked' : ''}><label for="sf-varde-${v}">${esc(t ?? v)}</label></div>`).join('')}
       <p class="hjalp">Gäller nu: ${esc(p.vardeText)}.</p></fieldset>`

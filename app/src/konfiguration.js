@@ -509,11 +509,12 @@ export function prova(nyckel, inmatat) {
     const t = typeof inmatat === 'string' ? inmatat.trim().replace(/\s+/g, ' ') : '';
     if (t.length < 10) return { ok: false, varfor: 'Skriv en anvisning på minst tio tecken. En tom anvisning hjälper inte patienten eller den som tar provet.' };
     if (t.length > (def.max ?? 400)) return { ok: false, varfor: `Anvisningen får vara högst ${def.max ?? 400} tecken. Den ska rymmas på provtagningsanvisningen och i kallelsen.` };
-    if (/[—–…]/.test(t)) return { ok: false, varfor: 'Skriv utan tankstreck och ellipser, så att texten blir lätt att läsa.' };
+    if (/[\u2014\u2013\u2026]/.test(t)) return { ok: false, varfor: 'Skriv utan tankstreck och ellipser, så att texten blir lätt att läsa.' };
     return { ok: true, varde: t };
   }
   if (def.typ === 'lista') {
-    const lista = (Array.isArray(inmatat) ? inmatat : String(inmatat ?? '').split(/[,\n]/)).map(s => String(s).trim()).filter(Boolean);
+    // Runda 11, r6: en lista med namn som har kommatecken (arbetsplatser) skiljs med semikolon.
+    const lista = (Array.isArray(inmatat) ? inmatat : String(inmatat ?? '').split(def.avgransare ?? /[,\n]/)).map(s => String(s).trim()).filter(Boolean);
     // Runda 8, r1: en lista med egen prövning, som paketen i beställning och svar.
     if (def.provaLista) {
       // Runda 10, r5: en lista som får vara tom (opioider utan kollegakontroll).
@@ -543,7 +544,7 @@ export function prova(nyckel, inmatat) {
 
 // Runda 8, r5: ett ja eller nej som redan gäller beskrivs med regelns text.
 const redan = (def, v) => (def.typ === 'janej' ? `Det gäller redan: ${visa(def, v).toLowerCase()}.` : `Värdet är redan ${visa(def, v)}.`);
-const visa = (def, v) => (def.typ === 'lista' ? v.join(', ') : def.typ === 'janej' ? def.text[String(v)] : def.typ === 'text' ? v : `${v} ${def.enhet}`);
+const visa = (def, v) => (def.typ === 'lista' ? v.join(def.avgransare ? '; ' : ', ') : def.typ === 'janej' ? def.text[String(v)] : def.typ === 'text' ? v : `${v} ${def.enhet}`);
 const lika = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const personnamn = (db, id) => (id ? db.query('SELECT namn FROM personal WHERE id = ?').get(id)?.namn ?? id : null);
 
@@ -683,7 +684,7 @@ export function oversikt(db, personal, nu = new Date()) {
       const kommande = per(nyckel).filter(a => a.status === 'godkand' && a.galler_fran > dag).sort((a, b) => a.galler_fran.localeCompare(b.galler_fran))[0];
       const vantar = per(nyckel).find(a => a.status === 'vantar');
       return {
-        nyckel, rubrik: d.rubrik, beskrivning: d.beskrivning, typ: d.typ, enhet: d.enhet ?? null, min: d.min ?? null, max: d.max ?? null, text: d.text ?? null, ledtext: d.ledtext ?? null,
+        nyckel, rubrik: d.rubrik, beskrivning: d.beskrivning, typ: d.typ, enhet: d.enhet ?? null, min: d.min ?? null, max: d.max ?? null, text: d.text ?? null, ledtext: d.ledtext ?? null, semikolon: Boolean(d.avgransare),
         varde: g, vardeText: visa(d, g), standard: d.standard, arStandard: lika(g, d.standard), anvands: d.anvands,
         kommande: kommande ? { gallerFran: kommande.galler_fran, vardeText: visa(d, JSON.parse(kommande.varde)) } : null,
         vantar: vantar ? andringUt(db, vantar, personal) : null,
@@ -744,7 +745,7 @@ function labbR11Parametrar() {
   const arbetsplatser = new Map(SEED_ENHETER.filter(e => ['arbetsplats', 'vardenhet'].includes(e.typ)).map(e => [e.namn.toLocaleLowerCase('sv'), e]));
   ut['labb.etikettskrivare'] = {
     omrade: 'bestallning', rubrik: 'Arbetsplatser med etikettskrivare', enhet: 'arbetsplatser', typ: 'lista', standard: [...LABB_ETIKETTSKRIVARE], anvands: 'labb-rutter.js och etiketterna',
-    ledtext: 'Arbetsplatserna med etikettskrivare, med komma emellan',
+    ledtext: 'Arbetsplatserna med etikettskrivare, med semikolon emellan', avgransare: /[;\n]/,
     beskrivning: 'På de här arbetsplatserna skrivs en etikett per rör på etikettskrivaren. Övriga arbetsplatser skriver etiketterna på A4-ark. Formatet kan alltid väljas i utskriften.',
     provaLista: (lista) => {
       if (lista.length > 40) return 'Högst 40 arbetsplatser.';

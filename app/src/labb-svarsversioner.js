@@ -12,7 +12,8 @@
 //     ingen behöver kunna kodverken.
 // Varje version har sitt eget signerade bevis (signering.js), med källan labb_analyser:<id>:v<n>.
 import { Fel, iso } from './db.js';
-import { kanRoll, Atkomst } from './atkomst.js';
+import { kanRoll, Atkomst, vardenhetFor } from './atkomst.js';
+const anslutet = (db, labId) => { try { return Boolean(db.query('SELECT 1 FROM ps_anslutningar WHERE lab_id = ? AND aktiv = 1').get(labId)); } catch { return false; } };
 import * as labb from './labb.js';
 import * as journal from './journal.js';
 import * as signering from './signering.js';
@@ -196,10 +197,15 @@ export function ratta(db, b, a, svar, { orsak = '', kalla = 'simulerat', signera
 }
 
 // Det simulerade laboratoriets rättelse (demoknapp): ett nytt värde för det första mätvärdet, eller en rättad text.
+// Säkerhetsgranskningen i runda 11: demoknappen kräver samma rätt som att beställa på den beställande vårdenheten, och
+// gäller bara det simulerade laboratoriet. Ett anslutet producentsystem eller ett patientnära instrument rättar själv sina
+// svar genom det öppna gränssnittet, och ingen annan får skapa ett signerat svar i deras namn.
 export function simuleraRattelse(atk, b, a, nu = new Date()) {
   const db = atk.db;
   atk.krav('las_prover', { resurs: { enhet_id: b.enhet_id } });
   if (a.bestallning_id !== b.id) throw new Fel(404, 'Analysen finns inte i beställningen.', 'saknas');
+  if (!kanRoll(atk.personal, 'bestalla_prov') || vardenhetFor(db, atk.personal.enhet_id) !== vardenhetFor(db, b.enhet_id)) throw new Fel(403, 'Demoknappen för ett rättat svar används av en läkare på den beställande vårdenheten.', 'nekad');
+  if (LAB[a.lab_id]?.instrument || anslutet(db, a.lab_id)) throw new Fel(409, 'Laboratoriet skickar sina svar genom det öppna gränssnittet. Ett rättat svar kommer därifrån och kan inte simuleras.', 'ogiltig');
   const mv = db.query('SELECT m.* FROM labb_svar s JOIN matvarden m ON m.id = s.matvarde_id WHERE s.analys_rad_id = ? ORDER BY s.id').all(a.id);
   const varden = mv.map((m, i) => ({ typ: m.typ, varde: i === 0 ? Number((m.varde_num * 1.1).toFixed(String(m.varde_num).includes('.') ? 1 : 0)) || m.varde_num + 1 : m.varde_num, enhet: m.matt_enhet }));
   const t = a.svar_text ? `${a.svar_text} Tillägg efter eftergranskning: fyndet är oförändrat jämfört med tidigare undersökning.` : null;
