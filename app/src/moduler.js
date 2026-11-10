@@ -93,7 +93,7 @@ export const MODULER = [
       simulerat: 'Reservnumren har ett påhittat format i demon.' }),
   m('sok', 'journal', 'Sökning',
     'Sökning efter patient och sökning i journalen. Systemet tolkar vanliga ord, ICD-10-koder, läkemedelsnamn och läkemedelsgrupper, söker bara i det användaren får läsa och markerar träffen i tidsordning.',
-    { avsnitt: ['3.1.8'], rutter: ['#/sok'], journal: ['sok'], vyer: ['sok.js', 'patient-sok.js'], kod: ['src/journalsok.js'], api: ['/api/sok', '/api/patient/:id/sok'] }),
+    { avsnitt: ['3.1.8'], rutter: ['#/sok'], journal: ['sok'], vyer: ['sok.js', 'patient-sok.js'], kod: ['src/journalsok.js'], api: ['/api/sok', '/api/patient/:id/sok'], nas: 'Sökfältet överst i journalen.' }),
   m('utskrift', 'journal', 'Utskrifter och utlämnanden',
     'Utskrift av hela eller delar av journalen med utskrifts-id på varje sida, där systemet föreslår syftet och säger själv vad som inte kommer med. Utlämnande och återlämnande av journalhandlingar och menprövning registreras.',
     { avsnitt: ['3.1.9'], journal: ['utlamnat'], vyer: ['patient-utlamnat.js'], kod: ['src/utskrift.js', 'public/js/utskrift.js'], api: ['/api/patient/:id/utskrift', '/api/patient/:id/utlamnanden'] }),
@@ -317,13 +317,20 @@ export function lasGransnitt({ rot = APP, text = null } = {}) {
   }
   const meny = new Map();
   for (const x of app.matchAll(/\['(#\/[\w/-]+)',\s*'([^']+)',\s*'\w+'/g)) if (!meny.has(x[1])) meny.set(x[1], x[2]);
+  // En flik med dold: true nås bara från något annat (sökfältet, översikten) och står inte bland flikarna.
+  const dolda = new Set();
   const flikar = (fil, re) => {
     const ut = new Map();
-    for (const x of las(fil).matchAll(re)) if (!ut.has(x[1])) ut.set(x[1], x[2]);
+    for (const rad of las(fil).split('\n')) {
+      for (const x of rad.matchAll(re)) {
+        if (!ut.has(x[1])) ut.set(x[1], x[2]);
+        if (/dold:\s*true/.test(rad) && fil.endsWith('patient.js')) dolda.add(x[1]);
+      }
+    }
     return ut;
   };
   return {
-    rutter, meny,
+    rutter, meny, dolda,
     journal: flikar('public/js/vyer/patient.js', /\['([a-z]+)',\s*'([^']+)',\s*\(/g),
     min: flikar('public/js/vyer/min.js', /\['([a-z]+)',\s*'([^']+)',\s*[\w.(]/g),
     vyer: readdirSync(join(rot, 'public/js/vyer')).filter(f => f.endsWith('.js')).sort(),
@@ -346,7 +353,7 @@ export function modulregister({ register, gransnitt = null, apiFinns = () => fal
   const postRubrik = new Map(poster.map(p => [p.id, p.rubrik]));
   const ut = moduler.map((mod) => {
     const rutter = mod.rutter.map(vag => ({ vag, finns: ruttFinns(g, vag), meny: g.meny.get(vag) ?? null, offentlig: Boolean(g.rutter.find(r => r.re.test(exempel(vag)))?.offentlig) }));
-    const journal = mod.journal.map(flik => ({ flik, namn: g.journal.get(flik) ?? null, finns: g.journal.has(flik) }));
+    const journal = mod.journal.map(flik => ({ flik, namn: g.journal.get(flik) ?? null, finns: g.journal.has(flik), dold: Boolean(g.dolda?.has(flik)) }));
     const min = mod.min.map(flik => ({ flik, namn: g.min.get(flik) ?? null, finns: g.min.has(flik) }));
     const kod = mod.kod.map(fil => ({ fil, finns: finnsFil(fil) }));
     const api = mod.api.map(vag => ({ vag, finns: apiFinns(vag) }));

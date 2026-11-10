@@ -17,11 +17,11 @@ function nas(m) {
   if (meny.length) ut.push(`Menyn: ${meny.map(esc).join(', ')}`);
   const offentliga = m.rutter.filter(r => r.finns && r.offentlig && !r.meny && !r.vag.includes(':'));
   for (const r of offentliga) ut.push(`<a href="${esc(r.vag)}">${esc(m.namn)}</a>, utan inloggning`);
-  const flikar = m.journal.filter(f => f.finns && f.namn).map(f => f.namn);
+  const flikar = m.journal.filter(f => f.finns && f.namn && !f.dold).map(f => f.namn);
   if (flikar.length) ut.push(`Journalen: ${flikar.length === 1 ? 'fliken' : 'flikarna'} ${flikar.map(esc).join(', ')}`);
   const min = m.min.filter(f => f.finns && f.namn).map(f => f.namn);
   if (min.length) ut.push(`Min journal: ${min.map(esc).join(', ')}`);
-  if (m.nas) ut.push(esc(m.nas));
+  if (m.nas) ut.push(esc(m.nas.replace(/\.$/, '')));
   return ut.length ? `<p class="modul-nas"><strong>Nås från</strong> ${ut.join('. ')}.</p>` : '';
 }
 

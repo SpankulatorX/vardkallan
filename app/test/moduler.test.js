@@ -47,6 +47,8 @@ describe('Modulregistret', () => {
   test('varje flik i journalen och i Min journal hör till en modul', () => {
     expect(g.journal.size).toBeGreaterThan(10);
     expect(g.min.size).toBeGreaterThan(5);
+    // Flikar som bara nås från något annat visas inte som flikar på modulsidan.
+    expect([...g.dolda].sort()).toEqual(['sok', 'utbildningslage']);
     for (const f of g.journal.keys()) if (!MODULER.some(m => m.journal.includes(f))) throw new Error(`Fliken ${f} i journalen hör inte till någon modul`);
     for (const f of g.min.keys()) if (!MODULER.some(m => m.min.includes(f))) throw new Error(`Fliken ${f} i Min journal hör inte till någon modul`);
   });
