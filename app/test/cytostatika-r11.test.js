@@ -28,7 +28,7 @@ function ny(db, id = 'k1', extra = {}) {
 const kur = (b, n = 0) => b.kurer[n];
 // En godkänd EC-kur, beredd på beredningsenheten och mottagen på avdelningen, med premedicineringen given.
 function berett(db, pid = 'k1', regim = 'ec') {
-  const b = cyto.ordinera(lak(db, pid), { regim, start: IMORGON }, BAS);
+  const b = cyto.ordinera(lak(db, pid), { regim, start: IMORGON, tidigareBehandling: { svar: 'nej' } }, BAS);
   cyto.godkann(lak(db, pid), cyto.cykelRad(db, kur(b).id), BAS);
   const ids = kur(b).doser.map(d => d.id);
   const lista = bered.arbetslista(db, far(db), efter(30)).attBereda.flatMap(x => x.doser).filter(x => ids.includes(x.dosId));
@@ -59,7 +59,7 @@ describe('Cytostatika i version 1.1', () => {
     expect(f.version).toMatchObject({ version: 2, status: 'vantar', andring: '4 till 6 cykler, premedicinering med klemastin tillagd.', skapad: { av: 'Göran Malm' } });
     expect(fel(() => cyto.foreslaVersion(db, pers(db, 'lak-kard'), 'ec', { cykler: 5, motivering: 'Annan' })).message).toContain('väntar redan');
     // Den gällande versionen används tills den nya är godkänd.
-    expect(cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON }, BAS)).toMatchObject({ cykler: 4, regim: { version: 1 } });
+    expect(cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej' } }, BAS)).toMatchObject({ cykler: 4, regim: { version: 1 } });
     // Göran Malm är inte regimansvarig och skrev versionen. Sara Lindqvist är ansvarig för läkemedelsmallar på kliniken.
     expect(fel(() => cyto.godkannVersion(db, pers(db, 'ol-kard'), f.version.id, BAS)).kod).toBe('samma_person');
     expect(cyto.regimbibliotek(db, pers(db, 'lak-kard')).regimer[0].vantande[0].kanGodkanna).toBe(true);
@@ -70,7 +70,7 @@ describe('Cytostatika i version 1.1', () => {
     // Den pågående behandlingen behåller version 1, och en ny patient får version 2 med premedicineringen.
     expect(cyto.forPatient(lak(db, 'k1', 'las_cytostatika'), efter(11)).behandlingar[0]).toMatchObject({ cykler: 4, regim: { version: 1 } });
     ny(db, 'k2');
-    const b2 = cyto.ordinera(lak(db, 'k2'), { regim: 'ec', start: IMORGON }, efter(12));
+    const b2 = cyto.ordinera(lak(db, 'k2'), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej' } }, efter(12));
     expect(b2).toMatchObject({ cykler: 6, regim: { version: 2 } });
     expect(kur(b2).premedicinering.map(p => p.namn)).toEqual(['Ondansetron', 'Betametason', 'Klemastin']);
     // Ett avslag kräver orsak, och versionen kan inte ändras i databasen.
@@ -114,7 +114,7 @@ describe('Cytostatika i version 1.1', () => {
     const x = db.query("INSERT INTO cyto_behandlingar (patient_id, enhet_id, regim, cykler, start, ordinerad_av, skapad, status) VALUES ('k1', 'uso-kard', 'ec', 4, '2025-01-01', 'lak-kard', '2025-01-01T08:00:00Z', 'avslutad')").run().lastInsertRowid;
     const c = db.query("INSERT INTO cyto_cykler (behandling_id, patient_id, enhet_id, nummer, dag1, langd, vikt, bsa, status) VALUES (?, 'k1', 'uso-kard', 1, '2025-01-01', 165, 62, 1.0, 'klar')").run(x).lastInsertRowid;
     db.query("INSERT INTO cyto_doser (cykel_id, patient_id, enhet_id, lakemedel, ordning, dos_mg, berakning, etikett, status, given_tid) VALUES (?, 'k1', 'uso-kard', 'epirubicin', 1, 830, 'x', 'VKCX0001', 'given', '2025-01-01T09:00:00Z')").run(c);
-    const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON }, BAS);
+    const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej' } }, BAS);
     expect(b.kumulativ[0]).toMatchObject({ lakemedel: 'Epirubicin', givet: 830, grans: 900, overskrids: true });
     expect(b.kumulativ[0].text).toContain('Gränsen räcker till 0 kurer till.');
     expect(fel(() => cyto.godkann(lak(db), cyto.cykelRad(db, kur(b).id), BAS))).toMatchObject({ kod: 'kumulativ' });
@@ -125,8 +125,40 @@ describe('Cytostatika i version 1.1', () => {
     // En ny regim med antracyklin ordineras inte när den första kuren skulle passera gränsen.
     db.query("UPDATE cyto_doser SET dos_mg = 900 WHERE etikett = 'VKCX0001'").run();
     db.query("UPDATE cyto_behandlingar SET status = 'avslutad' WHERE patient_id = 'k1'").run();
-    expect(fel(() => cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON }, BAS)).kod).toBe('kumulativ');
+    expect(fel(() => cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej' } }, BAS)).kod).toBe('kumulativ');
     expect(cyto.kumulativGiven(lak(db, 'k1', 'las_cytostatika'), 'epirubicin')).toBe(900);
+  });
+
+  test('kumulativ dos följer läkemedelslistan: en kur på en annan vårdenhet räknas utan aktivt val, en spärrad vårdenhet som i läkemedelslistan, och utan svar om tidigare behandling stoppar systemet', () => {
+    const db = sandlada();
+    ny(db);
+    // En tidigare EC-behandling på Medicinkliniken i Lindesberg, en annan vårdenhet, där 830 mg/m² epirubicin är givet.
+    const x = db.query("INSERT INTO cyto_behandlingar (patient_id, enhet_id, regim, cykler, start, ordinerad_av, skapad, status) VALUES ('k1', 'lind-med', 'ec', 4, '2025-01-01', 'lak-lind', '2025-01-01T08:00:00Z', 'avslutad')").run().lastInsertRowid;
+    const c = db.query("INSERT INTO cyto_cykler (behandling_id, patient_id, enhet_id, nummer, dag1, langd, vikt, bsa, status) VALUES (?, 'k1', 'lind-med', 1, '2025-01-01', 165, 62, 1.0, 'klar')").run(x).lastInsertRowid;
+    db.query("INSERT INTO cyto_doser (cykel_id, patient_id, enhet_id, lakemedel, ordning, dos_mg, berakning, etikett, status, given_tid) VALUES (?, 'k1', 'lind-med', 'epirubicin', 1, 830, 'x', 'VKCX0002', 'given', '2025-01-01T09:00:00Z')").run(c);
+    // Utan svar om tidigare dosbegränsad behandling hos andra vårdgivare ordinerar systemet inte en regim med en gräns.
+    const e = fel(() => cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON }, BAS));
+    expect([e.status, e.kod, e.extra.falt]).toEqual([400, 'tidigare', ['tidigareBehandling']]);
+    expect(e.message).toContain('fått antracykliner eller annan behandling med en gräns för hela livet');
+    expect(fel(() => cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'ja', tidigareBehandling: { svar: 'nej' } } }, BAS)).message).toContain('mängden');
+    // Kardiologens läkare har inget aktivt val, och den givna dosen på Lindesberg räknas ändå, som i läkemedelslistan.
+    const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej', tidigareBehandling: { svar: 'nej' } } }, BAS);
+    expect(b.kumulativ[0]).toMatchObject({ givet: 830, overskrids: true });
+    expect(b.kumulativ[0].givna).toEqual([{ vardenhet: 'Medicinkliniken Lindesbergs lasarett', mgPerM2: 830, fran: '2025-01-01', till: '2025-01-01' }]);
+    expect(fel(() => cyto.godkann(lak(db), cyto.cykelRad(db, kur(b).id), BAS)).kod).toBe('kumulativ');
+    // En spärr mot Lindesberg döljer dosen som i läkemedelslistan, och systemet säger att spärrade doser inte räknas.
+    sparr(db, 'k1', 'lind-med');
+    const sp = cyto.forPatient(lak(db, 'k1', 'las_cytostatika'), BAS).behandlingar[0].kumulativ[0];
+    expect(sp).toMatchObject({ givet: 0, sparrade: true });
+    expect(sp.text).toContain('Doser från en spärrad vårdenhet räknas inte');
+    expect(cyto.kumulativGiven(lak(db, 'k1', 'las_cytostatika', { samtycke_sparr: true }), 'epirubicin')).toBe(830);
+    // Ett ja med mängd räknas in: 100 mg/m² från en annan vårdgivare.
+    ny(db, 'k7');
+    const b7 = cyto.ordinera(lak(db, 'k7'), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'ja', mgPerM2: 100, varifran: 'Onkologen i Uppsala 2019', tidigareBehandling: { svar: 'nej' } } }, BAS);
+    expect(b7.kumulativ[0]).toMatchObject({ givet: 100 });
+    expect(b7.kumulativ[0].givna[0]).toMatchObject({ vardenhet: 'Tidigare behandling hos annan vårdgivare: Onkologen i Uppsala 2019', mgPerM2: 100 });
+    // Svaret finns kvar, så nästa behandling frågar inte igen.
+    expect(cyto.forPatient(lak(db, 'k7', 'las_cytostatika'), BAS).tidigareBehandling).toMatchObject({ svar: 'ja', mgPerM2: 100 });
   });
 
   test('kapaciteten: beredningsenheten styr hur många kurer den tar emot per dag, och en full dag stoppar godkännandet med första lediga dag', () => {
@@ -134,10 +166,10 @@ describe('Cytostatika i version 1.1', () => {
     ny(db); ny(db, 'k2');
     expect(fel(() => bered.sattKapacitet(db, pers(db, 'far-kard'), { datum: IMORGON, platser: 1 }, BAS)).status).toBe(403);
     expect(bered.sattKapacitet(db, far(db), { datum: IMORGON, platser: 1 }, BAS).kapacitet).toMatchObject({ datum: IMORGON, platser: 1, bokade: 0, lediga: 1 });
-    const b1 = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON }, BAS);
+    const b1 = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej' } }, BAS);
     expect(kur(b1).kapacitet).toMatchObject({ lediga: 1 });
     cyto.godkann(lak(db), cyto.cykelRad(db, kur(b1).id), BAS);
-    const b2 = cyto.ordinera(lak(db, 'k2'), { regim: 'ec', start: IMORGON }, BAS);
+    const b2 = cyto.ordinera(lak(db, 'k2'), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej' } }, BAS);
     const e = fel(() => cyto.godkann(lak(db, 'k2'), cyto.cykelRad(db, kur(b2).id), BAS));
     expect(e).toMatchObject({ kod: 'kapacitet', extra: { forslag: addDagar(IMORGON, 1), dagar: 1 } });
     expect(e.message).toBe(`Cytostatikaberedningen USÖ har inga lediga platser ${IMORGON}. Första dag med plats är ${addDagar(IMORGON, 1)}. Skjut upp kuren dit eller kontakta beredningsenheten.`);
@@ -152,7 +184,7 @@ describe('Cytostatika i version 1.1', () => {
   test('beredningsenheten: arbetslistan visar de godkända kurerna med beräkning och föreslagen batch, och beredningen signeras med batch och kontrollmätt volym', () => {
     const db = sandlada();
     ny(db);
-    const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON }, BAS);
+    const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej' } }, BAS);
     expect(bered.arbetslista(db, far(db), BAS).attBereda).toEqual([]);
     cyto.godkann(lak(db), cyto.cykelRad(db, kur(b).id), BAS);
     // Avdelningen kan inte låta den simulerade externa beredningen bereda en kur från USÖ.
@@ -196,7 +228,7 @@ describe('Cytostatika i version 1.1', () => {
     expect(bered.kassera(db, far(db), utg.id, {}, BAS).text).toBe('Batchen EPIR0099 är kasserad, 60 ml.');
     expect(fel(() => bered.kassera(db, far(db), utg.id, {}, BAS)).message).toContain('redan kasserad');
     // Behovet: planerade kurer de kommande två veckorna som inte är beredda.
-    cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON }, BAS);
+    cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej' } }, BAS);
     expect(bered.lager(db, far(db), BAS).varor.find(v => v.id === 'epirubicin')).toMatchObject({ behov14: 76, racker: true });
     db.query("UPDATE cyto_lager SET kvar = 10 WHERE vara = 'epirubicin'").run();
     expect(bered.lager(db, far(db), BAS).varor.find(v => v.id === 'epirubicin').text).toBe('Räcker inte: kurerna de kommande två veckorna behöver 76 ml. Beställ 1 förpackning.');
@@ -224,7 +256,7 @@ describe('Cytostatika i version 1.1', () => {
   test('säkerhet: beredningsenheten ser bara beställningen och aldrig journalen, en farmaceut på en vårdenhet bereder inte, och varje patient i arbetslistan loggas', async () => {
     const db = sandlada();
     ny(db);
-    const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON }, BAS);
+    const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej' } }, BAS);
     cyto.godkann(lak(db), cyto.cykelRad(db, kur(b).id), BAS);
     for (const f of [() => bered.arbetslista(db, pers(db, 'far-kard'), BAS), () => bered.lager(db, pers(db, 'lak-kard'), BAS), () => bered.sparbarhet(db, pers(db, 'ssk-kard'), 'EPIR0001', BAS),
       () => bered.bered(db, pers(db, 'far-kard'), kur(b).doser[0].id, { batch: 'EPIR0001', uppmattMl: 76 }, BAS)]) expect(fel(f).status).toBe(403);
@@ -238,7 +270,7 @@ describe('Cytostatika i version 1.1', () => {
     nyPatient(db, { id: 'k4', enhet: 'lind-med', ar: 1970 });
     db.query("INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, tid) VALUES ('k4', 'lind-med', 'langd', '170', 170, ?), ('k4', 'lind-med', 'vikt', '70', 70, ?), ('k4', 'lind-med', 'lpk', '5', 5, ?), ('k4', 'lind-med', 'tpk', '200', 200, ?)")
       .run(efter(-60).toISOString(), efter(-60).toISOString(), efter(-60).toISOString(), efter(-60).toISOString());
-    const b4 = cyto.ordinera(atk(db, 'lak-lind', 'k4', 'ordinera_cytostatika'), { regim: 'ec', start: IMORGON }, BAS);
+    const b4 = cyto.ordinera(atk(db, 'lak-lind', 'k4', 'ordinera_cytostatika'), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej' } }, BAS);
     cyto.godkann(atk(db, 'lak-lind', 'k4', 'ordinera_cytostatika'), cyto.cykelRad(db, kur(b4).id), BAS);
     expect(fel(() => bered.bered(db, far(db), kur(b4).doser[0].id, { batch: 'EPIR0001', uppmattMl: 76 }, BAS)).status).toBe(404);
     expect(JSON.stringify(bered.arbetslista(db, far(db), BAS))).not.toContain(kur(b4).doser[0].etikett);
@@ -354,8 +386,8 @@ describe('Cytostatika i version 1.1', () => {
   test('vårdenhetens vy visar kurerna med nästa steg och beredningsenhetens platser, och bara patienter som den inloggade får se', () => {
     const db = sandlada();
     ny(db); ny(db, 'k5');
-    const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON }, BAS);
-    cyto.ordinera(lak(db, 'k5'), { regim: 'ec', start: IMORGON }, BAS);
+    const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej' } }, BAS);
+    cyto.ordinera(lak(db, 'k5'), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej' } }, BAS);
     db.query("UPDATE matvarden SET tid = ? WHERE patient_id = 'k5' AND typ IN ('lpk', 'tpk')").run(efter(-5 * 24 * 60).toISOString());
     cyto.godkann(lak(db), cyto.cykelRad(db, kur(b).id), BAS);
     const v = cyto.enhetsvy(db, pers(db, 'lak-kard'), () => ({}), BAS);
@@ -386,7 +418,7 @@ describe('Cytostatika i version 1.1 via API', () => {
     expect((await k.post(`/api/cytostatika/regimversion/${f.data.version.id}/okand`, {})).status).toBe(404);
     nyPatient(db, { id: 'ka1', enhet: ENHET, ar: 1960, kon: 'K', start: new Date() });
     for (const [t, v] of [['langd', 168], ['vikt', 70], ['lpk', 6], ['tpk', 250]]) db.query("INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, tid) VALUES ('ka1', ?, ?, ?, ?, ?)").run(ENHET, t, String(v), v, new Date(Date.now() - 3600_000).toISOString());
-    const b = await k.post('/api/patient/ka1/cytostatika', { regim: 'ec', start: datumAv(new Date()) });
+    const b = await k.post('/api/patient/ka1/cytostatika', { regim: 'ec', start: datumAv(new Date()), tidigareBehandling: { svar: 'nej' } });
     expect(b.data.regim.version).toBe(2);
     expect((await k.get('/api/patient/ka1')).data.specialistR11r4).toEqual({ cytostatika: true, blod: false });
     const cid = b.data.kurer[0].id;

@@ -7,7 +7,7 @@
 import { CYTOSTATIKA as T } from '../runda9-r3.js';
 import { CYTOSTATIKA_R11 as R, GRANSSNITT_R11R4 as G } from '../runda11-r4.js';
 
-const ORD = [T.regim, T.karboplatin, T.prov, T.dosjustering, T.sakerhet, T.enhet, T.behorighet, T.api, R.regimbibliotek, R.premed, R.kumulativ, R.kapacitet, R.enhet, R.api, G.godkann, G.regim];
+const ORD = [T.regim, T.karboplatin, T.prov, T.dosjustering, T.sakerhet, T.enhet, T.behorighet, T.api, R.regimbibliotek, R.premed, R.kumulativ, R.kumulativListan, R.kapacitet, R.enhet, R.api, G.godkann, G.regim];
 const BERED = [T.beredning, T.sakerhet, T.enhet, T.api, R.beredning, R.lager, R.sparbarhet, R.sakerhet, R.kapacitet, R.api, G.bered];
 const GE = [T.sangen, T.dubbel, T.peroral, T.sakerhet, T.enhet, T.behorighet, T.api, R.premed, R.infusion, R.reaktion, R.min, R.api, G.min];
 
@@ -27,7 +27,7 @@ export default [
   { id: '4.8.1.4', kategori: 'system', egna: [], tester: ORD, avsedd: 'uppfyllt_demo',
     losning: 'Regimbiblioteket har versioner. En läkare föreslår en ny version, systemet skriver vad som ändras, och en regimansvarig läkare godkänner eller avslår den i sin egen inloggning. Nya ordinationer får den godkända versionen och pågående behandlingar behåller sin. Regimerna har cykler, intervall, dagar, premedicinering och gräns för den kumulativa dosen. Doserna räknas per kroppsyta (Mosteller) eller med Calverts formel för karboplatin ur njurfunktionen (Cockcroft-Gault, med tak). Före varje kur prövas provsvaren, den kumulativa dosen och beredningsenhetens kapacitet, och läkaren godkänner kuren, justerar dosen med orsak eller skjuter upp cykeln till den dag som systemet föreslår. Varje kur visar skillnaden mot förra kuren.',
     expert: 'Systemet räknar och avrundar doserna, säger vilka provsvar som saknas eller ligger under gränsen, hur mycket av gränsen för den kumulativa dosen som återstår och vilken dag beredningsenheten har plats, och räknar om doserna när vikten ändras.',
-    anmarkning: 'Tre regimer som demoregler (EC, karboplatin och kapecitabin). Regimansvarig är i demon den läkare som är ansvarig för läkemedelsmallar på sin vårdenhet. Den kumulativa dosen räknas på de behandlingar som den inloggade får se.' },
+    anmarkning: 'Tre regimer som demoregler (EC, karboplatin och kapecitabin). Regimansvarig är i demon den läkare som är ansvarig för läkemedelsmallar på sin vårdenhet. Den kumulativa dosen räknas på de givna doser som läkemedelslistan visar och på ordinatörens svar om tidigare behandling hos andra vårdgivare, som systemet kräver före den första kuren.' },
   { id: '4.8.1.5', kategori: 'system', egna: [], tester: BERED, avsedd: 'uppfyllt_demo',
     losning: 'Beredningsenheten har en arbetslista per dag med varje dos, beräkning, stamlösning, volym, bärarlösning, total volym, infusionstid, hållbarhet och etikett, ett lager med batcher och utgångsdatum, spårbarhet från en batch till varje patient som har fått den och kapacitet per dag som styr hur många kurer som kan godkännas. Beredningen signeras med batch och kontrollmätt volym.',
     expert: 'Systemet räknar volym och tabletter, föreslår batchen, nekar fel substans, utgången batch och en mätning utanför gränsen, säger om lagret räcker till de planerade kurerna och kontrollerar streckkoden när beredningen tas emot och vid sängen.',

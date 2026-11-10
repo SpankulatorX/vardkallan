@@ -79,7 +79,7 @@ describe('API för specialistområdena', () => {
   test('cytostatika: läkaren ordinerar och godkänner, beredningsordern hämtas och dubbelkontrollen görs i två inloggningar', async () => {
     const { k, db } = await start();
     for (const [t, v] of [['langd', 168], ['vikt', 70], ['lpk', 6], ['tpk', 250]]) mv(db, 'sp1', t, v);
-    const b = await k.post('/api/patient/sp1/cytostatika', { regim: 'ec' });
+    const b = await k.post('/api/patient/sp1/cytostatika', { regim: 'ec', tidigareBehandling: { svar: 'nej' } });
     expect(b.status).toBe(201);
     const cid = b.data.kurer[0].id;
     expect((await k.get(`/api/cytostatika/cykel/${cid}/provkontroll`)).data.ok).toBe(true);

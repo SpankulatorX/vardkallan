@@ -104,6 +104,12 @@ function ordinationHtml(d, idag) {
       <div class="falt smal"><label for="cy-start">Startdag</label><input id="cy-start" name="start" type="date" value="${esc(imorgon)}" min="${esc(idag)}"></div>
     </div>
     <p class="under-text" id="cy-regim-info"></p>
+    ${d.tidigareBehandling ? `<p class="under-text">Tidigare behandling hos annan vårdgivare: ${d.tidigareBehandling.svar === 'ja' ? `${esc(d.tidigareBehandling.mgPerM2)} mg/m²${d.tidigareBehandling.varifran ? `, ${esc(d.tidigareBehandling.varifran)}` : ''}` : 'ingen'}, enligt ${esc(d.tidigareBehandling.av ?? '')} ${esc(datum(d.tidigareBehandling.tid))}.</p>` : `<fieldset id="cy-tidigare" class="cy-tidigare"><legend>Har patienten fått antracykliner eller annan behandling med en gräns för hela livet hos en annan vårdgivare?</legend>
+      <p class="hjalp" id="cy-tid-h">Systemet ser bara behandlingar i Vårdkällan och räknar den kumulativa dosen med ditt svar.</p>
+      <div class="kryssrad"><div class="radio"><input type="radio" id="cy-tid-nej" name="tidigare" value="nej" aria-describedby="cy-tid-h"><label for="cy-tid-nej">Nej</label></div>
+        <div class="radio"><input type="radio" id="cy-tid-ja" name="tidigare" value="ja"><label for="cy-tid-ja">Ja</label></div></div>
+      <div class="falt-rad" id="cy-tid-mer" hidden><div class="falt smal"><label for="cy-tid-mg">Mängd, mg/m² räknat som epirubicin</label><input id="cy-tid-mg" name="tidigareMg" inputmode="decimal" autocomplete="off"></div>
+        <div class="falt"><label for="cy-tid-var">Var och när</label><input id="cy-tid-var" name="tidigareVar" maxlength="120" autocomplete="off"></div></div></fieldset>`}
     <div class="knapprad"><button type="submit" class="knapp">Ordinera</button> <a class="knapp sekundar" href="#/cytostatika/regimer">Regimbiblioteket</a></div>
     <p class="form-fel" role="alert" hidden></p>
   </form>`;
@@ -127,8 +133,12 @@ export async function visa(el, ctx) {
     const f = el.querySelector('#cy-ord');
     if (!f) return;
     const r = d.regimer.find(x => x.id === f.regim.value);
-    el.querySelector('#cy-regim-info').textContent = `${r.cykler} cykler var ${r.intervall}:e dag. ${r.lakemedel.map(l => `${l.namn} ${l.dos}`).join(', ')}.${r.premedicinering.length ? ` Premedicinering: ${r.premedicinering.join(', ')}.` : ''}`;
+    el.querySelector('#cy-regim-info').textContent = `${r.cykler} cykler var ${r.intervall}:e dag. ${r.lakemedel.map(l => `${l.namn} ${l.dos}`).join(', ')}.${r.premedicinering.length ? ` Premedicinering: ${r.premedicinering.join(', ')}.` : ''}${r.kumulativ.length ? ` Gräns för hela livet: ${r.kumulativ.map(k => `${k.lakemedel} ${k.grans} mg/m²`).join(', ')}.` : ''}`;
+    // Frågan om tidigare behandling gäller bara en regim med en gräns för den kumulativa dosen.
+    const t = el.querySelector('#cy-tidigare');
+    if (t) t.hidden = !r.kumulativ.length;
   };
+  el.querySelector('#cy-tidigare')?.addEventListener('change', (e) => { if (e.target.name === 'tidigare') el.querySelector('#cy-tid-mer').hidden = e.target.value !== 'ja'; });
   info();
   el.querySelector('#cy-regim')?.addEventListener('change', info);
   const post = async (knapp, vag, data = {}, form = null, text = null) => {
@@ -151,7 +161,10 @@ export async function visa(el, ctx) {
   el.querySelector('#cy-ord')?.addEventListener('submit', (e) => {
     e.preventDefault();
     const f = e.currentTarget;
-    post(f.querySelector('[type=submit]'), `/api/patient/${encodeURIComponent(ctx.id)}/cytostatika`, { regim: f.regim.value, start: f.start.value }, f, 'Behandlingen är ordinerad.');
+    const data = { regim: f.regim.value, start: f.start.value };
+    const svar = f.querySelector('[name="tidigare"]:checked')?.value;
+    if (svar && !el.querySelector('#cy-tidigare').hidden) data.tidigareBehandling = { svar, mgPerM2: f.tidigareMg.value || null, varifran: f.tidigareVar.value || null };
+    post(f.querySelector('[type=submit]'), `/api/patient/${encodeURIComponent(ctx.id)}/cytostatika`, data, f, 'Behandlingen är ordinerad.');
   });
   el.addEventListener('click', (e) => {
     const t = e.target.closest('button');

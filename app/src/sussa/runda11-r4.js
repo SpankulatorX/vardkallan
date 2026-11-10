@@ -11,6 +11,7 @@ export const CYTOSTATIKA_R11 = {
   regimbibliotek: `${CY}regimbiblioteket: en ändrad regim är en ny version som en regimansvarig läkare godkänner i sin egen inloggning, och nya ordinationer får den godkända versionen`,
   premed: `${CY}premedicineringen läggs ut med kuren och ges vid sängen före den första cytostatikadosen`,
   kumulativ: `${CY}kumulativ dos: systemet räknar den kumulativa antracyklindosen per kvadratmeter och stoppar kuren som skulle passera gränsen`,
+  kumulativListan: `${CY}kumulativ dos följer läkemedelslistan: en kur på en annan vårdenhet räknas utan aktivt val, en spärrad vårdenhet som i läkemedelslistan, och utan svar om tidigare behandling stoppar systemet`,
   kapacitet: `${CY}kapaciteten: beredningsenheten styr hur många kurer den tar emot per dag, och en full dag stoppar godkännandet med första lediga dag`,
   beredning: `${CY}beredningsenheten: arbetslistan visar de godkända kurerna med beräkning och föreslagen batch, och beredningen signeras med batch och kontrollmätt volym`,
   lager: `${CY}lagret: batcher tas emot, utgångna kasseras och systemet säger om lagret räcker till de planerade kurerna`,

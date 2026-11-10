@@ -1853,7 +1853,7 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Intensivvård') + 1, 0, 'Cytosta
         await forvanta(page, '.notis', 'är beredd och signerad');
         await vantaVy(page);
       }
-      await forvanta(page, '#bd-klara ~ ul', 'Annika Holmgren');
+      await forvanta(page, 'section[aria-labelledby="bd-klara"]', 'Annika Holmgren');
       await bild(page, '121-beredning');
       await page.locator('[data-bd-spara]').first().click();
       await forvanta(page, '#bd-spar', 'Alla doser som är beredda ur batchen');

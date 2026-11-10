@@ -120,6 +120,10 @@ CREATE TABLE IF NOT EXISTS cyto_patientrapporter (
   morgon INTEGER NOT NULL, kvall INTEGER NOT NULL, feber REAL, diarre INTEGER NOT NULL, illamaende INTEGER NOT NULL, handfot INTEGER NOT NULL, bedomning TEXT NOT NULL
 );
 CREATE TRIGGER IF NOT EXISTS cyto_patientrapport_andras_ej BEFORE UPDATE ON cyto_patientrapporter BEGIN SELECT RAISE(ABORT, 'En rapport ändras inte.'); END;
+CREATE TABLE IF NOT EXISTS cyto_tidigare (
+  id INTEGER PRIMARY KEY, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, svar TEXT NOT NULL, mg_per_m2 REAL, varifran TEXT, tid TEXT NOT NULL, av TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS cyto_tidigare_andras_ej BEFORE UPDATE OF svar, mg_per_m2, varifran, tid, av ON cyto_tidigare BEGIN SELECT RAISE(ABORT, 'Svaret om tidigare behandling ändras inte.'); END;
 `;
 const har = new WeakSet();
 export function sakra(db) {
@@ -374,23 +378,42 @@ function nyCykel(atk, b, nummer, dag1, nu) {
   return c;
 }
 
-// Runda 11, r4: den kumulativa dosen per kvadratmeter för läkemedel med en gräns för hela livet, räknad på alla
-// patientens behandlingar som den inloggade får se. En avbruten infusion räknas med den del som har gått in.
-export function kumulativGiven(atk, lakemedel) {
+// Runda 11, r4: den kumulativa dosen per kvadratmeter för läkemedel med en gräns för hela livet. Givna cytostatikadoser
+// är läkemedel och följer läkemedelslistans synlighet: de är gemensamma för vårdgivaren och räknas från alla vårdenheter
+// utan aktivt val, men inte från en spärrad vårdenhet utan patientens samtycke (säkerhetsgranskningen av runda 11: att
+// räkna bara på journalens läsfilter släppte igenom en kur på en annan vårdenhet). En avbruten infusion räknas med den del
+// som har gått in. Ordinatörens svar om tidigare behandling hos andra vårdgivare räknas också, eftersom den aldrig syns i
+// systemet.
+export const tidigareFor = (atk) => {
+  sakra(atk.db);
+  return atk.filtrera(atk.db.query('SELECT * FROM cyto_tidigare WHERE patient_id = ? ORDER BY id DESC').all(atk.patientId), 'las_lakemedel', { gemensam: true })[0] ?? null;
+};
+const tidigareUt = (db, t) => (t ? { svar: t.svar, mgPerM2: t.mg_per_m2, varifran: t.varifran, tid: t.tid, av: personNamn(db, t.av), vardenhet: enhetsnamn(db, vardenhetFor(db, t.enhet_id)) } : null);
+const TIDIGARE_TEXT = 'Tidigare behandling hos annan vårdgivare';
+export function kumulativDetalj(atk, lakemedel) {
   const db = atk.db;
-  const synliga = atk.filtrera(db.query('SELECT * FROM cyto_behandlingar WHERE patient_id = ?').all(atk.patientId), 'las_cytostatika');
-  let summa = 0;
-  for (const b of synliga) {
-    for (const d of db.query(`SELECT d.*, c.bsa FROM cyto_doser d JOIN cyto_cykler c ON c.id = d.cykel_id WHERE c.behandling_id = ? AND d.lakemedel = ? AND d.status IN ('given', 'avbruten')`).all(b.id, lakemedel)) {
-      const andel = d.status === 'avbruten' && d.volym_ml ? Math.min(1, givnaMl(db, d) / d.volym_ml) : 1;
-      summa += (d.dos_mg * andel) / d.bsa;
-    }
+  const doser = atk.filtrera(db.query(`SELECT d.*, c.bsa, c.dag1 FROM cyto_doser d JOIN cyto_cykler c ON c.id = d.cykel_id WHERE d.patient_id = ? AND d.lakemedel = ? AND d.status IN ('given', 'avbruten') ORDER BY c.dag1, d.id`).all(atk.patientId, lakemedel), 'las_lakemedel', { gemensam: true });
+  const per = new Map();
+  for (const d of doser) {
+    const andel = d.status === 'avbruten' && d.volym_ml ? Math.min(1, givnaMl(db, d) / d.volym_ml) : 1;
+    const ve = vardenhetFor(db, d.enhet_id);
+    const x = per.get(ve) ?? { vardenhet: enhetsnamn(db, ve), mg: 0, fran: d.dag1, till: d.dag1 };
+    x.mg += (d.dos_mg * andel) / d.bsa;
+    if (d.dag1 > x.till) x.till = d.dag1;
+    per.set(ve, x);
   }
-  return summa;
+  const givna = [...per.values()].map(x => ({ vardenhet: x.vardenhet, mgPerM2: Math.round(x.mg), fran: x.fran, till: x.till }));
+  const t = tidigareFor(atk);
+  if (t?.svar === 'ja' && t.mg_per_m2) givna.unshift({ vardenhet: `${TIDIGARE_TEXT}${t.varifran ? `: ${t.varifran}` : ''}`, mgPerM2: Math.round(t.mg_per_m2), fran: null, till: null });
+  const summa = [...per.values()].reduce((a, x) => a + x.mg, 0) + (t?.svar === 'ja' ? t.mg_per_m2 ?? 0 : 0);
+  // Som i läkemedelslistan sägs bara att det finns spärrade uppgifter, aldrig om de innehåller cytostatika.
+  return { summa, givna, sparrade: Boolean(atk.prova('las_lakemedel', {}).spärrade) };
 }
+export const kumulativGiven = (atk, lakemedel) => kumulativDetalj(atk, lakemedel).summa;
 function kumulativUt(atk, b, r, cykler) {
   return r.lakemedel.filter(l => l.kumulativ).map(l => {
-    const givet = kumulativGiven(atk, l.id);
+    const detalj = kumulativDetalj(atk, l.id);
+    const givet = detalj.summa;
     const kvarande = cykler.filter(c => c.status !== 'klar').map(c => {
       const d = atk.db.query("SELECT dos_mg FROM cyto_doser WHERE cykel_id = ? AND lakemedel = ? AND status NOT IN ('given', 'avbruten')").get(c.id, l.id);
       return d ? d.dos_mg / c.bsa : 0;
@@ -398,8 +421,8 @@ function kumulativUt(atk, b, r, cykler) {
     const perCykel = kvarande[0] ?? (l.dosPerM2 ?? 0);
     const efter = givet + kvarande.reduce((x, y) => x + y, 0) + perCykel * Math.max(0, b.cykler - cykler.length);
     const ryms = perCykel > 0 ? Math.max(0, Math.floor((l.kumulativ - givet + 1e-9) / perCykel)) : null;
-    return { lakemedel: l.namn, givet: Math.round(givet), grans: l.kumulativ, efterBehandlingen: Math.round(efter), overskrids: efter > l.kumulativ + 1e-9,
-      text: `${l.namn}: ${Math.round(givet)} mg/m² är givet av gränsen ${l.kumulativ} mg/m² för hela livet. Efter hela behandlingen blir det ${Math.round(efter)} mg/m².${efter > l.kumulativ + 1e-9 ? ` Gränsen räcker till ${ryms === 1 ? 'en kur' : `${ryms} kurer`} till.` : ''}` };
+    return { lakemedel: l.namn, givet: Math.round(givet), grans: l.kumulativ, efterBehandlingen: Math.round(efter), overskrids: efter > l.kumulativ + 1e-9, givna: detalj.givna, sparrade: detalj.sparrade,
+      text: `${l.namn}: ${Math.round(givet)} mg/m² är givet av gränsen ${l.kumulativ} mg/m² för hela livet. Efter hela behandlingen blir det ${Math.round(efter)} mg/m².${efter > l.kumulativ + 1e-9 ? ` Gränsen räcker till ${ryms === 1 ? 'en kur' : `${ryms} kurer`} till.` : ''}${detalj.sparrade ? ' Doser från en spärrad vårdenhet räknas inte. Fråga patienten om samtycke att visa dem om det kan ha betydelse.' : ''}` };
   });
 }
 
@@ -411,7 +434,8 @@ export const regimer = (db = null) => Object.keys(REGIMER).map(id => {
   const r = v ? JSON.parse(v.innehall) : REGIMER[id];
   return { id, namn: r.namn, intervall: r.intervall, cykler: r.cykler, peroral: r.lakemedel.some(l => l.po), version: v?.version ?? 1,
     lakemedel: r.lakemedel.map(l => ({ namn: l.namn, dos: l.auc ? `AUC ${l.auc}` : `${l.dosPerM2} mg/m²`, dagar: l.dagar })),
-    premedicinering: (r.premedicinering ?? []).map(p => `${PREMED[p].namn} ${PREMED[p].dos} ${PREMED[p].vag}`) };
+    premedicinering: (r.premedicinering ?? []).map(p => `${PREMED[p].namn} ${PREMED[p].dos} ${PREMED[p].vag}`),
+    kumulativ: r.lakemedel.filter(l => l.kumulativ).map(l => ({ lakemedel: l.namn, grans: l.kumulativ })) };
 });
 
 export function ordinera(atk, body = {}, nu = new Date()) {
@@ -427,10 +451,23 @@ export function ordinera(atk, body = {}, nu = new Date()) {
   if (!Number.isInteger(cykler) || cykler < 1 || cykler > r.cykler) throw new Fel(400, `Regimen har högst ${r.cykler} cykler.`, 'ogiltig', { falt: ['cykler'] });
   if (db.query("SELECT 1 FROM cyto_behandlingar WHERE patient_id = ? AND status = 'pagaende'").get(atk.patientId)) throw new Fel(409, 'Patienten har redan en pågående cytostatikabehandling.', 'ogiltig');
   const u = underlag(atk, r, nu);
-  // Runda 11, r4: en regim med ett läkemedel vars gräns för den kumulativa dosen redan är nådd ordineras inte. En kur som
-  // skulle passera gränsen stoppas när den ska godkännas, så att läkaren kan minska dosen.
-  for (const l of r.lakemedel.filter(x => x.kumulativ)) {
-    const givet = kumulativGiven(atk, l.id);
+  // Runda 11, r4: före den första kuren i en regim med en gräns för den kumulativa dosen svarar ordinatören om patienten
+  // har fått sådan behandling hos en annan vårdgivare, eftersom den aldrig syns i systemet. Utan svar stoppar systemet.
+  const medGrans = r.lakemedel.filter(x => x.kumulativ);
+  let nyttSvar = null;
+  if (medGrans.length && !tidigareFor(atk)) {
+    const t = body.tidigareBehandling;
+    if (!t || !['ja', 'nej'].includes(t.svar)) {
+      throw new Fel(400, `Svara om patienten har fått antracykliner eller annan behandling med en gräns för hela livet hos en annan vårdgivare. Systemet ser bara behandlingar i Vårdkällan och behöver svaret för att räkna den kumulativa dosen av ${medGrans.map(x => x.namn.toLowerCase()).join(' och ')}.`, 'tidigare', { falt: ['tidigareBehandling'] });
+    }
+    const mg = t.svar === 'ja' ? Number(String(t.mgPerM2 ?? '').replace(',', '.')) : null;
+    if (t.svar === 'ja' && (!Number.isFinite(mg) || mg <= 0 || mg > 2000)) throw new Fel(400, 'Skriv mängden som patienten har fått, i mg/m² räknat som epirubicin.', 'tidigare', { falt: ['tidigareBehandling'] });
+    nyttSvar = { svar: t.svar, mg, varifran: textFalt(t.varifran, 120) || null };
+  }
+  // En regim med ett läkemedel vars gräns redan är nådd ordineras inte. En kur som skulle passera gränsen stoppas när den
+  // ska godkännas, så att läkaren kan minska dosen.
+  for (const l of medGrans) {
+    const givet = kumulativGiven(atk, l.id) + (nyttSvar?.mg ?? 0);
     if (givet >= l.kumulativ - 0.5) throw new Fel(409, `${l.namn}: ${Math.round(givet)} mg/m² är redan givet, och gränsen ${l.kumulativ} mg/m² för hela livet är nådd. Välj en regim utan ${l.namn.toLowerCase()}.`, 'kumulativ');
   }
   let b;
@@ -438,6 +475,7 @@ export function ordinera(atk, body = {}, nu = new Date()) {
     const x = db.query("INSERT INTO cyto_behandlingar (patient_id, enhet_id, vardkontakt_id, regim, cykler, start, ordinerad_av, skapad, status, regim_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pagaende', ?)")
       .run(atk.patientId, atk.personal.enhet_id, vardkontaktFor(atk, nu), body.regim, cykler, start, atk.personal.id, iso(nu), v.id);
     b = behandlingRad(db, x.lastInsertRowid);
+    if (nyttSvar) db.query('INSERT INTO cyto_tidigare (patient_id, enhet_id, svar, mg_per_m2, varifran, tid, av) VALUES (?, ?, ?, ?, ?, ?, ?)').run(atk.patientId, atk.personal.enhet_id, nyttSvar.svar, nyttSvar.mg, nyttSvar.varifran, iso(nu), atk.personal.id);
     nyCykel(atk, b, 1, start, nu);
     historik(db, b, atk.personal.id, 'ordinerad', `${r.namn}, ${cykler} cykler var ${r.intervall}:e dag från ${start}.`, iso(nu));
   })();
@@ -995,7 +1033,9 @@ export function forPatient(atk, nu = new Date()) {
   sakra(atk.db);
   atk.krav('las_cytostatika');
   const rader = atk.filtrera(atk.db.query('SELECT * FROM cyto_behandlingar WHERE patient_id = ? ORDER BY skapad DESC').all(atk.patientId), 'las_cytostatika');
-  return { behandlingar: rader.map(b => behandlingUt(atk, b, nu)), regimer: regimer(atk.db), reaktioner: Object.entries(REAKTIONER).map(([id, namn]) => ({ id, namn })), demoregel: DEMOREGEL };
+  return { behandlingar: rader.map(b => behandlingUt(atk, b, nu)), regimer: regimer(atk.db), reaktioner: Object.entries(REAKTIONER).map(([id, namn]) => ({ id, namn })),
+    // Runda 11, r4: svaret om tidigare behandling hos andra vårdgivare, som läkemedelslistan visar det.
+    tidigareBehandling: tidigareUt(atk.db, tidigareFor(atk)), demoregel: DEMOREGEL };
 }
 
 // Runda 11, r4: om patienten har en cytostatikabehandling som den inloggade får se, för journalens flikar.

@@ -68,7 +68,7 @@ export function seeda(db, nu = new Date()) {
   mv('p17', 'langd', 166, n - 23 * DAG);
   mv('p17', 'vikt', 65, n - 22 * DAG - 2 * TIMME);
   mv('p17', 'lpk', 6.1, n - 22 * DAG); mv('p17', 'tpk', 254, n - 22 * DAG);
-  const b1 = cyto.ordinera(atk(db, 'lak-kard', 'p17', 'ordinera_cytostatika'), { regim: 'ec', start: addDagar(idag, -21) }, d(n - 22 * DAG + TIMME));
+  const b1 = cyto.ordinera(atk(db, 'lak-kard', 'p17', 'ordinera_cytostatika'), { regim: 'ec', start: addDagar(idag, -21), tidigareBehandling: { svar: 'nej' } }, d(n - 22 * DAG + TIMME));
   geKur(db, 'p17', pnr('p17'), b1.kurer[0].id, n - 21 * DAG - 12 * TIMME);
   mv('p17', 'vikt', 63, n - 2 * DAG);
   cyto.nastaCykel(atk(db, 'lak-kard', 'p17', 'ordinera_cytostatika'), cyto.behandlingRad(db, b1.id), d(n - 2 * DAG + TIMME));

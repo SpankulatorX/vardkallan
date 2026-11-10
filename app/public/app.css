@@ -1656,4 +1656,5 @@ td .tagg-avliden { margin-left: 6px; }
 .cye-kap { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }
 .min-cy { margin: 0 0 16px; }
 /* Ett formulär som öppnas med en knapp är dolt tills dess, också när det har en egen visning. */
-form.falt-rad[hidden], form.mv-form[hidden], form.bl-reak[hidden] { display: none; }
+form.falt-rad[hidden], form.mv-form[hidden], form.bl-reak[hidden], .cy-tidigare[hidden], .cy-tidigare .falt-rad[hidden] { display: none; }
+.cy-tidigare { border: 0; padding: 0; margin: 8px 0; }

@@ -33,7 +33,7 @@ const pnr = (db, pid = 'cy1') => db.query('SELECT personnummer FROM patienter WH
 // En godkänd och beredd EC-kur, mottagen på avdelningen.
 function berett(db) {
   ny(db);
-  const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON }, BAS);
+  const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej' } }, BAS);
   cyto.godkann(lak(db), cyto.cykelRad(db, kur(b).id), BAS);
   const o = cyto.bered(ssk(db), cyto.cykelRad(db, kur(b).id), efter(60));
   for (const d of o.doser) cyto.taEmot(ssk(db), cyto.dosRad(db, d.id), { streckkod: d.etikett }, efter(90));
@@ -47,14 +47,14 @@ describe('Cytostatika', () => {
     ny(db);
     expect(cyto.regimer().map(r => r.id)).toEqual(['ec', 'karboplatin', 'kapecitabin']);
     expect(() => cyto.ordinera(lak(db), { regim: 'toString' }, BAS)).toThrow('Välj behandlingsregim');
-    const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON }, BAS);
+    const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej' } }, BAS);
     expect(b).toMatchObject({ regim: { id: 'ec', intervall: 21 }, cykler: 4, status: 'pagaende', ordinerad: { av: 'Olof Granberg' } });
     expect(kur(b)).toMatchObject({ nummer: 1, dag1: IMORGON, kroppsyta: 1.69, langd: 165, vikt: 62, dosandel: 100, status: 'planerad' });
     expect(kur(b).doser.map(d => [d.ordning, d.lakemedel, d.dos, d.berakning])).toEqual([
       [1, 'Epirubicin', 152, '90 mg/m² × 1,69 m² = 152 mg'], [2, 'Cyklofosfamid', 1010, '600 mg/m² × 1,69 m² = 1014 mg']]);
-    expect(() => cyto.ordinera(lak(db), { regim: 'ec' }, BAS)).toThrow('redan en pågående');
+    expect(() => cyto.ordinera(lak(db), { regim: 'ec', tidigareBehandling: { svar: 'nej' } }, BAS)).toThrow('redan en pågående');
     nyPatient(db, { id: 'cy2', enhet: 'lind-med', ar: 1970 });
-    expect(() => cyto.ordinera(lak(db, 'cy2'), { regim: 'ec' }, BAS)).toThrow('Längd saknas');
+    expect(() => cyto.ordinera(lak(db, 'cy2'), { regim: 'ec', tidigareBehandling: { svar: 'nej' } }, BAS)).toThrow('Längd saknas');
   });
 
   test('karboplatin doseras med Calverts formel ur njurfunktionen som systemet räknar med Cockcroft-Gault', () => {
@@ -74,7 +74,7 @@ describe('Cytostatika', () => {
   test('före kuren prövar systemet provsvaren mot regimens gränser, beställer det som saknas och låter läkaren skjuta upp cykeln', () => {
     const db = sandlada();
     ny(db, 'cy1', { prover: false });
-    const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON }, BAS);
+    const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej' } }, BAS);
     const c = () => cyto.cykelRad(db, kur(b).id);
     const p0 = cyto.provkontroll(lak(db), c(), BAS);
     expect(p0).toMatchObject({ ok: false, saknasAnalyser: ['blodstatus'] });
@@ -93,7 +93,7 @@ describe('Cytostatika', () => {
   test('dosjustering: läkaren väljer andel av full dos med orsak, och systemet räknar om doserna', () => {
     const db = sandlada();
     ny(db);
-    const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON }, BAS);
+    const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej' } }, BAS);
     expect(() => cyto.dosjustera(lak(db), cyto.cykelRad(db, kur(b).id), { dosandel: 75 }, BAS)).toThrow('Skriv orsaken');
     expect(() => cyto.dosjustera(lak(db), cyto.cykelRad(db, kur(b).id), { dosandel: 70, orsak: 'x' }, BAS)).toThrow('Välj andel');
     const j = cyto.dosjustera(lak(db), cyto.cykelRad(db, kur(b).id), { dosandel: 75, orsak: 'Neutropen feber efter förra kuren' }, BAS);
@@ -106,7 +106,7 @@ describe('Cytostatika', () => {
   test('beredningsordern till beredningsenheten har volym ur stamlösningen, bärarlösning, total volym och etikett med streckkod', () => {
     const db = sandlada();
     ny(db);
-    const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON }, BAS);
+    const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej' } }, BAS);
     expect(() => cyto.bered(ssk(db), cyto.cykelRad(db, kur(b).id), BAS)).toThrow('inte godkänd');
     cyto.godkann(lak(db), cyto.cykelRad(db, kur(b).id), BAS);
     const o = cyto.bered(ssk(db), cyto.cykelRad(db, kur(b).id), efter(60));
@@ -178,7 +178,7 @@ describe('Cytostatika', () => {
   test('säkerhet: åtgärderna prövar behandlingens vårdenhet: annan enhet utan och med aktivt val och spärrad enhet utan och med samtycke', () => {
     const db = sandlada();
     ny(db);
-    const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON }, BAS);
+    const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej' } }, BAS);
     db.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak) VALUES ('cy1', 'kkoga-ort', 'slutenvard', ?, 'Avdelning', 'Vård')").run(BAS.toISOString());
     const c = () => cyto.cykelRad(db, kur(b).id);
     const annan = (h, val = {}) => atk(db, 'lak-kkoga', 'cy1', h, val);
@@ -231,17 +231,21 @@ describe('Cytostatika', () => {
   test('behörighet: sjuksköterskan ordinerar inte, en annan vårdenhet ger inte kuren och en spärrad behandling syns inte', () => {
     const db = sandlada();
     const { o } = berett(db);
-    expect(() => cyto.ordinera(ssk(db, 'cy1', 'ordinera_cytostatika'), { regim: 'ec' }, BAS)).toThrow('Yrkesrollen får inte ordinera cytostatika');
+    expect(() => cyto.ordinera(ssk(db, 'cy1', 'ordinera_cytostatika'), { regim: 'ec', tidigareBehandling: { svar: 'nej' } }, BAS)).toThrow('Yrkesrollen får inte ordinera cytostatika');
     db.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak) VALUES ('cy1', 'kkoga-ort', 'slutenvard', ?, 'Avdelning', 'Vård')").run(BAS.toISOString());
     expect(() => cyto.iordningstall(atk(db, 'ssk-kkoga', 'cy1', 'ge_cytostatika', { andra_enheter: true }), cyto.dosRad(db, o.doser[0].id), { armband: pnr(db), streckkod: o.doser[0].etikett }, efter(100))).toThrow('ordinerande vårdenheten');
     // En beredning som är äldre än ett dygn iordningställs inte.
     expect(() => cyto.iordningstall(ssk(db), cyto.dosRad(db, o.doser[0].id), { armband: pnr(db), streckkod: o.doser[0].etikett }, efter(60 + 25 * 60))).toThrow('äldre än 24 timmar');
     const las = (val) => cyto.forPatient(atk(db, 'lak-kkoga', 'cy1', 'las_cytostatika', val), efter(100));
     expect(las({ andra_enheter: true }).behandlingar.length).toBe(1);
-    const utan = JSON.stringify(las({}));
+    // Runda 11, r4: svaret om tidigare behandling följer läkemedelslistan och syns utan aktivt val men inte efter en spärr,
+    // så det jämförs för sig. Behandlingen själv röjs inte.
+    const utanSvar = (x) => { const { tidigareBehandling: _, ...rest } = x; return JSON.stringify(rest); };
+    const utan = utanSvar(las({}));
     sparr(db, 'cy1', 'lind-med');
     const r = las({ andra_enheter: true });
     expect(r.behandlingar).toEqual([]);
-    expect(JSON.stringify(r)).toBe(utan);
+    expect(utanSvar(r)).toBe(utan);
+    expect(r.tidigareBehandling).toBe(null);
   });
 });

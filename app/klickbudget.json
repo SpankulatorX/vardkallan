@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T21:31:41.197Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-10T16:08:16.230Z",
+  "bas": "http://127.0.0.1:18204",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "3983aa076c7adfef96c2db442439434ef4761d8a1e8c1b97a000df82f1f38b62",
+  "gransnittHash": "efda2b9a59422fb1fce5183782a38a6c61ed58a56fa6865e70c03f3e571a3489",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -1780,6 +1780,95 @@
         "klick: Visa lediga tider",
         "klick: den första föreslagna tiden"
       ]
+    },
+    {
+      "id": "cyto-godkann",
+      "namn": "Godkänna en cytostatikakur",
+      "roll": "lak-kard",
+      "start": "Journalen för patienten med cytostatika",
+      "budget": 2,
+      "motivering": "Sussa 4.8.1.1 och 4.8.1.4. Ett klick på fliken Cytostatika och ett på Godkänn kuren. Systemet har räknat doserna med dagens vikt, prövat provsvaren, den kumulativa dosen och beredningsenhetens platser och skickar beredningsordern i samma klick.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Cytostatika",
+        "klick: Godkänn kuren"
+      ]
+    },
+    {
+      "id": "regim-godkann",
+      "namn": "Godkänna en ny version av en cytostatikaregim",
+      "roll": "lak-kard",
+      "start": "Arbetslistan efter inloggning",
+      "budget": 3,
+      "motivering": "Sussa 4.8.1.4. Ett klick på Cytostatika i menyn, ett på Regimbiblioteket och ett på Godkänn. Systemet har skrivit vad som skiljer versionen från den gällande, och bara en regimansvarig läkare som inte skrev versionen ser knappen.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Cytostatika i menyn",
+        "klick: Regimbiblioteket",
+        "klick: Godkänn versionen"
+      ]
+    },
+    {
+      "id": "blod-bestall",
+      "namn": "Beställa blod",
+      "roll": "lak-kard",
+      "start": "Journalen för patienten med cytostatika",
+      "budget": 3,
+      "motivering": "Sussa 4.4.2.12. Ett klick på fliken Blod, ett fältbyte till indikationen och ett klick på Beställ. Erytrocyter och två enheter är förvalda, och systemet beställer själv blodgruppering och bastest som saknas.",
+      "klick": 2,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Blod",
+        "fältbyte: indikationen",
+        "klick: Beställ"
+      ]
+    },
+    {
+      "id": "cyto-bered",
+      "namn": "Bereda en cytostatikados på beredningsenheten",
+      "roll": "far-bered",
+      "start": "Beredningsenheten med en godkänd kur",
+      "budget": 3,
+      "motivering": "Sussa 4.8.1.2 och 4.8.1.5. Ett klick på Beredning i menyn, ett fältbyte till den kontrollmätta volymen och ett klick på Signera beredningen. Systemet har räknat volymen och föreslagit den batch som går ut först, så farmaceuten skannar bara en förpackning när det inte är den föreslagna.",
+      "klick": 2,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Beredning i menyn",
+        "fältbyte: den kontrollmätta volymen",
+        "klick: Signera beredningen"
+      ]
+    },
+    {
+      "id": "cyto-min-rapport",
+      "namn": "Rapportera dagens tabletter i Min journal",
+      "roll": "inv-p11",
+      "start": "Min journal för patienten med cytostatika",
+      "budget": 3,
+      "motivering": "Sussa 4.8.1.6. Ett klick på Min behandling, ett i rutan för morgonens tabletter och ett på Skicka. Inget besvär är förvalt, och systemet bedömer rapporten och säger direkt om patienten ska ringa.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Min behandling",
+        "klick: morgonens tabletter",
+        "klick: Skicka till mottagningen"
+      ]
     }
   ],
   "tester": [
@@ -2173,6 +2262,26 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Boka en tid för patienten som ombud inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Godkänna en cytostatikakur inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Godkänna en ny version av en cytostatikaregim inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Beställa blod inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Bereda en cytostatikados på beredningsenheten inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Rapportera dagens tabletter i Min journal inom budget",
       "status": "grön"
     }
   ]
