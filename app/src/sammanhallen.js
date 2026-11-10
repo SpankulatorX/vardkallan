@@ -142,6 +142,13 @@ export function aterkalla(atk, sess) {
   return lage(atk, sess, {});
 }
 
+// Runda 11, r5: bilder hos den andra vårdgivaren hämtas på samma samtycke och efter samma regel (bildmedia.js).
+export const harSamtycke = (db, personal, patientId) => Boolean(samtyckeFor(db, personal, patientId));
+export function registreraSamtycke(db, personal, patientId) {
+  if (samtyckeFor(db, personal, patientId)) return;
+  db.query('INSERT INTO sammanhallen_samtycken (patient_id, enhet_id, registrerat, registrerat_av) VALUES (?, ?, ?, ?)').run(patientId, personal.enhet_id, iso(), personal.id);
+}
+
 // För översiktens tidslinje: de hämtade uppgifterna i samma form som Vårdkällans egna, när det aktiva valet gäller.
 export function tidslinje(atk, sess) {
   const val = valFor(sess, atk.patientId, atk);

@@ -62,6 +62,11 @@ export const TABELLER = {
   labb_analyser: m('Aktivitet', 'Beställda analyser'),
   labb_prov: m('Resurs', 'Provrör och prover, som det som produceras i provtagningen'),
   labb_svar: m('Observation', 'Laboratoriets svar och fynd'),
+  // Runda 11, r5: bilder och media, det systemet har läst ur filerna, annoteringarna och studierna i arkivet.
+  media: m('Dokument', 'Bilder, filmer, ljud och dokument i journalen'),
+  media_egenskaper: m('Dokument', 'Det systemet har läst ur filen och bildens ursprung'),
+  media_annoteringar: m('Observation', 'Annoteringar på bilder, som ett eget lager'),
+  media_studier: m('Aktivitet', 'Undersökningar i det simulerade multimediaarkivet'),
   remisser: m('Remiss', 'Remisser mellan vårdenheter', 'remiss', { prioritet: ['prioritet'], tidpunkt: ['skickad_tid'], orsak: ['fragestallning'] }),
   egen_vardbegaran: m('Vårdbegäran för egen räkning eller från tredje part', 'Patientens egna vårdbegäranden från Min journal', 'sokorsak', { tidpunkt: ['skapad'], orsak: ['skal'] }),
   halsoarenden: m('Vårdbegäran för egen räkning eller från tredje part', 'Hälsoärenden', 'vardbegaran'),
@@ -117,6 +122,9 @@ export const FHIR = {
   // Runda 10, r3: formulären och svaren i dem (formularmotor.js).
   Questionnaire: 'Tillämpad modell',
   QuestionnaireResponse: 'Dokument',
+  // Runda 11, r5: bilder och media och studierna i det simulerade multimediaarkivet (bildmedia.js).
+  Media: 'Dokument',
+  ImagingStudy: 'Observation',
 };
 
 // Klassar alla tabeller i en databas. En tabell med patientuppgifter som inte är klassad får den allmänna klassen.

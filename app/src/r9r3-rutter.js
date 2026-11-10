@@ -9,6 +9,8 @@ import * as blod from './blod.js';
 import * as obs from './obstetrik.js';
 import * as cyto from './cytostatika.js';
 import * as bilder from './bilder.js';
+// Runda 11, r5.
+import * as bildmedia from './bildmedia.js';
 
 const q = (c, namn) => c.url.searchParams.get(namn) || null;
 const okand = () => { throw new Fel(404, 'Åtgärden finns inte.', 'saknas'); };
@@ -123,14 +125,16 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
   // ---- Bilder och media (Sussa 4.2) ----
   const skriv = (c) => (kanRoll(c.personal, 'skriv_journal') ? 'skriv_journal' : 'skriv_omvardnad');
   const las = (c) => (kanRoll(c.personal, 'las_journal') ? 'las_journal' : 'las_omvardnad');
-  rutt('GET', '/api/patient/:id/media', (c, id) => { kravInloggad(c); return medPatient(c, id, las(c), (atk) => bilder.forPatient(atk)); });
-  rutt('POST', '/api/patient/:id/media', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, skriv(c), (atk) => bilder.ladda(atk, c.body))]; });
+  // Runda 11, r5: galleriet med annoteringar, import och arkivet, och miniatyren gjord direkt vid uppladdningen (bildmedia.js).
+  rutt('GET', '/api/patient/:id/media', (c, id) => { kravInloggad(c); return medPatient(c, id, las(c), (atk) => bildmedia.forPatient(atk)); });
+  rutt('POST', '/api/patient/:id/media', async (c, id) => { kravInloggad(c); return [201, await medPatient(c, id, skriv(c), (atk) => bildmedia.laddaHel(atk, c.body))]; });
   rutt('GET', '/api/patient/:id/media/jamforelse', (c, id) => { kravInloggad(c); return medPatient(c, id, las(c), (atk) => bilder.jamforelse(atk, q(c, 'kroppsstalle') ?? '')); });
   rutt('POST', '/api/patient/:id/media/remissbilaga/:bid', (c, id, bid) => { kravInloggad(c); return [201, medPatient(c, id, skriv(c), (atk) => bilder.franRemissbilaga(atk, bid, c.body))]; });
   rutt('POST', '/api/patient/:id/media/studie', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'remittera', (atk) => bilder.bestallUndersokning(atk, c.body))]; });
   rutt('GET', '/api/media/vantande', (c) => { kravInloggad(c); return bilder.vantande(c.db, c.personal, val(c)); });
-  rutt('GET', '/api/media/:mid/fil', (c, mid) => { kravInloggad(c); return medRad(c, bilder.mediaRad(c.db, mid), las(c), (atk, m) => bilder.fil(atk, m)); });
-  rutt('POST', '/api/media/:mid/granska', (c, mid) => { kravInloggad(c); return medRad(c, bilder.mediaRad(c.db, mid), 'skriv_journal', (atk, m) => bilder.granska(atk, m, c.body)); });
+  rutt('GET', '/api/media/:mid/fil', (c, mid) => { kravInloggad(c); return medRad(c, bilder.mediaRad(c.db, mid), las(c), (atk, m) => bilder.fil(atk, m, { ladda: q(c, 'ladda') === '1' })); });
+  // Runda 11, r5: granskningen gäller också bilder från apparater och andra vårdgivare (bildmedia.granska).
+  rutt('POST', '/api/media/:mid/granska', (c, mid) => { kravInloggad(c); return medRad(c, bilder.mediaRad(c.db, mid), las(c), (atk, m) => bildmedia.granska(atk, m, c.body)); });
   rutt('GET', '/api/media/studie/:sid/visa', (c, sid) => { kravInloggad(c); return medRad(c, bilder.studieRad(c.db, sid), 'las_journal', (atk, s) => bilder.visaStudie(atk, s)); });
   // Patientens egen uppladdning i Min journal.
   rutt('GET', '/api/min/journal/:id/bild/mottagare', (c, id) => medMinJournal(c, id, 'min:bild:mottagare', (atk) => ({ mottagare: bilder.minMottagare(atk) })));

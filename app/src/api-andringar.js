@@ -11,6 +11,13 @@ export const VERSION = (() => { try { return JSON.parse(readFileSync(join(import
 // resurser är resurstyperna som kom i versionen, skrivning är resurstyp och interaktion (Condition:create) och
 // annat är ändringar som inte är en resurstyp, till exempel SMART on FHIR.
 export const ANDRINGAR = [
+  // Runda 11, r5: bilder och media och studierna i det simulerade multimediaarkivet, med DICOMweb (bildmedia.js).
+  {
+    version: '1.1.0', datum: '2026-11-10',
+    text: 'Bilder, filmer och ljud i journalen som Media, studierna i det simulerade multimediaarkivet som ImagingStudy, och DICOMweb (QIDO-RS och WADO-RS) mot arkivet.',
+    resurser: ['Media', 'ImagingStudy'], skrivning: [],
+    annat: ['DICOMweb mot det simulerade multimediaarkivet med QIDO-RS och WADO-RS'],
+  },
   // Runda 10, r1: systemkonton, prenumerationer på en population, överkänslighet och patienter via API:t och
   // Patient/$everything för personalen (Sussa 2.5.1.1 och 2.5.1.2).
   {

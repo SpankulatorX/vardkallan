@@ -210,6 +210,9 @@ for (const w of ['PVK', 'PICC', 'CVK', 'KAD', 'OCR', 'GS1', 'DAS', 'DAL']) TILLA
 // Microsoft Graph och WebDAV för SharePoint, och rubriken som märker ett simulerat e-postmeddelande.
 for (const w of ['Word', 'DOCX', 'IEC', 'RFC', 'HMAC', 'MIME', 'URI', 'REST', 'WebDAV', 'REQUEST', 'PUBLISH', 'iMIP', 'Outlook', 'Excel', 'Teams', 'SharePoint', 'Graph', 'Microsoft', 'Office', 'LibreOffice']) TILLATNA.add(w);
 FRASER.push('Office Open XML', 'X-Vardkallan-Simulerad');
+// Runda 11, r5: bilder, film och ljud (WebP, WebM, WAV, MP3, M4A, Ogg, EXIF), storleken i MB och arkivets DICOM och
+// DICOMweb (QIDO-RS, WADO-RS, PACS, VNA, XDS-I).
+for (const w of ['WebP', 'WebM', 'WAV', 'MP3', 'MP4', 'M4A', 'Ogg', 'EXIF', 'MB', 'DICOM', 'DICOMweb', 'QIDO-RS', 'WADO-RS', 'PACS', 'VNA', 'XDS-I', 'Media', 'ImagingStudy', 'Endpoint']) TILLATNA.add(w);
 
 // Svenska ord som ofta skrivs utan å, ä eller ö. Formen utan prickar är inget eget ord.
 export const UTAN_PRICKAR = new Map(Object.entries({

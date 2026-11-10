@@ -52,6 +52,8 @@ import * as api from './api-andringar.js';
 const MILJO = new Set(['latex', 'nickel', 'bi- och getingstick', 'plåster och tejp']);
 // Runda 10, r4: Socialstyrelsens kodverkslista för uppmärksamhetsinformation, för Snomed CT i Flag.
 import { termFor, svensktBegrepp } from './umi-kodverk.js';
+// Runda 11, r5: Media och ImagingStudy (bildmedia.js).
+import * as bildmedia from './bildmedia.js';
 
 export const SYSTEM = {
   personnummer: 'http://electronichealth.se/identifier/personnummer',
@@ -581,6 +583,8 @@ function capabilityBas(base) {
       { type: 'QuestionnaireResponse', interaction: [{ code: 'read' }, { code: 'search-type' }], searchParam: [{ name: 'patient', type: 'reference' }] },
       // Runda 8, r1: provtagningens rör och laboratoriernas svar.
       ...labbFhir.TYPER.map(t => ({ type: t, interaction: [{ code: 'read' }, { code: 'search-type' }], searchParam: [{ name: 'patient', type: 'reference' }] })),
+      // Runda 11, r5: bilder och media och studierna i det simulerade multimediaarkivet (bildmedia.js).
+      ...bildmedia.FHIR_TYPER.map(t => ({ type: t, interaction: [{ code: 'read' }, { code: 'search-type' }], searchParam: [{ name: 'patient', type: 'reference' }] })),
       ...DEFINITIONSTYPER.map(t => ({
         type: t, interaction: [{ code: 'read' }, { code: 'search-type' }], searchParam: [{ name: 'url', type: 'uri' }, { name: '_id', type: 'token' }],
       }))],
@@ -662,7 +666,9 @@ function everythingPersonal(ctx, id) {
   atk.krav(handling, { beskrivning: `fhir/Patient/${id}/$everything` });
   atk.logga(handling, atk.grund(), `fhir/Patient/${id}/$everything`);
   const resurser = [patient(db, p, Boolean(ctx.valFor(pid).visa_identitet))];
-  for (const t of TYPER.filter(x => !UTANFOR_EVERYTHING.has(x) && rollFarLasa(personal, x))) {
+  // Runda 11, r5: Media och ImagingStudy för den som läser journalen, med samma prövning per resurstyp.
+  const bildtyper = kanRoll(personal, 'las_journal') || kanRoll(personal, 'las_omvardnad') ? bildmedia.FHIR_TYPER.filter(t => t === 'Media' || kanRoll(personal, 'las_journal')) : [];
+  for (const t of [...TYPER.filter(x => !UTANFOR_EVERYTHING.has(x) && rollFarLasa(personal, x)), ...bildtyper]) {
     try {
       const r = hantera({ ...ctx, url: new URL(`${base}/fhir/${t}?patient=${encodeURIComponent(pid)}`) });
       for (const e of r.body?.entry ?? []) resurser.push(e.resource);
@@ -691,6 +697,8 @@ export function hantera(ctx) {
     return { status: 200, body: bundle(base, url, alla.filter(d => !sokt || d.url === sokt || d.id === sokt)) };
   }
   if (tidbokFhir.TIDBOK_TYPER.includes(typ)) return tidbokFhir.hantera(ctx, delar, (resurser) => bundle(base, url, resurser));
+  // Runda 11, r5: Media och ImagingStudy med samma behörighet och loggning som fliken Bilder. Invånaren har dem inte.
+  if (bildmedia.FHIR_TYPER.includes(typ)) return bildmedia.fhirHantera(ctx, delar, (resurser) => bundle(base, url, resurser));
   if (!personal && ctx.invanare) return hanteraInvanare(ctx, delar);
   // Runda 6, r1: Procedure (åtgärder med KVÅ) har en egen hanterare med samma behörighet och loggning.
   if (typ === 'Procedure') return atgarder.hantera(ctx, delar, (resurser) => bundle(base, url, resurser));

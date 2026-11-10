@@ -449,4 +449,21 @@ export const FLODEN = [
     id: 'ombud-boka', namn: 'Boka en tid för patienten som ombud', roll: 'inv-om01', start: 'Min journal för ombudet', budget: 3,
     motivering: 'Sussa 3.4.2.3. Ett klick på patienten som fullmakten gäller, som öppnar patientens tider, ett på Visa lediga tider och ett på den tid som systemet föreslår först. Ombudet ser bara tider och meddelanden, och bokningen loggas på patienten.',
   },
+  // Runda 11, r5: bilder och media i journalen (Sussa 4.2.1.1 till 4.2.1.4).
+  {
+    id: 'bild-fran-fil', namn: 'Lägga in en bild från datorn i journalen', roll: 'ssk-kard', start: 'Patientens översikt', budget: 4,
+    motivering: 'Sussa 4.2.1.1, 4.2.1.2 och 4.2.1.4. Ett klick på fliken Bilder, ett på Fil från datorn eller mobilen och ett på Spara i journalen. Valet av fil i datorns fönster är ett steg till, som sidan inte ser. Kroppsstället är förifyllt ur patientens senaste bild, och systemet läser typen och tiden ur filen, skickar den i delar, gör miniatyren och knyter bilden till vårdkontakten.',
+  },
+  {
+    id: 'jamfor-bilder', namn: 'Jämföra bilder av ett kroppsställe över tid', roll: 'ssk-kard', start: 'Patientens översikt', budget: 2,
+    motivering: 'Sussa 4.2.1.2. Ett klick på fliken Bilder och ett på Jämför bilder av korsbenet över tid. Systemet har grupperat bilderna efter kroppsställe och ställer dem bredvid varandra i tidsordning med dagarna från den första.',
+  },
+  {
+    id: 'bild-fran-apparat', namn: 'Hämta en bild från en apparat och föra in den i journalen', roll: 'ssk-kard', start: 'Patientens översikt', budget: 4,
+    motivering: 'Sussa 4.2.1.4. Ett klick på fliken Bilder, ett på Från en apparat eller en annan vårdgivare, ett på Hämta från apparaten och ett på För in i journalen. Apparaten är förvald, kroppsstället föreslås ur patientens senaste bild, och systemet kontrollerar att apparatens patient är journalens innan bilden kan föras in.',
+  },
+  {
+    id: 'visa-studie', namn: 'Visa en röntgenstudie ur arkivet med ett annat fönster', roll: 'lak-kard', start: 'Patientens översikt', budget: 3,
+    motivering: 'Sussa 4.2.1.3. Ett klick på fliken Bilder, ett på Visa bilderna och ett på fönstret Ben. Systemet hämtar studien från arkivet genom DICOMweb och har redan valt fönstret efter undersökningen.',
+  },
 ];

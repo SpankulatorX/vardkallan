@@ -607,6 +607,8 @@ export function mallen() {
   const d = idag();
   if (!mall || mall.datum !== d) {
     const db = byggSeed();
+    // Runda 11, r5: demons bilder och lungröntgen för Gunnar Åkesson, i mallen och inte i seeden som testerna bygger på.
+    require('./bildmedia.js').demo(db);
     mall = { datum: d, data: db.serialize() };
     db.close();
   }

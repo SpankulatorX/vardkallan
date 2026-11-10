@@ -1128,7 +1128,55 @@ function skapa(BAS) {
     await m.klicka(page.locator('dialog[open] .forslag-knapp').first(), 'den första föreslagna tiden');
     await synlig(page, '.notis', 'Din tid är bokad');
   };
+  // Runda 11, r5: bilder och media i journalen. Bilden är en PNG som byggs här, ett sår på huden.
+  GOR['bild-fran-fil'] = async (m, page) => {
+    await m.klicka(page.locator('.flikar a', { hasText: 'Bilder' }), 'fliken Bilder');
+    await page.waitForSelector('#bm-fil');
+    const [val] = await Promise.all([page.waitForEvent('filechooser'), m.klicka(page.locator('#bm-fil'), 'Fil från datorn eller mobilen')]);
+    await val.setFiles({ name: 'sarfoto.png', mimeType: 'image/png', buffer: sarPng(640, 480) });
+    await m.klicka(page.locator('#bm-form [type="submit"]'), 'Spara i journalen');
+    await synlig(page, '.notis', 'Bilden är sparad i journalen');
+  };
+  GOR['jamfor-bilder'] = async (m, page) => {
+    await m.klicka(page.locator('.flikar a', { hasText: 'Bilder' }), 'fliken Bilder');
+    await m.klicka(page.locator('[data-jamfor="korsbenet"]'), 'Jämför bilder av korsbenet över tid');
+    await synlig(page, '.bm-jamfor', 'bilder av korsbenet över');
+  };
+  GOR['bild-fran-apparat'] = async (m, page) => {
+    await m.klicka(page.locator('.flikar a', { hasText: 'Bilder' }), 'fliken Bilder');
+    await m.klicka(page.locator('.bm-import summary'), 'Från en apparat eller en annan vårdgivare');
+    await m.klicka(page.locator('[data-apparat]'), 'Hämta från apparaten');
+    await page.waitForSelector('.bm-granska [data-godkann]');
+    await m.klicka(page.locator('.bm-granska [data-godkann]').first(), 'För in i journalen');
+    await synlig(page, '.notis', 'Bilden är införd i journalen');
+  };
+  GOR['visa-studie'] = async (m, page) => {
+    await m.klicka(page.locator('.flikar a', { hasText: 'Bilder' }), 'fliken Bilder');
+    await m.klicka(page.locator('[data-studie]').first(), 'Visa bilderna');
+    await page.waitForSelector('dialog[open] [data-fonster="Ben"]');
+    await m.klicka(page.locator('dialog[open] [data-fonster="Ben"]'), 'fönstret Ben');
+    await page.waitForFunction(() => document.querySelector('dialog[open] .bm-studie img')?.src.includes('window=2800,2000') && document.querySelector('dialog[open] .bm-studie img').complete);
+    await page.keyboard.press('Escape');
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 
-module.exports = { Matare, skapa, raknaISidan };
+// Runda 11, r5: en PNG med ett sår på huden, för flödena och genomgången med bilder.
+function sarPng(bredd = 64, hojd = 48) {
+  const zlib = require('node:zlib');
+  const crcT = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
+  const crc = (b) => { let x = 0xffffffff; for (const v of b) x = crcT[(x ^ v) & 0xff] ^ (x >>> 8); return (x ^ 0xffffffff) >>> 0; };
+  const del = (typ, data) => { const b = Buffer.alloc(12 + data.length); b.writeUInt32BE(data.length, 0); b.write(typ, 4, 'latin1'); data.copy(b, 8); b.writeUInt32BE(crc(b.subarray(4, 8 + data.length)), 8 + data.length); return b; };
+  const ra = Buffer.alloc((bredd * 3 + 1) * hojd);
+  for (let y = 0; y < hojd; y++) {
+    for (let x = 0; x < bredd; x++) {
+      const i = y * (bredd * 3 + 1) + 1 + x * 3;
+      const sar = ((x - bredd / 2) / (bredd * 0.3)) ** 2 + ((y - hojd / 2) / (hojd * 0.3)) ** 2 <= 1;
+      ra[i] = sar ? 170 : 224; ra[i + 1] = sar ? 40 : 186; ra[i + 2] = sar ? 40 : 160;
+    }
+  }
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(bredd, 0); ihdr.writeUInt32BE(hojd, 4); ihdr[8] = 8; ihdr[9] = 2;
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), del('IHDR', ihdr), del('IDAT', zlib.deflateSync(ra)), del('IEND', Buffer.alloc(0))]);
+}
+
+module.exports = { Matare, skapa, raknaISidan, sarPng };

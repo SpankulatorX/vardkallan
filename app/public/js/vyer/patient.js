@@ -30,6 +30,8 @@ import * as vaccinationer from './patient-vaccinationer.js';
 import * as infarter from './patient-infarter.js';
 import * as restjournaler from './patient-restjournaler.js';
 import * as donation from './patient-donation.js';
+// Runda 11, r5: bilder och media i journalen.
+import * as bilderFlik from './patient-bilder.js';
 
 export const namn = 'patient';
 
@@ -65,6 +67,8 @@ const FLIKAR = [
 FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'matvarden') + 1, 0, ['infarter', 'In- och utfarter', () => far('las_omvardnad'), infarter]);
 FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'journal') + 1, 0, ['restjournaler', 'Restjournaler', () => pa('las_journal', 'restjournal'), restjournaler]);
 FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'remisser') + 1, 0, ['donation', 'Donation', () => far('donation'), donation]);
+// Runda 11, r5: Bilder (bilder och media, Sussa 4.2) efter Prover, för den som läser journalen eller omvårdnaden.
+FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'prover') + 1, 0, ['bilder', 'Bilder', () => pa('las_journal', 'las_omvardnad'), bilderFlik]);
 
 let huvud = null;
 

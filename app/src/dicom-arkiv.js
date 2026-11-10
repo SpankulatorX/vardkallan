@@ -229,7 +229,7 @@ export function p10(s, u, p, visad, serie, instans) {
 
 // WADO-RS svarar med multipart/related, en del per instans.
 export function multipart(delar, typ = 'application/dicom') {
-  const grans = `vardkallan-${delar.length}-${Date.now().toString(36)}`;
+  const grans = `vk-del-${delar.length}-${Date.now().toString(36)}`;
   const kropp = Buffer.concat([...delar.flatMap(d => [Buffer.from(`--${grans}\r\nContent-Type: ${typ}\r\n\r\n`, 'latin1'), d, Buffer.from('\r\n', 'latin1')]), Buffer.from(`--${grans}--\r\n`, 'latin1')]);
   return { kropp, typ: `multipart/related; type="${typ}"; boundary=${grans}` };
 }
