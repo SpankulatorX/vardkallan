@@ -41,7 +41,7 @@ function poster(db, personal, valFor, nu) {
     ...db.query(`SELECT * FROM graviditet_efterkontroll WHERE enhet_id IN (${ph})`).all(...enheter)
       .map(r => ({ typ: 'efterkontroll', nyckel: `efterkontroll:${r.id}`, rad: r, g: obs.graviditetRad(db, r.graviditet_id) })),
   ].filter(k => !skickade.has(k.nyckel));
-  const undantagna = { motsatt: 0, skyddad: 0 };
+  const undantagna = { motsatt: 0, skyddad: 0, utelamnade: 0 };
   const ut = [];
   for (const k of kandidater) {
     const p = db.query('SELECT * FROM patienter WHERE id = ?').get(k.rad.patient_id);
@@ -65,7 +65,11 @@ function poster(db, personal, valFor, nu) {
       const barn = db.query('SELECT * FROM forlossning_barn WHERE forlossning_id = ? ORDER BY ordning').all(k.rad.id);
       const smart = db.query('SELECT DISTINCT metod FROM smartlindring WHERE forlossning_id = ?').all(k.rad.id).map(r => r.metod);
       if (!smart.length) fel.push({ text: 'Smärtlindringen är inte registrerad. Registrera vad som gavs, eller Ingen smärtlindring.', href: `#/forlossning/${encodeURIComponent(p.id)}` });
-      const bp = barn.map(b => db.query('SELECT personnummer, id_typ FROM patienter WHERE id = ?').get(b.barn_patient_id));
+      // Varje barn prövas som modern: ett barn med skyddade personuppgifter, en sammanslagen journal eller ett barn som
+      // den rapporterande inte får se gör att förlossningen inte lämnas ut, och den räknas som utelämnad.
+      const bp = barn.map(b => db.query('SELECT * FROM patienter WHERE id = ?').get(b.barn_patient_id));
+      if (bp.some(x => x?.skyddad)) { undantagna.skyddad++; continue; }
+      if (bp.some((x, i) => !x || x.sammanslagen_till || !new Atkomst(db, personal, x.id, valFor(x.id), 'las_graviditet').prova('las_graviditet', { enhet_id: barn[i].enhet_id }).tillaten)) { undantagna.utelamnade++; continue; }
       if (bp.some(x => x.id_typ !== 'personnummer')) fel.push({ text: 'Barnets personnummer har inte kommit från Skatteverket. Skicka födelseanmälan.', href: `#/forlossning/${encodeURIComponent(p.id)}` });
       Object.assign(post, { graviditetsvecka: barn[0] ? Math.floor(barn[0].dagar / 7) : null, smartlindring: smart,
         ctgPatologiskt: Boolean(db.query("SELECT 1 FROM ctg_bedomning WHERE forlossning_id = ? AND klass = 'patologiskt'").get(k.rad.id)),

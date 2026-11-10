@@ -109,7 +109,7 @@ export const SCHEMA = {
   Graviditet: {
     beskrivning: 'En rad per graviditetsjournal med det som registrerades vid inskrivningen, utan svaren på frågorna om våld.',
     falt: {
-      rad: 'Radens stabila nyckel.', patient: 'Patientens pseudonym.', aldersgrupp: 'Ålder vid inskrivningen i femårsgrupper.', vardenhet: 'Vårdenhetens HSA-id.',
+      rad: 'Radens stabila nyckel.', patient: 'Patientens pseudonym.', aldersgrupp: 'Ålder vid inskrivningen i femårsgrupper.', kon: 'Alltid "kvinna".', vardenhet: 'Vårdenhetens HSA-id.',
       inskrivenDatum: 'Datum för inskrivningen.', inskrivningsvecka: 'Graviditetsveckan vid inskrivningen.', bpdKalla: '"sista_mens", "ultraljud" eller "ivf".',
       antalFoster: 'Antal foster.', paritet: 'Antal tidigare förlossningar.', tidigareKejsarsnitt: 'Antal tidigare kejsarsnitt.', status: '"pagaende", "forlost" eller "avslutad".',
       rokningVidInskrivning: '"aldrig", "slutat_fore", "slutat_under", "ja", eller tomt om inskrivningssamtalet saknas.',
@@ -272,8 +272,10 @@ function byggObstetrik(db, { k, ve, far, person, data }) {
       efterkontroll: Boolean(db.query('SELECT 1 FROM graviditet_efterkontroll WHERE graviditet_id = ?').get(g.id)) });
   }
   for (const b of db.query('SELECT b.*, f.graviditet_id FROM forlossning_barn b JOIN forlossningar f ON f.id = b.forlossning_id ORDER BY b.id').all()) {
+    // Raden lämnar ut både modern och barnet, så båda prövas. Är någon av dem utelämnad kommer raden inte med och
+    // räknas som utelämnad.
     const p = far(b.patient_id, b.enhet_id);
-    if (!p) continue;
+    if (!p || !far(b.barn_patient_id, b.enhet_id)) continue;
     const g = db.query('SELECT antal_foster FROM graviditeter WHERE id = ?').get(b.graviditet_id);
     data.Forlossning.push({ rad: pseudonym(k, `forlossning_barn:${b.id}`), patient: pseudonym(k, `patient:${p.id}`), barn: pseudonym(k, `patient:${b.barn_patient_id}`),
       vardenhet: ve(b.enhet_id)?.hsa_id ?? null, fodelsedatum: datumI(b.fodd_tid), graviditetsvecka: Math.floor(b.dagar / 7), ordning: b.ordning, antalFoster: g?.antal_foster ?? null,

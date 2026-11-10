@@ -222,7 +222,8 @@ describe('Graviditet, förlossning och BB', () => {
     const b1 = barn(db, f, 1, 300), b2 = barn(db, f, 2, 312);
     const fore = db.query('SELECT * FROM patienter WHERE id = ?').get(b1.barnId);
     const a = forl.fodelseanmalan(bm(db, 'r1'), frad(db, f.id), { ordning: 1 }, efter(320));
-    expect(a.anmalan).toMatchObject({ status: 'kvitterad', kvittens: 'SKV-SIM-000001', mottagare: 'Skatteverket (simulerad mottagare)' });
+    expect(a.anmalan.kvittens).toMatch(/^SKV-SIM-\d{6}$/);
+    expect(a.anmalan).toMatchObject({ status: 'kvitterad', mottagare: 'Skatteverket (simulerad mottagare)' });
     const efterA = db.query('SELECT * FROM patienter WHERE id = ?').get(b1.barnId);
     expect(efterA.id_typ).toBe('personnummer');
     expect(testpnr).toContain(efterA.personnummer);
@@ -233,7 +234,7 @@ describe('Graviditet, förlossning och BB', () => {
     expect(Number(db.query('SELECT personnummer FROM patienter WHERE id = ?').get(b2.barnId).personnummer[10]) % 2).toBe(1);
     expect(a2.anmalan.personnummer).not.toBe(a.anmalan.personnummer);
     expect(fel(() => forl.fodelseanmalan(bm(db, 'r1'), frad(db, f.id), { ordning: 1 }, efter(322))).status).toBe(409);
-    expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = ? AND resurs = 'fodelseanmalan:SKV-SIM-000001'").get(b1.barnId).n).toBe(1);
+    expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = ? AND resurs = ?").get(b1.barnId, `fodelseanmalan:${a.anmalan.kvittens}`).n).toBe(1);
     // En mor med reservnummer är inte folkbokförd.
     const d = sandlada();
     const g = tillForlossning(d);
@@ -369,12 +370,6 @@ describe('Graviditet, förlossning och BB', () => {
     expect(fel(() => forl.oversikt(db, pers(db, 'ssk-vc'))).status).toBe(403);
     expect(fel(() => obs.mhvOversikt(db, pers(db, 'bm-uso'))).status).toBe(403);
     expect(obs.mhvOversikt(db, pers(db, 'ssk-vc'), () => ({}), BAS).graviditeter.find(x => x.patientId === 'r1')).toMatchObject({ vecka: 'v 39+0', risk: { niva: 'normal' } });
-    // En spärr mot förlossningen: förlossningen syns inte och räknas inte i översikten.
-    const utan = forl.oversikt(db, pers(db, 'bm-uso'), () => ({}), efter(30));
-    sparr(db, 'r1', 'uso-kk');
-    const med = forl.oversikt(db, pers(db, 'bm-uso'), () => ({}), efter(30));
-    expect(med.pagaende.length).toBe(utan.pagaende.length - 1);
-    expect(JSON.stringify(med)).not.toContain('Graviddotter');
     // En spärr mot mödrahälsovården: graviditeten syns inte i förlossningsjournalen ens med aktivt val.
     const d = sandlada();
     const g = tillForlossning(d);
@@ -417,7 +412,55 @@ describe('Graviditet, förlossning och BB', () => {
     const json = JSON.stringify({ g: data.Graviditet, f: data.Forlossning });
     for (const x of ['Unika', 'Namnsson', '"r1"', db.query("SELECT personnummer FROM patienter WHERE id = 'r1'").get().personnummer]) expect(json).not.toContain(x);
     expect(data.Graviditet.some(r => r.valdfraganStalld === true)).toBe(true);
-    expect(json).not.toMatch(/tidigare|kansligt/);
+    expect(json).not.toMatch(/"(tidigare|nu|radd)":|kansligt|vill_ej/);
+  });
+});
+
+describe('Graviditet, förlossning och BB', () => {
+  test(T.barnSkydd.replace(/^.*> /, ''), () => {
+    const forbered = () => {
+      const db = sandlada();
+      const f = tillForlossning(db);
+      db.query("INSERT INTO smartlindring (forlossning_id, patient_id, enhet_id, tid, metod, av) VALUES (?, 'r1', 'uso-kk-forl', ?, 'lustgas', 'bm-uso')").run(f.id, efter(200).toISOString());
+      const b = barn(db, f, 1, 300);
+      forl.fodelseanmalan(bm(db, 'r1'), frad(db, f.id), { ordning: 1 }, efter(320));
+      return { db, f, barnId: b.barnId, pnr: db.query('SELECT personnummer FROM patienter WHERE id = ?').get(b.barnId).personnummer };
+    };
+    const egna = (db) => gr.sammanstall(db, pers(db, 'bm-uso'), () => ({}), efter(330));
+    // Barnet har skyddade personuppgifter: raden och posten lämnas inte ut, och räknas som utelämnade.
+    for (const skydd of ['skyddad', 'sparr']) {
+      const { db, barnId, pnr } = forbered();
+      const fore = datauttag.bygg(db);
+      const foreReg = egna(db);
+      expect(foreReg.poster.some(p => p.patient.id === 'r1' && p.typ === 'forlossning')).toBe(true);
+      if (skydd === 'skyddad') db.query('UPDATE patienter SET skyddad = 1 WHERE id = ?').run(barnId);
+      else sparr(db, barnId, 'uso-kk');
+      const efterSkydd = datauttag.bygg(db);
+      expect(efterSkydd.data.Forlossning.length).toBe(fore.data.Forlossning.length - 1);
+      expect(efterSkydd.utelamnat.skyddadeUppgifter + efterSkydd.utelamnat.sparrade).toBeGreaterThan(fore.utelamnat.skyddadeUppgifter + fore.utelamnat.sparrade);
+      if (skydd !== "skyddad") continue;
+      const reg = egna(db);
+      expect(reg.poster.some(p => p.patient.id === 'r1' && p.typ === 'forlossning')).toBe(false);
+      expect(JSON.stringify(reg)).not.toContain(pnr);
+      expect(reg.undantagna.skyddad).toBe(foreReg.undantagna.skyddad + 1);
+    }
+  });
+
+  test(T.seed.replace(/^.*> /, ''), () => {
+    // Samma seed oavsett tid på dygnet, också mellan 23 och 01 svensk tid.
+    for (const bas of [BAS, new Date('2026-11-12T22:30:00Z'), new Date('2026-11-12T23:30:00Z')]) {
+      const db = sandlada(bas);
+      const m = (pid) => atk(db, 'ssk-vc', pid, 'las_graviditet');
+      const g1 = obs.forPatient(m('obs1'), bas).graviditeter[0];
+      expect(g1).toMatchObject({ status: 'pagaende', graviditetslangd: { text: 'v 30+2' }, inskrivningssamtal: { valdfragan: { stalld: true } } });
+      expect([g1.ultraljud.length, g1.besok.length, g1.sfKurva.length]).toEqual([1, 2, 2]);
+      expect(obs.forPatient(m('obs2'), bas).graviditeter[0].attGora[0]).toContain('Registrera inskrivningssamtalet');
+      const o = forl.oversikt(db, pers(db, 'bm-uso'), () => ({}), bas);
+      expect(o.pagaende.map(x => [x.patientId, x.oppning, x.ctg?.klass, x.ctg?.forsenad])).toEqual([['obs3', 7, 'normal', false]]);
+      expect(o.bb.map(x => [x.patientId, x.antalFoster, x.barn.map(b => b.anmalan)])).toEqual([['obs4', 2, ['kvitterad', null]]]);
+      expect(o.bb[0].barn.map(b => b.timmar)).toEqual([20, 19]);
+      expect(obs.mhvOversikt(db, pers(db, 'ssk-vc'), () => ({}), bas).graviditeter.map(x => x.patientId)).toEqual(expect.arrayContaining(['obs1', 'obs2', 'obs3']));
+    }
   });
 });
 

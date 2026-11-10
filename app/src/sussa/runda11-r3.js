@@ -20,5 +20,6 @@ export const GRAVIDITET_R11 = {
   sakerhet: `${GR}säkerhet: åtgärderna på förlossningen och BB ger 404 för en annan patient och 403 för en annan vårdenhet`,
   api: `${GR}API: barnmorskan på förlossningen kopplar CTG, bedömer, registrerar smärtlindring, födelse, födelseanmälan och BB i gränssnittets anrop`,
   datauttag: `${GR}datauttaget har tabellerna Graviditet och Forlossning utan personuppgifter och utan svaren om våld`,
+  barnSkydd: `${GR}säkerhet: ett barn med skyddade personuppgifter eller spärr lämnas inte ut i datauttaget eller till Graviditetsregistret, och förlossningen räknas som utelämnad`,
   seed: `${GR}seeden har en graviditet på mödrahälsovården, en pågående förlossning med CTG och tvillingar på BB, relativt till seedens tid`,
 };

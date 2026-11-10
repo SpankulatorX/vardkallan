@@ -453,6 +453,8 @@ export function byggSeed(bas = nu()) {
   require('./runda10-r4-rutter.js').sakra(db, bas);
   // Runda 10, r7: ombud, meddelanden, kassan och kontorsstödet (schema-runda10-r7.js). Efter invånarna och ordinationerna.
   require('./schema-runda10-r7.js').sakraR10r7(db, bas);
+  // Runda 11, r3: graviditet, förlossning och BB med seeden relativt till seedens tid (obstetrik-seed.js).
+  require('./obstetrik-seed.js').seeda(db, bas);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -585,6 +587,8 @@ export function migrera(db) {
   require('./runda10-r4-rutter.js').sakra(db, nu());
   // Runda 10, r7: ombud, meddelanden, kassan och kontorsstödet, med seeden när den saknas.
   require('./schema-runda10-r7.js').sakraR10r7(db, nu());
+  // Runda 11, r3: tabellerna och seeden för graviditet, förlossning och BB i en sandlåda från före runda 11.
+  require('./obstetrik-seed.js').seeda(db, nu());
   return db;
 }
 

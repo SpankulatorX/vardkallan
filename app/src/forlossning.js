@@ -51,7 +51,7 @@ function fhrVid(t, forlopp, foster) {
   const bas = foster > 1 ? 128 : forlopp === 'avvikande' ? 158 : forlopp === 'patologiskt' ? 140 : 135;
   const amp = foster > 1 ? 6 : forlopp === 'patologiskt' ? 1.2 : 7;
   let v = bas + amp * (0.6 * Math.sin(t / 7.3 + fro) + 0.4 * Math.sin(t / 2.9 + 2 * fro));
-  if ((forlopp === 'normal' || foster > 1) && (t % 600) < 45) v += 18 * Math.sin(Math.PI * (t % 600) / 45);
+  if ((forlopp === 'normal' || foster > 1) && (t % 600) < 60) v += 26 * Math.sin(Math.PI * (t % 600) / 60);
   if (forlopp === 'patologiskt' && foster === 1 && fas >= 0.33 && fas <= 0.67) v -= 25 * Math.sin(Math.PI * (fas - 0.33) / 0.34);
   return Math.round(v);
 }

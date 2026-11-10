@@ -66,6 +66,8 @@ describe('API för specialistområdena', () => {
 
   test('graviditet: barnmorskan skriver in graviditeten och registrerar ett besök, och uppföljningen räknar den', async () => {
     const { k } = await start('ssk-vc', [{ id: 'sp3', enhet: 'vc-tybble', listning: true, ar: 1994 }]);
+    // Runda 11, r3: seeden har egna graviditeter på vårdenheten, så testet räknar skillnaden.
+    const fore = (await k.get('/api/graviditet/uppfoljning')).data.graviditeter.pagaende;
     const sm = new Date(Date.now() - 100 * 86400_000).toISOString().slice(0, 10);
     const g = await k.post('/api/patient/sp3/graviditet', { sistaMens: sm });
     expect(g.status).toBe(201);
@@ -73,7 +75,7 @@ describe('API för specialistområdena', () => {
     const b = await k.post(`/api/graviditet/${g.data.id}/besok`, { blodtryck: '150/95', urinProtein: 1 });
     expect(b.data.varningar[0]).toContain('preeklampsi');
     expect((await k.get('/api/patient/sp3/graviditet')).data.graviditeter[0].besok.length).toBe(1);
-    expect((await k.get('/api/graviditet/uppfoljning')).data.graviditeter.pagaende).toBe(1);
+    expect((await k.get('/api/graviditet/uppfoljning')).data.graviditeter.pagaende).toBe(fore + 1);
   });
 
   test('cytostatika: läkaren ordinerar och godkänner, beredningsordern hämtas och dubbelkontrollen görs i två inloggningar', async () => {
