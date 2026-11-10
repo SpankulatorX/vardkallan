@@ -21,6 +21,12 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor }) {
     const g = obs.graviditetRad(c.db, gid);
     return medPatient(c, g.patient_id, 'graviditet', (atk) => obs.valdsvar(atk, g));
   });
+  // Jonas beslut 2026-11-10: samtycket återkallas av den vårdenhet som ställde frågorna.
+  rutt('POST', '/api/graviditet/:gid/valdsamtycke/:sid/aterkalla', (c, gid, sid) => {
+    kravInloggad(c);
+    const g = obs.graviditetRad(c.db, gid);
+    return medPatient(c, g.patient_id, 'graviditet', (atk) => obs.aterkallaSamtycke(atk, g, sid));
+  });
   rutt('GET', '/api/modrahalsovard', (c) => { kravInloggad(c); return obs.mhvOversikt(c.db, c.personal, val(c)); });
   rutt('GET', '/api/forlossning', (c) => { kravInloggad(c); return forl.oversikt(c.db, c.personal, val(c)); });
   // Graviditetsregistret: förhandsgranskningen visar namnet bara på poster med fel, och de loggas.
@@ -41,3 +47,13 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor }) {
 }
 
 export const session = (db, personal) => obs.session(db, personal);
+
+// Jonas beslut 2026-11-10: första gången barnmorskan på förlossningen loggar in i en sandlåda läggs demopatienterna in,
+// så att den som provar förlossningen inte behöver hitta knappen. Bara en gång per sandlåda (inställningen
+// obstetrik_demo, som obstetrik-seed.js sätter).
+export function efterInloggning(db, personal) {
+  if (personal?.id !== 'bm-uso') return;
+  obs.sakra(db);
+  if (db.query("SELECT 1 FROM installningar WHERE nyckel = 'obstetrik_demo'").get()) return;
+  seed.seeda(db, new Date());
+}

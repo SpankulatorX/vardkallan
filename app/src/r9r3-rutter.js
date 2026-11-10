@@ -85,7 +85,9 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
   const GRAV = { ultraljud: (atk, g, b) => obs.ultraljud(atk, g, b), besok: (atk, g, b) => obs.besok(atk, g, b), prover: (atk, g) => obs.bestallProver(atk, g),
     forlossning: (atk, g, b) => obs.startaForlossning(atk, g, b),
     // Runda 11, r3: inskrivningssamtalet, efterkontrollen och om patienten motsätter sig Graviditetsregistret.
-    samtal: (atk, g, b) => obs.samtal(atk, g, b), efterkontroll: (atk, g, b) => obs.efterkontroll(atk, g, b), register: (atk, g, b) => gr.motsatt(atk, g, b) };
+    samtal: (atk, g, b) => obs.samtal(atk, g, b), efterkontroll: (atk, g, b) => obs.efterkontroll(atk, g, b), register: (atk, g, b) => gr.motsatt(atk, g, b),
+    // Runda 11, r3: kvinnans samtycke till att en annan vårdenhet läser svaren om våld.
+    valdsamtycke: (atk, g, b) => obs.valdSamtycke(atk, g, b) };
   rutt('POST', '/api/graviditet/:gid/:atgard', (c, gid, atgard) => {
     kravInloggad(c);
     if (!Object.hasOwn(GRAV, atgard)) return okand();

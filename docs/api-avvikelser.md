@@ -724,3 +724,6 @@ Det som ändrar något kräver radens vårdenhet. Listor på enhetsnivå och upp
 - Datauttaget har tabellerna `Graviditet` och `Forlossning`.
 - Demodata i den egna sandlådan: `POST /api/demo/obstetrik`.
 - Ny handling i behörighetsmotorn: `rapportera_graviditetsregistret` (läkare och sjuksköterskor).
+- Samtycket för svaren om våld (beslut 2026-11-10): `POST /api/graviditet/:gid/valdsamtycke { ensam: true, mottagare, till }` och `POST /api/graviditet/:gid/valdsamtycke/:sid/aterkalla`. Inskrivningssamtalet har `samtycken` och `samtyckesmottagare` bara för den vårdenhet som ställde frågorna, och `valdfragan.kanLasaSvar` räknar med ett gällande samtycke.
+- Min journal: `GET /api/min/journal/:id/graviditet` för kvinnan själv, och huvudet `GET /api/min/journal/:id` har `graviditet: true` när det finns en graviditet att visa.
+- `POST /api/login` som barnmorskan på förlossningen lägger in demodata första gången i sandlådan.

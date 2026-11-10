@@ -124,7 +124,25 @@ function samtalHtml(g, kan) {
       <fieldset class="ob-falt"><legend>Önskemål inför förlossningen</legend>${SMARTLINDRING.map(([k, t]) => `<div class="kryssfalt"><input type="checkbox" id="gs-sm-${k}" name="sm_${k}"><label for="gs-sm-${k}">${esc(t)}</label></div>`).join('')}
         <div class="falt"><label for="gs-onsk">Annat hon vill att förlossningen ska veta</label><textarea id="gs-onsk" name="onskemal" maxlength="1000" rows="2"></textarea></div></fieldset>
       <div class="knapprad"><button type="submit" class="knapp">Spara inskrivningssamtalet</button></div>${fel}</form></details>` : '';
-  return `<section aria-labelledby="gr-samtal-${g.id}"><h3 id="gr-samtal-${g.id}">Inskrivningssamtal</h3>${visning}${form}</section>`;
+  return `<section aria-labelledby="gr-samtal-${g.id}"><h3 id="gr-samtal-${g.id}">Inskrivningssamtal</h3>${visning}${samtyckeHtml(g, s)}${form}</section>`;
+}
+
+// Runda 11, r3, Jonas beslut 2026-11-10: kvinnans samtycke till att en annan vårdenhet läser svaren om våld. Syns
+// bara för den vårdenhet som ställde frågorna, och bara den ger och återkallar det.
+function samtyckeHtml(g, s) {
+  if (!s?.samtycken || !s.valdfragan.stalld) return '';
+  const standard = new Date(Math.min(Date.parse(`${g.bpd}T12:00:00Z`) + 42 * 86400_000, Date.now() + 360 * 86400_000)).toISOString().slice(0, 10);
+  return `<div class="ob-samtycke"><h4>Samtycke till att en annan vårdenhet läser svaren om våld</h4>
+    ${s.samtycken.length ? `<ul class="enkel-lista">${s.samtycken.map(x => `<li><strong>${esc(x.mottagare?.namn ?? '')}</strong> till och med ${esc(datum(x.till))}
+      <span class="under-text">${x.aktiv ? 'Gäller' : x.aterkallad ? `Återkallat ${esc(tidpunkt(x.aterkallad.tid))}` : 'Har gått ut'}. Registrerat av ${esc(x.av ?? '')}.</span>
+      ${x.aktiv ? ` <button type="button" class="knapp liten sekundar" data-gr-aterkalla="${x.id}" data-gid="${g.id}">Återkalla</button>` : ''}</li>`).join('')}</ul>` : '<p class="tom liten">Inget samtycke. Svaren syns bara här.</p>'}
+    ${far('graviditet') ? `<details><summary>Registrera ett samtycke</summary><form id="gr-samtycke" class="ob-form" novalidate aria-label="Samtycke till att en annan vårdenhet läser svaren" data-gid="${g.id}">
+      <p class="hjalp">Fråga när hon är ensam, som frågorna. Samtycket gäller en vårdenhet till och med ett datum, kan återkallas när som helst och loggas.</p>
+      <div class="kryssfalt"><input type="checkbox" id="gc-ensam" name="ensam"><label for="gc-ensam">Hon är ensam med mig och samtycker</label></div>
+      <div class="falt-rad"><div class="falt"><label for="gc-mott">Vårdenhet</label><select id="gc-mott" name="mottagare">${s.samtyckesmottagare.map(e => `<option value="${esc(e.id)}"${e.id === 'uso-kk' ? ' selected' : ''}>${esc(e.namn)}</option>`).join('')}</select></div>
+      <div class="falt"><label for="gc-till">Gäller till och med</label><input id="gc-till" name="till" type="date" value="${esc(standard)}"></div>
+      <div class="falt knappfalt"><button type="submit" class="knapp">Registrera samtycket</button></div></div>${fel}</form></details>` : ''}
+  </div>`;
 }
 
 function efterkontrollHtml(g, kan) {
@@ -215,6 +233,14 @@ export async function visa(el, ctx) {
       skicka(sf, `/api/graviditet/${sf.dataset.gid}/samtal`, data);
     });
   }
+  el.querySelector('#gr-samtycke')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const f = e.currentTarget;
+    skicka(f, `/api/graviditet/${f.dataset.gid}/valdsamtycke`, { ensam: f.ensam.checked, mottagare: f.mottagare.value, till: f.till.value });
+  });
+  el.querySelectorAll('[data-gr-aterkalla]').forEach(b => b.addEventListener('click', async () => {
+    try { const r = await medKnapp(b, () => api(`/api/graviditet/${b.dataset.gid}/valdsamtycke/${b.dataset.grAterkalla}/aterkalla`, { metod: 'POST', data: {} })); notis(r.text); ctx.ladda(); } catch { /* notis */ }
+  }));
   el.querySelector('#gr-ek')?.addEventListener('submit', (e) => {
     e.preventDefault();
     const f = e.currentTarget;

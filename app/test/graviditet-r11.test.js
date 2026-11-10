@@ -131,7 +131,7 @@ describe('Graviditet, förlossning och BB', () => {
     expect(v.svar.map(x => x.svar)).toEqual(['Ja', 'Ja', 'Vill inte svara']);
     expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'r1' AND resurs = ?").get(`graviditet:${g.id}:valdfragor`).n).toBe(1);
     const f = fel(() => obs.valdsvar(bm(db, 'r1'), rad(db, g.id)));
-    expect([f.status, f.message]).toEqual([403, 'Svaren på frågorna om våld syns bara för mödrahälsovården på den vårdenhet som ställde dem.']);
+    expect([f.status, f.message]).toEqual([403, 'Svaren på frågorna om våld syns bara för mödrahälsovården på den vårdenhet som ställde dem, och för en vårdenhet som kvinnan har gett sitt samtycke till.']);
     expect(obs.graviditetUt(bm(db, 'r1', 'las_graviditet'), rad(db, g.id), BAS).inskrivningssamtal.valdfragan.kanLasaSvar).toBe(false);
     expect(fel(() => obs.valdsvar(atk(db, 'usk-kard', 'r1', 'graviditet'), rad(db, g.id))).status).toBe(403);
     // Uppföljningen och registret är desamma oavsett svaren.
@@ -543,8 +543,8 @@ describe('Graviditet, förlossning och BB', () => {
     expect((await k.get(`/api/patient/${b.data.barnId}/bb`)).data.barn.senasteVikt.vikt).toBe(3350);
     expect((await k.get('/api/graviditetsregistret')).status).toBe(200);
     expect((await k.get('/api/modrahalsovard')).status).toBe(403);
-    // Demodata i den egna sandlådan, en gång.
-    expect((await k.post('/api/demo/obstetrik', {})).data.laddad).toBe(true);
+    // Demodata i den egna sandlådan: inlagd redan vid barnmorskans inloggning, och knappen lägger inte in den igen.
+    expect((await k.post('/api/demo/obstetrik', {})).data.laddad).toBe(false);
     expect((await k.post('/api/demo/obstetrik', {})).data.laddad).toBe(false);
     expect((await k.get('/api/forlossning')).data.pagaende.map(x => x.patientId)).toContain('obs3');
     expect((await k.post(`/api/forlossning/${f.data.id}/constructor`, {})).status).toBe(404);
@@ -553,5 +553,101 @@ describe('Graviditet, förlossning och BB', () => {
     expect((await k.get('/api/session')).data.obstetrik).toEqual({ mhv: true, forlossning: false });
     expect((await k.get('/api/modrahalsovard')).status).toBe(200);
     expect((await k.get('/api/forlossning')).status).toBe(403);
+  });
+});
+
+// Runda 11, r3, Jonas beslut 2026-11-10: samtycke för svaren om våld, graviditeten i Min journal och demodata när
+// barnmorskan loggar in.
+describe('Graviditet, förlossning och BB', () => {
+  test(T.samtycke.replace(/^.*> /, ''), () => {
+    const db = sandlada();
+    ny(db, 'r1');
+    forlossningsrum(db, 'r1');
+    const g = obs.registrera(mvc(db, 'r1'), { sistaMens: addDagar(IDAG, -63) }, BAS);
+    obs.samtal(mvc(db, 'r1'), rad(db, g.id), { ...SAMTAL, vald: { ensam: true, svar: { tidigare: 'ja', nu: 'nej', radd: 'nej' } } }, BAS);
+    const las = (a, nu = BAS) => obs.valdsvar(a, rad(db, g.id), nu);
+    expect(fel(() => las(bm(db, 'r1'))).status).toBe(403);
+    const ge = (a, body, nu = BAS) => obs.valdSamtycke(a, rad(db, g.id), body, nu);
+    const ok = { ensam: true, mottagare: 'uso-kk', till: addDagar(IDAG, 30) };
+    // Bara den enhet som ställde frågorna ger samtycket, när kvinnan är ensam, till en annan namngiven vårdenhet.
+    for (const a of [bm(db, 'r1'), atk(db, 'usk-kard', 'r1', 'graviditet'), atk(db, 'ssk-kard', 'r1', 'graviditet', { andra_enheter: true })]) expect(fel(() => ge(a, ok)).status).toBe(403);
+    expect(fel(() => ge(mvc(db, 'r1'), { ...ok, ensam: false })).message).toContain('ensam');
+    expect(fel(() => ge(mvc(db, 'r1'), { ...ok, mottagare: 'vc-tybble' })).status).toBe(400);
+    expect(fel(() => ge(mvc(db, 'r1'), { ...ok, mottagare: '__proto__' })).status).toBe(400);
+    expect(fel(() => ge(mvc(db, 'r1'), { ...ok, till: addDagar(IDAG, -1) })).status).toBe(400);
+    const s = ge(mvc(db, 'r1'), ok);
+    expect(s.samtycken).toEqual([expect.objectContaining({ mottagare: { id: 'uso-kk', namn: 'Kvinnokliniken USÖ' }, till: addDagar(IDAG, 30), aktiv: true })]);
+    expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'r1' AND resurs = ?").get(`graviditet:${g.id}:valdsamtycke`).n).toBe(1);
+    // Förlossningen läser svaren med samtycket, och ser inte samtyckena.
+    expect(las(bm(db, 'r1')).svar.map(x => x.svar)).toEqual(['Ja', 'Nej', 'Nej']);
+    const fu = obs.graviditetUt(bm(db, 'r1', 'las_graviditet'), rad(db, g.id), BAS).inskrivningssamtal;
+    expect(fu.valdfragan.kanLasaSvar).toBe(true);
+    expect(fu.samtycken).toBeUndefined();
+    expect(fel(() => las(atk(db, 'ssk-kard', 'r1', 'graviditet', { andra_enheter: true }))).status).toBe(403);
+    // Bara den enhet som ställde frågorna återkallar, och då stänger det direkt.
+    const sid = s.samtycken[0].id;
+    expect(fel(() => obs.aterkallaSamtycke(bm(db, 'r1'), rad(db, g.id), sid, BAS)).status).toBe(403);
+    expect(obs.aterkallaSamtycke(mvc(db, 'r1'), rad(db, g.id), sid, efter(10)).samtycken[0]).toMatchObject({ aktiv: false });
+    expect(fel(() => las(bm(db, 'r1'), efter(11))).status).toBe(403);
+    expect(fel(() => obs.aterkallaSamtycke(mvc(db, 'r1'), rad(db, g.id), 9999, BAS)).status).toBe(404);
+    // Ett utgånget samtycke stänger utan att någon gör något.
+    ge(mvc(db, 'r1'), { ...ok, till: addDagar(IDAG, 1) }, efter(20));
+    expect(las(bm(db, 'r1'), efter(60)).svar.length).toBe(3);
+    expect(fel(() => las(bm(db, 'r1'), efter(3 * 24 * 60))).status).toBe(403);
+    expect(obs.graviditetUt(bm(db, 'r1', 'las_graviditet'), rad(db, g.id), efter(3 * 24 * 60)).inskrivningssamtal.valdfragan.kanLasaSvar).toBe(false);
+  });
+
+  test(T.minJournal.replace(/^.*> /, ''), async () => {
+    const k = klient(app);
+    await k.logga('ssk-vc');
+    expect((await k.post('/api/demo/obstetrik', {})).status).toBe(200);
+    const db = serverSandlada(app, k).db;
+    const gid = db.query("SELECT id FROM graviditeter WHERE patient_id = 'obs1'").get().id;
+    // Personalen läser svaren och ger ett samtycke, så att det finns i loggen.
+    expect((await k.get(`/api/graviditet/${gid}/valdsvar`)).status).toBe(200);
+    expect((await k.post(`/api/graviditet/${gid}/valdsamtycke`, { ensam: true, mottagare: 'uso-kk', till: new Date(Date.now() + 10 * 86400_000).toISOString().slice(0, 10) })).status).toBe(200);
+    const inv = db.query("SELECT id FROM invanare WHERE patient_id = 'obs1'").get();
+    expect(inv).toBeTruthy();
+    expect((await k.post('/api/login/invanare', { invanareId: inv.id })).status).toBe(200);
+    const h = (await k.get('/api/min/journal/obs1')).data;
+    expect(h.graviditet).toBe(true);
+    const g = (await k.get('/api/min/journal/obs1/graviditet')).data;
+    expect(g.graviditeter[0]).toMatchObject({ status: 'pagaende', bpd: expect.any(String), graviditetslangd: { text: expect.stringMatching(/^v \d+\+\d$/) } });
+    expect(g.graviditeter[0].program.length).toBeGreaterThan(5);
+    expect(g.graviditeter[0].ultraljud.map(u => u.typText)).toEqual(['Rutinultraljud']);
+    expect(Array.isArray(g.graviditeter[0].provsvar)).toBe(true);
+    const svar = [h, g];
+    for (const del of ['oversikt', 'anteckningar', 'provsvar', 'logglista', 'tider', 'meddelanden', 'vardplan', 'ombud']) {
+      const r = await k.get(`/api/min/journal/obs1/${del}`);
+      if (r.status === 200) svar.push(r.data);
+    }
+    const text = JSON.stringify(svar);
+    for (const x of ['valdfragor', 'valdsamtycke', 'kansligt', 'samtycke', 'Vill inte svara', 'våld', 'Våld', 'utsatt', 'rädd']) expect(text).not.toContain(x);
+    // Ett ombud och den som inte är patienten själv ser aldrig graviditeten.
+    const { InvanareAtkomst } = await import('../src/patientvy.js');
+    const a = new InvanareAtkomst(db, db.query('SELECT * FROM invanare WHERE id = ?').get(inv.id), 'obs1');
+    a.patient = db.query("SELECT * FROM patienter WHERE id = 'obs1'").get();
+    a.relation = 'ombud';
+    expect(fel(() => obs.minGraviditet(a)).status).toBe(403);
+    a.relation = 'vardnadshavare';
+    expect(fel(() => obs.minGraviditet(a)).status).toBe(403);
+  });
+
+  test(T.autoDemo.replace(/^.*> /, ''), async () => {
+    const k = klient(app);
+    await k.logga('ssk-kard');
+    const db = serverSandlada(app, k).db;
+    expect(db.query("SELECT count(*) AS n FROM patienter WHERE id LIKE 'obs%'").get().n).toBe(0);
+    await k.logga('bm-uso');
+    expect(db.query("SELECT count(*) AS n FROM patienter WHERE id LIKE 'obs%'").get().n).toBe(4);
+    expect((await k.get('/api/forlossning')).data.pagaende.map(x => x.patientId)).toContain('obs3');
+    // En gång per sandlåda: tas demopatienterna bort läggs de inte in igen vid nästa inloggning.
+    db.query("DELETE FROM listningar WHERE patient_id LIKE 'obs%'").run();
+    db.query("UPDATE patienter SET id = 'x' || id WHERE id LIKE 'obs%'").run();
+    const fore = db.query('SELECT count(*) AS n FROM patienter').get().n;
+    await k.logga('ssk-kard');
+    await k.logga('bm-uso');
+    expect(db.query('SELECT count(*) AS n FROM patienter').get().n).toBe(fore);
+    expect(db.query("SELECT varde FROM installningar WHERE nyckel = 'obstetrik_demo'").get()?.varde).toBeTruthy();
   });
 });

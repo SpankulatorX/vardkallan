@@ -121,6 +121,10 @@ CREATE TABLE IF NOT EXISTS bb_utskrivning (
   id INTEGER PRIMARY KEY, forlossning_id INTEGER NOT NULL UNIQUE, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, tid TEXT NOT NULL, av TEXT NOT NULL,
   kriterier TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS graviditet_valdsamtycke (
+  id INTEGER PRIMARY KEY, graviditet_id INTEGER NOT NULL, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, mottagare TEXT NOT NULL, fran TEXT NOT NULL,
+  till TEXT NOT NULL, av TEXT NOT NULL, aterkallad TEXT, aterkallad_av TEXT
+);
 CREATE TABLE IF NOT EXISTS graviditetsregister_utskick (
   id INTEGER PRIMARY KEY, tid TEXT NOT NULL, enhet_id TEXT NOT NULL, av TEXT NOT NULL, antal INTEGER NOT NULL, undantagna INTEGER NOT NULL,
   kvittens TEXT NOT NULL, innehall TEXT NOT NULL
@@ -277,7 +281,7 @@ export function graviditetUt(atk, g, nu = new Date()) {
     // Runda 11, r3.
     ivf: g.ivf_overforing ? { overforing: g.ivf_overforing, embryoDagar: g.ivf_embryo_dagar } : null, registerMotsatt: Boolean(g.register_motsatt),
     ultraljud: db.query('SELECT * FROM graviditet_ultraljud WHERE graviditet_id = ? ORDER BY datum, id').all(g.id).map(u => ultraljudUt(db, u)),
-    inskrivningssamtal: samtalUt(db, db.query('SELECT * FROM graviditet_samtal WHERE graviditet_id = ? ORDER BY id DESC').get(g.id), atk),
+    inskrivningssamtal: samtalUt(db, db.query('SELECT * FROM graviditet_samtal WHERE graviditet_id = ? ORDER BY id DESC').get(g.id), atk, nu),
     efterkontroll: db.query('SELECT * FROM graviditet_efterkontroll WHERE graviditet_id = ? ORDER BY id DESC').all(g.id).map(e => efterkontrollUt(db, e)),
     sfKurva: sfKurva(db, g), attGora: attGora(db, g, dagar, risk),
   };
@@ -539,7 +543,7 @@ export function samtal(atk, g, body = {}, nu = new Date()) {
     text: ensam ? 'Inskrivningssamtalet är registrerat. Svaren om våld är sparade som känsliga uppgifter.' : 'Inskrivningssamtalet är registrerat. Systemet påminner om frågorna om våld vid nästa besök.' };
 }
 
-function samtalUt(db, s, atk = null) {
+function samtalUt(db, s, atk = null, nu = new Date()) {
   if (!s) return null;
   const tobak = lasJson(s.tobak, {}) ?? {};
   const an = lasJson(s.anamnes, {}) ?? {};
@@ -548,23 +552,119 @@ function samtalUt(db, s, atk = null) {
     id: s.id, tid: s.tid, av: personNamn(db, s.av), anteckningId: s.anteckning_id,
     anamnes: Object.keys(ANAMNES).filter(k => an[k]).map(k => ({ id: k, text: ANAMNES[k] })),
     tobak: { rokning: tobak.rokning ?? null, rokningText: TOBAKSBRUK[tobak.rokning] ?? null, snus: tobak.snus ?? null, snusText: TOBAKSBRUK[tobak.snus] ?? null },
-    valdfragan: { stalld: Boolean(s.vald_stalld), orsak: s.vald_orsak ? VALD_EJ_ORSAK[s.vald_orsak] ?? null : null, kanLasaSvar: Boolean(s.vald_stalld && atk && kanRoll(atk.personal, 'graviditet') && vardenhetFor(db, atk.personal.enhet_id) === vardenhetFor(db, s.enhet_id)) },
+    valdfragan: { stalld: Boolean(s.vald_stalld), orsak: s.vald_orsak ? VALD_EJ_ORSAK[s.vald_orsak] ?? null : null, kanLasaSvar: Boolean(s.vald_stalld && atk && kanRoll(atk.personal, 'graviditet') && (egenEnhet(db, atk, s) || aktivtSamtycke(db, s.graviditet_id, vardenhetFor(db, atk.personal.enhet_id), nu))) },
+    // Runda 11, r3: samtyckena syns bara för den enhet som ställde frågorna och ger dem.
+    ...(atk && egenEnhet(db, atk, s) && kanRoll(atk.personal, 'graviditet') ? { samtycken: samtyckenUt(db, s.graviditet_id, nu),
+      samtyckesmottagare: db.query("SELECT id, namn FROM enheter WHERE typ = 'vardenhet' AND id <> ? ORDER BY namn").all(vardenhetFor(db, s.enhet_id)) } : {}),
     onskemal: { text: on.text ?? '', smartlindring: (on.smartlindring ?? []).map(m => ({ id: m, text: SMARTLINDRING[m] })) },
   };
 }
 
 // Svaren på frågorna om våld. Bara på den vårdenhet som ställde frågorna och med handlingen graviditet. Läsningen loggas
 // med en egen resurs, så att logguppföljningen ser vem som har läst svaren.
-export function valdsvar(atk, g) {
+// Runda 11, r3, Jonas beslut 2026-11-10: en annan vårdenhet, till exempel förlossningen, får läsa svaren bara med
+// kvinnans samtycke. Samtycket frågas när hon är ensam, som frågorna, gäller en namngiven vårdenhet till och med ett
+// datum och ges och återkallas bara av den vårdenhet som ställde frågorna. Ett återkallat eller utgånget samtycke
+// stänger direkt, eftersom det prövas vid varje läsning.
+const VALD_NEKAD = 'Svaren på frågorna om våld syns bara för mödrahälsovården på den vårdenhet som ställde dem, och för en vårdenhet som kvinnan har gett sitt samtycke till.';
+const egenEnhet = (db, atk, s) => vardenhetFor(db, atk.personal.enhet_id) === vardenhetFor(db, s.enhet_id);
+const stalldaFragor = (db, g) => db.query('SELECT * FROM graviditet_samtal WHERE graviditet_id = ? AND vald_stalld = 1 ORDER BY id DESC').get(g.id);
+export function aktivtSamtycke(db, gid, ve, nu = new Date()) {
+  return db.query('SELECT * FROM graviditet_valdsamtycke WHERE graviditet_id = ? AND mottagare = ? AND aterkallad IS NULL AND fran <= ? AND till >= ? ORDER BY id DESC')
+    .get(gid, ve, iso(nu), datumAv(nu)) ?? null;
+}
+function samtyckenUt(db, gid, nu = new Date()) {
+  return db.query('SELECT * FROM graviditet_valdsamtycke WHERE graviditet_id = ? ORDER BY id DESC').all(gid).map(x => ({
+    id: x.id, mottagare: enhetKort(db, x.mottagare), fran: x.fran, till: x.till, av: personNamn(db, x.av),
+    aterkallad: x.aterkallad ? { tid: x.aterkallad, av: personNamn(db, x.aterkallad_av) } : null, aktiv: !x.aterkallad && x.till >= datumAv(nu) && x.fran <= iso(nu) }));
+}
+
+export function valdsvar(atk, g, nu = new Date()) {
   const db = atk.db;
   lasRad(atk, g, 'las_graviditet');
-  const s = db.query('SELECT * FROM graviditet_samtal WHERE graviditet_id = ? AND vald_stalld = 1 ORDER BY id DESC').get(g.id);
+  const s = stalldaFragor(db, g);
   if (!s) throw new Fel(404, 'Frågorna om våld är inte ställda i den här graviditeten.', 'saknas');
-  andraRad(atk, s, 'graviditet', 'las_graviditet', 'Svaren på frågorna om våld syns bara för mödrahälsovården på den vårdenhet som ställde dem.');
+  lasRad(atk, s, 'las_graviditet');
+  atk.krav('graviditet');
+  const samtycke = egenEnhet(db, atk, s) ? null : aktivtSamtycke(db, g.id, vardenhetFor(db, atk.personal.enhet_id), nu);
+  if (!egenEnhet(db, atk, s) && !samtycke) throw new Fel(403, VALD_NEKAD, 'nekad');
   const svar = lasJson(s.kansligt, {}) ?? {};
-  atk.logga('graviditet', atk.grund(), `graviditet:${g.id}:valdfragor`);
+  atk.logga('graviditet', atk.grund(), `graviditet:${g.id}:valdfragor${samtycke ? `:samtycke:${samtycke.id}` : ''}`);
   return { tid: s.tid, av: personNamn(db, s.av), svar: VALDFRAGOR.map(q => ({ fraga: q.text, svar: VALDSVAR[svar[q.id]] ?? null })),
-    text: 'Svaren är känsliga uppgifter. De visas bara här och läsningen loggas.' };
+    samtycke: samtycke ? { till: samtycke.till } : null,
+    text: samtycke ? `Kvinnan har gett sitt samtycke till att er vårdenhet läser svaren till och med ${samtycke.till}. Läsningen loggas.` : 'Svaren är känsliga uppgifter. De visas bara här och läsningen loggas.' };
+}
+
+export function valdSamtycke(atk, g, body = {}, nu = new Date()) {
+  const db = atk.db;
+  sakra(db);
+  lasRad(atk, g, 'las_graviditet');
+  const s = stalldaFragor(db, g);
+  if (!s) throw new Fel(404, 'Frågorna om våld är inte ställda i den här graviditeten.', 'saknas');
+  andraRad(atk, s, 'graviditet', 'las_graviditet', 'Samtycket ges bara hos den vårdenhet som ställde frågorna om våld.');
+  if (body.ensam !== true) throw new Fel(400, 'Fråga om samtycket när hon är ensam, som frågorna om våld.', 'ogiltig', { falt: ['ensam'] });
+  const mottagare = body.mottagare;
+  const ve = typeof mottagare === 'string' ? db.query("SELECT id FROM enheter WHERE id = ? AND typ = 'vardenhet'").get(mottagare) : null;
+  if (!ve) throw new Fel(400, 'Välj den vårdenhet som samtycket gäller.', 'ogiltig', { falt: ['mottagare'] });
+  if (mottagare === vardenhetFor(db, s.enhet_id)) throw new Fel(400, 'Er egen vårdenhet läser redan svaren. Samtycket gäller en annan vårdenhet.', 'ogiltig', { falt: ['mottagare'] });
+  const idag = datumAv(nu);
+  if (!giltigtDatum(body.till) || body.till < idag || dagarMellan(idag, body.till) > 365) throw new Fel(400, 'Ange till och med vilket datum samtycket gäller, i dag eller senare och högst ett år framåt.', 'ogiltig', { falt: ['till'] });
+  if (aktivtSamtycke(db, g.id, mottagare, nu)) throw new Fel(409, 'Det finns redan ett gällande samtycke för den vårdenheten. Återkalla det först om det ska ändras.', 'ogiltig');
+  db.query('INSERT INTO graviditet_valdsamtycke (graviditet_id, patient_id, enhet_id, mottagare, fran, till, av) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .run(g.id, g.patient_id, atk.personal.enhet_id, mottagare, iso(nu), body.till, atk.personal.id);
+  atk.logga('graviditet', atk.grund(), `graviditet:${g.id}:valdsamtycke`);
+  return { samtycken: samtyckenUt(db, g.id, nu), text: `Samtycket är registrerat. ${enhetKort(db, mottagare).namn} kan läsa svaren till och med ${body.till}.` };
+}
+
+export function aterkallaSamtycke(atk, g, sid, nu = new Date()) {
+  const db = atk.db;
+  sakra(db);
+  lasRad(atk, g, 'las_graviditet');
+  const x = /^\d{1,9}$/.test(String(sid)) ? db.query('SELECT * FROM graviditet_valdsamtycke WHERE id = ? AND graviditet_id = ?').get(Number(sid), g.id) : null;
+  if (!x) throw new Fel(404, 'Samtycket finns inte.', 'saknas');
+  andraRad(atk, x, 'graviditet', 'las_graviditet', 'Samtycket återkallas bara hos den vårdenhet som ställde frågorna om våld.');
+  if (!x.aterkallad) db.query('UPDATE graviditet_valdsamtycke SET aterkallad = ?, aterkallad_av = ? WHERE id = ?').run(iso(nu), atk.personal.id, x.id);
+  atk.logga('graviditet', atk.grund(), `graviditet:${g.id}:valdsamtycke`);
+  return { samtycken: samtyckenUt(db, g.id, nu), text: 'Samtycket är återkallat och gäller inte längre.' };
+}
+
+// Runda 11, r3, Jonas beslut 2026-11-10: graviditeten i Min journal för kvinnan själv, efter vårdgivarens
+// visningsregler för vårdenheten (regeln för anteckningstypen Graviditetsjournal, eller vårdenhetens regel). Besöks-
+// programmet, beräknad partus, ultraljuden och provsvaren. Inskrivningssamtalet, svaren om våld och samtyckena finns
+// aldrig med, och ett ombud eller en vårdnadshavare ser inte graviditeten.
+export const MIN_TYP = 'Graviditetsjournal';
+const minVisning = (db, g) => require('./patientvy.js').regelFor(db, { enhet_id: g.enhet_id, typ: MIN_TYP });
+function minGraviditeter(atk) {
+  sakra(atk.db);
+  return atk.db.query('SELECT * FROM graviditeter WHERE patient_id = ? ORDER BY skapad DESC').all(atk.patientId).filter(g => minVisning(atk.db, g)?.visning !== 'visas_inte');
+}
+export const harMinGraviditet = (atk) => atk.relation === 'egen' && minGraviditeter(atk).length > 0;
+export function minGraviditet(atk, nu = new Date()) {
+  if (atk.relation !== 'egen') throw new Fel(403, 'Graviditeten visas bara för kvinnan själv.', 'nekad');
+  const db = atk.db;
+  const pv = require('./patientvy.js');
+  return {
+    graviditeter: minGraviditeter(atk).map(g => {
+      const regel = minVisning(db, g);
+      // En fördröjning i vårdenhetens visningsregel gäller ultraljuden och provsvaren, som för anteckningarna.
+      const dagar = regel && regel.visning !== 'direkt' && regel.visning !== 'visas_inte' ? Number(regel.dagar ?? 0) : 0;
+      const synlig = (tid) => Date.parse(tid) + dagar * DAG <= nu.getTime();
+      const programmet = program({ db }, g, { niva: 'normal' }, nu);
+      const enheter = enheterUnder(db, vardenhetFor(db, g.enhet_id));
+      const ph = enheter.map(() => '?').join(', ');
+      const prov = db.query(`SELECT * FROM matvarden WHERE patient_id = ? AND enhet_id IN (${ph}) AND tid >= ? ORDER BY tid DESC`).all(g.patient_id, ...enheter, g.skapad)
+        .filter(m => pv.arProvsvar(m.typ) && pv.provsvarVisas(m, nu) && synlig(m.tid));
+      const dag = dagarFor(g, datumAv(nu));
+      return {
+        id: g.id, status: g.status, bpd: g.bpd, graviditetslangd: { dagar: dag, text: veckaText(Math.max(0, dag)) }, antalFoster: g.antal_foster, vardenhet: enhetKort(db, vardenhetFor(db, g.enhet_id)),
+        program: programmet.besok.map(b => ({ vecka: b.vecka, datum: b.datum, typ: b.typ, gjort: b.gjort })), nasta: programmet.nasta ? { vecka: programmet.nasta.vecka, datum: programmet.nasta.datum, typ: programmet.nasta.typ } : null,
+        ultraljud: db.query('SELECT * FROM graviditet_ultraljud WHERE graviditet_id = ? ORDER BY datum').all(g.id).filter(u => synlig(u.tid))
+          .map(u => ({ datum: u.datum, typText: ULTRALJUDSTYPER[u.typ] ?? u.typ, vecka: veckaText(u.dagar), antalFoster: u.antal_foster, foster: lasJson(u.foster, []).map(f => ({ ordning: f.ordning, hjartaktivitet: f.hjartaktivitet, skattadVikt: f.skattadVikt })) })),
+        provsvar: prov.map(m => ({ typ: m.typ, namn: journal().MATTYPER[m.typ]?.namn ?? m.typ, varde: m.varde, enhet: m.matt_enhet ?? null, tid: m.tid })),
+      };
+    }),
+    text: 'Din graviditet med besöksprogrammet, beräknad partus, ultraljuden och provsvaren. Prata med din barnmorska om du undrar över något.',
+  };
 }
 
 export function efterkontroll(atk, g, body = {}, nu = new Date()) {

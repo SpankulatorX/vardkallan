@@ -47,7 +47,7 @@ const FILER = [
   '/js/formularmotor-regler.js', '/js/vyer/patient-formular.js', '/js/vyer/formularbyggare.js', '/js/rost-regler.js', '/js/rostinmatning.js', '/js/stavning-ui.js',
   '/js/vyer/patient-infarter.js', '/js/vyer/patient-restjournaler.js', '/js/vyer/patient-donation.js',
   '/js/vyer/r10r7.js', '/js/vyer/min-r10r7.js',
-  '/js/obstetrik-ui.js', '/js/vyer/patient-graviditet.js', '/js/vyer/forlossning.js', '/js/vyer/modrahalsovard.js',
+  '/js/obstetrik-ui.js', '/js/vyer/patient-graviditet.js', '/js/vyer/forlossning.js', '/js/vyer/modrahalsovard.js', '/js/vyer/min-graviditet.js',
 ];
 // Runda 11, r3: listan har graviditetsjournalen, den nyföddas BB-journal, förlossningen och mödrahälsovården.
 // Runda 10, r2: listan har uppföljningsvyn och utbildningsläget (patient-uppfoljning.js och patient-utbildningslage.js).

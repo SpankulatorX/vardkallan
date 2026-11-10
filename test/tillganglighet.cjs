@@ -501,6 +501,16 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     vyLista.push([invanare, h]);
     await granskaHar(`${invanare} ${h}`);
   }
+  // Runda 11, r3: graviditeten i Min journal för demopatienten Linnea Åkerlund, som barnmorskan har lagt in ovan.
+  if (await page.goto(`${BAS}/#/`).then(() => page.locator('[data-a="loggaut"]').count())) await page.click('[data-a="loggaut"]');
+  await page.waitForSelector('#flik-patient');
+  await page.click('#flik-patient');
+  if (await page.locator('[data-invanare="inv-obs1"]').count()) {
+    await loggaIn(page, 'inv-obs1');
+    await gaTill(page, '#/min/obs1/graviditet');
+    vyLista.push(['inv-obs1', '#/min/obs1/graviditet']);
+    await granskaHar('inv-obs1 #/min/obs1/graviditet');
+  }
   console.log(`Granskade ${vyLista.length} vyer på 1440 px.`);
 
   // Ett fel i ett formulär (3.3.1): en sökning på ett tecken ger ett fel från servern, som ska markeras vid fältet,

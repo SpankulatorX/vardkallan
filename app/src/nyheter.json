@@ -11,7 +11,15 @@
           "omfattning": "stor",
           "var": "#/modrahalsovard",
           "rubrik": "Graviditetsjournalen och mödrahälsovården",
-          "text": "Fliken Graviditet i journalen har besöksprogrammet, provschemat, riskbedömningen med stöd för graviditetsdiabetes och havandeskapsförgiftning, ultraljudsjournalen och inskrivningssamtalet med frågorna om våld, vars svar bara mödrahälsovården kan läsa. Sidan Mödrahälsovård visar alla graviditeter på vårdenheten och rapporterar till Graviditetsregistret (simulerat)."
+          "text": "Fliken Graviditet i journalen har besöksprogrammet, provschemat, riskbedömningen med stöd för graviditetsdiabetes och havandeskapsförgiftning, ultraljudsjournalen och inskrivningssamtalet med frågorna om våld. Svaren läses bara av mödrahälsovården, och av en annan vårdenhet som kvinnan har gett sitt samtycke till. Samtycket gäller en tid och kan återkallas. Sidan Mödrahälsovård visar alla graviditeter på vårdenheten och rapporterar till Graviditetsregistret (simulerat)."
+        },
+        {
+          "id": "graviditet-min-journal",
+          "roller": ["invanare"],
+          "omfattning": "liten",
+          "var": "#/min",
+          "rubrik": "Din graviditet i Min journal",
+          "text": "Är du gravid ser du under Graviditet besöksprogrammet, beräknad partus, ultraljuden och provsvaren."
         },
         {
           "id": "forlossning-bb",

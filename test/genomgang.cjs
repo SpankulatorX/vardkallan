@@ -1748,6 +1748,27 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
       await bild(page, '164-valdsvar');
       await page.click('dialog[open] [data-varde="ok"]');
     });
+    // Runda 11, r3, beslut 2026-11-10: samtycket till förlossningen och graviditeten i Min journal.
+    await s('Hanna Lilja registrerar kvinnans samtycke till att förlossningen läser svaren och återkallar det', async () => {
+      await page.click('.ob-samtycke summary');
+      await page.check('#gc-ensam');
+      await page.click('#gr-samtycke [type="submit"]');
+      await forvanta(page, '.notis', 'Samtycket är registrerat');
+      await forvanta(page, '.ob-samtycke li', 'Gäller');
+      await bild(page, '165-samtycke');
+      await page.click('[data-gr-aterkalla]');
+      await forvanta(page, '.notis', 'Samtycket är återkallat');
+      await forvanta(page, '.ob-samtycke li', 'Återkallat');
+    });
+    await s('Linnea Åkerlund ser sin graviditet i Min journal, utan inskrivningssamtalet och svaren om våld', async () => {
+      await loggaInPatient(page, 'inv-obs1');
+      await page.click('.min-flikar a:text-is("Graviditet")');
+      await forvanta(page, '.min-del h2', 'Graviditet');
+      await forvanta(page, '.min-del', 'Rutinultraljud');
+      await saknas(page, 'våld');
+      await saknas(page, 'Inskrivningssamtal');
+      await bild(page, '166-min-graviditet', true);
+    });
     await s('Per Holm granskar sina 30 utkast och signerar alla med ett klick', async () => {
       await loggaIn(page, 'lak-vc');
       await page.waitForFunction(() => document.querySelector('#lista') && !/Hämtar/.test(document.querySelector('#lista').textContent));

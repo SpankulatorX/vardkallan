@@ -22,5 +22,9 @@ export const GRAVIDITET_R11 = {
   datauttag: `${GR}datauttaget har tabellerna Graviditet och Forlossning utan personuppgifter och utan svaren om våld`,
   barnSkydd: `${GR}säkerhet: ett barn med skyddade personuppgifter eller spärr lämnas inte ut i datauttaget eller till Graviditetsregistret, och förlossningen räknas som utelämnad`,
   barnIdentitet: `${GR}säkerhet: ett barn med skyddade personuppgifter visas utan namn och personnummer i förlossningen, BB och födelseanmälan, och ett barn utan åtkomst syns inte i moderns vy`,
+  // Runda 11, r3, Jonas beslut: samtycke för svaren om våld, graviditeten i Min journal och demodata vid inloggning.
+  samtycke: `${GR}samtycke: svaren om våld visas för en annan enhet bara med kvinnans samtycke, som bara den enhet som ställde frågorna ger och återkallar, och ett återkallat eller utgånget samtycke stänger direkt`,
+  minJournal: `${GR}Min journal: graviditeten visas med besöksprogram, beräknad partus, ultraljud och provsvar efter visningsreglerna, och svaren om våld och samtycket syns aldrig, inte heller för ombud eller i loggutdraget`,
+  autoDemo: `${GR}demopatienterna läggs in av sig själva första gången barnmorskan på förlossningen loggar in i en sandlåda, och bara en gång`,
   seed: `${GR}seeden har en graviditet på mödrahälsovården, en pågående förlossning med CTG och tvillingar på BB, relativt till seedens tid`,
 };

@@ -29,6 +29,8 @@ function ledigtPnr(db, ar) {
 export function seeda(db, bas = new Date()) {
   obs.sakra(db);
   if (db.query("SELECT 1 FROM patienter WHERE id = 'obs1'").get()) return { laddad: false };
+  // Jonas beslut 2026-11-10: demodata läggs in en gång per sandlåda, och då också vid barnmorskans första inloggning.
+  db.query("INSERT INTO installningar VALUES ('obstetrik_demo', ?) ON CONFLICT (nyckel) DO UPDATE SET varde = excluded.varde").run(bas.toISOString());
   const pers = (id) => db.query('SELECT * FROM personal WHERE id = ?').get(id);
   const vid = (ms) => new Date(bas.getTime() + ms);
   const idag = datumAv(bas);
@@ -39,6 +41,9 @@ export function seeda(db, bas = new Date()) {
     db.query("INSERT INTO identiteter (patient_id, typ, varde, status, fran, av, ursprung) VALUES (?, 'personnummer', ?, 'gallande', ?, NULL, ?)").run(p.id, pnr, '2020-01-01T00:00:00.000Z', p.id);
     db.query('INSERT INTO listningar (patient_id, enhet_id, fran) VALUES (?, ?, ?)').run(p.id, 'vc-tybble', '2020-01-01');
   }
+  // Linnea Åkerlund kan logga in i Min journal (simulerad e-legitimation) och se sin graviditet.
+  const l = db.query("SELECT * FROM patienter WHERE id = 'obs1'").get();
+  db.query('INSERT INTO invanare (id, personnummer, fornamn, efternamn, fodd, patient_id) VALUES (?, ?, ?, ?, ?, ?)').run('inv-obs1', l.personnummer, l.fornamn, l.efternamn, l.fodd, l.id);
   const mvc = (pid, h = 'graviditet') => new Atkomst(db, pers('ssk-vc'), pid, {}, h);
   const bm = (pid, h = 'graviditet') => new Atkomst(db, pers('bm-uso'), pid, { andra_enheter: true }, h);
   const rad = (id) => obs.graviditetRad(db, id);
