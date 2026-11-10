@@ -1,7 +1,8 @@
 // Beställning och svar (runda 8, r1, Sussa 4.4.1, 4.4.2, 4.4.3 och 12.1.1.9, Sussas testfall 3.1 till 3.3). Logiken
 // prövas på en sandlåda byggd vid en fast tidpunkt och med fasta tider, så att inget beror på dagens datum. API:t prövas
 // för behörighet, loggning och flöde.
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll, afterEach } from 'bun:test';
+import { aterstallKlockan, stallKlockan } from './falsk-klocka.js';
 import { byggSeed, datumAv } from '../src/db.js';
 import { Atkomst } from '../src/atkomst.js';
 import * as labb from '../src/labb.js';
@@ -23,7 +24,9 @@ const T = (min) => new Date(BAS.getTime() + min * 60_000);
 const pers = (db, id) => db.query('SELECT * FROM personal WHERE id = ?').get(id);
 const atk = (db, roll, pid, val = {}, handling = 'las_prover') => new Atkomst(db, pers(db, roll), pid, val, handling);
 const pat = (db, id) => db.query('SELECT * FROM patienter WHERE id = ?').get(id);
-const sussa = () => { const db = byggSeed(BAS); laddaTestdata(db, pers(db, 'lak-kard'), { nu: BAS }); return db; };
+// Runda 11, r1: Sussas testdata läggs vid BAS, och vårdrelationen prövas mot klockan, så klockan står på BAS.
+afterEach(() => aterstallKlockan());
+const sussa = () => { stallKlockan(BAS); const db = byggSeed(BAS); laddaTestdata(db, pers(db, 'lak-kard'), { nu: BAS }); return db; };
 
 describe('Beställning och svar', () => {
   test('ett paket beställs med ett klick: systemet föreslår det ur vårdkontakten och väljer laboratorium, rör, provtagningsordning och anamnes', () => {

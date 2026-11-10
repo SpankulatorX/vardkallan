@@ -418,7 +418,7 @@ describe('API för barnhälsovården', () => {
     const inv = klient(app);
     await inv.post('/api/login/invanare', { invanareId: 'inv-vh02' });
     const ib = (await inv.get('/fhir/Immunization?patient=p61')).data;
-    expect(ib.total).toBe(8);
+    expect(ib.total).toBe(givna);
     expect(JSON.stringify(ib)).not.toContain('Practitioner/');
     const allt = (await inv.get('/fhir/Patient/p61/$everything')).data;
     expect(allt.entry.some(e => e.resource.resourceType === 'Immunization')).toBe(true);

@@ -201,10 +201,10 @@ describe(P.slice(0, -3), () => {
     expect(fall.varden.alder).toMatchObject({ varde: alderP01(), kalla: 'Ur personnumret' });
     // Åldern är förifylld och skrivs i anteckningen med källan.
     const a = atk(db, 'ssk-kard', 'p01');
-    const ny = journal.skapaAnteckning(a, { typ: 'Fallriskbedömning', formular: { ...FALL, alder: 81 } });
-    expect(ny.sokord.map(s => s.text).join('\n')).toContain('Ålder: 81 år (ur personnumret).');
+    const ny = journal.skapaAnteckning(a, { typ: 'Fallriskbedömning', formular: { ...FALL, alder: alderP01() } });
+    expect(ny.sokord.map(s => s.text).join('\n')).toContain(`Ålder: ${alderP01()} år (ur personnumret).`);
     // Fel ålder går inte att spara: systemet vet åldern.
-    expect(fel(() => journal.skapaAnteckning(a, { typ: 'Fallriskbedömning', formular: { ...FALL, alder: 40 } })).message).toContain('81 år');
+    expect(fel(() => journal.skapaAnteckning(a, { typ: 'Fallriskbedömning', formular: { ...FALL, alder: 40 } })).message).toContain(`${alderP01()} år`);
   });
 
   test('förifyllnad bygger bara på det som den som fyller i får se: en spärrad vårdenhets mätvärde ändrar inte svaret', () => {

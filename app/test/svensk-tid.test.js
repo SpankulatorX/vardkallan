@@ -8,7 +8,8 @@ import * as vardformer from '../src/vardformer.js';
 import * as vaccinationsprogram from '../src/vaccinationsprogram-regler.js';
 import * as bhvProgram from '../src/bhv-program.js';
 import * as utbildning from '../src/utbildning.js';
-import { personal } from './hjalp.js';
+import * as administrering from '../src/administrering.js';
+import { personal, atk } from './hjalp.js';
 
 const ms = (datum, klocka) => Date.parse(lokalTid(datum, klocka));
 
@@ -54,6 +55,18 @@ describe('Datum i svensk tid (runda 11, r1)', () => {
     const r = bhvProgram.provaVaccin(rota2, { fodd: '2026-08-01', nu: ms('2026-11-10', '12:00'), givna: [{ vaccinId: 'rota1', tid: lokalTid('2026-11-02', '00:30') }] });
     expect(r.ok).toBe(false);
     expect(r.skal).toContain(`Dosen kan ges från ${addDagar('2026-11-02', rota2.intervall)}.`);
+  });
+
+  test('vätskebalansens dygn är från brytningen till samma klockslag nästa dag, också när sommartiden börjar eller slutar', () => {
+    const db = byggSeed(new Date(ms('2027-10-31', '15:00')));
+    const a = atk(db, 'usk-kard', 'p01', {}, 'las_matvarden');
+    // Vintertiden börjar 31 oktober 2027: dygnet från klockan 14 den 30 oktober har 25 timmar.
+    const host = administrering.vatskebalans(a, { dag: '2027-10-30', brytning: '14' });
+    expect([host.fran, host.till]).toEqual([lokalTid('2027-10-30', '14:00'), lokalTid('2027-10-31', '14:00')]);
+    // Sommartiden börjar 28 mars 2027: dygnet från midnatt har 23 timmar.
+    const var_ = administrering.vatskebalans(a, { dag: '2027-03-28' });
+    expect([var_.fran, var_.till]).toEqual([lokalTid('2027-03-28', '00:00'), lokalTid('2027-03-29', '00:00')]);
+    expect(Date.parse(var_.till) - Date.parse(var_.fran)).toBe(23 * 3600_000);
   });
 
   test('utbildarintyget visar slutdatumet i svensk tid', () => {

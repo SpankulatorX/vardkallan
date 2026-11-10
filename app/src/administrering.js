@@ -12,7 +12,7 @@
 // på den egna vårdenheten. Nödåtkomst ger bara läsning, och ett aktivt val ger aldrig skrivrätt. Läkemedelslistan är
 // gemensam för vårdgivaren, så administreringarna är det också, men spärrade enheters ordinationer och doser som har
 // getts på en spärrad enhet visas inte. Varje läsning och ändring loggas på patienten.
-import { Fel, iso, idag } from './db.js';
+import { Fel, iso, idag, addDagar } from './db.js';
 import { Atkomst, kanRoll, vardenhetFor, enheterUnder, visningsnamn, visningsPnr } from './atkomst.js';
 import * as lakemedel from './lakemedel.js';
 import { tillaggUt, ADMINISTRATIONSSATT } from './ordinationsmallar.js';
@@ -526,7 +526,8 @@ export function vatskebalans(atk, { dag = idag(), brytning = '00' } = {}) {
   const db = atk.db;
   const k = klocka(brytning) ?? '00:00';
   const fran = Date.parse(lokalTid(dag, k));
-  const till = fran + DAG;
+  // Runda 11, r1: till samma klockslag nästa dag, så att dygnet har 23 eller 25 timmar när sommartiden börjar eller slutar.
+  const till = Date.parse(lokalTid(addDagar(dag, 1), k));
   // Volymen från en dos syns bara för den som får se dosen, så att en spärrad ordination inte röjs via vätskebalansen.
   const synligaDoser = new Set(synligaAdministreringar(atk).map(a => a.id));
   const rader = atk.filtrera(db.query('SELECT * FROM vatskebalans WHERE patient_id = ? ORDER BY tid, id').all(atk.patientId), 'las_matvarden')
