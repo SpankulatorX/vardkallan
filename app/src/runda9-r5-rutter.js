@@ -16,7 +16,8 @@ function innehallFor(db, kalla, status) {
   if (status === 'avvisat') return undefined;
   const [slag, ...rest] = kalla.split(':');
   if (slag === 'nll') { const [ord, typ, ...tid] = rest; return lakemedel.nllInnehall(db, Number(ord), typ, tid.join(':')); }
-  if (slag === 'labb_analyser') return labb.mottagetSvar(db, Number(rest[0]));
+  // Runda 11, r6: labb_analyser:<id>:v<n> är en rättad version av svaret.
+  if (slag === 'labb_analyser') return labb.mottagetSvar(db, Number(rest[0]), rest[1] ?? null);
   if (slag === 'arkivexporter') {
     const e = db.query('SELECT * FROM arkivexporter WHERE id = ?').get(rest.join(':'));
     return e ? { paket: e.id, storlek: e.storlek, sha256: e.sha256, informationstyp: earkiv.INFORMATIONSTYP } : undefined;

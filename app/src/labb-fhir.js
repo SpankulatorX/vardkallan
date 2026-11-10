@@ -9,6 +9,10 @@ import * as labb from './labb.js';
 import { SYSTEM, MATKOD } from './kodverk.js';
 import { CS } from './fhir-definitioner.js';
 import { ANALYS, LAB, ROR, FYND, DISCIPLINER } from './labb-katalog.js';
+// Runda 11, r6: undersökningar, prioritet, vårdförlopp, koder, rättade svar och underlag (undersokningar.js,
+// labb-svarsversioner.js och labb-underlag.js). Vad som förs över till ett mottagande system är parametrar.
+import { varde as konfig } from './konfiguration.js';
+import { KVA } from './kodverk.js';
 
 export const TYPER = ['DiagnosticReport', 'Specimen'];
 const HSA = 'urn:oid:1.2.752.29.4.19';
@@ -28,7 +32,41 @@ const TOLKNING = { hogt: ['H', 'High'], lagt: ['L', 'Low'], kritiskt_hogt: ['HH'
 
 const SR_STATUS = { bestalld: 'active', delvis_provtagen: 'active', skickad: 'active', delvis_besvarad: 'active', besvarad: 'completed', vidimerad: 'completed', makulerad: 'revoked' };
 
-export function serviceRequest(db, b, a) {
+const BILD = { coding: [{ system: SNOMED, code: '363679005', display: 'Imaging' }] };
+const PRIORITET_FHIR = { akut: 'stat', svf: 'urgent', snart: 'asap', rutin: 'routine' };
+const tabellFinns = (db, t) => Boolean(db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(t));
+const overfor = (db, falt) => { try { return konfig(db, `labb.overfor.${falt}`); } catch { return true; } };
+// mottagare: resursen skickas till laboratoriets system (utkorgen), och parametrarna för vad som förs över gäller.
+export function serviceRequest(db, b, a, { mottagare = false } = {}) {
+  const sr = serviceRequestBas(db, b, a);
+  const def = ANALYS[a.analys];
+  const t = tabellFinns(db, 'bestallning_tillagg') ? db.query('SELECT * FROM bestallning_tillagg WHERE bestallning_id = ?').get(b.id) : null;
+  const med = (falt) => !mottagare || overfor(db, falt);
+  if (def?.ror === 'undersokning') {
+    sr.category = [BILD];
+    if (def.kva) sr.code = { coding: [{ system: SYSTEM.kva, code: def.kva, display: KVA[def.kva] }], text: def.namn };
+    const bk = tabellFinns(db, 'undersokning_bokningar') ? db.query('SELECT bokad_tid FROM undersokning_bokningar WHERE analys_rad_id = ?').get(a.id) : null;
+    if (bk?.bokad_tid) sr.occurrenceDateTime = bk.bokad_tid;
+  }
+  if (t?.prioritet && med('svf')) sr.priority = PRIORITET_FHIR[t.prioritet];
+  if (t?.svf && med('svf')) {
+    const kod = { lungcancer: 'VC010', kolorektal: 'VB210', brost: 'VG910', ospecifika: 'VP810' }[t.svf];
+    if (kod) sr.reasonCode = [...(sr.reasonCode ?? []), { coding: [{ system: SYSTEM.kva, code: kod, display: KVA[kod] }], text: `Standardiserat vårdförlopp: ${KVA[kod]}` }];
+  }
+  if (b.kommentar && med('kommentar')) sr.note = [...(sr.note ?? []), { text: `Kommentar: ${b.kommentar}` }];
+  if (mottagare && overfor(db, 'diagnoser')) {
+    const ve = db.query("SELECT d.kod, d.text FROM diagnoser d WHERE d.patient_id = ? AND d.enhet_id = ?").all(b.patient_id, b.enhet_id);
+    if (ve.length) sr.reasonCode = [...(sr.reasonCode ?? []), ...ve.map(d => ({ coding: [{ system: SYSTEM.icd10se, code: d.kod }], text: d.text }))];
+  }
+  if (tabellFinns(db, 'labb_underlag') && med('underlag')) {
+    const u = db.query("SELECT id, namn, typ, storlek, sha256, data FROM labb_underlag WHERE bestallning_id = ? AND riktning = 'bestallning' ORDER BY id").all(b.id);
+    if (u.length) sr.supportingInfo = u.map(x => (mottagare
+      ? { display: x.namn, extension: [{ url: `${CS.replace(/CodeSystem$/, 'StructureDefinition')}/underlag`, valueAttachment: { contentType: x.typ, title: x.namn, size: x.storlek, data: Buffer.from(x.data).toString('base64') } }] }
+      : { display: `Underlag: ${x.namn}` }));
+  }
+  return sr;
+}
+function serviceRequestBas(db, b, a) {
   const def = ANALYS[a.analys];
   // En analys med ett mätvärde (kreatinin ger också eGFR) har mätvärdets NPU-kod. Blodstatus och odlingar har bara text.
   const kod = def?.matvarden && (def.matvarden.length === 1 || def.id === 'kreatinin') ? MATKOD[def.matvarden[0]] : null;
@@ -90,7 +128,26 @@ export function diagnosticReport(db, b, labId) {
     ...(obs.length ? { result: obs } : {}),
     ...(text ? { conclusion: text } : {}),
     ...(fynd.length ? { conclusionCode: fynd.map(f => ({ coding: [{ system: SNOMED, code: f.snomed, display: f.display }], text: f.text })) } : {}),
+    ...svarTillagg(db, besvarade),
   };
+}
+// Runda 11, r6: koderna i svaret (KVÅ, Snomed CT och vårdförlopp), studien i multimediaarkivet med sitt DICOM-uid, de
+// bifogade underlagen och om svaret är rättat.
+function svarTillagg(db, besvarade) {
+  if (!besvarade.length || !tabellFinns(db, 'labb_svarsinfo')) return {};
+  const info = besvarade.map(a => db.query('SELECT * FROM labb_svarsinfo WHERE analys_rad_id = ?').get(a.id)).filter(Boolean);
+  const koder = info.flatMap(i => JSON.parse(i.koder));
+  const ut = {};
+  const kva = koder.filter(k => k.system === 'kva');
+  const ovriga = koder.filter(k => k.system !== 'kva');
+  if (kva.length) ut.code = { coding: kva.map(k => ({ system: SYSTEM.kva, code: k.kod, display: k.text })), text: kva.map(k => k.text).join(', ') };
+  if (ovriga.length) ut.conclusionCode = ovriga.map(k => ({ coding: [{ system: k.system === 'snomed' ? SNOMED : SYSTEM.kva, code: k.kod }], text: k.text }));
+  const studier = info.filter(i => i.studie_uid);
+  if (studier.length) ut.imagingStudy = studier.map(i => ({ identifier: { system: 'urn:dicom:uid', value: `urn:oid:${i.studie_uid}` }, display: `Studie ${i.studie_uid}` }));
+  if (info.some(i => i.version > 1)) ut.status = 'corrected';
+  const u = tabellFinns(db, 'labb_underlag') ? besvarade.flatMap(a => db.query("SELECT id, namn, typ, storlek, registrerad FROM labb_underlag WHERE analys_rad_id = ? AND riktning = 'svar' ORDER BY id").all(a.id)) : [];
+  if (u.length) ut.presentedForm = u.map(x => ({ contentType: x.typ, url: `/api/labb/underlag/${x.id}`, title: x.namn, size: x.storlek, creation: x.registrerad }));
+  return ut;
 }
 
 // Kopplingen från ett mätvärde till beställningen och tolkningen mot referensintervallet, för Observation i fhir.js.

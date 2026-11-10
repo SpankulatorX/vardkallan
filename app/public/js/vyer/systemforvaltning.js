@@ -109,7 +109,10 @@ async function andraParameter(main, o, nyckel, knapp) {
   const vardeFalt = janej
     ? `<fieldset class="kryssgrupp"><legend>Nytt värde</legend>${[['ja', p.text?.true], ['nej', p.text?.false]].map(([v, t]) => `<div class="kryssfalt"><input type="radio" id="sf-varde-${v}" name="varde" value="${v}"${(p.varde ? 'ja' : 'nej') !== v ? ' checked' : ''}><label for="sf-varde-${v}">${esc(t ?? v)}</label></div>`).join('')}
       <p class="hjalp">Gäller nu: ${esc(p.vardeText)}.</p></fieldset>`
-    : `<div class="falt"><label for="sf-varde">${lista ? 'Sökorden, i ordning, med komma emellan' : `Nytt värde i ${esc(p.enhet)}`}</label>
+    // Runda 11, r6: en text (provtagningsanvisningen) skrivs i en textruta, och en lista har sin egen ledtext.
+    : p.typ === 'text' ? `<div class="falt"><label for="sf-varde">Ny text</label><textarea id="sf-varde" name="varde" rows="4" required maxlength="${esc(p.max ?? 400)}">${esc(varde)}</textarea>
+      <p class="hjalp">Högst ${esc(p.max ?? 400)} tecken.</p></div>`
+    : `<div class="falt"><label for="sf-varde">${lista ? esc(p.ledtext ?? 'Sökorden, i ordning, med komma emellan') : `Nytt värde i ${esc(p.enhet)}`}</label>
       ${lista ? `<textarea id="sf-varde" name="varde" rows="3" required>${esc(varde)}</textarea>` : `<input id="sf-varde" name="varde" inputmode="numeric" value="${esc(varde)}" required>`}
       ${lista ? '' : `<p class="hjalp">Mellan ${esc(p.min)} och ${esc(p.max)} ${esc(p.enhet)}. Gäller nu: ${esc(p.vardeText)}.</p>`}</div>`;
   const svar = await dialog(`<form><h2 id="dlg-rubrik">${esc(p.rubrik)}</h2>

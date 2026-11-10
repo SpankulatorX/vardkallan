@@ -329,6 +329,30 @@ export const KVA = {
   DV005: 'Avlägsnande av dränage',
   AV124: 'Undersökning av potentiell donator',
 };
+// Runda 11, r6: undersökningarna i radiologi, klinisk fysiologi och klinisk neurofysiologi (labb-katalog.js) och starten
+// av de standardiserade vårdförloppen som en beställning kan höra till (undersokningar.js), ordagrant ur samma fil
+// (sha256 e02d1f72...0d36, docs/kodkontroll.md).
+Object.assign(KVA, {
+  AF053: 'Röntgenundersökning, hjärta och lungor (med eller utan hjärtvolymsbedömning)',
+  AN062: 'Röntgenundersökning, höftled med halvaxial sidobild',
+  AN063: 'Röntgenundersökning, knäled',
+  AA014: 'Datortomografi, hjärna, utan intravenös kontrast',
+  AJ004: 'Datortomografi, buk (ospecificerat)',
+  AG009: 'Datortomografi, torax',
+  AA045: 'Magnetresonanstomografi, hjärna',
+  AN042: 'Magnetresonanstomografi, knäled',
+  AJ084: 'Ultraljudsundersökning, översikt av buken',
+  AK044: 'Ultraljudsundersökning, njurar',
+  AF022: 'Elektrokardiografi (EKG), 12 avledningar, standard',
+  AF012: 'Arbets-EKG, standard',
+  AF020: 'Doppler ekokardiografi, transtorakal, enkel',
+  AA024: 'Elektroencefalografi (EEG), vaken',
+  AA058: 'Neurografi, motorisk och sensorisk',
+  VC010: 'SVF lungcancer - beslut välgrundad misstanke om cancer',
+  VB210: 'SVF tjock- och ändtarmscancer - beslut välgrundad misstanke om cancer',
+  VG910: 'SVF bröstcancer - beslut välgrundad misstanke om cancer',
+  VP810: 'SVF cancermisstanke vid allvarliga, ospecifika symtom - beslut välgrundad misstanke om cancer',
+});
 
 // Runda 7, r6: koderna för Svenska barnhälsovårdsregistret ordagrant ur bilaga K11 till Sussas förfrågningsunderlag,
 // Informationsspecifikation Svenska barnhälsovårdsregistret, Formulär Bedömningar, version 1.7 (2017-04-11). Snomed CT

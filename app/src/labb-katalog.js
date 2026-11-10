@@ -29,6 +29,8 @@ export const DISCIPLINER = tabell({
   klinisk_fysiologi: { namn: 'Klinisk fysiologi', fhir: 'EC' },
   klinisk_neurofysiologi: { namn: 'Klinisk neurofysiologi', fhir: 'EN' },
   radiologi: { namn: 'Radiologi', fhir: 'RAD' },
+  // Runda 11, r6: patientnära analyser, som görs med ett instrument på avdelningen (Sussa 4.4.2.14).
+  patientnara: { namn: 'Patientnära analys', fhir: 'LAB' },
 });
 
 // De simulerade laboratorierna. Klinisk kemi har tre utförande laboratorier (Sussa 4.4.1.2), och systemet väljer det
@@ -48,6 +50,14 @@ export const LABORATORIER = [
   { id: 'lab-nfys-uso', hsa: 'SE2321000164-VKL108', namn: 'Klinisk neurofysiologi USÖ (simulerad)', kort: 'Klinisk neurofysiologi', disciplin: 'klinisk_neurofysiologi', sjukhus: [] },
   { id: 'lab-rad-uso', hsa: 'SE2321000164-VKL109', namn: 'Röntgenkliniken USÖ (simulerad)', kort: 'Röntgen', disciplin: 'radiologi', sjukhus: [] },
 ];
+// Runda 11, r6: ultraljudet är ett eget specialistsystem på röntgenkliniken, så att en beställning av röntgen och ultraljud
+// blir två beställningar (Sussa 4.4.2.8). De patientnära instrumenten på avdelningarna ansluts genom det öppna
+// gränssnittet som ett producentsystem (Sussa 4.4.2.14). Enheten är vårdenheten som utför undersökningarna.
+LABORATORIER.push(
+  { id: 'lab-ul-uso', hsa: 'SE2321000164-VKL110', namn: 'Ultraljud, Röntgenkliniken USÖ (simulerad)', kort: 'Ultraljud', disciplin: 'radiologi', sjukhus: [], enhet: 'uso-rtg' },
+  { id: 'lab-pn-uso', hsa: 'SE2321000164-VKL111', namn: 'Patientnära instrument på avdelningen (simulerat)', kort: 'Patientnära instrument', disciplin: 'patientnara', sjukhus: [], instrument: true },
+);
+for (const l of LABORATORIER) if (l.id === 'lab-rad-uso') l.enhet = 'uso-rtg';
 export const LAB = tabell(Object.fromEntries(LABORATORIER.map(l => [l.id, l])));
 
 // Provrören och provmaterialet, i provtagningsordning (blododling först, sedan citrat, serum, heparin och EDTA, så att
@@ -62,6 +72,9 @@ export const ROR = tabell({
   // Runda 10, r6: en undersökning har inget prov. Systemet skickar beställningen direkt, och den utförande enheten
   // kallar patienten. utanProv gör att den inte står på provtagningslistan och inte blir en Specimen.
   undersokning: { namn: 'Undersökning', beskrivning: 'ingen provtagning, den utförande enheten kallar patienten', farg: 'ingen', ordning: 8, material: 'Undersökning', utanProv: true },
+  // Runda 11, r6: ett kapillärprov för en patientnära analys, som mäts direkt i instrumentet vid sängen (Sussa 4.4.2.14).
+  // Snomed CT 122554006 Capillary blood specimen, kontrollerad mot tx.fhir.org 2026-11-10.
+  kapillart: { namn: 'Kapillärprov vid sängen', beskrivning: 'stick i fingret, provet mäts direkt i instrumentet', farg: 'ingen', ordning: 0, material: 'Kapillärblod', fhir: 'BLD', snomed: '122554006', snomedText: 'Capillary blood specimen', instrument: true },
   vavnad: { namn: 'Burk med formalin', beskrivning: 'vävnaden ska täckas helt av formalinet', farg: 'vit kork', ordning: 7, material: 'Vävnad', fhir: 'TISS', snomed: '119376003', snomedText: 'Tissue specimen' },
 });
 
@@ -99,6 +112,46 @@ export const ANALYSER = [
   a('rtg_lungor', 'Röntgen lungor', 'radiologi', 'undersokning', { utlatande: 'Inga infiltrat. Normal hjärtstorlek. Ingen pleuravätska.', anamnes: true, dubblettTimmar: 24, ord: ['röntgen', 'lungröntgen', 'lunginflammation', 'pneumoni', 'hosta'] }),
   a('hfe', 'B-HFE-genotyp (hemokromatos)', 'klinisk_genetik', 'edta', { utlatande: 'Ingen av varianterna C282Y och H63D i HFE-genen påvisad.', anamnes: true, dubblettTimmar: 24 * 365, ord: ['hfe', 'hemokromatos', 'järninlagring', 'ferritin'] }),
 ];
+// Runda 11, r6: radiologi, ultraljud, klinisk fysiologi och klinisk neurofysiologi i samma flöde som laboratoriet
+// (undersokningar.js, Sussa 4.4.2.2, 4.4.2.7, 4.4.2.8 och 4.4.2.11), och patientnära analyser med instrument
+// (patientnara.js, Sussa 4.4.2.14).
+//   kva        åtgärden i KVÅ 2026, som svaret har och som systemet sätter själv (kodverk.js KVA, docs/kodkontroll.md)
+//   modalitet  DICOM-modaliteten: DX röntgen, CT datortomografi, MR magnetkamera, US ultraljud, ECG och EEG
+//   stralning  joniserande strålning, så att systemet frågar om graviditet
+//   kontrast   jodkontrast, så att systemet kontrollerar njurfunktionen och överkänslighet
+//   buk        strålning mot buken eller bäckenet, som systemet stoppar vid graviditet
+//   magnet     magnetkamera, så att systemet kontrollerar implantat
+//   arkiv      undersökningen i multimediaarkivet (bilder.js UNDERSOKNINGAR), som utlåtandet länkar till
+//   fynd       det simulerade utlåtandets fynd i Snomed CT, kontrollerat mot tx.fhir.org 2026-11-10
+//   minuter    hur lång tid undersökningen tar på den simulerade enheten, för bokningen
+// Utlåtandena och tiderna är demons, inte en klinisk fysiologis eller röntgenklinikens.
+const u = (id, namn, disciplin, rest) => a(id, namn, disciplin, 'undersokning', { anamnes: true, dubblettTimmar: 24, ...rest });
+ANALYSER.push(
+  u('rtg_hoft', 'Röntgen höftled', 'radiologi', { kva: 'AN062', modalitet: 'DX', stralning: true, buk: true, arkiv: 'hoftled', minuter: 15, utlatande: 'Normal ledspringa i höftleden. Ingen fraktur.', ord: ['höft', 'höftsmärta', 'höftfraktur', 'artros', 'fall'] }),
+  u('rtg_kna', 'Röntgen knäled', 'radiologi', { kva: 'AN063', modalitet: 'DX', stralning: true, minuter: 15, utlatande: 'Normal ledspringa. Ingen fraktur eller ledvätska.', ord: ['knä', 'knäsmärta', 'knäskada', 'artros'] }),
+  u('dt_hjarna', 'DT hjärna', 'radiologi', { kva: 'AA014', modalitet: 'CT', stralning: true, arkiv: 'dt_hjarna', minuter: 20, utlatande: 'Ingen blödning eller expansivitet. Normal ventrikelvidd.', ord: ['huvudvärk', 'stroke', 'skalltrauma', 'förvirring', 'dt hjärna'] }),
+  u('dt_buk', 'DT buk med kontrast', 'radiologi', { kva: 'AJ004', modalitet: 'CT', stralning: true, buk: true, kontrast: true, minuter: 20, utlatande: 'Inga tecken till tumör eller abscess. Normala parenkymatösa organ.', ord: ['buksmärta', 'ileus', 'divertikulit', 'viktnedgång', 'dt buk'] }),
+  u('dt_torax', 'DT torax med kontrast', 'radiologi', { kva: 'AG009', modalitet: 'CT', stralning: true, kontrast: true, minuter: 20, fynd: '309529002', utlatande: 'Rundhärd 18 mm i höger överlob, förenlig med tumör. Inga förstorade lymfkörtlar.', ord: ['hemoptys', 'lungcancer', 'rundhärd', 'blodig hosta', 'dt torax'] }),
+  u('mr_hjarna', 'MR hjärna', 'radiologi', { kva: 'AA045', modalitet: 'MR', magnet: true, minuter: 40, utlatande: 'Inga vitsubstansförändringar. Ingen expansivitet.', ord: ['ms', 'multipel skleros', 'yrsel', 'mr hjärna'] }),
+  u('mr_kna', 'MR knäled', 'radiologi', { kva: 'AN042', modalitet: 'MR', magnet: true, minuter: 30, utlatande: 'Ingen menisk- eller korsbandsskada.', ord: ['knäskada', 'menisk', 'korsband', 'mr knä'] }),
+  u('ul_buk', 'Ultraljud buk', 'radiologi', { lab: 'lab-ul-uso', kva: 'AJ084', modalitet: 'US', minuter: 30, utlatande: 'Gallblåsa utan konkrement. Normal lever och mjälte.', ord: ['gallsten', 'gallbesvär', 'buksmärta', 'lever', 'ultraljud'] }),
+  u('ul_njurar', 'Ultraljud njurar', 'radiologi', { lab: 'lab-ul-uso', kva: 'AK044', modalitet: 'US', minuter: 20, utlatande: 'Normalstora njurar utan avflödeshinder.', ord: ['njursvikt', 'njursten', 'hydronefros', 'ultraljud'] }),
+  u('arbetsprov', 'Arbetsprov (arbets-EKG)', 'klinisk_fysiologi', { kva: 'AF012', modalitet: 'ECG', minuter: 45, dubblettTimmar: 24 * 30, utlatande: 'Ingen ischemi upp till 200 W. Normalt blodtryckssvar.', ord: ['arbetsprov', 'arbets-ekg', 'angina', 'kärlkramp', 'ansträngningsutlöst bröstsmärta'] }),
+  u('eko', 'Ekokardiografi', 'klinisk_fysiologi', { kva: 'AF020', modalitet: 'US', minuter: 30, dubblettTimmar: 24 * 30, utlatande: 'Normal vänsterkammarfunktion, ejektionsfraktion 60 procent. Inga klaffel.', ord: ['ekokardiografi', 'hjärteko', 'blåsljud', 'hjärtsvikt'] }),
+  u('neurografi', 'Neurografi', 'klinisk_neurofysiologi', { kva: 'AA058', modalitet: 'EMG', minuter: 45, dubblettTimmar: 24 * 30, utlatande: 'Normala ledningshastigheter i undersökta nerver.', ord: ['neurografi', 'domningar', 'karpaltunnel', 'polyneuropati'] }),
+  // Patientnära analyser: mäts i instrumentet på avdelningen och skickas genom det öppna gränssnittet. Samma mätvärden
+  // som laboratoriets, så att kurvorna och kontrollerna är gemensamma.
+  a('crp_pn', 'P-CRP, patientnära', 'patientnara', 'kapillart', { matvarden: ['crp'], lab: 'lab-pn-uso', patientnara: true, dubblettTimmar: 4, ord: ['crp', 'patientnära', 'snabb-crp'] }),
+  a('glukos_pn', 'P-Glukos, patientnära', 'patientnara', 'kapillart', { matvarden: ['glukos'], lab: 'lab-pn-uso', patientnara: true, dubblettTimmar: 1, ord: ['glukos', 'blodsocker', 'patientnära'] }),
+  a('hb_pn', 'B-Hb, patientnära', 'patientnara', 'kapillart', { matvarden: ['hb'], lab: 'lab-pn-uso', patientnara: true, dubblettTimmar: 4, ord: ['hb', 'hemoglobin', 'patientnära'] }),
+  a('inr_pn', 'P-PK(INR), patientnära', 'patientnara', 'kapillart', { matvarden: ['inr'], lab: 'lab-pn-uso', patientnara: true, dubblettTimmar: 20, ord: ['pk', 'inr', 'patientnära', 'waran'] }),
+);
+// Undersökningarna som fanns sedan runda 10 får sin åtgärd i KVÅ, modalitet och tid.
+const tillagg = { ekg: { kva: 'AF022', modalitet: 'ECG', minuter: 15 }, eeg: { kva: 'AA024', modalitet: 'EEG', minuter: 60 }, rtg_lungor: { kva: 'AF053', modalitet: 'DX', stralning: true, arkiv: 'lungrontgen', minuter: 15, fynd: '281900007' } };
+for (const x of ANALYSER) if (Object.hasOwn(tillagg, x.id)) Object.assign(x, tillagg[x.id]);
+for (const x of ANALYSER) if (x.ror === 'undersokning' && !x.fynd) x.fynd = '281900007';
+// Varje radiologisk undersökning blir en studie i multimediaarkivet (bilder.js UNDERSOKNINGAR) med samma nyckel.
+for (const x of ANALYSER) if (x.disciplin === 'radiologi' && !x.arkiv) x.arkiv = x.id;
 export const ANALYS = tabell(Object.fromEntries(ANALYSER.map(x => [x.id, x])));
 
 // Paketen. Systemet föreslår paket ur vårdkontaktens orsak (ord), patientens diagnoser (ICD-10-prefix) och tidigare

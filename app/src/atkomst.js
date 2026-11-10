@@ -278,6 +278,14 @@ Object.assign(HANDLINGAR, { bestalla_lakemedel: 'beställa extempore och blodpro
 ROLLER.lakare.push('bestalla_lakemedel');
 ROLLER.sjukskoterska.push('bestalla_lakemedel');
 
+// Runda 11, r6: undersökningarna i beställning och svar (undersokningar.js). Personalen på den utförande enheten
+// (röntgenkliniken) tar emot, prioriterar och bokar beställda undersökningar och registrerar att de är gjorda. Det
+// prövas också att personens vårdenhet är den som utför undersökningen. Handlingen ger ingen åtkomst till journalen.
+HANDLINGAR.undersokning_utfora = 'ta emot, boka och registrera beställda undersökningar på den utförande enheten';
+ROLLER.lakare.push('undersokning_utfora');
+ROLLER.sjukskoterska.push('undersokning_utfora');
+ROLLER.vardadministrator.push('undersokning_utfora');
+UTAN_PATIENT.add('undersokning_utfora');
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
 
 // Runda 7, r4: omorganisation (omorganisation.js, HSA:s regler för organisationsförändringar, bilaga K6). En vårdenhet

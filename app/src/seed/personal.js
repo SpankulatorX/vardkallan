@@ -82,4 +82,7 @@ export const PERSONAL = [
   // behörigheter i demon. Ingen av dem går att logga in som.
   { id: 'bm-uso', namn: 'Sofia Ekdahl', yrke: 'sjukskoterska', titel: 'Barnmorska', enhet: 'uso-kk-forl' },
   { id: 'lak-kk', namn: 'Johanna Rehn', yrke: 'lakare', titel: 'Läkare (obstetrik)', enhet: 'uso-kk' },
+  // Runda 11, r6: röntgensjuksköterskan på röntgenkliniken tar emot, prioriterar och bokar beställda undersökningar och
+  // registrerar att de är gjorda (undersokningar.js). Hon läser inte journalen utan vårdrelation.
+  { id: 'rtg-ssk', namn: 'Linnea Forsman', yrke: 'sjukskoterska', titel: 'Röntgensjuksköterska', enhet: 'uso-rtg', demo: true },
 ];

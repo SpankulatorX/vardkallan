@@ -119,6 +119,8 @@ describe('Seed', () => {
       ['sysf-2', 'Nora Ekholm', 'systemforvaltare', 'rk'],
       // Runda 7, r1: paramedicinaren i Sussas testfall.
       ['fys-kard', 'Jenny Holmberg', 'fysioterapeut', 'uso-kard-mott'],
+      // Runda 11, r6: röntgensjuksköterskan på röntgenkliniken.
+      ['rtg-ssk', 'Linnea Forsman', 'sjukskoterska', 'uso-rtg'],
     ]);
   });
 
