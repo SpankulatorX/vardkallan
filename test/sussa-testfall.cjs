@@ -22,6 +22,8 @@ const { writeFileSync, mkdirSync } = require('node:fs');
 const { join } = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { Matare, skapa, raknaISidan } = require('./flodessteg.cjs');
+// Runda 11, r1: testet och webbläsaren följer testcontainerns falska klocka när den är satt.
+const { foljServernsKlocka, stallKlockan, resultatfil } = require('./testklocka.cjs');
 
 const BAS = process.argv[2] || 'http://127.0.0.1:18797';
 const APP = join(__dirname, '..', 'app');
@@ -603,6 +605,8 @@ function floden(D) {
 }
 
 (async () => {
+  // Runda 11, r1: klockan ställs innan testet räknar ut några datum.
+  await foljServernsKlocka(BAS);
   const R = await import(pathToFileURL(join(APP, 'src', 'sussa-testfall.js')).href);
   const D0 = await import(pathToFileURL(join(APP, 'src', 'seed', 'sussa-testdata.js')).href);
   const { gransnittHash } = await import(pathToFileURL(join(APP, 'src', 'klientresultat.js')).href);
@@ -611,6 +615,7 @@ function floden(D) {
   const FLODEN = floden(D);
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'sv-SE', timezoneId: 'Europe/Stockholm' });
+  await stallKlockan(ctx);
   await raknaISidan(ctx);
   const page = await ctx.newPage();
   page.on('pageerror', e => fel.push(`sidfel: ${e.message}`));
@@ -675,7 +680,7 @@ function floden(D) {
   };
   ut.sammanstallning = R.sammanstall(ut);
   if (BARA) { await browser.close(); console.log(fel.length ? `\nFel:\n  ${fel.join('\n  ')}` : '\nInga fel.'); process.exit(fel.length ? 1 : 0); }
-  writeFileSync(join(APP, 'sussa-testfall.json'), `${JSON.stringify(ut, null, 2)}\n`);
+  writeFileSync(join(APP, resultatfil('sussa-testfall.json')), `${JSON.stringify(ut, null, 2)}\n`);
 
   // Kravsidan visar resultatet per testfall under K4.
   try {

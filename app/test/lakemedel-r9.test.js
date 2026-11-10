@@ -1,6 +1,7 @@
 // Runda 9, r1: beredning med kontroll och etikett, doser i flytande form och gasform och patientnära skanning
 // (Sussa 3.5.1.4, 3.5.2.17 och 3.5.2.18). Klockan styrs med setSystemTime och sandlådan byggs vid den tiden.
 import { describe, test, expect, afterEach, afterAll, setSystemTime } from 'bun:test';
+import { aterstallKlockan } from './falsk-klocka.js';
 import { byggSeed, idag, addDagar, lokalTid } from '../src/db.js';
 import * as administrering from '../src/administrering.js';
 import * as lakemedel from '../src/lakemedel.js';
@@ -28,7 +29,7 @@ function sandladaKl(k = '13:30') {
   setSystemTime(new Date(kl(k)));
   return byggSeed(new Date(kl(k)));
 }
-afterEach(() => setSystemTime());
+afterEach(() => aterstallKlockan());
 const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
 const ssk = (db, pid, handling = 'ge_lakemedel', id = 'ssk-kard', val = {}) => atk(db, id, pid, val, handling);
 function ordinera(db, pid, inp, personalId = 'lak-kard') {

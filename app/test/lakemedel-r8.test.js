@@ -3,6 +3,7 @@
 // ordination, dosändring i en pågående ordination med ny dosering från ett datum, och läkaren och skälet från den
 // förra muntliga ordinationen. Klockan styrs med setSystemTime och sandlådan byggs vid den tiden.
 import { describe, test, expect, afterEach, afterAll, setSystemTime } from 'bun:test';
+import { aterstallKlockan } from './falsk-klocka.js';
 import { byggSeed, idag, addDagar, lokalTid } from '../src/db.js';
 import * as administrering from '../src/administrering.js';
 import * as lakemedel from '../src/lakemedel.js';
@@ -23,7 +24,7 @@ function sandladaKl(k = '13:30') {
   setSystemTime(new Date(kl(k)));
   return byggSeed(new Date(kl(k)));
 }
-afterEach(() => setSystemTime());
+afterEach(() => aterstallKlockan());
 const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
 const katalog = (db, id) => db.query('SELECT * FROM katalog WHERE id = ?').get(id);
 const lak = (db, pid, val = {}, id = 'lak-kard') => atk(db, id, pid, val, 'ordinera');

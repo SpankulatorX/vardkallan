@@ -3,6 +3,7 @@
 // akutmottagningen (Sussa 3.2.1, 3.2.2.3, 3.2.3.5 och 3.5.1). Testnamnen finns i src/sussa/runda10-r5-tester.js.
 // Klockan styrs med setSystemTime där testet beror på tiden, och testet räknar bara de rader det själv skapar.
 import { describe, test, expect, afterEach, afterAll, beforeAll, setSystemTime } from 'bun:test';
+import { aterstallKlockan } from './falsk-klocka.js';
 import { byggSeed, idag, addDagar, lokalTid, iso } from '../src/db.js';
 import { T } from '../src/sussa/runda10-r5-tester.js';
 import * as kunskapsstod from '../src/kunskapsstod.js';
@@ -24,7 +25,7 @@ function sandladaKl(k = '13:30') {
   setSystemTime(new Date(kl(k)));
   return byggSeed(new Date(kl(k)));
 }
-afterEach(() => setSystemTime());
+afterEach(() => aterstallKlockan());
 const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
 const DASH = /[–—…]/;
 

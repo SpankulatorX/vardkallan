@@ -40,7 +40,8 @@ export const vaccinRad = (id) => VACCINER.find(v => v.id === id) ?? null;
 
 // Influensasäsongen i demon: 1 oktober till 31 mars. Säsongen heter efter året den börjar.
 export const SASONG = { fran: '10-01', till: '03-31' };
-const datumI = (ms) => new Date(ms).toISOString().slice(0, 10);
+// Runda 11, r1: datumet är det svenska, också mellan 00 och 01 när UTC har gårdagens datum.
+const datumI = (ms) => new Date(ms).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
 export function sasongFor(nu) {
   const d = datumI(nu);
   const ar = Number(d.slice(0, 4));
@@ -81,7 +82,8 @@ const alderAr = (fodd, nu) => {
   const [ty, tm, td] = datumI(nu).split('-').map(Number);
   return ty - y - (tm < m || (tm === m && td < d) ? 1 : 0);
 };
-const alderDagar = (fodd, nu) => Math.floor((nu - Date.parse(`${fodd}T00:00:00Z`)) / DAG);
+// Åldern i hela dagar från födelsedagen till det svenska datumet i dag.
+const alderDagar = (fodd, nu) => Math.round((Date.parse(`${datumI(nu)}T12:00:00Z`) - Date.parse(`${fodd}T12:00:00Z`)) / DAG);
 const datumEfter = (fodd, dagar) => new Date(Date.parse(`${fodd}T12:00:00Z`) + dagar * DAG).toISOString().slice(0, 10);
 
 // Kan dosen ges nu? Ger { ok, status, skal, varfor }. status: nu, kommande, given, ej_aktuell, ej_faststalld.

@@ -2,6 +2,7 @@
 // återinsättning per grupp, mallar ur läkemedelslistan, kontroller, behörighet, presentation med historik och API.
 // Klockan styrs med setSystemTime och sandlådan byggs vid den tiden.
 import { describe, test, expect, afterEach, afterAll, setSystemTime } from 'bun:test';
+import { aterstallKlockan } from './falsk-klocka.js';
 import { byggSeed, idag, addDagar, lokalTid } from '../src/db.js';
 import * as forbrukning from '../src/forbrukning.js';
 import { verifiera } from '../src/logg.js';
@@ -12,7 +13,7 @@ function sandladaKl(k = '10:00') {
   setSystemTime(new Date(kl(k)));
   return byggSeed(new Date(kl(k)));
 }
-afterEach(() => setSystemTime());
+afterEach(() => aterstallKlockan());
 const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
 const lak = (db, pid, val = {}, id = 'lak-vc') => atk(db, id, pid, val, 'forskriva_forbrukning');
 const las = (db, pid, id = 'lak-vc', val = {}) => atk(db, id, pid, val, 'las_lakemedel');

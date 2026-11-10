@@ -2,6 +2,7 @@
 // kontroller som sjuksköterskan, undersköterskan ger bara med en giltig delegering (HSLF-FS 2017:37 9 kap.), en dos som
 // avviker från ordinationen kvitteras med motivering, och antikoagulantia sätts bara ut med en plan.
 import { describe, test, expect, beforeAll, afterAll, afterEach, setSystemTime } from 'bun:test';
+import { aterstallKlockan } from './falsk-klocka.js';
 import { byggSeed, idag, addDagar, lokalTid } from '../src/db.js';
 import * as administrering from '../src/administrering.js';
 import * as lakemedel from '../src/lakemedel.js';
@@ -17,7 +18,7 @@ function sandladaKl(k = '13:30') {
   setSystemTime(new Date(kl(k)));
   return byggSeed(new Date(kl(k)));
 }
-afterEach(() => setSystemTime());
+afterEach(() => aterstallKlockan());
 const ordFor = (db, pid, namn) => db.query('SELECT o.* FROM ordinationer o JOIN katalog k ON k.id = o.lakemedel_id WHERE o.patient_id = ? AND k.namn LIKE ? AND o.status = \'aktiv\' ORDER BY o.id DESC').get(pid, `${namn}%`);
 const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
 const regler = (v) => v.map(x => `${x.niva}:${x.regel}`);

@@ -3,12 +3,13 @@
 // simuleras som följer serverns schema för förnyelse (fornyas.intervallMs) och tittar var 30:e sekund om det är dags,
 // precis som gränssnittet (public/js/avbrott.js).
 import { describe, test, expect, beforeAll, afterAll, afterEach, setSystemTime } from 'bun:test';
+import { aterstallKlockan } from './falsk-klocka.js';
 import { verifiera } from '../src/logg.js';
 import { testserver, klient, sandlada } from './hjalp.js';
 
 let app;
 beforeAll(() => { app = testserver(); });
-afterEach(() => setSystemTime());
+afterEach(() => aterstallKlockan());
 afterAll(() => app.stopp());
 
 const MIN = 60_000;

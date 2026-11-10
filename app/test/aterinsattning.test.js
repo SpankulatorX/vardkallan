@@ -3,6 +3,7 @@
 // och vårdenhetens läkare en rad i inkorgen med läkemedlet, planen och en knapp till läkemedelslistan. Raden finns kvar
 // tills läkemedlet är insatt igen eller ordinationen ändras.
 import { describe, test, expect, beforeAll, afterAll, afterEach, setSystemTime } from 'bun:test';
+import { aterstallKlockan } from './falsk-klocka.js';
 import { byggSeed, idag, addDagar, lokalTid } from '../src/db.js';
 import * as lakemedel from '../src/lakemedel.js';
 import * as aterinsattning from '../src/aterinsattning.js';
@@ -14,7 +15,7 @@ function sandladaKl(k = '13:30') {
   setSystemTime(new Date(kl(k)));
   return byggSeed(new Date(kl(k)));
 }
-afterEach(() => setSystemTime());
+afterEach(() => aterstallKlockan());
 const waran = (db, pid = 'p01') => db.query("SELECT o.* FROM ordinationer o JOIN katalog k ON k.id = o.lakemedel_id WHERE o.patient_id = ? AND k.namn = 'Waran' AND o.status = 'aktiv'").get(pid);
 const uppehall = (db, vem, pid, o, dagar) => lakemedel.utsatt(atk(db, vem, pid, {}, 'ordinera'), o, { plan: { typ: 'uppehall', aterinsattning: addDagar(idag(), dagar) } });
 const rader = (db, vem) => aterinsattning.inkorg(db, personal(db, vem));

@@ -13,7 +13,7 @@
 //
 // Systemet är experten: den som skriver ut väljer bara vårdformen som följer. Typ, enhet, plats, orsak, föregående
 // kontakt och hälsoärende fyller systemet i, och första hembesöket föreslås till nästa vardag.
-import { Fel, iso } from './db.js';
+import { Fel, iso, addDagar, datumAv, lokalTid } from './db.js';
 import { vardenhetFor, enheterUnder } from './atkomst.js';
 import * as vardkontakt from './vardkontakt.js';
 
@@ -89,10 +89,11 @@ function halsoarende(db, personal, v) {
   return id;
 }
 // Nästa vardag klockan 10 svensk tid, för första hembesöket.
-function nastaVardag(nu = new Date()) {
-  const d = new Date(nu.getTime() + 86400_000);
-  while ([0, 6].includes(d.getUTCDay())) d.setUTCDate(d.getUTCDate() + 1);
-  return new Date(`${d.toISOString().slice(0, 10)}T09:00:00Z`).toISOString();
+// Runda 11, r1: dagen räknas från det svenska datumet och klockan 10 är svensk tid året om (tidigare UTC-datumet och 09 UTC).
+export function nastaVardag(nu = new Date()) {
+  let dag = addDagar(datumAv(nu), 1);
+  while ([0, 6].includes(new Date(`${dag}T12:00:00Z`).getUTCDay())) dag = addDagar(dag, 1);
+  return lokalTid(dag, '10:00');
 }
 
 // POST /api/vardtillfalle/:id/overgang { till: hemsjukvard | oppenvard, start? }: utskrivning och ny kontakt i ett steg.

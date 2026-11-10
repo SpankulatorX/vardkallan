@@ -14,6 +14,8 @@
 const { chromium } = require('@playwright/test');
 const { mkdirSync, rmSync } = require('node:fs');
 const { join } = require('node:path');
+// Runda 11, r1: testet och webbläsaren följer testcontainerns falska klocka när den är satt.
+const { foljServernsKlocka, stallKlockan } = require('./testklocka.cjs');
 
 const BAS = process.argv[2] || 'http://127.0.0.1:18796';
 const UT = join(__dirname, 'skarmbilder');
@@ -192,8 +194,11 @@ MENY.kardiologi = [...MENY.klinisk];
 MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård');
 
 (async () => {
+  // Runda 11, r1: klockan ställs innan testet räknar ut några datum.
+  await foljServernsKlocka(BAS);
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'sv-SE', timezoneId: 'Europe/Stockholm' });
+  await stallKlockan(ctx);
   const page = await ctx.newPage();
   bevaka(page, 'skrivbord');
   let remissId = null;
@@ -1882,10 +1887,11 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
   // Mobilbredd 360 px: ingen sidledsrullning.
   const MOBILKONTEXT = { viewport: { width: 360, height: 760 }, locale: 'sv-SE', timezoneId: 'Europe/Stockholm', deviceScaleFactor: 2 };
   let mobil = await browser.newContext(MOBILKONTEXT);
+  await stallKlockan(mobil);
   let mp = await mobil.newPage();
   bevaka(mp, 'mobil');
   // Runda 5 (r3): en ny session för varje roll, så att inga anrop från förra rollens vy kommer efter utloggningen.
-  const nyMobilSession = async () => { await mobil.close(); mobil = await browser.newContext(MOBILKONTEXT); mp = await mobil.newPage(); bevaka(mp, 'mobil'); };
+  const nyMobilSession = async () => { await mobil.close(); mobil = await browser.newContext(MOBILKONTEXT); await stallKlockan(mobil); mp = await mobil.newPage(); bevaka(mp, 'mobil'); };
   // Runda 5 (r3): varje vy på 360 px kontrolleras både för sidledsrullning och för knappar som går att trycka på med
   // fingret, minst 40 px höga.
   const ingenSidledsrullning = async (vy) => {

@@ -3,6 +3,7 @@
 // läkemedelsgenomgång och vätskebalans. Klockan styrs med setSystemTime och sandlådan byggs vid den tiden, så att
 // dagens doser och seedens givna doser blir desamma varje gång.
 import { describe, test, expect, beforeAll, afterAll, afterEach, setSystemTime } from 'bun:test';
+import { aterstallKlockan } from './falsk-klocka.js';
 import { byggSeed, idag, addDagar, lokalTid } from '../src/db.js';
 import * as administrering from '../src/administrering.js';
 import * as vidimering from '../src/vidimering.js';
@@ -22,7 +23,7 @@ function sandladaKl(k = '13:30') {
   setSystemTime(new Date(kl(k)));
   return byggSeed(new Date(kl(k)));
 }
-afterEach(() => setSystemTime());
+afterEach(() => aterstallKlockan());
 const ordFor = (db, pid, namn) => db.query('SELECT o.* FROM ordinationer o JOIN katalog k ON k.id = o.lakemedel_id WHERE o.patient_id = ? AND k.namn LIKE ? AND o.status = \'aktiv\' ORDER BY o.id DESC').get(pid, `${namn}%`);
 // Förslag som en läkare med nödåtkomst och aktivt val får, så att alla vårdenheters uppgifter räknas.
 const fa = (db, pid) => atk(db, 'lak-kard', pid, { nodatkomst: true, andra_enheter: true }, 'ordinera');

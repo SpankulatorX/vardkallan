@@ -3,6 +3,7 @@
 // kalorier och vikt, fler läkemedelstyper med licens, uppföljning, fördjupad läkemedelsgenomgång, vyer över flera
 // dygn och förpackningar med NPL-pack-id. Klockan styrs med setSystemTime och sandlådan byggs vid den tiden.
 import { describe, test, expect, afterEach, afterAll, setSystemTime } from 'bun:test';
+import { aterstallKlockan } from './falsk-klocka.js';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { byggSeed, idag, addDagar, lokalTid } from '../src/db.js';
@@ -29,7 +30,7 @@ function sandladaKl(k = '13:30') {
   setSystemTime(new Date(kl(k)));
   return byggSeed(new Date(kl(k)));
 }
-afterEach(() => setSystemTime());
+afterEach(() => aterstallKlockan());
 const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
 const ordFor = (db, pid, namn) => db.query("SELECT o.* FROM ordinationer o JOIN katalog k ON k.id = o.lakemedel_id WHERE o.patient_id = ? AND k.namn LIKE ? AND o.status = 'aktiv' ORDER BY o.id DESC").get(pid, `${namn}%`);
 const lak = (db, pid, val = {}) => atk(db, 'lak-kard', pid, val, 'ordinera');

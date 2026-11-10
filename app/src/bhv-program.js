@@ -74,7 +74,10 @@ export const ELEVHALSAN = [
   { text: 'Difteri, stelkramp och kikhosta, dos 5', nar: 'Årskurs 8 till 9' },
 ];
 
-export const alderDagar = (fodd, nu) => Math.floor((nu - Date.parse(`${fodd}T00:00:00Z`)) / DAG);
+// Runda 11, r1: åldern i hela dagar från födelsedagen till det svenska datumet, också mellan 00 och 01 när UTC har
+// gårdagens datum.
+const svensktDatum = (ms) => new Date(ms).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
+export const alderDagar = (fodd, nu) => Math.round((Date.parse(`${svensktDatum(nu)}T12:00:00Z`) - Date.parse(`${fodd}T12:00:00Z`)) / DAG);
 const datumEfter = (fodd, dagar) => new Date(Date.parse(`${fodd}T12:00:00Z`) + dagar * DAG).toISOString().slice(0, 10);
 
 // Kan dosen ges nu? Returnerar { ok, skal }. givna: [{ vaccinId, tid }]. tbRisk: om barnet har ökad risk för tuberkulos.
@@ -90,7 +93,7 @@ export function provaVaccin(v, { fodd, nu = Date.now(), givna = [], tbRisk = fal
     const given = forra && givna.find(g => g.vaccinId === forra.id);
     if (!given) return { ok: false, skal: `${forra?.text ?? 'Föregående dos'} är inte given än.` };
     const sedan = Math.floor((nu - Date.parse(given.tid)) / DAG);
-    if (sedan < v.intervall) return { ok: false, skal: `Det ska gå minst ${v.intervall} dagar efter ${forra.text.toLowerCase()}. Dosen kan ges från ${new Date(Date.parse(given.tid) + v.intervall * DAG).toISOString().slice(0, 10)}.` };
+    if (sedan < v.intervall) return { ok: false, skal: `Det ska gå minst ${v.intervall} dagar efter ${forra.text.toLowerCase()}. Dosen kan ges från ${svensktDatum(Date.parse(given.tid) + v.intervall * DAG)}.` };
   }
   return { ok: true, skal: '' };
 }
