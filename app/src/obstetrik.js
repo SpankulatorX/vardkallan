@@ -677,13 +677,25 @@ export function partogramUt(rader) {
 const LAGE_TEXT = { latent: 'Latent fas.', normal: 'Förloppet följer varningslinjen.', over_varningslinje: 'Förloppet är långsammare än varningslinjen. Bedöm värkarna och överväg att ta hål på hinnorna eller ge värkstimulering.',
   over_atgardslinje: 'Förloppet har passerat åtgärdslinjen. Tillkalla förlossningsläkaren nu.', fullt_vidgad: 'Modermunnen är fullt vidgad.' };
 
+// Runda 11, r3, säkerhetsgranskningen: den gemensamma prövningen av ett barn som föddes i en förlossning. Barnet är en
+// egen patient: det finns, är inte sammanslaget med en annan journal och den som frågar får se barnets journal på
+// förlossningens vårdenhet i behörighetsmotorn. Alla vägar i obstetrik.js, forlossning.js och graviditetsregistret.js
+// prövar barnen med den här funktionen. Valet att visa andra enheters uppgifter gäller bara barnets egen journal.
+export function barnSynligt(db, personal, b, val = {}) {
+  const p = db.query('SELECT id, sammanslagen_till FROM patienter WHERE id = ?').get(b.barn_patient_id);
+  if (!p || p.sammanslagen_till) return false;
+  return new Atkomst(db, personal, p.id, val, 'las_graviditet').prova('las_graviditet', { enhet_id: b.enhet_id }).tillaten;
+}
+export const synligaBarn = (atk, f) => atk.db.query('SELECT * FROM forlossning_barn WHERE forlossning_id = ? ORDER BY ordning').all(f.id)
+  .filter(b => barnSynligt(atk.db, atk.personal, b, atk.patientId === b.barn_patient_id ? atk.val : {}));
+export const allaBarnSynliga = (atk, f) => synligaBarn(atk, f).length === atk.db.query('SELECT count(*) AS n FROM forlossning_barn WHERE forlossning_id = ?').get(f.id).n;
+
 export function forlossningUt(atk, f) {
   const db = atk.db;
   const punkter = partogramUt(db.query('SELECT * FROM partogram WHERE forlossning_id = ? ORDER BY tid, id').all(f.id));
   const sista = punkter.at(-1);
-  // Runda 11, r3: barnet är en egen patient och visas bara när den inloggade får se barnets journal.
-  const barn = db.query('SELECT * FROM forlossning_barn WHERE forlossning_id = ? ORDER BY ordning').all(f.id)
-    .filter(b => new Atkomst(db, atk.personal, b.barn_patient_id, atk.patientId === b.barn_patient_id ? atk.val : {}, 'las_graviditet').prova('las_graviditet', { enhet_id: b.enhet_id }).tillaten);
+  // Runda 11, r3: barnet är en egen patient och visas bara när den inloggade får se barnets journal (synligaBarn).
+  const barn = synligaBarn(atk, f);
   return {
     id: f.id, status: f.status, start: f.start, vardenhet: enhetKort(db, f.enhet_id), partogram: punkter,
     lage: sista ? { id: sista.lage, text: LAGE_TEXT[sista.lage] } : null,

@@ -475,6 +475,20 @@ describe('Graviditet, förlossning och BB', () => {
     for (const s of [vy, forl.forlossningFor(bm(d, 'r1', 'las_graviditet'), efter(400)), forl.oversikt(d, pers(d, 'bm-uso'), () => ({}), efter(400))]) expect(JSON.stringify(s)).not.toContain(x2.barnId);
     expect(fel(() => forl.utskrivning(bm(d, 'r1'), { pkuAterbesok: true }, efter(400))).status).toBe(403);
     expect(b2.barnId).toBeTruthy();
+    // Ett sammanslaget barn filtreras på samma sätt i alla vägar: förlossningen, BB, graviditetsjournalen, registret och
+    // datauttaget.
+    const s = sandlada();
+    const h = tillForlossning(s, { antalFoster: 2 });
+    const y1 = barn(s, h, 1, 300), y2 = barn(s, h, 2, 310);
+    s.query("INSERT INTO smartlindring (forlossning_id, patient_id, enhet_id, tid, metod, av) VALUES (?, 'r1', 'uso-kk-forl', ?, 'lustgas', 'bm-uso')").run(h.id, efter(200).toISOString());
+    for (const o of [1, 2]) forl.fodelseanmalan(bm(s, 'r1'), frad(s, h.id), { ordning: o }, efter(320));
+    const foreUttag = datauttag.bygg(s).data.Forlossning.length;
+    s.query('UPDATE patienter SET sammanslagen_till = ? WHERE id = ?').run(y1.barnId, y2.barnId);
+    const vagar = [forl.bbFor(bm(s, 'r1', 'las_graviditet'), efter(400)), forl.forlossningFor(bm(s, 'r1', 'las_graviditet'), efter(400)),
+      obs.forPatient(bm(s, 'r1', 'las_graviditet'), efter(400)), forl.oversikt(s, pers(s, 'bm-uso'), () => ({}), efter(400))];
+    for (const v of vagar) expect(JSON.stringify(v)).not.toContain(`"${y2.barnId}"`);
+    expect(gr.sammanstall(s, pers(s, 'bm-uso'), () => ({}), efter(400)).poster.some(p => p.patient.id === 'r1' && p.typ === 'forlossning')).toBe(false);
+    expect(datauttag.bygg(s).data.Forlossning.length).toBe(foreUttag - 1);
   });
 
   test(T.seed.replace(/^.*> /, ''), () => {

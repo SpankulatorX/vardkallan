@@ -264,7 +264,7 @@ export function fodelseanmalan(atk, f, body = {}, nu = new Date()) {
 export function barnVisning(atk, b) {
   const p = atk.db.query('SELECT * FROM patienter WHERE id = ?').get(b.barn_patient_id);
   const visad = Boolean(atk.patientId === b.barn_patient_id && atk.val?.visa_identitet);
-  const synlig = Boolean(p && !p.sammanslagen_till && new Atkomst(atk.db, atk.personal, p.id, atk.patientId === p.id ? atk.val : {}, 'las_graviditet').prova('las_graviditet', { enhet_id: b.enhet_id }).tillaten);
+  const synlig = obs.barnSynligt(atk.db, atk.personal, b, atk.patientId === b.barn_patient_id ? atk.val : {});
   const skyddad = Boolean(p?.skyddad) && !visad;
   return { p, synlig, skyddad, namn: skyddad ? `Barn ${b.ordning}` : visningsnamn(p, visad), kort: skyddad ? `Barn ${b.ordning}` : p?.fornamn ?? `Barn ${b.ordning}`,
     personnummer: skyddad || !p ? null : visningsPnr(p, visad) };
@@ -406,9 +406,9 @@ function barnBb(db, b, f, nu, atk) {
     senasteVikt: vikt ? { vikt: vikt.varden.vikt, tid: vikt.tid, viktnedgang: vikt.varden.viktnedgang } : null, kontroller, screening, anmalan: anmalanUt(db, anm, visas), namn: visas.namn, kort: visas.kort };
 }
 
-const allaBarn = (db, f) => db.query('SELECT * FROM forlossning_barn WHERE forlossning_id = ? ORDER BY ordning').all(f.id);
-export const synligaBarn = (atk, f) => allaBarn(atk.db, f).filter(b => barnVisning(atk, b).synlig);
-const allaBarnSyns = (atk, f) => synligaBarn(atk, f).length === allaBarn(atk.db, f).length;
+// Barnen prövas med samma funktion som i obstetrik.js och graviditetsregistret.js.
+const synligaBarn = obs.synligaBarn;
+const allaBarnSyns = obs.allaBarnSynliga;
 
 // Utskrivningskriterierna för mor och barn, som systemet prövar.
 export function kriterier(atk, f, { pkuAterbesok = false } = {}, nu = new Date()) {

@@ -275,7 +275,9 @@ function byggObstetrik(db, { k, ve, far, person, data }) {
     // Raden lämnar ut både modern och barnet, så båda prövas. Är någon av dem utelämnad kommer raden inte med och
     // räknas som utelämnad.
     const p = far(b.patient_id, b.enhet_id);
-    if (!p || !far(b.barn_patient_id, b.enhet_id)) continue;
+    // Datauttaget har ingen inloggad person, så barnet prövas här med uttagets regler (skyddad identitet och spärr) och,
+    // som i obstetrik.barnSynligt, att barnets journal inte är sammanslagen med en annan.
+    if (!p || db.query('SELECT sammanslagen_till FROM patienter WHERE id = ?').get(b.barn_patient_id)?.sammanslagen_till || !far(b.barn_patient_id, b.enhet_id)) continue;
     const g = db.query('SELECT antal_foster FROM graviditeter WHERE id = ?').get(b.graviditet_id);
     data.Forlossning.push({ rad: pseudonym(k, `forlossning_barn:${b.id}`), patient: pseudonym(k, `patient:${p.id}`), barn: pseudonym(k, `patient:${b.barn_patient_id}`),
       vardenhet: ve(b.enhet_id)?.hsa_id ?? null, fodelsedatum: datumI(b.fodd_tid), graviditetsvecka: Math.floor(b.dagar / 7), ordning: b.ordning, antalFoster: g?.antal_foster ?? null,

@@ -69,7 +69,7 @@ function poster(db, personal, valFor, nu) {
       // den rapporterande inte får se gör att förlossningen inte lämnas ut, och den räknas som utelämnad.
       const bp = barn.map(b => db.query('SELECT * FROM patienter WHERE id = ?').get(b.barn_patient_id));
       if (bp.some(x => x?.skyddad)) { undantagna.skyddad++; continue; }
-      if (bp.some((x, i) => !x || x.sammanslagen_till || !new Atkomst(db, personal, x.id, valFor(x.id), 'las_graviditet').prova('las_graviditet', { enhet_id: barn[i].enhet_id }).tillaten)) { undantagna.utelamnade++; continue; }
+      if (barn.some(b => !obs.barnSynligt(db, personal, b, valFor(b.barn_patient_id)))) { undantagna.utelamnade++; continue; }
       if (bp.some(x => x.id_typ !== 'personnummer')) fel.push({ text: 'Barnets personnummer har inte kommit från Skatteverket. Skicka födelseanmälan.', href: `#/forlossning/${encodeURIComponent(p.id)}` });
       Object.assign(post, { graviditetsvecka: barn[0] ? Math.floor(barn[0].dagar / 7) : null, smartlindring: smart,
         ctgPatologiskt: Boolean(db.query("SELECT 1 FROM ctg_bedomning WHERE forlossning_id = ? AND klass = 'patologiskt'").get(k.rad.id)),
