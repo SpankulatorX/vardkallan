@@ -29,6 +29,8 @@ import * as aterinsattning from './aterinsattning.js';
 import * as remissavvisning from './remissavvisning.js';
 import { kravregister, lasTestresultat } from './krav.js';
 import { sussaRegister } from './sussa/index.js';
+// Runda 11, r8: modulregistret.
+import { modulregister, exempel as modulExempel } from './moduler.js';
 import { lasKlientresultat, gransnittHash } from './klientresultat.js';
 import { YRKEN } from './seed/personal.js';
 // Utskrift, kontrasignering, arkiv och datauttag (Sussa 3.1.9, 3.1.11.3, 5.4.2, 5.3.1.7 och 6.3.1).
@@ -1725,6 +1727,17 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const mb = storlek.length ? storlek.reduce((a, b) => a + b, 0) / storlek.length / 1048576 : null;
     return arkitektur.arkitektur({ matning: mb ? { mbPerSandlada: Math.round(mb * 10) / 10, p95Ms: p95, sandladar: sessioner.size } : null });
   });
+  // Runda 11, r8: modulregistret (moduler.js). Statusen räknas ur gränssnittets kod, serverns rutter och Sussa-registret
+  // med samma testresultat som kravsidan. Inga patientuppgifter, och sidan går att läsa utan inloggning.
+  rutt('GET', '/api/moduler', () => {
+    const resultat = lasTestresultat(testresultat);
+    const register = sussaRegister(resultat, lasKlientresultat(klientresultat));
+    const apiFinns = (anrop) => {
+      const [metod, vag] = anrop.split(' ');
+      return R.some(([m, re]) => m === metod && re.test(modulExempel(vag)));
+    };
+    return modulregister({ register, apiFinns });
+  });
   utdataRutter({ rutt, kravInloggad, medPatient, valFor, version: APPVERSION });
   // Runda 6, r3.
   r3Rutter({ rutt, kravInloggad, medPatient, valFor });
@@ -1809,6 +1822,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   const UTAN_SESSION = new Set(['/api/health', '/api/krav', '/api/krav/sussa', '/api/krav/version', '/api/drift', '/api/lasekopia/krypterad-logg', '/api/tillganglighet']);
   // Runda 9, r5: autentiseringstjänstens nycklar och konfiguration.
   for (const v of ['/api/idp/jwks', '/api/idp/.well-known/openid-configuration']) UTAN_SESSION.add(v);
+  // Runda 11, r8: modulsidan är offentlig.
+  UTAN_SESSION.add('/api/moduler');
 
   async function api(req, server, url, c) {
     if (url.pathname === '/api/health') return json({ ok: true, sandladar: sessioner.size, version: APPVERSION, gransnitt: gransnittVersion() });

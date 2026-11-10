@@ -94,6 +94,8 @@ async function visaSussa(yta, q) {
     avtal: AVTALSFILTER[q.get('avtal')] ? q.get('avtal') : '',
     sortera: q.get('sortera') === 'vikt' ? 'vikt' : '',
     sok: q.get('sok') ?? '',
+    // Runda 11, r8: modulsidans länk visar en moduls poster (avsnitt eller post-id, kommaseparerade).
+    poster: /^[0-9KD.,]{1,300}$/.test(q.get('poster') ?? '') ? q.get('poster') : '',
   };
   // Genvägen visar de första tio. Ändras ett filter visas hela urvalet igen.
   let topp = /^\d{1,3}$/.test(q.get('topp') ?? '') ? Number(q.get('topp')) : 0;
@@ -138,6 +140,7 @@ async function visaSussa(yta, q) {
         <div class="falt bred"><label for="sf-sok">Sök på id eller text</label><input id="sf-sok" name="sok" type="search" autocomplete="off" value="${esc(val.sok)}" placeholder="Till exempel 3.5.2.6 eller ordinationsorsak"></div>
       </div>
     </form>
+    ${val.poster ? `<p class="ruta ruta-info liten" id="sf-urval">Urvalet är posterna för en modul på sidan Moduler: ${esc(val.poster.split(',').join(', '))}. <a href="#/krav">Visa alla poster</a></p>` : ''}
     <p class="dampad liten" id="sf-antal" role="status"></p>
     <div id="sussa-lista"></div>`;
 
@@ -146,7 +149,9 @@ async function visaSussa(yta, q) {
   const antal = yta.querySelector('#sf-antal');
   const rita = () => {
     const sok = normal(val.sok.trim());
-    let urval = d.poster.filter(p => (!val.spec || (val.spec === 'drift') === p.kapitel.startsWith('KD'))
+    const prefix = val.poster ? val.poster.split(',').filter(Boolean) : [];
+    let urval = d.poster.filter(p => (!prefix.length || prefix.some(x => p.id === x || p.id.startsWith(`${x}.`)))
+      && (!val.spec || (val.spec === 'drift') === p.kapitel.startsWith('KD'))
       && (!val.kapitel || p.kapitel === val.kapitel)
       && (!val.status || (val.status === 'ej' ? p.status !== 'uppfyllt_demo' : p.status === val.status))
       && (!val.kategori || p.kategori === val.kategori) && (!val.typ || p.typ === val.typ)
