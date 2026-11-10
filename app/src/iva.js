@@ -92,6 +92,15 @@ CREATE TRIGGER IF NOT EXISTS anestesibedomningar_andras_ej BEFORE UPDATE OF enhe
   BEGIN SELECT RAISE(ABORT, 'En anestesibedömning ändras inte. Gör en ny bedömning.'); END;
 CREATE TRIGGER IF NOT EXISTS anestesibedomningar_raderas_ej BEFORE DELETE ON anestesibedomningar
   BEGIN SELECT RAISE(ABORT, 'En anestesibedömning raderas inte'); END;
+-- Runda 11, r2: bedömningens koppling till operationsanmälan, samtycket, giltighetstiden, riskskalorna och informationen
+-- till patienten. Ändras inte, som bedömningen.
+CREATE TABLE IF NOT EXISTS anestesi_tillagg (
+  bedomning_id INTEGER PRIMARY KEY, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, anmalan_id INTEGER, samtycke TEXT, giltig_till TEXT NOT NULL,
+  skalor TEXT NOT NULL, patientinformation TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_anestesi_tillagg_anm ON anestesi_tillagg (anmalan_id);
+CREATE TRIGGER IF NOT EXISTS anestesi_tillagg_andras_ej BEFORE UPDATE ON anestesi_tillagg BEGIN SELECT RAISE(ABORT, 'En anestesibedömning ändras inte. Gör en ny bedömning.'); END;
+CREATE TRIGGER IF NOT EXISTS anestesi_tillagg_raderas_ej BEFORE DELETE ON anestesi_tillagg BEGIN SELECT RAISE(ABORT, 'En anestesibedömning raderas inte'); END;
 `;
 export function sakra(db) { db.exec(SCHEMA); }
 const finns = (db) => harTabell(db, 'iva_infusioner');
@@ -449,10 +458,68 @@ export function fasta(planerad) {
   const klar = new Date(t - FASTA.klaraDryckerTimmar * TIMME).toISOString();
   return { fastFodaTill: fast, klaraDryckerTill: klar, text: `Fast föda till kl. ${klocka(fast)} och klara drycker till kl. ${klocka(klar)} (${FASTA.fastFodaTimmar} och ${FASTA.klaraDryckerTimmar} timmar före).`, kalla: FASTA.kalla };
 }
+// ---- Runda 11, r2: bedömningen inför en operation (Sussa 4.6.1.4) -----------------------------------------------------
+// En bedömning gäller i GILTIG_DAGAR, och systemet säger när den måste göras om. Riskskalorna räknas ur journalen där det
+// går. Skalorna och giltighetstiden är demoregler, inte kliniskt beslutsstöd.
+export const GILTIG_DAGAR = 180;
+export const SAMTYCKE = { ja: 'Patienten har fått information och samtycker till anestesin', nej: 'Patienten samtycker inte till anestesin', kan_inte: 'Patienten kan inte samtycka (akut, nödsituation)' };
+const APFEL_RISK = [10, 20, 40, 60, 80];
+const RCRI_RISK = [3.9, 6.0, 10.1, 15];
+// Anmälan till operation som bedömningen gäller. Raden binds till patienten och prövas på den anmälande vårdenheten.
+function anmalanFor(atk, anmalanId) {
+  if (anmalanId == null || anmalanId === '') return null;
+  const op = require('./operation.js');
+  if (!/^\d{1,9}$/.test(String(anmalanId))) throw new Fel(404, 'Uppgiften finns inte.', 'saknas');
+  let an;
+  try { an = op.anmalanRad(atk.db, anmalanId); } catch { throw new Fel(404, 'Uppgiften finns inte.', 'saknas'); }
+  if (an.patient_id !== atk.patientId) throw new Fel(404, 'Uppgiften finns inte.', 'saknas');
+  atk.krav('las_operation', { resurs: { enhet_id: an.enhet_id } });
+  const plan = atk.db.query('SELECT start FROM op_planeringar WHERE anmalan_id = ? AND struken_tid IS NULL ORDER BY id DESC').get(an.id);
+  return { an, ingrepp: op.INGREPP[an.kva], planerad: plan?.start ?? null };
+}
+// Revised Cardiac Risk Index (Lee) och Apfels skala för illamående efter operation, ur det användaren får se.
+export function riskskalor(atk, p, { ingrepp = null, diagnoser = [], lakemedelAtc = [], kreatinin = null, ponvTidigare = false, rokare = false, opioider = true } = {}) {
+  const kod = (re) => diagnoser.find(d => re.test(d.kod));
+  const rcri = [
+    ingrepp && /^J/.test(ingrepp.kva) ? 'Högriskkirurgi i buken' : null,
+    kod(/^I2[0-5]/) ? `Ischemisk hjärtsjukdom (${kod(/^I2[0-5]/).kod})` : null,
+    kod(/^I50/) ? `Hjärtsvikt (${kod(/^I50/).text})` : null,
+    kod(/^(I6\d|G45)/) ? `Cerebrovaskulär sjukdom (${kod(/^(I6\d|G45)/).kod})` : null,
+    lakemedelAtc.some(a => a.startsWith('A10A')) ? 'Diabetes som behandlas med insulin' : null,
+    kreatinin != null && kreatinin > 177 ? `Kreatinin ${kreatinin} µmol/l, över 177` : null,
+  ].filter(Boolean);
+  const apfel = [p.kon === 'kvinna' ? 'Kvinna' : null, rokare ? null : 'Icke-rökare', ponvTidigare ? 'Illamående efter tidigare operation eller åksjuka' : null, opioider ? 'Opioider efter operationen' : null].filter(Boolean);
+  return {
+    rcri: { namn: 'Revised Cardiac Risk Index (Lee)', poang: rcri.length, risk: RCRI_RISK[Math.min(3, rcri.length)], grund: rcri.length ? rcri.join(', ') : 'Inga riskfaktorer i det du kan se.', text: `${rcri.length} poäng, risk för allvarlig hjärthändelse omkring ${talSv(RCRI_RISK[Math.min(3, rcri.length)])} procent.` },
+    apfel: { namn: 'Apfels skala för illamående efter operation', poang: apfel.length, risk: APFEL_RISK[apfel.length], grund: apfel.join(', ') || 'Inga riskfaktorer.', text: `${apfel.length} poäng, risk för illamående omkring ${APFEL_RISK[apfel.length]} procent.${apfel.length >= 2 ? ' Systemet föreslår profylax mot illamående.' : ''}` },
+  };
+}
+function patientinformationText({ ingrepp, planerad, form, fastaText, lakemedel: lm }) {
+  const nar = planerad ? new Date(planerad).toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Stockholm' }) : null;
+  return [`Inför din operation: ${ingrepp.toLocaleLowerCase('sv')}${nar ? ` ${nar}` : ''}.`, `Du får ${ANESTESIFORMER[form].toLocaleLowerCase('sv')}.`,
+    fastaText ? fastaText.replace('Fast föda till kl.', 'Ät inte efter klockan').replace(' och klara drycker till kl.', '. Du får dricka klara drycker till klockan').replace(/ \(\d+ och \d+ timmar före\)\./, '.') : 'Personalen säger när du ska sluta äta och dricka.',
+    ...lm.filter(l => l.observation).map(l => `${l.text}: ${l.observation.split(':')[1]?.trim() ?? l.observation}`),
+    'Efter operationen vaknar du på uppvakningsavdelningen, och personalen följer dig tills du kan gå tillbaka till avdelningen.',
+    'Du kan visa den här informationen för en närstående. Ring avdelningen om du blir sjuk före operationen.'].join(' ');
+}
+// Den senaste bedömningen för en operation, som den inloggade får se, med om den gäller vid operationen.
+export function anestesiForAnmalan(atk, an, nu = new Date()) {
+  if (!kanRoll(atk.personal, 'las_journal') || !harTabell(atk.db, 'anestesi_tillagg')) return null;
+  const ids = atk.db.query('SELECT bedomning_id FROM anestesi_tillagg WHERE anmalan_id = ? AND patient_id = ?').all(an.id, an.patient_id).map(r => r.bedomning_id);
+  const b = anestesiLista(new Atkomst(atk.db, atk.personal, an.patient_id, atk.val, 'las_journal')).find(x => ids.includes(x.id));
+  if (!b) return null;
+  const plan = atk.db.query('SELECT start FROM op_planeringar WHERE anmalan_id = ? AND struken_tid IS NULL ORDER BY id DESC').get(an.id);
+  const dag = [nu.toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' }), plan ? new Date(plan.start).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' }) : ''].sort().at(-1);
+  return { ...b, giltig: b.giltigTill >= dag };
+}
+
 // GET /api/patient/:id/anestesi/forslag?planerad=: det som systemet hämtar ur journalen och föreslår.
-export function anestesiForslag(atk, p, { planerad = null } = {}, nu = new Date()) {
+// Runda 11, r2: med anmalanId fyller systemet i ingreppet och den planerade tiden ur operationen och räknar skalorna.
+export function anestesiForslag(atk, p, { planerad = null, anmalanId = null } = {}, nu = new Date()) {
   atk.krav('anestesibedomning');
   const db = atk.db;
+  const kopplad = anmalanFor(atk, anmalanId);
+  if (kopplad && !planerad) planerad = kopplad.planerad;
   const a = (h) => new Atkomst(db, atk.personal, atk.patientId, atk.val, h);
   const diagnoser = kanRoll(atk.personal, 'las_diagnoser') ? journal.synligaDiagnoser(a('las_diagnoser')) : [];
   const lm = kanRoll(atk.personal, 'las_lakemedel') ? lakemedel.synligaOrdinationer(a('las_lakemedel')).filter(o => lakemedel.aktuell(o)) : [];
@@ -475,6 +542,10 @@ export function anestesiForslag(atk, p, { planerad = null } = {}, nu = new Date(
     overkanslighet: overk.map(o => ({ amne: o.amne, reaktion: o.reaktion, allvarlighet: o.allvarlighet })), tidigare: tidigare.map(x => ({ tid: x.tid, ingrepp: x.ingrepp, asa: x.asa, anestesiform: x.anestesiform })),
     luftvag: { risker: luftvagRisk }, fasta: planerad ? fasta(planerad) : null, demoregel: DEMOREGEL,
     text: 'Systemet har hämtat läkemedel, överkänslighet, diagnoser, vikt och tidigare anestesier ur journalen. Fyll i det som bara du kan bedöma.',
+    // Runda 11, r2.
+    ...(kopplad ? { anmalanId: kopplad.an.id, ingrepp: kopplad.ingrepp.namn, planerad, anestesiform: kopplad.an.anestesi === 'lokal' ? 'sedering' : kopplad.an.anestesi } : {}),
+    skalor: riskskalor(atk, p, { ingrepp: kopplad?.ingrepp ?? null, diagnoser, lakemedelAtc: lm.map(o => atc.get(o.lakemedel_id)?.atc ?? ''), kreatinin: lmv.find(m => m.typ === 'kreatinin')?.varde_num ?? null }),
+    giltigDagar: GILTIG_DAGAR, samtycken: SAMTYCKE,
   };
 }
 export const ANESTESIFORMER = { generell: 'Generell anestesi', regional: 'Regional anestesi', sedering: 'Lokalbedövning med sedering' };
@@ -482,6 +553,13 @@ export function sparaAnestesi(atk, p, body = {}, nu = new Date()) {
   kravVardande(atk, 'anestesibedomning', null, 'anestesi');
   const db = atk.db;
   const falt = [];
+  // Runda 11, r2: en bedömning inför en operation får ingreppet och tiden ur anmälan och kräver samtycket.
+  const kopplad = anmalanFor(atk, body.anmalanId);
+  if (kopplad) {
+    body = { ...body, ingrepp: body.ingrepp || kopplad.ingrepp.namn, planerad: body.planerad || kopplad.planerad };
+    if (!Object.hasOwn(SAMTYCKE, body.samtycke)) throw new Fel(400, 'Ange patientens samtycke till anestesin.', 'ogiltig', { falt: ['samtycke'] });
+    if (body.samtycke === 'kan_inte' && !body.akut) throw new Fel(400, 'Att patienten inte kan samtycka gäller bara ett akut ingrepp. Markera ingreppet som akut eller ange samtycket.', 'ogiltig', { falt: ['samtycke'] });
+  }
   const ingrepp = typeof body.ingrepp === 'string' ? body.ingrepp.trim().slice(0, 200) : '';
   if (ingrepp.length < 3) falt.push('ingrepp');
   const asa = Number(body.asa);
@@ -497,18 +575,31 @@ export function sparaAnestesi(atk, p, body = {}, nu = new Date()) {
     const namn = { ingrepp: 'ingreppet', asa: 'ASA-klass 1 till 5', anestesiform: 'anestesiformen', mallampati: 'Mallampati 1 till 4', planerad: 'den planerade tiden' };
     throw new Fel(400, `Kontrollera ${falt.map(f => namn[f]).join(', ')}.`, 'ogiltig', { falt });
   }
-  const forslag = anestesiForslag(atk, p, { planerad }, nu);
+  const forslag = anestesiForslag(atk, p, { planerad, anmalanId: kopplad?.an.id ?? null }, nu);
   const luftvag = { mallampati, munoppningOk: lv.munoppningOk !== false, nackrorlighetOk: lv.nackrorlighetOk !== false, tidigareSvarIntubation: Boolean(lv.tidigareSvarIntubation), risker: forslag.luftvag.risker };
   const underlag = { lakemedel: forslag.lakemedel, overkanslighet: forslag.overkanslighet, diagnoser: forslag.diagnoser, vikt: forslag.vikt, bmi: forslag.bmi, asaForslag: forslag.asa.asa };
   const vk = vardkontakt.pagandeFor(db, atk.personal, atk.patientId)?.id ?? null;
   const id = Number(db.query(`INSERT INTO anestesibedomningar (patient_id, enhet_id, vardkontakt_id, ingrepp, planerad, asa, akut, anestesiform, luftvag, fasta, underlag, kommentar, tid, av)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(atk.patientId, atk.personal.enhet_id, vk, ingrepp, planerad, asa, body.akut ? 1 : 0, form, JSON.stringify(luftvag),
     forslag.fasta ? JSON.stringify(forslag.fasta) : null, JSON.stringify(underlag), typeof body.kommentar === 'string' ? body.kommentar.trim().slice(0, 1000) || null : null, nu.toISOString(), atk.personal.id).lastInsertRowid);
+  // Runda 11, r2: skalorna, giltighetstiden och informationen till patienten sparas med bedömningen.
+  const skalor = { rcri: forslag.skalor.rcri, apfel: riskskalor(atk, p, { ponvTidigare: Boolean(body.ponvTidigare), rokare: Boolean(body.rokare), opioider: body.opioider !== false }).apfel };
+  const giltigTill = addDagar(nu.toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' }), GILTIG_DAGAR);
+  db.query('INSERT INTO anestesi_tillagg (bedomning_id, patient_id, enhet_id, anmalan_id, samtycke, giltig_till, skalor, patientinformation) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(id, atk.patientId, atk.personal.enhet_id, kopplad?.an.id ?? null, Object.hasOwn(SAMTYCKE, body.samtycke) ? body.samtycke : null, giltigTill, JSON.stringify(skalor),
+      patientinformationText({ ingrepp, planerad, form, fastaText: forslag.fasta?.text, lakemedel: forslag.lakemedel }));
+  if (kopplad) {
+    db.query('UPDATE op_anmalningar SET asa = ? WHERE id = ?').run(asa, kopplad.an.id);
+    db.query('INSERT INTO op_historik (anmalan_id, patient_id, enhet_id, tid, personal_id, handelse, detalj) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(kopplad.an.id, kopplad.an.patient_id, kopplad.an.enhet_id, nu.toISOString(), atk.personal.id, 'anestesibedomning', `ASA ${asa}${body.akut ? 'E' : ''}, giltig till ${giltigTill}`);
+  }
   atk.logga('anestesibedomning', atk.grund(), `anestesi:${id}`);
-  return { bedomning: anestesiUt(db, db.query('SELECT * FROM anestesibedomningar WHERE id = ?').get(id)), text: `Anestesibedömningen är sparad, ASA ${asa}${body.akut ? 'E' : ''}.` };
+  return { bedomning: anestesiUt(db, db.query('SELECT * FROM anestesibedomningar WHERE id = ?').get(id)), text: `Anestesibedömningen är sparad, ASA ${asa}${body.akut ? 'E' : ''}. Den gäller till ${giltigTill}.` };
 }
 function anestesiUt(db, r) {
+  const t = harTabell(db, 'anestesi_tillagg') ? db.query('SELECT * FROM anestesi_tillagg WHERE bedomning_id = ?').get(r.id) : null;
   return {
+    ...(t ? { anmalanId: t.anmalan_id, samtycke: t.samtycke, samtyckeText: t.samtycke ? SAMTYCKE[t.samtycke] : null, giltigTill: t.giltig_till, skalor: JSON.parse(t.skalor), patientinformation: t.patientinformation } : {}),
     id: r.id, tid: r.tid, av: personNamn(db, r.av), vardenhet: enhetsnamn(db, vardenhetFor(db, r.enhet_id)), ingrepp: r.ingrepp, planerad: r.planerad, asa: r.asa, akut: Boolean(r.akut),
     asaText: `ASA ${r.asa}${r.akut ? 'E' : ''}`, anestesiform: r.anestesiform, anestesiformText: ANESTESIFORMER[r.anestesiform], luftvag: JSON.parse(r.luftvag), fasta: r.fasta ? JSON.parse(r.fasta) : null,
     underlag: JSON.parse(r.underlag), kommentar: r.kommentar,

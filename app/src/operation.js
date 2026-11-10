@@ -116,7 +116,7 @@ export const CHECKLISTA = tabell({
   fore_utflyttning: { namn: 'Innan patienten lämnar salen', punkter: {
     registrerat: 'Ingreppet är registrerat', rakning: 'Instrument, kompresser och nålar är räknade och stämmer',
     preparat: 'Preparat är märkta med patientens namn och personnummer', implantat: 'Implantat är registrerade med lot- eller serienummer',
-    utrustning: 'Problem med utrustning är rapporterade', uppvakning: 'Det viktigaste för uppvakningen och den fortsatta vården är överlämnat' } },
+    utrustning: 'Problem med utrustning är rapporterade', uppvakning: 'Det viktigaste för uppvakningen och vården efteråt är överlämnat' } },
 });
 // Händelserna under operationen i den ordning de sker, och checklistan som måste vara klar före varje händelse.
 export const HANDELSER = [
@@ -347,15 +347,20 @@ function proverFor(atk, an) {
   });
 }
 
-export function forberedelser(atk, an) {
+export function forberedelser(atk, an, nu = new Date()) {
   const ing = INGREPP[an.kva];
   const prover = proverFor(atk, an);
   const plan = planeringFor(atk.db, an.id);
+  // Runda 11, r2: den kopplade anestesibedömningen och dess giltighetstid.
+  const bed = an.anestesi === 'lokal' ? null : anestesiFor(atk, an, nu);
+  const anestesi = an.anestesi === 'lokal' ? { klar: true, text: 'Behövs inte vid lokalbedövning.' }
+    : bed?.giltig ? { klar: true, text: `${bed.asaText}, bedömd ${bed.tid.slice(0, 10)} av ${bed.av}, giltig till ${bed.giltigTill}.${bed.samtycke === 'ja' ? ' Patienten har samtyckt.' : ''}` }
+      : bed ? { klar: false, text: `Anestesibedömningen gällde till ${bed.giltigTill}. Patienten behöver bedömas igen före operationen.` }
+        : an.asa != null ? { klar: true, text: `ASA ${an.asa}.` } : { klar: false, text: 'Patienten behöver bedömas av anestesiläkaren före operationen.' };
   const punkter = [
     { id: 'prover', namn: 'Prover före operationen', klar: prover.every(p => p.status !== 'saknas'),
       text: prover.some(p => p.status === 'saknas') ? `Saknas: ${prover.filter(p => p.status === 'saknas').map(p => p.namn).join(', ')}. Systemet kan beställa dem med ett klick.` : 'Alla prover är beställda.' },
-    { id: 'anestesi', namn: 'Anestesibedömning', klar: an.anestesi === 'lokal' || an.asa != null,
-      text: an.anestesi === 'lokal' ? 'Behövs inte vid lokalbedövning.' : an.asa != null ? `ASA ${an.asa}.` : 'Patienten behöver bedömas av anestesiläkaren före operationen.' },
+    { id: 'anestesi', namn: 'Anestesibedömning', ...anestesi },
     { id: 'kallelse', namn: 'Kallelse med förberedelser', klar: Boolean(plan?.kallelse), text: plan?.kallelse ? 'Kallelsen är skickad (simulerad).' : 'Skrivs av systemet när operationen planeras.' },
   ];
   return { punkter, prover, klar: punkter.every(p => p.klar), blod: ing.blod };
@@ -458,7 +463,7 @@ export function anmalanUt(atk, an, nu = new Date()) {
     id: an.id, kva: an.kva, ingrepp: ing.namn, sida: an.sida ? SIDA[an.sida] : null, prioritet: { id: an.prioritet, namn: PRIORITET[an.prioritet].namn },
     malDatum: an.mal_datum, overMal: !f?.in_sal && datumAv(nu) > an.mal_datum, vantedagar, anestesi: ANESTESI[an.anestesi], asa: an.asa, minuter: an.minuter,
     status: an.status, anmald: { tid: an.anmald_tid, av: personNamn(db, an.anmald_av) }, vardenhet: enhetKort(db, an.enhet_id), kommentar: an.kommentar,
-    planering: plan ? planeringUt(db, plan) : null, forlopp: f ? forloppUt(db, an, f) : null, forberedelser: forberedelser(atk, an),
+    planering: plan ? planeringUt(db, plan) : null, forlopp: f ? forloppUt(db, an, f) : null, forberedelser: forberedelser(atk, an, nu),
     // Runda 11, r2.
     paverkar: ['vantar', 'planerad', 'pagar'].includes(an.status) ? paverkar(atk, an, nu) : [],
     historik: db.query('SELECT * FROM op_historik WHERE anmalan_id = ? ORDER BY id').all(an.id).map(h => ({ tid: h.tid, av: personNamn(db, h.personal_id), handelse: h.handelse, detalj: h.detalj })),
@@ -654,7 +659,20 @@ function forloppUt(db, an, f) {
     implantat: lasJson(f.implantat, []), atgarder: lasJson(f.atgarder, []).map(k => ({ kod: k, text: KVA[k] ?? k, system: 'KVÅ' })),
     uppvakning: f.ut_sal ? { start: f.ut_sal, utskriven: f.utskriven_tid, av: personNamn(db, f.utskriven_av), overrapport: f.overrapport } : null,
     operationsminuter: f.knivtid && f.op_slut ? Math.round((Date.parse(f.op_slut) - Date.parse(f.knivtid)) / MIN) : null,
+    // Runda 11, r2: avvikelsen från planeringen, start och längd i minuter.
+    avvikelse: avvikelseFor(db, f),
   };
+}
+function avvikelseFor(db, f) {
+  const p = db.query('SELECT * FROM op_planeringar WHERE id = ?').get(f.planering_id);
+  if (!p || !f.in_sal) return null;
+  const startMinuter = Math.round((Date.parse(f.in_sal) - Date.parse(p.start)) / MIN);
+  // Tiden på salen jämförs med den planerade tiden utan bytet mellan operationerna.
+  const langdMinuter = f.ut_sal ? Math.round((Date.parse(f.ut_sal) - Date.parse(f.in_sal) - (Date.parse(p.slut) - Date.parse(p.start) - BYTE_MINUTER * MIN)) / MIN) : null;
+  const del = (n, ord) => (n > 0 ? `${n} minuter ${ord[0]}` : n < 0 ? `${-n} minuter ${ord[1]}` : null);
+  const text = [del(startMinuter, ['senare än planerat', 'tidigare än planerat']) ? `Började ${del(startMinuter, ['senare än planerat', 'tidigare än planerat'])}.` : 'Började som planerat.',
+    langdMinuter == null ? null : del(langdMinuter, ['längre än planerat', 'kortare än planerat']) ? `Tog ${del(langdMinuter, ['längre än planerat', 'kortare än planerat'])}.` : 'Tog den planerade tiden.'].filter(Boolean).join(' ');
+  return { startMinuter, langdMinuter, text };
 }
 
 // Överkänsligheten som den inloggade får se.
@@ -683,7 +701,9 @@ export function checklistaUnderlag(atk, an, nu = new Date()) {
   const f = forloppFor(db, an.id);
   const plan = planeringFor(db, an.id);
   const id = db.query("SELECT tid FROM op_historik WHERE anmalan_id = ? AND handelse = 'identitet' ORDER BY id DESC LIMIT 1").get(an.id);
-  const bed = anestesiFor(atk, an, nu);
+  require('./anestesijournal.js').fyllVarden(db, an, nu);
+  const bedAlla = anestesiFor(atk, an, nu);
+  const bed = bedAlla?.giltig ? bedAlla : null;
   const varden = db.query('SELECT count(*) AS n FROM op_anestesi_varden WHERE anmalan_id = ?').get(an.id).n;
   const prof = profylaxFor(atk, an);
   const antibiotika = anestesiRader(db, an, 'lakemedel').filter(r => ['kloxacillin', 'cefuroxim', 'klindamycin'].includes(r.kod)).at(-1);
@@ -875,9 +895,11 @@ export function overrapportText(atk, an, u) {
   const ing = INGREPP[an.kva];
   const imp = lasJson(f.implantat, []);
   const und = checklistaUnderlag(atk, an);
+  // Runda 11, r2: läkemedel, vätskor och händelser ur anestesijournalen.
+  const under = require('./anestesijournal.js').sammanfattning(db, an);
   return [
     `Situation: ${ing.namn}${an.sida ? ` ${SIDA[an.sida]} sida` : ''} i ${ANESTESI[an.anestesi].toLocaleLowerCase('sv')}, klar klockan ${klocka(f.op_slut)}.`,
-    `Bakgrund: ${an.asa != null ? `ASA ${an.asa}. ` : ''}${und.allergier}${imp.length ? ` Implantat: ${imp.map(i => `${i.artikel} (lot ${i.lot})`).join(', ')}.` : ''}`,
+    `Bakgrund: ${an.asa != null ? `ASA ${an.asa}. ` : ''}${und.allergier}${imp.length ? ` Implantat: ${imp.map(i => `${i.artikel} (lot ${i.lot})`).join(', ')}.` : ''}${under ? ` ${under}` : ''}`,
     `Aktuellt: ${u.kriterier.map(k => `${k.namn.toLocaleLowerCase('sv')} ${k.varde}`).join(', ')}.`,
     `Rekommendation: kontroll av ${POSTOP_KONTROLLER.length} vitalparametrar var fjärde timme under ett dygn, smärtskattning vid varje kontroll.`,
   ].join(' ');
@@ -906,6 +928,54 @@ export function skrivUt(atk, an, body = {}, nu = new Date()) {
 }
 
 // ---- Enhetsnivå: dagens operationer och uppföljningen ------------------------------------------------------------------
+
+function uppfoljningR11(db, { anm, genomforda, enheter, ph, start, slut, median }) {
+  const inom = (t) => t && t >= start && t < slut;
+  const nya = anm.filter(a => inom(a.anmald_tid));
+  const planer = db.query(`SELECT * FROM op_planeringar WHERE enhet_id IN (${ph}) AND struken_tid IS NULL AND start >= ? AND start < ? ORDER BY start`).all(...enheter, start, slut);
+  const bokade = new Map();
+  for (const p of planer) for (const r of db.query('SELECT resurs FROM op_resursbokningar WHERE planering_id = ?').all(p.id)) {
+    const x = bokade.get(r.resurs) ?? { bokningar: 0, minuter: 0 };
+    x.bokningar++; x.minuter += Math.round((Date.parse(p.slut) - Date.parse(p.start)) / MIN);
+    bokade.set(r.resurs, x);
+  }
+  // Dagens första operation per sal och dag: i tid när patienten kom in på salen högst tio minuter efter planerat.
+  const forsta = new Map();
+  for (const p of db.query('SELECT * FROM op_planeringar WHERE struken_tid IS NULL AND start >= ? AND start < ? ORDER BY start').all(start, slut)) {
+    const k = `${p.sal} ${datumAv(new Date(p.start))}`;
+    if (!forsta.has(k)) forsta.set(k, p);
+  }
+  const egnaForsta = [...forsta.values()].filter(p => enheter.includes(p.enhet_id)).map(p => ({ p, f: forloppFor(db, p.anmalan_id) })).filter(x => x.f?.in_sal);
+  const uppvak = genomforda.filter(x => x.f.ut_sal && x.f.utskriven_tid).map(x => Math.round((Date.parse(x.f.utskriven_tid) - Date.parse(x.f.ut_sal)) / MIN)).sort((a, b) => a - b);
+  return {
+    inflode: { anmalda: nya.length, perPrioritet: Object.entries(PRIORITET).map(([id, p]) => ({ id, namn: p.namn, antal: nya.filter(a => a.prioritet === id).length })) },
+    utrustning: Object.keys(RESURSER).map(id => ({ id, namn: RESURSER[id].namn, typ: RESURSER[id].typ, bokningar: bokade.get(id)?.bokningar ?? 0, minuter: bokade.get(id)?.minuter ?? 0 })),
+    punktlighet: { forstaOperationer: egnaForsta.length, iTid: egnaForsta.filter(x => Date.parse(x.f.in_sal) <= Date.parse(x.p.start) + 10 * MIN).length, text: 'Dagens första operation i salen i tid, högst tio minuter efter planerat.' },
+    uppvakning: { antal: uppvak.length, medianMinuter: median(uppvak) },
+  };
+}
+
+// Runda 11, r2: patienterna på uppvakningen från den inloggades vårdenhet, med tiden och kriterierna. En patient som den
+// inloggade inte får se finns inte med, och varje patient som visas loggas.
+export function uppvakningslista(db, personal, valFor, nu = new Date()) {
+  sakra(db);
+  kravRoll(personal, 'las_operation');
+  const ve = vardenhetFor(db, personal.enhet_id);
+  const enheter = enheterUnder(db, ve);
+  const rader = db.query(`SELECT * FROM op_anmalningar WHERE status = 'uppvak' AND enhet_id IN (${enheter.map(() => '?').join(', ')}) ORDER BY id`).all(...enheter);
+  const ut = [];
+  for (const an of rader) {
+    const r = provaRad(db, personal, valFor, an, 'las_operation');
+    if (!r.tillaten) continue;
+    const atk = new Atkomst(db, personal, an.patient_id, valFor(an.patient_id), 'las_operation');
+    const u = uppvakning(atk, an, nu);
+    loggaPatient(db, personal, an.patient_id, 'las_operation', atk.grund(), '/api/operation/uppvakning');
+    const p = db.query('SELECT * FROM patienter WHERE id = ?').get(an.patient_id);
+    ut.push({ anmalanId: an.id, patient: { id: p.id, namn: visningsnamn(p, valFor(p.id).visa_identitet) }, ingrepp: INGREPP[an.kva].namn, start: u.start, minuter: u.minuter,
+      kanSkrivasUt: u.kanSkrivasUt, text: u.text, ejUppfyllda: u.kriterier.filter(k => !k.uppfyllt).map(k => k.namn) });
+  }
+  return { vardenhet: enhetKort(db, ve), patienter: ut, demoregel: DEMOREGEL };
+}
 
 // Dagens operationer i salarna på den inloggades sjukhus. En operation från en annan vårdenhet, eller med en patient som
 // den inloggade inte får se, visas bara som upptagen tid utan ingrepp, patient, team eller vårdenhet.
@@ -994,6 +1064,8 @@ export function uppfoljning(db, personal, { fran = null, till = null } = {}, nu 
     strukna: { antal: strukna.reduce((s, r) => s + r.n, 0), andel: planerade ? Math.round((strukna.reduce((s, r) => s + r.n, 0) / planerade) * 100) : 0,
       perOrsak: strukna.map(r => ({ orsak: STRYKORSAKER[r.orsak] ?? r.orsak, antal: r.n })) },
     salar, perIngrepp,
+    // Runda 11, r2: inflödet, utrustningen, punktligheten för dagens första operation per sal och tiden på uppvakningen.
+    ...uppfoljningR11(db, { anm, genomforda, enheter, ph, start, slut, median }),
     text: 'Uppföljningen räknas av systemet ur anmälningarna, planeringen och förloppet. Den innehåller inga personuppgifter.',
   };
 }

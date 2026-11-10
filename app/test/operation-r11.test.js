@@ -302,8 +302,8 @@ describe('Operation 1.1, anestesi och material', () => {
     expect(lista.patienter[0]).toMatchObject({ anmalanId: id, minuter: 15, kanSkrivasUt: false, patient: { id: 'op1' } });
     expect(op.uppvakningslista(db, pers(db, 'lak-ort'), () => ({}), vid(160)).patienter).toEqual([]);
     const u = op.anmalanUt(s, rad(db, id), vid(160));
-    expect(u.forlopp.avvikelse).toMatchObject({ langdMinuter: 15 });
-    expect(u.forlopp.avvikelse.text).toContain('15 minuter längre');
+    expect(u.forlopp.avvikelse).toMatchObject({ startMinuter: 0, langdMinuter: 45 });
+    expect(u.forlopp.avvikelse.text).toContain('45 minuter längre');
     op.kontroll(s, rad(db, id), { varden: { medvetande: 'A', saturation: 97, andningsfrekvens: 14, puls: 76, blodtryck: '132/78', smarta: 2 } }, vid(175));
     const r = op.skrivUt(s, rad(db, id), {}, vid(180));
     expect(r.overrapport).toContain('Under operationen: Kloxacillin 2 g');

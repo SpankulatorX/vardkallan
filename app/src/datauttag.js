@@ -105,6 +105,19 @@ export const SCHEMA = {
     },
   },
 };
+// Runda 11, r2: operationerna för uppföljningen av kvalitet och produktion (Sussa 4.5.1.5).
+SCHEMA.Operation = {
+  beskrivning: 'En rad per operationsanmälan, med planering, genomförande och uppvakning. Inga namn, ingen kommentar och ingen personal.',
+  falt: {
+    rad: 'Radens stabila nyckel.', patient: 'Patientens pseudonym.', aldersgrupp: 'Ålder vid anmälan i femårsgrupper.', kon: '"kvinna" eller "man".',
+    vardenhet: 'Den anmälande vårdenhetens HSA-id.', kva: 'Ingreppet med KVÅ.', prioritet: '"akut", "inom_2_veckor" eller "inom_3_manader".',
+    anestesiform: '"generell", "regional" eller "lokal".', asa: 'ASA-klass 1 till 5, eller tomt.', status: '"vantar", "planerad", "pagar", "uppvak" eller "klar".',
+    anmaldDatum: 'Datum för anmälan.', malDatum: 'Målet för väntetiden.', sjukhus: 'Sjukhuset där operationen är planerad, eller tomt.', planeradDatum: 'Planerat datum, eller tomt.',
+    planeradeMinuter: 'Planerad salstid med byte i minuter.', beraknadeMinuter: 'Beräknad operationstid för ingreppet i minuter.', operationsDatum: 'Datum då patienten kom in på salen.',
+    vantedagar: 'Dagar från anmälan till operation.', inomMal: 'Sant när operationen gjordes senast på måldatumet.', operationsMinuter: 'Minuter från snitt till operationens slut.',
+    salMinuter: 'Minuter från in på sal till ut från sal.', uppvakningMinuter: 'Minuter på uppvakningen.', strukna: 'Antal gånger operationen har strukits.',
+  },
+};
 export const TYPER = Object.keys(SCHEMA);
 
 // Pseudonymerna räknas med HMAC-SHA256 och en nyckel som bara finns i sandlådan.
@@ -228,6 +241,26 @@ export function bygg(db, { pseudonymnyckel = null } = {}) {
     data.Patientavgift.push({ rad: pseudonym(k, `avgift:${v.id}`), patient: pseudonym(k, `patient:${p.id}`), vardenhet: ve(v.enhet_id)?.hsa_id ?? null, vardkontakt: vk(v.id),
       vardform: v.typ, kontaktsatt: v.kontaktsatt ?? null, datum: d, avgiftsbelagd: ar >= AVGIFT_DEMO.friUnder && ar < AVGIFT_DEMO.friFran && pris > 0 });
   }
+  // Runda 11, r2: operationerna, med samma regler för spärr och skyddade personuppgifter.
+  if (db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'op_anmalningar'").get()) {
+    const { SAL } = require('./operation.js');
+    const min = (a, b) => (a && b ? Math.round((Date.parse(b) - Date.parse(a)) / 60_000) : null);
+    for (const a of db.query('SELECT * FROM op_anmalningar ORDER BY id').all()) {
+      const p = far(a.patient_id, a.enhet_id);
+      if (!p) continue;
+      const pl = db.query('SELECT * FROM op_planeringar WHERE anmalan_id = ? AND struken_tid IS NULL ORDER BY id DESC').get(a.id);
+      const f = db.query('SELECT * FROM op_forlopp WHERE anmalan_id = ?').get(a.id);
+      const anm = datumI(a.anmald_tid);
+      data.Operation.push({
+        rad: pseudonym(k, `operation:${a.id}`), ...person(p, anm), vardenhet: ve(a.enhet_id)?.hsa_id ?? null, kva: a.kva, prioritet: a.prioritet, anestesiform: a.anestesi, asa: a.asa,
+        status: a.status, anmaldDatum: anm, malDatum: a.mal_datum, sjukhus: pl ? hsa.get(SAL[pl.sal]?.sjukhus)?.hsa_id ?? null : null, planeradDatum: pl ? datumI(pl.start) : null,
+        planeradeMinuter: pl ? min(pl.start, pl.slut) : null, beraknadeMinuter: a.minuter, operationsDatum: datumI(f?.in_sal),
+        vantedagar: f?.in_sal ? dagar(a.anmald_tid, f.in_sal) : null, inomMal: f?.in_sal ? datumI(f.in_sal) <= a.mal_datum : null,
+        operationsMinuter: min(f?.knivtid, f?.op_slut), salMinuter: min(f?.in_sal, f?.ut_sal), uppvakningMinuter: min(f?.ut_sal, f?.utskriven_tid),
+        strukna: db.query('SELECT count(*) AS n FROM op_planeringar WHERE anmalan_id = ? AND struken_tid IS NOT NULL').get(a.id).n,
+      });
+    }
+  }
   return { data, utelamnat };
 }
 
@@ -245,6 +278,8 @@ const OBLIGATORISKA = {
   Vardkontakt: ['rad', 'patient', 'vardenhet', 'vardform', 'startdatum'], Diagnos: ['rad', 'patient', 'vardenhet', 'kod', 'datum'], Ordination: ['rad', 'patient', 'vardenhet', 'atc', 'startdatum', 'status'],
   Remiss: ['rad', 'franVardenhet', 'tillVardenhet', 'prioritet', 'status', 'skickadDatum'], Matvarde: ['rad', 'patient', 'vardenhet', 'typ', 'varde', 'datum'],
   Anteckning: ['rad', 'patient', 'vardenhet', 'typ', 'kategori', 'status', 'datum'], Vardtillfalle: ['rad', 'patient', 'vardenhet', 'inskrivenDatum'], Patientavgift: ['rad', 'patient', 'vardenhet', 'vardkontakt', 'datum'],
+  // Runda 11, r2.
+  Operation: ['rad', 'patient', 'vardenhet', 'kva', 'prioritet', 'status', 'anmaldDatum', 'malDatum'],
 };
 const KANDA_VARDFORMER = ['oppenvard', 'akut', 'slutenvard', 'hemsjukvard', 'dagkirurgi'];
 // Koderna som kontrolleras per tabell.
@@ -254,6 +289,8 @@ const KODREGEL = {
   Matvarde: (r, mattyper) => Object.hasOwn(mattyper, r.typ),
   Vardkontakt: (r) => KANDA_VARDFORMER.includes(r.vardform),
   Patientavgift: (r) => KANDA_VARDFORMER.includes(r.vardform),
+  // Runda 11, r2: KVÅ har tre bokstäver och två siffror.
+  Operation: (r) => /^[A-Z]{3}\d{2}$/.test(r.kva),
 };
 export function kvalitet(data) {
   const vardkontakter = new Set((data[TYPER[0]] ?? []).map(r => r.rad));
