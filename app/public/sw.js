@@ -47,9 +47,9 @@ const FILER = [
   '/js/formularmotor-regler.js', '/js/vyer/patient-formular.js', '/js/vyer/formularbyggare.js', '/js/rost-regler.js', '/js/rostinmatning.js', '/js/stavning-ui.js',
   '/js/vyer/patient-infarter.js', '/js/vyer/patient-restjournaler.js', '/js/vyer/patient-donation.js',
   '/js/vyer/r10r7.js', '/js/vyer/min-r10r7.js',
-  // Runda 11, r7: intensivvårdens tillägg och fliken Intensivvård i journalen.
   '/js/vyer/iva-tillagg.js', '/js/vyer/patient-iva.js', '/js/bhv-indikatorer-ui.js',
 ];
+// Runda 11, r7: listan har intensivvårdens tillägg, fliken Intensivvård i journalen och barnhälsovårdens indikatorer.
 // Runda 10, r2: listan har uppföljningsvyn och utbildningsläget (patient-uppfoljning.js och patient-utbildningslage.js).
 // Runda 10, r6: listan har remiss eller konsultation, urvalet i remissöversikten och kvittensen av beslut på uppdrag (remiss-r10-ui.js).
 // Runda 10, r5: listan har kunskapsstödet och vaccinationsprogrammen (kunskapsstod-ui.js och patient-vaccinationer.js).

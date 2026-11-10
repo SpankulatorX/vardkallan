@@ -88,7 +88,7 @@ function vatskaHtml(t) {
       <p class="under-text">Balans det senaste dygnet ${esc(plus(v.balans))} ml, med perspiratio ${esc(plus(v.balansMedPerspiratio))} ml.</p></div>
     ${v.perspiratio ? `<p>${esc(v.perspiratio.text)}</p>` : '<p class="dampad">Perspiratio räknas när patienten har en godkänd vikt.</p>'}
     <p>${esc(v.prognos.text)}</p>
-    ${v.rekommendationer.length ? `<ul class="iva-analys">${v.rekommendationer.map(r => `<li class="ruta ${NIVA[r.niva] ?? 'ruta-info'} liten">${ikon.info}<div>${esc(r.text)}${r.gora ? ` <span class="under-text">${esc(r.gora)}</span>` : ''}</div></li>`).join('')}</ul>` : '<p class="tom liten">Inga behandlingsmål är satta.</p>'}
+    ${v.rekommendationer.length ? `<ul class="iva-analys">${v.rekommendationer.map(r => `<li class="ruta ${NIVA[r.niva] ?? 'ruta-info'} liten">${ikon.info}<div>${esc(r.text)}${r.gora ? ` <span class="under-text">${esc(r.gora)}</span>` : ''}</div></li>`).join('')}</ul>` : '<p class="tom liten">Läkaren har inte satt några behandlingsmål.</p>'}
     <p>${stod ? `Andningsstöd: <strong>${esc(stod.typText)}</strong>, ${esc(stod.befuktningText.toLowerCase())}, sedan ${esc(tidpunkt(stod.start))}.` : 'Inget andningsstöd är registrerat.'}</p>
     ${t.kan.andningsstod ? `<form id="iva-stod" class="falt-rad" novalidate>
       <div class="falt"><label for="iva-stod-typ">Andningsstöd</label><select id="iva-stod-typ" name="typ">${Object.entries(t.andningsstodTyper).map(([k, x]) => `<option value="${esc(k)}"${stod?.typ === k ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></div>
