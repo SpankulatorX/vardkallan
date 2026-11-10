@@ -1133,7 +1133,7 @@ function skapa(BAS) {
     await m.klicka(page.locator('.snabbval a', { hasText: 'Beställ prover' }), 'Beställ prover');
     await page.waitForSelector('#pr-valj summary');
     await m.klicka(page.locator('#pr-valj summary'), 'Välj analyser');
-    await m.klicka(page.locator('label[for="pr-a-rtg_kna"]'), 'Röntgen knäled');
+    await m.klicka(page.locator('#pr-a-rtg_kna'), 'Röntgen knäled');
     await m.klicka(page.locator('[data-bestall-valda]'), 'Beställ');
     await synlig(page, '.notis', 'är beställt');
     await synlig(page, '#pr-lista .pr-best', 'Röntgen knäled');

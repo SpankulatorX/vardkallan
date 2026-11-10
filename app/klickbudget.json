@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T21:31:41.197Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-10T17:44:02.666Z",
+  "bas": "http://127.0.0.1:18206",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "3983aa076c7adfef96c2db442439434ef4761d8a1e8c1b97a000df82f1f38b62",
+  "gransnittHash": "02eb75c9a024498cf0f45f45b12d36e02f60ef6a29622ee420f472e6e8db0131",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -1780,6 +1780,41 @@
         "klick: Visa lediga tider",
         "klick: den första föreslagna tiden"
       ]
+    },
+    {
+      "id": "bestall-undersokning",
+      "namn": "Beställa en röntgenundersökning",
+      "roll": "lak-kard",
+      "start": "Översikten för den inlagda patienten efter återställning",
+      "budget": 4,
+      "motivering": "Sussa 4.4.2.6 och 4.4.2.8. Ett klick på Beställ prover i översikten, ett på Välj analyser, ett på undersökningen och ett på Beställ. Systemet fyller i frågeställningen ur vårdkontakten, föreslår prioriteten, kontrollerar strålning, kontrast och implantat och skickar beställningen till röntgenkliniken.",
+      "klick": 4,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 4,
+      "inomBudget": true,
+      "steg": [
+        "klick: Beställ prover",
+        "klick: Välj analyser",
+        "klick: Röntgen knäled",
+        "klick: Beställ"
+      ]
+    },
+    {
+      "id": "boka-undersokning",
+      "namn": "Boka en inkommen undersökning på röntgenkliniken",
+      "roll": "rtg-ssk",
+      "start": "Röntgenklinikens undersökningar efter återställning",
+      "budget": 1,
+      "motivering": "Sussa 4.4.2.7. Ett klick på Boka vid den undersökning som står först. Systemet har ordnat listan efter prioritet och senaste dag och föreslår den första lediga tiden i rätt rum.",
+      "klick": 1,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "steg": [
+        "klick: Boka vid den första undersökningen"
+      ]
     }
   ],
   "tester": [
@@ -2173,6 +2208,14 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Boka en tid för patienten som ombud inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Beställa en röntgenundersökning inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Boka en inkommen undersökning på röntgenkliniken inom budget",
       "status": "grön"
     }
   ]
