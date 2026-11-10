@@ -1,26 +1,30 @@
 // Sussa 4.7 Obstetrik och förlossning: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 // Runda 9, r3: graviditetsjournalen och förlossningsjournalen (obstetrik.js), se docs/design.md, avsnittet Specialistområden.
+// Runda 11, r3: gränssnittet, ultraljudsjournalen, inskrivningssamtalet, CTG, smärtlindringen, födelseanmälan, BB-journalen,
+// efterkontrollen, Graviditetsregistret och uppföljningen i datauttaget (forlossning.js, graviditetsregistret.js), se
+// docs/design.md, avsnittet Graviditet, förlossning och BB.
 import { GRAVIDITET as T } from '../runda9-r3.js';
+import { GRAVIDITET_R11 as R } from '../runda11-r3.js';
 
 export default [
-  { id: '4.7.1.1', kategori: 'system', egna: [], tester: Object.values(T), avsedd: 'delvis',
-    losning: 'Graviditetsjournalen med beräknad partus, besöksprogram, provschema och riskbedömning och förlossningsjournalen med partogram och registrering av barnen, också vid flerbörd. Den finns i API:t.',
-    expert: 'Systemet räknar graviditetslängden, programmet, proverna och risken, varnar vid besöket och i partogrammet och skapar barnets journal och födelseuppgifter själv.',
-    anmarkning: 'Delvis: grundfunktionen finns med förenklade demoregler. Inget eget gränssnitt finns ännu, och CTG, ultraljudsjournal och BB-vårdens omvårdnad saknas.' },
-  { id: '4.7.1.2', kategori: 'system', egna: [], avsedd: 'delvis',
-    tester: [T.bpd, T.program, T.risk, T.besok, T.uppfoljning, T.behorighet, T.sakerhet, T.api],
-    losning: 'Barnmorskan skriver in graviditeten med sista mens, ultraljud, antal foster och tidigare förlossningar. Graviditetsjournalen visar beräknad partus, graviditetsveckan, besöksprogrammet med nästa besök, provschemat, riskbedömningen och besöken med blodtryck, vikt, symfys-fundusmått, fosterljud och protein i urinen.',
-    expert: 'Systemet räknar beräknad partus och väljer ultraljudet när det skiljer mer än sju dagar, lägger ut besöksprogrammet och proverna efter vecka, risk och flerbörd, beställer proverna med ett klick, gör riskbedömningen ur journalen och varnar för förhöjt blodtryck, protein, avvikande symfys-fundusmått och fosterljud.',
-    anmarkning: 'Delvis: programmet och gränserna är förenklade demoregler. Rutinultraljudet är en post i programmet, inte en ultraljudsjournal. Inskrivningssamtalets frågor (till exempel om våld och levnadsvanor) och Graviditetsregistret saknas.' },
-  { id: '4.7.1.3', kategori: 'system', egna: [], avsedd: 'delvis',
-    tester: [T.partogram, T.barn, T.sakerhet, T.api],
-    losning: 'Förlossningsjournalen startas från vecka 22 och har ett partogram med modermunnens öppning, fosterljud och värkar. Vid födelsen registreras kön, vikt, längd, huvudomfång, Apgar och förlossningssätt. Varje barn, också vid flerbörd, får en egen journal med reservnummer kopplad till modern, och graviditetslängd, födelsevikt, längd och huvudomfång förs vidare till barnhälsovården.',
-    expert: 'Systemet räknar varningslinjen och åtgärdslinjen och säger vad som ska göras, varnar för fosterljud utanför gränserna, skapar barnets journal och reservnummer och för födelseuppgifterna vidare utan att någon skriver dem igen.',
-    anmarkning: 'Delvis: personnumret från Skatteverket och aviseringen av födelsen är inte simulerade, CTG och smärtlindring under förlossningen registreras inte, och modern och barnet vårdas på BB utan egen BB-journal.' },
-  { id: '4.7.1.4', kategori: 'system', egna: [], avsedd: 'delvis',
-    tester: [T.uppfoljning, T.api],
-    losning: 'Planeringen och uppföljningen per vårdenhet visar pågående graviditeter, flerbörd, risk vid inskrivningen, väntade förlossningar per vecka de kommande tolv veckorna och förlossningarnas utfall: antal, barn, flerbörd, andel kejsarsnitt, Apgar under 7, medelvikt och förlopp över åtgärdslinjen, utan personuppgifter.',
-    expert: 'Systemet räknar allt ur journalerna, så att verksamheten kan planera förlossningarna utan egna listor.',
-    anmarkning: 'Delvis: uppföljningen finns i API:t men ännu inte i datauttaget för uppföljning eller i ett gränssnitt.' },
+  { id: '4.7.1.1', kategori: 'system', egna: [], tester: [...Object.values(T), ...Object.values(R)], avsedd: 'uppfyllt_demo',
+    losning: 'Graviditetsjournalen i patientens journal (fliken Graviditet) med beräknad partus, besöksprogram, provschema, riskbedömning, ultraljudsjournal, inskrivningssamtal och efterkontroll, Mödrahälsovårdens sida för vårdenheten, Förlossningens sida med pågående förlossningar, partogram, CTG, smärtlindring och födelsen av varje barn också vid flerbörd, och BB-journalen för mor och barn (fliken Nyfödd).',
+    expert: 'Systemet räknar graviditetslängden, programmet, proverna och risken, varnar vid besöket och i partogrammet, analyserar och klassar CTG-kurvan, skapar barnets journal och födelseanmälan och prövar utskrivningen från BB.',
+    anmarkning: 'Uppfyllt i demon med förenklade demoregler som är märkta. CTG-monitorn, Skatteverket och Graviditetsregistret är simulerade.' },
+  { id: '4.7.1.2', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
+    tester: [T.bpd, T.program, T.risk, T.besok, T.uppfoljning, T.behorighet, T.sakerhet, T.api, R.ivf, R.ultraljud, R.samtal, R.vald, R.valdEj, R.efterkontroll, R.register, R.oversikt, R.sakerhet, R.barnSkydd, R.seed],
+    losning: 'Barnmorskan skriver in graviditeten med sista mens, ultraljud eller IVF, antal foster och tidigare förlossningar. Graviditetsjournalen visar beräknad partus, graviditetsveckan, besöksprogrammet och provschemat, riskbedömningen med beslutsstöd för graviditetsdiabetes och havandeskapsförgiftning, besöken med symfys-funduskurvan, ultraljudsjournalen och inskrivningssamtalet med anamnes, tobak, levnadsvanor, frågorna om våld i nära relationer och kvinnans önskemål inför förlossningen. Mödrahälsovårdens sida visar alla graviditeter på vårdenheten och rapporterar till Graviditetsregistret (simulerat).',
+    expert: 'Systemet räknar beräknad partus och väljer ultraljudet till vecka 22 eller embryoöverföringen vid IVF, lägger ut besöksprogrammet och proverna efter vecka, risk och flerbörd, lägger till en tidig glukosbelastning vid förhöjd risk för graviditetsdiabetes, föreslår lågdos acetylsalicylsyra vid hög risk för havandeskapsförgiftning, jämför fostrets skattade vikt med den förväntade, gör levnadsvanorna till en signerad anteckning, påminner om frågorna om våld när de inte kunde ställas och kontrollerar varje post före utskicket till registret.',
+    anmarkning: 'Uppfyllt i demon. Programmet, riskgränserna och viktkurvan är förenklade demoregler. Svaren på frågorna om våld syns bara för mödrahälsovården på den vårdenhet som ställde dem och lämnas aldrig ut. Graviditetsregistret är en simulerad mottagare. Patientens egen vy av graviditeten i Min journal finns inte.' },
+  { id: '4.7.1.3', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
+    tester: [T.partogram, T.barn, T.sakerhet, T.api, R.ctg, R.ctgTvilling, R.smart, R.anmalan, R.bb, R.efterkontroll, R.oversikt, R.sakerhet, R.api, R.barnSkydd, R.seed],
+    losning: 'Förlossningens sida visar pågående förlossningar och mödrar och barn på BB. Förlossningen för en patient har partogrammet, CTG från den simulerade monitorn med en kanal per foster, barnmorskans dokumenterade CTG-bedömning, smärtlindringen och födelsen av varje barn med kön, vikt, längd, huvudomfång, Apgar och förlossningssätt. Varje barn får en egen journal kopplad till modern, och födelseanmälan till Skatteverket (simulerad) ger barnet ett personnummer. BB-journalen har kontrollerna av mor och barn, screeningen och utskrivningen, och mödrahälsovården registrerar efterkontrollen med EPDS.',
+    expert: 'Systemet räknar varningslinjen och åtgärdslinjen, analyserar CTG-kurvan och föreslår klassning och åtgärd, kontrollerar trombocyter och heparin före EDA, skapar barnets journal och fyller i födelseanmälan själv, räknar barnets viktnedgång, säger när PKU-provet får tas och prövar utskrivningskriterierna för mor och barn.',
+    anmarkning: 'Uppfyllt i demon. CTG-monitorn och Skatteverket är simulerade, och CTG-klassningen är en förenklad demoregel. Skatteverkets testpersonnummer finns bara för vissa födelsedagar, så datumet i barnets personnummer stämmer inte med födelsedagen i demon.' },
+  { id: '4.7.1.4', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
+    tester: [T.uppfoljning, T.api, R.uppfoljning, R.datauttag, R.register],
+    losning: 'Uppföljningen på Förlossningens och Mödrahälsovårdens sidor visar pågående graviditeter, risk, väntade förlossningar per vecka, inskrivningar med andelen där frågorna om våld är ställda och tobaksbruket, ultraljud, förlossningarnas utfall, smärtlindring, patologiskt CTG, födelseanmälan och efterkontroller, utan personuppgifter. Datauttaget för uppföljning har tabellerna Graviditet och Forlossning.',
+    expert: 'Systemet räknar allt ur journalerna, så att verksamheten kan planera förlossningarna utan egna listor, och datauttaget pseudonymiserar och lämnar aldrig ut svaren på frågorna om våld.',
+    anmarkning: 'Uppfyllt i demon. Uppföljningen är per vårdenhet och period; flexibla urval utöver perioden görs i datauttaget.' },
 ];

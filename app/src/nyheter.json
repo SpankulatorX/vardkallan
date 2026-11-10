@@ -2,6 +2,28 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "1.1.0",
+      "datum": "2026-11-10",
+      "nyheter": [
+        {
+          "id": "graviditetsjournal",
+          "roller": ["lakare", "sjukskoterska"],
+          "omfattning": "stor",
+          "var": "#/modrahalsovard",
+          "rubrik": "Graviditetsjournalen och mödrahälsovården",
+          "text": "Fliken Graviditet i journalen har besöksprogrammet, provschemat, riskbedömningen med stöd för graviditetsdiabetes och havandeskapsförgiftning, ultraljudsjournalen och inskrivningssamtalet med frågorna om våld, vars svar bara mödrahälsovården kan läsa. Sidan Mödrahälsovård visar alla graviditeter på vårdenheten och rapporterar till Graviditetsregistret (simulerat)."
+        },
+        {
+          "id": "forlossning-bb",
+          "roller": ["lakare", "sjukskoterska"],
+          "omfattning": "stor",
+          "var": "#/forlossning",
+          "rubrik": "Förlossningen och BB",
+          "text": "Sidan Förlossningen har pågående förlossningar med partogram, CTG från en simulerad monitor som systemet analyserar, smärtlindringen, födelsen av varje barn också vid tvillingar, födelseanmälan till Skatteverket (simulerad) och BB-journalen för mor och barn med utskrivningskriterierna."
+        }
+      ]
+    },
+    {
       "version": "1.0.0",
       "datum": "2026-11-08",
       "nyheter": [
