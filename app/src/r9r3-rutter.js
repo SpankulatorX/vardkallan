@@ -9,6 +9,9 @@ import * as blod from './blod.js';
 import * as obs from './obstetrik.js';
 import * as cyto from './cytostatika.js';
 import * as bilder from './bilder.js';
+// Runda 11, r2: anestesijournalen, sterilgodset och materialet.
+import * as aj from './anestesijournal.js';
+import * as sg from './sterilgods.js';
 
 const q = (c, namn) => c.url.searchParams.get(namn) || null;
 const okand = () => { throw new Fel(404, 'Åtgärden finns inte.', 'saknas'); };
@@ -30,15 +33,33 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
   rutt('GET', '/api/operation/vantelista', (c) => { kravInloggad(c); return op.vantelista(c.db, c.personal, val(c)); });
   rutt('GET', '/api/operation/oversikt', (c) => { kravInloggad(c); return op.oversikt(c.db, c.personal, val(c), { datum: q(c, 'datum') }); });
   rutt('GET', '/api/operation/uppfoljning', (c) => { kravInloggad(c); return op.uppfoljning(c.db, c.personal, { fran: q(c, 'fran'), till: q(c, 'till') }); });
+  // Runda 11, r2: salsblocken, uppvakningen och förrådet på enhetsnivå, före rutterna med en anmälan i adressen.
+  rutt('GET', '/api/operation/block', (c) => { kravInloggad(c); return op.veckoblock(c.db, c.personal, { fran: q(c, 'fran') }); });
+  rutt('POST', '/api/operation/block/:atgard', (c, atgard) => {
+    kravInloggad(c);
+    if (atgard === 'slapp') return op.slappBlock(c.db, c.personal, c.body);
+    if (atgard === 'ta') return op.taBlock(c.db, c.personal, c.body);
+    return okand();
+  });
+  rutt('GET', '/api/operation/uppvakning', (c) => { kravInloggad(c); return op.uppvakningslista(c.db, c.personal, val(c)); });
+  rutt('GET', '/api/operation/forrad', (c) => { kravInloggad(c); return sg.forrad(c.db, c.personal); });
   rutt('GET', '/api/operation/:aid/:del', (c, aid, del) => {
     kravInloggad(c);
     const an = op.anmalanRad(c.db, aid);
     if (del === 'planeringsforslag') return medRad(c, an, 'operation_planera', (atk, r) => op.planeringsforslag(atk, r));
     if (del === 'uppvakning') return medRad(c, an, 'las_operation', (atk, r) => op.uppvakning(atk, r));
     if (del === 'checklista') return medRad(c, an, 'las_operation', (atk, r) => ({ underlag: op.checklistaUnderlag(atk, r), checklista: op.CHECKLISTA }));
+    // Runda 11, r2: anestesijournalen, sterilgodset och plocklistan.
+    if (del === 'anestesijournal') return medRad(c, an, 'las_operation', (atk, r) => aj.journalFor(atk, r));
+    if (del === 'sterilgods') return medRad(c, an, 'las_operation', (atk, r) => sg.sterilgods(atk, r));
+    if (del === 'plocklista') return medRad(c, an, 'las_operation', (atk, r) => sg.plocklista(atk, r));
     return okand();
   });
   const OP = {
+    // Runda 11, r2: anestesijournalen, sterilgodset och förbrukningen under operationen.
+    'anestesi-lakemedel': ['operation_registrera', (atk, r, b) => aj.registreraLakemedel(atk, r, b)], 'anestesi-vatska': ['operation_registrera', (atk, r, b) => aj.registreraVatska(atk, r, b)],
+    'anestesi-handelse': ['operation_registrera', (atk, r, b) => aj.registreraHandelse(atk, r, b)], 'galler-oppna': ['operation_registrera', (atk, r, b) => sg.oppna(atk, r, b)],
+    'galler-rakna': ['operation_registrera', (atk, r, b) => sg.rakna(atk, r, b)], forbrukning: ['operation_registrera', (atk, r, b) => sg.forbruka(atk, r, b)],
     planera: ['operation_planera', (atk, r, b) => op.planera(atk, r, b)], stryk: ['operation_planera', (atk, r, b) => op.stryk(atk, r, b)],
     anestesi: ['operation_anmala', (atk, r, b) => op.anestesibedomning(atk, r, b)], prover: ['bestalla_prov', (atk, r) => op.bestallProver(atk, r)],
     checklista: ['operation_registrera', (atk, r, b) => op.checklista(atk, r, b)], handelse: ['operation_registrera', (atk, r, b) => op.registrera(atk, r, b)],

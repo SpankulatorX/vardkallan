@@ -2,7 +2,8 @@
 // flera vårdenheter och sjukhus, teamet med anestesi, utrustning och instrumentgaller, vårdhändelser som påverkar ett
 // planerat ingrepp, identitetskontroll och WHO:s checklista i full omfattning. Varje test bygger en sandlåda vid en fast
 // tidpunkt (måndag 2026-11-09 klockan 08.00 svensk tid) och lägger in sina egna patienter.
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { testserver, klient, sandlada as serverSandlada } from './hjalp.js';
 import { datumAv, addDagar, lokalTid } from '../src/db.js';
 import * as op from '../src/operation.js';
 import { BAS, sandlada, nyPatient, atk, pers, sparr, efter } from './specialist.js';
@@ -388,5 +389,34 @@ describe('Operation 1.1, anestesi och material', () => {
     expect(() => aj.journalFor(atk(db, 'lak-ort', 'op1', 'las_operation', { andra_enheter: true }), an, BAS)).toThrow('spärrade');
     expect(() => op.uppvakningslista(db, pers(db, 'eko'), () => ({}), BAS)).toThrow();
     expect(() => sg.forrad(db, pers(db, 'eko'), BAS)).toThrow();
+  });
+});
+
+// ---- API:t med operationskoordinatorn i demons sandlåda ---------------------------------------------------------------
+describe('Operation 1.1, API', () => {
+  let app;
+  beforeAll(() => { app = testserver(); });
+  afterAll(() => app.stopp());
+
+  test('api: koordinatorn ser dagens program, blocken, uppvakningen, förrådet och anestesijournalen, och undersköterskan på kardiologen ser ingen operation', async () => {
+    const k = klient(app);
+    await k.logga('opk-kkoga');
+    expect((await k.get('/api/session')).data.operation).toMatchObject({ vardenhet: { id: 'kkoga-ort' } });
+    const db = serverSandlada(app, k).db;
+    const idag = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
+    const o = (await k.get(`/api/operation/oversikt?datum=${idag}`)).data;
+    expect(o.salar.find(s => s.id === 'kkoga-sal-1').operationer.map(x => x.patient?.id)).toEqual(['p71', 'p72']);
+    expect((await k.get('/api/operation/block')).data.salar.length).toBe(5);
+    expect((await k.get('/api/operation/uppvakning')).status).toBe(200);
+    expect((await k.get('/api/operation/forrad')).data.artiklar.length).toBeGreaterThan(5);
+    const p07 = db.query("SELECT id FROM op_anmalningar WHERE patient_id = 'p07'").get().id;
+    expect((await k.get(`/api/operation/${p07}/anestesijournal`)).data.lakemedel.map(l => l.kod)).toContain('kloxacillin');
+    expect((await k.get(`/api/operation/${p07}/sterilgods`)).data.galler[0].status).toBe('retur');
+    expect((await k.get(`/api/operation/${p07}/plocklista`)).data.registrerad).toBe(true);
+    expect((await k.post('/api/operation/block/okand', {})).status).toBe(404);
+    expect((await k.post(`/api/operation/${p07}/anestesi-vatska`, { slag: 'urin', volym: 100 })).status).toBe(409);
+    expect((await k.post('/api/operation/block/slapp', { sal: 'kkoga-sal-1', datum: '2020-01-01' })).status).toBe(400);
+    await k.logga('usk-kard');
+    expect((await k.get('/api/session')).data.operation).toBe(null);
   });
 });

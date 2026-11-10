@@ -514,6 +514,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ut.bhv = bhvSession(s.db, p);
       // Runda 9, r2: om personalens vårdenhet har en intensivvårdsavdelning.
       ut.iva = ivaSession(s.db, p);
+      // Runda 11, r2: om personalens vårdenhet opererar, så att menyn visar operationsavdelningen.
+      ut.operation = require('./operation.js').session(s.db, p);
       sakraKopia(s);
       ut.lasnyckel = s.lasnyckel;
     }
