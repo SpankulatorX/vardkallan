@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-10T16:33:01.032Z",
-  "bas": "http://127.0.0.1:18203",
+  "tid": "2026-11-10T16:57:33.325Z",
+  "bas": "http://127.0.0.1:8080",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "ced2fb3944984dba3d7c2a766efc7f8555c61ee8b2500fbefb292d6332bf043b",
+  "gransnittHash": "bc0afac2a1821205d7d6de7da0d5df5cdec15876ab66260d8bb804d47f8ecd53",
   "tester": [
     {
       "namn": "Gränssnitt > Avbrott > läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB",
@@ -122,113 +122,91 @@
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > röstinmatningen frågar i en dialog innan ljudet går till webbläsarens tjänst när igenkänning på enheten saknas, valet sparas per användare, och med igenkänning på enheten kommer ingen fråga",
-      "status": "röd",
-      "fel": "[tangentbord] konsolfel: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > inget ljud, ingen video, inga bilder av text och inget som blinkar eller rör sig av sig självt",
-      "status": "röd",
-      "fel": "[tangentbord] konsolfel: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > varje bild och symbol har ett textalternativ eller är dold för hjälpmedel",
-      "status": "röd",
-      "fel": "[tangentbord] konsolfel: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > varje formulärfält, knapp och länk har ett namn som beskriver syftet",
-      "status": "röd",
-      "fel": "[tangentbord] konsolfel: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > varje vy har en rubrik på nivå 1 och rubrikerna hoppar inte över någon nivå",
-      "status": "röd",
-      "fel": "[tangentbord] konsolfel: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > allt innehåll ligger i landmärken: sidhuvud, meny, huvudinnehåll och sidfot",
-      "status": "röd",
-      "fel": "[tangentbord] konsolfel: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > sidan har språket svenska och varje vy har en egen sidtitel",
-      "status": "röd",
-      "fel": "[tangentbord] konsolfel: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > texten har minst 4,5:1 i kontrast och stor text minst 3:1, i alla vyer för alla roller",
-      "status": "röd",
-      "fel": "[tangentbord] konsolfel: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > fältens ramar och fokusmarkeringen har minst 3:1 mot bakgrunden",
-      "status": "röd",
-      "fel": "[tangentbord] konsolfel: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > status, larm, uppmärksamhetssymbolen och kurvorna har text eller form utöver färgen",
-      "status": "röd",
-      "fel": "[tangentbord] konsolfel: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > texten går att förstora till 200 procent utan att innehåll eller funktion försvinner",
-      "status": "röd",
-      "fel": "[tangentbord] konsolfel: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > vid 320 px bredd behövs ingen rullning i sidled",
-      "status": "röd",
-      "fel": "2 fynd, till exempel 320 px bm-uso #/patient/obs3/graviditet: sidan är 399 px bred vid 320 px (button.knapp, a, a)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > allt som går att klicka på går att nå med tangentbordet",
-      "status": "röd",
-      "fel": "[tangentbord] konsolfel: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > tabbordningen följer sidans ordning, utan positivt tabindex och utan tangentbordsfälla",
-      "status": "röd",
-      "fel": "[tangentbord] konsolfel: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > varje element som får fokus med tabb har en synlig fokusmarkering",
-      "status": "röd",
-      "fel": "[tangentbord] konsolfel: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > inloggning, att öppna en patient, byta flik och stänga nyheterna går med bara tangentbordet",
-      "status": "röd",
-      "fel": "1 fynd, till exempel page.waitForSelector: Timeout 30000ms exceeded. (http://127.0.0.1:18203/#/)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > att ett element får fokus byter inte sida och öppnar inget",
-      "status": "röd",
-      "fel": "[tangentbord] konsolfel: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > ett fel i ett formulär markeras vid fältet och beskrivs med text",
-      "status": "röd",
-      "fel": "[tangentbord] konsolfel: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > högkontrastläget ger minst 7:1 i kontrast och följer datorns inställning",
-      "status": "röd",
-      "fel": "[tangentbord] konsolfel: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > med minskade rörelser i datorn finns inga animationer eller övergångar",
-      "status": "röd",
-      "fel": "[tangentbord] konsolfel: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > alla vyer fungerar på mobil, platta och stor skärm utan rullning i sidled och utan för långa textrader",
-      "status": "röd",
-      "fel": "2 fynd, till exempel mobil 360 px bm-uso #/patient/obs3/graviditet: sidan är 399 px bred vid 360 px (button.knapp, a, a)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > fem minuter före utloggningen läser skärmläsare upp en varning, Fortsätt arbeta förlänger inloggningen och osparad text finns kvar som utkast efter en ny inloggning",
-      "status": "röd",
-      "fel": "[tangentbord] konsolfel: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Utbildning > nyhetsrutan visar rollens nyheter efter inloggning, stängs med ett klick och går att läsa igen",
@@ -308,43 +286,43 @@
     },
     {
       "namn": "Gränssnitt > Mobil > varje roll har sin startsida och menyn i 360 px utan sidledsrullning och med knappar på minst 40 px",
-      "status": "röd"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > patienten läser sin journal, sina tider och vem som läst journalen i Min journal i 360 px",
-      "status": "röd"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > vid sängen identifierar armbandet patienten i Läkemedel att ge, och bara patientens doser visas",
-      "status": "röd"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > förbindelsen bryts och kommer tillbaka från en annan adress utan att inloggningen tappas",
-      "status": "röd"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > varje vy i menyn för varje roll och varje flik i journalen går att öppna i 360 px utan sidledsrullning och med knappar på minst 40 px",
-      "status": "röd"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > i hemsjukvården utan uppkoppling registreras ett mätvärde i 360 px, märks som inte sparat och sparas när förbindelsen är tillbaka",
-      "status": "röd"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Öppet API > ändringsloggen visar versionen, och läkaren skickar ett ärende om en saknad informationsmängd",
-      "status": "röd"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Öppet API > systemförvaltaren registrerar en tillämpning, ser vad den får och kan återkalla den",
-      "status": "röd"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Öppet API > systemförvaltaren registrerar ett systemkonto för vårddatalagret, ser vad det får och kan återkalla det",
-      "status": "röd"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Uppmärksamhet > läkaren registrerar en överkänslighet med ämnet och reaktionen, och den syns i patienthuvudet med graden",
-      "status": "röd"
+      "status": "grön"
     }
   ]
 }
