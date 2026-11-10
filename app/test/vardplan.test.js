@@ -1,6 +1,8 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import { testserver, klient, sandlada } from './hjalp.js';
 import { idag, addDagar } from '../src/db.js';
+// Runda 11, r1: Gunnar Åkessons (p01, född 1945-02-02) ålder i dag, så att testet inte går ut när han fyller år.
+const alderP01 = () => { const [y, m, d] = idag().split('-').map(Number); return y - 1945 - (m < 2 || (m === 2 && d < 2) ? 1 : 0); };
 
 // Vårdplaner (Sussa 3.2.2.1 och 3.2.2.2): standardplaner som systemet föreslår ur diagnos och sammanhang, individuella
 // planer med mål, åtgärder, ansvarig och uppföljningsdatum, bevakning av uppföljningen och avvikelser.
@@ -19,7 +21,7 @@ describe('Vårdplan', () => {
     const f = o.forslag.find(x => x.mall === 'hjartsvikt');
     expect(f.varfor).toContain('Vänsterhjärtsvikt (I50.1)');
     // Gunnar är 81 år och inneliggande: förebyggande av trycksår och fall föreslås också, med skälet.
-    expect(o.forslag.find(x => x.mall === 'fall').varfor).toContain('81 år');
+    expect(o.forslag.find(x => x.mall === 'fall').varfor).toContain(`${alderP01()} år`);
     const r = await k.post('/api/patient/p01/vardplaner', { mall: 'hjartsvikt' });
     expect(r.status).toBe(201);
     expect(r.data).toMatchObject({ rubrik: 'Hjärtsvikt', standard: true, status: 'aktiv', uppfoljning: addDagar(idag(), 7), enhet: { id: 'uso-kard' }, skapadAv: { id: 'lak-kard' } });

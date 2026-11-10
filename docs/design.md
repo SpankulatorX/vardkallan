@@ -1916,6 +1916,46 @@ Vårdkällan lämnar ut det som kontorsstödet behöver i öppna standardformat,
 
 E-legitimationen, sms-aviseringen, betalterminalen, fakturan, e-posten, videomötet och Microsofts tjänster är simulerade. Avgifterna, fullmaktens regler och prognosens regler är demoregler. Ett meddelande blir inte en journalanteckning av sig själv. Meddelanden, fullmakter och avgifter för tjänster finns inte i FHIR-API:t. Kalenderlänken gäller så länge sandlådan finns. Publicering av tider till 1177 Vårdguidens e-tjänster kräver anslutning till 1177 och är inte byggd.
 
+## Tid och datum (runda 11, r1)
+
+### UTC i databasen, svensk tid för datum som människor menar
+
+Tidpunkter sparas som ISO 8601 i UTC (`iso()` i db.js). Datum som människor menar, som dagens arbetslista, en födelsedag, åldern, datumet då en dos kan ges, influensasäsongen eller nästa vardag, räknas i svensk tid (Europe/Stockholm) med `datumAv`, `idag`, `addDagar` och `lokalTid` i db.js och med `idag` och `plusDagar` i public/js/ui.js. Ett datum tas aldrig som de tio första tecknen av en tidpunkt i UTC, eftersom UTC har gårdagens datum mellan 00 och 01 svensk tid (00 och 02 på sommaren). Ett klockslag som klockan 10 är svensk tid året om och räknas med `lokalTid`. Klockslag visas i svensk tid. Servern ger samma svar oavsett vilken tidszon processen har (UTC i testerna och i GitHub Actions, Europe/Stockholm i driften).
+
+Klocktestet hittade sju ställen som räknade med UTC-datumet: kollegakontrollens gräns för barn under 18 år (hogriskkontroll.js), första hembesöket efter utskrivning, som kunde hamna samma dag och klockan 11 på sommaren (vardformer.js), vaccinationsprogrammets dag och säsong, så att vattkoppor inte ingick klockan 00.30 på nyårsdagen 2027 (vaccinationsprogram-regler.js), barnhälsovårdens ålder i dagar och datumet då nästa dos kan ges (bhv-program.js), utbildarintygets slutdatum (utbildning.js) och förvalet i morgon när läkaren sätter en tid för en vårdhändelse (public/js/vyer/administrering.js). Testerna står i test/svensk-tid.test.js. En koppling mellan medicinteknisk utrustning och patient gäller nu från starten till men inte med sluttiden, så att ett värde vid samma tidpunkt som en flytt bara hör till den nya kopplingen.
+
+### Seeden följer klockan
+
+Seeden beskriver dagen som den ser ut klockan 10 eller senare. Tiderna är relativa till när mallen byggs, och mallen byggs om när dagen byter och när den är mer än 30 minuter gammal (`MALL_MINUTER` i db.js), så att seeden aldrig ligger mer än en halvtimme efter klockan.
+
+- Före klockan 10 trycks dagens klockslag ihop mellan midnatt och nu, i samma ordning (`SEEDENS_DAG_KLOCKAN`). Klockan 01.15 ligger morgonens mätvärden därför mellan midnatt och 01.14, med de tider som seeden har i förhållande till varandra, i stället för att alla läggs på samma minut. Från klockan 10 är tiderna som i seeden, och det som enligt klockslaget ligger senare i dag läggs strax före nu.
+- Tider som anges i minuter före eller efter nu (väntrummet, dagens patienter i tidboken och deras incheckning) stannar på dagens svenska datum (`inomDagen`). Små avstånd blir som de är. Ett avstånd som räcker över midnatt trycks ihop mot midnatt och behåller ordningen. Strax efter midnatt har väntrummet därför patienter som kom efter midnatt, och strax före midnatt finns det kommande tider kvar i dag i tidboken så länge en tid på fem minuter ryms.
+- Dagar framåt och bakåt och fasta datum (migrerad historik) ändras inte.
+
+### Köra testerna med falsk klocka
+
+Servertesterna körs vid en annan tid med `FALSK_NU` och preload-filen test/falsk-klocka.js. Klockan visar då `FALSK_NU` när körningen börjar och går sedan som vanligt:
+
+```
+docker run --rm --memory=3g -e FALSK_NU=2026-11-12T23:30:00Z -v "$PWD/app:/app" -w /app oven/bun:1.3.14-alpine \
+  bun test --preload ./test/falsk-klocka.js
+```
+
+`scripts/klocktest.js` kör hela sviten vid en lista med tider och skriver vilka tester som faller vid vilken tid: 23.30, 00.30, 01.15, 02.30, 05.00, 12.00 och 21.59 nästa torsdag och nästa söndag, omställningen till sommartid 28 mars 2027 och till vintertid 31 oktober 2027 före och efter klockan 02 och 03 (02.30 två gånger på hösten), nyårsafton 23.30, nyårsdagen 00.30 och skottdagen 29 februari 2028. `--lista` visar tiderna, `--urval` kör urvalet, `--tid` en eller flera tider, `--tz Europe/Stockholm` processens tidszon som i driften och `--parallellt` flera körningar samtidigt. Resultatet sparas i `.testtmp-klocktest/resultat.json`. GitHub Actions kör urvalet i jobbet Tester med falsk klocka, en körning med tidszonen från driften.
+
+Ett test som själv styr klockan gör det med `stallKlockan(tid)` och återställer den med `aterstallKlockan()` från test/falsk-klocka.js, inte med `setSystemTime` direkt, så att resten av körningen fortsätter vid den falska tiden. Ett test som beror på ett datum räknar ut det från i dag (`idag()`) eller skickar in en fast tid till funktionen den testar, och räknar bara med de rader det själv har skapat.
+
+### Testcontainern med falsk klocka
+
+Gränssnittstesterna körs mot en container som kan startas med en falsk klocka. Klockan flyttas bara när testflaggan `VARDKALLAN_TESTKLOCKA=1` är satt, och då till `VARDKALLAN_FALSK_NU`, varefter den går som vanligt (src/testklocka.js, som server.js läser in först av allt). Servern vägrar att starta med den falska klockan om `SESSION_FIL` eller `LITA_PA_PROXY` är satt, eftersom de hör till driften, och driftens compose-fil sätter ingen av testvariablerna. `/api/health` visar då serverns tid som `testklocka`, och test/testklocka.cjs ställer testprocessens och webbläsarens klocka på samma tid. Resultaten från en sådan körning skrivs till filer som börjar med `.testtmp-testklocka-` och följer inte med bygget.
+
+```
+docker run -d --rm --memory=3g --name vk-test -p 127.0.0.1:18201:8080 \
+  -e VARDKALLAN_TESTKLOCKA=1 -e VARDKALLAN_FALSK_NU=2026-11-12T22:30:00Z vardkallan-test
+NODE_PATH=$(npm root -g) node test/genomgang.cjs http://127.0.0.1:18201
+NODE_PATH=$(npm root -g) node test/sussa-testfall.cjs http://127.0.0.1:18201
+```
+
 ## Godkännandekriterier för första versionen
 
 - `bun test` grönt, med tester för varje regel i behörighetsmotorn, loggkedjan och triggrarna, signering och rättelse, obligatoriska fält och varningar i läkemedel, NLL som inte svarar i tid och avstämning, remissens statuskedja och larm, FHIR-svarens form.

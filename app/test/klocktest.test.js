@@ -3,7 +3,7 @@
 import { describe, test, expect, afterEach } from 'bun:test';
 import { join } from 'node:path';
 import { FALSK_NU, aterstallKlockan, stallKlockan } from './falsk-klocka.js';
-import { TIDER, URVAL } from '../scripts/klocktest.js';
+import { TIDER, URVAL, VARDAG, SONDAG, svensk } from '../scripts/klocktest.js';
 import { testserver, klient } from './hjalp.js';
 
 const rot = join(import.meta.dir, '..');
@@ -13,16 +13,23 @@ describe('Klocktest (runda 11, r1)', () => {
   test('tiderna i klocktestet är de svenska klockslag de säger sig vara', () => {
     const tid = (namn) => TIDER.find(t => t.namn === namn).nu;
     // Vintertid: svensk tid är UTC plus en timme, så 00.30 svensk tid är föregående dag i UTC.
-    expect(tid('vardag-0030')).toBe('2026-11-11T23:30:00.000Z');
-    expect(tid('vardag-2330')).toBe('2026-11-12T22:30:00.000Z');
+    expect(svensk('2026-11-12', '00:30')).toBe('2026-11-11T23:30:00.000Z');
+    expect(svensk('2026-11-12', '23:30')).toBe('2026-11-12T22:30:00.000Z');
+    expect(svensk('2027-07-01', '00:30')).toBe('2027-06-30T22:30:00.000Z');
+    // Vardagen och söndagen är nästa torsdag och söndag efter i dag.
+    const idag = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
+    expect(VARDAG > idag && SONDAG > idag).toBe(true);
+    expect([new Date(`${VARDAG}T12:00:00Z`).getUTCDay(), new Date(`${SONDAG}T12:00:00Z`).getUTCDay()]).toEqual([4, 0]);
+    expect(Date.parse(VARDAG) - Date.parse(idag)).toBeLessThanOrEqual(7 * 86400_000);
+    expect(tid('vardag-0030')).toBe(svensk(VARDAG, '00:30'));
     expect(tid('nyarsdagen-0030')).toBe('2026-12-31T23:30:00.000Z');
     expect(tid('skottdag-0030')).toBe('2028-02-28T23:30:00.000Z');
     // Sommartid börjar 28 mars 2027 klockan 02.00 (01.00 UTC): 01.30 är vintertid, 03.30 är sommartid.
     expect(tid('sommartid-fore')).toBe('2027-03-28T00:30:00.000Z');
     expect(tid('sommartid-efter')).toBe('2027-03-28T01:30:00.000Z');
-    // Vintertid börjar 25 oktober 2026 klockan 03.00 sommartid (01.00 UTC).
-    expect(tid('vintertid-fore')).toBe('2026-10-24T23:30:00.000Z');
-    expect(tid('vintertid-efter')).toBe('2026-10-25T02:30:00.000Z');
+    // Vintertid börjar 31 oktober 2027 klockan 03.00 sommartid (01.00 UTC).
+    expect(tid('vintertid-fore')).toBe('2027-10-30T23:30:00.000Z');
+    expect(tid('vintertid-efter')).toBe('2027-10-31T02:30:00.000Z');
     for (const t of TIDER) expect(new Date(t.nu).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' })).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     // Alla klockslag som briefen kräver finns en vardag och en söndag, och urvalet finns bland tiderna.
     for (const d of ['vardag', 'sondag']) for (const k of ['2330', '0030', '0115', '0230', '0500', '1200', '2159']) expect(TIDER.some(t => t.namn === `${d}-${k}`)).toBe(true);

@@ -2,7 +2,7 @@
 // validering, fasta svar med poäng och kod, skalor, regler, kroppsbild med markeringar, förifyllnad ur journalen,
 // versioner med fyra ögon, behörighet per formulär och svaren i journalen. Testnamnen står i src/sussa/runda10-r3.js.
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
-import { byggSeed } from '../src/db.js';
+import { byggSeed, idag } from '../src/db.js';
 import { Atkomst } from '../src/atkomst.js';
 import * as journal from '../src/journal.js';
 import * as fm from '../src/formularmotor.js';
@@ -10,6 +10,8 @@ import * as R from '../public/js/formularmotor-regler.js';
 import { personal, testserver, klient } from './hjalp.js';
 
 const NU = new Date('2026-11-08T10:00:00Z');
+// Runda 11, r1: Gunnar Åkessons (p01, född 1945-02-02) ålder i dag, så att testet inte går ut när han fyller år.
+const alderP01 = () => { const [y, m, d] = idag().split('-').map(Number); return y - 1945 - (m < 2 || (m === 2 && d < 2) ? 1 : 0); };
 const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
 const atk = (db, pid, patient, handling = 'skriv_omvardnad', val = {}) => new Atkomst(db, personal(db, pid), patient, val, handling);
 const P = 'Formulär > ';
@@ -77,7 +79,7 @@ describe(P.slice(0, -3), () => {
     expect(text).not.toContain('Ska inte sparas');
     expect(ny.formular).toMatchObject({ kod: 'fallrisk', version: 1, svar: FALL, poang: { summa: 5, tolkning: { text: 'Hög risk för fall', varning: true, kod: { system: 'icd10', kod: 'R29.6' } } } });
     // Systemet fyller i åldern ur personnumret och reglerna ger varningen.
-    expect(ny.formular.svar.alder).toBe(81);
+    expect(ny.formular.svar.alder).toBe(alderP01());
     expect(text).toContain('Patienten är 80 år eller äldre');
     // Utan fall och med självständig gång är risken låg.
     const lag = journal.skapaAnteckning(a, { typ: 'Fallriskbedömning', formular: { fall: 'nej', lakemedel: 'inga', syn: 'nej', gang: 'sjalvstandig', forvirring: 'nej' } });
@@ -196,7 +198,7 @@ describe(P.slice(0, -3), () => {
     expect(f.varden.vikt.kalla).toContain('Senaste mätvärdet');
     expect(f.varden.vikt.kalla).toContain('2026-11-08');
     const fall = fm.forifyllnad(atk(db, 'ssk-kard', 'p01'), 'fallrisk');
-    expect(fall.varden.alder).toMatchObject({ varde: 81, kalla: 'Ur personnumret' });
+    expect(fall.varden.alder).toMatchObject({ varde: alderP01(), kalla: 'Ur personnumret' });
     // Åldern är förifylld och skrivs i anteckningen med källan.
     const a = atk(db, 'ssk-kard', 'p01');
     const ny = journal.skapaAnteckning(a, { typ: 'Fallriskbedömning', formular: { ...FALL, alder: 81 } });

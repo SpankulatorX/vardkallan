@@ -106,8 +106,10 @@ describe('Beredning med kontroll och etikett', () => {
     // Förpackningens kod (GS1) med parenteser och utan.
     expect(beredning.lasForpackningskod('(01)07046260000123(17)271231(10)PC4711')).toEqual({ gtin: '07046260000123', utgang: '2027-12-31', batch: 'PC4711' });
     expect(beredning.lasForpackningskod('010704626000012317271231\u001d10PC4711')).toMatchObject({ utgang: '2027-12-31', batch: 'PC4711' });
-    const r = ior({ forpackningskod: '(01)07046260000123(17)271231(10)PC4711' });
-    expect(r.administrering.beredning).toMatchObject({ batch: 'PC4711', utgang: '2027-12-31', kontroll: { kravs: false } });
+    // Runda 11, r1: förpackningen som bereds går ut om ett år, så att testet inte går ut med ett fast datum.
+    const om1 = addDagar(idag(), 365);
+    const r = ior({ forpackningskod: `(01)07046260000123(17)${om1.slice(2, 4)}${om1.slice(5, 7)}${om1.slice(8, 10)}(10)PC4711` });
+    expect(r.administrering.beredning).toMatchObject({ batch: 'PC4711', utgang: om1, kontroll: { kravs: false } });
     // Utan krav på kontroll ges dosen direkt, men inte när beredningen har slutat hålla efter fyra timmar.
     stallKlockan(new Date(kl('18:00')));
     expect(fel(() => administrering.spara(ssk(db, 'p04'), { ordinationId: o.id, planerad: kl('14:00'), kontrollkod: r.administrering.iordningstalld.kontrollkod, tid: kl('17:55') })).message).toContain('bered en ny dos');

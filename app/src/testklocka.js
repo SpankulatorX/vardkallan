@@ -10,10 +10,10 @@ const flagga = process.env.VARDKALLAN_TESTKLOCKA === '1';
 export function forskjutenDate(RiktigDate, forskjutning) {
   class TestDate extends RiktigDate {
     constructor(...a) {
-      if (a.length === 0) super(RiktigDate.now() + forskjutning());
+      if (a.length === 0) super(Math.floor(RiktigDate.now() + forskjutning()));
       else super(...a);
     }
-    static now() { return RiktigDate.now() + forskjutning(); }
+    static now() { return Math.floor(RiktigDate.now() + forskjutning()); }
     static [Symbol.hasInstance](x) { return x instanceof RiktigDate; }
   }
   // Date() utan new ger en text, som den riktiga.

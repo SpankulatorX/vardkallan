@@ -15,6 +15,14 @@ const invanare = async (id) => { const k = klient(app); const r = await k.post('
 const db = (k) => sandlada(app, k).db;
 const MIN = 60_000;
 const nu = (min = 0) => new Date(Date.now() - min * MIN).toISOString();
+// Runda 11, r1: seedens senaste kompletta NEWS2-omgång för patienten läggs minst två timmar bakåt, så att ett nytt värde
+// blir en egen omgång också strax efter midnatt, när seeden har lagt morgonens värden under den senaste timmen.
+const aldreOmgang = (d, pid = 'p01') => {
+  const grans = Date.now() - 2 * 60 * MIN;
+  for (const r of d.query('SELECT id, tid FROM matvarden WHERE patient_id = ?').all(pid)) {
+    if (Date.parse(r.tid) > grans) d.query('UPDATE matvarden SET tid = ? WHERE id = ?').run(new Date(Date.parse(r.tid) - 2 * 60 * MIN).toISOString(), r.id);
+  }
+};
 const UCUM = 'http://unitsofmeasure.org';
 const MDC = 'urn:iso:std:iso:11073:10101';
 const LOINC = 'http://loinc.org';
@@ -219,6 +227,7 @@ describe('Medicinteknik', () => {
   test('värden från utrustning är referens tills en behörig person godkänner dem, och först då räknas de i NEWS2 och larm', async () => {
     const k = await inloggad('ssk-kard');
     const { nyckel } = await kopplad(k);
+    aldreOmgang(db(k));
     const fore = (await k.get('/api/patient/p01/matvarden')).data;
     expect(fore.news2.larm).toBe(false);
     expect((await skicka(nyckel, bundle([obs('150456', MDC, { valueQuantity: q(88, '%') }, nu(0))]))).status).toBe(200);
@@ -302,6 +311,7 @@ describe('Medicinteknik', () => {
   test('patientens egna mätningar visas skilda från vårdens värden och räknas inte i NEWS2, larm eller vikt förrän de är bedömda', async () => {
     // Patienten och personalen i samma sandlåda: patienten loggar in, mäter och loggar ut, och sedan loggar personalen in.
     const s = await invanare('inv-p01');
+    aldreOmgang(db(s));
     expect((await s.post('/api/min/journal/p01/egenmatning', { typ: 'saturation', varde: 86, tid: nu(1) })).status).toBe(201);
     expect((await s.post('/api/min/journal/p01/egenmatning', { typ: 'vikt', varde: '70,5', tid: nu(1) })).status).toBe(201);
     await s.post('/api/logout');

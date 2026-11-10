@@ -10,6 +10,8 @@ import { verifiera } from '../src/logg.js';
 import { nyDb, personal, testserver, klient, sandlada } from './hjalp.js';
 
 const IDAG = '2026-11-03';
+// Runda 11, r1: servern räknar födelseåret ur dagens datum, inte ur testets fasta datum.
+const idagSvensk = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
 const TESTPNR = new Set(JSON.parse(readFileSync(join(import.meta.dir, 'data', 'testpersonnummer.json'), 'utf8')));
 
 let app;
@@ -205,7 +207,7 @@ describe('Identitet', () => {
     await k.logga('lak-akut');
     const r = await k.post('/api/patienter', { kon: 'man', alder: 40 });
     expect(r.status).toBe(201);
-    expect(r.data).toMatchObject({ skapatReservnummer: true, patient: { identitetstyp: 'reservnummer', namn: 'Okänd man', fodd: `${Number(IDAG.slice(0, 4)) - 40}-01-01` } });
+    expect(r.data).toMatchObject({ skapatReservnummer: true, patient: { identitetstyp: 'reservnummer', namn: 'Okänd man', fodd: `${Number(idagSvensk().slice(0, 4)) - 40}-01-01` } });
     expect(tolka(r.data.patient.personnummer)).toMatchObject({ ok: true, typ: 'reservnummer', kon: 'man' });
     const id = r.data.patient.id;
     // Vårdkontakten på akuten ger vårdrelation, så journalen öppnas direkt.

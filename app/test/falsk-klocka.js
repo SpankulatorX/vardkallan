@@ -19,7 +19,7 @@ if (FALSK_NU && Number.isNaN(FALSK_NU.getTime())) throw new Error(`FALSK_NU går
 // Hur mycket den falska klockan ligger före eller efter den riktiga. 0 när ett test har satt en fast tid.
 let forskjutning = 0;
 const start = performance.now();
-const loper = () => { forskjutning = FALSK_NU.getTime() + (performance.now() - start) - RiktigDate.now(); };
+const loper = () => { forskjutning = Math.round(FALSK_NU.getTime() + (performance.now() - start) - RiktigDate.now()); };
 if (FALSK_NU && !globalThis.__falskKlocka) {
   globalThis.__falskKlocka = true;
   loper();

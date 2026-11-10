@@ -18,7 +18,7 @@ import { tolkaJunit } from './junit-tolkning.js';
 const rot = join(import.meta.dir, '..');
 
 // Svensk lokaltid till UTC. Samma räkning som lokalTid i src/db.js, här utan att läsa in seeden.
-function svensk(datum, klocka) {
+export function svensk(datum, klocka) {
   const [y, m, d] = datum.split('-').map(Number);
   const [h, mi] = klocka.split(':').map(Number);
   const forskjutning = (ms) => Date.parse(new Date(ms).toLocaleString('sv-SE', { timeZone: 'Europe/Stockholm' }).replace(' ', 'T') + 'Z') - ms;
@@ -28,20 +28,29 @@ function svensk(datum, klocka) {
 }
 
 // Tiderna. En vardag (torsdag) och en söndag vid sju klockslag, omställningarna till sommartid och vintertid, nyår och
-// skottdagen. Vid omställningen till vintertid finns klockan 02.30 två gånger; den anges därför i UTC.
+// skottdagen, alla efter i dag så att de också visar tester som går ut med tiden. Vid omställningen till vintertid
+// finns klockan 02.30 två gånger; den anges därför i UTC.
 const KLOCKSLAG = ['23:30', '00:30', '01:15', '02:30', '05:00', '12:00', '21:59'];
 const dag = (prefix, datum, beskrivning) => KLOCKSLAG.map(k => ({
   namn: `${prefix}-${k.replace(':', '')}`, nu: svensk(datum, k), beskrivning: `${beskrivning} ${k.replace(':', '.')}`,
 }));
+// Vardagen och söndagen är nästa torsdag och nästa söndag efter i dag, så att körningen alltid ligger nära nu.
+function nasta(veckodag) {
+  const d = new Date(`${new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' })}T12:00:00Z`);
+  do d.setUTCDate(d.getUTCDate() + 1); while (d.getUTCDay() !== veckodag);
+  return d.toISOString().slice(0, 10);
+}
+export const VARDAG = nasta(4);
+export const SONDAG = nasta(0);
 export const TIDER = [
-  ...dag('vardag', '2026-11-12', 'torsdag 12 november 2026'),
-  ...dag('sondag', '2026-11-15', 'söndag 15 november 2026'),
+  ...dag('vardag', VARDAG, `torsdag ${VARDAG}`),
+  ...dag('sondag', SONDAG, `söndag ${SONDAG}`),
   { namn: 'sommartid-fore', nu: svensk('2027-03-28', '01:30'), beskrivning: 'söndag 28 mars 2027 01.30, före omställningen till sommartid' },
   { namn: 'sommartid-efter', nu: svensk('2027-03-28', '03:30'), beskrivning: 'söndag 28 mars 2027 03.30, efter omställningen till sommartid' },
-  { namn: 'vintertid-fore', nu: svensk('2026-10-25', '01:30'), beskrivning: 'söndag 25 oktober 2026 01.30 sommartid, före omställningen till vintertid' },
-  { namn: 'vintertid-0230-sommar', nu: '2026-10-25T00:30:00.000Z', beskrivning: 'söndag 25 oktober 2026 02.30 sommartid (första gången)' },
-  { namn: 'vintertid-0230-vinter', nu: '2026-10-25T01:30:00.000Z', beskrivning: 'söndag 25 oktober 2026 02.30 vintertid (andra gången)' },
-  { namn: 'vintertid-efter', nu: svensk('2026-10-25', '03:30'), beskrivning: 'söndag 25 oktober 2026 03.30, efter omställningen till vintertid' },
+  { namn: 'vintertid-fore', nu: svensk('2027-10-31', '01:30'), beskrivning: 'söndag 31 oktober 2027 01.30 sommartid, före omställningen till vintertid' },
+  { namn: 'vintertid-0230-sommar', nu: '2027-10-31T00:30:00.000Z', beskrivning: 'söndag 31 oktober 2027 02.30 sommartid (första gången)' },
+  { namn: 'vintertid-0230-vinter', nu: '2027-10-31T01:30:00.000Z', beskrivning: 'söndag 31 oktober 2027 02.30 vintertid (andra gången)' },
+  { namn: 'vintertid-efter', nu: svensk('2027-10-31', '03:30'), beskrivning: 'söndag 31 oktober 2027 03.30, efter omställningen till vintertid' },
   { namn: 'nyarsafton-2330', nu: svensk('2026-12-31', '23:30'), beskrivning: 'nyårsafton 2026 23.30' },
   { namn: 'nyarsdagen-0030', nu: svensk('2027-01-01', '00:30'), beskrivning: 'nyårsdagen 2027 00.30' },
   { namn: 'skottdag-0030', nu: svensk('2028-02-29', '00:30'), beskrivning: 'skottdagen 29 februari 2028 00.30' },

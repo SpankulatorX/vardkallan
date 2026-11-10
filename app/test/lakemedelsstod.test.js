@@ -7,6 +7,8 @@ import { aterstallKlockan, stallKlockan } from './falsk-klocka.js';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { byggSeed, idag, addDagar, lokalTid } from '../src/db.js';
+// Runda 11, r1: Gunnar Åkessons (p01, född 1945-02-02) ålder i dag, så att testet inte går ut när han fyller år.
+const alderP01 = () => { const [y, m, d] = idag().split('-').map(Number); return y - 1945 - (m < 2 || (m === 2 && d < 2) ? 1 : 0); };
 import * as administrering from '../src/administrering.js';
 import * as lakemedel from '../src/lakemedel.js';
 import * as stod from '../src/lakemedelsstod.js';
@@ -215,7 +217,7 @@ describe('Generella direktiv', () => {
     expect(Object.keys(per).sort()).toEqual(['Alvedon', 'Nitrolingual', 'Zopiklon Pilum']);
     expect(per.Alvedon.ryms).toBe(false);
     expect(per.Alvedon.varfor[0]).toContain('Patienten har redan en aktiv ordination av paracetamol');
-    expect(per['Zopiklon Pilum'].varfor).toEqual(['Patienten är 81 år. Direktivet gäller inte från 75 år.']);
+    expect(per['Zopiklon Pilum'].varfor).toEqual([`Patienten är ${alderP01()} år. Direktivet gäller inte från 75 år.`]);
     expect(per.Alvedon).toMatchObject({ maxdosText: 'Högst 3 gram per dygn', maxTillfallen: 3, faststalltAv: 'Göran Malm', indikation: 'Feber eller lätt till måttlig smärta' });
     // Nitroglycerin kräver ett blodtryck det senaste dygnet över 90 mmHg.
     db.query("INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, matt_enhet, tid) VALUES ('p01', 'uso-kard-72', 'blodtryck', '86/52', null, 'mmHg', ?)").run(kl('13:20'));
