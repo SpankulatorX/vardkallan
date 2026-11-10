@@ -19,6 +19,7 @@ export const IVA = {
   nems: `${IV}NEMS föreslås ur journalen med orsak för varje post, sjuksköterskan bekräftar, och servern räknar poängen`,
   doser: `${IV}infusionerna har en sammanräkning av givna doser det senaste dygnet och sedan starten`,
   nyheter: `${IV}nyheterna i version 1.1 för intensivvården och tillväxten visas för rätt roller`,
+  overrapporteringSparr: `${IV}överrapporteringen röjer varken orsak eller tid för en vårdkontakt på en spärrad vårdenhet eller på en annan vårdenhet utan aktivt val`,
   kbNems: kb('iva-nems'),
 };
 export const TILLVAXT = {
@@ -51,7 +52,7 @@ const POSTER_IVA = {
     anmarkning: `${DEMO} Monitorn är simulerad: vågformerna och realtidsvärdena räknas fram ur samma grundvärden som monitorn skickar till journalen och sparas inte.`,
   },
   '4.6.1.3': {
-    tester: [IVA.regelAnalys, IVA.regelApi, IVA.sparr, IVA.begransning, IVA.realtid], avsedd: 'uppfyllt_demo',
+    tester: [IVA.regelAnalys, IVA.regelApi, IVA.sparr, IVA.begransning, IVA.realtid, IVA.overrapporteringSparr], avsedd: 'uppfyllt_demo',
     losning: 'Fördefinierade parametrar med gränser och trender prövas av systemet mot de senaste godkända värdena och omsätts i larm, varningar och förslag med vad som ska göras. Läkaren sätter egna gränser och regler per patient (parameter, under eller över, gräns, antal värden i rad, larm eller varning, åtgärd och motivering). En egen gräns ersätter avdelningens i samma riktning, men en mildare gräns tystar aldrig avdelningens larm: det blir en observation med motiveringen. Monitorn larmar efter samma gränser. Behandlingsbegränsningar ur uppmärksamhetsinformationen står överst, och systemet skriver underlaget för överrapportering enligt SBAR. Patientens namn och personnummer står på varje vy.',
     expert: 'Systemet prövar reglerna själv vid varje visning, visar avdelningens gräns medan läkaren skriver en egen, avgör om den ersätter eller läggs till och förklarar vad som ändras, och skriver överrapporteringen ur det som redan finns.',
     anmarkning: `${DEMO} Avdelningens gränser för medelartärtryck, syremättnad, trendfönster och oliguri är parametrar som systemförvaltaren ändrar med fyra ögon.`,

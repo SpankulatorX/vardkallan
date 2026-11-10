@@ -267,6 +267,32 @@ describe('Intensivvård, version 1.1', () => {
     expect(t2.sammanrakning.map(x => x.ordinationId)).toContain(oid);
   });
 
+  test('överrapporteringen röjer varken orsak eller tid för en vårdkontakt på en spärrad vårdenhet eller på en annan vårdenhet utan aktivt val', async () => {
+    const k = await inloggad('lak-kard');
+    const d = db(k);
+    const sparrad = d.query("SELECT enhet_id FROM sparrar WHERE patient_id = 'p04' LIMIT 1").get().enhet_id;
+    // Två intensivvårdsavdelningar till i testet: en på den spärrade vårdenheten och en på medicinkliniken, som kräver
+    // aktivt val för läkaren på kardiologen. Patienten har också en vårdkontakt på Hjärtintensiven som får visas.
+    iva.IVA_ENHETER[sparrad] = { platser: 2 };
+    iva.IVA_ENHETER['uso-med'] = { platser: 2 };
+    try {
+      const t = (h) => new Date(Date.now() - h * TIMME).toISOString();
+      const vk = d.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak, ger_vardrelation) VALUES ('p04', ?, 'slutenvard', ?, ?, ?, 0)");
+      vk.run('uso-kard-hia', t(5), 'Hjärtintensiven, sal 6', 'Synlig orsak');
+      const fore = (await k.get('/api/patient/p04/iva/tillagg')).data.overrapportering;
+      vk.run(sparrad, t(2), 'Sal 1', 'HEMLIG-ORSAK-SPARR');
+      vk.run('uso-med', t(1), 'Sal 2', 'HEMLIG-ORSAK-VAL');
+      const efter = (await k.get('/api/patient/p04/iva/tillagg')).data.overrapportering;
+      const text = JSON.stringify(efter);
+      for (const x of ['HEMLIG-ORSAK-SPARR', 'HEMLIG-ORSAK-VAL', 'Sal 1', 'Sal 2']) expect(text).not.toContain(x);
+      expect(JSON.stringify({ ...efter, tid: null })).toBe(JSON.stringify({ ...fore, tid: null }));
+      expect(efter.situation.join(' ')).toContain('synlig orsak');
+    } finally {
+      delete iva.IVA_ENHETER[sparrad];
+      delete iva.IVA_ENHETER['uso-med'];
+    }
+  });
+
   test('nyheterna i version 1.1 för intensivvården och tillväxten visas för rätt roller', () => {
     const ids = (roll) => forRoll(roll).find(v => v.version === '1.1.0')?.nyheter.map(n => n.id) ?? [];
     expect(ids('lakare')).toEqual(expect.arrayContaining(['iva-realtid-regler', 'tillvaxt-referens-pubertet-import', 'bhv-indikatorer']));

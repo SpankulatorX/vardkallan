@@ -28,6 +28,13 @@ import * as konfiguration from './konfiguration.js';
 import * as mt from './medicinteknik.js';
 import { kvalitetssakrad } from './mt-klass.js';
 
+// Runda 11, r7: den pågående vårdkontakten på en intensivvårdsavdelning som användaren får se, eller null. Varje rad
+// prövas i behörighetsmotorn innan den används.
+export function ivaKontaktFor(atk) {
+  const enheter = Object.keys(IVA_ENHETER);
+  return atk.db.query(`SELECT plats, orsak, start, enhet_id FROM vardkontakter WHERE patient_id = ? AND slut IS NULL AND enhet_id IN (${enheter.map(() => '?').join(', ')}) ORDER BY start DESC`)
+    .all(atk.patientId, ...enheter).find(k => atk.prova('las_matvarden', { enhet_id: k.enhet_id }).tillaten) ?? null;
+}
 // Runda 11, r7: krokar som andra moduler lägger till (iva-patientregler.js och r11r7-rutter.js). analys får
 // (atk, analys, { rader, nu }) och ger analysen med patientens egna regler, och rad får (atk, rad, { nu }) och ger raden i
 // översikten med det som modulen lägger till.
@@ -426,8 +433,10 @@ export function overvakning(atk, p, { timmar = 6 } = {}, nu = new Date()) {
       .map(r => ({ tid: r.tid, typ: r.riktning === 'in' ? 'intag' : 'forlust', text: `${r.riktning === 'in' ? 'Intag' : 'Förlust'}: ${(r.riktning === 'in' ? { dryck: 'dryck', mat: 'mat och sondnäring', infusion: 'infusion' } : { urin: 'urin', dran: 'dränage', krakning: 'kräkning', avforing: 'avföring' })[r.typ] ?? r.typ} ${talSv(r.volym_ml, 0)} ml` })),
   ].sort((a, b) => b.tid.localeCompare(a.tid)).slice(0, 40);
   // Platsen på intensivvårdsavdelningen, bara när användaren får se uppgifter från den vårdenheten.
-  const vk = db.query(`SELECT plats, enhet_id FROM vardkontakter WHERE patient_id = ? AND slut IS NULL AND enhet_id IN (${Object.keys(IVA_ENHETER).map(() => '?').join(', ')}) ORDER BY start DESC`).get(atk.patientId, ...Object.keys(IVA_ENHETER));
-  const plats = vk && atk.prova('las_matvarden', { enhet_id: vk.enhet_id }).tillaten ? vk.plats : null;
+  // Runda 11, r7: den senaste vårdkontakten som användaren får se, så att en kontakt på en spärrad vårdenhet eller en
+  // som kräver aktivt val varken visas eller döljer en kontakt som får visas (ivaKontaktFor).
+  const vk = ivaKontaktFor(atk);
+  const plats = vk ? vk.plats : null;
   return {
     patient: { id: p.id, namn: visningsnamn(p, atk.val?.visa_identitet), personnummer: visningsPnr(p, atk.val?.visa_identitet), plats },
     timmar: h, varden: senasteVarden(alla), kurvor, map: mapSerie, analys, infusioner, handelser, vatska,

@@ -239,7 +239,9 @@ export function behandlingsbegransningar(atk) {
 export function overrapportering(atk, ov, { begransningar = [], regler = [], vatska = null, nems = null } = {}) {
   const db = atk.db;
   const diagnoser = kanRoll(atk.personal, 'las_diagnoser') ? journal.synligaDiagnoser(new Atkomst(db, atk.personal, atk.patientId, atk.val, 'las_diagnoser')) : [];
-  const vk = ov.patient.plats ? db.query(`SELECT orsak, start, enhet_id FROM vardkontakter WHERE patient_id = ? AND slut IS NULL AND enhet_id IN (${Object.keys(iva.IVA_ENHETER).map(() => '?').join(', ')}) ORDER BY start DESC`).get(atk.patientId, ...Object.keys(iva.IVA_ENHETER)) : null;
+  // Vårdkontakten prövas i behörighetsmotorn, så att orsak och tid från en spärrad vårdenhet eller en som kräver aktivt
+  // val aldrig kommer med.
+  const vk = iva.ivaKontaktFor(atk);
   const v = ov.varden;
   const varde = (typ, namn, enhet, d = 0) => (v[typ] ? `${namn} ${typ === 'blodtryck' ? `${v[typ].varde} (MAP ${v[typ].map})` : talSv(v[typ].varde, d)} ${enhet} kl. ${klocka(v[typ].tid)}${v[typ].godkand ? '' : ', inte godkänt'}` : null);
   const situation = [
