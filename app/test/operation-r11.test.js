@@ -81,7 +81,9 @@ describe('Operation 1.1', () => {
     const db = sandlada();
     ny(db, 'op1');
     db.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak) VALUES ('op1', 'uso-kard', 'oppenvard', ?, 'Mottagning', 'Kontroll')").run(efter(-60 * 24).toISOString());
-    const a = anmal(db);
+    // Anmälan gjordes för tre dagar sedan, och en diagnos från anmälningsdagen räknas inte som ny.
+    const a = anmal(db, 'op1', { kva: 'NFB49', sida: 'hoger' }, 'lak-kkoga', efter(-3 * 24 * 60));
+    db.query("INSERT INTO diagnoser (patient_id, enhet_id, kod, text, typ, datum) VALUES ('op1', 'kkoga-ort', 'M16.1', 'Primär koxartros, ensidig eller UNS', 'huvud', ?)").run(addDagar(datumAv(BAS), -3));
     const utan = JSON.stringify(op.anmalanUt(atk(db, 'ssk-kkoga', 'op1', 'las_operation'), rad(db, a.id), efter(10)));
     // Ett läkemedel från en spärrad vårdenhet räknas inte.
     db.query("INSERT INTO ordinationer (patient_id, enhet_id, lakemedel_id, dosering, typ, orsak, uppfoljning, start, status, ordinerad_av, skapad) VALUES ('op1', 'uso-kard', 'VK-NPL-0002', '1 x 2', 'staende', 'Förmaksflimmer', ?, ?, 'aktiv', 'lak-kard', ?)").run(DAG(60), datumAv(BAS), BAS.toISOString());
@@ -96,6 +98,7 @@ describe('Operation 1.1', () => {
     expect(t).toContain('38,6');
     expect(t).toContain('Pneumoni');
     expect(t).not.toContain('Eliquis');
+    expect(t).not.toContain('koxartros');
     expect(u.paverkar.find(x => x.typ === 'antikoagulantia').niva).toBe('varning');
     // Säkerhetsgranskningen: läkemedlen, mätvärdena och diagnoserna som systemet läser loggas med sin egen grund.
     const logg = db.query("SELECT handling, grund, resurs FROM atkomstlogg WHERE patient_id = 'op1' AND resurs = ?").all(`operation:${a.id}:paverkar`);

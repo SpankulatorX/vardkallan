@@ -396,7 +396,7 @@ function paverkarRader(db, atk, an, a, ut, nu) {
     if (feber) ut.push({ typ: 'feber', niva: 'varning', text: `Feber ${String(feber.varde_num).replace('.', ',')} grader ${datumText(feber.tid)} klockan ${klocka(feber.tid)}. Bedöm om operationen kan genomföras som planerat.` });
   }
   if (kanRoll(atk.personal, 'las_diagnoser')) {
-    for (const d of journal.synligaDiagnoser(a('las_diagnoser')).filter(d => d.datum >= datumAv(new Date(an.anmald_tid)))) {
+    for (const d of journal.synligaDiagnoser(a('las_diagnoser')).filter(d => d.datum > datumAv(new Date(an.anmald_tid)))) {
       ut.push({ typ: 'diagnos', niva: 'info', text: `Ny diagnos sedan anmälan: ${d.kod} ${d.text}.` });
     }
   }
