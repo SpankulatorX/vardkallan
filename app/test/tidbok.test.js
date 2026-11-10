@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import { testserver, klient, sandlada, nyDb } from './hjalp.js';
-import { lasSandlada, byggSeed, idag, addDagar, datumAv } from '../src/db.js';
+import { lasSandlada, byggSeed, idag, addDagar, datumAv, lokalTid, inomDagen } from '../src/db.js';
 import * as tidbok from '../src/tidbok.js';
 import { harVardrelation, prova } from '../src/atkomst.js';
 
@@ -38,7 +38,9 @@ describe('Tidbok', () => {
     const idagBokade = d.query('SELECT b.*, t.start FROM bokningar b JOIN tider t ON t.id = b.tid_id WHERE t.relativ = 1').all();
     expect(idagBokade.map(b => b.patient_id).sort()).toEqual(['p08', 'p09', 'p15']);
     expect(idagBokade.some(b => b.status === 'incheckad')).toBe(true);
-    expect(idagBokade.some(b => Date.parse(b.start) > Date.now())).toBe(true);
+    // Runda 11, r1: tiderna ligger på hela fem minuter i dag, så efter 23.55 ryms ingen tid efter nu före midnatt.
+    if (Date.now() < Date.parse(lokalTid(addDagar(idag(), 1), '00:00')) - 5 * 60_000) expect(idagBokade.some(b => Date.parse(b.start) > Date.now())).toBe(true);
+    for (const b of idagBokade) expect(datumAv(new Date(b.start))).toBe(idag());
   });
 
   test('dagens seedade tider flyttas till tider kring nu när sandlådan skapas, och kallelserna stämmer med tiden', () => {
@@ -48,7 +50,9 @@ describe('Tidbok', () => {
     const fore = d.query("SELECT t.start FROM bokningar b JOIN tider t ON t.id = b.tid_id WHERE b.patient_id = 'p08' AND t.relativ = 1").get().start;
     expect(tidbok.anpassaTillNu(d)).toBeGreaterThan(0);
     const efter = d.query("SELECT t.start, b.id, b.vardkontakt_id FROM bokningar b JOIN tider t ON t.id = b.tid_id WHERE b.patient_id = 'p08' AND t.relativ = 1").get();
-    expect(Date.parse(efter.start) - Date.parse(fore)).toBe(3 * 3600_000);
+    // Runda 11, r1: en tid som skulle flyttas över midnatt stannar på dagens sista tid (fem minuter före midnatt).
+    const sista = Date.parse(lokalTid(addDagar(idag(), 1), '00:00')) - 5 * 60_000;
+    expect(Date.parse(efter.start)).toBe(Math.min(Date.parse(fore) + 3 * 3600_000, sista));
     expect(d.query('SELECT start FROM vardkontakter WHERE id = ?').get(efter.vardkontakt_id).start).toBe(efter.start);
     // Kallelsen skrivs efter flytten, med den nya tiden.
     expect(d.query("SELECT text FROM kallelser WHERE bokning_id = ? AND typ = 'kallelse'").get(efter.id).text).toContain(`Tid: ${tidbok.tidText(efter.start)}.`);
@@ -280,8 +284,11 @@ describe('Tidbok', () => {
     const rad = (pid) => s.dagens.find(d => d.patient.id === pid).rad;
     expect(rad('p09')).toMatchObject({ atgard: null });
     expect(rad('p09').status).toMatch(/^Incheckad \d{2}\.\d{2}, nummer K01\. Avgiftsfritt$/);
-    expect(rad('p15')).toMatchObject({ atgard: { typ: 'checka_in' }, sen: true });
-    expect(rad('p15').status).toContain('minuter sen');
+    // Runda 11, r1: dagens tider stannar på dagens datum, så under den första halvtimmen efter midnatt hinner ingen bli sen.
+    if (Date.now() - Date.parse(lokalTid(idag(), '00:00')) >= 30 * 60_000) {
+      expect(rad('p15')).toMatchObject({ atgard: { typ: 'checka_in' }, sen: true });
+      expect(rad('p15').status).toContain('minuter sen');
+    } else expect(rad('p15')).toMatchObject({ atgard: { typ: 'checka_in' } });
     expect(rad('p08')).toMatchObject({ atgard: { typ: 'checka_in', text: 'Checka in' }, status: 'Väntas' });
     // Efter incheckningen är nästa åtgärd att ta betalt.
     await k.post(`/api/bokning/${s.dagens.find(d => d.patient.id === 'p08').id}/checka-in`);
@@ -359,8 +366,10 @@ describe('Tidbok', () => {
     d.query("UPDATE invanare SET patient_id = 'p03' WHERE id = 'inv-p03'").run();
     // Incheckningsskärmen: tiden flyttas till nu och patienten checkar in med sitt personnummer.
     const b = bokning(vc, 'p03');
-    const nu = new Date(Date.now() + 10 * 60_000).toISOString();
-    d.query('UPDATE tider SET start = ?, slut = ? WHERE id = ?').run(nu, new Date(Date.now() + 70 * 60_000).toISOString(), b.tid_id);
+    // Runda 11, r1: tiden ligger om tio minuter, men stannar i dag strax före midnatt (inomDagen).
+    const start = inomDagen(new Date(), 10);
+    const nu = new Date(start).toISOString();
+    d.query('UPDATE tider SET start = ?, slut = ? WHERE id = ?').run(nu, new Date(start + 60 * 60_000).toISOString(), b.tid_id);
     const skarm = await vc.post('/api/incheckning/skarm', { personnummer: '198404162383' });
     expect(skarm.data).toMatchObject({ ok: true });
     expect(skarm.data.text).toMatch(/Du är incheckad till klockan \d{2}\.\d{2}\. Sätt dig i väntrummet\. Vi ropar upp dig med nummer K\d{2}\./);
