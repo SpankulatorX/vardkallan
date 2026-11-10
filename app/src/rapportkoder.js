@@ -16,6 +16,8 @@ export const SJUKHUS = { uso: '55010', kkoga: '55011', lind: '55012' };
 export const MVO = {
   '011': 'Distriktsläkarvård', '100': 'Akutklinik', '101': 'Internmedicinsk vård', '121': 'Infektionssjukvård', '231': 'Kardiologisk vård',
   '311': 'Ortopedisk vård', '441': 'Förlossningsvård (BB)', '451': 'Obstetrisk och gynekologisk vård', '901': 'Allmänpsykiatrisk vård, vuxna',
+  // Runda 11, r4: kontrollerad mot kodlistan (sha256 11ce6a97...).
+  '741': 'Onkologisk vård, allmän',
 };
 
 // Vårdenhet i Vårdkällan till sjukhus, verksamhetsområde och akutverksamhet (uppgift 8 i OV-filen). primarvard betyder att
@@ -32,6 +34,8 @@ export const ENHETER = {
   'uso-psyk': { sjukhus: 'uso', mvo: '901', akut: '3', psykiatri: true },
   // Runda 9, r3: kvinnokliniken med förlossningen (obstetrik.js).
   'uso-kk': { sjukhus: 'uso', mvo: '451' },
+  // Runda 11, r4: onkologiska kliniken (cytostatika.js).
+  'uso-onk': { sjukhus: 'uso', mvo: '741' },
   'lind-med': { sjukhus: 'lind', mvo: '101' },
   'kkoga-ort': { sjukhus: 'kkoga', mvo: '311' },
   'vc-tybble': { mvo: '011', primarvard: true },

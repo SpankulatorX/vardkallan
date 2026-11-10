@@ -572,17 +572,17 @@ export const UPPGIFTER = [
   },
   // Runda 11, r4: cytostatika, regimbiblioteket, blod och beredningsenheten.
   {
-    id: 'cyto-godkann', namn: 'Godkänna en cytostatikakur', roll: 'lak-kard', start: 'Journalen för patienten med cytostatika',
+    id: 'cyto-godkann', namn: 'Godkänna en cytostatikakur', roll: 'lak-onk', start: 'Journalen för patienten med cytostatika',
     text: 'Annika Holmgren ska få sin andra kur EC i dag, och proverna är tagna. Godkänn kuren så att den kan beredas.',
     kontroll: { notis: 'Kuren är godkänd' },
   },
   {
-    id: 'regim-godkann', namn: 'Godkänna en ny version av en cytostatikaregim', roll: 'lak-kard', start: 'Arbetslistan efter inloggning',
-    text: 'Göran Malm har föreslagit en ny version av karboplatinregimen. Du är regimansvarig. Granska och godkänn den.',
+    id: 'regim-godkann', namn: 'Godkänna en ny version av en cytostatikaregim', roll: 'lak-onk', start: 'Arbetslistan efter inloggning',
+    text: 'Gunilla Norén har föreslagit en ny version av karboplatinregimen. Du är regimansvarig. Granska och godkänn den.',
     kontroll: { notis: 'gäller nu för nya ordinationer' },
   },
   {
-    id: 'blod-bestall', namn: 'Beställa blod', roll: 'lak-kard', start: 'Journalen för patienten med cytostatika',
+    id: 'blod-bestall', namn: 'Beställa blod', roll: 'lak-onk', start: 'Journalen för patienten med cytostatika',
     text: 'Annika Holmgren har fått blodbrist efter cytostatikan, Hb 88. Beställ två enheter erytrocyter.',
     kontroll: { notis: 'Blodet är beställt' },
   },

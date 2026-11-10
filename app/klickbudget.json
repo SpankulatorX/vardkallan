@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-10T16:08:16.230Z",
+  "tid": "2026-11-10T18:48:11.644Z",
   "bas": "http://127.0.0.1:18204",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "efda2b9a59422fb1fce5183782a38a6c61ed58a56fa6865e70c03f3e571a3489",
+  "gransnittHash": "3438906be1026e0c3e6aa2d731d52935b9cef6bc6c2c4a9bf53f1c6a5fe8767c",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -1784,7 +1784,7 @@
     {
       "id": "cyto-godkann",
       "namn": "Godkänna en cytostatikakur",
-      "roll": "lak-kard",
+      "roll": "lak-onk",
       "start": "Journalen för patienten med cytostatika",
       "budget": 2,
       "motivering": "Sussa 4.8.1.1 och 4.8.1.4. Ett klick på fliken Cytostatika och ett på Godkänn kuren. Systemet har räknat doserna med dagens vikt, prövat provsvaren, den kumulativa dosen och beredningsenhetens platser och skickar beredningsordern i samma klick.",
@@ -1801,7 +1801,7 @@
     {
       "id": "regim-godkann",
       "namn": "Godkänna en ny version av en cytostatikaregim",
-      "roll": "lak-kard",
+      "roll": "lak-onk",
       "start": "Arbetslistan efter inloggning",
       "budget": 3,
       "motivering": "Sussa 4.8.1.4. Ett klick på Cytostatika i menyn, ett på Regimbiblioteket och ett på Godkänn. Systemet har skrivit vad som skiljer versionen från den gällande, och bara en regimansvarig läkare som inte skrev versionen ser knappen.",
@@ -1819,7 +1819,7 @@
     {
       "id": "blod-bestall",
       "namn": "Beställa blod",
-      "roll": "lak-kard",
+      "roll": "lak-onk",
       "start": "Journalen för patienten med cytostatika",
       "budget": 3,
       "motivering": "Sussa 4.4.2.12. Ett klick på fliken Blod, ett fältbyte till indikationen och ett klick på Beställ. Erytrocyter och två enheter är förvalda, och systemet beställer själv blodgruppering och bastest som saknas.",

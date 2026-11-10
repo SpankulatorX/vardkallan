@@ -27,7 +27,9 @@ CREATE TABLE IF NOT EXISTS lakemedelsuppdrag (
   avslutat TEXT, avslutat_av TEXT, avslutat_tid TEXT, avslutat_orsak TEXT,
   CHECK (typ IN ('medicinskt_ansvarig', 'mallansvarig', 'lakemedelsansvarig_ssk', 'narkotikakontroll',
     -- Runda 10, r4: de donationsansvariga (donation.js).
-    'donationsansvarig_lakare', 'donationsansvarig_ssk')), CHECK (till >= fran)
+    'donationsansvarig_lakare', 'donationsansvarig_ssk',
+    -- Runda 11, r4: regimansvarig läkare för cytostatika på en onkologisk enhet (cytostatika.js).
+    'regimansvarig')), CHECK (till >= fran)
 );
 CREATE TRIGGER IF NOT EXISTS lakemedelsuppdrag_raderas_ej BEFORE DELETE ON lakemedelsuppdrag
   BEGIN SELECT RAISE(ABORT, 'Ett uppdrag raderas inte'); END;
@@ -74,6 +76,11 @@ export const OMFATTNING = {
     'Pröva om en patient som avlider på intensivvårdsavdelningen kan bli donator, utifrån systemets förslag i inkorgen.',
     'Leda donationsutredningen, göra den medicinska bedömningen och skriva donationsanteckningen.',
     'Se till att de närstående informeras och att den avlidnes inställning till donation utreds.',
+  ],
+  // Runda 11, r4: regimansvarig läkare för cytostatika.
+  regimansvarig: [
+    'Granska och godkänna eller avslå nya versioner av cytostatikaregimerna i regimbiblioteket, i sin egen inloggning.',
+    'Se till att regimerna följer de nationella vårdprogrammen och vårdgivarens rutiner.',
   ],
   donationsansvarig_ssk: [
     'Följa checklistan för donation tillsammans med donationsansvarig läkare.',
@@ -131,6 +138,8 @@ export function seedaLakemedelsansvar(db, bas = new Date()) {
   sakraLakemedelsansvar(db);
   const finns = (sql, ...p) => Boolean(db.query(sql).get(...p));
   if (!finns('SELECT 1 FROM verksamhetschefer')) db.query("INSERT INTO verksamhetschefer VALUES ('uso-kard', 'vch-kard')").run();
+  // Runda 11, r4: verksamhetschefen på Onkologiska kliniken, som utser de regimansvariga läkarna.
+  if (finns("SELECT 1 FROM personal WHERE id = 'vch-onk'") && !finns("SELECT 1 FROM verksamhetschefer WHERE enhet_id = 'uso-onk'")) db.query("INSERT INTO verksamhetschefer VALUES ('uso-onk', 'vch-onk')").run();
   const insM = db.query('INSERT OR IGNORE INTO substansmallar (atc, namn, innehall, version, upprattad_av, upprattad, andring) VALUES (?, ?, ?, 1, NULL, ?, NULL)');
   for (const [atc, m] of Object.entries(MALLAR)) insM.run(atc, m.namn, JSON.stringify(m), tidPlus(bas, -400));
   if (finns('SELECT 1 FROM lakemedelsuppdrag')) return;
@@ -153,6 +162,9 @@ export function seedaLakemedelsansvar(db, bas = new Date()) {
     uppdrag('medicinskt_ansvarig', ve, l.id, -400, 330, null);
     godkannare.set(ve, { av: l.id, uppdrag: uppdrag('mallansvarig', ve, l.id, -400, 330, null) });
   }
+
+  // Runda 11, r4: Rebecka Ståhl och Gunilla Norén är regimansvariga på Onkologiska kliniken.
+  if (finns("SELECT 1 FROM personal WHERE id = 'ol-onk'")) for (const p of ['lak-onk', 'ol-onk']) uppdrag('regimansvarig', 'uso-onk', p, -200, 300, 'vch-onk');
 
   // Godkännandena: varje läkemedelsmall per substans på varje vårdenhet med mallansvarig, och varje mall med flera
   // ordinationer på sin vårdenhet.

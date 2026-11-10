@@ -20,7 +20,9 @@ export function session(db, p) {
   const enheter = enheterUnder(db, ve);
   return {
     beredning: kanRoll(p, 'bereda_cytostatika') && ve === cyto.BEREDNINGSENHET_ID,
-    cytostatika: kanRoll(p, 'las_cytostatika') && Boolean(db.query(`SELECT 1 FROM cyto_behandlingar WHERE enhet_id IN (${enheter.map(() => '?').join(', ')}) LIMIT 1`).get(...enheter)),
+    cytostatika: kanRoll(p, 'las_cytostatika') && (cyto.ONKOLOGISKA.has(ve) || Boolean(db.query(`SELECT 1 FROM cyto_behandlingar WHERE enhet_id IN (${enheter.map(() => '?').join(', ')}) LIMIT 1`).get(...enheter))),
+    // Läkare på en onkologisk enhet ordinerar cytostatika, så fliken Cytostatika visas för alla deras patienter.
+    onkologi: cyto.ONKOLOGISKA.has(ve),
   };
 }
 

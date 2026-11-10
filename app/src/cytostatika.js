@@ -40,6 +40,8 @@ export const BEREDNINGSENHET = 'Cytostatikaberedningen (simulerad)';
 // Runda 11, r4: beredningsenheten i Vårdkällan, som bereder för vårdenheterna på USÖ (cytostatika-beredning.js).
 export const BEREDNINGSENHET_ID = 'uso-bered';
 export const BEREDNING_SJUKHUS = 'uso';
+// Runda 11, r4: de onkologiska vårdenheterna, där regimansvarig är ett eget uppdrag och menyn Cytostatika visas.
+export const ONKOLOGISKA = new Set(['uso-onk']);
 // Premedicineringen som en regim kan ha (demoregel). minuterFore är hur lång tid före kuren den ges.
 export const PREMED = tabell({
   ondansetron: { namn: 'Ondansetron', dos: '8 mg', vag: 'peroralt', minuterFore: 30 },
@@ -165,13 +167,12 @@ export function regimFor(db, b) {
 }
 const versionNummer = (db, b) => (b.regim_version ? db.query('SELECT version FROM cyto_regimversioner WHERE id = ?').get(b.regim_version)?.version ?? 1 : 1);
 
-// Regimansvarig är i demon den läkare som verksamhetschefen har utsett som ansvarig för läkemedelsmallar på sin
-// vårdenhet (Gröna häftet 1.4.3, lakemedelsansvar.js), eftersom en regim är en mall för cytostatika. Regimerna är
-// gemensamma för regionen.
+// Regimansvarig är ett eget uppdrag som verksamhetschefen på den onkologiska enheten ger (lakemedelsansvar.js), och det
+// slås upp i databasen vid varje godkännande. Regimerna är gemensamma för regionen.
 export function arRegimansvarig(db, personal) {
   if (!kanRoll(personal, 'ordinera_cytostatika')) return false;
   const { uppdragFor } = require('./lakemedelsansvar.js');
-  return Boolean(uppdragFor(db, personal, 'mallansvarig'));
+  return Boolean(uppdragFor(db, personal, 'regimansvarig'));
 }
 const loggaRegim = (db, personal, resurs, resultat = 'tillaten') => loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, handling: 'ordinera_cytostatika', resurs, grund: resultat === 'nekad' ? 'nekad' : 'administrativ', resultat });
 
@@ -270,7 +271,7 @@ export function foreslaVersion(db, personal, regim, body = {}, nu = new Date()) 
 function provaBeslut(db, personal, v) {
   if (v.status !== 'vantar') throw new Fel(409, 'Versionen väntar inte på godkännande.', 'ogiltig');
   if (v.skapad_av === personal.id) { loggaRegim(db, personal, `cyto_regimversion:${v.id}`, 'nekad'); throw new Fel(409, 'Den som skrev versionen kan inte godkänna den själv. En annan regimansvarig läkare godkänner i sin egen inloggning.', 'samma_person'); }
-  if (!arRegimansvarig(db, personal)) { loggaRegim(db, personal, `cyto_regimversion:${v.id}`, 'nekad'); throw new Fel(403, 'Bara en regimansvarig läkare godkänner regimer. I demon är det den läkare som är ansvarig för läkemedelsmallar på sin vårdenhet.', 'nekad'); }
+  if (!arRegimansvarig(db, personal)) { loggaRegim(db, personal, `cyto_regimversion:${v.id}`, 'nekad'); throw new Fel(403, 'Bara en regimansvarig läkare godkänner regimer. Uppdraget ges av verksamhetschefen på den onkologiska kliniken.', 'nekad'); }
 }
 export function godkannVersion(db, personal, id, nu = new Date()) {
   const v = versionRad(db, id);

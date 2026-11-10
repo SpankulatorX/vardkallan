@@ -46,6 +46,13 @@ Object.assign(UPPDRAG, {
   donationsansvarig_ssk: { namn: 'Donationsansvarig sjuksköterska', yrke: 'sjukskoterska', kalla: 'Lag (1995:831) om transplantation m.m. och vårdgivarens rutin för donation', utsesAv: 'Verksamhetschefen', ensam: true, bara: harIva,
     utan: 'Utan donationsansvarig sjuksköterska går förslaget att pröva donation efter ett dödsfall på intensivvårdsavdelningen bara till läkaren.' },
 });
+// Runda 11, r4: regimansvarig läkare för cytostatika, på en onkologisk enhet (cytostatika.js). Den regimansvariga
+// godkänner nya versioner av regimerna i sin egen inloggning, och uppdraget prövas vid varje godkännande.
+Object.assign(UPPDRAG, {
+  regimansvarig: { namn: 'Regimansvarig läkare för cytostatika', yrke: 'lakare', kalla: 'Vårdgivarens rutin för cytostatikabehandling', utsesAv: 'Verksamhetschefen',
+    bara: (db, ve) => require('./cytostatika.js').ONKOLOGISKA.has(ve),
+    utan: 'Utan regimansvarig läkare kan ingen ny eller ändrad cytostatikaregim godkännas, och den gällande versionen används.' },
+});
 const forEnhet = (db, ve, typ) => !UPPDRAG[typ].bara || UPPDRAG[typ].bara(db, ve);
 
 // Namnet på uppdraget, med reservkontrollanten för sig.

@@ -121,6 +121,9 @@ describe('Seed', () => {
       ['fys-kard', 'Jenny Holmberg', 'fysioterapeut', 'uso-kard-mott'],
       // Runda 11, r4: farmaceuten på cytostatikaberedningen.
       ['far-bered', 'Mona Fredin', 'farmaceut', 'uso-bered'],
+      // Runda 11, r4: onkologen och onkologisjuksköterskan på Onkologiska kliniken.
+      ['lak-onk', 'Rebecka Ståhl', 'lakare', 'uso-onk'],
+      ['ssk-onk', 'Elias Wickman', 'sjukskoterska', 'uso-onk-dag'],
     ]);
   });
 

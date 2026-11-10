@@ -69,11 +69,11 @@ FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'matvarden') + 1, 0, ['infarter', '
 FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'journal') + 1, 0, ['restjournaler', 'Restjournaler', () => pa('las_journal', 'restjournal'), restjournaler]);
 FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'remisser') + 1, 0, ['donation', 'Donation', () => far('donation'), donation]);
 
-// Runda 11, r4: Cytostatika och Blod efter Prover. Läkaren som ordinerar ser flikarna alltid, de andra när patienten har
-// en behandling eller en beställning som de får se (huvudets specialistR11r4). Innan huvudet är hämtat
+// Runda 11, r4: Cytostatika och Blod efter Prover. Cytostatika visas alltid på en onkologisk vårdenhet och Blod alltid för
+// den som beställer prover, och annars när patienten har en behandling eller en beställning som de får se (huvudets specialistR11r4). Innan huvudet är hämtat
 // visas fliken, som Tillväxt, så att en adress direkt till fliken fungerar.
 FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'prover') + 1, 0,
-  ['cytostatika', 'Cytostatika', (h) => far('las_cytostatika') && (far('ordinera_cytostatika') || !h || Boolean(h.specialistR11r4?.cytostatika)), cytostatikaFlik],
+  ['cytostatika', 'Cytostatika', (h) => far('las_cytostatika') && (Boolean(S.session?.r11r4?.onkologi) || !h || Boolean(h.specialistR11r4?.cytostatika)), cytostatikaFlik],
   ['blod', 'Blod', (h) => far('las_prover') && (far('bestalla_prov') || !h || Boolean(h.specialistR11r4?.blod)), blodFlik]);
 
 let huvud = null;

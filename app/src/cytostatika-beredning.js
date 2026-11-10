@@ -15,8 +15,10 @@
 //
 // Behörighet: handlingen bereda_cytostatika och att personen arbetar på beredningsenheten. Beredningsenheten ser bara
 // beredningsordern (namn, personnummer för etiketten, vårdenhet och doser), aldrig journalen. Beställningen är skickad
-// till beredningsenheten av vårdenheten, så varje patient som visas loggas med grunden beställning. En patient med
-// skyddade personuppgifter visas som skyddad, och etiketten bär då bara kontrollkoden.
+// till beredningsenheten av vårdenheten och fungerar som en beställning till laboratoriet, så namn och personnummer visas
+// för säker märkning också när patienten har spärrat den beställande vårdenheten. Inget journalinnehåll och ingen adress
+// visas, och varje patient som visas loggas med grunden utförande. En patient med skyddade personuppgifter visas som
+// skyddad med maskerat personnummer, och etiketten bär då bara kontrollkoden.
 //
 // Lagret, batcherna och gränserna är demoregler. Beredningsenheten finns bara i demon.
 import { Fel, datumAv, addDagar, lokalTid } from './db.js';
@@ -75,7 +77,7 @@ function sakraLager(db, nu) {
 }
 
 const logga = (db, personal, resurs, { patientId = null, resultat = 'tillaten' } = {}) => loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, patient_id: patientId, handling: 'bereda_cytostatika', resurs,
-  grund: resultat === 'nekad' ? 'nekad' : patientId ? 'bestallning' : 'administrativ', resultat });
+  grund: resultat === 'nekad' ? 'nekad' : patientId ? 'utforande' : 'administrativ', resultat });
 
 // Bara den som har handlingen och arbetar på beredningsenheten. Ett nekat försök loggas.
 export function kravBeredare(db, personal, resurs = 'cyto_beredning') {

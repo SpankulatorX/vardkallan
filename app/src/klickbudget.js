@@ -453,15 +453,15 @@ export const FLODEN = [
 // Runda 11, r4: cytostatika, beredningen, regimbiblioteket, blodet och patientens rapport i Min journal.
 FLODEN.push(
   {
-    id: 'cyto-godkann', namn: 'Godkänna en cytostatikakur', roll: 'lak-kard', start: 'Journalen för patienten med cytostatika', budget: 2,
+    id: 'cyto-godkann', namn: 'Godkänna en cytostatikakur', roll: 'lak-onk', start: 'Journalen för patienten med cytostatika', budget: 2,
     motivering: 'Sussa 4.8.1.1 och 4.8.1.4. Ett klick på fliken Cytostatika och ett på Godkänn kuren. Systemet har räknat doserna med dagens vikt, prövat provsvaren, den kumulativa dosen och beredningsenhetens platser och skickar beredningsordern i samma klick.',
   },
   {
-    id: 'regim-godkann', namn: 'Godkänna en ny version av en cytostatikaregim', roll: 'lak-kard', start: 'Arbetslistan efter inloggning', budget: 3,
+    id: 'regim-godkann', namn: 'Godkänna en ny version av en cytostatikaregim', roll: 'lak-onk', start: 'Arbetslistan efter inloggning', budget: 3,
     motivering: 'Sussa 4.8.1.4. Ett klick på Cytostatika i menyn, ett på Regimbiblioteket och ett på Godkänn. Systemet har skrivit vad som skiljer versionen från den gällande, och bara en regimansvarig läkare som inte skrev versionen ser knappen.',
   },
   {
-    id: 'blod-bestall', namn: 'Beställa blod', roll: 'lak-kard', start: 'Journalen för patienten med cytostatika', budget: 3,
+    id: 'blod-bestall', namn: 'Beställa blod', roll: 'lak-onk', start: 'Journalen för patienten med cytostatika', budget: 3,
     motivering: 'Sussa 4.4.2.12. Ett klick på fliken Blod, ett fältbyte till indikationen och ett klick på Beställ. Erytrocyter och två enheter är förvalda, och systemet beställer själv blodgruppering och bastest som saknas.',
   },
   {

@@ -60,11 +60,14 @@ describe('Cytostatika i version 1.1', () => {
     expect(fel(() => cyto.foreslaVersion(db, pers(db, 'lak-kard'), 'ec', { cykler: 5, motivering: 'Annan' })).message).toContain('väntar redan');
     // Den gällande versionen används tills den nya är godkänd.
     expect(cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej' } }, BAS)).toMatchObject({ cykler: 4, regim: { version: 1 } });
-    // Göran Malm är inte regimansvarig och skrev versionen. Sara Lindqvist är ansvarig för läkemedelsmallar på kliniken.
+    // Göran Malm är inte regimansvarig och skrev versionen. Rebecka Ståhl är regimansvarig på Onkologiska kliniken. Sara
+    // Lindqvist är ansvarig för läkemedelsmallar på kardiologen, vilket inte gör henne regimansvarig.
     expect(fel(() => cyto.godkannVersion(db, pers(db, 'ol-kard'), f.version.id, BAS)).kod).toBe('samma_person');
-    expect(cyto.regimbibliotek(db, pers(db, 'lak-kard')).regimer[0].vantande[0].kanGodkanna).toBe(true);
-    const g = cyto.godkannVersion(db, pers(db, 'lak-kard'), f.version.id, efter(10));
-    expect(g.version).toMatchObject({ status: 'godkand', beslut: { av: 'Sara Lindqvist' } });
+    expect(cyto.regimbibliotek(db, pers(db, 'lak-kard')).regimer[0].vantande[0].kanGodkanna).toBe(false);
+    expect(fel(() => cyto.godkannVersion(db, pers(db, 'lak-kard'), f.version.id, efter(9))).status).toBe(403);
+    expect(cyto.regimbibliotek(db, pers(db, 'lak-onk')).regimer[0].vantande[0].kanGodkanna).toBe(true);
+    const g = cyto.godkannVersion(db, pers(db, 'lak-onk'), f.version.id, efter(10));
+    expect(g.version).toMatchObject({ status: 'godkand', beslut: { av: 'Rebecka Ståhl' } });
     const bib2 = cyto.regimbibliotek(db, pers(db, 'lak-kard')).regimer[0];
     expect([bib2.gallande.version, bib2.tidigare.map(v => [v.version, v.status])]).toEqual([2, [[1, 'ersatt']]]);
     // Den pågående behandlingen behåller version 1, och en ny patient får version 2 med premedicineringen.
@@ -76,8 +79,8 @@ describe('Cytostatika i version 1.1', () => {
     // Ett avslag kräver orsak, och versionen kan inte ändras i databasen.
     const f2 = cyto.foreslaVersion(db, pers(db, 'lak-kard'), 'kapecitabin', { doser: { kapecitabin: 1250 }, motivering: 'Högre dos' }, efter(13));
     expect(fel(() => cyto.avslaVersion(db, pers(db, 'lak-kard'), f2.version.id, { orsak: 'Nej' }, efter(14))).kod).toBe('samma_person');
-    expect(fel(() => cyto.avslaVersion(db, pers(db, 'lak-lind'), f2.version.id, {}, efter(14))).message).toContain('avslås');
-    expect(cyto.avslaVersion(db, pers(db, 'lak-lind'), f2.version.id, { orsak: 'Dosen är för hög' }, efter(14)).version.status).toBe('avslagen');
+    expect(fel(() => cyto.avslaVersion(db, pers(db, 'ol-onk'), f2.version.id, {}, efter(14))).message).toContain('avslås');
+    expect(cyto.avslaVersion(db, pers(db, 'ol-onk'), f2.version.id, { orsak: 'Dosen är för hög' }, efter(14)).version.status).toBe('avslagen');
     expect(() => db.query("UPDATE cyto_regimversioner SET innehall = '{}' WHERE id = ?").run(f2.version.id)).toThrow('ändras inte');
     // En okänd regim med ett nyckelord från prototypen finns inte.
     expect(fel(() => cyto.foreslaVersion(db, pers(db, 'lak-kard'), 'constructor', { cykler: 2, motivering: 'x y z' })).status).toBe(404);
@@ -159,6 +162,45 @@ describe('Cytostatika i version 1.1', () => {
     expect(b7.kumulativ[0].givna[0]).toMatchObject({ vardenhet: 'Tidigare behandling hos annan vårdgivare: Onkologen i Uppsala 2019', mgPerM2: 100 });
     // Svaret finns kvar, så nästa behandling frågar inte igen.
     expect(cyto.forPatient(lak(db, 'k7', 'las_cytostatika'), BAS).tidigareBehandling).toMatchObject({ svar: 'ja', mgPerM2: 100 });
+  });
+
+  test('regimansvarig är ett eget uppdrag som verksamhetschefen på Onkologiska kliniken ger, och det prövas vid varje godkännande', () => {
+    const db = sandlada();
+    const { utse, avsluta, gallande } = require('../src/lakemedelsansvar.js');
+    expect(gallande(db, 'uso-onk', 'regimansvarig').map(u => u.personal_id).sort()).toEqual(['lak-onk', 'ol-onk']);
+    expect(gallande(db, 'uso-kard', 'regimansvarig')).toEqual([]);
+    // Uppdraget finns bara på den onkologiska enheten, och bara dess verksamhetschef ger det.
+    expect(fel(() => utse(db, pers(db, 'vch-kard'), { typ: 'regimansvarig', personalId: 'lak-kard' })).message).toContain('Välj ett av uppdragen');
+    const f = cyto.foreslaVersion(db, pers(db, 'lak-onk'), 'karboplatin', { cykler: 4, motivering: 'Färre cykler räcker' }, BAS);
+    expect(fel(() => cyto.godkannVersion(db, pers(db, 'lak-onk'), f.version.id, BAS)).kod).toBe('samma_person');
+    // När Gunilla Noréns uppdrag avslutas kan hon inte längre godkänna, och ingen annan än regimansvariga kan det.
+    const u = gallande(db, 'uso-onk', 'regimansvarig').find(x => x.personal_id === 'ol-onk');
+    avsluta(db, pers(db, 'vch-onk'), u.id, { orsak: 'Byter tjänst' });
+    expect(fel(() => cyto.godkannVersion(db, pers(db, 'ol-onk'), f.version.id, BAS)).status).toBe(403);
+    expect(cyto.regimbibliotek(db, pers(db, 'ol-onk')).regimansvarig).toBe(false);
+    const ny = utse(db, pers(db, 'vch-onk'), { typ: 'regimansvarig', personalId: 'ol-onk' });
+    expect(ny.uppdrag).toMatchObject({ namn: 'Regimansvarig läkare för cytostatika', personal: { namn: 'Gunilla Norén' } });
+    expect(cyto.godkannVersion(db, pers(db, 'ol-onk'), f.version.id, BAS).version.status).toBe('godkand');
+    expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE personal_id = 'ol-onk' AND resultat = 'nekad' AND handling = 'ordinera_cytostatika'").get().n).toBe(1);
+  });
+
+  test('beredningsenheten ser namn och personnummer också när patienten har spärrat den beställande enheten, aldrig journalen, och skyddad identitet bara som märkningen kräver', () => {
+    const db = sandlada();
+    ny(db);
+    const b = cyto.ordinera(lak(db), { regim: 'ec', start: IMORGON, tidigareBehandling: { svar: 'nej' } }, BAS);
+    cyto.godkann(lak(db), cyto.cykelRad(db, kur(b).id), BAS);
+    sparr(db, 'k1', 'uso-kard');
+    const d = bered.arbetslista(db, far(db), BAS).attBereda[0].doser[0];
+    expect(d.patient).toMatchObject({ namn: 'Karin Kursberg', personnummer: expect.stringMatching(/^\d{8}-\d{4}$/) });
+    expect(JSON.stringify(d)).not.toMatch(/adress|postnr|telefon|anteckning/i);
+    expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE personal_id = 'far-bered' AND patient_id = 'k1' AND grund = 'utforande'").get().n).toBe(1);
+    // Skyddade personuppgifter: bara kontrollkoden och ett maskerat personnummer, som märkningen kräver.
+    db.query("UPDATE patienter SET skyddad = 1 WHERE id = 'k1'").run();
+    const s = bered.arbetslista(db, far(db), BAS).attBereda[0].doser[0];
+    expect(s.patient).toMatchObject({ namn: 'Skyddad identitet', skyddad: true });
+    expect(s.patient.personnummer).not.toBe(d.patient.personnummer);
+    expect(JSON.stringify(s)).not.toContain('Kursberg');
+    expect(s.etikettText.startsWith(`Skyddad identitet. Kontrollkod ${s.etikett}.`)).toBe(true);
   });
 
   test('kapaciteten: beredningsenheten styr hur många kurer den tar emot per dag, och en full dag stoppar godkännandet med första lediga dag', () => {
@@ -248,7 +290,7 @@ describe('Cytostatika i version 1.1', () => {
     expect(s.batch).toMatchObject({ batch: 'EPIR0001', vara: 'Epirubicin 2 mg/ml' });
     expect(s.doser.map(x => [x.patient.namn, x.vardenhet, x.mangd, x.status])).toEqual([['Karin Kursberg', 'Kardiologiska kliniken USÖ', 76, 'mottagen'], ['Skyddad identitet', 'Kardiologiska kliniken USÖ', 76, 'mottagen']]);
     expect(JSON.stringify(s)).not.toContain('Person');
-    expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE personal_id = 'far-bered' AND resurs = 'cyto_batch:EPIR0001' AND grund = 'bestallning'").get().n).toBe(2);
+    expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE personal_id = 'far-bered' AND resurs = 'cyto_batch:EPIR0001' AND grund = 'utforande'").get().n).toBe(2);
     expect(fel(() => bered.sparbarhet(db, far(db), 'FINNS0EJ', efter(90))).status).toBe(404);
     expect(a.doser[0]).toMatchObject({ etikett: expect.stringMatching(/^VKC/) });
   });
@@ -262,7 +304,7 @@ describe('Cytostatika i version 1.1', () => {
       () => bered.bered(db, pers(db, 'far-kard'), kur(b).doser[0].id, { batch: 'EPIR0001', uppmattMl: 76 }, BAS)]) expect(fel(f).status).toBe(403);
     expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE personal_id = 'far-kard' AND handling = 'bereda_cytostatika' AND resultat = 'nekad'").get().n).toBe(2);
     bered.arbetslista(db, far(db), BAS);
-    expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE personal_id = 'far-bered' AND patient_id = 'k1' AND grund = 'bestallning'").get().n).toBe(1);
+    expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE personal_id = 'far-bered' AND patient_id = 'k1' AND grund = 'utforande'").get().n).toBe(1);
     // Farmaceuten på beredningsenheten har ingen vårdrelation och når inte journalen eller behandlingen.
     expect(fel(() => cyto.forPatient(atk(db, 'far-bered', 'k1', 'las_cytostatika'))).status).toBe(403);
     expect(atk(db, 'far-bered', 'k1', 'las_oversikt').prova('las_oversikt').tillaten).toBe(false);
@@ -413,8 +455,12 @@ describe('Cytostatika i version 1.1 via API', () => {
     expect(f.status).toBe(201);
     expect((await k.post(`/api/cytostatika/regimversion/${f.data.version.id}/godkann`, {})).status).toBe(409);
     await k.logga('lak-kard');
+    expect((await k.post(`/api/cytostatika/regimversion/${f.data.version.id}/godkann`, {})).status).toBe(403);
+    await k.logga('lak-onk');
+    expect((await k.get('/api/session')).data.r11r4).toMatchObject({ cytostatika: true, beredning: false });
     expect((await k.get('/api/inkorg')).data.cytoRegimversioner.map(x => x.id)).toContain(f.data.version.id);
     expect((await k.post(`/api/cytostatika/regimversion/${f.data.version.id}/godkann`, {})).data.version.status).toBe('godkand');
+    await k.logga('lak-kard');
     expect((await k.post(`/api/cytostatika/regimversion/${f.data.version.id}/okand`, {})).status).toBe(404);
     nyPatient(db, { id: 'ka1', enhet: ENHET, ar: 1960, kon: 'K', start: new Date() });
     for (const [t, v] of [['langd', 168], ['vikt', 70], ['lpk', 6], ['tpk', 250]]) db.query("INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, tid) VALUES ('ka1', ?, ?, ?, ?, ?)").run(ENHET, t, String(v), v, new Date(Date.now() - 3600_000).toISOString());
@@ -423,7 +469,8 @@ describe('Cytostatika i version 1.1 via API', () => {
     expect((await k.get('/api/patient/ka1')).data.specialistR11r4).toEqual({ cytostatika: true, blod: false });
     const cid = b.data.kurer[0].id;
     expect((await k.post(`/api/cytostatika/cykel/${cid}/godkann`, {})).status).toBe(200);
-    expect((await k.get('/api/session')).data.r11r4).toEqual({ beredning: false, cytostatika: true });
+    // Kardiologen ger inte cytostatika i demon, men en läkare där som har ordinerat ser kurerna.
+    expect((await k.get('/api/session')).data.r11r4).toEqual({ beredning: false, cytostatika: true, onkologi: false });
     expect((await k.get('/api/beredning/arbetslista')).status).toBe(403);
     await k.logga('far-bered');
     expect((await k.get('/api/session')).data.r11r4.beredning).toBe(true);
