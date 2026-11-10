@@ -1634,3 +1634,33 @@ td .tagg-avliden { margin-left: 6px; }
 .min-trad { margin: 8px 0; }
 .min-trad > details > summary { cursor: pointer; padding: 6px 0; }
 .min-ombud-rubrik { font-size: 1.1rem; margin-top: 20px; }
+
+/* Runda 11, r2: operationen i journalen och operationsavdelningen (patient-operation.js och vyer/operation.js). */
+.op-kort { border: 1px solid var(--linje); border-radius: 8px; background: var(--yta); padding: 12px 16px; margin: 12px 0; }
+.op-kort > header { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; justify-content: space-between; }
+.op-kort h3 { margin: 0; }
+.op-kort h4 { margin: 14px 0 6px; }
+.op-paverkar, .op-forb, .op-tider, .op-lista { list-style: none; padding: 0; margin: 6px 0; }
+.op-forb li, .op-lista li { display: flex; gap: 8px; align-items: flex-start; margin: 4px 0; }
+.op-klar .ikon { color: var(--ok); }
+.op-kvar .ikon { color: var(--dampad); }
+.op-tider { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.op-tider li { padding: 2px 8px; border-radius: 12px; border: 1px solid var(--linje); }
+.op-tider .op-klar { background: var(--ok-bg); border-color: var(--ok); }
+.op-tider .op-nasta { border-color: var(--kalla); border-width: 2px; }
+.op-dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 6px 0; }
+.op-dl > div { display: contents; }
+.op-dl dt { color: var(--dampad); }
+.op-dl dd { margin: 0; }
+.op-check { border-left: 3px solid var(--kalla); padding: 6px 12px; margin: 10px 0; background: var(--kalla-ljus); }
+.op-check .kryssfalt label .under-text { display: block; }
+.op-rad { margin: 8px 0; }
+.op-info { margin: 6px 0; }
+.op-flikar ul { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0 0 12px; }
+.op-flikar a { display: inline-block; min-height: 40px; line-height: 40px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--linje); color: var(--kalla-mork); text-decoration: none; }
+.op-flikar a[aria-current="page"] { background: var(--kalla); border-color: var(--kalla); color: #fff; }
+.op-datum { align-items: center; }
+.op-upptagen td { color: var(--dampad); font-style: italic; }
+.op-block td { vertical-align: top; min-width: 130px; }
+.op-block .op-egen { background: var(--kalla-ljus); }
+@media (max-width: 600px) { .op-dl { grid-template-columns: 1fr; } }

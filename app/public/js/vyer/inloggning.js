@@ -32,6 +32,8 @@ const VISAR = {
   'sysf-2': 'Den andra systemförvaltaren: finns för att godkänna det som Tomas Lindh föreslår, till exempel ändrade regler, en sammanslagning eller ett uttag, eftersom ingen godkänner sina egna ändringar (fyra ögon).',
   // Runda 7, r1: paramedicinaren i Sussas testfall.
   'fys-kard': 'Fysioterapeut på kardiologiska mottagningen: läser journalen, skriver anteckningar, registrerar mätvärden och skickar, tar emot och besvarar remisser. Ordinerar och ger inga läkemedel.',
+  // Runda 11, r2.
+  'opk-kkoga': 'Operationskoordinator på Ortopediska kliniken Karlskoga lasarett: planerar operationerna i salarna och salsblocken, för anestesijournalen och checklistan på salen, registrerar sterilgods och material och skriver ut från uppvakningen. Anmäler inte till operation och ordinerar inte.',
   'vch-kard': 'Verksamhetschef på kardiologen: utser medicinskt ansvarig läkare, mallansvarig läkare och läkemedelsansvariga sjuksköterskor med systemets förslag, och påminns när ett uppdrag saknas eller ansvarsdokumentet inte har setts över på ett år. Läser inte journalen.',
   // Runda 7, r3.
   'eko': 'Ekonom på regionkansliet: hämtar faktureringsunderlaget per vårdenhet och månad med ett klick, eftersom systemet redan har skapat posterna, och ändrar prislistorna med giltighetstid och historik. Läser inte journalen.',

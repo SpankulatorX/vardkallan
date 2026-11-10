@@ -354,7 +354,8 @@ export function forberedelser(atk, an, nu = new Date()) {
   // Runda 11, r2: den kopplade anestesibedömningen och dess giltighetstid.
   const bed = an.anestesi === 'lokal' ? null : anestesiFor(atk, an, nu);
   const anestesi = an.anestesi === 'lokal' ? { klar: true, text: 'Behövs inte vid lokalbedövning.' }
-    : bed?.giltig ? { klar: true, text: `${bed.asaText}, bedömd ${bed.tid.slice(0, 10)} av ${bed.av}, giltig till ${bed.giltigTill}.${bed.samtycke === 'ja' ? ' Patienten har samtyckt.' : ''}` }
+    : bed?.giltig ? { klar: true, text: `${bed.asaText}, bedömd ${bed.tid.slice(0, 10)} av ${bed.av}, giltig till ${bed.giltigTill}.${bed.samtycke === 'ja' ? ' Patienten har samtyckt.' : ''}`,
+      patientinformation: bed.patientinformation, skalor: bed.skalor }
       : bed ? { klar: false, text: `Anestesibedömningen gällde till ${bed.giltigTill}. Patienten behöver bedömas igen före operationen.` }
         : an.asa != null ? { klar: true, text: `ASA ${an.asa}.` } : { klar: false, text: 'Patienten behöver bedömas av anestesiläkaren före operationen.' };
   const punkter = [
