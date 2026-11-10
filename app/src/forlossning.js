@@ -219,7 +219,8 @@ export function tilldelaPersonnummer(db, { kon, fodd }) {
   if (!pnr) throw new Fel(409, 'Det finns inga lediga testpersonnummer i demon.', 'ogiltig');
   return pnr;
 }
-const anmalanUt = (db, a) => (a ? { id: a.id, tid: a.tid, status: a.status, kvittens: a.kvittens, personnummer: a.personnummer ? identitet.formatera('personnummer', a.personnummer) : null, text: a.text, av: personNamn(db, a.av), mottagare: MOTTAGARE_SKV } : null);
+// Personnumret visas bara när barnet syns och inte har skyddade personuppgifter (barnVisning).
+const anmalanUt = (db, a, visas) => (a ? { id: a.id, tid: a.tid, status: a.status, kvittens: a.kvittens, personnummer: a.personnummer && visas?.personnummer ? visas.personnummer : null, text: a.text, av: personNamn(db, a.av), mottagare: MOTTAGARE_SKV } : null);
 
 export function fodelseanmalan(atk, f, body = {}, nu = new Date()) {
   const db = atk.db;
@@ -245,14 +246,28 @@ export function fodelseanmalan(atk, f, body = {}, nu = new Date()) {
       identitet.nyIdentitet(db, barn, { ...tolkat, fodd: null }, { personal: atk.personal, tid: t });
     })();
     status = 'kvitterad';
-    text = `Skatteverket har tagit emot födelseanmälan och gett barnet personnumret ${identitet.formatera('personnummer', pnr)} (ett av Skatteverkets testpersonnummer i demon). Reservnumret finns kvar som tidigare identitet.${mor.skyddad ? ' Moderns skyddade personuppgifter gäller också barnet.' : ''}`;
+    // Den sparade texten har aldrig personnumret, som visas för sig och maskeras för skyddad identitet.
+    text = `Skatteverket har tagit emot födelseanmälan och gett barnet ett personnummer, ett av Skatteverkets testpersonnummer i demon. Reservnumret finns kvar som tidigare identitet.${mor.skyddad ? ' Moderns skyddade personuppgifter gäller också barnet.' : ''}`;
   }
   db.query('INSERT INTO fodelseanmalan (forlossning_id, patient_id, barn_patient_id, enhet_id, tid, status, kvittens, personnummer, text, av) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
     .run(f.id, f.patient_id, b.barn_patient_id, atk.personal.enhet_id, t, status, kvittens, pnr, text, atk.personal.id);
   // Identiteten ändras på barnets journal, och det loggas där.
   const ab = new Atkomst(db, atk.personal, b.barn_patient_id, {}, 'registrera_patient');
   ab.logga('registrera_patient', ab.grund(), `fodelseanmalan:${kvittens}`);
-  return { anmalan: anmalanUt(db, db.query('SELECT * FROM fodelseanmalan WHERE barn_patient_id = ?').get(b.barn_patient_id)), text };
+  const visas = barnVisning(atk, b);
+  const anmalan = anmalanUt(db, db.query('SELECT * FROM fodelseanmalan WHERE barn_patient_id = ?').get(b.barn_patient_id), visas);
+  return { anmalan, text: anmalan.personnummer ? `${text} Personnumret är ${anmalan.personnummer}.` : text };
+}
+
+// Runda 11, r3, säkerhetsgranskningen: barnet är en egen patient. Åtkomsten till barnet prövas för sig, och ett barn med
+// skyddade personuppgifter visas utan namn och personnummer, som Barn 1 och Barn 2, utom efter ett val att visa identiteten.
+export function barnVisning(atk, b) {
+  const p = atk.db.query('SELECT * FROM patienter WHERE id = ?').get(b.barn_patient_id);
+  const visad = Boolean(atk.patientId === b.barn_patient_id && atk.val?.visa_identitet);
+  const synlig = Boolean(p && !p.sammanslagen_till && new Atkomst(atk.db, atk.personal, p.id, atk.patientId === p.id ? atk.val : {}, 'las_graviditet').prova('las_graviditet', { enhet_id: b.enhet_id }).tillaten);
+  const skyddad = Boolean(p?.skyddad) && !visad;
+  return { p, synlig, skyddad, namn: skyddad ? `Barn ${b.ordning}` : visningsnamn(p, visad), kort: skyddad ? `Barn ${b.ordning}` : p?.fornamn ?? `Barn ${b.ordning}`,
+    personnummer: skyddad || !p ? null : visningsPnr(p, visad) };
 }
 
 // ---- BB-journalen ------------------------------------------------------------------------------------------------------
@@ -375,7 +390,8 @@ const kontrollerFor = (db, pid, f) => db.query('SELECT * FROM bb_kontroller WHER
   .map(k => ({ id: k.id, tid: k.tid, varden: lasJson(k.varden, {}), varningar: lasJson(k.varningar, []), av: personNamn(db, k.av) }));
 
 // Barnets BB-journal med screeningen och det som ska göras före hemgång.
-function barnBb(db, b, f, nu) {
+function barnBb(db, b, f, nu, atk) {
+  const visas = barnVisning(atk, b);
   const kontroller = kontrollerFor(db, b.barn_patient_id, f);
   const scr = db.query('SELECT * FROM bb_screening WHERE patient_id = ? ORDER BY tid').all(b.barn_patient_id);
   const pkuFran = iso(Date.parse(b.fodd_tid) + PKU_TIMMAR * TIMME);
@@ -387,11 +403,16 @@ function barnBb(db, b, f, nu) {
   const vikt = kontroller.find(k => k.varden.vikt != null);
   const anm = db.query('SELECT * FROM fodelseanmalan WHERE barn_patient_id = ?').get(b.barn_patient_id);
   return { patientId: b.barn_patient_id, ordning: b.ordning, fodd: b.fodd_tid, timmar: Math.floor((nu.getTime() - Date.parse(b.fodd_tid)) / TIMME), fodelsevikt: b.vikt,
-    senasteVikt: vikt ? { vikt: vikt.varden.vikt, tid: vikt.tid, viktnedgang: vikt.varden.viktnedgang } : null, kontroller, screening, anmalan: anmalanUt(db, anm) };
+    senasteVikt: vikt ? { vikt: vikt.varden.vikt, tid: vikt.tid, viktnedgang: vikt.varden.viktnedgang } : null, kontroller, screening, anmalan: anmalanUt(db, anm, visas), namn: visas.namn, kort: visas.kort };
 }
 
+const allaBarn = (db, f) => db.query('SELECT * FROM forlossning_barn WHERE forlossning_id = ? ORDER BY ordning').all(f.id);
+export const synligaBarn = (atk, f) => allaBarn(atk.db, f).filter(b => barnVisning(atk, b).synlig);
+const allaBarnSyns = (atk, f) => synligaBarn(atk, f).length === allaBarn(atk.db, f).length;
+
 // Utskrivningskriterierna för mor och barn, som systemet prövar.
-export function kriterier(db, f, { pkuAterbesok = false } = {}, nu = new Date()) {
+export function kriterier(atk, f, { pkuAterbesok = false } = {}, nu = new Date()) {
+  const db = atk.db;
   const ut = [];
   const mor = kontrollerFor(db, f.patient_id, f);
   const k = (ok, text) => ut.push({ ok: Boolean(ok), text });
@@ -399,8 +420,8 @@ export function kriterier(db, f, { pkuAterbesok = false } = {}, nu = new Date())
   k(mor[0] && !mor[0].varningar.length, 'Moderns senaste kontroll har inga varningar.');
   k(mor.some(x => x.varden.urinerat === true), 'Modern har kissat efter förlossningen.');
   for (const b of db.query('SELECT * FROM forlossning_barn WHERE forlossning_id = ? ORDER BY ordning').all(f.id)) {
-    const bb = barnBb(db, b, f, nu);
-    const namn = db.query('SELECT fornamn FROM patienter WHERE id = ?').get(b.barn_patient_id)?.fornamn ?? `Barn ${b.ordning}`;
+    const bb = barnBb(db, b, f, nu, atk);
+    const namn = bb.kort;
     const gjord = (typ) => bb.screening.find(s => s.typ === typ).gjord;
     k(bb.kontroller[0] && nu.getTime() - Date.parse(bb.kontroller[0].tid) <= 12 * TIMME, `${namn} har kontrollerats de senaste tolv timmarna.`);
     k(bb.senasteVikt && bb.senasteVikt.viktnedgang < VIKTNEDGANG_GRANS, `${namn} har vägts och gått ner mindre än ${VIKTNEDGANG_GRANS} procent.`);
@@ -418,11 +439,12 @@ export function bbFor(atk, nu = new Date()) {
   const base = { vem, forlossningId: f.id, utskriven: u ? { tid: u.tid, av: personNamn(db, u.av) } : null, demoregel: DEMOREGEL,
     kanRegistrera: atk.prova('graviditet').tillaten && vardenhetFor(db, atk.personal.enhet_id) === vardenhetFor(db, f.enhet_id) && !u };
   if (vem === 'barn') {
-    return { ...base, barn: barnBb(db, barn, f, nu) };
+    return { ...base, barn: barnBb(db, barn, f, nu, atk) };
   }
+  // Bara de barn som den inloggade får se, och kriterierna bara när alla barnen syns.
   return { ...base, kontroller: kontrollerFor(db, f.patient_id, f), avslutad: f.avslutad,
-    barn: db.query('SELECT * FROM forlossning_barn WHERE forlossning_id = ? ORDER BY ordning').all(f.id).map(b => ({ ...barnBb(db, b, f, nu), namn: visningsnamn(db.query('SELECT * FROM patienter WHERE id = ?').get(b.barn_patient_id)) })),
-    kriterier: u ? [] : kriterier(db, f, {}, nu) };
+    barn: synligaBarn(atk, f).map(b => barnBb(db, b, f, nu, atk)),
+    kriterier: u || !allaBarnSyns(atk, f) ? [] : kriterier(atk, f, {}, nu) };
 }
 
 export function utskrivning(atk, body = {}, nu = new Date()) {
@@ -432,7 +454,8 @@ export function utskrivning(atk, body = {}, nu = new Date()) {
   if (vem !== 'mor') throw new Fel(400, 'Mor och barn skrivs ut från moderns journal.', 'ogiltig');
   kravBbEnhet(atk, f);
   if (utskriven(db, f)) throw new Fel(409, 'Mor och barn är redan utskrivna.', 'ogiltig');
-  const kr = kriterier(db, f, { pkuAterbesok: body.pkuAterbesok === true }, nu);
+  if (!allaBarnSyns(atk, f)) throw new Fel(403, 'Du har inte åtkomst till alla barnens journaler, så utskrivningen kan inte prövas.', 'nekad');
+  const kr = kriterier(atk, f, { pkuAterbesok: body.pkuAterbesok === true }, nu);
   const saknas = kr.filter(x => !x.ok);
   if (saknas.length) throw new Fel(409, `Utskrivningen kan inte göras ännu: ${saknas.map(x => x.text.replace(/\.$/, '').toLowerCase()).join('; ')}.`, 'kontroll', { saknas: saknas.map(x => x.text) });
   const t = iso(nu);
@@ -460,9 +483,10 @@ export function forlossningFor(atk, nu = new Date()) {
   const gSynlig = atk.prova('las_graviditet', { enhet_id: g.enhet_id }).tillaten;
   const gu = gSynlig ? obs.graviditetUt(atk, g, nu) : null;
   const egen = vardenhetFor(db, atk.personal.enhet_id) === vardenhetFor(db, f.enhet_id) && atk.prova('graviditet').tillaten;
-  const barn = db.query('SELECT * FROM forlossning_barn WHERE forlossning_id = ? ORDER BY ordning').all(f.id).map(b => ({
-    ordning: b.ordning, patientId: b.barn_patient_id, namn: visningsnamn(db.query('SELECT * FROM patienter WHERE id = ?').get(b.barn_patient_id)),
-    anmalan: anmalanUt(db, db.query('SELECT * FROM fodelseanmalan WHERE barn_patient_id = ?').get(b.barn_patient_id)) }));
+  const barn = synligaBarn(atk, f).map(b => {
+    const v = barnVisning(atk, b);
+    return { ordning: b.ordning, patientId: b.barn_patient_id, namn: v.namn, anmalan: anmalanUt(db, db.query('SELECT * FROM fodelseanmalan WHERE barn_patient_id = ?').get(b.barn_patient_id), v) };
+  });
   const p = db.query('SELECT * FROM patienter WHERE id = ?').get(atk.patientId);
   return {
     patient: { id: p.id, namn: visningsnamn(p, atk.val?.visa_identitet), personnummer: visningsPnr(p, atk.val?.visa_identitet) },

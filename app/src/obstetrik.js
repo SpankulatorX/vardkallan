@@ -272,7 +272,8 @@ export function graviditetUt(atk, g, nu = new Date()) {
     besok: db.query('SELECT * FROM graviditet_besok WHERE graviditet_id = ? ORDER BY tid').all(g.id).map(b => ({ id: b.id, tid: b.tid, vecka: veckaText(b.dagar), blodtryck: b.blodtryck,
       vikt: b.vikt, sfMatt: b.sf_matt, fosterljud: b.fosterljud, urinProtein: b.urin_protein, varningar: lasJson(b.varningar, []), av: personNamn(db, b.av) })),
     vardenhet: enhetKort(db, g.enhet_id), registrerad: { tid: g.skapad, av: personNamn(db, g.registrerad_av) },
-    forlossning: f ? forlossningUt(atk, f) : null, demoregel: DEMOREGEL,
+    // Runda 11, r3: förlossningen visas bara när den inloggade får se förlossningens vårdenhet.
+    forlossning: f && atk.prova('las_graviditet', { enhet_id: f.enhet_id }).tillaten ? forlossningUt(atk, f) : null, demoregel: DEMOREGEL,
     // Runda 11, r3.
     ivf: g.ivf_overforing ? { overforing: g.ivf_overforing, embryoDagar: g.ivf_embryo_dagar } : null, registerMotsatt: Boolean(g.register_motsatt),
     ultraljud: db.query('SELECT * FROM graviditet_ultraljud WHERE graviditet_id = ? ORDER BY datum, id').all(g.id).map(u => ultraljudUt(db, u)),
@@ -680,7 +681,9 @@ export function forlossningUt(atk, f) {
   const db = atk.db;
   const punkter = partogramUt(db.query('SELECT * FROM partogram WHERE forlossning_id = ? ORDER BY tid, id').all(f.id));
   const sista = punkter.at(-1);
-  const barn = db.query('SELECT * FROM forlossning_barn WHERE forlossning_id = ? ORDER BY ordning').all(f.id);
+  // Runda 11, r3: barnet är en egen patient och visas bara när den inloggade får se barnets journal.
+  const barn = db.query('SELECT * FROM forlossning_barn WHERE forlossning_id = ? ORDER BY ordning').all(f.id)
+    .filter(b => new Atkomst(db, atk.personal, b.barn_patient_id, atk.patientId === b.barn_patient_id ? atk.val : {}, 'las_graviditet').prova('las_graviditet', { enhet_id: b.enhet_id }).tillaten);
   return {
     id: f.id, status: f.status, start: f.start, vardenhet: enhetKort(db, f.enhet_id), partogram: punkter,
     lage: sista ? { id: sista.lage, text: LAGE_TEXT[sista.lage] } : null,

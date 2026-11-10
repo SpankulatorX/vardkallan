@@ -447,6 +447,36 @@ describe('Graviditet, förlossning och BB', () => {
     }
   });
 
+  test(T.barnIdentitet.replace(/^.*> /, ''), () => {
+    // Modern har skyddade personuppgifter, och då får barnet det också.
+    const db = sandlada();
+    const f = tillForlossning(db, { antalFoster: 2, extra: { skyddad: 1, efternamn: 'Hemligsdotter' } });
+    const b1 = barn(db, f, 1, 300), b2 = barn(db, f, 2, 310);
+    const svar = [forl.fodelseanmalan(bm(db, 'r1'), frad(db, f.id), { ordning: 1 }, efter(320))];
+    const pnr = db.query('SELECT personnummer FROM patienter WHERE id = ?').get(b1.barnId).personnummer;
+    expect(db.query('SELECT skyddad FROM patienter WHERE id = ?').get(b1.barnId).skyddad).toBe(1);
+    svar.push(forl.bbFor(bm(db, 'r1', 'las_graviditet'), efter(400)), forl.forlossningFor(bm(db, 'r1', 'las_graviditet'), efter(400)),
+      forl.bbFor(atk(db, 'bm-uso', b1.barnId, 'las_graviditet'), efter(400)), forl.oversikt(db, pers(db, 'bm-uso'), () => ({}), efter(400)));
+    for (const s of svar) {
+      const t = JSON.stringify(s);
+      expect(t).not.toContain(pnr);
+      expect(t).not.toContain(`${pnr.slice(0, 8)}-${pnr.slice(8)}`);
+      expect(t).not.toContain('Hemligsdotter');
+    }
+    expect(svar[1].kriterier.some(k => k.text.startsWith('Barn 1:'))).toBe(true);
+    expect(fel(() => forl.utskrivning(bm(db, 'r1'), { pkuAterbesok: true }, efter(400))).message).not.toContain('Hemligsdotter');
+    // Ett barn som den inloggade inte har åtkomst till syns inte i moderns vy.
+    const d = sandlada();
+    const g = tillForlossning(d, { antalFoster: 2 });
+    const x1 = barn(d, g, 1, 300), x2 = barn(d, g, 2, 310);
+    d.query('DELETE FROM vardkontakter WHERE patient_id = ?').run(x2.barnId);
+    const vy = forl.bbFor(bm(d, 'r1', 'las_graviditet'), efter(400));
+    expect(vy.barn.map(x => x.patientId)).toEqual([x1.barnId]);
+    for (const s of [vy, forl.forlossningFor(bm(d, 'r1', 'las_graviditet'), efter(400)), forl.oversikt(d, pers(d, 'bm-uso'), () => ({}), efter(400))]) expect(JSON.stringify(s)).not.toContain(x2.barnId);
+    expect(fel(() => forl.utskrivning(bm(d, 'r1'), { pkuAterbesok: true }, efter(400))).status).toBe(403);
+    expect(b2.barnId).toBeTruthy();
+  });
+
   test(T.seed.replace(/^.*> /, ''), () => {
     // Samma seed oavsett tid på dygnet, också mellan 23 och 01 svensk tid.
     for (const bas of [BAS, new Date('2026-11-12T22:30:00Z'), new Date('2026-11-12T23:30:00Z')]) {

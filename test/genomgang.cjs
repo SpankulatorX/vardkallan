@@ -1707,6 +1707,7 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
     await s('Sofia Ekdahl lägger in demopatienterna och bedömer CTG under förlossningen med ett klick', async () => {
       await loggaIn(page, 'bm-uso');
       await gaTill(page, '#/forlossning');
+      await page.waitForSelector('#forl section');
       if (await page.locator('[data-ob-demo]').count()) { await page.click('[data-ob-demo]'); await forvanta(page, '.notis', 'Demopatienterna för mödrahälsovården'); }
       await page.waitForSelector('#forl-tabell');
       await bild(page, '160-forlossningen', true);
@@ -1741,7 +1742,7 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
       await page.click('#gr-samtal [type="submit"]');
       await forvanta(page, '.notis', 'Inskrivningssamtalet är registrerat');
       await page.waitForSelector('[data-gr-vald]');
-      await saknas(page, 'Vill inte svara');
+      await forvanta(page, 'main dd', 'Ställda. Svaren är känsliga uppgifter och visas inte här.');
       await page.click('[data-gr-vald]');
       await forvanta(page, 'dialog[open]', 'Svaren på frågorna om våld');
       await bild(page, '164-valdsvar');
