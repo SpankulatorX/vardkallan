@@ -169,7 +169,8 @@ describe('Donation och transplantation', () => {
     expect(ids('adm-kard')).toEqual(expect.arrayContaining(['r10r4-restjournaler']));
     expect(ids('adm-kard')).not.toContain('r10r4-infarter');
     const versioner = nyheter.NYHETER.filter(v => v.nyheter.some(n => n.id.startsWith('r10r4-')));
-    expect(versioner.map(v => v.version)).toEqual([nyheter.AKTUELL]);
+    // Runda 11, r3: nyheterna står i en version, som inte behöver vara den senaste.
+    expect(versioner.length).toBe(1);
   });
 
   test('behörighet: fel roll, fel vårdenhet och spärr, och tidslinjen visar bara det som får ses', async () => {

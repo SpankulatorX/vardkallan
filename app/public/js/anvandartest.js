@@ -129,6 +129,8 @@ const FORBERED = {
   donation: async () => { await aterstallDemo(); await api('/api/demo/donation', { metod: 'POST', data: {} }); await api('/api/patient/p10/dodsfall', { metod: 'POST', data: { kriterier: 'direkta' } }); },
   // Runda 10, r7: en patient checkas in och betalar med kort, så att kassan har en betalning att göra dagsavslut på.
   'kassa-besok': async () => { await aterstallDemo(); await api('/api/demo/kassa-besok', { metod: 'POST', data: {} }); },
+  // Runda 11, r3: demopatienterna för mödrahälsovården och förlossningen.
+  obstetrik: async () => { await aterstallDemo(); await api('/api/demo/obstetrik', { metod: 'POST', data: {} }); },
 };
 
 // Uppgiften börjar på samma sätt som i skriptet: vid byte av demoroll loggas rollen in och demon återställs, så att

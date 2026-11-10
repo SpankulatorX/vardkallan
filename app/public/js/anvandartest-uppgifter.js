@@ -63,6 +63,9 @@ export const STARTPUNKT = {
   'Inkorgen med ett förslag om donation': { hash: '#/inkorg', klar: 'section[aria-labelledby="ik-donation"] li', forbered: 'donation' },
   // Runda 10, r7: kassan, efter uppgiften där vårdadministratören tar betalt.
   'Kassan': { hash: '#/kassa', klar: '#kassa-avslut', forbered: 'kassa-besok' },
+  // Runda 11, r3: graviditetsjournalen och förlossningens översikt med demopatienterna.
+  'Graviditetsjournalen i vecka 30': { hash: '#/patient/obs1/graviditet', klar: '#gr-besok', forbered: 'obstetrik' },
+  'Förlossningens översikt': { hash: '#/forlossning', klar: '#forl-tabell', forbered: 'obstetrik' },
 };
 
 export const UPPGIFTER = [
@@ -566,6 +569,17 @@ export const UPPGIFTER = [
     id: 'dagsavslut', namn: 'Göra dagsavslut i kassan', roll: 'adm-kard', start: 'Kassan',
     text: 'Dagen är slut. Stäm av din kassa mot betalterminalen och gör dagsavslut.',
     kontroll: { notis: 'Dagsavslutet är gjort' },
+  },
+  // Runda 11, r3.
+  {
+    id: 'graviditet-besok', namn: 'Registrera ett besök i graviditetsjournalen', roll: 'ssk-vc', start: 'Graviditetsjournalen i vecka 30',
+    text: 'Linnea Åkerlund är i vecka 30. Hon har blodtryck 116/72, väger 73 kilo, symfys-fundusmåttet är 30 centimeter och fosterljuden 142. Registrera besöket.',
+    kontroll: { notis: 'Besöket är sparat' },
+  },
+  {
+    id: 'ctg-bedomning', namn: 'Bedöma CTG under en förlossning', roll: 'bm-uso', start: 'Förlossningens översikt',
+    text: 'Amanda Lindholm föder. Gör nästa CTG-bedömning och dokumentera den.',
+    kontroll: { notis: 'Bedömningen är dokumenterad' },
   },
 ];
 

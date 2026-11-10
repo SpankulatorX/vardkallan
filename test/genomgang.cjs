@@ -1903,7 +1903,9 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
         // Runda 10, r4: in- och utfarter, restjournaler och donation.
         'registrera-infart', 'skanna-restjournal', 'starta-donation',
         // Runda 10, r7: meddelanden, kontorsstödet, kapaciteten och kassan.
-        'fornya-recept', 'kalenderprenumeration', 'svara-meddelande', 'kapacitetsprognos', 'dagsavslut']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'fornya-recept', 'kalenderprenumeration', 'svara-meddelande', 'kapacitetsprognos', 'dagsavslut',
+        // Runda 11, r3: besöket i graviditetsjournalen och CTG-bedömningen.
+        'graviditet-besok', 'ctg-bedomning']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');
