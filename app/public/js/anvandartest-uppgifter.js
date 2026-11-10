@@ -38,6 +38,8 @@ export const STARTPUNKT = {
   'Rapporteringssidan efter återställning': { hash: '#/rapportering', klar: '[data-granska="par"]', forbered: 'aterstall' },
   // Runda 7, r7.
   'Kravsidan': { hash: '#/krav', klar: '#sussa-lista details.sussapost' },
+  // Runda 11, r2: operationsavdelningens program för dagen.
+  'Operationsavdelningens program': { hash: '#/operation/program', klar: '.op-program' },
   // Runda 9, r1: Birgitta Nyman tar insulin med penna, och demon återställs först.
   'Översikten för en patient med insulin': { hash: '#/patient/p06', klar: '.tidslinje', forbered: 'aterstall' },
   // Runda 10, r5: Gunnar Åkesson och väntrummet på akuten, efter återställning.
@@ -566,6 +568,17 @@ export const UPPGIFTER = [
     id: 'dagsavslut', namn: 'Göra dagsavslut i kassan', roll: 'adm-kard', start: 'Kassan',
     text: 'Dagen är slut. Stäm av din kassa mot betalterminalen och gör dagsavslut.',
     kontroll: { notis: 'Dagsavslutet är gjort' },
+  },
+  // Runda 11, r2: operationsplaneringen och förloppet på salen.
+  {
+    id: 'planera-operation', namn: 'Planera en operation från väntelistan', roll: 'opk-kkoga', start: 'Arbetslistan efter inloggning',
+    text: 'Du är operationskoordinator. Planera operationen för den patient på väntelistan som har väntat längst efter målet.',
+    kontroll: { notis: 'Operationen är planerad' },
+  },
+  {
+    id: 'operation-in-sal', namn: 'Registrera att patienten kommer in på salen', roll: 'opk-kkoga', start: 'Operationsavdelningens program',
+    text: 'Dagens första patient i operationssal 1 i Karlskoga är på väg in på salen. Registrera det.',
+    kontroll: { sel: '.op-check' },
   },
 ];
 

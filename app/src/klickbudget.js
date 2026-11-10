@@ -446,6 +446,15 @@ export const FLODEN = [
     motivering: 'Sussa 3.7.1.1 och 3.7.1.3. Ett klick på Meddelanden, ett fältbyte till texten och ett klick på Skicka. En fråga till vården är förvald, och systemet väljer vårdenheten där patienten senast hade kontakt.',
   },
   {
+    // Runda 11, r2: operationsplaneringen och förloppet på salen (Sussa 4.5.1.2 och 4.5.1.3).
+    id: 'planera-operation', namn: 'Planera en operation från väntelistan', roll: 'opk-kkoga', start: 'Arbetslistan efter inloggning', budget: 4,
+    motivering: 'Sussa 4.5.1.2. Ett klick på Operation i menyn, ett på Väntelista, ett på Planera vid patienten som har väntat längst och ett på Planera i systemets förslag. Systemet har valt sal i vårdenhetens block, tid, operatör, operationssjuksköterska, anestesiteam och utrustning som är lediga och skriver kallelsen.',
+  },
+  {
+    id: 'operation-in-sal', namn: 'Registrera att patienten kommer in på salen', roll: 'opk-kkoga', start: 'Operationsavdelningens program', budget: 3,
+    motivering: 'Sussa 4.5.1.3. Ett klick på patienten i dagens program, ett på In på sal och ett på Registrera. Systemet sätter tiden, kontrollerar id-bandet när det skannas, startar anestesimonitorn och visar checklistan före anestesi med det som systemet redan vet ifyllt.',
+  },
+  {
     id: 'ombud-boka', namn: 'Boka en tid för patienten som ombud', roll: 'inv-om01', start: 'Min journal för ombudet', budget: 3,
     motivering: 'Sussa 3.4.2.3. Ett klick på patienten som fullmakten gäller, som öppnar patientens tider, ett på Visa lediga tider och ett på den tid som systemet föreslår först. Ombudet ser bara tider och meddelanden, och bokningen loggas på patienten.',
   },

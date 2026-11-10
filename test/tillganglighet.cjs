@@ -472,6 +472,12 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     }
     // Runda 9, r2: intensivvårdens övervakning av en patient nås från översikten, inte från menyn.
     if (['lak-kard', 'ssk-kard'].includes(roll)) { await gaTill(page, '#/iva/p22'); vyLista.push([roll, '#/iva/p22']); await granskaHar(`${roll} #/iva/p22`); }
+    // Runda 11, r2: operationsavdelningens flikar och operationen i journalen för en planerad och en genomförd operation.
+    if (roll === 'opk-kkoga') {
+      for (const extra of ['#/operation/vantelista', '#/operation/uppvakning', '#/operation/block', '#/operation/forrad', '#/patient/p71/operation', '#/patient/p07/operation']) {
+        await gaTill(page, extra); vyLista.push([roll, extra]); await granskaHar(`${roll} ${extra}`);
+      }
+    }
     if (JOURNAL_ROLLER.includes(roll)) {
       await gaTill(page, '#/patient/p01');
       for (const h of await flikarFor(page)) {

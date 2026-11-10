@@ -2,6 +2,34 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "1.1.0",
+      "datum": "2026-11-10",
+      "nyheter": [
+        {
+          "id": "operation-1-1",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska"
+          ],
+          "omfattning": "stor",
+          "var": "#/operation",
+          "rubrik": "Operationsavdelningen och fliken Operation",
+          "text": "På en vårdenhet som opererar finns Operation i menyn med dagens program per sal, väntelistan, uppvakningen, salsblocken, förrådet och uppföljningen, och fliken Operation i journalen. Systemet föreslår tid, sal, team med anestesi och utrustning, fyller i checklistan för säker kirurgi med det som redan är känt, för anestesijournalen med värden från monitorn och räknar ut när nästa operation kan börja när en operation drar ut på tiden."
+        },
+        {
+          "id": "anestesibedomning-anmalan",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "var": "#/operation",
+          "rubrik": "Anestesibedömning för en operation",
+          "text": "Anestesibedömningen görs från operationen i journalen. Ingreppet och tiden fylls i, riskskalorna räknas av systemet, samtycket registreras och bedömningen gäller i 180 dagar. Systemet skriver informationen till patienten och närstående."
+        }
+      ]
+    },
+    {
       "version": "1.0.0",
       "datum": "2026-11-08",
       "nyheter": [

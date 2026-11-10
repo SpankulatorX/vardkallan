@@ -1128,6 +1128,26 @@ function skapa(BAS) {
     await m.klicka(page.locator('dialog[open] .forslag-knapp').first(), 'den första föreslagna tiden');
     await synlig(page, '.notis', 'Din tid är bokad');
   };
+  // Runda 11, r2: operationsplaneringen och förloppet på salen.
+  startI['Operationsavdelningens program'] = async (page) => { await gaTill(page, '#/operation/program'); await page.waitForSelector('.op-program'); };
+  GOR['planera-operation'] = async (m, page) => {
+    await m.klicka(page.locator('#meny-lista a[href="#/operation"]'), 'Operation i menyn');
+    await page.waitForSelector('.op-flikar');
+    await m.klicka(page.locator('.op-flikar a[href="#/operation/vantelista"]'), 'Väntelista');
+    await page.waitForSelector('[data-planera]');
+    await m.klicka(page.locator('[data-planera]').first(), 'Planera vid patienten som har väntat längst');
+    await page.locator('dialog[open] [data-varde="ok"]').waitFor();
+    await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Planera i systemets förslag');
+    await synlig(page, '.notis', 'Operationen är planerad');
+  };
+  GOR['operation-in-sal'] = async (m, page) => {
+    await m.klicka(page.locator('table.op-program a.patientlank').first(), 'patienten i dagens program');
+    await page.waitForSelector('[data-op-handelse="in_sal"]');
+    await m.klicka(page.locator('[data-op-handelse="in_sal"]'), 'In på sal');
+    await page.locator('dialog[open] [data-varde="ok"]').waitFor();
+    await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Registrera');
+    await page.waitForSelector('.op-check');
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 
