@@ -560,7 +560,9 @@ function floden(D) {
         await m.klicka(page.locator(`#pr-k-${id}`), namn);
       }
       await m.klicka(page.locator('#pr-kform [data-spara-kontroll]'), 'Ordinera');
-      await synlig(page, '.notis', 'är ordinerat från i morgon kl. 07:00');
+      // Runda 11, r1: systemet föreslår klockan 7 i dag om den inte har passerat, annars i morgon (kontroller.js).
+      const fore7 = Number(new Date().toLocaleTimeString('sv-SE', { timeZone: 'Europe/Stockholm', hour: '2-digit' })) < 7;
+      await synlig(page, '.notis', `är ordinerat från ${fore7 ? 'i dag' : 'i morgon'} kl. 07:00`);
       for (const n of ['Puls', 'Blodtryck', 'SR', 'Temperatur', 'Vikt', 'Vätskebalans']) await synlig(page, '.pr-kontroller', n);
     },
     // Runda 8, r3: avdelningens planering (testfall 7.1 till 7.4).
@@ -698,5 +700,5 @@ function floden(D) {
   const s = ut.sammanstallning;
   console.log(`\n${s.antalGenomforda} av ${s.antal} testfall genomförda i ${s.korningar} körningar. Mätning 1, alla testfall: ${s.alla.malupfyllelse} (${s.alla.poang.malupfyllelse} poäng), genomförda: ${s.genomforda.malupfyllelse}. Mätning 2, alla: ${s.alla.effektivitet} (${s.alla.poang.effektivitet} poäng), genomförda: ${s.genomforda.effektivitet}.`);
   if (fel.length) { console.log(`\nSussas testfall misslyckades:\n  ${fel.join('\n  ')}`); process.exit(1); }
-  console.log('Alla genomförbara testfall når slutvillkoret inom klickbudgeten. Resultatet finns i app/sussa-testfall.json');
+  console.log(`Alla genomförbara testfall når slutvillkoret inom klickbudgeten. Resultatet finns i app/${resultatfil('sussa-testfall.json')}`);
 })().catch(e => { console.error(e); process.exit(1); });

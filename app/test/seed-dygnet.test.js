@@ -4,6 +4,10 @@
 import { describe, test, expect, afterEach } from 'bun:test';
 import { byggSeed, lokalTid, datumAv, nySessionsDb, mallen } from '../src/db.js';
 import { aterstallKlockan, stallKlockan } from './falsk-klocka.js';
+import { laddaTestdata } from '../src/sussa-demo.js';
+import { ANKOMNA_5_6 } from '../src/seed/sussa-testdata.js';
+import * as labb from '../src/labb.js';
+import { atk, personal } from './hjalp.js';
 
 afterEach(() => aterstallKlockan());
 
@@ -61,6 +65,27 @@ describe('Seeden över dygnet (runda 11, r1)', () => {
         expect(datumAv(new Date(t.start))).toBe(idag);
       }
       db.close();
+    });
+  }
+
+  for (const klocka of ['00:20', '00:38', '01:15', '02:40', '12:00']) {
+    test(`Sussas testdata: patienterna som har kommit till vårdcentralen kom i dag före nu, och Hamid Burvall får paketet vid feber (${klocka})`, () => {
+      const nu = new Date(lokalTid('2026-11-12', klocka));
+      stallKlockan(nu);
+      const db = byggSeed(nu);
+      laddaTestdata(db, personal(db, 'lak-vc'), { nu });
+      const ph = ANKOMNA_5_6.map(() => '?').join(', ');
+      const rader = db.query(`SELECT v.patient_id, v.start, v.ankomst FROM vardkontakter v JOIN bokningar b ON b.vardkontakt_id = v.id
+        WHERE v.patient_id IN (${ph}) AND v.enhet_id = 'vc-tybble' AND b.status = 'incheckad'`).all(...ANKOMNA_5_6);
+      const per = ANKOMNA_5_6.map(pid => rader.find(r => r.patient_id === pid));
+      for (const r of per) {
+        expect(datumAv(new Date(r.ankomst))).toBe('2026-11-12');
+        expect(Date.parse(r.ankomst)).toBeLessThan(Date.parse(r.start));
+        expect(Date.parse(r.start)).toBeLessThan(nu.getTime());
+      }
+      for (let i = 1; i < per.length; i++) expect(per[i - 1].start < per[i].start).toBe(true);
+      const p = db.query("SELECT * FROM patienter WHERE id = 'sus19'").get();
+      expect(labb.forslag(atk(db, 'lak-vc', 'sus19', {}, 'bestalla_prov'), p, nu).paket.map(x => x.id)).toContain('feber');
     });
   }
 
