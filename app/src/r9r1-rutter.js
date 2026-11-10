@@ -17,7 +17,7 @@ const PDF_HUVUD = (namn) => ({ 'Content-Type': 'application/pdf', 'Content-Dispo
 
 export function registreraRutter({ rutt, kravInloggad, medPatient, valFor }) {
   const q = (c, k) => c.url.searchParams.get(k);
-  const format = (c) => (['etikett', 'a4'].includes(q(c, 'format')) ? q(c, 'format') : etikettformatFor(c.personal.enhet_id));
+  const format = (c) => (['etikett', 'a4'].includes(q(c, 'format')) ? q(c, 'format') : etikettformatFor(c.db, c.personal.enhet_id));
 
   // Etiketten för en iordningsställd dos, med streckkoden som bara innehåller kontrollkoden.
   rutt('GET', '/api/patient/:id/administreringar/:aid/etikett', (c, id, aid) => {

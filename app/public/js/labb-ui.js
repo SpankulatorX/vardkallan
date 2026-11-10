@@ -19,8 +19,8 @@ export function bestallningKort(b, { rubrikNiva = 3, patient = null } = {}) {
   const aktiva = b.analyser.filter(a => a.status !== 'borttagen');
   const steg = `<ol class="pr-steg" aria-label="Beställningens steg">${b.steg.map(s => `<li class="${s.klar ? 'klar' : ''}">${s.klar ? ikon.bock : '<span class="pr-punkt" aria-hidden="true"></span>'}<span>${esc(s.text)}${s.tid ? `<span class="under-text">${esc(tidpunkt(s.tid))}</span>` : ''}</span><span class="sr">${s.klar ? ', klart' : ', inte klart'}</span></li>`).join('')}</ol>`;
   const rad = (a) => `<tr><th scope="row">${esc(a.namn)}${a.vidimerad ? '' : ''}<span class="under-text">${esc(a.lab?.kort ?? '')}</span></th>
-    <td>${esc(ANALYS_STATUS[a.status] ?? a.status)}${a.besvarad ? `<span class="under-text">${esc(tidpunkt(a.besvarad))}</span>` : ''}</td>
-    <td>${a.svar.length ? a.svar.map(s => `<div class="pr-svar">${svarText(s)}</div>`).join('') : a.text ? `<div class="pr-svar">${esc(a.text)}${a.avvikande ? ` <span class="tagg ${a.kritisk ? 'tagg-larm' : 'tagg-obs'}">${a.kritisk ? 'Kritiskt' : 'Fynd'}</span>` : ''}</div>` : ''}${a.vidimerad ? `<span class="under-text">Vidimerad av ${esc(a.vidimerad.av?.namn ?? '')}</span>` : ''}</td></tr>`;
+    <td>${esc(a.statusText ?? ANALYS_STATUS[a.status] ?? a.status)}${a.besvarad ? `<span class="under-text">${esc(tidpunkt(a.besvarad))}</span>` : ''}${a.version > 1 ? ` <span class="tagg tagg-obs">Rättat svar, version ${esc(a.version)}</span>` : ''}</td>
+    <td>${a.svar.length ? a.svar.map(s => `<div class="pr-svar">${svarText(s)}</div>`).join('') : a.text ? `<div class="pr-svar">${esc(a.text)}${a.avvikande ? ` <span class="tagg ${a.kritisk ? 'tagg-larm' : 'tagg-obs'}">${a.kritisk ? 'Kritiskt' : 'Fynd'}</span>` : ''}</div>` : ''}${a.vidimerad ? `<span class="under-text">Vidimerad av ${esc(a.vidimerad.av?.namn ?? '')}</span>` : ''}${svarExtra(a)}</td></tr>`;
   const ror = b.prov.length ? `<ul class="pr-ror" aria-label="Rör i provtagningsordning">${b.prov.map((p, i) => `<li class="${p.provtagen ? 'tagen' : ''}">
       <span class="pr-ror-nr" aria-hidden="true">${i + 1}</span><span class="pr-ror-text"><strong>${esc(p.rorNamn)}</strong> <span class="under-text">${esc(p.farg)}, ${esc(p.analyser.join(', '))}, ${esc(p.lab?.kort ?? '')}. Etikett ${esc(p.etikett)}</span>
       ${p.provtagen ? `<span class="under-text">${ikon.bock}Tagen ${esc(tidpunkt(p.provtagen.tid))} av ${esc(p.provtagen.av?.namn ?? '')}</span>` : `<span class="under-text">Planerad ${esc(tidpunkt(p.planerad))}${p.forsenad ? ' <span class="tagg tagg-larm">Försenad</span>' : ''}</span>`}</span>
@@ -36,11 +36,15 @@ export function bestallningKort(b, { rubrikNiva = 3, patient = null } = {}) {
     k.overlata ? `<button type="button" class="knapp liten text" data-labb="overlat">Överlåt ansvaret</button>` : '',
     k.makulera ? `<button type="button" class="knapp liten text" data-labb="makulera">Makulera</button>` : '',
     k.simuleraSvar ? `<button type="button" class="knapp liten sekundar" data-labb="simulera">Simulera svar från laboratoriet</button>` : '',
+    // Runda 11, r6: instrumentet mäter det patientnära provet, och det simulerade laboratoriet rättar ett svar.
+    ...b.analyser.filter(a => a.kanMata).map(a => `<button type="button" class="knapp liten" data-instrument="${a.provId}" aria-label="Mät i instrumentet: ${esc(a.namn)}">Mät i instrumentet</button>`),
+    ...b.analyser.filter(a => a.kanSimuleraRattelse).slice(0, 1).map(a => `<button type="button" class="knapp liten text" data-rattelse="${a.id}">Simulera rättat svar för ${esc(a.namn)}</button>`),
   ].filter(Boolean).join('');
   return `<article class="pr-best${b.kritisk ? ' pr-kritisk' : ''}" data-bestallning="${b.id}" aria-labelledby="pr-b-${b.id}">
     <div class="pr-best-huvud"><${h} id="pr-b-${b.id}">${esc(aktiva.map(a => a.namn).join(', '))}</${h}>
       <span class="tagg ${STATUS_KLASS[b.status] ?? ''}">${esc(b.statusText)}</span>${b.kritisk ? ` <span class="tagg tagg-larm">${ikon.larm}Kritiskt svar</span>` : b.avvikande ? ' <span class="tagg tagg-obs">Avvikande svar</span>' : ''}</div>
     <p class="under-text">${esc(b.nummer)}. ${b.paUppdrag ? `Beställd av ${esc(b.registreradAv?.namn ?? '')} på uppdrag av ${esc(b.ansvarig?.namn ?? '')}` : `Beställd av ${esc(b.ansvarig?.namn ?? '')}`} ${esc(tidpunkt(b.skapad))}, ${esc(b.vardenhet.namn)}.${b.anamnes ? ` Anamnes: ${esc(b.anamnes)}` : ''}</p>
+    ${tillaggHtml(b)}
     ${b.makulerad ? `<p class="ruta ruta-info liten">Makulerad ${esc(tidpunkt(b.makulerad.tid))} av ${esc(b.makulerad.av?.namn ?? '')}: ${esc(b.makulerad.orsak)}</p>` : ''}
     ${steg}
     ${ror}
@@ -50,6 +54,30 @@ export function bestallningKort(b, { rubrikNiva = 3, patient = null } = {}) {
   </article>`;
 }
 
+// Runda 11, r6: prioritet, vårdförlopp, upprepning, kontrollerna före undersökningen och underlagen till beställningen.
+function tillaggHtml(b) {
+  const taggar = [b.prioritet ? `<span class="tagg${b.prioritet.id === 'akut' ? ' tagg-larm' : ''}">${esc(b.prioritet.namn)}, senast ${esc(tidpunkt(b.prioritet.senast))}</span>` : '',
+    b.svf ? `<span class="tagg tagg-obs">Vårdförlopp ${esc(b.svf.namn.toLocaleLowerCase('sv'))} (${esc(b.svf.kod)})</span>` : '',
+    b.serie ? `<span class="tagg">Tillfälle ${esc(b.serie.nr)} av ${esc(b.serie.antal)}</span>` : ''].filter(Boolean).join(' ');
+  const kontroller = (b.kontroller ?? []).filter(x => x.niva !== 'info');
+  return [taggar ? `<p class="pr-taggar">${taggar}</p>` : '',
+    kontroller.length ? `<ul class="pr-kontrollista">${kontroller.map(x => `<li class="ruta ${x.niva === 'varning' ? 'ruta-obs' : 'ruta-info'} liten">${ikon.info}<span>${esc(x.text)}</span></li>`).join('')}</ul>` : '',
+    b.svfForslag ? `<p class="ruta ruta-obs liten">${ikon.info}<span>${esc(b.svfForslag)}</span></p>` : '',
+    b.underlag?.length ? `<p class="liten">Underlag: ${b.underlag.map(u => `<a href="${esc(u.url)}" target="_blank" rel="noopener">${esc(u.namn)}</a>`).join(', ')}</p>` : ''].join('');
+}
+// Koderna i svaret som text, studien i multimediaarkivet, bifogade underlag och tidigare versioner.
+function svarExtra(a) {
+  const delar = [];
+  if (a.undersokning?.bokad && !a.undersokning.utford && a.undersokning.forberedelse) delar.push(`<span class="under-text">Förberedelse: ${esc(a.undersokning.forberedelse)}</span>`);
+  if (a.koder?.length) delar.push(`<span class="under-text">${a.koder.map(k => `${esc(k.text)} <span class="pr-kod">(${esc(k.systemText)} ${esc(k.kod)})</span>`).join('. ')}</span>`);
+  if (a.studie?.lank) delar.push(`<a class="under-text" href="${esc(a.studie.lank)}" target="_blank" rel="noopener">Bilderna i multimediaarkivet, studie ${esc(a.studie.uid)}</a>`);
+  if (a.instrument) delar.push(`<span class="under-text">Mätt i patientnära instrument ${esc(a.instrument)}</span>`);
+  for (const u of a.underlag ?? []) delar.push(`<a class="under-text" href="${esc(u.url)}" target="_blank" rel="noopener">${esc(u.namn)}</a>`);
+  if (a.lastAldre) delar.push(`<span class="ruta ruta-obs liten">${esc(a.lastAldre.text)}</span>`);
+  if (a.tidigare?.length) delar.push(`<details class="pr-versioner"><summary>Tidigare versioner</summary><ol class="enkel-lista">${a.tidigare.map(v => `<li>Version ${esc(v.version)}, ${esc(tidpunkt(v.mottagen))}: ${esc(v.text)}<span class="under-text">Ersatt ${esc(tidpunkt(v.ersatt))}. ${esc(v.orsak ?? '')}${v.vidimerad ? ` Vidimerad av ${esc(v.vidimerad.av)}.` : ''}</span></li>`).join('')}</ol></details>`);
+  return delar.join('');
+}
+
 // Åtgärderna på korten i en behållare. hamta(id) ger beställningen och klar() ritar om.
 export function kopplaBestallningar(behallare, hamta, klar, { lakare = [] } = {}) {
   if (!behallare) return;
@@ -57,6 +85,18 @@ export function kopplaBestallningar(behallare, hamta, klar, { lakare = [] } = {}
     const t = e.target.closest('[data-tagen]');
     if (t) {
       try { const r = await medKnapp(t, () => api(`/api/labb/prov/${t.dataset.tagen}/tagen`, { metod: 'POST', data: {} })); notis(r.text); await klar(r); } catch { /* notis visad */ }
+      return;
+    }
+    // Runda 11, r6: instrumentet och det rättade svaret.
+    const ins = e.target.closest('[data-instrument]');
+    if (ins) {
+      try { const r = await medKnapp(ins, () => api(`/api/labb/prov/${ins.dataset.instrument}/instrument`, { metod: 'POST', data: {} })); notis(r.text); await uppdateraInkorg(); await klar(r); } catch { /* notis visad */ }
+      return;
+    }
+    const ratt = e.target.closest('[data-rattelse]');
+    if (ratt) {
+      const kort = ratt.closest('[data-bestallning]');
+      try { const r = await medKnapp(ratt, () => api(`/api/labb/${kort.dataset.bestallning}/analys/${ratt.dataset.rattelse}/simulera-rattelse`, { metod: 'POST', data: {} })); notis(r.text); await uppdateraInkorg(); await klar(r); } catch { /* notis visad */ }
       return;
     }
     const b = e.target.closest('[data-labb]');
@@ -117,7 +157,7 @@ async function visaEtiketter(id) {
 
 // ---- Inkorgen -----------------------------------------------------------------------------------------------------
 
-export const inkorgAntal = (d) => (d.provsvarAttVidimera?.length ?? 0) + (d.labbAttSignera?.length ?? 0) + (d.provsvarKritiska?.length ?? 0);
+export const inkorgAntal = (d) => (d.provsvarAttVidimera?.length ?? 0) + (d.labbAttSignera?.length ?? 0) + (d.provsvarKritiska?.length ?? 0) + (d.provsvarRattade?.length ?? 0);
 
 export function inkorgSektioner(d, sektion, ar) {
   const pat = (id) => `#/patient/${encodeURIComponent(id)}/prover`;
@@ -129,7 +169,12 @@ export function inkorgSektioner(d, sektion, ar) {
   const sign = (d.labbAttSignera ?? []).map(x => `<li class="ik-ater"><div class="ik-text"><span class="ik-rubrik">${esc(x.analyser.join(', '))}, ${esc(pnamn(x.patient))}</span>
       <span class="under-text">Beställt på ditt uppdrag av ${esc(x.registreradAv)} ${esc(tidpunkt(x.skapad))}. ${esc(x.nummer)}.</span></div>
     <div class="ik-knappar"><a class="knapp liten sekundar" href="${pat(x.patientId)}">Läs</a><button type="button" class="knapp liten" data-labb-signera="${x.bestallningId}">Signera</button></div></li>`);
+  // Runda 11, r6: rättade svar för den som läste den tidigare versionen.
+  const rattade = (d.provsvarRattade ?? []).map(x => `<li class="ik-ater"><div class="ik-text"><span class="ik-rubrik">Rättat svar: ${esc(x.analys)}, ${esc(pnamn(x.patient))}</span>
+      <span class="under-text">${esc(x.text)}${x.orsak ? ` ${esc(x.orsak)}` : ''} ${esc(x.nummer)}, rättat ${esc(tidpunkt(x.rattad))}.</span></div>
+    <div class="ik-knappar"><a class="knapp liten sekundar" href="${pat(x.patientId)}">Läs</a><button type="button" class="knapp liten" data-labb-last="${x.analysId}">Jag har läst</button></div></li>`);
   return [
+    rattade.length ? sektion('labbrattade', 'Rättade svar', rattade, '', 'Svar som laboratoriet eller röntgen har rättat efter att du läste dem. Den tidigare versionen finns kvar i beställningen.') : '',
     kritiska.length ? sektion('labbkritisk', 'Kritiska provsvar', kritiska, '', 'Svar som ligger utanför demons gränser för kritiska värden. De larmar den ansvariga läkaren och sjuksköterskorna på vårdenheten tills läkaren har vidimerat dem. Demoregel.') : '',
     ar('vidimera_provsvar') ? sektion('labbvid', 'Provsvar att vidimera', vid, 'Inga provsvar väntar på din vidimering.', 'Svar på beställningar där du är ansvarig läkare. Avvikande och kritiska svar står först.') : '',
     sign.length ? sektion('labbsign', 'Labbeställningar att signera', sign, '', 'Beställningar som en sjuksköterska eller undersköterska har gjort på ditt uppdrag.') : '',
@@ -140,6 +185,11 @@ export function inkorgSektioner(d, sektion, ar) {
 export async function inkorgKlick(e, omrita) {
   const v = e.target.closest('[data-labb-vidimera]');
   const s = e.target.closest('[data-labb-signera]');
+  const l = e.target.closest('[data-labb-last]');
+  if (l) {
+    try { const r = await medKnapp(l, () => api(`/api/labb/analys/${l.dataset.labbLast}/last`, { metod: 'POST', data: {} })); notis(r.text); await uppdateraInkorg(); await omrita(); } catch { /* notis visad */ }
+    return true;
+  }
   if (!v && !s) return false;
   const b = v ?? s;
   try {

@@ -501,7 +501,11 @@ function utoka(db, b, ut, personal, nu) {
     ut.serie = t.serie_id ? { id: t.serie_id, nr: t.serie_nr, antal: t.serie_antal, intervallDagar: t.intervall_dagar } : null;
     ut.kontroller = JSON.parse(t.kontroller);
   }
+  const egen = personal && vardenhetFor(db, personal.enhet_id) === vardenhetFor(db, b.enhet_id);
   for (const x of ut.analyser) {
+    // Demoknapparna: instrumentet mäter ett taget patientnära prov, och det simulerade laboratoriet rättar ett svar.
+    if (LAB[x.lab?.id]?.instrument && x.status === 'skickad' && personal && kanRoll(personal, 'ta_prov')) x.kanMata = true;
+    if (x.status === 'besvarad' && egen && kanRoll(personal, 'bestalla_prov') && !LAB[x.lab?.id]?.instrument && !ps(db, x.lab?.id)) x.kanSimuleraRattelse = true;
     if (!arUndersokning(x.analys)) continue;
     const def = ANALYS[x.analys];
     const bk = bokning(db, x.id);

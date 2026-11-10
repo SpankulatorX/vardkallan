@@ -324,7 +324,7 @@ export function taEmotSvar(db, labId, dr, nu = new Date()) {
   if (b.makulerad_tid || a.status === 'makulerad') throw avvisa('Beställningen är makulerad. Svaret tas inte emot.');
   // Runda 11, r6: ett rättat svar har status corrected eller amended och ersätter det tidigare (labb-svarsversioner.js).
   const rattat = ['corrected', 'amended'].includes(dr.status);
-  if (a.status === 'besvarad' && !rattat) throw avvisa('Analysen är redan besvarad. Skicka ett rättat svar med status corrected och orsaken i extension eller note.');
+  if (a.status === 'besvarad' && !rattat) throw avvisa('Analysen är redan besvarad. Skicka ett rättat svar med status corrected och skriv orsaken till rättelsen.');
   if (rattat && a.status !== 'besvarad') throw avvisa('Analysen är inte besvarad än. Skicka svaret med status final.');
   if (!rattat && !['skickad', 'mottagen'].includes(a.status)) throw avvisa('Provet är inte skickat till laboratoriet ännu.');
   if (!rattat && dr.status !== 'final') throw avvisa('Vårdkällan tar emot slutsvar med status final och rättade svar med status corrected. Skicka status received eller in-progress med en Task medan analysen pågår.');

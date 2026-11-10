@@ -179,7 +179,7 @@ describe('Integration med produktionssystem', () => {
 
   test('undersökningar: klinisk fysiologi, neurofysiologi och radiologi skickas direkt utan provtagning och besvaras med ett utlåtande', async () => {
     const lak = await inloggad('lak-kard');
-    const b = await lak.post('/api/patient/p04/prover', { analyser: ['ekg', 'eeg', 'rtg_lungor'], anamnes: 'Svimning och hosta.', kvitteraDubbletter: true });
+    const b = await lak.post('/api/patient/p04/prover', { analyser: ['ekg', 'eeg', 'rtg_lungor'], anamnes: 'Svimning och hosta.', kvitteraDubbletter: true, graviditet: 'nej' });
     expect(b.status).toBe(201);
     const best = b.data.bestallning;
     expect(best.analyser.map(a => a.lab.id).sort()).toEqual(['lab-fys-uso', 'lab-nfys-uso', 'lab-rad-uso']);
@@ -202,7 +202,7 @@ describe('Integration med produktionssystem', () => {
     const sysf = await inloggad('sysf');
     delaSandlada(lak, sysf);
     const nyckel = (await sysf.post('/api/produktionssystem/lab-rad-uso/anslut', {})).data.nyckel;
-    const r = (await lak.post('/api/patient/p04/prover', { analyser: ['rtg_lungor'], anamnes: 'Hosta.', kvitteraDubbletter: true })).data.bestallning;
+    const r = (await lak.post('/api/patient/p04/prover', { analyser: ['rtg_lungor'], anamnes: 'Hosta.', kvitteraDubbletter: true, graviditet: 'nej' })).data.bestallning;
     expect(r.analyser[0].status).toBe('skickad');
     const m = (await ps('GET', '/ps/bestallningar', nyckel)).data.entry[0].resource;
     expect(m.entry.map(e => e.resource.resourceType).sort()).toEqual(['Patient', 'ServiceRequest']);

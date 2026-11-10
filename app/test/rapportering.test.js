@@ -215,7 +215,8 @@ describe('Myndighetsrapportering', () => {
     const db = rensad();
     expect(mr.mappning(db).filter(e => e.saknas).map(e => e.id)).toEqual([]);
     // Runda 9, r3: och kvinnokliniken.
-    expect(Object.keys(ENHETER).length).toBe(11);
+    // Runda 11, r6: och röntgenkliniken.
+    expect(Object.keys(ENHETER).length).toBe(12);
   });
 });
 

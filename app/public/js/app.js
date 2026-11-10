@@ -54,6 +54,8 @@ import * as tillganglighet from './vyer/tillganglighet.js';
 import * as tidsgrans from './tidsgrans.js';
 // Runda 8, r1: provtagningen och kontrollerna på vårdenheten, och raderna för beställning och svar i inkorgen.
 import * as provtagning from './vyer/provtagning.js';
+// Runda 11, r6: röntgenklinikens arbetslista med inkomna undersökningar, prioritet och bokning.
+import * as undersokningar from './vyer/undersokningar.js';
 import { inkorgAntal as labbInkorgAntal } from './labb-ui.js';
 
 // Högkontrastläget sätts innan något ritas, så att sidan inte blinkar till i vanliga färger.
@@ -86,6 +88,9 @@ export const arLogggranskare = () => S.session?.personal?.yrke === 'logggranskar
 export const utanJournal = () => ['logggranskare', 'arkivarie', 'uppfoljning', 'kommun', 'verksamhetschef', 'ekonom', 'systemforvaltare'].includes(S.session?.personal?.yrke);
 export const minVardenhet = () => S.session?.enhet?.vardenhet?.id ?? null;
 export const pa = (...h) => h.some(far);
+// Runda 11, r6: vårdenheterna som utför beställda undersökningar i demon (röntgenkliniken). Servern prövar det själv.
+const UTFORANDE_ENHETER = ['uso-rtg'];
+export const utforandeEnhet = () => far('undersokning_utfora') && UTFORANDE_ENHETER.includes(minVardenhet());
 
 // Vänstermenyn. Varje rad: adress, text, ikon, villkor, räknare.
 const MENY = [
@@ -103,7 +108,9 @@ const MENY = [
   ['#/administrering', 'Läkemedel att ge', 'piller', () => far('ge_lakemedel') && !far('ordinera')],
   // Runda 8, r1: rören att ta och kontrollerna i dag, för sjuksköterskan och undersköterskan. Läkaren tar prover från
   // patientens flik Prover.
-  ['#/provtagning', 'Prover och kontroller', 'lista', () => far('ta_prov') && !far('bestalla_prov')],
+  ['#/provtagning', 'Prover och kontroller', 'lista', () => far('ta_prov') && !far('bestalla_prov') && !utforandeEnhet()],
+  // Runda 11, r6: undersökningarna för personalen på röntgenkliniken, som utför dem.
+  ['#/undersokningar', 'Undersökningar', 'kalender', () => utforandeEnhet()],
   // Runda 9, r2: intensivvården, för läkare, sjuksköterskor och undersköterskor på en vårdenhet med intensivvårdsavdelning.
   ['#/iva', 'Intensivvård', 'larm', () => Boolean(S.session?.iva)],
   // Runda 10, r7: meddelanden från invånare till vårdenheten.
@@ -185,6 +192,8 @@ const RUTTER = [
   [/^#\/administrering$/, administrering, () => far('las_lakemedel')],
   // Runda 8, r1.
   [/^#\/provtagning$/, provtagning, () => far('ta_prov')],
+  // Runda 11, r6.
+  [/^#\/undersokningar$/, undersokningar, () => utforandeEnhet()],
   // Runda 9, r2.
   [/^#\/iva$/, iva, () => Boolean(S.session?.iva)],
   [/^#\/iva\/([\w-]+)$/, iva.patient, () => Boolean(S.session?.iva)],
