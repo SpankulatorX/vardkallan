@@ -212,8 +212,8 @@ for (const w of ['Word', 'DOCX', 'IEC', 'RFC', 'HMAC', 'MIME', 'URI', 'REST', 'W
 FRASER.push('Office Open XML', 'X-Vardkallan-Simulerad');
 // Runda 11, r7: intensivvården (NEMS med källan, PEEP, NIV, fuktvärmeväxlare HME och EKG-avledning II) och tillväxtens
 // referenser (WHO:s två referenser, licenserna och referenserna som inte får användas, CDC och Downs syndrom).
-for (const w of ['NEMS', 'PEEP', 'NIV', 'HME', 'II', 'CDC', 'BY-NC-ND', 'INTERGROWTH-21st', 'Fenton', 'Fentons', 'Tanner', 'Tanners', 'SBAR', 'GetObservations', 'GetActivities']) TILLATNA.add(w);
-FRASER.push('Nine equivalents of nursing manpower use score', 'Intensive Care Med', 'Reis Miranda', 'WHO Child Growth Standards', 'WHO Growth Reference', 'University of Oxford', 'Downs syndrom');
+for (const w of ['NEMS', 'PEEP', 'NIV', 'HME', 'II', 'PH', 'CDC', 'BY-NC-ND', 'INTERGROWTH-21st', 'Fenton', 'Fentons', 'Tanner', 'Tanners', 'SBAR', 'GetObservations', 'GetActivities']) TILLATNA.add(w);
+FRASER.push('Length of body', 'Nine equivalents of nursing manpower use score', 'Intensive Care Med', 'Reis Miranda', 'WHO Child Growth Standards', 'WHO Growth Reference', 'University of Oxford', 'Downs syndrom');
 
 // Svenska ord som ofta skrivs utan å, ä eller ö. Formen utan prickar är inget eget ord.
 export const UTAN_PRICKAR = new Map(Object.entries({

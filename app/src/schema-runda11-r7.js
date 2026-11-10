@@ -4,14 +4,12 @@
 import * as regler from './iva-patientregler.js';
 import * as vatska from './iva-vatskemal.js';
 import * as nems from './iva-nems.js';
+import * as tillvaxt from './tillvaxt-r11.js';
 
 export function sakraR11r7(db) {
   regler.sakra(db);
   vatska.sakra(db);
   nems.sakra(db);
-  // Tillväxtens tabeller läggs till av tillvaxt-r11.js när den finns.
-  for (const f of TILLAGG) f(db);
+  tillvaxt.sakra(db);
   return db;
 }
-// Andra delar av rundans schema som registrerar sig här (tillväxten).
-export const TILLAGG = [];

@@ -43,8 +43,9 @@ const R = [
   ['GetCarePlans', 'clinicalprocess:logistics:logistics', 'Vård- och omsorgsplan', '●', '○', [1], '2.2.1.8', 'fhir', 'FHIR CarePlan'],
   ['GetCareContacts', 'clinicalprocess:logistics:logistics', 'Vård- och omsorgskontakt', '●', '○', [1, 2, 5], '2.2.1.8', 'simulerad_producent', 'FHIR Encounter, och /api/riv/GetCareContacts'],
   ['GetCareDocumentation', 'clinicalprocess:healthcond:description', 'Vård- och omsorgsdokument, ostrukturerade', '●', '○', [1, 2], '2.2.1.8', 'simulerad_producent', 'FHIR Composition, och /api/riv/GetCareDocumentation'],
-  ['GetObservations', 'clinicalprocess:healthcond:basic', 'Observationer', '●', null, [2, 4, 5], '2.2.1.7', 'fhir', 'FHIR Observation'],
-  ['GetActivities', 'clinicalprocess:activity:actions', 'Aktiviteter', '●', null, [4, 5], '2.2.1.13', 'fhir', 'FHIR Procedure med KVÅ'],
+  // Runda 11, r7: GetObservations och GetActivities har en simulerad producent (Sussa 4.1.1.7).
+  ['GetObservations', 'clinicalprocess:healthcond:basic', 'Observationer', '●', null, [2, 4, 5], '2.2.1.7', 'simulerad_producent', 'FHIR Observation, och /api/riv/GetObservations'],
+  ['GetActivities', 'clinicalprocess:activity:actions', 'Aktiviteter', '●', null, [4, 5], '2.2.1.13', 'simulerad_producent', 'FHIR Procedure med KVÅ, och /api/riv/GetActivities'],
   ['GetRequestOutcome', 'clinicalprocess:healthcond:actoutcome', 'Allmänremiss', '○', '○', [6], '2.2.1.12', 'lokal', 'Remisser med kvittens, bedömning och svar inom vårdgivaren'],
   ['ProcessRequestOutcome', 'clinicalprocess:activity:request', 'Remisshantering', '○', '○', [6], '2.2.1.12', 'lokal', 'Remisser med kvittens, bedömning och svar inom vårdgivaren'],
   ['ProcessRequest', 'clinicalprocess:activity:request', 'Remisshantering', '○', '○', [6], '2.2.1.12', 'lokal', 'Remisser med kvittens, bedömning och svar inom vårdgivaren'],
@@ -98,15 +99,17 @@ export const K10_RADER = 81;
 
 // Den simulerade producenten.
 const OID = { personnummer: '1.2.752.129.2.1.3.1', samordningsnummer: '1.2.752.129.2.1.3.3', icd10se: '1.2.752.116.1.1.1', kva: '1.2.752.116.1.3.2.1.4' };
-export const PRODUCENTER = ['GetCareDocumentation', 'GetDiagnosis', 'GetAlertInformation', 'GetCareContacts'];
-const RESURSER = { GetCareDocumentation: ['Composition'], GetDiagnosis: ['Condition'], GetAlertInformation: ['Flag', 'AllergyIntolerance'], GetCareContacts: ['Encounter'] };
+export const PRODUCENTER = ['GetCareDocumentation', 'GetDiagnosis', 'GetAlertInformation', 'GetCareContacts', 'GetObservations', 'GetActivities'];
+const RESURSER = { GetCareDocumentation: ['Composition'], GetDiagnosis: ['Condition'], GetAlertInformation: ['Flag', 'AllergyIntolerance'], GetCareContacts: ['Encounter'], GetObservations: ['Observation'], GetActivities: ['Procedure'] };
 // Handlingen i behörighetsmotorn per resurs, som i FHIR-API:t.
 const ROLL_HANDLING = {
   Composition: (p) => (kanRoll(p, 'las_journal') ? 'las_journal' : 'las_omvardnad'), Condition: () => 'las_diagnoser',
   Flag: () => 'las_oversikt', AllergyIntolerance: () => 'las_oversikt', Encounter: () => 'las_admin',
+  // Runda 11, r7.
+  Observation: () => 'las_matvarden', Procedure: () => 'las_journal',
 };
 const NEKAD = 'Du har inte behörighet till uppgifterna, eller så finns ingen sådan patient. Försöket är loggat.';
-const TABELL = { Composition: 'anteckningar', Condition: 'diagnoser', Flag: 'uppmarksamhet', AllergyIntolerance: 'overkanslighet', Encounter: 'vardkontakter' };
+const TABELL = { Composition: 'anteckningar', Condition: 'diagnoser', Flag: 'uppmarksamhet', AllergyIntolerance: 'overkanslighet', Encounter: 'vardkontakter', Observation: 'matvarden', Procedure: 'atgarder' };
 
 const datumRiv = (iso) => (iso ? new Date(iso).toLocaleString('sv-SE', { timeZone: 'Europe/Stockholm' }).replace(/[- :]/g, '').slice(0, 14) : null);
 
@@ -155,7 +158,7 @@ export function anropa(ctx, kontrakt, body = {}) {
   const filtrerad = lista.filter(x => x
     && (!enheter.size || enheter.has(x.header.accountableHealthcareProfessional?.healthcareProfessionalCareUnitHSAId))
     && (!start || (x.header.documentTime ?? '').slice(0, 8) >= start) && (!slut || (x.header.documentTime ?? '').slice(0, 8) <= slut));
-  const nyckel = { GetCareDocumentation: 'careDocumentation', GetDiagnosis: 'diagnosis', GetAlertInformation: 'alertInformation', GetCareContacts: 'careContact' }[kontrakt];
+  const nyckel = { GetCareDocumentation: 'careDocumentation', GetDiagnosis: 'diagnosis', GetAlertInformation: 'alertInformation', GetCareContacts: 'careContact', GetObservations: 'observation', GetActivities: 'activityGroup' }[kontrakt];
   return {
     [nyckel]: filtrerad,
     result: { resultCode: 'OK', logId: randomBytes(8).toString('hex'), message: 'Simulerad producent i Vårdkällan, utan tjänsteplattformen. Svaret innehåller bara det som den inloggade får se.' },
@@ -165,7 +168,10 @@ export function anropa(ctx, kontrakt, body = {}) {
 function enhetAv(db, resurs) {
   const tabell = TABELL[resurs.resourceType];
   const m = /^vt-(\d+)$/.exec(resurs.id);
-  const rad = m ? db.query('SELECT enhet_id FROM vardtillfallen WHERE id = ?').get(Number(m[1])) : db.query(`SELECT enhet_id FROM ${tabell} WHERE id = ?`).get(Number(resurs.id));
+  // Runda 11, r7: åtgärderna har id a-n, och härledda observationer (NEWS2) har inget eget id i matvarden.
+  const a = /^a-(\d+)$/.exec(resurs.id);
+  const rad = m ? db.query('SELECT enhet_id FROM vardtillfallen WHERE id = ?').get(Number(m[1])) : a ? db.query('SELECT enhet_id FROM atgarder WHERE id = ?').get(Number(a[1]))
+    : /^\d+$/.test(String(resurs.id)) ? db.query(`SELECT enhet_id FROM ${tabell} WHERE id = ?`).get(Number(resurs.id)) : null;
   const ve = rad ? vardenhetFor(db, rad.enhet_id) : null;
   return ve ? db.query('SELECT id, hsa_id, namn FROM enheter WHERE id = ?').get(ve) : null;
 }
@@ -173,7 +179,7 @@ function enhetAv(db, resurs) {
 // Patientens id i svaret är det som frågades efter, så att svaret aldrig lämnar ut mer om identiteten än frågan.
 function rivPost(db, kontrakt, r, patientId, vardgivare) {
   const e = enhetAv(db, r);
-  const tid = r.date ?? r.recordedDate ?? r.period?.start ?? null;
+  const tid = r.date ?? r.recordedDate ?? r.period?.start ?? r.effectiveDateTime ?? r.performedDateTime ?? null;
   const forfattare = r.author?.find?.(a => a.reference?.startsWith('Practitioner/'));
   const header = {
     documentId: `${r.resourceType}/${r.id}`, sourceSystemHSAId: vardgivare, documentTime: datumRiv(tid),
@@ -187,6 +193,16 @@ function rivPost(db, kontrakt, r, patientId, vardgivare) {
   if (kontrakt === 'GetDiagnosis') {
     const c = r.code?.coding?.[0];
     return { header, body: { typeOfDiagnosis: r.category?.[0]?.text === 'Huvuddiagnos' ? 'Huvuddiagnos' : 'Bidiagnos', diagnosisTime: datumRiv(r.recordedDate), diagnosisCode: { code: c?.code, codeSystem: OID.icd10se, displayName: c?.display ?? r.code?.text } } };
+  }
+  // Runda 11, r7: observationer med kod och värde, och aktiviteter med KVÅ.
+  if (kontrakt === 'GetObservations') {
+    const c = r.code?.coding?.[0];
+    return { header, body: { observationCode: { code: c?.code ?? null, codeSystem: c?.system ?? null, displayName: c?.display ?? r.code?.text ?? null }, observationTime: datumRiv(r.effectiveDateTime),
+      value: r.valueQuantity ? { pq: { value: r.valueQuantity.value, unit: r.valueQuantity.unit ?? r.valueQuantity.code } } : r.valueString != null ? { st: r.valueString } : r.valueCodeableConcept ? { cv: { code: r.valueCodeableConcept.coding?.[0]?.code ?? null, displayName: r.valueCodeableConcept.text ?? null } } : null } };
+  }
+  if (kontrakt === 'GetActivities') {
+    const c = r.code?.coding?.find(x => /kva|1\.2\.752\.116\.1\.3\.2\.1\.4/i.test(x.system ?? '')) ?? r.code?.coding?.[0];
+    return { header, body: { activityCode: { code: c?.code ?? null, codeSystem: OID.kva, displayName: c?.display ?? r.code?.text ?? null }, activityTime: datumRiv(r.performedDateTime ?? r.performedPeriod?.start) } };
   }
   if (kontrakt === 'GetCareDocumentation') {
     const text = (r.section ?? []).map(s => `${s.title}: ${s.text.div.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&')}`).join('\n');

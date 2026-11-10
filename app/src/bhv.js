@@ -15,6 +15,8 @@ import * as T from './tillvaxt.js';
 import * as P from './bhv-program.js';
 import * as tidbok from './tidbok.js';
 import { ATC, K11 } from './kodverk.js';
+// Runda 11, r7: pubertet, import och ursprunget för inlästa värden (tillvaxt-r11.js).
+import * as r11 from './tillvaxt-r11.js';
 
 // Behörigheter (runda 7, r6). Läkare och sjuksköterskor vaccinerar enligt programmet och bokar barnets hälsobesök.
 Object.assign(HANDLINGAR, { vaccinera: 'registrera vaccinationer', boka_bhv: 'boka hälsobesök i barnhälsovården', rapportera_bhvq: 'rapportera till Svenska barnhälsovårdsregistret' });
@@ -286,7 +288,9 @@ export function bygg(db, p, { matvarden = [], upp = {}, hemma = [], handelser = 
     if (!['vikt', 'langd', 'huvudomfang', 'sitthojd'].includes(r.typ)) continue;
     const v = r.varde_num ?? Number(r.varde);
     if (!Number.isFinite(v)) continue;
-    punkter[mattAvTyp(r.typ)].push({ id: r.id, tid: r.tid, varde: v, kalla: r.kalla === 'hemmatning' ? 'hemma' : 'vard', vardenhet: enhetsnamn(db, r.enhet_id), registreradAv: personKort(db, r.registrerad_av)?.namn ?? null });
+    // Runda 11, r7: ett inläst värde visar sitt ursprung i stället för vårdenheten som läste in det.
+    const urs = r.kalla === 'import' ? r11.ursprungFor(db, r.id) : null;
+    punkter[mattAvTyp(r.typ)].push({ id: r.id, tid: r.tid, varde: v, kalla: r.kalla === 'hemmatning' ? 'hemma' : 'vard', vardenhet: urs ? `${urs.enhet ?? urs.kallsystem}, inläst` : enhetsnamn(db, r.enhet_id), registreradAv: urs ? urs.av : personKort(db, r.registrerad_av)?.namn ?? null, ...(urs ? { importerad: true } : {}) });
   }
   for (const h of hemma) punkter[h.typ].push({ id: `hemma-${h.id}`, tid: h.tid, varde: h.varde, kalla: 'hemma', vantar: true });
   punkter.bmi = T.bmiPunkter(punkter.vikt.filter(x => !x.vantar), punkter.langd.filter(x => !x.vantar));
@@ -309,7 +313,7 @@ export function bygg(db, p, { matvarden = [], upp = {}, hemma = [], handelser = 
     referenser: Object.values(T.REFERENSER).map(r => ({ id: r.id, namn: r.namn, fran: r.fran, till: r.till, text: r.text })), ejTillgangliga: T.EJ_TILLGANGLIGA,
     kurvor: Object.entries(T.MATT).filter(([m]) => visas(m)).map(([m, d]) => ({
       matt: m, namn: d.namn, enhet: d.enhet, harledd: Boolean(d.harledd), punkter: kurvor[m],
-      linjer: d.utanReferens || !ref.matt.includes(m) ? T.SD_LINJER.map(sd => ({ sd, punkter: [] })) : T.referenslinjer(m, p.kon, ref.id === 'who2007' ? 61 : 0, Math.min(refTill, Math.max(12, Math.ceil(alderNu + 3))), ref.id), utanReferens: Boolean(d.utanReferens) || !ref.matt.includes(m),
+      linjer: d.utanReferens || !ref.matt.includes(m) ? T.SD_LINJER.map(sd => ({ sd, punkter: [] })) : T.referenslinjer(m, p.kon, ref.id === 'who2007' ? 61 : 0, Math.min(refTill, Math.max(12, Math.ceil(alderNu + 3))), ref.id), utanReferens: Boolean(d.utanReferens) || !effektiv.matt.includes(m),
       senaste: kurvor[m].filter(x => !x.vantar).at(-1) ?? null,
     })),
     fodsel: { graviditetslangd: gv, tid: fodelseTid, vikt: upp.fodelsevikt?.varde ?? null, langd: upp.fodelselangd?.varde ?? null, huvudomfang: upp.fodelse_huvudomfang?.varde ?? null },
@@ -339,6 +343,9 @@ export function vy(atk, p, { fran = null, till = null, nu = Date.now(), referens
   ut.bhv = bhvDel(atk, p, nu);
   ut.uppgiftstyper = UPPGIFTER;
   ut.dolda = { kraverVal: atk.doldaVal, sparrade: atk.doldaSparr };
+  // Runda 11, r7: pubertet och import av tillväxtdata.
+  ut.pubertet = r11.pubertetFor(atk, p, nu);
+  ut.import = ut.kan.registrera ? { format: r11.FORMAT, maxTecken: r11.MAX_TECKEN, simuleratSystem: r11.SIMULERAT_SYSTEM } : null;
   atk.logga('las_matvarden', atk.grund(), `tillvaxt:${p.id}`);
   return ut;
 }

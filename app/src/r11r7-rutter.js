@@ -3,12 +3,15 @@
 // behörighetsmotorn och varje åtkomst till patientuppgifter loggas.
 import { Fel, datumAv } from './db.js';
 import { Atkomst, kanRoll } from './atkomst.js';
+import { kravVardande } from './administrering.js';
 import * as iva from './iva.js';
 import * as regler from './iva-patientregler.js';
 import * as vagform from './iva-vagform.js';
 import * as vatska from './iva-vatskemal.js';
 import * as nems from './iva-nems.js';
 import * as lakemedelsvyer from './lakemedelsvyer.js';
+import * as tillvaxt from './tillvaxt-r11.js';
+import { loggaRad } from './logg.js';
 
 // Krokarna i iva.js: patientens regler i analysen, och behandlingsbegränsningar och NEMS på raderna i översikten.
 iva.KROKAR.analys.push(regler.analysFor);
@@ -101,6 +104,28 @@ export function registreraRutter({ rutt, kravInloggad, medPatient }) {
     kravInloggad(c);
     return [201, medPatient(c, id, 'registrera_matvarde', (atk) => nems.registrera(atk, c.body, new Date(), vatska.andningsstodFor(atk)))];
   });
+
+  // Tillväxten: pubertet, import från fil och från det simulerade journalsystemet, och indikatorerna.
+  rutt('POST', '/api/patient/:id/tillvaxt/pubertet', (c, id) => { kravInloggad(c); return medPatient(c, id, 'registrera_matvarde', (atk, p) => tillvaxt.registreraPubertet(atk, p, c.body)); });
+  // Granskningen läser bara: inget sparas, och filen skickas med igen när den läses in.
+  rutt('POST', '/api/patient/:id/tillvaxt/import/granska', (c, id) => {
+    kravInloggad(c);
+    return medPatient(c, id, 'registrera_matvarde', (atk, p) => { kravVardande(atk, 'registrera_matvarde', null, 'tillvaxt:import'); return tillvaxt.granska(atk, p, { format: c.body?.format, innehall: c.body?.innehall }); });
+  });
+  rutt('POST', '/api/patient/:id/tillvaxt/import', (c, id) => { kravInloggad(c); return medPatient(c, id, 'registrera_matvarde', (atk, p) => tillvaxt.importera(atk, p, c.body)); });
+  // Det simulerade journalsystemet: systemet anropar GetObservations för barnet och visar svaret för granskning.
+  rutt('POST', '/api/patient/:id/tillvaxt/import/journalsystem', (c, id) => {
+    kravInloggad(c);
+    return medPatient(c, id, 'registrera_matvarde', (atk, p) => {
+      kravVardande(atk, 'registrera_matvarde', null, 'tillvaxt:import');
+      const innehall = JSON.stringify(tillvaxt.simuleratSvar(p));
+      loggaRad(c.db, { personal_id: c.personal.id, enhet_id: c.personal.enhet_id, patient_id: p.id, handling: 'registrera_matvarde', resurs: 'riv/GetObservations:simulerat', grund: atk.grund(), resultat: 'tillaten' });
+      return { ...tillvaxt.granska(atk, p, { format: 'riv', innehall, kalla: tillvaxt.SIMULERAT_SYSTEM }), innehall };
+    });
+  });
+  rutt('GET', '/api/bhv/indikatorer', (c) => tillvaxt.indikatorer(c.db, kravInloggad(c)));
+  rutt('POST', '/api/bhv/indikatorer', (c) => tillvaxt.valjIndikatorer(c.db, kravInloggad(c), c.body));
+  rutt('GET', '/api/bhv/indikatorer/region', (c) => tillvaxt.region(c.db, kravInloggad(c)));
 }
 
 export { Fel, datumAv };
