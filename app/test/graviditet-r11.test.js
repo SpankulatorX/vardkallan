@@ -7,6 +7,7 @@ import * as obs from '../src/obstetrik.js';
 import * as forl from '../src/forlossning.js';
 import * as gr from '../src/graviditetsregistret.js';
 import * as datauttag from '../src/datauttag.js';
+import * as seed from '../src/obstetrik-seed.js';
 import { GRAVIDITET_R11 as T } from '../src/sussa/runda11-r3.js';
 import { BAS, sandlada, nyPatient, atk, pers, sparr, efter } from './specialist.js';
 import { testserver, klient, sandlada as serverSandlada } from './hjalp.js';
@@ -450,6 +451,8 @@ describe('Graviditet, förlossning och BB', () => {
     // Samma seed oavsett tid på dygnet, också mellan 23 och 01 svensk tid.
     for (const bas of [BAS, new Date('2026-11-12T22:30:00Z'), new Date('2026-11-12T23:30:00Z')]) {
       const db = sandlada(bas);
+      expect(seed.seeda(db, bas).laddad).toBe(true);
+      expect(seed.seeda(db, bas).laddad).toBe(false);
       const m = (pid) => atk(db, 'ssk-vc', pid, 'las_graviditet');
       const g1 = obs.forPatient(m('obs1'), bas).graviditeter[0];
       expect(g1).toMatchObject({ status: 'pagaende', graviditetslangd: { text: 'v 30+2' }, inskrivningssamtal: { valdfragan: { stalld: true } } });
@@ -496,6 +499,10 @@ describe('Graviditet, förlossning och BB', () => {
     expect((await k.get(`/api/patient/${b.data.barnId}/bb`)).data.barn.senasteVikt.vikt).toBe(3350);
     expect((await k.get('/api/graviditetsregistret')).status).toBe(200);
     expect((await k.get('/api/modrahalsovard')).status).toBe(403);
+    // Demodata i den egna sandlådan, en gång.
+    expect((await k.post('/api/demo/obstetrik', {})).data.laddad).toBe(true);
+    expect((await k.post('/api/demo/obstetrik', {})).data.laddad).toBe(false);
+    expect((await k.get('/api/forlossning')).data.pagaende.map(x => x.patientId)).toContain('obs3');
     expect((await k.post(`/api/forlossning/${f.data.id}/constructor`, {})).status).toBe(404);
     // Hanna Lilja har mödrahälsovården.
     await k.logga('ssk-vc');

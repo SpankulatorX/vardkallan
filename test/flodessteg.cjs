@@ -1128,6 +1128,32 @@ function skapa(BAS) {
     await m.klicka(page.locator('dialog[open] .forslag-knapp').first(), 'den första föreslagna tiden');
     await synlig(page, '.notis', 'Din tid är bokad');
   };
+  // Runda 11, r3: demodata för mödrahälsovården och förlossningen läggs in i sandlådan innan stegen räknas.
+  const obstetrikDemo = (page) => page.evaluate(() => fetch('/api/demo/obstetrik', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()));
+  startI['Graviditetsjournalen i vecka 30'] = async (page) => {
+    await obstetrikDemo(page);
+    await gaTill(page, '#/patient/obs1/graviditet');
+    await page.waitForSelector('#gr-besok');
+  };
+  GOR['graviditet-besok'] = async (m, page) => {
+    await m.skriv(page.locator('#gb-blodtryck'), '116/72', 'blodtrycket');
+    await m.skriv(page.locator('#gb-vikt'), '73', 'vikten');
+    await m.skriv(page.locator('#gb-sf'), '30', 'symfys-fundusmåttet');
+    await m.skriv(page.locator('#gb-fosterljud'), '142', 'fosterljuden');
+    await m.klicka(page.locator('#gr-besok [type="submit"]'), 'Spara besöket');
+    await synlig(page, '.notis', 'Besöket är sparat');
+  };
+  startI['Förlossningens översikt'] = async (page) => {
+    await obstetrikDemo(page);
+    await gaTill(page, '#/forlossning');
+    await page.waitForSelector('#forl-tabell');
+  };
+  GOR['ctg-bedomning'] = async (m, page) => {
+    await m.klicka(page.locator('#forl-tabell a.patientlank', { hasText: 'Amanda Lindholm' }), 'Amanda Lindholm');
+    await page.waitForSelector('#fp-ctg-bekrafta');
+    await m.klicka(page.locator('#fp-ctg-bekrafta'), 'Bekräfta bedömningen');
+    await synlig(page, '.notis', 'Bedömningen är dokumenterad');
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 

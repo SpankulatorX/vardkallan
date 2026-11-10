@@ -449,4 +449,13 @@ export const FLODEN = [
     id: 'ombud-boka', namn: 'Boka en tid för patienten som ombud', roll: 'inv-om01', start: 'Min journal för ombudet', budget: 3,
     motivering: 'Sussa 3.4.2.3. Ett klick på patienten som fullmakten gäller, som öppnar patientens tider, ett på Visa lediga tider och ett på den tid som systemet föreslår först. Ombudet ser bara tider och meddelanden, och bokningen loggas på patienten.',
   },
+  // Runda 11, r3: besöket i mödrahälsovården och CTG-bedömningen på förlossningen.
+  {
+    id: 'graviditet-besok', namn: 'Registrera ett besök i graviditetsjournalen', roll: 'ssk-vc', start: 'Graviditetsjournalen i vecka 30', budget: 5,
+    motivering: 'Sussa 4.7.1.2. Ett fältbyte vardera för blodtryck, vikt, symfys-fundusmått och fosterljud och ett klick på Spara besöket. Systemet sätter veckan, varnar för blodtryck, protein, symfys-fundusmått och fosterljud och registrerar blodtryck och vikt som mätvärden.',
+  },
+  {
+    id: 'ctg-bedomning', namn: 'Bedöma CTG under en förlossning', roll: 'bm-uso', start: 'Förlossningens översikt', budget: 2,
+    motivering: 'Sussa 4.7.1.3. Ett klick på patienten och ett på Bekräfta bedömningen. Systemet hämtar kurvan från monitorn, räknar basalfrekvens, variabilitet och decelerationer, klassar kurvan och föreslår åtgärden, så barnmorskan skriver något bara när hon bedömer annorlunda.',
+  },
 ];

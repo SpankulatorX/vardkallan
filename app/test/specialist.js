@@ -31,9 +31,3 @@ export function nyPatient(db, { id, kon = 'K', ar = 1990, enhet, fornamn = 'Test
 }
 export const sparr = (db, pid, enhet) => db.query('INSERT INTO sparrar (patient_id, enhet_id, registrerad) VALUES (?, ?, ?)').run(pid, enhet, BAS.toISOString());
 export const efter = (min, bas = BAS) => new Date(bas.getTime() + min * 60_000);
-
-// Runda 11, r3: seeden har graviditeter, förlossningar och BB (obstetrik-seed.js). Ett test som räknar alla
-// graviditeter eller förlossningar på en vårdenhet tömmer tabellerna först och räknar bara sina egna.
-const OBSTETRIK = ['graviditeter', 'graviditet_besok', 'forlossningar', 'partogram', 'forlossning_barn', 'graviditet_ultraljud', 'graviditet_samtal', 'graviditet_efterkontroll',
-  'ctg_koppling', 'ctg_bedomning', 'smartlindring', 'fodelseanmalan', 'bb_kontroller', 'bb_screening', 'bb_utskrivning'];
-export function utanObstetrikseed(db) { for (const t of OBSTETRIK) db.query(`DELETE FROM ${t}`).run(); return db; }

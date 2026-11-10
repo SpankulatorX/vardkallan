@@ -6,6 +6,7 @@ import { Atkomst } from './atkomst.js';
 import * as obs from './obstetrik.js';
 import * as forl from './forlossning.js';
 import * as gr from './graviditetsregistret.js';
+import * as seed from './obstetrik-seed.js';
 
 export function registreraRutter({ rutt, kravInloggad, medPatient, valFor }) {
   const val = (c) => (pid) => valFor(c.s, pid);
@@ -30,6 +31,13 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor }) {
     return { ...s, poster: s.poster.map(p => ({ typ: p.typ, patient: p.fel.length ? p.patient : null, fel: p.fel })), utskick: gr.utskick(c.db, c.personal) };
   });
   rutt('POST', '/api/graviditetsregistret/skicka', (c) => { kravInloggad(c); return gr.skicka(c.db, c.personal, val(c)); });
+  // Demodata i den egna sandlådan: en graviditet i vecka 30, en ny inskrivning, en pågående förlossning och tvillingar på
+  // BB (obstetrik-seed.js). Anropet går att göra flera gånger.
+  rutt('POST', '/api/demo/obstetrik', (c) => {
+    kravInloggad(c);
+    const r = seed.seeda(c.db, new Date());
+    return { laddad: r.laddad, text: r.laddad ? 'Demopatienterna för mödrahälsovården, förlossningen och BB är inlagda.' : 'Demopatienterna finns redan i din sandlåda.' };
+  });
 }
 
 export const session = (db, personal) => obs.session(db, personal);

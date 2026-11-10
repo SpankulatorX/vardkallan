@@ -72,6 +72,10 @@ import * as skanner from './skanner.js';
 // Runda 10, r7: meddelanden från invånare, invånarnas begäranden, kassan, kapaciteten och kontorsstödet.
 import * as r10r7 from './vyer/r10r7.js';
 
+// Runda 11, r3: förlossningen och BB, och mödrahälsovården.
+import * as forlossning from './vyer/forlossning.js';
+import * as modrahalsovard from './vyer/modrahalsovard.js';
+
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
 
@@ -157,6 +161,12 @@ const MENY = [
   ['#/drift', 'Svarstider', 'klocka', () => true],
 ];
 
+// Runda 11, r3: Mödrahälsovård och Förlossningen efter Barnhälsovård, för läkare och sjuksköterskor (barnmorskor) på en
+// vårdenhet med mödrahälsovård eller förlossning.
+MENY.splice(MENY.findIndex(m => m[0] === '#/bhv') + 1, 0,
+  ['#/modrahalsovard', 'Mödrahälsovård', 'person', () => Boolean(S.session?.obstetrik?.mhv)],
+  ['#/forlossning', 'Förlossningen', 'larm', () => Boolean(S.session?.obstetrik?.forlossning)]);
+
 const RUTTER = [
   [/^#\/idag$/, idag, () => far('boka')],
   // Runda 6, r4: läkare och sjuksköterskor läser tidboken, med sitt eget schema som förval.
@@ -202,6 +212,10 @@ const RUTTER = [
   // Runda 10, r3.
   [/^#\/formular$/, formularVy, () => far('konfigurera')],
   [/^#\/bhv$/, barnhalsovard, () => Boolean(S.session?.bhv)],
+  // Runda 11, r3.
+  [/^#\/modrahalsovard$/, modrahalsovard, () => Boolean(S.session?.obstetrik?.mhv)],
+  [/^#\/forlossning$/, forlossning, () => Boolean(S.session?.obstetrik?.forlossning)],
+  [/^#\/forlossning\/([\w-]+)$/, forlossning.patient, () => Boolean(S.session?.obstetrik?.forlossning)],
   [/^#\/remisser$/, remisser, () => pa('las_remiss', 'las_remiss_status')],
   [/^#\/vantrum$/, vantrum, () => far('vantrum')],
   [/^#\/logg$/, logg, () => far('las_logg')],

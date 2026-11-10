@@ -1,4 +1,5 @@
-// Seeden för graviditet, förlossning och BB (runda 11, r3). Fyra påhittade kvinnor med Skatteverkets testpersonnummer,
+// Demodata för graviditet, förlossning och BB (runda 11, r3), som läggs in i den egna sandlådan med
+// POST /api/demo/obstetrik, på samma sätt som Sussas testdata. Fyra påhittade kvinnor med Skatteverkets testpersonnummer,
 // listade på Vårdcentralen Tybble, där mödrahälsovården finns i demon: en graviditet i vecka 30 med inskrivningssamtal,
 // ultraljud och besök, en ny graviditet utan inskrivningssamtal, en pågående förlossning med partogram, CTG och
 // smärtlindring på förlossningen, USÖ, och en tvillingmor med barnen på BB. Allt räknas från seedens tid, så att seeden
@@ -27,7 +28,7 @@ function ledigtPnr(db, ar) {
 
 export function seeda(db, bas = new Date()) {
   obs.sakra(db);
-  if (db.query("SELECT 1 FROM patienter WHERE id = 'obs1'").get()) return;
+  if (db.query("SELECT 1 FROM patienter WHERE id = 'obs1'").get()) return { laddad: false };
   const pers = (id) => db.query('SELECT * FROM personal WHERE id = ?').get(id);
   const vid = (ms) => new Date(bas.getTime() + ms);
   const idag = datumAv(bas);
@@ -51,7 +52,7 @@ export function seeda(db, bas = new Date()) {
   const v = (vecka) => vid((vecka * 7 - veckor) * 24 * TIMME);
   mv('obs1', 'langd', 167, v(8)); mv('obs1', 'vikt', 64, v(8));
   const g1 = obs.registrera(mvc('obs1'), { sistaMens: sm, paritet: 1 }, v(8));
-  obs.samtal(mvc('obs1'), rad(g1.id), { ...SAMTAL, onskemal: { text: 'Vill gärna ha sin sambo med hela tiden och prova bad först.', smartlindring: ['bad', 'lustgas'] } }, v(8));
+  obs.samtal(mvc('obs1'), rad(g1.id), { ...SAMTAL, onskemal: { text: 'Vill gärna ha sin sambo med hela tiden och pröva bad först.', smartlindring: ['bad', 'lustgas'] } }, v(8));
   obs.ultraljud(mvc('obs1'), rad(g1.id), { typ: 'rutin', datum: datumAv(v(18)), veckor: 18, dagar: 2, placenta: 'framvagg', fostervatten: 'normalt' }, v(18));
   obs.besok(mvc('obs1'), rad(g1.id), { blodtryck: '112/70', vikt: 70, sfMatt: 24, fosterljud: 145 }, v(25));
   obs.besok(mvc('obs1'), rad(g1.id), { blodtryck: '118/74', vikt: 72, sfMatt: 28, fosterljud: 140 }, v(28));
@@ -89,5 +90,5 @@ export function seeda(db, bas = new Date()) {
   forl.bbKontroll(bm(barn[1]), { vikt: 2470, temp: 36.7, andning: 'ua', hudfarg: 'gulaktig', maltider: 9 }, vid(-6 * TIMME));
   for (const pid of barn) forl.bbScreening(bm(pid), { typ: 'kvitamin' }, vid(-19.5 * TIMME));
   forl.bbScreening(bm(barn[0]), { typ: 'pulsoximetri' }, vid(-12 * TIMME));
-  return { barn, andraBarnet: b2.barnId };
+  return { laddad: true, barn, andraBarnet: b2.barnId };
 }

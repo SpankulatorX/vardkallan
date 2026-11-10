@@ -3,7 +3,7 @@
 import { describe, test, expect } from 'bun:test';
 import { datumAv, addDagar } from '../src/db.js';
 import * as obs from '../src/obstetrik.js';
-import { BAS, sandlada, nyPatient, atk, pers, sparr, efter, utanObstetrikseed } from './specialist.js';
+import { BAS, sandlada, nyPatient, atk, pers, sparr, efter } from './specialist.js';
 
 const IDAG = datumAv(BAS);
 const mvc = (db, pid = 'gr1', h = 'graviditet', val = {}) => atk(db, 'ssk-vc', pid, h, val);
@@ -120,7 +120,7 @@ describe('Graviditet och förlossning', () => {
   });
 
   test('planeringen och uppföljningen per vårdenhet räknar graviditeter, väntade förlossningar per vecka och förlossningarnas utfall utan personuppgifter', () => {
-    const db = utanObstetrikseed(sandlada());
+    const db = sandlada();
     ny(db, 'gr4', { fornamn: 'Unika', efternamn: 'Namnsson' }); ny(db, 'gr5'); ny(db, 'gr6');
     grav(db, { sistaMens: addDagar(IDAG, -38 * 7) }, 'gr4');
     grav(db, { sistaMens: addDagar(IDAG, -37 * 7), antalFoster: 2 }, 'gr5');
@@ -130,7 +130,7 @@ describe('Graviditet och förlossning', () => {
     expect(u.vantadeForlossningar.slice(0, 4).map(v => v.antal)).toEqual([0, 0, 1, 1]);
     const text = JSON.stringify(u);
     for (const x of ['gr4', 'Unika', 'Namnsson']) expect(text).not.toContain(x);
-    const db2 = utanObstetrikseed(sandlada());
+    const db2 = sandlada();
     const f = tillForlossning(db2);
     obs.partogram(bm(db2), obs.forlossningRad(db2, f.id), { oppning: 5, tid: efter(500).toISOString() }, efter(500));
     obs.fodelse(bm(db2), obs.forlossningRad(db2, f.id), { kon: 'kvinna', vikt: 3500, langd: 50, huvudomfang: 35, apgar: [5, 6, 9], satt: 'kejsarsnitt' }, efter(560));

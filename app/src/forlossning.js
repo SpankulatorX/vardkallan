@@ -18,7 +18,7 @@
 // Klassningen av CTG och gränserna är demoregler med svensk CTG-klassificering som förebild, inte ett kliniskt
 // beslutsstöd. Utrustningen och Skatteverket är simulerade.
 import { Fel, datumAv, lokalTid, addDagar } from './db.js';
-import { Atkomst, vardenhetFor, enheterUnder, visningsnamn } from './atkomst.js';
+import { Atkomst, vardenhetFor, enheterUnder, visningsnamn, visningsPnr } from './atkomst.js';
 import * as identitet from './identitet.js';
 import * as obs from './obstetrik.js';
 import { tabell, finns, personNamn, enhetKort, iso, MIN, TIMME, matvarde, lasRad, andraRad, textFalt, loggaPatient, SAKNAS } from './specialist-hjalp.js';
@@ -157,12 +157,12 @@ export function ctgBedomning(atk, f, body = {}, nu = new Date()) {
   const klass = body.klass ?? u.klass;
   if (!finns(CTG_KLASS, klass)) throw new Fel(400, 'Klassningen finns inte.', 'ogiltig', { falt: ['klass'] });
   const motivering = textFalt(body.motivering, 500);
-  if (klass !== u.klass && motivering.length < 5) throw new Fel(400, `Systemet klassar kurvan som ${CTG_KLASS[u.klass].toLowerCase()}. Skriv varför du bedömer den annorlunda.`, 'ogiltig', { falt: ['motivering'] });
+  if (klass !== u.klass && motivering.length < 5) throw new Fel(400, `Systemet klassar kurvan som ${{ normal: 'normal', avvikande: 'avvikande', patologiskt: 'patologisk' }[u.klass]}. Skriv varför du bedömer den annorlunda.`, 'ogiltig', { falt: ['motivering'] });
   const atgard = textFalt(body.atgard, 500) || CTG_GORA[klass];
   atk.db.query('INSERT INTO ctg_bedomning (forlossning_id, patient_id, enhet_id, tid, klass, forslag, analys, atgard, motivering, av) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
     .run(f.id, f.patient_id, atk.personal.enhet_id, iso(nu), klass, u.klass, JSON.stringify(u.analys.map(({ gora, ...x }) => x)), atgard, motivering || null, atk.personal.id);
   return { ...ctgUt(atk.db, f, nu), varning: klass === 'patologiskt' ? 'Patologiskt CTG. Tillkalla förlossningsläkaren nu.' : null,
-    text: `Bedömningen är dokumenterad: ${CTG_KLASS[klass].toLowerCase()}. Nästa bedömning om ${CTG_INTERVALL_MIN[klass]} minuter.` };
+    text: `Bedömningen är dokumenterad: ${CTG_KLASS[klass]}. Nästa bedömning om ${CTG_INTERVALL_MIN[klass]} minuter.` };
 }
 
 // ---- Smärtlindring -----------------------------------------------------------------------------------------------------
@@ -463,7 +463,9 @@ export function forlossningFor(atk, nu = new Date()) {
   const barn = db.query('SELECT * FROM forlossning_barn WHERE forlossning_id = ? ORDER BY ordning').all(f.id).map(b => ({
     ordning: b.ordning, patientId: b.barn_patient_id, namn: visningsnamn(db.query('SELECT * FROM patienter WHERE id = ?').get(b.barn_patient_id)),
     anmalan: anmalanUt(db, db.query('SELECT * FROM fodelseanmalan WHERE barn_patient_id = ?').get(b.barn_patient_id)) }));
+  const p = db.query('SELECT * FROM patienter WHERE id = ?').get(atk.patientId);
   return {
+    patient: { id: p.id, namn: visningsnamn(p, atk.val?.visa_identitet), personnummer: visningsPnr(p, atk.val?.visa_identitet) },
     forlossning: { ...obs.forlossningUt(atk, f), vecka: obs.veckaText(Math.max(0, obs.dagarFor(g, datumAv(nu)))), antalFoster: g.antal_foster },
     ctg: f.status === 'pagaende' ? ctgUt(db, f, nu) : { kopplad: false, bedomningar: ctgUt(db, f, nu).bedomningar },
     smartlindring: smartlindringUt(db, f), foreRegional: f.status === 'pagaende' ? foreRegional(atk) : null, barn,

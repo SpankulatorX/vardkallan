@@ -1634,3 +1634,27 @@ td .tagg-avliden { margin-left: 6px; }
 .min-trad { margin: 8px 0; }
 .min-trad > details > summary { cursor: pointer; padding: 6px 0; }
 .min-ombud-rubrik { font-size: 1.1rem; margin-top: 20px; }
+
+/* Runda 11, r3: graviditetsjournalen, förlossningen och BB (patient-graviditet.js, forlossning.js, obstetrik-ui.js). */
+.ob-form { margin: 12px 0; }
+.ob-falt { border: 1px solid var(--linje); border-radius: 6px; padding: 8px 12px; margin: 10px 0; }
+.ob-falt > legend { font-weight: 600; padding: 0 4px; }
+.ob-radio { border: 0; padding: 0; margin: 6px 0; }
+.ob-radio > legend { font-weight: 400; margin-bottom: 2px; }
+.ob-radio .radiofalt { display: inline-flex; align-items: center; gap: 4px; margin-right: 14px; }
+.ob-varningar ul, .ob-attgora ul { margin: 0; }
+.ob-kurva { max-width: 520px; }
+.ob-ctg-kurva { max-width: 760px; }
+.ob-band { fill: var(--kalla); opacity: 0.12; }
+.ob-normalband { fill: var(--kalla); opacity: 0.08; }
+.ob-varningslinje { fill: none; stroke: var(--dampad); stroke-width: 1.4; stroke-dasharray: 5 3; }
+.ob-atgardslinje { fill: none; stroke: var(--larm); stroke-width: 1.4; stroke-dasharray: 2 3; }
+.ob-ctg { fill: none; stroke: var(--kalla); stroke-width: 1.4; stroke-linejoin: round; }
+.ob-ctg-2 { stroke-dasharray: 5 3; }
+.ob-toko { fill: none; stroke: var(--dampad); stroke-width: 1.2; }
+.ob-screening li, .ob-kriterier li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ob-graviditet section { margin-top: 18px; }
+@media (forced-colors: active) {
+  .ob-ctg, .ob-toko, .ob-varningslinje, .ob-atgardslinje { stroke: CanvasText; }
+  .ob-band, .ob-normalband { fill: GrayText; }
+}

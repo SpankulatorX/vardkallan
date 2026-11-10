@@ -200,13 +200,14 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
 
   try {
     // Utan inloggning
-    await s('inloggningssidan visar de arton demorollerna och demoraden', async () => {
+    await s('inloggningssidan visar de nitton demorollerna och demoraden', async () => {
       await page.goto(`${BAS}/`);
       await page.waitForSelector('.roll');
       const n = await page.locator('.roll').count();
       // Runda 6, r6: verksamhetschefen är den trettonde. Runda 7: ekonomen (r3), de två systemförvaltarna (r4) och
       // distriktssköterskan Hanna Lilja i barnhälsovården (r6), och fysioterapeuten i Sussas testfall (r1).
-      if (n !== 18) throw new Error(`${n} roller`);
+      // Runda 11, r3: barnmorskan Sofia Ekdahl på förlossningen och BB.
+      if (n !== 19) throw new Error(`${n} roller`);
       await forvanta(page, '.demorad', 'Demo med påhittade patienter och testpersonnummer från Skatteverket. Inte för vård av riktiga patienter.');
       await forvanta(page, '.sidfot', 'Vårdkällan är ett fristående demoprojekt med öppen källkod (EUPL 1.2). Det är inte en tjänst från Region Örebro län.');
       await forvanta(page, '#roll-lak-akut-visar', 'Nödåtkomst');
