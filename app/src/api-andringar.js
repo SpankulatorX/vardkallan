@@ -16,7 +16,7 @@ export const ANDRINGAR = [
     version: '1.1.0', datum: '2026-11-10',
     text: 'Graviditet, förlossning och BB i REST-API:t: ultraljudsjournalen, inskrivningssamtalet, CTG, smärtlindringen, födelseanmälan, BB-journalen, efterkontrollen och rapporteringen till Graviditetsregistret (simulerat). Inga nya FHIR-resurser.',
     resurser: [], skrivning: [],
-    annat: ['Graviditet, förlossning och BB i REST-API:t (docs/api-avvikelser.md)', 'Tabellerna Graviditet och Forlossning i datauttaget för uppföljning'],
+    annat: ['Graviditet, förlossning och BB i REST-API:t (docs/api-avvikelser.md)', 'Tabeller för graviditeter och förlossningar i datauttaget för uppföljning'],
   },
   // Runda 10, r1: systemkonton, prenumerationer på en population, överkänslighet och patienter via API:t och
   // Patient/$everything för personalen (Sussa 2.5.1.1 och 2.5.1.2).
