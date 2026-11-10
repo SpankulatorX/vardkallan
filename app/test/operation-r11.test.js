@@ -52,13 +52,18 @@ describe('Operation 1.1', () => {
   });
 
   test('ett block som vårdenheten inte har fyllt släpps för andra vårdenheter på sjukhuset två dagar före', () => {
-    const db = sandlada();
-    nyPatient(db, { id: 'op7', enhet: 'uso-kard-72', ar: 1950 });
-    const a = op.anmal(atk(db, 'lak-kard', 'op7', 'operation_anmala'), { kva: 'JKA21' }, BAS);
-    const p = pl(db, 'op7', 'lak-kard');
-    expect(op.planeringsforslag(p, rad(db, a.id), BAS)).toMatchObject({ sal: { id: 'uso-sal-1' }, start: lokalTid(MORGON, '07:30') });
-    expect(() => op.planera(p, rad(db, a.id), { sal: 'uso-sal-1', start: lokalTid(DAG(3), '07:30') }, BAS)).toThrow('tilldelad Ortopediska kliniken USÖ');
-    expect(op.blockFor(db, 'uso-sal-1', MORGON, BAS)).toMatchObject({ vardenhet: 'uso-ort', frislappt: true });
+    // Onsdag: sal 2 i Karlskoga är USÖ:s block på fredagar. Fredagen om två dagar är släppt för Karlskoga, nästa fredag inte.
+    const ONS = new Date('2026-11-11T07:00:00Z');
+    const db = sandlada(ONS);
+    ny(db, 'op1');
+    const a = op.anmal(atk(db, 'lak-kkoga', 'op1', 'operation_anmala'), { kva: 'NGB49', sida: 'hoger' }, ONS);
+    const p = pl(db, 'op1');
+    expect(op.blockFor(db, 'kkoga-sal-2', '2026-11-13', ONS)).toMatchObject({ vardenhet: 'uso-ort', frislappt: true });
+    expect(op.blockFor(db, 'kkoga-sal-2', '2026-11-20', ONS)).toMatchObject({ vardenhet: 'uso-ort', frislappt: false });
+    expect(() => op.planera(p, rad(db, a.id), { sal: 'kkoga-sal-2', start: lokalTid('2026-11-20', '07:30') }, ONS)).toThrow('tilldelad Ortopediska kliniken USÖ');
+    expect(op.planera(p, rad(db, a.id), { sal: 'kkoga-sal-2', start: lokalTid('2026-11-13', '07:30') }, ONS).planering.sal.id).toBe('kkoga-sal-2');
+    // Blocken gäller bara de vårdenheter som opererar, som behörighetsmotorn räknar anestesirelationen ur.
+    expect(Object.values(op.BLOCKSCHEMA).flatMap(d => Object.values(d)).filter(Boolean).every(op.opererar)).toBe(true);
   });
 
   test('teamet planeras med anestesiläkare och anestesisjuksköterska, och utrustning och instrumentgaller bokas och prövas mot krockar', () => {
@@ -481,6 +486,57 @@ describe('Operation 1.1, anestesienheten', () => {
     expect(prover(efter(80 * 24 * 60))).toMatchObject({ klar: true });
     expect(prover(efter(100 * 24 * 60))).toMatchObject({ klar: false });
     expect(prover(efter(100 * 24 * 60)).text).toContain('äldre än tre månader');
+  });
+
+  test('säkerhet: en spärr mot den opererande vårdenheten gäller också anestesienheten, i listan, i läsning och i ändring, och samtycke öppnar som vanligt', () => {
+    const db = sandlada();
+    ny(db, 'op1');
+    const a = anmal(db);
+    op.planera(pl(db, 'op1'), rad(db, a.id), {}, BAS);
+    op.registrera(atk(db, 'ssk-kkoga', 'op1', 'operation_registrera'), rad(db, a.id), { handelse: 'in_sal' }, new Date(lokalTid(MORGON, '07:30')));
+    sparr(db, 'op1', 'kkoga-ort');
+    const L = (h, val = {}) => atk(db, 'lak-ane-kkoga', 'op1', h, val);
+    const nu = efter(5, new Date(lokalTid(MORGON, '07:30')));
+    const ingen = (f) => { try { f(); throw new Error('ingen 404'); } catch (e) { expect([e.status, e.message]).toEqual([404, 'Uppgiften finns inte.']); } };
+    expect(op.anestesilista(db, pers(db, 'lak-ane-kkoga'), () => ({}), nu).anmalningar).toEqual([]);
+    const x = L('las_operation');
+    expect(op.forPatient(x, nu).operationer).toEqual([]);
+    expect(x.doldaSparr).toBe(true);
+    expect(op.aktivtValSyfte(db, pers(db, 'lak-ane-kkoga'), 'op1')).toBe(null);
+    ingen(() => aj.journalFor(L('las_operation'), rad(db, a.id), nu));
+    ingen(() => aj.registreraLakemedel(atk(db, 'ssk-ane-kkoga', 'op1', 'operation_registrera'), rad(db, a.id), { lakemedel: 'ondansetron' }, nu));
+    ingen(() => iva.sparaAnestesi(L('anestesibedomning', { andra_enheter: true }), pat(db, 'op1'), { anmalanId: a.id, asa: 2, anestesiform: 'regional', samtycke: 'ja' }, nu));
+    ingen(() => asaKlar(db, 'op1', a.id, nu));
+    // Patientens samtycke till att spärren tillfälligt hävs öppnar som vanligt.
+    const s = { samtycke_sparr: true };
+    expect(op.forPatient(L('las_operation', s), nu).operationer.map(o => o.id)).toEqual([a.id]);
+    expect(op.anestesilista(db, pers(db, 'lak-ane-kkoga'), () => s, nu).anmalningar.map(r => r.anmalanId)).toEqual([a.id]);
+    expect(Array.isArray(aj.journalFor(L('las_operation', s), rad(db, a.id), nu).varden)).toBe(true);
+  });
+
+  test('säkerhet: en anestesienhet eller en enhet som inte opererar kan inte skapa sin egen vårdrelation, och relationen upphör när anmälan avbokas eller operationsdagen har passerat', () => {
+    const db = sandlada();
+    ny(db, 'op1'); ny(db, 'op2'); ny(db, 'op8'); nyPatient(db, { id: 'op9', enhet: 'kkoga-ane', ar: 1960 }); nyPatient(db, { id: 'op7', enhet: 'uso-kard-72', ar: 1950 });
+    expect(() => op.anmal(atk(db, 'lak-ane-kkoga', 'op9', 'operation_anmala'), { kva: 'JEA01' }, BAS)).toThrow('opererar inte');
+    expect(() => op.anmal(atk(db, 'lak-kard', 'op7', 'operation_anmala'), { kva: 'JKA21' }, BAS)).toThrow('opererar inte');
+    // En anmälan som en anestesienhet eller en enhet som inte opererar ändå har fått in ger ingen vårdrelation.
+    for (const enhet of ['kkoga-ane', 'uso-kard']) {
+      db.query("INSERT INTO op_anmalningar (patient_id, enhet_id, anmald_av, anmald_tid, kva, prioritet, mal_datum, anestesi, minuter, status) VALUES ('op8', ?, 'lak-kkoga', ?, 'JEA01', 'akut', ?, 'generell', 45, 'vantar')").run(enhet, BAS.toISOString(), datumAv(BAS));
+    }
+    expect(harVardrelation(db, 'op8', 'kkoga-ane')).toBe(false);
+    expect(harVardrelation(db, 'op8', 'uso-ane')).toBe(false);
+    // En avbokad anmälan ger ingen vårdrelation.
+    const a = anmal(db, 'op1');
+    expect(harVardrelation(db, 'op1', 'kkoga-ane')).toBe(true);
+    expect(() => op.avboka(atk(db, 'lak-kkoga', 'op1', 'operation_anmala'), rad(db, a.id), { orsak: 'toString' }, BAS)).toThrow('orsaken');
+    expect(op.avboka(atk(db, 'lak-kkoga', 'op1', 'operation_anmala'), rad(db, a.id), { orsak: 'ej_aktuell' }, efter(5)).status).toBe('avbokad');
+    expect(harVardrelation(db, 'op1', 'kkoga-ane')).toBe(false);
+    expect(op.vantelista(db, pers(db, 'ssk-kkoga'), () => ({}), efter(6)).vantande.map(v => v.patient.id)).not.toContain('op1');
+    // En planerad operation vars dag har passerat utan operation ger ingen vårdrelation.
+    const b = anmal(db, 'op2');
+    op.planera(pl(db, 'op2'), rad(db, b.id), {}, BAS);
+    expect(harVardrelation(db, 'op2', 'kkoga-ane', new Date(lokalTid(MORGON, '20:00')))).toBe(true);
+    expect(harVardrelation(db, 'op2', 'kkoga-ane', new Date(lokalTid(DAG(2), '09:00')))).toBe(false);
   });
 
   test('ASA-klassen bekräftas på operationsdagen före induktionen, av en läkare', () => {

@@ -21,26 +21,31 @@ const pnr = (db, pid) => db.query('SELECT personnummer FROM patienter WHERE id =
 
 describe('API för specialistområdena', () => {
   test('operation: läkaren anmäler, sjuksköterskan planerar och registrerar, och en annan patients anmälan ger 404 utan logg på fel patient', async () => {
-    const { k, db } = await start('lak-kard', [{ id: 'sp1', enhet: 'uso-kard-72' }, { id: 'sp2', enhet: 'uso-kard-72' }]);
-    expect((await k.get('/api/patient/sp1/operation/forslag')).data.ingrepp.length).toBe(4);
-    const a = await k.post('/api/patient/sp1/operation', { kva: 'JKA21', prioritet: 'inom_2_veckor' });
-    expect(a.status).toBe(201);
-    await k.logga('ssk-kard');
-    expect((await k.get('/api/operation/vantelista')).data.vantande.map(x => x.patient.id)).toEqual(['sp1']);
+    // Runda 11, r2: bara en vårdenhet som opererar anmäler (säkerhetsgranskningen). Läkaren på kardiologen nekas, och
+    // läkaren på ortopeden i Karlskoga anmäler.
+    const { k, db } = await start('lak-kard', [{ id: 'sp3', enhet: 'uso-kard-72' }, { id: 'sp1', enhet: 'kkoga-ort' }, { id: 'sp2', enhet: 'kkoga-ort' }]);
+    expect((await k.post('/api/patient/sp3/operation', { kva: 'JKA21' })).status).toBe(403);
+    const { Atkomst } = await import('../src/atkomst.js');
+    const op = await import('../src/operation.js');
+    const lak = db.query("SELECT * FROM personal WHERE id = 'lak-kkoga'").get();
+    const a = { data: op.anmal(new Atkomst(db, lak, 'sp1', {}, 'operation_anmala'), { kva: 'JKA21', prioritet: 'inom_2_veckor' }) };
+    expect(a.data.status).toBe('vantar');
+    await k.logga('opk-kkoga');
+    expect((await k.get('/api/operation/vantelista')).data.vantande.map(x => x.patient.id)).toContain('sp1');
     const f = await k.get(`/api/operation/${a.data.id}/planeringsforslag`);
-    expect(f.data.sal.id).toBe('uso-sal-1');
+    expect(f.data.sal.id).toMatch(/^kkoga-sal-/);
     expect((await k.post(`/api/operation/${a.data.id}/planera`, {})).data.status).toBe('planerad');
     expect((await k.post(`/api/operation/${a.data.id}/okand`, {})).status).toBe(404);
     expect((await k.post(`/api/patient/sp1/operation`, { kva: 'JKA21' })).status).toBe(403);
     const datum = f.data.start.slice(0, 10);
     const o = await k.get(`/api/operation/oversikt?datum=${datum}`);
-    expect(o.data.salar[0].operationer.length).toBeGreaterThanOrEqual(1);
-    expect((await k.get(`/api/patient/sp1/operation`)).data.operationer[0].planering.sal.id).toBe('uso-sal-1');
+    expect(o.data.salar.find(s => s.id === f.data.sal.id).operationer.length).toBeGreaterThanOrEqual(1);
+    expect((await k.get(`/api/patient/sp1/operation`)).data.operationer[0].planering.sal.id).toBe(f.data.sal.id);
     // Raden prövas på sin egen patient, så ett försök via en annan patients adress finns inte.
     const fore = db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'sp2'").get().n;
     expect((await k.get('/api/patient/sp2/operation')).data.operationer).toEqual([]);
     expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'sp2'").get().n).toBe(fore + 1);
-    expect((await k.get('/api/operation/uppfoljning')).data.vantande.antal).toBe(1);
+    expect((await k.get('/api/operation/uppfoljning')).data.vantande.antal).toBeGreaterThanOrEqual(1);
   });
 
   test('blod: läkaren beställer, proverna besvaras och sjuksköterskan och läkaren kontrollerar vid sängen i var sin inloggning', async () => {

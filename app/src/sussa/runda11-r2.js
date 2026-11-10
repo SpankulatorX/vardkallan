@@ -25,6 +25,8 @@ export const OPERATION11 = {
   anestesiLasning: 'Operation 1.1, anestesienheten > anestesienheten läser operationen och gör bedömningen, och den opererande enhetens journal kräver ett aktivt val med förvalt syfte',
   giltighet: 'Operation 1.1, anestesienheten > giltigheten: tolv månader, fem för barn under sju år, provsvar högst tre månader och en varning när tillståndet har ändrats efter bedömningen',
   asa: 'Operation 1.1, anestesienheten > ASA-klassen bekräftas på operationsdagen före induktionen, av en läkare',
+  anestesiSparr: 'Operation 1.1, anestesienheten > säkerhet: en spärr mot den opererande vårdenheten gäller också anestesienheten, i listan, i läsning och i ändring, och samtycke öppnar som vanligt',
+  anestesiEgen: 'Operation 1.1, anestesienheten > säkerhet: en anestesienhet eller en enhet som inte opererar kan inte skapa sin egen vårdrelation, och relationen upphör när anmälan avbokas eller operationsdagen har passerat',
   kbPlanera: `${GK}Planera en operation från väntelistan inom budget`,
   kbInSal: `${GK}Registrera att patienten kommer in på salen inom budget`,
 };

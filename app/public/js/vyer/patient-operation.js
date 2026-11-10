@@ -3,9 +3,9 @@
 // materialet, uppvakningen och överrapporteringen. Systemet fyller i det det vet, föreslår nästa steg och förklarar
 // varför något inte går.
 import { esc, api, tidpunkt, klockslag, datum, notis, medKnapp, ikon, dialog, tal } from '../ui.js';
-import { far } from '../app.js';
+import { far, S } from '../app.js';
 
-const STATUS = { vantar: ['Väntar', 'tagg-utkast'], planerad: ['Planerad', ''], pagar: ['Pågår', 'tagg-ok'], uppvak: ['Uppvakning', 'tagg-ok'], klar: ['Klar', ''] };
+const STATUS = { vantar: ['Väntar', 'tagg-utkast'], planerad: ['Planerad', ''], pagar: ['Pågår', 'tagg-ok'], uppvak: ['Uppvakning', 'tagg-ok'], klar: ['Klar', ''], avbokad: ['Avbokad', ''] };
 const HANDELSE_CHECK = { anestesistart: 'fore_anestesi', knivtid: 'fore_snitt', ut_sal: 'fore_utflyttning' };
 const MEDVETANDE = [['A', 'A, vaken'], ['C', 'C, ny förvirring'], ['V', 'V, reagerar på tilltal'], ['P', 'P, reagerar på smärta'], ['U', 'U, reagerar inte']];
 const knapp = (attr, text, sekundar = false) => `<button type="button" class="knapp liten${sekundar ? ' sekundar' : ''}" ${attr}>${esc(text)}</button>`;
@@ -22,7 +22,7 @@ function forberedelserHtml(o) {
   const aktiv = ['vantar', 'planerad'].includes(o.status);
   return `<section aria-labelledby="op-forb-${o.id}"><h4 id="op-forb-${o.id}">Förberedelser</h4>
     <ul class="op-forb">${p.map(x => `<li class="${x.klar ? 'op-klar' : 'op-kvar'}">${x.klar ? ikon.bock : ikon.klocka}<span><strong>${esc(x.namn)}</strong>: ${esc(x.text)}</span></li>`).join('')}</ul>
-    ${aktiv ? `<p class="knapprad">${!p.find(x => x.id === 'prover').klar && far('bestalla_prov') ? knapp(`data-op-prover="${o.id}"`, 'Beställ proverna') : ''}${far('anestesibedomning') && o.anestesi !== 'Lokalbedövning' ? knapp(`data-op-anestesi="${o.id}"`, an.klar ? 'Ny anestesibedömning' : 'Gör anestesibedömningen', an.klar) : ''}</p>` : ''}
+    ${aktiv ? `<p class="knapprad">${far('operation_anmala') && !S.session?.operation?.anestesi ? knapp(`data-op-avboka="${o.id}"`, 'Avboka', true) : ''}${!p.find(x => x.id === 'prover').klar && far('bestalla_prov') ? knapp(`data-op-prover="${o.id}"`, 'Beställ proverna') : ''}${far('anestesibedomning') && o.anestesi !== 'Lokalbedövning' ? knapp(`data-op-anestesi="${o.id}"`, an.klar ? 'Ny anestesibedömning' : 'Gör anestesibedömningen', an.klar) : ''}</p>` : ''}
     ${an.varningar?.length ? `<ul class="op-paverkar">${an.varningar.map(v => `<li class="ruta ruta-obs liten">${ikon.varning}<span>${esc(v)}</span></li>`).join('')}</ul>` : ''}
     ${an.skalor ? `<p class="under-text">${esc(an.skalor.rcri.namn)}: ${esc(an.skalor.rcri.text)} ${esc(an.skalor.apfel.namn)}: ${esc(an.skalor.apfel.text)}</p>` : ''}
     ${an.patientinformation ? `<details class="op-info"><summary>Information till patienten och närstående</summary><p>${esc(an.patientinformation)}</p></details>` : ''}
@@ -38,7 +38,7 @@ function planeringHtml(o) {
       <div><dt>Team</dt><dd>Operatör ${esc(t.operator ?? 'saknas')}, operationssjuksköterska ${esc(t.opssk ?? 'saknas')}, anestesiläkare ${esc(t.anestesilakare ?? 'saknas')}, anestesisjuksköterska ${esc(t.anestesissk ?? 'saknas')}</dd></div>
       ${p.utrustning?.length ? `<div><dt>Utrustning och sterilgods</dt><dd>${esc(p.utrustning.map(u => u.namn).join(', '))}</dd></div>` : ''}</dl>
     ${p.kallelse ? `<details class="op-info"><summary>Kallelsen till patienten</summary><p>${esc(p.kallelse)}</p></details>` : ''}
-    ${o.status === 'planerad' && far('operation_planera') ? `<p class="knapprad">${knapp(`data-op-stryk="${o.id}"`, 'Stryk operationen', true)}</p>` : ''}
+    ${o.status === 'planerad' && far('operation_planera') && !S.session?.operation?.anestesi ? `<p class="knapprad">${knapp(`data-op-stryk="${o.id}"`, 'Stryk operationen', true)}</p>` : ''}
   </section>`;
 }
 
@@ -185,7 +185,7 @@ export async function visa(el, ctx) {
     extra[o.id] = { checklista: ck?.underlag ?? null, journal: j, sterilgods: sgods, plocklista: pl, uppvakning: u };
   }));
   if (!ctx.aktuell()) return;
-  el.innerHTML = `<div class="flikhuvud"><h2>Operation</h2>${far('operation_anmala') ? knapp('data-op-anmal', 'Anmäl till operation') : ''}</div>
+  el.innerHTML = `<div class="flikhuvud"><h2>Operation</h2>${far('operation_anmala') && !S.session?.operation?.anestesi ? knapp('data-op-anmal', 'Anmäl till operation') : ''}</div>
     <p class="under-text">Systemet sätter KVÅ, operationstid, mål för väntetiden och förberedelser ur ingreppet, föreslår tid och team och håller ordningen på salen.</p>
     ${d.operationer.length ? d.operationer.map(o => kortHtml(o, extra[o.id] ?? {})).join('') : '<p class="tom">Inga operationer som du kan se.</p>'}
     <p class="dampad liten">${esc(d.demoregel)}</p>`;
@@ -255,6 +255,14 @@ export async function visa(el, ctx) {
         }
         await post(`/api/operation/${b.dataset.op}/handelse`, data, b);
         notis(`${b.textContent.trim()} är registrerat klockan ${klockslag(new Date().toISOString())}.`);
+        ctx.ladda();
+      } else if (t('[data-op-avboka]')) {
+        const s = await dialog(`<form><h2 id="dlg-rubrik">Avboka operationen</h2><p class="hjalp">Patienten lämnar väntelistan, och anestesienheten har inte längre någon beställning.</p>
+          <div class="falt"><label for="op-avb">Orsak</label><select id="op-avb" name="orsak"><option value="ej_aktuell">Operationen är inte längre aktuell</option><option value="patient_avstar">Patienten avstår från operationen</option><option value="annan_vardgivare">Patienten opereras hos en annan vårdgivare</option></select></div>
+          <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Avboka</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`);
+        if (!s) return;
+        await post(`/api/operation/${t('[data-op-avboka]').dataset.opAvboka}/avboka`, { orsak: s.data.orsak }, null);
+        notis('Operationen är avbokad.');
         ctx.ladda();
       } else if (t('[data-op-asa]')) {
         await post(`/api/operation/${t('[data-op-asa]').dataset.opAsa}/bekrafta-asa`, {}, t('[data-op-asa]'));

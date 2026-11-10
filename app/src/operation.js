@@ -16,7 +16,7 @@
 //
 // Ingreppen, salarna, operationstiderna och kriterierna är demoregler och inget kliniskt beslutsstöd.
 import { Fel, datumAv, addDagar, lokalTid } from './db.js';
-import { vardenhetFor, enheterUnder, kanRoll, visningsnamn, ANESTESIENHETER } from './atkomst.js';
+import { vardenhetFor, enheterUnder, kanRoll, visningsnamn, ANESTESIENHETER, OPERERANDE_VARDENHETER, harVardrelation } from './atkomst.js';
 import { registreraAtgard } from './atgarder.js';
 import { KVA } from './kodverk.js';
 import * as kontroller from './kontroller.js';
@@ -40,20 +40,35 @@ export function anestesienhetFor(db, an) {
   const sjukhus = sjukhusFor(db, an.enhet_id);
   return Object.keys(ANESTESIENHETER).find(id => ANESTESIENHETER[id] === sjukhus) ?? null;
 }
-const arAnestesienhet = (atk, an) => an.status !== 'klar' && vardenhetFor(atk.db, atk.personal.enhet_id) === anestesienhetFor(atk.db, an);
+const arAnestesienhet = (atk, an) => !['klar', 'avbokad'].includes(an.status) && vardenhetFor(atk.db, atk.personal.enhet_id) === anestesienhetFor(atk.db, an);
+// Säkerhetsgranskningen: anmälans enhet prövas alltid i behörighetsmotorn. Det enda som anestesirelationen får ersätta är
+// det aktiva valet för själva anmälan (kraver_val), som när en mottagare läser en remiss. En spärr kräver patientens
+// samtycke som vanligt, och allt annat nekas som en uppgift som inte finns.
+const anestesiOk = (r, patientniva) => r.tillaten || (r.krav === 'kraver_val' && patientniva.tillaten);
+function anestesiKrav(atk, an, handling) {
+  const r = atk.prova(handling, { enhet_id: an.enhet_id });
+  if (r.tillaten) { atk.grunder.add(r.grund); return; }
+  if (r.krav === 'kraver_val') { atk.krav(handling); return; }
+  if (r.krav === 'kraver_samtycke') atk.doldaSparr = true;
+  atk.logga(handling, 'nekad', `operation:${an.id}`, 'nekad');
+  throw new Fel(404, 'Uppgiften finns inte.', 'saknas');
+}
 export function opLas(atk, an, handling = 'las_operation') {
-  if (arAnestesienhet(atk, bunden(atk, an))) { atk.krav(handling); return an; }
+  if (arAnestesienhet(atk, bunden(atk, an))) { anestesiKrav(atk, an, handling); return an; }
   return lasRad(atk, an, handling);
 }
 export function opAndra(atk, an, handling, { anestesi = false } = {}) {
   if (arAnestesienhet(atk, bunden(atk, an))) {
-    atk.krav('las_operation');
+    anestesiKrav(atk, an, 'las_operation');
     if (!anestesi) throw new Fel(403, ANDRA, 'nekad');
     atk.krav(handling);
     return an;
   }
   return andraOp(atk, an, handling);
 }
+// Om en rad i en lista på enhetsnivå får visas för anestesienheten, med samma regel.
+const anestesiRadOk = (db, personal, valFor, an) => anestesiOk(provaRad(db, personal, valFor, an, 'las_operation'),
+  new Atkomst(db, personal, an.patient_id, valFor(an.patient_id), 'las_operation').prova('las_operation'));
 export const AKTIVT_VAL_SYFTE = 'Anestesibedömning inför operation';
 // Syftet som systemet förväljer i dialogen för aktivt val, när den inloggade arbetar på anestesienheten som patienten är
 // anmäld till. Valet görs och loggas som vanligt.
@@ -61,8 +76,8 @@ export function aktivtValSyfte(db, personal, patientId) {
   sakra(db);
   const ve = vardenhetFor(db, personal.enhet_id);
   if (!Object.hasOwn(ANESTESIENHETER, ve)) return null;
-  const rader = db.query("SELECT * FROM op_anmalningar WHERE patient_id = ? AND status <> 'klar'").all(patientId);
-  return rader.some(an => anestesienhetFor(db, an) === ve) ? AKTIVT_VAL_SYFTE : null;
+  const rader = db.query("SELECT * FROM op_anmalningar WHERE patient_id = ? AND status NOT IN ('klar', 'avbokad')").all(patientId);
+  return rader.some(an => anestesienhetFor(db, an) === ve && harVardrelation(db, patientId, ve) && anestesiRadOk(db, personal, () => ({}), an)) ? AKTIVT_VAL_SYFTE : null;
 }
 
 export const DEMOREGEL = 'Demoregel, inte ett kliniskt beslutsstöd. Salarna och teamet är påhittade.';
@@ -281,7 +296,9 @@ const veckodag = (datum) => new Date(lokalTid(datum, '12:00')).getUTCDay();
 const dagarTill = (fran, till) => Math.round((Date.parse(lokalTid(till, '12:00')) - Date.parse(lokalTid(fran, '12:00'))) / DAG);
 const DATUM = /^\d{4}-\d{2}-\d{2}$/;
 // Vårdenheter som har block i någon sal opererar i demon.
-export const opererar = (vardenhet) => Object.values(BLOCKSCHEMA).some(d => Object.values(d).includes(vardenhet));
+// Säkerhetsgranskningen: listan över opererande vårdenheter finns i behörighetsmotorn (atkomst.js), som räknar
+// anestesirelationen ur den. Blocken ska bara gälla de vårdenheterna (testat).
+export const opererar = (vardenhet) => OPERERANDE_VARDENHETER.includes(vardenhet);
 
 // Blocket i en sal en dag: vårdenheten som har salen (null för en öppen eller släppt sal), om blocket är ändrat från
 // schemat och om det är släppt för andra vårdenheter på sjukhuset eftersom dagen är nära (nu anges).
@@ -319,8 +336,8 @@ export function anestesilista(db, personal, valFor, nu = new Date()) {
   const ve = vardenhetFor(db, personal.enhet_id);
   if (!Object.hasOwn(ANESTESIENHETER, ve)) return { vardenhet: enhetKort(db, ve), anmalningar: [], demoregel: DEMOREGEL };
   const ut = [];
-  for (const an of db.query("SELECT * FROM op_anmalningar WHERE status <> 'klar' ORDER BY mal_datum, id").all()) {
-    if (anestesienhetFor(db, an) !== ve) continue;
+  for (const an of db.query("SELECT * FROM op_anmalningar WHERE status NOT IN ('klar', 'avbokad') ORDER BY mal_datum, id").all()) {
+    if (anestesienhetFor(db, an) !== ve || !anestesiRadOk(db, personal, valFor, an)) continue;
     const atk = new Atkomst(db, personal, an.patient_id, valFor(an.patient_id), 'las_operation');
     const r = atk.prova('las_operation');
     if (!r.tillaten) continue;
@@ -521,6 +538,9 @@ export function anmal(atk, body = {}, nu = new Date()) {
   const db = atk.db;
   sakra(db);
   atk.krav('operation_anmala');
+  // Säkerhetsgranskningen: bara en vårdenhet som opererar anmäler, eftersom anmälan beställer anestesin och ger
+  // anestesienheten vårdrelation. En anestesienhet kan inte ge sig själv vårdrelation genom en anmälan.
+  if (!opererar(vardenhetFor(db, atk.personal.enhet_id))) throw new Fel(403, 'Din vårdenhet opererar inte i demon. Remittera patienten till en opererande vårdenhet, som anmäler till operation.', 'nekad');
   if (!finns(INGREPP, body.kva)) throw new Fel(400, 'Välj ingreppet.', 'ogiltig', { falt: ['kva'] });
   const ing = INGREPP[body.kva];
   const sida = ing.sida ? body.sida : null;
@@ -574,7 +594,14 @@ export function forPatient(atk, nu = new Date()) {
   atk.krav('las_operation');
   // Runda 11, r2: anestesienheten ser de anmälningar som är beställda till den, med vårdrelationen från anmälan.
   const alla = atk.db.query('SELECT * FROM op_anmalningar WHERE patient_id = ? ORDER BY anmald_tid DESC, id DESC').all(atk.patientId);
-  const synliga = new Set([...alla.filter(an => arAnestesienhet(atk, an)), ...atk.filtrera(alla.filter(an => !arAnestesienhet(atk, an)), 'las_operation')]);
+  const patientniva = atk.prova('las_operation');
+  const anestesiRader = alla.filter(an => arAnestesienhet(atk, an)).filter(an => {
+    const r = atk.prova('las_operation', { enhet_id: an.enhet_id });
+    if (anestesiOk(r, patientniva)) { atk.grunder.add(r.tillaten ? r.grund : patientniva.grund); return true; }
+    if (r.krav === 'kraver_samtycke') atk.doldaSparr = true;
+    return false;
+  });
+  const synliga = new Set([...anestesiRader, ...atk.filtrera(alla.filter(an => !arAnestesienhet(atk, an)), 'las_operation')]);
   const rader = alla.filter(an => synliga.has(an));
   return { operationer: rader.map(an => anmalanUt(atk, an, nu)), demoregel: DEMOREGEL };
 }
@@ -733,6 +760,23 @@ export function stryk(atk, an, body = {}, nu = new Date()) {
     db.query('UPDATE op_planeringar SET struken_tid = ?, struken_av = ?, struken_orsak = ? WHERE id = ?').run(iso(nu), atk.personal.id, body.orsak, plan.id);
     db.query("UPDATE op_anmalningar SET status = 'vantar' WHERE id = ?").run(an.id);
     historik(db, an, atk.personal.id, 'struken', STRYKORSAKER[body.orsak], iso(nu));
+  })();
+  return anmalanUt(atk, anmalanRad(db, an.id), nu);
+}
+
+// Runda 11, r2: läkaren avbokar en anmälan som inte längre är aktuell. Patienten lämnar väntelistan, en planering stryks
+// och anestesienheten har inte längre vårdrelation genom anmälan.
+export const AVBOKNINGSORSAKER = tabell({ ej_aktuell: 'Operationen är inte längre aktuell', patient_avstar: 'Patienten avstår från operationen', annan_vardgivare: 'Patienten opereras hos en annan vårdgivare' });
+export function avboka(atk, an, body = {}, nu = new Date()) {
+  const db = atk.db;
+  andraOp(atk, an, 'operation_anmala');
+  if (!['vantar', 'planerad'].includes(an.status)) throw new Fel(409, 'Bara en väntande eller planerad operation som inte har börjat kan avbokas.', 'ogiltig');
+  if (!finns(AVBOKNINGSORSAKER, body.orsak)) throw new Fel(400, 'Välj orsaken till att operationen avbokas.', 'ogiltig', { falt: ['orsak'] });
+  db.transaction(() => {
+    const plan = planeringFor(db, an.id);
+    if (plan) db.query("UPDATE op_planeringar SET struken_tid = ?, struken_av = ?, struken_orsak = 'avbokad' WHERE id = ?").run(iso(nu), atk.personal.id, plan.id);
+    db.query("UPDATE op_anmalningar SET status = 'avbokad' WHERE id = ?").run(an.id);
+    historik(db, an, atk.personal.id, 'avbokad', AVBOKNINGSORSAKER[body.orsak], iso(nu));
   })();
   return anmalanUt(atk, anmalanRad(db, an.id), nu);
 }
@@ -1147,7 +1191,7 @@ export function uppfoljning(db, personal, { fran = null, till = null } = {}, nu 
   const genomforda = anm.map(a => ({ a, f: forloppFor(db, a.id) })).filter(x => x.f?.op_slut && x.f.op_slut >= start && x.f.op_slut < slut);
   const vantetider = genomforda.map(x => Math.floor((Date.parse(x.f.in_sal) - Date.parse(x.a.anmald_tid)) / DAG)).sort((a, b) => a - b);
   const median = (v) => (v.length ? (v.length % 2 ? v[(v.length - 1) / 2] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2) : null);
-  const strukna = db.query(`SELECT struken_orsak AS orsak, count(*) AS n FROM op_planeringar WHERE enhet_id IN (${ph}) AND struken_tid >= ? AND struken_tid < ? GROUP BY struken_orsak`).all(...enheter, start, slut);
+  const strukna = db.query(`SELECT struken_orsak AS orsak, count(*) AS n FROM op_planeringar WHERE enhet_id IN (${ph}) AND struken_tid >= ? AND struken_tid < ? AND struken_orsak <> 'avbokad' GROUP BY struken_orsak`).all(...enheter, start, slut);
   const planerade = db.query(`SELECT count(*) AS n FROM op_planeringar WHERE enhet_id IN (${ph}) AND start >= ? AND start < ?`).get(...enheter, start, slut).n;
   let vardagar = 0;
   for (let d = f; d <= t; d = addDagar(d, 1)) { const w = new Date(lokalTid(d, '12:00')).getUTCDay(); if (w !== 0 && w !== 6) vardagar++; }

@@ -1975,6 +1975,13 @@ omfattas av inre sekretess: dialogen för aktivt val har syftet "Anestesibedömn
 vårdenheten läser den utan aktivt val. Operationsavdelningens vy har för anestesienheten fliken Beställda
 anestesibedömningar.
 
+Säkerhetsgranskningen efter beslutet: anestesienheten prövas alltid mot anmälans vårdenhet i behörighetsmotorn, och
+anestesirelationen ersätter bara det aktiva valet för själva anmälan. En spärr mot den opererande vårdenheten gäller
+också anestesienheten, i listorna, i läsning och i ändring, och kräver patientens samtycke som vanligt; allt annat nekas
+som en uppgift som inte finns. Bara en anmälan från en vårdenhet som opererar (och som inte är en anestesienhet) ger
+relationen, och en vårdenhet som inte opererar kan inte anmäla. Relationen upphör när anmälan avbokas, när operationen
+och uppvakningen är klara och när operationsdagen har passerat utan operation.
+
 Uppföljningen per vårdenhet har inflöde, väntetider, strukna, salsutnyttjande, bokningar av utrustning, punktlighet för
 dagens första operation och tid på uppvakningen, utan personuppgifter. Datauttaget har tabellen `Operation`, med samma
 regler för spärr och skyddade personuppgifter som de andra tabellerna.

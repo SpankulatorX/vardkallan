@@ -15,7 +15,7 @@ export const SJUKHUS = { uso: '55010', kkoga: '55011', lind: '55012' };
 // Medicinska verksamhetsområden (MVO) ur Socialstyrelsens kodlista över verksamhetsområden.
 export const MVO = {
   '011': 'Distriktsläkarvård', '100': 'Akutklinik', '101': 'Internmedicinsk vård', '121': 'Infektionssjukvård', '231': 'Kardiologisk vård',
-  '311': 'Ortopedisk vård', '441': 'Förlossningsvård (BB)', '451': 'Obstetrisk och gynekologisk vård', '901': 'Allmänpsykiatrisk vård, vuxna',
+  '311': 'Ortopedisk vård', '411': 'Anestesi- och intensivvård', '441': 'Förlossningsvård (BB)', '451': 'Obstetrisk och gynekologisk vård', '901': 'Allmänpsykiatrisk vård, vuxna',
 };
 
 // Vårdenhet i Vårdkällan till sjukhus, verksamhetsområde och akutverksamhet (uppgift 8 i OV-filen). primarvard betyder att
@@ -34,6 +34,9 @@ export const ENHETER = {
   'uso-kk': { sjukhus: 'uso', mvo: '451' },
   'lind-med': { sjukhus: 'lind', mvo: '101' },
   'kkoga-ort': { sjukhus: 'kkoga', mvo: '311' },
+  // Runda 11, r2: anestesienheterna (beslut 2026-11-10).
+  'uso-ane': { sjukhus: 'uso', mvo: '411' },
+  'kkoga-ane': { sjukhus: 'kkoga', mvo: '411' },
   'vc-tybble': { mvo: '011', primarvard: true },
   'vc-kumla': { mvo: '011', primarvard: true },
 };

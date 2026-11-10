@@ -58,7 +58,7 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
   });
   const OP = {
     // Runda 11, r2: anestesijournalen, sterilgodset och förbrukningen under operationen.
-    'bekrafta-asa': ['anestesibedomning', (atk, r, b) => op.bekraftaAsa(atk, r, b)],
+    'bekrafta-asa': ['anestesibedomning', (atk, r, b) => op.bekraftaAsa(atk, r, b)], avboka: ['operation_anmala', (atk, r, b) => op.avboka(atk, r, b)],
     'anestesi-lakemedel': ['operation_registrera', (atk, r, b) => aj.registreraLakemedel(atk, r, b)], 'anestesi-vatska': ['operation_registrera', (atk, r, b) => aj.registreraVatska(atk, r, b)],
     'anestesi-handelse': ['operation_registrera', (atk, r, b) => aj.registreraHandelse(atk, r, b)], 'galler-oppna': ['operation_registrera', (atk, r, b) => sg.oppna(atk, r, b)],
     'galler-rakna': ['operation_registrera', (atk, r, b) => sg.rakna(atk, r, b)], forbrukning: ['operation_registrera', (atk, r, b) => sg.forbruka(atk, r, b)],

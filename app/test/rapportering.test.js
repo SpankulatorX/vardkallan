@@ -215,7 +215,8 @@ describe('Myndighetsrapportering', () => {
     const db = rensad();
     expect(mr.mappning(db).filter(e => e.saknas).map(e => e.id)).toEqual([]);
     // Runda 9, r3: och kvinnokliniken.
-    expect(Object.keys(ENHETER).length).toBe(11);
+    // Runda 11, r2: anestesienheterna på USÖ och i Karlskoga (beslut 2026-11-10).
+    expect(Object.keys(ENHETER).length).toBe(13);
   });
 });
 

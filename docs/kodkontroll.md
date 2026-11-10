@@ -393,3 +393,5 @@ Kodverkslistan för uppmärksamhetsinformation är bilagan 2025-12-9984-bilaga-k
 ## Runda 11, r2: artros hos patienterna på väntelistan för operation (2026-11-10)
 
 ICD-10-SE-koderna `M16.1 Primär koxartros, ensidig eller UNS` och `M17.1 Primär gonartros, ensidig eller UNS` kontrollerades ordagrant i icd-10-se.tsv, hämtad igen 2026-11-10 från samma adress som ovan, med samma sha256 696c0c02178dabce2c99802898e98cb5c7c4a3af1f78c5cc1c2ad29f5eaabae8. Inga nya KVÅ-koder lades till: operationerna använder de fyra ingrepp som kontrollerades i runda 9.
+
+Verksamhetsområdet 411 Anestesi- och intensivvård för anestesienheterna kontrollerades i sjukhuskoder-kodlista-verksamhetsomraden-2006.pdf, hämtad igen 2026-11-10 med samma sha256 11ce6a97e81a253657c45cd1ff6da2d9dd0de536b63c8fed5e7ebb7e1404c4d0.
