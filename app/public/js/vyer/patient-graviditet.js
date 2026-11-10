@@ -241,16 +241,16 @@ export async function visa(el, ctx) {
 // ---- Fliken Nyfödd: barnets BB-journal ---------------------------------------------------------------------------------
 
 const SCREENING_TEXT = { kvitamin: 'Registrera K-vitamin', pulsoximetri: 'Pulsoximetri utan anmärkning', horsel: 'Hörselscreening utan anmärkning', barnlakare: 'Barnläkarundersökning utan anmärkning', pku: 'PKU-provet är taget' };
-export function bbBarnHtml(b, kan, { rubrik = true } = {}) {
+export function bbBarnHtml(b, kan, { niva = 4 } = {}) {
   const k = b.kontroller[0];
-  return `${rubrik ? '' : ''}<dl class="faktalista ob-fakta">
+  return `<dl class="faktalista ob-fakta">
       <div><dt>Född</dt><dd>${esc(tidpunkt(b.fodd))}, ${b.timmar} timmar sedan</dd></div>
       <div><dt>Födelsevikt</dt><dd>${b.fodelsevikt} g</dd></div>
       <div><dt>Senaste vikt</dt><dd>${b.senasteVikt ? `${b.senasteVikt.vikt} g, ${tal(b.senasteVikt.viktnedgang)} procent under födelsevikten` : 'Inte vägd efter födelsen'}</dd></div>
       <div><dt>Födelseanmälan</dt><dd>${b.anmalan ? `${esc({ kvitterad: 'Kvitterad', ej_folkbokford: 'Mottagen, inget personnummer' }[b.anmalan.status] ?? b.anmalan.status)} (${esc(b.anmalan.kvittens)})${b.anmalan.personnummer ? `, personnummer ${esc(b.anmalan.personnummer)}` : ''}` : 'Inte skickad'}</dd></div>
     </dl>
     ${k ? varningar(k.varningar) : ''}
-    <h4>Screening före hemgång</h4><ul class="enkel-lista ob-screening">${b.screening.map(s => `<li>${s.gjord ? `${ikon.bock}<strong>${esc(s.text)}</strong> <span class="under-text">${esc(s.gjord.resultat)}, ${esc(tidpunkt(s.gjord.tid))}</span>`
+    <h${niva}>Screening före hemgång</h${niva}><ul class="enkel-lista ob-screening">${b.screening.map(s => `<li>${s.gjord ? `${ikon.bock}<strong>${esc(s.text)}</strong> <span class="under-text">${esc(s.gjord.resultat)}, ${esc(tidpunkt(s.gjord.tid))}</span>`
       : `<strong>${esc(s.text)}</strong> <span class="under-text">${s.tidigast && !s.kanTas ? `tas från ${esc(tidpunkt(s.tidigast))}` : 'kvar'}</span>${kan && s.kanTas ? ` <button type="button" class="knapp liten sekundar" data-bb-screening="${esc(s.typ)}" data-pid="${esc(b.patientId)}">${esc(SCREENING_TEXT[s.typ])}</button>` : ''}`}</li>`).join('')}</ul>
     ${kan ? `<form class="ob-form" data-bb-barn="${esc(b.patientId)}" novalidate aria-label="Kontroll av barnet"><div class="falt-rad">
       <div class="falt"><label for="bk-vikt-${esc(b.patientId)}">Vikt, g</label><input id="bk-vikt-${esc(b.patientId)}" name="vikt" inputmode="numeric" autocomplete="off"></div>
@@ -278,7 +278,7 @@ export const nyfodd = {
     if (!d || d.vem !== 'barn') { el.innerHTML = '<div class="flikhuvud"><h2>Nyfödd</h2></div><p class="tom">Barnet föddes inte på förlossningen i Vårdkällan, så det finns ingen BB-journal.</p>'; return; }
     el.innerHTML = `<div class="flikhuvud"><h2>Nyfödd, BB-journal</h2></div>
       ${d.utskriven ? `<p class="ruta ruta-info liten">${ikon.info}<span>Utskriven från BB ${esc(tidpunkt(d.utskriven.tid))} av ${esc(d.utskriven.av ?? '')}.</span></p>` : ''}
-      ${bbBarnHtml(d.barn, d.kanRegistrera)}<p class="under-text">${esc(d.demoregel)}</p>`;
+      ${bbBarnHtml(d.barn, d.kanRegistrera, { niva: 3 })}<p class="under-text">${esc(d.demoregel)}</p>`;
     kopplaBb(el, ctx.ladda);
   },
 };
