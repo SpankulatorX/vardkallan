@@ -1916,6 +1916,66 @@ Vårdkällan lämnar ut det som kontorsstödet behöver i öppna standardformat,
 
 E-legitimationen, sms-aviseringen, betalterminalen, fakturan, e-posten, videomötet och Microsofts tjänster är simulerade. Avgifterna, fullmaktens regler och prognosens regler är demoregler. Ett meddelande blir inte en journalanteckning av sig själv. Meddelanden, fullmakter och avgifter för tjänster finns inte i FHIR-API:t. Kalenderlänken gäller så länge sandlådan finns. Publicering av tider till 1177 Vårdguidens e-tjänster kräver anslutning till 1177 och är inte byggd.
 
+## Operationsplanering och anestesi, version 1.1 (runda 11, r2: operation.js, anestesijournal.js, sterilgods.js, operation-seed.js, iva.js, public/js/vyer/patient-operation.js och public/js/vyer/operation.js, Sussa 4.5.1.1 till 4.5.1.5 och 4.6.1.4)
+
+Operationsplaneringen från runda 9 har nu ett gränssnitt och det som saknades: salsblock över vårdenheter och sjukhus,
+ett riktigt team med anestesi, utrustning och instrumentgaller som resurser, anestesijournal, sterilgods och material,
+uppvakningen på enhetsnivå och uppföljningen i datauttaget.
+
+Gränssnittet. Fliken Operation i journalen visas för personalen på en vårdenhet som opererar (sessionens `operation`).
+Den har anmälan, förberedelserna med anestesibedömningen, planeringen, förloppet på salen med checklistan, anestesi-
+journalen, sterilgodset och materialet, uppvakningen och överrapporteringen, med nästa steg som en knapp. Operations-
+avdelningen (`#/operation`) har dagens program per sal, väntelistan med planering, uppvakningen, salsblocken, förrådet och,
+för den som har uppföljningen, uppföljningen. Den nya demorollen är operationskoordinatorn Therese Hedberg på Ortopediska
+kliniken Karlskoga lasarett (sjuksköterska). Två anestesiläkare och två anestesisjuksköterskor på Ortopediska klinikerna
+i Karlskoga och på USÖ planeras in i teamen; titeln avgör rollen i teamet.
+
+Systemet är experten:
+- Salstiden är fördelad i block per sal och veckodag (`BLOCKSCHEMA`). Förslaget söker först i vårdenhetens egna block på
+  det egna sjukhuset, sedan i egna block på andra sjukhus (Ortopedin på USÖ opererar i Karlskoga och Lindesberg) och sist
+  i öppna salar. Ett block som inte är fyllt släpps för de andra vårdenheterna på sjukhuset två dagar före, och en
+  vårdenhet kan släppa sitt block eller ta ett öppet. Teamet med anestesi, utrustningen och instrumentgallren prövas mot
+  krockar, och felet säger vad som är upptaget och vad systemet föreslår i stället.
+- Vårdhändelser som kan påverka ingreppet (antikoagulantia, insulin, feber de senaste två dygnen och diagnoser efter
+  anmälningsdagen) räknas ur det som den inloggade får se, och varje sidoläsning loggas med sin grund.
+- Dagens program räknar ut när nästa operation kan börja när en operation drar ut på tiden eller inte har börjat.
+- Id-bandet skannas när patienten kommer in på salen och kontrolleras mot patientens identiteter. WHO:s checklista har alla
+  punkter i den svenska formen, och det systemet vet (id-band, allergier, blod, samtycke, monitor, team, profylax,
+  sterilgods, registrering och implantat) är ifyllt. Punkter som inte gäller ingreppet behöver inte bekräftas.
+- Anestesijournalen får värden var femte minut från den simulerade anestesimonitorn, från in på sal till ut från sal.
+  Värdena räknas inte ur journalen, så att inget från en annan vårdenhet syns i dem. Systemet föreslår antibiotika-
+  profylaxen ur ingreppet och byter den vid överkänslighet mot penicillin, räknar induktionsdosen ur den godkända vikten,
+  stoppar ett läkemedel som patienten är överkänslig mot och en dos över den högsta, och räknar vätskebalansen.
+- Instrumentgallren reserveras vid planeringen med charge och utgångsdatum från den simulerade sterilcentralen, ett utgånget
+  galler stoppas, räkningen ska stämma innan patienten lämnar salen och gallren går tillbaka när patienten lämnar salen.
+  Förbrukningen registreras enligt plocklistan med ett klick, implantaten med lot, och implantaten registreras i operationen.
+  Förrådet beställer från det simulerade förrådet när en artikel når beställningspunkten, och leveransen kommer efter ett dygn.
+- Överrapporteringen har läkemedlen, vätskorna och komplikationerna ur anestesijournalen, och avvikelsen från planeringen
+  (start och tid på salen) räknas för varje operation.
+- Anestesibedömningen görs för en operationsanmälan: ingreppet och tiden fylls i, riskskalorna Revised Cardiac Risk Index
+  och Apfel räknas, samtycket krävs, bedömningen gäller i 180 dagar och systemet skriver informationen till patienten. Att
+  spara en bedömning mot en anmälan ändrar ASA-klassen och prövas därför som en ändring av operationen (`operation_anmala`
+  på den anmälande vårdenheten).
+
+Uppföljningen per vårdenhet har inflöde, väntetider, strukna, salsutnyttjande, bokningar av utrustning, punktlighet för
+dagens första operation och tid på uppvakningen, utan personuppgifter. Datauttaget har tabellen `Operation`, med samma
+regler för spärr och skyddade personuppgifter som de andra tabellerna.
+
+Seeden. Margareta Forsberg (p07) har en genomförd akut höftplastik med hela förloppet, och fem påhittade patienter (p71 till
+p75, Skatteverkets testpersonnummer som inget annat använder) väntar på ledplastik i Karlskoga: två är planerade i dag, en i
+morgon och två står på väntelistan. Patienterna finns i patientseeden. Operationerna läggs in i demons sandlåda
+(`mallen()`), inte i `byggSeed`, så att testerna som bygger en egen seed lägger in egna operationer i tomma salar.
+Operationerna ligger på fasta klockslag räknade från seedens dag, och vårdrelationen bygger på en pågående kontakt.
+
+Behörighet. Inga nya handlingar. Läsning prövas på den anmälande vårdenheten med aktivt val, spärr och samtycke, och allt
+som ändrar något kräver att den inloggade arbetar på den anmälande vårdenheten. Enhetsvyerna visar en annan vårdenhets
+operation bara som upptagen tid, och förrådet och blocken innehåller inga patienter.
+
+Demoregler och simulerat: salarna, salstiden, blocken, utrustningen, instrumentgallren och deras innehåll, förrådets
+artiklar, plocklistorna, läkemedlen och doserna under anestesin, kriterierna på uppvakningen, riskskalornas risktal och
+bedömningens giltighetstid. Anestesimonitorn, sterilcentralen och förrådet är simulerade. I demon hör operations- och
+anestesiteamet till den opererande vårdenheten. Patienten fyller ännu inte i någon hälsodeklaration själv inför operationen.
+
 ## Godkännandekriterier för första versionen
 
 - `bun test` grönt, med tester för varje regel i behörighetsmotorn, loggkedjan och triggrarna, signering och rättelse, obligatoriska fält och varningar i läkemedel, NLL som inte svarar i tid och avstämning, remissens statuskedja och larm, FHIR-svarens form.
