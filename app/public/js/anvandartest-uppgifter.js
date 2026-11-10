@@ -586,7 +586,7 @@ export const UPPGIFTER = [
   {
     id: 'visa-studie', namn: 'Visa en röntgenstudie ur arkivet med ett annat fönster', roll: 'lak-kard', start: 'Patientens översikt',
     text: 'Gunnar Åkesson har gjort en lungröntgen. Titta på bilderna och se skelettet tydligare.',
-    kontroll: { sel: 'dialog[open] [data-fonster="Ben"][aria-pressed="true"]' },
+    kontroll: { sel: '.bm-studie img' },
   },
 ];
 
