@@ -79,7 +79,7 @@ export const PERSONAL = [
   // testfall. Sist i listan, så att de andras HSA-id inte ändras.
   { id: 'fys-kard', namn: 'Jenny Holmberg', yrke: 'fysioterapeut', titel: 'Fysioterapeut (hjärtrehabilitering)', enhet: 'uso-kard-mott', demo: true },
   // Runda 9, r3: barnmorskan och läkaren på kvinnoklinikens förlossning (obstetrik.js). Barnmorskan har sjuksköterskans
-  // behörigheter i demon. Ingen av dem går att logga in som.
-  { id: 'bm-uso', namn: 'Sofia Ekdahl', yrke: 'sjukskoterska', titel: 'Barnmorska', enhet: 'uso-kk-forl' },
+  // behörigheter i demon. Runda 11, r3: barnmorskan går att logga in som (förlossningen och BB), läkaren inte.
+  { id: 'bm-uso', namn: 'Sofia Ekdahl', yrke: 'sjukskoterska', titel: 'Barnmorska', enhet: 'uso-kk-forl', demo: true },
   { id: 'lak-kk', namn: 'Johanna Rehn', yrke: 'lakare', titel: 'Läkare (obstetrik)', enhet: 'uso-kk' },
 ];

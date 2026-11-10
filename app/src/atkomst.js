@@ -278,6 +278,12 @@ Object.assign(HANDLINGAR, { bestalla_lakemedel: 'beställa extempore och blodpro
 ROLLER.lakare.push('bestalla_lakemedel');
 ROLLER.sjukskoterska.push('bestalla_lakemedel');
 
+// Runda 11, r3: läkare och sjuksköterskor (barnmorskan i demon) rapporterar till Graviditetsregistret
+// (graviditetsregistret.js).
+Object.assign(HANDLINGAR, { rapportera_graviditetsregistret: 'rapportera till Graviditetsregistret' });
+ROLLER.lakare.push('rapportera_graviditetsregistret');
+ROLLER.sjukskoterska.push('rapportera_graviditetsregistret');
+
 export const kanRoll = (personal, handling) => Boolean(ROLLER[personal?.yrke]?.includes(handling));
 
 // Runda 7, r4: omorganisation (omorganisation.js, HSA:s regler för organisationsförändringar, bilaga K6). En vårdenhet

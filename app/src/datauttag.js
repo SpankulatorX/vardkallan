@@ -104,6 +104,28 @@ export const SCHEMA = {
       avgiftsbelagd: 'Sant när besöket har en avgift i prislistan för patientens ålder och kontaktsättet, utan hänsyn till högkostnadsskydd och LMA-kort.',
     },
   },
+  // Runda 11, r3: graviditeterna och förlossningarna (obstetrik.js och forlossning.js, Sussa 4.7.1.4). Svaren på
+  // frågorna om våld kommer aldrig med, bara om frågorna är ställda.
+  Graviditet: {
+    beskrivning: 'En rad per graviditetsjournal med det som registrerades vid inskrivningen, utan svaren på frågorna om våld.',
+    falt: {
+      rad: 'Radens stabila nyckel.', patient: 'Patientens pseudonym.', aldersgrupp: 'Ålder vid inskrivningen i femårsgrupper.', vardenhet: 'Vårdenhetens HSA-id.',
+      inskrivenDatum: 'Datum för inskrivningen.', inskrivningsvecka: 'Graviditetsveckan vid inskrivningen.', bpdKalla: '"sista_mens", "ultraljud" eller "ivf".',
+      antalFoster: 'Antal foster.', paritet: 'Antal tidigare förlossningar.', tidigareKejsarsnitt: 'Antal tidigare kejsarsnitt.', status: '"pagaende", "forlost" eller "avslutad".',
+      rokningVidInskrivning: '"aldrig", "slutat_fore", "slutat_under", "ja", eller tomt om inskrivningssamtalet saknas.',
+      valdfraganStalld: 'Sant när frågorna om våld är ställda, falskt när de inte kunde ställas, eller tomt om inskrivningssamtalet saknas. Svaren lämnas aldrig ut.',
+      antalUltraljud: 'Antal ultraljud i ultraljudsjournalen.', efterkontroll: 'Sant när efterkontrollen är registrerad.',
+    },
+  },
+  Forlossning: {
+    beskrivning: 'En rad per barn som har fötts, med förlossningens utfall.',
+    falt: {
+      rad: 'Radens stabila nyckel.', patient: 'Moderns pseudonym.', barn: 'Barnets pseudonym.', vardenhet: 'Förlossningens vårdenhet, HSA-id.', fodelsedatum: 'Barnets födelsedatum.',
+      graviditetsvecka: 'Graviditetsveckan vid födelsen.', ordning: 'Barnets ordning vid flerbörd, 1 för det första.', antalFoster: 'Antal foster i graviditeten.',
+      satt: '"vaginal", "instrumentell" eller "kejsarsnitt".', vikt: 'Födelsevikten i gram.', apgar5: 'Apgarpoängen vid 5 minuter.',
+      smartlindring: 'Smärtlindringen under förlossningen, med kommatecken mellan metoderna.', ctgPatologiskt: 'Sant när CTG bedömdes som patologiskt under förlossningen.',
+    },
+  },
 };
 export const TYPER = Object.keys(SCHEMA);
 
@@ -228,7 +250,37 @@ export function bygg(db, { pseudonymnyckel = null } = {}) {
     data.Patientavgift.push({ rad: pseudonym(k, `avgift:${v.id}`), patient: pseudonym(k, `patient:${p.id}`), vardenhet: ve(v.enhet_id)?.hsa_id ?? null, vardkontakt: vk(v.id),
       vardform: v.typ, kontaktsatt: v.kontaktsatt ?? null, datum: d, avgiftsbelagd: ar >= AVGIFT_DEMO.friUnder && ar < AVGIFT_DEMO.friFran && pris > 0 });
   }
+  // Runda 11, r3: graviditeterna och förlossningarna.
+  byggObstetrik(db, { k, ve, far, person, data });
   return { data, utelamnat };
+}
+
+function byggObstetrik(db, { k, ve, far, person, data }) {
+  const har = (t) => Boolean(db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(t));
+  if (!har('graviditeter') || !har('graviditet_samtal')) return;
+  const json = (s) => { try { return JSON.parse(s) ?? {}; } catch { return {}; } };
+  const dagarMellan = (fran, till) => Math.round((Date.parse(`${till}T12:00:00Z`) - Date.parse(`${fran}T12:00:00Z`)) / 86400_000);
+  for (const g of db.query('SELECT * FROM graviditeter ORDER BY id').all()) {
+    const p = far(g.patient_id, g.enhet_id);
+    if (!p) continue;
+    const d = datumI(g.skapad);
+    const s = db.query('SELECT tobak, vald_stalld FROM graviditet_samtal WHERE graviditet_id = ? ORDER BY id DESC').get(g.id);
+    data.Graviditet.push({ rad: pseudonym(k, `graviditet:${g.id}`), ...person(p, d), vardenhet: ve(g.enhet_id)?.hsa_id ?? null, inskrivenDatum: d,
+      inskrivningsvecka: Math.floor((280 - dagarMellan(d, g.bpd)) / 7), bpdKalla: g.bpd_kalla, antalFoster: g.antal_foster, paritet: g.paritet, tidigareKejsarsnitt: g.tidigare_kejsarsnitt,
+      status: g.status, rokningVidInskrivning: s ? json(s.tobak).rokning ?? null : null, valdfraganStalld: s ? Boolean(s.vald_stalld) : null,
+      antalUltraljud: db.query('SELECT count(*) AS n FROM graviditet_ultraljud WHERE graviditet_id = ?').get(g.id).n,
+      efterkontroll: Boolean(db.query('SELECT 1 FROM graviditet_efterkontroll WHERE graviditet_id = ?').get(g.id)) });
+  }
+  for (const b of db.query('SELECT b.*, f.graviditet_id FROM forlossning_barn b JOIN forlossningar f ON f.id = b.forlossning_id ORDER BY b.id').all()) {
+    const p = far(b.patient_id, b.enhet_id);
+    if (!p) continue;
+    const g = db.query('SELECT antal_foster FROM graviditeter WHERE id = ?').get(b.graviditet_id);
+    data.Forlossning.push({ rad: pseudonym(k, `forlossning_barn:${b.id}`), patient: pseudonym(k, `patient:${p.id}`), barn: pseudonym(k, `patient:${b.barn_patient_id}`),
+      vardenhet: ve(b.enhet_id)?.hsa_id ?? null, fodelsedatum: datumI(b.fodd_tid), graviditetsvecka: Math.floor(b.dagar / 7), ordning: b.ordning, antalFoster: g?.antal_foster ?? null,
+      satt: b.satt, vikt: b.vikt, apgar5: (json(b.apgar) ?? [])[1] ?? null,
+      smartlindring: db.query('SELECT DISTINCT metod FROM smartlindring WHERE forlossning_id = ? ORDER BY metod').all(b.forlossning_id).map(r => r.metod).join(','),
+      ctgPatologiskt: Boolean(db.query("SELECT 1 FROM ctg_bedomning WHERE forlossning_id = ? AND klass = 'patologiskt'").get(b.forlossning_id)) });
+  }
 }
 
 // Kvalitetssäkring av uttaget (Sussa 6.3.1.5): kontrollregler per rad, på samma sätt som rapporterna till myndigheter
@@ -245,6 +297,8 @@ const OBLIGATORISKA = {
   Vardkontakt: ['rad', 'patient', 'vardenhet', 'vardform', 'startdatum'], Diagnos: ['rad', 'patient', 'vardenhet', 'kod', 'datum'], Ordination: ['rad', 'patient', 'vardenhet', 'atc', 'startdatum', 'status'],
   Remiss: ['rad', 'franVardenhet', 'tillVardenhet', 'prioritet', 'status', 'skickadDatum'], Matvarde: ['rad', 'patient', 'vardenhet', 'typ', 'varde', 'datum'],
   Anteckning: ['rad', 'patient', 'vardenhet', 'typ', 'kategori', 'status', 'datum'], Vardtillfalle: ['rad', 'patient', 'vardenhet', 'inskrivenDatum'], Patientavgift: ['rad', 'patient', 'vardenhet', 'vardkontakt', 'datum'],
+  // Runda 11, r3.
+  Graviditet: ['rad', 'patient', 'vardenhet', 'inskrivenDatum', 'antalFoster', 'status'], Forlossning: ['rad', 'patient', 'barn', 'vardenhet', 'fodelsedatum', 'satt', 'vikt'],
 };
 const KANDA_VARDFORMER = ['oppenvard', 'akut', 'slutenvard', 'hemsjukvard', 'dagkirurgi'];
 // Koderna som kontrolleras per tabell.

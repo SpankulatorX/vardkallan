@@ -478,7 +478,7 @@ export const ANAMNES = tabell({ tidigareGdm: 'Graviditetsdiabetes i en tidigare 
   arftlighetDiabetes: 'Diabetes hos förälder eller syskon', forlossningsradsla: 'Rädsla inför förlossningen' });
 // Smärtlindringen under förlossningen (forlossning.js), här så att önskemålen i förlossningsbrevet använder samma lista.
 export const SMARTLINDRING = tabell({ lustgas: 'Lustgas', eda: 'Epiduralbedövning (EDA)', spinal: 'Spinalbedövning', pudendus: 'Pudendusblockad', tens: 'TENS',
-  sterilvatten: 'Sterilvattenkvaddlar', akupunktur: 'Akupunktur', bad: 'Varmt bad' });
+  sterilvatten: 'Sterilvattenkvaddlar', akupunktur: 'Akupunktur', bad: 'Varmt bad', ingen: 'Ingen smärtlindring' });
 export const AMNING = tabell({ helt: 'Helamning', delvis: 'Delvis amning', ingen: 'Ingen amning' });
 export const BLODNING = tabell({ ingen: 'Ingen blödning', lite: 'Lite blödning', mycket: 'Riklig blödning' });
 export const EPDS_GRANS = 12;

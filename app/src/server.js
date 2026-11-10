@@ -126,6 +126,8 @@ import { registreraRutter as r10r4Rutter, tidslinje as r10r4Tidslinje, inkorg as
 import { avlidenFor } from './avliden.js';
 // Runda 10, r7: ombud, meddelanden, begäranden, vårdplanen i Min journal, kassan, kapaciteten och kontorsstödet.
 import { registreraRutter as r10r7Rutter, MIN_DELAR as r10r7MinDelar, kalenderSvar } from './r10r7-rutter.js';
+// Runda 11, r3: graviditet, förlossning, BB och Graviditetsregistret.
+import { registreraRutter as r11r3Rutter, session as r11r3Session } from './r11r3-rutter.js';
 import { skapaKalenderlager } from './kontorsstod.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
@@ -514,6 +516,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ut.bhv = bhvSession(s.db, p);
       // Runda 9, r2: om personalens vårdenhet har en intensivvårdsavdelning.
       ut.iva = ivaSession(s.db, p);
+      // Runda 11, r3: om personalens vårdenhet har mödrahälsovård eller förlossning (obstetrik.js).
+      ut.obstetrik = r11r3Session(s.db, p);
       sakraKopia(s);
       ut.lasnyckel = s.lasnyckel;
     }
@@ -1790,6 +1794,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // Runda 10, r7 (r10r7-rutter.js). Kalenderlänkarna finns som HMAC i minnet och i sandlådan.
   const kalender = skapaKalenderlager();
   r10r7Rutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal, kalender });
+  // Runda 11, r3: graviditet, förlossning, BB och Graviditetsregistret (r11r3-rutter.js).
+  r11r3Rutter({ rutt, kravInloggad, medPatient, valFor });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
   // visas direkt (bara i den egna sandlådan).
   const kravNagon = (c) => { if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad'); };
