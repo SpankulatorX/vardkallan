@@ -3,6 +3,7 @@
 // andningsstödet, vårdtyngden enligt NEMS, sammanräkningen av givna doser och överrapporteringen enligt SBAR. Systemet
 // räknar och föreslår, och användaren bekräftar.
 import { esc, api, tidpunkt, klockslag, notis, medKnapp, ikon, tal } from '../ui.js';
+import { S } from '../app.js';
 
 const sv = (v, d = 0) => (v == null ? '' : tal(v, d));
 const plus = (v) => `${v > 0 ? '+' : ''}${sv(v, 0)}`;
@@ -40,12 +41,15 @@ export function realtidHtml(r, pausad = false) {
 export function startaRealtid(el, pid, ctx = {}) {
   const ruta = el.querySelector('#iva-rt');
   const knapp = el.querySelector('[data-iva-rt-paus]');
-  if (!ruta) return;
+  // Utan kopplad monitor (ingen pausknapp) hämtas inget. Hämtningen stoppar när vyn lämnas eller användaren byts eller
+  // loggas ut, så att ett gammalt anrop aldrig går i en annan session.
+  if (!ruta || !knapp) return;
+  const anvandare = S.session?.personal?.id ?? null;
   let pausad = false;
   let timer = null;
   const tick = async () => {
     timer = null;
-    if (!document.body.contains(ruta) || (ctx.aktuell && !ctx.aktuell())) return;
+    if (!document.body.contains(ruta) || (ctx.aktuell && !ctx.aktuell()) || !anvandare || S.session?.personal?.id !== anvandare) return;
     if (!pausad && !document.hidden) {
       try { const r = await api(`/api/patient/${encodeURIComponent(pid)}/iva/realtid`); if (document.body.contains(ruta)) ruta.innerHTML = realtidHtml(r, pausad); if (!r.kopplad) return; } catch { return; }
     }

@@ -931,7 +931,8 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
       // Runda 6, r3: undersköterskan ser vårdplanerna och registrerar sina egna åtgärder under Planer.
       // Runda 8, r1: och fliken Prover, där undersköterskan tar prover och beställer på uppdrag.
       // Runda 10, r2: och fliken Uppföljning (Sussa 3.1.2.2). Runda 10, r4: och In- och utfarter med omvårdnaden.
-      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Journal', 'Läkemedel', 'Mätvärden', 'In- och utfarter', 'Prover', 'Logglista', 'Identitet', 'Utskrifter', 'Planer', 'Tillämpningar', 'Uppföljning'])) throw new Error(`flikar ${flikar}`);
+      // Runda 11, r7: och fliken Intensivvård, eftersom Kardiologiska kliniken har Hjärtintensiven.
+      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Journal', 'Läkemedel', 'Mätvärden', 'Intensivvård', 'In- och utfarter', 'Prover', 'Logglista', 'Identitet', 'Utskrifter', 'Planer', 'Tillämpningar', 'Uppföljning'])) throw new Error(`flikar ${flikar}`);
       if (await page.locator('#ov-dia').count()) throw new Error('diagnoser visas');
       await page.click('.flikar a:has-text("Journal")');
       await page.waitForSelector('.j-grupp');
