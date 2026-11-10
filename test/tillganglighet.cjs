@@ -472,6 +472,18 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     }
     // Runda 9, r2: intensivvårdens övervakning av en patient nås från översikten, inte från menyn.
     if (['lak-kard', 'ssk-kard'].includes(roll)) { await gaTill(page, '#/iva/p22'); vyLista.push([roll, '#/iva/p22']); await granskaHar(`${roll} #/iva/p22`); }
+    // Runda 11, r3: med demodata i sandlådan, förlossningen för en patient, graviditetsjournalen och den nyföddas
+    // BB-journal, som nås från förlossningens och mödrahälsovårdens sidor.
+    if (['bm-uso', 'ssk-vc'].includes(roll)) {
+      const barn = await page.evaluate(async () => {
+        await (await fetch('/api/demo/obstetrik', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).text();
+        const d = await (await fetch('/api/patient/obs4/forlossning')).json();
+        return d.barn?.[0]?.patientId ?? null;
+      });
+      const extra = roll === 'bm-uso' ? ['#/forlossning', '#/forlossning/obs3', '#/forlossning/obs4', '#/patient/obs3/graviditet', ...(barn ? [`#/patient/${barn}/nyfodd`] : [])]
+        : ['#/modrahalsovard', '#/patient/obs1/graviditet', '#/patient/obs2/graviditet'];
+      for (const h of extra) { await gaTill(page, h); vyLista.push([roll, h]); await granskaHar(`${roll} ${h}`); }
+    }
     if (JOURNAL_ROLLER.includes(roll)) {
       await gaTill(page, '#/patient/p01');
       for (const h of await flikarFor(page)) {

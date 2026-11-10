@@ -190,6 +190,11 @@ MENY.logg.splice(MENY.logg.indexOf('Logguppföljning') + 1, 0, 'Begäranden');
 // Runda 9, r2: läkarens meny på Kardiologiska kliniken är läkarens meny med Intensivvård, och kopieras när den är klar.
 MENY.kardiologi = [...MENY.klinisk];
 MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård');
+// Runda 11, r3: Per Holm har Mödrahälsovård efter Barnhälsovård. Barnmorskan Sofia Ekdahl på förlossningen har
+// sjuksköterskans meny utan Intensivvård och med Förlossningen före Remisser. Kopieras sist, när alla tillägg är gjorda.
+MENY.bvc.splice(MENY.bvc.indexOf('Barnhälsovård') + 1, 0, 'Mödrahälsovård');
+MENY.barnmorska = MENY.sjukskoterska.filter(x => x !== 'Intensivvård');
+MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen');
 
 (async () => {
   const browser = await chromium.launch();
@@ -1698,6 +1703,50 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
       await page.waitForLoadState('networkidle');
     });
     await allaVyer(page, 'Jenny Holmberg', MENY.fysioterapeut);
+    // Runda 11, r3: förlossningen, BB och mödrahälsovården med demodata i den egna sandlådan.
+    await s('Sofia Ekdahl lägger in demopatienterna och bedömer CTG under förlossningen med ett klick', async () => {
+      await loggaIn(page, 'bm-uso');
+      await gaTill(page, '#/forlossning');
+      if (await page.locator('[data-ob-demo]').count()) { await page.click('[data-ob-demo]'); await forvanta(page, '.notis', 'Demopatienterna för mödrahälsovården'); }
+      await page.waitForSelector('#forl-tabell');
+      await bild(page, '160-forlossningen', true);
+      await page.locator('#forl-tabell a.patientlank', { hasText: 'Amanda Lindholm' }).click();
+      await page.waitForSelector('#fp-ctg-bekrafta');
+      await forvanta(page, 'main', 'Systemets klassning: Normalt CTG');
+      await bild(page, '161-forlossning-ctg', true);
+      await page.click('#fp-ctg-bekrafta');
+      await forvanta(page, '.notis', 'Bedömningen är dokumenterad');
+      await page.waitForLoadState('networkidle');
+    });
+    await s('Sofia Ekdahl skickar födelseanmälan för den andra tvillingen och öppnar barnets BB-journal', async () => {
+      await gaTill(page, '#/forlossning/obs4');
+      await page.click('[data-fp-anmalan="2"]');
+      await forvanta(page, '.notis', 'Skatteverket har tagit emot födelseanmälan');
+      await page.waitForLoadState('networkidle');
+      await page.locator('.ob-barn a').first().click();
+      await forvanta(page, 'main h2', 'Nyfödd, BB-journal');
+      await bild(page, '162-nyfodd-bb', true);
+    });
+    await allaVyer(page, 'Sofia Ekdahl', MENY.barnmorska);
+    await s('Hanna Lilja ställer frågorna om våld i inskrivningssamtalet, och svaren visas bara efter ett eget val', async () => {
+      await loggaIn(page, 'ssk-vc');
+      await page.evaluate(() => fetch('/api/demo/obstetrik', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()));
+      await gaTill(page, '#/modrahalsovard');
+      await page.waitForSelector('#mhv-tabell');
+      await bild(page, '163-modrahalsovard', true);
+      await page.locator('#mhv-tabell a.patientlank', { hasText: 'Johanna Rask' }).click();
+      await page.waitForSelector('#gr-samtal');
+      await page.check('#gs-ensam');
+      for (const k of ['tidigare', 'nu', 'radd']) await page.check(`#gs-${k}-nej`);
+      await page.click('#gr-samtal [type="submit"]');
+      await forvanta(page, '.notis', 'Inskrivningssamtalet är registrerat');
+      await page.waitForSelector('[data-gr-vald]');
+      await saknas(page, 'Vill inte svara');
+      await page.click('[data-gr-vald]');
+      await forvanta(page, 'dialog[open]', 'Svaren på frågorna om våld');
+      await bild(page, '164-valdsvar');
+      await page.click('dialog[open] [data-varde="ok"]');
+    });
     await s('Per Holm granskar sina 30 utkast och signerar alla med ett klick', async () => {
       await loggaIn(page, 'lak-vc');
       await page.waitForFunction(() => document.querySelector('#lista') && !/Hämtar/.test(document.querySelector('#lista').textContent));
