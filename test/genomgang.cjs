@@ -1741,7 +1741,7 @@ Object.defineProperty(MENY, 'operation', { get: () => MENY.sjukskoterska.map(x =
       await bild(page, '122-operation-checklista', true);
     });
     await s('Therese Hedberg bekräftar checklistan, ger antibiotikaprofylaxen och öppnar instrumentgallret', async () => {
-      for (const c of await page.locator('.op-check input[type=checkbox]:not(:checked):not(:disabled)').all()) await c.check();
+      for (const id of await page.locator('.op-check input[type=checkbox]:not(:checked):not(:disabled)').evaluateAll(l => l.map(x => x.id))) await page.click(`.op-check label[for="${id}"]`);
       await page.click('.op-check [type=submit]');
       await forvanta(page, '.notis', 'Checklistan är bekräftad');
       await page.waitForSelector('[data-op-handelse="anestesistart"]');

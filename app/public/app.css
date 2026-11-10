@@ -1664,3 +1664,6 @@ td .tagg-avliden { margin-left: 6px; }
 .op-block td { vertical-align: top; min-width: 130px; }
 .op-block .op-egen { background: var(--kalla-ljus); }
 @media (max-width: 600px) { .op-dl { grid-template-columns: 1fr; } }
+/* Raden utan uppmärksamhetsinformation, med knappen för ny överkänslighet, bryts på en smal skärm (patienterna i
+   Karlskoga har ingen uppmärksamhetsinformation). */
+@media (max-width: 600px) { .signal-ingen.signal-um { flex-wrap: wrap; max-width: 100%; } }
