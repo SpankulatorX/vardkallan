@@ -336,6 +336,25 @@ describe('Intensivvård, version 1.1', () => {
     somPerson(sandlada(app, k), 'lak-kard');
   });
 
+  test('utdelningen röjer varken grund eller namn för en titrering på en spärrad vårdenhet, men dosen räknas med i summan', async () => {
+    const k = await inloggad('lak-kard');
+    const d = db(k);
+    const sparrad = d.query("SELECT enhet_id FROM sparrar WHERE patient_id = 'p04' LIMIT 1").get().enhet_id;
+    d.query("INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, matt_enhet, tid, registrerad_av) VALUES ('p04', 'uso-kard', 'vikt', '70', 70, 'kg', ?, 'lak-kard')").run(new Date(Date.now() - 5 * TIMME).toISOString());
+    const r = await k.post('/api/patient/p04/iva/infusion', { protokoll: 'morfin', ordinationsorsak: 'Smärta' });
+    expect(r.status).toBe(201);
+    const oid = r.data.ordination.id;
+    d.query('UPDATE iva_infusioner SET skapad = ? WHERE ordination_id = ?').run(new Date(Date.now() - 4 * TIMME).toISOString(), oid);
+    d.query("INSERT INTO iva_titreringar (ordination_id, patient_id, enhet_id, tid, dos, av, grund) VALUES (?, 'p04', ?, ?, 0.03, 'lak-psyk', 'HEMLIG-GRUND')").run(oid, sparrad, new Date(Date.now() - 2 * TIMME).toISOString());
+    const s = (await k.get('/api/patient/p04/iva/tillagg')).data.sammanrakning.find(x => x.ordinationId === oid);
+    const text = JSON.stringify(s);
+    expect(text).not.toContain('HEMLIG-GRUND');
+    expect(text).not.toContain('Lena Ström');
+    expect(s.utdelning.map(u => u.dos)).toEqual([0.02, 0.03]);
+    expect(s.utdelning[1].av).toBeNull();
+    expect(s.senasteDygnet).toBeCloseTo((0.02 * 2 + 0.03 * 2) * 70, 1);
+  });
+
   test('överrapporteringen röjer varken orsak eller tid för en vårdkontakt på en spärrad vårdenhet eller på en annan vårdenhet utan aktivt val', async () => {
     const k = await inloggad('lak-kard');
     const d = db(k);

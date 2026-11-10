@@ -31,14 +31,19 @@ iva.KROKAR.mal.push((atk, t) => {
 
 const TIMME = 3600_000;
 // Sammanräkningen av givna doser för en kontinuerlig infusion: dosen per timme gånger tiden för varje dos sedan starten
-// (ur titreringarna), det senaste dygnet och sedan starten, och mot den högsta dygnsdosen.
-export function sammanrakning(db, infusioner, nu = new Date()) {
+// (ur titreringarna), det senaste dygnet och sedan starten, och mot den högsta dygnsdosen. Alla doser räknas i summan,
+// som läkemedelslistans aktuella dos, så att säkerhetssumman aldrig blir för låg. Vem som ändrade och varför visas bara för
+// rader på en vårdenhet som användaren får se (atk), annars är de tomma.
+export function sammanrakning(db, infusioner, nu = new Date(), atk = null) {
+  const synlig = (enhetId) => Boolean(atk) && atk.prova('las_lakemedel', { enhet_id: enhetId, gemensam: true }).tillaten;
   return infusioner.map(inf => {
     const i = db.query('SELECT * FROM iva_infusioner WHERE ordination_id = ?').get(inf.ordinationId);
     const o = db.query('SELECT utsatt_tid FROM ordinationer WHERE id = ?').get(inf.ordinationId);
     if (!i) return null;
     const slut = Math.min(nu.getTime(), o?.utsatt_tid ? Date.parse(o.utsatt_tid) : Infinity);
-    const steg = [{ tid: Date.parse(i.skapad), dos: i.startdos, av: i.av, start: true }, ...db.query('SELECT tid, dos, av, grund FROM iva_titreringar WHERE ordination_id = ? ORDER BY tid, id').all(i.ordination_id).map(t => ({ tid: Date.parse(t.tid), dos: t.dos, av: t.av, grund: t.grund }))];
+    const steg = [{ tid: Date.parse(i.skapad), dos: i.startdos, av: synlig(i.enhet_id) ? i.av : null, start: true },
+      ...db.query('SELECT tid, dos, av, grund, enhet_id FROM iva_titreringar WHERE ordination_id = ? ORDER BY tid, id').all(i.ordination_id)
+        .map(t => ({ tid: Date.parse(t.tid), dos: t.dos, av: synlig(t.enhet_id) ? t.av : null, grund: synlig(t.enhet_id) ? t.grund : null }))];
     const fran24 = nu.getTime() - 24 * TIMME;
     let totalt = 0, dygn = 0;
     steg.forEach((s, k) => {
@@ -84,7 +89,7 @@ export function tillagg(atk, p, nu = new Date()) {
   const kan = (h) => kanRoll(atk.personal, h) && atk.prova(h).tillaten && atk.prova(h).grund !== 'nodatkomst';
   return {
     regler: pr, parametrar: Object.entries(regler.PARAMETRAR).map(([id, d]) => ({ id, namn: d.namn, enhet: d.enhet, min: d.min, max: d.max, standard: { under: regler.standardGrans(id, 'under', ov.parametrar), over: regler.standardGrans(id, 'over', ov.parametrar) } })),
-    begransningar: b, vatska: v, nems: n, sammanrakning: sammanrakning(db, ov.infusioner, nu),
+    begransningar: b, vatska: v, nems: n, sammanrakning: sammanrakning(db, ov.infusioner, nu, atk),
     overrapportering: regler.overrapportering(atk, ov, { begransningar: b, regler: pr, vatska: v, nems: n }),
     andningsstodTyper: vatska.ANDNINGSSTOD, befuktningar: Object.fromEntries(Object.entries(vatska.BEFUKTNING).map(([k, [t]]) => [k, t])), malTyper: vatska.MAL,
     kan: { regler: kan('ordinera'), mal: kan('ordinera'), andningsstod: kan('registrera_matvarde'), nems: n.kan && kan('registrera_matvarde') },
