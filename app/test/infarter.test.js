@@ -221,8 +221,9 @@ describe('In- och utfarter', () => {
     const ov = (await k.get('/api/patient/p01/oversikt')).data;
     const rader = ov.tidslinje.filter(t => t.typ === 'infart' && t.ref.id === r.id);
     expect(rader.map(t => t.rubrik).sort()).toEqual(['Avvecklad: Dränage', 'Satt: Dränage']);
-    expect(rader[0].text).toBe('Behövs inte längre');
-    expect(rader[1].text).toBe('12 Ch, Operationssår');
+    // Runda 11, r1: raderna slås upp efter rubrik, eftersom insättning och avveckling kan ha samma tid (falsk klocka).
+    expect(rader.find(t => t.rubrik.startsWith('Avvecklad')).text).toBe('Behövs inte längre');
+    expect(rader.find(t => t.rubrik.startsWith('Satt')).text).toBe('12 Ch, Operationssår');
   });
 });
 

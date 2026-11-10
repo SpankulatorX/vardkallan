@@ -164,7 +164,7 @@ const talSv = (v, d = 1) => String(Math.round(v * 10 ** d) / 10 ** d).replace('.
 
 export const utrustningRad = (db, id) => (typeof id === 'string' ? db.query('SELECT * FROM mt_utrustning WHERE id = ?').get(id) ?? null : null);
 const utrustningKort = (u) => (u ? { id: u.id, typ: u.typ, typText: TYPER[u.typ], modell: u.modell, serienummer: u.serienummer, streckkod: u.streckkod, simulerad: Boolean(u.simulerad) } : null);
-export const aktivKoppling = (db, utrustningId, tid) => db.query(`SELECT * FROM mt_kopplingar WHERE utrustning_id = ? AND start <= ? AND (slut IS NULL OR slut >= ?)
+export const aktivKoppling = (db, utrustningId, tid) => db.query(`SELECT * FROM mt_kopplingar WHERE utrustning_id = ? AND start <= ? AND (slut IS NULL OR slut > ?)
   ORDER BY start DESC, id DESC LIMIT 1`).get(utrustningId, tid, tid) ?? null;
 
 // Klassningen av ett mätvärde (referens eller godkänt) står i mt-klass.js, som journal.js och vitalparametrar.js läser.

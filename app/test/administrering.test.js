@@ -2,8 +2,8 @@
 // i efterhand, permission, vidimering, varning vid utsättning, fördefinierade ordinationer, planerad vårdhändelse,
 // läkemedelsgenomgång och vätskebalans. Klockan styrs med setSystemTime och sandlådan byggs vid den tiden, så att
 // dagens doser och seedens givna doser blir desamma varje gång.
-import { describe, test, expect, beforeAll, afterAll, afterEach, setSystemTime } from 'bun:test';
-import { aterstallKlockan } from './falsk-klocka.js';
+import { describe, test, expect, beforeAll, afterAll, afterEach } from 'bun:test';
+import { aterstallKlockan, stallKlockan } from './falsk-klocka.js';
 import { byggSeed, idag, addDagar, lokalTid } from '../src/db.js';
 import * as administrering from '../src/administrering.js';
 import * as vidimering from '../src/vidimering.js';
@@ -20,7 +20,7 @@ import { atk, personal, testserver, klient, sandlada } from './hjalp.js';
 const kl = (k, dag = idag()) => lokalTid(dag, k);
 // En sandlåda byggd vid en viss tid i dag, med klockan stående där.
 function sandladaKl(k = '13:30') {
-  setSystemTime(new Date(kl(k)));
+  stallKlockan(new Date(kl(k)));
   return byggSeed(new Date(kl(k)));
 }
 afterEach(() => aterstallKlockan());
@@ -48,7 +48,7 @@ describe('Administrering', () => {
     expect(l.sammanfattning).toMatchObject({ attGe: 1, forsenade: 0, givna: 2, totalt: 3 });
     expect(l.kan.kan).toBe(true);
     // Vid 16 är dosen kl 14 försenad.
-    setSystemTime(new Date(kl('16:00')));
+    stallKlockan(new Date(kl('16:00')));
     expect(administrering.lista(atk(db, 'ssk-kard', 'p01')).doser.find(d => d.planerad === kl('14:00')).status).toBe('forsenad');
   });
 
@@ -79,7 +79,7 @@ describe('Administrering', () => {
     expect(ok.administrering.kvitteradeVarningar).toEqual([{ regel: 'dubbel_dos', motivering: 'Patienten kräktes upp tabletten' }]);
     expect(administrering.lista(atk(db, 'ssk-kard', 'p01')).doser.find(d => d.lakemedel.namn.startsWith('Furosemid') && d.planerad === kl('08:00')).antalRegistreringar).toBe(2);
     // Samma substans för tätt inpå: dosen kl 14 en timme efter en extra dos.
-    setSystemTime(new Date(kl('14:00')));
+    stallKlockan(new Date(kl('14:00')));
     expect(regler(administrering.kontroll(a, { ordinationId: furo.id, planerad: kl('14:00') }).varningar)).toContain('allvarlig:dubbel_dos');
   });
 
@@ -91,9 +91,9 @@ describe('Administrering', () => {
     expect(regler(v)).toContain('allvarlig:for_tidig');
     expect(v.find(x => x.regel === 'for_tidig').text).toContain('kl. 14.00, om 3 timmar');
     // En timme före går bra, och att iordningsställa dosen i förväg är ingen för tidig dos.
-    setSystemTime(new Date(kl('13:05')));
+    stallKlockan(new Date(kl('13:05')));
     expect(regler(administrering.kontroll(a, { ordinationId: furo.id, planerad: kl('14:00') }).varningar)).not.toContain('allvarlig:for_tidig');
-    setSystemTime(new Date(kl('11:00')));
+    stallKlockan(new Date(kl('11:00')));
     expect(regler(administrering.kontroll(a, { ordinationId: furo.id, planerad: kl('14:00'), atgard: 'iordningstall' }).varningar)).toEqual([]);
   });
 
@@ -124,7 +124,7 @@ describe('Administrering', () => {
     const l = administrering.lista(atk(db, 'ssk-kard', 'p01')).vidBehov.find(v => v.ordinationId === alvedon.id);
     expect(l).toMatchObject({ kanGesNu: false, senasteDygnet: 7 });
     expect(l.varfor).toContain('Nästa dos tidigast');
-    setSystemTime(new Date(kl('15:40')));
+    stallKlockan(new Date(kl('15:40')));
     const v = administrering.kontroll(a, { ordinationId: alvedon.id, antal: 2 }).varningar;
     expect(regler(v)).toEqual(['allvarlig:max_per_dygn']);
     expect(v[0].text).toContain('högst 8 tabletter per dygn');
@@ -146,7 +146,7 @@ describe('Administrering', () => {
     expect(ut.administrering).toMatchObject({ tid: kl('14:10'), registrerad: kl('14:30'), efterhand: true, utfordAv: { id: 'ssk-kard' } });
     expect(ut.varningar).toEqual([]);
     // En dos som inte gavs kräver orsak och registreras också.
-    setSystemTime(new Date(kl('20:30')));
+    stallKlockan(new Date(kl('20:30')));
     const meto = ordFor(db, 'p01', 'Metoprolol');
     expect(fel(() => administrering.spara(a, { ordinationId: meto.id, planerad: kl('08:00', addDagar(idag(), 1)), atgard: 'ej_given' })).extra.falt).toEqual(['orsak']);
     expect(administrering.spara(a, { ordinationId: meto.id, planerad: kl('08:00', addDagar(idag(), 1)), atgard: 'ej_given', orsak: 'Puls 48, läkare kontaktad' }).administrering).toMatchObject({ status: 'ej_given', orsak: 'Puls 48, läkare kontaktad' });
@@ -164,7 +164,7 @@ describe('Administrering', () => {
     // En etikett för en annan patient eller ett annat läkemedel stoppas.
     const a4 = atk(db, 'ssk-kard', 'p04', {}, 'ge_lakemedel');
     expect(fel(() => administrering.spara(a4, { ordinationId: ordFor(db, 'p04', 'Trombyl').id, kontrollkod: ior.administrering.iordningstalld.kontrollkod })).extra.falt).toEqual(['kontrollkod']);
-    setSystemTime(new Date(kl('14:02')));
+    stallKlockan(new Date(kl('14:02')));
     const ut = administrering.spara(a, { ordinationId: furo.id, kontrollkod: ior.administrering.iordningstalld.kontrollkod });
     expect(ut.id).toBe(ior.id);
     expect(ut.administrering).toMatchObject({ status: 'given', tid: kl('14:02'), planerad: kl('14:00'), iordningstalld: { av: 'Johan Ek' } });
@@ -470,7 +470,7 @@ describe('Vidimering', () => {
     expect(v.senaste.ordinationer.length).toBe(fore.pagaende.length);
     expect(fel(() => vidimering.vidimera(a)).message).toContain('Inget har ändrats');
     // En ny ordination och en utsättning efter vidimeringen.
-    setSystemTime(new Date(kl('14:00')));
+    stallKlockan(new Date(kl('14:00')));
     const ny = lakemedel.spara(a, { lakemedelId: 'VK-NPL-0025', dosering: '1 kapsel på morgonen', typ: 'staende', ordinationsorsak: 'Magskydd', uppfoljningsdatum: addDagar(idag(), 14) });
     lakemedel.utsatt(a, ordFor(db, 'p01', 'Alvedon'), { orsak: 'Smärtfri' });
     const u = vidimering.underlag(a);

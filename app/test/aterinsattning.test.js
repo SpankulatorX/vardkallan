@@ -2,8 +2,8 @@
 // datumet för återinsättning: dagen före och på dagen får den ordinerande läkaren, den läkare som beslutade om uppehållet
 // och vårdenhetens läkare en rad i inkorgen med läkemedlet, planen och en knapp till läkemedelslistan. Raden finns kvar
 // tills läkemedlet är insatt igen eller ordinationen ändras.
-import { describe, test, expect, beforeAll, afterAll, afterEach, setSystemTime } from 'bun:test';
-import { aterstallKlockan } from './falsk-klocka.js';
+import { describe, test, expect, beforeAll, afterAll, afterEach } from 'bun:test';
+import { aterstallKlockan, stallKlockan } from './falsk-klocka.js';
 import { byggSeed, idag, addDagar, lokalTid } from '../src/db.js';
 import * as lakemedel from '../src/lakemedel.js';
 import * as aterinsattning from '../src/aterinsattning.js';
@@ -12,7 +12,7 @@ import { atk, personal, testserver, klient, sandlada } from './hjalp.js';
 
 const kl = (k, dag = idag()) => lokalTid(dag, k);
 function sandladaKl(k = '13:30') {
-  setSystemTime(new Date(kl(k)));
+  stallKlockan(new Date(kl(k)));
   return byggSeed(new Date(kl(k)));
 }
 afterEach(() => aterstallKlockan());
@@ -37,18 +37,18 @@ describe('Återinsättning efter uppehåll', () => {
     // Två dagar före: ingen rad än.
     expect(rader(db, 'lak-kard')).toEqual([]);
     // Dagen före.
-    setSystemTime(new Date(kl('08:00', addDagar(idag(), 1))));
+    stallKlockan(new Date(kl('08:00', addDagar(idag(), 1))));
     const r = rader(db, 'lak-kard');
     expect(r).toHaveLength(1);
     expect(r[0]).toMatchObject({ ordinationId: o.id, patientId: 'p01', lakemedel: 'Waran 2,5 mg', aterinsattning: addDagar(idag(), 1), dagarKvar: 1, plan: `Uppehåll inför ingrepp, återinsätts ${addDagar(idag(), 1)}`, href: `#/patient/p01/lakemedel/aterinsatt-${o.id}` });
     expect(r[0].text).toContain('i morgon');
     expect(r[0].text).toContain('Enligt doseringsschema');
     // På dagen.
-    setSystemTime(new Date(kl('08:00', addDagar(idag(), 1))));
+    stallKlockan(new Date(kl('08:00', addDagar(idag(), 1))));
     expect(rader(db, 'lak-kard')[0]).toMatchObject({ dagarKvar: 0 });
     expect(rader(db, 'lak-kard')[0].text).toContain('i dag');
     // Inkorgen släpper inget som inte är åtgärdat: raden står kvar efter dagen och säger det.
-    setSystemTime(new Date(kl('08:00', addDagar(idag(), 2))));
+    stallKlockan(new Date(kl('08:00', addDagar(idag(), 2))));
     expect(rader(db, 'lak-kard')[0].dagarKvar).toBe(-2);
     expect(rader(db, 'lak-kard')[0].text).toContain('skulle sättas in igen');
   });

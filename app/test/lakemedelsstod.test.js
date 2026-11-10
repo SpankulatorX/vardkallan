@@ -2,8 +2,8 @@
 // generella direktiv, spädning och tillsatser, makulering och registrering i efterhand, vätskebalans framåt med
 // kalorier och vikt, fler läkemedelstyper med licens, uppföljning, fördjupad läkemedelsgenomgång, vyer över flera
 // dygn och förpackningar med NPL-pack-id. Klockan styrs med setSystemTime och sandlådan byggs vid den tiden.
-import { describe, test, expect, afterEach, afterAll, setSystemTime } from 'bun:test';
-import { aterstallKlockan } from './falsk-klocka.js';
+import { describe, test, expect, afterEach, afterAll } from 'bun:test';
+import { aterstallKlockan, stallKlockan } from './falsk-klocka.js';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { byggSeed, idag, addDagar, lokalTid } from '../src/db.js';
@@ -27,7 +27,7 @@ import { atk, personal, testserver, klient, sandlada } from './hjalp.js';
 
 const kl = (k, dag = idag()) => lokalTid(dag, k);
 function sandladaKl(k = '13:30') {
-  setSystemTime(new Date(kl(k)));
+  stallKlockan(new Date(kl(k)));
   return byggSeed(new Date(kl(k)));
 }
 afterEach(() => aterstallKlockan());
@@ -131,7 +131,7 @@ describe('Upp- och nedtrappning', () => {
     expect(dos(addDagar(idag(), 22)).dos).toBe(5);
     expect(dos(addDagar(idag(), 24))).toBeUndefined();
     // Dosen som ges är dagens dos, utan varning för avvikande dos.
-    setSystemTime(new Date(kl('08:00')));
+    stallKlockan(new Date(kl('08:00')));
     const ut = administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('08:00') });
     expect(ut.administrering.dos).toBe(40);
     expect(ut.varningar.map(v => v.regel)).not.toContain('avvikande_dos');
@@ -171,7 +171,7 @@ describe('Muntlig ordination', () => {
     // Inom de första två timmarna får dosen ges, eftersom patienten behöver omedelbar behandling.
     expect(administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, atgard: 'ge' }).administrering.status).toBe('given');
     // Efter två timmar utan signering stoppas nästa dos med en förklaring.
-    setSystemTime(new Date(kl('16:00')));
+    stallKlockan(new Date(kl('16:00')));
     const e = fel(() => administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, atgard: 'ge', dos: 20 }));
     expect(e.message).toContain('inte signerad av Sara Lindqvist');
     // Raden finns i läkarens inkorg, och bara den läkare som ordinerade signerar.
@@ -237,7 +237,7 @@ describe('Generella direktiv', () => {
     expect(ut.ordination).toMatchObject({ ordineradAv: { id: 'ssk-kard' }, typ: 'vid_behov', slut: addDagar(idag(), 1), ordinationsorsak: 'Enligt generellt direktiv: Tillfälliga sömnsvårigheter under vårdtiden' });
     expect(ut.ordination.direktiv).toMatchObject({ indikation: 'Tillfälliga sömnsvårigheter under vårdtiden', maxTillfallen: 1, faststalltAv: 'Göran Malm' });
     administrering.spara(ssk(db, 'p04'), { ordinationId: ut.ordination.id, atgard: 'ge' });
-    setSystemTime(new Date(kl('23:30')));
+    stallKlockan(new Date(kl('23:30')));
     const e = fel(() => administrering.spara(ssk(db, 'p04'), { ordinationId: ut.ordination.id, atgard: 'ge', kvitteradeVarningar: [{ regel: 'dubbel_dos', motivering: 'Test' }, { regel: 'max_per_dygn', motivering: 'Test' }] }));
     expect(e.message).toContain('tillåter 1 tillfälle utan att läkare kontaktas');
     const r = fhir.medicationRequest(db, lakemedel.hamtaRad(db, ut.ordination.id));
@@ -427,7 +427,7 @@ describe('Läkemedelstyper', () => {
     expect(akut.varningar.find(v => v.regel === 'licens').text).toContain('ingen beviljad licens');
     const o = ordinera(db, 'p01', { lakemedelId: 'VK-LIC-0001', dosering: '100 mg intravenöst', dos: 100, dosEnhet: 'mg', tider: ['14'], typ: 'staende', administrationssatt: 'intravenost' });
     expect(o.nll_status).toBe('kvitterad');
-    setSystemTime(new Date(Date.parse(kl('14:00')) + 25 * 86400_000));
+    stallKlockan(new Date(Date.parse(kl('14:00')) + 25 * 86400_000));
     const varn = administrering.kontroll(ssk(db, 'p01'), { ordinationId: o.id }).varningar;
     expect(varn.find(v => v.regel === 'licens')).toMatchObject({ niva: 'allvarlig' });
   });
@@ -593,11 +593,11 @@ describe('Säkerhetsgranskning av läkemedelsprocessen del 2', () => {
     const a = atk(db, 'ssk-kard', 'p01', {}, 'registrera_muntlig_ordination');
     const o = vagar.registreraMuntlig(a, { lakemedelId: 'VK-NPL-0025', dosering: '1 kapsel nu', dos: 20, dosEnhet: 'mg', tider: [], typ: 'tillfallig', ordinationsorsak: 'Kraftig halsbränna', lakareId: 'lak-kard', satt: 'telefon', omedelbar: 'Svåra besvär' }).ordination;
     // Klockan är 16, fönstret gick ut 15.30. En dos som påstås ha getts 14.00 registreras nu: stoppas.
-    setSystemTime(new Date(kl('16:00')));
+    stallKlockan(new Date(kl('16:00')));
     const e = fel(() => administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, atgard: 'ge', tid: kl('14:00') }));
     expect(e?.message).toContain('inte signerad av Sara Lindqvist');
     // En tid före ordinationen godtas aldrig för en muntlig ordination.
-    setSystemTime(new Date(kl('14:00')));
+    stallKlockan(new Date(kl('14:00')));
     expect(fel(() => administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, atgard: 'ge', tid: kl('13:00') }))?.message).toContain('före ordinationen');
   });
 

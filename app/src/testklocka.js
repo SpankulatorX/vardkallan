@@ -5,6 +5,21 @@
 const RiktigDate = globalThis.Date;
 const flagga = process.env.VARDKALLAN_TESTKLOCKA === '1';
 
+// En Date som går som den riktiga men förskjuten med forskjutning() millisekunder. Används också av testernas falska
+// klocka (test/falsk-klocka.js). Datum som Bun själv skapar är riktiga Date och räknas också som Date.
+export function forskjutenDate(RiktigDate, forskjutning) {
+  class TestDate extends RiktigDate {
+    constructor(...a) {
+      if (a.length === 0) super(RiktigDate.now() + forskjutning());
+      else super(...a);
+    }
+    static now() { return RiktigDate.now() + forskjutning(); }
+    static [Symbol.hasInstance](x) { return x instanceof RiktigDate; }
+  }
+  // Date() utan new ger en text, som den riktiga.
+  return new Proxy(TestDate, { apply: () => new TestDate().toString() });
+}
+
 function installera(varde) {
   const mal = RiktigDate.parse(varde);
   if (Number.isNaN(mal)) throw new Error(`VARDKALLAN_FALSK_NU går inte att tolka som en tid: ${varde}`);
@@ -13,18 +28,7 @@ function installera(varde) {
     throw new Error('Den falska klockan får bara användas i en testcontainer, inte med SESSION_FIL eller LITA_PA_PROXY.');
   }
   const forskjutning = mal - RiktigDate.now();
-  class TestDate extends RiktigDate {
-    constructor(...a) {
-      if (a.length === 0) super(RiktigDate.now() + forskjutning);
-      else super(...a);
-    }
-    static now() { return RiktigDate.now() + forskjutning; }
-    // Datum som Bun själv skapar (till exempel filers tider) är riktiga Date och ska också räknas som Date.
-    static [Symbol.hasInstance](x) { return x instanceof RiktigDate; }
-  }
-  // Date() utan new ger en text, som den riktiga.
-  const DateMedAnrop = new Proxy(TestDate, { apply: () => new TestDate().toString() });
-  globalThis.Date = DateMedAnrop;
+  globalThis.Date = forskjutenDate(RiktigDate, () => forskjutning);
   return forskjutning;
 }
 

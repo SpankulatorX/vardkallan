@@ -1,8 +1,8 @@
 // Runda 9, r1: förbrukningsartiklar (Sussa 3.5.4.1 till 3.5.4.4). Förskrivning, förnyelse, ändring, utsättning och
 // återinsättning per grupp, mallar ur läkemedelslistan, kontroller, behörighet, presentation med historik och API.
 // Klockan styrs med setSystemTime och sandlådan byggs vid den tiden.
-import { describe, test, expect, afterEach, afterAll, setSystemTime } from 'bun:test';
-import { aterstallKlockan } from './falsk-klocka.js';
+import { describe, test, expect, afterEach, afterAll } from 'bun:test';
+import { aterstallKlockan, stallKlockan } from './falsk-klocka.js';
 import { byggSeed, idag, addDagar, lokalTid } from '../src/db.js';
 import * as forbrukning from '../src/forbrukning.js';
 import { verifiera } from '../src/logg.js';
@@ -10,7 +10,7 @@ import { atk, testserver, klient } from './hjalp.js';
 
 const kl = (k, dag = idag()) => lokalTid(dag, k);
 function sandladaKl(k = '10:00') {
-  setSystemTime(new Date(kl(k)));
+  stallKlockan(new Date(kl(k)));
   return byggSeed(new Date(kl(k)));
 }
 afterEach(() => aterstallKlockan());
@@ -58,7 +58,7 @@ describe('Förbrukningsartiklar', () => {
       const andrad = forbrukning.andra(lak(db, 'p06'), id, { uttag: 2 });
       expect(andrad.forskrivning.uttag).toBe(2);
       expect(fel(() => forbrukning.andra(lak(db, 'p06'), id, {})).message).toBe('Inget är ändrat.');
-      setSystemTime(new Date(Date.now() + 100 * 86400_000));
+      stallKlockan(new Date(Date.now() + 100 * 86400_000));
       const fornyad = forbrukning.fornya(lak(db, 'p06'), id);
       expect(fornyad.forskrivning.giltigTill).toBe(addDagar(idag(), 365));
       expect(fel(() => forbrukning.sattUt(lak(db, 'p06'), id, { orsak: '' })).message).toContain('varför förskrivningen sätts ut');
@@ -70,7 +70,7 @@ describe('Förbrukningsartiklar', () => {
       // Historiken har varje händelse med vem och när, och inget raderas.
       expect(insatt.forskrivning.historik.map(h => h.handelse)).toEqual(['forskriven', 'andrad', 'fornyad', 'utsatt', 'atersatt']);
       expect(insatt.forskrivning.historik.every(h => h.av === 'Per Holm' && h.tid && h.enhet.id === 'vc-tybble')).toBe(true);
-      setSystemTime(new Date(kl('10:00')));
+      stallKlockan(new Date(kl('10:00')));
     }
     expect(() => db.query('DELETE FROM forbrukningsforskrivningar').run()).toThrow();
     expect(() => db.query("UPDATE forbrukning_historik SET detalj = 'x'").run()).toThrow();

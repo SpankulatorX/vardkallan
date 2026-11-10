@@ -2,8 +2,8 @@
 // överföring av läkemedelsberättelsen, vaccinationsprogrammen, sammanhållen journalföring och flödet på
 // akutmottagningen (Sussa 3.2.1, 3.2.2.3, 3.2.3.5 och 3.5.1). Testnamnen finns i src/sussa/runda10-r5-tester.js.
 // Klockan styrs med setSystemTime där testet beror på tiden, och testet räknar bara de rader det själv skapar.
-import { describe, test, expect, afterEach, afterAll, beforeAll, setSystemTime } from 'bun:test';
-import { aterstallKlockan } from './falsk-klocka.js';
+import { describe, test, expect, afterEach, afterAll, beforeAll } from 'bun:test';
+import { aterstallKlockan, stallKlockan } from './falsk-klocka.js';
 import { byggSeed, idag, addDagar, lokalTid, iso } from '../src/db.js';
 import { T } from '../src/sussa/runda10-r5-tester.js';
 import * as kunskapsstod from '../src/kunskapsstod.js';
@@ -22,7 +22,7 @@ import { atk, personal, testserver, klient, sandlada } from './hjalp.js';
 
 const kl = (k, dag = idag()) => lokalTid(dag, k);
 function sandladaKl(k = '13:30') {
-  setSystemTime(new Date(kl(k)));
+  stallKlockan(new Date(kl(k)));
   return byggSeed(new Date(kl(k)));
 }
 afterEach(() => aterstallKlockan());

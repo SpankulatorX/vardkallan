@@ -1,8 +1,8 @@
 // Runda 11, r1: verktygen för att köra tester med falsk klocka. scripts/klocktest.js och test/falsk-klocka.js för
 // servertesterna, src/testklocka.js för testcontainern som gränssnittstesterna körs mot.
-import { describe, test, expect, setSystemTime, afterEach } from 'bun:test';
+import { describe, test, expect, afterEach } from 'bun:test';
 import { join } from 'node:path';
-import { FALSK_NU, aterstallKlockan } from './falsk-klocka.js';
+import { FALSK_NU, aterstallKlockan, stallKlockan } from './falsk-klocka.js';
 import { TIDER, URVAL } from '../scripts/klocktest.js';
 import { testserver, klient } from './hjalp.js';
 
@@ -30,11 +30,21 @@ describe('Klocktest (runda 11, r1)', () => {
     expect(new Set(TIDER.map(t => t.namn)).size).toBe(TIDER.length);
   });
 
-  test('aterstallKlockan återställer till den falska tiden när en sådan är satt, annars till den verkliga', () => {
-    setSystemTime(new Date('2030-01-01T12:00:00Z'));
+  test('stallKlockan står still, och aterstallKlockan går tillbaka till den falska klockan, som går, eller till den verkliga', async () => {
+    stallKlockan(new Date('2030-01-01T12:00:00Z'));
+    await Bun.sleep(5);
+    expect(new Date().toISOString()).toBe('2030-01-01T12:00:00.000Z');
     aterstallKlockan();
-    if (FALSK_NU) expect(Date.now()).toBe(FALSK_NU.getTime());
-    else expect(new Date().getUTCFullYear()).toBeLessThan(2030);
+    if (FALSK_NU) {
+      // Den falska klockan visar FALSK_NU när körningen börjar och går sedan som vanligt.
+      const a = Date.now();
+      expect(a).toBeGreaterThanOrEqual(FALSK_NU.getTime());
+      expect(a - FALSK_NU.getTime()).toBeLessThan(3 * 3600_000);
+      await Bun.sleep(20);
+      expect(Date.now() - a).toBeGreaterThanOrEqual(15);
+      expect(new Date() instanceof Date).toBe(true);
+      expect(typeof Date()).toBe('string');
+    } else expect(new Date().getUTCFullYear()).toBeLessThan(2030);
   });
 });
 
