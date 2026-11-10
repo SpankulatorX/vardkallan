@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T21:31:41.197Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-10T18:20:06.264Z",
+  "bas": "http://127.0.0.1:18207",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "3983aa076c7adfef96c2db442439434ef4761d8a1e8c1b97a000df82f1f38b62",
+  "gransnittHash": "53664f40dffaa2e28bb1f7b4339d932703afd2da5198d9d4857f899fcbd5fe9b",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -1780,6 +1780,40 @@
         "klick: Visa lediga tider",
         "klick: den första föreslagna tiden"
       ]
+    },
+    {
+      "id": "iva-nems",
+      "namn": "Registrera vårdtyngden enligt NEMS för en patient på intensivvården",
+      "roll": "ssk-kard",
+      "start": "Övervakningen av en patient på intensivvården",
+      "budget": 1,
+      "motivering": "Sussa 4.6.1.7. Ett klick på Registrera vårdtyngden. Systemet har redan kryssat i de poster som står i journalen, som kopplad monitor, intravenösa läkemedel och andningsstöd, och räknar poängen själv. Sjuksköterskan kryssar bara i det som bara den som vårdar vet.",
+      "klick": 1,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "steg": [
+        "klick: Registrera vårdtyngden"
+      ]
+    },
+    {
+      "id": "tillvaxt-import",
+      "namn": "Läsa in ett barns tillväxtdata från ett annat journalsystem",
+      "roll": "lak-vc",
+      "start": "Tillväxten för ett barn som har flyttat hit",
+      "budget": 3,
+      "motivering": "Sussa 4.1.1.7. Ett klick för att öppna inläsningen, ett på Hämta från journalsystemet och ett på Läs in. Systemet hämtar mätningarna med GetObservations, kontrollerar att de gäller barnet, prövar varje värde och visar vad som redan finns, så att användaren bara bekräftar.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Läs in tillväxtdata",
+        "klick: Hämta från journalsystemet",
+        "klick: Läs in"
+      ]
     }
   ],
   "tester": [
@@ -2173,6 +2207,14 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Boka en tid för patienten som ombud inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera vårdtyngden enligt NEMS för en patient på intensivvården inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Läsa in ett barns tillväxtdata från ett annat journalsystem inom budget",
       "status": "grön"
     }
   ]
