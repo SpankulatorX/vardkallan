@@ -363,10 +363,18 @@ export function forberedelser(atk, an) {
 
 // Runda 11, r2: vårdhändelser som kan påverka ett planerat ingrepp, ur det som den inloggade får se: antikoagulantia och
 // insulin i läkemedelslistan, feber de senaste två dygnen och diagnoser som har tillkommit sedan anmälan.
+// Säkerhetsgranskningen: varje sidoläsning loggas på patienten med sin egen handling och grund, när något lästes.
 export function paverkar(atk, an, nu = new Date()) {
   const db = atk.db;
-  const a = (h) => new Atkomst(db, atk.personal, an.patient_id, atk.val, h);
+  const lasta = [];
+  const a = (h) => { const x = new Atkomst(db, atk.personal, an.patient_id, atk.val, h); lasta.push([h, x]); return x; };
   const ut = [];
+  try { paverkarRader(db, atk, an, a, ut, nu); } finally {
+    for (const [h, x] of lasta) if (x.grunder.size) x.logga(h, x.grund(), `operation:${an.id}:paverkar`);
+  }
+  return ut;
+}
+function paverkarRader(db, atk, an, a, ut, nu) {
   if (kanRoll(atk.personal, 'las_lakemedel')) {
     const kat = new Map(db.query('SELECT id, namn, styrka, atc FROM katalog').all().map(k => [k.id, k]));
     for (const o of lakemedel.synligaOrdinationer(a('las_lakemedel')).filter(o => lakemedel.aktuell(o))) {
@@ -386,7 +394,6 @@ export function paverkar(atk, an, nu = new Date()) {
       ut.push({ typ: 'diagnos', niva: 'info', text: `Ny diagnos sedan anmälan: ${d.kod} ${d.text}.` });
     }
   }
-  return ut;
 }
 
 // Kontrollen av id-bandet: siffrorna ur armbandet mot patientens personnummer och andra identiteter.

@@ -6,6 +6,10 @@ import { describe, test, expect } from 'bun:test';
 import { datumAv, addDagar, lokalTid } from '../src/db.js';
 import * as op from '../src/operation.js';
 import { BAS, sandlada, nyPatient, atk, pers, sparr, efter } from './specialist.js';
+import * as iva from '../src/iva.js';
+import * as aj from '../src/anestesijournal.js';
+import * as sg from '../src/sterilgods.js';
+import * as datauttag from '../src/datauttag.js';
 
 const MORGON = addDagar(datumAv(BAS), 1);
 const DAG = (n) => addDagar(datumAv(BAS), n);
@@ -91,6 +95,10 @@ describe('Operation 1.1', () => {
     expect(t).toContain('Pneumoni');
     expect(t).not.toContain('Eliquis');
     expect(u.paverkar.find(x => x.typ === 'antikoagulantia').niva).toBe('varning');
+    // Säkerhetsgranskningen: läkemedlen, mätvärdena och diagnoserna som systemet läser loggas med sin egen grund.
+    const logg = db.query("SELECT handling, grund, resurs FROM atkomstlogg WHERE patient_id = 'op1' AND resurs = ?").all(`operation:${a.id}:paverkar`);
+    expect(logg.map(r => r.handling).sort()).toEqual(expect.arrayContaining(['las_diagnoser', 'las_lakemedel', 'las_matvarden']));
+    expect(logg.every(r => ['vardrelation', 'egen_enhet'].includes(r.grund))).toBe(true);
   });
 
   test('identiteten kontrolleras med armbandet när patienten kommer in på salen, och WHO:s checklista finns i full omfattning med det systemet vet ifyllt', () => {
@@ -140,5 +148,214 @@ describe('Operation 1.1', () => {
     expect(forsta).toMatchObject({ status: 'pagar', forsenad: true });
     expect(andra.beraknadStart > andra.start).toBe(true);
     expect(andra.avvikelse).toContain('försenad');
+  });
+});
+
+// ---- Anestesibedömningen, anestesijournalen, sterilgodset och materialet ------------------------------------------------
+const pat = (db, pid) => db.query('SELECT * FROM patienter WHERE id = ?').get(pid);
+const vikt = (db, pid, kg) => db.query("INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, tid) VALUES (?, 'kkoga-ort', 'vikt', ?, ?, ?)").run(pid, String(kg), kg, efter(-60).toISOString());
+// En planerad operation där patienten har kommit in på salen.
+function paSal(db, pid = 'op1', body = { kva: 'NFB49', sida: 'hoger' }) {
+  const a = anmal(db, pid, body);
+  op.planera(pl(db, pid), rad(db, a.id), {}, BAS);
+  const s = atk(db, 'ssk-kkoga', pid, 'operation_registrera');
+  const t0 = Date.parse(op.anmalanUt(s, rad(db, a.id), BAS).planering.start);
+  const vid = (m) => new Date(t0 + m * 60_000);
+  op.registrera(s, rad(db, a.id), { handelse: 'in_sal' }, vid(0));
+  return { id: a.id, s, vid, t0 };
+}
+// Från anestesistart till ut från sal, med implantatet och checklistan.
+function genomfor(db, { id, s, vid }, { slut = 100, ut = 105, rakna = false } = {}) {
+  for (const [del, h, m] of [['fore_anestesi', 'anestesistart', 10], ['fore_snitt', 'knivtid', 20]]) {
+    op.checklista(s, rad(db, id), { del, bekraftade: ALLA(del) }, vid(m - 1)); op.registrera(s, rad(db, id), { handelse: h }, vid(m));
+  }
+  op.implantat(s, rad(db, id), { artikel: 'Höftprotes (demo)', tillverkare: 'Demotillverkaren', lot: 'LOT-2026-1' }, vid(60));
+  op.registrera(s, rad(db, id), { handelse: 'op_slut' }, vid(slut));
+  if (rakna) sg.rakna(s, rad(db, id), { galler: 'KKOGA-HOFT-1', instrument: 64, kompresserOchNalar: true }, vid(slut + 1));
+  op.checklista(s, rad(db, id), { del: 'fore_utflyttning', bekraftade: ALLA('fore_utflyttning') }, vid(slut + 2));
+  op.registrera(s, rad(db, id), { handelse: 'ut_sal' }, vid(ut));
+}
+
+describe('Operation 1.1, anestesi och material', () => {
+  test('anestesibedömningen knyts till operationsanmälan med riskskalor, samtycke, giltighetstid och information till patienten', () => {
+    const db = sandlada();
+    ny(db, 'op1', 'kkoga-ort', { kon: 'K' }); ny(db, 'op2');
+    db.query("INSERT INTO diagnoser (patient_id, enhet_id, kod, text, typ, datum) VALUES ('op1', 'kkoga-ort', 'I50.9', 'Hjärtsvikt, ospecificerad', 'bi', '2025-01-01')").run();
+    const a = anmal(db);
+    op.planera(pl(db, 'op1'), rad(db, a.id), {}, BAS);
+    const l = atk(db, 'lak-kkoga', 'op1', 'anestesibedomning');
+    const f = iva.anestesiForslag(l, pat(db, 'op1'), { anmalanId: a.id }, BAS);
+    expect(f.ingrepp).toBe('Primär total höftledsplastik med cement');
+    expect(f.planerad).toBe(lokalTid(MORGON, '07:30'));
+    expect(f.skalor.rcri).toMatchObject({ poang: 1 });
+    expect(f.skalor.rcri.grund).toContain('Hjärtsvikt');
+    expect(() => iva.sparaAnestesi(l, pat(db, 'op1'), { anmalanId: a.id, asa: 2, anestesiform: 'regional' }, BAS)).toThrow('samtycke');
+    expect(() => iva.sparaAnestesi(atk(db, 'lak-kkoga', 'op2', 'anestesibedomning'), pat(db, 'op2'), { anmalanId: a.id, asa: 2, anestesiform: 'regional', samtycke: 'ja' }, BAS)).toThrow('Uppgiften finns inte');
+    const r = iva.sparaAnestesi(l, pat(db, 'op1'), { anmalanId: a.id, asa: 3, anestesiform: 'regional', samtycke: 'ja', ponvTidigare: true }, efter(5));
+    expect(r.bedomning).toMatchObject({ anmalanId: a.id, ingrepp: 'Primär total höftledsplastik med cement', samtycke: 'ja', giltigTill: addDagar(datumAv(BAS), 180) });
+    // Apfel: kvinna, icke-rökare, tidigare illamående och opioider efter operationen.
+    expect(r.bedomning.skalor.apfel).toMatchObject({ poang: 4 });
+    expect(r.bedomning.patientinformation).toContain('Inför din operation');
+    expect(r.bedomning.patientinformation).toContain('Ät inte efter klockan');
+    const u = op.anmalanUt(atk(db, 'ssk-kkoga', 'op1', 'las_operation'), rad(db, a.id), efter(6));
+    expect(u.forberedelser.punkter.find(p => p.id === 'anestesi')).toMatchObject({ klar: true });
+    expect(u.forberedelser.punkter.find(p => p.id === 'anestesi').text).toContain(`giltig till ${addDagar(datumAv(BAS), 180)}`);
+    expect(op.anmalanUt(atk(db, 'ssk-kkoga', 'op1', 'las_operation'), rad(db, a.id), efter(200 * 24 * 60)).forberedelser.punkter.find(p => p.id === 'anestesi')).toMatchObject({ klar: false });
+    expect(op.checklistaUnderlag(atk(db, 'ssk-kkoga', 'op1', 'las_operation'), rad(db, a.id), efter(10)).delar[0].punkter.find(p => p.id === 'samtycke').forifylld).toBe(true);
+  });
+
+  test('anestesijournalen har täta värden från den simulerade monitorn, läkemedel med föreslagen dos och kontroll mot allergier, vätskor och händelser', () => {
+    const db = sandlada();
+    ny(db); vikt(db, 'op1', 70);
+    db.query("INSERT INTO overkanslighet (patient_id, enhet_id, amne, atc, reaktion, allvarlighet, datum) VALUES ('op1', 'kkoga-ort', 'Penicillin', 'J01C', 'Urtikaria', 'mattlig', ?)").run(datumAv(BAS));
+    const fall = paSal(db, 'op1', { kva: 'NFB49', sida: 'hoger', anestesi: 'generell' });
+    const { id, s, vid } = fall;
+    const L = () => atk(db, 'ssk-kkoga', 'op1', 'las_operation');
+    const j = aj.journalFor(L(), rad(db, id), vid(30));
+    expect(j.varden.length).toBe(7);
+    expect(j.varden[0]).toMatchObject({ tid: vid(0).toISOString(), kalla: 'Anestesimonitor (simulerad)' });
+    expect(j.forslag.profylax).toMatchObject({ lakemedel: 'klindamycin', dos: 600, given: false });
+    expect(j.forslag.lakemedel.find(l => l.kod === 'propofol')).toMatchObject({ dos: 140, enhet: 'mg' });
+    expect(() => aj.registreraLakemedel(s, rad(db, id), { lakemedel: 'kloxacillin', dos: 2 }, vid(31))).toThrow('överkänslig mot Penicillin');
+    expect(() => aj.registreraLakemedel(s, rad(db, id), { lakemedel: 'propofol', dos: 900 }, vid(31))).toThrow('högst 300');
+    aj.registreraLakemedel(s, rad(db, id), { lakemedel: 'klindamycin' }, vid(32));
+    aj.registreraLakemedel(s, rad(db, id), { lakemedel: 'propofol' }, vid(33));
+    aj.registreraVatska(s, rad(db, id), { slag: 'ringer', volym: 500 }, vid(34));
+    aj.registreraVatska(s, rad(db, id), { slag: 'blodning', volym: 300 }, vid(40));
+    expect(() => aj.registreraHandelse(s, rad(db, id), { handelse: 'komplikation' }, vid(41))).toThrow('Beskriv');
+    aj.registreraHandelse(s, rad(db, id), { handelse: 'intubation' }, vid(35));
+    const j2 = aj.journalFor(L(), rad(db, id), vid(45));
+    expect(j2.lakemedel.map(l => [l.namn, l.dos, l.enhet])).toEqual([['Klindamycin', 600, 'mg'], ['Propofol', 140, 'mg']]);
+    expect(j2.vatskor).toMatchObject({ in: 500, ut: 300, balans: 200 });
+    expect(j2.handelser.map(h => h.namn)).toEqual(['Intubation']);
+    expect(j2.forslag.profylax.given).toBe(true);
+    expect(op.checklistaUnderlag(L(), rad(db, id), vid(46)).delar[1].punkter.find(p => p.id === 'antibiotika').forifylld).toBe(true);
+    // Efter att patienten har lämnat salen skickar monitorn inget mer och inget kan registreras.
+    genomfor(db, fall);
+    expect(aj.journalFor(L(), rad(db, id), vid(200)).varden.length).toBe(22);
+    expect(() => aj.registreraVatska(s, rad(db, id), { slag: 'urin', volym: 100 }, vid(201))).toThrow('under operationen');
+  });
+
+  test('sterilgodset: systemet reserverar instrumentgallren med charge och utgångsdatum, räkningen ska stämma och gallren går tillbaka till sterilcentralen', () => {
+    const db = sandlada();
+    ny(db);
+    const a = anmal(db);
+    op.planera(pl(db, 'op1'), rad(db, a.id), {}, BAS);
+    const s = atk(db, 'ssk-kkoga', 'op1', 'operation_registrera');
+    const L = () => atk(db, 'ssk-kkoga', 'op1', 'las_operation');
+    const g0 = sg.sterilgods(L(), rad(db, a.id), BAS);
+    expect(g0.galler).toHaveLength(1);
+    expect(g0.galler[0]).toMatchObject({ resurs: 'hoft-galler', galler: 'KKOGA-HOFT-1', instrument: 64, status: 'reserverad' });
+    expect(g0.galler[0].charge).toMatch(/^CH-\d{8}-\d+$/);
+    expect(g0.galler[0].utgang > MORGON).toBe(true);
+    expect(() => sg.oppna(s, rad(db, a.id), { galler: 'KKOGA-HOFT-1' }, BAS)).toThrow('kommit in på salen');
+    const t0 = Date.parse(lokalTid(MORGON, '07:30'));
+    const vid = (m) => new Date(t0 + m * 60_000);
+    op.registrera(s, rad(db, a.id), { handelse: 'in_sal' }, vid(0));
+    expect(() => sg.oppna(s, rad(db, a.id), { galler: 'KKOGA-HOFT-2' }, vid(1))).toThrow('reserverat');
+    sg.oppna(s, rad(db, a.id), { galler: 'KKOGA-HOFT-1' }, vid(2));
+    expect(() => sg.rakna(s, rad(db, a.id), { galler: 'KKOGA-HOFT-1', instrument: 63, kompresserOchNalar: true }, vid(3))).toThrow('stämmer inte');
+    expect(() => sg.rakna(s, rad(db, a.id), { galler: 'KKOGA-HOFT-1', instrument: 64 }, vid(3))).toThrow('kompresser');
+    expect(() => genomfor(db, { id: a.id, s, vid })).toThrow('Räkna instrumenten');
+    expect(sg.rakna(s, rad(db, a.id), { galler: 'KKOGA-HOFT-1', instrument: 64, kompresserOchNalar: true }, vid(102)).galler[0].status).toBe('raknad');
+    expect(op.checklistaUnderlag(L(), rad(db, a.id), vid(103)).delar[2].punkter.find(p => p.id === 'rakning').forifylld).toBe(true);
+    op.checklista(s, rad(db, a.id), { del: 'fore_utflyttning', bekraftade: ALLA('fore_utflyttning') }, vid(104));
+    op.registrera(s, rad(db, a.id), { handelse: 'ut_sal' }, vid(105));
+    expect(sg.sterilgods(L(), rad(db, a.id), vid(106)).galler[0]).toMatchObject({ status: 'retur' });
+  });
+
+  test('materialet: plocklistan ur ingreppet, förbrukningen drar från förrådet, implantat kräver lot och förrådet beställs av sig självt', () => {
+    const db = sandlada();
+    ny(db);
+    const { id, s, vid } = paSal(db);
+    const p = sg.plocklista(atk(db, 'ssk-kkoga', 'op1', 'las_operation'), rad(db, id), vid(1));
+    expect(p.rader.map(r => r.artikel)).toContain('OP-0005');
+    expect(p.rader.find(r => r.implantat)).toMatchObject({ artikel: 'OP-0101', tillverkare: 'Demotillverkaren' });
+    expect(() => sg.forbruka(s, rad(db, id), {}, vid(2))).toThrow('lot');
+    const fore = sg.forrad(db, pers(db, 'ssk-kkoga'), vid(2)).artiklar.find(x => x.artikel === 'OP-0005').saldo;
+    const lotter = Object.fromEntries(p.rader.filter(r => r.implantat).map((r, i) => [r.artikel, `LOT-DEMO-${i + 1}`]));
+    const f = sg.forbruka(s, rad(db, id), { lotter }, vid(3));
+    expect(f.forbrukning.find(x => x.artikel === 'OP-0101').lot).toBe('LOT-DEMO-1');
+    expect(op.anmalanUt(s, rad(db, id), vid(4)).forlopp.implantat.map(i => i.lot)).toEqual(Object.values(lotter));
+    const fr = sg.forrad(db, pers(db, 'ssk-kkoga'), vid(4));
+    expect(fr.artiklar.find(x => x.artikel === 'OP-0005').saldo).toBe(fore - p.rader.find(r => r.artikel === 'OP-0005').antal);
+    // Bencementet går under beställningspunkten, och systemet beställer en gång till det simulerade förrådet.
+    expect(fr.bestallningar.filter(b => b.artikel === 'OP-0005' && !b.levererad)).toHaveLength(1);
+    expect(() => sg.forbruka(s, rad(db, id), { lotter }, vid(5))).toThrow('redan registrerad');
+    const leverans = sg.forrad(db, pers(db, 'ssk-kkoga'), vid(25 * 60));
+    expect(leverans.bestallningar.find(b => b.artikel === 'OP-0005').levererad).toBeTruthy();
+    expect(leverans.artiklar.find(x => x.artikel === 'OP-0005').saldo).toBeGreaterThan(fr.artiklar.find(x => x.artikel === 'OP-0005').saldo);
+    expect(JSON.stringify(leverans)).not.toContain('op1');
+  });
+
+  test('uppvakningen på enhetsnivå, avvikelser från planeringen och överrapporteringen med det som gavs under operationen', () => {
+    const db = sandlada();
+    ny(db); vikt(db, 'op1', 70);
+    const fall = paSal(db);
+    const { id, s, vid } = fall;
+    aj.registreraLakemedel(s, rad(db, id), { lakemedel: 'kloxacillin' }, vid(2));
+    aj.registreraVatska(s, rad(db, id), { slag: 'ringer', volym: 1000 }, vid(3));
+    aj.registreraVatska(s, rad(db, id), { slag: 'blodning', volym: 400 }, vid(4));
+    genomfor(db, fall, { slut: 140, ut: 145 });
+    const lista = op.uppvakningslista(db, pers(db, 'ssk-kkoga'), () => ({}), vid(160));
+    expect(lista.patienter).toHaveLength(1);
+    expect(lista.patienter[0]).toMatchObject({ anmalanId: id, minuter: 15, kanSkrivasUt: false, patient: { id: 'op1' } });
+    expect(op.uppvakningslista(db, pers(db, 'lak-ort'), () => ({}), vid(160)).patienter).toEqual([]);
+    const u = op.anmalanUt(s, rad(db, id), vid(160));
+    expect(u.forlopp.avvikelse).toMatchObject({ langdMinuter: 15 });
+    expect(u.forlopp.avvikelse.text).toContain('15 minuter längre');
+    op.kontroll(s, rad(db, id), { varden: { medvetande: 'A', saturation: 97, andningsfrekvens: 14, puls: 76, blodtryck: '132/78', smarta: 2 } }, vid(175));
+    const r = op.skrivUt(s, rad(db, id), {}, vid(180));
+    expect(r.overrapport).toContain('Under operationen: Kloxacillin 2 g');
+    expect(r.overrapport).toContain('vätskor in 1000 ml och ut 400 ml, balans +600 ml');
+  });
+
+  test('uppföljningen räknar inflöde, utrustning, punktlighet och tid på uppvakningen, och datauttaget har operationerna utan personuppgifter', () => {
+    const db = sandlada();
+    ny(db, 'op1', 'kkoga-ort', { fornamn: 'Signe', efternamn: 'Statistiksson' }); ny(db, 'op2'); ny(db, 'op3');
+    const fall = paSal(db);
+    const { id, s, vid } = fall;
+    genomfor(db, fall, { slut: 110, ut: 115 });
+    op.kontroll(s, rad(db, id), { varden: { medvetande: 'A', saturation: 97, andningsfrekvens: 14, puls: 76, blodtryck: '132/78', smarta: 2 } }, vid(150));
+    op.skrivUt(s, rad(db, id), {}, vid(160));
+    anmal(db, 'op2', { kva: 'JKA21' }); anmal(db, 'op3', { kva: 'JEA01', prioritet: 'akut' });
+    const u = op.uppfoljning(db, pers(db, 'lak-kkoga'), { fran: datumAv(BAS), till: addDagar(datumAv(BAS), 6) }, efter(3 * 24 * 60));
+    expect(u.inflode).toMatchObject({ anmalda: 3 });
+    expect(u.utrustning.find(x => x.id === 'hoft-galler')).toMatchObject({ bokningar: 1 });
+    expect(u.punktlighet).toMatchObject({ forstaOperationer: 1, iTid: 1 });
+    expect(u.uppvakning).toMatchObject({ antal: 1, medianMinuter: 45 });
+    const text = JSON.stringify(u);
+    for (const x of ['op1', 'Signe', 'Statistiksson', 'anmalanId']) expect(text).not.toContain(x);
+    const { data } = datauttag.bygg(db);
+    const egna = data.Operation.filter(x => x.vardenhet === 'SE2321000164-VK0310' && x.anmaldDatum === datumAv(BAS));
+    expect(egna.length).toBe(3);
+    const r = egna.find(x => x.kva === 'NFB49');
+    expect(r).toMatchObject({ prioritet: 'inom_3_manader', status: 'klar', anestesiform: 'regional', planeradeMinuter: 130, uppvakningMinuter: 45, inomMal: true, operationsMinuter: 90 });
+    expect(datauttag.kvalitet(data).Operation.godkanda).toBe(data.Operation.length);
+    sparr(db, 'op2', 'kkoga-ort');
+    expect(datauttag.bygg(db).data.Operation.length).toBe(data.Operation.length - 1);
+    expect(JSON.stringify(datauttag.bygg(db).data.Operation)).not.toContain('op1');
+  });
+
+  test('säkerhet och behörighet: anestesijournalen, sterilgodset och materialet ger 404 för en annan patient, ändras bara av den anmälande vårdenheten och syns inte bakom en spärr', () => {
+    const db = sandlada();
+    ny(db, 'op1'); ny(db, 'op2');
+    const { id } = paSal(db);
+    const an = rad(db, id);
+    const A = (h) => atk(db, 'ssk-kkoga', 'op2', h);
+    for (const f of [() => aj.journalFor(A('las_operation'), an, BAS), () => aj.registreraLakemedel(A('operation_registrera'), an, { lakemedel: 'propofol' }, BAS),
+      () => aj.registreraVatska(A('operation_registrera'), an, { slag: 'ringer', volym: 100 }, BAS), () => aj.registreraHandelse(A('operation_registrera'), an, { handelse: 'intubation' }, BAS),
+      () => sg.sterilgods(A('las_operation'), an, BAS), () => sg.oppna(A('operation_registrera'), an, { galler: 'KKOGA-HOFT-1' }, BAS),
+      () => sg.rakna(A('operation_registrera'), an, {}, BAS), () => sg.plocklista(A('las_operation'), an, BAS), () => sg.forbruka(A('operation_registrera'), an, {}, BAS)]) {
+      try { f(); throw new Error('ingen 404'); } catch (e) { expect([e.status, e.message]).toEqual([404, 'Uppgiften finns inte.']); }
+    }
+    db.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak) VALUES ('op1', 'uso-ort', 'slutenvard', ?, 'Avdelning', 'Vård')").run(BAS.toISOString());
+    expect(() => aj.registreraLakemedel(atk(db, 'lak-ort', 'op1', 'operation_registrera', { andra_enheter: true }), an, { lakemedel: 'propofol' }, BAS)).toThrow('anmälande vårdenheten');
+    expect(Array.isArray(aj.journalFor(atk(db, 'lak-ort', 'op1', 'las_operation', { andra_enheter: true }), an, BAS).varden)).toBe(true);
+    expect(() => aj.journalFor(atk(db, 'lak-ort', 'op1', 'las_operation'), an, BAS)).toThrow('aktivt val');
+    sparr(db, 'op1', 'kkoga-ort');
+    expect(() => aj.journalFor(atk(db, 'lak-ort', 'op1', 'las_operation', { andra_enheter: true }), an, BAS)).toThrow('spärrade');
+    expect(() => op.uppvakningslista(db, pers(db, 'eko'), () => ({}), BAS)).toThrow();
+    expect(() => sg.forrad(db, pers(db, 'eko'), BAS)).toThrow();
   });
 });
