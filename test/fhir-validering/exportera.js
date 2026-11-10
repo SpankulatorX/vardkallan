@@ -44,7 +44,9 @@ const TYPER = ['Patient', 'Encounter', 'EpisodeOfCare', 'Condition', 'Observatio
   // Runda 8, r1: provtagningens rör och laboratoriernas svar.
   'DiagnosticReport', 'Specimen',
   // Runda 10, r3: svaren i formulären.
-  'QuestionnaireResponse'];
+  'QuestionnaireResponse',
+  // Runda 11, r5: bilder och media och studierna i arkivet.
+  'Media', 'ImagingStudy'];
 for (const roll of ['lak-kard', 'ssk-kard', 'adm-kard', 'lak-vc', 'lak-psyk', 'lak-akut']) {
   for (const { id } of db.query('SELECT id FROM patienter').all()) {
     const val = { [id]: { andra_enheter: true, nodatkomst: true, samtycke_sparr: true } };

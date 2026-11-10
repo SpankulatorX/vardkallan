@@ -73,7 +73,7 @@ describe('API för bilder och media 1.1', () => {
     await k.logga('lak-kard');
     expect((await k.get('/api/patient/p01/media/extern')).data.samtycke).toBe(false);
     expect((await k.post('/api/patient/p01/media/extern', {})).status).toBe(400);
-    const h = await k.post('/api/patient/p01/media/extern', { samtycke: true });
+    const h = await k.post('/api/patient/p01/media/extern', { samtycke: true, syfte: 'Tidigare bilder av knät' });
     expect(h.data.bilder).toHaveLength(2);
     expect((await k.get('/api/patient/p01/media')).data.attGranska.map(b => b.kalla.id)).toEqual(['annan_vardgivare', 'annan_vardgivare']);
   });

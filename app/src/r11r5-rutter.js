@@ -30,8 +30,8 @@ export function registreraRutter({ rutt, kravInloggad, medPatient }) {
 
   // Import från en simulerad apparat och från en simulerad annan vårdgivare.
   rutt('POST', '/api/patient/:id/media/apparat/:aid', (c, id, aid) => { kravInloggad(c); return [201, medPatient(c, id, skriv(c), (atk) => bm.franApparat(atk, aid, c.body))]; });
-  rutt('GET', '/api/patient/:id/media/extern', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_journal', (atk) => bm.externLage(atk)); });
-  rutt('POST', '/api/patient/:id/media/extern', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'las_journal', (atk) => bm.hamtaExtern(atk, c.body))]; });
+  rutt('GET', '/api/patient/:id/media/extern', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_journal', (atk) => bm.externLage(atk, c.s)); });
+  rutt('POST', '/api/patient/:id/media/extern', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'las_journal', (atk) => bm.hamtaExtern(atk, c.s, c.body))]; });
 
   // DICOMweb mot det simulerade arkivet: QIDO-RS och WADO-RS.
   rutt('GET', '/api/dicomweb/studies', (c) => {

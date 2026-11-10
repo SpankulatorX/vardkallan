@@ -262,7 +262,7 @@ export function forPatient(atk, nu = new Date()) {
   bas.kanSkriva = kanSkriva(atk.personal);
   bas.kanBestalla = kanRoll(atk.personal, 'remittera');
   bas.apparater = bas.kanSkriva ? Object.entries(APPARATER).map(([id, a]) => ({ id, namn: a.namn, beskrivning: a.beskrivning })) : [];
-  bas.extern = { vardgivare: sammanhallen.VARDGIVARE.namn, samtycke: sammanhallen.harSamtycke(db, atk.personal, atk.patientId) };
+  bas.extern = { vardgivare: sammanhallen.VARDGIVARE.namn, samtycke: sammanhallen.harSamtycke(db, atk.personal, atk.patientId), kanHamta: kanRoll(atk.personal, 'skriv_journal') };
   bas.forslagStalle = bas.bilder.find(b => b.kroppsstalle)?.kroppsstalle ?? null;
   bas.granser = { delstorlek: DELSTORLEK, maxFil: { ...bilder.MAX_FIL } };
   bas.simulerat = { apparat: DEMO_APPARAT, extern: DEMO_EXTERN, arkiv: arkiv.SIMULERAT };
@@ -323,7 +323,8 @@ export function franApparat(atk, apparatId, body = {}, nu = new Date(), { pnr = 
 export function granska(atk, m, body = {}, nu = new Date()) {
   const db = atk.db;
   if (m.kalla === 'min_journal' || !['apparat', 'annan_vardgivare'].includes(m.kalla)) return bilder.granska(atk, m, body, nu);
-  andraRad(atk, m, skrivFor(atk.personal), bilder.lasHandlingFor(m), 'Bilden granskas av den vårdenhet som tog emot den.');
+  // Säkerhetsgranskningen av runda 11: skrivrätten som hör till bildens kategori, inte den inloggades bästa skrivrätt.
+  andraRad(atk, m, m.kategori === 'journal' ? 'skriv_journal' : 'skriv_omvardnad', bilder.lasHandlingFor(m), 'Bilden granskas av den vårdenhet som tog emot den.');
   if (m.status !== 'vantar') throw new Fel(409, 'Bilden är redan granskad.', 'ogiltig');
   const godkann = body.godkann !== false;
   if (godkann && !identitetFor(db, m, db.query('SELECT personnummer FROM patienter WHERE id = ?').get(m.patient_id)).stammer) {
@@ -346,32 +347,42 @@ const EXTERNA = {
 };
 const externRef = (x) => `${sammanhallen.VARDGIVARE.hsaId}:${x.id}`;
 
-// Läget: bilderna hos den andra vårdgivaren visas bara när patienten har samtyckt på vårdenheten. Varje visning loggas.
-export function externLage(atk) {
+// Säkerhetsgranskningen av runda 11: bilderna hos den andra vårdgivaren går genom samma kontroll som sammanhållen
+// journalföring i övrigt (sammanhallen.js): ett aktivt val med syfte, bundet till sessionen, patienten, personen och
+// vårdenheten, som gäller på ett samtycke eller vid nödåtkomst. Varje visning och hämtning loggas med grund och syfte.
+const loggaExtern = (atk, val) => atk.logga('las_journal', val.grund, `media:extern:${sammanhallen.VARDGIVARE.hsaId}`, 'tillaten', val.syfte);
+
+// Läget: bilderna hos den andra vårdgivaren visas bara när det aktiva valet gäller.
+export function externLage(atk, sess) {
   const db = atk.db;
   sammanhallen.sakra(db);
   bilder.sakra(db);
   atk.krav('las_journal');
   const samtycke = sammanhallen.harSamtycke(db, atk.personal, atk.patientId);
-  const poster = samtycke ? (EXTERNA[atk.patientId] ?? []).map(x => ({ id: x.id, tagen: x.tagen, vardenhet: x.vardenhet, av: x.av, kroppsstalle: x.kroppsstalle, beskrivning: x.beskrivning,
+  const val = sammanhallen.giltigtVal(atk, sess);
+  const poster = val ? (EXTERNA[atk.patientId] ?? []).map(x => ({ id: x.id, tagen: x.tagen, vardenhet: x.vardenhet, av: x.av, kroppsstalle: x.kroppsstalle, beskrivning: x.beskrivning,
     hamtad: Boolean(db.query('SELECT 1 FROM media WHERE patient_id = ? AND kalla = ? AND kalla_ref = ?').get(atk.patientId, 'annan_vardgivare', externRef(x))) })) : [];
-  if (samtycke) atk.logga('las_journal', atk.grund(), `media:extern:${sammanhallen.VARDGIVARE.hsaId}`);
-  return { vardgivare: sammanhallen.VARDGIVARE.namn, samtycke, bilder: poster, simulerat: DEMO_EXTERN,
-    text: samtycke ? (poster.length ? `${poster.length} bilder hos ${sammanhallen.VARDGIVARE.namn}.` : `Inga bilder hos ${sammanhallen.VARDGIVARE.namn}.`)
-      : 'Patienten kan ha bilder hos en annan vårdgivare. Bilderna hämtas bara om patienten samtycker.' };
+  if (val) loggaExtern(atk, val);
+  else atk.loggad = true;
+  return { vardgivare: sammanhallen.VARDGIVARE.namn, samtycke, aktivtVal: Boolean(val), bilder: poster, simulerat: DEMO_EXTERN,
+    text: val ? (poster.length ? `${poster.length} bilder hos ${sammanhallen.VARDGIVARE.namn}.` : `Inga bilder hos ${sammanhallen.VARDGIVARE.namn}.`)
+      : samtycke ? 'Patienten har samtyckt. Ange syftet för att hämta bilderna från den andra vårdgivaren.' : 'Patienten kan ha bilder hos en annan vårdgivare. Bilderna hämtas bara om patienten samtycker.' };
 }
 
-// Hämtar bilderna som inte redan är hämtade. Utan samtycke på vårdenheten krävs att samtycket registreras nu
-// ({ samtycke: true }). Bilderna väntar på granskning och behåller sitt ursprung.
-export function hamtaExtern(atk, body = {}, nu = new Date()) {
+// Hämtar bilderna som inte redan är hämtade. Utan ett aktivt val görs valet här med sammanhallen.hamta ({ syfte, samtycke? }),
+// med samma krav på syfte och samtycke. Bilderna hör till journalens kategori och hämtas av den som skriver i journalen.
+// De väntar på granskning och behåller sitt ursprung.
+export function hamtaExtern(atk, sess, body = {}, nu = new Date()) {
   const db = atk.db;
   sammanhallen.sakra(db);
   bilder.sakra(db);
   atk.krav('las_journal');
-  atk.krav(skrivFor(atk.personal));
-  if (!sammanhallen.harSamtycke(db, atk.personal, atk.patientId)) {
-    if (body.samtycke !== true) throw new Fel(400, 'Bilder från en annan vårdgivare hämtas bara om patienten samtycker. Fråga patienten och registrera samtycket.', 'ogiltig', { falt: ['samtycke'] });
-    sammanhallen.registreraSamtycke(db, atk.personal, atk.patientId);
+  atk.krav('skriv_journal');
+  let val = sammanhallen.giltigtVal(atk, sess);
+  if (!val) {
+    sammanhallen.hamta(atk, sess, { syfte: body.syfte, samtycke: body.samtycke === true });
+    val = sammanhallen.giltigtVal(atk, sess);
+    if (!val) throw new Fel(400, 'Bilderna från den andra vårdgivaren kunde inte hämtas. Gör ett aktivt val med syfte först.', 'ogiltig', { falt: ['syfte'] });
   }
   const ut = [];
   for (const [i, x] of (EXTERNA[atk.patientId] ?? []).entries()) {
@@ -384,7 +395,8 @@ export function hamtaExtern(atk, body = {}, nu = new Date()) {
       ursprung: { vardgivare: sammanhallen.VARDGIVARE.namn, hsaId: sammanhallen.VARDGIVARE.hsaId, vardenhet: x.vardenhet, skapadAv: x.av, begardAv: atk.personal.id } });
     ut.push(bilder.mediaUt(db, m));
   }
-  atk.logga('las_journal', atk.grund(), `media:extern:${sammanhallen.VARDGIVARE.hsaId}`);
+  loggaExtern(atk, val);
+  atk.loggad = true;
   return { bilder: ut, text: ut.length ? `${ut.length === 1 ? 'En bild' : `${ut.length} bilder`} från ${sammanhallen.VARDGIVARE.namn}. Granska och för in i journalen.` : 'Inga nya bilder att hämta.', simulerat: DEMO_EXTERN };
 }
 
@@ -421,8 +433,9 @@ export function qidoStudier(atk, fraga = {}) {
   const db = atk.db;
   bilder.sakra(db);
   bilder.forfallna(db, new Date());
-  if (!atk.prova('las_journal').tillaten) { atk.loggad = true; return svarJson([]); }
-  atk.krav('las_journal', { beskrivning: 'dicomweb:studies' });
+  // Säkerhetsgranskningen av runda 11: ett nekat försök loggas av krav som nekat, och svaret är en tom lista, som för en
+  // patient som inte finns.
+  try { atk.krav('las_journal', { beskrivning: 'dicomweb:studies' }); } catch (e) { if (e.status === 403) { atk.loggad = true; return svarJson([]); } throw e; }
   const datum = datumIntervall(fraga.StudyDate);
   const p = patientFor(db, atk.patientId);
   const visad = Boolean(atk.val?.visa_identitet);

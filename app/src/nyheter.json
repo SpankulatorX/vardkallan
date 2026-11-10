@@ -2,6 +2,25 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "1.1.0",
+      "datum": "2026-11-10",
+      "nyheter": [
+        {
+          "id": "bilder-i-journalen",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska",
+            "fysioterapeut"
+          ],
+          "omfattning": "stor",
+          "var": "#/patient/p01/bilder",
+          "rubrik": "Bilder, filmer och ljud i journalen",
+          "text": "Fliken Bilder i journalen har ett galleri med miniatyrer, förstoring med annoteringar och jämförelse över tid per kroppsställe. Du lägger in en bild, film eller ett ljud från datorn, mobilens kamera eller en apparat, och hämtar bilder från en annan vårdgivare med patientens samtycke. Bilder från en apparat eller en annan vårdgivare granskas innan de kommer in i journalen. Röntgenstudierna visas ur arkivet med fönster och mätning."
+        }
+      ]
+    },
+    {
       "version": "1.0.0",
       "datum": "2026-11-08",
       "nyheter": [

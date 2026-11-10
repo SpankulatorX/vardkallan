@@ -78,8 +78,8 @@ export async function visa(el, ctx) {
         <div class="falt-rad"><div class="falt"><label for="bm-apparat">Apparat (simulerad)</label><select id="bm-apparat">${d.apparater.map(a => `<option value="${esc(a.id)}">${esc(a.namn)}</option>`).join('')}</select></div>
           <div class="knapprad"><button type="button" class="knapp sekundar" data-apparat>Hämta från apparaten</button></div></div>
         <p class="hjalp">${esc(d.simulerat.apparat)} Apparaten skickar bilderna med patientens personnummer ur sin arbetslista.</p>
-        <div class="knapprad"><button type="button" class="knapp sekundar" data-extern>Hämta från ${esc(d.extern.vardgivare)}</button></div>
-        <p class="hjalp">${d.extern.samtycke ? 'Patienten har samtyckt till att uppgifter hämtas från den andra vårdgivaren.' : 'Bilderna hämtas bara om patienten samtycker.'} ${esc(d.simulerat.extern)}</p>
+        ${d.extern.kanHamta ? `<div class="knapprad"><button type="button" class="knapp sekundar" data-extern>Hämta från ${esc(d.extern.vardgivare)}</button></div>
+        <p class="hjalp">${d.extern.samtycke ? 'Patienten har samtyckt till att uppgifter hämtas från den andra vårdgivaren.' : 'Bilderna hämtas bara om patienten samtycker.'} ${esc(d.simulerat.extern)}</p>` : ''}
       </details>
     </form>` : ''}
     <section aria-labelledby="bm-galleri-rubrik"><h3 id="bm-galleri-rubrik">I journalen <span class="antal">${d.bilder.length}</span></h3>
@@ -191,20 +191,18 @@ async function jamfor(el, ctx, stalle) {
   plats.querySelector('[data-stang-jamfor]').addEventListener('click', () => { plats.innerHTML = ''; });
 }
 
-// Bilder från den andra vårdgivaren. Utan samtycke på vårdenheten frågar systemet efter det först.
+// Bilder från den andra vårdgivaren hämtas genom sammanhållen journalföring: ett aktivt val med syfte, och samtycket om
+// det saknas. Syftet är förifyllt och kan ändras.
 async function extern(knapp, ctx, d) {
-  let samtycke = d.extern.samtycke;
-  if (!samtycke) {
-    const svar = await dialog(`<form><h2 id="dlg-rubrik">Bilder från ${esc(d.extern.vardgivare)}</h2>
-      <p>Bilder från en annan vårdgivare hämtas genom sammanhållen journalföring och bara om patienten samtycker. Samtycket gäller din vårdenhet och kan återkallas.</p>
-      <div class="kryssfalt"><input type="checkbox" id="bm-samtycke" name="samtycke" value="ja" required><label for="bm-samtycke">Patienten samtycker till att bilderna hämtas</label></div>
-      <p class="hjalp">${esc(d.simulerat.extern)}</p>
-      <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Hämta bilderna</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`);
-    if (!svar) return;
-    samtycke = svar.data.samtycke === 'ja';
-  }
+  const svar = await dialog(`<form><h2 id="dlg-rubrik">Bilder från ${esc(d.extern.vardgivare)}</h2>
+    <p>Bilder från en annan vårdgivare hämtas genom sammanhållen journalföring${d.extern.samtycke ? '. Patienten har samtyckt på din vårdenhet.' : ' och bara om patienten samtycker. Samtycket gäller din vårdenhet och kan återkallas.'} Hämtningen loggas med syftet.</p>
+    <div class="falt"><label for="bm-syfte">Syfte</label><input id="bm-syfte" name="syfte" required minlength="3" maxlength="300" value="Bedömning av tidigare bilder i vården av patienten" autocomplete="off"></div>
+    ${d.extern.samtycke ? '' : '<div class="kryssfalt"><input type="checkbox" id="bm-samtycke" name="samtycke" value="ja" required><label for="bm-samtycke">Patienten samtycker till att bilderna hämtas</label></div>'}
+    <p class="hjalp">${esc(d.simulerat.extern)}</p>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Hämta bilderna</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`);
+  if (!svar) return;
   try {
-    const r = await medKnapp(knapp, () => api(`/api/patient/${pid(ctx)}/media/extern`, { metod: 'POST', data: { samtycke } }));
+    const r = await medKnapp(knapp, () => api(`/api/patient/${pid(ctx)}/media/extern`, { metod: 'POST', data: { syfte: svar.data.syfte.trim(), samtycke: d.extern.samtycke || svar.data.samtycke === 'ja' } }));
     notis(r.text);
     ctx.ladda();
   } catch { /* felet visas som notis */ }

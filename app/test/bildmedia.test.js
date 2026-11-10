@@ -181,21 +181,61 @@ describe('Bilder och media 1.1', () => {
 
   test('bilder från en annan vårdgivare hämtas bara med patientens samtycke, behåller sitt ursprung och kommer in i journalen efter granskning', () => {
     const db = sandlada();
+    const sess = { val: {} };
     const L = (h = 'las_journal') => atk(db, 'lak-kard', 'p01', h);
-    expect(bm.externLage(L())).toMatchObject({ samtycke: false, bilder: [] });
-    expect(() => bm.hamtaExtern(L('skriv_journal'), {}, BAS)).toThrow('bara om patienten samtycker');
-    const h = bm.hamtaExtern(L('skriv_journal'), { samtycke: true }, BAS);
+    expect(bm.externLage(L(), sess)).toMatchObject({ samtycke: false, aktivtVal: false, bilder: [] });
+    expect(() => bm.hamtaExtern(L('skriv_journal'), sess, { syfte: 'Tidigare bilder av knät' }, BAS)).toThrow('bara om patienten samtycker');
+    const h = bm.hamtaExtern(L('skriv_journal'), sess, { samtycke: true, syfte: 'Tidigare bilder av knät' }, BAS);
     expect(h.bilder.map(b => [b.status, b.kalla.id, b.registrerad.av])).toEqual([
       ['vantar', 'annan_vardgivare', 'Demofysioterapeut Hälsohuset, Hälsohuset ortopedmottagning (simulerad)'],
       ['vantar', 'annan_vardgivare', 'Demoläkare Hälsohuset, Hälsohuset ortopedmottagning (simulerad)']]);
     expect(h.bilder[0].ursprung).toMatchObject({ vardgivare: 'Hälsohuset Vårdgivare AB (simulerad)', simulerad: true });
-    expect(bm.hamtaExtern(L('skriv_journal'), {}, BAS).text).toBe('Inga nya bilder att hämta.');
-    expect(bm.externLage(L()).bilder.map(b => b.hamtad)).toEqual([true, true]);
-    expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p01' AND resurs = 'media:extern:DEMO-VG-0001'").get().n).toBe(3);
+    expect(bm.hamtaExtern(L('skriv_journal'), sess, {}, BAS).text).toBe('Inga nya bilder att hämta.');
+    expect(bm.externLage(L(), sess).bilder.map(b => b.hamtad)).toEqual([true, true]);
+    // Varje hämtning loggas med grunden och syftet från det aktiva valet.
+    const logg = db.query("SELECT grund, syfte FROM atkomstlogg WHERE patient_id = 'p01' AND resurs = 'media:extern:DEMO-VG-0001'").all();
+    expect(logg.length).toBe(3);
+    expect(logg.every(r => r.syfte === 'Tidigare bilder av knät')).toBe(true);
     const g = bm.granska(L('skriv_journal'), bilder.mediaRad(db, h.bilder[0].id), {}, BAS);
     expect(g).toMatchObject({ status: 'journal', registrerad: { av: 'Demofysioterapeut Hälsohuset, Hälsohuset ortopedmottagning (simulerad)' }, granskad: { av: 'Sara Lindqvist' } });
     // Ingen nuvarande personal står som den som tog bilden.
     expect(db.query('SELECT registrerad_av FROM media WHERE id = ?').get(h.bilder[0].id).registrerad_av).toBeNull();
+  });
+
+  test('säkerhet: bilder från en annan vårdgivare kräver ett aktivt val med syfte i sessionen för samma person och patient, som sammanhållen journalföring', () => {
+    const db = sandlada();
+    const L = (roll = 'lak-kard', h = 'las_journal') => atk(db, roll, 'p01', h);
+    // Ett samtycke utan aktivt val i sessionen räcker inte, och utan syfte görs inget val.
+    db.query("INSERT INTO sammanhallen_samtycken (patient_id, enhet_id, registrerat, registrerat_av) VALUES ('p01', 'uso-kard', ?, 'lak-kard')").run(BAS.toISOString());
+    const sess = { val: {} };
+    expect(bm.externLage(L(), sess)).toMatchObject({ samtycke: true, aktivtVal: false, bilder: [] });
+    expect(() => bm.hamtaExtern(L('lak-kard', 'skriv_journal'), sess, {}, BAS)).toThrow('syftet');
+    expect(db.query("SELECT count(*) AS n FROM media WHERE patient_id = 'p01' AND kalla = 'annan_vardgivare'").get().n).toBe(0);
+    bm.hamtaExtern(L('lak-kard', 'skriv_journal'), sess, { syfte: 'Bedömning av knät' }, BAS);
+    // Valet gäller personen som gjorde det: en annan person i samma session får inget.
+    expect(bm.externLage(atk(db, 'ssk-kard', 'p01', 'las_journal'), sess).aktivtVal).toBe(false);
+    // Bilderna från den andra vårdgivaren hör till journalens kategori, så sjuksköterskan hämtar dem inte.
+    expect(() => bm.hamtaExtern(L('ssk-kard', 'skriv_omvardnad'), { val: {} }, { samtycke: true, syfte: 'Sår' }, BAS)).toThrow();
+  });
+
+  test('säkerhet: granskningen kräver skrivrätten för bildens kategori, så en roll med bara omvårdnadens skrivrätt för inte in en bild i journalens kategori', () => {
+    const db = sandlada();
+    ny(db);
+    const r = bm.franApparat(A(db, 'lak-kkoga'), 'ultraljud', {}, BAS);
+    expect(() => bm.granska(A(db, 'ssk-kkoga', 'bm1', 'skriv_omvardnad'), bilder.mediaRad(db, r.bilder[0].id), {}, BAS)).toThrow();
+    expect(bilder.mediaRad(db, r.bilder[0].id).status).toBe('vantar');
+    expect(bm.granska(A(db, 'lak-kkoga'), bilder.mediaRad(db, r.bilder[0].id), {}, BAS).status).toBe('journal');
+    // En bild i omvårdnadens kategori granskas av sjuksköterskan.
+    const o = bm.franApparat(A(db, 'ssk-kkoga', 'bm1', 'skriv_omvardnad'), 'sarkamera', {}, BAS);
+    expect(bm.granska(A(db, 'ssk-kkoga', 'bm1', 'skriv_omvardnad'), bilder.mediaRad(db, o.bilder[0].id), {}, BAS).status).toBe('journal');
+  });
+
+  test('säkerhet: en sökning i DICOMweb på en patient utan åtkomst ger en tom lista och loggas som nekad', async () => {
+    const db = sandlada();
+    ny(db);
+    bilder.bestallUndersokning(A(db, 'lak-kkoga', 'bm1', 'remittera'), { undersokning: 'lungrontgen', fragestallning: 'Infiltrat?' }, efter(-120));
+    expect(JSON.parse(await bm.qidoStudier(atk(db, 'lak-psyk', 'bm1', 'las_journal'), {}).text())).toEqual([]);
+    expect(db.query("SELECT resultat, resurs FROM atkomstlogg WHERE patient_id = 'bm1' AND personal_id = 'lak-psyk'").all()).toEqual([{ resultat: 'nekad', resurs: 'dicomweb:studies' }]);
   });
 
   test('DICOMweb: QIDO-RS söker patientens studier, WADO-RS hämtar instansen som DICOM-fil och den renderade bilden med fönster, med behörighet och loggning', async () => {
