@@ -1654,6 +1654,9 @@ td .tagg-avliden { margin-left: 6px; }
 .ob-toko { fill: none; stroke: var(--dampad); stroke-width: 1.2; stroke-dasharray: 2 2; }
 .ob-screening li, .ob-kriterier li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .ob-graviditet section { margin-top: 18px; }
+/* Raden Ingen uppmärksamhetsinformation med knappen Ny överkänslighet bryts på smal skärm. */
+.signal-um.signal-ingen { flex-wrap: wrap; max-width: 100%; }
+.signal-um.signal-ingen .knapp { white-space: normal; }
 @media (forced-colors: active) {
   .ob-ctg, .ob-toko, .ob-varningslinje, .ob-atgardslinje { stroke: CanvasText; }
   .ob-band, .ob-normalband { fill: GrayText; }
