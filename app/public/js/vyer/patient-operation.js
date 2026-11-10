@@ -23,6 +23,7 @@ function forberedelserHtml(o) {
   return `<section aria-labelledby="op-forb-${o.id}"><h4 id="op-forb-${o.id}">Förberedelser</h4>
     <ul class="op-forb">${p.map(x => `<li class="${x.klar ? 'op-klar' : 'op-kvar'}">${x.klar ? ikon.bock : ikon.klocka}<span><strong>${esc(x.namn)}</strong>: ${esc(x.text)}</span></li>`).join('')}</ul>
     ${aktiv ? `<p class="knapprad">${!p.find(x => x.id === 'prover').klar && far('bestalla_prov') ? knapp(`data-op-prover="${o.id}"`, 'Beställ proverna') : ''}${far('anestesibedomning') && o.anestesi !== 'Lokalbedövning' ? knapp(`data-op-anestesi="${o.id}"`, an.klar ? 'Ny anestesibedömning' : 'Gör anestesibedömningen', an.klar) : ''}</p>` : ''}
+    ${an.varningar?.length ? `<ul class="op-paverkar">${an.varningar.map(v => `<li class="ruta ruta-obs liten">${ikon.varning}<span>${esc(v)}</span></li>`).join('')}</ul>` : ''}
     ${an.skalor ? `<p class="under-text">${esc(an.skalor.rcri.namn)}: ${esc(an.skalor.rcri.text)} ${esc(an.skalor.apfel.namn)}: ${esc(an.skalor.apfel.text)}</p>` : ''}
     ${an.patientinformation ? `<details class="op-info"><summary>Information till patienten och närstående</summary><p>${esc(an.patientinformation)}</p></details>` : ''}
   </section>`;
@@ -64,6 +65,15 @@ function checklistaHtml(o, u) {
   </form>`;
 }
 
+// Runda 11, r2: ASA-klassen bekräftas av en läkare på operationsdagen före induktionen.
+function asaHtml(o, nasta) {
+  if (!['planerad', 'pagar'].includes(o.status) || o.anestesi === 'Lokalbedövning') return '';
+  if (o.asaBekraftad) return `<p class="under-text">${ikon.bock} ${esc(o.asaBekraftad.text)} bekräftad i dag klockan ${esc(klockslag(o.asaBekraftad.tid))} av ${esc(o.asaBekraftad.av ?? '')}.</p>`;
+  if (!['in_sal', 'anestesistart'].includes(nasta)) return '';
+  return `<p class="ruta ruta-info liten">${ikon.info}<span>ASA-klassen bekräftas av anestesiläkaren i dag innan anestesin startar.</span></p>
+    ${far('anestesibedomning') ? `<p class="knapprad">${knapp(`data-op-asa="${o.id}"`, 'Bekräfta ASA-klassen')}</p>` : ''}`;
+}
+
 function forloppHtml(o, u) {
   if (o.status === 'vantar') return '';
   const tider = o.forlopp?.tider ?? [['in_sal', 'In på sal'], ['anestesistart', 'Anestesistart'], ['knivtid', 'Knivtid (snitt)'], ['op_slut', 'Operationen slut'], ['ut_sal', 'Ut från sal']].map(([id, namn]) => ({ id, namn, tid: null }));
@@ -74,7 +84,8 @@ function forloppHtml(o, u) {
   return `<section aria-labelledby="op-forl-${o.id}"><h4 id="op-forl-${o.id}">Förlopp på salen</h4>
     <ol class="op-tider">${tider.map(t => `<li class="${t.tid ? 'op-klar' : t.id === nasta ? 'op-nasta' : 'op-kvar'}"><span class="pt-tid">${t.tid ? esc(klockslag(t.tid)) : ''}</span> ${esc(t.namn)}</li>`).join('')}</ol>
     ${o.forlopp?.avvikelse ? `<p class="under-text">${esc(o.forlopp.avvikelse.text)}</p>` : ''}
-    ${kan && nasta && klarCheck ? `<p class="knapprad">${knapp(`data-op-handelse="${esc(nasta)}" data-op="${o.id}"`, tider.find(t => t.id === nasta).namn)}</p>` : ''}
+    ${asaHtml(o, nasta)}
+    ${kan && nasta && klarCheck && (nasta !== 'anestesistart' || o.asaBekraftad || o.anestesi === 'Lokalbedövning') ? `<p class="knapprad">${knapp(`data-op-handelse="${esc(nasta)}" data-op="${o.id}"`, tider.find(t => t.id === nasta).namn)}</p>` : ''}
     ${kan ? checklistaHtml(o, u) : ''}
   </section>`;
 }
@@ -214,7 +225,7 @@ export async function visa(el, ctx) {
           <div class="falt"><label for="an-samt">Samtycke till anestesin</label><select id="an-samt" name="samtycke" required><option value="">Välj</option>${Object.entries(f.samtycken).map(([k, v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join('')}</select></div>
           <div class="kryssfalt"><input type="checkbox" id="an-ponv" name="ponvTidigare"><label for="an-ponv">Illamående efter tidigare operation eller åksjuka</label></div>
           <div class="kryssfalt"><input type="checkbox" id="an-rok" name="rokare"><label for="an-rok">Röker</label></div>
-          <p class="hjalp">Bedömningen gäller i ${esc(f.giltigDagar)} dagar. Systemet skriver informationen till patienten.</p>
+          <p class="hjalp">${esc(f.giltighet.text)} Systemet skriver informationen till patienten.</p>
           <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Spara bedömningen</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`);
         if (!s) return;
         const r = await post(`/api/patient/${pid}/anestesi`, { anmalanId: Number(aid), asa: Number(s.data.asa), anestesiform: s.data.anestesiform, samtycke: s.data.samtycke,
@@ -244,6 +255,10 @@ export async function visa(el, ctx) {
         }
         await post(`/api/operation/${b.dataset.op}/handelse`, data, b);
         notis(`${b.textContent.trim()} är registrerat klockan ${klockslag(new Date().toISOString())}.`);
+        ctx.ladda();
+      } else if (t('[data-op-asa]')) {
+        await post(`/api/operation/${t('[data-op-asa]').dataset.opAsa}/bekrafta-asa`, {}, t('[data-op-asa]'));
+        notis('ASA-klassen är bekräftad för i dag.');
         ctx.ladda();
       } else if (t('[data-op-oppna]')) {
         const b = t('[data-op-oppna]');

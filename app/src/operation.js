@@ -16,7 +16,7 @@
 //
 // Ingreppen, salarna, operationstiderna och kriterierna är demoregler och inget kliniskt beslutsstöd.
 import { Fel, datumAv, addDagar, lokalTid } from './db.js';
-import { vardenhetFor, enheterUnder, kanRoll, visningsnamn } from './atkomst.js';
+import { vardenhetFor, enheterUnder, kanRoll, visningsnamn, ANESTESIENHETER } from './atkomst.js';
 import { registreraAtgard } from './atgarder.js';
 import { KVA } from './kodverk.js';
 import * as kontroller from './kontroller.js';
@@ -27,10 +27,43 @@ import { Atkomst } from './atkomst.js';
 import * as journal from './journal.js';
 import * as lakemedel from './lakemedel.js';
 import { tabell, finns, personNamn, enhetsnamn, enhetKort, textFalt, iso, tid as giltigTid, MIN, DAG, kravRoll, vardkontaktFor,
-  provaRad, loggaPatient, matvarde, lasRad, andraRad } from './specialist-hjalp.js';
+  provaRad, loggaPatient, matvarde, lasRad, andraRad, bunden } from './specialist-hjalp.js';
 // Säkerhetsgranskningen: varje anmälan binds till patienten och prövas på den anmälande vårdenheten.
 const ANDRA = 'Operationen hanteras av den anmälande vårdenheten.';
 const andraOp = (atk, an, handling) => andraRad(atk, an, handling, 'las_operation', ANDRA);
+
+// Runda 11, r2 (beslut 2026-11-10): anestesienheten på den opererande vårdenhetens sjukhus. Anmälan är en beställning till
+// den, och den läser operationen med vårdrelationen från anmälan tills operationen och uppvakningen är avslutade. Den
+// opererande enhetens journal i övrigt kräver ett aktivt val (inre sekretess). Anestesienheten ändrar det som hör till
+// anestesin: bedömningen, ASA-klassen och anestesijournalen.
+export function anestesienhetFor(db, an) {
+  const sjukhus = sjukhusFor(db, an.enhet_id);
+  return Object.keys(ANESTESIENHETER).find(id => ANESTESIENHETER[id] === sjukhus) ?? null;
+}
+const arAnestesienhet = (atk, an) => an.status !== 'klar' && vardenhetFor(atk.db, atk.personal.enhet_id) === anestesienhetFor(atk.db, an);
+export function opLas(atk, an, handling = 'las_operation') {
+  if (arAnestesienhet(atk, bunden(atk, an))) { atk.krav(handling); return an; }
+  return lasRad(atk, an, handling);
+}
+export function opAndra(atk, an, handling, { anestesi = false } = {}) {
+  if (arAnestesienhet(atk, bunden(atk, an))) {
+    atk.krav('las_operation');
+    if (!anestesi) throw new Fel(403, ANDRA, 'nekad');
+    atk.krav(handling);
+    return an;
+  }
+  return andraOp(atk, an, handling);
+}
+export const AKTIVT_VAL_SYFTE = 'Anestesibedömning inför operation';
+// Syftet som systemet förväljer i dialogen för aktivt val, när den inloggade arbetar på anestesienheten som patienten är
+// anmäld till. Valet görs och loggas som vanligt.
+export function aktivtValSyfte(db, personal, patientId) {
+  sakra(db);
+  const ve = vardenhetFor(db, personal.enhet_id);
+  if (!Object.hasOwn(ANESTESIENHETER, ve)) return null;
+  const rader = db.query("SELECT * FROM op_anmalningar WHERE patient_id = ? AND status <> 'klar'").all(patientId);
+  return rader.some(an => anestesienhetFor(db, an) === ve) ? AKTIVT_VAL_SYFTE : null;
+}
 
 export const DEMOREGEL = 'Demoregel, inte ett kliniskt beslutsstöd. Salarna och teamet är påhittade.';
 
@@ -273,7 +306,51 @@ function salTillganglig(db, ve, sal, datum, nu) {
 export function session(db, personal) {
   if (!personal || !kanRoll(personal, 'las_operation')) return null;
   const ve = vardenhetFor(db, personal.enhet_id);
+  // Runda 11, r2: anestesienheten har operationsavdelningens vy med sina beställda bedömningar.
+  if (Object.hasOwn(ANESTESIENHETER, ve)) return { vardenhet: enhetKort(db, ve), sjukhus: ANESTESIENHETER[ve], anestesi: true };
   return opererar(ve) ? { vardenhet: enhetKort(db, ve), sjukhus: sjukhusFor(db, ve) } : null;
+}
+
+// Runda 11, r2: anmälningarna som är beställda till den inloggades anestesienhet och inte avslutade, med om bedömningen
+// gäller och om ASA-klassen är bekräftad i dag. Varje patient som visas loggas.
+export function anestesilista(db, personal, valFor, nu = new Date()) {
+  sakra(db);
+  kravRoll(personal, 'las_operation');
+  const ve = vardenhetFor(db, personal.enhet_id);
+  if (!Object.hasOwn(ANESTESIENHETER, ve)) return { vardenhet: enhetKort(db, ve), anmalningar: [], demoregel: DEMOREGEL };
+  const ut = [];
+  for (const an of db.query("SELECT * FROM op_anmalningar WHERE status <> 'klar' ORDER BY mal_datum, id").all()) {
+    if (anestesienhetFor(db, an) !== ve) continue;
+    const atk = new Atkomst(db, personal, an.patient_id, valFor(an.patient_id), 'las_operation');
+    const r = atk.prova('las_operation');
+    if (!r.tillaten) continue;
+    loggaPatient(db, personal, an.patient_id, 'las_operation', r.grund, '/api/operation/anestesi');
+    const p = db.query('SELECT * FROM patienter WHERE id = ?').get(an.patient_id);
+    const plan = planeringFor(db, an.id);
+    const bed = anestesiFor(atk, an, nu);
+    ut.push({ anmalanId: an.id, patient: { id: p.id, namn: visningsnamn(p, valFor(p.id).visa_identitet) }, ingrepp: INGREPP[an.kva].namn, status: an.status,
+      vardenhet: enhetKort(db, an.enhet_id), planerad: plan?.start ?? null, malDatum: an.mal_datum,
+      bedomning: bed ? { asa: bed.asa, giltigTill: bed.giltigTill, giltig: bed.giltig } : null, asaBekraftad: Boolean(asaBekraftadDag(db, an, plan ? datumAv(new Date(plan.start)) : datumAv(nu))) });
+  }
+  return { vardenhet: enhetKort(db, ve), anmalningar: ut, text: 'Operationsanmälningarna är beställningar till anestesienheten. Den opererande vårdenhetens journal visas efter ett aktivt val med syftet anestesibedömning inför operation.', demoregel: DEMOREGEL };
+}
+
+// ASA-klassen bekräftas av en läkare på operationsdagen före induktionen (beslut 2026-11-10).
+const asaBekraftadDag = (db, an, dag) => db.query("SELECT * FROM op_historik WHERE anmalan_id = ? AND handelse = 'asa_bekraftad' ORDER BY id DESC").all(an.id)
+  .find(h => datumAv(new Date(h.tid)) === dag) ?? null;
+export function bekraftaAsa(atk, an, body = {}, nu = new Date()) {
+  opAndra(atk, an, 'anestesibedomning', { anestesi: true });
+  const db = atk.db;
+  if (!['planerad', 'pagar'].includes(an.status)) throw new Fel(409, 'ASA-klassen bekräftas för en planerad operation.', 'ogiltig');
+  const bed = anestesiFor(atk, an, nu);
+  const asa = body.asa == null ? (bed?.giltig ? bed.asa : an.asa) : Number(body.asa);
+  if (asa == null) throw new Fel(409, 'Det finns ingen giltig anestesibedömning att bekräfta. Gör anestesibedömningen först.', 'ogiltig');
+  if (!Number.isInteger(asa) || asa < 1 || asa > 5) throw new Fel(400, 'ASA-klassen är 1 till 5.', 'ogiltig', { falt: ['asa'] });
+  db.transaction(() => {
+    if (asa !== an.asa) db.query('UPDATE op_anmalningar SET asa = ? WHERE id = ?').run(asa, an.id);
+    historik(db, an, atk.personal.id, 'asa_bekraftad', `ASA ${asa}`, iso(nu));
+  })();
+  return anmalanUt(atk, anmalanRad(db, an.id), nu);
 }
 
 const planeradeMinuter = (db, sal, datum) => db.query('SELECT start, slut FROM op_planeringar WHERE sal = ? AND struken_tid IS NULL AND start >= ? AND start < ?')
@@ -335,32 +412,41 @@ export function taBlock(db, personal, body = {}, nu = new Date()) {
 
 // Proverna som behövs före operationen och om de är beställda eller besvarade på vårdenheten efter anmälan. Bara det som
 // den inloggade får se räknas (labb.synligaBestallningar).
-function proverFor(atk, an) {
+// Runda 11, r2: provsvar som är äldre än GILTIGA_PROVER_MANADER vid operationen (eller nu, om den inte är planerad) gäller
+// inte längre och räknas som saknade (demoregel efter Region Skånes rutin för preoperativ utredning, docs/design.md).
+export const GILTIGA_PROVER_MANADER = 3;
+const minusManader = (iso, n) => { const d = new Date(iso); d.setUTCMonth(d.getUTCMonth() - n); return d.toISOString(); };
+function proverFor(atk, an, nu = new Date()) {
   const ing = INGREPP[an.kva];
   const behov = [...PREOP_ANALYSER, ...(ing.blod ? ['blodgruppering', 'bastest'] : [])];
   const synliga = labb.synligaBestallningar(atk).filter(b => !b.makulerad_tid && b.skapad >= an.anmald_tid);
-  const rader = synliga.flatMap(b => atk.db.query("SELECT analys, status FROM labb_analyser WHERE bestallning_id = ? AND status <> 'borttagen'").all(b.id));
+  const rader = synliga.flatMap(b => atk.db.query("SELECT analys, status, besvarad_tid FROM labb_analyser WHERE bestallning_id = ? AND status <> 'borttagen'").all(b.id));
+  const plan = planeringFor(atk.db, an.id);
+  const grans = minusManader([iso(nu), plan?.start ?? ''].sort().at(-1), GILTIGA_PROVER_MANADER);
   return behov.map(id => {
     const r = rader.filter(x => x.analys === id);
-    const status = r.some(x => x.status === 'besvarad') ? 'besvarad' : r.length ? 'bestalld' : 'saknas';
+    const besvarade = r.filter(x => x.status === 'besvarad');
+    const status = besvarade.some(x => !x.besvarad_tid || x.besvarad_tid >= grans) ? 'besvarad' : besvarade.length ? 'for_gammal' : r.length ? 'bestalld' : 'saknas';
     return { analys: id, namn: ANALYS[id]?.namn ?? id, status };
   });
 }
 
 export function forberedelser(atk, an, nu = new Date()) {
   const ing = INGREPP[an.kva];
-  const prover = proverFor(atk, an);
+  const prover = proverFor(atk, an, nu);
   const plan = planeringFor(atk.db, an.id);
   // Runda 11, r2: den kopplade anestesibedömningen och dess giltighetstid.
   const bed = an.anestesi === 'lokal' ? null : anestesiFor(atk, an, nu);
   const anestesi = an.anestesi === 'lokal' ? { klar: true, text: 'Behövs inte vid lokalbedövning.' }
-    : bed?.giltig ? { klar: true, text: `${bed.asaText}, bedömd ${bed.tid.slice(0, 10)} av ${bed.av}, giltig till ${bed.giltigTill}.${bed.samtycke === 'ja' ? ' Patienten har samtyckt.' : ''}`,
-      patientinformation: bed.patientinformation, skalor: bed.skalor }
+    : bed?.giltig ? { klar: true, text: `${bed.asaText}, bedömd ${bed.tid.slice(0, 10)} av ${bed.av}, giltig till ${bed.giltigTill}.${bed.samtycke === 'ja' ? ' Patienten har samtyckt.' : ''}${bed.forandringar?.length ? ' Patientens tillstånd kan ha ändrats sedan bedömningen. Anestesiläkaren bedömer om den gäller när ASA-klassen bekräftas på operationsdagen.' : ''}`,
+      patientinformation: bed.patientinformation, skalor: bed.skalor, varningar: bed.forandringar ?? [] }
       : bed ? { klar: false, text: `Anestesibedömningen gällde till ${bed.giltigTill}. Patienten behöver bedömas igen före operationen.` }
         : an.asa != null ? { klar: true, text: `ASA ${an.asa}.` } : { klar: false, text: 'Patienten behöver bedömas av anestesiläkaren före operationen.' };
   const punkter = [
-    { id: 'prover', namn: 'Prover före operationen', klar: prover.every(p => p.status !== 'saknas'),
-      text: prover.some(p => p.status === 'saknas') ? `Saknas: ${prover.filter(p => p.status === 'saknas').map(p => p.namn).join(', ')}. Systemet kan beställa dem med ett klick.` : 'Alla prover är beställda.' },
+    { id: 'prover', namn: 'Prover före operationen', klar: prover.every(p => !['saknas', 'for_gammal'].includes(p.status)),
+      text: [prover.some(p => p.status === 'saknas') ? `Saknas: ${prover.filter(p => p.status === 'saknas').map(p => p.namn).join(', ')}.` : '',
+        prover.some(p => p.status === 'for_gammal') ? `Svaren är äldre än ${GILTIGA_PROVER_MANADER === 3 ? 'tre' : GILTIGA_PROVER_MANADER} månader vid operationen: ${prover.filter(p => p.status === 'for_gammal').map(p => p.namn).join(', ')}.` : '']
+        .filter(Boolean).join(' ').concat(prover.some(p => ['saknas', 'for_gammal'].includes(p.status)) ? ' Systemet kan beställa dem med ett klick.' : 'Alla prover är beställda.') },
     { id: 'anestesi', namn: 'Anestesibedömning', ...anestesi },
     { id: 'kallelse', namn: 'Kallelse med förberedelser', klar: Boolean(plan?.kallelse), text: plan?.kallelse ? 'Kallelsen är skickad (simulerad).' : 'Skrivs av systemet när operationen planeras.' },
   ];
@@ -414,8 +500,8 @@ function armbandetHorTill(db, patientId, armband) {
 
 // Beställer de prover som saknas, med beställningen till laboratoriet och blodcentralen som vanligt (labb.js).
 export function bestallProver(atk, an, nu = new Date()) {
-  lasRad(atk, an, 'las_operation');
-  const saknas = proverFor(atk, an).filter(p => p.status === 'saknas').map(p => p.analys);
+  opLas(atk, an);
+  const saknas = proverFor(atk, an, nu).filter(p => ['saknas', 'for_gammal'].includes(p.status)).map(p => p.analys);
   if (!saknas.length) throw new Fel(409, 'Alla prover före operationen är redan beställda.', 'ogiltig');
   return labb.bestall(atk, { analyser: saknas, kvitteraDubbletter: true, kommentar: `Inför operation: ${INGREPP[an.kva].namn}` }, nu);
 }
@@ -467,6 +553,9 @@ export function anmalanUt(atk, an, nu = new Date()) {
     planering: plan ? planeringUt(db, plan) : null, forlopp: f ? forloppUt(db, an, f) : null, forberedelser: forberedelser(atk, an, nu),
     // Runda 11, r2.
     paverkar: ['vantar', 'planerad', 'pagar'].includes(an.status) ? paverkar(atk, an, nu) : [],
+    // Runda 11, r2: ASA-klassen som en läkare har bekräftat i dag, före induktionen.
+    asaBekraftad: (() => { const h = asaBekraftadDag(db, an, datumAv(nu)); return h ? { tid: h.tid, av: personNamn(db, h.personal_id), text: h.detalj } : null; })(),
+    anestesienhet: enhetKort(db, anestesienhetFor(db, an)),
     historik: db.query('SELECT * FROM op_historik WHERE anmalan_id = ? ORDER BY id').all(an.id).map(h => ({ tid: h.tid, av: personNamn(db, h.personal_id), handelse: h.handelse, detalj: h.detalj })),
   };
 }
@@ -483,7 +572,10 @@ function planeringUt(db, p) {
 export function forPatient(atk, nu = new Date()) {
   sakra(atk.db);
   atk.krav('las_operation');
-  const rader = atk.filtrera(atk.db.query('SELECT * FROM op_anmalningar WHERE patient_id = ? ORDER BY anmald_tid DESC, id DESC').all(atk.patientId), 'las_operation');
+  // Runda 11, r2: anestesienheten ser de anmälningar som är beställda till den, med vårdrelationen från anmälan.
+  const alla = atk.db.query('SELECT * FROM op_anmalningar WHERE patient_id = ? ORDER BY anmald_tid DESC, id DESC').all(atk.patientId);
+  const synliga = new Set([...alla.filter(an => arAnestesienhet(atk, an)), ...atk.filtrera(alla.filter(an => !arAnestesienhet(atk, an)), 'las_operation')]);
+  const rader = alla.filter(an => synliga.has(an));
   return { operationer: rader.map(an => anmalanUt(atk, an, nu)), demoregel: DEMOREGEL };
 }
 
@@ -524,15 +616,20 @@ const forstaUpptagenResurs = (db, an, sal, start, slut) => (INGREPP[an.kva].utru
 // Teamet som systemet föreslår: operatören är den anmälande läkaren om den finns på vårdenheten, annars en annan läkare,
 // och operationssjuksköterskan den första sjuksköterskan på vårdenheten. Runda 11, r2: anestesiläkaren och
 // anestesisjuksköterskan väljs ur titeln, och de och operationskoordinatorn föreslås inte som operatör eller opssk.
-function personalPa(db, an, yrke) {
-  const enheter = enheterUnder(db, vardenhetFor(db, an.enhet_id));
+function personalPaEnhet(db, vardenhet, yrke) {
+  if (!vardenhet) return [];
+  const enheter = enheterUnder(db, vardenhet);
   return db.query(`SELECT id, titel FROM personal WHERE yrke = ? AND aktiv = 1 AND enhet_id IN (${enheter.map(() => '?').join(', ')}) ORDER BY id`).all(yrke, ...enheter);
 }
+const personalPa = (db, an, yrke) => personalPaEnhet(db, vardenhetFor(db, an.enhet_id), yrke);
+// Runda 11, r2: anestesiläkaren och anestesisjuksköterskan kommer från anestesienheten på sjukhuset.
 function teamForslag(db, an) {
   const lak = personalPa(db, an, 'lakare'), ssk = personalPa(db, an, 'sjukskoterska');
+  const ane = anestesienhetFor(db, an);
   const lakare = lak.filter(p => !utanforOpteam(p.titel)).map(r => r.id);
   return { operator: lakare.includes(an.anmald_av) ? an.anmald_av : lakare[0] ?? an.anmald_av, opssk: ssk.find(p => !utanforOpteam(p.titel))?.id ?? null,
-    anestesilakare: lak.find(p => arAnestesilakare(p.titel))?.id ?? null, anestesissk: ssk.find(p => arAnestesissk(p.titel))?.id ?? null };
+    anestesilakare: personalPaEnhet(db, ane, 'lakare').find(p => arAnestesilakare(p.titel))?.id ?? null,
+    anestesissk: personalPaEnhet(db, ane, 'sjukskoterska').find(p => arAnestesissk(p.titel))?.id ?? null };
 }
 const kort = (db, id) => (id ? { id, namn: personNamn(db, id) } : null);
 const resursKort = (id) => ({ id, namn: RESURSER[id].namn, typ: RESURSER[id].typ });
@@ -604,8 +701,9 @@ export function planera(atk, an, body = {}, nu = new Date()) {
   const pa = (id, yrke) => db.query(`SELECT titel FROM personal WHERE id = ? AND yrke = ? AND aktiv = 1 AND enhet_id IN (${enheter.map(() => '?').join(', ')})`).get(id, yrke, ...enheter);
   if (typeof operator !== 'string' || !pa(operator, 'lakare')) throw new Fel(400, 'Operatören ska vara en läkare på vårdenheten.', 'ogiltig', { falt: ['operator'] });
   if (opssk != null && (typeof opssk !== 'string' || !pa(opssk, 'sjukskoterska'))) throw new Fel(400, 'Operationssjuksköterskan ska vara en sjuksköterska på vårdenheten.', 'ogiltig', { falt: ['opssk'] });
-  if (anestesilakare != null && (typeof anestesilakare !== 'string' || !arAnestesilakare(pa(anestesilakare, 'lakare')?.titel))) throw new Fel(400, 'Välj en anestesiläkare på vårdenheten.', 'ogiltig', { falt: ['anestesilakare'] });
-  if (anestesissk != null && (typeof anestesissk !== 'string' || !arAnestesissk(pa(anestesissk, 'sjukskoterska')?.titel))) throw new Fel(400, 'Välj en anestesisjuksköterska på vårdenheten.', 'ogiltig', { falt: ['anestesissk'] });
+  const paAne = (id, yrke) => (typeof id === 'string' ? personalPaEnhet(db, anestesienhetFor(db, an), yrke).find(p => p.id === id) : null);
+  if (anestesilakare != null && !arAnestesilakare(paAne(anestesilakare, 'lakare')?.titel)) throw new Fel(400, 'Välj en anestesiläkare på anestesienheten.', 'ogiltig', { falt: ['anestesilakare'] });
+  if (anestesissk != null && !arAnestesissk(paAne(anestesissk, 'sjukskoterska')?.titel)) throw new Fel(400, 'Välj en anestesisjuksköterska på anestesienheten.', 'ogiltig', { falt: ['anestesissk'] });
   if (upptagen(db, 'sal', sal, start, slut)) throw new Fel(409, `${SAL[sal].namn} är upptagen då. Systemets förslag är ${f.text}`, 'krock');
   const resurs = forstaUpptagenResurs(db, an, sal, start, slut);
   if (resurs) throw new Fel(409, `${RESURSER[resurs].namn} är upptaget då på sjukhuset${RESURSANTAL[SAL[sal].sjukhus]?.[resurs] ? '' : ', som inte har det'}. Systemets förslag är ${f.text}`, 'krock');
@@ -641,7 +739,7 @@ export function stryk(atk, an, body = {}, nu = new Date()) {
 
 // Anestesiläkarens bedömning före operationen.
 export function anestesibedomning(atk, an, body = {}, nu = new Date()) {
-  andraOp(atk, an, 'operation_anmala');
+  opAndra(atk, an, 'operation_anmala', { anestesi: true });
   const asa = Number(body.asa);
   if (!Number.isInteger(asa) || asa < 1 || asa > 5) throw new Fel(400, 'ASA-klassen är 1 till 5.', 'ogiltig', { falt: ['asa'] });
   atk.db.query('UPDATE op_anmalningar SET asa = ? WHERE id = ?').run(asa, an.id);
@@ -691,11 +789,11 @@ const anestesiRader = (db, an, slag) => db.query('SELECT * FROM op_anestesi WHER
 // se, blodet, samtycket i anestesibedömningen, monitorns värden, teamet, profylaxen, sterilgodset och registreringarna.
 // En punkt som inte gäller ingreppet är ejAktuell. forifylld betyder att systemet har kontrollerat punkten.
 export function checklistaUnderlag(atk, an, nu = new Date()) {
-  lasRad(atk, an, 'las_operation');
+  opLas(atk, an);
   const db = atk.db;
   const ing = INGREPP[an.kva];
   const allergier = synligaAllergier(atk, an).map(o => o.amne);
-  const prover = proverFor(atk, an);
+  const prover = proverFor(atk, an, nu);
   const blodProver = ing.blod ? prover.filter(p => ['blodgruppering', 'bastest'].includes(p.analys)) : [];
   const allergiText = allergier.length ? `Kända allergier: ${allergier.join(', ')}.` : 'Ingen registrerad överkänslighet.';
   const blodText = !ing.blod ? 'Blod behöver inte beställas för ingreppet.' : blodProver.every(p => p.status === 'besvarad') ? 'Blodgruppering och bastest är klara.' : 'Blodgruppering och bastest är inte klara. Beställ dem innan anestesin.';
@@ -810,6 +908,10 @@ export function registrera(atk, an, body = {}, nu = new Date()) {
   if (fore) throw new Fel(409, `Registrera ${fore.namn.toLocaleLowerCase('sv')} först.`, 'ogiltig');
   if (h.checklista && !lasJson(f.checklista, {})[h.checklista]) throw new Fel(409, `Checklistan ${CHECKLISTA[h.checklista].namn.toLocaleLowerCase('sv')} är inte klar.`, 'ogiltig');
   const t = giltigTid(body.tid, 'tid', nu, { bakat: 12 * 60 * MIN });
+  // Runda 11, r2: ingen induktion utan att en läkare har bekräftat ASA-klassen samma dag.
+  if (h.id === 'anestesistart' && an.anestesi !== 'lokal' && !asaBekraftadDag(db, an, datumAv(new Date(t)))) {
+    throw new Fel(409, 'Bekräfta ASA-klassen i dag innan anestesin startar. Anestesiläkaren bekräftar den på operationsdagen.', 'ogiltig');
+  }
   // Runda 11, r2: id-bandet kan skannas när patienten kommer in på salen, och systemet kontrollerar att det hör till patienten.
   const armband = h.id === 'in_sal' && body.armband != null && body.armband !== '';
   if (armband && !armbandetHorTill(db, an.patient_id, body.armband)) {
@@ -873,7 +975,7 @@ export function kontroll(atk, an, body = {}, nu = new Date()) {
 // värden som den inloggade får se räknas.
 export function uppvakning(atk, an, nu = new Date()) {
   const db = atk.db;
-  lasRad(atk, an, 'las_operation');
+  opLas(atk, an);
   const f = forloppFor(db, an.id);
   if (!f?.ut_sal) throw new Fel(409, 'Patienten har inte kommit till uppvakningen.', 'ogiltig');
   const mv = atk.filtrera(db.query('SELECT * FROM matvarden WHERE patient_id = ? AND tid >= ? ORDER BY tid DESC, id DESC').all(an.patient_id, f.ut_sal), 'las_matvarden');

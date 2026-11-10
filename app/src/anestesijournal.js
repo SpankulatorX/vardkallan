@@ -77,7 +77,7 @@ export function fyllVarden(db, an, nu = new Date()) {
 const radUt = (db, r) => ({ id: r.id, tid: r.tid, av: personNamn(db, r.av) });
 // Anestesijournalen för en operation. Läsningen prövas på den anmälande vårdenheten (aktivt val, spärr och samtycke).
 export function journalFor(atk, an, nu = new Date()) {
-  lasRad(atk, an, 'las_operation');
+  op.opLas(atk, an);
   const db = atk.db;
   fyllVarden(db, an, nu);
   const f = db.query('SELECT * FROM op_forlopp WHERE anmalan_id = ?').get(an.id);
@@ -132,7 +132,8 @@ function kravPagar(db, an) {
   const f = db.query('SELECT in_sal, ut_sal FROM op_forlopp WHERE anmalan_id = ?').get(an.id);
   if (!f?.in_sal || f.ut_sal) throw new Fel(409, 'Anestesijournalen förs under operationen, från in på sal till ut från sal.', 'ogiltig');
 }
-const andra = (atk, an) => andraRad(atk, an, 'operation_registrera', 'las_operation', ANDRA);
+// Runda 11, r2: anestesienheten för anestesijournalen, och den opererande vårdenheten gör det också.
+const andra = (atk, an) => op.opAndra(atk, an, 'operation_registrera', { anestesi: true });
 const insert = (atk, an, t, slag, kod, { dos = null, enhet = null, volym = null, text = null } = {}, nu) => atk.db.query(`INSERT INTO op_anestesi (anmalan_id, patient_id, enhet_id, tid, slag, kod, dos, dos_enhet, volym_ml, text, av, registrerad)
   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(an.id, an.patient_id, an.enhet_id, t, slag, kod, dos, enhet, volym, text, atk.personal.id, iso(nu));
 

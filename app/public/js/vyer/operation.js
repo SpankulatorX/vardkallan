@@ -9,12 +9,25 @@ export const namn = 'operation';
 
 const FLIKAR = [
   ['program', 'Dagens program'], ['vantelista', 'Väntelista'], ['uppvakning', 'Uppvakning'], ['block', 'Salsblock'], ['forrad', 'Förråd'], ['uppfoljning', 'Uppföljning'],
+  // Runda 11, r2: anestesienhetens beställda bedömningar, bara för anestesienheten.
+  ['anestesi', 'Beställda anestesibedömningar'],
 ];
+const arAnestesi = () => Boolean(S.session?.operation?.anestesi);
+
+function anestesiHtml(a) {
+  if (!a.anmalningar.length) return '<p class="tom">Inga beställda anestesibedömningar.</p>';
+  return `<p class="under-text">${esc(a.text)}</p><div class="tabellrulle"><table class="tabell op-anestesi"><caption class="sr">Operationsanmälningarna som är beställda till anestesienheten</caption>
+    <thead><tr><th scope="col">Patient</th><th scope="col">Ingrepp</th><th scope="col">Planerad</th><th scope="col">Bedömning</th></tr></thead>
+    <tbody>${a.anmalningar.map(x => `<tr><th scope="row">${patientLank(x.patient)}<span class="under-text">${esc(x.vardenhet?.namn ?? '')}</span></th><td>${esc(x.ingrepp)}</td>
+      <td>${x.planerad ? esc(tidpunkt(x.planerad)) : `Väntar, målet ${esc(datum(x.malDatum))}`}</td>
+      <td>${x.bedomning ? `ASA ${esc(x.bedomning.asa)}, ${x.bedomning.giltig ? `giltig till ${esc(datum(x.bedomning.giltigTill))}` : 'gäller inte längre'}` : 'Inte gjord'}${x.asaBekraftad ? '<span class="under-text">ASA bekräftad på operationsdagen</span>' : ''}</td></tr>`).join('')}</tbody></table></div>
+    <p class="dampad liten">${esc(a.demoregel)}</p>`;
+}
 const STATUS = { planerad: 'Planerad', pagar: 'Pågår', uppvak: 'Uppvakning', klar: 'Klar', vantar: 'Väntar' };
 const patientLank = (p) => `<a class="patientlank" href="#/patient/${encodeURIComponent(p.id)}/operation">${esc(p.namn)}</a>`;
 
 function flikarHtml(aktiv) {
-  const synliga = FLIKAR.filter(([id]) => id !== 'uppfoljning' || far('statistik'));
+  const synliga = FLIKAR.filter(([id]) => (id !== 'uppfoljning' || far('statistik')) && (id !== 'anestesi' || arAnestesi()));
   return `<nav class="op-flikar" aria-label="Operationsavdelningen"><ul>${synliga.map(([id, t]) => `<li><a href="#/operation/${id}"${id === aktiv ? ' aria-current="page"' : ''}>${esc(t)}</a></li>`).join('')}</ul></nav>`;
 }
 
@@ -88,15 +101,15 @@ function uppfoljningHtml(u) {
 }
 
 export async function visa(main, [flik = 'program'], q, ctx = {}) {
-  const aktiv = FLIKAR.some(([id]) => id === flik) ? flik : 'program';
+  const aktiv = FLIKAR.some(([id]) => id === flik) && (flik !== 'anestesi' || arAnestesi()) ? flik : arAnestesi() ? 'anestesi' : 'program';
   main.innerHTML = `${vyRubrik('Operationsavdelningen', `${S.session?.operation?.vardenhet?.namn ?? ''}. Systemet föreslår tider och team, prövar krockar och räknar ut när nästa operation kan börja.`)}${flikarHtml(aktiv)}<div id="op-vy"><p class="tom">Hämtar operationsavdelningen.</p></div>`;
   const dag = q?.get?.('datum') ?? idag();
-  const VAG = { program: `/api/operation/oversikt?datum=${encodeURIComponent(dag)}`, vantelista: '/api/operation/vantelista', uppvakning: '/api/operation/uppvakning', block: '/api/operation/block', forrad: '/api/operation/forrad', uppfoljning: '/api/operation/uppfoljning' };
+  const VAG = { program: `/api/operation/oversikt?datum=${encodeURIComponent(dag)}`, vantelista: '/api/operation/vantelista', uppvakning: '/api/operation/uppvakning', block: '/api/operation/block', forrad: '/api/operation/forrad', uppfoljning: '/api/operation/uppfoljning', anestesi: '/api/operation/anestesi' };
   const d = await api(VAG[aktiv]);
   if (ctx.aktuell && !ctx.aktuell()) return;
   const el = main.querySelector('#op-vy');
   if (!el) return;
-  el.innerHTML = { program: programHtml, vantelista: vantelistaHtml, uppvakning: uppvakningHtml, block: blockHtml, forrad: forradHtml, uppfoljning: uppfoljningHtml }[aktiv](d);
+  el.innerHTML = { program: programHtml, vantelista: vantelistaHtml, uppvakning: uppvakningHtml, block: blockHtml, forrad: forradHtml, uppfoljning: uppfoljningHtml, anestesi: anestesiHtml }[aktiv](d);
   const ladda = () => visa(main, [aktiv], q, ctx);
   el.addEventListener('click', async (e) => {
     const t = (s) => e.target.closest(s);

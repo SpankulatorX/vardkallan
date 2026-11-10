@@ -12,6 +12,7 @@ import * as aj from '../src/anestesijournal.js';
 import * as sg from '../src/sterilgods.js';
 import * as datauttag from '../src/datauttag.js';
 import * as opSeed from '../src/operation-seed.js';
+import { harVardrelation } from '../src/atkomst.js';
 
 const MORGON = addDagar(datumAv(BAS), 1);
 const DAG = (n) => addDagar(datumAv(BAS), n);
@@ -195,6 +196,9 @@ function paSal(db, pid = 'op1', body = { kva: 'NFB49', sida: 'hoger' }) {
 }
 // Från anestesistart till ut från sal, med implantatet och checklistan.
 function genomfor(db, { id, s, vid }, { slut = 100, ut = 105, rakna = false } = {}) {
+  // Runda 11, r2: läkaren sätter och bekräftar ASA-klassen på operationsdagen före anestesistart.
+  op.anestesibedomning(atk(db, 'lak-kkoga', s.patientId, 'operation_anmala'), rad(db, id), { asa: 2 }, vid(7));
+  op.bekraftaAsa(atk(db, 'lak-kkoga', s.patientId, 'anestesibedomning'), rad(db, id), {}, vid(8));
   for (const [del, h, m] of [['fore_anestesi', 'anestesistart', 10], ['fore_snitt', 'knivtid', 20]]) {
     op.checklista(s, rad(db, id), { del, bekraftade: ALLA(del) }, vid(m - 1)); op.registrera(s, rad(db, id), { handelse: h }, vid(m));
   }
@@ -227,15 +231,15 @@ describe('Operation 1.1, anestesi och material', () => {
     expect(rad(db, a.id).asa).toBe(null);
     expect(db.query("SELECT count(*) AS n FROM op_historik WHERE anmalan_id = ? AND handelse = 'anestesibedomning'").get(a.id).n).toBe(0);
     const r = iva.sparaAnestesi(l, pat(db, 'op1'), { anmalanId: a.id, asa: 3, anestesiform: 'regional', samtycke: 'ja', ponvTidigare: true }, efter(5));
-    expect(r.bedomning).toMatchObject({ anmalanId: a.id, ingrepp: 'Primär total höftledsplastik med cement', samtycke: 'ja', giltigTill: addDagar(datumAv(BAS), 180) });
+    expect(r.bedomning).toMatchObject({ anmalanId: a.id, ingrepp: 'Primär total höftledsplastik med cement', samtycke: 'ja', giltigTill: '2027-11-09' });
     // Apfel: kvinna, icke-rökare, tidigare illamående och opioider efter operationen.
     expect(r.bedomning.skalor.apfel).toMatchObject({ poang: 4 });
     expect(r.bedomning.patientinformation).toContain('Inför din operation');
     expect(r.bedomning.patientinformation).toContain('Ät inte efter klockan');
     const u = op.anmalanUt(atk(db, 'ssk-kkoga', 'op1', 'las_operation'), rad(db, a.id), efter(6));
     expect(u.forberedelser.punkter.find(p => p.id === 'anestesi')).toMatchObject({ klar: true });
-    expect(u.forberedelser.punkter.find(p => p.id === 'anestesi').text).toContain(`giltig till ${addDagar(datumAv(BAS), 180)}`);
-    expect(op.anmalanUt(atk(db, 'ssk-kkoga', 'op1', 'las_operation'), rad(db, a.id), efter(200 * 24 * 60)).forberedelser.punkter.find(p => p.id === 'anestesi')).toMatchObject({ klar: false });
+    expect(u.forberedelser.punkter.find(p => p.id === 'anestesi').text).toContain('giltig till 2027-11-09');
+    expect(op.anmalanUt(atk(db, 'ssk-kkoga', 'op1', 'las_operation'), rad(db, a.id), efter(400 * 24 * 60)).forberedelser.punkter.find(p => p.id === 'anestesi')).toMatchObject({ klar: false });
     expect(op.checklistaUnderlag(atk(db, 'ssk-kkoga', 'op1', 'las_operation'), rad(db, a.id), efter(10)).delar[0].punkter.find(p => p.id === 'samtycke').forifylld).toBe(true);
   });
 
@@ -395,6 +399,112 @@ describe('Operation 1.1, anestesi och material', () => {
   });
 });
 
+// ---- Anestesienheten, giltigheten och ASA-bekräftelsen (beslut 2026-11-10) -----------------------------------------------
+const asaKlar = (db, pid, id, nu, roll = 'lak-ane-kkoga') => op.bekraftaAsa(atk(db, roll, pid, 'anestesibedomning'), rad(db, id), {}, nu);
+
+describe('Operation 1.1, anestesienheten', () => {
+  test('anestesienheten får vårdrelation genom operationsanmälan, men inte till andra patienter och inte efter att operationen och uppvakningen är avslutade', () => {
+    const db = sandlada();
+    ny(db, 'op1'); ny(db, 'op2');
+    expect(harVardrelation(db, 'op1', 'kkoga-ane')).toBe(false);
+    expect(() => atk(db, 'lak-ane-kkoga', 'op1', 'las_oversikt').krav()).toThrow('vårdrelation');
+    const a = anmal(db);
+    expect(harVardrelation(db, 'op1', 'kkoga-ane')).toBe(true);
+    expect(harVardrelation(db, 'op2', 'kkoga-ane')).toBe(false);
+    expect(harVardrelation(db, 'op1', 'uso-ane')).toBe(false);
+    expect(op.session(db, pers(db, 'lak-ane-kkoga'))).toMatchObject({ vardenhet: { id: 'kkoga-ane' }, anestesi: true });
+    const lista = op.anestesilista(db, pers(db, 'lak-ane-kkoga'), () => ({}), BAS);
+    expect(lista.anmalningar.map(x => [x.patient.id, x.ingrepp])).toEqual([['op1', 'Primär total höftledsplastik med cement']]);
+    expect(op.anestesilista(db, pers(db, 'lak-ane-ort'), () => ({}), BAS).anmalningar).toEqual([]);
+    // Anmälan går hela vägen till utskrivningen från uppvakningen. Sedan har anestesienheten ingen vårdrelation.
+    const fall = paSal(db, 'op2');
+    genomfor(db, fall);
+    expect(harVardrelation(db, 'op2', 'kkoga-ane')).toBe(true);
+    op.kontroll(fall.s, rad(db, fall.id), { varden: { medvetande: 'A', saturation: 97, andningsfrekvens: 14, puls: 76, blodtryck: '132/78', smarta: 2 } }, fall.vid(140));
+    op.skrivUt(fall.s, rad(db, fall.id), {}, fall.vid(145));
+    expect(harVardrelation(db, 'op2', 'kkoga-ane')).toBe(false);
+    expect(harVardrelation(db, 'op1', 'kkoga-ane')).toBe(true);
+  });
+
+  test('anestesienheten läser operationen och gör bedömningen, och den opererande enhetens journal kräver ett aktivt val med förvalt syfte', () => {
+    const db = sandlada();
+    ny(db, 'op1'); ny(db, 'op2');
+    db.query("INSERT INTO diagnoser (patient_id, enhet_id, kod, text, typ, datum) VALUES ('op1', 'kkoga-ort', 'I50.9', 'Hjärtsvikt, ospecificerad', 'bi', '2025-01-01')").run();
+    const a = anmal(db);
+    op.planera(pl(db, 'op1'), rad(db, a.id), {}, BAS);
+    const L = (h, val = {}) => atk(db, 'lak-ane-kkoga', 'op1', h, val);
+    expect(op.forPatient(L('las_operation'), BAS).operationer.map(o => o.id)).toEqual([a.id]);
+    expect(op.aktivtValSyfte(db, pers(db, 'lak-ane-kkoga'), 'op1')).toBe('Anestesibedömning inför operation');
+    expect(op.aktivtValSyfte(db, pers(db, 'lak-ane-kkoga'), 'op2')).toBe(null);
+    expect(op.aktivtValSyfte(db, pers(db, 'lak-kkoga'), 'op1')).toBe(null);
+    // Utan aktivt val ser anestesiläkaren inte den opererande enhetens diagnoser, med valet gör den det.
+    expect(iva.anestesiForslag(L('anestesibedomning'), pat(db, 'op1'), { anmalanId: a.id }, BAS).diagnoser).toEqual([]);
+    expect(iva.anestesiForslag(L('anestesibedomning', { andra_enheter: true }), pat(db, 'op1'), { anmalanId: a.id }, BAS).diagnoser.map(d => d.kod)).toEqual(['I50.9']);
+    const r = iva.sparaAnestesi(L('anestesibedomning', { andra_enheter: true }), pat(db, 'op1'), { anmalanId: a.id, asa: 3, anestesiform: 'regional', samtycke: 'ja' }, efter(5));
+    expect(r.bedomning).toMatchObject({ anmalanId: a.id, vardenhet: 'Anestesimottagningen Karlskoga lasarett' });
+    expect(rad(db, a.id).asa).toBe(3);
+    // Anestesisjuksköterskan för anestesijournalen, men sterilgodset hör till den opererande vårdenheten.
+    const s = atk(db, 'ssk-kkoga', 'op1', 'operation_registrera');
+    const t0 = new Date(lokalTid(MORGON, '07:30'));
+    op.registrera(s, rad(db, a.id), { handelse: 'in_sal' }, t0);
+    expect(aj.registreraLakemedel(atk(db, 'ssk-ane-kkoga', 'op1', 'operation_registrera'), rad(db, a.id), { lakemedel: 'ondansetron' }, efter(2, t0)).lakemedel).toHaveLength(1);
+    expect(() => sg.oppna(atk(db, 'ssk-ane-kkoga', 'op1', 'operation_registrera'), rad(db, a.id), { galler: 'KKOGA-HOFT-1' }, efter(3, t0))).toThrow('anmälande vårdenheten');
+    // Anestesienheten når inte en patient utan anmälan, och en anmälan ger ingen åtkomst till andra patienter.
+    expect(() => op.forPatient(atk(db, 'lak-ane-kkoga', 'op2', 'las_operation'), BAS)).toThrow('vårdrelation');
+  });
+
+  test('giltigheten: tolv månader, fem för barn under sju år, provsvar högst tre månader och en varning när tillståndet har ändrats efter bedömningen', () => {
+    const db = sandlada();
+    ny(db, 'op1'); nyPatient(db, { id: 'op3', enhet: 'kkoga-ort', ar: 2022 });
+    const a = anmal(db);
+    const L = (pid) => atk(db, 'lak-ane-kkoga', pid, 'anestesibedomning', { andra_enheter: true });
+    expect(iva.sparaAnestesi(L('op1'), pat(db, 'op1'), { anmalanId: a.id, asa: 2, anestesiform: 'regional', samtycke: 'ja' }, BAS).bedomning.giltigTill).toBe('2027-11-09');
+    const b = anmal(db, 'op3', { kva: 'JEA01' });
+    expect(iva.sparaAnestesi(L('op3'), pat(db, 'op3'), { anmalanId: b.id, asa: 1, anestesiform: 'generell', samtycke: 'ja' }, BAS).bedomning.giltigTill).toBe('2027-04-09');
+    expect(iva.GILTIGHET).toMatchObject({ manader: 12, barnManader: 5, barnUnderAr: 7, proverManader: 3 });
+    const u0 = op.anmalanUt(atk(db, 'ssk-kkoga', 'op1', 'las_operation'), rad(db, a.id), efter(60));
+    expect(u0.forberedelser.punkter.find(p => p.id === 'anestesi')).toMatchObject({ klar: true, varningar: [] });
+    // Ett nytt läkemedel, en ny diagnos och ett nytt vårdtillfälle efter bedömningen ger en varning.
+    db.query("INSERT INTO ordinationer (patient_id, enhet_id, lakemedel_id, dosering, typ, orsak, uppfoljning, start, status, ordinerad_av, skapad) VALUES ('op1', 'kkoga-ort', 'VK-NPL-0001', '1 tablett', 'staende', 'Förmaksflimmer', ?, ?, 'aktiv', 'lak-kkoga', ?)").run(DAG(60), DAG(1), efter(24 * 60).toISOString());
+    db.query("INSERT INTO diagnoser (patient_id, enhet_id, kod, text, typ, datum) VALUES ('op1', 'kkoga-ort', 'I48.9', 'Förmaksflimmer och förmaksfladder, ospecificerat', 'bi', ?)").run(DAG(1));
+    db.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak) VALUES ('op1', 'kkoga-ort', 'slutenvard', ?, 'Avdelning', 'Fall')").run(efter(24 * 60).toISOString());
+    const u1 = op.anmalanUt(atk(db, 'ssk-kkoga', 'op1', 'las_operation'), rad(db, a.id), efter(2 * 24 * 60));
+    const an1 = u1.forberedelser.punkter.find(p => p.id === 'anestesi');
+    expect(an1.varningar.join(' ')).toContain('Waran');
+    expect(an1.varningar.join(' ')).toContain('I48.9');
+    expect(an1.varningar.join(' ')).toContain('vårdtillfälle');
+    expect(an1.text).toContain('ändrats sedan bedömningen');
+    // Provsvar som är äldre än tre månader vid operationen räknas inte.
+    op.bestallProver(atk(db, 'lak-kkoga', 'op1', 'bestalla_prov'), rad(db, a.id), efter(5));
+    db.query("UPDATE labb_analyser SET status = 'besvarad', besvarad_tid = ? WHERE patient_id = 'op1'").run(efter(60).toISOString());
+    const prover = (nu) => op.anmalanUt(atk(db, 'ssk-kkoga', 'op1', 'las_operation'), rad(db, a.id), nu).forberedelser.punkter.find(p => p.id === 'prover');
+    expect(prover(efter(80 * 24 * 60))).toMatchObject({ klar: true });
+    expect(prover(efter(100 * 24 * 60))).toMatchObject({ klar: false });
+    expect(prover(efter(100 * 24 * 60)).text).toContain('äldre än tre månader');
+  });
+
+  test('ASA-klassen bekräftas på operationsdagen före induktionen, av en läkare', () => {
+    const db = sandlada();
+    ny(db);
+    const a = anmal(db);
+    op.planera(pl(db, 'op1'), rad(db, a.id), {}, BAS);
+    const s = atk(db, 'ssk-kkoga', 'op1', 'operation_registrera');
+    const t0 = new Date(lokalTid(MORGON, '07:30'));
+    const vid = (m) => efter(m, t0);
+    expect(() => asaKlar(db, 'op1', a.id, vid(-10))).toThrow('anestesibedömning');
+    iva.sparaAnestesi(atk(db, 'lak-ane-kkoga', 'op1', 'anestesibedomning', { andra_enheter: true }), pat(db, 'op1'), { anmalanId: a.id, asa: 2, anestesiform: 'regional', samtycke: 'ja' }, BAS);
+    // En bekräftelse dagen före gäller inte på operationsdagen.
+    asaKlar(db, 'op1', a.id, BAS);
+    op.registrera(s, rad(db, a.id), { handelse: 'in_sal' }, vid(0));
+    op.checklista(s, rad(db, a.id), { del: 'fore_anestesi', bekraftade: ALLA('fore_anestesi') }, vid(5));
+    expect(() => op.registrera(s, rad(db, a.id), { handelse: 'anestesistart' }, vid(10))).toThrow('Bekräfta ASA-klassen');
+    expect(() => asaKlar(db, 'op1', a.id, vid(8), 'ssk-kkoga')).toThrow();
+    const r = asaKlar(db, 'op1', a.id, vid(8));
+    expect(r.historik.at(-1)).toMatchObject({ handelse: 'asa_bekraftad', detalj: 'ASA 2', av: 'Martin Ödman' });
+    expect(op.registrera(s, rad(db, a.id), { handelse: 'anestesistart' }, vid(10)).forlopp.tider.find(t => t.id === 'anestesistart').tid).toBe(vid(10).toISOString());
+  });
+});
+
 // ---- API:t med operationskoordinatorn i demons sandlåda ---------------------------------------------------------------
 describe('Operation 1.1, API', () => {
   let app;
@@ -419,6 +529,12 @@ describe('Operation 1.1, API', () => {
     expect((await k.post('/api/operation/block/okand', {})).status).toBe(404);
     expect((await k.post(`/api/operation/${p07}/anestesi-vatska`, { slag: 'urin', volym: 100 })).status).toBe(409);
     expect((await k.post('/api/operation/block/slapp', { sal: 'kkoga-sal-1', datum: '2020-01-01' })).status).toBe(400);
+    // Runda 11, r2: koordinatorn är inte på anestesienheten, får inget förvalt syfte och bekräftar inte ASA-klassen.
+    expect((await k.get('/api/operation/anestesi')).data.anmalningar).toEqual([]);
+    expect((await k.get('/api/patient/p71')).data.aktivtValSyfte).toBe(null);
+    const p71 = db.query("SELECT id FROM op_anmalningar WHERE patient_id = 'p71'").get().id;
+    expect((await k.post(`/api/operation/${p71}/bekrafta-asa`, {})).status).toBe(403);
+    expect((await k.get(`/api/patient/p71/operation`)).data.operationer[0]).toMatchObject({ anestesienhet: { id: 'kkoga-ane' } });
     await k.logga('usk-kard');
     expect((await k.get('/api/session')).data.operation).toBe(null);
   });

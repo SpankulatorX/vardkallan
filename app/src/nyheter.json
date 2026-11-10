@@ -25,7 +25,7 @@
           "omfattning": "liten",
           "var": "#/operation",
           "rubrik": "Anestesibedömning för en operation",
-          "text": "Anestesibedömningen görs från operationen i journalen. Ingreppet och tiden fylls i, riskskalorna räknas av systemet, samtycket registreras och bedömningen gäller i 180 dagar. Systemet skriver informationen till patienten och närstående."
+          "text": "Anestesibedömningen görs från operationen i journalen. Ingreppet och tiden fylls i, riskskalorna räknas av systemet, samtycket registreras och bedömningen gäller högst tolv månader, fem för barn under sju år. Systemet varnar när patienten har fått nya diagnoser, vårdtillfällen eller läkemedel efter bedömningen, och anestesiläkaren bekräftar ASA-klassen på operationsdagen. Anestesin är en egen vårdenhet, och anmälan är en beställning till den."
         }
       ]
     },

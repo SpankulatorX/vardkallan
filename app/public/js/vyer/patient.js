@@ -245,7 +245,8 @@ export async function visa(main, [id, flik, sub], q, ctx = {}) {
     main.querySelector('.patientvy').addEventListener('click', async (e) => {
       const b = e.target.closest('[data-val]');
       if (!b) return;
-      if (await valDialog(b.dataset.val, id)) {
+      // Runda 11, r2: anestesienheten får syftet anestesibedömning inför operation förvalt, så att valet är ett klick.
+      if (await valDialog(b.dataset.val, id, { forval: b.dataset.val === 'andra_enheter' ? huvud?.aktivtValSyfte ?? null : null })) {
         huvud = null;
         await uppdateraInkorg();
         rita();

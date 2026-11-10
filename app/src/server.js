@@ -557,6 +557,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...utdata.huvud(db, p),
       // Runda 10, r4: en avliden patient är märkt med datum (avliden.js).
       avliden: avlidenFor(db, p.id),
+      // Runda 11, r2: syftet som dialogen för aktivt val förväljer för anestesienheten (operation.js).
+      aktivtValSyfte: require('./operation.js').aktivtValSyfte(db, c.personal, p.id),
     };
   }
 

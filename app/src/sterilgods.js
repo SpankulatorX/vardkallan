@@ -19,7 +19,8 @@ import * as op from './operation.js';
 export const DEMO = 'Sterilcentralen och förrådet är simulerade, och artiklarna är påhittade demoposter.';
 export const UTGANG_DAGAR = 30;
 const ANDRA = 'Operationen hanteras av den anmälande vårdenheten.';
-const andra = (atk, an) => andraRad(atk, an, 'operation_registrera', 'las_operation', ANDRA);
+// Runda 11, r2: sterilgodset hör till den opererande vårdenheten, också när anestesienheten är med i operationen.
+const andra = (atk, an) => op.opAndra(atk, an, 'operation_registrera');
 
 // Artiklarna i operationsförrådet. punkt är beställningspunkten och mangd hur mycket som beställs.
 const A = (namn, start, punkt, mangd, extra = {}) => ({ namn, start, punkt, mangd, ...extra });
@@ -60,7 +61,7 @@ function reserverade(db, an) {
 }
 
 export function sterilgods(atk, an, nu = new Date()) {
-  lasRad(atk, an, 'las_operation');
+  op.opLas(atk, an);
   const db = atk.db;
   const rader = db.query('SELECT * FROM op_sterilgods WHERE anmalan_id = ?').all(an.id);
   return {
@@ -122,7 +123,7 @@ function sakraForrad(db, sjukhus) {
 const saldo = (db, sjukhus, artikel) => db.query('SELECT saldo FROM op_forrad WHERE enhet_id = ? AND artikel = ?').get(sjukhus, artikel)?.saldo ?? 0;
 
 export function plocklista(atk, an, nu = new Date()) {
-  lasRad(atk, an, 'las_operation');
+  op.opLas(atk, an);
   const db = atk.db;
   const sjukhus = sjukhusForAnmalan(db, an);
   sakraForrad(db, sjukhus);

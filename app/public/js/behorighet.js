@@ -41,14 +41,17 @@ const VAL = {
   },
 };
 
-export async function valDialog(typ, patientId) {
+// Runda 11, r2: forval är ett syfte som systemet vet, till exempel anestesibedömning inför operation. Det står först och
+// är redan ifyllt, så att valet är ett klick. Valet görs och loggas som vanligt.
+export async function valDialog(typ, patientId, { forval = null } = {}) {
   const v = VAL[typ];
+  const forslag = forval ? [forval, ...v.forslag.filter(f => f !== forval)] : v.forslag;
   const svar = await dialog(`<form>
       <h2 id="dlg-rubrik">${v.allvar ? ikon.varning : ''}${esc(v.rubrik)}</h2>
       <div class="dialog-text">${v.text}</div>
-      <fieldset class="forslag"><legend>Vanliga syften</legend>${v.forslag.map(f => `<button type="button" class="knapp liten sekundar" data-forslag="${esc(f)}">${esc(f)}</button>`).join('')}</fieldset>
+      <fieldset class="forslag"><legend>Vanliga syften</legend>${forslag.map(f => `<button type="button" class="knapp liten sekundar" data-forslag="${esc(f)}">${esc(f)}</button>`).join('')}</fieldset>
       <div class="falt"><label for="dlg-syfte">Syfte <span class="obl">(obligatoriskt, loggas)</span></label>
-        <textarea id="dlg-syfte" name="syfte" rows="2" required minlength="3" maxlength="300" autofocus></textarea></div>
+        <textarea id="dlg-syfte" name="syfte" rows="2" required minlength="3" maxlength="300" autofocus>${esc(forval ?? '')}</textarea></div>
       ${v.intyg ? `<div class="kryssfalt"><input type="checkbox" id="dlg-intyg" name="intyg" value="ja" required><label for="dlg-intyg">${esc(v.intyg)}</label></div>` : ''}
       <p class="dialog-fel form-fel" role="alert" hidden></p>
       <div class="knapprad"><button type="button" class="knapp${v.allvar ? ' knapp-allvar' : ''}" data-varde="ok">${esc(v.knapp)}</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div>

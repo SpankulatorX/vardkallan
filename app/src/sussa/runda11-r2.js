@@ -20,6 +20,11 @@ export const OPERATION11 = {
   uppfoljning: `${AN}uppföljningen räknar inflöde, utrustning, punktlighet och tid på uppvakningen, och datauttaget har operationerna utan personuppgifter`,
   sakerhet: `${AN}säkerhet och behörighet: anestesijournalen, sterilgodset och materialet ger 404 för en annan patient, ändras bara av den anmälande vårdenheten och syns inte bakom en spärr`,
   api: 'Operation 1.1, API > api: koordinatorn ser dagens program, blocken, uppvakningen, förrådet och anestesijournalen, och undersköterskan på kardiologen ser ingen operation',
+  // Beslut 2026-11-10: anestesin som egen vårdenhet, giltigheten och ASA-bekräftelsen.
+  anestesiRelation: 'Operation 1.1, anestesienheten > anestesienheten får vårdrelation genom operationsanmälan, men inte till andra patienter och inte efter att operationen och uppvakningen är avslutade',
+  anestesiLasning: 'Operation 1.1, anestesienheten > anestesienheten läser operationen och gör bedömningen, och den opererande enhetens journal kräver ett aktivt val med förvalt syfte',
+  giltighet: 'Operation 1.1, anestesienheten > giltigheten: tolv månader, fem för barn under sju år, provsvar högst tre månader och en varning när tillståndet har ändrats efter bedömningen',
+  asa: 'Operation 1.1, anestesienheten > ASA-klassen bekräftas på operationsdagen före induktionen, av en läkare',
   kbPlanera: `${GK}Planera en operation från väntelistan inom budget`,
   kbInSal: `${GK}Registrera att patienten kommer in på salen inom budget`,
 };

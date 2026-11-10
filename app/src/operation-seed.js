@@ -46,6 +46,7 @@ export function seeda(db, bas) {
     op.checklista(s, rad(), { del: 'fore_anestesi', bekraftade: alla('fore_anestesi') }, v(0));
     aj.registreraLakemedel(s, rad(), { lakemedel: 'bupivakain', dos: 10 }, v(4));
     aj.registreraHandelse(s, rad(), { handelse: 'spinal' }, v(5));
+    op.bekraftaAsa(A('lak-ane-kkoga', 'p07', 'anestesibedomning'), rad(), {}, v(-2));
     op.registrera(s, rad(), { handelse: 'anestesistart' }, v(5));
     aj.registreraLakemedel(s, rad(), { lakemedel: 'kloxacillin' }, v(10));
     aj.registreraLakemedel(s, rad(), { lakemedel: 'tranexamsyra' }, v(12));
@@ -72,5 +73,7 @@ export function seeda(db, bas) {
     const p = db.query('SELECT * FROM patienter WHERE id = ?').get(x.id);
     iva.sparaAnestesi(A('lak-ane-kkoga', x.id, 'anestesibedomning'), p, { anmalanId: a.id, asa: 2, anestesiform: 'regional', samtycke: 'ja', luftvag: { mallampati: 1 } }, t(x.anmald + 7, '11:00'));
     op.planera(A('opk-kkoga', x.id, 'operation_planera'), op.anmalanRad(db, a.id), { sal: 'kkoga-sal-1', start: lokalTid(addDagar(dag, x.plan[0]), x.plan[1]) }, t(-3, '14:00'));
+    // Anestesiläkaren har bekräftat ASA-klassen tidigt på operationsdagen för dagens operationer.
+    if (x.plan[0] === 0) op.bekraftaAsa(A('lak-ane-kkoga', x.id, 'anestesibedomning'), op.anmalanRad(db, a.id), {}, t(0, '06:30'));
   }
 }

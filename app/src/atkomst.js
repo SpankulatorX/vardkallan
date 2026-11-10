@@ -354,7 +354,28 @@ export function harVardrelation(db, patientId, vardenhet, nu = new Date(), { uta
           OR mottagen_av = (SELECT x.registrerad_av FROM remiss_extern x WHERE x.remiss_id = remisser.id))))
       OR (fran_enhet_id IN (${ph}) AND status <> 'svar_kvitterat' AND NOT (status = 'bedomd' AND beslut IN ('avvisad', 'vidarebefordrad')))
     ) LIMIT 1`).get(patientId, ...enheter, grans, ...enheter);
-  return Boolean(remiss);
+  if (remiss) return true;
+  // Runda 11, r2: en operationsanmälan är en beställning till anestesienheten på den opererande vårdenhetens sjukhus.
+  return anestesiRelation(db, patientId, vardenhet);
+}
+
+// Runda 11, r2 (beslut 2026-11-10): anestesin är en egen vårdenhet per sjukhus. En operationsanmälan från en vårdenhet på
+// sjukhuset ger anestesienheten vårdrelation till just den patienten, som en remiss ger mottagaren, tills operationen och
+// uppvakningen är avslutade (status klar). Det är den opererande vårdenheten som beställer, så ingen ger sig själv åtkomst.
+export const ANESTESIENHETER = { 'uso-ane': 'uso', 'kkoga-ane': 'kkoga' };
+export function sjukhusForEnhet(db, enhetId) {
+  let e = db.query('SELECT id, typ, forald_id FROM enheter WHERE id = ?').get(enhetId);
+  for (let i = 0; e && i < 10; i++) {
+    if (e.typ === 'sjukhus') return e.id;
+    e = e.forald_id ? db.query('SELECT id, typ, forald_id FROM enheter WHERE id = ?').get(e.forald_id) : null;
+  }
+  return null;
+}
+function anestesiRelation(db, patientId, vardenhet) {
+  if (!Object.hasOwn(ANESTESIENHETER, vardenhet)) return false;
+  let rader;
+  try { rader = db.query("SELECT enhet_id FROM op_anmalningar WHERE patient_id = ? AND status <> 'klar'").all(patientId); } catch { return false; }
+  return rader.some(r => sjukhusForEnhet(db, r.enhet_id) === ANESTESIENHETER[vardenhet]);
 }
 
 export function aktivaSparrar(db, patientId) {

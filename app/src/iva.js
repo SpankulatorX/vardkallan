@@ -461,9 +461,13 @@ export function fasta(planerad) {
   return { fastFodaTill: fast, klaraDryckerTill: klar, text: `Fast föda till kl. ${klocka(fast)} och klara drycker till kl. ${klocka(klar)} (${FASTA.fastFodaTimmar} och ${FASTA.klaraDryckerTimmar} timmar före).`, kalla: FASTA.kalla };
 }
 // ---- Runda 11, r2: bedömningen inför en operation (Sussa 4.6.1.4) -----------------------------------------------------
-// En bedömning gäller i GILTIG_DAGAR, och systemet säger när den måste göras om. Riskskalorna räknas ur journalen där det
-// går. Skalorna och giltighetstiden är demoregler, inte kliniskt beslutsstöd.
-export const GILTIG_DAGAR = 180;
+// En bedömning gäller högst tolv månader, fem månader för barn under sju år, och provsvaren den bygger på tre månader,
+// förutsatt oförändrat tillstånd. ASA-klassen bekräftas på operationsdagen (operation.js bekraftaAsa). Demoregel efter
+// Region Skånes regionala medicinska riktlinje för preoperativ utredning, eftersom Region Örebro läns rutin inte är
+// publik (beslut 2026-11-10, docs/design.md). Riskskalorna räknas ur journalen där det går och är demoregler.
+export const GILTIGHET = { manader: 12, barnManader: 5, barnUnderAr: 7, proverManader: 3,
+  text: 'Bedömningen gäller högst tolv månader, fem månader för barn under sju år, och provsvaren tre månader, om tillståndet är oförändrat. ASA-klassen bekräftas på operationsdagen.' };
+const plusManader = (datum, n) => { const d = new Date(`${datum}T12:00:00Z`); const dag = d.getUTCDate(); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + n); d.setUTCDate(Math.min(dag, new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate())); return d.toISOString().slice(0, 10); };
 export const SAMTYCKE = { ja: 'Patienten har fått information och samtycker till anestesin', nej: 'Patienten samtycker inte till anestesin', kan_inte: 'Patienten kan inte samtycka (akut, nödsituation)' };
 const APFEL_RISK = [10, 20, 40, 60, 80];
 const RCRI_RISK = [3.9, 6.0, 10.1, 15];
@@ -477,8 +481,8 @@ function anmalanFor(atk, anmalanId, { andra = false } = {}) {
   let an;
   try { an = op.anmalanRad(atk.db, anmalanId); } catch { throw new Fel(404, 'Uppgiften finns inte.', 'saknas'); }
   if (an.patient_id !== atk.patientId) throw new Fel(404, 'Uppgiften finns inte.', 'saknas');
-  if (andra) andraRad(atk, an, 'operation_anmala', 'las_operation', 'Operationen hanteras av den anmälande vårdenheten.');
-  else atk.krav('las_operation', { resurs: { enhet_id: an.enhet_id } });
+  if (andra) op.opAndra(atk, an, 'operation_anmala', { anestesi: true });
+  else op.opLas(atk, an);
   const plan = atk.db.query('SELECT start FROM op_planeringar WHERE anmalan_id = ? AND struken_tid IS NULL ORDER BY id DESC').get(an.id);
   return { an, ingrepp: op.INGREPP[an.kva], planerad: plan?.start ?? null };
 }
@@ -510,12 +514,41 @@ function patientinformationText({ ingrepp, planerad, form, fastaText, lakemedel:
 // Den senaste bedömningen för en operation, som den inloggade får se, med om den gäller vid operationen.
 export function anestesiForAnmalan(atk, an, nu = new Date()) {
   if (!kanRoll(atk.personal, 'las_journal') || !harTabell(atk.db, 'anestesi_tillagg')) return null;
-  const ids = atk.db.query('SELECT bedomning_id FROM anestesi_tillagg WHERE anmalan_id = ? AND patient_id = ?').all(an.id, an.patient_id).map(r => r.bedomning_id);
-  const b = anestesiLista(new Atkomst(atk.db, atk.personal, an.patient_id, atk.val, 'las_journal')).find(x => ids.includes(x.id));
-  if (!b) return null;
-  const plan = atk.db.query('SELECT start FROM op_planeringar WHERE anmalan_id = ? AND struken_tid IS NULL ORDER BY id DESC').get(an.id);
+  const db = atk.db;
+  // Runda 11, r2: bedömningen är svaret på beställningen från den opererande vårdenheten, och den vårdenheten och
+  // anestesienheten läser den utan aktivt val, som remittenten läser svaret på en remiss. En spärr gäller som vanligt.
+  const op = require('./operation.js');
+  const min = vardenhetFor(db, atk.personal.enhet_id);
+  const parter = [vardenhetFor(db, an.enhet_id), op.anestesienhetFor(db, an)];
+  const x = new Atkomst(db, atk.personal, an.patient_id, atk.val, 'las_journal');
+  const rad = db.query(`SELECT b.* FROM anestesibedomningar b JOIN anestesi_tillagg t ON t.bedomning_id = b.id WHERE t.anmalan_id = ? AND b.patient_id = ? ORDER BY b.tid DESC, b.id DESC`)
+    .all(an.id, an.patient_id).find(r => { const p = x.prova('las_journal', { enhet_id: r.enhet_id }); return p.tillaten || (p.krav === 'kraver_val' && parter.includes(min)); });
+  if (!rad) return null;
+  const b = anestesiUt(db, rad);
+  const plan = db.query('SELECT start FROM op_planeringar WHERE anmalan_id = ? AND struken_tid IS NULL ORDER BY id DESC').get(an.id);
   const dag = [nu.toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' }), plan ? new Date(plan.start).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' }) : ''].sort().at(-1);
-  return { ...b, giltig: b.giltigTill >= dag };
+  return { ...b, giltig: b.giltigTill >= dag, forandringar: forandringarEfter(atk, an, b.tid) };
+}
+
+// Det som har tillkommit efter bedömningen och kan betyda att patientens tillstånd har ändrats: nya diagnoser, nya
+// vårdtillfällen och nya läkemedel, ur det som den inloggade får se. Varje läsning loggas med sin grund.
+function forandringarEfter(atk, an, tid) {
+  const db = atk.db;
+  const dag = new Date(tid).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
+  const ut = [];
+  const las = (h, fn) => {
+    if (!kanRoll(atk.personal, h)) return;
+    const x = new Atkomst(db, atk.personal, an.patient_id, atk.val, h);
+    fn(x);
+    if (x.grunder.size) x.logga(h, x.grund(), `operation:${an.id}:forandringar`);
+  };
+  las('las_diagnoser', (x) => { for (const d of journal.synligaDiagnoser(x).filter(d => d.datum > dag)) ut.push(`Ny diagnos ${d.kod} ${d.text} ${d.datum}.`); });
+  las('las_lakemedel', (x) => {
+    const kat = new Map(db.query('SELECT id, namn, styrka FROM katalog').all().map(k => [k.id, k]));
+    for (const o of lakemedel.synligaOrdinationer(x).filter(o => o.skapad > tid)) ut.push(`Nytt läkemedel ${kat.get(o.lakemedel_id)?.namn ?? ''} ${kat.get(o.lakemedel_id)?.styrka ?? ''} från ${o.start}.`.replace(/\s+/g, ' '));
+  });
+  las('las_admin', (x) => { for (const v of journal.synligaVardkontakter(x).filter(v => v.typ === 'slutenvard' && v.start > tid)) ut.push(`Nytt vårdtillfälle från ${v.start.slice(0, 10)}: ${v.orsak ?? ''}.`.replace(' :', ':')); });
+  return ut;
 }
 
 // GET /api/patient/:id/anestesi/forslag?planerad=: det som systemet hämtar ur journalen och föreslår.
@@ -550,7 +583,7 @@ export function anestesiForslag(atk, p, { planerad = null, anmalanId = null } = 
     // Runda 11, r2.
     ...(kopplad ? { anmalanId: kopplad.an.id, ingrepp: kopplad.ingrepp.namn, planerad, anestesiform: kopplad.an.anestesi === 'lokal' ? 'sedering' : kopplad.an.anestesi } : {}),
     skalor: riskskalor(atk, p, { ingrepp: kopplad?.ingrepp ?? null, diagnoser, lakemedelAtc: lm.map(o => atc.get(o.lakemedel_id)?.atc ?? ''), kreatinin: lmv.find(m => m.typ === 'kreatinin')?.varde_num ?? null }),
-    giltigDagar: GILTIG_DAGAR, samtycken: SAMTYCKE,
+    giltighet: GILTIGHET, samtycken: SAMTYCKE,
   };
 }
 export const ANESTESIFORMER = { generell: 'Generell anestesi', regional: 'Regional anestesi', sedering: 'Lokalbedövning med sedering' };
@@ -589,7 +622,8 @@ export function sparaAnestesi(atk, p, body = {}, nu = new Date()) {
     forslag.fasta ? JSON.stringify(forslag.fasta) : null, JSON.stringify(underlag), typeof body.kommentar === 'string' ? body.kommentar.trim().slice(0, 1000) || null : null, nu.toISOString(), atk.personal.id).lastInsertRowid);
   // Runda 11, r2: skalorna, giltighetstiden och informationen till patienten sparas med bedömningen.
   const skalor = { rcri: forslag.skalor.rcri, apfel: riskskalor(atk, p, { ponvTidigare: Boolean(body.ponvTidigare), rokare: Boolean(body.rokare), opioider: body.opioider !== false }).apfel };
-  const giltigTill = addDagar(nu.toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' }), GILTIG_DAGAR);
+  const dagen = nu.toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
+  const giltigTill = plusManader(dagen, alder(p.fodd, dagen) < GILTIGHET.barnUnderAr ? GILTIGHET.barnManader : GILTIGHET.manader);
   db.query('INSERT INTO anestesi_tillagg (bedomning_id, patient_id, enhet_id, anmalan_id, samtycke, giltig_till, skalor, patientinformation) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
     .run(id, atk.patientId, atk.personal.enhet_id, kopplad?.an.id ?? null, Object.hasOwn(SAMTYCKE, body.samtycke) ? body.samtycke : null, giltigTill, JSON.stringify(skalor),
       patientinformationText({ ingrepp, planerad, form, fastaText: forslag.fasta?.text, lakemedel: forslag.lakemedel }));

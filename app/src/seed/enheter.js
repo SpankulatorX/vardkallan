@@ -29,4 +29,8 @@ export const ENHETER = [
   // Runda 6, r3: kommunen i samordnad planering (SIP och SPU) är en simulerad part med påhittat id. Den hör inte till
   // vårdgivaren och har ingen journalåtkomst.
   { id: 'kommun-demo', hsa: 'DEMO-KOMMUN-0001', namn: 'Kommunen, socialtjänst och kommunal hälso- och sjukvård (simulerad)', kortnamn: 'Kommunen (simulerad)', typ: 'kommun', forald: null },
+  // Runda 11, r2: anestesin är en egen vårdenhet på varje sjukhus med operationssalar (beslut 2026-11-10). En
+  // operationsanmälan är en beställning till anestesienheten på den opererande vårdenhetens sjukhus. Sist i listan.
+  { id: 'uso-ane', hsa: 'SE2321000164-VK0180', namn: 'Anestesikliniken USÖ', typ: 'vardenhet', forald: 'uso' },
+  { id: 'kkoga-ane', hsa: 'SE2321000164-VK0320', namn: 'Anestesimottagningen Karlskoga lasarett', typ: 'vardenhet', forald: 'kkoga' },
 ];

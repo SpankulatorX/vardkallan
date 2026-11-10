@@ -1927,8 +1927,8 @@ Den har anmälan, förberedelserna med anestesibedömningen, planeringen, förlo
 journalen, sterilgodset och materialet, uppvakningen och överrapporteringen, med nästa steg som en knapp. Operations-
 avdelningen (`#/operation`) har dagens program per sal, väntelistan med planering, uppvakningen, salsblocken, förrådet och,
 för den som har uppföljningen, uppföljningen. Den nya demorollen är operationskoordinatorn Therese Hedberg på Ortopediska
-kliniken Karlskoga lasarett (sjuksköterska). Två anestesiläkare och två anestesisjuksköterskor på Ortopediska klinikerna
-i Karlskoga och på USÖ planeras in i teamen; titeln avgör rollen i teamet.
+kliniken Karlskoga lasarett (sjuksköterska). Två anestesiläkare och två anestesisjuksköterskor på Anestesimottagningen
+Karlskoga lasarett och Anestesikliniken USÖ planeras in i teamen; titeln avgör rollen i teamet.
 
 Systemet är experten:
 - Salstiden är fördelad i block per sal och veckodag (`BLOCKSCHEMA`). Förslaget söker först i vårdenhetens egna block på
@@ -1953,9 +1953,27 @@ Systemet är experten:
 - Överrapporteringen har läkemedlen, vätskorna och komplikationerna ur anestesijournalen, och avvikelsen från planeringen
   (start och tid på salen) räknas för varje operation.
 - Anestesibedömningen görs för en operationsanmälan: ingreppet och tiden fylls i, riskskalorna Revised Cardiac Risk Index
-  och Apfel räknas, samtycket krävs, bedömningen gäller i 180 dagar och systemet skriver informationen till patienten. Att
-  spara en bedömning mot en anmälan ändrar ASA-klassen och prövas därför som en ändring av operationen (`operation_anmala`
-  på den anmälande vårdenheten).
+  och Apfel räknas, samtycket krävs och systemet skriver informationen till patienten. Att spara en bedömning mot en
+  anmälan ändrar ASA-klassen och prövas därför som en ändring av operationen (`operation_anmala` på den anmälande
+  vårdenheten eller anestesienheten).
+- Giltigheten (beslut 2026-11-10): bedömningen gäller högst tolv månader, fem månader för barn under sju år, och
+  provsvaren som den bygger på tre månader vid operationen, förutsatt oförändrat tillstånd. Systemet varnar själv när
+  patienten har fått nya diagnoser, vårdtillfällen eller läkemedel efter bedömningen (bara det som den inloggade får se,
+  och läsningen loggas), och en läkare bekräftar ASA-klassen på operationsdagen innan anestesistart går att registrera.
+  Det är en demoregel efter Region Skånes regionala medicinska riktlinje för preoperativ utredning av vuxna och barn
+  inför anestesi och operation, eftersom Region Örebro läns rutin inte är publik.
+
+Anestesienheten (beslut 2026-11-10). Anestesin är en egen vårdenhet på varje sjukhus med operationssalar:
+Anestesimottagningen Karlskoga lasarett och Anestesikliniken USÖ (påhittade HSA-id). En operationsanmälan från en
+vårdenhet på sjukhuset är en beställning till anestesienheten och ger den vårdrelation till just den patienten
+(`harVardrelation` i atkomst.js), som en remiss ger mottagaren. Det är den opererande vårdenheten som beställer, så ingen
+ger sig själv åtkomst. Vårdrelationen upphör när operationen och uppvakningen är avslutade. Anestesienheten läser
+operationen med vårdrelationen och ändrar det som hör till anestesin (bedömningen, ASA-klassen och anestesijournalen),
+medan sterilgods, checklista och förlopp hör till den opererande vårdenheten. Den opererande enhetens journal i övrigt
+omfattas av inre sekretess: dialogen för aktivt val har syftet "Anestesibedömning inför operation" förvalt, så att valet
+är ett klick, och det loggas som andra aktiva val. Bedömningen är svaret på beställningen, och den opererande
+vårdenheten läser den utan aktivt val. Operationsavdelningens vy har för anestesienheten fliken Beställda
+anestesibedömningar.
 
 Uppföljningen per vårdenhet har inflöde, väntetider, strukna, salsutnyttjande, bokningar av utrustning, punktlighet för
 dagens första operation och tid på uppvakningen, utan personuppgifter. Datauttaget har tabellen `Operation`, med samma
@@ -1973,8 +1991,9 @@ operation bara som upptagen tid, och förrådet och blocken innehåller inga pat
 
 Demoregler och simulerat: salarna, salstiden, blocken, utrustningen, instrumentgallren och deras innehåll, förrådets
 artiklar, plocklistorna, läkemedlen och doserna under anestesin, kriterierna på uppvakningen, riskskalornas risktal och
-bedömningens giltighetstid. Anestesimonitorn, sterilcentralen och förrådet är simulerade. I demon hör operations- och
-anestesiteamet till den opererande vårdenheten. Patienten fyller ännu inte i någon hälsodeklaration själv inför operationen.
+bedömningens giltighetstid. Anestesimonitorn, sterilcentralen och förrådet är simulerade. Operationsteamet hör till den
+opererande vårdenheten och anestesiteamet till anestesienheten. Patienten fyller ännu inte i någon hälsodeklaration själv
+inför operationen.
 
 ## Godkännandekriterier för första versionen
 

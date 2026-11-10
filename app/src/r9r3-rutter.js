@@ -43,6 +43,7 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
   });
   rutt('GET', '/api/operation/uppvakning', (c) => { kravInloggad(c); return op.uppvakningslista(c.db, c.personal, val(c)); });
   rutt('GET', '/api/operation/forrad', (c) => { kravInloggad(c); return sg.forrad(c.db, c.personal); });
+  rutt('GET', '/api/operation/anestesi', (c) => { kravInloggad(c); return op.anestesilista(c.db, c.personal, val(c)); });
   rutt('GET', '/api/operation/:aid/:del', (c, aid, del) => {
     kravInloggad(c);
     const an = op.anmalanRad(c.db, aid);
@@ -57,6 +58,7 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
   });
   const OP = {
     // Runda 11, r2: anestesijournalen, sterilgodset och förbrukningen under operationen.
+    'bekrafta-asa': ['anestesibedomning', (atk, r, b) => op.bekraftaAsa(atk, r, b)],
     'anestesi-lakemedel': ['operation_registrera', (atk, r, b) => aj.registreraLakemedel(atk, r, b)], 'anestesi-vatska': ['operation_registrera', (atk, r, b) => aj.registreraVatska(atk, r, b)],
     'anestesi-handelse': ['operation_registrera', (atk, r, b) => aj.registreraHandelse(atk, r, b)], 'galler-oppna': ['operation_registrera', (atk, r, b) => sg.oppna(atk, r, b)],
     'galler-rakna': ['operation_registrera', (atk, r, b) => sg.rakna(atk, r, b)], forbrukning: ['operation_registrera', (atk, r, b) => sg.forbruka(atk, r, b)],
