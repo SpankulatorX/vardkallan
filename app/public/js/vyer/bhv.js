@@ -1,12 +1,14 @@
 // Barnhälsovård (runda 7, r6): rapporteringen till Svenska barnhälsovårdsregistret med kontroll före utskicket, och
 // uppföljningen av kvalitet och produktion på barnavårdscentralen utan personuppgifter.
 import { esc, api, vyRubrik, tidpunkt, ikon, notis, medKnapp } from '../ui.js';
+// Runda 11, r7: valbara indikatorer (bhv-indikatorer-ui.js).
+import { indikatorerHtml, kopplaIndikatorer } from '../bhv-indikatorer-ui.js';
 
 export const namn = 'bhv';
 
 export async function visa(main) {
   main.innerHTML = vyRubrik('Barnhälsovård', 'Rapporteringen till Svenska barnhälsovårdsregistret och uppföljningen på barnavårdscentralen.') + '<div id="bhv"><p class="tom">Hämtar.</p></div>';
-  const [r, u] = await Promise.all([api('/api/bhv/bhvq'), api('/api/bhv/uppfoljning')]);
+  const [r, u, ind] = await Promise.all([api('/api/bhv/bhvq'), api('/api/bhv/uppfoljning'), api('/api/bhv/indikatorer').catch(() => null)]);
   const el = main.querySelector('#bhv');
   if (!el) return;
   const fel = r.barn.filter(b => b.fel.length);
@@ -35,8 +37,10 @@ export async function visa(main) {
         <tbody>${u.vaccinationer.map(v => `<tr><th scope="row">${esc(v.text)}</th><td class="tal">${v.barn}</td><td class="tal">${v.givna}</td></tr>`).join('')}</tbody></table></div>
       <p class="under-text">${esc(u.demoregel)}</p>
     </section>
+    ${ind ? indikatorerHtml(ind) : ''}
     <details class="ruta"><summary>${esc(u.plan.rubrik)}</summary><p class="dampad">${esc(u.plan.status)}</p>
       <dl class="faktalista">${u.plan.delar.map(d => `<div><dt>${esc(d.rubrik)}</dt><dd>${esc(d.text)}</dd></div>`).join('')}</dl></details>`;
+  kopplaIndikatorer(el, () => visa(main));
   el.querySelector('[data-bhvq-skicka]')?.addEventListener('click', async (e) => {
     try {
       const s = await medKnapp(e.currentTarget, () => api('/api/bhv/bhvq/skicka', { metod: 'POST', data: {} }));

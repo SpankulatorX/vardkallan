@@ -17,7 +17,8 @@ export const kallaText = (p) => (p.vantar ? 'Mätt hemma, väntar på bekräftel
 // Spannet i månader som kurvan visar: barnets ålder plus tre månader, och minst ett år.
 export const spann = (k, till = null) => {
   const sista = Math.max(0, ...k.punkter.map(p => p.alder));
-  return Math.min(60, till ?? Math.max(12, Math.ceil(sista + 3)));
+  // Runda 11, r7: med WHO:s referens 5 till 19 år visas upp till 19 år.
+  return Math.min(228, till ?? Math.max(12, Math.ceil(sista + 3)));
 };
 
 // En kurva. k: { matt, namn, enhet, punkter, linjer }. handelser: [{ alder, text }]. till: månader som visas.
@@ -55,7 +56,7 @@ export function kurvaSvg(k, { handelser = [], till = null, fran = 0 } = {}) {
     return `<circle class="tv-punkt" cx="${cx}" cy="${cy}" r="3.5"/>`;
   };
   const sist = bekr.at(-1);
-  const besk = `${k.namn} efter ålder med WHO:s referenslinjer. ${pkt.length} värden${sist ? `, senast ${tal(sist.varde, k.matt === 'vikt' ? 2 : 1)} ${k.enhet} vid ${ALDER(sist.alder)}, ${zText(sist.z)}` : ''}.`;
+  const besk = `${k.namn} efter ålder ${k.utanReferens ? 'utan referenslinjer' : 'med WHO:s referenslinjer'}. ${pkt.length} värden${sist ? `, senast ${tal(sist.varde, k.matt === 'vikt' ? 2 : 1)} ${k.enhet} vid ${ALDER(sist.alder)}, ${zText(sist.z)}` : ''}.`;
   return `<svg class="kurva tv-kurva" viewBox="0 0 ${B} ${H}" role="img" aria-label="${esc(besk)}" preserveAspectRatio="xMidYMid meet">
     ${xEtiketter.join('')}
     <line class="kurva-axel" x1="${V}" x2="${V}" y1="${T}" y2="${H - U}"/><line class="kurva-axel" x1="${V}" x2="${B - HO}" y1="${H - U}" y2="${H - U}"/>

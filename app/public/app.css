@@ -1634,3 +1634,25 @@ td .tagg-avliden { margin-left: 6px; }
 .min-trad { margin: 8px 0; }
 .min-trad > details > summary { cursor: pointer; padding: 6px 0; }
 .min-ombud-rubrik { font-size: 1.1rem; margin-top: 20px; }
+
+/* Runda 11, r7: realtid från monitorn i intensivvården, pubertet och import i tillväxten. */
+.iva-realtid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; background: #10161c; color: #e8eef2; border-radius: 8px; padding: 10px; }
+.iva-realtid.pausad { opacity: 0.75; }
+.iva-remsor { display: grid; gap: 4px; min-width: 0; }
+.iva-remsa { position: relative; }
+.iva-remsa svg { display: block; width: 100%; height: 60px; }
+.iva-remsa-namn { position: absolute; left: 4px; top: 0; font-size: 0.75rem; color: #c7d3db; }
+.iva-vag { fill: none; stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+.iva-remsa-ekg .iva-vag { stroke: #58e07a; }
+.iva-remsa-art .iva-vag { stroke: #ff7b7b; }
+.iva-remsa-pleth .iva-vag { stroke: #7fd4ff; }
+.iva-remsa-andning .iva-vag { stroke: #f2d36b; }
+.iva-siffror { display: grid; grid-template-columns: repeat(2, minmax(80px, auto)); gap: 6px 14px; margin: 0; align-content: start; }
+.iva-siffror dt { font-size: 0.75rem; color: #c7d3db; }
+.iva-siffror dd { margin: 0; font-size: 1.3rem; }
+.iva-siffror .enhet { font-size: 0.75rem; color: #c7d3db; }
+.iva-sbar dd p { margin: 0 0 4px; }
+@media (max-width: 640px) { .iva-realtid { grid-template-columns: 1fr; } }
+.tv-val { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; margin: 8px 0; }
+.tv-import-rad.status-fel td { color: var(--larm); }
+.tv-import-rad.status-finns td { color: var(--dampad); }

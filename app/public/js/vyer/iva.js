@@ -4,6 +4,8 @@
 // kan ur journalen, och bara godkända värden används i larm, förslag och doser.
 import { esc, api, vyRubrik, tidpunkt, klockslag, notis, medKnapp, ikon, tal } from '../ui.js';
 import { far, S } from '../app.js';
+// Runda 11, r7: realtid, egna gränser, vätskemål, andningsstöd, NEMS och överrapportering (iva-tillagg.js).
+import * as tillagg from './iva-tillagg.js';
 
 export const namn = 'iva';
 
@@ -53,7 +55,8 @@ export async function visa(main, _p, _q, ctx = {}) {
       <thead><tr><th scope="col">Patient</th>${VARDEN.map(([, n, e]) => `<th scope="col">${esc(n)} <span class="enhet">${esc(e)}</span></th>`).join('')}<th scope="col">NEWS2</th><th scope="col">Larm och förslag</th><th scope="col">Infusioner och vätska</th></tr></thead>
       <tbody>${d.patienter.map(p => `<tr${p.larm ? ' class="rad-larm"' : ''}>
         <th scope="row"><a class="patientlank" href="#/iva/${encodeURIComponent(p.patientId)}">${esc(p.namn)}</a><span class="under-text">${esc(p.plats ?? '')}${p.utrustning.length ? `, ${esc(p.utrustning.map(x => x.text).join(', '))}` : ''}</span>
-          ${p.vantar ? `<span class="tagg tagg-referens">${p.vantar} ej godkända värden</span>` : ''}</th>
+          ${p.vantar ? `<span class="tagg tagg-referens">${p.vantar} ej godkända värden</span>` : ''}
+          ${p.behandlingsbegransningar?.length ? `<span class="tagg tagg-larm" title="${esc(p.behandlingsbegransningar.join('. '))}">Behandlingsbegränsning</span>` : ''}${p.egnaRegler ? '<span class="tagg">Egna gränser</span>' : ''}${p.nems ? `<span class="tagg">NEMS ${esc(p.nems.poang)}</span>` : ''}</th>
         ${VARDEN.map(([typ]) => `<td>${vardeRuta(p.varden[typ], typ)}</td>`).join('')}
         <td>${p.news2 ? `${esc(p.news2.komplett ? p.news2.poang : 'Ofullständig')}` : '<span class="dampad">Saknas</span>'}</td>
         <td>${p.analys.length ? `<ul class="iva-kort">${p.analys.slice(0, 3).map(a => `<li class="${a.niva === 'larm' ? 'text-larm' : ''}">${esc(NIVA[a.niva][1])}: ${esc(a.text)}</li>`).join('')}</ul>` : '<span class="dampad">Inga</span>'}</td>
@@ -81,20 +84,26 @@ function uppfoljningHtml(u) {
 export const patient = { namn: 'iva-patient', visa: visaPatient };
 async function visaPatient(main, [pid], _q, ctx = {}) {
   main.innerHTML = `${vyRubrik('Övervakning')}<div id="iva-p"><p class="tom">Hämtar övervakningen.</p></div>`;
-  const ladda = () => visaPatient(main, [pid], _q, ctx);
-  const [d, an, inf] = await Promise.all([
+  const d = await rendera(main.querySelector('#iva-p'), pid, ctx, () => visaPatient(main, [pid], _q, ctx));
+  if (d && main.querySelector('h1')) main.querySelector('h1').textContent = `Övervakning, ${d.patient.namn}`;
+}
+// Runda 11, r7: övervakningen ritas i ett element, så att samma vy finns som flik i journalen (patient-iva.js).
+export async function rendera(el, pid, ctx = {}, ladda = () => rendera(el, pid, ctx), { iFlik = false } = {}) {
+  const [d, an, inf, t, rt] = await Promise.all([
     api(`/api/patient/${encodeURIComponent(pid)}/iva`),
     far('las_journal') ? api(`/api/patient/${encodeURIComponent(pid)}/anestesi`).catch(() => null) : null,
     far('ordinera') ? api(`/api/patient/${encodeURIComponent(pid)}/iva/infusion/forslag`).catch(() => null) : null,
+    api(`/api/patient/${encodeURIComponent(pid)}/iva/tillagg`).catch(() => null),
+    api(`/api/patient/${encodeURIComponent(pid)}/iva/realtid`).catch(() => null),
   ]);
-  if (ctx.aktuell && !ctx.aktuell()) return;
-  const el = main.querySelector('#iva-p');
-  if (!el) return;
+  if (ctx.aktuell && !ctx.aktuell()) return null;
+  if (!el || !document.body.contains(el)) return null;
   const kanTitrera = ['lakare', 'sjukskoterska'].includes(S.session?.personal?.yrke);
   const timmar = d.vatska.timmar.slice(-12);
-  main.querySelector('h1').textContent = `Övervakning, ${d.patient.namn}`;
-  el.innerHTML = `<p class="under-text">${esc(d.patient.personnummer)}${d.patient.plats ? `, ${esc(d.patient.plats)}` : ''}</p><p class="knapprad"><a class="knapp liten sekundar" href="#/iva">Till översikten</a><a class="knapp liten sekundar" href="#/patient/${encodeURIComponent(pid)}/matvarden">Mätvärden och utrustning</a><a class="knapp liten sekundar" href="#/patient/${encodeURIComponent(pid)}">Journalen</a></p>
+  el.innerHTML = `${iFlik ? '' : `<p class="under-text">${esc(d.patient.personnummer)}${d.patient.plats ? `, ${esc(d.patient.plats)}` : ''}</p>`}<p class="knapprad">${iFlik ? '' : '<a class="knapp liten sekundar" href="#/iva">Till översikten</a>'}<a class="knapp liten sekundar" href="#/patient/${encodeURIComponent(pid)}/matvarden">Mätvärden och utrustning</a>${iFlik ? '<a class="knapp liten sekundar" href="#/iva">Intensivvårdens översikt</a>' : `<a class="knapp liten sekundar" href="#/patient/${encodeURIComponent(pid)}">Journalen</a>`}</p>
+    ${tillagg.begransningarHtml(t)}
     <section class="ov-sektion" aria-labelledby="iva-analys"><div class="sektion-huvud"><h2 id="iva-analys">Larm och förslag</h2></div>${analysHtml(d.analys)}</section>
+    ${tillagg.realtidSektion(rt)}
     <section class="ov-sektion" aria-labelledby="iva-varden"><div class="sektion-huvud"><h2 id="iva-varden">Senaste värdena</h2></div>
       <dl class="iva-varden">${VARDEN.map(([typ, n, e]) => `<div><dt>${esc(n)} <span class="enhet">${esc(e)}</span></dt><dd>${vardeRuta(d.varden[typ], typ)}</dd></div>`).join('')}</dl>
       ${d.utrustning?.vantar.utrustning ? `<p class="ruta ruta-info liten">${ikon.info}<span>${d.utrustning.vantar.utrustning} värden från monitorn väntar på godkännande. <a href="#/patient/${encodeURIComponent(pid)}/matvarden">Granska och godkänn</a>.</span></p>` : ''}
@@ -111,6 +120,7 @@ async function visaPatient(main, [pid], _q, ctx = {}) {
         <div class="falt-rad"><div class="falt"><label for="iva-protokoll">Protokoll</label><select id="iva-protokoll" name="protokoll">${inf.protokoll.map(x => `<option value="${esc(x.id)}">${esc(x.namn)}${x.startMlH != null ? `, start ${esc(sv(x.startMlH))} ml/h` : ''}</option>`).join('')}</select></div>
         <div class="falt"><label for="iva-orsak">Ordinationsorsak</label><input id="iva-orsak" name="ordinationsorsak" autocomplete="off"></div>
         <div class="falt knappfalt"><button type="submit" class="knapp">Ordinera</button></div></div><p class="form-fel" role="alert" hidden></p></form>` : ''}
+      ${tillagg.sammanrakningHtml(t)}
       ${d.handelser.length ? `<h3>Det senaste dygnet</h3><ul class="iva-handelser">${d.handelser.map(h => `<li><span class="pt-tid">${esc(klockslag(h.tid))}</span> ${esc(h.text)}</li>`).join('')}</ul>` : ''}
     </section>
     <section class="ov-sektion" aria-labelledby="iva-vb"><div class="sektion-huvud"><h2 id="iva-vb">Vätskebalans per timme</h2><p class="under-text">Det senaste dygnet: in ${esc(sv(d.vatska.summaIn, 0))} ml, ut ${esc(sv(d.vatska.summaUt, 0))} ml, balans ${d.vatska.balans > 0 ? '+' : ''}${esc(sv(d.vatska.balans, 0))} ml${d.vatska.vikt ? `, vikt ${esc(sv(d.vatska.vikt.kg))} kg` : ''}.</p></div>
@@ -118,8 +128,11 @@ async function visaPatient(main, [pid], _q, ctx = {}) {
       <div class="tabellrulle"><table class="tabell tat"><caption class="sr">Intag, förluster och balans per timme de senaste tolv timmarna</caption><thead><tr><th scope="col">Timme</th><th scope="col">In</th><th scope="col">Ut</th><th scope="col">Urin</th><th scope="col">Urin ml/kg/h</th><th scope="col">Dränage</th><th scope="col">Kumulativ balans</th></tr></thead>
         <tbody>${timmar.map(t => `<tr><th scope="row">${esc(klockslag(t.fran))}</th><td>${esc(sv(t.in, 0))}</td><td>${esc(sv(t.ut, 0))}</td><td>${esc(sv(t.urin, 0))}</td><td${t.urinMlKgH != null && t.urin && t.urinMlKgH < 0.5 ? ' class="text-larm"' : ''}>${t.urinMlKgH != null && t.urin ? esc(sv(t.urinMlKgH, 2)) : ''}</td><td>${esc(sv(t.dran, 0))}</td><td>${esc(sv(t.kumulativ, 0))}</td></tr>`).join('')}</tbody></table></div>
     </section>
+    ${tillagg.ovrigaHtml(t)}
     ${an ? anestesiHtml(an) : ''}
     <p class="dampad liten">${esc(d.demoregel)}</p>`;
+  tillagg.koppla(el, pid, t, ladda);
+  tillagg.startaRealtid(el, pid, ctx);
 
   el.querySelectorAll('[data-titrera]').forEach(b => b.addEventListener('click', async () => {
     try { const r = await medKnapp(b, () => api(`/api/patient/${encodeURIComponent(pid)}/iva/infusion/${encodeURIComponent(b.dataset.titrera)}/dos`, { metod: 'POST', data: {} })); notis(r.text); ladda(); } catch { /* notis */ }
@@ -136,6 +149,7 @@ async function visaPatient(main, [pid], _q, ctx = {}) {
     if (af.planerad.value) data.planerad = new Date(af.planerad.value).toISOString();
     try { const r = await medKnapp(af.querySelector('[type=submit]'), () => api(`/api/patient/${encodeURIComponent(pid)}/anestesi`, { metod: 'POST', data }), af); notis(r.text); ladda(); } catch { /* i formuläret */ }
   });
+  return d;
 }
 
 function anestesiHtml(an) {

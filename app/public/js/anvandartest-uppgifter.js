@@ -444,6 +444,17 @@ export const UPPGIFTER = [
     text: 'Du ska gå rond på Hjärtintensiven. Skaffa dig en bild av hur patienterna där mår, och titta närmare på den första patienten.',
     kontroll: { sel: '#iva-analys' },
   },
+  // Runda 11, r7: vårdtyngden enligt NEMS och import av tillväxtdata.
+  {
+    id: 'iva-nems', namn: 'Registrera vårdtyngden enligt NEMS för en patient på intensivvården', roll: 'ssk-kard', start: 'Övervakningen av en patient på intensivvården',
+    text: 'Ditt pass på Hjärtintensiven är snart slut. Registrera dygnets vårdtyngd för patienten.',
+    kontroll: { notis: 'är registrerat för' },
+  },
+  {
+    id: 'tillvaxt-import', namn: 'Läsa in ett barns tillväxtdata från ett annat journalsystem', roll: 'lak-vc', start: 'Tillväxten för ett barn som har flyttat hit',
+    text: 'Leo har flyttat hit från en annan region. Hämta hans tidigare mätningar från barnavårdscentralen där och lägg in dem i journalen.',
+    kontroll: { notis: 'är inlästa' },
+  },
   // Runda 9, r1: förbrukningsartiklar ur en mall.
   {
     id: 'forbrukning-mall', namn: 'Förskriva förbrukningsartiklar ur en mall', roll: 'lak-vc', start: 'Översikten för en patient med insulin',

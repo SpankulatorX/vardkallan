@@ -609,6 +609,40 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
       await forvanta(page, '.notis', 'Kvittens BHVQ-SIM-');
       await forvanta(page, '#bhv', 'Det finns inget nytt att rapportera');
     });
+    // Runda 11, r7: tillväxten i version 1.1: WHO:s referens 5 till 19 år och byte av referens, pubertet, import från det
+    // simulerade journalsystemet och barnavårdscentralens indikatorer.
+    await s('Per Holm ser Leos kurvor med WHO:s referens 5 till 19 år, byter referens och registrerar pubertet', async () => {
+      await gaTill(page, '#/patient/p09/tillvaxt');
+      await forvanta(page, '#tv-referens', 'WHO efter barnets ålder');
+      await page.locator('#tv-kurva-langd svg.tv-kurva polyline.tv-ref').first().waitFor();
+      await forvanta(page, '.tv-ej-referens summary', 'Referenser som inte finns');
+      await page.selectOption('#tv-referens', 'who2006');
+      await forvanta(page, '.ruta-info', 'utanför den valda referensen');
+      await page.selectOption('#tv-referens', 'auto');
+      await page.locator('#tv-kurva-langd svg.tv-kurva polyline.tv-ref').first().waitFor();
+      await page.click('#tv-pubertet ~ details > summary');
+      await page.selectOption('#tv-pb-genitalia', '2');
+      await page.click('#tv-pubertet-form [type="submit"]');
+      await forvanta(page, '.notis', 'Pubertetsstadiet är registrerat');
+      await forvanta(page, '#tv-pubertet ~ .ruta-larm', 'tidig pubertet');
+      await bild(page, '96b-tillvaxt-pubertet', true);
+    });
+    await s('Per Holm läser in Leos tidigare mätningar från det simulerade journalsystemet efter granskning', async () => {
+      await page.click('#tv-import > summary');
+      await page.click('[data-tv-journalsystem]');
+      await forvanta(page, '#tv-import-granskning', 'nya mätvärden kan läsas in');
+      await page.click('[data-tv-importera]');
+      await forvanta(page, '.notis', 'är inlästa');
+    });
+    await s('Per Holm väljer barnavårdscentralens indikatorer', async () => {
+      await gaTill(page, '#/bhv');
+      await forvanta(page, '#bhv-ind', 'Indikatorer på');
+      await page.click('#bhv-ind ~ details > summary');
+      await page.check('#ind-fodelsedata');
+      await page.click('#bhv-ind-val [type="submit"]');
+      await forvanta(page, '.notis', 'Indikatorerna är sparade');
+      await forvanta(page, '#bhv', 'Barn med födelsevikt');
+    });
     await s('Karin Berg kvitterar remissen som mottagen men ser ingen journaltext', async () => {
       await loggaIn(page, 'adm-kard');
       await gaTill(page, '#/remisser');
@@ -824,6 +858,25 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
     });
     await allaVyer(page, 'Lena Ström', MENY.psykiatri);
 
+    // Runda 11, r7: intensivvården i version 1.1. Johan Ek kopplar monitorn och ser realtiden, registrerar andningsstöd och
+    // vårdtyngd, och fliken Intensivvård finns i journalen.
+    await s('Johan Ek ser realtiden från monitorn, registrerar andningsstöd och NEMS och läser överrapporteringen', async () => {
+      await loggaIn(page, 'ssk-kard');
+      await gaTill(page, '#/patient/p22/matvarden');
+      await gaTill(page, '#/iva/p22');
+      await forvanta(page, '#iva-rt-r', 'Realtid från monitorn');
+      await forvanta(page, '.iva-sbar', 'Situation');
+      await page.selectOption('#iva-stod-typ', 'hogflode');
+      await page.click('#iva-stod [type="submit"]');
+      await forvanta(page, '.notis', 'Högflödesbehandling');
+      await page.waitForSelector('#iva-nems-form');
+      await page.click('#iva-nems-form [type="submit"]');
+      await forvanta(page, '.notis', 'är registrerat för');
+      await bild(page, '99-iva-tillagg', true);
+      await gaTill(page, '#/patient/p22/iva');
+      await forvanta(page, '.flikar a[aria-current="page"]', 'Intensivvård');
+      await forvanta(page, '#iva-flik', 'Vätska, mål och andningsstöd');
+    });
     // Johan Ek, sjuksköterska
     await s('Johan Ek loggar in, kan inte ordinera men skriver och signerar en omvårdnadsanteckning', async () => {
       await loggaIn(page, 'ssk-kard');
@@ -1264,6 +1317,13 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
       await forvanta(page, '.tabell', 'Vardkontakt');
       await saknas(page, 'Åkesson');
       await bild(page, '75-datauttag', true);
+    });
+    // Runda 11, r7: barnhälsovårdens indikatorer i regionen, med varje liten cell spärrad.
+    await s('Daniel Sund ser barnhälsovårdens indikatorer i regionen utan små tal', async () => {
+      await gaTill(page, '#/rapportering');
+      await forvanta(page, '#bhv-region', 'Barnhälsovården i regionen');
+      await forvanta(page, '#rap-bhv-region', 'Färre än 5');
+      await saknas(page, 'Holmqvist');
     });
     await allaVyer(page, 'Daniel Sund', MENY.uppfoljning);
     // Runda 7, r5: rapportering till myndigheter och register. Läkarna rättar felen i inkorgen med systemets förslag,
@@ -1837,7 +1897,7 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
         // Runda 8, r3: bokning och avdelningens planering.
         'boka-fri', 'boka-team', 'grupp-lagg-till', 'avdelningens-handelser',
         // Runda 9, r2: medicinteknisk utrustning och intensivvården.
-        'koppla-monitor', 'godkanna-mt', 'iva-oversikt',
+        'koppla-monitor', 'godkanna-mt', 'iva-oversikt', 'iva-nems', 'tillvaxt-import',
         // Runda 9, r1: förbrukningsartiklar.
         'forbrukning-mall',
         // Runda 9, r7: streckkodsläsaren och patientgrupperna.
