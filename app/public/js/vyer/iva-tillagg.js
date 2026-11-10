@@ -142,7 +142,9 @@ export function realtidSektion(r) {
     ${r?.kopplad ? '<button type="button" class="knapp liten sekundar" data-iva-rt-paus aria-pressed="false">Pausa realtid</button>' : ''}</div>
     <div id="iva-rt">${realtidHtml(r)}</div></section>`;
 }
-export const sammanrakningHtml = (t) => (t?.sammanrakning.length ? `<h3>Givna doser</h3><ul class="iva-handelser">${t.sammanrakning.map(s => `<li class="${s.over ? 'text-larm' : ''}">${esc(s.text)}</li>`).join('')}</ul>` : '');
+// Givna doser per infusion med utdelningen: varje dos med tid, vem och hastighet.
+export const sammanrakningHtml = (t) => (t?.sammanrakning.length ? `<h3>Givna doser</h3><ul class="iva-handelser">${t.sammanrakning.map(s => `<li class="${s.over ? 'text-larm' : ''}">${esc(s.text)}
+  ${s.utdelning?.length ? `<details class="iva-utdelning"><summary>Utdelning (${s.utdelning.length})</summary><ul class="enkel-lista">${s.utdelning.map(u => `<li><span class="pt-tid">${esc(tidpunkt(u.tid))}</span> ${esc(u.text)}${u.av ? `, ${esc(u.av)}` : ''}</li>`).join('')}</ul></details>` : ''}</li>`).join('')}</ul>` : '');
 export function ovrigaHtml(t) {
   if (!t) return '';
   return `${reglerHtml(t)}${vatskaHtml(t)}${nemsHtml(t)}${overrapporteringHtml(t)}`;

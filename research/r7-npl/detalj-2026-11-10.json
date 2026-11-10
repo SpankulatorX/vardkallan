@@ -1,0 +1,472 @@
+[
+ {
+  "fil": "19801003000053.xml",
+  "npl": "19801003000053",
+  "namn": "Furix",
+  "styrka": "10 mg/ml",
+  "form": "Injektionsvätska, lösning",
+  "substans": "Furosemid",
+  "atc": "C03CA01",
+  "vagar": [
+   "INMU",
+   "INVE"
+  ],
+  "klass": "Läkemedel",
+  "forfarande": "Nationella proceduren",
+  "organisationer": [
+   {
+    "id": "ID1FA8V8EKTW90SRV0",
+    "roll": "MAH",
+    "namn": "Orifarm Healthcare A/S"
+   },
+   {
+    "id": "ID1PB2Z8EJ62YO1SRV",
+    "roll": "AGENT",
+    "namn": "Orifarm Healthcare"
+   }
+  ],
+  "godkand": "1980-10-03",
+  "avregistrerad": null,
+  "stoppad": "N",
+  "bestandsdelar": [
+   {
+    "roll": "Aktiv beståndsdel",
+    "substans_id": "IDE4POBTU90VUVERT1"
+   }
+  ],
+  "forpackningar": [
+   {
+    "nplpackid": "19801001100243",
+    "text": "Ampull, 5 x 2 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "19801001100281",
+    "text": "Ampull, 5 x 25 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "19801001100274",
+    "text": "Ampull, 5 x 4 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "19801001100250",
+    "text": "Ampull, 50 x 2 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "19801001100267",
+    "text": "Ampull, 50 x 25 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "19801001100298",
+    "text": "Ampull, 50 x 4 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ {
+  "fil": "20000825000258.xml",
+  "npl": "20000825000258",
+  "namn": "Propofol-Lipuro",
+  "styrka": "10 mg/ml",
+  "form": "Injektionsvätska/infusionsvätska, emulsion",
+  "substans": "Propofol",
+  "atc": "N01AX10",
+  "vagar": [
+   "INVE"
+  ],
+  "klass": "Läkemedel",
+  "forfarande": "Proceduren för ömsesidigt erkännande",
+  "organisationer": [
+   {
+    "id": "IDX0000000069",
+    "roll": "AGENT",
+    "namn": "B. Braun Medical AB"
+   },
+   {
+    "id": "IDX0000000325",
+    "roll": "MAH",
+    "namn": "B. Braun Melsungen AG"
+   }
+  ],
+  "godkand": "2000-08-25",
+  "avregistrerad": null,
+  "stoppad": "N",
+  "bestandsdelar": [
+   {
+    "roll": "Hjälpämne",
+    "substans_id": "IDE4POBUU91BFVERT1"
+   },
+   {
+    "roll": "Aktiv beståndsdel",
+    "substans_id": "IDE4POCPU9PP2VERT1"
+   },
+   {
+    "roll": "Hjälpämne",
+    "substans_id": "ID1EYQ45NK5KXHZCSR"
+   }
+  ],
+  "forpackningar": [
+   {
+    "nplpackid": "20170405100064",
+    "text": "Ampull, 10 x 10 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20000825101221",
+    "text": "Ampull, 5 x 20 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20000825101238",
+    "text": "Glasflaska, 100 ml",
+    "avregistrerad": "2004-06-16",
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100223100465",
+    "text": "Injektionsflaska, 1 x 100 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20100223100472",
+    "text": "Injektionsflaska, 1 x 50 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20030218100029",
+    "text": "Injektionsflaska, 10 x 100 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20111222100264",
+    "text": "Injektionsflaska, 10 x 20 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20030218100012",
+    "text": "Injektionsflaska, 10 x 50 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ {
+  "fil": "20051112000024.xml",
+  "npl": "20051112000024",
+  "namn": "Midazolam Panpharma",
+  "styrka": "5 mg/ml",
+  "form": "Injektionsvätska, lösning",
+  "substans": "Midazolam",
+  "atc": "N05CD08",
+  "vagar": [
+   "INMU",
+   "INVE",
+   "RECT"
+  ],
+  "klass": "Läkemedel",
+  "forfarande": "Proceduren för ömsesidigt erkännande",
+  "organisationer": [
+   {
+    "id": "ID12W5U3O19ADFOVSR",
+    "roll": "AGENT",
+    "namn": "Panpharma Nordic AS"
+   },
+   {
+    "id": "IDX0000002009",
+    "roll": "MAH",
+    "namn": "Panpharma SA"
+   }
+  ],
+  "godkand": "2006-10-06",
+  "avregistrerad": null,
+  "stoppad": "N",
+  "bestandsdelar": [
+   {
+    "roll": "Aktiv beståndsdel",
+    "substans_id": "IDE4POF7UAS8MVERT1"
+   }
+  ],
+  "forpackningar": [
+   {
+    "nplpackid": "20051209100057",
+    "text": "Ampull, 1 x 1 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20051209100101",
+    "text": "Ampull, 1 x 3 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20051209100088",
+    "text": "Ampull, 10 x 1 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20051209100132",
+    "text": "Ampull, 10 x 3 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20051209100095",
+    "text": "Ampull, 25 x 1 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20051209100149",
+    "text": "Ampull, 25 x 3 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20051209100064",
+    "text": "Ampull, 5 x 1 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20051209100118",
+    "text": "Ampull, 5 x 3 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20051209100071",
+    "text": "Ampull, 6 x 1 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20051209100125",
+    "text": "Ampull, 6 x 3 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20051209100170",
+    "text": "Injektionsflaska, 10 x 10 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20051209100187",
+    "text": "Injektionsflaska, 25 x 10 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20051209100156",
+    "text": "Injektionsflaska, 5 x 10 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20051209100163",
+    "text": "Injektionsflaska, 6 x 10 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ },
+ {
+  "fil": "20070331000011.xml",
+  "npl": "20070331000011",
+  "namn": "Noradrenalin Abcur",
+  "styrka": "1 mg/ml",
+  "form": "Koncentrat till infusionsvätska, lösning",
+  "substans": "Noradrenalin",
+  "atc": "C01CA03",
+  "vagar": [
+   "INVE"
+  ],
+  "klass": "Läkemedel",
+  "forfarande": "Proceduren för ömsesidigt erkännande",
+  "organisationer": [
+   {
+    "id": "IDKXA524RH66XWSRV0",
+    "roll": "MAH",
+    "namn": "Abcur AB"
+   }
+  ],
+  "godkand": "2009-07-03",
+  "avregistrerad": null,
+  "stoppad": "N",
+  "bestandsdelar": [
+   {
+    "roll": "Aktiv beståndsdel",
+    "substans_id": "IDE4POBSU90AFVERT1"
+   },
+   {
+    "roll": "Aktiv motsvarande (respondens)",
+    "substans_id": "IDPINBOYM85TO3MSRV"
+   }
+  ],
+  "forpackningar": [
+   {
+    "nplpackid": "20130723100221",
+    "text": "Ampull, 10 x 1 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110429100022",
+    "text": "Ampull, 10 x 10 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130723100238",
+    "text": "Ampull, 10 x 2 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080515100024",
+    "text": "Ampull, 10 x 4 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110429100039",
+    "text": "Ampull, 10 x 5 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080515100062",
+    "text": "Ampull, 10 x 8 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130723100252",
+    "text": "Ampull, 100 x 1 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110429100077",
+    "text": "Ampull, 100 x 10 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130723100191",
+    "text": "Ampull, 100 x 2 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080515100079",
+    "text": "Ampull, 100 x 4 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110429100053",
+    "text": "Ampull, 100 x 5 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080515100031",
+    "text": "Ampull, 100 x 8 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130723100207",
+    "text": "Ampull, 20 x 1 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110429100084",
+    "text": "Ampull, 20 x 10 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130723100269",
+    "text": "Ampull, 20 x 2 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080515100093",
+    "text": "Ampull, 20 x 4 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110429100060",
+    "text": "Ampull, 20 x 5 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080515100055",
+    "text": "Ampull, 20 x 8 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130723100214",
+    "text": "Ampull, 50 x 1 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110429100015",
+    "text": "Ampull, 50 x 10 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20130723100245",
+    "text": "Ampull, 50 x 2 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080515100086",
+    "text": "Ampull, 50 x 4 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20110429100046",
+    "text": "Ampull, 50 x 5 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   },
+   {
+    "nplpackid": "20080515100048",
+    "text": "Ampull, 50 x 8 ml",
+    "avregistrerad": null,
+    "parallelldistribuerad": false
+   }
+  ]
+ }
+]

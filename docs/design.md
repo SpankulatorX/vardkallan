@@ -1925,7 +1925,7 @@ E-legitimationen, sms-aviseringen, betalterminalen, fakturan, e-posten, videomö
 - Behandlingsbegränsningar är uppmärksamhetsinformation i undergruppen Beslut och står överst i övervakningen och som tagg i översikten. Överrapporteringen enligt SBAR skrivs av systemet ur övervakningen, diagnoserna som användaren får se, infusionerna, vätskebalansen, NEMS och de egna gränserna.
 - Vätskan (`POST /api/patient/:id/iva/andningsstod`, `.../andningsstod/avsluta` och `/iva/mal`): perspiratio är 0,33 ml/kg/h genom huden och 0,17 ml/kg/h genom andningen, tio procent mer per grad över 37 °C, och andningens del tas bort vid aktiv befuktning, halveras med fuktvärmeväxlare och ökar med hälften utan befuktning. Prognosen räknas till dygnsbrytningen kl. 06 svensk tid med infusionerna i ml/h och förlusterna i samma takt som de senaste sex timmarna. Läkaren sätter mål för vätskebalans, energi i kcal/kg och målvikt, och systemet visar underskottet och rekommendationer, också för kalium och natrium. Allt är demoregler.
 - Vårdtyngd (`POST /api/patient/:id/iva/nems`): systemet föreslår NEMS-posterna ur journalen (kopplad monitor eller timvisa värden, intravenösa läkemedel, andningsstöd, syrgas och vasoaktiva infusioner) med orsaken, och servern räknar poängen. Registreringen sparas på intensivvårdsavdelningen där patienten vårdas. Uppföljningen har medelpoäng, poster och andel vårddygn med NEMS.
-- Sammanräkningen av givna doser räknas ur titreringarna och bolusarna, det senaste dygnet och sedan starten, mot den högsta dygnsdosen.
+- Läkemedlen: protokollen är morfin, noradrenalin (µg/kg/min, titreras mot medelartärtrycket och patientens eget MAP-mål när det finns, med pulsen över 140 som säkerhetsgräns), propofol och midazolam (dosintervall utan automatiskt förslag). Dosenheten räknas om med `iva-dosenhet.js` på samma sätt i ml/h, pumpen och sammanräkningen. Sammanräkningen av givna doser räknas ur titreringarna och bolusarna, det senaste dygnet och sedan starten, mot den högsta dygnsdosen, med utdelningen (varje dos med tid, vem och ml/h). En dosändring med armband prövar armbandet mot patientens identiteter med samma regel som när utrustning kopplas (`armbandStammer` i medicinteknik.js), och ett armband som inte stämmer nekas och loggas.
 - Övervakningen finns som fliken Intensivvård i journalen för personalen på en vårdenhet med intensivvårdsavdelning. `GET /api/patient/:id/iva/tillagg` har reglerna, behandlingsbegränsningarna, vätskan, NEMS, sammanräkningen och överrapporteringen.
 
 ### Tillväxten
@@ -1938,7 +1938,7 @@ E-legitimationen, sms-aviseringen, betalterminalen, fakturan, e-posten, videomö
 
 ### Det som är simulerat eller saknas
 
-Monitorn och dess vågformer, det andra journalsystemet och tjänstekontrakten är simulerade. Vasoaktiva läkemedel och sedering saknas i katalogen, och rapportering till Svenska Intensivvårdsregistret finns inte. Svenska tillväxtreferenser, prematurkurvor och kurvor för syndrom används inte av licensskäl (docs/kodkontroll.md). Pubertet, NEMS, egna gränser och behandlingsmål finns inte i FHIR-API:t.
+Monitorn och dess vågformer, det andra journalsystemet och tjänstekontrakten är simulerade. Sederingsdjup enligt RASS registreras inte, så sederingen har inget automatiskt förslag, och rapportering till Svenska Intensivvårdsregistret finns inte. Svenska tillväxtreferenser, prematurkurvor och kurvor för syndrom används inte av licensskäl (docs/kodkontroll.md). Pubertet, NEMS, egna gränser och behandlingsmål finns inte i FHIR-API:t.
 
 ## Godkännandekriterier för första versionen
 

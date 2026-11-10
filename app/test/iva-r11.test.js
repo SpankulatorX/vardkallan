@@ -267,6 +267,75 @@ describe('Intensivvård, version 1.1', () => {
     expect(t2.sammanrakning.map(x => x.ordinationId)).toContain(oid);
   });
 
+  test('noradrenalin ordineras i µg/kg/min och titreras mot målet för medelartärtrycket, patientens eget mål när läkaren har satt ett', async () => {
+    const k = await inloggad('lak-kard');
+    const f = (await k.get('/api/patient/p01/iva/infusion/forslag')).data;
+    expect(f.protokoll.map(x => x.id)).toEqual(expect.arrayContaining(['morfin', 'noradrenalin', 'propofol', 'midazolam']));
+    const nora = f.protokoll.find(x => x.id === 'noradrenalin');
+    expect(nora.lakemedel).toBe('Noradrenalin Abcur 1 mg/ml');
+    // 0,05 µg/kg/min vid 81,6 kg och 0,08 mg/ml: 0,05 × 81,6 × 60 / 1000 / 0,08 = 3,06 ml/h.
+    expect(nora.startMlH).toBe(3.1);
+    const r = await k.post('/api/patient/p01/iva/infusion', { protokoll: 'noradrenalin', ordinationsorsak: 'Cirkulatoriskt stöd' });
+    expect(r.status).toBe(201);
+    expect(r.data.infusion).toMatchObject({ dosEnhet: 'µg/kg/min', dos: 0.05, mlH: 3.1 });
+    expect(r.data.ordination.dosering).toContain('µg/kg/min');
+    const d = db(k);
+    const oid = r.data.ordination.id;
+    const a = atk(d, 'lak-kard', 'p01', {}, 'las_lakemedel');
+    const nu = new Date();
+    const map = (bt, min) => ({ id: 900000 + min, typ: 'blodtryck', varde: bt, varde_num: null, tid: new Date(nu.getTime() - min * MIN).toISOString(), kalla: 'vardkallan', vidimerad: null, enhet_id: 'uso-kard' });
+    // MAP 68 ligger inom avdelningens mål 65 till 75: behåll dosen.
+    const inom = iva.infusionerFor(a, [map('90/57', 5)], nu).find(x => x.ordinationId === oid);
+    expect(inom.titrering.forslag).toBeNull();
+    expect(inom.titrering.text).toContain('inom målet 65 till 75');
+    // MAP 63 är under målet: systemet föreslår att öka till 0,07.
+    const lagt = iva.infusionerFor(a, [map('90/50', 5)], nu).find(x => x.ordinationId === oid);
+    expect(lagt.titrering.forslag).toBe(0.07);
+    // Med patientens egen gräns MAP under 72 blir målet 72 till 82, och MAP 68 ger ett förslag att öka.
+    expect((await k.post('/api/patient/p01/iva/regler', { parameter: 'map', villkor: 'under', grans: 72, motivering: 'Högre perfusionstryck efter hjärtstopp' })).status).toBe(201);
+    const egen = iva.infusionerFor(a, [map('90/57', 5)], nu).find(x => x.ordinationId === oid);
+    expect(egen.titrering.forslag).toBe(0.07);
+    expect(egen.titrering.text).toContain('målet 72 till 82 (patientens mål)');
+    // Puls över 140 är säkerhetsgränsen: minska till lägsta dos.
+    const pulsRad = { ...map('100/60', 3), id: 900100, typ: 'puls', varde: '150', varde_num: 150 };
+    const sak = iva.infusionerFor(a, [map('90/50', 5), pulsRad], nu).find(x => x.ordinationId === oid);
+    expect(sak.titrering).toMatchObject({ niva: 'larm' });
+    expect(sak.titrering.text).toContain('över 140');
+  });
+
+  test('propofol och midazolam ordineras med dosintervall utan automatisk titrering, och utdelningen visar varje dos med tid, vem och ml/h', async () => {
+    const k = await inloggad('lak-kard');
+    const r = await k.post('/api/patient/p01/iva/infusion', { protokoll: 'propofol', ordinationsorsak: 'Sedering i respirator' });
+    expect(r.status).toBe(201);
+    expect(r.data.infusion.titrering).toBeNull();
+    expect(r.data.ordination.dosering).toContain('mg/kg/h');
+    const oid = r.data.ordination.id;
+    somPerson(sandlada(app, k), 'ssk-kard');
+    expect((await k.post(`/api/patient/p01/iva/infusion/${oid}/dos`, { dos: 2 })).status).toBe(200);
+    expect((await k.post(`/api/patient/p01/iva/infusion/${oid}/dos`, { dos: 9 })).status).toBe(400);
+    const t = (await k.get('/api/patient/p01/iva/tillagg')).data;
+    const s = t.sammanrakning.find(x => x.ordinationId === oid);
+    expect(s.utdelning.map(u => u.dos)).toEqual([1, 2]);
+    expect(s.utdelning[1]).toMatchObject({ av: 'Johan Ek', mlH: expect.any(Number) });
+    expect(s.utdelning[0].text).toContain('Start');
+    somPerson(sandlada(app, k), 'lak-kard');
+    expect((await k.post('/api/patient/p01/iva/infusion', { protokoll: 'midazolam', ordinationsorsak: 'Sedering' })).data.infusion.dosEnhet).toBe('mg/kg/h');
+  });
+
+  test('en dosändring prövar armbandet mot patientens identitet, och ett armband som inte hör till patienten nekas och loggas', async () => {
+    const k = await inloggad('lak-kard');
+    const oid = (await k.post('/api/patient/p01/iva/infusion', { protokoll: 'morfin', ordinationsorsak: 'Smärta' })).data.ordination.id;
+    somPerson(sandlada(app, k), 'ssk-kard');
+    const fel = await k.post(`/api/patient/p01/iva/infusion/${oid}/dos`, { dos: 0.03, armband: '199001011234' });
+    expect(fel.status).toBe(400);
+    expect(fel.data.fel).toContain('Armbandet hör inte till den här patienten');
+    expect(db(k).query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p01' AND resultat = 'nekad' AND resurs LIKE 'iva:infusion:%:armband'").get().n).toBe(1);
+    const ok = await k.post(`/api/patient/p01/iva/infusion/${oid}/dos`, { dos: 0.03, armband: '194502024732' });
+    expect(ok.status).toBe(200);
+    expect(ok.data.text).toContain('Armbandet stämmer');
+    somPerson(sandlada(app, k), 'lak-kard');
+  });
+
   test('överrapporteringen röjer varken orsak eller tid för en vårdkontakt på en spärrad vårdenhet eller på en annan vårdenhet utan aktivt val', async () => {
     const k = await inloggad('lak-kard');
     const d = db(k);

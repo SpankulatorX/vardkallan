@@ -19,6 +19,9 @@ export const IVA = {
   nems: `${IV}NEMS föreslås ur journalen med orsak för varje post, sjuksköterskan bekräftar, och servern räknar poängen`,
   doser: `${IV}infusionerna har en sammanräkning av givna doser det senaste dygnet och sedan starten`,
   nyheter: `${IV}nyheterna i version 1.1 för intensivvården och tillväxten visas för rätt roller`,
+  noradrenalin: `${IV}noradrenalin ordineras i µg/kg/min och titreras mot målet för medelartärtrycket, patientens eget mål när läkaren har satt ett`,
+  sedering: `${IV}propofol och midazolam ordineras med dosintervall utan automatisk titrering, och utdelningen visar varje dos med tid, vem och ml/h`,
+  armband: `${IV}en dosändring prövar armbandet mot patientens identitet, och ett armband som inte hör till patienten nekas och loggas`,
   overrapporteringSparr: `${IV}överrapporteringen röjer varken orsak eller tid för en vårdkontakt på en spärrad vårdenhet eller på en annan vårdenhet utan aktivt val`,
   kbNems: kb('iva-nems'),
 };
@@ -43,7 +46,7 @@ const POSTER_IVA = {
   '4.6.1.1': {
     tester: [IVA.realtid, IVA.regelApi, IVA.mal, IVA.nems, IVA.begransning, IVA.nyheter],
     losning: 'Intensivvården har en egen sida och en flik i journalen med översikt, övervakning och realtid med vågformer från monitorn, analys mot fördefinierade parametrar och patientens egna gränser, behandlingsbegränsningar och överrapportering, anestesibedömning, kontinuerliga infusioner med titrering och sammanräkning av givna doser, timvis vätskebalans med perspiratio, prognos och behandlingsmål, andningsstöd, vårdtyngd enligt NEMS och uppföljning, byggda på mätvärdena, utrustningen, läkemedlen och vätskebalansen som redan finns.',
-    anmarkning: `${DEMO} Operationsplanering, anestesijournal under ingreppet, uppvakningsavdelning och scoring som SAPS 3 saknas. Vasoaktiva läkemedel och sedering saknas i läkemedelskatalogen.`,
+    anmarkning: `${DEMO} Operationsplanering, anestesijournal under ingreppet, uppvakningsavdelning och scoring som SAPS 3 saknas.`,
   },
   '4.6.1.2': {
     tester: [IVA.vagform, IVA.realtid, IVA.begransning, IVA.sparr], avsedd: 'uppfyllt_demo',
@@ -58,9 +61,10 @@ const POSTER_IVA = {
     anmarkning: `${DEMO} Avdelningens gränser för medelartärtryck, syremättnad, trendfönster och oliguri är parametrar som systemförvaltaren ändrar med fyra ögon.`,
   },
   '4.6.1.5': {
-    tester: [IVA.doser],
-    losning: 'Läkaren ordinerar en kontinuerlig infusion i sprutpump ur ett protokoll med dos per kilo och timme, koncentration, intervall, bolusdos och högsta dygnsdos. Systemet räknar hastigheten i ml/h på den godkända vikten, föreslår titrering efter mätvärden inom det ordinerade intervallet och visar infusionerna, bolusarna och vätskorna i en gemensam vy. Sjuksköterskan titrerar med ett klick, och pumpens doser registreras och kontrolleras. Systemet räknar samman givna doser det senaste dygnet och sedan starten ur titreringarna och bolusarna, och säger till när dygnsdosen är överskriden.',
-    anmarkning: `${DEMO} Det finns ett protokoll, morfin. Vasoaktiva läkemedel och sedering saknas eftersom de inte finns i demons läkemedelskatalog. Produkterna Noradrenalin Abcur, Propofol-Lipuro, Midazolam Panpharma och Furix är kontrollerade mot NPL 2026-11-10, men förpackningarna som katalogen kräver är inte inlästa.`,
+    tester: [IVA.doser, IVA.noradrenalin, IVA.sedering, IVA.armband], avsedd: 'uppfyllt_demo',
+    losning: 'Läkaren ordinerar en kontinuerlig infusion i sprutpump ur ett protokoll: morfin, noradrenalin, propofol och midazolam, med dos per kilo och timme eller per kilo och minut, koncentration, intervall, bolusdos och högsta dygnsdos. Systemet räknar hastigheten i ml/h på den godkända vikten. Målstyrd behandling: morfin titreras mot smärtan och noradrenalin mot medelartärtrycket, med patientens eget MAP-mål när läkaren har satt en egen gräns, och med pulsen och andningsfrekvensen som säkerhetsgränser. Sedering ändras inom intervallet. Infusionerna, bolusarna och vätskorna visas i en gemensam vy med utdelningen för varje infusion (varje dos med tid, vem och ml/h) och sammanräkningen av givna doser det senaste dygnet och sedan starten mot den högsta dygnsdosen. Ett skannat armband prövas mot patientens identitet innan dosen ändras, med samma regel som när utrustning kopplas.',
+    expert: 'Systemet räknar om dosen till ml per timme, föreslår nästa dos ur det senaste värdet mot målet som gäller för patienten, stoppar en dos utanför intervallet och ett armband som inte hör till patienten med en förklaring, och räknar samman det som har getts.',
+    anmarkning: `${DEMO} Noradrenalin Abcur, Propofol-Lipuro, Midazolam Panpharma och Furix är inlästa ur NPL:s totalfil 2026-11-10 med förpackningar. Protokollens doser är demoregler. Sederingsdjup enligt RASS registreras inte, så sederingen har inget automatiskt förslag.`,
   },
   '4.6.1.6': {
     tester: [IVA.perspiratio, IVA.mal, IVA.sparr], avsedd: 'uppfyllt_demo',

@@ -12,6 +12,7 @@ import * as nems from './iva-nems.js';
 import * as lakemedelsvyer from './lakemedelsvyer.js';
 import * as tillvaxt from './tillvaxt-r11.js';
 import { loggaRad } from './logg.js';
+import { faktor } from './iva-dosenhet.js';
 
 // Krokarna i iva.js: patientens regler i analysen, och behandlingsbegränsningar och NEMS på raderna i översikten.
 iva.KROKAR.analys.push(regler.analysFor);
@@ -19,6 +20,13 @@ iva.KROKAR.rad.push((atk, rad, { nu }) => {
   const b = regler.behandlingsbegransningar(atk);
   const n = nems.registreringar(atk).find(x => x.dygn === nems.dygnFor(nu)) ?? null;
   return { ...rad, behandlingsbegransningar: b.map(x => x.term), nems: n ? { poang: n.poang, dygn: n.dygn } : null, egnaRegler: regler.reglerFor(atk).length };
+});
+// Målstyrd behandling: en infusion som titreras mot medelartärtrycket (mal: 'map') får patientens eget mål när läkaren
+// har satt en gräns för MAP, från gränsen till tio över. Annars gäller protokollets mål.
+iva.KROKAR.mal.push((atk, t) => {
+  if (!t || t.mal !== 'map') return t;
+  const r = regler.reglerFor(atk).find(x => x.parameter === 'map' && x.villkor === 'under');
+  return r ? { ...t, lag: r.grans, hog: r.grans + 10, kalla: 'patient' } : t;
 });
 
 const TIMME = 3600_000;
@@ -30,13 +38,13 @@ export function sammanrakning(db, infusioner, nu = new Date()) {
     const o = db.query('SELECT utsatt_tid FROM ordinationer WHERE id = ?').get(inf.ordinationId);
     if (!i) return null;
     const slut = Math.min(nu.getTime(), o?.utsatt_tid ? Date.parse(o.utsatt_tid) : Infinity);
-    const steg = [{ tid: Date.parse(i.skapad), dos: i.startdos }, ...db.query('SELECT tid, dos FROM iva_titreringar WHERE ordination_id = ? ORDER BY tid, id').all(i.ordination_id).map(t => ({ tid: Date.parse(t.tid), dos: t.dos }))];
+    const steg = [{ tid: Date.parse(i.skapad), dos: i.startdos, av: i.av, start: true }, ...db.query('SELECT tid, dos, av, grund FROM iva_titreringar WHERE ordination_id = ? ORDER BY tid, id').all(i.ordination_id).map(t => ({ tid: Date.parse(t.tid), dos: t.dos, av: t.av, grund: t.grund }))];
     const fran24 = nu.getTime() - 24 * TIMME;
     let totalt = 0, dygn = 0;
     steg.forEach((s, k) => {
       const a = s.tid, b = Math.min(slut, steg[k + 1]?.tid ?? slut);
       if (b <= a) return;
-      const perTimme = s.dos * i.vikt_kg;
+      const perTimme = s.dos * faktor(i.dos_enhet) * i.vikt_kg;
       totalt += perTimme * (b - a) / TIMME;
       dygn += perTimme * Math.max(0, b - Math.max(a, fran24)) / TIMME;
     });
@@ -45,7 +53,11 @@ export function sammanrakning(db, infusioner, nu = new Date()) {
     const sumDygn = Math.round((dygn + bolus) * 100) / 100;
     const text = `${inf.lakemedel}: ${String(sumDygn).replace('.', ',')} ${enhet} det senaste dygnet${bolus ? `, varav bolus ${String(Math.round(bolus * 100) / 100).replace('.', ',')} ${enhet}` : ''}, ${String(Math.round(totalt * 100) / 100).replace('.', ',')} ${enhet} sedan starten.`;
     const over = i.max_dygn != null && sumDygn > i.max_dygn;
-    return { ordinationId: i.ordination_id, lakemedel: inf.lakemedel, enhet, senasteDygnet: sumDygn, bolus: Math.round(bolus * 100) / 100, sedanStart: Math.round(totalt * 100) / 100, maxDygn: i.max_dygn,
+    // Utdelningen: varje dos med tid, vem och hastighet, så att översikten visar hur infusionen har gått.
+    const namn = (id) => db.query('SELECT namn FROM personal WHERE id = ?').get(id)?.namn ?? null;
+    const utdelning = steg.map(s => ({ tid: new Date(s.tid).toISOString(), dos: s.dos, dosEnhet: i.dos_enhet, mlH: iva.hastighetFor(i, s.dos), av: namn(s.av),
+      text: `${s.start ? 'Start' : 'Ändrad till'} ${String(s.dos).replace('.', ',')} ${i.dos_enhet}, ${String(iva.hastighetFor(i, s.dos)).replace('.', ',')} ml/h${s.grund ? `. ${s.grund}` : ''}` }));
+    return { ordinationId: i.ordination_id, lakemedel: inf.lakemedel, enhet, senasteDygnet: sumDygn, bolus: Math.round(bolus * 100) / 100, sedanStart: Math.round(totalt * 100) / 100, maxDygn: i.max_dygn, utdelning,
       text: over ? `${text} Det är över den högsta dygnsdosen ${i.max_dygn} ${enhet}. Kontakta ansvarig läkare.` : text, over };
   }).filter(Boolean);
 }

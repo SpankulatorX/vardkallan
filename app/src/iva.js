@@ -27,6 +27,8 @@ import * as stod from './lakemedelsstod.js';
 import * as konfiguration from './konfiguration.js';
 import * as mt from './medicinteknik.js';
 import { kvalitetssakrad } from './mt-klass.js';
+// Runda 11, r7: dosenheterna för infusionerna.
+import { faktor } from './iva-dosenhet.js';
 
 // Runda 11, r7: den pågående vårdkontakten på en intensivvårdsavdelning som användaren får se, eller null. Varje rad
 // prövas i behörighetsmotorn innan den används.
@@ -38,7 +40,8 @@ export function ivaKontaktFor(atk) {
 // Runda 11, r7: krokar som andra moduler lägger till (iva-patientregler.js och r11r7-rutter.js). analys får
 // (atk, analys, { rader, nu }) och ger analysen med patientens egna regler, och rad får (atk, rad, { nu }) och ger raden i
 // översikten med det som modulen lägger till.
-export const KROKAR = { analys: [], rad: [] };
+// mal får (atk, titrering) och ger titreringen med patientens mål (iva-patientregler.js).
+export const KROKAR = { analys: [], rad: [], mal: [] };
 const medKrokar = (atk, analys, x) => KROKAR.analys.reduce((a, f) => f(atk, a, x), analys);
 export const DEMOREGEL = 'Reglerna för intensivvården är demoregler för att visa flödet. De är inte kliniskt beslutsstöd och inte CE-märkta.';
 // Intensivvårdsavdelningarna i demon och antalet vårdplatser. Hjärtintensiven på Kardiologiska kliniken är demons
@@ -54,6 +57,25 @@ export const PROTOKOLL = [
     dosMin: 0.01, dosMax: 0.04, startdos: 0.02, bolusDos: 2, maxDygn: 100,
     spadning: 'Morfin Abcur 10 mg/ml späds till 1 mg/ml i natriumklorid 9 mg/ml, 50 ml spruta.',
     titrering: { parameter: 'smarta', lag: 0, hog: 3, steg: 0.005, okarVidHogt: true, sakerhet: { parameter: 'andningsfrekvens', under: 10 } },
+  },
+  // Runda 11, r7: vasoaktivt stöd och sedering (Sussa 4.6.1.5). Noradrenalin titreras mot målet för medelartärtrycket,
+  // som blir patientens eget mål när läkaren har satt en egen gräns för MAP (mal: 'map'). Propofol och midazolam har ett
+  // dosintervall som sjuksköterskan ändrar inom, utan automatiskt förslag. Doserna är demoregler.
+  {
+    id: 'noradrenalin', namn: 'Noradrenalin, kontinuerlig infusion', lakemedelId: 'VK-NPL-0701', koncentration: 0.08, koncEnhet: 'mg/ml', dosEnhet: 'µg/kg/min',
+    dosMin: 0.02, dosMax: 0.5, startdos: 0.05, bolusDos: null, maxDygn: 60,
+    spadning: 'Noradrenalin Abcur 1 mg/ml, 4 ml späds till 50 ml i glukos 50 mg/ml (0,08 mg/ml), 50 ml spruta.',
+    titrering: { parameter: 'blodtryck', lag: 65, hog: 75, steg: 0.02, okarVidHogt: false, mal: 'map', sakerhet: { parameter: 'puls', over: 140 } },
+  },
+  {
+    id: 'propofol', namn: 'Propofol, kontinuerlig infusion för sedering', lakemedelId: 'VK-NPL-0702', koncentration: 10, koncEnhet: 'mg/ml', dosEnhet: 'mg/kg/h',
+    dosMin: 0.5, dosMax: 4, startdos: 1, bolusDos: null, maxDygn: 8000,
+    spadning: 'Propofol-Lipuro 10 mg/ml ges outspädd, 50 ml spruta.', titrering: null,
+  },
+  {
+    id: 'midazolam', namn: 'Midazolam, kontinuerlig infusion för sedering', lakemedelId: 'VK-NPL-0703', koncentration: 1, koncEnhet: 'mg/ml', dosEnhet: 'mg/kg/h',
+    dosMin: 0.02, dosMax: 0.2, startdos: 0.05, bolusDos: 2, maxDygn: 400,
+    spadning: 'Midazolam Panpharma 5 mg/ml, 10 ml späds till 50 ml i natriumklorid 9 mg/ml (1 mg/ml), 50 ml spruta.', titrering: null,
   },
 ];
 export const IVA_REGLER = [
@@ -227,19 +249,22 @@ export function senasteVikt(atk) {
 
 // --- Läkemedel i intensivvården (4.6.1.5) --------------------------------------------------------------------------
 const aktuellDos = (db, i) => db.query('SELECT dos, tid, av FROM iva_titreringar WHERE ordination_id = ? ORDER BY tid DESC, id DESC LIMIT 1').get(i.ordination_id) ?? null;
-export const hastighetFor = (i, dos) => Math.round(dos * i.vikt_kg / i.koncentration * 10) / 10;
+// Runda 11, r7: dosen räknas om till mg/kg/h med dosenhetens faktor (iva-dosenhet.js), så att µg/kg/min fungerar.
+export const hastighetFor = (i, dos) => Math.round(dos * faktor(i.dos_enhet) * i.vikt_kg / i.koncentration * 10) / 10;
 // Förslaget på titrering ur det senaste kvalitetssäkrade värdet för parametern, inom det ordinerade intervallet.
-export function titrering(i, rader, dos, nu = new Date()) {
-  const t = i.titrering ? JSON.parse(i.titrering) : null;
+export function titrering(i, rader, dos, nu = new Date(), mal = undefined) {
+  const t = mal !== undefined ? mal : (i.titrering ? JSON.parse(i.titrering) : null);
   if (!t) return null;
   const godk = [...rader].filter(kvalitetssakrad).filter(m => Date.parse(m.tid) > nu.getTime() - 4 * TIMME).sort((a, b) => b.tid.localeCompare(a.tid));
   const namn = (p) => journal.MATTYPER[p]?.namn ?? p;
   if (t.sakerhet) {
     const s = godk.find(m => m.typ === t.sakerhet.parameter);
-    if (s && tal(s) < t.sakerhet.under) {
+    // Runda 11, r7: säkerhetsgränsen kan vara ett värde under eller över gränsen.
+    const bryter = s && (t.sakerhet.under != null ? tal(s) < t.sakerhet.under : tal(s) > t.sakerhet.over);
+    if (bryter) {
       const ny = i.dos_min;
       return { parameter: t.sakerhet.parameter, varde: tal(s), tid: s.tid, forslag: ny < dos ? ny : null, niva: 'larm', mlH: hastighetFor(i, ny),
-        text: `${namn(t.sakerhet.parameter)} ${tal(s)} kl. ${klocka(s.tid)}, under ${t.sakerhet.under}. Minska till lägsta ordinerade dos ${talSv(ny, 3)} ${i.dos_enhet} (${talSv(hastighetFor(i, ny))} ml/h).`,
+        text: `${namn(t.sakerhet.parameter)} ${tal(s)} kl. ${klocka(s.tid)}, ${t.sakerhet.under != null ? `under ${t.sakerhet.under}` : `över ${t.sakerhet.over}`}. Minska till lägsta ordinerade dos ${talSv(ny, 3)} ${i.dos_enhet} (${talSv(hastighetFor(i, ny))} ml/h).`,
         gora: 'Minska dosen och kontakta ansvarig läkare.' };
     }
   }
@@ -251,15 +276,15 @@ export function titrering(i, rader, dos, nu = new Date()) {
   let ny = dos;
   if (hog) ny = Math.min(i.dos_max, Math.round((dos + t.steg) * 1e6) / 1e6);
   else if (lag) ny = Math.max(i.dos_min, Math.round((dos - t.steg) * 1e6) / 1e6);
-  const mal = `${t.lag} till ${t.hog}`;
+  const malText = `${t.lag} till ${t.hog}${t.kalla === 'patient' ? ' (patientens mål)' : ''}`;
   if (ny === dos) {
     const vidGrans = (hog && dos >= i.dos_max) || (lag && dos <= i.dos_min);
     return { parameter: t.parameter, varde: v, tid: m.tid, forslag: null, niva: vidGrans ? 'varning' : null,
-      text: vidGrans ? `${namn(t.parameter)} ${talSv(v)} kl. ${klocka(m.tid)} är utanför målet ${mal}, men dosen är redan ${hog ? 'högsta' : 'lägsta'} ordinerade. Kontakta ansvarig läkare.`
-        : `${namn(t.parameter)} ${talSv(v)} kl. ${klocka(m.tid)} är inom målet ${mal}. Behåll dosen.` };
+      text: vidGrans ? `${namn(t.parameter)} ${talSv(v)} kl. ${klocka(m.tid)} är utanför målet ${malText}, men dosen är redan ${hog ? 'högsta' : 'lägsta'} ordinerade. Kontakta ansvarig läkare.`
+        : `${namn(t.parameter)} ${talSv(v)} kl. ${klocka(m.tid)} är inom målet ${malText}. Behåll dosen.` };
   }
   return { parameter: t.parameter, varde: v, tid: m.tid, forslag: ny, mlH: hastighetFor(i, ny), niva: 'forslag',
-    text: `${namn(t.parameter)} ${talSv(v)} kl. ${klocka(m.tid)} är ${v > t.hog ? 'över' : 'under'} målet ${mal}. Systemet föreslår ${talSv(ny, 3)} ${i.dos_enhet}, ${talSv(hastighetFor(i, ny))} ml/h.`,
+    text: `${namn(t.parameter)} ${talSv(v)} kl. ${klocka(m.tid)} är ${v > t.hog ? 'över' : 'under'} målet ${malText}. Systemet föreslår ${talSv(ny, 3)} ${i.dos_enhet}, ${talSv(hastighetFor(i, ny))} ml/h.`,
     gora: `Ändra dosen till ${talSv(ny, 3)} ${i.dos_enhet} och ställ pumpen på ${talSv(hastighetFor(i, ny))} ml/h.` };
 }
 // De kontinuerliga infusionerna som användaren får se, med aktuell dos, hastighet och förslag på titrering.
@@ -285,9 +310,9 @@ export function infusionerFor(atk, rader = null, nu = new Date()) {
       .filter(b => synligPa(b.enhet_id)).map(b => ({ tid: b.till, volymMl: b.volym_ml, dos: b.dos, enhet: b.dos_enhet })) : [];
     ut.push({
       ordinationId: o.id, lakemedel: `${lm.namn} ${lm.styrka}`.trim(), dosering: o.dosering, koncentration: i.koncentration, koncEnhet: i.konc_enhet, dosEnhet: i.dos_enhet,
-      intervall: { min: i.dos_min, max: i.dos_max }, viktKg: i.vikt_kg, dos, mlH: hastighetFor(i, dos), perTimme: Math.round(dos * i.vikt_kg * 1000) / 1000, perTimmeEnhet: i.konc_enhet.split('/')[0] + '/h',
+      intervall: { min: i.dos_min, max: i.dos_max }, viktKg: i.vikt_kg, dos, mlH: hastighetFor(i, dos), perTimme: Math.round(dos * faktor(i.dos_enhet) * i.vikt_kg * 1000) / 1000, perTimmeEnhet: i.konc_enhet.split('/')[0] + '/h',
       bolusDos: i.bolus_dos, maxDygn: i.max_dygn, senastAndrad: senast ? { tid: senast.tid, av: personNamn(db, senast.av) } : null,
-      titrering: titrering(i, mv, dos, nu), pump, bolusar,
+      titrering: titrering(i, mv, dos, nu, i.titrering ? KROKAR.mal.reduce((x, f) => f(atk, x), JSON.parse(i.titrering)) : null), pump, bolusar,
     });
   }
   return ut;
@@ -300,7 +325,7 @@ export function infusionsforslag(atk, p) {
   return {
     vikt, protokoll: PROTOKOLL.map(x => {
       const lm = atk.db.query('SELECT * FROM katalog WHERE id = ?').get(x.lakemedelId);
-      return { ...x, lakemedel: lm ? `${lm.namn} ${lm.styrka}`.trim() : null, startMlH: vikt ? Math.round(x.startdos * vikt.kg / x.koncentration * 10) / 10 : null };
+      return { ...x, lakemedel: lm ? `${lm.namn} ${lm.styrka}`.trim() : null, startMlH: vikt ? Math.round(x.startdos * faktor(x.dosEnhet) * vikt.kg / x.koncentration * 10) / 10 : null };
     }).filter(x => x.lakemedel),
     uppfoljningsdatum: addDagar(idag(), 1), demoregel: DEMOREGEL,
     text: vikt ? `Dosen räknas på vikten ${talSv(vikt.kg)} kg från ${new Date(vikt.tid).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' })}.` : 'Patientens vikt saknas. Registrera vikten först, så räknar systemet dosen per kilo.',
@@ -318,18 +343,18 @@ export function ordineraInfusion(atk, p, body = {}, nu = new Date()) {
   if (!vikt) throw new Fel(400, 'Patientens vikt saknas, eller är bara en egen mätning som inte är godkänd. Registrera vikten först, så räknar systemet dosen per kilo.', 'ogiltig', { falt: ['vikt'] });
   const startdos = body.startdos == null || body.startdos === '' ? x.startdos : Number(String(body.startdos).replace(',', '.'));
   if (!Number.isFinite(startdos) || startdos < x.dosMin || startdos > x.dosMax) throw new Fel(400, `Startdosen ska vara inom protokollets intervall ${talSv(x.dosMin, 3)} till ${talSv(x.dosMax, 3)} ${x.dosEnhet}.`, 'ogiltig', { falt: ['startdos'] });
-  const mlH = (d) => talSv(d * vikt.kg / x.koncentration);
+  const mlH = (d) => talSv(d * faktor(x.dosEnhet) * vikt.kg / x.koncentration);
   const t = x.titrering;
   const dosering = `Kontinuerlig infusion i sprutpump, ${talSv(x.koncentration)} ${x.koncEnhet}. ${talSv(x.dosMin, 3)} till ${talSv(x.dosMax, 3)} ${x.dosEnhet} (${mlH(x.dosMin)} till ${mlH(x.dosMax)} ml/h vid ${talSv(vikt.kg)} kg), start ${talSv(startdos, 3)} ${x.dosEnhet}.`
-    + ` Titreras efter ${journal.MATTYPER[t.parameter].namn.toLowerCase()} med målet ${t.lag} till ${t.hog}.${x.bolusDos ? ` Bolus ${talSv(x.bolusDos)} ${x.koncEnhet.split('/')[0]} vid behov.` : ''} Högst ${talSv(x.maxDygn, 0)} ${x.koncEnhet.split('/')[0]} per dygn.`;
+    + (t ? ` Titreras efter ${t.parameter === 'blodtryck' ? 'medelartärtrycket' : journal.MATTYPER[t.parameter].namn.toLowerCase()} med målet ${t.lag} till ${t.hog}.` : ' Dosen ändras inom intervallet efter bedömning.') + `${x.bolusDos ? ` Bolus ${talSv(x.bolusDos)} ${x.koncEnhet.split('/')[0]} vid behov.` : ''} Högst ${talSv(x.maxDygn, 0)} ${x.koncEnhet.split('/')[0]} per dygn.`;
   const ut = db.transaction(() => {
     const r = lakemedel.spara(atk, {
-      lakemedelId: x.lakemedelId, dosering, dos: Math.round(startdos * vikt.kg * 1000) / 1000, dosEnhet: `${x.koncEnhet.split('/')[0]}/h`, typ: 'staende', tider: [],
+      lakemedelId: x.lakemedelId, dosering, dos: Math.round(startdos * faktor(x.dosEnhet) * vikt.kg * 1000) / 1000, dosEnhet: `${x.koncEnhet.split('/')[0]}/h`, typ: 'staende', tider: [],
       ordinationsorsak: body.ordinationsorsak, uppfoljningsdatum: body.uppfoljningsdatum || addDagar(idag(), 1), kvitteradeVarningar: body.kvitteradeVarningar,
     });
     db.query(`INSERT INTO iva_infusioner (ordination_id, patient_id, enhet_id, protokoll, koncentration, konc_enhet, dos_enhet, dos_min, dos_max, startdos, bolus_dos, max_dygn, titrering, vikt_kg, skapad, av)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(r.ordination.id, atk.patientId, atk.personal.enhet_id, x.id, x.koncentration, x.koncEnhet, x.dosEnhet, x.dosMin, x.dosMax, startdos,
-      x.bolusDos ?? null, x.maxDygn ?? null, JSON.stringify(t), vikt.kg, nu.toISOString(), atk.personal.id);
+      x.bolusDos ?? null, x.maxDygn ?? null, t ? JSON.stringify(t) : null, vikt.kg, nu.toISOString(), atk.personal.id);
     return r;
   })();
   vardkontakt.knyt(atk, 'ordinationer', ut, body);
@@ -349,6 +374,12 @@ export function andraDos(atk, oid, body = {}, nu = new Date()) {
     throw new Fel(403, 'Dosen i en infusion titreras av sjuksköterska eller läkare.', 'nekad');
   }
   kravVardande(atk, 'ge_lakemedel', { enhet_id: o.enhet_id, gemensam: true }, `iva:infusion:${o.id}`);
+  // Runda 11, r7: ett skannat armband prövas mot patientens identitet med samma regel som när utrustning kopplas.
+  const armband = body.armband != null && body.armband !== '';
+  if (armband && !mt.armbandStammer(db, atk.patientId, body.armband)) {
+    atk.logga('ge_lakemedel', 'nekad', `iva:infusion:${o.id}:armband`, 'nekad');
+    throw new Fel(400, 'Armbandet hör inte till den här patienten. Ändra inte dosen. Kontrollera att du står vid rätt patient.', 'ogiltig', { falt: ['armband'] });
+  }
   if (!lakemedel.aktuell(o)) throw new Fel(400, 'Ordinationen är inte aktiv.', 'ogiltig');
   const inf = infusionerFor(atk, null, nu).find(x => x.ordinationId === o.id);
   if (!inf) throw new Fel(404, 'Infusionen finns inte.', 'saknas');
@@ -360,7 +391,7 @@ export function andraDos(atk, oid, body = {}, nu = new Date()) {
   const grund = typeof body.grund === 'string' && body.grund.trim() ? body.grund.trim().slice(0, 300) : (inf.titrering?.forslag === dos ? inf.titrering.text : null);
   db.query('INSERT INTO iva_titreringar (ordination_id, patient_id, enhet_id, tid, dos, av, grund) VALUES (?, ?, ?, ?, ?, ?, ?)').run(o.id, atk.patientId, atk.personal.enhet_id, nu.toISOString(), dos, atk.personal.id, grund);
   atk.logga('ge_lakemedel', atk.grund(), `iva:infusion:${o.id}:dos`);
-  return { dos, mlH: hastighetFor(i, dos), text: `Dosen är ${talSv(dos, 3)} ${i.dos_enhet}. Ställ pumpen på ${talSv(hastighetFor(i, dos))} ml/h.` };
+  return { dos, mlH: hastighetFor(i, dos), text: `${armband ? 'Armbandet stämmer. ' : ''}Dosen är ${talSv(dos, 3)} ${i.dos_enhet}. Ställ pumpen på ${talSv(hastighetFor(i, dos))} ml/h.` };
 }
 
 // --- Översikt och övervakning (4.6.1.2) ----------------------------------------------------------------------------

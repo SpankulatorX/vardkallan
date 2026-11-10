@@ -69,6 +69,8 @@ export const ICD10SE = {
 // ATC-benämning ordagrant ur WHO:s ATC/DDD-index 2026 (atcddd.fhi.no, senast uppdaterat 2026-01-20).
 // Används som display i FHIR. Den svenska substansen står i läkemedelskatalogen.
 export const ATC = {
+  // Runda 11, r7: intensivvårdens läkemedel, kontrollerade mot WHO:s ATC/DDD-index 2026-11-10.
+  'C01CA03': 'norepinephrine', 'N01AX10': 'propofol', 'N05CD08': 'midazolam',
   'A02BC01': 'omeprazole', 'A10AB05': 'insulin aspart', 'A10AE04': 'insulin glargine', 'A10BA02': 'metformin',
   'A10BK03': 'empagliflozin', 'A12AX': 'Calcium, combinations with vitamin D and/or other drugs',
   'B01AA03': 'warfarin', 'B01AB04': 'dalteparin', 'B01AB05': 'enoxaparin', 'B01AC06': 'acetylsalicylic acid',
@@ -214,6 +216,11 @@ export const NPL = {
   '20040607008683': { namn: 'Levaxin', styrka: '75 mikrogram', form: 'Tablett', substans: 'Levotyroxin', atc: 'H03AA01', vagar: ['ORAL'], godkand: '2005-09-16' },
   '20151002000087': { namn: 'Metformin Sandoz', styrka: '1000 mg', form: 'Filmdragerad tablett', substans: 'Metformin', atc: 'A10BA02', vagar: ['ORAL'], godkand: '2017-09-29' },
   '20070919000037': { namn: 'Amoxicillin Sandoz', styrka: '500 mg', form: 'Filmdragerad tablett', substans: 'Amoxicillin', atc: 'J01CA04', vagar: ['ORAL'], godkand: '2009-12-11' },
+  // Runda 11, r7: intensivvårdens produkter ur NPL:s totalfil 2026-11-10 (research/r7-npl).
+  '20070331000011': { namn: 'Noradrenalin Abcur', styrka: '1 mg/ml', form: 'Koncentrat till infusionsvätska, lösning', substans: 'Noradrenalin', atc: 'C01CA03', vagar: ['INVE'], godkand: '2009-07-03' },
+  '20000825000258': { namn: 'Propofol-Lipuro', styrka: '10 mg/ml', form: 'Injektionsvätska/infusionsvätska, emulsion', substans: 'Propofol', atc: 'N01AX10', vagar: ['INVE'], godkand: '2000-08-25' },
+  '20051112000024': { namn: 'Midazolam Panpharma', styrka: '5 mg/ml', form: 'Injektionsvätska, lösning', substans: 'Midazolam', atc: 'N05CD08', vagar: ['INMU', 'INVE', 'RECT'], godkand: '2006-10-06' },
+  '19801003000053': { namn: 'Furix', styrka: '10 mg/ml', form: 'Injektionsvätska, lösning', substans: 'Furosemid', atc: 'C03CA01', vagar: ['INMU', 'INVE'], godkand: '1980-10-03' },
 };
 
 // Mätvärden. Labbresultat kodas med NPU (används av svenska laboratorier), kontrollerat mot IFCC:s NPU-fil
