@@ -63,6 +63,8 @@ export const STARTPUNKT = {
   'Inkorgen med ett förslag om donation': { hash: '#/inkorg', klar: 'section[aria-labelledby="ik-donation"] li', forbered: 'donation' },
   // Runda 10, r7: kassan, efter uppgiften där vårdadministratören tar betalt.
   'Kassan': { hash: '#/kassa', klar: '#kassa-avslut', forbered: 'kassa-besok' },
+  // Runda 11, r6: röntgenklinikens arbetslista efter återställning, med undersökningar som väntar på tid.
+  'Röntgenklinikens undersökningar efter återställning': { hash: '#/undersokningar', klar: '#us-boka', forbered: 'aterstall' },
 };
 
 export const UPPGIFTER = [
@@ -566,6 +568,17 @@ export const UPPGIFTER = [
     id: 'dagsavslut', namn: 'Göra dagsavslut i kassan', roll: 'adm-kard', start: 'Kassan',
     text: 'Dagen är slut. Stäm av din kassa mot betalterminalen och gör dagsavslut.',
     kontroll: { notis: 'Dagsavslutet är gjort' },
+  },
+  // Runda 11, r6: undersökningar i beställning och svar och röntgenklinikens bokning (Sussa 4.4.2.6 till 4.4.2.8).
+  {
+    id: 'bestall-undersokning', namn: 'Beställa en röntgenundersökning', roll: 'lak-kard', start: 'Översikten för den inlagda patienten efter återställning',
+    text: 'Gunnar Åkesson har ont i höger knä sedan han föll. Beställ en röntgen av knäleden.',
+    kontroll: { notis: 'är beställt' },
+  },
+  {
+    id: 'boka-undersokning', namn: 'Boka en inkommen undersökning på röntgenkliniken', roll: 'rtg-ssk', start: 'Röntgenklinikens undersökningar efter återställning',
+    text: 'Du arbetar på röntgenkliniken. Boka den undersökning som är mest brådskande.',
+    kontroll: { notis: 'är bokad' },
   },
 ];
 

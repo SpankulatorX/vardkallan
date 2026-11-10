@@ -1895,7 +1895,9 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
         // Runda 10, r4: in- och utfarter, restjournaler och donation.
         'registrera-infart', 'skanna-restjournal', 'starta-donation',
         // Runda 10, r7: meddelanden, kontorsstödet, kapaciteten och kassan.
-        'fornya-recept', 'kalenderprenumeration', 'svara-meddelande', 'kapacitetsprognos', 'dagsavslut']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'fornya-recept', 'kalenderprenumeration', 'svara-meddelande', 'kapacitetsprognos', 'dagsavslut',
+        // Runda 11, r6: röntgenundersökningen och bokningen på röntgenkliniken.
+        'bestall-undersokning', 'boka-undersokning']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

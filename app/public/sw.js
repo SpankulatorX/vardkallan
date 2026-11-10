@@ -36,6 +36,7 @@ const FILER = [
   '/js/remiss-r8-ui.js',
   '/js/remiss-r10-ui.js',
   '/js/labb-ui.js', '/js/vyer/patient-prover.js', '/js/vyer/provtagning.js',
+  '/js/vyer/undersokningar.js',
   '/js/bokning-r8.js', '/js/vyer/avdelning.js',
   '/js/oppet-api-forvaltning.js',
   '/js/mt-ui.js', '/js/vyer/iva.js',

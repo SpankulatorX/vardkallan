@@ -211,7 +211,7 @@ for (const w of ['PVK', 'PICC', 'CVK', 'KAD', 'OCR', 'GS1', 'DAS', 'DAL']) TILLA
 for (const w of ['Word', 'DOCX', 'IEC', 'RFC', 'HMAC', 'MIME', 'URI', 'REST', 'WebDAV', 'REQUEST', 'PUBLISH', 'iMIP', 'Outlook', 'Excel', 'Teams', 'SharePoint', 'Graph', 'Microsoft', 'Office', 'LibreOffice']) TILLATNA.add(w);
 FRASER.push('Office Open XML', 'X-Vardkallan-Simulerad');
 // Runda 11, r6: datortomografi (DT), magnetkamera (MR) och hjärtintensivvårdsavdelningen (HIA).
-for (const w of ['DT', 'MR', 'HIA']) TILLATNA.add(w);
+for (const w of ['DT', 'MR', 'HIA', 'DICOM']) TILLATNA.add(w);
 
 // Svenska ord som ofta skrivs utan å, ä eller ö. Formen utan prickar är inget eget ord.
 export const UTAN_PRICKAR = new Map(Object.entries({
