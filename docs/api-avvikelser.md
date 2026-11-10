@@ -713,3 +713,8 @@ Det som ändrar något kräver radens vårdenhet. Listor på enhetsnivå och upp
 - Kapaciteten: `GET /api/kapacitet?veckor=4..26` ger `{ vardenhet, dag, veckor, sistaVeckaMedTider, grupper: [{ tidstyp, yrkesroll, vantar, remisser, inflodePerVecka, ledigaTotalt, kontBorta, riskerarGransen, forslag, veckor }], resurser, summa, demoregler }` och `GET /api/kapacitet/rapport.docx`.
 - Kontorsstödet: `GET /api/kontorsstod`, `GET /api/kalender`, `POST /api/kalender/lank` (201, med `adress` som visas en gång), `POST /api/kalender/lank/aterkalla`, `GET /api/kalender/{länken}.ics` utan session, `GET /api/anteckning/:id/docx`, `GET /api/bokning/:id/kontorsstod` med `{ ics, epost, video?, telefon? }`, `GET /api/bokning/:id/inbjudan.ics`, `GET /api/bokning/:id/inbjudan.eml` och `GET /api/videomote/:kod`.
 - Nya handlingar i behörighetsmotorn: `meddelande_invanare` (läkare, sjuksköterska, fysioterapeut och vårdadministratör), `fullmakt`, `kassa` och `kapacitet` (vårdadministratör).
+
+## Tid och falsk klocka (runda 11, r1)
+
+- `GET /api/health` har `testklocka` (serverns tid som ISO i UTC) bara när testcontainern är startad med testflaggan `VARDKALLAN_TESTKLOCKA=1` och `VARDKALLAN_FALSK_NU`. I driften finns fältet inte. Se avsnittet om tid i design.md.
+- Ett mätvärde från medicinteknisk utrustning hör till den koppling som gällde vid mättiden, från kopplingens start till men inte med dess slut. Ett värde med samma tid som en flytt hör alltså bara till den nya kopplingen.

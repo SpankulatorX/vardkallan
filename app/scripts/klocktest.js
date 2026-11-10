@@ -7,10 +7,11 @@
 //   bun scripts/klocktest.js --parallellt 3     tre körningar samtidigt
 //   bun scripts/klocktest.js --tz Europe/Stockholm   processens tidszon (som i driften), annars den som är satt
 //   bun scripts/klocktest.js --lista            skriver tiderna och avslutar
+//   bun scripts/klocktest.js --ut klocktest-b   resultatet i .testtmp-klocktest-b/ (för två körningar samtidigt)
 //   bun scripts/klocktest.js -- test/tidbok.test.js  allt efter -- går till bun test (till exempel några filer)
 //
-// Resultatet skrivs också som JSON till .testtmp-klocktest/resultat.json. Avslutas med 1 om något test är rött
-// vid någon tid, eller om en körning inte gav någon rapport.
+// Resultatet skrivs också som JSON till .testtmp-klocktest/resultat.json (eller katalogen som --ut anger). Avslutas
+// med 1 om något test är rött vid någon tid, eller om en körning inte gav någon rapport.
 import { mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tolkaJunit } from './junit-tolkning.js';
@@ -60,7 +61,7 @@ export const TIDER = [
 export const URVAL = ['vardag-2330', 'vardag-0030', 'vardag-0115', 'sondag-1200', 'vintertid-0230-vinter', 'nyarsdagen-0030', 'skottdag-0030'];
 
 function argument(argv) {
-  const a = { tider: null, parallellt: 1, tz: null, lista: false, extra: [] };
+  const a = { tider: null, parallellt: 1, tz: null, lista: false, ut: 'klocktest', extra: [] };
   for (let i = 0; i < argv.length; i++) {
     const x = argv[i];
     if (x === '--') { a.extra = argv.slice(i + 1); break; }
@@ -69,6 +70,7 @@ function argument(argv) {
     else if (x === '--parallellt') a.parallellt = Math.max(1, Number(argv[++i]) || 1);
     else if (x === '--tz') a.tz = argv[++i];
     else if (x === '--lista') a.lista = true;
+    else if (x === '--ut') a.ut = String(argv[++i] ?? '').replace(/[^\w-]/g, '') || 'klocktest';
     else throw new Error(`Okänt argument: ${x}`);
   }
   return a;
@@ -97,7 +99,7 @@ if (import.meta.main) {
     process.exit(0);
   }
   const valda = a.tider ? a.tider.map(n => TIDER.find(t => t.namn === n) ?? (() => { throw new Error(`Okänd tid: ${n}`); })()) : TIDER;
-  const katalog = join(rot, '.testtmp-klocktest');
+  const katalog = join(rot, `.testtmp-${a.ut}`);
   mkdirSync(katalog, { recursive: true });
   const resultat = [];
   const ko = [...valda];
