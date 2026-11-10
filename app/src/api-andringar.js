@@ -11,6 +11,12 @@ export const VERSION = (() => { try { return JSON.parse(readFileSync(join(import
 // resurser är resurstyperna som kom i versionen, skrivning är resurstyp och interaktion (Condition:create) och
 // annat är ändringar som inte är en resurstyp, till exempel SMART on FHIR.
 export const ANDRINGAR = [
+  // Runda 11, r8: modulregistret. Inga nya resurstyper eller skrivningar i FHIR.
+  {
+    version: '1.1.0', datum: '2026-11-10',
+    text: 'Modulregistret i GET /api/moduler: varje modul med status, var den nås och hur många av dess krav som är uppfyllda, räknat ur koden och kravregistret. Inga ändringar i FHIR-API:t.',
+    resurser: [], skrivning: [], annat: ['Modulregistret i GET /api/moduler'],
+  },
   // Runda 10, r1: systemkonton, prenumerationer på en population, överkänslighet och patienter via API:t och
   // Patient/$everything för personalen (Sussa 2.5.1.1 och 2.5.1.2).
   {

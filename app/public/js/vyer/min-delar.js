@@ -35,7 +35,7 @@ function begransningar(h) {
       ${b.regler.map(r => `<li>${esc(r.motivering)}</li>`).join('')}
       <li>Diagnoser, läkemedel, överkänslighet, uppmärksamhetsinformation, remisser och vårdkontakter visas direkt.</li>
       <li>Spärrar gäller mellan vårdenheter. Du ser själv dina uppgifter också från en vårdenhet som du har spärrat.</li>
-      <li>Vaccinationer i barnhälsovården och barnets tillväxt visas under Tillväxt. Andra vaccinationer och intyg finns inte i Vårdkällans journal ännu och visas därför inte här. Dina tider finns under Tider.</li>
+      <li>Vaccinationer i barnhälsovården och barnets tillväxt visas under Tillväxt. Vaccinationer i de andra programmen dokumenteras i journalen men visas inte i Min journal. Dina tider finns under Tider.</li>
     </ul>
     <p>Har du frågor om innehållet i journalen kan du kontakta den vårdenhet som har skrivit det. Du kan också begära en kopia av hela journalen.</p>
   </details>`;

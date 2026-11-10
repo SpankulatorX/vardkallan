@@ -1732,10 +1732,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('GET', '/api/moduler', () => {
     const resultat = lasTestresultat(testresultat);
     const register = sussaRegister(resultat, lasKlientresultat(klientresultat));
-    const apiFinns = (anrop) => {
-      const [metod, vag] = anrop.split(' ');
-      return R.some(([m, re]) => m === metod && re.test(modulExempel(vag)));
-    };
+    const apiFinns = (vag) => R.some(([, re]) => re.test(modulExempel(vag)));
     return modulregister({ register, apiFinns });
   });
   utdataRutter({ rutt, kravInloggad, medPatient, valFor, version: APPVERSION });

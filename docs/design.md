@@ -37,7 +37,7 @@ Exempel som redan finns: aktivt val och samtycke frågas efter bara när behöri
 
 ## Icke-mål i första versionen
 
-Kassa och resursbokning av lokaler och utrustning, specialområdena (anestesi och IVA, cytostatika, operation, förlossning; barnhälsovården kom i runda 7), riktiga integrationer mot NLL, NPÖ, 1177 och e-remiss, diktat, mobilklient, BI. De visas på modulsidan som planerade, aldrig som klara.
+Kassa och resursbokning av lokaler och utrustning, specialområdena (anestesi och IVA, cytostatika, operation, förlossning; barnhälsovården kom i runda 7), riktiga integrationer mot NLL, NPÖ, 1177 och e-remiss, diktat, mobilklient, BI. Det mesta av det har byggts sedan dess: kassan och resursbokningen, intensivvården, specialområdena i API:t, diktering, mobilen och analys och statistik. Riktiga integrationer mot de nationella tjänsterna görs inte i demon. Modulsidan räknar fram vad som finns ur koden (se avsnittet Modulregistret).
 
 ## Det som får demon att misslyckas även om den fungerar
 
@@ -833,7 +833,7 @@ Skrivningen har ingen egen väg förbi reglerna. En FHIR-resurs översätts till
 - **Composition** (anteckningar): samma mallar och sökord. `final` skapar och signerar i samma anrop, `preliminary` sparar ett utkast. Ett utkast ändras med PUT, och en signerad anteckning rättas med en ny version och en orsak, och den tidigare står kvar.
 - **MedicationRequest** (ordinationer): samma kontroller och varningar som läkemedelslistan. Läkemedlet anges med NPL-id, eller med ATC-kod när den bara ger en produkt. Saknas dosering eller uppföljningsdatum fyller systemet i sitt förslag för produkten och patienten och säger det i svaret. Ordinationsorsaken skriver förskrivaren alltid själv. En allvarlig varning stoppar sparandet med en OperationOutcome där varje varning står med sin regel, och kvitteras med tillägget `kvitterad-varning` i nästa anrop. En ordination ändras genom utsättning (status stopped), och antikoagulantia sätts bara ut med en plan, där systemet föreslår planerna.
 - **ServiceRequest** (remisser): samma kontroller och samma förval som formuläret, normal prioritet och svar inom 14 dagar.
-- **Det som inte går**: diagnoser, överkänslighet och patienter går inte att registrera i gränssnittet än, och därför inte heller i API:t. DELETE nekas alltid med förklaringen att journaluppgifter rättas, sätts ut eller makuleras och aldrig tas bort.
+- **Det som inte går**: DELETE nekas alltid med förklaringen att journaluppgifter rättas, sätts ut eller makuleras och aldrig tas bort. Diagnoser, överkänslighet och nya patienter går numera att registrera både i gränssnittet och via API:t (FHIR Condition, AllergyIntolerance och Patient).
 - **Fel** är en OperationOutcome med samma svenska text som gränssnittet visar, felkoden och en FHIRPath till fältet som är fel.
 
 ### Prenumerationer (prenumeration.js)
@@ -1071,7 +1071,7 @@ En vårdenhet kan ha egna övningar utöver vårdgivarens, i tabellen `enhetsovn
 
 ### Villkoren för version 1.0 (version.js, `GET /api/krav/version`)
 
-Version 0.x är ett demosystem under uppbyggnad, och varje runda höjer det andra talet (0.8 är runda 8). Version 1.0 betyder funktionellt komplett mot kravspecifikationen i demon och sätts när alla fyra villkor är uppfyllda. Servern räknar dem, och rutan överst på kravsidan visar för varje villkor om det är uppfyllt och hur långt det är kvar, och versionen ur `package.json`:
+Version 0.x är ett demosystem under uppbyggnad, och varje runda höjer det andra talet (0.8 är runda 8). Version 1.0 betyder funktionellt komplett mot kravspecifikationen i demon och sätts när alla fyra villkor är uppfyllda. Efter 1.0 höjer varje runda det andra talet igen (1.1 är runda 11). En version 1.x gör demon mer komplett och ändrar inte villkoren för 1.0, som fortsätter att gälla och visas i samma ruta. Servern räknar dem, och rutan överst på kravsidan visar för varje villkor om det är uppfyllt och hur långt det är kvar, och versionen ur `package.json`:
 
 1. Ingen post i kategorin system i Sussa-registret är planerad.
 2. Kärnsystemets poster i kapitel 2, 3, 5 och 6 i kategorin system är uppfyllda i demon. Poster som kräver en nationell tjänst (kategorin nationell) räknas inte.
@@ -1915,6 +1915,32 @@ Vårdkällan lämnar ut det som kontorsstödet behöver i öppna standardformat,
 ### Det som är simulerat eller saknas
 
 E-legitimationen, sms-aviseringen, betalterminalen, fakturan, e-posten, videomötet och Microsofts tjänster är simulerade. Avgifterna, fullmaktens regler och prognosens regler är demoregler. Ett meddelande blir inte en journalanteckning av sig själv. Meddelanden, fullmakter och avgifter för tjänster finns inte i FHIR-API:t. Kalenderlänken gäller så länge sandlådan finns. Publicering av tider till 1177 Vårdguidens e-tjänster kräver anslutning till 1177 och är inte byggd.
+
+## Modulregistret och modulsidan (runda 11, r8: moduler.js och vyer/moduler.js, `GET /api/moduler`)
+
+Modulsidan räknas fram ur koden, så att den aldrig säger att en modul är planerad när den finns, och bygget stoppas
+om registret och koden går isär.
+
+`app/src/moduler.js` har en post per modul med namn, område, beskrivning, Sussa-avsnitt (ett avsnitt eller ett post-id
+som prefix), rutter i `app.js`, flikar i journalen och i Min journal, vyer i `public/js/vyer`, filer, rutter i API:t och
+vad som är simulerat. Statusen skrivs inte in. Servern läser rutterna (alla regexlitteraler som börjar med `#/` i
+`app.js`, också de som läggs till med `splice` eller `push`), menyns rader och flikarna i `patient.js` och `min.js`, och
+prövar rutterna i API:t mot serverns egna rutter:
+
+- Finns i demon: modulen har en rutt, en flik i journalen eller en flik i Min journal som finns i koden.
+- Finns i API:t: ingen rutt i gränssnittet, men rutter i API:t eller filer som finns.
+- Planerat: ingenting av det. En planerad modul får inte ha uppfyllda eller delvis uppfyllda poster.
+
+Antalet uppfyllda, delvis uppfyllda och planerade poster per modul räknas ur Sussa-registret med samma testresultat som
+kravsidan, och länken Visa kraven öppnar kravsidan med modulens poster (`#/krav?poster=4.6`). Sidan visar för varje modul
+var den nås (menyns namn, journalens och Min journals flikar) och vad som är simulerat. Vyn har inga egna listor.
+
+Testet `app/test/moduler.test.js` stoppar bygget om en rutt i `app.js`, en flik i journalen eller i Min journal eller en
+vy saknas i registret (utom inloggningssidan, som står i en kort lista med motivering), om registret pekar på en rutt, en
+flik, en vy, en fil eller en rutt i API:t som inte finns, om en post i kategorin system inte hör till någon modul, om en
+modul med kod eller rutter skulle visas som planerad, eller om en text om en modul som finns säger inte byggt, finns
+inte eller planerat. Genomgången i webbläsaren prövar samma sak på den ritade sidan. En ny vy eller flik kräver alltså en
+rad i registret, och en modul som får ett gränssnitt byter status av sig själv.
 
 ## Godkännandekriterier för första versionen
 

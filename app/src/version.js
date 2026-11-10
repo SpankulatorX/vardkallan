@@ -2,13 +2,14 @@
 //
 // Versionsprincipen: 0.x är ett demosystem under uppbyggnad, och varje runda höjer det andra talet (0.8 är runda 8).
 // Version 1.0 betyder att demon är funktionellt komplett mot kravspecifikationen, när alla fyra villkor är uppfyllda.
+// Runda 11, r8: efter 1.0 höjer varje runda det andra talet igen (1.1 är runda 11), utan att villkoren för 1.0 ändras.
 // Villkoren räknas av servern ur Sussa-registret (sussa/index.js), resultatet av Sussas testfall (sussa-testfall.json)
 // och listan med öppna säkerhetsfynd (sakerhetsfynd.json). Inget av det skrivs in för hand här.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { TESTFALL, TIDSKLASSER } from './sussa-testfall.js';
 
-export const PRINCIP = 'Version 0.x är ett demosystem under uppbyggnad, och varje runda höjer det andra talet: 0.8 är runda 8. Version 1.0 betyder att demon är funktionellt komplett mot kravspecifikationen, och den sätts när alla fyra villkoren nedan är uppfyllda.';
+export const PRINCIP = 'Version 0.x är ett demosystem under uppbyggnad, och varje runda höjer det andra talet: 0.8 är runda 8. Version 1.0 betyder att demon är funktionellt komplett mot kravspecifikationen, och den sätts när alla fyra villkoren nedan är uppfyllda. Efter 1.0 höjer varje runda det andra talet igen: 1.1 är runda 11. En version 1.x gör demon mer komplett och ändrar inte villkoren för 1.0, som fortsätter att gälla.';
 export const INTE_VARDEN = 'Version 1.0 betyder inte att Vårdkällan kan användas i vården. Det kräver riktiga integrationer (Nationell patientöversikt, Nationella läkemedelslistan och laboratorier), troligen CE-märkning som medicinteknisk produkt, en driftorganisation, en extern säkerhetsgranskning, migrering av befintliga journaler och det som kravspecifikationen kräver av leverantören.';
 export const KAPITEL_KARNA = ['2', '3', '5', '6'];
 

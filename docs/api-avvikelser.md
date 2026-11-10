@@ -713,3 +713,8 @@ Det som ändrar något kräver radens vårdenhet. Listor på enhetsnivå och upp
 - Kapaciteten: `GET /api/kapacitet?veckor=4..26` ger `{ vardenhet, dag, veckor, sistaVeckaMedTider, grupper: [{ tidstyp, yrkesroll, vantar, remisser, inflodePerVecka, ledigaTotalt, kontBorta, riskerarGransen, forslag, veckor }], resurser, summa, demoregler }` och `GET /api/kapacitet/rapport.docx`.
 - Kontorsstödet: `GET /api/kontorsstod`, `GET /api/kalender`, `POST /api/kalender/lank` (201, med `adress` som visas en gång), `POST /api/kalender/lank/aterkalla`, `GET /api/kalender/{länken}.ics` utan session, `GET /api/anteckning/:id/docx`, `GET /api/bokning/:id/kontorsstod` med `{ ics, epost, video?, telefon? }`, `GET /api/bokning/:id/inbjudan.ics`, `GET /api/bokning/:id/inbjudan.eml` och `GET /api/videomote/:kod`.
 - Nya handlingar i behörighetsmotorn: `meddelande_invanare` (läkare, sjuksköterska, fysioterapeut och vårdadministratör), `fullmakt`, `kassa` och `kapacitet` (vårdadministratör).
+
+## Modulregistret (runda 11, r8)
+
+- `GET /api/moduler`, utan inloggning och utan patientuppgifter, ger `{ statusar, omraden, summa: { demo, api, planerat }, moduler }`. Varje modul har `id`, `namn`, `omrade`, `beskrivning`, `simulerat`, `nas`, `status` (`demo`, `api` eller `planerat`), `statusText`, `avsnitt: [{ id, rubrik }]`, `poster: { uppfyllt_demo, delvis, planerat, totalt, ids }`, `kravLank`, och `rutter`, `journal`, `min`, `vyer`, `kod` och `api` med `finns` för varje rad. Statusen och antalet räknas av servern varje gång, ur gränssnittets kod, serverns rutter och Sussa-registret med samma testresultat som `GET /api/krav/sussa`.
+- Kravsidan tar `#/krav?poster=4.6,4.4.2.12`: ett urval av poster efter avsnitt eller post-id, som modulsidans länkar använder.

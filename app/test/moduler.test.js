@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { testserver, klient } from './hjalp.js';
 import { MODULER, UTAN_MODUL, OMRADEN, FORBJUDNA, lasGransnitt, modulregister, ruttFinns, exempel, traffar } from '../src/moduler.js';
 import { SPEC, MAPPNING, sussaRegister } from '../src/sussa/index.js';
+import { PRINCIP, villkor10 } from '../src/version.js';
 
 const APP = join(import.meta.dir, '..');
 const g = lasGransnitt();
@@ -143,6 +144,15 @@ FLIKAR.splice(4, 0, ['graviditet', 'Graviditet', graviditet.visa]);`;
     expect(FORBJUDNA.test('Allt som ska göras och det som är planerade händelser.')).toBe(false);
     // Inga tankstreck eller ellipser i texterna.
     for (const m of MODULER) for (const t of [m.namn, m.beskrivning, m.simulerat, m.nas]) if (t) expect(t).not.toMatch(/[–—…]/);
+  });
+
+  test('versionsprincipen säger vad 1.x betyder, och villkoren för 1.0 är kvar', () => {
+    expect(PRINCIP).toContain('Version 1.0 betyder att demon är funktionellt komplett mot kravspecifikationen');
+    expect(PRINCIP).toContain('Efter 1.0 höjer varje runda det andra talet igen: 1.1 är runda 11.');
+    expect(PRINCIP).toContain('ändrar inte villkoren för 1.0');
+    expect(PRINCIP).not.toMatch(/[–—…]/);
+    const v = villkor10({ poster: [] }, null, { version: '1.1.0', fynd: { oppna: [] }, testfall: [] });
+    expect(v.villkor.map(x => x.id)).toEqual(['a', 'b', 'c', 'd']);
   });
 
   test('API: GET /api/moduler utan inloggning, utan patientuppgifter, med samma antal poster som kravsidan', async () => {
