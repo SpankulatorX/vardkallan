@@ -1156,7 +1156,6 @@ function skapa(BAS) {
     await page.waitForSelector('dialog[open] [data-fonster="Ben"]');
     await m.klicka(page.locator('dialog[open] [data-fonster="Ben"]'), 'fönstret Ben');
     await page.waitForFunction(() => document.querySelector('dialog[open] .bm-studie img')?.src.includes('window=2800,2000') && document.querySelector('dialog[open] .bm-studie img').complete);
-    await page.keyboard.press('Escape');
   };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }

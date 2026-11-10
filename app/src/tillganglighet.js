@@ -21,7 +21,7 @@ export const KRAV = [
     'Varje bild och symbol i alla vyer prövas: den har ett textalternativ, eller är dold för hjälpmedel när den bara är dekoration. Kurvorna har en beskrivning med värdena, och värdena finns också i en tabell.',
     [G.alt, G.namn]),
   k('1.2.1', 'Enbart ljud och enbart video (förinspelad)', '11.2.1.2', '1.2.1', 'A', 'ej_tillampligt', 'automatisk',
-    'Vårdkällan har inget ljud och ingen video. Testet prövar att inga ljud- eller videoelement finns i någon vy.', [G.media]),
+    'Gränssnittet har inget eget ljud och ingen egen video. Filmer och ljud som vården spelar in och för in i journalen (fliken Bilder) är uppgifter om patienten, och de spelas bara upp när användaren väljer det, i en dialog med webbläsarens kontroller och med kroppsställe, beskrivning, tid och längd i text. Testet prövar att inga ljud- eller videoelement finns i någon vy när den visas.', [G.media]),
   k('1.2.2', 'Textbeskrivningar (förinspelade)', '11.2.1.3', '1.2.2', 'A', 'ej_tillampligt', 'automatisk',
     'Inga förinspelade media finns.', [G.media]),
   k('1.2.3', 'Ljudbeskrivning eller mediealternativ (förinspelat)', '11.2.1.4', '1.2.3', 'A', 'ej_tillampligt', 'automatisk',
@@ -35,7 +35,7 @@ export const KRAV = [
     'Status, larm, varningar, uppmärksamhetssymbolen, spärrmarkeringen och skyddad identitet har text och symbol utöver färgen. I kurvorna har punkter utanför referensintervallet en ring, och den andra serien är streckad. Länkar i löptext är understrukna. Testet prövar varje vy för varje roll.',
     [G.farg]),
   k('1.4.2', 'Kontroll av ljud', '11.2.1.11', '1.4.2', 'A', 'ej_tillampligt', 'automatisk',
-    'Vårdkällan spelar inget ljud.', [G.media]),
+    'Vårdkällan spelar inget ljud av sig självt. Ett inspelat ljud i journalen spelas bara upp när användaren startar det, och det stoppas med webbläsarens kontroller.', [G.media]),
   k('1.4.3', 'Kontrast (minimum)', '11.2.1.12', '1.4.3', 'AA', 'uppfyllt', 'automatisk',
     'Kontrasten mellan text och bakgrund räknas med WCAG:s formel för varje synligt textelement i alla vyer för alla demoroller och i Min journal: minst 4,5:1, och 3:1 för stor text.',
     [G.kontrast]),
@@ -101,7 +101,7 @@ export const TILLAGG = [
 // Hur Vårdkällan är anpassad för de funktionsnedsättningar som K2 och Sussa 8.4.1.3 nämner.
 export const ANPASSNING = [
   { id: 'syn', rubrik: 'Synskada', text: 'Allt går att förstora till 200 procent och läsa vid 320 px bredd. Kontrasten är minst 4,5:1, och högkontrastläget ger minst 7:1. Alla bilder och symboler har textalternativ, och sidan har landmärken och rubriker för skärmläsare. Allt nås med tangentbordet, och fokus syns.', tester: [G.zoom, G.omflyttning, G.kontrast, G.hogKontrast, G.alt, G.landmarken, G.synligtFokus] },
-  { id: 'horsel', rubrik: 'Hörselskada', text: 'Vårdkällan har inget ljud. Larm och påminnelser visas i inkorgen och på skärmen, aldrig bara som ljud.', tester: [G.media] },
+  { id: 'horsel', rubrik: 'Hörselskada', text: 'Vårdkällan har inga ljudsignaler. Larm och påminnelser visas i inkorgen och på skärmen, aldrig bara som ljud. Ett inspelat ljud i journalen har en beskrivning i text.', tester: [G.media] },
   { id: 'farg', rubrik: 'Färgblindhet', text: 'Färg bär aldrig ensam information. Status, larm, uppmärksamhetssymbolen och kurvorna har text, symbol eller form.', tester: [G.farg] },
   { id: 'kognition', rubrik: 'Begränsad kognitionsförmåga', text: 'Systemet är experten: det fyller i det som går att räkna ut och förklarar på vanlig svenska. Språkkontrollen stoppar engelska ord och interna förkortningar. Hjälpen i sammanhanget förklarar de vanligaste flödena steg för steg, nyheterna visar bara det som gäller den egna rollen, och inget rör sig när datorn är inställd på minskade rörelser.', tester: [G.hjalp, G.nyheter, G.rorelse, S.ovText] },
 ];

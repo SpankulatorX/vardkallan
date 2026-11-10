@@ -286,7 +286,11 @@ function granskaSida({ kontrastKrav = 4.5, storKrav = 3 } = {}) {
 
   // Media: inget ljud, ingen video, inga bilder av text och inget som rör sig av sig självt.
   for (const el of document.querySelectorAll('audio, video, embed, object, marquee, blink')) ut.media.push(`${kort(el)}: media`);
-  for (const el of document.querySelectorAll('img')) if (!/\.svg(\?|$)|^data:image\/svg/.test(el.currentSrc || el.src)) ut.media.push(`${kort(el)}: rasterbild (${el.src.slice(0, 60)})`);
+  // Runda 11, r5: bilderna i journalen (fliken Bilder och arkivets studier) är kliniska bilder och inte bilder av text.
+  // De får vara rasterbilder när de har ett textalternativ, i alt eller i namnet på knappen eller ytan som visar dem.
+  const journalbild = (el) => /^\/api\/(media|dicomweb)\//.test(new URL(el.currentSrc || el.src, location.href).pathname)
+    && Boolean(el.getAttribute('alt')?.trim() || el.closest('[aria-label]')?.getAttribute('aria-label')?.trim());
+  for (const el of document.querySelectorAll('img')) if (!/\.svg(\?|$)|^data:image\/svg/.test(el.currentSrc || el.src) && !journalbild(el)) ut.media.push(`${kort(el)}: rasterbild (${el.src.slice(0, 60)})`);
   for (const a of document.getAnimations?.() ?? []) {
     const t = a.effect?.getTiming?.();
     if (t && (t.iterations === Infinity || (Number(t.duration) * (t.iterations || 1)) > 5000)) ut.media.push(`${kort(a.effect.target)}: animation som pågår mer än fem sekunder`);

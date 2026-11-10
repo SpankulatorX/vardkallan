@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-08T21:31:41.197Z",
-  "bas": "http://127.0.0.1:18110",
+  "tid": "2026-11-10T15:56:06.746Z",
+  "bas": "http://127.0.0.1:18205",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "3983aa076c7adfef96c2db442439434ef4761d8a1e8c1b97a000df82f1f38b62",
+  "gransnittHash": "e7f2cff99cd7fea7067ce41f997b4f05ff16a2f4b2057c2c505e09b6bea83c9d",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -1780,6 +1780,78 @@
         "klick: Visa lediga tider",
         "klick: den första föreslagna tiden"
       ]
+    },
+    {
+      "id": "bild-fran-fil",
+      "namn": "Lägga in en bild från datorn i journalen",
+      "roll": "ssk-kard",
+      "start": "Patientens översikt",
+      "budget": 4,
+      "motivering": "Sussa 4.2.1.1, 4.2.1.2 och 4.2.1.4. Ett klick på fliken Bilder, ett på Fil från datorn eller mobilen och ett på Spara i journalen. Valet av fil i datorns fönster är ett steg till, som sidan inte ser. Kroppsstället är förifyllt ur patientens senaste bild, och systemet läser typen och tiden ur filen, skickar den i delar, gör miniatyren och knyter bilden till vårdkontakten.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Bilder",
+        "klick: Fil från datorn eller mobilen",
+        "klick: Spara i journalen"
+      ]
+    },
+    {
+      "id": "jamfor-bilder",
+      "namn": "Jämföra bilder av ett kroppsställe över tid",
+      "roll": "ssk-kard",
+      "start": "Patientens översikt",
+      "budget": 2,
+      "motivering": "Sussa 4.2.1.2. Ett klick på fliken Bilder och ett på Jämför bilder av korsbenet över tid. Systemet har grupperat bilderna efter kroppsställe och ställer dem bredvid varandra i tidsordning med dagarna från den första.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Bilder",
+        "klick: Jämför bilder av korsbenet över tid"
+      ]
+    },
+    {
+      "id": "bild-fran-apparat",
+      "namn": "Hämta en bild från en apparat och föra in den i journalen",
+      "roll": "ssk-kard",
+      "start": "Patientens översikt",
+      "budget": 4,
+      "motivering": "Sussa 4.2.1.4. Ett klick på fliken Bilder, ett på Från en apparat eller en annan vårdgivare, ett på Hämta från apparaten och ett på För in i journalen. Apparaten är förvald, kroppsstället föreslås ur patientens senaste bild, och systemet kontrollerar att apparatens patient är journalens innan bilden kan föras in.",
+      "klick": 4,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 4,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Bilder",
+        "klick: Från en apparat eller en annan vårdgivare",
+        "klick: Hämta från apparaten",
+        "klick: För in i journalen"
+      ]
+    },
+    {
+      "id": "visa-studie",
+      "namn": "Visa en röntgenstudie ur arkivet med ett annat fönster",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 3,
+      "motivering": "Sussa 4.2.1.3. Ett klick på fliken Bilder, ett på Visa bilderna och ett på fönstret Ben. Systemet hämtar studien från arkivet genom DICOMweb och har redan valt fönstret efter undersökningen.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Bilder",
+        "klick: Visa bilderna",
+        "klick: fönstret Ben"
+      ]
     }
   ],
   "tester": [
@@ -2173,6 +2245,22 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Boka en tid för patienten som ombud inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Lägga in en bild från datorn i journalen inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Jämföra bilder av ett kroppsställe över tid inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Hämta en bild från en apparat och föra in den i journalen inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Visa en röntgenstudie ur arkivet med ett annat fönster inom budget",
       "status": "grön"
     }
   ]
