@@ -149,6 +149,8 @@ import * as flerfaktor from './flerfaktor.js';
 // Runda 12, r2: uppgraderingar med återgång och säkerhetskopior (runda12-r2-rutter.js och releaser.js).
 import { registreraRutter as r12r2Rutter } from './runda12-r2-rutter.js';
 import { MIGRERINGAR as r12r2Migreringar } from './releaser.js';
+// Runda 13, r1: testinbjudan, guidade uppdrag och synpunkter (r13r1-rutter.js).
+import { registreraRutter as r13r1Rutter } from './r13r1-rutter.js';
 import { skapaKopielager, schemalagda as schemalagdaKopior } from './sakerhetskopior.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
@@ -292,7 +294,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   kopieKatalog = process.env.KOPIOR_KATALOG || (sessionFil ? join(dirname(sessionFil), 'kopior') : null),
   kopieAndra = process.env.KOPIOR_ANDRA || (sessionFil ? join(dirname(sessionFil), 'kopior-2') : null),
   kopieMinuter = Number(process.env.KOPIOR_MINUTER || 15),
-  maxSessioner = Number(process.env.MAX_SESSIONER || MAX_SESSIONER) } = {}) {
+  maxSessioner = Number(process.env.MAX_SESSIONER || MAX_SESSIONER),
+  // Runda 13, r1: synpunkterna i en egen databas bredvid sandlådorna (synpunkter.js), och taken som testerna kan ändra.
+  synpunktFil = '', synpunktTak = undefined } = {}) {
   const sessioner = new Map();
   // Runda 12, r3: nyckeln som krypterar nycklarna för engångskoder, bredvid sessionsfilen så att den följer med en omstart.
   flerfaktor.satNyckel({ fil: sessionFil ? join(dirname(sessionFil), 'flerfaktor.nyckel') : null });
@@ -1991,6 +1995,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   r11r7Rutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal });
   // Runda 12, r1 (r12r1-rutter.js).
   r12r1Rutter({ rutt, kravInloggad });
+  // Runda 13, r1 (r13r1-rutter.js).
+  const synpunkter = r13r1Rutter({ rutt, sessionFil, synpunktFil, version: APPVERSION, gransnittVersion, ...(synpunktTak ? { tak: synpunktTak } : {}) });
   // Runda 12, r2.
   r12r2Rutter({ rutt, kravInloggad, testresultat, kopior, migrera });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
@@ -2028,6 +2034,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const metod = req.method;
     // Runda 7, r1: klientens adress, för gränsen per skapare av testtillfällen.
     c.ip = klientIp(req, server);
+    // Runda 13, r1: webbläsarens rubrik, som synpunkter.js kortar till namn, huvudversion och operativsystem.
+    c.ua = req.headers.get('user-agent');
     if (metod !== 'GET' && metod !== 'HEAD') kontrolleraOrigin(req);
     let traff = null;
     for (const [m, re, fn] of R) {
@@ -2185,7 +2193,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   return {
     server, sessioner, port: server.port, url: `http://127.0.0.1:${server.port}`, spara, oppetApi,
     kopior, stadaKopior,
-    stopp() { clearInterval(stadning); if (kopieSchema) clearInterval(kopieSchema); server.stop(true); for (const s of sessioner.values()) s.db.close(); sessioner.clear(); anvandartestDb.close(); },
+    // Runda 13, r1.
+    synpunkter,
+    stopp() { clearInterval(stadning); if (kopieSchema) clearInterval(kopieSchema); server.stop(true); for (const s of sessioner.values()) s.db.close(); sessioner.clear(); anvandartestDb.close(); synpunkter.stopp(); },
   };
 }
 

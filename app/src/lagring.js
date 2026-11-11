@@ -60,7 +60,9 @@ const SYSTEM = new Set(['omorganisationer', 'omorganisation_flyttar', 'lagringsm
   'flerfaktorer',
   // Runda 12, r2: schemaversionen, det som sparats undan vid en återgång och uppgraderingarna hör till förvaltningen
   // av systemet (releaser.js).
-  'schema_migreringar', 'parkerade_data', 'uppgraderingar']);
+  'schema_migreringar', 'parkerade_data', 'uppgraderingar',
+  // Runda 13, r1: testarens uppdrag i demon hör till testinbjudan och inte till en huvudman (testinbjudan.js).
+  'testare', 'testare_uppdrag']);
 // Tabeller vars koppling inte går att se på kolumnnamnen.
 const UTTRYCKLIGA = {
   dubblettforslag: { typ: 'patient', kolumner: ['fran_patient_id', 'till_patient_id'] },

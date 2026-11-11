@@ -184,6 +184,8 @@ for (const w of ['JWT', 'JWKS', 'ES256', 'OpenID', 'IdP', 'ECDSA', 'P-256', 'SHA
 for (const w of ['WebAuthn', 'TOTP', 'CBOR', 'RS256', 'AES-256-GCM', 'HMAC-SHA1']) TILLATNA.add(w);
 // Runda 12, r3: MDR-bedömningen (MDCG-vägledningen och bilaga VIII) och teststandarden ISO/IEC/IEEE 29119.
 for (const w of ['MDCG', 'VIII', 'IEEE', 'IEC']) TILLATNA.add(w);
+// Runda 13, r1: journalsystemen i testinbjudan, filformaten i testledarens export och SQL i uppdragens kontroller.
+for (const w of ['Take', 'Care', 'NCS', 'Cross', 'Melior', 'Pascal', 'CSV', 'Markdown', 'Cloudflare', 'LIKE']) TILLATNA.add(w);
 // Runda 7, r1: källan till tidsmodellen i Sussas testfall.
 for (const w of ['ACM', 'Newell']) TILLATNA.add(w);
 // Runda 10, r5: förkortningar och namn i kunskapsstödet (kunskapsstod.js) och akutflödet.

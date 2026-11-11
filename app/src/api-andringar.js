@@ -15,7 +15,10 @@ export const ANDRINGAR = [
   {
     version: '1.3.0', datum: '2026-11-12',
     text: 'Inga nya resurstyper eller skrivningar i FHIR.',
-    resurser: [], skrivning: [], annat: [],
+    resurser: [], skrivning: [], annat: [
+      // Runda 13, r1: testinbjudan, guidade uppdrag och synpunkter.
+      'Synpunkter från testare, guidade uppdrag med jämförelse och testledarens läsning med läskod i det interna API:t (docs/api-avvikelser.md)',
+    ],
   },
   // Runda 12: version 1.2. Varje del lägger sina rader i annat i ett eget block.
   {

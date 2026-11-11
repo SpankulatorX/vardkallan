@@ -18,6 +18,11 @@ import * as uppgraderingar from './vyer/uppgraderingar.js';
 import * as oppetApi from './vyer/oppet-api.js';
 import * as drift from './vyer/drift.js';
 import * as anvandartest from './anvandartest.js';
+// Runda 13, r1: testinbjudan, guidade uppdrag och synpunkter från varje vy.
+import * as testinbjudan from './testinbjudan.js';
+import * as testa from './vyer/testa.js';
+import * as omDemon from './vyer/om.js';
+import * as testledare from './vyer/testledare.js';
 import * as minJournal from './vyer/min.js';
 import * as administrering from './vyer/administrering.js';
 import * as arkiv from './vyer/arkiv.js';
@@ -291,6 +296,12 @@ const RUTTER = [
   [/^#\/sussatest$/, sussatest, () => true, true],
   [/^#\/patient\/([\w-]+)(?:\/([a-z]+))?(?:\/([\w-]+))?$/, patient, () => !utanJournal()],
 ];
+// Runda 13, r1: startsidan för testare, sidan om demon och testledarens vy, öppna utan inloggning.
+RUTTER.splice(RUTTER.findIndex(r => String(r[0]) === String(/^#\/anvandartest$/)), 0,
+  [/^#\/testa$/, testa, () => true, true],
+  [/^#\/om$/, omDemon, () => true, true],
+  [/^#\/testledare$/, testledare, () => true, true],
+);
 // Runda 12, r3 (vårt L5): inloggning och flerfaktor, för all personal och för invånaren i Min journal.
 RUTTER.splice(RUTTER.findIndex(r => String(r[0]) === String(/^#\/nyheter$/)), 0, [/^#\/flerfaktor$/, flerfaktorVy, () => arPersonal()]);
 
@@ -307,6 +318,9 @@ const RUTTER_MIN = [
   [/^#\/videomote\/([\w-]+)$/, r10r7.videomote],
   // Runda 12, r3.
   [/^#\/flerfaktor$/, flerfaktorVy],
+  // Runda 13, r1.
+  [/^#\/testa$/, testa],
+  [/^#\/om$/, omDemon],
 ];
 
 // Enhetsträdet: varje enhet med sin vårdenhet. Inre sekretess och remisser räknas per vårdenhet.
@@ -433,7 +447,7 @@ function ritaRam(route) {
   if (!sess?.inloggad) {
     ram.innerHTML = `<header class="topp"><div class="topp-inre">
         <a class="varumarke" href="#/">${logotyp()}<span><span class="namn">Vårdkällan</span><span class="under">Hela vården i ett öppet system</span></span></a>
-        <nav class="topp-lankar" aria-label="Om Vårdkällan"><a href="#/krav">Kravspårbarhet</a><a href="#/moduler">Moduler</a><a href="#/drift">Svarstider</a><a href="#/">Logga in</a></nav>
+        <nav class="topp-lankar" aria-label="Om Vårdkällan"><a href="#/testa">Testa och jämför</a><a href="#/om">Om demon</a><a href="#/krav">Kravspårbarhet</a><a href="#/moduler">Moduler</a><a href="#/drift">Svarstider</a><a href="#/">Logga in</a></nav>
       </div></header>
       <main id="innehall" class="innehall ute" tabindex="-1"></main>`;
     return document.getElementById('innehall');
@@ -478,7 +492,7 @@ function ritaRamInvanare(ram, sess) {
     </div></header>
     <div id="nyhetsruta"></div>
     <main id="innehall" class="innehall min-innehall" tabindex="-1"></main>
-    <nav class="min-om" aria-label="Om Vårdkällan"><p>Min journal är en del av Vårdkällan, ett öppet journalsystem.</p><ul><li><a href="#/krav">Kravspårbarhet</a></li><li><a href="#/moduler">Moduler</a></li><li><a href="#/drift">Svarstider</a></li><li><a href="#/nyheter">Nyheter</a></li></ul></nav>`;
+    <nav class="min-om" aria-label="Om Vårdkällan"><p>Min journal är en del av Vårdkällan, ett öppet journalsystem.</p><ul><li><a href="#/krav">Kravspårbarhet</a></li><li><a href="#/moduler">Moduler</a></li><li><a href="#/drift">Svarstider</a></li><li><a href="#/nyheter">Nyheter</a></li><li><a href="#/om">Om demon och testet</a></li></ul></nav>`;
   nyhetsruta.visa();
   return document.getElementById('innehall');
 }
@@ -564,6 +578,8 @@ async function visaVy(vy, main, param, q, nr) {
       if (flikar) { flikar.insertAdjacentHTML('afterend', flera.radHtml(pid)); flera.kopplaRad(main.querySelector('[data-fonster-rad]')); }
     }
   } else flera.stoppa();
+  // Runda 13, r1: panelen med uppdragen frågar om något uppdrag har blivit gjort.
+  testinbjudan.efterVy();
 }
 
 // Demoknappen Simulera avbrott visas för den som är inloggad, och inte under ett avbrott.
@@ -723,6 +739,8 @@ function miljorad(m) {
 async function start() {
   avbrottslage.init();
   anvandartest.init();
+  // Runda 13, r1: knappen Lämna synpunkt och panelen med uppdragen.
+  testinbjudan.init();
   try {
     S.session = await api('/api/session', { tyst: true });
     miljorad(S.session.miljo);

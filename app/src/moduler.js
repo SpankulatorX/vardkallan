@@ -291,6 +291,12 @@ export const MODULER = [
     { avsnitt: ['2.1'], rutter: ['#/drift'], vyer: ['drift.js'], kod: ['src/arkitektur.js', 'src/server.js'], api: ['/api/drift', '/api/arkitektur'] }),
 ];
 
+// Runda 13, r1: testinbjudan, guidade uppdrag efter Sussas testfall och synpunkter från varje vy.
+MODULER.push(m('testinbjudan', 'forvaltning', 'Testinbjudan och synpunkter',
+  'En startsida för personal som vill jämföra Vårdkällan med sitt journalsystem. Testaren väljer yrkesroll och får uppdrag efter Sussas 34 testfall, som systemet bockar av själv, och svarar efter varje uppdrag om det var lättare, ungefär lika eller svårare än i det system hen använder i dag. Knappen Lämna synpunkt finns på varje sida, och testledaren läser allt sorterat per uppdrag, journalsystem och vy med en läskod.',
+  { avsnitt: [], rutter: ['#/testa', '#/om', '#/testledare'], vyer: ['testa.js', 'om.js', 'testledare.js'], kod: ['src/testinbjudan.js', 'src/synpunkter.js', 'src/r13r1-rutter.js', 'public/js/testinbjudan.js', 'public/js/synpunkt-regler.js', 'scripts/testinbjudan.js'],
+    api: ['/api/synpunkter', '/api/testare', '/api/testledare/synpunkter'], simulerat: 'Demorollerna och testpatienterna är påhittade. Svaren är testarnas egna och sparas i en egen databas utanför sandlådorna.' }));
+
 // Runda 12, r1: journalens mallar, sökord och mätvärdestyper hör till systemförvaltningen (journalstruktur.js).
 {
   const s = MODULER.find(x => x.id === 'systemforvaltning');

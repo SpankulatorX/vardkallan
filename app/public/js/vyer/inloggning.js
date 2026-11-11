@@ -4,6 +4,8 @@
 import { esc, api, ikon, avbrott, tidpunkt } from '../ui.js';
 import { loggaIn, loggaInInvanare, logotyp } from '../app.js';
 import * as reserv from '../reservkopia.js';
+// Runda 13, r1.
+import { rollvaljare } from './testa.js';
 import { oppnadMedReserv } from '../avbrott.js';
 
 export const namn = 'inloggning';
@@ -60,6 +62,12 @@ export async function visa(main, _param, q) {
   main.innerHTML = `<div class="inloggningssida">
     ${marke()}
     <h1 id="inl-rubrik" tabindex="-1">Logga in</h1>
+    ${/* Runda 13, r1: yrkesrollerna för testare står först, så att en besökare från en testinbjudan kommer rätt direkt. */ ''}
+    <section class="ruta testa-forst" aria-labelledby="testa-forst-rubrik">
+      <h2 id="testa-forst-rubrik">Arbetar du i vården? Testa och jämför med ditt journalsystem</h2>
+      <p>Välj ditt yrke, så loggas du in som en påhittad person och får uppdrag som följer de testfall regionerna använde när Cosmic utvärderades. Allt är påhittat, och svaren är anonyma. <a href="#/testa">Om testet</a></p>
+      <ul class="testa-roller" id="testa-forst-roller"><li class="tom">Hämtar yrkesrollerna.</li></ul>
+    </section>
     <div class="inloggningsval" role="tablist" aria-label="Logga in som">
       ${FLIKAR.map(([k, t]) => `<button type="button" role="tab" id="flik-${k}" aria-controls="panel-${k}" aria-selected="${k === vald}" tabindex="${k === vald ? 0 : -1}" data-flik="${k}">${k === 'personal' ? ikon.kort : ikon.person}<span>${esc(t)}</span></button>`).join('')}
     </div>
@@ -69,7 +77,7 @@ export async function visa(main, _param, q) {
         <p>I vården loggar man in med SITHS-kortet, ett tjänstekort med e-legitimation. I demon är kortet simulerat: du väljer en påhittad person, och behörigheten följer personens yrke och enhet precis som med ett riktigt kort.</p>
         <p>All behörighet kontrolleras på servern. Varje öppnad journal loggas i en logg som inte går att ändra, och du kan granska loggen genom att logga in som Mats Wall.</p>
         <p class="liten-text">Varje besökare får en egen sandlåda med påhittade patienter. Det du gör syns bara för dig och kan återställas med knappen överst.</p>
-        <p class="liten-text">Arbetar du i vården och vill testa demon på riktigt? <a href="#/anvandartest">Användartest</a> ger dig några uppgifter, en i taget, och en kort enkät efteråt.</p>
+        <p class="liten-text">Ett lett test med en testledare, där deltagaren får en kod och uppgifterna en i taget, finns under <a href="#/anvandartest">Användartest</a>. Testar du på egen hand passar <a href="#/testa">startsidan för testare</a> bättre.</p>
         <div class="reservkopior" id="reservkopior" hidden></div>
       </section>
       <section class="roller" aria-labelledby="roll-rubrik">
@@ -117,6 +125,8 @@ export async function visa(main, _param, q) {
   });
 
   visaReservkopior(main.querySelector('#reservkopior'));
+  // Runda 13, r1.
+  rollvaljare(main.querySelector('#testa-forst-roller'), undefined, { kort: true }).catch(() => {});
   const [roller, invanare] = await Promise.all([api('/api/demo/personal'), api('/api/demo/invanare')]);
   const lista = main.querySelector('#rollista');
   lista.innerHTML = roller.map(r => `<li>

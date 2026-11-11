@@ -686,6 +686,29 @@ function skapa(BAS) {
     await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Bekräfta');
     await synlig(page, '.notis', 'Rapporten är skickad till den simulerade mottagaren');
   };
+  // Runda 13, r1: testinbjudan. Startsidan för testare, en synpunkt och det första uppdraget.
+  startI['Startsidan för testare'] = async (page) => { await gaTill(page, '#/testa'); await page.waitForSelector('.testa-rollknapp'); };
+  GOR['lamna-synpunkt'] = async (m, page) => {
+    await m.klicka(page.locator('[data-tp="synpunkt"]'), 'Lämna synpunkt');
+    await page.waitForSelector('dialog[open] #sp-text');
+    await m.skriv(page.locator('#sp-text'), 'Det är svårt att se vilka patienter som är nya i dag.', 'synpunkten');
+    await m.klicka(page.locator('dialog[open] input[name="typ"][value="svart"]'), 'Svårt eller krångligt');
+    await m.klicka(page.locator('dialog[open] input[name="allvar"][value="liten"]'), 'En detalj eller ett förslag');
+    await m.klicka(page.locator('dialog[open] button[type="submit"]'), 'Skicka synpunkten');
+    await synlig(page, '.synpunkt-kvitto', 'Tack');
+    // Dialogen stängs utan att räknas, så att nästa flöde börjar på en tom sida.
+    await page.evaluate(() => document.querySelector('dialog[open]')?.close());
+  };
+  GOR['valj-yrkesroll'] = async (m, page) => {
+    await m.klicka(page.locator('[data-testroll="lakare-sjukhus"]'), 'Läkare på sjukhus');
+    await synlig(page, '#testare-panel', 'Ta emot dagens första patient');
+    await page.waitForSelector('#lista table');
+    await m.klicka(page.locator('a.patientlank', { hasText: 'Gunnar Åkesson' }), 'en patient i arbetslistan');
+    await page.waitForSelector('.tidslinje');
+    await synlig(page, '#testare-panel .tp-jamforelse', 'Ta emot dagens första patient');
+    // Uppdragen avslutas utan att räknas, så att de inte följer med till nästa flöde.
+    await page.evaluate(() => fetch('/api/testare/avsluta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(() => sessionStorage.removeItem('vk_testare_aktiv')));
+  };
   // Runda 7, r7: de tio högst viktade kriterierna som inte är uppfyllda, med det högst viktade först.
   GOR['kravviktning'] = async (m, page) => {
     await m.klicka(page.locator('#sf-arbetslista'), 'De tio högst viktade kriterierna som inte är uppfyllda');

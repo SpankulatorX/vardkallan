@@ -21,6 +21,8 @@ WORKDIR /app
 COPY package.json ./
 COPY src ./src
 COPY public ./public
+# Runda 13, r1: skriptet för läskoder och nya synpunkter körs i containern (docker exec).
+COPY scripts/testinbjudan.js ./scripts/testinbjudan.js
 COPY --from=test /app/test-resultat.json ./test-resultat.json
 COPY klickbudget.json klienttest-resultat.json sussa-testfall.json lasttest.json fhir-validering.json ./
 ENV NODE_ENV=production PORT=8080

@@ -335,6 +335,8 @@ export async function visa(main) {
 function visaStart(main) {
   main.innerHTML = vyRubrik('Användartest', 'Ett test av hur Vårdkällan fungerar för den som arbetar i vården. Deltagaren får några uppgifter, en i taget, och svarar efteråt på en kort enkät.') + `
     <div class="anvandartest">
+      ${/* Runda 13, r1: den som testar på egen hand hänvisas till startsidan för testare. */ ''}
+      <p class="ruta ruta-info at-ensam">Det här är ett lett test, där en testledare ger dig en deltagarkod och sitter bredvid. Testar du på egen hand passar <a href="#/testa">startsidan för testare</a> bättre: där väljer du yrke, får uppdragen och lämnar synpunkter direkt i systemet.</p>
       <section class="ruta at-info" aria-labelledby="at-info-rubrik">
         <h2 id="at-info-rubrik">Till deltagaren</h2>
         <p>Tack för att du vill vara med. Det är systemet som testas, inte du. Det finns inga fel svar, och det är lika värdefullt när något inte fungerar som när det gör det.</p>
