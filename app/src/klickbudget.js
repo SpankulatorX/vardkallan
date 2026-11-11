@@ -493,6 +493,15 @@ export const FLODEN = [
     id: 'boka-undersokning', namn: 'Boka en inkommen undersökning på röntgenkliniken', roll: 'rtg-ssk', start: 'Röntgenklinikens undersökningar efter återställning', budget: 1,
     motivering: 'Sussa 4.4.2.7. Ett klick på Boka vid den undersökning som står först. Systemet har ordnat listan efter prioritet och senaste dag och föreslår den första lediga tiden i rätt rum.',
   },
+  // Runda 11, r7: vårdtyngden enligt NEMS i intensivvården och import av tillväxtdata från ett annat journalsystem.
+  {
+    id: 'iva-nems', namn: 'Registrera vårdtyngden enligt NEMS för en patient på intensivvården', roll: 'ssk-kard', start: 'Övervakningen av en patient på intensivvården', budget: 1,
+    motivering: 'Sussa 4.6.1.7. Ett klick på Registrera vårdtyngden. Systemet har redan kryssat i de poster som står i journalen, som kopplad monitor, intravenösa läkemedel och andningsstöd, och räknar poängen själv. Sjuksköterskan kryssar bara i det som bara den som vårdar vet.',
+  },
+  {
+    id: 'tillvaxt-import', namn: 'Läsa in ett barns tillväxtdata från ett annat journalsystem', roll: 'lak-vc', start: 'Tillväxten för ett barn som har flyttat hit', budget: 3,
+    motivering: 'Sussa 4.1.1.7. Ett klick för att öppna inläsningen, ett på Hämta från journalsystemet och ett på Läs in. Systemet hämtar mätningarna med GetObservations, kontrollerar att de gäller barnet, prövar varje värde och visar vad som redan finns, så att användaren bara bekräftar.',
+  },
 ];
 // Runda 11, r4: cytostatika, beredningen, regimbiblioteket, blodet och patientens rapport i Min journal.
 FLODEN.push(

@@ -2,6 +2,8 @@
 // Vårdtillfällesdatabasen, medicinska födelseregistret och ett demoregister för hjärtsvikt. Systemet sammanställer och
 // kontrollerar varje rapport själv, och uppföljningsrollen granskar och skickar. Inga patientuppgifter visas här:
 // felen saknar patient, och filerna visas bara med hur många rader som har varje fält ifyllt. Mottagarna är simulerade.
+// Runda 11, r7: barnhälsovårdens indikatorer i regionen (bhv-indikatorer-ui.js).
+import { regionHtml } from '../bhv-indikatorer-ui.js';
 import { esc, api, vyRubrik, tidpunkt, datum, ikon, dialog, medKnapp, notis, plural } from '../ui.js';
 
 export const namn = 'rapportering';
@@ -74,7 +76,9 @@ export async function visa(main) {
     <div id="rap-detalj" aria-live="polite"></div>
     <section aria-labelledby="rap-h"><h2 id="rap-h">Skickade rapporter</h2><div id="rap-historik"></div></section>
     <section aria-labelledby="rap-a"><h2 id="rap-a">Återkoppling från kvalitetsregistret</h2><div id="rap-aterkoppling"></div></section>
-    <details class="ruta" id="rap-mappning"${location.hash.includes('visa=mappning') ? ' open' : ''}><summary>Mappning och källor</summary><div id="rap-mappning-innehall"><p class="tom">Öppna för att se mappningen.</p></div></details>`;
+    <details class="ruta" id="rap-mappning"${location.hash.includes('visa=mappning') ? ' open' : ''}><summary>Mappning och källor</summary><div id="rap-mappning-innehall"><p class="tom">Öppna för att se mappningen.</p></div></details>
+    <div id="rap-bhv-region"></div>`;
+  api('/api/bhv/indikatorer/region').then(r => { const x = el.querySelector('#rap-bhv-region'); if (x) x.innerHTML = regionHtml(r); }).catch(() => {});
   ritaHistorik(el).catch(() => {});
   const mapp = el.querySelector('#rap-mappning');
   const visaMappning = () => ritaMappning(el.querySelector('#rap-mappning-innehall')).catch(() => {});

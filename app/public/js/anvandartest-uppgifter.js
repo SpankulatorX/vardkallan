@@ -73,6 +73,9 @@ export const STARTPUNKT = {
   'Beredningsenheten med en godkänd kur': { hash: '#/nyheter', klar: 'main h1', forbered: 'cytostatika-kur' },
   // Runda 11, r6: röntgenklinikens arbetslista efter återställning, med undersökningar som väntar på tid.
   'Röntgenklinikens undersökningar efter återställning': { hash: '#/undersokningar', klar: '#us-boka', forbered: 'aterstall' },
+  // Runda 11, r7: övervakningen på Hjärtintensiven och Leos tillväxt, efter återställning.
+  'Övervakningen av en patient på intensivvården': { hash: '#/iva/p22', klar: '#iva-nems-form', forbered: 'aterstall' },
+  'Tillväxten för ett barn som har flyttat hit': { hash: '#/patient/p09/tillvaxt', klar: '#tv-import', forbered: 'aterstall' },
 };
 
 export const UPPGIFTER = [
@@ -630,6 +633,17 @@ export const UPPGIFTER = [
     id: 'boka-undersokning', namn: 'Boka en inkommen undersökning på röntgenkliniken', roll: 'rtg-ssk', start: 'Röntgenklinikens undersökningar efter återställning',
     text: 'Du arbetar på röntgenkliniken. Boka den undersökning som är mest brådskande.',
     kontroll: { notis: 'är bokad' },
+  },
+  // Runda 11, r7: vårdtyngden enligt NEMS och import av tillväxtdata.
+  {
+    id: 'iva-nems', namn: 'Registrera vårdtyngden enligt NEMS för en patient på intensivvården', roll: 'ssk-kard', start: 'Övervakningen av en patient på intensivvården',
+    text: 'Ditt pass på Hjärtintensiven är snart slut. Registrera dygnets vårdtyngd för patienten.',
+    kontroll: { notis: 'är registrerat för' },
+  },
+  {
+    id: 'tillvaxt-import', namn: 'Läsa in ett barns tillväxtdata från ett annat journalsystem', roll: 'lak-vc', start: 'Tillväxten för ett barn som har flyttat hit',
+    text: 'Leo har flyttat hit från en annan region. Hämta hans tidigare mätningar från barnavårdscentralen där och lägg in dem i journalen.',
+    kontroll: { notis: 'är inlästa' },
   },
   // Runda 11, r4: cytostatika, regimbiblioteket, blod och beredningsenheten.
   {

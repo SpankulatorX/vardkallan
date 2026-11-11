@@ -110,4 +110,9 @@ export const KATALOG = [
   L(101, '20040607008683', 'Levaxin', 'levotyroxin', '75 mikrogram', 'tablett', 'H03AA01'),
   L(102, '20151002000087', 'Metformin Sandoz', 'metformin', '1000 mg', 'filmdragerad tablett', 'A10BA02'),
   L(103, '20070919000037', 'Amoxicillin Sandoz', 'amoxicillin', '500 mg', 'filmdragerad tablett', 'J01CA04'),
+  // Runda 11, r7: vasoaktiva, sederande och diuretika för intensivvården, ur NPL:s totalfil 2026-11-10.
+  L(701, '20070331000011', 'Noradrenalin Abcur', 'noradrenalin', '1 mg/ml', 'koncentrat till infusionsvätska, lösning', 'C01CA03'),
+  L(702, '20000825000258', 'Propofol-Lipuro', 'propofol', '10 mg/ml', 'injektionsvätska/infusionsvätska, emulsion', 'N01AX10'),
+  L(703, '20051112000024', 'Midazolam Panpharma', 'midazolam', '5 mg/ml', 'injektionsvätska, lösning', 'N05CD08'),
+  L(704, '19801003000053', 'Furix', 'furosemid', '10 mg/ml', 'injektionsvätska, lösning', 'C03CA01'),
 ];

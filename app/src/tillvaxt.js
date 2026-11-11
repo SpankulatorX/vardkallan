@@ -3,6 +3,8 @@
 // beslutsstöd. Referensen är WHO:s tillväxtstandard 0 till 5 år (seed/who-tillvaxt.js), eftersom de svenska referenserna
 // inte finns utgivna under en fri licens (docs/kodkontroll.md).
 import { WHO_LMS, WHO_KALLA, WHO_LICENS } from './seed/who-tillvaxt.js';
+// Runda 11, r7: WHO:s tillväxtreferens 5 till 19 år (WHO 2007) och byte av referens (Sussa 4.1.1.2, 4.1.1.3 och 4.1.1.6).
+import { WHO2007_LMS, WHO2007_INTERVALL, WHO2007_KALLA, WHO2007_LICENS } from './seed/who2007-tillvaxt.js';
 
 export const REFERENS = {
   namn: 'WHO:s tillväxtstandard 0 till 5 år',
@@ -10,6 +12,25 @@ export const REFERENS = {
   licens: WHO_LICENS,
   text: 'Kurvorna visar WHO:s tillväxtstandard. Barnhälsovården i Sverige använder oftast svenska referenser, som inte finns fritt tillgängliga och därför inte används här. Kurvan för huvudomfång följer WHO, som Rikshandboken inte rekommenderar i Norden.',
 };
+// Runda 11, r7: referenserna som går att välja. auto väljer själv efter barnets ålder: WHO:s standard till fem år och
+// WHO:s referens 5 till 19 år därefter, med en mjuk övergång mellan 60 och 61 månader. Referenserna som inte får
+// användas fritt finns i EJ_TILLGANGLIGA med skälet (docs/kodkontroll.md).
+export const REFERENSER = {
+  auto: { id: 'auto', namn: 'WHO efter barnets ålder', fran: 0, till: 228, matt: ['vikt', 'langd', 'huvudomfang', 'bmi'],
+    text: 'Systemet väljer själv: WHO:s tillväxtstandard till fem år och WHO:s tillväxtreferens 5 till 19 år därefter.', kalla: `${WHO_KALLA}. ${WHO2007_KALLA}`, licens: WHO_LICENS },
+  who2006: { id: 'who2006', namn: 'WHO:s tillväxtstandard 0 till 5 år', fran: 0, till: 60, matt: ['vikt', 'langd', 'huvudomfang', 'bmi'], text: 'WHO Child Growth Standards 2006.', kalla: WHO_KALLA, licens: WHO_LICENS },
+  who2007: { id: 'who2007', namn: 'WHO:s tillväxtreferens 5 till 19 år', fran: 61, till: 228, matt: ['vikt', 'langd', 'bmi'],
+    text: 'WHO Growth Reference 2007. Vikten finns till tio år och huvudomfånget inte alls.', kalla: WHO2007_KALLA, licens: WHO2007_LICENS },
+};
+export const MAX_REFERENS = 228;
+export const EJ_TILLGANGLIGA = [
+  { id: 'svensk', namn: 'Svenska referenser (Göteborg 1974, Sverige 1981 och referenserna från 2020 och 2021)', skal: 'Referensvärdena finns inte utgivna under en fri licens.' },
+  { id: 'prematur', namn: 'Prematurkurvor (Fenton 2013 och INTERGROWTH-21st)', skal: 'Fentons värden lämnas bara ut mot avtal, och INTERGROWTH-21st får inte användas fritt (CC BY-NC-ND och upphovsrätt hos University of Oxford). För ett barn som är fött före vecka 37 räknar systemet i stället med korrigerad ålder till två år.' },
+  { id: 'down', namn: 'Kurvor för Downs syndrom (CDC 2015)', skal: 'Värdena finns bara i tidskriftens tilläggstabeller under förlagets upphovsrätt, och CDC ger bara ut kurvbladen som bilder.' },
+  { id: 'turner', namn: 'Kurvor för Turners syndrom', skal: 'Ingen referens med fri licens och maskinläsbara värden har hittats.' },
+];
+export const referensFor = (id) => (typeof id === 'string' && Object.hasOwn(REFERENSER, id) ? REFERENSER[id] : REFERENSER.auto);
+
 export const DEMOREGEL = 'Demoregler, inte kliniskt beslutsstöd: larmen, gränserna och förslagen på nästa steg är påhittade för demon och inte en regions riktlinjer.';
 
 // Måtten. who är nyckeln i WHO-tabellen, typ är mätvärdestypen i journalen. BMI räknar systemet ur vikt och längd.
@@ -18,6 +39,9 @@ export const MATT = {
   langd: { namn: 'Längd', enhet: 'cm', who: 'langd', typ: 'langd', decimaler: 1 },
   huvudomfang: { namn: 'Huvudomfång', enhet: 'cm', who: 'huvud', typ: 'huvudomfang', decimaler: 1 },
   bmi: { namn: 'BMI', enhet: 'kg/m²', who: 'bmi', typ: null, decimaler: 1, harledd: true },
+  // Runda 11, r7: sitthöjd enligt bilaga K11. Ingen fri referens finns, så kurvan visas utan referenslinjer, med
+  // kvoten mellan sitthöjd och längd i tabellen.
+  sitthojd: { namn: 'Sitthöjd', enhet: 'cm', who: null, typ: 'sitthojd', decimaler: 1, utanReferens: true },
 };
 export const SD_LINJER = [-2, -1, 0, 1, 2];
 export const MAX_MANADER = 60;
@@ -39,25 +63,41 @@ export function korrigeradAlder(manader, gestationsvecka) {
   return Math.max(0, manader - ((40 - gestationsvecka) * 7) / MANAD_DAGAR);
 }
 
-const tabell = (matt, kon) => WHO_LMS[MATT[matt].who]?.[kon === 'kvinna' ? 'K' : 'M'] ?? null;
+const tabell = (matt, kon) => (MATT[matt]?.who ? WHO_LMS[MATT[matt].who]?.[kon === 'kvinna' ? 'K' : 'M'] ?? null : null);
+// WHO 2007 har nycklarna bmi, langd och vikt.
+const WHO2007_NYCKEL = { vikt: 'vikt', langd: 'langd', bmi: 'bmi' };
+// L, M och S för en hel månad i en referens, eller null.
+function radFor(ref, matt, kon, m) {
+  if (ref === 'who2006') return m >= 0 && m <= MAX_MANADER ? tabell(matt, kon)?.[m] ?? null : null;
+  const n = WHO2007_NYCKEL[matt];
+  const iv = n && WHO2007_INTERVALL[n];
+  if (!iv || m < iv.fran || m > iv.till) return null;
+  return WHO2007_LMS[n][kon === 'kvinna' ? 'K' : 'M'][m - iv.fran] ?? null;
+}
+const radAuto = (matt, kon, m) => (m <= MAX_MANADER ? radFor('who2006', matt, kon, m) : radFor('who2007', matt, kon, m));
 
-// L, M och S för en ålder i månader, linjärt mellan hela månader. null utanför 0 till 60 månader.
-export function lms(matt, kon, manader) {
-  const t = tabell(matt, kon);
-  if (!t || !(manader >= 0) || manader > MAX_MANADER) return null;
+// L, M och S för en ålder i månader, linjärt mellan hela månader. null utanför referensens åldrar. Utan referens väljer
+// systemet efter åldern (auto), och mellan 60 och 61 månader räknas övergången mellan WHO:s två tabeller.
+export function lms(matt, kon, manader, referens = 'auto') {
+  if (!(manader >= 0)) return null;
+  const ref = referensFor(referens).id;
+  const rad = (m) => (ref === 'auto' ? radAuto(matt, kon, m) : radFor(ref, matt, kon, m));
   const a = Math.floor(manader);
-  const b = Math.min(MAX_MANADER, a + 1);
+  const r1 = rad(a);
+  if (!r1) return null;
   const f = manader - a;
-  const [L1, M1, S1] = t[a];
-  const [L2, M2, S2] = t[b];
+  const r2 = f > 0 ? rad(a + 1) : r1;
+  if (!r2) return f < 1e-9 ? r1 : null;
+  const [L1, M1, S1] = r1;
+  const [L2, M2, S2] = r2;
   return [L1 + (L2 - L1) * f, M1 + (M2 - M1) * f, S1 + (S2 - S1) * f];
 }
 
 export const vardeVidZ = ([L, M, S], z) => (L === 0 ? M * Math.exp(S * z) : M * (1 + L * S * z) ** (1 / L));
 
 // z-värde enligt WHO. För vikt och BMI har WHO en begränsad metod utanför 3 SD, så att svansarna inte töjs ut.
-export function zVarde(matt, kon, manader, x) {
-  const p = lms(matt, kon, manader);
+export function zVarde(matt, kon, manader, x, referens = 'auto') {
+  const p = lms(matt, kon, manader, referens);
   if (!p || !(x > 0)) return null;
   const [L, M, S] = p;
   const z = L === 0 ? Math.log(x / M) / S : ((x / M) ** L - 1) / (L * S);
@@ -79,13 +119,14 @@ export function percentil(z) {
 }
 
 // Referenslinjerna -2, -1, 0, +1 och +2 SD per halv månad mellan två åldrar.
-export function referenslinjer(matt, kon, fran = 0, till = MAX_MANADER) {
+export function referenslinjer(matt, kon, fran = 0, till = MAX_MANADER, referens = 'who2006') {
   const a = Math.max(0, Math.floor(fran));
-  const b = Math.min(MAX_MANADER, Math.ceil(till));
+  const b = Math.min(MAX_REFERENS, Math.ceil(till));
+  const steg = b - a > 120 ? 3 : b - a > 24 ? 1 : 0.5;
   return SD_LINJER.map(sd => {
     const punkter = [];
-    for (let m = a; m <= b + 1e-9; m += b - a > 24 ? 1 : 0.5) {
-      const p = lms(matt, kon, m);
+    for (let m = a; m <= b + 1e-9; m += steg) {
+      const p = lms(matt, kon, m, referens);
       if (p) punkter.push([m, Math.round(vardeVidZ(p, sd) * 1000) / 1000]);
     }
     return { sd, punkter };
@@ -126,11 +167,11 @@ export function bmiPunkter(vikter, langder) {
 }
 
 // Punkterna för ett mått med ålder, korrigerad ålder, z-värde och percentil. punkter: [{ tid, varde, ... }].
-export function berika(matt, kon, fodd, gestationsvecka, punkter) {
+export function berika(matt, kon, fodd, gestationsvecka, punkter, referens = 'auto') {
   return [...punkter].sort((a, b) => a.tid.localeCompare(b.tid)).map(p => {
     const verklig = alderManader(fodd, p.tid);
     const alder = korrigeradAlder(verklig, gestationsvecka);
-    const z = zVarde(matt, kon, alder, p.varde);
+    const z = zVarde(matt, kon, alder, p.varde, referens);
     return { ...p, alder: Math.round(alder * 1000) / 1000, verkligAlder: Math.round(verklig * 1000) / 1000, z: z == null ? null : Math.round(z * 100) / 100, percentil: percentil(z) };
   });
 }

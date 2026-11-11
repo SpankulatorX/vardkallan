@@ -215,6 +215,10 @@ FRASER.push('Office Open XML', 'X-Vardkallan-Simulerad');
 for (const w of ['WebP', 'WebM', 'WAV', 'MP3', 'MP4', 'M4A', 'Ogg', 'EXIF', 'MB', 'DICOM', 'DICOMweb', 'QIDO-RS', 'WADO-RS', 'PACS', 'VNA', 'XDS-I', 'Media', 'ImagingStudy', 'Endpoint']) TILLATNA.add(w);
 // Runda 11, r6: datortomografi (DT), magnetkamera (MR) och hjärtintensivvårdsavdelningen (HIA).
 for (const w of ['DT', 'MR', 'HIA', 'DICOM']) TILLATNA.add(w);
+// Runda 11, r7: intensivvården (NEMS med källan, PEEP, NIV, fuktvärmeväxlare HME och EKG-avledning II) och tillväxtens
+// referenser (WHO:s två referenser, licenserna och referenserna som inte får användas, CDC och Downs syndrom).
+for (const w of ['NEMS', 'PEEP', 'NIV', 'HME', 'II', 'PH', 'CDC', 'BY-NC-ND', 'INTERGROWTH-21st', 'Fenton', 'Fentons', 'Tanner', 'Tanners', 'SBAR', 'GetObservations', 'GetActivities']) TILLATNA.add(w);
+FRASER.push('Length of body', 'Nine equivalents of nursing manpower use score', 'Intensive Care Med', 'Reis Miranda', 'WHO Child Growth Standards', 'WHO Growth Reference', 'University of Oxford', 'Downs syndrom');
 
 // Svenska ord som ofta skrivs utan å, ä eller ö. Formen utan prickar är inget eget ord.
 export const UTAN_PRICKAR = new Map(Object.entries({

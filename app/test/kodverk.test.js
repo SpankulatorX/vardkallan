@@ -101,6 +101,8 @@ describe('Kodverk', () => {
       if (k.varde === 'kod') expect(k.ucum).toBeNull(); else expect(k.ucum).toMatch(/\S/);
       if (typ === 'egfr') expect(k.coding).toEqual([{ system: SYSTEM.loinc, code: '98979-8', display: expect.stringContaining('CKD-EPI 2021') }]);
       else if (k.kategori === 'laboratory') expect(k.coding).toEqual([{ system: SYSTEM.npu, code: expect.stringMatching(/^NPU\d{5}$/) }]);
+      // Runda 11, r7: sitthöjden har Snomed CT, eftersom LOINC saknar begreppet.
+      else if (typ === 'sitthojd') expect(k.coding).toEqual([{ system: 'http://snomed.info/sct', code: '248335006', display: 'Sitting height' }]);
       else expect(k.coding.every(c => c.system === SYSTEM.loinc && /^\d+-\d$/.test(c.code) && c.display)).toBe(true);
     }
     expect(MATKOD.crp.coding[0].code).toBe('NPU19748');

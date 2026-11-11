@@ -139,6 +139,8 @@ import { registreraRutter as r10r7Rutter, MIN_DELAR as r10r7MinDelar, kalenderSv
 import { registreraRutter as r11r3Rutter, session as r11r3Session, efterInloggning as r11r3EfterInloggning } from './r11r3-rutter.js';
 import { minGraviditet, harMinGraviditet } from './obstetrik.js';
 import { skapaKalenderlager } from './kontorsstod.js';
+// Runda 11, r7: intensivvården och tillväxten (r11r7-rutter.js).
+import { registreraRutter as r11r7Rutter } from './r11r7-rutter.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -1837,6 +1839,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   r10r7Rutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal, kalender });
   // Runda 11, r3: graviditet, förlossning, BB och Graviditetsregistret (r11r3-rutter.js).
   r11r3Rutter({ rutt, kravInloggad, medPatient, valFor });
+  // Runda 11, r7 (r11r7-rutter.js).
+  r11r7Rutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
   // visas direkt (bara i den egna sandlådan).
   const kravNagon = (c) => { if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad'); };

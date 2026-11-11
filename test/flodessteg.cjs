@@ -845,6 +845,21 @@ function skapa(BAS) {
     await synlig(page, 'main h1', 'Övervakning');
     await page.waitForSelector('#iva-analys');
   };
+  // Runda 11, r7: vårdtyngden enligt NEMS är ett klick, eftersom systemet har kryssat i posterna ur journalen.
+  startI['Övervakningen av en patient på intensivvården'] = async (page) => { await gaTill(page, '#/iva/p22'); await page.waitForSelector('#iva-nems-form'); };
+  GOR['iva-nems'] = async (m, page) => {
+    await m.klicka(page.locator('#iva-nems-form [type="submit"]'), 'Registrera vårdtyngden');
+    await synlig(page, '.notis', 'är registrerat för');
+  };
+  // Runda 11, r7: tillväxtdata från det simulerade journalsystemet granskas och läses in med tre klick.
+  startI['Tillväxten för ett barn som har flyttat hit'] = async (page) => { await gaTill(page, '#/patient/p09/tillvaxt'); await page.waitForSelector('#tv-import'); };
+  GOR['tillvaxt-import'] = async (m, page) => {
+    await m.klicka(page.locator('#tv-import > summary'), 'Läs in tillväxtdata');
+    await m.klicka(page.locator('[data-tv-journalsystem]'), 'Hämta från journalsystemet');
+    await page.waitForSelector('[data-tv-importera]');
+    await m.klicka(page.locator('[data-tv-importera]'), 'Läs in');
+    await synlig(page, '.notis', 'är inlästa');
+  };
   GOR['egen-matning'] = async (m, page) => {
     await m.klicka(page.locator('.min-flikar a', { hasText: /^Egna mätningar$/ }), 'fliken Egna mätningar');
     await page.waitForSelector('#min-egen');

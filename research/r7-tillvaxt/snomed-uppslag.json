@@ -1,0 +1,1280 @@
+{
+ "kalla": "tx.fhir.org/r4 (HL7 FHIR terminologiserver)",
+ "uppslag": [
+  {
+   "kod": "364589006",
+   "http_status": 200,
+   "display": "Birth weight",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Birth weight (observable entity)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2023-12-01",
+   "foraldrar": [
+    "27113001",
+    "364585000"
+   ]
+  },
+  {
+   "kod": "169886007",
+   "http_status": 200,
+   "display": "Birth length",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Birth length (observable entity)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2023-12-01",
+   "foraldrar": [
+    "364591003",
+    "1149101003"
+   ]
+  },
+  {
+   "kod": "169876006",
+   "http_status": 200,
+   "display": "Birth head circumference",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Birth head circumference (observable entity)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "363812007"
+   ]
+  },
+  {
+   "kod": "412726003",
+   "http_status": 200,
+   "display": "Length of gestation at birth",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Length of gestation at birth (observable entity)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2004-07-31",
+   "foraldrar": [
+    "57036006"
+   ]
+  },
+  {
+   "kod": "27113001",
+   "http_status": 200,
+   "display": "Body weight",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Body weight (observable entity)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2021-01-31",
+   "foraldrar": [
+    "363804004"
+   ]
+  },
+  {
+   "kod": "248334005",
+   "http_status": 200,
+   "display": "Length of body",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": false,
+   "egenskaper_inactive": [
+    true
+   ],
+   "fsn": "Length of body (observable entity)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2021-07-31",
+   "foraldrar": []
+  },
+  {
+   "kod": "363812007",
+   "http_status": 200,
+   "display": "Head circumference",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Head circumference (observable entity)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "363811000"
+   ]
+  },
+  {
+   "kod": "248335006",
+   "http_status": 200,
+   "display": "Sitting height",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Sitting height (observable entity)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "50373000"
+   ]
+  },
+  {
+   "kod": "80943009",
+   "http_status": 200,
+   "display": "Risk factor",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Risk factor (observable entity)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "363788007"
+   ]
+  },
+  {
+   "kod": "707085002",
+   "http_status": 200,
+   "display": "At high risk of tuberculosis infection",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "At high risk of tuberculosis infection (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2023-02-28",
+   "foraldrar": [
+    "78648007"
+   ]
+  },
+  {
+   "kod": "408864009",
+   "http_status": 200,
+   "display": "Vaccination status",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Vaccination status (observable entity)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2004-07-31",
+   "foraldrar": [
+    "58915005",
+    "278844005"
+   ]
+  },
+  {
+   "kod": "473170005",
+   "http_status": 200,
+   "display": "History of bacillus Calmette-Guerin vaccination",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "History of bacillus Calmette-Guerin vaccination (situation)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2013-01-31",
+   "foraldrar": [
+    "425457005"
+   ]
+  },
+  {
+   "kod": "53851000052106",
+   "http_status": 404,
+   "fel": "Unknown code '53851000052106' in the CodeSystem 'http://snomed.info/sct' version 'http://snomed.info/sct/900000000000207008/version/20250201' (International Edition)"
+  },
+  {
+   "kod": "53861000052109",
+   "http_status": 404,
+   "fel": "Unknown code '53861000052109' in the CodeSystem 'http://snomed.info/sct' version 'http://snomed.info/sct/900000000000207008/version/20250201' (International Edition)"
+  },
+  {
+   "kod": "1153637007",
+   "http_status": 200,
+   "display": "Body height",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Body height (observable entity)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2023-12-01",
+   "foraldrar": [
+    "50373000"
+   ]
+  },
+  {
+   "kod": "1149101003",
+   "http_status": 200,
+   "display": "Recumbent body height",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Recumbent body height (observable entity)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2021-07-31",
+   "foraldrar": [
+    "1153637007"
+   ]
+  },
+  {
+   "kod": "50373000",
+   "http_status": 200,
+   "display": "Body height measure",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Body height measure (observable entity)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "271603002"
+   ]
+  },
+  {
+   "kod": "70931000052102",
+   "http_status": 200,
+   "display": "Body height of biological father",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Body height of biological father (observable entity)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2024-03-01",
+   "foraldrar": [
+    "50373000"
+   ]
+  },
+  {
+   "kod": "70941000052108",
+   "http_status": 200,
+   "display": "Body height of biological mother",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Body height of biological mother (observable entity)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2024-03-01",
+   "foraldrar": [
+    "50373000"
+   ]
+  },
+  {
+   "kod": "70711000052105",
+   "http_status": 200,
+   "display": "Tanner-Whitehouse 2 bone age assessment",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Assessment of bone age using Tanner-Whitehouse 2 method (procedure)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2021-07-31",
+   "foraldrar": [
+    "252954003"
+   ]
+  },
+  {
+   "kod": "251811005",
+   "http_status": 200,
+   "display": "Tanner girls breast development stage",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Tanner girls breast development stage (observable entity)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "251804006"
+   ]
+  },
+  {
+   "kod": "251805007",
+   "http_status": 200,
+   "display": "Tanner boys genital development stage",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Tanner boys genital development stage (observable entity)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "251804006"
+   ]
+  },
+  {
+   "kod": "251817009",
+   "http_status": 200,
+   "display": "Pubic hair stage",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Pubic hair stage (observable entity)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "251804006"
+   ]
+  },
+  {
+   "kod": "251824005",
+   "http_status": 200,
+   "display": "Tanner axillary hair stage",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Tanner axillary hair stage (observable entity)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "251804006"
+   ]
+  },
+  {
+   "kod": "365402005",
+   "http_status": 200,
+   "display": "Tanner girls breast development - finding",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Finding of Tanner girls breast development (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "118186000",
+    "473004000"
+   ]
+  },
+  {
+   "kod": "365401003",
+   "http_status": 200,
+   "display": "Tanner boys genital development - finding",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Finding of Tanner boys genital development (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "365400002",
+    "249230006",
+    "15160007"
+   ]
+  },
+  {
+   "kod": "365403000",
+   "http_status": 200,
+   "display": "Pubic hair stage - finding",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Finding of pubic hair stage (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2008-07-31",
+   "foraldrar": [
+    "365400002"
+   ]
+  },
+  {
+   "kod": "365404006",
+   "http_status": 200,
+   "display": "Tanner axillary hair stage - finding",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Finding of Tanner axillary hair stage (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "365400002"
+   ]
+  },
+  {
+   "kod": "251812003",
+   "http_status": 200,
+   "display": "Breasts Tanner Stage 1",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Breasts Tanner Stage 1 (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "365402005",
+    "116339002"
+   ]
+  },
+  {
+   "kod": "251813008",
+   "http_status": 200,
+   "display": "Breasts Tanner Stage 2",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Breasts Tanner Stage 2 (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "365402005",
+    "116339002"
+   ]
+  },
+  {
+   "kod": "251814002",
+   "http_status": 200,
+   "display": "Breasts Tanner Stage 3",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Breasts Tanner Stage 3 (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "365402005",
+    "116339002"
+   ]
+  },
+  {
+   "kod": "251815001",
+   "http_status": 200,
+   "display": "Breasts Tanner Stage 4",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Breasts Tanner Stage 4 (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "365402005",
+    "116339002"
+   ]
+  },
+  {
+   "kod": "251816000",
+   "http_status": 200,
+   "display": "Breasts Tanner Stage 5",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Breasts Tanner Stage 5 (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "365402005",
+    "116339002"
+   ]
+  },
+  {
+   "kod": "251806008",
+   "http_status": 200,
+   "display": "Genitalia Tanner Stage 1",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Genitalia Tanner Stage 1 (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "365401003"
+   ]
+  },
+  {
+   "kod": "251807004",
+   "http_status": 200,
+   "display": "Genitalia Tanner Stage 2",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Genitalia Tanner Stage 2 (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "365401003"
+   ]
+  },
+  {
+   "kod": "251808009",
+   "http_status": 200,
+   "display": "Genitalia Tanner Stage 3",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Genitalia Tanner Stage 3 (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "365401003"
+   ]
+  },
+  {
+   "kod": "251809001",
+   "http_status": 200,
+   "display": "Genitalia Tanner Stage 4",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Genitalia Tanner Stage 4 (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "365401003"
+   ]
+  },
+  {
+   "kod": "251810006",
+   "http_status": 200,
+   "display": "Genitalia Tanner Stage 5",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Genitalia Tanner Stage 5 (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "365401003"
+   ]
+  },
+  {
+   "kod": "251818004",
+   "http_status": 200,
+   "display": "Prepubertal - no pubic hair",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Prepubertal - no pubic hair (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "365403000",
+    "247522004",
+    "419138002",
+    "609624008"
+   ]
+  },
+  {
+   "kod": "251819007",
+   "http_status": 200,
+   "display": "Sparse growth of downy pubic hair",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Sparse growth of downy pubic hair (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "365403000",
+    "247522004",
+    "609624008"
+   ]
+  },
+  {
+   "kod": "251820001",
+   "http_status": 200,
+   "display": "Growth of darker, thicker, curled pubic hair",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Growth of darker, thicker, curled pubic hair (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "365403000",
+    "247522004",
+    "609624008"
+   ]
+  },
+  {
+   "kod": "251821002",
+   "http_status": 200,
+   "display": "Pubic hair adult in type, area covered still smaller than adult",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Pubic hair adult in type, area covered still smaller than adult (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "365403000",
+    "247522004",
+    "609624008"
+   ]
+  },
+  {
+   "kod": "251822009",
+   "http_status": 200,
+   "display": "Adult pubic hair in type and quantity with spread to medial surface of thigh",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Adult pubic hair in type and quantity with spread to medial surface of thigh (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "365403000",
+    "247522004",
+    "609624008"
+   ]
+  },
+  {
+   "kod": "251823004",
+   "http_status": 200,
+   "display": "Hair spread to linea alba",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ],
+   "fsn": "Hair spread to linea alba (finding)",
+   "modul": "900000000000207008",
+   "effectiveTime": "2002-01-31",
+   "foraldrar": [
+    "365403000",
+    "247522004",
+    "609624008"
+   ]
+  },
+  {
+   "kod": "251825006",
+   "http_status": 200,
+   "display": "Axillary hair Tanner Stage 1",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ]
+  },
+  {
+   "kod": "251826007",
+   "http_status": 200,
+   "display": "Axillary hair Tanner Stage 2",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ]
+  },
+  {
+   "kod": "251827003",
+   "http_status": 200,
+   "display": "Axillary hair Tanner Stage 3",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ]
+  },
+  {
+   "kod": "302086000",
+   "http_status": 200,
+   "display": "Axillary hair Tanner Stage 4",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ]
+  },
+  {
+   "kod": "302087009",
+   "http_status": 200,
+   "display": "Axillary hair Tanner Stage 5",
+   "version": "http://snomed.info/sct/900000000000207008/version/20250201",
+   "aktiv": true,
+   "egenskaper_inactive": [
+    false
+   ]
+  }
+ ],
+ "sokningar": [
+  {
+   "filter": "Tanner",
+   "http_status": 200,
+   "total": null,
+   "traffar": [
+    {
+     "kod": "22376004",
+     "display": "Tanner",
+     "version": null
+    },
+    {
+     "kod": "419107003",
+     "display": "Tannerella",
+     "version": null
+    },
+    {
+     "kod": "272275003",
+     "display": "Michigan appliance",
+     "version": null
+    },
+    {
+     "kod": "106435001",
+     "display": "Tanner AND/OR fellmonger",
+     "version": null
+    },
+    {
+     "kod": "420048009",
+     "display": "Tannerella forsythia",
+     "version": null
+    },
+    {
+     "kod": "159865009",
+     "display": "Tannery production worker",
+     "version": null
+    },
+    {
+     "kod": "252955002",
+     "display": "Tanner bone age assessment",
+     "version": null
+    },
+    {
+     "kod": "251824005",
+     "display": "Tanner axillary hair stage",
+     "version": null
+    },
+    {
+     "kod": "106434002",
+     "display": "Tanner, fellmonger AND/OR pelt dresser",
+     "version": null
+    },
+    {
+     "kod": "251811005",
+     "display": "Tanner girls breast development stage",
+     "version": null
+    },
+    {
+     "kod": "251805007",
+     "display": "Tanner boys genital development stage",
+     "version": null
+    },
+    {
+     "kod": "365404006",
+     "display": "Tanner axillary hair stage - finding",
+     "version": null
+    },
+    {
+     "kod": "365401003",
+     "display": "Tanner boys genital development - finding",
+     "version": null
+    },
+    {
+     "kod": "365402005",
+     "display": "Tanner girls breast development - finding",
+     "version": null
+    },
+    {
+     "kod": "70711000052105",
+     "display": "Tanner-Whitehouse 2 bone age assessment",
+     "version": null
+    },
+    {
+     "kod": "70731000052100",
+     "display": "Tanner-Whitehouse 3 bone age assessment",
+     "version": null
+    },
+    {
+     "kod": "53150004",
+     "display": "Devascularization of stomach",
+     "version": null
+    },
+    {
+     "kod": "70721000052102",
+     "display": "Tanner-Whitehouse 2 RUS (radius-ulna-short bones) bone age assessment",
+     "version": null
+    },
+    {
+     "kod": "33568004",
+     "display": "Brachiaria",
+     "version": null
+    },
+    {
+     "kod": "251812003",
+     "display": "Breasts Tanner Stage 1",
+     "version": null
+    },
+    {
+     "kod": "251816000",
+     "display": "Breasts Tanner Stage 5",
+     "version": null
+    },
+    {
+     "kod": "251813008",
+     "display": "Breasts Tanner Stage 2",
+     "version": null
+    },
+    {
+     "kod": "251814002",
+     "display": "Breasts Tanner Stage 3",
+     "version": null
+    },
+    {
+     "kod": "251815001",
+     "display": "Breasts Tanner Stage 4",
+     "version": null
+    },
+    {
+     "kod": "251806008",
+     "display": "Genitalia Tanner Stage 1",
+     "version": null
+    },
+    {
+     "kod": "251808009",
+     "display": "Genitalia Tanner Stage 3",
+     "version": null
+    },
+    {
+     "kod": "251807004",
+     "display": "Genitalia Tanner Stage 2",
+     "version": null
+    },
+    {
+     "kod": "251810006",
+     "display": "Genitalia Tanner Stage 5",
+     "version": null
+    },
+    {
+     "kod": "251809001",
+     "display": "Genitalia Tanner Stage 4",
+     "version": null
+    },
+    {
+     "kod": "251818004",
+     "display": "Prepubertal - no pubic hair",
+     "version": null
+    },
+    {
+     "kod": "251819007",
+     "display": "Sparse growth of downy pubic hair",
+     "version": null
+    },
+    {
+     "kod": "251820001",
+     "display": "Growth of darker, thicker, curled pubic hair",
+     "version": null
+    },
+    {
+     "kod": "251821002",
+     "display": "Pubic hair adult in type, area covered still smaller than adult",
+     "version": null
+    },
+    {
+     "kod": "251822009",
+     "display": "Adult pubic hair in type and quantity with spread to medial surface of thigh",
+     "version": null
+    },
+    {
+     "kod": "302086000",
+     "display": "Axillary hair Tanner Stage 4",
+     "version": null
+    },
+    {
+     "kod": "302087009",
+     "display": "Axillary hair Tanner Stage 5",
+     "version": null
+    },
+    {
+     "kod": "251825006",
+     "display": "Axillary hair Tanner Stage 1",
+     "version": null
+    },
+    {
+     "kod": "251826007",
+     "display": "Axillary hair Tanner Stage 2",
+     "version": null
+    },
+    {
+     "kod": "251827003",
+     "display": "Axillary hair Tanner Stage 3",
+     "version": null
+    },
+    {
+     "kod": "234821008",
+     "display": "Insertion of Tanner appliance",
+     "version": null
+    },
+    {
+     "kod": "26511000284100",
+     "display": "Aspergillus tanneri",
+     "version": null
+    },
+    {
+     "kod": "114151008",
+     "display": "Alloprevotella tannerae",
+     "version": null
+    },
+    {
+     "kod": "159866005",
+     "display": "Foreman - tannery production",
+     "version": null
+    }
+   ]
+  },
+  {
+   "filter": "pubic hair stage",
+   "http_status": 200,
+   "total": null,
+   "traffar": [
+    {
+     "kod": "251817009",
+     "display": "Pubic hair stage",
+     "version": null
+    },
+    {
+     "kod": "365403000",
+     "display": "Pubic hair stage - finding",
+     "version": null
+    },
+    {
+     "kod": "251818004",
+     "display": "Prepubertal - no pubic hair",
+     "version": null
+    },
+    {
+     "kod": "251823004",
+     "display": "Hair spread to linea alba",
+     "version": null
+    },
+    {
+     "kod": "251819007",
+     "display": "Sparse growth of downy pubic hair",
+     "version": null
+    },
+    {
+     "kod": "251820001",
+     "display": "Growth of darker, thicker, curled pubic hair",
+     "version": null
+    },
+    {
+     "kod": "251821002",
+     "display": "Pubic hair adult in type, area covered still smaller than adult",
+     "version": null
+    },
+    {
+     "kod": "251822009",
+     "display": "Adult pubic hair in type and quantity with spread to medial surface of thigh",
+     "version": null
+    }
+   ]
+  },
+  {
+   "filter": "body length",
+   "http_status": 200,
+   "total": null,
+   "traffar": [
+    {
+     "kod": "1153591001",
+     "display": "Length for age percentile",
+     "version": null
+    },
+    {
+     "kod": "710108006",
+     "display": "Length of body of mandible",
+     "version": null
+    },
+    {
+     "kod": "1162419008",
+     "display": "Self reported body height",
+     "version": null
+    },
+    {
+     "kod": "1162418000",
+     "display": "Estimated body height",
+     "version": null
+    },
+    {
+     "kod": "250860009",
+     "display": "Length of vascular catheter in body",
+     "version": null
+    },
+    {
+     "kod": "1153590000",
+     "display": "Length for age z score",
+     "version": null
+    },
+    {
+     "kod": "1153598007",
+     "display": "Weight for length z score",
+     "version": null
+    },
+    {
+     "kod": "870605008",
+     "display": "Target weight for length z-score",
+     "version": null
+    },
+    {
+     "kod": "1153599004",
+     "display": "Weight for length percentile",
+     "version": null
+    },
+    {
+     "kod": "764622004",
+     "display": "Mosaic trisomy 17 syndrome",
+     "version": null
+    },
+    {
+     "kod": "1149101003",
+     "display": "Recumbent body height",
+     "version": null
+    },
+    {
+     "kod": "53061000087100",
+     "display": "Stretching exercises",
+     "version": null
+    }
+   ]
+  },
+  {
+   "filter": "body height",
+   "http_status": 200,
+   "total": null,
+   "traffar": [
+    {
+     "kod": "1153637007",
+     "display": "Body height",
+     "version": null
+    },
+    {
+     "kod": "50373000",
+     "display": "Body height measure",
+     "version": null
+    },
+    {
+     "kod": "870593000",
+     "display": "Body height growth rate",
+     "version": null
+    },
+    {
+     "kod": "17489000",
+     "display": "Body height normal for age",
+     "version": null
+    },
+    {
+     "kod": "1153604005",
+     "display": "Body height for age z-score",
+     "version": null
+    },
+    {
+     "kod": "129814003",
+     "display": "Height abnormal for age",
+     "version": null
+    },
+    {
+     "kod": "1259000006",
+     "display": "Body height measurement device",
+     "version": null
+    },
+    {
+     "kod": "1153605006",
+     "display": "Body height for age percentile",
+     "version": null
+    },
+    {
+     "kod": "70931000052102",
+     "display": "Body height of biological father",
+     "version": null
+    },
+    {
+     "kod": "70941000052108",
+     "display": "Body height of biological mother",
+     "version": null
+    },
+    {
+     "kod": "1162392001",
+     "display": "Pre-amputation measured body height",
+     "version": null
+    },
+    {
+     "kod": "1162419008",
+     "display": "Self reported body height",
+     "version": null
+    },
+    {
+     "kod": "1149101003",
+     "display": "Recumbent body height",
+     "version": null
+    },
+    {
+     "kod": "1162418000",
+     "display": "Estimated body height",
+     "version": null
+    },
+    {
+     "kod": "1230278008",
+     "display": "Self reported peak adult body height",
+     "version": null
+    },
+    {
+     "kod": "14811000119105",
+     "display": "Abnormal increase in body height",
+     "version": null
+    },
+    {
+     "kod": "425260001",
+     "display": "Body position for height measurement",
+     "version": null
+    },
+    {
+     "kod": "1162417005",
+     "display": "Pre-amputation estimated body height",
+     "version": null
+    },
+    {
+     "kod": "1251557006",
+     "display": "Waist to height ratio",
+     "version": null
+    },
+    {
+     "kod": "301330009",
+     "display": "Finding of measures of body height and growth",
+     "version": null
+    },
+    {
+     "kod": "1153600001",
+     "display": "Weight for height z-score",
+     "version": null
+    },
+    {
+     "kod": "1153601002",
+     "display": "Weight for height percentile",
+     "version": null
+    },
+    {
+     "kod": "1228860003",
+     "display": "Spondyloepiphyseal dysplasia Stanescu type",
+     "version": null
+    },
+    {
+     "kod": "721148005",
+     "display": "Hip dysplasia Beukes type",
+     "version": null
+    }
+   ]
+  }
+ ],
+ "tanner": {
+  "brost_flickor": {
+   "observation": "251811005",
+   "fynd_overbegrepp": "365402005",
+   "stadium": {
+    "1": "251812003",
+    "2": "251813008",
+    "3": "251814002",
+    "4": "251815001",
+    "5": "251816000"
+   }
+  },
+  "genitalia_pojkar": {
+   "observation": "251805007",
+   "fynd_overbegrepp": "365401003",
+   "stadium": {
+    "1": "251806008",
+    "2": "251807004",
+    "3": "251808009",
+    "4": "251809001",
+    "5": "251810006"
+   }
+  },
+  "pubesbeharing": {
+   "observation": "251817009",
+   "fynd_overbegrepp": "365403000",
+   "stadium": {
+    "1": "251818004",
+    "2": "251819007",
+    "3": "251820001",
+    "4": "251821002",
+    "5": "251822009"
+   },
+   "ovrigt": {
+    "251823004": "Hair spread to linea alba (behåring mot linea alba, ibland kallat stadium 6)"
+   }
+  },
+  "axillbeharing": {
+   "observation": "251824005",
+   "fynd_overbegrepp": "365404006",
+   "stadium": {
+    "1": "251825006",
+    "2": "251826007",
+    "3": "251827003",
+    "4": "302086000",
+    "5": "302087009"
+   }
+  }
+ },
+ "anmarkningar": [
+  "248334005 Length of body är inaktiv sedan 2021-07-31 i International Edition 20250201. Uppslaget ger ingen ersättare. Aktiva begrepp i samma område: 1153637007 Body height och 1149101003 Recumbent body height (liggande längd, förälder 1153637007). 169886007 Birth length har 1149101003 som förälder.",
+  "53851000052106 och 53861000052109 (svensk utgåva) finns inte på tx.fhir.org, som svarar 404 Unknown code i International Edition 20250201.",
+  "70931000052102 Body height of biological father och 70941000052108 Body height of biological mother har svenskt namnrymdsid (1000052) men finns på tx.fhir.org i International Edition 20250201 med modul 900000000000207008 och effectiveTime 2024-03-01.",
+  "Pubesbehåringens stadier heter inte Tanner i Snomed CT men är barn till 365403000 Finding of pubic hair stage. Koppling stadium 1 till 5 för pubesbehåring efter ordningen i Tanners beskrivning; den står inte som siffra i begreppens namn.",
+  "Alla uppslag gjordes mot tx.fhir.org/r4, som har International Edition. Den svenska utgåvan (modul 45991000052106) kräver licens och är inte kontrollerad."
+ ]
+}

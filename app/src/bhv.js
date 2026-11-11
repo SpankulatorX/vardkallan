@@ -15,6 +15,8 @@ import * as T from './tillvaxt.js';
 import * as P from './bhv-program.js';
 import * as tidbok from './tidbok.js';
 import { ATC, K11 } from './kodverk.js';
+// Runda 11, r7: pubertet, import och ursprunget för inlästa värden (tillvaxt-r11.js).
+import * as r11 from './tillvaxt-r11.js';
 
 // Behörigheter (runda 7, r6). Läkare och sjuksköterskor vaccinerar enligt programmet och bokar barnets hälsobesök.
 Object.assign(HANDLINGAR, { vaccinera: 'registrera vaccinationer', boka_bhv: 'boka hälsobesök i barnhälsovården', rapportera_bhvq: 'rapportera till Svenska barnhälsovårdsregistret' });
@@ -276,38 +278,48 @@ function uppgifter(rader) {
 
 const mattAvTyp = (typ) => (typ === 'huvudomfang' ? 'huvudomfang' : typ);
 // Kurvorna för barnet ur mätvärdesraderna, födelseuppgifterna och hemmätningarna som väntar.
-export function bygg(db, p, { matvarden = [], upp = {}, hemma = [], handelser = [], nu = Date.now(), fran = null, till = null }) {
+export function bygg(db, p, { matvarden = [], upp = {}, hemma = [], handelser = [], nu = Date.now(), fran = null, till = null, referens = 'auto' }) {
   const gv = upp.graviditetslangd?.varde ?? null;
   const fodelseTid = upp.fodelsevikt?.tid ?? upp.fodelselangd?.tid ?? null;
-  const punkter = { vikt: [], langd: [], huvudomfang: [] };
+  const punkter = { vikt: [], langd: [], huvudomfang: [], sitthojd: [] };
   const fodsel = { vikt: upp.fodelsevikt, langd: upp.fodelselangd, huvudomfang: upp.fodelse_huvudomfang };
   for (const [m, r] of Object.entries(fodsel)) if (r) punkter[m].push({ id: `fodsel-${m}`, tid: r.tid, varde: r.varde, kalla: 'fodsel', vardenhet: enhetsnamn(db, r.enhet_id) });
   for (const r of matvarden) {
-    if (!['vikt', 'langd', 'huvudomfang'].includes(r.typ)) continue;
+    if (!['vikt', 'langd', 'huvudomfang', 'sitthojd'].includes(r.typ)) continue;
     const v = r.varde_num ?? Number(r.varde);
     if (!Number.isFinite(v)) continue;
-    punkter[mattAvTyp(r.typ)].push({ id: r.id, tid: r.tid, varde: v, kalla: r.kalla === 'hemmatning' ? 'hemma' : 'vard', vardenhet: enhetsnamn(db, r.enhet_id), registreradAv: personKort(db, r.registrerad_av)?.namn ?? null });
+    // Runda 11, r7: ett inläst värde visar sitt ursprung i stället för vårdenheten som läste in det.
+    const urs = r.kalla === 'import' ? r11.ursprungFor(db, r.id) : null;
+    punkter[mattAvTyp(r.typ)].push({ id: r.id, tid: r.tid, varde: v, kalla: r.kalla === 'hemmatning' ? 'hemma' : 'vard', vardenhet: urs ? `${urs.enhet ?? urs.kallsystem}, inläst` : enhetsnamn(db, r.enhet_id), registreradAv: urs ? urs.av : personKort(db, r.registrerad_av)?.namn ?? null, ...(urs ? { importerad: true } : {}) });
   }
   for (const h of hemma) punkter[h.typ].push({ id: `hemma-${h.id}`, tid: h.tid, varde: h.varde, kalla: 'hemma', vantar: true });
   punkter.bmi = T.bmiPunkter(punkter.vikt.filter(x => !x.vantar), punkter.langd.filter(x => !x.vantar));
   const kurvor = {};
-  for (const m of Object.keys(T.MATT)) kurvor[m] = T.berika(m, p.kon, p.fodd, gv, punkter[m]);
+  // Runda 11, r7: referensen väljs av systemet efter åldern (auto) eller av användaren.
+  const ref = T.referensFor(referens);
+  for (const m of Object.keys(T.MATT)) kurvor[m] = T.berika(m, p.kon, p.fodd, gv, punkter[m] ?? [], ref.id);
   const alderNu = T.alderManader(p.fodd, nu);
+  // Referensen som gäller vid barnets ålder när systemet väljer själv.
+  const effektiv = ref.id === 'auto' ? (alderNu <= T.MAX_MANADER ? T.REFERENSER.who2006 : T.REFERENSER.who2007) : ref;
+  // Sitthöjd mäts hos större barn: kurvan visas från två års ålder eller när det finns värden.
+  const visas = (m) => m !== 'sitthojd' || alderNu >= 24 || kurvor.sitthojd.length > 0;
+  const refTill = Math.min(ref.till, T.MAX_REFERENS);
   const korrigerad = T.korrigeradAlder(alderNu, gv);
   const mal = T.malangd(upp.langd_mor?.varde, upp.langd_far?.varde, p.kon);
   return {
     barn: { alderManader: Math.round(alderNu * 100) / 100, alderText: T.alderText(alderNu), korrigerad: korrigerad !== alderNu ? { alderManader: Math.round(korrigerad * 100) / 100, text: `Korrigerad ålder ${T.alderText(korrigerad)}, eftersom barnet föddes i vecka ${gv}. Kurvorna räknas med den till två års ålder.` } : null,
-      kon: p.kon, inomReferens: alderNu <= T.MAX_MANADER },
-    referens: T.REFERENS,
-    kurvor: Object.entries(T.MATT).map(([m, d]) => ({
+      kon: p.kon, inomReferens: alderNu >= ref.fran - 1 && alderNu <= refTill },
+    referens: { ...T.REFERENS, id: effektiv.id, vald: ref.id, namn: effektiv.namn, text: effektiv.id === 'who2006' && ref.id !== 'auto' ? T.REFERENS.text : `${ref.text} ${T.REFERENS.text.split('. ').slice(1).join('. ')}`, kalla: ref.kalla, licens: ref.licens },
+    referenser: Object.values(T.REFERENSER).map(r => ({ id: r.id, namn: r.namn, fran: r.fran, till: r.till, text: r.text })), ejTillgangliga: T.EJ_TILLGANGLIGA,
+    kurvor: Object.entries(T.MATT).filter(([m]) => visas(m)).map(([m, d]) => ({
       matt: m, namn: d.namn, enhet: d.enhet, harledd: Boolean(d.harledd), punkter: kurvor[m],
-      linjer: T.referenslinjer(m, p.kon, 0, Math.min(T.MAX_MANADER, Math.max(12, Math.ceil(alderNu + 3)))),
+      linjer: d.utanReferens || !ref.matt.includes(m) ? T.SD_LINJER.map(sd => ({ sd, punkter: [] })) : T.referenslinjer(m, p.kon, ref.id === 'who2007' ? 61 : 0, Math.min(refTill, Math.max(12, Math.ceil(alderNu + 3))), ref.id), utanReferens: Boolean(d.utanReferens) || !effektiv.matt.includes(m),
       senaste: kurvor[m].filter(x => !x.vantar).at(-1) ?? null,
     })),
     fodsel: { graviditetslangd: gv, tid: fodelseTid, vikt: upp.fodelsevikt?.varde ?? null, langd: upp.fodelselangd?.varde ?? null, huvudomfang: upp.fodelse_huvudomfang?.varde ?? null },
     foraldrar: { mor: upp.langd_mor?.varde ?? null, far: upp.langd_far?.varde ?? null, malangd: mal },
     analys: T.analys(kurvor, { fran, till }), period: { fran, till },
-    larm: alderNu <= T.MAX_MANADER ? T.larm(kurvor, { fodelsevikt: upp.fodelsevikt?.varde ?? null }) : [],
+    larm: alderNu <= refTill ? T.larm(kurvor, { fodelsevikt: upp.fodelsevikt?.varde ?? null }) : [],
     handelser: handelser.map(h => ({ id: h.id, tid: h.tid, text: h.text, alder: Math.round(T.alderManader(p.fodd, h.tid) * 100) / 100 })),
     demoregel: T.DEMOREGEL,
   };
@@ -317,20 +329,23 @@ const synliga = (atk, tabell, handling = 'las_matvarden') => atk.filtrera(atk.db
 const datumParam = (v) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
 
 // GET /api/patient/:id/tillvaxt. fran och till väljer perioden för analysen.
-export function vy(atk, p, { fran = null, till = null, nu = Date.now() } = {}) {
+export function vy(atk, p, { fran = null, till = null, nu = Date.now(), referens = 'auto' } = {}) {
   atk.krav('las_matvarden');
   const db = atk.db;
   const rader = journal.synligaMatvarden(atk);
   const upp = uppgifter(synliga(atk, 'tillvaxt_uppgifter'));
   const hemma = db.query("SELECT * FROM hemmatningar WHERE patient_id = ? AND status = 'vantar' ORDER BY tid").all(p.id).filter(h => atk.prova('las_matvarden', { enhet_id: h.enhet_id }).tillaten);
   const handelser = synliga(atk, 'tillvaxt_handelser');
-  const ut = bygg(db, p, { matvarden: rader, upp, hemma, handelser, nu, fran: datumParam(fran), till: datumParam(till) });
+  const ut = bygg(db, p, { matvarden: rader, upp, hemma, handelser, nu, fran: datumParam(fran), till: datumParam(till), referens });
   ut.hemmatningar = hemma.map(h => hemmatningUt(db, h));
   const iBhv = arbetarIBhv(db, atk.personal);
   ut.kan = { registrera: kanRoll(atk.personal, 'registrera_matvarde'), vaccinera: kanRoll(atk.personal, 'vaccinera') && iBhv, boka: kanRoll(atk.personal, 'boka_bhv') && iBhv };
   ut.bhv = bhvDel(atk, p, nu);
   ut.uppgiftstyper = UPPGIFTER;
   ut.dolda = { kraverVal: atk.doldaVal, sparrade: atk.doldaSparr };
+  // Runda 11, r7: pubertet och import av tillväxtdata.
+  ut.pubertet = r11.pubertetFor(atk, p, nu);
+  ut.import = ut.kan.registrera ? { format: r11.FORMAT, maxTecken: r11.MAX_TECKEN, simuleratSystem: r11.SIMULERAT_SYSTEM } : null;
   atk.logga('las_matvarden', atk.grund(), `tillvaxt:${p.id}`);
   return ut;
 }
@@ -394,8 +409,8 @@ function arBhvTid(db, tidId, yrkesroll) {
 export function registrera(atk, p, body = {}, knyt) {
   atk.krav('registrera_matvarde');
   const db = atk.db;
-  const falt = ['vikt', 'langd', 'huvudomfang'].filter(m => body[m] !== undefined && body[m] !== null && body[m] !== '');
-  if (!falt.length) throw new Fel(400, 'Skriv vikt, längd eller huvudomfång.', 'ogiltig', { falt: ['vikt'] });
+  const falt = ['vikt', 'langd', 'huvudomfang', 'sitthojd'].filter(m => body[m] !== undefined && body[m] !== null && body[m] !== '');
+  if (!falt.length) throw new Fel(400, 'Skriv vikt, längd, huvudomfång eller sitthöjd.', 'ogiltig', { falt: ['vikt'] });
   const ut = [];
   db.transaction(() => {
     let vk = null;
@@ -570,8 +585,8 @@ export function minRegistrera(atk, body = {}, nu = Date.now()) {
   const db = atk.db;
   const ins = inskrivning(db, atk.patient.id);
   if (!ins) throw new Fel(403, 'Barnet är inte inskrivet i barnhälsovården i Vårdkällan. Ta med mätningen till nästa besök.', 'nekad');
-  const falt = ['vikt', 'langd', 'huvudomfang'].filter(m => body[m] !== undefined && body[m] !== null && body[m] !== '');
-  if (!falt.length) throw new Fel(400, 'Skriv vikt, längd eller huvudomfång.', 'ogiltig', { falt: ['vikt'] });
+  const falt = ['vikt', 'langd', 'huvudomfang', 'sitthojd'].filter(m => body[m] !== undefined && body[m] !== null && body[m] !== '');
+  if (!falt.length) throw new Fel(400, 'Skriv vikt, längd, huvudomfång eller sitthöjd.', 'ogiltig', { falt: ['vikt'] });
   const datum = body.datum == null || body.datum === '' ? datumAv(new Date(nu)) : datumParam(body.datum);
   if (!datum || datum > datumAv(new Date(nu)) || datum < addDagar(datumAv(new Date(nu)), -30)) throw new Fel(400, 'Datumet ska vara i dag eller under de senaste 30 dagarna.', 'ogiltig', { falt: ['datum'] });
   const vantar = db.query("SELECT count(*) AS n FROM hemmatningar WHERE patient_id = ? AND status = 'vantar'").get(atk.patient.id).n;

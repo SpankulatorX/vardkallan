@@ -71,6 +71,8 @@ export const ICD10SE = {
 // ATC-benämning ordagrant ur WHO:s ATC/DDD-index 2026 (atcddd.fhi.no, senast uppdaterat 2026-01-20).
 // Används som display i FHIR. Den svenska substansen står i läkemedelskatalogen.
 export const ATC = {
+  // Runda 11, r7: intensivvårdens läkemedel, kontrollerade mot WHO:s ATC/DDD-index 2026-11-10.
+  'C01CA03': 'norepinephrine', 'N01AX10': 'propofol', 'N05CD08': 'midazolam',
   'A02BC01': 'omeprazole', 'A10AB05': 'insulin aspart', 'A10AE04': 'insulin glargine', 'A10BA02': 'metformin',
   'A10BK03': 'empagliflozin', 'A12AX': 'Calcium, combinations with vitamin D and/or other drugs',
   'B01AA03': 'warfarin', 'B01AB04': 'dalteparin', 'B01AB05': 'enoxaparin', 'B01AC06': 'acetylsalicylic acid',
@@ -216,6 +218,11 @@ export const NPL = {
   '20040607008683': { namn: 'Levaxin', styrka: '75 mikrogram', form: 'Tablett', substans: 'Levotyroxin', atc: 'H03AA01', vagar: ['ORAL'], godkand: '2005-09-16' },
   '20151002000087': { namn: 'Metformin Sandoz', styrka: '1000 mg', form: 'Filmdragerad tablett', substans: 'Metformin', atc: 'A10BA02', vagar: ['ORAL'], godkand: '2017-09-29' },
   '20070919000037': { namn: 'Amoxicillin Sandoz', styrka: '500 mg', form: 'Filmdragerad tablett', substans: 'Amoxicillin', atc: 'J01CA04', vagar: ['ORAL'], godkand: '2009-12-11' },
+  // Runda 11, r7: intensivvårdens produkter ur NPL:s totalfil 2026-11-10 (research/r7-npl).
+  '20070331000011': { namn: 'Noradrenalin Abcur', styrka: '1 mg/ml', form: 'Koncentrat till infusionsvätska, lösning', substans: 'Noradrenalin', atc: 'C01CA03', vagar: ['INVE'], godkand: '2009-07-03' },
+  '20000825000258': { namn: 'Propofol-Lipuro', styrka: '10 mg/ml', form: 'Injektionsvätska/infusionsvätska, emulsion', substans: 'Propofol', atc: 'N01AX10', vagar: ['INVE'], godkand: '2000-08-25' },
+  '20051112000024': { namn: 'Midazolam Panpharma', styrka: '5 mg/ml', form: 'Injektionsvätska, lösning', substans: 'Midazolam', atc: 'N05CD08', vagar: ['INMU', 'INVE', 'RECT'], godkand: '2006-10-06' },
+  '19801003000053': { namn: 'Furix', styrka: '10 mg/ml', form: 'Injektionsvätska, lösning', substans: 'Furosemid', atc: 'C03CA01', vagar: ['INMU', 'INVE'], godkand: '1980-10-03' },
 };
 
 // Mätvärden. Labbresultat kodas med NPU (används av svenska laboratorier), kontrollerat mot IFCC:s NPU-fil
@@ -261,6 +268,9 @@ export const MATKOD = {
   // Runda 7, r6: huvudomfång i barnhälsovården, med vitalparameterprofilen för huvudomfång. Kontrollerat mot LOINC via
   // tx.fhir.org 2026-11-08.
   huvudomfang: vp('9843-4', 'Head Occipital-frontal circumference', 'cm', 'headcircum'),
+  // Runda 11, r7: sitthöjd enligt bilaga K11 med Snomed CT 248335006 Sitting height (aktiv i International Edition
+  // 20250201, tx.fhir.org 2026-11-10). LOINC har inget begrepp för sitthöjd som tx.fhir.org hittar.
+  sitthojd: { kategori: 'exam', coding: [{ system: 'http://snomed.info/sct', code: '248335006', display: 'Sitting height' }], ucum: 'cm' },
   // Runda 8, r1: svaren från det simulerade laboratoriet (beställning och svar, Sussa 4.4) och SR som intern analys på
   // avdelningen. Kontrollerade mot IFCC:s NPU-fil npu-codes-latest.csv (hämtad 2026-11-08, samma sha256 som 2026-11-03)
   // och enheterna mot UCUM via tx.fhir.org, se docs/kodkontroll.md.
@@ -376,6 +386,8 @@ export const K11 = {
     huvudomfang: { kod: '363812007', text: 'huvudomfång', enhet: 'cm', format: 'NN,N', decimaler: 1, max: 99.9 },
     langd_mor: { kod: '53851000052106', text: 'längd hos biologisk mor', enhet: 'cm', format: 'NNN', decimaler: 0, max: 999 },
     langd_far: { kod: '53861000052109', text: 'längd hos biologisk far', enhet: 'cm', format: 'NNN', decimaler: 0, max: 999 },
+    // Runda 11, r7: sitthöjd ur bilaga K11.
+    sitthojd: { kod: '248335006', text: 'sitthöjd', enhet: 'cm', format: 'NNN,N', decimaler: 1, max: 999.9 },
   },
   // Besök: Vårdkontakt, kontakttyp ur V-TIM 2.2.
   besok: { mottagning: { kod: '2', text: 'öppenvårdsbesök' }, hem: { kod: '3', text: 'hembesök' } },

@@ -9,12 +9,22 @@ const ALLVAR = { hog: 'ruta-larm', varning: 'ruta-larm', info: 'ruta-info' };
 const SPANN = [['barn', 'Barnets ålder'], ['12', 'Första året'], ['24', 'Två år'], ['60', 'Fem år']];
 const STATUS = { genomfort: 'Gjort', bokat: 'Bokat', nu: 'Ska göras nu', missat: 'Inte gjort', kommande: 'Kommande' };
 let valtSpann = 'barn';
+// Runda 11, r7: längre ålderspann för större barn, val av referens och val av vilka mått som visas (bara i webbläsaren).
+const SPANN_STORA = [['120', 'Tio år'], ['228', '19 år']];
+let valdReferens = 'auto';
+const DOLDA_NYCKEL = 'vk-tillvaxt-dolda-matt';
+const doldaMatt = () => { try { return new Set(JSON.parse(localStorage.getItem(DOLDA_NYCKEL) ?? '[]')); } catch { return new Set(); } };
+const sparaDolda = (s) => { try { localStorage.setItem(DOLDA_NYCKEL, JSON.stringify([...s])); } catch { /* bara bekvämlighet */ } };
 
 export async function visa(el, ctx) {
   const q = ctx.q ?? new URLSearchParams();
   const fran = q.get('fran') ?? '';
   const till = q.get('till') ?? '';
-  const d = await api(`/api/patient/${encodeURIComponent(ctx.id)}/tillvaxt${fran || till ? `?fran=${encodeURIComponent(fran)}&till=${encodeURIComponent(till)}` : ''}`);
+  const fraga = new URLSearchParams();
+  if (fran) fraga.set('fran', fran);
+  if (till) fraga.set('till', till);
+  if (valdReferens !== 'auto') fraga.set('referens', valdReferens);
+  const d = await api(`/api/patient/${encodeURIComponent(ctx.id)}/tillvaxt${fraga.toString() ? `?${fraga}` : ''}`);
   if (!ctx.aktuell()) return;
   const b = d.barn;
   const bhv = d.bhv;
@@ -23,18 +33,19 @@ export async function visa(el, ctx) {
     ${d.larm.map(l => `<div class="ruta ${ALLVAR[l.allvar]} tv-larm" data-tv-larm="${esc(l.regel)}">${ikon.larm}<div><p><strong>${esc(l.rubrik)}.</strong> ${esc(l.text)}</p><p>${esc(l.nastaSteg)}</p>
       ${l.atgard === 'lakarbesok' && d.kan.boka && bhv?.egenEnhet ? `<button type="button" class="knapp liten" data-lakarbesok="${l.matt === 'huvudomfang' ? 'snart' : ''}" data-orsak="${esc(l.rubrik)}">Sätt upp besök hos BVC-läkaren</button>` : ''}
       <p class="under-text">${esc(l.demoregel)}</p></div></div>`).join('')}
-    ${d.kan.registrera ? registrering(bhv) : ''}
+    ${d.kan.registrera ? registrering(bhv, b) : ''}
     ${d.hemmatningar.length ? `<section aria-labelledby="tv-hemma"><h3 id="tv-hemma">Mätningar hemma som väntar</h3><ul class="enkel-lista">${d.hemmatningar.map(h => `<li class="tv-hemma-rad"><span><strong>${esc(h.namn)} ${esc(tal(h.varde, h.typ === 'vikt' ? 2 : 1))} ${esc(h.enhet)}</strong><span class="under-text">Mätt ${esc(tidpunkt(h.tid))} av ${esc(h.av)}.</span></span>
       ${d.kan.registrera ? `<span class="knapprad"><button type="button" class="knapp liten" data-bekrafta="${h.id}">Bekräfta</button><button type="button" class="knapp liten sekundar" data-avvisa="${h.id}">Använd inte</button></span>` : ''}</li>`).join('')}</ul></section>` : ''}
     <section aria-labelledby="tv-kurvor"><div class="sektion-huvud"><h3 id="tv-kurvor">Kurvor</h3>
-      <fieldset class="segment tv-spann"><legend class="sr">Visa ålder</legend>${SPANN.map(([v, t]) => `<input type="radio" id="tv-spann-${v}" name="tv-spann" value="${v}"${v === valtSpann ? ' checked' : ''}><label for="tv-spann-${v}">${esc(t)}</label>`).join('')}</fieldset></div>
+      <fieldset class="segment tv-spann"><legend class="sr">Visa ålder</legend>${[...SPANN, ...(b.alderManader > 60 ? SPANN_STORA : [])].map(([v, t]) => `<input type="radio" id="tv-spann-${v}" name="tv-spann" value="${v}"${v === valtSpann ? ' checked' : ''}><label for="tv-spann-${v}">${esc(t)}</label>`).join('')}</fieldset></div>
+      ${valHtml(d)}
       <p class="under-text">${esc(d.referens.text)} ${esc(d.referens.kalla)}. Licens: ${esc(d.referens.licens)}</p>
-      ${b.inomReferens ? '' : '<p class="ruta ruta-info">WHO:s standard gäller till fem års ålder. Värdena efter det visas i tabellerna utan referenslinjer.</p>'}
+      ${b.inomReferens ? '' : '<p class="ruta ruta-info">Barnets ålder ligger utanför den valda referensen, så kurvorna visas utan referenslinjer. Välj WHO efter barnets ålder för att se linjerna.</p>'}
       ${teckenforklaring()}
-      <div class="kurvor tv-kurvor">${d.kurvor.map(k => `<article class="kurvkort" id="tv-kurva-${esc(k.matt)}" aria-labelledby="tv-k-${esc(k.matt)}">
+      <div class="kurvor tv-kurvor">${d.kurvor.map(k => `<article class="kurvkort" id="tv-kurva-${esc(k.matt)}" aria-labelledby="tv-k-${esc(k.matt)}"${doldaMatt().has(k.matt) ? ' hidden' : ''}>
         <header><h4 id="tv-k-${esc(k.matt)}">${esc(k.namn)}${k.harledd ? ' <span class="tagg">Räknas av systemet</span>' : ''}</h4>${k.senaste ? `<p class="kurva-senaste">${esc(tal(k.senaste.varde, k.matt === 'vikt' ? 2 : 1))} <span class="enhet">${esc(k.enhet)}</span></p>` : ''}</header>
         ${k.senaste ? `<p class="under-text">${esc(zText(k.senaste.z))}${k.senaste.percentil ? `, percentil ${k.senaste.percentil}` : ''}, ${esc(alderText(k.senaste.alder))}</p>` : '<p class="tom liten">Inga värden.</p>'}
-        ${b.inomReferens ? kurvaSvg(k, { handelser: d.handelser, till: tillManader }) : ''}
+        ${kurvaSvg(k, { handelser: d.handelser, till: tillManader })}
         ${tabell(k)}
       </article>`).join('')}</div>
       ${d.handelser.length ? `<ol class="tv-handelser" aria-label="Händelser på kurvorna">${d.handelser.map(h => `<li>${esc(datum(h.tid))}: ${esc(h.text)}</li>`).join('')}</ol>` : ''}
@@ -52,6 +63,8 @@ export async function visa(el, ctx) {
       <ul class="enkel-lista">${d.analys.map(a => `<li><strong>${esc(a.namn)}</strong><span class="under-text">${esc(a.text)}</span></li>`).join('')}</ul>
       <p class="under-text">Tomma fält betyder hela tiden sedan födelsen.</p>
     </section>
+    ${pubertetHtml(d)}
+    ${importHtml(d)}
     ${fodselHtml(d)}
     ${bhv?.program ? programHtml(d, bhv) : bhv?.inskriven === false ? '<p class="tom">Barnet är inte inskrivet i barnhälsovården i Vårdkällan.</p>' : ''}`;
 
@@ -60,7 +73,54 @@ export async function visa(el, ctx) {
   if (d.kan.registrera && b.inomReferens) el.querySelector('#tv-vikt')?.focus({ preventScroll: true });
 }
 
-function registrering(bhv) {
+// Runda 11, r7: referensen och måtten som visas. Referenserna som inte får användas fritt står med skälet.
+function valHtml(d) {
+  const dolda = doldaMatt();
+  return `<div class="tv-val">
+    <div class="falt"><label for="tv-referens">Referens</label><select id="tv-referens">${d.referenser.map(r => `<option value="${esc(r.id)}"${r.id === (d.referens.vald ?? 'auto') ? ' selected' : ''}>${esc(r.namn)}</option>`).join('')}${d.ejTillgangliga.map(r => `<option value="" disabled>${esc(r.namn)}, finns inte</option>`).join('')}</select></div>
+    <fieldset class="kryssgrupp"><legend>Mått som visas</legend>${d.kurvor.map(k => `<div class="kryssfalt"><input type="checkbox" id="tv-visa-${esc(k.matt)}" data-tv-visa="${esc(k.matt)}"${dolda.has(k.matt) ? '' : ' checked'}><label for="tv-visa-${esc(k.matt)}">${esc(k.namn)}</label></div>`).join('')}</fieldset>
+  </div>
+  <details class="tv-ej-referens"><summary>Referenser som inte finns i Vårdkällan</summary><ul class="enkel-lista">${d.ejTillgangliga.map(r => `<li><strong>${esc(r.namn)}</strong><span class="under-text">${esc(r.skal)}</span></li>`).join('')}</ul></details>`;
+}
+
+// Runda 11, r7: pubertet enligt Tanners stadier. Bara de mått som gäller barnets kön visas.
+function pubertetHtml(d) {
+  const p = d.pubertet;
+  if (!p?.visas) return '';
+  const sel = (id, namn) => `<div class="falt smal"><label for="tv-pb-${id}">${esc(namn)}</label><select id="tv-pb-${id}" name="${id}"><option value="">Inte bedömt</option>${[1, 2, 3, 4, 5].map(n => `<option value="${n}">${n}</option>`).join('')}</select></div>`;
+  return `<section aria-labelledby="tv-pubertet"><h3 id="tv-pubertet">Pubertet</h3>
+    ${p.bedomning ? `<div class="ruta ruta-larm">${ikon.varning}<div><p>${esc(p.bedomning.text)}</p><p>${esc(p.bedomning.nastaSteg)}</p><p class="under-text">${esc(p.bedomning.demoregel)}</p></div></div>` : ''}
+    <p>${p.start ? esc(p.start.text) : 'Puberteten har inte börjat enligt registreringarna.'}</p>
+    ${p.poster.length ? `<div class="tabellrulle"><table class="tabell"><caption class="sr">Registrerade pubertetsstadier</caption><thead><tr><th scope="col">Datum</th><th scope="col">Ålder</th><th scope="col">Stadier</th><th scope="col">Registrerat av</th></tr></thead>
+      <tbody>${p.poster.map(x => `<tr><td>${esc(datum(x.tid))}</td><td>${esc(tal(x.alderAr, 1))} år</td><td>${esc(x.text)}</td><td>${esc(x.av ?? '')}</td></tr>`).join('')}</tbody></table></div>` : ''}
+    ${d.kan.registrera ? `<details><summary>Registrera pubertetsstadium</summary><form id="tv-pubertet-form" novalidate><div class="falt-rad">
+      ${p.matt.map(m => sel(m.id, m.namn)).join('')}
+      ${p.testikelvolym ? '<div class="falt smal"><label for="tv-pb-testikel">Testikelvolym</label><div class="med-enhet"><input id="tv-pb-testikel" name="testikelvolym" inputmode="decimal" autocomplete="off"><span class="enhet">ml</span></div></div>' : ''}
+      ${p.menarke ? '<div class="falt smal"><label for="tv-pb-menarke">Menarke</label><input id="tv-pb-menarke" name="menarke" type="date"></div>' : ''}
+      <div class="falt knappfalt"><button type="submit" class="knapp sekundar">Registrera</button></div></div><p class="form-fel" role="alert" hidden></p></form></details>` : ''}
+    <p class="under-text">${esc(p.kalla)}</p>
+  </section>`;
+}
+
+// Runda 11, r7: import från en fil eller från ett annat journalsystem. Systemet granskar först och sparar sedan.
+function importHtml(d) {
+  if (!d.import) return '';
+  return `<details class="tv-import" id="tv-import"><summary>Läs in tillväxtdata från en fil eller ett annat journalsystem</summary>
+    <p class="hjalp">Systemet läser filen, kontrollerar att den gäller barnet, prövar varje värde och visar vad som är nytt innan något sparas. Format: ${esc(Object.values(d.import.format).join('. '))}.</p>
+    <div class="falt-rad"><div class="falt"><label for="tv-import-fil">Fil</label><input id="tv-import-fil" type="file" accept=".json,.csv,.txt,application/json,text/csv"></div>
+      <div class="falt knappfalt"><button type="button" class="knapp sekundar" data-tv-journalsystem>Hämta från ${esc(d.import.simuleratSystem)}</button></div></div>
+    <div id="tv-import-granskning"></div><p class="form-fel" role="alert" hidden></p>
+  </details>`;
+}
+const IMPORTSTATUS = { ny: 'Ny', finns: 'Finns redan', fel: 'Läses inte in' };
+function granskningHtml(g) {
+  return `<p><strong>${esc(g.kallsystem)}.</strong> ${esc(g.text)}</p>
+    <div class="tabellrulle"><table class="tabell"><caption class="sr">Mätvärdena i filen</caption><thead><tr><th scope="col">Datum</th><th scope="col">Mått</th><th scope="col">Värde</th><th scope="col">Uppmätt på</th><th scope="col">Status</th></tr></thead>
+      <tbody>${g.rader.map(r => `<tr class="tv-import-rad status-${esc(r.status)}"><td>${esc(r.datum ?? r.tid ?? '')}</td><td>${esc(r.namn ?? '')}</td><td>${r.varde != null && Number.isFinite(Number(r.varde)) ? esc(`${tal(Number(r.varde), r.typ === 'vikt' ? 2 : 1)} ${r.enhet ?? ''}`) : ''}</td><td>${esc(r.ursprungEnhet ?? '')}</td><td>${esc(IMPORTSTATUS[r.status])}${r.orsak ? `<span class="under-text">${esc(r.orsak)}</span>` : ''}</td></tr>`).join('')}</tbody></table></div>
+    ${g.antal.ny && !g.redanInlast ? `<div class="knapprad"><button type="button" class="knapp" data-tv-importera>Läs in ${g.antal.ny} ${g.antal.ny === 1 ? 'nytt värde' : 'nya värden'}</button></div>` : ''}`;
+}
+
+function registrering(bhv, b = null) {
   const n = bhv?.program?.nasta;
   return `<form class="mv-form tv-form" id="tv-form" novalidate aria-labelledby="tv-reg">
     <h3 id="tv-reg">Registrera mätning</h3>
@@ -69,6 +129,7 @@ function registrering(bhv) {
       <div class="falt smal"><label for="tv-vikt">Vikt</label><div class="med-enhet"><input id="tv-vikt" name="vikt" inputmode="decimal" autocomplete="off"><span class="enhet">kg</span></div></div>
       <div class="falt smal"><label for="tv-langd">Längd</label><div class="med-enhet"><input id="tv-langd" name="langd" inputmode="decimal" autocomplete="off"><span class="enhet">cm</span></div></div>
       <div class="falt smal"><label for="tv-huvud">Huvudomfång</label><div class="med-enhet"><input id="tv-huvud" name="huvudomfang" inputmode="decimal" autocomplete="off"><span class="enhet">cm</span></div></div>
+      ${b && b.alderManader >= 24 ? '<div class="falt smal"><label for="tv-sitthojd">Sitthöjd</label><div class="med-enhet"><input id="tv-sitthojd" name="sitthojd" inputmode="decimal" autocomplete="off"><span class="enhet">cm</span></div></div>' : ''}
       <div class="falt knappfalt"><button type="submit" class="knapp">Registrera</button></div>
     </div>
     <p class="hjalp">Systemet sätter tid, vårdkontakt och kod och räknar BMI, SD och percentil.</p>
@@ -118,6 +179,48 @@ function programHtml(d, bhv) {
 function koppla(el, ctx, d) {
   const id = encodeURIComponent(ctx.id);
   el.querySelectorAll('[name="tv-spann"]').forEach(r => r.addEventListener('change', () => { valtSpann = r.value; ctx.ladda(); }));
+  // Runda 11, r7: referensen, måtten som visas, pubertet och import.
+  el.querySelector('#tv-referens')?.addEventListener('change', (e) => { if (e.target.value) { valdReferens = e.target.value; ctx.ladda(); } });
+  el.querySelectorAll('[data-tv-visa]').forEach(c => c.addEventListener('change', () => {
+    const s = doldaMatt();
+    if (c.checked) s.delete(c.dataset.tvVisa); else s.add(c.dataset.tvVisa);
+    sparaDolda(s);
+    const art = el.querySelector(`#tv-kurva-${CSS.escape(c.dataset.tvVisa)}`);
+    if (art) art.hidden = !c.checked;
+  }));
+  const pf = el.querySelector('#tv-pubertet-form');
+  pf?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = {};
+    for (const [k, v] of new FormData(pf)) if (String(v).trim() !== '') data[k] = ['brost', 'genitalia', 'pubes'].includes(k) ? Number(v) : v;
+    try { const r = await medKnapp(pf.querySelector('[type=submit]'), () => api(`/api/patient/${id}/tillvaxt/pubertet`, { metod: 'POST', data }), pf); notis(r.text); ctx.ladda(); } catch { /* i formuläret */ }
+  });
+  const imp = el.querySelector('#tv-import');
+  let granskad = null;
+  const visaGranskning = (g, format, innehall) => {
+    granskad = { format, innehall, hash: g.hash };
+    imp.querySelector('#tv-import-granskning').innerHTML = granskningHtml(g);
+    imp.querySelector('.form-fel').hidden = true;
+  };
+  const importFel = (x) => { const f = imp.querySelector('.form-fel'); f.textContent = x?.message ?? 'Filen kunde inte läsas in.'; f.hidden = false; };
+  // Systemet avgör formatet själv ur innehållet: en FHIR Bundle, ett svar från GetObservations eller CSV.
+  const formatFor = (text) => { try { const j = JSON.parse(text); return Array.isArray(j?.observation) ? 'riv' : 'fhir'; } catch { return 'csv'; } };
+  imp?.querySelector('#tv-import-fil').addEventListener('change', async (e) => {
+    const fil = e.target.files?.[0];
+    if (!fil) return;
+    if (fil.size > d.import.maxTecken * 2) { importFel({ message: 'Filen är för stor för att läsas in.' }); return; }
+    const text = await fil.text();
+    const format = formatFor(text);
+    try { visaGranskning(await api(`/api/patient/${id}/tillvaxt/import/granska`, { metod: 'POST', data: { format, innehall: text } }), format, text); } catch (x) { importFel(x); }
+  });
+  imp?.addEventListener('click', async (e) => {
+    const knapp = e.target.closest('button');
+    if (!knapp) return;
+    try {
+      if (knapp.hasAttribute('data-tv-journalsystem')) { const g = await medKnapp(knapp, () => api(`/api/patient/${id}/tillvaxt/import/journalsystem`, { metod: 'POST', data: {} })); visaGranskning(g, 'riv', g.innehall); }
+      else if (knapp.hasAttribute('data-tv-importera') && granskad) { const r = await medKnapp(knapp, () => api(`/api/patient/${id}/tillvaxt/import`, { metod: 'POST', data: granskad })); notis(r.text); ctx.ladda(); }
+    } catch (x) { importFel(x); }
+  });
   const form = el.querySelector('#tv-form');
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();

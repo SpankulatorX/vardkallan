@@ -22,6 +22,8 @@
 // pump rapporterar var femtonde minut, genom samma mottagning som en riktig utrustning (efterTid).
 import { createHmac, randomBytes } from 'node:crypto';
 import { Fel, iso, MATTYPER_ENHET } from './db.js';
+// Runda 11, r7: dosenheterna för intensivvårdens infusioner.
+import { faktor } from './iva-dosenhet.js';
 import { Atkomst, kanRoll, vardenhetFor, enheterUnder, visningsPnr } from './atkomst.js';
 import { kravVardande, synligaAdministreringar } from './administrering.js';
 import { loggaRad } from './logg.js';
@@ -248,6 +250,15 @@ export function kopplingarFor(atk, { aktiva = false } = {}) {
   return rader.filter(k => !aktiva || !k.slut).map(k => kopplingUt(atk.db, k));
 }
 
+// Runda 11, r7: armbandet mot patientens identiteter (personnummer, samordningsnummer, reservnummer), med eller utan
+// sekel. Samma regel när utrustning kopplas och när en infusion titreras (iva.js).
+export function armbandStammer(db, patientId, text) {
+  const a = siffror(text);
+  const p = db.query('SELECT personnummer FROM patienter WHERE id = ?').get(patientId);
+  if (!a || !p) return false;
+  const ident = [p.personnummer, ...db.query('SELECT varde FROM identiteter WHERE patient_id = ?').all(patientId).map(r => r.varde)].map(siffror).filter(Boolean);
+  return ident.some(x => x === a || x.slice(2) === a || a.slice(2) === x);
+}
 // POST /api/patient/:id/mt/koppla { streckkod, armband?, ordinationId? }. Systemet hittar utrustningen ur streckkoden,
 // kontrollerar armbandet mot patientens identitet, väljer själv pumpens ordination när det bara finns en infusion och
 // avslutar en tidigare koppling när utrustningen flyttas.
@@ -261,9 +272,7 @@ export function koppla(atk, p, body = {}, nu = new Date()) {
   kravUtrustning(db, atk.personal, u);
   let armband = 0;
   if (body.armband != null && body.armband !== '') {
-    const a = siffror(body.armband);
-    const ident = [p.personnummer, ...db.query('SELECT varde FROM identiteter WHERE patient_id = ?').all(p.id).map(r => r.varde)].map(siffror).filter(Boolean);
-    if (!a || !ident.some(x => x === a || x.slice(2) === a || a.slice(2) === x)) {
+    if (!armbandStammer(db, p.id, body.armband)) {
       atk.logga('koppla_utrustning', 'nekad', `mt:koppla:${u.id}:armband`, 'nekad');
       throw new Fel(400, 'Armbandet hör inte till den här patienten. Kontrollera att du står vid rätt patient innan utrustningen kopplas.', 'ogiltig', { falt: ['armband'] });
     }
@@ -835,7 +844,7 @@ export function simuleradMonitor(db, u, k, t) {
 export function pumpHastighet(db, o, inf) {
   if (inf?.iva) {
     const d = db.query('SELECT dos FROM iva_titreringar WHERE ordination_id = ? ORDER BY tid DESC, id DESC LIMIT 1').get(o.id)?.dos ?? inf.iva.startdos;
-    return inf.iva.vikt_kg && inf.koncentration ? Math.round(d * inf.iva.vikt_kg / inf.koncentration * 10) / 10 : null;
+    return inf.iva.vikt_kg && inf.koncentration ? Math.round(d * faktor(inf.iva.dos_enhet) * inf.iva.vikt_kg / inf.koncentration * 10) / 10 : null;
   }
   if (inf?.volymMl && inf.tidMin) return Math.round(inf.volymMl / inf.tidMin * 60 * 10) / 10;
   return null;

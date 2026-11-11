@@ -39,6 +39,8 @@ import * as cytostatikaFlik from './patient-cytostatika.js';
 import * as blodFlik from './patient-blod.js';
 // Runda 11, r5: bilder och media i journalen.
 import * as bilderFlik from './patient-bilder.js';
+// Runda 11, r7: intensivvården som flik i journalen.
+import * as ivaFlik from './patient-iva.js';
 
 export const namn = 'patient';
 
@@ -91,6 +93,8 @@ FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'prover') + 1, 0,
   ['blod', 'Blod', (h) => far('las_prover') && (far('bestalla_prov') || !h || Boolean(h.specialistR11r4?.blod)), blodFlik]);
 // Runda 11, r5: Bilder (bilder och media, Sussa 4.2) efter Prover, för den som läser journalen eller omvårdnaden.
 FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'prover') + 1, 0, ['bilder', 'Bilder', () => pa('las_journal', 'las_omvardnad'), bilderFlik]);
+// Runda 11, r7: fliken Intensivvård efter Mätvärden, för personalen på en vårdenhet med intensivvårdsavdelning.
+FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'matvarden') + 1, 0, ['iva', 'Intensivvård', () => Boolean(S.session?.iva) && far('las_matvarden'), ivaFlik]);
 
 let huvud = null;
 

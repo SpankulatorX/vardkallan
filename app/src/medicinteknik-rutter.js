@@ -6,6 +6,7 @@ import { Atkomst, kanRoll } from './atkomst.js';
 import * as journal from './journal.js';
 import * as mt from './medicinteknik.js';
 import * as iva from './iva.js';
+import * as nems from './iva-nems.js';
 
 const FHIR_JSON = { 'Content-Type': 'application/fhir+json; charset=utf-8', 'Cache-Control': 'no-store' };
 const utfall = (status, niva, text) => new Response(JSON.stringify({ resourceType: 'OperationOutcome', issue: [{ severity: niva, code: status >= 400 ? (status === 401 ? 'security' : status === 429 ? 'throttled' : 'invalid') : 'informational', diagnostics: text }] }), { status, headers: FHIR_JSON });
@@ -114,7 +115,8 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
     if (ut.enhet) loggaPatienter(c, patientIdn, 'las_matvarden', `iva:oversikt:${ut.enhet.id}`);
     return ut;
   });
-  rutt('GET', '/api/iva/uppfoljning', (c) => iva.uppfoljning(c.db, kravInloggad(c), { enhetId: q(c, 'enhet'), dagar: q(c, 'dagar') }));
+  // Runda 11, r7: med vårdtyngden enligt NEMS (iva-nems.js).
+  rutt('GET', '/api/iva/uppfoljning', (c) => nems.medNems(c.db, iva.uppfoljning(c.db, kravInloggad(c), { enhetId: q(c, 'enhet'), dagar: q(c, 'dagar') })));
   rutt('GET', '/api/patient/:id/iva', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_matvarden', (atk, p) => iva.overvakning(atk, p, { timmar: q(c, 'timmar') })); });
   rutt('GET', '/api/patient/:id/iva/vatska', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_matvarden', (atk) => iva.vatskaTimvis(atk, { timmar: Math.min(72, Math.max(1, Number(q(c, 'timmar')) || 24)) })); });
   rutt('GET', '/api/patient/:id/iva/infusion/forslag', (c, id) => { kravInloggad(c); return medPatient(c, id, 'ordinera', (atk, p) => iva.infusionsforslag(atk, p)); });

@@ -6,6 +6,8 @@
 export const INMATNINGAR = Object.freeze(Object.assign(Object.create(null), {
   manuell: 'Manuellt inmatat', utrustning: 'Maskinellt från medicinteknisk utrustning', laboratorium: 'Maskinellt från laboratoriet',
   raknad: 'Räknat av systemet', patient: 'Patientens egen mätning', migrerad: 'Migrerat från ett tidigare journalsystem',
+  // Runda 11, r7: tillväxtdata som har lästs in från en fil eller ett annat journalsystem (tillvaxt-r11.js).
+  importerad: 'Inläst från en fil eller ett annat journalsystem',
 }));
 export const MASKINELLA = new Set(['utrustning', 'laboratorium', 'raknad']);
 const LABB = new Set(['crp', 'kreatinin', 'hba1c', 'inr', 'ntprobnp', 'hb', 'kalium', 'troponin', 'tsh', 'lpk', 'tpk', 'natrium', 'kobalamin', 'folat', 'sr']);
@@ -17,6 +19,7 @@ export function inmatning(m, { labb = false, vem = null } = {}) {
   if (String(m.kalla ?? '').startsWith('migrerad:')) typ = 'migrerad';
   else if (m.kalla === 'utrustning') typ = 'utrustning';
   else if (m.kalla === 'patient') typ = 'patient';
+  else if (m.kalla === 'import') typ = 'importerad';
   else if (m.typ === 'egfr') typ = 'raknad';
   else if (labb || (LABB.has(m.typ) && !m.registrerad_av)) typ = 'laboratorium';
   else typ = 'manuell';

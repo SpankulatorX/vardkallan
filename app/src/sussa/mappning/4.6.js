@@ -5,11 +5,13 @@
 import { T } from '../medicinteknik-r9.js';
 // Runda 11, r2: anestesibedömningen inför en operation.
 import { OPERATION11 as U } from '../runda11-r2.js';
+// Runda 11, r7: realtid, egna regler, vätskemål, NEMS och sammanräkning av doser (sussa/runda11-r7.js).
+import { medR11r7Iva } from '../runda11-r7.js';
 
 const VB = 'Vätskebalans > ';
 const DEMO = 'Hjärtintensiven på Kardiologiska kliniken är demons intensivvårdsavdelning med åtta platser. Reglerna och protokollen är demoregler, inte kliniskt beslutsstöd, och utrustningen är simulerad. Specialområdet sköts upp i Tilläggsavtal 3.';
 
-export default [
+export default medR11r7Iva([
   {
     id: '4.6.1.1', kategori: 'system', egna: [], avsedd: 'delvis',
     tester: [T.oversikt, T.overvakning, T.analys, T.anestesi, T.infusion, T.vatska, T.uppfoljning],
@@ -61,4 +63,4 @@ export default [
     expert: 'Systemet räknar uppföljningen ur det som redan dokumenteras, så ingen behöver föra statistik för hand.',
     anmarkning: `${DEMO} Vårdtyngd enligt NEMS eller NAS och rapportering till Svenska Intensivvårdsregistret saknas.`,
   },
-];
+]);

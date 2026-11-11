@@ -49,6 +49,8 @@ export const KODSYSTEM = [
     // Runda 9, r2: mätvärden och doser från medicinteknisk utrustning och patientens egna mätningar.
     ['utrustning', 'Medicinteknisk utrustning', 'Mottagen från en kopplad medicinteknisk utrustning, till exempel en patientmonitor eller en infusionspump.'],
     ['patient', 'Patientens egen mätning', 'Registrerad av patienten i Min journal. Inte kvalitetssäkrad förrän vården har bedömt den.'],
+    // Runda 11, r7: tillväxtdata som har lästs in från en fil eller från ett annat journalsystem.
+    ['import', 'Inläst', 'Inläst från en fil eller ett annat journalsystem. Ursprunget finns i Vårdkällan.'],
   ]),
   kodsystem('felkod', 'Felkod', 'Felkod', 'Samma felkoder som Vårdkällans /api.', [
     ['kraver_val', 'Kräver aktivt val', 'Åtgärden blir möjlig efter ett aktivt val eller nödåtkomst.'],

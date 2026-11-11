@@ -398,3 +398,47 @@ Verksamhetsområdet 411 Anestesi- och intensivvård för anestesienheterna kontr
 ## Runda 11, r6: undersökningar, vårdförlopp och fynd (2026-11-10)
 
 KVÅ-koderna för undersökningarna och starten av de standardiserade vårdförloppen kontrollerades i E-hälsomyndighetens fil kva-inkl-beskrivningstexter-2026.xlsx, hämtad på nytt 2026-11-10 med samma sha256 som ovan (e02d1f7239fb8919dcb02c10773c44fe320e199fdae7e0154a33d89635450d36): AF053 Röntgenundersökning, hjärta och lungor (med eller utan hjärtvolymsbedömning), AN062 Röntgenundersökning, höftled med halvaxial sidobild, AN063 Röntgenundersökning, knäled, AA014 Datortomografi, hjärna, utan intravenös kontrast, AJ004 Datortomografi, buk (ospecificerat), AG009 Datortomografi, torax, AA045 Magnetresonanstomografi, hjärna, AN042 Magnetresonanstomografi, knäled, AJ084 Ultraljudsundersökning, översikt av buken, AK044 Ultraljudsundersökning, njurar, AF022 Elektrokardiografi (EKG), 12 avledningar, standard, AF012 Arbets-EKG, standard, AF020 Doppler ekokardiografi, transtorakal, enkel, AA024 Elektroencefalografi (EEG), vaken, AA058 Neurografi, motorisk och sensorisk, och för vårdförloppen VC010 (lungcancer), VB210 (tjock- och ändtarmscancer), VG910 (bröstcancer) och VP810 (cancermisstanke vid allvarliga, ospecifika symtom), alla med texten beslut välgrundad misstanke om cancer. Snomed CT slogs upp på tx.fhir.org (International Edition 20250201) 2026-11-10: 281900007 No abnormality detected, 309529002 Lung mass, 363679005 Imaging och 122554006 Capillary blood specimen, alla aktiva. HL7 v2 tabell 0487 har ingen kod för kapillärblod, så kapillärprovet har BLD (Whole blood) där och Snomed CT 122554006.
+## Runda 11, r7: tillväxtreferenser, bilaga K11, pubertet och intensivvårdens källor (2026-11-10)
+
+### Tillväxtreferenser och licenser
+
+Varje referens kontrollerades innan den användes. Källorna med URL, hämttid och sha256 för varje nedladdad fil finns i `research/r7-tillvaxt/manifest.json` och `research/r7-tillvaxt/KALLOR.md`. De nedladdade filerna sparas inte i repot.
+
+| Referens | Licens | Används |
+|---|---|---|
+| WHO Growth Reference 2007, 5 till 19 år (de Onis m.fl., Bull World Health Organ 2007;85:660-7): BMI och längd 61 till 228 månader och vikt 61 till 120 månader | CC BY-NC-SA 3.0 IGO enligt WHO:s upphovsrättspolicy och WHO:s villkor för webbplatsen. Samma tabeller ger WHO ut under GPL-3.0 i R-paketet anthroplus | Ja, i `app/src/seed/who2007-tillvaxt.js`, som inte omfattas av EUPL 1.2. Alla 792 rader är lika med anthroplus (commit 7cfcdb39026e9a55de55732bc3cf14c82261bcf7) |
+| Fenton 2013, prematurkurvor | Artikeln är CC BY 2.0 men har inga LMS-värden. Värdena lämnas ut på begäran för forskning och mot avtal för kommersiell användning | Nej |
+| INTERGROWTH-21st, prematurer och nyföddas storlek | Artikeln med ekvationerna för prematurer (Villar 2015) är CC BY-NC-ND 4.0, och tabellerna har upphovsrätt hos University of Oxford | Nej |
+| CDC, Downs syndrom (Zemel m.fl. 2015) | CDC ger ut kurvbladen som bilder. Värdena finns bara i tidskriftens tilläggstabeller under förlagets upphovsrätt | Nej |
+| Turners syndrom | Den turkiska referensen (2015) är CC BY men har värdena bara som bilder, och den japanska (2010) är CC BY-NC-ND | Nej |
+
+WHO-tabellerna lästes som data med standardbiblioteket i Python (zipfile och xml) och avrundades till fyra decimaler för L och M och fem för S, som tabellen för 0 till 5 år. Mellan 60 och 61 månader räknas övergången linjärt mellan tabellerna.
+
+### Bilaga K11 mot Snomed CT
+
+Koderna i `K11` slogs upp en i taget med `CodeSystem/$lookup` på tx.fhir.org mot SNOMED CT International Edition, version `http://snomed.info/sct/900000000000207008/version/20250201`, den 2026-11-10 (svaren i `research/r7-tillvaxt/snomed-uppslag.json`).
+
+| Kod | Begrepp | Resultat |
+|---|---|---|
+| 364589006 | Birth weight | Aktiv |
+| 169886007 | Birth length | Aktiv |
+| 169876006 | Birth head circumference | Aktiv |
+| 412726003 | Length of gestation at birth | Aktiv |
+| 27113001 | Body weight | Aktiv |
+| 248334005 | Length of body | Inaktiv sedan 2021-07-31. Aktiva begrepp i samma område är 1153637007 Body height och 1149101003 Recumbent body height |
+| 363812007 | Head circumference | Aktiv |
+| 248335006 | Sitting height | Aktiv |
+| 80943009, 707085002, 408864009, 473170005 | Tuberkulosrisk och BCG | Aktiva |
+| 53851000052106, 53861000052109 | Längd hos biologisk mor och far | Svensk utgåva, finns inte i den internationella utgåvan |
+
+Koderna står kvar ordagrant som i K11, också den inaktiva koden för kroppslängd, eftersom Svenska barnhälsovårdsregistret tar emot bilagans koder. Vid import läses både 248334005 och de två aktiva begreppen för längd. Koderna i den svenska utgåvan kontrolleras med kontrollsiffran (Verhoeff) och partitionen, eftersom den svenska utgåvan kräver licens. Kontrollen finns som `K11_KONTROLL` i `app/src/tillvaxt-r11.js` och i testet `Tillväxt, version 1.1 > sitthöjd registreras med K11:s kod`.
+
+### Pubertet och sitthöjd
+
+Tanners stadier registreras med Snomed CT 251811005 (bröst), 251805007 (genitalia) och 251817009 (pubesbehåring), alla aktiva i samma utgåva. Sitthöjd har 248335006 i K11 och i FHIR. LOINC har inget begrepp för sitthöjd som tx.fhir.org hittar, så sitthöjden har bara Snomed CT i FHIR.
+
+### Intensivvården
+
+NEMS följer Reis Miranda D, Moreno R, Iapichino G, Nine equivalents of nursing manpower use score (NEMS), Intensive Care Med 1997;23:760-5: nio poster med poängen 9, 6, 12, 3, 7, 12, 6, 5 och 6. Förslagen ur journalen, perspiratio, prognosen och rekommendationerna är demoregler.
+
+Läkemedlen för vasoaktiv infusion och sedering slogs upp i NPL:s totalfil 2026-11-10 (`research/r7-npl/RESULTAT.md`): Noradrenalin Abcur 1 mg/ml (20070331000011), Propofol-Lipuro 10 mg/ml (20000825000258), Midazolam Panpharma 5 mg/ml (20051112000024) och Furix 10 mg/ml (19801003000053), alla godkända. De är inlagda i katalogen som VK-NPL-0701 till 0704 med förpackningarna ur samma totalfil (högst fyra per produkt, inte avregistrerade och inte parallelldistribuerade), facit i `NPL` i `app/src/kodverk.js` och i `app/test/data/npl-forpackningar.json`, av `research/r7-npl/katalog-r7.py`. ATC-koderna C01CA03 norepinephrine, N01AX10 propofol och N05CD08 midazolam är kontrollerade mot WHO:s ATC/DDD-index 2026-11-10.
