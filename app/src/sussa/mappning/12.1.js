@@ -8,6 +8,9 @@ import { medR8r5 } from '../runda8-r5.js';
 import { T as LABB_T } from '../labb-r8.js';
 // Runda 11, r6: vad som förs över, etikettskrivarna och anvisningarna (konfiguration.js).
 import { R6 } from '../runda11-r6.js';
+// Runda 12, r1: konfiguration utan programmerare (journalstruktur.js och konfiguration.js).
+import { TESTER_STRUKTUR, TESTER_RAMAR, TESTER_LAKEMEDELSMALLAR, TESTER_LAKEMEDELSREGLER, TESTER_ADMINISTRATION, TESTER_UNDANTAG_ENSKILD } from '../runda12-r1.js';
+import { T as KV } from '../runda9-r4.js';
 
 const { GK } = TEST;
 const S = 'Systemförvaltning > ';
@@ -88,25 +91,28 @@ const POSTERNA = [
     anmarkning: KONFIG_ANM,
   },
   {
-    id: '12.1.1.6', kategori: 'system', egna: [], avsedd: 'delvis',
-    tester: [...KONFIG, GENOMSLAG],
-    losning: `${KONFIG_LOSNING} Inom administration finns påminnelsen före en bokad tid, antalet åtkomster i ett stickprov och åren innan gallring föreslås.`,
+    // Runda 12, r1: avgifterna, tidbokens regler och vårdgarantin som parametrar (konfiguration.js, tidbok.js och vardkontakt.js).
+    id: '12.1.1.6', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
+    tester: [...KONFIG, GENOMSLAG, ...TESTER_ADMINISTRATION],
+    losning: `${KONFIG_LOSNING} Inom administration finns patientavgifterna för besök, akutbesök och vårddygn, högkostnadsskyddet och åldersgränserna för avgiftsfrihet, vårdgarantin för ett nybesök efter remiss, när en patient på väntelistan lyfts fram, hur sent patienten själv kan boka om och avboka, när incheckningen öppnar och stänger, påminnelsen före en bokad tid, antalet åtkomster i ett stickprov och åren innan gallring föreslås. Avgiften, högkostnadsskyddet, väntelistan, planeringen, kapacitetsprognosen, Min journal och incheckningen läser det godkända värdet.`,
     expert: KONFIG_EXPERT,
-    anmarkning: `${KONFIG_ANM} Avgifter, tidboksregler och vårdgarantin är ännu inte parametrar.`,
+    anmarkning: `${KONFIG_ANM} Sedan runda 12 är också avgifterna, högkostnadsskyddet, tidbokens regler och vårdgarantin parametrar. Avgifterna och gränserna är demoregler och inte någon regions avgifter. Vårdgarantin kan inte sättas längre än de 90 dagar som hälso- och sjukvårdslagen ger, och avgiftsfriheten från 85 år kan inte flyttas uppåt, och systemet säger varför. Det som inte går att ändra står på sidan med skälet: behörigheten, loggarna, ordinationsorsaken vid förskrivning och reglerna för Min journal.`,
   },
   {
-    id: '12.1.1.7', kategori: 'system', egna: ['D11'], avsedd: 'delvis',
-    tester: [...KONFIG, SOKORD, GENOMSLAG],
-    losning: 'Sökorden i journalens mallar ändras på ett ställe och används direkt i anteckningsformuläret. Anteckningar som redan är skrivna ändras inte. Förslaget att avsluta ett hälsoärende utan vårdkontakter är en parameter.',
-    expert: 'Systemet kontrollerar sökorden (inga dubbletter, minst ett, högst trettio och korta rubriker) och visar vilka som läggs till och tas bort innan ändringen skickas för godkännande.',
-    anmarkning: 'Nya mallar, nya anteckningstyper, kodverk och mätvärdestyper går inte att lägga till från gränssnittet än.',
+    // Runda 12, r1: mallar, anteckningstyper, sökord, mätvärdestyper och kodverk från gränssnittet (journalstruktur.js).
+    id: '12.1.1.7', kategori: 'system', egna: ['D11'], avsedd: 'uppfyllt_demo',
+    tester: [...KONFIG, SOKORD, GENOMSLAG, ...TESTER_STRUKTUR, ...TESTER_RAMAR, KV.kvLokalt, KV.kvFyraOgon, KV.kvJamfor],
+    losning: 'Sidan Mallar och mätvärdestyper samlar journalens struktur på ett ställe. Systemförvaltaren skapar en ny mall, som också är en ny anteckningstyp, med sökord och kategori (läkarnas dokumentation eller omvårdnad), lägger till nya sökord med kod i Snomed CT, skapar nya mätvärdestyper med kod i NPU eller LOINC, enhet i UCUM och rimliga värden, och sätter vårdgivarens ram för en mall och en vårdenhets lokala anpassning. Varje ändring är en ny version som en annan systemförvaltare godkänner i sin egen inloggning, och den gäller i hela systemet direkt efter godkännandet: mallen blir valbar i anteckningsformuläret, mätvärdestypen när ett värde registreras, och FHIR lämnar ut anteckningstypen, sökorden och mätvärdena med sina koder. Lokala kodverk skapas och får nya utgåvor under Kodverk och masterdata på samma sätt, och sökorden i de inbyggda mallarna ändras under Regler och parametrar.',
+    expert: 'Systemet sätter själv koden för ett sökord som redan finns i delmängden, kontrollerar kontrollsiffran i Snomed CT och LOINC, formen på NPU och enheten mot UCUM, stoppar en kod som redan används och säger vilket sökord eller vilken mätvärdestyp som har den, räknar fram mätvärdestypens id, kategori och hur enheten visas, och visar medan man skriver vad som påverkas: var mallen blir valbar, hur många anteckningar som redan är skrivna och står kvar som de skrevs, och vilka vårdenheters anpassningar som slutar gälla. Ett godkännande prövas igen mot det som gäller då.',
+    anmarkning: 'Det som inte går att ändra står på sidan med skälet: skrivna anteckningar och registrerade värden, koden och enheten för en mätvärdestyp som har värden (en ny kod blir en ny mätvärdestyp), namnet och kategorin för journalens inbyggda mallar, och sökorden i de strukturerade mallarna för tobak, levnadsvanor och donation, som systemet skriver ur svaren. Kontrollen av UCUM är en demoregel som omfattar de vanliga enheterna i vården, och de engelska termerna för nya koder kontrolleras inte mot en terminologitjänst i demon.',
   },
   {
-    id: '12.1.1.8', kategori: 'system', egna: [], avsedd: 'delvis',
-    tester: [...KONFIG, GENOMSLAG],
-    losning: 'Dosfönstret före och efter dostiden och påminnelsen innan en delegering att ge läkemedel går ut är parametrar som läses av läkemedelsprocessen. Läkemedelsmallarna har sin egen förvaltning med godkännande av mallansvarig läkare (runda 6).',
-    expert: 'Systemet förklarar vad ett för kort eller för långt dosfönster leder till (varningar som slutar läsas, eller för kort tid till nästa dos) och vägrar ett värde utanför ramarna.',
-    anmarkning: 'Läkemedelsvarningarnas regler, maxdoser och interaktioner är inte parametrar än. Ordinationsorsak och uppföljningsdatum krävs för NLL och kan inte göras frivilliga.',
+    // Runda 12, r1: läkemedelsvarningarnas regler, maxdoserna och ordinationsorsaken som parametrar (konfiguration.js och lakemedel.js).
+    id: '12.1.1.8', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
+    tester: [...KONFIG, GENOMSLAG, ...TESTER_LAKEMEDELSREGLER, ...TESTER_LAKEMEDELSMALLAR],
+    losning: 'Under Regler och parametrar, området Läkemedel, ändrar systemförvaltaren med fyra ögon och giltighetsdatum: interaktionerna som ger en allvarlig varning (par av ATC-koder eller ATC-grupper), högsta dygnsdos per substans, gränserna för metformin vid nedsatt njurfunktion, dosfönstret före och efter dostiden, påminnelsen innan en delegering går ut, kollegakontrollen av högriskläkemedel och om ordinationsorsak och uppföljningsdatum är frivilliga för ordinationer som inte förs över till Nationella läkemedelslistan. Ordinationen och läkemedelsgenomgången läser det godkända värdet, så ändringen slår igenom i hela systemet från dagen den gäller, och historiken visar varje version. Läkemedelsmallarna byggs och ändras av läkaren under Direktiv och uppföljning och godkänns av den mallansvariga läkaren.',
+    expert: 'Systemet prövar varje ATC-kod mot registret och förklarar en kod som inte finns, räknar dygnsdosen ur dosen och tiderna eller ur högsta antal per dygn i doseringen, visar medan man skriver vilka interaktioner och maxdoser som läggs till och tas bort, och säger i ordinationen om ordinationsorsaken är frivillig och varför den annars krävs. En tom frivillig ordinationsorsak får systemets text och uppföljningsdatumet sätts 30 dagar efter start.',
+    anmarkning: 'Reglerna är demoregler och inte kliniskt beslutsstöd. Ordinationsorsak och uppföljningsdatum krävs alltid när ordinationen förs över till Nationella läkemedelslistan, eftersom listan inte tar emot den utan dem, och sidan säger det. I demon förs alla läkemedel över till listan utom blodprodukter, nutrition och egendefinierade läkemedel. Dubbelordination av samma substans och samma grupp, två antikoagulantia samtidigt och överkänslighet är fasta regler, eftersom de följer av patientens egna uppgifter.',
   },
   {
     id: '12.1.1.9', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
@@ -117,11 +123,12 @@ const POSTERNA = [
     anmarkning: 'Sedan runda 11 är också vad som förs över till laboratoriets eller röntgenklinikens system (kommentar, underlag, vårdförlopp och prioritet, diagnoser), vilka arbetsplatser som har etikettskrivare och anvisningarna inför prover och undersökningar parametrar. Patientens identitet, beställnings-id, analyserna och frågeställningen förs alltid över, eftersom laboratoriet inte kan ta emot en beställning utan dem.',
   },
   {
-    id: '12.1.1.10', kategori: 'system', egna: ['D8'], avsedd: 'delvis',
-    tester: [...UNDANTAG, ROLL],
-    losning: 'Systemförvaltaren undantar en anteckningstyp, ett mätvärde eller en vårdenhet från visning i systemet, från FHIR för externa tillämpningar eller från publicering till nationella tjänster, med fyra ögon och giltighetsdatum. Sidan Undantag från visning visar vad som är undantaget, från vad, sedan när, av vem och varför, och personalen ser i journalen hur många uppgifter som inte visas och motiveringen. Ett undantag gäller aldrig Min journal och ändrar inga spärrar.',
-    expert: 'Systemet stoppar ett undantag från visning för en vårdenhet med pågående vårdkontakter och förklarar varför, tillåter aldrig att läkemedel, överkänslighet, uppmärksamhetsinformation eller diagnoser undantas och prövar undantaget först efter behörighetsmotorn, så att en spärrad uppgift varken visas eller räknas.',
-    anmarkning: 'Publiceringen till nationella tjänster är simulerad: sidan visar vad som skulle publiceras och vad som är undantaget, och en producent av ett tjänstekontrakt prövar varje rad med samma funktion. Undantag på enskilda uppgifter (en viss anteckning) finns inte, bara på typ och vårdenhet.',
+    // Runda 12, r1: undantag för en enskild anteckning, med samma prövning för visning, FHIR, publiceringen och producenten.
+    id: '12.1.1.10', kategori: 'system', egna: ['D8'], avsedd: 'uppfyllt_demo',
+    tester: [...UNDANTAG, ROLL, ...TESTER_UNDANTAG_ENSKILD],
+    losning: 'Systemförvaltaren undantar en anteckningstyp, ett mätvärde, en vårdenhet eller en enskild anteckning från visning i systemet, från FHIR för externa tillämpningar eller från publicering till nationella tjänster, med fyra ögon och giltighetsdatum. En enskild anteckning väljs med sitt nummer, och undantaget gäller alla dess versioner. Sidan Undantag från visning visar vad som är undantaget, från vad, sedan när, av vem och varför, och personalen ser i journalen hur många uppgifter som inte visas och motiveringen. Ett undantag gäller aldrig Min journal och ändrar inga spärrar.',
+    expert: 'Systemet stoppar ett undantag från visning för en vårdenhet med pågående vårdkontakter eller en anteckning i en pågående vårdkontakt och förklarar varför, tillåter aldrig att läkemedel, överkänslighet, uppmärksamhetsinformation eller diagnoser undantas och prövar undantaget efter behörighetsmotorn, så att en spärrad uppgift varken visas eller räknas. För en enskild anteckning ser systemförvaltaren bara typ, vårdenhet och datum, journalen säger bara att en anteckning inte visas, och journalen, sökningen, FHIR, publiceringen och producenten för tjänstekontrakt prövar samma funktion.',
+    anmarkning: 'Publiceringen till nationella tjänster är simulerad: sidan visar vad som skulle publiceras och vad som är undantaget, och den simulerade producenten för tjänstekontrakt prövar både undantagen från FHIR och från nationella tjänster. Enskilda mätvärden undantas genom sin typ, inte ett och ett.',
   },
 ];
 export default medR8r5(POSTERNA);

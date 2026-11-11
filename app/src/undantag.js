@@ -18,7 +18,8 @@ export const KANALER = {
   fhir: 'FHIR för externa tillämpningar',
   nationell: 'Publicering till nationella tjänster (simulerad)',
 };
-export const OMFANG = { anteckningstyp: 'Anteckningstyp', matvarde: 'Mätvärde', enhet: 'Vårdenhet' };
+// Runda 12, r1: också en enskild anteckning (Sussa 12.1.1.10). Undantaget gäller alla versioner av anteckningen.
+export const OMFANG = { anteckningstyp: 'Anteckningstyp', matvarde: 'Mätvärde', enhet: 'Vårdenhet', anteckning: 'En enskild anteckning' };
 const nyckelFor = (omfang, varde) => `${omfang}:${varde}`;
 
 let jm = null;
@@ -31,12 +32,31 @@ export function valbara(db) {
     anteckningstyp: journal().MALLAR.map(m => ({ varde: m.typ, namn: m.typ })),
     matvarde: Object.entries(journal().MATTYPER).map(([k, m]) => ({ varde: k, namn: m.namn })),
     enhet: db.query("SELECT id, namn FROM enheter WHERE typ = 'vardenhet' ORDER BY namn").all().map(e => ({ varde: e.id, namn: e.namn })),
+    // Runda 12, r1: en enskild anteckning väljs med sitt nummer, inte ur en lista.
+    anteckning: [],
   };
 }
 const ALDRIG = 'Läkemedel, överkänslighet, uppmärksamhetsinformation och diagnoser kan inte undantas. De behövs för patientsäkerheten, och läkemedlen ska rapporteras till Nationella läkemedelslistan.';
 const MIN_JOURNAL = 'Undantaget gäller aldrig Min journal, där patienten läser sin journal efter vårdgivarens visningsregler. Det ändrar inga spärrar.';
 
-const namnFor = (db, omfang, varde) => valbara(db)[omfang]?.find(x => x.varde === varde)?.namn ?? varde;
+// Runda 12, r1: en enskild anteckning beskrivs med typ, vårdenhet och datum, aldrig med patienten eller texten.
+function anteckningRad(db, varde) {
+  return /^\d{1,12}$/.test(String(varde ?? '')) ? db.query('SELECT * FROM anteckningar WHERE id = ?').get(Number(varde)) : null;
+}
+const anteckningNamn = (db, a) => `${a.typ} från ${db.query('SELECT namn FROM enheter WHERE id = ?').get(a.enhet_id)?.namn ?? a.enhet_id}, ${String(a.signerad_tid ?? a.skapad).slice(0, 10)} (nummer ${a.id})`;
+// Alla versioner av en anteckning: rättelserna bakåt och framåt i kedjan.
+function versionsId(db, id) {
+  const ut = new Set();
+  let rot = db.query('SELECT id, ersatter_id FROM anteckningar WHERE id = ?').get(id);
+  for (let i = 0; rot?.ersatter_id && i < 50; i++) rot = db.query('SELECT id, ersatter_id FROM anteckningar WHERE id = ?').get(rot.ersatter_id);
+  let nu = rot;
+  for (let i = 0; nu && i < 50; i++) { ut.add(nu.id); nu = db.query('SELECT id, ersatter_id FROM anteckningar WHERE ersatter_id = ?').get(nu.id); }
+  return ut;
+}
+const namnFor = (db, omfang, varde) => {
+  if (omfang === 'anteckning') { const a = anteckningRad(db, varde); return a ? anteckningNamn(db, a) : `anteckning ${varde}`; }
+  return valbara(db)[omfang]?.find(x => x.varde === varde)?.namn ?? varde;
+};
 
 // Undantagen som gäller en dag: det senast godkända värdet per nyckel. Ett värde utan kanaler avslutar undantaget.
 export function aktiva(db, nu = new Date()) {
@@ -66,9 +86,13 @@ export function provare(db, kanal, nu = new Date()) {
   const enheter = new Map(lista.filter(u => u.omfang === 'enhet').map(u => [u.varde, u]));
   const typer = new Map(lista.filter(u => u.omfang === 'anteckningstyp').map(u => [u.varde, u]));
   const mat = new Map(lista.filter(u => u.omfang === 'matvarde').map(u => [u.varde, u]));
+  // Runda 12, r1: enskilda anteckningar, med alla versioner i kedjan.
+  const enskilda = new Map();
+  for (const u of lista.filter(x => x.omfang === 'anteckning')) for (const id of versionsId(db, Number(u.varde))) enskilda.set(id, u);
   return (rad, sort) => {
     const e = rad.enhet_id ?? rad.fran_enhet_id;
     if (e && enheter.size) { const u = enheter.get(vardenhetFor(db, e)); if (u) return u; }
+    if (sort === 'anteckning' && enskilda.size && rad.id != null) { const u = enskilda.get(Number(rad.id)); if (u) return u; }
     if (sort === 'anteckning') return typer.get(rad.typ) ?? null;
     if (sort === 'matvarde') return mat.get(rad.typ) ?? null;
     return null;
@@ -95,15 +119,21 @@ export function filtreraVisning(atk, rader, sort) {
 // Raderna i journalens svar: en per undantag, med antal och motivering, utan något om uppgifternas innehåll.
 export function undantagnaUt(atk) {
   return [...(atk.undantagna?.values() ?? [])].map(u => ({
-    antal: u.antal, sort: u.sort, text: `${u.antal} ${u.sort === 'anteckning' ? (u.antal === 1 ? 'anteckning' : 'anteckningar') : (u.antal === 1 ? 'mätvärde' : 'mätvärden')} ${u.omfang === 'enhet' ? `från ${u.namn}` : `av typen ${u.namn}`} visas inte. Systemförvaltningen har undantagit ${u.omfang === 'enhet' ? 'vårdenhetens uppgifter' : 'typen'} från visning från ${u.gallerFran}: ${u.motivering}`,
+    antal: u.antal, sort: u.sort, text: u.omfang === 'anteckning'
+      // Runda 12, r1: en enskild anteckning beskrivs utan typ, vårdenhet och datum, eftersom de kan säga vad den handlar om.
+      ? `1 anteckning visas inte. Systemförvaltningen har undantagit den från visning från ${u.gallerFran}: ${u.motivering}`
+      : `${u.antal} ${u.sort === 'anteckning' ? (u.antal === 1 ? 'anteckning' : 'anteckningar') : (u.antal === 1 ? 'mätvärde' : 'mätvärden')} ${u.omfang === 'enhet' ? `från ${u.namn}` : `av typen ${u.namn}`} visas inte. Systemförvaltningen har undantagit ${u.omfang === 'enhet' ? 'vårdenhetens uppgifter' : 'typen'} från visning från ${u.gallerFran}: ${u.motivering}`,
   }));
 }
 
 // FHIR för externa tillämpningar: om en resurs är undantagen. Composition är en anteckning och Observation ett mätvärde.
-export function fhirProvare(db, typ) {
+// Runda 12, r1: producenten för tjänstekontrakt publicerar till nationella tjänster och prövar därför också kanalen
+// nationell (nationell: true). Det gör aldrig att något som är undantaget från FHIR lämnas ut.
+export function fhirProvare(db, typ, { nationell = false } = {}) {
   const prova = provare(db, 'fhir');
+  const provaNat = nationell ? provare(db, 'nationell') : () => null;
   const sort = typ === 'Composition' ? 'anteckning' : typ === 'Observation' ? 'matvarde' : null;
-  return (rad) => Boolean(prova(rad, sort));
+  return (rad) => Boolean(prova(rad, sort) || provaNat(rad, sort));
 }
 
 // Publiceringen till nationella tjänster (simulerad): vad som skulle publiceras och vad som är undantaget, i antal.
@@ -111,7 +141,7 @@ export function fhirProvare(db, typ) {
 export function publicering(db, nu = new Date()) {
   const prova = provare(db, 'nationell', nu);
   const rakna = (tabell, sort, villkor = '1 = 1') => {
-    const rader = db.query(`SELECT typ, enhet_id FROM ${tabell} WHERE ${villkor}`).all();
+    const rader = db.query(`SELECT id, typ, enhet_id FROM ${tabell} WHERE ${villkor}`).all();
     const undantagna = rader.filter(r => prova(r, sort)).length;
     return { antal: rader.length - undantagna, undantagna };
   };
@@ -125,10 +155,26 @@ const kravRoll = (personal) => { if (!kanRoll(personal, 'undanta')) throw new Fe
 
 // Kontrollerar ett undantag och räknar fram vad det gäller, bara med antal. Returnerar { ok, varfor, effekt }.
 export function prova(db, { omfang, varde, kanaler } = {}, nu = new Date()) {
-  if (!OMFANG[omfang]) return { ok: false, varfor: `Välj vad som ska undantas: en anteckningstyp, ett mätvärde eller en vårdenhet. ${ALDRIG}` };
-  if (!valbara(db)[omfang].some(x => x.varde === varde)) return { ok: false, varfor: `Det går inte att undanta det valda. ${ALDRIG}` };
+  if (!Object.hasOwn(OMFANG, omfang)) return { ok: false, varfor: `Välj vad som ska undantas: en anteckningstyp, ett mätvärde, en vårdenhet eller en enskild anteckning. ${ALDRIG}` };
   const k = Array.isArray(kanaler) ? [...new Set(kanaler)] : [];
-  if (k.some(x => !KANALER[x])) return { ok: false, varfor: 'Okänd kanal.' };
+  if (k.some(x => !Object.hasOwn(KANALER, x))) return { ok: false, varfor: 'Okänd kanal.' };
+  // Runda 12, r1: en enskild anteckning. Bara en signerad anteckning kan undantas, och aldrig en som hör till en pågående
+  // vårdkontakt om den ska döljas i systemet. Svaret säger bara typ, vårdenhet och datum, aldrig patienten eller texten.
+  if (omfang === 'anteckning') {
+    const a = anteckningRad(db, varde);
+    if (!a || a.status !== 'signerad') return { ok: false, varfor: 'Det finns ingen signerad anteckning med det numret. Numret står i ärendet från vården.' };
+    const pagaende = a.vardkontakt_id && db.query('SELECT 1 FROM vardkontakter WHERE id = ? AND slut IS NULL').get(a.vardkontakt_id);
+    if (k.includes('visning') && pagaende) return { ok: false, varfor: 'Anteckningen hör till en pågående vårdkontakt, och uppgifter som behövs i pågående vård kan inte döljas i systemet. Undanta den bara från FHIR och nationella tjänster, eller vänta tills kontakten är avslutad.' };
+    const versioner = versionsId(db, a.id).size;
+    const effekt = [`Gäller ${anteckningNamn(db, a)}${versioner > 1 ? ` med alla ${versioner} versioner` : ''}.`];
+    if (k.includes('visning')) effekt.push('Personalen ser en rad i journalen om att en anteckning inte visas, med motiveringen, men inte vilken.');
+    if (k.includes('fhir')) effekt.push('Externa tillämpningar får inte anteckningen genom FHIR-API:t.');
+    if (k.includes('nationell')) effekt.push('Anteckningen publiceras inte till nationella tjänster och lämnas inte ut av producenten för tjänstekontrakt.');
+    if (!k.length) effekt.push('Undantaget avslutas, och anteckningen visas och publiceras som förut.');
+    effekt.push(MIN_JOURNAL);
+    return { ok: true, namn: anteckningNamn(db, a), effekt };
+  }
+  if (!valbara(db)[omfang].some(x => x.varde === varde)) return { ok: false, varfor: `Det går inte att undanta det valda. ${ALDRIG}` };
   const namn = namnFor(db, omfang, varde);
   const effekt = [];
   if (omfang === 'enhet') {

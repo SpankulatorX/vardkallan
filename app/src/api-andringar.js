@@ -15,7 +15,11 @@ export const ANDRINGAR = [
   {
     version: '1.2.0', datum: '2026-11-11',
     text: 'Inga nya resurstyper eller skrivningar i FHIR.',
-    resurser: [], skrivning: [], annat: [],
+    resurser: [], skrivning: [], annat: [
+      // Runda 12, r1: journalens struktur och läkemedelsmallarna utan programmerare.
+      'Mallar, sökord och mätvärdestyper som systemförvaltningen skapar i /api/journalstruktur, med anteckningstypens och sökordens koder i Composition och mätvärdestypens kod och UCUM i Observation',
+      'Läkemedelsmallar som läkaren bygger och ändrar i det interna API:t, som beskrivs i docs/api-avvikelser.md',
+    ],
   },
   // Runda 11: version 1.1. Inga nya resurstyper eller skrivningar i FHIR.
   {

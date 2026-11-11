@@ -62,6 +62,18 @@ export const OMPRIORITERING = {
   annan_tid: 'Patienten har fått vård på annat sätt',
 };
 
+// Runda 12, r1: tidbokens regler är parametrar som systemförvaltningen ändrar med fyra ögon (konfiguration.js, Sussa
+// 12.1.1.6). DEMOREGLER har standardvärdena, och regel(db, namn) ger det godkända värdet för sandlådan.
+const REGELNYCKEL = { vardgarantiDagar: 'tidbok.vardgaranti_dagar', riskDagar: 'tidbok.risk_dagar', egenGransTimmar: 'tidbok.egen_grans_timmar',
+  incheckningForeMin: 'tidbok.incheckning_fore_min', incheckningEfterMin: 'tidbok.incheckning_efter_min' };
+export function regel(db, namn) {
+  try { return require('./konfiguration.js').varde(db, REGELNYCKEL[namn]); } catch { return DEMOREGLER[namn]; }
+}
+export function demoregelText(db) {
+  const r = (n) => regel(db, n);
+  return `Demoregler: vårdgarantin räknas som ${r('vardgarantiDagar')} dagar från att remissen togs emot, och den som har högst ${r('riskDagar')} dagar kvar lyfts fram. Påminnelsen går ut ${require('./konfiguration.js').varde(db, 'tidbok.paminnelse_timmar')} timmar före tiden. Patienten kan boka om och avboka i Min journal fram till ${r('egenGransTimmar')} timmar före. Incheckningen är öppen från ${r('incheckningForeMin')} minuter före till ${r('incheckningEfterMin')} minuter efter tiden.`;
+}
+
 // Demoregler, märkta så i gränssnittet. Beloppen och gränserna är påhittade och inte någon regions regler.
 export const DEMOREGLER = {
   vardgarantiDagar: 90, riskDagar: 14, paminnelseTimmar: 48, egenGransTimmar: 24, incheckningForeMin: 60, incheckningEfterMin: 30,
@@ -445,19 +457,21 @@ export function sakraVantelista(db) {
 
 // Gränsen för en post: vårdgarantin för ett nybesök efter remiss (demoregel) och det medicinska måldatumet. Det som
 // kommer först gäller. Vid patientvald väntan räknas inte vårdgarantin.
-export function gransFor(post, dag = idag()) {
+// Runda 12, r1: med db läses vårdgarantin och gränsen för att lyftas fram ur konfigurationen (Sussa 12.1.1.6).
+export function gransFor(post, dag = idag(), db = null) {
   const kandidater = [];
-  if (post.remiss_id && post.tidstyp === 'nybesok' && !post.patientvald) kandidater.push({ datum: addDagar(post.fran, DEMOREGLER.vardgarantiDagar), typ: 'vardgaranti', text: 'vårdgarantin (demoregel)' });
+  const garanti = db ? regel(db, 'vardgarantiDagar') : DEMOREGLER.vardgarantiDagar;
+  if (post.remiss_id && post.tidstyp === 'nybesok' && !post.patientvald) kandidater.push({ datum: addDagar(post.fran, garanti), typ: 'vardgaranti', text: 'vårdgarantin (demoregel)' });
   if (post.mal) kandidater.push({ datum: post.mal, typ: 'mal', text: post.remiss_id ? 'remissens sista svarsdatum' : 'måldatum från läkaren' });
   if (!kandidater.length) return null;
   const g = kandidater.sort((a, b) => a.datum.localeCompare(b.datum))[0];
   const kvar = dagarMellan(dag, g.datum);
-  return { ...g, dagarKvar: kvar, risk: kvar < 0 ? 'passerad' : kvar <= DEMOREGLER.riskDagar ? 'risk' : null };
+  return { ...g, dagarKvar: kvar, risk: kvar < 0 ? 'passerad' : kvar <= (db ? regel(db, 'riskDagar') : DEMOREGLER.riskDagar) ? 'risk' : null };
 }
 
 export function vantelistaUt(db, post, dag = idag()) {
   const p = patientRad(db, post.patient_id);
-  const g = gransFor(post, dag);
+  const g = gransFor(post, dag, db);
   const r = post.remiss_id ? db.query('SELECT fran_enhet_id, prioritet FROM remisser WHERE id = ?').get(post.remiss_id) : null;
   return {
     id: post.id, patient: patientKort(p), vardenhet: enhetKort(db, post.enhet_id), tidstyp: post.tidstyp, tidstypText: TIDSTYPER[post.tidstyp]?.text,
@@ -652,7 +666,7 @@ function planBehov(db, { postId = null, ve, patientId, tidstyp }) {
   return { krav: plan.kravFor(db, { ve, ingrepp: b?.ingrepp ?? null, patientId, fysisk: TIDSTYPER[tidstyp]?.fysisk }), mall: mall && mall.tidstyper.includes(tidstyp) ? mall : null };
 }
 export const behovForPost = (db, post) => ({
-  patientId: post.patient_id, ve: post.enhet_id, tidstyp: post.tidstyp, yrkesroll: post.yrkesroll, prioritet: post.prioritet, grans: gransFor(post),
+  patientId: post.patient_id, ve: post.enhet_id, tidstyp: post.tidstyp, yrkesroll: post.yrkesroll, prioritet: post.prioritet, grans: gransFor(post, idag(), db),
   onskad: post.onskad_personal_id ?? tidigareVardgivare(db, post.patient_id, post.enhet_id, post.yrkesroll)[0] ?? null,
   ...planBehov(db, { postId: post.id, ve: post.enhet_id, patientId: post.patient_id, tidstyp: post.tidstyp }),
 });
@@ -666,7 +680,7 @@ function behovForBokning(db, b, { fran } = {}) {
   const krav = post ? planBehov(db, { postId: post.id, ve, patientId: b.patient_id, tidstyp: tid.tidstyp }).krav : plan.kravForBokning(db, b.id);
   return {
     patientId: b.patient_id, ve, tidstyp: tid.tidstyp, yrkesroll: schema.yrkesroll, prioritet: post?.prioritet ?? 'normal',
-    grans: post ? gransFor(post) : null, onskad: schema.personal_id, uteslut: tid.id, uteslutBokning: b.id, fran,
+    grans: post ? gransFor(post, idag(), db) : null, onskad: schema.personal_id, uteslut: tid.id, uteslutBokning: b.id, fran,
     krav, mall: kedja?.roll === 'huvud' ? kedja.mall : null, uteslutForeBokning: kedja?.roll === 'huvud' ? kedja.foreId : 0,
   };
 }
@@ -709,7 +723,7 @@ export function forslagForPost(atk, post) {
   kravEgenVardenhet(atk, post.enhet_id, `vantelista:${post.id}`);
   const db = atk.db;
   atk.logga('boka', atk.grund(), `vantelista:${post.id}:forslag`);
-  return { post: vantelistaUt(db, post), forslag: foreslaTider(db, { ...behovForPost(db, post), synlig: synligFor(atk) }), demoregler: DEMOREGLER.text };
+  return { post: vantelistaUt(db, post), forslag: foreslaTider(db, { ...behovForPost(db, post), synlig: synligFor(atk) }), demoregler: demoregelText(db) };
 }
 
 export function forslagForBokning(atk, b) {
@@ -718,7 +732,7 @@ export function forslagForBokning(atk, b) {
   kravEgenVardenhet(atk, bokningensEnhet(db, b), `bokning:${b.id}`);
   kravInteFore(db, b);
   atk.logga('boka', atk.grund(), `bokning:${b.id}:forslag`);
-  return { bokning: bokningUt(db, b, { personal: atk.personal, visaIdentitet: atk.val?.visa_identitet }), forslag: foreslaTider(db, { ...behovForBokning(db, b), synlig: synligFor(atk) }), demoregler: DEMOREGLER.text };
+  return { bokning: bokningUt(db, b, { personal: atk.personal, visaIdentitet: atk.val?.visa_identitet }), forslag: foreslaTider(db, { ...behovForBokning(db, b), synlig: synligFor(atk) }), demoregler: demoregelText(db) };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -951,7 +965,7 @@ export function skarmIncheckning(db, personal, text, { far = () => true } = {}) 
     .find(x => {
       const tid = tidRad(db, x.tid_id);
       const s = Date.parse(tid.start);
-      return tidensVardenhet(db, tid) === ve && TIDSTYPER[tid.tidstyp].fysisk && s - DEMOREGLER.incheckningForeMin * MIN <= nu && nu <= s + DEMOREGLER.incheckningEfterMin * MIN;
+      return tidensVardenhet(db, tid) === ve && TIDSTYPER[tid.tidstyp].fysisk && s - regel(db, 'incheckningForeMin') * MIN <= nu && nu <= s + regel(db, 'incheckningEfterMin') * MIN;
     });
   if (!b) return ingen;
   const tid = tidRad(db, b.tid_id);
@@ -1336,7 +1350,7 @@ export function startsida(db, personal, { fran = idag(), till = fran } = {}) {
     .filter(r => relation(r.patient_id)).map(r => ({ typ: 'ram', vantelistaId: r.vantelista_id, patient: patientKort(patientRad(db, r.patient_id)),
       text: `Patienten har inte valt någon tid. Ramen går ut ${r.till}.`, atgard: { typ: 'boka', text: 'Boka tid' } }));
   return {
-    vardenhet: enhetKort(db, ve), datum: dag, demoregler: DEMOREGLER.text, period: { fran, till },
+    vardenhet: enhetKort(db, ve), datum: dag, demoregler: demoregelText(db), period: { fran, till },
     dagens, remisser, vantelista: ovriga, kallelser: [...grupper, ...kanInte, ...ramer], bevakningar: [...bevakningar, ...egna],
     antal: { dagens: dagens.length, kvarAttCheckaIn: dagens.filter(d => d.rad.atgard?.typ === 'checka_in').length, remisser: remisser.length, vantelista: ovriga.length, kallelser: grupper.length + kanInte.length + ramer.length, bevakningar: bevakningar.length + egna.length },
   };
@@ -1433,9 +1447,9 @@ export function minBokningUt(db, b, nu = Date.now()) {
   const incheckad = b.status === 'incheckad' || (b.status === 'bokad' && v?.ankomst);
   const start = Date.parse(tid.start);
   const oppen = egenbokningOppen(db, ve, tid.tidstyp);
-  const fore = start - nu >= DEMOREGLER.egenGransTimmar * TIMME;
+  const fore = start - nu >= regel(db, 'egenGransTimmar') * TIMME;
   const fysisk = TIDSTYPER[tid.tidstyp].fysisk;
-  const kanCheckaIn = b.status === 'bokad' && !incheckad && fysisk && start - DEMOREGLER.incheckningForeMin * MIN <= nu && nu <= start + DEMOREGLER.incheckningEfterMin * MIN;
+  const kanCheckaIn = b.status === 'bokad' && !incheckad && fysisk && start - regel(db, 'incheckningForeMin') * MIN <= nu && nu <= start + regel(db, 'incheckningEfterMin') * MIN;
   const a = avgiftForBokning(db, b);
   const betalning = db.query('SELECT * FROM betalningar WHERE bokning_id = ?').get(b.id);
   // En tid som styr när en läkemedelsdos ska ges bokar mottagningen om, så att dosen följer med (vardhandelse.js).
@@ -1487,7 +1501,7 @@ export function minaTider(atk) {
     .map(b => { const t = tidRad(db, b.tid_id); return { id: b.id, status: b.status, start: t.start, tidstypText: TIDSTYPER[t.tidstyp].text, mottagning: enhetKort(db, schemaRad(db, t.schema_id).enhet_id)?.namn }; });
   const k = kanalFor(db, p);
   return {
-    kommande, tidigare, boka: egnaBokningsval(db, p.id), demoregler: DEMOREGLER.text,
+    kommande, tidigare, boka: egnaBokningsval(db, p.id), demoregler: demoregelText(db),
     // Runda 6, r4: kallelser utan förbokad tid, där patienten väljer en tid själv, och språket för kallelserna.
     kallelserUtanTid: plan.ramerForPatient(db, p.id).map(r => ramUt(db, r)), sprak: { sprak: plan.sprakFor(db, p.id), text: plan.SPRAK[plan.sprakFor(db, p.id)] },
     kanal: { kanal: k.kanal, text: k.kanal ? KANAL[k.kanal] : null, forklaring: p.skyddad ? 'Du har skyddade personuppgifter. Därför får du kallelser bara här i Min journal, aldrig med brev eller sms.' : null },
@@ -1515,7 +1529,7 @@ export function minForslag(atk, bid) {
   const b = minBokning(atk, bid);
   const u = minBokningUt(db, b);
   if (!u.kan.omboka) throw new Fel(400, u.varforInte ?? 'Tiden kan inte bokas om här.', 'ogiltig');
-  return { bokning: u, forslag: foreslaTider(db, behovForBokning(db, b, { fran: new Date(Date.now() + DEMOREGLER.egenGransTimmar * TIMME).toISOString() })) };
+  return { bokning: u, forslag: foreslaTider(db, behovForBokning(db, b, { fran: new Date(Date.now() + regel(db, 'egenGransTimmar') * TIMME).toISOString() })) };
 }
 
 export function minOmboka(atk, bid, body = {}) {
@@ -1525,9 +1539,9 @@ export function minOmboka(atk, bid, body = {}) {
   if (!u.kan.omboka) throw new Fel(400, u.varforInte ?? 'Tiden kan inte bokas om här.', 'ogiltig');
   const tid = tidRad(db, body.tidId);
   // Bara en av de tider som systemet föreslår för bokningen: samma tidstyp, yrkesroll och vårdenhet.
-  const forslag = foreslaTider(db, behovForBokning(db, b, { fran: new Date(Date.now() + DEMOREGLER.egenGransTimmar * TIMME).toISOString() }));
+  const forslag = foreslaTider(db, behovForBokning(db, b, { fran: new Date(Date.now() + regel(db, 'egenGransTimmar') * TIMME).toISOString() }));
   if (!forslag.some(f => f.tidId === tid.id)) throw new Fel(400, 'Välj en av de föreslagna tiderna.', 'ogiltig', { falt: ['tidId'] });
-  if (Date.parse(tid.start) - Date.now() < DEMOREGLER.egenGransTimmar * TIMME) throw new Fel(400, 'Den nya tiden måste ligga minst 24 timmar fram.', 'ogiltig', { falt: ['tidId'] });
+  if (Date.parse(tid.start) - Date.now() < regel(db, 'egenGransTimmar') * TIMME) throw new Fel(400, `Den nya tiden måste ligga minst ${regel(db, 'egenGransTimmar')} timmar fram.`, 'ogiltig', { falt: ['tidId'] });
   if (!arLedig(db, tid)) throw new Fel(400, 'Tiden har just bokats av någon annan. Välj en annan.', 'ogiltig', { falt: ['tidId'] });
   const r = ombokaRad(db, b, tid, ominvanare(atk));
   atk.logga(`min:bokning:${b.id}:ombokad:${r.ny.id}`, { handling: 'boka' });
@@ -1581,7 +1595,7 @@ export function minNyaForslag(atk, nyckel) {
   const db = atk.db;
   const v = valFran(db, atk.patient.id, nyckel);
   const onskad = tidigareVardgivare(db, atk.patient.id, v.vardenhet.id, v.yrkesroll)[0] ?? null;
-  return { val: v, forslag: foreslaTider(db, { patientId: atk.patient.id, ve: v.vardenhet.id, tidstyp: v.tidstyp, yrkesroll: v.yrkesroll, onskad, prioritet: 'normal', grans: null, fran: new Date(Date.now() + DEMOREGLER.egenGransTimmar * TIMME).toISOString() }) };
+  return { val: v, forslag: foreslaTider(db, { patientId: atk.patient.id, ve: v.vardenhet.id, tidstyp: v.tidstyp, yrkesroll: v.yrkesroll, onskad, prioritet: 'normal', grans: null, fran: new Date(Date.now() + regel(db, 'egenGransTimmar') * TIMME).toISOString() }) };
 }
 
 export function minBoka(atk, body = {}) {
@@ -1590,7 +1604,7 @@ export function minBoka(atk, body = {}) {
   const tid = tidRad(db, body.tidId);
   const s = schemaRad(db, tid.schema_id);
   if (tid.tidstyp !== v.tidstyp || s.yrkesroll !== v.yrkesroll || vardenhetFor(db, s.enhet_id) !== v.vardenhet.id) throw new Fel(400, 'Välj en av de föreslagna tiderna.', 'ogiltig', { falt: ['tidId'] });
-  if (Date.parse(tid.start) - Date.now() < DEMOREGLER.egenGransTimmar * TIMME) throw new Fel(400, 'Tiden måste ligga minst 24 timmar fram.', 'ogiltig', { falt: ['tidId'] });
+  if (Date.parse(tid.start) - Date.now() < regel(db, 'egenGransTimmar') * TIMME) throw new Fel(400, `Tiden måste ligga minst ${regel(db, 'egenGransTimmar')} timmar fram.`, 'ogiltig', { falt: ['tidId'] });
   if (!arLedig(db, tid)) throw new Fel(400, 'Tiden har just bokats av någon annan. Välj en annan.', 'ogiltig', { falt: ['tidId'] });
   // Runda 10, r7: ett ombud eller en vårdnadshavare bokar för patienten, och det står i orsaken.
   const vem = atk.relation === 'ombud' ? 'ombudet' : atk.relation === 'vardnadshavare' ? 'vårdnadshavaren' : 'patienten';

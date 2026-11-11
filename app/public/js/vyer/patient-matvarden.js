@@ -22,6 +22,10 @@ export const MATTYPER = [
   // Runda 8, r1: SR som intern analys på avdelningen, när läkaren har ordinerat den som kontroll (Sussas testfall 3.5).
   ['sr', 'SR', 'mm'],
 ];
+// Runda 12, r1: mätvärdestyperna som systemförvaltningen har skapat och en annan systemförvaltare har godkänt
+// (journalstruktur.js). De hämtas när vyn visas och står efter de inbyggda.
+let egnaTyper = [];
+const typer = () => [...MATTYPER, ...egnaTyper];
 const ACVPU = [['A', 'Vaken'], ['C', 'Nytillkommen förvirring'], ['V', 'Reagerar på tilltal'], ['P', 'Reagerar på smärta'], ['U', 'Reagerar inte']];
 const GCS = {
   e: ['Ögonöppning', [[4, 'Spontant'], [3, 'På tilltal'], [2, 'På smärta'], [1, 'Ingen']]],
@@ -149,6 +153,9 @@ export async function visa(el, ctx) {
   const d = await api(`/api/patient/${encodeURIComponent(ctx.id)}/matvarden${urval.toString() ? `?${urval}` : ''}`);
   if (!ctx.aktuell()) return;
   const kanReg = far('registrera_matvarde');
+  // Runda 12, r1.
+  if (kanReg) egnaTyper = await api('/api/mattyper', { tyst: true }).then(r => r.mattyper.filter(m => m.egen).map(m => [m.id, m.namn, m.enhet])).catch(() => egnaTyper);
+  if (!ctx.aktuell()) return;
   const markerad = ctx.sub && ctx.sub !== 'ny' ? ctx.sub : null;
   el.innerHTML = `<div class="flikhuvud"><h2>Mätvärden</h2></div>${kanReg ? hjalpRuta('matvarde') : ''}${doldaRad(d.dolda)}
     ${news2Html(d.news2, kanReg && d.news2?.galler)}
@@ -192,7 +199,7 @@ export async function visa(el, ctx) {
   const plats = form.querySelector('#mv-varde-plats');
   const satt = () => {
     const typ = form.typ.value;
-    const t = MATTYPER.find(m => m[0] === typ);
+    const t = typer().find(m => m[0] === typ);
     plats.innerHTML = vardeFalt(typ, t);
     plats.querySelector('[data-gcs]')?.addEventListener('change', () => gcsSumma(plats));
   };
@@ -256,7 +263,7 @@ function registrering() {
     <h3 id="mv-reg">Registrera mätvärde</h3>
     <div data-kontakt-plats></div>
     <div class="falt-rad">
-      <div class="falt"><label for="mv-typ">Mätvärde</label><select id="mv-typ" name="typ">${MATTYPER.map(([k, n]) => `<option value="${k}">${esc(n)}</option>`).join('')}</select></div>
+      <div class="falt"><label for="mv-typ">Mätvärde</label><select id="mv-typ" name="typ">${typer().map(([k, n]) => `<option value="${k}">${esc(n)}</option>`).join('')}</select></div>
       <div id="mv-varde-plats" class="mv-varde-plats"></div>
       <div class="falt"><label for="mv-tid">Tidpunkt</label><input id="mv-tid" name="tid" type="datetime-local" aria-describedby="mv-tid-h"><span class="hjalp" id="mv-tid-h">Tomt betyder nu. Högst 30 dagar bakåt.</span></div>
       <div class="falt knappfalt"><button type="submit" class="knapp">Registrera</button></div>

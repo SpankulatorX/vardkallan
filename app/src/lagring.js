@@ -32,7 +32,9 @@ const GEMENSAMMA = new Set(['katalog', 'installningar', 'migrering', 'forpacknin
   'formular',
   // Runda 11, r4: regimbiblioteket gäller hela vårdgivaren, och beredningsenhetens lager och kapacitet är dess egna och
   // innehåller inga patientuppgifter (cytostatika.js och cytostatika-beredning.js).
-  'cyto_regimversioner', 'cyto_lager', 'cyto_kapacitet']);
+  'cyto_regimversioner', 'cyto_lager', 'cyto_kapacitet',
+  // Runda 12, r1: journalens mallar, sökord och mätvärdestyper gäller hela vårdgivaren (journalstruktur.js).
+  'struktur_versioner']);
 // Tabeller som hör till systemförvaltningen och inte till en huvudman i ett uttag.
 // Datauttaget för uppföljning byggs om ur uppgifterna och följer inte med i ett uttag.
 // Runda 9, r5: de gemensamma tabellerna kopieras till en ny utbildnings- eller testmiljö (miljoer.js).

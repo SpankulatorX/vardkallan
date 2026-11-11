@@ -406,3 +406,15 @@ export const K11 = {
 // Runda 9, r4: Snomed CT, begreppssystemet i Nationellt fackspråk. Delmängden som Vårdkällan använder och kontrollen av
 // koderna finns i fackssprak.js, och förvaltningen av kodverkens utgåvor över tid i kodverksforvaltning.js.
 SYSTEM.snomed = 'http://snomed.info/sct';
+
+// Runda 12, r1: enheterna i UCUM som Vårdkällan känner igen när systemförvaltningen skapar en mätvärdestyp
+// (journalstruktur.js), med prefix, och hur en enhet visas i journalen. Kontrollen är en demoregel och omfattar inte hela UCUM.
+export const UCUM_ATOMER = ['g', 'L', 'l', 'm', 'mol', 's', 'min', 'h', 'd', 'wk', 'mo', 'a', 'Cel', 'K', '%', '[IU]', '[iU]', 'U', 'kat', 'eq', 'Pa', 'm[Hg]', 'm[H2O]', 'bar', 'cal', 'J', 'W', 'V', 'Hz', '[pH]', 'osm', '[ppm]', '[drp]', '{score}'];
+export const UCUM_PREFIX = ['da', 'k', 'h', 'd', 'c', 'm', 'u', 'n', 'p', 'f', 'M', 'G'];
+export const UCUM_VISNING = { 'Cel': '°C', 'umol/L': 'µmol/L', 'mm[Hg]': 'mmHg', '10*9/L': '×10⁹/L', '10*12/L': '×10¹²/L', '/min': '/min', 'm[IU]/L': 'mIE/L', '[IU]/L': 'IE/L', 'ug/L': 'µg/L', '{score}': 'poäng', '{ratio}': 'kvot' };
+
+// Runda 12, r1: förvalen för läkemedelsvarningarnas regler som systemförvaltningen ändrar (konfiguration.js, Sussa
+// 12.1.1.8). Interaktionerna är par av ATC-koder eller ATC-grupper, och maxdoserna högsta dygnsdos per substans. Båda är
+// demoregler och inte kliniskt beslutsstöd.
+export const INTERAKTIONER_STANDARD = ['B01AA03 + M01A'];
+export const MAXDOSER_STANDARD = ['N02BE01 4000 mg', 'M01AE01 2400 mg'];

@@ -137,6 +137,15 @@ export function produktmall(mall, lm) {
   return { mall: bas, varfor: [] };
 }
 
+// Runda 12, r1: ordinationsorsak och uppföljningsdatum krävs för Nationella läkemedelslistan. För en produkt som inte
+// förs över dit är de frivilliga om vårdgivaren har valt det (konfiguration.js, lakemedel.orsak_frivillig_utan_nll).
+function orsakKrav(db, lm) {
+  const utanNll = require('./lakemedelsstod.js').UTAN_NLL.has(require('./lakemedelsstod.js').produkttyp(db, lm.id).typ);
+  const frivillig = utanNll && require('./konfiguration.js').varde(db, 'lakemedel.orsak_frivillig_utan_nll');
+  return { orsakFrivillig: frivillig, orsakText: frivillig ? 'Ordinationsorsak och uppföljningsdatum är frivilliga, eftersom ordinationen inte förs över till Nationella läkemedelslistan.'
+    : 'Ordinationsorsak och uppföljningsdatum krävs, eftersom Nationella läkemedelslistan inte tar emot en ordination utan dem.' };
+}
+
 // Förslaget för produkten och patienten. Varje ändring mot mallen förklaras i varfor.
 // eGFR räknas med samma regel som varningarna vid ordination (lakemedel.egfrForSakerhet): från alla vårdenheter, men
 // aldrig från en spärrad vårdenhet utan samtycke.
@@ -165,6 +174,8 @@ export function forslag(atk, lm) {
     engangs: Boolean(f.engangs),
     // Runda 6, r2: läkemedelstyp, förpackningar i NPL, spädning och trappschema.
     ...forslagTillagg(db, lm, { dos: f.dos ?? null, dosEnhet: f.dosEnhet ?? null }),
+    // Runda 12, r1: om ordinationsorsak och uppföljningsdatum är frivilliga för produkten, och varför de annars krävs.
+    ...orsakKrav(db, lm),
   };
 }
 

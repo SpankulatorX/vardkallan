@@ -6,7 +6,7 @@ import { Fel, iso, idag, giltigtDatum, installning, addDagar } from './db.js';
 import { vardenhetFor } from './atkomst.js';
 import { kallaEtikett } from './journal.js';
 import { tillaggUt } from './ordinationsmallar.js';
-import { utsattningsvarningar, UTSATTNINGSREGLER, DEMOREGLER_PROCESS, UTSATTNINGSPLANER, UPPEHALL_DAGAR, planText } from './lakemedelsregler.js';
+import { utsattningsvarningar, UTSATTNINGSREGLER, DEMOREGLER_PROCESS, UTSATTNINGSPLANER, UPPEHALL_DAGAR, planText, maxPerDygn } from './lakemedelsregler.js';
 // Avslutad behandling efter ett uppehåll (runda 5, r4).
 import { avslutFor } from './aterinsattning.js';
 // Läkemedelsprocessen, del 2 (runda 6, r2): läkemedelstyper, licenser, förpackning och listans flaggor.
@@ -117,7 +117,7 @@ function listflaggor(atk, o, synliga, nya, kat, dag) {
 const arAktuell = (o) => o.status === 'aktiv' && (!o.slut || o.slut >= idag());
 
 // Kontroll av obligatoriska fält. Ordinationsorsak och uppföljningsdatum krävs alltid (NLL).
-export function validera(db, inp, { full = true } = {}) {
+export function validera(db, inp, { full = true, frivilligOrsak = false } = {}) {
   const falt = [];
   const lm = typeof inp?.lakemedelId === 'string' ? lakemedelRad(db, inp.lakemedelId) : null;
   if (!lm) falt.push('lakemedelId');
@@ -132,6 +132,9 @@ export function validera(db, inp, { full = true } = {}) {
     if (!o.dosering || o.dosering.length > 300) falt.push('dosering');
     if (o.dos != null && (!Number.isFinite(o.dos) || o.dos <= 0)) falt.push('dos');
     if (!TYPER.includes(o.typ)) falt.push('typ');
+    // Runda 12, r1: en frivillig uppgift som är tom får systemets text och ett uppföljningsdatum 30 dagar efter start.
+    if (frivilligOrsak && !o.ordinationsorsak) o.ordinationsorsak = 'Inte angiven. Ordinationen förs inte över till Nationella läkemedelslistan.';
+    if (frivilligOrsak && (o.uppfoljningsdatum == null || o.uppfoljningsdatum === '') && giltigtDatum(o.start)) o.uppfoljningsdatum = addDagar(o.start, 30);
     if (!o.ordinationsorsak || o.ordinationsorsak.length > 300) falt.push('ordinationsorsak');
     if (!giltigtDatum(o.start)) falt.push('start');
     if (!giltigtDatum(o.uppfoljningsdatum) || (giltigtDatum(o.start) && o.uppfoljningsdatum < o.start)) falt.push('uppfoljningsdatum');
@@ -139,14 +142,34 @@ export function validera(db, inp, { full = true } = {}) {
   }
   if (falt.length) {
     const namn = { lakemedelId: 'läkemedel', dosering: 'dosering', dos: 'dos', typ: 'typ', ordinationsorsak: 'ordinationsorsak', start: 'startdatum', uppfoljningsdatum: 'uppföljningsdatum', slut: 'slutdatum' };
-    throw new Fel(400, `Kontrollera ${falt.map(f => namn[f]).join(', ')}.${falt.includes('ordinationsorsak') || falt.includes('uppfoljningsdatum') ? ' Ordinationsorsak och uppföljningsdatum är obligatoriska.' : ''}`, 'ogiltig', { falt });
+    throw new Fel(400, `Kontrollera ${falt.map(f => namn[f]).join(', ')}.${falt.includes('ordinationsorsak') || falt.includes('uppfoljningsdatum') ? ' Ordinationsorsak och uppföljningsdatum är obligatoriska. Nationella läkemedelslistan tar inte emot en ordination utan dem.' : ''}`, 'ogiltig', { falt });
   }
   return o;
 }
 
 // Demoregler för varningar före sparande.
-export function varningar(db, patientId, lm, aktiva, { overkanslighet = [], egfr = null, enhetId = null, studier = null } = {}) {
+// Runda 12, r1: dygnsdosen mot vårdgivarens högsta dygnsdos för substansen (konfiguration.js, lakemedel.maxdoser).
+// Dygnsdosen är dosen gånger tiderna, eller vid behov dosen gånger högsta antal per dygn i doseringen. Demoregel.
+function maxdosVarningar(lm, o, lista) {
+  if (o.dos == null || !Number.isFinite(o.dos)) return [];
+  const rad = lista.map(x => x.split(' ')).find(([atc, , enhet]) => lm.atc.startsWith(atc) && (o.dosEnhet ?? '').toLowerCase() === enhet.toLowerCase());
+  if (!rad) return [];
+  const max = Number(rad[1]);
+  const vb = o.vidBehov || o.typ === 'vid_behov';
+  const antal = vb ? maxPerDygn(o.dosering ?? '')?.antal ?? null : (o.tider?.length || null);
+  if (!antal) return [];
+  const dygn = Math.round(o.dos * antal * 1000) / 1000;
+  if (dygn <= max) return [];
+  return [{ niva: 'allvarlig', regel: 'maxdos', text: `Dygnsdosen blir ${String(dygn).replace('.', ',')} ${rad[2]}, högre än högsta dygnsdosen ${String(max).replace('.', ',')} ${rad[2]} för ${lm.substans.toLowerCase()} (vårdgivarens regel, demoregel).` }];
+}
+
+export function varningar(db, patientId, lm, aktiva, { overkanslighet = [], egfr = null, enhetId = null, studier = null, ordination = null } = {}) {
   const ut = [];
+  // Runda 12, r1: interaktionerna, maxdoserna och gränserna för metformin är parametrar som systemförvaltningen
+  // ändrar med fyra ögon (konfiguration.js, Sussa 12.1.1.8). Demoregler.
+  const konfig = (k) => require('./konfiguration.js').varde(db, k);
+  const interaktioner = konfig('lakemedel.interaktioner').map(x => x.split(' + '));
+  if (ordination) ut.push(...maxdosVarningar(lm, ordination, konfig('lakemedel.maxdoser')));
   // Runda 9, r1: klinisk prövning, bara ur de deltaganden som användaren får se (kliniskprovning.js).
   if (studier) ut.push(...provning.varningar(db, lm, studier));
   // Runda 6, r2: licensläkemedel, extempore och blodprodukter, prövat för den ordinerande vårdenheten.
@@ -172,8 +195,12 @@ export function varningar(db, patientId, lm, aktiva, { overkanslighet = [], egfr
       ut.push({ niva: 'allvarlig', regel: 'dubbel_antikoagulantia', text: `Två antikoagulantia samtidigt: ${lm.namn} och ${a.namn}. Ökad blödningsrisk.` });
       continue;
     }
-    if ((lm.atc === WARFARIN && a.atc.startsWith(NSAID)) || (lm.atc.startsWith(NSAID) && a.atc === WARFARIN)) {
-      ut.push({ niva: 'allvarlig', regel: 'warfarin_nsaid', text: `Warfarin och NSAID (${lm.atc === WARFARIN ? a.namn : lm.namn}) ökar risken för allvarlig blödning.` });
+    // Runda 12, r1: interaktionerna i vårdgivarens lista. Warfarin och NSAID har sin egen text och regel som förut.
+    const par = interaktioner.find(([x, y]) => (lm.atc.startsWith(x) && a.atc.startsWith(y)) || (lm.atc.startsWith(y) && a.atc.startsWith(x)));
+    if (par) {
+      const [x, y] = par;
+      if (x === WARFARIN && y === NSAID) ut.push({ niva: 'allvarlig', regel: 'warfarin_nsaid', text: `Warfarin och NSAID (${lm.atc === WARFARIN ? a.namn : lm.namn}) ökar risken för allvarlig blödning.` });
+      else ut.push({ niva: 'allvarlig', regel: `interaktion_${x}_${y}`, text: `${lm.namn} och ${a.namn} kan påverka varandra och ska bara ges samtidigt efter en bedömning (vårdgivarens regel ${x} + ${y}, demoregel).` });
       continue;
     }
     if (a.atc.slice(0, 5) === lm.atc.slice(0, 5) && !antikoag) {
@@ -181,8 +208,11 @@ export function varningar(db, patientId, lm, aktiva, { overkanslighet = [], egfr
     }
   }
   if (lm.atc === METFORMIN && egfr != null) {
-    if (egfr < 30) ut.push({ niva: 'allvarlig', regel: 'metformin_egfr', text: `Metformin vid eGFR ${egfr}. Under 30 ska metformin inte användas.` });
-    else if (egfr < 45) ut.push({ niva: 'observera', regel: 'metformin_egfr', text: `Metformin vid eGFR ${egfr}. Dosen bör begränsas när eGFR är 30 till 44.` });
+    // Runda 12, r1: gränserna är parametrar.
+    const stopp = konfig('lakemedel.metformin_egfr_stopp');
+    const grans = Math.max(stopp, konfig('lakemedel.metformin_egfr_varning'));
+    if (egfr < stopp) ut.push({ niva: 'allvarlig', regel: 'metformin_egfr', text: `Metformin vid eGFR ${egfr}. Under ${stopp} ska metformin inte användas.` });
+    else if (egfr < grans) ut.push({ niva: 'observera', regel: 'metformin_egfr', text: `Metformin vid eGFR ${egfr}. Dosen bör begränsas när eGFR är ${stopp} till ${grans - 1}.` });
   }
   // Runda 10, r5: varför systemet varnar, vad användaren kan göra och källan (kunskapsstod.js).
   return kunskapsstod.berika(ut);
@@ -210,7 +240,7 @@ export function kontroll(atk, inp) {
   const o = validera(atk.db, inp, { full: false });
   const u = underlag(atk);
   // Runda 10, r5: vid varje varning hur ofta den har kvitterats på vårdenheten (utfallsstod.js, Sussa 3.2.1.3).
-  return { varningar: utfallsstod.vidVarningar(atk.db, atk.personal, varningar(atk.db, atk.patientId, o.lm, u.aktiva, u)), demoregler: true, anmarkning: DEMOREGLER };
+  return { varningar: utfallsstod.vidVarningar(atk.db, atk.personal, varningar(atk.db, atk.patientId, o.lm, u.aktiva, { ...u, ordination: o })), demoregler: true, anmarkning: DEMOREGLER };
 }
 
 function historik(db, ordId, personalId, handelse, detalj = null) {
@@ -277,9 +307,12 @@ export function overfor(db, ordId, typ) {
 export function spara(atk, inp, { handling = 'ordinera', ordineradAv = null, nll: skickaNll = true, nllStatus = 'ej_aktuell', historikText = 'Ordinerad' } = {}) {
   atk.krav(handling);
   const db = atk.db;
-  const o = validera(db, inp);
+  // Runda 12, r1: ordinationsorsak och uppföljningsdatum kan vara frivilliga när ordinationen inte förs över till NLL,
+  // om vårdgivaren har valt det (konfiguration.js, lakemedel.orsak_frivillig_utan_nll).
+  const utanNll = typeof inp?.lakemedelId === 'string' && stod.UTAN_NLL.has(stod.produkttyp(db, inp.lakemedelId).typ);
+  const o = validera(db, inp, { frivilligOrsak: utanNll && require('./konfiguration.js').varde(db, 'lakemedel.orsak_frivillig_utan_nll') });
   const u = underlag(atk);
-  const v = varningar(db, atk.patientId, o.lm, u.aktiva, u);
+  const v = varningar(db, atk.patientId, o.lm, u.aktiva, { ...u, ordination: o });
   const skickas = skickaNll && !stod.UTAN_NLL.has(stod.produkttyp(db, o.lm.id).typ);
   const kvitterade = Array.isArray(inp.kvitteradeVarningar) ? inp.kvitteradeVarningar : [];
   const saknas = [...new Set(v.filter(x => x.niva === 'allvarlig').map(x => x.regel))]

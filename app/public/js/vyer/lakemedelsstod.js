@@ -4,6 +4,8 @@
 // (#/lakemedelsstod) visar vårdenhetens direktiv och uppföljningen på vårdenhetens nivå.
 import { esc, api, datum, tidpunkt, klockslag, notis, felNotis, medKnapp, dialog, ikon, vyRubrik, tom, idag, plusDagar } from '../ui.js';
 import { far } from '../app.js';
+// Runda 12, r1: vårdenhetens läkemedelsmallar, som läkaren bygger och ändrar (vårt D11).
+import { visa as visaLakemedelsmallar } from '../lakemedelsmallar-ui.js';
 
 export const namn = 'lakemedelsstod';
 const tal = (n) => String(Math.round(n * 100) / 100).replace('.', ',');
@@ -310,9 +312,12 @@ export async function visa(main) {
       <p class="liten">${esc(g.vardenhet ?? '')}: ${g.summa.pagaende} pågående ordinationer, ${g.summa.passerade} med passerad uppföljning, ${g.summa.utvarderade} utvärderade. ${esc(g.anmarkning)}</p>
       <div class="tabellrulle"><table class="tabell"><thead><tr><th scope="col">Substans</th><th scope="col">Pågående</th><th scope="col">Patienter</th><th scope="col">Passerad uppföljning</th><th scope="col">Utvärderade</th><th scope="col">God effekt</th><th scope="col">Biverkningar</th></tr></thead>
       <tbody>${g.rader.map(r => `<tr><td>${esc(r.substans)}</td><td>${r.pagaende}</td><td>${r.patienter}</td><td>${r.passerade}</td><td>${r.utvarderade}</td><td>${r.andelGodEffekt == null ? '' : `${r.andelGodEffekt} %`}</td><td>${r.biverkningar}</td></tr>`).join('')}</tbody></table></div></section>` : ''}
+    <div id="lms-mallar-plats"></div>
     <div id="lms-kp"></div>`;
   // Runda 9, r1: prövarens lista per klinisk prövning, med deltagare, ordinationer och givna doser (Sussa 3.5.5.1).
   if (far('ordinera')) provningar(el.querySelector('#lms-kp'));
+  // Runda 12, r1.
+  if (far('faststalla_mall')) visaLakemedelsmallar(el.querySelector('#lms-mallar-plats'));
   el.addEventListener('click', async (e) => {
     const u = e.target.closest('[data-upphav]');
     if (u) {

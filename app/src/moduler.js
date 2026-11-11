@@ -291,6 +291,15 @@ export const MODULER = [
     { avsnitt: ['2.1'], rutter: ['#/drift'], vyer: ['drift.js'], kod: ['src/arkitektur.js', 'src/server.js'], api: ['/api/drift', '/api/arkitektur'] }),
 ];
 
+// Runda 12, r1: journalens mallar, sökord och mätvärdestyper hör till systemförvaltningen (journalstruktur.js).
+{
+  const s = MODULER.find(x => x.id === 'systemforvaltning');
+  s.rutter.push('#/struktur');
+  s.vyer.push('journalstruktur.js');
+  s.kod.push('src/journalstruktur.js');
+  s.api.push('/api/journalstruktur', '/api/mattyper');
+}
+
 // Vyer och rutter som inte hör till en enskild modul, med motivering.
 export const UTAN_MODUL = {
   vyer: {

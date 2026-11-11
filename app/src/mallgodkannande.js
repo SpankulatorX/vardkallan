@@ -63,7 +63,8 @@ const FALT = { dosering: 'doseringen', dos: 'dosen', dosEnhet: 'enheten', tider:
   vidHandelse: 'tiden före vårdhändelsen', orsak: 'ordinationsorsaken', aldre: 'anpassningen från 75 år', egfr: 'anpassningen vid nedsatt njurfunktion' };
 const varde = (k, v) => (v == null ? 'inget' : k === 'tider' ? (v.length ? `kl. ${v.join(', ')}` : 'inga fasta tider') : k === 'aldre' || k === 'egfr' ? `"${v.dosering}"`
   : k === 'uppfoljning' ? `${v} dagar` : k === 'vidHandelse' ? `${v} ${v === 1 ? 'timme' : 'timmar'}` : k === 'typ' ? (TYPTEXT[v] ?? v) : `"${v}"`);
-function skillnad(a = {}, b = {}) {
+// Runda 12, r1: också för förhandsvisningen när en läkare ändrar en mall i gränssnittet (lakemedelsmallbyggare.js).
+export function skillnad(a = {}, b = {}) {
   return Object.keys(FALT).filter(k => JSON.stringify(a[k] ?? null) !== JSON.stringify(b[k] ?? null)).map(k => `${FALT[k][0].toUpperCase()}${FALT[k].slice(1)} ändras från ${varde(k, a[k])} till ${varde(k, b[k])}.`);
 }
 

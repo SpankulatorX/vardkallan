@@ -265,7 +265,8 @@ export function bygg(db, { pseudonymnyckel = null } = {}) {
   // Patientavgiften: bara om besöket är avgiftsbelagt enligt prislistan för patientens ålder och kontaktsättet. Beloppet
   // lämnas inte ut, eftersom det beror på högkostnadsskyddet (som kan röja kontakter på en spärrad vårdenhet) och på om
   // patienten har LMA-kort (som röjer att patienten är asylsökande).
-  const { AVGIFT_DEMO } = require('./vardkontakt.js');
+  // Runda 12, r1: avgifterna är parametrar (vardkontakt.avgifter).
+  const AVGIFT_DEMO = require('./vardkontakt.js').avgifter(db);
   for (const v of db.query("SELECT * FROM vardkontakter WHERE kalla = 'vardkallan' AND typ <> 'slutenvard' ORDER BY id").all()) {
     const p = far(v.patient_id, v.enhet_id);
     if (!p) continue;

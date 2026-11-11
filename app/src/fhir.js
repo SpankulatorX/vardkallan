@@ -31,9 +31,12 @@ import { ACVPU_KOD } from './kodverk.js';
 import { tolkaGcs } from './skalor.js';
 // Runda 9, r4: sökorden har kod i Snomed CT när det finns en exakt motsvarighet (fackssprak.js).
 import { sokordKod as snomedForSokord } from './fackssprak.js';
+// Runda 12, r1: mallarna och mätvärdestyperna som systemförvaltningen skapar.
+import * as struktur from './journalstruktur.js';
 // Runda 9, r4: en migrerad anteckning har författaren i källsystemet som text, aldrig en referens till en nuvarande personal.
 const migreradForfattare = (db, a) => (String(a.forfattare_id).startsWith('migrering:') ? { display: anteckningUt(db, a, { full: false }).forfattare.namn } : null);
-const sokordKod = (sokord) => { const k = snomedForSokord(sokord); return k ? { code: { coding: [k], text: sokord } } : {}; };
+// Runda 12, r1: eller ett sökord som systemförvaltningen har lagt till i en godkänd mall (journalstruktur.js).
+const sokordKod = (sokord, db = null) => { const k = snomedForSokord(sokord) ?? (db ? struktur.sokordKod(db, sokord) : null); return k ? { code: { coding: [k], text: sokord } } : {}; };
 // Läkemedelsprocessen, del 2 (runda 6, r2).
 import * as stod from './lakemedelsstod.js';
 // Runda 8, r4: dosändring från ett senare datum.
@@ -245,8 +248,10 @@ export function condition(db, d) {
 }
 
 export function observation(db, m) {
-  const def = MATTYPER[m.typ] ?? { namn: m.typ };
-  const kod = MATKOD[m.typ];
+  // Runda 12, r1: en mätvärdestyp som systemförvaltningen har skapat har sin kodning i definitionen.
+  const egen = Object.hasOwn(MATTYPER, m.typ) ? null : struktur.mattyp(db, m.typ);
+  const def = (Object.hasOwn(MATTYPER, m.typ) ? MATTYPER[m.typ] : egen) ?? { namn: m.typ };
+  const kod = Object.hasOwn(MATKOD, m.typ) ? MATKOD[m.typ] : egen?.kod;
   const r = {
     resourceType: 'Observation', id: String(m.id), meta: { ...kallaMeta(m.kalla), ...(kod?.profil ? { profile: [`${VITALPROFIL}/${kod.profil}`] } : {}) }, status: 'final',
     ...(kod ? { category: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/observation-category', code: kod.kategori }] }] } : {}),
@@ -489,12 +494,12 @@ export function composition(db, a) {
   return {
     resourceType: 'Composition', id: String(a.id), meta: kallaMeta(a.kalla),
     status: a.status === 'utkast' ? 'preliminary' : a.ersatter_id ? 'amended' : 'final',
-    type: { text: a.typ }, subject: ref('Patient', a.patient_id), encounter: a.vardkontakt_id ? ref('Encounter', a.vardkontakt_id) : undefined,
+    type: { ...(struktur.typkod(db, a.typ) ? { coding: [struktur.typkod(db, a.typ)] } : {}), text: a.typ }, subject: ref('Patient', a.patient_id), encounter: a.vardkontakt_id ? ref('Encounter', a.vardkontakt_id) : undefined,
     date: a.signerad_tid ?? a.skapad, author: [migreradForfattare(db, a) ?? ref('Practitioner', a.forfattare_id, personNamn(db, a.forfattare_id))], title: a.typ,
     custodian: ref('Organization', a.enhet_id, enhetsnamn(db, a.enhet_id)),
     ...(relatesTo.length ? { relatesTo } : {}),
     ...kontrasignerad(db, a),
-    ...(sokord.length ? { section: sokord.map(s => ({ title: s.sokord, ...sokordKod(s.sokord), text: { status: 'generated', div: `<div xmlns="http://www.w3.org/1999/xhtml">${escape(s.text)}</div>` } })) } : {}),
+    ...(sokord.length ? { section: sokord.map(s => ({ title: s.sokord, ...sokordKod(s.sokord, db), text: { status: 'generated', div: `<div xmlns="http://www.w3.org/1999/xhtml">${escape(s.text)}</div>` } })) } : {}),
   };
 }
 
@@ -810,7 +815,7 @@ export function hantera(ctx) {
     if (ordEnhet) atk.krav(handling, { resurs: { enhet_id: ordEnhet, gemensam: true }, beskrivning: `fhir/${typ}/${id}` });
     // Runda 7, r4: uppgifter som systemförvaltningen har undantagit från FHIR för externa tillämpningar. Prövas efter
     // behörigheten, så att svaret för den som inte har åtkomst är detsamma som förut.
-    if (undantag.fhirProvare(db, typ)(rad)) throw new Fel(404, 'Resursen finns inte.', 'saknas');
+    if (undantag.fhirProvare(db, typ, { nationell: url.searchParams.has('_kontrakt') })(rad)) throw new Fel(404, 'Resursen finns inte.', 'saknas');
     atk.logga(handling, atk.grund(), `fhir/${typ}/${id}`);
     return { status: 200, body: typ === 'ServiceRequest' ? serviceRequest(db, rad, kanRoll(personal, 'las_remiss')) : typ === 'EpisodeOfCare' ? episodeOfCare(db, rad, forstaSynliga(atk, rad)) : mappa(db, rad) };
   }
@@ -836,14 +841,15 @@ export function hantera(ctx) {
     const vt = new Map(rader.filter(r => vardtillfalle(typ, r)).map(r => [r.id, synligaVistelser(atk, r)]));
     rader = [...rader.filter(r => vardtillfalle(typ, r) && vt.get(r.id).length), ...atk.filtrera(rader.filter(r => !vardtillfalle(typ, r)), handling)];
     // Runda 7, r4: vårdkontakter från en vårdenhet som är undantagen från FHIR.
-    { const undantagen = undantag.fhirProvare(db, typ); rader = rader.filter(r => vardtillfalle(typ, r) || !undantagen(r)); }
+    { const undantagen = undantag.fhirProvare(db, typ, { nationell: url.searchParams.has('_kontrakt') }); rader = rader.filter(r => vardtillfalle(typ, r) || !undantagen(r)); }
     for (const [, synliga] of vt) for (const v of synliga.slice(0, 1)) atk.krav(handling, { resurs: { enhet_id: v.enhet_id } });
     atk.logga(handling, atk.grund(), `fhir/${typ}${url.search}`);
     return { status: 200, body: bundle(base, url, rader.map(r => (vardtillfalle(typ, r) ? vardtillfalleEncounter(db, r, vt.get(r.id)) : encounter(db, r)))) };
   } else rader = atk.filtrera(rader, handling, { gemensam: GEMENSAM.has(typ) });
   if (ORDINATIONSENHET[typ]) rader = rader.filter(r => { const e = ORDINATIONSENHET[typ](db, r); return !e || atk.filtrera([{ enhet_id: e }], handling, { gemensam: true }).length; });
   // Runda 7, r4: undantag från FHIR, prövat efter behörigheten.
-  { const undantagen = undantag.fhirProvare(db, typ); rader = rader.filter(r => !undantagen(r)); }
+  // Runda 12, r1: producenten för tjänstekontrakt (_kontrakt) prövar också undantagen från publicering till nationella tjänster.
+  { const undantagen = undantag.fhirProvare(db, typ, { nationell: url.searchParams.has('_kontrakt') }); rader = rader.filter(r => !undantagen(r)); }
   atk.logga(handling, atk.grund(), `fhir/${typ}${url.search}`);
   const resurser = rader.map(r => (typ === 'ServiceRequest' ? serviceRequest(db, r, kanRoll(personal, 'las_remiss')) : typ === 'EpisodeOfCare' ? episodeOfCare(db, r, forstaSynliga(atk, r)) : mappa(db, r)));
   // Runda 8, r1: labbeställningarna står med bland patientens ServiceRequest.
