@@ -856,3 +856,4 @@ Det som ändrar något kräver radens vårdenhet. Listor på enhetsnivå och upp
 - `POST /api/direktiv` och `POST /api/direktiv/:id/upphav` ger 403 för verksamhetschefen. Verksamhetschefen har inte `faststalla_direktiv`.
 - `GET /api/patient/:id/sammanhallen` har `sparradeHosAnnan` och `sparrText`.
 
+- `GET /api/min/journal/:id/egenmatning` har `hjalp` per typ och `situationer` för glukos. `POST` tar `situation` (`fastande`, `efter_maltid` eller `annat`) för glukos, och mätningen har `situation`. Patientens glukos i `egna` på `GET /api/patient/:id/matvarden` har `beskrivning` med fastande eller efter måltid.

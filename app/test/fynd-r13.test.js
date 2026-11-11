@@ -309,5 +309,25 @@ describe('Säkerhets- och lagrumsgranskningen', () => {
     expect(utan.sparradeHosAnnan).toBe(false);
     expect(utan.sparrText).toBeNull();
   });
+
+  test('E3-38: egna mätningar har hjälptext efter vald mätning, och glukos sparas som fastande eller efter måltid och syns så för vården', async () => {
+    const inv = klient(app);
+    expect((await inv.post('/api/login/invanare', { invanareId: 'inv-p01' })).status).toBe(200);
+    const typer = (await inv.get('/api/min/journal/p01/egenmatning')).data.typer;
+    expect(new Set(typer.map(t => t.hjalp)).size).toBe(typer.length);
+    const glukos = typer.find(t => t.typ === 'glukos');
+    expect(glukos.hjalp).toContain('mmol/L');
+    expect(glukos.situationer.map(x => x[0])).toEqual(['fastande', 'efter_maltid', 'annat']);
+    expect((await inv.post('/api/min/journal/p01/egenmatning', { typ: 'glukos', varde: '6,2', situation: 'okand' })).status).toBe(400);
+    const r = await inv.post('/api/min/journal/p01/egenmatning', { typ: 'glukos', varde: '6,2', situation: 'fastande' });
+    expect(r.status).toBe(201);
+    expect(r.data.matvarde.situation).toBe('Fastande');
+    const k = klient(app);
+    await k.logga('lak-kard');
+    sandlada(app, k).db = sandlada(app, inv).db;
+    const mv = (await k.get('/api/patient/p01/matvarden')).data;
+    const rader = mv.egna.filter(m => m.typ === 'glukos');
+    expect(rader[0].beskrivning).toBe('6,2 mmol/L, fastande enligt patienten');
+  });
 });
 

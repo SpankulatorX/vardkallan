@@ -2697,3 +2697,9 @@ som verksamhetschefen utser; verksamhetschefen, som i demon inte är läkare, g�
 journalföring säger systemet att det finns spärrade uppgifter om patienten hos en annan vårdgivare (HSLF-FS 2016:40
 4 kap. 7 §), och inget mer. Inom vårdgivaren gäller regeln att inget röjs utom markeringen som 6 kap. 3 § kräver.
 
+
+**Diagnos när kontakten avslutas och hjälpen för egna mätningar (E1-36, E3-38).** När den som får sätta diagnos avslutar
+en kontakt utan diagnos frågar systemet om en diagnos ska sättas först, med Sätt diagnos, Avsluta utan diagnos och
+Avbryt. Diagnosen sätts på den kontakt som avslutas. I Min journal följer enheten och hjälptexten den mätning som
+patienten väljer, och för glukos väljer patienten om mätningen var fastande, efter måltid eller okänd. Vården ser
+fastande eller efter måltid vid värdet bland patientens egna mätningar.

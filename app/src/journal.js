@@ -331,6 +331,13 @@ export function matvardeUt(db, m) {
   // Runda 6, r1: texten som systemet skriver för de kodade mätvärdena och skalorna.
   const b = beskrivning(m);
   if (b) ut.beskrivning = b;
+  // Runda 13, r3 (E3-38): när patienten mätte sitt blodsocker, som patienten angav (medicinteknik.js).
+  if (m.kalla === 'patient' && m.typ === 'glukos') {
+    const s = db.query("SELECT 1 FROM pragma_table_info('egenmatningar') WHERE name = 'situation'").get()
+      ? db.query('SELECT situation FROM egenmatningar WHERE matvarde_id = ?').get(m.id)?.situation : null;
+    const t = { fastande: 'fastande', efter_maltid: 'efter måltid' }[s];
+    if (t) ut.beskrivning = `${String(m.varde_num ?? m.varde).replace('.', ',')} ${m.matt_enhet ?? 'mmol/L'}, ${t} enligt patienten`;
+  }
   // Runda 8, r1: ett svar från laboratoriet visar beställningen och vem som beställde (labb.js).
   const lb = labbKoppling(db, m.id);
   if (lb) ut.bestallning = lb;

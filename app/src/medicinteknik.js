@@ -742,6 +742,21 @@ export function patientvy(atk, synliga, nu = new Date()) {
 
 // --- Egenmätning i Min journal (Sussa 3.6.1.7) ------------------------------------------------------------------------
 export const EGNA_TYPER = ['blodtryck', 'puls', 'vikt', 'glukos', 'saturation', 'temp', 'pef'];
+// Runda 13, r3 (E3-38): hjälptexten efter vald mätning, och för glukos när patienten mätte.
+export const EGNA_HJALP = {
+  blodtryck: 'Skriv övertryck/undertryck, till exempel 135/85.',
+  puls: 'Slag per minut, till exempel 72.',
+  vikt: 'Kilo, med en decimal om du har den, till exempel 81,2.',
+  glukos: 'Millimol per liter (mmol/L), till exempel 6,2. Välj också när du mätte.',
+  saturation: 'Procent, till exempel 96.',
+  temp: 'Grader Celsius, till exempel 37,2.',
+  pef: 'Liter per minut, till exempel 420. Skriv det bästa av tre försök.',
+};
+export const GLUKOS_SITUATION = [['fastande', 'Fastande'], ['efter_maltid', 'Efter måltid'], ['annat', 'Vet inte eller annan tid']];
+const situationText = (k) => GLUKOS_SITUATION.find(x => x[0] === k)?.[1] ?? null;
+function sakraSituation(db) {
+  if (!db.query('PRAGMA table_info(egenmatningar)').all().some(c => c.name === 'situation')) db.exec('ALTER TABLE egenmatningar ADD COLUMN situation TEXT');
+}
 // Vårdenheten som tar emot patientens mätningar: den som vårdar patienten nu, annars vårdcentralen där patienten är listad,
 // annars den senaste vårdkontakten. Patienten behöver inte veta vart mätningen ska.
 export function mottagareFor(db, patientId) {
@@ -771,6 +786,12 @@ export function registreraEgen(atk, body = {}, { nu = new Date(), matttyper } = 
     if (typeof num !== 'number' || !Number.isFinite(num) || num < def.min || num > def.max) throw new Fel(400, `${def.namn} ska vara ett tal mellan ${def.min} och ${def.max} ${MATTYPER_ENHET[typ]}.`, 'ogiltig', { falt: ['varde'] });
     text = String(num);
   }
+  // Runda 13, r3 (E3-38): när patienten mätte glukos. Utan val: vet inte.
+  let situation = null;
+  if (typ === 'glukos') {
+    situation = body.situation == null || body.situation === '' ? 'annat' : body.situation;
+    if (!situationText(situation)) throw new Fel(400, 'Välj när du mätte blodsockret: fastande, efter måltid eller vet inte.', 'ogiltig', { falt: ['situation'] });
+  }
   let tid = nu.getTime();
   if (body.tid != null && body.tid !== '') {
     tid = Date.parse(body.tid);
@@ -785,6 +806,7 @@ export function registreraEgen(atk, body = {}, { nu = new Date(), matttyper } = 
     const mid = Number(db.query("INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, matt_enhet, tid, registrerad_av, kalla, vidimerad) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 'patient', NULL)")
       .run(atk.patientId, enhet, typ, text, num, MATTYPER_ENHET[typ], t).lastInsertRowid);
     db.query('INSERT INTO egenmatningar (matvarde_id, patient_id, enhet_id, invanare_id, registrerad) VALUES (?, ?, ?, ?, ?)').run(mid, atk.patientId, enhet, atk.invanare.id, nu.toISOString());
+    if (situation) { sakraSituation(db); db.query('UPDATE egenmatningar SET situation = ? WHERE matvarde_id = ?').run(situation, mid); }
     return mid;
   })();
   atk.logga(`min:egenmatning:${id}`, { handling: 'invanare_registrera' });
@@ -816,6 +838,8 @@ function egenUt(db, m, matttyper) {
   const b = db.query('SELECT beslut, tid FROM matvarde_bedomningar WHERE matvarde_id = ?').get(m.id);
   return {
     typ: m.typ, namn: matttyper[m.typ]?.namn ?? m.typ, varde: m.varde_num ?? m.varde, enhet: m.matt_enhet, tid: m.tid,
+    // Runda 13, r3 (E3-38).
+    ...(m.typ === 'glukos' ? (() => { sakraSituation(db); return { situation: situationText(db.query('SELECT situation FROM egenmatningar WHERE matvarde_id = ?').get(m.id)?.situation) }; })() : {}),
     mottagare: enhetsnamn(db, vardenhetFor(db, m.enhet_id)),
     status: !b ? 'Inte bedömd ännu' : b.beslut === 'godkand' ? 'Bedömd och godkänd av vården' : 'Bedömd av vården, används som referens',
     bedomd: Boolean(b),
@@ -828,7 +852,7 @@ export function minaMatningar(atk, matttyper) {
   const rader = db.query("SELECT * FROM matvarden WHERE patient_id = ? AND kalla = 'patient' ORDER BY tid DESC, id DESC LIMIT 100").all(atk.patientId);
   const mottagare = mottagareFor(db, atk.patientId);
   return {
-    matningar: rader.map(m => egenUt(db, m, matttyper)), typer: EGNA_TYPER.map(t => ({ typ: t, namn: matttyper[t].namn, enhet: MATTYPER_ENHET[t] })),
+    matningar: rader.map(m => egenUt(db, m, matttyper)), typer: EGNA_TYPER.map(t => ({ typ: t, namn: matttyper[t].namn, enhet: MATTYPER_ENHET[t], hjalp: EGNA_HJALP[t], ...(t === 'glukos' ? { situationer: GLUKOS_SITUATION } : {}) })),
     mottagare: mottagare ? enhetsnamn(db, vardenhetFor(db, mottagare)) : null, egen: atk.relation === 'egen',
     text: 'Dina egna mätningar skickas till vårdenheten som vårdar dig. De visas för vården skilda från vårdens egna mätningar och räknas inte i bedömningar förrän vården har bedömt dem.',
   };

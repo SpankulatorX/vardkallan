@@ -256,9 +256,11 @@ function uppfoljningHtml(u) {
 
 // Runda 13, r3 (E1-36): diagnosen sätts på den pågående vårdkontakten med kod eller text ur ICD-10-SE. Systemet avgör om
 // den är huvud- eller bidiagnos och prövar koden mot den utgåva som gäller.
-async function sattDiagnos(ctx, knapp) {
+// Runda 13, r3: vardkontakt ger kontakten direkt, när läkaren avslutar den (patient-vardkontakt.js). Ger true när
+// diagnosen är satt.
+export async function sattDiagnos(ctx, knapp, { vardkontakt = null } = {}) {
   const pid = encodeURIComponent(ctx.id);
-  const akt = await api(`/api/patient/${pid}/vardkontakt/aktuell`);
+  const akt = vardkontakt ? { vardkontakt } : await api(`/api/patient/${pid}/vardkontakt/aktuell`);
   if (!akt.vardkontakt?.id) { notis('Diagnosen sätts på en vårdkontakt. Patienten har ingen pågående kontakt på din vårdenhet. Skriv anteckningen först, så skapar systemet kontakten.', 'info'); return; }
   const val = await api('/api/rapportering/rattning/val');
   const svar = await dialog(`<form><h2 id="dlg-rubrik">Sätt diagnos</h2>
@@ -267,11 +269,12 @@ async function sattDiagnos(ctx, knapp) {
       <span class="hjalp">Skriv början av koden eller ordet och välj i listan. Systemet avgör om det är huvud- eller bidiagnos.</span></div>
     <p class="dialog-fel form-fel" role="alert" hidden></p>
     <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Sätt diagnosen</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`);
-  if (!svar) return;
+  if (!svar) return false;
   const kod = String(svar.data.kod ?? '').trim().split(/\s/)[0];
   const r = await api(`/api/vardkontakt/${encodeURIComponent(akt.vardkontakt.id)}/diagnos`, { metod: 'POST', data: { kod } });
   notis(`${r.kod} ${r.text} är satt som ${r.typ === 'huvud' ? 'huvuddiagnos' : 'bidiagnos'}.`);
   ctx.ladda?.();
   void knapp;
+  return true;
 }
 
