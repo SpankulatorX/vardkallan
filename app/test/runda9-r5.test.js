@@ -874,5 +874,6 @@ test('en acceptanstestmiljö kan alltid skapas, också när ett nytt personnumme
     expect(new Set(pnr).size).toBe(pnr.length);
     expect(pnr.some(x => x.startsWith('tmp-'))).toBe(false);
   }
-});
+  // Fyrtio miljöer ur en växande seed tar mer än fem sekunder på CI:s maskiner (runda 11).
+}, 30_000);
 
