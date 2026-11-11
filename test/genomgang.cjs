@@ -219,7 +219,16 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
     });
     await s('kravspårbarhet, moduler och svarstider går att läsa utan inloggning', async () => {
       await gaTill(page, '#/krav'); await forvanta(page, '.testkorning', 'tester gröna');
-      await gaTill(page, '#/moduler'); await forvanta(page, '.modul-planerat', 'Planerat, inte byggt');
+      // Runda 11, r8: modulsidan räknas ur modulregistret. En modul som finns visas aldrig som planerad, och ingen text
+      // om en modul som finns säger att den inte är byggd.
+      await gaTill(page, '#/moduler'); await forvanta(page, '[data-modul="iva"][data-status="demo"]', 'Finns i demon');
+      await forvanta(page, '[data-modul="iva"]', 'Menyn: Intensivvård');
+      await forvanta(page, '[data-modul="nationella-anslutning"].modul-planerat', 'Planerat');
+      const felText = await page.$$eval('.modul:not(.modul-planerat)', (el) => el.map(e => e.innerText).filter(t => /inte byggt|inte byggd|finns inte|ännu inte|(^|[^a-zåäö])planerat([^a-zåäö]|$)/i.test(t)));
+      if (felText.length) throw new Error(`moduler som finns säger att de inte är byggda: ${felText[0].slice(0, 120)}`);
+      await page.locator('[data-modul="iva"] .modul-krav a').click();
+      await forvanta(page, '#sf-urval', '4.6');
+      await forvanta(page, '#sf-antal', 'Visar 7 av');
       await gaTill(page, '#/drift'); await forvanta(page, 'main h1', 'Svarstider');
       await gaTill(page, '#/arbetslista'); await page.waitForSelector('.roll');
     });
@@ -554,7 +563,7 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
       await bild(page, '14-kravsparbarhet');
     });
     await s('Sara: moduler, migreringsavstämning och svarstider', async () => {
-      await gaTill(page, '#/moduler'); await forvanta(page, '.modul-planerat', 'Cytostatika'); await bild(page, '15-moduler', true);
+      await gaTill(page, '#/moduler'); await forvanta(page, '[data-modul="cytostatika"]', 'Cytostatika'); await bild(page, '15-moduler', true);
       await gaTill(page, '#/migrering'); await forvanta(page, '.avst-fel', 'Avvikelse'); await forvanta(page, '.avvikelse', 'jodkontrastmedel'); await bild(page, '16-migrering', true);
       await gaTill(page, '#/drift'); await forvanta(page, '.drift-tabell', 'GET /api/patient/:id'); await bild(page, '17-svarstider', true);
     });

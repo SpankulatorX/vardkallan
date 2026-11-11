@@ -603,6 +603,14 @@ legend { font-weight: 600; font-size: var(--f-s); padding: 0; margin-bottom: 6px
 .modul-finns .modul-status { color: var(--ok); }
 .modul-planerat { border-style: dashed; background: var(--yta-2); }
 .modul-planerat .modul-status { color: var(--blak-2); }
+/* Runda 11, r8: modulsidan ur modulregistret. */
+.modul h4 { font-size: var(--f-m); margin: 4px 0; }
+.modul p + p { margin-top: 6px; }
+.modul-api .modul-status { color: var(--blak-2); }
+.modul-api { background: var(--yta-2); }
+.modul-omrade { font-size: var(--f-m); margin: 14px 0 0; }
+.modul-summa { margin: 0 0 12px; }
+.modul .modul-nas, .modul .modul-simulerat, .modul .modul-krav { font-size: var(--f-xs); }
 
 /* Öppet API */
 .api-delad { display: grid; grid-template-columns: minmax(240px, 360px) minmax(0, 1fr); gap: 16px; align-items: start; }

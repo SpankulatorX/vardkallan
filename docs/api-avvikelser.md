@@ -718,3 +718,8 @@ Det som ändrar något kräver radens vårdenhet. Listor på enhetsnivå och upp
 
 - `GET /api/health` har `testklocka` (serverns tid som ISO i UTC) bara när testcontainern är startad med testflaggan `VARDKALLAN_TESTKLOCKA=1` och `VARDKALLAN_FALSK_NU`. I driften finns fältet inte. Se avsnittet om tid i design.md.
 - Ett mätvärde från medicinteknisk utrustning hör till den koppling som gällde vid mättiden, från kopplingens start till men inte med dess slut. Ett värde med samma tid som en flytt hör alltså bara till den nya kopplingen.
+
+## Modulregistret (runda 11, r8)
+
+- `GET /api/moduler`, utan inloggning och utan patientuppgifter, ger `{ statusar, omraden, summa: { demo, api, planerat }, moduler }`. Varje modul har `id`, `namn`, `omrade`, `beskrivning`, `simulerat`, `nas`, `status` (`demo`, `api` eller `planerat`), `statusText`, `avsnitt: [{ id, rubrik }]`, `poster: { uppfyllt_demo, delvis, planerat, totalt, ids }`, `kravLank`, och `rutter`, `journal`, `min`, `vyer`, `kod` och `api` med `finns` för varje rad. Statusen och antalet räknas av servern varje gång, ur gränssnittets kod, serverns rutter och Sussa-registret med samma testresultat som `GET /api/krav/sussa`.
+- Kravsidan tar `#/krav?poster=4.6,4.4.2.12`: ett urval av poster efter avsnitt eller post-id, som modulsidans länkar använder.

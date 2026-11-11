@@ -2,6 +2,22 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "1.1.0",
+      "datum": "2026-11-10",
+      "nyheter": [
+        {
+          "id": "modulsidan-raknas",
+          "roller": [
+            "alla"
+          ],
+          "omfattning": "liten",
+          "var": "#/moduler",
+          "rubrik": "Modulsidan visar vad som finns",
+          "text": "Sidan Moduler räknar själv fram vad som finns ur koden och kravregistret: varje modul med var den nås i menyn, journalen eller Min journal, vad som är simulerat och hur många av modulens krav som är uppfyllda, med en länk till kraven."
+        }
+      ]
+    },
+    {
       "version": "1.0.0",
       "datum": "2026-11-08",
       "nyheter": [

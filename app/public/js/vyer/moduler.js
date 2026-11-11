@@ -1,52 +1,61 @@
-// Moduler: vad som finns i demon och vad som är planerat. Ingenting märks som klart som inte är det.
-import { esc, ikon, vyRubrik } from '../ui.js';
+// Moduler (runda 11, r8): varje modul med status, var den nås, vad som är simulerat och hur många av dess krav som är
+// uppfyllda. Allt kommer från modulregistret i servern (GET /api/moduler), som räknar statusen ur koden och
+// kravregistret. Vyn har inga egna listor, så den kan inte säga något annat än det som finns.
+import { esc, api, ikon, vyRubrik } from '../ui.js';
 
 export const namn = 'moduler';
 
-const FINNS = [
-  ['Patientöversikt', 'Aktuella läkemedel, diagnoser, senaste mätvärden och anteckningar, pågående remisser och en tidslinje där migrerad historik från VAS och Cosmic ligger i samma kronologi.', null],
-  ['Journal', 'Anteckningar från mallar med sökord, utkast, signering och rättelse. En signerad anteckning ändras aldrig; rättelsen blir en ny version och den gamla står kvar överstruken.', null],
-  ['Läkemedel', 'Ordination med obligatorisk ordinationsorsak och uppföljningsdatum, varningar som måste kvitteras, utsättning med orsak och kvittens från Nationella läkemedelslistan. NLL är simulerad, och varningarna är demoregler, inte kliniskt beslutsstöd.', null],
-  ['Remiss och svar', 'Remisser inom regionen med mottagningskvittens, bedömning, svar och kvittens av svaret, och larm när ett steg uteblir. Inte e-remiss mellan vårdgivare.', '#/remisser'],
-  ['Mätvärden', 'Vitalparametrar och labbvärden med trend per typ och registrering av nya värden.', null],
-  ['Behörighet och logg', 'Vårdrelation, inre sekretess med aktivt val, spärr med samtycke, nödåtkomst, skyddade personuppgifter och en logg som inte går att ändra, med logguppföljning.', '#/logg'],
-  ['Tidbok, väntelista och kallelser', 'Vårdadministratörens dagliga arbete i ordning, tidbok per mottagning och vårdgivare, väntelista med gräns mot vårdgarantin, förslag på tider så att bokning är ett klick, kallelser och påminnelser som systemet skriver och skickar själv, incheckning i Min journal och på en skärm i väntrummet, och patientavgift med simulerad betalning. Egenbokning i Min journal. Sms, brev och betalning är simulerade, och avgifterna och vårdgarantin är demoregler.', null],
-  ['Väntrum med könummer', 'Uppropning med könummer för alla patienter. Namnet på en skyddad patient lämnar aldrig servern.', '#/vantrum'],
-  ['Min journal för patienten', 'Invånarens egen e-tjänst med simulerad e-legitimation: anteckningar, diagnoser, läkemedel, provsvar och remisser efter vårdgivarens visningsregler, och vem som har läst journalen, med vårdenhet, yrkesroll, tid och grund. Spärr och loggutdrag begärs hos vården. Vårdnadshavare läser barnets journal till 13 år.', '#/?vy=patient'],
-  ['Öppet FHIR-API', 'FHIR R4 för läsning av alla resurser, med samma behörighet och loggning som gränssnittet. Inte validerat mot HL7 Swedens basprofiler.', '#/api'],
-  // Runda 7, r6.
-  ['Barnhälsovård och tillväxt', 'Tillväxtkurvor med WHO:s tillväxtstandard och larm när kurvor korsas, barnhälsovårdens besöks- och vaccinationsprogram med bokning i tidboken, mätningar hemma från vårdnadshavaren och rapportering till Svenska barnhälsovårdsregistret med kontroll före utskicket. Registret är en simulerad mottagare, och larmen och tidsfönstren är demoregler.', null],
-  // Runda 8, r1.
-  ['Beställning och svar för laboratoriet', 'Labbeställning med paket som systemet föreslår, beställning på uppdrag, provtagning rör för rör med etiketter, svar med NPU-kod och referensintervall som läkaren vidimerar och kontroller till avdelningen. Laboratorierna är simulerade.', null],
-  // Runda 9, r3: specialistområdena, i det öppna API:t.
-  ['Operationsplanering', 'Operationsanmälan med väntelista, planering av sal, team och tid, WHO:s checklista för säker kirurgi, förloppet med KVÅ och implantat, uppvakning med överrapportering och uppföljning per vårdenhet. Finns i API:t, gränssnittet är inte byggt än. Salarna är påhittade.', '#/api'],
-  ['Graviditet och förlossning', 'Graviditetsjournal med beräknad partus, besöksprogram, provschema och riskbedömning, och förlossningsjournal med partogram och barnets egen journal, också vid flerbörd. Finns i API:t, gränssnittet är inte byggt än.', '#/api'],
-  ['Cytostatika och blodprodukter', 'Cytostatika ur behandlingsregim med dos efter kroppsyta eller njurfunktion, provkontroll, beredningsorder och dubbelkontroll, och blodbeställning med blodgruppering, bastest och kontroll vid sängen. Finns i API:t. Beredningsenheten och blodcentralen är simulerade.', '#/api'],
-  ['Bilder och media', 'Bilder i journalen med import från fil, kamera, Min journal och remissbilagor, jämförelse över tid och studier i ett simulerat multimediaarkiv. Finns i API:t, gränssnittet är inte byggt än.', '#/api'],
-  ['Migreringsavstämning och kravspårbarhet', 'Avstämning av migrerade poster och ett kravregister där varje krav pekar på sina automatiska tester.', '#/migrering'],
-  // Runda 10, r7.
-  ['Kassa och patientavgifter', 'Avgifter för besök, hjälpmedel, receptförnyelse och intyg som systemet räknar, betalning mot en simulerad betalterminal, återbetalning med kvitto, kassaredovisning per kassör och betalsätt och dagsavslut som inte kan ändras.', null],
-  ['Meddelanden och ombud i Min journal', 'Patienten, vårdnadshavaren och ett ombud med fullmakt skriver till vården, och systemet skickar meddelandet till rätt vårdenhet och yrkesroll. Ombudet bokar tider men läser aldrig journalen. Patienten ser och kommenterar sin vårdplan. Inloggningen och sms är simulerade.', null],
-  ['Kapacitet och prognos', 'Lediga tider mot väntelistan och de inkomna remisserna tolv veckor framåt, när kön är borta, vilka som riskerar att passera sin gräns och förslag på fler tider. Prognosen är en demoregel.', null],
-  ['Kontorsstöd', 'Personalens tidbok som kalenderprenumeration, journaltext och rapporter som Word-dokument, inbjudan, uppringning och möteslänk för en tid. Microsofts tjänster är simulerade.', null],
-];
+const KLASS = { demo: 'modul-finns', api: 'modul-api', planerat: 'modul-planerat' };
+const IKON = { demo: 'bock', api: 'kod', planerat: 'klocka' };
+const ORDNING = ['demo', 'api', 'planerat'];
+const st = (n, en, flera) => `${n} ${n === 1 ? en : flera}`;
 
-const PLANERAT = [
-  ['Samordnad vårdplanering med kommunen', 'Planering vid utskrivning från sluten vård och informationsutbyte med kommunernas vård och omsorg.'],
-  ['Anestesi och intensivvård', 'Anestesijournal och övervakning inom intensivvården. Operationsplaneringen finns i API:t sedan runda 9.'],
-  ['Gränssnitt för specialistområdena', 'Vyer i journalen för operation, graviditet och förlossning, cytostatika, blodprodukter och bilder, som i dag bara finns i API:t.'],
-  ['Beställning och svar för röntgen och fysiologi', 'Beställningar till bild- och funktionsmedicin, med svar och kvittens. Laboratoriet finns sedan runda 8, och ett simulerat bildarkiv med utlåtande sedan runda 9.'],
-  ['Diktat och taligenkänning', 'Diktering av anteckningar med taligenkänning och utskrift.'],
-  ['Integrationer mot NLL, NPÖ, 1177 och e-remiss', 'Riktiga anslutningar till nationella tjänster. I demon är NLL simulerad och övriga saknas.'],
-  ['Uppföljning och statistik', 'Verksamhetsuppföljning, kvalitetsregister och inrapportering till patientregistret.'],
-  ['Mobil', 'Arbete vid sängen och i hemsjukvården från mobil och surfplatta. Gränssnittet fungerar i dag på smal skärm, men en mobil arbetsapp finns inte.'],
-];
+// Var modulen nås: menyns rader, flikarna i journalen och Min journal, offentliga sidor och modulens egen text.
+function nas(m) {
+  const ut = [];
+  const meny = [...new Set(m.rutter.filter(r => r.finns && r.meny).map(r => r.meny))];
+  if (meny.length) ut.push(`Menyn: ${meny.map(esc).join(', ')}`);
+  const offentliga = m.rutter.filter(r => r.finns && r.offentlig && !r.meny && !r.vag.includes(':'));
+  for (const r of offentliga) ut.push(`<a href="${esc(r.vag)}">${esc(m.namn)}</a>, utan inloggning`);
+  const flikar = m.journal.filter(f => f.finns && f.namn && !f.dold).map(f => f.namn);
+  if (flikar.length) ut.push(`Journalen: ${flikar.length === 1 ? 'fliken' : 'flikarna'} ${flikar.map(esc).join(', ')}`);
+  const min = m.min.filter(f => f.finns && f.namn).map(f => f.namn);
+  if (min.length) ut.push(`Min journal: ${min.map(esc).join(', ')}`);
+  if (m.nas) ut.push(esc(m.nas.replace(/\.$/, '')));
+  return ut.length ? `<p class="modul-nas"><strong>Nås från</strong> ${ut.join('. ')}.</p>` : '';
+}
 
-export async function visa(main) {
-  main.innerHTML = vyRubrik('Moduler', 'Hela vården ska rymmas i ett öppet system, en modul i taget. Här är vad som finns i demon och vad som är planerat. Journalens delar når du genom att öppna en patient från arbetslistan.') + `
-    <section aria-labelledby="mod-finns" class="modulgrupp"><h2 id="mod-finns">Finns i demon <span class="antal">${FINNS.length}</span></h2>
-      <ul class="modullista">${FINNS.map(([n, t, h]) => `<li class="modul modul-finns"><span class="modul-status">${ikon.bock}Finns i demon</span><h3>${h ? `<a href="${h}">${esc(n)}</a>` : esc(n)}</h3><p>${esc(t)}</p></li>`).join('')}</ul></section>
-    <section aria-labelledby="mod-plan" class="modulgrupp"><h2 id="mod-plan">Planerat <span class="antal">${PLANERAT.length}</span></h2>
-      <p class="dampad">Inget av det här finns i demon än. Ordningen säger inget om när det byggs.</p>
-      <ul class="modullista">${PLANERAT.map(([n, t]) => `<li class="modul modul-planerat"><span class="modul-status">${ikon.klocka}Planerat, inte byggt</span><h3>${esc(n)}</h3><p>${esc(t)}</p></li>`).join('')}</ul></section>`;
+function krav(m) {
+  if (!m.avsnitt.length) return '<p class="modul-krav dampad">Inga egna poster i Sussas kravspecifikation.</p>';
+  const p = m.poster;
+  const delar = [`${p.uppfyllt_demo} uppfyllda`, `${p.delvis} delvis`, ...(p.planerat ? [`${p.planerat} planerade`] : [])].join(', ');
+  return `<p class="modul-krav"><strong>Krav</strong> <span class="krav-id">${m.avsnitt.map(a => esc(a.id)).join(', ')}</span>: ${esc(delar)} av ${esc(st(p.totalt, 'post', 'poster'))}. <a href="${esc(m.kravLank)}" aria-label="${esc(`Visa kraven för ${m.namn} på kravsidan`)}">Visa kraven</a></p>`;
+}
+
+const kort = (m) => `<li class="modul ${KLASS[m.status]}" data-modul="${esc(m.id)}" data-status="${esc(m.status)}">
+    <span class="modul-status">${ikon[IKON[m.status]]}${esc(m.statusText)}</span>
+    <h4>${esc(m.namn)}</h4>
+    <p>${esc(m.beskrivning)}</p>
+    ${nas(m)}
+    ${m.simulerat ? `<p class="modul-simulerat"><strong>Simulerat</strong> ${esc(m.simulerat)}</p>` : ''}
+    ${krav(m)}
+  </li>`;
+
+export async function visa(main, _p, _q, { aktuell = () => true } = {}) {
+  main.innerHTML = vyRubrik('Moduler', 'Hela vården ska rymmas i ett öppet system, en modul i taget. Sidan räknar själv fram vad som finns, ur koden och kravregistret: en modul finns i demon när den har en plats i gränssnittet, och antalet krav kommer från samma testresultat som kravsidan.') + '<p class="tom" id="mod-hamtar">Hämtar modulerna.</p>';
+  const d = await api('/api/moduler');
+  if (!aktuell()) return;
+  const s = d.summa;
+  const grupp = (status) => {
+    const moduler = d.moduler.filter(m => m.status === status);
+    if (!moduler.length) return '';
+    const omraden = d.omraden.map(o => ({ ...o, moduler: moduler.filter(m => m.omrade === o.id) })).filter(o => o.moduler.length);
+    return `<section aria-labelledby="mod-${status}" class="modulgrupp" data-grupp="${status}">
+      <h2 id="mod-${status}">${esc(d.statusar[status].rubrik)} <span class="antal">${moduler.length}</span></h2>
+      <p class="dampad">${esc(d.statusar[status].text)}</p>
+      ${omraden.map(o => `<h3 class="modul-omrade">${esc(o.namn)}</h3><ul class="modullista">${o.moduler.map(kort).join('')}</ul>`).join('')}
+    </section>`;
+  };
+  main.querySelector('#mod-hamtar').outerHTML = `<p class="modul-summa" id="mod-summa">${esc(`${st(d.moduler.length, 'modul', 'moduler')}: ${s.demo} finns i demon, ${s.api} finns i API:t och ${s.planerat} återstår.`)}</p>
+    ${ORDNING.map(grupp).join('')}`;
 }

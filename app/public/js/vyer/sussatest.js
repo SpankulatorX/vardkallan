@@ -33,10 +33,12 @@ function laddaNer(d) {
 
 const medel = (v) => (v.length ? v.reduce((a, b) => a + b, 0) / v.length : null);
 
-export async function visa(main) {
+export async function visa(main, _p, _q, { aktuell = () => true } = {}) {
   main.innerHTML = vyRubrik('Sussas testfall med testpersoner', 'SUS och expertgranskning enligt Sussas modell för att testa och utvärdera användbarhet.') + '<div id="st"><p class="tom">Hämtar testfallen.</p></div>';
   let k4 = null;
   try { k4 = (await api('/api/krav', { tyst: true })).krav.find(x => x.id === 'K4')?.sussaTestfall ?? null; } catch { k4 = null; }
+  // Runda 11, r8: har användaren hunnit gå vidare och tillbaka ritar ett sent svar inte över den nyare sidan.
+  if (!aktuell()) return;
   // Ett testfall kan spelas av flera roller, en rad per roll i resultatet.
   const perNr = new Map();
   for (const t of k4?.testfall ?? []) {
