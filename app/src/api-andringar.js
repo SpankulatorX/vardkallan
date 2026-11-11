@@ -19,6 +19,11 @@ export const ANDRINGAR = [
       // Runda 12, r1: journalens struktur och läkemedelsmallarna utan programmerare.
       'Mallar, sökord och mätvärdestyper som systemförvaltningen skapar i /api/journalstruktur, med anteckningstypens och sökordens koder i Composition och mätvärdestypens kod och UCUM i Observation',
       'Läkemedelsmallar som läkaren bygger och ändrar i det interna API:t, som beskrivs i docs/api-avvikelser.md',
+      // Runda 12, r2: uppgraderingar med återgång, säkerhetskopior och schemaversionen i /api/health.
+      'Uppgraderingar med återgång och godkännande av två systemförvaltare i det interna API:t (docs/api-avvikelser.md)',
+      'Säkerhetskopior och återställning till en tidpunkt i det interna API:t (docs/api-avvikelser.md)',
+      'Programmets schemaversion i hälsokontrollen',
+      'Återföringen av all data i exportpaketet tar med vårdgivarens tabeller som NDJSON och databasens schema, och paketet har XML-schemana för METS',
     ],
   },
   // Runda 11: version 1.1. Inga nya resurstyper eller skrivningar i FHIR.

@@ -30,6 +30,8 @@ const TESTER_FLERFAKTOR = [
   'Gränssnitt > Avbrott > flerfaktor: en passkey i Chromes virtuella autentiserare slår på flerfaktor, bekräftar nästa inloggning, och läsläget vid avbrott fungerar efter den andra faktorn',
   'Gränssnitt > Avbrott > flerfaktor: invånaren slår på en app för engångskoder i Min journal och loggar sedan in med en kod från appen',
 ]);
+// Runda 12, r2: uppgraderingar med återgång och godkännande av två systemförvaltare (releaser.js).
+import { TESTER_RELEASER } from './sussa/runda12-r2.js';
 
 const RAPPORT = 'Cosmic upphandling krav och kritik';
 const k = (id, rubrik, kalla, status, var_, tester = [], anmarkning = null) => ({ id, rubrik, kalla, status, var: var_, tester, anmarkning });
@@ -135,9 +137,9 @@ export const KRAV = [
       `${GU}resultatfilen laddas ner med datum, version, deltagarkod, uppgifter och SUS-poäng`, `${GU}inget anrop skickar testresultat till servern`,
       `${GU}testläget rensas när testet avslutas`],
     'Klick, fältbyten och tangenttryck mäts i Playwright med ett skript som gör flödena i gränssnittet. För mätningen med verkliga användare finns ett testläge i demon med samma uppgifter och samma räkning, en enkät med SUS och tre öppna frågor, ett testprotokoll för testledaren (docs/anvandartest.md) och ett skript som sammanställer resultatfilerna. Själva mätningen med personer som arbetar i vården återstår. SVT Norrbotten rapporterade 2026-02-19 att det i Cosmic krävs upp till 21 knapptryck för att få fram rätt information. Den siffran är inte mätt här och flödena är inte desamma.'), bilaga: 'klickbudget' },
-  k('D7', 'Små releaser med automatiserad regressionstest och återgång', `${RAPPORT}, D7`, 'delvis', '/krav',
-    [`${KR}status uppfyllt_demo bara när alla tester är gröna`],
-    'Bygget kör alla tester och stoppas om något är rött. Testerna och FHIR-valideringen körs också i GitHub Actions vid varje push och pull request. Återgång och kundens godkännande före uppgradering är inte byggda.'),
+  k('D7', 'Små releaser med automatiserad regressionstest och återgång', `${RAPPORT}, D7`, 'uppfyllt_demo', '/uppgraderingar',
+    [`${KR}status uppfyllt_demo bara när alla tester är gröna`, ...TESTER_RELEASER],
+    'Bygget kör alla tester och stoppas om något är rött. Testerna och FHIR-valideringen körs också i GitHub Actions vid varje push och pull request. Från version 1.2 är varje ändring av databasens schema en versionerad migrering med en återställning, som sparas i databasen när migreringen tillämpas. Schemaversionen kontrolleras varje gång servern startar eller läser in en sandlåda: saknade migreringar tillämpas och en nyare versions migreringar backas med de sparade återställningarna, så att en äldre version av programmet backar databasen själv. Det som skrivits i en tabell eller kolumn som backas sparas undan och kommer tillbaka vid nästa uppgradering. En uppgradering används först när vårdgivarens systemförvaltare och en andra systemförvaltare har godkänt den, var och en i sin egen inloggning, och systemet stoppar den när testerna i bygget inte är gröna. Sidan Uppgraderingar visar själv vad uppgraderingen ändrar: nyheterna, API:ts ändringslogg och migreringarna. Simulerat: i demon byter en uppgradering eller återgång bara databasen i sandlådan, och programmet är detsamma för alla sandlådor. I driften är varje version en egen avbildning, och återgången startar den förra.'),
   k('D8', 'Behörighetsmodell som tvingar minsta åtkomst, testad mot roller', `${RAPPORT}, D8`, 'uppfyllt_demo', '/patient/:id',
     [`${B}yrkesroll: läkare får ordinera, sjuksköterska och undersköterska får inte`, `${B}yrkesroll: undersköterska ser omvårdnadsanteckningar men inte läkaranteckningar`,
       `${B}yrkesroll: vårdadministratör får administrativa uppgifter men ingen journaltext eller läkemedel`, `${B}yrkesroll: logggranskare får läsa loggen men inte journalen`,
@@ -145,7 +147,7 @@ export const KRAV = [
       `${VK}inskrivningen avslutar bara den egna akutkontakten och skriver bara in där den inloggade får`,
       `${VK}vårdtillfället visar bara de vistelser, händelser och det innehåll som användaren får se`],
     'Testat mot demons roller, inte mot verkliga användare.'),
-  k('D9', 'Öppna format: FHIR R4, ICD-10-SE och ATC', `${RAPPORT}, D9`, 'delvis', '/fhir/metadata',
+  k('D9', 'Öppna format: FHIR R4, ICD-10-SE och ATC', `${RAPPORT}, D9`, 'uppfyllt_demo', '/fhir/metadata',
     [`${F}metadata är ett CapabilityStatement`, `${F}sökning ger Bundle searchset`, `${F}Patient har personnummer med rätt identifier-system`,
       `${F}Condition använder ICD-10-SE`, `${F}MedicationRequest använder ATC och har uppföljningsdatum`,
       `${KV}varje diagnos i seeden har en ICD-10-SE-kod med Socialstyrelsens titel`, `${KV}varje läkemedel i katalogen har en ATC-kod ur WHO:s register`,
@@ -161,8 +163,10 @@ export const KRAV = [
       // Runda 6, r1: eGFR med LOINC för CKD-EPI 2021 och åtgärder med KVÅ.
       'Skalor > eGFR: CKD-EPI 2021 ur kreatinin, ålder och kön, och seedens eGFR är räknat ur kreatininet vid samma provtagning',
       'Åtgärder med KVÅ > koderna och titlarna stämmer med KVÅ 2026, och systemet har OID:n ur Socialstyrelsens OID-serie',
-      'Åtgärder med KVÅ > FHIR: Procedure med KVÅ för NEWS2-omgångar, GCS och läkemedelsgenomgång, med samma behörighet'],
-    'FHIR R4 med ICD-10-SE, ATC, NPL-id, NPU (labb), LOINC (vitalparametrar) och UCUM. Patienten når sina egna resurser med sessionen från Min journal. Koderna är kontrollerade mot Socialstyrelsen, WHO, IFCC och LOINC (docs/kodkontroll.md). Läkemedelskatalogens 50 produkter är kontrollerade mot Läkemedelsverkets NPL och har riktiga NPL-id (docs/lakemedelskontroll.md). Alla resurstyper validerades 2026-10-31 med HL7:s validator 7.0.3 mot FHIR R4 och hl7se.fhir.base 1.1.0 utan fel (docs/fhir-validering.md). MedicationAdministration och List för läkemedelsprocessen kom till 2026-11-03 och är bara kontrollerade med strukturtesterna i bygget, inte med HL7:s validator. Validatorn körs i GitHub Actions vid varje push och pull request och fäller körningen vid fel, men inte i Docker-bygget av demon. Patient, Organization och Practitioner påstår HL7 Swedens basprofiler. eGFR har LOINC 98979-8 (CKD-EPI 2021), eftersom demons laboratorium räknar eGFR ur kreatinin med den formeln och NPU saknar kod för skattad glomerulär filtration. Åtgärder har KVÅ (QD008, PA001 och XV015) som systemet sätter själv, och lämnas ut som Procedure. openEHR, Snomed CT och RIVTA-adaptrar saknas.'),
+      'Åtgärder med KVÅ > FHIR: Procedure med KVÅ för NEWS2-omgångar, GCS och läkemedelsgenomgång, med samma behörighet',
+      // Runda 12, r2: valideringen med HL7:s validator gäller den FHIR-kod som byggs (fhir-validering.json).
+      'FHIR-validering > HL7:s validator ger inga fel för någon resurstyp, också MedicationAdministration och List, i den FHIR-kod som byggs'],
+    'FHIR R4 med ICD-10-SE, ATC, NPL-id, NPU (labb), LOINC (vitalparametrar) och UCUM. Patienten når sina egna resurser med sessionen från Min journal. Koderna är kontrollerade mot Socialstyrelsen, WHO, IFCC och LOINC (docs/kodkontroll.md). Läkemedelskatalogens 50 produkter är kontrollerade mot Läkemedelsverkets NPL och har riktiga NPL-id (docs/lakemedelskontroll.md). Alla resurstyper validerades 2026-10-31 med HL7:s validator 7.0.3 mot FHIR R4 och hl7se.fhir.base 1.1.0 utan fel (docs/fhir-validering.md). Alla resurstyper, också MedicationAdministration och List för läkemedelsprocessen, validerades igen 2026-11-11 med samma validator: 5 890 resurser och inga fel. Validatorn körs i GitHub Actions vid varje push och pull request och fäller körningen vid fel. Docker-bygget har ingen Java, men det tar med resultatet med en hash av koden som bygger FHIR-resurserna, och kravregistret räknar valideringen bara när hashen stämmer med den kod som byggs. Patient, Organization och Practitioner påstår HL7 Swedens basprofiler. eGFR har LOINC 98979-8 (CKD-EPI 2021), eftersom demons laboratorium räknar eGFR ur kreatinin med den formeln och NPU saknar kod för skattad glomerulär filtration. Åtgärder har KVÅ (QD008, PA001 och XV015) som systemet sätter själv, och lämnas ut som Procedure. Sökorden och åtgärderna har koder i Snomed CT (fackssprak.js), och RIV-TA:s tjänstekontrakt finns i en simulerad producent (tjanstekontrakt.js). openEHR saknas.'),
   k('D10', 'Beslutsstöd i separata moduler, journalkärnan utanför MDR', `${RAPPORT}, D10`, 'uppfyllt_demo', '/patient/:id/lakemedel',
     [`${M}varningarna är märkta som demoregler`, 'Utsättning > utsättningsreglerna ligger i en egen modul och är märkta som demoregler',
       // Runda 6, r1: NEWS2 och skalorna i en egen modul (skalor.js), märkta som demoregler.
@@ -268,17 +272,23 @@ export const KRAV = [
       `${MJ}patientsessionen når inga av personalens API:er`, `${MJ}svaren innehåller inga id, interna anteckningar eller uppgifter om andra patienter`,
       `${MJ}ingen fritext från adressen hamnar i loggen, och anrop från andra webbplatser avvisas`]),
   k('M7', 'Personuppgifter utanför EU: EU-krav i avtal och arkitektur', `${RAPPORT}, Misstag att inte upprepa`, 'planerat', null, []),
-  k('M8', 'Uppgraderingar skapar nya fel: små releaser och automatiserade tester', `${RAPPORT}, Misstag att inte upprepa`, 'delvis', '/krav',
-    [`${KR}status uppfyllt_demo bara när alla tester är gröna`], 'Återgång är inte byggd.'),
+  k('M8', 'Uppgraderingar skapar nya fel: små releaser och automatiserade tester', `${RAPPORT}, Misstag att inte upprepa`, 'uppfyllt_demo', '/uppgraderingar',
+    // Runda 12, r2: återgång och godkännande före uppgradering (releaser.js), samma tester som D7.
+    [`${KR}status uppfyllt_demo bara när alla tester är gröna`, ...TESTER_RELEASER], 'Bygget stoppas om något test är rött, och en uppgradering kan inte godkännas när testerna i bygget inte är gröna. Uppgraderingen används först när två systemförvaltare har godkänt den och går att backa till förra versionen utan att något försvinner (se D7). Simulerat: i demon byts bara databasen i sandlådan, inte programmet.'),
   k('M9', 'Fler klick och långsamhet: klickbudget och svarstidsmål', `${RAPPORT}, Misstag att inte upprepa`, 'delvis', '/drift',
     [`${A}drift visar p50 och p95 per adress i API:t`, `Klickbudget > klickbudget.json täcker alla flöden med budgetarna från koden`],
     'Svarstid mäts i drift och klick mäts med ett skript i Playwright. Sekreterare, vårdadministratörer och andra verkliga användare har inte varit med i designen eller mätningen.'),
   k('M10', 'Ändringar fastnar i samverkan: eget förvaltningsteam med beslutsrätt', `${RAPPORT}, Misstag att inte upprepa`, 'planerat', null, [], 'Gäller organisation, inte koden.'),
   k('M11', 'Beslut utanför demokratisk insyn: diarieföring och öppen dokumentation', `${RAPPORT}, Misstag att inte upprepa`, 'delvis', '/krav', [], 'Designen och koden är öppna. Diarieföring gäller organisationen.'),
-  k('M12', 'Inlåsning: regionägd kod och data i öppna format', `${RAPPORT}, Misstag att inte upprepa`, 'delvis', '/fhir/metadata',
+  k('M12', 'Inlåsning: regionägd kod och data i öppna format', `${RAPPORT}, Misstag att inte upprepa`, 'uppfyllt_demo', '/fhir/metadata',
     [`${F}sökning ger Bundle searchset`, 'Arkiv > exportpaketet följer FGS Paketstruktur 2.0 med METS.xml, alla mappar och SHA-256 för varje fil',
-      'Arkiv > exportpaketet är fullständigt och tar med spärrar och skyddad identitet som uppgifter', 'Datauttag > manifestet följer FHIR Bulk Data och uttaget loggas'],
-    'Öppen källkod och FHIR. Alla journaler kan exporteras i ett paket enligt Riksarkivets FGS Paketstruktur 2.0 med journalen i FHIR R4, vilket är återföringen av all data i ett standardiserat arkiveringsformat som avtalet kräver när det upphör. Datauttaget för uppföljning är NDJSON. Paketet är inte prövat mot ett verkligt e-arkiv, och tabeller som inte hör till journalen, till exempel sandlådans inställningar, följer inte med.'),
+      'Arkiv > exportpaketet är fullständigt och tar med spärrar och skyddad identitet som uppgifter', 'Datauttag > manifestet följer FHIR Bulk Data och uttaget loggas',
+      // Runda 12, r2: alla tabeller i återföringen och paketet prövat med E-ARK:s validator.
+      'Arkiv > återföringen av all data tar med varje tabell med vårdgivarens uppgifter och de gemensamma tabellerna som NDJSON och databasens schema, också tabeller som inte hör till journalen',
+      'Arkiv > paketet har XML-schemana i mappen schemas och bara registrerade medietyper i METS.xml, som E-ARK:s validator kräver',
+      'Arkiv > varje tabell är klassad för återföringen, och inga nycklar eller hemligheter följer med i paketet',
+      'Arkiv > rader med hemligheter i tabeller med nyckel och värde följer inte med, och bara kända inställningar följer med'],
+    'Öppen källkod och FHIR. Alla journaler kan exporteras i ett paket enligt Riksarkivets FGS Paketstruktur 2.0 med journalen i FHIR R4, vilket är återföringen av all data i ett standardiserat arkiveringsformat som avtalet kräver när det upphör. Datauttaget för uppföljning är NDJSON. Återföringen tar sedan version 1.2 också med varje tabell med vårdgivarens uppgifter och varje gemensam tabell som NDJSON, med databasens schema, så att tabeller som inte hör till journalen, till exempel inställningarna, reglerna och mallarna, följer med. Systemets egna tabeller, säkerhetsloggen och nycklar och hemligheter följer inte med, och paketet säger vilka tabeller och kolumner som är utelämnade och varför. Paketet är prövat med E-ARK:s validator med öppen källkod (commons-ip 2.12.1 mot E-ARK CSIP och SIP 2.1.0, som FGS Paketstruktur 2.0 bygger på) utan fel, och XML-schemana för METS ligger i paketets mapp schemas (docs/earkiv-validering.md). Paketet är inte prövat mot ett verkligt e-arkiv eller en leveransöverenskommelse.'),
   k('M13', 'Medicinteknisk klassning sent: avsett ändamål och klassning före bygget', `${RAPPORT}, Misstag att inte upprepa`, 'planerat', null, [], 'Vårdkällans egen bedömning och klassning per beslutsstödsmodul enligt MDR med MDCG 2019-11 finns i docs/mdr-bedomning.md, men den gjordes i efterhand och inte före bygget. Varningarna är märkta som demoregler.'),
 ];
 

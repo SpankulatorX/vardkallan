@@ -354,7 +354,8 @@ export const lagring = {
   async visa(main) {
     main.innerHTML = vyRubrik('Lagring', 'Databasens storlek, varje huvudmans uppgifter för sig och provåterläsning av säkerhetskopian.') + '<div id="sf-lagring"><p class="tom">Hämtar.</p></div>';
     // Runda 9, r5: miljöerna (KD1.1.1.5) och certifikaten och de signerade meddelandena (Sussa 5.3.1.5 och 5.3.1.8).
-    const [o, mi, ce] = await Promise.all([api('/api/lagring'), api('/api/miljoer'), api('/api/certifikat')]);
+    // Runda 12, r2: de schemalagda säkerhetskopiorna på två platser (Sussa KD1.1.3.6).
+    const [o, mi, ce, sk] = await Promise.all([api('/api/lagring'), api('/api/miljoer'), api('/api/certifikat'), api('/api/sakerhetskopior')]);
     const el = main.querySelector('#sf-lagring');
     if (!el) return;
     const senaste = o.matningar[0];
@@ -363,6 +364,7 @@ export const lagring = {
         ${senaste ? `<p class="${senaste.godkand ? 'ruta ruta-ok' : 'ruta ruta-larm'} liten">${senaste.godkand ? ikon.bock : ikon.varning} Senaste provåterläsning ${esc(tidpunkt(senaste.tid))}: ${senaste.godkand ? 'godkänd' : 'underkänd'}, ${esc(storlek(senaste.byte))}, ${tal(senaste.rader, 0)} rader i ${senaste.tabeller} tabeller, ${senaste.ms} ms.</p>` : '<p class="liten">Ingen provåterläsning är gjord i den här sandlådan än. Den körs också automatiskt i bygget.</p>'}
         <button type="button" class="knapp" data-prova>Pröva säkerhetskopiering och återläsning</button>
         <div data-provresultat aria-live="polite"></div></section>
+      ${kopieSektion(sk)}
       ${miljoSektion(mi)}
       ${certifikatSektion(ce)}
       <section class="lm-sektion" aria-labelledby="sf-l-huvudman"><h2 id="sf-l-huvudman">Uppgifter per huvudman</h2>
@@ -380,7 +382,8 @@ export const lagring = {
         <p>Databasen är ${esc(storlek(o.byte))} med ${tal(o.rader, 0)} rader i ${o.tabeller} tabeller.</p>
         <div class="tabellrulle"><table class="tabell"><thead><tr><th scope="col">Största tabellerna</th><th scope="col" class="tal">Rader</th></tr></thead><tbody>
           ${o.storsta.map(t => `<tr><th scope="row">${esc(t.tabell)}</th><td class="tal">${tal(t.rader, 0)}</td></tr>`).join('')}</tbody></table></div>
-        ${o.matningar.length > 1 ? `<p class="liten">Tidigare mätningar: ${o.matningar.slice(1).map(m => `${esc(tidpunkt(m.tid))} ${esc(storlek(m.byte))}`).join(', ')}.</p>` : ''}</section>
+        ${o.matningar.length > 1 ? `<p class="liten">Tidigare mätningar: ${o.matningar.slice(1).map(m => `${esc(tidpunkt(m.tid))} ${esc(storlek(m.byte))}`).join(', ')}.</p>` : ''}
+        ${prognosDel(o.prognos)}</section>
       <section class="lm-sektion" aria-labelledby="sf-l-rutin"><h2 id="sf-l-rutin">Rutinen</h2><ul>${o.rutin.map(r => `<li>${esc(r)}</li>`).join('')}</ul><p class="demoregel">${esc(o.anmarkning)}</p></section>`;
     el.addEventListener('click', async (e) => {
       // Runda 9, r5: ny miljö, återkallat certifikat och kontroll av ett bevis.
@@ -390,6 +393,14 @@ export const lagring = {
       if (ak) return aterkallaCert(main, ak);
       const kb = e.target.closest('[data-kontrollera-bevis]');
       if (kb) return kontrolleraBevis(kb);
+      // Runda 12, r2: en kopia nu och återställning till en tidpunkt.
+      const tk = e.target.closest('[data-ta-kopia]');
+      if (tk) {
+        try { const r = await medKnapp(tk, () => api('/api/sakerhetskopior', { metod: 'POST', data: {} })); notis(r.kopia.verifierad ? 'Kopian är tagen och verifierad på båda platserna.' : 'Kopian kunde inte verifieras på båda platserna.', r.kopia.verifierad ? 'ok' : 'fel'); } catch { /* notis visad */ }
+        return lagring.visa(main);
+      }
+      const as = e.target.closest('[data-aterstall]');
+      if (as) return aterstallKopia(main, sk, as);
       const g = e.target.closest('[data-godkann-uttag]');
       if (g) {
         try { await medKnapp(g, () => api(`/api/lagring/uttag/${g.dataset.godkannUttag}/godkann`, { metod: 'POST', data: {} })); notis('Uttaget är godkänt. Filen kan hämtas.'); } catch { /* notis visad */ }
@@ -410,6 +421,46 @@ export const lagring = {
     });
   },
 };
+
+// Runda 12, r2 (KD1.1.3.5): prognosen för volymen ur tillväxten och lagringsklasserna med kostnad per månad.
+const kr = (x) => (x < 1 ? `${tal(x, 4)} kr` : `${tal(x, 0)} kr`);
+function prognosDel(p) {
+  if (!p) return '';
+  return `<h3 id="sf-l-prognos">Prognos</h3>
+    <p class="liten" data-prognos>Det senaste året tillkom ${tal(p.tillvaxt.rader, 0)} rader, ungefär ${esc(storlek(p.tillvaxt.byte))} (${esc(String(p.tillvaxt.procent).replace('.', ','))} procent av databasen).</p>
+    <div class="tabellrulle"><table class="tabell"><thead><tr><th scope="col">Om</th><th scope="col" class="tal">Databasen</th><th scope="col" class="tal">Med fördubblad aktivitet</th><th scope="col" class="tal">Kopior på två platser</th></tr></thead><tbody>
+      ${p.scenarier.map(x => `<tr><th scope="row">${x.ar} år</th><td class="tal">${esc(storlek(x.byte))}</td><td class="tal">${esc(storlek(x.byteFordubblad))}</td><td class="tal">${esc(storlek(x.kopiorByte))}</td></tr>`).join('')}</tbody></table></div>
+    ${p.klasser ? `<div class="tabellrulle"><table class="tabell"><thead><tr><th scope="col">Lagringsklass</th><th scope="col">Kvalitet</th><th scope="col" class="tal">Svarstid</th><th scope="col" class="tal">I dag</th><th scope="col" class="tal">Per månad</th></tr></thead><tbody>
+      ${p.klasser.lista.map(k => `<tr><th scope="row">${esc(k.namn)}${k.flyttEfterAr != null ? `<span class="under-text">Uppgifter äldre än ${k.flyttEfterAr} år</span>` : ''}</th><td>${esc(k.kvalitet)}</td><td class="tal">${k.svarstidMs} ms</td><td class="tal">${esc(storlek(k.byte))}</td><td class="tal">${esc(kr(k.krPerManad))}</td></tr>`).join('')}</tbody></table></div>
+      ${p.klasser.krPerManadUtanKlasser != null ? `<p class="liten">Med lagringsklasserna kostar lagringen ${esc(kr(p.klasser.krPerManad))} per månad, mot ${esc(kr(p.klasser.krPerManadUtanKlasser))} om allt låg i den snabba lagringen.</p>` : ''}` : '<p class="liten">Lagringsklasserna finns från version 1.2.</p>'}
+    <p class="dampad liten">${esc(p.metod)}</p>`;
+}
+
+// Runda 12, r2 (KD1.1.3.6): de schemalagda säkerhetskopiorna på två platser, verifieringen och återställningen.
+const PLATS = (p) => `plats ${p.plats} ${p.ok ? 'verifierad' : 'inte verifierad'}`;
+function kopieSektion(sk) {
+  const s = sk.senaste;
+  return `<section class="inkorg-sektion" aria-labelledby="sf-l-kopior"><h2 id="sf-l-kopior">Säkerhetskopior</h2>
+    ${s ? `<p class="${s.verifierad ? 'ruta ruta-ok' : 'ruta ruta-larm'} liten" data-senaste-kopia>${s.verifierad ? ikon.bock : ikon.varning}<span>Senaste kopian togs ${esc(tidpunkt(s.tid))} (${esc(s.orsakText.toLowerCase())}), ${esc(storlek(s.byte))}: ${s.platser.map(PLATS).join(', ')}.</span></p>`
+      : `<p class="liten" data-senaste-kopia>Ingen kopia av den här sandlådan är tagen än. Nästa schemalagda kopia tas inom ${esc(String(sk.intervallMinuter))} minuter om något har ändrats.</p>`}
+    <div class="knapprad"><button type="button" class="knapp sekundar" data-ta-kopia>Ta en kopia nu</button>${sk.senasteVerifierade ? '<button type="button" class="knapp sekundar" data-aterstall>Återställ till en tidpunkt</button>' : ''}</div>
+    ${sk.kopior.length > 1 ? `<p class="liten">Tidigare kopior: ${sk.kopior.slice(1, 8).map(k => `${esc(tidpunkt(k.tid))} ${k.verifierad ? 'verifierad' : 'inte verifierad'}`).join(', ')}.</p>` : ''}
+    <ul class="liten">${sk.rutin.map(r => `<li>${esc(r)}</li>`).join('')}</ul><p class="demoregel">${esc(sk.demoregel)}</p></section>`;
+}
+// Systemet föreslår den senaste verifierade kopian och säger vad som händer med det som har gjorts efter den.
+async function aterstallKopia(main, sk, knapp) {
+  const val = sk.kopior.filter(k => k.verifierad);
+  const svar = await dialog(`<form><h2 id="dlg-rubrik">${ikon.varning}<span>Återställ sandlådan till en tidpunkt</span></h2>
+    <div class="falt"><label for="sf-kopia-tid">Tidpunkt</label><select id="sf-kopia-tid" name="tid">${val.map(k => `<option value="${esc(k.tid)}">${esc(tidpunkt(k.tid))}, ${esc(k.orsakText.toLowerCase())}</option>`).join('')}</select></div>
+    <div class="dialog-text"><p>Sandlådan blir som den var vid tidpunkten. Det som har gjorts efter den finns kvar i en kopia som tas först, så att återställningen går att göra ogjord. Åtkomstloggen och säkerhetsloggen följer med i sin helhet.</p></div>
+    <div class="knapprad"><button type="button" class="knapp text" data-varde="avbryt">Avbryt</button><button type="button" class="knapp knapp-allvar" data-varde="ok">Återställ</button></div></form>`, { klass: 'dialog-allvar' });
+  if (!svar) return;
+  try {
+    const r = await medKnapp(knapp, () => api('/api/sakerhetskopior/aterstall', { metod: 'POST', data: svar.data }));
+    notis(`Sandlådan är återställd till ${tidpunkt(r.aterstalldTill.tid)}, läst från plats ${r.plats}.`);
+  } catch { /* notis visad */ }
+  lagring.visa(main);
+}
 
 // Runda 9, r5 (KD1.1.1.5): acceptanstest-, utbildnings- och testmiljö ur en kopia av sandlådan.
 function miljoSektion(mi) {

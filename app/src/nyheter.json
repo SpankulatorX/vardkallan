@@ -90,6 +90,36 @@
           "var": "#/arbetslista",
           "rubrik": "Rabatter på patientavgifterna",
           "text": "Kostnadsrutan i patientens översikt visar ordinarie avgift, rabatt och skäl för varje avgiftsfri eller nedsatt patientavgift, och summan av rabatterna."
+        },
+        {
+          "id": "r12r2-uppgraderingar",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "stor",
+          "var": "#/uppgraderingar",
+          "rubrik": "Uppgraderingar som går att backa",
+          "text": "En uppgradering används först när du och en andra systemförvaltare har godkänt den, och systemet stoppar den om testerna i bygget inte är gröna. Sidan Uppgraderingar visar vad den ändrar: nyheterna, API:ts ändringar och ändringarna i databasen. Ger en version fel i vården går du tillbaka till förra versionen med en knapp, och inget som har skrivits försvinner."
+        },
+        {
+          "id": "r12r2-sakerhetskopior",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "liten",
+          "var": "#/lagring",
+          "rubrik": "Säkerhetskopior på två platser",
+          "text": "Sandlådan kopieras var femtonde minut till två platser, och varje kopia verifieras på båda. Sidan Lagring visar när den senaste kopian togs och om den är verifierad, och du kan återställa sandlådan till en tidpunkt. Läget före återställningen sparas först, och loggarna följer med i sin helhet."
+        },
+        {
+          "id": "r12r2-aterforing",
+          "roller": [
+            "arkivarie"
+          ],
+          "omfattning": "liten",
+          "var": "#/arkiv",
+          "rubrik": "Återföringen tar med alla tabeller",
+          "text": "Exportpaketet med alla journaler tar nu med alla tabeller med vårdgivarens uppgifter, också inställningarna, reglerna och mallarna, så att allt följer med vid ett byte av system. Paketet är prövat med E-ARK:s validator."
         }
       ]
     },

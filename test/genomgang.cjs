@@ -178,6 +178,8 @@ for (const k of ['uppfoljning', 'arkiv', 'verksamhetschef']) MENY[k].splice(MENY
 for (const k of ['klinisk', 'psykiatri', 'bvc', 'verksamhetschef']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Signeringslista');
 // Runda 10, r3: systemförvaltaren har Formulär direkt efter Kodverk och masterdata.
 MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterdata') + 1, 0, 'Formulär');
+// Runda 12, r2: systemförvaltaren har Uppgraderingar efter Lagring.
+MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Lagring') + 1, 0, 'Uppgraderingar');
 // Runda 10, r7: läkare, sjuksköterskor, fysioterapeuter och vårdadministratörer har Meddelanden före Delegeringar, eller
 // efter Inkorg när de inte har Delegeringar, och Kontorsstöd före Utbildning. Vårdadministratören har Kassa och Kapacitet
 // efter Väntelista och Begäranden efter Väntrum, och logggranskaren Begäranden efter Logguppföljning.
@@ -1849,6 +1851,39 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await bild(page, '167-mallar-och-matvardestyper');
       await page.waitForLoadState('networkidle');
     });
+    // Runda 12, r2 (KD1.1.3.6): en säkerhetskopia på två platser och återställning till en tidpunkt.
+    await s('Tomas Lindh tar en säkerhetskopia, ser att den är verifierad på båda platserna och återställer sandlådan till den', async () => {
+      await gaTill(page, '#/lagring');
+      await page.click('[data-ta-kopia]');
+      await forvanta(page, '.notis', 'verifierad på båda platserna');
+      await forvanta(page, '[data-senaste-kopia]', 'plats 1 verifierad, plats 2 verifierad');
+      await bild(page, '103d-sakerhetskopior');
+      await page.click('[data-aterstall]');
+      await page.locator('dialog[open] #sf-kopia-tid').waitFor();
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', 'Sandlådan är återställd till');
+      await forvanta(page, '[data-senaste-kopia]', 'före en återställning');
+      await page.waitForLoadState('networkidle');
+    });
+    // Runda 12, r2 (D7 och M8): återgång till förra versionen och godkännande av uppgraderingen. Nora Ekholm godkänner
+    // som andra systemförvaltare längre fram.
+    await s('Tomas Lindh går tillbaka till förra versionen, ser vad uppgraderingen ändrar och godkänner den som första systemförvaltare', async () => {
+      await gaTill(page, '#/uppgraderingar');
+      await forvanta(page, '#uppg-drift ~ .ruta', 'Den stämmer med version');
+      await bild(page, '103e-uppgraderingar');
+      await page.click('[data-aterga]');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', 'är i drift igen');
+      await forvanta(page, '#uppg-vantar ~ .ruta', 'tester i bygget är gröna');
+      await forvanta(page, '#uppg', 'Nyheter för användarna');
+      await forvanta(page, '#uppg', 'Ändringar i databasen');
+      await page.click('[data-godkann]');
+      await forvanta(page, '.notis', 'väntar på en andra systemförvaltare');
+      await forvanta(page, '[data-uppg-status]', 'Godkänd av Tomas Lindh');
+      if (await page.locator('[data-godkann]').count()) throw new Error('samma systemförvaltare kunde godkänna två gånger');
+      await bild(page, '103f-uppgradering-vantar');
+      await page.waitForLoadState('networkidle');
+    });
     await allaVyer(page, 'Tomas Lindh', MENY.systemforvaltare);
     // Fyra ögon på riktigt: Nora Ekholm loggar in i samma sandlåda och godkänner sammanslagningen som Tomas Lindh förberedde.
     await s('Nora Ekholm godkänner sammanslagningen som Tomas Lindh förberedde, men inte sina egna förslag', async () => {
@@ -1909,6 +1944,15 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await forvanta(page, '#js-historik ~ ul', 'Smärtmottagningens bedömning');
       await forvanta(page, '#js-mallar ~ .tabellrulle', 'Smärtmottagningens bedömning');
       await forvanta(page, '#js-mattyper ~ .tabellrulle', 'Ferritin');
+      await page.waitForLoadState('networkidle');
+    });
+    // Runda 12, r2: den andra systemförvaltaren godkänner uppgraderingen i sin egen inloggning, och den används direkt.
+    await s('Nora Ekholm godkänner uppgraderingen som andra systemförvaltare, och den används direkt', async () => {
+      await gaTill(page, '#/uppgraderingar');
+      await forvanta(page, '[data-uppg-status]', 'Väntar på en andra systemförvaltare');
+      await page.click('[data-godkann]');
+      await forvanta(page, '.notis', 'används nu');
+      await forvanta(page, '#uppg-hist ~ ul', 'Godkänd av Tomas Lindh och Nora Ekholm');
       await page.waitForLoadState('networkidle');
     });
     await allaVyer(page, 'Nora Ekholm', MENY.systemforvaltare);

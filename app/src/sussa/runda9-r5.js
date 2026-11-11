@@ -60,7 +60,7 @@ const POSTER = {
     tester: [T.index, T.leverans, T.avvisad, T.skilda],
     losning: 'Exportpaketet följer FGS Paketstruktur 2.0 med journalen i sitt ursprungliga innehåll som HL7 FHIR R4, med alla versioner av rättade anteckningar, och metadata i METS och PREMIS. Varje journalhandling har en post i ett index med e-arkivets dataelement, och mappningen från Vårdkällans dataelement till e-arkivets står i paketets dokumentation. Leveransen skickas med ett signerat manifest, och e-arkivet gör en mottagningskontroll (METS.xml, kontrollsummor, mappar och obligatoriska dataelement) och svarar med en signerad kvittens. Journalhandlingarna ligger skilda från åtkomstloggen, som inte är en journalhandling.',
     expert: 'Arkivarien trycker på Leverera till e-arkivet. Systemet bygger paketet, mappar varje journalhandling mot e-arkivets dataelement, skickar och visar om e-arkivet tog emot paketet och annars vad som var fel.',
-    anmarkning: 'E-arkivet är simulerat, och dess dataelement är en förenklad uppsättning i demon och inte R7e-arkivets eller en verklig leveransöverenskommelse. XML-scheman ligger inte i mappen schemas, och paketet valideras inte mot METS-schemat.',
+    anmarkning: 'E-arkivet är simulerat, och dess dataelement är en förenklad uppsättning i demon och inte R7e-arkivets eller en verklig leveransöverenskommelse. XML-schemana för METS ligger i mappen schemas, och paketet är prövat med E-ARK:s validator med öppen källkod (commons-ip 2.12.1 mot CSIP 2.1.0) utan fel (docs/earkiv-validering.md).',
   },
   '5.4.2.4': {
     avsedd: 'uppfyllt_demo',

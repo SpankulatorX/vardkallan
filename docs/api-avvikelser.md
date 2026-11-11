@@ -832,3 +832,10 @@ Det som ändrar något kräver radens vårdenhet. Listor på enhetsnivå och upp
 - `GET /api/utbildning/prov` ger `{ prov: [{ id, typ, titel, roller, status, text, uppgift?, lank?, resultat?, giltigtTill? }], utbildare, provtyper?, uppfoljning? }`. Utbildaren får `provtyper` och `uppfoljning: [{ id, typ, titel, skapad, godkanda, personer: [{ id, namn, titel, status, text, giltigtTill? }] }]`, utan patient.
 - `POST /api/utbildning/prov { typ }` (201, utbildaren eller verksamhetschefen), `POST /api/utbildning/prov/:id/starta`, `POST /api/utbildning/prov/:id/kontrollera` (ger också `godkant` och `text`) och `POST /api/utbildning/prov/:id/avsluta`.
 - `GET /api/patient/:id/kostnader` har `rabatt: { ordinarie, rabatt, skal, demoregel }` på en avgiftsfri eller nedsatt patientavgift och `rabatter` med summan i `aktuell`.
+
+## Uppgraderingar och säkerhetskopior (runda 12, r2)
+
+- `GET /api/uppgraderingar` (systemförvaltaren) ger `{ program, driftversion, schema: { schemaversion, programmets, driftversion, saknas, okanda, overfor, stammer }, migreringar, tester: { gron, antal, godkanda, misslyckade, tid, text }, nasta, i_drift, forra, vantar, historik, parkerade }`.
+- `POST /api/uppgraderingar/atergang` backar sandlådan till förra versionen och ger `{ driftversion, backade, schema, vantar }`. `POST /api/uppgraderingar/:id/godkann` ger `{ uppgradering, genomford }`: den första systemförvaltaren godkänner och den andra, i sin egen inloggning, genomför. 409 när testerna i bygget inte är gröna, 403 när samma person godkänner två gånger.
+- `GET /api/sakerhetskopior` ger `{ intervallMinuter, behall, platser, senaste, senasteVerifierade, kopior, rutin, demoregel }`, `POST /api/sakerhetskopior` tar en kopia nu (201) och `POST /api/sakerhetskopior/aterstall { tid }` återställer sandlådan till den senaste verifierade kopian före tiden och ger `{ aterstalldTill, plats, forsok, fore, text }`.
+- `GET /api/health` har `schemaversion`.

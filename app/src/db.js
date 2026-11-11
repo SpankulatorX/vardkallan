@@ -492,6 +492,8 @@ export function byggSeed(bas = nu()) {
   require('./praktiska-prov.js').sakra(db);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
+  // Runda 12, r2: de versionerade migreringarna från version 1.2 (releaser.js). Sist, så att schemaversionen gäller allt.
+  require('./releaser.js').kontrolleraVidStart(db, undefined, undefined, bas);
   return db;
 }
 
@@ -631,6 +633,9 @@ export function migrera(db) {
   // Runda 12, r3 (flerfaktor.js och praktiska-prov.js).
   require('./flerfaktor.js').sakra(db);
   require('./praktiska-prov.js').sakra(db);
+  // Runda 12, r2: kontrollen av schemaversionen när en sandlåda läses in (releaser.js). Saknade migreringar tillämpas och
+  // migreringar från en nyare version av programmet backas med de återställningar som sparades i databasen.
+  require('./releaser.js').kontrolleraVidStart(db);
   return db;
 }
 

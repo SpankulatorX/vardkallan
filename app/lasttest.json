@@ -1,0 +1,236 @@
+{
+  "tid": "2026-11-11T18:05:30.431Z",
+  "version": "1.2.0",
+  "kodHash": "c8315e2e27c0d79782035c814af785f7937200ebe6e2a4b8f4bf7f77ca5ba725",
+  "gransnitt": "709ad3b9b5cc5888e60a87d74958f9fb7cd5b35ccb0e169ccc2a30cda7f3cb92",
+  "bas": "http://127.0.0.1:18222",
+  "mal": {
+    "p95Ms": 200,
+    "kalla": "D5: p95 under 200 ms per adress i API:t"
+  },
+  "upplagg": {
+    "sekunder": 120,
+    "uppvarmning": 20,
+    "betanketid": [
+      5,
+      15
+    ],
+    "anvandarePerSandlada": 10,
+    "roller": [
+      "lak-kard",
+      "ssk-kard"
+    ],
+    "patienter": 8
+  },
+  "maskin": "Serverns container: 2 processorkärnor och 4 GB minne (docker --cpus 2 --memory 4g) på en arbetsstation med AMD Ryzen 9 5900X",
+  "nivaer": [
+    {
+      "anvandare": 100,
+      "sandlador": 10,
+      "sekunder": 120,
+      "anrop": 1180,
+      "perSekund": 9.8,
+      "fel": 0,
+      "per": [
+        {
+          "id": "arbetslista",
+          "atgard": "Öppna arbetslistan",
+          "antal": 175,
+          "fel": 0,
+          "p50": 12.3,
+          "p95": 17.9,
+          "max": 41,
+          "serverP95": 14.3,
+          "ok": true
+        },
+        {
+          "id": "sok",
+          "atgard": "Söka en patient",
+          "antal": 102,
+          "fel": 0,
+          "p50": 6,
+          "p95": 14.2,
+          "max": 52.1,
+          "serverP95": 7.1,
+          "ok": true
+        },
+        {
+          "id": "oversikt",
+          "atgard": "Öppna patientens översikt",
+          "antal": 245,
+          "fel": 0,
+          "p50": 19.1,
+          "p95": 32.3,
+          "max": 49.8,
+          "serverP95": 29.6,
+          "ok": true
+        },
+        {
+          "id": "journal",
+          "atgard": "Läsa journalen",
+          "antal": 190,
+          "fel": 0,
+          "p50": 6,
+          "p95": 10.8,
+          "max": 47.6,
+          "serverP95": 6.9,
+          "ok": true
+        },
+        {
+          "id": "lakemedel",
+          "atgard": "Läsa läkemedelslistan",
+          "antal": 175,
+          "fel": 0,
+          "p50": 7.6,
+          "p95": 19.9,
+          "max": 35.2,
+          "serverP95": 9.6,
+          "ok": true
+        },
+        {
+          "id": "matvarden",
+          "atgard": "Läsa mätvärden",
+          "antal": 97,
+          "fel": 0,
+          "p50": 10.6,
+          "p95": 19.5,
+          "max": 44.6,
+          "serverP95": 16.7,
+          "ok": true
+        },
+        {
+          "id": "registrera",
+          "atgard": "Registrera ett mätvärde",
+          "antal": 63,
+          "fel": 0,
+          "p50": 6.1,
+          "p95": 12.1,
+          "max": 31.6,
+          "serverP95": 7.3,
+          "ok": true
+        },
+        {
+          "id": "inkorg",
+          "atgard": "Titta i inkorgen",
+          "antal": 133,
+          "fel": 0,
+          "p50": 27.3,
+          "p95": 48.4,
+          "max": 63.2,
+          "serverP95": 46.9,
+          "ok": true
+        }
+      ],
+      "ok": true
+    },
+    {
+      "anvandare": 500,
+      "sandlador": 50,
+      "sekunder": 120,
+      "anrop": 5945,
+      "perSekund": 49.5,
+      "fel": 0,
+      "per": [
+        {
+          "id": "arbetslista",
+          "atgard": "Öppna arbetslistan",
+          "antal": 851,
+          "fel": 0,
+          "p50": 15.9,
+          "p95": 63.7,
+          "max": 146.9,
+          "serverP95": 14.4,
+          "ok": true
+        },
+        {
+          "id": "sok",
+          "atgard": "Söka en patient",
+          "antal": 596,
+          "fel": 0,
+          "p50": 9.7,
+          "p95": 62.1,
+          "max": 129.7,
+          "serverP95": 7.4,
+          "ok": true
+        },
+        {
+          "id": "oversikt",
+          "atgard": "Öppna patientens översikt",
+          "antal": 1226,
+          "fel": 0,
+          "p50": 26.7,
+          "p95": 75.1,
+          "max": 163.9,
+          "serverP95": 31.1,
+          "ok": true
+        },
+        {
+          "id": "journal",
+          "atgard": "Läsa journalen",
+          "antal": 882,
+          "fel": 0,
+          "p50": 9.6,
+          "p95": 55.7,
+          "max": 136.1,
+          "serverP95": 6.6,
+          "ok": true
+        },
+        {
+          "id": "lakemedel",
+          "atgard": "Läsa läkemedelslistan",
+          "antal": 879,
+          "fel": 0,
+          "p50": 11,
+          "p95": 63.8,
+          "max": 141.4,
+          "serverP95": 9.4,
+          "ok": true
+        },
+        {
+          "id": "matvarden",
+          "atgard": "Läsa mätvärden",
+          "antal": 590,
+          "fel": 0,
+          "p50": 15.9,
+          "p95": 71,
+          "max": 145.7,
+          "serverP95": 16.6,
+          "ok": true
+        },
+        {
+          "id": "registrera",
+          "atgard": "Registrera ett mätvärde",
+          "antal": 305,
+          "fel": 0,
+          "p50": 8.6,
+          "p95": 59,
+          "max": 135.9,
+          "serverP95": 6.8,
+          "ok": true
+        },
+        {
+          "id": "inkorg",
+          "atgard": "Titta i inkorgen",
+          "antal": 616,
+          "fel": 0,
+          "p50": 34.9,
+          "p95": 79,
+          "max": 165.7,
+          "serverP95": 46.6,
+          "ok": true
+        }
+      ],
+      "ok": true
+    }
+  ],
+  "tester": [
+    {
+      "namn": "Lasttest > 100 samtidiga användare: p95 under svarstidsmålet för varje åtgärd och inga fel",
+      "status": "grön"
+    },
+    {
+      "namn": "Lasttest > 500 samtidiga användare: p95 under svarstidsmålet för varje åtgärd och inga fel",
+      "status": "grön"
+    }
+  ]
+}

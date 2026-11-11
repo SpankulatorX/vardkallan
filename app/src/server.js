@@ -5,7 +5,7 @@ import { TESTKLOCKA } from './testklocka.js';
 import { join, normalize, dirname } from 'node:path';
 import { existsSync, readFileSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
 import { createDecipheriv } from 'node:crypto';
-import { Fel, nySessionsDb, lasSandlada, idag, installning } from './db.js';
+import { Fel, nySessionsDb, lasSandlada, idag, installning, migrera } from './db.js';
 import { Atkomst, ROLLER, kanRoll, vardenhetFor, harVardrelation, aktivaSparrar, visningsnamn, visningsPnr, alder, starkasteGrund } from './atkomst.js';
 import * as logg from './logg.js';
 import * as journal from './journal.js';
@@ -146,12 +146,26 @@ import { registreraRutter as r12r1Rutter } from './r12r1-rutter.js';
 import { mallarFor as strukturMallar } from './journalstruktur.js';
 // Runda 12, r3 (vårt L5): flerfaktorsinloggning med passkeys och engångskoder.
 import * as flerfaktor from './flerfaktor.js';
+// Runda 12, r2: uppgraderingar med återgång och säkerhetskopior (runda12-r2-rutter.js och releaser.js).
+import { registreraRutter as r12r2Rutter } from './runda12-r2-rutter.js';
+import { MIGRERINGAR as r12r2Migreringar } from './releaser.js';
+import { skapaKopielager, schemalagda as schemalagdaKopior } from './sakerhetskopior.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
 const SESSION_TTL = 8 * 3600_000;
 const MAX_KROPP = 64 * 1024;
 const SPARVERSION = 1;
+// Runda 12, r2: nyckeln för kopiornas namn. Med en katalog sparas den i en fil där, annars en ny för varje start.
+function kopieNyckel(katalog) {
+  const { randomBytes } = require('node:crypto');
+  if (!katalog) return randomBytes(32);
+  const fil = join(katalog, '.nyckel');
+  try { return readFileSync(fil); } catch { /* skapas nedan */ }
+  const n = randomBytes(32);
+  try { require('node:fs').mkdirSync(katalog, { recursive: true, mode: 0o700 }); writeFileSync(fil, n, { mode: 0o600 }); } catch (e) { console.error('Nyckeln för kopiorna kunde inte sparas:', e.message); }
+  return n;
+}
 // Appens version och en hash av gränssnittet. /api/health visar dem, och användartestet märker resultatet med dem.
 const APPVERSION = (() => { try { return JSON.parse(readFileSync(join(import.meta.dir, '..', 'package.json'), 'utf8')).version; } catch { return null; } })();
 let gransnitt;
@@ -261,7 +275,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   sessionFil = process.env.SESSION_FIL || '', testresultat = process.env.TESTRESULTAT || join(import.meta.dir, '..', 'test-resultat.json'),
   klientresultat = { klickbudget: process.env.KLICKBUDGET || join(import.meta.dir, '..', 'klickbudget.json'), klienttester: process.env.KLIENTTESTER || join(import.meta.dir, '..', 'klienttest-resultat.json'),
     // Runda 7, r1: Sussas användbarhetstester (test/sussa-testfall.cjs).
-    sussatestfall: process.env.SUSSATESTFALL || join(import.meta.dir, '..', 'sussa-testfall.json') },
+    sussatestfall: process.env.SUSSATESTFALL || join(import.meta.dir, '..', 'sussa-testfall.json'),
+    // Runda 12, r2: lasttestet och valideringen med HL7:s validator, som räknas bara när de gäller den kod som körs.
+    lasttest: process.env.LASTTEST || join(import.meta.dir, '..', 'lasttest.json'), fhirvalidering: process.env.FHIRVALIDERING || join(import.meta.dir, '..', 'fhir-validering.json') },
   nyaPerTimme = Number(process.env.NYA_PER_TIMME || 60),
   // Runda 7, r2 (K2 1.6.1): inloggningen går ut efter så här många minuter utan aktivitet. Runda 8, r5: utan värde här
   // gäller parametrarna på sidan Regler och parametrar, skilda för personal och invånare (konfiguration.js).
@@ -270,7 +286,13 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // när den finns, annars bara i minnet.
   anvandartestFil = process.env.ANVANDARTEST_FIL || (sessionFil ? join(dirname(sessionFil), 'anvandartest.sqlite') : ':memory:'),
   // Runda 6, r5: mottagaradresser och sändning för prenumerationerna, utbytbara i testerna.
-  oppetApiVal = {} } = {}) {
+  oppetApiVal = {},
+  // Runda 12, r2: säkerhetskopiorna på två platser (sakerhetskopior.js). Bredvid sessionsfilen när den finns, annars i
+  // minnet. kopieMinuter är hur ofta en kopia tas, och maxSessioner hur många sandlådor servern håller (lasttestet).
+  kopieKatalog = process.env.KOPIOR_KATALOG || (sessionFil ? join(dirname(sessionFil), 'kopior') : null),
+  kopieAndra = process.env.KOPIOR_ANDRA || (sessionFil ? join(dirname(sessionFil), 'kopior-2') : null),
+  kopieMinuter = Number(process.env.KOPIOR_MINUTER || 15),
+  maxSessioner = Number(process.env.MAX_SESSIONER || MAX_SESSIONER) } = {}) {
   const sessioner = new Map();
   // Runda 12, r3: nyckeln som krypterar nycklarna för engångskoder, bredvid sessionsfilen så att den följer med en omstart.
   flerfaktor.satNyckel({ fil: sessionFil ? join(dirname(sessionFil), 'flerfaktor.nyckel') : null });
@@ -278,6 +300,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // Runda 7, r1.
   const anvandartestDb = anvandartestSvar.oppna(anvandartestFil);
   anvandartestSvar.stada(anvandartestDb);
+  // Runda 12, r2: lagret med säkerhetskopior. Nyckeln som döljer sandlådornas id sparas bredvid kopiorna, aldrig i en
+  // sandlåda, så att kopiorna hittas igen när servern har startat om.
+  const kopior = skapaKopielager({ katalog: kopieKatalog, andraKatalog: kopieAndra, intervallMinuter: kopieMinuter, hemlighet: kopieNyckel(kopieKatalog) });
   const serverMatning = new Matning(1000);
   const startad = new Date().toISOString();
 
@@ -335,7 +360,17 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     return aktuellKopia(s);
   }
   // personalId och invanareId är aldrig satta samtidigt: personalens och invånarens inloggning utesluter varandra.
-  const nySession = () => ({ db: nySessionsDb(), personalId: null, invanareId: null, val: {}, sist: Date.now(), matning: new Matning(200), lasnyckel: null, oppnade: new Set(), kopior: new Map() });
+  // Runda 12, r2: kopieId är sandlådans stabila id för säkerhetskopiorna. Det skapas med sandlådan och roteras aldrig,
+  // till skillnad från sessionskakan, så att kopiorna hittas efter en ny inloggning.
+  const nySession = () => ({ db: nySessionsDb(), personalId: null, invanareId: null, val: {}, sist: Date.now(), matning: new Matning(200), lasnyckel: null, oppnade: new Set(), kopior: new Map(), kopieId: slumpId() });
+  // Runda 12, r2: en sandlåda som försvinner tar sina säkerhetskopior med sig.
+  function taBortSandlada(sid) {
+    const s = sessioner.get(sid);
+    if (!s) return;
+    s.db.close();
+    sessioner.delete(sid);
+    kopior.radera(s.kopieId ?? sid);
+  }
   // Läskopian som id:t gäller, i den sandlåda som lämnade ut den. Kräver ingen session: loggen från läsläget visar
   // själv att den kommer från den som hade läskopian, eftersom den är krypterad med läskopians nyckel.
   function hittaKopia(id) {
@@ -408,10 +443,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const n = (nyaPerIp.get(k) ?? 0) + 1;
     nyaPerIp.set(k, n);
     if (n > nyaPerTimme) throw new Fel(429, 'För många nya besök från din adress. Försök igen om en stund.', 'nekad');
-    while (sessioner.size >= MAX_SESSIONER) {
-      const aldsta = sessioner.keys().next().value;
-      sessioner.get(aldsta).db.close();
-      sessioner.delete(aldsta);
+    while (sessioner.size >= maxSessioner) {
+      // Runda 12, r2: sandlådans säkerhetskopior tas bort med den.
+      taBortSandlada(sessioner.keys().next().value);
     }
     const sid = slumpId();
     const s = nySession();
@@ -423,9 +457,11 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const grans = Date.now() - SESSION_TTL;
     // Runda 7, r1: testtillfällen utan aktivitet på 90 dagar raderas med sina svar.
     anvandartestSvar.stada(anvandartestDb);
-    for (const [sid, s] of sessioner) { if (s.sist < grans) { oppetApi.aterkalla(s, 'Åtkomstbiljetten återkallades när sessionen gick ut.'); s.db.close(); sessioner.delete(sid); } else { rensaKopior(s); utdata.stadning(s.db); } }
+    for (const [sid, s] of sessioner) { if (s.sist < grans) { oppetApi.aterkalla(s, 'Åtkomstbiljetten återkallades när sessionen gick ut.'); taBortSandlada(sid); } else { rensaKopior(s); utdata.stadning(s.db); } }
     // Runda 6, r5: åtkomstbiljetter som har gått ut tas bort och loggas.
     oppetApi.stada();
+    // Runda 12, r2.
+    stadaKopior();
     const timme = Math.floor(Date.now() / 3600_000);
     for (const k of nyaPerIp.keys()) if (!k.endsWith(`:${timme}`)) nyaPerIp.delete(k);
   }, 10 * 60_000);
@@ -439,6 +475,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
         const s = {
           db: lasSandlada(x.db), personalId: x.personalId, uppdrag: x.uppdrag ?? null, invanareId: x.personalId ? null : x.invanareId ?? null, val: x.val ?? {}, sist: x.sist, aktiv: x.aktiv ?? x.sist, matning: new Matning(200),
           lasnyckel: x.lasnyckel ?? null, oppnade: new Set(x.oppnade ?? []),
+          // Runda 12, r2: en session som sparades före kopieId har sina kopior under sitt sid.
+          kopieId: x.kopieId ?? x.sid,
           kopior: new Map((x.kopior ?? []).map(([id, k]) => [id, { ...k, patienter: new Map(k.patienter), loggIds: new Set(k.loggIds) }])),
         };
         // Sparat av en äldre version, med en nyckel utan id och en enda läskopia per session.
@@ -459,7 +497,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (!sessionFil) return 0;
     const lista = [...sessioner].map(([sid, x]) => ({
       v: SPARVERSION, sid, personalId: x.personalId, uppdrag: x.uppdrag ?? null, invanareId: x.invanareId, val: x.val, sist: x.sist, aktiv: x.aktiv, db: Buffer.from(x.db.serialize()).toString('base64'),
-      lasnyckel: x.lasnyckel, oppnade: [...x.oppnade],
+      lasnyckel: x.lasnyckel, oppnade: [...x.oppnade], kopieId: x.kopieId,
       kopior: [...x.kopior].map(([id, k]) => [id, { ...k, patienter: [...k.patienter], loggIds: [...k.loggIds] }]),
     }));
     writeFileSync(sessionFil + '.tmp', JSON.stringify(lista), { mode: 0o600 });
@@ -467,6 +505,12 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     return lista.length;
   }
   lasSparade();
+  // Runda 12, r2: schemalagda säkerhetskopior av sandlådorna som har ändrats sedan sin senaste kopia.
+  const kopieSchema = kopieMinuter > 0 ? setInterval(() => schemalagdaKopior(kopior, sessioner), kopieMinuter * 60_000) : null;
+  // Kopior för sandlådor som inte finns (till exempel efter en omstart utan sparade sandlådor) tas bort.
+  const stadaKopior = () => { try { kopior.stada([...sessioner.values()].map(s => s.kopieId)); } catch (e) { console.error('Kopiorna kunde inte städas:', e.message); } };
+  stadaKopior();
+  kopieSchema?.unref?.();
 
   function kontrolleraOrigin(req) {
     if (!origin) return;
@@ -1155,8 +1199,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (n > nyaPerTimme) throw new Fel(429, 'För många nya besök från din adress. Försök igen om en stund.', 'nekad');
     nyaPerIp.set(k, n);
     const { db, resultat } = miljoer.skapa(c.db, c.body.typ);
-    while (sessioner.size >= MAX_SESSIONER) { const aldsta = sessioner.keys().next().value; sessioner.get(aldsta).db.close(); sessioner.delete(aldsta); }
-    const ny = { db, personalId: null, invanareId: null, val: {}, sist: Date.now(), matning: new Matning(200), lasnyckel: null, oppnade: new Set(), kopior: new Map(), ursprung: c.s };
+    // Runda 12, r2: en sandlåda som trängs undan tar sina säkerhetskopior med sig, och den nya miljön får ett eget id för kopiorna.
+    while (sessioner.size >= maxSessioner) taBortSandlada(sessioner.keys().next().value);
+    const ny = { db, personalId: null, invanareId: null, val: {}, sist: Date.now(), matning: new Matning(200), lasnyckel: null, oppnade: new Set(), kopior: new Map(), ursprung: c.s, kopieId: slumpId() };
     sessioner.set(slumpId(), ny);
     const skapad = new Date().toISOString();
     c.s.miljoer = [...levande, { typ: c.body.typ, s: ny, skapad }];
@@ -1946,6 +1991,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   r11r7Rutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal });
   // Runda 12, r1 (r12r1-rutter.js).
   r12r1Rutter({ rutt, kravInloggad });
+  // Runda 12, r2.
+  r12r2Rutter({ rutt, kravInloggad, testresultat, kopior, migrera });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
   // visas direkt (bara i den egna sandlådan).
   const kravNagon = (c) => { if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad'); };
@@ -1970,6 +2017,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
 
   async function api(req, server, url, c) {
     if (url.pathname === '/api/health') return json({ ok: true, sandladar: sessioner.size, version: APPVERSION, gransnitt: gransnittVersion(),
+      // Runda 12, r2: programmets schemaversion, den högsta migreringen det känner till (releaser.js).
+      schemaversion: Math.max(0, ...r12r2Migreringar.map(m => m.id)),
       // Runda 11, r1: bara i en testcontainer med falsk klocka, så att Playwright kan ställa webbläsarens klocka lika.
       ...(TESTKLOCKA ? { testklocka: new Date().toISOString() } : {}) });
     // Runda 9, r5: länken till en ny miljö byter session utan att skapa en sandlåda.
@@ -2135,7 +2184,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
 
   return {
     server, sessioner, port: server.port, url: `http://127.0.0.1:${server.port}`, spara, oppetApi,
-    stopp() { clearInterval(stadning); server.stop(true); for (const s of sessioner.values()) s.db.close(); sessioner.clear(); anvandartestDb.close(); },
+    kopior, stadaKopior,
+    stopp() { clearInterval(stadning); if (kopieSchema) clearInterval(kopieSchema); server.stop(true); for (const s of sessioner.values()) s.db.close(); sessioner.clear(); anvandartestDb.close(); },
   };
 }
 

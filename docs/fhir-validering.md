@@ -43,7 +43,7 @@ Arbetsflödet `.github/workflows/test.yml` kör samma validering vid varje push 
 4. `validera.sh` kör validatorn i `eclipse-temurin:21-jre` (Java 21, låst på digest genom `JAVABILD`). FHIR-paketen i `~/.fhir` cachas mellan körningarna, så att packages.fhir.org bara behövs när cachen saknas.
 5. `summera.py` skriver sammanfattningen och fäller jobbet om något fel finns. Varningarna fäller inte jobbet. Sammanfattningen visas på körningens sida, och validatorns utdata och loggar laddas upp som artefakten `fhir-validering`, där varningarna går att läsa.
 
-Jobbet Tester kör `bun scripts/kor-tester.js` med Bun 1.3.14. Alla externa actions är låsta på en fullständig commit-SHA. Valideringen körs inte i Docker-bygget av demon, som inte har Java.
+Jobbet Tester kör `bun scripts/kor-tester.js` med Bun 1.3.14. Alla externa actions är låsta på en fullständig commit-SHA. Docker-bygget av demon har ingen Java och kör inte validatorn, men det kontrollerar att valideringen gäller den FHIR-kod som byggs (se [Valideringen i Docker-bygget](#valideringen-i-docker-bygget)).
 
 ## Resultat per resurstyp
 
@@ -194,3 +194,73 @@ Samma validering av svaren från koden före ändringarna (HTTP-urvalet: 252 uni
 - Åtkomstloggen skrivs ut med de 1 000 senaste raderna, som är gränsen för en sökning.
 - Sökningarna över HTTP och svaren på skrivande anrop valideras inte i GitHub Actions, utom de exempel som `exportera.js` skriver ut (se Omvalidering 2026-11-03: runda 6, r5). Svaren på skrivningar är samma mappning som läsningen.
 - Ingen nationell profil utöver basprofilerna (till exempel för läkemedel eller remiss) är validerad, eftersom HL7 Sweden inte publicerar sådana i `hl7se.fhir.base`.
+
+## Omvalidering 2026-11-11 (runda 12): alla resurstyper, också MedicationAdministration och List
+
+Hela utskriften kördes igen med samma validator (7.0.3), samma paket och samma skript (`exportera.js`, `validera.sh` och
+`summera.py`), i `eclipse-temurin:21-jre` och med kontakt med tx.fhir.org i varje körning. Resultat: 5890 resurser,
+**inga fel** och 7257 varningar. MedicationAdministration (administreringen) och List (vidimeringen), som kom
+till 2026-11-03 och tidigare bara var kontrollerade med strukturtesterna, är nu validerade med HL7:s validator utan fel.
+
+| Resurstyp | Resurser | Fel | Varningar |
+|---|---|---|---|
+| AllergyIntolerance | 4 | 0 | 4 |
+| Appointment | 18 | 0 | 18 |
+| AuditEvent | 1000 | 0 | 2000 |
+| CapabilityStatement | 1 | 0 | 1 |
+| CarePlan | 1 | 0 | 1 |
+| ChargeItem | 334 | 0 | 341 |
+| Composition | 213 | 0 | 213 |
+| Condition | 115 | 0 | 230 |
+| DiagnosticReport | 7 | 0 | 7 |
+| Encounter | 211 | 0 | 211 |
+| EpisodeOfCare | 1 | 0 | 1 |
+| Flag | 6 | 0 | 8 |
+| ImagingStudy | 1 | 0 | 1 |
+| Immunization | 16 | 0 | 16 |
+| Klient | 3 | 0 | 5 |
+| List | 1 | 0 | 1 |
+| Media | 3 | 0 | 6 |
+| MedicationAdministration | 29 | 0 | 58 |
+| MedicationRequest | 131 | 0 | 271 |
+| Notis | 1 | 0 | 0 |
+| Observation | 459 | 0 | 505 |
+| OperationOutcome | 3 | 0 | 5 |
+| Organization | 31 | 0 | 31 |
+| Patient | 49 | 0 | 53 |
+| Practitioner | 51 | 0 | 51 |
+| Procedure | 8 | 0 | 16 |
+| Questionnaire | 2 | 0 | 2 |
+| QuestionnaireResponse | 1 | 0 | 1 |
+| Schedule | 7 | 0 | 7 |
+| ServiceRequest | 26 | 0 | 28 |
+| Slot | 3123 | 0 | 3123 |
+| Specimen | 6 | 0 | 6 |
+| Subscription | 1 | 0 | 1 |
+| def | 27 | 0 | 35 |
+
+Raderna Klient, Notis och OperationOutcome är resurser som en klient skickar in, meddelandena till prenumerationerna och
+svaren från skrivningen, och `def` är Vårdkällans egna definitioner. Varningarna är av samma slag som i tabellerna ovan:
+dom-6 (ingen narrativ text) för varje resurs, att NPL-id:s kodsystem inte finns i validatorns paket, och att validatorn
+inte hämtar bilagor från en adress utan https (Media.content). Inget behövde rättas.
+
+## Valideringen i Docker-bygget
+
+Docker-bygget av demon har ingen Java, så validatorn körs inte där. I stället skriver
+`app/scripts/fhir-validering-resultat.js` resultatet ur validatorns utdata till `app/fhir-validering.json`: antal resurser,
+fel och varningar per resurstyp, validatorns version och en hash (sha256) av koden som bygger FHIR-resurserna, det vill
+säga varje fil i `app/src/` som innehåller `resourceType` (22 filer 2026-11-11). Filen följer med i bygget,
+och kravregistret räknar testet
+
+    FHIR-validering > HL7:s validator ger inga fel för någon resurstyp, också MedicationAdministration och List, i den FHIR-kod som byggs
+
+som grönt bara när valideringen gav inga fel, när MedicationAdministration och List fanns med och när hashen stämmer med
+den kod som byggs. Ändras FHIR-koden blir testet inaktuellt och D9 delvis, tills valideringen har körts igen:
+
+```sh
+UT=$(mktemp -d)
+docker run --rm --user $(id -u):$(id -g) -v "$PWD":/repo:ro -v "$UT":/ut -w /repo oven/bun:1.3.14-alpine bun test/fhir-validering/exportera.js /ut
+VALIDATOR=<katalog med validator_cli.jar> test/fhir-validering/validera.sh "$UT"
+python3 -I test/fhir-validering/summera.py "$UT"/ut-*.json
+docker run --rm --user $(id -u):$(id -g) -v "$PWD/app":/app -v "$UT":/ut:ro -w /app oven/bun:1.3.14-alpine bun scripts/fhir-validering-resultat.js /ut
+```
