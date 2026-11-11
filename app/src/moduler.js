@@ -291,6 +291,17 @@ export const MODULER = [
     { avsnitt: ['2.1'], rutter: ['#/drift'], vyer: ['drift.js'], kod: ['src/arkitektur.js', 'src/server.js'], api: ['/api/drift', '/api/arkitektur'] }),
 ];
 
+// Runda 12, r2: uppgraderingarna med återgång och de schemalagda säkerhetskopiorna hör till systemförvaltningen.
+{
+  const sf = MODULER.find(x => x.id === 'systemforvaltning');
+  sf.rutter.push('#/uppgraderingar');
+  sf.vyer.push('uppgraderingar.js');
+  sf.kod.push('src/releaser.js', 'src/sakerhetskopior.js', 'src/lagringsprognos.js');
+  sf.api.push('/api/uppgraderingar', '/api/sakerhetskopior');
+  sf.beskrivning += ' Uppgraderingar som två systemförvaltare godkänner och som går att backa, och schemalagda säkerhetskopior på två platser med återställning till en tidpunkt.';
+  sf.simulerat += ' I demon byter en uppgradering eller återgång bara databasen i sandlådan, inte programmet, och säkerhetskopiornas två platser är två kataloger på samma server.';
+}
+
 // Vyer och rutter som inte hör till en enskild modul, med motivering.
 export const UTAN_MODUL = {
   vyer: {

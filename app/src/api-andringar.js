@@ -15,7 +15,13 @@ export const ANDRINGAR = [
   {
     version: '1.2.0', datum: '2026-11-11',
     text: 'Inga nya resurstyper eller skrivningar i FHIR.',
-    resurser: [], skrivning: [], annat: [],
+    resurser: [], skrivning: [], annat: [
+      // Runda 12, r2: uppgraderingar med återgång, säkerhetskopior och schemaversionen i /api/health.
+      'Uppgraderingar med återgång och godkännande av två systemförvaltare i det interna API:t (docs/api-avvikelser.md)',
+      'Säkerhetskopior och återställning till en tidpunkt i det interna API:t (docs/api-avvikelser.md)',
+      'Programmets schemaversion i hälsokontrollen',
+      'Återföringen av all data i exportpaketet tar med varje tabell som NDJSON och databasens schema, och paketet har XML-schemana för METS',
+    ],
   },
   // Runda 11: version 1.1. Inga nya resurstyper eller skrivningar i FHIR.
   {

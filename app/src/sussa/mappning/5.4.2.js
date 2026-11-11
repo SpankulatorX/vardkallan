@@ -15,7 +15,7 @@ export default medR9r5([
     ],
     losning: 'Exportpaket för en patient eller alla journaler enligt FGS Paketstruktur 2.0 (E-ARK CSIP och SIP 2.1.0 i Riksarkivets tillämpning) med journalen i HL7 FHIR R4, metadata i METS och PREMIS och SHA-256 för varje fil. Paketet med alla journaler är också återföringen av all data när avtalet upphör.',
     expert: 'Arkivarien registrerar beslutet med diarienummer och datum. Systemet fyller i beslutsfattare och lagrum, tar med allt som hör till journalen och bygger och kontrollsummerar paketet själv.',
-    anmarkning: 'Ingen överföring till ett verkligt e-arkiv. Paketet är inte validerat mot METS-schemat eller mot en leveransöverenskommelse, och XML-scheman ligger inte i mappen schemas.',
+    anmarkning: 'Ingen överföring till ett verkligt e-arkiv, och paketet är inte prövat mot en leveransöverenskommelse. XML-schemana för METS ligger i mappen schemas, och paketet är prövat med E-ARK:s validator med öppen källkod (commons-ip 2.12.1 mot CSIP 2.1.0) utan fel (docs/earkiv-validering.md).',
   },
   { id: '5.4.2.2', kategori: 'nationell', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: 'Åtkomst till mellanarkiv är inte byggd.' },

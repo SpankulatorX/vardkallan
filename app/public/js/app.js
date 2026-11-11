@@ -13,6 +13,8 @@ import * as logg from './vyer/logg.js';
 import * as migrering from './vyer/migrering.js';
 import * as krav from './vyer/krav.js';
 import * as moduler from './vyer/moduler.js';
+// Runda 12, r2: uppgraderingar med återgång.
+import * as uppgraderingar from './vyer/uppgraderingar.js';
 import * as oppetApi from './vyer/oppet-api.js';
 import * as drift from './vyer/drift.js';
 import * as anvandartest from './anvandartest.js';
@@ -145,6 +147,8 @@ const MENY = [
   ['#/omorganisation', 'Omorganisation', 'moduler', () => far('omorganisera')],
   ['#/undantag', 'Undantag från visning', 'oga', () => far('undanta')],
   ['#/lagring', 'Lagring', 'arkiv', () => far('lagring')],
+  // Runda 12, r2: uppgraderingar med återgång och godkännande av två systemförvaltare.
+  ['#/uppgraderingar', 'Uppgraderingar', 'pil', () => far('lagring')],
   // Runda 9, r4.
   ['#/kodverk', 'Kodverk och masterdata', 'lista', () => far('konfigurera')],
   // Runda 10, r3: formulären som verksamheten bygger.
@@ -236,6 +240,8 @@ const RUTTER = [
   [/^#\/omorganisation$/, systemforvaltning.omorganisation, () => far('omorganisera')],
   [/^#\/undantag$/, systemforvaltning.undantag, () => far('undanta')],
   [/^#\/lagring$/, systemforvaltning.lagring, () => far('lagring')],
+  // Runda 12, r2.
+  [/^#\/uppgraderingar$/, uppgraderingar, () => far('lagring')],
   // Runda 9, r4.
   [/^#\/kodverk$/, kodverk, () => far('konfigurera')],
   // Runda 10, r3.

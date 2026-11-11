@@ -4,6 +4,8 @@
 import { medR7r2 } from '../runda7-r2.js';
 // Runda 9, r5: inloggning med biljett, skyddsbehov, signering, certifikat, e-arkiv, gallring och miljöer (sussa/runda9-r5.js).
 import { medR9r5 } from '../runda9-r5.js';
+// Runda 12, r2 (sussa/runda12-r2.js).
+import { medR12r2 } from '../runda12-r2.js';
 
 // Runda 7, r4: lagringen (lagring.js och test/systemforvaltning.test.js).
 const S = 'Systemförvaltning > ';
@@ -20,7 +22,7 @@ const L = {
 };
 const LOSNING_KOPIA = 'Säkerhetskopian är en konsistent ögonblicksbild av hela databasen, tagen i en enda operation (SQLite VACUUM INTO till en fil, eller serialize i minnet). Återläsningen läser in kopian i en ny databas och jämför tabell för tabell och rad för rad, kontrollerar att alla triggrar och index finns och verkar, att databasen är hel och att åtkomstloggens och säkerhetsloggens hashkedjor håller. Provet körs automatiskt i bygget, och systemförvaltaren kan köra det i sandlådan från sidan Lagring.';
 const EXPERT_KOPIA = 'Systemet gör hela jämförelsen själv och säger vilken kontroll som inte höll och i vilken tabell. Ingen behöver veta hur databasen är byggd för att se att återläsningen ger ett fungerande system.';
-const ANM_KOPIA = 'I demon är varje besökares sandlåda en databas i minnet, som sparas till disk när servern stängs. Schemalagda säkerhetskopior, kopior på flera platser och återställning till en viss tidpunkt hör till driften och finns inte i demon.';
+const ANM_KOPIA = 'I demon är varje besökares sandlåda en databas i minnet, som sparas till disk när servern stängs. Sedan version 1.2 kopieras den också på ett schema till två platser, och systemförvaltaren kan återställa den till en tidpunkt (se KD1.1.3.6).';
 const LOSNING_HUVUDMAN = 'Varje uppgift hör till en huvudman genom den enhet den registrerades på: enheten leder upp till en vårdgivare. En tabell utan enhet hör till huvudmannen genom patienten, och en tabell som pekar på en annan rad genom den raden. En huvudmans uppgifter tas ut till en egen databas med samma tabeller, index och triggrar, och systemet kontrollerar att uttaget inte har någon rad från en annan huvudman. Som fil tas uppgifterna ut efter ett beslut med diarienummer och skäl som en annan systemförvaltare har godkänt: en ZIP med ett manifest med kontrollsummor (SHA-256), en NDJSON-fil per tabell och ett FHIR R4-bundle per patient, och varje patient i filen loggas.';
 const EXPERT_HUVUDMAN = 'Systemet klassar själv varje tabell efter dess kolumner, så att en ny tabell kommer med utan att någon behöver komma ihåg det. En tabell som inte går att klassa tas inte med i ett uttag och visas på sidan Lagring, hellre än att den läcker till en annan huvudman.';
 const ANM_HUVUDMAN = 'Demon har en huvudman, Region Örebro län, och den simulerade kommunen. Testet lägger in en andra påhittad region och visar att uppgifterna särskiljs. En uttagsfil från demon är märkt som demodata. Beslutet om uttag godkänns av den andra systemförvaltaren, som är en egen demoroll.';
@@ -110,4 +112,5 @@ const AVSNITT = [
   { id: 'KD1.1.4.10', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: "Bildskärm är inte byggt ännu (runda 7)." },
 ];
-export default medR9r5(medR7r2(AVSNITT));
+// Runda 12, r2: säkerhetskopior på två platser och återställning till en tidpunkt (sussa/runda12-r2.js).
+export default medR12r2(medR9r5(medR7r2(AVSNITT)));

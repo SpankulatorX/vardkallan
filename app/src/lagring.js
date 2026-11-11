@@ -18,6 +18,8 @@ import { fhirJournal } from './arkiv.js';
 import { zip } from './zip.js';
 import { datumAv } from './db.js';
 import * as sakerhetslogg from './sakerhetslogg.js';
+// Runda 12, r2: prognosen för volymen.
+import { prognos } from './lagringsprognos.js';
 
 const ENHETSKOLUMNER = ['enhet_id', 'vardenhet_id', 'fran_enhet_id', 'till_enhet_id', 'registrerad_enhet'];
 // Tabeller som inte hör till en enskild huvudman: kodverk, katalog och systemets egna inställningar. De följer med i
@@ -32,7 +34,9 @@ const GEMENSAMMA = new Set(['katalog', 'installningar', 'migrering', 'forpacknin
   'formular',
   // Runda 11, r4: regimbiblioteket gäller hela vårdgivaren, och beredningsenhetens lager och kapacitet är dess egna och
   // innehåller inga patientuppgifter (cytostatika.js och cytostatika-beredning.js).
-  'cyto_regimversioner', 'cyto_lager', 'cyto_kapacitet']);
+  'cyto_regimversioner', 'cyto_lager', 'cyto_kapacitet',
+  // Runda 12, r2: lagringsklasserna gäller hela vårdgivaren (releaser.js, migrering 2).
+  'lagringsklasser']);
 // Tabeller som hör till systemförvaltningen och inte till en huvudman i ett uttag.
 // Datauttaget för uppföljning byggs om ur uppgifterna och följer inte med i ett uttag.
 // Runda 9, r5: de gemensamma tabellerna kopieras till en ny utbildnings- eller testmiljö (miljoer.js).
@@ -49,7 +53,10 @@ const SYSTEM = new Set(['omorganisationer', 'omorganisation_flyttar', 'lagringsm
   // Runda 10, r6: anslutningarna av producentsystem och laboratoriernas kataloger hör till förvaltningen (produktionssystem.js).
   'ps_anslutningar', 'ps_katalog',
   // Runda 10, r1: systemkontona för det öppna API:t och använda klientintyg hör till förvaltningen (systemkonton.js).
-  'api_systemkonton', 'api_systemkonto_intyg']);
+  'api_systemkonton', 'api_systemkonto_intyg',
+  // Runda 12, r2: schemaversionen, det som sparats undan vid en återgång och uppgraderingarna hör till förvaltningen
+  // av systemet (releaser.js).
+  'schema_migreringar', 'parkerade_data', 'uppgraderingar']);
 // Tabeller vars koppling inte går att se på kolumnnamnen.
 const UTTRYCKLIGA = {
   dubblettforslag: { typ: 'patient', kolumner: ['fran_patient_id', 'till_patient_id'] },
@@ -267,6 +274,8 @@ export function oversikt(db, personal) {
     storsta: [...per].sort((a, b) => b.rader - a.rader).slice(0, 8),
     oklassade: per.filter(x => x.klass === 'oklassad').map(x => x.tabell),
     huvudman: hm, matningar,
+    // Runda 12, r2: prognosen för volymen ur tillväxten och lagringsklasserna (lagringsprognos.js, Sussa KD1.1.3.5).
+    prognos: prognos(db),
     uttag: db.query('SELECT * FROM uttagsbeslut ORDER BY id DESC LIMIT 20').all().map(b => uttagsbeslutUt(db, b, personal)), skal: SKAL,
     oklassadeText: per.some(x => x.klass === 'oklassad') ? oklassadeFel(per.filter(x => x.klass === 'oklassad').map(x => x.tabell)) : null,
     rutin: [
@@ -275,7 +284,7 @@ export function oversikt(db, personal) {
       'Provet körs automatiskt i bygget vid varje ändring och kan köras här när som helst. Resultatet sparas med storlek och tid, så att volymen kan följas över tiden.',
       'Varje uppgift hör till en huvudman genom enheten den registrerades på, och en huvudmans uppgifter kan tas ut för sig till en egen databas med samma tabeller och triggrar.',
     ],
-    anmarkning: 'I demon är databasen en sandlåda i minnet per besökare, och sandlådorna sparas till disk när servern stängs. En uttagsfil från demon är märkt som demodata. Lagringsklasser med olika prestanda och kopior på flera platser hör till driften och finns inte i demon.',
+    anmarkning: 'I demon är databasen en sandlåda i minnet per besökare, och sandlådorna sparas till disk när servern stängs. En uttagsfil från demon är märkt som demodata. Sandlådan kopieras på ett schema till två platser, som visas under Säkerhetskopior.',
   };
 }
 

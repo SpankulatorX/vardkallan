@@ -486,6 +486,8 @@ export function byggSeed(bas = nu()) {
   require('./schema-runda11-r7.js').sakraR11r7(db);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
+  // Runda 12, r2: de versionerade migreringarna från version 1.2 (releaser.js). Sist, så att schemaversionen gäller allt.
+  require('./releaser.js').kontrolleraVidStart(db, undefined, undefined, bas);
   return db;
 }
 
@@ -620,6 +622,9 @@ export function migrera(db) {
   require('./schema-runda10-r7.js').sakraR10r7(db, nu());
   // Runda 11, r7 (schema-runda11-r7.js).
   require('./schema-runda11-r7.js').sakraR11r7(db);
+  // Runda 12, r2: kontrollen av schemaversionen när en sandlåda läses in (releaser.js). Saknade migreringar tillämpas och
+  // migreringar från en nyare version av programmet backas med de återställningar som sparades i databasen.
+  require('./releaser.js').kontrolleraVidStart(db);
   return db;
 }
 

@@ -430,7 +430,7 @@ Regeln om vad som finns kvar: åtkomstloggen ändras aldrig. Dess rader om patie
 
 **Klickbudget.** Tre nya flöden: skriva ut läkemedelslistan vid utskrivning (budget 2), begära kontrasignering av en anteckning (3) och kontrasignera en anteckning (3).
 
-**Det som är simulerat eller saknas.** PDF görs med webbläsarens Spara som PDF, och det finns ingen central utskriftstjänst. Menprövningen registreras som text. Gallringsregeln är en regel i koden, inte regionens gallringsbeslut per informationsmängd. Exportpaketet är inte prövat mot ett verkligt e-arkiv eller en leveransöverenskommelse. Pseudonymiserade uppgifter i datauttaget är fortfarande personuppgifter. Att spärrade uppgifter inte kommer med i datauttaget är ett försiktigt val, inte en prövad tolkning av patientdatalagen. Förstöring av kopior som har lämnats ut till andra hanteras inte.
+**Det som är simulerat eller saknas.** PDF görs med webbläsarens Spara som PDF, och det finns ingen central utskriftstjänst. Menprövningen registreras som text. Gallringsregeln är en regel i koden, inte regionens gallringsbeslut per informationsmängd. Exportpaketet är inte prövat mot ett verkligt e-arkiv eller en leveransöverenskommelse, men det är prövat med E-ARK:s validator med öppen källkod (docs/earkiv-validering.md). Pseudonymiserade uppgifter i datauttaget är fortfarande personuppgifter. Att spärrade uppgifter inte kommer med i datauttaget är ett försiktigt val, inte en prövad tolkning av patientdatalagen. Förstöring av kopior som har lämnats ut till andra hanteras inte.
 
 ## Kronologi och migrering
 
@@ -933,7 +933,7 @@ Säkerhetskopian är en konsistent ögonblicksbild i en enda operation: `VACUUM 
 
 ### Det som är simulerat eller saknas
 
-Kopplingen till HSA-katalogen och publiceringen till nationella tjänster är simulerade. Demon har en huvudman och den simulerade kommunen, och testet lägger in en andra påhittad region. Det som kräver fyra ögon godkänns i demon av den andra systemförvaltaren, som är en egen demoroll. Lagringsklasser, schemalagda säkerhetskopior och kopior på flera platser hör till driften. En stängd enhet kan inte öppnas igen, och avgifter, vårdgarantin, läkemedelsvarningarnas regler och beställning och svar för labb är ännu inte parametrar.
+Kopplingen till HSA-katalogen och publiceringen till nationella tjänster är simulerade. Demon har en huvudman och den simulerade kommunen, och testet lägger in en andra påhittad region. Det som kräver fyra ögon godkänns i demon av den andra systemförvaltaren, som är en egen demoroll. Schemalagda säkerhetskopior på två platser och återställning till en tidpunkt kom i version 1.2 (avsnittet Uppgraderingar med återgång och säkerhetskopior). En stängd enhet kan inte öppnas igen, och avgifter, vårdgarantin, läkemedelsvarningarnas regler och beställning och svar för labb är ännu inte parametrar.
 ## Rapportering till myndigheter och register, och tjänstekontrakten i K10 (runda 7, r5: Sussa 6.3.2, 2.2.1.7 och 2.2.1.8, avtalets tillägg 2020)
 
 Avtalets tillägg från 2020 (A1.7, Konceptuell överenskommelse 2020-06-01, punkt 5.1.4) lägger till ett helhetsåtagande för myndighetsrapportering till patientregistret, Väntetider i vården, Vårdtillfällesdatabasen och medicinska födelseregistret. Vårdkällan bygger dem på sidan Rapportering (`myndighetsrapport.js`, koder och källor i `rapportkoder.js`, API:t i `rapportering-rutter.js`). Källorna med version och kontrollsumma står i `docs/kodkontroll.md`.
@@ -1210,7 +1210,7 @@ Arkitekturen beskrivs i `docs/sakerhetsarkitektur.md`. Hotmodellen har yttre och
 
 ### E-arkivet (earkiv.js)
 
-Exportpaketet har ett index med det simulerade e-arkivets dataelement för varje journalhandling (`metadata/descriptive/earkiv-index.xml`, med en `dmdSec` i METS.xml), och mappningen står i paketets dokumentation. Leveransen skickar paketet med ett signerat manifest, och e-arkivet kontrollerar signaturen, att paketet stämmer med manifestet, METS.xml, kontrollsummorna, mapparna och de obligatoriska dataelementen, och svarar med en signerad kvittens. E-arkivets dataelement är en förenklad uppsättning i demon, och paketet valideras inte mot XML-scheman.
+Exportpaketet har ett index med det simulerade e-arkivets dataelement för varje journalhandling (`metadata/descriptive/earkiv-index.xml`, med en `dmdSec` i METS.xml), och mappningen står i paketets dokumentation. Leveransen skickar paketet med ett signerat manifest, och e-arkivet kontrollerar signaturen, att paketet stämmer med manifestet, METS.xml, kontrollsummorna, mapparna och de obligatoriska dataelementen, och svarar med en signerad kvittens. E-arkivets dataelement är en förenklad uppsättning i demon. Sedan version 1.2 ligger XML-schemana för METS i mappen schemas, och paketet är prövat med E-ARK:s validator med öppen källkod utan fel (docs/earkiv-validering.md).
 
 ### Gallringsregler (arkiv.js och konfiguration.js)
 
@@ -2295,3 +2295,98 @@ Bedömningen finns i docs/stafs-2015-13.md. Föreskrifterna gäller laboratoriet
 ### Det som är simulerat eller saknas
 
 Röntgenkliniken, klinisk fysiologi, klinisk neurofysiologi, radiologens utlåtanden, tiderna och rummen, det patientnära instrumentet och laboratorierna är simulerade. Gränserna för eGFR, åldern för graviditetsfrågan och prioriteternas tider är demoregler. Bilderna och arkivet görs i bilder.js, och utlåtandet länkar till studien med studiens id och uid.
+
+## Uppgraderingar med återgång och säkerhetskopior (runda 12, r2: releaser.js, sakerhetskopior.js och runda12-r2-rutter.js, vårt D7 och M8 och Sussa KD1.1.3.6)
+
+En uppgradering ska aldrig kunna lämna vården utan fungerande system, och inga data får gå förlorade. I Cosmic skapade
+uppgraderingar nya fel som vården fick leva med. Vårdkällan bygger därför på små releaser som går att backa.
+
+### Migreringar som går att backa
+
+Från version 1.2 är varje ändring av databasens schema en versionerad migrering i `MIGRERINGAR` i `releaser.js`, med
+satser för att tillämpa den (`upp`) och för att backa den (`ned`), och med de tabeller och kolumner som backningen tar
+bort. När en migrering tillämpas sparas återställningen i databasen (`schema_migreringar`). Därför kan en äldre version av
+programmet backa databasen när den startar, utan att känna till den nyare versionens migreringar. Innehållet i en tabell
+eller kolumn som backas sparas undan (`parkerade_data`) och läggs tillbaka när migreringen tillämpas igen, så att det som
+skrevs i den nyare versionen inte försvinner.
+
+Schemaversionen kontrolleras när en sandlåda skapas och varje gång servern läser in en sparad sandlåda
+(`kontrolleraVidStart`, anropad från `byggSeed` och `migrera`): databasen ställs på den version som är i drift, saknade
+migreringar tillämpas och migreringar som programmet inte känner till backas med de sparade återställningarna. Allt sker
+i en transaktion. `/api/health` visar programmets schemaversion.
+
+Version 1.2 har två migreringar: ett index för åtkomstloggen per patient och tid, och tabellen med lagringsklasser.
+Tabeller som lades till före version 1.2 skapas som förut med `CREATE TABLE IF NOT EXISTS` i `migrera`.
+
+### Godkännande av två systemförvaltare
+
+Sidan Uppgraderingar (`#/uppgraderingar`, systemförvaltaren) visar versionen i drift, schemaversionen och om den stämmer,
+och vad en uppgradering ändrar: nyheterna för användarna (`nyheter.json`), API:ts ändringslogg (`api-andringar.js`) och
+migreringarna. En uppgradering används först när vårdgivarens systemförvaltare och en andra systemförvaltare har godkänt
+den, var och en i sin egen inloggning. När den andra godkänner tillämpas migreringarna direkt, och går kontrollen av
+schemat efteråt inte igenom backas allt och den förra versionen är kvar. Systemet stoppar uppgraderingen och tar bort
+knappen när testerna i bygget inte är gröna eller saknas (`test-resultat.json`), och servern vägrar på samma grund.
+
+En återgång till förra versionen görs av en systemförvaltare, eftersom den ska gå fort när en version ger fel i vården.
+En säkerhetskopia tas först, databasen backas och uppgraderingen igen väntar på två godkännanden. Händelserna loggas i
+åtkomstloggen och säkerhetsloggen.
+
+### Säkerhetskopior på två platser
+
+Servern tar en kopia av varje sandlåda var femtonde minut när något har ändrats (`KOPIOR_MINUTER`), och före varje
+återställning och återgång. Kopian är en konsistent ögonblicksbild (`serialize`) och skrivs på två platser
+(`KOPIOR_KATALOG` och `KOPIOR_ANDRA`, som standard `kopior` och `kopior-2` bredvid sessionsfilen). Varje kopia verifieras
+på båda platserna: kontrollsumman (SHA-256) ska vara densamma som för ögonblicksbilden, och kopian läst från platsen ska
+vara en hel databas med alla tabeller och med åtkomstloggens och säkerhetsloggens hashkedjor hela. De 48 senaste kopiorna
+sparas, och kopiorna tas bort när sandlådan tas bort.
+
+Sandlådans id är sessionskakan och används aldrig som namn. Kopiorna ligger under en HMAC av id:t med en hemlig nyckel som
+sparas bredvid kopiorna och aldrig i en sandlåda.
+
+Systemförvaltaren ser på sidan Lagring när den senaste kopian togs och om den är verifierad på båda platserna, tar en kopia
+när som helst och återställer sandlådan till en tidpunkt. Systemet tar den senaste verifierade kopian före tidpunkten och
+läser den från den andra platsen om den första är skadad. Läget före återställningen sparas först, så att återställningen
+går att göra ogjord, och loggraderna som har skrivits efter kopian förs över till den återställda databasen. Loggarna
+ändras aldrig, bara läggs till, så kedjan fortsätter där kopian slutar.
+
+### Prognos och lagringsklasser (Sussa KD1.1.3.5)
+
+Sidan Lagring visar en prognos ur tillväxten (`lagringsprognos.js`): antalet rader som har tillkommit det senaste året i
+varje tabell med en tidskolumn, gånger databasens genomsnittliga storlek per rad, skrivet fram linjärt ett, tre och tio
+år, med dagens aktivitet och med fördubblad aktivitet, och storleken på kopiorna på två platser. Lagringsklasserna
+(`lagringsklasser`, migrering 2) har kvalitet, svarstid och pris per gigabyte: snabb lagring för aktuella uppgifter och
+billigare lagring för uppgifter äldre än tre år. Sidan visar hur volymen fördelas på klasserna och vad lagringen kostar
+per månad med och utan klasser. Priserna är demovärden. Uppgifterna flyttas inte till en separat databas, eftersom det
+kräver att journalens läsningar, uttagen och säkerhetskopiorna läser från två databaser.
+
+### Lasttest (Sussa KD1.1.1.5)
+
+`scripts/lasttest.js` spelar realistiska flöden för 100 och 500 samtidiga användare mot en lokal container: inloggning,
+arbetslistan, sökning, översikten, journalen, läkemedlen, mätvärdena, registrering av ett mätvärde och inkorgen, med 5 till
+15 sekunders betänketid mellan åtgärderna. Användarna delar sandlådor tio och tio, eftersom en sandlåda i demon motsvarar
+en vårdgivares databas. Svarstiden mäts per åtgärd mot svarstidsmålet i D5 (p95 under 200 ms), och resultatet sparas i
+`lasttest.json` med en hash av `src/` och `public/`. Kravregistret räknar resultatet bara när hashen stämmer med den kod
+som byggs, på samma sätt som gränssnittstesterna. Körningen 2026-11-11 mot en container med två processorkärnor och 4 GB minne gav p95 mellan 8 och 48 ms per åtgärd med
+100 användare och mellan 56 och 88 ms med 500 användare (inkorgen var långsammast), utan fel, och servern använde omkring 560 MB
+minne med 50 sandlådor. Efter en ändring i koden körs lasttestet om:
+
+```sh
+docker run -d --rm --name vk-last --memory 4g -p 127.0.0.1:18222:8080 -v "$PWD/app:/app:ro" -w /app \
+  -e NYA_PER_TIMME=100000 -e MAX_SESSIONER=600 oven/bun:1.3.14-alpine bun src/server.js
+docker run --rm --memory 1g --network host -v "$PWD/app:/app" -w /app oven/bun:1.3.14-alpine bun scripts/lasttest.js http://127.0.0.1:18222
+```
+
+### FHIR-validering i bygget (vårt D9)
+
+`scripts/fhir-validering-resultat.js` skriver `fhir-validering.json` ur HL7-validatorns utdata, med antal resurser, fel
+och varningar per resurstyp och en hash av koden som bygger FHIR-resurserna (varje fil i `src/` med `resourceType`).
+Docker-bygget har ingen Java. Det tar med resultatet, och kravregistret räknar det bara när hashen stämmer med den kod som
+byggs, så att en ändring i FHIR-koden gör valideringen inaktuell tills den har körts igen (docs/fhir-validering.md).
+
+### Det som är simulerat eller saknas
+
+I demon byter en uppgradering eller återgång bara databasen i sandlådan, och programmet är detsamma för alla sandlådor.
+I driften är varje version en egen avbildning, och vid en återgång startas den förra avbildningen, som backar databasen
+själv när den startar. Säkerhetskopiornas två platser är två kataloger på samma server, eller två lager i minnet när
+servern inte sparar till disk. I driften är den andra platsen en annan volym på en annan ort. Återställningen går till den
+senaste kopian före tidpunkten, så det som gjordes mellan kopian och tidpunkten (högst femton minuter) återställs inte.

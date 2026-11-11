@@ -806,3 +806,10 @@ Det som ändrar något kräver radens vårdenhet. Listor på enhetsnivå och upp
 - `POST /api/riv/GetObservations` och `POST /api/riv/GetActivities` i den simulerade producenten, med `observation` och `activityGroup` i svaret.
 - `POST /api/patient/:id/iva/infusion/:oid/dos` tar emot `armband`, som prövas mot patientens identiteter. Protokollen i `GET /api/patient/:id/iva/infusion/forslag` är också noradrenalin (`dosEnhet: µg/kg/min`), propofol och midazolam, och en infusion utan automatisk titrering har `titrering: null`. Sammanräkningen i `/iva/tillagg` har `utdelning: [{ tid, dos, dosEnhet, mlH, av, text }]`.
 - Mätvärden har källan `import` och inmatningen `importerad` när de är inlästa från en fil eller ett annat journalsystem.
+
+## Uppgraderingar och säkerhetskopior (runda 12, r2)
+
+- `GET /api/uppgraderingar` (systemförvaltaren) ger `{ program, driftversion, schema: { schemaversion, programmets, driftversion, saknas, okanda, overfor, stammer }, migreringar, tester: { gron, antal, godkanda, misslyckade, tid, text }, nasta, i_drift, forra, vantar, historik, parkerade }`.
+- `POST /api/uppgraderingar/atergang` backar sandlådan till förra versionen och ger `{ driftversion, backade, schema, vantar }`. `POST /api/uppgraderingar/:id/godkann` ger `{ uppgradering, genomford }`: den första systemförvaltaren godkänner och den andra, i sin egen inloggning, genomför. 409 när testerna i bygget inte är gröna, 403 när samma person godkänner två gånger.
+- `GET /api/sakerhetskopior` ger `{ intervallMinuter, behall, platser, senaste, senasteVerifierade, kopior, rutin, demoregel }`, `POST /api/sakerhetskopior` tar en kopia nu (201) och `POST /api/sakerhetskopior/aterstall { tid }` återställer sandlådan till den senaste verifierade kopian före tiden och ger `{ aterstalldTill, plats, forsok, fore, text }`.
+- `GET /api/health` har `schemaversion`.

@@ -1,0 +1,211 @@
+{
+  "tid": "2026-11-11T16:28:37.528Z",
+  "validator": "HL7 FHIR Validation tool 7.0.3 (28e9fac6d79d)",
+  "fhirKodHash": "166b36db96ea906a67075b180d4fa8d893ee29698e7d8715905eb46159cd6e56",
+  "kodfiler": [
+    "arkiv.js",
+    "atgarder.js",
+    "bildmedia.js",
+    "ekonomi.js",
+    "fhir-definitioner.js",
+    "fhir-skrivning.js",
+    "fhir.js",
+    "formularmotor.js",
+    "klientresultat.js",
+    "labb-fhir.js",
+    "medicinteknik-rutter.js",
+    "medicinteknik.js",
+    "migreringsimport.js",
+    "oppet-api.js",
+    "patientnara.js",
+    "prenumeration.js",
+    "produktionssystem.js",
+    "systemkonton.js",
+    "tidbok-fhir.js",
+    "tillvaxt-r11.js",
+    "tjanstekontrakt.js",
+    "vitalparametrar.js"
+  ],
+  "resurser": 5895,
+  "fel": 0,
+  "varningar": 7264,
+  "saknas": [],
+  "perTyp": {
+    "Patient": {
+      "resurser": 49,
+      "fel": 0,
+      "varningar": 53
+    },
+    "Organization": {
+      "resurser": 31,
+      "fel": 0,
+      "varningar": 31
+    },
+    "Practitioner": {
+      "resurser": 51,
+      "fel": 0,
+      "varningar": 51
+    },
+    "def": {
+      "resurser": 27,
+      "fel": 0,
+      "varningar": 35
+    },
+    "Encounter": {
+      "resurser": 211,
+      "fel": 0,
+      "varningar": 211
+    },
+    "EpisodeOfCare": {
+      "resurser": 1,
+      "fel": 0,
+      "varningar": 1
+    },
+    "Condition": {
+      "resurser": 115,
+      "fel": 0,
+      "varningar": 230
+    },
+    "Observation": {
+      "resurser": 459,
+      "fel": 0,
+      "varningar": 505
+    },
+    "MedicationRequest": {
+      "resurser": 131,
+      "fel": 0,
+      "varningar": 271
+    },
+    "MedicationAdministration": {
+      "resurser": 31,
+      "fel": 0,
+      "varningar": 62
+    },
+    "List": {
+      "resurser": 1,
+      "fel": 0,
+      "varningar": 1
+    },
+    "AllergyIntolerance": {
+      "resurser": 4,
+      "fel": 0,
+      "varningar": 4
+    },
+    "Flag": {
+      "resurser": 6,
+      "fel": 0,
+      "varningar": 8
+    },
+    "ServiceRequest": {
+      "resurser": 26,
+      "fel": 0,
+      "varningar": 28
+    },
+    "Procedure": {
+      "resurser": 8,
+      "fel": 0,
+      "varningar": 16
+    },
+    "Composition": {
+      "resurser": 213,
+      "fel": 0,
+      "varningar": 213
+    },
+    "Schedule": {
+      "resurser": 7,
+      "fel": 0,
+      "varningar": 7
+    },
+    "Slot": {
+      "resurser": 3123,
+      "fel": 0,
+      "varningar": 3123
+    },
+    "Appointment": {
+      "resurser": 18,
+      "fel": 0,
+      "varningar": 18
+    },
+    "AuditEvent": {
+      "resurser": 1000,
+      "fel": 0,
+      "varningar": 2000
+    },
+    "CapabilityStatement": {
+      "resurser": 1,
+      "fel": 0,
+      "varningar": 1
+    },
+    "CarePlan": {
+      "resurser": 1,
+      "fel": 0,
+      "varningar": 1
+    },
+    "ChargeItem": {
+      "resurser": 337,
+      "fel": 0,
+      "varningar": 344
+    },
+    "Immunization": {
+      "resurser": 16,
+      "fel": 0,
+      "varningar": 16
+    },
+    "DiagnosticReport": {
+      "resurser": 7,
+      "fel": 0,
+      "varningar": 7
+    },
+    "Specimen": {
+      "resurser": 6,
+      "fel": 0,
+      "varningar": 6
+    },
+    "Questionnaire": {
+      "resurser": 2,
+      "fel": 0,
+      "varningar": 2
+    },
+    "QuestionnaireResponse": {
+      "resurser": 1,
+      "fel": 0,
+      "varningar": 1
+    },
+    "Media": {
+      "resurser": 3,
+      "fel": 0,
+      "varningar": 6
+    },
+    "ImagingStudy": {
+      "resurser": 1,
+      "fel": 0,
+      "varningar": 1
+    },
+    "Subscription": {
+      "resurser": 1,
+      "fel": 0,
+      "varningar": 1
+    },
+    "Notis": {
+      "resurser": 1,
+      "fel": 0,
+      "varningar": 0
+    },
+    "Klient": {
+      "resurser": 3,
+      "fel": 0,
+      "varningar": 5
+    },
+    "OperationOutcome": {
+      "resurser": 3,
+      "fel": 0,
+      "varningar": 5
+    }
+  },
+  "tester": [
+    {
+      "namn": "FHIR-validering > HL7:s validator ger inga fel för någon resurstyp, också MedicationAdministration och List, i den FHIR-kod som byggs",
+      "status": "grön"
+    }
+  ]
+}

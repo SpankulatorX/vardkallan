@@ -16,6 +16,9 @@
 // beslutet, så att loggen och beslutet går att följa upp. Utskrifter, utlämnanden, spärrar, begäranden från patienten och
 // sammanslagningar finns också kvar, eftersom de är uppgifter om hanteringen och inte journalens innehåll.
 import { createHash, randomUUID } from 'node:crypto';
+// Runda 12, r2: XML-schemana i paketets mapp schemas och alla tabeller i återföringen.
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { Fel, iso, idag, giltigtDatum, addDagar } from './db.js';
 import { vardenhetFor, aktivaSparrar, visningsnamn, visningsPnr } from './atkomst.js';
 import { loggaRad } from './logg.js';
@@ -280,6 +283,8 @@ Paketet följer FGS Paketstruktur 2.0 (E-ARK CSIP 2.1.0 och E-ARK SIP 2.1.0 i Ri
 - representations/rep_1/data/ovrigt/<patient>-atkomstlogg.ndjson: åtkomstloggen för patienten, en rad per åtkomst med hashkedjans värden. Loggen är inte en journalhandling och ligger därför för sig.
 - metadata/preservation/premis.xml: händelsen när paketet skapades.
 - metadata/descriptive/earkiv-index.xml: en post per journalhandling med e-arkivets dataelement, se mappningen nedan.
+- schemas/: XML-schemana för METS, XLink och E-ARK:s tillägg till METS, som METS.xml följer.
+- representations/rep_1/data/tabeller/: bara i återföringen av all data (beslut om alla journaler). En fil per tabell i databasen med en rad per post som NDJSON, binära värden som base64, och schema.sql med tabellerna, indexen och triggrarna, så att uppgifterna kan läsas in i ett annat system. Också tabeller som inte hör till journalen följer med, till exempel inställningarna, mallarna och kodverken.
 
 ## Dataelement
 
@@ -302,7 +307,7 @@ Paketet följer FGS Paketstruktur 2.0 (E-ARK CSIP 2.1.0 och E-ARK SIP 2.1.0 i Ri
 ${earkiv.mappningDok()}
 ## Det som saknas i demon
 
-Mottagaren är ett simulerat e-arkiv, och dess dataelement är en förenklad uppsättning i demon och inte en verklig leveransöverenskommelse. E-arkivet kontrollerar paketet mot METS.xml, kontrollsummorna, mapparna och de obligatoriska dataelementen, men XML-scheman för METS och PREMIS ligger inte i mappen schemas, och paketet valideras inte mot schemana.
+Mottagaren är ett simulerat e-arkiv, och dess dataelement är en förenklad uppsättning i demon och inte en verklig leveransöverenskommelse. E-arkivet kontrollerar paketet mot METS.xml, kontrollsummorna, mapparna och de obligatoriska dataelementen. Paketets struktur och METS.xml är prövade med E-ARK:s validator med öppen källkod (commons-ip 2.12.1 mot CSIP 2.1.0), se docs/earkiv-validering.md i Vårdkällans källkod. Schemat för PREMIS ligger inte i mappen schemas.
 `;
 }
 
@@ -338,6 +343,7 @@ ${lista.map(f => `      <file ID="${xml(f.id)}" MIMETYPE="${xml(f.mime)}" SIZE="
   const desc = filer.filter(f => f.grupp === 'Descriptive');
   const rep = filer.filter(f => f.grupp === 'Representations');
   const pres = filer.filter(f => f.grupp === 'Preservation');
+  const sch = filer.filter(f => f.grupp === 'Schemas');
   return `<?xml version="1.0" encoding="UTF-8"?>
 <mets xmlns="http://www.loc.gov/METS/" xmlns:csip="https://DILCIS.eu/XML/METS/CSIPExtensionMETS" xmlns:sip="https://DILCIS.eu/XML/METS/SIPExtensionMETS"
   xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -354,7 +360,7 @@ ${pres.map(f => `    <digiprovMD ID="dp-${xml(f.id)}" STATUS="CURRENT"><mdRef LO
   </amdSec>
   <fileSec ID="filsektion">
 ${grupp('Documentation', doc)}
-    <fileGrp ID="fg-Schemas" USE="Schemas"/>
+${grupp('Schemas', sch)}
 ${grupp('Representations/rep_1', rep)}
   </fileSec>
   <structMap ID="struktur" TYPE="PHYSICAL" LABEL="CSIP">
@@ -362,11 +368,27 @@ ${grupp('Representations/rep_1', rep)}
       <div ID="metadata" LABEL="Metadata" ADMID="${pres.map(f => `dp-${xml(f.id)}`).join(' ')}"${desc.length ? ` DMDID="${desc.map(f => `dmd-${xml(f.id)}`).join(' ')}"` : ''}/>
       <div ID="dokumentation" LABEL="Documentation"><fptr FILEID="fg-Documentation"/></div>
       <div ID="scheman" LABEL="Schemas"><fptr FILEID="fg-Schemas"/></div>
-      <div ID="rep1" LABEL="Representations/rep_1"><fptr FILEID="fg-Representations-rep_1"/></div>
+      <div ID="rep1" LABEL="Representations"><fptr FILEID="fg-Representations-rep_1"/></div>
     </div>
   </structMap>
 </mets>
 `;
+}
+
+// Runda 12, r2: XML-schemana som METS.xml följer (METS 1.12, XLink och E-ARK:s tillägg).
+const SCHEMAKATALOG = join(import.meta.dir, 'earkiv-scheman');
+
+// Runda 12, r2 (vårt M12): varje tabell i databasen som NDJSON, binära värden som base64, och schemat som SQL.
+export function allaTabeller(db) {
+  const namn = db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all().map(r => r.name);
+  const varde = (v) => (v instanceof Uint8Array ? { base64: Buffer.from(v).toString('base64') } : v);
+  const ut = namn.map(t => {
+    const rader = db.query(`SELECT * FROM "${t}" ORDER BY rowid`).all();
+    const text = rader.map(r => JSON.stringify(Object.fromEntries(Object.entries(r).map(([k, v]) => [k, varde(v)])))).join('\n') + (rader.length ? '\n' : '');
+    return { namn: `${t}.ndjson`, data: text, mime: 'text/plain', tabell: t, rader: rader.length };
+  });
+  const schema = db.query("SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY CASE type WHEN 'table' THEN 0 WHEN 'index' THEN 1 ELSE 2 END, name").all().map(r => `${r.sql};`).join('\n\n') + '\n';
+  return [{ namn: 'schema.sql', data: schema, mime: 'text/plain', tabell: null, rader: 0 }, ...ut];
 }
 
 // Bygger exportpaketet för beslutet. Returnerar ZIP-filen och vad som exporterades.
@@ -398,14 +420,19 @@ export function exportera(db, personal, b, { version = null } = {}) {
     };
     lagg(`representations/rep_1/data/journal/${pid}-sparr-och-skydd.json`, JSON.stringify(skydd, null, 1), 'application/json', 'Representations');
     const logg = identitet.allaPatientIdn(db, pid).flatMap(id => db.query('SELECT * FROM atkomstlogg WHERE patient_id = ? ORDER BY id').all(id));
-    lagg(`representations/rep_1/data/ovrigt/${pid}-atkomstlogg.ndjson`, logg.map(r => JSON.stringify(r)).join('\n') + (logg.length ? '\n' : ''), 'application/x-ndjson', 'Representations');
+    // Runda 12, r2: MIMETYPE i METS ska vara en registrerad medietyp (E-ARK CSIP68). NDJSON är text med en JSON per rad.
+    lagg(`representations/rep_1/data/ovrigt/${pid}-atkomstlogg.ndjson`, logg.map(r => JSON.stringify(r)).join('\n') + (logg.length ? '\n' : ''), 'text/plain', 'Representations');
   }
+  // Runda 12, r2 (vårt M12): återföringen av all data tar med alla tabeller, också de som inte hör till journalen.
+  const omf = JSON.parse(b.omfattning);
+  if (omf.urval === 'alla') for (const t of allaTabeller(db)) lagg(`representations/rep_1/data/tabeller/${t.namn}`, t.data, t.mime, 'Representations');
+  for (const f of readdirSync(SCHEMAKATALOG).filter(x => x.endsWith('.xsd')).sort()) lagg(`schemas/${f}`, readFileSync(join(SCHEMAKATALOG, f)), 'application/xml', 'Schemas');
   lagg('metadata/descriptive/earkiv-index.xml', earkiv.indexXml(patienter.flatMap(pk => earkiv.index(db, pk.id))), 'text/xml', 'Descriptive');
   lagg('documentation/beskrivning.md', beskrivning(db, b, patienter, objid, tid), 'text/markdown', 'Documentation');
   lagg('metadata/preservation/premis.xml', premis(objid, tid, filer.length), 'text/xml', 'Preservation');
   const metsXml = mets(db, objid, tid, filer, version, enhetsnamn(db, 'rol'));
   const kataloger = ['', 'metadata/', 'metadata/descriptive/', 'metadata/preservation/', 'metadata/other/', 'representations/', 'representations/rep_1/', 'representations/rep_1/data/',
-    'representations/rep_1/data/journal/', 'representations/rep_1/data/ovrigt/', 'schemas/', 'documentation/'];
+    'representations/rep_1/data/journal/', 'representations/rep_1/data/ovrigt/', ...(filer.some(f => f.relativ.includes('/data/tabeller/')) ? ['representations/rep_1/data/tabeller/'] : []), 'schemas/', 'documentation/'];
   const paket = zip([
     ...kataloger.map(k => ({ namn: `${objid}/${k}` })),
     { namn: `${objid}/METS.xml`, data: metsXml },
