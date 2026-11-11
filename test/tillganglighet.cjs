@@ -531,7 +531,9 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     await vantaKlar(p);
     // Nyhetsrutan stängs med tangentbordet.
     hittad = false;
-    await p.evaluate(() => document.body.focus());
+    // Runda 11, r1: tabbningen börjar överst på sidan. body.focus() flyttade inte fokus, så tabbningen började där
+    // fokus var och gick först genom arbetslistan, vars längd beror på dagens patienter.
+    await p.evaluate(() => { document.body.tabIndex = -1; document.body.focus(); document.body.removeAttribute('tabindex'); });
     for (let i = 0; i < 40 && !hittad; i++) { await p.keyboard.press('Tab'); hittad = await p.evaluate(() => document.activeElement?.dataset?.a === 'stang-nyheter'); }
     if (!hittad) throw new Error('knappen som stänger nyheterna gick inte att nå med tabb');
     await p.keyboard.press('Enter');

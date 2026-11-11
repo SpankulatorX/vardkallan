@@ -404,7 +404,10 @@ describe('API för barnhälsovården', () => {
   test('FHIR: vaccinationerna är Immunization med ATC och dos, med samma behörighet och loggning, och invånaren ser dem utan personal', async () => {
     const k = await inloggad('lak-vc');
     const b = (await k.get('/fhir/Immunization?patient=p61')).data;
-    expect(b.total).toBe(8);
+    // Runda 11, r1: seeden ger barnet de vaccinationer som åldern i dag ger (8 i november 2026), så antalet läses ur sandlådan.
+    const givna = sandlada(app, k).db.query("SELECT count(*) AS n FROM vaccinationer WHERE patient_id = 'p61'").get().n;
+    expect(givna).toBeGreaterThanOrEqual(8);
+    expect(b.total).toBe(givna);
     const im = b.entry.map(e => e.resource).find(r => r.vaccineCode.coding[0].code === 'J07CA09');
     expect(im).toMatchObject({ resourceType: 'Immunization', status: 'completed', patient: { reference: 'Patient/p61' }, primarySource: true,
       vaccineCode: { coding: [{ system: 'http://www.whocc.no/atc', display: ATC.J07CA09 }] }, protocolApplied: [{ series: 'Barnvaccinationsprogrammet' }] });
@@ -415,7 +418,7 @@ describe('API för barnhälsovården', () => {
     const inv = klient(app);
     await inv.post('/api/login/invanare', { invanareId: 'inv-vh02' });
     const ib = (await inv.get('/fhir/Immunization?patient=p61')).data;
-    expect(ib.total).toBe(8);
+    expect(ib.total).toBe(givna);
     expect(JSON.stringify(ib)).not.toContain('Practitioner/');
     const allt = (await inv.get('/fhir/Patient/p61/$everything')).data;
     expect(allt.entry.some(e => e.resource.resourceType === 'Immunization')).toBe(true);

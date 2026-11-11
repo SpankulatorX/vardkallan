@@ -13,7 +13,7 @@
 // inloggning: den som iordningsställde kan aldrig kontrollera sin egen dos, och ett id i anropet räcker inte, eftersom
 // kontrollanten är den som är inloggad i sessionen. En dos som ska beredas kontrolleras i beredningen (beredning.js),
 // och då med samma regler.
-import { Fel, iso } from './db.js';
+import { Fel, iso, datumAv } from './db.js';
 import { vardenhetFor } from './atkomst.js';
 import * as konfiguration from './konfiguration.js';
 
@@ -86,7 +86,8 @@ function sattFor(lm, o) {
 const arBarn = (db, patientId, nu) => {
   const p = patientId ? db.query('SELECT fodd FROM patienter WHERE id = ?').get(patientId) : null;
   if (!p) return false;
-  const d = new Date(nu).toISOString().slice(0, 10);
+  // Runda 11, r1: åldern räknas efter det svenska datumet, också mellan 00 och 01 när UTC har gårdagens datum.
+  const d = datumAv(new Date(nu));
   const [y, m, dd] = p.fodd.split('-').map(Number);
   const [ty, tm, td] = d.split('-').map(Number);
   return ty - y - (tm < m || (tm === m && td < dd) ? 1 : 0) < 18;

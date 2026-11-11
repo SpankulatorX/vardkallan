@@ -194,12 +194,18 @@ export function laddaTestdata(db, personal, { nu = new Date() } = {}) {
 
   // Testfall 5.6: fem patienter har kommit till läkaren på vårdcentralen i dag. Tiderna ligger före nu, men aldrig före
   // midnatt. Incheckningen registreras som i tidboken, två minuter före tiden och med könummer.
-  const midnatt = Date.parse(lokalTid(basDatum, '00:05'));
+  // Runda 11, r1: räcker de 150 minuterna bakåt till före midnatt, fördelas tiderna jämnt mellan midnatt och en kvart
+  // före nu, i samma ordning (tidigare kunde de hamna efter nu strax efter midnatt).
+  const midnatt = Date.parse(lokalTid(basDatum, '00:00'));
+  const tidigast = runda5(nu.getTime() - 150 * MIN);
+  const sista = Math.max(midnatt + 5 * MIN, nu.getTime() - 15 * MIN);
   ANKOMNA_5_6.forEach((pid, i) => {
-    const start = new Date(Math.max(midnatt + i * 10 * MIN, runda5(nu.getTime() - (150 - i * 25) * MIN))).toISOString();
+    const t = tidigast >= midnatt + 2 * MIN ? runda5(nu.getTime() - (150 - i * 25) * MIN)
+      : Math.floor((midnatt + (i + 1) / ANKOMNA_5_6.length * (sista - midnatt)) / MIN) * MIN;
+    const start = new Date(t).toISOString();
     const p = post(pid, { ve: 'vc-tybble', orsak: 'Återbesök hos läkare', mal: 30 });
     const { b } = tidbok.bokaPostRad(db, p, nyTid('sch-vc-per', start), { av: 'adm-kard' });
-    const kom = plus(start, -2);
+    const kom = new Date(Math.max(Date.parse(plus(start, -2)), midnatt)).toISOString();
     db.query("UPDATE bokningar SET status = 'incheckad', incheckad = ?, incheckad_via = 'reception', konummer = ? WHERE id = ?").run(kom, `K${String(i + 1).padStart(2, '0')}`, b.id);
     db.query('UPDATE vardkontakter SET ankomst = ? WHERE id = ?').run(kom, b.vardkontakt_id);
   });

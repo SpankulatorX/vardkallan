@@ -189,13 +189,15 @@ describe('Ekonomi: faktureringsunderlag', () => {
     d.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, slut, plats, orsak, kalla, kontaktsatt) VALUES ('p03', 'vc-tybble', 'oppenvard', ?, ?, 'Mottagning', 'Kontroll', 'vardkallan', 'besok')")
       .run(new Date(Date.now() - 3600_000).toISOString(), new Date(Date.now() - 1800_000).toISOString());
     const k = personal(d, 'eko');
-    const ut = ekonomi.exportera(d, k, { vardenhet: 'vc-tybble', fran: idag(), till: idag(), format: 'json' });
+    // Runda 11, r1: besöket för en timme sedan kan ha varit i går (strax efter midnatt), så underlaget tas från i går.
+    const fran = addDagar(idag(), -1);
+    const ut = ekonomi.exportera(d, k, { vardenhet: 'vc-tybble', fran, till: idag(), format: 'json' });
     const j = JSON.parse(ut.text);
     const egna = j.poster.filter(r => r.patient.id === 'p03');
     expect(egna.length).toBeGreaterThan(0);
     for (const r of egna) expect(r.patient).toMatchObject({ skyddad: true, namn: null, adress: null, postnr: null, ort: null });
     for (const s of [p.fornamn, p.efternamn, 'Engberg']) expect(ut.text).not.toContain(s);
-    const csv = ekonomi.exportera(d, k, { vardenhet: 'vc-tybble', fran: idag(), till: idag(), format: 'csv' }).text;
+    const csv = ekonomi.exportera(d, k, { vardenhet: 'vc-tybble', fran, till: idag(), format: 'csv' }).text;
     expect(csv).not.toContain('Engberg');
     expect(csv).toContain('Skatteverket');
   });

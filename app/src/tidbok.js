@@ -14,7 +14,7 @@
 // checka_in, vantelista) och kräver vårdrelation eller remiss till vårdenheten, som all annan åtkomst till patienten.
 // Varje åtgärd loggas på patienten. Kallelsen innehåller aldrig journaltext. En patient med skyddade personuppgifter
 // får kallelser bara i Min journal, och namnet visas aldrig på incheckningsskärmen.
-import { Fel, iso, idag, addDagar, datumAv, lokalTid, installning } from './db.js';
+import { Fel, iso, idag, addDagar, datumAv, lokalTid, installning, inomDagen } from './db.js';
 import { kanRoll, vardenhetFor, enheterUnder, harVardrelation, visningsnamn, visningsPnr, provaInvanare } from './atkomst.js';
 import { avgiftFor, gerVardrelation } from './vardkontakt.js';
 import * as identitet from './identitet.js';
@@ -145,6 +145,14 @@ export function utokaTidbok(db) {
 }
 
 const round5 = (ms) => Math.round(ms / (5 * MIN)) * 5 * MIN;
+// Runda 11, r1: dagens relativa tider avrundas till fem minuter och stannar på dagens svenska datum.
+function idagAvrundad(bas, ms) {
+  const datum = datumAv(bas);
+  const forsta = Date.parse(lokalTid(datum, '00:00'));
+  const sista = Date.parse(lokalTid(addDagar(datum, 1), '00:00')) - 5 * MIN;
+  return Math.min(Math.max(round5(ms), forsta), sista);
+}
+const dagensTid = (bas, minuter) => new Date(idagAvrundad(bas, inomDagen(bas, minuter))).toISOString();
 const veckodag = (datum) => new Date(`${datum}T12:00:00Z`).getUTCDay();
 // En dag framåt som hamnar på en helg flyttas till måndagen efter.
 function vardag(datum) {
@@ -167,7 +175,7 @@ export function seedaTidbok(db, { bas = new Date() } = {}) {
   }
   for (const k of SEED.KANALVAL) db.query('INSERT OR IGNORE INTO kanalval VALUES (?, ?)').run(k.patient, k.kanal);
   const insT = db.query('INSERT INTO tider (schema_id, start, slut, tidstyp, platser, rubrik, relativ) VALUES (?, ?, ?, ?, ?, ?, ?)');
-  const tidFor = (t) => (t.min != null ? new Date(round5(bas.getTime() + t.min * MIN)).toISOString() : lokalTid(vardag(addDagar(basDatum, t.dag)), t.klocka));
+  const tidFor = (t) => (t.min != null ? dagensTid(bas, t.min) : lokalTid(vardag(addDagar(basDatum, t.dag)), t.klocka));
   // Gruppträffarna först, så att mallens tider som krockar med dem inte läggs ut.
   const grupper = SEED.GRUPPER.map(g => ({ ...g, start: tidFor(g.tid) }));
   for (let d = 1; d <= SEED.DAGAR_FRAMAT; d++) {
@@ -199,7 +207,7 @@ export function seedaTidbok(db, { bas = new Date() } = {}) {
     const bokad = new Date(Date.parse(lokalTid(addDagar(basDatum, b.bokad), '09:00'))).toISOString();
     const bok = skapaBokning(db, { patientId: b.patient, tid, orsak: b.orsak ?? null, av: b.bokadAv, bokad });
     if (b.incheckad) {
-      const t = new Date(round5(bas.getTime() + b.incheckad.min * MIN)).toISOString();
+      const t = dagensTid(bas, b.incheckad.min);
       db.query("UPDATE bokningar SET status = 'incheckad', incheckad = ?, incheckad_via = ?, konummer = ? WHERE id = ?").run(t, b.incheckad.via, konummerFor(db, tid, t), bok.id);
       db.query('UPDATE vardkontakter SET ankomst = ? WHERE id = ?').run(t, bok.vardkontakt_id);
     }
@@ -252,10 +260,12 @@ export function anpassaTillNu(db, nu = Date.now()) {
   if (!bas || installning(db, 'tidbok_anpassad')) return 0;
   installning(db, 'tidbok_anpassad', new Date(nu).toISOString());
   const skift = round5(nu - Date.parse(bas));
-  const flytta = (t) => (t && skift ? new Date(Date.parse(t) + skift).toISOString() : t);
+  // Runda 11, r1: en tid som flyttas över midnatt stannar på dagens datum (mallen är högst 30 minuter gammal, db.js).
+  const flytta = (t) => (t && skift ? new Date(idagAvrundad(new Date(nu), Date.parse(t) + skift)).toISOString() : t);
   const tider = db.query('SELECT * FROM tider WHERE relativ = 1').all();
   for (const t of tider) {
-    db.query('UPDATE tider SET start = ?, slut = ? WHERE id = ?').run(flytta(t.start), flytta(t.slut), t.id);
+    const start = flytta(t.start);
+    db.query('UPDATE tider SET start = ?, slut = ? WHERE id = ?').run(start, new Date(Date.parse(start) + Date.parse(t.slut) - Date.parse(t.start)).toISOString(), t.id);
     for (const b of db.query('SELECT * FROM bokningar WHERE tid_id = ?').all(t.id)) {
       db.query('UPDATE bokningar SET incheckad = ? WHERE id = ?').run(flytta(b.incheckad), b.id);
       if (b.vardkontakt_id) {

@@ -2,13 +2,14 @@
 // administrerade läkemedel vara högst 10 minuter gammal. Klockan styrs i testerna med setSystemTime, och en webbläsare
 // simuleras som följer serverns schema för förnyelse (fornyas.intervallMs) och tittar var 30:e sekund om det är dags,
 // precis som gränssnittet (public/js/avbrott.js).
-import { describe, test, expect, beforeAll, afterAll, afterEach, setSystemTime } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll, afterEach } from 'bun:test';
+import { aterstallKlockan, stallKlockan } from './falsk-klocka.js';
 import { verifiera } from '../src/logg.js';
 import { testserver, klient, sandlada } from './hjalp.js';
 
 let app;
 beforeAll(() => { app = testserver(); });
-afterEach(() => setSystemTime());
+afterEach(() => aterstallKlockan());
 afterAll(() => app.stopp());
 
 const MIN = 60_000;
@@ -20,7 +21,7 @@ const loggRader = (k) => sandlada(app, k).db.query('SELECT * FROM atkomstlogg OR
 function webblasare(k, start) {
   const b = { nu: start, kopia: null, hamtad: null, antal: 0 };
   b.hamta = async () => {
-    setSystemTime(new Date(b.nu));
+    stallKlockan(new Date(b.nu));
     const r = await k.get('/api/lasekopia');
     expect(r.status).toBe(200);
     b.kopia = r.data;
@@ -32,7 +33,7 @@ function webblasare(k, start) {
     const slut = b.nu + ms;
     while (b.nu < slut) {
       b.nu += TITTA_MS;
-      setSystemTime(new Date(b.nu));
+      stallKlockan(new Date(b.nu));
       if (b.nu - b.hamtad >= b.kopia.fornyas.intervallMs) await b.hamta();
       await varje();
     }
@@ -43,7 +44,7 @@ function webblasare(k, start) {
 describe('Läskopia', () => {
   test('en ändrad ordination finns i läskopian inom 10 minuter utan att någon gör något', async () => {
     const start = Date.now();
-    setSystemTime(new Date(start));
+    stallKlockan(new Date(start));
     const k = klient(app);
     await k.logga('lak-kard');
     const b = webblasare(k, start);
@@ -58,7 +59,7 @@ describe('Läskopia', () => {
 
     // Värsta fallet: ordinationen ändras precis efter en förnyelse, från en annan dator med samma inloggning.
     b.nu += 1000;
-    setSystemTime(new Date(b.nu));
+    stallKlockan(new Date(b.nu));
     const andrad = b.nu;
     const ut = await k.post(`/api/ordination/${waran.id}/utsatt`, { orsak: 'Byte till annat antikoagulantia', plan: { typ: 'byte' } });
     expect(ut.status).toBe(200);
@@ -108,7 +109,7 @@ describe('Läskopia', () => {
 
   test('förnyelsen loggas inte var för sig: utlämnandet loggas när det börjar och när det slutar', async () => {
     const start = Date.now();
-    setSystemTime(new Date(start));
+    stallKlockan(new Date(start));
     const k = klient(app);
     await k.logga('lak-kard');
     const fore = loggRader(k).length;
@@ -126,7 +127,7 @@ describe('Läskopia', () => {
 
     // Vid utloggningen loggas en rad per patient med tiden för det senaste utlämnandet och antalet förnyelser.
     b.nu += 3 * MIN;
-    setSystemTime(new Date(b.nu));
+    stallKlockan(new Date(b.nu));
     await k.post('/api/logout');
     const slut = loggRader(k).slice(fore + antal);
     expect(slut.length).toBe(antal);

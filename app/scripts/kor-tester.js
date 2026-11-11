@@ -5,32 +5,16 @@ import { join } from 'node:path';
 import { KRAV } from '../src/krav.js';
 import { sussaTester } from '../src/sussa/index.js';
 import { lasKlientresultat } from '../src/klientresultat.js';
+// Runda 11, r1: tolkningen av JUnit-rapporten delas med scripts/klocktest.js.
+import { tolkaJunit } from './junit-tolkning.js';
 
 const rot = join(import.meta.dir, '..');
 const xml = join(rot, 'test-resultat.xml');
 const proc = Bun.spawnSync(['bun', 'test', '--reporter=junit', `--reporter-outfile=${xml}`], { cwd: rot, stdout: 'inherit', stderr: 'inherit' });
 
-const avkoda = (s) => s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#39;/g, "'");
-const attr = (s, namn) => { const m = s.match(new RegExp(`\\s${namn}="([^"]*)"`)); return m ? avkoda(m[1]) : null; };
-
 let text = '';
 try { text = readFileSync(xml, 'utf8'); } catch { console.error('Ingen JUnit-rapport skrevs.'); process.exit(1); }
-const tester = [];
-const stack = [];
-let aktuell = null;
-for (const m of text.matchAll(/<(\/?)(testsuites|testsuite|testcase|failure|error|skipped)\b([^>]*?)(\/?)>/g)) {
-  const [, stang, tagg, attrs, sjalvstangd] = m;
-  if (tagg === 'testsuite') {
-    if (stang) stack.pop();
-    else if (!sjalvstangd) stack.push({ namn: attr(attrs, 'name'), fil: attr(attrs, 'file') });
-  } else if (tagg === 'testcase') {
-    if (stang) { if (aktuell) tester.push(aktuell); aktuell = null; continue; }
-    const grupper = stack.slice(1).map(s => s.namn);
-    const t = { namn: [...grupper, attr(attrs, 'name')].join(' > '), fil: stack[0]?.namn ?? null, status: 'grön' };
-    if (sjalvstangd) tester.push(t); else aktuell = t;
-  } else if ((tagg === 'failure' || tagg === 'error') && aktuell && !stang) aktuell.status = 'röd';
-  else if (tagg === 'skipped' && aktuell && !stang) aktuell.status = 'hoppad';
-}
+const tester = tolkaJunit(text);
 try { unlinkSync(xml); } catch { /* ingen fil */ }
 
 // Testerna av gränssnittet körs i Playwright före bygget och följer med som klickbudget.json och klienttest-resultat.json.

@@ -1,6 +1,7 @@
 // Runda 9, r1: beredning med kontroll och etikett, doser i flytande form och gasform och patientnära skanning
 // (Sussa 3.5.1.4, 3.5.2.17 och 3.5.2.18). Klockan styrs med setSystemTime och sandlådan byggs vid den tiden.
-import { describe, test, expect, afterEach, afterAll, setSystemTime } from 'bun:test';
+import { describe, test, expect, afterEach, afterAll } from 'bun:test';
+import { aterstallKlockan, stallKlockan } from './falsk-klocka.js';
 import { byggSeed, idag, addDagar, lokalTid } from '../src/db.js';
 import * as administrering from '../src/administrering.js';
 import * as lakemedel from '../src/lakemedel.js';
@@ -25,10 +26,10 @@ import { atk, testserver, klient } from './hjalp.js';
 
 const kl = (k, dag = idag()) => lokalTid(dag, k);
 function sandladaKl(k = '13:30') {
-  setSystemTime(new Date(kl(k)));
+  stallKlockan(new Date(kl(k)));
   return byggSeed(new Date(kl(k)));
 }
-afterEach(() => setSystemTime());
+afterEach(() => aterstallKlockan());
 const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
 const ssk = (db, pid, handling = 'ge_lakemedel', id = 'ssk-kard', val = {}) => atk(db, id, pid, val, handling);
 function ordinera(db, pid, inp, personalId = 'lak-kard') {
@@ -105,12 +106,14 @@ describe('Beredning med kontroll och etikett', () => {
     // Förpackningens kod (GS1) med parenteser och utan.
     expect(beredning.lasForpackningskod('(01)07046260000123(17)271231(10)PC4711')).toEqual({ gtin: '07046260000123', utgang: '2027-12-31', batch: 'PC4711' });
     expect(beredning.lasForpackningskod('010704626000012317271231\u001d10PC4711')).toMatchObject({ utgang: '2027-12-31', batch: 'PC4711' });
-    const r = ior({ forpackningskod: '(01)07046260000123(17)271231(10)PC4711' });
-    expect(r.administrering.beredning).toMatchObject({ batch: 'PC4711', utgang: '2027-12-31', kontroll: { kravs: false } });
+    // Runda 11, r1: förpackningen som bereds går ut om ett år, så att testet inte går ut med ett fast datum.
+    const om1 = addDagar(idag(), 365);
+    const r = ior({ forpackningskod: `(01)07046260000123(17)${om1.slice(2, 4)}${om1.slice(5, 7)}${om1.slice(8, 10)}(10)PC4711` });
+    expect(r.administrering.beredning).toMatchObject({ batch: 'PC4711', utgang: om1, kontroll: { kravs: false } });
     // Utan krav på kontroll ges dosen direkt, men inte när beredningen har slutat hålla efter fyra timmar.
-    setSystemTime(new Date(kl('18:00')));
+    stallKlockan(new Date(kl('18:00')));
     expect(fel(() => administrering.spara(ssk(db, 'p04'), { ordinationId: o.id, planerad: kl('14:00'), kontrollkod: r.administrering.iordningstalld.kontrollkod, tid: kl('17:55') })).message).toContain('bered en ny dos');
-    setSystemTime(new Date(kl('14:05')));
+    stallKlockan(new Date(kl('14:05')));
     expect(administrering.spara(ssk(db, 'p04'), { ordinationId: o.id, planerad: kl('14:00'), kontrollkod: r.administrering.iordningstalld.kontrollkod }).administrering.status).toBe('given');
     // En basvätska utan tillsats bereds inte.
     expect(beredning.kravsBeredning(db.query("SELECT * FROM katalog WHERE id = 'VK-EGEN-0002'").get(), { tillsatser: [] })).toBe(false);
@@ -417,7 +420,7 @@ describe('Egenadministrering i slutenvården', () => {
     expect(fel(() => egen.kvittera(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('14:00') }, deps)).message).toContain('redan kvitterat');
     expect(fel(() => egen.kvittera(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('20:00'), tagen: false }, deps)).extra.falt).toEqual(['orsak']);
     expect(fel(() => egen.kvittera(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('15:00') }, deps)).extra.falt).toEqual(['planerad']);
-    setSystemTime(new Date(kl('23:30')));
+    stallKlockan(new Date(kl('23:30')));
     const sen = administrering.lista(ssk(db, 'p01', 'las_lakemedel')).egenadministrering.find(x => x.ordinationId === o.id);
     expect(sen.doser.map(d => d.status)).toEqual(['tagen', 'ej_kvitterad']);
     egen.kvittera(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('20:00'), tagen: false, orsak: 'Patienten sov' }, deps);

@@ -19,7 +19,7 @@
 // kan krocka med vårdgivarens.
 //
 // Övningarna innehåller inga patientuppgifter utom demopatienternas påhittade namn. Demon är själv utbildningsmiljön.
-import { Fel, iso } from './db.js';
+import { Fel, iso, datumAv } from './db.js';
 import { kanRoll, vardenhetFor } from './atkomst.js';
 import { chefFor } from './lakemedelsansvar.js';
 import { YRKEN } from './seed/personal.js';
@@ -195,7 +195,7 @@ export function utfardaUtbildare(db, personal, personalId, { nu = new Date() } =
   if (!giltig(senasteIntyg(db, p.id), nu)) throw new Fel(400, `${p.namn} har inget giltigt intyg. En utbildare ska först ha gjort övningarna själv.`, 'ogiltig', { falt: ['personalId'] });
   const till = new Date(nu.getTime() + GILTIG_DAGAR * DAG);
   db.query('INSERT INTO utbildarintyg (personal_id, vardenhet, utfardat_av, utfardat, giltigt_till) VALUES (?, ?, ?, ?, ?)').run(p.id, ve, personal.id, iso(nu), iso(till));
-  return { ...enhet(db, personal, { nu }), text: `${p.namn} är utbildare till ${till.toISOString().slice(0, 10)} och kan ändra övningarna.` };
+  return { ...enhet(db, personal, { nu }), text: `${p.namn} är utbildare till ${datumAv(till)} och kan ändra övningarna.` };
 }
 
 // Övningarna med rätt svar och historiken, för den som får ändra dem.

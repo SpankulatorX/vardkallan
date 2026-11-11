@@ -1,6 +1,7 @@
 // Ordination av kontroller och mätvärden till avdelningen och de planerade uppgifterna per vårdenhet och dag (runda 8,
 // r1, Sussas testfall 3.5). Logiken prövas på en sandlåda byggd vid en fast tidpunkt med fasta tider.
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll, afterEach } from 'bun:test';
+import { aterstallKlockan, stallKlockan } from './falsk-klocka.js';
 import { byggSeed, lokalTid, addDagar, datumAv } from '../src/db.js';
 import { Atkomst } from '../src/atkomst.js';
 import * as kontroller from '../src/kontroller.js';
@@ -12,7 +13,9 @@ const BAS = new Date('2026-11-08T09:00:00Z');
 const IMORGON = addDagar(datumAv(BAS), 1);
 const pers = (db, id) => db.query('SELECT * FROM personal WHERE id = ?').get(id);
 const atk = (db, roll, pid, val = {}, handling = 'ordinera_kontroll') => new Atkomst(db, pers(db, roll), pid, val, handling);
-const sussa = () => { const db = byggSeed(BAS); laddaTestdata(db, pers(db, 'lak-kard'), { nu: BAS }); return db; };
+// Runda 11, r1: Sussas testdata läggs vid BAS, och vårdrelationen prövas mot klockan, så klockan står på BAS.
+afterEach(() => aterstallKlockan());
+const sussa = () => { stallKlockan(BAS); const db = byggSeed(BAS); laddaTestdata(db, pers(db, 'lak-kard'), { nu: BAS }); return db; };
 const mv = (db, pid, enhet, typ, varde, tid, av = 'ssk-kard') => db.query('INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, tid, registrerad_av) VALUES (?, ?, ?, ?, ?, ?, ?)')
   .run(pid, enhet, typ, String(varde), typeof varde === 'number' ? varde : null, tid, av);
 

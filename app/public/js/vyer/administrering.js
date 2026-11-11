@@ -2,7 +2,7 @@
 // ordinationerna. Sjuksköterskan bekräftar det som ges med ett klick. Varningar för dubbel dos, för tidig dos, dos utan
 // ordination och högsta dygnsdos visas innan något sparas, och en allvarlig varning kvitteras med motivering. Samma
 // delar används i avdelningens lista (#/administrering) och i patientens läkemedelsflik.
-import { esc, api, notis, felNotis, medKnapp, dialog, ikon, vyRubrik, tom, klockslag, tidpunkt, datum, idag } from '../ui.js';
+import { esc, api, notis, felNotis, medKnapp, dialog, ikon, vyRubrik, tom, klockslag, tidpunkt, datum, idag, plusDagar } from '../ui.js';
 // Runda 7, r2: hjälp i sammanhanget.
 import { hjalpRuta } from '../hjalp.js';
 import { far, S } from '../app.js';
@@ -233,7 +233,8 @@ export function koppla(el, ladda) {
 }
 
 async function angeHandelsetid(b, ladda) {
-  const imorgon = new Date(Date.now() + 86400_000).toISOString().slice(0, 10);
+  // Runda 11, r1: i morgon efter det svenska datumet (tidigare UTC, som gav i dag mellan 00 och 01).
+  const imorgon = plusDagar(idag(), 1);
   const svar = await dialog(`<form><h2 id="dlg-rubrik">Tid för ${esc(b.dataset.text.toLowerCase())}</h2>
     <p>När vårdhändelsen har fått en tid räknar systemet fram när läkemedlet ska ges.</p>
     ${b.dataset.foljer ? '<p class="ruta ruta-info liten">Vårdhändelsen följer tidboken. Sätter du tiden för hand slutar den följa tidboken, och en ombokning flyttar inte längre dosen.</p>' : ''}

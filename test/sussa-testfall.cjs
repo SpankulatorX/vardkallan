@@ -22,6 +22,8 @@ const { writeFileSync, mkdirSync } = require('node:fs');
 const { join } = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { Matare, skapa, raknaISidan } = require('./flodessteg.cjs');
+// Runda 11, r1: testet och webbläsaren följer testcontainerns falska klocka när den är satt.
+const { foljServernsKlocka, stallKlockan, resultatfil } = require('./testklocka.cjs');
 
 const BAS = process.argv[2] || 'http://127.0.0.1:18797';
 const APP = join(__dirname, '..', 'app');
@@ -558,7 +560,9 @@ function floden(D) {
         await m.klicka(page.locator(`#pr-k-${id}`), namn);
       }
       await m.klicka(page.locator('#pr-kform [data-spara-kontroll]'), 'Ordinera');
-      await synlig(page, '.notis', 'är ordinerat från i morgon kl. 07:00');
+      // Runda 11, r1: systemet föreslår klockan 7 i dag om den inte har passerat, annars i morgon (kontroller.js).
+      const fore7 = Number(new Date().toLocaleTimeString('sv-SE', { timeZone: 'Europe/Stockholm', hour: '2-digit' })) < 7;
+      await synlig(page, '.notis', `är ordinerat från ${fore7 ? 'i dag' : 'i morgon'} kl. 07:00`);
       for (const n of ['Puls', 'Blodtryck', 'SR', 'Temperatur', 'Vikt', 'Vätskebalans']) await synlig(page, '.pr-kontroller', n);
     },
     // Runda 8, r3: avdelningens planering (testfall 7.1 till 7.4).
@@ -603,6 +607,8 @@ function floden(D) {
 }
 
 (async () => {
+  // Runda 11, r1: klockan ställs innan testet räknar ut några datum.
+  await foljServernsKlocka(BAS);
   const R = await import(pathToFileURL(join(APP, 'src', 'sussa-testfall.js')).href);
   const D0 = await import(pathToFileURL(join(APP, 'src', 'seed', 'sussa-testdata.js')).href);
   const { gransnittHash } = await import(pathToFileURL(join(APP, 'src', 'klientresultat.js')).href);
@@ -611,6 +617,7 @@ function floden(D) {
   const FLODEN = floden(D);
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'sv-SE', timezoneId: 'Europe/Stockholm' });
+  await stallKlockan(ctx);
   await raknaISidan(ctx);
   const page = await ctx.newPage();
   page.on('pageerror', e => fel.push(`sidfel: ${e.message}`));
@@ -675,7 +682,7 @@ function floden(D) {
   };
   ut.sammanstallning = R.sammanstall(ut);
   if (BARA) { await browser.close(); console.log(fel.length ? `\nFel:\n  ${fel.join('\n  ')}` : '\nInga fel.'); process.exit(fel.length ? 1 : 0); }
-  writeFileSync(join(APP, 'sussa-testfall.json'), `${JSON.stringify(ut, null, 2)}\n`);
+  writeFileSync(join(APP, resultatfil('sussa-testfall.json')), `${JSON.stringify(ut, null, 2)}\n`);
 
   // Kravsidan visar resultatet per testfall under K4.
   try {
@@ -693,5 +700,5 @@ function floden(D) {
   const s = ut.sammanstallning;
   console.log(`\n${s.antalGenomforda} av ${s.antal} testfall genomförda i ${s.korningar} körningar. Mätning 1, alla testfall: ${s.alla.malupfyllelse} (${s.alla.poang.malupfyllelse} poäng), genomförda: ${s.genomforda.malupfyllelse}. Mätning 2, alla: ${s.alla.effektivitet} (${s.alla.poang.effektivitet} poäng), genomförda: ${s.genomforda.effektivitet}.`);
   if (fel.length) { console.log(`\nSussas testfall misslyckades:\n  ${fel.join('\n  ')}`); process.exit(1); }
-  console.log('Alla genomförbara testfall når slutvillkoret inom klickbudgeten. Resultatet finns i app/sussa-testfall.json');
+  console.log(`Alla genomförbara testfall når slutvillkoret inom klickbudgeten. Resultatet finns i app/${resultatfil('sussa-testfall.json')}`);
 })().catch(e => { console.error(e); process.exit(1); });

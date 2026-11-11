@@ -1,5 +1,7 @@
 // Vårdkällan. Varje besökare får en egen sandlåda i minnet, en kopia av den seedade mallen.
 // Sandlådorna sparas till SESSION_FIL vid SIGTERM och läses in vid start.
+// Runda 11, r1: testcontainerns falska klocka läses in först av allt (gör ingenting utan testflaggan, se testklocka.js).
+import { TESTKLOCKA } from './testklocka.js';
 import { join, normalize, dirname } from 'node:path';
 import { existsSync, readFileSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
 import { createDecipheriv } from 'node:crypto';
@@ -1811,7 +1813,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   for (const v of ['/api/idp/jwks', '/api/idp/.well-known/openid-configuration']) UTAN_SESSION.add(v);
 
   async function api(req, server, url, c) {
-    if (url.pathname === '/api/health') return json({ ok: true, sandladar: sessioner.size, version: APPVERSION, gransnitt: gransnittVersion() });
+    if (url.pathname === '/api/health') return json({ ok: true, sandladar: sessioner.size, version: APPVERSION, gransnitt: gransnittVersion(),
+      // Runda 11, r1: bara i en testcontainer med falsk klocka, så att Playwright kan ställa webbläsarens klocka lika.
+      ...(TESTKLOCKA ? { testklocka: new Date().toISOString() } : {}) });
     // Runda 9, r5: länken till en ny miljö byter session utan att skapa en sandlåda.
     if (req.method === 'GET' && /^\/api\/miljoer\/oppna\/[A-Za-z0-9_-]{32}$/.test(url.pathname)) return oppnaMiljo(req, url);
     // Runda 10, r7: kalenderprenumerationen hämtas av ett kalenderprogram utan session (r10r7-rutter.js).

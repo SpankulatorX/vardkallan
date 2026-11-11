@@ -214,20 +214,47 @@ export function giltigtDatum(s) {
     && new Date(s + 'T12:00:00Z').toISOString().slice(0, 10) === s;
 }
 
+// Runda 11, r1: seedens dagliga händelser ser ut som de gör klockan 10 eller senare. Är klockan mindre, på natten och
+// tidigt på morgonen, trycks dagens klockslag ihop mellan midnatt och nu i samma ordning, i stället för att alla läggs
+// strax före nu på samma tid.
+export const SEEDENS_DAG_KLOCKAN = 10 * 60 * 60_000;
+
+// Runda 11, r1: en tid kring nu, minuter före eller efter, som stannar på dagens svenska datum. Små avstånd blir som de
+// är. Ett avstånd som räcker över midnatt trycks ihop mjukt mot midnatt och behåller ordningen (en större förskjutning
+// ger alltid en tid längre från nu), så att dagens väntrum och tidbok ser rimliga ut också strax före och efter midnatt.
+export function inomDagen(bas, minuter) {
+  const nuMs = bas.getTime();
+  const d = minuter * 60_000;
+  const datum = datumAv(bas);
+  const rum = d < 0 ? nuMs - Date.parse(lokalTid(datum, '00:00')) : Date.parse(lokalTid(addDagar(datum, 1), '00:00')) - 60_000 - nuMs;
+  const halv = Math.max(rum, 0) / 2;
+  const a = Math.abs(d);
+  const avstand = a <= halv ? a : halv + halv * (1 - Math.exp(-(a - halv) / Math.max(halv, 60 * 60_000)));
+  return nuMs + Math.sign(d) * avstand;
+}
+
 // Tolkar seedens relativa tider (se seed/patienter.js) mot tidpunkten då sandlådan skapas.
 function tolkare(bas) {
   const basDatum = datumAv(bas);
   const senast = bas.getTime() - 60_000;
+  const dagStart = Date.parse(lokalTid(basDatum, '00:00'));
+  const nasta = Date.parse(lokalTid(addDagar(basDatum, 1), '00:00'));
+  const sedanMidnatt = bas.getTime() - dagStart;
   const tid = (spec, klocka = '10:00') => {
     if (spec == null) return null;
     let t;
-    if (typeof spec === 'object' && !Array.isArray(spec)) t = bas.getTime() + spec.min * 60_000;
+    if (typeof spec === 'object' && !Array.isArray(spec)) t = inomDagen(bas, spec.min);
     else if (Array.isArray(spec)) {
       const [d, k] = spec;
       t = Date.parse(lokalTid(typeof d === 'number' ? addDagar(basDatum, d) : d, k));
     } else t = Date.parse(lokalTid(typeof spec === 'number' ? addDagar(basDatum, spec) : spec, klocka));
+    const planerad = typeof spec === 'number' && spec > 0;
+    // Runda 11, r1: före klockan 10 trycks dagens klockslag ihop mellan midnatt och nu, i seedens ordning.
+    if (!planerad && t >= dagStart && t < nasta && sedanMidnatt < SEEDENS_DAG_KLOCKAN && !(typeof spec === 'object' && !Array.isArray(spec))) {
+      t = dagStart + Math.min(t - dagStart, SEEDENS_DAG_KLOCKAN) * Math.max(senast - dagStart, 0) / SEEDENS_DAG_KLOCKAN;
+    }
     // Det som enligt klockslaget skulle ligga i framtiden läggs strax före nu.
-    if (t > senast && !(typeof spec === 'number' && spec > 0)) t = Math.min(t, senast);
+    if (t > senast && !planerad) t = Math.min(t, senast);
     return new Date(t).toISOString();
   };
   const datum = (spec) => {
@@ -602,12 +629,16 @@ export const MATTYPER_ENHET = {
 };
 
 // Mallen byggs om när dagen byter, så att demon alltid ligger kring dagens datum.
+// Runda 11, r1: och när den är mer än 30 minuter gammal, så att dagens händelser i seeden följer klockan under dagen och
+// inte står kvar där de lades när mallen byggdes (till exempel strax efter midnatt).
+export const MALL_MINUTER = 30;
 let mall = null;
 export function mallen() {
   const d = idag();
-  if (!mall || mall.datum !== d) {
+  const nuMs = Date.now();
+  if (!mall || mall.datum !== d || Math.abs(nuMs - mall.byggd) > MALL_MINUTER * 60_000) {
     const db = byggSeed();
-    mall = { datum: d, data: db.serialize() };
+    mall = { datum: d, byggd: nuMs, data: db.serialize() };
     db.close();
   }
   return mall.data;

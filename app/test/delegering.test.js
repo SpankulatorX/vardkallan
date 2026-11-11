@@ -1,7 +1,8 @@
 // Vem som får ge läkemedel och säkrare utsättning och dos (runda 5, Sussa 3.5.2.8 och 3.5.2.18): läkaren ger med samma
 // kontroller som sjuksköterskan, undersköterskan ger bara med en giltig delegering (HSLF-FS 2017:37 9 kap.), en dos som
 // avviker från ordinationen kvitteras med motivering, och antikoagulantia sätts bara ut med en plan.
-import { describe, test, expect, beforeAll, afterAll, afterEach, setSystemTime } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll, afterEach } from 'bun:test';
+import { aterstallKlockan, stallKlockan } from './falsk-klocka.js';
 import { byggSeed, idag, addDagar, lokalTid } from '../src/db.js';
 import * as administrering from '../src/administrering.js';
 import * as lakemedel from '../src/lakemedel.js';
@@ -14,10 +15,10 @@ import { atk, personal, testserver, klient, sandlada } from './hjalp.js';
 
 const kl = (k, dag = idag()) => lokalTid(dag, k);
 function sandladaKl(k = '13:30') {
-  setSystemTime(new Date(kl(k)));
+  stallKlockan(new Date(kl(k)));
   return byggSeed(new Date(kl(k)));
 }
-afterEach(() => setSystemTime());
+afterEach(() => aterstallKlockan());
 const ordFor = (db, pid, namn) => db.query('SELECT o.* FROM ordinationer o JOIN katalog k ON k.id = o.lakemedel_id WHERE o.patient_id = ? AND k.namn LIKE ? AND o.status = \'aktiv\' ORDER BY o.id DESC').get(pid, `${namn}%`);
 const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
 const regler = (v) => v.map(x => `${x.niva}:${x.regel}`);
@@ -101,7 +102,7 @@ describe('Delegering', () => {
     expect(ut.administrering).toMatchObject({ utfordAv: { id: 'usk-kard' }, registreradAv: { id: 'ssk-kard' } });
     expect(ut.administrering.delegering.utfardadAv).toBe('Johan Ek');
     const f = fragmin(db);
-    setSystemTime(new Date(kl('18:10')));
+    stallKlockan(new Date(kl('18:10')));
     const e = fel(() => administrering.spara(ssk, { ordinationId: f.id, planerad: kl('18:00'), tid: kl('18:05'), utfordAv: 'usk-kard' }));
     expect(e).toMatchObject({ status: 400 });
     expect(e.extra.falt).toEqual(['utfordAv']);
@@ -116,14 +117,14 @@ describe('Delegering', () => {
     const furo = ordFor(db, 'p01', 'Furosemid');
     // 26 dagar senare har delegeringen gått ut.
     const sen = addDagar(idag(), 26);
-    setSystemTime(new Date(kl('13:30', sen)));
+    stallKlockan(new Date(kl('13:30', sen)));
     const l = administrering.lista(atk(db, 'usk-kard', 'p01'), { dag: sen });
     expect(l.kan.kan).toBe(false);
     expect(l.kan.varfor).toContain(`gällde till och med ${addDagar(sen, -1)}`);
     const e = fel(() => administrering.spara(atk(db, 'usk-kard', 'p01', {}, 'ge_lakemedel'), { ordinationId: furo.id, planerad: kl('14:00', sen) }));
     expect(e.status).toBe(403);
     expect(e.message).toContain('gällde till och med');
-    setSystemTime(new Date(kl('13:30')));
+    stallKlockan(new Date(kl('13:30')));
     // Registrering i efterhand prövas mot delegeringen den dag dosen gavs.
     const p = personal(db, 'usk-kard');
     expect(delegering.prova(db, p, { lm: { namn: 'Furosemid Teva', form: 'tablett', atc: 'C03CA01' }, ms: Date.parse(kl('10:00', addDagar(idag(), -400))), ordination: furo }).omfattas).toBe(false);
@@ -455,12 +456,12 @@ describe('Säkerhetsgranskning av delegering och dos', () => {
     const d0 = idag();
     // Dagen efter att delegeringen gick ut försöker undersköterskan iordningsställa en dos från dess sista dag.
     const sista = addDagar(d0, 25);
-    setSystemTime(new Date(kl('09:00', addDagar(d0, 26))));
+    stallKlockan(new Date(kl('09:00', addDagar(d0, 26))));
     const e = fel(() => administrering.spara(atk(db, 'usk-kard', 'p01', {}, 'ge_lakemedel'), { ordinationId: furo.id, planerad: kl('14:00', sista), atgard: 'iordningstall' }));
     expect(e).toMatchObject({ status: 403 });
     expect(e.message).toContain('gällde till och med');
     // En giltig delegering i dag räcker inte för en dostid efter att den har gått ut.
-    setSystemTime(new Date(kl('13:30', d0)));
+    stallKlockan(new Date(kl('13:30', d0)));
     const e2 = fel(() => administrering.spara(atk(db, 'usk-kard', 'p01', {}, 'ge_lakemedel'), { ordinationId: furo.id, planerad: kl('08:00', addDagar(d0, 26)), atgard: 'iordningstall' }));
     expect(e2).toMatchObject({ status: 403 });
     // Inom delegeringen går det.

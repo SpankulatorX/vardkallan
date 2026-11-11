@@ -2,7 +2,8 @@
 // öra och näsa ur beredningsformen, doseringsmallar per produkt och beredningsform, en infusion med tillsats som en
 // ordination, dosändring i en pågående ordination med ny dosering från ett datum, och läkaren och skälet från den
 // förra muntliga ordinationen. Klockan styrs med setSystemTime och sandlådan byggs vid den tiden.
-import { describe, test, expect, afterEach, afterAll, setSystemTime } from 'bun:test';
+import { describe, test, expect, afterEach, afterAll } from 'bun:test';
+import { aterstallKlockan, stallKlockan } from './falsk-klocka.js';
 import { byggSeed, idag, addDagar, lokalTid } from '../src/db.js';
 import * as administrering from '../src/administrering.js';
 import * as lakemedel from '../src/lakemedel.js';
@@ -20,10 +21,10 @@ import { atk, testserver, klient, sandlada } from './hjalp.js';
 
 const kl = (k, dag = idag()) => lokalTid(dag, k);
 function sandladaKl(k = '13:30') {
-  setSystemTime(new Date(kl(k)));
+  stallKlockan(new Date(kl(k)));
   return byggSeed(new Date(kl(k)));
 }
-afterEach(() => setSystemTime());
+afterEach(() => aterstallKlockan());
 const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
 const katalog = (db, id) => db.query('SELECT * FROM katalog WHERE id = ?').get(id);
 const lak = (db, pid, val = {}, id = 'lak-kard') => atk(db, id, pid, val, 'ordinera');
@@ -203,7 +204,7 @@ describe('Dosändring', () => {
     const f = fhir.medicationRequest(db, lakemedel.hamtaRad(db, o.id));
     expect(f.dosageInstruction.map(d => d.timing.repeat.boundsPeriod)).toEqual([{ start, end: addDagar(om3, -1) }, { start: om3 }]);
     // När dagen kommer gäller den nya doseringen, också i dagens doser.
-    setSystemTime(new Date(kl('09:00', om3)));
+    stallKlockan(new Date(kl('09:00', om3)));
     const lista = lakemedel.lista(atk(db, 'lak-kard', 'p01', {}, 'las_lakemedel'));
     const nu = lista.ordinationer.find(x => x.id === o.id);
     expect(nu).toMatchObject({ dosering: '2 tabletter morgon och kväll', dos: 1000 });

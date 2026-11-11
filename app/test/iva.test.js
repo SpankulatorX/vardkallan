@@ -7,6 +7,7 @@ import * as iva from '../src/iva.js';
 import * as mt from '../src/medicinteknik.js';
 import * as konfiguration from '../src/konfiguration.js';
 import { MATTYPER } from '../src/journal.js';
+import { idag, addDagar, lokalTid } from '../src/db.js';
 
 let app;
 beforeAll(() => { app = testserver(); });
@@ -234,7 +235,10 @@ describe('Intensivvård', () => {
     expect(u.dagar).toBe(30);
     const e = u.enheter[0];
     expect(e.enhet).toMatchObject({ id: 'uso-kard-hia', platser: 8 });
-    expect(e.vardygn).toBeGreaterThanOrEqual(1.9);
+    // Runda 11, r1: patienten kom till hjärtintensiven i förrgår klockan 10, så vårddygnen räknas från den tiden till nu
+    // (1,6 strax efter midnatt och 2,0 klockan 10).
+    const sedan = (Date.now() - Date.parse(lokalTid(addDagar(idag(), -2), '10:00'))) / 86400_000;
+    expect(e.vardygn).toBeGreaterThanOrEqual(Math.min(1.9, Math.floor(sedan * 10) / 10 - 0.1));
     expect(e.vardtillfallen).toBeGreaterThanOrEqual(1);
     expect(e.belaggningProcent).toBe(Math.round(e.vardygn / (8 * 30) * 1000) / 10);
     expect(e.vardtyngd).toMatchObject({ overvakningProcent: 0, infusionProcent: 0 });

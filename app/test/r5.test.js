@@ -1,10 +1,11 @@
 // Runda 8, r5: mallen för tobaksvanor (Sussa testfall 4.1), epikrisens förslag och flera mätvärden på en gång (4.2 och
 // 4.3), vårdenheternas egna övningar, utloggningen och undantaget i barnhälsovårdsregistret som parametrar, och
 // villkoren för version 1.0. Testnamnen står i src/sussa/runda8-r5.js.
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll, afterEach } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { byggSeed } from '../src/db.js';
+import { byggSeed, idag } from '../src/db.js';
+import { aterstallKlockan, stallKlockan } from './falsk-klocka.js';
 import { Atkomst } from '../src/atkomst.js';
 import * as journal from '../src/journal.js';
 import * as tobak from '../src/tobak.js';
@@ -26,6 +27,9 @@ afterAll(() => app.stopp());
 const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
 const atk = (db, pid, patient, handling = 'las_oversikt', val = {}) => new Atkomst(db, personal(db, pid), patient, val, handling);
 const NU = new Date('2026-11-08T10:00:00Z');
+// Runda 11, r1: Gunnar Åkessons (p01, född 1945-02-02) ålder i dag, så att testet inte går ut när han fyller år.
+const alderP01 = () => { const [y, m, d] = idag().split('-').map(Number); return y - 1945 - (m < 2 || (m === 2 && d < 2) ? 1 : 0); };
+afterEach(() => aterstallKlockan());
 const ROKARE = { produkter: { cigaretter: { bruk: 'dagligen', antal: '25' } }, stod: 'accepterat', kommentar: 'Hon röker endast varannan vecka, när hennes barn är hos sin pappa.' };
 
 describe('Tobaksvanor', () => {
@@ -69,7 +73,7 @@ describe('Tobaksvanor', () => {
     expect(text).toContain('varannan vecka');
     expect(text).not.toContain('Ska inte sparas');
     expect(ny.tobak).toMatchObject({ svar: { anvander: 'ja', stod: 'accepterat' }, forslag: { kod: 'DV113' } });
-    expect(db.query('SELECT forslag, alder FROM tobaksvanor WHERE anteckning_id = ?').get(ny.id)).toEqual({ forslag: 'DV113', alder: 81 });
+    expect(db.query('SELECT forslag, alder FROM tobaksvanor WHERE anteckning_id = ?').get(ny.id)).toEqual({ forslag: 'DV113', alder: alderP01() });
     // Ett utkast ändras med svaren, aldrig med sökorden.
     expect(fel(() => journal.andraUtkast(a, journal.hamtaAnteckningRad(db, ny.id), { sokord: [{ sokord: 'Stöd', text: 'Eget' }] }))).toMatchObject({ status: 400 });
     const andrad = journal.andraUtkast(a, journal.hamtaAnteckningRad(db, ny.id), { tobak: { ...ROKARE, givet: true } });
@@ -148,6 +152,8 @@ describe('Tobaksvanor', () => {
 
 describe('Epikris och mätvärden', () => {
   test('epikrisen får Orsak till vård ur vårdtillfället och diagnoserna, och läkaren skriver bara förloppet och uppföljningen', () => {
+    // Runda 11, r1: Sussas testdata läggs vid NU, och vårdrelationen prövas mot klockan, så klockan står på NU.
+    stallKlockan(NU);
     const db = byggSeed(NU);
     laddaTestdata(db, personal(db, 'lak-kard'), { nu: NU });
     const f = strukturerad.epikrisForslag(atk(db, 'lak-kard', 'sus07', 'skriv_journal'));
