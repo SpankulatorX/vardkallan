@@ -213,6 +213,8 @@ FRASER.push('Office Open XML', 'X-Vardkallan-Simulerad');
 // Runda 11, r5: bilder, film och ljud (WebP, WebM, WAV, MP3, M4A, Ogg, EXIF), storleken i MB och arkivets DICOM och
 // DICOMweb (QIDO-RS, WADO-RS, PACS, VNA, XDS-I).
 for (const w of ['WebP', 'WebM', 'WAV', 'MP3', 'MP4', 'M4A', 'Ogg', 'EXIF', 'MB', 'DICOM', 'DICOMweb', 'QIDO-RS', 'WADO-RS', 'PACS', 'VNA', 'XDS-I', 'Media', 'ImagingStudy', 'Endpoint']) TILLATNA.add(w);
+// Runda 11, r6: datortomografi (DT), magnetkamera (MR) och hjärtintensivvårdsavdelningen (HIA).
+for (const w of ['DT', 'MR', 'HIA', 'DICOM']) TILLATNA.add(w);
 
 // Svenska ord som ofta skrivs utan å, ä eller ö. Formen utan prickar är inget eget ord.
 export const UTAN_PRICKAR = new Map(Object.entries({

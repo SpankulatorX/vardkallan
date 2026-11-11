@@ -79,7 +79,9 @@ describe('API', () => {
     const roller = await k.get('/api/demo/personal');
     expect(roller.data.map(r => r.id)).toEqual(['lak-kard', 'ssk-kard', 'usk-kard', 'lak-akut', 'lak-vc', 'lak-psyk', 'adm-kard', 'logg', 'ssk-vc', 'ark', 'uppf', 'kom-bist', 'far-kard', 'vch-kard', 'eko', 'sysf', 'sysf-2', 'fys-kard', 'bm-uso', 'opk-kkoga',
       // Runda 11, r4: farmaceuten på cytostatikaberedningen.
-      'far-bered', 'lak-onk', 'ssk-onk']);
+      'far-bered', 'lak-onk', 'ssk-onk',
+      // Runda 11, r6: röntgensjuksköterskan.
+      'rtg-ssk']);
 
     expect(roller.data[0]).toMatchObject({ namn: 'Sara Lindqvist', yrke: 'lakare', enhet: { id: 'uso-kard', namn: 'Kardiologiska kliniken USÖ' } });
     expect((await k.post('/api/login', { personalId: 'lak-ort' })).status).toBe(400);
@@ -368,7 +370,7 @@ describe('API', () => {
     const k = klient(app);
     await k.logga('lak-vc');
     const i = (await k.get('/api/inkorg')).data;
-    expect(Object.keys(i).sort()).toEqual(['aterinsattningar', 'aterlamnanden', 'avbokadeVardhandelser', 'beredningarAttKontrollera', 'beslutAttKvittera', 'bhvAttBoka', 'blodAvvikelser', 'cytoRapporter', 'cytoRegimversioner', 'delegeringarSomGarUt', 'donationsforslag', 'dubbletter', 'egnaBevakningar', 'fordjupadeGenomgangar', 'hemmatningarAttBekrafta', 'kollegakontrollerAttGora', 'kontrasigneringar', 'labbAttSignera', 'lakemedelsoverforingar', 'lakemedelsuppfoljningar', 'larm', 'licenserSomGarUt', 'mallarAttGodkanna', 'muntligaAttSignera', 'news2Larm', 'nllAvvikelser', 'okvitteradeSvar', 'osigneradeAnteckningar', 'provsvarAttVidimera', 'provsvarKritiska', 'rapportfel', 'remisserAttBedoma', 'remisserAttSignera', 'samordning', 'sparrFragor', 'tillvaxtLarm', 'tvangsvard', 'vardplanerUppfoljning']);
+    expect(Object.keys(i).sort()).toEqual(['aterinsattningar', 'aterlamnanden', 'avbokadeVardhandelser', 'beredningarAttKontrollera', 'beslutAttKvittera', 'bhvAttBoka', 'blodAvvikelser', 'cytoRapporter', 'cytoRegimversioner', 'delegeringarSomGarUt', 'donationsforslag', 'dubbletter', 'egnaBevakningar', 'fordjupadeGenomgangar', 'hemmatningarAttBekrafta', 'kollegakontrollerAttGora', 'kontrasigneringar', 'labbAttSignera', 'lakemedelsoverforingar', 'lakemedelsuppfoljningar', 'larm', 'licenserSomGarUt', 'mallarAttGodkanna', 'muntligaAttSignera', 'news2Larm', 'nllAvvikelser', 'okvitteradeSvar', 'osigneradeAnteckningar', 'provsvarAttVidimera', 'provsvarKritiska', 'provsvarRattade', 'rapportfel', 'remisserAttBedoma', 'remisserAttSignera', 'samordning', 'sparrFragor', 'tillvaxtLarm', 'tvangsvard', 'vardplanerUppfoljning']);
     expect(i.larm.map(l => `${l.patientId}:${l.typ}`).sort()).toEqual(['p06:svar_forsenat', 'p11:svar_ej_kvitterat']);
     expect(i.okvitteradeSvar.map(r => r.patientId)).toEqual(['p11']);
     expect(i.nllAvvikelser.map(a => a.patientId)).toEqual(['p10']);

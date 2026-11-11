@@ -101,4 +101,7 @@ export const PERSONAL = [
   { id: 'ssk-onk', namn: 'Elias Wickman', yrke: 'sjukskoterska', titel: 'Onkologisjuksköterska', enhet: 'uso-onk-dag', demo: true },
   { id: 'ol-onk', namn: 'Gunilla Norén', yrke: 'lakare', titel: 'Överläkare (onkologi)', enhet: 'uso-onk' },
   { id: 'vch-onk', namn: 'Peter Söderholm', yrke: 'verksamhetschef', titel: 'Verksamhetschef', enhet: 'uso-onk' },
+  // Runda 11, r6: röntgensjuksköterskan på röntgenkliniken tar emot, prioriterar och bokar beställda undersökningar och
+  // registrerar att de är gjorda (undersokningar.js). Hon läser inte journalen utan vårdrelation.
+  { id: 'rtg-ssk', namn: 'Linnea Forsman', yrke: 'sjukskoterska', titel: 'Röntgensjuksköterska', enhet: 'uso-rtg', demo: true },
 ];

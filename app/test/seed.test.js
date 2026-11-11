@@ -128,6 +128,8 @@ describe('Seed', () => {
       // Runda 11, r4: onkologen och onkologisjuksköterskan på Onkologiska kliniken.
       ['lak-onk', 'Rebecka Ståhl', 'lakare', 'uso-onk'],
       ['ssk-onk', 'Elias Wickman', 'sjukskoterska', 'uso-onk-dag'],
+      // Runda 11, r6: röntgensjuksköterskan på röntgenkliniken.
+      ['rtg-ssk', 'Linnea Forsman', 'sjukskoterska', 'uso-rtg'],
     ]);
   });
 

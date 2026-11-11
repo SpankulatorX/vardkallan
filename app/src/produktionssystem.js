@@ -32,6 +32,10 @@ import { CS } from './fhir-definitioner.js';
 import { FHIR_SYSTEM as ID_SYSTEM } from './identitet.js';
 // Transfusionsmedicin: blodkomponenter till blodcentralen (blod.js).
 import * as blod from './blod.js';
+// Runda 11, r6: rättade svar, koder och underlag i svaret (labb-svarsversioner.js och labb-underlag.js).
+import * as versioner from './labb-svarsversioner.js';
+import * as underlag from './labb-underlag.js';
+import { SYSTEM as KODSYSTEM_URI } from './kodverk.js';
 
 export const STANDARD = 'HL7 FHIR R4';
 export const ANALYS_SYSTEM = `${CS}/labbanalys`;
@@ -186,7 +190,8 @@ export function laggIUtkorg(db, b, labId, typ, nu = new Date()) {
   const prov = provIds.map(id => db.query('SELECT * FROM labb_prov WHERE id = ?').get(id)).filter(p => p?.skickad_tid && !ROR[p.ror]?.utanProv);
   const entry = [
     { fullUrl: `Patient/${b.patient_id}`, resource: patientResurs(db, b.patient_id) },
-    ...analyser.map(a => ({ fullUrl: `ServiceRequest/labb-${a.id}`, resource: labbFhir.serviceRequest(db, b, a) })),
+    // Runda 11, r6: parametrarna för vad som förs över till det mottagande systemet gäller (konfiguration.js).
+    ...analyser.map(a => ({ fullUrl: `ServiceRequest/labb-${a.id}`, resource: labbFhir.serviceRequest(db, b, a, { mottagare: true }) })),
     ...prov.map(p => ({ fullUrl: `Specimen/labb-${p.id}`, resource: labbFhir.specimen(db, b, p) })),
   ];
   db.query('INSERT INTO ps_meddelanden (riktning, lab_id, typ, bestallning_id, patient_id, enhet_id, innehall, tid, resultat) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
@@ -317,9 +322,21 @@ export function taEmotSvar(db, labId, dr, nu = new Date()) {
   const { a, b } = analysFor(db, labId, dr);
   const avvisa = (text) => { meddelandeIn(db, labId, 'svar', { bestallning: b, resultat: 'avvisat', orsak: text, nu }); return ogiltig(text); };
   if (b.makulerad_tid || a.status === 'makulerad') throw avvisa('Beställningen är makulerad. Svaret tas inte emot.');
-  if (a.status === 'besvarad') throw avvisa('Analysen är redan besvarad. Ett rättat svar tas upp med den ansvariga läkaren.');
-  if (!['skickad', 'mottagen'].includes(a.status)) throw avvisa('Provet är inte skickat till laboratoriet ännu.');
-  if (dr.status !== 'final') throw avvisa('Vårdkällan tar emot slutsvar med status final. Skicka status received eller in-progress med en Task medan analysen pågår.');
+  // Runda 11, r6: ett rättat svar har status corrected eller amended och ersätter det tidigare (labb-svarsversioner.js).
+  const rattat = ['corrected', 'amended'].includes(dr.status);
+  if (a.status === 'besvarad' && !rattat) throw avvisa('Analysen är redan besvarad. Skicka ett rättat svar med status corrected och skriv orsaken till rättelsen.');
+  if (rattat && a.status !== 'besvarad') throw avvisa('Analysen är inte besvarad än. Skicka svaret med status final.');
+  if (!rattat && !['skickad', 'mottagen'].includes(a.status)) throw avvisa('Provet är inte skickat till laboratoriet ännu.');
+  if (!rattat && dr.status !== 'final') throw avvisa('Vårdkällan tar emot slutsvar med status final och rättade svar med status corrected. Skicka status received eller in-progress med en Task medan analysen pågår.');
+  // Runda 11, r6: ett patientnära instrument anger provets etikett i specimen, och den ska vara analysens.
+  const etikett = (dr.specimen ?? []).map(x => x?.identifier?.value).find(x => typeof x === 'string');
+  if (etikett != null && etikett !== db.query('SELECT etikett FROM labb_prov WHERE id = ?').get(a.prov_id)?.etikett) throw avvisa('Etiketten i specimen hör inte till analysen. Läs av etiketten på provet igen.');
+  let koder, filer;
+  try {
+    const koding = [...(dr.code?.coding ?? []), ...(dr.conclusionCode ?? []).flatMap(c => c?.coding ?? [])].filter(c => c?.system === KODSYSTEM_URI.kva || (c?.system === 'http://snomed.info/sct' && !FYND_FOR_KOD.has(c.code) && !['10828004', '260385009'].includes(c.code)));
+    koder = koding.length ? versioner.provaKoder(koding.map(c => ({ system: c.system === KODSYSTEM_URI.kva ? (/^V[A-Z]\d{3}$/.test(c.code ?? '') ? 'svf' : 'kva') : 'snomed', kod: c.code, text: c.display }))) : null;
+    filer = underlag.provaAlla(db, (dr.presentedForm ?? []).map(f => ({ namn: f?.title ?? 'underlag', data: f?.data })), b.id);
+  } catch (e) { if (e instanceof Fel) throw avvisa(e.message); throw e; }
   const def = ANALYS[a.analys];
   const prov = db.query('SELECT provtagen_tid FROM labb_prov WHERE id = ?').get(a.prov_id);
   const svar = { varden: [], provtagen: prov?.provtagen_tid ?? b.planerad, text: null, fynd: null, avvikande: null, kritisk: 0 };
@@ -369,6 +386,18 @@ export function taEmotSvar(db, labId, dr, nu = new Date()) {
       if (a.analys === 'blodgruppering' && !blod.tolkaBlodgrupp(text)) throw avvisa('Skriv blodgruppen i conclusion som "Blodgrupp A RhD positiv".');
       svar.text = text;
     }
+  }
+  if (koder) svar.koder = koder;
+  if (filer.length) svar.underlag = filer;
+  const instrument = (dr.performer ?? []).map(x => x?.identifier?.value).find(x => typeof x === 'string');
+  if (instrument && LAB[labId]?.instrument) svar.instrument = instrument.slice(0, 60);
+  if (rattat) {
+    const orsak = (dr.extension ?? []).find(x => /rattelse|correction/.test(x?.url ?? ''))?.valueString ?? dr.presentedForm?.[0]?.title ?? (typeof dr.note?.[0]?.text === 'string' ? dr.note[0].text : '');
+    let r;
+    try { r = versioner.ratta(db, b, a, svar, { orsak, kalla: `ps:${labId}` }, nu); } catch (e) { if (e instanceof Fel) throw avvisa(e.message); throw e; }
+    if (filer.length) underlag.spara(db, b, filer, { riktning: 'svar', analysId: a.id, kalla: LAB[labId]?.kort ?? labId, nu });
+    meddelandeIn(db, labId, 'svar', { bestallning: b, resultat: 'mottaget', nu });
+    return { text: r.text };
   }
   if (a.status === 'skickad') db.query("UPDATE labb_analyser SET status = 'mottagen', mottagen_tid = ? WHERE id = ?").run(iso(nu), a.id);
   labb.registreraSvar(db, b, db.query('SELECT * FROM labb_analyser WHERE id = ?').get(a.id), svar, nu);

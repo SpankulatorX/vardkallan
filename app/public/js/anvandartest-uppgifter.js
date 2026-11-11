@@ -71,6 +71,8 @@ export const STARTPUNKT = {
   // Runda 11, r4: Annika Holmgren med cytostatika, och beredningsenheten med en godkänd kur.
   'Journalen för patienten med cytostatika': { hash: '#/patient/p17', klar: '.patientband h1', forbered: 'aterstall' },
   'Beredningsenheten med en godkänd kur': { hash: '#/nyheter', klar: 'main h1', forbered: 'cytostatika-kur' },
+  // Runda 11, r6: röntgenklinikens arbetslista efter återställning, med undersökningar som väntar på tid.
+  'Röntgenklinikens undersökningar efter återställning': { hash: '#/undersokningar', klar: '#us-boka', forbered: 'aterstall' },
 };
 
 export const UPPGIFTER = [
@@ -617,6 +619,17 @@ export const UPPGIFTER = [
     id: 'visa-studie', namn: 'Visa en röntgenstudie ur arkivet med ett annat fönster', roll: 'lak-kard', start: 'Patientens översikt',
     text: 'Gunnar Åkesson har gjort en lungröntgen. Titta på bilderna och se skelettet tydligare.',
     kontroll: { sel: '.bm-studie img' },
+  },
+  // Runda 11, r6: undersökningar i beställning och svar och röntgenklinikens bokning (Sussa 4.4.2.6 till 4.4.2.8).
+  {
+    id: 'bestall-undersokning', namn: 'Beställa en röntgenundersökning', roll: 'lak-kard', start: 'Översikten för den inlagda patienten efter återställning',
+    text: 'Gunnar Åkesson har ont i höger knä sedan han föll. Beställ en röntgen av knäleden.',
+    kontroll: { notis: 'är beställt' },
+  },
+  {
+    id: 'boka-undersokning', namn: 'Boka en inkommen undersökning på röntgenkliniken', roll: 'rtg-ssk', start: 'Röntgenklinikens undersökningar efter återställning',
+    text: 'Du arbetar på röntgenkliniken. Boka den undersökning som är mest brådskande.',
+    kontroll: { notis: 'är bokad' },
   },
   // Runda 11, r4: cytostatika, regimbiblioteket, blod och beredningsenheten.
   {

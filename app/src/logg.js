@@ -20,6 +20,7 @@ GRUNDER.push('samtycke');
 GRUNDER.push('ombud');
 // Runda 11, r4: beredningsenheten utför en beredningsorder som vårdenheten har skickat till den, som laboratoriet utför en
 // beställning (cytostatika-beredning.js).
+// Runda 11, r6: den utförande enheten (röntgenkliniken) läser beställningen den har fått (undersokningar.js).
 GRUNDER.push('utforande');
 export const INVANARGRUNDER = ['egen_atkomst', 'vardnadshavare'];
 const NOLL = '0'.repeat(64);

@@ -51,6 +51,15 @@ export const UNDERSOKNINGAR = tabell({
   hoftled: { namn: 'Röntgen höftled', arkiv: 'rontgen', modalitet: 'DX', bilder: 3, utlatande: 'Simulerat utlåtande: Lätt minskad ledspringa. Ingen fraktur.' },
   dt_hjarna: { namn: 'Datortomografi av hjärnan', arkiv: 'rontgen', modalitet: 'CT', bilder: 120, utlatande: 'Simulerat utlåtande: Ingen blödning eller expansivitet. Normal ventrikelvidd.' },
   hudfoto: { namn: 'Dermatoskopi och översiktsfoto', arkiv: 'hud', modalitet: 'XC', bilder: 4, utlatande: 'Simulerat utlåtande: Regelbundet pigmentnät utan atypiska strukturer.' },
+  // Runda 11, r6: undersökningarna som läkaren beställer i beställning och svar (labb-katalog.js, undersokningar.js).
+  // Röntgenkliniken lägger studien i arkivet när undersökningen är gjord, och utlåtandet länkar till den med studiens id.
+  rtg_kna: { namn: 'Röntgen knäled', arkiv: 'rontgen', modalitet: 'DX', bilder: 2, utlatande: 'Simulerat utlåtande: Normal ledspringa. Ingen fraktur eller ledvätska.' },
+  dt_buk: { namn: 'DT buk med kontrast', arkiv: 'rontgen', modalitet: 'CT', bilder: 300, utlatande: 'Simulerat utlåtande: Inga tecken till tumör eller abscess. Normala parenkymatösa organ.' },
+  dt_torax: { namn: 'DT torax med kontrast', arkiv: 'rontgen', modalitet: 'CT', bilder: 250, utlatande: 'Simulerat utlåtande: Rundhärd 18 mm i höger överlob, förenlig med tumör. Inga förstorade lymfkörtlar.' },
+  mr_hjarna: { namn: 'MR hjärna', arkiv: 'rontgen', modalitet: 'MR', bilder: 180, utlatande: 'Simulerat utlåtande: Inga vitsubstansförändringar. Ingen expansivitet.' },
+  mr_kna: { namn: 'MR knäled', arkiv: 'rontgen', modalitet: 'MR', bilder: 160, utlatande: 'Simulerat utlåtande: Ingen menisk- eller korsbandsskada.' },
+  ul_buk: { namn: 'Ultraljud buk', arkiv: 'rontgen', modalitet: 'US', bilder: 12, utlatande: 'Simulerat utlåtande: Gallblåsa utan konkrement. Normal lever och mjälte.' },
+  ul_njurar: { namn: 'Ultraljud njurar', arkiv: 'rontgen', modalitet: 'US', bilder: 8, utlatande: 'Simulerat utlåtande: Normalstora njurar utan avflödeshinder.' },
 });
 
 export const SCHEMA = `

@@ -265,6 +265,15 @@ describe('Åtgärder med KVÅ', () => {
       TKC20: 'Kateterisering av urinblåsa genom urinröret', DK021: 'Avlägsnande av urinkateter inlagd genom urinröret',
       DK010: 'Inläggande av suprapubisk kateter', DK023: 'Avlägsnande av suprapubisk kateter/cystostomikateter',
       TJD00: 'Nasogastrisk eller nasogastroduodenal sond', DV005: 'Avlägsnande av dränage', AV124: 'Undersökning av potentiell donator',
+      // Runda 11, r6: undersökningarna i radiologi, klinisk fysiologi och klinisk neurofysiologi och starten av SVF.
+      AF053: 'Röntgenundersökning, hjärta och lungor (med eller utan hjärtvolymsbedömning)', AN062: 'Röntgenundersökning, höftled med halvaxial sidobild',
+      AN063: 'Röntgenundersökning, knäled', AA014: 'Datortomografi, hjärna, utan intravenös kontrast', AJ004: 'Datortomografi, buk (ospecificerat)',
+      AG009: 'Datortomografi, torax', AA045: 'Magnetresonanstomografi, hjärna', AN042: 'Magnetresonanstomografi, knäled',
+      AJ084: 'Ultraljudsundersökning, översikt av buken', AK044: 'Ultraljudsundersökning, njurar', AF022: 'Elektrokardiografi (EKG), 12 avledningar, standard',
+      AF012: 'Arbets-EKG, standard', AF020: 'Doppler ekokardiografi, transtorakal, enkel', AA024: 'Elektroencefalografi (EEG), vaken',
+      AA058: 'Neurografi, motorisk och sensorisk', VC010: 'SVF lungcancer - beslut välgrundad misstanke om cancer',
+      VB210: 'SVF tjock- och ändtarmscancer - beslut välgrundad misstanke om cancer', VG910: 'SVF bröstcancer - beslut välgrundad misstanke om cancer',
+      VP810: 'SVF cancermisstanke vid allvarliga, ospecifika symtom - beslut välgrundad misstanke om cancer',
     });
     expect(SYSTEM.kva).toBe('urn:oid:1.2.752.116.1.3.2.1.4');
   });

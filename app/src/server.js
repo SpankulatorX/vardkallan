@@ -73,7 +73,7 @@ import * as omorganisation from './omorganisation.js';
 import { registreraRutter as bhvRutter, inkorg as bhvInkorg, session as bhvSession } from './bhv-rutter.js';
 import { minTillvaxt } from './bhv.js';
 // Runda 8, r1: beställning och svar, provtagning och kontrollerna till avdelningen (labb-rutter.js).
-import { registreraRutter as labbRutter, inkorg as labbInkorg, efterTid as labbEfterTid } from './labb-rutter.js';
+import { registreraRutter as labbRutter, inkorg as labbInkorg, efterTid as labbEfterTid, MIN_DELAR as labbMinDelar } from './labb-rutter.js';
 // Runda 9, r3: operation, blodprodukter, graviditet och förlossning, cytostatika och bilder (r9r3-rutter.js).
 import { registreraRutter as r9r3Rutter } from './r9r3-rutter.js';
 // Runda 11, r5: bilder och media 1.1, uppladdning i delar, annoteringar, import och DICOMweb (r11r5-rutter.js).
@@ -1701,6 +1701,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   MIN_DELAR.graviditet = (atk) => minGraviditet(atk);
   // Runda 11, r4: den överlämnade perorala cytostatikabehandlingen och patientens rapporter.
   MIN_DELAR.cytostatika = (atk) => cytoMinBehandling(atk);
+  // Runda 11, r6: patientens beställningar med status (labb-rutter.js).
+  Object.assign(MIN_DELAR, labbMinDelar);
   rutt('GET', '/api/min/journal/:id', (c, id) => medMinJournal(c, id, 'min:journal', (atk) => ({ ...minJournal.huvud(atk), graviditet: harMinGraviditet(atk), ...cytoMinHuvud(atk) })));
   rutt('GET', '/api/min/journal/:id/:del', (c, id, del) => {
     if (!Object.hasOwn(MIN_DELAR, del)) throw new Fel(404, 'Okänd adress.', 'saknas');

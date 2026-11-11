@@ -15,7 +15,7 @@ export const SJUKHUS = { uso: '55010', kkoga: '55011', lind: '55012' };
 // Medicinska verksamhetsområden (MVO) ur Socialstyrelsens kodlista över verksamhetsområden.
 export const MVO = {
   '011': 'Distriktsläkarvård', '100': 'Akutklinik', '101': 'Internmedicinsk vård', '121': 'Infektionssjukvård', '231': 'Kardiologisk vård',
-  '311': 'Ortopedisk vård', '411': 'Anestesi- och intensivvård', '441': 'Förlossningsvård (BB)', '451': 'Obstetrisk och gynekologisk vård', '901': 'Allmänpsykiatrisk vård, vuxna',
+  '311': 'Ortopedisk vård', '411': 'Anestesi- och intensivvård', '441': 'Förlossningsvård (BB)', '731': 'Medicinsk radiologisk vård', '451': 'Obstetrisk och gynekologisk vård', '901': 'Allmänpsykiatrisk vård, vuxna',
   // Runda 11, r4: kontrollerad mot kodlistan (sha256 11ce6a97...).
   '741': 'Onkologisk vård, allmän',
 };
@@ -36,6 +36,8 @@ export const ENHETER = {
   'uso-kk': { sjukhus: 'uso', mvo: '451' },
   // Runda 11, r4: onkologiska kliniken (cytostatika.js).
   'uso-onk': { sjukhus: 'uso', mvo: '741' },
+  // Runda 11, r6: röntgenkliniken (undersokningar.js), 731 Medicinsk radiologisk vård i samma kodlista.
+  'uso-rtg': { sjukhus: 'uso', mvo: '731' },
   'lind-med': { sjukhus: 'lind', mvo: '101' },
   'kkoga-ort': { sjukhus: 'kkoga', mvo: '311' },
   // Runda 11, r2: anestesienheterna (beslut 2026-11-10).

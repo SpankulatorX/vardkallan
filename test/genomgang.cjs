@@ -221,7 +221,7 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
 
   try {
     // Utan inloggning
-    await s('inloggningssidan visar de tjugotre demorollerna och demoraden', async () => {
+    await s('inloggningssidan visar de tjugofyra demorollerna och demoraden', async () => {
       await page.goto(`${BAS}/`);
       await page.waitForSelector('.roll');
       const n = await page.locator('.roll').count();
@@ -230,7 +230,8 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
       // Runda 11, r2: operationskoordinatorn i Karlskoga är den nittonde.
       // Runda 11, r3: barnmorskan Sofia Ekdahl på förlossningen och BB.
       // Runda 11, r4: farmaceuten på cytostatikaberedningen, onkologen och onkologisjuksköterskan.
-      if (n !== 23) throw new Error(`${n} roller`);
+      // Runda 11, r6: röntgensjuksköterskan på röntgenkliniken.
+      if (n !== 24) throw new Error(`${n} roller`);
       await forvanta(page, '.demorad', 'Demo med påhittade patienter och testpersonnummer från Skatteverket. Inte för vård av riktiga patienter.');
       await forvanta(page, '.sidfot', 'Vårdkällan är ett fristående demoprojekt med öppen källkod (EUPL 1.2). Det är inte en tjänst från Region Örebro län.');
       await forvanta(page, '#roll-lak-akut-visar', 'Nödåtkomst');
@@ -1757,6 +1758,47 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
       await page.waitForLoadState('networkidle');
     });
     await allaVyer(page, 'Nora Ekholm', MENY.systemforvaltare);
+    // Runda 11, r6: läkaren beställer röntgen och ultraljud i fliken Prover, och röntgensjuksköterskan bokar och
+    // registrerar undersökningen i röntgenklinikens arbetslista. Menyn räknas fram när alla tillägg i MENY är gjorda.
+    await s('Sara Lindqvist beställer röntgen och ultraljud för Gunnar Åkesson och ser dem bland det planerade', async () => {
+      await loggaIn(page, 'lak-kard');
+      await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()));
+      await gaTill(page, '#/patient/p01/prover');
+      await forvanta(page, '#pr-plan', 'Planerat för patienten');
+      await forvanta(page, '.pr-planerat', 'Ultraljud buk');
+      await page.click('[data-ny-prov]');
+      await page.click('#pr-valj summary');
+      await page.click('label[for="pr-a-rtg_kna"]');
+      await page.click('label[for="pr-a-ul_njurar"]');
+      await forvanta(page, '#pr-anamnes-etikett', 'Frågeställning');
+      await page.selectOption('#pr-prio', 'snart');
+      await bild(page, 'r6-bestall-undersokning');
+      await page.click('[data-bestall-valda]');
+      await forvanta(page, '.notis', 'är beställt');
+      await forvanta(page, '#pr-lista .pr-best', 'Röntgen knäled');
+      await forvanta(page, '.pr-planerat', 'Ultraljud njurar');
+      await page.waitForLoadState('networkidle');
+    });
+    await s('Linnea Forsman bokar en inkommen undersökning på röntgenkliniken och registrerar att den är gjord', async () => {
+      await loggaIn(page, 'rtg-ssk');
+      await forvanta(page, '.inloggad', 'Linnea Forsman');
+      await gaTill(page, '#/undersokningar');
+      await forvanta(page, '#us-boka', 'Att boka');
+      await forvanta(page, '#us', 'Röntgen höftled');
+      await bild(page, 'r6-rontgen-arbetslista');
+      await page.locator('#us [data-boka]').first().click();
+      await forvanta(page, '.notis', 'är bokad');
+      await page.locator('#us [data-utford]').first().click();
+      await forvanta(page, '.notis', 'Radiologen skriver utlåtandet');
+      await page.locator('#us [data-utlatande]').first().click();
+      await forvanta(page, '.notis', 'Utlåtandet');
+      await page.waitForLoadState('networkidle');
+    });
+    {
+      const rontgen = MENY.sjukskoterska.filter(x => !['Prover och kontroller', 'Intensivvård'].includes(x));
+      rontgen.splice(rontgen.indexOf('Läkemedel att ge') + 1, 0, 'Undersökningar');
+      await allaVyer(page, 'Linnea Forsman', rontgen);
+    }
     // Runda 7, r1: fysioterapeuten och Sussas testfall. Testdatan läggs in i demoläget, och fysioterapeuten besvarar
     // en remiss som paramedicinare.
     await s('Jenny Holmberg lägger in Sussas testdata och besvarar remissen för Sara Sandmark som paramedicinare', async () => {
@@ -2164,7 +2206,9 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
         // Runda 11, r4: cytostatika, regimbiblioteket, blod och beredningsenheten.
         'cyto-godkann', 'regim-godkann', 'blod-bestall', 'cyto-bered',
         // Runda 11, r5: bilder och media.
-        'bild-fran-fil', 'jamfor-bilder', 'bild-fran-apparat', 'visa-studie']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'bild-fran-fil', 'jamfor-bilder', 'bild-fran-apparat', 'visa-studie',
+        // Runda 11, r6: röntgenundersökningen och bokningen på röntgenkliniken.
+        'bestall-undersokning', 'boka-undersokning']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');
@@ -2213,7 +2257,9 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
   const MOBILROLLER = [['lak-kard', 'Sara Lindqvist'], ['ssk-kard', 'Johan Ek'], ['usk-kard', 'Amira Haddad'], ['lak-akut', 'Erik Nyström'], ['lak-vc', 'Per Holm'],
     ['lak-psyk', 'Lena Ström'], ['adm-kard', 'Karin Berg'], ['logg', 'Mats Wall'], ['ark', 'Ingela Nord'], ['uppf', 'Daniel Sund'], ['kom-bist', 'Lisa Ahlgren'], ['far-kard', 'Elsa Nordin'], ['vch-kard', 'Ulrika Sandell'], ['eko', 'Fredrik Alm'], ['sysf', 'Tomas Lindh'], ['sysf-2', 'Nora Ekholm'],
     // Runda 7, r1.
-    ['fys-kard', 'Jenny Holmberg']];
+    ['fys-kard', 'Jenny Holmberg'],
+    // Runda 11, r6.
+    ['rtg-ssk', 'Linnea Forsman']];
   try {
     if (!fel.length) {
       await s('mobil: inloggningen på 360 px', async () => {

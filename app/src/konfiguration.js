@@ -467,6 +467,8 @@ export function parametrar() {
     // Runda 10, r5: opioider per administrationssätt och riskgrupperna i vaccinationsprogrammen.
     alla['lakemedel.kollegakontroll.opioider'] = opioidparameter();
     alla['vaccination.riskgrupper'] = riskparameter();
+    // Runda 11, r6: beställning och svar (Sussa 12.1.1.9).
+    Object.assign(alla, labbR11Parametrar());
   }
   return alla;
 }
@@ -502,15 +504,24 @@ export function prova(nyckel, inmatat) {
     const v = typeof inmatat === 'boolean' ? inmatat : { ja: true, true: true, nej: false, false: false }[String(inmatat ?? '').trim().toLowerCase()];
     return typeof v === 'boolean' ? { ok: true, varde: v } : { ok: false, varfor: 'Välj ja eller nej.' };
   }
+  // Runda 11, r6: en text, som provtagningsanvisningen för en analys.
+  if (def.typ === 'text') {
+    const t = typeof inmatat === 'string' ? inmatat.trim().replace(/\s+/g, ' ') : '';
+    if (t.length < 10) return { ok: false, varfor: 'Skriv en anvisning på minst tio tecken. En tom anvisning hjälper inte patienten eller den som tar provet.' };
+    if (t.length > (def.max ?? 400)) return { ok: false, varfor: `Anvisningen får vara högst ${def.max ?? 400} tecken. Den ska rymmas på provtagningsanvisningen och i kallelsen.` };
+    if (/[\u2014\u2013\u2026]/.test(t)) return { ok: false, varfor: 'Skriv utan tankstreck och ellipser, så att texten blir lätt att läsa.' };
+    return { ok: true, varde: t };
+  }
   if (def.typ === 'lista') {
-    const lista = (Array.isArray(inmatat) ? inmatat : String(inmatat ?? '').split(/[,\n]/)).map(s => String(s).trim()).filter(Boolean);
+    // Runda 11, r6: en lista med namn som har kommatecken (arbetsplatser) skiljs med semikolon.
+    const lista = (Array.isArray(inmatat) ? inmatat : String(inmatat ?? '').split(def.avgransare ?? /[,\n]/)).map(s => String(s).trim()).filter(Boolean);
     // Runda 8, r1: en lista med egen prövning, som paketen i beställning och svar.
     if (def.provaLista) {
       // Runda 10, r5: en lista som får vara tom (opioider utan kollegakontroll).
       if (!lista.length && def.tomTillaten) return { ok: true, varde: [] };
       const fel = def.provaLista(lista);
       if (fel) return { ok: false, varfor: fel };
-      return { ok: true, varde: lista.map(s => labbAnalysNamn.get(s.toLocaleLowerCase('sv'))?.namn ?? s) };
+      return { ok: true, varde: def.normalisera ? def.normalisera(lista) : lista.map(s => labbAnalysNamn.get(s.toLocaleLowerCase('sv'))?.namn ?? s) };
     }
     if (!lista.length) return { ok: false, varfor: 'Mallen behöver minst ett sökord, annars har den som skriver inget att utgå från.' };
     if (lista.length > SOKORD_MAX) return { ok: false, varfor: `En mall kan ha högst ${SOKORD_MAX} sökord. Fler går inte att överblicka, och en anteckning kan alltid få fler sökord när den skrivs.` };
@@ -533,7 +544,7 @@ export function prova(nyckel, inmatat) {
 
 // Runda 8, r5: ett ja eller nej som redan gäller beskrivs med regelns text.
 const redan = (def, v) => (def.typ === 'janej' ? `Det gäller redan: ${visa(def, v).toLowerCase()}.` : `Värdet är redan ${visa(def, v)}.`);
-const visa = (def, v) => (def.typ === 'lista' ? v.join(', ') : def.typ === 'janej' ? def.text[String(v)] : `${v} ${def.enhet}`);
+const visa = (def, v) => (def.typ === 'lista' ? v.join(def.avgransare ? '; ' : ', ') : def.typ === 'janej' ? def.text[String(v)] : def.typ === 'text' ? v : `${v} ${def.enhet}`);
 const lika = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const personnamn = (db, id) => (id ? db.query('SELECT namn FROM personal WHERE id = ?').get(id)?.namn ?? id : null);
 
@@ -673,7 +684,7 @@ export function oversikt(db, personal, nu = new Date()) {
       const kommande = per(nyckel).filter(a => a.status === 'godkand' && a.galler_fran > dag).sort((a, b) => a.galler_fran.localeCompare(b.galler_fran))[0];
       const vantar = per(nyckel).find(a => a.status === 'vantar');
       return {
-        nyckel, rubrik: d.rubrik, beskrivning: d.beskrivning, typ: d.typ, enhet: d.enhet ?? null, min: d.min ?? null, max: d.max ?? null, text: d.text ?? null,
+        nyckel, rubrik: d.rubrik, beskrivning: d.beskrivning, typ: d.typ, enhet: d.enhet ?? null, min: d.min ?? null, max: d.max ?? null, text: d.text ?? null, ledtext: d.ledtext ?? null, semikolon: Boolean(d.avgransare),
         varde: g, vardeText: visa(d, g), standard: d.standard, arStandard: lika(g, d.standard), anvands: d.anvands,
         kommande: kommande ? { gallerFran: kommande.galler_fran, vardeText: visa(d, JSON.parse(kommande.varde)) } : null,
         vantar: vantar ? andringUt(db, vantar, personal) : null,
@@ -693,4 +704,74 @@ export function oversikt(db, personal, nu = new Date()) {
 // Journalens mallar med de sökord som gäller i dag (GET /api/mallar).
 export function mallar(db, nu = new Date()) {
   return journalMallar().map(m => (m.strukturerad ? { ...m } : { ...m, sokord: varde(db, `journal.sokord.${m.typ}`, nu) }));
+}
+
+// Runda 11, r6: beställning och svar, del 2 (Sussa 12.1.1.9). Vilken information som förs över till det mottagande
+// systemet (producentsystemet), vilka arbetsplatser som har en etikettskrivare och anvisningarna till den som tar provet
+// och till patienten inför en undersökning. Ändringen slår igenom i utkorgen till producentsystemen, i etiketterna, i
+// provtagningsanvisningen, i beställningen och i Min journal. Patientens identitet, beställnings-id och analyserna förs
+// alltid över, eftersom laboratoriet inte kan ta emot en beställning utan dem.
+import { ENHETER as SEED_ENHETER } from './seed/enheter.js';
+export const LABB_OVERFORING = {
+  kommentar: { namn: 'Kommentaren till laboratoriet', standard: true },
+  underlag: { namn: 'Bifogade underlag', standard: true },
+  svf: { namn: 'Standardiserat vårdförlopp och prioritet', standard: true },
+  diagnoser: { namn: 'Patientens diagnoser på den beställande vårdenheten', standard: false },
+};
+export const LABB_ETIKETTSKRIVARE = ['Avdelning 72, kardiologi', 'Hjärtintensivvårdsavdelningen (HIA)', 'Akutmottagningen USÖ'];
+export const LABB_ANVISNINGAR = {
+  glukos: 'P-Glukos tas helst fastande, minst åtta timmar utan mat.',
+  urinodling: 'U-Odling tas som mittstråleurin, helst morgonurin som har stått i blåsan minst fyra timmar.',
+  blododling: 'Blododlingen tas före antibiotika, med två flaskor från samma stick.',
+  dt_buk: 'Ät inte de sista fyra timmarna före undersökningen. Drick som vanligt. Du får kontrast i ett blodkärl i armen.',
+  dt_torax: 'Du får kontrast i ett blodkärl i armen. Drick extra vatten dagen efter undersökningen.',
+  ul_buk: 'Ät och drick inte de sista sex timmarna före undersökningen. Ta dina vanliga läkemedel med lite vatten.',
+  mr_hjarna: 'Ta av smycken, klocka och hörapparat före undersökningen. Berätta för personalen om du har något implantat.',
+  mr_kna: 'Ta av smycken och klocka före undersökningen. Berätta för personalen om du har något implantat.',
+  arbetsprov: 'Ha bekväma kläder och skor. Ät inte de sista två timmarna före undersökningen.',
+  eeg: 'Tvätta håret kvällen före och använd inget hårvax eller balsam.',
+};
+const ANVISNING_NAMN = Object.fromEntries(LABB_ANALYSER.map(a => [a.id, a.namn]));
+function labbR11Parametrar() {
+  const ut = {};
+  for (const [id, f] of Object.entries(LABB_OVERFORING)) {
+    ut[`labb.overfor.${id}`] = {
+      omrade: 'bestallning', rubrik: `Förs över till laboratoriet: ${f.namn.toLocaleLowerCase('sv')}`, typ: 'janej', standard: f.standard, anvands: 'labb-fhir.js och utkorgen till producentsystemen',
+      text: { true: 'Förs över till det mottagande systemet', false: 'Förs inte över' },
+      beskrivning: `Om ${f.namn.toLocaleLowerCase('sv')} förs över till laboratoriets eller röntgenklinikens system med beställningen. Patientens identitet, beställnings-id, analyserna och frågeställningen förs alltid över.`,
+      effekt: (db, nytt) => [nytt ? `${f.namn} förs över med nya beställningar till producentsystemen.` : `${f.namn} förs inte över med nya beställningar till producentsystemen.`, 'Beställningar som redan ligger i utkorgen ändras inte.'],
+    };
+  }
+  const arbetsplatser = new Map(SEED_ENHETER.filter(e => ['arbetsplats', 'vardenhet'].includes(e.typ)).map(e => [e.namn.toLocaleLowerCase('sv'), e]));
+  ut['labb.etikettskrivare'] = {
+    omrade: 'bestallning', rubrik: 'Arbetsplatser med etikettskrivare', enhet: 'arbetsplatser', typ: 'lista', standard: [...LABB_ETIKETTSKRIVARE], anvands: 'labb-rutter.js och etiketterna',
+    ledtext: 'Arbetsplatserna med etikettskrivare, med semikolon emellan', avgransare: /[;\n]/,
+    beskrivning: 'På de här arbetsplatserna skrivs en etikett per rör på etikettskrivaren. Övriga arbetsplatser skriver etiketterna på A4-ark. Formatet kan alltid väljas i utskriften.',
+    provaLista: (lista) => {
+      if (lista.length > 40) return 'Högst 40 arbetsplatser.';
+      const sedda = new Set();
+      for (const n of lista) {
+        const e = arbetsplatser.get(n.toLocaleLowerCase('sv'));
+        if (!e) return `${n} finns inte bland vårdenheterna och arbetsplatserna. Skriv namnet som i organisationen, till exempel ${LABB_ETIKETTSKRIVARE[0]}.`;
+        if (sedda.has(e.id)) return `${e.namn} står två gånger.`;
+        sedda.add(e.id);
+      }
+      return null;
+    },
+    tomTillaten: true,
+    normalisera: (lista) => lista.map(n => arbetsplatser.get(n.toLocaleLowerCase('sv'))?.namn ?? n),
+    effekt: (db, nytt, forra) => {
+      const nya = nytt.filter(x => !forra.includes(x));
+      const borta = forra.filter(x => !nytt.includes(x));
+      return [nya.length ? `Skriver en etikett per rör: ${nya.join(', ')}.` : '', borta.length ? `Skriver på A4-ark: ${borta.join(', ')}.` : ''].filter(Boolean);
+    },
+  };
+  for (const [id, t] of Object.entries(LABB_ANVISNINGAR)) {
+    ut[`labb.anvisning.${id}`] = {
+      omrade: 'bestallning', rubrik: `Anvisning: ${ANVISNING_NAMN[id] ?? id}`, typ: 'text', standard: t, max: 400, anvands: 'provtagningsanvisningen, beställningen och Min journal',
+      beskrivning: `Förberedelsen inför ${ANVISNING_NAMN[id] ?? id}, som står på provtagningsanvisningen och visas för patienten i Min journal när tiden är bokad.`,
+      effekt: () => ['Den nya anvisningen visas på provtagningsanvisningen och i Min journal från dagen den gäller.'],
+    };
+  }
+  return ut;
 }

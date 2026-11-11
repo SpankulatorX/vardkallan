@@ -650,6 +650,8 @@ export function mallen() {
     require('./cytostatika-demo.js').seeda(db);
     // Runda 11, r5: demons bilder och lungröntgen för Gunnar Åkesson, i mallen och inte i seeden som testerna bygger på.
     require('./bildmedia.js').demo(db);
+    // Runda 11, r6: undersökningar som väntar på tid och är bokade på röntgenkliniken (undersokningar.js).
+    try { require('./undersokningar.js').seedaDemo(db); } catch (e) { console.error('Undersökningarna i demon kunde inte läggas in:', e.message); }
     mall = { datum: d, byggd: nuMs, data: db.serialize() };
     db.close();
   }

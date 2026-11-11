@@ -1250,6 +1250,22 @@ function skapa(BAS) {
     await m.klicka(page.locator('dialog[open] [data-fonster="Ben"]'), 'fönstret Ben');
     await page.waitForFunction(() => document.querySelector('dialog[open] .bm-studie img')?.src.includes('window=2800,2000') && document.querySelector('dialog[open] .bm-studie img').complete);
   };
+  // Runda 11, r6: en röntgenundersökning beställs i fliken Prover, och röntgenkliniken bokar den första i sin lista.
+  GOR['bestall-undersokning'] = async (m, page) => {
+    await m.klicka(page.locator('.snabbval a', { hasText: 'Beställ prover' }), 'Beställ prover');
+    await page.waitForSelector('#pr-valj summary');
+    await m.klicka(page.locator('#pr-valj summary'), 'Välj analyser');
+    await m.klicka(page.locator('#pr-a-rtg_kna'), 'Röntgen knäled');
+    await m.klicka(page.locator('[data-bestall-valda]'), 'Beställ');
+    await synlig(page, '.notis', 'är beställt');
+    await synlig(page, '#pr-lista .pr-best', 'Röntgen knäled');
+  };
+  startI['Röntgenklinikens undersökningar efter återställning'] = (page) => efterAterstallning(page, '#/undersokningar', '#us-boka');
+  GOR['boka-undersokning'] = async (m, page) => {
+    await page.waitForSelector('#us [data-boka]');
+    await m.klicka(page.locator('#us [data-boka]').first(), 'Boka vid den första undersökningen');
+    await synlig(page, '.notis', 'är bokad');
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 
