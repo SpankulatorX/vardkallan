@@ -187,7 +187,8 @@ export function patient(db, p, visad = false) {
   return r;
 }
 
-const KONTAKTSATT = { besok: 'Besök', telefon: 'Telefon', video: 'Video', hembesok: 'Hembesök' };
+// Runda 13, r3: också administrativ kontakt.
+const KONTAKTSATT = { besok: 'Besök', telefon: 'Telefon', video: 'Video', hembesok: 'Hembesök', administrativ: 'Administrativ' };
 export function encounter(db, v, synliga) {
   if ('inskriven' in v) return vardtillfalleEncounter(db, v, synliga);
   const klass = v.kontaktsatt === 'telefon' || v.kontaktsatt === 'video' ? ['VR', 'virtual'] : v.kontaktsatt === 'hembesok' ? ['HH', 'home health']

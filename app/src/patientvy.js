@@ -14,7 +14,7 @@
 // Namnet på den som skrev en anteckning finns med, eftersom det är en del av journalen. Logglistan har vårdenhet,
 // yrkesroll, tid och typ av åtkomst men inte namnet på den som läste (se docs/design.md, Min journal).
 import { Fel, iso, datumAv } from './db.js';
-import { provaInvanare, vardenhetFor, alder, formateraPnr, maskeraPnr, SKYDDAD_NAMN, EGEN_FRAN_ALDER } from './atkomst.js';
+import { provaInvanare, vardenhetFor, alder, formateraPnr, maskeraPnr, SKYDDAD_NAMN, EGEN_FRAN_ALDER, HANDLINGAR as HANDLINGAR_TEXT } from './atkomst.js';
 import { loggaRad, verifiera } from './logg.js';
 import { anteckningUt, kallaEtikett, MATTYPER } from './journal.js';
 import { ordinationUt } from './lakemedel.js';
@@ -387,6 +387,8 @@ const VIA = (resurs) => {
 // journal aldrig tränger undan vårdens åtkomster eller någon annans försök ur listan. Loggens löpnummer lämnas inte ut, eftersom luckorna i det visar hur många
 // åtkomster som har gjorts i andra journaler.
 export const LOGGLISTA_MAX = { vard: 500, egna: 200, andra: 200 };
+// Runda 13, r3 (E3-36): åtgärden med behörighetsmotorns beskrivning, med stor bokstav, och en allmän text för en okänd kod.
+const handlingText = (h) => { const t = HANDLINGAR_TEXT[h]; return t ? t.charAt(0).toUpperCase() + t.slice(1) : 'Annan åtgärd i journalen'; };
 export function logglista(atk) {
   const db = atk.db;
   const jag = atk.invanare.id;
@@ -408,6 +410,8 @@ export function logglista(atk) {
       return {
         tid: r.tid, vem, vardgivare: inv ? null : vg, vardenhet: e.vardenhet, arbetsplats: e.arbetsplats,
         yrkesroll: r.yrke ? YRKEN[r.yrke] ?? null : null, handling: r.handling, grund: r.grund, resultat: r.resultat, via: VIA(r.resurs),
+        // Runda 13, r3 (E3-36): åtgärden i klartext, aldrig en intern kod, och läskopian för avbrott märkt som automatisk.
+        handlingText: handlingText(r.handling), ...(VIA(r.resurs) === 'laskopia' ? { automatisk: true } : {}),
         egenAtkomst: r.invanare_id === jag,
       };
     }),

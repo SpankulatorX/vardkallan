@@ -300,6 +300,12 @@ describe('Medicinteknik', () => {
     expect(r.status).toBe(201);
     expect(r.data.text).toBe('Mätningen är skickad till Kardiologiska kliniken USÖ. Vården bedömer den, och tills dess räknas den inte som ett kvalitetssäkrat värde.');
     expect(r.data.matvarde).toMatchObject({ namn: 'Blodtryck', varde: '182/104', status: 'Inte bedömd ännu', mottagare: 'Kardiologiska kliniken USÖ' });
+    // Runda 13, r3 (E3-38): ett mycket högt blodtryck ger råd om 1177 och 112, och ett omöjligt värde tas inte emot.
+    expect(r.data.rad).toMatchObject({ niva: 'radgivning' });
+    expect(r.data.rad.text).toContain('1177');
+    const omojligt = await inv.post('/api/min/journal/p01/egenmatning', { typ: 'blodtryck', varde: '300/20' });
+    expect(omojligt.status).toBe(400);
+    expect(omojligt.data.fel).toContain('inte ett blodtryck som går att mäta');
     const rad = db(inv).query("SELECT * FROM matvarden WHERE kalla = 'patient'").get();
     expect(rad).toMatchObject({ patient_id: 'p01', enhet_id: 'uso-kard-72', registrerad_av: null, vidimerad: null });
     expect(db(inv).query('SELECT invanare_id FROM egenmatningar WHERE matvarde_id = ?').get(rad.id).invanare_id).toBe('inv-p01');

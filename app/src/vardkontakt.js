@@ -24,16 +24,18 @@ import * as remiss from './remiss.js';
 // Runda 7, r3: patientavgiften för asylsökande med LMA-kort (ekonomi-schema.js).
 import { lmaFor, AVGIFT_LMA } from './ekonomi-schema.js';
 
-export const KONTAKTSATT = { besok: 'Besök', telefon: 'Telefon', video: 'Video', hembesok: 'Hembesök' };
-const PLATS = { telefon: 'Telefonkontakt', video: 'Videobesök', hembesok: 'Hembesök' };
-const STANDARDORSAK = { besok: 'Besök', telefon: 'Telefonkontakt', video: 'Videobesök', hembesok: 'Hembesök' };
+// Runda 13, r3 (E1-16): en administrativ kontakt är dokumentation när patienten inte är på plats, till exempel en
+// ordination eller ett svar på ett provsvar. Den har ingen patientavgift.
+export const KONTAKTSATT = { besok: 'Besök', telefon: 'Telefon', video: 'Video', hembesok: 'Hembesök', administrativ: 'Administrativ' };
+const PLATS = { telefon: 'Telefonkontakt', video: 'Videobesök', hembesok: 'Hembesök', administrativ: 'Administrativ kontakt' };
+const STANDARDORSAK = { besok: 'Besök', telefon: 'Telefonkontakt', video: 'Videobesök', hembesok: 'Hembesök', administrativ: 'Administrativ kontakt' };
 export const HANDELSE = {
   inskrivning: 'Inskriven', sangbyte: 'Sängbyte', flytt: 'Flyttad', ansvar: 'Medicinskt ansvar ändrat',
   permission: 'Permission', ater: 'Åter från permission', utskrivning: 'Utskriven',
 };
 
 // Patientavgifter enligt demoregler. Beloppen är påhittade och inte någon regions avgifter.
-export const AVGIFT_DEMO = { besok: 200, video: 200, hembesok: 200, telefon: 0, akut: 400, slutenvardDygn: 100, hogkostnadsskydd: 1450, friUnder: 20, friFran: 85 };
+export const AVGIFT_DEMO = { besok: 200, video: 200, hembesok: 200, telefon: 0, administrativ: 0, akut: 400, slutenvardDygn: 100, hogkostnadsskydd: 1450, friUnder: 20, friFran: 85 };
 // Runda 12, r1: avgifterna är parametrar som systemförvaltningen ändrar med fyra ögon (konfiguration.js, Sussa 12.1.1.6).
 // AVGIFT_DEMO har standardvärdena, och avgifter(db) ger de godkända värdena för sandlådan.
 export function avgifter(db) {
@@ -132,7 +134,9 @@ function nyKontaktForslag(db, personal, patientId, kontext = {}) {
   const ve = vardenhetFor(db, personal.enhet_id);
   const akut = ve === 'uso-akut';
   const enhetId = akut ? personal.enhet_id : mottagning(db, personal);
-  const kontaktsatt = kontext.kontaktsatt ?? 'besok';
+  // Runda 13, r3 (E1-16): utan en pågående kontakt är patienten inte på plats, så systemet föreslår en administrativ
+  // kontakt utan avgift i stället för ett besök. Den som dokumenterar ett besök eller ett samtal ändrar det i förslaget.
+  const kontaktsatt = kontext.kontaktsatt ?? (akut ? 'besok' : 'administrativ');
   const r = oppenRemiss(db, patientId, ve);
   const e = enhetRad(db, enhetId);
   const plats = PLATS[kontaktsatt] ?? (akut ? 'Akutmottagningen' : e?.typ === 'arbetsplats' ? e.namn : 'Mottagning');
@@ -145,7 +149,7 @@ function valideraNyKontakt(nyKontakt) {
   if (nyKontakt == null) return null;
   if (typeof nyKontakt !== 'object') throw new Fel(400, 'Ogiltig vårdkontakt.', 'ogiltig', { falt: ['nyKontakt'] });
   const k = nyKontakt.kontaktsatt ?? 'besok';
-  if (!Object.hasOwn(KONTAKTSATT, k)) throw new Fel(400, 'Välj besök, telefon, video eller hembesök.', 'ogiltig', { falt: ['kontaktsatt'] });
+  if (!Object.hasOwn(KONTAKTSATT, k)) throw new Fel(400, 'Välj besök, telefon, video, hembesök eller administrativ kontakt.', 'ogiltig', { falt: ['kontaktsatt'] });
   return { kontaktsatt: k, orsak: textFalt(nyKontakt.orsak) || null };
 }
 
@@ -205,7 +209,9 @@ export function knyt(atk, tabell, ut, body = {}) {
   if (!v) {
     const dokumentOrsak = tabell === 'anteckningar' ? textFalt((Array.isArray(body.sokord) ? body.sokord : []).find(s => s?.sokord === 'Kontaktorsak')?.text, 120).replace(/\.$/, '') || null
       : tabell === 'remisser' ? 'Remittering' : null;
-    v = skapaKontakt(db, atk.personal, atk.patientId, nyKontaktForslag(db, atk.personal, atk.patientId, { ...andring, dokumentOrsak }), { automatisk: true });
+    // Runda 13, r3 (E1-16): ett mätvärde och en given dos betyder att patienten är på plats, så där blir det ett besök.
+    const paPlats = ['matvarden', 'administreringar', 'vatskebalans'].includes(tabell) ? { kontaktsatt: 'besok' } : {};
+    v = skapaKontakt(db, atk.personal, atk.patientId, nyKontaktForslag(db, atk.personal, atk.patientId, { ...paPlats, ...andring, dokumentOrsak }), { automatisk: true });
     ny = true;
   }
   db.query(`UPDATE ${tabell} SET vardkontakt_id = ? WHERE id = ?`).run(v.id, id);

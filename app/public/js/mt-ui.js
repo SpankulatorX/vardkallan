@@ -135,6 +135,8 @@ export async function minEgna(el, ctx) {
     try {
       const r = await medKnapp(form.querySelector('[type=submit]'), () => api(`/api/min/journal/${encodeURIComponent(ctx.pid)}/egenmatning`, { metod: 'POST', data }), form);
       notis(r.text);
+      // Runda 13, r3 (E3-38): ett värde som kräver bedömning i dag får råd om 1177 och 112.
+      if (r.rad) notis(r.rad.text, 'fel');
       ctx.ladda();
     } catch (err) {
       const f = err?.data?.falt?.[0];

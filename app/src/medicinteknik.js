@@ -761,8 +761,11 @@ export function registreraEgen(atk, body = {}, { nu = new Date(), matttyper } = 
   let text, num = null;
   if (typ === 'blodtryck') {
     const m = typeof body.varde === 'string' && body.varde.trim().match(/^(\d{2,3})\s*\/\s*(\d{2,3})$/);
-    if (!m || Number(m[1]) <= Number(m[2]) || Number(m[1]) > 300) throw new Fel(400, 'Skriv blodtrycket som övertryck/undertryck, till exempel 135/85.', 'ogiltig', { falt: ['varde'] });
-    text = `${Number(m[1])}/${Number(m[2])}`;
+    if (!m) throw new Fel(400, 'Skriv blodtrycket som övertryck/undertryck, till exempel 135/85.', 'ogiltig', { falt: ['varde'] });
+    // Runda 13, r3 (E3-38): ett blodtryck som inte är möjligt tas inte emot, och systemet ber patienten kontrollera det.
+    const [sys, dia] = [Number(m[1]), Number(m[2])];
+    if (sys < 60 || sys > 260 || dia < 30 || dia > 160 || sys - dia < 15) throw new Fel(400, `${sys}/${dia} är inte ett blodtryck som går att mäta. Kontrollera att du har skrivit av mätaren rätt, som övertryck/undertryck, till exempel 135/85. Mät igen om du är osäker.`, 'ogiltig', { falt: ['varde'] });
+    text = `${sys}/${dia}`;
   } else {
     num = typeof body.varde === 'string' ? Number(body.varde.replace(',', '.')) : body.varde;
     if (typeof num !== 'number' || !Number.isFinite(num) || num < def.min || num > def.max) throw new Fel(400, `${def.namn} ska vara ett tal mellan ${def.min} och ${def.max} ${MATTYPER_ENHET[typ]}.`, 'ogiltig', { falt: ['varde'] });
@@ -785,8 +788,30 @@ export function registreraEgen(atk, body = {}, { nu = new Date(), matttyper } = 
     return mid;
   })();
   atk.logga(`min:egenmatning:${id}`, { handling: 'invanare_registrera' });
-  return { matvarde: egenUt(db, db.query('SELECT * FROM matvarden WHERE id = ?').get(id), matttyper), text: `Mätningen är skickad till ${enhetsnamn(db, vardenhetFor(db, enhet))}. Vården bedömer den, och tills dess räknas den inte som ett kvalitetssäkrat värde.` };
+  // Runda 13, r3 (E3-38): ett värde som kräver bedömning i dag får råd om 1177 och 112, eftersom vården bedömer
+  // mätningen först senare.
+  const rad = radFor(typ, text, num);
+  return { ...(rad ? { rad } : {}), matvarde: egenUt(db, db.query('SELECT * FROM matvarden WHERE id = ?').get(id), matttyper), text: `Mätningen är skickad till ${enhetsnamn(db, vardenhetFor(db, enhet))}. Vården bedömer den, och tills dess räknas den inte som ett kvalitetssäkrat värde.` };
 }
+// Runda 13, r3 (E3-38): råd när en egen mätning kräver bedömning samma dag. Demoregler, inte medicinsk rådgivning.
+export const AKUT_TEXT = 'Ring 112 om du har bröstsmärta, svårt att andas, plötslig svaghet i ena sidan av kroppen, svårt att tala eller blir förvirrad.';
+export function radFor(typ, text, num) {
+  const radgivning = (vad) => ({ niva: 'radgivning', text: `${vad} Ring 1177 i dag för rådgivning, och vänta inte på att vården bedömer mätningen. ${AKUT_TEXT}` });
+  const akut = (vad) => ({ niva: 'akut', text: `${vad} Ring 112 nu om du mår dåligt, annars 1177 direkt. ${AKUT_TEXT}` });
+  if (typ === 'blodtryck') {
+    const [sys, dia] = text.split('/').map(Number);
+    if (sys >= 180 || dia >= 110) return radgivning('Blodtrycket är mycket högt.');
+    if (sys < 90) return radgivning('Blodtrycket är lågt.');
+  }
+  if (typ === 'saturation' && num < 88) return akut('Syremättnaden är mycket låg.');
+  if (typ === 'saturation' && num < 92) return radgivning('Syremättnaden är låg.');
+  if (typ === 'puls' && (num > 130 || num < 40)) return radgivning(num > 130 ? 'Pulsen är mycket hög.' : 'Pulsen är mycket låg.');
+  if (typ === 'glukos' && num < 4) return { niva: 'radgivning', text: 'Blodsockret är lågt. Ät eller drick något med socker nu, och mät igen om 15 minuter. Ring 112 om du blir förvirrad eller inte kan äta. Ring 1177 om det inte stiger.' };
+  if (typ === 'glukos' && num > 20) return radgivning('Blodsockret är mycket högt.');
+  if (typ === 'temp' && (num >= 40 || num < 35)) return radgivning(num >= 40 ? 'Temperaturen är mycket hög.' : 'Temperaturen är låg.');
+  return null;
+}
+
 function egenUt(db, m, matttyper) {
   const b = db.query('SELECT beslut, tid FROM matvarde_bedomningar WHERE matvarde_id = ?').get(m.id);
   return {

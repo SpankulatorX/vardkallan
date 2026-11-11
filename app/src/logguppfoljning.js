@@ -95,6 +95,7 @@ export const KONTROLLERA = {
   administrativ: 'Administrativ åtkomst. Kontrollera att uppgiften behövdes för arbetet.',
 };
 
+// Runda 13, r3 (E3-30): de automatiska raderna om läskopian för avbrott räknas inte, eftersom ingen människa har gjort dem.
 // Drar ett stickprov: slumpvis valda åtkomster av vårdens personal till patientuppgifter under de senaste dagarna, som
 // inte har funnits i ett tidigare stickprov. Logggranskningens egna läsningar och nekade försök (som redan flaggas)
 // räknas inte.
@@ -104,6 +105,7 @@ export function dra(db, pers, { antal = konfiguration.varde(db, 'logg.stickprov_
   const till = nu.toISOString();
   const urval = `FROM atkomstlogg l WHERE l.personal_id IS NOT NULL AND l.patient_id IS NOT NULL AND l.invanare_id IS NULL
       AND l.resultat = 'tillaten' AND l.grund <> 'logggranskning' AND l.handling <> 'las_logg' AND l.tid >= ? AND l.tid <= ?
+      AND coalesce(l.resurs, '') NOT IN ('lasekopia', 'lasekopia:slut')
       AND l.id NOT IN (SELECT logg_id FROM stickprov_rader)`;
   const kandidater = db.query(`SELECT l.id ${urval} ORDER BY l.id`).all(fran, till).map(r => r.id);
   if (!kandidater.length) throw new Fel(400, `Det finns inga åtkomster från de senaste ${dagar} dagarna som inte redan har kontrollerats.`, 'ogiltig');

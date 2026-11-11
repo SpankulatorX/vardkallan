@@ -126,10 +126,12 @@ export async function visa(main, _p, q) {
     location.hash = `#/logg?${p}`;
   });
   form.addEventListener('change', (e) => { if (e.target.name === 'flagga') form.requestSubmit(); });
-  const d = await api(`/api/logg?${new URLSearchParams({ flagga, ...(fran ? { fran } : {}), ...(till ? { till } : {}) })}`);
+  // Runda 13, r3 (E3-28): de automatiska raderna om läskopian visas bara när granskaren ber om dem.
+  const d = await api(`/api/logg?${new URLSearchParams({ flagga, ...(fran ? { fran } : {}), ...(till ? { till } : {}), ...(q.get('automatiska') === 'visa' ? { automatiska: 'visa' } : {}) })}`);
   const flaggade = d.rader.filter(r => r.flaggad).length;
   main.querySelector('#loggresultat').innerHTML = `${kedjaRuta(d.kedjaHel, d.verifiering)}
     <p class="antal-text">${d.rader.length === 1 ? 'En rad' : `${d.rader.length} rader`}${flagga === 'alla' && flaggade ? `, varav ${flaggade} flaggade för uppföljning` : ''}. Nyast först, högst 500.</p>
+    ${d.automatiska ? `<p class="liten dampad" data-automatiska="${esc(d.automatiska)}">${d.visaAutomatiska ? `De ${esc(d.automatiska)} automatiska raderna om läskopian för avbrott visas och är märkta. Ingen människa har gjort dem, och de dras aldrig i ett stickprov.` : `${esc(d.automatiska)} automatiska rader om läskopian för avbrott visas inte, eftersom ingen människa har gjort dem.`} <a href="#/logg?${esc(new URLSearchParams({ flagga, ...(fran ? { fran } : {}), ...(till ? { till } : {}), ...(d.visaAutomatiska ? {} : { automatiska: 'visa' }) }).toString())}">${d.visaAutomatiska ? 'Dölj dem' : 'Visa dem'}</a></p>` : ''}
     ${exportLankar('atkomst', { flagga, fran, till })}
     ${loggTabell(d.rader)}`;
 }

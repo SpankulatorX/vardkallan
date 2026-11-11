@@ -5,7 +5,8 @@
 import { esc, api, datum, tidpunkt, dialog, notis, felNotis, migreradEtikett, VARDFORM, ikon, plusDagar, idag } from '../ui.js';
 import { far } from '../app.js';
 
-export const KONTAKTSATT = { besok: 'Besök', telefon: 'Telefon', video: 'Video', hembesok: 'Hembesök' };
+// Runda 13, r3 (E1-16): administrativ kontakt utan avgift, förvald när patienten inte är på plats.
+export const KONTAKTSATT = { besok: 'Besök', telefon: 'Telefon', video: 'Video', hembesok: 'Hembesök', administrativ: 'Administrativ' };
 const STATUS = { planerad: 'Planerad', pagaende: 'Pågående', avslutad: 'Avslutad' };
 const VT_STATUS = { inskriven: 'Inskriven', permission: 'På permission', utskriven: 'Utskriven' };
 const kr = (b) => `${Number(b).toLocaleString('sv-SE')} kr`;

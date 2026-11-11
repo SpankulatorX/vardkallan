@@ -83,7 +83,7 @@ describe('Vårdkontakt', () => {
     const fore = kontakter(k, 'p06').length;
     const akt = (await k.get('/api/patient/p06/vardkontakt/aktuell')).data;
     expect(akt.vardkontakt).toBeNull();
-    expect(akt.ny).toMatchObject({ typ: 'oppenvard', kontaktsatt: 'besok', vardenhet: { id: 'vc-tybble' } });
+    expect(akt.ny).toMatchObject({ typ: 'oppenvard', kontaktsatt: 'administrativ', vardenhet: { id: 'vc-tybble' } });
     const m = await k.post('/api/patient/p06/matvarden', { typ: 'blodtryck', varde: '138/84' });
     expect(m.status).toBe(201);
     expect(m.data.vardkontakt).toMatchObject({ ny: true, typ: 'oppenvard', kontaktsatt: 'besok' });
