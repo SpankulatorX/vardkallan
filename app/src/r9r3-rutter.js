@@ -94,6 +94,8 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
   rutt('POST', '/api/blod/:bid/utlamna', (c, bid) => { kravInloggad(c); return medRad(c, blod.bestallningRad(c.db, bid), 'ge_lakemedel', (atk, r) => blod.utlamna(atk, r)); });
   const BLOD = { forbered: (atk, e, b) => blod.forbered(atk, e, b), kontrollera: (atk, e, b) => blod.kontrollera(atk, e, b), starta: (atk, e) => blod.starta(atk, e),
     avsluta: (atk, e, b) => blod.avsluta(atk, e, b), aterlamna: (atk, e, b) => blod.aterlamna(atk, e, b) };
+  // Runda 11, r4: en transfusionsreaktion rapporteras till blodcentralen (hemovigilans).
+  BLOD.reaktion = (atk, e, b) => blod.reaktion(atk, e, b);
   rutt('POST', '/api/blodenhet/:eid/:atgard', (c, eid, atgard) => {
     kravInloggad(c);
     if (!Object.hasOwn(BLOD, atgard)) return okand();
@@ -148,6 +150,9 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
   });
   rutt('POST', '/api/cytostatika/behandling/:bid/nasta', (c, bid) => { kravInloggad(c); return medRad(c, cyto.behandlingRad(c.db, bid), 'ordinera_cytostatika', (atk, r) => cyto.nastaCykel(atk, r)); });
   const DOS = { 'ta-emot': (atk, d, b) => cyto.taEmot(atk, d, b), iordningstall: (atk, d, b) => cyto.iordningstall(atk, d, b), kontrollera: (atk, d, b) => cyto.kontrollera(atk, d, b), ge: (atk, d) => cyto.ge(atk, d) };
+  // Runda 11, r4: infusionens start, paus, återupptagande, reaktion, extravasering och slut.
+  Object.assign(DOS, { starta: (atk, d) => cyto.startaInfusion(atk, d), pausa: (atk, d, b) => cyto.pausaInfusion(atk, d, b), ateruppta: (atk, d, b) => cyto.aterupptaInfusion(atk, d, b),
+    reaktion: (atk, d, b) => cyto.reaktionInfusion(atk, d, b), extravasering: (atk, d) => cyto.extravasering(atk, d), avsluta: (atk, d) => cyto.avslutaInfusion(atk, d) });
   rutt('POST', '/api/cytostatika/dos/:did/:atgard', (c, did, atgard) => {
     kravInloggad(c);
     if (!Object.hasOwn(DOS, atgard)) return okand();

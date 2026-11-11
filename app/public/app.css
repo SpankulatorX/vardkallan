@@ -1701,3 +1701,26 @@ td .tagg-avliden { margin-left: 6px; }
   .ob-ctg, .ob-toko, .ob-varningslinje, .ob-atgardslinje { stroke: CanvasText; }
   .ob-band, .ob-normalband { fill: GrayText; }
 }
+/* Runda 11, r4: cytostatika, beredningsenheten, blodet och blodcentralen. */
+.kryssrad { display: flex; flex-wrap: wrap; gap: 0 18px; }
+.smal-tal { width: 6em; }
+.cy-kur, .bd-dos, .bc-rad { border: 1px solid var(--kalla-mellan); border-radius: var(--r); padding: 8px 12px; margin: 0 0 12px; }
+.cy-kur h4 { margin: 0 0 4px; }
+.cy-doser, .bd-lista, .bl-enheter { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
+.cy-dos, .bl-enheter > li { border-left: 3px solid var(--kalla-mellan); padding: 4px 0 4px 10px; }
+.cy-dos p, .bd-dos p, .bl-enheter p { margin: 2px 0; }
+.cy-dos-pagar, .cy-dos-pausad { border-left-color: var(--kalla); }
+.cy-dos-avbruten { border-left-color: var(--larm); }
+.cy-sangen { margin-top: 4px; }
+.bd-lista { list-style: none; }
+.bl-kedja { list-style: none; display: flex; flex-wrap: wrap; gap: 4px; padding: 0; margin: 8px 0; counter-reset: steg; }
+.bl-kedja li { counter-increment: steg; padding: 2px 10px; border: 1px solid var(--linje); border-radius: 12px; font-size: var(--f-xs); background: var(--yta); }
+.bl-kedja li::before { content: counter(steg) ". "; }
+.bl-kedja .bl-klar { background: var(--yta-2); color: var(--blak-2); }
+.bl-kedja .bl-nu { border-color: var(--kalla); font-weight: 700; }
+.bl-reak fieldset { border: 0; padding: 0; margin: 4px 0; }
+.cye-kap { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.min-cy { margin: 0 0 16px; }
+/* Ett formulär som öppnas med en knapp är dolt tills dess, också när det har en egen visning. */
+form.falt-rad[hidden], form.mv-form[hidden], form.bl-reak[hidden], .cy-tidigare[hidden], .cy-tidigare .falt-rad[hidden] { display: none; }
+.cy-tidigare { border: 0; padding: 0; margin: 8px 0; }

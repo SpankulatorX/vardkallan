@@ -90,4 +90,15 @@ export const PERSONAL = [
   { id: 'ssk-ane-kkoga', namn: 'Kajsa Strand', yrke: 'sjukskoterska', titel: 'Anestesisjuksköterska', enhet: 'kkoga-ane' },
   { id: 'lak-ane-ort', namn: 'Gustav Fernlund', yrke: 'lakare', titel: 'Anestesiläkare', enhet: 'uso-ane' },
   { id: 'ssk-ane-ort', namn: 'Ida Wedin', yrke: 'sjukskoterska', titel: 'Anestesisjuksköterska', enhet: 'uso-ane' },
+  // Runda 11, r4: farmaceuten på cytostatikaberedningen, som bereder kurerna med batch och kontrollmätning, sköter lagret
+  // och följer en batch till patienterna (cytostatika-beredning.js). Går att logga in som. Sist, så att de andras HSA-id
+  // inte ändras.
+  { id: 'far-bered', namn: 'Mona Fredin', yrke: 'farmaceut', titel: 'Farmaceut, cytostatikaberedningen', enhet: 'uso-bered', demo: true },
+  // Runda 11, r4: Onkologiska kliniken USÖ. Onkologen och onkologisjuksköterskan går att logga in som, så att kuren kan
+  // ges med dubbelkontroll i två inloggningar på samma vårdenhet. Överläkaren är den andra regimansvariga läkaren, och
+  // verksamhetschefen utser de regimansvariga. Sist, så att de andras HSA-id inte ändras.
+  { id: 'lak-onk', namn: 'Rebecka Ståhl', yrke: 'lakare', titel: 'Läkare (onkologi)', enhet: 'uso-onk', demo: true },
+  { id: 'ssk-onk', namn: 'Elias Wickman', yrke: 'sjukskoterska', titel: 'Onkologisjuksköterska', enhet: 'uso-onk-dag', demo: true },
+  { id: 'ol-onk', namn: 'Gunilla Norén', yrke: 'lakare', titel: 'Överläkare (onkologi)', enhet: 'uso-onk' },
+  { id: 'vch-onk', namn: 'Peter Söderholm', yrke: 'verksamhetschef', titel: 'Verksamhetschef', enhet: 'uso-onk' },
 ];

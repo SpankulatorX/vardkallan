@@ -68,6 +68,9 @@ export const STARTPUNKT = {
   // Runda 11, r3: graviditetsjournalen och förlossningens översikt med demopatienterna.
   'Graviditetsjournalen i vecka 30': { hash: '#/patient/obs1/graviditet', klar: '#gr-besok', forbered: 'obstetrik' },
   'Förlossningens översikt': { hash: '#/forlossning', klar: '#forl-tabell', forbered: 'obstetrik' },
+  // Runda 11, r4: Annika Holmgren med cytostatika, och beredningsenheten med en godkänd kur.
+  'Journalen för patienten med cytostatika': { hash: '#/patient/p17', klar: '.patientband h1', forbered: 'aterstall' },
+  'Beredningsenheten med en godkänd kur': { hash: '#/nyheter', klar: 'main h1', forbered: 'cytostatika-kur' },
 };
 
 export const UPPGIFTER = [
@@ -593,6 +596,27 @@ export const UPPGIFTER = [
     id: 'ctg-bedomning', namn: 'Bedöma CTG under en förlossning', roll: 'bm-uso', start: 'Förlossningens översikt',
     text: 'Amanda Lindholm föder. Gör nästa CTG-bedömning och dokumentera den.',
     kontroll: { notis: 'Bedömningen är dokumenterad' },
+  },
+  // Runda 11, r4: cytostatika, regimbiblioteket, blod och beredningsenheten.
+  {
+    id: 'cyto-godkann', namn: 'Godkänna en cytostatikakur', roll: 'lak-onk', start: 'Journalen för patienten med cytostatika',
+    text: 'Annika Holmgren ska få sin andra kur EC i dag, och proverna är tagna. Godkänn kuren så att den kan beredas.',
+    kontroll: { notis: 'Kuren är godkänd' },
+  },
+  {
+    id: 'regim-godkann', namn: 'Godkänna en ny version av en cytostatikaregim', roll: 'lak-onk', start: 'Arbetslistan efter inloggning',
+    text: 'Gunilla Norén har föreslagit en ny version av karboplatinregimen. Du är regimansvarig. Granska och godkänn den.',
+    kontroll: { notis: 'gäller nu för nya ordinationer' },
+  },
+  {
+    id: 'blod-bestall', namn: 'Beställa blod', roll: 'lak-onk', start: 'Journalen för patienten med cytostatika',
+    text: 'Annika Holmgren har fått blodbrist efter cytostatikan, Hb 88. Beställ två enheter erytrocyter.',
+    kontroll: { notis: 'Blodet är beställt' },
+  },
+  {
+    id: 'cyto-bered', namn: 'Bereda en cytostatikados på beredningsenheten', roll: 'far-bered', start: 'Beredningsenheten med en godkänd kur',
+    text: 'En kur till Annika Holmgren är godkänd. Bered den första dosen och signera beredningen.',
+    kontroll: { notis: 'är beredd och signerad' },
   },
 ];
 

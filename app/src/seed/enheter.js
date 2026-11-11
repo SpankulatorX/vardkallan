@@ -33,4 +33,11 @@ export const ENHETER = [
   // operationsanmälan är en beställning till anestesienheten på den opererande vårdenhetens sjukhus. Sist i listan.
   { id: 'uso-ane', hsa: 'SE2321000164-VK0180', namn: 'Anestesikliniken USÖ', typ: 'vardenhet', forald: 'uso' },
   { id: 'kkoga-ane', hsa: 'SE2321000164-VK0320', namn: 'Anestesimottagningen Karlskoga lasarett', typ: 'vardenhet', forald: 'kkoga' },
+  // Runda 11, r4: cytostatikaberedningen på USÖ (cytostatika-beredning.js, Sussa 4.8.1.5). En produktionsenhet utan
+  // patienter, som tar emot beredningsorder från vårdenheterna på sjukhuset. Sist, så att de andras ordning inte ändras.
+  { id: 'uso-bered', hsa: 'SE2321000164-VK0185', namn: 'Cytostatikaberedningen USÖ', kortnamn: 'Beredningen USÖ', typ: 'forvaltning', forald: 'uso' },
+  // Runda 11, r4: Onkologiska kliniken USÖ, där cytostatika ordineras och ges i demon, med dagvården som arbetsplats.
+  // Verksamhetsområde 741 Onkologisk vård, allmän (rapportkoder.js).
+  { id: 'uso-onk', hsa: 'SE2321000164-VK0190', namn: 'Onkologiska kliniken USÖ', typ: 'vardenhet', forald: 'uso' },
+  { id: 'uso-onk-dag', hsa: 'SE2321000164-VK0191', namn: 'Onkologiska dagvården', typ: 'arbetsplats', forald: 'uso-onk' },
 ];

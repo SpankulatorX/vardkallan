@@ -117,6 +117,9 @@ export async function visa(main) {
   const overf = (d.lakemedelsoverforingar ?? []).map(x => rad(esc(x.lank), `Läkemedelsberättelse från ${esc(x.fran ?? '')}, ${esc(pnamn(x.patient))}${sym(x.patient)}`, `${esc(x.text)} Skickad ${esc(tidpunkt(x.skickad))}.`));
   // Runda 10, r4: förslag om donation till vårdenhetens donationsansvariga.
   const donation = (d.donationsforslag ?? []).map(x => rad(esc(x.href), `${esc(x.rubrik)}, ${esc(pnamn(x.patient))}${sym(x.patient)}`, `${esc(x.text)} Dödsfallet registrerades ${esc(tidpunkt(x.tid))}.`, 'ik-larm'));
+  // Runda 11, r4: regimversioner att godkänna som regimansvarig, och patienternas rapporter om cytostatika att ringa om.
+  const cyReg = (d.cytoRegimversioner ?? []).map(x => rad('#/cytostatika/regimer', `${esc(x.regim)}, version ${esc(x.version)}`, esc(x.andring)));
+  const cyRap = (d.cytoRapporter ?? []).map(x => rad(`#/patient/${encodeURIComponent(x.patientId)}/cytostatika`, `Rapport från patienten, ${esc(pnamn(x.patient))}${sym(x.patient)}`, `${esc(x.datum)}. ${esc(x.text)}`, x.bedomning === 'ring_nu' ? 'ik-larm' : ''));
   const harBhv = Boolean(S.session?.bhv);
   const yrke = S.session?.personal?.yrke;
   // Runda 6, r2: har användaren hunnit gå vidare till en annan vy, eller loggat ut, medan inkorgen hämtades finns
@@ -138,6 +141,8 @@ export async function visa(main) {
     ${S.session.behorigheter.includes('utvardera_lakemedel') && yrke === 'lakare' ? sektion('uppf', 'Uppföljning av läkemedel', uppf, 'Inga uppföljningar har passerat.', 'Läkemedel där uppföljningsdatumet har passerat. Utvärdera effekt och biverkan, och systemet föreslår nästa uppföljning.') : ''}
     ${['lakare', 'farmaceut'].includes(yrke) ? sektion('fordj', 'Fördjupade läkemedelsgenomgångar', fordj, 'Inga fördjupade genomgångar väntar på dig.', yrke === 'farmaceut' ? 'Genomgångar på din vårdenhet som väntar på farmaceutens bedömning.' : 'Genomgångar på din vårdenhet som pågår.') : ''}
     ${mallarIk.length ? sektion('mallar', 'Mallar att godkänna', mallarIk, '', 'Läkemedelsmallar på din vårdenhet som är nya eller ändrade. Du granskar och godkänner det medicinska innehållet som läkare ansvarig för läkemedelsmallarna (Gröna häftet 1.4.3).') : ''}
+    ${cyRap.length ? sektion('cyrap', 'Patienternas rapporter om cytostatika', cyRap, '', 'Patienter med cytostatika i tablettform som har rapporterat feber eller besvär i Min journal, där systemet har sagt att de ska ringa. Patienten har fått samma råd.') : ''}
+    ${cyReg.length ? sektion('cyreg', 'Regimer att godkänna', cyReg, '', 'Nya versioner av cytostatikaregimer som en annan läkare har skrivit. Som regimansvarig granskar och godkänner du dem i regimbiblioteket.') : ''}
     ${donation.length ? sektion('donation', 'Donation', donation, '', 'Patienter som har avlidit på intensivvårdsavdelningen. Som donationsansvarig prövar du om patienten kan bli donator, med checklistan i fliken Donation.') : ''}
     ${berKontroll.length ? sektion('berkontroll', 'Beredningar att kontrollera', berKontroll, '', 'Beredningar på din vårdenhet som systemet kräver att en annan sjuksköterska eller läkare kontrollerar innan dosen ges. Öppna Läkemedel att ge och välj Kontrollera beredning.') : ''}
     ${kollega.length ? sektion('kollega', 'Doser att kontrollera som kollega', kollega, '', 'Doser av högriskläkemedel på din vårdenhet som en kollega ska kontrollera innan de ges: koncentrerade elektrolyter, opioider, insulin- och heparininfusion och cytostatika. Öppna patientens läkemedel och välj Kontrollera dosen.') : ''}

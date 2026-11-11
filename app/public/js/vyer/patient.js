@@ -34,6 +34,9 @@ import * as donation from './patient-donation.js';
 import * as operationFlik from './patient-operation.js';
 // Runda 11, r3: graviditetsjournalen och den nyföddas BB-journal.
 import * as graviditetFlik from './patient-graviditet.js';
+// Runda 11, r4: cytostatika och blod.
+import * as cytostatikaFlik from './patient-cytostatika.js';
+import * as blodFlik from './patient-blod.js';
 
 export const namn = 'patient';
 
@@ -77,6 +80,13 @@ FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'prover') + 1, 0, ['operation', 'Op
 FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'tillvaxt') + 1, 0,
   ['graviditet', 'Graviditet', (h) => far('las_graviditet') && (!h || (h.kon === 'kvinna' && h.alder >= 12 && h.alder < 60)), graviditetFlik],
   ['nyfodd', 'Nyfödd', (h) => far('las_graviditet') && (!h || h.alder < 1), graviditetFlik.nyfodd]);
+
+// Runda 11, r4: Cytostatika och Blod efter Prover. Cytostatika visas alltid på en onkologisk vårdenhet och Blod alltid för
+// den som beställer prover, och annars när patienten har en behandling eller en beställning som de får se (huvudets specialistR11r4). Innan huvudet är hämtat
+// visas fliken, som Tillväxt, så att en adress direkt till fliken fungerar.
+FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'prover') + 1, 0,
+  ['cytostatika', 'Cytostatika', (h) => far('las_cytostatika') && (Boolean(S.session?.r11r4?.onkologi) || !h || Boolean(h.specialistR11r4?.cytostatika)), cytostatikaFlik],
+  ['blod', 'Blod', (h) => far('las_prover') && (far('bestalla_prov') || !h || Boolean(h.specialistR11r4?.blod)), blodFlik]);
 
 let huvud = null;
 

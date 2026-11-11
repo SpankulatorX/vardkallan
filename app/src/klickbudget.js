@@ -468,3 +468,26 @@ export const FLODEN = [
     motivering: 'Sussa 4.7.1.3. Ett klick på patienten och ett på Bekräfta bedömningen. Systemet hämtar kurvan från monitorn, räknar basalfrekvens, variabilitet och decelerationer, klassar kurvan och föreslår åtgärden, så barnmorskan skriver något bara när hon bedömer annorlunda.',
   },
 ];
+// Runda 11, r4: cytostatika, beredningen, regimbiblioteket, blodet och patientens rapport i Min journal.
+FLODEN.push(
+  {
+    id: 'cyto-godkann', namn: 'Godkänna en cytostatikakur', roll: 'lak-onk', start: 'Journalen för patienten med cytostatika', budget: 2,
+    motivering: 'Sussa 4.8.1.1 och 4.8.1.4. Ett klick på fliken Cytostatika och ett på Godkänn kuren. Systemet har räknat doserna med dagens vikt, prövat provsvaren, den kumulativa dosen och beredningsenhetens platser och skickar beredningsordern i samma klick.',
+  },
+  {
+    id: 'regim-godkann', namn: 'Godkänna en ny version av en cytostatikaregim', roll: 'lak-onk', start: 'Arbetslistan efter inloggning', budget: 3,
+    motivering: 'Sussa 4.8.1.4. Ett klick på Cytostatika i menyn, ett på Regimbiblioteket och ett på Godkänn. Systemet har skrivit vad som skiljer versionen från den gällande, och bara en regimansvarig läkare som inte skrev versionen ser knappen.',
+  },
+  {
+    id: 'blod-bestall', namn: 'Beställa blod', roll: 'lak-onk', start: 'Journalen för patienten med cytostatika', budget: 3,
+    motivering: 'Sussa 4.4.2.12. Ett klick på fliken Blod, ett fältbyte till indikationen och ett klick på Beställ. Erytrocyter och två enheter är förvalda, och systemet beställer själv blodgruppering och bastest som saknas.',
+  },
+  {
+    id: 'cyto-bered', namn: 'Bereda en cytostatikados på beredningsenheten', roll: 'far-bered', start: 'Beredningsenheten med en godkänd kur', budget: 3,
+    motivering: 'Sussa 4.8.1.2 och 4.8.1.5. Ett klick på Beredning i menyn, ett fältbyte till den kontrollmätta volymen och ett klick på Signera beredningen. Systemet har räknat volymen och föreslagit den batch som går ut först, så farmaceuten skannar bara en förpackning när det inte är den föreslagna.',
+  },
+  {
+    id: 'cyto-min-rapport', namn: 'Rapportera dagens tabletter i Min journal', roll: 'inv-p11', start: 'Min journal för patienten med cytostatika', budget: 3,
+    motivering: 'Sussa 4.8.1.6. Ett klick på Min behandling, ett i rutan för morgonens tabletter och ett på Skicka. Inget besvär är förvalt, och systemet bedömer rapporten och säger direkt om patienten ska ringa.',
+  },
+);

@@ -277,6 +277,13 @@ ROLLER.sjukskoterska.push('forskriva_forbrukning');
 Object.assign(HANDLINGAR, { bestalla_lakemedel: 'beställa extempore och blodprodukter' });
 ROLLER.lakare.push('bestalla_lakemedel');
 ROLLER.sjukskoterska.push('bestalla_lakemedel');
+// Runda 11, r4: beredningen av cytostatika på beredningsenheten (cytostatika-beredning.js, Sussa 4.8.1.5). Farmaceuten
+// bereder, sköter lagret och följer en batch till patienterna. Modulen prövar dessutom att personen arbetar på
+// beredningsenheten, så att en farmaceut på en vårdenhet inte kan bereda. Handlingen rör beställningen och inte
+// journalen: beredningsenheten ser bara det som står i beredningsordern, och varje patient loggas med grunden beställning.
+Object.assign(HANDLINGAR, { bereda_cytostatika: 'bereda cytostatika på beredningsenheten och sköta dess lager' });
+ROLLER.farmaceut.push('bereda_cytostatika');
+UTAN_PATIENT.add('bereda_cytostatika');
 
 // Runda 11, r3: läkare och sjuksköterskor (barnmorskan i demon) rapporterar till Graviditetsregistret
 // (graviditetsregistret.js).

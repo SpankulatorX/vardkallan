@@ -438,10 +438,11 @@ describe('Läkemedelstyper', () => {
     const db = sandladaKl('13:30');
     const o = ordinera(db, 'p01', { lakemedelId: 'VK-BLOD-0001', dosering: '1 enhet under 2 timmar', dos: 1, dosEnhet: 'enhet', tider: ['14'], typ: 'tillfallig', administrationssatt: 'intravenost' });
     expect(o).toMatchObject({ nll_status: 'ej_aktuell', administrationssatt: 'intravenost' });
-    const e = fel(() => administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('14:00') }));
-    expect(e.extra.kraverKvittens).toEqual(['blodkontroll']);
-    const ut = administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('14:00'), kvitteradeVarningar: [{ regel: 'blodkontroll', motivering: 'Kontrollerad av Johan Ek och Amira Haddad' }] });
-    expect(ut.administrering.kvitteradeVarningar[0].motivering).toContain('Amira Haddad');
+    // Runda 11, r4: blodet ges bara från blodbeställningen, med den gemensamma transfusionskontrollen vid sängen. En
+    // kvitterad varning räcker inte längre (blod.js).
+    const e = fel(() => administrering.spara(ssk(db, 'p01'), { ordinationId: o.id, planerad: kl('14:00'), kvitteradeVarningar: [{ regel: 'blodkontroll', motivering: 'Kontrollerad av Johan Ek och Amira Haddad' }] }));
+    expect([e.status, e.kod]).toEqual([409, 'blod']);
+    expect(e.message).toContain('ges från blodbeställningen i fliken Blod');
     const r = fhir.medicationRequest(db, lakemedel.hamtaRad(db, o.id));
     expect(r.medicationCodeableConcept.coding.map(c => c.system)).toEqual(['http://www.whocc.no/atc']);
     expect(r.note[0].text).toContain('Blodprodukt.');

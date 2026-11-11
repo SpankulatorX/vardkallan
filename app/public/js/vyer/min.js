@@ -12,6 +12,8 @@ import * as minGraviditet from './min-graviditet.js';
 import { minEgna } from '../mt-ui.js';
 // Runda 10, r7: meddelanden, vårdplaner och ombud (min-r10r7.js).
 import * as r10r7 from './min-r10r7.js';
+// Runda 11, r4: den perorala cytostatikabehandlingen och patientens rapporter.
+import * as minCytostatika from './min-cytostatika.js';
 
 export const namn = 'min';
 
@@ -36,6 +38,8 @@ const FLIKAR = [
   ['vardplan', 'Vårdplan', r10r7.vardplan],
   ['ombud', 'Ombud', r10r7.ombud],
 ];
+// Runda 11, r4: Min behandling efter Läkemedel, när patienten har fått en behandling med tabletter med sig hem.
+FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'lakemedel') + 1, 0, ['cytostatika', 'Min behandling', minCytostatika.visa, (h) => Boolean(h?.cytostatika)]);
 // Runda 10, r7: ett ombud ser bara tider, meddelanden och sin fullmakt, aldrig journalen.
 const OMBUD_FLIKAR = ['tider', 'meddelanden', 'ombud'];
 const synligFlik = (f, h) => (!f[3] || f[3](h)) && (h?.relation !== 'ombud' || OMBUD_FLIKAR.includes(f[0]));

@@ -127,6 +127,9 @@ import { registreraRutter as r10r3Rutter } from './r10r3-rutter.js';
 import { mallarFor as formularMallar } from './formularmotor.js';
 // Runda 10, r4: in- och utfarter, restjournaler och donation (runda10-r4-rutter.js).
 import { registreraRutter as r10r4Rutter, tidslinje as r10r4Tidslinje, inkorg as r10r4Inkorg } from './runda10-r4-rutter.js';
+// Runda 11, r4: cytostatika och blodprodukter i version 1.1 (r11r4-rutter.js).
+import * as r11r4 from './r11r4-rutter.js';
+import { minBehandling as cytoMinBehandling, minHuvud as cytoMinHuvud } from './cytostatika.js';
 import { avlidenFor } from './avliden.js';
 // Runda 10, r7: ombud, meddelanden, begäranden, vårdplanen i Min journal, kassan, kapaciteten och kontorsstödet.
 import { registreraRutter as r10r7Rutter, MIN_DELAR as r10r7MinDelar, kalenderSvar } from './r10r7-rutter.js';
@@ -525,6 +528,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ut.operation = require('./operation.js').session(s.db, p);
       // Runda 11, r3: om personalens vårdenhet har mödrahälsovård eller förlossning (obstetrik.js).
       ut.obstetrik = r11r3Session(s.db, p);
+      // Runda 11, r4: beredningsenheten och vårdenheter som ger cytostatika.
+      ut.r11r4 = r11r4.session(s.db, p);
       sakraKopia(s);
       ut.lasnyckel = s.lasnyckel;
     }
@@ -568,6 +573,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       avliden: avlidenFor(db, p.id),
       // Runda 11, r2: syftet som dialogen för aktivt val förväljer för anestesienheten (operation.js).
       aktivtValSyfte: require('./operation.js').aktivtValSyfte(db, c.personal, p.id),
+      // Runda 11, r4: om patienten har cytostatika eller blod som den inloggade får se, för flikarna.
+      ...r11r4.huvud(atk),
     };
   }
 
@@ -1434,6 +1441,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...r10r5Inkorg(c, patientKort, patientRad, valFor),
       // Runda 10, r4: förslag om donation till vårdenhetens donationsansvariga (donation.js).
       ...r10r4Inkorg(c, patientKort, patientRad, valFor),
+      // Runda 11, r4: regimversioner att godkänna och patienternas rapporter om cytostatika att ringa om.
+      ...r11r4.inkorg(c, patientKort, patientRad, valFor),
     });
   });
   // Runda 6, r1: NEWS2-larmen loggas på patienten en gång per session och mätomgång, som raderna om återinsättning.
@@ -1688,7 +1697,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   Object.assign(MIN_DELAR, r10r7MinDelar);
   // Runda 11, r3: graviditeten för kvinnan själv, och i huvudet om hon har en som visas (obstetrik.js).
   MIN_DELAR.graviditet = (atk) => minGraviditet(atk);
-  rutt('GET', '/api/min/journal/:id', (c, id) => medMinJournal(c, id, 'min:journal', (atk) => ({ ...minJournal.huvud(atk), graviditet: harMinGraviditet(atk) })));
+  // Runda 11, r4: den överlämnade perorala cytostatikabehandlingen och patientens rapporter.
+  MIN_DELAR.cytostatika = (atk) => cytoMinBehandling(atk);
+  rutt('GET', '/api/min/journal/:id', (c, id) => medMinJournal(c, id, 'min:journal', (atk) => ({ ...minJournal.huvud(atk), graviditet: harMinGraviditet(atk), ...cytoMinHuvud(atk) })));
   rutt('GET', '/api/min/journal/:id/:del', (c, id, del) => {
     if (!Object.hasOwn(MIN_DELAR, del)) throw new Fel(404, 'Okänd adress.', 'saknas');
     return medMinJournal(c, id, `min:${del}`, (atk) => MIN_DELAR[del](atk));
@@ -1813,6 +1824,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   r10r3Rutter({ rutt, kravInloggad, medPatient });
   // Runda 10, r4 (runda10-r4-rutter.js).
   r10r4Rutter({ rutt, kravInloggad, medPatient, valFor });
+  // Runda 11, r4 (r11r4-rutter.js).
+  r11r4.registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal });
   // Runda 10, r7 (r10r7-rutter.js). Kalenderlänkarna finns som HMAC i minnet och i sandlådan.
   const kalender = skapaKalenderlager();
   r10r7Rutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal, kalender });

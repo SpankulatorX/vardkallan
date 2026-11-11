@@ -131,6 +131,8 @@ const FORBERED = {
   'kassa-besok': async () => { await aterstallDemo(); await api('/api/demo/kassa-besok', { metod: 'POST', data: {} }); },
   // Runda 11, r3: demopatienterna för mödrahälsovården och förlossningen.
   obstetrik: async () => { await aterstallDemo(); await api('/api/demo/obstetrik', { metod: 'POST', data: {} }); },
+  // Runda 11, r4: Annika Holmgrens kur är godkänd, så att beredningsenheten har en kur att bereda.
+  'cytostatika-kur': async () => { await aterstallDemo(); await api('/api/demo/cytostatika-kur', { metod: 'POST', data: {} }); },
 };
 
 // Uppgiften börjar på samma sätt som i skriptet: vid byte av demoroll loggas rollen in och demon återställs, så att

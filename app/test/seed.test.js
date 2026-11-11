@@ -123,6 +123,11 @@ describe('Seed', () => {
       ['bm-uso', 'Sofia Ekdahl', 'sjukskoterska', 'uso-kk-forl'],
       // Runda 11, r2: operationskoordinatorn på Ortopediska kliniken Karlskoga lasarett.
       ['opk-kkoga', 'Therese Hedberg', 'sjukskoterska', 'kkoga-ort'],
+      // Runda 11, r4: farmaceuten på cytostatikaberedningen.
+      ['far-bered', 'Mona Fredin', 'farmaceut', 'uso-bered'],
+      // Runda 11, r4: onkologen och onkologisjuksköterskan på Onkologiska kliniken.
+      ['lak-onk', 'Rebecka Ståhl', 'lakare', 'uso-onk'],
+      ['ssk-onk', 'Elias Wickman', 'sjukskoterska', 'uso-onk-dag'],
     ]);
   });
 

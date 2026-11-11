@@ -48,6 +48,8 @@ export const GRUND = {
   samverkan: 'Samverkan med kommunen',
   // Runda 7, r3: ekonomens faktureringsunderlag och prislistor.
   ekonomi: 'Ekonomi',
+  // Runda 11, r4: beredningsenheten utför en beredningsorder som vårdenheten har skickat.
+  utforande: 'Utförande av beställning',
 };
 export const NLL = { skickad: 'Skickas', kvitterad: 'Kvitterad av NLL', okand_kontrolleras: 'Okänd, kontrolleras', fel: 'Fel från NLL',
   // Runda 6, r2: muntlig ordination och läkemedel som inte skickas till NLL.

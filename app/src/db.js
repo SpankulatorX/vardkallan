@@ -462,6 +462,8 @@ export function byggSeed(bas = nu()) {
   require('./labb-seed.js').seeda(db, { bas });
   // Runda 9, r3: tabellerna för operation, blodprodukter, graviditet och förlossning, cytostatika och bilder.
   require('./r9r3-rutter.js').sakra(db);
+  // Runda 11, r4: beredningsenheten, regimbiblioteket och hemovigilansen (r11r4-rutter.js).
+  require('./r11r4-rutter.js').sakra(db);
   // Runda 9, r1 (schema-runda9-r1.js).
   sakraR9r1(db);
   seedaR9r1(db, bas);
@@ -596,6 +598,8 @@ export function migrera(db) {
   require('./labb-seed.js').sakra(db);
   // Runda 9, r3: specialistområdenas tabeller. Inget läggs in i efterhand.
   require('./r9r3-rutter.js').sakra(db);
+  // Runda 11, r4: tabellerna för cytostatika och blod i version 1.1. Inget läggs in i efterhand.
+  require('./r11r4-rutter.js').sakra(db);
   // Runda 9, r1: en sandlåda från före runda 9 får tabellerna och seedens poster.
   sakraR9r1(db);
   seedaR9r1(db, nu());
@@ -641,6 +645,9 @@ export function mallen() {
     // Runda 11, r2: demons operationer, anestesi och uppvakning (operation-seed.js). I demons sandlåda och inte i
     // byggSeed, så att testerna som bygger en egen seed lägger in sina egna operationer i tomma salar.
     require('./operation-seed.js').seeda(db, nu());
+    // Runda 11, r4: demons patienter med cytostatika och blod (cytostatika-demo.js). I mallen och inte i byggSeed, så
+    // att testerna som bygger sin egen sandlåda inte påverkas.
+    require('./cytostatika-demo.js').seeda(db);
     mall = { datum: d, byggd: nuMs, data: db.serialize() };
     db.close();
   }

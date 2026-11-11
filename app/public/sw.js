@@ -49,6 +49,7 @@ const FILER = [
   '/js/vyer/r10r7.js', '/js/vyer/min-r10r7.js',
   '/js/vyer/patient-operation.js', '/js/vyer/operation.js',
   '/js/obstetrik-ui.js', '/js/vyer/patient-graviditet.js', '/js/vyer/forlossning.js', '/js/vyer/modrahalsovard.js', '/js/vyer/min-graviditet.js',
+  '/js/vyer/patient-cytostatika.js', '/js/vyer/patient-blod.js', '/js/vyer/cytostatikaberedning.js', '/js/vyer/cytostatika-enhet.js', '/js/vyer/blodcentral.js', '/js/vyer/min-cytostatika.js',
 ];
 // Runda 11, r2: listan har operationen i journalen och operationsavdelningen (patient-operation.js och operation.js).
 // Runda 11, r3: listan har graviditetsjournalen, den nyföddas BB-journal, förlossningen och mödrahälsovården.
@@ -57,6 +58,7 @@ const FILER = [
 // Runda 10, r5: listan har kunskapsstödet och vaccinationsprogrammen (kunskapsstod-ui.js och patient-vaccinationer.js).
 // Runda 10, r3: listan har formulären, kroppsbilden, röstinmatningen och rättstavningen.
 // Runda 10, r4: listan har in- och utfarterna, restjournalerna och donationen (patient-infarter.js, patient-restjournaler.js och patient-donation.js).
+// Runda 11, r4: listan har cytostatika, beredningsenheten, blodet, blodcentralen och Min behandling.
 // Runda 10, r7: listan har meddelandena, ombuden, vårdplanen i Min journal, kassan, kapaciteten och kontorsstödet.
 // Runda 9, r1: listan har förbrukningsartiklarna (vyer/forbrukning.js).
 // Runda 9, r2: listan har medicinteknisk utrustning i fliken Mätvärden och intensivvårdens vy (mt-ui.js och iva.js).

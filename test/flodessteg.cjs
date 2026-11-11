@@ -1174,6 +1174,53 @@ function skapa(BAS) {
     await m.klicka(page.locator('#fp-ctg-bekrafta'), 'Bekräfta bedömningen');
     await synlig(page, '.notis', 'Bedömningen är dokumenterad');
   };
+  // Runda 11, r4: cytostatika och blod för Annika Holmgren (p17), beredningen och Anna Viklunds rapport (p11).
+  startI['Journalen för patienten med cytostatika'] = async (page) => { await gaTill(page, '#/patient/p17'); await page.waitForSelector('.patientband h1'); await page.waitForLoadState('networkidle'); };
+  // Demoläget godkänner Annika Holmgrens kur i den egna sandlådan, så att det finns en dos att bereda.
+  startI['Beredningsenheten med en godkänd kur'] = async (page) => {
+    const ok = await page.evaluate(async () => (await fetch('/api/demo/cytostatika-kur', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).ok);
+    if (!ok) throw new Error('Kuren kunde inte godkännas inför flödet');
+    await gaTill(page, '#/nyheter');
+  };
+  startI['Min journal för patienten med cytostatika'] = async (page) => { await gaTill(page, '#/min/p11'); await page.waitForSelector('.min-band h1'); };
+  GOR['cyto-godkann'] = async (m, page) => {
+    await m.klicka(page.locator('.flikar a', { hasText: /^Cytostatika$/ }), 'fliken Cytostatika');
+    await page.waitForSelector('[data-cy-kur="godkann"]:not([disabled])');
+    await m.klicka(page.locator('[data-cy-kur="godkann"]'), 'Godkänn kuren');
+    await synlig(page, '.notis', 'Kuren är godkänd');
+  };
+  GOR['regim-godkann'] = async (m, page) => {
+    await m.klicka(page.locator('#meny-lista a[href="#/cytostatika"]'), 'Cytostatika i menyn');
+    await page.waitForSelector('#cye-kurer');
+    await m.klicka(page.locator('a[href="#/cytostatika/regimer"]'), 'Regimbiblioteket');
+    await page.waitForSelector('[data-rb-godkann]');
+    await m.klicka(page.locator('[data-rb-godkann]').first(), 'Godkänn versionen');
+    await synlig(page, '.notis', 'gäller nu för nya ordinationer');
+  };
+  GOR['blod-bestall'] = async (m, page) => {
+    await m.klicka(page.locator('.flikar a', { hasText: /^Blod$/ }), 'fliken Blod');
+    await page.waitForSelector('#bl-ny');
+    await m.skriv(page.locator('#bl-indikation'), 'Anemi efter cytostatika, Hb 88', 'indikationen');
+    await m.klicka(page.locator('#bl-ny [type="submit"]'), 'Beställ');
+    await synlig(page, '.notis', 'Blodet är beställt');
+  };
+  GOR['cyto-bered'] = async (m, page) => {
+    await m.klicka(page.locator('#meny-lista a[href="#/beredning"]'), 'Beredning i menyn');
+    const forsta = page.locator('[data-bd-bered]').first();
+    await forsta.waitFor();
+    const hjalp = await forsta.locator('[id^="bd-mh-"]').textContent();
+    const ml = hjalp.match(/Beräknat ([\d,]+) ml/)[1];
+    await m.skriv(forsta.locator('[name="uppmattMl"]'), ml, 'den kontrollmätta volymen');
+    await m.klicka(forsta.locator('[type="submit"]'), 'Signera beredningen');
+    await synlig(page, '.notis', 'är beredd och signerad');
+  };
+  GOR['cyto-min-rapport'] = async (m, page) => {
+    await m.klicka(page.locator('.min-flikar a', { hasText: /^Min behandling$/ }), 'fliken Min behandling');
+    await page.waitForSelector('[data-min-cy]');
+    await m.klicka(page.locator('[data-min-cy] [name="morgon"]'), 'morgonens tabletter');
+    await m.klicka(page.locator('[data-min-cy] [type="submit"]'), 'Skicka till mottagningen');
+    await synlig(page, '.notis', 'Fortsätt som vanligt');
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 
