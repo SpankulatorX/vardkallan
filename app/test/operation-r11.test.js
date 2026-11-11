@@ -2,7 +2,8 @@
 // flera vårdenheter och sjukhus, teamet med anestesi, utrustning och instrumentgaller, vårdhändelser som påverkar ett
 // planerat ingrepp, identitetskontroll och WHO:s checklista i full omfattning. Varje test bygger en sandlåda vid en fast
 // tidpunkt (måndag 2026-11-09 klockan 08.00 svensk tid) och lägger in sina egna patienter.
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
+import { stallKlockan, aterstallKlockan } from './falsk-klocka.js';
 import { testserver, klient, sandlada as serverSandlada } from './hjalp.js';
 import { datumAv, addDagar, lokalTid } from '../src/db.js';
 import * as op from '../src/operation.js';
@@ -408,6 +409,10 @@ describe('Operation 1.1, anestesi och material', () => {
 const asaKlar = (db, pid, id, nu, roll = 'lak-ane-kkoga') => op.bekraftaAsa(atk(db, roll, pid, 'anestesibedomning'), rad(db, id), {}, nu);
 
 describe('Operation 1.1, anestesienheten', () => {
+  // Åtkomstkontrollen räknar vårdrelationen från en anmälan mot klockan. Testerna står vid BAS, och operationen är
+  // planerad dagen efter, så klockan ställs på BAS: annars har den planerade dagen passerat när sviten körs senare.
+  beforeEach(() => stallKlockan(BAS));
+  afterEach(() => aterstallKlockan());
   test('anestesienheten får vårdrelation genom operationsanmälan, men inte till andra patienter och inte efter att operationen och uppvakningen är avslutade', () => {
     const db = sandlada();
     ny(db, 'op1'); ny(db, 'op2');
