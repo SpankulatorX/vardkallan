@@ -247,17 +247,18 @@ describe('Generella direktiv', () => {
     expect(r.note.map(n => n.text).join(' ')).toContain('Ordinerad enligt generellt direktiv');
   });
 
-  test('bara verksamhetschefen och den medicinskt ansvariga läkaren fastställer och upphäver ett direktiv för sin vårdenhet, med det som 6 kap. 6 § kräver', () => {
+  test('bara den medicinskt ansvariga läkaren fastställer och upphäver ett direktiv för sin vårdenhet, med det som 6 kap. 6 § kräver', () => {
     const db = sandladaKl('13:30');
     const bas = { lakemedelId: 'VK-NPL-0025', indikation: 'Halsbränna', dosering: '1 kapsel vid behov', dos: 20, dosEnhet: 'mg', maxPerDygn: 1, minstaIntervallTimmar: 20, maxTillfallen: 1, maxdosText: 'Högst 20 mg per dygn', kontraindikationer: [{ typ: 'bekrafta', text: 'Svart avföring eller blodkräkning' }] };
     expect(fel(() => vagar.faststallDirektiv(db, personal(db, 'ssk-kard'), bas)).status).toBe(403);
     // Runda 6, r6: kardiologen har ingen medicinskt ansvarig läkare i seeden, så Sara får inte fastställa och systemet
-    // säger varför. Verksamhetschefen får, och utser sedan Sara.
+    // säger varför. Runda 13, r3: verksamhetschefen får inte heller, eftersom bara läkare utfärdar generella direktiv
+    // (6 kap. 6 §). Verksamhetschefen utser Sara.
     const utan = fel(() => vagar.faststallDirektiv(db, personal(db, 'lak-kard'), bas));
     expect(utan.status).toBe(403);
     expect(utan.message).toContain('har ingen medicinskt ansvarig läkare just nu');
     expect(vagar.direktivLista(db, personal(db, 'lak-kard'))).toMatchObject({ kanFaststalla: false });
-    expect(vagar.faststallDirektiv(db, personal(db, 'vch-kard'), bas)).toMatchObject({ faststalltAv: 'Ulrika Sandell', vardenhet: { id: 'uso-kard' } });
+    expect(fel(() => vagar.faststallDirektiv(db, personal(db, 'vch-kard'), bas)).message).toContain('Endast läkare');
     ansvar.utse(db, personal(db, 'vch-kard'), { typ: 'medicinskt_ansvarig', personalId: 'lak-kard' });
     expect(vagar.direktivLista(db, personal(db, 'lak-kard'))).toMatchObject({ kanFaststalla: true, faststallaText: null });
     expect(fel(() => vagar.faststallDirektiv(db, personal(db, 'ol-kard'), bas)).message).toContain('På Kardiologiska kliniken USÖ är det Sara Lindqvist.');

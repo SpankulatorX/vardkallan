@@ -157,7 +157,8 @@ const MENY = {
   // Runda 7, r5: uppföljningsrollen granskar och skickar rapporterna till myndigheter och register.
   uppfoljning: ['Datauttag', 'Tvångsvård och samordning', 'Rapportering', 'Utbildning', 'Användartester', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 6, r6: verksamhetschefen utser uppdragen i läkemedelshanteringen och fastställer generella direktiv.
-  verksamhetschef: ['Läkemedelsansvar', 'Direktiv och uppföljning', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  // Runda 13, r3: verksamhetschefen fastställer inte generella direktiv (HSLF-FS 2017:37 6 kap. 6 §).
+  verksamhetschef: ['Läkemedelsansvar', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 7, r3: ekonomen tar fram faktureringsunderlaget och sköter prislistorna.
   ekonom: ['Faktureringsunderlag', 'Prislistor', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 7, r4: systemförvaltaren har regler och parametrar, omorganisation, undantag och lagring.

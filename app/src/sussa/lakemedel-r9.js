@@ -53,7 +53,7 @@ export const ANDRINGAR = {
     avsedd: 'uppfyllt_demo',
     tester: [T.direktivVardgivare],
     losning: 'Ett direktiv kan också fastställas för hela vårdgivaren av den läkare som vårdgivaren har utsett, och gäller då på alla vårdenheter hos vårdgivaren men inte i en kommun.',
-    ersattAnmarkning: 'Demons direktiv är påhittade. Vem som får fastställa följer HSLF-FS 2017:37 6 kap. 6 och 17 §§ och Gröna häftet 1.4.2: verksamhetschefen eller den medicinskt ansvariga läkaren för vårdenheten, och för hela vårdgivaren den läkare som vårdgivaren har utsett. I demon är det läkaren Sara Lindqvist.',
+    ersattAnmarkning: 'Demons direktiv är påhittade. Vem som får fastställa följer HSLF-FS 2017:37 6 kap. 6 och 17 §§ och Gröna häftet 1.4.2: endast läkare, den medicinskt ansvariga läkaren för vårdenheten, och för hela vårdgivaren den läkare som vårdgivaren har utsett. I demon är det läkaren Sara Lindqvist.',
   },
   '3.5.2.20': {
     avsedd: 'uppfyllt_demo',

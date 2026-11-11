@@ -113,15 +113,16 @@ export function mottagareUtanGrund(db, o) {
   return { lage: 'alla', personalId: null };
 }
 
-// Generella direktiv fastställs av verksamhetschefen eller den medicinskt ansvariga läkaren (Gröna häftet 1.4.2 och
-// avsnittet om generella direktiv, HSLF-FS 2017:37 6 kap. 6 §).
+// Generella direktiv fastställs av den medicinskt ansvariga läkaren. Endast läkare får utfärda dem (HSLF-FS 2017:37
+// 6 kap. 6 §), och vilka läkare framgår av vårdgivarens rutin (17 §). Runda 13, r3: inte längre verksamhetschefen.
 export function faststallaDirektiv(db, personal) {
   const ve = vardenhetFor(db, personal.enhet_id);
-  if (ve && chefFor(db, personal) === ve) return { kan: true, som: 'verksamhetschef', varfor: null };
+  // Runda 13, r3 (lagrumsgranskningen): bara en läkare, och enligt vårdgivarens rutin den medicinskt ansvariga läkaren.
+  // Verksamhetschefen fastställer inte, eftersom föreskriften kräver läkare och verksamhetschefen i demon inte är det.
   if (personal.yrke === 'lakare' && uppdragFor(db, personal, 'medicinskt_ansvarig')) return { kan: true, som: 'medicinskt_ansvarig', varfor: null };
   const mal = medicinsktAnsvarig(db, ve);
   return { kan: false, som: null,
-    varfor: `Generella direktiv fastställs av verksamhetschefen eller den medicinskt ansvariga läkaren enligt vårdgivarens rutin (Gröna häftet 1.4.2). Föreskriften kräver att den som utfärdar ett generellt direktiv är läkare (HSLF-FS 2017:37 6 kap. 6 och 17 §§). ${mal ? `På ${enhetsnamn(db, ve)} är det ${mal.namn}.` : `${enhetsnamn(db, ve)} har ingen medicinskt ansvarig läkare just nu, och verksamhetschefen kan utse en.`}` };
+    varfor: `Endast läkare får utfärda generella direktiv om läkemedelsbehandling (HSLF-FS 2017:37 6 kap. 6 §). Vilka läkare framgår av vårdgivarens rutin (17 §), i demon den medicinskt ansvariga läkaren som verksamhetschefen utser. ${mal ? `På ${enhetsnamn(db, ve)} är det ${mal.namn}.` : `${enhetsnamn(db, ve)} har ingen medicinskt ansvarig läkare just nu, och verksamhetschefen kan utse en.`}` };
 }
 
 function uppdragUt(db, u) {

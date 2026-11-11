@@ -297,7 +297,7 @@ export async function visa(main) {
   const el = main.querySelector('#lms');
   if (!el) return;
   el.innerHTML = `<section class="lm-sektion" aria-labelledby="lms-dir"><h2 id="lms-dir">Generella direktiv</h2>
-      <p class="liten">Ett generellt direktiv fastställs skriftligt av verksamhetschefen eller den medicinskt ansvariga läkaren enligt vårdgivarens rutin (Gröna häftet 1.4.2), och den som utfärdar det ska vara läkare (HSLF-FS 2017:37 6 kap. 6 §). Sjuksköterskan ordinerar inom det efter sin bedömning av patienten, och systemet prövar ramarna.</p>
+      <p class="liten">Ett generellt direktiv fastställs skriftligt av den medicinskt ansvariga läkaren enligt vårdgivarens rutin. Endast läkare får utfärda generella direktiv (HSLF-FS 2017:37 6 kap. 6 och 17 §§). Sjuksköterskan ordinerar inom det efter sin bedömning av patienten, och systemet prövar ramarna.</p>
       ${d.direktiv.length ? `<div class="tabellrulle"><table class="tabell"><thead><tr><th scope="col">Läkemedel och indikation</th><th scope="col">Dosering och maxdos</th><th scope="col">Kontraindikationer</th><th scope="col">Gäller</th>${d.kanFaststalla ? '<th scope="col"><span class="sr">Åtgärder</span></th>' : ''}</tr></thead>
       <tbody>${d.direktiv.map(x => `<tr class="${x.giltigt ? '' : 'makulerad'}"><td><strong>${esc(x.lakemedel.namn)}</strong><span class="under-text">${esc(x.indikation)}</span></td>
         <td>${esc(x.dosering)}<span class="under-text">${esc(x.maxdosText ?? '')}. Högst ${x.maxTillfallen} ${x.maxTillfallen === 1 ? 'tillfälle' : 'tillfällen'} utan läkarkontakt.</span></td>

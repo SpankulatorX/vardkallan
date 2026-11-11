@@ -273,4 +273,21 @@ describe('Säkerhets- och lagrumsgranskningen', () => {
     const steg = kv.data.nasta;
     expect(JSON.stringify(steg)).toContain('kroppsvisitation');
   });
+
+  test('Lag, HSLF-FS 2017:37 6 kap. 6 §: bara läkare utfärdar generella direktiv, och en verksamhetschef som inte är läkare får inte', async () => {
+    const k = klient(app);
+    await k.logga('vch-kard');
+    expect((await k.get('/api/session')).data.behorigheter).not.toContain('faststalla_direktiv');
+    const bas = { lakemedelId: 'VK-NPL-0025', indikation: 'Halsbränna', dosering: '1 kapsel vid behov', dos: 20, dosEnhet: 'mg', maxPerDygn: 1, minstaIntervallTimmar: 20, maxTillfallen: 1, maxdosText: 'Högst 20 mg per dygn', kontraindikationer: [{ typ: 'bekrafta', text: 'Svart avföring eller blodkräkning' }] };
+    const r = await k.post('/api/direktiv', bas);
+    expect(r.status).toBe(403);
+    expect(r.data.fel).toContain('Endast läkare');
+    // Verksamhetschefen utser en läkare till medicinskt ansvarig, och läkaren utfärdar direktivet.
+    expect((await k.post('/api/lakemedelsansvar/uppdrag', { typ: 'medicinskt_ansvarig', personalId: 'lak-kard' })).status).toBe(201);
+    const l = klient(app);
+    await l.logga('lak-kard');
+    sandlada(app, l).db = sandlada(app, k).db;
+    expect((await l.post('/api/direktiv', bas)).status).toBe(201);
+  });
 });
+
