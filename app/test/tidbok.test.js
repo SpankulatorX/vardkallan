@@ -1,4 +1,5 @@
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
+import { stallKlockan, aterstallKlockan } from './falsk-klocka.js';
 import { testserver, klient, sandlada, nyDb } from './hjalp.js';
 import { lasSandlada, byggSeed, idag, addDagar, datumAv, lokalTid, inomDagen } from '../src/db.js';
 import * as tidbok from '../src/tidbok.js';
@@ -21,6 +22,11 @@ const kontakt = (k, id) => db(k).query('SELECT * FROM vardkontakter WHERE id = ?
 const kallelser = (k, bid) => db(k).query('SELECT * FROM kallelser WHERE bokning_id = ? ORDER BY id').all(bid);
 
 describe('Tidbok', () => {
+  // Runda 13, r4: mottagningen tar emot patienter på dagen, så testerna av dagens patienter körs en torsdag klockan 11.
+  // Kvällen och natten prövas i arbetsdag-r13.test.js.
+  beforeEach(() => stallKlockan(new Date(lokalTid('2026-11-12', '11:00'))));
+  afterEach(() => aterstallKlockan());
+
   test('seeden har scheman per mottagning och vårdgivare med tidstyper, och dagens patienter på kardiologiska mottagningen', () => {
     const d = nyDb();
     const scheman = d.query('SELECT * FROM scheman').all();
@@ -36,7 +42,8 @@ describe('Tidbok', () => {
     }
     // Dagens patienter ligger kring nu: någon har kommit, någon är sen och någon väntas.
     const idagBokade = d.query('SELECT b.*, t.start FROM bokningar b JOIN tider t ON t.id = b.tid_id WHERE t.relativ = 1').all();
-    expect(idagBokade.map(b => b.patient_id).sort()).toEqual(['p08', 'p09', 'p15']);
+    // Runda 13, r4: och distriktsläkarens patienter på Vårdcentralen Tybble.
+    expect(idagBokade.map(b => b.patient_id).sort()).toEqual(['p08', 'p09', 'p10', 'p11', 'p15']);
     expect(idagBokade.some(b => b.status === 'incheckad')).toBe(true);
     // Runda 11, r1: tiderna ligger på hela fem minuter i dag, så efter 23.55 ryms ingen tid efter nu före midnatt.
     if (Date.now() < Date.parse(lokalTid(addDagar(idag(), 1), '00:00')) - 5 * 60_000) expect(idagBokade.some(b => Date.parse(b.start) > Date.now())).toBe(true);
@@ -50,9 +57,8 @@ describe('Tidbok', () => {
     const fore = d.query("SELECT t.start FROM bokningar b JOIN tider t ON t.id = b.tid_id WHERE b.patient_id = 'p08' AND t.relativ = 1").get().start;
     expect(tidbok.anpassaTillNu(d)).toBeGreaterThan(0);
     const efter = d.query("SELECT t.start, b.id, b.vardkontakt_id FROM bokningar b JOIN tider t ON t.id = b.tid_id WHERE b.patient_id = 'p08' AND t.relativ = 1").get();
-    // Runda 11, r1: en tid som skulle flyttas över midnatt stannar på dagens sista tid (fem minuter före midnatt).
-    const sista = Date.parse(lokalTid(addDagar(idag(), 1), '00:00')) - 5 * 60_000;
-    expect(Date.parse(efter.start)).toBe(Math.min(Date.parse(fore) + 3 * 3600_000, sista));
+    // Runda 13, r4: tiderna flyttas lika mycket som arbetsdagens mitt, från 08.30 (mallen byggdes klockan 08) till 11.00.
+    expect(Date.parse(efter.start)).toBe(Date.parse(fore) + 150 * 60_000);
     expect(d.query('SELECT start FROM vardkontakter WHERE id = ?').get(efter.vardkontakt_id).start).toBe(efter.start);
     // Kallelsen skrivs efter flytten, med den nya tiden.
     expect(d.query("SELECT text FROM kallelser WHERE bokning_id = ? AND typ = 'kallelse'").get(efter.id).text).toContain(`Tid: ${tidbok.tidText(efter.start)}.`);

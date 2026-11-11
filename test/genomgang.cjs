@@ -766,7 +766,8 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await forvanta(page, 'main h1', 'Dagens arbete');
       await forvanta(page, '#idag-dagens tr', 'Leo Bergström');
       await forvanta(page, '#idag-dagens tr', 'Avgiftsfritt');
-      await forvanta(page, '#idag-dagens tr', 'minuter sen');
+      // Runda 13, r4: mitt på dagen är David Nordin sen, och efter mottagningens dag saknas hans ankomst.
+      await forvanta(page, '#idag-dagens tr', /minuter sen|Ankomsten är inte registrerad/);
       await forvanta(page, '#idag-remisser tr', 'Karl-Erik Brandt');
       await forvanta(page, '#idag-vantelista tr', 'dagar kvar');
       await forvanta(page, '#idag-kallelser', 'Hjärtskola');
@@ -785,12 +786,20 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await forvanta(page, '.notis', 'Karl-Erik Brandt har fått en tid');
       await forvanta(page, '#idag-remisser', 'Alla accepterade remisser har fått tid');
     });
+    // Runda 13, r4: när incheckningen för Ahmed Hassans tid har stängt (efter mottagningens dag) hittar skärmen ingen tid,
+    // och Karin Berg registrerar hans ankomst i efterhand innan hon tar betalt.
+    let ahmedIEfterhand = false;
     await s('Ahmed Hassan checkar in på skärmen i väntrummet, som aldrig visar namn', async () => {
+      ahmedIEfterhand = await page.evaluate(() => fetch('/api/idag').then(r => r.json())
+        .then(d => d.dagens.find(x => x.patient?.namn?.includes('Ahmed'))?.rad?.atgard?.text === 'Registrera ankomsten'));
       await gaTill(page, '#/incheckning');
       await page.fill('#skarm-pnr', '19901117-2476');
       await page.click('#skarm-form [type="submit"]');
-      await forvanta(page, '#skarm-svar', 'Du är incheckad');
-      await forvanta(page, '#skarm-svar', 'Min journal eller i receptionen');
+      if (ahmedIEfterhand) await forvanta(page, '#skarm-svar', 'Vi hittar ingen tid');
+      else {
+        await forvanta(page, '#skarm-svar', 'Du är incheckad');
+        await forvanta(page, '#skarm-svar', 'Min journal eller i receptionen');
+      }
       await saknas(page, 'Ahmed');
       await saknas(page, 'Hassan');
       await bild(page, '66-incheckningsskarm', true);
@@ -800,6 +809,10 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
     });
     await s('Karin Berg tar betalt för Ahmed Hassan och checkar in David Nordin med ett klick', async () => {
       await gaTill(page, '#/idag');
+      if (ahmedIEfterhand) {
+        await page.locator('#idag-dagens tr', { hasText: 'Ahmed Hassan' }).locator('[data-atgard="checka_in"]').click();
+        await forvanta(page, '.notis', 'Ahmed Hassan är incheckad');
+      }
       await page.locator('#idag-dagens tr', { hasText: 'Ahmed Hassan' }).locator('[data-atgard="betala"]').click();
       await forvanta(page, 'dialog[open]', 'simulerad');
       await page.click('dialog[open] [data-varde="kort"]');
@@ -2049,11 +2062,24 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await page.click('.op-flikar a[href="#/operation/forrad"]');
       await forvanta(page, '#op-vy', 'Bencement 40 g');
     });
-    await s('Therese Hedberg tar in Göran Lindell på salen, och checklistan före anestesi har det systemet vet ifyllt', async () => {
-      await gaTill(page, '#/patient/p71/operation');
+    // Runda 13, r4: dagens operationer har kommit så långt som klockan har hunnit. Steget tar den första planerade
+    // operationen, i dag eller nästa dag, in på salen.
+    await s('Therese Hedberg tar in nästa planerade patient på salen, och checklistan före anestesi har det systemet vet ifyllt', async () => {
+      const nasta = await page.evaluate(async () => {
+        const dag = (n) => new Date(Date.now() + n * 86400_000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
+        for (let n = 0; n < 7; n++) {
+          const o = await fetch(`/api/operation/oversikt?datum=${dag(n)}`).then(r => r.json());
+          const x = o.salar?.flatMap(s => s.operationer).find(y => y.status === 'planerad' && y.patient);
+          if (x) return x.patient.id;
+        }
+        return null;
+      });
+      const PNR = { p71: '194512222391', p72: '194602138184', p73: '196604072675' };
+      if (!PNR[nasta]) throw new Error(`ingen planerad operation att ta in på salen: ${nasta}`);
+      await gaTill(page, `#/patient/${nasta}/operation`);
       await forvanta(page, '.op-kort', 'giltig till');
       await page.click('[data-op-handelse="in_sal"]');
-      await page.fill('dialog[open] input[name="armband"]', '194512222391');
+      await page.fill('dialog[open] input[name="armband"]', PNR[nasta]);
       await page.click('dialog[open] [data-varde="ok"]');
       await forvanta(page, '.op-check', 'Armbandet är skannat');
       await forvanta(page, '.op-kort', 'Förslag: Kloxacillin 2 g');

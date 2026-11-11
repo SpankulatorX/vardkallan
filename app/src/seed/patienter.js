@@ -113,7 +113,9 @@ export const PATIENTER = [
       ['smarta', 'uso-kard-72', [[[-2, '08:00'], 3], [[-1, '08:00'], 2], [[0, '08:00'], 0]]],
     ],
     ordinationer: [
-      { lm: 'VK-NPL-0001', dosering: 'Enligt doseringsschema, styrs av INR', typ: 'staende', orsak: 'Förmaksflimmer, strokeprofylax', uppfoljning: 4, start: '2014-03-18', enhet: 'uso-med', av: 'lak-vas', kalla: 'migrerad:VAS' },
+      // Runda 13, r4: Waran ges en gång om dagen klockan 18, med dosen enligt doseringsschemat, så att dygnets dos syns
+      // och ges. Dosen står inte i ordinationen eftersom den ändras med INR.
+      { lm: 'VK-NPL-0001', dosering: 'Enligt doseringsschema, styrs av INR. Just nu 1 tablett klockan 18', tider: ['18'], typ: 'staende', orsak: 'Förmaksflimmer, strokeprofylax', uppfoljning: 4, start: '2014-03-18', enhet: 'uso-med', av: 'lak-vas', kalla: 'migrerad:VAS' },
       { lm: 'VK-NPL-0008', dosering: '1 tablett på morgonen', dos: 50, dosEnhet: 'mg', tider: ['08'], typ: 'staende', orsak: 'Förmaksflimmer, frekvensreglering', uppfoljning: '2014-06-18', start: '2014-03-18', enhet: 'uso-med', av: 'lak-vas', kalla: 'migrerad:VAS',
         utsatt: { tid: [-3, '13:10'], av: 'lak-kard', orsak: 'Dosökning, ersätts av ny ordination' } },
       { lm: 'VK-NPL-0008', dosering: '2 tabletter på morgonen', dos: 100, dosEnhet: 'mg', tider: ['08'], typ: 'staende', orsak: 'Förmaksflimmer, frekvensreglering', uppfoljning: 7, start: [-3, '13:12'], enhet: 'uso-kard-72', av: 'lak-kard' },

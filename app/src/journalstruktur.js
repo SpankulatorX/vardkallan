@@ -40,6 +40,8 @@ CREATE TRIGGER IF NOT EXISTS struktur_versioner_andras_ej BEFORE UPDATE ON struk
   BEGIN SELECT RAISE(ABORT, 'En beslutad version av journalens struktur ändras inte'); END;
 `;
 export function sakra(db) { db.exec(SCHEMA_JOURNALSTRUKTUR); }
+// Runda 13, r4: namnen på delarna av de inbyggda mätningarna, för felmeddelandet när en kod redan används.
+const DELNAMN = { '8480-6': 'det systoliska trycket', '8462-4': 'det diastoliska trycket' };
 const harTabell = (db) => Boolean(db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'struktur_versioner'").get());
 
 const journalModul = () => require('./journal.js');
@@ -225,7 +227,9 @@ const PROVA = {
     else if (kodverk === 'loinc') { if (!/^\d{1,7}-\d$/.test(kod)) fel.push('En kod i LOINC har siffror, ett bindestreck och en kontrollsiffra, till exempel 8867-4.'); else if (!loincGiltig(kod)) fel.push(`Kontrollsiffran i ${kod} stämmer inte. Koden är troligen felskriven.`); }
     else fel.push('Välj NPU för laboratoriets analyser eller LOINC för vitalparametrar och andra mätningar.');
     const system = kodverk === 'npu' ? SYSTEM.npu : SYSTEM.loinc;
-    const upptagen = [...Object.entries(MATKOD).filter(([, k]) => k.coding.some(c => c.code === kod)).map(([id]) => j.MATTYPER[id]?.namn ?? id),
+    // Runda 13, r4: också koderna för delarna av en inbyggd mätning, som systoliskt och diastoliskt blodtryck.
+    const upptagen = [...Object.entries(MATKOD).filter(([, k]) => k.coding.some(c => c.code === kod) || (k.komponenter ?? []).some(c => c.code === kod))
+      .map(([id, k]) => { const del = (k.komponenter ?? []).find(c => c.code === kod); return `${j.MATTYPER[id]?.namn ?? id}${del ? ` (${DELNAMN[del.code] ?? 'en del av mätningen'})` : ''}`; }),
       ...[...gallande(db, 'mattyp')].filter(([k, v]) => k !== nyckel && v.def.kod === kod).map(([, v]) => v.def.namn)];
     if (kod && upptagen.length) fel.push(`Koden ${kod} används redan för ${upptagen[0]}. Använd den mätvärdestypen, så att samma mätning inte får två namn.`);
     const ucum = text(String(d.ucum ?? ''), 30);

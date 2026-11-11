@@ -148,11 +148,15 @@ describe('Graviditet och förlossning', () => {
     const las = (val) => obs.forPatient(atk(db, 'bm-uso', 'gr1', 'las_graviditet', val), BAS);
     expect(las({ andra_enheter: true }).graviditeter.length).toBe(1);
     expect(las({}).graviditeter).toEqual([]);
-    const utan = JSON.stringify(las({}));
+    // Runda 13, r4: utan aktivt val säger svaret att en graviditetsjournal visas efter valet.
+    expect(las({}).dolda).toEqual({ kraverVal: 1 });
+    const utan = JSON.stringify({ ...las({}), dolda: { kraverVal: 0 } });
     sparr(db, 'gr1', 'vc-tybble');
     const r = las({ andra_enheter: true });
     expect(r.graviditeter).toEqual([]);
     expect(JSON.stringify(r)).toBe(utan);
+    // En spärrad graviditet räknas inte heller utan aktivt val, så att svaret inte röjer att den finns.
+    expect(JSON.stringify(las({}))).toBe(utan);
   });
 
   test('säkerhet: en graviditet eller förlossning för en annan patient ger 404, och förlossningen läser graviditetsjournalen först efter ett aktivt val', () => {

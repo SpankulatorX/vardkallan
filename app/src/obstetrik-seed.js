@@ -68,6 +68,12 @@ export function seeda(db, bas = new Date()) {
   // 3. Amanda Lindholm i vecka 40 i aktiv förlossning sedan fyra timmar, med CTG och lustgas.
   const g3 = obs.registrera(mvc('obs3'), { sistaMens: addDagar(idag, -(40 * 7 + 1)), paritet: 0 }, vid(-35 * 7 * 24 * TIMME));
   obs.samtal(mvc('obs3'), rad(g3.id), { ...SAMTAL, onskemal: { text: 'Önskar EDA om det blir långdraget.', smartlindring: ['lustgas', 'eda'] } }, vid(-35 * 7 * 24 * TIMME));
+  // Runda 13, r4: mödrahälsovårdens ultraljud och besök under graviditeten, så att journalen följer henne till förlossningen.
+  const v3 = (vecka) => vid((vecka * 7 - (40 * 7 + 1)) * 24 * TIMME);
+  obs.ultraljud(mvc('obs3'), rad(g3.id), { typ: 'rutin', datum: datumAv(v3(18)), veckor: 18, dagar: 1, placenta: 'bakvagg', fostervatten: 'normalt' }, v3(18));
+  for (const [vecka, blodtryck, vikt, sfMatt, fosterljud] of [[25, '110/68', 66, 25, 146], [32, '114/70', 69, 31, 142], [36, '116/72', 71, 34, 140], [39, '118/74', 72, 36, 138]]) {
+    obs.besok(mvc('obs3'), rad(g3.id), { blodtryck, vikt, sfMatt, fosterljud }, v3(vecka));
+  }
   const start = vid(-4 * TIMME);
   db.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak) VALUES ('obs3', 'uso-kk-forl', 'slutenvard', ?, 'Förlossningen, rum 4', 'Förlossning')").run(start.toISOString());
   db.query("INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, tid, registrerad_av) VALUES ('obs3', 'uso-kk-forl', 'tpk', '231', 231, ?, 'bm-uso')").run(vid(-3.8 * TIMME).toISOString());
@@ -77,7 +83,9 @@ export function seeda(db, bas = new Date()) {
   for (const m of [200, 170, 140, 110, 80, 50, 20]) forl.ctgBedomning(bm('obs3'), obs.forlossningRad(db, f3.id), {}, vid(-m * MIN));
   forl.smartlindring(bm('obs3'), obs.forlossningRad(db, f3.id), { metod: 'lustgas' }, vid(-2.5 * TIMME));
 
-  // 4. Nora Sjölin fick tvillingar för 20 timmar sedan och är på BB med barnen. Det första barnet har personnummer.
+  // 4. Nora Sjölin fick tvillingar för 20 timmar sedan och är på BB med barnen. Runda 13, r4: båda barnen har kvar sina
+  // reservnummer från födelsen, eftersom födelseanmälan inte är skickad än. Skatteverkets testpersonnummer har inga
+  // nummer med dagens födelsedatum, så ett barn med personnummer skulle se ut att vara fött ett annat år.
   const g4 = obs.registrera(mvc('obs4'), { sistaMens: addDagar(idag, -(37 * 7 + 3)), antalFoster: 2, paritet: 1 }, vid(-30 * 7 * 24 * TIMME));
   obs.samtal(mvc('obs4'), rad(g4.id), SAMTAL, vid(-30 * 7 * 24 * TIMME));
   const s4 = vid(-27 * TIMME);
@@ -88,7 +96,6 @@ export function seeda(db, bas = new Date()) {
   forl.smartlindring(bm('obs4'), obs.forlossningRad(db, f4.id), { metod: 'eda' }, vid(-24 * TIMME));
   obs.fodelse(bm('obs4'), obs.forlossningRad(db, f4.id), { kon: 'kvinna', vikt: 2780, langd: 47, huvudomfang: 33, apgar: [8, 9, 10] }, vid(-20 * TIMME));
   const b2 = obs.fodelse(bm('obs4'), obs.forlossningRad(db, f4.id), { kon: 'man', vikt: 2610, langd: 46, huvudomfang: 32.5, apgar: [7, 9, 10] }, vid(-20 * TIMME + 14 * MIN));
-  forl.fodelseanmalan(bm('obs4'), obs.forlossningRad(db, f4.id), { ordning: 1 }, vid(-19 * TIMME));
   const barn = db.query('SELECT barn_patient_id FROM forlossning_barn WHERE forlossning_id = ? ORDER BY ordning').all(f4.id).map(r => r.barn_patient_id);
   forl.bbKontroll(bm('obs4'), { temp: 37.1, puls: 82, blodtryck: '121/76', blodning: 'normal', livmoder: 'fast', urinerat: true, amning: 'stod' }, vid(-14 * TIMME));
   forl.bbKontroll(bm(barn[0]), { vikt: 2690, temp: 36.8, andning: 'ua', hudfarg: 'normal', maltider: 7 }, vid(-6 * TIMME));

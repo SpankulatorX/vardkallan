@@ -39,6 +39,9 @@ import { YRKEN } from './seed/personal.js';
 import { registreraRutter as utdataRutter, tillagg as utdata } from './utdata-rutter.js';
 // Runda 6, r3: vårdplaner, psykiatrisk tvångsvård, samordnad planering (SIP och SPU) och ändringar i hälsoärenden.
 import { registreraRutter as r3Rutter, tillagg as r3 } from './r3-rutter.js';
+// Runda 13, r4: arbetslistan visar en patient i sluten tvångsvård som vårdas på en annan vårdenhet.
+import * as tvangsvard from './tvangsvard.js';
+import { datumAv } from './db.js';
 // Runda 6, r1: sökning i journalen, mätvärden med kurvor och NEWS2, basfakta, säkerhetsloggen, loggexport och stickprov.
 import { registreraRutter as r1Rutter } from './sok-matvarden-logg-rutter.js';
 import * as vitalparametrar from './vitalparametrar.js';
@@ -634,6 +637,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       aktivtValSyfte: require('./operation.js').aktivtValSyfte(db, c.personal, p.id),
       // Runda 11, r4: om patienten har cytostatika eller blod som den inloggade får se, för flikarna.
       ...r11r4.huvud(atk),
+      // Runda 13, r4: mallarna som en ny anteckning förväljer efter situationen (presentationsvyer.js).
+      anteckningsmallar: presentationsvyer.anteckningsmallar(atk),
     };
   }
 
@@ -726,17 +731,39 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
         AND NOT (coalesce(planerad, 0) = 1 AND ankomst IS NULL AND start > ?) ORDER BY start DESC`).get(id, ...enheter, new Date(Date.now() + 3600_000).toISOString());
       const inkRemiss = db.query("SELECT * FROM remisser WHERE patient_id = ? AND till_enhet_id = ? AND status <> 'svar_kvitterat' ORDER BY skickad_tid DESC").get(id, ve);
       const list = db.query(`SELECT 1 FROM listningar WHERE patient_id = ? AND enhet_id IN (${ph})`).get(id, ...enheter);
+      // Runda 13, r4: en patient i sluten psykiatrisk tvångsvård som enheten ansvarar för men som vårdas på en annan
+      // vårdenhet (till exempel somatisk vård) står bland de inskrivna, utan att säga var.
+      const lpt = !vk ? tvangsvardAnnanstans(db, id, ve) : null;
       ut.push({
         id, namn: visningsnamn(pat), personnummer: visningsPnr(pat), alder: alder(pat.fodd, idag()), kon: pat.kon,
-        plats: vk ? vk.plats : inkRemiss ? 'Inkommande remiss' : list ? 'Listad' : 'Nyligen avslutad kontakt',
-        orsak: vk?.orsak ?? (inkRemiss && kanRoll(p, 'las_remiss') ? inkRemiss.fragestallning : null),
+        plats: vk ? vk.plats : lpt ? lpt.plats : inkRemiss ? 'Inkommande remiss' : list ? 'Listad' : 'Nyligen avslutad kontakt',
+        orsak: vk?.orsak ?? lpt?.orsak ?? (inkRemiss && kanRoll(p, 'las_remiss') ? inkRemiss.fragestallning : null),
         skyddad: Boolean(pat.skyddad), larm: larm.filter(l => l.patientId === id).length + nll.filter(n => n.patientId === id).length,
-        pagaende: Boolean(vk), vardform: vk?.typ ?? null,
+        pagaende: Boolean(vk || lpt), vardform: vk?.typ ?? (lpt ? 'slutenvard' : null),
+        // Runda 13, r4: om kontakten är dagens (började i dag), så att en lång pågående kontakt i öppenvården inte står
+        // som ett besök i dag.
+        idag: Boolean(vk && datumAv(new Date(vk.start)) === idag()),
         uppmarksamhet: uppmarksamhet.symbolFor(db, p, id, valFor(c.s, id)),
+        // Runda 13, r4: identitetens typ, så att ett reservnummer syns som reservnummer.
+        idTyp: pat.id_typ ?? 'personnummer', idTypText: identitet.TYPER[pat.id_typ ?? 'personnummer']?.text ?? null,
       });
     }
+    // Runda 13, r4: en trolig dubblett markeras när båda journalerna finns i listan, så att markeringen inte röjer någon
+    // patient som användaren inte redan ser.
+    const iListan = new Set(ut.map(r => r.id));
+    for (const r of ut) r.mojligDubblett = identitet.dubbletterFor(db, r.id).some(d => iListan.has(d.annan));
     const ordning = { slutenvard: 0, akut: 1, oppenvard: 2 };
     return ut.sort((a, b) => (ordning[a.vardform] ?? 3) - (ordning[b.vardform] ?? 3) || a.namn.localeCompare(b.namn, 'sv'));
+  }
+
+  // Runda 13, r4: pågående sluten tvångsvård på vårdenheten för en patient utan egen pågående vårdkontakt där.
+  function tvangsvardAnnanstans(db, pid, ve) {
+    if (!db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'tvangsvard_perioder'").get()) return null;
+    for (const per of db.query('SELECT * FROM tvangsvard_perioder WHERE patient_id = ? AND enhet_id = ? ORDER BY skapad DESC').all(pid, ve)) {
+      const { l } = tvangsvard.periodLage(db, per);
+      if (l.status === 'sluten') return { plats: 'Vårdas på en annan vårdenhet', orsak: `${l.statusText}. Ansvaret för tvångsvården ligger kvar här.` };
+    }
+    return null;
   }
 
   function sok(c, q) {

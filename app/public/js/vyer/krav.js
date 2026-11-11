@@ -16,10 +16,18 @@ const VAR = {
 const TESTSTATUS = { 'grön': ['ok', 'Grönt'], 'röd': ['fel', 'Rött'], hoppad: ['hoppad', 'Hoppades över'], saknas: ['fel', 'Saknas'], inaktuell: ['hoppad', 'Inaktuellt, gränssnittet har ändrats sedan testet kördes'] };
 const GRUPP = [['K', 'Spårbarhet från krav till test'], ['D', 'Icke-funktionella krav och design'], ['L', 'Lagkrav och nationella tjänster'], ['M', 'Misstag att inte upprepa']];
 
+// Runda 13, r4: en kort förklaring på vanlig svenska för den som inte kan upphandlingen.
+const INLEDNING = `<section class="ruta ruta-info kr-inledning" aria-labelledby="kr-inledning-rubrik"><h2 id="kr-inledning-rubrik">Vad sidan visar</h2>
+  <p>När regionerna i samarbetet Sussa köpte ett nytt journalsystem skrev de en kravspecifikation: en lista med 389 krav på vad systemet ska klara. Här står varje krav och hur långt Vårdkällan har kommit med det.</p>
+  <ul><li><strong>Uppfyllt i demon</strong> betyder att funktionen finns i demon och att alla dess automatiska tester är gröna. Det betyder inte att den är färdig för vården eller fri från fel.</li>
+  <li><strong>Delvis</strong> betyder att en del finns, och anmärkningen säger vad som saknas.</li>
+  <li><strong>Planerat</strong> betyder att funktionen inte är byggd än.</li></ul>
+  <p>Nationella tjänster, till exempel Nationella läkemedelslistan och Skatteverket, är simulerade i demon. Krav som bara en leverantör kan uppfylla, som avtal och support, kan en demo inte uppfylla, och anmärkningen vid kravet säger det. Kraven på drift och teknik är ett eget kapitel.</p></section>`;
+
 export async function visa(main, _p, q) {
   const vy = ['egna', 'bor'].includes(q.get('vy')) ? q.get('vy') : 'sussa';
   // Runda 8, r5: villkoren för version 1.0 överst, räknade av servern.
-  main.innerHTML = vyRubrik('Kravspårbarhet') + '<section class="version-ruta" id="kr-version" aria-labelledby="kr-version-rubrik"><h2 id="kr-version-rubrik">Version och villkoren för 1.0</h2><p class="tom">Hämtar villkoren.</p></section>' + `<nav class="flikar" aria-label="Kravregister"><ul>
+  main.innerHTML = vyRubrik('Kravspårbarhet') + INLEDNING + '<section class="version-ruta" id="kr-version" aria-labelledby="kr-version-rubrik"><h2 id="kr-version-rubrik">Version och villkoren för 1.0</h2><p class="tom">Hämtar villkoren.</p></section>' + `<nav class="flikar" aria-label="Kravregister"><ul>
       <li><a href="#/krav"${vy === 'sussa' ? ' aria-current="page"' : ''}>Sussas kravspecifikation</a></li>
       <li><a href="#/krav?vy=bor"${vy === 'bor' ? ' aria-current="page"' : ''}>Bör-krav och målbild</a></li>
       <li><a href="#/krav?vy=egna"${vy === 'egna' ? ' aria-current="page"' : ''}>Eget ramverk</a></li>

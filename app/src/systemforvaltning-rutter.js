@@ -16,8 +16,30 @@ const forhand = (fn) => {
   }
 };
 
+// Runda 13, r4: allt som väntar på en andra systemförvaltares godkännande, samlat på ett ställe med länk till sidan där
+// det godkänns. Bara antal och rubriker, inga patientuppgifter. kan räknar det som den inloggade får godkänna, det vill
+// säga det som någon annan har föreslagit.
+const finnsTabell = (db, t) => Boolean(db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(t));
+export function allaAttGodkanna(db, personal) {
+  const rader = [];
+  const lagg = (id, rubrik, href, tabell, sql, avKolumn) => {
+    if (!finnsTabell(db, tabell)) return;
+    const alla = db.query(sql).all();
+    if (!alla.length) return;
+    rader.push({ id, rubrik, href, antal: alla.length, kan: alla.filter(r => r[avKolumn] !== personal.id).length });
+  };
+  lagg('parametrar', 'Regler och parametrar', '#/regler', 'konfig_andringar', "SELECT foreslagen_av FROM konfig_andringar WHERE slag = 'parameter' AND status = 'vantar'", 'foreslagen_av');
+  lagg('undantag', 'Undantag från visning', '#/undantag', 'konfig_andringar', "SELECT foreslagen_av FROM konfig_andringar WHERE slag = 'undantag' AND status = 'vantar'", 'foreslagen_av');
+  lagg('struktur', 'Mallar och mätvärdestyper', '#/struktur', 'struktur_versioner', "SELECT foreslagen_av FROM struktur_versioner WHERE status = 'vantar'", 'foreslagen_av');
+  lagg('kodverk', 'Kodverk och masterdata', '#/kodverk', 'kodverk_utgavor', "SELECT foreslagen_av FROM kodverk_utgavor WHERE status = 'vantar'", 'foreslagen_av');
+  lagg('omorganisation', 'Omorganisation', '#/omorganisation', 'omorganisationer', `SELECT forberedd_av FROM omorganisationer WHERE status = 'forberedd' AND godkand_av IS NULL AND typ IN (${[...omorganisation.KRAVER_GODKANNANDE].map(t => `'${t}'`).join(', ')})`, 'forberedd_av');
+  lagg('uttag', 'Lagring, uttag per huvudman', '#/lagring', 'uttagsbeslut', "SELECT beslutat_av FROM uttagsbeslut WHERE status = 'vantar'", 'beslutat_av');
+  lagg('uppgradering', 'Uppgraderingar', '#/uppgraderingar', 'uppgraderingar', "SELECT godkand1_av FROM uppgraderingar WHERE typ = 'uppgradering' AND status = 'vantar'", 'godkand1_av');
+  return rader;
+}
+
 export function registreraRutter({ rutt, kravInloggad }) {
-  rutt('GET', '/api/konfiguration', (c) => konfiguration.oversikt(c.db, kravInloggad(c)));
+  rutt('GET', '/api/konfiguration', (c) => { const p = kravInloggad(c); return { ...konfiguration.oversikt(c.db, p), allaAttGodkanna: allaAttGodkanna(c.db, p) }; });
   rutt('POST', '/api/konfiguration/forhandsvisa', (c) => { const p = kravInloggad(c); return forhand(() => konfiguration.forhandsvisa(c.db, p, c.body)); });
   rutt('POST', '/api/konfiguration', (c) => [201, konfiguration.foresla(c.db, kravInloggad(c), c.body)]);
   // Konfigurationens rutter når bara parametrar. Ett undantag godkänns och avslutas genom undantagens rutter.

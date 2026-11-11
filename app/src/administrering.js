@@ -148,6 +148,20 @@ export function lista(atk, { dag = idag() } = {}) {
   // Runda 6, r2: en makulerad registrering räknas inte. Dosen blir att ge igen, och den syns bland de senaste.
   const adm = allaAdm.filter(a => !a.makulerad);
   const perm = permissionFor(db, atk.patientId);
+  // Runda 13, r4: läkemedel ges av vården bara när patienten är inskriven eller på akuten. En patient som bor hemma tar
+  // sina läkemedel själv, och då finns inga doser att ge och inga som är försenade. Bara vårdkontakter som användaren får
+  // se räknas, så att listan aldrig röjer en inskrivning på en annan eller spärrad vårdenhet.
+  const pagar = db.query("SELECT * FROM vardkontakter WHERE patient_id = ? AND slut IS NULL AND typ IN ('slutenvard', 'akut') AND coalesce(planerad, 0) = 0").all(atk.patientId)
+    .filter(v => atk.prova('las_lakemedel', { enhet_id: v.enhet_id }).tillaten);
+  if (!pagar.length) {
+    return {
+      dag, ejInskriven: true, text: 'Patienten är inte inskriven och tar sina läkemedel själv. Det finns inga doser att ge.',
+      permission: null, doser: [], vidBehov: [], utanTider: [], vantarPaHandelse: [], kommandeHandelser: [], egenadministrering: [],
+      utanOrdination: [], senaste: allaAdm.filter(a => Date.parse(a.tid ?? a.iordningstalld?.tid ?? a.registrerad) >= nu - DAG).slice(0, 30),
+      sammanfattning: { attGe: 0, forsenade: 0, givna: 0, totalt: 0 },
+      kan: kanVarda(atk, 'ge_lakemedel'), dolda: { sparrade: atk.doldaSparr }, demoregler: true, anmarkning: DEMOREGLER_PROCESS,
+    };
+  }
   const doser = [];
   const vidBehov = [];
   const utanTider = [];

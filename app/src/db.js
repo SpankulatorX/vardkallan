@@ -233,6 +233,22 @@ export function inomDagen(bas, minuter) {
   return nuMs + Math.sign(d) * avstand;
 }
 
+// Runda 13, r4: mottagningarnas och operationsavdelningens arbetsdag. Slutenvården och akuten går dygnet runt och följer
+// nu, men en mottagning tar emot patienter på dagen. Dagens patienter på mottagningarna läggs därför kring arbetsdagens
+// mitt i stället för kring nu: mitt på dagen är mitten nu, före klockan 08.30 är den 08.30 (dagens patienter väntas, ingen
+// har kommit) och efter 14.30 är den 14.30 (dagens arbete är gjort). Alla tider stannar mellan 07.30 och 16.30.
+export const ARBETSDAG = { oppnar: '07:30', stanger: '16:30', mittTidigast: '08:30', mittSenast: '14:30' };
+export function arbetsdagensMitt(bas = nu()) {
+  const d = datumAv(bas);
+  return Math.min(Math.max(bas.getTime(), Date.parse(lokalTid(d, ARBETSDAG.mittTidigast))), Date.parse(lokalTid(d, ARBETSDAG.mittSenast)));
+}
+// En tid på dagens arbetsdag, minuter före eller efter arbetsdagens mitt, i millisekunder.
+export function arbetsdagensTid(bas, minuter) {
+  const d = datumAv(bas);
+  const t = arbetsdagensMitt(bas) + minuter * 60_000;
+  return Math.min(Math.max(t, Date.parse(lokalTid(d, ARBETSDAG.oppnar))), Date.parse(lokalTid(d, ARBETSDAG.stanger)));
+}
+
 // Tolkar seedens relativa tider (se seed/patienter.js) mot tidpunkten då sandlådan skapas.
 function tolkare(bas) {
   const basDatum = datumAv(bas);
@@ -329,9 +345,12 @@ export function byggSeed(bas = nu()) {
       }
     }
     for (const [typ, enhet, punkter, kalla] of p.matvarden) {
+      // Runda 13, r4: ett värde som personalen har mätt och skrivit in har den som registrerade det, en sjuksköterska på
+      // vårdenheten. Provsvar från laboratoriet och värden som har förts över från ett annat system har ingen.
+      const regAv = arLabb(typ) || (kalla ?? 'vardkallan') !== 'vardkallan' ? null : sjukskoterskaPa(db, enhet);
       for (const [t, varde, extra] of punkter) {
         const mt = tid(t);
-        insMv.run(p.id, enhet, typ, String(varde), typeof varde === 'number' ? varde : null, enhetMatt[typ] ?? null, mt, null, kalla ?? 'vardkallan',
+        insMv.run(p.id, enhet, typ, String(varde), typeof varde === 'number' ? varde : null, enhetMatt[typ] ?? null, mt, regAv, kalla ?? 'vardkallan',
           arLabb(typ) && !extra?.ejVidimerad ? vidimeradTid(mt, bas) : null);
       }
     }
@@ -495,6 +514,14 @@ export function byggSeed(bas = nu()) {
   // Runda 12, r2: de versionerade migreringarna från version 1.2 (releaser.js). Sist, så att schemaversionen gäller allt.
   require('./releaser.js').kontrolleraVidStart(db, undefined, undefined, bas);
   return db;
+}
+
+// Runda 13, r4: en sjuksköterska på vårdenheten (demopersonen först), för de seedade mätvärdena.
+function sjukskoterskaPa(db, enhet) {
+  const e = db.query('SELECT id, typ, forald_id FROM enheter WHERE id = ?').get(enhet);
+  const ve = e?.typ === 'arbetsplats' ? e.forald_id : enhet;
+  return db.query(`SELECT p.id FROM personal p JOIN enheter e ON e.id = p.enhet_id WHERE p.yrke = 'sjukskoterska' AND (p.enhet_id = ?1 OR e.id = ?2 OR e.forald_id = ?2)
+    ORDER BY p.enhet_id = ?1 DESC, p.demo DESC, p.id`).get(enhet, ve)?.id ?? null;
 }
 
 // Provsvar från laboratoriet vidimeras av ansvarig läkare. I seeden är ett provsvar vidimerat två timmar efter

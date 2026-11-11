@@ -14,7 +14,7 @@
 // checka_in, vantelista) och kräver vårdrelation eller remiss till vårdenheten, som all annan åtkomst till patienten.
 // Varje åtgärd loggas på patienten. Kallelsen innehåller aldrig journaltext. En patient med skyddade personuppgifter
 // får kallelser bara i Min journal, och namnet visas aldrig på incheckningsskärmen.
-import { Fel, iso, idag, addDagar, datumAv, lokalTid, installning, inomDagen } from './db.js';
+import { Fel, iso, idag, addDagar, datumAv, lokalTid, installning, arbetsdagensTid, arbetsdagensMitt } from './db.js';
 import { kanRoll, vardenhetFor, enheterUnder, harVardrelation, visningsnamn, visningsPnr, provaInvanare } from './atkomst.js';
 import { avgiftFor, gerVardrelation } from './vardkontakt.js';
 import * as identitet from './identitet.js';
@@ -164,7 +164,8 @@ function idagAvrundad(bas, ms) {
   const sista = Date.parse(lokalTid(addDagar(datum, 1), '00:00')) - 5 * MIN;
   return Math.min(Math.max(round5(ms), forsta), sista);
 }
-const dagensTid = (bas, minuter) => new Date(idagAvrundad(bas, inomDagen(bas, minuter))).toISOString();
+// Runda 13, r4: dagens tider ligger kring arbetsdagens mitt (db.js), aldrig sent på kvällen eller på natten.
+const dagensTid = (bas, minuter) => new Date(idagAvrundad(bas, arbetsdagensTid(bas, minuter))).toISOString();
 const veckodag = (datum) => new Date(`${datum}T12:00:00Z`).getUTCDay();
 // En dag framåt som hamnar på en helg flyttas till måndagen efter.
 function vardag(datum) {
@@ -218,10 +219,13 @@ export function seedaTidbok(db, { bas = new Date() } = {}) {
     }
     const bokad = new Date(Date.parse(lokalTid(addDagar(basDatum, b.bokad), '09:00'))).toISOString();
     const bok = skapaBokning(db, { patientId: b.patient, tid, orsak: b.orsak ?? null, av: b.bokadAv, bokad });
+    // Runda 13, r4: patienten har checkat in bara när den tiden har passerat.
     if (b.incheckad) {
       const t = dagensTid(bas, b.incheckad.min);
-      db.query("UPDATE bokningar SET status = 'incheckad', incheckad = ?, incheckad_via = ?, konummer = ? WHERE id = ?").run(t, b.incheckad.via, konummerFor(db, tid, t), bok.id);
-      db.query('UPDATE vardkontakter SET ankomst = ? WHERE id = ?').run(t, bok.vardkontakt_id);
+      if (Date.parse(t) < bas.getTime()) {
+        db.query("UPDATE bokningar SET status = 'incheckad', incheckad = ?, incheckad_via = ?, konummer = ? WHERE id = ?").run(t, b.incheckad.via, konummerFor(db, tid, t), bok.id);
+        db.query('UPDATE vardkontakter SET ankomst = ? WHERE id = ?').run(t, bok.vardkontakt_id);
+      }
     }
     // Kallelserna till dagens patienter skrivs när sandlådan skapas, efter att tiderna har flyttats (anpassaTillNu).
     if (!relativ) seedKallelser(db, bok.id, b, basDatum);
@@ -271,7 +275,8 @@ export function anpassaTillNu(db, nu = Date.now()) {
   const bas = installning(db, 'tidbok_bas');
   if (!bas || installning(db, 'tidbok_anpassad')) return 0;
   installning(db, 'tidbok_anpassad', new Date(nu).toISOString());
-  const skift = round5(nu - Date.parse(bas));
+  // Runda 13, r4: tiderna flyttas lika mycket som arbetsdagens mitt har flyttats sedan mallen byggdes.
+  const skift = round5(arbetsdagensMitt(new Date(nu)) - arbetsdagensMitt(new Date(bas)));
   // Runda 11, r1: en tid som flyttas över midnatt stannar på dagens datum (mallen är högst 30 minuter gammal, db.js).
   const flytta = (t) => (t && skift ? new Date(idagAvrundad(new Date(nu), Date.parse(t) + skift)).toISOString() : t);
   const tider = db.query('SELECT * FROM tider WHERE relativ = 1').all();
@@ -291,12 +296,47 @@ export function anpassaTillNu(db, nu = Date.now()) {
     const b = db.query('SELECT b.id FROM bokningar b JOIN tider t ON t.id = b.tid_id WHERE b.patient_id = ? AND t.relativ = 1 AND t.schema_id = ? ORDER BY b.id').get(s.patient, s.schema);
     if (!b || db.query('SELECT 1 FROM kallelser WHERE bokning_id = ?').get(b.id)) continue;
     seedKallelser(db, b.id, s, basDatum);
-    // Den som redan har checkat in och inte betalar något har fått det registrerat av systemet.
-    const rad = bokningRad(db, b.id);
-    const a = rad.status === 'incheckad' ? avgiftForBokning(db, rad) : null;
-    if (a && a.belopp === 0 && !db.query('SELECT 1 FROM betalningar WHERE bokning_id = ?').get(rad.id)) registreraBetalning(db, rad, a, a.satt, { av: rad.bokad_av });
+    stallInIncheckning(db, b.id, s, nu);
   }
+  avslutaGenomforda(db, nu);
   return tider.length;
+}
+
+// Runda 13, r4: incheckningen och betalningen för en av dagens bokningar i seeden, efter klockan när sandlådan skapas.
+// Har incheckningens tid passerat är patienten incheckad, annars inte (efter midnatt kan dagens tider ha flyttats till
+// morgonen). Den som har checkat in och inte betalar något har fått det registrerat av systemet, och den som enligt
+// seeden har betalat har gjort det när den checkade in.
+function stallInIncheckning(db, bokningId, s, nu) {
+  let rad = bokningRad(db, bokningId);
+  const tid = tidRad(db, rad.tid_id);
+  if (rad.status === 'incheckad' && Date.parse(rad.incheckad) > nu && !db.query('SELECT 1 FROM betalningar WHERE bokning_id = ?').get(rad.id)) {
+    db.query("UPDATE bokningar SET status = 'bokad', incheckad = NULL, incheckad_via = NULL, konummer = NULL WHERE id = ?").run(rad.id);
+    if (rad.vardkontakt_id) db.query('UPDATE vardkontakter SET ankomst = NULL WHERE id = ?').run(rad.vardkontakt_id);
+  }
+  rad = bokningRad(db, bokningId);
+  if (s.incheckad && rad.status === 'bokad') {
+    const t = round5(Date.parse(tid.start) + (s.incheckad.min - s.tid.min) * MIN);
+    if (t < nu) {
+      const it = new Date(t).toISOString();
+      db.query("UPDATE bokningar SET status = 'incheckad', incheckad = ?, incheckad_via = ?, konummer = ? WHERE id = ?").run(it, s.incheckad.via, konummerFor(db, tid, it), rad.id);
+      if (rad.vardkontakt_id) db.query('UPDATE vardkontakter SET ankomst = ? WHERE id = ?').run(it, rad.vardkontakt_id);
+    }
+  }
+  rad = bokningRad(db, bokningId);
+  if (rad.status !== 'incheckad' || db.query('SELECT 1 FROM betalningar WHERE bokning_id = ?').get(rad.id)) return;
+  const a = avgiftForBokning(db, rad);
+  if (a && a.belopp === 0) registreraBetalning(db, rad, a, a.satt, { av: rad.bokad_av, tid: rad.incheckad });
+  else if (a && s.betald) registreraBetalning(db, rad, a, s.betald, { av: rad.bokad_av, tid: rad.incheckad });
+}
+
+// Runda 13, r4: ett besök i dag som patienten har checkat in till och som slutade för mer än en halvtimme sedan är
+// genomfört, och vårdkontakten är avslutad när besöket slutade.
+function avslutaGenomforda(db, nu) {
+  const grans = new Date(nu - 30 * MIN).toISOString();
+  for (const r of db.query(`SELECT b.vardkontakt_id, t.slut FROM bokningar b JOIN tider t ON t.id = b.tid_id
+    WHERE t.relativ = 1 AND b.status = 'incheckad' AND b.vardkontakt_id IS NOT NULL AND t.slut < ?`).all(grans)) {
+    db.query('UPDATE vardkontakter SET slut = ? WHERE id = ? AND slut IS NULL').run(r.slut, r.vardkontakt_id);
+  }
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -892,7 +932,10 @@ export function checkaInRad(db, b, via, { av = null, avInvanare = null } = {}) {
   const tid = tidRad(db, b.tid_id);
   if (!TIDSTYPER[tid.tidstyp].fysisk) throw new Fel(400, `En ${TIDSTYPER[tid.tidstyp].text.toLowerCase()} checkas inte in. Vårdgivaren tar kontakt med patienten.`, 'ogiltig');
   if (datumAv(new Date(tid.start)) !== idag()) throw new Fel(400, `Tiden är ${tidText(tid.start)}. Incheckningen öppnar samma dag.`, 'ogiltig');
-  const t = iso();
+  // Runda 13, r4: en ankomst som registreras i efterhand, när tiden för incheckningen har gått ut (till exempel vid
+  // dagsavslutet), räknas från den bokade tiden och inte från när någon klickade.
+  const efterhand = Date.now() > Date.parse(tid.start) + regel(db, 'incheckningEfterMin') * MIN;
+  const t = efterhand ? tid.start : iso();
   db.query("UPDATE bokningar SET status = 'incheckad', incheckad = ?, incheckad_via = ?, konummer = ? WHERE id = ?").run(t, via, konummerFor(db, tid, t), b.id);
   if (b.vardkontakt_id) db.query('UPDATE vardkontakter SET ankomst = ?, andrad = ?, andrad_av = ? WHERE id = ? AND ankomst IS NULL').run(t, t, av, b.vardkontakt_id);
   const ut = bokningRad(db, b.id);
@@ -915,12 +958,12 @@ export function avgiftForBokning(db, b) {
 }
 
 const BETALSATT = { kort: 'Kort', faktura: 'Faktura', frikort: 'Frikort', avgiftsfri: 'Avgiftsfritt' };
-function registreraBetalning(db, b, a, satt, { av = null, avInvanare = null } = {}) {
+function registreraBetalning(db, b, a, satt, { av = null, avInvanare = null, tid = iso() } = {}) {
   const nr = db.query('SELECT count(*) AS n FROM betalningar').get().n + 1;
   const kvitto = `VK-DEMO-${String(nr).padStart(5, '0')}`;
   const text = satt === 'frikort' ? (a.frikortTill ? `Frikort gäller till och med ${a.frikortTill}.` : 'Frikort.') : satt === 'avgiftsfri' ? 'Avgiftsfritt.' : satt === 'kort' ? 'Kortbetalning, simulerad. Inga pengar dras.' : 'Faktura, simulerad. Ingen faktura skickas.';
   db.query('INSERT INTO betalningar (bokning_id, patient_id, belopp, satt, tid, av, av_invanare, kvitto, text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(b.id, b.patient_id, a.belopp, satt, iso(), av, avInvanare, kvitto, text);
+    .run(b.id, b.patient_id, a.belopp, satt, tid, av, avInvanare, kvitto, text);
 }
 
 export function checkaIn(atk, b) {
@@ -1313,8 +1356,15 @@ export function startsida(db, personal, { fran = idag(), till = fran } = {}) {
         status = `${u.tid.tidstypText}, ${YRKESROLL[u.tid.yrkesroll]} tar kontakt`;
       } else {
         const sen = Math.round((nu - s) / MIN);
-        status = sen > 5 ? `Har inte kommit, ${sen} minuter sen` : 'Väntas';
-        atgard = { typ: 'checka_in', text: 'Checka in' };
+        // Runda 13, r4: när tiden för incheckningen har gått ut säger raden att ankomsten saknas, så att den kan
+        // registreras i efterhand innan dagen avslutas.
+        if (nu > s + regel(db, 'incheckningEfterMin') * MIN) {
+          status = `Ankomsten är inte registrerad. Tiden var ${klockText(u.tid.start)}`;
+          atgard = { typ: 'checka_in', text: 'Registrera ankomsten' };
+        } else {
+          status = sen > 5 ? `Har inte kommit, ${sen} minuter sen` : 'Väntas';
+          atgard = { typ: 'checka_in', text: 'Checka in' };
+        }
       }
       return { ...u, datum, rad: { status, atgard, sen: u.status !== 'incheckad' && fysisk && nu - s > 5 * MIN } };
     });

@@ -1,6 +1,7 @@
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll, afterEach } from 'bun:test';
+import { stallKlockan, aterstallKlockan } from './falsk-klocka.js';
 import { testserver, klient, sandlada, nyDb } from './hjalp.js';
-import { idag, addDagar, datumAv } from '../src/db.js';
+import { idag, addDagar, datumAv, lokalTid } from '../src/db.js';
 import { harVardrelation } from '../src/atkomst.js';
 
 // Tidboken efter den fristående säkerhetsgranskningen: vårdrelation från bokningar, skyddad identitet i kallelser,
@@ -16,6 +17,8 @@ const db = (k) => sandlada(app, k).db;
 const post = (k, pid) => db(k).query("SELECT * FROM vantelista WHERE patient_id = ? AND status = 'vantar'").get(pid);
 const kontakt = (k, id) => db(k).query('SELECT * FROM vardkontakter WHERE id = ?').get(id);
 const kallelser = (k, bid) => db(k).query('SELECT * FROM kallelser WHERE bokning_id = ? ORDER BY id').all(bid);
+
+afterEach(() => aterstallKlockan());
 
 describe('Tidbok, säkerhetsgranskning', () => {
   test('en bokning ger inte bestående vårdrelation när remissen avvisas: tiden avbokas och patienten får besked', async () => {
@@ -127,7 +130,9 @@ describe('Tidbok, säkerhetsgranskning', () => {
     expect(r.data.description).toBeUndefined();
   });
 
+  // Runda 13, r4: mottagningen är öppen på dagen, så testet körs en torsdag klockan 11 (arbetsdag-r13.test.js).
   test('incheckningsskärmen visar inte avgiften och stoppar många försök', async () => {
+    stallKlockan(new Date(lokalTid('2026-11-12', '11:00')));
     const k = await inloggad('adm-kard');
     const r = await k.post('/api/incheckning/skarm', { personnummer: '199011172476' });
     expect(r.data.ok).toBe(true);

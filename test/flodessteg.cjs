@@ -1144,7 +1144,20 @@ function skapa(BAS) {
     await synlig(page, '.notis', 'Din tid är bokad');
   };
   // Runda 11, r2: operationsplaneringen och förloppet på salen.
-  startI['Operationsavdelningens program'] = async (page) => { await gaTill(page, '#/operation/program'); await page.waitForSelector('.op-program'); };
+  // Runda 13, r4: dagens operationer är genomförda när dagen har gått. Flödet börjar då på nästa dag med en planerad
+  // operation, så att det går att mäta när som helst på dygnet.
+  startI['Operationsavdelningens program'] = async (page) => {
+    const datum = await page.evaluate(async () => {
+      const dag = (n) => new Date(Date.now() + n * 86400_000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
+      for (let n = 0; n < 7; n++) {
+        const o = await fetch(`/api/operation/oversikt?datum=${dag(n)}`).then(r => r.json());
+        if (o.salar?.some(s => s.operationer.some(x => x.status === 'planerad' && x.patient))) return dag(n);
+      }
+      return dag(0);
+    });
+    await gaTill(page, `#/operation/program?datum=${datum}`);
+    await page.waitForSelector('.op-program');
+  };
   GOR['planera-operation'] = async (m, page) => {
     await m.klicka(page.locator('#meny-lista a[href="#/operation"]'), 'Operation i menyn');
     await page.waitForSelector('.op-flikar');
@@ -1156,7 +1169,7 @@ function skapa(BAS) {
     await synlig(page, '.notis', 'Operationen är planerad');
   };
   GOR['operation-in-sal'] = async (m, page) => {
-    await m.klicka(page.locator('table.op-program a.patientlank').first(), 'patienten i dagens program');
+    await m.klicka(page.locator('table.op-program tr', { hasText: 'Planerad' }).locator('a.patientlank').first(), 'patienten i dagens program');
     await page.waitForSelector('[data-op-handelse="in_sal"]');
     await m.klicka(page.locator('[data-op-handelse="in_sal"]'), 'In på sal');
     await page.locator('dialog[open] [data-varde="ok"]').waitFor();

@@ -755,9 +755,17 @@ export function mhvOversikt(db, personal, valFor = () => ({}), nu = new Date()) 
 export function forPatient(atk, nu = new Date()) {
   sakra(atk.db);
   atk.krav('las_graviditet');
-  const rader = atk.filtrera(atk.db.query('SELECT * FROM graviditeter WHERE patient_id = ? ORDER BY skapad DESC').all(atk.patientId), 'las_graviditet');
+  const alla = atk.db.query('SELECT * FROM graviditeter WHERE patient_id = ? ORDER BY skapad DESC').all(atk.patientId);
+  const rader = atk.filtrera(alla, 'las_graviditet');
   const barn = atk.db.query('SELECT * FROM forlossning_barn WHERE barn_patient_id = ?').get(atk.patientId);
-  return { graviditeter: rader.map(g => graviditetUt(atk, g, nu)), moder: barn ? { forlossningId: barn.forlossning_id, ordning: barn.ordning } : null, demoregel: DEMOREGEL };
+  // Runda 13, r4: graviditeter på andra vårdenheter (mödrahälsovården) som visas efter ett aktivt val räknas, så att
+  // gränssnittet inte erbjuder att skriva in en graviditet som redan finns. Bara de som verkligen visas efter valet
+  // räknas, så att det som döljs av en spärr aldrig talar om att det finns.
+  const synliga = new Set(rader.map(g => g.id));
+  const medVal = new Atkomst(atk.db, atk.personal, atk.patientId, { ...atk.val, andra_enheter: true }, 'las_graviditet');
+  const kraverVal = atk.val?.andra_enheter ? 0 : alla.filter(g => !synliga.has(g.id) && medVal.prova('las_graviditet', { enhet_id: g.enhet_id }).tillaten).length;
+  return { graviditeter: rader.map(g => graviditetUt(atk, g, nu)), moder: barn ? { forlossningId: barn.forlossning_id, ordning: barn.ordning } : null, demoregel: DEMOREGEL,
+    dolda: { kraverVal } };
 }
 
 // ---- Förlossningen ---------------------------------------------------------------------------------------------------

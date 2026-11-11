@@ -19,7 +19,8 @@ import TESTPERSONNUMMER from './seed/testpersonnummer.json' with { type: 'json' 
 
 export const MILJOER = {
   produktion: { text: 'Produktionsmiljö', kort: 'Produktion', beskrivning: 'Demons vanliga sandlåda.' },
-  acceptanstest: { text: 'Acceptanstestmiljö', kort: 'Acceptanstest', beskrivning: 'Kopia av produktionsmiljön med skarpa data, där patientuppgifterna är avidentifierade.' },
+  // Runda 13, r4: i demon är "skarpa data" sandlådans påhittade data, och det står så.
+  acceptanstest: { text: 'Acceptanstestmiljö', kort: 'Acceptanstest', beskrivning: 'Kopia av produktionsmiljön, i demon sandlådan, där patientuppgifterna är avidentifierade.' },
   utbildning: { text: 'Utbildningsmiljö', kort: 'Utbildning', beskrivning: 'Fiktiva patienter, med regler och parametrar kopierade från produktionsmiljön.' },
   test: { text: 'Testmiljö', kort: 'Test', beskrivning: 'Fiktiva patienter, med regler och parametrar kopierade från produktionsmiljön.' },
 };

@@ -509,7 +509,11 @@ describe('Graviditet, förlossning och BB', () => {
       expect(obs.forPatient(m('obs2'), bas).graviditeter[0].attGora[0]).toContain('Registrera inskrivningssamtalet');
       const o = forl.oversikt(db, pers(db, 'bm-uso'), () => ({}), bas);
       expect(o.pagaende.map(x => [x.patientId, x.oppning, x.ctg?.klass, x.ctg?.forsenad])).toEqual([['obs3', 7, 'normal', false]]);
-      expect(o.bb.map(x => [x.patientId, x.antalFoster, x.barn.map(b => b.anmalan)])).toEqual([['obs4', 2, ['kvitterad', null]]]);
+      // Runda 13, r4: ingen födelseanmälan är skickad, och båda tvillingarna har reservnummer från i dag.
+      expect(o.bb.map(x => [x.patientId, x.antalFoster, x.barn.map(b => b.anmalan)])).toEqual([['obs4', 2, [null, null]]]);
+      const barnen = db.query("SELECT p.id_typ, p.fodd FROM forlossning_barn b JOIN patienter p ON p.id = b.barn_patient_id JOIN forlossningar f ON f.id = b.forlossning_id WHERE f.patient_id = 'obs4'").all();
+      expect(barnen.map(b => b.id_typ)).toEqual(['reservnummer', 'reservnummer']);
+      for (const b of barnen) expect(b.fodd).toBe(datumAv(new Date(bas.getTime() - 20 * 3600_000)));
       expect(o.bb[0].barn.map(b => b.timmar)).toEqual([20, 19]);
       expect(obs.mhvOversikt(db, pers(db, 'ssk-vc'), () => ({}), bas).graviditeter.map(x => x.patientId)).toEqual(expect.arrayContaining(['obs1', 'obs2', 'obs3']));
     }

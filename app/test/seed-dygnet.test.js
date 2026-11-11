@@ -43,14 +43,15 @@ describe('Seeden över dygnet (runda 11, r1)', () => {
   }
 
   for (const [datum, klocka] of [['2026-11-12', '00:30'], ['2026-11-12', '01:15'], ['2026-11-12', '12:00'], ['2026-11-12', '23:30'], ['2026-11-12', '23:50']]) {
-    // Tiderna ligger på hela fem minuter, så 23.50 är den sista tiden då en tid efter nu ryms före midnatt.
-    test(`dagens patienter i tidboken ligger i dag, några före och några efter nu (${datum} ${klocka})`, () => {
+    // Runda 13, r4: dagens patienter på mottagningarna ligger på arbetsdagen (arbetsdag-r13.test.js). Mitt på dagen ligger
+    // några före och några efter nu, på natten väntas alla och på kvällen har alla varit där.
+    test(`dagens patienter i tidboken ligger i dag på arbetsdagen (${datum} ${klocka})`, () => {
       const nu = new Date(lokalTid(datum, klocka));
       stallKlockan(nu);
       const db = nySessionsDb();
       const idag = datumAv(nu);
       const dagens = db.query('SELECT t.start, t.slut, b.incheckad FROM tider t JOIN bokningar b ON b.tid_id = t.id WHERE t.relativ = 1').all();
-      expect(dagens.length).toBe(3);
+      expect(dagens.length).toBe(5);
       for (const d of dagens) {
         expect(datumAv(new Date(d.start))).toBe(idag);
         if (d.incheckad) {
@@ -58,8 +59,10 @@ describe('Seeden över dygnet (runda 11, r1)', () => {
           expect(Date.parse(d.incheckad)).toBeLessThanOrEqual(nu.getTime());
         }
       }
-      expect(dagens.some(d => Date.parse(d.start) < nu.getTime())).toBe(true);
-      expect(dagens.some(d => Date.parse(d.start) > nu.getTime())).toBe(true);
+      const fore = dagens.filter(d => Date.parse(d.start) < nu.getTime()).length;
+      if (klocka < '07:00') expect(fore).toBe(0);
+      else if (klocka >= '17:00') expect(fore).toBe(dagens.length);
+      else expect([fore > 0, fore < dagens.length]).toEqual([true, true]);
       // De lediga tiderna i dag ligger också i dag.
       for (const t of db.query('SELECT start FROM tider t WHERE t.relativ = 1 AND NOT EXISTS (SELECT 1 FROM bokningar b WHERE b.tid_id = t.id)').all()) {
         expect(datumAv(new Date(t.start))).toBe(idag);

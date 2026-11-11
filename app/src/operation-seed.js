@@ -76,5 +76,45 @@ export function seeda(db, bas) {
     op.planera(A('opk-kkoga', x.id, 'operation_planera'), op.anmalanRad(db, a.id), { sal: 'kkoga-sal-1', start: lokalTid(addDagar(dag, x.plan[0]), x.plan[1]) }, t(-3, '14:00'));
     // ASA-klassen är bekräftad tidigt på operationsdagen för dagens operationer.
     if (x.plan[0] === 0) op.bekraftaAsa(A('lak-kkoga', x.id, 'anestesibedomning'), op.anmalanRad(db, a.id), {}, t(0, '06:30'));
+    // Runda 13, r4: dagens operationer har kommit så långt som klockan har hunnit när sandlådan skapas. På kvällen är
+    // de genomförda och patienterna tillbaka på avdelningen, mitt på dagen pågår de, och på natten väntar de.
+    if (x.plan[0] === 0) genomforTill(db, A, x.id, a.id, new Date(lokalTid(addDagar(dag, 0), x.plan[1])), bas);
+  }
+}
+
+// Runda 13, r4: en planerad operations förlopp med samma steg som Margareta Forsbergs, fram till klockan bas. Varje steg
+// görs med modulens egna funktioner och den tid steget skulle ha gjorts på en vanlig dag.
+function genomforTill(db, A, pid, anmalanId, start, bas) {
+  const rad = () => op.anmalanRad(db, anmalanId);
+  const p = db.query('SELECT * FROM patienter WHERE id = ?').get(pid);
+  const s = A('ssk-kkoga', pid, 'operation_registrera');
+  const v = (m) => new Date(start.getTime() + m * 60_000);
+  const alla = (del) => Object.keys(op.CHECKLISTA[del].punkter);
+  let galler = [];
+  const steg = [
+    [-5, (t) => op.registrera(s, rad(), { handelse: 'in_sal', armband: p.personnummer }, t)],
+    [-4, (t) => { galler = sg.sterilgods(A('ssk-kkoga', pid, 'las_operation'), rad(), t).galler; for (const g of galler) sg.oppna(s, rad(), { galler: g.galler }, t); }],
+    [0, (t) => op.checklista(s, rad(), { del: 'fore_anestesi', bekraftade: alla('fore_anestesi') }, t)],
+    [4, (t) => aj.registreraLakemedel(s, rad(), { lakemedel: 'bupivakain', dos: 10 }, t)],
+    [5, (t) => { aj.registreraHandelse(s, rad(), { handelse: 'spinal' }, t); op.registrera(s, rad(), { handelse: 'anestesistart' }, t); }],
+    [10, (t) => aj.registreraLakemedel(s, rad(), { lakemedel: 'kloxacillin' }, t)],
+    [15, (t) => aj.registreraVatska(s, rad(), { slag: 'ringer', volym: 1000 }, t)],
+    [20, (t) => op.checklista(s, rad(), { del: 'fore_snitt', bekraftade: alla('fore_snitt') }, t)],
+    [25, (t) => op.registrera(s, rad(), { handelse: 'knivtid' }, t)],
+    [70, (t) => {
+      const lotter = rad().kva === 'NGB49' ? { 'OP-0111': `LOT-DEMO-${pid}-1`, 'OP-0112': `LOT-DEMO-${pid}-2` } : { 'OP-0101': `LOT-DEMO-${pid}-1`, 'OP-0102': `LOT-DEMO-${pid}-2` };
+      sg.forbruka(s, rad(), { lotter }, t);
+    }],
+    [95, (t) => aj.registreraVatska(s, rad(), { slag: 'blodning', volym: 300 }, t)],
+    [100, (t) => op.registrera(s, rad(), { handelse: 'op_slut' }, t)],
+    [102, (t) => { for (const g of galler) sg.rakna(s, rad(), { galler: g.galler, instrument: op.RESURSER[g.resurs].instrument, kompresserOchNalar: true }, t); }],
+    [105, (t) => op.checklista(s, rad(), { del: 'fore_utflyttning', bekraftade: alla('fore_utflyttning') }, t)],
+    [110, (t) => op.registrera(s, rad(), { handelse: 'ut_sal' }, t)],
+    [150, (t) => op.kontroll(s, rad(), { varden: { medvetande: 'A', saturation: 96, andningsfrekvens: 14, puls: 78, blodtryck: '132/76', smarta: 2, temp: 36.7 } }, t)],
+    [155, (t) => op.skrivUt(s, rad(), {}, t)],
+  ];
+  for (const [m, gor] of steg) {
+    if (v(m).getTime() > bas.getTime() - 60_000) break;
+    gor(v(m));
   }
 }

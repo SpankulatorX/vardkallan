@@ -174,7 +174,9 @@ async function nyEpikris(las, ctx, egnaMallar) {
   return nyForm(las, ctx, egnaMallar, { typ: 'Epikris', varden: f?.sokord ?? {}, info: f?.text ?? null });
 }
 
-async function nyForm(las, ctx, egnaMallar, { typ = 'Daganteckning', varden = {}, info = null } = {}) {
+async function nyForm(las, ctx, egnaMallar, { typ = null, varden = {}, info = null } = {}) {
+  // Runda 13, r4: systemet förväljer mallen efter patientens läge och vårdenheten, till exempel akutanteckning på akuten.
+  if (!typ) typ = (ctx.patient?.anteckningsmallar ?? []).find(t => egnaMallar.some(m => m.typ === t)) ?? 'Daganteckning';
   if (!egnaMallar.length) { las.innerHTML = '<p class="tom">Din yrkesroll kan inte skriva anteckningar.</p>'; return; }
   const forval = egnaMallar.find(m => m.typ === typ) ?? egnaMallar.find(m => m.typ === 'Daganteckning') ?? egnaMallar[0];
   const dok = await aktuellKontakt(ctx);
