@@ -48,7 +48,7 @@ vård, till exempel en behandling som beslutas på en mottagning.
 
 | Lagrum | Vad det säger | Rättat 2026-11-11 | Källa |
 |---|---|---|---|
-| HSLF-FS 2017:37 6 kap. 6 och 17 §§ | Bara läkare får utfärda generella direktiv. Vilka läkare framgår av vårdgivarens rutiner. | Texterna sade att föreskriften ger verksamhetschefen eller den medicinskt ansvariga läkaren rätten. Det kommer från Gröna häftet. Se Ej rättat i koden nedan. | HSLF-FS 2017:37 ändrad t.o.m. 2025:61 |
+| HSLF-FS 2017:37 6 kap. 6 och 17 §§ | Bara läkare får utfärda generella direktiv. Vilka läkare framgår av vårdgivarens rutiner. | Texterna sade att föreskriften ger verksamhetschefen eller den medicinskt ansvariga läkaren rätten. Det kommer från Gröna häftet. Rättat, se nedan. | HSLF-FS 2017:37 ändrad t.o.m. 2025:61 |
 | HSLF-FS 2017:37 4 kap. 2 §, 6 kap. 7 och 13 till 15 §§, 8 kap. 3 §, 9 kap. 2 till 9 §§, 11 kap. | Ordination, delegering och iordningställande. | Stämmer. | HSLF-FS 2017:37 |
 | Hälso- och sjukvårdslagen 4 kap. 2 § och hälso- och sjukvårdsförordningen 4 kap. 5 § | Det ska finnas en verksamhetschef (HSL). Verksamhetschefen får uppdra åt andra att fullgöra ledningsuppgifter (HSF). | Texten om ledningsansvaret hänvisade bara till HSL 4 kap. 2 §. | SFS 2017:30, 2017:80 |
 
@@ -56,25 +56,83 @@ vård, till exempel en behandling som beslutas på en mottagning.
 
 | Lagrum | Vad det säger | Utslag | Källa |
 |---|---|---|---|
-| LPT (1991:1128) 2 a till 39 §§ som citeras | Intagning, vårdintyg, tvångsåtgärder och tider. | Stämmer, utom 6 a § nedan. | SFS 1991:1128 |
+| LPT (1991:1128) 2 a till 39 §§ som citeras | Intagning, vårdintyg, tvångsåtgärder och tider. | Stämmer. 6 a § är rättad, se nedan. | SFS 1991:1128 |
 | LRV (1991:1129) 4, 12, 12 a, 13 till 16 a §§ | Rättspsykiatrisk vård. | Stämmer. | SFS 1991:1129 |
 | Lag (2017:612) om samverkan vid utskrivning | Tider för underrättelser och planering. | Stämmer. | SFS 2017:612 |
 | HSLF-FS 2023:33 och 2024:5 | Uppgiftsskyldighet till patientregistret och det medicinska födelseregistret. | Stämmer. | Socialstyrelsen |
 | Lag (1998:543) om hälsodataregister 6 §, patientsäkerhetslagen 3 kap. 1 och 2 §§, arkivlagen 3 till 6 och 10 §§ | | Stämmer. | |
 
-## Ej rättat i koden
+## Rättat i koden efter beslut (runda 13, r3)
 
-Det här är fel som styr en regel i koden och inte bara en text. De är inte ändrade, eftersom ändringen påverkar hur
-systemet beter sig och behöver ett beslut.
+Tre fel styrde en regel i koden och inte bara en text. Jonas beslutade att följa lagen. Lagtexten är återgiven ordagrant
+ur Riksdagens författningstext (SFS 1991:1128 i lydelse enligt SFS 2020:354, SFS 2022:913) och Socialstyrelsens
+författningssamling (HSLF-FS 2017:37 i ursprunglig lydelse, HSLF-FS 2016:40 i lydelse enligt HSLF-FS 2025:57, som
+trädde i kraft den 1 februari 2026).
 
-- **LPT 6 a §** (`app/src/tvangsvard.js`). Koden säger att lagen före intagningen bara medger kortvarig fastspänning eller
-  avskiljande, och nekar annat. 6 a § andra stycket tillåter också nödvändig behandling vid överhängande fara för liv
-  eller hälsa, och 6 § andra stycket kroppsvisitation och ytlig kroppsbesiktning av den som hålls kvar.
-- **HSLF-FS 2016:40 4 kap. 7 §** (`app/src/sammanhallen.js`). Vid sammanhållen journalföring ska det framgå att det finns
-  spärrade uppgifter hos en annan vårdgivare, och lagen (2022:913) 3 kap. 5 § ger vid fara rätt att se vilka vårdgivare
-  som har spärrat. Vårdkällan visar i dag inget om dem.
-- **HSLF-FS 2017:37 6 kap. 6 §** (`app/src/lakemedelsansvar.js`, `app/src/ordinationsvagar.js`). Verksamhetschefen kan
-  fastställa ett generellt direktiv i demon också när verksamhetschefen inte är läkare.
+### LPT 6 och 6 a §§ (`app/src/tvangsvard.js`, `app/src/tvangsvard-regler.js`)
+
+6 § andra stycket: "Om det är nödvändigt får patienten, sedan beslut om att hålla kvar denne har fattats,
+kroppsvisiteras eller ytligt kroppsbesiktigas för kontroll av att denne inte bär på sig egendom som anges i 21 §.
+Föreskrifterna i 23 och 24 §§ skall därvid tillämpas."
+
+6 a §: "I sådana fall som anges i 19 eller 20 § får en patient som hålls kvar enligt 6 § kortvarigt spännas fast med
+bälte eller liknande anordning eller kortvarigt hållas avskild från de andra patienterna. Om patienten är under 18 år får
+dock, i sådana fall som avses i 19 a eller 20 a §, patienten spännas fast med bälte högst en timme och hållas avskild
+högst två timmar. En patient som hålls kvar enligt 6 § får, om det finns en överhängande fara för patientens liv eller
+hälsa, ges nödvändig behandling. Beslut enligt denna paragraf fattas av legitimerad läkare. Chefsöverläkaren får besluta
+om förlängning av de tider som avses i första stycket under de förutsättningar som anges i 19-20 a §§."
+
+23 § andra stycket: "Chefsöverläkaren beslutar om kroppsvisitation och ytlig kroppsbesiktning."
+
+Bedömning och ändring: koden medgav före intagningen bara fastspänning och avskiljande. Nu medger den också nödvändig
+behandling, beslutad av legitimerad läkare, när läkaren bekräftar att det finns en överhängande fara för patientens liv
+eller hälsa, och kroppsvisitation eller ytlig kroppsbesiktning, beslutad av chefsöverläkaren eller den som har
+chefsöverläkarens uppdrag (39 §), eftersom 6 § hänvisar till 23 §. Elektroniska kommunikationstjänster och försändelser
+(20 b och 22 a §§) gäller den som är intagen och nekas fortfarande före intagningen. Läkaren har ett eget steg för
+åtgärderna under kvarhållningen.
+
+### HSLF-FS 2017:37 6 kap. 6 och 17 §§ (`app/src/lakemedelsansvar.js`, `app/src/ordinationsvagar.js`, `app/src/atkomst.js`)
+
+6 kap. 6 § första stycket: "Endast läkare får utfärda generella direktiv om läkemedelsbehandling."
+
+6 kap. 17 § andra stycket: "Av rutinerna ska det även framgå vilken eller vilka läkare som får utfärda generella
+direktiv om läkemedelsbehandling."
+
+Bedömning och ändring: verksamhetschefen kunde fastställa och upphäva generella direktiv, också när verksamhetschefen
+inte är läkare. Verksamhetschefen i demon är inte läkare. Verksamhetschefen har inte längre behörigheten, och
+direktiven fastställs och upphävs av den medicinskt ansvariga läkaren, som är den läkare som vårdgivarens rutin anger i
+demon. Verksamhetschefen utser den läkaren. En verksamhetschef som också är läkare loggar in som läkare.
+
+### HSLF-FS 2016:40 4 kap. 7 § och lagen (2022:913) 2 kap. 5 § (`app/src/sammanhallen.js`)
+
+HSLF-FS 2016:40 4 kap. 7 §: "Vårdgivaren ska ansvara för att det framgår av systemet med sammanhållen vård- och
+omsorgsdokumentation att det finns spärrade uppgifter om en patient hos någon annan vårdgivare. Vårdgivaren ska även
+ansvara för att information om vilken eller vilka vårdgivare som har spärrade uppgifter om en patient endast görs
+tillgängliga efter att en behörig användare har gjort ett aktivt val."
+
+Lagen (2022:913) om sammanhållen vård- och omsorgsdokumentation 2 kap. 5 §: "Uppgift om att det finns spärrade uppgifter
+om en patient samt uppgift om vilken vårdgivare som har spärrat uppgifterna ska göras tillgängliga för andra
+vårdgivare. En annan vårdgivare får, endast under de förutsättningar som anges i 3 kap. 5 och 6 §§, ta del av uppgift om
+vilken vårdgivare som har spärrat uppgifterna."
+
+Patientdatalagens 6 kap. om sammanhållen journalföring är ersatt av lagen (2022:913). HSLF-FS 2016:40 4 kap. 5 §
+gäller spärrade uppgifter inom vårdgivaren: "Om uppgifter om en patient har spärrats av en annan vårdenhet eller i en
+annan vårdprocess hos vårdgivaren, får dessa endast göras tillgängliga efter det att den behöriga användaren gjort ett
+aktivt val. Det aktiva valet ska göras efter en prövning av om de krav som anges i 4 kap. 5 § patientdatalagen
+(2008:355) för att få häva en spärr är uppfyllda." 6 kap. 3 § säger att det ska framgå av dokumentationen att det finns
+spärrade uppgifter när patienten har motsatt sig att uppgifterna görs tillgängliga för en annan vårdenhet, vårdprocess
+eller vårdgivare.
+
+Bedömning och ändring: lagen kräver att användaren får veta att det finns spärrade uppgifter om patienten hos en annan
+vårdgivare. Vårdkällan visade ingenting. Nu står det "Det finns spärrade uppgifter om patienten hos en annan
+vårdgivare." i rutan Andra vårdgivare, före och efter hämtningen, och inget mer: inte vilken vårdgivare, vilket slag
+av uppgift eller hur många. Vilken vårdgivare som har spärrat får man enligt 2 kap. 5 § bara veta vid fara för
+patientens liv eller allvarlig risk för hälsan (3 kap. 5 och 6 §§), efter ett aktivt val. Den vägen finns inte i demon,
+så uppgiften visas inte alls. Inom vårdgivaren är inget ändrat: andra vårdenheter ser markeringen "Det finns spärrade
+uppgifter", som 6 kap. 3 § kräver, men inte innehållet eller den spärrande enhetens namn, och spärren hävs bara efter
+ett aktivt val med patientens samtycke eller vid nödåtkomst. Rutan listar de vårdgivare som är anslutna till den
+sammanhållna journalföringen. Det är en uppgift om systemet och inte om patienten, men i demon finns bara en ansluten
+vårdgivare.
 
 ## Ej kontrollerat
 
@@ -83,7 +141,7 @@ systemet beter sig och behöver ett beslut.
   interaktionskontrollen står i docs/design.md.
 - Cybersäkerhetslagen (2025:1506) 3 och 4 kap.
 - MDR (EU) 2017/745 artiklarna 2, 5 och 10.
-- HSLF-FS 2016:40 5 kap. och 6 kap., utom 6 kap. 6 §.
+- HSLF-FS 2016:40 5 kap. och 6 kap., utom 6 kap. 3 och 6 §§.
 - Socialstyrelsens föreskrifter om psykiatrisk tvångsvård.
 - Var det står att regeringen fastställer prisbasbeloppet. Socialförsäkringsbalken 2 kap. 6 och 7 §§ beskriver hur det
   räknas.

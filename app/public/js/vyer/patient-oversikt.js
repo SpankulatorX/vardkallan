@@ -153,6 +153,7 @@ async function sammanhallenRuta(plats, ctx) {
   const vg = d.vardgivare.map(v => v.namn).join(', ');
   plats.innerHTML = `<section class="ruta sj-ruta" aria-labelledby="ov-sj"><h2 id="ov-sj">Andra vårdgivare</h2>
     <p class="liten">${esc(d.text)}</p>
+    ${d.sparrText ? `<p class="liten sj-sparr">${esc(d.sparrText)}</p>` : ''}
     ${d.hamtad ? `<p class="liten">Hämtat från ${esc(vg)}${d.grund === 'nodatkomst' ? ' med nödåtkomst' : ' med patientens samtycke'}. Uppgifterna finns i tidslinjen.</p>${d.samtycke ? '<button type="button" class="knapp liten sekundar" data-sj-aterkalla>Patienten återkallar samtycket</button>' : ''}`
       : `<form class="sj-form"><div class="falt"><label for="sj-syfte">Syfte</label><input id="sj-syfte" name="syfte" maxlength="300" value="Bedömning inför vården i dag" required></div>
         ${d.samtycke ? '' : '<label class="kryss"><input type="checkbox" name="samtycke" data-sj-samtycke> Patienten samtycker till att uppgifterna hämtas</label>'}

@@ -8,6 +8,7 @@ import * as tidbok from '../src/tidbok.js';
 import * as vardkontakt from '../src/vardkontakt.js';
 import * as mt from '../src/medicinteknik.js';
 import { atk, testserver, klient, sandlada, somPerson } from './hjalp.js';
+import * as sj from '../src/sammanhallen.js';
 import * as logguppfoljning from '../src/logguppfoljning.js';
 
 const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
@@ -288,6 +289,25 @@ describe('Säkerhets- och lagrumsgranskningen', () => {
     await l.logga('lak-kard');
     sandlada(app, l).db = sandlada(app, k).db;
     expect((await l.post('/api/direktiv', bas)).status).toBe(201);
+  });
+
+  test('Lag, HSLF-FS 2016:40 4 kap. 7 §: systemet för sammanhållen journalföring visar att det finns spärrade uppgifter hos en annan vårdgivare, och inget mer', async () => {
+    const k = klient(app);
+    await k.logga('lak-kard');
+    const TEXT = 'Det finns spärrade uppgifter om patienten hos en annan vårdgivare.';
+    // Före hämtningen och efter den: bara att spärrade uppgifter finns, utan vårdgivare, slag eller antal.
+    const fore = (await k.get('/api/patient/p01/sammanhallen')).data;
+    expect(fore.sparradeHosAnnan).toBe(true);
+    expect(fore.sparrText).toBe(TEXT);
+    const efter = (await k.post('/api/patient/p01/sammanhallen', { syfte: 'Bedömning inför vården i dag', samtycke: true })).data;
+    expect(efter.sparrText).toBe(TEXT);
+    const txt = JSON.stringify(efter);
+    expect(txt.match(/spärr/gi)).toHaveLength(1);
+    for (const p of sj.POSTER.p01.filter(x => x.sparrad)) { expect(txt).not.toContain(p.rubrik); expect(txt).not.toContain(p.id); }
+    // En patient utan spärrade uppgifter hos den andra vårdgivaren.
+    const utan = (await k.get('/api/patient/p03/sammanhallen')).data;
+    expect(utan.sparradeHosAnnan).toBe(false);
+    expect(utan.sparrText).toBeNull();
   });
 });
 

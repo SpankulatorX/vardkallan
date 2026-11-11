@@ -2665,3 +2665,35 @@ administrativ kontakt utan avgift, medan ett mätvärde eller en given dos blir 
 med ICD-10-SE i rutan Diagnoser, på den pågående kontakten (E1-36); demon har en delmängd av ICD-10-SE. Egna mätningar
 som inte går att mäta tas inte emot, och farliga värden ger råd om 1177 och 112 (E3-38). Kallelsen har mottagningens
 telefonnummer ur Post- och telestyrelsens serie för påhittade nummer och ingen intern rad om avgiften (E3-16).
+
+**Ge utan skanning (E2-5, beslut från Jonas, säkerhetsgranskningen).** En dos som ges utan skannat armband kräver en
+uppgift om hur patientens identitet kontrollerades: id-bandet avläst för hand, id-handling, känd av personalen eller
+annat sätt med fritext. Servern kräver uppgiften och sparar den med dosen. Bekräftelsen gäller för den som gav den, för
+den patienten och i den sessionen, en läkemedelsrunda (en kvart). Servern minns den i sessionen och glömmer den vid
+inloggning, utloggning, början på en inloggning med flerfaktor och när sandlådan återställs, och litar aldrig på
+klientens minne. Klienten minns bara att den inte behöver fråga igen, med nyckeln person och patient, och glömmer det vid
+varje ny session. Svarar servern att uppgiften saknas frågar dialogen. Det vanligaste sättet är förvalt, så att flödet
+utan skanning har ett klick till och flödet med skanning inget. En dos i skrivkön under ett avbrott har uppgiften med
+sig.
+
+**Fyra ögon för gallring och radering (E3-35, beslut från Jonas, säkerhetsgranskningen).** Arkivarien förbereder beslutet
+och verksamhetschefen godkänner verkställandet i sin egen inloggning, utan någon ny roll. Godkännandet gäller vårdenheten:
+en radering godkänns av verksamhetschefen för varje vårdenhet där uppgifterna finns, och en gallring som gäller flera
+vårdenheter kräver godkännande för var och en. Vilka vårdenheter som berörs räknar systemet fram ur de tabeller som har
+en kolumn för vårdenhet, samma klassning som lagringen använder. Uppgifter utan vårdenhet, som adressen, följer
+journalen. Beslutet verkställs först när alla berörda vårdenheter har godkänt. Ett beslut som inte berör någon vårdenhet
+godkänns av en verksamhetschef. Verksamhetschefen är den som står i verksamhetschefstabellen för vårdenheten. Var och en
+ser bara de beslut som rör den egna vårdenheten, med antalet journaler där och ingen patient, och inget om andra
+vårdenheter. Ett beslut som inte rör vårdenheten finns inte för den verksamhetschefen. Godkännandena sparas med
+vårdenheten och kan inte ändras eller tas bort, och arkivarien ser vilka vårdenheter som har godkänt och vilka som
+återstår. Den som förberedde beslutet kan aldrig godkänna det.
+
+**De tre lagfelen (beslut från Jonas: följ lagen).** Bedömningarna med lagtext står i docs/lagrum.md. Under
+kvarhållningen före intagningen (LPT 6 och 6 a §§) får legitimerad läkare besluta om kortvarig fastspänning och
+avskiljande och, när läkaren bekräftar en överhängande fara för patientens liv eller hälsa, om nödvändig behandling.
+Kroppsvisitation och ytlig kroppsbesiktning beslutas av chefsöverläkaren (6 § andra stycket och 23 §). Generella
+direktiv fastställs och upphävs bara av läkare (HSLF-FS 2017:37 6 kap. 6 §), i demon den medicinskt ansvariga läkaren
+som verksamhetschefen utser; verksamhetschefen, som i demon inte är läkare, gör det inte längre. Vid sammanhållen
+journalföring säger systemet att det finns spärrade uppgifter om patienten hos en annan vårdgivare (HSLF-FS 2016:40
+4 kap. 7 §), och inget mer. Inom vårdgivaren gäller regeln att inget röjs utom markeringen som 6 kap. 3 § kräver.
+

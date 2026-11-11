@@ -850,3 +850,9 @@ Det som ändrar något kräver radens vårdenhet. Listor på enhetsnivå och upp
 - `GET /api/vardkontakt/:id/handelser` tar inte med en anteckning som är undantagen från visning.
 - Anmälan till operation och raderna på `GET /api/operation/vantelista` har `behandlingsgaranti: { datum, passerad, text }`.
 - En egen vårdbegäran till en vårdcentral har `svarSenast` tre dagar fram (bedömningsgarantin), och väntelistans gräns för vårdgarantin räknas från remissens `skickad_tid` och gäller inte i primärvården.
+- `POST /api/patient/:id/administreringar` med `atgard: 'ge'` utan `armband` kräver `identitet: { satt, text? }` där `satt` är `id_band_hand`, `id_handling`, `kand` eller `annan` (då med `text`), annars 400 med `kod: 'identitet'`. En bekräftelse som samma person gjorde för samma patient i sessionen den senaste kvarten räcker. Administreringen har `identitet`.
+- `GET /api/arkiv/godkanna` (verksamhetschefen) ger `{ beslut: [{ id, typText, diarienummer, beslutsdatum, beslutsfattare, lagrum, motivering, registreradAv, registrerad, omfattning }] }` för den egna vårdenheten. `POST /api/arkiv/beslut/:id/godkann` ger `{ id, godkant, klart }`, 404 för ett beslut som inte rör vårdenheten och 409 när vårdenheten redan har godkänt. Beslut om gallring och radering har `godkannande: { klart, enheter: [{ enhet, av, tid, kommentar }], saknas }`, och `POST /api/arkiv/beslut/:id/verkstall` ger 409 tills alla berörda vårdenheter har godkänt.
+- `POST /api/patient/:id/tvangsvard` med `typ: 'atgard'` under kvarhållningen tar `behandling` med `fara: true` och `kroppsvisitation` (chefsöverläkarens uppdrag).
+- `POST /api/direktiv` och `POST /api/direktiv/:id/upphav` ger 403 för verksamhetschefen. Verksamhetschefen har inte `faststalla_direktiv`.
+- `GET /api/patient/:id/sammanhallen` har `sparradeHosAnnan` och `sparrText`.
+
