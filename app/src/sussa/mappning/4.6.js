@@ -3,6 +3,8 @@
 // Runda 9, r2: intensivvården (iva.js och medicinteknik.js, app/test/iva.test.js och app/test/medicinteknik.test.js).
 // Tidigare byggt: vätskebalansen (administrering.js och lakemedelsvyer.js, app/test/lakemedelsstod.test.js).
 import { T } from '../medicinteknik-r9.js';
+// Runda 11, r2: anestesibedömningen inför en operation.
+import { OPERATION11 as U } from '../runda11-r2.js';
 
 const VB = 'Vätskebalans > ';
 const DEMO = 'Hjärtintensiven på Kardiologiska kliniken är demons intensivvårdsavdelning med åtta platser. Reglerna och protokollen är demoregler, inte kliniskt beslutsstöd, och utrustningen är simulerad. Specialområdet sköts upp i Tilläggsavtal 3.';
@@ -30,11 +32,13 @@ export default [
     anmarkning: `${DEMO} Egna regler per patient och regler som användaren skriver själv finns inte.`,
   },
   {
-    id: '4.6.1.4', kategori: 'system', egna: [], avsedd: 'delvis',
-    tester: [T.anestesi, T.anestesiSparr],
-    losning: 'Läkaren gör en strukturerad anestesibedömning med ingrepp, planerad tid, ASA-klass, anestesiform och luftväg. Systemet hämtar aktuella läkemedel med observationer (antikoagulantia, diabetes, betablockerare), överkänslighet, diagnoser, vikt, BMI och tidigare anestesibedömningar, föreslår ASA-klass ur diagnoserna och räknar fastetiderna ur den planerade tiden. Bedömningen sparas med underlaget och ändras aldrig.',
-    expert: 'Systemet fyller i allt som redan står i journalen och varnar för risker som svår luftväg, så att läkaren bara bedömer det som kräver en undersökning.',
-    anmarkning: `${DEMO} Operationsanmälan finns inte (Sussa 4.5.1.2), så bedömningen knyts till vårdkontakten och inte till en anmälan. Riskbedömning med fler skalor och samtycke till anestesi saknas.`,
+    // Runda 11, r2: bedömningen knyts till operationsanmälan med riskskalor, samtycke, giltighetstid och information till
+    // patienten (iva.js och patient-operation.js).
+    id: '4.6.1.4', kategori: 'system', egna: [], avsedd: 'uppfyllt_demo',
+    tester: [T.anestesi, T.anestesiSparr, U.anestesibedomning, U.checklista, U.seed, U.api, U.anestesiRelation, U.anestesiLasning, U.giltighet, U.asa, U.anestesiSparr, U.anestesiEgen],
+    losning: 'Läkaren gör en strukturerad anestesibedömning för en operationsanmälan med ASA-klass, anestesiform, luftväg och patientens samtycke till anestesin. Systemet fyller i ingreppet och den planerade tiden ur operationen, hämtar aktuella läkemedel med observationer (antikoagulantia, diabetes, betablockerare), överkänslighet, diagnoser, vikt, BMI och tidigare anestesibedömningar, föreslår ASA-klass, räknar riskskalorna Revised Cardiac Risk Index och Apfel, räknar fastetiderna och skriver informationen till patienten och närstående. Anestesin är en egen vårdenhet på varje sjukhus: anmälan är en beställning till den och ger vårdrelation till patienten tills operationen och uppvakningen är avslutade, och den opererande enhetens journal visas efter ett aktivt val där systemet har förvalt syftet. Bedömningen gäller högst tolv månader, fem för barn under sju år, och provsvaren tre månader, systemet varnar för nya diagnoser, vårdtillfällen och läkemedel efter bedömningen, och en läkare bekräftar ASA-klassen på operationsdagen före induktionen. Bedömningen sparas med underlaget och ändras aldrig. Patientens identitet kontrolleras med id-bandet när patienten kommer in på salen.',
+    expert: 'Systemet fyller i allt som redan står i journalen och i operationen, räknar riskerna och varnar för svår luftväg, så att läkaren bara bedömer det som kräver en undersökning. Bedömningen och samtycket bockar av sina punkter på checklistan för säker kirurgi.',
+    anmarkning: `${DEMO} Giltighetstiden är en demoregel efter Region Skånes regionala medicinska riktlinje för preoperativ utredning, och riskskalorna är demoregler. Patienten fyller ännu inte i någon hälsodeklaration själv inför operationen.`,
   },
   {
     id: '4.6.1.5', kategori: 'system', egna: [], avsedd: 'delvis',

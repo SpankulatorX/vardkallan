@@ -354,7 +354,41 @@ export function harVardrelation(db, patientId, vardenhet, nu = new Date(), { uta
           OR mottagen_av = (SELECT x.registrerad_av FROM remiss_extern x WHERE x.remiss_id = remisser.id))))
       OR (fran_enhet_id IN (${ph}) AND status <> 'svar_kvitterat' AND NOT (status = 'bedomd' AND beslut IN ('avvisad', 'vidarebefordrad')))
     ) LIMIT 1`).get(patientId, ...enheter, grans, ...enheter);
-  return Boolean(remiss);
+  if (remiss) return true;
+  // Runda 11, r2: en operationsanmälan är en beställning till anestesienheten på den opererande vårdenhetens sjukhus.
+  return anestesiRelation(db, patientId, vardenhet, nu);
+}
+
+// Runda 11, r2 (beslut 2026-11-10): anestesin är en egen vårdenhet per sjukhus. En operationsanmälan från en vårdenhet på
+// sjukhuset ger anestesienheten vårdrelation till just den patienten, som en remiss ger mottagaren, tills operationen och
+// uppvakningen är avslutade (status klar). Det är den opererande vårdenheten som beställer, så ingen ger sig själv åtkomst.
+export const ANESTESIENHETER = { 'uso-ane': 'uso', 'kkoga-ane': 'kkoga' };
+// Säkerhetsgranskningen: bara en anmälan från en vårdenhet som opererar (och som inte är en anestesienhet) är en
+// beställning, och bara så länge den gäller: inte avbokad, inte klar och inte planerad till en dag som har passerat utan
+// operation. operation.js anmal nekar en anmälan från en vårdenhet som inte opererar.
+export const OPERERANDE_VARDENHETER = ['uso-ort', 'kkoga-ort'];
+export function sjukhusForEnhet(db, enhetId) {
+  let e = db.query('SELECT id, typ, forald_id FROM enheter WHERE id = ?').get(enhetId);
+  for (let i = 0; e && i < 10; i++) {
+    if (e.typ === 'sjukhus') return e.id;
+    e = e.forald_id ? db.query('SELECT id, typ, forald_id FROM enheter WHERE id = ?').get(e.forald_id) : null;
+  }
+  return null;
+}
+function anestesiRelation(db, patientId, vardenhet, nu = new Date()) {
+  if (!Object.hasOwn(ANESTESIENHETER, vardenhet)) return false;
+  let rader;
+  try {
+    rader = db.query(`SELECT a.id, a.enhet_id, a.status, (SELECT p.start FROM op_planeringar p WHERE p.anmalan_id = a.id AND p.struken_tid IS NULL ORDER BY p.id DESC LIMIT 1) AS start
+      FROM op_anmalningar a WHERE a.patient_id = ? AND a.status IN ('vantar', 'planerad', 'pagar', 'uppvak')`).all(patientId);
+  } catch { return false; }
+  const dag = (t) => new Date(t).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
+  return rader.some(r => {
+    const ve = vardenhetFor(db, r.enhet_id);
+    if (!OPERERANDE_VARDENHETER.includes(ve) || Object.hasOwn(ANESTESIENHETER, ve)) return false;
+    if (sjukhusForEnhet(db, r.enhet_id) !== ANESTESIENHETER[vardenhet]) return false;
+    return !(r.status === 'planerad' && r.start && dag(r.start) < dag(nu));
+  });
 }
 
 export function aktivaSparrar(db, patientId) {

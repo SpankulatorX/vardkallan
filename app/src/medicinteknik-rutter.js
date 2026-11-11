@@ -124,7 +124,7 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
     kravInloggad(c);
     return medPatient(c, id, 'las_journal', (atk, p) => {
       atk.krav('las_journal');
-      return { bedomningar: iva.anestesiLista(atk), forslag: kanRoll(c.personal, 'anestesibedomning') ? iva.anestesiForslag(atk, p, { planerad: q(c, 'planerad') }) : null, anestesiformer: iva.ANESTESIFORMER };
+      return { bedomningar: iva.anestesiLista(atk), forslag: kanRoll(c.personal, 'anestesibedomning') ? iva.anestesiForslag(atk, p, { planerad: q(c, 'planerad'), anmalanId: q(c, 'anmalan') }) : null, anestesiformer: iva.ANESTESIFORMER };
     });
   });
   rutt('POST', '/api/patient/:id/anestesi', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'anestesibedomning', (atk, p) => iva.sparaAnestesi(atk, p, c.body))]; });

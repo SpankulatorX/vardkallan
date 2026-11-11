@@ -14,7 +14,7 @@ export const ANDRINGAR = [
   // Runda 11, r8: modulregistret. Inga nya resurstyper eller skrivningar i FHIR.
   {
     version: '1.1.0', datum: '2026-11-10',
-    text: 'Modulregistret i GET /api/moduler: varje modul med status, var den nås och hur många av dess krav som är uppfyllda, räknat ur koden och kravregistret. Inga ändringar i FHIR-API:t.',
+    text: 'Modulregistret i GET /api/moduler: varje modul med status, var den nås och hur många av dess krav som är uppfyllda, räknat ur koden och kravregistret. Inga nya resurstyper eller skrivningar i FHIR. Operationsplaneringen och anestesin har nya rutter i det interna API:t, som beskrivs i docs/api-avvikelser.md.',
     resurser: [], skrivning: [], annat: ['Modulregistret i GET /api/moduler'],
   },
   // Runda 10, r1: systemkonton, prenumerationer på en population, överkänslighet och patienter via API:t och

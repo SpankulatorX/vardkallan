@@ -30,6 +30,8 @@ import * as vaccinationer from './patient-vaccinationer.js';
 import * as infarter from './patient-infarter.js';
 import * as restjournaler from './patient-restjournaler.js';
 import * as donation from './patient-donation.js';
+// Runda 11, r2: operationen i journalen.
+import * as operationFlik from './patient-operation.js';
 
 export const namn = 'patient';
 
@@ -65,6 +67,8 @@ const FLIKAR = [
 FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'matvarden') + 1, 0, ['infarter', 'In- och utfarter', () => far('las_omvardnad'), infarter]);
 FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'journal') + 1, 0, ['restjournaler', 'Restjournaler', () => pa('las_journal', 'restjournal'), restjournaler]);
 FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'remisser') + 1, 0, ['donation', 'Donation', () => far('donation'), donation]);
+// Runda 11, r2: Operation efter Prover, för personalen på en vårdenhet som opererar (Sussa 4.5 och 4.6.1.4).
+FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'prover') + 1, 0, ['operation', 'Operation', () => far('las_operation') && Boolean(S.session?.operation), operationFlik]);
 
 let huvud = null;
 
@@ -241,7 +245,8 @@ export async function visa(main, [id, flik, sub], q, ctx = {}) {
     main.querySelector('.patientvy').addEventListener('click', async (e) => {
       const b = e.target.closest('[data-val]');
       if (!b) return;
-      if (await valDialog(b.dataset.val, id)) {
+      // Runda 11, r2: anestesienheten får syftet anestesibedömning inför operation förvalt, så att valet är ett klick.
+      if (await valDialog(b.dataset.val, id, { forval: b.dataset.val === 'andra_enheter' ? huvud?.aktivtValSyfte ?? null : null })) {
         huvud = null;
         await uppdateraInkorg();
         rita();

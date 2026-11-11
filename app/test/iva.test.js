@@ -126,7 +126,7 @@ describe('Intensivvård', () => {
     const s = await inloggad('ssk-kard');
     expect((await s.post('/api/patient/p01/anestesi', { ingrepp: 'X', asa: 1, anestesiform: 'generell' })).status).toBe(403);
     expect(() => db(k).query('UPDATE anestesibedomningar SET asa = 1').run()).toThrow();
-    expect(db(k).query("SELECT count(*) AS n FROM atkomstlogg WHERE handling = 'anestesibedomning' AND resurs LIKE 'anestesi:%'").get().n).toBe(1);
+    expect(db(k).query("SELECT count(*) AS n FROM atkomstlogg WHERE handling = 'anestesibedomning' AND patient_id = 'p01' AND resurs LIKE 'anestesi:%'").get().n).toBe(1);
   });
 
   test('anestesibedömningen räknar bara det som läkaren får se, så en spärrad vårdenhets diagnoser röjs inte', async () => {

@@ -44,6 +44,8 @@ export const ICD10SE = {
   'J45.9': 'Astma, ospecificerad',
   'K21.9': 'Gastroesofageal refluxsjukdom utan esofagit',
   'M81.9': 'Osteoporos, ospecificerad',
+  // Runda 11, r2: artros hos patienterna på väntelistan för ledplastik, ordagrant ur icd-10-se.tsv (docs/kodkontroll.md).
+  'M16.1': 'Primär koxartros, ensidig eller UNS', 'M17.1': 'Primär gonartros, ensidig eller UNS',
   'N18.3': 'Kronisk njursvikt, stadium 3',
   'N18.4': 'Kronisk njursvikt, stadium 4',
   'N20.1': 'Uretärsten',

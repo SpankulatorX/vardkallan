@@ -871,7 +871,47 @@ export const PATIENTER = [
       { lm: 'VK-NPL-0045', dosering: '1 tablett 1 timme före sänggåendet vid behov', dos: 2, dosEnhet: 'mg', typ: 'vid_behov', vidBehov: true, orsak: 'Insomningssvårigheter vid depression', uppfoljning: 30, start: -120, enhet: 'uso-psyk', av: 'lak-psyk' },
     ],
   },
+  // Runda 11, r2: fem patienter som väntar på en ledplastik på Ortopediska kliniken Karlskoga lasarett. Operationerna läggs
+  // in i demons sandlåda av operation-seed.js.
+  ...operationspatienter(),
 ];
+
+// Runda 11, r2: patienterna på väntelistan för operation i Karlskoga. Personnumren är Skatteverkets testpersonnummer som
+// inget annat i seeden, testerna eller Sussas testdata använder. Vårdåtagandet på mottagningen pågår tills patienten är
+// opererad, så att vårdrelationen inte beror på dagens datum.
+function operationspatienter() {
+  const P = (id, pnr, fornamn, efternamn, adress, tel, led, anmald) => {
+    const hoft = led === 'hoft';
+    const sida = { p71: 'höger', p72: 'vänster', p73: 'höger', p74: 'vänster', p75: 'höger' }[id];
+    return {
+      id, pnr, fornamn, efternamn, adress, postnr: '691 31', ort: 'Karlskoga', telefon: tel, kontaktperson: null,
+      vardkontakter: [{ ref: 'mott', enhet: 'kkoga-ort', typ: 'oppenvard', start: [anmald, '09:00'], plats: 'Ortopedmottagningen', orsak: 'Väntar på operation' }],
+      diagnoser: [{ kod: hoft ? 'M16.1' : 'M17.1', text: hoft ? 'Primär koxartros, ensidig eller UNS' : 'Primär gonartros, ensidig eller UNS', enhet: 'kkoga-ort', vk: 'mott', datum: anmald, typ: 'huvud' }],
+      anteckningar: [
+        { typ: 'Mottagningsanteckning', enhet: 'kkoga-ort', vk: 'mott', av: 'lak-kkoga', tid: [anmald, '09:20'], sokord: {
+          'Kontaktorsak': `Smärta i ${sida} ${hoft ? 'höft' : 'knä'} sedan flera år, värst vid gång.`,
+          'Status': hoft ? 'Inskränkt inåtrotation. Röntgen visar uttalad artros.' : 'Varusfelställning och krepitationer. Röntgen visar uttalad artros.',
+          'Bedömning': `Artros i ${sida} ${hoft ? 'höft' : 'knä'} där fysioterapi och smärtlindring inte räcker.`,
+        } },
+        { typ: 'Mottagningsanteckning', enhet: 'kkoga-ort', vk: 'mott', av: 'lak-kkoga', tid: [anmald, '09:30'], sokord: {
+          'Åtgärd': `Anmäld till ${hoft ? 'total höftledsplastik' : 'totalprotes i knäled'} ${sida} sida. Information om operationen och väntetiden given.`,
+        } },
+        { typ: 'Omvårdnadsanteckning', enhet: 'kkoga-ort', vk: 'mott', av: 'ssk-kkoga', tid: [anmald, '09:45'], sokord: {
+          'Aktuellt': 'Information om förberedelser inför operation, fasta och hygien given muntligt och skriftligt.',
+        } },
+      ],
+      matvarden: [['vikt', 'kkoga-ort', [[[anmald, '09:05'], 82.0]]], ['blodtryck', 'kkoga-ort', [[[anmald, '09:05'], '138/84']]]],
+      ordinationer: [{ lm: 'VK-NPL-0026', dosering: '2 tabletter 3 gånger dagligen', dos: 1000, dosEnhet: 'mg', tider: ['08', '14', '20'], typ: 'staende', orsak: `Artrossmärta i ${hoft ? 'höften' : 'knät'}`, uppfoljning: 90, start: anmald, enhet: 'kkoga-ort', av: 'lak-kkoga' }],
+    };
+  };
+  return [
+    P('p71', '194512222391', 'Göran', 'Lindell', 'Bergsmansgatan 4', '070-174 06 91', 'hoft', -50),
+    P('p72', '194602138184', 'Barbro', 'Sjödin', 'Kungsvägen 12', '070-174 06 92', 'kna', -45),
+    P('p73', '196604072675', 'Leif', 'Ahlqvist', 'Bruksgatan 7', '070-174 06 93', 'kna', -30),
+    P('p74', '194606109108', 'Inger', 'Blom', 'Älvgatan 2', '070-174 06 94', 'hoft', -40),
+    P('p75', '194604063075', 'Rolf', 'Bengtsson', 'Skogsvägen 19', '070-174 06 95', 'kna', -100),
+  ];
+}
 
 // Remisser i varje läge av statuskedjan.
 export const REMISSER = [

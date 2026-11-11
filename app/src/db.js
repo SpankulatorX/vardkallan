@@ -638,6 +638,9 @@ export function mallen() {
   const nuMs = Date.now();
   if (!mall || mall.datum !== d || Math.abs(nuMs - mall.byggd) > MALL_MINUTER * 60_000) {
     const db = byggSeed();
+    // Runda 11, r2: demons operationer, anestesi och uppvakning (operation-seed.js). I demons sandlåda och inte i
+    // byggSeed, så att testerna som bygger en egen seed lägger in sina egna operationer i tomma salar.
+    require('./operation-seed.js').seeda(db, nu());
     mall = { datum: d, byggd: nuMs, data: db.serialize() };
     db.close();
   }

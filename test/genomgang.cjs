@@ -192,6 +192,9 @@ MENY.logg.splice(MENY.logg.indexOf('Logguppföljning') + 1, 0, 'Begäranden');
 // Runda 9, r2: läkarens meny på Kardiologiska kliniken är läkarens meny med Intensivvård, och kopieras när den är klar.
 MENY.kardiologi = [...MENY.klinisk];
 MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård');
+// Runda 11, r2: operationskoordinatorn i Karlskoga har sjuksköterskans meny med Operation i stället för Intensivvård.
+// Menyn byggs först när den används, så att tillägg från andra delar i sjuksköterskans meny följer med.
+Object.defineProperty(MENY, 'operation', { get: () => MENY.sjukskoterska.map(x => (x === 'Intensivvård' ? 'Operation' : x)), enumerable: true });
 
 (async () => {
   // Runda 11, r1: klockan ställs innan testet räknar ut några datum.
@@ -205,13 +208,14 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
 
   try {
     // Utan inloggning
-    await s('inloggningssidan visar de arton demorollerna och demoraden', async () => {
+    await s('inloggningssidan visar de nitton demorollerna och demoraden', async () => {
       await page.goto(`${BAS}/`);
       await page.waitForSelector('.roll');
       const n = await page.locator('.roll').count();
       // Runda 6, r6: verksamhetschefen är den trettonde. Runda 7: ekonomen (r3), de två systemförvaltarna (r4) och
       // distriktssköterskan Hanna Lilja i barnhälsovården (r6), och fysioterapeuten i Sussas testfall (r1).
-      if (n !== 18) throw new Error(`${n} roller`);
+      // Runda 11, r2: operationskoordinatorn i Karlskoga är den nittonde.
+      if (n !== 19) throw new Error(`${n} roller`);
       await forvanta(page, '.demorad', 'Demo med påhittade patienter och testpersonnummer från Skatteverket. Inte för vård av riktiga patienter.');
       await forvanta(page, '.sidfot', 'Vårdkällan är ett fristående demoprojekt med öppen källkod (EUPL 1.2). Det är inte en tjänst från Region Örebro län.');
       await forvanta(page, '#roll-lak-akut-visar', 'Nödåtkomst');
@@ -1711,6 +1715,65 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
       await page.waitForLoadState('networkidle');
     });
     await allaVyer(page, 'Jenny Holmberg', MENY.fysioterapeut);
+
+    // Runda 11, r2: operationskoordinatorn Therese Hedberg på Ortopediska kliniken Karlskoga lasarett (Sussa 4.5 och 4.6.1.4).
+    await s('Therese Hedberg: dagens program i Karlskoga visar de två planerade operationerna med team, och väntelistan börjar med den som har väntat efter målet', async () => {
+      await loggaIn(page, 'opk-kkoga');
+      await gaTill(page, '#/operation/program');
+      await forvanta(page, 'table.op-program', 'Göran Lindell');
+      await forvanta(page, 'table.op-program', 'Barbro Sjödin');
+      await forvanta(page, 'table.op-program', 'Martin Ödman');
+      await bild(page, '120-operation-program', true);
+      await page.click('.op-flikar a[href="#/operation/vantelista"]');
+      await forvanta(page, 'table.op-vantelista tbody tr:first-child', 'Rolf Bengtsson');
+      await forvanta(page, 'table.op-vantelista tbody tr:first-child', 'Målet har passerats');
+    });
+    await s('Therese Hedberg planerar en operation med systemets förslag på sal, team och utrustning', async () => {
+      await page.click('table.op-vantelista [data-planera]');
+      await forvanta(page, 'dialog[open]', 'Instrumentgaller för knäprotes');
+      await bild(page, '121-operation-planera');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', 'Operationen är planerad');
+      await page.waitForLoadState('networkidle');
+    });
+    await s('Therese Hedberg ser salsblocken, uppvakningen och förrådet', async () => {
+      await page.click('.op-flikar a[href="#/operation/block"]');
+      await forvanta(page, 'table.op-block', 'Ortopediska kliniken USÖ');
+      await page.click('.op-flikar a[href="#/operation/uppvakning"]');
+      await forvanta(page, '#op-vy', 'Ingen patient på uppvakningen');
+      await page.click('.op-flikar a[href="#/operation/forrad"]');
+      await forvanta(page, '#op-vy', 'Bencement 40 g');
+    });
+    await s('Therese Hedberg tar in Göran Lindell på salen, och checklistan före anestesi har det systemet vet ifyllt', async () => {
+      await gaTill(page, '#/patient/p71/operation');
+      await forvanta(page, '.op-kort', 'giltig till');
+      await page.click('[data-op-handelse="in_sal"]');
+      await page.fill('dialog[open] input[name="armband"]', '194512222391');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.op-check', 'Armbandet är skannat');
+      await forvanta(page, '.op-kort', 'Förslag: Kloxacillin 2 g');
+      await bild(page, '122-operation-checklista', true);
+    });
+    await s('Therese Hedberg bekräftar checklistan, ger antibiotikaprofylaxen och öppnar instrumentgallret', async () => {
+      for (const id of await page.locator('.op-check input[type=checkbox]:not(:checked):not(:disabled)').evaluateAll(l => l.map(x => x.id))) await page.click(`.op-check label[for="${id}"]`);
+      await page.click('.op-check [type=submit]');
+      await forvanta(page, '.notis', 'Checklistan är bekräftad');
+      await page.waitForSelector('[data-op-handelse="anestesistart"]');
+      await page.click('form[data-op-lm] [type=submit]');
+      await forvanta(page, '.notis', 'Kloxacillin 2 g är registrerat');
+      await page.waitForSelector('[data-op-oppna]');
+      await page.click('[data-op-oppna]');
+      await forvanta(page, '.notis', 'är öppnat');
+      await page.waitForLoadState('networkidle');
+    });
+    await s('Margareta Forsbergs operation visar anestesijournalen, sterilgodset och överrapporteringen', async () => {
+      await gaTill(page, '#/patient/p07/operation');
+      await forvanta(page, '.op-kort', 'Bupivakain spinalt');
+      await forvanta(page, '.op-kort', 'Skickat till sterilcentralen');
+      await forvanta(page, '.op-kort', 'Under operationen');
+      await bild(page, '123-operation-klar', true);
+    });
+    await allaVyer(page, 'Therese Hedberg', MENY.operation);
     await s('Per Holm granskar sina 30 utkast och signerar alla med ett klick', async () => {
       await loggaIn(page, 'lak-vc');
       await page.waitForFunction(() => document.querySelector('#lista') && !/Hämtar/.test(document.querySelector('#lista').textContent));
@@ -1867,7 +1930,9 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
         // Runda 10, r4: in- och utfarter, restjournaler och donation.
         'registrera-infart', 'skanna-restjournal', 'starta-donation',
         // Runda 10, r7: meddelanden, kontorsstödet, kapaciteten och kassan.
-        'fornya-recept', 'kalenderprenumeration', 'svara-meddelande', 'kapacitetsprognos', 'dagsavslut']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'fornya-recept', 'kalenderprenumeration', 'svara-meddelande', 'kapacitetsprognos', 'dagsavslut',
+        // Runda 11, r2: operationsplaneringen och förloppet på salen.
+        'planera-operation', 'operation-in-sal']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

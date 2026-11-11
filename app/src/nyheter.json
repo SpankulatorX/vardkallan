@@ -14,6 +14,28 @@
           "var": "#/moduler",
           "rubrik": "Modulsidan visar vad som finns",
           "text": "Sidan Moduler räknar själv fram vad som finns ur koden och kravregistret: varje modul med var den nås i menyn, journalen eller Min journal, vad som är simulerat och hur många av modulens krav som är uppfyllda, med en länk till kraven."
+        },
+        {
+          "id": "operation-1-1",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska"
+          ],
+          "omfattning": "stor",
+          "var": "#/operation",
+          "rubrik": "Operationsavdelningen och fliken Operation",
+          "text": "På en vårdenhet som opererar finns Operation i menyn med dagens program per sal, väntelistan, uppvakningen, salsblocken, förrådet och uppföljningen, och fliken Operation i journalen. Systemet föreslår tid, sal, team med anestesi och utrustning, fyller i checklistan för säker kirurgi med det som redan är känt, för anestesijournalen med värden från monitorn och räknar ut när nästa operation kan börja när en operation drar ut på tiden."
+        },
+        {
+          "id": "anestesibedomning-anmalan",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "var": "#/operation",
+          "rubrik": "Anestesibedömning för en operation",
+          "text": "Anestesibedömningen görs från operationen i journalen. Ingreppet och tiden fylls i, riskskalorna räknas av systemet, samtycket registreras och bedömningen gäller högst tolv månader, fem för barn under sju år. Systemet varnar när patienten har fått nya diagnoser, vårdtillfällen eller läkemedel efter bedömningen, och anestesiläkaren bekräftar ASA-klassen på operationsdagen. Anestesin är en egen vårdenhet, och anmälan är en beställning till den."
         }
       ]
     },

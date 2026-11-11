@@ -518,6 +518,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ut.bhv = bhvSession(s.db, p);
       // Runda 9, r2: om personalens vårdenhet har en intensivvårdsavdelning.
       ut.iva = ivaSession(s.db, p);
+      // Runda 11, r2: om personalens vårdenhet opererar, så att menyn visar operationsavdelningen.
+      ut.operation = require('./operation.js').session(s.db, p);
       sakraKopia(s);
       ut.lasnyckel = s.lasnyckel;
     }
@@ -559,6 +561,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...utdata.huvud(db, p),
       // Runda 10, r4: en avliden patient är märkt med datum (avliden.js).
       avliden: avlidenFor(db, p.id),
+      // Runda 11, r2: syftet som dialogen för aktivt val förväljer för anestesienheten (operation.js).
+      aktivtValSyfte: require('./operation.js').aktivtValSyfte(db, c.personal, p.id),
     };
   }
 

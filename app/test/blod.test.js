@@ -121,7 +121,7 @@ describe('Blodprodukter', () => {
     const las = { armband: p, enhetsnummer: e().enhetsnummer };
     expect(() => blod.starta(ssk(db), e(), efter(51), { kontrollant: 'lak-kkoga' })).toThrow('inte dubbelkontrollerad');
     const f = blod.forbered(ssk(db), e(), las, efter(51));
-    expect(f.kontroll).toMatchObject({ forberedd: 'Tove Ahlström', kandidater: [{ id: 'lak-kkoga', namn: 'Ingrid Moberg' }] });
+    expect(f.kontroll).toMatchObject({ forberedd: 'Tove Ahlström', kandidater: expect.arrayContaining([{ id: 'lak-kkoga', namn: 'Ingrid Moberg' }]) });
     expect(() => blod.kontrollera(ssk(db), e(), las, efter(52))).toThrow('Den som förberedde transfusionen kan inte kontrollera den själv');
     expect(blod.vantandeKontroller(db, pers(db, 'lak-kkoga'), () => ({})).kontroller.map(k => k.enhetsnummer)).toEqual([las.enhetsnummer]);
     expect(blod.vantandeKontroller(db, pers(db, 'ssk-kkoga'), () => ({})).kontroller).toEqual([]);
