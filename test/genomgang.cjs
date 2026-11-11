@@ -268,6 +268,22 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
       await bild(page, '02-arbetslista', true);
     });
     await allaVyer(page, 'Sara Lindqvist', MENY.kardiologi);
+    // Runda 11, r5: lungröntgen ur det simulerade arkivet genom DICOMweb, med fönster och bildnummer.
+    await s('Sara Lindqvist öppnar lungröntgen ur arkivet, byter fönster och ser studien genom DICOMweb', async () => {
+      await gaTill(page, '#/patient/p01/bilder');
+      await page.click('[data-studie]');
+      await page.waitForSelector('dialog[open] .bm-studie img');
+      await page.waitForFunction(() => document.querySelector('dialog[open] .bm-studie img').complete && document.querySelector('dialog[open] .bm-studie img').naturalWidth === 256);
+      if (await page.getAttribute('dialog[open] [data-fonster="Mjukdelar"]', 'aria-pressed') !== 'true') throw new Error('fönstret är inte förvalt efter undersökningen');
+      await page.click('dialog[open] [data-fonster="Ben"]');
+      await page.waitForFunction(() => document.querySelector('dialog[open] .bm-studie img').src.includes('window=2800,2000'));
+      const yta = await page.locator('dialog[open] .bm-studie img').boundingBox();
+      await page.mouse.click(yta.x + 20, yta.y + 20);
+      await page.mouse.click(yta.x + yta.width - 20, yta.y + 20);
+      await forvanta(page, 'dialog[open] .bm-matt', 'mm');
+      await bild(page, '97-bilder-arkivet');
+      await page.click('dialog[open] [data-varde="avbryt"]');
+    });
     // Runda 6, r1: sökning i journalen, kurvor och NEWS2.
     await s('Sara söker på blodtryck i journalen, ser tolkningen och öppnar kurvan med referensintervall', async () => {
       await gaTill(page, '#/patient/p01');
@@ -901,6 +917,37 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
       await forvanta(page, '.ik-news2', 'intensivvård');
       await bild(page, '92-inkorg-news2', true);
     });
+    // Runda 11, r5: bilder och media i journalen. Galleriet, en bild från fil, annotering, jämförelse och apparaten.
+    await s('Johan Ek lägger in en bild från fil, annoterar den, jämför trycksåret över tid och hämtar en bild från sårkameran', async () => {
+      const { sarPng } = require('./flodessteg.cjs');
+      await gaTill(page, '#/patient/p01/bilder');
+      await page.waitForSelector('.bm-galleri .bm-kort');
+      if (await page.locator('.bm-galleri .bm-kort').count() < 3) throw new Error('demons trycksårsbilder saknas');
+      if (await page.inputValue('#bm-stalle') !== 'korsbenet') throw new Error('kroppsstället föreslogs inte');
+      await page.setInputFiles('#bm-fil', { name: 'sar-stor.png', mimeType: 'image/png', buffer: sarPng(900, 700) });
+      await page.click('#bm-form [type="submit"]');
+      await forvanta(page, '.notis', 'Bilden är sparad i journalen');
+      await page.waitForFunction(() => [...document.querySelectorAll('.bm-galleri img')].every(i => i.complete && i.naturalWidth > 0));
+      await bild(page, '95-bilder-galleri', true);
+      await page.locator('.bm-galleri [data-oppna]').first().click();
+      await page.waitForSelector('dialog[open] .bm-stor img');
+      await page.click('dialog[open] [data-verktyg="ring"]');
+      await page.fill('dialog[open] #bm-ann-text', 'Rodnad');
+      const yta = await page.locator('dialog[open] .bm-stor img').boundingBox();
+      await page.mouse.click(yta.x + yta.width * 0.3, yta.y + yta.height * 0.3);
+      await page.mouse.click(yta.x + yta.width * 0.7, yta.y + yta.height * 0.7);
+      await forvanta(page, 'dialog[open] .bm-ann-lista', 'Rodnad');
+      await bild(page, '96-bilder-annotering');
+      await page.click('dialog[open] [data-varde="avbryt"]');
+      await page.waitForSelector('dialog[open]', { state: 'detached' });
+      await page.click('[data-jamfor="korsbenet"]');
+      await forvanta(page, '.bm-jamfor', 'bilder av korsbenet över');
+      await page.click('.bm-import summary');
+      await page.click('[data-apparat]');
+      await forvanta(page, '.bm-granska', 'Apparaten anger samma personnummer som journalen');
+      await page.locator('.bm-granska [data-godkann]').first().click();
+      await forvanta(page, '.notis', 'Bilden är införd i journalen');
+    });
     await allaVyer(page, 'Johan Ek', MENY.sjukskoterska);
 
     // Amira Haddad, undersköterska
@@ -910,8 +957,8 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
       const flikar = await page.locator('.flikar a').allTextContents();
       // Runda 6, r3: undersköterskan ser vårdplanerna och registrerar sina egna åtgärder under Planer.
       // Runda 8, r1: och fliken Prover, där undersköterskan tar prover och beställer på uppdrag.
-      // Runda 10, r2: och fliken Uppföljning (Sussa 3.1.2.2). Runda 10, r4: och In- och utfarter med omvårdnaden.
-      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Journal', 'Läkemedel', 'Mätvärden', 'In- och utfarter', 'Prover', 'Logglista', 'Identitet', 'Utskrifter', 'Planer', 'Tillämpningar', 'Uppföljning'])) throw new Error(`flikar ${flikar}`);
+      // Runda 10, r2: och fliken Uppföljning (Sussa 3.1.2.2). Runda 10, r4: och In- och utfarter med omvårdnaden. Runda 11, r5: och Bilder med omvårdnadens bilder.
+      if (JSON.stringify(flikar) !== JSON.stringify(['Översikt', 'Journal', 'Läkemedel', 'Mätvärden', 'In- och utfarter', 'Prover', 'Bilder', 'Logglista', 'Identitet', 'Utskrifter', 'Planer', 'Tillämpningar', 'Uppföljning'])) throw new Error(`flikar ${flikar}`);
       if (await page.locator('#ov-dia').count()) throw new Error('diagnoser visas');
       await page.click('.flikar a:has-text("Journal")');
       await page.waitForSelector('.j-grupp');
@@ -2115,7 +2162,9 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
         // Runda 11, r3: besöket i graviditetsjournalen och CTG-bedömningen.
         'graviditet-besok', 'ctg-bedomning',
         // Runda 11, r4: cytostatika, regimbiblioteket, blod och beredningsenheten.
-        'cyto-godkann', 'regim-godkann', 'blod-bestall', 'cyto-bered']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'cyto-godkann', 'regim-godkann', 'blod-bestall', 'cyto-bered',
+        // Runda 11, r5: bilder och media.
+        'bild-fran-fil', 'jamfor-bilder', 'bild-fran-apparat', 'visa-studie']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

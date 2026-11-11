@@ -120,6 +120,19 @@
           "var": "#/min",
           "rubrik": "Min behandling",
           "text": "Har du fått cytostatika i tablettform med dig hem finns fliken Min behandling. Där skriver du varje dag om du har tagit tabletterna och hur du mår, och systemet säger direkt om du ska ringa mottagningen."
+        },
+        {
+          "id": "bilder-i-journalen",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska",
+            "fysioterapeut"
+          ],
+          "omfattning": "stor",
+          "var": "#/patient/p01/bilder",
+          "rubrik": "Bilder, filmer och ljud i journalen",
+          "text": "Fliken Bilder i journalen har ett galleri med miniatyrer, förstoring med annoteringar och jämförelse över tid per kroppsställe. Du lägger in en bild, film eller ett ljud från datorn, mobilens kamera eller en apparat, och hämtar bilder från en annan vårdgivare med patientens samtycke. Bilder från en apparat eller en annan vårdgivare granskas innan de kommer in i journalen. Röntgenstudierna visas ur arkivet med fönster och mätning."
         }
       ]
     },

@@ -1532,7 +1532,7 @@ och etikett, och dosen väntar på dubbelkontroll hos de andra behöriga på vå
 en egen läsning i sin egen inloggning, aldrig den som iordningställde, och först därefter ges dosen, i regimens ordning.
 Samma dubbelkontroll gäller blodet.
 
-**Bilder och media.** PNG, JPEG och PDF (högst 40 kB i demon, 40 per patient) knyts till patient, vårdenhet, vårdkontakt
+**Bilder och media.** Bilder, filmer, ljud och PDF (från version 1.1 högst 1 MB per bild och 2 MB per film i demon, 40 per patient; se avsnittet Bilder och media i version 1.1) knyts till patient, vårdenhet, vårdkontakt
 och anteckning, med källan märkt: fil, kamera, Min journal, remissbilaga eller arkiv. Bilder av samma kroppsställe ställs
 i tidsordning. Patientens uppladdning i Min journal och patientens egna remissbilagor granskas av den mottagande
 vårdenheten innan de kommer in i journalen. En remissbilaga behåller avsändarens vårdenhet, så att en spärr gäller också
@@ -2131,6 +2131,98 @@ I mallen för demon har Annika Holmgren (reservnummer) EC på Onkologiska klinik
 ### Det som är simulerat eller saknas
 
 Regimerna, premedicineringen, gränserna för provsvar och kumulativ dos, beredningsenheten, lagret, gränsen för kontrollmätningen, kapaciteten, råden vid reaktion och extravasering och bedömningen av patientens rapport är demoregler och inget kliniskt beslutsstöd. Ingen våg och ingen infusionspump är ansluten, så kontrollmätningen och takten skrivs in. Blodcentralen, enhetsnumren, lagret och klassningen av reaktioner är simulerade, och rapporten om en reaktion går inte till något nationellt register. Den kumulativa dosen bygger på behandlingarna i Vårdkällan som läkemedelslistan visar och på ordinatörens svar om tidigare behandling hos andra vårdgivare. I demon ges cytostatika på Onkologiska kliniken USÖ (verksamhetsområde 741 Onkologisk vård, allmän), där onkologen Rebecka Ståhl och onkologisjuksköterskan Elias Wickman går att logga in som.
+
+## Bilder och media i version 1.1 (runda 11, r5: bilder.js, bildmedia.js, bildkodek.js, dicom-arkiv.js och r11r5-rutter.js, Sussa 4.2.1.1 till 4.2.1.4)
+
+Bilderna har en egen flik i journalen, Bilder, för den som läser journalen eller omvårdnaden. Fliken bygger på API:t från
+runda 9 och har galleriet, det som väntar på granskning, importen och multimediaarkivet.
+
+### Galleriet, förstoringen och jämförelsen
+
+Servern gör miniatyren (256 pixlar) och visningsbilden (1 600 pixlar) som JPEG med Bun.Image, en gång per fil, och
+sparar dem bredvid originalet (`media_visning`). Originalet ändras aldrig (triggern `media_andras_ej`). Platsuppgifter i
+en bilds EXIF följer inte med till miniatyren eller visningsbilden. Film, ljud och PDF får en miniatyr som servern ritar,
+ett ljud i WAV med ljudkurvan ur själva ljudet. Galleriet kan väljas ut på kroppsställe, slag och källa. En bild öppnas
+förstorad med metadatan (tid, källa, apparat eller ursprung, registrering, granskning, storlek, längd, kamera och
+SHA-256) och kan laddas ner i original. Film och ljud spelas upp i journalen. Jämförelsen ställer bilderna av ett
+kroppsställe bredvid varandra i tidsordning med dagarna från den första. Miniatyren, visningsbilden och originalet prövas
+och loggas var för sig (`media:<id>:miniatyr`, `media:<id>:visning` och `media:<id>`).
+
+### Annoteringar
+
+En annotering (pil, ring, linje eller text, med en text) är ett eget lager på bilden (`media_annoteringar`). Punkterna
+är andelar av bildens bredd och höjd, så att lagret passar både visningsbilden och originalet. Annoteringen sparas på
+den inloggades vårdenhet, och inre sekretess och spärr gäller den som för annan journalinformation: en annotering från en
+spärrad vårdenhet syns inte, och svaret är detsamma som utan den. En annotering ändras inte. Den som gjorde den kan ta
+bort den, och raden finns kvar med tiden och personen. Punkterna väljs med två klick, eller med piltangenterna och Retur,
+så att inget behöver dras. Högst 30 annoteringar per bild och vårdenhet.
+
+### Uppladdning i delar och taken
+
+Ett anrop till servern är högst 64 kB, så en större fil skickas i delar om 45 000 byte: uppladdningen startas med namn,
+storlek och SHA-256, varje del tas emot en gång med exakt rätt storlek, och när alla delar har kommit sätts filen ihop,
+kontrolleras mot kontrollsumman och typen och förs in i journalen. En bild avkodas på servern innan den förs in, med ett
+tak på 16 miljoner pixlar, så att en trasig bild eller en dekomprimeringsbomb aldrig kommer in. Delarna töms när filen är
+sparad, avbruten eller efter 30 minuter, så att inga delar av en fil ligger kvar utanför journalen. Taken: en bild 1 MB,
+en film 2 MB, ett ljud 1 MB och en PDF 1 MB, 40 filer per patient, 4 MB per sandlåda och två pågående uppladdningar per
+person. Pågående uppladdningar räknas in i taken. En bild som är större än taket förminskas i webbläsaren till högst
+2 400 pixlar som JPEG innan den skickas, och användaren får veta det. Allt som tolkas i en film- eller ljudfil (MP4,
+WebM, WAV) läses med tak på antal delar och djup.
+
+Typen avgörs ur innehållet: PNG, JPEG och WebP, MP4 och WebM, MP3, M4A, WAV, Ogg och WebM-ljud, och PDF. Systemet läser
+bildens storlek, tiden när bilden togs och kameran ur EXIF (tiden används när ingen tid anges), filmens längd och storlek
+ur MP4 eller WebM och ljudets längd ur WAV. En inspelning i webbläsaren saknar längd i filen, och då sparas längden som
+mätt vid inspelningen.
+
+### Kameran, mikrofonen och importen
+
+Kameran öppnas i webbläsaren och tar en bild, spelar in en film (högst 30 sekunder, med en upplösning och bithastighet
+som ryms i taket) eller ett ljud. På en mobil kan filvalet också ta bilden direkt.
+
+En simulerad medicinteknisk apparat (sårkamera, dermatoskop eller bärbart ultraljud) skickar sina bilder med patientens
+personnummer ur apparatens arbetslista och sitt serienummer. Bilderna väntar på granskning på vårdenheten. Den som
+granskar ser om apparatens patient stämmer med journalen; en bild som enligt apparaten gäller en annan patient kan bara
+avvisas. Kroppsstället föreslås ur patientens senaste bild.
+
+Bilder hos en annan vårdgivare (den simulerade vårdgivaren i sammanhållen journalföring, sammanhallen.js) hämtas bara med
+patientens samtycke på vårdenheten, med samma samtycke och samma regel som sammanhållen journalföring. Bilderna behåller
+sitt ursprung (vårdgivaren, vårdenheten och den som tog bilden), ingen nuvarande personal står som den som tog dem, och de
+väntar på granskning. Varje hämtning loggas på patienten (`media:extern:<hsa-id>`).
+
+Det som väntar på granskning visas i fliken Bilder och i inkorgen (Bilder att granska) för den som skriver i journalen
+eller omvårdnaden på vårdenheten.
+
+### Multimediaarkivet och DICOMweb
+
+Studierna i det simulerade arkivet (`media_studier`) nås genom DICOMweb under `/api/dicomweb`: QIDO-RS för studier
+(på PatientID, StudyInstanceUID, ModalitiesInStudy och StudyDate), serier och instanser i DICOM JSON, och WADO-RS för
+instanserna som DICOM-filer (Part 10, explicit VR little endian, i multipart/related), metadata med pixeldatan som
+BulkDataURI, och renderade bilder (PNG) med fönstret i `window=center,bredd`. Behörigheten och loggningen är journalens
+(`dicomweb:<uid>:<del>`). En patient som användaren inte får se ger en tom lista, precis som en patient som inte finns,
+och en studie på en spärrad vårdenhet syns inte. En patient med skyddad identitet är skyddad också i DICOM tills
+identiteten har visats efter ett aktivt val. Visaren i fliken byter bild med reglaget eller piltangenterna, byter fönster
+(förvalt efter undersökningen, till exempel hjärnfönster för datortomografi av hjärnan) och mäter avstånd i millimeter ur
+pixelavståndet. En extern visare som talar DICOMweb kan anslutas till samma adress med en session.
+
+XDS-I.b är en integrationspunkt som inte är byggd: ett regionalt bildindex skulle registrera studiens manifest
+(KOS) med patientens identitet, och journalen skulle söka i registret och hämta studien från arkivet genom samma DICOMweb.
+Gränsen mot beställningen: beställningen till röntgen och utlåtandet görs i laboratoriets och röntgens flöde, och ett
+utlåtande länkar till studien med studiens id.
+
+### FHIR
+
+Bilder, filmer och ljud i journalen är `Media` (typ, kroppsställe, apparat, storlek i pixlar, längd och innehållet med
+adress, storlek och SHA-1) och studierna i arkivet `ImagingStudy` (status, modalitet, serier och instanser, frågeställning,
+utlåtande och en Endpoint till arkivets DICOMweb). Samma behörighet och loggning som fliken, och båda finns i
+`Patient/$everything` för den som läser journalen.
+
+### Det som är simulerat eller saknas
+
+Apparaterna, den andra vårdgivaren och arkivet är simulerade, och deras bilder räknas fram av systemet och visar inga
+verkliga patienter. Film och ljud avkodas inte på servern. Annoteringar finns för bilder, inte för film, och mätning i
+millimeter bara i arkivets studier, där pixelavståndet är känt. HEIC från iPhone tas inte emot, eftersom avkodaren saknas
+på servern; iPhone sparar som JPEG när bilden tas i webbläsaren. XDS-I.b är inte byggt, och ingen extern visare är ansluten
+i demon.
 
 ## Godkännandekriterier för första versionen
 

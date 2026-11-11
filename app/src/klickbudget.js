@@ -467,6 +467,23 @@ export const FLODEN = [
     id: 'ctg-bedomning', namn: 'Bedöma CTG under en förlossning', roll: 'bm-uso', start: 'Förlossningens översikt', budget: 2,
     motivering: 'Sussa 4.7.1.3. Ett klick på patienten och ett på Bekräfta bedömningen. Systemet hämtar kurvan från monitorn, räknar basalfrekvens, variabilitet och decelerationer, klassar kurvan och föreslår åtgärden, så barnmorskan skriver något bara när hon bedömer annorlunda.',
   },
+  // Runda 11, r5: bilder och media i journalen (Sussa 4.2.1.1 till 4.2.1.4).
+  {
+    id: 'bild-fran-fil', namn: 'Lägga in en bild från datorn i journalen', roll: 'ssk-kard', start: 'Patientens översikt', budget: 4,
+    motivering: 'Sussa 4.2.1.1, 4.2.1.2 och 4.2.1.4. Ett klick på fliken Bilder, ett på Fil från datorn eller mobilen och ett på Spara i journalen. Valet av fil i datorns fönster är ett steg till, som sidan inte ser. Kroppsstället är förifyllt ur patientens senaste bild, och systemet läser typen och tiden ur filen, skickar den i delar, gör miniatyren och knyter bilden till vårdkontakten.',
+  },
+  {
+    id: 'jamfor-bilder', namn: 'Jämföra bilder av ett kroppsställe över tid', roll: 'ssk-kard', start: 'Patientens översikt', budget: 2,
+    motivering: 'Sussa 4.2.1.2. Ett klick på fliken Bilder och ett på Jämför bilder av korsbenet över tid. Systemet har grupperat bilderna efter kroppsställe och ställer dem bredvid varandra i tidsordning med dagarna från den första.',
+  },
+  {
+    id: 'bild-fran-apparat', namn: 'Hämta en bild från en apparat och föra in den i journalen', roll: 'ssk-kard', start: 'Patientens översikt', budget: 4,
+    motivering: 'Sussa 4.2.1.4. Ett klick på fliken Bilder, ett på Från en apparat eller en annan vårdgivare, ett på Hämta från apparaten och ett på För in i journalen. Apparaten är förvald, kroppsstället föreslås ur patientens senaste bild, och systemet kontrollerar att apparatens patient är journalens innan bilden kan föras in.',
+  },
+  {
+    id: 'visa-studie', namn: 'Visa en röntgenstudie ur arkivet med ett annat fönster', roll: 'lak-kard', start: 'Patientens översikt', budget: 3,
+    motivering: 'Sussa 4.2.1.3. Ett klick på fliken Bilder, ett på Visa bilderna och ett på fönstret Ben. Systemet hämtar studien från arkivet genom DICOMweb och har redan valt fönstret efter undersökningen.',
+  },
 ];
 // Runda 11, r4: cytostatika, beredningen, regimbiblioteket, blodet och patientens rapport i Min journal.
 FLODEN.push(

@@ -76,6 +76,8 @@ import { minTillvaxt } from './bhv.js';
 import { registreraRutter as labbRutter, inkorg as labbInkorg, efterTid as labbEfterTid } from './labb-rutter.js';
 // Runda 9, r3: operation, blodprodukter, graviditet och förlossning, cytostatika och bilder (r9r3-rutter.js).
 import { registreraRutter as r9r3Rutter } from './r9r3-rutter.js';
+// Runda 11, r5: bilder och media 1.1, uppladdning i delar, annoteringar, import och DICOMweb (r11r5-rutter.js).
+import { registreraRutter as r11r5Rutter } from './r11r5-rutter.js';
 // Runda 7, r2: nyhetsrutan, övningarna med intyg och tillgänglighetsredogörelsen.
 import { registreraRutter as utbildningRutter } from './utbildning-rutter.js';
 import { redogorelse as tillganglighet } from './tillganglighet.js';
@@ -1794,6 +1796,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   labbRutter({ rutt, kravInloggad, medPatient, valFor });
   // Runda 9, r3 (r9r3-rutter.js).
   r9r3Rutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal });
+  // Runda 11, r5 (r11r5-rutter.js).
+  r11r5Rutter({ rutt, kravInloggad, medPatient });
   // Runda 7, r2: nyheter, övningar och intyg, och tillgänglighetsredogörelsen med testernas status.
   utbildningRutter({ rutt, kravInloggad });
   // Runda 8, r5: epikrisens förslag och flera mätvärden på en gång (r5-rutter.js).
@@ -1887,7 +1891,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (c.invanare && url.pathname.startsWith('/api/min/')) avvisaFranAnnanWebbplats(req);
     c.body = metod === 'GET' ? {} : await lasKropp(req);
     c.url = url;
-    let ut = traff[0](c, ...traff[1]);
+    // Runda 11, r5: en rutt kan svara med ett löfte (avkodning och miniatyrer av bilder görs asynkront i bildmedia.js).
+    let ut = await traff[0](c, ...traff[1]);
     // En fil, till exempel exportpaketet eller datauttaget, går ut som den är.
     if (ut instanceof Response) return ut;
     let status = 200;

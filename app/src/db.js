@@ -648,6 +648,8 @@ export function mallen() {
     // Runda 11, r4: demons patienter med cytostatika och blod (cytostatika-demo.js). I mallen och inte i byggSeed, så
     // att testerna som bygger sin egen sandlåda inte påverkas.
     require('./cytostatika-demo.js').seeda(db);
+    // Runda 11, r5: demons bilder och lungröntgen för Gunnar Åkesson, i mallen och inte i seeden som testerna bygger på.
+    require('./bildmedia.js').demo(db);
     mall = { datum: d, byggd: nuMs, data: db.serialize() };
     db.close();
   }

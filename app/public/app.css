@@ -1724,3 +1724,44 @@ td .tagg-avliden { margin-left: 6px; }
 /* Ett formulär som öppnas med en knapp är dolt tills dess, också när det har en egen visning. */
 form.falt-rad[hidden], form.mv-form[hidden], form.bl-reak[hidden], .cy-tidigare[hidden], .cy-tidigare .falt-rad[hidden] { display: none; }
 .cy-tidigare { border: 0; padding: 0; margin: 8px 0; }
+/* Runda 11, r5: bilder och media i journalen (patient-bilder.js och bildvisare.js). */
+.bm-galleri { list-style: none; padding: 0; margin: 8px 0 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.bm-kort { background: var(--yta); border: 1px solid var(--linje); border-radius: 10px; padding: 8px; display: grid; gap: 4px; align-content: start; }
+.bm-kort p { margin: 0; }
+.bm-kort img { width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 6px; background: var(--yta-2); display: block; }
+.bm-oppna { position: relative; padding: 0; border: 0; background: none; cursor: zoom-in; border-radius: 6px; }
+.bm-oppna:focus-visible { outline: 3px solid var(--fokus); outline-offset: 2px; }
+.bm-slag, .bm-antal-ann { position: absolute; left: 6px; bottom: 6px; background: var(--yta); }
+.bm-antal-ann { left: auto; right: 6px; }
+.bm-besk { font-size: var(--f-xs); color: var(--blak-2); }
+.bm-granska { border-color: var(--obs-kant); background: var(--obs-bg); }
+.bm-urval { margin-bottom: 8px; }
+.bm-import { margin-top: 12px; }
+.bm-import summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+.bm-framsteg:empty { display: none; }
+.bm-dialog .dialog-inre { max-width: min(96vw, 980px); }
+.bm-stor, .bm-studie { position: relative; display: inline-block; max-width: 100%; line-height: 0; background: #000; border-radius: 6px; }
+.bm-stor img { max-width: 100%; max-height: 62vh; display: block; }
+.bm-studie img { width: min(100%, 512px); height: auto; image-rendering: pixelated; display: block; }
+.bm-stor:focus-visible, .bm-studie:focus-visible { outline: 3px solid var(--fokus); outline-offset: 2px; }
+.bm-lagerplats, .bm-matning { position: absolute; inset: 0; pointer-events: none; }
+.bm-lager { width: 100%; height: 100%; color: #ffd23f; }
+.bm-ann { fill: none; stroke: #ffd23f; stroke-width: 6; vector-effect: non-scaling-stroke; }
+.bm-matning .bm-ann { stroke-width: 2; }
+.bm-ann-text { fill: #ffd23f; font: 600 34px var(--sans); paint-order: stroke; stroke: #000; stroke-width: 6px; }
+.bm-markor { position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; border: 2px solid #ffd23f; border-radius: 50%; pointer-events: none; }
+.bm-verktyg { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; border: 1px solid var(--linje); border-radius: 8px; padding: 6px 10px; margin: 8px 0; }
+.bm-verktyg [aria-pressed="true"] { background: var(--kalla); color: #fff; border-color: var(--kalla); }
+.bm-verktyg input { flex: 1 1 200px; }
+.bm-ann-lista { margin: 4px 0; padding-left: 18px; }
+.bm-meta { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; font-size: var(--f-xs); margin: 8px 0; }
+.bm-meta dt { color: var(--dampad); }
+.bm-meta dd { margin: 0; }
+.bm-kamera, .bm-film { width: 100%; max-height: 55vh; background: #000; border-radius: 6px; }
+.bm-jamfor { border: 1px solid var(--kalla-mellan); background: var(--kalla-ljus); border-radius: 10px; padding: 10px; margin: 8px 0; }
+.bm-jamfor-rad { list-style: none; padding: 0; margin: 0 0 8px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(180px, 1fr); gap: 10px; overflow-x: auto; }
+.bm-jamfor-rad img { width: 100%; height: auto; border-radius: 6px; display: block; }
+.bm-jamfor-rad p { margin: 4px 0 0; }
+.bm-studier { list-style: none; padding: 0; margin: 0 0 16px; display: grid; gap: 8px; }
+.bm-studie-rad { background: var(--yta); border: 1px solid var(--linje); border-radius: 10px; padding: 8px 12px; }
+.bm-studie-rad p { margin: 2px 0; }

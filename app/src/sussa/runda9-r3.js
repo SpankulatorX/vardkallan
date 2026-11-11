@@ -74,7 +74,7 @@ export const BILDER = {
   min: `${BI}patientens uppladdning i Min journal går till en vårdenhet där patienten har kontakt och kommer in i journalen först efter granskning`,
   arkiv: `${BI}multimediaarkivet: undersökningen beställs med frågeställning, arkivet svarar med utlåtande och bildlänk, och bilden visas genom arkivet med behörighet och loggning`,
   behorighet: `${BI}behörighet: en bild från en annan vårdenhet kräver aktivt val, en spärrad syns inte alls, och undersköterskan ser bara omvårdnadens bilder`,
-  tak: `${BI}taket: en patient har högst 40 bilder och en fil högst 40 kB i demon`,
+  tak: `${BI}taket: en patient har högst 40 bilder, en bild högst 1 MB och en film högst 2 MB i demon`,
   sakerhet: `${BI}säkerhet: en bild eller studie för en annan patient ger 404 och loggas inte på fel patient`,
   granska: `${BI}säkerhet: patientens bild granskas bara av vårdenheten som den skickades till, inte av en annan vårdenhet med aktivt val`,
   sparr: `${BI}säkerhet: en remissbilaga behåller avsändarens vårdenhet, så att en spärr gäller också i journalen, och patientens egen bilaga granskas först`,

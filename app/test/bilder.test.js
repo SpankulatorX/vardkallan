@@ -5,6 +5,7 @@ import * as bilder from '../src/bilder.js';
 import { sparaBilaga } from '../src/remiss-r4.js';
 import { InvanareAtkomst } from '../src/patientvy.js';
 import { BAS, sandlada, nyPatient, atk, pers, sparr, efter } from './specialist.js';
+import { mp4 } from './media-filer.js';
 
 const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0xff, 0xd9]).toString('base64');
@@ -118,11 +119,16 @@ describe('Bilder och media', () => {
     expect(() => bilder.fil(atk(db, 'lak-kard', 'md1', 'las_journal', { andra_enheter: true }), bilder.mediaRad(db, m.id))).toThrow('spärrade');
   });
 
-  test('taket: en patient har högst 40 bilder och en fil högst 40 kB i demon', () => {
+  // Runda 11, r5: taket per fil följer slaget (en bild 1 MB, en film 2 MB), och större filer skickas i delar.
+  test('taket: en patient har högst 40 bilder, en bild högst 1 MB och en film högst 2 MB i demon', () => {
     const db = sandlada();
     ny(db);
-    const stor = Buffer.concat([Buffer.from(PNG, 'base64'), Buffer.alloc(bilder.MAX_BYTE)]).toString('base64');
-    expect(() => ladda(db, { bild: { namn: 'stor.png', data: stor } })).toThrow('högst 40 kB');
+    const stor = Buffer.concat([Buffer.from(PNG, 'base64'), Buffer.alloc(bilder.MAX_BYTE)]);
+    expect(() => bilder.tolkaBuffer('stor.png', stor)).toThrow('En bild får vara högst 1 MB');
+    expect(bilder.tolkaBuffer('stor.png', stor.subarray(0, bilder.MAX_BYTE)).typ).toBe('image/png');
+    const film = mp4({ fyllnad: bilder.MAX_FIL.video });
+    expect(() => bilder.tolkaBuffer('film.mp4', film)).toThrow('En film får vara högst 2 MB');
+    expect(bilder.tolkaBuffer('film.mp4', mp4({ fyllnad: bilder.MAX_FIL.bild })).typ).toBe('video/mp4');
     for (let i = 0; i < bilder.MAX_PER_PATIENT; i++) ladda(db, {});
     expect(() => ladda(db, {})).toThrow('redan 40 bilder');
   });

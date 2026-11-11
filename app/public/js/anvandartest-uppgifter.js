@@ -618,6 +618,27 @@ export const UPPGIFTER = [
     text: 'En kur till Annika Holmgren är godkänd. Bered den första dosen och signera beredningen.',
     kontroll: { notis: 'är beredd och signerad' },
   },
+  // Runda 11, r5: bilder och media i journalen.
+  {
+    id: 'bild-fran-fil', namn: 'Lägga in en bild från datorn i journalen', roll: 'ssk-kard', start: 'Patientens översikt',
+    text: 'Du har fotograferat Gunnar Åkessons trycksår, och bilden ligger på datorn. Lägg in den i hans journal.',
+    kontroll: { notis: 'Bilden är sparad i journalen' },
+  },
+  {
+    id: 'jamfor-bilder', namn: 'Jämföra bilder av ett kroppsställe över tid', roll: 'ssk-kard', start: 'Patientens översikt',
+    text: 'Läkaren frågar om Gunnar Åkessons trycksår har blivit mindre sedan inskrivningen. Ta reda på det med bilderna.',
+    kontroll: { sel: '.bm-jamfor' },
+  },
+  {
+    id: 'bild-fran-apparat', namn: 'Hämta en bild från en apparat och föra in den i journalen', roll: 'ssk-kard', start: 'Patientens översikt',
+    text: 'Du har tagit en bild av Gunnar Åkessons trycksår med avdelningens sårkamera. För in bilden i hans journal.',
+    kontroll: { notis: 'Bilden är införd i journalen' },
+  },
+  {
+    id: 'visa-studie', namn: 'Visa en röntgenstudie ur arkivet med ett annat fönster', roll: 'lak-kard', start: 'Patientens översikt',
+    text: 'Gunnar Åkesson har gjort en lungröntgen. Titta på bilderna och se skelettet tydligare.',
+    kontroll: { sel: '.bm-studie img' },
+  },
 ];
 
 // Deltagarens bakgrund. Bara val, inga fritextfält, så att inga identifierande uppgifter samlas in.

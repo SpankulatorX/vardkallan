@@ -37,6 +37,8 @@ import * as graviditetFlik from './patient-graviditet.js';
 // Runda 11, r4: cytostatika och blod.
 import * as cytostatikaFlik from './patient-cytostatika.js';
 import * as blodFlik from './patient-blod.js';
+// Runda 11, r5: bilder och media i journalen.
+import * as bilderFlik from './patient-bilder.js';
 
 export const namn = 'patient';
 
@@ -87,6 +89,8 @@ FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'tillvaxt') + 1, 0,
 FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'prover') + 1, 0,
   ['cytostatika', 'Cytostatika', (h) => far('las_cytostatika') && (Boolean(S.session?.r11r4?.onkologi) || !h || Boolean(h.specialistR11r4?.cytostatika)), cytostatikaFlik],
   ['blod', 'Blod', (h) => far('las_prover') && (far('bestalla_prov') || !h || Boolean(h.specialistR11r4?.blod)), blodFlik]);
+// Runda 11, r5: Bilder (bilder och media, Sussa 4.2) efter Prover, för den som läser journalen eller omvårdnaden.
+FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'prover') + 1, 0, ['bilder', 'Bilder', () => pa('las_journal', 'las_omvardnad'), bilderFlik]);
 
 let huvud = null;
 

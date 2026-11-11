@@ -142,6 +142,17 @@ export function aterkalla(atk, sess) {
   return lage(atk, sess, {});
 }
 
+// Runda 11, r5: bilder hos den andra vårdgivaren hämtas på samma samtycke och efter samma regel (bildmedia.js).
+// Valet görs med hamta (syfte, och samtycket om det saknas), och giltigtVal ger det aktiva valet när det gäller: bundet
+// till sessionen, patienten, personen och vårdenheten, och till ett samtycke som inte är återkallat eller till nödåtkomst.
+export const harSamtycke = (db, personal, patientId) => Boolean(samtyckeFor(db, personal, patientId));
+export function giltigtVal(atk, sess) {
+  const val = valFor(sess, atk.patientId, atk);
+  if (!val || !atk.prova('las_journal').tillaten) return null;
+  const giltigt = val.grund === 'nodatkomst' ? atk.prova('las_journal').grund === 'nodatkomst' : Boolean(samtyckeFor(atk.db, atk.personal, atk.patientId));
+  return giltigt ? val : null;
+}
+
 // För översiktens tidslinje: de hämtade uppgifterna i samma form som Vårdkällans egna, när det aktiva valet gäller.
 export function tidslinje(atk, sess) {
   const val = valFor(sess, atk.patientId, atk);

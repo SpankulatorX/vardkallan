@@ -15,19 +15,32 @@
 //
 // Multimediaarkiven och deras utlåtanden är simulerade.
 import { createHash } from 'node:crypto';
-import { Fel, datumAv } from './db.js';
+import { Fel, datumAv, lokalTid } from './db.js';
 import { vardenhetFor, enheterUnder, harVardrelation, kanRoll, visningsnamn } from './atkomst.js';
 import { typFor, bilagaFil, bilagaRad, EGEN } from './remiss-r4.js';
 import { OID_ROT } from './identitet.js';
 import { tabell, finns, personNamn, enhetKort, textFalt, iso, MIN, vardkontaktFor, provaRad, loggaPatient, bunden, andraRad } from './specialist-hjalp.js';
+// Runda 11, r5: typen och metadatan ur filens innehåll (bildkodek.js).
+import { typUrInnehall, exifInfo, mp4Info, webmInfo, wavInfo } from './bildkodek.js';
 
-// Samma gräns som för remissernas bilagor, eftersom ett anrop till servern är högst 64 kB.
-export const MAX_BYTE = 40 * 1024;
+// Runda 11, r5: taket per fil efter slaget. En fil som är större än ett anrop (64 kB) skickas i delar (bildmedia.js).
+// Taket per patient och per sandlåda gäller som förut, och uppladdningar som inte är klara räknas med.
+export const MAX_FIL = tabell({ bild: 1024 * 1024, video: 2 * 1024 * 1024, ljud: 1024 * 1024, dokument: 1024 * 1024 });
+export const MAX_BYTE = MAX_FIL.bild;
 export const MAX_PER_PATIENT = 40;
 export const MAX_PER_SANDLADA = 4 * 1024 * 1024;
 export const MAX_VANTANDE = 5;
-export const TYPER = tabell({ 'image/png': { ext: 'png', bild: true }, 'image/jpeg': { ext: 'jpg', bild: true }, 'application/pdf': { ext: 'pdf', bild: false } });
-export const KALLOR = tabell({ fil: 'Fil från datorn', kamera: 'Mobilens kamera', min_journal: 'Patientens uppladdning i Min journal', remissbilaga: 'Bilaga till remiss', arkiv: 'Multimediaarkiv' });
+const SLAGTEXT = { bild: 'En bild', video: 'En film', ljud: 'En ljudinspelning', dokument: 'Ett dokument' };
+export const TYPER = tabell({
+  'image/png': { ext: 'png', bild: true, slag: 'bild' }, 'image/jpeg': { ext: 'jpg', bild: true, slag: 'bild' }, 'application/pdf': { ext: 'pdf', bild: false, slag: 'dokument' },
+  // Runda 11, r5: WebP, film och ljud.
+  'image/webp': { ext: 'webp', bild: true, slag: 'bild' }, 'video/mp4': { ext: 'mp4', bild: false, slag: 'video' }, 'video/webm': { ext: 'webm', bild: false, slag: 'video' },
+  'audio/mp4': { ext: 'm4a', bild: false, slag: 'ljud' }, 'audio/webm': { ext: 'weba', bild: false, slag: 'ljud' }, 'audio/ogg': { ext: 'ogg', bild: false, slag: 'ljud' },
+  'audio/mpeg': { ext: 'mp3', bild: false, slag: 'ljud' }, 'audio/wav': { ext: 'wav', bild: false, slag: 'ljud' },
+});
+export const KALLOR = tabell({ fil: 'Fil från datorn', kamera: 'Mobilens kamera', min_journal: 'Patientens uppladdning i Min journal', remissbilaga: 'Bilaga till remiss', arkiv: 'Multimediaarkiv',
+  // Runda 11, r5.
+  mikrofon: 'Inspelning med mikrofonen', apparat: 'Medicinteknisk apparat', annan_vardgivare: 'Annan vårdgivare' });
 // De simulerade multimediaarkiven och undersökningarna som kan beställas. svarMinuter är när arkivet svarar.
 export const ARKIV = tabell({
   rontgen: { namn: 'Bild- och funktionsmedicin, bildarkivet (simulerat)', svarMinuter: 30 },
@@ -49,6 +62,31 @@ CREATE TABLE IF NOT EXISTS media (
 );
 CREATE INDEX IF NOT EXISTS ix_media_patient ON media (patient_id);
 CREATE TRIGGER IF NOT EXISTS media_andras_ej BEFORE UPDATE OF data, sha256, typ, kalla ON media BEGIN SELECT RAISE(ABORT, 'En bild ändras inte.'); END;
+-- Runda 11, r5: det systemet har läst ur filen, apparaten som tog bilden och ursprunget hos en annan vårdgivare.
+CREATE TABLE IF NOT EXISTS media_egenskaper (
+  media_id INTEGER PRIMARY KEY, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, slag TEXT NOT NULL, bredd INTEGER, hojd INTEGER, langd_sek REAL, langd_kalla TEXT,
+  exif_tagen TEXT, kamera TEXT, plats INTEGER NOT NULL DEFAULT 0, apparat TEXT, ursprung TEXT
+);
+-- Miniatyrer och visningsbilder som servern har gjort. Originalet i media ändras aldrig.
+CREATE TABLE IF NOT EXISTS media_visning (
+  media_id INTEGER NOT NULL, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, storlek TEXT NOT NULL, typ TEXT NOT NULL, data BLOB NOT NULL, bredd INTEGER, hojd INTEGER,
+  PRIMARY KEY (media_id, storlek)
+);
+-- Annoteringar är ett eget lager på bilden. En annotering ändras inte; den som gjorde den kan ta bort den, och raden finns kvar.
+CREATE TABLE IF NOT EXISTS media_annoteringar (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, media_id INTEGER NOT NULL, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, typ TEXT NOT NULL, punkter TEXT NOT NULL, text TEXT,
+  skapad TEXT NOT NULL, skapad_av TEXT NOT NULL, borttagen TEXT, borttagen_av TEXT
+);
+CREATE TRIGGER IF NOT EXISTS media_annotering_andras_ej BEFORE UPDATE OF media_id, typ, punkter, text, skapad, skapad_av ON media_annoteringar
+  BEGIN SELECT RAISE(ABORT, 'En annotering ändras inte.'); END;
+-- Uppladdningar i delar som inte är klara. De töms när filen är sparad, avbruten eller har gått ut.
+CREATE TABLE IF NOT EXISTS media_uppladdningar (
+  id TEXT PRIMARY KEY, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, personal_id TEXT NOT NULL, namn TEXT NOT NULL, storlek INTEGER NOT NULL, delar INTEGER NOT NULL,
+  sha256 TEXT, meta TEXT NOT NULL, skapad TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS media_uppladdning_delar (
+  uppladdning_id TEXT NOT NULL, patient_id TEXT NOT NULL, nr INTEGER NOT NULL, data BLOB NOT NULL, PRIMARY KEY (uppladdning_id, nr)
+);
 CREATE TABLE IF NOT EXISTS media_studier (
   id INTEGER PRIMARY KEY AUTOINCREMENT, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, vardkontakt_id INTEGER, undersokning TEXT NOT NULL, arkiv TEXT NOT NULL,
   fragestallning TEXT NOT NULL, bestalld_av TEXT NOT NULL, bestalld TEXT NOT NULL, utford TEXT, uid TEXT, utlatande TEXT, status TEXT NOT NULL
@@ -72,34 +110,69 @@ export function studieRad(db, id) {
 const handlingFor = (m) => (m.kategori === 'omvardnad' ? 'las_omvardnad' : 'las_journal');
 const normaliseraStalle = (s) => textFalt(s, 60).toLocaleLowerCase('sv').replace(/\s+/g, ' ');
 
-// Läser en bild ur anropet: { namn, data } med data i base64. Typen avgörs ur innehållet: PNG, JPEG eller PDF.
+// Läser en fil ur anropet: { namn, data } med data i base64. Typen avgörs ur innehållet.
+export const filnamn = (v) => (typeof v === 'string' ? v.replace(/[\\/\x00-\x1f]/g, '').trim().slice(0, 100) : '');
 export function tolkaMedia(inp) {
-  const namn = typeof inp?.namn === 'string' ? inp.namn.replace(/[\\/\x00-\x1f]/g, '').trim().slice(0, 100) : '';
+  const namn = filnamn(inp?.namn);
   if (!namn) throw new Fel(400, 'Filen behöver ett namn.', 'ogiltig', { falt: ['namn'] });
   if (typeof inp?.data !== 'string' || !/^[A-Za-z0-9+/=\s]+$/.test(inp.data)) throw new Fel(400, 'Filen kunde inte läsas.', 'ogiltig', { falt: ['data'] });
-  const buf = Buffer.from(inp.data, 'base64');
+  return tolkaBuffer(namn, Buffer.from(inp.data, 'base64'));
+}
+// Runda 11, r5: typen och slaget ur innehållet (bildkodek.js), och taket efter slaget.
+export function tolkaBuffer(namn, buf) {
   if (!buf.length) throw new Fel(400, 'Filen är tom.', 'ogiltig', { falt: ['data'] });
-  if (buf.length > MAX_BYTE) throw new Fel(400, 'Filen är för stor. En bild får vara högst 40 kB i demon.', 'ogiltig', { falt: ['data'] });
-  const typ = typFor(buf);
-  if (!finns(TYPER, typ)) throw new Fel(400, 'Filtypen stöds inte. Ladda upp en bild i PNG eller JPEG, eller en PDF. Systemet avgör typen ur filens innehåll.', 'ogiltig', { falt: ['data'] });
+  const typ = typUrInnehall(buf)?.typ ?? typFor(buf);
+  if (!finns(TYPER, typ)) throw new Fel(400, 'Filtypen stöds inte. Ladda upp en bild (PNG, JPEG eller WebP), en film (MP4 eller WebM), ett ljud (MP3, M4A, WAV, Ogg eller WebM) eller en PDF. Systemet avgör typen ur filens innehåll.', 'ogiltig', { falt: ['data'] });
+  const slag = TYPER[typ].slag;
+  if (buf.length > MAX_FIL[slag]) throw new Fel(400, `Filen är för stor. ${SLAGTEXT[slag]} får vara högst ${Math.round(MAX_FIL[slag] / 1024 / 1024)} MB i demon.`, 'ogiltig', { falt: ['data'] });
   return { namn, typ, buf };
 }
 
-function takFor(db, patientId, storlek) {
-  if (db.query("SELECT count(*) AS n FROM media WHERE patient_id = ? AND status <> 'avvisad'").get(patientId).n >= MAX_PER_PATIENT) throw new Fel(409, `Patienten har redan ${MAX_PER_PATIENT} bilder i demon.`, 'tak');
-  if ((db.query('SELECT coalesce(sum(storlek), 0) AS s FROM media').get().s + storlek) > MAX_PER_SANDLADA) throw new Fel(409, 'Sandlådan har inte plats för fler bilder. Börja om med en ny sandlåda.', 'tak');
+// Runda 11, r5: det systemet läser ur filen själv: bildens tid och kamera ur EXIF, filmens och ljudets längd och storlek.
+export function egenskaperUr(fil) {
+  const ut = { slag: TYPER[fil.typ].slag, bredd: null, hojd: null, langdSek: null, exifTagen: null, kamera: null, plats: false };
+  if (fil.typ === 'image/jpeg') { const e = exifInfo(fil.buf); Object.assign(ut, { exifTagen: e.tagen, kamera: e.kamera, plats: e.plats }); }
+  if (fil.typ === 'image/png' && fil.buf.length >= 24) Object.assign(ut, { bredd: fil.buf.readUInt32BE(16), hojd: fil.buf.readUInt32BE(20) });
+  const info = fil.typ.endsWith('/mp4') ? mp4Info(fil.buf) : fil.typ.endsWith('/webm') ? webmInfo(fil.buf) : fil.typ === 'audio/wav' ? wavInfo(fil.buf) : null;
+  if (info) Object.assign(ut, { langdSek: info.langdSek ?? null, bredd: info.bredd ?? null, hojd: info.hojd ?? null });
+  return ut;
 }
 
-function spara(db, { patientId, enhetId, vardkontaktId = null, anteckningId = null, kategori, fil, kalla, kallaRef = null, kroppsstalle = null, beskrivning = null, tagen, nu, av = null, invanare = null, status = 'journal' }) {
-  takFor(db, patientId, fil.buf.length);
+export function takFor(db, patientId, storlek, { uppladdning = null } = {}) {
+  sakra(db);
+  // Runda 11, r5: uppladdningar som inte är klara räknas med, så att taken inte kan kringgås med många samtidiga.
+  const vantande = db.query('SELECT count(*) AS n FROM media_uppladdningar WHERE patient_id = ? AND id IS NOT ?').get(patientId, uppladdning).n;
+  if (db.query("SELECT count(*) AS n FROM media WHERE patient_id = ? AND status <> 'avvisad'").get(patientId).n + vantande >= MAX_PER_PATIENT) throw new Fel(409, `Patienten har redan ${MAX_PER_PATIENT} bilder i demon.`, 'tak');
+  const upptaget = db.query('SELECT coalesce(sum(storlek), 0) AS s FROM media').get().s + db.query('SELECT coalesce(sum(storlek), 0) AS s FROM media_uppladdningar WHERE id IS NOT ?').get(uppladdning).s;
+  if (upptaget + storlek > MAX_PER_SANDLADA) throw new Fel(409, 'Sandlådan har inte plats för fler bilder. Börja om med en ny sandlåda.', 'tak');
+}
+
+export function spara(db, { patientId, enhetId, vardkontaktId = null, anteckningId = null, kategori, fil, kalla, kallaRef = null, kroppsstalle = null, beskrivning = null, tagen, nu, av = null, invanare = null, status = 'journal',
+  apparat = null, ursprung = null, langdSek = null, uppladdning = null }) {
+  takFor(db, patientId, fil.buf.length, { uppladdning });
   const r = db.query(`INSERT INTO media (patient_id, enhet_id, vardkontakt_id, anteckning_id, kategori, typ, namn, storlek, sha256, data, kalla, kalla_ref, kroppsstalle, beskrivning,
       tagen, registrerad, registrerad_av, invanare_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(patientId, enhetId, vardkontaktId, anteckningId, kategori, fil.typ, fil.namn, fil.buf.length, createHash('sha256').update(fil.buf).digest('hex'), fil.buf, kalla, kallaRef,
       kroppsstalle ? normaliseraStalle(kroppsstalle) : null, textFalt(beskrivning, 300) || null, tagen, iso(nu), av, invanare, status);
+  // Runda 11, r5: det systemet läser ur filen. En längd som filen saknar (en inspelning i webbläsaren) mäts vid inspelningen.
+  const e = egenskaperUr(fil);
+  const langd = e.langdSek ?? (Number.isFinite(langdSek) && langdSek > 0 && langdSek <= 3600 ? Math.round(langdSek * 10) / 10 : null);
+  db.query(`INSERT INTO media_egenskaper (media_id, patient_id, enhet_id, slag, bredd, hojd, langd_sek, langd_kalla, exif_tagen, kamera, plats, apparat, ursprung)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(r.lastInsertRowid, patientId, enhetId, e.slag, e.bredd, e.hojd, langd, langd == null ? null : e.langdSek != null ? 'fil' : 'inspelning',
+    e.exifTagen, e.kamera, e.plats ? 1 : 0, apparat ? JSON.stringify(apparat) : null, ursprung ? JSON.stringify(ursprung) : null);
   return mediaRad(db, r.lastInsertRowid);
 }
 
-const tagenFor = (v, nu) => {
+// Runda 11, r5: tiden ur EXIF är svensk lokaltid utan zon. Den används när ingen tid anges och den inte ligger i framtiden.
+export function tagenUrExif(exifTagen, nu) {
+  if (!exifTagen) return null;
+  const ms = Date.parse(lokalTid(exifTagen.slice(0, 10), exifTagen.slice(11, 16))) + Number(exifTagen.slice(17, 19) || 0) * 1000;
+  return Number.isFinite(ms) && ms <= nu.getTime() + 5 * MIN && ms > Date.parse('1990-01-01T00:00:00Z') ? iso(ms) : null;
+}
+export const egenskaperRad = (db, id) => db.query('SELECT * FROM media_egenskaper WHERE media_id = ?').get(id) ?? null;
+const lasJson = (t) => { try { return t ? JSON.parse(t) : null; } catch { return null; } };
+
+export const tagenFor = (v, nu) => {
   if (v == null || v === '') return iso(nu);
   const ms = Date.parse(v);
   if (!Number.isFinite(ms) || ms > nu.getTime() + 5 * MIN) throw new Fel(400, 'Tiden när bilden togs är inte en giltig tidpunkt.', 'ogiltig', { falt: ['tagen'] });
@@ -107,10 +180,20 @@ const tagenFor = (v, nu) => {
 };
 
 export function mediaUt(db, m) {
+  // Runda 11, r5: slaget, det systemet har läst ur filen, apparaten, ursprunget och adresserna för miniatyr och visning.
+  const e = egenskaperRad(db, m.id);
+  const ursprung = lasJson(e?.ursprung);
+  const apparat = lasJson(e?.apparat);
   return {
     id: m.id, namn: m.namn, typ: m.typ, bild: Boolean(TYPER[m.typ]?.bild), storlek: m.storlek, sha256: m.sha256, kalla: { id: m.kalla, text: KALLOR[m.kalla] }, kroppsstalle: m.kroppsstalle,
-    beskrivning: m.beskrivning, tagen: m.tagen, registrerad: { tid: m.registrerad, av: m.registrerad_av ? personNamn(db, m.registrerad_av) : m.invanare_id ? 'Patienten via Min journal' : null },
+    beskrivning: m.beskrivning, tagen: m.tagen,
+    registrerad: { tid: m.registrerad, av: m.registrerad_av ? personNamn(db, m.registrerad_av) : m.invanare_id ? 'Patienten via Min journal' : ursprung ? `${ursprung.skapadAv}, ${ursprung.vardenhet}` : null },
     vardenhet: enhetKort(db, m.enhet_id), vardkontaktId: m.vardkontakt_id, anteckningId: m.anteckning_id, url: `/api/media/${m.id}/fil`, status: m.status,
+    slag: TYPER[m.typ]?.slag ?? 'dokument', miniatyr: `/api/media/${m.id}/miniatyr`, visning: TYPER[m.typ]?.bild ? `/api/media/${m.id}/visning` : `/api/media/${m.id}/fil`,
+    egenskaper: e ? { bredd: e.bredd, hojd: e.hojd, langdSek: e.langd_sek, langdKalla: e.langd_kalla, kamera: e.kamera, exifTagen: e.exif_tagen, plats: Boolean(e.plats) } : null,
+    apparat: apparat ? { namn: apparat.namn, serienummer: apparat.serienummer } : null,
+    ursprung: ursprung ? { vardgivare: ursprung.vardgivare, vardenhet: ursprung.vardenhet, skapadAv: ursprung.skapadAv, simulerad: true } : null,
+    granskad: m.granskad_tid ? { tid: m.granskad_tid, av: personNamn(db, m.granskad_av) } : null,
   };
 }
 export function studieUt(db, s, nu = new Date()) {
@@ -131,9 +214,16 @@ export function ladda(atk, body = {}, nu = new Date()) {
   sakra(db);
   const kategori = kanRoll(atk.personal, 'skriv_journal') ? 'journal' : 'omvardnad';
   atk.krav(kategori === 'journal' ? 'skriv_journal' : 'skriv_omvardnad');
+  return laddaFil(atk, kategori, tolkaMedia(body.bild), body, nu);
+}
+
+// Runda 11, r5: samma registrering för en fil som har kommit i ett anrop och en som har skickats i delar (bildmedia.js).
+// Tiden när bilden togs läses ur EXIF när ingen tid anges.
+export function laddaFil(atk, kategori, fil, body = {}, nu = new Date(), { uppladdning = null } = {}) {
+  const db = atk.db;
   const kalla = body.kalla ?? 'fil';
-  if (!['fil', 'kamera'].includes(kalla)) throw new Fel(400, 'Källan är fil eller kamera.', 'ogiltig', { falt: ['kalla'] });
-  const fil = tolkaMedia(body.bild);
+  if (!['fil', 'kamera', 'mikrofon'].includes(kalla)) throw new Fel(400, 'Källan är fil eller kamera.', 'ogiltig', { falt: ['kalla'] });
+  const exifTid = body.tagen == null || body.tagen === '' ? tagenUrExif(egenskaperUr(fil).exifTagen, nu) : null;
   let anteckningId = null;
   if (body.anteckningId != null) {
     const a = db.query('SELECT * FROM anteckningar WHERE id = ? AND patient_id = ?').get(Number(body.anteckningId), atk.patientId);
@@ -141,7 +231,7 @@ export function ladda(atk, body = {}, nu = new Date()) {
     anteckningId = a.id;
   }
   const m = spara(db, { patientId: atk.patientId, enhetId: atk.personal.enhet_id, vardkontaktId: vardkontaktFor(atk, nu), anteckningId, kategori, fil, kalla,
-    kroppsstalle: body.kroppsstalle, beskrivning: body.beskrivning, tagen: tagenFor(body.tagen, nu), nu, av: atk.personal.id });
+    kroppsstalle: body.kroppsstalle, beskrivning: body.beskrivning, tagen: exifTid ?? tagenFor(body.tagen, nu), nu, av: atk.personal.id, langdSek: Number(body.langdSek), uppladdning });
   return mediaUt(db, m);
 }
 
@@ -250,17 +340,23 @@ export function jamforelse(atk, kroppsstalle) {
     text: bilder.length > 1 ? `${bilder.length} bilder av ${s} över ${Math.round((Date.parse(bilder.at(-1).tagen) - forsta) / 86400_000)} dagar.` : bilder.length ? 'Bara en bild av kroppsstället.' : 'Inga bilder av kroppsstället.' };
 }
 
-const huvuden = (typ, namn) => ({ 'Content-Type': typ, 'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(namn)}`, 'X-Content-Type-Options': 'nosniff',
+export const huvuden = (typ, namn, { ladda = false } = {}) => ({ 'Content-Type': typ, 'Content-Disposition': `${ladda ? 'attachment' : 'inline'}; filename*=UTF-8''${encodeURIComponent(namn)}`, 'X-Content-Type-Options': 'nosniff',
   'Content-Security-Policy': "sandbox; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'", 'Cache-Control': 'no-store' });
 
 // Filen, med samma prövning som raden: inre sekretess och spärr på vårdenheten där bilden registrerades. Loggas.
-export function fil(atk, m) {
+export function fil(atk, m, { ladda = false } = {}) {
+  kravFil(atk, m);
+  // Runda 11, r5: filen kan laddas ner (export av bildmaterialet).
+  return new Response(m.data, { headers: huvuden(m.typ, m.namn, { ladda }) });
+}
+// Runda 11, r5: samma prövning och loggning för filen, miniatyren och visningsbilden (bildmedia.js). En bild som väntar
+// på granskning från Min journal prövas som journalen; en import från en apparat eller en annan vårdgivare efter sin kategori.
+export const lasHandlingFor = (m) => handlingFor(m);
+export function kravFil(atk, m, del = '') {
   bunden(atk, m);
-  if (m.status === 'vantar') atk.krav('las_journal', { resurs: { enhet_id: m.enhet_id }, beskrivning: `media:${m.id}` });
-  else if (m.status !== 'journal') throw new Fel(404, 'Bilden finns inte.', 'saknas');
-  else atk.krav(handlingFor(m), { resurs: { enhet_id: m.enhet_id }, beskrivning: `media:${m.id}` });
-  atk.logga(handlingFor(m), atk.grund(), `media:${m.id}`);
-  return new Response(m.data, { headers: huvuden(m.typ, m.namn) });
+  if (!['vantar', 'journal'].includes(m.status)) throw new Fel(404, 'Bilden finns inte.', 'saknas');
+  atk.krav(m.status === 'vantar' && m.kalla === 'min_journal' ? 'las_journal' : handlingFor(m), { resurs: { enhet_id: m.enhet_id }, beskrivning: `media:${m.id}${del}` });
+  atk.logga(handlingFor(m), atk.grund(), `media:${m.id}${del}`);
 }
 
 // ---- Det simulerade multimediaarkivet --------------------------------------------------------------------------------

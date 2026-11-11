@@ -146,6 +146,8 @@ function identitet(p, pnr, bekraftat) {
 
 function lasFil(body) {
   const fil = tolkaMedia(body.fil);
+  // Runda 11, r5: bilder.js tar nu också emot film och ljud. En restjournal är en PDF eller en bild från skannern.
+  if (!['application/pdf', 'image/png', 'image/jpeg'].includes(fil.typ)) throw new Fel(400, 'Filtypen stöds inte. Skanna in en PDF eller en bild i PNG eller JPEG.', 'ogiltig', { falt: ['data'] });
   const { text, ofullstandig } = fil.typ === 'application/pdf' ? pdfText(fil.buf) : { text: '', ofullstandig: false };
   return { ...fil, text, ofullstandig, sha256: createHash('sha256').update(fil.buf).digest('hex') };
 }
