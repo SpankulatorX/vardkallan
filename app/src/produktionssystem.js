@@ -179,7 +179,7 @@ function patientResurs(db, pid) {
     ...(skyddad ? { meta: { security: [{ system: 'http://terminology.hl7.org/CodeSystem/v3-Confidentiality', code: 'R', display: 'restricted' }] } } : {}),
     identifier: [{ system: ID_SYSTEM[p.id_typ ?? 'personnummer'] ?? ID_SYSTEM.personnummer, value: p.personnummer }],
     ...(skyddad ? {} : { name: [{ family: p.efternamn, given: [p.fornamn] }] }),
-    gender: p.kon === 'K' ? 'female' : p.kon === 'M' ? 'male' : 'unknown', birthDate: p.fodd,
+    gender: p.kon === 'kvinna' ? 'female' : p.kon === 'man' ? 'male' : 'unknown', birthDate: p.fodd,
   };
 }
 

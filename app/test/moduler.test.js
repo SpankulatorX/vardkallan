@@ -99,7 +99,8 @@ describe('Modulregistret', () => {
   });
 
   test('statusen räknas ur koden: en rutt som tas bort ger Finns i API:t, utan kod blir modulen planerad', () => {
-    const mod = { ...MODULER.find(x => x.id === 'iva') };
+    // Runda 11: intensivvården har också fliken Intensivvård i journalen, som här tas bort tillsammans med rutterna.
+    const mod = { ...MODULER.find(x => x.id === 'iva'), journal: [] };
     const tom = { ...g, rutter: g.rutter.filter(x => !x.re.test('#/iva') && !x.re.test('#/iva/1')) };
     const med = modulregister({ register, gransnitt: g, moduler: [mod], apiFinns: () => true }).moduler[0];
     expect(med.status).toBe('demo');
@@ -129,8 +130,8 @@ FLIKAR.splice(4, 0, ['graviditet', 'Graviditet', graviditet.visa]);`;
     expect(t.meny.get('#/operation')).toBe('Operation');
     expect(t.journal.get('bilder')).toBe('Bilder');
     expect(t.min.get('graviditet')).toBe('Graviditet');
-    // Utan en modul för de nya rutterna och flikarna skulle testerna ovan stoppa bygget.
-    expect(MODULER.some(m => m.rutter.some(v => t.rutter.find(r => r.monster.includes('operation')).re.test(exempel(v))))).toBe(false);
+    // Efter sammanslagningen av runda 11 har operationsavdelningen sin modul, så att testerna ovan inte stoppar bygget.
+    expect(MODULER.find(m => m.id === 'operation').rutter.some(v => t.rutter.find(r => r.monster.includes('operation')).re.test(exempel(v)))).toBe(true);
   });
 
   test('texterna om en modul som finns säger aldrig inte byggt, finns inte eller planerat', () => {

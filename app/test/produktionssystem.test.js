@@ -85,6 +85,9 @@ describe('Integration med produktionssystem', () => {
     expect(typer).toContain('Specimen');
     const pat = m.entry.find(e => e.resource.resourceType === 'Patient').resource;
     expect(pat.identifier[0].value).toBe(db(lak).query("SELECT personnummer FROM patienter WHERE id = 'p04'").get().personnummer);
+    // Runda 11: könet i databasen är "kvinna" eller "man", och laboratoriet får det som FHIR:s female eller male.
+    const kon = db(lak).query("SELECT kon FROM patienter WHERE id = 'p04'").get().kon;
+    expect(pat.gender).toBe({ kvinna: 'female', man: 'male' }[kon]);
     expect(m.entry.find(e => e.resource.resourceType === 'ServiceRequest').resource.requisition.value).toBe(b.nummer);
     expect(db(lak).query("SELECT * FROM atkomstlogg WHERE handling = 'labb_integration' AND patient_id = 'p04'").all().length).toBe(1);
     // Kvittensen tar bort meddelandet ur utkorgen. En kvittens av ett annat laboratoriums meddelande ger 404.
