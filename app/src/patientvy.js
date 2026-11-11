@@ -440,7 +440,7 @@ export function skapaBegaran(atk, { typ, enhetId, meddelande } = {}) {
   const pid = atk.patientId;
   if (!BEGARANTYPER.includes(typ)) throw new Fel(400, 'Välj vad du vill begära.', 'ogiltig', { falt: ['typ'] });
   if (typ !== 'loggutdrag' && atk.relation !== 'egen') {
-    throw new Fel(403, 'En vårdnadshavare kan inte spärra barnets uppgifter eller begära att en spärr hävs (patientdatalagen 4 kap. 4 §).', 'nekad');
+    throw new Fel(403, 'En vårdnadshavare kan inte spärra barnets uppgifter eller begära att en spärr hävs (patientdatalagen 4 kap. 4 och 5 §§).', 'nekad');
   }
   const text = meddelande == null ? '' : typeof meddelande === 'string' ? meddelande.trim() : null;
   if (text === null || text.length > 500) throw new Fel(400, 'Meddelandet får vara högst 500 tecken.', 'ogiltig', { falt: ['meddelande'] });

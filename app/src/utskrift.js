@@ -41,7 +41,7 @@ export const MENPROVNING_GRUNDER = [
   { id: 'osl_12_1', text: 'Sekretessen gäller inte mot patienten själv (OSL 12 kap. 1 §), och inget hinder enligt 25 kap. 6 § finns.', bara: PATIENTEN },
   { id: 'osl_25_1', text: 'Uppgifterna kan lämnas ut utan men för patienten eller närstående (OSL 25 kap. 1 §).' },
   { id: 'osl_10_28', text: 'Uppgiftsskyldighet enligt lag eller förordning bryter sekretessen (OSL 10 kap. 28 §).' },
-  { id: 'osl_10_23', text: 'Misstanke om brott med minst ett års fängelse i straffskalan (OSL 10 kap. 23 §).' },
+  { id: 'osl_10_23', text: 'Misstanke om ett brott med lägst sex månaders fängelse i straffskalan, eller försök, förberedelse eller stämpling till ett brott med lägst ett års fängelse (OSL 10 kap. 23 §).' },
 ];
 const MENPROVNING_FORSLAG = {
   Patienten: { beslut: 'inget_men', grund: 'osl_12_1' },

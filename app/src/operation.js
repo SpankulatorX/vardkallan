@@ -560,6 +560,16 @@ export function anmal(atk, body = {}, nu = new Date()) {
   return anmalanUt(atk, an, nu);
 }
 
+// Runda 13, r3: behandlingsgarantin. Planerad vård ska ges inom 90 dagar från vårdgivarens beslut (6 kap. 1 §
+// hälso- och sjukvårdsförordningen 2017:80), och beslutet är anmälan till operation. Tiden räknas inte när patienten
+// själv avstår (6 kap. 2 §), vilket syns som en struken operation med orsaken Patienten avstår.
+export const BEHANDLINGSGARANTI_DAGAR = 90;
+export function behandlingsgaranti(an, nu = new Date(), utford = null) {
+  const datum = addDagar(datumAv(new Date(an.anmald_tid)), BEHANDLINGSGARANTI_DAGAR);
+  const passerad = !utford && datumAv(nu) > datum;
+  return { datum, passerad, text: `Behandlingsgarantin: operationen ska göras senast ${datum}, 90 dagar från beslutet (6 kap. 1 § hälso- och sjukvårdsförordningen).${passerad ? ' Den har passerats.' : ''}` };
+}
+
 export function anmalanUt(atk, an, nu = new Date()) {
   const db = atk.db;
   const ing = INGREPP[an.kva];
@@ -568,7 +578,7 @@ export function anmalanUt(atk, an, nu = new Date()) {
   const vantedagar = Math.floor((Date.parse(f?.in_sal ?? iso(nu)) - Date.parse(an.anmald_tid)) / DAG);
   return {
     id: an.id, kva: an.kva, ingrepp: ing.namn, sida: an.sida ? SIDA[an.sida] : null, prioritet: { id: an.prioritet, namn: PRIORITET[an.prioritet].namn },
-    malDatum: an.mal_datum, overMal: !f?.in_sal && datumAv(nu) > an.mal_datum, vantedagar, anestesi: ANESTESI[an.anestesi], asa: an.asa, minuter: an.minuter,
+    malDatum: an.mal_datum, overMal: !f?.in_sal && datumAv(nu) > an.mal_datum, vantedagar, behandlingsgaranti: behandlingsgaranti(an, nu, f?.in_sal), anestesi: ANESTESI[an.anestesi], asa: an.asa, minuter: an.minuter,
     status: an.status, anmald: { tid: an.anmald_tid, av: personNamn(db, an.anmald_av) }, vardenhet: enhetKort(db, an.enhet_id), kommentar: an.kommentar,
     planering: plan ? planeringUt(db, plan) : null, forlopp: f ? forloppUt(db, an, f) : null, forberedelser: forberedelser(atk, an, nu),
     // Runda 11, r2.
@@ -621,7 +631,7 @@ export function vantelista(db, personal, valFor, nu = new Date()) {
     loggaPatient(db, personal, an.patient_id, 'las_operation', r.grund, '/api/operation/vantelista');
     const p = db.query('SELECT * FROM patienter WHERE id = ?').get(an.patient_id);
     ut.push({ id: an.id, patient: { id: p.id, namn: visningsnamn(p, valFor(p.id).visa_identitet) }, ingrepp: INGREPP[an.kva].namn, kva: an.kva,
-      prioritet: PRIORITET[an.prioritet].namn, malDatum: an.mal_datum, overMal: datumAv(nu) > an.mal_datum, dagarKvar: Math.round((Date.parse(lokalTid(an.mal_datum, '12:00')) - nu.getTime()) / DAG) });
+      prioritet: PRIORITET[an.prioritet].namn, malDatum: an.mal_datum, overMal: datumAv(nu) > an.mal_datum, behandlingsgaranti: behandlingsgaranti(an, nu), dagarKvar: Math.round((Date.parse(lokalTid(an.mal_datum, '12:00')) - nu.getTime()) / DAG) });
   }
   return { vardenhet: enhetKort(db, ve), vantande: ut, demoregel: DEMOREGEL };
 }

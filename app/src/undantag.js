@@ -53,6 +53,104 @@ function versionsId(db, id) {
   for (let i = 0; nu && i < 50; i++) { ut.add(nu.id); nu = db.query('SELECT id, ersatter_id FROM anteckningar WHERE ersatter_id = ?').get(nu.id); }
   return ut;
 }
+// Runda 13, r3 (beslut från Jonas, säkerhetsfynd 5): en enskild anteckning undantas efter en begäran från vården. Den
+// som skrev anteckningen eller patientens ansvariga läkare begär undantaget från anteckningens meny med kanal och skäl.
+// Systemförvaltaren ser begäran med nummer, typ, datum, vårdenhet och den som begär, men aldrig innehållet eller
+// patienten, och föreslår undantaget som en andra systemförvaltare godkänner. Ett nummer utan begäran ger samma svar
+// vare sig anteckningen finns eller inte, så att förhandsvisningen inte går att använda för att slå upp anteckningar.
+// Patientens ansvariga läkare är i demon en läkare på den vårdenhet som skrev anteckningen, eftersom Vårdkällan inte
+// har en fast läkare per patient (demoregel).
+export function sakraBegaran(db) {
+  db.exec(`CREATE TABLE IF NOT EXISTS undantag_begaranden (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, anteckning_id INTEGER NOT NULL, enhet_id TEXT NOT NULL, begard_av TEXT NOT NULL,
+    begard_tid TEXT NOT NULL, kanaler TEXT NOT NULL, skal TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'vantar'
+      CHECK (status IN ('vantar', 'foreslagen', 'beslutad', 'avslagen')),
+    andring_id INTEGER, beslutad_av TEXT, beslutad TEXT, kommentar TEXT)`);
+  db.exec('CREATE INDEX IF NOT EXISTS ix_undantag_begaranden_anteckning ON undantag_begaranden (anteckning_id)');
+  return db;
+}
+export const BEGARAN_STATUS = { vantar: 'Väntar på systemförvaltningen', foreslagen: 'Föreslagen, väntar på en andra systemförvaltare', beslutad: 'Beslutad', avslagen: 'Avslagen' };
+export const INGEN_BEGARAN = 'Det finns ingen begäran från vården om att undanta en anteckning med det numret. En enskild anteckning undantas efter en begäran från den som skrev den eller patientens ansvariga läkare, och begäran står under Begäranden från vården.';
+const PAGAENDE = 'Anteckningen hör till en pågående vårdkontakt, och uppgifter som behövs i pågående vård kan inte döljas i systemet. Undanta den bara från FHIR och nationella tjänster, eller vänta tills kontakten är avslutad.';
+const OPPNA_STATUS = ['vantar', 'foreslagen'];
+const OPPNA = `(${OPPNA_STATUS.map(x => `'${x}'`).join(', ')})`;
+// Begäran för en anteckning: den öppna, annars den senaste. Alla versioner i kedjan räknas som samma anteckning.
+function begaranRad(db, anteckningId, { oppen = false } = {}) {
+  sakraBegaran(db);
+  const ids = [...versionsId(db, Number(anteckningId))];
+  if (!ids.length) return null;
+  const ph = ids.map(() => '?').join(', ');
+  return db.query(`SELECT * FROM undantag_begaranden WHERE anteckning_id IN (${ph})${oppen ? ` AND status IN ${OPPNA}` : ''} ORDER BY (status IN ${OPPNA}) DESC, id DESC LIMIT 1`).get(...ids);
+}
+const arPagaende = (db, a) => Boolean(a.vardkontakt_id && db.query('SELECT 1 FROM vardkontakter WHERE id = ? AND slut IS NULL').get(a.vardkontakt_id));
+const begaranUt = (db, b) => (b ? { id: b.id, status: b.status, statusText: BEGARAN_STATUS[b.status], kanaler: JSON.parse(b.kanaler), skal: b.skal, begard: b.begard_tid,
+  begardAv: db.query('SELECT namn, titel FROM personal WHERE id = ?').get(b.begard_av) ?? null, kommentar: b.kommentar ?? null } : null);
+
+// Om den inloggade får begära undantag för anteckningen. atk är redan prövad för att läsa anteckningen.
+export function kanBegara(atk, a) {
+  const p = atk.personal;
+  if (a.status !== 'signerad') return false;
+  if (a.forfattare_id === p.id || a.signerad_av === p.id) return true;
+  return p.yrke === 'lakare' && vardenhetFor(atk.db, p.enhet_id) === vardenhetFor(atk.db, a.enhet_id);
+}
+// Det journalen visar om begäran för den som läser anteckningen.
+export function begaranForLasare(atk, a) {
+  return { kan: kanBegara(atk, a), begaran: begaranUt(atk.db, begaranRad(atk.db, a.id)), pagaende: arPagaende(atk.db, a) };
+}
+
+export function begar(atk, a, body = {}, nu = new Date()) {
+  const db = atk.db;
+  sakraBegaran(db);
+  if (a.status !== 'signerad') throw new Fel(400, 'Bara en signerad anteckning kan undantas. Ett utkast ändrar du själv.', 'ogiltig');
+  if (!kanBegara(atk, a)) {
+    atk.logga('undanta', atk.grund(), `undantag_begaran:anteckning:${a.id}`, 'nekad');
+    throw new Fel(403, 'Bara den som skrev anteckningen eller patientens ansvariga läkare kan begära att den undantas. Kontakta någon av dem.', 'nekad');
+  }
+  const kanaler = Array.isArray(body.kanaler) ? [...new Set(body.kanaler)].filter(x => typeof x === 'string').sort() : [];
+  if (!kanaler.length || kanaler.some(x => !Object.hasOwn(KANALER, x))) throw new Fel(400, 'Välj var anteckningen inte ska visas eller lämnas ut: i systemet, genom FHIR eller till nationella tjänster.', 'ogiltig', { falt: ['kanaler'] });
+  const skal = typeof body.skal === 'string' ? body.skal.trim().split(/\s+/).join(' ') : '';
+  if (skal.length < 10) throw new Fel(400, 'Skriv varför anteckningen ska undantas, med minst tio tecken. Skälet blir motiveringen som personalen ser i journalen, så skriv det utan patientuppgifter.', 'ogiltig', { falt: ['skal'] });
+  if (skal.length > 500) throw new Fel(400, 'Skälet får vara högst 500 tecken.', 'ogiltig', { falt: ['skal'] });
+  if (kanaler.includes('visning') && arPagaende(db, a)) throw new Fel(400, PAGAENDE, 'ogiltig', { falt: ['kanaler'] });
+  if (begaranRad(db, a.id, { oppen: true })) throw new Fel(409, 'Det finns redan en begäran för anteckningen som väntar på systemförvaltningen.', 'ogiltig');
+  const id = Number(db.query('INSERT INTO undantag_begaranden (anteckning_id, enhet_id, begard_av, begard_tid, kanaler, skal) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(a.id, vardenhetFor(db, a.enhet_id) ?? a.enhet_id, atk.personal.id, iso(nu), JSON.stringify(kanaler), skal).lastInsertRowid);
+  atk.logga('undanta', atk.grund(), `undantag_begaran:anteckning:${a.id}`);
+  return { begaran: begaranUt(db, db.query('SELECT * FROM undantag_begaranden WHERE id = ?').get(id)) };
+}
+
+// Systemförvaltarens lista: nummer, typ, datum, vårdenhet och den som begär. Aldrig patienten eller innehållet.
+function begarandenUt(db) {
+  sakraBegaran(db);
+  return db.query(`SELECT * FROM undantag_begaranden WHERE status IN ${OPPNA} ORDER BY id`).all().map(b => {
+    const a = db.query('SELECT id, typ, signerad_tid, skapad FROM anteckningar WHERE id = ?').get(b.anteckning_id);
+    return { nummer: b.anteckning_id, typ: a?.typ ?? null, datum: String(a?.signerad_tid ?? a?.skapad ?? '').slice(0, 10),
+      vardenhet: db.query('SELECT namn FROM enheter WHERE id = ?').get(b.enhet_id)?.namn ?? b.enhet_id, ...begaranUt(db, b) };
+  });
+}
+
+export function avslaBegaran(db, personal, id, { kommentar } = {}, nu = new Date()) {
+  kravRoll(personal);
+  sakraBegaran(db);
+  const b = db.query('SELECT * FROM undantag_begaranden WHERE id = ?').get(Number(id) || 0);
+  if (!b) throw new Fel(404, 'Begäran finns inte.', 'saknas');
+  if (b.status !== 'vantar') throw new Fel(409, 'Begäran är redan hanterad.', 'ogiltig');
+  const k = typeof kommentar === 'string' ? kommentar.trim().slice(0, 500) : '';
+  if (!k) throw new Fel(400, 'Skriv varför begäran avslås, så att den som begärde vet vad som behöver göras.', 'ogiltig', { falt: ['kommentar'] });
+  db.query("UPDATE undantag_begaranden SET status = 'avslagen', beslutad_av = ?, beslutad = ?, kommentar = ? WHERE id = ?").run(personal.id, iso(nu), k, b.id);
+  loggaAtgard(db, personal, `undantag_begaran:${b.id}`);
+  return { begaranden: begarandenUt(db) };
+}
+
+// När ett förslag om en enskild anteckning föreslås eller beslutas följer begäran med.
+function uppdateraBegaran(db, andring) {
+  if (!andring?.nyckel?.startsWith('anteckning:')) return;
+  sakraBegaran(db);
+  const status = andring.status === 'godkand' ? 'beslutad' : andring.status === 'vantar' ? 'foreslagen' : 'vantar';
+  db.query(`UPDATE undantag_begaranden SET status = ?, andring_id = ?, beslutad = ? WHERE id = (SELECT id FROM undantag_begaranden WHERE anteckning_id = ? AND status IN ${OPPNA} ORDER BY id DESC LIMIT 1)`)
+    .run(status, andring.id, iso(), Number(andring.nyckel.split(':')[1]));
+}
+
 const namnFor = (db, omfang, varde) => {
   if (omfang === 'anteckning') { const a = anteckningRad(db, varde); return a ? anteckningNamn(db, a) : `anteckning ${varde}`; }
   return valbara(db)[omfang]?.find(x => x.varde === varde)?.namn ?? varde;
@@ -162,9 +260,12 @@ export function prova(db, { omfang, varde, kanaler } = {}, nu = new Date()) {
   // vårdkontakt om den ska döljas i systemet. Svaret säger bara typ, vårdenhet och datum, aldrig patienten eller texten.
   if (omfang === 'anteckning') {
     const a = anteckningRad(db, varde);
-    if (!a || a.status !== 'signerad') return { ok: false, varfor: 'Det finns ingen signerad anteckning med det numret. Numret står i ärendet från vården.' };
-    const pagaende = a.vardkontakt_id && db.query('SELECT 1 FROM vardkontakter WHERE id = ? AND slut IS NULL').get(a.vardkontakt_id);
-    if (k.includes('visning') && pagaende) return { ok: false, varfor: 'Anteckningen hör till en pågående vårdkontakt, och uppgifter som behövs i pågående vård kan inte döljas i systemet. Undanta den bara från FHIR och nationella tjänster, eller vänta tills kontakten är avslutad.' };
+    // Runda 13, r3 (säkerhetsfynd 5): utan en begäran från vården är svaret detsamma vare sig anteckningen finns eller
+    // inte. Ett befintligt undantag kan alltid ändras eller avslutas, eftersom numret redan har kommit från vården.
+    const harUndantag = a && aktiva(db, nu).some(u => u.nyckel === nyckelFor('anteckning', String(a.id)));
+    if (!a || a.status !== 'signerad' || (!begaranRad(db, a.id, { oppen: true }) && !harUndantag)) return { ok: false, varfor: INGEN_BEGARAN };
+    const pagaende = arPagaende(db, a);
+    if (k.includes('visning') && pagaende) return { ok: false, varfor: PAGAENDE };
     const versioner = versionsId(db, a.id).size;
     const effekt = [`Gäller ${anteckningNamn(db, a)}${versioner > 1 ? ` med alla ${versioner} versioner` : ''}.`];
     if (k.includes('visning')) effekt.push('Personalen ser en rad i journalen om att en anteckning inte visas, med motiveringen, men inte vilken.');
@@ -229,6 +330,8 @@ export function foresla(db, personal, { omfang, varde, kanaler, giltigFran, moti
   const r = db.query(`INSERT INTO konfig_andringar (slag, nyckel, varde, forra, giltig_fran, motivering, foreslagen_av, foreslagen)
     VALUES ('undantag', ?, ?, ?, ?, ?, ?, ?)`).run(nyckel, JSON.stringify({ kanaler: k }), JSON.stringify({ kanaler: nu_?.kanaler ?? [] }), datum, m, personal.id, iso(nu));
   loggaAtgard(db, personal, `undantag:${r.lastInsertRowid}`);
+  // Runda 13, r3: begäran från vården följer med förslaget.
+  uppdateraBegaran(db, db.query('SELECT * FROM konfig_andringar WHERE id = ?').get(r.lastInsertRowid));
   return { andring: undantagAndringUt(db, db.query('SELECT * FROM konfig_andringar WHERE id = ?').get(r.lastInsertRowid), personal) };
 }
 
@@ -237,11 +340,13 @@ export function foresla(db, personal, { omfang, varde, kanaler, giltigFran, moti
 export function godkann(db, personal, id, inp, nu = new Date()) {
   kravRoll(personal);
   godkannAndring(db, personal, id, inp, nu, { slag: 'undantag' });
+  uppdateraBegaran(db, db.query('SELECT * FROM konfig_andringar WHERE id = ?').get(Number(id)));
   return { andring: undantagAndringUt(db, db.query('SELECT * FROM konfig_andringar WHERE id = ?').get(Number(id)), personal) };
 }
 export function avsluta(db, personal, id, inp, nu = new Date()) {
   kravRoll(personal);
   avslutaAndring(db, personal, id, inp, nu, { slag: 'undantag' });
+  uppdateraBegaran(db, db.query('SELECT * FROM konfig_andringar WHERE id = ?').get(Number(id)));
   return { andring: undantagAndringUt(db, db.query('SELECT * FROM konfig_andringar WHERE id = ?').get(Number(id)), personal) };
 }
 
@@ -266,6 +371,8 @@ export function oversikt(db, personal, nu = new Date()) {
     attGodkanna: vantande.filter(a => a.kanGodkanna), mina: vantande.filter(a => a.egen),
     historik: andringar.filter(a => a.status !== 'vantar').slice(0, 50).map(a => undantagAndringUt(db, a, personal)),
     valbara: valbara(db), kanaler: KANALER, omfang: OMFANG, publicering: publicering(db, nu), forvalDatum: addDagar(dag, 1),
+    // Runda 13, r3: begäranden från vården om att undanta en enskild anteckning.
+    begaranden: begarandenUt(db),
     regler: [ALDRIG, MIN_JOURNAL],
     anmarkning: 'Publiceringen till nationella tjänster är simulerad i demon. Inget skickas.',
   };

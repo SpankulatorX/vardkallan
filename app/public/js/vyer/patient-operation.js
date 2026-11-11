@@ -160,7 +160,7 @@ function kortHtml(o, x) {
   const [st, kl] = STATUS[o.status] ?? [o.status, ''];
   return `<article class="op-kort" aria-labelledby="op-r-${o.id}">
     <header><h3 id="op-r-${o.id}">${esc(o.ingrepp)}${o.sida ? `, ${esc(o.sida)} sida` : ''}</h3><span class="tagg ${kl}">${esc(st)}</span></header>
-    <p class="under-text">KVÅ ${esc(o.kva)}. ${esc(o.prioritet.namn)}, målet är ${esc(datum(o.malDatum))}${o.overMal ? ' och har passerats' : ''}. ${esc(o.anestesi)}, beräknat ${esc(o.minuter)} minuter. Anmäld ${esc(tidpunkt(o.anmald.tid))} av ${esc(o.anmald.av ?? '')}, ${esc(o.vardenhet?.namn ?? '')}.</p>
+    <p class="under-text">KVÅ ${esc(o.kva)}. ${esc(o.prioritet.namn)}, målet är ${esc(datum(o.malDatum))}${o.overMal ? ' och har passerats' : ''}. ${o.behandlingsgaranti && o.status !== 'klar' ? `${esc(o.behandlingsgaranti.text)} ` : ''}${esc(o.anestesi)}, beräknat ${esc(o.minuter)} minuter. Anmäld ${esc(tidpunkt(o.anmald.tid))} av ${esc(o.anmald.av ?? '')}, ${esc(o.vardenhet?.namn ?? '')}.</p>
     ${paverkarHtml(o)}
     ${o.status !== 'klar' ? forberedelserHtml(o) : ''}
     ${planeringHtml(o)}

@@ -260,7 +260,7 @@ export async function sparrar(el, ctx) {
   if (!ctx.aktuell()) return;
   const valbara = d.vardenheter.filter(e => !e.sparrad);
   el.innerHTML = `${delrubrik('Spärrar och begäranden')}
-    <div class="ruta ruta-forklaring"><p>Du kan spärra uppgifter från en vårdenhet. Då ser andra vårdenheter inte uppgifterna, bara att det finns spärrade uppgifter (patientdatalagen 4 kap. 4 §). I Vårdkällan visas de spärrade uppgifterna för en annan vårdenhet bara om du samtycker i stunden. Du ser själv alltid dina uppgifter.</p>
+    <div class="ruta ruta-forklaring"><p>Du kan spärra uppgifter från en vårdenhet. Då ser andra vårdenheter inte uppgifterna, bara att det finns spärrade uppgifter (patientdatalagen 4 kap. 4 och 5 §§). I Vårdkällan visas de spärrade uppgifterna för en annan vårdenhet bara om du samtycker i stunden. Du ser själv alltid dina uppgifter.</p>
       <p>Här skickar du en begäran till vården. Den ändrar inget direkt: vården behandlar begäran och registrerar spärren, eller hävningen av den. I demon behandlas begärandena inte.</p></div>
     <section aria-labelledby="min-sp"><h3 id="min-sp">Dina spärrar</h3>
       ${d.sparrar.length ? `<ul class="enkel-lista min-lista">${d.sparrar.map(s => `<li>${ikon.las} <strong>${esc(s.vardenhet)}</strong><span class="under-text">Spärrad sedan ${esc(datum(s.sedan))}</span>
@@ -273,7 +273,7 @@ export async function sparrar(el, ctx) {
         <p class="form-fel" role="alert" hidden></p>
         <button type="submit" class="knapp">Skicka begäran</button>
       </form>` : tomRad('Alla vårdenheter som har uppgifter om dig är redan spärrade.')}</section>`
-    : '<p class="ruta ruta-info">En vårdnadshavare kan inte spärra barnets uppgifter eller begära att en spärr hävs (patientdatalagen 4 kap. 4 §). Du kan begära ett loggutdrag.</p>'}
+    : '<p class="ruta ruta-info">En vårdnadshavare kan inte spärra barnets uppgifter eller begära att en spärr hävs (patientdatalagen 4 kap. 4 och 5 §§). Du kan begära ett loggutdrag.</p>'}
     <section aria-labelledby="min-beg"><h3 id="min-beg">Dina begäranden</h3>
       ${d.begaran.length ? `<ul class="enkel-lista min-lista">${d.begaran.map(b => `<li><strong>${esc(BEGARAN[b.typ] ?? b.typ)}</strong>${b.vardenhet ? `, ${esc(b.vardenhet)}` : ''}
         <span class="under-text">Skickad ${esc(tidpunkt(b.skapad))}${b.egen ? '' : ' av en annan vårdnadshavare'}. ${b.status === 'skickad' ? 'Skickad till vården, inte behandlad än.' : esc(b.status)}</span>${b.meddelande ? `<span class="under-text">${esc(b.meddelande)}</span>` : ''}</li>`).join('')}</ul>` : tomRad('Inga begäranden.')}</section>`;

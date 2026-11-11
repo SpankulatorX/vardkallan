@@ -8,7 +8,7 @@ import { kanRoll, vardenhetFor } from './atkomst.js';
 // Skalor och poängmodeller (runda 6, r1): systemet räknar GCS och skriver texten för de kodade mätvärdena.
 import { ACVPU, tolkaGcs, gcsText, nrsText } from './skalor.js';
 // Runda 7, r4: undantag från visning (undantag.js) och enhetens namn när anteckningen skrevs (omorganisation.js).
-import { filtreraVisning, undantagnaUt, provare as undantagProvare } from './undantag.js';
+import { filtreraVisning, undantagnaUt, provare as undantagProvare, begaranForLasare as undantagBegaranFor } from './undantag.js';
 import { namnVid } from './omorganisation.js';
 // Runda 8, r5: mallen för tobaks- och nikotinvanor med fasta svarsalternativ (tobak.js).
 import * as tobak from './tobak.js';
@@ -141,9 +141,14 @@ export function hamtaAnteckning(atk, a) {
   if (a.status !== 'signerad' && a.forfattare_id !== atk.personal.id) throw new Fel(404, 'Anteckningen finns inte.', 'saknas');
   atk.krav(lasHandling(a.kategori), { resurs: { enhet_id: a.enhet_id }, beskrivning: `anteckning:${a.id}` });
   // Runda 7, r4: en anteckning som är undantagen från visning visas inte heller när den öppnas direkt.
+  // Runda 13, r3 (säkerhetsfynd 6): samma svar som för en anteckning som inte finns. Journalens rad om att något inte
+  // visas har motiveringen.
   const u = undantagProvare(atk.db, 'visning')(a, 'anteckning');
-  if (u) throw new Fel(404, `Anteckningen visas inte. Systemförvaltningen har undantagit den från visning från ${u.gallerFran}: ${u.motivering}`, 'saknas');
+  if (u) throw new Fel(404, 'Anteckningen finns inte.', 'saknas');
   const ut = anteckningUt(atk.db, a);
+  // Runda 13, r3 (beslut från Jonas): anteckningens nummer och om den som läser kan begära att den undantas.
+  ut.nummer = a.id;
+  ut.undantagBegaran = undantagBegaranFor(atk, a);
   ut.versioner = versionskedja(atk.db, a.id).map(v => anteckningUt(atk.db, v));
   // Runda 10, r3: källan till ett förifyllt värde, prövad med läsarens egen behörighet.
   if (ut.formular) ut.formular.kallor = formular.kallorFor(atk, a.id);

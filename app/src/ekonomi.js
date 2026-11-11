@@ -16,7 +16,7 @@ import { createHash } from 'node:crypto';
 import { Fel, iso, idag, addDagar, datumAv, giltigtDatum } from './db.js';
 import { Atkomst, kanRoll, vardenhetFor, enheterUnder, alder, aktivaSparrar } from './atkomst.js';
 import { loggaRad } from './logg.js';
-import { avgiftFor, hogkostnadsskyddet, pagandeFor, rabattFor } from './vardkontakt.js';
+import { avgiftFor, avgifter, hogkostnadsskyddet, pagandeFor, rabattFor } from './vardkontakt.js';
 import { formatera } from './identitet.js';
 import { KVA, SYSTEM } from './kodverk.js';
 import { CS } from './fhir-definitioner.js';
@@ -670,7 +670,8 @@ function synligAvgift(atk, p, r, synligaBesok) {
   const kort = finns(db, 'betalningar') && Boolean(db.query("SELECT 1 FROM betalningar x JOIN bokningar k ON k.id = x.bokning_id WHERE k.vardkontakt_id = ? AND x.satt = 'kort'").get(v.id));
   const status = a.belopp === 0 ? (a.frikort ? 'frikort' : 'avgiftsfri') : b.vantar ? 'vantar' : kort ? 'betald' : 'faktureras';
   // Runda 12, r3: rabatten med ordinarie avgift och skäl, räknad på samma synliga besök som avgiften.
-  const rabatt = rabattFor(p, v, a);
+  // Runda 13, r3 (säkerhetsfynd 9): med vårdgivarens godkända avgifter och åldersgränser.
+  const rabatt = rabattFor(p, v, a, avgifter(db));
   return { datum: r.datum, tid: r.tid, text: `Patientavgift. ${a.text}`, belopp: a.belopp, status, statusText: status === 'vantar' ? b.text : STATUS[status], ...(rabatt ? { rabatt } : {}), rad: r };
 }
 

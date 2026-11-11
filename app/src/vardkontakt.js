@@ -334,15 +334,16 @@ function grundavgift(v, patient, a = AVGIFT_DEMO) {
 // för att patienten är under 20 år eller från 85 år, har LMA-kort eller frikort. a är avgiften från avgiftFor, räknad på
 // det anroparen får se. En avgift som taket i högkostnadsskyddet har satt ned utan att ge frikort visas som en hel
 // avgift utan rabatt, eftersom rabatten annars skulle röja besök som anroparen inte får se.
-export function rabattFor(patient, v, a) {
+// Runda 13, r3 (säkerhetsfynd 9): satser är vårdgivarens godkända avgifter och åldersgränser, avgifter(db).
+export function rabattFor(patient, v, a, satser = AVGIFT_DEMO) {
   if (!patient || !a || v.typ === 'slutenvard') return null;
-  const ordinarie = v.typ === 'akut' ? AVGIFT_DEMO.akut : (AVGIFT_DEMO[v.kontaktsatt ?? 'besok'] ?? AVGIFT_DEMO.besok);
+  const ordinarie = v.typ === 'akut' ? satser.akut : (satser[v.kontaktsatt ?? 'besok'] ?? satser.besok);
   if (!ordinarie || a.belopp >= ordinarie) return null;
   const ar = alder(patient.fodd, datumAv(new Date(Date.parse(v.start))));
   let skal;
   if (a.lma) skal = ar < AVGIFT_LMA.friUnder ? 'Avgiftsfritt för asylsökande barn med LMA-kort.' : 'Lägre avgift för asylsökande med LMA-kort.';
-  else if (ar < AVGIFT_DEMO.friUnder) skal = `Avgiftsfritt för patienter under ${AVGIFT_DEMO.friUnder} år.`;
-  else if (ar >= AVGIFT_DEMO.friFran) skal = `Avgiftsfritt för patienter från ${AVGIFT_DEMO.friFran} år.`;
+  else if (ar < satser.friUnder) skal = `Avgiftsfritt för patienter under ${satser.friUnder} år.`;
+  else if (ar >= satser.friFran) skal = `Avgiftsfritt för patienter från ${satser.friFran} år.`;
   else if (a.frikort) skal = 'Frikort inom högkostnadsskyddet.';
   else return null;
   return { ordinarie, rabatt: ordinarie - a.belopp, skal, demoregel: true };

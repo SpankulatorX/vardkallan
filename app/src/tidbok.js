@@ -71,13 +71,13 @@ export function regel(db, namn) {
 }
 export function demoregelText(db) {
   const r = (n) => regel(db, n);
-  return `Demoregler: vårdgarantin räknas som ${r('vardgarantiDagar')} dagar från att remissen togs emot, och den som har högst ${r('riskDagar')} dagar kvar lyfts fram. Påminnelsen går ut ${require('./konfiguration.js').varde(db, 'tidbok.paminnelse_timmar')} timmar före tiden. Patienten kan boka om och avboka i Min journal fram till ${r('egenGransTimmar')} timmar före. Incheckningen är öppen från ${r('incheckningForeMin')} minuter före till ${r('incheckningEfterMin')} minuter efter tiden.`;
+  return `Demoregler: vårdgarantin i den specialiserade vården räknas som ${r('vardgarantiDagar')} dagar från att remissen utfärdades, och den som har högst ${r('riskDagar')} dagar kvar lyfts fram. Påminnelsen går ut ${require('./konfiguration.js').varde(db, 'tidbok.paminnelse_timmar')} timmar före tiden. Patienten kan boka om och avboka i Min journal fram till ${r('egenGransTimmar')} timmar före. Incheckningen är öppen från ${r('incheckningForeMin')} minuter före till ${r('incheckningEfterMin')} minuter efter tiden.`;
 }
 
 // Demoregler, märkta så i gränssnittet. Beloppen och gränserna är påhittade och inte någon regions regler.
 export const DEMOREGLER = {
   vardgarantiDagar: 90, riskDagar: 14, paminnelseTimmar: 48, egenGransTimmar: 24, incheckningForeMin: 60, incheckningEfterMin: 30,
-  text: 'Demoregler: vårdgarantin räknas som 90 dagar från att remissen togs emot, och den som har högst 14 dagar kvar lyfts fram. Påminnelsen går ut 48 timmar före tiden. Patienten kan boka om och avboka i Min journal fram till 24 timmar före. Incheckningen är öppen från en timme före till en halvtimme efter tiden.',
+  text: 'Demoregler: vårdgarantin i den specialiserade vården räknas som 90 dagar från att remissen utfärdades, och den som har högst 14 dagar kvar lyfts fram. Påminnelsen går ut 48 timmar före tiden. Patienten kan boka om och avboka i Min journal fram till 24 timmar före. Incheckningen är öppen från en timme före till en halvtimme efter tiden.',
 };
 
 const MIN = 60_000;
@@ -397,7 +397,9 @@ export function vantelistaFranRemiss(db, r, { av = null, tidstyp = 'nybesok', yr
   // uppdrag (remiss-r10.js) kan accepteras på nytt.
   if (db.query("SELECT 1 FROM vantelista WHERE remiss_id = ? AND status <> 'avslutad'").get(r.id)) return null;
   if (!db.query('SELECT 1 FROM scheman s WHERE s.enhet_id IN (SELECT id FROM enheter WHERE id = ?1 OR forald_id = ?1)').get(r.till_enhet_id)) return null;
-  const fran = datumAv(new Date(r.mottagen_tid ?? r.skickad_tid));
+  // Runda 13, r3: vårdgarantin räknas från att remissen utfärdades, eller från att patienten själv sökte kontakt med
+  // en egen vårdbegäran (6 kap. 1 § hälso- och sjukvårdsförordningen), inte från att mottagaren tog emot den.
+  const fran = datumAv(new Date(r.skickad_tid ?? r.mottagen_tid ?? iso()));
   const prioritet = ['akut', 'skyndsam'].includes(r.prioritet) ? 'hog' : 'normal';
   // Runda 6, r4: en egen vårdbegäran från invånaren kommer från Min journal, inte från en vårdenhet.
   const orsak = r.fran_enhet_id === EGEN_VARDBEGARAN ? `${TIDSTYPER[tidstyp]?.text ?? 'Besök'} enligt egen vårdbegäran`
@@ -458,10 +460,20 @@ export function sakraVantelista(db) {
 // Gränsen för en post: vårdgarantin för ett nybesök efter remiss (demoregel) och det medicinska måldatumet. Det som
 // kommer först gäller. Vid patientvald väntan räknas inte vårdgarantin.
 // Runda 12, r1: med db läses vårdgarantin och gränsen för att lyftas fram ur konfigurationen (Sussa 12.1.1.6).
+// Runda 13, r3: i primärvården gäller inte de 90 dagarna. Där ska patienten få kontakt samma dag och en medicinsk
+// bedömning inom tre dagar (6 kap. 1 § hälso- och sjukvårdsförordningen), och bedömningen är gjord när vårdcentralen har
+// bedömt den egna vårdbegäran eller remissen (vardbegaran.js).
+export const BEDOMNINGSGARANTI_DAGAR = 3;
+const iPrimarvarden = (db, enhetId) => {
+  if (!db || !enhetId) return false;
+  let e = enhetRad(db, enhetId);
+  for (let i = 0; i < 6 && e; i++) { if (e.id === 'primarvard') return true; e = e.forald_id ? enhetRad(db, e.forald_id) : null; }
+  return false;
+};
 export function gransFor(post, dag = idag(), db = null) {
   const kandidater = [];
   const garanti = db ? regel(db, 'vardgarantiDagar') : DEMOREGLER.vardgarantiDagar;
-  if (post.remiss_id && post.tidstyp === 'nybesok' && !post.patientvald) kandidater.push({ datum: addDagar(post.fran, garanti), typ: 'vardgaranti', text: 'vårdgarantin (demoregel)' });
+  if (post.remiss_id && post.tidstyp === 'nybesok' && !post.patientvald && !iPrimarvarden(db, post.enhet_id)) kandidater.push({ datum: addDagar(post.fran, garanti), typ: 'vardgaranti', text: 'vårdgarantin (demoregel)' });
   if (post.mal) kandidater.push({ datum: post.mal, typ: 'mal', text: post.remiss_id ? 'remissens sista svarsdatum' : 'måldatum från läkaren' });
   if (!kandidater.length) return null;
   const g = kandidater.sort((a, b) => a.datum.localeCompare(b.datum))[0];

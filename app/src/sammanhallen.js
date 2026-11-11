@@ -1,4 +1,4 @@
-// Sammanhållen journalföring med en annan vårdgivare (runda 10, r5, Sussa 3.2.2.3), patientdatalagen (2008:355) 6 kap.
+// Sammanhållen journalföring med en annan vårdgivare (runda 10, r5, Sussa 3.2.2.3), lagen (2022:913) om sammanhållen vård- och omsorgsdokumentation 3 kap.
 //
 // Vårdkällan är konsument: uppgifter som har skapats hos en annan vårdgivare hämtas och visas i samma kronologi som
 // patientens egna uppgifter, med vårdgivaren, vårdenheten, yrkesrollen, den som skapade uppgiften och tiden utskrivna.
@@ -9,7 +9,7 @@
 // användaren inte behöver öppna ett annat system. Patientens spärrar hos den andra vårdgivaren följer med: den
 // vårdgivaren lämnar aldrig ut spärrade uppgifter, och inget talar om att de finns.
 //
-// Behörighet (6 kap. 2 och 3 §§). Bara den som har en aktuell patientrelation och får läsa journalen tar del av
+// Behörighet (lag 2022:913 3 kap. 1, 3 och 6 §§, som ersatte patientdatalagen 6 kap.). Bara den som har en aktuell patientrelation och får läsa journalen tar del av
 // uppgifterna, och bara om patienten samtycker. Utan samtycke får uppgifterna hämtas vid nödåtkomst, när patienten inte
 // kan samtycka och uppgifterna behövs för vård som patienten oundgängligen behöver. Varje hämtning loggas på patienten
 // med vårdgivaren och syftet. Samtycket gäller vårdenheten och kan återkallas, och då tas det aktiva valet bort.

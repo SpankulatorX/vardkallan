@@ -14,6 +14,18 @@ import { EGEN, tolkaBilaga, sparaBilaga } from './remiss-r4.js';
 
 export const MAX_OPPNA = 3;
 const SVAR_DAGAR = 14;
+// Runda 13, r3: en egen vårdbegäran till primärvården ska ha fått en medicinsk bedömning inom tre dagar
+// (bedömningsgarantin, 6 kap. 1 § hälso- och sjukvårdsförordningen). Till den specialiserade vården gäller demons 14 dagar,
+// och vårdgarantins 90 dagar för besöket räknas från samma dag (tidbok.js).
+export function svarSenastFor(db, enhetId, dag = idag()) {
+  let e = db.query('SELECT id, forald_id FROM enheter WHERE id = ?').get(enhetId);
+  for (let i = 0; i < 6 && e; i++) {
+    if (e.id === 'primarvard') return addDagar(dag, BEDOMNING_DAGAR);
+    e = e.forald_id ? db.query('SELECT id, forald_id FROM enheter WHERE id = ?').get(e.forald_id) : null;
+  }
+  return addDagar(dag, SVAR_DAGAR);
+}
+const BEDOMNING_DAGAR = 3;
 
 // Demoregler: ord i beskrivningen som pekar mot en inriktning, och vårdenheterna med den inriktningen.
 const INRIKTNINGAR = [
@@ -72,9 +84,9 @@ export function skapa(atk, body = {}) {
   const bilaga = body.bilaga ? tolkaBilaga(body.bilaga, db) : null;
   const text = body.besvar.trim();
   const id = Number(db.query(`INSERT INTO remisser (patient_id, fran_enhet_id, till_enhet_id, avsandare_id, fragestallning, anamnes, prioritet, svar_senast, status, skickad_tid)
-    VALUES (?, ?, ?, ?, ?, NULL, 'normal', ?, 'skickad', ?)`).run(pid, EGEN, val.enhet.id, atk.invanare.id, text, addDagar(idag(), SVAR_DAGAR), iso()).lastInsertRowid);
+    VALUES (?, ?, ?, ?, ?, NULL, 'normal', ?, 'skickad', ?)`).run(pid, EGEN, val.enhet.id, atk.invanare.id, text, svarSenastFor(db, val.enhet.id), iso()).lastInsertRowid);
   db.query('INSERT INTO egen_vardbegaran (remiss_id, invanare_id, patient_id, skal, skapad) VALUES (?, ?, ?, ?, ?)').run(id, atk.invanare.id, pid, val.skal, iso());
   if (bilaga) sparaBilaga(db, { remissId: id, patientId: pid, bilaga, avInvanare: atk.invanare.id });
   atk.logga(`min:vardbegaran:${id}`, { handling: 'invanare_begaran' });
-  return [201, { id, till: val.enhet.namn, fran: 'Egen vårdbegäran via Min journal', egen: true, status: 'skickad', svarSenast: addDagar(idag(), SVAR_DAGAR), bilaga: Boolean(bilaga) }];
+  return [201, { id, till: val.enhet.namn, fran: 'Egen vårdbegäran via Min journal', egen: true, status: 'skickad', svarSenast: svarSenastFor(db, val.enhet.id), bilaga: Boolean(bilaga) }];
 }

@@ -331,7 +331,7 @@ export function faststallDirektiv(db, personal, inp = {}) {
   const f = vg ?? (kanRoll(personal, 'faststalla_direktiv') ? ansvar.faststallaDirektiv(db, personal) : { kan: false });
   if (!f.kan) {
     loggaUtan(db, personal, 'faststalla_direktiv', 'generella_direktiv', 'nekad');
-    throw new Fel(403, f.varfor ?? 'Generella direktiv fastställs av verksamhetschefen eller den medicinskt ansvariga läkaren (HSLF-FS 2017:37 6 kap. 6 §).', 'nekad');
+    throw new Fel(403, f.varfor ?? 'Generella direktiv fastställs av verksamhetschefen eller den medicinskt ansvariga läkaren enligt vårdgivarens rutin (Gröna häftet 1.4.2), och den som utfärdar dem ska vara läkare (HSLF-FS 2017:37 6 kap. 6 §).', 'nekad');
   }
   const lm = typeof inp.lakemedelId === 'string' ? katalog(db, inp.lakemedelId) : null;
   const enhet = vg ? vg.vardgivare : typeof inp.enhetId === 'string' ? inp.enhetId : vardenhetFor(db, personal.enhet_id);

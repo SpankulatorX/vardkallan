@@ -287,3 +287,19 @@ describe('Operationsplanering', () => {
     expect(() => op.checklistaUnderlag(atk(db, 'lak-ort', 'op1', 'las_operation', { andra_enheter: true }), an)).toThrow('spärrade');
   });
 });
+
+// Runda 13, r3: behandlingsgarantin. Planerad vård, som en operation, ska ges inom 90 dagar från vårdgivarens beslut
+// (6 kap. 1 § hälso- och sjukvårdsförordningen). Beslutet är anmälan till operation.
+describe('Behandlingsgarantin', () => {
+  test('behandlingsgarantin räknas 90 dagar från anmälan till operation och visas i anmälan och på väntelistan', () => {
+    const db = sandlada();
+    ny(db);
+    const a = anmal(db, 'op1', { kva: 'NFB49', sida: 'hoger', prioritet: 'inom_3_manader' });
+    expect(a.behandlingsgaranti).toMatchObject({ datum: addDagar(datumAv(BAS), 90), passerad: false });
+    expect(a.behandlingsgaranti.text).toContain('6 kap. 1 § hälso- och sjukvårdsförordningen');
+    const v = op.vantelista(db, pers(db, 'lak-kkoga'), () => ({}), BAS).vantande.find(x => x.id === a.id);
+    expect(v.behandlingsgaranti).toMatchObject({ datum: addDagar(datumAv(BAS), 90), passerad: false });
+    const sent = new Date(BAS.getTime() + 95 * 86400_000);
+    expect(op.anmalanUt(atk(db, 'lak-kkoga', 'op1', 'las_operation'), rad(db, a.id), sent).behandlingsgaranti.passerad).toBe(true);
+  });
+});

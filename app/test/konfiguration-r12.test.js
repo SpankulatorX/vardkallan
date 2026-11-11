@@ -5,6 +5,7 @@ import { describe, test, expect } from 'bun:test';
 import { byggSeed, datumAv, idag, addDagar } from '../src/db.js';
 import * as konfiguration from '../src/konfiguration.js';
 import * as lakemedel from '../src/lakemedel.js';
+import { INTERAKTIONER_STANDARD } from '../src/kodverk.js';
 import { atk, personal } from './hjalp.js';
 
 const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
@@ -22,7 +23,9 @@ describe('Läkemedelsregler som konfiguration', () => {
   test('interaktioner: vårdgivarens lista är en demoregel med fyra ögon, och en ny interaktion ger en varning vid ordination', () => {
     const db = byggSeed();
     const p = konfiguration.parametrar();
-    expect(p['lakemedel.interaktioner']).toMatchObject({ omrade: 'lakemedel', typ: 'lista', standard: ['B01AA03 + M01A'] });
+    // Runda 13, r3: förvalet har fler par (E1-11, E1-21, E1-25).
+    expect(p['lakemedel.interaktioner']).toMatchObject({ omrade: 'lakemedel', typ: 'lista', standard: INTERAKTIONER_STANDARD });
+    expect(INTERAKTIONER_STANDARD).toEqual(expect.arrayContaining(['B01AA03 + M01A', 'B01AF + M01A', 'B01AA + B01AC']));
     expect(konfiguration.prova('lakemedel.interaktioner', 'B01AA03 + XYZ').varfor).toContain('XYZ är ingen ATC-kod');
     expect(konfiguration.prova('lakemedel.interaktioner', 'B01AA03 + Z99').varfor).toContain('Z99 finns inte i ATC');
     expect(konfiguration.prova('lakemedel.interaktioner', 'B01AA03').varfor).toContain('två ATC-koder med ett plustecken');
@@ -95,14 +98,14 @@ describe('Administration som konfiguration', () => {
       expect(p[k].standard).toBe(tidbok.DEMOREGLER[n]);
       expect(tidbok.regel(db, n)).toBe(tidbok.DEMOREGLER[n]);
     }
-    expect(konfiguration.prova('tidbok.vardgaranti_dagar', 120).varfor).toContain('Vårdgarantin i hälso- och sjukvårdslagen');
+    expect(konfiguration.prova('tidbok.vardgaranti_dagar', 120).varfor).toContain('6 kap. 1 § hälso- och sjukvårdsförordningen');
     const post = { remiss_id: 1, tidstyp: 'nybesok', patientvald: 0, fran: '2026-01-01', mal: null };
     expect(tidbok.gransFor(post, '2026-01-02', db).datum).toBe(addDagar('2026-01-01', 90));
     andra(db, 'tidbok.vardgaranti_dagar', 60);
     andra(db, 'tidbok.egen_grans_timmar', 48);
     expect(tidbok.gransFor(post, '2026-01-02', db).datum).toBe(addDagar('2026-01-01', 60));
     expect(tidbok.gransFor({ ...post, patientvald: 1 }, '2026-01-02', db)).toBeNull();
-    expect(tidbok.demoregelText(db)).toContain('vårdgarantin räknas som 60 dagar');
+    expect(tidbok.demoregelText(db)).toContain('räknas som 60 dagar');
     expect(tidbok.demoregelText(db)).toContain('fram till 48 timmar före');
     // Utan databas gäller standardvärdena som förut.
     expect(tidbok.gransFor(post, '2026-01-02').datum).toBe(addDagar('2026-01-01', 90));

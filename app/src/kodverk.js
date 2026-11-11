@@ -416,5 +416,17 @@ export const UCUM_VISNING = { 'Cel': '°C', 'umol/L': 'µmol/L', 'mm[Hg]': 'mmHg
 // Runda 12, r1: förvalen för läkemedelsvarningarnas regler som systemförvaltningen ändrar (konfiguration.js, Sussa
 // 12.1.1.8). Interaktionerna är par av ATC-koder eller ATC-grupper, och maxdoserna högsta dygnsdos per substans. Båda är
 // demoregler och inte kliniskt beslutsstöd.
-export const INTERAKTIONER_STANDARD = ['B01AA03 + M01A'];
+// Runda 13, r3 (E1-11, E1-21, E1-25): förvalet hade bara warfarin och NSAID, så NSAID till en patient med apixaban och
+// warfarin till en patient med tikagrelor och acetylsalicylsyra sparades utan varning. Förvalet har nu de vanligaste
+// allvarliga paren, och INTERAKTION_INFO har nivån och texten för dem. Ett par som vårdgivaren lägger till själv får
+// den allmänna texten. Demoregler, inte kliniskt beslutsstöd.
+export const INTERAKTIONER_STANDARD = ['B01AA03 + M01A', 'B01AF + M01A', 'B01AE + M01A', 'B01AA + B01AC', 'M01A + C03DA', 'M01A + C03CA', 'B01A + N06AB'];
+export const INTERAKTION_INFO = {
+  'B01AF + M01A': { niva: 'allvarlig', text: (a, b) => `${a} och NSAID (${b}) ökar risken för allvarlig blödning, särskilt i magtarmkanalen. Undvik NSAID, eller ge kortast möjliga tid med magskydd.` },
+  'B01AE + M01A': { niva: 'allvarlig', text: (a, b) => `${a} och NSAID (${b}) ökar risken för allvarlig blödning, särskilt i magtarmkanalen. Undvik NSAID, eller ge kortast möjliga tid med magskydd.` },
+  'B01AA + B01AC': { niva: 'allvarlig', text: (a, b) => `Warfarin (${a}) tillsammans med trombocythämmande läkemedel (${b}) ger kraftigt ökad blödningsrisk. Trippelbehandling ska vara ett uttryckligt beslut med planerad längd, och tikagrelor eller prasugrel avråds tillsammans med warfarin. Kontrollera PK(INR) tätt.` },
+  'M01A + C03DA': { niva: 'allvarlig', text: (a, b) => `NSAID (${a}) och ${b} ökar risken för högt kalium och akut njursvikt, särskilt hos äldre. Kontrollera kalium och kreatinin, eller välj paracetamol.` },
+  'M01A + C03CA': { niva: 'observera', text: (a, b) => `NSAID (${a}) minskar effekten av ${b} och ökar risken för njurpåverkan och vätskeretention vid hjärtsvikt. Kontrollera vikt och kreatinin.` },
+  'B01A + N06AB': { niva: 'allvarlig', text: (a, b) => `${a} och SSRI (${b}) ökar risken för blödning. Överväg magskydd och följ upp tecken på blödning.` },
+};
 export const MAXDOSER_STANDARD = ['N02BE01 4000 mg', 'M01AE01 2400 mg'];

@@ -35,6 +35,7 @@ function oversiktHtml(o) {
     <section class="ruta ruta-info" aria-labelledby="ff-demo">
       <h2 id="ff-demo">Så fungerar det i demon</h2>
       <p>SITHS-kortet och e-legitimationen är simulerade i demon, men flerfaktorn är riktig: passkeys enligt WebAuthn och engångskoder enligt RFC 6238, utan någon extern tjänst. Servern sparar bara passkeyns publika nyckel och appens nyckel krypterad.</p>
+      <p>${o.kravsAvVardgivaren ? 'Vårdgivaren kräver flerfaktor i den här sandlådan, så alla bekräftar sin inloggning med en andra faktor.' : 'Vårdgivaren kan kräva flerfaktor av alla med parametern Flerfaktor krävs vid inloggning under Regler och parametrar. I den publika demon står den på nej, så att ingen besökare låses ute.'}</p>
       <p>Flerfaktorn gäller bara i din sandlåda och bara för den du är inloggad som. Tappar du bort din faktor återställer du sandlådan med knappen överst. Då försvinner faktorn och allt annat du har gjort, så återställningen ger aldrig åtkomst till något som faktorn skyddade.</p>
       <p>Läsläget vid ett avbrott fungerar som förut: läskopian lämnas ut när inloggningen är klar, alltså efter den andra faktorn.</p>
     </section>`;

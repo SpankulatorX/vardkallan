@@ -216,14 +216,15 @@ describe('Dosändring', () => {
 
   test('säkerhet: dosändring kräver ordinationsrätt och vårdrelation, inte trappschema, och en spärrad enhets ordination röjs inte', () => {
     const db = sandladaKl('13:30');
-    const o = ordinera(db, 'p04', { lakemedelId: 'VK-NPL-0042', dosering: '1 tablett på morgonen', dos: 10, dosEnhet: 'mg', tider: ['08'], typ: 'staende', ordinationsorsak: 'Nedstämdhet' });
+    // Runda 13, r3: SSRI till en patient med trombocythämmare ger en varning som kvitteras.
+    const o = ordinera(db, 'p04', { lakemedelId: 'VK-NPL-0042', dosering: '1 tablett på morgonen', dos: 10, dosEnhet: 'mg', tider: ['08'], typ: 'staende', ordinationsorsak: 'Nedstämdhet', kvitteradeVarningar: [{ regel: 'interaktion_B01A_N06AB', motivering: 'Bedömt, magskydd finns.' }] });
     // Sjuksköterskan ordinerar inte och ändrar inte dosen.
     expect(fel(() => dosandring.andra(atk(db, 'ssk-kard', 'p04', {}, 'ordinera'), lakemedel.hamtaRad(db, o.id), { dosering: '2 tabletter på morgonen', dos: 20 })).status).toBe(403);
     // Läkaren på ortopeden har ingen vårdrelation till patienten.
     expect(fel(() => dosandring.andra(lak(db, 'p04', {}, 'lak-ort'), lakemedel.hamtaRad(db, o.id), { dosering: '2 tabletter på morgonen', dos: 20 })).status).toBe(403);
     // Sertralinet på den spärrade psykiatrin finns i samma läkemedelsgrupp, men varken underlaget eller svaret nämner det.
     const u = dosandring.underlag(lak(db, 'p04'), lakemedel.hamtaRad(db, o.id));
-    const r = dosandring.andra(lak(db, 'p04'), lakemedel.hamtaRad(db, o.id), { dosering: '2 tabletter på morgonen', dos: 20, dosEnhet: 'mg', tider: ['08'] });
+    const r = dosandring.andra(lak(db, 'p04'), lakemedel.hamtaRad(db, o.id), { dosering: '2 tabletter på morgonen', dos: 20, dosEnhet: 'mg', tider: ['08'], kvitteradeVarningar: [{ regel: 'interaktion_B01A_N06AB', motivering: 'Bedömt, magskydd finns.' }] });
     expect(JSON.stringify([u, r]).toLowerCase()).not.toContain('sertralin');
     // Den spärrade enhetens ordination går inte att ändra, och svaret säger inget om den.
     const sparrad = db.query("SELECT o.* FROM ordinationer o JOIN katalog k ON k.id = o.lakemedel_id WHERE o.patient_id = 'p04' AND k.substans = 'sertralin'").get();

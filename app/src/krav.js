@@ -30,6 +30,15 @@ const TESTER_FLERFAKTOR = [
   'Gränssnitt > Avbrott > flerfaktor: en passkey i Chromes virtuella autentiserare slår på flerfaktor, bekräftar nästa inloggning, och läsläget vid avbrott fungerar efter den andra faktorn',
   'Gränssnitt > Avbrott > flerfaktor: invånaren slår på en app för engångskoder i Min journal och loggar sedan in med en kod från appen',
 ]);
+// Runda 13, r3 (beslut från Jonas): flerfaktor som krav för vårdgivaren, med fyra ögon (flerfaktor-krav.test.js).
+TESTER_FLERFAKTOR.push(...[
+  'parametern Flerfaktor krävs vid inloggning är en demoregel som står på nej och ändras med fyra ögon',
+  'med kravet på ja leds den som saknar faktor till att registrera en, och får ingen behörighet eller läskopia förrän den är bekräftad',
+  'med kravet på ja ger en felaktig kod vid registreringen ingen inloggning, och för många försök avbryter',
+  'den som redan är inloggad loggas inte ut när kravet slås på, utan får frågan vid nästa inloggning',
+  'med kravet på ja leds invånaren i Min journal till att registrera en faktor innan journalen visas',
+  'med kravet på ja går den sista faktorn inte att ta bort, och säkerhetsloggen visar inloggningen med den nya faktorn',
+].map(t => `Flerfaktor som krav > ${t}`));
 // Runda 12, r2: uppgraderingar med återgång och godkännande av två systemförvaltare (releaser.js).
 import { TESTER_RELEASER } from './sussa/runda12-r2.js';
 
@@ -194,7 +203,7 @@ export const KRAV = [
       // Runda 12, r3: den dokumenterade analysen, kopplad till rollerna i atkomst.js (behorighetsanalys.js).
       'Behörighetsanalys > varje roll i behörighetsmotorn har en behovs- och riskanalys, och analysen säger samma sak som koden'],
     'Rollerna ger minsta åtkomst. En dokumenterad behovs- och riskanalys per roll finns i docs/behorighetsanalys.md: behov, risker, hur risken begränsas och vad rollen inte får, med rollens handlingar ur behörighetsmotorn. Ett test stoppar bygget om en roll saknar analys eller om analysen säger något annat än koden. Analysen är Vårdkällans egen utgångspunkt; en vårdgivare gör sin egen analys för sin verksamhet.'),
-  k('L3', 'Spärr, aktivt val, synlig spärrmarkering och nödåtkomst', 'PDL 4 kap. 4 till 5 §§, HSLF-FS 4 kap. 4 till 8 §§', 'uppfyllt_demo', '/patient/:id',
+  k('L3', 'Spärr, aktivt val, synlig spärrmarkering och nödåtkomst', 'PDL 4 kap. 4 och 5 §§, HSLF-FS 2016:40 4 kap. 4 och 5 §§', 'uppfyllt_demo', '/patient/:id',
     [`${B}inre sekretess: andra enheters uppgifter kräver aktivt val`, `${B}inre sekretess: aktivt val visar andra enheters uppgifter med grund aktivt_val`,
       `${B}spärr: spärrmarkering syns men innehållet döljs`, `${B}spärr: aktivt val häver inte spärren`, `${B}spärr: samtycke i stunden visar spärrade uppgifter`,
       `${B}nödåtkomst: utan vårdrelation krävs val och läkare får nödåtkomst`, `${B}nödåtkomst: häver aldrig en spärr`, `${A}spärrmarkering och samtycke via API`,
@@ -229,7 +238,7 @@ export const KRAV = [
       `${B}invånare: egen journal från 16 år, vårdnadshavare till 13 år och aldrig för ett barn med skyddad identitet`,
       // Runda 12, r3: flerfaktorsinloggning med passkeys (WebAuthn) och engångskoder (RFC 6238), flerfaktor.js.
       ...TESTER_FLERFAKTOR],
-    'Patientens e-tjänst Min journal finns, med egen session och egen behörighet på servern, och den talar om vad som inte visas (4 kap. 12 §). Flerfaktorsinloggning finns för personalen och för invånaren i Min journal, med öppna standarder och utan extern tjänst: passkeys enligt WebAuthn med användarverifiering, där servern bara sparar den publika nyckeln och prövar signatur, ursprung, utmaning och räknare, och engångskoder enligt RFC 6238, där nyckeln sparas krypterad med AES-256-GCM och varje kod godtas en gång. Ingen nyckel till läskopian lämnas ut förrän den andra faktorn är godkänd, så läsläget vid avbrott fungerar som förut. Systemet föreslår passkey först och förklarar varför en kod eller en passkey inte godtas. Demoregel: den publika demon får inte låsa ute besökaren, så flerfaktorn slås på av var och en när en passkey eller en app registreras för en demoroll i sandlådan, och en återställd sandlåda tar bort den tillsammans med allt annat. I drift skulle flerfaktor krävas av alla. Den första faktorn, SITHS-kortet för personalen och e-legitimationen för invånaren, är fortfarande simulerad och kopplad till ingen extern tjänst.'),
+    'Patientens e-tjänst Min journal finns, med egen session och egen behörighet på servern, och den talar om vad som inte visas (4 kap. 12 §). Flerfaktorsinloggning finns för personalen och för invånaren i Min journal, med öppna standarder och utan extern tjänst: passkeys enligt WebAuthn med användarverifiering, där servern bara sparar den publika nyckeln och prövar signatur, ursprung, utmaning och räknare, och engångskoder enligt RFC 6238, där nyckeln sparas krypterad med AES-256-GCM och varje kod godtas en gång. Ingen nyckel till läskopian lämnas ut förrän den andra faktorn är godkänd, så läsläget vid avbrott fungerar som förut. Systemet föreslår passkey först och förklarar varför en kod eller en passkey inte godtas. Funktionen för att kräva flerfaktor finns: vårdgivarens parameter Flerfaktor krävs vid inloggning ändras med fyra ögon som andra parametrar, och när den står på ja får ingen behörighet förrän den andra faktorn är bekräftad. Den som saknar en faktor leds direkt till att registrera en passkey eller en app för engångskoder, både i personalens inloggning och i Min journal, och den sista faktorn går då inte att ta bort. Den som redan är inloggad loggas inte ut när parametern ändras, utan får frågan vid nästa inloggning. Demoregel: demon har parametern avslagen, så att besökare inte låses ute ur sin sandlåda. Där slås flerfaktorn på av var och en när en passkey eller en app registreras för en demoroll, och en återställd sandlåda tar bort den tillsammans med allt annat. Den första faktorn, SITHS-kortet för personalen och e-legitimationen för invånaren, är fortfarande simulerad och kopplad till ingen extern tjänst.'),
   k('L6', 'Skyddade personuppgifter hanteras i hela kedjan, även uppropning', 'OSL 25 kap., Örebro-fallet 2024', 'uppfyllt_demo', '/vantrum',
     [`${B}skyddad identitet: namn och personnummer maskeras`, `${A}arbetslista maskerar skyddad identitet`, `${A}sök maskerar skyddad patient och hittar den bara på fullständigt personnummer`,
       `${A}väntrummet visar aldrig namn för skyddad patient`, `${A}visa identitet kräver syfte och loggas`, `${F}skyddad patient maskeras i FHIR`,
