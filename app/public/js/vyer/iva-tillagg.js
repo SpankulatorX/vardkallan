@@ -47,11 +47,12 @@ export function startaRealtid(el, pid, ctx = {}) {
   const anvandare = S.session?.personal?.id ?? null;
   let pausad = false;
   let timer = null;
+  // Hämtningen är ett bakgrundsanrop: en öppen monitorvy håller inte inloggningen vid liv när ingen arbetar vid datorn.
   const tick = async () => {
     timer = null;
     if (!document.body.contains(ruta) || (ctx.aktuell && !ctx.aktuell()) || !anvandare || S.session?.personal?.id !== anvandare) return;
     if (!pausad && !document.hidden) {
-      try { const r = await api(`/api/patient/${encodeURIComponent(pid)}/iva/realtid`); if (document.body.contains(ruta)) ruta.innerHTML = realtidHtml(r, pausad); if (!r.kopplad) return; } catch { return; }
+      try { const r = await api(`/api/patient/${encodeURIComponent(pid)}/iva/realtid`, { bakgrund: true }); if (document.body.contains(ruta)) ruta.innerHTML = realtidHtml(r, pausad); if (!r.kopplad) return; } catch { return; }
     }
     if (document.body.contains(ruta)) timer = setTimeout(tick, 3000);
   };

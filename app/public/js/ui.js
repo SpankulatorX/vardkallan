@@ -144,11 +144,17 @@ export async function vantaPaAnrop(maxMs = 5000) {
 
 // direkt: anropet går alltid till servern, också i läsläget (hälsokontrollen, läskopian och loggen från läsläget).
 // bakgrund: anropet görs av gränssnittet självt och räknas inte som aktivitet för inloggningen (runda 7, r2).
+// Runda 11: tiden då inloggningen går ut tas bara från ett svar på ett anrop som startade efter det anrop vars tid senast
+// användes. Ett långsamt anrop som startade före ett annat (läskopian i bakgrunden) kan annars komma tillbaka sist med
+// en äldre tid och flytta eller dölja varningen före utloggningen.
+let anropNr = 0;
+let garUtFranNr = 0;
 export async function api(vag, { metod = 'GET', data, tyst = false, direkt = false, bakgrund = false, ko = false } = {}) {
   if (krokar.ejLaslage?.()) direkt = true;
   if (!direkt && (avbrott.aktivt || avbrott.simulerat)) return franKopia(vag, metod, { data, ko });
   let r;
   const t0 = performance.now();
+  const nr = ++anropNr;
   const iSession = session;
   const kontroll = new AbortController();
   pagaende.add(kontroll);
@@ -171,7 +177,7 @@ export async function api(vag, { metod = 'GET', data, tyst = false, direkt = fal
   const st = lasServerTiming(r.headers.get('server-timing'));
   krokar.svarstid?.({ vag, metod, server: st, totalt: performance.now() - t0, status: r.status });
   const garUt = r.headers.get('x-inloggning-gar-ut');
-  if (garUt) krokar.inloggning?.(garUt);
+  if (garUt && nr > garUtFranNr) { garUtFranNr = nr; krokar.inloggning?.(garUt); }
   const txt = await r.text();
   let j = {};
   try { j = txt ? JSON.parse(txt) : {}; } catch { j = { fel: 'Servern gav ett svar som inte gick att läsa.' }; }
@@ -254,7 +260,12 @@ export function dialog(html, { onOpen, validera, klass = '' } = {}) {
     });
     dl.addEventListener('submit', e => e.preventDefault());
     dl.addEventListener('cancel', e => { e.preventDefault(); avsluta(null); });
-    dl.addEventListener('close', () => { setTimeout(() => dl.remove(), 30); if (forra?.isConnected) forra.focus(); });
+    // Runda 11: en dialog stängs som Avbryt när användaren går till en annan sida (bakåtknappen, en länk eller menyn), så
+    // att den inte står kvar ovanpå nästa sida. En dialog som öppnas direkt efter ett sidbyte har redan den nya adressen.
+    const hash = location.hash;
+    const vidByte = () => { if (location.hash !== hash) avsluta(null); };
+    window.addEventListener('hashchange', vidByte);
+    dl.addEventListener('close', () => { window.removeEventListener('hashchange', vidByte); setTimeout(() => dl.remove(), 30); if (forra?.isConnected) forra.focus(); });
     dl.showModal();
     const forsta = dl.querySelector('[autofocus], textarea, input:not([type=hidden]):not([type=radio]), select, input[type=radio]:checked');
     (forsta ?? dl.querySelector('button'))?.focus();

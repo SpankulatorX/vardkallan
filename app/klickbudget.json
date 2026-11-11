@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-10T14:41:35.889Z",
-  "bas": "http://127.0.0.1:18201",
+  "tid": "2026-11-11T10:39:44.294Z",
+  "bas": "http://127.0.0.1:18211",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "f8285f8133a5bf6558130862445337da411f96cf042a38eb399d6836c3aff356",
+  "gransnittHash": "136af6154b274b5a8a75070143d7249d3fd92f4238df6e9164771226fadd05d0",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -1764,6 +1764,43 @@
       ]
     },
     {
+      "id": "planera-operation",
+      "namn": "Planera en operation från väntelistan",
+      "roll": "opk-kkoga",
+      "start": "Arbetslistan efter inloggning",
+      "budget": 4,
+      "motivering": "Sussa 4.5.1.2. Ett klick på Operation i menyn, ett på Väntelista, ett på Planera vid patienten som har väntat längst och ett på Planera i systemets förslag. Systemet har valt sal i vårdenhetens block, tid, operatör, operationssjuksköterska, anestesiteam och utrustning som är lediga och skriver kallelsen.",
+      "klick": 4,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 4,
+      "inomBudget": true,
+      "steg": [
+        "klick: Operation i menyn",
+        "klick: Väntelista",
+        "klick: Planera vid patienten som har väntat längst",
+        "klick: Planera i systemets förslag"
+      ]
+    },
+    {
+      "id": "operation-in-sal",
+      "namn": "Registrera att patienten kommer in på salen",
+      "roll": "opk-kkoga",
+      "start": "Operationsavdelningens program",
+      "budget": 3,
+      "motivering": "Sussa 4.5.1.3. Ett klick på patienten i dagens program, ett på In på sal och ett på Registrera. Systemet sätter tiden, kontrollerar id-bandet när det skannas, startar anestesimonitorn och visar checklistan före anestesi med det som systemet redan vet ifyllt.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: patienten i dagens program",
+        "klick: In på sal",
+        "klick: Registrera"
+      ]
+    },
+    {
       "id": "ombud-boka",
       "namn": "Boka en tid för patienten som ombud",
       "roll": "inv-om01",
@@ -1779,6 +1816,273 @@
         "klick: Gunnar Åkesson",
         "klick: Visa lediga tider",
         "klick: den första föreslagna tiden"
+      ]
+    },
+    {
+      "id": "graviditet-besok",
+      "namn": "Registrera ett besök i graviditetsjournalen",
+      "roll": "ssk-vc",
+      "start": "Graviditetsjournalen i vecka 30",
+      "budget": 5,
+      "motivering": "Sussa 4.7.1.2. Ett fältbyte vardera för blodtryck, vikt, symfys-fundusmått och fosterljud och ett klick på Spara besöket. Systemet sätter veckan, varnar för blodtryck, protein, symfys-fundusmått och fosterljud och registrerar blodtryck och vikt som mätvärden.",
+      "klick": 1,
+      "faltbyten": 4,
+      "tangenter": 0,
+      "uppmatt": 5,
+      "inomBudget": true,
+      "steg": [
+        "fältbyte: blodtrycket",
+        "fältbyte: vikten",
+        "fältbyte: symfys-fundusmåttet",
+        "fältbyte: fosterljuden",
+        "klick: Spara besöket"
+      ]
+    },
+    {
+      "id": "ctg-bedomning",
+      "namn": "Bedöma CTG under en förlossning",
+      "roll": "bm-uso",
+      "start": "Förlossningens översikt",
+      "budget": 2,
+      "motivering": "Sussa 4.7.1.3. Ett klick på patienten och ett på Bekräfta bedömningen. Systemet hämtar kurvan från monitorn, räknar basalfrekvens, variabilitet och decelerationer, klassar kurvan och föreslår åtgärden, så barnmorskan skriver något bara när hon bedömer annorlunda.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Amanda Lindholm",
+        "klick: Bekräfta bedömningen"
+      ]
+    },
+    {
+      "id": "bild-fran-fil",
+      "namn": "Lägga in en bild från datorn i journalen",
+      "roll": "ssk-kard",
+      "start": "Patientens översikt",
+      "budget": 4,
+      "motivering": "Sussa 4.2.1.1, 4.2.1.2 och 4.2.1.4. Ett klick på fliken Bilder, ett på Fil från datorn eller mobilen och ett på Spara i journalen. Valet av fil i datorns fönster är ett steg till, som sidan inte ser. Kroppsstället är förifyllt ur patientens senaste bild, och systemet läser typen och tiden ur filen, skickar den i delar, gör miniatyren och knyter bilden till vårdkontakten.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Bilder",
+        "klick: Fil från datorn eller mobilen",
+        "klick: Spara i journalen"
+      ]
+    },
+    {
+      "id": "jamfor-bilder",
+      "namn": "Jämföra bilder av ett kroppsställe över tid",
+      "roll": "ssk-kard",
+      "start": "Patientens översikt",
+      "budget": 2,
+      "motivering": "Sussa 4.2.1.2. Ett klick på fliken Bilder och ett på Jämför bilder av korsbenet över tid. Systemet har grupperat bilderna efter kroppsställe och ställer dem bredvid varandra i tidsordning med dagarna från den första.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Bilder",
+        "klick: Jämför bilder av korsbenet över tid"
+      ]
+    },
+    {
+      "id": "bild-fran-apparat",
+      "namn": "Hämta en bild från en apparat och föra in den i journalen",
+      "roll": "ssk-kard",
+      "start": "Patientens översikt",
+      "budget": 4,
+      "motivering": "Sussa 4.2.1.4. Ett klick på fliken Bilder, ett på Från en apparat eller en annan vårdgivare, ett på Hämta från apparaten och ett på För in i journalen. Apparaten är förvald, kroppsstället föreslås ur patientens senaste bild, och systemet kontrollerar att apparatens patient är journalens innan bilden kan föras in.",
+      "klick": 4,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 4,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Bilder",
+        "klick: Från en apparat eller en annan vårdgivare",
+        "klick: Hämta från apparaten",
+        "klick: För in i journalen"
+      ]
+    },
+    {
+      "id": "visa-studie",
+      "namn": "Visa en röntgenstudie ur arkivet med ett annat fönster",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 3,
+      "motivering": "Sussa 4.2.1.3. Ett klick på fliken Bilder, ett på Visa bilderna och ett på fönstret Ben. Systemet hämtar studien från arkivet genom DICOMweb och har redan valt fönstret efter undersökningen.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Bilder",
+        "klick: Visa bilderna",
+        "klick: fönstret Ben"
+      ]
+    },
+    {
+      "id": "bestall-undersokning",
+      "namn": "Beställa en röntgenundersökning",
+      "roll": "lak-kard",
+      "start": "Översikten för den inlagda patienten efter återställning",
+      "budget": 4,
+      "motivering": "Sussa 4.4.2.6 och 4.4.2.8. Ett klick på Beställ prover i översikten, ett på Välj analyser, ett på undersökningen och ett på Beställ. Systemet fyller i frågeställningen ur vårdkontakten, föreslår prioriteten, kontrollerar strålning, kontrast och implantat och skickar beställningen till röntgenkliniken.",
+      "klick": 4,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 4,
+      "inomBudget": true,
+      "steg": [
+        "klick: Beställ prover",
+        "klick: Välj analyser",
+        "klick: Röntgen knäled",
+        "klick: Beställ"
+      ]
+    },
+    {
+      "id": "boka-undersokning",
+      "namn": "Boka en inkommen undersökning på röntgenkliniken",
+      "roll": "rtg-ssk",
+      "start": "Röntgenklinikens undersökningar efter återställning",
+      "budget": 1,
+      "motivering": "Sussa 4.4.2.7. Ett klick på Boka vid den undersökning som står först. Systemet har ordnat listan efter prioritet och senaste dag och föreslår den första lediga tiden i rätt rum.",
+      "klick": 1,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "steg": [
+        "klick: Boka vid den första undersökningen"
+      ]
+    },
+    {
+      "id": "iva-nems",
+      "namn": "Registrera vårdtyngden enligt NEMS för en patient på intensivvården",
+      "roll": "ssk-kard",
+      "start": "Övervakningen av en patient på intensivvården",
+      "budget": 1,
+      "motivering": "Sussa 4.6.1.7. Ett klick på Registrera vårdtyngden. Systemet har redan kryssat i de poster som står i journalen, som kopplad monitor, intravenösa läkemedel och andningsstöd, och räknar poängen själv. Sjuksköterskan kryssar bara i det som bara den som vårdar vet.",
+      "klick": 1,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 1,
+      "inomBudget": true,
+      "steg": [
+        "klick: Registrera vårdtyngden"
+      ]
+    },
+    {
+      "id": "tillvaxt-import",
+      "namn": "Läsa in ett barns tillväxtdata från ett annat journalsystem",
+      "roll": "lak-vc",
+      "start": "Tillväxten för ett barn som har flyttat hit",
+      "budget": 3,
+      "motivering": "Sussa 4.1.1.7. Ett klick för att öppna inläsningen, ett på Hämta från journalsystemet och ett på Läs in. Systemet hämtar mätningarna med GetObservations, kontrollerar att de gäller barnet, prövar varje värde och visar vad som redan finns, så att användaren bara bekräftar.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Läs in tillväxtdata",
+        "klick: Hämta från journalsystemet",
+        "klick: Läs in"
+      ]
+    },
+    {
+      "id": "cyto-godkann",
+      "namn": "Godkänna en cytostatikakur",
+      "roll": "lak-onk",
+      "start": "Journalen för patienten med cytostatika",
+      "budget": 2,
+      "motivering": "Sussa 4.8.1.1 och 4.8.1.4. Ett klick på fliken Cytostatika och ett på Godkänn kuren. Systemet har räknat doserna med dagens vikt, prövat provsvaren, den kumulativa dosen och beredningsenhetens platser och skickar beredningsordern i samma klick.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Cytostatika",
+        "klick: Godkänn kuren"
+      ]
+    },
+    {
+      "id": "regim-godkann",
+      "namn": "Godkänna en ny version av en cytostatikaregim",
+      "roll": "lak-onk",
+      "start": "Arbetslistan efter inloggning",
+      "budget": 3,
+      "motivering": "Sussa 4.8.1.4. Ett klick på Cytostatika i menyn, ett på Regimbiblioteket och ett på Godkänn. Systemet har skrivit vad som skiljer versionen från den gällande, och bara en regimansvarig läkare som inte skrev versionen ser knappen.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Cytostatika i menyn",
+        "klick: Regimbiblioteket",
+        "klick: Godkänn versionen"
+      ]
+    },
+    {
+      "id": "blod-bestall",
+      "namn": "Beställa blod",
+      "roll": "lak-onk",
+      "start": "Journalen för patienten med cytostatika",
+      "budget": 3,
+      "motivering": "Sussa 4.4.2.12. Ett klick på fliken Blod, ett fältbyte till indikationen och ett klick på Beställ. Erytrocyter och två enheter är förvalda, och systemet beställer själv blodgruppering och bastest som saknas.",
+      "klick": 2,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Blod",
+        "fältbyte: indikationen",
+        "klick: Beställ"
+      ]
+    },
+    {
+      "id": "cyto-bered",
+      "namn": "Bereda en cytostatikados på beredningsenheten",
+      "roll": "far-bered",
+      "start": "Beredningsenheten med en godkänd kur",
+      "budget": 3,
+      "motivering": "Sussa 4.8.1.2 och 4.8.1.5. Ett klick på Beredning i menyn, ett fältbyte till den kontrollmätta volymen och ett klick på Signera beredningen. Systemet har räknat volymen och föreslagit den batch som går ut först, så farmaceuten skannar bara en förpackning när det inte är den föreslagna.",
+      "klick": 2,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Beredning i menyn",
+        "fältbyte: den kontrollmätta volymen",
+        "klick: Signera beredningen"
+      ]
+    },
+    {
+      "id": "cyto-min-rapport",
+      "namn": "Rapportera dagens tabletter i Min journal",
+      "roll": "inv-p11",
+      "start": "Min journal för patienten med cytostatika",
+      "budget": 3,
+      "motivering": "Sussa 4.8.1.6. Ett klick på Min behandling, ett i rutan för morgonens tabletter och ett på Skicka. Inget besvär är förvalt, och systemet bedömer rapporten och säger direkt om patienten ska ringa.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Min behandling",
+        "klick: morgonens tabletter",
+        "klick: Skicka till mottagningen"
       ]
     }
   ],
@@ -2172,7 +2476,75 @@
       "status": "grön"
     },
     {
+      "namn": "Gränssnitt > Klickbudget > Planera en operation från väntelistan inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera att patienten kommer in på salen inom budget",
+      "status": "grön"
+    },
+    {
       "namn": "Gränssnitt > Klickbudget > Boka en tid för patienten som ombud inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera ett besök i graviditetsjournalen inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Bedöma CTG under en förlossning inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Lägga in en bild från datorn i journalen inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Jämföra bilder av ett kroppsställe över tid inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Hämta en bild från en apparat och föra in den i journalen inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Visa en röntgenstudie ur arkivet med ett annat fönster inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Beställa en röntgenundersökning inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Boka en inkommen undersökning på röntgenkliniken inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera vårdtyngden enligt NEMS för en patient på intensivvården inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Läsa in ett barns tillväxtdata från ett annat journalsystem inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Godkänna en cytostatikakur inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Godkänna en ny version av en cytostatikaregim inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Beställa blod inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Bereda en cytostatikados på beredningsenheten inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Rapportera dagens tabletter i Min journal inom budget",
       "status": "grön"
     }
   ]

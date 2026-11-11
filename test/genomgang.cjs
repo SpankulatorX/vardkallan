@@ -1945,7 +1945,8 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
     // Runda 11: anestesiläkaren ser operationsanmälningarna som beställningar till anestesienheten.
     await s('Martin Ödman, anestesiläkare i Karlskoga, ser de beställda anestesibedömningarna under Operation', async () => {
       await loggaIn(page, 'lak-ane-kkoga');
-      await gaTill(page, '#/operation');
+      await gaTill(page, '#/operation/anestesi');
+      await forvanta(page, '.op-flikar a[aria-current="page"]', 'Beställda anestesibedömningar');
       await forvanta(page, '#op-vy', 'Operationsanmälningarna är beställningar till anestesienheten');
       await page.waitForSelector('table.op-anestesi');
       await bild(page, '124-anestesi-bestallda', true);
