@@ -882,6 +882,9 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await forvanta(page, '.notis', 'Svaret är kvitterat');
       await gaTill(page, '#/inkorg');
       await saknas(page, 'Svaret är inte kvitterat');
+      // Runda 12: inkorgen hämtar de utgående remisserna efter de andra listorna. Vänta in dem, annars loggar nästa steg ut
+      // medan anropet pågår och det får 401.
+      await page.waitForLoadState('networkidle');
     });
 
     // Erik Nyström, akuten
