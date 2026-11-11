@@ -25,7 +25,8 @@ function krypterad(n, rad, { aadId = rad.id, personalId = n.personalId } = {}) {
   const data = Buffer.concat([c.update(JSON.stringify(rad), 'utf8'), c.final(), c.getAuthTag()]);
   return { id: rad.id, iv: iv.toString('base64url'), data: data.toString('base64url') };
 }
-const rad = (typ, data, { patientId = 'p01', gjord = new Date(Date.now() - 20 * MIN).toISOString() } = {}) => ({ id: randomUUID(), typ, patientId, gjord, data });
+// Runda 13, r3 (E2-5): en dos utan skannat armband har uppgiften om hur identiteten kontrollerades, på ett ställe.
+const rad = (typ, data, { patientId = 'p01', gjord = new Date(Date.now() - 20 * MIN).toISOString() } = {}) => ({ id: randomUUID(), typ, patientId, gjord, data: typ === 'dos' && !data.armband && !('identitet' in data) ? { ...data, identitet: { satt: 'id_band_hand' } } : data });
 const skicka = (k, n, rader, extra = {}) => k.post('/api/skrivko', { kopiaId: n.kopiaId, rader, ...extra });
 // En ordination vid behov som testet själv lägger in, så att testet inte beror på vilka dostider som har passerat i dag.
 function vidBehov(db, pid = 'p01') {
@@ -137,4 +138,15 @@ describe('Skrivkön efter avbrott', () => {
     const ap = Object.values(adm.kopia.patienter)[0];
     expect(ap?.matvarden ?? null).toBeNull();
   });
+
+  // Runda 13, r3 (E2-5): en dos i kön utan uppgift om identiteten, och utan en bekräftelse i sessionen, sparas inte.
+  test('en dos från kön utan skannat armband och utan uppgift om identiteten sparas inte', async () => {
+    const k = klient(app);
+    const n = await medKopia(k);
+    const db = sandlada(app, k).db;
+    const r = await skicka(k, n, [krypterad(n, rad('dos', { ordinationId: vidBehov(db), identitet: null }))]);
+    expect(r.data.resultat[0].status).toBe('avvisad');
+    expect(r.data.resultat[0].text).toContain('identitet');
+  });
 });
+
