@@ -1870,12 +1870,12 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
     // Runda 12, r1: fyra ögon på mätvärdestypen och mallen som Tomas Lindh skapade.
     await s('Nora Ekholm ser vad som påverkas och godkänner mätvärdestypen och mallen som Tomas Lindh skapade', async () => {
       await gaTill(page, '#/struktur');
-      const rad = page.locator('#js-att-godkanna ~ ul li', { hasText: 'Ferritin' });
+      const rad = page.locator('#js-att-godkanna ~ ul > li.js-version', { hasText: 'Ferritin' });
       await rad.waitFor();
       await forvanta(page, '#js-att-godkanna ~ ul', 'NPU19763');
       await rad.locator('[data-godkann]').click();
       await forvanta(page, '.notis', 'Versionen är godkänd');
-      await page.locator('#js-att-godkanna ~ ul li', { hasText: 'Smärtmottagningens bedömning' }).locator('[data-godkann]').click();
+      await page.locator('#js-att-godkanna ~ ul > li.js-version', { hasText: 'Smärtmottagningens bedömning' }).locator('[data-godkann]').click();
       await forvanta(page, '#js-historik ~ ul', 'Smärtmottagningens bedömning');
       await forvanta(page, '#js-mallar ~ .tabellrulle', 'Smärtmottagningens bedömning');
       await forvanta(page, '#js-mattyper ~ .tabellrulle', 'Ferritin');
