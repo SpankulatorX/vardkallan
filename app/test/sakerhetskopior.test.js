@@ -163,3 +163,48 @@ describe('Säkerhetskopior', () => {
     for (const dir of [a, b]) expect(readdirSync(dir).filter(x => /^[0-9a-f]{32}$/.test(x)).length).toBe(1);
   });
 });
+
+// Säkerhetsgranskningen av runda 12, r2: kopiorna hör till sandlådans stabila id och inte till sessionskakan, som byts
+// vid varje inloggning, och de försvinner med sandlådan.
+describe('Säkerhetskopior', () => {
+  let app;
+  let a, b;
+  beforeAll(() => { a = tmp(); b = tmp(); app = testserver({ kopieKatalog: a, kopieAndra: b, kopieMinuter: 0, maxSessioner: 3 }); });
+  afterAll(() => { app.stopp(); rmSync(a, { recursive: true, force: true }); rmSync(b, { recursive: true, force: true }); });
+  const kataloger = (dir) => readdirSync(dir).filter(x => /^[0-9a-f]{32}$/.test(x));
+
+  test('en session vars kaka har bytts vid en ny inloggning hittar sina kopior, och kopiorna försvinner när sandlådan trängs undan', async () => {
+    const k = klient(app);
+    await k.logga('sysf');
+    const id = sandlada(app, k).kopieId;
+    expect(id).toMatch(/^[A-Za-z0-9_-]{32}$/);
+    const r = await k.post('/api/sakerhetskopior', {});
+    expect(r.status).toBe(201);
+    const kaka = k.kaka();
+    // Den andra systemförvaltaren loggar in i samma sandlåda, och sessionskakan byts.
+    await k.logga('sysf-2');
+    expect(k.kaka()).not.toBe(kaka);
+    expect(sandlada(app, k).kopieId).toBe(id);
+    const o = await k.get('/api/sakerhetskopior');
+    expect(o.data.kopior.map(x => x.id)).toEqual([r.data.kopia.id]);
+    expect(kataloger(a)).toEqual([app.kopior.nyckel(id)]);
+    // Tre nya sandlådor tränger undan den första, och dess kopior försvinner på båda platserna.
+    for (let i = 0; i < 3; i++) await klient(app).logga('lak-kard');
+    expect([...app.sessioner.values()].some(s => s.kopieId === id)).toBe(false);
+    for (const dir of [a, b]) expect(kataloger(dir)).toEqual([]);
+  });
+
+  test('städningen tar bort kopiorna för sandlådor som inte finns och behåller de andra', () => {
+    const lager = kopior.skapaKopielager({ katalog: a, andraKatalog: b });
+    const db = nySessionsDb();
+    try {
+      lager.ta('X'.repeat(32), db, { nu: T0 });
+      lager.ta('Y'.repeat(32), db, { nu: T0 });
+      expect(lager.stada(['X'.repeat(32)])).toBe(2);
+      for (const dir of [a, b]) expect(kataloger(dir)).toEqual([lager.nyckel('X'.repeat(32))]);
+      expect(lager.lista('Y'.repeat(32))).toEqual([]);
+      expect(lager.lista('X'.repeat(32)).length).toBe(1);
+      lager.stada([]);
+    } finally { db.close(); }
+  });
+});

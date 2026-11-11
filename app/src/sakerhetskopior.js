@@ -5,8 +5,8 @@
 // verifierade kopian före tidpunkten, tar först en kopia av läget som det är, och läser från den andra platsen om den
 // första är skadad.
 //
-// Sandlådans id är hemligt (det är sessionskakan) och används aldrig som namn. Kopiorna hålls under en HMAC av id:t
-// med en hemlig nyckel. Demoregel: de två platserna är två kataloger på samma server (eller två lager i minnet när
+// Kopiorna hör till sandlådans stabila id (kopieId), som skapas med sandlådan och aldrig byts, och inte till
+// sessionskakan. Id:t används aldrig som namn: kopiorna hålls under en HMAC av id:t med en hemlig nyckel. Demoregel: de två platserna är två kataloger på samma server (eller två lager i minnet när
 // servern inte sparar till disk). I driften är den andra platsen en annan volym på en annan ort.
 import { Database } from 'bun:sqlite';
 import { createHash, createHmac, randomBytes } from 'node:crypto';
@@ -139,12 +139,19 @@ export function skapaKopielager({ katalog = null, andraKatalog = null, hemlighet
   }
 
   const radera = (sid) => { const k = nyckel(sid); index.delete(k); for (const p of platser) p.radera(k); };
+  // Tar bort kopiorna för varje sandlåda som inte finns. levande är id:n för sandlådorna som finns.
+  function stada(levande) {
+    const behall = new Set([...levande].filter(Boolean).map(nyckel));
+    let n = 0;
+    for (const p of platser) for (const k of p.nycklar()) if (!behall.has(k)) { p.radera(k); index.delete(k); n++; }
+    return n;
+  }
 
   // Bara för testerna.
   const skada = (sid, id, platsNr) => { const k = nyckel(sid); const post = lasIndex(k).find(x => x.id === id); platser[platsNr - 1].skada(k, post.fil); };
 
   return {
-    ta, lista, las, radera, skada, nyckel, intervallMinuter, behall,
+    ta, lista, las, radera, stada, skada, nyckel, intervallMinuter, behall,
     platser: platser.map((p, i) => ({ plats: i + 1, typ: p.typ })),
   };
 }
@@ -154,9 +161,11 @@ export function skapaKopielager({ katalog = null, andraKatalog = null, hemlighet
 export function schemalagda(lager, sessioner, nu = new Date()) {
   let n = 0;
   for (const [sid, s] of sessioner) {
-    const senaste = lager.lista(sid)[0];
+    // Sandlådans stabila id, som inte byts när sessionskakan byts.
+    const id = s.kopieId ?? sid;
+    const senaste = lager.lista(id)[0];
     if (senaste && Date.parse(senaste.tid) >= (s.aktiv ?? s.sist ?? 0)) continue;
-    try { lager.ta(sid, s.db, { orsak: 'schema', nu }); n++; } catch (e) { console.error('Säkerhetskopian kunde inte tas:', e.message); }
+    try { lager.ta(id, s.db, { orsak: 'schema', nu }); n++; } catch (e) { console.error('Säkerhetskopian kunde inte tas:', e.message); }
   }
   return n;
 }

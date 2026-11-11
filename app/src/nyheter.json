@@ -43,7 +43,7 @@
           "omfattning": "liten",
           "var": "#/arkiv",
           "rubrik": "Återföringen tar med alla tabeller",
-          "text": "Exportpaketet med alla journaler tar nu med varje tabell i databasen, också inställningarna, reglerna och mallarna, så att allt följer med vid ett byte av system. Paketet är prövat med E-ARK:s validator."
+          "text": "Exportpaketet med alla journaler tar nu med alla tabeller med vårdgivarens uppgifter, också inställningarna, reglerna och mallarna, så att allt följer med vid ett byte av system. Paketet är prövat med E-ARK:s validator."
         }
       ]
     },

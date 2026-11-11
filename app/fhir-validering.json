@@ -1,7 +1,7 @@
 {
-  "tid": "2026-11-11T16:28:37.528Z",
+  "tid": "2026-11-11T17:01:36.381Z",
   "validator": "HL7 FHIR Validation tool 7.0.3 (28e9fac6d79d)",
-  "fhirKodHash": "166b36db96ea906a67075b180d4fa8d893ee29698e7d8715905eb46159cd6e56",
+  "fhirKodHash": "c4a636e0a98c5855ba0cbdce5795762b86f47c3eee156c6c94fc77b146259587",
   "kodfiler": [
     "arkiv.js",
     "atgarder.js",

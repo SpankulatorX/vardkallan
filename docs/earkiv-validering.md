@@ -45,10 +45,19 @@ Båda paketen: strukturen är välformad, METS.xml är giltig mot schemat och re
 
 ## Alla tabeller i återföringen
 
-Återföringen av all data (beslut om leverans av alla journaler) tar med varje tabell i databasen i
+Återföringen av all data (beslut om leverans av alla journaler) tar med tabellerna i
 `representations/rep_1/data/tabeller/`, en NDJSON-fil per tabell med en rad per post och binära värden som base64, och
 `schema.sql` med tabellerna, indexen och triggrarna. Därmed följer också tabeller som inte hör till journalen med, till
 exempel inställningarna, reglerna, mallarna och kodverken. Varje fil står i METS.xml med storlek och SHA-256.
+
+Bara tabeller som `app/src/lagring.js` klassar som en huvudmans uppgifter (genom enhet, patient eller en annan rad) eller
+som gemensamma följer med (`aterforingsurval` i `app/src/arkiv.js`). Systemets egna tabeller (till exempel systemkontona,
+anslutningarna, schemaversionen och uppgraderingarna) och säkerhetsloggen följer inte med, och inte heller en tabell vars
+namn visar att den innehåller nycklar eller hemligheter. Kolumner med nycklar, HMAC och hemligheter tas bort, till exempel
+forskningsuttagets pseudonymnyckel, kalenderlänkarnas HMAC, utrustningens nyckel och videomötenas koder. `urval.json` i
+samma mapp säger vilka tabeller och kolumner som är utelämnade och varför. Skyddad identitet följer med som uppgift, som i
+resten av paketet. Ett test fäller bygget om en ny tabell inte är klassad, och ett test lägger in kända hemliga värden och
+kontrollerar att inget av dem finns någonstans i paketet.
 
 ## Det som återstår
 

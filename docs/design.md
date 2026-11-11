@@ -2340,8 +2340,11 @@ på båda platserna: kontrollsumman (SHA-256) ska vara densamma som för ögonbl
 vara en hel databas med alla tabeller och med åtkomstloggens och säkerhetsloggens hashkedjor hela. De 48 senaste kopiorna
 sparas, och kopiorna tas bort när sandlådan tas bort.
 
-Sandlådans id är sessionskakan och används aldrig som namn. Kopiorna ligger under en HMAC av id:t med en hemlig nyckel som
-sparas bredvid kopiorna och aldrig i en sandlåda.
+Kopiorna hör till sandlådans stabila id (`kopieId`), som skapas med sandlådan och aldrig byts, och inte till
+sessionskakan, som byts vid varje inloggning. Id:t används aldrig som namn: kopiorna ligger under en HMAC av id:t med en
+hemlig nyckel som sparas bredvid kopiorna och aldrig i en sandlåda. Kopiorna tas bort på varje väg där en sandlåda
+försvinner (den går ut, trängs undan av en ny sandlåda eller av en ny miljö), och städningen tar bort kataloger med
+kopior för sandlådor som inte finns.
 
 Systemförvaltaren ser på sidan Lagring när den senaste kopian togs och om den är verifierad på båda platserna, tar en kopia
 när som helst och återställer sandlådan till en tidpunkt. Systemet tar den senaste verifierade kopian före tidpunkten och
@@ -2366,8 +2369,8 @@ arbetslistan, sökning, översikten, journalen, läkemedlen, mätvärdena, regis
 15 sekunders betänketid mellan åtgärderna. Användarna delar sandlådor tio och tio, eftersom en sandlåda i demon motsvarar
 en vårdgivares databas. Svarstiden mäts per åtgärd mot svarstidsmålet i D5 (p95 under 200 ms), och resultatet sparas i
 `lasttest.json` med en hash av `src/` och `public/`. Kravregistret räknar resultatet bara när hashen stämmer med den kod
-som byggs, på samma sätt som gränssnittstesterna. Körningen 2026-11-11 mot en container med två processorkärnor och 4 GB minne gav p95 mellan 8 och 48 ms per åtgärd med
-100 användare och mellan 56 och 88 ms med 500 användare (inkorgen var långsammast), utan fel, och servern använde omkring 560 MB
+som byggs, på samma sätt som gränssnittstesterna. Körningen 2026-11-11 mot en container med två processorkärnor och 4 GB minne gav p95 mellan 9 och 45 ms per åtgärd med
+100 användare och mellan 41 och 67 ms med 500 användare (inkorgen var långsammast), utan fel, och servern använde omkring 560 MB
 minne med 50 sandlådor. Efter en ändring i koden körs lasttestet om:
 
 ```sh

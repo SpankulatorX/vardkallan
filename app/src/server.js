@@ -353,7 +353,17 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     return aktuellKopia(s);
   }
   // personalId och invanareId är aldrig satta samtidigt: personalens och invånarens inloggning utesluter varandra.
-  const nySession = () => ({ db: nySessionsDb(), personalId: null, invanareId: null, val: {}, sist: Date.now(), matning: new Matning(200), lasnyckel: null, oppnade: new Set(), kopior: new Map() });
+  // Runda 12, r2: kopieId är sandlådans stabila id för säkerhetskopiorna. Det skapas med sandlådan och roteras aldrig,
+  // till skillnad från sessionskakan, så att kopiorna hittas efter en ny inloggning.
+  const nySession = () => ({ db: nySessionsDb(), personalId: null, invanareId: null, val: {}, sist: Date.now(), matning: new Matning(200), lasnyckel: null, oppnade: new Set(), kopior: new Map(), kopieId: slumpId() });
+  // Runda 12, r2: en sandlåda som försvinner tar sina säkerhetskopior med sig.
+  function taBortSandlada(sid) {
+    const s = sessioner.get(sid);
+    if (!s) return;
+    s.db.close();
+    sessioner.delete(sid);
+    kopior.radera(s.kopieId ?? sid);
+  }
   // Läskopian som id:t gäller, i den sandlåda som lämnade ut den. Kräver ingen session: loggen från läsläget visar
   // själv att den kommer från den som hade läskopian, eftersom den är krypterad med läskopians nyckel.
   function hittaKopia(id) {
@@ -427,11 +437,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     nyaPerIp.set(k, n);
     if (n > nyaPerTimme) throw new Fel(429, 'För många nya besök från din adress. Försök igen om en stund.', 'nekad');
     while (sessioner.size >= maxSessioner) {
-      const aldsta = sessioner.keys().next().value;
-      sessioner.get(aldsta).db.close();
-      sessioner.delete(aldsta);
       // Runda 12, r2: sandlådans säkerhetskopior tas bort med den.
-      kopior.radera(aldsta);
+      taBortSandlada(sessioner.keys().next().value);
     }
     const sid = slumpId();
     const s = nySession();
@@ -443,9 +450,11 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const grans = Date.now() - SESSION_TTL;
     // Runda 7, r1: testtillfällen utan aktivitet på 90 dagar raderas med sina svar.
     anvandartestSvar.stada(anvandartestDb);
-    for (const [sid, s] of sessioner) { if (s.sist < grans) { oppetApi.aterkalla(s, 'Åtkomstbiljetten återkallades när sessionen gick ut.'); s.db.close(); sessioner.delete(sid); kopior.radera(sid); } else { rensaKopior(s); utdata.stadning(s.db); } }
+    for (const [sid, s] of sessioner) { if (s.sist < grans) { oppetApi.aterkalla(s, 'Åtkomstbiljetten återkallades när sessionen gick ut.'); taBortSandlada(sid); } else { rensaKopior(s); utdata.stadning(s.db); } }
     // Runda 6, r5: åtkomstbiljetter som har gått ut tas bort och loggas.
     oppetApi.stada();
+    // Runda 12, r2.
+    stadaKopior();
     const timme = Math.floor(Date.now() / 3600_000);
     for (const k of nyaPerIp.keys()) if (!k.endsWith(`:${timme}`)) nyaPerIp.delete(k);
   }, 10 * 60_000);
@@ -459,6 +468,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
         const s = {
           db: lasSandlada(x.db), personalId: x.personalId, uppdrag: x.uppdrag ?? null, invanareId: x.personalId ? null : x.invanareId ?? null, val: x.val ?? {}, sist: x.sist, aktiv: x.aktiv ?? x.sist, matning: new Matning(200),
           lasnyckel: x.lasnyckel ?? null, oppnade: new Set(x.oppnade ?? []),
+          // Runda 12, r2: en session som sparades före kopieId har sina kopior under sitt sid.
+          kopieId: x.kopieId ?? x.sid,
           kopior: new Map((x.kopior ?? []).map(([id, k]) => [id, { ...k, patienter: new Map(k.patienter), loggIds: new Set(k.loggIds) }])),
         };
         // Sparat av en äldre version, med en nyckel utan id och en enda läskopia per session.
@@ -479,7 +490,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (!sessionFil) return 0;
     const lista = [...sessioner].map(([sid, x]) => ({
       v: SPARVERSION, sid, personalId: x.personalId, uppdrag: x.uppdrag ?? null, invanareId: x.invanareId, val: x.val, sist: x.sist, aktiv: x.aktiv, db: Buffer.from(x.db.serialize()).toString('base64'),
-      lasnyckel: x.lasnyckel, oppnade: [...x.oppnade],
+      lasnyckel: x.lasnyckel, oppnade: [...x.oppnade], kopieId: x.kopieId,
       kopior: [...x.kopior].map(([id, k]) => [id, { ...k, patienter: [...k.patienter], loggIds: [...k.loggIds] }]),
     }));
     writeFileSync(sessionFil + '.tmp', JSON.stringify(lista), { mode: 0o600 });
@@ -489,6 +500,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   lasSparade();
   // Runda 12, r2: schemalagda säkerhetskopior av sandlådorna som har ändrats sedan sin senaste kopia.
   const kopieSchema = kopieMinuter > 0 ? setInterval(() => schemalagdaKopior(kopior, sessioner), kopieMinuter * 60_000) : null;
+  // Kopior för sandlådor som inte finns (till exempel efter en omstart utan sparade sandlådor) tas bort.
+  const stadaKopior = () => { try { kopior.stada([...sessioner.values()].map(s => s.kopieId)); } catch (e) { console.error('Kopiorna kunde inte städas:', e.message); } };
+  stadaKopior();
   kopieSchema?.unref?.();
 
   function kontrolleraOrigin(req) {
@@ -1083,8 +1097,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (n > nyaPerTimme) throw new Fel(429, 'För många nya besök från din adress. Försök igen om en stund.', 'nekad');
     nyaPerIp.set(k, n);
     const { db, resultat } = miljoer.skapa(c.db, c.body.typ);
-    while (sessioner.size >= MAX_SESSIONER) { const aldsta = sessioner.keys().next().value; sessioner.get(aldsta).db.close(); sessioner.delete(aldsta); }
-    const ny = { db, personalId: null, invanareId: null, val: {}, sist: Date.now(), matning: new Matning(200), lasnyckel: null, oppnade: new Set(), kopior: new Map(), ursprung: c.s };
+    // Runda 12, r2: en sandlåda som trängs undan tar sina säkerhetskopior med sig, och den nya miljön får ett eget id för kopiorna.
+    while (sessioner.size >= maxSessioner) taBortSandlada(sessioner.keys().next().value);
+    const ny = { db, personalId: null, invanareId: null, val: {}, sist: Date.now(), matning: new Matning(200), lasnyckel: null, oppnade: new Set(), kopior: new Map(), ursprung: c.s, kopieId: slumpId() };
     sessioner.set(slumpId(), ny);
     const skapad = new Date().toISOString();
     c.s.miljoer = [...levande, { typ: c.body.typ, s: ny, skapad }];
@@ -2064,7 +2079,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
 
   return {
     server, sessioner, port: server.port, url: `http://127.0.0.1:${server.port}`, spara, oppetApi,
-    kopior,
+    kopior, stadaKopior,
     stopp() { clearInterval(stadning); if (kopieSchema) clearInterval(kopieSchema); server.stop(true); for (const s of sessioner.values()) s.db.close(); sessioner.clear(); anvandartestDb.close(); },
   };
 }

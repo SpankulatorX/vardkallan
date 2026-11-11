@@ -19,6 +19,7 @@ import { createHash, randomUUID } from 'node:crypto';
 // Runda 12, r2: XML-schemana i paketets mapp schemas och alla tabeller i återföringen.
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { klassa } from './lagring.js';
 import { Fel, iso, idag, giltigtDatum, addDagar } from './db.js';
 import { vardenhetFor, aktivaSparrar, visningsnamn, visningsPnr } from './atkomst.js';
 import { loggaRad } from './logg.js';
@@ -284,7 +285,7 @@ Paketet följer FGS Paketstruktur 2.0 (E-ARK CSIP 2.1.0 och E-ARK SIP 2.1.0 i Ri
 - metadata/preservation/premis.xml: händelsen när paketet skapades.
 - metadata/descriptive/earkiv-index.xml: en post per journalhandling med e-arkivets dataelement, se mappningen nedan.
 - schemas/: XML-schemana för METS, XLink och E-ARK:s tillägg till METS, som METS.xml följer.
-- representations/rep_1/data/tabeller/: bara i återföringen av all data (beslut om alla journaler). En fil per tabell i databasen med en rad per post som NDJSON, binära värden som base64, och schema.sql med tabellerna, indexen och triggrarna, så att uppgifterna kan läsas in i ett annat system. Också tabeller som inte hör till journalen följer med, till exempel inställningarna, mallarna och kodverken.
+- representations/rep_1/data/tabeller/: bara i återföringen av all data (beslut om alla journaler). En fil per tabell med vårdgivarens uppgifter och per gemensam tabell, med en rad per post som NDJSON och binära värden som base64, och schema.sql med tabellerna, indexen och triggrarna, så att uppgifterna kan läsas in i ett annat system. Också tabeller som inte hör till journalen följer med, till exempel inställningarna, mallarna och kodverken. Systemets egna tabeller, säkerhetsloggen och nycklar och hemligheter följer inte med, och urval.json säger vilka tabeller och kolumner som är utelämnade och varför.
 
 ## Dataelement
 
@@ -378,17 +379,56 @@ ${grupp('Representations/rep_1', rep)}
 // Runda 12, r2: XML-schemana som METS.xml följer (METS 1.12, XLink och E-ARK:s tillägg).
 const SCHEMAKATALOG = join(import.meta.dir, 'earkiv-scheman');
 
-// Runda 12, r2 (vårt M12): varje tabell i databasen som NDJSON, binära värden som base64, och schemat som SQL.
-export function allaTabeller(db) {
+// Runda 12, r2 (vårt M12): tabellerna i återföringen som NDJSON, binära värden som base64, och deras schema.
+// Bara tabeller som lagring.js klassar som en huvudmans uppgifter (genom enhet, patient eller en annan rad) eller som
+// gemensamma följer med. Systemets egna tabeller (SYSTEM i lagring.js) och tabeller som inte går att klassa tas aldrig
+// med. Skyddad identitet följer med som uppgift, som i resten av paketet (patienter.skyddad och sparr-och-skydd).
+export const ATERFORING_KLASSER = ['enheter', 'patienter', 'enhet', 'patient', 'via', 'gemensam'];
+// Tabeller som aldrig följer med trots klassningen, med skälet.
+export const ATERFORING_UTESLUTNA = {
+  sakerhetslogg: 'Säkerhetsloggen hör till systemets drift och säkerhet, inte till vårdgivarens uppgifter.',
+};
+// Kolumner med nycklar och hemligheter, som aldrig följer med. Utöver dessa tas varje kolumn vars namn visar att den är
+// en nyckel, en HMAC, en hemlighet eller ett lösenord bort, och en tabell vars namn visar det tas inte med alls.
+export const HEMLIGA_KOLUMNER = {
+  forskningsbestallningar: ['nyckel'],
+  videomoten: ['kod'],
+};
+export const HEMLIGT_NAMN = /hmac|hemlig|secret|token|totp|losen|salt|privat|nyckel_|_nyckel|biljett|session/i;
+export const HEMLIG_TABELL = /totp|hemlig|secret|token|session|biljett|nycklar|losen/i;
+
+// Vilka tabeller och kolumner som följer med i återföringen, och varför de andra inte gör det.
+export function aterforingsurval(db) {
+  const klass = klassa(db);
   const namn = db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all().map(r => r.name);
+  const med = [];
+  const utan = [];
+  for (const t of namn) {
+    const k = klass[t]?.typ ?? 'oklassad';
+    if (Object.hasOwn(ATERFORING_UTESLUTNA, t)) { utan.push({ tabell: t, skal: ATERFORING_UTESLUTNA[t] }); continue; }
+    if (!ATERFORING_KLASSER.includes(k)) { utan.push({ tabell: t, skal: k === 'system' ? 'Systemets egen tabell, klassad som system i lagring.js.' : 'Tabellen är inte klassad i lagring.js.' }); continue; }
+    if (HEMLIG_TABELL.test(t)) { utan.push({ tabell: t, skal: 'Tabellen innehåller nycklar eller hemligheter.' }); continue; }
+    const kol = db.query(`PRAGMA table_info("${t}")`).all().map(c => c.name);
+    const hemliga = kol.filter(c => HEMLIGT_NAMN.test(c) || (HEMLIGA_KOLUMNER[t] ?? []).includes(c));
+    med.push({ tabell: t, kolumner: kol.filter(c => !hemliga.includes(c)), utelamnade: hemliga });
+  }
+  return { med, utan };
+}
+
+export function allaTabeller(db) {
+  const { med, utan } = aterforingsurval(db);
   const varde = (v) => (v instanceof Uint8Array ? { base64: Buffer.from(v).toString('base64') } : v);
-  const ut = namn.map(t => {
-    const rader = db.query(`SELECT * FROM "${t}" ORDER BY rowid`).all();
+  const ut = med.map(({ tabell: t, kolumner }) => {
+    const rader = db.query(`SELECT ${kolumner.map(c => `"${c}"`).join(', ')} FROM "${t}" ORDER BY rowid`).all();
     const text = rader.map(r => JSON.stringify(Object.fromEntries(Object.entries(r).map(([k, v]) => [k, varde(v)])))).join('\n') + (rader.length ? '\n' : '');
     return { namn: `${t}.ndjson`, data: text, mime: 'text/plain', tabell: t, rader: rader.length };
   });
-  const schema = db.query("SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY CASE type WHEN 'table' THEN 0 WHEN 'index' THEN 1 ELSE 2 END, name").all().map(r => `${r.sql};`).join('\n\n') + '\n';
-  return [{ namn: 'schema.sql', data: schema, mime: 'text/plain', tabell: null, rader: 0 }, ...ut];
+  const medNamn = new Set(med.map(x => x.tabell));
+  const schema = db.query("SELECT tbl_name, sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY CASE type WHEN 'table' THEN 0 WHEN 'index' THEN 1 ELSE 2 END, name").all()
+    .filter(r => medNamn.has(r.tbl_name)).map(r => `${r.sql};`).join('\n\n') + '\n';
+  const urval = { tabeller: med.map(x => ({ tabell: x.tabell, utelamnadeKolumner: x.utelamnade })), utelamnade: utan,
+    text: 'Tabellerna med vårdgivarens uppgifter och de gemensamma tabellerna. Systemets egna tabeller, säkerhetsloggen och nycklar och hemligheter följer inte med. Skyddad identitet följer med som uppgift, som i resten av paketet.' };
+  return [{ namn: 'schema.sql', data: schema, mime: 'text/plain', tabell: null, rader: 0 }, { namn: 'urval.json', data: JSON.stringify(urval, null, 1), mime: 'application/json', tabell: null, rader: 0 }, ...ut];
 }
 
 // Bygger exportpaketet för beslutet. Returnerar ZIP-filen och vad som exporterades.
