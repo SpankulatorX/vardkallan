@@ -5,9 +5,9 @@ import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import { armbandsKod } from '../src/skanning.js';
 import * as blod from '../src/blod.js';
 import * as labb from '../src/labb.js';
-import { armbandsKod } from '../src/skanning.js';
 import * as lakemedel from '../src/lakemedel.js';
-import * as administrering from '../src/administrering.js';
+// Runda 13, r3 (E2-5): spara ger dosen med uppgiften om identiteten (administrering-hjalp.js).
+import * as administrering from './administrering-hjalp.js';
 import { BAS, sandlada, nyPatient, atk, pers, sparr, efter } from './specialist.js';
 import { testserver, klient, sandlada as serverSandlada } from './hjalp.js';
 

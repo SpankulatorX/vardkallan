@@ -9,7 +9,8 @@ import { join } from 'node:path';
 import { byggSeed, idag, addDagar, lokalTid } from '../src/db.js';
 // Runda 11, r1: Gunnar Åkessons (p01, född 1945-02-02) ålder i dag, så att testet inte går ut när han fyller år.
 const alderP01 = () => { const [y, m, d] = idag().split('-').map(Number); return y - 1945 - (m < 2 || (m === 2 && d < 2) ? 1 : 0); };
-import * as administrering from '../src/administrering.js';
+// Runda 13, r3 (E2-5): spara ger dosen med uppgiften om identiteten (administrering-hjalp.js).
+import * as administrering from './administrering-hjalp.js';
 import * as lakemedel from '../src/lakemedel.js';
 import * as stod from '../src/lakemedelsstod.js';
 import * as mallar from '../src/ordinationsmallar.js';

@@ -18,6 +18,11 @@ export function testserver(opts = {}) {
 export function klient(app, { origin = null } = {}) {
   let kaka = null;
   const anrop = async (metod, vag, kropp, extra = {}) => {
+    // Runda 13, r3 (E2-5): en dos som ges utan skannat armband skickas med uppgiften om identiteten, på ett ställe för alla
+    // tester som inte prövar just det. Ett test som vill pröva kravet skickar identitet: null.
+    if (metod === 'POST' && /^\/api\/patient\/[^/]+\/administreringar$/.test(vag) && kropp && (kropp.atgard ?? 'ge') === 'ge' && !kropp.armband && !('identitet' in kropp)) {
+      kropp = { ...kropp, identitet: { satt: 'id_band_hand' } };
+    }
     const h = { ...extra };
     if (kaka) h.Cookie = kaka;
     if (kropp !== undefined) h['Content-Type'] = 'application/json';

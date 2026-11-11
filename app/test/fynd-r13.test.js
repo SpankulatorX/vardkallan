@@ -131,5 +131,19 @@ describe('Läskopian i loggen (E3-28, E3-30, E3-36)', () => {
     expect(r.data).toMatchObject({ kod: 'E11.9', typ: 'huvud' });
     expect((await k.post(`/api/vardkontakt/${vk}/diagnos`, { kod: 'XYZ' })).status).toBe(400);
   });
+
+  test('E2-5: en dos ges utan skanning bara med en uppgift om hur identiteten kontrollerades, och uppgiften sparas med dosen', async () => {
+    const k = klient(app);
+    await k.logga('ssk-kard');
+    const alvedon = (await k.get('/api/administreringar')).data.patienter.find(x => x.patient.id === 'p01').vidBehov.find(v => v.lakemedel.namn === 'Alvedon');
+    const utan = await k.post('/api/patient/p01/administreringar', { ordinationId: alvedon.ordinationId, identitet: null });
+    expect(utan.status).toBe(400);
+    expect(utan.data.kod).toBe('identitet');
+    expect((await k.post('/api/patient/p01/administreringar', { ordinationId: alvedon.ordinationId, identitet: { satt: 'annan' } })).status).toBe(400);
+    expect((await k.post('/api/patient/p01/administreringar', { ordinationId: alvedon.ordinationId, identitet: { satt: 'gissat' } })).status).toBe(400);
+    const r = await k.post('/api/patient/p01/administreringar', { ordinationId: alvedon.ordinationId, identitet: { satt: 'annan', text: 'Läste namnbandet på sängen och frågade patienten' } });
+    expect(r.status).toBe(201);
+    expect(r.data.administrering.identitet).toMatchObject({ satt: 'annan', sattText: 'Annat sätt', text: 'Läste namnbandet på sängen och frågade patienten' });
+  });
 });
 

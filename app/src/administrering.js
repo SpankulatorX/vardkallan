@@ -100,6 +100,33 @@ export function aktivVid(db, o, ms) {
 }
 const tidText = (t) => `${datumI(Date.parse(t))} kl. ${new Date(t).toLocaleTimeString('sv-SE', { timeZone: 'Europe/Stockholm', hour: '2-digit', minute: '2-digit' }).replace(':', '.')}`;
 
+// Runda 13, r3 (E2-5, beslut från Jonas): en dos som ges utan skannat armband registreras bara med en uppgift om hur
+// patientens identitet kontrollerades. Uppgiften sparas med dosen och visas med den.
+export const IDENTITET_SATT = {
+  id_band_hand: 'Id-bandet avläst för hand',
+  id_handling: 'Id-handling',
+  kand: 'Patienten är känd av mig',
+  annan: 'Annat sätt',
+};
+export function sakraIdentitet(db) {
+  db.exec(`CREATE TABLE IF NOT EXISTS administrering_identitet (administrering_id INTEGER PRIMARY KEY, patient_id TEXT NOT NULL,
+    enhet_id TEXT NOT NULL, satt TEXT NOT NULL, text TEXT, tid TEXT NOT NULL, av TEXT NOT NULL)`);
+}
+function provaIdentitet(inp) {
+  const id = inp.identitet;
+  const satt = typeof id?.satt === 'string' && Object.hasOwn(IDENTITET_SATT, id.satt) ? id.satt : null;
+  const text = typeof id?.text === 'string' ? id.text.trim().slice(0, 200) : '';
+  if (!satt) throw new Fel(400, 'Bekräfta hur du har kontrollerat patientens identitet innan dosen ges, eller skanna armbandet.', 'identitet', { falt: ['identitet'], satt: IDENTITET_SATT });
+  if (satt === 'annan' && text.length < 3) throw new Fel(400, 'Skriv hur du har kontrollerat patientens identitet.', 'identitet', { falt: ['identitet'], satt: IDENTITET_SATT });
+  return { satt, text: satt === 'annan' ? text : null };
+}
+const identitetFor = (db, id) => {
+  try {
+    const r = db.query('SELECT * FROM administrering_identitet WHERE administrering_id = ?').get(id);
+    return r ? { satt: r.satt, sattText: IDENTITET_SATT[r.satt], text: r.text } : null;
+  } catch { return null; }
+};
+
 export function administreringUt(db, a) {
   return {
     id: a.id, patientId: a.patient_id, ordinationId: a.ordination_id, lakemedel: lmKort(katalog(db, a.lakemedel_id)), planerad: a.planerad, status: a.status,
@@ -115,6 +142,8 @@ export function administreringUt(db, a) {
     makulerad: stod.makuleringFor(db, 'administrering', a.id),
     // Runda 9, r1: beredningen och skanningen finns bara för en dos som har iordningsställts med etikett.
     ...(a.kontrollkod ? { beredning: beredning.forAdministrering(db, a.id), skannad: beredning.skanningFor(db, a.id), kollegakontroll: hogrisk.forAdministrering(db, a.id) } : {}),
+    // Runda 13, r3 (E2-5): hur identiteten kontrollerades när armbandet inte skannades.
+    ...(identitetFor(db, a.id) ? { identitet: identitetFor(db, a.id) } : {}),
   };
 }
 
@@ -480,6 +509,8 @@ export function spara(atk, inp = {}) {
     throw new Fel(400, 'Varningarna måste kvitteras med motivering innan dosen registreras.', 'ogiltig', { varningar: u.varningar, kraverKvittens: saknas, demoregler: true });
   }
   const kv = kvitterade.filter(k => u.varningar.some(v => v.regel === k.regel)).map(k => ({ regel: k.regel, motivering: k.motivering.trim().slice(0, 500) }));
+  // Runda 13, r3 (E2-5): utan skannat armband krävs uppgiften om hur identiteten kontrollerades.
+  const identitet = atgard === 'ge' && !u.armband ? provaIdentitet(inp) : null;
   const status = STATUS_FOR[atgard];
   const nu = iso();
   const tid = new Date(u.tid).toISOString();
@@ -513,6 +544,11 @@ export function spara(atk, inp = {}) {
     if (ior) beredning.spara(db, atk.personal, atk.patientId, id, u.orad?.id ?? null, u.beredning, tid);
     // Runda 10, r5: kollegakontrollen för ett högriskläkemedel som inte bereds.
     if (ior) hogrisk.spara(db, atk.personal, atk.patientId, id, u.kollega, tid);
+  }
+  if (identitet) {
+    sakraIdentitet(db);
+    db.query('INSERT OR REPLACE INTO administrering_identitet (administrering_id, patient_id, enhet_id, satt, text, tid, av) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(id, atk.patientId, atk.personal.enhet_id, identitet.satt, identitet.text, nu, atk.personal.id);
   }
   if (volym) {
     db.query("INSERT INTO vatskebalans (patient_id, enhet_id, riktning, typ, volym_ml, tid, registrerad, registrerad_av, administrering_id) VALUES (?, ?, 'in', 'lakemedel', ?, ?, ?, ?, ?)")

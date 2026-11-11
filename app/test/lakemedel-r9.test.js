@@ -4,7 +4,8 @@ import { describe, test, expect, afterEach, afterAll } from 'bun:test';
 import { armbandsKod } from '../src/skanning.js';
 import { aterstallKlockan, stallKlockan } from './falsk-klocka.js';
 import { byggSeed, idag, addDagar, lokalTid } from '../src/db.js';
-import * as administrering from '../src/administrering.js';
+// Runda 13, r3 (E2-5): spara ger dosen med uppgiften om identiteten (administrering-hjalp.js).
+import * as administrering from './administrering-hjalp.js';
 import * as lakemedel from '../src/lakemedel.js';
 import * as stod from '../src/lakemedelsstod.js';
 import * as mallar from '../src/ordinationsmallar.js';

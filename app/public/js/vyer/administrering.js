@@ -131,9 +131,37 @@ const kvittensHtml = (varningar, kraver = null) => {
     ${regler.map((r, n) => `<div class="falt"><label for="adm-kv-${n}">Motivering (${esc(REGELTEXT[r] ?? r.replace(/_/g, ' '))}) <span class="obl">(obligatoriskt)</span></label><textarea id="adm-kv-${n}" name="kv_${esc(r)}" rows="2" maxlength="500" required minlength="3"></textarea></div>`).join('')}`;
 };
 
+// Runda 13, r3 (E2-5, beslut från Jonas): en dos som ges utan skannat armband kräver en uppgift om hur patientens
+// identitet kontrollerades. Systemet frågar en gång per patient under en läkemedelsrunda (en kvart) och föreslår det
+// vanligaste sättet, så att flödet utan skanning får ett klick till och flödet med skanning inget.
+const IDENTITET_SATT = [['id_band_hand', 'Id-bandet avläst för hand'], ['id_handling', 'Id-handling'], ['kand', 'Patienten är känd av mig'], ['annan', 'Annat sätt']];
+const identitetKontrollerad = new Map();
+const RUNDA_MS = 15 * 60_000;
+async function identitetFor(pid, namnText) {
+  const forra = identitetKontrollerad.get(pid);
+  if (forra && Date.now() - forra.tid < RUNDA_MS) return forra.identitet;
+  const svar = await dialog(`<form><h2 id="dlg-rubrik">Patientens identitet: ${esc(namnText)}</h2>
+    <p>Armbandet är inte skannat. Hur har du kontrollerat att det är rätt patient?</p>
+    <fieldset class="kryssgrupp" id="adm-id"><legend>Identiteten kontrollerades med</legend>${IDENTITET_SATT.map(([k, t], i) => `<div class="kryssfalt"><input type="radio" id="adm-id-${k}" name="satt" value="${k}"${i === 0 ? ' checked' : ''}><label for="adm-id-${k}">${esc(t)}</label></div>`).join('')}</fieldset>
+    <div class="falt"><label for="adm-id-text">Hur, om annat sätt</label><input id="adm-id-text" name="text" maxlength="200" autocomplete="off"></div>
+    <p class="dialog-fel form-fel" role="alert" hidden></p>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Identiteten är kontrollerad</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`,
+  { validera: (d) => (d.satt === 'annan' && String(d.text ?? '').trim().length < 3 ? 'Skriv hur du har kontrollerat identiteten.' : null) });
+  if (!svar) return null;
+  const identitet = { satt: svar.data.satt, ...(svar.data.satt === 'annan' ? { text: String(svar.data.text).trim() } : {}) };
+  identitetKontrollerad.set(pid, { identitet, tid: Date.now() });
+  return identitet;
+}
+
 // Registrerar en åtgärd. Med en allvarlig varning visas den med fält för motivering, och åtgärden görs om med kvittensen.
 async function registrera(pid, data, namnText) {
   const vag = `/api/patient/${encodeURIComponent(pid)}/administreringar`;
+  // Runda 13, r3 (E2-5): utan skannat armband följer uppgiften om identiteten med.
+  if (data.atgard === 'ge' && !data.armband && !data.identitet) {
+    const id = await identitetFor(pid, namnText);
+    if (!id) return null;
+    data = { ...data, identitet: id };
+  }
   try {
     // Runda 10, r1: under ett avbrott läggs en given dos i skrivkön (ko), och servern prövar den när förbindelsen är tillbaka.
     return await api(vag, { metod: 'POST', data, ko: data.atgard === 'ge' && !data.tid });

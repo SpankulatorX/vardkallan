@@ -16,6 +16,8 @@ const { mkdirSync, rmSync } = require('node:fs');
 const { join } = require('node:path');
 // Runda 11, r1: testet och webbläsaren följer testcontainerns falska klocka när den är satt.
 const { foljServernsKlocka, stallKlockan } = require('./testklocka.cjs');
+// Runda 13, r3 (E2-5).
+const { idDialog } = require('./flodessteg.cjs');
 
 const BAS = process.argv[2] || 'http://127.0.0.1:18796';
 const UT = join(__dirname, 'skarmbilder');
@@ -1088,6 +1090,8 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       const dl = page.locator('dialog[open]');
       await dl.waitFor();
       await dl.locator('[data-varde="ok"]').click();
+      // Runda 13, r3 (E2-5): identiteten bekräftas när armbandet inte skannas.
+      await idDialog(page);
       await forvanta(page, '.notis', 'Waran är given');
       await forvanta(page, '.adm-vb', 'av Amira Haddad, med delegering från Johan Ek');
       await bild(page, '81-delegering-dos', true);
@@ -1599,6 +1603,8 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await alvedon.locator('.adm-mer summary').click();
       await alvedon.locator('[data-adm="efterhand"]').click();
       await page.locator('dialog[open] [data-varde="ok"]').click();
+      // Runda 13, r3 (E2-5): identiteten bekräftas när armbandet inte skannas.
+      await idDialog(page);
       await forvanta(page, '.notis', 'Alvedon är registrerad som given');
       await bild(page, '93-dos-i-efterhand');
     });

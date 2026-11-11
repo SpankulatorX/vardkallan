@@ -108,6 +108,8 @@ export function taEmot(c, medPatient, { kopiaId, rader, kvitteringar = {}, kasta
           svar = vardkontakt.knyt(atk, 'administreringar', administrering.spara(atk, {
             ordinationId: data.ordinationId, ...(data.planerad ? { planerad: data.planerad } : {}), ...(data.kontrollkod ? { kontrollkod: data.kontrollkod } : {}),
             ...(data.dos != null ? { dos: data.dos } : {}), atgard: 'ge', tid, kvitteradeVarningar: kv,
+            // Runda 13, r3 (E2-5): hur identiteten kontrollerades, som den registrerades under avbrottet.
+            ...(data.identitet ? { identitet: data.identitet } : {}), ...(data.armband ? { armband: data.armband } : {}),
           }), data);
         }
         const resultatId = Number(svar.id ?? svar.administrering?.id ?? null) || null;

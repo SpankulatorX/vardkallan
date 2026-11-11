@@ -9,7 +9,8 @@ import { T } from '../src/sussa/runda10-r5-tester.js';
 import * as kunskapsstod from '../src/kunskapsstod.js';
 import * as utfallsstod from '../src/utfallsstod.js';
 import * as hogrisk from '../src/hogriskkontroll.js';
-import * as administrering from '../src/administrering.js';
+// Runda 13, r3 (E2-5): spara ger dosen med uppgiften om identiteten (administrering-hjalp.js).
+import * as administrering from './administrering-hjalp.js';
 import * as lakemedel from '../src/lakemedel.js';
 import * as stod from '../src/lakemedelsstod.js';
 import * as mallar from '../src/ordinationsmallar.js';

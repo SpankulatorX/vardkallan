@@ -21,7 +21,7 @@ const { chromium } = require('@playwright/test');
 const { writeFileSync, mkdirSync } = require('node:fs');
 const { join } = require('node:path');
 const { pathToFileURL } = require('node:url');
-const { Matare, skapa, raknaISidan } = require('./flodessteg.cjs');
+const { Matare, skapa, raknaISidan, idDialog } = require('./flodessteg.cjs');
 // Runda 11, r1: testet och webbläsaren följer testcontainerns falska klocka när den är satt.
 const { foljServernsKlocka, stallKlockan, resultatfil } = require('./testklocka.cjs');
 
@@ -209,6 +209,7 @@ function floden(D) {
       await bertil.locator('tr', { hasText: 'med 20 mmol Addex-Magnesium, intravenöst under 2 timmar' }).first().waitFor();
       const dos = (namn) => bertil.locator('tr', { hasText: namn }).filter({ has: page.locator('[data-adm]') }).first();
       await m.klicka(dos('Paracetamol Fresenius Kabi').locator('[data-adm="ge"]'), 'Ge för Paracetamol');
+      await idDialog(page, (l) => m.klicka(l, 'Identiteten är kontrollerad'));
       await synlig(page, '.notis', 'Paracetamol Fresenius Kabi är given');
       await page.waitForLoadState('networkidle');
       // Runda 9, r1: blandningen bereds. Systemet visar vad som ska göras, och sjuksköterskan anger batchnumret.
