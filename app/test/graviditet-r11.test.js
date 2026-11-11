@@ -280,12 +280,18 @@ describe('Graviditet, förlossning och BB', () => {
     // Utskrivningen prövas.
     const u = fel(() => forl.utskrivning(bm(db, 'r1'), {}, efter(1530)));
     expect(u.status).toBe(409);
-    expect(u.extra.saknas).toEqual(expect.arrayContaining(['Moderns senaste kontroll har inga varningar.', 'Modern har kissat efter förlossningen.', 'Flicka: k-vitamin är gjord.']));
+    // Runda 13, r3 (E2-34): det som saknas står som vad som är kvar att göra, aldrig som ett påstående om att det är gjort.
+    expect(u.extra.saknas).toEqual(expect.arrayContaining(['Kontrollera att modern har kissat efter förlossningen.', 'Flicka: ge K-vitamin.']));
+    expect(u.message).toContain('Kvar före hemgång');
+    expect(u.message).not.toContain('är gjord');
+    const kr = forl.bbFor(bm(db, 'r1'), efter(1530)).kriterier;
+    for (const x of kr.filter(y => !y.ok)) expect(x.text).toBe(x.kvar);
+    expect(kr.filter(y => !y.ok).some(x => /är gjord\.|^Modern har kissat|har kontrollerats de senaste/.test(x.text))).toBe(false);
     for (const typ of ['kvitamin', 'pulsoximetri', 'barnlakare', 'horsel']) forl.bbScreening(bm(db, b.barnId), { typ }, efter(1540));
     expect(fel(() => forl.bbScreening(bm(db, b.barnId), { typ: 'horsel' }, efter(1541))).status).toBe(409);
     mor(1550, { temp: 37.0, blodning: 'normal', livmoder: 'fast', urinerat: true });
     bk(1555, { vikt: 3260 });
-    expect(fel(() => forl.utskrivning(bm(db, 'r1'), {}, efter(1560))).extra.saknas).toEqual(['Flicka: PKU-provet är taget eller bokat som återbesök.']);
+    expect(fel(() => forl.utskrivning(bm(db, 'r1'), {}, efter(1560))).extra.saknas).toEqual(['Flicka: ta PKU-provet, eller boka det som återbesök.']);
     expect(fel(() => forl.utskrivning(bm(db, b.barnId), {}, efter(1560))).message).toContain('moderns journal');
     const ut = forl.utskrivning(bm(db, 'r1'), { pkuAterbesok: true }, efter(1560));
     expect(ut.text).toBe('Mor och barn är utskrivna från BB. Mödrahälsovården bokar efterkontrollen och barnavårdscentralen hembesöket.');

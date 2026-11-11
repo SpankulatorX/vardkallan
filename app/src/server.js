@@ -717,6 +717,17 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     ].map(r => r.patient_id));
     const larm = remiss.larmForEnhet(db, p);
     const nll = lakemedel.nllAvvikelser(db, p);
+    // Runda 13, r3 (E1-19, E2-13): hög NEWS2, en försenad kontroll enligt NEWS2 och ett kritiskt provsvar som inte är
+    // vidimerat är larm i arbetslistan, med samma behörighet som i inkorgen. Bara värden och svar från den egna
+    // vårdenheten räknas.
+    const vitalLarm = vitalparametrar.larmForInkorg(db, p, (pid) => valFor(c.s, pid));
+    const kritiska = (pid) => {
+      if (!kanRoll(p, 'las_prover')) return 0;
+      try {
+        return db.query(`SELECT count(*) AS n FROM labb_analyser a JOIN labb_bestallningar b ON b.id = a.bestallning_id WHERE b.patient_id = ? AND b.enhet_id IN (${ph})
+          AND a.kritisk = 1 AND a.vidimerad_tid IS NULL AND a.status = 'besvarad' AND b.makulerad_tid IS NULL`).get(pid, ...enheter).n;
+      } catch { return 0; }
+    };
     const ut = [];
     for (const id of ids) {
       if (!harVardrelation(db, id, ve)) continue;
@@ -730,7 +741,13 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
         id, namn: visningsnamn(pat), personnummer: visningsPnr(pat), alder: alder(pat.fodd, idag()), kon: pat.kon,
         plats: vk ? vk.plats : inkRemiss ? 'Inkommande remiss' : list ? 'Listad' : 'Nyligen avslutad kontakt',
         orsak: vk?.orsak ?? (inkRemiss && kanRoll(p, 'las_remiss') ? inkRemiss.fragestallning : null),
-        skyddad: Boolean(pat.skyddad), larm: larm.filter(l => l.patientId === id).length + nll.filter(n => n.patientId === id).length,
+        skyddad: Boolean(pat.skyddad), ...(() => {
+          const v = vitalLarm.filter(l => l.patientId === id);
+          const k = kritiska(id);
+          const r = larm.filter(l => l.patientId === id).length + nll.filter(n => n.patientId === id).length;
+          const text = [...v.map(l => l.rubrik), ...(k ? [k === 1 ? 'Kritiskt provsvar som inte är vidimerat' : `${k} kritiska provsvar som inte är vidimerade`] : []), ...(r ? [`${r} larm i inkorgen`] : [])];
+          return { larm: v.length + k + r, larmText: text };
+        })(),
         pagaende: Boolean(vk), vardform: vk?.typ ?? null,
         uppmarksamhet: uppmarksamhet.symbolFor(db, p, id, valFor(c.s, id)),
       });
@@ -1148,21 +1165,30 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('POST', '/api/login/flerfaktor/avbryt', (c) => { c.s.vantande = null; c.s.flerfaktorUtmaning = null; return sessionUt(c.s); });
   // Den inloggade registrerar och tar bort sina faktorer. Personalen och invånaren har var sina, i sandlådan.
   // Runda 13, r3: en inloggning som väntar på att en faktor registreras, för att vårdgivaren kräver flerfaktor.
+  // Säkerhetsgranskningen: registreringen gäller bara så länge kontot saknar faktor. Har kontot fått en faktor, till
+  // exempel från en annan session, avbryts registreringen och inloggningen väntar på den befintliga faktorn i stället.
   const vantarRegistrering = (c) => {
     const v = c.s?.vantande;
-    return !c.personal && !c.invanare && v?.registrera && v.utgar > Date.now() ? v : null;
+    if (c.personal || c.invanare || !v?.registrera || v.utgar <= Date.now()) return null;
+    if (flerfaktor.aktiva(c.db, v.typ, v.id).length) {
+      v.registrera = false;
+      throw new Fel(400, 'Kontot har redan en faktor för flerfaktor. Bekräfta inloggningen med den.', 'nekad', { flerfaktor: { kravs: true, ...flerfaktor.inloggningsutmaning(c.db, c.s, v, webbplats(c)) } });
+    }
+    return v;
   };
-  const agareFor = (c) => {
+  // vantande: om en väntande registrering når rutten. En väntande session får registrera och se sin översikt, men aldrig
+  // ta bort en faktor.
+  const agareFor = (c, { vantande = false } = {}) => {
     if (c.personal) return { typ: 'personal', id: c.personal.id, namn: c.personal.namn, enhet: c.personal.enhet_id };
     if (c.invanare) return { typ: 'invanare', id: c.invanare.id, namn: minJournal.sessionDel(c.db, c.invanare).invanare.namn };
-    const v = vantarRegistrering(c);
+    const v = vantande ? vantarRegistrering(c) : null;
     if (v) return { typ: v.typ, id: v.id, namn: v.namn, enhet: v.enhet };
     throw new Fel(401, 'Logga in först.', 'ej_inloggad');
   };
   // Runda 13, r3: registreringen är den andra faktorn. En passkey med användarverifiering eller en bekräftad kod från
   // appen slutför inloggningen. En felaktig kod räknas som ett misslyckat försök.
   const registrera = (c, a, metod, fn) => {
-    const v = vantarRegistrering(c);
+    const v = c.personal || c.invanare ? null : vantarRegistrering(c);
     let f;
     try { f = fn(); } catch (e) {
       if (v && e instanceof Fel) {
@@ -1174,6 +1200,12 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       }
       throw e;
     }
+    // Säkerhetsgranskningen: precis före slutförandet får kontot inte ha någon annan faktor än den som registrerades nu.
+    if (v && flerfaktor.aktiva(c.db, v.typ, v.id).some(x => x.id !== f.id)) {
+      c.db.query('DELETE FROM flerfaktorer WHERE id = ?').run(f.id);
+      v.registrera = false;
+      throw new Fel(400, 'Kontot har redan en faktor för flerfaktor. Bekräfta inloggningen med den.', 'nekad', { flerfaktor: { kravs: true, ...flerfaktor.inloggningsutmaning(c.db, c.s, v, webbplats(c)) } });
+    }
     loggaFaktor(c, a, `${metod === 'passkey' ? 'En passkey' : 'En app för engångskoder'} registrerades. Flerfaktor krävs vid nästa inloggning.`);
     if (v) return [201, { faktor: f, ...slutforVantande(c, v, metod) }];
     return [201, { faktor: f, ...oversiktFor(c, a) }];
@@ -1181,15 +1213,15 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   const loggaFaktor = (c, a, text) => sakerhetslogg.logga(c.db, { typ: 'flerfaktor', personal_id: a.typ === 'personal' ? a.id : null, invanare_id: a.typ === 'invanare' ? a.id : null,
     enhet_id: a.enhet ?? null, metod: 'POST', vag: c.url.pathname.replace(/\/\d+\//, '/:id/'), status: 200, beskrivning: text });
   const oversiktFor = (c, a) => flerfaktor.oversikt(c.db, a.typ, a.id, { metod: c.s.flerfaktorMetod ?? null, kravsAvVardgivaren: flerfaktorKravs(c.db) });
-  rutt('GET', '/api/flerfaktor', (c) => oversiktFor(c, agareFor(c)));
-  rutt('POST', '/api/flerfaktor/passkey/borja', (c) => flerfaktor.borjaPasskey(c.db, c.s, agareFor(c), webbplats(c)));
+  rutt('GET', '/api/flerfaktor', (c) => oversiktFor(c, agareFor(c, { vantande: true })));
+  rutt('POST', '/api/flerfaktor/passkey/borja', (c) => flerfaktor.borjaPasskey(c.db, c.s, agareFor(c, { vantande: true }), webbplats(c)));
   rutt('POST', '/api/flerfaktor/passkey', (c) => {
-    const a = agareFor(c);
+    const a = agareFor(c, { vantande: true });
     return registrera(c, a, 'passkey', () => flerfaktor.sparaPasskey(c.db, c.s, a, c.body, webbplats(c)));
   });
-  rutt('POST', '/api/flerfaktor/totp/borja', (c) => flerfaktor.borjaTotp(c.db, agareFor(c)));
+  rutt('POST', '/api/flerfaktor/totp/borja', (c) => flerfaktor.borjaTotp(c.db, agareFor(c, { vantande: true })));
   rutt('POST', '/api/flerfaktor/totp', (c) => {
-    const a = agareFor(c);
+    const a = agareFor(c, { vantande: true });
     return registrera(c, a, 'totp', () => flerfaktor.bekraftaTotp(c.db, a, c.body.kod));
   });
   rutt('POST', '/api/flerfaktor/:id/ta-bort', (c, id) => {

@@ -573,6 +573,9 @@ function ordinationsForm(plats, ctx, tidigare = null, { muntlig = false } = {}) 
         const r = await api(`/api/patient/${encodeURIComponent(ctx.id)}/lakemedel`, { metod: 'POST', data: { ...o, kvitteradeVarningar: kv, ...nyKontaktData(kontakt) } });
         nastaOverforing = null;
         notis(`${r.ordination.lakemedel?.namn} är ordinerat. ${nllResultat(r.nll)}`, r.nll.status === 'kvitterad' ? 'ok' : 'info');
+        // Runda 13, r3: en interaktion med ett läkemedel i NLL som är dolt av en spärr visas först efter sparandet.
+        const dold = r.varningar?.find(x => x.efterSparande);
+        if (dold) notis(dold.text, 'fel');
         kontaktNotis(r);
         ctx.ladda();
       }, form);

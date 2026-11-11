@@ -39,17 +39,30 @@ describe('Läkemedelsvarningar vid ordination', () => {
     expect(trippel[0].text).toMatch(/PK\(INR\)/);
   });
 
-  test('läkemedel i Nationella läkemedelslistan från en spärrad vårdenhet ingår i interaktionskontrollen utan att namnet eller vårdenheten röjs', () => {
+  test('läkemedel i Nationella läkemedelslistan från en spärrad vårdenhet ingår i interaktionskontrollen när ordinationen sparas, utan att läkemedlet röjs och med loggning', () => {
     const db = byggSeed();
     // p04 har Sertralin från psykiatrin, som är spärrad för kardiologen.
     const a = atk(db, 'lak-kard', 'p04');
     expect(JSON.stringify(lakemedel.lista(a))).not.toContain('Sertralin');
-    const v = lakemedel.kontroll(atk(db, 'lak-kard', 'p04'), ord(WARAN, { dosering: '2 tabletter till kvällen' })).varningar;
-    const dold = v.find(x => x.regel === 'interaktion_dold');
+    // Säkerhetsgranskningen: Kontrollera och spara säger inget om det dolda läkemedlet, så att kontrollen inte blir ett
+    // orakel för vad som står på den spärrade vårdenheten.
+    const kontroll = lakemedel.kontroll(atk(db, 'lak-kard', 'p04'), ord(WARAN, { dosering: '2 tabletter till kvällen' })).varningar;
+    expect(kontroll.some(x => x.regel === 'interaktion_dold')).toBe(false);
+    // När ordinationen sparas med kvittens kommer varningen, utan läkemedel eller substans, och den loggas på patienten.
+    const fore = db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p04' AND resurs LIKE 'nll:dold_interaktion:%'").get().n;
+    const kv = kontroll.filter(x => x.niva === 'allvarlig').map(x => ({ regel: x.regel, motivering: 'Bedömt med kardiolog.' }));
+    const r = lakemedel.spara(atk(db, 'lak-kard', 'p04', {}, 'ordinera'), ord(WARAN, { dosering: '2 tabletter till kvällen', kvitteradeVarningar: kv }));
+    const dold = r.varningar.find(x => x.regel === 'interaktion_dold');
     expect(dold).toBeDefined();
-    expect(dold.niva).toBe('allvarlig');
-    expect(dold.text).toContain('Nationella läkemedelslistan');
-    const allt = JSON.stringify(v);
-    expect(allt).not.toMatch(/Sertralin|N06AB|psyk|Psykiatri/i);
+    expect(dold.text).toBe(lakemedel.DOLD_INTERAKTION);
+    expect(JSON.stringify(r.varningar)).not.toMatch(/Sertralin|N06AB|psyk|Psykiatri|SSRI/i);
+    expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p04' AND resurs LIKE 'nll:dold_interaktion:%'").get().n).toBe(fore + 1);
+    // Samma substans som det dolda läkemedlet ger ingen varning, eftersom träffen bara prövas mot interaktionsreglerna.
+    const sertralin = lakemedel.spara(atk(db, 'lak-kard', 'p04', {}, 'ordinera'), ord('VK-NPL-0041', { dosering: '1 tablett på morgonen',
+      kvitteradeVarningar: lakemedel.kontroll(atk(db, 'lak-kard', 'p04'), ord('VK-NPL-0041')).varningar.filter(x => x.niva === 'allvarlig').map(x => ({ regel: x.regel, motivering: 'Bedömt.' })) }));
+    expect(sertralin.varningar.some(x => x.regel === 'interaktion_dold')).toBe(false);
+    // Med patientens samtycke syns läkemedlet, och varningen gäller det synliga läkemedlet i stället.
+    const med = lakemedel.kontroll(atk(db, 'lak-kard', 'p04', { samtycke_sparr: { syfte: 'Prov', tid: new Date().toISOString() } }), ord(WARAN)).varningar;
+    expect(med.some(x => x.regel === 'interaktion_B01A_N06AB')).toBe(true);
   });
 });

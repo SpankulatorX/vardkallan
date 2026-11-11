@@ -45,6 +45,20 @@ export function ivaKontaktFor(atk) {
 // mal får (atk, titrering) och ger titreringen med patientens mål (iva-patientregler.js).
 export const KROKAR = { analys: [], rad: [], mal: [] };
 const medKrokar = (atk, analys, x) => KROKAR.analys.reduce((a, f) => f(atk, a, x), analys);
+// Runda 13, r3 (E2-16): en patient i intensivvården utan godkända värden för puls, blodtryck, syremättnad eller
+// andningsfrekvens på mer än två timmar larmar, med det senaste värdet, eftersom analysen bara läser de senaste sex
+// timmarna och annars säger "Inga" för en patient som inte har övervakats. Demoregel.
+export const IVA_KONTROLL_TIMMAR = 2;
+const VITALA = ['puls', 'blodtryck', 'saturation', 'andningsfrekvens'];
+export function kontrollSaknas(rader, nu = new Date()) {
+  const vitala = rader.filter(m => VITALA.includes(m.typ) && kvalitetssakrad(m) && Date.parse(m.tid) <= nu.getTime()).sort((a, b) => b.tid.localeCompare(a.tid));
+  const sist = vitala[0];
+  if (sist && Date.parse(sist.tid) > nu.getTime() - IVA_KONTROLL_TIMMAR * 3600_000) return null;
+  const timmar = sist ? Math.floor((nu.getTime() - Date.parse(sist.tid)) / 3600_000) : null;
+  const puls = vitala.find(m => m.typ === 'puls');
+  const text = sist ? `Inga godkända värden för puls, blodtryck, syremättnad eller andningsfrekvens på ${timmar} timmar, sedan kl. ${klocka(sist.tid)}.${puls ? ` Senaste pulsen var ${puls.varde_num} slag/min.` : ''}` : 'Inga godkända värden för puls, blodtryck, syremättnad eller andningsfrekvens finns.';
+  return { niva: 'larm', regel: 'kontroll_saknas', text, gora: 'Kontrollera patienten och vitalparametrarna nu, och koppla monitorn om den inte är kopplad.' };
+}
 export const DEMOREGEL = 'Reglerna för intensivvården är demoregler för att visa flödet. De är inte kliniskt beslutsstöd och inte CE-märkta.';
 // Intensivvårdsavdelningarna i demon och antalet vårdplatser. Hjärtintensiven på Kardiologiska kliniken är demons
 // intensivvårdsavdelning.
@@ -437,6 +451,9 @@ export function oversikt(db, personal, valFor, { enhetId = null } = {}, nu = new
     const vatska = vatskaTimvis(atk, { timmar: 24 }, nu);
     const infusioner = infusionerFor(atk, rader, nu);
     const analys = medKrokar(atk, analysera({ rader, vatska, infusioner, params, nu }), { rader, nu });
+    // Runda 13, r3 (E2-16): utebliven övervakning.
+    const saknas = kontrollSaknas(rader, nu);
+    if (saknas) analys.unshift(saknas);
     const n2 = vitalparametrar.news2For(atk, p, rader).aktuell;
     patienter.push(KROKAR.rad.reduce((r, f) => f(atk, r, { nu }), {
       patientId: p.id, namn: visningsnamn(p, val.visa_identitet), personnummer: visningsPnr(p, val.visa_identitet), alder: alder(p.fodd, idag()), plats: k.plats, sedan: k.start,

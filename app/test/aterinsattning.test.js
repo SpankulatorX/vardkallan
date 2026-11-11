@@ -182,7 +182,8 @@ describe('Återinsättning i inkorgen via API', () => {
     await k.logga('lak-vc');
     // Malin Engberg har skyddade personuppgifter. Vårdcentralen ordinerar Eliquis och gör uppehåll.
     const db = sandlada(app, k).db;
-    const ny = await k.post('/api/patient/p03/lakemedel', { lakemedelId: 'VK-NPL-0002', dosering: '1 tablett morgon och kväll', dos: 5, dosEnhet: 'mg', tider: ['08', '20'], typ: 'staende', ordinationsorsak: 'Förmaksflimmer, strokeprofylax', uppfoljningsdatum: addDagar(idag(), 30) });
+    // Runda 13, r3: patienten har ett NSAID, och apixaban med NSAID ger en varning som kvitteras.
+    const ny = await k.post('/api/patient/p03/lakemedel', { lakemedelId: 'VK-NPL-0002', dosering: '1 tablett morgon och kväll', dos: 5, dosEnhet: 'mg', tider: ['08', '20'], typ: 'staende', ordinationsorsak: 'Förmaksflimmer, strokeprofylax', uppfoljningsdatum: addDagar(idag(), 30), kvitteradeVarningar: [{ regel: 'interaktion_B01AF_M01A', motivering: 'NSAID sätts ut.' }] });
     expect(ny.status).toBe(201);
     const id = ny.data.ordination.id;
     expect((await k.post(`/api/ordination/${id}/utsatt`, { plan: { typ: 'uppehall', aterinsattning: addDagar(idag(), 1) } })).status).toBe(200);

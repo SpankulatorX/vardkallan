@@ -31,7 +31,11 @@ let situationVal = null;
 const sektion = (id, rubrik, innehall, extra = '') => `<section class="ov-sektion" aria-labelledby="ov-${id}"><div class="sektion-huvud"><h2 id="ov-${id}">${esc(rubrik)}</h2>${extra}</div>${innehall}</section>`;
 const tomRad = (t) => `<p class="tom liten">${esc(t)}</p>`;
 
-export const varde = (m) => `${esc(typeof m.varde === 'number' ? tal(m.varde, 2) : m.varde)} <span class="enhet">${esc(m.enhet)}</span>`;
+// Runda 13, r3 (E1-19, E2-20): ett värde utanför referensintervallet markeras, och ett kritiskt värde tydligt.
+const avvikelse = (m) => (!m.avvikande ? '' : m.avvikande.startsWith('kritiskt')
+  ? ` <span class="tagg tagg-larm" data-avvikande="${esc(m.avvikande)}">${esc(m.avvikandeText ?? 'Kritiskt')}</span>`
+  : ` <span class="text-larm" data-avvikande="${esc(m.avvikande)}">${m.avvikande === 'hogt' ? '↑' : '↓'}<span class="sr"> ${esc(m.avvikandeText ?? '')}</span></span>`);
+export const varde = (m) => `${esc(typeof m.varde === 'number' ? tal(m.varde, 2) : m.varde)} <span class="enhet">${esc(m.enhet)}</span>${avvikelse(m)}`;
 
 // Snabbval för de vanligaste åtgärderna, så att de nås med ett klick från översikten (klickbudgeten, D6).
 // data-skriv döljer dem i läsläget vid avbrott.

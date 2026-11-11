@@ -167,7 +167,7 @@ function maxdosVarningar(lm, o, lista) {
   return [{ niva: 'allvarlig', regel: 'maxdos', text: `Dygnsdosen blir ${String(dygn).replace('.', ',')} ${rad[2]}, högre än högsta dygnsdosen ${String(max).replace('.', ',')} ${rad[2]} för ${lm.substans.toLowerCase()} (vårdgivarens regel, demoregel).` }];
 }
 
-export function varningar(db, patientId, lm, aktiva, { overkanslighet = [], egfr = null, enhetId = null, studier = null, ordination = null, nllDolda = [] } = {}) {
+export function varningar(db, patientId, lm, aktiva, { overkanslighet = [], egfr = null, enhetId = null, studier = null, ordination = null } = {}) {
   const ut = [];
   // Runda 12, r1: interaktionerna, maxdoserna och gränserna för metformin är parametrar som systemförvaltningen
   // ändrar med fyra ögon (konfiguration.js, Sussa 12.1.1.8). Demoregler.
@@ -225,15 +225,6 @@ export function varningar(db, patientId, lm, aktiva, { overkanslighet = [], egfr
     ut.push(info ? { niva: info.niva, regel, text: `${info.text(namnLista(t.xNamn), namnLista(t.yNamn))} Vårdgivarens regel ${nyckel}, demoregel.` }
       : { niva: 'allvarlig', regel, text: `${namnLista(t.xNamn)} och ${namnLista(t.yNamn)} kan påverka varandra och ska bara ges samtidigt efter en bedömning (vårdgivarens regel ${nyckel}, demoregel).` });
   }
-  // Runda 13, r3 (E1-25): läkemedel i Nationella läkemedelslistan som är ordinerade på en vårdenhet som patienten har
-  // spärrat. Förskrivningar i NLL omfattas inte av spärren enligt patientdatalagen (lag 2018:1212 om nationell
-  // läkemedelslista), så kontrollen räknar med dem. Varningen säger bara att något sådant finns, aldrig läkemedlet,
-  // vårdenheten eller något annat ur den spärrade journalen.
-  const traffar = (a) => a.atc === lm.atc || (ANTIKOAGULANTIA.some(k => lm.atc.startsWith(k)) && ANTIKOAGULANTIA.some(k => a.atc.startsWith(k)))
-    || interaktioner.some(([x, y]) => (lm.atc.startsWith(x) && a.atc.startsWith(y)) || (lm.atc.startsWith(y) && a.atc.startsWith(x)));
-  if (nllDolda.some(o => { const a = lmFor(o); return a && traffar(a); })) {
-    ut.push({ niva: 'allvarlig', regel: 'interaktion_dold', text: 'Patienten har ett läkemedel i Nationella läkemedelslistan som kan ge en allvarlig interaktion eller dubbel behandling med det du ordinerar. Det visas inte här, eftersom det är ordinerat på en vårdenhet som patienten har spärrat. Spärren gäller inte Nationella läkemedelslistan. Fråga patienten om läkemedlen, eller om samtycke till att spärren hävs.' });
-  }
   // Runda 13, r3 (E1-11): NSAID till en äldre patient.
   if (lm.atc.startsWith(NSAID)) {
     const p = db.query('SELECT fodd FROM patienter WHERE id = ?').get(patientId);
@@ -263,13 +254,29 @@ export function underlag(atk) {
   const db = atk.db;
   const aktiva = synligaOrdinationer(atk).filter(arAktuell);
   const ok = atk.filtrera(db.query("SELECT * FROM overkanslighet WHERE patient_id = ? AND status = 'aktiv'").all(atk.patientId), 'las_oversikt', { gemensam: true });
-  // Runda 13, r3 (E1-25): patientens aktuella läkemedel i NLL som inte syns, eftersom de är ordinerade på en spärrad
-  // vårdenhet. De används bara i interaktionskontrollen och lämnas aldrig ut.
-  const synliga = new Set(aktiva.map(o => o.id));
-  const nllDolda = db.query("SELECT * FROM ordinationer WHERE patient_id = ? AND nll_status = 'kvitterad'").all(atk.patientId).filter(o => arAktuell(o) && !synliga.has(o.id));
-  return { aktiva, nllDolda, overkanslighet: ok, egfr: egfrForSakerhet(atk), enhetId: atk.personal.enhet_id,
+  return { aktiva, overkanslighet: ok, egfr: egfrForSakerhet(atk), enhetId: atk.personal.enhet_id,
     // Runda 9, r1: patientens deltagande i kliniska prövningar som användaren får se.
     studier: provning.synligaDeltaganden(atk) };
+}
+
+// Runda 13, r3 (E1-25, säkerhetsgranskningen): patientens aktuella läkemedel i Nationella läkemedelslistan som är dolda
+// bara av en spärr, alltså inte av något annat skäl. Förskrivningar i NLL omfattas inte av spärren enligt
+// patientdatalagen, så interaktionskontrollen räknar med dem, men bara när ordinationen sparas, aldrig vid
+// Kontrollera och spara. Träffen prövas bara mot interaktionsreglerna, som gäller grupper av läkemedel, aldrig mot exakt
+// samma substans. Varningen säger inte vilket läkemedel eller vilken substans det gäller, bara att det finns och vad som
+// krävs för att se det, och varje sådan varning loggas som åtkomst till patienten. Så går kontrollen inte att använda för
+// att pröva sig fram till vad som står på den spärrade vårdenheten.
+export const DOLD_INTERAKTION = 'Patienten har ett läkemedel i Nationella läkemedelslistan som du inte ser här och som kan påverka ordinationen, eftersom det är ordinerat på en vårdenhet som patienten har spärrat. Spärren gäller inte Nationella läkemedelslistan. För att se läkemedlet behöver patienten samtycka till att spärren hävs. Fråga patienten om läkemedlen, och följ upp ordinationen.';
+function doldInteraktion(atk, lm) {
+  const db = atk.db;
+  const synliga = new Set(synligaOrdinationer(atk).map(o => o.id));
+  const interaktioner = require('./konfiguration.js').varde(db, 'lakemedel.interaktioner').map(x => x.split(' + '));
+  return db.query("SELECT * FROM ordinationer WHERE patient_id = ? AND nll_status = 'kvitterad'").all(atk.patientId)
+    .filter(o => arAktuell(o) && !synliga.has(o.id) && atk.prova('las_lakemedel', { enhet_id: o.enhet_id, gemensam: true }).krav === 'kraver_samtycke')
+    .some(o => {
+      const a = lakemedelRad(db, o.lakemedel_id);
+      return a && interaktioner.some(([x, y]) => (lm.atc.startsWith(x) && a.atc.startsWith(y)) || (lm.atc.startsWith(y) && a.atc.startsWith(x)));
+    });
 }
 
 export function kontroll(atk, inp) {
@@ -366,6 +373,12 @@ export function spara(atk, inp, { handling = 'ordinera', ordineradAv = null, nll
   historik(db, id, atk.personal.id, historikText, o.dosering);
   for (const k of kv) historik(db, id, atk.personal.id, 'Varning kvitterad', `${k.regel}: ${k.motivering}`);
   const nll = skickas ? overfor(db, id, 'ny') : { status: nllStatus };
+  // Runda 13, r3: en interaktion med ett läkemedel i NLL som är dolt av en spärr, efter att ordinationen är sparad.
+  if (doldInteraktion(atk, o.lm)) {
+    v.push({ niva: 'allvarlig', regel: 'interaktion_dold', text: DOLD_INTERAKTION, efterSparande: true });
+    historik(db, id, atk.personal.id, 'Varning efter sparande', 'Interaktion med ett läkemedel i Nationella läkemedelslistan som är dolt av en spärr.');
+    atk.logga('las_lakemedel', atk.grund(), `nll:dold_interaktion:ordination:${id}`);
+  }
   return { ordination: ordinationUt(db, db.query('SELECT * FROM ordinationer WHERE id = ?').get(id)), varningar: v, nll };
 }
 

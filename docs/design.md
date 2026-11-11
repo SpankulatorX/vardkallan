@@ -2569,3 +2569,62 @@ I driften är varje version en egen avbildning, och vid en återgång startas de
 själv när den startar. Säkerhetskopiornas två platser är två kataloger på samma server, eller två lager i minnet när
 servern inte sparar till disk. I driften är den andra platsen en annan volym på en annan ort. Återställningen går till den
 senaste kopian före tidpunkten, så det som gjordes mellan kopian och tidpunkten (högst femton minuter) återställs inte.
+
+## Rättelser inför testinbjudan (runda 13, r3: flerfaktor, lagrum, undantag och fynden från det utforskande testet)
+
+**Flerfaktor som krav (vårt L5, beslut från Jonas).** Vårdgivarens parameter Flerfaktor krävs vid inloggning
+(`sakerhet.flerfaktor_kravs`) ändras med fyra ögon som andra parametrar. När den står på ja godkänner servern den första
+faktorn men ger ingen behörighet och ingen nyckel till läskopian förrän den andra är bekräftad. Den som saknar en faktor
+leds direkt till att registrera en passkey eller en app för engångskoder, och bekräftelsen av den nya faktorn är den
+andra faktorn. Samma sak gäller invånaren i Min journal. Servern läser värdet vid varje inloggning, så den som redan är
+inloggad loggas inte ut när det ändras. Med kravet på ja går den sista faktorn inte att ta bort. Demoregel: i den publika
+demon står parametern på nej, så att ingen besökare låses ute ur sin sandlåda.
+
+**Lagrummen (beslut från Jonas).** Taken för högkostnadsskyddet (17 kap. 6 § HSL) och avgiften per vårddygn (17 kap. 2 §
+HSL) räknas ur prisbasbeloppet för det år ändringen gäller (`prisbasbelopp.js`), och parametrarna kan inte sättas över
+taket. Demons tak för slutenvården var 150 kronor, över lagens 136 kronor, och är rättat. Vårdgarantin räknas från att
+remissen utfärdades, inte från att den togs emot (6 kap. 1 § hälso- och sjukvårdsförordningen), och bara i den
+specialiserade vården. En egen vårdbegäran till en vårdcentral ska vara bedömd inom tre dagar (bedömningsgarantin), och
+en anmälan till operation visar behandlingsgarantin, 90 dagar från anmälan. Kontakten med primärvården samma dag har
+inget flöde, och att tiden står still när patienten själv avstår och sedan fortsätter är inte byggt. Alla kontrollerade
+lagrum, de rättade och de som inte är kontrollerade står i docs/lagrum.md.
+
+**Undantag av en enskild anteckning (beslut från Jonas, säkerhetsfynd 5 och 6).** Journalen visar anteckningens nummer.
+Den som skrev anteckningen eller patientens ansvariga läkare begär undantag i anteckningens meny med kanal och skäl.
+Visning i systemet går inte att välja medan vårdkontakten pågår, och systemet säger varför. Systemförvaltaren ser
+begäran under Begäranden från vården med nummer, typ, datum, vårdenhet och den som begär, men aldrig innehållet eller
+patienten. Ett klick fyller i förslaget med numret, kanalerna och skälet, och en andra systemförvaltare godkänner som
+förut. Systemförvaltaren behöver aldrig läsa journalen eller skriva ett nummer. Förhandsvisningen ger samma svar för alla
+nummer som saknar en begäran, så att den inte går att använda för att slå upp anteckningar. En undantagen anteckning finns
+inte i vårdkontaktens händelsekedja, och den som öppnar den direkt får samma svar som för en anteckning som inte finns.
+Journalens rad om att något inte visas har kvar motiveringen. Demoregel: patientens ansvariga läkare är en läkare på
+den vårdenhet som skrev anteckningen, eftersom Vårdkällan inte har en fast läkare per patient.
+
+**Säkerhetsfynd 9 och 10.** Rabatten på en patientavgift räknas med vårdgivarens godkända avgifter och åldersgränser.
+Nyckeln för en ram eller en lokal anpassning räknas alltid ur definitionen, och en nyckel som inte stämmer nekas.
+
+**Läkemedelsvarningar vid ordination (E1-11, E1-21).** Det var inte en regression från runda 12: förvalet av
+interaktioner hade bara warfarin och NSAID också före runda 12, när reglerna blev parametrar. Förvalet har nu NSAID
+tillsammans med NOAK (apixaban, rivaroxaban, edoxaban och dabigatran), spironolakton och furosemid, warfarin tillsammans
+med trombocythämmare och SSRI tillsammans med antitrombotika, med en egen text för varje par. Två läkemedel som träffar
+samma regel ger en varning med båda namnen. NSAID till en patient som är 75 år eller äldre ger en påminnelse. Allt är
+demoregler och inte kliniskt beslutsstöd.
+
+**Läkemedel från en spärrad vårdenhet i interaktionskontrollen (E1-25).** Bedömning: förskrivningar och ordinationer i
+Nationella läkemedelslistan omfattas inte av spärrar enligt patientdatalagen 4 kap. 4 §, eftersom listan är ett eget
+register enligt lagen (2018:1212) om nationell läkemedelslista, där förskrivare har rätt att ta del av patientens aktuella
+läkemedel. Kontrollen räknar därför med patientens aktuella läkemedel i NLL som är dolda bara av en spärr, inte med
+läkemedel som är dolda av något annat skäl. Säkerhetsgranskningen påpekade att en varning med exakt träff blir ett
+orakel: den som prövar ordinationer av olika läkemedel kan annars ta reda på vad som står på den spärrade vårdenheten.
+Därför prövas träffen bara mot interaktionsreglerna, som gäller grupper av läkemedel och aldrig samma substans, varningen
+kommer först när ordinationen sparas med kvittens av de andra varningarna och aldrig vid Kontrollera och spara, och den
+säger inte vilket läkemedel eller vilken substans det gäller, bara att ett läkemedel i NLL som användaren inte ser kan
+påverka ordinationen och att patientens samtycke behövs för att se det. Varje sådan varning loggas som åtkomst till
+patienten och står i ordinationens historik. Den som vill pröva sig fram måste alltså spara riktiga ordinationer, som
+loggas och syns för patienten i Vem har läst. Läkemedlet visas fortfarande inte i läkemedelslistan, eftersom listan i
+Vårdkällan är journalens uppgifter och inte NLL. Lagen om nationell läkemedelslista 3 kap. är inte kontrollerad ordagrant
+mot Riksdagens text (docs/lagrum.md).
+
+**Säkerhetsgranskningen av registreringen.** En väntande inloggning får registrera en faktor bara så länge kontot saknar
+en. Har kontot fått en faktor under tiden, från en annan session, avbryts registreringen, den nya faktorn sparas inte och
+inloggningen väntar på den befintliga faktorn. En väntande session kan aldrig ta bort en faktor.

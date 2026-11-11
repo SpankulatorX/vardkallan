@@ -97,7 +97,10 @@ async function lasAnteckning(las, ctx, id) {
   if (a.status === 'utkast' && a.forfattare?.id === S.session.personal.id) return utkastForm(las, ctx, a);
   const senaste = a.versioner.at(-1);
   const aldre = a.versioner.slice(0, -1).reverse();
-  const kanRatta = !senaste.ersatt && senaste.status === 'signerad' && kanSkriva(senaste.kategori) && enhetsVardenhet(senaste.enhet.id) === minVardenhet();
+  // Runda 13, r3 (E1-23): bara den som skrev anteckningen rättar den.
+  const egen = [senaste.forfattare?.id, senaste.signerad?.av?.id].includes(S.session.personal.id);
+  const kanRatta = egen && !senaste.ersatt && senaste.status === 'signerad' && kanSkriva(senaste.kategori) && enhetsVardenhet(senaste.enhet.id) === minVardenhet();
+  const rattaAnnan = !egen && !senaste.ersatt && senaste.status === 'signerad' && kanSkriva(senaste.kategori) && enhetsVardenhet(senaste.enhet.id) === minVardenhet();
   // Runda 5, r1: från en signerad anteckning föreslår systemet återbesöket ur anteckningens planering (Sussa 3.4.1.1).
   const kanAterbesok = senaste.status === 'signerad' && far('skriv_journal');
   const kanSkrivaUt = senaste.status === 'signerad' && far('skriv_ut');
@@ -113,6 +116,7 @@ async function lasAnteckning(las, ctx, id) {
       ${kontrasignering.html(a, senaste)}
       ${word}
       ${kanRatta || kanAterbesok || kanSkrivaUt || kanUndanta ? `<div class="knapprad" data-skriv>${kanRatta ? `<button type="button" class="knapp sekundar" data-ratta>${ikon.penna}<span>Rätta anteckningen</span></button>` : ''}${kanAterbesok ? `<button type="button" class="knapp sekundar" data-aterbesok>${ikon.kalender}<span>Återbesök</span></button>` : ''}${kanSkrivaUt ? `<button type="button" class="knapp sekundar" data-skriv-ut-anteckning>${ikon.logg}<span>Skriv ut anteckningen</span></button>` : ''}${kanUndanta ? `<button type="button" class="knapp text" data-begar-undantag>${ikon.oga}<span>Begär undantag från visning</span></button>` : ''}</div>` : ''}
+      ${rattaAnnan ? `<p class="liten dampad" data-ratta-annan>Bara ${esc(senaste.forfattare?.namn ?? 'den som skrev anteckningen')} kan rätta anteckningen. Vill du lägga till något skriver du en ny anteckning.</p>` : ''}
       ${ub?.begaran ? `<p class="ruta ruta-info liten" data-undantag-status>Begäran om undantag från ${esc(tidpunkt(ub.begaran.begard))}: ${esc(ub.begaran.statusText)}.${ub.begaran.kommentar ? ` Kommentar från systemförvaltningen: ${esc(ub.begaran.kommentar)}` : ''}</p>` : ''}
       ${aldre.length ? `<section class="versioner" aria-labelledby="ver-rubrik"><h3 id="ver-rubrik">Tidigare versioner</h3>
         <p class="dampad liten">En signerad anteckning ändras aldrig. En rättelse blir en ny version, och den tidigare står kvar överstruken men läsbar.</p>

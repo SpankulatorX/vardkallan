@@ -217,6 +217,17 @@ function svarFor(db, a, kon) {
   });
 }
 export const AVVIKANDE = { hogt: 'Högt', lagt: 'Lågt', kritiskt_hogt: 'Kritiskt högt', kritiskt_lagt: 'Kritiskt lågt', fynd: 'Fynd' };
+// Runda 13, r3 (E1-19, E2-20): avvikelsen för ett mätvärde ur referensintervallet och demons kritiska gränser, så att
+// översikten och mätvärdena kan markera det. null när värdet är normalt eller saknar referens.
+export function avvikelseFor(m, kon = null) {
+  const v = m.varde_num ?? Number(m.varde);
+  if (!Number.isFinite(v)) return null;
+  const r = referens(m.typ, { kon });
+  const sv = SVARSVARDEN[m.typ];
+  if (sv && ((sv.kritiskLag != null && v < sv.kritiskLag) || (sv.kritiskHog != null && v > sv.kritiskHog))) return (sv.kritiskHog != null && v > sv.kritiskHog) ? 'kritiskt_hogt' : 'kritiskt_lagt';
+  if (utanforReferens(v, r)) return r?.hog != null && v > r.hog ? 'hogt' : 'lagt';
+  return null;
+}
 
 // En beställning som den visas för personalen. Inget om patienten utöver id:t, som anroparen redan har.
 function bestallningUtBas(db, b, personal = null, nu = new Date()) {

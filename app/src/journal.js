@@ -246,6 +246,11 @@ export function ratta(atk, a, { orsak, sokord, tobak: tobakSvar, levnadsvanor: l
   if (vardenhetFor(atk.db, a.enhet_id) !== vardenhetFor(atk.db, atk.personal.enhet_id)) {
     throw new Fel(403, 'Anteckningen kan bara rättas av den vårdenhet som skrev den.', 'nekad');
   }
+  // Runda 13, r3 (E1-23): bara den som skrev anteckningen rättar den. Andra skriver en ny anteckning som tillägg.
+  if (a.forfattare_id !== atk.personal.id && a.signerad_av !== atk.personal.id) {
+    const namn = atk.db.query('SELECT namn FROM personal WHERE id = ?').get(a.forfattare_id)?.namn ?? 'den som skrev den';
+    throw new Fel(403, `Bara ${namn} kan rätta anteckningen. Skriv en ny anteckning som tillägg, eller be ${namn} rätta den.`, 'nekad');
+  }
   // Runda 8, r5: en rättelse av tobaksvanorna görs med svaren, och den nya versionen får egna svar.
   const tb = a.typ === tobak.TYP ? tobak.forbered(atk, tobakSvar) : null;
   // Runda 9, r7.
@@ -334,6 +339,12 @@ export function matvardeUt(db, m) {
   if (kl) ut.klass = kl;
   // Runda 10, r4: hur värdet kom in, manuellt, maskinellt, räknat, migrerat eller från patienten (matvarde-inmatning.js).
   ut.inmatning = inmatning(m, { labb: Boolean(lb), vem: ut.registreradAv?.namn ?? null });
+  // Runda 13, r3 (E1-19, E2-20): ett värde utanför referensintervallet eller över en kritisk gräns markeras.
+  try {
+    const lab = require('./labb.js');
+    const av = lab.avvikelseFor(m, db.query('SELECT kon FROM patienter WHERE id = ?').get(m.patient_id)?.kon ?? null);
+    if (av) { ut.avvikande = av; ut.avvikandeText = lab.AVVIKANDE[av]; }
+  } catch { /* utan laboratoriet finns inga referenser */ }
   return ut;
 }
 function labbKoppling(db, id) {

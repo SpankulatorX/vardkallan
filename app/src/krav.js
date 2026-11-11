@@ -38,6 +38,8 @@ TESTER_FLERFAKTOR.push(...[
   'den som redan är inloggad loggas inte ut när kravet slås på, utan får frågan vid nästa inloggning',
   'med kravet på ja leds invånaren i Min journal till att registrera en faktor innan journalen visas',
   'med kravet på ja går den sista faktorn inte att ta bort, och säkerhetsloggen visar inloggningen med den nya faktorn',
+  'en väntande registrering slutför inte inloggningen när kontot har fått en faktor under tiden, och tar aldrig bort faktorer',
+  'en väntande registrering kan aldrig ta bort en faktor',
 ].map(t => `Flerfaktor som krav > ${t}`));
 // Runda 12, r2: uppgraderingar med återgång och godkännande av två systemförvaltare (releaser.js).
 import { TESTER_RELEASER } from './sussa/runda12-r2.js';

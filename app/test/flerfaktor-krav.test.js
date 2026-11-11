@@ -125,6 +125,47 @@ describe('Flerfaktor som krav', () => {
     expect(r.data.lasnyckel).toBeUndefined();
   });
 
+  // Säkerhetsgranskningen: en väntande registrering får aldrig gå förbi en faktor som kontot redan har.
+  test('en väntande registrering slutför inte inloggningen när kontot har fått en faktor under tiden, och tar aldrig bort faktorer', async () => {
+    const k = klient(app);
+    await k.logga('far-kard');
+    const db = sandlada(app, k).db;
+    kravFlerfaktor(db);
+    await k.post('/api/logout');
+    expect((await k.post('/api/login', { personalId: 'far-kard' })).data.flerfaktor.registrera).toBe(true);
+    const b = (await k.post('/api/flerfaktor/totp/borja')).data;
+    // Under tiden får kontot en faktor, som om en annan session hade registrerat den.
+    const annan = ff.borjaTotp(db, { typ: 'personal', id: 'far-kard', namn: 'Elsa Nordin' });
+    ff.bekraftaTotp(db, { typ: 'personal', id: 'far-kard' }, ff.totp(ff.fran32(annan.nyckel), Date.now()));
+    const befintlig = ff.aktiva(db, 'personal', 'far-kard')[0];
+    // Den väntande sessionens kod för sin nya nyckel slutför inte inloggningen, och ingen ny faktor sparas.
+    const r = await k.post('/api/flerfaktor/totp', { kod: ff.totp(ff.fran32(b.nyckel), Date.now()) });
+    expect(r.status).toBe(400);
+    expect(r.data.inloggad).toBeUndefined();
+    expect(r.data.flerfaktor).toMatchObject({ kravs: true, metoder: ['totp'] });
+    expect(r.data.flerfaktor.registrera).toBeUndefined();
+    expect(ff.aktiva(db, 'personal', 'far-kard').map(f => f.id)).toEqual([befintlig.id]);
+    expect((await k.get('/api/session')).data.inloggad).toBe(false);
+    // Den väntande sessionen kan inte registrera, se eller ta bort faktorer längre.
+    expect((await k.post('/api/flerfaktor/totp/borja')).status).toBe(401);
+    expect((await k.post(`/api/flerfaktor/${befintlig.id}/ta-bort`)).status).toBe(401);
+    expect(ff.aktiva(db, 'personal', 'far-kard').length).toBe(1);
+  });
+
+  test('en väntande registrering kan aldrig ta bort en faktor', async () => {
+    const k = klient(app);
+    await k.logga('vch-kard');
+    const db = sandlada(app, k).db;
+    kravFlerfaktor(db);
+    await k.post('/api/logout');
+    await k.post('/api/login', { personalId: 'vch-kard' });
+    const b = (await k.post('/api/flerfaktor/totp/borja')).data;
+    const rad = db.query("SELECT id FROM flerfaktorer WHERE agare_id = 'vch-kard'").get();
+    expect((await k.post(`/api/flerfaktor/${rad.id}/ta-bort`)).status).toBe(401);
+    expect(db.query("SELECT count(*) AS n FROM flerfaktorer WHERE agare_id = 'vch-kard'").get().n).toBe(1);
+    expect(b.nyckel).toBeTruthy();
+  });
+
   test('med kravet på ja går den sista faktorn inte att ta bort, och säkerhetsloggen visar inloggningen med den nya faktorn', async () => {
     const k = klient(app);
     await k.logga('adm-kard');
