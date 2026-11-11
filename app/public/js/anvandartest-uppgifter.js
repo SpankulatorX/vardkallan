@@ -597,27 +597,6 @@ export const UPPGIFTER = [
     text: 'Amanda Lindholm föder. Gör nästa CTG-bedömning och dokumentera den.',
     kontroll: { notis: 'Bedömningen är dokumenterad' },
   },
-  // Runda 11, r4: cytostatika, regimbiblioteket, blod och beredningsenheten.
-  {
-    id: 'cyto-godkann', namn: 'Godkänna en cytostatikakur', roll: 'lak-onk', start: 'Journalen för patienten med cytostatika',
-    text: 'Annika Holmgren ska få sin andra kur EC i dag, och proverna är tagna. Godkänn kuren så att den kan beredas.',
-    kontroll: { notis: 'Kuren är godkänd' },
-  },
-  {
-    id: 'regim-godkann', namn: 'Godkänna en ny version av en cytostatikaregim', roll: 'lak-onk', start: 'Arbetslistan efter inloggning',
-    text: 'Gunilla Norén har föreslagit en ny version av karboplatinregimen. Du är regimansvarig. Granska och godkänn den.',
-    kontroll: { notis: 'gäller nu för nya ordinationer' },
-  },
-  {
-    id: 'blod-bestall', namn: 'Beställa blod', roll: 'lak-onk', start: 'Journalen för patienten med cytostatika',
-    text: 'Annika Holmgren har fått blodbrist efter cytostatikan, Hb 88. Beställ två enheter erytrocyter.',
-    kontroll: { notis: 'Blodet är beställt' },
-  },
-  {
-    id: 'cyto-bered', namn: 'Bereda en cytostatikados på beredningsenheten', roll: 'far-bered', start: 'Beredningsenheten med en godkänd kur',
-    text: 'En kur till Annika Holmgren är godkänd. Bered den första dosen och signera beredningen.',
-    kontroll: { notis: 'är beredd och signerad' },
-  },
   // Runda 11, r5: bilder och media i journalen.
   {
     id: 'bild-fran-fil', namn: 'Lägga in en bild från datorn i journalen', roll: 'ssk-kard', start: 'Patientens översikt',
@@ -638,6 +617,27 @@ export const UPPGIFTER = [
     id: 'visa-studie', namn: 'Visa en röntgenstudie ur arkivet med ett annat fönster', roll: 'lak-kard', start: 'Patientens översikt',
     text: 'Gunnar Åkesson har gjort en lungröntgen. Titta på bilderna och se skelettet tydligare.',
     kontroll: { sel: '.bm-studie img' },
+  },
+  // Runda 11, r4: cytostatika, regimbiblioteket, blod och beredningsenheten.
+  {
+    id: 'cyto-godkann', namn: 'Godkänna en cytostatikakur', roll: 'lak-onk', start: 'Journalen för patienten med cytostatika',
+    text: 'Annika Holmgren ska få sin andra kur EC i dag, och proverna är tagna. Godkänn kuren så att den kan beredas.',
+    kontroll: { notis: 'Kuren är godkänd' },
+  },
+  {
+    id: 'regim-godkann', namn: 'Godkänna en ny version av en cytostatikaregim', roll: 'lak-onk', start: 'Arbetslistan efter inloggning',
+    text: 'Gunilla Norén har föreslagit en ny version av karboplatinregimen. Du är regimansvarig. Granska och godkänn den.',
+    kontroll: { notis: 'gäller nu för nya ordinationer' },
+  },
+  {
+    id: 'blod-bestall', namn: 'Beställa blod', roll: 'lak-onk', start: 'Journalen för patienten med cytostatika',
+    text: 'Annika Holmgren har fått blodbrist efter cytostatikan, Hb 88. Beställ två enheter erytrocyter.',
+    kontroll: { notis: 'Blodet är beställt' },
+  },
+  {
+    id: 'cyto-bered', namn: 'Bereda en cytostatikados på beredningsenheten', roll: 'far-bered', start: 'Beredningsenheten med en godkänd kur',
+    text: 'En kur till Annika Holmgren är godkänd. Bered den första dosen och signera beredningen.',
+    kontroll: { notis: 'är beredd och signerad' },
   },
 ];
 

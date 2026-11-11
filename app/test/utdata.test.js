@@ -446,10 +446,15 @@ describe('Datauttag', () => {
     const d = db(k);
     let text = '';
     for (const t of datauttag.TYPER) text += (await raw(k, 'GET', `/api/datauttag/${t}`)).buf.toString('utf8');
+    // Pseudonymerna är 20 hexadecimala tecken med en nyckel som slumpas vid varje körning, och kan av en slump börja med
+    // sex siffror som i ett personnummer. De prövas för sig: ingen pseudonym är ett id ur journalen.
+    const pseudonymer = text.match(/"[0-9a-f]{20}"/g) ?? [];
+    const utan = text.replace(/"[0-9a-f]{20}"/g, '""');
     for (const p of d.query('SELECT * FROM patienter').all()) {
+      expect(pseudonymer).not.toContain(`"${p.id}"`);
       expect(text).not.toContain(p.efternamn);
       expect(text).not.toContain(p.personnummer);
-      expect(text).not.toContain(p.personnummer.slice(2, 8));
+      expect(utan).not.toContain(p.personnummer.slice(2, 8));
       if (p.adress) expect(text).not.toContain(p.adress);
       expect(text).not.toContain(`"${p.id}"`);
     }
