@@ -931,6 +931,93 @@ const undersok = (page, kod, nyckelB64) => page.evaluate(async ({ kod, nyckelB64
     await c.close();
   }
 
+  // Runda 12, r3 (vårt L5): flerfaktorsinloggning. Passkeys kräver ett domännamn (WebAuthn godtar inte en IP-adress som
+  // RP-id), så testet går mot localhost med samma server. Chromes virtuella autentiserare har användarverifiering.
+  {
+    const LOKAL = BAS.replace('://127.0.0.1', '://localhost');
+    const fc = await ny();
+    const fp = await fc.newPage();
+    felSida = fp;
+    bevaka(fp, 'flerfaktor');
+    const loggaInLokal = async (id) => {
+      await fp.goto(`${LOKAL}/#/`);
+      await fp.waitForLoadState('networkidle');
+      if (await fp.locator('[data-a="loggaut"]').count()) { await fp.click('[data-a="loggaut"]'); await fp.waitForSelector(`[data-roll="${id}"]`); }
+      await fp.click(`[data-roll="${id}"]`);
+    };
+    await test('flerfaktor: en passkey i Chromes virtuella autentiserare slår på flerfaktor, bekräftar nästa inloggning, och läsläget vid avbrott fungerar efter den andra faktorn', async () => {
+      const cdp = await fc.newCDPSession(fp);
+      await cdp.send('WebAuthn.enable');
+      await cdp.send('WebAuthn.addVirtualAuthenticator', { options: { protocol: 'ctap2', transport: 'internal', hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
+      await loggaInLokal('lak-kard');
+      await fp.waitForSelector('[data-a="loggaut"]');
+      await fp.click('a[data-flerfaktor="av"]');
+      await synlig(fp, 'main h1', 'Inloggning och flerfaktor');
+      await fp.click('[data-a="passkey"]');
+      await synlig(fp, '.notis', 'Passkeyn är registrerad');
+      await synlig(fp, '[data-ff-lista]', 'Passkey för Sara Lindqvist');
+      await bild(fp, '44-flerfaktor-passkey');
+      await fp.click('[data-a="loggaut"]');
+      await fp.waitForSelector('[data-roll="lak-kard"]');
+      await fp.click('[data-roll="lak-kard"]');
+      // Dialogen visas, och passkeyn efterfrågas direkt. Autentiseraren svarar utan att någon klickar.
+      await fp.waitForSelector('[data-a="loggaut"]', { timeout: 15000 });
+      await synlig(fp, 'a[data-flerfaktor="pa"]', 'Flerfaktor på');
+      const sess = await fp.evaluate(async () => (await fetch('/api/session')).json());
+      anta(sess.flerfaktor?.metod === 'passkey' && sess.lasnyckel?.nyckel, `sessionen efter passkeyn: ${JSON.stringify(sess.flerfaktor)}`);
+      // Läsläget vid avbrott: läskopian lämnas ut efter den andra faktorn, och journalen går att läsa ur den.
+      await fp.click('a.patientlank:has-text("Gunnar Åkesson")');
+      await fp.waitForSelector('.tidslinje');
+      const fore = await fp.evaluate(() => document.documentElement.dataset.laskopia ?? '');
+      await fp.evaluate(async () => (await import('/js/avbrott.js')).fornyaNu());
+      await vantaPaKopia(fp, fore);
+      await fp.click('[data-a="avbrott"]');
+      await synlig(fp, '#avbrott h2', 'Avbrott: läsläge');
+      await fp.goto(`${LOKAL}/#/patient/p01`);
+      await fp.waitForSelector('.tidslinje');
+      await synlig(fp, 'main h1', 'Gunnar Åkesson');
+      await fp.click('[data-avbrott="avsluta"]');
+      await fp.waitForSelector('#avbrott h2', { state: 'detached', timeout: 10000 }).catch(() => {});
+    });
+    await test('flerfaktor: invånaren slår på en app för engångskoder i Min journal och loggar sedan in med en kod från appen', async () => {
+      const { createHmac } = require('node:crypto');
+      const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+      const fran32 = (t) => { let b = 0, v = 0; const u = []; for (const ch of t) { v = (v << 5) | B32.indexOf(ch); b += 5; if (b >= 8) { u.push((v >>> (b - 8)) & 255); b -= 8; } } return Buffer.from(u); };
+      const kodFor = (h, ms) => { const r = Buffer.alloc(8); r.writeBigUInt64BE(BigInt(Math.floor(ms / 30000))); const d = createHmac('sha1', h).update(r).digest(); const o = d[d.length - 1] & 15; return String((((d[o] & 0x7f) << 24) | (d[o + 1] << 16) | (d[o + 2] << 8) | d[o + 3]) % 1e6).padStart(6, '0'); };
+      await fp.goto(`${LOKAL}/#/`);
+      await fp.waitForLoadState('networkidle');
+      if (await fp.locator('[data-a="loggaut"]').count()) await fp.click('[data-a="loggaut"]');
+      await fp.click('#flik-patient');
+      await fp.click('[data-invanare="inv-p01"]');
+      await fp.waitForSelector('[data-a="loggaut"]');
+      await fp.click('a[data-flerfaktor="av"]');
+      await synlig(fp, 'main h1', 'Inloggning och flerfaktor');
+      await fp.click('[data-a="totp"]');
+      const nyckel = await fp.locator('[data-ff-nyckel]').getAttribute('data-ff-nyckel');
+      const h = fran32(nyckel);
+      // Webbläsarens klocka kan vara ställd av testcontainern. Koden räknas med serverns klocka.
+      const serverNu = async () => Date.parse((await (await fetch(`${LOKAL}/api/health`)).json()).testklocka ?? new Date().toISOString());
+      await fp.fill('#ff-ny-kod', kodFor(h, await serverNu()));
+      await fp.click('#ff-totp-form [type="submit"]');
+      await synlig(fp, '.notis', 'Appen är registrerad');
+      await synlig(fp, '[data-ff-status="pa"]', 'Flerfaktor är på');
+      await fp.click('[data-a="loggaut"]');
+      await fp.click('#flik-patient');
+      await fp.click('[data-invanare="inv-p01"]');
+      const dl = fp.locator('dialog[open].flerfaktor-dialog');
+      await dl.waitFor();
+      await synlig(fp, 'dialog[open]', 'Bekräfta att det är du');
+      await bild(fp, '45-flerfaktor-kod');
+      await dl.locator('#ff-kod').fill(kodFor(h, (await serverNu()) + 30000));
+      await dl.locator('[data-ff="totp"]').click();
+      await fp.waitForSelector('[data-a="loggaut"]', { timeout: 15000 });
+      await synlig(fp, 'a[data-flerfaktor="pa"]', 'Flerfaktor på');
+      await fp.click('a[data-flerfaktor="pa"]');
+      await synlig(fp, 'main', 'bekräftades med en kod från appen');
+    });
+    await fc.close();
+  }
+
   const version = browser.version();
   await browser.close();
   const { gransnittHash } = await import(pathToFileURL(join(APP, 'src', 'klientresultat.js')).href);

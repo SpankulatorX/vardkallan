@@ -11,6 +11,8 @@ const FALT = ['id', 'tid', 'typ', 'personal_id', 'invanare_id', 'enhet_id', 'met
 export const TYPER = {
   inloggning: 'Inloggning', utloggning: 'Utloggning', inloggning_misslyckad: 'Misslyckad inloggning', avvisat_anrop: 'Avvisat anrop',
   andrad_behorighet: 'Ändrad behörighet', andrad_installning: 'Ändrad inställning', loggexport: 'Export av loggen', stickprov: 'Stickprovskontroll',
+  // Runda 12, r3: registrerade och borttagna faktorer och en inloggning som väntar på den andra faktorn (flerfaktor.js).
+  flerfaktor: 'Flerfaktor',
 };
 
 const kanonisk = (r) => JSON.stringify(Object.fromEntries(FALT.map(f => [f, r[f] ?? null])));
@@ -79,6 +81,7 @@ const INLOGGNING = ['/api/login', '/api/login/invanare'];
 const BILJETT = '/api/login/biljett';
 INLOGGNING.push(BILJETT);
 const UTLOGGNING = '/api/logout';
+const FLERFAKTOR = '/api/login/flerfaktor';
 const ATERSTALL = '/api/reset';
 
 // Anropas av servern efter varje anrop till /api och /fhir med en sandlåda. fore är den inloggade före anropet.
@@ -88,6 +91,14 @@ export function efterAnrop(db, { nyckel, status, kod = null, fel = null, fore = 
   const vem = (x) => ({ personal_id: x.personal?.id ?? null, invanare_id: x.invanare?.id ?? null, enhet_id: x.personal?.enhet_id ?? null });
   const bas = { metod, vag, status };
   const ok = status < 400;
+  // Runda 12, r3: den andra faktorn. Ett godkänt försök är inloggningen. Ett misslyckat försök loggas av servern med
+  // personen, eftersom ingen är inloggad före eller efter anropet.
+  if (metod === 'POST' && vag === FLERFAKTOR) {
+    if (ok && (efter.personal || efter.invanare)) logga(db, { ...bas, ...vem(efter), typ: 'inloggning', beskrivning: efter.invanare ? 'Invånaren loggade in i Min journal med e-legitimation (simulerad) och flerfaktor.' : 'Inloggning med SITHS-kort (simulerat) och flerfaktor.' });
+    return;
+  }
+  // En inloggning som lyckas men väntar på den andra faktorn loggas av servern som flerfaktor, inte som inloggning.
+  if (metod === 'POST' && INLOGGNING.includes(vag) && ok && !efter.personal && !efter.invanare) return;
   if (metod === 'POST' && INLOGGNING.includes(vag)) {
     const invanare = vag === INLOGGNING[1];
     // Runda 9, r5: personalens inloggning går genom autentiseringstjänsten, och en misslyckad inloggning får orsaken.

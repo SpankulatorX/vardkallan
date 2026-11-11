@@ -13,6 +13,21 @@ const TESTER_MALLAR = [R6.mallInkorg, R6.mallSakerhet, R6.substans, R6.kbMall];
 import { TESTER_VERSION } from './sussa/runda8-r5.js';
 // Runda 9, r6: lagkravsmatrisen (Sussa 2.7.1.2).
 import { testerFor } from './lagmatris.js';
+// Runda 12, r3: testerna för flerfaktorsinloggningen (vårt L5), i servern och i Chromes virtuella autentiserare.
+const TESTER_FLERFAKTOR = [
+  'utan registrerad faktor loggar demorollen in som förut, och flerfaktor är av',
+  'en passkey registreras med WebAuthn, och bara den publika nyckeln sparas',
+  'med en passkey väntar inloggningen på den andra faktorn och ger varken behörighet eller läskopia förrän den är godkänd',
+  'en signatur från fel nyckel, fel ursprung, en gammal utmaning eller utan användarverifiering godtas inte',
+  'en app för engångskoder enligt RFC 6238 registreras med en kod, nyckeln sparas krypterad och varje kod godtas en gång',
+  'invånaren i Min journal kan slå på flerfaktor och loggar sedan in med engångskod',
+  'för många felaktiga koder avbryter inloggningen, och återställd sandlåda tar bort faktorn så att ingen låses ute',
+  'TOTP stämmer med testvektorerna i RFC 6238',
+  'säkerhetsloggen visar registrering, väntande inloggning, misslyckad och lyckad andra faktor',
+].map(t => `Flerfaktor > ${t}`).concat([
+  'Gränssnitt > Avbrott > flerfaktor: en passkey i Chromes virtuella autentiserare slår på flerfaktor, bekräftar nästa inloggning, och läsläget vid avbrott fungerar efter den andra faktorn',
+  'Gränssnitt > Avbrott > flerfaktor: invånaren slår på en app för engångskoder i Min journal och loggar sedan in med en kod från appen',
+]);
 
 const RAPPORT = 'Cosmic upphandling krav och kritik';
 const k = (id, rubrik, kalla, status, var_, tester = [], anmarkning = null) => ({ id, rubrik, kalla, status, var: var_, tester, anmarkning });
@@ -195,13 +210,15 @@ export const KRAV = [
       'Stickprovskontroll > systemet drar slumpvis åtkomster, granskaren markerar dem med ett klick, och det syns vilka som återstår',
       'Stickprovskontroll > en granskad rad ändras inte, utreds kräver en kommentar, och varje granskning loggas'],
     'Utskrifter, utlämnanden, export till e-arkiv, gallring, radering och datauttag loggas också. Loggen kan inte ändras och kan följas upp med flaggor. Patienten ser själv i Min journal vilken vårdenhet och yrkesroll som har läst journalen, när och på vilken grund (HSLF-FS 2016:40 4 kap. 10 §), och kan begära ett loggutdrag med namn. Stickprovskontroller enligt 4 kap. 9 b § finns: systemet drar åtkomsterna slumpvis, säger vad som ska kontrolleras och sparar granskningen så att kontrollen är dokumenterad. Loggen kan exporteras till fil som NDJSON eller CSV med hela kedjan, och säkerhetshändelser loggas i en egen kedja. Lagring i minst fem år finns inte, eftersom demons sandlådor lever i åtta timmar, och inloggningen i Min journal är simulerad (se L5).'),
-  k('L5', 'Flerfaktorsautentisering vid direktåtkomst och patientens e-åtkomst', 'HSLF-FS 2016:40 3 kap. 15 § och 4 kap. 11 till 12 §§, PDL 5 kap. 5 §', 'delvis', '/',
+  k('L5', 'Flerfaktorsautentisering vid direktåtkomst och patientens e-åtkomst', 'HSLF-FS 2016:40 3 kap. 15 § och 4 kap. 11 till 12 §§, PDL 5 kap. 5 §', 'uppfyllt_demo', '/flerfaktor',
     [`${MJ}inloggning med simulerad e-legitimation ger en egen session utan personalens behörigheter`, `${MJ}patienten når sin egen journal men inte någon annans, oavsett id i adressen`,
       `${MJ}patientsessionen når inga av personalens API:er`, `${MJ}personalens session når inte Min journal`, `${MJ}utloggning och byte av roll i samma webbläsare nollställer sessionen`,
       `${MJ}anteckningstyp som vårdgivaren valt att inte visa döljs och redovisas`,
       `${MJ}en äldre version av en anteckning som har ersatts av en version som inte visas går inte att nå, varken i Min journal eller i FHIR`,
-      `${B}invånare: egen journal från 16 år, vårdnadshavare till 13 år och aldrig för ett barn med skyddad identitet`],
-    'Patientens e-tjänst Min journal finns, med egen session och egen behörighet på servern, och den talar om vad som inte visas (4 kap. 12 §). Flerfaktorsautentisering finns inte: e-legitimationen för patienten och SITHS-kortet för personalen är simulerade och kopplade till ingen extern tjänst.'),
+      `${B}invånare: egen journal från 16 år, vårdnadshavare till 13 år och aldrig för ett barn med skyddad identitet`,
+      // Runda 12, r3: flerfaktorsinloggning med passkeys (WebAuthn) och engångskoder (RFC 6238), flerfaktor.js.
+      ...TESTER_FLERFAKTOR],
+    'Patientens e-tjänst Min journal finns, med egen session och egen behörighet på servern, och den talar om vad som inte visas (4 kap. 12 §). Flerfaktorsinloggning finns för personalen och för invånaren i Min journal, med öppna standarder och utan extern tjänst: passkeys enligt WebAuthn med användarverifiering, där servern bara sparar den publika nyckeln och prövar signatur, ursprung, utmaning och räknare, och engångskoder enligt RFC 6238, där nyckeln sparas krypterad med AES-256-GCM och varje kod godtas en gång. Ingen nyckel till läskopian lämnas ut förrän den andra faktorn är godkänd, så läsläget vid avbrott fungerar som förut. Systemet föreslår passkey först och förklarar varför en kod eller en passkey inte godtas. Demoregel: den publika demon får inte låsa ute besökaren, så flerfaktorn slås på av var och en när en passkey eller en app registreras för en demoroll i sandlådan, och en återställd sandlåda tar bort den tillsammans med allt annat. I drift skulle flerfaktor krävas av alla. Den första faktorn, SITHS-kortet för personalen och e-legitimationen för invånaren, är fortfarande simulerad och kopplad till ingen extern tjänst.'),
   k('L6', 'Skyddade personuppgifter hanteras i hela kedjan, även uppropning', 'OSL 25 kap., Örebro-fallet 2024', 'uppfyllt_demo', '/vantrum',
     [`${B}skyddad identitet: namn och personnummer maskeras`, `${A}arbetslista maskerar skyddad identitet`, `${A}sök maskerar skyddad patient och hittar den bara på fullständigt personnummer`,
       `${A}väntrummet visar aldrig namn för skyddad patient`, `${A}visa identitet kräver syfte och loggas`, `${F}skyddad patient maskeras i FHIR`,

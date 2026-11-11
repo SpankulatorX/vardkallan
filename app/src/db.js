@@ -484,6 +484,10 @@ export function byggSeed(bas = nu()) {
   require('./schema-runda10-r7.js').sakraR10r7(db, bas);
   // Runda 11, r7: intensivvårdens regler, andningsstöd, mål och NEMS och tillväxtens tabeller (schema-runda11-r7.js).
   require('./schema-runda11-r7.js').sakraR11r7(db);
+  // Runda 12, r3: passkeys och appar för engångskoder per användare i sandlådan (flerfaktor.js).
+  require('./flerfaktor.js').sakra(db);
+  // Runda 12, r3: praktiska prov i journalen och försöken (praktiska-prov.js).
+  require('./praktiska-prov.js').sakra(db);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -620,6 +624,9 @@ export function migrera(db) {
   require('./schema-runda10-r7.js').sakraR10r7(db, nu());
   // Runda 11, r7 (schema-runda11-r7.js).
   require('./schema-runda11-r7.js').sakraR11r7(db);
+  // Runda 12, r3 (flerfaktor.js och praktiska-prov.js).
+  require('./flerfaktor.js').sakra(db);
+  require('./praktiska-prov.js').sakra(db);
   return db;
 }
 

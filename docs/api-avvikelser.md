@@ -806,3 +806,12 @@ Det som ändrar något kräver radens vårdenhet. Listor på enhetsnivå och upp
 - `POST /api/riv/GetObservations` och `POST /api/riv/GetActivities` i den simulerade producenten, med `observation` och `activityGroup` i svaret.
 - `POST /api/patient/:id/iva/infusion/:oid/dos` tar emot `armband`, som prövas mot patientens identiteter. Protokollen i `GET /api/patient/:id/iva/infusion/forslag` är också noradrenalin (`dosEnhet: µg/kg/min`), propofol och midazolam, och en infusion utan automatisk titrering har `titrering: null`. Sammanräkningen i `/iva/tillagg` har `utdelning: [{ tid, dos, dosEnhet, mlH, av, text }]`.
 - Mätvärden har källan `import` och inmatningen `importerad` när de är inlästa från en fil eller ett annat journalsystem.
+
+## Flerfaktorsinloggning (runda 12, r3)
+
+- `POST /api/login`, `POST /api/login/biljett` och `POST /api/login/invanare` svarar `{ inloggad: false, flerfaktorVantar: { typ, namn, metoder }, flerfaktor: { kravs: true, metoder: ['passkey', 'totp'], passkey?: { challenge, rpId, allowCredentials, userVerification, timeout } } }` när personen har en faktor i sandlådan. Utan faktor är svaret som förut.
+- `POST /api/login/flerfaktor { typ: 'passkey', svar: { id, clientDataJSON, authenticatorData, signature } }` eller `{ typ: 'totp', kod }` slutför inloggningen och ger sessionen. Ett fel har en ny utmaning i `flerfaktor`, utom när inloggningen är avbruten. `POST /api/login/flerfaktor/avbryt` avbryter.
+- `GET /api/flerfaktor` ger `{ aktiv, faktorer: [{ id, typ, typText, namn, skapad, senastAnvand }], metod, max, text }` för den inloggade, personal eller invånare.
+- `POST /api/flerfaktor/passkey/borja` ger alternativen till `navigator.credentials.create`, och `POST /api/flerfaktor/passkey { namn?, svar: { id, clientDataJSON, attestationObject } }` (201) sparar passkeyn.
+- `POST /api/flerfaktor/totp/borja` ger `{ id, nyckel, nyckelGrupper, uri, steg, siffror }`, och `POST /api/flerfaktor/totp { kod }` (201) slår på appen. `POST /api/flerfaktor/:id/ta-bort` tar bort en faktor.
+- `GET /api/session` har `flerfaktor: { aktiv, metod }` för den inloggade.

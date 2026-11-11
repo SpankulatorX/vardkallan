@@ -14,6 +14,16 @@
           "var": "#/krav",
           "rubrik": "Alla Sussas testfall går att genomföra",
           "text": "Alla 34 testfall från Sussas användbarhetstester av Cosmic går att genomföra i Vårdkällan inom klickbudgeten, och kravsidan säger det. Det som återstår för användbarheten är tester med personer som arbetar i vården."
+        },
+        {
+          "id": "flerfaktor-1-2",
+          "roller": [
+            "alla"
+          ],
+          "omfattning": "liten",
+          "var": "#/flerfaktor",
+          "rubrik": "Flerfaktorsinloggning med passkey eller engångskod",
+          "text": "Under Flerfaktor i sidhuvudet registrerar du en passkey eller en app för engångskoder. Därefter frågar systemet efter den vid varje inloggning som du i sandlådan, både för personalen och i Min journal. Passkeyn föreslås först, eftersom den inte går att lura till en falsk webbplats."
         }
       ]
     },

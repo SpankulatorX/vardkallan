@@ -2295,3 +2295,52 @@ Bedömningen finns i docs/stafs-2015-13.md. Föreskrifterna gäller laboratoriet
 ### Det som är simulerat eller saknas
 
 Röntgenkliniken, klinisk fysiologi, klinisk neurofysiologi, radiologens utlåtanden, tiderna och rummen, det patientnära instrumentet och laboratorierna är simulerade. Gränserna för eGFR, åldern för graviditetsfrågan och prioriteternas tider är demoregler. Bilderna och arkivet görs i bilder.js, och utlåtandet länkar till studien med studiens id och uid.
+
+## Flerfaktorsinloggning (runda 12, r3: flerfaktor.js, flerfaktor-ui.js och vyer/flerfaktor.js, vårt L5)
+
+Personalen och invånaren i Min journal kan skydda sin inloggning med en andra faktor. Allt bygger på öppna standarder
+och ingen extern tjänst används.
+
+### Två slag av faktor
+
+- Passkey enligt WebAuthn nivå 2. Webbläsaren och autentiseraren (telefonen, datorns inbyggda skydd eller en
+  säkerhetsnyckel) skapar ett nyckelpar. Servern sparar bara den publika nyckeln, per användare i sandlådan, och prövar
+  vid varje inloggning signaturen, att utmaningen är serverns egen och används en gång, ursprunget, RP-id:t, att
+  personen verifierades med PIN-kod, fingeravtryck eller ansikte och att räknaren ökar. ES256 och RS256 godtas.
+  Attestering begärs inte, eftersom demon inte kräver en viss sorts autentiserare.
+- Engångskoder enligt RFC 6238 (HMAC-SHA1, 30 sekunder, sex siffror) från en app i telefonen. Nyckeln visas en gång
+  och sparas krypterad med AES-256-GCM, med ägaren som tilläggsdata. Krypteringsnyckeln ligger aldrig i databasen: den
+  kommer från `FLERFAKTOR_NYCKEL` eller från en fil bredvid sessionsfilen. En kod från steget före eller efter godtas,
+  och varje kod godtas en gång.
+
+### Systemet är experten
+
+Användaren väljer aldrig algoritm, längd eller tidsfönster. Systemet föreslår passkey först, eftersom den bara fungerar
+på Vårdkällans egen adress och inte kan lockas ut av en falsk webbplats, frågar efter passkeyn direkt vid inloggningen
+och säger på vanlig svenska varför en kod eller en passkey inte godtas: fel kod, en kod som redan har använts, en
+passkey från en annan webbplats eller en autentiserare som inte bekräftade att det var personen.
+
+### Inloggningen
+
+Den första faktorn är det simulerade SITHS-kortet eller den simulerade e-legitimationen. När personen har en faktor
+avslutas den förra inloggningen i webbläsaren direkt, och inloggningen väntar på den andra faktorn i högst fem minuter.
+Under tiden har sessionen inga behörigheter och ingen nyckel till läskopian. Efter fem felaktiga försök avbryts
+inloggningen, och efter tio under en kvart spärras försöken för personen i sandlådan. Godkända och misslyckade försök,
+registrerade och borttagna faktorer och väntande inloggningar loggas i säkerhetsloggen.
+
+### Den publika demon
+
+Demon får inte låsa ute besökaren. Därför är detta en demoregel: flerfaktorn slås på av var och en, när en passkey eller
+en app registreras för en demoroll i sandlådan, och gäller bara där. Den som tappar bort sin faktor återställer
+sandlådan, och då försvinner faktorn och allt annat i sandlådan, så att återställningen aldrig ger åtkomst till något
+som faktorn skyddade. I drift skulle flerfaktor krävas av alla.
+
+### Läsläget vid avbrott
+
+Läskopian lämnas ut när inloggningen är klar, alltså efter den andra faktorn, och läsläget fungerar som förut.
+Reservinloggningen under ett avbrott når inte servern och använder reservkoden och den krypterade kopian på datorn.
+
+### Det som är simulerat eller saknas
+
+SITHS-kortet och e-legitimationen är fortfarande simulerade. En QR-kod för appen saknas; nyckeln skrivs in i appen
+eller öppnas med länken `otpauth://` på samma enhet.

@@ -153,16 +153,69 @@ function kopplaRedigering(el, r) {
   });
 }
 
+// Runda 12, r3 (Sussa 10.1.1.5): praktiska prov i journalen. Personen startar provet, gör uppgiften i övningsjournalen
+// som systemet har valt och låter systemet kontrollera resultatet. Utbildaren skapar prov och följer upp, utan att se
+// vilken patient provet gjordes på.
+const PROVIKON = { godkant: ikon.bock, utgatt: ikon.varning, pagar: ikon.klocka, ej_paborjat: ikon.info };
+function provHtml(p) {
+  const mina = p.prov.length ? `<ul class="lista-enkel prov-lista">${p.prov.map(x => `<li data-prov="${x.id}" data-prov-status="${esc(x.status)}">
+      <div><strong>${esc(x.titel)}</strong> <span class="intyg intyg-${x.status === 'godkant' ? 'giltigt' : x.status === 'utgatt' ? 'utgatt' : 'saknas'}">${PROVIKON[x.status] ?? ''}<span>${esc(x.text)}</span></span>
+        ${x.giltigtTill ? `<span class="dampad">Gäller till ${esc(datum(x.giltigtTill))}.</span>` : ''}
+        ${x.uppgift ? `<p>${esc(x.uppgift)} <a href="${esc(x.lank)}">Öppna övningsjournalen</a></p>` : ''}
+        ${x.resultat ? `<p class="dampad" data-prov-resultat>${esc(x.resultat)}</p>` : ''}</div>
+      ${x.status === 'pagar' ? `<button type="button" class="knapp" data-prov-kontrollera="${x.id}">Kontrollera provet</button>`
+        : x.status !== 'godkant' ? `<button type="button" class="knapp sekundar" data-prov-starta="${x.id}">Starta provet</button>` : ''}
+    </li>`).join('')}</ul>` : '<p class="tom">Det finns inga praktiska prov för din yrkesroll på vårdenheten.</p>';
+  const kvar = p.utbildare ? p.provtyper.filter(t => !p.uppfoljning.some(u => u.typ === t.typ)) : [];
+  const utb = p.utbildare ? `<h3>Skapa och följ upp prov</h3>
+    <p>Du har behörigheten utbildare på vårdenheten. Välj ett prov. Systemet vet vilka yrkesroller det gäller och kontrollerar resultatet själv.</p>
+    ${kvar.length ? `<form class="knapprad" data-prov-skapa novalidate><label for="prov-typ">Prov</label>
+      <select id="prov-typ" name="typ">${kvar.map(t => `<option value="${esc(t.typ)}">${esc(t.titel)}</option>`).join('')}</select>
+      <button type="submit" class="knapp">Skapa provet</button></form>` : '<p class="dampad">Vårdenheten har alla prov som systemet kan kontrollera.</p>'}
+    ${p.uppfoljning.map(u => `<table class="tabell" data-uppfoljning="${u.id}"><caption>${esc(u.titel)}: ${u.godkanda} av ${u.personer.length} godkända</caption>
+      <thead><tr><th scope="col">Person</th><th scope="col">Status</th><th scope="col">Gäller till</th></tr></thead>
+      <tbody>${u.personer.map(x => `<tr><td>${esc(x.namn)} <span class="dampad">${esc(x.titel)}</span></td><td>${esc(x.text)}</td><td>${x.giltigtTill ? esc(datum(x.giltigtTill)) : ''}</td></tr>`).join('')}</tbody></table>
+      <p><button type="button" class="knapp text liten" data-prov-avsluta="${u.id}">Avsluta provet ${esc(u.titel.toLowerCase())}</button></p>`).join('')}` : '';
+  return `<section class="ruta" aria-labelledby="ut-prov-rubrik">
+    <h2 id="ut-prov-rubrik">Praktiska prov</h2>
+    <p class="dampad">Uppgifter som du gör i en övningsjournal med en påhittad patient. Systemet kontrollerar i journalen att det blev rätt, och ett godkänt prov gäller i ett år.</p>
+    ${mina}${utb}</section>`;
+}
+async function kopplaProv(yta) {
+  const rita = (p) => { yta.innerHTML = provHtml(p); };
+  rita(await api('/api/utbildning/prov'));
+  yta.addEventListener('click', async (ev) => {
+    const b = ev.target.closest('button[data-prov-starta], button[data-prov-kontrollera], button[data-prov-avsluta]');
+    if (!b) return;
+    const [vag, id] = b.dataset.provStarta ? ['starta', b.dataset.provStarta] : b.dataset.provKontrollera ? ['kontrollera', b.dataset.provKontrollera] : ['avsluta', b.dataset.provAvsluta];
+    const r = await medKnapp(b, () => api(`/api/utbildning/prov/${encodeURIComponent(id)}/${vag}`, { metod: 'POST' })).catch(() => null);
+    if (!r) return;
+    rita(r);
+    if (vag === 'kontrollera') notis(r.text, r.godkant ? 'ok' : 'info');
+    yta.querySelector(`[data-prov="${CSS.escape(id)}"] a, [data-prov="${CSS.escape(id)}"] button`)?.focus();
+  });
+  yta.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const f = ev.target.closest('[data-prov-skapa]');
+    if (!f) return;
+    const r = await medKnapp(f.querySelector('[type="submit"]'), () => api('/api/utbildning/prov', { metod: 'POST', data: { typ: f.typ.value } })).catch(() => null);
+    if (r) { rita(r); notis('Provet är skapat. Personalen med de yrkesroller som provet gäller ser det under Utbildning.'); }
+  });
+}
+
 export async function visa(main) {
   main.innerHTML = vyRubrik('Utbildning', 'Korta övningar om hur Vårdkällan fungerar för din roll, med demopatienter. Alla rätt ger ett intyg som gäller i ett år.') + '<div id="utbildning"><p class="tom">Hämtar övningarna.</p></div>';
   const o = await api('/api/utbildning');
   const e = o.enhet ? await api('/api/utbildning/enhet') : null;
   const el = main.querySelector('#utbildning');
   const egna = o.kanAndraEnhet ? `<button type="button" class="knapp sekundar" data-oppna-enhet>Ändra egna övningar för ${esc(o.kanAndraEnhet.namn)}</button>` : '';
-  el.innerHTML = `${minaHtml(o)}${e ? `<div id="ut-enhet">${enhetHtml(e)}</div>` : ''}${ovningarHtml(o)}${o.kanAndra || o.kanAndraEnhet ? `<section aria-labelledby="ut-red-rubrik" data-ov-redigera>
+  el.innerHTML = `${minaHtml(o)}<div id="ut-prov"></div>${e ? `<div id="ut-enhet">${enhetHtml(e)}</div>` : ''}${ovningarHtml(o)}${o.kanAndra || o.kanAndraEnhet ? `<section aria-labelledby="ut-red-rubrik" data-ov-redigera>
       <h2 id="ut-red-rubrik">Ändra övningarna</h2>
       <div id="ov-red-yta"><p>Du är ${o.enhet ? 'verksamhetschef' : 'utbildare'} och kan ändra vårdgivarens övningar för alla yrkesroller${o.kanAndraEnhet ? ` och de egna övningarna för ${esc(o.kanAndraEnhet.namn)}` : ''}.</p><div class="knapprad">${o.kanAndra ? '<button type="button" class="knapp sekundar" data-oppna-redigering>Ändra övningarna</button>' : ''}${egna}</div></div>
     </section>` : ''}${hjalpLista()}`;
+
+  // Runda 12, r3: praktiska prov i journalen.
+  await kopplaProv(el.querySelector('#ut-prov'));
 
   const oppna = (omfang) => async (ev) => {
     const r = await medKnapp(ev.currentTarget, () => api(`/api/utbildning/ovningar${omfang === 'enhet' ? '?omfang=enhet' : ''}`));

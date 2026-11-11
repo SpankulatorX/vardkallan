@@ -461,6 +461,8 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
       await granskaHar(`${roll} ${h}`);
     }
     for (const extra of ['#/nyheter', '#/tillganglighet']) { await gaTill(page, extra); vyLista.push([roll, extra]); await granskaHar(`${roll} ${extra}`, { fokus: false }); }
+    // Runda 12, r3: inloggning och flerfaktor nås från sidhuvudet för all personal.
+    { await gaTill(page, '#/flerfaktor'); vyLista.push([roll, '#/flerfaktor']); await granskaHar(`${roll} #/flerfaktor`); }
     // Runda 8, r2: remisskonferensen med en remiss på, för läkaren och vårdadministratören.
     if (['lak-kard', 'adm-kard'].includes(roll)) {
       await page.evaluate(async () => {
@@ -520,6 +522,8 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     vyLista.push([invanare, h]);
     await granskaHar(`${invanare} ${h}`);
   }
+  // Runda 12, r3: inloggning och flerfaktor i Min journal.
+  { await gaTill(page, '#/flerfaktor'); vyLista.push([invanare, '#/flerfaktor']); await granskaHar(`${invanare} #/flerfaktor`); }
   console.log(`Granskade ${vyLista.length} vyer på 1440 px.`);
 
   // Ett fel i ett formulär (3.3.1): en sökning på ett tecken ger ett fel från servern, som ska markeras vid fältet,
@@ -838,6 +842,43 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     const t = await tabell.textContent();
     for (const x of ['Amira Haddad', 'Giltigt intyg', 'Intyget har gått ut', 'Inget intyg', 'Går ut om']) if (!t.includes(x)) throw new Error(`vårdenhetens intyg saknar ${x}`);
     await p.screenshot({ path: join(UT, 'r7r2-intyg-enhet.png'), fullPage: true });
+    await k.close();
+  });
+  // Runda 12, r3 (Sussa 10.1.1.5): praktiska prov. Utbildaren Johan Ek skapar provet, läkaren startar det, öppnar
+  // övningsjournalen, skriver och signerar en anteckning och låter systemet kontrollera. Utbildaren följer upp.
+  await provaUtb('Gränssnitt > Utbildning > utbildaren skapar ett praktiskt prov, läkaren gör det i övningsjournalen och systemet kontrollerar resultatet', async () => {
+    const k = await kontext({ width: 1440, height: 900 });
+    await k.addInitScript(INIT);
+    const p = await k.newPage();
+    bevaka(p, 'prov');
+    await loggaIn(p, 'ssk-kard');
+    await gaTill(p, '#/utbildning');
+    await p.selectOption('#prov-typ', 'signera_anteckning');
+    await p.click('[data-prov-skapa] [type="submit"]');
+    await p.waitForFunction(() => /Provet är skapat/.test(document.getElementById('notiser').textContent));
+    await loggaIn(p, 'lak-kard');
+    await gaTill(p, '#/utbildning');
+    const rad = p.locator('[data-prov-status]').filter({ hasText: 'Skriva och signera' });
+    await rad.locator('[data-prov-starta]').click();
+    await p.locator('[data-prov-status="pagar"] a').waitFor();
+    const lank = await p.locator('[data-prov-status="pagar"] a').getAttribute('href');
+    const pid = lank.split('/')[2];
+    // Uppgiften görs i journalen. Anteckningen skrivs och signeras genom samma API som fliken Anteckningar använder.
+    await p.evaluate(async (pid) => {
+      const post = (v, d) => fetch(v, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then(r => r.json());
+      const a = await post(`/api/patient/${pid}/anteckningar`, { typ: 'Daganteckning', sokord: [{ sokord: 'Aktuellt', text: 'Praktiskt prov i utbildningen.' }] });
+      await post(`/api/anteckning/${a.id}/signera`, {});
+    }, pid);
+    await gaTill(p, '#/utbildning');
+    await p.click('[data-prov-kontrollera]');
+    await p.locator('[data-prov-status="godkant"]').waitFor();
+    if (!/signerad/.test(await p.locator('[data-prov-status="godkant"] [data-prov-resultat]').textContent())) throw new Error('resultatet förklarar inte vad systemet kontrollerade');
+    await p.screenshot({ path: join(UT, 'r12r3-praktiskt-prov.png'), fullPage: true });
+    await loggaIn(p, 'ssk-kard');
+    await gaTill(p, '#/utbildning');
+    const t = await p.locator('[data-uppfoljning]').first().textContent();
+    if (!/Sara Lindqvist/.test(t) || !/Godkänt/.test(t)) throw new Error(`uppföljningen visar inte att läkaren är godkänd: ${t}`);
+    if (t.includes(pid)) throw new Error('uppföljningen visar patienten');
     await k.close();
   });
 
