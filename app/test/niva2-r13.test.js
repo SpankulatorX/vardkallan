@@ -10,6 +10,7 @@ import * as presentationsvyer from '../src/presentationsvyer.js';
 import * as struktur from '../src/journalstruktur.js';
 import { allaAttGodkanna } from '../src/systemforvaltning-rutter.js';
 import * as tidbok from '../src/tidbok.js';
+import * as op from '../src/operation.js';
 import { addDagar } from '../src/db.js';
 
 const KLOCKAN = (k) => new Date(lokalTid('2026-11-12', k));
@@ -153,6 +154,34 @@ describe('Bokning från väntelistan (runda 13, r4, E3-10 och E3-47)', () => {
       expect(kallelse).toMatchObject({ kanal: 'brev', status: 'kan_inte', skickad: null });
       expect(kallelse.forklaring).toContain('ett brev hinner inte fram');
     }
+  });
+});
+
+describe('Anestesiläkaren (runda 13, r4, E1-32)', () => {
+  test('ser de operationer som är beställda till anestesienheten i programmet, och inte andra sjukhus operationer', () => {
+    stallKlockan(KLOCKAN('06:00'));
+    const db = nySessionsDb();
+    const pers = personal(db, 'lak-ane-kkoga');
+    const o = op.oversikt(db, pers, () => ({}), { datum: '2026-11-12' }, KLOCKAN('06:00'));
+    const ops = o.salar.find(x => x.id === 'kkoga-sal-1').operationer;
+    expect(ops.map(x => x.patient?.id)).toEqual(['p71', 'p72']);
+    expect(ops.every(x => !x.upptagen && x.ingrepp)).toBe(true);
+    // Undersköterskan på kardiologen på ett annat sjukhus ser ingen av dem.
+    const usk = JSON.stringify(op.oversikt(db, personal(db, 'usk-kard'), () => ({}), { datum: '2026-11-12' }, KLOCKAN('06:00')));
+    for (const t of ['p71', 'p72', 'Göran', 'Barbro']) expect(usk).not.toContain(t);
+  });
+
+  test('har patienterna med beställda operationer i arbetslistan', async () => {
+    stallKlockan(KLOCKAN('06:00'));
+    const app = testserver();
+    try {
+      const k = klient(app);
+      await k.logga('lak-ane-kkoga');
+      const lista = (await k.get('/api/arbetslista')).data;
+      const ids = lista.map(r => r.id);
+      for (const pid of ['p71', 'p72', 'p73']) expect(ids).toContain(pid);
+      expect(lista.find(r => r.id === 'p71')).toMatchObject({ plats: expect.stringMatching(/^Operation, Planerad /), orsak: 'Primär total höftledsplastik med cement' });
+    } finally { app.stopp(); }
   });
 });
 

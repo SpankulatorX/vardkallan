@@ -328,6 +328,14 @@ export function session(db, personal) {
   return opererar(ve) ? { vardenhet: enhetKort(db, ve), sjukhus: sjukhusFor(db, ve) } : null;
 }
 
+// Runda 13, r4: anestesienheterna, för arbetslistan.
+export const ANESTESIENHETER_FOR_LISTA = ANESTESIENHETER;
+// Runda 13, r4: om en operation får visas i programmet för den inloggade på anestesienheten den är beställd till.
+function anestesiProgram(db, personal, valFor, an, ve) {
+  if (!Object.hasOwn(ANESTESIENHETER, ve) || anestesienhetFor(db, an) !== ve || !anestesiRadOk(db, personal, valFor, an)) return { tillaten: false };
+  return new Atkomst(db, personal, an.patient_id, valFor(an.patient_id), 'las_operation').prova('las_operation');
+}
+
 // Runda 11, r2: anmälningarna som är beställda till den inloggades anestesienhet och inte avslutade, med om bedömningen
 // gäller och om ASA-klassen är bekräftad i dag. Varje patient som visas loggas.
 export function anestesilista(db, personal, valFor, nu = new Date()) {
@@ -1155,7 +1163,9 @@ export function oversikt(db, personal, valFor, { datum = null } = {}, nu = new D
         beraknatSlut = beraknadStart + langd;
       }
       ledig = beraknatSlut;
-      const r = vardenhetFor(db, an.enhet_id) === ve ? provaRad(db, personal, valFor, an, 'las_operation') : { tillaten: false };
+      // Runda 13, r4: anestesienheten ser operationerna som är beställda till den i programmet, med samma prövning som
+      // listan över beställda anestesibedömningar (anestesilista).
+      const r = vardenhetFor(db, an.enhet_id) === ve ? provaRad(db, personal, valFor, an, 'las_operation') : anestesiProgram(db, personal, valFor, an, ve);
       if (!r.tillaten) return { start: p.start, slut: p.slut, upptagen: true };
       loggaPatient(db, personal, an.patient_id, 'las_operation', r.grund, '/api/operation/oversikt');
       const pat = db.query('SELECT * FROM patienter WHERE id = ?').get(an.patient_id);

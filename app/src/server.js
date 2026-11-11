@@ -719,6 +719,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...db.query(`SELECT patient_id FROM vardkontakter WHERE enhet_id IN (${ph})`).all(...enheter),
       ...db.query(`SELECT patient_id FROM listningar WHERE enhet_id IN (${ph})`).all(...enheter),
       ...db.query('SELECT patient_id FROM remisser WHERE till_enhet_id = ? OR fran_enhet_id = ?').all(ve, ve),
+      // Runda 13, r4: anestesienheten har patienterna med operationer som är beställda till den.
+      ...anestesiPatienter(db, ve),
     ].map(r => r.patient_id));
     const larm = remiss.larmForEnhet(db, p);
     const nll = lakemedel.nllAvvikelser(db, p);
@@ -734,10 +736,11 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       // Runda 13, r4: en patient i sluten psykiatrisk tvångsvård som enheten ansvarar för men som vårdas på en annan
       // vårdenhet (till exempel somatisk vård) står bland de inskrivna, utan att säga var.
       const lpt = !vk ? tvangsvardAnnanstans(db, id, ve) : null;
+      const ane = !vk && !lpt ? anestesiPlats(db, id, ve) : null;
       ut.push({
         id, namn: visningsnamn(pat), personnummer: visningsPnr(pat), alder: alder(pat.fodd, idag()), kon: pat.kon,
-        plats: vk ? vk.plats : lpt ? lpt.plats : inkRemiss ? 'Inkommande remiss' : list ? 'Listad' : 'Nyligen avslutad kontakt',
-        orsak: vk?.orsak ?? lpt?.orsak ?? (inkRemiss && kanRoll(p, 'las_remiss') ? inkRemiss.fragestallning : null),
+        plats: vk ? vk.plats : lpt ? lpt.plats : ane ? ane.plats : inkRemiss ? 'Inkommande remiss' : list ? 'Listad' : 'Nyligen avslutad kontakt',
+        orsak: vk?.orsak ?? lpt?.orsak ?? ane?.orsak ?? (inkRemiss && kanRoll(p, 'las_remiss') ? inkRemiss.fragestallning : null),
         skyddad: Boolean(pat.skyddad), larm: larm.filter(l => l.patientId === id).length + nll.filter(n => n.patientId === id).length,
         pagaende: Boolean(vk || lpt), vardform: vk?.typ ?? (lpt ? 'slutenvard' : null),
         // Runda 13, r4: om kontakten är dagens (började i dag), så att en lång pågående kontakt i öppenvården inte står
@@ -754,6 +757,25 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     for (const r of ut) r.mojligDubblett = identitet.dubbletterFor(db, r.id).some(d => iListan.has(d.annan));
     const ordning = { slutenvard: 0, akut: 1, oppenvard: 2 };
     return ut.sort((a, b) => (ordning[a.vardform] ?? 3) - (ordning[b.vardform] ?? 3) || a.namn.localeCompare(b.namn, 'sv'));
+  }
+
+  // Runda 13, r4: operationerna som är beställda till anestesienheten och inte avslutade, för arbetslistan. Vilka som
+  // syns prövas som för alla andra rader, med vårdrelationen som anmälan ger anestesienheten.
+  const ANESTESI_TEXT = { vantar: 'Väntar på planering', planerad: 'Planerad', pagar: 'Pågår', uppvak: 'Uppvakning' };
+  function anestesiAnmalningar(db, ve) {
+    const op = require('./operation.js');
+    if (!Object.hasOwn(op.ANESTESIENHETER_FOR_LISTA, ve)) return [];
+    if (!db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'op_anmalningar'").get()) return [];
+    return db.query("SELECT * FROM op_anmalningar WHERE status IN ('vantar', 'planerad', 'pagar', 'uppvak') ORDER BY id").all().filter(an => op.anestesienhetFor(db, an) === ve);
+  }
+  const anestesiPatienter = (db, ve) => anestesiAnmalningar(db, ve).map(an => ({ patient_id: an.patient_id }));
+  function anestesiPlats(db, pid, ve) {
+    const an = anestesiAnmalningar(db, ve).find(x => x.patient_id === pid);
+    if (!an) return null;
+    const op = require('./operation.js');
+    const plan = db.query('SELECT start FROM op_planeringar WHERE anmalan_id = ? AND struken_tid IS NULL ORDER BY id DESC').get(an.id);
+    const nar = plan ? new Date(plan.start).toLocaleString('sv-SE', { timeZone: 'Europe/Stockholm', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(':', '.') : null;
+    return { plats: `Operation, ${ANESTESI_TEXT[an.status] ?? an.status}${nar ? ` ${nar}` : ''}`, orsak: op.INGREPP[an.kva]?.namn ?? null };
   }
 
   // Runda 13, r4: pågående sluten tvångsvård på vårdenheten för en patient utan egen pågående vårdkontakt där.
