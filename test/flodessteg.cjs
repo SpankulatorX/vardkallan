@@ -394,7 +394,7 @@ function skapa(BAS) {
       await m.klicka(page.locator('#meny-lista a[href="#/administrering"]'), 'Läkemedel att ge i menyn');
       await page.waitForSelector('.adm-patient');
       const gunnar = page.locator('.adm-patient', { hasText: 'Gunnar Åkesson' });
-      await m.klicka(gunnar.locator('.adm-vb', { hasText: 'Alvedon' }).locator('[data-adm="ge"]'), 'Ge för Alvedon vid behov');
+      await m.klicka(gunnar.locator('.adm-vb', { hasText: 'Alvedon' }).locator('[data-adm="ge"]').first(), 'Ge för Alvedon vid behov');
       await synlig(page, '.notis', 'Alvedon är given');
     },
     vidimera: async (m, page) => {
@@ -429,7 +429,7 @@ function skapa(BAS) {
       await page.waitForSelector('.adm-patient');
       await synlig(page, '.adm-delegering', 'Du ger läkemedel med delegering');
       const gunnar = page.locator('.adm-patient', { hasText: 'Gunnar Åkesson' });
-      await m.klicka(gunnar.locator('.adm-vb', { hasText: 'Alvedon' }).locator('[data-adm="ge"]'), 'Ge för Alvedon vid behov');
+      await m.klicka(gunnar.locator('.adm-vb', { hasText: 'Alvedon' }).locator('[data-adm="ge"]').first(), 'Ge för Alvedon vid behov');
       await synlig(page, '.notis', 'Alvedon är given');
     },
     'registrera-delegering': async (m, page) => {

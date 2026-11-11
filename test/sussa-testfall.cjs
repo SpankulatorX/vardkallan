@@ -241,7 +241,7 @@ function floden(D) {
       await m.klicka(dos('Stesolid').locator('[data-adm="ge"]'), 'Ge för Stesolid');
       await synlig(page, '.notis', 'Stesolid är given');
       await page.waitForLoadState('networkidle');
-      await m.klicka(bertil.locator('.adm-vb', { hasText: 'Zopiklon' }).locator('[data-adm="ge"]'), 'Ge för Zopiklon vid behov');
+      await m.klicka(bertil.locator('.adm-vb', { hasText: 'Zopiklon' }).locator('[data-adm="ge"]').first(), 'Ge för Zopiklon vid behov');
       if (await page.locator('dialog[open] [data-varde="ok"]').count()) await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'bekräfta');
       await synlig(page, '.notis', 'Zopiklon');
       // Listan ritas om efter varje dos. Vänta tills den står still, så att nästa klick inte hamnar på en knapp som flyttas.

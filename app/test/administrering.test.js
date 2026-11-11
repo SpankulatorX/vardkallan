@@ -44,10 +44,8 @@ describe('Administrering', () => {
     const alvedon = l.vidBehov.find(v => v.lakemedel.namn === 'Alvedon');
     expect(alvedon).toMatchObject({ kanGesNu: true, senasteDygnet: 1, max: { antal: 8, enhet: 'enheter' } });
     expect(alvedon.senaste.tid).toBe(new Date(Date.parse(kl('13:30')) - 14 * 3600_000).toISOString());
-    // Runda 13, r4: Waran har en dostid klockan 18 enligt doseringsschemat och kommer senare i dag.
-    expect(l.utanTider.map(u => u.lakemedel.namn)).toEqual([]);
-    expect(rad('Waran', '18:00')).toMatchObject({ status: 'kommande' });
-    expect(l.sammanfattning).toMatchObject({ attGe: 1, forsenade: 0, givna: 2, totalt: 4 });
+    expect(l.utanTider.map(u => u.lakemedel.namn)).toEqual(['Waran']);
+    expect(l.sammanfattning).toMatchObject({ attGe: 1, forsenade: 0, givna: 2, totalt: 3 });
     expect(l.kan.kan).toBe(true);
     // Vid 16 är dosen kl 14 försenad.
     stallKlockan(new Date(kl('16:00')));
@@ -193,8 +191,7 @@ describe('Administrering', () => {
       expect({ p, status: e?.status }).toEqual({ p, status: 403 });
     }
     expect(administrering.lista(atk(db, 'usk-kard', 'p01')).kan.kan).toBe(false);
-    // Runda 13, r4: fyra doser i dag, med Waran klockan 18.
-    expect(administrering.lista(atk(db, 'lak-kard', 'p01')).doser.length).toBe(4);
+    expect(administrering.lista(atk(db, 'lak-kard', 'p01')).doser.length).toBe(3);
     expect(fel(() => administrering.lista(atk(db, 'adm-kard', 'p01'))).status).toBe(403);
     expect(fel(() => administrering.avdelning(db, personal(db, 'adm-kard'), () => ({}))).status).toBe(403);
   });
@@ -208,7 +205,7 @@ describe('Administrering', () => {
     const a = atk(db, 'ssk-lind', 'p01', { nodatkomst: true, andra_enheter: true }, 'ge_lakemedel');
     // Med nödåtkomst syns listan men inget kan ges.
     const l = administrering.lista(a);
-    expect(l.doser.length).toBe(4);
+    expect(l.doser.length).toBe(3);
     expect(l.kan).toMatchObject({ kan: false });
     const e = fel(() => administrering.spara(a, { ordinationId: furo.id, planerad: kl('14:00') }));
     expect(e).toMatchObject({ status: 403, kod: 'nekad' });

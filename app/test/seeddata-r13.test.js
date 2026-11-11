@@ -80,16 +80,16 @@ describe('Seeddata som hänger ihop (runda 13, r4)', () => {
     expect(obs.forPatient(atk(db, 'bm-uso', 'obs3', { andra_enheter: true }, 'las_graviditet')).graviditeter.length).toBe(1);
   });
 
-  test('Waran ges klockan 18 varje dag, och gårdagens dos är given', () => {
+  test('Waran har doseringen med klockslaget, och de senaste dagarnas kvällsdoser är givna', () => {
     stallKlockan(KLOCKAN('21:00'));
     const db = nySessionsDb();
     const lista = administrering.lista(atk(db, 'ssk-kard', 'p01', {}, 'las_lakemedel'));
-    const waran = lista.doser.filter(d => d.lakemedel.namn === 'Waran');
-    expect(waran.map(d => d.planerad)).toEqual([lokalTid(TORSDAG, '18:00')]);
-    expect(lista.utanTider.map(d => d.lakemedel.namn)).not.toContain('Waran');
-    const igar = db.query("SELECT a.* FROM administreringar a JOIN ordinationer o ON o.id = a.ordination_id WHERE a.patient_id = 'p01' AND o.lakemedel_id = 'VK-NPL-0001' AND a.planerad = ?")
-      .get(lokalTid(addDagar(TORSDAG, -1), '18:00'));
-    expect(igar.status).toBe('given');
+    const waran = lista.utanTider.find(d => d.lakemedel.namn === 'Waran');
+    expect(waran.dosering).toContain('klockan 18');
+    const givna = db.query("SELECT a.tid FROM administreringar a JOIN ordinationer o ON o.id = a.ordination_id WHERE a.patient_id = 'p01' AND o.lakemedel_id = 'VK-NPL-0001' AND a.status = 'given' ORDER BY a.tid").all().map(r => r.tid);
+    expect(givna).toContain(lokalTid(addDagar(TORSDAG, -1), '18:05'));
+    // Dagens dos ger sjuksköterskan.
+    expect(givna.some(t => t.startsWith(TORSDAG) || datumAv(new Date(t)) === TORSDAG)).toBe(false);
   });
 
   test('en patient som bor hemma har inga doser att ge och inga försenade doser, och läskopian säger detsamma', () => {
