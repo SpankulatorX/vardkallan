@@ -1,7 +1,8 @@
 // Graviditet, förlossning och BB i runda 11, r3 (Sussa 4.7.1.1 till 4.7.1.4). Hanna Lilja (ssk-vc) är barnmorskan på
 // mödrahälsovården i Vårdcentralen Tybble och Sofia Ekdahl (bm-uso) barnmorskan på förlossningen och BB, USÖ. Testnamnen
 // står i src/sussa/runda11-r3.js. Varje test lägger in sina egna patienter och räknar bara på dem.
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
+import { stallKlockan, aterstallKlockan } from './falsk-klocka.js';
 import { datumAv, addDagar } from '../src/db.js';
 import * as obs from '../src/obstetrik.js';
 import * as forl from '../src/forlossning.js';
@@ -34,6 +35,10 @@ const barn = (db, f, ordning, min, extra = {}) => obs.fodelse(bm(db, 'r1'), frad
 const fel = (fn) => { try { fn(); } catch (e) { return e; } throw new Error('inget fel'); };
 
 describe('Graviditet, förlossning och BB', () => {
+  // Testerna räknar från BAS, och behörigheten och uppdragen prövas mot klockan. Klockan står därför på BAS, så att
+  // testerna går vid alla tider (CI:s klocktester).
+  beforeEach(() => stallKlockan(BAS));
+  afterEach(() => aterstallKlockan());
   test(T.ivf.replace(/^.*> /, ''), () => {
     const db = sandlada();
     ny(db, 'r1');

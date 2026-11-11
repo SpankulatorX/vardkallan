@@ -52,7 +52,8 @@ describe('Tillväxt, version 1.1', () => {
     // Ett barn under fem år får WHO:s standard, och huvudomfånget har referens bara där.
     const ida = (await k.get('/api/patient/p61/tillvaxt')).data;
     expect(ida.referens.id).toBe('who2006');
-    expect(ida.kurvor.map(x => x.matt)).toEqual(['vikt', 'langd', 'huvudomfang', 'bmi']);
+    // Idas personnummer har ett fast födelsedatum, så sitthöjden kommer till när hon blir äldre.
+    expect(ida.kurvor.map(x => x.matt).slice(0, 4)).toEqual(['vikt', 'langd', 'huvudomfang', 'bmi']);
     expect(d.kurvor.find(x => x.matt === 'huvudomfang').utanReferens).toBe(true);
   });
 
@@ -90,9 +91,16 @@ describe('Tillväxt, version 1.1', () => {
     const r = await k.post('/api/patient/p09/tillvaxt/pubertet', { genitalia: 2, pubes: 1, testikelvolym: '4' });
     expect(r.status).toBe(201);
     expect(r.data.pubertet.start.text).toContain('G2');
-    // Leo är under nio år, så puberteten räknas som tidig (demoregel).
-    expect(r.data.pubertet.bedomning.text).toContain('tidig pubertet');
+    // Leo fyller nio år den 11 december 2026, och bedömningen räknas från åldern när puberteten började. Före nio år är
+    // den tidig (demoregel). Efter det har den varken kommit för tidigt eller för sent.
+    if (r.data.pubertet.start.alderAr < R.PUBERTET_REGLER.man.tidig) expect(r.data.pubertet.bedomning.text).toContain('tidig pubertet');
+    else expect(r.data.pubertet.bedomning).toBeNull();
     expect(() => db(k).query('UPDATE tillvaxt_pubertet SET genitalia = 1').run()).toThrow();
+    // Regeln prövas också oberoende av dagens datum, med en registrering från när Leo var åtta och ett halvt år.
+    db(k).query("INSERT INTO tillvaxt_pubertet (patient_id, enhet_id, tid, genitalia, registrerad_av, registrerad) SELECT patient_id, enhet_id, '2026-06-11T09:00:00.000Z', 2, registrerad_av, registrerad FROM tillvaxt_pubertet WHERE patient_id = 'p09' LIMIT 1").run();
+    const tidig = (await k.get('/api/patient/p09/tillvaxt')).data.pubertet;
+    expect(tidig.start.alderAr).toBe(8.5);
+    expect(tidig.bedomning.text).toContain('tidig pubertet');
     // Ett barn under sju år utan registreringar får inget pubertetsavsnitt.
     expect((await k.get('/api/patient/p61/tillvaxt')).data.pubertet.visas).toBe(false);
   });

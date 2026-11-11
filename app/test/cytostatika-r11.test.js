@@ -3,7 +3,8 @@
 // spårbarhet och kapacitet, infusionens start, takt, avbrott, reaktioner, extravasering och slut, patientens
 // uppföljning i Min journal och uppföljningen i datauttaget. Kardiologiska kliniken på USÖ, vars kurer bereds av
 // Cytostatikaberedningen USÖ.
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
+import { stallKlockan, aterstallKlockan } from './falsk-klocka.js';
 import { datumAv, addDagar } from '../src/db.js';
 import * as cyto from '../src/cytostatika.js';
 import * as bered from '../src/cytostatika-beredning.js';
@@ -45,6 +46,10 @@ function kontrollerad(db, d, min, pid = 'k1') {
 const fel = (f) => { try { f(); } catch (e) { return e; } throw new Error('inget fel'); };
 
 describe('Cytostatika i version 1.1', () => {
+  // Testerna räknar från BAS, och behörigheten och uppdragen prövas mot klockan. Klockan står därför på BAS, så att
+  // testerna går vid alla tider (CI:s klocktester).
+  beforeEach(() => stallKlockan(BAS));
+  afterEach(() => aterstallKlockan());
   test('regimbiblioteket: en ändrad regim är en ny version som en regimansvarig läkare godkänner i sin egen inloggning, och nya ordinationer får den godkända versionen', () => {
     const db = sandlada();
     ny(db);

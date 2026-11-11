@@ -371,7 +371,8 @@ describe('API för barnhälsovården', () => {
     const k = await inloggad('lak-vc');
     expect((await k.get('/api/session')).data.bhv).toEqual({ enhet: 'vc-tybble', uppdrag: false });
     const d = (await k.get('/api/patient/p61/tillvaxt')).data;
-    expect(d.kurvor).toHaveLength(4);
+    // Barnets personnummer har ett fast födelsedatum, så sitthöjden kommer till när det blir äldre.
+    expect(d.kurvor.map(x => x.matt).slice(0, 4)).toEqual(['vikt', 'langd', 'huvudomfang', 'bmi']);
     expect(d.kan).toEqual({ registrera: true, vaccinera: true, boka: true });
     const r = await k.post('/api/patient/p61/tillvaxt', { vikt: 9.5, langd: 81 });
     expect(r.status).toBe(201);
@@ -393,7 +394,7 @@ describe('API för barnhälsovården', () => {
     await k.post('/api/login/invanare', { invanareId: 'inv-vh02' });
     const m = await k.get('/api/min/journal/p61/tillvaxt');
     expect(m.status).toBe(200);
-    expect(m.data.kurvor).toHaveLength(4);
+    expect(m.data.kurvor.map(x => x.matt).slice(0, 4)).toEqual(['vikt', 'langd', 'huvudomfang', 'bmi']);
     expect((await k.post('/api/min/journal/p61/tillvaxt', { vikt: 9.4 })).status).toBe(201);
     const annan = klient(app);
     await annan.post('/api/login/invanare', { invanareId: 'inv-vh01' });

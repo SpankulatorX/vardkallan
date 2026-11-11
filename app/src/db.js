@@ -646,7 +646,8 @@ let mall = null;
 export function mallen() {
   const d = idag();
   const nuMs = Date.now();
-  if (!mall || mall.datum !== d || Math.abs(nuMs - mall.byggd) > MALL_MINUTER * 60_000) {
+  // En mall som byggdes senare än nu (klockan har ställts tillbaka, som i testerna) har händelser i framtiden och byggs om.
+  if (!mall || mall.datum !== d || nuMs < mall.byggd || nuMs - mall.byggd > MALL_MINUTER * 60_000) {
     const db = byggSeed();
     // Runda 11, r2: demons operationer, anestesi och uppvakning (operation-seed.js). I demons sandlåda och inte i
     // byggSeed, så att testerna som bygger en egen seed lägger in sina egna operationer i tomma salar.
