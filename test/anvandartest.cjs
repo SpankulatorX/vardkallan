@@ -18,6 +18,8 @@ const { Matare, skapa, raknaISidan } = require('./flodessteg.cjs');
 const { skrivKlienttester } = require('./klienttester.cjs');
 
 const BAS = process.argv[2] || 'http://127.0.0.1:18797';
+// Runda 11: testet och webbläsaren följer testcontainerns falska klocka, om den har en.
+const { foljServernsKlocka, stallKlockan } = require('./testklocka.cjs');
 const APP = join(__dirname, '..', 'app');
 const UT = join(__dirname, 'skarmbilder');
 mkdirSync(UT, { recursive: true });
@@ -61,8 +63,10 @@ const anta = (villkor, text) => { if (!villkor) throw new Error(text); };
   try { skript = JSON.parse(readFileSync(join(APP, 'klickbudget.json'), 'utf8')); } catch { skript = null; }
   const { GOR } = skapa(BAS);
 
+  await foljServernsKlocka(BAS);
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'sv-SE', timezoneId: 'Europe/Stockholm', acceptDownloads: true });
+  await stallKlockan(ctx);
   await ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: BAS });
   await raknaISidan(ctx);
   const page = await ctx.newPage();

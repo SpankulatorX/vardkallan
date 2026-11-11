@@ -92,6 +92,8 @@ Version 0.x är ett demosystem under uppbyggnad, och varje runda höjer det andr
 
 Version 1.0 sattes den 8 november 2026, efter runda 10, när alla fyra villkoren var uppfyllda. Efter 1.0 höjer varje runda det andra talet igen: 1.1 är runda 11. En version 1.x gör demon mer komplett och ändrar inte villkoren för 1.0, som fortsätter att gälla.
 
+Version 1.1 sattes den 11 november 2026, efter runda 11. Specialistområdena i kapitel 4 fick eget gränssnitt: operation och anestesi, graviditet och förlossning, cytostatika och blod, bilder och media, röntgen och fysiologi, intensivvård och tillväxt. Av systemposterna är 230 uppfyllda i demon och 27 delvis uppfyllda (före 1.1: 199 och 58), och i kapitel 4 är 57 av 60 uppfyllda. Seeden och testerna är oberoende av klockslaget, och modulsidan räknas fram ur koden så att den inte kan visa en modul som planerad när den finns.
+
 Version 1.0 betyder inte att Vårdkällan kan användas i vården. Det kräver riktiga integrationer (Nationell patientöversikt, Nationella läkemedelslistan och laboratorier), troligen CE-märkning som medicinteknisk produkt, en driftorganisation, en extern säkerhetsgranskning, migrering av befintliga journaler och det som kravspecifikationen kräver av leverantören.
 
 ## Kör lokalt

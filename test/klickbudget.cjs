@@ -18,6 +18,8 @@ const { pathToFileURL } = require('node:url');
 const { Matare, skapa, raknaISidan } = require('./flodessteg.cjs');
 
 const BAS = process.argv[2] || 'http://127.0.0.1:18797';
+// Runda 11: testet och webbläsaren följer testcontainerns falska klocka, om den har en.
+const { foljServernsKlocka, stallKlockan, resultatfil } = require('./testklocka.cjs');
 const APP = join(__dirname, '..', 'app');
 const UT = join(__dirname, 'skarmbilder');
 mkdirSync(UT, { recursive: true });
@@ -29,8 +31,10 @@ const { synlig, gaTill, loggaIn, startI, GOR } = skapa(BAS);
   const { FLODEN, REGLER } = await import(pathToFileURL(join(APP, 'src', 'klickbudget.js')).href);
   const { klickbudgetTest } = await import(pathToFileURL(join(APP, 'src', 'krav.js')).href);
   const { gransnittHash } = await import(pathToFileURL(join(APP, 'src', 'klientresultat.js')).href);
+  await foljServernsKlocka(BAS);
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'sv-SE', timezoneId: 'Europe/Stockholm' });
+  await stallKlockan(ctx);
   await raknaISidan(ctx);
   const page = await ctx.newPage();
   page.on('pageerror', e => fel.push(`sidfel: ${e.message} (${(e.stack || '').split('\n').slice(1, 4).map(r => r.trim()).join(' | ')})`));
@@ -74,7 +78,7 @@ const { synlig, gaTill, loggaIn, startI, GOR } = skapa(BAS);
     floden: resultat.map(({ id, namn, roll: rl, start, budget, motivering, klick, faltbyten, tangenter, uppmatt, inomBudget, steg }) => ({ id, namn, roll: rl, start, budget, motivering, klick, faltbyten, tangenter, uppmatt, inomBudget, steg })),
     tester: resultat.map(r => ({ namn: klickbudgetTest(r), status: !r.fel && r.inomBudget ? 'grön' : 'röd' })),
   };
-  writeFileSync(join(APP, 'klickbudget.json'), `${JSON.stringify(ut, null, 2)}\n`);
+  writeFileSync(join(APP, resultatfil('klickbudget.json')), `${JSON.stringify(ut, null, 2)}\n`);
 
   // Kravsidan visar tabellen för D6 under fliken Eget ramverk.
   try {

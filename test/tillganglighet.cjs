@@ -21,6 +21,8 @@ const { pathToFileURL } = require('node:url');
 const { skrivKlienttester } = require('./klienttester.cjs');
 
 const BAS = process.argv[2] || 'http://127.0.0.1:18172';
+// Runda 11: testet och webbläsaren följer testcontainerns falska klocka, om den har en.
+const { foljServernsKlocka, stallKlockan } = require('./testklocka.cjs');
 const APP = join(__dirname, '..', 'app');
 const UT = join(__dirname, 'skarmbilder');
 mkdirSync(UT, { recursive: true });
@@ -410,8 +412,9 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
 (async () => {
   const { G, PREFIX } = await import(pathToFileURL(join(APP, 'src', 'sussa', 'runda7-r2.js')).href);
   const { gransnittHash } = await import(pathToFileURL(join(APP, 'src', 'klientresultat.js')).href);
+  await foljServernsKlocka(BAS);
   const browser = await chromium.launch();
-  const kontext = (vp, extra = {}) => browser.newContext({ viewport: vp, locale: 'sv-SE', timezoneId: 'Europe/Stockholm', ...extra });
+  const kontext = async (vp, extra = {}) => { const c = await browser.newContext({ viewport: vp, locale: 'sv-SE', timezoneId: 'Europe/Stockholm', ...extra }); await stallKlockan(c); return c; };
   const tester = [];
   const kort = (s) => s.split('\n')[0];
   const sparat = async (page, namn) => { await page.screenshot({ path: join(UT, `00-fel-tillganglighet-${namn}.png`), fullPage: true }).catch(() => {}); };

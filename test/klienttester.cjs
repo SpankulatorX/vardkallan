@@ -5,9 +5,11 @@
 
 const { readFileSync, writeFileSync } = require('node:fs');
 const { join } = require('node:path');
+// Runda 11: med testcontainerns falska klocka skrivs resultatet bredvid (testklocka.cjs), inte i filen som följer med bygget.
+const { resultatfil } = require('./testklocka.cjs');
 
 function skrivKlienttester({ app, prefix, tester, bas, webblasare, gransnittHash }) {
-  const fil = join(app, 'klienttest-resultat.json');
+  const fil = join(app, resultatfil('klienttest-resultat.json'));
   let forra = null;
   try { forra = JSON.parse(readFileSync(fil, 'utf8')); } catch { forra = null; }
   const sammaGransnitt = forra?.gransnittHash === gransnittHash;

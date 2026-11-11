@@ -19,6 +19,9 @@ const { pathToFileURL } = require('node:url');
 const { skrivKlienttester } = require('./klienttester.cjs');
 
 const BAS = process.argv[2] || 'http://127.0.0.1:18797';
+// Runda 11: testprocessen följer testcontainerns falska klocka, om den har en. Webbläsarens klocka ställs av testerna
+// själva där de behöver den (clock.install), så den ställs inte här.
+const { foljServernsKlocka } = require('./testklocka.cjs');
 const APP = join(__dirname, '..', 'app');
 const UT = join(__dirname, 'skarmbilder');
 mkdirSync(UT, { recursive: true });
@@ -170,6 +173,7 @@ const undersok = (page, kod, nyckelB64) => page.evaluate(async ({ kod, nyckelB64
 }, { kod, nyckelB64 });
 
 (async () => {
+  await foljServernsKlocka(BAS);
   const browser = await chromium.launch();
   const ny = () => browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'sv-SE', timezoneId: 'Europe/Stockholm' });
   const ctx = await ny();
