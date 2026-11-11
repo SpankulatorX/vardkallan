@@ -121,6 +121,8 @@ describe('Seed', () => {
       ['fys-kard', 'Jenny Holmberg', 'fysioterapeut', 'uso-kard-mott'],
       // Runda 11, r2: operationskoordinatorn på Ortopediska kliniken Karlskoga lasarett.
       ['opk-kkoga', 'Therese Hedberg', 'sjukskoterska', 'kkoga-ort'],
+      // Runda 11, r3: barnmorskan på förlossningen och BB.
+      ['bm-uso', 'Sofia Ekdahl', 'sjukskoterska', 'uso-kk-forl'],
     ]);
   });
 

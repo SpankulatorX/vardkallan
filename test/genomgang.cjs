@@ -195,6 +195,11 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
 // Runda 11, r2: operationskoordinatorn i Karlskoga har sjuksköterskans meny med Operation i stället för Intensivvård.
 // Menyn byggs först när den används, så att tillägg från andra delar i sjuksköterskans meny följer med.
 Object.defineProperty(MENY, 'operation', { get: () => MENY.sjukskoterska.map(x => (x === 'Intensivvård' ? 'Operation' : x)), enumerable: true });
+// Runda 11, r3: Per Holm har Mödrahälsovård efter Barnhälsovård. Barnmorskan Sofia Ekdahl på förlossningen har
+// sjuksköterskans meny utan Intensivvård och med Förlossningen före Remisser. Kopieras sist, när alla tillägg är gjorda.
+MENY.bvc.splice(MENY.bvc.indexOf('Barnhälsovård') + 1, 0, 'Mödrahälsovård');
+MENY.barnmorska = MENY.sjukskoterska.filter(x => x !== 'Intensivvård');
+MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen');
 
 (async () => {
   // Runda 11, r1: klockan ställs innan testet räknar ut några datum.
@@ -208,14 +213,15 @@ Object.defineProperty(MENY, 'operation', { get: () => MENY.sjukskoterska.map(x =
 
   try {
     // Utan inloggning
-    await s('inloggningssidan visar de nitton demorollerna och demoraden', async () => {
+    await s('inloggningssidan visar de tjugo demorollerna och demoraden', async () => {
       await page.goto(`${BAS}/`);
       await page.waitForSelector('.roll');
       const n = await page.locator('.roll').count();
       // Runda 6, r6: verksamhetschefen är den trettonde. Runda 7: ekonomen (r3), de två systemförvaltarna (r4) och
       // distriktssköterskan Hanna Lilja i barnhälsovården (r6), och fysioterapeuten i Sussas testfall (r1).
       // Runda 11, r2: operationskoordinatorn i Karlskoga är den nittonde.
-      if (n !== 19) throw new Error(`${n} roller`);
+      // Runda 11, r3: barnmorskan Sofia Ekdahl på förlossningen och BB.
+      if (n !== 20) throw new Error(`${n} roller`);
       await forvanta(page, '.demorad', 'Demo med påhittade patienter och testpersonnummer från Skatteverket. Inte för vård av riktiga patienter.');
       await forvanta(page, '.sidfot', 'Vårdkällan är ett fristående demoprojekt med öppen källkod (EUPL 1.2). Det är inte en tjänst från Region Örebro län.');
       await forvanta(page, '#roll-lak-akut-visar', 'Nödåtkomst');
@@ -1774,6 +1780,72 @@ Object.defineProperty(MENY, 'operation', { get: () => MENY.sjukskoterska.map(x =
       await bild(page, '123-operation-klar', true);
     });
     await allaVyer(page, 'Therese Hedberg', MENY.operation);
+    // Runda 11, r3: förlossningen, BB och mödrahälsovården med demodata i den egna sandlådan.
+    await s('Sofia Ekdahl lägger in demopatienterna och bedömer CTG under förlossningen med ett klick', async () => {
+      await loggaIn(page, 'bm-uso');
+      await gaTill(page, '#/forlossning');
+      await page.waitForSelector('#forl section');
+      if (await page.locator('[data-ob-demo]').count()) { await page.click('[data-ob-demo]'); await forvanta(page, '.notis', 'Demopatienterna för mödrahälsovården'); }
+      await page.waitForSelector('#forl-tabell');
+      await bild(page, '160-forlossningen', true);
+      await page.locator('#forl-tabell a.patientlank', { hasText: 'Amanda Lindholm' }).click();
+      await page.waitForSelector('#fp-ctg-bekrafta');
+      await forvanta(page, 'main', 'Systemets klassning: Normalt CTG');
+      await bild(page, '161-forlossning-ctg', true);
+      await page.click('#fp-ctg-bekrafta');
+      await forvanta(page, '.notis', 'Bedömningen är dokumenterad');
+      await page.waitForLoadState('networkidle');
+    });
+    await s('Sofia Ekdahl skickar födelseanmälan för den andra tvillingen och öppnar barnets BB-journal', async () => {
+      await gaTill(page, '#/forlossning/obs4');
+      await page.click('[data-fp-anmalan="2"]');
+      await forvanta(page, '.notis', 'Skatteverket har tagit emot födelseanmälan');
+      await page.waitForLoadState('networkidle');
+      await page.locator('.ob-barn a').first().click();
+      await forvanta(page, 'main h2', 'Nyfödd, BB-journal');
+      await bild(page, '162-nyfodd-bb', true);
+    });
+    await allaVyer(page, 'Sofia Ekdahl', MENY.barnmorska);
+    await s('Hanna Lilja ställer frågorna om våld i inskrivningssamtalet, och svaren visas bara efter ett eget val', async () => {
+      await loggaIn(page, 'ssk-vc');
+      await page.evaluate(() => fetch('/api/demo/obstetrik', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()));
+      await gaTill(page, '#/modrahalsovard');
+      await page.waitForSelector('#mhv-tabell');
+      await bild(page, '163-modrahalsovard', true);
+      await page.locator('#mhv-tabell a.patientlank', { hasText: 'Johanna Rask' }).click();
+      await page.waitForSelector('#gr-samtal');
+      await page.check('#gs-ensam');
+      for (const k of ['tidigare', 'nu', 'radd']) await page.check(`#gs-${k}-nej`);
+      await page.click('#gr-samtal [type="submit"]');
+      await forvanta(page, '.notis', 'Inskrivningssamtalet är registrerat');
+      await page.waitForSelector('[data-gr-vald]');
+      await forvanta(page, 'main dd', 'Ställda. Svaren är känsliga uppgifter och visas inte här.');
+      await page.click('[data-gr-vald]');
+      await forvanta(page, 'dialog[open]', 'Svaren på frågorna om våld');
+      await bild(page, '164-valdsvar');
+      await page.click('dialog[open] [data-varde="ok"]');
+    });
+    // Runda 11, r3, beslut 2026-11-10: samtycket till förlossningen och graviditeten i Min journal.
+    await s('Hanna Lilja registrerar kvinnans samtycke till att förlossningen läser svaren och återkallar det', async () => {
+      await page.click('.ob-samtycke summary');
+      await page.check('#gc-ensam');
+      await page.click('#gr-samtycke [type="submit"]');
+      await forvanta(page, '.notis', 'Samtycket är registrerat');
+      await forvanta(page, '.ob-samtycke li', 'Gäller');
+      await bild(page, '165-samtycke');
+      await page.click('[data-gr-aterkalla]');
+      await forvanta(page, '.notis', 'Samtycket är återkallat');
+      await forvanta(page, '.ob-samtycke li', 'Återkallat');
+    });
+    await s('Linnea Åkerlund ser sin graviditet i Min journal, utan inskrivningssamtalet och svaren om våld', async () => {
+      await loggaInPatient(page, 'inv-obs1');
+      await page.click('.min-flikar a:text-is("Graviditet")');
+      await forvanta(page, '.min-del h2', 'Graviditet');
+      await forvanta(page, '.min-del', 'Rutinultraljud');
+      await saknas(page, 'våld');
+      await saknas(page, 'Inskrivningssamtal');
+      await bild(page, '166-min-graviditet', true);
+    });
     await s('Per Holm granskar sina 30 utkast och signerar alla med ett klick', async () => {
       await loggaIn(page, 'lak-vc');
       await page.waitForFunction(() => document.querySelector('#lista') && !/Hämtar/.test(document.querySelector('#lista').textContent));
@@ -1932,7 +2004,9 @@ Object.defineProperty(MENY, 'operation', { get: () => MENY.sjukskoterska.map(x =
         // Runda 10, r7: meddelanden, kontorsstödet, kapaciteten och kassan.
         'fornya-recept', 'kalenderprenumeration', 'svara-meddelande', 'kapacitetsprognos', 'dagsavslut',
         // Runda 11, r2: operationsplaneringen och förloppet på salen.
-        'planera-operation', 'operation-in-sal']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'planera-operation', 'operation-in-sal',
+        // Runda 11, r3: besöket i graviditetsjournalen och CTG-bedömningen.
+        'graviditet-besok', 'ctg-bedomning']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

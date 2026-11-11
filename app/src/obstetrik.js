@@ -18,12 +18,14 @@
 //
 // Programmet, riskfaktorerna och gränserna är demoregler och inget kliniskt beslutsstöd.
 import { Fel, datumAv, addDagar, lokalTid } from './db.js';
-import { vardenhetFor, enheterUnder, alder } from './atkomst.js';
+import { vardenhetFor, enheterUnder, alder, Atkomst, kanRoll, visningsnamn } from './atkomst.js';
 import * as identitet from './identitet.js';
 import * as labb from './labb.js';
 import { ANALYS } from './labb-katalog.js';
 import { tolkaBlodgrupp } from './blod.js';
-import { tabell, finns, personNamn, enhetKort, iso, DAG, TIMME, kravRoll, vardkontaktFor, matvarde, lasRad, andraRad } from './specialist-hjalp.js';
+import { tabell, finns, personNamn, enhetKort, iso, DAG, TIMME, kravRoll, vardkontaktFor, matvarde, lasRad, andraRad, textFalt, loggaPatient } from './specialist-hjalp.js';
+// Runda 11, r3: inskrivningssamtalets levnadsvanor blir en vanlig anteckning av typen Levnadsvanor (journal.js).
+const journal = () => require('./journal.js');
 // Säkerhetsgranskningen: varje graviditet och förlossning binds till patienten och prövas på sin vårdenhet.
 const andraGrav = (atk, g) => andraRad(atk, g, 'graviditet', 'las_graviditet', 'Graviditetsjournalen förs av den vårdenhet som skrev in graviditeten.');
 const andraForl = (atk, f) => andraRad(atk, f, 'graviditet', 'las_graviditet', 'Förlossningsjournalen förs av förlossningens vårdenhet.');
@@ -72,8 +74,74 @@ CREATE TABLE IF NOT EXISTS forlossning_barn (
   fodd_tid TEXT NOT NULL, satt TEXT NOT NULL, vikt INTEGER NOT NULL, langd REAL NOT NULL, huvudomfang REAL NOT NULL, apgar TEXT NOT NULL, dagar INTEGER NOT NULL, av TEXT NOT NULL
 );
 `;
+// Runda 11, r3: ultraljudsjournalen, inskrivningssamtalet med de känsliga svaren, efterkontrollen, CTG, smärtlindringen,
+// födelseanmälan, BB-journalen för mor och barn och rapporteringen till Graviditetsregistret (forlossning.js och
+// graviditetsregistret.js). Svaren på frågorna om våld sparas bara i kolumnen kansligt i graviditet_samtal och lämnas
+// aldrig ut i graviditetsjournalen, uppföljningen, datauttaget eller registret.
+export const SCHEMA_R11 = `
+CREATE TABLE IF NOT EXISTS graviditet_ultraljud (
+  id INTEGER PRIMARY KEY, graviditet_id INTEGER NOT NULL, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, tid TEXT NOT NULL, datum TEXT NOT NULL,
+  typ TEXT NOT NULL, dagar INTEGER NOT NULL, antal_foster INTEGER NOT NULL, foster TEXT NOT NULL DEFAULT '[]', placenta TEXT, fostervatten TEXT,
+  fynd TEXT, varningar TEXT NOT NULL DEFAULT '[]', datering INTEGER NOT NULL DEFAULT 0, av TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS graviditet_samtal (
+  id INTEGER PRIMARY KEY, graviditet_id INTEGER NOT NULL, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, tid TEXT NOT NULL, av TEXT NOT NULL,
+  anteckning_id INTEGER, anamnes TEXT NOT NULL DEFAULT '{}', tobak TEXT, vald_stalld INTEGER NOT NULL, vald_orsak TEXT, kansligt TEXT, onskemal TEXT
+);
+CREATE TABLE IF NOT EXISTS graviditet_efterkontroll (
+  id INTEGER PRIMARY KEY, graviditet_id INTEGER NOT NULL, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, tid TEXT NOT NULL, av TEXT NOT NULL,
+  epds INTEGER NOT NULL, epds_fraga10 INTEGER NOT NULL, amning TEXT NOT NULL, blodning TEXT NOT NULL, bristning_lakt INTEGER, preventivmedel TEXT,
+  varningar TEXT NOT NULL DEFAULT '[]'
+);
+CREATE TABLE IF NOT EXISTS ctg_koppling (
+  id INTEGER PRIMARY KEY, forlossning_id INTEGER NOT NULL, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, start TEXT NOT NULL, slut TEXT,
+  utrustning TEXT NOT NULL, forlopp TEXT NOT NULL, av TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS ctg_bedomning (
+  id INTEGER PRIMARY KEY, forlossning_id INTEGER NOT NULL, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, tid TEXT NOT NULL, klass TEXT NOT NULL,
+  forslag TEXT NOT NULL, analys TEXT NOT NULL, atgard TEXT, motivering TEXT, av TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS smartlindring (
+  id INTEGER PRIMARY KEY, forlossning_id INTEGER NOT NULL, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, tid TEXT NOT NULL, metod TEXT NOT NULL,
+  varningar TEXT NOT NULL DEFAULT '[]', av TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS fodelseanmalan (
+  id INTEGER PRIMARY KEY, forlossning_id INTEGER NOT NULL, patient_id TEXT NOT NULL, barn_patient_id TEXT NOT NULL UNIQUE, enhet_id TEXT NOT NULL,
+  tid TEXT NOT NULL, status TEXT NOT NULL, kvittens TEXT, personnummer TEXT, text TEXT, av TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS bb_kontroller (
+  id INTEGER PRIMARY KEY, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, forlossning_id INTEGER NOT NULL, vem TEXT NOT NULL, tid TEXT NOT NULL,
+  varden TEXT NOT NULL, varningar TEXT NOT NULL DEFAULT '[]', av TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS bb_screening (
+  id INTEGER PRIMARY KEY, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, forlossning_id INTEGER NOT NULL, typ TEXT NOT NULL, tid TEXT NOT NULL,
+  resultat TEXT NOT NULL, av TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS bb_utskrivning (
+  id INTEGER PRIMARY KEY, forlossning_id INTEGER NOT NULL UNIQUE, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, tid TEXT NOT NULL, av TEXT NOT NULL,
+  kriterier TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS graviditet_valdsamtycke (
+  id INTEGER PRIMARY KEY, graviditet_id INTEGER NOT NULL, patient_id TEXT NOT NULL, enhet_id TEXT NOT NULL, mottagare TEXT NOT NULL, fran TEXT NOT NULL,
+  till TEXT NOT NULL, av TEXT NOT NULL, aterkallad TEXT, aterkallad_av TEXT
+);
+CREATE TABLE IF NOT EXISTS graviditetsregister_utskick (
+  id INTEGER PRIMARY KEY, tid TEXT NOT NULL, enhet_id TEXT NOT NULL, av TEXT NOT NULL, antal INTEGER NOT NULL, undantagna INTEGER NOT NULL,
+  kvittens TEXT NOT NULL, innehall TEXT NOT NULL
+);
+`;
+// Kolumner som har tillkommit i graviditeter efter runda 9: IVF-graviditetens embryoöverföring och om patienten har
+// motsatt sig rapporteringen till Graviditetsregistret.
+const NYA_KOLUMNER = [['ivf_overforing', 'TEXT'], ['ivf_embryo_dagar', 'INTEGER'], ['register_motsatt', 'INTEGER NOT NULL DEFAULT 0']];
 const har = new WeakSet();
-export function sakra(db) { if (!har.has(db)) { db.exec(SCHEMA); har.add(db); } }
+export function sakra(db) {
+  if (har.has(db)) return;
+  db.exec(SCHEMA);
+  const kol = new Set(db.query('PRAGMA table_info(graviditeter)').all().map(c => c.name));
+  for (const [k, typ] of NYA_KOLUMNER) if (!kol.has(k)) db.exec(`ALTER TABLE graviditeter ADD COLUMN ${k} ${typ}`);
+  db.exec(SCHEMA_R11);
+  har.add(db);
+}
 
 export function graviditetRad(db, id) {
   sakra(db);
@@ -95,7 +163,10 @@ export const dagarFor = (g, datum) => GRAVIDITETSDAGAR - dagarMellan(datum, g.bp
 export const veckaText = (dagar) => `v ${Math.floor(dagar / 7)}+${dagar % 7}`;
 
 // Beräknad partus: sista mens plus 280 dagar (Naegeles regel), eller ultraljudet när det skiljer mer än sju dagar.
-export function bpdFor({ sistaMens = null, ulDatum = null, ulDagar = null }) {
+// Runda 11, r3: vid en IVF-graviditet räknas den från embryoöverföringen, 266 dagar minus embryots ålder i dagar, och
+// ultraljudet ändrar den inte.
+export function bpdFor({ sistaMens = null, ulDatum = null, ulDagar = null, ivfDatum = null, ivfDagar = null }) {
+  if (ivfDatum) return { bpd: addDagar(ivfDatum, GRAVIDITETSDAGAR - 14 - ivfDagar), kalla: 'ivf', text: `Beräknad från embryoöverföringen vid IVF (embryo dag ${ivfDagar}). Ultraljudet ändrar inte en IVF-graviditets beräknade partus.` };
   const sm = sistaMens ? addDagar(sistaMens, GRAVIDITETSDAGAR) : null;
   const ul = ulDatum != null && ulDagar != null ? addDagar(ulDatum, GRAVIDITETSDAGAR - ulDagar) : null;
   if (ul && (!sm || Math.abs(dagarMellan(sm, ul)) > 7)) {
@@ -127,18 +198,67 @@ export function riskbedomning(atk, g, nu = new Date()) {
   const grupp = labb.synligaBestallningar(atk).flatMap(b => db.query("SELECT svar_text FROM labb_analyser WHERE bestallning_id = ? AND analys = 'blodgruppering' AND status = 'besvarad'").all(b.id))
     .map(r => tolkaBlodgrupp(r.svar_text)).find(Boolean);
   if (grupp?.endsWith('-')) faktorer.push({ id: 'rhd', text: 'RhD-negativ. Systemet lägger till bastest i vecka 28 och anti-D-profylax efter förlossningen.', vikt: 0 });
+  // Runda 11, r3: IVF och anamnesen från inskrivningssamtalet.
+  const an = anamnesFor(db, g);
+  if (g.ivf_overforing) faktorer.push({ id: 'ivf', text: 'IVF-graviditet.', vikt: 1 });
+  if (an.tidigarePreeklampsi) faktorer.push({ id: 'tidigare_preeklampsi', text: 'Havandeskapsförgiftning i en tidigare graviditet.', vikt: 2 });
+  if (an.tidigareGdm) faktorer.push({ id: 'tidigare_gdm', text: 'Graviditetsdiabetes i en tidigare graviditet.', vikt: 1 });
   const summa = faktorer.reduce((s, f) => s + f.vikt, 0);
   const niva = faktorer.some(f => f.vikt >= 2) ? 'hog' : summa ? 'forhojd' : 'normal';
-  return { niva, namn: RISKNIVA[niva], faktorer, blodgrupp: grupp ?? null };
+  const bmi = vikt && langd ? Number(vikt.varde_num ?? vikt.varde) / (Number(langd.varde_num ?? langd.varde) / 100) ** 2 : null;
+  const id = new Set(faktorer.map(f => f.id));
+  return { niva, namn: RISKNIVA[niva], faktorer, blodgrupp: grupp ?? null, ...beslutsstod({ id, bmi, ar, an, g }) };
+}
+
+// Runda 11, r3: beslutsstödet för graviditetsdiabetes och havandeskapsförgiftning (demoregler med svenska
+// riktlinjer som förebild, inte ett kliniskt beslutsstöd). Systemet räknar ur det som finns och säger vad som ska göras.
+function beslutsstod({ id, bmi, ar, an, g }) {
+  const gdmSkal = [];
+  if (!id.has('diabetes')) {
+    if (bmi != null && bmi >= 30) gdmSkal.push('BMI 30 eller mer');
+    if (an.tidigareGdm) gdmSkal.push('graviditetsdiabetes tidigare');
+    if (an.arftlighetDiabetes) gdmSkal.push('diabetes hos förälder eller syskon');
+  }
+  const gdm = gdmSkal.length
+    ? { forhojd: true, text: `Förhöjd risk för graviditetsdiabetes (${gdmSkal.join(', ')}). Systemet lägger till en tidig glukosbelastning i vecka 13 utöver den i vecka 28.` }
+    : { forhojd: false, text: id.has('diabetes') ? 'Patienten har diabetes sedan tidigare och följs av diabetesteamet.' : 'Ingen förhöjd risk för graviditetsdiabetes i det som finns i journalen.' };
+  const hog = [], mattlig = [];
+  if (an.tidigarePreeklampsi) hog.push('havandeskapsförgiftning tidigare');
+  if (id.has('hypertoni')) hog.push('högt blodtryck före graviditeten');
+  if (id.has('diabetes')) hog.push('diabetes');
+  if (g.paritet === 0) mattlig.push('första förlossningen');
+  if (ar >= 40) mattlig.push('40 år eller äldre');
+  if (bmi != null && bmi >= 35) mattlig.push('BMI 35 eller mer');
+  if (g.antal_foster > 1) mattlig.push('flerbörd');
+  if (g.ivf_overforing) mattlig.push('IVF');
+  const pe = hog.length || mattlig.length >= 2;
+  const preeklampsi = pe
+    ? { hog: true, skal: [...hog, ...mattlig], text: `Hög risk för havandeskapsförgiftning (${[...hog, ...mattlig].join(', ')}). Läkaren bedömer om lågdos acetylsalicylsyra ska ges från vecka 12 till vecka 36, och blodtrycket och urinen kontrolleras vid varje besök.` }
+    : { hog: false, skal: mattlig, text: 'Ingen hög risk för havandeskapsförgiftning i det som finns i journalen. Blodtrycket och urinen kontrolleras som i basprogrammet.' };
+  return { gdm, preeklampsi, bmi: bmi == null ? null : Number(bmi.toFixed(1)) };
+}
+
+// Anamnesen från det senaste inskrivningssamtalet. Den hör till graviditetsjournalen och prövas med den.
+const lasJsonTidigt = (s, standard) => { try { return JSON.parse(s) ?? standard; } catch { return standard; } };
+function anamnesFor(db, g) {
+  const s = db.query('SELECT anamnes FROM graviditet_samtal WHERE graviditet_id = ? ORDER BY id DESC').get(g.id);
+  return s ? lasJsonTidigt(s.anamnes, {}) : {};
 }
 
 // Besöksprogrammet med vad som är gjort och vad som är nästa besök.
+export const GDM_PROGRAM = [{ vecka: 13, typ: 'Tidig glukosbelastning (förhöjd risk för graviditetsdiabetes)', prover: ['glukos'] }];
 export function program(atk, g, risk, nu = new Date()) {
   const besok = atk.db.query('SELECT dagar FROM graviditet_besok WHERE graviditet_id = ?').all(g.id).map(b => Math.floor(b.dagar / 7));
+  // Runda 11, r3: ett ultraljud i ultraljudsjournalen räknas som besöket i programmet, och inskrivningen är gjord när
+  // inskrivningssamtalet är registrerat.
+  const ul = atk.db.query('SELECT dagar FROM graviditet_ultraljud WHERE graviditet_id = ?').all(g.id).map(b => Math.floor(b.dagar / 7));
+  const samtal = Boolean(atk.db.query('SELECT 1 FROM graviditet_samtal WHERE graviditet_id = ?').get(g.id));
   const idag = dagarFor(g, datumAv(nu));
-  const lista = [...PROGRAM, ...(g.antal_foster > 1 ? FLERBORD_PROGRAM : []), ...(risk.niva !== 'normal' ? RISK_PROGRAM : [])].sort((a, b) => a.vecka - b.vecka)
+  const gjortFor = (x) => (/ultraljud/i.test(x.typ) ? ul.some(v => Math.abs(v - x.vecka) <= 2) || besok.some(v => Math.abs(v - x.vecka) <= 1)
+    : x.vecka === 8 && samtal) || besok.some(v => Math.abs(v - x.vecka) <= 1);
+  const lista = [...PROGRAM, ...(g.antal_foster > 1 ? FLERBORD_PROGRAM : []), ...(risk.niva !== 'normal' ? RISK_PROGRAM : []), ...(risk.gdm?.forhojd ? GDM_PROGRAM : [])].sort((a, b) => a.vecka - b.vecka)
     .map(x => ({ ...x, datum: addDagar(g.bpd, x.vecka * 7 - GRAVIDITETSDAGAR), prover: (x.prover ?? []).map(id => ({ analys: id, namn: ANALYS[id].namn })),
-      gjort: besok.some(v => Math.abs(v - x.vecka) <= 1) }));
+      gjort: gjortFor(x) }));
   const nasta = lista.find(x => !x.gjort && x.vecka * 7 >= idag - 7) ?? null;
   return { besok: lista, nasta };
 }
@@ -156,7 +276,14 @@ export function graviditetUt(atk, g, nu = new Date()) {
     besok: db.query('SELECT * FROM graviditet_besok WHERE graviditet_id = ? ORDER BY tid').all(g.id).map(b => ({ id: b.id, tid: b.tid, vecka: veckaText(b.dagar), blodtryck: b.blodtryck,
       vikt: b.vikt, sfMatt: b.sf_matt, fosterljud: b.fosterljud, urinProtein: b.urin_protein, varningar: lasJson(b.varningar, []), av: personNamn(db, b.av) })),
     vardenhet: enhetKort(db, g.enhet_id), registrerad: { tid: g.skapad, av: personNamn(db, g.registrerad_av) },
-    forlossning: f ? forlossningUt(atk, f) : null, demoregel: DEMOREGEL,
+    // Runda 11, r3: förlossningen visas bara när den inloggade får se förlossningens vårdenhet.
+    forlossning: f && atk.prova('las_graviditet', { enhet_id: f.enhet_id }).tillaten ? forlossningUt(atk, f) : null, demoregel: DEMOREGEL,
+    // Runda 11, r3.
+    ivf: g.ivf_overforing ? { overforing: g.ivf_overforing, embryoDagar: g.ivf_embryo_dagar } : null, registerMotsatt: Boolean(g.register_motsatt),
+    ultraljud: db.query('SELECT * FROM graviditet_ultraljud WHERE graviditet_id = ? ORDER BY datum, id').all(g.id).map(u => ultraljudUt(db, u)),
+    inskrivningssamtal: samtalUt(db, db.query('SELECT * FROM graviditet_samtal WHERE graviditet_id = ? ORDER BY id DESC').get(g.id), atk, nu),
+    efterkontroll: db.query('SELECT * FROM graviditet_efterkontroll WHERE graviditet_id = ? ORDER BY id DESC').all(g.id).map(e => efterkontrollUt(db, e)),
+    sfKurva: sfKurva(db, g), attGora: attGora(db, g, dagar, risk),
   };
 }
 
@@ -178,28 +305,110 @@ export function registrera(atk, body = {}, nu = new Date()) {
     ulDagar = Number(body.ultraljud.veckor) * 7 + Number(body.ultraljud.dagar ?? 0);
     if (!giltigtDatum(ulDatum) || ulDatum > idag || !Number.isInteger(ulDagar) || ulDagar < 42 || ulDagar > 300) throw new Fel(400, 'Ange ultraljudets datum och graviditetslängd i veckor och dagar, mellan vecka 6 och 42.', 'ogiltig', { falt: ['ultraljud'] });
   }
-  const b = bpdFor({ sistaMens, ulDatum, ulDagar });
+  // Runda 11, r3: IVF-graviditeten med embryoöverföringens datum och embryots ålder i dagar.
+  let ivfDatum = null, ivfDagar = null;
+  if (body.ivf) {
+    ivfDatum = body.ivf.overforing;
+    ivfDagar = Number(body.ivf.embryoDagar);
+    if (!giltigtDatum(ivfDatum) || ivfDatum > idag || dagarMellan(ivfDatum, idag) > 290) throw new Fel(400, 'Ange datumet för embryoöverföringen som ÅÅÅÅ-MM-DD, inom de senaste 290 dagarna.', 'ogiltig', { falt: ['ivf.overforing'] });
+    if (![2, 3, 5, 6].includes(ivfDagar)) throw new Fel(400, 'Embryots ålder vid överföringen är 2, 3, 5 eller 6 dagar.', 'ogiltig', { falt: ['ivf.embryoDagar'] });
+  }
+  const b = bpdFor({ sistaMens, ulDatum, ulDagar, ivfDatum, ivfDagar });
   const antal = body.antalFoster == null ? 1 : Number(body.antalFoster);
   if (![1, 2, 3].includes(antal)) throw new Fel(400, 'Antalet foster är 1, 2 eller 3 i demon.', 'ogiltig', { falt: ['antalFoster'] });
   const paritet = Number(body.paritet ?? 0), ks = Number(body.tidigareKejsarsnitt ?? 0);
   if (!Number.isInteger(paritet) || paritet < 0 || paritet > 15) throw new Fel(400, 'Antalet tidigare förlossningar är ett heltal.', 'ogiltig', { falt: ['paritet'] });
   if (!Number.isInteger(ks) || ks < 0 || ks > paritet) throw new Fel(400, 'Tidigare kejsarsnitt kan inte vara fler än tidigare förlossningar.', 'ogiltig', { falt: ['tidigareKejsarsnitt'] });
-  const r = db.query(`INSERT INTO graviditeter (patient_id, enhet_id, vardkontakt_id, registrerad_av, skapad, sista_mens, ul_datum, ul_dagar, bpd, bpd_kalla, antal_foster, paritet, tidigare_kejsarsnitt, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pagaende')`).run(atk.patientId, atk.personal.enhet_id, vardkontaktFor(atk, nu), atk.personal.id, iso(nu), sistaMens, ulDatum, ulDagar, b.bpd, b.kalla, antal, paritet, ks);
+  const r = db.query(`INSERT INTO graviditeter (patient_id, enhet_id, vardkontakt_id, registrerad_av, skapad, sista_mens, ul_datum, ul_dagar, bpd, bpd_kalla, antal_foster, paritet, tidigare_kejsarsnitt, status, ivf_overforing, ivf_embryo_dagar)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pagaende', ?, ?)`).run(atk.patientId, atk.personal.enhet_id, vardkontaktFor(atk, nu), atk.personal.id, iso(nu), sistaMens, ulDatum, ulDagar, b.bpd, b.kalla, antal, paritet, ks, ivfDatum, ivfDagar);
   const g = graviditetRad(db, r.lastInsertRowid);
   return { ...graviditetUt(atk, g, nu), bpdText: b.text };
 }
 
-// Ultraljud senare i graviditeten: BPD räknas om när ultraljudet skiljer mer än sju dagar från den nuvarande.
+// Ultraljudsjournalen (runda 11, r3). Ett ultraljud till och med vecka 22 daterar graviditeten: beräknad partus räknas
+// om när ultraljudet skiljer mer än sju dagar från sista mens. Ett senare ultraljud och ett tillväxtultraljud ändrar
+// aldrig beräknad partus. Vid tillväxtultraljudet räknar systemet graviditetslängden ur beräknad partus och jämför den
+// skattade vikten med den förväntade för veckan. En IVF-graviditet dateras bara från embryoöverföringen.
+export const ULTRALJUDSTYPER = tabell({ kub: 'Tidigt ultraljud (KUB)', rutin: 'Rutinultraljud', tillvaxt: 'Tillväxtultraljud', ovrigt: 'Annat ultraljud' });
+export const PLACENTA = tabell({ framvagg: 'Framväggen', bakvagg: 'Bakväggen', fundus: 'Fundus', lagt: 'Lågt sittande', foreliggande: 'Föreliggande' });
+export const FOSTERVATTEN = tabell({ normalt: 'Normal mängd', lite: 'Lite fostervatten', mycket: 'Mycket fostervatten' });
+export const DATERING_MAX_DAGAR = 22 * 7;
+// Förväntad fostervikt i gram per graviditetsvecka (förenklad kurva, demoregel). En avvikelse på 22 procent eller mer
+// räknas som liten eller stor för tiden, ungefär två standardavvikelser.
+const VIKTKURVA = [[20, 330], [22, 480], [24, 670], [26, 900], [28, 1180], [30, 1500], [32, 1860], [34, 2280], [36, 2730], [38, 3170], [40, 3550], [42, 3800]];
+export function forvantadVikt(dagar) {
+  const v = dagar / 7;
+  if (v <= VIKTKURVA[0][0]) return VIKTKURVA[0][1];
+  for (let i = 1; i < VIKTKURVA.length; i++) {
+    const [v1, g1] = VIKTKURVA[i], [v0, g0] = VIKTKURVA[i - 1];
+    if (v <= v1) return Math.round(g0 + (g1 - g0) * (v - v0) / (v1 - v0));
+  }
+  return VIKTKURVA.at(-1)[1];
+}
+export const VIKTAVVIKELSE = 22;
+
 export function ultraljud(atk, g, body = {}, nu = new Date()) {
+  const db = atk.db;
   andraGrav(atk, g);
   const datum = body.datum ?? datumAv(nu);
-  const dagar = Number(body.veckor) * 7 + Number(body.dagar ?? 0);
-  if (!giltigtDatum(datum) || !Number.isInteger(dagar) || dagar < 42 || dagar > 300) throw new Fel(400, 'Ange graviditetslängden vid ultraljudet i veckor och dagar.', 'ogiltig', { falt: ['veckor'] });
-  const b = bpdFor({ sistaMens: g.sista_mens, ulDatum: datum, ulDagar: dagar });
-  atk.db.query('UPDATE graviditeter SET ul_datum = ?, ul_dagar = ?, bpd = ?, bpd_kalla = ?, antal_foster = ? WHERE id = ?')
-    .run(datum, dagar, b.bpd, b.kalla, [1, 2, 3].includes(Number(body.antalFoster)) ? Number(body.antalFoster) : g.antal_foster, g.id);
-  return { ...graviditetUt(atk, graviditetRad(atk.db, g.id), nu), bpdText: b.text };
+  if (!giltigtDatum(datum) || datum > datumAv(nu)) throw new Fel(400, 'Ultraljudets datum ska vara ett datum som har varit, ÅÅÅÅ-MM-DD.', 'ogiltig', { falt: ['datum'] });
+  const typ = body.typ ?? 'rutin';
+  if (!finns(ULTRALJUDSTYPER, typ)) throw new Fel(400, 'Typen av ultraljud finns inte.', 'ogiltig', { falt: ['typ'] });
+  // Tillväxtultraljudet mäter inte graviditetslängden: systemet räknar den ur beräknad partus.
+  const dagar = typ === 'tillvaxt' ? dagarFor(g, datum) : Number(body.veckor) * 7 + Number(body.dagar ?? 0);
+  if (!Number.isInteger(dagar) || dagar < 42 || dagar > 300) throw new Fel(400, 'Ange graviditetslängden vid ultraljudet i veckor och dagar.', 'ogiltig', { falt: ['veckor'] });
+  const antal = [1, 2, 3].includes(Number(body.antalFoster)) ? Number(body.antalFoster) : g.antal_foster;
+  if (body.placenta != null && body.placenta !== '' && !finns(PLACENTA, body.placenta)) throw new Fel(400, 'Moderkakans läge finns inte i listan.', 'ogiltig', { falt: ['placenta'] });
+  if (body.fostervatten != null && body.fostervatten !== '' && !finns(FOSTERVATTEN, body.fostervatten)) throw new Fel(400, 'Fostervattenmängden finns inte i listan.', 'ogiltig', { falt: ['fostervatten'] });
+  const inFoster = Array.isArray(body.foster) ? body.foster.slice(0, 3) : [];
+  const varningar = [];
+  const foster = [];
+  for (let i = 0; i < antal; i++) {
+    const f = inFoster[i] && typeof inFoster[i] === 'object' ? inFoster[i] : {};
+    const hjarta = f.hjartaktivitet === undefined ? true : f.hjartaktivitet === true;
+    let vikt = null, avvikelse = null;
+    if (f.skattadVikt != null && f.skattadVikt !== '') {
+      vikt = Number(f.skattadVikt);
+      if (!Number.isInteger(vikt) || vikt < 100 || vikt > 6000) throw new Fel(400, 'Den skattade vikten anges i hela gram, 100 till 6 000.', 'ogiltig', { falt: ['foster'] });
+      avvikelse = Math.round(((vikt - forvantadVikt(dagar)) / forvantadVikt(dagar)) * 100);
+    }
+    if (typ === 'tillvaxt' && vikt == null) throw new Fel(400, `Ange den skattade vikten${antal > 1 ? ` för foster ${i + 1}` : ''}. Det är den som tillväxtultraljudet följer.`, 'ogiltig', { falt: ['foster'] });
+    const namn = antal > 1 ? `Foster ${i + 1}` : 'Fostret';
+    if (!hjarta) varningar.push(`${namn}: ingen hjärtaktivitet. Kontakta läkare nu.`);
+    if (avvikelse != null && avvikelse <= -VIKTAVVIKELSE) varningar.push(`${namn}: skattad vikt ${vikt} g är ${-avvikelse} procent under den förväntade i vecka ${Math.floor(dagar / 7)} (liten för tiden). Läkaren planerar tätare tillväxtkontroller och flödesmätning.`);
+    if (avvikelse != null && avvikelse >= VIKTAVVIKELSE) varningar.push(`${namn}: skattad vikt ${vikt} g är ${avvikelse} procent över den förväntade i vecka ${Math.floor(dagar / 7)} (stor för tiden). Kontrollera glukosbelastningen och planera förlossningen med läkare.`);
+    foster.push({ ordning: i + 1, hjartaktivitet: hjarta, skattadVikt: vikt, forvantadVikt: vikt != null ? forvantadVikt(dagar) : null, avvikelse });
+  }
+  const vikter = foster.map(f => f.skattadVikt).filter(v => v != null);
+  if (vikter.length > 1 && (Math.max(...vikter) - Math.min(...vikter)) / Math.max(...vikter) > 0.2) varningar.push('Viktskillnaden mellan fostren är mer än 20 procent. Läkaren bedömer om det kan vara tvillingtransfusion eller tillväxthämning hos ett foster.');
+  if (body.placenta === 'foreliggande' && dagar >= 18 * 7) varningar.push('Föreliggande moderkaka: ingen vaginal undersökning. Systemet föreslår ett nytt ultraljud i vecka 32 och planering av förlossningen med läkare.');
+  if (body.fostervatten === 'lite') varningar.push('Lite fostervatten. Läkaren bedömer fostrets tillväxt och flöden samma vecka.');
+  if (body.fostervatten === 'mycket') varningar.push('Mycket fostervatten. Kontrollera glukosbelastningen och bedöm med läkare.');
+  if (antal !== g.antal_foster) varningar.push(`Ultraljudet visar ${antal} foster. Besöksprogrammet räknas om.`);
+  const daterar = typ !== 'tillvaxt' && dagar <= DATERING_MAX_DAGAR && !g.ivf_overforing;
+  const b = daterar ? bpdFor({ sistaMens: g.sista_mens, ulDatum: datum, ulDagar: dagar })
+    : { bpd: g.bpd, kalla: g.bpd_kalla, text: g.ivf_overforing ? 'IVF-graviditeten dateras från embryoöverföringen, så ultraljudet ändrar inte beräknad partus.' : 'Ett ultraljud efter vecka 22 eller ett tillväxtultraljud ändrar inte beräknad partus.' };
+  db.transaction(() => {
+    db.query(`INSERT INTO graviditet_ultraljud (graviditet_id, patient_id, enhet_id, tid, datum, typ, dagar, antal_foster, foster, placenta, fostervatten, fynd, varningar, datering, av)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(g.id, g.patient_id, atk.personal.enhet_id, iso(nu), datum, typ, dagar, antal, JSON.stringify(foster),
+      body.placenta || null, body.fostervatten || null, textFalt(body.fynd, 500) || null, JSON.stringify(varningar), daterar ? 1 : 0, atk.personal.id);
+    if (daterar) db.query('UPDATE graviditeter SET ul_datum = ?, ul_dagar = ?, bpd = ?, bpd_kalla = ? WHERE id = ?').run(datum, dagar, b.bpd, b.kalla, g.id);
+    if (antal !== g.antal_foster) db.query('UPDATE graviditeter SET antal_foster = ? WHERE id = ?').run(antal, g.id);
+  })();
+  return { ...graviditetUt(atk, graviditetRad(db, g.id), nu), bpdText: b.text, varningar };
+}
+function ultraljudUt(db, u) {
+  return {
+    id: u.id, datum: u.datum, typ: u.typ, typText: ULTRALJUDSTYPER[u.typ] ?? u.typ, vecka: veckaText(u.dagar), antalFoster: u.antal_foster, foster: lasJson(u.foster, []),
+    placenta: u.placenta ? PLACENTA[u.placenta] ?? null : null, fostervatten: u.fostervatten ? FOSTERVATTEN[u.fostervatten] ?? null : null, fynd: u.fynd,
+    varningar: lasJson(u.varningar, []), datering: Boolean(u.datering), av: personNamn(db, u.av),
+  };
+}
+
+// Symfys-fundusmåttet per vecka med det förväntade intervallet (veckan plus minus tre centimeter, demoregel).
+function sfKurva(db, g) {
+  return db.query('SELECT tid, dagar, sf_matt FROM graviditet_besok WHERE graviditet_id = ? AND sf_matt IS NOT NULL ORDER BY tid').all(g.id)
+    .map(b => ({ vecka: Number((b.dagar / 7).toFixed(1)), sfMatt: b.sf_matt, undre: Math.floor(b.dagar / 7) - 3, ovre: Math.floor(b.dagar / 7) + 3, avviker: g.antal_foster === 1 && Math.abs(b.sf_matt - Math.floor(b.dagar / 7)) > 3 }));
 }
 
 // Prover som ska tas enligt provschemat vid nästa besök och som inte redan är beställda efter inskrivningen.
@@ -255,6 +464,293 @@ export function besok(atk, g, body = {}, nu = new Date()) {
   return { ...graviditetUt(atk, graviditetRad(db, g.id), nu), varningar };
 }
 
+// ---- Inskrivningssamtalet, efterkontrollen och vad som ska göras (runda 11, r3) ------------------------------------------
+//
+// Frågorna om våld ställs som i mödrahälsovården: till alla, när kvinnan är ensam och utan närstående som tolk. Går
+// det inte registreras varför, och systemet påminner vid nästa besök. Svaren sparas bara i graviditet_samtal.kansligt.
+// De syns aldrig i graviditetsjournalen, översikten, uppföljningen, datauttaget eller registret, bara för personal med
+// handlingen graviditet på den vårdenhet som ställde frågorna, efter ett eget val som loggas. Det som följer med är att
+// frågorna är ställda.
+export const VALDFRAGOR = [
+  { id: 'tidigare', text: 'Har du någon gång blivit utsatt för våld, hot eller kränkningar av någon som står dig nära?' },
+  { id: 'nu', text: 'Är du utsatt för våld, hot eller kränkningar nu?' },
+  { id: 'radd', text: 'Känner du dig rädd för någon i din närhet?' },
+];
+export const VALDSVAR = tabell({ nej: 'Nej', ja: 'Ja', vill_ej: 'Vill inte svara' });
+export const VALD_EJ_ORSAK = tabell({ inte_ensam: 'Kvinnan var inte ensam vid besöket', tolk_narstaende: 'Tolken var en närstående', annat: 'Annat skäl' });
+export const TOBAKSBRUK = tabell({ aldrig: 'Har aldrig använt', slutat_fore: 'Slutade före graviditeten', slutat_under: 'Slutade när graviditeten blev känd', ja: 'Använder nu' });
+export const ANAMNES = tabell({ tidigareGdm: 'Graviditetsdiabetes i en tidigare graviditet', tidigarePreeklampsi: 'Havandeskapsförgiftning i en tidigare graviditet',
+  arftlighetDiabetes: 'Diabetes hos förälder eller syskon', forlossningsradsla: 'Rädsla inför förlossningen' });
+// Smärtlindringen under förlossningen (forlossning.js), här så att önskemålen i förlossningsbrevet använder samma lista.
+export const SMARTLINDRING = tabell({ lustgas: 'Lustgas', eda: 'Epiduralbedövning (EDA)', spinal: 'Spinalbedövning', pudendus: 'Pudendusblockad', tens: 'TENS',
+  sterilvatten: 'Sterilvattenkvaddlar', akupunktur: 'Akupunktur', bad: 'Varmt bad', ingen: 'Ingen smärtlindring' });
+export const AMNING = tabell({ helt: 'Helamning', delvis: 'Delvis amning', ingen: 'Ingen amning' });
+export const BLODNING = tabell({ ingen: 'Ingen blödning', lite: 'Lite blödning', mycket: 'Riklig blödning' });
+export const EPDS_GRANS = 12;
+
+export function samtal(atk, g, body = {}, nu = new Date()) {
+  const db = atk.db;
+  andraGrav(atk, g);
+  if (g.status !== 'pagaende') throw new Fel(409, 'Graviditeten är avslutad.', 'ogiltig');
+  const anamnes = {};
+  for (const k of Object.keys(ANAMNES)) anamnes[k] = body.anamnes?.[k] === true;
+  const tobak = {};
+  for (const k of ['rokning', 'snus']) {
+    if (!finns(TOBAKSBRUK, body.tobak?.[k])) throw new Fel(400, `Svara på frågan om ${k === 'rokning' ? 'rökning' : 'snus'}. Graviditetsregistret följer tobaksbruket vid inskrivningen.`, 'ogiltig', { falt: [`tobak.${k}`] });
+    tobak[k] = body.tobak[k];
+  }
+  const ensam = body.vald?.ensam === true;
+  let kansligt = null, orsak = null;
+  if (ensam) {
+    const svar = {};
+    for (const q of VALDFRAGOR) {
+      const s = body.vald?.svar?.[q.id];
+      if (!finns(VALDSVAR, s)) throw new Fel(400, `Svara på frågan: ${q.text} Hon kan också välja att inte svara.`, 'ogiltig', { falt: [`vald.${q.id}`] });
+      svar[q.id] = s;
+    }
+    kansligt = JSON.stringify(svar);
+  } else {
+    orsak = body.vald?.orsak;
+    if (!finns(VALD_EJ_ORSAK, orsak)) throw new Fel(400, 'Frågorna om våld ställs bara när kvinnan är ensam. Ange varför de inte kunde ställas, så påminner systemet vid nästa besök.', 'ogiltig', { falt: ['vald.orsak'] });
+  }
+  const smart = Array.isArray(body.onskemal?.smartlindring) ? [...new Set(body.onskemal.smartlindring.filter(m => finns(SMARTLINDRING, m)))] : [];
+  const onskemal = { text: textFalt(body.onskemal?.text, 1000), smartlindring: smart };
+  const varningar = [];
+  if (tobak.rokning === 'ja') varningar.push('Hon röker. Erbjud stöd att sluta. Rökning under graviditeten ökar risken för tillväxthämning, för tidig förlossning och plötslig spädbarnsdöd.');
+  if (tobak.snus === 'ja') varningar.push('Hon snusar. Erbjud stöd att sluta. Nikotin under graviditeten påverkar fostret.');
+  const alk = body.levnadsvanor?.alkohol;
+  if (alk && (Number(alk.glasPerVecka) > 0 || (alk.berusning && alk.berusning !== 'aldrig'))) varningar.push('Hon dricker alkohol. Under graviditeten är rådet att inte dricka alls. Systemet föreslår ett rådgivande samtal om alkohol.');
+  if (anamnes.forlossningsradsla) varningar.push('Rädsla inför förlossningen. Systemet föreslår samtal med en barnmorska eller kurator som arbetar med förlossningsrädsla, och att önskemålen skrivs i förlossningsbrevet.');
+  if (kansligt) {
+    const s = JSON.parse(kansligt);
+    if (s.nu === 'ja' || s.radd === 'ja') varningar.push('Hon är utsatt eller rädd nu. Erbjud samtal med kurator och hjälp med en säkerhetsplan, och informera om stödlinjer för den som utsätts för våld. Svaren syns bara här på mödrahälsovården och visas inte för andra.');
+    else if (s.tidigare === 'ja') varningar.push('Hon har varit utsatt tidigare. Erbjud samtal med kurator. Svaren syns bara här på mödrahälsovården.');
+  }
+  let anteckningId = null;
+  db.transaction(() => {
+    // Levnadsvanorna blir en anteckning av typen Levnadsvanor, så att de registreras en gång och syns i journalen.
+    if (body.levnadsvanor) {
+      const j = journal();
+      const a = j.skapaAnteckning(atk, { typ: 'Levnadsvanor', vardkontaktId: vardkontaktFor(atk, nu), levnadsvanor: body.levnadsvanor });
+      j.signera(atk, j.hamtaAnteckningRad(db, a.id));
+      anteckningId = a.id;
+    }
+    db.query(`INSERT INTO graviditet_samtal (graviditet_id, patient_id, enhet_id, tid, av, anteckning_id, anamnes, tobak, vald_stalld, vald_orsak, kansligt, onskemal)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(g.id, g.patient_id, atk.personal.enhet_id, iso(nu), atk.personal.id, anteckningId, JSON.stringify(anamnes), JSON.stringify(tobak),
+      ensam ? 1 : 0, orsak, kansligt, JSON.stringify(onskemal));
+  })();
+  return { ...graviditetUt(atk, graviditetRad(db, g.id), nu), varningar,
+    text: ensam ? 'Inskrivningssamtalet är registrerat. Svaren om våld är sparade som känsliga uppgifter.' : 'Inskrivningssamtalet är registrerat. Systemet påminner om frågorna om våld vid nästa besök.' };
+}
+
+function samtalUt(db, s, atk = null, nu = new Date()) {
+  if (!s) return null;
+  const tobak = lasJson(s.tobak, {}) ?? {};
+  const an = lasJson(s.anamnes, {}) ?? {};
+  const on = lasJson(s.onskemal, {}) ?? {};
+  return {
+    id: s.id, tid: s.tid, av: personNamn(db, s.av), anteckningId: s.anteckning_id,
+    anamnes: Object.keys(ANAMNES).filter(k => an[k]).map(k => ({ id: k, text: ANAMNES[k] })),
+    tobak: { rokning: tobak.rokning ?? null, rokningText: TOBAKSBRUK[tobak.rokning] ?? null, snus: tobak.snus ?? null, snusText: TOBAKSBRUK[tobak.snus] ?? null },
+    valdfragan: { stalld: Boolean(s.vald_stalld), orsak: s.vald_orsak ? VALD_EJ_ORSAK[s.vald_orsak] ?? null : null, kanLasaSvar: Boolean(s.vald_stalld && atk && kanRoll(atk.personal, 'graviditet') && (egenEnhet(db, atk, s) || aktivtSamtycke(db, s.graviditet_id, vardenhetFor(db, atk.personal.enhet_id), nu))) },
+    // Runda 11, r3: samtyckena syns bara för den enhet som ställde frågorna och ger dem.
+    ...(atk && egenEnhet(db, atk, s) && kanRoll(atk.personal, 'graviditet') ? { samtycken: samtyckenUt(db, s.graviditet_id, nu),
+      samtyckesmottagare: db.query("SELECT id, namn FROM enheter WHERE typ = 'vardenhet' AND id <> ? ORDER BY namn").all(vardenhetFor(db, s.enhet_id)) } : {}),
+    onskemal: { text: on.text ?? '', smartlindring: (on.smartlindring ?? []).map(m => ({ id: m, text: SMARTLINDRING[m] })) },
+  };
+}
+
+// Svaren på frågorna om våld. Bara på den vårdenhet som ställde frågorna och med handlingen graviditet. Läsningen loggas
+// med en egen resurs, så att logguppföljningen ser vem som har läst svaren.
+// Runda 11, r3, Jonas beslut 2026-11-10: en annan vårdenhet, till exempel förlossningen, får läsa svaren bara med
+// kvinnans samtycke. Samtycket frågas när hon är ensam, som frågorna, gäller en namngiven vårdenhet till och med ett
+// datum och ges och återkallas bara av den vårdenhet som ställde frågorna. Ett återkallat eller utgånget samtycke
+// stänger direkt, eftersom det prövas vid varje läsning.
+const VALD_NEKAD = 'Svaren på frågorna om våld syns bara för mödrahälsovården på den vårdenhet som ställde dem, och för en vårdenhet som kvinnan har gett sitt samtycke till.';
+const egenEnhet = (db, atk, s) => vardenhetFor(db, atk.personal.enhet_id) === vardenhetFor(db, s.enhet_id);
+const stalldaFragor = (db, g) => db.query('SELECT * FROM graviditet_samtal WHERE graviditet_id = ? AND vald_stalld = 1 ORDER BY id DESC').get(g.id);
+export function aktivtSamtycke(db, gid, ve, nu = new Date()) {
+  return db.query('SELECT * FROM graviditet_valdsamtycke WHERE graviditet_id = ? AND mottagare = ? AND aterkallad IS NULL AND fran <= ? AND till >= ? ORDER BY id DESC')
+    .get(gid, ve, iso(nu), datumAv(nu)) ?? null;
+}
+function samtyckenUt(db, gid, nu = new Date()) {
+  return db.query('SELECT * FROM graviditet_valdsamtycke WHERE graviditet_id = ? ORDER BY id DESC').all(gid).map(x => ({
+    id: x.id, mottagare: enhetKort(db, x.mottagare), fran: x.fran, till: x.till, av: personNamn(db, x.av),
+    aterkallad: x.aterkallad ? { tid: x.aterkallad, av: personNamn(db, x.aterkallad_av) } : null, aktiv: !x.aterkallad && x.till >= datumAv(nu) && x.fran <= iso(nu) }));
+}
+
+export function valdsvar(atk, g, nu = new Date()) {
+  const db = atk.db;
+  lasRad(atk, g, 'las_graviditet');
+  const s = stalldaFragor(db, g);
+  if (!s) throw new Fel(404, 'Frågorna om våld är inte ställda i den här graviditeten.', 'saknas');
+  lasRad(atk, s, 'las_graviditet');
+  atk.krav('graviditet');
+  const samtycke = egenEnhet(db, atk, s) ? null : aktivtSamtycke(db, g.id, vardenhetFor(db, atk.personal.enhet_id), nu);
+  if (!egenEnhet(db, atk, s) && !samtycke) throw new Fel(403, VALD_NEKAD, 'nekad');
+  const svar = lasJson(s.kansligt, {}) ?? {};
+  atk.logga('graviditet', atk.grund(), `graviditet:${g.id}:valdfragor${samtycke ? `:samtycke:${samtycke.id}` : ''}`);
+  return { tid: s.tid, av: personNamn(db, s.av), svar: VALDFRAGOR.map(q => ({ fraga: q.text, svar: VALDSVAR[svar[q.id]] ?? null })),
+    samtycke: samtycke ? { till: samtycke.till } : null,
+    text: samtycke ? `Kvinnan har gett sitt samtycke till att er vårdenhet läser svaren till och med ${samtycke.till}. Läsningen loggas.` : 'Svaren är känsliga uppgifter. De visas bara här och läsningen loggas.' };
+}
+
+export function valdSamtycke(atk, g, body = {}, nu = new Date()) {
+  const db = atk.db;
+  sakra(db);
+  lasRad(atk, g, 'las_graviditet');
+  const s = stalldaFragor(db, g);
+  if (!s) throw new Fel(404, 'Frågorna om våld är inte ställda i den här graviditeten.', 'saknas');
+  andraRad(atk, s, 'graviditet', 'las_graviditet', 'Samtycket ges bara hos den vårdenhet som ställde frågorna om våld.');
+  if (body.ensam !== true) throw new Fel(400, 'Fråga om samtycket när hon är ensam, som frågorna om våld.', 'ogiltig', { falt: ['ensam'] });
+  const mottagare = body.mottagare;
+  const ve = typeof mottagare === 'string' ? db.query("SELECT id FROM enheter WHERE id = ? AND typ = 'vardenhet'").get(mottagare) : null;
+  if (!ve) throw new Fel(400, 'Välj den vårdenhet som samtycket gäller.', 'ogiltig', { falt: ['mottagare'] });
+  if (mottagare === vardenhetFor(db, s.enhet_id)) throw new Fel(400, 'Er egen vårdenhet läser redan svaren. Samtycket gäller en annan vårdenhet.', 'ogiltig', { falt: ['mottagare'] });
+  const idag = datumAv(nu);
+  if (!giltigtDatum(body.till) || body.till < idag || dagarMellan(idag, body.till) > 365) throw new Fel(400, 'Ange till och med vilket datum samtycket gäller, i dag eller senare och högst ett år framåt.', 'ogiltig', { falt: ['till'] });
+  if (aktivtSamtycke(db, g.id, mottagare, nu)) throw new Fel(409, 'Det finns redan ett gällande samtycke för den vårdenheten. Återkalla det först om det ska ändras.', 'ogiltig');
+  db.query('INSERT INTO graviditet_valdsamtycke (graviditet_id, patient_id, enhet_id, mottagare, fran, till, av) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .run(g.id, g.patient_id, atk.personal.enhet_id, mottagare, iso(nu), body.till, atk.personal.id);
+  atk.logga('graviditet', atk.grund(), `graviditet:${g.id}:valdsamtycke`);
+  return { samtycken: samtyckenUt(db, g.id, nu), text: `Samtycket är registrerat. ${enhetKort(db, mottagare).namn} kan läsa svaren till och med ${body.till}.` };
+}
+
+export function aterkallaSamtycke(atk, g, sid, nu = new Date()) {
+  const db = atk.db;
+  sakra(db);
+  lasRad(atk, g, 'las_graviditet');
+  const x = /^\d{1,9}$/.test(String(sid)) ? db.query('SELECT * FROM graviditet_valdsamtycke WHERE id = ? AND graviditet_id = ?').get(Number(sid), g.id) : null;
+  if (!x) throw new Fel(404, 'Samtycket finns inte.', 'saknas');
+  andraRad(atk, x, 'graviditet', 'las_graviditet', 'Samtycket återkallas bara hos den vårdenhet som ställde frågorna om våld.');
+  if (!x.aterkallad) db.query('UPDATE graviditet_valdsamtycke SET aterkallad = ?, aterkallad_av = ? WHERE id = ?').run(iso(nu), atk.personal.id, x.id);
+  atk.logga('graviditet', atk.grund(), `graviditet:${g.id}:valdsamtycke`);
+  return { samtycken: samtyckenUt(db, g.id, nu), text: 'Samtycket är återkallat och gäller inte längre.' };
+}
+
+// Runda 11, r3, Jonas beslut 2026-11-10: graviditeten i Min journal för kvinnan själv, efter vårdgivarens
+// visningsregler för vårdenheten (regeln för anteckningstypen Graviditetsjournal, eller vårdenhetens regel). Besöks-
+// programmet, beräknad partus, ultraljuden och provsvaren. Inskrivningssamtalet, svaren om våld och samtyckena finns
+// aldrig med, och ett ombud eller en vårdnadshavare ser inte graviditeten.
+export const MIN_TYP = 'Graviditetsjournal';
+const minVisning = (db, g) => require('./patientvy.js').regelFor(db, { enhet_id: g.enhet_id, typ: MIN_TYP });
+function minGraviditeter(atk) {
+  sakra(atk.db);
+  return atk.db.query('SELECT * FROM graviditeter WHERE patient_id = ? ORDER BY skapad DESC').all(atk.patientId).filter(g => minVisning(atk.db, g)?.visning !== 'visas_inte');
+}
+export const harMinGraviditet = (atk) => atk.relation === 'egen' && minGraviditeter(atk).length > 0;
+export function minGraviditet(atk, nu = new Date()) {
+  if (atk.relation !== 'egen') throw new Fel(403, 'Graviditeten visas bara för kvinnan själv.', 'nekad');
+  const db = atk.db;
+  const pv = require('./patientvy.js');
+  return {
+    graviditeter: minGraviditeter(atk).map(g => {
+      const regel = minVisning(db, g);
+      // En fördröjning i vårdenhetens visningsregel gäller ultraljuden och provsvaren, som för anteckningarna.
+      const dagar = regel && regel.visning !== 'direkt' && regel.visning !== 'visas_inte' ? Number(regel.dagar ?? 0) : 0;
+      const synlig = (tid) => Date.parse(tid) + dagar * DAG <= nu.getTime();
+      const programmet = program({ db }, g, { niva: 'normal' }, nu);
+      const enheter = enheterUnder(db, vardenhetFor(db, g.enhet_id));
+      const ph = enheter.map(() => '?').join(', ');
+      const prov = db.query(`SELECT * FROM matvarden WHERE patient_id = ? AND enhet_id IN (${ph}) AND tid >= ? ORDER BY tid DESC`).all(g.patient_id, ...enheter, g.skapad)
+        .filter(m => pv.arProvsvar(m.typ) && pv.provsvarVisas(m, nu) && synlig(m.tid));
+      const dag = dagarFor(g, datumAv(nu));
+      return {
+        id: g.id, status: g.status, bpd: g.bpd, graviditetslangd: { dagar: dag, text: veckaText(Math.max(0, dag)) }, antalFoster: g.antal_foster, vardenhet: enhetKort(db, vardenhetFor(db, g.enhet_id)),
+        program: programmet.besok.map(b => ({ vecka: b.vecka, datum: b.datum, typ: b.typ, gjort: b.gjort })), nasta: programmet.nasta ? { vecka: programmet.nasta.vecka, datum: programmet.nasta.datum, typ: programmet.nasta.typ } : null,
+        ultraljud: db.query('SELECT * FROM graviditet_ultraljud WHERE graviditet_id = ? ORDER BY datum').all(g.id).filter(u => synlig(u.tid))
+          .map(u => ({ datum: u.datum, typText: ULTRALJUDSTYPER[u.typ] ?? u.typ, vecka: veckaText(u.dagar), antalFoster: u.antal_foster, foster: lasJson(u.foster, []).map(f => ({ ordning: f.ordning, hjartaktivitet: f.hjartaktivitet, skattadVikt: f.skattadVikt })) })),
+        provsvar: prov.map(m => ({ typ: m.typ, namn: journal().MATTYPER[m.typ]?.namn ?? m.typ, varde: m.varde, enhet: m.matt_enhet ?? null, tid: m.tid })),
+      };
+    }),
+    text: 'Din graviditet med besöksprogrammet, beräknad partus, ultraljuden och provsvaren. Prata med din barnmorska om du undrar över något.',
+  };
+}
+
+export function efterkontroll(atk, g, body = {}, nu = new Date()) {
+  const db = atk.db;
+  andraGrav(atk, g);
+  if (g.status !== 'forlost') throw new Fel(409, 'Efterkontrollen registreras efter förlossningen.', 'ogiltig');
+  const epds = Number(body.epds), f10 = Number(body.epdsFraga10 ?? 0);
+  if (!Number.isInteger(epds) || epds < 0 || epds > 30) throw new Fel(400, 'EPDS-poängen är ett heltal mellan 0 och 30.', 'ogiltig', { falt: ['epds'] });
+  if (!Number.isInteger(f10) || f10 < 0 || f10 > 3 || f10 > epds) throw new Fel(400, 'Poängen på fråga 10 i EPDS (tankar på att skada sig själv) är 0 till 3.', 'ogiltig', { falt: ['epdsFraga10'] });
+  if (!finns(AMNING, body.amning)) throw new Fel(400, 'Ange hur amningen går.', 'ogiltig', { falt: ['amning'] });
+  if (!finns(BLODNING, body.blodning ?? 'ingen')) throw new Fel(400, 'Blödningen finns inte i listan.', 'ogiltig', { falt: ['blodning'] });
+  const varningar = [];
+  if (f10 > 0) varningar.push('Hon har haft tankar på att skada sig själv. Kontakta läkare i dag och stanna kvar tills hon har fått hjälp.');
+  else if (epds >= EPDS_GRANS) varningar.push(`EPDS ${epds} poäng tyder på nedstämdhet efter förlossningen (${EPDS_GRANS} poäng eller mer). Erbjud stödsamtal och kontakta läkare.`);
+  if (body.blodning === 'mycket') varningar.push('Riklig blödning efter förlossningen. Kontakta läkare samma dag.');
+  if (body.bristningLakt === false) varningar.push('Bristningen har inte läkt. Remittera till kvinnokliniken.');
+  db.query(`INSERT INTO graviditet_efterkontroll (graviditet_id, patient_id, enhet_id, tid, av, epds, epds_fraga10, amning, blodning, bristning_lakt, preventivmedel, varningar)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(g.id, g.patient_id, atk.personal.enhet_id, iso(nu), atk.personal.id, epds, f10, body.amning, body.blodning ?? 'ingen',
+    body.bristningLakt == null ? null : body.bristningLakt ? 1 : 0, textFalt(body.preventivmedel, 200) || null, JSON.stringify(varningar));
+  return { ...graviditetUt(atk, graviditetRad(db, g.id), nu), varningar };
+}
+function efterkontrollUt(db, e) {
+  return { id: e.id, tid: e.tid, av: personNamn(db, e.av), epds: e.epds, epdsFraga10: e.epds_fraga10, amning: AMNING[e.amning] ?? e.amning, blodning: BLODNING[e.blodning] ?? e.blodning,
+    bristningLakt: e.bristning_lakt == null ? null : Boolean(e.bristning_lakt), preventivmedel: e.preventivmedel, varningar: lasJson(e.varningar, []) };
+}
+
+// Det som systemet föreslår att barnmorskan gör, räknat ur graviditetsjournalen.
+function attGora(db, g, dagar, risk) {
+  const ut = [];
+  if (g.status === 'pagaende') {
+    const s = db.query('SELECT vald_stalld FROM graviditet_samtal WHERE graviditet_id = ? ORDER BY id DESC').get(g.id);
+    if (!s) ut.push('Registrera inskrivningssamtalet med anamnes, levnadsvanor, tobak och frågorna om våld.');
+    else if (!s.vald_stalld) ut.push('Ställ frågorna om våld vid nästa besök, när hon är ensam.');
+    if (dagar >= 20 * 7 && !db.query("SELECT 1 FROM graviditet_ultraljud WHERE graviditet_id = ? AND typ IN ('rutin', 'kub')").get(g.id)) ut.push('Rutinultraljudet är inte registrerat i ultraljudsjournalen.');
+    if (risk.preeklampsi?.hog) ut.push('Hög risk för havandeskapsförgiftning: läkaren bedömer lågdos acetylsalicylsyra.');
+    if (dagar > GRAVIDITETSDAGAR) ut.push('Beräknad partus har passerats. Boka läkarbesök och planera för igångsättning.');
+  } else if (g.status === 'forlost' && !db.query('SELECT 1 FROM graviditet_efterkontroll WHERE graviditet_id = ?').get(g.id)) {
+    ut.push('Boka efterkontrollen 6 till 12 veckor efter förlossningen.');
+  }
+  return ut;
+}
+
+// Mödrahälsovården och förlossningen i demon. En vårdenhet med barnmorskemottagning och en kvinnoklinik med förlossning
+// och BB (demoregel: i en riktig installation är det en egenskap hos vårdenheten i HSA).
+export const MHV_VARDENHETER = ['vc-tybble'];
+export const FORLOSSNING_VARDENHETER = ['uso-kk'];
+export function session(db, personal) {
+  if (!personal || !['lakare', 'sjukskoterska'].includes(personal.yrke) || !kanRoll(personal, 'las_graviditet')) return null;
+  const ve = vardenhetFor(db, personal.enhet_id);
+  const mhv = MHV_VARDENHETER.includes(ve), forlossning = FORLOSSNING_VARDENHETER.includes(ve);
+  return mhv || forlossning ? { mhv, forlossning } : null;
+}
+const kravEnhet = (db, personal, lista, text) => {
+  if (!personal || !lista.includes(vardenhetFor(db, personal.enhet_id)) || !kanRoll(personal, 'las_graviditet')) throw new Fel(403, text, 'nekad');
+};
+export const kravMhv = (db, personal) => kravEnhet(db, personal, MHV_VARDENHETER, 'Mödrahälsovårdens sida är för personalen på en vårdenhet med barnmorskemottagning.');
+export const kravForlossning = (db, personal) => kravEnhet(db, personal, FORLOSSNING_VARDENHETER, 'Förlossningens sida är för personalen på kvinnokliniken.');
+
+// Mödrahälsovårdens översikt: graviditeterna på vårdenheten med vecka, risk, nästa besök, varningar och det som ska
+// göras. Bara det som den inloggade får se, och varje patient som visas loggas.
+export function mhvOversikt(db, personal, valFor = () => ({}), nu = new Date()) {
+  sakra(db);
+  kravMhv(db, personal);
+  const ve = vardenhetFor(db, personal.enhet_id);
+  const enheter = enheterUnder(db, ve);
+  const ph = enheter.map(() => '?').join(', ');
+  const rader = db.query(`SELECT * FROM graviditeter WHERE enhet_id IN (${ph}) AND (status = 'pagaende' OR (status = 'forlost' AND id NOT IN (SELECT graviditet_id FROM graviditet_efterkontroll))) ORDER BY bpd`).all(...enheter);
+  const ut = [];
+  for (const g of rader) {
+    const atk = new Atkomst(db, personal, g.patient_id, valFor(g.patient_id), 'las_graviditet');
+    if (!atk.prova('las_graviditet', { enhet_id: g.enhet_id }).tillaten) continue;
+    const p = db.query('SELECT * FROM patienter WHERE id = ?').get(g.patient_id);
+    if (!p || p.sammanslagen_till) continue;
+    const risk = riskbedomning(atk, g, nu);
+    const dagar = dagarFor(g, datumAv(nu));
+    const senaste = db.query('SELECT varningar FROM graviditet_besok WHERE graviditet_id = ? ORDER BY tid DESC, id DESC').get(g.id);
+    const ul = db.query('SELECT varningar FROM graviditet_ultraljud WHERE graviditet_id = ? ORDER BY datum DESC, id DESC').get(g.id);
+    loggaPatient(db, personal, g.patient_id, 'las_graviditet', atk.grund(), 'modrahalsovard:oversikt');
+    ut.push({ patientId: p.id, namn: visningsnamn(p), graviditetId: g.id, status: g.status, vecka: g.status === 'pagaende' ? veckaText(Math.max(0, dagar)) : null, bpd: g.bpd,
+      antalFoster: g.antal_foster, risk: { niva: risk.niva, namn: risk.namn }, nasta: g.status === 'pagaende' ? program(atk, g, risk, nu).nasta : null,
+      varningar: [...lasJson(senaste?.varningar, []) ?? [], ...lasJson(ul?.varningar, []) ?? []], attGora: attGora(db, g, dagar, risk) });
+  }
+  return { vardenhet: enhetKort(db, ve), graviditeter: ut, antal: { pagaende: ut.filter(x => x.status === 'pagaende').length, efterkontroll: ut.filter(x => x.status === 'forlost').length },
+    text: 'Graviditeterna på vårdenheten i ordning efter beräknad partus. Systemet räknar veckan, risken och nästa besök och säger vad som ska göras.', demoregel: DEMOREGEL };
+}
+
 // Patientens graviditeter. Inre sekretess och spärr prövas på den vårdenhet som förde graviditetsjournalen.
 export function forPatient(atk, nu = new Date()) {
   sakra(atk.db);
@@ -281,11 +777,25 @@ export function partogramUt(rader) {
 const LAGE_TEXT = { latent: 'Latent fas.', normal: 'Förloppet följer varningslinjen.', over_varningslinje: 'Förloppet är långsammare än varningslinjen. Bedöm värkarna och överväg att ta hål på hinnorna eller ge värkstimulering.',
   over_atgardslinje: 'Förloppet har passerat åtgärdslinjen. Tillkalla förlossningsläkaren nu.', fullt_vidgad: 'Modermunnen är fullt vidgad.' };
 
+// Runda 11, r3, säkerhetsgranskningen: den gemensamma prövningen av ett barn som föddes i en förlossning. Barnet är en
+// egen patient: det finns, är inte sammanslaget med en annan journal och den som frågar får se barnets journal på
+// förlossningens vårdenhet i behörighetsmotorn. Alla vägar i obstetrik.js, forlossning.js och graviditetsregistret.js
+// prövar barnen med den här funktionen. Valet att visa andra enheters uppgifter gäller bara barnets egen journal.
+export function barnSynligt(db, personal, b, val = {}) {
+  const p = db.query('SELECT id, sammanslagen_till FROM patienter WHERE id = ?').get(b.barn_patient_id);
+  if (!p || p.sammanslagen_till) return false;
+  return new Atkomst(db, personal, p.id, val, 'las_graviditet').prova('las_graviditet', { enhet_id: b.enhet_id }).tillaten;
+}
+export const synligaBarn = (atk, f) => atk.db.query('SELECT * FROM forlossning_barn WHERE forlossning_id = ? ORDER BY ordning').all(f.id)
+  .filter(b => barnSynligt(atk.db, atk.personal, b, atk.patientId === b.barn_patient_id ? atk.val : {}));
+export const allaBarnSynliga = (atk, f) => synligaBarn(atk, f).length === atk.db.query('SELECT count(*) AS n FROM forlossning_barn WHERE forlossning_id = ?').get(f.id).n;
+
 export function forlossningUt(atk, f) {
   const db = atk.db;
   const punkter = partogramUt(db.query('SELECT * FROM partogram WHERE forlossning_id = ? ORDER BY tid, id').all(f.id));
   const sista = punkter.at(-1);
-  const barn = db.query('SELECT * FROM forlossning_barn WHERE forlossning_id = ? ORDER BY ordning').all(f.id);
+  // Runda 11, r3: barnet är en egen patient och visas bara när den inloggade får se barnets journal (synligaBarn).
+  const barn = synligaBarn(atk, f);
   return {
     id: f.id, status: f.status, start: f.start, vardenhet: enhetKort(db, f.enhet_id), partogram: punkter,
     lage: sista ? { id: sista.lage, text: LAGE_TEXT[sista.lage] } : null,

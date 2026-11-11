@@ -7,6 +7,9 @@ import { kanRoll } from './atkomst.js';
 import * as op from './operation.js';
 import * as blod from './blod.js';
 import * as obs from './obstetrik.js';
+// Runda 11, r3: förlossningen, BB och Graviditetsregistret.
+import * as forl from './forlossning.js';
+import * as gr from './graviditetsregistret.js';
 import * as cyto from './cytostatika.js';
 import * as bilder from './bilder.js';
 // Runda 11, r2: anestesijournalen, sterilgodset och materialet.
@@ -100,9 +103,14 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
   // ---- Graviditet och förlossning (Sussa 4.7) ----
   rutt('GET', '/api/patient/:id/graviditet', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_graviditet', (atk) => obs.forPatient(atk)); });
   rutt('POST', '/api/patient/:id/graviditet', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'graviditet', (atk) => obs.registrera(atk, c.body))]; });
-  rutt('GET', '/api/graviditet/uppfoljning', (c) => { kravInloggad(c); kravStatistik(c); return obs.uppfoljning(c.db, c.personal, { fran: q(c, 'fran'), till: q(c, 'till') }); });
+  // Runda 11, r3: uppföljningen räknar också det som tillkom i runda 11 (forlossning.js).
+  rutt('GET', '/api/graviditet/uppfoljning', (c) => { kravInloggad(c); kravStatistik(c); return forl.uppfoljning(c.db, c.personal, { fran: q(c, 'fran'), till: q(c, 'till') }); });
   const GRAV = { ultraljud: (atk, g, b) => obs.ultraljud(atk, g, b), besok: (atk, g, b) => obs.besok(atk, g, b), prover: (atk, g) => obs.bestallProver(atk, g),
-    forlossning: (atk, g, b) => obs.startaForlossning(atk, g, b) };
+    forlossning: (atk, g, b) => obs.startaForlossning(atk, g, b),
+    // Runda 11, r3: inskrivningssamtalet, efterkontrollen och om patienten motsätter sig Graviditetsregistret.
+    samtal: (atk, g, b) => obs.samtal(atk, g, b), efterkontroll: (atk, g, b) => obs.efterkontroll(atk, g, b), register: (atk, g, b) => gr.motsatt(atk, g, b),
+    // Runda 11, r3: kvinnans samtycke till att en annan vårdenhet läser svaren om våld.
+    valdsamtycke: (atk, g, b) => obs.valdSamtycke(atk, g, b) };
   rutt('POST', '/api/graviditet/:gid/:atgard', (c, gid, atgard) => {
     kravInloggad(c);
     if (!Object.hasOwn(GRAV, atgard)) return okand();
@@ -110,8 +118,11 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
   });
   rutt('POST', '/api/forlossning/:fid/:atgard', (c, fid, atgard) => {
     kravInloggad(c);
-    if (!['partogram', 'fodelse'].includes(atgard)) return okand();
-    return medRad(c, obs.forlossningRad(c.db, fid), 'graviditet', (atk, f) => (atgard === 'partogram' ? obs.partogram(atk, f, c.body) : obs.fodelse(atk, f, c.body)));
+    // Runda 11, r3: CTG, CTG-bedömning, smärtlindring och födelseanmälan (forlossning.js).
+    const FORL = { partogram: (atk, f, b) => obs.partogram(atk, f, b), fodelse: (atk, f, b) => obs.fodelse(atk, f, b), ctg: (atk, f, b) => forl.ctgKoppla(atk, f, b),
+      'ctg-bedomning': (atk, f, b) => forl.ctgBedomning(atk, f, b), smartlindring: (atk, f, b) => forl.smartlindring(atk, f, b), fodelseanmalan: (atk, f, b) => forl.fodelseanmalan(atk, f, b) };
+    if (!Object.hasOwn(FORL, atgard)) return okand();
+    return medRad(c, obs.forlossningRad(c.db, fid), 'graviditet', (atk, f) => FORL[atgard](atk, f, c.body));
   });
 
   // ---- Cytostatika (Sussa 4.8) ----

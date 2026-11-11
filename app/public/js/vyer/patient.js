@@ -32,6 +32,8 @@ import * as restjournaler from './patient-restjournaler.js';
 import * as donation from './patient-donation.js';
 // Runda 11, r2: operationen i journalen.
 import * as operationFlik from './patient-operation.js';
+// Runda 11, r3: graviditetsjournalen och den nyföddas BB-journal.
+import * as graviditetFlik from './patient-graviditet.js';
 
 export const namn = 'patient';
 
@@ -69,6 +71,12 @@ FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'journal') + 1, 0, ['restjournaler'
 FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'remisser') + 1, 0, ['donation', 'Donation', () => far('donation'), donation]);
 // Runda 11, r2: Operation efter Prover, för personalen på en vårdenhet som opererar (Sussa 4.5 och 4.6.1.4).
 FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'prover') + 1, 0, ['operation', 'Operation', () => far('las_operation') && Boolean(S.session?.operation), operationFlik]);
+
+// Runda 11, r3: Graviditet efter Tillväxt för kvinnor 12 till 59 år, och Nyfödd (barnets BB-journal) för barn under ett
+// år, för dem som läser graviditetsjournalen. Flikarna visas innan huvudet är hämtat.
+FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'tillvaxt') + 1, 0,
+  ['graviditet', 'Graviditet', (h) => far('las_graviditet') && (!h || (h.kon === 'kvinna' && h.alder >= 12 && h.alder < 60)), graviditetFlik],
+  ['nyfodd', 'Nyfödd', (h) => far('las_graviditet') && (!h || h.alder < 1), graviditetFlik.nyfodd]);
 
 let huvud = null;
 

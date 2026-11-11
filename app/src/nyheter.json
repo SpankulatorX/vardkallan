@@ -36,6 +36,30 @@
           "var": "#/operation",
           "rubrik": "Anestesibedömning för en operation",
           "text": "Anestesibedömningen görs från operationen i journalen. Ingreppet och tiden fylls i, riskskalorna räknas av systemet, samtycket registreras och bedömningen gäller högst tolv månader, fem för barn under sju år. Systemet varnar när patienten har fått nya diagnoser, vårdtillfällen eller läkemedel efter bedömningen, och anestesiläkaren bekräftar ASA-klassen på operationsdagen. Anestesin är en egen vårdenhet, och anmälan är en beställning till den."
+        },
+        {
+          "id": "graviditetsjournal",
+          "roller": ["lakare", "sjukskoterska"],
+          "omfattning": "stor",
+          "var": "#/modrahalsovard",
+          "rubrik": "Graviditetsjournalen och mödrahälsovården",
+          "text": "Fliken Graviditet i journalen har besöksprogrammet, provschemat, riskbedömningen med stöd för graviditetsdiabetes och havandeskapsförgiftning, ultraljudsjournalen och inskrivningssamtalet med frågorna om våld. Svaren läses bara av mödrahälsovården, och av en annan vårdenhet som kvinnan har gett sitt samtycke till. Samtycket gäller en tid och kan återkallas. Sidan Mödrahälsovård visar alla graviditeter på vårdenheten och rapporterar till Graviditetsregistret (simulerat)."
+        },
+        {
+          "id": "graviditet-min-journal",
+          "roller": ["invanare"],
+          "omfattning": "liten",
+          "var": "#/min",
+          "rubrik": "Din graviditet i Min journal",
+          "text": "Är du gravid ser du under Graviditet besöksprogrammet, beräknad partus, ultraljuden och provsvaren."
+        },
+        {
+          "id": "forlossning-bb",
+          "roller": ["lakare", "sjukskoterska"],
+          "omfattning": "stor",
+          "var": "#/forlossning",
+          "rubrik": "Förlossningen och BB",
+          "text": "Sidan Förlossningen har pågående förlossningar med partogram, CTG från en simulerad monitor som systemet analyserar, smärtlindringen, födelsen av varje barn också vid tvillingar, födelseanmälan till Skatteverket (simulerad) och BB-journalen för mor och barn med utskrivningskriterierna."
         }
       ]
     },

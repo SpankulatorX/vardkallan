@@ -130,6 +130,9 @@ import { registreraRutter as r10r4Rutter, tidslinje as r10r4Tidslinje, inkorg as
 import { avlidenFor } from './avliden.js';
 // Runda 10, r7: ombud, meddelanden, begäranden, vårdplanen i Min journal, kassan, kapaciteten och kontorsstödet.
 import { registreraRutter as r10r7Rutter, MIN_DELAR as r10r7MinDelar, kalenderSvar } from './r10r7-rutter.js';
+// Runda 11, r3: graviditet, förlossning, BB och Graviditetsregistret.
+import { registreraRutter as r11r3Rutter, session as r11r3Session, efterInloggning as r11r3EfterInloggning } from './r11r3-rutter.js';
+import { minGraviditet, harMinGraviditet } from './obstetrik.js';
 import { skapaKalenderlager } from './kontorsstod.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
@@ -520,6 +523,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ut.iva = ivaSession(s.db, p);
       // Runda 11, r2: om personalens vårdenhet opererar, så att menyn visar operationsavdelningen.
       ut.operation = require('./operation.js').session(s.db, p);
+      // Runda 11, r3: om personalens vårdenhet har mödrahälsovård eller förlossning (obstetrik.js).
+      ut.obstetrik = r11r3Session(s.db, p);
       sakraKopia(s);
       ut.lasnyckel = s.lasnyckel;
     }
@@ -948,7 +953,10 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const p = typeof c.body.personalId === 'string' ? c.db.query('SELECT * FROM personal WHERE id = ? AND demo = 1').get(c.body.personalId) : null;
     if (!p) throw new Fel(400, 'Välj en av demorollerna.', 'ogiltig', { falt: ['personalId'] });
     // Biljetten skapas och prövas i samma anrop och lämnar aldrig servern, så den behöver inte sparas som använd.
-    return loggaInMedBiljett(c, idp.autentisera(c.db, p), { forbruka: false });
+    const inloggad = loggaInMedBiljett(c, idp.autentisera(c.db, p), { forbruka: false });
+    // Runda 11, r3: demopatienterna för förlossningen vid barnmorskans första inloggning i sandlådan.
+    r11r3EfterInloggning(c.db, p);
+    return inloggad;
   });
   // En biljett från en betrodd autentiseringstjänst. Personen behöver inte vara en demoroll, men måste vara aktiv i
   // masterdata, och uppdraget i biljetten måste stämma med masterdata.
@@ -1678,7 +1686,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   MIN_DELAR.egenmatning = (atk) => mtMinaMatningar(atk, journal.MATTYPER);
   // Runda 10, r7: meddelanden, ombud, vårdplaner, avgifter för tjänster och möteslänkar (r10r7-rutter.js).
   Object.assign(MIN_DELAR, r10r7MinDelar);
-  rutt('GET', '/api/min/journal/:id', (c, id) => medMinJournal(c, id, 'min:journal', (atk) => minJournal.huvud(atk)));
+  // Runda 11, r3: graviditeten för kvinnan själv, och i huvudet om hon har en som visas (obstetrik.js).
+  MIN_DELAR.graviditet = (atk) => minGraviditet(atk);
+  rutt('GET', '/api/min/journal/:id', (c, id) => medMinJournal(c, id, 'min:journal', (atk) => ({ ...minJournal.huvud(atk), graviditet: harMinGraviditet(atk) })));
   rutt('GET', '/api/min/journal/:id/:del', (c, id, del) => {
     if (!Object.hasOwn(MIN_DELAR, del)) throw new Fel(404, 'Okänd adress.', 'saknas');
     return medMinJournal(c, id, `min:${del}`, (atk) => MIN_DELAR[del](atk));
@@ -1806,6 +1816,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // Runda 10, r7 (r10r7-rutter.js). Kalenderlänkarna finns som HMAC i minnet och i sandlådan.
   const kalender = skapaKalenderlager();
   r10r7Rutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal, kalender });
+  // Runda 11, r3: graviditet, förlossning, BB och Graviditetsregistret (r11r3-rutter.js).
+  r11r3Rutter({ rutt, kravInloggad, medPatient, valFor });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
   // visas direkt (bara i den egna sandlådan).
   const kravNagon = (c) => { if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad'); };

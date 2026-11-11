@@ -232,6 +232,10 @@ const BADA_GILTIGA = new Set(['andra', 'har', 'sa', 'var', 'man', 'fora', 'kar',
   'svar', 'val', 'natt', 'mats', 'saker', 'faller', 'ersatts', 'behovs', 'alder']);
 // Runda 9, r2: mata in (skriva in) och mäta (mätvärden) finns båda i texterna.
 BADA_GILTIGA.add('mata');
+// Runda 11, r3: vald (utvald) och våld (frågorna om våld i mödrahälsovården) finns båda i texterna, och förkortningarna
+// i mödrahälsovården och förlossningen: IVF, CTG, EDA, EPDS, PKU, KUB, BB och TENS, och demokvittensernas SKV-SIM och GR-SIM.
+BADA_GILTIGA.add('vald');
+for (const f of ['IVF', 'CTG', 'EDA', 'EPDS', 'PKU', 'KUB', 'BB', 'TENS', 'SKV', 'SIM', 'GR', 'SKV-SIM', 'GR-SIM', 'CTG-SIM', 'CTG-SIM-1']) TILLATNA.add(f);
 
 // Interna anteckningar och råd till oss själva, som aldrig ska visas för användaren.
 export const INTERN = /\b(TODO|FIXME|XXX|HACK)\b|\b([Tt]änk på att|[Kk]om ihåg att|[Ss]äg inte|[Gg]löm inte att|OBS! [Ii]ntern|[Ii]ntern anteckning)/;

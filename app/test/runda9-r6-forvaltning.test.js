@@ -99,6 +99,8 @@ describe('Ärenden om API:t', () => {
     await k.logga('sysf');
     const lista = (await k.get('/api/oppet-api/arenden')).data.arenden;
     expect(lista.find(a => a.id === id).nasta).toEqual(['bedomd', 'avslag', 'besvarad']);
+    // Runda 11, r3: en version som inte finns i ändringsloggen, oavsett vilken version som är aktuell.
+    const FRAMTIDA = '99.0.0';
     expect((await k.post(`/api/oppet-api/arenden/${id}/status`, { status: 'levererad', version: '0.9.0' })).status).toBe(400);
     expect((await k.post(`/api/oppet-api/arenden/${id}/status`, { status: 'bedomd', beslut: 'Behovet är rimligt. Mappningen görs mot GetCareDocumentation.' })).data.status).toBe('bedomd');
     expect((await k.post(`/api/oppet-api/arenden/${id}/status`, { status: 'planerad' })).status).toBe(400);

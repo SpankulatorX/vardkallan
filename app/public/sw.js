@@ -48,8 +48,10 @@ const FILER = [
   '/js/vyer/patient-infarter.js', '/js/vyer/patient-restjournaler.js', '/js/vyer/patient-donation.js',
   '/js/vyer/r10r7.js', '/js/vyer/min-r10r7.js',
   '/js/vyer/patient-operation.js', '/js/vyer/operation.js',
+  '/js/obstetrik-ui.js', '/js/vyer/patient-graviditet.js', '/js/vyer/forlossning.js', '/js/vyer/modrahalsovard.js', '/js/vyer/min-graviditet.js',
 ];
 // Runda 11, r2: listan har operationen i journalen och operationsavdelningen (patient-operation.js och operation.js).
+// Runda 11, r3: listan har graviditetsjournalen, den nyföddas BB-journal, förlossningen och mödrahälsovården.
 // Runda 10, r2: listan har uppföljningsvyn och utbildningsläget (patient-uppfoljning.js och patient-utbildningslage.js).
 // Runda 10, r6: listan har remiss eller konsultation, urvalet i remissöversikten och kvittensen av beslut på uppdrag (remiss-r10-ui.js).
 // Runda 10, r5: listan har kunskapsstödet och vaccinationsprogrammen (kunskapsstod-ui.js och patient-vaccinationer.js).
