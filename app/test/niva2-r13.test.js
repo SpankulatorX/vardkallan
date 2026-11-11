@@ -265,3 +265,38 @@ describe('Vätskebalansen (runda 13, r4, E2-14 och E2-51)', () => {
     expect(lista.poster.find(p => p.volymMl === 90).fran).toBe(lokalTid('2026-11-12', '21:00'));
   });
 });
+
+describe('Vaccinationer (runda 13, r4, E2-38 och E2-39)', () => {
+  const BAS = new Date('2026-11-08T09:00:00Z');
+  test('barnhälsovårdens doser står i fliken Vaccinationer, och åldern räknas från födelsedagen', async () => {
+    const vp = await import('../src/vaccinationsprogram.js');
+    const R = await import('../src/vaccinationsprogram-regler.js');
+    const { byggSeed } = await import('../src/db.js');
+    const db = byggSeed(BAS);
+    const p = db.query("SELECT * FROM patienter WHERE id = 'p61'").get();
+    const d = vp.forPatient(atk(db, 'ssk-vc', 'p61', {}, 'las_oversikt'), p, BAS.getTime());
+    expect(d.barnhalsovard.find(x => x.id === 'mpr1')).toMatchObject({ status: 'nu', given: null });
+    expect(d.barnhalsovard.filter(x => x.status === 'given').length).toBeGreaterThan(0);
+    // MPR dos 2 vid sex års ålder: på sexårsdagen, inte ett par dagar före på grund av skottåren.
+    const mpr2 = R.prova(R.vaccinRad('mpr2'), { fodd: '2025-05-06', nu: BAS.getTime() });
+    expect(mpr2.skal).toContain('2031-05-06');
+    expect(R.prova(R.vaccinRad('hpv1'), { fodd: '2025-05-06', nu: BAS.getTime() }).skal).toContain('2035-05-06');
+    expect(R.prova(R.vaccinRad('mpr2'), { fodd: '2020-02-29', nu: Date.parse('2026-02-28T12:00:00Z'), givna: [{ vaccinId: 'mpr1', tid: '2021-09-01T10:00:00Z' }] }).skal).toContain('2026-03-01');
+  });
+
+  test('en dos ges bara när patienten är frisk i dag, och batch, utgångsdatum och injektionsställe sparas', async () => {
+    const bhv = await import('../src/bhv.js');
+    const vardkontakt = await import('../src/vardkontakt.js');
+    const { byggSeed } = await import('../src/db.js');
+    const db = byggSeed(BAS);
+    const p = db.query("SELECT * FROM patienter WHERE id = 'p61'").get();
+    const a = () => atk(db, 'lak-vc', 'p61', {}, 'vaccinera');
+    const bas = { vaccinId: 'mpr1', andraVaccinationer: 'nej' };
+    expect(() => bhv.vaccinera(a(), p, { ...bas, kontroll: 'nej' }, vardkontakt.knyt, BAS.getTime())).toThrow('Ge inte dosen i dag');
+    expect(() => bhv.vaccinera(a(), p, { ...bas, kontroll: true, utgang: '2026-01-01' }, vardkontakt.knyt, BAS.getTime())).toThrow('Vaccinet gick ut 2026-01-01');
+    expect(() => bhv.vaccinera(a(), p, { ...bas, kontroll: true, stalle: 'naesan' }, vardkontakt.knyt, BAS.getTime())).toThrow('Välj injektionsstället');
+    const [, v] = bhv.vaccinera(a(), p, { ...bas, kontroll: true, batch: 'DEMO-MPR-1', utgang: '2027-06-30', stalle: 'lar_vanster' }, vardkontakt.knyt, BAS.getTime());
+    expect(v).toMatchObject({ batch: 'DEMO-MPR-1', utgang: '2027-06-30', stalle: 'lar_vanster', stalleText: 'Vänster lår', kontrollerad: true });
+    expect(() => db.query('UPDATE vaccination_detaljer SET stalle = NULL').run()).toThrow();
+  });
+});

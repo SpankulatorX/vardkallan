@@ -17,7 +17,9 @@ import { Fel, iso, idag, giltigtDatum } from './db.js';
 import { Atkomst } from './atkomst.js';
 import * as R from './vaccinationsprogram-regler.js';
 import * as register from './vaccinationsregister.js';
-import { vaccinationUt as bhvVaccinationUt, FRAGA_ANDRA, VARNING_DOLDA } from './bhv.js';
+import { vaccinationUt as bhvVaccinationUt, FRAGA_ANDRA, VARNING_DOLDA, provaVaccinationsdetaljer, sparaVaccinationsdetaljer, INJEKTIONSSTALLEN, KONTROLL_FRAGA } from './bhv.js';
+// Runda 13, r4: barnhälsovårdens doser visas också under Vaccinationer.
+import * as bhvProgram from './bhv-program.js';
 import * as konfiguration from './konfiguration.js';
 
 export const { VACCINER, KALLOR, PROGRAM } = R;
@@ -86,7 +88,18 @@ export function forPatient(atk, p, nu = Date.now()) {
   const u = underlag(atk);
   const prog = R.program({ fodd: p.fodd, nu, givna: u.synliga.map(v => ({ vaccinId: v.vaccin_id, tid: v.tid })), riskgrupper: u.riskgrupper, regler: u.regler });
   const kan = atk.prova('vaccinera');
+  // Runda 13, r4 (E2-38): barnhälsovårdens doser till sex års ålder står också här, med status ur samma program som
+  // barnavårdscentralen använder. De ges på barnavårdscentralen, i fliken Tillväxt.
+  const givna = u.synliga.map(v => ({ vaccinId: v.vaccin_id, tid: v.tid }));
+  const ar = (() => { const [y, m, d] = p.fodd.split('-').map(Number); const [ty, tm, td] = new Date(nu).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' }).split('-').map(Number); return ty - y - (tm < m || (tm === m && td < d) ? 1 : 0); })();
+  const bhvProg = ar < 6 ? bhvProgram.program({ fodd: p.fodd, nu, givna }) : null;
+  const attGe = new Set((bhvProg?.attGe ?? []).map(v => v.id));
+  const barnhalsovard = bhvProg ? bhvProg.besok.flatMap(b => b.vacciner.map(v => ({
+    id: v.id, text: v.text, sjukdomar: v.sjukdomar, besok: b.text, datum: b.datum,
+    status: v.given ? 'given' : attGe.has(v.id) ? 'nu' : b.status === 'missat' ? 'missad' : 'kommande', given: v.given ?? null,
+  }))) : [];
   return {
+    barnhalsovard, injektionsstallen: INJEKTIONSSTALLEN, kontrollFraga: KONTROLL_FRAGA,
     program: prog, riskgrupper: u.riskgrupper, vaccinationer: u.synliga.map(v => vaccinationUt(db, v)).reverse(),
     doldaVaccinationer: { kraverVal: u.dolda, text: u.dolda ? VARNING_DOLDA : null }, fraga: FRAGA_ANDRA,
     kan: { vaccinera: kan.tillaten && kan.grund !== 'nodatkomst' }, register: register.MOTTAGARE, demoregel: R.DEMOREGEL, kallor: KALLOR,
@@ -118,10 +131,12 @@ export function vaccinera(atk, p, body = {}, knyt, nu = Date.now()) {
   if (u.dolda && body.bekraftaDolda !== true) throw new Fel(409, VARNING_DOLDA.replace('Barnet', 'Patienten'), 'kraver_bekraftelse');
   const pr = R.prova(v, { fodd: p.fodd, nu, givna: u.synliga.map(x => ({ vaccinId: x.vaccin_id, tid: x.tid })), riskgrupper: u.riskgrupper, regler: u.regler });
   if (!pr.ok) throw new Fel(400, pr.skal, 'ogiltig', { falt: ['vaccinId'] });
-  const batch = typeof body.batch === 'string' && body.batch.trim() ? body.batch.trim().slice(0, 40) : null;
+  // Runda 13, r4: samma kontroll och uppgifter om dosen som i barnhälsovården (bhv.js).
+  const det = provaVaccinationsdetaljer(body, nu);
   const r = db.query('INSERT INTO vaccinationer (patient_id, enhet_id, vaccin_id, atc, dos, tid, givet_av, batch, registrerad) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(p.id, atk.personal.enhet_id, v.id, v.atc, v.dos, new Date(nu).toISOString(), atk.personal.id, batch, iso());
+    .run(p.id, atk.personal.enhet_id, v.id, v.atc, v.dos, new Date(nu).toISOString(), atk.personal.id, det.batch, iso());
   const id = Number(r.lastInsertRowid);
+  sparaVaccinationsdetaljer(db, id, det);
   register.rapportera(db, id);
   const ut = vaccinationUt(db, db.query('SELECT * FROM vaccinationer WHERE id = ?').get(id));
   knyt(atk, 'vaccinationer', ut, body);

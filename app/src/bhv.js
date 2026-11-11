@@ -8,7 +8,7 @@
 // Besöken bokas med boka_bhv av läkare och sjuksköterskor på den vårdenhet där barnet är inskrivet i barnhälsovården.
 // Runda 10, r5: rapporteringen till det simulerade vaccinationsregistret.
 import { rapportera as rapporteraVaccination } from './vaccinationsregister.js';
-import { Fel, iso, datumAv, addDagar, lokalTid } from './db.js';
+import { Fel, iso, datumAv, addDagar, lokalTid, giltigtDatum } from './db.js';
 import { Atkomst, ROLLER, HANDLINGAR, kanRoll, vardenhetFor, enheterUnder, harVardrelation, alder } from './atkomst.js';
 import * as journal from './journal.js';
 import * as T from './tillvaxt.js';
@@ -67,6 +67,12 @@ CREATE TABLE IF NOT EXISTS vaccinationer (
 CREATE TRIGGER IF NOT EXISTS vaccination_andras_ej BEFORE UPDATE OF vaccin_id, atc, dos, tid, givet_av, batch ON vaccinationer
   BEGIN SELECT RAISE(ABORT, 'En registrerad vaccination ändras inte'); END;
 CREATE TRIGGER IF NOT EXISTS vaccination_raderas_ej BEFORE DELETE ON vaccinationer BEGIN SELECT RAISE(ABORT, 'En registrerad vaccination raderas inte'); END;
+-- Runda 13, r4: utgångsdatum, injektionsställe och kontrollen före vaccinationen, som inte ändras.
+CREATE TABLE IF NOT EXISTS vaccination_detaljer (
+  vaccination_id INTEGER PRIMARY KEY, utgang TEXT, stalle TEXT, kontroll INTEGER NOT NULL DEFAULT 0
+);
+CREATE TRIGGER IF NOT EXISTS vaccination_detaljer_andras_ej BEFORE UPDATE ON vaccination_detaljer BEGIN SELECT RAISE(ABORT, 'Uppgifterna om en vaccination ändras inte'); END;
+CREATE TRIGGER IF NOT EXISTS vaccination_detaljer_raderas_ej BEFORE DELETE ON vaccination_detaljer BEGIN SELECT RAISE(ABORT, 'Uppgifterna om en vaccination raderas inte'); END;
 CREATE TABLE IF NOT EXISTS bhv_uppdrag (
   personal_id TEXT PRIMARY KEY, enhet_id TEXT NOT NULL, fran TEXT NOT NULL, till TEXT, text TEXT NOT NULL
 );
@@ -376,9 +382,40 @@ function bhvDel(atk, p, nu) {
 
 export const vaccinationUt = (db, v) => {
   const d = P.vaccinRadVisning(v.vaccin_id);
+  const x = vaccinationsdetaljer(db, v.id);
   return { id: v.id, vaccinId: v.vaccin_id, text: d?.text ?? v.vaccin_id, sjukdomar: d?.sjukdomar ?? null, atc: v.atc, atcText: ATC[v.atc] ?? null, dos: v.dos, tid: v.tid, batch: v.batch,
-    vardenhet: { id: v.enhet_id, namn: enhetsnamn(db, v.enhet_id) }, givetAv: personKort(db, v.givet_av)?.namn ?? null };
+    vardenhet: { id: v.enhet_id, namn: enhetsnamn(db, v.enhet_id) }, givetAv: personKort(db, v.givet_av)?.namn ?? null,
+    // Runda 13, r4: utgångsdatum, injektionsställe och kontrollen före vaccinationen.
+    utgang: x?.utgang ?? null, stalle: x?.stalle ?? null, stalleText: x?.stalle ? INJEKTIONSSTALLEN[x.stalle] ?? x.stalle : null, kontrollerad: Boolean(x?.kontroll) };
 };
+
+// ---------------------------------------------------------------------------------------------------------------
+// Runda 13, r4 (E2-39): kontrollen före en vaccination och uppgifterna om dosen, samma för barnhälsovården och de
+// andra vaccinationsprogrammen (vaccinationsprogram.js anropar samma funktion). Batchnummer, utgångsdatum och
+// injektionsställe sparas med dosen. Är patienten inte frisk i dag eller har reagerat på en tidigare dos ges dosen
+// inte, och systemet säger varför. Ett utgånget vaccin stoppas.
+export const INJEKTIONSSTALLEN = { lar_vanster: 'Vänster lår', lar_hoger: 'Höger lår', arm_vanster: 'Vänster överarm', arm_hoger: 'Höger överarm', mun: 'I munnen (droppar)' };
+export const KONTROLL_FRAGA = 'Är patienten frisk i dag, utan feber, och har inte reagerat kraftigt på en tidigare dos?';
+export const KONTROLL_NEJ = 'Ge inte dosen i dag. Vid feber eller akut sjukdom skjuts vaccinationen upp, och efter en kraftig reaktion på en tidigare dos bedömer läkaren om dosen kan ges.';
+export function provaVaccinationsdetaljer(body = {}, nu = Date.now()) {
+  if (body.kontroll === false || body.kontroll === 'nej') throw new Fel(400, KONTROLL_NEJ, 'ogiltig', { falt: ['kontroll'] });
+  const batch = typeof body.batch === 'string' && body.batch.trim() ? body.batch.trim().slice(0, 40) : null;
+  if (batch && !/^[A-Za-z0-9-]{3,40}$/.test(batch)) throw new Fel(400, 'Batchnumret har 3 till 40 bokstäver, siffror eller bindestreck, som det står på förpackningen.', 'ogiltig', { falt: ['batch'] });
+  const utgang = typeof body.utgang === 'string' && body.utgang ? body.utgang : null;
+  if (utgang && !giltigtDatum(utgang)) throw new Fel(400, 'Skriv utgångsdatumet som ÅÅÅÅ-MM-DD.', 'ogiltig', { falt: ['utgang'] });
+  if (utgang && utgang < datumAv(new Date(nu))) throw new Fel(400, `Vaccinet gick ut ${utgang}. Använd en annan förpackning.`, 'ogiltig', { falt: ['utgang'] });
+  const stalle = body.stalle ? String(body.stalle) : null;
+  if (stalle && !Object.hasOwn(INJEKTIONSSTALLEN, stalle)) throw new Fel(400, 'Välj injektionsstället.', 'ogiltig', { falt: ['stalle'] });
+  return { batch, utgang, stalle, kontroll: body.kontroll === true || body.kontroll === 'ja' };
+}
+export function sparaVaccinationsdetaljer(db, vaccinationId, d) {
+  if (!d.utgang && !d.stalle && !d.kontroll) return;
+  sakraSchema(db);
+  db.query('INSERT INTO vaccination_detaljer (vaccination_id, utgang, stalle, kontroll) VALUES (?, ?, ?, ?)').run(vaccinationId, d.utgang, d.stalle, d.kontroll ? 1 : 0);
+}
+function vaccinationsdetaljer(db, id) {
+  try { return db.query('SELECT * FROM vaccination_detaljer WHERE vaccination_id = ?').get(id) ?? null; } catch { return null; }
+}
 
 // Lediga tider för besöket i tidboken: BHV-sjuksköterskan för sjuksköterskebesöken och BVC-läkaren för teambesöken,
 // inom besökets tidsfönster.
@@ -507,10 +544,13 @@ export function vaccinera(atk, p, body = {}, knyt, nu = Date.now()) {
   const tb = uppgifter(a.filtrera(db.query("SELECT * FROM tillvaxt_uppgifter WHERE patient_id = ? AND typ = 'tb_risk'").all(p.id), 'las_oversikt')).tb_risk?.varde === 1;
   const prov = P.provaVaccin(v, { fodd: p.fodd, nu, givna, tbRisk: tb });
   if (!prov.ok) throw new Fel(400, prov.skal, 'ogiltig', { falt: ['vaccinId'] });
-  const batch = typeof body.batch === 'string' && body.batch.trim() ? body.batch.trim().slice(0, 40) : null;
+  // Runda 13, r4: kontrollen före vaccinationen och dosens batch, utgångsdatum och injektionsställe.
+  const det = provaVaccinationsdetaljer(body, nu);
+  const batch = det.batch;
   const t = new Date(nu).toISOString();
   const r = db.query('INSERT INTO vaccinationer (patient_id, enhet_id, vaccin_id, atc, dos, tid, givet_av, batch, registrerad) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
     .run(p.id, atk.personal.enhet_id, v.id, v.atc, v.dos, t, atk.personal.id, batch, iso());
+  sparaVaccinationsdetaljer(db, Number(r.lastInsertRowid), det);
   // Runda 10, r5: dosen rapporteras av systemet till det simulerade vaccinationsregistret (vaccinationsregister.js).
   rapporteraVaccination(db, Number(r.lastInsertRowid));
   const ut = vaccinationUt(db, db.query('SELECT * FROM vaccinationer WHERE id = ?').get(r.lastInsertRowid));

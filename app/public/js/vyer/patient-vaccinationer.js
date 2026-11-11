@@ -2,6 +2,17 @@
 // gäller för patienten och varför, prövar varje dos mot programmet och rapporterar den till det simulerade
 // vaccinationsregistret. Barnhälsovårdens doser till fem år ges på barnavårdscentralen (fliken Tillväxt).
 import { esc, api, notis, felNotis, dialog, datum, idag, medKnapp } from '../ui.js';
+// Runda 13, r4: kontrollen före vaccinationen och dosens uppgifter, samma som i fliken Tillväxt.
+import { dosFaltHtml, provaDosFalt, dosData } from '../vaccination-ui.js';
+
+// Runda 13, r4 (E2-38): barnhälsovårdens doser till sex års ålder, som ges på barnavårdscentralen.
+const BHV_STATUS = { given: 'Given', nu: 'Kan ges nu', kommande: 'Senare', missad: 'Besöket har passerat' };
+const bhvHtml = (d, pid) => (d.barnhalsovard?.length ? `<section aria-labelledby="vp-bhv"><h3 id="vp-bhv">Barnhälsovårdens doser</h3>
+  <p class="liten">Doserna till sex års ålder ges på barnavårdscentralen och registreras i fliken <a href="#/patient/${pid}/tillvaxt">Tillväxt</a>.</p>
+  <div class="tabellrulle"><table class="tabell"><caption class="sr">Barnhälsovårdens doser</caption>
+    <thead><tr><th scope="col">Vaccin</th><th scope="col">Besök</th><th scope="col">Status</th></tr></thead>
+    <tbody>${d.barnhalsovard.map(r => `<tr><th scope="row">${esc(r.text)}<span class="under-text">${esc(r.sjukdomar ?? '')}</span></th><td>${esc(r.besok)}<span class="under-text">Omkring ${esc(r.datum)}</span></td>
+      <td><span class="tagg${r.status === 'nu' ? ' tagg-obs' : ''}">${esc(BHV_STATUS[r.status] ?? r.status)}</span>${r.given ? `<span class="under-text">${esc(datum(r.given))}</span>` : ''}</td></tr>`).join('')}</tbody></table></div></section>` : '');
 
 const STATUS = { nu: 'Kan ges nu', kommande: 'Senare', given: 'Given', ej_faststalld: 'Åldern är inte fastställd', ej_aktuell: 'Inte aktuell' };
 
@@ -14,6 +25,7 @@ export async function visa(el, ctx) {
     <p class="ingress">Systemet följer de nationella vaccinationsprogrammen: barnens doser efter fem års ålder, som oftast ges av elevhälsan, och programmet för riskgrupper. Varje dos som ges här rapporteras till vaccinationsregistret, som är simulerat i demon.</p>
     ${d.riskgrupper.length ? `<p class="forslag-varfor">Riskgrupp enligt journalen: ${esc(d.riskgrupper.map(r => r.text).join(', '))}.</p>` : ''}
     ${d.doldaVaccinationer?.kraverVal ? `<p class="ruta ruta-info liten">${esc(d.doldaVaccinationer.text)}</p>` : ''}
+    ${bhvHtml(d, pid)}
     <section aria-labelledby="vp-prog"><h3 id="vp-prog">Programmet för patienten</h3>
       ${p.rader.length ? `<div class="tabellrulle"><table class="tabell"><caption class="sr">Doser i programmen</caption>
         <thead><tr><th scope="col">Vaccin</th><th scope="col">Program</th><th scope="col">När</th><th scope="col">Status</th><th scope="col"><span class="sr">Åtgärd</span></th></tr></thead>
@@ -36,11 +48,12 @@ export async function visa(el, ctx) {
         <p>${esc(d.fraga.replace('barnet', 'patienten').replace('Har barnet', 'Har patienten').replace('vårdnadshavaren', 'patienten'))}</p>
         <fieldset class="falt"><legend>Har patienten fått vaccinationer någon annanstans?</legend>
           <label class="kryss"><input type="radio" name="andra" value="nej" checked> Nej</label><label class="kryss"><input type="radio" name="andra" value="ja"> Ja</label></fieldset>
-        <div class="falt"><label for="vp-batch">Batchnummer</label><input id="vp-batch" name="batch" maxlength="40" autocomplete="off"></div>
-        <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Registrera dosen</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`);
+        ${dosFaltHtml('vp')}
+        <p class="dialog-fel form-fel" role="alert" hidden></p>
+        <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Registrera dosen</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`, { validera: provaDosFalt });
       if (!svar) return;
       try {
-        const r = await medKnapp(ge, () => api(`/api/patient/${pid}/vaccinationsprogram/vaccination`, { metod: 'POST', data: { vaccinId: ge.dataset.vpGe, andraVaccinationer: svar.data.andra, batch: svar.data.batch } }));
+        const r = await medKnapp(ge, () => api(`/api/patient/${pid}/vaccinationsprogram/vaccination`, { metod: 'POST', data: { vaccinId: ge.dataset.vpGe, andraVaccinationer: svar.data.andra, ...dosData(svar.data) } }));
         notis(r.text);
         ctx.ladda();
       } catch (x) { felNotis(x); }

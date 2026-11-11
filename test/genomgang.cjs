@@ -1232,6 +1232,9 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await forvanta(page, 'dialog[open] legend', 'någon annanstans');
       if (await dl.locator('[data-dolda-vaccinationer]').count()) throw new Error('varningen om dolda vaccinationer visas utan att det finns några');
       await dl.locator('#dlg-andra-nej').check();
+      // Runda 13, r4: kontrollen före vaccinationen och dosens batch, utgångsdatum och injektionsställe.
+      await dl.locator('#dlg-k-ja').check();
+      await dl.locator('#dlg-batch').fill('DEMO-MPR-2611');
       await bild(page, '99-vaccination-fraga');
       await dl.locator('[data-varde="ok"]').click();
       await forvanta(page, '.notis', 'är registrerad');

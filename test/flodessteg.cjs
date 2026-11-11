@@ -988,6 +988,8 @@ function skapa(BAS) {
     await page.waitForSelector('[data-vp-ge="pneumokocker"]');
     await m.klicka(page.locator('[data-vp-ge="pneumokocker"]'), 'Ge dosen');
     await page.locator('dialog[open] [data-varde="ok"]').waitFor();
+    // Runda 13, r4: kontrollen före vaccinationen.
+    await m.klicka(page.locator('dialog[open] label[for="vp-k-ja"]'), 'patienten är frisk i dag');
     await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Registrera dosen');
     await synlig(page, '.notis', 'rapporterad till vaccinationsregistret');
   };
