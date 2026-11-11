@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-11T14:15:06.695Z",
-  "bas": "http://127.0.0.1:18211",
+  "tid": "2026-11-11T17:30:33.730Z",
+  "bas": "http://127.0.0.1:18223",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "136af6154b274b5a8a75070143d7249d3fd92f4238df6e9164771226fadd05d0",
+  "gransnittHash": "3a4f26932e77bc8f77b26d10fad33836667739f1a7d19fbe797f48f59b0b1178",
   "tester": [
     {
       "namn": "Gränssnitt > Avbrott > läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB",
@@ -97,6 +97,14 @@
       "status": "grön"
     },
     {
+      "namn": "Gränssnitt > Avbrott > flerfaktor: en passkey i Chromes virtuella autentiserare slår på flerfaktor, bekräftar nästa inloggning, och läsläget vid avbrott fungerar efter den andra faktorn",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > flerfaktor: invånaren slår på en app för engångskoder i Min journal och loggar sedan in med en kod från appen",
+      "status": "grön"
+    },
+    {
       "namn": "Gränssnitt > Användartest > testläget räknar klick, fältbyten och tangenter som klickbudgetskriptet för samma flöden",
       "status": "grön"
     },
@@ -122,6 +130,10 @@
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > röstinmatningen frågar i en dialog innan ljudet går till webbläsarens tjänst när igenkänning på enheten saknas, valet sparas per användare, och med igenkänning på enheten kommer ingen fråga",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Tillgänglighet > flera skärmar: en del av journalen öppnas i ett nytt fönster som följer patientbytet, och ett låst fönster visar tydligt att en annan patient är öppen",
       "status": "grön"
     },
     {
@@ -222,6 +234,10 @@
     },
     {
       "namn": "Gränssnitt > Utbildning > övningarna ger ett intyg med giltighetstid, och verksamhetschefen ser vårdenhetens intyg",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Utbildning > utbildaren skapar ett praktiskt prov, läkaren gör det i övningsjournalen och systemet kontrollerar resultatet",
       "status": "grön"
     },
     {
