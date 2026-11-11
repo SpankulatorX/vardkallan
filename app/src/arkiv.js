@@ -395,6 +395,18 @@ export const HEMLIGA_KOLUMNER = {
   videomoten: ['kod'],
 };
 export const HEMLIGT_NAMN = /hmac|hemlig|secret|token|totp|losen|salt|privat|nyckel_|_nyckel|biljett|session/i;
+// Tabeller med nyckel och värde kan ha hemligheter i raderna, till exempel datauttagets pseudonymnyckel i installningar.
+// Inställningarna följer bara med när nyckeln står i listan nedan, så att en ny hemlig inställning aldrig följer med av
+// misstag. I de andra tabellerna med en nyckelkolumn följer en rad inte med när nyckeln liknar en hemlighet.
+export const ATERFORING_INSTALLNINGAR = new Set(['seed_datum', 'seed_tid', 'tidbok_bas', 'tidbok_anpassad', 'driftversion', 'miljo', 'nll_nasta', 'obstetrik_demo', 'sammanslagning_pagar']);
+export const NYCKELKOLUMNER = ['nyckel', 'namn_nyckel', 'key'];
+export const HEMLIG_RADNYCKEL = (v) => typeof v === 'string' && (HEMLIGT_NAMN.test(v) || /nyckel|key/i.test(v));
+// Vilka rader i en tabell med nyckel och värde som följer med, eller null när tabellen inte har någon nyckelkolumn.
+function radfilter(t, kol) {
+  if (t === 'installningar') return (r) => ATERFORING_INSTALLNINGAR.has(r.nyckel);
+  const k = NYCKELKOLUMNER.find(c => kol.includes(c));
+  return k ? (r) => !HEMLIG_RADNYCKEL(r[k]) : null;
+}
 export const HEMLIG_TABELL = /totp|hemlig|secret|token|session|biljett|nycklar|losen/i;
 
 // Vilka tabeller och kolumner som följer med i återföringen, och varför de andra inte gör det.
@@ -410,7 +422,7 @@ export function aterforingsurval(db) {
     if (HEMLIG_TABELL.test(t)) { utan.push({ tabell: t, skal: 'Tabellen innehåller nycklar eller hemligheter.' }); continue; }
     const kol = db.query(`PRAGMA table_info("${t}")`).all().map(c => c.name);
     const hemliga = kol.filter(c => HEMLIGT_NAMN.test(c) || (HEMLIGA_KOLUMNER[t] ?? []).includes(c));
-    med.push({ tabell: t, kolumner: kol.filter(c => !hemliga.includes(c)), utelamnade: hemliga });
+    med.push({ tabell: t, kolumner: kol.filter(c => !hemliga.includes(c)), utelamnade: hemliga, radfilter: radfilter(t, kol) });
   }
   return { med, utan };
 }
@@ -418,16 +430,22 @@ export function aterforingsurval(db) {
 export function allaTabeller(db) {
   const { med, utan } = aterforingsurval(db);
   const varde = (v) => (v instanceof Uint8Array ? { base64: Buffer.from(v).toString('base64') } : v);
-  const ut = med.map(({ tabell: t, kolumner }) => {
-    const rader = db.query(`SELECT ${kolumner.map(c => `"${c}"`).join(', ')} FROM "${t}" ORDER BY rowid`).all();
+  const radUtelamnade = {};
+  const ut = med.map(({ tabell: t, kolumner, radfilter: filter }) => {
+    let rader = db.query(`SELECT ${kolumner.map(c => `"${c}"`).join(', ')} FROM "${t}" ORDER BY rowid`).all();
+    if (filter) {
+      const fore = rader.length;
+      rader = rader.filter(filter);
+      if (fore > rader.length) radUtelamnade[t] = fore - rader.length;
+    }
     const text = rader.map(r => JSON.stringify(Object.fromEntries(Object.entries(r).map(([k, v]) => [k, varde(v)])))).join('\n') + (rader.length ? '\n' : '');
     return { namn: `${t}.ndjson`, data: text, mime: 'text/plain', tabell: t, rader: rader.length };
   });
   const medNamn = new Set(med.map(x => x.tabell));
   const schema = db.query("SELECT tbl_name, sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY CASE type WHEN 'table' THEN 0 WHEN 'index' THEN 1 ELSE 2 END, name").all()
     .filter(r => medNamn.has(r.tbl_name)).map(r => `${r.sql};`).join('\n\n') + '\n';
-  const urval = { tabeller: med.map(x => ({ tabell: x.tabell, utelamnadeKolumner: x.utelamnade })), utelamnade: utan,
-    text: 'Tabellerna med vårdgivarens uppgifter och de gemensamma tabellerna. Systemets egna tabeller, säkerhetsloggen och nycklar och hemligheter följer inte med. Skyddad identitet följer med som uppgift, som i resten av paketet.' };
+  const urval = { tabeller: med.map(x => ({ tabell: x.tabell, utelamnadeKolumner: x.utelamnade, utelamnadeRader: radUtelamnade[x.tabell] ?? 0 })), utelamnade: utan,
+    text: 'Tabellerna med vårdgivarens uppgifter och de gemensamma tabellerna. Systemets egna tabeller, säkerhetsloggen och nycklar och hemligheter följer inte med, varken som kolumner eller som rader i tabeller med nyckel och värde. Bara de inställningar som systemet vet är ofarliga följer med. Skyddad identitet följer med som uppgift, som i resten av paketet.' };
   return [{ namn: 'schema.sql', data: schema, mime: 'text/plain', tabell: null, rader: 0 }, { namn: 'urval.json', data: JSON.stringify(urval, null, 1), mime: 'application/json', tabell: null, rader: 0 }, ...ut];
 }
 

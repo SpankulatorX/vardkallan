@@ -7,7 +7,7 @@ import { testserver, klient, sandlada } from './hjalp.js';
 import { idag } from '../src/db.js';
 import { packaUpp } from '../src/zip.js';
 import { klassa } from '../src/lagring.js';
-import { ATERFORING_KLASSER, ATERFORING_UTESLUTNA, HEMLIG_TABELL, aterforingsurval } from '../src/arkiv.js';
+import { ATERFORING_KLASSER, ATERFORING_UTESLUTNA, HEMLIG_TABELL, ATERFORING_INSTALLNINGAR, NYCKELKOLUMNER, aterforingsurval } from '../src/arkiv.js';
 
 let app;
 beforeAll(() => { app = testserver(); });
@@ -45,7 +45,9 @@ describe('Arkiv', () => {
     expect(urval.utelamnade.find(x => x.tabell === 'sakerhetslogg').skal).toMatch(/Säkerhetsloggen/);
     // Tabeller som inte hör till journalen, till exempel inställningarna och reglerna, följer med rad för rad.
     const inst = filer.get(`${rot}representations/rep_1/data/tabeller/installningar.ndjson`).data.toString('utf8').trim().split('\n').map(x => JSON.parse(x));
-    expect(inst.length).toBe(db.query('SELECT count(*) AS n FROM installningar').get().n);
+    // Bara inställningarna i listan över ofarliga inställningar följer med.
+    expect(inst.map(r => r.nyckel).sort()).toEqual(db.query('SELECT nyckel FROM installningar').all().map(r => r.nyckel).filter(n => ATERFORING_INSTALLNINGAR.has(n)).sort());
+    expect(inst.length).toBeGreaterThan(0);
     const schema = filer.get(`${rot}representations/rep_1/data/tabeller/schema.sql`).data.toString('utf8');
     expect(schema).toContain('CREATE TABLE patienter');
     expect(schema).toContain('CREATE TRIGGER atkomstlogg_ingen_andring');
@@ -98,5 +100,28 @@ describe('Arkiv', () => {
     for (const v of hemliga) expect({ v, finns: allt.includes(v) }).toEqual({ v, finns: false });
     // Raderna själva följer med, utan de hemliga kolumnerna.
     expect(allt).toContain('x-titel');
+  }, 30_000);
+
+  test('rader med hemligheter i tabeller med nyckel och värde följer inte med, och bara kända inställningar följer med', async () => {
+    const k = await inloggad('ark');
+    const db = sandlada(app, k).db;
+    const hemligt = `HEMLIG-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    db.query("INSERT INTO installningar VALUES ('datauttag_nyckel', ?) ON CONFLICT (nyckel) DO UPDATE SET varde = excluded.varde").run(hemligt);
+    // En ny inställning som systemet inte känner till följer inte med, även om namnet ser ofarligt ut.
+    const ny = `NY-${Math.random().toString(36).slice(2)}`;
+    db.query("INSERT INTO installningar VALUES ('ny_installning_r12', ?)").run(ny);
+    // En rad med en nyckel som liknar en hemlighet i en annan tabell med nyckel och värde följer inte med.
+    const annan = `HEMLIG-avvisning-${Math.random().toString(36).slice(2)}`;
+    db.query("INSERT INTO halsoarende_avvisningar (patient_id, nyckel, personal_id, tid) VALUES ('p01', ?, 'lak-kard', '2026-11-11T10:00:00Z')").run(`api_nyckel_${annan}`);
+    const { filer, rot } = await paket(k, { omfattning: 'alla' });
+    const allt = [...filer.values()].filter(f => f.data).map(f => f.data.toString('utf8')).join('\n');
+    for (const v of ['datauttag_nyckel', hemligt, 'ny_installning_r12', ny, annan]) expect({ v, finns: allt.includes(v) }).toEqual({ v, finns: false });
+    expect(allt).toContain('seed_datum');
+    const urval = JSON.parse(filer.get(`${rot}representations/rep_1/data/tabeller/urval.json`).data);
+    expect(urval.tabeller.find(x => x.tabell === 'installningar').utelamnadeRader).toBeGreaterThanOrEqual(2);
+    // Varje tabell med en nyckelkolumn som följer med har ett radfilter.
+    for (const x of aterforingsurval(db).med) {
+      if (NYCKELKOLUMNER.some(c => x.kolumner.includes(c))) expect({ t: x.tabell, filter: typeof x.radfilter }).toEqual({ t: x.tabell, filter: 'function' });
+    }
   }, 30_000);
 });

@@ -198,8 +198,8 @@ Samma validering av svaren från koden före ändringarna (HTTP-urvalet: 252 uni
 ## Omvalidering 2026-11-11 (runda 12): alla resurstyper, också MedicationAdministration och List
 
 Hela utskriften kördes igen med samma validator (7.0.3), samma paket och samma skript (`exportera.js`, `validera.sh` och
-`summera.py`), i `eclipse-temurin:21-jre` och med kontakt med tx.fhir.org i varje körning. Resultat: 5895 resurser,
-**inga fel** och 7264 varningar. MedicationAdministration (administreringen) och List (vidimeringen), som kom
+`summera.py`), i `eclipse-temurin:21-jre` och med kontakt med tx.fhir.org i varje körning. Resultat: 5890 resurser,
+**inga fel** och 7257 varningar. MedicationAdministration (administreringen) och List (vidimeringen), som kom
 till 2026-11-03 och tidigare bara var kontrollerade med strukturtesterna, är nu validerade med HL7:s validator utan fel.
 
 | Resurstyp | Resurser | Fel | Varningar |
@@ -209,7 +209,7 @@ till 2026-11-03 och tidigare bara var kontrollerade med strukturtesterna, är nu
 | AuditEvent | 1000 | 0 | 2000 |
 | CapabilityStatement | 1 | 0 | 1 |
 | CarePlan | 1 | 0 | 1 |
-| ChargeItem | 337 | 0 | 344 |
+| ChargeItem | 334 | 0 | 341 |
 | Composition | 213 | 0 | 213 |
 | Condition | 115 | 0 | 230 |
 | DiagnosticReport | 7 | 0 | 7 |
@@ -221,7 +221,7 @@ till 2026-11-03 och tidigare bara var kontrollerade med strukturtesterna, är nu
 | Klient | 3 | 0 | 5 |
 | List | 1 | 0 | 1 |
 | Media | 3 | 0 | 6 |
-| MedicationAdministration | 31 | 0 | 62 |
+| MedicationAdministration | 29 | 0 | 58 |
 | MedicationRequest | 131 | 0 | 271 |
 | Notis | 1 | 0 | 0 |
 | Observation | 459 | 0 | 505 |

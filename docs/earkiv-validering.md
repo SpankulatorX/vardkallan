@@ -54,8 +54,11 @@ Bara tabeller som `app/src/lagring.js` klassar som en huvudmans uppgifter (genom
 som gemensamma följer med (`aterforingsurval` i `app/src/arkiv.js`). Systemets egna tabeller (till exempel systemkontona,
 anslutningarna, schemaversionen och uppgraderingarna) och säkerhetsloggen följer inte med, och inte heller en tabell vars
 namn visar att den innehåller nycklar eller hemligheter. Kolumner med nycklar, HMAC och hemligheter tas bort, till exempel
-forskningsuttagets pseudonymnyckel, kalenderlänkarnas HMAC, utrustningens nyckel och videomötenas koder. `urval.json` i
-samma mapp säger vilka tabeller och kolumner som är utelämnade och varför. Skyddad identitet följer med som uppgift, som i
+forskningsuttagets pseudonymnyckel, kalenderlänkarnas HMAC, utrustningens nyckel och videomötenas koder. I tabeller med nyckel och värde kan hemligheten ligga i
+raderna: av inställningarna följer bara de med som står i en uttrycklig lista över ofarliga inställningar
+(`ATERFORING_INSTALLNINGAR`), så att till exempel datauttagets pseudonymnyckel och varje ny inställning stannar kvar, och i
+de andra tabellerna med en nyckelkolumn följer en rad inte med när nyckeln liknar en hemlighet. `urval.json` i samma mapp
+säger vilka tabeller, kolumner och hur många rader som är utelämnade och varför. Skyddad identitet följer med som uppgift, som i
 resten av paketet. Ett test fäller bygget om en ny tabell inte är klassad, och ett test lägger in kända hemliga värden och
 kontrollerar att inget av dem finns någonstans i paketet.
 

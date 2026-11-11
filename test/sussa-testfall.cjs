@@ -512,6 +512,9 @@ function floden(D) {
       await m.valj(page.locator('dialog[open] select[name="enhetId"]'), 'uso-ort', 'Ortopediska kliniken USÖ');
       await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Flytta');
       await synlig(page, '.notis', 'Patienten ligger nu på Ortopediska kliniken USÖ');
+      // Runda 12, r2: översikten hämtar sina delar igen efter flytten. Nästa testfall återställer sandlådan, så de
+      // anropen ska vara klara först, annars svarar servern 404 för en patient som inte längre finns.
+      await page.waitForLoadState('networkidle');
     },
     '6.3': async (m, page) => {
       await oppnaFranLista(m, page, 'Bertil Danielsson');
