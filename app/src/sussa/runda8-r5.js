@@ -48,7 +48,7 @@ const POSTER = {
     tester: TESTER_TOBAK,
     losning: `Anteckningar skrivs i mallar med sökord per anteckningstyp. Omvårdnadsanteckningen följer VIPS. ${TOBAK_LOSNING}`,
     expert: `Systemet visar bara de mallar rollen får skriva och förväljer daganteckning och den egna enhetens vårdkontakt, så användaren skriver bara det som är nytt. ${TOBAK_EXPERT}`,
-    anmarkning: 'Beskrivande bilder saknas, och formulär med fasta svarsalternativ finns bara för tobaksvanor. Mallarnas sökord ändras av systemförvaltningen, men nya mallar går inte att lägga till från gränssnittet.',
+    anmarkning: 'Beskrivande bilder saknas, och formulär med fasta svarsalternativ finns bara för tobaksvanor. Mallarnas sökord ändras av systemförvaltningen, och sedan runda 12 skapar systemförvaltningen nya mallar under Mallar och mätvärdestyper.',
   },
   '3.1.3.4': { tester: TESTER_FLERA },
   '3.1.3.5': {

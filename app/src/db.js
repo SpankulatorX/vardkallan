@@ -484,6 +484,8 @@ export function byggSeed(bas = nu()) {
   require('./schema-runda10-r7.js').sakraR10r7(db, bas);
   // Runda 11, r7: intensivvårdens regler, andningsstöd, mål och NEMS och tillväxtens tabeller (schema-runda11-r7.js).
   require('./schema-runda11-r7.js').sakraR11r7(db);
+  // Runda 12, r1: journalens struktur som systemförvaltningen ändrar (journalstruktur.js).
+  require('./journalstruktur.js').sakra(db);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   return db;
@@ -620,6 +622,8 @@ export function migrera(db) {
   require('./schema-runda10-r7.js').sakraR10r7(db, nu());
   // Runda 11, r7 (schema-runda11-r7.js).
   require('./schema-runda11-r7.js').sakraR11r7(db);
+  // Runda 12, r1 (journalstruktur.js).
+  require('./journalstruktur.js').sakra(db);
   return db;
 }
 

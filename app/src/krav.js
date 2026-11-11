@@ -9,6 +9,8 @@ import { KORNINGSTESTER as SUSSA_KORNINGAR, TEST_REGISTER as SUSSA_REGISTERTESTE
 // Runda 6, r6: testerna för ansvarsuppdragen och godkännandet av läkemedelsmallar.
 import { T as R6, TESTER_ANSVAR } from './sussa/lakemedelsansvar-r6.js';
 const TESTER_MALLAR = [R6.mallInkorg, R6.mallSakerhet, R6.substans, R6.kbMall];
+// Runda 12, r1: journalens mallar inom vårdgivarens ramar och läkemedelsmallar som byggs i gränssnittet (D11).
+import { R12R1, TESTER_RAMAR, TESTER_LAKEMEDELSMALLAR } from './sussa/runda12-r1.js';
 // Runda 8, r5: villkoren för version 1.0 överst på kravsidan (version.js).
 import { TESTER_VERSION } from './sussa/runda8-r5.js';
 // Runda 9, r6: lagkravsmatrisen (Sussa 2.7.1.2).
@@ -152,9 +154,9 @@ export const KRAV = [
       'Skalor > NEWS2: summan, risken och vad som ska göras enligt Chart 2 och Chart 4'],
     'Varningsreglerna vid ordination ligger i lakemedel.js, och reglerna för administrering, utsättning och läkemedelsgenomgång i en egen modul (lakemedelsregler.js), skild från journalkärnan. De fördefinierade ordinationerna ligger i ordinationsmallar.js. NEWS2, GCS, NRS, referensintervallen och eGFR ligger i skalor.js. Alla är märkta som demoregler. Ingen MDR-bedömning är gjord.'),
   // Runda 6, r6: läkemedelsmallarna har versioner och godkänns av mallansvarig läkare på vårdenheten.
-  k('D11', 'Styrd lokal anpassning av mallar inom fastställda ramar', `${RAPPORT}, D11`, 'delvis', '/inkorg',
-    [...TESTER_MALLAR, ...TESTER_ANSVAR],
-    'Läkemedelsmallarna per substans och mallarna med flera ordinationer är data med versioner, per vårdenhet. En ny eller ändrad mall används först när den läkare som verksamhetschefen har utsett som ansvarig för vårdenhetens läkemedelsmallar har godkänt den (Gröna häftet 688488 R5 avsnitt 1.4.3), och systemet skriver vad som ändrats mot den förra versionen. Varje version och varje godkännande sparas och ändras aldrig. Ett gränssnitt för att bygga eller ändra en mall saknas (det görs med API:t), liksom mallar för journalanteckningar och ramar på vårdgivarens nivå.'),
+  k('D11', 'Styrd lokal anpassning av mallar inom fastställda ramar', `${RAPPORT}, D11`, 'uppfyllt_demo', '/struktur',
+    [...TESTER_MALLAR, ...TESTER_ANSVAR, ...TESTER_RAMAR, ...TESTER_LAKEMEDELSMALLAR, R12R1.mall, R12R1.mallVersion, R12R1.fyraOgon],
+    'Vårdgivarens ramar och vårdenheternas anpassningar finns för journalens mallar på sidan Mallar och mätvärdestyper: vårdgivaren fastställer för en mall vilka sökord som alltid måste finnas och vilka en vårdenhet får lägga till, och en vårdenhets lokala anpassning gäller bara personalen där och bara så länge den ryms i ramen. Nya mallar och ramar är versioner som en annan systemförvaltare godkänner. Läkemedelsmallarna per substans byggs och ändras av läkaren under Direktiv och uppföljning, med förslag ur katalogen, och en ny eller ändrad mall används först när den läkare som verksamhetschefen har utsett som ansvarig för vårdenhetens läkemedelsmallar har godkänt den (Gröna häftet 688488 R5 avsnitt 1.4.3), och systemet skriver vad som ändrats mot den förra versionen. Varje version och varje godkännande sparas och ändras aldrig. Läkemedelsmallarna har ingen ram på vårdgivarens nivå utöver godkännandet per vårdenhet, och mallarna med flera ordinationer byggs som förut.'),
   k('D12', 'All drift, support och personuppgiftsbehandling inom EU', `${RAPPORT}, D12`, 'planerat', null, [], 'Demon innehåller inga riktiga personuppgifter. Driftkrav och DPIA är inte gjorda.'),
 
   // Lagkrav och nationella tjänster

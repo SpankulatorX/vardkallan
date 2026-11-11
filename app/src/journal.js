@@ -18,6 +18,8 @@ import * as levnadsvanor from './levnadsvanor.js';
 import * as signering from './anteckningssignatur.js';
 // Runda 10, r3: formulär som verksamheten bygger själv (formularmotor.js).
 import * as formular from './formularmotor.js';
+// Runda 12, r1: mallar och mätvärdestyper som systemförvaltningen skapar (journalstruktur.js).
+import * as struktur from './journalstruktur.js';
 
 // Mallar per anteckningstyp. Omvårdnadsanteckningen följer VIPS-sökorden.
 export const MALLAR = [
@@ -37,10 +39,14 @@ export const MALLAR = [
 ];
 const MALL = Object.fromEntries(MALLAR.map(m => [m.typ, m]));
 // Runda 10, r3: mallen för en anteckningstyp, en av de fasta eller ett formulär som gäller och som personen får fylla i.
-const mallFor = (atk, typ) => (Object.hasOwn(MALL, typ) ? MALL[typ] : formular.mallFor(atk.db, typ, atk.personal));
+// Runda 12, r1: eller en mall som systemförvaltningen har skapat och som en annan systemförvaltare har godkänt.
+const mallFor = (atk, typ) => (Object.hasOwn(MALL, typ) ? MALL[typ] : struktur.mallFor(atk.db, typ) ?? formular.mallFor(atk.db, typ, atk.personal));
 // Kategorin för en anteckningstyp, för rutten som prövar behörigheten innan anteckningen skapas.
 export function kategoriFor(db, typ) {
   if (typeof typ === 'string' && Object.hasOwn(MALL, typ)) return MALL[typ].kategori;
+  // Runda 12, r1.
+  const egen = struktur.mallFor(db, typ);
+  if (egen) return egen.kategori;
   const r = typeof typ === 'string' && db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'formular'").get()
     && db.query("SELECT definition FROM formular WHERE namn = ? AND status = 'aktiv'").get(typ);
   return r ? JSON.parse(r.definition).kategori : undefined;
@@ -303,10 +309,12 @@ export const MATTYPER = {
   sr: { namn: 'SR', min: 0, max: 150, heltal: true },
 };
 for (const [typ, m] of Object.entries(MATTYPER)) m.enhet = MATTYPER_ENHET[typ];
+// Runda 12, r1: en inbyggd mätvärdestyp eller en som systemförvaltningen har skapat (journalstruktur.js).
+export const mattypFor = (db, typ) => (typeof typ === 'string' && Object.hasOwn(MATTYPER, typ) ? MATTYPER[typ] : struktur.mattyp(db, typ));
 
 export function matvardeUt(db, m) {
   const ut = {
-    id: m.id, typ: m.typ, namn: MATTYPER[m.typ]?.namn ?? m.typ, varde: m.varde_num ?? m.varde, enhet: m.matt_enhet, tid: m.tid,
+    id: m.id, typ: m.typ, namn: mattypFor(db, m.typ)?.namn ?? m.typ, varde: m.varde_num ?? m.varde, enhet: m.matt_enhet, tid: m.tid,
     vardenhet: { id: m.enhet_id, namn: enhetsnamn(db, m.enhet_id) }, registreradAv: personalKort(db, m.registrerad_av),
     kalla: m.kalla, kallaEtikett: kallaEtikett(m.kalla, m.tid),
   };
@@ -352,7 +360,7 @@ export function listaMatvarden(atk) {
 }
 
 export function registreraMatvarde(atk, { typ, varde, enhet, tid }) {
-  const def = MATTYPER[typ];
+  const def = mattypFor(atk.db, typ);
   if (!def) throw new Fel(400, 'Okänd typ av mätvärde.', 'ogiltig', { falt: ['typ'] });
   atk.krav('registrera_matvarde');
   if (enhet != null && enhet !== def.enhet) throw new Fel(400, `Fel enhet. ${def.namn} anges i ${def.enhet}.`, 'ogiltig', { falt: ['enhet'] });

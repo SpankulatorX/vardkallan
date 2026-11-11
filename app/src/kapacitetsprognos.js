@@ -79,7 +79,7 @@ export function prognos(db, personal, { veckor = VECKOR, dag = idag() } = {}) {
   }
   // Efterfrågan: väntelistan och inkomna remisser som inte är bedömda.
   const vantande = db.query(`SELECT * FROM vantelista WHERE enhet_id IN (${ph}) AND status = 'vantar'`).all(...enheter);
-  for (const v of vantande) grupp(v.tidstyp, v.yrkesroll).vantar.push({ prioritet: v.prioritet, grans: gransFor(v, dag)?.datum ?? null, patientvald: Boolean(v.patientvald) });
+  for (const v of vantande) grupp(v.tidstyp, v.yrkesroll).vantar.push({ prioritet: v.prioritet, grans: gransFor(v, dag, db)?.datum ?? null, patientvald: Boolean(v.patientvald) });
   const remisser = db.query(`SELECT * FROM remisser WHERE till_enhet_id IN (${ph}) AND status IN ('skickad', 'mottagen')`).all(...enheter);
   for (const r of remisser) {
     const g = grupp('nybesok', 'lakare');

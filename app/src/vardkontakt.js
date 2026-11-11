@@ -34,6 +34,14 @@ export const HANDELSE = {
 
 // Patientavgifter enligt demoregler. Beloppen är påhittade och inte någon regions avgifter.
 export const AVGIFT_DEMO = { besok: 200, video: 200, hembesok: 200, telefon: 0, akut: 400, slutenvardDygn: 100, hogkostnadsskydd: 1450, friUnder: 20, friFran: 85 };
+// Runda 12, r1: avgifterna är parametrar som systemförvaltningen ändrar med fyra ögon (konfiguration.js, Sussa 12.1.1.6).
+// AVGIFT_DEMO har standardvärdena, och avgifter(db) ger de godkända värdena för sandlådan.
+export function avgifter(db) {
+  const v = (n, f) => { try { return require('./konfiguration.js').varde(db, n); } catch { return f; } };
+  const besok = v('avgift.besok_kr', AVGIFT_DEMO.besok);
+  return { ...AVGIFT_DEMO, besok, video: besok, hembesok: besok, akut: v('avgift.akut_kr', AVGIFT_DEMO.akut), slutenvardDygn: v('avgift.slutenvard_dygn_kr', AVGIFT_DEMO.slutenvardDygn),
+    hogkostnadsskydd: v('avgift.hogkostnadsskydd_kr', AVGIFT_DEMO.hogkostnadsskydd), friUnder: v('avgift.fri_under_ar', AVGIFT_DEMO.friUnder), friFran: v('avgift.fri_fran_ar', AVGIFT_DEMO.friFran) };
+}
 
 const TIMME = 3600_000;
 const enhetRad = (db, id) => db.query('SELECT * FROM enheter WHERE id = ?').get(id);
@@ -309,16 +317,16 @@ export function avsluta(atk, v) {
 
 // Patientavgift enligt demoreglerna (3.4.4.4). Systemet räknar ut avgiften ur kontakttyp, kontaktsätt, ålder och
 // högkostnadsskyddet, så att ingen behöver kunna reglerna. Betalning, kvitto, återbetalning och LMA-kort är inte byggda.
-function grundavgift(v, patient) {
+function grundavgift(v, patient, a = AVGIFT_DEMO) {
   const ar = alder(patient.fodd, datumAv(new Date(Date.parse(v.start))));
-  if (ar < AVGIFT_DEMO.friUnder || ar >= AVGIFT_DEMO.friFran) return { belopp: 0, text: `Avgiftsfritt för patienter under ${AVGIFT_DEMO.friUnder} år och från ${AVGIFT_DEMO.friFran} år.` };
+  if (ar < a.friUnder || ar >= a.friFran) return { belopp: 0, text: `Avgiftsfritt för patienter under ${a.friUnder} år och från ${a.friFran} år.` };
   if (v.typ === 'slutenvard') {
     const dygn = Math.max(1, Math.ceil(((v.slut ? Date.parse(v.slut) : Date.now()) - Date.parse(v.start)) / 86400_000));
-    return { belopp: dygn * AVGIFT_DEMO.slutenvardDygn, text: `${AVGIFT_DEMO.slutenvardDygn} kr per påbörjat vårddygn, ${dygn} ${dygn === 1 ? 'dygn' : 'dygn'}.`, slutenvard: true };
+    return { belopp: dygn * a.slutenvardDygn, text: `${a.slutenvardDygn} kr per påbörjat vårddygn, ${dygn} ${dygn === 1 ? 'dygn' : 'dygn'}.`, slutenvard: true };
   }
-  if (v.typ === 'akut') return { belopp: AVGIFT_DEMO.akut, text: 'Besök på akutmottagningen.' };
+  if (v.typ === 'akut') return { belopp: a.akut, text: 'Besök på akutmottagningen.' };
   const k = v.kontaktsatt ?? 'besok';
-  const b = AVGIFT_DEMO[k] ?? AVGIFT_DEMO.besok;
+  const b = a[k] ?? a.besok;
   return { belopp: b, text: b === 0 ? `${KONTAKTSATT[k]} är avgiftsfritt.` : `${KONTAKTSATT[k] ?? 'Besök'} i öppenvård.` };
 }
 
@@ -326,7 +334,8 @@ function grundavgift(v, patient) {
 // påverkat inte röjer besök som är dolda (ekonomi.js). Utan filter räknas alla, som vid betalningen.
 export function avgiftFor(db, patient, v, { synliga = null } = {}) {
   if (!patient || (v.kalla && v.kalla !== 'vardkallan')) return null;
-  const g = grundavgift(v, patient);
+  const a = avgifter(db);
+  const g = grundavgift(v, patient, a);
   const ut = (belopp, text) => ({ belopp, text: `${text} Demoregel, inte en regions avgifter.`, demoregler: true });
   // Runda 7, r3: en asylsökande med giltigt LMA-kort betalar den lägre avgiften och omfattas inte av högkostnadsskyddet.
   const lma = lmaFor(db, patient.id, datumAv(new Date(Date.parse(v.start))));
@@ -341,8 +350,8 @@ export function avgiftFor(db, patient, v, { synliga = null } = {}) {
   const fran = new Date(Date.parse(v.start) - 365 * 86400_000).toISOString();
   const tidigare = db.query(`SELECT * FROM vardkontakter WHERE patient_id = ? AND typ <> 'slutenvard' AND kalla = 'vardkallan' AND id <> ? AND start >= ? AND start < ?
     AND (planerad = 0 OR ankomst IS NOT NULL) ORDER BY start, id`).all(patient.id, v.id ?? 0, fran, v.start);
-  const r = raknaSkydd(synliga ? synliga(tidigare) : tidigare, patient, AVGIFT_DEMO.hogkostnadsskydd);
-  const kvar = Math.max(0, AVGIFT_DEMO.hogkostnadsskydd - r.betalt);
+  const r = raknaSkydd(synliga ? synliga(tidigare) : tidigare, patient, a.hogkostnadsskydd, a);
+  const kvar = Math.max(0, a.hogkostnadsskydd - r.betalt);
   // Runda 7, r3: som e-frikortet. Svaret säger bara att frikort gäller och till när, eller avgiften att betala, aldrig
   // hur mycket som är betalt eller hur nära taket patienten är. En avgift som taket har satt ned har samma text som en
   // hel avgift, så att texten inte röjer besök som den som läser inte får se.
@@ -352,12 +361,12 @@ export function avgiftFor(db, patient, v, { synliga = null } = {}) {
 
 // Runda 7, r3: avgifterna inom högkostnadsskyddet i tidsordning, och till när frikortet gäller: tolv månader från det
 // första besöket som räknas (demoregel).
-function raknaSkydd(kontakter, patient, grans) {
+function raknaSkydd(kontakter, patient, grans, a = AVGIFT_DEMO) {
   let betalt = 0;
   let forsta = null;
   const avgifter = [];
   for (const t of kontakter) {
-    const b = Math.min(grundavgift(t, patient).belopp, Math.max(0, grans - betalt));
+    const b = Math.min(grundavgift(t, patient, a).belopp, Math.max(0, grans - betalt));
     if (b > 0 && !forsta) forsta = datumAv(new Date(Date.parse(t.start)));
     if (b > 0) avgifter.push({ kontakt: t, belopp: b });
     betalt += b;
@@ -369,12 +378,13 @@ function raknaSkydd(kontakter, patient, grans) {
 // skyddet de senaste tolv månaderna och hur mycket som återstår till frikort. synliga filtrerar kontakterna på det
 // anroparen får se (inre sekretess och spärr), så att beloppet aldrig röjer ett besök som är dolt (ekonomi.js).
 export function hogkostnadsskyddet(db, patient, nu = Date.now(), { synliga = null, medAvgifter = false } = {}) {
-  const grans = AVGIFT_DEMO.hogkostnadsskydd;
+  const a = avgifter(db);
+  const grans = a.hogkostnadsskydd;
   if (lmaFor(db, patient.id, datumAv(new Date(nu)))) return { grans, betalt: 0, kvar: grans, frikort: false, lma: true, demoregler: true };
   const fran = new Date(nu - 365 * 86400_000).toISOString();
   const tidigare = db.query(`SELECT * FROM vardkontakter WHERE patient_id = ? AND typ <> 'slutenvard' AND kalla = 'vardkallan' AND start >= ? AND start <= ?
     AND (planerad = 0 OR ankomst IS NOT NULL) ORDER BY start, id`).all(patient.id, fran, new Date(nu).toISOString());
-  const r = raknaSkydd(synliga ? synliga(tidigare) : tidigare, patient, grans);
+  const r = raknaSkydd(synliga ? synliga(tidigare) : tidigare, patient, grans, a);
   const ut = { grans, betalt: r.betalt, kvar: Math.max(0, grans - r.betalt), frikort: r.betalt >= grans, lma: false, demoregler: true };
   if (ut.frikort) ut.frikortTill = r.frikortTill;
   if (medAvgifter) ut.avgifter = r.avgifter;

@@ -461,6 +461,11 @@ function ordinationsForm(plats, ctx, tidigare = null, { muntlig = false } = {}) 
       // Bara administrationssätt som passar läkemedelsformen går att välja (säkerhetsgranskningen av runda 5).
       if (f.tillatnaAdministrationssatt) for (const o of form.administrationssatt.options) o.hidden = o.disabled = !f.tillatnaAdministrationssatt.includes(o.value);
       satt('uppfoljningsdatum', f.uppfoljningsdatum);
+      // Runda 12, r1: ordinationsorsaken är frivillig när ordinationen inte förs över till NLL och vårdgivaren har valt det.
+      form.ordinationsorsak.required = !f.orsakFrivillig;
+      const obl = form.querySelector('label[for="o-orsak"] .obl');
+      if (obl) obl.textContent = f.orsakFrivillig ? '(frivilligt)' : '(obligatoriskt)';
+      if (f.orsakText) form.ordinationsorsak.title = f.orsakText;
       form.mall.value = f.mall ?? '';
       form.volymMl.value = f.volymMl ?? '';
       // Runda 6, r2: förpackning, spädning och trappschema ur förslaget.

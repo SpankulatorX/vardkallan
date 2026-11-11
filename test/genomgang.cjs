@@ -210,6 +210,8 @@ Object.defineProperty(MENY, 'anestesi', { get: () => { const m = [...MENY.klinis
 MENY.bvc.splice(MENY.bvc.indexOf('Barnhälsovård') + 1, 0, 'Mödrahälsovård');
 MENY.barnmorska = MENY.sjukskoterska.filter(x => x !== 'Intensivvård');
 MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen');
+// Runda 12, r1: systemförvaltaren har Mallar och mätvärdestyper efter Kodverk och masterdata.
+MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterdata') + 1, 0, 'Mallar och mätvärdestyper');
 
 (async () => {
   // Runda 11, r1: klockan ställs innan testet räknar ut några datum.
@@ -1709,6 +1711,16 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
       await forvanta(page, '.notis', 'väntar på att en annan systemförvaltare godkänner det');
       await page.waitForLoadState('networkidle');
     });
+    // Runda 12, r1: en enskild anteckning väljs med sitt nummer, och systemet säger när numret inte finns.
+    await s('Tomas Lindh väljer en enskild anteckning att undanta, och systemet förklarar ett nummer som inte finns', async () => {
+      await gaTill(page, '#/undantag');
+      await page.click('[data-nytt-undantag]');
+      await page.locator('dialog[open] #sf-u-omfang').selectOption('anteckning');
+      await page.locator('dialog[open] #sf-u-nummer').fill('999999');
+      await forvanta(page, 'dialog[open] [data-forhand]', 'Det finns ingen signerad anteckning med det numret');
+      await page.click('dialog[open] [data-varde="avbryt"]');
+      await page.waitForLoadState('networkidle');
+    });
     await s('Tomas Lindh provar säkerhetskopian och ser uppgifterna per huvudman', async () => {
       await gaTill(page, '#/lagring');
       await forvanta(page, '#sf-l-huvudman ~ .tabellrulle', 'Region Örebro län');
@@ -1773,6 +1785,40 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
       await bild(page, '106-migreringsfil');
       await page.waitForLoadState('networkidle');
     });
+    // Runda 12, r1: journalens mallar och mätvärdestyper utan programmerare.
+    await s('Tomas Lindh skapar en mätvärdestyp, och systemet kontrollerar koden och enheten och visar vad som påverkas', async () => {
+      await gaTill(page, '#/struktur');
+      await forvanta(page, '#js-mallar ~ .tabellrulle', 'Daganteckning');
+      await saknas(page, 'Gunnar');
+      await page.click('[data-ny="mattyp"]');
+      await page.locator('dialog[open] #js-mnamn').fill('Ferritin');
+      await page.locator('dialog[open] #js-kod').fill('NPU19748');
+      await page.locator('dialog[open] #js-ucum').fill('ug/L');
+      await page.locator('dialog[open] #js-min').fill('0');
+      await page.locator('dialog[open] #js-max').fill('100000');
+      await forvanta(page, 'dialog[open] [data-forhand]', 'används redan för CRP');
+      await page.locator('dialog[open] #js-kod').fill('NPU19763');
+      await forvanta(page, 'dialog[open] [data-forhand]', 'blir valbar när ett mätvärde registreras');
+      await page.locator('dialog[open] #js-motivering').fill('Järnbrist följs upp på vårdcentralen.');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', 'väntar på att en annan systemförvaltare godkänner den');
+      await forvanta(page, '#js-mina ~ ul', 'Ferritin');
+      await page.waitForLoadState('networkidle');
+    });
+    await s('Tomas Lindh skapar en mall med ett nytt sökord, och systemet ber om koden i Snomed CT', async () => {
+      await gaTill(page, '#/struktur');
+      await page.click('#js-mallar ~ .knapprad [data-ny="mall"]');
+      await page.locator('dialog[open] #js-typ').fill('Smärtmottagningens bedömning');
+      await page.locator('dialog[open] #js-sokord').fill('Kontaktorsak, Smärta, Ärftlighet, Bedömning, Åtgärd');
+      await forvanta(page, 'dialog[open] [data-forhand]', 'Ärftlighet finns inte i Vårdkällans delmängd');
+      await page.locator('dialog[open] #js-nya').fill('Ärftlighet; 57177007; Family history with explicit context');
+      await forvanta(page, 'dialog[open] [data-forhand]', 'läggs till i delmängden med Snomed CT 57177007');
+      await page.locator('dialog[open] #js-motivering').fill('Smärtmottagningen behöver en egen mall.');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '#js-mina ~ ul', 'Smärtmottagningens bedömning');
+      await bild(page, '167-mallar-och-matvardestyper');
+      await page.waitForLoadState('networkidle');
+    });
     await allaVyer(page, 'Tomas Lindh', MENY.systemforvaltare);
     // Fyra ögon på riktigt: Nora Ekholm loggar in i samma sandlåda och godkänner sammanslagningen som Tomas Lindh förberedde.
     await s('Nora Ekholm godkänner sammanslagningen som Tomas Lindh förberedde, men inte sina egna förslag', async () => {
@@ -1819,6 +1865,20 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
       await rad.locator('[data-godkann]').click();
       await forvanta(page, '.notis', 'Utgåvan är godkänd');
       await forvanta(page, '#kv-historik ~ ul', 'Besöksorsaker på akuten 1');
+      await page.waitForLoadState('networkidle');
+    });
+    // Runda 12, r1: fyra ögon på mätvärdestypen och mallen som Tomas Lindh skapade.
+    await s('Nora Ekholm ser vad som påverkas och godkänner mätvärdestypen och mallen som Tomas Lindh skapade', async () => {
+      await gaTill(page, '#/struktur');
+      const rad = page.locator('#js-att-godkanna ~ ul > li.js-version', { hasText: 'Ferritin' });
+      await rad.waitFor();
+      await forvanta(page, '#js-att-godkanna ~ ul', 'NPU19763');
+      await rad.locator('[data-godkann]').click();
+      await forvanta(page, '.notis', 'Versionen är godkänd');
+      await page.locator('#js-att-godkanna ~ ul > li.js-version', { hasText: 'Smärtmottagningens bedömning' }).locator('[data-godkann]').click();
+      await forvanta(page, '#js-historik ~ ul', 'Smärtmottagningens bedömning');
+      await forvanta(page, '#js-mallar ~ .tabellrulle', 'Smärtmottagningens bedömning');
+      await forvanta(page, '#js-mattyper ~ .tabellrulle', 'Ferritin');
       await page.waitForLoadState('networkidle');
     });
     await allaVyer(page, 'Nora Ekholm', MENY.systemforvaltare);

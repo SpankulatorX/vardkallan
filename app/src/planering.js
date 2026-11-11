@@ -189,7 +189,7 @@ function statistikFor(db, ve, { skydda = false } = {}) {
     if (!grupper.has(nyckel)) grupper.set(nyckel, { tidstyp: p.tidstyp, yrkesroll: p.yrkesroll, dagar: [], nara: 0, passerat: 0 });
     const g = grupper.get(nyckel);
     g.dagar.push(dagarMellan(p.fran, dag));
-    const gr = tidbok.gransFor(p, dag);
+    const gr = tidbok.gransFor(p, dag, db);
     if (gr?.risk === 'risk') g.nara++;
     if (gr?.risk === 'passerad') g.passerat++;
   }
@@ -199,7 +199,7 @@ function statistikFor(db, ve, { skydda = false } = {}) {
   const bokade = db.query(`SELECT v.*, t.start FROM vantelista v JOIN bokningar b ON b.id = v.bokning_id JOIN tider t ON t.id = b.tid_id
     WHERE v.enhet_id = ? AND v.status = 'bokad' AND b.bokad >= ?`).all(ve, sedan);
   const bDagar = bokade.map(p => dagarMellan(p.fran, datumAv(new Date(p.start))));
-  const inom = bokade.filter(p => { const g = tidbok.gransFor(p, datumAv(new Date(p.start))); return !g || g.dagarKvar >= 0; }).length;
+  const inom = bokade.filter(p => { const g = tidbok.gransFor(p, datumAv(new Date(p.start)), db); return !g || g.dagarKvar >= 0; }).length;
   return {
     vardenhet: enhetKort(db, ve), datum: dag,
     totalt: { vantar: vantar.length, naraGransen: [...grupper.values()].reduce((a, g) => a + g.nara, 0), passerat: [...grupper.values()].reduce((a, g) => a + g.passerat, 0),
@@ -250,7 +250,7 @@ export function kallaUtanTid(atk, post) {
   // Ramen: från i morgon, eftersom en egen bokning ska ligga minst ett dygn fram, till gränsen för posten, eller tre
   // veckor när gränsen ligger för nära.
   const fran = addDagar(idag(), 1);
-  const g = tidbok.gransFor(post);
+  const g = tidbok.gransFor(post, idag(), db);
   const till = g && g.datum > addDagar(fran, 3) ? g.datum : addDagar(fran, 21);
   const ve = enhetKort(db, post.enhet_id)?.namn ?? '';
   const sprak = plan.sprakFor(db, p.id);

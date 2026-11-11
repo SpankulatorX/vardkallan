@@ -20,7 +20,7 @@
 // Beloppen och reglerna är demoregler, inte någon regions avgifter, och betalterminalen och fakturan är simulerade.
 import { Fel, iso, idag, datumAv } from './db.js';
 import { kanRoll, vardenhetFor, enheterUnder, alder } from './atkomst.js';
-import { hogkostnadsskyddet, AVGIFT_DEMO } from './vardkontakt.js';
+import { hogkostnadsskyddet, AVGIFT_DEMO, avgifter } from './vardkontakt.js';
 import { lmaFor } from './ekonomi-schema.js';
 import * as konfiguration from './konfiguration.js';
 
@@ -103,7 +103,9 @@ export function avgiftFor(db, patient, tjanst, intygstyp = null, dag = idag()) {
     return { belopp: t.belopp, grund: 'avgift', text: `${t.text}: ${t.belopp} kr. Intyg omfattas inte av frikortet.` };
   }
   if (tjanst !== 'receptfornyelse') throw new Fel(400, 'Välj förnyelse av recept eller intyg.', 'ogiltig', { falt: ['tjanst'] });
-  if (ar < AVGIFT_DEMO.friUnder || ar >= AVGIFT_DEMO.friFran) return { belopp: 0, grund: 'avgiftsfri', text: `Avgiftsfritt för patienter under ${AVGIFT_DEMO.friUnder} år och från ${AVGIFT_DEMO.friFran} år.` };
+  // Runda 12, r1: åldersgränserna är parametrar (vardkontakt.avgifter).
+  const ag = avgifter(db);
+  if (ar < ag.friUnder || ar >= ag.friFran) return { belopp: 0, grund: 'avgiftsfri', text: `Avgiftsfritt för patienter under ${ag.friUnder} år och från ${ag.friFran} år.` };
   if (lmaFor(db, patient.id, dag)) return { belopp: 50, grund: 'lma', text: 'Asylsökande med LMA-kort betalar 50 kr.' };
   if (ingar(db, 'receptfornyelse')) return inomSkyddet(db, patient, 'receptfornyelse', RECEPTFORNYELSE, 'Förnyelse av recept.');
   const hk = hogkostnadsskyddet(db, patient);

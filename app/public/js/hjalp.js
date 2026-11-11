@@ -51,6 +51,12 @@ export const HJALP = {
     steg: ['Välj Ändra på regelns rad.', 'Skriv eller välj det nya värdet, från vilket datum det ska gälla och varför. Systemet visar effekten i dag och säger om värdet inte är rimligt.', 'En annan systemförvaltare godkänner ändringen under Att godkänna.'],
     systemet: 'Ändringen gäller först när den är godkänd, och aldrig bakåt i tiden. Regler som följer av lag eller av behörighetsmodellen går inte att ändra här, och sidan säger varför.',
   },
+  // Runda 12, r1: journalens mallar, sökord och mätvärdestyper.
+  journalstruktur: {
+    rubrik: 'Skapa en mall eller en mätvärdestyp',
+    steg: ['Välj Ny mall eller Ny mätvärdestyp. För en mall som finns väljer du Ny version, Ram eller Lokal anpassning.', 'Skriv det som behövs. Systemet sätter koderna det redan känner till, kontrollerar resten och visar vad som påverkas.', 'En annan systemförvaltare godkänner versionen under Att godkänna. Den gäller direkt efter godkännandet.'],
+    systemet: 'Det som redan är skrivet eller registrerat ändras aldrig. En lokal anpassning som inte ryms i vårdgivarens ram slutar gälla, och sidan säger varför.',
+  },
   // Runda 9, r4: kodverken och masterdatan.
   kodverk: {
     rubrik: 'Lägga in en ny utgåva av ett kodverk',

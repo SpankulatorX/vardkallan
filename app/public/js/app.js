@@ -41,6 +41,8 @@ import * as systemforvaltning from './vyer/systemforvaltning.js';
 import { formularVy } from './vyer/formularbyggare.js';
 // Runda 9, r4: kodverken och masterdatan.
 import * as kodverk from './vyer/kodverk.js';
+// Runda 12, r1: journalens mallar, sökord och mätvärdestyper utan programmerare.
+import * as journalstruktur from './vyer/journalstruktur.js';
 // Runda 7, r5: rapportering till myndigheter och register.
 import * as rapportering from './vyer/rapportering.js';
 // Runda 7, r6: barnhälsovårdens sida med rapporteringen till registret och uppföljningen.
@@ -147,6 +149,8 @@ const MENY = [
   ['#/lagring', 'Lagring', 'arkiv', () => far('lagring')],
   // Runda 9, r4.
   ['#/kodverk', 'Kodverk och masterdata', 'lista', () => far('konfigurera')],
+  // Runda 12, r1.
+  ['#/struktur', 'Mallar och mätvärdestyper', 'penna', () => far('konfigurera')],
   // Runda 10, r3: formulären som verksamheten bygger.
   ['#/formular', 'Formulär', 'penna', () => far('konfigurera')],
   // Runda 7, r6: barnhälsovården, för läkare och sjuksköterskor på en vårdenhet med barnavårdscentral.
@@ -238,6 +242,8 @@ const RUTTER = [
   [/^#\/lagring$/, systemforvaltning.lagring, () => far('lagring')],
   // Runda 9, r4.
   [/^#\/kodverk$/, kodverk, () => far('konfigurera')],
+  // Runda 12, r1.
+  [/^#\/struktur$/, journalstruktur, () => far('konfigurera')],
   // Runda 10, r3.
   [/^#\/formular$/, formularVy, () => far('konfigurera')],
   [/^#\/bhv$/, barnhalsovard, () => Boolean(S.session?.bhv)],

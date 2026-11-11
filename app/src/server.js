@@ -141,6 +141,9 @@ import { minGraviditet, harMinGraviditet } from './obstetrik.js';
 import { skapaKalenderlager } from './kontorsstod.js';
 // Runda 11, r7: intensivvården och tillväxten (r11r7-rutter.js).
 import { registreraRutter as r11r7Rutter } from './r11r7-rutter.js';
+// Runda 12, r1: journalens mallar, sökord och mätvärdestyper utan programmerare (r12r1-rutter.js).
+import { registreraRutter as r12r1Rutter } from './r12r1-rutter.js';
+import { mallarFor as strukturMallar } from './journalstruktur.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 const MAX_SESSIONER = 400;
@@ -1127,7 +1130,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('POST', '/api/anteckning/:id/ratta', (c, id) => medAnteckning(c, id, a => journal.skrivHandling(a.kategori), (atk, a) => [201, journal.ratta(atk, a, c.body)]));
   // Runda 7, r4: mallarnas sökord kan ändras av systemförvaltningen (konfiguration.js).
   // Runda 10, r3: och de formulär som den inloggade får fylla i (formularmotor.js).
-  rutt('GET', '/api/mallar', (c) => [...konfiguration.mallar(c.db), ...formularMallar(c.db, c.personal)]);
+  // Runda 12, r1: de mallar som systemförvaltningen har skapat och vårdenhetens lokala anpassningar (journalstruktur.js).
+  rutt('GET', '/api/mallar', (c) => [...strukturMallar(c.db, c.personal, konfiguration.mallar(c.db)), ...formularMallar(c.db, c.personal)]);
 
   rutt('GET', '/api/patient/:id/lakemedel', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_lakemedel', (atk) => lakemedel.lista(atk)); });
   rutt('GET', '/api/lakemedel/katalog', (c) => { kravInloggad(c); return lakemedel.sokKatalog(c.db, c.url.searchParams.get('q') ?? ''); });
@@ -1841,6 +1845,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   r11r3Rutter({ rutt, kravInloggad, medPatient, valFor });
   // Runda 11, r7 (r11r7-rutter.js).
   r11r7Rutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal });
+  // Runda 12, r1 (r12r1-rutter.js).
+  r12r1Rutter({ rutt, kravInloggad });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
   // visas direkt (bara i den egna sandlådan).
   const kravNagon = (c) => { if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad'); };

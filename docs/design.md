@@ -2295,3 +2295,72 @@ Bedömningen finns i docs/stafs-2015-13.md. Föreskrifterna gäller laboratoriet
 ### Det som är simulerat eller saknas
 
 Röntgenkliniken, klinisk fysiologi, klinisk neurofysiologi, radiologens utlåtanden, tiderna och rummen, det patientnära instrumentet och laboratorierna är simulerade. Gränserna för eGFR, åldern för graviditetsfrågan och prioriteternas tider är demoregler. Bilderna och arkivet görs i bilder.js, och utlåtandet länkar till studien med studiens id och uid.
+
+## Konfiguration utan programmerare i version 1.2 (runda 12, r1: journalstruktur.js, lakemedelsmallbyggare.js, r12r1-rutter.js, vyer/journalstruktur.js och lakemedelsmallar-ui.js, Sussa 12.1.1.7 och vårt D11)
+
+Verksamheten ändrar journalens struktur själv, inom fastställda ramar och med fyra ögon, utan att någon ändrar koden.
+Varje ändring är en ny version i tabellen `struktur_versioner` som en annan systemförvaltare godkänner i sin egen
+inloggning. Databasen har samma kontroll (`beslutad_av <> foreslagen_av`) och triggrar som stoppar att en beslutad
+version ändras eller raderas. Godkännandet loggas i åtkomstloggen och säkerhetsloggen, och konfigurationen är data i
+sandlådans databas, så det som skapas i en sandlåda stannar där.
+
+### Systemet är experten
+
+- Ett sökord som redan finns i delmängden av Snomed CT får sin kod av systemet. Ett nytt sökord får en kod som
+  kontrolleras med Snomed CT:s kontrollsiffra och partition, eller en förklaring varför det saknar kod. En kod som redan
+  har ett annat namn stoppas, och systemet säger vilket sökord som har den.
+- En mätvärdestyp kontrolleras mot NPU:s form eller LOINC:s kontrollsiffra och mot UCUM. Systemet räknar fram id,
+  kategori i FHIR och hur enheten visas (`ug/L` visas som µg/L), stoppar en kod som redan används och säger vilken
+  mätvärdestyp som har den. Koden och enheten för en mätvärdestyp med registrerade värden går inte att ändra.
+- Förhandsvisningen visar medan man skriver vad som påverkas: var mallen blir valbar och för vilka, hur många
+  anteckningar som redan är skrivna och står kvar som de skrevs, och vilka vårdenheters lokala anpassningar som slutar
+  gälla med en ny ram. Den som godkänner ser samma förhandsvisning, och ett godkännande prövas igen mot det som gäller då.
+
+### Mallar och mätvärdestyper (#/struktur, systemförvaltaren)
+
+En godkänd mall blir en anteckningstyp i hela systemet direkt: `GET /api/mallar` har den, anteckningen skapas med den
+(behörigheten följer mallens kategori), och FHIR lämnar ut Composition med anteckningstypens kod i `type.coding` när
+mallen har en och sökordens koder i `section.code`. En godkänd mätvärdestyp går att registrera inom de rimliga värdena,
+syns i Mätvärden och lämnas ut som Observation med kod och enhet i UCUM. Vårdgivarens ram för en mall anger vilka sökord
+som alltid måste finnas och vilka en vårdenhet får lägga till. En vårdenhets lokala anpassning gäller bara personalen
+där, och bara så länge den ryms i ramen. Lokala kodverk skapas som förut under Kodverk och masterdata.
+
+### Läkemedelsmallar (Direktiv och uppföljning, läkaren)
+
+Läkaren bygger en ny läkemedelsmall för en substans utan mall, med dos och enhet föreslagna ur produktens styrka i
+katalogen, eller ändrar en mall. Systemet visar vad som ändras mot den förra versionen och vem som ska godkänna. Mallen
+används först när den mallansvariga läkaren har godkänt den i sin inkorg, som förut.
+
+### Det som är simulerat eller saknas
+
+Kontrollen av UCUM är en demoregel som omfattar de vanliga enheterna i vården. De engelska termerna för nya koder
+kontrolleras inte mot en terminologitjänst. Läkemedelsmallarna har ingen ram på vårdgivarens nivå utöver godkännandet
+per vårdenhet.
+
+### Läkemedelsvarningarnas regler som parametrar (Sussa 12.1.1.8)
+
+Under Regler och parametrar, området Läkemedel, finns interaktionerna som ger en allvarlig varning (par av ATC-koder
+eller ATC-grupper, som `B01AA03 + M01A`), högsta dygnsdos per substans (`N02BE01 4000 mg`), gränserna för metformin vid
+nedsatt njurfunktion och om ordinationsorsak och uppföljningsdatum är frivilliga för ordinationer som inte förs över
+till Nationella läkemedelslistan. `lakemedel.js` läser det godkända värdet vid varje kontroll och ordination. Systemet
+prövar varje ATC-kod mot registret, räknar dygnsdosen ur dosen och tiderna eller ur högsta antal per dygn i doseringen,
+och säger i ordinationen om ordinationsorsaken är frivillig. Vid förskrivning och i varje ordination som förs över till
+listan krävs båda alltid, eftersom listan inte tar emot en ordination utan dem. En tom frivillig ordinationsorsak får
+systemets text, och uppföljningsdatumet sätts 30 dagar efter start. Reglerna är demoregler.
+
+### Avgifter, tidbok och vårdgaranti som parametrar (Sussa 12.1.1.6)
+
+Patientavgifterna för besök, akutbesök och vårddygn, högkostnadsskyddet, åldersgränserna för avgiftsfrihet, vårdgarantin,
+när en patient på väntelistan lyfts fram, hur sent patienten kan boka om och avboka och när incheckningen öppnar och
+stänger är parametrar i området Administration. `vardkontakt.avgifter(db)` och `tidbok.regel(db, namn)` ger de godkända
+värdena, och standardvärdena är desamma som förut. Vårdgarantin kan inte sättas längre än 90 dagar och avgiftsfriheten
+från 85 år inte flyttas uppåt. Avgifterna är demoregler och inte någon regions avgifter.
+
+### Undantag för en enskild anteckning (Sussa 12.1.1.10)
+
+Ett undantag kan gälla en enskild anteckning, vald med sitt nummer, och gäller då alla dess versioner. Systemförvaltaren
+ser bara typ, vårdenhet och datum, och journalens rad säger att en anteckning inte visas, inte vilken. Undantaget
+prövas med samma funktion (`undantag.provare`) i journalen, sökningen, direktläsningen, FHIR, publiceringen och den
+simulerade producenten för tjänstekontrakt, som prövar både undantagen från FHIR och från nationella tjänster. En
+anteckning i en pågående vårdkontakt kan inte döljas i systemet. Undantaget prövas efter behörighetsmotorn och gäller
+aldrig Min journal.

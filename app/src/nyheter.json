@@ -14,6 +14,36 @@
           "var": "#/krav",
           "rubrik": "Alla Sussas testfall går att genomföra",
           "text": "Alla 34 testfall från Sussas användbarhetstester av Cosmic går att genomföra i Vårdkällan inom klickbudgeten, och kravsidan säger det. Det som återstår för användbarheten är tester med personer som arbetar i vården."
+        },
+        {
+          "id": "r12r1-mallar-och-matvardestyper",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "stor",
+          "var": "#/struktur",
+          "rubrik": "Mallar och mätvärdestyper utan programmerare",
+          "text": "Systemförvaltningen skapar nya mallar och anteckningstyper med sökord, nya sökord med kod i Snomed CT och nya mätvärdestyper med NPU eller LOINC och enhet i UCUM, och sätter vårdgivarens ramar för mallarna och vårdenheternas lokala anpassningar. Systemet sätter koderna det känner till, kontrollerar resten och visar vad som påverkas. En annan systemförvaltare godkänner, och ändringen gäller direkt."
+        },
+        {
+          "id": "r12r1-parametrar-och-undantag",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "liten",
+          "var": "#/regler",
+          "rubrik": "Fler regler och parametrar, och undantag för en enskild anteckning",
+          "text": "Läkemedelsvarningarnas interaktioner och maxdoser, gränserna för metformin, patientavgifterna, högkostnadsskyddet, vårdgarantin och tidbokens regler ändras nu under Regler och parametrar med fyra ögon. Under Undantag från visning kan en enskild anteckning undantas med sitt nummer."
+        },
+        {
+          "id": "r12r1-lakemedelsmallar",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "var": "#/lakemedelsstod",
+          "rubrik": "Bygg och ändra läkemedelsmallar",
+          "text": "Under Direktiv och uppföljning bygger du en ny läkemedelsmall eller ändrar en, med systemets förslag ur katalogen. Systemet visar vad som ändras och vem som ska godkänna mallen, och den används när den mallansvariga läkaren har godkänt den."
         }
       ]
     },

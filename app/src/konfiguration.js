@@ -14,6 +14,8 @@ import { Fel, iso, idag, addDagar, giltigtDatum, datumAv } from './db.js';
 import { kanRoll } from './atkomst.js';
 import { loggaRad } from './logg.js';
 import * as sakerhetslogg from './sakerhetslogg.js';
+// Runda 12, r1: ATC-registret och förvalen för läkemedelsvarningarna.
+import { ATC, INTERAKTIONER_STANDARD, MAXDOSER_STANDARD } from './kodverk.js';
 
 export const OMRADEN = {
   administration: { rubrik: 'Administration', sussa: '12.1.1.6' },
@@ -469,15 +471,179 @@ export function parametrar() {
     alla['vaccination.riskgrupper'] = riskparameter();
     // Runda 11, r6: beställning och svar (Sussa 12.1.1.9).
     Object.assign(alla, labbR11Parametrar());
+    // Runda 12, r1: läkemedelsvarningarnas interaktioner och maxdoser (Sussa 12.1.1.8).
+    Object.assign(alla, lakemedelR12Parametrar());
   }
   return alla;
 }
+
+// Runda 12, r1: läkemedelsvarningarnas regler som versionerad konfiguration (Sussa 12.1.1.8). Interaktionerna och
+// maxdoserna är listor med ATC-koder som prövas mot ATC-registret, och gränserna för metformin vid nedsatt njurfunktion
+// är heltal. lakemedel.js läser det godkända värdet vid varje ordination. Alla är demoregler.
+const ATC_FORM = /^[A-Z](\d\d([A-Z]([A-Z](\d\d)?)?)?)?$/;
+const provaAtc = (k) => (!ATC_FORM.test(k) ? `${k} är ingen ATC-kod. En ATC-kod har formen bokstav, två siffror, bokstav, bokstav och två siffror, till exempel B01AA03, eller början av en sådan för en grupp.`
+  : !Object.keys(ATC).some(x => x.startsWith(k) || k.startsWith(x)) ? `${k} finns inte i ATC-registret i Vårdkällan.` : null);
+const listaText = (nytt, forra, en) => {
+  const ut = [];
+  for (const x of nytt.filter(v => !forra.includes(v))) ut.push(`Ny ${en}: ${x}.`);
+  for (const x of forra.filter(v => !nytt.includes(v))) ut.push(`Tas bort: ${x}.`);
+  return ut.length ? ut : ['Samma regler i en annan ordning.'];
+};
+function lakemedelR12Parametrar() {
+  return {
+    'lakemedel.interaktioner': {
+      omrade: 'lakemedel', rubrik: 'Interaktioner som ger en allvarlig varning', enhet: 'par', typ: 'lista', avgransare: ';', standard: [...INTERAKTIONER_STANDARD], anvands: 'lakemedel.js',
+      ledtext: 'Par av ATC-koder med plustecken, åtskilda med semikolon, till exempel B01AA03 + M01A',
+      beskrivning: 'Par av läkemedel som ger en allvarlig varning när det ena ordineras och patienten redan har det andra. En ATC-grupp, som M01A för NSAID, gäller alla läkemedel i gruppen. Varningen kvitteras med motivering. Demoregel, inte kliniskt beslutsstöd.',
+      provaLista: (lista) => {
+        for (const x of lista) {
+          const m = /^([A-Za-z0-9]+)\s*\+\s*([A-Za-z0-9]+)$/.exec(x);
+          if (!m) return `${x} ska vara två ATC-koder med ett plustecken emellan, till exempel B01AA03 + M01A.`;
+          for (const k of [m[1].toUpperCase(), m[2].toUpperCase()]) { const f = provaAtc(k); if (f) return f; }
+        }
+        return null;
+      },
+      normalisera: (lista) => lista.map(x => x.split('+').map(k => k.trim().toUpperCase()).join(' + ')),
+      tomTillaten: true,
+      effekt: (db, nytt, forra) => [...listaText(nytt, forra, 'interaktion'), 'Varningarna gäller nya ordinationer och kontroller från dagen ändringen gäller. Ordinationer som redan finns ändras inte.'],
+    },
+    'lakemedel.maxdoser': {
+      omrade: 'lakemedel', rubrik: 'Högsta dygnsdos per substans', enhet: 'substanser', typ: 'lista', avgransare: ';', standard: [...MAXDOSER_STANDARD], anvands: 'lakemedel.js',
+      ledtext: 'ATC-kod, högsta dygnsdos och enhet, åtskilda med semikolon, till exempel N02BE01 4000 mg',
+      beskrivning: 'Högsta dygnsdos för en substans. Systemet räknar dygnsdosen ur dosen och tiderna, eller ur högsta antal per dygn i doseringen vid behov, och ger en allvarlig varning när den är högre. Demoregel, inte doseringsstöd.',
+      provaLista: (lista) => {
+        for (const x of lista) {
+          const m = /^([A-Za-z0-9]+)\s+([\d.,]+)\s*([A-Za-zµ]+)$/.exec(x);
+          if (!m) return `${x} ska vara ATC-kod, högsta dygnsdos och enhet, till exempel N02BE01 4000 mg.`;
+          const f = provaAtc(m[1].toUpperCase());
+          if (f) return f;
+          if (!(Number(m[2].replace(',', '.')) > 0)) return `Dygnsdosen i ${x} ska vara större än 0.`;
+        }
+        if (new Set(lista.map(x => x.split(/\s+/)[0].toUpperCase())).size !== lista.length) return 'Samma substans finns två gånger.';
+        return null;
+      },
+      normalisera: (lista) => lista.map(x => { const [a, b, ...c] = x.split(/\s+/); return [a.toUpperCase(), b.replace(',', '.'), c.join('')].join(' '); }),
+      tomTillaten: true,
+      effekt: (db, nytt, forra) => [...listaText(nytt, forra, 'maxdos'), 'Ordinationer som redan finns ändras inte.'],
+    },
+  };
+}
+Object.assign(HELTAL, {
+  'lakemedel.metformin_egfr_stopp': {
+    omrade: 'lakemedel', rubrik: 'Metformin: eGFR där systemet varnar att det inte ska användas', enhet: 'mL/min/1,73 m²', standard: 30, min: 15, max: 45, anvands: 'lakemedel.js',
+    beskrivning: 'Under det här eGFR ger en ordination av metformin en allvarlig varning. Demoregel, inte kliniskt beslutsstöd.',
+    minVarfor: 'Under 15 är njurfunktionen så nedsatt att metformin ska ha stoppats långt tidigare.',
+    maxVarfor: 'Över 45 kan metformin användas med full dos, och en varning som alltid syns slutar läsas.',
+    effekt: (db, nytt, forra) => [`Allvarlig varning för metformin under eGFR ${nytt} i stället för under ${forra}.`],
+  },
+  'lakemedel.metformin_egfr_varning': {
+    omrade: 'lakemedel', rubrik: 'Metformin: eGFR där systemet påminner om att begränsa dosen', enhet: 'mL/min/1,73 m²', standard: 45, min: 30, max: 60, anvands: 'lakemedel.js',
+    beskrivning: 'Mellan gränsen för en allvarlig varning och det här eGFR påminner systemet om att begränsa dosen. Demoregel, inte kliniskt beslutsstöd.',
+    minVarfor: 'Under 30 gäller redan den allvarliga varningen.',
+    maxVarfor: 'Över 60 behövs ingen begränsning av dosen för njurfunktionens skull.',
+    effekt: (db, nytt, forra) => [`Påminnelsen om att begränsa dosen gäller under eGFR ${nytt} i stället för under ${forra}.`],
+  },
+});
+// Runda 12, r1: tidbokens regler, vårdgarantin och patientavgifterna (tidbok.js och vardkontakt.js, Sussa 12.1.1.6).
+// Standardvärdena är samma som tidbok.DEMOREGLER och vardkontakt.AVGIFT_DEMO (testat). Alla är demoregler och inte
+// någon regions regler eller avgifter.
+const kr = (n) => `${n} kr`;
+Object.assign(HELTAL, {
+  'tidbok.vardgaranti_dagar': {
+    omrade: 'administration', rubrik: 'Vårdgarantin för ett nybesök efter remiss', enhet: 'dagar', standard: 90, min: 14, max: 90, anvands: 'tidbok.js, planering.js och kapacitetsprognos.js',
+    beskrivning: 'Så många dagar efter att remissen togs emot ska patienten ha fått sitt första besök. Väntelistan, planeringen och kapacitetsprognosen räknar gränsen ur värdet. Vid patientvald väntan räknas inte vårdgarantin.',
+    minVarfor: 'Kortare än två veckor går inte att planera för ett nybesök, och alla remisser skulle visas som försenade.',
+    maxVarfor: 'Vårdgarantin i hälso- och sjukvårdslagen ger patienten rätt till ett besök inom 90 dagar. En längre gräns är inte tillåten.',
+    effekt: (db, nytt, forra) => {
+      const n = harTabell(db, 'vantelista') ? db.query("SELECT count(*) AS n FROM vantelista WHERE status = 'vantar' AND remiss_id IS NOT NULL AND tidstyp = 'nybesok' AND coalesce(patientvald, 0) = 0").get().n : 0;
+      return [`${st(n, 'nybesök', 'nybesök')} på väntelistan får gränsen ${dagar(nytt)} efter remissen i stället för ${dagar(forra)}.`];
+    },
+  },
+  'tidbok.risk_dagar': {
+    omrade: 'administration', rubrik: 'När en patient på väntelistan lyfts fram', enhet: 'dagar', standard: 14, min: 3, max: 60, anvands: 'tidbok.js och planering.js',
+    beskrivning: 'En patient som har så här många dagar eller färre kvar till gränsen lyfts fram överst på väntelistan och i planeringen.',
+    minVarfor: 'Med färre än tre dagar hinner tiden inte bokas och kallelsen inte nå patienten.',
+    maxVarfor: 'Mer än två månader lyfter fram nästan alla, och då syns inte den som verkligen har bråttom.',
+    effekt: (db, nytt, forra) => [`Patienter lyfts fram när de har ${dagar(nytt)} kvar till gränsen i stället för ${dagar(forra)}.`],
+  },
+  'tidbok.egen_grans_timmar': {
+    omrade: 'administration', rubrik: 'Hur sent patienten själv kan boka om eller avboka', enhet: 'timmar', standard: 24, min: 2, max: 72, anvands: 'tidbok.js',
+    beskrivning: 'Fram till så här många timmar före tiden kan patienten boka om och avboka i Min journal. Därefter kontaktar patienten mottagningen.',
+    minVarfor: 'Med mindre än två timmar hinner tiden inte ges till någon annan.',
+    maxVarfor: 'Mer än tre dygn gör att patienten inte kan avboka när något oväntat händer, och tiden blir ett uteblivet besök.',
+    effekt: (db, nytt, forra) => [`Patienten kan boka om och avboka i Min journal fram till ${timmar(nytt)} före tiden i stället för ${timmar(forra)}.`],
+  },
+  'tidbok.incheckning_fore_min': {
+    omrade: 'administration', rubrik: 'Så tidigt före tiden patienten kan checka in', enhet: 'minuter', standard: 60, min: 10, max: 240, anvands: 'tidbok.js',
+    beskrivning: 'Från så här många minuter före tiden kan patienten checka in i Min journal, i incheckningsautomaten eller i receptionen.',
+    minVarfor: 'Med mindre än tio minuter hinner en patient som kommer i god tid inte checka in, och kön i receptionen växer.',
+    maxVarfor: 'Mer än fyra timmar före gör att väntrummet visar patienter som inte ska tas emot på länge.',
+    effekt: (db, nytt, forra) => [`Incheckningen öppnar ${minuter(nytt)} före tiden i stället för ${minuter(forra)}.`],
+  },
+  'tidbok.incheckning_efter_min': {
+    omrade: 'administration', rubrik: 'Så länge efter tiden patienten kan checka in', enhet: 'minuter', standard: 30, min: 0, max: 120, anvands: 'tidbok.js',
+    beskrivning: 'Fram till så här många minuter efter tiden kan patienten checka in. Därefter tar receptionen emot patienten.',
+    minVarfor: 'Värdet kan inte vara negativt.',
+    maxVarfor: 'Mer än två timmar efter tiden är besöket i praktiken uteblivet, och mottagningen behöver bedöma om det kan genomföras.',
+    effekt: (db, nytt, forra) => [`Incheckningen stänger ${minuter(nytt)} efter tiden i stället för ${minuter(forra)}.`],
+  },
+  'avgift.besok_kr': {
+    omrade: 'administration', rubrik: 'Patientavgift för ett besök i öppenvård', enhet: 'kr', standard: 200, min: 0, max: 400, anvands: 'vardkontakt.js, kassa.js och datauttag.js',
+    beskrivning: 'Avgiften för ett mottagningsbesök, ett videobesök och ett hembesök. Systemet räknar avgiften ur kontakten och högkostnadsskyddet. Demoregel, inte en regions avgift.',
+    minVarfor: 'En avgift kan inte vara negativ.',
+    maxVarfor: 'Mer än 400 kronor är över demons tak för ett besök i öppenvård.',
+    effekt: (db, nytt, forra) => [`Ett besök i öppenvård kostar ${kr(nytt)} i stället för ${kr(forra)} från dagen ändringen gäller. Besök som redan är betalda ändras inte.`],
+  },
+  'avgift.akut_kr': {
+    omrade: 'administration', rubrik: 'Patientavgift för ett besök på akutmottagningen', enhet: 'kr', standard: 400, min: 0, max: 600, anvands: 'vardkontakt.js',
+    beskrivning: 'Avgiften för ett besök på akutmottagningen. Demoregel, inte en regions avgift.',
+    minVarfor: 'En avgift kan inte vara negativ.',
+    maxVarfor: 'Mer än 600 kronor är över demons tak för ett akutbesök.',
+    effekt: (db, nytt, forra) => [`Ett besök på akutmottagningen kostar ${kr(nytt)} i stället för ${kr(forra)}.`],
+  },
+  'avgift.slutenvard_dygn_kr': {
+    omrade: 'administration', rubrik: 'Patientavgift per vårddygn i slutenvård', enhet: 'kr', standard: 100, min: 0, max: 150, anvands: 'vardkontakt.js',
+    beskrivning: 'Avgiften per påbörjat vårddygn. Demoregel, inte en regions avgift.',
+    minVarfor: 'En avgift kan inte vara negativ.',
+    maxVarfor: 'Mer än 150 kronor per dygn är över demons tak för slutenvård.',
+    effekt: (db, nytt, forra) => [`Ett vårddygn kostar ${kr(nytt)} i stället för ${kr(forra)}.`],
+  },
+  'avgift.hogkostnadsskydd_kr': {
+    omrade: 'administration', rubrik: 'Högkostnadsskyddet för öppenvård', enhet: 'kr', standard: 1450, min: 500, max: 1450, anvands: 'vardkontakt.js, kassa.js och ekonomi.js',
+    beskrivning: 'När patienten har betalat så mycket i öppenvård under tolv månader gäller frikort, och resten av perioden är avgiftsfri.',
+    minVarfor: 'Lägre än 500 kronor ger frikort efter två besök, och då fyller avgiften inte sin uppgift.',
+    maxVarfor: 'Taket för högkostnadsskyddet bestäms i lag, och demon räknar med 1 450 kronor som högsta värde.',
+    effekt: (db, nytt, forra) => [`Frikortet gäller när patienten har betalat ${kr(nytt)} i stället för ${kr(forra)}. Frikort som redan gäller står kvar.`],
+  },
+  'avgift.fri_under_ar': {
+    omrade: 'administration', rubrik: 'Avgiftsfritt för patienter under', enhet: 'år', standard: 20, min: 18, max: 25, anvands: 'vardkontakt.js och kassa.js',
+    beskrivning: 'Patienter under den här åldern betalar ingen avgift i öppenvård. Demoregel.',
+    minVarfor: 'Öppenvård för barn och unga under 18 år är avgiftsfri i demon, och gränsen kan inte sänkas under det.',
+    maxVarfor: 'Över 25 år är inte en gräns för barn och unga.',
+    effekt: (db, nytt, forra) => [`Patienter under ${nytt} år betalar ingen avgift i stället för under ${forra} år.`],
+  },
+  'avgift.fri_fran_ar': {
+    omrade: 'administration', rubrik: 'Avgiftsfritt för patienter från', enhet: 'år', standard: 85, min: 65, max: 85, anvands: 'vardkontakt.js och kassa.js',
+    beskrivning: 'Patienter som har fyllt den här åldern betalar ingen avgift i öppenvård.',
+    minVarfor: 'Under 65 år är inte en gräns för äldre.',
+    maxVarfor: 'Öppenvården är avgiftsfri för den som har fyllt 85 år enligt lag, så gränsen kan inte vara högre.',
+    effekt: (db, nytt, forra) => [`Patienter från ${nytt} år betalar ingen avgift i stället för från ${forra} år.`],
+  },
+});
+
+JANEJ['lakemedel.orsak_frivillig_utan_nll'] = {
+  omrade: 'lakemedel', rubrik: 'Ordinationsorsak och uppföljningsdatum när NLL inte berörs', typ: 'janej', standard: false, anvands: 'lakemedel.js',
+  text: { true: 'Frivilliga för ordinationer som inte förs över till NLL', false: 'Krävs i alla ordinationer' },
+  beskrivning: 'Om ordinationsorsak och uppföljningsdatum får lämnas tomma för ordinationer som inte förs över till Nationella läkemedelslistan: blodprodukter, nutrition och egendefinierade läkemedel. En förskrivning och en ordination som förs över till Nationella läkemedelslistan kräver alltid båda, eftersom listan inte tar emot en ordination utan dem. En tom uppgift får systemets text och ett uppföljningsdatum 30 dagar efter start.',
+  effekt: (db, nytt) => [nytt ? 'Från dagen ändringen gäller får ordinationer som inte förs över till NLL sparas utan ordinationsorsak och uppföljningsdatum.' : 'Från dagen ändringen gäller krävs ordinationsorsak och uppföljningsdatum i alla ordinationer.', 'Ordinationer som redan finns ändras inte.'],
+};
 
 // Regler som inte går att ändra som parametrar, och varför.
 export const LASTA = [
   { rubrik: 'Vårdrelation, inre sekretess, spärr och nödåtkomst', varfor: 'Behörighetsreglerna följer patientdatalagen 4 kap. och HSLF-FS 2016:40 och finns i behörighetsmotorn, inte som parametrar, så att ingen kan vidga åtkomsten till journaler med en inställning. En spärr sätts och hävs bara på patientens begäran.' },
   { rubrik: 'Åtkomstloggen och säkerhetsloggen', varfor: 'Loggarna går inte att stänga av, ändra eller radera (HSLF-FS 2016:40 4 kap. 9 §). Det skyddas av databasens triggrar.' },
-  { rubrik: 'Ordinationsorsak och uppföljningsdatum i en ordination', varfor: 'Uppgifterna krävs för Nationella läkemedelslistan och kan inte göras frivilliga.' },
+  // Runda 12, r1: frivilliga där NLL inte berörs, om vårdgivaren väljer det (lakemedel.orsak_frivillig_utan_nll).
+  { rubrik: 'Ordinationsorsak och uppföljningsdatum vid förskrivning', varfor: 'Nationella läkemedelslistan tar inte emot en förskrivning eller ordination utan ordinationsorsak och uppföljningsdatum, så de krävs alltid när ordinationen förs över dit. För ordinationer som inte förs över, som blodprodukter och nutrition, kan vårdgivaren göra dem frivilliga med regeln ovan.' },
   { rubrik: 'Vem som får läsa journalen i Min journal', varfor: 'Åldersgränserna för egen läsning och för vårdnadshavare följer villkoren för invånartjänsten. Undantag från visning gäller aldrig Min journal.' },
   { rubrik: 'Signerade anteckningar och rättelser', varfor: 'En signerad anteckning ändras aldrig. Rättelser görs som en ny version (HSLF-FS 2016:40 6 kap.).' },
 ];

@@ -311,11 +311,12 @@ async function nyttUndantag(main, o, knapp, forval = null) {
   const avslut = forval && !forval.kanaler.length;
   // Det valda läses ur dialogen när den skickas. Ett avslut gäller det undantag som redan finns.
   const las = (dl) => (avslut ? { omfang: forval.omfang, varde: forval.varde, kanaler: [] }
-    : { omfang: dl.querySelector('#sf-u-omfang').value, varde: dl.querySelector('#sf-u-varde').value, kanaler: [...dl.querySelectorAll('input[name="kanaler"]:checked')].map(x => x.value) });
+    : { omfang: dl.querySelector('#sf-u-omfang').value, varde: dl.querySelector('#sf-u-omfang').value === 'anteckning' ? dl.querySelector('#sf-u-nummer').value.trim() : dl.querySelector('#sf-u-varde').value, kanaler: [...dl.querySelectorAll('input[name="kanaler"]:checked')].map(x => x.value) });
   let valt = null;
   const svar = await dialog(`<form><h2 id="dlg-rubrik">${avslut ? 'Avsluta undantaget' : 'Nytt undantag'}</h2>
     <div class="falt-rad"><div class="falt smal"><label for="sf-u-omfang">Vad</label><select id="sf-u-omfang" name="omfang"${avslut ? ' disabled' : ''}>${Object.entries(o.omfang).map(([k, t]) => `<option value="${k}"${forval?.omfang === k ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
-      <div class="falt"><label for="sf-u-varde">Vilken</label><select id="sf-u-varde" name="varde"${avslut ? ' disabled' : ''}>${valOmfang(forval?.omfang ?? 'anteckningstyp')}</select></div></div>
+      <div class="falt" data-u-lista${forval?.omfang === 'anteckning' ? ' hidden' : ''}><label for="sf-u-varde">Vilken</label><select id="sf-u-varde" name="varde"${avslut ? ' disabled' : ''}>${valOmfang(forval?.omfang ?? 'anteckningstyp')}</select></div>
+      <div class="falt smal" data-u-nummer${forval?.omfang === 'anteckning' ? '' : ' hidden'}><label for="sf-u-nummer">Anteckningens nummer</label><input id="sf-u-nummer" inputmode="numeric" maxlength="12" value="${forval?.omfang === 'anteckning' ? esc(forval.varde) : ''}"${avslut ? ' disabled' : ''} aria-describedby="sf-u-nummer-h"><span class="hjalp" id="sf-u-nummer-h">Numret står i ärendet från vården. Systemet visar typ, vårdenhet och datum, aldrig patienten.</span></div></div>
     ${avslut ? '<p>Uppgifterna visas och publiceras som förut när undantaget har avslutats.</p>' : `<fieldset class="kryssgrupp"><legend>Undantas från</legend>${Object.entries(o.kanaler).map(([k, t], i) => `<div class="kryssfalt"><input type="checkbox" id="sf-u-k${i}" name="kanaler" value="${k}"${k === 'nationell' ? ' checked' : ''}><label for="sf-u-k${i}">${esc(t)}</label></div>`).join('')}</fieldset>`}
     <div class="falt smal"><label for="sf-u-fran">Gäller från</label><input id="sf-u-fran" name="giltigFran" type="date" value="${esc(o.forvalDatum)}"></div>
     <div class="falt"><label for="sf-u-motivering">Motivering, som personalen ser i journalen <span class="obl">(obligatoriskt)</span></label><textarea id="sf-u-motivering" name="motivering" rows="2" required maxlength="500"></textarea></div>
@@ -324,7 +325,12 @@ async function nyttUndantag(main, o, knapp, forval = null) {
     <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Skicka för godkännande</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`, {
     klass: 'dialog-bred',
     onOpen: (dl) => {
-      dl.querySelector('#sf-u-omfang').addEventListener('change', (e) => { dl.querySelector('#sf-u-varde').innerHTML = valOmfang(e.target.value); });
+      dl.querySelector('#sf-u-omfang').addEventListener('change', (e) => {
+        dl.querySelector('#sf-u-varde').innerHTML = valOmfang(e.target.value);
+        // Runda 12, r1: en enskild anteckning väljs med sitt nummer.
+        dl.querySelector('[data-u-lista]').hidden = e.target.value === 'anteckning';
+        dl.querySelector('[data-u-nummer]').hidden = e.target.value !== 'anteckning';
+      });
       medForhandsvisning(dl, () => tyst('/api/undantag/forhandsvisa', las(dl)),
         (r) => (r.ok ? `<div class="ruta ruta-info liten"><ul>${r.effekt.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>` : `<p class="ruta ruta-larm liten" role="status">${esc(r.varfor)}</p>`));
     },
