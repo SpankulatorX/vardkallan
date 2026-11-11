@@ -203,6 +203,8 @@ MENY.kardiologi.splice(MENY.kardiologi.indexOf('Inkorg') + 1, 0, 'Intensivvård'
 // Runda 11, r2: operationskoordinatorn i Karlskoga har sjuksköterskans meny med Operation i stället för Intensivvård.
 // Menyn byggs först när den används, så att tillägg från andra delar i sjuksköterskans meny följer med.
 Object.defineProperty(MENY, 'operation', { get: () => MENY.sjukskoterska.map(x => (x === 'Intensivvård' ? 'Operation' : x)), enumerable: true });
+// Runda 11: anestesiläkaren i Karlskoga har läkarens meny med Operation före Blodcentralen.
+Object.defineProperty(MENY, 'anestesi', { get: () => { const m = [...MENY.klinisk]; m.splice(m.indexOf('Blodcentralen'), 0, 'Operation'); return m; }, enumerable: true });
 // Runda 11, r3: Per Holm har Mödrahälsovård efter Barnhälsovård. Barnmorskan Sofia Ekdahl på förlossningen har
 // sjuksköterskans meny utan Intensivvård och med Förlossningen före Remisser. Kopieras sist, när alla tillägg är gjorda.
 MENY.bvc.splice(MENY.bvc.indexOf('Barnhälsovård') + 1, 0, 'Mödrahälsovård');
@@ -221,7 +223,7 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
 
   try {
     // Utan inloggning
-    await s('inloggningssidan visar de tjugofyra demorollerna och demoraden', async () => {
+    await s('inloggningssidan visar de tjugofem demorollerna och demoraden', async () => {
       await page.goto(`${BAS}/`);
       await page.waitForSelector('.roll');
       const n = await page.locator('.roll').count();
@@ -231,7 +233,8 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
       // Runda 11, r3: barnmorskan Sofia Ekdahl på förlossningen och BB.
       // Runda 11, r4: farmaceuten på cytostatikaberedningen, onkologen och onkologisjuksköterskan.
       // Runda 11, r6: röntgensjuksköterskan på röntgenkliniken.
-      if (n !== 24) throw new Error(`${n} roller`);
+      // Runda 11: anestesiläkaren Martin Ödman i Karlskoga.
+      if (n !== 25) throw new Error(`${n} roller`);
       await forvanta(page, '.demorad', 'Demo med påhittade patienter och testpersonnummer från Skatteverket. Inte för vård av riktiga patienter.');
       await forvanta(page, '.sidfot', 'Vårdkällan är ett fristående demoprojekt med öppen källkod (EUPL 1.2). Det är inte en tjänst från Region Örebro län.');
       await forvanta(page, '#roll-lak-akut-visar', 'Nödåtkomst');
@@ -1939,6 +1942,15 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
       await bild(page, '123-operation-klar', true);
     });
     await allaVyer(page, 'Therese Hedberg', MENY.operation);
+    // Runda 11: anestesiläkaren ser operationsanmälningarna som beställningar till anestesienheten.
+    await s('Martin Ödman, anestesiläkare i Karlskoga, ser de beställda anestesibedömningarna under Operation', async () => {
+      await loggaIn(page, 'lak-ane-kkoga');
+      await gaTill(page, '#/operation');
+      await forvanta(page, '#op-vy', 'Operationsanmälningarna är beställningar till anestesienheten');
+      await page.waitForSelector('table.op-anestesi');
+      await bild(page, '124-anestesi-bestallda', true);
+    });
+    await allaVyer(page, 'Martin Ödman', MENY.anestesi);
     // Runda 11, r3: förlossningen, BB och mödrahälsovården med demodata i den egna sandlådan.
     await s('Sofia Ekdahl lägger in demopatienterna och bedömer CTG under förlossningen med ett klick', async () => {
       await loggaIn(page, 'bm-uso');

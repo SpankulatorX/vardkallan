@@ -33,6 +33,7 @@ const VISAR = {
   // Runda 7, r1: paramedicinaren i Sussas testfall.
   'fys-kard': 'Fysioterapeut på kardiologiska mottagningen: läser journalen, skriver anteckningar, registrerar mätvärden och skickar, tar emot och besvarar remisser. Ordinerar och ger inga läkemedel.',
   // Runda 11, r2.
+  'lak-ane-kkoga': 'Anestesiläkare på Anestesimottagningen Karlskoga lasarett: gör anestesibedömningarna som de opererande vårdenheterna beställer med operationsanmälan, läser den opererande vårdenhetens journal efter ett aktivt val med förvalt syfte och bekräftar ASA-klassen på operationsdagen.',
   'opk-kkoga': 'Operationskoordinator på Ortopediska kliniken Karlskoga lasarett: planerar operationerna i salarna och salsblocken, för anestesijournalen och checklistan på salen, registrerar sterilgods och material och skriver ut från uppvakningen. Anmäler inte till operation och ordinerar inte.',
   'vch-kard': 'Verksamhetschef på kardiologen: utser medicinskt ansvarig läkare, mallansvarig läkare och läkemedelsansvariga sjuksköterskor med systemets förslag, och påminns när ett uppdrag saknas eller ansvarsdokumentet inte har setts över på ett år. Läser inte journalen.',
   // Runda 7, r3.

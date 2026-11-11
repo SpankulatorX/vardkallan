@@ -77,7 +77,7 @@ describe('API', () => {
   test('inloggning och demoroller', async () => {
     const k = klient(app);
     const roller = await k.get('/api/demo/personal');
-    expect(roller.data.map(r => r.id)).toEqual(['lak-kard', 'ssk-kard', 'usk-kard', 'lak-akut', 'lak-vc', 'lak-psyk', 'adm-kard', 'logg', 'ssk-vc', 'ark', 'uppf', 'kom-bist', 'far-kard', 'vch-kard', 'eko', 'sysf', 'sysf-2', 'fys-kard', 'bm-uso', 'opk-kkoga',
+    expect(roller.data.map(r => r.id)).toEqual(['lak-kard', 'ssk-kard', 'usk-kard', 'lak-akut', 'lak-vc', 'lak-psyk', 'adm-kard', 'logg', 'ssk-vc', 'ark', 'uppf', 'kom-bist', 'far-kard', 'vch-kard', 'eko', 'sysf', 'sysf-2', 'fys-kard', 'bm-uso', 'opk-kkoga', 'lak-ane-kkoga',
       // Runda 11, r4: farmaceuten på cytostatikaberedningen.
       'far-bered', 'lak-onk', 'ssk-onk',
       // Runda 11, r6: röntgensjuksköterskan.

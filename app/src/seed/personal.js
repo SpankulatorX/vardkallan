@@ -84,9 +84,10 @@ export const PERSONAL = [
   { id: 'lak-kk', namn: 'Johanna Rehn', yrke: 'lakare', titel: 'Läkare (obstetrik)', enhet: 'uso-kk' },
   // Runda 11, r2: operationsplaneringen och anestesin (operation.js och anestesijournal.js). Operationskoordinatorn på
   // Ortopediska kliniken Karlskoga lasarett går att logga in som. Anestesiläkaren och anestesisjuksköterskan arbetar på
-  // anestesienheten på sjukhuset och planeras in i teamet av systemet. Titeln avgör rollen i teamet.
+  // anestesienheten på sjukhuset och planeras in i teamet av systemet. Titeln avgör rollen i teamet. Anestesiläkaren i
+  // Karlskoga går också att logga in som, för de beställda anestesibedömningarna.
   { id: 'opk-kkoga', namn: 'Therese Hedberg', yrke: 'sjukskoterska', titel: 'Operationskoordinator (operationssjuksköterska)', enhet: 'kkoga-ort', demo: true },
-  { id: 'lak-ane-kkoga', namn: 'Martin Ödman', yrke: 'lakare', titel: 'Anestesiläkare', enhet: 'kkoga-ane' },
+  { id: 'lak-ane-kkoga', namn: 'Martin Ödman', yrke: 'lakare', titel: 'Anestesiläkare', enhet: 'kkoga-ane', demo: true },
   { id: 'ssk-ane-kkoga', namn: 'Kajsa Strand', yrke: 'sjukskoterska', titel: 'Anestesisjuksköterska', enhet: 'kkoga-ane' },
   { id: 'lak-ane-ort', namn: 'Gustav Fernlund', yrke: 'lakare', titel: 'Anestesiläkare', enhet: 'uso-ane' },
   { id: 'ssk-ane-ort', namn: 'Ida Wedin', yrke: 'sjukskoterska', titel: 'Anestesisjuksköterska', enhet: 'uso-ane' },

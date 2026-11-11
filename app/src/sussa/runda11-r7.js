@@ -2,6 +2,8 @@
 // app/test/tillvaxt-r11.test.js) och klickbudgetens nya flöden, för mappningen av Sussa 4.1 och 4.6.
 import { klickbudgetTest } from '../krav.js';
 import { FLODEN } from '../klickbudget.js';
+// Sammanslagningen av runda 11: operationen, anestesijournalen och uppvakningen från r2 hör också till 4.6.1.1.
+import { OPERATION11 } from './runda11-r2.js';
 
 const IV = 'Intensivvård, version 1.1 > ';
 const TV = 'Tillväxt, version 1.1 > ';
@@ -45,9 +47,9 @@ const DEMO = 'Hjärtintensiven på Kardiologiska kliniken är demons intensivvå
 // Tilläggen per post i 4.6. tester läggs till postens egna, och de andra fälten ersätter postens.
 const POSTER_IVA = {
   '4.6.1.1': {
-    tester: [IVA.realtid, IVA.regelApi, IVA.mal, IVA.nems, IVA.begransning, IVA.nyheter],
-    losning: 'Intensivvården har en egen sida och en flik i journalen med översikt, övervakning och realtid med vågformer från monitorn, analys mot fördefinierade parametrar och patientens egna gränser, behandlingsbegränsningar och överrapportering, anestesibedömning, kontinuerliga infusioner med titrering och sammanräkning av givna doser, timvis vätskebalans med perspiratio, prognos och behandlingsmål, andningsstöd, vårdtyngd enligt NEMS och uppföljning, byggda på mätvärdena, utrustningen, läkemedlen och vätskebalansen som redan finns.',
-    anmarkning: `${DEMO} Operationsplanering, anestesijournal under ingreppet, uppvakningsavdelning och scoring som SAPS 3 saknas.`,
+    tester: [IVA.realtid, IVA.regelApi, IVA.mal, IVA.nems, IVA.begransning, IVA.nyheter, OPERATION11.anestesijournal, OPERATION11.uppvakning, OPERATION11.anestesiRelation], avsedd: 'uppfyllt_demo',
+    losning: 'Intensivvården har en egen sida och en flik i journalen med översikt, övervakning och realtid med vågformer från monitorn, analys mot fördefinierade parametrar och patientens egna gränser, behandlingsbegränsningar och överrapportering, anestesibedömning, kontinuerliga infusioner med titrering och sammanräkning av givna doser, timvis vätskebalans med perspiratio, prognos och behandlingsmål, andningsstöd, vårdtyngd enligt NEMS och uppföljning. Anestesin är en egen vårdenhet som får operationsanmälan som en beställning, med anestesijournalen under ingreppet och uppvakningen under Operation. Allt bygger på mätvärdena, utrustningen, läkemedlen och vätskebalansen som redan finns.',
+    anmarkning: `${DEMO} Kravet kompletteras av 4.6.1.2 till 4.6.1.7, som alla är uppfyllda i demon. Poängsättning som SAPS 3 ingår inte.`,
   },
   '4.6.1.2': {
     tester: [IVA.vagform, IVA.realtid, IVA.begransning, IVA.sparr], avsedd: 'uppfyllt_demo',
