@@ -461,6 +461,8 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
       await granskaHar(`${roll} ${h}`);
     }
     for (const extra of ['#/nyheter', '#/tillganglighet']) { await gaTill(page, extra); vyLista.push([roll, extra]); await granskaHar(`${roll} ${extra}`, { fokus: false }); }
+    // Runda 12, r3: inloggning och flerfaktor nås från sidhuvudet för all personal.
+    { await gaTill(page, '#/flerfaktor'); vyLista.push([roll, '#/flerfaktor']); await granskaHar(`${roll} #/flerfaktor`); }
     // Runda 8, r2: remisskonferensen med en remiss på, för läkaren och vårdadministratören.
     if (['lak-kard', 'adm-kard'].includes(roll)) {
       await page.evaluate(async () => {
@@ -520,6 +522,8 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     vyLista.push([invanare, h]);
     await granskaHar(`${invanare} ${h}`);
   }
+  // Runda 12, r3: inloggning och flerfaktor i Min journal.
+  { await gaTill(page, '#/flerfaktor'); vyLista.push([invanare, '#/flerfaktor']); await granskaHar(`${invanare} #/flerfaktor`); }
   console.log(`Granskade ${vyLista.length} vyer på 1440 px.`);
 
   // Ett fel i ett formulär (3.3.1): en sökning på ett tecken ger ett fel från servern, som ska markeras vid fältet,
@@ -840,6 +844,43 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     await p.screenshot({ path: join(UT, 'r7r2-intyg-enhet.png'), fullPage: true });
     await k.close();
   });
+  // Runda 12, r3 (Sussa 10.1.1.5): praktiska prov. Utbildaren Johan Ek skapar provet, läkaren startar det, öppnar
+  // övningsjournalen, skriver och signerar en anteckning och låter systemet kontrollera. Utbildaren följer upp.
+  await provaUtb('Gränssnitt > Utbildning > utbildaren skapar ett praktiskt prov, läkaren gör det i övningsjournalen och systemet kontrollerar resultatet', async () => {
+    const k = await kontext({ width: 1440, height: 900 });
+    await k.addInitScript(INIT);
+    const p = await k.newPage();
+    bevaka(p, 'prov');
+    await loggaIn(p, 'ssk-kard');
+    await gaTill(p, '#/utbildning');
+    await p.selectOption('#prov-typ', 'signera_anteckning');
+    await p.click('[data-prov-skapa] [type="submit"]');
+    await p.waitForFunction(() => /Provet är skapat/.test(document.getElementById('notiser').textContent));
+    await loggaIn(p, 'lak-kard');
+    await gaTill(p, '#/utbildning');
+    const rad = p.locator('[data-prov-status]').filter({ hasText: 'Skriva och signera' });
+    await rad.locator('[data-prov-starta]').click();
+    await p.locator('[data-prov-status="pagar"] a').waitFor();
+    const lank = await p.locator('[data-prov-status="pagar"] a').getAttribute('href');
+    const pid = lank.split('/')[2];
+    // Uppgiften görs i journalen. Anteckningen skrivs och signeras genom samma API som fliken Anteckningar använder.
+    await p.evaluate(async (pid) => {
+      const post = (v, d) => fetch(v, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then(r => r.json());
+      const a = await post(`/api/patient/${pid}/anteckningar`, { typ: 'Daganteckning', sokord: [{ sokord: 'Aktuellt', text: 'Praktiskt prov i utbildningen.' }] });
+      await post(`/api/anteckning/${a.id}/signera`, {});
+    }, pid);
+    await gaTill(p, '#/utbildning');
+    await p.click('[data-prov-kontrollera]');
+    await p.locator('[data-prov-status="godkant"]').waitFor();
+    if (!/signerad/.test(await p.locator('[data-prov-status="godkant"] [data-prov-resultat]').textContent())) throw new Error('resultatet förklarar inte vad systemet kontrollerade');
+    await p.screenshot({ path: join(UT, 'r12r3-praktiskt-prov.png'), fullPage: true });
+    await loggaIn(p, 'ssk-kard');
+    await gaTill(p, '#/utbildning');
+    const t = await p.locator('[data-uppfoljning]').first().textContent();
+    if (!/Sara Lindqvist/.test(t) || !/Godkänt/.test(t)) throw new Error(`uppföljningen visar inte att läkaren är godkänd: ${t}`);
+    if (t.includes(pid)) throw new Error('uppföljningen visar patienten');
+    await k.close();
+  });
 
   // Runda 10, r3: röstinmatningen. Utan igenkänning på enheten frågar Diktera först i en dialog som läses upp, och
   // användaren måste välja att fortsätta. Valet sparas per användare. Med igenkänning på enheten kommer ingen fråga.
@@ -904,6 +945,49 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     } catch (e) {
       tester.push({ namn, status: 'röd', fel: kort(e.message) });
       console.log(`FEL röstinmatningens fråga om webbläsarens tjänst: ${kort(e.message)}`);
+    }
+  }
+
+  // Runda 12, r3 (Sussa KD1.1.4.10): flera skärmar. Två fönster i samma inloggning: läkemedelslistan öppnas i ett nytt
+  // fönster och följer med när en annan patient öppnas i det första. Ett låst fönster följer inte med men visar tydligt
+  // att en annan patient är öppen i det andra fönstret.
+  {
+    const namn = `${PREFIX.GT}flera skärmar: en del av journalen öppnas i ett nytt fönster som följer patientbytet, och ett låst fönster visar tydligt att en annan patient är öppen`;
+    try {
+      const k = await kontext({ width: 1440, height: 900 });
+      await k.addInitScript(INIT);
+      const a = await k.newPage();
+      bevaka(a, 'fönster 1');
+      await loggaIn(a, 'lak-kard');
+      await gaTill(a, '#/patient/p01');
+      await a.waitForSelector('[data-fonster-rad]');
+      await a.selectOption('#fonster-del', 'lakemedel');
+      const [b] = await Promise.all([k.waitForEvent('page'), a.click('[data-fonster-oppna]')]);
+      bevaka(b, 'fönster 2');
+      await b.waitForLoadState('networkidle');
+      await b.waitForSelector('.patientband h1');
+      if (!/#\/patient\/p01\/lakemedel$/.test(b.url())) throw new Error(`det nya fönstret visar ${b.url()}`);
+      // Patientbyte i det första fönstret: det andra följer med och behåller fliken Läkemedel.
+      await a.evaluate(() => { location.hash = '#/patient/p05'; });
+      await b.waitForFunction(() => location.hash === '#/patient/p05/lakemedel', null, { timeout: 10000 });
+      await b.waitForFunction(() => /byttes till/.test(document.getElementById('notiser')?.textContent ?? ''));
+      // Det andra fönstret låses. Ett nytt byte i det första visar varningen i stället.
+      await b.click('[data-fonster-las]');
+      if (await b.getAttribute('[data-fonster-las]', 'aria-pressed') !== 'true') throw new Error('låsknappen visar inte att fönstret är låst');
+      await a.evaluate(() => { location.hash = '#/patient/p01'; });
+      await b.waitForSelector('#fonster-varning', { timeout: 10000 });
+      const t = await b.locator('#fonster-varning').textContent();
+      if (!b.url().endsWith('#/patient/p05/lakemedel')) throw new Error('det låsta fönstret bytte patient');
+      if (!/Det här fönstret visar/.test(t) || !/Gunnar Åkesson/.test(t)) throw new Error(`varningen säger inte vilka patienter det gäller: ${t}`);
+      await b.screenshot({ path: join(UT, 'r12r3-flera-fonster.png') });
+      await b.click('[data-fonster="byt"]');
+      await b.waitForFunction(() => location.hash === '#/patient/p01' && !document.getElementById('fonster-varning'), null, { timeout: 10000 });
+      await k.close();
+      tester.push({ namn, status: 'grön' });
+      console.log(`ok  ${namn.replace(PREFIX.GT, '')}`);
+    } catch (e) {
+      tester.push({ namn, status: 'röd', fel: kort(e.message) });
+      console.log(`FEL ${namn.replace(PREFIX.GT, '')}: ${kort(e.message)}`);
     }
   }
 

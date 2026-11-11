@@ -60,9 +60,11 @@ export default [
       `${S}högkostnadsskyddet räknas bara på de kontakter användaren får se: en spärrad enhet utan och med samtycke`,
       'Ekonomi: avgifter som taket har påverkat > en dold kontakt som gör nästa synliga avgift nedsatt men inte noll ändrar inte svaret i kostnadsrutan',
       'Ekonomi: avgiften visas som e-frikortet > patienten ser hela högkostnadsskyddet i Min journal, med alla besök, och ingen annan når det',
+      // Runda 12, r3: rabatterna på patientavgifterna.
+      `${K}rabatter: en avgiftsfri patientavgift visar ordinarie avgift, rabatten och skälet, och rutan summerar rabatterna`,
     ],
     losning: 'I patientens översikt finns en ruta med kostnaden hittills för det pågående vårdtillfället eller dagens vårdkontakt: vårddygn, läkemedel, material, åtgärder och hjälpmedel enligt prislistan, ersättningen enligt DRG-demogruppen och patientens högkostnadsskydd med vad som återstår till frikort. Läkare och sjuksköterskor ser hela rutan, vårdadministratören bara avgifterna och högkostnadsskyddet.',
     expert: 'Systemet räknar kostnaden av sig självt ur det som har hänt och visar bara det användaren redan får se, så att ingen behöver leta i prislistor eller räkna avgifter.',
-    anmarkning: 'Demopriser. Rabatter visas inte. Högkostnadsskyddet och avgifterna i rutan räknas bara på de besök användaren får se, så de kan visa mindre än patienten har betalat när det finns besök på en annan vårdenhet eller en spärrad enhet. Rutan säger det, och patienten ser hela skyddet i Min journal.',
+    anmarkning: 'Demopriser. Rabatterna på patientavgifterna visas med ordinarie avgift, rabatt och skäl (ålder, LMA-kort och frikort) och summeras i rutan. Högkostnadsskyddet och avgifterna i rutan räknas bara på de besök användaren får se, så de kan visa mindre än patienten har betalat när det finns besök på en annan vårdenhet eller en spärrad enhet. Rutan säger det, och patienten ser hela skyddet i Min journal. Att räkna skyddet över alla besök och bara visa att frikort gäller går inte utan att röja något: när de synliga besöken inte når taket säger ett frikort att det finns besök som användaren inte får se. Därför står posten kvar som delvis uppfylld. Rabatter i prislistorna för läkemedel och material finns inte.',
   },
 ];

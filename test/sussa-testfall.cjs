@@ -625,6 +625,12 @@ function floden(D) {
   // Runda 8, r4: SUSSA_DEBUG=1 skriver varje felsvar från servern och stegen i varje testfall, för att felsöka ett flöde.
   if (process.env.SUSSA_DEBUG) page.on('response', async r => { if (r.status() >= 400) console.log(`DEBUG ${r.status()} ${r.request().method()} ${r.url()} ${r.request().postData()} => ${await r.text().catch(() => '')}`); });
   page.on('console', msg => { if (msg.type() === 'error' && !/status of 403/.test(msg.text())) fel.push(`konsolfel: ${msg.text()}`); });
+  // Runda 12, r3: anrop som förra testfallets vy har kvar på väg till servern räknas, så att demon inte återställs medan
+  // de pågår. Annars kan ett sent anrop om en patient i den förra sandlådan nå den nya och ge 404.
+  let pagaendeAnrop = 0;
+  page.on('request', r => { if (new URL(r.url()).pathname.startsWith('/api/')) pagaendeAnrop++; });
+  for (const h of ['requestfinished', 'requestfailed']) page.on(h, r => { if (new URL(r.url()).pathname.startsWith('/api/')) pagaendeAnrop = Math.max(0, pagaendeAnrop - 1); });
+  const vantaPaAnrop = async () => { for (let i = 0, lugnt = 0; i < 100 && lugnt < 3; i++) { await page.waitForTimeout(100); lugnt = pagaendeAnrop ? 0 : lugnt + 1; } };
   const m = new SussaMatare(page);
   const resultat = [];
   let roll = null;
@@ -639,6 +645,7 @@ function floden(D) {
       // Demon återställs och testdatan läggs in utanför mätningen, från en sida utan patientuppgifter, så att inget anrop
       // från förra testfallets vy går till den nya sandlådan.
       await gaTill(page, '#/moduler');
+      await vantaPaAnrop();
       const a = await post(page, '/api/reset');
       const b = await post(page, '/api/demo/sussa-testfall');
       if (!a.ok || !b.ok) throw new Error(`testdatan kunde inte läggas in: ${b.text}`);

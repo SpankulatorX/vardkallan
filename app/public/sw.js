@@ -54,8 +54,10 @@ const FILER = [
   '/js/vyer/patient-bilder.js', '/js/bildvisare.js',
   '/js/vyer/iva-tillagg.js', '/js/vyer/patient-iva.js', '/js/bhv-indikatorer-ui.js',
   '/js/vyer/journalstruktur.js', '/js/lakemedelsmallar-ui.js',
+  '/js/flerfaktor-ui.js', '/js/vyer/flerfaktor.js', '/js/flera-fonster.js',
 ];
 // Runda 12, r1: listan har mallarna och mätvärdestyperna (journalstruktur.js) och läkemedelsmallarna (lakemedelsmallar-ui.js).
+// Runda 12, r3: listan har flerfaktorsinloggningen (flerfaktor-ui.js och vyer/flerfaktor.js) och flera skärmar (flera-fonster.js).
 // Runda 11, r2: listan har operationen i journalen och operationsavdelningen (patient-operation.js och operation.js).
 // Runda 11, r3: listan har graviditetsjournalen, den nyföddas BB-journal, förlossningen och mödrahälsovården.
 // Runda 11, r5: listan har bilder och media i journalen, med kameran, annoteringarna och arkivets visare (patient-bilder.js och bildvisare.js).

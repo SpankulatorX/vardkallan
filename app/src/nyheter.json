@@ -44,6 +44,52 @@
           "var": "#/lakemedelsstod",
           "rubrik": "Bygg och ändra läkemedelsmallar",
           "text": "Under Direktiv och uppföljning bygger du en ny läkemedelsmall eller ändrar en, med systemets förslag ur katalogen. Systemet visar vad som ändras och vem som ska godkänna mallen, och den används när den mallansvariga läkaren har godkänt den."
+        },
+        {
+          "id": "flerfaktor-1-2",
+          "roller": [
+            "alla"
+          ],
+          "omfattning": "liten",
+          "var": "#/flerfaktor",
+          "rubrik": "Flerfaktorsinloggning med passkey eller engångskod",
+          "text": "Under Flerfaktor i sidhuvudet registrerar du en passkey eller en app för engångskoder. Därefter frågar systemet efter den vid varje inloggning som du i sandlådan, både för personalen och i Min journal. Passkeyn föreslås först, eftersom den inte går att lura till en falsk webbplats."
+        },
+        {
+          "id": "praktiska-prov-1-2",
+          "roller": [
+            "personal"
+          ],
+          "omfattning": "liten",
+          "var": "#/utbildning",
+          "rubrik": "Praktiska prov i journalen",
+          "text": "Under Utbildning finns praktiska prov som du gör i en övningsjournal, till exempel att ordinera, signera en anteckning eller registrera ett blodtryck. Systemet kontrollerar själv att det blev rätt, och ett godkänt prov gäller i ett år. Utbildare och verksamhetschefen skapar proven och följer upp."
+        },
+        {
+          "id": "flera-fonster-1-2",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska",
+            "fysioterapeut",
+            "farmaceut"
+          ],
+          "omfattning": "liten",
+          "var": "#/arbetslista",
+          "rubrik": "Journalen på flera skärmar",
+          "text": "I journalen kan du öppna en del, till exempel läkemedelslistan, i ett nytt fönster. Fönstren följer varandra när du öppnar en annan patient. Ett fönster som du låser till sin patient visar en tydlig varning när en annan patient är öppen i ett annat fönster."
+        },
+        {
+          "id": "rabatter-1-2",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "vardadministrator"
+          ],
+          "omfattning": "liten",
+          "var": "#/arbetslista",
+          "rubrik": "Rabatter på patientavgifterna",
+          "text": "Kostnadsrutan i patientens översikt visar ordinarie avgift, rabatt och skäl för varje avgiftsfri eller nedsatt patientavgift, och summan av rabatterna."
         }
       ]
     },

@@ -18,7 +18,11 @@ describe('Kravregistret', () => {
     // med SITHS-kortet simulerat och noten om det. Patientens e-tjänst (L4, L5) finns, men flerfaktorsautentiseringen
     // är simulerad och stickprov saknas.
     for (const id of ['D12', 'L8', 'L10', 'L11']) expect(KRAV.find(k => k.id === id).status).toBe('planerat');
-    for (const id of ['D6', 'L4', 'L5']) expect(KRAV.find(k => k.id === id).status).toBe('delvis');
+    for (const id of ['D6', 'L4']) expect(KRAV.find(k => k.id === id).status).toBe('delvis');
+    // Runda 12, r3: flerfaktorsinloggningen finns med passkeys och engångskoder, så L5 är uppfyllt i demon. Den första
+    // faktorn är fortfarande simulerad, och det står i anmärkningen.
+    expect(KRAV.find(k => k.id === 'L5').status).toBe('uppfyllt_demo');
+    expect(KRAV.find(k => k.id === 'L5').anmarkning).toContain('simulerad');
     // K1 omfattar nu hela Sussas kravspecifikation med originalnummer, med Sussa-registrets tester.
     // Runda 7, r7: K2 kopplar varje post till Cambios svar men saknar leverantörens FVIS-kravlista, K3 och K5 är byggda.
     const [k1, k2, k3, k5] = ['K1', 'K2', 'K3', 'K5'].map(id => KRAV.find(k => k.id === id));

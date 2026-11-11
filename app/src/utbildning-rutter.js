@@ -4,6 +4,7 @@
 import { Fel } from './db.js';
 import * as nyheter from './nyheter.js';
 import * as utbildning from './utbildning.js';
+import * as prov from './praktiska-prov.js';
 
 export function registreraRutter({ rutt, kravInloggad }) {
   const inloggad = (c) => {
@@ -21,4 +22,11 @@ export function registreraRutter({ rutt, kravInloggad }) {
   rutt('GET', '/api/utbildning/ovningar', (c) => utbildning.redigera(c.db, kravInloggad(c), { omfang: c.url.searchParams.get('omfang') ?? 'vardgivare' }));
   rutt('POST', '/api/utbildning/ovningar', (c) => [201, utbildning.sparaVersion(c.db, kravInloggad(c), c.body)]);
   rutt('POST', '/api/utbildning/utbildare', (c) => [201, utbildning.utfardaUtbildare(c.db, kravInloggad(c), c.body.personalId)]);
+  // Runda 12, r3: praktiska prov i journalen (praktiska-prov.js). Utbildaren skapar och följer upp, och personalen gör
+  // proven i en övningsjournal som systemet kontrollerar.
+  rutt('GET', '/api/utbildning/prov', (c) => prov.oversikt(c.db, kravInloggad(c)));
+  rutt('POST', '/api/utbildning/prov', (c) => [201, prov.skapa(c.db, kravInloggad(c), c.body.typ)]);
+  rutt('POST', '/api/utbildning/prov/:id/starta', (c, id) => prov.starta(c.db, kravInloggad(c), id));
+  rutt('POST', '/api/utbildning/prov/:id/kontrollera', (c, id) => prov.kontrollera(c.db, kravInloggad(c), id));
+  rutt('POST', '/api/utbildning/prov/:id/avsluta', (c, id) => prov.avsluta(c.db, kravInloggad(c), id));
 }

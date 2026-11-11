@@ -2364,3 +2364,110 @@ prövas med samma funktion (`undantag.provare`) i journalen, sökningen, direktl
 simulerade producenten för tjänstekontrakt, som prövar både undantagen från FHIR och från nationella tjänster. En
 anteckning i en pågående vårdkontakt kan inte döljas i systemet. Undantaget prövas efter behörighetsmotorn och gäller
 aldrig Min journal.
+
+## Flerfaktorsinloggning (runda 12, r3: flerfaktor.js, flerfaktor-ui.js och vyer/flerfaktor.js, vårt L5)
+
+Personalen och invånaren i Min journal kan skydda sin inloggning med en andra faktor. Allt bygger på öppna standarder
+och ingen extern tjänst används.
+
+### Två slag av faktor
+
+- Passkey enligt WebAuthn nivå 2. Webbläsaren och autentiseraren (telefonen, datorns inbyggda skydd eller en
+  säkerhetsnyckel) skapar ett nyckelpar. Servern sparar bara den publika nyckeln, per användare i sandlådan, och prövar
+  vid varje inloggning signaturen, att utmaningen är serverns egen och används en gång, ursprunget, RP-id:t, att
+  personen verifierades med PIN-kod, fingeravtryck eller ansikte och att räknaren ökar. ES256 och RS256 godtas.
+  Attestering begärs inte, eftersom demon inte kräver en viss sorts autentiserare.
+- Engångskoder enligt RFC 6238 (HMAC-SHA1, 30 sekunder, sex siffror) från en app i telefonen. Nyckeln visas en gång
+  och sparas krypterad med AES-256-GCM, med ägaren som tilläggsdata. Krypteringsnyckeln ligger aldrig i databasen: den
+  kommer från `FLERFAKTOR_NYCKEL` eller från en fil bredvid sessionsfilen. En kod från steget före eller efter godtas,
+  och varje kod godtas en gång.
+
+### Systemet är experten
+
+Användaren väljer aldrig algoritm, längd eller tidsfönster. Systemet föreslår passkey först, eftersom den bara fungerar
+på Vårdkällans egen adress och inte kan lockas ut av en falsk webbplats, frågar efter passkeyn direkt vid inloggningen
+och säger på vanlig svenska varför en kod eller en passkey inte godtas: fel kod, en kod som redan har använts, en
+passkey från en annan webbplats eller en autentiserare som inte bekräftade att det var personen.
+
+### Inloggningen
+
+Den första faktorn är det simulerade SITHS-kortet eller den simulerade e-legitimationen. När personen har en faktor
+avslutas den förra inloggningen i webbläsaren direkt, och inloggningen väntar på den andra faktorn i högst fem minuter.
+Under tiden har sessionen inga behörigheter och ingen nyckel till läskopian. Efter fem felaktiga försök avbryts
+inloggningen, och efter tio under en kvart spärras försöken för personen i sandlådan. Godkända och misslyckade försök,
+registrerade och borttagna faktorer och väntande inloggningar loggas i säkerhetsloggen.
+
+### Den publika demon
+
+Demon får inte låsa ute besökaren. Därför är detta en demoregel: flerfaktorn slås på av var och en, när en passkey eller
+en app registreras för en demoroll i sandlådan, och gäller bara där. Den som tappar bort sin faktor återställer
+sandlådan, och då försvinner faktorn och allt annat i sandlådan, så att återställningen aldrig ger åtkomst till något
+som faktorn skyddade. I drift skulle flerfaktor krävas av alla.
+
+### Läsläget vid avbrott
+
+Läskopian lämnas ut när inloggningen är klar, alltså efter den andra faktorn, och läsläget fungerar som förut.
+Reservinloggningen under ett avbrott når inte servern och använder reservkoden och den krypterade kopian på datorn.
+
+### Det som är simulerat eller saknas
+
+SITHS-kortet och e-legitimationen är fortfarande simulerade. En QR-kod för appen saknas; nyckeln skrivs in i appen
+eller öppnas med länken `otpauth://` på samma enhet.
+
+## Praktiska prov, rabatter och flera skärmar (runda 12, r3: praktiska-prov.js, vardkontakt.js och flera-fonster.js, Sussa 10.1.1.5, 7.1.2.1 och KD1.1.4.10)
+
+### Praktiska prov i journalen (Sussa 10.1.1.5)
+
+Övningarna under Utbildning är kunskapsfrågor. Ett praktiskt prov är en uppgift som görs på riktigt i en
+övningsjournal: att ordinera paracetamol vid behov (läkare), att skriva och signera en anteckning (läkare,
+sjuksköterskor och fysioterapeuter) eller att registrera ett blodtryck (sjuksköterskor och undersköterskor). När provet
+startar sparar systemet var i journalen det börjar, och vid kontrollen letar det i databasen efter det personen själv
+har gjort i övningsjournalen efter starten. Systemet säger på vanlig svenska vad som saknas, till exempel att
+anteckningen är sparad men inte signerad. Ett godkänt prov gäller i ett år.
+
+Övningsjournalen är en av demons påhittade patienter som personen redan har vårdrelation till, utan skyddade
+personuppgifter. Systemet väljer den med personens egen behörighet, och valet loggas i åtkomstloggen. Demon är själv
+Vårdkällans utbildningsmiljö.
+
+Utbildaren är en behörighet för en befintlig roll: den som har ett giltigt utbildarintyg från verksamhetschefen, och
+verksamhetschefen själv. Med behörigheten skapar man vårdenhetens prov och följer upp vem som har klarat vilket prov.
+Utbildaren väljer bara vilket prov, och uppföljningen visar aldrig vilken patient provet gjordes på.
+
+### Rabatter på patientavgifterna (Sussa 7.1.2.1)
+
+Kostnadsrutan visar för varje avgiftsfri eller nedsatt patientavgift ordinarie avgift, rabatten och skälet: under 20
+år, från 85 år, LMA-kort eller frikort, och summan av rabatterna. Rabatten räknas på samma synliga besök som avgiften.
+En avgift som taket i högkostnadsskyddet har satt ned utan att ge frikort visas som en hel avgift, eftersom rabatten
+annars skulle röja besök som den som läser inte får se.
+
+Högkostnadsskyddet räknas fortfarande bara på de besök användaren får se. Att räkna det över alla besök och bara visa
+att frikort gäller går inte utan att röja något: när de synliga besöken inte når taket säger ett frikort att det finns
+besök som användaren inte får se. Patienten ser hela skyddet i Min journal.
+
+### Flera skärmar (Sussa KD1.1.4.10)
+
+I journalen finns en rad under flikarna där en del av journalen, till exempel läkemedelslistan, öppnas i ett nytt
+fönster med ett klick. Användarens fönster i samma webbläsare och inloggning talar med varandra genom en
+BroadcastChannel inom samma ursprung. När en patient öppnas i ett fönster byter de andra fönstren som visar en journal
+till samma patient och behåller sin flik, och säger varför. Ett fönster kan låsas till sin patient. Då följer det inte
+med, och en varning överst säger vilken patient fönstret visar och vilken som är öppen i det andra fönstret, med ett
+val att byta eller behålla. Kanalen bär bara patientens id och det namn som avsändaren redan visar, och varje fönster
+hämtar journalen själv med sin egen behörighetsprövning och loggning.
+
+### Det som är simulerat eller saknas
+
+Proven kontrollerar tre slag av uppgifter. Rabatter i prislistorna för läkemedel och material finns inte. Fönstren är
+prövade i Chromium med Playwright, inte på riktiga skärmar.
+
+## Dokument kopplade till kraven (runda 12, r3: behorighetsanalys.js, mdr-bedomning.js och testmetod.js, vårt L2 och D10, Sussa 11.2.1.5)
+
+Tre dokument i `docs/` skrivs ur register i `app/src/` med `bun scripts/dokument-md.js`, och ett test stoppar bygget om
+ett dokument skiljer sig från registret eller om registret säger något annat än koden:
+
+- `docs/behorighetsanalys.md`: behovs- och riskanalysen per roll. Varje roll i `atkomst.js` måste ha en analys, listan
+  med rollens handlingar tas ur koden, och en handling som analysen säger att rollen inte ska ha får inte finnas i koden.
+- `docs/mdr-bedomning.md`: Vårdkällans egen bedömning per beslutsstödsmodul enligt MDR med beslutsträdet i MDCG 2019-11
+  och regel 11. Varje modul som bedöms måste finnas i koden, varje steg ska vara besvarat, och slutsatsen och klassen
+  ska följa av stegen. Journalkärnan är inte en medicinteknisk produkt.
+- `docs/testmetod.md`: testmetoden efter dokumentstrukturen i ISO/IEC/IEEE 29119-3, med vad som motsvarar testplan,
+  testdesign, testfall, testprocedurer och testrapporter i projektet. Allt som beskrivningen pekar på måste finnas.

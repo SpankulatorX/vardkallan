@@ -274,6 +274,36 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await bild(page, '02-arbetslista', true);
     });
     await allaVyer(page, 'Sara Lindqvist', MENY.kardiologi);
+    // Runda 12, r3 (vårt L5): flerfaktor med en app för engångskoder. Faktorn tas bort efteråt, så att resten av
+    // genomgången loggar in som förut. Passkeyn prövas i test/avbrott.cjs med Chromes virtuella autentiserare.
+    await s('Sara Lindqvist slår på flerfaktor med en app för engångskoder, loggar in med koden och tar bort appen', async () => {
+      const { createHmac } = require('node:crypto');
+      const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+      const fran32 = (t) => { let b = 0, v = 0; const u = []; for (const ch of t) { v = (v << 5) | B32.indexOf(ch); b += 5; if (b >= 8) { u.push((v >>> (b - 8)) & 255); b -= 8; } } return Buffer.from(u); };
+      const kodFor = (h, ms) => { const r = Buffer.alloc(8); r.writeBigUInt64BE(BigInt(Math.floor(ms / 30000))); const d = createHmac('sha1', h).update(r).digest(); const o = d[d.length - 1] & 15; return String((((d[o] & 0x7f) << 24) | (d[o + 1] << 16) | (d[o + 2] << 8) | d[o + 3]) % 1e6).padStart(6, '0'); };
+      const serverNu = async () => Date.parse((await (await fetch(`${BAS}/api/health`)).json()).testklocka ?? new Date().toISOString());
+      await page.click('a[data-flerfaktor="av"]');
+      await vantaVy(page);
+      await forvanta(page, 'main h1', 'Inloggning och flerfaktor');
+      await page.click('[data-a="totp"]');
+      const h = fran32(await page.locator('[data-ff-nyckel]').getAttribute('data-ff-nyckel'));
+      await page.fill('#ff-ny-kod', kodFor(h, await serverNu()));
+      await page.click('#ff-totp-form [type="submit"]');
+      await forvanta(page, '[data-ff-status="pa"]', 'Flerfaktor är på');
+      await bild(page, '02b-flerfaktor');
+      await page.click('[data-a="loggaut"]');
+      await page.click('[data-roll="lak-kard"]');
+      const dl = page.locator('dialog[open].flerfaktor-dialog');
+      await dl.waitFor();
+      await dl.locator('#ff-kod').fill(kodFor(h, (await serverNu()) + 30000));
+      await dl.locator('[data-ff="totp"]').click();
+      await page.waitForSelector('[data-a="loggaut"]');
+      await page.click('a[data-flerfaktor="pa"]');
+      await vantaVy(page);
+      await forvanta(page, 'main', 'bekräftades med en kod från appen');
+      await page.click('[data-ta-bort]');
+      await forvanta(page, '[data-ff-status="av"]', 'Flerfaktor är av');
+    });
     // Runda 11, r5: lungröntgen ur det simulerade arkivet genom DICOMweb, med fönster och bildnummer.
     await s('Sara Lindqvist öppnar lungröntgen ur arkivet, byter fönster och ser studien genom DICOMweb', async () => {
       await gaTill(page, '#/patient/p01/bilder');

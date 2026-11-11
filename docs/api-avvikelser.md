@@ -817,3 +817,18 @@ Det som ändrar något kräver radens vårdenhet. Listor på enhetsnivå och upp
 - Läkemedelsmallar: `GET /api/lakemedelsmallar/byggstenar` (läkare) ger substanserna utan mall med förslag, `POST /api/lakemedelsmallar/forhandsvisa { atc, ... }` svarar alltid 200 med `{ ok, fel, andringar }`, `POST /api/lakemedelsmallar/ny { atc, namn, dosering, dos, dosEnhet, typ, tider, uppfoljning }` (201) och `POST /api/lakemedelsmallar/:atc/andra` (201).
 - Nya parametrar i `GET /api/konfiguration`: `lakemedel.interaktioner` och `lakemedel.maxdoser` (listor med semikolon), `lakemedel.metformin_egfr_stopp`, `lakemedel.metformin_egfr_varning`, `lakemedel.orsak_frivillig_utan_nll` (ja eller nej), `tidbok.vardgaranti_dagar`, `tidbok.risk_dagar`, `tidbok.egen_grans_timmar`, `tidbok.incheckning_fore_min`, `tidbok.incheckning_efter_min`, `avgift.besok_kr`, `avgift.akut_kr`, `avgift.slutenvard_dygn_kr`, `avgift.hogkostnadsskydd_kr`, `avgift.fri_under_ar` och `avgift.fri_fran_ar`. En varning för en interaktion i listan har regeln `interaktion_<ATC>_<ATC>`, och en för hög dygnsdos regeln `maxdos`. `GET /api/patient/:id/lakemedel/forslag` har `orsakFrivillig` och `orsakText`.
 - `POST /api/undantag` tar `omfang: anteckning` med anteckningens nummer i `varde`. FHIR med `_kontrakt` prövar också undantagen från publicering till nationella tjänster.
+
+## Flerfaktorsinloggning (runda 12, r3)
+
+- `POST /api/login`, `POST /api/login/biljett` och `POST /api/login/invanare` svarar `{ inloggad: false, flerfaktorVantar: { typ, namn, metoder }, flerfaktor: { kravs: true, metoder: ['passkey', 'totp'], passkey?: { challenge, rpId, allowCredentials, userVerification, timeout } } }` när personen har en faktor i sandlådan. Utan faktor är svaret som förut.
+- `POST /api/login/flerfaktor { typ: 'passkey', svar: { id, clientDataJSON, authenticatorData, signature } }` eller `{ typ: 'totp', kod }` slutför inloggningen och ger sessionen. Ett fel har en ny utmaning i `flerfaktor`, utom när inloggningen är avbruten. `POST /api/login/flerfaktor/avbryt` avbryter.
+- `GET /api/flerfaktor` ger `{ aktiv, faktorer: [{ id, typ, typText, namn, skapad, senastAnvand }], metod, max, text }` för den inloggade, personal eller invånare.
+- `POST /api/flerfaktor/passkey/borja` ger alternativen till `navigator.credentials.create`, och `POST /api/flerfaktor/passkey { namn?, svar: { id, clientDataJSON, attestationObject } }` (201) sparar passkeyn.
+- `POST /api/flerfaktor/totp/borja` ger `{ id, nyckel, nyckelGrupper, uri, steg, siffror }`, och `POST /api/flerfaktor/totp { kod }` (201) slår på appen. `POST /api/flerfaktor/:id/ta-bort` tar bort en faktor.
+- `GET /api/session` har `flerfaktor: { aktiv, metod }` för den inloggade.
+
+## Praktiska prov och rabatter (runda 12, r3)
+
+- `GET /api/utbildning/prov` ger `{ prov: [{ id, typ, titel, roller, status, text, uppgift?, lank?, resultat?, giltigtTill? }], utbildare, provtyper?, uppfoljning? }`. Utbildaren får `provtyper` och `uppfoljning: [{ id, typ, titel, skapad, godkanda, personer: [{ id, namn, titel, status, text, giltigtTill? }] }]`, utan patient.
+- `POST /api/utbildning/prov { typ }` (201, utbildaren eller verksamhetschefen), `POST /api/utbildning/prov/:id/starta`, `POST /api/utbildning/prov/:id/kontrollera` (ger också `godkant` och `text`) och `POST /api/utbildning/prov/:id/avsluta`.
+- `GET /api/patient/:id/kostnader` har `rabatt: { ordinarie, rabatt, skal, demoregel }` på en avgiftsfri eller nedsatt patientavgift och `rabatter` med summan i `aktuell`.

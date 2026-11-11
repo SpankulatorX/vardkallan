@@ -6,7 +6,7 @@ import { byggSeed, migrera, idag, addDagar, datumAv } from '../src/db.js';
 import * as ekonomi from '../src/ekonomi.js';
 import { BASPRISER, DRG_DEMO, FOLKBOKFORING_DEMO } from '../src/ekonomi-schema.js';
 import { KATALOG } from '../src/seed/lakemedel-katalog.js';
-import { avgiftFor, kontaktUt } from '../src/vardkontakt.js';
+import { avgiftFor, kontaktUt, rabattFor } from '../src/vardkontakt.js';
 import * as tidbok from '../src/tidbok.js';
 import { slaSamman } from '../src/identitet.js';
 import { verifiera } from '../src/logg.js';
@@ -431,6 +431,29 @@ describe('Ekonomi: kostnader i vårdprocessen', () => {
     expect(ut.aktuell.patientavgifter[0]).toMatchObject({ belopp: r.data.avgift.belopp });
     // En kontakt hos en annan patient går inte att nå genom adressen.
     expect((await k.get(`/api/patient/p01/kostnader?vardkontakt=${r.data.id}`)).status).toBe(404);
+  });
+
+  // Runda 12, r3 (Sussa 7.1.2.1): rabatter på patientavgifterna.
+  test('rabatter: en avgiftsfri patientavgift visar ordinarie avgift, rabatten och skälet, och rutan summerar rabatterna', async () => {
+    // Patient 9 är ett barn och betalar ingen avgift. Besöket läggs en timme före en fast tid, så att testet inte beror
+    // på klockan eller på seedens besök i dag.
+    const d = byggSeed();
+    const nu = Date.now();
+    const id = d.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, kontaktsatt, planerad, ankomst) VALUES ('p09', 'uso-kard', 'oppenvard', ?, 'besok', 0, ?) RETURNING id")
+      .get(new Date(nu - 3600_000).toISOString(), new Date(nu - 3600_000).toISOString()).id;
+    const ut = ekonomi.kostnader(atk(d, 'lak-kard', 'p09', {}, 'las_kostnader'), { vardkontakt: id }, nu);
+    expect(ut.aktuell.patientavgifter[0]).toMatchObject({ belopp: 0, rabatt: { ordinarie: 200, rabatt: 200, demoregel: true } });
+    expect(ut.aktuell.patientavgifter[0].rabatt.skal).toContain('under 20 år');
+    expect(ut.aktuell.rabatter).toBe(200);
+    // En hel avgift har ingen rabatt, och en avgift som taket har satt ned utan frikort visas som hel, så att rabatten
+    // aldrig röjer besök som den som läser inte får se.
+    const vuxen = { fodd: '1960-01-01' };
+    const v = { typ: 'besok', start: '2026-11-12T10:00:00Z' };
+    expect(rabattFor(vuxen, v, { belopp: 200 })).toBeNull();
+    expect(rabattFor(vuxen, v, { belopp: 50 })).toBeNull();
+    expect(rabattFor(vuxen, v, { belopp: 0, frikort: true })).toMatchObject({ rabatt: 200, skal: 'Frikort inom högkostnadsskyddet.' });
+    expect(rabattFor({ fodd: '1935-01-01' }, v, { belopp: 0 }).skal).toContain('från 85 år');
+    expect(rabattFor(vuxen, { typ: 'akut', start: v.start }, { belopp: 150, lma: true })).toMatchObject({ ordinarie: 400, rabatt: 250 });
   });
 });
 

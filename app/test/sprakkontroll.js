@@ -180,6 +180,10 @@ for (const w of ['LPK', 'TPK', 'EDTA', 'NT', 'PAD', 'SR', 'B12', 'DiagnosticRepo
 for (const w of ['IMP', 'PATCH', 'EHR', 'DOS', 'DOS-lagen']) TILLATNA.add(w);
 // Runda 9, r5: inloggning med biljett, signering och certifikat, e-arkivet och miljöerna.
 for (const w of ['JWT', 'JWKS', 'ES256', 'OpenID', 'IdP', 'ECDSA', 'P-256', 'SHA-256', 'X.509', 'CA', 'R7e']) TILLATNA.add(w);
+// Runda 12, r3: flerfaktorsinloggningen (flerfaktor.js), med standarderna WebAuthn och TOTP och kodningen CBOR.
+for (const w of ['WebAuthn', 'TOTP', 'CBOR', 'RS256', 'AES-256-GCM', 'HMAC-SHA1']) TILLATNA.add(w);
+// Runda 12, r3: MDR-bedömningen (MDCG-vägledningen och bilaga VIII) och teststandarden ISO/IEC/IEEE 29119.
+for (const w of ['MDCG', 'VIII', 'IEEE', 'IEC']) TILLATNA.add(w);
 // Runda 7, r1: källan till tidsmodellen i Sussas testfall.
 for (const w of ['ACM', 'Newell']) TILLATNA.add(w);
 // Runda 10, r5: förkortningar och namn i kunskapsstödet (kunskapsstod.js) och akutflödet.

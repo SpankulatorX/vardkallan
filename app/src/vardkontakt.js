@@ -330,6 +330,24 @@ function grundavgift(v, patient, a = AVGIFT_DEMO) {
   return { belopp: b, text: b === 0 ? `${KONTAKTSATT[k]} är avgiftsfritt.` : `${KONTAKTSATT[k] ?? 'Besök'} i öppenvård.` };
 }
 
+// Runda 12, r3 (Sussa 7.1.2.1): rabatten på en patientavgift, med ordinarie avgift och skäl, när avgiften är nedsatt
+// för att patienten är under 20 år eller från 85 år, har LMA-kort eller frikort. a är avgiften från avgiftFor, räknad på
+// det anroparen får se. En avgift som taket i högkostnadsskyddet har satt ned utan att ge frikort visas som en hel
+// avgift utan rabatt, eftersom rabatten annars skulle röja besök som anroparen inte får se.
+export function rabattFor(patient, v, a) {
+  if (!patient || !a || v.typ === 'slutenvard') return null;
+  const ordinarie = v.typ === 'akut' ? AVGIFT_DEMO.akut : (AVGIFT_DEMO[v.kontaktsatt ?? 'besok'] ?? AVGIFT_DEMO.besok);
+  if (!ordinarie || a.belopp >= ordinarie) return null;
+  const ar = alder(patient.fodd, datumAv(new Date(Date.parse(v.start))));
+  let skal;
+  if (a.lma) skal = ar < AVGIFT_LMA.friUnder ? 'Avgiftsfritt för asylsökande barn med LMA-kort.' : 'Lägre avgift för asylsökande med LMA-kort.';
+  else if (ar < AVGIFT_DEMO.friUnder) skal = `Avgiftsfritt för patienter under ${AVGIFT_DEMO.friUnder} år.`;
+  else if (ar >= AVGIFT_DEMO.friFran) skal = `Avgiftsfritt för patienter från ${AVGIFT_DEMO.friFran} år.`;
+  else if (a.frikort) skal = 'Frikort inom högkostnadsskyddet.';
+  else return null;
+  return { ordinarie, rabatt: ordinarie - a.belopp, skal, demoregel: true };
+}
+
 // Runda 7, r3: synliga filtrerar de tidigare kontakterna på det anroparen får se, så att en avgift som taket har
 // påverkat inte röjer besök som är dolda (ekonomi.js). Utan filter räknas alla, som vid betalningen.
 export function avgiftFor(db, patient, v, { synliga = null } = {}) {

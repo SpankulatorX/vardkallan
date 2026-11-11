@@ -15,6 +15,21 @@ import { R12R1, TESTER_RAMAR, TESTER_LAKEMEDELSMALLAR } from './sussa/runda12-r1
 import { TESTER_VERSION } from './sussa/runda8-r5.js';
 // Runda 9, r6: lagkravsmatrisen (Sussa 2.7.1.2).
 import { testerFor } from './lagmatris.js';
+// Runda 12, r3: testerna för flerfaktorsinloggningen (vårt L5), i servern och i Chromes virtuella autentiserare.
+const TESTER_FLERFAKTOR = [
+  'utan registrerad faktor loggar demorollen in som förut, och flerfaktor är av',
+  'en passkey registreras med WebAuthn, och bara den publika nyckeln sparas',
+  'med en passkey väntar inloggningen på den andra faktorn och ger varken behörighet eller läskopia förrän den är godkänd',
+  'en signatur från fel nyckel, fel ursprung, en gammal utmaning eller utan användarverifiering godtas inte',
+  'en app för engångskoder enligt RFC 6238 registreras med en kod, nyckeln sparas krypterad och varje kod godtas en gång',
+  'invånaren i Min journal kan slå på flerfaktor och loggar sedan in med engångskod',
+  'för många felaktiga koder avbryter inloggningen, och återställd sandlåda tar bort faktorn så att ingen låses ute',
+  'TOTP stämmer med testvektorerna i RFC 6238',
+  'säkerhetsloggen visar registrering, väntande inloggning, misslyckad och lyckad andra faktor',
+].map(t => `Flerfaktor > ${t}`).concat([
+  'Gränssnitt > Avbrott > flerfaktor: en passkey i Chromes virtuella autentiserare slår på flerfaktor, bekräftar nästa inloggning, och läsläget vid avbrott fungerar efter den andra faktorn',
+  'Gränssnitt > Avbrott > flerfaktor: invånaren slår på en app för engångskoder i Min journal och loggar sedan in med en kod från appen',
+]);
 
 const RAPPORT = 'Cosmic upphandling krav och kritik';
 const k = (id, rubrik, kalla, status, var_, tester = [], anmarkning = null) => ({ id, rubrik, kalla, status, var: var_, tester, anmarkning });
@@ -148,11 +163,14 @@ export const KRAV = [
       'Åtgärder med KVÅ > koderna och titlarna stämmer med KVÅ 2026, och systemet har OID:n ur Socialstyrelsens OID-serie',
       'Åtgärder med KVÅ > FHIR: Procedure med KVÅ för NEWS2-omgångar, GCS och läkemedelsgenomgång, med samma behörighet'],
     'FHIR R4 med ICD-10-SE, ATC, NPL-id, NPU (labb), LOINC (vitalparametrar) och UCUM. Patienten når sina egna resurser med sessionen från Min journal. Koderna är kontrollerade mot Socialstyrelsen, WHO, IFCC och LOINC (docs/kodkontroll.md). Läkemedelskatalogens 50 produkter är kontrollerade mot Läkemedelsverkets NPL och har riktiga NPL-id (docs/lakemedelskontroll.md). Alla resurstyper validerades 2026-10-31 med HL7:s validator 7.0.3 mot FHIR R4 och hl7se.fhir.base 1.1.0 utan fel (docs/fhir-validering.md). MedicationAdministration och List för läkemedelsprocessen kom till 2026-11-03 och är bara kontrollerade med strukturtesterna i bygget, inte med HL7:s validator. Validatorn körs i GitHub Actions vid varje push och pull request och fäller körningen vid fel, men inte i Docker-bygget av demon. Patient, Organization och Practitioner påstår HL7 Swedens basprofiler. eGFR har LOINC 98979-8 (CKD-EPI 2021), eftersom demons laboratorium räknar eGFR ur kreatinin med den formeln och NPU saknar kod för skattad glomerulär filtration. Åtgärder har KVÅ (QD008, PA001 och XV015) som systemet sätter själv, och lämnas ut som Procedure. openEHR, Snomed CT och RIVTA-adaptrar saknas.'),
-  k('D10', 'Beslutsstöd i separata moduler, journalkärnan utanför MDR', `${RAPPORT}, D10`, 'delvis', '/patient/:id/lakemedel',
+  k('D10', 'Beslutsstöd i separata moduler, journalkärnan utanför MDR', `${RAPPORT}, D10`, 'uppfyllt_demo', '/patient/:id/lakemedel',
     [`${M}varningarna är märkta som demoregler`, 'Utsättning > utsättningsreglerna ligger i en egen modul och är märkta som demoregler',
       // Runda 6, r1: NEWS2 och skalorna i en egen modul (skalor.js), märkta som demoregler.
-      'Skalor > NEWS2: summan, risken och vad som ska göras enligt Chart 2 och Chart 4'],
-    'Varningsreglerna vid ordination ligger i lakemedel.js, och reglerna för administrering, utsättning och läkemedelsgenomgång i en egen modul (lakemedelsregler.js), skild från journalkärnan. De fördefinierade ordinationerna ligger i ordinationsmallar.js. NEWS2, GCS, NRS, referensintervallen och eGFR ligger i skalor.js. Alla är märkta som demoregler. Ingen MDR-bedömning är gjord.'),
+      'Skalor > NEWS2: summan, risken och vad som ska göras enligt Chart 2 och Chart 4',
+      // Runda 12, r3: bedömningen enligt MDR per beslutsstödsmodul (mdr-bedomning.js).
+      'MDR-bedömning > varje beslutsstödsmodul har en bedömning enligt MDCG 2019-11 med alla steg, och slutsatsen och klassen följer av stegen',
+      'MDR-bedömning > modulerna som varningsreglerna och skalorna ligger i är bedömda'],
+    'Varningsreglerna vid ordination ligger i lakemedel.js, och reglerna för administrering, utsättning och läkemedelsgenomgång i en egen modul (lakemedelsregler.js), skild från journalkärnan. De fördefinierade ordinationerna ligger i ordinationsmallar.js. NEWS2, GCS, NRS, referensintervallen och eGFR ligger i skalor.js. Alla är märkta som demoregler. Vårdkällans egen bedömning per beslutsstödsmodul enligt MDR med MDCG 2019-11 som metod finns i docs/mdr-bedomning.md: journalkärnan är inte en medicinteknisk produkt, och beslutsstödet för läkemedel, skalor, kunskapsstöd, vaccinationer och tillväxt är klass IIa och cytostatikadoseringen och intensivvårdens larm klass IIb. Demon är inte CE-märkt.'),
   // Runda 6, r6: läkemedelsmallarna har versioner och godkänns av mallansvarig läkare på vårdenheten.
   k('D11', 'Styrd lokal anpassning av mallar inom fastställda ramar', `${RAPPORT}, D11`, 'uppfyllt_demo', '/struktur',
     [...TESTER_MALLAR, ...TESTER_ANSVAR, ...TESTER_RAMAR, ...TESTER_LAKEMEDELSMALLAR, R12R1.mall, R12R1.mallVersion, R12R1.fyraOgon],
@@ -167,9 +185,11 @@ export const KRAV = [
       'Arkiv > gallring tar bara journaler vars sista uppgift är äldre än tio år, och loggen är oförändrad och hel',
       'Kontrasignering > den som har signerat kan inte kontrasignera själv'],
     'Bevarande i minst tio år gäller inte demons sandlådor, som lever i åtta timmar. Journalen utplånas bara efter ett registrerat beslut, om förstöring enligt patientdatalagen 8 kap. 4 § eller om gallring tidigast tio år efter den sista uppgiften (3 kap. 17 §), och det loggas. Kontrasignering finns, och den som har signerat kan inte kontrasignera själv.'),
-  k('L2', 'Behörighet efter behovs- och riskanalys, minsta nödvändiga åtkomst', 'PDL 4 kap. 2 §, HSLF-FS 4 kap. 2 till 3 §§', 'delvis', '/patient/:id',
-    [`${B}yrkesroll: läkare får ordinera, sjuksköterska och undersköterska får inte`, `${B}yrkesroll: vårdadministratör får administrativa uppgifter men ingen journaltext eller läkemedel`],
-    'Rollerna ger minsta åtkomst. En dokumenterad behovs- och riskanalys finns inte.'),
+  k('L2', 'Behörighet efter behovs- och riskanalys, minsta nödvändiga åtkomst', 'PDL 4 kap. 2 §, HSLF-FS 4 kap. 2 till 3 §§', 'uppfyllt_demo', '/patient/:id',
+    [`${B}yrkesroll: läkare får ordinera, sjuksköterska och undersköterska får inte`, `${B}yrkesroll: vårdadministratör får administrativa uppgifter men ingen journaltext eller läkemedel`,
+      // Runda 12, r3: den dokumenterade analysen, kopplad till rollerna i atkomst.js (behorighetsanalys.js).
+      'Behörighetsanalys > varje roll i behörighetsmotorn har en behovs- och riskanalys, och analysen säger samma sak som koden'],
+    'Rollerna ger minsta åtkomst. En dokumenterad behovs- och riskanalys per roll finns i docs/behorighetsanalys.md: behov, risker, hur risken begränsas och vad rollen inte får, med rollens handlingar ur behörighetsmotorn. Ett test stoppar bygget om en roll saknar analys eller om analysen säger något annat än koden. Analysen är Vårdkällans egen utgångspunkt; en vårdgivare gör sin egen analys för sin verksamhet.'),
   k('L3', 'Spärr, aktivt val, synlig spärrmarkering och nödåtkomst', 'PDL 4 kap. 4 till 5 §§, HSLF-FS 4 kap. 4 till 8 §§', 'uppfyllt_demo', '/patient/:id',
     [`${B}inre sekretess: andra enheters uppgifter kräver aktivt val`, `${B}inre sekretess: aktivt val visar andra enheters uppgifter med grund aktivt_val`,
       `${B}spärr: spärrmarkering syns men innehållet döljs`, `${B}spärr: aktivt val häver inte spärren`, `${B}spärr: samtycke i stunden visar spärrade uppgifter`,
@@ -197,13 +217,15 @@ export const KRAV = [
       'Stickprovskontroll > systemet drar slumpvis åtkomster, granskaren markerar dem med ett klick, och det syns vilka som återstår',
       'Stickprovskontroll > en granskad rad ändras inte, utreds kräver en kommentar, och varje granskning loggas'],
     'Utskrifter, utlämnanden, export till e-arkiv, gallring, radering och datauttag loggas också. Loggen kan inte ändras och kan följas upp med flaggor. Patienten ser själv i Min journal vilken vårdenhet och yrkesroll som har läst journalen, när och på vilken grund (HSLF-FS 2016:40 4 kap. 10 §), och kan begära ett loggutdrag med namn. Stickprovskontroller enligt 4 kap. 9 b § finns: systemet drar åtkomsterna slumpvis, säger vad som ska kontrolleras och sparar granskningen så att kontrollen är dokumenterad. Loggen kan exporteras till fil som NDJSON eller CSV med hela kedjan, och säkerhetshändelser loggas i en egen kedja. Lagring i minst fem år finns inte, eftersom demons sandlådor lever i åtta timmar, och inloggningen i Min journal är simulerad (se L5).'),
-  k('L5', 'Flerfaktorsautentisering vid direktåtkomst och patientens e-åtkomst', 'HSLF-FS 2016:40 3 kap. 15 § och 4 kap. 11 till 12 §§, PDL 5 kap. 5 §', 'delvis', '/',
+  k('L5', 'Flerfaktorsautentisering vid direktåtkomst och patientens e-åtkomst', 'HSLF-FS 2016:40 3 kap. 15 § och 4 kap. 11 till 12 §§, PDL 5 kap. 5 §', 'uppfyllt_demo', '/flerfaktor',
     [`${MJ}inloggning med simulerad e-legitimation ger en egen session utan personalens behörigheter`, `${MJ}patienten når sin egen journal men inte någon annans, oavsett id i adressen`,
       `${MJ}patientsessionen når inga av personalens API:er`, `${MJ}personalens session når inte Min journal`, `${MJ}utloggning och byte av roll i samma webbläsare nollställer sessionen`,
       `${MJ}anteckningstyp som vårdgivaren valt att inte visa döljs och redovisas`,
       `${MJ}en äldre version av en anteckning som har ersatts av en version som inte visas går inte att nå, varken i Min journal eller i FHIR`,
-      `${B}invånare: egen journal från 16 år, vårdnadshavare till 13 år och aldrig för ett barn med skyddad identitet`],
-    'Patientens e-tjänst Min journal finns, med egen session och egen behörighet på servern, och den talar om vad som inte visas (4 kap. 12 §). Flerfaktorsautentisering finns inte: e-legitimationen för patienten och SITHS-kortet för personalen är simulerade och kopplade till ingen extern tjänst.'),
+      `${B}invånare: egen journal från 16 år, vårdnadshavare till 13 år och aldrig för ett barn med skyddad identitet`,
+      // Runda 12, r3: flerfaktorsinloggning med passkeys (WebAuthn) och engångskoder (RFC 6238), flerfaktor.js.
+      ...TESTER_FLERFAKTOR],
+    'Patientens e-tjänst Min journal finns, med egen session och egen behörighet på servern, och den talar om vad som inte visas (4 kap. 12 §). Flerfaktorsinloggning finns för personalen och för invånaren i Min journal, med öppna standarder och utan extern tjänst: passkeys enligt WebAuthn med användarverifiering, där servern bara sparar den publika nyckeln och prövar signatur, ursprung, utmaning och räknare, och engångskoder enligt RFC 6238, där nyckeln sparas krypterad med AES-256-GCM och varje kod godtas en gång. Ingen nyckel till läskopian lämnas ut förrän den andra faktorn är godkänd, så läsläget vid avbrott fungerar som förut. Systemet föreslår passkey först och förklarar varför en kod eller en passkey inte godtas. Demoregel: den publika demon får inte låsa ute besökaren, så flerfaktorn slås på av var och en när en passkey eller en app registreras för en demoroll i sandlådan, och en återställd sandlåda tar bort den tillsammans med allt annat. I drift skulle flerfaktor krävas av alla. Den första faktorn, SITHS-kortet för personalen och e-legitimationen för invånaren, är fortfarande simulerad och kopplad till ingen extern tjänst.'),
   k('L6', 'Skyddade personuppgifter hanteras i hela kedjan, även uppropning', 'OSL 25 kap., Örebro-fallet 2024', 'uppfyllt_demo', '/vantrum',
     [`${B}skyddad identitet: namn och personnummer maskeras`, `${A}arbetslista maskerar skyddad identitet`, `${A}sök maskerar skyddad patient och hittar den bara på fullständigt personnummer`,
       `${A}väntrummet visar aldrig namn för skyddad patient`, `${A}visa identitet kräver syfte och loggas`, `${F}skyddad patient maskeras i FHIR`,
@@ -226,7 +248,7 @@ export const KRAV = [
   k('L10', 'EHDS: CE-märkning, interoperabilitets- och loggningskomponent', 'Förordning (EU) 2025/327', 'planerat', null,
     [`${FS}inga tomma listor, tomma strängar eller tomma värden, och varje kodning har system och kod`, `${FS}Patient, Organization och Practitioner följer HL7 Swedens basprofiler`],
     'Inte uppfyllt. FHIR R4 och HL7 Swedens basprofiler är validerade, men det europeiska utbytesformatet för journaler, CE-märkning och EHDS loggningskomponent finns inte.'),
-  k('L11', 'MDR för beslutsstöd, läkemedelsvarningar och dosering', 'MDR (EU) 2017/745', 'planerat', null, [], 'Demon är inte CE-märkt. Varningarna är demoregler.'),
+  k('L11', 'MDR för beslutsstöd, läkemedelsvarningar och dosering', 'MDR (EU) 2017/745', 'planerat', null, [], 'Demon är inte CE-märkt. Varningarna är demoregler. Vårdkällans egen bedömning av vilka moduler som är medicintekniska produkter och vilken klass de har finns i docs/mdr-bedomning.md (se D10), men inget kvalitetsledningssystem, ingen klinisk utvärdering och inget anmält organ.'),
   k('L12', 'NIS2 genom cybersäkerhetslagen', 'Cybersäkerhetslagen (2025:1506)', 'planerat', null, []),
   // Runda 9, r6: raderna i lagkravsmatrisen (lagmatris.js) för dataskyddsförordningen, arkivlagen och tillgänglighetslagen.
   k('L13', 'GDPR, arkivlagen, säkerhetsskyddslagen och tillgänglighetslagen', 'Lagkravsmatrisen i Sussa 2.7.1.2', 'delvis', '/krav', testerFor('GDPR', 'Arkivlagen', 'DOS-lagen'),
@@ -257,7 +279,7 @@ export const KRAV = [
     [`${F}sökning ger Bundle searchset`, 'Arkiv > exportpaketet följer FGS Paketstruktur 2.0 med METS.xml, alla mappar och SHA-256 för varje fil',
       'Arkiv > exportpaketet är fullständigt och tar med spärrar och skyddad identitet som uppgifter', 'Datauttag > manifestet följer FHIR Bulk Data och uttaget loggas'],
     'Öppen källkod och FHIR. Alla journaler kan exporteras i ett paket enligt Riksarkivets FGS Paketstruktur 2.0 med journalen i FHIR R4, vilket är återföringen av all data i ett standardiserat arkiveringsformat som avtalet kräver när det upphör. Datauttaget för uppföljning är NDJSON. Paketet är inte prövat mot ett verkligt e-arkiv, och tabeller som inte hör till journalen, till exempel sandlådans inställningar, följer inte med.'),
-  k('M13', 'Medicinteknisk klassning sent: avsett ändamål och klassning före bygget', `${RAPPORT}, Misstag att inte upprepa`, 'planerat', null, [], 'Ingen MDR-klassning är gjord. Varningarna är märkta som demoregler.'),
+  k('M13', 'Medicinteknisk klassning sent: avsett ändamål och klassning före bygget', `${RAPPORT}, Misstag att inte upprepa`, 'planerat', null, [], 'Vårdkällans egen bedömning och klassning per beslutsstödsmodul enligt MDR med MDCG 2019-11 finns i docs/mdr-bedomning.md, men den gjordes i efterhand och inte före bygget. Varningarna är märkta som demoregler.'),
 ];
 
 export function lasTestresultat(fil) {

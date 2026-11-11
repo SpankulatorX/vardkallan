@@ -299,6 +299,24 @@ export const MODULER = [
   s.kod.push('src/journalstruktur.js');
   s.api.push('/api/journalstruktur', '/api/mattyper');
 }
+// Runda 12, r3 (vårt L5): flerfaktorsinloggning hör till modulen för behörighet och inloggning.
+{
+  const b = MODULER.find(x => x.id === 'behorighet');
+  b.beskrivning += ' Flerfaktorsinloggning med passkeys (WebAuthn) och engångskoder (RFC 6238) för personalen och för invånaren i Min journal, påslagen av var och en.';
+  b.rutter.push('#/flerfaktor');
+  b.vyer.push('flerfaktor.js');
+  b.kod.push('src/flerfaktor.js', 'public/js/flerfaktor-ui.js');
+  b.api.push('/api/flerfaktor');
+  b.simulerat = 'SITHS-kortet och e-legitimationen är simulerade. Flerfaktorn är riktig men gäller bara i besökarens sandlåda.';
+  // Praktiska prov i journalen hör till utbildningen.
+  const u = MODULER.find(x => x.id === 'utbildning');
+  u.beskrivning += ' Praktiska prov som görs i en övningsjournal, där systemet kontrollerar resultatet och utbildaren följer upp.';
+  u.kod.push('src/praktiska-prov.js');
+  // Arbete över flera skärmar hör till skärmanpassningen.
+  const t = MODULER.find(x => x.id === 'tillganglighet');
+  t.beskrivning += ' En del av journalen kan öppnas i ett nytt fönster, och fönstren följer varandra när en patient öppnas.';
+  t.kod.push('public/js/flera-fonster.js');
+}
 
 // Vyer och rutter som inte hör till en enskild modul, med motivering.
 export const UTAN_MODUL = {

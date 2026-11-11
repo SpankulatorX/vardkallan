@@ -85,6 +85,11 @@ import * as blodcentral from './vyer/blodcentral.js';
 // Runda 11, r3: förlossningen och BB, och mödrahälsovården.
 import * as forlossning from './vyer/forlossning.js';
 import * as modrahalsovard from './vyer/modrahalsovard.js';
+// Runda 12, r3 (vårt L5): flerfaktorsinloggning med passkeys och engångskoder.
+import * as flerfaktorVy from './vyer/flerfaktor.js';
+import { andraFaktorn } from './flerfaktor-ui.js';
+// Runda 12, r3 (Sussa KD1.1.4.10): arbete över flera skärmar.
+import * as flera from './flera-fonster.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -280,6 +285,8 @@ const RUTTER = [
   [/^#\/sussatest$/, sussatest, () => true, true],
   [/^#\/patient\/([\w-]+)(?:\/([a-z]+))?(?:\/([\w-]+))?$/, patient, () => !utanJournal()],
 ];
+// Runda 12, r3 (vårt L5): inloggning och flerfaktor, för all personal och för invånaren i Min journal.
+RUTTER.splice(RUTTER.findIndex(r => String(r[0]) === String(/^#\/nyheter$/)), 0, [/^#\/flerfaktor$/, flerfaktorVy, () => arPersonal()]);
 
 // Invånarens adresser i Min journal, och de offentliga sidorna. Personalens vyer finns inte här.
 const RUTTER_MIN = [
@@ -292,6 +299,8 @@ const RUTTER_MIN = [
   [/^#\/tillganglighet$/, tillganglighet],
   // Runda 10, r7: den simulerade mötessidan för ett videobesök.
   [/^#\/videomote\/([\w-]+)$/, r10r7.videomote],
+  // Runda 12, r3.
+  [/^#\/flerfaktor$/, flerfaktorVy],
 ];
 
 // Enhetsträdet: varje enhet med sin vårdenhet. Inre sekretess och remisser räknas per vårdenhet.
@@ -436,6 +445,7 @@ function ritaRam(route) {
       ${skanner.faltHtml()}
       <a class="svarstid" id="svarstid" href="#/drift">${svarstidHtml()}</a>
       ${utanJournal() ? '' : `<button type="button" class="knapp text liten reservknapp" data-a="reservkod">${ikon.nyckel}<span data-reserv-text>Reservkod</span></button>`}
+      ${flerfaktorLank(sess)}
       <button type="button" class="knapp sekundar liten" data-a="loggaut">${ikon.ut}<span>Logga ut</span></button>
     </div></header>
     <div id="nyhetsruta"></div>
@@ -457,6 +467,7 @@ function ritaRamInvanare(ram, sess) {
         <span class="kort-ikon" aria-hidden="true">${ikon.person}</span>
         <span class="vem"><strong>${esc(sess.invanare.namn)}</strong><span>Inloggad med e-legitimation (simulerad)</span></span>
       </div>
+      ${flerfaktorLank(sess)}
       <button type="button" class="knapp sekundar liten" data-a="loggaut">${ikon.ut}<span>Logga ut</span></button>
     </div></header>
     <div id="nyhetsruta"></div>
@@ -537,6 +548,16 @@ async function visaVy(vy, main, param, q, nr) {
   document.title = `${main.querySelector('h1')?.textContent?.trim() || 'Start'}, Vårdkällan`;
   // Läskopian för avbrott förnyas när en patient har öppnats, annars högst en gång i minuten. Bara för personalen.
   if (arPersonal()) avbrottslage.fornya({ nu: vyNamn === 'patient' });
+  // Runda 12, r3 (Sussa KD1.1.4.10): personalens fönster följer varandra när en patient öppnas.
+  if (arPersonal()) {
+    flera.starta(S.session.personal.id);
+    const pid = vyNamn === 'patient' && param[0] && main.querySelector('.patientband h1') ? param[0] : null;
+    flera.patient(pid, pid ? main.querySelector('.patientband h1')?.textContent?.trim() ?? '' : '');
+    if (pid && !main.querySelector('[data-fonster-rad]')) {
+      const flikar = main.querySelector('.flikar');
+      if (flikar) { flikar.insertAdjacentHTML('afterend', flera.radHtml(pid)); flera.kopplaRad(main.querySelector('[data-fonster-rad]')); }
+    }
+  } else flera.stoppa();
 }
 
 // Demoknappen Simulera avbrott visas för den som är inloggad, och inte under ett avbrott.
@@ -545,10 +566,39 @@ export function demoknappar() {
   if (b) b.hidden = !arPersonal() || avbrott.simulerat || avbrott.aktivt;
 }
 
+// Runda 12, r3: länken till inloggning och flerfaktor i sidhuvudet, med en bock när flerfaktor är på.
+function flerfaktorLank(sess) {
+  const pa = Boolean(sess?.flerfaktor?.aktiv);
+  return `<a class="knapp text liten flerfaktor-lank" href="#/flerfaktor" data-flerfaktor="${pa ? 'pa' : 'av'}">${ikon.skold}<span>${pa ? 'Flerfaktor på' : 'Flerfaktor'}</span></a>`;
+}
+
+// Runda 12, r3: när personen har flerfaktor väntar inloggningen på den andra faktorn. Avbryter personen blir ingen
+// inloggad, och den förra inloggningen i webbläsaren är redan avslutad på servern.
+async function medAndraFaktorn(s, forra = null) {
+  if (!s?.flerfaktor?.kravs) return s;
+  // Ingen är inloggad medan den andra faktorn väntar, och svar på äldre anrop gäller inte längre.
+  nySession();
+  S.session = { inloggad: false };
+  const klar = await andraFaktorn(s.flerfaktor, s.flerfaktorVantar?.namn);
+  if (!klar?.inloggad) {
+    // Den förra personens läskopia gäller inte längre, eftersom servern har avslutat den inloggningen.
+    await avbrottslage.rensa({ personalId: forra }).catch(() => {});
+    nySession();
+    S.session = { inloggad: false };
+    S.inkorg = null;
+    ramNyckel = null;
+    rita();
+    return null;
+  }
+  return klar;
+}
+
 export async function loggaIn(personalId, knapp) {
   // Runda 7, r2: en förnyelse av läskopian för den förra inloggningen får inte fortsätta.
   avbrottslage.stoppaFornyelse();
-  const s = await medKnapp(knapp, () => api('/api/login', { metod: 'POST', data: { personalId } }));
+  const forra = S.session?.personal?.id ?? null;
+  const s = await medAndraFaktorn(await medKnapp(knapp, () => api('/api/login', { metod: 'POST', data: { personalId } })), forra);
+  if (!s) return;
   nySession();
   S.session = s;
   // Ny inloggning, ny nyckel: en tidigare persons läskopia raderas, och personens reservkopia från en tidigare
@@ -570,7 +620,8 @@ export async function loggaInInvanare(invanareId, knapp) {
   avbrottslage.stoppaFornyelse();
   const forra = S.session?.personal?.id ?? null;
   const loggen = await avbrottslage.skickaLoggar().catch(() => null);
-  const s = await medKnapp(knapp, () => api('/api/login/invanare', { metod: 'POST', data: { invanareId } }));
+  const s = await medAndraFaktorn(await medKnapp(knapp, () => api('/api/login/invanare', { metod: 'POST', data: { invanareId } })), forra);
+  if (!s) return;
   nySession();
   S.session = s;
   S.inkorg = null;

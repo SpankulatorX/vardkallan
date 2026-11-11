@@ -68,6 +68,9 @@ export const ANDRINGAR = [
   },
 ];
 
+// Runda 12, r3: flerfaktorsinloggning i det interna API:t (docs/api-avvikelser.md).
+ANDRINGAR.find(a => a.version === '1.2.0').annat.push('Flerfaktorsinloggning med passkeys (WebAuthn) och engångskoder (RFC 6238) i det interna API:t');
+
 // Det CapabilityStatement anger: alla resurstyper och alla skrivande interaktioner.
 const SKRIVANDE = new Set(['create', 'update', 'patch', 'delete']);
 export function franCapability(cs) {
