@@ -15,13 +15,13 @@ Dokumentet skrivs ur registret i "app/src/tillganglighet.js" med "bun scripts/ti
 | WCAG | Krav | EN 301 549 | Nivå | Status | Hur det är testat |
 |---|---|---|---|---|---|
 | 1.1.1 | Innehåll som inte är text | 11.2.1.1 | A | Uppfyllt | Automatiskt test. Varje bild och symbol i alla vyer prövas: den har ett textalternativ, eller är dold för hjälpmedel när den bara är dekoration. Kurvorna har en beskrivning med värdena, och värdena finns också i en tabell. |
-| 1.2.1 | Enbart ljud och enbart video (förinspelad) | 11.2.1.2 | A | Ej tillämpligt | Automatiskt test. Vårdkällan har inget ljud och ingen video. Testet prövar att inga ljud- eller videoelement finns i någon vy. |
+| 1.2.1 | Enbart ljud och enbart video (förinspelad) | 11.2.1.2 | A | Ej tillämpligt | Automatiskt test. Gränssnittet har inget eget ljud och ingen egen video. Filmer och ljud som vården spelar in och för in i journalen (fliken Bilder) är uppgifter om patienten, och de spelas bara upp när användaren väljer det, i en dialog med webbläsarens kontroller och med kroppsställe, beskrivning, tid och längd i text. Testet prövar att inga ljud- eller videoelement finns i någon vy när den visas. |
 | 1.2.2 | Textbeskrivningar (förinspelade) | 11.2.1.3 | A | Ej tillämpligt | Automatiskt test. Inga förinspelade media finns. |
 | 1.2.3 | Ljudbeskrivning eller mediealternativ (förinspelat) | 11.2.1.4 | A | Ej tillämpligt | Automatiskt test. Inga förinspelade media finns. |
 | 1.2.5 | Ljudbeskrivning (förinspelad) | 11.2.1.6 | AA | Ej tillämpligt | Automatiskt test. Inga förinspelade media finns. |
 | 1.3.3 | Sensoriska kännetecken | 11.2.1.9 | A | Delvis uppfyllt | Kräver bedömning av en människa. Instruktionerna i gränssnittet hänvisar till knappar och fält med deras namn, inte med form, färg eller placering. Det är granskat i koden, men bara en människa kan bedöma det i varje text. |
 | 1.4.1 | Användning av färger | 11.2.1.10 | A | Uppfyllt | Automatiskt test. Status, larm, varningar, uppmärksamhetssymbolen, spärrmarkeringen och skyddad identitet har text och symbol utöver färgen. I kurvorna har punkter utanför referensintervallet en ring, och den andra serien är streckad. Länkar i löptext är understrukna. Testet prövar varje vy för varje roll. |
-| 1.4.2 | Kontroll av ljud | 11.2.1.11 | A | Ej tillämpligt | Automatiskt test. Vårdkällan spelar inget ljud. |
+| 1.4.2 | Kontroll av ljud | 11.2.1.11 | A | Ej tillämpligt | Automatiskt test. Vårdkällan spelar inget ljud av sig självt. Ett inspelat ljud i journalen spelas bara upp när användaren startar det, och det stoppas med webbläsarens kontroller. |
 | 1.4.3 | Kontrast (minimum) | 11.2.1.12 | AA | Uppfyllt | Automatiskt test. Kontrasten mellan text och bakgrund räknas med WCAG:s formel för varje synligt textelement i alla vyer för alla demoroller och i Min journal: minst 4,5:1, och 3:1 för stor text. |
 | 1.4.4 | Förändring av textstorlek | 11.2.1.13 | AA | Uppfyllt | Automatiskt test. Varje vy prövas vid 200 procents förstoring: ingen rullning i sidled, och ingen text som klipps av i en ruta. |
 | 1.4.5 | Text i form av bild | 11.2.1.14 | AA | Uppfyllt | Automatiskt test. All text är text. Testet prövar att inga bilder med text finns; logotypen är en symbol utan text. |
@@ -60,7 +60,7 @@ Allt går att förstora till 200 procent och läsa vid 320 px bredd. Kontrasten 
 
 ### Hörselskada
 
-Vårdkällan har inget ljud. Larm och påminnelser visas i inkorgen och på skärmen, aldrig bara som ljud.
+Vårdkällan har inga ljudsignaler. Larm och påminnelser visas i inkorgen och på skärmen, aldrig bara som ljud. Ett inspelat ljud i journalen har en beskrivning i text.
 
 ### Färgblindhet
 
