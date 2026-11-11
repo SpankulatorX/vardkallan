@@ -118,6 +118,44 @@ describe('Väntelistan (runda 13, r4, E3-8 och E3-9)', () => {
   });
 });
 
+describe('Bokning från väntelistan (runda 13, r4, E3-10 och E3-47)', () => {
+  test('en inskriven patient får förslag från en vecka efter i dag, med hans kommande tider på vårdenheten', () => {
+    stallKlockan(KLOCKAN('10:00'));
+    const db = nySessionsDb();
+    const post = db.query("SELECT * FROM vantelista WHERE patient_id = 'p01' AND status = 'vantar' AND enhet_id = 'uso-kard'").get();
+    const f = tidbok.forslagForPost(atk(db, 'adm-kard', 'p01', {}, 'boka'), post);
+    expect(f.inskriven.text).toContain('Patienten är inskriven (Avd 72');
+    expect(f.forslag.length).toBeGreaterThan(0);
+    for (const x of f.forslag) expect(Date.parse(x.start)).toBeGreaterThanOrEqual(Date.parse(lokalTid(addDagar('2026-11-12', tidbok.INSKRIVEN_FORSLAG_DAGAR), '00:00')));
+    // Elkonverteringen som redan är bokad syns i dialogen.
+    expect(f.kommande.map(k => k.orsak)).toContain('Elkonvertering');
+    // En patient som inte är inskriven får förslag som förut.
+    const p10 = db.query("SELECT * FROM vantelista WHERE patient_id = 'p10' AND status = 'vantar'").get();
+    expect(tidbok.forslagForPost(atk(db, 'adm-kard', 'p10', {}, 'boka'), p10).inskriven).toBeNull();
+  });
+
+  test('systemet föreslår inte en tid som ett brev inte hinner fram till, och ett brev till en för nära tid skickas inte', () => {
+    stallKlockan(KLOCKAN('10:00'));
+    const db = nySessionsDb();
+    const nu = KLOCKAN('10:00').getTime();
+    const post = db.query("SELECT * FROM vantelista WHERE patient_id = 'p10' AND status = 'vantar'").get();
+    // Karl-Erik Brandt vill få kallelser med brev. Vid normal prioritet ligger förslagen minst tre dagar fram.
+    tidbok.prioritera(atk(db, 'adm-kard', 'p10', {}, 'vantelista'), post, { prioritet: post.prioritet === 'normal' ? 'lag' : 'normal', orsak: 'bedomning' });
+    const normal = tidbok.vantelistaRad(db, post.id);
+    const f = tidbok.forslagForPost(atk(db, 'adm-kard', 'p10', {}, 'boka'), normal);
+    expect(f.forslag.length).toBeGreaterThan(0);
+    for (const x of f.forslag) expect(Date.parse(x.start) - nu).toBeGreaterThanOrEqual(tidbok.BREV_DAGAR * 86400_000);
+    // Bokas en tid i morgon ändå (vid hög prioritet eller fritt) skickas inget brev, och patienten ska få tiden per telefon.
+    const imorgon = db.query(`SELECT t.* FROM tider t JOIN scheman s ON s.id = t.schema_id WHERE s.enhet_id = 'uso-kard-mott' AND t.tidstyp = 'nybesok' AND s.yrkesroll = 'lakare'
+      AND t.start > ? AND t.start < ? AND NOT EXISTS (SELECT 1 FROM bokningar b WHERE b.tid_id = t.id) ORDER BY t.start`).get(new Date(nu).toISOString(), new Date(nu + 2 * 86400_000).toISOString());
+    if (imorgon) {
+      const { kallelse } = tidbok.bokaPostRad(db, normal, imorgon, { av: 'adm-kard' });
+      expect(kallelse).toMatchObject({ kanal: 'brev', status: 'kan_inte', skickad: null });
+      expect(kallelse.forklaring).toContain('ett brev hinner inte fram');
+    }
+  });
+});
+
 describe('Nivå 2 via API (runda 13, r4)', () => {
   let app;
   beforeAll(() => { app = testserver(); });

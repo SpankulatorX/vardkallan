@@ -714,7 +714,14 @@ export function tidigareVardgivare(db, patientId, ve, yrkesroll = null) {
 export function foreslaTider(db, behov, antal = 3) {
   const enheter = enheterUnder(db, behov.ve);
   const ph = enheter.map(() => '?').join(', ');
-  const fran = behov.fran ?? new Date(Date.now() + 2 * TIMME).toISOString();
+  let fran = behov.fran ?? new Date(Date.now() + 2 * TIMME).toISOString();
+  // Runda 13, r4: får patienten kallelsen med brev föreslår systemet inte en tid som brevet inte hinner fram till, utom
+  // vid hög prioritet. Då säger kallelsen att patienten ska få tiden per telefon (skickaKallelse).
+  const pat = behov.patientId ? patientRad(db, behov.patientId) : null;
+  if (pat && behov.prioritet !== 'hog' && kanalFor(db, pat).kanal === 'brev') {
+    const brevFran = new Date(Date.now() + BREV_DAGAR * DAG).toISOString();
+    if (brevFran > fran) fran = brevFran;
+  }
   // Runda 6, r4: en kallelse utan förbokad tid har en ram som tiderna ska ligga inom.
   const till = behov.till ?? new Date(Date.now() + (SEED.DAGAR_FRAMAT + 5) * DAG).toISOString();
   const rader = db.query(`SELECT t.*, s.personal_id, s.yrkesroll, s.enhet_id FROM tider t JOIN scheman s ON s.id = t.schema_id
@@ -827,12 +834,34 @@ function langd(ms) {
 // Får användaren se uppgifter från vårdenheten (inre sekretess, aktivt val och spärr)?
 const synligFor = (atk) => (enhetId) => atk.prova('las_admin', { enhet_id: enhetId }).tillaten;
 
+// Runda 13, r4: ett brev behöver så här många dagar för att hinna fram (demoregel).
+export const BREV_DAGAR = 3;
+// Runda 13, r4: en patient som är inskriven på samma vårdenhet får förslag från några dagar efter i dag, eftersom återbesöket
+// görs efter utskrivningen, och dialogen säger det. Patientens kommande tider på vårdenheten visas också. Bara den egna
+// vårdenhetens uppgifter används, så att inget från en annan vårdenhet röjs.
+export const INSKRIVEN_FORSLAG_DAGAR = 4;
+function lageForPost(db, post) {
+  const enheter = enheterUnder(db, vardenhetFor(db, post.enhet_id));
+  const ph = enheter.map(() => '?').join(', ');
+  const inskriven = db.query(`SELECT * FROM vardkontakter WHERE patient_id = ? AND enhet_id IN (${ph}) AND typ = 'slutenvard' AND slut IS NULL ORDER BY start DESC`).get(post.patient_id, ...enheter);
+  const kommande = db.query(`SELECT b.*, t.start, t.tidstyp FROM bokningar b JOIN tider t ON t.id = b.tid_id JOIN scheman s ON s.id = t.schema_id
+    WHERE b.patient_id = ? AND s.enhet_id IN (${ph}) AND b.status = 'bokad' AND t.start > ? ORDER BY t.start`).all(post.patient_id, ...enheter, iso());
+  return {
+    inskriven: inskriven ? { plats: inskriven.plats, sedan: inskriven.start, text: `Patienten är inskriven (${inskriven.plats}). Ett återbesök görs efter utskrivningen, så systemet föreslår tider från ${INSKRIVEN_FORSLAG_DAGAR} dagar efter i dag. Passar ingen kan du boka fritt i tidboken.` } : null,
+    kommande: kommande.map(b => ({ start: b.start, tidstyp: b.tidstyp, tidstypText: TIDSTYPER[b.tidstyp]?.text ?? b.tidstyp, orsak: b.orsak })),
+  };
+}
+
 export function forslagForPost(atk, post) {
   atk.krav('boka');
   kravEgenVardenhet(atk, post.enhet_id, `vantelista:${post.id}`);
   const db = atk.db;
   atk.logga('boka', atk.grund(), `vantelista:${post.id}:forslag`);
-  return { post: vantelistaUt(db, post), forslag: foreslaTider(db, { ...behovForPost(db, post), synlig: synligFor(atk) }), demoregler: demoregelText(db) };
+  const lage = lageForPost(db, post);
+  const behov = behovForPost(db, post);
+  // Ett ingrepp, till exempel en elkonvertering, planeras ofta under vårdtillfället och får förslag som förut.
+  const fran = lage.inskriven && !plan.behovForPost(db, post.id)?.ingrepp ? lokalTid(addDagar(idag(), INSKRIVEN_FORSLAG_DAGAR), '00:00') : behov.fran;
+  return { post: vantelistaUt(db, post), forslag: foreslaTider(db, { ...behov, ...(fran ? { fran } : {}), synlig: synligFor(atk) }), demoregler: demoregelText(db), ...lage };
 }
 
 export function forslagForBokning(atk, b) {
@@ -1212,10 +1241,15 @@ export function skickaKallelse(db, b, typ, { av = null, tid = iso(), kanal = nul
   const valtKanal = kanal && !p.skyddad ? kanal : k.kanal;
   const mottagare = valtKanal === k.kanal ? k.mottagare : valtKanal === 'sms' ? p.telefon : valtKanal === 'brev' ? `${p.adress}, ${p.postnr} ${p.ort}` : 'Min journal';
   const text = kallelseText(db, b, typ, tillagg);
-  const status = valtKanal ? 'skickad' : 'kan_inte';
-  const forklaring = [k.forklaring, valtKanal && valtKanal !== 'min_journal' ? `${KANAL[valtKanal]} är simulerat i demon. Inget skickas.` : null].filter(Boolean).join(' ') || null;
+  // Runda 13, r4: ett brev hinner inte fram till en tid om mindre än tre dagar. Då skickas inget brev, och raden i Dagens
+  // arbete säger att patienten ska få tiden per telefon.
+  const start = tidRad(db, b.tid_id)?.start;
+  const forSnart = typ === 'kallelse' && valtKanal === 'brev' && start && Date.parse(start) - Date.parse(tid) < BREV_DAGAR * DAG;
+  const status = valtKanal && !forSnart ? 'skickad' : 'kan_inte';
+  const forklaring = forSnart ? `Tiden är om mindre än ${BREV_DAGAR} dagar, och ett brev hinner inte fram. Ring patienten och ge tiden, och markera sedan att patienten har fått den.`
+    : [k.forklaring, valtKanal && valtKanal !== 'min_journal' ? `${KANAL[valtKanal]} är simulerat i demon. Inget skickas.` : null].filter(Boolean).join(' ') || null;
   const id = Number(db.query(`INSERT INTO kallelser (bokning_id, patient_id, typ, kanal, mottagare, text, status, skapad, skickad, skapad_av, forklaring)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(b.id, b.patient_id, typ, valtKanal, valtKanal ? mottagare : null, text, status, tid, valtKanal ? tid : null, av, forklaring).lastInsertRowid);
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(b.id, b.patient_id, typ, valtKanal, valtKanal ? mottagare : null, text, status, tid, status === 'skickad' ? tid : null, av, forklaring).lastInsertRowid);
   // Runda 6, r4: kallelsens språk sparas, så att personalen ser att den är skriven på patientens språk.
   const sprak = plan.sprakFor(db, b.patient_id);
   plan.sparaKallelsesprak(db, id, sprak);

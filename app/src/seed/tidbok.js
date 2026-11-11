@@ -49,6 +49,8 @@ export const EGENBOKNING = [
 export const KANALVAL = [
   { patient: 'p08', kanal: 'brev' },
   { patient: 'p15', kanal: 'sms' },
+  // Runda 13, r4: Karl-Erik Brandt, 80 år, använder inte Min journal och vill få kallelser med brev.
+  { patient: 'p10', kanal: 'brev' },
 ];
 
 // Dagens patienter och kommande bokningar. tid är { min } för i dag eller { dag, klocka } framåt.

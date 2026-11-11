@@ -126,7 +126,14 @@ describe('Tidbok', () => {
     expect(db(k).query('SELECT status, bokning_id FROM vantelista WHERE id = ?').get(p.id)).toEqual({ status: 'bokad', bokning_id: b.id });
     const kl = kallelser(k, b.id);
     expect(kl.length).toBe(1);
-    expect(kl[0]).toMatchObject({ typ: 'kallelse', kanal: 'min_journal', status: 'skickad', skapad_av: 'adm-kard' });
+    // Runda 13, r4: Karl-Erik Brandt vill få kallelser med brev. Ett brev hinner inte fram till en tid om mindre än tre
+    // dagar, och då skickas inget utan raden säger att patienten ska få tiden per telefon.
+    const snart = Date.parse(f.start) - Date.now() < tidbok.BREV_DAGAR * 86400_000;
+    expect(kl[0]).toMatchObject({ typ: 'kallelse', kanal: 'brev', status: snart ? 'kan_inte' : 'skickad', skapad_av: 'adm-kard' });
+    if (snart) {
+      expect(kl[0].forklaring).toContain('ett brev hinner inte fram. Ring patienten');
+      expect((await k.get('/api/idag')).data.kallelser.some(x => x.typ === 'kan_inte' && x.bokningId === b.id)).toBe(true);
+    }
     expect(r.data.kallelse.text).toContain('Nybesök hos läkare');
     // Tiden är inte längre ledig och föreslås inte igen.
     const p2 = post(k, 'p01');
