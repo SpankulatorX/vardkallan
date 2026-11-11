@@ -33,7 +33,9 @@ export const DOKUMENT = [
 ];
 
 export const ROT = join(import.meta.dir, '..', '..');
-export const provbar = (fil) => fil.startsWith('app/') || existsSync(join(ROT, 'docs'));
+// I Docker-bygget finns bara källkoden, testerna, skripten och resultatfilerna i app/, inte Dockerfile eller resten av
+// förrådet. Där prövas bara det som finns i bygget.
+export const provbar = (fil) => existsSync(join(ROT, 'docs')) || /^app\/(src|test|scripts|public)(\/|$)|^app\/[\w-]+\.json$/.test(fil);
 export const finns = (fil) => existsSync(join(ROT, fil));
 
 export function markdown() {
