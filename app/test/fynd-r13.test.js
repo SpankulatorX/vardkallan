@@ -86,22 +86,50 @@ describe('Läskopian i loggen (E3-28, E3-30, E3-36)', () => {
     await k.logga('logg');
     const l = (await k.get('/api/logg')).data;
     expect(l.automatiska).toBeGreaterThan(0);
-    expect(l.rader.some(r => ['lasekopia', 'lasekopia:slut'].includes(r.resurs))).toBe(false);
     const alla = (await k.get('/api/logg?automatiska=visa')).data;
-    expect(alla.rader.filter(r => r.automatisk).every(r => r.flaggad === false)).toBe(true);
-    // Stickprovet drar bara åtkomster som en människa har gjort.
+    const kopior = alla.rader.filter(r => r.kopiaForAvbrott);
+    // Säkerhetsgranskningen: bara rutinrader fälls ihop. En kopia med flagga eller mycket högt skyddsbehov visas som förut,
+    // och ingen rad förlorar sin flagga.
+    expect(l.rader.filter(r => r.kopiaForAvbrott).every(r => r.flaggad || r.skyddsniva >= 3)).toBe(true);
+    for (const r of kopior.filter(x => x.flaggad || x.skyddsniva >= 3)) expect(l.rader.some(x => x.id === r.id)).toBe(true);
+    expect(kopior.length - l.rader.filter(r => r.kopiaForAvbrott).length).toBe(l.automatiska);
+    const skyddad = kopior.find(r => r.skyddsniva >= 3);
+    expect(skyddad).toBeDefined();
+    // Stickprovet: rutinkopiorna dras i en egen kategori med högst två rader, och kopior med mycket högt skyddsbehov kan
+    // alltid dras.
     const sp = logguppfoljning.dra(db, db.query("SELECT * FROM personal WHERE id = 'logg'").get(), { antal: 100 });
-    const ids = db.query('SELECT logg_id FROM stickprov_rader WHERE stickprov_id = ?').all(sp.id ?? sp.stickprov?.id).map(r => r.logg_id);
-    expect(ids.length).toBeGreaterThan(0);
-    const ph = ids.map(() => '?').join(', ');
-    expect(db.query(`SELECT count(*) AS n FROM atkomstlogg WHERE id IN (${ph}) AND resurs IN ('lasekopia', 'lasekopia:slut')`).get(...ids).n).toBe(0);
-    // Patienten ser klartext, aldrig en intern kod, och läskopian märkt som automatisk.
+    const rutinIStickprov = sp.rader.filter(r => r.kategori === 'Kopia för avbrott' && (r.skyddsniva ?? 0) < 3 && !['nodatkomst', 'samtycke_sparr'].includes(r.grund));
+    expect(rutinIStickprov.length).toBeLessThanOrEqual(logguppfoljning.KOPIOR_I_STICKPROV);
+    expect(rutinIStickprov.length).toBeGreaterThan(0);
+    expect(sp.rader.some(r => r.loggId === skyddad.id)).toBe(true);
+    // Patienten ser klartext, aldrig en intern kod, och läskopian som det den är, sammanfattad per dag och vårdenhet.
     const m = klient(app);
     await m.post('/api/login/invanare', { invanareId: 'inv-p01' });
     sandlada(app, m).db = db;
     const rader = (await m.get('/api/min/journal/p01/logglista')).data.rader;
     for (const r of rader) expect(r.handlingText).not.toMatch(/^[a-z_]+$/);
-    expect(rader.filter(r => r.via === 'laskopia').every(r => r.automatisk === true)).toBe(true);
+    const kp = rader.filter(r => r.via === 'laskopia');
+    expect(kp.length).toBeGreaterThan(0);
+    for (const r of kp) {
+      expect(r.handlingText).toMatch(/^Uppgifter ur journalen kopierades till en dator på .+ för läsning vid avbrott$/);
+      expect(r.handlingText).not.toContain('Ingen');
+      expect(r.yrkesroll).toBeTruthy();
+    }
   }, 30_000);
+
+  test('E1-36: läkaren sätter en diagnos med ICD-10-SE på den pågående kontakten, och systemet avgör huvud- eller bidiagnos', async () => {
+    const k = klient(app);
+    await k.logga('lak-vc');
+    const db = sandlada(app, k).db;
+    const vk = Number(db.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, kontaktsatt, start, plats, orsak, kalla) VALUES ('p11', 'vc-tybble', 'oppenvard', 'telefon', ?, 'Telefonkontakt', 'Uppföljning', 'vardkallan')").run(new Date().toISOString()).lastInsertRowid);
+    const akt = (await k.get('/api/patient/p11/vardkontakt/aktuell')).data;
+    expect(akt.vardkontakt?.id).toBe(vk);
+    const val = (await k.get('/api/rapportering/rattning/val')).data;
+    expect(val.diagnoser.some(d => d.kod === 'E11.9')).toBe(true);
+    const r = await k.post(`/api/vardkontakt/${vk}/diagnos`, { kod: 'E11.9' });
+    expect(r.status).toBe(201);
+    expect(r.data).toMatchObject({ kod: 'E11.9', typ: 'huvud' });
+    expect((await k.post(`/api/vardkontakt/${vk}/diagnos`, { kod: 'XYZ' })).status).toBe(400);
+  });
 });
 

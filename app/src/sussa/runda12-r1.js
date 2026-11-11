@@ -38,7 +38,22 @@ export const TESTER_RAMAR = [R12R1.ram, R12R1.lokal, R12R1.ramAndras];
 export const TESTER_LAKEMEDELSMALLAR = [R12R1.lmNy, R12R1.lmApi];
 // Läkemedel (12.1.1.8).
 export const TESTER_LAKEMEDELSREGLER = [R12R1.interaktioner, R12R1.maxdoser, R12R1.orsak];
+// Runda 13, r3 (E1-11, E1-21, E1-25): fler interaktioner i förvalet och läkemedel i NLL från en spärrad vårdenhet.
+TESTER_LAKEMEDELSREGLER.push(...[
+  'NSAID till en äldre patient med apixaban, furosemid och spironolakton ger varningar som nämner varje interaktion',
+  'warfarin till en patient med tikagrelor och acetylsalicylsyra ger en varning för trippelbehandling',
+  'läkemedel i Nationella läkemedelslistan från en spärrad vårdenhet ingår i interaktionskontrollen när ordinationen sparas, utan att läkemedlet röjs och med loggning',
+].map(t => `Läkemedelsvarningar vid ordination > ${t}`));
 // Administration (12.1.1.6).
 export const TESTER_ADMINISTRATION = [R12R1.tidbok, R12R1.avgifter];
+// Runda 13, r3: lagrummen för avgifterna och vårdgarantin, och rabatten med vårdgivarens avgifter (lagrum-avgifter.test.js).
+TESTER_ADMINISTRATION.push(...[
+  'taken för högkostnadsskyddet och slutenvården räknas ur prisbasbeloppet för året',
+  'avgiften per vårddag kan inte sättas över lagens tak för det år ändringen gäller',
+  'högkostnadsskyddet och åldersgränserna har paragrafen i texten, och avgiftsfriheten för barn är regionens beslut',
+  'rabatten följer vårdgivarens godkända avgifter och åldersgränser, inte standardvärdena',
+  'vårdgarantin räknas från att remissen utfärdades, med lagrummet i hälso- och sjukvårdsförordningen',
+  'i primärvården gäller bedömningsgarantin i tre dagar för en egen vårdbegäran, och inte de 90 dagarna för specialiserad vård',
+].map(t => `Lagrum för avgifter och vårdgaranti > ${t}`));
 // Undantas från visning (12.1.1.10).
 export const TESTER_UNDANTAG_ENSKILD = [R12R1.enskild, R12R1.enskildVersion, R12R1.enskildSparr, R12R1.enskildKanaler];

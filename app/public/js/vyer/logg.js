@@ -131,7 +131,7 @@ export async function visa(main, _p, q) {
   const flaggade = d.rader.filter(r => r.flaggad).length;
   main.querySelector('#loggresultat').innerHTML = `${kedjaRuta(d.kedjaHel, d.verifiering)}
     <p class="antal-text">${d.rader.length === 1 ? 'En rad' : `${d.rader.length} rader`}${flagga === 'alla' && flaggade ? `, varav ${flaggade} flaggade för uppföljning` : ''}. Nyast först, högst 500.</p>
-    ${d.automatiska ? `<p class="liten dampad" data-automatiska="${esc(d.automatiska)}">${d.visaAutomatiska ? `De ${esc(d.automatiska)} automatiska raderna om läskopian för avbrott visas och är märkta. Ingen människa har gjort dem, och de dras aldrig i ett stickprov.` : `${esc(d.automatiska)} automatiska rader om läskopian för avbrott visas inte, eftersom ingen människa har gjort dem.`} <a href="#/logg?${esc(new URLSearchParams({ flagga, ...(fran ? { fran } : {}), ...(till ? { till } : {}), ...(d.visaAutomatiska ? {} : { automatiska: 'visa' }) }).toString())}">${d.visaAutomatiska ? 'Dölj dem' : 'Visa dem'}</a></p>` : ''}
+    ${d.automatiska ? `<p class="liten dampad" data-automatiska="${esc(d.automatiska)}">${d.visaAutomatiska ? `De ${esc(d.automatiska)} rutinraderna om kopior för avbrott visas och är märkta.` : `${esc(d.automatiska)} rutinrader om kopior för avbrott är hopfällda.`} Kopian lämnar ut uppgifter till personalens dator när någon loggar in, och en flaggad kopia eller en kopia med mycket högt skyddsbehov visas alltid. <a href="#/logg?${esc(new URLSearchParams({ flagga, ...(fran ? { fran } : {}), ...(till ? { till } : {}), ...(d.visaAutomatiska ? {} : { automatiska: 'visa' }) }).toString())}">${d.visaAutomatiska ? 'Dölj dem' : 'Visa dem'}</a></p>` : ''}
     ${exportLankar('atkomst', { flagga, fran, till })}
     ${loggTabell(d.rader)}`;
 }

@@ -81,7 +81,9 @@ export async function visa(el, ctx) {
       <p class="dampad liten">Alla utom de markerade är kvitterade av Nationella läkemedelslistan.</p>` : tomRad('Inga aktuella läkemedel.')), `<a class="sektion-lank" href="${ctx.href('lakemedel')}">Läkemedelslistan</a>`));
   });
   if (d.diagnoser) som('diagnoser', () => {
-    delar.push(sektion('dia', 'Diagnoser', d.diagnoser.length ? `<ul class="enkel-lista">${d.diagnoser.map(x => `<li><span class="kod">${esc(x.kod)}</span> ${esc(x.text)}${x.typ === 'huvud' ? ' <span class="dampad">(huvuddiagnos)</span>' : ''}<span class="under-text">${esc(datum(x.datum))}, ${esc(x.vardenhet.namn)}</span>${migreradEtikett(x)}</li>`).join('')}</ul>` : tomRad('Inga diagnoser som du kan se.')));
+    delar.push(sektion('dia', 'Diagnoser', d.diagnoser.length ? `<ul class="enkel-lista">${d.diagnoser.map(x => `<li><span class="kod">${esc(x.kod)}</span> ${esc(x.text)}${x.typ === 'huvud' ? ' <span class="dampad">(huvuddiagnos)</span>' : ''}<span class="under-text">${esc(datum(x.datum))}, ${esc(x.vardenhet.namn)}</span>${migreradEtikett(x)}</li>`).join('')}</ul>` : tomRad('Inga diagnoser som du kan se.'),
+      // Runda 13, r3 (E1-36): läkaren sätter en diagnos med ICD-10-SE direkt i rutan Diagnoser.
+      far('registrera_diagnos') ? '<button type="button" class="knapp liten sekundar" data-satt-diagnos>Sätt diagnos</button>' : ''));
   });
   if (d.matvarden) som('matvarden', () => {
     delar.push(sektion('mv', 'Senaste mätvärden', d.matvarden.length ? `<dl class="matvarden-kort">${d.matvarden.map(m => `<div><dt>${esc(m.namn)}</dt><dd>${varde(m)}<span class="under-text">${esc(tidpunkt(m.tid))}</span></dd></div>`).join('')}</dl>` : tomRad('Inga mätvärden.'), `<a class="sektion-lank" href="${ctx.href('matvarden')}">Alla mätvärden</a>`));
@@ -132,6 +134,7 @@ export async function visa(el, ctx) {
   el.querySelector('.tl-lage')?.addEventListener('change', (e) => { tidslinjeLage = e.target.value; el.querySelector('#tl-innehall').innerHTML = tidslinje(); });
   vardkontakt.koppla(el, d, ctx, () => ctx.ladda());
   el.querySelector('[data-utskrift]')?.addEventListener('click', () => utskrift.skrivUt(ctx.id));
+  el.querySelector('[data-satt-diagnos]')?.addEventListener('click', (e) => sattDiagnos(ctx, e.currentTarget).catch(felNotis));
   el.querySelector('[data-aterbesok]')?.addEventListener('click', () => tider.satUppAterbesok(ctx.id, ctx.patient?.namn ?? 'patienten').catch(felNotis));
   tider.koppla(el, t, ctx, () => ctx.ladda());
   ekonomi.koppla(el, kost, ctx, () => ctx.ladda());
@@ -249,3 +252,25 @@ async function anpassa(vy) {
 function uppfoljningHtml(u) {
   return `<p>${esc(u.lage.text)}</p><p class="${u.avvikelser ? 'tagg tagg-larm' : 'dampad liten'}">${u.avvikelser ? `${esc(u.avvikelser)} ${u.avvikelser === 1 ? 'avvikelse' : 'avvikelser'} att följa upp` : 'Inga avvikelser att följa upp.'}</p>`;
 }
+
+// Runda 13, r3 (E1-36): diagnosen sätts på den pågående vårdkontakten med kod eller text ur ICD-10-SE. Systemet avgör om
+// den är huvud- eller bidiagnos och prövar koden mot den utgåva som gäller.
+async function sattDiagnos(ctx, knapp) {
+  const pid = encodeURIComponent(ctx.id);
+  const akt = await api(`/api/patient/${pid}/vardkontakt/aktuell`);
+  if (!akt.vardkontakt?.id) { notis('Diagnosen sätts på en vårdkontakt. Patienten har ingen pågående kontakt på din vårdenhet. Skriv anteckningen först, så skapar systemet kontakten.', 'info'); return; }
+  const val = await api('/api/rapportering/rattning/val');
+  const svar = await dialog(`<form><h2 id="dlg-rubrik">Sätt diagnos</h2>
+    <p>Vårdkontakten: ${esc(akt.vardkontakt.orsak ?? '')}, ${esc(akt.vardkontakt.vardenhet?.namn ?? '')}.</p>
+    <div class="falt"><label for="sd-kod">Diagnos, kod eller text i ICD-10-SE</label><input id="sd-kod" name="kod" list="sd-lista" required autocomplete="off"><datalist id="sd-lista">${(val.diagnoser ?? []).slice(0, 400).map(x => `<option value="${esc(x.kod)}">${esc(x.text)}</option>`).join('')}</datalist>
+      <span class="hjalp">Skriv början av koden eller ordet och välj i listan. Systemet avgör om det är huvud- eller bidiagnos.</span></div>
+    <p class="dialog-fel form-fel" role="alert" hidden></p>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Sätt diagnosen</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`);
+  if (!svar) return;
+  const kod = String(svar.data.kod ?? '').trim().split(/\s/)[0];
+  const r = await api(`/api/vardkontakt/${encodeURIComponent(akt.vardkontakt.id)}/diagnos`, { metod: 'POST', data: { kod } });
+  notis(`${r.kod} ${r.text} är satt som ${r.typ === 'huvud' ? 'huvuddiagnos' : 'bidiagnos'}.`);
+  ctx.ladda?.();
+  void knapp;
+}
+

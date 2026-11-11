@@ -2628,3 +2628,40 @@ mot Riksdagens text (docs/lagrum.md).
 **Säkerhetsgranskningen av registreringen.** En väntande inloggning får registrera en faktor bara så länge kontot saknar
 en. Har kontot fått en faktor under tiden, från en annan session, avbryts registreringen, den nya faktorn sparas inte och
 inloggningen väntar på den befintliga faktorn. En väntande session kan aldrig ta bort en faktor.
+
+**Läskopian för avbrott i loggen (E3-28, E3-30, E3-36, säkerhetsgranskningen).** Bedömning: läskopian lämnar ut
+journaluppgifter till personalens dator när någon loggar in, också när ingen öppnar journalen. Det är ett utlämnande som
+ska loggas och kunna följas upp systematiskt (HSLF-FS 2016:40 4 kap. 9 a och 9 b §§), och patienten har rätt att få veta
+vilken vårdenhet som har tagit del av uppgifterna och när (4 kap. 10 §). Rättelsen tar därför inte bort raderna ur
+uppföljningen, utan hindrar att granskaren och patienten drunknar i dem. I logguppföljningen märks raderna som kopior för
+avbrott. En kopia som är flaggad (nödåtkomst, samtycke till spärrade uppgifter, nekad) eller har mycket högt skyddsbehov,
+till exempel för en patient med skyddad identitet, visas och flaggas som förut. Bara de övriga rutinraderna fälls ihop
+som standard, med antalet och ett val att visa dem. Stickprovet drar rutinkopiorna i en egen kategori med högst två rader,
+och kopior med mycket högt skyddsbehov dras som andra sådana åtkomster. I Min journal står raden som det den är,
+Uppgifter ur journalen kopierades till en dator på vårdenheten för läsning vid avbrott, med yrkesroll och tid, och
+rutinraderna sammanfattas per dag, vårdenhet och yrkesroll med antalet. Vem har läst visar aldrig en intern kod.
+
+**Identitetskontroll (E2-45, E2-53, säkerhetsgranskningen).** Alla flöden som kräver id-kontroll prövar armbandet med en
+gemensam funktion (`skanning.armbandHorTill`), som slår upp koden i armbandstabellen, kräver att armbandet inte är ersatt
+och löser den gällande journalen. Ett värde som går att räkna fram ur patientens id eller personnummer godtas inte. Det
+gäller administreringen, provtagningen för blodgruppering och bastest, röntgen och andra undersökningar, operationen,
+blodet, cytostatikan, intensivvårdens dosändring och kopplingen av medicinteknisk utrustning. I skanningsflödet räknas ett
+rör som kontrollerat bara när servern har sett samma patients armband skannas i sessionen de senaste fem minuterna. En
+undersökning som är bokad mer än en timme fram registreras som gjord först när tiden flyttas till nu, och identiteten
+bekräftas med armbandet eller uttryckligen med hur den kontrollerades. Ge utan skanning i administreringen (E2-5) kräver
+fortfarande ingen bekräftelse, se öppna frågor i slutrapporten.
+
+**Larm där personalen tittar (E1-19, E2-13, E2-16, E2-20).** Arbetslistans larm räknar hög NEWS2, en försenad kontroll enligt
+NEWS2:s intervall för inneliggande patienter och kritiska provsvar som inte är vidimerade, med samma behörighet som
+inkorgen och en kort text om vad larmet gäller. Mätvärden utanför referensintervallet markeras med en pil i översikten,
+och ett kritiskt värde med en tydlig markering. Intensivvårdens översikt larmar när en patient saknar godkända värden för
+puls, blodtryck, syremättnad och andningsfrekvens i mer än två timmar, med det senaste värdet. Demoregler.
+
+**Övriga rättelser.** Checklistan för säker kirurgi låter inte blodet bekräftas som tillgängligt utan klar blodgruppering
+och bastest, utom med en motivering som sparas (E2-49). BB-utskrivningens kriterier står som det som är kvar att göra, och
+knappen är aktiv när allt är klart (E2-34). Bara den som skrev en anteckning rättar den, andra skriver en ny anteckning
+(E1-23). Hjälptexten i Sök patient visar inget personnummer (E1-26). Dokumentation när patienten inte är på plats blir en
+administrativ kontakt utan avgift, medan ett mätvärde eller en given dos blir ett besök (E1-16). Läkaren sätter en diagnos
+med ICD-10-SE i rutan Diagnoser, på den pågående kontakten (E1-36); demon har en delmängd av ICD-10-SE. Egna mätningar
+som inte går att mäta tas inte emot, och farliga värden ger råd om 1177 och 112 (E3-38). Kallelsen har mottagningens
+telefonnummer ur Post- och telestyrelsens serie för påhittade nummer och ingen intern rad om avgiften (E3-16).

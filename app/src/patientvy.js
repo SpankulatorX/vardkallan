@@ -387,6 +387,16 @@ const VIA = (resurs) => {
 // journal aldrig tränger undan vårdens åtkomster eller någon annans försök ur listan. Loggens löpnummer lämnas inte ut, eftersom luckorna i det visar hur många
 // åtkomster som har gjorts i andra journaler.
 export const LOGGLISTA_MAX = { vard: 500, egna: 200, andra: 200 };
+// Runda 13, r3 (E3-36): läskopians rutinrader sammanfattas per dag, vårdenhet och yrkesroll, med antalet, så att
+// patienten ser att det har skett och var. En nekad rad eller en rad med nödåtkomst eller samtycke står för sig.
+function sammanfattaKopior(ut, r) {
+  const rutin = r.automatisk && r.resultat === 'tillaten' && !['nodatkomst', 'samtycke_sparr'].includes(r.grund);
+  const dag = String(r.tid).slice(0, 10);
+  const forra = rutin ? ut.find(x => x.automatisk && x.sammanfattad && x.tid.slice(0, 10) === dag && x.vardenhet === r.vardenhet && x.yrkesroll === r.yrkesroll) : null;
+  if (forra) { forra.antal++; return ut; }
+  ut.push(rutin ? { ...r, sammanfattad: true, antal: 1 } : r);
+  return ut;
+}
 // Runda 13, r3 (E3-36): åtgärden med behörighetsmotorns beskrivning, med stor bokstav, och en allmän text för en okänd kod.
 const handlingText = (h) => { const t = HANDLINGAR_TEXT[h]; return t ? t.charAt(0).toUpperCase() + t.slice(1) : 'Annan åtgärd i journalen'; };
 export function logglista(atk) {
@@ -410,11 +420,13 @@ export function logglista(atk) {
       return {
         tid: r.tid, vem, vardgivare: inv ? null : vg, vardenhet: e.vardenhet, arbetsplats: e.arbetsplats,
         yrkesroll: r.yrke ? YRKEN[r.yrke] ?? null : null, handling: r.handling, grund: r.grund, resultat: r.resultat, via: VIA(r.resurs),
-        // Runda 13, r3 (E3-36): åtgärden i klartext, aldrig en intern kod, och läskopian för avbrott märkt som automatisk.
-        handlingText: handlingText(r.handling), ...(VIA(r.resurs) === 'laskopia' ? { automatisk: true } : {}),
+        // Runda 13, r3 (E3-36, säkerhetsgranskningen): åtgärden i klartext, aldrig en intern kod. Läskopian för avbrott
+        // beskrivs som det den är, ett utlämnande till en dator på vårdenheten.
+        handlingText: VIA(r.resurs) === 'laskopia' ? `Uppgifter ur journalen kopierades till en dator på ${e.vardenhet ?? 'vårdenheten'} för läsning vid avbrott` : handlingText(r.handling),
+        ...(VIA(r.resurs) === 'laskopia' ? { automatisk: true } : {}),
         egenAtkomst: r.invanare_id === jag,
       };
-    }),
+    }).reduce(sammanfattaKopior, []),
     max: LOGGLISTA_MAX, avskurna: Object.fromEntries(Object.entries(delar).map(([k, v]) => [k, v.length >= LOGGLISTA_MAX[k]])),
     kedjaHel: verifiera(db).hel,
   };

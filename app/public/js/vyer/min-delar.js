@@ -212,8 +212,6 @@ const GRUND = {
   samtycke: 'Med ditt samtycke till sammanhållen journalföring',
 };
 const VEM = { du: 'Du', patienten: 'Patienten själv', vardnadshavare: 'Vårdnadshavare', invanare: 'En annan person', ombud: 'Ditt ombud' };
-// Runda 13, r3 (E3-36): läskopian för avbrott är ingen människas läsning, och patienten får veta vad den är.
-const LASKOPIA_TEXT = 'Automatisk läskopia för avbrott. Ingen öppnade din journal. Systemet sparade uppgifterna krypterade hos personalen på vårdenheten, så att de kan läsas om systemet går ner.';
 const VIA = { fhir: 'via det öppna API:t', laskopia: 'till läskopian för avbrott', laslage: 'i läsläget under ett avbrott', min_journal: 'i Min journal' };
 
 function loggRad(r) {
@@ -223,7 +221,7 @@ function loggRad(r) {
   return `<li class="min-loggrad${flagga ? ' flaggad' : ''}${r.egenAtkomst ? ' egen' : ''}"${r.egenAtkomst ? ' data-egen' : ''}>
     <time datetime="${esc(r.tid)}">${esc(tidpunkt(r.tid))}</time>
     <div class="min-logg-vem"><strong>${vem}</strong><span class="under-text">${roll}</span></div>
-    <div class="min-logg-vad">${r.automatisk ? `${esc(LASKOPIA_TEXT)}` : `${esc(HANDLING[r.handling] ?? r.handlingText ?? 'Annan åtgärd i journalen')}${r.via ? ` <span class="dampad">${esc(VIA[r.via])}</span>` : ''}`}
+    <div class="min-logg-vad">${r.automatisk ? `${esc(r.handlingText)}${r.antal > 1 ? ` <span class="dampad">${esc(r.antal)} gånger den dagen</span>` : ''}` : `${esc(HANDLING[r.handling] ?? r.handlingText ?? 'Annan åtgärd i journalen')}${r.via ? ` <span class="dampad">${esc(VIA[r.via])}</span>` : ''}`}
       <span class="grund grund-${esc(r.grund)}">${esc(GRUND[r.grund] ?? r.grund)}</span>${r.resultat === 'nekad' ? `<span class="resultat-nekad">${ikon.las}Försöket nekades, inget visades</span>` : ''}</div>
   </li>`;
 }

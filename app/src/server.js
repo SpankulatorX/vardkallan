@@ -1888,14 +1888,17 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const flagga = ['nodatkomst', 'nekad', 'samtycke', 'vard', 'arkiv', 'skyddsbehov', 'alla'].includes(q.get('flagga')) ? q.get('flagga') : 'alla';
     const datum = (v, slut) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? `${v}${slut ? 'T23:59:59.999Z' : 'T00:00:00.000Z'}` : v || null);
     const alla = medPatientKort(c.db, logg.lista(c.db, { flagga, fran: datum(q.get('fran'), false), till: datum(q.get('till'), true) }));
-    // Runda 13, r3 (E3-28): de automatiska raderna om läskopian för avbrott är ingen människas åtkomst. De är märkta och
-    // visas bara när granskaren ber om dem, så att de verkliga åtgärderna inte drunknar.
-    const automatisk = (r) => ['lasekopia', 'lasekopia:slut'].includes(r.resurs);
+    // Runda 13, r3 (E3-28, säkerhetsgranskningen): läskopian för avbrott lämnar ut journaluppgifter till personalens dator
+    // och är ett utlämnande som följs upp. Raderna märks som kopior för avbrott. En flaggad rad, eller en rad med mycket
+    // högt skyddsbehov, visas som förut. Bara de övriga rutinraderna fälls ihop som standard, med antalet och ett val att
+    // visa dem, så att granskaren inte drunknar i dem.
+    const kopia = (r) => ['lasekopia', 'lasekopia:slut'].includes(r.resurs);
+    const rutin = (r) => kopia(r) && !r.flaggad && (r.skyddsniva ?? 0) < 3;
     const visaAutomatiska = q.get('automatiska') === 'visa';
-    const rader = alla.filter(r => visaAutomatiska || !automatisk(r)).map(r => (automatisk(r) ? { ...r, automatisk: true, flaggad: false } : r));
+    const rader = alla.filter(r => visaAutomatiska || !rutin(r)).map(r => (kopia(r) ? { ...r, automatisk: true, kopiaForAvbrott: true } : r));
     atk.logga('las_logg', 'logggranskning', `logg:${flagga}`);
     const v = logg.verifiera(c.db);
-    return { flagga, rader, automatiska: alla.filter(automatisk).length, visaAutomatiska, kedjaHel: v.hel, verifiering: v };
+    return { flagga, rader, automatiska: alla.filter(rutin).length, visaAutomatiska, kedjaHel: v.hel, verifiering: v };
   });
 
   // Min journal. Varje anrop prövar att invånaren får läsa just den journalen och loggar läsningen.
