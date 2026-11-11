@@ -1,5 +1,7 @@
 // Sussa 3.4.3 Kallelse och påminnelse: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
+// Runda 13, r4 (sussa/runda13-r4.js).
+import { medR13r4 } from '../runda13-r4.js';
 import { T, flode } from '../tidbok-tester.js';
 // Runda 6, r4.
 import { medR4 } from '../planering-r4.js';
@@ -29,4 +31,5 @@ const AVSNITT = [
 ];
 
 // Runda 6, r4: posterna som byggdes i planering och tidbok, del 2, och remiss, del 2, ersätts ur sussa/planering-r4.js.
-export default medR4(AVSNITT);
+// Runda 13, r4: kallelsen med brev (sussa/runda13-r4.js).
+export default medR13r4(medR4(AVSNITT));

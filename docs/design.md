@@ -2569,3 +2569,41 @@ I driften är varje version en egen avbildning, och vid en återgång startas de
 själv när den startar. Säkerhetskopiornas två platser är två kataloger på samma server, eller två lager i minnet när
 servern inte sparar till disk. I driften är den andra platsen en annan volym på en annan ort. Återställningen går till den
 senaste kopian före tidpunkten, så det som gjordes mellan kopian och tidpunkten (högst femton minuter) återställs inte.
+
+## Arbetsdagen, seeddata som hänger ihop och rättelser från det utforskande testet (runda 13, r4)
+
+Demon skapar varje sandlåda relativt till när den skapas. Slutenvården och akuten går dygnet runt och följer klockan som
+förut, men mottagningarna och operationsavdelningen arbetar på dagen. Därför läggs dagens patienter på mottagningarna
+kring arbetsdagens mitt (`db.js`, `arbetsdagensMitt`): mitt på dagen är mitten nu, före klockan 08.30 är den 08.30 och
+efter 14.30 är den 14.30, och alla tider stannar mellan 07.30 och 16.30. På natten väntas alltså dagens patienter och
+ingen har checkat in. Mitt på dagen har några kommit och några väntas. På kvällen har dagens patienter varit där, ett
+genomfört besök har en avslutad vårdkontakt och betalningen gjordes när patienten checkade in. Två patienter har på
+kvällen ingen registrerad ankomst, och Dagens arbete säger det. Ankomsten kan registreras i efterhand samma dag och räknas
+då från den bokade tiden. Distriktsläkaren tar emot alla vardagar och har bokade patienter i dag och nästa arbetsdag.
+Dagens operationer har kommit så långt som klockan har hunnit, med samma steg som en vanlig operation
+(`operation-seed.js`), så att programmet på kvällen visar genomförda operationer och inga förseningar. Gränssnittstesterna
+tar den första planerade operationen, i dag eller nästa dag, när de prövar In på sal.
+
+Seeden hänger ihop: tvillingarna på BB har reservnummer tills födelseanmälan skickas, eftersom Skatteverkets
+testpersonnummer saknar nummer med dagens födelsedatum. En patient i sluten psykiatrisk tvångsvård som vårdas på en
+annan vårdenhet står bland psykiatrins inskrivna utan att röja var. En lång pågående kontakt i öppenvården står inte som
+ett besök i dag. Reservnummer syns som reservnummer, och en trolig dubblett markeras när båda journalerna finns i listan.
+Amanda Lindholm har mödrahälsovårdens ultraljud och besök, och förlossningen får veta att graviditetsjournalen finns efter
+ett aktivt val i stället för att erbjudas att skriva in en ny. Räknaren tar bara med det som verkligen visas efter valet, så
+att en spärr aldrig röjs. Emil Sjölund har läkemedel och värden på hjärtintensiven. Waran har de senaste dagarnas
+kvällsdoser givna, och en patient som bor hemma har inga doser att ge.
+
+Väntelistan har vårdgarantin i en egen kolumn, räknad ur samma gräns som väntelistan (`tidbok.js`, `gransFor`). Patientvald
+och medicinskt orsakad väntan är en egen åtgärd i väntelistans historik, och dagarna flyttar vårdgarantins datum. En post
+tas bort med en orsak. Bokningen föreslår inte en tid som ett brev inte hinner fram till, och ett brev till en tid om
+mindre än tre dagar skickas inte. En inskriven patient får förslag på återbesök några dagar fram och ser sina kommande
+tider. Vätskebalansen har tid och period, och en timme utan registrering är okänd och inte noll (`iva.js`). Före en
+vaccination prövar samma funktion i båda flödena att patienten är frisk i dag och sparar batch, utgångsdatum och
+injektionsställe (`bhv.js`, `provaVaccinationsdetaljer`). Anestesienheten ser sina beställda operationer i programmet och
+arbetslistan, med en gemensam prövning för alla vägar (`operation.js`, `anestesiSynlig`, och `atkomst.js`,
+`anmalanGerAnestesiRelation`). Systemförvaltaren ser allt som väntar på godkännande på sidan Regler och parametrar.
+
+Simulerat och förenklat: arbetsdagens tider, vårdgarantin, väntan som inte räknas, brevets tre dagar och
+injektionsställets förslag är demoregler. Batch och utgångsdatum skrivs in för hand, eftersom skanning av vaccinets
+förpackning inte är byggd. Fler läkemedel med riktiga NPL-id i katalogen är inte tillagda. Handelsnamnen är sökord som
+pekar på en substans i katalogen.

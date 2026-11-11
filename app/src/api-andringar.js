@@ -15,7 +15,13 @@ export const ANDRINGAR = [
   {
     version: '1.3.0', datum: '2026-11-12',
     text: 'Inga nya resurstyper eller skrivningar i FHIR.',
-    resurser: [], skrivning: [], annat: [],
+    resurser: [], skrivning: [], annat: [
+      // Runda 13, r4: väntelistan, vätskebalansen, vaccinationerna och systemförvaltningen (docs/api-avvikelser.md).
+      'Väntan som inte räknas i vårdgarantin och avslut från väntelistan med orsak i POST /api/vantelista/:id/vantan och POST /api/vantelista/:id/avsluta, och vårdgarantin för sig i väntelistans poster',
+      'Tid och period för en registrering i vätskebalansen (tid och fran i POST /api/patient/:id/vatskebalans)',
+      'Kontrollen före en vaccination och dosens utgångsdatum och injektionsställe (kontroll, utgang och stalle)',
+      'Allt som väntar på godkännande i systemförvaltningen i GET /api/konfiguration (allaAttGodkanna)',
+    ],
   },
   // Runda 12: version 1.2. Varje del lägger sina rader i annat i ett eget block.
   {

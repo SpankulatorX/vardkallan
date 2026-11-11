@@ -1,6 +1,8 @@
 // Sussa 3.5.3 Vätskebalans: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 // Runda 6, r2.
+// Runda 13, r4 (sussa/runda13-r4.js).
+import { medR13r4 } from '../runda13-r4.js';
 import { medR2 } from '../lakemedel-r2.js';
 // Runda 9, r1.
 import { medR9r1 } from '../lakemedel-r9.js';
@@ -28,4 +30,5 @@ const AVSNITT = [
 ];
 // Runda 6, r2: posterna som byggdes i läkemedelsprocessen, del 2, ersätts ur sussa/lakemedel-r2.js.
 // Runda 9, r1 (sussa/lakemedel-r9.js).
-export default medR9r1(medR2(AVSNITT));
+// Runda 13, r4: vätskebalansen (sussa/runda13-r4.js).
+export default medR13r4(medR9r1(medR2(AVSNITT)));

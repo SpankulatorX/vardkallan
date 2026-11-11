@@ -1,6 +1,8 @@
 // Sussa 12.1 Applikationskonfiguration: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 // Runda 7, r4: systemförvaltningen (konfiguration.js, omorganisation.js, undantag.js och systemforvaltning-rutter.js).
+// Runda 13, r4 (sussa/runda13-r4.js).
+import { medR13r4 } from '../runda13-r4.js';
 import { TEST } from '../../krav.js';
 // Runda 8, r5: tilläggen för tobaksvanor, epikrisen, mätvärdena, övningarna och parametrarna (sussa/runda8-r5.js).
 import { medR8r5 } from '../runda8-r5.js';
@@ -131,4 +133,5 @@ const POSTERNA = [
     anmarkning: 'Publiceringen till nationella tjänster är simulerad: sidan visar vad som skulle publiceras och vad som är undantaget, och den simulerade producenten för tjänstekontrakt prövar både undantagen från FHIR och från nationella tjänster. Enskilda mätvärden undantas genom sin typ, inte ett och ett.',
   },
 ];
-export default medR8r5(POSTERNA);
+// Runda 13, r4: den samlade listan att godkänna (sussa/runda13-r4.js).
+export default medR13r4(medR8r5(POSTERNA));

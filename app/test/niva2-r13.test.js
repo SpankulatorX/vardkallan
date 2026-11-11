@@ -120,7 +120,7 @@ describe('Väntelistan (runda 13, r4, E3-8 och E3-9)', () => {
 });
 
 describe('Bokning från väntelistan (runda 13, r4, E3-10 och E3-47)', () => {
-  test('en inskriven patient får förslag från en vecka efter i dag, med hans kommande tider på vårdenheten', () => {
+  test('en inskriven patient får förslag från några dagar efter i dag, med hans kommande tider på vårdenheten', () => {
     stallKlockan(KLOCKAN('10:00'));
     const db = nySessionsDb();
     const post = db.query("SELECT * FROM vantelista WHERE patient_id = 'p01' AND status = 'vantar' AND enhet_id = 'uso-kard'").get();
