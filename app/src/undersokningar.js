@@ -414,11 +414,10 @@ export const IDENTITET_ORSAKER = {
 };
 export const TIDIGT_MIN = 60;
 function provaIdentitet(db, patientId, identitet) {
-  const p = db.query('SELECT personnummer FROM patienter WHERE id = ?').get(patientId);
   if (typeof identitet?.armband === 'string' && identitet.armband.trim()) {
-    const arm = identitet.armband.trim().toUpperCase().replace(/-/g, '');
-    if (arm !== `VKA-${String(patientId).toUpperCase()}`.replace(/-/g, '') && arm !== String(p?.personnummer ?? '').replace(/-/g, '')) {
-      throw new Fel(400, 'Armbandet hör inte till patienten i beställningen. Gör inte undersökningen. Kontrollera att det är rätt patient.', 'ogiltig', { falt: ['armband'] });
+    // Säkerhetsgranskningen: koden slås upp i armbandstabellen med den gemensamma kontrollen (skanning.js).
+    if (!require('./skanning.js').armbandHorTill(db, identitet.armband, patientId)) {
+      throw new Fel(400, 'Armbandet hör inte till patienten i beställningen, eller har ersatts av ett nytt. Gör inte undersökningen. Kontrollera att det är rätt patient.', 'ogiltig', { falt: ['armband'] });
     }
     return 'Armbandet skannades och hör till patienten.';
   }

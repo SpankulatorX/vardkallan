@@ -225,7 +225,9 @@ describe('Integration med produktionssystem', () => {
     expect(best.status).toBe(201);
     const blodId = best.data.id;
     const prover = (await lak.get('/api/patient/p04/prover')).data.bestallningar.find(x => x.analyser.some(a => a.analys === 'bastest') && x.status === 'bestalld');
-    for (const p of prover.prov) await lak.post(`/api/labb/prov/${p.id}/tagen`, {});
+    // Runda 13, r3 (E2-53): rören för blodgruppering och bastest tas efter kontroll med armbandet.
+    const p04Band = (await lak.post('/api/patient/p04/armband')).data.kod;
+    for (const p of prover.prov) await lak.post(`/api/labb/prov/${p.id}/tagen`, { identitet: { armband: p04Band } });
     const ut = (await ps('GET', '/ps/bestallningar', nyckel)).data.entry.map(e => e.resource);
     const bm = ut.find(m => m.meta.tag[0].code === 'blodbestallning');
     const sr = bm.entry.find(e => e.resource.resourceType === 'ServiceRequest').resource;

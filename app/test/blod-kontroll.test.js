@@ -36,7 +36,8 @@ async function forbered(extern) {
   const labbId = db(lak).query('SELECT labb_bestallning_id AS id FROM blod_bestallningar WHERE id = ?').get(blod.id).id;
   const best = (await lak.get('/api/patient/p04/prover')).data.bestallningar.find(x => x.id === labbId);
   // Runda 13, r3 (E2-53): rören för blodgruppering och bastest tas efter kontroll med armbandet.
-  for (const p of best.prov) await lak.post(`/api/labb/prov/${p.id}/tagen`, { identitet: { armband: 'VKA-P04' } });
+  const band = (await lak.post('/api/patient/p04/armband')).data.kod;
+  for (const p of best.prov) await lak.post(`/api/labb/prov/${p.id}/tagen`, { identitet: { armband: band } });
   const gr = best.analyser.find(a => a.analys === 'blodgruppering');
   const bt = best.analyser.find(a => a.analys === 'bastest');
   const svara = async ({ bastest = true } = {}) => {

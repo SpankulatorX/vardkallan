@@ -661,11 +661,11 @@ function provaBlodIdentitet(db, b, prov, { identitet = null, armbandSkannat = fa
   const analyser = db.query('SELECT analys FROM labb_analyser WHERE prov_id = ?').all(prov.id).map(a => a.analys);
   if (!analyser.some(a => BLOD_ANALYSER.includes(a))) return null;
   if (armbandSkannat) return 'Identiteten kontrollerades med det skannade armbandet mot etiketten.';
-  const arm = typeof identitet?.armband === 'string' ? identitet.armband.trim().toUpperCase().replace(/-/g, '') : '';
+  const arm = typeof identitet?.armband === 'string' ? identitet.armband.trim() : '';
   if (!arm) throw new Fel(400, 'Röret är för blodgruppering eller bastest. Kontrollera patientens identitet med armbandet innan provet tas: skanna armbandet eller skriv in koden från det.', 'identitet', { falt: ['armband'] });
-  const pnr = db.query('SELECT personnummer FROM patienter WHERE id = ?').get(b.patient_id)?.personnummer ?? '';
-  if (arm !== `VKA${String(b.patient_id).toUpperCase()}` && arm !== String(pnr).replace(/-/g, '')) {
-    throw new Fel(400, 'Armbandet hör inte till patienten i beställningen. Ta inte provet. Kontrollera att du står vid rätt patient.', 'ogiltig', { falt: ['armband'] });
+  // Säkerhetsgranskningen: koden slås upp i armbandstabellen med den gemensamma kontrollen (skanning.js).
+  if (!require('./skanning.js').armbandHorTill(db, arm, b.patient_id)) {
+    throw new Fel(400, 'Armbandet hör inte till patienten i beställningen, eller har ersatts av ett nytt. Ta inte provet. Kontrollera att du står vid rätt patient.', 'ogiltig', { falt: ['armband'] });
   }
   return 'Identiteten kontrollerades med armbandet.';
 }

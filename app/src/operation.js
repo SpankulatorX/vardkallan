@@ -505,15 +505,9 @@ function paverkarRader(db, atk, an, a, ut, nu) {
   }
 }
 
-// Kontrollen av id-bandet: siffrorna ur armbandet mot patientens personnummer och andra identiteter.
-function armbandetHorTill(db, patientId, armband) {
-  const siffror = (v) => String(v ?? '').replace(/\D/g, '');
-  const a = siffror(armband);
-  const p = db.query('SELECT personnummer FROM patienter WHERE id = ?').get(patientId);
-  let andra = [];
-  try { andra = db.query('SELECT varde FROM identiteter WHERE patient_id = ?').all(patientId).map(r => r.varde); } catch { /* äldre sandlåda */ }
-  return Boolean(a) && [p?.personnummer, ...andra].map(siffror).filter(Boolean).some(x => x === a || x.slice(2) === a || a.slice(2) === x);
-}
+// Kontrollen av id-bandet. Runda 13, r3 (säkerhetsgranskningen): den gemensamma kontrollen, som slår upp koden i
+// armbandstabellen och aldrig godtar ett värde som går att räkna fram ur personnumret (skanning.js).
+const armbandetHorTill = (db, patientId, armband) => require('./skanning.js').armbandHorTill(db, String(armband ?? ''), patientId);
 
 // Beställer de prover som saknas, med beställningen till laboratoriet och blodcentralen som vanligt (labb.js).
 export function bestallProver(atk, an, nu = new Date()) {

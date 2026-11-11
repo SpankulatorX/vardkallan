@@ -154,3 +154,30 @@ describe('Skanning', () => {
     for (const id of p) expect(band).toContain(id);
   });
 });
+
+// Runda 13, r3 (säkerhetsgranskningen): ett rör för blodgruppering registreras från skanningen bara när servern har sett
+// just den patientens armband skannas i sessionen nyss. Att skicka patientens id räcker inte.
+describe('Skanning och identitetskontroll vid blodgruppering', () => {
+  test('etiketten för blodgruppering tas från skanningen bara efter att patientens armband har skannats i samma session', async () => {
+    const k = klient(app);
+    await k.logga('lak-kard');
+    const b = await k.post('/api/patient/p04/prover', { analyser: ['blodgruppering'], anamnes: 'Inför transfusion.', kvitteraDubbletter: true });
+    expect(b.status).toBe(201);
+    const etikett = b.data.bestallning.prov[0].etikett;
+    const band = (await k.post('/api/patient/p04/armband')).data.kod;
+    const annat = (await k.post('/api/patient/p01/armband')).data.kod;
+    await k.logga('ssk-kard');
+    // Utan skannat armband: systemet frågar efter armbandet.
+    const utan = await k.post('/api/skanna', { kod: etikett, patientId: 'p04', sammanhang: 'provtagning' });
+    expect(utan.status).toBe(400);
+    expect(utan.data.kod).toBe('identitet');
+    // En annan patients armband räknas inte för p04.
+    await k.post('/api/skanna', { kod: annat, patientId: 'p01' });
+    expect((await k.post('/api/skanna', { kod: etikett, patientId: 'p04', sammanhang: 'provtagning' })).status).toBe(400);
+    // Patientens eget armband skannas, och röret tas.
+    expect((await k.post('/api/skanna', { kod: band, patientId: 'p04' })).data.sammaPatient).toBe(true);
+    const tagen = await k.post('/api/skanna', { kod: etikett, patientId: 'p04', sammanhang: 'provtagning' });
+    expect(tagen.status).toBe(200);
+    expect(tagen.data.tagen).toBe(true);
+  });
+});

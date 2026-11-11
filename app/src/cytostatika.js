@@ -639,7 +639,8 @@ export function taEmot(atk, d, body = {}, nu = new Date()) {
 // Runda 11, r4: id-bandet jämförs med bara siffror och versaler på båda sidor, så att ett reservnummer med bokstäver
 // (VK och siffror) läses lika säkert som ett personnummer med bindestreck.
 export const idNyckel = (v) => String(v ?? '').toUpperCase().replace(/[^0-9A-Z]/g, '');
-const armbandOk = (db, pid, armband) => { const k = idNyckel(armband); return k.length > 0 && k === idNyckel(db.query('SELECT personnummer FROM patienter WHERE id = ?').get(pid).personnummer); };
+// Runda 13, r3 (säkerhetsgranskningen): den gemensamma kontrollen av armbandet i armbandstabellen (skanning.js).
+const armbandOk = (db, pid, armband) => require('./skanning.js').armbandHorTill(db, String(armband ?? ''), pid);
 function lasVidSangen(db, d, body) {
   if (!armbandOk(db, d.patient_id, body.armband)) throw new Fel(409, 'Id-bandet hör inte till patienten som kuren är ordinerad för. Ge inte kuren.', 'fel_patient');
   if (body.streckkod !== d.etikett) throw new Fel(409, 'Etiketten stämmer inte med dosen. Ge inte kuren.', 'fel_etikett');

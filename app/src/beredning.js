@@ -330,7 +330,8 @@ export function armband(atk) {
   const p = atk.db.query('SELECT * FROM patienter WHERE id = ?').get(atk.patientId);
   const visad = Boolean(atk.val?.visa_identitet);
   atk.logga('las_lakemedel', atk.grund(), 'armband');
-  return { kod: armbandskod(atk.patientId), patient: { namn: visningsnamn(p, visad), personnummer: visningsPnr(p, visad) }, skyddad: Boolean(p.skyddad && !visad) };
+  // Runda 13, r3: patientens utskrivna armband ur armbandstabellen (skanning.js).
+  return { kod: require('./skanning.js').armbandsKod(atk.db, atk.patientId, atk.personal.enhet_id, atk.personal.id), patient: { namn: visningsnamn(p, visad), personnummer: visningsPnr(p, visad) }, skyddad: Boolean(p.skyddad && !visad) };
 }
 
 // Etiketten för en iordningsställd dos: patienten, läkemedlet, dosen, dostiden, beredningen och kontrollkoden som
@@ -348,7 +349,7 @@ export function etikett(atk, administreringId) {
   const form = o ? dosform(db, o, lm) : {};
   atk.logga('las_lakemedel', atk.grund(), `etikett:administrering:${a.id}`);
   return {
-    kontrollkod: a.kontrollkod, administreringId: a.id, patient: { namn: visningsnamn(p, visad), personnummer: visningsPnr(p, visad), armband: armbandskod(a.patient_id) },
+    kontrollkod: a.kontrollkod, administreringId: a.id, patient: { namn: visningsnamn(p, visad), personnummer: visningsPnr(p, visad), armband: require('./skanning.js').armbandsKod(db, a.patient_id, a.enhet_id) },
     skyddad: Boolean(p.skyddad && !visad), lakemedel: { namn: lm.namn, styrka: lm.styrka, form: lm.form }, dos: a.dos, dosEnhet: a.dos_enhet, planerad: a.planerad,
     dosering: o?.dosering ?? null, iordningstalld: { tid: a.iordningstalld_tid, av: personNamn(db, a.iordningstalld_av) }, beredning: b, ...form,
   };
@@ -379,7 +380,8 @@ export function skanna(atk, inp = {}) {
   const etik = typeof inp.etikett === 'string' ? inp.etikett.trim() : '';
   const arm = typeof inp.armband === 'string' ? inp.armband.trim().toUpperCase() : '';
   if (!etik || !arm) throw new Fel(400, 'Skanna både etiketten på dosen och patientens armband.', 'ogiltig', { falt: [!etik ? 'etikett' : 'armband'] });
-  if (arm !== armbandskod(atk.patientId)) {
+  // Runda 13, r3 (säkerhetsgranskningen): den gemensamma kontrollen av armbandet (skanning.js).
+  if (!require('./skanning.js').armbandHorTill(db, arm, atk.patientId)) {
     atk.logga('las_lakemedel', atk.grund(), 'skanning:fel_armband');
     throw new Fel(400, 'Armbandet hör inte till den här patienten. Ge inte dosen. Kontrollera att du står vid rätt patient.', 'ogiltig', { falt: ['armband'], skanning: 'armband' });
   }
@@ -401,7 +403,7 @@ export function skanna(atk, inp = {}) {
 export function provaArmband(atk, armbandText, kontrollkod) {
   if (armbandText == null) return null;
   const arm = String(armbandText).trim().toUpperCase();
-  if (arm !== armbandskod(atk.patientId)) throw new Fel(400, 'Armbandet hör inte till den här patienten. Ge inte dosen. Kontrollera att du står vid rätt patient.', 'ogiltig', { falt: ['armband'], skanning: 'armband' });
+  if (!require('./skanning.js').armbandHorTill(atk.db, arm, atk.patientId)) throw new Fel(400, 'Armbandet hör inte till den här patienten. Ge inte dosen. Kontrollera att du står vid rätt patient.', 'ogiltig', { falt: ['armband'], skanning: 'armband' });
   if (!kontrollkod) throw new Fel(400, 'Skanna etiketten på dosen tillsammans med armbandet.', 'ogiltig', { falt: ['kontrollkod'] });
   return arm;
 }

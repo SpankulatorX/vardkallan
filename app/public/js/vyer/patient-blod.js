@@ -16,7 +16,7 @@ export const kedja = (steg) => `<ol class="bl-kedja" aria-label="Beställningens
 
 function las(e, steg, pnr) {
   return `<form class="falt-rad" data-bl-form="${steg}" data-enhet="${e.id}" novalidate>
-    <div class="falt smal"><label for="bl-a-${e.id}-${steg}">Id-band</label><input id="bl-a-${e.id}-${steg}" name="armband" autocomplete="off" inputmode="numeric"></div>
+    <div class="falt smal"><label for="bl-a-${e.id}-${steg}">Id-band</label><input id="bl-a-${e.id}-${steg}" name="armband" autocomplete="off" inputmode="text"></div>
     <div class="falt smal"><label for="bl-e-${e.id}-${steg}">Enhetsnummer på påsen</label><input id="bl-e-${e.id}-${steg}" name="enhetsnummer" autocomplete="off"></div>
     <div class="falt knappfalt knapprad"><button type="button" class="knapp liten sekundar" data-bl-las="${esc(pnr)}|${esc(e.enhetsnummer)}">Läs med skannern (demo)</button>
       <button type="submit" class="knapp liten">${steg === 'forbered' ? 'Förbered vid sängen' : 'Kontrollera'}</button></div></form>`;
@@ -63,7 +63,10 @@ export async function visa(el, ctx) {
   const pid = encodeURIComponent(ctx.id);
   const [d, f] = await Promise.all([api(`/api/patient/${pid}/blod`), far('bestalla_prov') ? api(`/api/patient/${pid}/blod/forslag`).catch(() => null) : null]);
   if (!ctx.aktuell()) return;
-  const pnr = ctx.patient?.personnummer ?? '';
+  // Runda 13, r3 (säkerhetsgranskningen): demoskannern läser patientens utskrivna armband, eftersom servern bara godtar
+  // armbandets kod och inte personnumret.
+  const pnr = await api(`/api/patient/${encodeURIComponent(ctx.id)}/armband`, { metod: 'POST', data: {}, tyst: true }).then(a => a.kod).catch(() => '');
+  if (!ctx.aktuell()) return;
   el.innerHTML = `<div class="flikhuvud"><h2>Blod</h2><p class="dampad">Beställningar till blodcentralen från upprättad till avslutad, och transfusionen vid sängen. <a href="#/blodcentral">Blodcentralen</a></p></div>
     ${f ? `<form class="mv-form" id="bl-ny" novalidate aria-labelledby="bl-ny-r"><h3 id="bl-ny-r">Beställ blod</h3>
       <p class="ruta ruta-info liten">${ikon.info}<span>${esc(f.text)}</span></p>

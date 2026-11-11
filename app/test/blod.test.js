@@ -3,6 +3,7 @@
 import { describe, test, expect } from 'bun:test';
 import * as blod from '../src/blod.js';
 import * as labb from '../src/labb.js';
+import { armbandsKod } from '../src/skanning.js';
 import { blodgruppFor } from '../src/labb-katalog.js';
 import { BAS, sandlada, nyPatient, atk, pers, sparr, efter } from './specialist.js';
 
@@ -13,7 +14,7 @@ const ssk = (db, pid = 'bl1', h = 'ge_lakemedel') => atk(db, 'ssk-kkoga', pid, h
 function taOchSvara(db, labbId, pid, nu) {
   const b = labb.bestallningRad(db, labbId);
   // Runda 13, r3 (E2-53): rören för blodgruppering och bastest tas efter kontroll med armbandet.
-  for (const p of labb.bestallningUt(db, b).prov) labb.taProv(atk(db, 'ssk-kkoga', pid, 'ta_prov'), labb.provRad(db, p.id), nu, { identitet: { armband: `VKA-${pid.toUpperCase()}` } });
+  for (const p of labb.bestallningUt(db, b).prov) labb.taProv(atk(db, 'ssk-kkoga', pid, 'ta_prov'), labb.provRad(db, p.id), nu, { identitet: { armband: armbandsKod(db, pid) } });
   labb.forfallnaSvar(db, new Date(nu.getTime() + 25 * 60_000));
 }
 // Dubbelkontrollen: sjuksköterskan förbereder vid sängen, läkaren kontrollerar i sin egen session och transfusionen startar.
@@ -79,7 +80,7 @@ describe('Blodprodukter', () => {
     expect(b.enheter[0].enhetsnummer).toMatch(/^DEMO\d{8}$/);
     const u = blod.utlamna(ssk(db), blod.bestallningRad(db, b.id), efter(50));
     expect(u.enheter.every(e => e.status === 'utlamnad' && e.startaSenast === efter(80).toISOString())).toBe(true);
-    const p = db.query("SELECT personnummer FROM patienter WHERE id = 'bl1'").get().personnummer;
+    const p = armbandsKod(db, 'bl1');
     const [e1, e2] = u.enheter;
     startaMedKontroll(db, e1, p, efter(55));
     blod.avsluta(ssk(db), blod.enhetRad(db, e1.id), {}, efter(115));
@@ -97,7 +98,7 @@ describe('Blodprodukter', () => {
     const b = berett(db, 'bl1', undefined, { blodgrupp: 'A-' });
     expect(b.enheter[0].blodgrupp).toBe('A-');
     const u = blod.utlamna(ssk(db), blod.bestallningRad(db, b.id), efter(50));
-    const p = db.query("SELECT personnummer FROM patienter WHERE id = 'bl1'").get().personnummer;
+    const p = armbandsKod(db, 'bl1');
     const e = blod.enhetRad(db, u.enheter[0].id);
     const kontroll = { armband: p, enhetsnummer: e.enhetsnummer };
     expect(() => blod.forbered(ssk(db), e, { ...kontroll, armband: '191212121212' }, efter(52))).toThrow('Id-bandet hör inte till patienten');
@@ -117,7 +118,7 @@ describe('Blodprodukter', () => {
     ny(db);
     const b = berett(db);
     const u = blod.utlamna(ssk(db), blod.bestallningRad(db, b.id), efter(50));
-    const p = db.query("SELECT personnummer FROM patienter WHERE id = 'bl1'").get().personnummer;
+    const p = armbandsKod(db, 'bl1');
     const e = () => blod.enhetRad(db, u.enheter[0].id);
     const las = { armband: p, enhetsnummer: e().enhetsnummer };
     expect(() => blod.starta(ssk(db), e(), efter(51), { kontrollant: 'lak-kkoga' })).toThrow('inte dubbelkontrollerad');
@@ -195,9 +196,12 @@ describe('Identiteten vid provtagning för blodgruppering', () => {
     const ta = (opts) => labb.taProv(atk(db, 'ssk-kkoga', 'bl1', 'ta_prov'), labb.provRad(db, prov.id), efter(5), opts);
     const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
     expect(fel(() => ta({})).kod).toBe('identitet');
-    expect(fel(() => ta({ identitet: { armband: 'VKA-P01' } })).message).toContain('hör inte till patienten');
+    expect(fel(() => ta({ identitet: { armband: armbandsKod(db, 'p01') } })).message).toContain('hör inte till patienten');
+    // Säkerhetsgranskningen: ett värde som räknas fram ur id eller personnummer godtas inte.
+    const pnr = db.query("SELECT personnummer FROM patienter WHERE id = 'bl1'").get().personnummer;
+    for (const kod of ['VKA-BL1', pnr]) expect(fel(() => ta({ identitet: { armband: kod } })).message).toContain('hör inte till patienten');
     expect(labb.provRad(db, prov.id).provtagen_tid).toBeNull();
-    ta({ identitet: { armband: 'VKA-BL1' } });
+    ta({ identitet: { armband: armbandsKod(db, 'bl1') } });
     expect(labb.provRad(db, prov.id).provtagen_tid).toBeTruthy();
     expect(db.query("SELECT detalj FROM labb_historik WHERE bestallning_id = ? AND handelse = 'Identiteten kontrollerad'").get(r.bestallning.id).detalj).toContain('armbandet');
   });

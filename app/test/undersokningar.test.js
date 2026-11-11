@@ -8,6 +8,7 @@ import { Atkomst } from '../src/atkomst.js';
 import * as labb from '../src/labb.js';
 import * as labbFhir from '../src/labb-fhir.js';
 import * as undersokningar from '../src/undersokningar.js';
+import { armbandsKod } from '../src/skanning.js';
 import * as versioner from '../src/labb-svarsversioner.js';
 import * as underlag from '../src/labb-underlag.js';
 import * as patientnara from '../src/patientnara.js';
@@ -152,8 +153,8 @@ describe('Undersökningar i beställning och svar', () => {
     // Runda 13, r3 (E2-45): patientens identitet bekräftas med armbandet eller uttryckligen.
     const utanId = fel(() => undersokningar.registreraUtford(db, rtg(db), id, T(15)));
     expect(utanId.message).toContain('Bekräfta patientens identitet');
-    expect(fel(() => undersokningar.registreraUtford(db, rtg(db), id, T(15), { identitet: { armband: 'VKA-P02' } })).message).toContain('hör inte till patienten');
-    expect(undersokningar.registreraUtford(db, rtg(db), id, T(15), { identitet: { armband: 'VKA-P01' } }).text).toContain('Radiologen skriver utlåtandet');
+    expect(fel(() => undersokningar.registreraUtford(db, rtg(db), id, T(15), { identitet: { armband: armbandsKod(db, 'p02') } })).message).toContain('hör inte till patienten');
+    expect(undersokningar.registreraUtford(db, rtg(db), id, T(15), { identitet: { armband: armbandsKod(db, 'p01') } }).text).toContain('Radiologen skriver utlåtandet');
     const st = db.query('SELECT * FROM media_studier WHERE patient_id = ? ORDER BY id DESC').get('p01');
     expect(st).toMatchObject({ undersokning: 'dt_hjarna', status: 'besvarad', enhet_id: 'uso-kard' });
     expect(st.uid).toMatch(/^1\.3\.6\.1\.4\.1\.32473\.1\.9\.\d+$/);
@@ -587,10 +588,12 @@ describe('API för undersökningar', () => {
     expect((await lak.get('/api/undersokningar')).status).toBe(403);
     // Runda 13, r3 (E2-45): den bokade tiden är nu, när patienten är på plats, och identiteten bekräftas med armbandet.
     expect((await rtgK.post(`/api/undersokningar/${id}/boka`, {})).status).toBe(200);
-    expect((await rtgK.post(`/api/undersokningar/${id}/utford`, { identitet: { armband: 'VKA-P04' } })).status).toBe(409);
+    const band = armbandsKod(sandlada(app, lak).db, 'p04');
+    expect((await rtgK.post(`/api/undersokningar/${id}/utford`, { identitet: { armband: band } })).status).toBe(409);
     sandlada(app, lak).db.query('UPDATE undersokning_bokningar SET bokad_tid = ? WHERE analys_rad_id = ?').run(new Date().toISOString(), id);
     expect((await rtgK.post(`/api/undersokningar/${id}/utford`, {})).status).toBe(400);
-    expect((await rtgK.post(`/api/undersokningar/${id}/utford`, { identitet: { armband: 'VKA-P04' } })).status).toBe(200);
+    expect((await rtgK.post(`/api/undersokningar/${id}/utford`, { identitet: { armband: 'VKA-P04' } })).status).toBe(400);
+    expect((await rtgK.post(`/api/undersokningar/${id}/utford`, { identitet: { armband: band } })).status).toBe(200);
     expect((await rtgK.post(`/api/undersokningar/${id}/simulera-utlatande`, {})).status).toBe(200);
     expect((await rtgK.get('/api/patient/p04/prover')).status).toBe(403);
     const ik = (await lak.get('/api/inkorg')).data;

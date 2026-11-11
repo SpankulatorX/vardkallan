@@ -39,7 +39,8 @@ export function seeda(db, bas) {
     op.planera(A('opk-kkoga', 'p07', 'operation_planera'), rad(), { sal: 'kkoga-sal-1', start: lokalTid(addDagar(dag, -5), '08:00') }, t(-6, '20:30'));
     const s = A('ssk-kkoga', 'p07', 'operation_registrera');
     const v = (m) => new Date(t(-5, '08:00').getTime() + m * 60_000);
-    op.registrera(s, rad(), { handelse: 'in_sal', armband: p.personnummer }, v(-5));
+    // Runda 13, r3: patientens utskrivna armband ur armbandstabellen (skanning.js).
+    op.registrera(s, rad(), { handelse: 'in_sal', armband: require('./skanning.js').armbandsKod(db, p.id, 'kkoga-ort') }, v(-5));
     const galler = sg.sterilgods(A('ssk-kkoga', 'p07', 'las_operation'), rad(), v(-4)).galler;
     for (const g of galler) sg.oppna(s, rad(), { galler: g.galler }, v(-3));
     const alla = (del) => Object.keys(op.CHECKLISTA[del].punkter);

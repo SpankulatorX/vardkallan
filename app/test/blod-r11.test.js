@@ -2,8 +2,10 @@
 // läkemedelslistan, den gemensamma transfusionskontrollen också vid sängen, rapporterna om transfusionsreaktioner
 // (hemovigilans) och blodcentralens vy från den egna vårdenheten.
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { armbandsKod } from '../src/skanning.js';
 import * as blod from '../src/blod.js';
 import * as labb from '../src/labb.js';
+import { armbandsKod } from '../src/skanning.js';
 import * as lakemedel from '../src/lakemedel.js';
 import * as administrering from '../src/administrering.js';
 import { BAS, sandlada, nyPatient, atk, pers, sparr, efter } from './specialist.js';
@@ -13,11 +15,13 @@ const ny = (db, id = 'bl1', extra = {}) => nyPatient(db, { id, enhet: 'kkoga-ort
 const lak = (db, pid = 'bl1', h = 'bestalla_prov', val = {}) => atk(db, 'lak-kkoga', pid, h, val);
 const ssk = (db, pid = 'bl1', h = 'ge_lakemedel') => atk(db, 'ssk-kkoga', pid, h);
 const pnr = (db, pid = 'bl1') => db.query('SELECT personnummer FROM patienter WHERE id = ?').get(pid).personnummer;
+// Runda 13, r3 (säkerhetsgranskningen): armbandet är patientens utskrivna armband ur armbandstabellen, inte personnumret.
+const band = (db, pid = 'bl1') => armbandsKod(db, pid);
 const fel = (f) => { try { f(); } catch (e) { return e; } throw new Error('inget fel'); };
 function taOchSvara(db, labbId, pid, nu) {
   const b = labb.bestallningRad(db, labbId);
   // Runda 13, r3 (E2-53): rören för blodgruppering och bastest tas efter kontroll med armbandet.
-  for (const p of labb.bestallningUt(db, b).prov) labb.taProv(atk(db, 'ssk-kkoga', pid, 'ta_prov'), labb.provRad(db, p.id), nu, { identitet: { armband: `VKA-${pid.toUpperCase()}` } });
+  for (const p of labb.bestallningUt(db, b).prov) labb.taProv(atk(db, 'ssk-kkoga', pid, 'ta_prov'), labb.provRad(db, p.id), nu, { identitet: { armband: armbandsKod(db, pid) } });
   labb.forfallnaSvar(db, new Date(nu.getTime() + 25 * 60_000));
 }
 function berett(db, pid = 'bl1', body = { produkt: 'erytrocyter', antal: 2, indikation: 'Postoperativ anemi, Hb 72' }) {
@@ -26,7 +30,7 @@ function berett(db, pid = 'bl1', body = { produkt: 'erytrocyter', antal: 2, indi
   return blod.forPatient(lak(db, pid, 'las_prover'), efter(40)).bestallningar.find(x => x.id === b.id);
 }
 function kontrollerad(db, e, nu, pid = 'bl1') {
-  const las = { armband: pnr(db, pid), enhetsnummer: e.enhetsnummer };
+  const las = { armband: band(db, pid), enhetsnummer: e.enhetsnummer };
   blod.forbered(ssk(db, pid), blod.enhetRad(db, e.id), las, nu);
   return blod.kontrollera(lak(db, pid, 'ge_lakemedel'), blod.enhetRad(db, e.id), las, new Date(nu.getTime() + 60_000));
 }
@@ -70,7 +74,7 @@ describe('Blodprodukter i version 1.1', () => {
     blod.utlamna(ssk(db), blod.bestallningRad(db, b.id), efter(45));
     // Bastestet blir äldre än tre dygn, som när blodet har legat reserverat länge innan det lämnas ut.
     db.query("UPDATE labb_prov SET provtagen_tid = ? WHERE patient_id = 'bl1'").run(efter(-4 * 24 * 60).toISOString());
-    const e = fel(() => blod.forbered(ssk(db), blod.enhetRad(db, b.enheter[0].id), { armband: pnr(db), enhetsnummer: b.enheter[0].enhetsnummer }, efter(50)));
+    const e = fel(() => blod.forbered(ssk(db), blod.enhetRad(db, b.enheter[0].id), { armband: band(db), enhetsnummer: b.enheter[0].enhetsnummer }, efter(50)));
     expect([e.kod, e.message]).toEqual(['transfusionskontroll', 'Det finns inget giltigt bastest. Ett bastest gäller i 72 timmar efter provtagningen. Beställ ett nytt bastest. Ge inte blodet.']);
   });
 

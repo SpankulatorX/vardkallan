@@ -56,7 +56,8 @@ export function seeda(db, nu = new Date()) {
   if (db.query('SELECT 1 FROM cyto_behandlingar LIMIT 1').get()) return;
   const n = nu.getTime();
   const idag = datumAv(nu);
-  const pnr = (pid) => db.query('SELECT personnummer FROM patienter WHERE id = ?').get(pid).personnummer;
+  // Runda 13, r3: patientens utskrivna armband ur armbandstabellen (skanning.js), inte personnumret.
+  const pnr = (pid) => require('./skanning.js').armbandsKod(db, pid);
   const mv = (pid, typ, varde, t) => {
     const v = kontakt(db, pid);
     db.query("INSERT INTO matvarden (patient_id, enhet_id, vardkontakt_id, typ, varde, varde_num, tid, registrerad_av) VALUES (?, ?, ?, ?, ?, ?, ?, 'ssk-onk')")

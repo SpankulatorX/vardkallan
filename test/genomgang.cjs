@@ -2057,7 +2057,9 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await gaTill(page, '#/patient/p71/operation');
       await forvanta(page, '.op-kort', 'giltig till');
       await page.click('[data-op-handelse="in_sal"]');
-      await page.fill('dialog[open] input[name="armband"]', '194512222391');
+      // Runda 13, r3 (säkerhetsgranskningen): koden på patientens utskrivna armband, inte personnumret.
+      const band = await page.evaluate(() => fetch('/api/patient/p71/armband', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.json()).then(d => d.kod));
+      await page.fill('dialog[open] input[name="armband"]', band);
       await page.click('dialog[open] [data-varde="ok"]');
       await forvanta(page, '.op-check', 'Armbandet är skannat');
       await forvanta(page, '.op-kort', 'Förslag: Kloxacillin 2 g');

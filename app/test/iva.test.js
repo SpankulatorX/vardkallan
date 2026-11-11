@@ -61,8 +61,10 @@ describe('Intensivvård', () => {
     const p = d.patienter.find(x => x.patientId === 'p22');
     expect(p).toMatchObject({ plats: 'Hjärtintensiven, sal 3', utrustning: [], infusioner: [], vatska: { balans: 0 } });
     expect(p.varden.puls).toMatchObject({ varde: 132, godkand: true });
-    // Pulsen 132 är från i förrgår och ligger utanför analysens fönster på sex timmar.
-    expect(p.analys).toEqual([]);
+    // Pulsen 132 är från i förrgår och ligger utanför analysens fönster på sex timmar. Runda 13, r3 (E2-16): att
+    // övervakningen har uteblivit är ett larm, med det senaste värdet.
+    expect(p.analys.map(x => x.regel)).toEqual(['kontroll_saknas']);
+    expect(p.analys[0].text).toContain('132');
     expect(d.demoregel).toContain('demoregler');
     // Varje patient i översikten loggas en gång per session.
     await k.get('/api/iva');

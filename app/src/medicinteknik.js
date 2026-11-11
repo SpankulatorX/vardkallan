@@ -252,12 +252,10 @@ export function kopplingarFor(atk, { aktiva = false } = {}) {
 
 // Runda 11, r7: armbandet mot patientens identiteter (personnummer, samordningsnummer, reservnummer), med eller utan
 // sekel. Samma regel när utrustning kopplas och när en infusion titreras (iva.js).
+// Runda 13, r3 (säkerhetsgranskningen): den gemensamma kontrollen, som slår upp koden i armbandstabellen och aldrig godtar
+// ett värde som går att räkna fram ur personnumret (skanning.js).
 export function armbandStammer(db, patientId, text) {
-  const a = siffror(text);
-  const p = db.query('SELECT personnummer FROM patienter WHERE id = ?').get(patientId);
-  if (!a || !p) return false;
-  const ident = [p.personnummer, ...db.query('SELECT varde FROM identiteter WHERE patient_id = ?').all(patientId).map(r => r.varde)].map(siffror).filter(Boolean);
-  return ident.some(x => x === a || x.slice(2) === a || a.slice(2) === x);
+  return require('./skanning.js').armbandHorTill(db, String(text ?? ''), patientId);
 }
 // POST /api/patient/:id/mt/koppla { streckkod, armband?, ordinationId? }. Systemet hittar utrustningen ur streckkoden,
 // kontrollerar armbandet mot patientens identitet, väljer själv pumpens ordination när det bara finns en infusion och

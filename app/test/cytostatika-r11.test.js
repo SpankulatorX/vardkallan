@@ -4,6 +4,7 @@
 // uppföljning i Min journal och uppföljningen i datauttaget. Kardiologiska kliniken på USÖ, vars kurer bereds av
 // Cytostatikaberedningen USÖ.
 import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
+import { armbandsKod } from '../src/skanning.js';
 import { stallKlockan, aterstallKlockan } from './falsk-klocka.js';
 import { datumAv, addDagar } from '../src/db.js';
 import * as cyto from '../src/cytostatika.js';
@@ -20,6 +21,8 @@ const lakGe = (db, pid = 'k1') => atk(db, 'lak-kard', pid, 'ge_cytostatika');
 const ssk = (db, pid = 'k1', h = 'ge_cytostatika') => atk(db, 'ssk-kard', pid, h);
 const far = (db) => pers(db, 'far-bered');
 const pnr = (db, pid = 'k1') => db.query('SELECT personnummer FROM patienter WHERE id = ?').get(pid).personnummer;
+// Runda 13, r3 (säkerhetsgranskningen): armbandet är patientens utskrivna armband ur armbandstabellen, inte personnumret.
+const band = (db, pid = 'k1') => armbandsKod(db, pid);
 const mv = (db, pid, typ, varde, min = -60) => db.query('INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, tid) VALUES (?, ?, ?, ?, ?, ?)').run(pid, ENHET, typ, String(varde), varde, efter(min).toISOString());
 function ny(db, id = 'k1', extra = {}) {
   nyPatient(db, { id, enhet: ENHET, ar: 1966, kon: 'K', fornamn: 'Karin', efternamn: 'Kursberg', ...extra });
@@ -37,9 +40,9 @@ function berett(db, pid = 'k1', regim = 'ec') {
   for (const r of lista.filter(x => !x.peroral)) cyto.taEmot(ssk(db, pid), cyto.dosRad(db, r.dosId), { streckkod: r.etikett }, efter(60));
   return { b, doser: lista };
 }
-const gePremed = (db, b, pid = 'k1', min = 70) => { for (const p of db.query("SELECT id FROM cyto_premed WHERE patient_id = ? AND status = 'ordinerad'").all(pid)) cyto.gePremed(ssk(db, pid), cyto.premedRad(db, p.id), { armband: pnr(db, pid) }, efter(min)); };
+const gePremed = (db, b, pid = 'k1', min = 70) => { for (const p of db.query("SELECT id FROM cyto_premed WHERE patient_id = ? AND status = 'ordinerad'").all(pid)) cyto.gePremed(ssk(db, pid), cyto.premedRad(db, p.id), { armband: band(db, pid) }, efter(min)); };
 function kontrollerad(db, d, min, pid = 'k1') {
-  const las = { armband: pnr(db, pid), streckkod: d.etikett };
+  const las = { armband: band(db, pid), streckkod: d.etikett };
   cyto.iordningstall(ssk(db, pid), cyto.dosRad(db, d.dosId ?? d.id), las, efter(min));
   cyto.kontrollera(lakGe(db, pid), cyto.dosRad(db, d.dosId ?? d.id), las, efter(min + 1));
 }
@@ -97,21 +100,23 @@ describe('Cytostatika i version 1.1', () => {
     const { b, doser } = berett(db);
     const k = kur(cyto.forPatient(lak(db, 'k1', 'las_cytostatika'), efter(61)).behandlingar[0]);
     expect(k.premedicinering.map(p => [p.namn, p.dos, p.vag, p.status])).toEqual([['Ondansetron', '8 mg', 'peroralt', 'ordinerad'], ['Betametason', '8 mg', 'peroralt', 'ordinerad']]);
-    const las = { armband: pnr(db), streckkod: doser[0].etikett };
+    const las = { armband: band(db), streckkod: doser[0].etikett };
     expect(fel(() => cyto.iordningstall(ssk(db), cyto.dosRad(db, doser[0].dosId), las, efter(65))).message)
       .toBe('Ge premedicineringen först: ondansetron 8 mg peroralt och betametason 8 mg peroralt, 30 minuter före kuren.');
     expect(fel(() => cyto.gePremed(ssk(db), cyto.premedRad(db, k.premedicinering[0].id), { armband: '191212121212' }, efter(66))).kod).toBe('fel_patient');
     gePremed(db, b);
-    expect(fel(() => cyto.gePremed(ssk(db), cyto.premedRad(db, k.premedicinering[0].id), { armband: pnr(db) }, efter(71))).message).toContain('redan given');
+    expect(fel(() => cyto.gePremed(ssk(db), cyto.premedRad(db, k.premedicinering[0].id), { armband: band(db) }, efter(71))).message).toContain('redan given');
     expect(cyto.iordningstall(ssk(db), cyto.dosRad(db, doser[0].dosId), las, efter(100)).kontroll.status).toBe('vantar_kontroll');
-    // Ett id-band med reservnummer läses med bokstäverna, och ett tomt id-band godtas aldrig.
+    // Ett id-band med bara personnumret eller reservnumret godtas inte, och ett tomt id-band godtas aldrig. Runda 13, r3:
+    // bara patientens utskrivna armband godtas.
     ny(db, 'k6');
     db.query("UPDATE patienter SET personnummer = 'VK196605090077' WHERE id = 'k6'").run();
     const b6 = berett(db, 'k6');
     const p6 = db.query("SELECT id FROM cyto_premed WHERE patient_id = 'k6' ORDER BY id").all();
     expect(fel(() => cyto.gePremed(ssk(db, 'k6'), cyto.premedRad(db, p6[0].id), { armband: '196605090077' }, efter(70))).kod).toBe('fel_patient');
     expect(fel(() => cyto.gePremed(ssk(db, 'k6'), cyto.premedRad(db, p6[0].id), { armband: '' }, efter(70))).kod).toBe('fel_patient');
-    expect(cyto.gePremed(ssk(db, 'k6'), cyto.premedRad(db, p6[0].id), { armband: 'vk19660509-0077' }, efter(70)).kurer[0].premedicinering[0].status).toBe('given');
+    expect(fel(() => cyto.gePremed(ssk(db, 'k6'), cyto.premedRad(db, p6[0].id), { armband: 'vk19660509-0077' }, efter(70))).kod).toBe('fel_patient');
+    expect(cyto.gePremed(ssk(db, 'k6'), cyto.premedRad(db, p6[0].id), { armband: band(db, 'k6') }, efter(70)).kurer[0].premedicinering[0].status).toBe('given');
     expect(b6.doser.length).toBe(2);
   });
 
@@ -485,7 +490,7 @@ describe('Cytostatika i version 1.1 via API', () => {
     for (const x of doser) expect((await k.post(`/api/beredning/dos/${x.dosId}/bered`, { batch: x.forslag[0].batch, uppmattMl: x.volymLakemedel })).status).toBe(200);
     expect((await k.get(`/api/beredning/sparbarhet?batch=${doser[0].forslag[0].batch}`)).data.doser.some(x => x.etikett === doser[0].etikett)).toBe(true);
     await k.logga('ssk-kard');
-    const pn = db.query("SELECT personnummer FROM patienter WHERE id = 'ka1'").get().personnummer;
+    const pn = armbandsKod(db, 'ka1');
     const kurNu = (await k.get('/api/patient/ka1/cytostatika')).data.behandlingar[0].kurer[0];
     for (const p of kurNu.premedicinering) expect((await k.post(`/api/cytostatika/premed/${p.id}/ge`, { armband: pn })).status).toBe(200);
     const d = doser[0];

@@ -1042,6 +1042,15 @@ export function teamVem(db, bokningId) {
 
 // Kallelsen skrivs av systemet ur bokningen: tid, plats, vårdgivarens yrke, förberedelser och avgift. Den innehåller
 // aldrig journaltext, diagnos eller remissens frågeställning, bara det en kallelse behöver.
+// Runda 13, r3 (E3-16): mottagningens telefonnummer i kallelsen. Numren är ur Post- och telestyrelsens serie för
+// påhittade nummer (070-174 06 05 till 99), ett per vårdenhet, och märks som påhittade i demon.
+export function telefonFor(db, enhetId) {
+  const ve = vardenhetFor(db, enhetId) ?? enhetId;
+  const alla = db.query("SELECT id FROM enheter WHERE typ = 'vardenhet' ORDER BY id").all().map(r => r.id);
+  const nr = 5 + (Math.max(0, alla.indexOf(ve)) % 95);
+  return `070-174 06 ${String(nr).padStart(2, '0')}`;
+}
+
 export function kallelseText(db, b, typ = 'kallelse', tillagg = {}) {
   const tid = tidRad(db, b.tid_id);
   const schema = schemaRad(db, tid.schema_id);
@@ -1061,13 +1070,15 @@ export function kallelseText(db, b, typ = 'kallelse', tillagg = {}) {
       avgift: a, vantelista: Boolean(b.vantelista_id), ingrepp: r4.ingrepp, lokal: r4.lokal, transport: r4.transport, fore: r4.fore ?? (r4.foreAvbokad ? {} : null),
     });
   }
-  const avgift = !b.patient_id ? 'Avgift: systemet räknar avgiften för varje patient.' : !a ? '' : a.belopp === 0 ? 'Avgift: ingen avgift.' : `Avgift: ${a.belopp} kronor. Har du frikort betalar du inget. Avgifterna i demon är påhittade.`;
+  // Runda 13, r3 (E3-16): mallen utan patient har ingen intern rad om hur avgiften räknas.
+  const avgift = !b.patient_id ? 'Avgift: enligt patientavgifterna. Har du frikort betalar du inget.' : !a ? '' : a.belopp === 0 ? 'Avgift: ingen avgift.' : `Avgift: ${a.belopp} kronor. Har du frikort betalar du inget. Avgifterna i demon är påhittade.`;
   const ttText = r4.ingrepp ? plan.INGREPP[r4.ingrepp].text : tt.text;
   const vem = tid.tidstyp === 'grupp' ? `${tid.rubrik ?? 'Gruppträff'}, ledd av ${YRKESROLL[schema.yrkesroll]} ${vg?.namn ?? ''}`
     // Runda 8, r3: ett teambesök med alla vårdgivarna.
     : tid.tidstyp === 'team' && b.id ? `Teambesök med ${teamVem(db, b.id)}`
       : `${ttText} hos ${YRKESROLL[schema.yrkesroll]} ${vg?.namn ?? ''}`;
-  const andra = 'Kan du inte komma? Boka om eller avboka i Min journal senast 24 timmar före, eller ring mottagningen.';
+  const tel = `${telefonFor(db, schema.enhet_id)} (påhittat nummer i demon)`;
+  const andra = `Kan du inte komma? Boka om eller avboka i Min journal senast 24 timmar före, eller ring mottagningen på ${tel}.`;
   const incheck = tt.fysisk ? 'Checka in i Min journal eller på skärmen i väntrummet när du kommer.' : null;
   const plats = `${r4.lokal ? `${r4.lokal}, ` : ''}${tt.fysisk ? ort : `${tt.text}, ${ort}`}`;
   const forb = r4.ingrepp ? plan.INGREPP[r4.ingrepp].forberedelse : FORBEREDELSER[tid.tidstyp];
@@ -1076,9 +1087,9 @@ export function kallelseText(db, b, typ = 'kallelse', tillagg = {}) {
   const rader = {
     kallelse: [`Hej ${p.fornamn},`, `Du har fått en tid. ${vem}.`, `Tid: ${tidText(tid.start)}.`, fore, `Plats: ${plats}.`, forb, resa, incheck, avgift, andra],
     ombokning: [`Hej ${p.fornamn},`, 'Din tid är ändrad. Den gamla tiden gäller inte längre.', `Ny tid: ${tidText(tid.start)}. ${vem}.`, fore, `Plats: ${plats}.`, forb, resa, incheck, avgift, andra],
-    paminnelse: [`Påminnelse: du har en tid ${tidText(tid.start)}. ${vem}, ${ort}.`, fore, tt.fysisk ? incheck : forb, 'Kan du inte komma? Avboka i Min journal eller ring mottagningen.'],
+    paminnelse: [`Påminnelse: du har en tid ${tidText(tid.start)}. ${vem}, ${ort}.`, fore, tt.fysisk ? incheck : forb, `Kan du inte komma? Avboka i Min journal eller ring mottagningen på ${tel}.`],
     avbokning: [`Hej ${p.fornamn},`, `Din tid ${tidText(tid.start)} på ${ort} är avbokad.`, r4.foreAvbokad ? 'Provtagningen före besöket är också avbokad.' : null,
-      b.vantelista_id ? 'Du står kvar i kön och får en ny tid.' : 'Vill du ha en ny tid? Boka i Min journal eller ring mottagningen.'],
+      b.vantelista_id ? 'Du står kvar i kön och får en ny tid.' : `Vill du ha en ny tid? Boka i Min journal eller ring mottagningen på ${tel}.`],
   }[typ];
   return rader.filter(Boolean).join('\n');
 }

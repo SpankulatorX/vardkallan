@@ -70,6 +70,25 @@ function nyttArmband(db, patientId, enhetId, av, tid = iso()) {
   return db.query('SELECT * FROM armband WHERE id = ?').get(Number(r.lastInsertRowid));
 }
 
+// Runda 13, r3 (säkerhetsgranskningen): den gemensamma kontrollen av ett armband för de flöden som kräver id-kontroll.
+// Koden slås upp i armbandstabellen, så att bara ett utskrivet armband som inte har ersatts godtas, aldrig ett värde
+// som går att räkna fram ur patientens id eller personnummer. Patienten löses till den gällande journalen.
+export function armbandHorTill(db, kod, patientId) {
+  if (typeof kod !== 'string' || !kod.trim()) return false;
+  sakra(db);
+  const rad = db.query('SELECT patient_id FROM armband WHERE kod = ? AND aterkallad IS NULL').get(kod.trim().toUpperCase());
+  return Boolean(rad && identitet.gallandeId(db, rad.patient_id) === identitet.gallandeId(db, patientId));
+}
+// Patientens gällande armband, som skrivs ut om det inte finns. För demons och testernas flöden.
+export function armbandsKod(db, patientId, enhetId = null, av = null) {
+  sakra(db);
+  const a = db.query('SELECT * FROM armband WHERE patient_id = ? AND aterkallad IS NULL ORDER BY id DESC LIMIT 1').get(patientId);
+  return (a ?? nyttArmband(db, patientId, enhetId ?? 'okand', av)).kod;
+}
+// Ett armband som skannades i skanningsflödet gäller för samma patient i några minuter, sparat på servern i sessionen.
+export const SKANNING_GILTIG_MS = 5 * 60_000;
+export const nyssSkannat = (s, patientId, nu = Date.now()) => Boolean(s?.armbandSkannat && s.armbandSkannat.patientId === patientId && nu - s.armbandSkannat.tid <= SKANNING_GILTIG_MS);
+
 // POST /api/patient/:id/armband: patientens armband med streckkod, samma kod varje gång det skrivs ut. Namn och
 // personnummer på armbandet följer samma maskering som patienthuvudet.
 export function armband(atk, p) {
@@ -180,6 +199,8 @@ export function skanna(c, body, { medPatient, valFor = () => ({}) }) {
     rad({ patient: pid, resultat: samma === null ? 'oppna' : samma ? 'kontrollerad' : 'annan_patient', objekt: t.typ === 'armband' ? `armband:${t.kod}` : null });
     const ut = { typ: 'patient', kalla: t.typ, patient: kort, sammaPatient: samma, oppna: `#/patient/${encodeURIComponent(pid)}` };
     if (samma === true) ut.text = 'Armbandet stämmer med patienten som är öppen.';
+    // Runda 13, r3: ett skannat armband (inte ett inskrivet nummer) sparas i sessionen för patienten, en kort stund.
+    if (t.typ === 'armband') c.s.armbandSkannat = { patientId: pid, tid: Date.now() };
     if (samma === false) ut.varning = `Armbandet ${ANNAN_PATIENT}. Kontrollera patientens identitet innan du fortsätter.`;
     return ut;
   }
@@ -197,8 +218,10 @@ export function skanna(c, body, { medPatient, valFor = () => ({}) }) {
     }
     if (sammanhang === 'provtagning') {
       const labb = require('./labb.js');
-      // Runda 13, r3 (E2-53): armbandet är redan skannat och prövat mot röret.
-      const r = medPatient(c, prov.patient_id, 'ta_prov', (atk) => labb.taProv(atk, labb.provRad(db, prov.id), new Date(), { armbandSkannat: true }));
+      // Runda 13, r3 (E2-53): armbandet räknas som skannat bara om servern har sett just den patientens armband skannas i
+      // sessionen nyss.
+      const skannat = nyssSkannat(c.s, identitet.gallandeId(db, prov.patient_id));
+      const r = medPatient(c, prov.patient_id, 'ta_prov', (atk) => labb.taProv(atk, labb.provRad(db, prov.id), new Date(), { armbandSkannat: skannat }));
       rad({ patient: prov.patient_id, resultat: 'provtagen', objekt: `labb_prov:${prov.id}` });
       return { typ: 'etikett', etikett: t.kod, tagen: true, text: r.text ?? `Röret ${t.kod} är registrerat som taget.`, bestallning: r.bestallning };
     }

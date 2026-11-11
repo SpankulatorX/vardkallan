@@ -4,6 +4,7 @@ import { describe, test, expect } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { byggSeed } from '../src/db.js';
 import * as journal from '../src/journal.js';
+import * as tidbok from '../src/tidbok.js';
 import { atk } from './hjalp.js';
 
 const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
@@ -31,5 +32,16 @@ describe('Fynd från det utforskande testet', () => {
       expect(text).not.toContain(pnr);
       expect(text).not.toContain(`${pnr.slice(0, 8)}-${pnr.slice(8)}`);
     }
+  });
+
+  test('E3-16: kallelsen har mottagningens telefonnummer och ingen intern rad om hur avgiften räknas', () => {
+    const db = byggSeed();
+    const t = db.query('SELECT id FROM tider ORDER BY start LIMIT 1').get();
+    const mall = tidbok.kallelseText(db, { tid_id: t.id, patient_id: null, vantelista_id: null, vardkontakt_id: null }, 'kallelse');
+    expect(mall).not.toContain('systemet räknar');
+    expect(mall).toMatch(/ring mottagningen på 070-174 06 \d\d \(påhittat nummer i demon\)/);
+    const b = db.query("SELECT * FROM bokningar WHERE status = 'bokad' AND patient_id IS NOT NULL LIMIT 1").get();
+    expect(tidbok.kallelseText(db, b, 'kallelse')).toMatch(/070-174 06 \d\d/);
+    expect(tidbok.kallelseText(db, b, 'paminnelse')).toMatch(/070-174 06 \d\d/);
   });
 });

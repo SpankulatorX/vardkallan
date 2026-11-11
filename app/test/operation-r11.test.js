@@ -3,6 +3,7 @@
 // planerat ingrepp, identitetskontroll och WHO:s checklista i full omfattning. Varje test bygger en sandlåda vid en fast
 // tidpunkt (måndag 2026-11-09 klockan 08.00 svensk tid) och lägger in sina egna patienter.
 import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
+import { armbandsKod } from '../src/skanning.js';
 import { stallKlockan, aterstallKlockan } from './falsk-klocka.js';
 import { testserver, klient, sandlada as serverSandlada } from './hjalp.js';
 import { datumAv, addDagar, lokalTid } from '../src/db.js';
@@ -25,6 +26,8 @@ const ALLA = (del) => Object.keys(op.CHECKLISTA[del].punkter);
 // Runda 13, r3 (E2-49): blodet bekräftas med en motivering när blodgruppering och bastest inte är klara.
 const MOT = { blodning: 'Operatören har beslutat att blod inte behövs i beredskap.' };
 const pnr = (db, pid) => db.query('SELECT personnummer FROM patienter WHERE id = ?').get(pid).personnummer;
+// Runda 13, r3 (säkerhetsgranskningen): armbandet är patientens utskrivna armband ur armbandstabellen, inte personnumret.
+const band = (db, pid) => armbandsKod(db, pid);
 
 describe('Operation 1.1', () => {
   test('salsblocken fördelar salarna mellan vårdenheterna, också på andra sjukhus, och ett block kan släppas och tas av en annan vårdenhet', () => {
@@ -126,7 +129,7 @@ describe('Operation 1.1', () => {
     const s = atk(db, 'ssk-kkoga', 'op1', 'operation_registrera');
     const t0 = new Date(lokalTid(MORGON, '07:30'));
     expect(() => op.registrera(s, rad(db, a.id), { handelse: 'in_sal', armband: '191212121212' }, t0)).toThrow('Armbandet hör inte till');
-    op.registrera(s, rad(db, a.id), { handelse: 'in_sal', armband: pnr(db, 'op1') }, t0);
+    op.registrera(s, rad(db, a.id), { handelse: 'in_sal', armband: band(db, 'op1') }, t0);
     const u = op.checklistaUnderlag(atk(db, 'ssk-kkoga', 'op1', 'las_operation'), rad(db, a.id), t0);
     const punkt = (del, id) => u.delar.find(d => d.id === del).punkter.find(p => p.id === id);
     expect(punkt('fore_anestesi', 'identitet')).toMatchObject({ forifylld: true });

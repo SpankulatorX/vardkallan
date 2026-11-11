@@ -15,7 +15,7 @@ let REAKTIONER = [];
 // Läsningen vid sängen: id-bandet och etiketten skannas. Demoknappen fyller i det som en läsare skulle läsa.
 function sangen(id, steg, etikett, pnr, { armband = true } = {}) {
   return `<form class="cy-sangen falt-rad" data-cy-form="${esc(steg)}" data-dos="${esc(id)}" novalidate>
-    ${armband ? `<div class="falt smal"><label for="cy-arm-${esc(id)}-${esc(steg)}">Id-band</label><input id="cy-arm-${esc(id)}-${esc(steg)}" name="armband" autocomplete="off" inputmode="numeric"></div>` : ''}
+    ${armband ? `<div class="falt smal"><label for="cy-arm-${esc(id)}-${esc(steg)}">Id-band</label><input id="cy-arm-${esc(id)}-${esc(steg)}" name="armband" autocomplete="off" inputmode="text"></div>` : ''}
     <div class="falt smal"><label for="cy-et-${esc(id)}-${esc(steg)}">Etikett</label><input id="cy-et-${esc(id)}-${esc(steg)}" name="streckkod" autocomplete="off"></div>
     <div class="falt knappfalt knapprad"><button type="button" class="knapp liten sekundar" data-cy-las="${esc(pnr)}|${esc(etikett)}">Läs med skannern (demo)</button>
       <button type="submit" class="knapp liten">${{ 'ta-emot': 'Ta emot', iordningstall: 'Iordningställ', kontrollera: 'Dubbelkontrollera' }[steg]}</button></div>
@@ -122,7 +122,10 @@ export async function visa(el, ctx) {
   const planerad = pagande?.kurer.find(k => k.status === 'planerad');
   const prov = planerad && far('ordinera_cytostatika') ? await api(`/api/cytostatika/cykel/${planerad.id}/provkontroll`).catch(() => null) : null;
   if (!ctx.aktuell()) return;
-  const pnr = ctx.patient?.personnummer ?? '';
+  // Runda 13, r3 (säkerhetsgranskningen): demoskannern läser patientens utskrivna armband, eftersom servern bara godtar
+  // armbandets kod och inte personnumret.
+  const pnr = await api(`/api/patient/${encodeURIComponent(ctx.id)}/armband`, { metod: 'POST', data: {}, tyst: true }).then(a => a.kod).catch(() => '');
+  if (!ctx.aktuell()) return;
   const idag = S.session?.demoDatum ?? new Date().toISOString().slice(0, 10);
   el.innerHTML = `<div class="flikhuvud"><h2>Cytostatika</h2><p class="dampad">Behandling ur regimbiblioteket, beredningen, premedicineringen och administreringen med dubbelkontroll.</p></div>
     ${!pagande && far('ordinera_cytostatika') ? ordinationHtml(d, idag) : ''}
