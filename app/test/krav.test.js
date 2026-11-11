@@ -22,7 +22,8 @@ describe('Kravregistret', () => {
     // K1 omfattar nu hela Sussas kravspecifikation med originalnummer, med Sussa-registrets tester.
     // Runda 7, r7: K2 kopplar varje post till Cambios svar men saknar leverantörens FVIS-kravlista, K3 och K5 är byggda.
     const [k1, k2, k3, k5] = ['K1', 'K2', 'K3', 'K5'].map(id => KRAV.find(k => k.id === id));
-    expect(k1.status).toBe('delvis');
+    // Runda 12: alla kapitel och driftspecifikationen finns, så K1 är uppfyllt.
+    expect(k1.status).toBe('uppfyllt_demo');
     expect(k1.anmarkning).toContain('originalnummer finns nu för kapitel 1 till 12');
     expect(k1.anmarkning).toContain('originaldokument');
     expect(k1.tester.filter(t => t.startsWith('Sussa-registret > ')).length).toBeGreaterThanOrEqual(3);

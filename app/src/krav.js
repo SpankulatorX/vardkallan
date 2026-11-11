@@ -44,7 +44,7 @@ export const klickbudgetTest = (f) => `${GK}${f.namn} inom budget`;
 
 export const KRAV = [
   // Kravspårbarhet
-  k('K1', 'Kravregister med id, källa, status och koppling till tester', `${RAPPORT}, Kravspårbarhet`, 'delvis', '/krav',
+  k('K1', 'Kravregister med id, källa, status och koppling till tester', `${RAPPORT}, Kravspårbarhet`, 'uppfyllt_demo', '/krav',
     [`${KR}alla krav K1 till K5, D1 till D12, L1 till L13 och M1 till M13 finns`, `${KR}status uppfyllt_demo bara när alla tester är gröna`, `${A}krav visar kravregistret`,
       `${SR}alla 389 id finns exakt en gång, och varje post har en mappning`, `${SR}uppfyllt_demo kräver gröna tester`, `${SR}källan anges och alla kapitel ingår`,
       `${SR}API: krav/sussa ger registret utan inloggning, med egna krav och testernas status`, ...TESTER_VERSION],

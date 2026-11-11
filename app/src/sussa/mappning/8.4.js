@@ -23,7 +23,7 @@ const AVSNITT = [
     tester: [...TEST_REGISTER, KLICKBUDGET, ...KORNINGSTESTER],
     losning: 'Varje ändring av gränssnittet mäts mot användarnas uppgifter innan den byggs in. Sussas 34 testfall från användbarhetstesterna av Cosmic spelas i gränssnittet med rätt roll, och skriptet kontrollerar slutvillkoret, räknar klick och tecken och uppskattar tiden för en människa, med samma poäng som när Cosmic utvärderades. Varje vanligt flöde har en klickbudget som mäts på samma sätt. Ett testfall eller flöde som går över budgeten eller inte når sitt mål stoppar mätningen.',
     expert: 'Systemet mäter sin egen användbarhet vid varje ändring och säger vilket testfall som inte klaras och varför, så att ingen behöver minnas att testa.',
-    anmarkning: 'Processen är Vårdkällans egen: testfallen och klickbudgeten är automatiska, men användartester med personer som arbetar i vården är inte gjorda. 16 av Sussas 34 testfall kan inte genomföras än, och vad som saknas står per testfall på kravsidan under K4. Tidsklassen per testfall är Vårdkällans bedömning, eftersom Sussa aldrig lämnade ut den. Tillgängligheten prövas bara delvis (tangentbord och 360 pixlars bredd i genomgången).',
+    anmarkning: 'Processen är Vårdkällans egen: testfallen och klickbudgeten är automatiska, men användartester med personer som arbetar i vården är inte gjorda. Alla Sussas 34 testfall går att genomföra inom klickbudgeten, och resultatet står per testfall på kravsidan under K4. Tidsklassen per testfall är Vårdkällans bedömning, eftersom Sussa aldrig lämnade ut den. Tillgängligheten prövas bara delvis (tangentbord och 360 pixlars bredd i genomgången).',
   },
   {
     id: '8.4.1.2', kategori: 'system', egna: ['K4', 'D6'], avsedd: 'delvis',
