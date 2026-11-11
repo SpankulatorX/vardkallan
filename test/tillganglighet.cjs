@@ -948,6 +948,49 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     }
   }
 
+  // Runda 12, r3 (Sussa KD1.1.4.10): flera skärmar. Två fönster i samma inloggning: läkemedelslistan öppnas i ett nytt
+  // fönster och följer med när en annan patient öppnas i det första. Ett låst fönster följer inte med men visar tydligt
+  // att en annan patient är öppen i det andra fönstret.
+  {
+    const namn = `${PREFIX.GT}flera skärmar: en del av journalen öppnas i ett nytt fönster som följer patientbytet, och ett låst fönster visar tydligt att en annan patient är öppen`;
+    try {
+      const k = await kontext({ width: 1440, height: 900 });
+      await k.addInitScript(INIT);
+      const a = await k.newPage();
+      bevaka(a, 'fönster 1');
+      await loggaIn(a, 'lak-kard');
+      await gaTill(a, '#/patient/p01');
+      await a.waitForSelector('[data-fonster-rad]');
+      await a.selectOption('#fonster-del', 'lakemedel');
+      const [b] = await Promise.all([k.waitForEvent('page'), a.click('[data-fonster-oppna]')]);
+      bevaka(b, 'fönster 2');
+      await b.waitForLoadState('networkidle');
+      await b.waitForSelector('.patientband h1');
+      if (!/#\/patient\/p01\/lakemedel$/.test(b.url())) throw new Error(`det nya fönstret visar ${b.url()}`);
+      // Patientbyte i det första fönstret: det andra följer med och behåller fliken Läkemedel.
+      await a.evaluate(() => { location.hash = '#/patient/p05'; });
+      await b.waitForFunction(() => location.hash === '#/patient/p05/lakemedel', null, { timeout: 10000 });
+      await b.waitForFunction(() => /byttes till/.test(document.getElementById('notiser')?.textContent ?? ''));
+      // Det andra fönstret låses. Ett nytt byte i det första visar varningen i stället.
+      await b.click('[data-fonster-las]');
+      if (await b.getAttribute('[data-fonster-las]', 'aria-pressed') !== 'true') throw new Error('låsknappen visar inte att fönstret är låst');
+      await a.evaluate(() => { location.hash = '#/patient/p01'; });
+      await b.waitForSelector('#fonster-varning', { timeout: 10000 });
+      const t = await b.locator('#fonster-varning').textContent();
+      if (!b.url().endsWith('#/patient/p05/lakemedel')) throw new Error('det låsta fönstret bytte patient');
+      if (!/Det här fönstret visar/.test(t) || !/Gunnar Åkesson/.test(t)) throw new Error(`varningen säger inte vilka patienter det gäller: ${t}`);
+      await b.screenshot({ path: join(UT, 'r12r3-flera-fonster.png') });
+      await b.click('[data-fonster="byt"]');
+      await b.waitForFunction(() => location.hash === '#/patient/p01' && !document.getElementById('fonster-varning'), null, { timeout: 10000 });
+      await k.close();
+      tester.push({ namn, status: 'grön' });
+      console.log(`ok  ${namn.replace(PREFIX.GT, '')}`);
+    } catch (e) {
+      tester.push({ namn, status: 'röd', fel: kort(e.message) });
+      console.log(`FEL ${namn.replace(PREFIX.GT, '')}: ${kort(e.message)}`);
+    }
+  }
+
   // ---- Resultatet ----
   const tillg = [
     [G.media, ['media']], [G.alt, ['alt']], [G.namn, ['namn']], [G.rubriker, ['rubriker']], [G.landmarken, ['landmarken']], [G.sprak, ['sprak']],

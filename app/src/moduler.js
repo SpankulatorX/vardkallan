@@ -304,6 +304,10 @@ export const MODULER = [
   const u = MODULER.find(x => x.id === 'utbildning');
   u.beskrivning += ' Praktiska prov som görs i en övningsjournal, där systemet kontrollerar resultatet och utbildaren följer upp.';
   u.kod.push('src/praktiska-prov.js');
+  // Arbete över flera skärmar hör till skärmanpassningen.
+  const t = MODULER.find(x => x.id === 'tillganglighet');
+  t.beskrivning += ' En del av journalen kan öppnas i ett nytt fönster, och fönstren följer varandra när en patient öppnas.';
+  t.kod.push('public/js/flera-fonster.js');
 }
 
 // Vyer och rutter som inte hör till en enskild modul, med motivering.

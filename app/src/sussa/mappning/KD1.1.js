@@ -110,4 +110,14 @@ const AVSNITT = [
   { id: 'KD1.1.4.10', kategori: 'system', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: "Bildskärm är inte byggt ännu (runda 7)." },
 ];
-export default medR9r5(medR7r2(AVSNITT));
+// Runda 12, r3: arbete över flera skärmar (public/js/flera-fonster.js).
+const R12R3 = {
+  'KD1.1.4.10': {
+    avsedd: 'uppfyllt_demo',
+    tester: ['Gränssnitt > Tillgänglighet > flera skärmar: en del av journalen öppnas i ett nytt fönster som följer patientbytet, och ett låst fönster visar tydligt att en annan patient är öppen'],
+    losning: 'Responsiv design utan minsta upplösning: från 320 px bredd till 2560 px. Under 640 px blir menyn en knapp och knapparna minst 40 px höga, mellan 640 och 1100 px blir patienthuvudet och sidopanelerna smalare, och på stor skärm begränsas textraderna så att de går att läsa. Text och symboler är vektorer, så hög upplösning ger skarp text. För flera skärmar kan en del av journalen, till exempel läkemedelslistan, öppnas i ett nytt fönster med ett klick. Användarens fönster följer varandra: när en patient öppnas i ett fönster byter de andra fönstren som visar en journal till samma patient och behåller sin flik. Ett fönster kan låsas till sin patient och visar då en tydlig varning med båda patienternas namn när en annan patient öppnas i ett annat fönster.',
+    expert: 'Systemet anpassar själv gränssnittet till skärmens storlek, förstoring och kontrastinställning, och håller användarens fönster på samma patient utan att användaren behöver göra något. Ett fönster med en annan patient än de andra syns alltid tydligt.',
+    anmarkning: 'Rekommendation: minst 1280 px bredd för arbete med journalen på en vanlig arbetsplats, men allt fungerar från 320 px. Fönstren talar med varandra genom BroadcastChannel inom samma webbläsare och inloggning, och varje fönster hämtar journalen med sin egen behörighetsprövning. Prövat i Chromium med Playwright. Riktiga plattor, telefoner och fysiska skärmar är inte prövade.',
+  },
+};
+export default medR9r5(medR7r2(AVSNITT)).map(x => (R12R3[x.id] ? { ...x, ...R12R3[x.id], tester: [...new Set([...(x.tester ?? []), ...R12R3[x.id].tester])] } : x));

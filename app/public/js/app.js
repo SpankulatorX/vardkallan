@@ -86,6 +86,8 @@ import * as modrahalsovard from './vyer/modrahalsovard.js';
 // Runda 12, r3 (vårt L5): flerfaktorsinloggning med passkeys och engångskoder.
 import * as flerfaktorVy from './vyer/flerfaktor.js';
 import { andraFaktorn } from './flerfaktor-ui.js';
+// Runda 12, r3 (Sussa KD1.1.4.10): arbete över flera skärmar.
+import * as flera from './flera-fonster.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -540,6 +542,16 @@ async function visaVy(vy, main, param, q, nr) {
   document.title = `${main.querySelector('h1')?.textContent?.trim() || 'Start'}, Vårdkällan`;
   // Läskopian för avbrott förnyas när en patient har öppnats, annars högst en gång i minuten. Bara för personalen.
   if (arPersonal()) avbrottslage.fornya({ nu: vyNamn === 'patient' });
+  // Runda 12, r3 (Sussa KD1.1.4.10): personalens fönster följer varandra när en patient öppnas.
+  if (arPersonal()) {
+    flera.starta(S.session.personal.id);
+    const pid = vyNamn === 'patient' && param[0] && main.querySelector('.patientband h1') ? param[0] : null;
+    flera.patient(pid, pid ? main.querySelector('.patientband h1')?.textContent?.trim() ?? '' : '');
+    if (pid && !main.querySelector('[data-fonster-rad]')) {
+      const flikar = main.querySelector('.flikar');
+      if (flikar) { flikar.insertAdjacentHTML('afterend', flera.radHtml(pid)); flera.kopplaRad(main.querySelector('[data-fonster-rad]')); }
+    }
+  } else flera.stoppa();
 }
 
 // Demoknappen Simulera avbrott visas för den som är inloggad, och inte under ett avbrott.

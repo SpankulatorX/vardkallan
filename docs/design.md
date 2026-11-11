@@ -2344,3 +2344,48 @@ Reservinloggningen under ett avbrott når inte servern och använder reservkoden
 
 SITHS-kortet och e-legitimationen är fortfarande simulerade. En QR-kod för appen saknas; nyckeln skrivs in i appen
 eller öppnas med länken `otpauth://` på samma enhet.
+
+## Praktiska prov, rabatter och flera skärmar (runda 12, r3: praktiska-prov.js, vardkontakt.js och flera-fonster.js, Sussa 10.1.1.5, 7.1.2.1 och KD1.1.4.10)
+
+### Praktiska prov i journalen (Sussa 10.1.1.5)
+
+Övningarna under Utbildning är kunskapsfrågor. Ett praktiskt prov är en uppgift som görs på riktigt i en
+övningsjournal: att ordinera paracetamol vid behov (läkare), att skriva och signera en anteckning (läkare,
+sjuksköterskor och fysioterapeuter) eller att registrera ett blodtryck (sjuksköterskor och undersköterskor). När provet
+startar sparar systemet var i journalen det börjar, och vid kontrollen letar det i databasen efter det personen själv
+har gjort i övningsjournalen efter starten. Systemet säger på vanlig svenska vad som saknas, till exempel att
+anteckningen är sparad men inte signerad. Ett godkänt prov gäller i ett år.
+
+Övningsjournalen är en av demons påhittade patienter som personen redan har vårdrelation till, utan skyddade
+personuppgifter. Systemet väljer den med personens egen behörighet, och valet loggas i åtkomstloggen. Demon är själv
+Vårdkällans utbildningsmiljö.
+
+Utbildaren är en behörighet för en befintlig roll: den som har ett giltigt utbildarintyg från verksamhetschefen, och
+verksamhetschefen själv. Med behörigheten skapar man vårdenhetens prov och följer upp vem som har klarat vilket prov.
+Utbildaren väljer bara vilket prov, och uppföljningen visar aldrig vilken patient provet gjordes på.
+
+### Rabatter på patientavgifterna (Sussa 7.1.2.1)
+
+Kostnadsrutan visar för varje avgiftsfri eller nedsatt patientavgift ordinarie avgift, rabatten och skälet: under 20
+år, från 85 år, LMA-kort eller frikort, och summan av rabatterna. Rabatten räknas på samma synliga besök som avgiften.
+En avgift som taket i högkostnadsskyddet har satt ned utan att ge frikort visas som en hel avgift, eftersom rabatten
+annars skulle röja besök som den som läser inte får se.
+
+Högkostnadsskyddet räknas fortfarande bara på de besök användaren får se. Att räkna det över alla besök och bara visa
+att frikort gäller går inte utan att röja något: när de synliga besöken inte når taket säger ett frikort att det finns
+besök som användaren inte får se. Patienten ser hela skyddet i Min journal.
+
+### Flera skärmar (Sussa KD1.1.4.10)
+
+I journalen finns en rad under flikarna där en del av journalen, till exempel läkemedelslistan, öppnas i ett nytt
+fönster med ett klick. Användarens fönster i samma webbläsare och inloggning talar med varandra genom en
+BroadcastChannel inom samma ursprung. När en patient öppnas i ett fönster byter de andra fönstren som visar en journal
+till samma patient och behåller sin flik, och säger varför. Ett fönster kan låsas till sin patient. Då följer det inte
+med, och en varning överst säger vilken patient fönstret visar och vilken som är öppen i det andra fönstret, med ett
+val att byta eller behålla. Kanalen bär bara patientens id och det namn som avsändaren redan visar, och varje fönster
+hämtar journalen själv med sin egen behörighetsprövning och loggning.
+
+### Det som är simulerat eller saknas
+
+Proven kontrollerar tre slag av uppgifter. Rabatter i prislistorna för läkemedel och material finns inte. Fönstren är
+prövade i Chromium med Playwright, inte på riktiga skärmar.

@@ -815,3 +815,9 @@ Det som ändrar något kräver radens vårdenhet. Listor på enhetsnivå och upp
 - `POST /api/flerfaktor/passkey/borja` ger alternativen till `navigator.credentials.create`, och `POST /api/flerfaktor/passkey { namn?, svar: { id, clientDataJSON, attestationObject } }` (201) sparar passkeyn.
 - `POST /api/flerfaktor/totp/borja` ger `{ id, nyckel, nyckelGrupper, uri, steg, siffror }`, och `POST /api/flerfaktor/totp { kod }` (201) slår på appen. `POST /api/flerfaktor/:id/ta-bort` tar bort en faktor.
 - `GET /api/session` har `flerfaktor: { aktiv, metod }` för den inloggade.
+
+## Praktiska prov och rabatter (runda 12, r3)
+
+- `GET /api/utbildning/prov` ger `{ prov: [{ id, typ, titel, roller, status, text, uppgift?, lank?, resultat?, giltigtTill? }], utbildare, provtyper?, uppfoljning? }`. Utbildaren får `provtyper` och `uppfoljning: [{ id, typ, titel, skapad, godkanda, personer: [{ id, namn, titel, status, text, giltigtTill? }] }]`, utan patient.
+- `POST /api/utbildning/prov { typ }` (201, utbildaren eller verksamhetschefen), `POST /api/utbildning/prov/:id/starta`, `POST /api/utbildning/prov/:id/kontrollera` (ger också `godkant` och `text`) och `POST /api/utbildning/prov/:id/avsluta`.
+- `GET /api/patient/:id/kostnader` har `rabatt: { ordinarie, rabatt, skal, demoregel }` på en avgiftsfri eller nedsatt patientavgift och `rabatter` med summan i `aktuell`.

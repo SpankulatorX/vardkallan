@@ -58,8 +58,8 @@ export const PROVTYPER = {
   },
   signera_anteckning: {
     titel: 'Skriva och signera en journalanteckning',
-    roller: ['lakare', 'sjukskoterska', 'fysioterapeut'], handling: 'skriv_omvardnad', tabell: 'anteckningar', flik: 'anteckningar',
-    uppgift: (pat) => `Öppna fliken Anteckningar i journalen för ${pat}, skriv en anteckning och signera den. Kontrollera provet när anteckningen är signerad.`,
+    roller: ['lakare', 'sjukskoterska', 'fysioterapeut'], handling: 'skriv_omvardnad', tabell: 'anteckningar', flik: 'journal',
+    uppgift: (pat) => `Öppna fliken Journal för ${pat}, skriv en anteckning och signera den. Kontrollera provet när anteckningen är signerad.`,
     kontroll(db, f) {
       const rader = db.query('SELECT * FROM anteckningar WHERE id > ? AND patient_id = ? AND forfattare_id = ?').all(f.forsta_id, f.patient_id, f.personal_id);
       if (!rader.length) return [false, 'Det finns ingen anteckning av dig i patientens journal sedan du startade provet.'];
