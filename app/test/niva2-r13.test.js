@@ -232,3 +232,36 @@ describe('Nivå 2 via API (runda 13, r4)', () => {
     expect((await l.get('/api/patient/p14')).data.anteckningsmallar[0]).toBe('Akutanteckning');
   });
 });
+
+describe('Vätskebalansen (runda 13, r4, E2-14 och E2-51)', () => {
+  test('en urinmätning har tid och period, och timmar utan registrering räknas inte som noll och ger ingen oliguri', async () => {
+    const iva = await import('../src/iva.js');
+    const adm = await import('../src/administrering.js');
+    stallKlockan(KLOCKAN('21:07'));
+    const db = nySessionsDb();
+    const a = () => atk(db, 'ssk-kard', 'p01', {}, 'registrera_matvarde');
+    const las = () => atk(db, 'ssk-kard', 'p01', {}, 'las_matvarden');
+    // 600 ml klockan 21.07 utan period: bara timmen 21 har urin. Timmarna före är okända, inte noll.
+    adm.registreraVatska(a(), { riktning: 'ut', typ: 'urin', volymMl: 600 });
+    let v = iva.vatskaTimvis(las(), { timmar: 6 }, KLOCKAN('21:07'));
+    const timme = (k) => v.timmar.find(x => x.fran === lokalTid('2026-11-12', k));
+    expect(timme('21:00')).toMatchObject({ urin: 600, urinRegistrerad: true });
+    expect(timme('20:00')).toMatchObject({ urin: null, urinRegistrerad: false, urinMlKgH: null });
+    expect(v.oliguri).toBeNull();
+    // Nästa tömning gäller tiden sedan den förra: volymen fördelas på timmarna.
+    stallKlockan(KLOCKAN('23:59'));
+    const r = adm.registreraVatska(a(), { riktning: 'ut', typ: 'urin', volymMl: 90, tid: lokalTid('2026-11-12', '23:59'), fran: lokalTid('2026-11-12', '21:00') });
+    expect(r.fran).toBe(lokalTid('2026-11-12', '21:00'));
+    expect(adm.senasteUrin(las())).toBe(lokalTid('2026-11-12', '23:59'));
+    v = iva.vatskaTimvis(las(), { timmar: 6 }, KLOCKAN('23:59'));
+    const t22 = v.timmar.find(x => x.fran === lokalTid('2026-11-12', '22:00'));
+    expect(t22.urinRegistrerad).toBe(true);
+    expect(t22.urin).toBeGreaterThan(29);
+    expect(t22.urin).toBeLessThan(31);
+    // En period som slutar efter tiden stoppas.
+    expect(() => adm.registreraVatska(a(), { riktning: 'ut', typ: 'urin', volymMl: 50, tid: lokalTid('2026-11-12', '23:00'), fran: lokalTid('2026-11-12', '23:30') })).toThrow('Perioden ska börja före tiden');
+    // Dygnets lista visar perioden.
+    const lista = adm.vatskebalans(las(), { dag: '2026-11-12' });
+    expect(lista.poster.find(p => p.volymMl === 90).fran).toBe(lokalTid('2026-11-12', '21:00'));
+  });
+});

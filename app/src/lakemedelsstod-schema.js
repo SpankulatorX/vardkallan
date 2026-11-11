@@ -104,6 +104,10 @@ ${bestaende('fordjupade_steg', 'Ett steg i genomgången')}
 -- Kalorier för ett intag i vätskebalansen (3.5.3.2).
 CREATE TABLE IF NOT EXISTS vatskebalans_kcal (vatskebalans_id INTEGER PRIMARY KEY, kcal REAL NOT NULL, CHECK (kcal >= 0));
 ${bestaende('vatskebalans_kcal', 'Kalorierna')}
+
+-- Runda 13, r4: perioden som en registrering gäller, till exempel urin sedan katetern tömdes förra gången (E2-51).
+CREATE TABLE IF NOT EXISTS vatskebalans_period (vatskebalans_id INTEGER PRIMARY KEY, fran TEXT NOT NULL);
+${bestaende('vatskebalans_period', 'Perioden')}
 `;
 
 export function sakraLakemedelsstod(db) {

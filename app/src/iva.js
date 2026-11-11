@@ -22,7 +22,7 @@ import * as journal from './journal.js';
 import * as lakemedel from './lakemedel.js';
 import * as vardkontakt from './vardkontakt.js';
 import * as vitalparametrar from './vitalparametrar.js';
-import { kravVardande, synligaAdministreringar } from './administrering.js';
+import { kravVardande, synligaAdministreringar, vatskePeriod } from './administrering.js';
 import * as stod from './lakemedelsstod.js';
 import * as konfiguration from './konfiguration.js';
 import * as mt from './medicinteknik.js';
@@ -225,19 +225,31 @@ export function vatskaTimvis(atk, { timmar = 24 } = {}, nu = new Date()) {
   const rader = atk.filtrera(db.query('SELECT * FROM vatskebalans WHERE patient_id = ? ORDER BY tid, id').all(atk.patientId), 'las_matvarden')
     .filter(r => r.administrering_id == null || (synligaDoser.has(r.administrering_id) && !makDos.has(r.administrering_id)))
     .filter(r => !stod.makuleringFor(db, 'vatskebalans', r.id))
-    .filter(r => Date.parse(r.tid) >= fran && Date.parse(r.tid) < till);
+    // Runda 13, r4: en registrering med en period räknas i de timmar perioden täcker.
+    .map(r => ({ ...r, periodFran: vatskePeriod(db, r.id) }))
+    .filter(r => Date.parse(r.periodFran ?? r.tid) < till && Date.parse(r.tid) >= fran);
   const vikt = senasteVikt(atk);
   let kum = 0;
   const per = [];
+  // Runda 13, r4: volymen fördelas på timmarna som registreringen gäller. En registrering utan period gäller timmen då
+  // den gjordes. En timme utan någon urinregistrering har ingen urin registrerad (null), inte noll, så att den inte ger
+  // en falsk oliguri.
+  const andel = (r, t) => {
+    const s = Date.parse(r.periodFran ?? r.tid), e = Date.parse(r.tid);
+    if (!r.periodFran) return e >= t && e < t + TIMME ? 1 : 0;
+    const overlapp = Math.max(0, Math.min(e, t + TIMME) - Math.max(s, t));
+    return e > s ? overlapp / (e - s) : 0;
+  };
   for (let t = fran; t < till; t += TIMME) {
-    const i = rader.filter(r => Date.parse(r.tid) >= t && Date.parse(r.tid) < t + TIMME);
-    const sum = (f) => Math.round(i.filter(f).reduce((s, r) => s + r.volym_ml, 0) * 10) / 10;
+    const i = rader.map(r => ({ r, a: andel(r, t) })).filter(x => x.a > 0);
+    const sum = (f) => Math.round(i.filter(x => f(x.r)).reduce((s, x) => s + x.r.volym_ml * x.a, 0) * 10) / 10;
     const inn = sum(r => r.riktning === 'in');
     const ut = sum(r => r.riktning === 'ut');
-    const urin = sum(r => r.riktning === 'ut' && r.typ === 'urin');
+    const urinRegistrerad = i.some(x => x.r.riktning === 'ut' && x.r.typ === 'urin');
+    const urin = urinRegistrerad ? sum(r => r.riktning === 'ut' && r.typ === 'urin') : null;
     kum = Math.round((kum + inn - ut) * 10) / 10;
-    per.push({ fran: new Date(t).toISOString(), in: inn, ut, urin, dran: sum(r => r.riktning === 'ut' && r.typ === 'dran'), balans: Math.round((inn - ut) * 10) / 10, kumulativ: kum,
-      urinMlKgH: vikt ? Math.round(urin / vikt.kg * 100) / 100 : null });
+    per.push({ fran: new Date(t).toISOString(), in: inn, ut, urin, urinRegistrerad, dran: sum(r => r.riktning === 'ut' && r.typ === 'dran'), balans: Math.round((inn - ut) * 10) / 10, kumulativ: kum,
+      urinMlKgH: vikt && urin != null ? Math.round(urin / vikt.kg * 100) / 100 : null });
   }
   const summaIn = Math.round(per.reduce((s, x) => s + x.in, 0) * 10) / 10;
   const summaUt = Math.round(per.reduce((s, x) => s + x.ut, 0) * 10) / 10;
@@ -246,7 +258,8 @@ export function vatskaTimvis(atk, { timmar = 24 } = {}, nu = new Date()) {
   const fonster = konfiguration.varde(db, 'iva.oliguri_timmar', nu);
   const harUrin = rader.some(r => r.typ === 'urin');
   const sista = per.slice(-fonster - 1, -1).length === fonster ? per.slice(-fonster - 1, -1) : per.slice(-fonster);
-  const oliguri = vikt && harUrin && sista.length === fonster && sista.every(x => x.urinMlKgH != null && x.urinMlKgH < 0.5)
+  // Runda 13, r4: bara timmar där urinen är registrerad räknas. En timme utan registrering är okänd och ger ingen varning.
+  const oliguri = vikt && harUrin && sista.length === fonster && sista.every(x => x.urinRegistrerad && x.urinMlKgH != null && x.urinMlKgH < 0.5)
     ? { timmar: fonster, text: `Urinen har varit under 0,5 ml/kg/h i ${fonster} timmar (${sista.map(x => talSv(x.urinMlKgH, 2)).join(', ')} ml/kg/h vid vikten ${talSv(vikt.kg)} kg).` } : null;
   return { timmar: per, summaIn, summaUt, balans: Math.round((summaIn - summaUt) * 10) / 10, vikt, oliguri, fran: new Date(fran).toISOString(), till: new Date(till).toISOString() };
 }
