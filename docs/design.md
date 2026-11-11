@@ -2389,3 +2389,16 @@ hämtar journalen själv med sin egen behörighetsprövning och loggning.
 
 Proven kontrollerar tre slag av uppgifter. Rabatter i prislistorna för läkemedel och material finns inte. Fönstren är
 prövade i Chromium med Playwright, inte på riktiga skärmar.
+
+## Dokument kopplade till kraven (runda 12, r3: behorighetsanalys.js, mdr-bedomning.js och testmetod.js, vårt L2 och D10, Sussa 11.2.1.5)
+
+Tre dokument i `docs/` skrivs ur register i `app/src/` med `bun scripts/dokument-md.js`, och ett test stoppar bygget om
+ett dokument skiljer sig från registret eller om registret säger något annat än koden:
+
+- `docs/behorighetsanalys.md`: behovs- och riskanalysen per roll. Varje roll i `atkomst.js` måste ha en analys, listan
+  med rollens handlingar tas ur koden, och en handling som analysen säger att rollen inte ska ha får inte finnas i koden.
+- `docs/mdr-bedomning.md`: Vårdkällans egen bedömning per beslutsstödsmodul enligt MDR med beslutsträdet i MDCG 2019-11
+  och regel 11. Varje modul som bedöms måste finnas i koden, varje steg ska vara besvarat, och slutsatsen och klassen
+  ska följa av stegen. Journalkärnan är inte en medicinteknisk produkt.
+- `docs/testmetod.md`: testmetoden efter dokumentstrukturen i ISO/IEC/IEEE 29119-3, med vad som motsvarar testplan,
+  testdesign, testfall, testprocedurer och testrapporter i projektet. Allt som beskrivningen pekar på måste finnas.

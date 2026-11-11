@@ -14,13 +14,15 @@ export default [
   { id: '11.2.1.4', kategori: 'leverantor', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: 'Det finns inget utbildningsmaterial i form av e-learning eller instruktionsfilmer.' },
   {
-    id: '11.2.1.5', kategori: 'leverantor', egna: ['D7', 'K4'], avsedd: 'delvis',
+    id: '11.2.1.5', kategori: 'leverantor', egna: ['D7', 'K4'], avsedd: 'uppfyllt_demo',
     tester: [
       `${KR}status uppfyllt_demo bara när alla tester är gröna`,
       `${KR}saknade eller röda tester ger delvis`,
+      // Runda 12, r3: testmetoden beskriven efter ISO/IEC/IEEE 29119-3 (testmetod.js och docs/testmetod.md).
+      'Testmetod > testmetoden beskrivs efter ISO/IEC/IEEE 29119-3 med testplan, testdesign, testfall, testprocedurer och testrapporter, och allt den pekar på finns',
     ],
-    losning: 'Testerna skrivs före koden, körs i varje bygge och i GitHub Actions, och bygget stoppas om ett test är rött.',
-    anmarkning: 'Testmetoden är dokumenterad i projektet men är inte en standardiserad metod för leveranstest.',
+    losning: 'Testerna skrivs före koden, körs i varje bygge och i GitHub Actions, och bygget stoppas om ett test är rött. Testmetoden är dokumenterad i docs/testmetod.md efter dokumentstrukturen i ISO/IEC/IEEE 29119-3: teststrategi, testplan (kravregistren och klickbudgeten), testdesign med teknikerna i 29119-4, testfall, testprocedurer, testdata och testmiljö och testrapporter (kravsidan och resultatfilerna). Metoden har använts i varje runda sedan den första versionen.',
+    anmarkning: 'Metoden är Vårdkällans egen tillämpning av standardens struktur och är inte certifierad. Ett test stoppar bygget om något som beskrivningen pekar på saknas. Acceptanstest med en beställare ingår inte.',
   },
   { id: '11.2.1.6', kategori: 'leverantor', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: 'Gäller leverantörens ansvar för tester fram till beställarens acceptanstest.' },
