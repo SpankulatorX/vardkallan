@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import { createHash } from 'node:crypto';
-import { testserver, klient, sandlada, nyDb } from './hjalp.js';
+import { testserver, klient, sandlada, nyDb, godkannGallring } from './hjalp.js';
 import { idag, addDagar } from '../src/db.js';
 import { verifiera } from '../src/logg.js';
 import { packaUpp } from '../src/zip.js';
@@ -348,6 +348,8 @@ describe('Arkiv', () => {
     const u = (await k.get(`/api/arkiv/beslut/${g.id}/underlag`)).data;
     expect(u.patienter.map(p => p.id)).toEqual(['p20']);
     const loggFore = d.query("SELECT * FROM atkomstlogg WHERE patient_id = 'p20' ORDER BY id").all();
+    // Runda 13, r3 (E3-35): verksamhetschefen godkänner först.
+    await godkannGallring(app, k, g.id);
     const v = await k.post(`/api/arkiv/beslut/${g.id}/verkstall`, {});
     expect(v.status).toBe(200);
     expect(v.data.resultat).toMatchObject({ patienter: 1, rader: expect.objectContaining({ anteckningar: 3, diagnoser: 1 }) });
@@ -375,6 +377,8 @@ describe('Arkiv', () => {
     const b = (await beslut(k, { typ: 'radering', patientId: 'p01', poster: [{ typ: 'anteckning', id: rattad.id }] })).data;
     expect(b.omfattning).toEqual({ poster: [{ typ: 'anteckning', id: rattad.id }] });
     expect((await beslut(k, { typ: 'radering', patientId: 'p01', poster: [{ typ: 'anteckning', id: 999999 }] })).status).toBe(400);
+    // Runda 13, r3 (E3-35): verksamhetschefen godkänner först.
+    await godkannGallring(app, k, b.id);
     const v = await k.post(`/api/arkiv/beslut/${b.id}/verkstall`, {});
     expect(v.status).toBe(200);
     expect(d.query('SELECT count(*) AS n FROM anteckningar WHERE id IN (?, ?)').get(rattad.id, rattad.ersatter_id).n).toBe(0);
@@ -392,6 +396,8 @@ describe('Arkiv', () => {
     const d = db(k);
     const loggFore = d.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p01'").get().n;
     const b = (await k.post('/api/arkiv/beslut', { typ: 'radering', patientId: 'p01', omfattning: 'hela', diarienummer: 'IVO 3.5.1-12345/2026', beslutsdatum: idag() })).data;
+    // Runda 13, r3 (E3-35): verksamhetschefen godkänner först.
+    await godkannGallring(app, k, b.id);
     expect((await k.post(`/api/arkiv/beslut/${b.id}/verkstall`, {})).status).toBe(200);
     for (const t of ['anteckningar', 'diagnoser', 'matvarden', 'ordinationer', 'vardkontakter', 'remisser', 'overkanslighet', 'vardtillfallen']) expect(d.query(`SELECT count(*) AS n FROM ${t} WHERE patient_id = 'p01'`).get().n).toBe(0);
     expect(d.query("SELECT personnummer, adress FROM patienter WHERE id = 'p01'").get()).toEqual({ personnummer: '194502024732', adress: null });

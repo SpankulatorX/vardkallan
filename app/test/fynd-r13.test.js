@@ -145,5 +145,56 @@ describe('Läskopian i loggen (E3-28, E3-30, E3-36)', () => {
     expect(r.status).toBe(201);
     expect(r.data.administrering.identitet).toMatchObject({ satt: 'annan', sattText: 'Annat sätt', text: 'Läste namnbandet på sängen och frågade patienten' });
   });
+
+  test('E2-5: servern minns bekräftelsen för den som gav den och patienten i sessionen, och en bekräftelse av Johan Ek gäller inte när Amira Haddad loggar in på samma dator', async () => {
+    const k = klient(app);
+    await k.logga('ssk-kard');
+    const vb = async () => (await k.get('/api/administreringar')).data.patienter.find(x => x.patient.id === 'p01').vidBehov.find(v => v.lakemedel.namn === 'Alvedon');
+    const alvedon = await vb();
+    const kv = [{ regel: 'dubbel_dos', motivering: 'Prövat i testet.' }, { regel: 'for_tidig', motivering: 'Prövat i testet.' }, { regel: 'max_per_dygn', motivering: 'Prövat i testet.' }];
+    // Johan Ek bekräftar identiteten för Gunnar Åkesson, och nästa dos inom en kvart behöver ingen ny bekräftelse.
+    expect((await k.post('/api/patient/p01/administreringar', { ordinationId: alvedon.ordinationId, identitet: { satt: 'kand' } })).status).toBe(201);
+    const igen = await k.post('/api/patient/p01/administreringar', { ordinationId: alvedon.ordinationId, identitet: undefined, kvitteradeVarningar: kv });
+    expect(igen.status).toBe(201);
+    expect(igen.data.administrering.identitet.satt).toBe('kand');
+    // Amira Haddad loggar in på samma dator. Johans bekräftelse gäller inte för henne.
+    await k.logga('usk-kard');
+    const amira = await k.post('/api/patient/p01/administreringar', { ordinationId: alvedon.ordinationId, identitet: undefined, kvitteradeVarningar: kv });
+    expect(amira.status).toBe(400);
+    expect(amira.data.kod).toBe('identitet');
+    // Och när Johan loggar in igen gäller inte heller hans gamla bekräftelse.
+    await k.logga('ssk-kard');
+    expect((await k.post('/api/patient/p01/administreringar', { ordinationId: alvedon.ordinationId, identitet: undefined, kvitteradeVarningar: kv })).data.kod).toBe('identitet');
+  });
+
+  test('E3-35: arkivarien förbereder en radering och verksamhetschefen godkänner i sin egen inloggning innan den verkställs', async () => {
+    const k = klient(app);
+    await k.logga('ark');
+    const d = new Date().toISOString().slice(0, 10);
+    const b = (await k.post('/api/arkiv/beslut', { typ: 'radering', patientId: 'p01', omfattning: 'hela', diarienummer: 'IVO 3.5.1-12345/2026', beslutsdatum: d })).data;
+    expect(b.godkannande).toBeNull();
+    // Utan godkännande verkställs inget, och arkivarien kan inte godkänna själv.
+    const fore = await k.post(`/api/arkiv/beslut/${b.id}/verkstall`, {});
+    expect(fore.status).toBe(409);
+    expect(fore.data.fel).toContain('Verksamhetschefen');
+    expect((await k.post(`/api/arkiv/beslut/${b.id}/godkann`, {})).status).toBe(403);
+    expect(sandlada(app, k).db.query("SELECT count(*) AS n FROM anteckningar WHERE patient_id = 'p01'").get().n).toBeGreaterThan(0);
+    // Verksamhetschefen ser beslutet i antal, utan patienter, och godkänner.
+    const v = klient(app);
+    await v.logga('vch-kard');
+    sandlada(app, v).db = sandlada(app, k).db;
+    const lista = (await v.get('/api/arkiv/godkanna')).data.beslut;
+    expect(lista.map(x => x.id)).toContain(b.id);
+    expect(JSON.stringify(lista)).not.toContain('p01');
+    expect((await v.get('/api/arkiv/beslut')).status).toBe(403);
+    const g = await v.post(`/api/arkiv/beslut/${b.id}/godkann`, {});
+    expect(g.status).toBe(200);
+    expect(g.data.godkannande.av).toBeTruthy();
+    expect((await v.post(`/api/arkiv/beslut/${b.id}/godkann`, {})).status).toBe(409);
+    expect(() => sandlada(app, k).db.query('DELETE FROM arkivbeslut_godkannanden').run()).toThrow();
+    // Nu verkställer arkivarien.
+    expect((await k.post(`/api/arkiv/beslut/${b.id}/verkstall`, {})).status).toBe(200);
+    expect(sandlada(app, k).db.query("SELECT count(*) AS n FROM anteckningar WHERE patient_id = 'p01'").get().n).toBe(0);
+  });
 });
 

@@ -47,3 +47,14 @@ export function klient(app, { origin = null } = {}) {
 export const sandlada = (app, k) => app.sessioner.get(k.kaka().split('=')[1]);
 // Låter en session vara inloggad som en annan person, med personens uppdrag, som efter en inloggning med biljett.
 export function somPerson(s, id) { s.personalId = id; s.uppdrag = uppdragUrMasterdata(s.db, personal(s.db, id)); return s; }
+
+// Runda 13, r3 (E3-35): verksamhetschefen godkänner verkställandet av en gallring eller radering i sin egen inloggning,
+// i samma sandlåda som arkivarien.
+export async function godkannGallring(app, k, id) {
+  const v = klient(app);
+  await v.logga('vch-kard');
+  sandlada(app, v).db = sandlada(app, k).db;
+  const r = await v.post(`/api/arkiv/beslut/${id}/godkann`, {});
+  if (r.status !== 200) throw new Error(JSON.stringify(r.data));
+  return r;
+}

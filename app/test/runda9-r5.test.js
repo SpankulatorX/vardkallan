@@ -3,7 +3,7 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import * as miljoerModul from '../src/miljoer.js';
 import { generateKeyPairSync, createHash, randomBytes } from 'node:crypto';
-import { testserver, klient, sandlada, nyDb } from './hjalp.js';
+import { testserver, klient, sandlada, nyDb, godkannGallring } from './hjalp.js';
 import * as idp from '../src/idp.js';
 import * as masterdata from '../src/masterdata.js';
 import { ROLLER, HANDLINGAR, Atkomst } from '../src/atkomst.js';
@@ -650,6 +650,8 @@ describe('Gallringsregler', () => {
     expect(mv).toMatchObject({ text: 'Mätvärden', ar: 20 });
     expect(mv.patienter.find(p => p.id === 'p01').antal).toBeGreaterThanOrEqual(1);
     expect(u.delar.find(d => d.mangd === 'kallelser').patienter.some(p => p.id === 'p01')).toBe(true);
+    // Runda 13, r3 (E3-35): verksamhetschefen godkänner först.
+    await godkannGallring(app, k, b.id);
     const v = await k.post(`/api/arkiv/beslut/${b.id}/verkstall`, {});
     expect(v.status).toBe(200);
     expect(v.data.resultat.delar.rader.matvarden).toBeGreaterThanOrEqual(1);
@@ -669,6 +671,8 @@ describe('Gallringsregler', () => {
     andraRegel(db, 'arkiv.gallring_matvarden_ar', 20);
     db.query("INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, matt_enhet, tid, kalla) VALUES ('p02', 'uso-kard', 'vikt', '71', 71, 'kg', ?, 'vardkallan')").run(arSedan(25));
     const b = (await beslut(k, { typ: 'gallring' })).data;
+    // Runda 13, r3 (E3-35): verksamhetschefen godkänner först.
+    await godkannGallring(app, k, b.id);
     expect((await k.post(`/api/arkiv/beslut/${b.id}/verkstall`, {})).status).toBe(200);
     const rad = db.query("SELECT * FROM atkomstlogg WHERE patient_id = 'p02' AND handling = 'gallra' ORDER BY id DESC").get();
     expect(rad).toMatchObject({ grund: 'arkivbeslut', resurs: `beslut:${b.id}:delar`, personal_id: 'ark' });

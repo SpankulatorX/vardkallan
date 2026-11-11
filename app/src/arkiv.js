@@ -173,6 +173,8 @@ export function beslutUt(db, b) {
     patient: b.patient_id ? patientKort(patientRad(db, b.patient_id)) : null,
     registrerad: b.registrerad, registreradAv: personNamn(db, b.registrerad_av),
     verkstallt: b.verkstallt, verkstalltAv: personNamn(db, b.verkstallt_av), resultat: b.resultat ? JSON.parse(b.resultat) : null,
+    // Runda 13, r3 (E3-35): verksamhetschefens godkännande av verkställandet.
+    ...(RADERANDE.includes(b.typ) ? { godkannande: godkannandeFor(db, b.id) } : {}),
     exporter: db.query('SELECT * FROM arkivexporter WHERE beslut_id = ? ORDER BY tid').all(b.id).map(e => ({ id: e.id, tid: e.tid, av: personNamn(db, e.av), patienter: e.patienter, filer: e.filer, storlek: e.storlek, sha256: e.sha256,
       // Runda 9, r5: leveransen till e-arkivet och kvittensen.
       leverans: earkiv.leveransFor(db, e.id) })),
@@ -606,10 +608,49 @@ function gallraDelar(db, personal, b, delar) {
   return { journaler: per.size, rader: antal };
 }
 
+// Runda 13, r3 (E3-35, beslut från Jonas): fyra ögon innan en radering som inte går att ångra. Arkivarien förbereder
+// beslutet, och verksamhetschefen godkänner verkställandet i sin egen inloggning, med underlaget i antal. Godkännandet
+// sparas för sig och kan inte ändras eller tas bort.
+export function sakraGodkannande(db) {
+  db.exec(`CREATE TABLE IF NOT EXISTS arkivbeslut_godkannanden (beslut_id INTEGER PRIMARY KEY, godkand_av TEXT NOT NULL, godkand TEXT NOT NULL, kommentar TEXT);
+    CREATE TRIGGER IF NOT EXISTS arkivbeslut_godkannanden_andras_ej BEFORE UPDATE ON arkivbeslut_godkannanden BEGIN SELECT RAISE(ABORT, 'Ett godkännande ändras inte'); END;
+    CREATE TRIGGER IF NOT EXISTS arkivbeslut_godkannanden_raderas_ej BEFORE DELETE ON arkivbeslut_godkannanden BEGIN SELECT RAISE(ABORT, 'Ett godkännande raderas inte'); END;`);
+}
+const RADERANDE = ['gallring', 'radering'];
+export function godkannandeFor(db, beslutId) {
+  sakraGodkannande(db);
+  const g = db.query('SELECT * FROM arkivbeslut_godkannanden WHERE beslut_id = ?').get(beslutId);
+  return g ? { tid: g.godkand, av: personNamn(db, g.godkand_av), kommentar: g.kommentar } : null;
+}
+// Beslut som väntar på verksamhetschefens godkännande, med underlaget i antal och utan patienter.
+export function attGodkanna(db, personal) {
+  sakraGodkannande(db);
+  return db.query("SELECT * FROM arkivbeslut WHERE typ IN ('gallring', 'radering') AND verkstallt IS NULL ORDER BY id").all()
+    .filter(b => !godkannandeFor(db, b.id)).map(b => {
+      const u = b.typ === 'gallring' ? underlag(db, personal, b) : null;
+      return { id: b.id, typText: BESLUTSTYPER[b.typ].text, diarienummer: b.diarienummer, beslutsdatum: b.beslutsdatum, beslutsfattare: b.beslutsfattare, lagrum: b.lagrum,
+        motivering: b.motivering, registreradAv: personNamn(db, b.registrerad_av), registrerad: b.registrerad,
+        omfattning: b.typ === 'gallring' ? `${u.patienter.length} ${u.patienter.length === 1 ? 'journal' : 'journaler'} i sin helhet${u.delar?.length ? ', och delar av andra journaler' : ''}` : 'En journal eller utpekade poster i den' };
+    });
+}
+export function godkann(db, personal, b, { kommentar } = {}, nu = new Date()) {
+  sakraGodkannande(db);
+  if (!RADERANDE.includes(b.typ)) throw new Fel(400, 'Bara gallring och radering godkänns före verkställandet.', 'ogiltig');
+  if (b.verkstallt) throw new Fel(409, 'Beslutet är redan verkställt.', 'ogiltig');
+  if (godkannandeFor(db, b.id)) throw new Fel(409, 'Verkställandet är redan godkänt.', 'ogiltig');
+  if (b.registrerad_av === personal.id) throw new Fel(403, 'Fyra ögon: den som förberedde beslutet kan inte godkänna det.', 'nekad');
+  const k = typeof kommentar === 'string' ? kommentar.trim().slice(0, 300) : '';
+  db.query('INSERT INTO arkivbeslut_godkannanden (beslut_id, godkand_av, godkand, kommentar) VALUES (?, ?, ?, ?)').run(b.id, personal.id, iso(nu), k || null);
+  loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, handling: 'godkanna_gallring', resurs: `beslut:${b.id}`, grund: 'administrativ', syfte: `Godkände verkställandet av ${BESLUTSTYPER[b.typ].text.toLowerCase()} enligt ${b.diarienummer}.` });
+  return beslutUt(db, hamtaBeslut(db, b.id));
+}
+
 // Verkställer gallring eller radering. Beslutet kan bara verkställas en gång.
 export function verkstall(db, personal, b) {
   if (b.typ === 'leverans') throw new Fel(400, 'Ett beslut om leverans verkställs genom att exportpaketet skapas.', 'ogiltig');
   if (b.verkstallt) throw new Fel(400, 'Beslutet är redan verkställt.', 'ogiltig');
+  // Runda 13, r3 (E3-35): utan verksamhetschefens godkännande verkställs ingen radering.
+  if (!godkannandeFor(db, b.id)) throw new Fel(409, 'Verksamhetschefen ska godkänna verkställandet i sin egen inloggning innan journaler raderas. Raderingen går inte att ångra.', 'ogiltig');
   const omf = JSON.parse(b.omfattning);
   const u = b.typ === 'gallring' ? underlag(db, personal, b) : null;
   const patienter = u ? u.patienter.map(p => p.id) : [b.patient_id];

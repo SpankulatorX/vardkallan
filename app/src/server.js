@@ -1022,7 +1022,22 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (flerfaktorKravs(c.db)) return borjaFlerfaktor(c, { typ: 'personal', id: p.id, namn: p.namn, enhet: p.enhet_id, uppdrag, demo, registrera: true });
     return slutforPersonal(c, p, uppdrag, { demo });
   }
+  // Runda 13, r3 (E2-5): bekräftelserna av patienters identitet i sessionen, per person och patient.
+  const IDENTITET_RUNDA_MS = 15 * 60_000;
+  const identitetNyckel = (c, pid) => `${c.personal?.id}:${pid}`;
+  function minnsIdentitet(c, pid, inp) {
+    if ((inp.atgard ?? 'ge') !== 'ge' || inp.armband || !inp.identitet?.satt || !c.personal) return;
+    (c.s.identitetBekraftad ??= new Map()).set(identitetNyckel(c, pid), { identitet: { satt: inp.identitet.satt, ...(inp.identitet.text ? { text: inp.identitet.text } : {}) }, tid: Date.now() });
+  }
+  function identitetIRundan(c, pid, body, tid = Date.now()) {
+    if (!body || body.identitet || body.armband || (body.atgard ?? 'ge') !== 'ge') return body;
+    const r = c.s.identitetBekraftad?.get(identitetNyckel(c, pid));
+    return r && Math.abs(tid - r.tid) <= IDENTITET_RUNDA_MS ? { ...body, identitet: r.identitet } : body;
+  }
+  const glomIdentiteter = (s) => { s.identitetBekraftad = new Map(); };
+
   function slutforPersonal(c, p, uppdrag, { demo = false, metod = null } = {}) {
+    glomIdentiteter(c.s);
     // Runda 6, r5: tillämpningarnas åtkomstbiljetter gäller inte efter en ny inloggning.
     oppetApi.aterkalla(c.s, 'Åtkomstbiljetten återkallades vid en ny inloggning.');
     avslutaKopia(c.s, aktuellKopia(c.s), 'inloggning');
@@ -1079,6 +1094,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       c.s.personalId = null; c.s.uppdrag = null; c.s.invanareId = null; c.s.val = {}; c.s.lasnyckel = null; c.s.oppnade = new Set();
       // Runda 12, r3: en inloggning som väntar på den andra faktorn avbryts också.
       c.s.vantande = null; c.s.flerfaktorMetod = null;
+      // Runda 13, r3: bekräftelserna av patienters identitet gäller inte efter utloggningen.
+      glomIdentiteter(c.s);
     }
     return { ...sessionUt(c.s), ...(lasloggen ? { lasloggen } : {}) };
   });
@@ -1094,6 +1111,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     return slutforInvanare(c, inv);
   });
   function slutforInvanare(c, inv, { metod = null } = {}) {
+    glomIdentiteter(c.s);
     oppetApi.aterkalla(c.s, 'Åtkomstbiljetten återkallades när någon loggade in i Min journal i samma webbläsare.');
     c.s.invanareId = inv.id;
     c.s.personalId = null; c.s.uppdrag = null;
@@ -1119,6 +1137,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // inte, eftersom en sandlåda utan konfiguration har standardvärdet nej.
   const flerfaktorKravs = (db) => { try { return konfiguration.varde(db, 'sakerhet.flerfaktor_kravs') === true; } catch { return false; } };
   function borjaFlerfaktor(c, agare) {
+    glomIdentiteter(c.s);
     oppetApi.aterkalla(c.s, 'Åtkomstbiljetten återkallades vid en ny inloggning.');
     const akt = aktuellKopia(c.s);
     if (akt) akt.stangd = new Date().toISOString();
@@ -1236,6 +1255,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     oppetApi.aterkalla(c.s, 'Åtkomstbiljetten återkallades när sandlådan återställdes.');
     c.s.db.close();
     c.s.db = nySessionsDb();
+    // Runda 13, r3: bekräftelserna av patienters identitet gäller inte i den nya sandlådan.
+    glomIdentiteter(c.s);
     c.s.val = {};
     c.s.oppnade = new Set();
     // Den nya sandlådan har en ny logg, så läskopian lämnas ut och loggas på nytt där. Läskopior från tidigare
@@ -1392,7 +1413,17 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('GET', '/api/administreringar', (c) => { kravInloggad(c); return administrering.avdelning(c.db, c.personal, (pid) => valFor(c.s, pid), { dag: dagParam(c) }); });
   rutt('GET', '/api/patient/:id/administreringar', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_lakemedel', (atk) => administrering.lista(atk, { dag: dagParam(c) })); });
   rutt('POST', '/api/patient/:id/administreringar/kontroll', (c, id) => { kravInloggad(c); return medPatient(c, id, 'ge_lakemedel', (atk) => administrering.kontroll(atk, c.body)); });
-  rutt('POST', '/api/patient/:id/administreringar', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'ge_lakemedel', (atk) => vardkontakt.knyt(atk, 'administreringar', administrering.spara(atk, c.body), c.body))]; });
+  // Runda 13, r3 (E2-5, säkerhetsgranskningen): en bekräftelse av patientens identitet gäller för den som gav den, för
+  // samma patient och i samma session, en läkemedelsrunda. Servern minns den, och litar aldrig på klientens minne.
+  rutt('POST', '/api/patient/:id/administreringar', (c, id) => {
+    kravInloggad(c);
+    return [201, medPatient(c, id, 'ge_lakemedel', (atk) => {
+      const inp = identitetIRundan(c, atk.patientId, c.body);
+      const ut = administrering.spara(atk, inp);
+      minnsIdentitet(c, atk.patientId, inp);
+      return vardkontakt.knyt(atk, 'administreringar', ut, c.body);
+    })];
+  });
   rutt('GET', '/api/patient/:id/vidimering', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_lakemedel', (atk) => vidimering.underlag(atk)); });
   rutt('POST', '/api/patient/:id/vidimering', (c, id) => { kravInloggad(c); return [201, medPatient(c, id, 'ordinera', (atk) => vidimering.vidimera(atk))]; });
   rutt('GET', '/api/patient/:id/lakemedelsgenomgang', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_lakemedel', (atk) => vidimering.genomgang(atk)); });

@@ -102,6 +102,9 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, versi
       'X-Paket-Id': r.objid, 'X-Paket-Sha256': r.sha256, 'X-Paket-Patienter': String(r.patienter), 'X-Paket-Filer': String(r.filer),
     } });
   });
+  // Runda 13, r3 (E3-35): verksamhetschefen godkänner verkställandet av gallring och radering i sin egen inloggning.
+  rutt('GET', '/api/arkiv/godkanna', (c) => { const p = kravRoll(c, 'godkanna_gallring'); return { beslut: arkiv.attGodkanna(c.db, p) }; });
+  rutt('POST', '/api/arkiv/beslut/:id/godkann', (c, id) => { const p = kravRoll(c, 'godkanna_gallring'); return arkiv.godkann(c.db, p, arkiv.hamtaBeslut(c.db, id), c.body); });
   rutt('POST', '/api/arkiv/beslut/:id/verkstall', (c, id) => { const p = kravRoll(c, 'gallra'); return arkiv.verkstall(c.db, p, arkiv.hamtaBeslut(c.db, id)); });
 
   // Datauttaget för uppföljning (Sussa 6.3.1). Bara uppföljningsrollen, och inga direkta personuppgifter.

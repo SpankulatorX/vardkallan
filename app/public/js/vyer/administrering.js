@@ -2,7 +2,7 @@
 // ordinationerna. Sjuksköterskan bekräftar det som ges med ett klick. Varningar för dubbel dos, för tidig dos, dos utan
 // ordination och högsta dygnsdos visas innan något sparas, och en allvarlig varning kvitteras med motivering. Samma
 // delar används i avdelningens lista (#/administrering) och i patientens läkemedelsflik.
-import { esc, api, notis, felNotis, medKnapp, dialog, ikon, vyRubrik, tom, klockslag, tidpunkt, datum, idag, plusDagar } from '../ui.js';
+import { esc, api, notis, felNotis, medKnapp, dialog, ikon, vyRubrik, tom, klockslag, tidpunkt, datum, idag, plusDagar, sessionNummer } from '../ui.js';
 // Runda 7, r2: hjälp i sammanhanget.
 import { hjalpRuta } from '../hjalp.js';
 import { far, S } from '../app.js';
@@ -131,15 +131,22 @@ const kvittensHtml = (varningar, kraver = null) => {
     ${regler.map((r, n) => `<div class="falt"><label for="adm-kv-${n}">Motivering (${esc(REGELTEXT[r] ?? r.replace(/_/g, ' '))}) <span class="obl">(obligatoriskt)</span></label><textarea id="adm-kv-${n}" name="kv_${esc(r)}" rows="2" maxlength="500" required minlength="3"></textarea></div>`).join('')}`;
 };
 
-// Runda 13, r3 (E2-5, beslut från Jonas): en dos som ges utan skannat armband kräver en uppgift om hur patientens
-// identitet kontrollerades. Systemet frågar en gång per patient under en läkemedelsrunda (en kvart) och föreslår det
-// vanligaste sättet, så att flödet utan skanning får ett klick till och flödet med skanning inget.
+// Runda 13, r3 (E2-5, beslut från Jonas, säkerhetsgranskningen): en dos som ges utan skannat armband kräver en uppgift
+// om hur patientens identitet kontrollerades. Servern minns bekräftelsen för den som gav den, för patienten, i sessionen,
+// en läkemedelsrunda (en kvart), och kräver en ny annars. Klienten minns bara att den inte behöver fråga igen, med
+// nyckeln inloggad person och patient, och glömmer det vid varje ny session (inloggning, utloggning och byte av person).
+// Svarar servern att bekräftelsen saknas frågar dialogen ändå. Det vanligaste sättet är förvalt, så att flödet utan
+// skanning får ett klick till och flödet med skanning inget.
 const IDENTITET_SATT = [['id_band_hand', 'Id-bandet avläst för hand'], ['id_handling', 'Id-handling'], ['kand', 'Patienten är känd av mig'], ['annan', 'Annat sätt']];
-const identitetKontrollerad = new Map();
 const RUNDA_MS = 15 * 60_000;
-async function identitetFor(pid, namnText) {
-  const forra = identitetKontrollerad.get(pid);
-  if (forra && Date.now() - forra.tid < RUNDA_MS) return forra.identitet;
+const identitetMinne = { session: -1, rader: new Map() };
+const identitetNyckel = (pid) => `${S.session?.personal?.id ?? ''}:${pid}`;
+function identitetRader() {
+  if (identitetMinne.session !== sessionNummer()) { identitetMinne.session = sessionNummer(); identitetMinne.rader = new Map(); }
+  return identitetMinne.rader;
+}
+const nyligenBekraftad = (pid) => { const t = identitetRader().get(identitetNyckel(pid)); return Boolean(t && Date.now() - t < RUNDA_MS); };
+async function fragaIdentitet(namnText) {
   const svar = await dialog(`<form><h2 id="dlg-rubrik">Patientens identitet: ${esc(namnText)}</h2>
     <p>Armbandet är inte skannat. Hur har du kontrollerat att det är rätt patient?</p>
     <fieldset class="kryssgrupp" id="adm-id"><legend>Identiteten kontrollerades med</legend>${IDENTITET_SATT.map(([k, t], i) => `<div class="kryssfalt"><input type="radio" id="adm-id-${k}" name="satt" value="${k}"${i === 0 ? ' checked' : ''}><label for="adm-id-${k}">${esc(t)}</label></div>`).join('')}</fieldset>
@@ -148,23 +155,38 @@ async function identitetFor(pid, namnText) {
     <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Identiteten är kontrollerad</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`,
   { validera: (d) => (d.satt === 'annan' && String(d.text ?? '').trim().length < 3 ? 'Skriv hur du har kontrollerat identiteten.' : null) });
   if (!svar) return null;
-  const identitet = { satt: svar.data.satt, ...(svar.data.satt === 'annan' ? { text: String(svar.data.text).trim() } : {}) };
-  identitetKontrollerad.set(pid, { identitet, tid: Date.now() });
-  return identitet;
+  return { satt: svar.data.satt, ...(svar.data.satt === 'annan' ? { text: String(svar.data.text).trim() } : {}) };
 }
 
-// Registrerar en åtgärd. Med en allvarlig varning visas den med fält för motivering, och åtgärden görs om med kvittensen.
+// Registrerar en åtgärd. Utan skannat armband följer identiteten med (se ovan).
 async function registrera(pid, data, namnText) {
-  const vag = `/api/patient/${encodeURIComponent(pid)}/administreringar`;
-  // Runda 13, r3 (E2-5): utan skannat armband följer uppgiften om identiteten med.
-  if (data.atgard === 'ge' && !data.armband && !data.identitet) {
-    const id = await identitetFor(pid, namnText);
+  const utanSkanning = data.atgard === 'ge' && !data.armband;
+  if (utanSkanning && !data.identitet && !nyligenBekraftad(pid)) {
+    const id = await fragaIdentitet(namnText);
     if (!id) return null;
     data = { ...data, identitet: id };
   }
+  const tyst = utanSkanning && !data.identitet;
+  try {
+    const r = await skicka(pid, data, namnText, { tyst });
+    if (r && utanSkanning) identitetRader().set(identitetNyckel(pid), Date.now());
+    return r;
+  } catch (e) {
+    if (!(tyst && e?.kod === 'identitet')) { if (tyst) felNotis(e); throw e; }
+    const id = await fragaIdentitet(namnText);
+    if (!id) return null;
+    const r = await skicka(pid, { ...data, identitet: id }, namnText);
+    if (r) identitetRader().set(identitetNyckel(pid), Date.now());
+    return r;
+  }
+}
+
+// Med en allvarlig varning visas den med fält för motivering, och åtgärden görs om med kvittensen.
+async function skicka(pid, data, namnText, { tyst = false } = {}) {
+  const vag = `/api/patient/${encodeURIComponent(pid)}/administreringar`;
   try {
     // Runda 10, r1: under ett avbrott läggs en given dos i skrivkön (ko), och servern prövar den när förbindelsen är tillbaka.
-    return await api(vag, { metod: 'POST', data, ko: data.atgard === 'ge' && !data.tid });
+    return await api(vag, { metod: 'POST', data, ko: data.atgard === 'ge' && !data.tid, ...(tyst ? { tyst: true } : {}) });
   } catch (e) {
     if (!(e.status === 400 && e.data?.varningar)) throw e;
     const svar = await dialog(`<form><h2 id="dlg-rubrik">${ikon.varning}<span>Varning: ${esc(namnText)}</span></h2>

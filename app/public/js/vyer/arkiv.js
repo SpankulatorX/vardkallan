@@ -2,6 +2,7 @@
 // beslut. Systemet fyller i beslutsfattare och lagrum, räknar fram vad beslutet gäller och bygger exportpaketet.
 // Arkivarien läser aldrig journalen: posterna visas bara med typ, datum och vårdenhet.
 import { esc, api, vyRubrik, tidpunkt, datum, idag, notis, felNotis, medKnapp, dialog, ikon, plural } from '../ui.js';
+import { far } from '../app.js';
 
 export const namn = 'arkiv';
 
@@ -14,7 +15,10 @@ const reglerLista = (regler) => `<section class="arkiv-kort" aria-labelledby="ar
   <p class="dampad liten">Ett gallringsbeslut tar med reglerna som de gäller när beslutet registreras. Systemförvaltaren ändrar dem under Regler och parametrar, med fyra ögon. Hela journalen bevaras minst tio år efter den sista uppgiften.</p>
   <dl class="faktalista">${regler.map(r => `<div><dt>${esc(r.text)}</dt><dd>${esc(plural(r.ar, 'år', 'år'))}<span class="under-text">${esc(r.villkor)}</span></dd></div>`).join('')}</dl>
 </section>`;
-const STATUS = (b) => (b.verkstallt ? `Verkställt ${tidpunkt(b.verkstallt)} av ${b.verkstalltAv ?? ''}` : 'Inte verkställt');
+// Runda 13, r3 (E3-35): en gallring eller radering verkställs först när verksamhetschefen har godkänt den.
+const STATUS = (b) => (b.verkstallt ? `Verkställt ${tidpunkt(b.verkstallt)} av ${b.verkstalltAv ?? ''}`
+  : b.typ === 'leverans' ? 'Inte verkställt'
+    : b.godkannande ? `Inte verkställt. Godkänt av ${b.godkannande.av ?? ''} ${tidpunkt(b.godkannande.tid)}` : 'Inte verkställt. Väntar på verksamhetschefens godkännande');
 const pnamn = (p) => (p ? `${p.skyddad ? 'Skyddad identitet' : p.namn}, ${p.personnummer}` : 'Alla journaler');
 
 function beslutKort(b) {
@@ -40,6 +44,8 @@ function beslutKort(b) {
 }
 
 export async function visa(main) {
+  // Runda 13, r3 (E3-35): verksamhetschefen ser bara besluten som väntar på godkännande, utan patienter.
+  if (!far('registrera_arkivbeslut')) return visaGodkannande(main);
   main.innerHTML = vyRubrik('E-arkiv och gallring', 'Export till e-arkiv, återföring av all data, gallring och förstöring av journaler. Allt kräver ett registrerat beslut och loggas. Journalens innehåll visas inte här.') + '<div id="arkiv"><p class="tom">Hämtar besluten.</p></div>';
   const [{ typer, gallringsregler = [] }, beslut] = await Promise.all([api('/api/arkiv/typer'), api('/api/arkiv/beslut')]);
   const el = main.querySelector('#arkiv');
@@ -158,7 +164,9 @@ async function underlag(b, main) {
     ${u.patienter.length ? `<ul class="post-lista">${u.patienter.map(p => `<li>${esc(pnamn(p))}${p.sistaUppgift ? `<span class="under-text">Sista uppgiften ${esc(datum(p.sistaUppgift))}</span>` : ''}</li>`).join('')}</ul>` : ''}
     ${delar.map(d => `<p>${esc(d.text)} äldre än ${esc(plural(d.ar, 'år', 'år'))}, före ${esc(datum(d.fore))}: ${esc(String(d.antal))} i ${esc(plural(d.patienter.length, 'journal', 'journaler'))}. Resten av journalerna finns kvar.</p>
       <ul class="post-lista">${d.patienter.map(p => `<li>${esc(pnamn(p))}<span class="under-text">${esc(String(p.antal))} st.</span></li>`).join('')}</ul>`).join('')}
-    ${u.patienter.length || delar.length ? `<div class="knapprad"><button type="button" class="knapp knapp-allvar" data-verkstall>${ikon.varning}<span>Verkställ</span></button></div>` : '<p class="tom">Inga journaler uppfyller beslutet.</p>'}`;
+    ${!(u.patienter.length || delar.length) ? '<p class="tom">Inga journaler uppfyller beslutet.</p>'
+    : u.beslut.godkannande ? `<div class="knapprad"><button type="button" class="knapp knapp-allvar" data-verkstall>${ikon.varning}<span>Verkställ</span></button></div>`
+      : '<p class="dampad">Verksamhetschefen godkänner verkställandet i sin egen inloggning, under E-arkiv och gallring. Därefter kan du verkställa.</p>'}`;
   ut.querySelector('[data-verkstall]')?.addEventListener('click', async (e) => {
     const ok = await dialog(`<h2 id="dlg-rubrik">${ikon.varning}<span>Verkställ beslutet</span></h2>
       <div class="dialog-text"><p>${esc(u.beslut.typText)} enligt ${esc(u.beslut.diarienummer)}. Journalhandlingarna för ${esc(plural(u.patienter.length, 'journal', 'journaler'))}${delar.length ? ` och de utpekade delarna av ${esc(plural(new Set(delar.flatMap(d => d.patienter.map(p => p.id))).size, 'journal', 'journaler'))}` : ''} raderas och går inte att återskapa.</p>
@@ -169,6 +177,41 @@ async function underlag(b, main) {
       await medKnapp(e.currentTarget, () => api(`/api/arkiv/beslut/${u.beslut.id}/verkstall`, { metod: 'POST', data: {} }));
       notis('Beslutet är verkställt.');
       visa(main);
+    } catch { /* notis visad */ }
+  });
+}
+
+// Runda 13, r3 (E3-35, beslut från Jonas): verksamhetschefens godkännande av gallring och radering. Fyra ögon innan
+// journaler raderas som inte går att återskapa. Underlaget visas i antal, inte med patienter.
+async function visaGodkannande(main) {
+  main.innerHTML = vyRubrik('E-arkiv och gallring', 'Arkivarien förbereder gallring och radering av journaler. Du godkänner verkställandet innan något raderas. Journalernas innehåll visas inte här.') + '<div id="arkiv"><p class="tom">Hämtar besluten.</p></div>';
+  const el = main.querySelector('#arkiv');
+  const { beslut } = await api('/api/arkiv/godkanna');
+  el.innerHTML = `<section class="arkiv-kort" aria-labelledby="ar-godk"><h2 id="ar-godk">Att godkänna</h2>
+    ${beslut.length ? `<ul class="arkiv-lista">${beslut.map(b => `<li class="arkiv-kort" data-godk="${b.id}">
+      <h3>${esc(b.typText)}, ${esc(b.diarienummer)}</h3>
+      <dl class="faktalista">
+        <div><dt>Beslut</dt><dd>${esc(datum(b.beslutsdatum))}, ${esc(b.beslutsfattare)}</dd></div>
+        <div><dt>Lagrum</dt><dd>${esc(b.lagrum)}</dd></div>
+        <div><dt>Omfattning</dt><dd>${esc(b.omfattning)}</dd></div>
+        <div><dt>Förberett</dt><dd>${esc(b.registreradAv ?? '')}, ${esc(tidpunkt(b.registrerad))}</dd></div>
+        ${b.motivering ? `<div><dt>Motivering</dt><dd>${esc(b.motivering)}</dd></div>` : ''}
+      </dl>
+      <div class="knapprad"><button type="button" class="knapp knapp-allvar" data-godkann="${b.id}">Godkänn verkställandet</button></div>
+    </li>`).join('')}</ul>` : '<p class="tom">Inga beslut väntar på ditt godkännande.</p>'}
+  </section>`;
+  el.addEventListener('click', async (e) => {
+    const k = e.target.closest('[data-godkann]');
+    if (!k) return;
+    const b = beslut.find(x => String(x.id) === k.dataset.godkann);
+    const ok = await dialog(`<h2 id="dlg-rubrik">${ikon.varning}<span>Godkänn verkställandet</span></h2>
+      <div class="dialog-text"><p>${esc(b.typText)} enligt ${esc(b.diarienummer)}: ${esc(b.omfattning)}. När arkivarien verkställer raderas journalhandlingarna och går inte att återskapa.</p></div>
+      <div class="knapprad"><button type="button" class="knapp text" data-varde="avbryt">Avbryt</button><button type="button" class="knapp knapp-allvar" data-varde="ok">Godkänn</button></div>`, { klass: 'dialog-allvar' });
+    if (!ok) return;
+    try {
+      await medKnapp(k, () => api(`/api/arkiv/beslut/${b.id}/godkann`, { metod: 'POST', data: {} }));
+      notis('Verkställandet är godkänt. Arkivarien kan nu verkställa beslutet.');
+      visaGodkannande(main);
     } catch { /* notis visad */ }
   });
 }
