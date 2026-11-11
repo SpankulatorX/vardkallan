@@ -9,6 +9,8 @@ import * as lakemedel from '../src/lakemedel.js';
 import * as presentationsvyer from '../src/presentationsvyer.js';
 import * as struktur from '../src/journalstruktur.js';
 import { allaAttGodkanna } from '../src/systemforvaltning-rutter.js';
+import * as tidbok from '../src/tidbok.js';
+import { addDagar } from '../src/db.js';
 
 const KLOCKAN = (k) => new Date(lokalTid('2026-11-12', k));
 afterEach(() => aterstallKlockan());
@@ -73,6 +75,46 @@ describe('Nivå 2 (runda 13, r4)', () => {
     expect(nora.kan).toBe(tomas.kan + 1);
     // Ingen rad har patientuppgifter.
     expect(JSON.stringify(allaAttGodkanna(db, personal(db, 'sysf-2')))).not.toMatch(/p\d\d|Gunnar|Åkesson/);
+  });
+});
+
+describe('Väntelistan (runda 13, r4, E3-8 och E3-9)', () => {
+  const remissPost = (db) => db.query("SELECT * FROM vantelista WHERE patient_id = 'p10' AND remiss_id IS NOT NULL AND status = 'vantar'").get();
+  test('vårdgarantin har en egen kolumn, och väntan som patienten väljer eller som har medicinska skäl räknas inte', () => {
+    stallKlockan(KLOCKAN('10:00'));
+    const db = nySessionsDb();
+    const post = remissPost(db);
+    const a = () => atk(db, 'adm-kard', 'p10', {}, 'vantelista');
+    const fore = tidbok.vantelistaUt(db, post, '2026-11-12').vardgaranti;
+    expect(fore).toMatchObject({ galler: true, pagar: null, pausadeDagar: 0 });
+    expect(fore.datum).toBe(addDagar(post.fran, 90));
+    // Patienten vill vänta: en egen åtgärd, inte en ändrad prioritet.
+    expect(() => tidbok.prioritera(a(), post, { prioritet: 'lag', orsak: 'patientvald' })).toThrow('Välj orsaken');
+    const ut = tidbok.registreraVantan(a(), post, { typ: 'pvv', steg: 'start', kommentar: 'Reser bort i två veckor.' });
+    expect(ut.vantan).toMatchObject({ typ: 'pvv', typText: 'Patientvald väntan', fran: '2026-11-12' });
+    expect(ut.vardgaranti.pagar.typ).toBe('pvv');
+    expect(ut.vardgaranti.text).toBe('Räknas inte under patientvald väntan sedan 2026-11-12.');
+    expect(ut.patientvald).toBe(true);
+    expect(() => tidbok.registreraVantan(a(), tidbok.vantelistaRad(db, post.id), { typ: 'mov', steg: 'start' })).toThrow('pågår redan');
+    // Tio dagar senare kan patienten få tid igen. Vårdgarantins datum har flyttats tio dagar.
+    stallKlockan(KLOCKAN('10:00').getTime() + 10 * 86400_000);
+    const efter = tidbok.registreraVantan(a(), tidbok.vantelistaRad(db, post.id), { typ: 'pvv', steg: 'slut' });
+    expect(efter.vantan).toBeNull();
+    expect(efter.patientvald).toBe(false);
+    expect(efter.vardgaranti).toMatchObject({ pausadeDagar: 10, datum: addDagar(post.fran, 100) });
+    // Historiken har båda händelserna.
+    expect(efter.handelser.map(h => h.typ)).toEqual(expect.arrayContaining(['pvv_start', 'pvv_slut']));
+  });
+
+  test('en post tas bort från väntelistan med en orsak, och bara av vårdenheten själv', () => {
+    stallKlockan(KLOCKAN('10:00'));
+    const db = nySessionsDb();
+    const post = remissPost(db);
+    expect(() => tidbok.avslutaPost(atk(db, 'adm-kard', 'p10', {}, 'vantelista'), post, { orsak: 'okand' })).toThrow('Välj varför');
+    expect(() => tidbok.avslutaPost(atk(db, 'lak-vc', 'p10', {}, 'vantelista'), post, {})).toThrow();
+    const ut = tidbok.avslutaPost(atk(db, 'adm-kard', 'p10', {}, 'vantelista'), post, { orsak: 'annan_vard' });
+    expect(ut.status).toBe('avslutad');
+    expect(ut.handelser.at(-1)).toMatchObject({ typ: 'avslutad', detalj: 'Patienten har fått vård på annat sätt.' });
   });
 });
 

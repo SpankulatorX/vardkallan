@@ -55,11 +55,12 @@ export const EGEN_VARDBEGARAN = 'min-journal';
 export const KANAL = { min_journal: 'Min journal', sms: 'Sms', brev: 'Brev' };
 // Orsaker som systemet föreslår vid omprioritering. patientvald betyder att patienten själv har valt att vänta, och då
 // räknas inte vårdgarantin.
+// Runda 13, r4: patientvald väntan är ingen orsak till en ändrad prioritet utan en egen åtgärd (VANTAN), och vård på annat
+// sätt avslutar posten (AVSLUT). Den medicinska prioriteten ändras när patientens tillstånd har ändrats eller efter
+// läkarens bedömning.
 export const OMPRIORITERING = {
   tillstand: 'Patientens tillstånd har ändrats',
   bedomning: 'Ny bedömning av läkaren',
-  patientvald: 'Patienten vill vänta (patientvald väntan)',
-  annan_tid: 'Patienten har fått vård på annat sätt',
 };
 
 // Runda 12, r1: tidbokens regler är parametrar som systemförvaltningen ändrar med fyra ögon (konfiguration.js, Sussa
@@ -521,6 +522,8 @@ export function vantelistaUt(db, post, dag = idag()) {
     status: post.status, bokningId: post.bokning_id ?? null, skapad: post.skapad, skapadAv: personKort(db, post.skapad_av),
     // Planerad vårdhändelse: att tiden styr en läkemedelsdos, aldrig vilket läkemedel (vardhandelse.js).
     styrLakemedel: styrDos(db, { postRad: post }) ? STYR_LAKEMEDEL : null,
+    // Runda 13, r4: vårdgarantin för sig och pågående väntan som inte räknas.
+    vardgaranti: vardgarantiFor(db, post, dag), vantan: pagaendeVantan(db, post.id),
     // Runda 6, r4: ett ingrepp eller en bokningsmall, och en kallelse där patienten väljer tid själv.
     ...behovUt(db, post),
     handelser: db.query('SELECT * FROM vantelista_handelser WHERE vantelista_id = ? ORDER BY tid, id').all(post.id)
@@ -563,11 +566,77 @@ export function prioritera(atk, post, body = {}) {
   const ny = body.prioritet;
   if (!Object.hasOwn(PRIORITET, ny)) throw new Fel(400, 'Välj hög, normal eller låg prioritet.', 'ogiltig', { falt: ['prioritet'] });
   if (!Object.hasOwn(OMPRIORITERING, body.orsak)) throw new Fel(400, 'Välj orsaken till ändringen.', 'ogiltig', { falt: ['orsak'] });
-  if (ny === post.prioritet && body.orsak !== 'patientvald') throw new Fel(400, `Prioriteten är redan ${PRIORITET[ny].toLowerCase()}.`, 'ogiltig', { falt: ['prioritet'] });
-  const patientvald = body.orsak === 'patientvald' ? 1 : post.patientvald;
-  db.query('UPDATE vantelista SET prioritet = ?, patientvald = ? WHERE id = ?').run(ny, patientvald, post.id);
+  if (ny === post.prioritet) throw new Fel(400, `Prioriteten är redan ${PRIORITET[ny].toLowerCase()}.`, 'ogiltig', { falt: ['prioritet'] });
+  db.query('UPDATE vantelista SET prioritet = ? WHERE id = ?').run(ny, post.id);
   vlHandelse(db, post.id, 'omprioriterad', { av: atk.personal.id, detalj: `${PRIORITET[post.prioritet]} till ${PRIORITET[ny].toLowerCase()}. ${OMPRIORITERING[body.orsak]}.` });
   atk.logga('vantelista', atk.grund(), `vantelista:${post.id}:prioritet`);
+  return vantelistaUt(db, vantelistaRad(db, post.id));
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Runda 13, r4: väntan som inte räknas i vårdgarantin, och avslut från väntelistan (fynden E3-8 och E3-9).
+//
+// Tiden räknas inte när patienten själv har valt att vänta eller av medicinska skäl inte kan få vård (6 kap. 2 §
+// hälso- och sjukvårdsförordningen, demoregel). Väntan registreras som en egen åtgärd med ett startdatum och avslutas när
+// patienten kan få tid igen. Vårdgarantins datum flyttas med de dagar som inte räknas. Händelserna sparas i
+// väntelistans historik, som inte ändras.
+export const VANTAN = { pvv: 'Patientvald väntan', mov: 'Medicinskt orsakad väntan' };
+export const AVSLUT = { annan_vard: 'Patienten har fått vård på annat sätt', avstar: 'Patienten avstår från vården', fel: 'Posten lades upp av misstag' };
+function vantanPerioder(db, postId, dag = idag()) {
+  const ut = [];
+  for (const h of db.query("SELECT * FROM vantelista_handelser WHERE vantelista_id = ? AND typ IN ('pvv_start', 'pvv_slut', 'mov_start', 'mov_slut') ORDER BY tid, id").all(postId)) {
+    const [typ, steg] = h.typ.split('_');
+    if (steg === 'start') ut.push({ typ, typText: VANTAN[typ], fran: datumAv(new Date(h.tid)), till: null });
+    else { const p = ut.findLast(x => x.typ === typ && !x.till); if (p) p.till = datumAv(new Date(h.tid)); }
+  }
+  return ut.map(p => ({ ...p, dagar: Math.max(dagarMellan(p.fran, p.till ?? dag), 0) }));
+}
+export function pagaendeVantan(db, postId) {
+  return vantanPerioder(db, postId).find(p => !p.till) ?? null;
+}
+// Vårdgarantin för en post: samma gräns som gransFor räknar för vårdgarantin, flyttad med dagarna som inte räknas.
+export function vardgarantiFor(db, post, dag = idag()) {
+  const bas = gransFor({ ...post, mal: null, patientvald: 0 }, dag, db);
+  if (!bas || bas.typ !== 'vardgaranti') return { galler: false, text: 'Vårdgarantin gäller inte för den här posten, till exempel för ett återbesök.' };
+  const perioder = vantanPerioder(db, post.id, dag);
+  const pausade = perioder.reduce((s, p) => s + p.dagar, 0);
+  const datum = addDagar(bas.datum, pausade);
+  const pagar = perioder.find(p => !p.till) ?? null;
+  const kvar = dagarMellan(dag, datum);
+  return {
+    galler: true, datum, dagarKvar: kvar, pausadeDagar: pausade, pagar,
+    risk: pagar ? null : kvar < 0 ? 'passerad' : kvar <= regel(db, 'riskDagar') ? 'risk' : null,
+    text: pagar ? `Räknas inte under ${pagar.typText.toLowerCase()} sedan ${pagar.fran}.` : pausade ? `${pausade} ${pausade === 1 ? 'dag' : 'dagar'} med väntan räknas inte.` : 'Demoregel: 90 dagar från remissen.',
+  };
+}
+// POST /api/vantelista/:id/vantan { typ: pvv|mov, steg: start|slut, kommentar? }.
+export function registreraVantan(atk, post, body = {}) {
+  atk.krav('vantelista');
+  const db = atk.db;
+  kravEgenVardenhet(atk, post.enhet_id, `vantelista:${post.id}`);
+  if (post.status !== 'vantar') throw new Fel(400, 'Patienten har redan fått en tid eller är inte längre på väntelistan.', 'ogiltig');
+  if (!Object.hasOwn(VANTAN, body.typ ?? '')) throw new Fel(400, 'Välj patientvald eller medicinskt orsakad väntan.', 'ogiltig', { falt: ['typ'] });
+  if (!['start', 'slut'].includes(body.steg)) throw new Fel(400, 'Välj om väntan börjar eller slutar.', 'ogiltig', { falt: ['steg'] });
+  const kommentar = typeof body.kommentar === 'string' ? body.kommentar.trim().slice(0, 300) : '';
+  const pagar = pagaendeVantan(db, post.id);
+  if (body.steg === 'start' && pagar) throw new Fel(400, `${pagar.typText} pågår redan sedan ${pagar.fran}. Avsluta den först.`, 'ogiltig');
+  if (body.steg === 'slut' && pagar?.typ !== body.typ) throw new Fel(400, `Det finns ingen pågående ${VANTAN[body.typ].toLowerCase()} att avsluta.`, 'ogiltig');
+  vlHandelse(db, post.id, `${body.typ}_${body.steg}`, { av: atk.personal.id, detalj: `${VANTAN[body.typ]} ${body.steg === 'start' ? 'börjar' : 'slutar'}.${kommentar ? ` ${kommentar}` : ''}` });
+  // Patientvald väntan märks också på posten, som kapacitetsprognosen och rapporten till Väntetider i vården läser.
+  if (body.typ === 'pvv') db.query('UPDATE vantelista SET patientvald = ? WHERE id = ?').run(body.steg === 'start' ? 1 : 0, post.id);
+  atk.logga('vantelista', atk.grund(), `vantelista:${post.id}:vantan`);
+  return vantelistaUt(db, vantelistaRad(db, post.id));
+}
+// POST /api/vantelista/:id/avsluta { orsak }. Posten tas bort från väntelistan med en orsak i historiken.
+export function avslutaPost(atk, post, body = {}) {
+  atk.krav('vantelista');
+  const db = atk.db;
+  kravEgenVardenhet(atk, post.enhet_id, `vantelista:${post.id}`);
+  if (post.status !== 'vantar') throw new Fel(400, 'Posten är inte längre på väntelistan.', 'ogiltig');
+  if (!Object.hasOwn(AVSLUT, body.orsak ?? '')) throw new Fel(400, 'Välj varför patienten tas bort från väntelistan.', 'ogiltig', { falt: ['orsak'] });
+  db.query("UPDATE vantelista SET status = 'avslutad' WHERE id = ?").run(post.id);
+  vlHandelse(db, post.id, 'avslutad', { av: atk.personal.id, detalj: `${AVSLUT[body.orsak]}.` });
+  atk.logga('vantelista', atk.grund(), `vantelista:${post.id}:avslutad`);
   return vantelistaUt(db, vantelistaRad(db, post.id));
 }
 

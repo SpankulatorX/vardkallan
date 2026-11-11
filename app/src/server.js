@@ -1530,10 +1530,13 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const d = c.url.searchParams.get('datum');
     return tidbok.tidbok(c.db, c.personal, { datum: /^\d{4}-\d{2}-\d{2}$/.test(d ?? '') ? d : idag(), avidentifierad: c.url.searchParams.get('avidentifierad') === '1', vy: planering.vyFor(c.db, c.personal, 'tidbok').installning });
   });
-  rutt('GET', '/api/vantelista', (c) => { kravRoll(c, 'vantelista'); return { poster: tidbok.vantelista(c.db, c.personal), prioriteringsorsaker: tidbok.OMPRIORITERING, demoregler: tidbok.DEMOREGLER.text }; });
+  rutt('GET', '/api/vantelista', (c) => { kravRoll(c, 'vantelista'); return { poster: tidbok.vantelista(c.db, c.personal), prioriteringsorsaker: tidbok.OMPRIORITERING, vantan: tidbok.VANTAN, avslut: tidbok.AVSLUT, demoregler: tidbok.DEMOREGLER.text }; });
   rutt('GET', '/api/vantelista/:id/forslag', (c, id) => medPost(c, id, 'boka', (atk, v) => tidbok.forslagForPost(atk, v)));
   rutt('POST', '/api/vantelista/:id/boka', (c, id) => medPost(c, id, 'boka', (atk, v) => tidbok.boka(atk, v, c.body)));
   rutt('POST', '/api/vantelista/:id/prioritet', (c, id) => medPost(c, id, 'vantelista', (atk, v) => tidbok.prioritera(atk, v, c.body)));
+  // Runda 13, r4: patientvald och medicinskt orsakad väntan, och avslut från väntelistan med orsak.
+  rutt('POST', '/api/vantelista/:id/vantan', (c, id) => medPost(c, id, 'vantelista', (atk, v) => tidbok.registreraVantan(atk, v, c.body)));
+  rutt('POST', '/api/vantelista/:id/avsluta', (c, id) => medPost(c, id, 'vantelista', (atk, v) => tidbok.avslutaPost(atk, v, c.body)));
   rutt('POST', '/api/patient/:id/vantelista', (c, id) => { kravInloggad(c); return medPatient(c, id, 'vantelista', (atk) => tidbok.nyPost(atk, c.body)); });
   rutt('GET', '/api/patient/:id/bokningar', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_admin', (atk) => tidbok.patientensBokningar(atk)); });
   // Runda 5, r1: läkaren sätter upp ett återbesök som systemet föreslår (aterbesok.js).
