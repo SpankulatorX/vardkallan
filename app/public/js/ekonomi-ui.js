@@ -25,7 +25,9 @@ export function sektionHtml(k) {
   if (!k) return '';
   const a = k.aktuell;
   const hog = `<p class="ek-hog">${esc(k.hogkostnadsskydd.text)}</p>`;
-  const avgifter = a?.patientavgifter?.length ? `<ul class="enkel-lista ek-avgifter">${a.patientavgifter.map(x => `<li>Patientavgift ${esc(kr(x.belopp))}, ${esc(datum(x.datum))}<span class="under-text">${esc(x.statusText ?? '')}</span></li>`).join('')}</ul>` : '';
+  // Runda 12, r3: rabatten med ordinarie avgift och skäl, och summan av rabatterna.
+  const rabatt = (x) => (x.rabatt ? ` <span class="ek-rabatt" data-rabatt>Ordinarie ${esc(kr(x.rabatt.ordinarie))}, rabatt ${esc(kr(x.rabatt.rabatt))}. ${esc(x.rabatt.skal)}</span>` : '');
+  const avgifter = a?.patientavgifter?.length ? `<ul class="enkel-lista ek-avgifter">${a.patientavgifter.map(x => `<li>Patientavgift ${esc(kr(x.belopp))}, ${esc(datum(x.datum))}<span class="under-text">${esc(x.statusText ?? '')}${rabatt(x)}</span></li>`).join('')}</ul>${a.rabatter ? `<p class="liten" data-rabatter>Rabatter på patientavgifterna: ${esc(kr(a.rabatter))}.</p>` : ''}` : '';
   let innehall = '';
   if (!a) innehall = '<p class="tom liten">Patienten har ingen pågående vårdkontakt eller vårdtillfälle som du kan se kostnaderna för.</p>';
   else if (a.kategorier) {

@@ -16,7 +16,7 @@ import { createHash } from 'node:crypto';
 import { Fel, iso, idag, addDagar, datumAv, giltigtDatum } from './db.js';
 import { Atkomst, kanRoll, vardenhetFor, enheterUnder, alder, aktivaSparrar } from './atkomst.js';
 import { loggaRad } from './logg.js';
-import { avgiftFor, hogkostnadsskyddet, pagandeFor } from './vardkontakt.js';
+import { avgiftFor, hogkostnadsskyddet, pagandeFor, rabattFor } from './vardkontakt.js';
 import { formatera } from './identitet.js';
 import { KVA, SYSTEM } from './kodverk.js';
 import { CS } from './fhir-definitioner.js';
@@ -669,7 +669,9 @@ function synligAvgift(atk, p, r, synligaBesok) {
   const b = avgiftsbetalare(db, p, r.datum);
   const kort = finns(db, 'betalningar') && Boolean(db.query("SELECT 1 FROM betalningar x JOIN bokningar k ON k.id = x.bokning_id WHERE k.vardkontakt_id = ? AND x.satt = 'kort'").get(v.id));
   const status = a.belopp === 0 ? (a.frikort ? 'frikort' : 'avgiftsfri') : b.vantar ? 'vantar' : kort ? 'betald' : 'faktureras';
-  return { datum: r.datum, tid: r.tid, text: `Patientavgift. ${a.text}`, belopp: a.belopp, status, statusText: status === 'vantar' ? b.text : STATUS[status], rad: r };
+  // Runda 12, r3: rabatten med ordinarie avgift och skäl, räknad på samma synliga besök som avgiften.
+  const rabatt = rabattFor(p, v, a);
+  return { datum: r.datum, tid: r.tid, text: `Patientavgift. ${a.text}`, belopp: a.belopp, status, statusText: status === 'vantar' ? b.text : STATUS[status], ...(rabatt ? { rabatt } : {}), rad: r };
 }
 
 // Kostnadsrutan för ett vårdtillfälle eller en vårdkontakt. Utan val visas det pågående vårdtillfället, annars dagens
@@ -728,6 +730,8 @@ export function kostnader(atk, q = {}, nu = Date.now()) {
   const avgifter = rader.filter(r => r.typ === 'patientavgift').map(r => synligAvgift(atk, p, r, synligaBesok));
   const sedan = synliga.reduce((m, v) => (v.start < m ? v.start : m), synliga[0].start);
   const ut = { typ, id: mal.id, sedan, pagar: typ === 'vardtillfalle' ? !mal.utskriven : !mal.slut, patientavgifter: avgifter.map(({ tid, rad, ...x }) => x), demo: full ? DEMO : DEMO_AVGIFT };
+  // Runda 12, r3 (Sussa 7.1.2.1): summan av rabatterna på patientavgifterna i rutan.
+  ut.rabatter = avgifter.reduce((s, x) => s + (x.rabatt?.rabatt ?? 0), 0);
   if (full) {
     const kost = rader.filter(r => r.typ !== 'patientavgift');
     ut.kategorier = ['vardkontakt', 'varddygn', 'lakemedel', 'material', 'atgard', 'hjalpmedel'].map(t => ({ typ: t, text: TYPTEXT[t], antal: kost.filter(r => r.typ === t).reduce((s, r) => s + r.antal, 0), belopp: kost.filter(r => r.typ === t).reduce((s, r) => s + r.belopp, 0) })).filter(k => k.antal);
