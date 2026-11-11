@@ -16,7 +16,8 @@ const pnr = (db, pid = 'bl1') => db.query('SELECT personnummer FROM patienter WH
 const fel = (f) => { try { f(); } catch (e) { return e; } throw new Error('inget fel'); };
 function taOchSvara(db, labbId, pid, nu) {
   const b = labb.bestallningRad(db, labbId);
-  for (const p of labb.bestallningUt(db, b).prov) labb.taProv(atk(db, 'ssk-kkoga', pid, 'ta_prov'), labb.provRad(db, p.id), nu);
+  // Runda 13, r3 (E2-53): rören för blodgruppering och bastest tas efter kontroll med armbandet.
+  for (const p of labb.bestallningUt(db, b).prov) labb.taProv(atk(db, 'ssk-kkoga', pid, 'ta_prov'), labb.provRad(db, p.id), nu, { identitet: { armband: `VKA-${pid.toUpperCase()}` } });
   labb.forfallnaSvar(db, new Date(nu.getTime() + 25 * 60_000));
 }
 function berett(db, pid = 'bl1', body = { produkt: 'erytrocyter', antal: 2, indikation: 'Postoperativ anemi, Hb 72' }) {

@@ -12,7 +12,8 @@ const ssk = (db, pid = 'bl1', h = 'ge_lakemedel') => atk(db, 'ssk-kkoga', pid, h
 // Tar rören för en provbeställning och låter laboratoriet svara.
 function taOchSvara(db, labbId, pid, nu) {
   const b = labb.bestallningRad(db, labbId);
-  for (const p of labb.bestallningUt(db, b).prov) labb.taProv(atk(db, 'ssk-kkoga', pid, 'ta_prov'), labb.provRad(db, p.id), nu);
+  // Runda 13, r3 (E2-53): rören för blodgruppering och bastest tas efter kontroll med armbandet.
+  for (const p of labb.bestallningUt(db, b).prov) labb.taProv(atk(db, 'ssk-kkoga', pid, 'ta_prov'), labb.provRad(db, p.id), nu, { identitet: { armband: `VKA-${pid.toUpperCase()}` } });
   labb.forfallnaSvar(db, new Date(nu.getTime() + 25 * 60_000));
 }
 // Dubbelkontrollen: sjuksköterskan förbereder vid sängen, läkaren kontrollerar i sin egen session och transfusionen startar.
@@ -181,5 +182,23 @@ describe('Blodprodukter', () => {
     const r = las({ andra_enheter: true });
     expect(r.bestallningar).toEqual([]);
     expect(JSON.stringify(r)).toBe(utan);
+  });
+});
+
+// Runda 13, r3 (E2-53): provet för blodgruppering och bastest tas bara efter kontroll av identiteten med armbandet.
+describe('Identiteten vid provtagning för blodgruppering', () => {
+  test('ett rör för blodgruppering eller bastest tas bara efter kontroll med armbandet, och kontrollen står i historiken', () => {
+    const db = sandlada();
+    ny(db);
+    const r = labb.bestall(lak(db), { analyser: ['blodgruppering', 'bastest'] }, BAS);
+    const prov = labb.bestallningUt(db, labb.bestallningRad(db, r.bestallning.id)).prov[0];
+    const ta = (opts) => labb.taProv(atk(db, 'ssk-kkoga', 'bl1', 'ta_prov'), labb.provRad(db, prov.id), efter(5), opts);
+    const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
+    expect(fel(() => ta({})).kod).toBe('identitet');
+    expect(fel(() => ta({ identitet: { armband: 'VKA-P01' } })).message).toContain('hör inte till patienten');
+    expect(labb.provRad(db, prov.id).provtagen_tid).toBeNull();
+    ta({ identitet: { armband: 'VKA-BL1' } });
+    expect(labb.provRad(db, prov.id).provtagen_tid).toBeTruthy();
+    expect(db.query("SELECT detalj FROM labb_historik WHERE bestallning_id = ? AND handelse = 'Identiteten kontrollerad'").get(r.bestallning.id).detalj).toContain('armbandet');
   });
 });

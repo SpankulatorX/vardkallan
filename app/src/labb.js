@@ -652,15 +652,35 @@ export function overlat(atk, b, { lakareId, orsak } = {}, nu = new Date()) {
 
 // Provtagning (Sussas testfall 3.3): ett klick per rör. Systemet sätter tid och provtagare och skickar proverna när alla
 // rör för provtagningstiden är tagna.
-export function taProv(atk, prov, nu = new Date()) {
+// Runda 13, r3 (E2-53): ett rör för blodgruppering eller bastest tas bara efter en kontroll av patientens identitet med
+// armbandet (skannat, eller inskrivet från armbandet), eftersom ett prov från fel patient kan ge fel blod. Kontrollen och
+// den som gjorde den står i beställningens historik. armbandSkannat är sant när skanningen redan har prövat armbandet
+// mot röret (skanning.js).
+export const BLOD_ANALYSER = ['blodgruppering', 'bastest'];
+function provaBlodIdentitet(db, b, prov, { identitet = null, armbandSkannat = false } = {}) {
+  const analyser = db.query('SELECT analys FROM labb_analyser WHERE prov_id = ?').all(prov.id).map(a => a.analys);
+  if (!analyser.some(a => BLOD_ANALYSER.includes(a))) return null;
+  if (armbandSkannat) return 'Identiteten kontrollerades med det skannade armbandet mot etiketten.';
+  const arm = typeof identitet?.armband === 'string' ? identitet.armband.trim().toUpperCase().replace(/-/g, '') : '';
+  if (!arm) throw new Fel(400, 'Röret är för blodgruppering eller bastest. Kontrollera patientens identitet med armbandet innan provet tas: skanna armbandet eller skriv in koden från det.', 'identitet', { falt: ['armband'] });
+  const pnr = db.query('SELECT personnummer FROM patienter WHERE id = ?').get(b.patient_id)?.personnummer ?? '';
+  if (arm !== `VKA${String(b.patient_id).toUpperCase()}` && arm !== String(pnr).replace(/-/g, '')) {
+    throw new Fel(400, 'Armbandet hör inte till patienten i beställningen. Ta inte provet. Kontrollera att du står vid rätt patient.', 'ogiltig', { falt: ['armband'] });
+  }
+  return 'Identiteten kontrollerades med armbandet.';
+}
+
+export function taProv(atk, prov, nu = new Date(), opts = {}) {
   const db = atk.db;
   const b = bestallningRad(db, prov.bestallning_id);
   atk.krav('ta_prov', { resurs: { enhet_id: b.enhet_id } });
   if (b.makulerad_tid) throw new Fel(409, 'Beställningen är makulerad. Ta inte provet.', 'ogiltig');
   if (prov.borttagen) throw new Fel(409, 'Röret behövs inte längre, eftersom analyserna är borttagna ur beställningen.', 'ogiltig');
   if (prov.provtagen_tid) throw new Fel(409, `Röret är redan taget ${dagText(prov.provtagen_tid, nu)} av ${personNamn(db, prov.provtagen_av)}.`, 'ogiltig');
+  const idText = provaBlodIdentitet(db, b, prov, opts);
   const tid = iso(nu);
   db.query('UPDATE labb_prov SET provtagen_tid = ?, provtagen_av = ? WHERE id = ?').run(tid, atk.personal.id, prov.id);
+  if (idText) historik(db, b, atk.personal.id, 'Identiteten kontrollerad', idText, tid);
   db.query("UPDATE labb_analyser SET status = 'provtagen' WHERE prov_id = ? AND status = 'bestalld'").run(prov.id);
   historik(db, b, atk.personal.id, 'Provtagen', `${ROR[prov.ror]?.namn ?? prov.ror}, etikett ${prov.etikett}.`, tid);
   const kvar = provFor(db, b.id).filter(p => !p.provtagen_tid && p.planerad === prov.planerad);

@@ -1990,6 +1990,10 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await page.locator('#us [data-boka]').first().click();
       await forvanta(page, '.notis', 'är bokad');
       await page.locator('#us [data-utford]').first().click();
+      // Runda 13, r3 (E2-45): identiteten bekräftas, och en tid som är bokad senare flyttas till nu.
+      await page.click('dialog[open] label[for="us-id-m"]');
+      if (await page.locator('dialog[open] #us-flytta').count()) await page.click('dialog[open] label[for="us-flytta"]');
+      await page.click('dialog[open] [data-varde="ok"]');
       await forvanta(page, '.notis', 'Radiologen skriver utlåtandet');
       await page.locator('#us [data-utlatande]').first().click();
       await forvanta(page, '.notis', 'Utlåtandet');
@@ -2061,6 +2065,8 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
     });
     await s('Therese Hedberg bekräftar checklistan, ger antibiotikaprofylaxen och öppnar instrumentgallret', async () => {
       for (const id of await page.locator('.op-check input[type=checkbox]:not(:checked):not(:disabled)').evaluateAll(l => l.map(x => x.id))) await page.click(`.op-check label[for="${id}"]`);
+      // Runda 13, r3 (E2-49): blodet bekräftas med en motivering när blodgruppering och bastest inte är klara.
+      for (const t of await page.locator('.op-check textarea[name^="motivering_"]').all()) await t.fill('Operatören har beslutat att blod inte behövs i beredskap.');
       await page.click('.op-check [type=submit]');
       await forvanta(page, '.notis', 'Checklistan är bekräftad');
       await page.waitForSelector('[data-op-handelse="anestesistart"]');

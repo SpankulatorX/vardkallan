@@ -60,7 +60,26 @@ export async function visa(main, _p, _q, ctx = {}) {
           data = { mrKontrollerad: true };
         }
         r = await medKnapp(b, () => api(`/api/undersokningar/${b.dataset.boka}/boka`, { metod: 'POST', data }));
-      } else if (b.dataset.utford) r = await medKnapp(b, () => api(`/api/undersokningar/${b.dataset.utford}/utford`, { metod: 'POST', data: {} }));
+      } else if (b.dataset.utford) {
+        // Runda 13, r3 (E2-45): patientens identitet bekräftas med armbandet, eller med hur den kontrollerades. Är tiden
+        // bokad senare än om en timme bekräftar den som registrerar att patienten är här nu, och tiden flyttas.
+        const rad = d.rader.find(x => String(x.id) === b.dataset.utford);
+        const tidig = Boolean(rad?.bokad && Date.parse(rad.bokad) - Date.now() > 3600_000);
+        const svar = await dialog(`<form><h2 id="dlg-rubrik">Bekräfta patientens identitet</h2>
+          <p>Skanna patientens armband. Går det inte, välj hur du har kontrollerat identiteten.</p>
+          <div class="falt"><label for="us-arm">Armband</label><input id="us-arm" name="armband" autocomplete="off" inputmode="text"></div>
+          <fieldset class="kryssgrupp"><legend>Utan skanning</legend>
+            <div class="kryssfalt"><input type="radio" id="us-id-m" name="orsak" value="muntligt"><label for="us-id-m">Patienten uppgav namn och personnummer, och de stämmer med remissen</label></div>
+            <div class="kryssfalt"><input type="radio" id="us-id-a" name="orsak" value="armband_last"><label for="us-id-a">Armbandet går inte att skanna, och jag har läst det mot remissen</label></div></fieldset>
+          ${tidig ? `<div class="kryssfalt"><input type="checkbox" id="us-flytta" name="flytta" value="ja"><label for="us-flytta">Patienten är här nu. Flytta den bokade tiden ${esc(tidpunkt(rad.bokad))} till nu.</label></div>` : ''}
+          <p class="dialog-fel form-fel" role="alert" hidden></p>
+          <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Registrera som gjord</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`, {
+          validera: (d) => (!d.armband?.trim() && !d.orsak ? 'Skanna armbandet eller välj hur identiteten kontrollerades.' : tidig && d.flytta !== 'ja' ? 'Undersökningen är bokad senare. Bekräfta att patienten är här nu, så flyttas tiden.' : null),
+        });
+        if (!svar) return;
+        const identitet = svar.data.armband?.trim() ? { armband: svar.data.armband.trim() } : { orsak: svar.data.orsak };
+        r = await medKnapp(b, () => api(`/api/undersokningar/${b.dataset.utford}/utford`, { metod: 'POST', data: { identitet, flyttaTillNu: tidig } }));
+      }
       else r = await medKnapp(b, () => api(`/api/undersokningar/${b.dataset.utlatande}/simulera-utlatande`, { metod: 'POST', data: {} }));
       notis(r.text);
       visa(main, _p, _q, ctx);

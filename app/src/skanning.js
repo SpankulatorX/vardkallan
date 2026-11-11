@@ -197,7 +197,8 @@ export function skanna(c, body, { medPatient, valFor = () => ({}) }) {
     }
     if (sammanhang === 'provtagning') {
       const labb = require('./labb.js');
-      const r = medPatient(c, prov.patient_id, 'ta_prov', (atk) => labb.taProv(atk, labb.provRad(db, prov.id)));
+      // Runda 13, r3 (E2-53): armbandet är redan skannat och prövat mot röret.
+      const r = medPatient(c, prov.patient_id, 'ta_prov', (atk) => labb.taProv(atk, labb.provRad(db, prov.id), new Date(), { armbandSkannat: true }));
       rad({ patient: prov.patient_id, resultat: 'provtagen', objekt: `labb_prov:${prov.id}` });
       return { typ: 'etikett', etikett: t.kod, tagen: true, text: r.text ?? `Röret ${t.kod} är registrerat som taget.`, bestallning: r.bestallning };
     }

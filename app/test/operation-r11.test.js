@@ -22,6 +22,8 @@ const anmal = (db, pid = 'op1', body = { kva: 'NFB49', sida: 'hoger' }, roll = '
 const rad = (db, id) => op.anmalanRad(db, id);
 const pl = (db, pid, roll = 'ssk-kkoga') => atk(db, roll, pid, 'operation_planera');
 const ALLA = (del) => Object.keys(op.CHECKLISTA[del].punkter);
+// Runda 13, r3 (E2-49): blodet bekräftas med en motivering när blodgruppering och bastest inte är klara.
+const MOT = { blodning: 'Operatören har beslutat att blod inte behövs i beredskap.' };
 const pnr = (db, pid) => db.query('SELECT personnummer FROM patienter WHERE id = ?').get(pid).personnummer;
 
 describe('Operation 1.1', () => {
@@ -140,7 +142,7 @@ describe('Operation 1.1', () => {
     expect(u2.delar[0].punkter.find(p => p.id === 'markering')).toMatchObject({ forifylld: true, ejAktuell: true });
     // En del av checklistan kan inte sparas utan punkterna som bara teamet kan bekräfta.
     expect(() => op.checklista(s, rad(db, a.id), { del: 'fore_anestesi', bekraftade: ['identitet'] }, efter(1, t0))).toThrow('bekräfta');
-    expect(op.checklista(s, rad(db, a.id), { del: 'fore_anestesi', bekraftade: ALLA('fore_anestesi') }, efter(2, t0)).forlopp.checklista[0].klar).toBe(true);
+    expect(op.checklista(s, rad(db, a.id), { del: 'fore_anestesi', bekraftade: ALLA('fore_anestesi'), motiveringar: MOT }, efter(2, t0)).forlopp.checklista[0].klar).toBe(true);
   });
 
   test('sessionen säger om vårdenheten opererar, och dagens program räknar ut när nästa operation kan börja när en operation drar ut på tiden', () => {
@@ -206,7 +208,7 @@ function genomfor(db, { id, s, vid }, { slut = 100, ut = 105, rakna = false } = 
   op.anestesibedomning(atk(db, 'lak-kkoga', s.patientId, 'operation_anmala'), rad(db, id), { asa: 2 }, vid(7));
   op.bekraftaAsa(atk(db, 'lak-kkoga', s.patientId, 'anestesibedomning'), rad(db, id), {}, vid(8));
   for (const [del, h, m] of [['fore_anestesi', 'anestesistart', 10], ['fore_snitt', 'knivtid', 20]]) {
-    op.checklista(s, rad(db, id), { del, bekraftade: ALLA(del) }, vid(m - 1)); op.registrera(s, rad(db, id), { handelse: h }, vid(m));
+    op.checklista(s, rad(db, id), { del, bekraftade: ALLA(del), motiveringar: MOT }, vid(m - 1)); op.registrera(s, rad(db, id), { handelse: h }, vid(m));
   }
   op.implantat(s, rad(db, id), { artikel: 'Höftprotes (demo)', tillverkare: 'Demotillverkaren', lot: 'LOT-2026-1' }, vid(60));
   op.registrera(s, rad(db, id), { handelse: 'op_slut' }, vid(slut));
@@ -557,7 +559,7 @@ describe('Operation 1.1, anestesienheten', () => {
     // En bekräftelse dagen före gäller inte på operationsdagen.
     asaKlar(db, 'op1', a.id, BAS);
     op.registrera(s, rad(db, a.id), { handelse: 'in_sal' }, vid(0));
-    op.checklista(s, rad(db, a.id), { del: 'fore_anestesi', bekraftade: ALLA('fore_anestesi') }, vid(5));
+    op.checklista(s, rad(db, a.id), { del: 'fore_anestesi', bekraftade: ALLA('fore_anestesi'), motiveringar: MOT }, vid(5));
     expect(() => op.registrera(s, rad(db, a.id), { handelse: 'anestesistart' }, vid(10))).toThrow('Bekräfta ASA-klassen');
     expect(() => asaKlar(db, 'op1', a.id, vid(8), 'ssk-kkoga')).toThrow();
     const r = asaKlar(db, 'op1', a.id, vid(8));

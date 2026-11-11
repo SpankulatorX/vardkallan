@@ -149,7 +149,11 @@ describe('Undersökningar i beställning och svar', () => {
     const dt2 = bestall(db, 'lak-kard', 'p01', { analyser: ['dt_buk'], anamnes: 'Buksmärta.', prioritet: 'akut', kvitteraKontroller: true });
     egfr(db, 'p01', 'uso-kard', 80, T(-60));
     expect(fel(() => undersokningar.boka(db, rtg(db), analysId(dt2.bestallning, 'dt_buk'), { tid: BAS.toISOString() }, BAS))?.message ?? '').toMatch(/redan bokad|Väntar/);
-    expect(undersokningar.registreraUtford(db, rtg(db), id, T(15)).text).toContain('Radiologen skriver utlåtandet');
+    // Runda 13, r3 (E2-45): patientens identitet bekräftas med armbandet eller uttryckligen.
+    const utanId = fel(() => undersokningar.registreraUtford(db, rtg(db), id, T(15)));
+    expect(utanId.message).toContain('Bekräfta patientens identitet');
+    expect(fel(() => undersokningar.registreraUtford(db, rtg(db), id, T(15), { identitet: { armband: 'VKA-P02' } })).message).toContain('hör inte till patienten');
+    expect(undersokningar.registreraUtford(db, rtg(db), id, T(15), { identitet: { armband: 'VKA-P01' } }).text).toContain('Radiologen skriver utlåtandet');
     const st = db.query('SELECT * FROM media_studier WHERE patient_id = ? ORDER BY id DESC').get('p01');
     expect(st).toMatchObject({ undersokning: 'dt_hjarna', status: 'besvarad', enhet_id: 'uso-kard' });
     expect(st.uid).toMatch(/^1\.3\.6\.1\.4\.1\.32473\.1\.9\.\d+$/);
@@ -184,7 +188,15 @@ describe('Undersökningar i beställning och svar', () => {
     expect(r.bestallning.svf).toMatchObject({ kod: 'VC010', text: KVA.VC010 });
     const id = analysId(r.bestallning, 'dt_torax');
     undersokningar.boka(db, rtg(db), id, {}, BAS);
-    undersokningar.registreraUtford(db, rtg(db), id, T(60 * 24));
+    // Runda 13, r3 (E2-45): en undersökning som är bokad längre fram kan inte registreras som gjord i förväg.
+    const bokad = db.query('SELECT bokad_tid FROM undersokning_bokningar WHERE analys_rad_id = ?').get(id).bokad_tid;
+    const tidigt = fel(() => undersokningar.registreraUtford(db, rtg(db), id, new Date(Date.parse(bokad) - 3 * 3600_000), { identitet: { orsak: 'muntligt' } }));
+    expect(tidigt?.status).toBe(409);
+    expect(tidigt.message).toContain('boka om tiden');
+    // Är patienten här tidigare flyttas tiden till nu, och flytten står i historiken.
+    const tidigNu = new Date(Date.parse(bokad) - 3 * 3600_000);
+    undersokningar.registreraUtford(db, rtg(db), id, new Date(Math.max(tidigNu.getTime(), T(60 * 24).getTime() - 3600_000)), { identitet: { orsak: 'muntligt' }, flyttaTillNu: true });
+    expect(db.query('SELECT utford_tid FROM undersokning_bokningar WHERE analys_rad_id = ?').get(id).utford_tid).toBeTruthy();
     expect(undersokningar.simuleraUtlatande(db, rtg(db), id, T(60 * 24 + 5)).text).toContain('väntar på vidimering');
     const b = labb.bestallningUt(db, labb.bestallningRad(db, r.bestallning.id), pers(db, 'lak-kard'), T(60 * 25));
     const a = b.analyser.find(x => x.id === id);
@@ -495,7 +507,7 @@ describe('Status i Min journal', () => {
     // Inga namn på personalen och inga id.
     expect(JSON.stringify(m)).not.toContain('Sara Lindqvist');
     expect(JSON.stringify(m)).not.toContain(r.bestallning.nummer);
-    undersokningar.registreraUtford(db, rtg(db), id, new Date('2026-11-09T07:30:00Z'));
+    undersokningar.registreraUtford(db, rtg(db), id, new Date('2026-11-09T07:30:00Z'), { identitet: { orsak: 'muntligt' } });
     undersokningar.simuleraUtlatande(db, rtg(db), id, new Date('2026-11-09T07:35:00Z'));
     m = min(new Date('2026-11-09T08:00:00Z'));
     expect(m.analyser.find(a => a.namn === 'Ultraljud buk')).toMatchObject({ status: 'Läkaren går igenom svaret', utlatande: null });
@@ -573,8 +585,12 @@ describe('API för undersökningar', () => {
     const l = (await rtgK.get('/api/undersokningar')).data;
     expect(l.rader.find(r => r.id === id)).toMatchObject({ undersokning: 'Röntgen knäled', fragestallning: 'Knäsmärta.' });
     expect((await lak.get('/api/undersokningar')).status).toBe(403);
+    // Runda 13, r3 (E2-45): den bokade tiden är nu, när patienten är på plats, och identiteten bekräftas med armbandet.
     expect((await rtgK.post(`/api/undersokningar/${id}/boka`, {})).status).toBe(200);
-    expect((await rtgK.post(`/api/undersokningar/${id}/utford`, {})).status).toBe(200);
+    expect((await rtgK.post(`/api/undersokningar/${id}/utford`, { identitet: { armband: 'VKA-P04' } })).status).toBe(409);
+    sandlada(app, lak).db.query('UPDATE undersokning_bokningar SET bokad_tid = ? WHERE analys_rad_id = ?').run(new Date().toISOString(), id);
+    expect((await rtgK.post(`/api/undersokningar/${id}/utford`, {})).status).toBe(400);
+    expect((await rtgK.post(`/api/undersokningar/${id}/utford`, { identitet: { armband: 'VKA-P04' } })).status).toBe(200);
     expect((await rtgK.post(`/api/undersokningar/${id}/simulera-utlatande`, {})).status).toBe(200);
     expect((await rtgK.get('/api/patient/p04/prover')).status).toBe(403);
     const ik = (await lak.get('/api/inkorg')).data;

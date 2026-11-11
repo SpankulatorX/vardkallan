@@ -406,7 +406,27 @@ function utfor(db, b, a, personalId, nu) {
   db.query('UPDATE undersokning_bokningar SET utford_tid = ?, utford_av = ?, studie_id = ?, studie_uid = ? WHERE analys_rad_id = ?').run(iso(nu), personalId, studieId, uid, a.id);
   labb.historikRad(db, b, personalId, 'Undersökningen gjord', `${def.namn} på ${LAB[a.lab_id].kort}.${uid ? ` Bilderna finns i multimediaarkivet, studie ${uid}.` : ''}`, iso(nu));
 }
-export function registreraUtford(db, personal, analysId, nu = new Date()) {
+// Runda 13, r3 (E2-45): en undersökning som är bokad längre fram registreras inte som gjord, och patientens identitet
+// bekräftas med armbandet eller uttryckligen med hur den kontrollerades. Bekräftelsen sparas i beställningens historik.
+export const IDENTITET_ORSAKER = {
+  muntligt: 'Patienten uppgav namn och personnummer, och de stämmer med remissen',
+  armband_last: 'Armbandet går inte att skanna, och jag har läst det mot remissen',
+};
+export const TIDIGT_MIN = 60;
+function provaIdentitet(db, patientId, identitet) {
+  const p = db.query('SELECT personnummer FROM patienter WHERE id = ?').get(patientId);
+  if (typeof identitet?.armband === 'string' && identitet.armband.trim()) {
+    const arm = identitet.armband.trim().toUpperCase().replace(/-/g, '');
+    if (arm !== `VKA-${String(patientId).toUpperCase()}`.replace(/-/g, '') && arm !== String(p?.personnummer ?? '').replace(/-/g, '')) {
+      throw new Fel(400, 'Armbandet hör inte till patienten i beställningen. Gör inte undersökningen. Kontrollera att det är rätt patient.', 'ogiltig', { falt: ['armband'] });
+    }
+    return 'Armbandet skannades och hör till patienten.';
+  }
+  if (Object.hasOwn(IDENTITET_ORSAKER, identitet?.orsak ?? '')) return `Identiteten bekräftades utan skanning: ${IDENTITET_ORSAKER[identitet.orsak].toLocaleLowerCase('sv')}.`;
+  throw new Fel(400, 'Bekräfta patientens identitet: skanna armbandet, eller välj hur du har kontrollerat identiteten.', 'identitet', { falt: ['identitet'], orsaker: IDENTITET_ORSAKER });
+}
+
+export function registreraUtford(db, personal, analysId, nu = new Date(), body = {}) {
   sakra(db);
   const a = analysRad(db, analysId);
   utforare(db, personal, a);
@@ -415,7 +435,18 @@ export function registreraUtford(db, personal, analysId, nu = new Date()) {
   if (b.makulerad_tid || a.status === 'makulerad') throw new Fel(409, 'Beställningen är makulerad.', 'ogiltig');
   if (!bk?.bokad_tid) throw new Fel(409, 'Boka undersökningen först.', 'ogiltig');
   if (bk.utford_tid) throw new Fel(409, 'Undersökningen är redan registrerad som gjord.', 'ogiltig');
+  const tidig = Date.parse(bk.bokad_tid) - nu.getTime() > TIDIGT_MIN * MIN;
+  if (tidig && body.flyttaTillNu !== true) {
+    throw new Fel(409, `Undersökningen är bokad ${tidText(bk.bokad_tid)}. Den registreras som gjord när patienten är på plats. Är patienten här nu, flytta tiden till nu, eller boka om tiden.`, 'tidig', { bokad: bk.bokad_tid });
+  }
+  const id = provaIdentitet(db, b.patient_id, body.identitet);
+  // Patienten är här tidigare än den bokade tiden: tiden flyttas till nu, och flytten står i historiken.
+  if (tidig) {
+    db.query('UPDATE undersokning_bokningar SET bokad_tid = ? WHERE analys_rad_id = ?').run(iso(nu), a.id);
+    labb.historikRad(db, b, personal.id, 'Tiden flyttad', `Patienten kom före den bokade tiden ${tidText(bk.bokad_tid)}, och tiden flyttades till nu.`, iso(nu));
+  }
   utfor(db, b, a, personal.id, nu);
+  labb.historikRad(db, b, personal.id, 'Identiteten kontrollerad', id, iso(nu));
   loggaUtforande(db, personal, a, `undersokning:utford:${a.id}`);
   return { text: `${ANALYS[a.analys].namn} är gjord. Radiologen skriver utlåtandet, och det kommer till ${personNamn(db, b.ansvarig_id)} för vidimering.` };
 }

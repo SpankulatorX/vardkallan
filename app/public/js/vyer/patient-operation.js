@@ -59,7 +59,8 @@ function checklistaHtml(o, u) {
     <h4 id="op-ck-${o.id}">Checklista för säker kirurgi: ${esc(d.namn.toLocaleLowerCase('sv'))}</h4>
     <p class="hjalp">Teamet går igenom punkterna tillsammans. Det systemet redan har kontrollerat är ifyllt.</p>
     ${d.punkter.map(p => `<div class="kryssfalt"><input type="checkbox" id="ck-${o.id}-${esc(p.id)}" name="${esc(p.id)}"${p.forifylld ? ' checked' : ''}${p.ejAktuell ? ' disabled' : ''}>
-      <label for="ck-${o.id}-${esc(p.id)}">${esc(p.namn)}<span class="under-text">${esc(p.text)}</span></label></div>`).join('')}
+      <label for="ck-${o.id}-${esc(p.id)}">${esc(p.namn)}<span class="under-text">${esc(p.text)}</span></label></div>${p.kraverMotivering ? `
+      <div class="falt"><label for="ck-${o.id}-mot-${esc(p.id)}">Varför kan operationen börja utan klar blodgruppering och bastest? <span class="obl">(krävs om punkten bekräftas)</span></label><textarea id="ck-${o.id}-mot-${esc(p.id)}" name="motivering_${esc(p.id)}" rows="2" maxlength="300"></textarea></div>` : ''}`).join('')}
     <p class="form-fel" role="alert" hidden></p>
     <div class="knapprad"><button type="submit" class="knapp">Teamet har bekräftat</button></div>
   </form>`;
@@ -297,7 +298,9 @@ export async function visa(el, ctx) {
       let r;
       if (f.dataset.opCheck) {
         const bekraftade = [...f.querySelectorAll('input[type=checkbox]')].filter(x => x.checked).map(x => x.name);
-        r = await post(`/api/operation/${f.dataset.opCheck}/checklista`, { del: f.dataset.del, bekraftade }, b, f);
+        // Runda 13, r3 (E2-49): motiveringen när blodet bekräftas utan klar blodgruppering och bastest.
+        const motiveringar = Object.fromEntries([...f.querySelectorAll('textarea[name^="motivering_"]')].map(x => [x.name.slice(11), x.value.trim()]).filter(([, v]) => v));
+        r = await post(`/api/operation/${f.dataset.opCheck}/checklista`, { del: f.dataset.del, bekraftade, motiveringar }, b, f);
         notis('Checklistan är bekräftad.');
       } else if (f.dataset.opLm) {
         r = await post(`/api/operation/${f.dataset.opLm}/anestesi-lakemedel`, { lakemedel: f.lakemedel.value, ...(f.dos.value.trim() ? { dos: f.dos.value.trim() } : {}) }, b, f);
