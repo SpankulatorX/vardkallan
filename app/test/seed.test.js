@@ -119,10 +119,10 @@ describe('Seed', () => {
       ['sysf-2', 'Nora Ekholm', 'systemforvaltare', 'rk'],
       // Runda 7, r1: paramedicinaren i Sussas testfall.
       ['fys-kard', 'Jenny Holmberg', 'fysioterapeut', 'uso-kard-mott'],
-      // Runda 11, r2: operationskoordinatorn på Ortopediska kliniken Karlskoga lasarett.
-      ['opk-kkoga', 'Therese Hedberg', 'sjukskoterska', 'kkoga-ort'],
       // Runda 11, r3: barnmorskan på förlossningen och BB.
       ['bm-uso', 'Sofia Ekdahl', 'sjukskoterska', 'uso-kk-forl'],
+      // Runda 11, r2: operationskoordinatorn på Ortopediska kliniken Karlskoga lasarett.
+      ['opk-kkoga', 'Therese Hedberg', 'sjukskoterska', 'kkoga-ort'],
     ]);
   });
 

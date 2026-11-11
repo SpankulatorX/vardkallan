@@ -430,9 +430,9 @@ describe('Datauttag', () => {
     // Runda 9, r7: också mätvärden, anteckningar, vårdtillfällen och patientavgifter (Sussa 6.3.1.3).
     // Runda 11, r3: graviditeterna och förlossningarna, som är tomma i seeden tills demodata läggs in.
     const R11R3 = ['Graviditet', 'Forlossning'];
-    expect(m.output.map(o => o.type)).toEqual(['Vardkontakt', 'Diagnos', 'Ordination', 'Remiss', 'Matvarde', 'Anteckning', 'Vardtillfalle', 'Patientavgift',
+    expect(m.output.map(o => o.type)).toEqual(['Vardkontakt', 'Diagnos', 'Ordination', 'Remiss', 'Matvarde', 'Anteckning', 'Vardtillfalle', 'Patientavgift', ...R11R3,
       // Runda 11, r2: operationerna (Sussa 4.5.1.5).
-      'Operation', ...R11R3]);
+      'Operation']);
     expect(m.output.every(o => (o.count > 0 || R11R3.includes(o.type)) && o.url.endsWith(`/api/datauttag/${o.type}`))).toBe(true);
     const r = await raw(k, 'GET', '/api/datauttag/Diagnos');
     expect(r.headers.get('content-type')).toContain('application/x-ndjson');
