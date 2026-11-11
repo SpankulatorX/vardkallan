@@ -17,7 +17,7 @@
 import { Fel, iso, idag, addDagar, lokalTid, datumAv } from './db.js';
 import { kanRoll, vardenhetFor, harVardrelation, visningsnamn, visningsPnr } from './atkomst.js';
 import * as vardkontakt from './vardkontakt.js';
-import { lage, provaIntagning, TYPER, ATGARDER, LAGAR, tidText } from './tvangsvard-regler.js';
+import { lage, provaIntagning, TYPER, ATGARDER, ATGARDER_KVAR, LAGAR, tidText } from './tvangsvard-regler.js';
 
 export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS tvangsvard_perioder (
@@ -84,6 +84,15 @@ function nasta(db, personal, period, l, { harSamordnadVardplan = false } = {}) {
     }
     if (!l.ankomst && !frivillig) steg('ankomst', 'Patienten har kommit', { forklaring: 'Fristen för beslutet om intagning räknas från ankomsten (6 b §).' });
     if (!l.kvarhallen) steg('kvarhallning', 'Håll kvar patienten', { forklaring: 'Sedan vårdintyget är utfärdat får patienten efter beslut av läkare hållas kvar tills frågan om intagning är avgjord (6 §).' });
+    // Runda 13, r3 (lagrumsgranskningen, beslut från Jonas: gör som lagen tillåter): under kvarhållningen får legitimerad
+    // läkare besluta om kortvarig fastspänning och avskiljande och, vid överhängande fara för liv eller hälsa, om
+    // nödvändig behandling (6 a §). Kroppsvisitation och ytlig kroppsbesiktning (6 § andra stycket) beslutas av
+    // chefsöverläkaren (23 §).
+    else steg('atgard', 'Registrera tvångsåtgärd under kvarhållningen', {
+      paragraf: '6 och 6 a §§', forklaring: 'Före beslutet om intagning medger lagen kortvarig fastspänning eller avskiljande, nödvändig behandling vid överhängande fara för patientens liv eller hälsa, och kroppsvisitation eller ytlig kroppsbesiktning efter chefsöverläkarens beslut. Mindre ingripande åtgärder ska användas om de räcker (2 a §).',
+      falt: [{ namn: 'atgard', typ: 'val', etikett: 'Åtgärd', varde: 'fastspanning', alternativ: ATGARDER_KVAR.filter(a => upp || a !== 'kroppsvisitation').map(a => [a, TYPER[a].text]) },
+        { namn: 'fara', typ: 'kryss', etikett: 'Vid behandling: det finns en överhängande fara för patientens liv eller hälsa (6 a § andra stycket)' }],
+    });
   } else {
     const krav = l.frister.find(f => (f.id === 'ansokan' || f.id === 'anmalan') && f.status !== 'uppfylld');
     if (krav && upp) {
@@ -284,14 +293,17 @@ export function registrera(atk, body = {}, hjalp = {}) {
     case 'atgard': {
       const atgard = String(body.atgard ?? '');
       if (!ATGARDER.includes(atgard) || (l.form === 'oppen' && atgard !== 'behandling')) throw new Fel(400, 'Välj en tvångsåtgärd som lagen medger i den här vårdformen.', 'ogiltig', { falt: ['atgard'] });
-      // Under kvarhållningen före intagningen beslutar legitimerad läkare om fastspänning och avskiljande (6 a §).
+      // Under kvarhållningen före intagningen (6 och 6 a §§). Runda 13, r3: som lagen tillåter, se steget ovan.
       const kvar = l.status === 'vantar';
-      if (kvar && !['fastspanning', 'avskiljande'].includes(atgard)) throw new Fel(400, 'Före beslutet om intagning medger lagen bara kortvarig fastspänning eller avskiljande av en patient som hålls kvar (6 a §).', 'ogiltig');
+      if (kvar && !ATGARDER_KVAR.includes(atgard)) throw new Fel(400, 'Före beslutet om intagning medger lagen kortvarig fastspänning eller avskiljande, nödvändig behandling vid överhängande fara och kroppsvisitation eller ytlig kroppsbesiktning av en patient som hålls kvar (6 och 6 a §§).', 'ogiltig', { falt: ['atgard'] });
       if (kvar && !l.kvarhallen) throw new Fel(400, 'Besluta först att patienten ska hållas kvar (6 §).', 'ogiltig');
+      const fara = body.fara === true || body.fara === 'on' || body.fara === 'true';
+      if (kvar && atgard === 'behandling' && !fara) throw new Fel(400, 'Före beslutet om intagning får behandling ges bara om det finns en överhängande fara för patientens liv eller hälsa (6 a § andra stycket). Bekräfta det.', 'ogiltig', { falt: ['fara'] });
+      if (kvar && atgard === 'kroppsvisitation') kravUppdrag('Kroppsvisitation och ytlig kroppsbesiktning');
       if (!kvar) kravUppdrag(TYPER[atgard].text);
       const synnerliga = body.synnerliga === true || body.synnerliga === 'on' || body.synnerliga === 'true';
       if (synnerliga && !upp) kravUppdrag('En längre tid av synnerliga skäl');
-      id = ny(period.id, period.enhet_id, atgard, { synnerliga, ...(l.status === 'vantar' ? {} : { efterIntagning: true }) });
+      id = ny(period.id, period.enhet_id, atgard, { synnerliga, ...(kvar && atgard === 'behandling' ? { fara: true } : {}), ...(l.status === 'vantar' ? {} : { efterIntagning: true }) });
       break;
     }
     case 'forlangning': {

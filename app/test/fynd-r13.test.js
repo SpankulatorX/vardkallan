@@ -7,7 +7,7 @@ import * as journal from '../src/journal.js';
 import * as tidbok from '../src/tidbok.js';
 import * as vardkontakt from '../src/vardkontakt.js';
 import * as mt from '../src/medicinteknik.js';
-import { atk, testserver, klient, sandlada } from './hjalp.js';
+import { atk, testserver, klient, sandlada, somPerson } from './hjalp.js';
 import * as logguppfoljning from '../src/logguppfoljning.js';
 
 const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
@@ -145,6 +145,28 @@ describe('Läskopian i loggen (E3-28, E3-30, E3-36)', () => {
     expect(r.status).toBe(201);
     expect(r.data.administrering.identitet).toMatchObject({ satt: 'annan', sattText: 'Annat sätt', text: 'Läste namnbandet på sängen och frågade patienten' });
   });
+});
+
+// Runda 13, r3: fynd från säkerhetsgranskningen och lagrumsgranskningen efter de första rättelserna.
+describe('Säkerhets- och lagrumsgranskningen', () => {
+  let app;
+  beforeAll(() => { app = testserver(); });
+  afterAll(() => app.stopp());
+  // En verksamhetschef för en vårdenhet som saknar en i demon.
+  const nyChef = (db, ve) => {
+    db.query("INSERT INTO personal (id, namn, yrke, titel, enhet_id, hsa_id, demo) VALUES (?, 'Test Verksamhetschef', 'verksamhetschef', 'Verksamhetschef', ?, ?, 0)").run(`vch-t-${ve}`, ve, `vch-t-${ve}`);
+    db.query('INSERT INTO verksamhetschefer (enhet_id, personal_id) VALUES (?, ?)').run(ve, `vch-t-${ve}`);
+    return `vch-t-${ve}`;
+  };
+  // En inloggning som verksamhetschef i arkivariens sandlåda.
+  const chef = async (k, id) => {
+    const v = klient(app);
+    await v.logga('vch-kard');
+    const s = sandlada(app, v);
+    s.db = sandlada(app, k).db;
+    if (id !== 'vch-kard') somPerson(s, id);
+    return v;
+  };
 
   test('E2-5: servern minns bekräftelsen för den som gav den och patienten i sessionen, och en bekräftelse av Johan Ek gäller inte när Amira Haddad loggar in på samma dator', async () => {
     const k = klient(app);
@@ -167,34 +189,88 @@ describe('Läskopian i loggen (E3-28, E3-30, E3-36)', () => {
     expect((await k.post('/api/patient/p01/administreringar', { ordinationId: alvedon.ordinationId, identitet: undefined, kvitteradeVarningar: kv })).data.kod).toBe('identitet');
   });
 
-  test('E3-35: arkivarien förbereder en radering och verksamhetschefen godkänner i sin egen inloggning innan den verkställs', async () => {
+  test('E3-35: en radering godkänns av verksamhetschefen för varje vårdenhet där uppgifterna finns, och en verksamhetschef på fel vårdenhet nekas och ser inte beslutet', async () => {
     const k = klient(app);
     await k.logga('ark');
-    const d = new Date().toISOString().slice(0, 10);
-    const b = (await k.post('/api/arkiv/beslut', { typ: 'radering', patientId: 'p01', omfattning: 'hela', diarienummer: 'IVO 3.5.1-12345/2026', beslutsdatum: d })).data;
-    expect(b.godkannande).toBeNull();
-    // Utan godkännande verkställs inget, och arkivarien kan inte godkänna själv.
+    const db = sandlada(app, k).db;
+    // Gunnar Åkessons journal (p05) har uppgifter på kardiologen och vårdcentralen i Kumla.
+    const b = (await k.post('/api/arkiv/beslut', { typ: 'radering', patientId: 'p05', omfattning: 'hela', diarienummer: 'IVO 3.5.1-12345/2026', beslutsdatum: new Date().toISOString().slice(0, 10) })).data;
+    expect(b.godkannande.klart).toBe(false);
+    expect((await k.post(`/api/arkiv/beslut/${b.id}/verkstall`, {})).status).toBe(409);
+    expect((await k.post(`/api/arkiv/beslut/${b.id}/godkann`, {})).status).toBe(403);
+    // Verksamhetschefen för onkologen har inga av uppgifterna: beslutet syns inte och kan inte godkännas.
+    const onk = await chef(k, 'vch-onk');
+    expect((await onk.get('/api/arkiv/godkanna')).data.beslut).toEqual([]);
+    expect((await onk.post(`/api/arkiv/beslut/${b.id}/godkann`, {})).status).toBe(404);
+    // Kardiologens verksamhetschef ser beslutet utan patient och godkänner för sin vårdenhet.
+    const kard = await chef(k, 'vch-kard');
+    const lista = (await kard.get('/api/arkiv/godkanna')).data.beslut;
+    expect(lista.map(x => x.id)).toEqual([b.id]);
+    expect(JSON.stringify(lista)).not.toMatch(/p05|Kumla/);
+    expect((await kard.get('/api/arkiv/beslut')).status).toBe(403);
+    expect((await kard.post(`/api/arkiv/beslut/${b.id}/godkann`, {})).data).toMatchObject({ godkant: true, klart: false });
+    expect((await kard.post(`/api/arkiv/beslut/${b.id}/godkann`, {})).status).toBe(409);
+    expect(db.query('SELECT enhet_id FROM arkivbeslut_godkannanden WHERE beslut_id = ?').all(b.id)).toEqual([{ enhet_id: 'uso-kard' }]);
+    expect(() => db.query('DELETE FROM arkivbeslut_godkannanden').run()).toThrow();
+    // Vårdcentralen har inte godkänt: inget raderas.
     const fore = await k.post(`/api/arkiv/beslut/${b.id}/verkstall`, {});
     expect(fore.status).toBe(409);
-    expect(fore.data.fel).toContain('Verksamhetschefen');
-    expect((await k.post(`/api/arkiv/beslut/${b.id}/godkann`, {})).status).toBe(403);
-    expect(sandlada(app, k).db.query("SELECT count(*) AS n FROM anteckningar WHERE patient_id = 'p01'").get().n).toBeGreaterThan(0);
-    // Verksamhetschefen ser beslutet i antal, utan patienter, och godkänner.
-    const v = klient(app);
-    await v.logga('vch-kard');
-    sandlada(app, v).db = sandlada(app, k).db;
-    const lista = (await v.get('/api/arkiv/godkanna')).data.beslut;
-    expect(lista.map(x => x.id)).toContain(b.id);
-    expect(JSON.stringify(lista)).not.toContain('p01');
-    expect((await v.get('/api/arkiv/beslut')).status).toBe(403);
-    const g = await v.post(`/api/arkiv/beslut/${b.id}/godkann`, {});
-    expect(g.status).toBe(200);
-    expect(g.data.godkannande.av).toBeTruthy();
-    expect((await v.post(`/api/arkiv/beslut/${b.id}/godkann`, {})).status).toBe(409);
-    expect(() => sandlada(app, k).db.query('DELETE FROM arkivbeslut_godkannanden').run()).toThrow();
-    // Nu verkställer arkivarien.
+    expect(fore.data.fel).toContain('Godkännande saknas');
+    expect(db.query("SELECT count(*) AS n FROM anteckningar WHERE patient_id = 'p05'").get().n).toBeGreaterThan(0);
+    const vc = await chef(k, nyChef(db, 'vc-kumla'));
+    expect((await vc.post(`/api/arkiv/beslut/${b.id}/godkann`, {})).data).toMatchObject({ klart: true });
     expect((await k.post(`/api/arkiv/beslut/${b.id}/verkstall`, {})).status).toBe(200);
-    expect(sandlada(app, k).db.query("SELECT count(*) AS n FROM anteckningar WHERE patient_id = 'p01'").get().n).toBe(0);
+    expect(db.query("SELECT count(*) AS n FROM anteckningar WHERE patient_id = 'p05'").get().n).toBe(0);
+  });
+
+  test('E3-35: en gallring över två vårdenheter verkställs först när verksamhetscheferna för båda har godkänt, och var och en ser bara antalet på sin egen', async () => {
+    const k = klient(app);
+    await k.logga('ark');
+    const db = sandlada(app, k).db;
+    // Journalen p20 på medicinkliniken är gammal nog att gallras. Ett gammalt mätvärde på kardiologen gör att
+    // gallringen gäller två vårdenheter.
+    const gammal = new Date(Date.now() - 15 * 365 * 86400000).toISOString();
+    db.query("INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, matt_enhet, tid, kalla) VALUES ('p20', 'uso-kard', 'vikt', '71', 71, 'kg', ?, 'vardkallan')").run(gammal);
+    const b = (await k.post('/api/arkiv/beslut', { typ: 'gallring', diarienummer: 'DEMO-2026-0043', beslutsdatum: new Date().toISOString().slice(0, 10) })).data;
+    const kard = await chef(k, 'vch-kard');
+    const lista = (await kard.get('/api/arkiv/godkanna')).data.beslut;
+    expect(lista.find(x => x.id === b.id).omfattning).toBe('1 journal med uppgifter på din vårdenhet');
+    expect((await kard.post(`/api/arkiv/beslut/${b.id}/godkann`, {})).data.klart).toBe(false);
+    expect((await k.post(`/api/arkiv/beslut/${b.id}/verkstall`, {})).status).toBe(409);
+    const med = await chef(k, nyChef(db, 'uso-med'));
+    expect((await med.get('/api/arkiv/godkanna')).data.beslut.map(x => x.id)).toContain(b.id);
+    expect((await med.post(`/api/arkiv/beslut/${b.id}/godkann`, {})).data.klart).toBe(true);
+    expect((await k.post(`/api/arkiv/beslut/${b.id}/verkstall`, {})).status).toBe(200);
+    expect(db.query("SELECT count(*) AS n FROM matvarden WHERE patient_id = 'p20'").get().n).toBe(0);
+  });
+
+  test('Lag, LPT 6 och 6 a §§: en patient som hålls kvar får ges nödvändig behandling vid överhängande fara och kroppsvisiteras efter chefsöverläkarens beslut', async () => {
+    const k = klient(app);
+    await k.logga('lak-akut');
+    const s = sandlada(app, k);
+    const id = s.db.query("SELECT id FROM tvangsvard_perioder WHERE patient_id = 'p21'").get().id;
+    s.db.query("INSERT INTO personal (id, namn, yrke, titel, enhet_id, hsa_id, demo) VALUES ('lak-psyk3', 'Test Läkare', 'lakare', 'Underläkare', 'uso-psyk', 'X', 0)").run();
+    somPerson(s, 'lak-psyk3');
+    const post = (b) => k.post('/api/patient/p21/tvangsvard', { typ: 'atgard', period: id, ...b });
+    // Legitimerad läkare: behandling bara vid överhängande fara för liv eller hälsa (6 a § andra stycket).
+    const utan = await post({ atgard: 'behandling' });
+    expect(utan.status).toBe(400);
+    expect(utan.data.fel).toContain('överhängande fara');
+    const med = await post({ atgard: 'behandling', fara: true });
+    expect(med.status).toBe(201);
+    const b = med.data.atgarder.find(a => a.typ === 'behandling');
+    expect(b).toMatchObject({ kvarhallen: true, paragraf: '6 a §' });
+    expect(b.krav).toContain('överhängande fara');
+    // Kroppsvisitation och ytlig kroppsbesiktning (6 § andra stycket) beslutas av chefsöverläkaren (23 §).
+    expect((await post({ atgard: 'kroppsvisitation' })).status).toBe(403);
+    // Det lagen inte medger före intagningen nekas.
+    expect((await post({ atgard: 'elektronisk' })).status).toBe(400);
+    somPerson(s, 'lak-psyk');
+    const kv = await post({ atgard: 'kroppsvisitation' });
+    expect(kv.status).toBe(201);
+    expect(kv.data.atgarder.find(a => a.typ === 'kroppsvisitation')).toMatchObject({ kvarhallen: true, paragraf: '6 § andra stycket och 23 §' });
+    // Steget finns för läkaren under kvarhållningen.
+    const steg = kv.data.nasta;
+    expect(JSON.stringify(steg)).toContain('kroppsvisitation');
   });
 });
-
