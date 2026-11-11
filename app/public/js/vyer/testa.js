@@ -16,7 +16,7 @@ export async function visa(main) {
     <div class="testa-marke">${logotyp(40)}<p>Vårdkällan</p></div>
     ${vyRubrik('Testa Vårdkällan och jämför med ditt journalsystem')}
     <div class="testa-intro">
-      <p>Vårdkällan är ett öppet vårdinformationssystem, byggt mot den kravspecifikation som regionerna i Sussa samverkan använde när de upphandlade journalsystemet Cosmic. Systemet är gratis, har öppen källkod (EUPL 1.2) och får användas och anpassas av vem som helst, utan kostnad för själva systemet.</p>
+      <p>Vårdkällan är ett öppet vårdinformationssystem, byggt mot den kravspecifikation som regionerna i Sussa samverkan, ett samarbete mellan flera regioner, använde när de upphandlade journalsystemet Cosmic. Systemet är gratis, har öppen källkod (EUPL 1.2) och får användas och anpassas av vem som helst, utan kostnad för själva systemet.</p>
       <p>Syftet med testet är att du som arbetar i Cosmic eller i ett annat journalsystem gör samma arbetsflöden här och säger var det är lättare, ungefär lika eller svårare, och vad som saknas. Uppdragen följer så långt det går de 34 testfall som regionerna använde när Cosmic utvärderades.</p>
     </div>
     <section class="ruta ruta-info testa-viktigt" aria-labelledby="testa-viktigt">
