@@ -720,7 +720,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...db.query(`SELECT patient_id FROM listningar WHERE enhet_id IN (${ph})`).all(...enheter),
       ...db.query('SELECT patient_id FROM remisser WHERE till_enhet_id = ? OR fran_enhet_id = ?').all(ve, ve),
       // Runda 13, r4: anestesienheten har patienterna med operationer som är beställda till den.
-      ...anestesiPatienter(db, ve),
+      ...anestesiPatienter(c, ve),
     ].map(r => r.patient_id));
     const larm = remiss.larmForEnhet(db, p);
     const nll = lakemedel.nllAvvikelser(db, p);
@@ -736,7 +736,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       // Runda 13, r4: en patient i sluten psykiatrisk tvångsvård som enheten ansvarar för men som vårdas på en annan
       // vårdenhet (till exempel somatisk vård) står bland de inskrivna, utan att säga var.
       const lpt = !vk ? tvangsvardAnnanstans(db, id, ve) : null;
-      const ane = !vk && !lpt ? anestesiPlats(db, id, ve) : null;
+      const ane = !vk && !lpt ? anestesiPlats(c, id, ve) : null;
       ut.push({
         id, namn: visningsnamn(pat), personnummer: visningsPnr(pat), alder: alder(pat.fodd, idag()), kon: pat.kon,
         plats: vk ? vk.plats : lpt ? lpt.plats : ane ? ane.plats : inkRemiss ? 'Inkommande remiss' : list ? 'Listad' : 'Nyligen avslutad kontakt',
@@ -759,21 +759,23 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     return ut.sort((a, b) => (ordning[a.vardform] ?? 3) - (ordning[b.vardform] ?? 3) || a.namn.localeCompare(b.namn, 'sv'));
   }
 
-  // Runda 13, r4: operationerna som är beställda till anestesienheten och inte avslutade, för arbetslistan. Vilka som
-  // syns prövas som för alla andra rader, med vårdrelationen som anmälan ger anestesienheten.
+  // Runda 13, r4: operationerna som är beställda till anestesienheten, för arbetslistan. Varje anmälan prövas med samma
+  // regel som operationsprogrammet och listan över beställda anestesibedömningar (operation.js, anestesiSynlig), och det
+  // som inte får visas används varken för platsen eller för orsaken.
   const ANESTESI_TEXT = { vantar: 'Väntar på planering', planerad: 'Planerad', pagar: 'Pågår', uppvak: 'Uppvakning' };
-  function anestesiAnmalningar(db, ve) {
+  function anestesiAnmalningar(c, ve) {
     const op = require('./operation.js');
-    if (!Object.hasOwn(op.ANESTESIENHETER_FOR_LISTA, ve)) return [];
-    if (!db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'op_anmalningar'").get()) return [];
-    return db.query("SELECT * FROM op_anmalningar WHERE status IN ('vantar', 'planerad', 'pagar', 'uppvak') ORDER BY id").all().filter(an => op.anestesienhetFor(db, an) === ve);
+    if (!Object.hasOwn(op.ANESTESIENHETER_FOR_LISTA, ve) || !kanRoll(c.personal, 'las_operation')) return [];
+    if (!c.db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'op_anmalningar'").get()) return [];
+    return c.db.query("SELECT * FROM op_anmalningar WHERE status IN ('vantar', 'planerad', 'pagar', 'uppvak') ORDER BY id").all()
+      .filter(an => op.anestesiSynlig(c.db, c.personal, (pid) => valFor(c.s, pid), an).tillaten);
   }
-  const anestesiPatienter = (db, ve) => anestesiAnmalningar(db, ve).map(an => ({ patient_id: an.patient_id }));
-  function anestesiPlats(db, pid, ve) {
-    const an = anestesiAnmalningar(db, ve).find(x => x.patient_id === pid);
+  const anestesiPatienter = (c, ve) => anestesiAnmalningar(c, ve).map(an => ({ patient_id: an.patient_id }));
+  function anestesiPlats(c, pid, ve) {
+    const an = anestesiAnmalningar(c, ve).find(x => x.patient_id === pid);
     if (!an) return null;
     const op = require('./operation.js');
-    const plan = db.query('SELECT start FROM op_planeringar WHERE anmalan_id = ? AND struken_tid IS NULL ORDER BY id DESC').get(an.id);
+    const plan = c.db.query('SELECT start FROM op_planeringar WHERE anmalan_id = ? AND struken_tid IS NULL ORDER BY id DESC').get(an.id);
     const nar = plan ? new Date(plan.start).toLocaleString('sv-SE', { timeZone: 'Europe/Stockholm', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(':', '.') : null;
     return { plats: `Operation, ${ANESTESI_TEXT[an.status] ?? an.status}${nar ? ` ${nar}` : ''}`, orsak: op.INGREPP[an.kva]?.namn ?? null };
   }

@@ -185,6 +185,38 @@ describe('Anestesiläkaren (runda 13, r4, E1-32)', () => {
   });
 });
 
+describe('Anestesiläkaren, säkerhetsgranskningen (runda 13, r4)', () => {
+  test('en avslutad operation (klar) visas inte för anestesienheten i programmet, bara som upptagen tid', () => {
+    stallKlockan(KLOCKAN('10:00'));
+    const db = nySessionsDb();
+    const p07 = db.query("SELECT p.start FROM op_anmalningar a JOIN op_planeringar p ON p.anmalan_id = a.id WHERE a.patient_id = 'p07'").get();
+    const dag = new Date(p07.start).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
+    // En ny anmälan för samma patient ger anestesienheten relation igen. Den avslutade operationen ska ändå inte visas.
+    op.anmal(atk(db, 'lak-kkoga', 'p07', {}, 'operation_anmala'), { kva: 'NGB49', sida: 'hoger' }, KLOCKAN('09:00'));
+    const o = op.oversikt(db, personal(db, 'lak-ane-kkoga'), () => ({}), { datum: dag }, KLOCKAN('10:00'));
+    const ops = o.salar.flatMap(x => x.operationer);
+    expect(ops.length).toBeGreaterThan(0);
+    expect(ops.some(x => x.patient?.id === 'p07')).toBe(false);
+    expect(JSON.stringify(o)).not.toContain('Margareta');
+  });
+
+  test('arbetslistan tar inte ingreppet från en anmälan som anestesiläkaren inte får se (spärrad vårdenhet)', async () => {
+    stallKlockan(KLOCKAN('06:00'));
+    const app = testserver();
+    try {
+      const k = klient(app);
+      await k.logga('lak-ane-kkoga');
+      const db = app.sessioner.get(k.kaka().split('=')[1]).db;
+      db.query("INSERT INTO sparrar (patient_id, enhet_id, registrerad) VALUES ('p71', 'kkoga-ort', '2026-11-01')").run();
+      const rad = (await k.get('/api/arbetslista')).data.find(r => r.id === 'p71');
+      if (rad) {
+        expect(rad.orsak).toBeNull();
+        expect(JSON.stringify(rad)).not.toMatch(/höftled|Operation, /i);
+      }
+    } finally { app.stopp(); }
+  });
+});
+
 describe('Nivå 2 via API (runda 13, r4)', () => {
   let app;
   beforeAll(() => { app = testserver(); });

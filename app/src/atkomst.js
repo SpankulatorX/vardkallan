@@ -403,13 +403,21 @@ function anestesiRelation(db, patientId, vardenhet, nu = new Date()) {
     rader = db.query(`SELECT a.id, a.enhet_id, a.status, (SELECT p.start FROM op_planeringar p WHERE p.anmalan_id = a.id AND p.struken_tid IS NULL ORDER BY p.id DESC LIMIT 1) AS start
       FROM op_anmalningar a WHERE a.patient_id = ? AND a.status IN ('vantar', 'planerad', 'pagar', 'uppvak')`).all(patientId);
   } catch { return false; }
+  return rader.some(r => anmalanGerAnestesiRelation(db, r, vardenhet, nu));
+}
+// Runda 13, r4 (säkerhetsgranskningen): om en enskild operationsanmälan ger anestesienheten relation. Samma regel för
+// vårdrelationen, operationsprogrammet och arbetslistan: anmälan är inte avslutad, kommer från en opererande vårdenhet på
+// anestesienhetens sjukhus och har inget planerat datum som har passerat. r.start är den planerade starten, om den är känd.
+const ANESTESI_PAGAENDE = ['vantar', 'planerad', 'pagar', 'uppvak'];
+export function anmalanGerAnestesiRelation(db, r, vardenhet, nu = new Date()) {
+  if (!Object.hasOwn(ANESTESIENHETER, vardenhet) || !r || !ANESTESI_PAGAENDE.includes(r.status)) return false;
+  const start = r.start !== undefined ? r.start
+    : db.query('SELECT start FROM op_planeringar WHERE anmalan_id = ? AND struken_tid IS NULL ORDER BY id DESC LIMIT 1').get(r.id)?.start ?? null;
   const dag = (t) => new Date(t).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
-  return rader.some(r => {
-    const ve = vardenhetFor(db, r.enhet_id);
-    if (!OPERERANDE_VARDENHETER.includes(ve) || Object.hasOwn(ANESTESIENHETER, ve)) return false;
-    if (sjukhusForEnhet(db, r.enhet_id) !== ANESTESIENHETER[vardenhet]) return false;
-    return !(r.status === 'planerad' && r.start && dag(r.start) < dag(nu));
-  });
+  const ve = vardenhetFor(db, r.enhet_id);
+  if (!OPERERANDE_VARDENHETER.includes(ve) || Object.hasOwn(ANESTESIENHETER, ve)) return false;
+  if (sjukhusForEnhet(db, r.enhet_id) !== ANESTESIENHETER[vardenhet]) return false;
+  return !(r.status === 'planerad' && start && dag(start) < dag(nu));
 }
 
 export function aktivaSparrar(db, patientId) {
