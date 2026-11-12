@@ -82,3 +82,26 @@ En e-remiss är en vanlig remiss i Vårdkällan med samma statuskedja och larm. 
 
 Vaccinationerna läses som FHIR Immunization med den anropande organisationens systemkonto, som journalens producenter, och informationsmängden vaccinationer kan bara ett konto för en anslutning via tjänstekontrakt få.
 
+### Formulär, 1177 och NKRR
+
+| Kontrakt | Domän | Vårdkällans roll | Byggt i | Testat i |
+| --- | --- | --- | --- | --- |
+| CreateFormRequest 2.0, GetForm 2.1, CancelForm 2.0 | riv.infrastructure.eservicesupply.forminteraction 2.1.1 | konsument | `rivta-etjanster.js` | `test/rivta-etjanster-r14.test.js` |
+| IsActiveUser 2.0, AddMessage 2.0 | riv-application.infrastructure.eservicesupply.patientportal 2.0 | konsument | `rivta-etjanster.js` | `test/rivta-etjanster-r14.test.js` |
+| ProcessRegistrationNotification 1.0 | riv.followup.qualityregistry.nkrr 1.2.2 | konsument | `rivta-etjanster.js` | `test/rivta-etjanster-r14.test.js` |
+
+Vårdenheten skickar ett formulär till patienten inför besöket och hämtar dess status, ett meddelande går till patientens inkorg i 1177 bara när patienten har ett konto där, och ett kvalitetsregister får veta att uppgifterna för en registrering finns. Innan något lämnas till ett register prövar systemet om patienten har motsatt sig registreringen, med en gemensam funktion (`provaUtlamning` i `rivta-r3.js`) som alla utgående registreringar anropar. Formulärtjänsten, 1177 och NKRR är simulerade (`rivta-etjanster-simulerade.js`). Grunden tar domäner som heter riv-application. Mallarna i formulärtjänsten förvaltas inte från Vårdkällan, och det finns inget gränssnitt för de tre flödena än.
+
+### Dosdispensering (riv.druglogistics.dosedispensing 1.1.0)
+
+| Kontrakt | Version | Vårdkällans roll | Byggt i | Testat i |
+| --- | --- | --- | --- | --- |
+| SkapaVardtagare | 1.0 | konsument | `rivta-dos.js` | `test/rivta-dos-r14.test.js` |
+| HamtaVardtagareinformation | 1.0 | konsument | `rivta-dos.js` | `test/rivta-dos-r14.test.js` |
+
+Domänen finns bara i RIVTA Basic Profile 2.0, där den logiska adressen står i WS-Addressing (wsa:To). Grunden läser nu WSDL för profil 2.0 och skriver och läser wsa:To (eget block i `kontrakt.js`, `soap.js` och `klient.js`, där `def.profil` anger profilen). Läkaren anmäler patienten som dospatient med samtycke, och dosapoteket är simulerat (`rivta-dos-simulerad.js`). Ordinationen av dosdispenserade läkemedel görs i eHälsomyndighetens e-tjänst, som inte går att ansluta i demon.
+
+### E-recept
+
+eHälsomyndighetens kontrakt för att skicka och makulera e-recept finns inte bland de publika tjänstedomänerna. Domänen riv.se.apotekensservice.or har bara hämtning av ordinationer, och dess filer saknar licensuppgift, så den är inte hämtad. Förskrivningen går som förut till den simulerade Nationella läkemedelslistan.
+

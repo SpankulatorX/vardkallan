@@ -25,6 +25,9 @@ export function kuvert(kropp, huvud = []) {
 }
 
 export const logiskAdress = (adress) => skriv(el(REGISTRY_NS, 'LogicalAddress', String(adress)));
+// Runda 14, r3: den logiska adressen i RIVTA Basic Profile 2.0 står i WS-Addressing (wsa:To).
+export const WSA_NS = 'http://www.w3.org/2005/08/addressing';
+export const wsaTo = (adress) => skriv(el(WSA_NS, 'To', String(adress)));
 
 export function fault(kod, text) {
   const f = `<soap:Fault><faultcode>soap:${kod}</faultcode><faultstring xml:lang="sv">${String(text).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))}</faultstring></soap:Fault>`;
@@ -56,7 +59,7 @@ export function lasKuvert(text, { tak } = {}) {
   // Ett huvudelement med mustUnderstand som producenten inte förstår ska ge MustUnderstand (SOAP 1.1, 4.2.3).
   for (const h of huvud) {
     const mu = attribut(h, 'mustUnderstand', SOAP_NS);
-    if ((mu === '1' || mu === 'true') && !(h.lokal === 'LogicalAddress' && h.ns === REGISTRY_NS)) {
+    if ((mu === '1' || mu === 'true') && !(h.lokal === 'LogicalAddress' && h.ns === REGISTRY_NS) && !(h.lokal === 'To' && h.ns === WSA_NS)) {
       throw new SoapFel('MustUnderstand', `Huvudelementet ${h.lokal} har mustUnderstand men förstås inte av tjänsten.`);
     }
   }
@@ -66,7 +69,10 @@ export function lasKuvert(text, { tak } = {}) {
     const kod = barn(innehall, 'faultcode')?.text.trim() ?? '';
     return { huvud, kropp: null, logiskAdress: null, fault: { kod: kod.replace(/^[^:]*:/, ''), text: barn(innehall, 'faultstring')?.text.trim() ?? '' } };
   }
-  const adress = adresser[0]?.text.trim() ?? null;
+  // Runda 14, r3: utan LogicalAddress läses adressen ur wsa:To (RIVTA Basic Profile 2.0).
+  const till = adresser.length ? [] : barnen({ barn: huvud }, 'To', WSA_NS);
+  if (till.length > 1) throw new SoapFel('Client', 'Huvudet har mer än en wsa:To.');
+  const adress = (adresser[0] ?? till[0])?.text.trim() ?? null;
   return { huvud, kropp: innehall, logiskAdress: adress || null, fault: null };
 }
 

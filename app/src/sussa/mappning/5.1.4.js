@@ -5,8 +5,10 @@ import { TEST } from '../../krav.js';
 const { M } = TEST;
 // Runda 10, r6: testerna i app/test/produktionssystem.test.js.
 const PS = 'Integration med produktionssystem > ';
+// Runda 14, r3: dosdispensering och e-receptet (../runda14-r3.js).
+import { medR14r3 } from '../runda14-r3.js';
 
-export default [
+export default medR14r3([
   {
     id: '5.1.4.1', kategori: 'nationell', egna: ['L7'], avsedd: 'delvis',
     tester: [
@@ -53,4 +55,4 @@ export default [
   },
   { id: '5.1.4.6', kategori: 'nationell', egna: ['L9'], tester: [], avsedd: 'planerat',
     anmarkning: 'Listningen ligger i seeden och ger vårdrelation, men hämtas inte från en extern källa.' },
-];
+]);

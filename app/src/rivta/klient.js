@@ -7,7 +7,7 @@
 // tjänsteplattform eller producent, eller iProcessen(tjanst, avsandare) mot en tjänst i samma process (mockarna i
 // testerna). Varje anrop sparas i rivta_anrop när db är med.
 import { skriv } from './xml.js';
-import { kuvert, logiskAdress as adressHuvud, lasKuvert, SoapFel, CONTENT_TYPE } from './soap.js';
+import { kuvert, logiskAdress as adressHuvud, lasKuvert, SoapFel, CONTENT_TYPE, wsaTo } from './soap.js';
 import { SchemaFel } from './xsd.js';
 import { loggaAnrop } from './anropslogg.js';
 
@@ -30,7 +30,8 @@ export async function anropa(def, { logiskAdress = null, begaran, transport, db 
     const fel = def.schema.validera(el);
     if (fel.length) throw new RivtaFel('schema', `Begäran till ${def.namn} följer inte schemat och skickas inte: ${fel.slice(0, 3).join(' ')}`);
     if (def.logiskAdressIHuvud && !logiskAdress) throw new RivtaFel('schema', `${def.namn} kräver en logisk adress i huvudet.`);
-    const text = kuvert(skriv(el), def.logiskAdressIHuvud ? [adressHuvud(logiskAdress)] : []);
+    // Runda 14, r3: i profil 2.0 står adressen i wsa:To.
+    const text = kuvert(skriv(el), def.logiskAdressIHuvud ? [def.profil === 'RIVTABP20' ? wsaTo(logiskAdress) : adressHuvud(logiskAdress)] : []);
     let res;
     try { res = await transport({ text, soapAction: def.soapAction, vag: def.vag }); } catch (e) {
       throw new RivtaFel('transport', `${def.namn} kunde inte nås: ${e.message}`);

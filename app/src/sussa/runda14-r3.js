@@ -38,11 +38,23 @@ export const T14R3 = {
   formular: `${ET}Formulär > ett formulär skickas med CreateFormRequest, statusen hämtas med GetForm och en förfrågan avbryts med CancelForm`,
   portal: `${ET}1177 > ett meddelande går till inkorgen i 1177 bara när patienten har ett konto, med IsActiveUser och AddMessage`,
   nkrr: `${ET}NKRR > vårdenheten meddelar kvalitetsregistret med ProcessRegistrationNotification, men aldrig för skyddade personuppgifter`,
+  dos: 'Dosdispensering med tjänstekontrakt i RIVTA > Dos > läkaren anmäler patienten till dosapoteket med SkapaVardtagare och journalen hämtar uppgifterna med HamtaVardtagareinformation',
+  dosSkyddad: 'Dosdispensering med tjänstekontrakt i RIVTA > Dos > en patient med skyddade personuppgifter anmäls utan adress',
   nkrrInvandning: `${ET}NKRR > en patient som har motsatt sig registrering i kvalitetsregistret anmäls inte, och efter att invändningen är återkallad anmäls hen`,
 };
 const T = T14R3;
 
 const POSTER = {
+  '5.1.4.3': {
+    tester: [T.dos, T.dosSkyddad],
+    losning: 'Läkaren anmäler patienten som dospatient till dosapoteket med SkapaVardtagare, och journalen hämtar dosapotekets uppgifter med HamtaVardtagareinformation (riv.druglogistics.dosedispensing, gränssnittet mellan vårdsystem och dosapotek).',
+    expert: 'Läkaren bekräftar bara patientens samtycke. Läkaren, arbetsplatskoden, patienten, adressen, den patientansvariga läkaren, dosapoteket och första dosdagen fyller systemet i.',
+    anmarkning: `${anm('riv.druglogistics.dosedispensing 1.1.0 (SkapaVardtagare 1.0 och HamtaVardtagareinformation 1.0, RIVTA Basic Profile 2.0)')} Dosapoteket är simulerat. Ordinationen av dosdispenserade läkemedel görs i eHälsomyndighetens e-tjänst för dosförskrivning (i dag Pascal), som inte går att ansluta utan eHälsomyndighetens godkännande. Det finns inget gränssnitt för anmälan än.`,
+  },
+  '5.1.4.1': {
+    bara: 'anmarkning',
+    anmarkning: ' Runda 14: eHälsomyndighetens kontrakt för att skicka och makulera e-recept är inte publicerade bland tjänstedomänerna i RIVTA (riv.se.apotekensservice.or har bara hämtning av ordinationer, och dess filer saknar licensuppgift), så e-receptet är inte byggt mot ett tjänstekontrakt. Riktig anslutning kräver eHälsomyndighetens godkännande.',
+  },
   '2.2.1.5': {
     tester: [T.formular],
     losning: 'Vårdenheten skickar ett formulär till patienten inför besöket med CreateFormRequest, hämtar status och svar med GetForm och avbryter en förfrågan som inte behövs med CancelForm.',
@@ -90,5 +102,6 @@ const POSTER = {
 export const medR14r3 = (poster) => poster.map(x => {
   const a = POSTER[x.id];
   if (!a) return x;
+  if (a.bara === 'anmarkning') return { ...x, anmarkning: `${x.anmarkning ?? ''}${a.anmarkning}` };
   return { ...x, avsedd: 'delvis', kategori: x.kategori, tester: [...(x.tester ?? []), ...a.tester], losning: a.losning, expert: a.expert, anmarkning: a.anmarkning };
 });
