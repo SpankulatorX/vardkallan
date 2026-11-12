@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-11T18:27:48.703Z",
-  "bas": "http://127.0.0.1:18230",
+  "tid": "2026-11-12T09:09:28.125Z",
+  "bas": "http://127.0.0.1:18244",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "0e2b481b58b5f253d243d05a731d03623fbaa5711bdb95fbf47b117dbfa836c4",
+  "gransnittHash": "04fbbb7b528da08d2038f312f13b9197e2a0951f58c05992e83c121b278c1b9b",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -1473,16 +1473,17 @@
       "namn": "Ge en vaccination i programmet för riskgrupper",
       "roll": "lak-vc",
       "start": "Översikten för den inlagda patienten efter återställning",
-      "budget": 3,
-      "motivering": "Sussa 3.5.1.7. Ett klick på fliken Vaccinationer, ett på Ge dosen vid den dos som systemet föreslår och ett för att registrera. Systemet har räknat ut att patienten ska ha dosen och varför, frågar om vaccinationer någon annanstans med nej förvalt, sätter ATC, dos och tid och rapporterar dosen till vaccinationsregistret.",
-      "klick": 3,
+      "budget": 4,
+      "motivering": "Sussa 3.5.1.7. Ett klick på fliken Vaccinationer, ett på Ge dosen vid den dos som systemet föreslår, ett på svaret att patienten är frisk i dag och ett för att registrera. Systemet har räknat ut att patienten ska ha dosen och varför, frågar om vaccinationer någon annanstans med nej förvalt, föreslår injektionsstället efter åldern, sätter ATC, dos och tid och rapporterar dosen till vaccinationsregistret.",
+      "klick": 4,
       "faltbyten": 0,
       "tangenter": 0,
-      "uppmatt": 3,
+      "uppmatt": 4,
       "inomBudget": true,
       "steg": [
         "klick: fliken Vaccinationer",
         "klick: Ge dosen",
+        "klick: patienten är frisk i dag",
         "klick: Registrera dosen"
       ]
     },

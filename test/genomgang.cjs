@@ -2066,19 +2066,27 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await forvanta(page, '#op-vy', 'Bencement 40 g');
     });
     // Runda 13, r4: dagens operationer har kommit så långt som klockan har hunnit. Steget tar den första planerade
-    // operationen, i dag eller nästa dag, in på salen.
+    // operationen, i dag eller nästa dag, in på salen. När dagens operationer är gjorda tas nästa dags patient in
+    // tidigare, och då bekräftar anestesiläkaren ASA-klassen i dag först, som systemet kräver före anestesin.
     await s('Therese Hedberg tar in nästa planerade patient på salen, och checklistan före anestesi har det systemet vet ifyllt', async () => {
-      const nasta = await page.evaluate(async () => {
+      const { nasta, idag } = await page.evaluate(async () => {
         const dag = (n) => new Date(Date.now() + n * 86400_000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
         for (let n = 0; n < 7; n++) {
           const o = await fetch(`/api/operation/oversikt?datum=${dag(n)}`).then(r => r.json());
           const x = o.salar?.flatMap(s => s.operationer).find(y => y.status === 'planerad' && y.patient);
-          if (x) return x.patient.id;
+          if (x) return { nasta: x.patient.id, idag: n === 0 };
         }
-        return null;
+        return { nasta: null, idag: false };
       });
       const PNR = { p71: '194512222391', p72: '194602138184', p73: '196604072675' };
       if (!PNR[nasta]) throw new Error(`ingen planerad operation att ta in på salen: ${nasta}`);
+      if (!idag) {
+        await loggaIn(page, 'lak-ane-kkoga');
+        await gaTill(page, `#/patient/${nasta}/operation`);
+        await page.click('[data-op-asa]');
+        await forvanta(page, '.op-kort', 'bekräftad i dag');
+        await loggaIn(page, 'opk-kkoga');
+      }
       await gaTill(page, `#/patient/${nasta}/operation`);
       await forvanta(page, '.op-kort', 'giltig till');
       await page.click('[data-op-handelse="in_sal"]');
