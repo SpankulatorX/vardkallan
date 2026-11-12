@@ -19,6 +19,7 @@ export const ANDRINGAR = [
       // Runda 14, r3: intyg, e-remiss och vaccinationer med tjänstekontrakt i RIVTA.
       'Intyg genom intygsapplikationen (/api/patient/:id/intyg och /api/intygsapplikation/:id) och e-remiss (/api/patient/:id/eremiss) i det interna API:t (docs/api-avvikelser.md)',
       'Tjänstekontrakten CreateDraftCertificate, CertificateStatusUpdateForCare, ListCertificatesForCareWithQA, ProcessRequest, ProcessRequestConfirmation, ProcessRequestOutcome och GetVaccinationHistory i RIVTA, byggda och validerade mot sina scheman (docs/rivta.md)',
+      'Formulärtjänsten, 1177:s inkorg, NKRR, dosdispenseringen och Infektionsverktyget som konsument mot simulerade tjänster, och RIVTA Basic Profile 2.0 med wsa:To och xsi:type i grunden (docs/rivta.md)',
     ],
   },
   // Runda 13: version 1.3.1, rättelserna för kvällar och nätter.

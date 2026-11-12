@@ -2961,5 +2961,7 @@ E-remiss. En e-remiss är en vanlig remiss med samma statuskedja, larm och kvitt
 
 Vaccinationer. GetVaccinationHistory läser vaccinationerna som FHIR Immunization med den anropande organisationens systemkonto, med samma prövning som journalens producenter.
 
-Simulerat: intygsapplikationen (inte Webcert), de externa vårdgivarna med e-remiss och de nationella konsumenterna. Inget av kontrakten är anslutet till den nationella tjänsteplattformen. Frågor och svar på intyg, remisstatus till 1177 och Journalen och bilagor i e-remissen finns inte.
+Formulär, 1177, NKRR, dosdispensering och Infektionsverktyget. Vårdkällan är konsument mot simulerade tjänster: ett formulär inför besöket, ett meddelande till 1177:s inkorg bara när patienten har ett konto, ett meddelande till ett kvalitetsregister, anmälan av en dospatient och överföringen av vårdtillfällen, infektionsdiagnoser och antibiotika till Infektionsverktyget. Innan uppgifter lämnas till ett register eller en uppföljningstjänst anropar varje flöde samma prövning (provaUtlamning i rivta-r3.js): ingen patient med skyddade personuppgifter, inga uppgifter från en vårdenhet som patienten har spärrat och, för kvalitetsregister, ingen patient som har motsatt sig registreringen. En prövning som inte kan avgöras stoppar.
+
+Simulerat: intygsapplikationen (inte Webcert), de externa vårdgivarna med e-remiss, formulärtjänsten, 1177, NKRR, dosapoteket, Infektionsverktyget och de nationella konsumenterna. Inget av kontrakten är anslutet till den nationella tjänsteplattformen. Frågor och svar på intyg, remisstatus till 1177 och Journalen och bilagor i e-remissen finns inte.
 

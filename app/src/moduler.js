@@ -355,7 +355,8 @@ MODULER.push(m('intyg', 'journal', 'Intyg',
   r.api.push('/api/patient/:id/eremiss', '/api/eremiss/mottagare');
   r.simulerat = `${r.simulerat ? `${r.simulerat} ` : ''}De externa vårdgivarna med e-remiss är påhittade och simulerade.`;
   const n = MODULER.find(x => x.id === 'nationella');
-  n.kod.push('src/rivta-r3.js');
+  n.kod.push('src/rivta-r3.js', 'src/rivta-vaccination.js', 'src/rivta-etjanster.js', 'src/rivta-etjanster-simulerade.js', 'src/rivta-dos.js', 'src/rivta-dos-simulerad.js', 'src/rivta-infektion.js', 'src/rivta-infektion-simulerad.js');
+  n.beskrivning += ' Tjänstekontrakt i RIVTA för vaccinationer, formulär, 1177:s inkorg, NKRR, dosdispensering och Infektionsverktyget, byggda och validerade mot sina scheman mot simulerade tjänster.';
 }
 
 // Vyer och rutter som inte hör till en enskild modul, med motivering.
