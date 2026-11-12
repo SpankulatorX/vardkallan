@@ -45,7 +45,7 @@ const pem = (typ, der) => `-----BEGIN ${typ}-----\n${der.toString('base64').matc
 const nyckelId = (spki) => createHash('sha1').update(spki).digest();
 
 // Skapar ett certifikat. utfardare är { nyckel, namn, spki } för CA:n, eller null för ett självsignerat certifikat.
-function certifikat({ subjekt, utfardare = null, ca = false, dns = [], ip = [], dagar = 365, nu = new Date() }) {
+function certifikat({ subjekt, utfardare = null, ca = false, dns = [], ip = [], dagar = 365, nu = new Date(), serie = randomBytes(12) }) {
   const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
   const spki = publicKey.export({ type: 'spki', format: 'der' });
   const ut = utfardare ?? { nyckel: privateKey, namn: subjekt, spki };
@@ -57,8 +57,10 @@ function certifikat({ subjekt, utfardare = null, ca = false, dns = [], ip = [], 
     ...(ca ? [] : [ext(OID.extKeyUsage, false, seq(oid(OID.serverAuth), oid(OID.clientAuth)))]),
     ...(dns.length || ip.length ? [ext(OID.subjectAltName, false, seq(...dns.map(d => tlv(0x82, Buffer.from(d, 'ascii'))), ...ip.map(a => tlv(0x87, Buffer.from(a.split('.').map(Number))))))] : []),
   ];
-  const serie = randomBytes(12);
-  serie[0] &= 0x7f;
+  // Serienumret är ett positivt heltal i DER med minsta möjliga längd. En inledande nolla gör kodningen ogiltig för
+  // stränga tolkar, så den första byten är alltid mellan 1 och 127.
+  serie = Buffer.from(serie);
+  serie[0] = (serie[0] & 0x7f) || 1;
   const tbs = seq(
     tlv(0xa0, heltal(Buffer.from([2]))), heltal(serie), seq(oid(OID.ecdsaSha256)), namn(ut.namn),
     seq(tid(new Date(nu.getTime() - 3600_000)), tid(new Date(nu.getTime() + dagar * 86400_000))),
@@ -78,8 +80,8 @@ export function testCa({ namn: caNamn = 'Vårdkällan test-CA för tjänstekontr
   return {
     cert: ca.cert, key: ca.key, fingeravtryck: ca.fingeravtryck,
     // Ett funktionscertifikat för en organisation. hsaId står i serialNumber, och värdnamnen i subjectAltName.
-    utfarda({ hsaId, cn, dns = ['localhost'], ip = ['127.0.0.1'], dagar = 365 }) {
-      return certifikat({ subjekt: { c: 'SE', o: 'Vårdkällan testcertifikat (demo)', cn: `Test ${cn}`, serialNumber: hsaId }, utfardare: { nyckel: ca.nyckel, namn: ca.namn, spki: ca.spki }, dns, ip, dagar });
+    utfarda({ hsaId, cn, dns = ['localhost'], ip = ['127.0.0.1'], dagar = 365, serie }) {
+      return certifikat({ subjekt: { c: 'SE', o: 'Vårdkällan testcertifikat (demo)', cn: `Test ${cn}`, serialNumber: hsaId }, utfardare: { nyckel: ca.nyckel, namn: ca.namn, spki: ca.spki }, dns, ip, dagar, ...(serie ? { serie } : {}) });
     },
   };
 }

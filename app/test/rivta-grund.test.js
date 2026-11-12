@@ -2,6 +2,7 @@ import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import { readdirSync, statSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { tmpdir } from 'node:os';
+import { X509Certificate } from 'node:crypto';
 import { nyDb } from './hjalp.js';
 import * as rivta from '../src/rivta/index.js';
 import { tolka, skriv, XmlFel } from '../src/rivta/xml.js';
@@ -186,6 +187,18 @@ describe(T, () => {
     // Filtren i begäran.
     const period = await anropa(db, fraga('194502024732', { timePeriod: { start: '20990101', end: '20991231' } }));
     expect(period.diagnosis).toBeUndefined();
+  });
+
+  test('testcertifikatens serienummer är giltiga också när den slumpade första byten är noll eller har den högsta biten satt', () => {
+    const ca = rivta.testCa();
+    for (const forsta of [0x00, 0x01, 0x7f, 0x80, 0xff]) {
+      for (const andra of [0x00, 0x7f, 0x80]) {
+        const c = ca.utfarda({ hsaId: 'SE0000000000-X', cn: 'Serie', serie: Buffer.from([forsta, andra, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) });
+        const x = new X509Certificate(c.cert);
+        expect([forsta, andra, x.verify(new X509Certificate(ca.cert).publicKey)]).toEqual([forsta, andra, true]);
+        expect(x.serialNumber.length).toBe(24);
+      }
+    }
   });
 
   test('ömsesidig TLS med testcertifikat: organisationen fastställs ur certifikatet eller tjänsteplattformens huvud', async () => {
