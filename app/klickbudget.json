@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-12T11:24:37.297Z",
-  "bas": "http://127.0.0.1:18250",
+  "tid": "2026-11-12T17:52:39.017Z",
+  "bas": "http://127.0.0.1:18143",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "7e770fd8f3bc0a1d2e5fedb4d2ef7b40b155779b91f6e41c28761fb0b43365cb",
+  "gransnittHash": "738ac5e917eacf497876b54a9af0c1e06d60135f17fd28e28a7cc2ab9884aa2a",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -2125,6 +2125,42 @@
         "klick: Läkare på sjukhus",
         "klick: en patient i arbetslistan"
       ]
+    },
+    {
+      "id": "skriv-intyg",
+      "namn": "Skriva ett intyg i intygsapplikationen",
+      "roll": "lak-vc",
+      "start": "Journalen för patienten på vårdcentralen",
+      "budget": 2,
+      "motivering": "Sussa 2.2.1.9. Ett klick på fliken Intyg och ett på Skriv intyget. Systemet har föreslagit det intyg som passar patienten och visar bara de intyg som får skrivas, och utkastet öppnas i intygsapplikationen med patienten, läkaren, vårdenheten och diagnosen ifyllda.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Intyg",
+        "klick: Skriv intyget"
+      ]
+    },
+    {
+      "id": "skicka-eremiss",
+      "namn": "Skicka en e-remiss till en vårdgivare utanför Vårdkällan",
+      "roll": "lak-vc",
+      "start": "Journalen för patienten på vårdcentralen",
+      "budget": 3,
+      "motivering": "Sussa 2.2.1.12 och 3.3.1.2. Ett klick på fliken Remisser, ett på Skicka e-remiss och ett på Skicka. Frågeställningen har fokus direkt, mottagare och prioritet är förvalda, och patienten, remittenten, vårdenheten och diagnoserna från den egna vårdenheten fyller systemet i.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Remisser",
+        "klick: Skicka e-remiss till annan vårdgivare",
+        "har redan fokus: frågeställningen",
+        "klick: Skicka e-remissen"
+      ]
     }
   ],
   "tester": [
@@ -2594,6 +2630,14 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Välja yrkesroll och starta första uppdraget inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Skriva ett intyg i intygsapplikationen inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Skicka en e-remiss till en vårdgivare utanför Vårdkällan inom budget",
       "status": "grön"
     }
   ]
