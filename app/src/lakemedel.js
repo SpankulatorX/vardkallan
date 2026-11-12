@@ -388,6 +388,8 @@ export function spara(atk, inp, { handling = 'ordinera', ordineradAv = null, nll
   historik(db, id, atk.personal.id, historikText, o.dosering);
   for (const k of kv) historik(db, id, atk.personal.id, 'Varning kvitterad', `${k.regel}: ${k.motivering}`);
   const nll = skickas ? overfor(db, id, 'ny') : { status: nllStatus };
+  // Runda 14, r3: antibiotika med ordinationsorsak överförs till Infektionsverktyget av systemet (rivta-infektion.js).
+  require('./rivta-infektion.js').efterAndring(db, atk.patientId, { atc: o.lm.atc });
   // Runda 13, r3: en interaktion med ett läkemedel i NLL som är dolt av en spärr, efter att ordinationen är sparad.
   if (doldInteraktion(atk, o.lm)) {
     v.push({ niva: 'allvarlig', regel: 'interaktion_dold', text: DOLD_INTERAKTION, efterSparande: true });

@@ -1,0 +1,20 @@
+{
+  "domän": "riv.followup.qualityregistry.nkrr",
+  "källa": "https://bitbucket.org/rivta-domains/riv.followup.qualityregistry.nkrr",
+  "tagg": "1.2.2",
+  "commit": "edc9ed9be6295303470de067aa8bd7518993137f",
+  "arkiv": "https://bitbucket.org/rivta-domains/riv.followup.qualityregistry.nkrr/get/edc9ed9be6295303470de067aa8bd7518993137f.tar.gz",
+  "arkivSha256": "5a582fd758f1a3b65c9909b8eec915a11a09efa15167c61202c914b74347a6bd",
+  "licens": "Apache License 2.0 (huvudet i varje schemafil)",
+  "hämtat": "2026-11-12",
+  "filer": {
+    "schemas/core_components/followup_qualityregistry_nkrr_1.0.xsd": "0926d749cd919fdbc0d78b2e319fc0987026693756793d2fff6241c02ee89f91",
+    "schemas/core_components/itintegration_registry_1.0.xsd": "5827002c9a3bae74863f6add21f9c5d8efad15167c807de91ec1453656cf771c",
+    "schemas/interactions/GetFormDataInteraction/GetFormDataInteraction_1.2_RIVTABP21.wsdl": "ab603a0c6fffcc6b8d0870334d4bd2d5c13c81c8c80beceb88b07f53051310f1",
+    "schemas/interactions/GetFormDataInteraction/GetFormDataResponder_1.1_ext.xsd": "9c19dbf66fb9a72b4798f426f43e8a72b94c7b690d135a90936b2000413373ba",
+    "schemas/interactions/GetFormDataInteraction/GetFormDataResponder_1.2.xsd": "49502c07d5044c7f3e3daee732467fbaa0825dfb9cc6ae3de86ec3ceae7e985e",
+    "schemas/interactions/GetFormDataInteraction/GetFormDataResponder_1.2_ext.xsd": "e97fcbbbec695ae2a98a1254954ed40a8ab053609d1dadd2fb6f59d82960d9f3",
+    "schemas/interactions/ProcessRegistrationNotification/ProcessRegistrationNotificationInteraction_1.0_RIVTABP21.wsdl": "a58889d13a71cc262ef69488267f04bca833cb12c02c6ad58e94ee83e65d98c9",
+    "schemas/interactions/ProcessRegistrationNotification/ProcessRegistrationNotificationResponder_1.0.xsd": "a591b659bb93fa09e696bb8963f0b592b57a223c2b77854dbbcf52cfd3cb0fa8"
+  }
+}

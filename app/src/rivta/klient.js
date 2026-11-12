@@ -7,7 +7,7 @@
 // tjänsteplattform eller producent, eller iProcessen(tjanst, avsandare) mot en tjänst i samma process (mockarna i
 // testerna). Varje anrop sparas i rivta_anrop när db är med.
 import { skriv } from './xml.js';
-import { kuvert, logiskAdress as adressHuvud, lasKuvert, SoapFel, CONTENT_TYPE } from './soap.js';
+import { kuvert, logiskAdress as adressHuvud, lasKuvert, SoapFel, CONTENT_TYPE, wsaTo } from './soap.js';
 import { SchemaFel } from './xsd.js';
 import { loggaAnrop } from './anropslogg.js';
 
@@ -22,14 +22,20 @@ export class RivtaFel extends Error {
 // Bygger och validerar begäran. Ger kuvertets text.
 function byggBegaran(def, logiskAdress, begaran) {
   let el;
-  try { el = def.schema.bygg(def.begaran.ns, def.begaran.lokal, begaran); } catch (e) {
+  // Runda 14, r3: en begäran som redan är ett element (Infektionsverktygets openEHR-kompositioner, som byggs ur
+  // kontraktets egna mallar) skickas som den är. Den valideras mot schemat som alla andra.
+  const fardig = begaran && typeof begaran === 'object' && typeof begaran.lokal === 'string' && Array.isArray(begaran.barn);
+  if (fardig && (begaran.ns !== def.begaran.ns || begaran.lokal !== def.begaran.lokal)) throw new RivtaFel('schema', `Begäran till ${def.namn} är ${begaran.lokal}, inte ${def.begaran.lokal}.`);
+  if (fardig) el = begaran;
+  else try { el = def.schema.bygg(def.begaran.ns, def.begaran.lokal, begaran); } catch (e) {
     if (e instanceof SchemaFel) throw new RivtaFel('schema', `Begäran till ${def.namn} kunde inte byggas enligt schemat: ${e.message}`);
     throw e;
   }
   const fel = def.schema.validera(el);
   if (fel.length) throw new RivtaFel('schema', `Begäran till ${def.namn} följer inte schemat och skickas inte: ${fel.slice(0, 3).join(' ')}`);
   if (def.logiskAdressIHuvud && !logiskAdress) throw new RivtaFel('schema', `${def.namn} kräver en logisk adress i huvudet.`);
-  return kuvert(skriv(el), def.logiskAdressIHuvud ? [adressHuvud(logiskAdress)] : []);
+  // Runda 14, r3: i profil 2.0 står adressen i wsa:To.
+  return kuvert(skriv(el), def.logiskAdressIHuvud ? [def.profil === 'RIVTABP20' ? wsaTo(logiskAdress) : adressHuvud(logiskAdress)] : []);
 }
 
 // Tolkar och validerar svaret. Ger svarets objekt i schemats form.

@@ -261,3 +261,36 @@ function rivPost(db, kontrakt, r, patientId, vardgivare) {
   return { header, body: { typeOfAlertInformation: { code: r.category?.[0]?.coding?.[0]?.code ?? null, displayName: r.category?.[0]?.text ?? null }, alertInformationComment: r.code?.text ?? null,
     validityTimePeriod: { start: datumRiv(r.period?.start), end: datumRiv(r.period?.end) } } };
 }
+
+// Runda 14, r3: kontrakten som del r3 har byggt på den gemensamma grunden för RIVTA (rivta-r3.js). De är byggda och
+// validerade mot sina scheman och testade lokalt mot simulerade motparter, men inte anslutna till den nationella
+// tjänsteplattformen.
+STATUS.rivta_lokalt = 'Byggt och validerat mot tjänstekontraktet, testat lokalt; inte anslutet till den nationella tjänsteplattformen';
+const CERT = ['riv.clinicalprocess.healthcond.certificate', '4.0.5'];
+const REQ = ['riv.clinicalprocess.activity.request', '2.3'];
+const ACT = ['riv.clinicalprocess.activityprescription.actoutcome', '2.2.2'];
+const FORM = ['riv.infrastructure.eservicesupply.forminteraction', '2.1.1'];
+const PORTAL = ['riv-application.infrastructure.eservicesupply.patientportal', '2.0'];
+const INF = ['riv.processdevelopment.infections', '1.0.2'];
+export const R3_KONTRAKT = {
+  CreateDraftCertificate: [CERT, '3.3', 'Fliken Intyg skapar utkastet i den simulerade intygsapplikationen'],
+  CertificateStatusUpdateForCare: [CERT, '3.2', 'Vårdkällan tar emot intygets händelser, adresserade till vårdenheten'],
+  ListCertificatesForCareWithQA: [CERT, '3.3', 'Journalen stämmer av intygen mot intygsapplikationen'],
+  ProcessRequest: [REQ, '2.3', 'E-remiss ut till och in från vårdgivare utanför Vårdkällan'],
+  ProcessRequestConfirmation: [REQ, '2.3', 'Mottagningsbekräftelse och avvisning av e-remiss, åt båda hållen'],
+  ProcessRequestOutcome: [REQ, '2.3', 'Svar på e-remiss, åt båda hållen'],
+  GetVaccinationHistory: [ACT, '2.0', 'Vårdkällan lämnar ut vaccinationerna (FHIR Immunization) till anslutna konsumenter'],
+  CreateFormRequest: [FORM, '2.0', 'Vårdenheten skickar ett formulär till patienten inför besöket'],
+  GetForm: [FORM, '2.1', 'Vårdenheten hämtar formulärets status och svar'],
+  CancelForm: [FORM, '2.0', 'Vårdenheten avbryter en förfrågan som inte behövs'],
+  AddMessageToPatientPortalInbox: [PORTAL, '2.0', 'Meddelande till patientens inkorg i 1177 med AddMessage, när patienten har ett konto'],
+  IsActiveUser: [PORTAL, '2.0', 'Systemet frågar om patienten har ett konto i 1177 innan ett meddelande skickas'],
+  ProcessCareEncounter: [INF, '1.0', 'Vårdtillfällen i slutenvård överförs till Infektionsverktyget av systemet'],
+  ProcessCondition: [INF, '1.0', 'Infektionsdiagnoser överförs till Infektionsverktyget av systemet'],
+  ProcessPrescriptionReason: [INF, '1.0', 'Antibiotika med ordinationsorsak och smittväg överförs till Infektionsverktyget av systemet'],
+  DeleteCondition: [INF, '1.0', 'En överförd diagnos som inte längre finns i journalen tas bort'],
+};
+for (const k of KONTRAKT) {
+  const r = R3_KONTRAKT[k.kontrakt];
+  if (r) Object.assign(k, { status: 'rivta_lokalt', statusText: STATUS.rivta_lokalt, motsvarighet: `${r[2]} (${r[0][0]} ${r[0][1]}, version ${r[1]})`, simulerat: true });
+}

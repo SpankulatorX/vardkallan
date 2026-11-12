@@ -226,7 +226,9 @@ export class Schemaset {
 
   komplexTyp(nod, info) {
     const t = { art: 'komplex', innehall: null, attribut: [], anyAttribute: null, blandat: attr(nod, 'mixed') === 'true', enkelt: null };
-    if (attr(nod, 'abstract') === 'true') throw new SchemaFel('Abstrakta typer tas inte med i valideringen.');
+    // Runda 14, r3: en abstrakt typ (Infektionsverktygets openEHR-typer) får bara användas med xsi:type till en härledd
+    // typ, vilket valideringen prövar (valideraEl).
+    if (attr(nod, 'abstract') === 'true') t.abstrakt = true;
     for (const b of nod.barn) {
       if (b.ns !== XS || SKIP.has(b.lokal)) continue;
       if (['sequence', 'choice', 'group'].includes(b.lokal)) t.innehall = this.partikel(b, info);
@@ -234,6 +236,30 @@ export class Schemaset {
       else if (b.lokal === 'anyAttribute') t.anyAttribute = { namespace: attr(b, 'namespace') ?? '##any', process: attr(b, 'processContents') ?? 'strict', tns: info.tns };
       else if (b.lokal === 'simpleContent' || b.lokal === 'complexContent') {
         const ext = b.barn.find(x => x.ns === XS && !SKIP.has(x.lokal));
+        // Runda 14, r3: complexContent med restriction, som intygens typer använder (till exempel HsaId som begränsar
+        // IIType). Innehållet är restriktionens egen modell, som ersätter basens. Attributen ärvs från basen, med
+        // restriktionens deklarationer i stället för basens med samma namn, och use="prohibited" tar bort ett attribut.
+        if (ext?.lokal === 'restriction' && b.lokal === 'complexContent') {
+          const bas = this.typ(...Object.values(this.qname(ext, attr(ext, 'base'))));
+          if (bas.art !== 'komplex') throw new SchemaFel('En complexContent ska bygga på en komplex typ.');
+          let egen = null;
+          const egnaAttr = [];
+          const borttagna = new Set();
+          let egenAny = null;
+          for (const x of ext.barn) {
+            if (x.ns !== XS || SKIP.has(x.lokal)) continue;
+            if (['sequence', 'choice', 'group'].includes(x.lokal)) egen = this.partikel(x, info);
+            else if (x.lokal === 'attribute') { if (attr(x, 'use') === 'prohibited') borttagna.add(attr(x, 'name')); else egnaAttr.push(this.attributDekl(x, info)); }
+            else if (x.lokal === 'anyAttribute') egenAny = { namespace: attr(x, 'namespace') ?? '##any', process: attr(x, 'processContents') ?? 'strict', tns: info.tns };
+            else throw new SchemaFel(`xs:${x.lokal} i en restriction tas inte med i valideringen.`);
+          }
+          t.innehall = egen;
+          t.basTyp = bas;
+          const egna = new Set(egnaAttr.map(a => a.lokal));
+          t.attribut = [...bas.attribut.filter(a => !egna.has(a.lokal) && !borttagna.has(a.lokal)), ...egnaAttr];
+          t.anyAttribute = egenAny;
+          continue;
+        }
         if (!ext || ext.lokal !== 'extension') throw new SchemaFel(`xs:${b.lokal} med ${ext ? `xs:${ext.lokal}` : 'inget innehåll'} tas inte med i valideringen, bara extension.`);
         const bas = this.typ(...Object.values(this.qname(ext, attr(ext, 'base'))));
         let egen = null;
@@ -258,6 +284,8 @@ export class Schemaset {
           t.blandat = t.blandat || bas.blandat;
         }
         t.anyAttribute = egenAny ?? bas.anyAttribute ?? null;
+        // Runda 14, r3: basen, för att pröva att typen i xsi:type är härledd från den deklarerade typen.
+        t.basTyp = bas;
       } else throw new SchemaFel(`xs:${b.lokal} i en complexType tas inte med i valideringen.`);
     }
     return t;
@@ -372,8 +400,23 @@ export class Schemaset {
       else if (nod.barn.length || harText(nod)) fel.push(`${vag}: ett element med xsi:nil ska vara tomt.`);
       return;
     }
-    if (nod.attr.some(a => a.ns === XSI && a.lokal === 'type')) { fel.push(`${vag}: xsi:type tas inte emot.`); return; }
-    const typ = dekl.typ;
+    // Runda 14, r3: xsi:type till en typ som är härledd från den deklarerade typen (extension eller restriction) tas
+    // emot, och elementet valideras mot den typen. En abstrakt typ kräver xsi:type.
+    let typ = dekl.typ;
+    const xsiTyp = nod.attr.find(a => a.ns === XSI && a.lokal === 'type')?.varde;
+    if (xsiTyp != null) {
+      const i = xsiTyp.indexOf(':');
+      const p = i < 0 ? '' : xsiTyp.slice(0, i);
+      const ns = p ? nod.prefixer?.[p] : (nod.prefixer?.[''] ?? '');
+      if (ns == null) { fel.push(`${vag}: prefixet i xsi:type ${xsiTyp} är inte deklarerat.`); return; }
+      let ny;
+      try { ny = this.typ(ns, i < 0 ? xsiTyp : xsiTyp.slice(i + 1)); } catch { fel.push(`${vag}: typen ${xsiTyp} i xsi:type finns inte i schemat.`); return; }
+      let t = ny;
+      for (let n = 0; t && t !== typ && n < 20; n++) t = t.basTyp;
+      if (t !== typ) { fel.push(`${vag}: typen ${xsiTyp} i xsi:type är inte härledd från elementets typ.`); return; }
+      typ = ny;
+    }
+    if (typ.abstrakt) { fel.push(`${vag}: elementets typ är abstrakt och kräver xsi:type.`); return; }
     if (typ.art === 'enkel') {
       for (const a of nod.attr) if (a.ns !== XSI) fel.push(`${vag}: attributet ${a.lokal} är inte tillåtet här.`);
       if (nod.barn.length) { fel.push(`${vag}: elementet ska bara ha text, inga element.`); return; }

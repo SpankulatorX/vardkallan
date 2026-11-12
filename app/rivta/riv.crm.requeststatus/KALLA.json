@@ -1,0 +1,18 @@
+{
+  "domän": "riv.crm.requeststatus",
+  "källa": "https://bitbucket.org/rivta-domains/riv.crm.requeststatus",
+  "tagg": "2.0.2",
+  "commit": "d487f21af1b21e446210a36324aadaca7263f652",
+  "arkiv": "https://bitbucket.org/rivta-domains/riv.crm.requeststatus/get/d487f21af1b21e446210a36324aadaca7263f652.tar.gz",
+  "arkivSha256": "c9cb2d2c16c8221ead3edbaac4dcb887c7f122647792e9758996c927ee9d9416",
+  "licens": "Apache License 2.0 (huvudet i varje schemafil)",
+  "hämtat": "2026-11-12",
+  "filer": {
+    "schemas/core_components/crm_requeststatus_2.0.xsd": "e8fb5a8f84ca720b459d312a6a997e59098b60c4b4d6644547e15faef5450a83",
+    "schemas/core_components/interoperability_headers_1.0.xsd": "c2e6c4f32675deeb13533f635623d89ff0fc2e432a817e4d6b3cf0c415dff301",
+    "schemas/core_components/itintegration_registry_1.0.xsd": "5827002c9a3bae74863f6add21f9c5d8efad15167c807de91ec1453656cf771c",
+    "schemas/engagementindex/riv_crm_requeststatus_ei_update_constraints.xml": "4da1a60be32b3e29297e178c7a7dd4653e0144e37eb0e355a79f2d620ba44257",
+    "schemas/interactions/GetRequestActivitiesInteraction/GetRequestActivitiesInteraction_2.0_RIVTABP21.wsdl": "69b91e85204e69daf0828152fd8716c22fa3e503fdcc5d0a1ac47cfd7c5d2c70",
+    "schemas/interactions/GetRequestActivitiesInteraction/GetRequestActivitiesResponder_2.0.xsd": "798cbf233c5193691de5b3d7e4b521842b6dfb1e39d3d024f2b33e7db0d3a4b7"
+  }
+}

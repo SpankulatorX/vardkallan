@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:add="http://www.w3.org/2005/08/addressing" xmlns:urn="urn:riv:processdevelopment:infections:ProcessCareEncounterResponder:1" xmlns:urn1="urn:riv:processdevelopment:infections:1:CareEncounter" xmlns:v1="http://schemas.openehr.org/v1">
+   <soapenv:Header>
+      <add:To>$$logical_address</add:To>
+   </soapenv:Header>
+   <soapenv:Body>
+  <urn:ProcessCareEncounter>
+<urn1:Vardkontakt template_id="Vårdkontakt" archetype_node_id="openEHR-EHR-COMPOSITION.composition.v1" type="COMPOSITION" xmlns:oe="http://schemas.openehr.org/v1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+<urn1:name>
+		<urn1:value>Vårdkontakt</urn1:value>
+	</urn1:name>
+	<urn1:uid>
+		<oe:value>1.2.752.129.2.1.2.1::$$vårdkontaktid</oe:value>
+	</urn1:uid>
+	<urn1:language>
+		<urn1:terminology_id>
+			<urn1:value>ISO_639-1</urn1:value>
+		</urn1:terminology_id>
+		<urn1:code_string>sv</urn1:code_string>
+	</urn1:language>
+	<urn1:territory>
+		<urn1:terminology_id>
+			<urn1:value>ISO_3166-1</urn1:value>
+		</urn1:terminology_id>
+		<urn1:code_string>String</urn1:code_string>
+	</urn1:territory>
+	<urn1:category>
+		<urn1:value>event</urn1:value>
+		<urn1:defining_code>
+			<urn1:terminology_id>
+				<urn1:value>openehr</urn1:value>
+			</urn1:terminology_id>
+			<urn1:code_string>433</urn1:code_string>
+		</urn1:defining_code>
+	</urn1:category>
+	<urn1:composer xsi:type="oe:PARTY_IDENTIFIED"/>
+	<urn1:context>
+		<urn1:start_time>
+			<oe:value>$$vårdkontakttid_starttidpunkt</oe:value>
+		</urn1:start_time>
+		<urn1:end_time>
+			<oe:value>$$vårdkontakttid_sluttidpunkt</oe:value>
+		</urn1:end_time>
+		<urn1:setting>
+			<oe:value>other care</oe:value>
+			<oe:defining_code>
+				<oe:terminology_id>
+					<oe:value>openehr</oe:value>
+				</oe:terminology_id>
+				<oe:code_string>238</oe:code_string>
+			</oe:defining_code>
+		</urn1:setting>
+		<urn1:health_care_facility xsi:type="oe:PARTY_IDENTIFIED">
+			<oe:identifiers>
+				<oe:issuer>CeHis</oe:issuer>
+				<oe:assigner>$$vårdgivare</oe:assigner>
+				<oe:id>$$registrerande enhet</oe:id>
+				<oe:type>1.2.752.129.2.1.4.1</oe:type>
+			</oe:identifiers>
+		</urn1:health_care_facility>
+	</urn1:context>
+	<urn1:Patient archetype_node_id="openEHR-EHR-ADMIN_ENTRY.patient.v1" type="ADMIN_ENTRY">
+		<urn1:name>
+			<urn1:value>Patient</urn1:value>
+		</urn1:name>
+		<urn1:language>
+			<urn1:terminology_id>
+				<urn1:value>ISO_639-1</urn1:value>
+			</urn1:terminology_id>
+			<urn1:code_string>en</urn1:code_string>
+		</urn1:language>
+		<urn1:encoding>
+			<urn1:terminology_id>
+				<urn1:value>IANA</urn1:value>
+			</urn1:terminology_id>
+			<urn1:code_string>utf-8</urn1:code_string>
+		</urn1:encoding>
+		<urn1:subject xsi:type="oe:PARTY_SELF"/>
+		<urn1:data archetype_node_id="at0001" type="ITEM_TREE">
+			<urn1:person_-_id archetype_node_id="at0002" type="ELEMENT" valueType="DV_IDENTIFIER">
+				<urn1:name>
+					<urn1:value>person-id</urn1:value>
+				</urn1:name>
+				<urn1:value>
+					<oe:issuer>$$issuer_personid</oe:issuer>
+					<oe:assigner>$$assigner_personid</oe:assigner>
+					<oe:id>$$personid</oe:id>
+					<oe:type>$$oid_personid</oe:type>
+				</urn1:value>
+			</urn1:person_-_id>
+			<urn1:fodelsetidpunkt archetype_node_id="at0003" type="ELEMENT" valueType="DV_DATE_TIME">
+				<urn1:name>
+					<urn1:value>födelsetidpunkt</urn1:value>
+				</urn1:name>
+				<urn1:value>
+					<oe:value>$$födelsetidpunkt</oe:value>
+				</urn1:value>
+			</urn1:fodelsetidpunkt>
+			<urn1:kon archetype_node_id="at0004" type="ELEMENT" valueType="DV_CODED_TEXT">
+				<urn1:name>
+					<urn1:value>kön</urn1:value>
+				</urn1:name>
+				<urn1:value>
+					<oe:value></oe:value>
+					<oe:defining_code>
+						<oe:terminology_id>
+							<oe:value>1.2.752.129.2.2.1.1</oe:value>
+						</oe:terminology_id>
+						<oe:code_string>$$kön</oe:code_string>
+					</oe:defining_code>
+				</urn1:value>
+			</urn1:kon>
+		</urn1:data>
+	</urn1:Patient>
+</urn1:Vardkontakt>
+
+
+      </urn:ProcessCareEncounter>
+   </soapenv:Body>
+</soapenv:Envelope>

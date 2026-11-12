@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- 
+ Licensed to the Apache Software Foundation (ASF) under one
+ or more contributor license agreements. See the NOTICE file
+ distributed with this work for additional information
+ regarding copyright ownership. Sveriges Kommuner och Landsting licenses this file
+ to you under the Apache License, Version 2.0 (the
+ "License"); you may not use this file except in compliance
+ with the License. You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied. See the License for the
+ specific language governing permissions and limitations
+ under the License.
+ -->
+<xs:schema xmlns:xs='http://www.w3.org/2001/XMLSchema'
+	xmlns:tns='urn:riv:clinicalprocess:healthcond:certificate:CreateDraftCertificateResponder:3'
+	xmlns:core='urn:riv:clinicalprocess:healthcond:certificate:3'
+	xmlns:types="urn:riv:clinicalprocess:healthcond:certificate:types:3"
+	xmlns:m3="urn:riv:clinicalprocess:healthcond:certificate:3.3"
+	targetNamespace='urn:riv:clinicalprocess:healthcond:certificate:CreateDraftCertificateResponder:3'
+	elementFormDefault='qualified' attributeFormDefault='unqualified'
+	version='3.3'>
+  
+	<xs:import schemaLocation='../../core_components/clinicalprocess_healthcond_certificate_3.2.xsd'
+		namespace='urn:riv:clinicalprocess:healthcond:certificate:3' />
+	
+	<!-- No new types in 3.3, so we still use 3.2 -->
+	<xs:import namespace="urn:riv:clinicalprocess:healthcond:certificate:types:3"
+		schemaLocation="../../core_components/clinicalprocess_healthcond_certificate_types_3.2.xsd" />
+	
+	<!-- NEW IN 3.3 -->
+	<xs:import namespace="urn:riv:clinicalprocess:healthcond:certificate:3.3" 
+		schemaLocation="../../core_components/clinicalprocess_healthcond_certificate_3.3_ext.xsd" />
+
+	<xs:element name='CreateDraftCertificate' type='tns:CreateDraftCertificateType' />
+	<xs:element name='CreateDraftCertificateResponse' type='tns:CreateDraftCertificateResponseType' />
+
+	<xs:complexType name='CreateDraftCertificateType'>
+		<xs:sequence>
+			<xs:element name="intyg" type="tns:Intyg" />
+			<xs:any namespace='##other' processContents='lax' minOccurs='0'
+				maxOccurs='unbounded' />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name='CreateDraftCertificateResponseType'>
+		<xs:sequence>
+			<xs:element name="intygs-id" type="types:IntygId"
+				minOccurs="0" />
+			<xs:element name="result" type="core:ResultType" />
+			<xs:any namespace='##other' processContents='lax' minOccurs='0'
+				maxOccurs='unbounded' />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="Intyg">
+		<xs:sequence>
+			<xs:element name="typAvIntyg" type="types:TypAvIntyg" />
+			<xs:element name="patient" type="core:Patient" />
+			<xs:element name="skapadAv" type="tns:HosPersonal" />
+			<xs:element name="ref" type="xs:string" minOccurs="0" /> <!-- addition in 3.1 -->
+			<xs:element ref="m3:forifyllnad" minOccurs="0"/> <!-- addition in 3.3 -->
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="HosPersonal"> <!-- Skapat av -->
+		<xs:sequence>
+			<xs:element name="personal-id" type="types:HsaId">
+				<xs:annotation>
+					<xs:documentation>HSA-id, o.i.d för HSA-id är 1.2.752.129.2.1.4.1
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="fullstandigtNamn" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Förnamn + efternamn sammanslaget.
+						Personen kan ej
+						ha skyddad identitet, så det fungerar med obligatoriskt
+						namn.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="enhet" type="tns:Enhet" />
+			<xs:any namespace="##other" processContents="lax" minOccurs="0"
+				maxOccurs="unbounded" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="Enhet">
+		<xs:sequence>
+			<xs:element name="enhets-id" type="types:HsaId">
+				<xs:annotation>
+					<xs:documentation>HSA-id, o.i.d för HSA-id är 1.2.752.129.2.1.4.1
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="enhetsnamn" type="xs:string" />
+			<xs:any namespace="##other" processContents="lax" minOccurs="0"
+				maxOccurs="unbounded" />
+		</xs:sequence>
+	</xs:complexType>
+
+</xs:schema>

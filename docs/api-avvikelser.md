@@ -894,6 +894,13 @@ Inget av detta är FHIR. Inga svar till testaren innehåller patientuppgifter ur
 
 - `GET /api/min/journal/:id/egenmatning` har `hjalp` per typ och `situationer` för glukos. `POST` tar `situation` (`fastande`, `efter_maltid` eller `annat`) för glukos, och mätningen har `situation`. Patientens glukos i `egna` på `GET /api/patient/:id/matvarden` har `beskrivning` med fastande eller efter måltid.
 
+## Intyg, e-remiss och vaccinationer (runda 14, r3)
+
+- `GET /api/patient/:id/intyg` ger `{ intyg: [{ id, typ, text, mottagare, status, statusText, skapad, signerad, skickad, fragorEjBesvarade, vardenhet, skapadAv, kanOppnas, handelser }], kanSkriva, typer: [{ kod, text, mottagare, mojlig, skal }], forslag: { kod, varfor } | null, motpart, kontrakt, simulerat, dolda }`. `POST /api/patient/:id/intyg { typ }` (201) skapar utkastet med CreateDraftCertificate och ger `{ intyg, oppna, forifyllt, text }`, 400 för en intygstyp som inte får skrivas och 502 när intygsapplikationen inte tar emot utkastet. `POST /api/patient/:id/intyg/avstam` stämmer av med ListCertificatesForCareWithQA och ger `{ avstamt, text }`. `GET /api/patient/:id/intyg/:iid/oppna` ger `{ oppna }`.
+- Den simulerade intygsapplikationen: `GET /api/intygsapplikation/:intygsId`, `POST /api/intygsapplikation/:intygsId { sysselsattning, nedsattning, fran, till, ovrigt }` och `POST /api/intygsapplikation/:intygsId/:atgard` med `signera`, `skicka`, `makulera` eller `radera`. 404 för den som inte har uppdrag på intygets vårdenhet. Varje ändring skickas till journalen med CertificateStatusUpdateForCare.
+- `GET /api/eremiss/mottagare` ger de simulerade mottagarna. `POST /api/patient/:id/eremiss { mottagare, fragestallning, anamnes, prioritet }` (201) skickar en e-remiss med ProcessRequest och ger `{ remissId, mottagare, text }`. En remiss i `GET /api/patient/:id/remisser` har `eremiss: { riktning, motpart, simulerad, handelser: [{ text, tid, meddelande? }], kanSvaraSimulerat }` när den är en e-remiss. Demon: `POST /api/eremiss/:remissId/svara-simulerat` och `POST /api/patient/:id/eremiss/inkommande-simulerad` (201, bara för en patient som vårdenheten redan har vårdrelation till).
+- Producenterna i RIVTA för CertificateStatusUpdateForCare, ProcessRequest, ProcessRequestConfirmation och ProcessRequestOutcome adresseras till vårdenhetens HSA-id, inte till vårdgivarens, och tar bara emot från de simulerade motparterna. GetVaccinationHistory adresseras till vårdgivaren som journalens producenter.
+
 ## Tjänstekontrakten i RIVTA (runda 14, r2)
 
 - `GET /api/tjanstekontrakt` har för varje kontrakt `rivta: { byggt, version, roll, kontrakt, schema, tjansteplattform, anslutet, text }` eller `null`, och `rivtaStatus`.

@@ -13,6 +13,8 @@ import { felNotis } from '../ui.js';
 import { uppdragForm, uppdragSektion, kopplaUppdrag } from '../remiss-r8-ui.js';
 // Runda 10, r6: remiss eller konsultation.
 import { typFalt, valdTyp } from '../remiss-r10-ui.js';
+// Runda 14, r3: e-remiss till och från vårdgivare utanför Vårdkällan.
+import * as eremissUi from '../eremiss-ui.js';
 
 export async function visa(el, ctx) {
   const kan = far('remittera');
@@ -24,7 +26,7 @@ export async function visa(el, ctx) {
   if (!ctx.aktuell()) return;
   let lista = d.remisser;
   tidigare = lista;
-  el.innerHTML = `<div class="flikhuvud"><h2>Remisser</h2>${kan ? `<button type="button" class="knapp" data-ny aria-expanded="false" aria-controls="remissform">${ikon.remiss}<span>Skicka remiss</span></button>` : ''}${paUppdrag ? `<button type="button" class="knapp" data-uppdrag aria-expanded="false" aria-controls="uppdragform">${ikon.remiss}<span>Skriv remiss på uppdrag</span></button>` : ''}</div>${kan ? hjalpRuta('remiss') : ''}
+  el.innerHTML = `<div class="flikhuvud"><h2>Remisser</h2>${kan ? `<button type="button" class="knapp" data-ny aria-expanded="false" aria-controls="remissform">${ikon.remiss}<span>Skicka remiss</span></button>` : ''}${paUppdrag ? `<button type="button" class="knapp" data-uppdrag aria-expanded="false" aria-controls="uppdragform">${ikon.remiss}<span>Skriv remiss på uppdrag</span></button>` : ''}${eremissUi.knappar(kan)}</div>${kan ? hjalpRuta('remiss') : ''}
     ${uppdragSektion(uppd.uppdrag)}
     ${doldaRad(d.dolda)}
     ${u.utkast.length ? `<section class="ov-sektion" aria-labelledby="rf-utkast"><div class="sektion-huvud"><h3 id="rf-utkast">Dina utkast</h3></div><ul class="enkel-lista">${u.utkast.map(x => `<li><strong>${esc(x.till?.namn ?? 'Mottagare inte vald')}</strong>${x.fragestallning ? `, ${esc(x.fragestallning.slice(0, 80))}` : ''}
@@ -55,6 +57,8 @@ export async function visa(el, ctx) {
     uppdragForm(plats, ctx, () => ctx.ladda());
   });
   if (el.querySelector('.r8-uppdrag')) kopplaUppdrag(el.querySelector('.r8-uppdrag'), () => ctx.ladda());
+  // Runda 14, r3: e-remiss.
+  eremissUi.koppla(el, ctx);
   if (ctx.sub === 'uppdrag' && paUppdrag) el.querySelector('[data-uppdrag]').click();
   // Från snabbvalet Skicka remiss i översikten (remisser/ny) öppnas formuläret direkt.
   if (ctx.sub === 'ny' && kan) el.querySelector('[data-ny]').click();

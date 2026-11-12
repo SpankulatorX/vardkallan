@@ -77,3 +77,75 @@ const svar = await anropa(DEF, { logiskAdress, begaran: { /* i schemats form */ 
 ```
 
 Ett objekt i schemats form har elementens lokala namn som nycklar, en lista för element som får förekomma flera gånger, `@namn` för attribut och `$` för texten i ett element med enkelt innehåll och attribut.
+
+## Intyg, e-remiss och vaccinationer (runda 14, del r3)
+
+Del r3 bygger på grunden i `app/src/rivta/`. Det som är gemensamt för delens kontrakt finns i `app/src/rivta-r3.js`: kontrakten ur WSDL, en tjänst med Vårdkällans producenter för meddelanden till en vårdenhet, transporterna i samma process till de simulerade motparterna och en kö för det som en motpart skickar efter sitt svar. Varje kontrakt är byggt och validerat mot sitt schema och testat lokalt mot simulerade motparter, men inte anslutet till den nationella tjänsteplattformen (det kräver avtal med Inera och SITHS-funktionscertifikat). Meddelandena i flödena är dessutom kontrollerade mot schemana med xmllint (libxml2).
+
+### Producenter för meddelanden till en vårdenhet
+
+Intygens statusuppdateringar och e-remissens meddelanden adresseras till den vårdenhet som äger intyget eller remissen, inte till vårdgivaren. De tas därför emot av en egen tjänst (`vardenheter` i `rivta-r3.js`) med samma steg som grundens producent, där den logiska adressen ska vara en vårdenhets HSA-id och den anropande organisationen ska vara ansluten för just det kontraktet. Producenterna läser inga journaluppgifter åt den som anropar och har därför inget systemkonto. Valideringen i grunden har fått stöd för complexContent med restriction, som intygens typer använder.
+
+### Intyg (riv.clinicalprocess.healthcond.certificate 4.0.5)
+
+| Kontrakt | Version | Vårdkällans roll | Byggt i | Testat i |
+| --- | --- | --- | --- | --- |
+| CreateDraftCertificate | 3.3 | konsument | `lakarintyg.js` | `test/lakarintyg-r14.test.js` |
+| CertificateStatusUpdateForCare | 3.2 | producent, adresserad till vårdenheten | `lakarintyg.js` | `test/lakarintyg-r14.test.js` |
+| ListCertificatesForCareWithQA | 3.3 | konsument (avstämning) | `lakarintyg.js` | `test/lakarintyg-r14.test.js` |
+
+Fliken Intyg i journalen skapar utkastet med patienten, läkaren, vårdenheten och diagnosen (förifyllnad i fråga 6) och öppnar det i den simulerade intygsapplikationen (`intygsapplikation-simulerad.js`), som Webcert i integrerat läge. Intygsapplikationen meddelar varje händelse med CertificateStatusUpdateForCare, och journalen stämmer själv av med ListCertificatesForCareWithQA, så att en händelse som aldrig kom fram ändå syns. Webcert och Intygstjänsten gick inte att köra lokalt, eftersom de byggs med beroenden från Ineras artefaktförråd. Intygsapplikationen är därför simulerad, med samma kontrakt, kuvert och validering som en riktig och med Webcerts regler för skyddade personuppgifter och avlidna. Frågor och svar från mottagaren hanteras inte.
+
+### E-remiss (riv.clinicalprocess.activity.request 2.3)
+
+| Kontrakt | Version | Vårdkällans roll | Byggt i | Testat i |
+| --- | --- | --- | --- | --- |
+| ProcessRequest | 2.3 | konsument (remiss ut) och producent (remiss in) | `eremiss.js` | `test/eremiss-r14.test.js` |
+| ProcessRequestConfirmation | 2.3 | producent (besked på remiss ut) och konsument (besked på remiss in) | `eremiss.js` | `test/eremiss-r14.test.js` |
+| ProcessRequestOutcome | 2.3 | producent (svar på remiss ut) och konsument (svar på remiss in) | `eremiss.js` | `test/eremiss-r14.test.js` |
+
+En e-remiss är en vanlig remiss i Vårdkällan med samma statuskedja och larm. En utgående remiss går till en simulerad vårdgivare utanför Vårdkällan (`eremiss-simulerad.js`), som bekräftar och svarar. En inkommande remiss blir en extern remiss till vårdenheten, som ger vårdrelation först när någon har tagit emot den, och mottagningen, en avvisning och svaret skickas tillbaka av systemet.
+
+### Vaccinationer (riv.clinicalprocess.activityprescription.actoutcome 2.2.2)
+
+| Kontrakt | Version | Vårdkällans roll | Byggt i | Testat i |
+| --- | --- | --- | --- | --- |
+| GetVaccinationHistory | 2.0 | producent, adresserad till vårdgivaren | `rivta-vaccination.js` | `test/rivta-vaccination-r14.test.js` |
+
+Vaccinationerna läses som FHIR Immunization med den anropande organisationens systemkonto, som journalens producenter, och informationsmängden vaccinationer kan bara ett konto för en anslutning via tjänstekontrakt få.
+
+### Formulär, 1177 och NKRR
+
+| Kontrakt | Domän | Vårdkällans roll | Byggt i | Testat i |
+| --- | --- | --- | --- | --- |
+| CreateFormRequest 2.0, GetForm 2.1, CancelForm 2.0 | riv.infrastructure.eservicesupply.forminteraction 2.1.1 | konsument | `rivta-etjanster.js` | `test/rivta-etjanster-r14.test.js` |
+| IsActiveUser 2.0, AddMessage 2.0 | riv-application.infrastructure.eservicesupply.patientportal 2.0 | konsument | `rivta-etjanster.js` | `test/rivta-etjanster-r14.test.js` |
+| ProcessRegistrationNotification 1.0 | riv.followup.qualityregistry.nkrr 1.2.2 | konsument | `rivta-etjanster.js` | `test/rivta-etjanster-r14.test.js` |
+
+Vårdenheten skickar ett formulär till patienten inför besöket och hämtar dess status, ett meddelande går till patientens inkorg i 1177 bara när patienten har ett konto där, och ett kvalitetsregister får veta att uppgifterna för en registrering finns. Innan något lämnas till ett register prövar systemet om patienten har motsatt sig registreringen, med en gemensam funktion (`provaUtlamning` i `rivta-r3.js`) som alla utgående registreringar anropar. Formulärtjänsten, 1177 och NKRR är simulerade (`rivta-etjanster-simulerade.js`). Grunden tar domäner som heter riv-application. Mallarna i formulärtjänsten förvaltas inte från Vårdkällan, och det finns inget gränssnitt för de tre flödena än.
+
+### Dosdispensering (riv.druglogistics.dosedispensing 1.1.0)
+
+| Kontrakt | Version | Vårdkällans roll | Byggt i | Testat i |
+| --- | --- | --- | --- | --- |
+| SkapaVardtagare | 1.0 | konsument | `rivta-dos.js` | `test/rivta-dos-r14.test.js` |
+| HamtaVardtagareinformation | 1.0 | konsument | `rivta-dos.js` | `test/rivta-dos-r14.test.js` |
+
+Domänen finns bara i RIVTA Basic Profile 2.0, där den logiska adressen står i WS-Addressing (wsa:To). Grunden läser nu WSDL för profil 2.0 och skriver och läser wsa:To (eget block i `kontrakt.js`, `soap.js` och `klient.js`, där `def.profil` anger profilen). Läkaren anmäler patienten som dospatient med samtycke, och dosapoteket är simulerat (`rivta-dos-simulerad.js`). Ordinationen av dosdispenserade läkemedel görs i eHälsomyndighetens e-tjänst, som inte går att ansluta i demon.
+
+### E-recept
+
+eHälsomyndighetens kontrakt för att skicka och makulera e-recept finns inte bland de publika tjänstedomänerna. Domänen riv.se.apotekensservice.or har bara hämtning av ordinationer, och dess filer saknar licensuppgift, så den är inte hämtad. Förskrivningen går som förut till den simulerade Nationella läkemedelslistan.
+
+### Infektionsverktyget (riv.processdevelopment.infections 1.0.2)
+
+| Kontrakt | Version | Vårdkällans roll | Byggt i | Testat i |
+| --- | --- | --- | --- | --- |
+| ProcessCareEncounter, ProcessCondition, ProcessPrescriptionReason, DeleteCondition | 1.0 | konsument | `rivta-infektion.js` | `test/rivta-infektion-r14.test.js` |
+
+Domänen finns bara i RIVTA Basic Profile 2.0, och meddelandena är openEHR-kompositioner med abstrakta typer som anges med xsi:type. Valideringen i grunden tar nu emot xsi:type till en typ som är härledd från den deklarerade (extension eller restriction) och kräver xsi:type för en abstrakt typ, och serialiseraren skriver värdet i xsi:type med rätt prefix (egna block i `xsd.js` och `xml.js`). Meddelandena byggs ur domänens egna mallar (Mall *.xml), där systemet fyller i variablerna, och konsumenten tar emot ett färdigt element (eget block i `klient.js`). Mallarna följer inte schemat på två ställen (template_id och namnet på tillståndet med å), och då följer Vårdkällan schemat. Överföringen görs av systemet när en infektionsdiagnos eller ett antibiotikum registreras, och Infektionsverktyget är simulerat (`rivta-infektion-simulerad.js`). Åtgärder, provsvar och de övriga borttagningarna är inte byggda.
+
+### Del r3 genom den lokala tjänsteplattformen
+
+`test/rivta-plattform-r14r3.test.js` anropar varje kontrakt i del r3 en gång genom r2:s lokala tjänsteplattform (`rivta/plattform.js`) med ömsesidig TLS och testcertifikat: intyg (utkast, lista och statusuppdatering till vårdenheten), e-remiss åt båda hållen, formulär, 1177, NKRR, dosdispensering, Infektionsverktyget i profil 2.0 med wsa:To och vaccinationerna med den aggregerande tjänsten som konsument. Producenterna ser den ursprungliga konsumenten bakom plattformen, och ett anrop som inte står i den lokala TAK-tabellen stoppas med VP007.
+

@@ -9,7 +9,10 @@ const S = 'Tjänstekontrakt i RIVTA, sammanhållen journalföring > ';
 const R = 'Tjänstekontrakt i RIVTA, HSA, PU-tjänsten och engagemangsindex > ';
 const P = 'Tjänstekontrakt i RIVTA, tjänsteplattform > ';
 
-export default [
+// Runda 14, r3: intyg, vaccinationer, e-remiss och de andra kontrakten i del r3 (../runda14-r3.js).
+import { medR14r3 } from '../runda14-r3.js';
+
+export default medR14r3([
   { id: '2.2.1.1', kategori: 'nationell', egna: ['L9'], avsedd: 'delvis',
     tester: [`${R}personalens uppgifter hämtas ur HSA-katalogen med GetEmployeeIncludingProtectedPerson och jämförs med personalkatalogen`, `${P}alla producenter och konsumenter i Vårdkällan går genom den lokala tjänsteplattformen`, `${G}valideringen följer schemat: ordning, obligatoriska element, kodlistor, mönster och främmande namnrymder`],
     losning: 'Vårdkällan är konsument av HSA-katalogen med GetEmployeeIncludingProtectedPerson 4.0 (riv.infrastructure.directory.employee). Systemförvaltaren ser för varje person om personalkatalogen stämmer med HSA, och vad som skiljer sig. Katalogen i demon är simulerad och svarar med demons påhittade HSA-uppgifter, märkta som påhittade.',
@@ -61,4 +64,4 @@ export default [
     anmarkning: 'Tjänstekontraktet är inte anslutet. Vårdkällan har inga integrationer mot tjänsteplattformen i första versionen. Tabellen över tjänstekontrakten i K10 på sidan Öppet API visar vad som finns lokalt.' },
   { id: '2.2.1.14', kategori: 'nationell', egna: ['L8'], tester: [], avsedd: 'planerat',
     anmarkning: 'Tjänstekontraktet är inte anslutet. Vårdkällan har inga integrationer mot tjänsteplattformen i första versionen. Tabellen över tjänstekontrakten i K10 på sidan Öppet API visar vad som finns lokalt.' },
-];
+]);

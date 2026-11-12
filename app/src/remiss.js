@@ -58,6 +58,9 @@ export function remissUt(db, r, { klinisk = true, patient = null } = {}) {
   Object.assign(ut, r8.remissTillagg(db, r, klinisk));
   // Runda 10, r6: remiss eller konsultation, vårdansvaret och läkarens kvittens av ett beslut på uppdrag.
   r10.utoka(db, r, klinisk, ut);
+  // Runda 14, r3: e-remiss till och från vårdgivare utanför Vårdkällan (eremiss.js). Läses när den behövs, eftersom
+  // eremiss.js importerar den här modulen.
+  Object.assign(ut, require('./eremiss.js').tillagg(db, r, klinisk));
   return ut;
 }
 
@@ -112,6 +115,11 @@ function kravAvsandare(atk, r) {
   if (vardenhetFor(atk.db, atk.personal.enhet_id) !== r.fran_enhet_id) throw new Fel(403, 'Bara den remitterande vårdenheten kan kvittera svaret.', 'nekad');
 }
 const fel = (text) => new Fel(400, text, 'ogiltig');
+// Runda 14, r3: beskedet till avsändaren av en inkommande e-remiss skickas i bakgrunden (eremiss.js och rivta-r3.js).
+function eremissBesked(atk, remissId, handling) {
+  const er = require('./eremiss.js');
+  require('./rivta-r3.js').bakgrund(atk.db, er.efterHandling(atk.db, atk.personal, remissId, handling));
+}
 
 export function mottag(atk, r) {
   kravMottagare(atk, r);
@@ -119,6 +127,8 @@ export function mottag(atk, r) {
   r8.kravMottag(atk, r);
   if (r.status !== 'skickad') throw fel('Remissen är redan mottagen.');
   atk.db.query("UPDATE remisser SET status = 'mottagen', mottagen_tid = ?, mottagen_av = ? WHERE id = ?").run(iso(), atk.personal.id, r.id);
+  // Runda 14, r3: en e-remiss får mottagningsbekräftelsen till avsändaren av systemet.
+  eremissBesked(atk, r.id, 'mottag');
   return remissUt(atk.db, hamtaRad(atk.db, r.id), { klinisk: kanRoll(atk.personal, 'las_remiss') });
 }
 
@@ -130,6 +140,8 @@ export function bedom(atk, r, { beslut, motivering }) {
   const m = typeof motivering === 'string' ? motivering.trim() : '';
   if (beslut === 'avvisad' && m.length < 3) throw new Fel(400, 'En avvisad remiss måste ha en motivering.', 'ogiltig', { falt: ['motivering'] });
   atk.db.query("UPDATE remisser SET status = 'bedomd', bedomd_tid = ?, bedomd_av = ?, beslut = ?, motivering = ? WHERE id = ?").run(iso(), atk.personal.id, beslut, m || null, r.id);
+  // Runda 14, r3: en avvisad e-remiss får beskedet till avsändaren av systemet.
+  eremissBesked(atk, r.id, 'bedom');
   return remissUt(atk.db, hamtaRad(atk.db, r.id));
 }
 
@@ -143,6 +155,8 @@ export function svara(atk, r, { svar }) {
   const s = typeof svar === 'string' ? svar.trim() : '';
   if (s.length < 3 || s.length > 8000) throw new Fel(400, 'Skriv ett svar.', 'ogiltig', { falt: ['svar'] });
   atk.db.query("UPDATE remisser SET status = 'besvarad', besvarad_tid = ?, besvarad_av = ?, svar = ? WHERE id = ?").run(iso(), atk.personal.id, s, r.id);
+  // Runda 14, r3: svaret på en e-remiss går till avsändaren med ProcessRequestOutcome.
+  eremissBesked(atk, r.id, 'svara');
   // Runda 6, r4: en egen vårdbegäran har ingen remitterande vårdenhet som kvitterar svaret. Svaret går till patienten i
   // Min journal, och systemet kvitterar det, så att vårdrelationen genom begäran upphör som för en kvitterad remiss.
   // Runda 8, r2: svaret på en extern pappersremiss skickas med post, och systemet kvitterar det på samma sätt.

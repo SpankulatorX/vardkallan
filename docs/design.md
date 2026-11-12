@@ -2951,6 +2951,20 @@ fastande eller efter måltid vid värdet bland patientens egna mätningar.
 gallring och radering går att godkänna för varje vårdenhet. Kardiologens och onkologens verksamhetschefer går att logga
 in som. De andra har påhittade namn och är bara data.
 
+## Intyg, e-remiss och vaccinationer i RIVTA (runda 14, r3: lakarintyg.js, intygsapplikation-simulerad.js, eremiss.js, eremiss-simulerad.js, rivta-vaccination.js och rivta-r3.js, Sussa 2.2.1.9, 2.2.1.11, 2.2.1.12 och 3.3.1.2)
+
+Hur kontrakten är byggda och testade står i `docs/rivta.md`. Här står det som rör journalen.
+
+Intyg. Fliken Intyg visas för läkare och sjuksköterskor (`las_intyg`), och bara läkaren skapar och signerar (`skriv_intyg`). Systemet visar bara de intygstyper som får skrivas för patienten (åldern, en avliden patient och skyddade personuppgifter, som i Webcerts regler) och föreslår dödsbevis för en avliden och läkarintyg för sjukpenning när det finns en diagnos från den egna vårdenheten. Förifyllnaden räknas bara på den egna vårdenhetens diagnoser, efter samma prövning som journalen, så att inget från en annan eller spärrad vårdenhet kan följa med. För en patient med skyddade personuppgifter skickas ingen adress. Intyget hör till den vårdenhet som skapade det och visas för andra vårdenheter efter samma regler som journalen, med aktivt val och spärr. En statusuppdatering för ett intyg som journalen inte har skapat, med fel referens, fel vårdenhet eller fel patient avvisas och ändrar ingenting, och en sen eller dubblerad händelse flyttar aldrig tillbaka statusen. Händelserna sparas och ändras aldrig. Intygsapplikationen är simulerad och nås bara av personal på den vårdenhet som äger intyget, och varje läsning loggas på patienten.
+
+E-remiss. En e-remiss är en vanlig remiss med samma statuskedja, larm och kvittens. Diagnoserna i remissen tas bara från den egna vårdenheten. En inkommande e-remiss registreras av systemet och ger vårdrelation först när någon på vårdenheten har tagit emot den, som en pappersremiss. Demon kan skicka en inkommande e-remiss bara för en patient som vårdenheten redan har vårdrelation till, så att den aldrig ger någon åtkomst till en ny patient. Patienter som inte finns och patienter med fel personnummer får samma svar, så att avsändaren inte kan pröva vilka patienter som finns.
+
+Vaccinationer. GetVaccinationHistory läser vaccinationerna som FHIR Immunization med den anropande organisationens systemkonto, med samma prövning som journalens producenter.
+
+Formulär, 1177, NKRR, dosdispensering och Infektionsverktyget. Vårdkällan är konsument mot simulerade tjänster: ett formulär inför besöket, ett meddelande till 1177:s inkorg bara när patienten har ett konto, ett meddelande till ett kvalitetsregister, anmälan av en dospatient och överföringen av vårdtillfällen, infektionsdiagnoser och antibiotika till Infektionsverktyget. Innan uppgifter lämnas till ett register eller en uppföljningstjänst anropar varje flöde samma prövning (provaUtlamning i rivta-r3.js): ingen patient med skyddade personuppgifter, inga uppgifter från en vårdenhet som patienten har spärrat och, för kvalitetsregister, ingen patient som har motsatt sig registreringen. En prövning som inte kan avgöras stoppar.
+
+Simulerat: intygsapplikationen (inte Webcert), de externa vårdgivarna med e-remiss, formulärtjänsten, 1177, NKRR, dosapoteket, Infektionsverktyget och de nationella konsumenterna. Inget av kontrakten är anslutet till den nationella tjänsteplattformen. Frågor och svar på intyg, remisstatus till 1177 och Journalen och bilagor i e-remissen finns inte.
+
 ## Tjänstekontrakten i RIVTA (runda 14, r2: src/rivta/, sammanhallen.js och tjanstekontrakt.js)
 
 Sussa 2.2.1.1 till 2.2.1.4, 2.2.1.7, 2.2.1.8 och 2.2.1.10 kräver stöd för tjänstekontrakten i bilaga K10. Vårdkällan bygger dem nu mot de riktiga tjänstekontrakten i RIVTA, med schemana pinnade under `app/rivta/` (källa, tagg, commit och sha256 i `KALLA.json`, licensen Apache 2.0 i docs/kodkontroll.md). Hur grunden och varje kontrakt är byggda och testade står i docs/rivta.md.

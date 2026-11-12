@@ -1,0 +1,20 @@
+{
+  "domän": "riv-application.infrastructure.eservicesupply.patientportal",
+  "källa": "https://bitbucket.org/rivta-domains/riv-application.infrastructure.eservicesupply.patientportal",
+  "tagg": "2.0",
+  "commit": "444af395016bd6c97d1b6ca26014c5890359f0e7",
+  "arkiv": "https://bitbucket.org/rivta-domains/riv-application.infrastructure.eservicesupply.patientportal/get/444af395016bd6c97d1b6ca26014c5890359f0e7.tar.gz",
+  "arkivSha256": "6a1623512018d2d7880073d7d4aedda65057bedce6795f25524a5a0f3fb2e86c",
+  "licens": "Apache License 2.0 (huvudet i varje schemafil)",
+  "hämtat": "2026-11-12",
+  "filer": {
+    "schemas/core_components/infrastructure_eservicesupply_patientportal_2.0.xsd": "cc6016ea4ba1dabf7cefe9e4655a4d9570ed17d2e55a33c30222061675729ab5",
+    "schemas/core_components/itintegration_registry_1.0.xsd": "3642d467194f166cb8d87d603800a591b31b11bd2c09e338c22073e33df622a4",
+    "schemas/interactions/AddMessageInteraction/AddMessageInteraction_2.0_RIVTABP21.wsdl": "22197b4b5918ddb637a52dd5d8e1df86299aa9133e4bafec3d6e03e894ac82b0",
+    "schemas/interactions/AddMessageInteraction/AddMessageResponder_2.0.xsd": "b81a7d1d0f3d8ee041a4de15925f244ca5a0893163e6b9089ab8f9a66ae0fbd7",
+    "schemas/interactions/GetMessageThreadStatusInteraction/GetMessageThreadStatusInteraction_2.0_RIVTABP21.wsdl": "0bdfe2db99a6209e07190106b2beae677cc3feee97e49fc4d0723ae267afacd1",
+    "schemas/interactions/GetMessageThreadStatusInteraction/GetMessageThreadStatusResponder_2.0.xsd": "531c7a08d0d475c8af8f59888e6d2854e1f9f4e94b549395ea65310973aff2be",
+    "schemas/interactions/IsActiveUserInteraction/IsActiveUserInteraction_2.0_RIVTABP21.wsdl": "ae76879f95d30746e19e153579a8ebc0fc20c8ca6994bc392d53d070376a6d56",
+    "schemas/interactions/IsActiveUserInteraction/IsActiveUserResponder_2.0.xsd": "f974c60dc60043c2147ea0612804c4be53809f3a1a5d42f6c66b1c293bc3c20a"
+  }
+}

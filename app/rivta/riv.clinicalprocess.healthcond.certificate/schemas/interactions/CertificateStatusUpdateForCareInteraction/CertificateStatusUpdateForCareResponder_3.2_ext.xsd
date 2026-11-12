@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<xs:schema
+	xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+	xmlns:types="urn:riv:clinicalprocess:healthcond:certificate:types:3"
+        xmlns:tns="urn:riv:clinicalprocess:healthcond:certificate:CertificateStatusUpdateForCareResponder:3.2"
+	targetNamespace="urn:riv:clinicalprocess:healthcond:certificate:CertificateStatusUpdateForCareResponder:3.2"
+	elementFormDefault="qualified" 
+	attributeFormDefault="unqualified"
+	version="3.2">
+
+	<xs:import namespace="urn:riv:clinicalprocess:healthcond:certificate:types:3"
+	    schemaLocation="../../core_components/clinicalprocess_healthcond_certificate_types_3.2.xsd" />
+
+	<xs:element name="hanteratAv" type="types:HsaId" />
+
+</xs:schema>

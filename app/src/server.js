@@ -154,6 +154,8 @@ import { registreraRutter as r12r2Rutter } from './runda12-r2-rutter.js';
 import { MIGRERINGAR as r12r2Migreringar } from './releaser.js';
 // Runda 13, r1: testinbjudan, guidade uppdrag och synpunkter (r13r1-rutter.js).
 import { registreraRutter as r13r1Rutter } from './r13r1-rutter.js';
+// Runda 14, r3: intyg genom intygsapplikationen och e-remiss (r14r3-rutter.js).
+import { registreraRutter as r14r3Rutter } from './r14r3-rutter.js';
 import { skapaKopielager, schemalagdaStegvis } from './sakerhetskopior.js';
 // Runda 13, r2: sandlådor som vilar på disk, inga tappade sandlådor och en vänlig sida när demon är full.
 import { Database } from 'bun:sqlite';
@@ -2474,6 +2476,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   r11r7Rutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal });
   // Runda 12, r1 (r12r1-rutter.js).
   r12r1Rutter({ rutt, kravInloggad });
+  // Runda 14, r3 (r14r3-rutter.js).
+  r14r3Rutter({ rutt, kravInloggad, medPatient, valFor });
   // Runda 13, r1 (r13r1-rutter.js).
   const synpunkter = r13r1Rutter({ rutt, sessionFil, synpunktFil, version: APPVERSION, gransnittVersion, ...(synpunktTak ? { tak: synpunktTak } : {}) });
   // Runda 12, r2.

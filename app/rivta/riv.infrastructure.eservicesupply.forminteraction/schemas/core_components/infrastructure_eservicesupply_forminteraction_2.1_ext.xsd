@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- 
+ Licensed to the Apache Software Foundation (ASF) under one
+ or more contributor license agreements. See the NOTICE file
+ distributed with this work for additional information
+ regarding copyright ownership. Sveriges Kommuner och Landsting licenses this file
+ to you under the Apache License, Version 2.0 (the
+ "License"); you may not use this file except in compliance
+ with the License. You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied. See the License for the
+ specific language governing permissions and limitations
+ under the License.
+ -->		
+<xs:schema xmlns:xs='http://www.w3.org/2001/XMLSchema' xmlns:tns='urn:riv:infrastructure:eservicesupply:forminteraction:2.1' targetNamespace='urn:riv:infrastructure:eservicesupply:forminteraction:2.1' elementFormDefault='qualified' attributeFormDefault='unqualified' version='2.1'>
+    <xs:annotation>
+    <xs:documentation>
+        Beskrivning: Extensibility schema for 
+        Revisioner:
+        2020-11-01: Release thomas.fafoutis@inera.se.
+    </xs:documentation>
+    </xs:annotation>
+    <xs:element name="answerMinLabel" type="xs:string"/>
+    <xs:element name="answerMaxLabel" type="xs:string"/>
+    <xs:element name="answerPlaceholder" type="xs:string"/>
+    <xs:element name="calculationOutcome" type="tns:CalculationOutcomeType"/>
+    <xs:element name="formula" type="tns:CalculationFormulaType"/>
+    <xs:element name="mediaAlt" type="xs:string"/>
+    <xs:element name="mediaCaption" type="xs:string"/>
+    <xs:element name="questionId" type="xs:string"/>
+    <xs:element name="actor" type="tns:ActorType"/>
+
+  <xs:complexType name="IIType">
+    <xs:sequence>
+      <xs:element name="root" type="xs:string"/>
+      <xs:element name="extension" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="CalculationOutcomeType">
+    <xs:annotation>
+      <xs:documentation>
+        Håller resultat från beräkningen
+        - calculationId : id för beräkningformel i mallen
+        - outcome : resultat från beräkningformel
+        - errorMessage: meddelande om fel vid beräkning, medför att outcome = null
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="calculationId" type="tns:ElementIdType" />
+      <xs:element name="outcome" type="xs:double" minOccurs="0" />
+      <xs:element name="errorMessage" type="xs:string" minOccurs="0" />
+      <xs:any namespace='##other' processContents='lax' minOccurs='0' maxOccurs='unbounded' />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="CalculationFormulaType">
+    <xs:annotation>
+      <xs:documentation>
+        Element som håller beräkningsformel som används vid beräkning av resultat
+        - calculationId : unikt id för beräkningsformel
+        - subject : rubrik för formeln
+        - descriptionCareActor : beskrivning för vårdgivaren
+        - descriptionSubjectOfCare : beskrivning för vårdtagaren
+        - approvedForSubjectOfCare : får resultatet visas för vårdtagaren
+        - type : typ av DSL för formeln t.ex drools, json etc
+        - license : licens för beräkningsformeln
+        - outcomePresentationPrecision : antal decimaler vid presentation
+        - formula : beräkningformeln
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="calculationId" type="tns:ElementIdType" />
+      <xs:element name="subject" type="xs:string" />
+      <xs:element name="descriptionCareActor" type="xs:string" minOccurs="0" />
+      <xs:element name="descriptionSubjectOfCare" type="xs:string" minOccurs="0" />
+      <xs:element name="approvedForSubjectOfCare" type="xs:boolean" minOccurs="0" />
+      <xs:element name="type" type="xs:string" minOccurs="0" />
+      <xs:element name="license" type="xs:string" minOccurs="0" />
+      <xs:element name="outcomePresentationPrecision" type="xs:integer" minOccurs="0" />
+      <xs:element name="formula" type="xs:string" />
+      <xs:any namespace='##other' processContents='lax' minOccurs='0' maxOccurs='unbounded' />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:simpleType name="ElementIdType">
+    <xs:annotation>
+      <xs:documentation>unique Id</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+      <xs:maxLength value="1024"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+	<xs:complexType name="ActorType">
+		<xs:sequence>
+			<xs:element name="actorId" type="tns:IIType"/>
+			<xs:element name="actorType" type="tns:ActorTypeEnum"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:simpleType name='ActorTypeEnum'>
+		<xs:restriction base='xs:string'>
+			<xs:enumeration value='CITIZEN' />
+			<xs:enumeration value='GUARDIAN' />
+			<xs:enumeration value='CAREGIVER' />
+		</xs:restriction>
+	</xs:simpleType>
+
+</xs:schema>

@@ -41,6 +41,8 @@ import * as blodFlik from './patient-blod.js';
 import * as bilderFlik from './patient-bilder.js';
 // Runda 11, r7: intensivvården som flik i journalen.
 import * as ivaFlik from './patient-iva.js';
+// Runda 14, r3: intyg genom intygsapplikationen.
+import * as intygFlik from './patient-intyg.js';
 
 export const namn = 'patient';
 
@@ -95,6 +97,8 @@ FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'prover') + 1, 0,
 FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'prover') + 1, 0, ['bilder', 'Bilder', () => pa('las_journal', 'las_omvardnad'), bilderFlik]);
 // Runda 11, r7: fliken Intensivvård efter Mätvärden, för personalen på en vårdenhet med intensivvårdsavdelning.
 FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'matvarden') + 1, 0, ['iva', 'Intensivvård', () => Boolean(S.session?.iva) && far('las_matvarden'), ivaFlik]);
+// Runda 14, r3: fliken Intyg efter Remisser, för läkare och sjuksköterskor (Sussa 2.2.1.9).
+FLIKAR.splice(FLIKAR.findIndex(f => f[0] === 'remisser') + 1, 0, ['intyg', 'Intyg', () => far('las_intyg'), intygFlik]);
 
 let huvud = null;
 

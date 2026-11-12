@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- 
+ Licensed to the Apache Software Foundation (ASF) under one
+ or more contributor license agreements. See the NOTICE file
+ distributed with this work for additional information
+ regarding copyright ownership. Sveriges Kommuner och Landsting licenses this file
+ to you under the Apache License, Version 2.0 (the
+ "License"); you may not use this file except in compliance
+ with the License. You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied. See the License for the
+ specific language governing permissions and limitations
+ under the License.
+ -->		
+<wsdl:definitions name='SaveFormInteraction' xmlns:wsdl='http://schemas.xmlsoap.org/wsdl/' xmlns:soap='http://schemas.xmlsoap.org/wsdl/soap/' xmlns:xs='http://www.w3.org/2001/XMLSchema' 
+                  xmlns:tjsr='urn:riv:infrastructure:eservicesupply:forminteraction:SaveFormResponder:2' xmlns:tjsi='urn:riv:infrastructure:eservicesupply:forminteraction:SaveFormInitiator:2' 
+                  xmlns:tns='urn:riv:infrastructure:eservicesupply:forminteraction:SaveForm:2:rivtabp21' targetNamespace='urn:riv:infrastructure:eservicesupply:forminteraction:SaveForm:2:rivtabp21' xmlns:itr='urn:riv:itintegration:registry:1'>
+  <xs:annotation>
+    <xs:documentation>
+			 Tjänsteinteraktionens namn: SaveFormInteraction
+			 Beskrivning: 
+			   Spara och avsluta. Tjänsten används för att spara och avsluta formulär.
+			 Revisioner: 
+			 Tjänstedomän: infrastructure:eservicesupply:forminteraction
+			 Tjänsteinteraktionstyp: Fråga-Svar
+			 WS-profil: RIVTABP21
+			 Förvaltas av: Sveriges Kommuner och Landsting
+			 Författare: Marco de Luca
+			 </xs:documentation>
+  </xs:annotation>
+  <wsdl:types>
+    <xs:schema targetNamespace='urn:riv:infrastructure:eservicesupply:forminteraction:SaveForm:2:rivtabp21'>
+      <xs:import schemaLocation='SaveFormResponder_2.1.xsd' namespace='urn:riv:infrastructure:eservicesupply:forminteraction:SaveFormResponder:2' />
+      <xs:import schemaLocation='../../core_components/itintegration_registry_1.0.xsd' namespace='urn:riv:itintegration:registry:1' />
+    </xs:schema>
+  </wsdl:types>
+  <wsdl:message name='SaveFormRequest'>
+    <wsdl:part name='LogicalAddress' element='itr:LogicalAddress'>
+      <wsdl:documentation>Logical address description</wsdl:documentation>
+    </wsdl:part>
+    <wsdl:part name='parameters' element='tjsr:SaveForm' />
+  </wsdl:message>
+  <wsdl:message name='SaveFormResponse'>
+    <wsdl:part name='parameters' element='tjsr:SaveFormResponse' />
+  </wsdl:message>
+  <wsdl:portType name='SaveFormResponderInterface'>
+    <wsdl:operation name='SaveForm'>
+      <wsdl:input message='tns:SaveFormRequest' />
+      <wsdl:output message='tns:SaveFormResponse' />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name='SaveFormResponderBinding' type='tns:SaveFormResponderInterface'>
+    <soap:binding style='document' transport='http://schemas.xmlsoap.org/soap/http' />
+    <wsdl:operation name='SaveForm'>
+      <soap:operation soapAction='urn:riv:infrastructure:eservicesupply:forminteraction:SaveFormResponder:2:SaveForm' style='document' />
+      <wsdl:input>
+        <soap:header use='literal' message='tns:SaveFormRequest' part='LogicalAddress' />
+        <soap:body use='literal' parts='parameters' />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use='literal' />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name='SaveFormResponderService'>
+    <wsdl:port name='SaveFormResponderPort' binding='tns:SaveFormResponderBinding'>
+      <soap:address location='http://tempuri.org' />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

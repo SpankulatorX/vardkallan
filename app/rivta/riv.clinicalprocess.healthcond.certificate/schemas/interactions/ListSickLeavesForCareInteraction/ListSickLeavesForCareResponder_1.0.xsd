@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- 
+ Licensed to the Apache Software Foundation (ASF) under one
+ or more contributor license agreements. See the NOTICE file
+ distributed with this work for additional information
+ regarding copyright ownership. Sveriges Kommuner och Landsting licenses this file
+ to you under the Apache License, Version 2.0 (the
+ "License"); you may not use this file except in compliance
+ with the License. You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied. See the License for the
+ specific language governing permissions and limitations
+ under the License.
+ -->
+<xs:schema xmlns:xs='http://www.w3.org/2001/XMLSchema'
+    xmlns:tns='urn:riv:clinicalprocess:healthcond:certificate:ListSickLeavesForCareResponder:1'
+    xmlns:types="urn:riv:clinicalprocess:healthcond:certificate:types:3"
+    xmlns:core="urn:riv:clinicalprocess:healthcond:certificate:3"
+    targetNamespace='urn:riv:clinicalprocess:healthcond:certificate:ListSickLeavesForCareResponder:1'
+    elementFormDefault='qualified'
+    attributeFormDefault='unqualified'
+    version='1.0'>
+
+  <xs:import namespace="urn:riv:clinicalprocess:healthcond:certificate:3" schemaLocation="../../core_components/clinicalprocess_healthcond_certificate_3.0.xsd"/>
+  <xs:import namespace="urn:riv:clinicalprocess:healthcond:certificate:types:3" schemaLocation="../../core_components/clinicalprocess_healthcond_certificate_types_3.0.xsd"/>
+
+  <xs:element name='ListSickLeavesForCare' type='tns:ListSickLeavesForCareType'/>
+  <xs:element name='ListSickLeavesForCareResponse' type='tns:ListSickLeavesForCareResponseType'/>
+
+  <xs:complexType name='ListSickLeavesForCareType'>
+    <xs:sequence>
+      <xs:element name='enhets-id' type='types:HsaId'/>
+      <xs:element name='maxDagarMellanIntyg' type='xs:int'/>
+      <xs:element name='minstaSjukskrivningslangd' type='xs:int' minOccurs='0'/>
+      <xs:element name='maxSjukskrivningslangd' type='xs:int' minOccurs='0'/>
+      <xs:element name='personal-id' type='types:HsaId' minOccurs='0' maxOccurs='unbounded' />
+      <xs:any namespace='##other' processContents='lax' minOccurs='0' maxOccurs='unbounded'/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name='ListSickLeavesForCareResponseType'>
+    <xs:sequence>
+      <xs:element name='sjukfallLista' type="tns:SjukfallLista"/>
+      <xs:any namespace='##other' processContents='lax' minOccurs='0' maxOccurs='unbounded'/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="SjukfallLista">
+    <xs:sequence>
+      <xs:element name="sjukfall" type="tns:Sjukfall" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="Sjukfall">
+    <xs:sequence>
+      <xs:element name="person-id" type="types:PersonId"/>
+      <xs:element name="patientFullstandigtNamn" type="xs:string" minOccurs="0"/>
+      <xs:element name="enhets-id" type="types:HsaId"/>
+      <xs:element name="personal-id" type="types:HsaId"/>
+      <xs:element name="startdatum" type="types:DateType"/>
+      <xs:element name="slutdatum" type="types:DateType"/>
+      <xs:element name="diagnoskod" type="tns:Diagnoskod"/>
+      <xs:element name="antalIntyg" type="xs:int"/>
+      <xs:element name="sjukskrivningslangd" type="xs:int"/>
+      <xs:element name="sjukskrivningsgrad" type="tns:Sjukskrivningsgrad"/>
+      <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="Diagnoskod">
+    <xs:annotation>
+      <xs:documentation />
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="code" type="xs:string" />
+      <xs:element name="codeSystem" type="xs:string" minOccurs="0" />
+      <xs:element name="codeSystemName" type="xs:string"
+          minOccurs="0" />
+      <xs:element name="codeSystemVersion" type="xs:string"
+          minOccurs="0" />
+      <xs:element name="displayName" type="xs:string" minOccurs="0" />
+      <xs:element name="originalText" type="xs:string"
+          minOccurs="0" />
+      <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="Sjukskrivningsgrad">
+    <xs:sequence>
+      <xs:element name="aktivGrad" type="xs:int"/>
+      <xs:element name="grader" type="tns:Sjukskrivningsgrader"/>
+      <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="Sjukskrivningsgrader">
+    <xs:sequence>
+      <xs:element name="grad" type="xs:int" minOccurs="1" maxOccurs="4"/>
+      <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>

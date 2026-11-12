@@ -206,8 +206,15 @@ export function el(ns, lokal, barn = [], attr = []) {
 export function skriv(rot, { prefix = {}, deklaration = false } = {}) {
   const tilldelade = new Map();
   let n = 0;
+  // Runda 14, r3: värdet i xsi:type är ett QName. Dess namnrymd får ett prefix som andra, och värdet skrivs med det.
+  const XSI = 'http://www.w3.org/2001/XMLSchema-instance';
+  const xsiNs = (e, a) => {
+    if (a.ns !== XSI || a.lokal !== 'type' || !e.prefixer) return null;
+    const i = a.varde.indexOf(':');
+    return e.prefixer[i < 0 ? '' : a.varde.slice(0, i)] ?? null;
+  };
   const samla = (e) => {
-    for (const ns of [e.ns, ...e.attr.map(a => a.ns)]) {
+    for (const ns of [e.ns, ...e.attr.map(a => a.ns), ...e.attr.map(a => xsiNs(e, a))]) {
       if (ns && ns !== XML_NS && !tilldelade.has(ns)) tilldelade.set(ns, prefix[ns] ?? `ns${++n}`);
     }
     e.barn.forEach(samla);
@@ -216,7 +223,7 @@ export function skriv(rot, { prefix = {}, deklaration = false } = {}) {
   const q = (ns, lokal) => (!ns ? lokal : ns === XML_NS ? `xml:${lokal}` : `${tilldelade.get(ns)}:${lokal}`);
   const ut = [];
   const skrivEl = (e, rotEl) => {
-    const a = e.attr.map(x => ` ${q(x.ns, x.lokal)}="${esc(x.varde)}"`).join('');
+    const a = e.attr.map(x => { const ns = xsiNs(e, x); const v = ns ? `${tilldelade.get(ns)}:${x.varde.slice(x.varde.indexOf(':') + 1)}` : x.varde; return ` ${q(x.ns, x.lokal)}="${esc(v)}"`; }).join('');
     const d = rotEl ? [...tilldelade.entries()].map(([ns, p]) => ` xmlns:${p}="${esc(ns)}"`).join('') : '';
     const namn = q(e.ns, e.lokal);
     if (!e.barn.length && !e.text) { ut.push(`<${namn}${d}${a}/>`); return; }

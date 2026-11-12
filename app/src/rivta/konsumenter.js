@@ -19,6 +19,9 @@ export const SJF = 'SE0000000000-SIMSJF';
 const JOURNALKONTRAKT = ['GetCareDocumentation', 'GetDiagnosis', 'GetAlertInformation', 'GetCareContacts', 'GetObservations', 'GetActivities',
   'GetLaboratoryOrderOutcome', 'GetReferralOutcome', 'GetMedicationHistory'];
 const MANGDER = ['anteckningar', 'diagnoser', 'uppmarksamhet', 'overkanslighet', 'vardkontakter', 'matvarden', 'lakemedel', 'atgarder'];
+// Runda 14, r3: de simulerade konsumenterna läser också vaccinationer (GetVaccinationHistory, rivta-vaccination.js).
+JOURNALKONTRAKT.push('GetVaccinationHistory');
+MANGDER.push('vaccinationer');
 
 export const DEMO = [
   { hsaId: NPO, namn: 'NPÖ, simulerad konsument i demon', syfte: 'Nationell patientöversikt: vårdpersonal hos andra vårdgivare läser journaluppgifter vid sammanhållen journalföring.', kontrakt: [...JOURNALKONTRAKT, 'AssertCareEngagement'], mangder: MANGDER },

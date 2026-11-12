@@ -36,14 +36,19 @@ const cache = new Map();
 export function kontrakt(doman, namn, version) {
   const k = `${doman}|${namn}|${version}`;
   if (cache.has(k)) return cache.get(k);
-  if (!/^riv(\.[a-z]+)+$/.test(doman) || !/^[A-Z][A-Za-z]+$/.test(namn) || !/^\d+\.\d+$/.test(version)) throw new SchemaFel(`Okänt tjänstekontrakt ${doman} ${namn} ${version}.`);
-  const fil = filerI(join(RIVTA_ROT, doman, 'schemas')).find(f => f.endsWith(`/${namn}Interaction_${version}_RIVTABP21.wsdl`));
+  // Runda 14, r3: domäner för tillämpningar heter riv-application (till exempel 1177:s patientportal).
+  if (!/^riv(-application)?(\.[a-z]+)+$/.test(doman) || !/^[A-Z][A-Za-z]+$/.test(namn) || !/^\d+\.\d+$/.test(version)) throw new SchemaFel(`Okänt tjänstekontrakt ${doman} ${namn} ${version}.`);
+  // Runda 14, r3: äldre domäner (Infektionsverktyget och dosdispenseringen) finns bara i RIVTA Basic Profile 2.0, där den
+  // logiska adressen står i WS-Addressing (wsa:To) i stället för i LogicalAddress. Profilen står i def.profil.
+  const allaFiler = filerI(join(RIVTA_ROT, doman, 'schemas'));
+  const fil = allaFiler.find(f => f.endsWith(`/${namn}Interaction_${version}_RIVTABP21.wsdl`)) ?? allaFiler.find(f => f.endsWith(`/${namn}Interaction_${version}_RIVTABP20.wsdl`));
   if (!fil) throw new SchemaFel(`WSDL för ${namn} ${version} finns inte bland de pinnade schemana för ${doman}.`);
   const w = tolka(readFileSync(fil, 'utf8'));
   // Schemat för meddelandena är det som WSDL:en importerar, utom registret för den logiska adressen.
   const typer = barn(w, 'types', WSDL);
   const xsdImporter = barnen(barn(typer, 'schema', XS), 'import', XS).map(i => attribut(i, 'schemaLocation'));
-  const responder = xsdImporter.find(p => !p.endsWith(REGISTRY_XSD));
+  // Runda 14, r3: i profil 2.0 importerar WSDL:en också schemat för WS-Addressing, som inte är meddelandets schema.
+  const responder = xsdImporter.find(p => !p.endsWith(REGISTRY_XSD) && !/ws-addressing/.test(p));
   const registry = xsdImporter.find(p => p.endsWith(REGISTRY_XSD));
   const op = barn(barn(w, 'binding', WSDL), 'operation', WSDL);
   const soapAction = attribut(barn(op, 'operation', WSDL_SOAP), 'soapAction');
@@ -60,7 +65,9 @@ export function kontrakt(doman, namn, version) {
     wsdl: relative(RIVTA_ROT, fil), schemaFil: rel(responder), soapAction,
     begaran: elementFor(inDelar), svar: elementFor(utDelar),
     logiskAdressIHuvud: inDelar.some(p => attribut(p, 'name') === 'LogicalAddress'),
-    vag: `/${namn}/${version.split('.')[0]}/rivtabp21`,
+    vag: `/${namn}/${version.split('.')[0]}/${fil.endsWith('_RIVTABP20.wsdl') ? 'rivtabp20' : 'rivtabp21'}`,
+    // Runda 14, r3: profilen, RIVTABP21 eller RIVTABP20.
+    profil: fil.endsWith('_RIVTABP20.wsdl') ? 'RIVTABP20' : 'RIVTABP21',
     kalla: { tagg: kalla(doman).tagg, commit: kalla(doman).commit },
   };
   // Schemat kompileras en gång, med registret för den logiska adressen.
