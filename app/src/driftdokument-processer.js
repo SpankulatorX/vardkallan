@@ -68,7 +68,7 @@ Under allvarliga incidenter (prioritet 1 och 2) skickar driftleverantören minst
 
 ### Incidentuppföljningsmöte (KD1.3.2.2)
 
-Vid prioritet 1 och 2 redogör driftleverantören för incidenten, dess konsekvenser, orsaken och vad som har gjorts och ska göras för att samma typ av incident inte ska hända igen. Underlaget är det som skrevs när incidenten avslutades i incidentregistret. Mötet registreras sedan på incidenten i registret, med datum och deltagare, så att servicenivårapporten visar att uppföljningen är gjord.
+Vid prioritet 1 och 2 redogör driftleverantören för incidenten, dess konsekvenser, orsaken och vad som har gjorts och ska göras för att samma typ av incident inte ska hända igen. Underlaget är det som skrevs när incidenten avslutades i incidentregistret. Mötet registreras sedan på incidenten i registret med datum, och deltagarna står i protokollet, så att servicenivårapporten visar att uppföljningen är gjord.
 
 ## Problemhantering
 
