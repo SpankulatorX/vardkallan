@@ -25,6 +25,9 @@ export const DEMO = [
   { hsaId: JOURNALEN, namn: 'Journalen, simulerad konsument i demon', syfte: 'Invånarens egen journal: patienten läser uppgifter som vårdgivaren har gjort tillgängliga för patienten.', kontrakt: JOURNALKONTRAKT, mangder: MANGDER },
   { hsaId: SJF, namn: 'Aggregerande tjänst, simulerad konsument i demon', syfte: 'Sammanhållen journalföring: den aggregerande tjänsten hämtar uppgifter från varje källsystem för en patient.', kontrakt: JOURNALKONTRAKT, mangder: MANGDER },
 ];
+// Runda 14, r3: de simulerade konsumenterna läser också vaccinationer (GetVaccinationHistory, rivta-vaccination.js).
+JOURNALKONTRAKT.push('GetVaccinationHistory');
+MANGDER.push('vaccinationer');
 
 export function sakraSchema(db) {
   db.exec(`CREATE TABLE IF NOT EXISTS rivta_konsumenter (

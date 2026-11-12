@@ -230,3 +230,21 @@ function rivPost(db, kontrakt, r, patientId, vardgivare) {
   return { header, body: { typeOfAlertInformation: { code: r.category?.[0]?.coding?.[0]?.code ?? null, displayName: r.category?.[0]?.text ?? null }, alertInformationComment: r.code?.text ?? null,
     validityTimePeriod: { start: datumRiv(r.period?.start), end: datumRiv(r.period?.end) } } };
 }
+
+// Runda 14, r3: kontrakten som del r3 har byggt på den gemensamma grunden för RIVTA (rivta-r3.js). De är byggda och
+// validerade mot sina scheman och testade lokalt mot simulerade motparter, men inte anslutna till den nationella
+// tjänsteplattformen.
+STATUS.rivta_lokalt = 'Byggt och validerat mot tjänstekontraktet, testat lokalt; inte anslutet till den nationella tjänsteplattformen';
+export const R3_KONTRAKT = {
+  CreateDraftCertificate: ['riv.clinicalprocess.healthcond.certificate 4.0.5, version 3.3', 'Fliken Intyg skapar utkastet i den simulerade intygsapplikationen'],
+  CertificateStatusUpdateForCare: ['riv.clinicalprocess.healthcond.certificate 4.0.5, version 3.2', 'Vårdkällan tar emot intygets händelser, adresserade till vårdenheten'],
+  ListCertificatesForCareWithQA: ['riv.clinicalprocess.healthcond.certificate 4.0.5, version 3.3', 'Journalen stämmer av intygen mot intygsapplikationen'],
+  ProcessRequest: ['riv.clinicalprocess.activity.request 2.3', 'E-remiss ut till och in från vårdgivare utanför Vårdkällan'],
+  ProcessRequestConfirmation: ['riv.clinicalprocess.activity.request 2.3', 'Mottagningsbekräftelse och avvisning av e-remiss, åt båda hållen'],
+  ProcessRequestOutcome: ['riv.clinicalprocess.activity.request 2.3', 'Svar på e-remiss, åt båda hållen'],
+  GetVaccinationHistory: ['riv.clinicalprocess.activityprescription.actoutcome 2.2.2, version 2.0', 'Vårdkällan lämnar ut vaccinationerna (FHIR Immunization) till anslutna konsumenter'],
+};
+for (const k of KONTRAKT) {
+  const r = R3_KONTRAKT[k.kontrakt];
+  if (r) Object.assign(k, { status: 'rivta_lokalt', statusText: STATUS.rivta_lokalt, motsvarighet: `${r[1]} (${r[0]})`, simulerat: true });
+}

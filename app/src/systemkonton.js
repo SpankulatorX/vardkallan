@@ -41,6 +41,9 @@ export const MANGDER = {
   uppmarksamhet: { namn: 'uppmärksamhetsinformation', typer: ['Flag'], handling: 'las_oversikt' },
   atgarder: { namn: 'åtgärder', typer: ['Procedure'], handling: 'las_journal', tjanstekontrakt: true },
 };
+// Runda 14, r3: vaccinationerna för GetVaccinationHistory (rivta-vaccination.js). Bara ett konto för en anslutning via
+// tjänstekontrakt får dem.
+MANGDER.vaccinationer = { namn: 'vaccinationer', typer: ['Immunization'], handling: 'las_oversikt', tjanstekontrakt: true };
 // Patienten behövs för att posterna ska kunna knytas till samma person, och prenumerationerna för att få meddelanden.
 const ALLTID = ['system/Patient.r', 'system/Subscription.crds'];
 // Runda 10, r1: patientens namn och personnummer är ett eget omfång. Utan det får kontot en pseudonym per konto och
