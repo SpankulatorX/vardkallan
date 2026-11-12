@@ -2638,7 +2638,7 @@ En plats i minnet räcker för flera besökare, eftersom en besökare läser och
 under tiden. Hur många som kan arbeta samtidigt utan att nya besökare får vänta beror alltså på hur tätt de klickar. Det
 mäts av vågen i lasttestet: 300 nya besökare under fem minuter, var och en med en egen sandlåda, som loggar in och arbetar
 två till sex minuter med fem till femton sekunders betänketid. Körningarna 2026-11-12, de sex första mot en container
-med 0,75 processor som i driften och de två sista med 2 processorer:
+med 0,75 processor som i driften och de tre sista med 2 och 3 processorer:
 
 | Minne och processorer | Platser | Skydd efter användning | p95, sämsta åtgärden | Fel | Största RSS | Besökare som väntade | Längsta väntan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -2650,11 +2650,12 @@ med 0,75 processor som i driften och de två sista med 2 processorer:
 | 1 GB, 0,75 | 63 (processorn) | 20 s | 77 ms (inkorgen) | 0 | 690 MB | 232 av 300 | 1 020 s |
 | 2 GB, 2 | 156 (minnet; processorn 170) | 20 s | 79 ms (inkorgen) | 0 | 1 374 MB | 130 av 300 | 270 s |
 | 1,5 GB, 2 | 110 (minnet; processorn 170) | 20 s | 66 ms (inkorgen) | 0 | 1 037 MB | 181 av 300 | 540 s |
+| 3 GB, 3 | 247 (minnet; processorn 255) | 20 s | 63 ms (inkorgen) | 0 | 2 020 MB | 5 av 300 | 30 s |
 
 Ingen sandlåda tappades i någon körning, och servern svarade aldrig med 5xx. De avbrutna anslutningarna gällde en
 registrering (POST) på en anslutning som servern hade stängt efter tio sekunder utan anrop; inget syntes i serverns logg.
-Servern håller nu vilande anslutningar öppna i två minuter. De två sista körningarna gjordes före den ändringen och hade
-inga sådana fel.
+Servern håller nu vilande anslutningar öppna i två minuter. Körningarna med 2 processorer gjordes före den ändringen och
+hade inga sådana fel, och körningen med 3 processorer gjordes efter den.
 Med 1,5 GB och 110 platser räckte minnet, men 0,75 processor räckte inte för så många besökare i arbete samtidigt, och
 svarstiderna blev tio gånger för långa. Taket räknas därför också ur processorerna (85 per processor). Med ett kortare
 skydd efter användning (5 sekunder) kom fler in tidigare, men sandlådorna byttes oftare och svarstiderna blev längre och
@@ -2665,8 +2666,11 @@ Med 2 processorer höll svarstiderna målet med stor marginal (p95 under 80 ms),
 minnet. Ingen av de två körningarna höll väntan under två minuter: med 2 GB och 156 platser väntade de som fick vänta
 högst 270 sekunder, med 1,5 GB och 110 platser högst 540 sekunder. Minnet användes inte fullt ut, eftersom räkningen är
 med marginal: med 156 platser var processen som störst 1 374 MB av 2 048, omkring 7,6 MB per sandlåda mot de 9 MB som
-räknas. För att få väntan under två minuter i en sådan våg behövs fler platser, alltså mer minne och processorer så att
-taket från processorn inte blir det som begränsar (85 per processor).
+räknas. Med 3 GB och 3 processorer (247 platser ur minnet, 255 ur processorerna) väntade bara 5 av 300 besökare, högst 30
+sekunder, och p95 var 63 ms. Det är den minsta prövade inställningen som håller både svarstidsmålet och en väntan under
+två minuter i en våg med 300 nya besökare på fem minuter. Gränsen är ett tak och inte reserverat minne: i vågen var
+processen som störst 2 020 MB, och utan besökare använder den omkring 190 MB. Räkningen behåller sin marginal (9 MB per
+sandlåda och 80 procent av gränsen), eftersom en testare som arbetar länge får en större sandlåda än i vågen.
 
 Vågen körs ensam, mot en container med driftens gränser, en datakatalog för vilande sandlådor och taken per adress
 höjda, eftersom alla besökare i testet kommer från samma adress:
