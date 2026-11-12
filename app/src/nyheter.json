@@ -14,6 +14,16 @@
           "var": "#/inloggningstjanster",
           "rubrik": "Vårdgivarens egen inloggningstjänst",
           "text": "Under Inloggningstjänster kopplar du in vårdgivarens egen inloggningstjänst med OpenID Connect, till exempel Ineras IdP för medarbetare. Skriv adressen och klient-id, så hämtar systemet tjänstens uppgifter och nycklar och visar nycklarnas tumavtryck. Inloggningen gäller först när en annan systemförvaltare har godkänt den. Pröva med övningstjänsten, en simulerad extern tjänst där du också kan se vad som händer med en biljett vars uppgifter inte stämmer med katalogen."
+        },
+        {
+          "id": "inloggning-tjanst-personal-1-4-0",
+          "roller": [
+            "personal"
+          ],
+          "omfattning": "liten",
+          "var": null,
+          "rubrik": "Logga in med vårdgivarens inloggningstjänst",
+          "text": "När vårdgivaren har kopplat in sin egen inloggningstjänst finns den överst på inloggningssidan. Du loggar in där, och Vårdkällan hämtar ditt medarbetaruppdrag och din vårdenhet ur biljetten och katalogen, så du väljer inget själv. Stämmer något inte med katalogen säger systemet vad som är fel och vem som kan rätta det. I demon kan du pröva med övningstjänsten när en systemförvaltare har kopplat in den."
         }
       ]
     },
