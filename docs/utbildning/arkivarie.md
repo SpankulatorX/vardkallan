@@ -16,6 +16,16 @@ I demon väljer du en demoroll under Personal på startsidan. Demorollerna för 
 
 Alla patienter i demon är påhittade och har testpersonnummer från Skatteverket. Varje besökare får en egen sandlåda, så det du gör påverkar ingen annan.
 
+## Vanliga arbetsflöden
+
+Varje arbetsflöde har en klickbudget: det största antalet klick, fältbyten och tangenttryck som flödet får kräva. Budgeten mäts automatiskt i gränssnittet efter varje ändring, så att ett flöde inte blir krångligare utan att det märks.
+
+### För över äldre journalhandlingar till mellanarkivet
+
+Börjar i: E-arkiv och gallring. Klickbudget: högst 5 steg. I demon gör Ingela Nord flödet.
+
+Sussa 5.4.2.2. Ett klick på Överföring till mellanarkiv, ett fältbyte till diarienumret, ett klick på Registrera beslutet, ett på Visa underlag och ett på För över till mellanarkivet. Beslutsdatumet är förvalt, beslutsfattare och lagrum fyller systemet i, och systemet räknar fram vilka handlingar som ska föras över och kontrollerar paketen.
+
 ## Övningar
 
 Övningarna görs under Utbildning i demon. Servern rättar svaren och förklarar varje svar. När alla svar är rätt får du ett intyg som gäller i 365 dagar. Här står frågorna med rätt svar och förklaringen, så att du kan läsa på före och efter.
@@ -51,4 +61,5 @@ Pröva i demon: logga in som Ingela Nord och öppna [samma ställe i demon](http
 - Registrera ett beslut om gallring.
 - Ta fram ett exportpaket till e-arkivet.
 - Veta vad som aldrig gallras.
+- Göra de vanliga arbetsflödena ovan inom klickbudgeten.
 - Svara rätt på alla 3 övningar och få intyget.

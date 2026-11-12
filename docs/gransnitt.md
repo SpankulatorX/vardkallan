@@ -23,7 +23,7 @@ Den här beskrivningen samlar Vårdkällans gränssnitt för informationsutbyte 
 | [Rapportering till myndigheter och kvalitetsregister](#rapportering-till-myndigheter-och-kvalitetsregister) | Mottagarnas egna filformat, sammanställda ur journalen | Vårdkällan skickar till myndigheter och register |
 | [Masterdata](#masterdata) | Utbytbara adaptrar med ett gemensamt kontrakt för varje källa | Vårdkällan hämtar organisation, personal, befolkning, läkemedel och kodverk från sina källor |
 | [Inloggning med biljett och flerfaktor](#inloggning-med-biljett-och-flerfaktor) | OpenID Connect: id-biljett som JWT signerad med ES256, JWKS och Discovery; WebAuthn och RFC 6238 för den andra faktorn | En autentiseringstjänst utfärdar biljetten och Vårdkällan kontrollerar den |
-| [Inloggningstjänstens biljett](#inloggningstjänstens-biljett) | Inloggningstjänstens biljett | Inloggningstjänsten lämnar en biljett som Vårdkällan löser in |
+| [Inloggningstjänstens biljett](#inloggningstjänstens-biljett) | OpenID Connect med authorization code och PKCE (S256), id-biljett med asymmetrisk signatur och pinnade nycklar (RFC 7638) | Vårdkällan är förlitande part: användaren skickas till vårdgivarens inloggningstjänst och kommer tillbaka med en kod som Vårdkällan löser in mot en biljett |
 | [Signerade meddelanden och certifikat](#signerade-meddelanden-och-certifikat) | ECDSA P-256 med SHA-256 över ett meddelandehuvud, med certifikatkedja och signerad kvittens | Vårdkällan och andra organisationer signerar och kvitterar meddelanden till varandra |
 | [Kalenderprenumeration och inbjudningar](#kalenderprenumeration-och-inbjudningar) | iCalendar (RFC 5545) | Personalens kalenderprogram hämtar från Vårdkällan |
 | [Läskopian vid avbrott](#läskopian-vid-avbrott) | JSON, krypterad i webbläsaren med AES-GCM | Vårdkällans webbgränssnitt hämtar en läskopia och skickar loggen från läsläget |
@@ -151,6 +151,10 @@ Standard: RIVTA-kontrakt för intyg, remiss, vaccination, läkemedel och registe
 Riktning: Vårdkällan mot Intygstjänsten, Webcert och andra nationella tjänster.
 
 Behörighet och loggning: Se docs/rivta.md och docs/sakerhetsarkitektur.md.
+
+Simulerat: Intygsapplikationen är simulerad och är inte Webcert, och mottagarna av e-remisser och de nationella tjänsterna är simulerade. Inget är anslutet till den nationella tjänsteplattformen.
+
+Koden: `app/src/lakarintyg.js`, `app/src/intygsapplikation-simulerad.js`, `app/src/eremiss.js`, `app/src/eremiss-simulerad.js`, `app/src/r14r3-rutter.js`, `app/src/rivta-r3.js`, `app/src/rivta-vaccination.js`, `app/src/rivta-etjanster.js`, `app/src/rivta-etjanster-simulerade.js`, `app/src/rivta-dos.js`, `app/src/rivta-dos-simulerad.js`, `app/src/rivta-infektion.js`, `app/src/rivta-infektion-simulerad.js`.
 
 Dokumentation: `docs/rivta.md`.
 
@@ -304,13 +308,19 @@ Dokumentation: `docs/sakerhetsarkitektur.md`.
 
 ## Inloggningstjänstens biljett
 
-Inloggningen via inloggningstjänstens biljett beskrivs i docs/sakerhetsarkitektur.md.
+Inloggningen genom beställarens inloggningstjänst beskrivs i docs/sakerhetsarkitektur.md. Systemförvaltaren kopplar in en tjänst med utfärdare och klient-id, och en andra systemförvaltare godkänner varje ändring. Åtkomsten tas ur biljettens attribut: person, medarbetaruppdrag och vårdenhet, prövade mot masterdata.
 
-Standard: Inloggningstjänstens biljett.
+Standard: OpenID Connect med authorization code och PKCE (S256), id-biljett med asymmetrisk signatur och pinnade nycklar (RFC 7638).
 
-Riktning: Inloggningstjänsten lämnar en biljett som Vårdkällan löser in.
+Riktning: Vårdkällan är förlitande part: användaren skickas till vårdgivarens inloggningstjänst och kommer tillbaka med en kod som Vårdkällan löser in mot en biljett.
 
-Behörighet och loggning: Se docs/sakerhetsarkitektur.md.
+Adresser: `/api/inloggning/tjanster`, `/api/inloggning/extern/:id`, `/api/inloggning/svar`, `/api/inloggning/resultat`, `/api/inloggning/rp-jwks`, `/api/inloggningstjanster`.
+
+Behörighet och loggning: Varje inloggning och varje misslyckat försök hamnar i säkerhetsloggen, och varje ändring av en tjänst sparas med vem som föreslog och vem som godkände den. Se docs/sakerhetsarkitektur.md.
+
+Simulerat: Demon har en simulerad övningstjänst. Ingen verklig vårdgivares inloggningstjänst är inkopplad.
+
+Koden: `app/src/inloggningstjanster.js`, `app/src/inloggningstjanster-rutter.js`, `app/src/oidc-jwt.js`, `app/src/ovningstjanst-oidc.js`.
 
 Dokumentation: `docs/sakerhetsarkitektur.md`.
 

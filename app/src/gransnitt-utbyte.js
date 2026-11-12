@@ -93,14 +93,19 @@ export const GRANSSNITT = [
   g('rivta', 'RIVTA-kontrakt mot tjänsteplattformen', {
     standard: 'RIVTA (SOAP och tjänstekontraktens scheman)',
     riktning: 'Vårdkällan som producent och konsument mot tjänsteplattformen',
-    prefix: ['/rivta', '/api/rivta'], katalog: 'src/rivta', hanvisning: 'docs/rivta.md',
+    // Runda 14, sammanslagningen: r2:s rutter för PU-tjänsten och spärrtjänsten hör till samma gränssnitt.
+    prefix: ['/rivta', '/api/rivta', '/api/patient/:id/folkbokforing', '/api/patient/:id/sparr/sparrtjansten'], katalog: 'src/rivta', hanvisning: 'docs/rivta.md',
     text: 'Den gemensamma grunden för RIVTA och kontrakten för journalen, NPÖ, sammanhållen journalföring, spärr, samtycke, HSA och PU-tjänsten beskrivs i docs/rivta.md, med scheman, versioner och hur kontrakten valideras och prövas mot tjänsteplattformen.',
     behorighet: 'Se docs/rivta.md och docs/sakerhetsarkitektur.md.',
   }),
   g('intyg', 'Intyg, e-remiss och processkontrakt', {
     standard: 'RIVTA-kontrakt för intyg, remiss, vaccination, läkemedel och register',
     riktning: 'Vårdkällan mot Intygstjänsten, Webcert och andra nationella tjänster',
-    prefix: ['/api/intyg', '/api/webcert', '/api/eremiss'], hanvisning: 'docs/rivta.md',
+    // Runda 14, sammanslagningen: r3:s rutter och filer för intyg, e-remiss och processkontrakten.
+    prefix: ['/api/intyg', '/api/webcert', '/api/eremiss', '/api/intygsapplikation', '/api/patient/:id/intyg', '/api/patient/:id/eremiss'], hanvisning: 'docs/rivta.md',
+    kod: ['src/lakarintyg.js', 'src/intygsapplikation-simulerad.js', 'src/eremiss.js', 'src/eremiss-simulerad.js', 'src/r14r3-rutter.js', 'src/rivta-r3.js', 'src/rivta-vaccination.js',
+      'src/rivta-etjanster.js', 'src/rivta-etjanster-simulerade.js', 'src/rivta-dos.js', 'src/rivta-dos-simulerad.js', 'src/rivta-infektion.js', 'src/rivta-infektion-simulerad.js'],
+    simulerat: 'Intygsapplikationen är simulerad och är inte Webcert, och mottagarna av e-remisser och de nationella tjänsterna är simulerade. Inget är anslutet till den nationella tjänsteplattformen.',
     text: 'Intyg och processkontrakten byggs på den gemensamma RIVTA-grunden och beskrivs i docs/rivta.md: Intygstjänsten och Webcert, e-remiss, vaccination, Infektionsverktyget, kvalitetsregister, formulärtjänsten, e-recept och dos.',
     behorighet: 'Se docs/rivta.md och docs/sakerhetsarkitektur.md.',
   }),
@@ -188,12 +193,17 @@ export const GRANSSNITT = [
     behorighet: 'Varje inloggning och varje misslyckat försök hamnar i säkerhetsloggen.',
     simulerat: 'Autentiseringstjänsten och SITHS-kortet är simulerade.',
   }),
+  // Runda 14, sammanslagningen: r1:s inloggning genom beställarens inloggningstjänst med OpenID Connect.
   g('inloggningstjanst', 'Inloggningstjänstens biljett', {
-    standard: 'Inloggningstjänstens biljett',
-    riktning: 'Inloggningstjänsten lämnar en biljett som Vårdkällan löser in',
+    standard: 'OpenID Connect med authorization code och PKCE (S256), id-biljett med asymmetrisk signatur och pinnade nycklar (RFC 7638)',
+    riktning: 'Vårdkällan är förlitande part: användaren skickas till vårdgivarens inloggningstjänst och kommer tillbaka med en kod som Vårdkällan löser in mot en biljett',
+    adresser: ['/api/inloggning/tjanster', '/api/inloggning/extern/:id', '/api/inloggning/svar', '/api/inloggning/resultat', '/api/inloggning/rp-jwks', '/api/inloggningstjanster'],
+    prefix: ['/api/inloggning', '/api/inloggningstjanster', '/api/ovningstjanst'],
+    kod: ['src/inloggningstjanster.js', 'src/inloggningstjanster-rutter.js', 'src/oidc-jwt.js', 'src/ovningstjanst-oidc.js'],
     hanvisning: 'docs/sakerhetsarkitektur.md',
-    text: 'Inloggningen via inloggningstjänstens biljett beskrivs i docs/sakerhetsarkitektur.md.',
-    behorighet: 'Se docs/sakerhetsarkitektur.md.',
+    text: 'Inloggningen genom beställarens inloggningstjänst beskrivs i docs/sakerhetsarkitektur.md. Systemförvaltaren kopplar in en tjänst med utfärdare och klient-id, och en andra systemförvaltare godkänner varje ändring. Åtkomsten tas ur biljettens attribut: person, medarbetaruppdrag och vårdenhet, prövade mot masterdata.',
+    behorighet: 'Varje inloggning och varje misslyckat försök hamnar i säkerhetsloggen, och varje ändring av en tjänst sparas med vem som föreslog och vem som godkände den. Se docs/sakerhetsarkitektur.md.',
+    simulerat: 'Demon har en simulerad övningstjänst. Ingen verklig vårdgivares inloggningstjänst är inkopplad.',
   }),
   g('signering', 'Signerade meddelanden och certifikat', {
     standard: 'ECDSA P-256 med SHA-256 över ett meddelandehuvud, med certifikatkedja och signerad kvittens',

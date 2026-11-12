@@ -367,6 +367,30 @@ Börjar i: Startsidan för testare. Klickbudget: högst 2 steg. I demon gör Sar
 
 Ett klick på yrkesrollen, som loggar in i rätt demoroll och startar uppdragen i panelen, och ett klick på en patient i arbetslistan för det första uppdraget. Systemet bockar av uppdraget själv och ställer jämförelsefrågan.
 
+### Skriva ett intyg i intygsapplikationen
+
+Börjar i: Journalen för patienten på vårdcentralen. Klickbudget: högst 2 steg. I demon gör Per Holm flödet.
+
+Sussa 2.2.1.9. Ett klick på fliken Intyg och ett på Skriv intyget. Systemet har föreslagit det intyg som passar patienten och visar bara de intyg som får skrivas, och utkastet öppnas i intygsapplikationen med patienten, läkaren, vårdenheten och diagnosen ifyllda.
+
+### Skicka en e-remiss till en vårdgivare utanför Vårdkällan
+
+Börjar i: Journalen för patienten på vårdcentralen. Klickbudget: högst 3 steg. I demon gör Per Holm flödet.
+
+Sussa 2.2.1.12 och 3.3.1.2. Ett klick på fliken Remisser, ett på Skicka e-remiss och ett på Skicka. Frågeställningen har fokus direkt, mottagare och prioritet är förvalda, och patienten, remittenten, vårdenheten och diagnoserna från den egna vårdenheten fyller systemet i.
+
+### Läsa en äldre anteckning ur mellanarkivet
+
+Börjar i: Patientens översikt. Klickbudget: högst 2 steg. I demon gör Sara Lindqvist flödet.
+
+Sussa 5.4.2.2. Ett klick på fliken Journal och ett på anteckningen, som står bland de andra märkt Ur mellanarkivet. Ingen behöver veta att mellanarkivet finns eller söka där: systemet hämtar handlingen, prövar behörigheten och säger att innehållet är oförändrat.
+
+### Logga in genom vårdgivarens inloggningstjänst
+
+Börjar i: Inloggningssidan med en inkopplad inloggningstjänst. Klickbudget: högst 2 steg. I demon gör Sara Lindqvist flödet.
+
+Sussa 5.2.1.1. Ett klick på tjänsten på inloggningssidan och ett på Logga in i tjänsten. Uppdraget, vårdenheten och behörigheten kommer ur biljetten och katalogen, så personen väljer ingenting i Vårdkällan. I en verklig tjänst ersätts klicket i tjänsten av SITHS-kortet.
+
 ## Instruktionsfilmer
 
 Filmerna visar ett arbetsflöde från början till slut med textade steg på svenska. De spelas in på nytt efter varje ändring i gränssnittet, så att de alltid visar det gränssnitt som finns.

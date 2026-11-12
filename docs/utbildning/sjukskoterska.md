@@ -193,6 +193,12 @@ Börjar i: Övervakningen av en patient på intensivvården. Klickbudget: högst
 
 Sussa 4.6.1.7. Ett klick på Registrera vårdtyngden. Systemet har redan kryssat i de poster som står i journalen, som kopplad monitor, intravenösa läkemedel och andningsstöd, och räknar poängen själv. Sjuksköterskan kryssar bara i det som bara den som vårdar vet.
 
+### Göra en dator till vårdenhetens reservdator för läkemedel
+
+Börjar i: Arbetslistan efter inloggning. Klickbudget: högst 2 steg. I demon gör Johan Ek flödet.
+
+Sussa 11.2.1.8. Ett klick på Läkemedel att ge och ett på Reservdator för läkemedel. Sedan hämtar sidan själv listan över alla inskrivna patienter var fjärde minut, och ingen behöver göra något mer.
+
 ## Instruktionsfilmer
 
 Filmerna visar ett arbetsflöde från början till slut med textade steg på svenska. De spelas in på nytt efter varje ändring i gränssnittet, så att de alltid visar det gränssnitt som finns.
