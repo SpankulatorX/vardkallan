@@ -14,6 +14,12 @@ export const T = {
   vilar: `${V}en sandlåda som inte har använts på tio minuter skrivs till disk och släpps ur minnet, och nästa anrop läser in den med allt kvar`,
   aktiv: `${V}en aktiv sandlåda tas aldrig bort för att ge plats åt en ny: med plats för tre i minnet finns alla åtta kvar`,
   drift: `${V}sidan om systemets uppbyggnad och driftsidan väcker inga andra sandlådor`,
+  laskopia: `${V}läskopians logg från läsläget tas emot för en sandlåda som vilar, utan inloggning`,
+  flerfaktor: `${V}flerfaktor: en inloggning som väntar på engångskoden fortsätter efter att sandlådan har vilat`,
+  prenumeration: `${V}prenumerationer ger meddelanden också efter att sandlådan har vilat`,
+  iva: `${V}intensivvårdens realtidsvisning från den kopplade monitorn fortsätter efter att sandlådan har vilat`,
+  miljoer: `${V}miljöer för acceptanstest: miljön och produktionsmiljön hittar varandra efter att båda har vilat`,
+  kalender: `${V}kalenderlänken fungerar för en sandlåda som vilar, och en okänd länk väcker inga sandlådor`,
   attaTimmar: `${V}en sandlåda som inte har använts på åtta timmar försvinner, också från disk och med sina säkerhetskopior`,
   full: `${F}en ny besökare får 503 med en förklaring på svenska och när det är lönt att försöka igen, och de som redan arbetar märker inget`,
   fullMinne: `${F}när alla platser i minnet används just nu får en ny besökare vänta, men en besökare vars sandlåda vilar kommer alltid in`,
@@ -28,7 +34,7 @@ export const T = {
   faktorKvar: `${K3}fynd 3: en faktor som registrerades efter kopian finns kvar efter inläsningen`,
   utloggad: `${K3}fynd 3: efter inläsning av en kopia är sessionen utloggad, och en roll med faktor i kopian kräver faktorn`,
 };
-export const TESTER_KAPACITET = [T.lagret, T.taket, T.vilar, T.aktiv, T.drift, T.full, T.fullMinne, T.omstart, T.uppblast, T.dbTak];
+export const TESTER_KAPACITET = [T.lagret, T.taket, T.vilar, T.aktiv, T.drift, T.laskopia, T.flerfaktor, T.prenumeration, T.iva, T.miljoer, T.kalender, T.full, T.fullMinne, T.omstart, T.uppblast, T.dbTak];
 
 const POSTER = {
   'KD1.1.1.5': {

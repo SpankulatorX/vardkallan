@@ -31,12 +31,13 @@ describe('Missbruk från många besökare', () => {
   }, 30_000);
 
   test('anrop har en tidsbudget per sandlåda, som gäller också efter att sandlådan har vilat', async () => {
-    const app = testserver({ tidsbudgetSandladaMs: 30, tidsbudgetAdressMs: 1e9 });
+    // Budgeten är så stor att den andra besökarens inloggning och första anrop ryms också på en långsam maskin.
+    const app = testserver({ tidsbudgetSandladaMs: 400, tidsbudgetAdressMs: 1e9 });
     try {
       const k = klient(app);
       await k.logga('lak-kard');
       let r;
-      for (let i = 0; i < 200; i++) { r = await k.get('/api/arbetslista'); if (r.status === 429) break; }
+      for (let i = 0; i < 2000; i++) { r = await k.get('/api/arbetslista'); if (r.status === 429) break; }
       expect(r.status).toBe(429);
       expect(r.data.kod).toBe('for_manga');
       expect(r.data.fel).toContain('den senaste minuten');

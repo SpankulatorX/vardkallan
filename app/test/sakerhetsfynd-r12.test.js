@@ -246,6 +246,39 @@ describe('Säkerhetsfynd 7, 8 och 11: flerfaktorn och parametrarnas namn', () =>
     expect(ok.data.aktiv).toBe(false);
   });
 
+  // Den automatiska granskningen av rättningen av fynd 8.
+  const fel = (h, ms) => { const r = ff.totp(h, ms); return r === '000000' ? '111111' : '000000'; };
+  test('fynd 8: en faktor som just har registrerats räknas inte som bekräftelse', async () => {
+    const { k, h, fid } = await medTotp('fys-kard');
+    const r = await k.post(`/api/flerfaktor/${fid}/ta-bort`, {});
+    expect(r.status).toBe(403);
+    expect(r.data.kod).toBe('bekrafta_faktor');
+    expect((await k.post(`/api/flerfaktor/${fid}/ta-bort`, { bekraftelse: ff.totp(h, Date.now() + 30_000) })).status).toBe(200);
+  });
+
+  test('fynd 8: en ny faktor kräver en färsk bekräftelse med en befintlig faktor när det redan finns en', async () => {
+    const { k, h } = await medTotp('ssk-kard');
+    for (const vag of ['/api/flerfaktor/totp/borja', '/api/flerfaktor/totp', '/api/flerfaktor/passkey/borja', '/api/flerfaktor/passkey']) {
+      const r = await k.post(vag, {});
+      expect({ vag, status: r.status, kod: r.data.kod }).toEqual({ vag, status: 403, kod: 'bekrafta_faktor' });
+    }
+    expect((await k.get('/api/flerfaktor')).data.faktorer.length).toBe(1);
+    const ok = await k.post('/api/flerfaktor/totp/borja', { bekraftelse: ff.totp(h, Date.now() + 30_000) });
+    expect(ok.status).toBe(200);
+    expect(ok.data.nyckel).toBeTruthy();
+  });
+
+  test('fynd 8: för många felaktiga koder i bekräftelsen loggas och ger spärr, också för en rätt kod', async () => {
+    const { k, h, fid } = await medTotp('usk-kard');
+    const svar = [];
+    for (let i = 0; i < 5; i++) svar.push((await k.post(`/api/flerfaktor/${fid}/ta-bort`, { bekraftelse: fel(h, Date.now()) })).status);
+    expect(svar).toEqual([400, 400, 400, 400, 429]);
+    expect((await k.post(`/api/flerfaktor/${fid}/ta-bort`, { bekraftelse: ff.totp(h, Date.now() + 30_000) })).status).toBe(429);
+    expect((await k.get('/api/flerfaktor')).data.aktiv).toBe(true);
+    const logg = sandlada(app, k).db.query("SELECT count(*) AS n FROM sakerhetslogg WHERE beskrivning LIKE 'Bekräftelsen med en faktor godkändes inte%' AND personal_id = 'usk-kard'").get().n;
+    expect(logg).toBe(5);
+  });
+
   test('fynd 11: parametrar med namn som __proto__ och constructor finns inte, i förhandsvisningen och i förslaget', async () => {
     const k = klient(app);
     await k.logga('sysf');

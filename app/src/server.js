@@ -1412,37 +1412,57 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     enhet_id: a.enhet ?? null, metod: 'POST', vag: c.url.pathname.replace(/\/\d+\//, '/:id/'), status: 200, beskrivning: text });
   const oversiktFor = (c, a) => flerfaktor.oversikt(c.db, a.typ, a.id, { metod: c.s.flerfaktorMetod ?? null });
   rutt('GET', '/api/flerfaktor', (c) => oversiktFor(c, agareFor(c)));
-  rutt('POST', '/api/flerfaktor/passkey/borja', (c) => flerfaktor.borjaPasskey(c.db, c.s, agareFor(c), webbplats(c)));
+  // Runda 13, r2 (säkerhetsgranskningen av runda 12, fynd 8): en faktor läggs till eller tas bort bara efter en färsk
+  // bekräftelse med en faktor som redan var aktiv: inloggningen med faktor de senaste fem minuterna, eller en kod från
+  // appen för engångskoder i bekraftelse. En faktor som just har registrerats räknas aldrig som bekräftelse, så att den
+  // som har kommit åt en öppen session inte kan lägga till sin egen faktor och sedan ta bort den riktiga. Felaktiga koder
+  // räknas som vid inloggningen och loggas, och efter för många stoppas bekräftelsen en kvart.
+  const FARSK_MS = 5 * 60_000;
+  function kravFarskBekraftelse(c, a, kod) {
+    if (!flerfaktor.kravs(c.db, a.typ, a.id)) return;
+    if (c.s.flerfaktorTid && Date.now() - c.s.flerfaktorTid <= FARSK_MS) return;
+    const agare = flerfaktor.agareNyckel(a.typ, a.id);
+    const m = flerfaktor.metoder(c.db, a.typ, a.id);
+    const nu = Date.now();
+    const fel = ((c.s.bekraftaFel ??= {})[agare] ?? []).filter(t => t > nu - 15 * 60_000);
+    if (flerfaktor.sparrad(c.s, agare) || fel.length >= flerfaktor.MAX_FORSOK) {
+      throw new Fel(429, 'För många felaktiga koder den senaste kvarten. Vänta en stund, eller logga ut och logga in igen med din faktor.', 'nekad');
+    }
+    if (typeof kod !== 'string' || !m.includes('totp')) {
+      throw new Fel(403, m.includes('totp') ? 'Bekräfta med en kod från din app för engångskoder först.' : 'Logga in igen med din passkey först. Bekräftelsen gäller i fem minuter.', 'bekrafta_faktor', { metoder: m });
+    }
+    try { flerfaktor.prova(c.db, c.s, a, { typ: 'totp', kod }, webbplats(c)); } catch (e) {
+      if (!(e instanceof Fel)) throw e;
+      fel.push(nu);
+      c.s.bekraftaFel[agare] = fel;
+      flerfaktor.raknaFel(c.s, agare, nu);
+      sakerhetslogg.logga(c.db, { typ: 'inloggning_misslyckad', personal_id: a.typ === 'personal' ? a.id : null, invanare_id: a.typ === 'invanare' ? a.id : null, enhet_id: a.enhet ?? null,
+        metod: 'POST', vag: c.url.pathname, status: e.status, beskrivning: `Bekräftelsen med en faktor godkändes inte. ${e.message}`.slice(0, 300) });
+      if (fel.length >= flerfaktor.MAX_FORSOK || flerfaktor.sparrad(c.s, agare)) throw new Fel(429, 'För många felaktiga koder den senaste kvarten. Vänta en stund, eller logga ut och logga in igen med din faktor.', 'nekad');
+      throw e;
+    }
+    c.s.bekraftaFel[agare] = [];
+    c.s.flerfaktorTid = nu;
+  }
+  rutt('POST', '/api/flerfaktor/passkey/borja', (c) => { const a = agareFor(c); kravFarskBekraftelse(c, a, c.body.bekraftelse); return flerfaktor.borjaPasskey(c.db, c.s, a, webbplats(c)); });
   rutt('POST', '/api/flerfaktor/passkey', (c) => {
     const a = agareFor(c);
+    kravFarskBekraftelse(c, a, c.body.bekraftelse);
     const f = flerfaktor.sparaPasskey(c.db, c.s, a, c.body, webbplats(c));
-    // Runda 13, r2 (fynd 8): passkeyn som just registrerades är en färsk bekräftelse med en faktor.
-    c.s.flerfaktorTid = Date.now();
     loggaFaktor(c, a, 'En passkey registrerades. Flerfaktor krävs vid nästa inloggning.');
     return [201, { faktor: f, ...oversiktFor(c, a) }];
   });
-  rutt('POST', '/api/flerfaktor/totp/borja', (c) => flerfaktor.borjaTotp(c.db, agareFor(c)));
+  rutt('POST', '/api/flerfaktor/totp/borja', (c) => { const a = agareFor(c); kravFarskBekraftelse(c, a, c.body.bekraftelse); return flerfaktor.borjaTotp(c.db, a); });
   rutt('POST', '/api/flerfaktor/totp', (c) => {
     const a = agareFor(c);
+    kravFarskBekraftelse(c, a, c.body.bekraftelse);
     const f = flerfaktor.bekraftaTotp(c.db, a, c.body.kod);
-    // Runda 13, r2 (fynd 8): koden som bekräftade appen är en färsk bekräftelse med en faktor.
-    c.s.flerfaktorTid = Date.now();
     loggaFaktor(c, a, 'En app för engångskoder registrerades. Flerfaktor krävs vid nästa inloggning.');
     return [201, { faktor: f, ...oversiktFor(c, a) }];
   });
   rutt('POST', '/api/flerfaktor/:id/ta-bort', (c, id) => {
     const a = agareFor(c);
-    // Runda 13, r2 (säkerhetsgranskningen av runda 12, fynd 8): en faktor tas bort bara efter en färsk bekräftelse med
-    // en faktor (inloggning, registrering eller en kod från appen de senaste fem minuterna), så att en öppen session
-    // inte räcker för att stänga av flerfaktorn.
-    if (flerfaktor.kravs(c.db, a.typ, a.id) && !(c.s.flerfaktorTid && Date.now() - c.s.flerfaktorTid <= 5 * 60_000)) {
-      const m = flerfaktor.metoder(c.db, a.typ, a.id);
-      if (typeof c.body.kod !== 'string' || !m.includes('totp')) {
-        throw new Fel(403, m.includes('totp') ? 'Bekräfta med en kod från appen för engångskoder innan du tar bort en faktor.' : 'Logga in igen med din passkey innan du tar bort en faktor. Bekräftelsen gäller i fem minuter.', 'bekrafta_faktor', { metoder: m });
-      }
-      flerfaktor.prova(c.db, c.s, a, { typ: 'totp', kod: c.body.kod }, webbplats(c));
-      c.s.flerfaktorTid = Date.now();
-    }
+    kravFarskBekraftelse(c, a, c.body.bekraftelse ?? c.body.kod);
     const r = flerfaktor.taBort(c.db, a, id);
     loggaFaktor(c, a, r.aktiv ? 'En faktor togs bort. Flerfaktor är fortfarande på.' : 'Den sista faktorn togs bort. Flerfaktor är av.');
     return { ...r, metod: c.s.flerfaktorMetod ?? null };

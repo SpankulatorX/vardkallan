@@ -42,8 +42,8 @@
           ],
           "omfattning": "liten",
           "var": null,
-          "rubrik": "En faktor tas bort först efter en bekräftelse",
-          "text": "För att ta bort en passkey eller en app för engångskoder bekräftar du först med en kod från appen eller en ny inloggning, så att en öppen session inte räcker för att stänga av flerfaktorn."
+          "rubrik": "Faktorer ändras först efter en bekräftelse",
+          "text": "För att lägga till eller ta bort en passkey eller en app för engångskoder när du redan har en faktor bekräftar du först med en kod från appen eller en ny inloggning, så att en öppen session inte räcker för att ändra flerfaktorn."
         }
       ]
     },

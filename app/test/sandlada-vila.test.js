@@ -167,6 +167,19 @@ describe('Vilande sandlådor i servern', () => {
     expect(mottaget.length).toBe(fore + 1);
   });
 
+  test('intensivvårdens realtidsvisning från den kopplade monitorn fortsätter efter att sandlådan har vilat', async () => {
+    const k = klient(app);
+    await k.logga('ssk-kard');
+    expect((await k.post('/api/patient/p22/mt/koppla', { streckkod: 'MT-MON-0005' })).status).toBe(201);
+    expect((await k.get('/api/patient/p22/iva/realtid')).data.kopplad).toBe(true);
+    app.vila(sandlada(app, k));
+    // Visningen hämtar som ett bakgrundsanrop.
+    const r = await k.get('/api/patient/p22/iva/realtid', { 'X-Vk-Bakgrund': '1' });
+    expect(r.status).toBe(200);
+    expect(r.data.kopplad).toBe(true);
+    expect(r.data.kurvor.map(x => x.id)).toEqual(['ekg', 'art', 'pleth', 'andning']);
+  });
+
   test('miljöer för acceptanstest: miljön och produktionsmiljön hittar varandra efter att båda har vilat', async () => {
     const k = klient(app);
     await k.logga('sysf');

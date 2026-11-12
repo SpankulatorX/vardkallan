@@ -97,7 +97,9 @@ describe('Flerfaktor', () => {
     expect(rad.credential_id).toBe(b64u(aut.credId));
     expect(Object.keys(JSON.parse(rad.publik_nyckel)).sort()).toEqual(['crv', 'kty', 'x', 'y']);
     expect(rad.hemlighet).toBeNull();
-    // Samma utmaning går inte att använda två gånger.
+    // Samma utmaning går inte att använda två gånger. Runda 13, r2: en ny faktor kräver nu en färsk bekräftelse med en
+    // befintlig faktor, så sessionen får en sådan här, för att pröva just utmaningen.
+    sandlada(app, k).flerfaktorTid = Date.now();
     const igen = await k.post('/api/flerfaktor/passkey', { svar: aut.skapa(alt) });
     expect(igen.status).toBe(400);
   });

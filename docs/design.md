@@ -2668,8 +2668,11 @@ spärr som har registrerats eller hävts efter kopian stoppar inläsningen, båd
 Faktorerna för flerfaktor i kopian finns kvar, och faktorer som har registrerats efter kopian förs över, på samma sätt
 som loggarna. Efter inläsningen loggas alla ut, så att varje inloggning prövas mot den inlästa sandlådan med sin andra
 faktor. En aktiv faktor som inte går att pröva (nyckeln för engångskoder går inte att dekryptera) stoppar inloggningen och
-loggas, i stället för att släppa igenom. En faktor tas bort bara efter en färsk bekräftelse: en inloggning med faktor, en
-registrering eller en kod från appen de senaste fem minuterna. Parametrar med namn som `__proto__` och `constructor` finns
+loggas, i stället för att släppa igenom. En faktor läggs till eller tas bort bara efter en färsk bekräftelse med en faktor som
+redan var aktiv: en inloggning med faktor de senaste fem minuterna, eller en kod från appen för engångskoder. En faktor
+som just har registrerats räknas aldrig som bekräftelse, så att den som har kommit åt en öppen session inte kan lägga till
+en egen faktor och sedan ta bort den riktiga. Felaktiga koder räknas och loggas som vid inloggningen, och efter fem fel
+stoppas bekräftelsen i en kvart. Parametrar med namn som `__proto__` och `constructor` finns
 inte.
 
 ### Det som är simulerat eller saknas
