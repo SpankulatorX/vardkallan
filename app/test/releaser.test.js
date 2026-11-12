@@ -21,6 +21,9 @@ const NYARE = [...releaser.MIGRERINGAR,
   { id: 91, version: '9.0.0', namn: 'Prov: ny kolumn', upp: ['ALTER TABLE enheter ADD COLUMN prov_farg TEXT'], ned: ['ALTER TABLE enheter DROP COLUMN prov_farg'], kolumner: [{ tabell: 'enheter', kolumn: 'prov_farg' }] },
 ];
 
+// Runda 13: schemaversionen för en version är den högsta migreringen som hör till versionen eller en äldre.
+const schemaFor = (v) => Math.max(0, ...releaser.MIGRERINGAR.filter(m => releaser.jamforVersion(m.version, v) <= 0).map(m => m.id));
+
 describe('Releaser', () => {
   test('varje migrering har en återställning, och upp och sedan ned ger samma schema som före', () => {
     for (const m of releaser.MIGRERINGAR) {
@@ -84,7 +87,8 @@ describe('Releaser', () => {
       // Servern startar om, men uppgraderingen tillämpas inte förrän den är godkänd.
       expect(k.tillampade).toEqual([]);
       expect(k.stammer).toBe(true);
-      expect(k.schemaversion).toBe(0);
+      // Runda 13: schemat står på den förra versionens migreringar, oberoende av vilken version som körs.
+      expect(k.schemaversion).toBe(schemaFor(releaser.forraVersion(releaser.VERSION)));
     } finally { igen.close(); }
   });
 
@@ -133,7 +137,9 @@ describe('Releaser', () => {
       const fore = lagring.sakerhetskopiera(db);
       const r = releaser.aterga(db, sysf, {}, NU);
       expect(r.backade.length).toBe(releaser.MIGRERINGAR.filter(m => m.version === releaser.VERSION).length);
-      expect(db.query("SELECT 1 FROM sqlite_master WHERE name = 'lagringsklasser'").get()).toBeNull();
+      // Lagringsklasserna kom i 1.2.0 och backas bara när den förra versionen är äldre än så.
+      const lagringsklasserBackas = releaser.jamforVersion(releaser.forraVersion(releaser.VERSION), '1.2.0') < 0;
+      expect(Boolean(db.query("SELECT 1 FROM sqlite_master WHERE name = 'lagringsklasser'").get())).toBe(!lagringsklasserBackas);
       // En återgång när den förra versionen redan är i drift går inte.
       expect(() => releaser.aterga(db, sysf, {}, NU)).toThrow(/väntar redan/);
       const g1 = releaser.godkann(db, sysf, r.vantar.id, { testresultat: GRON }, NU);
