@@ -711,17 +711,20 @@ export function tidigareVardgivare(db, patientId, ve, yrkesroll = null) {
 // Systemet tar bara tider med rätt tidstyp och yrkesroll på vårdenheten, hoppar över dagar då patienten redan har en
 // tid och väljer i den här ordningen: den tidigaste tiden hos den vårdgivare patienten har träffat förut, om den ligger
 // före gränsen, annars den tidigaste tiden över huvud taget, och sedan tider andra dagar. Varje förslag säger varför.
+// Runda 13, r4: får patienten kallelsen med brev föreslår systemet inte en tid som brevet inte hinner fram till, utom
+// vid hög prioritet. Då säger kallelsen att patienten ska få tiden per telefon (skickaKallelse). Samma regel för
+// väntelistan, fri bokning och teambesök (bokning-r8.js).
+export function tidigastFor(db, patientId, prioritet, fran) {
+  const pat = patientId ? patientRad(db, patientId) : null;
+  if (!pat || prioritet === 'hog' || kanalFor(db, pat).kanal !== 'brev') return fran;
+  const brevFran = new Date(Date.now() + BREV_DAGAR * DAG).toISOString();
+  return brevFran > fran ? brevFran : fran;
+}
+
 export function foreslaTider(db, behov, antal = 3) {
   const enheter = enheterUnder(db, behov.ve);
   const ph = enheter.map(() => '?').join(', ');
-  let fran = behov.fran ?? new Date(Date.now() + 2 * TIMME).toISOString();
-  // Runda 13, r4: får patienten kallelsen med brev föreslår systemet inte en tid som brevet inte hinner fram till, utom
-  // vid hög prioritet. Då säger kallelsen att patienten ska få tiden per telefon (skickaKallelse).
-  const pat = behov.patientId ? patientRad(db, behov.patientId) : null;
-  if (pat && behov.prioritet !== 'hog' && kanalFor(db, pat).kanal === 'brev') {
-    const brevFran = new Date(Date.now() + BREV_DAGAR * DAG).toISOString();
-    if (brevFran > fran) fran = brevFran;
-  }
+  const fran = tidigastFor(db, behov.patientId, behov.prioritet, behov.fran ?? new Date(Date.now() + 2 * TIMME).toISOString());
   // Runda 6, r4: en kallelse utan förbokad tid har en ram som tiderna ska ligga inom.
   const till = behov.till ?? new Date(Date.now() + (SEED.DAGAR_FRAMAT + 5) * DAG).toISOString();
   const rader = db.query(`SELECT t.*, s.personal_id, s.yrkesroll, s.enhet_id FROM tider t JOIN scheman s ON s.id = t.schema_id

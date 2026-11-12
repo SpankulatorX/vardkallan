@@ -182,7 +182,8 @@ export function teamForslag(atk, q = {}) {
     .all(atk.patientId).filter(r => synlig(r.enhet_id)).map(r => datumAv(new Date(r.start))));
   const forslag = [];
   if (team.length >= TEAMREGLER.minDeltagare) {
-    const tidigast = Date.now() + 2 * 60 * MIN;
+    // Runda 13, r4: samma regel som för väntelistan, så att ett brev hinner fram (tidbok.tidigastFor).
+    const tidigast = Date.parse(tidbok.tidigastFor(db, atk.patientId, 'normal', new Date(Date.now() + 2 * 60 * MIN).toISOString()));
     for (let d = 0; d <= TEAMREGLER.dagar && forslag.length < 3; d++) {
       const datum = addDagar(datumAv(new Date()), d);
       const sista = Date.parse(lokalTid(datum, TEAMREGLER.dagSlut)) - min * MIN;

@@ -12,6 +12,8 @@ import { allaAttGodkanna } from '../src/systemforvaltning-rutter.js';
 import * as tidbok from '../src/tidbok.js';
 import * as op from '../src/operation.js';
 import { addDagar } from '../src/db.js';
+import * as r8 from '../src/bokning-r8.js';
+import { laddaTestdata } from '../src/sussa-demo.js';
 
 const KLOCKAN = (k) => new Date(lokalTid('2026-11-12', k));
 afterEach(() => aterstallKlockan());
@@ -154,6 +156,31 @@ describe('Bokning från väntelistan (runda 13, r4, E3-10 och E3-47)', () => {
       expect(kallelse).toMatchObject({ kanal: 'brev', status: 'kan_inte', skickad: null });
       expect(kallelse.forklaring).toContain('ett brev hinner inte fram');
     }
+  });
+
+  test('teambesöket följer samma regel: till en patient som får brev föreslås ingen tid som brevet inte hinner fram till', () => {
+    stallKlockan(KLOCKAN('10:00'));
+    const db = nySessionsDb();
+    const nu = KLOCKAN('10:00').getTime();
+    expect(tidbok.kanalFor(db, db.query("SELECT * FROM patienter WHERE id = 'p10'").get()).kanal).toBe('brev');
+    const f = r8.teamForslag(atk(db, 'adm-kard', 'p10', {}, 'boka'), { personal: ['lak-kard', 'ssk-kardmott'] });
+    expect(f.forslag.length).toBeGreaterThan(0);
+    for (const x of f.forslag) expect(Date.parse(x.start) - nu).toBeGreaterThanOrEqual(tidbok.BREV_DAGAR * 86400_000);
+    // En patient som får kallelsen i Min journal kan få en tid redan i dag.
+    const g = r8.teamForslag(atk(db, 'adm-kard', 'p01', {}, 'boka'), { personal: ['lak-kard', 'ssk-kardmott'] });
+    expect(Date.parse(g.forslag[0].start) - nu).toBeLessThan(tidbok.BREV_DAGAR * 86400_000);
+  });
+
+  test('Sussas testpatient på väntelistan (testfall 5.8) kan nås, så att kallelsen går ut när hon eller han bokas', () => {
+    stallKlockan(KLOCKAN('10:00'));
+    const db = nySessionsDb();
+    laddaTestdata(db, personal(db, 'adm-kard'), { nu: KLOCKAN('10:00') });
+    const jonas = db.query("SELECT * FROM patienter WHERE id = 'sus20'").get();
+    expect(tidbok.kanalFor(db, jonas).kanal).toBe('brev');
+    const post = db.query("SELECT * FROM vantelista WHERE patient_id = 'sus20' AND status = 'vantar'").get();
+    const f = tidbok.forslagForPost(atk(db, 'adm-kard', 'sus20', {}, 'boka'), post);
+    const { kallelse } = tidbok.bokaPostRad(db, post, tidbok.tidRad(db, f.forslag[0].tidId), { av: 'adm-kard' });
+    expect(kallelse).toMatchObject({ kanal: 'brev', status: 'skickad' });
   });
 });
 
