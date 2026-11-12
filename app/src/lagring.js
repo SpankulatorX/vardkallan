@@ -69,7 +69,9 @@ const SYSTEM = new Set(['omorganisationer', 'omorganisation_flyttar', 'lagringsm
   // Runda 14, r2: när de simulerade nationella tjänsterna fick sina uppgifter i sandlådan (rivta/nationella.js).
   'rivta_sim_status',
   // Runda 14, r2: den simulerade HSA-katalogens kopia av personalkatalogen, utan patientuppgifter.
-  'rivta_sim_hsa']);
+  'rivta_sim_hsa',
+  // Runda 14, r5: incidentregistret hör till driften och har inga patientuppgifter (servicenivaer.js).
+  'incidenter']);
 // Tabeller vars koppling inte går att se på kolumnnamnen.
 const UTTRYCKLIGA = {
   dubblettforslag: { typ: 'patient', kolumner: ['fran_patient_id', 'till_patient_id'] },

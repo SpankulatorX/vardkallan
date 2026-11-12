@@ -223,6 +223,8 @@ MENY.barnmorska = MENY.sjukskoterska.filter(x => x !== 'Intensivvård');
 MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen');
 // Runda 12, r1: systemförvaltaren har Mallar och mätvärdestyper efter Kodverk och masterdata.
 MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterdata') + 1, 0, 'Mallar och mätvärdestyper');
+// Runda 14, r5: systemförvaltaren har Servicenivåer och incidenter efter Uppgraderingar.
+MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Uppgraderingar') + 1, 0, 'Servicenivåer och incidenter');
 
 (async () => {
   // Runda 11, r1: klockan ställs innan testet räknar ut några datum.
@@ -2102,6 +2104,31 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await bild(page, '103f-uppgradering-vantar');
       await page.waitForLoadState('networkidle');
     });
+    // Runda 14, r5: servicenivåer och incidenter. Systemet sätter prioriteten ur två frågor och säger när beställaren ska ha
+    // rapporten, och incidentrapporten till beställaren har inga patientuppgifter och markerar incidenten som rapporterad.
+    await s('Tomas Lindh registrerar en incident, ser prioriteten och månadsrapporten och hämtar incidentrapporten till beställaren', async () => {
+      await gaTill(page, '#/servicenivaer');
+      await forvanta(page, '#sn-rapport', 'Månadsrapport för');
+      await page.fill('#sn-rubrik', 'Utskrifterna fastnar på avdelningen');
+      await page.check('#sn-omfattning-fatal');
+      await page.check('#sn-paverkan-begransar');
+      await page.click('#sn-ny [type="submit"]');
+      await forvanta(page, '.notis', 'prioritet 3');
+      const kort = page.locator('#sn-lista li', { hasText: 'Utskrifterna fastnar på avdelningen' });
+      await kort.waitFor();
+      await forvanta(page, '#sn-lista li', 'Ett fåtal användare berörs');
+      await forvanta(page, '#sn-lista [data-nasta]', 'Rapportera till beställaren senast');
+      await bild(page, '103g-servicenivaer');
+      const [fil] = await Promise.all([page.waitForEvent('download'), page.click('[data-export]')]);
+      const rapport = JSON.parse(require('node:fs').readFileSync(await fil.path(), 'utf8'));
+      if (!rapport.incidenter.some(i => i.rubrik === 'Utskrifterna fastnar på avdelningen' && i.rapporteradITid === true)) throw new Error('incidenten saknas i rapporten till beställaren eller är inte rapporterad i tid');
+      if (/Tomas Lindh|sysf|personnummer/.test(JSON.stringify(rapport))) throw new Error('rapporten till beställaren har en person eller patientuppgift');
+      await forvanta(page, '.notis', 'markerad som rapporterad');
+      await page.locator('#sn-lista li', { hasText: 'Utskrifterna fastnar på avdelningen' }).locator('[data-avsluta]').click();
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', 'Incidenten är avslutad');
+      await page.waitForLoadState('networkidle');
+    });
     await allaVyer(page, 'Tomas Lindh', MENY.systemforvaltare);
     // Fyra ögon på riktigt: Nora Ekholm loggar in i samma sandlåda och godkänner sammanslagningen som Tomas Lindh förberedde.
     await s('Nora Ekholm godkänner sammanslagningen som Tomas Lindh förberedde, men inte sina egna förslag', async () => {
@@ -2668,8 +2695,12 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
         'iva-nems', 'tillvaxt-import',
         // Runda 13, r1: synpunkten och det första uppdraget i testinbjudan.
         'lamna-synpunkt', 'valj-yrkesroll',
+        // Runda 14, r3: intyget och e-remissen (lades till vid sammanslagningen).
+        'skriv-intyg', 'skicka-eremiss',
         // Runda 14, r4: mellanarkivet och reservdatorn för läkemedel.
-        'las-mellanarkiv', 'overfor-mellanarkiv', 'oppna-reservdator']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'las-mellanarkiv', 'overfor-mellanarkiv', 'oppna-reservdator',
+        // Runda 14, r5: incidenten på sidan Servicenivåer och incidenter.
+        'registrera-incident']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

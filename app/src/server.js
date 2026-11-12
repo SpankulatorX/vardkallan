@@ -161,6 +161,8 @@ import { MIGRERINGAR as r12r2Migreringar } from './releaser.js';
 import { registreraRutter as r13r1Rutter } from './r13r1-rutter.js';
 // Runda 14, r3: intyg genom intygsapplikationen och e-remiss (r14r3-rutter.js).
 import { registreraRutter as r14r3Rutter } from './r14r3-rutter.js';
+// Runda 14, r5: incidentregistret, servicenivårapporten och incidentrapporten till beställaren (servicenivaer-rutter.js).
+import { registreraRutter as r14r5Rutter } from './servicenivaer-rutter.js';
 import { skapaKopielager, schemalagdaStegvis } from './sakerhetskopior.js';
 // Runda 13, r2: sandlådor som vilar på disk, inga tappade sandlådor och en vänlig sida när demon är full.
 import { Database } from 'bun:sqlite';
@@ -2506,6 +2508,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     s.vantande = null; s.flerfaktorMetod = null; s.flerfaktorUtmaning = null; s.kopior = new Map();
   };
   r12r2Rutter({ rutt, kravInloggad, testresultat, kopior, migrera, loggaUtAlla });
+  // Runda 14, r5 (servicenivaer-rutter.js): svarstiderna med målet och säkerhetskopiornas lager till månadsrapporten.
+  r14r5Rutter({ rutt, kravInloggad, kopior, matning: () => medMal(serverMatning.sammanstall()), malP95: MAL_P95 });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
   // visas direkt (bara i den egna sandlådan).
   const kravNagon = (c) => { if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad'); };

@@ -142,4 +142,8 @@ const POSTERNA = [
   },
 ];
 // Runda 13, r4: den samlade listan att godkänna (sussa/runda13-r4.js).
-export default medR13r4(medR8r5(POSTERNA));
+// Runda 14, r5: leverantörens åtaganden, servicenivåerna, utbildningsmaterialet och innovationsrummet (sussa/runda14-r5.js).
+import { medR14r5 } from '../runda14-r5.js';
+
+const R14_FORE = medR13r4(medR8r5(POSTERNA));
+export default medR14r5(R14_FORE);

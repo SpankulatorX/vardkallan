@@ -1368,6 +1368,22 @@ function skapa(BAS) {
     await m.klicka(page.locator('[data-reservdator-lank] a'), 'Reservdator för läkemedel');
     await synlig(page, '#reservdator', 'inskrivna patienter');
   };
+  // Runda 14, r5: systemförvaltaren registrerar en incident på sidan Servicenivåer och incidenter.
+  startI['Servicenivåsidan efter återställning'] = async (page) => {
+    await gaTill(page, '#/moduler');
+    await page.evaluate(() => fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()));
+    await gaTill(page, '#/servicenivaer');
+    await page.waitForSelector('#sn-ny #sn-rubrik');
+    await page.waitForSelector('#sn-rapport');
+  };
+  GOR['registrera-incident'] = async (m, page) => {
+    await m.skriv(page.locator('#sn-rubrik'), 'Inloggningen svarar inte', 'vad som har hänt');
+    await m.klicka(page.locator('#sn-omfattning-alla'), 'Alla eller en väsentlig del av användarna berörs');
+    await m.klicka(page.locator('#sn-paverkan-stoppar'), 'Vården kan inte använda systemet');
+    await m.klicka(page.locator('#sn-ny [type="submit"]'), 'Registrera incidenten');
+    await synlig(page, '.notis', 'Incidenten är registrerad med prioritet 1');
+    await synlig(page, '#sn-lista', 'Rapportera till beställaren senast');
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 

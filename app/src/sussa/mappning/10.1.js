@@ -35,4 +35,8 @@ const R12R3 = {
     anmarkning: 'Övningsjournalen är en av demons påhittade patienter som personen har vårdrelation till, eftersom demon själv är utbildningsmiljön. Systemet kan kontrollera tre slag av praktiska prov. Intygen och proven gäller bara i demon.',
   },
 };
-export default medR8r5(medR7r2(AVSNITT)).map(x => (R12R3[x.id] ? { ...x, ...R12R3[x.id], tester: [...new Set([...(x.tester ?? []), ...R12R3[x.id].tester])] } : x));
+// Runda 14, r5: leverantörens åtaganden, servicenivåerna, utbildningsmaterialet och innovationsrummet (sussa/runda14-r5.js).
+import { medR14r5 } from '../runda14-r5.js';
+
+const R14_FORE = medR8r5(medR7r2(AVSNITT)).map(x => (R12R3[x.id] ? { ...x, ...R12R3[x.id], tester: [...new Set([...(x.tester ?? []), ...R12R3[x.id].tester])] } : x));
+export default medR14r5(R14_FORE);

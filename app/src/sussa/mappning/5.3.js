@@ -6,7 +6,10 @@ import { medR9r5 } from '../runda9-r5.js';
 
 const { B, A, L, J, M, F, MJ } = TEST;
 
-export default medR9r5([
+// Runda 14, r5: leverantörens åtaganden, servicenivåerna, utbildningsmaterialet och innovationsrummet (sussa/runda14-r5.js).
+import { medR14r5 } from '../runda14-r5.js';
+
+const R14_FORE = medR9r5([
   { id: '5.3.1.1', kategori: 'leverantor', egna: ['D12'], tester: [], avsedd: 'planerat',
     anmarkning: 'Gäller leverantörens dokumenterade informationssäkerhetsarbete för tjänsteleveransen. Det finns inget sådant för demon.' },
   {
@@ -115,3 +118,4 @@ export default medR9r5([
     anmarkning: 'Ingen extern säkerhetsgranskning eller penetrationstest är gjord.',
   },
 ]);
+export default medR14r5(R14_FORE);

@@ -921,3 +921,14 @@ Inget av detta är FHIR. Inga svar till testaren innehåller patientuppgifter ur
 - Tidslinjen i `GET /api/patient/:id/oversikt` har händelser med `typ: 'mellanarkiv'` och `ref: { typ: 'mellanarkiv', id }`, och `GET /api/patient/:id/sok` har träffar med `typ: 'mellanarkiv'` och `ref: { flik: 'journal', sub: 'ma-<id>' }`.
 - `GET /api/reservlista` (sjuksköterskor och läkare) ger `{ vardenhet, skapad, fornyas: { intervallMs, maxAlderMs }, patienter: [{ id, namn, personnummer, skyddad, plats, tid, ordinationer, doser, senaste, ejInskriven }], simulerat, text }` för de inskrivna patienterna på den egna vårdenheten. 403 för andra roller.
 - `GET /api/krav/testprotokoll` ger testprotokollet utan inloggning och utan att en sandlåda skapas.
+
+## Servicenivåer och incidenter i version 1.4 (runda 14, r5)
+
+Bara systemförvaltaren (behörigheten `servicenivaer`). Inget rör en enskild patient, och en text som ser ut att innehålla ett personnummer ger 400.
+
+- `GET /api/servicenivaer/incidenter` ger `{ incidenter, pagar, val: { kategorier, omfattning, paverkan }, prioriteter }`. Varje incident har `prioritet`, `prioritetNamn`, `skal`, `atgardstid: { minuter, text, malMinuter, inomMal }`, `major: { aktiv, intraffade }`, `rapportering: { senast, rapporterad, iTid, text }`, `uppfoljning` och `nasta`, det nästa steget på vanlig svenska.
+- `POST /api/servicenivaer/incidenter { rubrik, kategori, omfattning, paverkan, personuppgifter, beskrivning, borjade }` ger 201 med incidenten. `kategori` är `drift` (förval), `sakerhet` eller `redundans`. Prioriteten räknas av servern ur `omfattning` (`alla`, `kritisk`, `fatal`, `ingen`) och `paverkan` (`stoppar`, `begransar`, `vag_runt`) och tas aldrig från klienten. Registreringen loggas i säkerhetsloggen med typen `incident`, utan incidentens text.
+- `POST /api/servicenivaer/incidenter/:id/avsluta { tid, orsak, konsekvens, atgard, forebyggande }`. För prioritet 1 och 2 krävs alla fyra texterna. 409 när incidenten redan är avslutad.
+- `POST /api/servicenivaer/incidenter/:id/uppfoljning { datum }` registrerar incidentuppföljningsmötet för prioritet 1 och 2.
+- `GET /api/servicenivaer/rapport?manad=ÅÅÅÅ-MM` ger månadsrapporten `{ manad, fran, till, forra, nasta, pagar, sammanfattning, avvikelser, tillganglighet, prioriteter, svarstider, sakerhetskopior, rapportering, sakerhetslogg, incidenter, kalla }`. Utan `manad` gäller den innevarande månaden i svensk tid.
+- `POST /api/servicenivaer/export { fran, till }` ger `{ fil, rapport, nyRapporterade }`: incidentrapporten till beställaren med incidenterna och säkerhetsloggens händelser räknade per typ, utan personer och patientuppgifter. Incidenterna markeras som rapporterade, och uttaget loggas i säkerhetsloggen med typen `incidentrapport`. Utan period gäller de senaste 30 dagarna.

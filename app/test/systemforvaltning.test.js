@@ -58,7 +58,8 @@ describe('Systemförvaltning', () => {
     // Runda 7, r2: all personal gör övningarna i utbildningen.
     // Runda 9, r6: systemförvaltaren förvaltar också det öppna API:t.
     // Runda 10, r2: och vårdenheternas förval för vyerna.
-    expect(s.behorigheter).toEqual(['konfigurera', 'omorganisera', 'undanta', 'lagring', 'forvalta_api', 'utbildning', 'vyforval']);
+    // Runda 14, r5: och servicenivåerna med incidentregistret.
+    expect(s.behorigheter).toEqual(['konfigurera', 'omorganisera', 'undanta', 'lagring', 'forvalta_api', 'servicenivaer', 'utbildning', 'vyforval']);
     expect((await k.get('/api/patient/p01')).status).toBe(403);
     expect((await k.get('/api/arbetslista')).data).toEqual([]);
     // Den andra systemförvaltaren finns för fyra ögon och går att logga in som, direkt efter den första.

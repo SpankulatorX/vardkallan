@@ -96,9 +96,9 @@ export const ANALYS = {
   },
   systemforvaltare: {
     namn: "Systemförvaltare",
-    behov: "Ändrar regler och parametrar, förbereder omorganisationer, beslutar om undantag och förvaltar det öppna API:t.",
-    risker: "Att ändringar i konfigurationen ger någon åtkomst eller ändrar regler utan kontroll.",
-    atgarder: "Läser inte journalen. Ändringar kräver fyra ögon, det vill säga en andra systemförvaltare i sin egen inloggning, och loggas.",
+    behov: "Ändrar regler och parametrar, förbereder omorganisationer, beslutar om undantag och förvaltar det öppna API:t. Registrerar incidenter, följer upp servicenivåerna och tar ut incidentrapporten till beställaren.",
+    risker: "Att ändringar i konfigurationen ger någon åtkomst eller ändrar regler utan kontroll, och att patientuppgifter hamnar i en incident som lämnar systemet.",
+    atgarder: "Läser inte journalen. Ändringar kräver fyra ögon, det vill säga en andra systemförvaltare i sin egen inloggning, och loggas. En incident tar inte emot en text som ser ut att innehålla ett personnummer, och incidentrapporten har inga patientuppgifter och loggas i säkerhetsloggen.",
     inte: ["las_journal", "las_oversikt", "ordinera"],
   },
   fysioterapeut: {

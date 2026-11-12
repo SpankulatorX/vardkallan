@@ -517,6 +517,8 @@ export function byggSeed(bas = nu()) {
   require('./schema-runda14-r3.js').sakraR14r3(db);
   // Runda 14, r4: mellanarkivet med de äldre uppgifter ur VAS som fördes dit vid migreringen (mellanarkiv.js).
   require('./mellanarkiv.js').seeda(db);
+  // Runda 14, r5: incidentregistret (servicenivaer.js). Inget läggs in i efterhand.
+  require('./servicenivaer.js').sakra(db);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   // Runda 12, r2: de versionerade migreringarna från version 1.2 (releaser.js). Sist, så att schemaversionen gäller allt.
@@ -674,6 +676,8 @@ export function migrera(db) {
   require('./administrering.js').sakraIdentitet(db);
   // Runda 14, r3 (schema-runda14-r3.js).
   require('./schema-runda14-r3.js').sakraR14r3(db);
+  // Runda 14, r5: incidentregistret (servicenivaer.js). Inget läggs in i efterhand.
+  require('./servicenivaer.js').sakra(db);
   // Runda 12, r2: kontrollen av schemaversionen när en sandlåda läses in (releaser.js). Saknade migreringar tillämpas och
   // migreringar från en nyare version av programmet backas med de återställningar som sparades i databasen.
   require('./releaser.js').kontrolleraVidStart(db);

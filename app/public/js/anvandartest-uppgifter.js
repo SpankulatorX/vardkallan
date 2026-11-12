@@ -31,6 +31,8 @@ export const STARTPUNKT = {
   // Runda 7, r4: systemförvaltarens sidor.
   'Omorganisationen efter återställning': { hash: '#/omorganisation', klar: '.sf-org', forbered: 'aterstall' },
   'Reglerna efter återställning': { hash: '#/regler', klar: '#sf-att-godkanna', forbered: 'aterstall' },
+  // Runda 14, r5: servicenivåerna och incidenterna efter återställning.
+  'Servicenivåsidan efter återställning': { hash: '#/servicenivaer', klar: '#sn-rapport', forbered: 'aterstall' },
   // Runda 6, r6.
   'Verksamhetschefens startsida': { hash: '#/lakemedelsansvar', klar: '#la-pam', forbered: 'aterstall' },
   'Inkorgen efter återställning': { hash: '#/inkorg', klar: '#ik-mallar', forbered: 'aterstall' },
@@ -709,6 +711,12 @@ export const UPPGIFTER = [
     id: 'oppna-reservdator', namn: 'Göra en dator till vårdenhetens reservdator för läkemedel', roll: 'ssk-kard', start: 'Arbetslistan efter inloggning',
     text: 'Datorn i läkemedelsrummet ska visa avdelningens läkemedel om journalsystemet slutar svara. Ställ i ordning den.',
     kontroll: { sel: '#reservdator', text: 'inskrivna patienter' },
+  },
+  // Runda 14, r5: systemförvaltaren registrerar en incident.
+  {
+    id: 'registrera-incident', namn: 'Registrera en incident', roll: 'sysf', start: 'Servicenivåsidan efter återställning',
+    text: 'Du är systemförvaltare. Användarna kan inte logga in. Registrera det som en incident och se när beställaren ska ha rapporten.',
+    kontroll: { notis: 'Incidenten är registrerad' },
   },
 ];
 

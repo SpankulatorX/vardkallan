@@ -92,6 +92,16 @@
           "text": "Öppna Reservdator för läkemedel på en dator på vårdenheten och låt den vara öppen. Den hämtar själv ordinationerna och dagens doser för alla inskrivna patienter var fjärde minut och visar dem, och kan skriva ut dem, också när kärnsystemet inte svarar. Den hjälper den vars egen dator är nere eller som inte var inloggad när avbrottet började."
         },
         {
+          "id": "servicenivaer-1-4-0",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "liten",
+          "var": "#/servicenivaer",
+          "rubrik": "Servicenivåer och incidenter",
+          "text": "Registrera en incident genom att svara på två frågor. Systemet sätter prioriteten enligt servicenivåavtalet, säger när beställaren ska ha rapporten och när processen för en större incident ska startas, och räknar månadsrapporten för servicenivåerna. Incidentrapporten till beställaren hämtas utan patientuppgifter."
+        },
+        {
           "id": "testprotokoll-1-4",
           "roller": [
             "alla"
@@ -100,6 +110,16 @@
           "var": "#/testprotokoll",
           "rubrik": "Testprotokoll inför acceptanstest",
           "text": "Testprotokollet visar varje krav med sina testfall, resultatet, när testerna kördes och vilken byggd version det gäller, och kan skrivas ut från kravsidan."
+        },
+        {
+          "id": "utbildningsmaterial-1-4-0",
+          "roller": [
+            "personal"
+          ],
+          "omfattning": "liten",
+          "var": "#/utbildning",
+          "rubrik": "Utbildningsmaterial och instruktionsfilmer för din roll",
+          "text": "Det finns nu ett utbildningsmaterial för varje roll med de vanliga arbetsflödena, övningarna och uppdragen, och korta instruktionsfilmer med textade steg, till exempel hur du skriver en daganteckning eller ger en dos. Materialet och filmerna finns i Vårdkällans dokumentation på GitHub, och övningarna gör du som förut under Utbildning."
         }
       ]
     },

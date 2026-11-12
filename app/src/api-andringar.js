@@ -28,6 +28,8 @@ export const ANDRINGAR = [
       'Journalhandlingar i mellanarkivet per patient och en i taget, och beslut om överföring till mellanarkiv med underlag och överföring, i det interna API:t',
       'Listan för vårdenhetens reservdator för läkemedel med inskrivna patienters ordinationer och dagens doser i det interna API:t',
       'Nytt: GET /api/krav/testprotokoll, testprotokollet med spårbarhet från krav till testfall, öppet utan inloggning',
+      // Runda 14, r5: servicenivåerna, incidentregistret och incidentrapporten till beställaren.
+      'Incidentregistret, månadsrapporten för servicenivåerna och incidentrapporten till beställaren i det interna API:t för systemförvaltaren (docs/api-avvikelser.md)',
     ],
   },
   // Runda 13: version 1.3.1, rättelserna för kvällar och nätter.

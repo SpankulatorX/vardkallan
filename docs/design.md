@@ -3016,3 +3016,33 @@ Testprotokollet räknas ur kravregistret, Sussa-registret och resultaten från d
 ### Dokumentationen av gränssnitten (Sussa 3.6.1.3)
 
 `docs/gransnitt.md` beskriver alla gränssnitt för informationsutbyte samlat, med standard, riktning, adresser, kod, behörighet och vad som är simulerat, och processen för hur en beställare själv utvecklar och förvaltar dem. Dokumentet skrivs ur registret i `gransnitt-utbyte.js` med `scripts/dokument-md.js`, och ett test stoppar bygget när en ny extern adress, en ny rutt för informationsutbyte eller en ny fil för tjänstekontrakten saknas i registret, när registret pekar på något som inte finns, och när dokumentet inte är skrivet ur registret. Avsnitten om tjänstekontrakten, intygen och inloggningstjänstens biljett hänvisar till `docs/rivta.md` och `docs/sakerhetsarkitektur.md`. Dokumentationen är inte prövad av en beställare.
+
+## Leverantörens åtaganden, servicenivåer och utbildning (runda 14, r5: servicenivaer.js, driftdokument.js, utbildningsmaterial.js och instruktionsfilmer.js, Sussa KD1, 2.6.1.1, 5.2.1.5, 5.3.1.x och 9 till 12)
+
+Ungefär 65 av Sussas skallkrav gäller leverantören och inte systemets funktion: drift, datahallar, servicenivåer, processer enligt ITIL, informationssäkerhet hos leverantören, support, utbildning, projekt och test. Ett öppet projekt kan inte själv åta sig att driva systemet. Det som är byggt är det en driftansvarig behöver för att kunna uppfylla kraven, och systemets eget stöd där det går utan någon motpart.
+
+### Servicenivåer och incidenter (#/servicenivaer, systemförvaltaren)
+
+Systemförvaltaren registrerar en incident genom att skriva vad som har hänt och svara på två frågor: hur många som berörs och om vården kan arbeta. Systemet sätter prioriteten 1 till 4 enligt prioritetsmodellen i upphandlingens servicenivåbilaga (DU2) och skriver skälet, så att ingen behöver kunna modellen. Avtalad redundans som saknas utan att något har hänt blir prioritet 2 (KD1.2.1.4). Åtgärdstiden räknas mot gränsvärdet för prioriteten (2, 4 och 12 timmar), och prioritet 1 som inte är löst inom 2 timmar visas som en större incident, med uppmaningen att starta den processen (KD1.3.2.3). Prioritet 1 och 2 avslutas med orsak, konsekvens, åtgärd och vad som görs för att det inte ska hända igen, vilket blir underlaget till incidentuppföljningsmötet, och mötet registreras sedan (KD1.3.2.2).
+
+För varje incident säger systemet när beställaren senast ska ha rapporten: prioritet 1 inom 30 minuter, prioritet 2 inom 2 timmar, prioritet 3 inom ett dygn och prioritet 4 i månadsrapporten, och en personuppgiftsincident inom 24 timmar, eftersom vårdgivaren ska anmäla den till IMY inom 72 timmar. Tidsgränserna är ett förslag till anvisning tills beställaren har gett sin (5.3.1.14). Incidentrapporten till beställaren har incidenterna under perioden och säkerhetsloggens händelser räknade per typ. Den har inga patientuppgifter, och systemet lägger inte till några personers namn eller id. Uttaget markerar incidenterna som rapporterade och skrivs i säkerhetsloggen med typen Incidentrapport till beställaren.
+
+Månadsrapporten räknas av systemet: tillgängligheten som andelen av månadens minuter utan pågående incident av prioritet 1, antal och åtgärdstid per prioritet mot gränsvärdena, året hittills mot gränserna för antal och total åtgärdstid per år, rapporteringen i tid, serverns svarstider mot målet p95 200 ms, säkerhetskopiorna och säkerhetsloggens kedja. Avvikelserna skrivs på vanlig svenska. Månaderna följer svensk tid.
+
+En incident tar inte emot en text som ser ut att innehålla ett personnummer, samordningsnummer eller reservnummer. Bara systemförvaltaren (behörigheten `servicenivaer`) når incidenterna, och registrering, avslut och uppföljning loggas i säkerhetsloggen med typen Incident, utan incidentens text. Tabellen `incidenter` hör till systemet i lagringsklasserna och följer inte med i ett uttag per huvudman.
+
+### Driftdokumenten (docs/drift/)
+
+Sexton dokument som en region eller en driftleverantör tar över och fyller i: processhandbok enligt ITIL 4 med en tabell över hur ITIL v3/2011 motsvarar ITIL 4, servicenivåer med mallar för avtal och månadsrapport, incidentrapportering, kontinuitetsplan, återställning efter haveri, säkerhetsuppdateringar, support, samverkansmodell, datahallar, fysiskt skydd enligt MSB:s vägledning, skydd mot skadlig kod och intrång, åtkomst för drift- och supportpersonal, kryptering, informationssäkerhet, klienter och införande. Varje dokument hänvisar till de Sussa-id det gäller och till det systemet redan har som stöd, och har platshållare för det som den som driver systemet ska fylla i. Texterna skrivs ur `driftdokument-processer.js` och `driftdokument-skydd.js` med `scripts/dokument-md.js`, och ett test prövar att varje Sussa-id och varje fil som texterna hänvisar till finns, att varje algoritm som dokumentet om kryptering anger finns i koden och att texterna följer språkreglerna. Dokumenten beskriver inte den publika demons drift.
+
+### Utbildningsmaterial, instruktionsfilmer och innovationsrummet
+
+Utbildningsmaterialet per roll i `docs/utbildning/` skrivs ur övningarna, de vanliga arbetsflödena i klickbudgeten, instruktionsfilmerna och testinbjudans uppdrag, så att det följer systemet med varje version (10.1.1.1 till 10.1.1.3). Instruktionsfilmerna i `docs/filmer/` är de vanliga arbetsflödena, ett per film, med textade steg på svenska. `test/instruktionsfilmer.cjs` spelar in dem med Playwright mot en lokal server ur samma flöden som klickbudgeten mäter och krymper dem med VP9, högst 2 MB per film (11.2.1.4). Innovationsrummet beskrivs i `docs/innovationsrum.md` och `CONTRIBUTING.md` (2.6.1.1).
+
+### Statusen för leverantörens krav
+
+Ett dokument gör inte att ett åtagande är uppfyllt. En post är `delvis` bara där dokumentet eller funktionen ger det kravet frågar efter, till exempel en beskrivning, en rekommenderad process eller systemets eget verktyg, och anmärkningen säger att åtagandet kräver en driftansvarig. Övriga poster står kvar som planerade med en hänvisning till dokumentet. CE-märkningen (2.7.1.1) är oförändrad och hänvisar till `docs/mdr-bedomning.md`.
+
+### Det som är simulerat eller saknas
+
+Incidentregistret och servicenivårapporten gäller sandlådan. Gränsvärdena kommer ur upphandlingens servicenivåbilaga och är förslag tills de överenskoms med en beställare. Svarstiderna mäts av servern sedan den startade, inte vid beställarens anslutningspunkt. Rapporten till beställaren hämtas som en fil. Larm till en driftorganisation, support dygnet runt, ett ärendehanteringssystem för beställaren, ett utvecklarforum och lärarledd utbildning kräver en ansvarig organisation och finns inte.

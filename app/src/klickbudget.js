@@ -564,3 +564,10 @@ FLODEN.push(
     motivering: 'Sussa 11.2.1.8. Ett klick på Läkemedel att ge och ett på Reservdator för läkemedel. Sedan hämtar sidan själv listan över alla inskrivna patienter var fjärde minut, och ingen behöver göra något mer.',
   },
 );
+// Runda 14, r5: systemförvaltaren registrerar en incident (servicenivaer.js, Sussa KD1.2.1.4, KD1.3.2.3 och 5.3.1.14).
+FLODEN.push(
+  {
+    id: 'registrera-incident', namn: 'Registrera en incident', roll: 'sysf', start: 'Servicenivåsidan efter återställning', budget: 4,
+    motivering: 'Ett fältbyte till vad som har hänt, ett klick för hur många som berörs, ett för om vården kan arbeta och ett på Registrera incidenten. Systemet sätter prioriteten enligt servicenivåavtalet, tiden och sorten (driftstörning) och säger direkt när beställaren ska ha rapporten och när processen för en större incident ska startas.',
+  },
+);
