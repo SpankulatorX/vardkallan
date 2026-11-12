@@ -24,6 +24,8 @@ for (const f of ['00-fel.png', '00-fel-mobil.png']) rmSync(join(UT, f), { force:
 
 const fel = [];
 const vantade403 = [];
+// Runda 13, r2: steg där svaret att demon är full (503 med X-Vk-Full) är det som prövas.
+const VANTAD_FULL = new Set();
 let steg = 0;
 let aktuelltSteg = '';
 
@@ -33,10 +35,12 @@ function bevaka(page, namn) {
     if (m.type() !== 'error') return;
     const t = m.text();
     if (/Failed to load resource: the server responded with a status of 40[34]/.test(t)) { vantade403.push(`${aktuelltSteg}`); return; }
+    if (VANTAD_FULL.has(aktuelltSteg) && /status of 503/.test(t)) return;
     fel.push(`[${namn}] konsolfel i "${aktuelltSteg}": ${t}`);
   });
   page.on('response', r => {
     const u = new URL(r.url());
+    if (r.status() === 503 && r.headers()['x-vk-full'] === '1' && VANTAD_FULL.has(aktuelltSteg)) return;
     if (r.status() >= 500) fel.push(`[${namn}] HTTP ${r.status()} ${r.request().method()} ${u.pathname} i "${aktuelltSteg}"`);
     if (r.status() === 404 && !u.pathname.startsWith('/api/') && !u.pathname.startsWith('/fhir/')) fel.push(`[${namn}] saknad fil ${u.pathname}`);
     if (r.status() === 429) fel.push(`[${namn}] HTTP 429 ${u.pathname}`);
@@ -266,6 +270,7 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       if (t !== 'Hoppa till innehållet') throw new Error(`fokus på "${t}"`);
     });
     // Runda 13, r2: sidan när demon är full. Serverns svar spelas upp i webbläsaren, eftersom testcontainern inte är full.
+    VANTAD_FULL.add('när demon är full får en ny besökare en sida som säger när det är lönt att försöka igen, och den försöker igen av sig själv');
     await s('när demon är full får en ny besökare en sida som säger när det är lönt att försöka igen, och den försöker igen av sig själv', async () => {
       const full = { fel: 'Demon har många besökare just nu.', kod: 'demo_full', orsak: 'minne', forsokIgenSekunder: 6 };
       await page.route('**/api/session', (r) => r.fulfill({ status: 503, contentType: 'application/json', headers: { 'Retry-After': '6', 'X-Vk-Full': '1' }, body: JSON.stringify(full) }));
@@ -1710,6 +1715,9 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
 
     // Tomas Lindh, systemförvaltare (runda 7, r4)
     await s('Tomas Lindh godkänner kollegans ändring av en regel och ser att den gäller', async () => {
+      // Runda 13, r2: anropen från Fredrik Alms sista vy väntas in före bytet av användare, annars kan ett av dem komma
+      // tillbaka med 401 efter inloggningen.
+      await page.waitForLoadState('networkidle');
       await loggaIn(page, 'sysf');
       await forvanta(page, 'main h1', 'Regler och parametrar');
       await forvanta(page, '#sf-att-godkanna ~ ul', 'Larm när mottagningskvittensen dröjer');

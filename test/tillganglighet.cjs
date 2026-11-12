@@ -34,12 +34,15 @@ const fynd = {};
 const nytt = (kontroll, rad) => { (fynd[kontroll] ??= new Set()).add(rad); };
 const sidfel = [];
 
+// Runda 13, r2: medan sidan om full demo granskas är svaret 503 det som prövas.
+let fullVantad = false;
 function bevaka(page, namn) {
   page.on('pageerror', e => sidfel.push(`[${namn}] sidfel: ${e.message}`));
   page.on('console', m => {
     if (m.type() !== 'error') return;
     // 403 och 404 där demon visar nekad åtkomst, och 400 när testet själv framkallar ett fel i ett formulär.
     if (/Failed to load resource: the server responded with a status of 40[034]/.test(m.text())) return;
+    if (fullVantad && /status of 503/.test(m.text())) return;
     sidfel.push(`[${namn}] konsolfel: ${m.text()}`);
   });
 }
@@ -451,14 +454,19 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
   }
   // Runda 13, r2: sidan när demon är full. Serverns svar spelas upp i webbläsaren.
   {
+    fullVantad = true;
     await page.route('**/api/session', (r) => r.fulfill({ status: 503, contentType: 'application/json', headers: { 'Retry-After': '120', 'X-Vk-Full': '1' }, body: JSON.stringify({ fel: 'Demon har många besökare just nu.', kod: 'demo_full', orsak: 'disk', forsokIgenSekunder: 120 }) }));
+    // Sidan laddas om, eftersom en ändring av bara adressens # inte frågar servern om sessionen igen.
     await page.goto(`${BAS}/#/`);
+    await page.reload();
     await page.waitForSelector('#demo-full');
     vyLista.push(['ute', 'demon är full']);
     await granskaHar('när demon är full');
     await page.unroute('**/api/session');
     await page.goto(`${BAS}/#/`);
+    await page.reload();
     await page.waitForSelector('.roll');
+    fullVantad = false;
   }
   // 2. Varje demoroll: alla vyer i menyn, och journalens flikar för rollerna med journal.
   for (const roll of roller) {
