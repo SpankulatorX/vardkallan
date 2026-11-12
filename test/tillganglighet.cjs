@@ -429,6 +429,8 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
   const roller = await page.locator('.roll[data-roll]').evaluateAll(r => r.map(x => x.dataset.roll));
   const invanare = 'inv-p01';
   const OFFENTLIGA = ['#/', '#/krav', '#/moduler', '#/drift', '#/tillganglighet'];
+  // Runda 13, r1: startsidan för testare, sidan om demon och testledarens vy.
+  OFFENTLIGA.push('#/testa', '#/om', '#/testledare');
   const JOURNAL_ROLLER = ['lak-kard', 'ssk-kard', 'usk-kard', 'adm-kard', 'far-kard'];
   const vyLista = []; // [roll, hash]
 

@@ -14,6 +14,16 @@
           "var": null,
           "rubrik": "Avgifternas tak följer lagen",
           "text": "Taken för högkostnadsskyddet och avgiften per vårddygn räknas ur prisbasbeloppet för året, som hälso- och sjukvårdslagen säger. Det gäller kassan, kostnadsrutan i journalen och avgifterna i Min journal."
+        },
+        {
+          "id": "testinbjudan-1-3",
+          "roller": [
+            "alla"
+          ],
+          "omfattning": "stor",
+          "var": null,
+          "rubrik": "Testa och jämför, och lämna synpunkter från varje sida",
+          "text": "Startsidan för testare ger uppdrag per yrke som följer Sussas testfall, och efter varje uppdrag frågar systemet om det var lättare, ungefär lika eller svårare än i ditt journalsystem. Knappen Lämna synpunkt finns längst ner på varje sida."
         }
       ]
     },

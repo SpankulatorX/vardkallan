@@ -2569,3 +2569,37 @@ I driften är varje version en egen avbildning, och vid en återgång startas de
 själv när den startar. Säkerhetskopiornas två platser är två kataloger på samma server, eller två lager i minnet när
 servern inte sparar till disk. I driften är den andra platsen en annan volym på en annan ort. Återställningen går till den
 senaste kopian före tidpunkten, så det som gjordes mellan kopian och tidpunkten (högst femton minuter) återställs inte.
+
+## Testinbjudan och synpunkter (runda 13, r1: testinbjudan.js, synpunkter.js, r13r1-rutter.js, public/js/testinbjudan.js, vyerna testa.js, om.js och testledare.js, Sussa 8.4.1.1 och 8.4.1.2)
+
+Version 1.3 är den version som personal i vården bjuds in att testa. Syftet är en jämförelse: personal som arbetar i Cosmic eller i ett annat journalsystem gör samma arbetsflöden i Vårdkällan och säger var det är lättare, ungefär lika eller svårare, och vad som saknas. Texterna påstår inte att Vårdkällan är bättre.
+
+### Startsidan för testare (#/testa)
+
+Startsidan säger kort vad Vårdkällan är, att systemet är gratis, har öppen källkod (EUPL 1.2) och får användas och anpassas av vem som helst, vad testet går ut på, att allt är påhittat och att sandlådan är personlig och försvinner efter åtta timmar. Testaren fyller frivilligt i vilket journalsystem hen använder i dag, hur länge, yrke och om hen arbetar i region, kommun eller privat vård, och väljer yrkesroll med en stor knapp: läkare på sjukhus, läkare i primärvården, sjuksköterska, undersköterska, barnmorska, vårdadministratör, fysioterapeut och andra yrken, systemförvaltare eller patient i Min journal. Knappen loggar in i rätt demoroll och startar uppdragen. Samma knappar står först på inloggningssidan, före alla demoroller, och användartestet med testledare finns kvar men är inte vägen in. Listan Kända begränsningar (public/js/kanda-begransningar.js, data som uppdateras där) står ihopfälld på startsidan och på #/om.
+
+### Uppdragen
+
+Varje yrkesroll har 7 till 12 uppdrag i en arbetsdags ordning. Tillsammans täcker de alla Sussas 34 användbarhetstestfall, med Sussas påhittade testpatienter, så att jämförelsen gäller samma sak som när Cosmic utvärderades. Där testfallen saknar ett vardagligt flöde för rollen finns ett eget uppdrag, till exempel en NEWS2-kontroll, att skriva ut en patient eller dagsavslutet i kassan, och barnmorskan, systemförvaltaren och patienten har bara sådana, eftersom Sussas testfall saknar dem. Uppdraget säger vad som ska göras, inte var man klickar.
+
+Systemet är experten: servern bockar av ett uppdrag själv när rollens demoperson har gjort det i sandlådan. Kontrollen räknar bara rader som demopersonen har skapat efter starten (id över baslinjen, som tas efter att testdatan har lagts in) eller ändrat efter starttiden, så att seedens och Sussas testdata aldrig räknas och en annan roll i samma sandlåda inte bockar av något. Ett uppdrag som bara går ut på att hitta något (provsvaret, huvuddiagnosen, händelserna klockan 11) har en fråga, och servern prövar svaret mot Sussas rätta svar, som aldrig lämnas ut. Testaren kan hoppa över ett uppdrag. Efter varje uppdrag kommer jämförelsefrågan: lättare, ungefär lika, svårare eller går inte att jämföra, en fritext om vad som var bättre eller sämre och frivilligt hur många klick eller hur lång tid det tar i testarens system. Servern sparar tiden från förra uppdraget och profilen med svaret. Panelen går att fälla ihop, följer med mellan vyerna och frågar servern efter varje sidbyte och varje sparad ändring.
+
+Tillståndet ligger i sandlådan (tabellerna testare och testare_uppdrag, klassade som systemets egna i lagring.js), så att det följer med när sandlådan sparas och aldrig följer med i ett uttag. Svaren till panelen har bara uppdragens egna texter och status.
+
+### Synpunkter från varje vy
+
+Knappen Lämna synpunkt syns på varje sida, längst ner till höger, och på mobil i en rad längst ner som sidan lämnar plats för. Formuläret har texten först med fokus, typ (fel, något saknas, svårt eller krångligt, fel i fackspråket eller vården, annat) och allvar för testaren, och frivilligt profilen och en kontaktuppgift. Systemet fyller själv i vyn (adressens väg utan fråga, till exempel #/patient/p01), demorollen, uppdraget och skärmbredden, och servern sätter version, gränssnittets hash, webbläsarens namn, huvudversion och operativsystem och tiden. Ingen e-postadress krävs. Testaren får ett kort nummer och kan inte läsa eller ändra synpunkten efteråt.
+
+### Lagring, läsning och missbruk
+
+Synpunkterna och jämförelserna sparas i en egen databas som alla sandlådor delar, synpunkter.sqlite bredvid sandlådorna i driftens volym, så att de överlever en ny driftsättning. Läsning kräver testledarens läskod, som skapas av scripts/testinbjudan.js på servern, visas en gång och bara sparas som sha256. Testledarens vy (#/testledare) visar jämförelserna per uppdrag och journalsystem med andelen lättare, lika och svårare och fritexterna, synpunkterna per vy och filtrerade på typ, allvar, demoroll, vy, journalsystem och yrkesroll i testet, och exporterar som CSV och Markdown. Skriptet skriver också ut de nya synpunkterna som Markdown.
+
+Taken: per session och minut, per session och timme, per adress och dygn (adressen bara som HMAC med en hemlig nyckel i en fil bredvid databasen) och totalt. Fritexten har en största längd, HTML tas inte emot, styrtecken och tecken som vänder skrivriktningen tas bort, och ett riktigt personnummer eller samordningsnummer tas inte emot (Skatteverkets testnummer och demons patienter går bra). Testledarens vy visar all text som text, Markdown avväpnar länkar och CSV sätter en apostrof före det som ett kalkylprogram tolkar som en formel. Fel läskod ger samma svar varje gång, och efter tio fel i timmen från samma adress stoppas fler försök. Kontaktuppgiften raderas efter 90 dagar och synpunkten efter 365 dagar.
+
+### Om demon (#/om)
+
+Sidan har det som ett forum kräver av en undersökning: vem som står bakom, syftet, kostnad och licens, att det inte är en produkt för vården, att svaren är frivilliga och anonyma, vad som sparas, varför, hur länge, vem som läser och hur det hanteras, att demon bara har sessionens kaka och hur man kontaktar projektet. Texterna om vad som sparas finns en gång (public/js/synpunkt-regler.js), och formuläret, sidan och servern använder samma.
+
+### Det som är simulerat eller saknas
+
+Demorollerna och patienterna är påhittade, och testarna väljer själva att vara med, så urvalet är inte representativt och svaren är självskattade. Kontrollen av ett uppdrag säger att något har gjorts, inte att det gjordes på det sätt som Sussas testfall beskriver i detalj (till exempel exakt de läkemedel som testfallet nämner). Några av Sussas testfall har roller som Vårdkällans demo inte har för sig (sjuksköterska i öppenvården), och de görs då av den närmaste rollen. Svaren redovisas sammanställda; ingen statistisk analys görs i systemet.

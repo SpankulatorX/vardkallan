@@ -526,3 +526,14 @@ FLODEN.push(
     motivering: 'Sussa 4.8.1.6. Ett klick på Min behandling, ett i rutan för morgonens tabletter och ett på Skicka. Inget besvär är förvalt, och systemet bedömer rapporten och säger direkt om patienten ska ringa.',
   },
 );
+// Runda 13, r1: testinbjudan. En synpunkt från vilken vy som helst, och att välja yrkesroll och göra det första uppdraget.
+FLODEN.push(
+  {
+    id: 'lamna-synpunkt', namn: 'Lämna en synpunkt', roll: 'lak-kard', start: 'Arbetslistan efter inloggning', budget: 4,
+    motivering: 'Ett klick på Lämna synpunkt, som syns på varje sida. Textfältet har fokus direkt, så testaren skriver utan fältbyte. Ett klick för vad det gäller, ett för hur allvarligt det är och ett på Skicka. Sidan, demorollen, uppdraget, versionen, skärmbredden, webbläsaren och tiden fyller systemet i själv, och yrke och journalsystem kommer från startsidan om testaren har fyllt i dem där.',
+  },
+  {
+    id: 'valj-yrkesroll', namn: 'Välja yrkesroll och starta första uppdraget', roll: 'lak-kard', start: 'Startsidan för testare', budget: 2,
+    motivering: 'Ett klick på yrkesrollen, som loggar in i rätt demoroll och startar uppdragen i panelen, och ett klick på en patient i arbetslistan för det första uppdraget. Systemet bockar av uppdraget själv och ställer jämförelsefrågan.',
+  },
+);

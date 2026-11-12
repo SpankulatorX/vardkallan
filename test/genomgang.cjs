@@ -266,6 +266,95 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       if (t !== 'Hoppa till innehållet') throw new Error(`fokus på "${t}"`);
     });
 
+    // Runda 13, r1: testinbjudan. Yrkesrollerna står först på inloggningssidan, startsidan för testare och sidan om
+    // demon visar syftet och de kända begränsningarna, en synpunkt går att lämna från varje vy, och en testare gör ett
+    // uppdrag och svarar på jämförelsefrågan. Testledarens vy kräver en läskod.
+    await s('testinbjudan: yrkesrollerna för testare står först på inloggningssidan', async () => {
+      await page.goto(`${BAS}/`); await page.waitForSelector('#testa-forst-roller .testa-rollknapp');
+      const n = await page.locator('#testa-forst-roller .testa-rollknapp').count();
+      if (n !== 9) throw new Error(`${n} yrkesroller`);
+      const forst = await page.evaluate(() => document.querySelector('.testa-forst') && document.querySelector('.testa-forst').compareDocumentPosition(document.querySelector('#rollista')) & Node.DOCUMENT_POSITION_FOLLOWING);
+      if (!forst) throw new Error('yrkesrollerna står inte före demorollerna');
+      await forvanta(page, '#testare [data-tp="synpunkt"]', 'Lämna synpunkt');
+    });
+    await s('testinbjudan: startsidan för testare förklarar syftet, att allt är påhittat och de kända begränsningarna', async () => {
+      await gaTill(page, '#/testa');
+      await forvanta(page, 'main h1', 'Testa Vårdkällan och jämför med ditt journalsystem');
+      await forvanta(page, '.testa-intro', 'gratis, har öppen källkod (EUPL 1.2)');
+      await forvanta(page, '.testa-viktigt', 'försvinner efter åtta timmar');
+      await forvanta(page, '#testa-kanda summary', 'Kända begränsningar');
+      await page.click('#testa-kanda summary');
+      await forvanta(page, '#testa-kanda', 'NPÖ');
+      await forvanta(page, '.testa-rollknapp', 'Läkare på sjukhus');
+      await bild(page, '13r1-testa', true);
+    });
+    await s('testinbjudan: sidan om demon har vem som står bakom, syftet, att svaren är anonyma, vad som sparas och kontakten', async () => {
+      await gaTill(page, '#/om');
+      for (const [sel, text] of [['#om-vem', 'Vem står bakom'], ['#om-syfte', 'Syftet'], ['#om-anonymt', 'Anonymt och frivilligt'], ['#om-sparas', 'Det här sparas'], ['#om-kontakt', 'Kontakta projektet'], ['#om-kanda summary', 'Kända begränsningar']]) await forvanta(page, sel, text);
+      await forvanta(page, '.om', 'Version 1.0 betyder inte att Vårdkällan kan användas i vården');
+    });
+    await s('testinbjudan: en synpunkt lämnas utan inloggning, sidan säger att personnummer inte får skrivas, och testaren får ett nummer', async () => {
+      await page.click('[data-tp="synpunkt"]');
+      await page.waitForSelector('dialog[open] #sp-text');
+      // Att ett riktigt personnummer inte tas emot prövas i servertesterna (test/synpunkter.test.js).
+      await forvanta(page, 'dialog[open] #sp-pnr', 'Skriv inga personnummer');
+      await page.fill('#sp-text', 'Rubriken på sidan om demon är otydlig.');
+      await page.check('dialog[open] input[name="typ"][value="fel"]');
+      await page.check('dialog[open] input[name="allvar"][value="stor"]');
+      await page.click('dialog[open] button[type="submit"]');
+      await forvanta(page, '.synpunkt-kvitto', 'Tack');
+      await forvanta(page, '.synpunkt-kvitto strong', 'S-');
+      await bild(page, '13r1-synpunkt');
+      await page.click('.synpunkt-kvitto [data-sp="stang"]');
+      await page.waitForSelector('dialog[open]', { state: 'detached' });
+    });
+    await s('testinbjudan: undersköterskan väljer yrke, gör ett uppdrag och svarar på jämförelsefrågan', async () => {
+      await gaTill(page, '#/testa');
+      await page.selectOption('#testa-system', 'cosmic');
+      await page.click('[data-testroll="underskoterska"]');
+      await page.waitForSelector('[data-a="loggaut"]');
+      await forvanta(page, '.inloggad', 'Amira Haddad');
+      await forvanta(page, '#testare-panel', 'Överblicka dagens händelser för en grupp patienter');
+      await page.fill('#tp-svar', 'Fel svar');
+      await page.click('.tp-fraga [type="submit"]');
+      await forvanta(page, '.tp-fraga .form-fel', 'stämmer inte');
+      await page.fill('#tp-svar', 'Dricka kontrast och börja fasta');
+      await page.click('.tp-fraga [type="submit"]');
+      await forvanta(page, '.tp-jamforelse', 'Uppdraget är klart');
+      await page.check('.tp-jamforelse input[value="lika"]');
+      await page.fill('#tp-jf-text', 'Ungefär som i mitt system.');
+      await page.click('.tp-jamforelse [type="submit"]');
+      await forvanta(page, '.notis', 'Svaret är sparat');
+      await forvanta(page, '#testare-panel', 'Registrera mätvärden');
+      // Panelen följer med till nästa vy och går att fälla ihop.
+      await gaTill(page, '#/arbetslista');
+      await forvanta(page, '#testare-panel', 'Registrera mätvärden');
+      await page.click('[data-tp="stang"]');
+      await page.waitForSelector('#testare-panel', { state: 'hidden' });
+      await forvanta(page, '[data-tp="vaxla"]', 'Uppdrag 2 av 7');
+      await page.click('[data-tp="vaxla"]');
+      await forvanta(page, '#testare-panel', 'Registrera mätvärden');
+      await bild(page, '13r1-uppdrag');
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.waitForTimeout(200);
+      const bred = await page.evaluate(() => document.documentElement.scrollWidth);
+      if (bred > 390) throw new Error(`sidan är ${bred} px bred på mobil`);
+      await bild(page, '13r1-uppdrag-mobil');
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.evaluate(() => fetch('/api/testare/avsluta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()).then(() => sessionStorage.removeItem('vk_testare_aktiv')));
+      await page.waitForLoadState('networkidle');
+      await page.click('[data-a="loggaut"]');
+      await page.waitForLoadState('networkidle');
+      await page.waitForSelector('[data-roll]');
+    });
+    await s('testinbjudan: testledarens vy kräver en läskod', async () => {
+      await gaTill(page, '#/testledare');
+      await forvanta(page, 'main h1', 'Synpunkter och jämförelser');
+      await page.fill('#tl-laskod', 'fel-kod');
+      await page.click('#tl-kod [type="submit"]');
+      await forvanta(page, '#tl-kod .form-fel', 'Läskoden gäller inte');
+    });
+
     // Sara Lindqvist, läkare på kardiologen
     await s('Sara Lindqvist loggar in och ser arbetslistan', async () => {
       await loggaIn(page, 'lak-kard');
@@ -2421,7 +2510,9 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
         // Runda 11, r6: röntgenundersökningen och bokningen på röntgenkliniken.
         'bestall-undersokning', 'boka-undersokning',
         // Runda 11, r7: vårdtyngden enligt NEMS och import av tillväxtdata.
-        'iva-nems', 'tillvaxt-import']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'iva-nems', 'tillvaxt-import',
+        // Runda 13, r1: synpunkten och det första uppdraget i testinbjudan.
+        'lamna-synpunkt', 'valj-yrkesroll']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

@@ -38,6 +38,8 @@ export const STARTPUNKT = {
   'Rapporteringssidan efter återställning': { hash: '#/rapportering', klar: '[data-granska="par"]', forbered: 'aterstall' },
   // Runda 7, r7.
   'Kravsidan': { hash: '#/krav', klar: '#sussa-lista details.sussapost' },
+  // Runda 13, r1: startsidan för testare.
+  'Startsidan för testare': { hash: '#/testa', klar: '.testa-rollknapp' },
   // Runda 11, r2: operationsavdelningens program för dagen.
   'Operationsavdelningens program': { hash: '#/operation/program', klar: '.op-program' },
   // Runda 9, r1: Birgitta Nyman tar insulin med penna, och demon återställs först.
@@ -665,6 +667,17 @@ export const UPPGIFTER = [
     id: 'cyto-bered', namn: 'Bereda en cytostatikados på beredningsenheten', roll: 'far-bered', start: 'Beredningsenheten med en godkänd kur',
     text: 'En kur till Annika Holmgren är godkänd. Bered den första dosen och signera beredningen.',
     kontroll: { notis: 'är beredd och signerad' },
+  },
+  // Runda 13, r1: testinbjudan.
+  {
+    id: 'lamna-synpunkt', namn: 'Lämna en synpunkt', roll: 'lak-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Du tycker att något i arbetslistan är svårt att förstå. Säg det till dem som bygger systemet.',
+    kontroll: { sel: '.synpunkt-kvitto', text: 'Tack' },
+  },
+  {
+    id: 'valj-yrkesroll', namn: 'Välja yrkesroll och starta första uppdraget', roll: 'lak-kard', start: 'Startsidan för testare',
+    text: 'Du har fått en länk till ett test av Vårdkällan och arbetar som läkare på sjukhus. Välj ditt yrke och gör det första uppdraget.',
+    kontroll: { sel: '#testare-panel .tp-jamforelse', text: 'Ta emot dagens första patient' },
   },
 ];
 
