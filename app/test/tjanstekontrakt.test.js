@@ -105,4 +105,24 @@ describe('Tjänstekontrakt', () => {
     expect((await k.post('/api/riv/GetDiagnosis', fraga('194502024732', { logicalAddress: 'SE0000000000-0000' }))).data.fel).toContain('logiska adressen');
     expect((await k.post('/api/riv/GetDiagnosis', { patientId: { id: '194502024732', type: '1.2.3' } })).status).toBe(400);
   });
+
+  // Runda 14, r2: tabellen visar för varje kontrakt som är byggt i RIVTA att det är byggt mot schemat, testat lokalt
+  // genom tjänsteplattformen och inte anslutet, och varje sådant kontrakt finns i koden i sin roll.
+  test('tabellen visar för kontrakten i RIVTA att de är byggda mot schemat, testade lokalt och inte anslutna', async () => {
+    const rivta = await import('../src/rivta/index.js');
+    const byggda = KONTRAKT.filter(k => k.rivta);
+    expect(byggda.length).toBe(17);
+    const konsumentKontrakt = new Set([...Object.keys(rivta.nationella.K), 'GetEmployeeIncludingProtectedPerson', 'LookupResidentForFullProfile', 'Update']);
+    for (const k of byggda) {
+      expect(k.rivta).toMatchObject({ byggt: true, schema: true, tjansteplattform: 'lokal', anslutet: false });
+      expect(k.rivta.text).toContain('inte anslutet till den nationella tjänsteplattformen (kräver avtal med Inera och SITHS-funktionscertifikat)');
+      if (k.rivta.roll.includes('producent')) expect([k.kontrakt, rivta.vardkallan.arProducent(k.kontrakt)]).toEqual([k.kontrakt, true]);
+      if (k.rivta.roll.includes('konsument')) expect([k.kontrakt, konsumentKontrakt.has(k.rivta.kontrakt)]).toEqual([k.kontrakt, true]);
+    }
+    const k = await inloggad('uppf');
+    const d = (await k.get('/api/tjanstekontrakt')).data;
+    expect(d.kontrakt.find(x => x.kontrakt === 'GetDiagnosis').rivta).toMatchObject({ version: '2.0', roll: 'producent och konsument' });
+    expect(d.rivtaStatus).toContain('testat lokalt');
+  });
 });
+

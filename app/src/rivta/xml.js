@@ -79,7 +79,7 @@ export function tolka(indata, tak = {}) {
       if (slut < 0) throw new XmlFel('En instruktion avslutas inte.', i);
       const innehall = s.slice(i + 2, slut);
       // Bara XML-deklarationen, och bara först i dokumentet.
-      if (!/^xml(\s|$)/.test(innehall) || i !== forsta) throw new XmlFel('Instruktioner (<?...?>) är inte tillåtna, bara XML-deklarationen först i dokumentet.', i);
+      if (!/^xml(\s|$)/.test(innehall) || i !== forsta) throw new XmlFel('Instruktioner är inte tillåtna, bara XML-deklarationen först i dokumentet.', i);
       const kod = /encoding\s*=\s*["']([^"']+)["']/.exec(innehall)?.[1];
       if (kod && !/^utf-?8$/i.test(kod)) throw new XmlFel('Bara teckenkodningen UTF-8 tas emot.', i);
       i = slut + 2;

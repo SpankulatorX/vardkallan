@@ -94,6 +94,37 @@ export const KONTRAKT = R.map(([kontrakt, doman, information, producent, konsume
   roll: producent && konsument ? 'producent och konsument' : producent ? 'producent' : 'konsument',
   simulerat: status !== 'saknas', api: status === 'simulerad_producent' ? `/api/riv/${kontrakt}` : null,
 }));
+// Runda 14, r2: kontrakten som är byggda mot de riktiga tjänstekontrakten i RIVTA (src/rivta/, docs/rivta.md), med
+// version och roll. Alla är validerade mot sitt pinnade schema och testade lokalt genom en lokal tjänsteplattform som
+// följer profilen (rivta/plattform.js). Inget är anslutet till den nationella tjänsteplattformen, som kräver avtal med
+// Inera och SITHS-funktionscertifikat. Där Vårdkällan är konsument är den andra parten simulerad i demon.
+export const RIVTA = {
+  GetCareDocumentation: { version: '2.1', roll: 'producent och konsument' },
+  GetDiagnosis: { version: '2.0', roll: 'producent och konsument' },
+  GetAlertInformation: { version: '2.0', roll: 'producent' },
+  GetCareContacts: { version: '2.0', roll: 'producent och konsument' },
+  GetMedicationHistory: { version: '2.2', roll: 'konsument' },
+  AssertCareEngagement: { version: '1.0', roll: 'producent' },
+  Update: { version: '1.0', roll: 'konsument' },
+  GetEmployeeIncludingProtectedPerson: { version: '4.0', roll: 'konsument' },
+  CheckBlocks: { version: '3.0', roll: 'konsument' },
+  GetAllBlocksForPatient: { version: '2.0', roll: 'konsument' },
+  GetBlocksForPatient: { version: '2.0', roll: 'konsument' },
+  RegisterTemporaryExtendedRevoke: { version: '2.0', roll: 'konsument' },
+  CancelTemporaryExtendedRevoke: { version: '2.0', roll: 'konsument' },
+  CheckConsent: { version: '1.0', roll: 'konsument' },
+  RegisterExtendedConsent: { version: '1.0', roll: 'konsument' },
+  CancelExtendedConsent: { version: '1.0', roll: 'konsument' },
+  // K10 anger LookupResidentsForProfile i masterdata:citizen:citizen. Vårdkällan har byggt PU-tjänstens
+  // LookupResidentForFullProfile 1.2 i riv.population.residentmaster, som kravet hänvisar till.
+  LookupResidentsForProfile: { version: '1.2', roll: 'konsument', kontrakt: 'LookupResidentForFullProfile' },
+};
+export const RIVTA_STATUS = 'Byggt och validerat mot tjänstekontraktet, testat lokalt genom en lokal tjänsteplattform; inte anslutet till den nationella tjänsteplattformen (kräver avtal med Inera och SITHS-funktionscertifikat)';
+for (const k of KONTRAKT) {
+  const r = RIVTA[k.kontrakt];
+  k.rivta = r ? { byggt: true, version: r.version, roll: r.roll, kontrakt: r.kontrakt ?? k.kontrakt, schema: true, tjansteplattform: 'lokal', anslutet: false, text: RIVTA_STATUS } : null;
+}
+
 // K10 har GetAllCareTypes på två rader. Den räknas en gång här.
 export const K10_RADER = 81;
 

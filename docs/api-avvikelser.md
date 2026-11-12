@@ -901,3 +901,13 @@ Inget av detta är FHIR. Inga svar till testaren innehåller patientuppgifter ur
 - `GET /api/eremiss/mottagare` ger de simulerade mottagarna. `POST /api/patient/:id/eremiss { mottagare, fragestallning, anamnes, prioritet }` (201) skickar en e-remiss med ProcessRequest och ger `{ remissId, mottagare, text }`. En remiss i `GET /api/patient/:id/remisser` har `eremiss: { riktning, motpart, simulerad, handelser: [{ text, tid, meddelande? }], kanSvaraSimulerat }` när den är en e-remiss. Demon: `POST /api/eremiss/:remissId/svara-simulerat` och `POST /api/patient/:id/eremiss/inkommande-simulerad` (201, bara för en patient som vårdenheten redan har vårdrelation till).
 - Producenterna i RIVTA för CertificateStatusUpdateForCare, ProcessRequest, ProcessRequestConfirmation och ProcessRequestOutcome adresseras till vårdenhetens HSA-id, inte till vårdgivarens, och tar bara emot från de simulerade motparterna. GetVaccinationHistory adresseras till vårdgivaren som journalens producenter.
 
+## Tjänstekontrakten i RIVTA (runda 14, r2)
+
+- `GET /api/tjanstekontrakt` har för varje kontrakt `rivta: { byggt, version, roll, kontrakt, schema, tjansteplattform, anslutet, text }` eller `null`, och `rivtaStatus`.
+- `GET /api/patient/:id/sammanhallen` har `fel` när de nationella tjänsterna för sammanhållen journalföring inte svarar. Då är `poster` tom och `text` säger varför. `sparradeHosAnnan` kommer från spärrtjänsten.
+- `POST /api/patient/:id/sammanhallen/hav-sparr { samtycke: true }` häver spärrar hos andra vårdgivare för den inloggade på sin vårdenhet till dagens slut. Kräver `samtycke_sparr` och ett gällande aktivt val. 400 utan samtycke eller val, 503 när spärrtjänsten inte svarar. Svaret är läget som i `GET`.
+- `GET /api/patient/:id/sparr/sparrtjansten` (handlingen `registrera_sparr`) ger `{ stammer, baraVardkallan, baraTjansten, text }` med vårdenheternas namn.
+- `GET /api/patient/:id/folkbokforing` (handlingen `las_admin`) ger `{ stammer, sekretessmarkering, skyddadIdentitet, varden, skillnader, text }`. `skillnader` har `{ falt, vardkallan, pu }`, men bara `{ falt }` för en patient med skyddad identitet eller sekretessmarkering utan det aktiva valet `visa_identitet`. Adressen jämförs aldrig för en sådan patient.
+- `GET /api/rivta/hsa/:id` (systemförvaltaren) ger `{ stammer, hsaId, hsa: { namn, titel, dn, pahittad }, skillnader, text }` för personen i personalkatalogen.
+- `POST /api/rivta/engagemangsindex/:id` (systemförvaltaren) skickar patientens engagemang till engagemangsindex och ger `{ antal }`.
+- Producenterna för tjänstekontrakten svarar med SOAP 1.1 enligt RIVTA Basic Profile 2.1 genom en egen transport med ömsesidig TLS (`src/rivta/tls.js`), inte genom serverns HTTP. Se docs/rivta.md.

@@ -19,15 +19,15 @@ export const SJF = 'SE0000000000-SIMSJF';
 const JOURNALKONTRAKT = ['GetCareDocumentation', 'GetDiagnosis', 'GetAlertInformation', 'GetCareContacts', 'GetObservations', 'GetActivities',
   'GetLaboratoryOrderOutcome', 'GetReferralOutcome', 'GetMedicationHistory'];
 const MANGDER = ['anteckningar', 'diagnoser', 'uppmarksamhet', 'overkanslighet', 'vardkontakter', 'matvarden', 'lakemedel', 'atgarder'];
-
-export const DEMO = [
-  { hsaId: NPO, namn: 'NPÖ, simulerad konsument i demon', syfte: 'Nationell patientöversikt: vårdpersonal hos andra vårdgivare läser journaluppgifter vid sammanhållen journalföring.', kontrakt: JOURNALKONTRAKT, mangder: MANGDER },
-  { hsaId: JOURNALEN, namn: 'Journalen, simulerad konsument i demon', syfte: 'Invånarens egen journal: patienten läser uppgifter som vårdgivaren har gjort tillgängliga för patienten.', kontrakt: JOURNALKONTRAKT, mangder: MANGDER },
-  { hsaId: SJF, namn: 'Aggregerande tjänst, simulerad konsument i demon', syfte: 'Sammanhållen journalföring: den aggregerande tjänsten hämtar uppgifter från varje källsystem för en patient.', kontrakt: JOURNALKONTRAKT, mangder: MANGDER },
-];
 // Runda 14, r3: de simulerade konsumenterna läser också vaccinationer (GetVaccinationHistory, rivta-vaccination.js).
 JOURNALKONTRAKT.push('GetVaccinationHistory');
 MANGDER.push('vaccinationer');
+
+export const DEMO = [
+  { hsaId: NPO, namn: 'NPÖ, simulerad konsument i demon', syfte: 'Nationell patientöversikt: vårdpersonal hos andra vårdgivare läser journaluppgifter vid sammanhållen journalföring.', kontrakt: [...JOURNALKONTRAKT, 'AssertCareEngagement'], mangder: MANGDER },
+  { hsaId: JOURNALEN, namn: 'Journalen, simulerad konsument i demon', syfte: 'Invånarens egen journal: patienten läser uppgifter som vårdgivaren har gjort tillgängliga för patienten.', kontrakt: JOURNALKONTRAKT, mangder: MANGDER },
+  { hsaId: SJF, namn: 'Aggregerande tjänst, simulerad konsument i demon', syfte: 'Sammanhållen journalföring: den aggregerande tjänsten hämtar uppgifter från varje källsystem för en patient.', kontrakt: [...JOURNALKONTRAKT, 'AssertCareEngagement'], mangder: MANGDER },
+];
 
 export function sakraSchema(db) {
   db.exec(`CREATE TABLE IF NOT EXISTS rivta_konsumenter (

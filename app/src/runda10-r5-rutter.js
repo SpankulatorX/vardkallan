@@ -56,6 +56,10 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor }) {
   rutt('GET', '/api/patient/:id/sammanhallen', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_journal', (atk) => sammanhallen.lage(atk, c.s, { sortera: c.url.searchParams.get('sortera') ?? 'nyast', typ: c.url.searchParams.get('typ') })); });
   rutt('POST', '/api/patient/:id/sammanhallen', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_journal', (atk) => sammanhallen.hamta(atk, c.s, c.body)); });
   rutt('POST', '/api/patient/:id/sammanhallen/aterkalla', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_journal', (atk) => sammanhallen.aterkalla(atk, c.s)); });
+  // Runda 14, r2: tillfällig hävning av spärr hos en annan vårdgivare med patientens samtycke, och jämförelsen av
+  // Vårdkällans spärrar med spärrtjänsten (tjänstekontrakten i RIVTA, simulerade i demon).
+  rutt('POST', '/api/patient/:id/sammanhallen/hav-sparr', (c, id) => { kravInloggad(c); return medPatient(c, id, 'samtycke_sparr', (atk) => sammanhallen.havSparr(atk, c.s, c.body)); });
+  rutt('GET', '/api/patient/:id/sparr/sparrtjansten', (c, id) => { kravInloggad(c); return medPatient(c, id, 'registrera_sparr', (atk) => sammanhallen.jamforSparrar(atk)); });
   // Sussa 3.2.3.5: flödet på akutmottagningen. Behörigheten prövas i akutflode.js, och varje åtgärd loggas på patienten.
   rutt('GET', '/api/akut', (c) => akut.tavla(c.db, kravInloggad(c), { prioritet: c.url.searchParams.get('prioritet'), steg: c.url.searchParams.get('steg') }));
   rutt('GET', '/api/akut/ledtider', (c) => akut.ledtiderPerPrioritet(c.db, kravInloggad(c)));

@@ -11,9 +11,10 @@ import { kontrakt } from './kontrakt.js';
 import { vardkallan } from './tjanst.js';
 import { vardgivare } from './konsumenter.js';
 import { fhirResurser, enhetAv, datumRiv } from '../tjanstekontrakt.js';
-import { hittaPaToken, gallandeId } from '../identitet.js';
+import { tolka as tolkaIdentitet, hittaPaIdentitet } from '../identitet.js';
 import { loggaRad } from '../logg.js';
 import { Fel } from '../db.js';
+import { harVardrelation, vardenhetFor, prova, aktivaSparrar } from '../atkomst.js';
 
 export const OID = { personnummer: '1.2.752.129.2.1.3.1', samordningsnummer: '1.2.752.129.2.1.3.3', icd10se: '1.2.752.116.1.1.1', kva: '1.2.752.116.1.3.2.1.4', atc: '1.2.752.129.2.2.3.1.1' };
 
@@ -22,13 +23,23 @@ const datum = (ts) => (ts ? ts.slice(0, 8) : null);
 
 // Patienten i begäran. Ger { pid, patientId } eller { fel } med ett resultat enligt kontraktet.
 function patientI(db, begaran) {
-  const id = String(begaran.patientId?.id ?? '').replace(/\D/g, '');
+  const id = String(begaran.patientId?.id ?? '');
   const typ = begaran.patientId?.type;
   if (!/^\d{12}$/.test(id) || ![OID.personnummer, OID.samordningsnummer].includes(typ)) {
-    return { fel: 'patientId ska vara ett personnummer eller samordningsnummer med tolv siffror, med OID:n för personnummer eller samordningsnummer i type.' };
+    return { fel: 'Patientens identitet ska vara ett personnummer eller samordningsnummer med tolv siffror och ha OID:n för sin typ.' };
   }
-  const funnen = hittaPaToken(db, id);
-  return { pid: funnen ? gallandeId(db, funnen) : null, patientId: { id, type: typ } };
+  return { pid: patientFranPersonId(db, id, typ), patientId: { id, type: typ } };
+}
+
+// Säkerhetsgranskningen av runda 14: samma uppslag av patienten i alla kontrakt. Bara exakt tolv siffror, och bara som
+// personnummer eller samordningsnummer (med rätt typ när den anges). Allt annat ger ingen patient.
+export function patientFranPersonId(db, id, typOid = null) {
+  const s = String(id ?? '');
+  if (!/^\d{12}$/.test(s)) return null;
+  const t = tolkaIdentitet(s);
+  if (!t?.ok || !['personnummer', 'samordningsnummer'].includes(t.typ)) return null;
+  if (typOid && typOid !== (t.typ === 'personnummer' ? OID.personnummer : OID.samordningsnummer)) return null;
+  return hittaPaIdentitet(db, t)?.patientId ?? null;
 }
 
 // Läser resurserna för kontraktet med organisationens systemkonto. Ger [] för en patient som inte finns eller som
@@ -215,4 +226,30 @@ vardkallan.registrera(GET_CARE_CONTACTS, (ctx, { begaran, konsument, def }) => {
     });
   }
   return { careContact: poster };
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// AssertCareEngagement 1.0 (riv.ehr.accesscontrol, Tillgänglig patient): har en viss person på en viss vårdenhet en
+// vårdrelation till patienten? Säkerhetsgranskningen av runda 14: frågan prövas först i behörighetsmotorn med den
+// anropande organisationens systemkonto och vårdenheten som resurs, som för de andra kontrakten. Svaret är nej när
+// åtkomsten nekas: en vårdenhet som kontot inte omfattar, en vårdenhet som patienten har spärrat (ett systemkonto kan
+// inte fråga patienten om samtycke, så ett samtycke ändrar inte svaret), skyddade personuppgifter, fel vårdgivare eller en
+// identitet som inte är ett personnummer eller samordningsnummer med tolv siffror. Bara när åtkomsten är tillåten räknas
+// vårdrelationen med samma regel som för all åtkomst i Vårdkällan (harVardrelation). Frågan loggas på patienten med det
+// verkliga utfallet, tillåten eller nekad.
+export const ASSERT_CARE_ENGAGEMENT = kontrakt('riv.ehr.accesscontrol', 'AssertCareEngagement', '1.0');
+vardkallan.registrera(ASSERT_CARE_ENGAGEMENT, (ctx, { begaran, konsument }) => {
+  const { db } = ctx;
+  const pid = patientFranPersonId(db, begaran.subjectOfCareId);
+  if (!pid) return { HasCareEngagement: false };
+  const enhet = db.query("SELECT id FROM enheter WHERE hsa_id = ? AND typ = 'vardenhet'").get(begaran.careUnitHsaIdentity);
+  const person = db.query("SELECT id, enhet_id FROM personal WHERE hsa_id = ? AND aktiv = 1 AND yrke <> 'systemkonto'").get(begaran.performer);
+  const konto = require('../systemkonton.js').kontoFor(db, konsument.personal.id);
+  const atkomst = enhet && begaran.careGiverHsaIdentity === vardgivare(db) && konto?.vardenheter.includes(enhet.id)
+    ? prova(db, { personal: konsument.personal, patient: pid, handling: 'las_admin', resurs: { enhet_id: enhet.id } }) : { tillaten: false };
+  const tillaten = atkomst.tillaten && !aktivaSparrar(db, pid).includes(enhet.id);
+  const svar = Boolean(tillaten && person && vardenhetFor(db, person.enhet_id) === enhet.id && harVardrelation(db, pid, enhet.id, ctx.nu ?? new Date()));
+  loggaRad(db, { personal_id: konsument.personal.id, enhet_id: konsument.personal.enhet_id, patient_id: pid, handling: 'las_admin',
+    resurs: `rivta/AssertCareEngagement/1.0?_konsument=${konsument.hsaId}`, grund: tillaten ? 'systemkonto' : 'nekad', resultat: tillaten ? 'tillaten' : 'nekad' });
+  return { HasCareEngagement: svar };
 });

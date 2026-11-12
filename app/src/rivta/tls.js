@@ -9,7 +9,6 @@
 import tls from 'node:tls';
 
 export const TAK = { huvud: 16 * 1024, kropp: 2 * 1024 * 1024, tidMs: 30_000, forbindelser: 50 };
-const STATUSTEXT = { 200: 'OK', 400: 'Bad Request', 404: 'Not Found', 405: 'Method Not Allowed', 411: 'Length Required', 413: 'Payload Too Large', 431: 'Request Header Fields Too Large', 500: 'Internal Server Error' };
 
 // Den anropande organisationen ur certifikatet och huvudena. Ger { hsaId, via, fingeravtryck } eller null.
 export function avsandareAv(cert, huvuden, plattformar = []) {
@@ -37,7 +36,8 @@ export function starta({ port = 0, hostname = '127.0.0.1', cert, key, ca, plattf
     const skicka = (status, headers, body, stang) => {
       const b = Buffer.from(body ?? '', 'utf8');
       const h = { ...headers, 'Content-Length': b.length, Connection: stang ? 'close' : 'keep-alive' };
-      sock.write(`HTTP/1.1 ${status} ${STATUSTEXT[status] ?? 'OK'}\r\n${Object.entries(h).map(([k, v]) => `${k}: ${v}`).join('\r\n')}\r\n\r\n`);
+      // Statusraden har ingen förklarande text utom för 200, vilket HTTP/1.1 tillåter.
+      sock.write(`HTTP/1.1 ${status} ${status === 200 ? 'OK' : ''}\r\n${Object.entries(h).map(([k, v]) => `${k}: ${v}`).join('\r\n')}\r\n\r\n`);
       sock.write(b);
       if (stang) sock.end();
     };

@@ -17,8 +17,9 @@ describe('Kravregistret', () => {
     // är mätt med skript och inte med användare. Läsläget vid avbrott med reservinloggning (D4) är uppfyllt i demon,
     // med SITHS-kortet simulerat och noten om det. Patientens e-tjänst (L4, L5) finns, men flerfaktorsautentiseringen
     // är simulerad och stickprov saknas.
-    for (const id of ['D12', 'L8', 'L10', 'L11']) expect(KRAV.find(k => k.id === id).status).toBe('planerat');
-    for (const id of ['D6', 'L4']) expect(KRAV.find(k => k.id === id).status).toBe('delvis');
+    // Runda 14, r2: tjänstekontrakten i RIVTA är byggda och testade lokalt men inte anslutna, så L8 är delvis.
+    for (const id of ['D12', 'L10', 'L11']) expect(KRAV.find(k => k.id === id).status).toBe('planerat');
+    for (const id of ['D6', 'L4', 'L8']) expect(KRAV.find(k => k.id === id).status).toBe('delvis');
     // Runda 12, r3: flerfaktorsinloggningen finns med passkeys och engångskoder, så L5 är uppfyllt i demon. Den första
     // faktorn är fortfarande simulerad, och det står i anmärkningen.
     expect(KRAV.find(k => k.id === 'L5').status).toBe('uppfyllt_demo');

@@ -13,9 +13,13 @@ export const VERSION = (() => { try { return JSON.parse(readFileSync(join(import
 export const ANDRINGAR = [
   // Runda 14: version 1.4. Varje del lägger sina rader i annat i ett eget block.
   {
-    version: '1.4.0', datum: '2026-11-12',
+    version: '1.4.0', datum: '2026-11-13',
     text: 'Inga nya resurstyper eller skrivningar i FHIR.',
     resurser: [], skrivning: [], annat: [
+      // Runda 14, r2: tjänstekontrakten i RIVTA (docs/rivta.md och docs/api-avvikelser.md).
+      'Tjänstekontrakten i RIVTA: producent för GetCareDocumentation 2.1, GetDiagnosis 2.0, GetAlertInformation 2.0, GetCareContacts 2.0 och AssertCareEngagement 1.0 med SOAP och ömsesidig TLS, och konsument för HSA, PU-tjänsten, spärrtjänsten, samtyckestjänsten, den aggregerande tjänsten och engagemangsindex (simulerade i demon)',
+      'Tabellen över tjänstekontrakt har för varje kontrakt i RIVTA versionen, rollen och att det är byggt, testat lokalt och inte anslutet (rivta och rivtaStatus)',
+      'Nya rutter i det interna API:t: tillfällig hävning av spärr hos en annan vårdgivare, jämförelse av spärrar med spärrtjänsten, folkbokföringen ur PU-tjänsten, personalens uppgifter ur HSA och engagemangsindex (docs/api-avvikelser.md)',
       // Runda 14, r3: intyg, e-remiss och vaccinationer med tjänstekontrakt i RIVTA.
       'Intyg genom intygsapplikationen (/api/patient/:id/intyg och /api/intygsapplikation/:id) och e-remiss (/api/patient/:id/eremiss) i det interna API:t (docs/api-avvikelser.md)',
       'Tjänstekontrakten CreateDraftCertificate, CertificateStatusUpdateForCare, ListCertificatesForCareWithQA, ProcessRequest, ProcessRequestConfirmation, ProcessRequestOutcome och GetVaccinationHistory i RIVTA, byggda och validerade mot sina scheman (docs/rivta.md)',
