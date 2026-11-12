@@ -53,8 +53,12 @@ export async function visa(main) {
 
 // Knapparna för yrkesrollerna, som också står först på inloggningssidan. En knapp loggar in i rätt demoroll och
 // startar uppdragen. profil ger det testaren har fyllt i om sig själv, annars det som sparades förra gången.
+let rollerCache = null;
 export async function rollvaljare(ul, profil = () => lasProfil(), { kort = false } = {}) {
-  const { roller } = await api('/api/testare/roller');
+  // Rollerna ändras inte medan sidan är öppen, så de hämtas en gång. Inloggningssidan ritas om ofta, och färre anrop
+  // runt en inloggning ger färre anrop som korsar bytet av sessionskaka.
+  rollerCache ??= api('/api/testare/roller').then(d => d.roller).catch((e) => { rollerCache = null; throw e; });
+  const roller = await rollerCache;
   if (!ul?.isConnected) return;
   ul.innerHTML = roller.map(r => `<li><button type="button" class="testa-rollknapp" data-testroll="${esc(r.id)}" aria-describedby="tr-${esc(r.id)}">
       <span class="testa-rollnamn">${esc(r.knapp)}</span>

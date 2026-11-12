@@ -4,7 +4,7 @@
 // Systemet fyller själv i det som går att räkna ut: sidan, demorollen, uppdraget, versionen, skärmens bredd och
 // webbläsaren (servern sätter version, gränssnitt, webbläsare och tid själv). Panelen frågar servern efter varje
 // sidbyte och varje sparad ändring om ett uppdrag har blivit gjort, och ställer då jämförelsefrågan.
-import { esc, api, ikon, krokar, notis, felNotis, faltFel } from './ui.js';
+import { esc, api, ikon, krokar, notis, felNotis, faltFel, avbrott } from './ui.js';
 import { S, loggaIn, loggaInInvanare } from './app.js';
 import { TYPER, ALLVAR, YRKEN, SYSTEM, AR, VARDFORM, JAMFORELSE, SPARAS, VEM_LASER, HUR_LANGE, PERSONNUMMER_TEXT, MAX_TEXT, MAX_KONTAKT, MAX_MITT_SYSTEM } from './synpunkt-regler.js';
 
@@ -51,7 +51,7 @@ export function init() {
   new ResizeObserver(() => document.documentElement.style.setProperty('--testare-hojd', `${rot.querySelector('.testare-knappar').offsetHeight}px`)).observe(rot);
   // Efter en sparad ändring kan ett uppdrag ha blivit gjort.
   const forra = krokar.efterSkrivning;
-  krokar.efterSkrivning = (vag) => { forra?.(vag); if (!/^\/api\/(testare|synpunkter)/.test(vag)) uppdatera(); };
+  krokar.efterSkrivning = (vag) => { forra?.(vag); if (T?.aktiv && !/^\/api\/(testare|synpunkter|login|logout|reset)/.test(vag)) uppdatera(); };
 }
 
 // Efter varje sidbyte (app.js).
@@ -61,6 +61,8 @@ export function efterVy() { if (!hamtatEnGang || las(AKTIV) || T?.aktiv) { hamta
 
 export async function uppdatera({ visa = false } = {}) {
   if (!rot) return;
+  // Under ett avbrott, också ett simulerat, frågar panelen inte servern. Den visar det den visade senast.
+  if (avbrott.aktivt || avbrott.simulerat) return;
   const nr = ++senast;
   hamtar = api('/api/testare', { tyst: true, bakgrund: true, direkt: true }).catch(() => null);
   const t = await hamtar;

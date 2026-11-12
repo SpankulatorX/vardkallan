@@ -59,7 +59,7 @@ export function registreraRutter({ rutt, sessionFil = '', synpunktFil, version, 
 
   // Uppdragen.
   rutt('GET', '/api/testare/roller', () => ({ roller: ti.rollerUt(), ...ti.VAL }));
-  rutt('GET', '/api/testare', (c) => ti.tillstand(c.db));
+  rutt('GET', '/api/testare', (c) => (c.db ? ti.tillstand(c.db) : { aktiv: false }));
   rutt('POST', '/api/testare/starta', (c) => ti.starta(c.db, c.body));
   rutt('POST', '/api/testare/profil', (c) => ti.sparaProfil(c.db, c.body));
   rutt('POST', '/api/testare/avsluta', (c) => ti.avsluta(c.db));

@@ -273,7 +273,7 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await page.goto(`${BAS}/`); await page.waitForSelector('#testa-forst-roller .testa-rollknapp');
       const n = await page.locator('#testa-forst-roller .testa-rollknapp').count();
       if (n !== 9) throw new Error(`${n} yrkesroller`);
-      const forst = await page.evaluate(() => document.querySelector('#testa-forst') && document.querySelector('#testa-forst').compareDocumentPosition(document.querySelector('#rollista')) & Node.DOCUMENT_POSITION_FOLLOWING);
+      const forst = await page.evaluate(() => document.querySelector('.testa-forst') && document.querySelector('.testa-forst').compareDocumentPosition(document.querySelector('#rollista')) & Node.DOCUMENT_POSITION_FOLLOWING);
       if (!forst) throw new Error('yrkesrollerna står inte före demorollerna');
       await forvanta(page, '#testare [data-tp="synpunkt"]', 'Lämna synpunkt');
     });
@@ -341,7 +341,7 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       if (bred > 390) throw new Error(`sidan är ${bred} px bred på mobil`);
       await bild(page, '13r1-uppdrag-mobil');
       await page.setViewportSize({ width: 1440, height: 900 });
-      await page.evaluate(() => fetch('/api/testare/avsluta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(() => sessionStorage.removeItem('vk_testare_aktiv')));
+      await page.evaluate(() => fetch('/api/testare/avsluta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()).then(() => sessionStorage.removeItem('vk_testare_aktiv')));
       await page.waitForLoadState('networkidle');
       await page.click('[data-a="loggaut"]');
       await page.waitForLoadState('networkidle');

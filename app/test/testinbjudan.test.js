@@ -173,6 +173,22 @@ describe('Testinbjudan', () => {
     } finally { t.stopp(); }
   });
 
+  test(`panelens fråga skapar aldrig en ny session, så att ett anrop som korsar en inloggning inte loggar ut testaren`, async () => {
+    const utan = await fetch(`${app.url}/api/testare`);
+    expect(utan.headers.get('set-cookie')).toBeNull();
+    expect(await utan.json()).toEqual({ aktiv: false });
+    const k = klient(app);
+    await k.get('/api/session');
+    const gammal = k.kaka();
+    await k.logga('lak-kard');
+    expect(k.kaka()).not.toBe(gammal);
+    // Ett anrop med den gamla kakan efter bytet får ingen ny kaka.
+    const sent = await fetch(`${app.url}/api/testare`, { headers: { Cookie: gammal } });
+    expect(sent.headers.get('set-cookie')).toBeNull();
+    expect((await fetch(`${app.url}/api/testare/roller`, { headers: { Cookie: gammal } })).headers.get('set-cookie')).toBeNull();
+    expect((await k.get('/api/inkorg')).status).toBe(200);
+  });
+
   test(`panelens svar innehåller inga personnummer eller andra uppgifter ur sandlådans journaler`, async () => {
     const { k } = await borja('lakare-sjukhus');
     await k.get('/api/patient/p01');

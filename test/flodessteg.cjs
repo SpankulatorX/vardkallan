@@ -707,7 +707,7 @@ function skapa(BAS) {
     await page.waitForSelector('.tidslinje');
     await synlig(page, '#testare-panel .tp-jamforelse', 'Ta emot dagens första patient');
     // Uppdragen avslutas utan att räknas, så att de inte följer med till nästa flöde.
-    await page.evaluate(() => fetch('/api/testare/avsluta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(() => sessionStorage.removeItem('vk_testare_aktiv')));
+    await page.evaluate(() => fetch('/api/testare/avsluta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.text()).then(() => sessionStorage.removeItem('vk_testare_aktiv')));
   };
   // Runda 7, r7: de tio högst viktade kriterierna som inte är uppfyllda, med det högst viktade först.
   GOR['kravviktning'] = async (m, page) => {

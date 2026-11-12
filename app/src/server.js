@@ -2020,6 +2020,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   for (const v of ['/api/idp/jwks', '/api/idp/.well-known/openid-configuration']) UTAN_SESSION.add(v);
   // Runda 11, r8: modulsidan är offentlig.
   UTAN_SESSION.add('/api/moduler');
+  // Runda 13, r1: panelen med uppdragen och yrkesrollerna frågar utan att skapa en sandlåda. Ett sådant anrop som korsar
+  // en inloggning, där sessionskakan byts, får då aldrig ge webbläsaren en ny, tom session.
+  for (const v of ['/api/testare', '/api/testare/roller', '/api/synpunkter/om']) UTAN_SESSION.add(v);
 
   async function api(req, server, url, c) {
     if (url.pathname === '/api/health') return json({ ok: true, sandladar: sessioner.size, version: APPVERSION, gransnitt: gransnittVersion(),
