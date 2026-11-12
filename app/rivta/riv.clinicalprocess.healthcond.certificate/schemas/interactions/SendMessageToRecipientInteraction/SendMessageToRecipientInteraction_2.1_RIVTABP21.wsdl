@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor 
+	license agreements. See the NOTICE file distributed with this work for additional 
+	information regarding copyright ownership. Sveriges Kommuner och Landsting 
+	licenses this file to you under the Apache License, Version 2.0 (the "License"); 
+	you may not use this file except in compliance with the License. You may 
+	obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 
+	Unless required by applicable law or agreed to in writing, software distributed 
+	under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES 
+	OR CONDITIONS OF ANY KIND, either express or implied. See the License for 
+	the specific language governing permissions and limitations under the License. -->
+<wsdl:definitions name='SendMessageToRecipientInteraction'
+	xmlns:wsdl='http://schemas.xmlsoap.org/wsdl/' xmlns:soap='http://schemas.xmlsoap.org/wsdl/soap/'
+	xmlns:xs='http://www.w3.org/2001/XMLSchema'
+	xmlns:tjsr='urn:riv:clinicalprocess:healthcond:certificate:SendMessageToRecipientResponder:2'
+	xmlns:tns='urn:riv:clinicalprocess:healthcond:certificate:SendMessageToRecipient:2:rivtabp21'
+	targetNamespace='urn:riv:clinicalprocess:healthcond:certificate:SendMessageToRecipient:2:rivtabp21'
+	xmlns:itr='urn:riv:itintegration:registry:1'>
+	
+	<wsdl:documentation>
+		Tjänsteinteraktionens namn: SendMessageToRecipientInteraction
+		Beskrivning: Skickar ett meddelande till en intygsmottagare
+		Revisioner:
+		2015-09-30: Version 1.0, johan.zetterstrom@callistaenterprise.se
+		2017-03-29: Version 2.0, peter.hernfalk@callistaenterprise.se
+		2018-06-14: Version 2.0, peter.hernfalk@callistaenterprise.se
+		Tjänstedomän: clinicalprocess:healthcond:certificate
+		Tjänsteinteraktionstyp: Fråga-svar
+		WS-profil: RIVTABP21
+	</wsdl:documentation>
+	
+	<wsdl:types>
+		<xs:schema
+			targetNamespace='urn:riv:clinicalprocess:healthcond:certificate:SendMessageToRecipient:2:rivtabp21'>
+			<xs:import schemaLocation='SendMessageToRecipientResponder_2.1.xsd'
+				namespace='urn:riv:clinicalprocess:healthcond:certificate:SendMessageToRecipientResponder:2' />
+			<xs:import schemaLocation='../../core_components/itintegration_registry_1.0.xsd'
+				namespace='urn:riv:itintegration:registry:1' />
+		</xs:schema>
+	</wsdl:types>
+	
+	<wsdl:message name='SendMessageToRecipientRequest'>
+		<wsdl:part name='LogicalAddress' element='itr:LogicalAddress'>
+		</wsdl:part>
+		<wsdl:part name='parameters' element='tjsr:SendMessageToRecipient' />
+	</wsdl:message>
+	
+	<wsdl:message name='SendMessageToRecipientResponse'>
+		<wsdl:part name='parameters' element='tjsr:SendMessageToRecipientResponse' />
+	</wsdl:message>
+	
+	<wsdl:portType name='SendMessageToRecipientResponderInterface'>
+		<wsdl:operation name='SendMessageToRecipient'>
+			<wsdl:input message='tns:SendMessageToRecipientRequest' />
+			<wsdl:output message='tns:SendMessageToRecipientResponse' />
+		</wsdl:operation>
+	</wsdl:portType>
+	
+	<wsdl:binding name='SendMessageToRecipientResponderBinding'
+		type='tns:SendMessageToRecipientResponderInterface'>
+		<soap:binding style='document'
+			transport='http://schemas.xmlsoap.org/soap/http' />
+		<wsdl:operation name='SendMessageToRecipient'>
+			<soap:operation
+				soapAction='urn:riv:clinicalprocess:healthcond:certificate:SendMessageToRecipientResponder:2:SendMessageToRecipient'
+				style='document' />
+			<wsdl:input>
+				<soap:header use='literal' message='tns:SendMessageToRecipientRequest'
+					part='LogicalAddress' />
+				<soap:body use='literal' parts='parameters' />
+			</wsdl:input>
+			<wsdl:output>
+				<soap:body use='literal' />
+			</wsdl:output>
+		</wsdl:operation>
+	</wsdl:binding>
+	
+	<wsdl:service name='SendMessageToRecipientResponderService'>
+		<wsdl:port name='SendMessageToRecipientResponderPort'
+			binding='tns:SendMessageToRecipientResponderBinding'>
+			<soap:address location='http://tempuri.org' />
+		</wsdl:port>
+	</wsdl:service>
+	
+</wsdl:definitions>
