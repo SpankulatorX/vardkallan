@@ -124,7 +124,7 @@ Så begränsas risken: Läser inte journalen. Uppgifterna gäller den egna vård
 
 Får inte: `las_journal`, `las_oversikt`, `ordinera`.
 
-Handlingar i koden (7): `lakemedelsansvar`, `faststalla_direktiv`, `utbildning`, `intyg_enhet`, `forskning_godkann`, `signeringslista`, `vyforval`.
+Handlingar i koden (7): `lakemedelsansvar`, `utbildning`, `intyg_enhet`, `forskning_godkann`, `signeringslista`, `godkanna_gallring`, `vyforval`.
 
 ## Ekonom (ekonom)
 
