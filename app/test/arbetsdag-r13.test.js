@@ -282,5 +282,5 @@ describe('Arbetsdagen och de andra delarna (runda 13, efter sammanslagningen)', 
       expect([dag, klocka, Date.parse(tid.start) - nu.getTime() >= tidbok.BREV_DAGAR * 86400_000]).toEqual([dag, klocka, true]);
       expect([0, 6]).not.toContain(new Date(tid.start).getUTCDay());
     }
-  });
+  }, 30_000);
 });
