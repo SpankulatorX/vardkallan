@@ -812,8 +812,13 @@ describe('Kassan', () => {
     expect(() => d.query('UPDATE kassaavslut SET raknat = 0').run()).toThrow();
     expect(() => d.query('DELETE FROM kassaavslut').run()).toThrow();
     // Demoläget för gränssnittstesterna checkar in en patient och tar betalt, så att det finns något att avsluta.
-    // Här är dagens tider redan betalda.
-    expect((await k.post('/api/demo/kassa-besok', {})).status).toBe(400);
+    // Här är dagens tider redan betalda. Runda 13: då kommer en ny patient nu (tidbok.ankomstNu), och ingen tid betalas
+    // två gånger.
+    const betaldaFore = new Set(d.query('SELECT bokning_id FROM betalningar WHERE bokning_id IS NOT NULL').all().map(r => r.bokning_id));
+    const demo = await k.post('/api/demo/kassa-besok', {});
+    expect(demo.status).toBe(201);
+    expect(betaldaFore.has(demo.data.id)).toBe(false);
+    expect(d.query('SELECT count(*) AS n FROM (SELECT bokning_id FROM betalningar WHERE bokning_id IS NOT NULL GROUP BY bokning_id HAVING count(*) > 1)').get().n).toBe(0);
     const ny = await inloggad('adm-kard');
     expect((await ny.post('/api/demo/kassa-besok', {})).status).toBe(201);
     expect((await ny.get('/api/kassa')).data.kassorer.find(x => x.du)).toMatchObject({ kanAvsluta: true });

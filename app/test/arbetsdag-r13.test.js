@@ -177,20 +177,62 @@ describe('Arbetsdagen på mottagningarna (runda 13, r4)', () => {
 describe('Arbetsdagen och de andra delarna (runda 13, efter sammanslagningen)', () => {
   const SONDAG = '2026-11-15';
 
-  test('kassans demoläge tar inte betalt för en tid vars incheckning inte har öppnat, till exempel på natten', async () => {
+  test('kassans demoläge tar inte betalt för en tid vars incheckning inte har öppnat, utan för en ankomst nu', async () => {
     const app = testserver();
     try {
       stallKlockan(new Date(ms(TORSDAG, '00:30')));
       const natt = klient(app);
       await natt.logga('adm-kard');
-      expect((await natt.post('/api/demo/kassa-besok', {})).status).toBe(400);
-      expect(sandlada(app, natt).db.query('SELECT count(*) AS n FROM betalningar WHERE tid >= ?').get(new Date(ms(TORSDAG, '00:00')).toISOString()).n).toBe(0);
+      const d = sandlada(app, natt).db;
+      const fore = new Set(d.query("SELECT id FROM bokningar WHERE status = 'bokad'").all().map(r => r.id));
+      expect((await natt.post('/api/demo/kassa-besok', {})).status).toBe(201);
+      // Betalningen gäller ett besök som börjar nu, inte någon av dagens tider klockan åtta.
+      const bet = d.query('SELECT b.id, t.start FROM betalningar x JOIN bokningar b ON b.id = x.bokning_id JOIN tider t ON t.id = b.tid_id ORDER BY x.id DESC').get();
+      expect(fore.has(bet.id)).toBe(false);
+      expect(Math.abs(Date.parse(bet.start) - ms(TORSDAG, '00:30'))).toBeLessThanOrEqual(15 * 60_000);
       stallKlockan(new Date(ms(TORSDAG, '11:00')));
       const dag = klient(app);
       await dag.logga('adm-kard');
       expect((await dag.post('/api/demo/kassa-besok', {})).status).toBe(201);
     } finally { app.stopp(); }
   });
+
+  // Testarna från Reddit testar ofta på kvällen. Vårdadministratörens uppdrag Ta betalt och Gör dagsavslut, och
+  // användartestets uppdrag Kassan, har alltid en patient att ta betalt av.
+  for (const [namn, dag, klocka] of [['vardag 23.30', TORSDAG, '23:30'], ['söndag 12.00', SONDAG, '12:00'], ['vardag 00.30', TORSDAG, '00:30']]) {
+    test(`${namn}: vårdadministratörens uppdrag har en incheckad patient att ta betalt av, och dagsavslutet går att göra`, async () => {
+      const app = testserver({ synpunktFil: ':memory:' });
+      try {
+        stallKlockan(new Date(ms(dag, klocka)));
+        const k = klient(app);
+        await k.logga('adm-kard');
+        expect((await k.post('/api/testare/starta', { testroll: 'vardadministrator', profil: {} })).status).toBe(200);
+        const idag = (await k.get('/api/idag')).data;
+        const rad = idag.dagens.find(x => x.rad?.atgard?.typ === 'betala');
+        expect(rad).toBeTruthy();
+        const betala = await k.post(`/api/bokning/${rad.id}/betala`, { satt: 'kort' });
+        expect(betala.status).toBeLessThan(300);
+        let t = (await k.get('/api/testare')).data;
+        expect(t.uppdrag.find(u => u.id === 'betala').status).toBe('klar');
+        const avslut = await k.post('/api/kassa/dagsavslut', {});
+        expect(avslut.status).toBe(201);
+        expect(avslut.data.antal).toBeGreaterThanOrEqual(1);
+        t = (await k.get('/api/testare')).data;
+        expect(t.uppdrag.find(u => u.id === 'dagsavslut').status).toBe('klar');
+        // En ny start ger ingen ny ankomst när det redan finns en att ta betalt av.
+        const k2 = klient(app);
+        await k2.logga('adm-kard');
+        expect((await k2.post('/api/testare/starta', { testroll: 'vardadministrator', profil: {} })).status).toBe(200);
+        expect((await k2.post('/api/testare/starta', { testroll: 'vardadministrator', profil: {} })).status).toBe(200);
+        expect((await k2.get('/api/idag')).data.dagens.filter(x => x.rad?.atgard?.typ === 'betala')).toHaveLength(1);
+        // Användartestets förberedelse för Kassan ger en betalning att göra dagsavslut på.
+        const k3 = klient(app);
+        await k3.logga('adm-kard');
+        expect((await k3.post('/api/demo/kassa-besok', {})).status).toBe(201);
+        expect((await k3.get('/api/kassa')).data.kassorer.find(x => x.du)).toMatchObject({ kanAvsluta: true });
+      } finally { app.stopp(); }
+    });
+  }
 
   test('en ankomst som registreras i efterhand på kvällen bockar av testinbjudans uppdrag 5.5', async () => {
     const app = testserver({ synpunktFil: ':memory:' });

@@ -17,6 +17,8 @@
 import { Fel } from './db.js';
 import { TESTFALL } from './sussa-testfall.js';
 import * as sussaDemo from './sussa-demo.js';
+import * as tidbok from './tidbok.js';
+import { vardenhetFor } from './atkomst.js';
 import { YRKEN, SYSTEM, AR, VARDFORM, HOPPADE_OVER } from '../public/js/synpunkt-regler.js';
 import { profil as provaProfil } from './synpunkter.js';
 
@@ -225,6 +227,12 @@ export function starta(db, body = {}, { nu = new Date() } = {}) {
   if (r.sussaData) {
     const pers = db.query('SELECT * FROM personal WHERE id = ?').get(r.demoroll);
     if (r.avdelning) sussaDemo.laddaAvdelning(db, pers, { nu }); else sussaDemo.laddaTestdata(db, pers, { nu });
+  }
+  // Runda 13: kassans uppdrag (Ta betalt och Gör dagsavslut) har alltid en patient som har checkat in och ska betala,
+  // också när testaren börjar på kvällen eller natten. Före baslinjen, så att ankomsten inte räknas som testarens.
+  if (r.uppdrag.some(u => u.id === 'betala')) {
+    const pers = db.query('SELECT * FROM personal WHERE id = ?').get(r.demoroll);
+    tidbok.ankomstNu(db, vardenhetFor(db, pers.enhet_id));
   }
   const tabeller = new Set(['atkomstlogg']);
   for (const u of r.uppdrag) for (const t of u.klar?.tabeller ?? []) tabeller.add(t);

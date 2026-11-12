@@ -2,7 +2,7 @@
 // vårdplan i Min journal, kassan, kapaciteten och kontorsstödet. Behörigheten prövas i modulerna och av
 // behörighetsmotorn, och varje anrop som rör en patient loggas på patienten (medPatient och medMinJournal).
 import { Fel, idag, giltigtDatum } from './db.js';
-import { Atkomst, kanRoll, visningsnamn, visningsPnr } from './atkomst.js';
+import { Atkomst, kanRoll, visningsnamn, visningsPnr, vardenhetFor } from './atkomst.js';
 import * as ombud from './ombud.js';
 import * as meddelanden from './invanarmeddelanden.js';
 import * as minVardplan from './min-vardplan.js';
@@ -71,6 +71,10 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
         });
       } catch { /* nästa tid */ }
     }
+    // Runda 13: utan en tid vars incheckning har öppnat (till exempel på kvällen) kommer en patient nu och checkar in på
+    // skärmen i väntrummet (tidbok.ankomstNu), så att användartestets uppdrag Kassan går att göra när som helst.
+    const ny = tidbok.ankomstNu(c.db, vardenhetFor(c.db, p.enhet_id), { av: p.id });
+    if (ny) return medPatient(c, ny.patient_id, 'checka_in', (atk) => [201, tidbok.betala(atk, tidbok.bokningRad(c.db, ny.id), { satt: 'kort' })]);
     throw new Fel(400, 'Det finns ingen tid i dag att ta betalt för.', 'ogiltig');
   });
   rutt('POST', '/api/kassa/dagsavslut', (c) => kassa.dagsavslut(c.db, kravInloggad(c), c.body));
