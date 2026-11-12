@@ -1331,17 +1331,19 @@ function skapa(BAS) {
   // på inloggningssidan. Inloggningen går genom två hela sidbyten (till tjänsten och tillbaka), som nollställer sidans
   // egen räkning av klick. Skriptets räkning förs därför över till den sista sidan innan den jämförs.
   startI['Inloggningssidan med en inkopplad inloggningstjänst'] = async (page) => {
-    await page.evaluate(async () => {
-      const post = (v, d = {}) => fetch(v, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then(r => r.json());
-      const { tjanster } = await fetch('/api/inloggning/tjanster').then(r => r.json());
-      if (!tjanster.length) {
-        await post('/api/logout'); await post('/api/login', { personalId: 'sysf' });
-        const f = await post('/api/inloggningstjanster', { ovning: true, motivering: 'Prövar inloggningen genom en extern inloggningstjänst.' });
-        await post('/api/logout'); await post('/api/login', { personalId: 'sysf-2' });
-        await post(`/api/inloggningstjanster/andring/${f.andring.id}/godkann`);
-      }
-      await post('/api/logout');
-    });
+    // Sidan lämnas först, så att inga anrop från den förra vyn pågår när sessionen byter person.
+    await page.waitForLoadState('networkidle');
+    await page.goto('about:blank');
+    const req = page.context().request;
+    const post = async (v, d = {}) => (await req.post(`${BAS}${v}`, { data: d, headers: { Origin: BAS } })).json();
+    const { tjanster } = await (await req.get(`${BAS}/api/inloggning/tjanster`)).json();
+    if (!tjanster.length) {
+      await post('/api/logout'); await post('/api/login', { personalId: 'sysf' });
+      const f = await post('/api/inloggningstjanster', { ovning: true, motivering: 'Prövar inloggningen genom en extern inloggningstjänst.' });
+      await post('/api/logout'); await post('/api/login', { personalId: 'sysf-2' });
+      await post(`/api/inloggningstjanster/andring/${f.andring.id}/godkann`);
+    }
+    await post('/api/logout');
     await page.goto(`${BAS}/#/`);
     await page.waitForLoadState('networkidle');
     await page.waitForSelector('#extern-inloggning [data-extern]');

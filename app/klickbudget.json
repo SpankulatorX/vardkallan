@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-12T11:24:37.297Z",
-  "bas": "http://127.0.0.1:18250",
+  "tid": "2026-11-12T16:37:22.785Z",
+  "bas": "http://127.0.0.1:18141",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "7e770fd8f3bc0a1d2e5fedb4d2ef7b40b155779b91f6e41c28761fb0b43365cb",
+  "gransnittHash": "93322f7ebd6d02ff89112c9b7e69db6014fecb12f5b0674f234c9bfe50740bf2",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -2125,6 +2125,23 @@
         "klick: Läkare på sjukhus",
         "klick: en patient i arbetslistan"
       ]
+    },
+    {
+      "id": "inloggning-extern",
+      "namn": "Logga in genom vårdgivarens inloggningstjänst",
+      "roll": "lak-kard",
+      "start": "Inloggningssidan med en inkopplad inloggningstjänst",
+      "budget": 2,
+      "motivering": "Sussa 5.2.1.1. Ett klick på tjänsten på inloggningssidan och ett på Logga in i tjänsten. Uppdraget, vårdenheten och behörigheten kommer ur biljetten och katalogen, så personen väljer ingenting i Vårdkällan. I en verklig tjänst ersätts klicket i tjänsten av SITHS-kortet.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Övningstjänst för inloggning (simulerad)",
+        "klick: Logga in i tjänsten"
+      ]
     }
   ],
   "tester": [
@@ -2594,6 +2611,10 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Välja yrkesroll och starta första uppdraget inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Logga in genom vårdgivarens inloggningstjänst inom budget",
       "status": "grön"
     }
   ]

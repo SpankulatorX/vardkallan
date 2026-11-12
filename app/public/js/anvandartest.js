@@ -133,6 +133,19 @@ const FORBERED = {
   obstetrik: async () => { await aterstallDemo(); await api('/api/demo/obstetrik', { metod: 'POST', data: {} }); },
   // Runda 11, r4: Annika Holmgrens kur är godkänd, så att beredningsenheten har en kur att bereda.
   'cytostatika-kur': async () => { await aterstallDemo(); await api('/api/demo/cytostatika-kur', { metod: 'POST', data: {} }); },
+  // Runda 14, r1: övningstjänsten kopplas in av de två systemförvaltarna, och sedan loggas personen ut, så att uppgiften
+  // börjar på inloggningssidan.
+  inloggningstjanst: async () => {
+    await aterstallDemo();
+    const { tjanster } = await api('/api/inloggning/tjanster');
+    if (!tjanster.length) {
+      await loggaIn('sysf');
+      const f = await api('/api/inloggningstjanster', { metod: 'POST', data: { ovning: true, motivering: 'Prövar inloggningen genom en extern inloggningstjänst.' } });
+      await loggaIn('sysf-2');
+      await api(`/api/inloggningstjanster/andring/${f.andring.id}/godkann`, { metod: 'POST', data: {} });
+    }
+    await loggaUt();
+  },
 };
 
 // Uppgiften börjar på samma sätt som i skriptet: vid byte av demoroll loggas rollen in och demon återställs, så att
