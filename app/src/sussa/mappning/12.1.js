@@ -127,8 +127,16 @@ const POSTERNA = [
   {
     // Runda 12, r1: undantag för en enskild anteckning, med samma prövning för visning, FHIR, publiceringen och producenten.
     id: '12.1.1.10', kategori: 'system', egna: ['D8'], avsedd: 'uppfyllt_demo',
-    tester: [...UNDANTAG, ROLL, ...TESTER_UNDANTAG_ENSKILD],
-    losning: 'Systemförvaltaren undantar en anteckningstyp, ett mätvärde, en vårdenhet eller en enskild anteckning från visning i systemet, från FHIR för externa tillämpningar eller från publicering till nationella tjänster, med fyra ögon och giltighetsdatum. En enskild anteckning väljs med sitt nummer, och undantaget gäller alla dess versioner. Sidan Undantag från visning visar vad som är undantaget, från vad, sedan när, av vem och varför, och personalen ser i journalen hur många uppgifter som inte visas och motiveringen. Ett undantag gäller aldrig Min journal och ändrar inga spärrar.',
+    // Runda 13, r3: begäran från vården och säkerhetsfynd 5 och 6 (undantag-begaran.test.js).
+    tester: [...UNDANTAG, ROLL, ...TESTER_UNDANTAG_ENSKILD, ...[
+      'journalen visar anteckningens nummer, och den som skrev anteckningen begär undantag med kanal och skäl',
+      'bara den som skrev anteckningen eller en läkare på dess vårdenhet kan begära undantag',
+      'systemförvaltaren ser begäran med nummer, typ, datum, vårdenhet och den som begär, men inte innehållet, och godkänner med en andra systemförvaltare',
+      'systemförvaltaren kan avslå en begäran med en kommentar, och den som begärde ser det',
+      'förhandsvisningen av ett nummer utan begäran ger samma svar för en befintlig, en spärrad, en skyddad och en obefintlig anteckning',
+      'en undantagen anteckning syns inte i händelsekedjan, och direkt öppning ger samma svar som en anteckning som inte finns',
+    ].map(t => `Begäran om undantag av en anteckning > ${t}`)],
+    losning: 'Systemförvaltaren undantar en anteckningstyp, ett mätvärde, en vårdenhet eller en enskild anteckning från visning i systemet, från FHIR för externa tillämpningar eller från publicering till nationella tjänster, med fyra ögon och giltighetsdatum. En enskild anteckning undantas efter en begäran från den som skrev den eller patientens ansvariga läkare, gjord i anteckningens meny med kanal och skäl, och undantaget gäller alla dess versioner. Systemförvaltaren ser begäran med nummer, typ, datum, vårdenhet och den som begär, men aldrig innehållet, och fyller i förslaget med ett klick. Sidan Undantag från visning visar vad som är undantaget, från vad, sedan när, av vem och varför, och personalen ser i journalen hur många uppgifter som inte visas och motiveringen. Ett undantag gäller aldrig Min journal och ändrar inga spärrar.',
     expert: 'Systemet stoppar ett undantag från visning för en vårdenhet med pågående vårdkontakter eller en anteckning i en pågående vårdkontakt och förklarar varför, tillåter aldrig att läkemedel, överkänslighet, uppmärksamhetsinformation eller diagnoser undantas och prövar undantaget efter behörighetsmotorn, så att en spärrad uppgift varken visas eller räknas. För en enskild anteckning ser systemförvaltaren bara typ, vårdenhet och datum, journalen säger bara att en anteckning inte visas, och journalen, sökningen, FHIR, publiceringen och producenten för tjänstekontrakt prövar samma funktion.',
     anmarkning: 'Publiceringen till nationella tjänster är simulerad: sidan visar vad som skulle publiceras och vad som är undantaget, och den simulerade producenten för tjänstekontrakt prövar både undantagen från FHIR och från nationella tjänster. Enskilda mätvärden undantas genom sin typ, inte ett och ett.',
   },

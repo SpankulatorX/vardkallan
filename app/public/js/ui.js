@@ -134,6 +134,8 @@ export function lasServerTiming(h) {
 // inloggningssidan) och svarar 401 efter inloggningen loggar inte ut den nya sessionen.
 let session = 0;
 export const nySession = () => { session++; };
+// Runda 13, r3: vilken session som gäller, så att det som en vy minns för en inloggning glöms vid nästa.
+export const sessionNummer = () => session;
 
 // Pågående anrop avbryts vid utloggning, så att ett anrop som når servern efter utloggningen inte ger 401.
 const pagaende = new Set();

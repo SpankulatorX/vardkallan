@@ -16,6 +16,8 @@ const { mkdirSync, rmSync } = require('node:fs');
 const { join } = require('node:path');
 // Runda 11, r1: testet och webbläsaren följer testcontainerns falska klocka när den är satt.
 const { foljServernsKlocka, stallKlockan } = require('./testklocka.cjs');
+// Runda 13, r3 (E2-5).
+const { idDialog } = require('./flodessteg.cjs');
 
 const BAS = process.argv[2] || 'http://127.0.0.1:18796';
 const UT = join(__dirname, 'skarmbilder');
@@ -159,7 +161,8 @@ const MENY = {
   // Runda 7, r5: uppföljningsrollen granskar och skickar rapporterna till myndigheter och register.
   uppfoljning: ['Datauttag', 'Tvångsvård och samordning', 'Rapportering', 'Utbildning', 'Användartester', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 6, r6: verksamhetschefen utser uppdragen i läkemedelshanteringen och fastställer generella direktiv.
-  verksamhetschef: ['Läkemedelsansvar', 'Direktiv och uppföljning', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
+  // Runda 13, r3: verksamhetschefen fastställer inte generella direktiv (HSLF-FS 2017:37 6 kap. 6 §).
+  verksamhetschef: ['Läkemedelsansvar', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 7, r3: ekonomen tar fram faktureringsunderlaget och sköter prislistorna.
   ekonom: ['Faktureringsunderlag', 'Prislistor', 'Utbildning', 'Migreringsavstämning', 'Kravspårbarhet', 'Moduler', 'Öppet API', 'Svarstider'],
   // Runda 7, r4: systemförvaltaren har regler och parametrar, omorganisation, undantag och lagring.
@@ -178,6 +181,8 @@ for (const k of ['sjukskoterska', 'underskoterska']) MENY[k].splice(MENY[k].inde
 // Forskningsuttag för uppföljningen, arkivarien och verksamhetschefen, före Utbildning.
 for (const k of ['klinisk', 'sjukskoterska', 'vardadministrator', 'psykiatri', 'uppfoljning', 'bvc', 'fysioterapeut']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Analys och statistik');
 for (const k of ['uppfoljning', 'arkiv', 'verksamhetschef']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Forskningsuttag');
+// Runda 13, r3 (E3-35): verksamhetschefen godkänner gallring och radering under E-arkiv och gallring.
+MENY.verksamhetschef.splice(MENY.verksamhetschef.indexOf('Forskningsuttag'), 0, 'E-arkiv och gallring');
 // Runda 9, r7: läkarna och verksamhetschefen har vårdenhetens signeringslista.
 for (const k of ['klinisk', 'psykiatri', 'bvc', 'verksamhetschef']) MENY[k].splice(MENY[k].indexOf('Utbildning'), 0, 'Signeringslista');
 // Runda 10, r3: systemförvaltaren har Formulär direkt efter Kodverk och masterdata.
@@ -1210,6 +1215,8 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       const dl = page.locator('dialog[open]');
       await dl.waitFor();
       await dl.locator('[data-varde="ok"]').click();
+      // Runda 13, r3 (E2-5): identiteten bekräftas när armbandet inte skannas.
+      await idDialog(page);
       await forvanta(page, '.notis', 'Waran är given');
       await forvanta(page, '.adm-vb', 'av Amira Haddad, med delegering från Johan Ek');
       await bild(page, '81-delegering-dos', true);
@@ -1724,6 +1731,8 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await alvedon.locator('.adm-mer summary').click();
       await alvedon.locator('[data-adm="efterhand"]').click();
       await page.locator('dialog[open] [data-varde="ok"]').click();
+      // Runda 13, r3 (E2-5): identiteten bekräftas när armbandet inte skannas.
+      await idDialog(page);
       await forvanta(page, '.notis', 'Alvedon är registrerad som given');
       await bild(page, '93-dos-i-efterhand');
     });
@@ -1874,13 +1883,14 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await forvanta(page, '.notis', 'väntar på att en annan systemförvaltare godkänner det');
       await page.waitForLoadState('networkidle');
     });
-    // Runda 12, r1: en enskild anteckning väljs med sitt nummer, och systemet säger när numret inte finns.
-    await s('Tomas Lindh väljer en enskild anteckning att undanta, och systemet förklarar ett nummer som inte finns', async () => {
+    // Runda 12, r1: en enskild anteckning väljs med sitt nummer. Runda 13, r3 (A3, säkerhetsfynd 5 och 6): en enskild
+    // anteckning undantas bara efter en begäran från vården, så systemförvaltaren kan inte välja en själv.
+    await s('Tomas Lindh kan inte själv välja en enskild anteckning att undanta, bara efter en begäran från vården', async () => {
       await gaTill(page, '#/undantag');
       await page.click('[data-nytt-undantag]');
-      await page.locator('dialog[open] #sf-u-omfang').selectOption('anteckning');
-      await page.locator('dialog[open] #sf-u-nummer').fill('999999');
-      await forvanta(page, 'dialog[open] [data-forhand]', 'Det finns ingen signerad anteckning med det numret');
+      await page.locator('dialog[open] #sf-u-omfang').waitFor();
+      const alternativ = await page.locator('dialog[open] #sf-u-omfang option').evaluateAll(o => o.map(x => x.value));
+      if (alternativ.includes('anteckning')) throw new Error(`en enskild anteckning går att välja utan begäran: ${alternativ}`);
       await page.click('dialog[open] [data-varde="avbryt"]');
       await page.waitForLoadState('networkidle');
     });
@@ -2123,6 +2133,10 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await page.locator('#us [data-boka]').first().click();
       await forvanta(page, '.notis', 'är bokad');
       await page.locator('#us [data-utford]').first().click();
+      // Runda 13, r3 (E2-45): identiteten bekräftas, och en tid som är bokad senare flyttas till nu.
+      await page.click('dialog[open] label[for="us-id-m"]');
+      if (await page.locator('dialog[open] #us-flytta').count()) await page.click('dialog[open] label[for="us-flytta"]');
+      await page.click('dialog[open] [data-varde="ok"]');
       await forvanta(page, '.notis', 'Radiologen skriver utlåtandet');
       await page.locator('#us [data-utlatande]').first().click();
       await forvanta(page, '.notis', 'Utlåtandet');
@@ -2207,7 +2221,9 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await gaTill(page, `#/patient/${nasta}/operation`);
       await forvanta(page, '.op-kort', 'giltig till');
       await page.click('[data-op-handelse="in_sal"]');
-      await page.fill('dialog[open] input[name="armband"]', PNR[nasta]);
+      // Runda 13, r3 (säkerhetsgranskningen): koden på patientens utskrivna armband, inte personnumret.
+      const band = await page.evaluate((pid) => fetch(`/api/patient/${pid}/armband`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.json()).then(d => d.kod), nasta);
+      await page.fill('dialog[open] input[name="armband"]', band);
       await page.click('dialog[open] [data-varde="ok"]');
       await forvanta(page, '.op-check', 'Armbandet är skannat');
       await forvanta(page, '.op-kort', 'Förslag: Kloxacillin 2 g');
@@ -2215,6 +2231,8 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
     });
     await s('Therese Hedberg bekräftar checklistan, ger antibiotikaprofylaxen och öppnar instrumentgallret', async () => {
       for (const id of await page.locator('.op-check input[type=checkbox]:not(:checked):not(:disabled)').evaluateAll(l => l.map(x => x.id))) await page.click(`.op-check label[for="${id}"]`);
+      // Runda 13, r3 (E2-49): blodet bekräftas med en motivering när blodgruppering och bastest inte är klara.
+      for (const t of await page.locator('.op-check textarea[name^="motivering_"]').all()) await t.fill('Operatören har beslutat att blod inte behövs i beredskap.');
       await page.click('.op-check [type=submit]');
       await forvanta(page, '.notis', 'Checklistan är bekräftad');
       await page.waitForSelector('[data-op-handelse="anestesistart"]');

@@ -415,18 +415,22 @@ export function kriterier(atk, f, { pkuAterbesok = false } = {}, nu = new Date()
   const db = atk.db;
   const ut = [];
   const mor = kontrollerFor(db, f.patient_id, f);
-  const k = (ok, text) => ut.push({ ok: Boolean(ok), text });
-  k(mor[0] && nu.getTime() - Date.parse(mor[0].tid) <= 12 * TIMME, 'Modern har kontrollerats de senaste tolv timmarna.');
-  k(mor[0] && !mor[0].varningar.length, 'Moderns senaste kontroll har inga varningar.');
-  k(mor.some(x => x.varden.urinerat === true), 'Modern har kissat efter förlossningen.');
+  // Runda 13, r3 (E2-34): varje kriterium har en text för när det är uppfyllt och en för vad som är kvar, så att ett
+  // kriterium som inte är uppfyllt aldrig står som ett påstående.
+  const k = (ok, klar, kvar) => ut.push({ ok: Boolean(ok), text: ok ? klar : kvar, klar, kvar });
+  k(mor[0] && nu.getTime() - Date.parse(mor[0].tid) <= 12 * TIMME, 'Modern har kontrollerats de senaste tolv timmarna.', mor[0] ? 'Kontrollera modern. Den senaste kontrollen är äldre än tolv timmar.' : 'Kontrollera modern. Ingen kontroll är registrerad.');
+  k(mor[0] && !mor[0].varningar.length, 'Moderns senaste kontroll har inga varningar.', mor[0] ? 'Bedöm varningarna från moderns senaste kontroll.' : 'Moderns kontroll saknas, så varningarna kan inte bedömas.');
+  k(mor.some(x => x.varden.urinerat === true), 'Modern har kissat efter förlossningen.', 'Kontrollera att modern har kissat efter förlossningen.');
   for (const b of db.query('SELECT * FROM forlossning_barn WHERE forlossning_id = ? ORDER BY ordning').all(f.id)) {
     const bb = barnBb(db, b, f, nu, atk);
     const namn = bb.kort;
     const gjord = (typ) => bb.screening.find(s => s.typ === typ).gjord;
-    k(bb.kontroller[0] && nu.getTime() - Date.parse(bb.kontroller[0].tid) <= 12 * TIMME, `${namn} har kontrollerats de senaste tolv timmarna.`);
-    k(bb.senasteVikt && bb.senasteVikt.viktnedgang < VIKTNEDGANG_GRANS, `${namn} har vägts och gått ner mindre än ${VIKTNEDGANG_GRANS} procent.`);
-    for (const typ of ['kvitamin', 'pulsoximetri', 'barnlakare', 'horsel']) k(gjord(typ), `${namn}: ${SCREENING[typ].toLowerCase()} är gjord.`);
-    k(gjord('pku') || pkuAterbesok, `${namn}: PKU-provet är taget eller bokat som återbesök.`);
+    k(bb.kontroller[0] && nu.getTime() - Date.parse(bb.kontroller[0].tid) <= 12 * TIMME, `${namn} har kontrollerats de senaste tolv timmarna.`, `${namn}: kontrollera barnet.`);
+    k(bb.senasteVikt && bb.senasteVikt.viktnedgang < VIKTNEDGANG_GRANS, `${namn} har vägts och gått ner mindre än ${VIKTNEDGANG_GRANS} procent.`,
+      bb.senasteVikt ? `${namn}: viktnedgången är ${VIKTNEDGANG_GRANS} procent eller mer. Bedöm amningen och väg igen.` : `${namn}: väg barnet.`);
+    const GORA = { kvitamin: 'ge K-vitamin', pulsoximetri: 'gör pulsoximetrin', barnlakare: 'barnläkarundersökningen återstår', horsel: 'gör hörselscreeningen' };
+    for (const typ of ['kvitamin', 'pulsoximetri', 'barnlakare', 'horsel']) k(gjord(typ), `${namn}: ${SCREENING[typ].toLowerCase()} är gjord.`, `${namn}: ${GORA[typ]}.`);
+    k(gjord('pku') || pkuAterbesok, `${namn}: PKU-provet är taget eller bokat som återbesök.`, `${namn}: ta PKU-provet, eller boka det som återbesök.`);
   }
   return ut;
 }
@@ -457,7 +461,7 @@ export function utskrivning(atk, body = {}, nu = new Date()) {
   if (!allaBarnSyns(atk, f)) throw new Fel(403, 'Du har inte åtkomst till alla barnens journaler, så utskrivningen kan inte prövas.', 'nekad');
   const kr = kriterier(atk, f, { pkuAterbesok: body.pkuAterbesok === true }, nu);
   const saknas = kr.filter(x => !x.ok);
-  if (saknas.length) throw new Fel(409, `Utskrivningen kan inte göras ännu: ${saknas.map(x => x.text.replace(/\.$/, '').toLowerCase()).join('; ')}.`, 'kontroll', { saknas: saknas.map(x => x.text) });
+  if (saknas.length) throw new Fel(409, `Utskrivningen kan inte göras ännu. Kvar före hemgång: ${saknas.map(x => x.kvar.replace(/\.$/, '')).join('; ')}.`, 'kontroll', { saknas: saknas.map(x => x.kvar) });
   const t = iso(nu);
   const barnIds = db.query('SELECT barn_patient_id FROM forlossning_barn WHERE forlossning_id = ?').all(f.id).map(r => r.barn_patient_id);
   const enheter = enheterUnder(db, vardenhetFor(db, f.enhet_id));

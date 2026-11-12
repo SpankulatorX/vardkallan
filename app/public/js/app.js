@@ -176,7 +176,8 @@ const MENY = [
   ['#/logg', 'Logguppföljning', 'logg', () => far('las_logg')],
   // Runda 10, r7: invånarnas begäranden om spärr och loggutdrag.
   ['#/begaran', 'Begäranden', 'lista', () => pa('registrera_sparr', 'las_logg')],
-  ['#/arkiv', 'E-arkiv och gallring', 'arkiv', () => far('registrera_arkivbeslut')],
+  // Runda 13, r3 (E3-35): verksamhetschefen godkänner gallring och radering här.
+  ['#/arkiv', 'E-arkiv och gallring', 'arkiv', () => pa('registrera_arkivbeslut', 'godkanna_gallring')],
   ['#/datauttag', 'Datauttag', 'lista', () => far('datauttag')],
   ['#/planuppfoljning', 'Tvångsvård och samordning', 'krav', () => far('datauttag')],
   // Runda 7, r3: ekonomen.

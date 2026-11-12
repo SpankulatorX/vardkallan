@@ -35,9 +35,9 @@ const ANDRINGAR = {
   },
   '3.5.2.15': {
     tester: [T.utse],
-    losning: 'Direktiven fastställs av verksamhetschefen eller den medicinskt ansvariga läkare som verksamhetschefen har utsett.',
+    losning: 'Direktiven fastställs av den medicinskt ansvariga läkare som verksamhetschefen har utsett. Endast läkare får utfärda generella direktiv.',
     expert: 'Systemet vet vem som är medicinskt ansvarig läkare på vårdenheten och säger det till den läkare som försöker fastställa ett direktiv utan uppdraget.',
-    ersattAnmarkning: 'Demons direktiv är påhittade. Vem som får fastställa följer HSLF-FS 2017:37 6 kap. 6 och 17 §§ och Gröna häftet 1.4.2: verksamhetschefen eller den medicinskt ansvariga läkaren. Vårdgivarens nivå finns inte.',
+    ersattAnmarkning: 'Demons direktiv är påhittade. Vem som får fastställa följer HSLF-FS 2017:37 6 kap. 6 och 17 §§ och Gröna häftet 1.4.2: endast läkare, i demon den medicinskt ansvariga läkaren. Verksamhetschefen fastställer inte, eftersom verksamhetschefen i demon inte är läkare. Vårdgivarens nivå finns inte.',
   },
   '3.5.2.7': {
     tester: [T.avbokad],

@@ -9,7 +9,8 @@
 // tillfällen) och förklarar på vanlig svenska varför ett direktiv inte går att använda. Det som systemet inte kan
 // kontrollera själv bekräftar sjuksköterskan i samma steg.
 //
-// Vem som fastställer. Generella direktiv fastställs av verksamhetschefen eller den medicinskt ansvariga läkaren
+// Vem som fastställer. Generella direktiv fastställs av den medicinskt ansvariga läkaren, eftersom endast läkare får
+// utfärda dem (runda 13, r3)
 // (HSLF-FS 2017:37 6 kap. 6 och 17 §§, Region Örebro läns Gröna häftet 688488 R5 avsnitt 1.4.2). Mallar upprättas av en
 // läkare och godkänns av den läkare som verksamhetschefen har utsett som ansvarig för läkemedelsmallarna (1.4.3).
 // Uppdragen finns i lakemedelsansvar.js och godkännandena i mallgodkannande.js (runda 6, r6).
@@ -312,7 +313,7 @@ export function direktivLista(db, personal) {
   const vg = vgDirektiv.vardgivareFor(db, personal.enhet_id);
   const rader = db.query('SELECT * FROM generella_direktiv ORDER BY id').all().filter(d => (d.enhet_id === vg ? true : vardenhetFor(db, d.enhet_id) === ve));
   loggaUtan(db, personal, kanRoll(personal, 'faststalla_direktiv') ? 'faststalla_direktiv' : 'ordinera_direktiv', 'generella_direktiv');
-  // Runda 6, r6: verksamhetschefen och den medicinskt ansvariga läkaren fastställer, och systemet säger vem det är.
+  // Runda 6, r6: den medicinskt ansvariga läkaren fastställer, och systemet säger vem det är (runda 13, r3: bara läkare).
   const f = kanRoll(personal, 'faststalla_direktiv') ? ansvar.faststallaDirektiv(db, personal) : { kan: false, varfor: null };
   const fv = vgDirektiv.kanFaststalla(db, personal);
   return { direktiv: rader.map(d => ({ ...direktivUt(db, d), giltigt: giltigt(d), galler: omfattar(db, d.enhet_id, personal), vardgivarniva: d.enhet_id === vg })), kanFaststalla: f.kan, faststallaText: f.varfor,
@@ -325,13 +326,13 @@ const KONTRA = ['alder_under', 'alder_fran', 'egfr_under', 'systoliskt_under', '
 // skriftligt och innehålla läkemedel, dosering, maxdos, administreringssätt, indikation, kontraindikationer och antal
 // tillfällen utan läkarkontakt. Det gäller högst ett år och omprövas sedan.
 export function faststallDirektiv(db, personal, inp = {}) {
-  // Runda 6, r6: verksamhetschefen eller den medicinskt ansvariga läkaren på vårdenheten (Gröna häftet 1.4.2).
+  // Runda 6, r6: den medicinskt ansvariga läkaren på vårdenheten. Runda 13, r3: inte verksamhetschefen (6 kap. 6 §).
   // Runda 9, r1: för hela vårdgivaren den läkare som vårdgivaren har utsett (direktiv-vardgivare.js).
   const vg = inp.niva === 'vardgivare' ? vgDirektiv.kanFaststalla(db, personal) : null;
   const f = vg ?? (kanRoll(personal, 'faststalla_direktiv') ? ansvar.faststallaDirektiv(db, personal) : { kan: false });
   if (!f.kan) {
     loggaUtan(db, personal, 'faststalla_direktiv', 'generella_direktiv', 'nekad');
-    throw new Fel(403, f.varfor ?? 'Generella direktiv fastställs av verksamhetschefen eller den medicinskt ansvariga läkaren (HSLF-FS 2017:37 6 kap. 6 §).', 'nekad');
+    throw new Fel(403, f.varfor ?? 'Endast läkare får utfärda generella direktiv om läkemedelsbehandling (HSLF-FS 2017:37 6 kap. 6 §). Vilka läkare framgår av vårdgivarens rutin (17 §), i demon den medicinskt ansvariga läkaren som verksamhetschefen utser.', 'nekad');
   }
   const lm = typeof inp.lakemedelId === 'string' ? katalog(db, inp.lakemedelId) : null;
   const enhet = vg ? vg.vardgivare : typeof inp.enhetId === 'string' ? inp.enhetId : vardenhetFor(db, personal.enhet_id);
@@ -370,7 +371,7 @@ export function upphavDirektiv(db, personal, id, { orsak } = {}) {
     : kanRoll(personal, 'faststalla_direktiv') ? ansvar.faststallaDirektiv(db, personal) : { kan: false };
   if (!f.kan) {
     loggaUtan(db, personal, 'faststalla_direktiv', `generellt_direktiv:${id}`, 'nekad');
-    throw new Fel(403, f.varfor ?? 'Ett generellt direktiv upphävs av verksamhetschefen eller den medicinskt ansvariga läkaren.', 'nekad');
+    throw new Fel(403, f.varfor ?? 'Ett generellt direktiv upphävs av den medicinskt ansvariga läkaren. Endast läkare får utfärda generella direktiv om läkemedelsbehandling (HSLF-FS 2017:37 6 kap. 6 §). Vilka läkare framgår av vårdgivarens rutin (17 §), i demon den medicinskt ansvariga läkaren som verksamhetschefen utser.', 'nekad');
   }
   const d = db.query('SELECT * FROM generella_direktiv WHERE id = ?').get(Number(id));
   if (!d || (d.enhet_id !== vgDirektiv.vardgivareFor(db, personal.enhet_id) && vardenhetFor(db, d.enhet_id) !== vardenhetFor(db, personal.enhet_id))) throw new Fel(404, 'Direktivet finns inte på din vårdenhet.', 'saknas');

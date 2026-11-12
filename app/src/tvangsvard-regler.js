@@ -75,6 +75,8 @@ export const TYPER = {
   socialtjanst: { text: 'Behovet av stöd från socialtjänsten undersökt', paragraf: 'LPT 16 §' },
 };
 export const ATGARDER = ['fastspanning', 'avskiljande', 'elektronisk', 'forsandelser', 'behandling', 'kroppsvisitation'];
+// Runda 13, r3: det som lagen medger för en patient som hålls kvar före intagningen (6 och 6 a §§).
+export const ATGARDER_KVAR = ['fastspanning', 'avskiljande', 'behandling', 'kroppsvisitation'];
 
 const BESLUT_RATTEN = 'Förvaltningsrätten ska ta upp målet till avgörande inom åtta dagar från den dag då ansökan kom in, om den inte förlänger tiden (35 §). Vården får fortsätta i avvaktan på beslutet (10 §).';
 
@@ -127,12 +129,14 @@ function atgarderI(hs, { nu, fodd, kvarhallen }) {
       a.giltigTill = slutPa(sistaDag(sista.tid, { manader: 2 }));
       a.krav = 'Beslutet gäller högst två månader och ska upphöra genast när förutsättningarna inte längre finns (22 b §). Försändelser till myndigheter, advokat, offentligt biträde och internationella klagoorgan granskas aldrig (22 a §).';
     } else if (a.typ === 'behandling') {
-      a.paragraf = '17 §';
-      a.krav = 'Chefsöverläkaren beslutar om behandling utan samtycke när det är nödvändigt (17 § tredje stycket). Lagen anger ingen tidsgräns.';
+      a.paragraf = a.kvarhallen ? '6 a §' : '17 §';
+      a.krav = a.kvarhallen
+        ? 'Patienten hålls kvar enligt 6 § och har ännu inte tagits in. Nödvändig behandling får ges om det finns en överhängande fara för patientens liv eller hälsa, beslutad av legitimerad läkare (6 a § andra och tredje stycket).'
+        : 'Chefsöverläkaren beslutar om behandling utan samtycke när det är nödvändigt (17 § tredje stycket). Lagen anger ingen tidsgräns.';
       a.slut = a.slut ?? a.start;
     } else if (a.typ === 'kroppsvisitation') {
-      a.paragraf = '23 §';
-      a.krav = 'Ett vittne ska om möjligt vara närvarande (23 §).';
+      a.paragraf = a.kvarhallen ? '6 § andra stycket och 23 §' : '23 §';
+      a.krav = `${a.kvarhallen ? 'Patienten hålls kvar enligt 6 § och har ännu inte tagits in. ' : ''}Chefsöverläkaren beslutar. Ett vittne ska om möjligt vara närvarande (23 §).`;
       a.slut = a.slut ?? a.start;
     }
     a.pagar = !a.slut;

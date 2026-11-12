@@ -2803,3 +2803,141 @@ median 8 till 50 ms per anrop. En testare som klickar tätt, en sida var femte s
 i minuten, och med 50 ms per anrop blir det 2,4 sekunder per minut. Tjugo sådana testare använder 48 sekunder per minut,
 mer än de 45 som först var taket, så budgeten är 90 sekunder per minut. Taket per sandlåda, 30 sekunder per minut, är
 detsamma.
+
+## Rättelser inför testinbjudan (runda 13, r3: flerfaktor, lagrum, undantag och fynden från det utforskande testet)
+
+**Flerfaktor som krav (vårt L5, beslut från Jonas).** Vårdgivarens parameter Flerfaktor krävs vid inloggning
+(`sakerhet.flerfaktor_kravs`) ändras med fyra ögon som andra parametrar. När den står på ja godkänner servern den första
+faktorn men ger ingen behörighet och ingen nyckel till läskopian förrän den andra är bekräftad. Den som saknar en faktor
+leds direkt till att registrera en passkey eller en app för engångskoder, och bekräftelsen av den nya faktorn är den
+andra faktorn. Samma sak gäller invånaren i Min journal. Servern läser värdet vid varje inloggning, så den som redan är
+inloggad loggas inte ut när det ändras. Med kravet på ja går den sista faktorn inte att ta bort. Demoregel: i den publika
+demon står parametern på nej, så att ingen besökare låses ute ur sin sandlåda.
+
+**Lagrummen (beslut från Jonas).** Taken för högkostnadsskyddet (17 kap. 6 § HSL) och avgiften per vårddygn (17 kap. 2 §
+HSL) räknas ur prisbasbeloppet för det år ändringen gäller (`prisbasbelopp.js`), och parametrarna kan inte sättas över
+taket. Demons tak för slutenvården var 150 kronor, över lagens 136 kronor, och är rättat. Vårdgarantin räknas från att
+remissen utfärdades, inte från att den togs emot (6 kap. 1 § hälso- och sjukvårdsförordningen), och bara i den
+specialiserade vården. En egen vårdbegäran till en vårdcentral ska vara bedömd inom tre dagar (bedömningsgarantin), och
+en anmälan till operation visar behandlingsgarantin, 90 dagar från anmälan. Kontakten med primärvården samma dag har
+inget flöde, och att tiden står still när patienten själv avstår och sedan fortsätter är inte byggt. Alla kontrollerade
+lagrum, de rättade och de som inte är kontrollerade står i docs/lagrum.md.
+
+**Undantag av en enskild anteckning (beslut från Jonas, säkerhetsfynd 5 och 6).** Journalen visar anteckningens nummer.
+Den som skrev anteckningen eller patientens ansvariga läkare begär undantag i anteckningens meny med kanal och skäl.
+Visning i systemet går inte att välja medan vårdkontakten pågår, och systemet säger varför. Systemförvaltaren ser
+begäran under Begäranden från vården med nummer, typ, datum, vårdenhet och den som begär, men aldrig innehållet eller
+patienten. Ett klick fyller i förslaget med numret, kanalerna och skälet, och en andra systemförvaltare godkänner som
+förut. Systemförvaltaren behöver aldrig läsa journalen eller skriva ett nummer. Förhandsvisningen ger samma svar för alla
+nummer som saknar en begäran, så att den inte går att använda för att slå upp anteckningar. En undantagen anteckning finns
+inte i vårdkontaktens händelsekedja, och den som öppnar den direkt får samma svar som för en anteckning som inte finns.
+Journalens rad om att något inte visas har kvar motiveringen. Demoregel: patientens ansvariga läkare är en läkare på
+den vårdenhet som skrev anteckningen, eftersom Vårdkällan inte har en fast läkare per patient.
+
+**Säkerhetsfynd 9 och 10.** Rabatten på en patientavgift räknas med vårdgivarens godkända avgifter och åldersgränser.
+Nyckeln för en ram eller en lokal anpassning räknas alltid ur definitionen, och en nyckel som inte stämmer nekas.
+
+**Läkemedelsvarningar vid ordination (E1-11, E1-21).** Det var inte en regression från runda 12: förvalet av
+interaktioner hade bara warfarin och NSAID också före runda 12, när reglerna blev parametrar. Förvalet har nu NSAID
+tillsammans med NOAK (apixaban, rivaroxaban, edoxaban och dabigatran), spironolakton och furosemid, warfarin tillsammans
+med trombocythämmare och SSRI tillsammans med antitrombotika, med en egen text för varje par. Två läkemedel som träffar
+samma regel ger en varning med båda namnen. NSAID till en patient som är 75 år eller äldre ger en påminnelse. Allt är
+demoregler och inte kliniskt beslutsstöd.
+
+**Läkemedel från en spärrad vårdenhet i interaktionskontrollen (E1-25).** Bedömning: förskrivningar och ordinationer i
+Nationella läkemedelslistan omfattas inte av spärrar enligt patientdatalagen 4 kap. 4 §, eftersom listan är ett eget
+register enligt lagen (2018:1212) om nationell läkemedelslista, där förskrivare har rätt att ta del av patientens aktuella
+läkemedel. Kontrollen räknar därför med patientens aktuella läkemedel i NLL som är dolda bara av en spärr, inte med
+läkemedel som är dolda av något annat skäl. Säkerhetsgranskningen påpekade att en varning med exakt träff blir ett
+orakel: den som prövar ordinationer av olika läkemedel kan annars ta reda på vad som står på den spärrade vårdenheten.
+Därför prövas träffen bara mot interaktionsreglerna, som gäller grupper av läkemedel och aldrig samma substans, varningen
+kommer först när ordinationen sparas med kvittens av de andra varningarna och aldrig vid Kontrollera och spara, och den
+säger inte vilket läkemedel eller vilken substans det gäller, bara att ett läkemedel i NLL som användaren inte ser kan
+påverka ordinationen och att patientens samtycke behövs för att se det. Varje sådan varning loggas som åtkomst till
+patienten och står i ordinationens historik. Den som vill pröva sig fram måste alltså spara riktiga ordinationer, som
+loggas och syns för patienten i Vem har läst. Läkemedlet visas fortfarande inte i läkemedelslistan, eftersom listan i
+Vårdkällan är journalens uppgifter och inte NLL. Lagen om nationell läkemedelslista 3 kap. är inte kontrollerad ordagrant
+mot Riksdagens text (docs/lagrum.md).
+
+**Säkerhetsgranskningen av registreringen.** En väntande inloggning får registrera en faktor bara så länge kontot saknar
+en. Har kontot fått en faktor under tiden, från en annan session, avbryts registreringen, den nya faktorn sparas inte och
+inloggningen väntar på den befintliga faktorn. En väntande session kan aldrig ta bort en faktor.
+
+**Läskopian för avbrott i loggen (E3-28, E3-30, E3-36, säkerhetsgranskningen).** Bedömning: läskopian lämnar ut
+journaluppgifter till personalens dator när någon loggar in, också när ingen öppnar journalen. Det är ett utlämnande som
+ska loggas och kunna följas upp systematiskt (HSLF-FS 2016:40 4 kap. 9 a och 9 b §§), och patienten har rätt att få veta
+vilken vårdenhet som har tagit del av uppgifterna och när (4 kap. 10 §). Rättelsen tar därför inte bort raderna ur
+uppföljningen, utan hindrar att granskaren och patienten drunknar i dem. I logguppföljningen märks raderna som kopior för
+avbrott. En kopia som är flaggad (nödåtkomst, samtycke till spärrade uppgifter, nekad) eller har mycket högt skyddsbehov,
+till exempel för en patient med skyddad identitet, visas och flaggas som förut. Bara de övriga rutinraderna fälls ihop
+som standard, med antalet och ett val att visa dem. Stickprovet drar rutinkopiorna i en egen kategori med högst två rader,
+och kopior med mycket högt skyddsbehov dras som andra sådana åtkomster. I Min journal står raden som det den är,
+Uppgifter ur journalen kopierades till en dator på vårdenheten för läsning vid avbrott, med yrkesroll och tid, och
+rutinraderna sammanfattas per dag, vårdenhet och yrkesroll med antalet. Vem har läst visar aldrig en intern kod.
+
+**Identitetskontroll (E2-45, E2-53, säkerhetsgranskningen).** Alla flöden som kräver id-kontroll prövar armbandet med en
+gemensam funktion (`skanning.armbandHorTill`), som slår upp koden i armbandstabellen, kräver att armbandet inte är ersatt
+och löser den gällande journalen. Ett värde som går att räkna fram ur patientens id eller personnummer godtas inte. Det
+gäller administreringen, provtagningen för blodgruppering och bastest, röntgen och andra undersökningar, operationen,
+blodet, cytostatikan, intensivvårdens dosändring och kopplingen av medicinteknisk utrustning. I skanningsflödet räknas ett
+rör som kontrollerat bara när servern har sett samma patients armband skannas i sessionen de senaste fem minuterna. En
+undersökning som är bokad mer än en timme fram registreras som gjord först när tiden flyttas till nu, och identiteten
+bekräftas med armbandet eller uttryckligen med hur den kontrollerades. Ge utan skanning i administreringen (E2-5) kräver
+fortfarande ingen bekräftelse, se öppna frågor i slutrapporten.
+
+**Larm där personalen tittar (E1-19, E2-13, E2-16, E2-20).** Arbetslistans larm räknar hög NEWS2, en försenad kontroll enligt
+NEWS2:s intervall för inneliggande patienter och kritiska provsvar som inte är vidimerade, med samma behörighet som
+inkorgen och en kort text om vad larmet gäller. Mätvärden utanför referensintervallet markeras med en pil i översikten,
+och ett kritiskt värde med en tydlig markering. Intensivvårdens översikt larmar när en patient saknar godkända värden för
+puls, blodtryck, syremättnad och andningsfrekvens i mer än två timmar, med det senaste värdet. Demoregler.
+
+**Övriga rättelser.** Checklistan för säker kirurgi låter inte blodet bekräftas som tillgängligt utan klar blodgruppering
+och bastest, utom med en motivering som sparas (E2-49). BB-utskrivningens kriterier står som det som är kvar att göra, och
+knappen är aktiv när allt är klart (E2-34). Bara den som skrev en anteckning rättar den, andra skriver en ny anteckning
+(E1-23). Hjälptexten i Sök patient visar inget personnummer (E1-26). Dokumentation när patienten inte är på plats blir en
+administrativ kontakt utan avgift, medan ett mätvärde eller en given dos blir ett besök (E1-16). Läkaren sätter en diagnos
+med ICD-10-SE i rutan Diagnoser, på den pågående kontakten (E1-36); demon har en delmängd av ICD-10-SE. Egna mätningar
+som inte går att mäta tas inte emot, och farliga värden ger råd om 1177 och 112 (E3-38). Kallelsen har mottagningens
+telefonnummer ur Post- och telestyrelsens serie för påhittade nummer och ingen intern rad om avgiften (E3-16).
+
+**Ge utan skanning (E2-5, beslut från Jonas, säkerhetsgranskningen).** En dos som ges utan skannat armband kräver en
+uppgift om hur patientens identitet kontrollerades: id-bandet avläst för hand, id-handling, känd av personalen eller
+annat sätt med fritext. Servern kräver uppgiften och sparar den med dosen. Bekräftelsen gäller för den som gav den, för
+den patienten och i den sessionen, en läkemedelsrunda (en kvart). Servern minns den i sessionen och glömmer den vid
+inloggning, utloggning, början på en inloggning med flerfaktor och när sandlådan återställs, och litar aldrig på
+klientens minne. Klienten minns bara att den inte behöver fråga igen, med nyckeln person och patient, och glömmer det vid
+varje ny session. Svarar servern att uppgiften saknas frågar dialogen. Det vanligaste sättet är förvalt, så att flödet
+utan skanning har ett klick till och flödet med skanning inget. En dos i skrivkön under ett avbrott har uppgiften med
+sig.
+
+**Fyra ögon för gallring och radering (E3-35, beslut från Jonas, säkerhetsgranskningen).** Arkivarien förbereder beslutet
+och verksamhetschefen godkänner verkställandet i sin egen inloggning, utan någon ny roll. Godkännandet gäller vårdenheten:
+en radering godkänns av verksamhetschefen för varje vårdenhet där uppgifterna finns, och en gallring som gäller flera
+vårdenheter kräver godkännande för var och en. Vilka vårdenheter som berörs räknar systemet fram ur de tabeller som har
+en kolumn för vårdenhet, samma klassning som lagringen använder. Uppgifter utan vårdenhet, som adressen, följer
+journalen. Beslutet verkställs först när alla berörda vårdenheter har godkänt. Ett beslut som inte berör någon vårdenhet
+godkänns av en verksamhetschef. Verksamhetschefen är den som står i verksamhetschefstabellen för vårdenheten. Var och en
+ser bara de beslut som rör den egna vårdenheten, med antalet journaler där och ingen patient, och inget om andra
+vårdenheter. Ett beslut som inte rör vårdenheten finns inte för den verksamhetschefen. Godkännandena sparas med
+vårdenheten och kan inte ändras eller tas bort, och arkivarien ser vilka vårdenheter som har godkänt och vilka som
+återstår. Den som förberedde beslutet kan aldrig godkänna det.
+
+**De tre lagfelen (beslut från Jonas: följ lagen).** Bedömningarna med lagtext står i docs/lagrum.md. Under
+kvarhållningen före intagningen (LPT 6 och 6 a §§) får legitimerad läkare besluta om kortvarig fastspänning och
+avskiljande och, när läkaren bekräftar en överhängande fara för patientens liv eller hälsa, om nödvändig behandling.
+Kroppsvisitation och ytlig kroppsbesiktning beslutas av chefsöverläkaren (6 § andra stycket och 23 §). Generella
+direktiv fastställs och upphävs bara av läkare (HSLF-FS 2017:37 6 kap. 6 §), i demon den medicinskt ansvariga läkaren
+som verksamhetschefen utser; verksamhetschefen, som i demon inte är läkare, gör det inte längre. Vid sammanhållen
+journalföring säger systemet att det finns spärrade uppgifter om patienten hos en annan vårdgivare (HSLF-FS 2016:40
+4 kap. 7 §), och inget mer. Inom vårdgivaren gäller regeln att inget röjs utom markeringen som 6 kap. 3 § kräver.
+
+
+**Diagnos när kontakten avslutas och hjälpen för egna mätningar (E1-36, E3-38).** När den som får sätta diagnos avslutar
+en kontakt utan diagnos frågar systemet om en diagnos ska sättas först, med Sätt diagnos, Avsluta utan diagnos och
+Avbryt. Diagnosen sätts på den kontakt som avslutas. I Min journal följer enheten och hjälptexten den mätning som
+patienten väljer, och för glukos väljer patienten om mätningen var fastande, efter måltid eller okänd. Vården ser
+fastande eller efter måltid vid värdet bland patientens egna mätningar.
+
+**Verksamhetschefer i demon (E3-35).** Varje vårdenhet i demon har en verksamhetschef i verksamhetschefstabellen, så att
+gallring och radering går att godkänna för varje vårdenhet. Kardiologens och onkologens verksamhetschefer går att logga
+in som. De andra har påhittade namn och är bara data.

@@ -119,7 +119,9 @@ HANDLINGAR.godkanna_mall = 'godkänna läkemedelsmallar som mallansvarig läkare
 HANDLINGAR.faststalla_mall = 'upprätta och ändra läkemedelsmallar';
 UTAN_PATIENT.add('lakemedelsansvar');
 UTAN_PATIENT.add('godkanna_mall');
-ROLLER.verksamhetschef = ['lakemedelsansvar', 'faststalla_direktiv'];
+// Runda 13, r3 (lagrumsgranskningen): endast läkare får utfärda generella direktiv (HSLF-FS 2017:37 6 kap. 6 §), så
+// verksamhetschefen, som i demon inte är läkare, fastställer dem inte. Verksamhetschefen utser den läkare som gör det.
+ROLLER.verksamhetschef = ['lakemedelsansvar'];
 ROLLER.lakare.push('godkanna_mall');
 
 // Runda 6, r4: planering och tidbok, del 2, och remiss, del 2. Läkare, sjuksköterskor och vårdadministratörer lägger
@@ -621,6 +623,11 @@ ROLLER.arkivarie.push('forskning_godkann');
 ROLLER.verksamhetschef.push('forskning_godkann', 'signeringslista');
 ROLLER.lakare.push('signeringslista');
 for (const h of ['patientgrupp', 'forskning_bestall', 'forskning_godkann', 'signeringslista']) UTAN_PATIENT.add(h);
+// Runda 13, r3 (E3-35, beslut från Jonas): verksamhetschefen godkänner i sin egen inloggning att en gallring eller radering
+// verkställs. Fyra ögon innan något raderas som inte går att återskapa.
+HANDLINGAR.godkanna_gallring = 'godkänna att gallring eller radering av journalhandlingar verkställs';
+ROLLER.verksamhetschef.push('godkanna_gallring');
+UTAN_PATIENT.add('godkanna_gallring');
 
 // Runda 10, r2: basfakta (overkanslighet.js, Sussa 3.1.6.2). Läkare och sjuksköterskor registrerar, ändrar och avslutar
 // överkänslighet på sin egen vårdenhet med vårdrelation till patienten.

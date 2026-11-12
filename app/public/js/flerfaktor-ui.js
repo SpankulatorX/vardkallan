@@ -36,6 +36,8 @@ export async function hamtaPasskey(alt) {
 // Inloggningens andra steg. Visar en dialog med de faktorer som personen har, försöker med passkeyn direkt när den finns,
 // och ger sessionen när servern har godkänt faktorn, eller null om personen avbryter.
 export function andraFaktorn(utmaning, namn) {
+  // Runda 13, r3: vårdgivaren kräver flerfaktor och personen har ingen faktor. Registreringen är den andra faktorn.
+  if (utmaning?.registrera) return registreraFaktorn(utmaning, namn);
   return new Promise(resolve => {
     let u = utmaning;
     const dl = document.createElement('dialog');
@@ -95,5 +97,85 @@ export function andraFaktorn(utmaning, namn) {
     (dl.querySelector('[autofocus]') ?? dl.querySelector('[data-ff="passkey"]'))?.focus();
     // Passkeyn efterfrågas direkt, så att den som bara har en passkey inte behöver klicka en gång till.
     if (pk && harPasskey()) medPasskey(dl.querySelector('[data-ff="passkey"]'));
+  });
+}
+
+// Runda 13, r3 (vårt L5): när vårdgivaren kräver flerfaktor och personen saknar en faktor leds personen direkt till att
+// registrera en. Servern slutför inloggningen när passkeyn eller koden från appen är bekräftad, och ger sessionen.
+function registreraFaktorn(utmaning, namn) {
+  return new Promise(resolve => {
+    const dl = document.createElement('dialog');
+    dl.className = 'dialog flerfaktor-dialog';
+    dl.setAttribute('aria-labelledby', 'ffr-rubrik');
+    dl.dataset.ffRegistrera = '1';
+    const pk = harPasskey();
+    dl.innerHTML = `<div class="dialog-inre">
+      <h2 id="ffr-rubrik">${ikon.skold} Lägg till en andra faktor</h2>
+      <p>${esc(utmaning.text ?? 'Vårdgivaren kräver flerfaktor vid inloggning.')}</p>
+      <p class="liten dampad">${esc(namn ?? 'Personen')} saknar en faktor. En passkey är säkrast, eftersom den bara fungerar på Vårdkällans egen adress.</p>
+      <div class="knapprad">
+        <button type="button" class="knapp" data-ffr="passkey"${pk ? '' : ' disabled'}>${ikon.nyckel}<span>Lägg till passkey</span></button>
+        <button type="button" class="knapp sekundar" data-ffr="totp">${ikon.klocka}<span>Lägg till app för engångskoder</span></button>
+      </div>
+      ${pk ? '' : '<p class="liten dampad">Webbläsaren stöder inte passkeys. Använd en app för engångskoder.</p>'}
+      <div class="ffr-totp"></div>
+      <p class="dialog-fel" role="alert" hidden></p>
+      <div class="knapprad"><button type="button" class="knapp text" data-ffr="avbryt">Avbryt</button></div>
+    </div>`;
+    document.body.append(dl);
+    const fel = dl.querySelector('.dialog-fel');
+    const visaFel = (t) => { fel.textContent = t; fel.hidden = !t; };
+    let klar = false;
+    const avsluta = (v) => { if (klar) return; klar = true; dl.close(); setTimeout(() => dl.remove(), 30); resolve(v); };
+    const avbryt = () => { api('/api/login/flerfaktor/avbryt', { metod: 'POST', tyst: true, direkt: true }).catch(() => {}); avsluta(null); };
+    // Svaret från servern är sessionen när inloggningen är klar. Ett fel som avbryter inloggningen stänger knapparna.
+    const slutfor = async (fn, knapp) => {
+      if (knapp) knapp.disabled = true;
+      visaFel('');
+      try {
+        const s = await fn();
+        if (s?.inloggad) return avsluta(s);
+      } catch (e) {
+        visaFel(e.message);
+        if (/Välj rollen igen|gått ut|Logga in först/.test(e.message)) { dl.querySelectorAll('[data-ffr="passkey"], [data-ffr="totp"], .ffr-totp button').forEach(b => { b.disabled = true; }); return; }
+      }
+      if (knapp) knapp.disabled = false;
+    };
+    dl.addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-ffr]');
+      if (!b) return;
+      if (b.dataset.ffr === 'avbryt') return avbryt();
+      if (b.dataset.ffr === 'passkey') {
+        await slutfor(async () => {
+          const alt = await api('/api/flerfaktor/passkey/borja', { metod: 'POST', tyst: true, direkt: true });
+          let svar;
+          try { svar = await skapaPasskey(alt); } catch (err) { throw new Error(passkeyFel(err)); }
+          return api('/api/flerfaktor/passkey', { metod: 'POST', data: { namn: `Passkey för ${namn ?? 'mig'}`, svar }, tyst: true, direkt: true });
+        }, b);
+      } else if (b.dataset.ffr === 'totp') {
+        await slutfor(async () => {
+          const r = await api('/api/flerfaktor/totp/borja', { metod: 'POST', tyst: true, direkt: true });
+          dl.querySelector('.ffr-totp').innerHTML = `<form class="ruta" novalidate>
+            <p>Lägg till ett konto i appen med nyckeln nedan. Allt annat är förvalt.</p>
+            <p><span class="dampad">Nyckel:</span> <code class="ff-nyckel" data-ff-nyckel="${esc(r.nyckel)}">${esc(r.nyckelGrupper)}</code></p>
+            <p class="liten"><a href="${esc(r.uri)}">Öppna i appen på den här enheten</a></p>
+            <label for="ffr-kod">Kod från appen</label>
+            <input id="ffr-kod" name="kod" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}">
+            <div class="knapprad"><button type="submit" class="knapp">Bekräfta och logga in</button></div>
+          </form>`;
+          dl.querySelector('#ffr-kod').focus();
+          return null;
+        }, b);
+      }
+    });
+    dl.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const v = dl.querySelector('#ffr-kod')?.value.replace(/\s/g, '') ?? '';
+      if (!/^\d{6}$/.test(v)) return visaFel('Skriv de sex siffrorna som appen visar just nu.');
+      slutfor(() => api('/api/flerfaktor/totp', { metod: 'POST', data: { kod: v }, tyst: true, direkt: true }), e.target.querySelector('[type="submit"]'));
+    });
+    dl.addEventListener('cancel', (e) => { e.preventDefault(); avbryt(); });
+    dl.showModal();
+    dl.querySelector(pk ? '[data-ffr="passkey"]' : '[data-ffr="totp"]')?.focus();
   });
 }

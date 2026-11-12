@@ -252,12 +252,10 @@ export function kopplingarFor(atk, { aktiva = false } = {}) {
 
 // Runda 11, r7: armbandet mot patientens identiteter (personnummer, samordningsnummer, reservnummer), med eller utan
 // sekel. Samma regel när utrustning kopplas och när en infusion titreras (iva.js).
+// Runda 13, r3 (säkerhetsgranskningen): den gemensamma kontrollen, som slår upp koden i armbandstabellen och aldrig godtar
+// ett värde som går att räkna fram ur personnumret (skanning.js).
 export function armbandStammer(db, patientId, text) {
-  const a = siffror(text);
-  const p = db.query('SELECT personnummer FROM patienter WHERE id = ?').get(patientId);
-  if (!a || !p) return false;
-  const ident = [p.personnummer, ...db.query('SELECT varde FROM identiteter WHERE patient_id = ?').all(patientId).map(r => r.varde)].map(siffror).filter(Boolean);
-  return ident.some(x => x === a || x.slice(2) === a || a.slice(2) === x);
+  return require('./skanning.js').armbandHorTill(db, String(text ?? ''), patientId);
 }
 // POST /api/patient/:id/mt/koppla { streckkod, armband?, ordinationId? }. Systemet hittar utrustningen ur streckkoden,
 // kontrollerar armbandet mot patientens identitet, väljer själv pumpens ordination när det bara finns en infusion och
@@ -751,6 +749,21 @@ export function patientvy(atk, synliga, nu = new Date()) {
 
 // --- Egenmätning i Min journal (Sussa 3.6.1.7) ------------------------------------------------------------------------
 export const EGNA_TYPER = ['blodtryck', 'puls', 'vikt', 'glukos', 'saturation', 'temp', 'pef'];
+// Runda 13, r3 (E3-38): hjälptexten efter vald mätning, och för glukos när patienten mätte.
+export const EGNA_HJALP = {
+  blodtryck: 'Skriv övertryck/undertryck, till exempel 135/85.',
+  puls: 'Slag per minut, till exempel 72.',
+  vikt: 'Kilo, med en decimal om du har den, till exempel 81,2.',
+  glukos: 'Millimol per liter (mmol/L), till exempel 6,2. Välj också när du mätte.',
+  saturation: 'Procent, till exempel 96.',
+  temp: 'Grader Celsius, till exempel 37,2.',
+  pef: 'Liter per minut, till exempel 420. Skriv det bästa av tre försök.',
+};
+export const GLUKOS_SITUATION = [['fastande', 'Fastande'], ['efter_maltid', 'Efter måltid'], ['annat', 'Vet inte eller annan tid']];
+const situationText = (k) => GLUKOS_SITUATION.find(x => x[0] === k)?.[1] ?? null;
+function sakraSituation(db) {
+  if (!db.query('PRAGMA table_info(egenmatningar)').all().some(c => c.name === 'situation')) db.exec('ALTER TABLE egenmatningar ADD COLUMN situation TEXT');
+}
 // Vårdenheten som tar emot patientens mätningar: den som vårdar patienten nu, annars vårdcentralen där patienten är listad,
 // annars den senaste vårdkontakten. Patienten behöver inte veta vart mätningen ska.
 export function mottagareFor(db, patientId) {
@@ -770,12 +783,21 @@ export function registreraEgen(atk, body = {}, { nu = new Date(), matttyper } = 
   let text, num = null;
   if (typ === 'blodtryck') {
     const m = typeof body.varde === 'string' && body.varde.trim().match(/^(\d{2,3})\s*\/\s*(\d{2,3})$/);
-    if (!m || Number(m[1]) <= Number(m[2]) || Number(m[1]) > 300) throw new Fel(400, 'Skriv blodtrycket som övertryck/undertryck, till exempel 135/85.', 'ogiltig', { falt: ['varde'] });
-    text = `${Number(m[1])}/${Number(m[2])}`;
+    if (!m) throw new Fel(400, 'Skriv blodtrycket som övertryck/undertryck, till exempel 135/85.', 'ogiltig', { falt: ['varde'] });
+    // Runda 13, r3 (E3-38): ett blodtryck som inte är möjligt tas inte emot, och systemet ber patienten kontrollera det.
+    const [sys, dia] = [Number(m[1]), Number(m[2])];
+    if (sys < 60 || sys > 260 || dia < 30 || dia > 160 || sys - dia < 15) throw new Fel(400, `${sys}/${dia} är inte ett blodtryck som går att mäta. Kontrollera att du har skrivit av mätaren rätt, som övertryck/undertryck, till exempel 135/85. Mät igen om du är osäker.`, 'ogiltig', { falt: ['varde'] });
+    text = `${sys}/${dia}`;
   } else {
     num = typeof body.varde === 'string' ? Number(body.varde.replace(',', '.')) : body.varde;
     if (typeof num !== 'number' || !Number.isFinite(num) || num < def.min || num > def.max) throw new Fel(400, `${def.namn} ska vara ett tal mellan ${def.min} och ${def.max} ${MATTYPER_ENHET[typ]}.`, 'ogiltig', { falt: ['varde'] });
     text = String(num);
+  }
+  // Runda 13, r3 (E3-38): när patienten mätte glukos. Utan val: vet inte.
+  let situation = null;
+  if (typ === 'glukos') {
+    situation = body.situation == null || body.situation === '' ? 'annat' : body.situation;
+    if (!situationText(situation)) throw new Fel(400, 'Välj när du mätte blodsockret: fastande, efter måltid eller vet inte.', 'ogiltig', { falt: ['situation'] });
   }
   let tid = nu.getTime();
   if (body.tid != null && body.tid !== '') {
@@ -791,15 +813,40 @@ export function registreraEgen(atk, body = {}, { nu = new Date(), matttyper } = 
     const mid = Number(db.query("INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, matt_enhet, tid, registrerad_av, kalla, vidimerad) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 'patient', NULL)")
       .run(atk.patientId, enhet, typ, text, num, MATTYPER_ENHET[typ], t).lastInsertRowid);
     db.query('INSERT INTO egenmatningar (matvarde_id, patient_id, enhet_id, invanare_id, registrerad) VALUES (?, ?, ?, ?, ?)').run(mid, atk.patientId, enhet, atk.invanare.id, nu.toISOString());
+    if (situation) { sakraSituation(db); db.query('UPDATE egenmatningar SET situation = ? WHERE matvarde_id = ?').run(situation, mid); }
     return mid;
   })();
   atk.logga(`min:egenmatning:${id}`, { handling: 'invanare_registrera' });
-  return { matvarde: egenUt(db, db.query('SELECT * FROM matvarden WHERE id = ?').get(id), matttyper), text: `Mätningen är skickad till ${enhetsnamn(db, vardenhetFor(db, enhet))}. Vården bedömer den, och tills dess räknas den inte som ett kvalitetssäkrat värde.` };
+  // Runda 13, r3 (E3-38): ett värde som kräver bedömning i dag får råd om 1177 och 112, eftersom vården bedömer
+  // mätningen först senare.
+  const rad = radFor(typ, text, num);
+  return { ...(rad ? { rad } : {}), matvarde: egenUt(db, db.query('SELECT * FROM matvarden WHERE id = ?').get(id), matttyper), text: `Mätningen är skickad till ${enhetsnamn(db, vardenhetFor(db, enhet))}. Vården bedömer den, och tills dess räknas den inte som ett kvalitetssäkrat värde.` };
 }
+// Runda 13, r3 (E3-38): råd när en egen mätning kräver bedömning samma dag. Demoregler, inte medicinsk rådgivning.
+export const AKUT_TEXT = 'Ring 112 om du har bröstsmärta, svårt att andas, plötslig svaghet i ena sidan av kroppen, svårt att tala eller blir förvirrad.';
+export function radFor(typ, text, num) {
+  const radgivning = (vad) => ({ niva: 'radgivning', text: `${vad} Ring 1177 i dag för rådgivning, och vänta inte på att vården bedömer mätningen. ${AKUT_TEXT}` });
+  const akut = (vad) => ({ niva: 'akut', text: `${vad} Ring 112 nu om du mår dåligt, annars 1177 direkt. ${AKUT_TEXT}` });
+  if (typ === 'blodtryck') {
+    const [sys, dia] = text.split('/').map(Number);
+    if (sys >= 180 || dia >= 110) return radgivning('Blodtrycket är mycket högt.');
+    if (sys < 90) return radgivning('Blodtrycket är lågt.');
+  }
+  if (typ === 'saturation' && num < 88) return akut('Syremättnaden är mycket låg.');
+  if (typ === 'saturation' && num < 92) return radgivning('Syremättnaden är låg.');
+  if (typ === 'puls' && (num > 130 || num < 40)) return radgivning(num > 130 ? 'Pulsen är mycket hög.' : 'Pulsen är mycket låg.');
+  if (typ === 'glukos' && num < 4) return { niva: 'radgivning', text: 'Blodsockret är lågt. Ät eller drick något med socker nu, och mät igen om 15 minuter. Ring 112 om du blir förvirrad eller inte kan äta. Ring 1177 om det inte stiger.' };
+  if (typ === 'glukos' && num > 20) return radgivning('Blodsockret är mycket högt.');
+  if (typ === 'temp' && (num >= 40 || num < 35)) return radgivning(num >= 40 ? 'Temperaturen är mycket hög.' : 'Temperaturen är låg.');
+  return null;
+}
+
 function egenUt(db, m, matttyper) {
   const b = db.query('SELECT beslut, tid FROM matvarde_bedomningar WHERE matvarde_id = ?').get(m.id);
   return {
     typ: m.typ, namn: matttyper[m.typ]?.namn ?? m.typ, varde: m.varde_num ?? m.varde, enhet: m.matt_enhet, tid: m.tid,
+    // Runda 13, r3 (E3-38).
+    ...(m.typ === 'glukos' ? (() => { sakraSituation(db); return { situation: situationText(db.query('SELECT situation FROM egenmatningar WHERE matvarde_id = ?').get(m.id)?.situation) }; })() : {}),
     mottagare: enhetsnamn(db, vardenhetFor(db, m.enhet_id)),
     status: !b ? 'Inte bedömd ännu' : b.beslut === 'godkand' ? 'Bedömd och godkänd av vården' : 'Bedömd av vården, används som referens',
     bedomd: Boolean(b),
@@ -812,7 +859,7 @@ export function minaMatningar(atk, matttyper) {
   const rader = db.query("SELECT * FROM matvarden WHERE patient_id = ? AND kalla = 'patient' ORDER BY tid DESC, id DESC LIMIT 100").all(atk.patientId);
   const mottagare = mottagareFor(db, atk.patientId);
   return {
-    matningar: rader.map(m => egenUt(db, m, matttyper)), typer: EGNA_TYPER.map(t => ({ typ: t, namn: matttyper[t].namn, enhet: MATTYPER_ENHET[t] })),
+    matningar: rader.map(m => egenUt(db, m, matttyper)), typer: EGNA_TYPER.map(t => ({ typ: t, namn: matttyper[t].namn, enhet: MATTYPER_ENHET[t], hjalp: EGNA_HJALP[t], ...(t === 'glukos' ? { situationer: GLUKOS_SITUATION } : {}) })),
     mottagare: mottagare ? enhetsnamn(db, vardenhetFor(db, mottagare)) : null, egen: atk.relation === 'egen',
     text: 'Dina egna mätningar skickas till vårdenheten som vårdar dig. De visas för vården skilda från vårdens egna mätningar och räknas inte i bedömningar förrän vården har bedömt dem.',
   };

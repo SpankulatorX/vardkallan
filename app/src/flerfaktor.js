@@ -225,16 +225,21 @@ export const metoder = (db, typ, id) => [...new Set(aktiva(db, typ, id).map(r =>
 const faktorUt = (r) => ({ id: r.id, typ: r.typ, typText: TYPER[r.typ], namn: r.namn, skapad: r.skapad, senastAnvand: r.senast_anvand, aktiv: Boolean(r.aktiv) });
 
 // Översikten för den inloggade. metod är hur inloggningen i sessionen bekräftades.
-export function oversikt(db, typ, id, { metod = null } = {}) {
+// Runda 13, r3: kravsAvVardgivaren är parametern sakerhet.flerfaktor_kravs, som servern läser och skickar in.
+export function oversikt(db, typ, id, { metod = null, kravsAvVardgivaren = false } = {}) {
   const a = aktiva(db, typ, id);
   return {
     aktiv: a.length > 0,
     faktorer: a.map(faktorUt),
     metod,
     max: MAX_FAKTORER,
-    text: a.length
-      ? 'Flerfaktor är på för dig i den här sandlådan. Varje inloggning bekräftas med en av faktorerna nedan.'
-      : 'Flerfaktor är av. Registrera en passkey eller en app för engångskoder, så krävs den vid varje inloggning som du i den här sandlådan.',
+    kravsAvVardgivaren,
+    text: kravsAvVardgivaren
+      ? (a.length ? 'Vårdgivaren kräver flerfaktor. Varje inloggning bekräftas med en av faktorerna nedan, och den sista faktorn går inte att ta bort.'
+        : 'Vårdgivaren kräver flerfaktor. Registrera en passkey eller en app för engångskoder för att logga in.')
+      : a.length
+        ? 'Flerfaktor är på för dig i den här sandlådan. Varje inloggning bekräftas med en av faktorerna nedan.'
+        : 'Flerfaktor är av. Registrera en passkey eller en app för engångskoder, så krävs den vid varje inloggning som du i den här sandlådan.',
   };
 }
 
@@ -354,17 +359,26 @@ export function bekraftaTotp(db, { typ, id }, kod, { nu = Date.now() } = {}) {
   return faktorUt(db.query('SELECT * FROM flerfaktorer WHERE id = ?').get(r.id));
 }
 
-export function taBort(db, { typ, id }, fid) {
+export function taBort(db, { typ, id }, fid, { kravsAvVardgivaren = false } = {}) {
   const r = db.query('SELECT * FROM flerfaktorer WHERE id = ? AND agare_typ = ? AND agare_id = ?').get(Number(fid) || 0, typ, id);
   if (!r) throw new Fel(404, 'Faktorn finns inte.', 'saknas');
+  // Runda 13, r3: när vårdgivaren kräver flerfaktor går den sista faktorn inte att ta bort.
+  if (kravsAvVardgivaren && anvandbar(r) && aktiva(db, typ, id).length <= 1) {
+    throw new Fel(400, 'Vårdgivaren kräver flerfaktor, så den sista faktorn går inte att ta bort. Lägg till en ny faktor först, och ta sedan bort den gamla.', 'ogiltig');
+  }
   db.query('DELETE FROM flerfaktorer WHERE id = ?').run(r.id);
   return { borttagen: faktorUt(r), ...oversikt(db, typ, id) };
 }
 
 // Inloggningens andra steg: vad klienten behöver för att be om faktorn.
-export function inloggningsutmaning(db, s, { typ, id }, { rpId, nu = Date.now() } = {}) {
+export function inloggningsutmaning(db, s, { typ, id, registrera = false }, { rpId, nu = Date.now() } = {}) {
   const m = metoder(db, typ, id);
   const ut = { metoder: m };
+  // Runda 13, r3: vårdgivaren kräver flerfaktor och personen har ingen faktor. Klienten leds till att registrera en.
+  if (registrera) {
+    ut.registrera = true;
+    ut.text = 'Vårdgivaren kräver flerfaktor vid inloggning. Registrera en passkey eller en app för engångskoder. När den är bekräftad är du inloggad.';
+  }
   if (m.includes('passkey')) {
     const u = nyUtmaning(s, 'inloggning', { agare: agareNyckel(typ, id) }, nu);
     ut.passkey = {

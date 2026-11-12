@@ -137,9 +137,20 @@ function bbHtml(d) {
       <div class="falt"><label for="bm-ur">Har kissat</label><select id="bm-ur" name="urinerat">${val([['', 'Inte frågat'], ['ja', 'Ja'], ['nej', 'Nej']], '')}</select></div></div>
       <div class="knapprad"><button type="submit" class="knapp liten">Spara kontrollen</button></div>${fel}</form>` : ''}
     ${bb.barn.map(b => `<h3>${esc(b.namn)}</h3>${bbBarnHtml(b, kan)}`).join('')}
-    ${bb.kriterier?.length ? `<h3>Utskrivning</h3><ul class="enkel-lista ob-kriterier">${bb.kriterier.map(x => `<li>${x.ok ? ikon.bock : ikon.kryss}<span>${esc(x.text)}</span></li>`).join('')}</ul>
-      ${kan ? `<div class="kryssfalt"><input type="checkbox" id="fp-pku"><label for="fp-pku">PKU-provet bokas som återbesök</label></div><p class="knapprad"><button type="button" class="knapp" id="fp-utskriv">Skriv ut mor och barn</button></p>` : ''}` : ''}
+    ${bb.kriterier?.length ? utskrivningHtml(bb, kan) : ''}
   </section>`;
+}
+
+// Runda 13, r3 (E2-34): det som är kvar står som vad som ska göras, och knappen är aktiv först när allt är klart. PKU-provet
+// kan bokas som återbesök, så knappen är aktiv också när det är det enda som återstår.
+function utskrivningHtml(bb, kan) {
+  const kvar = bb.kriterier.filter(x => !x.ok);
+  const baraPku = kvar.length > 0 && kvar.every(x => /PKU/.test(x.text));
+  const las = kvar.length > 0 && !baraPku;
+  return `<h3>Utskrivning</h3>
+    ${kvar.length ? `<p class="ruta ruta-larm liten" data-kvar="${kvar.length}">Kvar före hemgång: ${kvar.length} ${kvar.length === 1 ? 'sak' : 'saker'}.</p>` : '<p class="ruta ruta-info liten">Allt är klart för hemgång.</p>'}
+    <ul class="enkel-lista ob-kriterier">${bb.kriterier.map(x => `<li data-ok="${x.ok ? 'ja' : 'nej'}">${x.ok ? ikon.bock : ikon.kryss}<span>${x.ok ? '' : '<strong>Kvar: </strong>'}${esc(x.text)}</span></li>`).join('')}</ul>
+    ${kan ? `<div class="kryssfalt"><input type="checkbox" id="fp-pku"><label for="fp-pku">PKU-provet bokas som återbesök</label></div><p class="knapprad"><button type="button" class="knapp" id="fp-utskriv"${las ? ' disabled aria-describedby="fp-utskriv-h"' : ''}>Skriv ut mor och barn</button></p>${las ? '<p class="liten dampad" id="fp-utskriv-h">Knappen blir aktiv när det som är kvar är gjort.</p>' : ''}` : ''}`;
 }
 
 export const patient = { namn: 'forlossning-patient', visa: visaPatient };

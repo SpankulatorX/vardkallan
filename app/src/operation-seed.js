@@ -39,11 +39,13 @@ export function seeda(db, bas) {
     op.planera(A('opk-kkoga', 'p07', 'operation_planera'), rad(), { sal: 'kkoga-sal-1', start: lokalTid(addDagar(dag, -5), '08:00') }, t(-6, '20:30'));
     const s = A('ssk-kkoga', 'p07', 'operation_registrera');
     const v = (m) => new Date(t(-5, '08:00').getTime() + m * 60_000);
-    op.registrera(s, rad(), { handelse: 'in_sal', armband: p.personnummer }, v(-5));
+    // Runda 13, r3: patientens utskrivna armband ur armbandstabellen (skanning.js).
+    op.registrera(s, rad(), { handelse: 'in_sal', armband: require('./skanning.js').armbandsKod(db, p.id, 'kkoga-ort') }, v(-5));
     const galler = sg.sterilgods(A('ssk-kkoga', 'p07', 'las_operation'), rad(), v(-4)).galler;
     for (const g of galler) sg.oppna(s, rad(), { galler: g.galler }, v(-3));
     const alla = (del) => Object.keys(op.CHECKLISTA[del].punkter);
-    op.checklista(s, rad(), { del: 'fore_anestesi', bekraftade: alla('fore_anestesi') }, v(0));
+    // Runda 13, r3: blodet bekräftas med motivering när blodgruppering och bastest inte är klara i demon.
+    op.checklista(s, rad(), { del: 'fore_anestesi', bekraftade: alla('fore_anestesi'), motiveringar: { blodning: 'Operatören bedömde att blod inte behövs i beredskap.' } }, v(0));
     aj.registreraLakemedel(s, rad(), { lakemedel: 'bupivakain', dos: 10 }, v(4));
     aj.registreraHandelse(s, rad(), { handelse: 'spinal' }, v(5));
     // Operatören bekräftar ASA-klassen, så att seeden inte beror på klockan (anestesienhetens vårdrelation följer dagen).

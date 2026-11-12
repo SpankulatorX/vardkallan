@@ -69,7 +69,8 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor }) {
   rutt('POST', '/api/labb/prov/:id/tagen', (c, id) => {
     kravInloggad(c);
     const p = labb.provRad(c.db, id);
-    return medPatient(c, p.patient_id, 'ta_prov', (atk) => labb.taProv(atk, labb.provRad(c.db, p.id)));
+    // Runda 13, r3 (E2-53): armbandet för blodgruppering och bastest.
+    return medPatient(c, p.patient_id, 'ta_prov', (atk) => labb.taProv(atk, labb.provRad(c.db, p.id), new Date(), { identitet: c.body?.identitet ?? null }));
   });
 
   // Etiketter och provtagningsanvisning. Streckkoden innehåller bara etikettens id.
@@ -168,7 +169,8 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor }) {
   // Röntgenklinikens arbetslista: inkomna undersökningar, prioritet, bokning, utförande och utlåtande.
   rutt('GET', '/api/undersokningar', (c) => { kravInloggad(c); return undersokningar.arbetslista(c.db, c.personal, new Date(), (c.s.undersokningarLoggade ??= new Set())); });
   rutt('POST', '/api/undersokningar/:id/boka', (c, id) => { kravInloggad(c); return undersokningar.boka(c.db, c.personal, id, c.body); });
-  rutt('POST', '/api/undersokningar/:id/utford', (c, id) => { kravInloggad(c); return undersokningar.registreraUtford(c.db, c.personal, id); });
+  // Runda 13, r3 (E2-45): med bekräftelsen av patientens identitet.
+  rutt('POST', '/api/undersokningar/:id/utford', (c, id) => { kravInloggad(c); return undersokningar.registreraUtford(c.db, c.personal, id, new Date(), c.body ?? {}); });
   rutt('POST', '/api/undersokningar/:id/simulera-utlatande', (c, id) => { kravInloggad(c); return undersokningar.simuleraUtlatande(c.db, c.personal, id); });
   rutt('GET', '/api/undersokningar/:id/underlag/:uid', (c, id, uid) => { kravInloggad(c); return undersokningar.underlagForUtforare(c.db, c.personal, id, uid); });
 

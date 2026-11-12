@@ -31,7 +31,11 @@ let situationVal = null;
 const sektion = (id, rubrik, innehall, extra = '') => `<section class="ov-sektion" aria-labelledby="ov-${id}"><div class="sektion-huvud"><h2 id="ov-${id}">${esc(rubrik)}</h2>${extra}</div>${innehall}</section>`;
 const tomRad = (t) => `<p class="tom liten">${esc(t)}</p>`;
 
-export const varde = (m) => `${esc(typeof m.varde === 'number' ? tal(m.varde, 2) : m.varde)} <span class="enhet">${esc(m.enhet)}</span>`;
+// Runda 13, r3 (E1-19, E2-20): ett värde utanför referensintervallet markeras, och ett kritiskt värde tydligt.
+const avvikelse = (m) => (!m.avvikande ? '' : m.avvikande.startsWith('kritiskt')
+  ? ` <span class="tagg tagg-larm" data-avvikande="${esc(m.avvikande)}">${esc(m.avvikandeText ?? 'Kritiskt')}</span>`
+  : ` <span class="text-larm" data-avvikande="${esc(m.avvikande)}">${m.avvikande === 'hogt' ? '↑' : '↓'}<span class="sr"> ${esc(m.avvikandeText ?? '')}</span></span>`);
+export const varde = (m) => `${esc(typeof m.varde === 'number' ? tal(m.varde, 2) : m.varde)} <span class="enhet">${esc(m.enhet)}</span>${avvikelse(m)}`;
 
 // Snabbval för de vanligaste åtgärderna, så att de nås med ett klick från översikten (klickbudgeten, D6).
 // data-skriv döljer dem i läsläget vid avbrott.
@@ -77,7 +81,9 @@ export async function visa(el, ctx) {
       <p class="dampad liten">Alla utom de markerade är kvitterade av Nationella läkemedelslistan.</p>` : tomRad('Inga aktuella läkemedel.')), `<a class="sektion-lank" href="${ctx.href('lakemedel')}">Läkemedelslistan</a>`));
   });
   if (d.diagnoser) som('diagnoser', () => {
-    delar.push(sektion('dia', 'Diagnoser', d.diagnoser.length ? `<ul class="enkel-lista">${d.diagnoser.map(x => `<li><span class="kod">${esc(x.kod)}</span> ${esc(x.text)}${x.typ === 'huvud' ? ' <span class="dampad">(huvuddiagnos)</span>' : ''}<span class="under-text">${esc(datum(x.datum))}, ${esc(x.vardenhet.namn)}</span>${migreradEtikett(x)}</li>`).join('')}</ul>` : tomRad('Inga diagnoser som du kan se.')));
+    delar.push(sektion('dia', 'Diagnoser', d.diagnoser.length ? `<ul class="enkel-lista">${d.diagnoser.map(x => `<li><span class="kod">${esc(x.kod)}</span> ${esc(x.text)}${x.typ === 'huvud' ? ' <span class="dampad">(huvuddiagnos)</span>' : ''}<span class="under-text">${esc(datum(x.datum))}, ${esc(x.vardenhet.namn)}</span>${migreradEtikett(x)}</li>`).join('')}</ul>` : tomRad('Inga diagnoser som du kan se.'),
+      // Runda 13, r3 (E1-36): läkaren sätter en diagnos med ICD-10-SE direkt i rutan Diagnoser.
+      far('registrera_diagnos') ? '<button type="button" class="knapp liten sekundar" data-satt-diagnos>Sätt diagnos</button>' : ''));
   });
   if (d.matvarden) som('matvarden', () => {
     delar.push(sektion('mv', 'Senaste mätvärden', d.matvarden.length ? `<dl class="matvarden-kort">${d.matvarden.map(m => `<div><dt>${esc(m.namn)}</dt><dd>${varde(m)}<span class="under-text">${esc(tidpunkt(m.tid))}</span></dd></div>`).join('')}</dl>` : tomRad('Inga mätvärden.'), `<a class="sektion-lank" href="${ctx.href('matvarden')}">Alla mätvärden</a>`));
@@ -128,6 +134,7 @@ export async function visa(el, ctx) {
   el.querySelector('.tl-lage')?.addEventListener('change', (e) => { tidslinjeLage = e.target.value; el.querySelector('#tl-innehall').innerHTML = tidslinje(); });
   vardkontakt.koppla(el, d, ctx, () => ctx.ladda());
   el.querySelector('[data-utskrift]')?.addEventListener('click', () => utskrift.skrivUt(ctx.id));
+  el.querySelector('[data-satt-diagnos]')?.addEventListener('click', (e) => sattDiagnos(ctx, e.currentTarget).catch(felNotis));
   el.querySelector('[data-aterbesok]')?.addEventListener('click', () => tider.satUppAterbesok(ctx.id, ctx.patient?.namn ?? 'patienten').catch(felNotis));
   tider.koppla(el, t, ctx, () => ctx.ladda());
   ekonomi.koppla(el, kost, ctx, () => ctx.ladda());
@@ -146,6 +153,7 @@ async function sammanhallenRuta(plats, ctx) {
   const vg = d.vardgivare.map(v => v.namn).join(', ');
   plats.innerHTML = `<section class="ruta sj-ruta" aria-labelledby="ov-sj"><h2 id="ov-sj">Andra vårdgivare</h2>
     <p class="liten">${esc(d.text)}</p>
+    ${d.sparrText ? `<p class="liten sj-sparr">${esc(d.sparrText)}</p>` : ''}
     ${d.hamtad ? `<p class="liten">Hämtat från ${esc(vg)}${d.grund === 'nodatkomst' ? ' med nödåtkomst' : ' med patientens samtycke'}. Uppgifterna finns i tidslinjen.</p>${d.samtycke ? '<button type="button" class="knapp liten sekundar" data-sj-aterkalla>Patienten återkallar samtycket</button>' : ''}`
       : `<form class="sj-form"><div class="falt"><label for="sj-syfte">Syfte</label><input id="sj-syfte" name="syfte" maxlength="300" value="Bedömning inför vården i dag" required></div>
         ${d.samtycke ? '' : '<label class="kryss"><input type="checkbox" name="samtycke" data-sj-samtycke> Patienten samtycker till att uppgifterna hämtas</label>'}
@@ -245,3 +253,28 @@ async function anpassa(vy) {
 function uppfoljningHtml(u) {
   return `<p>${esc(u.lage.text)}</p><p class="${u.avvikelser ? 'tagg tagg-larm' : 'dampad liten'}">${u.avvikelser ? `${esc(u.avvikelser)} ${u.avvikelser === 1 ? 'avvikelse' : 'avvikelser'} att följa upp` : 'Inga avvikelser att följa upp.'}</p>`;
 }
+
+// Runda 13, r3 (E1-36): diagnosen sätts på den pågående vårdkontakten med kod eller text ur ICD-10-SE. Systemet avgör om
+// den är huvud- eller bidiagnos och prövar koden mot den utgåva som gäller.
+// Runda 13, r3: vardkontakt ger kontakten direkt, när läkaren avslutar den (patient-vardkontakt.js). Ger true när
+// diagnosen är satt.
+export async function sattDiagnos(ctx, knapp, { vardkontakt = null } = {}) {
+  const pid = encodeURIComponent(ctx.id);
+  const akt = vardkontakt ? { vardkontakt } : await api(`/api/patient/${pid}/vardkontakt/aktuell`);
+  if (!akt.vardkontakt?.id) { notis('Diagnosen sätts på en vårdkontakt. Patienten har ingen pågående kontakt på din vårdenhet. Skriv anteckningen först, så skapar systemet kontakten.', 'info'); return; }
+  const val = await api('/api/rapportering/rattning/val');
+  const svar = await dialog(`<form><h2 id="dlg-rubrik">Sätt diagnos</h2>
+    <p>Vårdkontakten: ${esc(akt.vardkontakt.orsak ?? '')}, ${esc(akt.vardkontakt.vardenhet?.namn ?? '')}.</p>
+    <div class="falt"><label for="sd-kod">Diagnos, kod eller text i ICD-10-SE</label><input id="sd-kod" name="kod" list="sd-lista" required autocomplete="off"><datalist id="sd-lista">${(val.diagnoser ?? []).slice(0, 400).map(x => `<option value="${esc(x.kod)}">${esc(x.text)}</option>`).join('')}</datalist>
+      <span class="hjalp">Skriv början av koden eller ordet och välj i listan. Systemet avgör om det är huvud- eller bidiagnos.</span></div>
+    <p class="dialog-fel form-fel" role="alert" hidden></p>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Sätt diagnosen</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`);
+  if (!svar) return false;
+  const kod = String(svar.data.kod ?? '').trim().split(/\s/)[0];
+  const r = await api(`/api/vardkontakt/${encodeURIComponent(akt.vardkontakt.id)}/diagnos`, { metod: 'POST', data: { kod } });
+  notis(`${r.kod} ${r.text} är satt som ${r.typ === 'huvud' ? 'huvuddiagnos' : 'bidiagnos'}.`);
+  ctx.ladda?.();
+  void knapp;
+  return true;
+}
+

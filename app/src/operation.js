@@ -521,15 +521,9 @@ function paverkarRader(db, atk, an, a, ut, nu) {
   }
 }
 
-// Kontrollen av id-bandet: siffrorna ur armbandet mot patientens personnummer och andra identiteter.
-function armbandetHorTill(db, patientId, armband) {
-  const siffror = (v) => String(v ?? '').replace(/\D/g, '');
-  const a = siffror(armband);
-  const p = db.query('SELECT personnummer FROM patienter WHERE id = ?').get(patientId);
-  let andra = [];
-  try { andra = db.query('SELECT varde FROM identiteter WHERE patient_id = ?').all(patientId).map(r => r.varde); } catch { /* äldre sandlåda */ }
-  return Boolean(a) && [p?.personnummer, ...andra].map(siffror).filter(Boolean).some(x => x === a || x.slice(2) === a || a.slice(2) === x);
-}
+// Kontrollen av id-bandet. Runda 13, r3 (säkerhetsgranskningen): den gemensamma kontrollen, som slår upp koden i
+// armbandstabellen och aldrig godtar ett värde som går att räkna fram ur personnumret (skanning.js).
+const armbandetHorTill = (db, patientId, armband) => require('./skanning.js').armbandHorTill(db, String(armband ?? ''), patientId);
 
 // Beställer de prover som saknas, med beställningen till laboratoriet och blodcentralen som vanligt (labb.js).
 export function bestallProver(atk, an, nu = new Date()) {
@@ -576,6 +570,16 @@ export function anmal(atk, body = {}, nu = new Date()) {
   return anmalanUt(atk, an, nu);
 }
 
+// Runda 13, r3: behandlingsgarantin. Planerad vård ska ges inom 90 dagar från vårdgivarens beslut (6 kap. 1 §
+// hälso- och sjukvårdsförordningen 2017:80), och beslutet är anmälan till operation. Tiden räknas inte när patienten
+// själv avstår (6 kap. 2 §), vilket syns som en struken operation med orsaken Patienten avstår.
+export const BEHANDLINGSGARANTI_DAGAR = 90;
+export function behandlingsgaranti(an, nu = new Date(), utford = null) {
+  const datum = addDagar(datumAv(new Date(an.anmald_tid)), BEHANDLINGSGARANTI_DAGAR);
+  const passerad = !utford && datumAv(nu) > datum;
+  return { datum, passerad, text: `Behandlingsgarantin: operationen ska göras senast ${datum}, 90 dagar från beslutet (6 kap. 1 § hälso- och sjukvårdsförordningen).${passerad ? ' Den har passerats.' : ''}` };
+}
+
 export function anmalanUt(atk, an, nu = new Date()) {
   const db = atk.db;
   const ing = INGREPP[an.kva];
@@ -584,7 +588,7 @@ export function anmalanUt(atk, an, nu = new Date()) {
   const vantedagar = Math.floor((Date.parse(f?.in_sal ?? iso(nu)) - Date.parse(an.anmald_tid)) / DAG);
   return {
     id: an.id, kva: an.kva, ingrepp: ing.namn, sida: an.sida ? SIDA[an.sida] : null, prioritet: { id: an.prioritet, namn: PRIORITET[an.prioritet].namn },
-    malDatum: an.mal_datum, overMal: !f?.in_sal && datumAv(nu) > an.mal_datum, vantedagar, anestesi: ANESTESI[an.anestesi], asa: an.asa, minuter: an.minuter,
+    malDatum: an.mal_datum, overMal: !f?.in_sal && datumAv(nu) > an.mal_datum, vantedagar, behandlingsgaranti: behandlingsgaranti(an, nu, f?.in_sal), anestesi: ANESTESI[an.anestesi], asa: an.asa, minuter: an.minuter,
     status: an.status, anmald: { tid: an.anmald_tid, av: personNamn(db, an.anmald_av) }, vardenhet: enhetKort(db, an.enhet_id), kommentar: an.kommentar,
     planering: plan ? planeringUt(db, plan) : null, forlopp: f ? forloppUt(db, an, f) : null, forberedelser: forberedelser(atk, an, nu),
     // Runda 11, r2.
@@ -637,7 +641,7 @@ export function vantelista(db, personal, valFor, nu = new Date()) {
     loggaPatient(db, personal, an.patient_id, 'las_operation', r.grund, '/api/operation/vantelista');
     const p = db.query('SELECT * FROM patienter WHERE id = ?').get(an.patient_id);
     ut.push({ id: an.id, patient: { id: p.id, namn: visningsnamn(p, valFor(p.id).visa_identitet) }, ingrepp: INGREPP[an.kva].namn, kva: an.kva,
-      prioritet: PRIORITET[an.prioritet].namn, malDatum: an.mal_datum, overMal: datumAv(nu) > an.mal_datum, dagarKvar: Math.round((Date.parse(lokalTid(an.mal_datum, '12:00')) - nu.getTime()) / DAG) });
+      prioritet: PRIORITET[an.prioritet].namn, malDatum: an.mal_datum, overMal: datumAv(nu) > an.mal_datum, behandlingsgaranti: behandlingsgaranti(an, nu), dagarKvar: Math.round((Date.parse(lokalTid(an.mal_datum, '12:00')) - nu.getTime()) / DAG) });
   }
   return { vardenhet: enhetKort(db, ve), vantande: ut, demoregel: DEMOREGEL };
 }
@@ -880,7 +884,8 @@ export function checklistaUnderlag(atk, an, nu = new Date()) {
       pulsoximeter: P(varden > 0, varden > 0 ? 'Anestesimonitorn skickar värden (simulerad).' : 'Monitorn har inte skickat några värden ännu.'),
       allergi: P(true, allergiText),
       luftvag: P(Boolean(bed), bed ? (bed.luftvag?.risker?.length ? `Risk: ${bed.luftvag.risker.join(' ')}` : `Bedömd i anestesibedömningen${bed.luftvag?.mallampati ? `, Mallampati ${bed.luftvag.mallampati}` : ''}.`) : 'Ingen anestesibedömning.'),
-      blodning: P(!ing.blod || blodProver.every(p => p.status === 'besvarad'), blodText),
+      // Runda 13, r3 (E2-49): punkten kan bara bekräftas utan motivering när blodgruppering och bastest är klara.
+      blodning: P(!ing.blod || blodProver.every(p => p.status === 'besvarad'), blodText, ing.blod && !blodProver.every(p => p.status === 'besvarad') ? { kraverMotivering: true } : {}),
       fasta: P(false, bed?.fasta?.text ?? 'Fråga patienten när patienten åt och drack senast.'),
       trombos: P(false, 'Kontrollera trombosprofylaxen i läkemedelslistan.'),
     },
@@ -888,7 +893,8 @@ export function checklistaUnderlag(atk, an, nu = new Date()) {
       team: P(Boolean(team), team ? `Planerat team: ${[team.operator, team.opssk, team.anestesilakare, team.anestesissk].filter(Boolean).join(', ')}.` : 'Teamet är inte planerat.'),
       bekraftat: P(false, `${ing.namn}${an.sida ? `, ${SIDA[an.sida]} sida` : ''}.`),
       antibiotika: P(antibiotika && Date.parse(antibiotika.tid) >= nu.getTime() - 60 * MIN, antibiotika ? `${antibiotika.kod.charAt(0).toUpperCase()}${antibiotika.kod.slice(1)} gavs klockan ${klocka(antibiotika.tid)}.` : `Förslag: ${prof.text}`),
-      kritiska: P(false, `Beräknad operationstid ${an.minuter} minuter.${ing.blod ? ' Risk för blödning, blod är beställt.' : ''}`),
+      // Runda 13, r3 (E2-49): systemet säger aldrig att blod är beställt när blodgruppering och bastest inte är klara.
+      kritiska: P(false, `Beräknad operationstid ${an.minuter} minuter.${ing.blod ? (blodProver.every(p => p.status === 'besvarad') ? ' Risk för blödning. Blodgruppering och bastest är klara.' : ' Risk för blödning. Blodgruppering och bastest är inte klara.') : ''}`),
       anestesirisk: P(Boolean(bed), bed ? `ASA ${bed.asa}${bed.akut ? 'E' : ''}, ${bed.anestesiformText.toLocaleLowerCase('sv')}.` : 'Ingen anestesibedömning.'),
       sterilitet: P(galler.length > 0, galler.length ? `Öppnat: ${galler.map(g => `${g.galler} (charge ${g.charge})`).join(', ')}.` : 'Registrera instrumentgallren när de öppnas.'),
       bilder: P(false, 'Visa de bilder som behövs för ingreppet.'),
@@ -939,6 +945,16 @@ export function checklista(atk, an, body = {}, nu = new Date()) {
   const ejAktuella = new Set([...(INGREPP[an.kva].sida ? [] : ['markering']), ...(INGREPP[an.kva].implantat ? [] : ['implantat'])]);
   const saknas = Object.entries(def.punkter).filter(([id]) => !bekraftade.has(id) && !ejAktuella.has(id)).map(([, t]) => t);
   if (saknas.length) throw new Fel(400, `${def.namn}: teamet har inte bekräftat ${saknas.length === 1 ? 'punkten' : `${saknas.length} punkter`}. ${saknas.join('. ')}.`, 'ogiltig', { falt: ['bekraftade'] });
+  // Runda 13, r3 (E2-49): blodet kan bara bekräftas som tillgängligt när blodgruppering och bastest är klara, annars med
+  // en motivering till varför operationen ändå kan börja. Motiveringen sparas i historiken.
+  let blodMotivering = null;
+  if (body.del === 'fore_anestesi' && INGREPP[an.kva].blod) {
+    const klara = proverFor(atk, an, nu).filter(p => ['blodgruppering', 'bastest'].includes(p.analys)).every(p => p.status === 'besvarad');
+    if (!klara) {
+      blodMotivering = typeof body.motiveringar?.blodning === 'string' ? body.motiveringar.blodning.trim().slice(0, 300) : '';
+      if (blodMotivering.length < 10) throw new Fel(400, 'Blodgruppering och bastest är inte klara, så blod finns inte att få. Ta proverna innan anestesin, eller skriv varför operationen ändå kan börja, till exempel att ingreppet görs utan blod i beredskap efter beslut av operatören.', 'ogiltig', { falt: ['blodning'] });
+    }
+  }
   if (body.del === 'fore_utflyttning') {
     if (!f.op_slut) throw new Fel(409, 'Registrera att operationen är slut innan den sista delen av checklistan.', 'ogiltig');
     if (INGREPP[an.kva].implantat && !lasJson(f.implantat, []).length) throw new Fel(409, 'Ingreppet har ett implantat. Registrera implantatet innan patienten lämnar salen.', 'ogiltig');
@@ -949,7 +965,7 @@ export function checklista(atk, an, body = {}, nu = new Date()) {
   const lista = lasJson(f.checklista, {});
   lista[body.del] = { tid: iso(nu), av: atk.personal.id };
   db.query('UPDATE op_forlopp SET checklista = ? WHERE anmalan_id = ?').run(JSON.stringify(lista), an.id);
-  historik(db, an, atk.personal.id, 'checklista', def.namn, iso(nu));
+  historik(db, an, atk.personal.id, 'checklista', blodMotivering ? `${def.namn}. Blod utan klar blodgruppering och bastest: ${blodMotivering}` : def.namn, iso(nu));
   return anmalanUt(atk, anmalanRad(db, an.id), nu);
 }
 

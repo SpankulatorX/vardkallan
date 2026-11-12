@@ -1,5 +1,5 @@
 // Journalen: anteckningar per enhet och typ, läsning med versioner, ny anteckning från mall, utkast, signering och rättelse.
-import { esc, api, tidpunkt, datum, migreradEtikett, notis, faltFel, medKnapp, ikon, ApiFel, felNotis } from '../ui.js';
+import { esc, api, tidpunkt, datum, migreradEtikett, notis, faltFel, medKnapp, ikon, ApiFel, felNotis, dialog } from '../ui.js';
 // Runda 7, r2: hjälp i sammanhanget.
 import { hjalpRuta } from '../hjalp.js';
 import { far, S, minVardenhet, uppdateraInkorg, vardenhetAv as enhetsVardenhet } from '../app.js';
@@ -97,10 +97,16 @@ async function lasAnteckning(las, ctx, id) {
   if (a.status === 'utkast' && a.forfattare?.id === S.session.personal.id) return utkastForm(las, ctx, a);
   const senaste = a.versioner.at(-1);
   const aldre = a.versioner.slice(0, -1).reverse();
-  const kanRatta = !senaste.ersatt && senaste.status === 'signerad' && kanSkriva(senaste.kategori) && enhetsVardenhet(senaste.enhet.id) === minVardenhet();
+  // Runda 13, r3 (E1-23): bara den som skrev anteckningen rättar den.
+  const egen = [senaste.forfattare?.id, senaste.signerad?.av?.id].includes(S.session.personal.id);
+  const kanRatta = egen && !senaste.ersatt && senaste.status === 'signerad' && kanSkriva(senaste.kategori) && enhetsVardenhet(senaste.enhet.id) === minVardenhet();
+  const rattaAnnan = !egen && !senaste.ersatt && senaste.status === 'signerad' && kanSkriva(senaste.kategori) && enhetsVardenhet(senaste.enhet.id) === minVardenhet();
   // Runda 5, r1: från en signerad anteckning föreslår systemet återbesöket ur anteckningens planering (Sussa 3.4.1.1).
   const kanAterbesok = senaste.status === 'signerad' && far('skriv_journal');
   const kanSkrivaUt = senaste.status === 'signerad' && far('skriv_ut');
+  // Runda 13, r3 (beslut från Jonas): den som skrev anteckningen eller patientens ansvariga läkare begär undantag.
+  const ub = a.undantagBegaran;
+  const kanUndanta = Boolean(ub?.kan) && !['vantar', 'foreslagen'].includes(ub?.begaran?.status);
   // Runda 10, r7: en signerad anteckning kan tas ut som Word-dokument (kontorsstödet). Uttaget loggas på patienten.
   const word = senaste.status === 'signerad' ? `<p class="liten"><a href="/api/anteckning/${encodeURIComponent(senaste.id)}/docx" download>Anteckningen som Word-dokument</a></p>` : '';
   las.innerHTML = `<article class="anteckning" aria-labelledby="ant-rubrik">
@@ -109,7 +115,9 @@ async function lasAnteckning(las, ctx, id) {
       ${sokordHtml(senaste.sokord)}
       ${kontrasignering.html(a, senaste)}
       ${word}
-      ${kanRatta || kanAterbesok || kanSkrivaUt ? `<div class="knapprad" data-skriv>${kanRatta ? `<button type="button" class="knapp sekundar" data-ratta>${ikon.penna}<span>Rätta anteckningen</span></button>` : ''}${kanAterbesok ? `<button type="button" class="knapp sekundar" data-aterbesok>${ikon.kalender}<span>Återbesök</span></button>` : ''}${kanSkrivaUt ? `<button type="button" class="knapp sekundar" data-skriv-ut-anteckning>${ikon.logg}<span>Skriv ut anteckningen</span></button>` : ''}</div>` : ''}
+      ${kanRatta || kanAterbesok || kanSkrivaUt || kanUndanta ? `<div class="knapprad" data-skriv>${kanRatta ? `<button type="button" class="knapp sekundar" data-ratta>${ikon.penna}<span>Rätta anteckningen</span></button>` : ''}${kanAterbesok ? `<button type="button" class="knapp sekundar" data-aterbesok>${ikon.kalender}<span>Återbesök</span></button>` : ''}${kanSkrivaUt ? `<button type="button" class="knapp sekundar" data-skriv-ut-anteckning>${ikon.logg}<span>Skriv ut anteckningen</span></button>` : ''}${kanUndanta ? `<button type="button" class="knapp text" data-begar-undantag>${ikon.oga}<span>Begär undantag från visning</span></button>` : ''}</div>` : ''}
+      ${rattaAnnan ? `<p class="liten dampad" data-ratta-annan>Bara ${esc(senaste.forfattare?.namn ?? 'den som skrev anteckningen')} kan rätta anteckningen. Vill du lägga till något skriver du en ny anteckning.</p>` : ''}
+      ${ub?.begaran ? `<p class="ruta ruta-info liten" data-undantag-status>Begäran om undantag från ${esc(tidpunkt(ub.begaran.begard))}: ${esc(ub.begaran.statusText)}.${ub.begaran.kommentar ? ` Kommentar från systemförvaltningen: ${esc(ub.begaran.kommentar)}` : ''}</p>` : ''}
       ${aldre.length ? `<section class="versioner" aria-labelledby="ver-rubrik"><h3 id="ver-rubrik">Tidigare versioner</h3>
         <p class="dampad liten">En signerad anteckning ändras aldrig. En rättelse blir en ny version, och den tidigare står kvar överstruken men läsbar.</p>
         ${aldre.map(v => `<div class="version-gammal">
@@ -118,11 +126,39 @@ async function lasAnteckning(las, ctx, id) {
         </div>`).join('')}</section>` : ''}
     </article>`;
   las.querySelector('[data-ratta]')?.addEventListener('click', () => rattaForm(las, ctx, senaste));
+  las.querySelector('[data-begar-undantag]')?.addEventListener('click', (e) => begarUndantag(e.currentTarget, senaste, ub, () => ctx.ladda()));
   las.querySelector('[data-aterbesok]')?.addEventListener('click', () => satUppAterbesok(ctx.id, ctx.patient?.namn ?? 'patienten', senaste.id).catch(felNotis));
   las.querySelector('[data-skriv-ut-anteckning]')?.addEventListener('click', () => utskrift.skrivUt(ctx.id, { poster: [{ typ: 'anteckning', id: senaste.id }] }));
   kontrasignering.koppla(las, a, () => ctx.ladda());
 }
 
+
+// Runda 13, r3 (beslut från Jonas): begäran om att undanta anteckningen från visning eller publicering. Systemet
+// föreslår kanalerna, stänger av visning i systemet när kontakten pågår och säger varför, och skälet blir motiveringen.
+async function begarUndantag(knapp, a, ub, klar) {
+  const kanaler = [['visning', 'Visning i systemet'], ['fhir', 'FHIR för externa tillämpningar'], ['nationell', 'Publicering till nationella tjänster']];
+  let valda = [];
+  const svar = await dialog(`<form><h2 id="dlg-rubrik">Begär undantag från visning</h2>
+    <p>Anteckning nummer ${esc(a.id)}. Systemförvaltningen ser numret, typen, datumet, vårdenheten och ditt namn, men aldrig innehållet. En andra systemförvaltare godkänner.</p>
+    <fieldset class="kryssgrupp"><legend>Undantas från</legend>${kanaler.map(([k, t], i) => {
+      const lasbar = k === 'visning' && ub?.pagaende;
+      return `<div class="kryssfalt"><input type="checkbox" id="ub-k${i}" name="kanaler" value="${k}"${lasbar ? ' disabled' : k !== 'fhir' ? ' checked' : ''}><label for="ub-k${i}">${esc(t)}${lasbar ? ' (inte medan vårdkontakten pågår, eftersom uppgiften behövs i vården)' : ''}</label></div>`;
+    }).join('')}</fieldset>
+    <div class="falt"><label for="ub-skal">Skäl, som blir motiveringen i journalen <span class="obl">(obligatoriskt)</span></label><textarea id="ub-skal" name="skal" rows="2" required minlength="10" maxlength="500" aria-describedby="ub-skal-h"></textarea><span class="hjalp" id="ub-skal-h">Skriv utan patientuppgifter, till exempel: Uppgiften är förd i journalen för fel patient.</span></div>
+    <p class="dialog-fel form-fel" role="alert" hidden></p>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Skicka begäran</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`, {
+    validera: (d, dl) => {
+      valda = [...dl.querySelectorAll('input[name="kanaler"]:checked')].map(x => x.value);
+      return valda.length ? null : 'Välj minst en kanal.';
+    },
+  });
+  if (!svar || !valda.length) return;
+  try {
+    await medKnapp(knapp, () => api(`/api/anteckning/${encodeURIComponent(a.id)}/undantag`, { metod: 'POST', data: { kanaler: valda, skal: svar.data.skal } }));
+    notis('Begäran är skickad till systemförvaltningen.');
+    klar();
+  } catch { /* notis visad */ }
+}
 
 function anteckningHuvud(a, id, extra = '') {
   return `<header class="ant-huvud">
@@ -131,6 +167,7 @@ function anteckningHuvud(a, id, extra = '') {
     <dl class="ant-fakta">
       <div><dt>Skriven av</dt><dd>${esc(a.forfattare?.namn ?? '')}, ${esc(a.forfattare?.titel ?? '')}</dd></div>
       <div><dt>Skapad</dt><dd>${esc(tidpunkt(a.skapad))}</dd></div>
+      ${a.id ? `<div><dt>Nummer</dt><dd data-anteckning-nummer>${esc(a.id)}</dd></div>` : ''}
       <div><dt>Status</dt><dd>${a.signerad ? `Signerad ${esc(tidpunkt(a.signerad.tid))} av ${esc(a.signerad.av?.namn ?? '')}` : '<span class="tagg tagg-utkast">Utkast, inte signerat</span>'}</dd></div>
       ${a.version > 1 ? `<div><dt>Rättelse</dt><dd>Version ${a.version}. Orsak: ${esc(a.rattelseOrsak ?? '')}</dd></div>` : ''}
     </dl>

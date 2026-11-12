@@ -517,7 +517,8 @@ describe('Min journal', () => {
     const k = await som('inv-vh01');
     const r = await k.post('/api/min/journal/p09/begaran', { typ: 'sparr', enhetId: 'vc-tybble' });
     expect(r.status).toBe(403);
-    expect(r.data.fel).toContain('4 kap. 4 §');
+    // Runda 13, r3: lagrummet är 4 kap. 4 och 5 §§ (spärr och hävning, docs/lagrum.md).
+    expect(r.data.fel).toContain('4 kap. 4 och 5 §§');
     expect((await k.post('/api/min/journal/p09/begaran', { typ: 'hava_sparr', enhetId: 'vc-tybble' })).status).toBe(403);
     expect((await k.post('/api/min/journal/p09/begaran', { typ: 'loggutdrag' })).status).toBe(201);
     expect((await k.get('/api/min/journal/p09/sparrar')).data.kanBegaraSparr).toBe(false);

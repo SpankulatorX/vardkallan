@@ -16,7 +16,13 @@ const fel = (fn) => { try { fn(); } catch (e) { return e; } return null; };
 const sysf = (db) => personal(db, 'sysf');
 const sysf2 = (db) => personal(db, 'sysf-2');
 const TEXT = 'Uppgift om en anhörigs sjukdom som inte ska visas';
+// Runda 13, r3: en enskild anteckning undantas efter en begäran från den som skrev den (undantag-begaran.test.js).
+const begar = (db, id, kanaler = ['visning', 'fhir', 'nationell']) => {
+  const a = journal.hamtaAnteckningRad(db, id);
+  return undantag.begar(atk(db, a.forfattare_id, a.patient_id), a, { kanaler, skal: 'Felaktigt förd uppgift om en anhörig.' });
+};
 const undanta = (db, nu, inp) => {
+  if (inp.omfang === 'anteckning' && !db.query("SELECT 1 FROM undantag_begaranden WHERE anteckning_id = ? AND status IN ('vantar', 'foreslagen')").get(Number(inp.varde))) begar(db, Number(inp.varde), inp.kanaler);
   const { andring } = undantag.foresla(db, sysf(db), { giltigFran: datumAv(nu), motivering: 'Felaktigt förd uppgift om en anhörig.', ...inp }, nu);
   return undantag.godkann(db, sysf2(db), andring.id, {}, nu).andring;
 };
@@ -34,6 +40,7 @@ describe('Undantag av en enskild anteckning', () => {
     const nu = new Date();
     const id = egenAnteckning(db);
     const andra = journal.listaAnteckningar(atk(db, 'lak-kard', 'p01')).anteckningar.filter(a => a.typ === 'Daganteckning').length;
+    begar(db, id, ['visning']);
     const f = undantag.forhandsvisa(db, sysf(db), { omfang: 'anteckning', varde: String(id), kanaler: ['visning'] }, nu);
     expect(f.ok).toBe(true);
     expect(f.effekt[0]).toContain(`Daganteckning från`);
@@ -48,7 +55,8 @@ describe('Undantag av en enskild anteckning', () => {
     expect(l.anteckningar.filter(a => a.typ === 'Daganteckning').length).toBe(andra - 1);
     expect(l.dolda.undantagna).toEqual([{ antal: 1, sort: 'anteckning', text: `1 anteckning visas inte. Systemförvaltningen har undantagit den från visning från ${datumAv(nu)}: Prov.` }]);
     expect(JSON.stringify(l)).not.toContain(TEXT);
-    expect(fel(() => journal.hamtaAnteckning(atk(db, 'lak-kard', 'p01'), journal.hamtaAnteckningRad(db, id))).message).toContain('undantagit den från visning');
+    // Runda 13, r3 (säkerhetsfynd 6): samma svar som för en anteckning som inte finns.
+    expect(fel(() => journal.hamtaAnteckning(atk(db, 'lak-kard', 'p01'), journal.hamtaAnteckningRad(db, id))).message).toBe('Anteckningen finns inte.');
     expect(JSON.stringify(journalsok.sok(atk(db, 'lak-kard', 'p01'), 'anhörigs sjukdom'))).not.toContain(TEXT);
   });
 
@@ -66,11 +74,14 @@ describe('Undantag av en enskild anteckning', () => {
     expect(vk).not.toBeNull();
     const b = journal.skapaAnteckning(atk(db, 'lak-kard', 'p01'), { typ: 'Daganteckning', vardkontaktId: vk.id, sokord: [{ sokord: 'Aktuellt', text: 'x' }] });
     journal.signera(atk(db, 'lak-kard', 'p01'), journal.hamtaAnteckningRad(db, b.id));
+    // Runda 13, r3: begäran från vården stoppas redan när den gäller visning i pågående vård.
+    expect(fel(() => begar(db, b.id, ['visning'])).message).toContain('pågående vårdkontakt');
+    begar(db, b.id, ['fhir', 'nationell']);
     expect(undantag.prova(db, { omfang: 'anteckning', varde: String(b.id), kanaler: ['visning'] }).varfor).toContain('pågående vårdkontakt');
     expect(undantag.prova(db, { omfang: 'anteckning', varde: String(b.id), kanaler: ['fhir', 'nationell'] }).ok).toBe(true);
     // Ett utkast, ett nummer som inte finns och text i stället för ett nummer stoppas med samma svar.
     const utkast = journal.skapaAnteckning(atk(db, 'lak-kard', 'p01'), { typ: 'Daganteckning', sokord: [{ sokord: 'Aktuellt', text: 'x' }] });
-    for (const v of [String(utkast.id), '999999', 'constructor']) expect(undantag.prova(db, { omfang: 'anteckning', varde: v, kanaler: ['visning'] }).varfor).toBe('Det finns ingen signerad anteckning med det numret. Numret står i ärendet från vården.');
+    for (const v of [String(utkast.id), '999999', 'constructor']) expect(undantag.prova(db, { omfang: 'anteckning', varde: v, kanaler: ['visning'] }).varfor).toBe(undantag.INGEN_BEGARAN);
   });
 
   test('ett undantag på en spärrad vårdenhets anteckning röjer inget: svaret är detsamma med och utan undantaget', () => {

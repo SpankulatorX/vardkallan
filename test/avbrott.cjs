@@ -22,6 +22,8 @@ const BAS = process.argv[2] || 'http://127.0.0.1:18797';
 // Runda 11: testprocessen följer testcontainerns falska klocka, om den har en. Webbläsarens klocka ställs av testerna
 // själva där de behöver den (clock.install), så den ställs inte här.
 const { foljServernsKlocka } = require('./testklocka.cjs');
+// Runda 13, r3 (E2-5).
+const { idDialog } = require('./flodessteg.cjs');
 const APP = join(__dirname, '..', 'app');
 const UT = join(__dirname, 'skarmbilder');
 mkdirSync(UT, { recursive: true });
@@ -871,6 +873,8 @@ const undersok = (page, kod, nyckelB64) => page.evaluate(async ({ kod, nyckelB64
       const ejGiven = p.locator('[data-adm="ej_given"]').first();
       if (await ejGiven.count()) anta(await ejGiven.isDisabled(), 'Inte given går att klicka på under avbrottet');
       await ge.click();
+      // Runda 13, r3 (E2-5): identiteten bekräftas när armbandet inte skannas.
+      await idDialog(p);
       await synlig(p, '.notis', 'sparad i kön på den här datorn');
       await synlig(p, '[data-ej-sparad]', 'Inte sparad i journalen än');
       await p.click('.flikar a:has-text("Mätvärden")');
@@ -909,9 +913,11 @@ const undersok = (page, kod, nyckelB64) => page.evaluate(async ({ kod, nyckelB64
       await synlig(p, '#avbrott h2', 'Avbrott: läsläge');
       await p.goto(`${BAS}/#/patient/p01/lakemedel`);
       await p.locator(`[data-adm="ge"][data-ord="${oid}"]`).click();
+      // Runda 13, r3 (E2-5): identiteten bekräftas när armbandet inte skannas.
+      await idDialog(p);
       await synlig(p, '.notis', 'sparad i kön på den här datorn');
       // En kollega ger samma läkemedel på en annan dator medan den här fliken inte når servern.
-      const g = await req.post(`${BAS}/api/patient/p01/administreringar`, { headers: { Origin: BAS }, data: { ordinationId: oid, atgard: 'ge', kvitteradeVarningar: [{ regel: 'dubbel_dos', motivering: 'Prövat i testet av skrivkön.' }] } });
+      const g = await req.post(`${BAS}/api/patient/p01/administreringar`, { headers: { Origin: BAS }, data: { ordinationId: oid, atgard: 'ge', identitet: { satt: 'kand' }, kvitteradeVarningar: [{ regel: 'dubbel_dos', motivering: 'Prövat i testet av skrivkön.' }] } });
       anta(g.ok(), `kollegans dos sparades inte: ${g.status()}`);
       anta(await antalGivna(oid) === 2, 'kollegans dos räknades inte');
       await p.click('[data-avbrott="avsluta"]');

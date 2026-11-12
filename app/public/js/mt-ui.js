@@ -121,26 +121,40 @@ export async function minEgna(el, ctx) {
     ${d.mottagare ? `<form class="mv-form" id="min-egen" novalidate aria-labelledby="min-egen-rubrik"><h3 id="min-egen-rubrik">Lämna en mätning</h3>
       <div class="falt-rad">
         <div class="falt"><label for="min-egen-typ">Vad har du mätt?</label><select id="min-egen-typ" name="typ">${d.typer.map(t => `<option value="${esc(t.typ)}">${esc(t.namn)}</option>`).join('')}</select></div>
-        <div class="falt smal"><label for="min-egen-varde">Värde</label><div class="med-enhet"><input id="min-egen-varde" name="varde" autocomplete="off" inputmode="text" aria-describedby="min-egen-enhet min-egen-hjalp"><span id="min-egen-enhet" class="enhet">${esc(d.typer[0]?.enhet ?? '')}</span></div><span class="hjalp" id="min-egen-hjalp">Blodtryck skrivs som övertryck/undertryck, till exempel 135/85.</span></div>
+        <div class="falt smal"><label for="min-egen-varde">Värde</label><div class="med-enhet"><input id="min-egen-varde" name="varde" autocomplete="off" inputmode="text" aria-describedby="min-egen-enhet min-egen-hjalp"><span id="min-egen-enhet" class="enhet">${esc(d.typer[0]?.enhet ?? '')}</span></div><span class="hjalp" id="min-egen-hjalp">${esc(d.typer[0]?.hjalp ?? '')}</span></div>
+        ${(() => { const g = d.typer.find(t => t.situationer); return g ? `<div class="falt" data-min-situation hidden><label for="min-egen-sit">Blodsockret mättes</label><select id="min-egen-sit" name="situation">${g.situationer.map(([k, t]) => `<option value="${esc(k)}"${k === 'annat' ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></div>` : ''; })()}
         <div class="falt"><label for="min-egen-tid">När mätte du?</label><input id="min-egen-tid" name="tid" type="datetime-local" aria-describedby="min-egen-tid-h"><span class="hjalp" id="min-egen-tid-h">Tomt betyder nu.</span></div>
         <div class="falt knappfalt"><button type="submit" class="knapp">Skicka till ${esc(d.mottagare)}</button></div>
       </div><p class="form-fel" role="alert" hidden></p></form>` : '<p class="tom">Det finns ingen vårdenhet som tar emot dina mätningar ännu.</p>'}
     ${d.matningar.length ? `<div class="tabellrulle"><table class="tabell tat"><caption>Dina mätningar</caption><thead><tr><th scope="col">Tid</th><th scope="col">Mätvärde</th><th scope="col">Värde</th><th scope="col">Skickad till</th><th scope="col">Status</th></tr></thead>
-      <tbody>${d.matningar.map(m => `<tr><td>${esc(tidpunkt(m.tid))}</td><td>${esc(m.namn)}</td><td>${vardeText(m)}</td><td>${esc(m.mottagare)}</td><td><span class="tagg ${m.bedomd ? 'tagg-ok' : 'tagg-egen'}">${esc(m.status)}</span></td></tr>`).join('')}</tbody></table></div>` : '<p class="tom liten">Du har inte lämnat några mätningar.</p>'}
+      <tbody>${d.matningar.map(m => `<tr><td>${esc(tidpunkt(m.tid))}</td><td>${esc(m.namn)}</td><td>${vardeText(m)}${m.situation ? `<span class="under-text">${esc(m.situation)}</span>` : ''}</td><td>${esc(m.mottagare)}</td><td><span class="tagg ${m.bedomd ? 'tagg-ok' : 'tagg-egen'}">${esc(m.status)}</span></td></tr>`).join('')}</tbody></table></div>` : '<p class="tom liten">Du har inte lämnat några mätningar.</p>'}
   </section>`;
   const form = el.querySelector('#min-egen');
   if (!form) return;
   const enhet = form.querySelector('#min-egen-enhet');
-  form.typ.addEventListener('change', () => { enhet.textContent = d.typer.find(t => t.typ === form.typ.value)?.enhet ?? ''; });
+  // Runda 13, r3 (E3-38): enheten, hjälptexten och för glukos när patienten mätte följer vald mätning.
+  const hjalp = form.querySelector('#min-egen-hjalp');
+  const sit = form.querySelector('[data-min-situation]');
+  const visaTyp = () => {
+    const t = d.typer.find(x => x.typ === form.typ.value);
+    enhet.textContent = t?.enhet ?? '';
+    if (hjalp) hjalp.textContent = t?.hjalp ?? '';
+    if (sit) sit.hidden = !t?.situationer;
+  };
+  form.typ.addEventListener('change', visaTyp);
+  visaTyp();
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const data = { typ: form.typ.value, varde: form.varde.value.trim() };
+    if (sit && !sit.hidden) data.situation = form.situation.value;
     if (form.tid.value) data.tid = new Date(form.tid.value).toISOString();
     try {
       const r = await medKnapp(form.querySelector('[type=submit]'), () => api(`/api/min/journal/${encodeURIComponent(ctx.pid)}/egenmatning`, { metod: 'POST', data }), form);
       // Runda 13, r4: en varning om att utrustningen hör till en annan sal står kvar tills den stängs.
       if (r.varning) notis(`${r.text} ${r.varning}`, 'fel', { kvar: true });
       else notis(r.text);
+      // Runda 13, r3 (E3-38): ett värde som kräver bedömning i dag får råd om 1177 och 112.
+      if (r.rad) notis(r.rad.text, 'fel');
       ctx.ladda();
     } catch (err) {
       const f = err?.data?.falt?.[0];

@@ -4,8 +4,11 @@
 // skriva ut. Alla regler gäller på servern (src/vardkontakt.js); gränssnittet visar bara förval och förklaringar.
 import { esc, api, datum, tidpunkt, dialog, notis, felNotis, migreradEtikett, VARDFORM, ikon, plusDagar, idag } from '../ui.js';
 import { far } from '../app.js';
+// Runda 13, r3 (E1-36).
+import { sattDiagnos } from './patient-oversikt.js';
 
-export const KONTAKTSATT = { besok: 'Besök', telefon: 'Telefon', video: 'Video', hembesok: 'Hembesök' };
+// Runda 13, r3 (E1-16): administrativ kontakt utan avgift, förvald när patienten inte är på plats.
+export const KONTAKTSATT = { besok: 'Besök', telefon: 'Telefon', video: 'Video', hembesok: 'Hembesök', administrativ: 'Administrativ' };
 const STATUS = { planerad: 'Planerad', pagaende: 'Pågående', avslutad: 'Avslutad' };
 const VT_STATUS = { inskriven: 'Inskriven', permission: 'På permission', utskriven: 'Utskriven' };
 const kr = (b) => `${Number(b).toLocaleString('sv-SE')} kr`;
@@ -200,7 +203,17 @@ export function koppla(el, d, ctx, ladda) {
     if (handling === 'handelser') return handelser(b.dataset.id);
     const v = d.vardkontakter.find(x => String(x.id) === b.dataset.id);
     if (handling === 'andra' && v) return andra(v, kor);
-    if (handling === 'avsluta' && v) return kor(() => api(`/api/vardkontakt/${v.id}/avsluta`, { metod: 'POST', data: {} }), 'Vårdkontakten är avslutad.');
+    if (handling === 'avsluta' && v) {
+      // Runda 13, r3 (E1-36): en kontakt utan diagnos avslutas efter en fråga till den som får sätta diagnos.
+      if (far('registrera_diagnos') && Array.isArray(v.diagnoser) && !v.diagnoser.length) {
+        const svar = await dialog(`<h2 id="dlg-rubrik">Kontakten har ingen diagnos</h2>
+          <div class="dialog-text"><p>${esc(v.orsak ?? 'Vårdkontakten')} har ingen diagnos. Vill du sätta en innan kontakten avslutas?</p></div>
+          <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Sätt diagnos</button><button type="button" class="knapp sekundar" data-varde="utan">Avsluta utan diagnos</button><button type="button" class="knapp text" data-varde="avbryt">Avbryt</button></div>`);
+        if (!svar) return;
+        if (svar.val === 'ok' && !(await sattDiagnos({ id: ctx.id }, null, { vardkontakt: v }).catch((x) => { felNotis(x); return false; }))) return;
+      }
+      return kor(() => api(`/api/vardkontakt/${v.id}/avsluta`, { metod: 'POST', data: {} }), 'Vårdkontakten är avslutad.');
+    }
   });
 }
 

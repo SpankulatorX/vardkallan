@@ -1,4 +1,4 @@
-// Sammanhållen journalföring med en annan vårdgivare (runda 10, r5, Sussa 3.2.2.3), patientdatalagen (2008:355) 6 kap.
+// Sammanhållen journalföring med en annan vårdgivare (runda 10, r5, Sussa 3.2.2.3), lagen (2022:913) om sammanhållen vård- och omsorgsdokumentation 3 kap.
 //
 // Vårdkällan är konsument: uppgifter som har skapats hos en annan vårdgivare hämtas och visas i samma kronologi som
 // patientens egna uppgifter, med vårdgivaren, vårdenheten, yrkesrollen, den som skapade uppgiften och tiden utskrivna.
@@ -7,9 +7,12 @@
 // Systemet är experten. Det vet själv om patienten har ett samtycke registrerat på vårdenheten, frågar efter samtycket
 // bara när det saknas, kräver ett aktivt val med syfte innan något hämtas och lägger uppgifterna i tidslinjen, så att
 // användaren inte behöver öppna ett annat system. Patientens spärrar hos den andra vårdgivaren följer med: den
-// vårdgivaren lämnar aldrig ut spärrade uppgifter, och inget talar om att de finns.
+// vårdgivaren lämnar aldrig ut spärrade uppgifter. Runda 13, r3 (lagrumsgranskningen): systemet säger att det finns
+// spärrade uppgifter om patienten hos en annan vårdgivare, eftersom HSLF-FS 2016:40 4 kap. 7 § första stycket kräver
+// det, men inte vilken vårdgivare, vilket slag av uppgift eller hur många. Vilken vårdgivare som har spärrat visas
+// inte alls: lagen (2022:913) 2 kap. 5 § medger det bara vid fara (3 kap. 5 och 6 §§), och den vägen finns inte i demon.
 //
-// Behörighet (6 kap. 2 och 3 §§). Bara den som har en aktuell patientrelation och får läsa journalen tar del av
+// Behörighet (lag 2022:913 3 kap. 1, 3 och 6 §§, som ersatte patientdatalagen 6 kap.). Bara den som har en aktuell patientrelation och får läsa journalen tar del av
 // uppgifterna, och bara om patienten samtycker. Utan samtycke får uppgifterna hämtas vid nödåtkomst, när patienten inte
 // kan samtycka och uppgifterna behövs för vård som patienten oundgängligen behöver. Varje hämtning loggas på patienten
 // med vårdgivaren och syftet. Samtycket gäller vårdenheten och kan återkallas, och då tas det aktiva valet bort.
@@ -58,6 +61,10 @@ export const POSTER = {
 const TYPTEXT = { vardkontakt: 'Vårdkontakt', anteckning: 'Anteckning', diagnos: 'Diagnos', lakemedel: 'Läkemedel' };
 export const ETIKETT = `Hämtad från ${VARDGIVARE.namn} genom sammanhållen journalföring`;
 
+// Runda 13, r3: uppgiften att det finns spärrade uppgifter hos en annan vårdgivare, och inget mer.
+export const SPARR_TEXT = 'Det finns spärrade uppgifter om patienten hos en annan vårdgivare.';
+const harSparrade = (patientId) => (POSTER[patientId] ?? []).some(p => p.sparrad);
+
 // Den simulerade vårdgivarens svar: bara uppgifter som inte är spärrade. Spärrade uppgifter lämnas aldrig ut.
 function tjanst(patientId) {
   return (POSTER[patientId] ?? []).filter(p => !p.sparrad).map(p => ({
@@ -105,6 +112,8 @@ export function lage(atk, sess, fraga = {}) {
   if (giltigt) loggaHamtning(atk, val);
   return {
     vardgivare: [VARDGIVARE], hamtad: Boolean(giltigt), grund: giltigt ? val.grund : null, samtycke: samtyckeUt(db, samtycke), poster,
+    // Runda 13, r3 (HSLF-FS 2016:40 4 kap. 7 §): före och efter hämtningen.
+    sparradeHosAnnan: harSparrade(atk.patientId), sparrText: harSparrade(atk.patientId) ? SPARR_TEXT : null,
     typer: TYPTEXT, simulerad: 'Den andra vårdgivaren och dess uppgifter är simulerade i demon.',
     text: giltigt ? `${poster.length} uppgifter från ${VARDGIVARE.namn}.` : samtycke ? 'Patienten har samtyckt. Gör ett aktivt val för att hämta uppgifterna från den andra vårdgivaren.' : 'Patienten kan ha uppgifter hos en annan vårdgivare. Fråga om samtycke för att hämta dem.',
   };

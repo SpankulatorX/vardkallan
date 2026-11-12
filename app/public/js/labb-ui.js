@@ -84,7 +84,26 @@ export function kopplaBestallningar(behallare, hamta, klar, { lakare = [] } = {}
   behallare.addEventListener('click', async (e) => {
     const t = e.target.closest('[data-tagen]');
     if (t) {
-      try { const r = await medKnapp(t, () => api(`/api/labb/prov/${t.dataset.tagen}/tagen`, { metod: 'POST', data: {} })); notis(r.text); await klar(r); } catch { /* notis visad */ }
+      // Runda 13, r3 (E2-53): ett rör för blodgruppering eller bastest tas efter kontroll med armbandet. Servern säger när
+      // det behövs, och då frågar systemet efter armbandet.
+      const ta = (data) => medKnapp(t, () => api(`/api/labb/prov/${t.dataset.tagen}/tagen`, { metod: 'POST', data, tyst: true }));
+      try {
+        let r;
+        try { r = await ta({}); } catch (err) {
+          if (err?.kod !== 'identitet') throw err;
+          const svar = await dialog(`<form><h2 id="dlg-rubrik">Kontrollera patientens identitet</h2>
+            <p>${esc(err.message)}</p>
+            <div class="falt"><label for="lb-arm">Armband</label><input id="lb-arm" name="armband" autocomplete="off" required></div>
+            <p class="dialog-fel form-fel" role="alert" hidden></p>
+            <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Provet är taget</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`, {
+            validera: (d) => (!d.armband?.trim() ? 'Skanna armbandet eller skriv in koden från det.' : null),
+          });
+          if (!svar) return;
+          r = await ta({ identitet: { armband: svar.data.armband.trim() } });
+        }
+        notis(r.text);
+        await klar(r);
+      } catch (err) { felNotis(err); }
       return;
     }
     // Runda 11, r6: instrumentet och det rättade svaret.

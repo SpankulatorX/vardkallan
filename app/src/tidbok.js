@@ -72,13 +72,13 @@ export function regel(db, namn) {
 }
 export function demoregelText(db) {
   const r = (n) => regel(db, n);
-  return `Demoregler: vårdgarantin räknas som ${r('vardgarantiDagar')} dagar från att remissen togs emot, och den som har högst ${r('riskDagar')} dagar kvar lyfts fram. Påminnelsen går ut ${require('./konfiguration.js').varde(db, 'tidbok.paminnelse_timmar')} timmar före tiden. Patienten kan boka om och avboka i Min journal fram till ${r('egenGransTimmar')} timmar före. Incheckningen är öppen från ${r('incheckningForeMin')} minuter före till ${r('incheckningEfterMin')} minuter efter tiden.`;
+  return `Demoregler: vårdgarantin i den specialiserade vården räknas som ${r('vardgarantiDagar')} dagar från att remissen utfärdades, och den som har högst ${r('riskDagar')} dagar kvar lyfts fram. Påminnelsen går ut ${require('./konfiguration.js').varde(db, 'tidbok.paminnelse_timmar')} timmar före tiden. Patienten kan boka om och avboka i Min journal fram till ${r('egenGransTimmar')} timmar före. Incheckningen är öppen från ${r('incheckningForeMin')} minuter före till ${r('incheckningEfterMin')} minuter efter tiden.`;
 }
 
 // Demoregler, märkta så i gränssnittet. Beloppen och gränserna är påhittade och inte någon regions regler.
 export const DEMOREGLER = {
   vardgarantiDagar: 90, riskDagar: 14, paminnelseTimmar: 48, egenGransTimmar: 24, incheckningForeMin: 60, incheckningEfterMin: 30,
-  text: 'Demoregler: vårdgarantin räknas som 90 dagar från att remissen togs emot, och den som har högst 14 dagar kvar lyfts fram. Påminnelsen går ut 48 timmar före tiden. Patienten kan boka om och avboka i Min journal fram till 24 timmar före. Incheckningen är öppen från en timme före till en halvtimme efter tiden.',
+  text: 'Demoregler: vårdgarantin i den specialiserade vården räknas som 90 dagar från att remissen utfärdades, och den som har högst 14 dagar kvar lyfts fram. Påminnelsen går ut 48 timmar före tiden. Patienten kan boka om och avboka i Min journal fram till 24 timmar före. Incheckningen är öppen från en timme före till en halvtimme efter tiden.',
 };
 
 const MIN = 60_000;
@@ -438,7 +438,9 @@ export function vantelistaFranRemiss(db, r, { av = null, tidstyp = 'nybesok', yr
   // uppdrag (remiss-r10.js) kan accepteras på nytt.
   if (db.query("SELECT 1 FROM vantelista WHERE remiss_id = ? AND status <> 'avslutad'").get(r.id)) return null;
   if (!db.query('SELECT 1 FROM scheman s WHERE s.enhet_id IN (SELECT id FROM enheter WHERE id = ?1 OR forald_id = ?1)').get(r.till_enhet_id)) return null;
-  const fran = datumAv(new Date(r.mottagen_tid ?? r.skickad_tid));
+  // Runda 13, r3: vårdgarantin räknas från att remissen utfärdades, eller från att patienten själv sökte kontakt med
+  // en egen vårdbegäran (6 kap. 1 § hälso- och sjukvårdsförordningen), inte från att mottagaren tog emot den.
+  const fran = datumAv(new Date(r.skickad_tid ?? r.mottagen_tid ?? iso()));
   const prioritet = ['akut', 'skyndsam'].includes(r.prioritet) ? 'hog' : 'normal';
   // Runda 6, r4: en egen vårdbegäran från invånaren kommer från Min journal, inte från en vårdenhet.
   const orsak = r.fran_enhet_id === EGEN_VARDBEGARAN ? `${TIDSTYPER[tidstyp]?.text ?? 'Besök'} enligt egen vårdbegäran`
@@ -499,10 +501,20 @@ export function sakraVantelista(db) {
 // Gränsen för en post: vårdgarantin för ett nybesök efter remiss (demoregel) och det medicinska måldatumet. Det som
 // kommer först gäller. Vid patientvald väntan räknas inte vårdgarantin.
 // Runda 12, r1: med db läses vårdgarantin och gränsen för att lyftas fram ur konfigurationen (Sussa 12.1.1.6).
+// Runda 13, r3: i primärvården gäller inte de 90 dagarna. Där ska patienten få kontakt samma dag och en medicinsk
+// bedömning inom tre dagar (6 kap. 1 § hälso- och sjukvårdsförordningen), och bedömningen är gjord när vårdcentralen har
+// bedömt den egna vårdbegäran eller remissen (vardbegaran.js).
+export const BEDOMNINGSGARANTI_DAGAR = 3;
+const iPrimarvarden = (db, enhetId) => {
+  if (!db || !enhetId) return false;
+  let e = enhetRad(db, enhetId);
+  for (let i = 0; i < 6 && e; i++) { if (e.id === 'primarvard') return true; e = e.forald_id ? enhetRad(db, e.forald_id) : null; }
+  return false;
+};
 export function gransFor(post, dag = idag(), db = null) {
   const kandidater = [];
   const garanti = db ? regel(db, 'vardgarantiDagar') : DEMOREGLER.vardgarantiDagar;
-  if (post.remiss_id && post.tidstyp === 'nybesok' && !post.patientvald) kandidater.push({ datum: addDagar(post.fran, garanti), typ: 'vardgaranti', text: 'vårdgarantin (demoregel)' });
+  if (post.remiss_id && post.tidstyp === 'nybesok' && !post.patientvald && !iPrimarvarden(db, post.enhet_id)) kandidater.push({ datum: addDagar(post.fran, garanti), typ: 'vardgaranti', text: 'vårdgarantin (demoregel)' });
   if (post.mal) kandidater.push({ datum: post.mal, typ: 'mal', text: post.remiss_id ? 'remissens sista svarsdatum' : 'måldatum från läkaren' });
   if (!kandidater.length) return null;
   const g = kandidater.sort((a, b) => a.datum.localeCompare(b.datum))[0];
@@ -1174,6 +1186,15 @@ export function teamVem(db, bokningId) {
 
 // Kallelsen skrivs av systemet ur bokningen: tid, plats, vårdgivarens yrke, förberedelser och avgift. Den innehåller
 // aldrig journaltext, diagnos eller remissens frågeställning, bara det en kallelse behöver.
+// Runda 13, r3 (E3-16): mottagningens telefonnummer i kallelsen. Numren är ur Post- och telestyrelsens serie för
+// påhittade nummer (070-174 06 05 till 99), ett per vårdenhet, och märks som påhittade i demon.
+export function telefonFor(db, enhetId) {
+  const ve = vardenhetFor(db, enhetId) ?? enhetId;
+  const alla = db.query("SELECT id FROM enheter WHERE typ = 'vardenhet' ORDER BY id").all().map(r => r.id);
+  const nr = 5 + (Math.max(0, alla.indexOf(ve)) % 95);
+  return `070-174 06 ${String(nr).padStart(2, '0')}`;
+}
+
 export function kallelseText(db, b, typ = 'kallelse', tillagg = {}) {
   const tid = tidRad(db, b.tid_id);
   const schema = schemaRad(db, tid.schema_id);
@@ -1193,13 +1214,15 @@ export function kallelseText(db, b, typ = 'kallelse', tillagg = {}) {
       avgift: a, vantelista: Boolean(b.vantelista_id), ingrepp: r4.ingrepp, lokal: r4.lokal, transport: r4.transport, fore: r4.fore ?? (r4.foreAvbokad ? {} : null),
     });
   }
-  const avgift = !b.patient_id ? 'Avgift: systemet räknar avgiften för varje patient.' : !a ? '' : a.belopp === 0 ? 'Avgift: ingen avgift.' : `Avgift: ${a.belopp} kronor. Har du frikort betalar du inget. Avgifterna i demon är påhittade.`;
+  // Runda 13, r3 (E3-16): mallen utan patient har ingen intern rad om hur avgiften räknas.
+  const avgift = !b.patient_id ? 'Avgift: enligt patientavgifterna. Har du frikort betalar du inget.' : !a ? '' : a.belopp === 0 ? 'Avgift: ingen avgift.' : `Avgift: ${a.belopp} kronor. Har du frikort betalar du inget. Avgifterna i demon är påhittade.`;
   const ttText = r4.ingrepp ? plan.INGREPP[r4.ingrepp].text : tt.text;
   const vem = tid.tidstyp === 'grupp' ? `${tid.rubrik ?? 'Gruppträff'}, ledd av ${YRKESROLL[schema.yrkesroll]} ${vg?.namn ?? ''}`
     // Runda 8, r3: ett teambesök med alla vårdgivarna.
     : tid.tidstyp === 'team' && b.id ? `Teambesök med ${teamVem(db, b.id)}`
       : `${ttText} hos ${YRKESROLL[schema.yrkesroll]} ${vg?.namn ?? ''}`;
-  const andra = 'Kan du inte komma? Boka om eller avboka i Min journal senast 24 timmar före, eller ring mottagningen.';
+  const tel = `${telefonFor(db, schema.enhet_id)} (påhittat nummer i demon)`;
+  const andra = `Kan du inte komma? Boka om eller avboka i Min journal senast 24 timmar före, eller ring mottagningen på ${tel}.`;
   const incheck = tt.fysisk ? 'Checka in i Min journal eller på skärmen i väntrummet när du kommer.' : null;
   const plats = `${r4.lokal ? `${r4.lokal}, ` : ''}${tt.fysisk ? ort : `${tt.text}, ${ort}`}`;
   const forb = r4.ingrepp ? plan.INGREPP[r4.ingrepp].forberedelse : FORBEREDELSER[tid.tidstyp];
@@ -1208,9 +1231,9 @@ export function kallelseText(db, b, typ = 'kallelse', tillagg = {}) {
   const rader = {
     kallelse: [`Hej ${p.fornamn},`, `Du har fått en tid. ${vem}.`, `Tid: ${tidText(tid.start)}.`, fore, `Plats: ${plats}.`, forb, resa, incheck, avgift, andra],
     ombokning: [`Hej ${p.fornamn},`, 'Din tid är ändrad. Den gamla tiden gäller inte längre.', `Ny tid: ${tidText(tid.start)}. ${vem}.`, fore, `Plats: ${plats}.`, forb, resa, incheck, avgift, andra],
-    paminnelse: [`Påminnelse: du har en tid ${tidText(tid.start)}. ${vem}, ${ort}.`, fore, tt.fysisk ? incheck : forb, 'Kan du inte komma? Avboka i Min journal eller ring mottagningen.'],
+    paminnelse: [`Påminnelse: du har en tid ${tidText(tid.start)}. ${vem}, ${ort}.`, fore, tt.fysisk ? incheck : forb, `Kan du inte komma? Avboka i Min journal eller ring mottagningen på ${tel}.`],
     avbokning: [`Hej ${p.fornamn},`, `Din tid ${tidText(tid.start)} på ${ort} är avbokad.`, r4.foreAvbokad ? 'Provtagningen före besöket är också avbokad.' : null,
-      b.vantelista_id ? 'Du står kvar i kön och får en ny tid.' : 'Vill du ha en ny tid? Boka i Min journal eller ring mottagningen.'],
+      b.vantelista_id ? 'Du står kvar i kön och får en ny tid.' : `Vill du ha en ny tid? Boka i Min journal eller ring mottagningen på ${tel}.`],
   }[typ];
   return rader.filter(Boolean).join('\n');
 }

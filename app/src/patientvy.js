@@ -14,7 +14,7 @@
 // Namnet på den som skrev en anteckning finns med, eftersom det är en del av journalen. Logglistan har vårdenhet,
 // yrkesroll, tid och typ av åtkomst men inte namnet på den som läste (se docs/design.md, Min journal).
 import { Fel, iso, datumAv } from './db.js';
-import { provaInvanare, vardenhetFor, alder, formateraPnr, maskeraPnr, SKYDDAD_NAMN, EGEN_FRAN_ALDER } from './atkomst.js';
+import { provaInvanare, vardenhetFor, alder, formateraPnr, maskeraPnr, SKYDDAD_NAMN, EGEN_FRAN_ALDER, HANDLINGAR as HANDLINGAR_TEXT } from './atkomst.js';
 import { loggaRad, verifiera } from './logg.js';
 import { anteckningUt, kallaEtikett, MATTYPER } from './journal.js';
 import { ordinationUt } from './lakemedel.js';
@@ -387,6 +387,18 @@ const VIA = (resurs) => {
 // journal aldrig tränger undan vårdens åtkomster eller någon annans försök ur listan. Loggens löpnummer lämnas inte ut, eftersom luckorna i det visar hur många
 // åtkomster som har gjorts i andra journaler.
 export const LOGGLISTA_MAX = { vard: 500, egna: 200, andra: 200 };
+// Runda 13, r3 (E3-36): läskopians rutinrader sammanfattas per dag, vårdenhet och yrkesroll, med antalet, så att
+// patienten ser att det har skett och var. En nekad rad eller en rad med nödåtkomst eller samtycke står för sig.
+function sammanfattaKopior(ut, r) {
+  const rutin = r.automatisk && r.resultat === 'tillaten' && !['nodatkomst', 'samtycke_sparr'].includes(r.grund);
+  const dag = String(r.tid).slice(0, 10);
+  const forra = rutin ? ut.find(x => x.automatisk && x.sammanfattad && x.tid.slice(0, 10) === dag && x.vardenhet === r.vardenhet && x.yrkesroll === r.yrkesroll) : null;
+  if (forra) { forra.antal++; return ut; }
+  ut.push(rutin ? { ...r, sammanfattad: true, antal: 1 } : r);
+  return ut;
+}
+// Runda 13, r3 (E3-36): åtgärden med behörighetsmotorns beskrivning, med stor bokstav, och en allmän text för en okänd kod.
+const handlingText = (h) => { const t = HANDLINGAR_TEXT[h]; return t ? t.charAt(0).toUpperCase() + t.slice(1) : 'Annan åtgärd i journalen'; };
 export function logglista(atk) {
   const db = atk.db;
   const jag = atk.invanare.id;
@@ -408,9 +420,13 @@ export function logglista(atk) {
       return {
         tid: r.tid, vem, vardgivare: inv ? null : vg, vardenhet: e.vardenhet, arbetsplats: e.arbetsplats,
         yrkesroll: r.yrke ? YRKEN[r.yrke] ?? null : null, handling: r.handling, grund: r.grund, resultat: r.resultat, via: VIA(r.resurs),
+        // Runda 13, r3 (E3-36, säkerhetsgranskningen): åtgärden i klartext, aldrig en intern kod. Läskopian för avbrott
+        // beskrivs som det den är, ett utlämnande till en dator på vårdenheten.
+        handlingText: VIA(r.resurs) === 'laskopia' ? `Uppgifter ur journalen kopierades till en dator på ${e.vardenhet ?? 'vårdenheten'} för läsning vid avbrott` : handlingText(r.handling),
+        ...(VIA(r.resurs) === 'laskopia' ? { automatisk: true } : {}),
         egenAtkomst: r.invanare_id === jag,
       };
-    }),
+    }).reduce(sammanfattaKopior, []),
     max: LOGGLISTA_MAX, avskurna: Object.fromEntries(Object.entries(delar).map(([k, v]) => [k, v.length >= LOGGLISTA_MAX[k]])),
     kedjaHel: verifiera(db).hel,
   };
@@ -440,7 +456,7 @@ export function skapaBegaran(atk, { typ, enhetId, meddelande } = {}) {
   const pid = atk.patientId;
   if (!BEGARANTYPER.includes(typ)) throw new Fel(400, 'Välj vad du vill begära.', 'ogiltig', { falt: ['typ'] });
   if (typ !== 'loggutdrag' && atk.relation !== 'egen') {
-    throw new Fel(403, 'En vårdnadshavare kan inte spärra barnets uppgifter eller begära att en spärr hävs (patientdatalagen 4 kap. 4 §).', 'nekad');
+    throw new Fel(403, 'En vårdnadshavare kan inte spärra barnets uppgifter eller begära att en spärr hävs (patientdatalagen 4 kap. 4 och 5 §§).', 'nekad');
   }
   const text = meddelande == null ? '' : typeof meddelande === 'string' ? meddelande.trim() : null;
   if (text === null || text.length > 500) throw new Fel(400, 'Meddelandet får vara högst 500 tecken.', 'ogiltig', { falt: ['meddelande'] });

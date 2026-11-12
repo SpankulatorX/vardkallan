@@ -69,6 +69,8 @@ const UTTRYCKLIGA = {
   enhet_efterfoljare: { typ: 'enhet', kolumner: ['gammal_id', 'ny_id'], patient: false },
   fordjupade_steg: { typ: 'via', kolumn: 'genomgang_id', tabell: 'fordjupade_genomgangar' },
   arkivexporter: { typ: 'via', kolumn: 'beslut_id', tabell: 'arkivbeslut' },
+  // Runda 13, r3: verksamhetschefens godkännande av en gallring eller radering.
+  arkivbeslut_godkannanden: { typ: 'via', kolumn: 'beslut_id', tabell: 'arkivbeslut' },
   stickprov: { typ: 'via', kolumn: 'av', tabell: 'personal' },
   vardplan_mal: { typ: 'via', kolumn: 'plan_id', tabell: 'vardplaner' },
   vardplan_atgarder: { typ: 'via', kolumn: 'plan_id', tabell: 'vardplaner' },

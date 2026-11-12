@@ -168,12 +168,14 @@ export function berakna(body = {}) {
 // Larm i inkorgen för sjuksköterskan och läkaren: patienter med en pågående vårdkontakt på den egna vårdenheten där
 // NEWS2 eller ett enskilt värde kräver åtgärd. Bara värden som togs på den egna vårdenheten under den pågående
 // kontakten räknas, så att larmet aldrig bygger på uppgifter från en annan vårdenhet eller en spärrad vårdenhet.
+// Runda 13, r3: dag och klockslag i svensk tid för larmtexten.
+const klockText = (t) => new Date(t).toLocaleString('sv-SE', { timeZone: 'Europe/Stockholm', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 export function larmForInkorg(db, personal, valFor = () => ({})) {
   if (!['lakare', 'sjukskoterska'].includes(personal?.yrke) || !kanRoll(personal, 'las_matvarden')) return [];
   const ve = vardenhetFor(db, personal.enhet_id);
   const enheter = enheterUnder(db, ve);
   const ph = enheter.map(() => '?').join(', ');
-  const kontakter = db.query(`SELECT patient_id, min(start) AS start FROM vardkontakter WHERE enhet_id IN (${ph}) AND slut IS NULL
+  const kontakter = db.query(`SELECT patient_id, min(start) AS start, max(typ = 'slutenvard') AS sluten FROM vardkontakter WHERE enhet_id IN (${ph}) AND slut IS NULL
     AND NOT (coalesce(planerad, 0) = 1 AND ankomst IS NULL AND start > ?) GROUP BY patient_id`).all(...enheter, iso());
   const ut = [];
   for (const k of kontakter) {
@@ -189,8 +191,20 @@ export function larmForInkorg(db, personal, valFor = () => ({})) {
     // Runda 10, r4: bara ett beslut om skala 2 från den egna vårdenheten räknas i larmet, som värdena.
     const beslut = skala2.beslutFor(atk);
     const lage = news2Lage(rader, Date.now(), { skala: beslut && vardenhetFor(db, beslut.enhet_id) === ve ? 2 : 1 });
-    if (!lage.larm) continue;
+    // Runda 13, r3 (E2-13): en inneliggande patient vars kontroll enligt NEWS2:s intervall har uteblivit larmar också.
+    const forsenad = Boolean(k.sluten && lage.aktuell?.forsenad);
+    if (!lage.larm && !forsenad) continue;
     const a = lage.aktuell;
+    if (!lage.larm) {
+      ut.push({
+        patientId: p.id, ankareId: a.ankareId, tid: a.tid, poang: a.poang, komplett: a.komplett, risk: a.risk,
+        rubrik: 'Kontrollen enligt NEWS2 är försenad',
+        text: `Senaste NEWS2 är ${a.poang} från ${klockText(a.tid)}. Nästa kontroll skulle ha gjorts ${klockText(a.nastaKontroll)}.`,
+        atgard: 'Ta en ny kontroll av vitalparametrarna nu.', frekvens: a.frekvens, nastaKontroll: a.nastaKontroll, forsenad: true,
+        href: `#/patient/${encodeURIComponent(p.id)}/matvarden`, demoregel: DEMOREGEL,
+      });
+      continue;
+    }
     const roda = lage.nyareRoda.length ? lage.nyareRoda : a.delar.filter(d => d.poang === 3);
     // Ett nyare enskilt värde med 3 poäng väger tyngre än en lägre poäng i den senaste hela omgången.
     const nyRod = lage.nyareRoda.length > 0 && !['hog', 'medel'].includes(a.risk);

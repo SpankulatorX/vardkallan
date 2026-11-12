@@ -51,6 +51,8 @@ export function registreraRutter({ rutt, kravInloggad }) {
   rutt('POST', '/api/undantag', (c) => [201, undantag.foresla(c.db, kravInloggad(c), c.body)]);
   rutt('POST', '/api/undantag/:id/godkann', (c, id) => undantag.godkann(c.db, kravInloggad(c), id, c.body));
   rutt('POST', '/api/undantag/:id/avsluta', (c, id) => undantag.avsluta(c.db, kravInloggad(c), id, c.body));
+  // Runda 13, r3: systemförvaltaren avslår en begäran från vården om att undanta en anteckning.
+  rutt('POST', '/api/undantag/begaran/:id/avsla', (c, id) => undantag.avslaBegaran(c.db, kravInloggad(c), id, c.body));
 
   rutt('GET', '/api/omorganisation', (c) => omorganisation.oversikt(c.db, kravInloggad(c)));
   rutt('POST', '/api/omorganisation/forhandsvisa', (c) => { const p = kravInloggad(c); return forhand(() => ({ ok: true, ...omorganisation.forhandsvisa(c.db, p, c.body) })); });

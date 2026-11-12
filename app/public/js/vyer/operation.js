@@ -51,7 +51,7 @@ function vantelistaHtml(v) {
   return `<div class="tabellrulle"><table class="tabell op-vantelista"><caption class="sr">Väntelistan i ordning efter målet för väntetiden</caption>
     <thead><tr><th scope="col">Patient</th><th scope="col">Ingrepp</th><th scope="col">Prioritet</th><th scope="col">Mål</th><th scope="col"><span class="sr">Planera</span></th></tr></thead>
     <tbody>${v.vantande.map(x => `<tr${x.overMal ? ' class="rad-larm"' : ''}><th scope="row">${patientLank(x.patient)}</th><td>${esc(x.ingrepp)} <span class="under-text">KVÅ ${esc(x.kva)}</span></td><td>${esc(x.prioritet)}</td>
-      <td>${esc(datum(x.malDatum))}<span class="under-text">${x.overMal ? 'Målet har passerats' : `${esc(x.dagarKvar)} dagar kvar`}</span></td>
+      <td>${esc(datum(x.malDatum))}<span class="under-text">${x.overMal ? 'Målet har passerats' : `${esc(x.dagarKvar)} dagar kvar`}</span>${x.behandlingsgaranti ? `<span class="under-text${x.behandlingsgaranti.passerad ? ' text-larm' : ''}" data-behandlingsgaranti>Behandlingsgarantin ${esc(datum(x.behandlingsgaranti.datum))}${x.behandlingsgaranti.passerad ? ', passerad' : ''}</span>` : ''}</td>
       <td>${far('operation_planera') ? `<button type="button" class="knapp liten" data-planera="${esc(x.id)}">Planera</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
     <p class="dampad liten">${esc(v.demoregel)}</p>`;
 }

@@ -20,6 +20,8 @@ import { loggaRad } from './logg.js';
 import { varde } from './konfiguration.js';
 import * as vardformer from './vardformer.js';
 import { lasHandling } from './journal.js';
+// Runda 13, r3: undantagen från visning.
+import { provare as undantagProvare } from './undantag.js';
 
 export const MAL_STANDARD = { remissSvarDagar: 14, labbSvarTimmar: 24, nllKvittensMinuter: 5 };
 export const processId = (v) => `urn:vardkallan:vardkontakt:${v.id}`;
@@ -37,7 +39,10 @@ export function handelsekedja(atk, v) {
   egen(v.ankomst, 'Patienten kom');
   egen(v.besok_slut, 'Besöket slutade');
   egen(v.slut, 'Kontakten avslutades');
+  // Runda 13, r3 (säkerhetsfynd 6): en anteckning som är undantagen från visning finns inte i kedjan.
+  const undantagen = undantagProvare(db, 'visning');
   for (const a of db.query("SELECT * FROM anteckningar WHERE vardkontakt_id = ? AND status = 'signerad'").all(v.id)) {
+    if (undantagen(a, 'anteckning')) continue;
     if (synlig(a.enhet_id, lasHandling(a.kategori))) egen(a.signerad_tid, `${a.typ} signerad`, { objekt: `anteckning:${a.id}` });
   }
   for (const d of db.query('SELECT * FROM diagnoser WHERE vardkontakt_id = ?').all(v.id)) if (synlig(d.enhet_id, 'las_diagnoser')) egen(`${d.datum}T12:00:00.000Z`, `Diagnos ${d.kod} registrerad`);

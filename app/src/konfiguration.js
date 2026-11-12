@@ -16,6 +16,8 @@ import { loggaRad } from './logg.js';
 import * as sakerhetslogg from './sakerhetslogg.js';
 // Runda 12, r1: ATC-registret och förvalen för läkemedelsvarningarna.
 import { ATC, INTERAKTIONER_STANDARD, MAXDOSER_STANDARD } from './kodverk.js';
+// Runda 13, r3: lagens tak för patientavgifterna räknas ur prisbasbeloppet för det år ändringen gäller.
+import { hogkostnadstak, slutenvardstak, LAGRUM as AVGIFT_LAGRUM, AVGIFTSFRI_ALDER_LAG } from './prisbasbelopp.js';
 
 export const OMRADEN = {
   administration: { rubrik: 'Administration', sussa: '12.1.1.6' },
@@ -114,7 +116,7 @@ const HELTAL = {
   'arkiv.gallring_matvarden_ar': {
     omrade: 'administration', rubrik: 'År innan mätvärden gallras för sig', enhet: 'år', standard: 100, min: 10, max: 100, anvands: 'arkiv.js',
     beskrivning: 'Så många år efter mätningen tar ett gallringsbeslut med ett mätvärde, också när journalen i övrigt finns kvar. Standardvärdet 100 år betyder att mätvärden i praktiken gallras med hela journalen. Gallring görs alltid efter ett registrerat beslut.',
-    minVarfor: 'Ett mätvärde är en journalhandling och ska bevaras i minst tio år (patientdatalagen 3 kap. 17 §).',
+    minVarfor: 'Ett mätvärde är en del av journalen, och journalhandlingen ska bevaras i minst tio år efter den senaste uppgiften i den (patientdatalagen 3 kap. 17 §). Kortare än tio år efter mätningen är därför aldrig tillåtet.',
     maxVarfor: 'Mer än hundra år är längre än någon journal behöver bevaras.',
     effekt: (db, nytt, forra, nu) => {
       const n = (ar) => db.query('SELECT count(*) AS n FROM matvarden WHERE tid < ?').get(new Date(nu.getTime() - ar * 365.25 * DAG).toISOString()).n;
@@ -551,9 +553,9 @@ const kr = (n) => `${n} kr`;
 Object.assign(HELTAL, {
   'tidbok.vardgaranti_dagar': {
     omrade: 'administration', rubrik: 'Vårdgarantin för ett nybesök efter remiss', enhet: 'dagar', standard: 90, min: 14, max: 90, anvands: 'tidbok.js, planering.js och kapacitetsprognos.js',
-    beskrivning: 'Så många dagar efter att remissen togs emot ska patienten ha fått sitt första besök. Väntelistan, planeringen och kapacitetsprognosen räknar gränsen ur värdet. Vid patientvald väntan räknas inte vårdgarantin.',
+    beskrivning: 'Så många dagar efter att remissen utfärdades, eller efter att patienten själv sökte kontakt när remiss inte behövs, ska patienten ha fått sitt första besök i den specialiserade vården. Väntelistan, planeringen och kapacitetsprognosen räknar gränsen ur värdet. Tiden räknas inte när patienten själv väljer att vänta (6 kap. 2 § hälso- och sjukvårdsförordningen). Primärvårdens garanti är en annan, se docs/lagrum.md.',
     minVarfor: 'Kortare än två veckor går inte att planera för ett nybesök, och alla remisser skulle visas som försenade.',
-    maxVarfor: 'Vårdgarantin i hälso- och sjukvårdslagen ger patienten rätt till ett besök inom 90 dagar. En längre gräns är inte tillåten.',
+    maxVarfor: 'Vårdgarantin ger patienten rätt till ett besök i den specialiserade vården inom 90 dagar från att remissen utfärdades (6 kap. 1 § hälso- och sjukvårdsförordningen 2017:80). En längre gräns är inte tillåten.',
     effekt: (db, nytt, forra) => {
       const n = harTabell(db, 'vantelista') ? db.query("SELECT count(*) AS n FROM vantelista WHERE status = 'vantar' AND remiss_id IS NOT NULL AND tidstyp = 'nybesok' AND coalesce(patientvald, 0) = 0").get().n : 0;
       return [`${st(n, 'nybesök', 'nybesök')} på väntelistan får gränsen ${dagar(nytt)} efter remissen i stället för ${dagar(forra)}.`];
@@ -602,31 +604,35 @@ Object.assign(HELTAL, {
     effekt: (db, nytt, forra) => [`Ett besök på akutmottagningen kostar ${kr(nytt)} i stället för ${kr(forra)}.`],
   },
   'avgift.slutenvard_dygn_kr': {
-    omrade: 'administration', rubrik: 'Patientavgift per vårddygn i slutenvård', enhet: 'kr', standard: 100, min: 0, max: 150, anvands: 'vardkontakt.js',
-    beskrivning: 'Avgiften per påbörjat vårddygn. Demoregel, inte en regions avgift.',
+    omrade: 'administration', rubrik: 'Patientavgift per vårddygn i slutenvård', enhet: 'kr', standard: 100, min: 0, max: slutenvardstak(new Date()).tak, anvands: 'vardkontakt.js',
+    beskrivning: `Avgiften per påbörjat vårddygn. Lagens tak är 0,0023 prisbasbelopp per vårddag (${AVGIFT_LAGRUM.sluten}), och systemet räknar taket för det år ändringen gäller. Demoregel, inte en regions avgift.`,
     minVarfor: 'En avgift kan inte vara negativ.',
-    maxVarfor: 'Mer än 150 kronor per dygn är över demons tak för slutenvård.',
+    // Runda 13, r3: taket räknas ur prisbasbeloppet för året då ändringen gäller (prisbasbelopp.js).
+    maxFor: (datum) => slutenvardstak(datum).tak, maxVarforFor: (datum) => slutenvardstak(datum).text,
+    maxVarfor: slutenvardstak(new Date()).text,
     effekt: (db, nytt, forra) => [`Ett vårddygn kostar ${kr(nytt)} i stället för ${kr(forra)}.`],
   },
   'avgift.hogkostnadsskydd_kr': {
     omrade: 'administration', rubrik: 'Högkostnadsskyddet för öppenvård', enhet: 'kr', standard: 1450, min: 500, max: 1450, anvands: 'vardkontakt.js, kassa.js och ekonomi.js',
-    beskrivning: 'När patienten har betalat så mycket i öppenvård under tolv månader gäller frikort, och resten av perioden är avgiftsfri.',
+    beskrivning: `När patienten har betalat så mycket i öppenvård under tolv månader gäller frikort, och resten av perioden är avgiftsfri. Lagens tak är 0,025 prisbasbelopp avrundat nedåt till närmaste femtiotal kronor, eller det lägre belopp som regionen bestämmer (${AVGIFT_LAGRUM.hogkostnad}). Systemet räknar taket för det år ändringen gäller.`,
     minVarfor: 'Lägre än 500 kronor ger frikort efter två besök, och då fyller avgiften inte sin uppgift.',
-    maxVarfor: 'Taket för högkostnadsskyddet bestäms i lag, och demon räknar med 1 450 kronor som högsta värde.',
+    // Runda 13, r3: taket räknas ur prisbasbeloppet för året då ändringen gäller (prisbasbelopp.js).
+    maxFor: (datum) => hogkostnadstak(datum).tak, maxVarforFor: (datum) => hogkostnadstak(datum).text,
+    maxVarfor: hogkostnadstak(new Date()).text,
     effekt: (db, nytt, forra) => [`Frikortet gäller när patienten har betalat ${kr(nytt)} i stället för ${kr(forra)}. Frikort som redan gäller står kvar.`],
   },
   'avgift.fri_under_ar': {
     omrade: 'administration', rubrik: 'Avgiftsfritt för patienter under', enhet: 'år', standard: 20, min: 18, max: 25, anvands: 'vardkontakt.js och kassa.js',
-    beskrivning: 'Patienter under den här åldern betalar ingen avgift i öppenvård. Demoregel.',
-    minVarfor: 'Öppenvård för barn och unga under 18 år är avgiftsfri i demon, och gränsen kan inte sänkas under det.',
+    beskrivning: 'Patienter under den här åldern betalar ingen avgift i öppenvård. Avgiftsfriheten för barn och unga står inte i lagen utan är regionens beslut. Demoregel.',
+    minVarfor: 'Demon har 18 år som lägsta gräns för barn och unga. Det är en demoregel, eftersom lagen inte har någon sådan gräns och avgiftsfriheten är regionens beslut.',
     maxVarfor: 'Över 25 år är inte en gräns för barn och unga.',
     effekt: (db, nytt, forra) => [`Patienter under ${nytt} år betalar ingen avgift i stället för under ${forra} år.`],
   },
   'avgift.fri_fran_ar': {
     omrade: 'administration', rubrik: 'Avgiftsfritt för patienter från', enhet: 'år', standard: 85, min: 65, max: 85, anvands: 'vardkontakt.js och kassa.js',
-    beskrivning: 'Patienter som har fyllt den här åldern betalar ingen avgift i öppenvård.',
+    beskrivning: `Patienter som har fyllt den här åldern betalar inga vårdavgifter och inga avgifter för förbrukningsartiklar i öppen vård. Enligt ${AVGIFT_LAGRUM.avgiftsfri85} gäller det från ${AVGIFTSFRI_ALDER_LAG} år, och regionen får sänka gränsen men inte höja den.`,
     minVarfor: 'Under 65 år är inte en gräns för äldre.',
-    maxVarfor: 'Öppenvården är avgiftsfri för den som har fyllt 85 år enligt lag, så gränsen kan inte vara högre.',
+    maxVarfor: `Patienter som har fyllt ${AVGIFTSFRI_ALDER_LAG} år betalar inte vårdavgifter eller avgifter för förbrukningsartiklar i öppen vård (${AVGIFT_LAGRUM.avgiftsfri85}). Regionen får sänka gränsen men inte höja den.`,
     effekt: (db, nytt, forra) => [`Patienter från ${nytt} år betalar ingen avgift i stället för från ${forra} år.`],
   },
 });
@@ -638,10 +644,20 @@ JANEJ['lakemedel.orsak_frivillig_utan_nll'] = {
   effekt: (db, nytt) => [nytt ? 'Från dagen ändringen gäller får ordinationer som inte förs över till NLL sparas utan ordinationsorsak och uppföljningsdatum.' : 'Från dagen ändringen gäller krävs ordinationsorsak och uppföljningsdatum i alla ordinationer.', 'Ordinationer som redan finns ändras inte.'],
 };
 
+// Runda 13, r3 (vårt L5, beslut från Jonas): vårdgivaren kan kräva flerfaktor vid inloggning. server.js läser värdet vid
+// varje inloggning. Den som redan är inloggad loggas inte ut när värdet ändras, utan får frågan vid nästa inloggning.
+JANEJ['sakerhet.flerfaktor_kravs'] = {
+  omrade: 'sakerhet', rubrik: 'Flerfaktor krävs vid inloggning', typ: 'janej', standard: false, anvands: 'server.js och flerfaktor.js',
+  text: { true: 'Flerfaktor krävs av alla', false: 'Var och en slår på flerfaktor själv' },
+  beskrivning: 'Om personalen och invånarna i Min journal måste bekräfta inloggningen med en andra faktor, en passkey eller en app för engångskoder. Med ja får ingen behörighet förrän den andra faktorn är bekräftad, och den som saknar en faktor leds direkt till att registrera en. Den som redan är inloggad loggas inte ut, utan får frågan vid nästa inloggning. Läsläget vid avbrott fungerar som förut efter den andra faktorn. Demoregel: i den publika demon står den på nej, så att besökare inte låses ute ur sin sandlåda.',
+  effekt: (db, nytt) => [nytt ? 'Från dagen ändringen gäller bekräftar alla sin inloggning med en andra faktor. Den som saknar en faktor registrerar en vid nästa inloggning.' : 'Från dagen ändringen gäller slår var och en på flerfaktor själv. Faktorer som redan är registrerade krävs fortfarande vid inloggning.',
+    'Den som redan är inloggad loggas inte ut.'],
+};
+
 // Regler som inte går att ändra som parametrar, och varför.
 export const LASTA = [
   { rubrik: 'Vårdrelation, inre sekretess, spärr och nödåtkomst', varfor: 'Behörighetsreglerna följer patientdatalagen 4 kap. och HSLF-FS 2016:40 och finns i behörighetsmotorn, inte som parametrar, så att ingen kan vidga åtkomsten till journaler med en inställning. En spärr sätts och hävs bara på patientens begäran.' },
-  { rubrik: 'Åtkomstloggen och säkerhetsloggen', varfor: 'Loggarna går inte att stänga av, ändra eller radera (HSLF-FS 2016:40 4 kap. 9 §). Det skyddas av databasens triggrar.' },
+  { rubrik: 'Åtkomstloggen och säkerhetsloggen', varfor: 'Varje åtkomst ska loggas (HSLF-FS 2016:40 4 kap. 9 §), och loggarna ska sparas i minst fem år (4 kap. 9 b §). Vårdkällan låter dessutom ingen stänga av, ändra eller radera loggarna, vilket skyddas av databasens triggrar.' },
   // Runda 12, r1: frivilliga där NLL inte berörs, om vårdgivaren väljer det (lakemedel.orsak_frivillig_utan_nll).
   { rubrik: 'Ordinationsorsak och uppföljningsdatum vid förskrivning', varfor: 'Nationella läkemedelslistan tar inte emot en förskrivning eller ordination utan ordinationsorsak och uppföljningsdatum, så de krävs alltid när ordinationen förs över dit. För ordinationer som inte förs över, som blodprodukter och nutrition, kan vårdgivaren göra dem frivilliga med regeln ovan.' },
   { rubrik: 'Vem som får läsa journalen i Min journal', varfor: 'Åldersgränserna för egen läsning och för vårdnadshavare följer villkoren för invånartjänsten. Undantag från visning gäller aldrig Min journal.' },
@@ -666,7 +682,8 @@ export function varde(db, nyckel, nu = new Date()) {
 }
 
 // Kontrollerar ett värde. Returnerar { ok, varde, varfor }.
-export function prova(nyckel, inmatat) {
+// Runda 13, r3: datum är dagen då ändringen ska gälla. En parameter med maxFor får sitt tak för det året.
+export function prova(nyckel, inmatat, { datum = null } = {}) {
   const def = paramDef(nyckel);
   if (!def) return { ok: false, varfor: 'Parametern finns inte.' };
   // Runda 8, r5: ja eller nej.
@@ -708,7 +725,9 @@ export function prova(nyckel, inmatat) {
   const t = typeof inmatat === 'number' ? inmatat : Number(String(inmatat ?? '').trim().replace(',', '.'));
   if (!Number.isFinite(t) || !Number.isInteger(t)) return { ok: false, varfor: `Skriv ett heltal i ${def.enhet}.` };
   if (t < def.min) return { ok: false, varfor: `Lägsta värde är ${def.min} ${def.enhet}. ${def.minVarfor}` };
-  if (t > def.max) return { ok: false, varfor: `Högsta värde är ${def.max} ${def.enhet}. ${def.maxVarfor}` };
+  // Runda 13, r3: lagens tak för året då ändringen gäller.
+  const max = def.maxFor ? def.maxFor(datum ?? new Date()) : def.max;
+  if (t > max) return { ok: false, varfor: `Högsta värde är ${max} ${def.enhet}. ${def.maxVarforFor ? def.maxVarforFor(datum ?? new Date()) : def.maxVarfor}` };
   return { ok: true, varde: t };
 }
 
@@ -730,8 +749,8 @@ export function forhandsvisa(db, personal, { nyckel, varde: inmatat, giltigFran 
   const def = paramDef(nyckel);
   if (!def) throw new Fel(404, 'Parametern finns inte.', 'saknas');
   const forra = varde(db, nyckel, nu);
-  const p = prova(nyckel, inmatat);
   const datum = giltigFran ?? addDagar(datumAv(nu), 1);
+  const p = prova(nyckel, inmatat, { datum });
   const ut = { nyckel, rubrik: def.rubrik, forra, forraText: visa(def, forra), ok: p.ok, varfor: p.varfor ?? null, effekt: [], giltigFran: datum };
   if (!p.ok) return ut;
   ut.varde = p.varde;
@@ -754,7 +773,7 @@ export function foresla(db, personal, { nyckel, varde: inmatat, giltigFran, moti
   const m = typeof motivering === 'string' ? motivering.trim() : '';
   if (!m) throw new Fel(400, 'Skriv varför ändringen behövs. Motiveringen följer med ändringen i historiken.', 'ogiltig', { falt: ['motivering'] });
   if (m.length > 1000) throw new Fel(400, 'Motiveringen får vara högst 1000 tecken.', 'ogiltig', { falt: ['motivering'] });
-  const p = prova(nyckel, inmatat);
+  const p = prova(nyckel, inmatat, { datum });
   if (!p.ok) throw new Fel(400, p.varfor, 'ogiltig', { falt: ['varde'] });
   const forra = varde(db, nyckel, nu);
   if (lika(p.varde, forra)) throw new Fel(400, redan(def, forra), 'ogiltig', { falt: ['varde'] });
@@ -780,7 +799,7 @@ function hamta(db, id, slag = null) {
 // för parametrar och undantag, vilken väg godkännandet än kommer.
 function proverIgen(db, a, nu) {
   if (a.slag === 'parameter') {
-    const p = prova(a.nyckel, JSON.parse(a.varde));
+    const p = prova(a.nyckel, JSON.parse(a.varde), { datum: a.giltig_fran < datumAv(nu) ? datumAv(nu) : a.giltig_fran });
     if (!p.ok) throw new Fel(400, `Ändringen kan inte godkännas: ${p.varfor}`, 'ogiltig');
     return;
   }
@@ -854,7 +873,7 @@ export function oversikt(db, personal, nu = new Date()) {
       const kommande = per(nyckel).filter(a => a.status === 'godkand' && a.galler_fran > dag).sort((a, b) => a.galler_fran.localeCompare(b.galler_fran))[0];
       const vantar = per(nyckel).find(a => a.status === 'vantar');
       return {
-        nyckel, rubrik: d.rubrik, beskrivning: d.beskrivning, typ: d.typ, enhet: d.enhet ?? null, min: d.min ?? null, max: d.max ?? null, text: d.text ?? null, ledtext: d.ledtext ?? null, semikolon: Boolean(d.avgransare),
+        nyckel, rubrik: d.rubrik, beskrivning: d.beskrivning, typ: d.typ, enhet: d.enhet ?? null, min: d.min ?? null, max: (d.maxFor ? d.maxFor(nu) : d.max) ?? null, text: d.text ?? null, ledtext: d.ledtext ?? null, semikolon: Boolean(d.avgransare),
         varde: g, vardeText: visa(d, g), standard: d.standard, arStandard: lika(g, d.standard), anvands: d.anvands,
         kommande: kommande ? { gallerFran: kommande.galler_fran, vardeText: visa(d, JSON.parse(kommande.varde)) } : null,
         vantar: vantar ? andringUt(db, vantar, personal) : null,

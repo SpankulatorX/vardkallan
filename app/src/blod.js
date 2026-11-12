@@ -349,9 +349,8 @@ const forSent = (e, nu) => {
 };
 // Id-bandet, påsens enhetsnummer och blodgruppen, som var och en av de två personerna läser och prövar själv.
 function lasVidSangen(atk, b, e, body, nu) {
-  const p = atk.db.query('SELECT personnummer FROM patienter WHERE id = ?').get(e.patient_id);
-  // Runda 11, r4: samma jämförelse som för cytostatika, så att ett reservnummer med bokstäver går att läsa.
-  if (!idNyckel(body.armband) || idNyckel(body.armband) !== idNyckel(p.personnummer)) throw new Fel(409, 'Id-bandet hör inte till patienten som blodet är berett för. Ge inte blodet.', 'fel_patient');
+  // Runda 13, r3 (säkerhetsgranskningen): den gemensamma kontrollen av armbandet i armbandstabellen (skanning.js).
+  if (!require('./skanning.js').armbandHorTill(atk.db, String(body.armband ?? ''), e.patient_id)) throw new Fel(409, 'Id-bandet hör inte till patienten som blodet är berett för. Ge inte blodet.', 'fel_patient');
   if (body.enhetsnummer !== e.enhetsnummer) throw new Fel(409, 'Enhetsnumret på påsen stämmer inte med den beredda enheten. Ge inte blodet.', 'fel_enhet');
   const t = transfusionsprover(atk, nu);
   if (!t.blodgrupp || !forenlig(b.produkt, e.blodgrupp, t.blodgrupp)) throw new Fel(409, `Enhetens blodgrupp ${e.blodgrupp} är inte förenlig med patientens${t.blodgrupp ? ` blodgrupp ${t.blodgrupp}` : ''}. Ge inte blodet och kontakta blodcentralen.`, 'oforenlig');

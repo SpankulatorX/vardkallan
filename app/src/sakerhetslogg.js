@@ -97,6 +97,11 @@ export function efterAnrop(db, { nyckel, status, kod = null, fel = null, fore = 
     if (ok && (efter.personal || efter.invanare)) logga(db, { ...bas, ...vem(efter), typ: 'inloggning', beskrivning: efter.invanare ? 'Invånaren loggade in i Min journal med e-legitimation (simulerad) och flerfaktor.' : 'Inloggning med SITHS-kort (simulerat) och flerfaktor.' });
     return;
   }
+  // Runda 13, r3: när vårdgivaren kräver flerfaktor slutför registreringen av den första faktorn inloggningen.
+  if (metod === 'POST' && ['/api/flerfaktor/passkey', '/api/flerfaktor/totp'].includes(vag) && ok && !fore.personal && !fore.invanare && (efter.personal || efter.invanare)) {
+    logga(db, { ...bas, ...vem(efter), typ: 'inloggning', beskrivning: efter.invanare ? 'Invånaren loggade in i Min journal med e-legitimation (simulerad) och en ny faktor för flerfaktor, som vårdgivaren kräver.' : 'Inloggning med SITHS-kort (simulerat) och en ny faktor för flerfaktor, som vårdgivaren kräver.' });
+    return;
+  }
   // En inloggning som lyckas men väntar på den andra faktorn loggas av servern som flerfaktor, inte som inloggning.
   if (metod === 'POST' && INLOGGNING.includes(vag) && ok && !efter.personal && !efter.invanare) return;
   if (metod === 'POST' && INLOGGNING.includes(vag)) {

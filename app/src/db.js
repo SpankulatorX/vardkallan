@@ -509,6 +509,10 @@ export function byggSeed(bas = nu()) {
   require('./flerfaktor.js').sakra(db);
   // Runda 12, r3: praktiska prov i journalen och försöken (praktiska-prov.js).
   require('./praktiska-prov.js').sakra(db);
+  // Runda 13, r3: begäranden från vården om att undanta en enskild anteckning (undantag.js).
+  require('./undantag.js').sakraBegaran(db);
+  // Runda 13, r3: hur identiteten kontrollerades när en dos gavs utan skanning (administrering.js).
+  require('./administrering.js').sakraIdentitet(db);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   // Runda 12, r2: de versionerade migreringarna från version 1.2 (releaser.js). Sist, så att schemaversionen gäller allt.
@@ -660,6 +664,10 @@ export function migrera(db) {
   // Runda 12, r3 (flerfaktor.js och praktiska-prov.js).
   require('./flerfaktor.js').sakra(db);
   require('./praktiska-prov.js').sakra(db);
+  // Runda 13, r3 (undantag.js).
+  require('./undantag.js').sakraBegaran(db);
+  // Runda 13, r3: hur identiteten kontrollerades när en dos gavs utan skanning (administrering.js).
+  require('./administrering.js').sakraIdentitet(db);
   // Runda 12, r2: kontrollen av schemaversionen när en sandlåda läses in (releaser.js). Saknade migreringar tillämpas och
   // migreringar från en nyare version av programmet backas med de återställningar som sparades i databasen.
   require('./releaser.js').kontrolleraVidStart(db);

@@ -57,9 +57,12 @@ describe('Ansvarsuppdrag för läkemedel', () => {
     const k = klient(app);
     await k.logga('vch-kard');
     // Runda 7, r2: all personal gör övningar, och verksamhetschefen ser vårdenhetens intyg.
-    expect((await k.get('/api/session')).data.behorigheter).toEqual(['lakemedelsansvar', 'faststalla_direktiv', 'utbildning', 'intyg_enhet',
+    // Runda 13, r3: inte faststalla_direktiv (HSLF-FS 2017:37 6 kap. 6 §).
+    expect((await k.get('/api/session')).data.behorigheter).toEqual(['lakemedelsansvar', 'utbildning', 'intyg_enhet',
       // Runda 9, r7: godkännande av forskningsuttag och vårdenhetens signeringslista, utan journalåtkomst.
       'forskning_godkann', 'signeringslista',
+      // Runda 13, r3 (E3-35): godkännande av gallring och radering för vårdenheten.
+      'godkanna_gallring',
       // Runda 10, r2: vårdenhetens förval för vyerna.
       'vyforval']);
     const f = (await k.get('/api/lakemedelsansvar')).data.uppdrag.find(u => u.typ === 'medicinskt_ansvarig').forslag[0];
@@ -218,7 +221,8 @@ describe('Avbokad vårdhändelse utan grund', () => {
     expect(rader(d, 'lak-psyk')[0].text).toContain('vårdenheten har ingen medicinskt ansvarig läkare');
     // Verksamhetschefen på psykiatrin får en påminnelse utan patientuppgifter.
     d.query("INSERT INTO personal (id, namn, yrke, titel, enhet_id, hsa_id, demo) VALUES ('vch-psyk', 'Test Chef', 'verksamhetschef', 'Verksamhetschef', 'uso-psyk', 'X-VCH-PSYK', 1)").run();
-    d.query("INSERT INTO verksamhetschefer VALUES ('uso-psyk', 'vch-psyk')").run();
+    // Runda 13, r3: seeden har en verksamhetschef för varje vårdenhet, som testets ersätter.
+    d.query("INSERT OR REPLACE INTO verksamhetschefer VALUES ('uso-psyk', 'vch-psyk')").run();
     await k.logga('vch-psyk');
     const o = (await k.get('/api/lakemedelsansvar')).data;
     const p = o.paminnelser.find(x => x.typ === 'avbokad_till_alla');

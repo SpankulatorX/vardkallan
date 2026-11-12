@@ -225,6 +225,13 @@ describe('Journalens struktur', () => {
     const vc = struktur.mallarFor(db, personal(db, 'lak-vc'), journal.MALLAR).find(m => m.typ === 'Mottagningsanteckning');
     expect(vc.sokord).toEqual(journal.MALLAR.find(m => m.typ === 'Mottagningsanteckning').sokord);
     expect(vc.lokal).toBeUndefined();
+    // Runda 13, r3 (säkerhetsfynd 10): nyckeln räknas alltid ur definitionen. En nyckel för en vårdenhet med
+    // definitionen för en annan, eller en ram med nyckeln för en annan mall, stoppas.
+    const annan = struktur.forhandsvisa(db, sysf(db), { slag: 'lokal', nyckel: `Mottagningsanteckning|${enhet}`, definition: { typ: 'Mottagningsanteckning', enhet: 'vc-tybble', sokord: ['Kontaktorsak', 'Smärta', 'Bedömning', 'Åtgärd'] } });
+    expect(annan.ok).toBe(false);
+    expect(annan.fel.join(' ')).toContain('stämmer inte med definitionen');
+    expect(fel(() => struktur.foresla(db, sysf(db), { slag: 'lokal', nyckel: `Mottagningsanteckning|${enhet}`, definition: { typ: 'Mottagningsanteckning', enhet: 'vc-tybble', sokord: ['Kontaktorsak', 'Bedömning'] }, motivering: 'Prov.' })).status).toBe(400);
+    expect(struktur.forhandsvisa(db, sysf(db), { slag: 'ram', nyckel: 'Daganteckning', definition: { typ: 'Mottagningsanteckning', obligatoriska: [], lokalt: [] } }).fel.join(' ')).toContain('stämmer inte med definitionen');
   });
 
   test('ram: en ny ram visar vilka lokala anpassningar som slutar gälla, och de slutar gälla när den godkänns', () => {

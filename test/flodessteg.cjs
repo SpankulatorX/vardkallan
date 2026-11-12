@@ -3,6 +3,11 @@
 // reglerna i app/src/klickbudget.js.
 
 // Räknar steg i ett flöde.
+// Runda 13, r3 (E2-5): utan skanning bekräftas patientens identitet en gång per patient och läkemedelsrunda. Dialogen
+// har det vanligaste sättet förvalt, så ett klick bekräftar. klicka är mätarens klick i flöden med klickbudget.
+async function idDialog(page, klicka = (l) => l.click()) {
+  if (await page.locator('dialog[open] #adm-id').waitFor({ timeout: 3000 }).then(() => true).catch(() => false)) await klicka(page.locator('dialog[open] [data-varde="ok"]'));
+}
 class Matare {
   constructor(page) { this.page = page; this.nollstall(); }
   nollstall() { this.klick = 0; this.faltbyten = 0; this.tangenter = 0; this.listval = 0; this.implicita = 0; this.steg = []; }
@@ -395,6 +400,7 @@ function skapa(BAS) {
       await page.waitForSelector('.adm-patient');
       const gunnar = page.locator('.adm-patient', { hasText: 'Gunnar Åkesson' });
       await m.klicka(gunnar.locator('.adm-vb', { hasText: 'Alvedon' }).locator('[data-adm="ge"]').first(), 'Ge för Alvedon vid behov');
+      await idDialog(page, (l) => m.klicka(l, 'Identiteten är kontrollerad'));
       await synlig(page, '.notis', 'Alvedon är given');
     },
     vidimera: async (m, page) => {
@@ -430,6 +436,7 @@ function skapa(BAS) {
       await synlig(page, '.adm-delegering', 'Du ger läkemedel med delegering');
       const gunnar = page.locator('.adm-patient', { hasText: 'Gunnar Åkesson' });
       await m.klicka(gunnar.locator('.adm-vb', { hasText: 'Alvedon' }).locator('[data-adm="ge"]').first(), 'Ge för Alvedon vid behov');
+      await idDialog(page, (l) => m.klicka(l, 'Identiteten är kontrollerad'));
       await synlig(page, '.notis', 'Alvedon är given');
     },
     'registrera-delegering': async (m, page) => {
@@ -592,6 +599,7 @@ function skapa(BAS) {
     await m.klicka(alvedon.locator('.adm-mer summary'), 'Mer för Alvedon vid behov');
     await m.klicka(alvedon.locator('[data-adm="efterhand"]'), 'Given tidigare');
     await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Registrera');
+    await idDialog(page, (l) => m.klicka(l, 'Identiteten är kontrollerad'));
     await synlig(page, '.notis', 'Alvedon är registrerad som given');
   };
   // Runda 6, r6.
@@ -1340,4 +1348,5 @@ function sarPng(bredd = 64, hojd = 48) {
   return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), del('IHDR', ihdr), del('IDAT', zlib.deflateSync(ra)), del('IEND', Buffer.alloc(0))]);
 }
 
-module.exports = { Matare, skapa, raknaISidan, sarPng };
+// Runda 13, r3: idDialog.
+module.exports = { Matare, skapa, raknaISidan, sarPng, idDialog };

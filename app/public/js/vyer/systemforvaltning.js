@@ -290,6 +290,12 @@ export const undantag = {
           <span class="under-text">Undantaget från ${esc(u.kanalText)}, från ${esc(datum(u.gallerFran))}. Beslutat av ${esc(u.beslutadAv ?? '')}.</span><span class="under-text">Motivering: ${esc(u.motivering)}</span></div>
           <div class="ik-knappar"><button type="button" class="knapp liten sekundar" data-avsluta-undantag="${esc(u.nyckel)}">Avsluta</button></div></li>`).join('')}</ul>` : '<p class="tom liten">Inget är undantaget.</p>'}
         <button type="button" class="knapp" data-nytt-undantag>Nytt undantag</button></section>
+      <section class="inkorg-sektion" aria-labelledby="sf-u-begaranden"><h2 id="sf-u-begaranden">Begäranden från vården <span class="antal${o.begaranden.length ? ' antal-aktiv' : ''}">${o.begaranden.length}</span></h2>
+        <p class="liten dampad">En enskild anteckning undantas efter en begäran från den som skrev den eller patientens ansvariga läkare. Du ser numret, typen, datumet, vårdenheten och den som begär, men aldrig innehållet eller patienten.</p>
+        ${o.begaranden.length ? `<ul class="inkorg-lista">${o.begaranden.map(b => `<li class="ik-ater" data-begaran="${esc(b.id)}"><div class="ik-text"><span class="ik-rubrik">${ikon.oga}<span>Anteckning nummer ${esc(b.nummer)}: ${esc(b.typ ?? '')}, ${esc(datum(b.datum))}</span></span>
+          <span class="under-text">${esc(b.vardenhet)}. Begärd av ${esc(b.begardAv?.namn ?? '')}, ${esc(b.begardAv?.titel ?? '')}, ${esc(tidpunkt(b.begard))}. Från ${esc(b.kanaler.map(k => o.kanaler[k]?.toLocaleLowerCase('sv')).join(', '))}.</span>
+          <span class="under-text">Skäl: ${esc(b.skal)}</span><span class="under-text">${esc(b.statusText)}</span></div>
+          ${b.status === 'vantar' ? `<div class="ik-knappar"><button type="button" class="knapp liten" data-foresla-begaran="${esc(b.id)}">Föreslå undantaget</button><button type="button" class="knapp liten sekundar" data-avsla-begaran="${esc(b.id)}">Avslå</button></div>` : ''}</li>`).join('')}</ul>` : '<p class="tom liten">Inga begäranden väntar.</p>'}</section>
       <section class="inkorg-sektion" aria-labelledby="sf-u-godkanna"><h2 id="sf-u-godkanna">Att godkänna <span class="antal${o.attGodkanna.length ? ' antal-aktiv' : ''}">${o.attGodkanna.length}</span></h2>
         ${o.attGodkanna.length ? `<ul class="inkorg-lista">${o.attGodkanna.map(a => andringRad(a)).join('')}</ul>` : '<p class="tom liten">Inga undantag väntar på ditt godkännande.</p>'}
         ${o.mina.length ? `<p class="liten">Dina förslag som väntar på en annan systemförvaltare:</p><ul class="inkorg-lista">${o.mina.map(a => andringRad(a)).join('')}</ul>` : ''}</section>
@@ -304,6 +310,14 @@ export const undantag = {
       if (await beslut(main, e, '/api/undantag', undantag.visa)) return;
       const n = e.target.closest('[data-nytt-undantag]');
       if (n) return nyttUndantag(main, o, n);
+      // Runda 13, r3: en begäran från vården blir ett förslag med numret, kanalerna och skälet ifyllda.
+      const fb = e.target.closest('[data-foresla-begaran]');
+      if (fb) {
+        const b = o.begaranden.find(x => String(x.id) === fb.dataset.foreslaBegaran);
+        return nyttUndantag(main, o, fb, { omfang: 'anteckning', varde: String(b.nummer), kanaler: b.kanaler, motivering: b.skal, namn: `${b.typ ?? 'Anteckning'}, ${b.datum}, ${b.vardenhet}` });
+      }
+      const ab = e.target.closest('[data-avsla-begaran]');
+      if (ab) return avslaBegaran(main, ab);
       const a = e.target.closest('[data-avsluta-undantag]');
       if (a) {
         const u = o.aktiva.find(x => x.nyckel === a.dataset.avslutaUndantag);
@@ -313,6 +327,18 @@ export const undantag = {
   },
 };
 
+// Runda 13, r3: systemförvaltaren avslår en begäran från vården med en kommentar som den som begärde ser.
+async function avslaBegaran(main, knapp) {
+  const svar = await dialog(`<form><h2 id="dlg-rubrik">Avslå begäran</h2><div class="falt"><label for="sf-ab-k">Varför avslås begäran? Den som begärde ser kommentaren. <span class="obl">(obligatoriskt)</span></label><textarea id="sf-ab-k" name="kommentar" rows="2" required maxlength="500"></textarea></div>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Avslå</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`);
+  if (!svar) return;
+  try {
+    await medKnapp(knapp, () => api(`/api/undantag/begaran/${encodeURIComponent(knapp.dataset.avslaBegaran)}/avsla`, { metod: 'POST', data: { kommentar: svar.data.kommentar } }));
+    notis('Begäran är avslagen.');
+  } catch { /* notis visad */ }
+  undantag.visa(main);
+}
+
 async function nyttUndantag(main, o, knapp, forval = null) {
   const valOmfang = (om) => o.valbara[om].map(v => `<option value="${esc(v.varde)}"${forval?.varde === v.varde ? ' selected' : ''}>${esc(v.namn)}</option>`).join('');
   const avslut = forval && !forval.kanaler.length;
@@ -321,12 +347,12 @@ async function nyttUndantag(main, o, knapp, forval = null) {
     : { omfang: dl.querySelector('#sf-u-omfang').value, varde: dl.querySelector('#sf-u-omfang').value === 'anteckning' ? dl.querySelector('#sf-u-nummer').value.trim() : dl.querySelector('#sf-u-varde').value, kanaler: [...dl.querySelectorAll('input[name="kanaler"]:checked')].map(x => x.value) });
   let valt = null;
   const svar = await dialog(`<form><h2 id="dlg-rubrik">${avslut ? 'Avsluta undantaget' : 'Nytt undantag'}</h2>
-    <div class="falt-rad"><div class="falt smal"><label for="sf-u-omfang">Vad</label><select id="sf-u-omfang" name="omfang"${avslut ? ' disabled' : ''}>${Object.entries(o.omfang).map(([k, t]) => `<option value="${k}"${forval?.omfang === k ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
+    <div class="falt-rad"><div class="falt smal"><label for="sf-u-omfang">Vad</label><select id="sf-u-omfang" name="omfang"${avslut || forval?.omfang === 'anteckning' ? ' disabled' : ''}>${Object.entries(o.omfang).filter(([k]) => k !== 'anteckning' || forval?.omfang === 'anteckning').map(([k, t]) => `<option value="${k}"${forval?.omfang === k ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
       <div class="falt" data-u-lista${forval?.omfang === 'anteckning' ? ' hidden' : ''}><label for="sf-u-varde">Vilken</label><select id="sf-u-varde" name="varde"${avslut ? ' disabled' : ''}>${valOmfang(forval?.omfang ?? 'anteckningstyp')}</select></div>
-      <div class="falt smal" data-u-nummer${forval?.omfang === 'anteckning' ? '' : ' hidden'}><label for="sf-u-nummer">Anteckningens nummer</label><input id="sf-u-nummer" inputmode="numeric" maxlength="12" value="${forval?.omfang === 'anteckning' ? esc(forval.varde) : ''}"${avslut ? ' disabled' : ''} aria-describedby="sf-u-nummer-h"><span class="hjalp" id="sf-u-nummer-h">Numret står i ärendet från vården. Systemet visar typ, vårdenhet och datum, aldrig patienten.</span></div></div>
-    ${avslut ? '<p>Uppgifterna visas och publiceras som förut när undantaget har avslutats.</p>' : `<fieldset class="kryssgrupp"><legend>Undantas från</legend>${Object.entries(o.kanaler).map(([k, t], i) => `<div class="kryssfalt"><input type="checkbox" id="sf-u-k${i}" name="kanaler" value="${k}"${k === 'nationell' ? ' checked' : ''}><label for="sf-u-k${i}">${esc(t)}</label></div>`).join('')}</fieldset>`}
+      <div class="falt smal" data-u-nummer${forval?.omfang === 'anteckning' ? '' : ' hidden'}><label for="sf-u-nummer">Anteckningens nummer</label><input id="sf-u-nummer" inputmode="numeric" maxlength="12" value="${forval?.omfang === 'anteckning' ? esc(forval.varde) : ''}" readonly aria-describedby="sf-u-nummer-h"><span class="hjalp" id="sf-u-nummer-h">${forval?.namn ? `${esc(forval.namn)}. ` : ''}Numret kommer från begäran. Systemet visar typ, vårdenhet och datum, aldrig patienten.</span></div></div>
+    ${avslut ? '<p>Uppgifterna visas och publiceras som förut när undantaget har avslutats.</p>' : `<fieldset class="kryssgrupp"><legend>Undantas från</legend>${Object.entries(o.kanaler).map(([k, t], i) => `<div class="kryssfalt"><input type="checkbox" id="sf-u-k${i}" name="kanaler" value="${k}"${(forval?.kanaler?.length ? forval.kanaler.includes(k) : k === 'nationell') ? ' checked' : ''}><label for="sf-u-k${i}">${esc(t)}</label></div>`).join('')}</fieldset>`}
     <div class="falt smal"><label for="sf-u-fran">Gäller från</label><input id="sf-u-fran" name="giltigFran" type="date" value="${esc(o.forvalDatum)}"></div>
-    <div class="falt"><label for="sf-u-motivering">Motivering, som personalen ser i journalen <span class="obl">(obligatoriskt)</span></label><textarea id="sf-u-motivering" name="motivering" rows="2" required maxlength="500"></textarea></div>
+    <div class="falt"><label for="sf-u-motivering">Motivering, som personalen ser i journalen <span class="obl">(obligatoriskt)</span></label><textarea id="sf-u-motivering" name="motivering" rows="2" required maxlength="500">${esc(forval?.motivering ?? '')}</textarea></div>
     <div data-forhand aria-live="polite"></div>
     <p class="dialog-fel form-fel" role="alert" hidden></p>
     <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Skicka för godkännande</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`, {

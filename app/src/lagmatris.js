@@ -41,9 +41,9 @@ const avgr = (lag, paragraf, skyldighet, avgransning, stod = null, tester = []) 
 
 export const MATRIS = [
   // Patientdatalagen
-  rad('PDL', '3 kap. 1 till 6 §§', 'Journal ska föras för varje patient, och varje uppgift ska ha uppgift om vem som gjort den och när.',
+  rad('PDL', '3 kap. 1 och 10 §§', 'Journal ska föras för varje patient (1 §), och en uppgift ska signeras av den som har gjort den (10 §).',
     'En journal per patient. Varje anteckning signeras av den som skrivit den, med tid.', [`${A}helflöde: anteckning skapas, signeras och rättas`]),
-  rad('PDL', '3 kap. 16 och 17 §§', 'En journalhandling får inte ändras eller utplånas annat än enligt lag, och bevaras minst tio år.',
+  rad('PDL', '3 kap. 14 och 17 §§', 'En uppgift i en journalhandling får inte utplånas eller göras oläslig annat än enligt lag (14 §), och journalen bevaras minst tio år efter den senaste uppgiften (17 §).',
     'En signerad anteckning kan inte ändras eller raderas i databasen. En rättelse blir en ny version och den gamla står kvar. Gallring sker tidigast tio år efter sista uppgiften.',
     [`${J}signerad anteckning kan inte ändras i databasen (trigger)`, `${J}signerad anteckning kan inte raderas (trigger)`, `${J}rättelse skapar ny version och den gamla finns kvar oförändrad`,
       'Arkiv > gallring tar bara journaler vars sista uppgift är äldre än tio år, och loggen är oförändrad och hel']),
@@ -73,7 +73,7 @@ export const MATRIS = [
   rad('HSLF-FS 2016:40', '3 kap. 15 §', 'Stark autentisering vid åtkomst till personuppgifter i ett system med direktåtkomst.',
     'Inloggning med SITHS-kort och PIN är byggd som ett flöde i demon, och invånaren loggar in med e-legitimation. Båda är simulerade.',
     [`${MJ}inloggning med simulerad e-legitimation ger en egen session utan personalens behörigheter`, `${MJ}personalens session når inte Min journal`]),
-  avgr('HSLF-FS 2016:40', '4 kap. 2 och 3 §§', 'Behörigheter ska tilldelas efter en behovs- och riskanalys.',
+  avgr('HSLF-FS 2016:40', '4 kap. 2, 2 a och 3 §§', 'Behörigheter ska tilldelas efter en behovs- och riskanalys, och analysen ska dokumenteras (2 a §).',
     'Analysen görs av vårdgivaren. Systemet ger varje roll minsta åtkomst och visar vad varje roll får, så att analysen kan göras mot det som systemet faktiskt tillåter.',
     'Rollerna och deras handlingar är testade.', [`${B}yrkesroll: logggranskare får läsa loggen men inte journalen`]),
   rad('HSLF-FS 2016:40', '4 kap. 9 och 9 b §§', 'Loggarna ska kontrolleras regelbundet och systematiskt, och kontrollerna dokumenteras.',
@@ -85,7 +85,7 @@ export const MATRIS = [
     'Rättelse kräver orsak och sparar en ny version.', ['Journal > rättelse kräver orsak', `${J}rättelse skapar ny version och den gamla finns kvar oförändrad`]),
 
   // Lag 2022:913
-  rad('Lag 2022:913', '4 kap.', 'Direktåtkomst till andra vårdgivares uppgifter kräver samtycke eller en nödsituation, och spärrar gäller.',
+  rad('Lag 2022:913', '3 kap. 1, 3, 5 och 6 §§', 'Direktåtkomst till andra vårdgivares uppgifter kräver samtycke eller en nödsituation, och spärrar gäller.',
     'Nödåtkomst kräver ett aktivt val med syfte, häver aldrig en spärr och flaggas i logguppföljningen.',
     [`${B}nödåtkomst: utan vårdrelation krävs val och läkare får nödåtkomst`, `${B}nödåtkomst: häver aldrig en spärr`, `${A}nödåtkomst via API flaggas i logguppföljningen`]),
 
@@ -95,7 +95,7 @@ export const MATRIS = [
     'Remissernas statuskedja och larm är testade.', [`${R}larm: mottagningskvittens saknas efter 2 timmar`, `${R}larm: svar inte kvitterat efter 3 dagar`]),
 
   // Patientlagen
-  rad('Patientlagen', '3 kap. och 8 kap.', 'Patienten ska få information om sin vård och kunna ta del av sin journal.',
+  rad('Patientlagen', '3 kap.', 'Patienten ska få information om sin vård. Rätten att ta del av journalen följer av OSL 12 kap. 1 § och PDL 8 kap. 1 §, och e-tjänsten av PDL 5 kap. 5 §.',
     'Min journal visar patientens egna uppgifter, tider och vad som inte visas, med egen session.',
     [`${MJ}patienten når sin egen journal men inte någon annans, oavsett id i adressen`, `${MJ}patientsessionen når inga av personalens API:er`]),
 
@@ -133,7 +133,7 @@ export const MATRIS = [
     ['Delegering > undersköterska med giltig delegering ger en tablett, och delegeringen syns i dosen och i FHIR', 'Delegering > undersköterska: utgången delegering, och ingen delegering alls, ger ingen rätt och förklaras']),
 
   // DOS-lagen
-  rad('DOS-lagen', '9 till 12 §§', 'Digital service ska vara tillgänglig enligt standarden EN 301 549, och en tillgänglighetsredogörelse ska finnas.',
+  rad('DOS-lagen', '10 till 13 §§', 'Digital service ska vara tillgänglig enligt standarden EN 301 549 (10 till 12 §§), och en tillgänglighetsredogörelse ska finnas (13 §).',
     'Tillgänglighetskontrollen körs i varje vy för varje roll, och redogörelsen skrivs ur samma register.',
     ['Tillgänglighetsredogörelse > redogörelsen har varje krav i bilaga K2 med status och hur det är testat', `${GT}varje formulärfält, knapp och länk har ett namn som beskriver syftet`,
       `${GT}texten har minst 4,5:1 i kontrast och stor text minst 3:1, i alla vyer för alla roller`]),

@@ -29,7 +29,7 @@ export const T = {
   muntligSakerhet: `${MU}säkerhet: läkaren ska vara på samma vårdenhet, orsaken till omedelbar behandling krävs och undersköterskan och läkaren dokumenterar inte muntligt`,
   direktivRamar: `${GD}sjuksköterskan ser vårdenhetens direktiv prövade mot patienten, och systemet förklarar varför ett direktiv inte ryms`,
   direktivOrdinera: `${GD}sjuksköterskan ordinerar inom direktivet med bedömning, och antalet tillfällen utan läkarkontakt räknas`,
-  direktivFaststalla: `${GD}bara verksamhetschefen och den medicinskt ansvariga läkaren fastställer och upphäver ett direktiv för sin vårdenhet, med det som 6 kap. 6 § kräver`,
+  direktivFaststalla: `${GD}bara den medicinskt ansvariga läkaren fastställer och upphäver ett direktiv för sin vårdenhet, med det som 6 kap. 6 § kräver`,
   spadning: `${SP}systemet räknar koncentration, volym och hastighet ur ordinationen och visar dem vid iordningsställandet`,
   tillsats: `${SP}en infusion med tillsats kontrolleras per liter och per timme, och volymen räknas in i vätskebalansen`,
   makulering: `${EF}en felaktig registrering makuleras med orsak och historik och raderas aldrig, och dosen blir att ge igen`,

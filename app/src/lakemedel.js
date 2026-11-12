@@ -3,7 +3,9 @@
 // Runda 9, r5: signerade överföringar till läkemedelslistan (Sussa 5.3.1.5).
 import * as signering from './signering.js';
 import { Fel, iso, idag, giltigtDatum, installning, addDagar } from './db.js';
-import { vardenhetFor } from './atkomst.js';
+import { vardenhetFor, alder } from './atkomst.js';
+// Runda 13, r3: nivån och texten för de vanligaste interaktionerna.
+import { INTERAKTION_INFO } from './kodverk.js';
 import { kallaEtikett } from './journal.js';
 import { tillaggUt } from './ordinationsmallar.js';
 import { utsattningsvarningar, UTSATTNINGSREGLER, DEMOREGLER_PROCESS, UTSATTNINGSPLANER, UPPEHALL_DAGAR, planText, maxPerDygn } from './lakemedelsregler.js';
@@ -26,6 +28,8 @@ export const ANTIKOAGULANTIA = ['B01AA', 'B01AB', 'B01AE', 'B01AF'];
 export const NSAID = 'M01A';
 export const WARFARIN = 'B01AA03';
 export const METFORMIN = 'A10BA02';
+// Runda 13, r3: från den åldern påminner systemet om riskerna med NSAID (demoregel, som läkemedelsgenomgången).
+export const NSAID_ALDER = 75;
 
 const enhetsnamn = (db, id) => db.query('SELECT namn FROM enheter WHERE id = ?').get(id)?.namn ?? id;
 const personNamn = (db, id) => (id ? db.query('SELECT namn FROM personal WHERE id = ?').get(id)?.namn ?? id : null);
@@ -196,6 +200,8 @@ export function varningar(db, patientId, lm, aktiva, { overkanslighet = [], egfr
     }
   }
   let antikoag = false;
+  // Runda 13, r3: interaktionerna samlas per par, så att två trombocythämmare ger en varning med båda namnen.
+  const parTraffar = new Map();
   for (const o of aktiva) {
     const a = lmFor(o);
     if (!a) continue;
@@ -215,12 +221,30 @@ export function varningar(db, patientId, lm, aktiva, { overkanslighet = [], egfr
     if (par) {
       const [x, y] = par;
       if (x === WARFARIN && y === NSAID) ut.push({ niva: 'allvarlig', regel: 'warfarin_nsaid', text: `Warfarin och NSAID (${lm.atc === WARFARIN ? a.namn : lm.namn}) ökar risken för allvarlig blödning.` });
-      else ut.push({ niva: 'allvarlig', regel: `interaktion_${x}_${y}`, text: `${lm.namn} och ${a.namn} kan påverka varandra och ska bara ges samtidigt efter en bedömning (vårdgivarens regel ${x} + ${y}, demoregel).` });
+      else {
+        const t = parTraffar.get(`${x} + ${y}`) ?? { x, y, xNamn: new Set(), yNamn: new Set() };
+        if (lm.atc.startsWith(x) && a.atc.startsWith(y)) { t.xNamn.add(lm.namn); t.yNamn.add(a.namn); } else { t.xNamn.add(a.namn); t.yNamn.add(lm.namn); }
+        parTraffar.set(`${x} + ${y}`, t);
+      }
       continue;
     }
     if (a.atc.slice(0, 5) === lm.atc.slice(0, 5) && !antikoag) {
       ut.push({ niva: 'observera', regel: 'dubbel_grupp', text: `Patienten har redan ett läkemedel i samma grupp (${lm.atc.slice(0, 5)}): ${a.namn}.` });
     }
+  }
+  // Runda 13, r3: en varning per par, med texten för paret när den finns (kodverk.js, INTERAKTION_INFO).
+  const namnLista = (m) => [...m].join(' och ');
+  for (const [nyckel, t] of parTraffar) {
+    const info = INTERAKTION_INFO[nyckel];
+    const regel = `interaktion_${t.x}_${t.y}`;
+    ut.push(info ? { niva: info.niva, regel, text: `${info.text(namnLista(t.xNamn), namnLista(t.yNamn))} Vårdgivarens regel ${nyckel}, demoregel.` }
+      : { niva: 'allvarlig', regel, text: `${namnLista(t.xNamn)} och ${namnLista(t.yNamn)} kan påverka varandra och ska bara ges samtidigt efter en bedömning (vårdgivarens regel ${nyckel}, demoregel).` });
+  }
+  // Runda 13, r3 (E1-11): NSAID till en äldre patient.
+  if (lm.atc.startsWith(NSAID)) {
+    const p = db.query('SELECT fodd FROM patienter WHERE id = ?').get(patientId);
+    const ar = p?.fodd ? alder(p.fodd, idag()) : null;
+    if (ar != null && ar >= NSAID_ALDER) ut.push({ niva: 'observera', regel: 'nsaid_aldre', text: `Patienten är ${ar} år. NSAID ökar risken för blödning, njursvikt och hjärtsvikt hos äldre. Välj paracetamol om det räcker, annars lägsta dos under kortast möjliga tid.` });
   }
   if (lm.atc === METFORMIN && egfr != null) {
     // Runda 12, r1: gränserna är parametrar.
@@ -248,6 +272,26 @@ export function underlag(atk) {
   return { aktiva, overkanslighet: ok, egfr: egfrForSakerhet(atk), enhetId: atk.personal.enhet_id,
     // Runda 9, r1: patientens deltagande i kliniska prövningar som användaren får se.
     studier: provning.synligaDeltaganden(atk) };
+}
+
+// Runda 13, r3 (E1-25, säkerhetsgranskningen): patientens aktuella läkemedel i Nationella läkemedelslistan som är dolda
+// bara av en spärr, alltså inte av något annat skäl. Förskrivningar i NLL omfattas inte av spärren enligt
+// patientdatalagen, så interaktionskontrollen räknar med dem, men bara när ordinationen sparas, aldrig vid
+// Kontrollera och spara. Träffen prövas bara mot interaktionsreglerna, som gäller grupper av läkemedel, aldrig mot exakt
+// samma substans. Varningen säger inte vilket läkemedel eller vilken substans det gäller, bara att det finns och vad som
+// krävs för att se det, och varje sådan varning loggas som åtkomst till patienten. Så går kontrollen inte att använda för
+// att pröva sig fram till vad som står på den spärrade vårdenheten.
+export const DOLD_INTERAKTION = 'Patienten har ett läkemedel i Nationella läkemedelslistan som du inte ser här och som kan påverka ordinationen, eftersom det är ordinerat på en vårdenhet som patienten har spärrat. Spärren gäller inte Nationella läkemedelslistan. För att se läkemedlet behöver patienten samtycka till att spärren hävs. Fråga patienten om läkemedlen, och följ upp ordinationen.';
+function doldInteraktion(atk, lm) {
+  const db = atk.db;
+  const synliga = new Set(synligaOrdinationer(atk).map(o => o.id));
+  const interaktioner = require('./konfiguration.js').varde(db, 'lakemedel.interaktioner').map(x => x.split(' + '));
+  return db.query("SELECT * FROM ordinationer WHERE patient_id = ? AND nll_status = 'kvitterad'").all(atk.patientId)
+    .filter(o => arAktuell(o) && !synliga.has(o.id) && atk.prova('las_lakemedel', { enhet_id: o.enhet_id, gemensam: true }).krav === 'kraver_samtycke')
+    .some(o => {
+      const a = lakemedelRad(db, o.lakemedel_id);
+      return a && interaktioner.some(([x, y]) => (lm.atc.startsWith(x) && a.atc.startsWith(y)) || (lm.atc.startsWith(y) && a.atc.startsWith(x)));
+    });
 }
 
 export function kontroll(atk, inp) {
@@ -344,6 +388,12 @@ export function spara(atk, inp, { handling = 'ordinera', ordineradAv = null, nll
   historik(db, id, atk.personal.id, historikText, o.dosering);
   for (const k of kv) historik(db, id, atk.personal.id, 'Varning kvitterad', `${k.regel}: ${k.motivering}`);
   const nll = skickas ? overfor(db, id, 'ny') : { status: nllStatus };
+  // Runda 13, r3: en interaktion med ett läkemedel i NLL som är dolt av en spärr, efter att ordinationen är sparad.
+  if (doldInteraktion(atk, o.lm)) {
+    v.push({ niva: 'allvarlig', regel: 'interaktion_dold', text: DOLD_INTERAKTION, efterSparande: true });
+    historik(db, id, atk.personal.id, 'Varning efter sparande', 'Interaktion med ett läkemedel i Nationella läkemedelslistan som är dolt av en spärr.');
+    atk.logga('las_lakemedel', atk.grund(), `nll:dold_interaktion:ordination:${id}`);
+  }
   return { ordination: ordinationUt(db, db.query('SELECT * FROM ordinationer WHERE id = ?').get(id)), varningar: v, nll };
 }
 

@@ -8,7 +8,8 @@ import * as vardformer from '../src/vardformer.js';
 import * as vaccinationsprogram from '../src/vaccinationsprogram-regler.js';
 import * as bhvProgram from '../src/bhv-program.js';
 import * as utbildning from '../src/utbildning.js';
-import * as administrering from '../src/administrering.js';
+// Runda 13, r3 (E2-5): spara ger dosen med uppgiften om identiteten (administrering-hjalp.js).
+import * as administrering from './administrering-hjalp.js';
 import { personal, atk } from './hjalp.js';
 
 const ms = (datum, klocka) => Date.parse(lokalTid(datum, klocka));

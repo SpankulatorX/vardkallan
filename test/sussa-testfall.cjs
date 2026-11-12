@@ -21,7 +21,7 @@ const { chromium } = require('@playwright/test');
 const { writeFileSync, mkdirSync } = require('node:fs');
 const { join } = require('node:path');
 const { pathToFileURL } = require('node:url');
-const { Matare, skapa, raknaISidan } = require('./flodessteg.cjs');
+const { Matare, skapa, raknaISidan, idDialog } = require('./flodessteg.cjs');
 // Runda 11, r1: testet och webbläsaren följer testcontainerns falska klocka när den är satt.
 const { foljServernsKlocka, stallKlockan, resultatfil } = require('./testklocka.cjs');
 
@@ -137,7 +137,16 @@ function floden(D) {
       await m.ersatt(page.locator('#ordform input[name="trDagar"]'), '6', 'dagar per steg');
       await m.skriv(page.locator('#ordform input[name="ordinationsorsak"]'), 'Nedstämdhet', 'ordinationsorsak');
       await m.klicka(page.locator('#ordform [data-upp="14"]'), 'uppföljning om två veckor');
-      await sparaOrdination(m, page, 'Sertralin Teva är ordinerat');
+      // Runda 13, r3 (E1-11, E1-21): Gerda har Waran, så Sertralin ger en allvarlig varning för blödning (demoregel) som
+      // läkaren motiverar i samma formulär innan ordinationen sparas.
+      await m.klicka(page.locator('#ordform [data-spara]'), 'Kontrollera och spara');
+      const mot = page.locator('#ordform textarea[data-motivering]').first();
+      await mot.waitFor();
+      await m.skriv(mot, 'Följer blodbilden och tecken på blödning, magskydd övervägs.', 'motiveringen');
+      await m.klicka(page.locator('#ordform [data-spara]'), 'Spara ordinationen');
+      await synlig(page, '.notis', 'Sertralin Teva är ordinerat');
+      await page.waitForLoadState('networkidle');
+      await page.waitForSelector('.lm-tabell');
       // Ny dos av Metformin i den pågående ordinationen: styrkan 850 mg, där systemet fyller i doseringen och dosen.
       await m.klicka(page.locator('.lm-tabell tr', { hasText: 'Metformin Sandoz' }).locator('[data-dosandring]'), 'Ändra dos för Metformin');
       await m.klicka(page.locator('dialog[open] [data-styrka]', { hasText: '850 mg' }), 'styrkan 850 mg');
@@ -209,6 +218,7 @@ function floden(D) {
       await bertil.locator('tr', { hasText: 'med 20 mmol Addex-Magnesium, intravenöst under 2 timmar' }).first().waitFor();
       const dos = (namn) => bertil.locator('tr', { hasText: namn }).filter({ has: page.locator('[data-adm]') }).first();
       await m.klicka(dos('Paracetamol Fresenius Kabi').locator('[data-adm="ge"]'), 'Ge för Paracetamol');
+      await idDialog(page, (l) => m.klicka(l, 'Identiteten är kontrollerad'));
       await synlig(page, '.notis', 'Paracetamol Fresenius Kabi är given');
       await page.waitForLoadState('networkidle');
       // Runda 9, r1: blandningen bereds. Systemet visar vad som ska göras, och sjuksköterskan anger batchnumret.

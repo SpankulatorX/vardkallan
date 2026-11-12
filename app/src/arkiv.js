@@ -30,6 +30,8 @@ import { zip } from './zip.js';
 import * as earkiv from './earkiv.js';
 // Runda 7, r4: parametrar som systemförvaltningen kan ändra.
 import * as konfiguration from './konfiguration.js';
+// Runda 13, r3 (E3-35): verksamhetschefen för en vårdenhet, i verksamhetschefstabellen.
+import { chefFor } from './lakemedelsansvar.js';
 
 export const GALLRING_AR = 10;
 // Runda 9, r5 (Sussa 5.4.2.4): gallring av delar av journalen per informationsmängd. Antalet år är parametrar som
@@ -173,6 +175,8 @@ export function beslutUt(db, b) {
     patient: b.patient_id ? patientKort(patientRad(db, b.patient_id)) : null,
     registrerad: b.registrerad, registreradAv: personNamn(db, b.registrerad_av),
     verkstallt: b.verkstallt, verkstalltAv: personNamn(db, b.verkstallt_av), resultat: b.resultat ? JSON.parse(b.resultat) : null,
+    // Runda 13, r3 (E3-35): verksamhetschefens godkännande av verkställandet.
+    ...(RADERANDE.includes(b.typ) && !b.verkstallt ? { godkannande: godkannandeFor(db, b) } : {}),
     exporter: db.query('SELECT * FROM arkivexporter WHERE beslut_id = ? ORDER BY tid').all(b.id).map(e => ({ id: e.id, tid: e.tid, av: personNamn(db, e.av), patienter: e.patienter, filer: e.filer, storlek: e.storlek, sha256: e.sha256,
       // Runda 9, r5: leveransen till e-arkivet och kvittensen.
       leverans: earkiv.leveransFor(db, e.id) })),
@@ -606,10 +610,125 @@ function gallraDelar(db, personal, b, delar) {
   return { journaler: per.size, rader: antal };
 }
 
+// Runda 13, r3 (E3-35, beslut från Jonas, säkerhetsgranskningen): fyra ögon innan en radering som inte går att ångra.
+// Arkivarien förbereder beslutet, och verksamhetschefen för varje vårdenhet där uppgifterna finns godkänner
+// verkställandet i sin egen inloggning. Beslutet verkställs först när alla berörda vårdenheter har godkänt. Varje
+// verksamhetschef ser bara besluten som rör den egna vårdenheten, med antalet journaler där, och inget om patienter
+// eller antal på andra vårdenheter. Godkännandena sparas med godkännarens vårdenhet och kan inte ändras eller tas bort.
+export function sakraGodkannande(db) {
+  db.exec(`CREATE TABLE IF NOT EXISTS arkivbeslut_godkannanden (beslut_id INTEGER NOT NULL, enhet_id TEXT NOT NULL, godkand_av TEXT NOT NULL, godkand TEXT NOT NULL, kommentar TEXT,
+      PRIMARY KEY (beslut_id, enhet_id));
+    CREATE TRIGGER IF NOT EXISTS arkivbeslut_godkannanden_andras_ej BEFORE UPDATE ON arkivbeslut_godkannanden BEGIN SELECT RAISE(ABORT, 'Ett godkännande ändras inte'); END;
+    CREATE TRIGGER IF NOT EXISTS arkivbeslut_godkannanden_raderas_ej BEFORE DELETE ON arkivbeslut_godkannanden BEGIN SELECT RAISE(ABORT, 'Ett godkännande raderas inte'); END;`);
+}
+const RADERANDE = ['gallring', 'radering'];
+
+// Journalerna som ett gallringsbeslut gäller i sin helhet, utan loggning (underlag loggar).
+function gallringsPatienter(db, omf) {
+  const ut = [];
+  for (const p of db.query('SELECT * FROM patienter WHERE sammanslagen_till IS NULL AND journal_forstord IS NULL').all()) {
+    const sista = sistaUppgift(db, p.id);
+    if (!sista || sista.slice(0, 10) >= omf.fore) continue;
+    if (db.query('SELECT 1 FROM vardkontakter WHERE patient_id = ? AND slut IS NULL').get(p.id)) continue;
+    ut.push(p);
+  }
+  return ut;
+}
+
+// De vårdenheter där uppgifter som beslutet raderar finns, med journalerna per vårdenhet. Tabellerna läses med sina
+// kolumner för vårdenhet (lagring.js). Uppgifter utan vårdenhet, som adressen, följer journalen.
+export function berordaEnheter(db, b) {
+  const omf = JSON.parse(b.omfattning);
+  const klass = klassa(db);
+  const per = new Map();
+  const lagg = (enhet, pid) => {
+    if (!enhet) return;
+    const ve = vardenhetFor(db, enhet) ?? enhet;
+    if (!per.has(ve)) per.set(ve, new Set());
+    per.get(ve).add(pid);
+  };
+  const enhetsTabeller = Object.entries(klass).filter(([t, k]) => k?.typ === 'enhet' && k.patient && !BEVARAS.has(t));
+  const helaJournalen = (pid) => {
+    for (const [t, k] of enhetsTabeller) for (const c of k.kolumner) for (const r of db.query(`SELECT DISTINCT ${c} AS e FROM ${t} WHERE patient_id = ?`).all(pid)) lagg(r.e, pid);
+  };
+  const enhetsKolumner = (t) => (klass[t]?.typ === 'enhet' ? klass[t].kolumner : []);
+  if (b.typ === 'radering') {
+    if (omf.hela) helaJournalen(b.patient_id);
+    else for (const x of omf.poster ?? []) {
+      const t = POSTTYPER[x.typ]?.tabell;
+      for (const c of t ? enhetsKolumner(t) : []) lagg(db.query(`SELECT ${c} AS e FROM ${t} WHERE id = ? AND patient_id = ?`).get(x.id, b.patient_id)?.e, b.patient_id);
+    }
+  } else if (b.typ === 'gallring') {
+    const hela = gallringsPatienter(db, omf);
+    for (const p of hela) helaJournalen(p.id);
+    for (const d of gallringsdelar(db, omf, new Set(hela.map(p => p.id)))) {
+      const m = INFORMATIONSMANGDER[d.mangd];
+      for (const p of d.patienter) for (const c of enhetsKolumner(m.tabell)) {
+        for (const r of db.query(`SELECT DISTINCT ${c} AS e FROM ${m.tabell} WHERE patient_id = ? AND ${m.datum} < ?`).all(p.id, d.fore)) lagg(r.e, p.id);
+      }
+    }
+  }
+  return per;
+}
+
+const godkannanden = (db, beslutId) => { sakraGodkannande(db); return db.query('SELECT * FROM arkivbeslut_godkannanden WHERE beslut_id = ? ORDER BY godkand').all(beslutId); };
+// Läget för arkivarien: vilka vårdenheter som har godkänt och vilka som återstår. Ett beslut utan uppgifter på någon
+// vårdenhet godkänns av en verksamhetschef.
+export function godkannandeFor(db, b) {
+  const per = berordaEnheter(db, b);
+  const g = godkannanden(db, b.id);
+  const gjorda = new Set(g.map(x => x.enhet_id));
+  const saknas = [...per.keys()].filter(e => !gjorda.has(e));
+  return {
+    klart: per.size ? saknas.length === 0 : g.length > 0,
+    enheter: g.map(x => ({ enhet: enhetsnamn(db, x.enhet_id), av: personNamn(db, x.godkand_av), tid: x.godkand, kommentar: x.kommentar })),
+    saknas: (per.size ? saknas : g.length ? [] : [null]).map(e => (e ? enhetsnamn(db, e) : 'En verksamhetschef')),
+  };
+}
+// Vårdenheten där den inloggade är verksamhetschef enligt verksamhetschefstabellen, annars null.
+const minVardenhet = (db, personal) => chefFor(db, personal);
+
+// Beslut som väntar på godkännande av den inloggades vårdenhet, med antalet journaler där och utan patienter.
+export function attGodkanna(db, personal) {
+  const ve = minVardenhet(db, personal);
+  const ut = [];
+  if (!ve) return ut;
+  for (const b of db.query("SELECT * FROM arkivbeslut WHERE typ IN ('gallring', 'radering') AND verkstallt IS NULL ORDER BY id").all()) {
+    const per = berordaEnheter(db, b);
+    if (per.size ? !per.has(ve) : godkannanden(db, b.id).length) continue;
+    if (godkannanden(db, b.id).some(g => g.enhet_id === ve)) continue;
+    const n = per.get(ve)?.size ?? 0;
+    ut.push({ id: b.id, typText: BESLUTSTYPER[b.typ].text, diarienummer: b.diarienummer, beslutsdatum: b.beslutsdatum, beslutsfattare: b.beslutsfattare, lagrum: b.lagrum,
+      motivering: b.motivering, registreradAv: personNamn(db, b.registrerad_av), registrerad: b.registrerad,
+      omfattning: b.typ === 'gallring' ? `${n} ${n === 1 ? 'journal' : 'journaler'} med uppgifter på din vårdenhet`
+        : JSON.parse(b.omfattning).hela ? 'En journal, med uppgifter på din vårdenhet' : 'Utpekade poster i en journal, på din vårdenhet' });
+  }
+  return ut;
+}
+export function godkann(db, personal, b, { kommentar } = {}, nu = new Date()) {
+  sakraGodkannande(db);
+  if (!RADERANDE.includes(b.typ)) throw new Fel(400, 'Bara gallring och radering godkänns före verkställandet.', 'ogiltig');
+  const ve = minVardenhet(db, personal);
+  const per = berordaEnheter(db, b);
+  // Ett beslut som inte rör den egna vårdenheten finns inte för verksamhetschefen.
+  if (!ve || (per.size ? !per.has(ve) : godkannanden(db, b.id).length)) throw new Fel(404, 'Beslutet finns inte.', 'saknas');
+  if (b.verkstallt) throw new Fel(409, 'Beslutet är redan verkställt.', 'ogiltig');
+  if (godkannanden(db, b.id).some(g => g.enhet_id === ve)) throw new Fel(409, 'Verkställandet är redan godkänt för din vårdenhet.', 'ogiltig');
+  if (b.registrerad_av === personal.id) throw new Fel(403, 'Fyra ögon: den som förberedde beslutet kan inte godkänna det.', 'nekad');
+  const k = typeof kommentar === 'string' ? kommentar.trim().slice(0, 300) : '';
+  db.query('INSERT INTO arkivbeslut_godkannanden (beslut_id, enhet_id, godkand_av, godkand, kommentar) VALUES (?, ?, ?, ?, ?)').run(b.id, ve, personal.id, iso(nu), k || null);
+  loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, handling: 'godkanna_gallring', resurs: `beslut:${b.id}`, grund: 'administrativ', syfte: `Godkände verkställandet av ${BESLUTSTYPER[b.typ].text.toLowerCase()} enligt ${b.diarienummer} för vårdenheten.` });
+  const g = godkannandeFor(db, b);
+  return { id: b.id, godkant: true, klart: g.klart };
+}
+
 // Verkställer gallring eller radering. Beslutet kan bara verkställas en gång.
 export function verkstall(db, personal, b) {
   if (b.typ === 'leverans') throw new Fel(400, 'Ett beslut om leverans verkställs genom att exportpaketet skapas.', 'ogiltig');
   if (b.verkstallt) throw new Fel(400, 'Beslutet är redan verkställt.', 'ogiltig');
+  // Runda 13, r3 (E3-35): utan verksamhetschefens godkännande verkställs ingen radering.
+  const g = godkannandeFor(db, b);
+  if (!g.klart) throw new Fel(409, `Verksamhetschefen för varje berörd vårdenhet ska godkänna verkställandet i sin egen inloggning innan journaler raderas. Raderingen går inte att ångra. Godkännande saknas från: ${g.saknas.join(', ')}.`, 'ogiltig');
   const omf = JSON.parse(b.omfattning);
   const u = b.typ === 'gallring' ? underlag(db, personal, b) : null;
   const patienter = u ? u.patienter.map(p => p.id) : [b.patient_id];

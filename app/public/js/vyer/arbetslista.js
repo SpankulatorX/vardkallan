@@ -52,7 +52,7 @@ export async function visa(main) {
           <td class="al-alder">${alderKon(p)}</td>
           <td class="al-plats">${esc(p.plats)}${p.vardform ? `<span class="under-text">${esc(VARDFORM[p.vardform])}</span>` : ''}</td>
           <td class="al-orsak">${esc(p.orsak ?? '')}</td>
-          <td class="al-larm">${p.larm ? `<span class="larmmarke" title="${p.larm} larm i inkorgen">${ikon.larm}<span>${p.larm}</span><span class="sr"> larm</span></span>` : '<span class="sr">Inga larm</span>'}</td>
+          <td class="al-larm">${p.larm ? `<span class="larmmarke" data-larm="${esc(p.larm)}" title="${esc((p.larmText ?? []).join('. ') || `${p.larm} larm i inkorgen`)}">${ikon.larm}<span>${p.larm}</span><span class="sr"> larm: ${esc((p.larmText ?? []).join('. '))}</span></span>${p.larmText?.length ? `<span class="under-text">${esc(p.larmText[0])}</span>` : ''}` : '<span class="sr">Inga larm</span>'}</td>
         </tr>`).join('')}</tbody>
       </table></div>
     </section>`;

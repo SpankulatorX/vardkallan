@@ -24,7 +24,7 @@ import { OMFATTNING } from './lakemedelsansvar-schema.js';
 import { YRKEN } from './seed/personal.js';
 
 export const DEMO_ANSVAR = 'Uppdragen och påminnelserna följer Region Örebro läns Gröna häftet (688488 R5). Demon har en verksamhetschef bara på Kardiologiska kliniken, och där utser verksamhetschefen också de uppdrag som enligt häftet utses av enhetschefen.';
-export const LEDNINGSANSVAR = 'Verksamhetschefens samlade ledningsansvar för ordination och hantering av läkemedel kan inte överlåtas till någon annan (Gröna häftet 1.3, HSL 4 kap. 2 §). Verksamhetschefen kan uppdra åt andra att fullgöra enskilda ledningsuppgifter, och det är de uppdragen som finns här.';
+export const LEDNINGSANSVAR = 'Verksamhetschefens samlade ledningsansvar för ordination och hantering av läkemedel kan inte överlåtas till någon annan (Gröna häftet 1.3). Att det ska finnas en verksamhetschef står i HSL 4 kap. 2 §, och att verksamhetschefen kan uppdra åt andra att fullgöra ledningsuppgifter i hälso- och sjukvårdsförordningen 4 kap. 5 §. Verksamhetschefen kan uppdra åt andra att fullgöra enskilda ledningsuppgifter, och det är de uppdragen som finns här.';
 
 export const UPPDRAG = {
   medicinskt_ansvarig: { namn: 'Medicinskt ansvarig läkare', yrke: 'lakare', kalla: 'Gröna häftet 1.4.2', utsesAv: 'Verksamhetschefen', ensam: true, erfaren: true,
@@ -113,15 +113,16 @@ export function mottagareUtanGrund(db, o) {
   return { lage: 'alla', personalId: null };
 }
 
-// Generella direktiv fastställs av verksamhetschefen eller den medicinskt ansvariga läkaren (Gröna häftet 1.4.2 och
-// avsnittet om generella direktiv, HSLF-FS 2017:37 6 kap. 6 §).
+// Generella direktiv fastställs av den medicinskt ansvariga läkaren. Endast läkare får utfärda dem (HSLF-FS 2017:37
+// 6 kap. 6 §), och vilka läkare framgår av vårdgivarens rutin (17 §). Runda 13, r3: inte längre verksamhetschefen.
 export function faststallaDirektiv(db, personal) {
   const ve = vardenhetFor(db, personal.enhet_id);
-  if (ve && chefFor(db, personal) === ve) return { kan: true, som: 'verksamhetschef', varfor: null };
+  // Runda 13, r3 (lagrumsgranskningen): bara en läkare, och enligt vårdgivarens rutin den medicinskt ansvariga läkaren.
+  // Verksamhetschefen fastställer inte, eftersom föreskriften kräver läkare och verksamhetschefen i demon inte är det.
   if (personal.yrke === 'lakare' && uppdragFor(db, personal, 'medicinskt_ansvarig')) return { kan: true, som: 'medicinskt_ansvarig', varfor: null };
   const mal = medicinsktAnsvarig(db, ve);
   return { kan: false, som: null,
-    varfor: `Generella direktiv fastställs av verksamhetschefen eller den medicinskt ansvariga läkaren (HSLF-FS 2017:37 6 kap. 6 §, Gröna häftet 1.4.2). ${mal ? `På ${enhetsnamn(db, ve)} är det ${mal.namn}.` : `${enhetsnamn(db, ve)} har ingen medicinskt ansvarig läkare just nu, och verksamhetschefen kan utse en.`}` };
+    varfor: `Endast läkare får utfärda generella direktiv om läkemedelsbehandling (HSLF-FS 2017:37 6 kap. 6 §). Vilka läkare framgår av vårdgivarens rutin (17 §), i demon den medicinskt ansvariga läkaren som verksamhetschefen utser. ${mal ? `På ${enhetsnamn(db, ve)} är det ${mal.namn}.` : `${enhetsnamn(db, ve)} har ingen medicinskt ansvarig läkare just nu, och verksamhetschefen kan utse en.`}` };
 }
 
 function uppdragUt(db, u) {

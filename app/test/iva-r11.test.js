@@ -330,7 +330,10 @@ describe('Intensivvård, version 1.1', () => {
     expect(fel.status).toBe(400);
     expect(fel.data.fel).toContain('Armbandet hör inte till den här patienten');
     expect(db(k).query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p01' AND resultat = 'nekad' AND resurs LIKE 'iva:infusion:%:armband'").get().n).toBe(1);
-    const ok = await k.post(`/api/patient/p01/iva/infusion/${oid}/dos`, { dos: 0.03, armband: '194502024732' });
+    // Runda 13, r3 (säkerhetsgranskningen): personnumret räcker inte, bara patientens utskrivna armband.
+    expect((await k.post(`/api/patient/p01/iva/infusion/${oid}/dos`, { dos: 0.03, armband: '194502024732' })).status).toBe(400);
+    const band = (await k.post('/api/patient/p01/armband')).data.kod;
+    const ok = await k.post(`/api/patient/p01/iva/infusion/${oid}/dos`, { dos: 0.03, armband: band });
     expect(ok.status).toBe(200);
     expect(ok.data.text).toContain('Armbandet stämmer');
     somPerson(sandlada(app, k), 'lak-kard');

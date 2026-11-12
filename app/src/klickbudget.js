@@ -93,8 +93,8 @@ export const FLODEN = [
   },
   // Läkemedelsprocessen (Sussa 3.5.2). Systemet räknar fram dagens doser och kontrollerar dem innan något sparas.
   {
-    id: 'ge-dos', namn: 'Ge en dos', roll: 'ssk-kard', start: 'Arbetslistan efter inloggning', budget: 2,
-    motivering: 'Sussa 3.5.2.18. Ett klick till Läkemedel att ge och ett på Ge för dosen. Systemet har räknat fram dagens doser ur ordinationerna och kontrollerat dosen mot ordinationen och tidigare doser, och tiden, vem som gav den och vårdkontakten sätts av systemet. En varning för dubbel dos eller för tidig dos visas först när den gäller.',
+    id: 'ge-dos', namn: 'Ge en dos', roll: 'ssk-kard', start: 'Arbetslistan efter inloggning', budget: 3,
+    motivering: 'Sussa 3.5.2.18. Ett klick till Läkemedel att ge och ett på Ge för dosen. Systemet har räknat fram dagens doser ur ordinationerna och kontrollerat dosen mot ordinationen och tidigare doser, och tiden, vem som gav den och vårdkontakten sätts av systemet. En varning för dubbel dos eller för tidig dos visas först när den gäller. Runda 13, r3 (E2-5): utan skannat armband bekräftar sjuksköterskan med ett klick hur patientens identitet kontrollerades, med det vanligaste sättet förvalt, en gång per patient och läkemedelsrunda. Med skanning behövs inget extra klick.',
   },
   {
     id: 'vidimera', namn: 'Vidimera pågående ordinationer', roll: 'lak-kard', start: 'Patientens översikt', budget: 2,
@@ -124,8 +124,8 @@ export const FLODEN = [
   },
   // Vem som får ge läkemedel (runda 5, Sussa 3.5.2.18, HSLF-FS 2017:37 9 kap.). Systemet prövar delegeringen för varje dos.
   {
-    id: 'ge-dos-delegering', namn: 'Ge en dos med delegering', roll: 'usk-kard', start: 'Arbetslistan efter inloggning', budget: 2,
-    motivering: 'Sussa 3.5.2.18. Ett klick till Läkemedel att ge och ett på Ge för dosen. Systemet har kontrollerat att undersköterskans delegering omfattar dosens läkemedelsform och administrationssätt, att den gäller i dag och på vårdenheten, och visar knappen Ge bara för de doserna. Delegeringen sparas med dosen.',
+    id: 'ge-dos-delegering', namn: 'Ge en dos med delegering', roll: 'usk-kard', start: 'Arbetslistan efter inloggning', budget: 3,
+    motivering: 'Sussa 3.5.2.18. Ett klick till Läkemedel att ge och ett på Ge för dosen. Systemet har kontrollerat att undersköterskans delegering omfattar dosens läkemedelsform och administrationssätt, att den gäller i dag och på vårdenheten, och visar knappen Ge bara för de doserna. Delegeringen sparas med dosen. Runda 13, r3 (E2-5): utan skannat armband bekräftar sjuksköterskan med ett klick hur patientens identitet kontrollerades, med det vanligaste sättet förvalt, en gång per patient och läkemedelsrunda. Med skanning behövs inget extra klick.',
   },
   {
     id: 'registrera-delegering', namn: 'Registrera en delegering', roll: 'ssk-kard', start: 'Arbetslistan efter inloggning', budget: 4,
@@ -196,8 +196,8 @@ export const FLODEN = [
     motivering: 'Sussa 3.5.1.3 och 3.5.2.14. Ett klick på Ordinera från mall, ett på mallen och ett för att ordinera. Systemet fyller i varje ordination ur produktens mall och patientens ålder och njurfunktion, varnar per ordination, tar själv bort ett läkemedel som patienten redan har och förklarar varför, och knyter ordinationerna till samma vårdhändelse.',
   },
   {
-    id: 'dos-efterhand', namn: 'Registrera en dos i efterhand', roll: 'ssk-kard', start: 'Läkemedel att ge efter återställning', budget: 3,
-    motivering: 'Sussa 3.5.2.2. Ett klick på Mer för dosen, ett på Given tidigare och ett för att registrera. Systemet föreslår tiden, aldrig i framtiden, kontrollerar den mot ordinationen och tidigare doser och visar att registreringen gjordes i efterhand.',
+    id: 'dos-efterhand', namn: 'Registrera en dos i efterhand', roll: 'ssk-kard', start: 'Läkemedel att ge efter återställning', budget: 4,
+    motivering: 'Sussa 3.5.2.2. Ett klick på Mer för dosen, ett på Given tidigare och ett för att registrera. Systemet föreslår tiden, aldrig i framtiden, kontrollerar den mot ordinationen och tidigare doser och visar att registreringen gjordes i efterhand. Runda 13, r3 (E2-5): utan skannat armband bekräftar sjuksköterskan med ett klick hur patientens identitet kontrollerades, med det vanligaste sättet förvalt, en gång per patient och läkemedelsrunda. Med skanning behövs inget extra klick.',
   },
   // Runda 6, r6: ansvarsuppdrag för läkemedel och godkännande av läkemedelsmallar (Gröna häftet 1.4.2 och 1.4.3).
   {

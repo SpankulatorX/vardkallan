@@ -565,9 +565,10 @@ describe('Systemförvaltning', () => {
     const l = journal.listaAnteckningar(atk(db, 'lak-kard', 'p01'));
     expect(l.anteckningar.filter(a => a.typ === 'Daganteckning')).toEqual([]);
     expect(l.dolda.undantagna).toEqual([{ antal: fore, sort: 'anteckning', text: `${fore} ${fore === 1 ? 'anteckning' : 'anteckningar'} av typen Daganteckning visas inte. Systemförvaltningen har undantagit typen från visning från ${datumAv(nu)}: Prov.` }]);
-    // Den som öppnar anteckningen direkt får samma förklaring.
+    // Runda 13, r3 (säkerhetsfynd 6): den som öppnar anteckningen direkt får samma svar som för en anteckning som inte
+    // finns. Förklaringen står i journalens rad ovan.
     const a = db.query("SELECT * FROM anteckningar WHERE patient_id = 'p01' AND typ = 'Daganteckning' AND status = 'signerad' LIMIT 1").get();
-    expect(fel(() => journal.hamtaAnteckning(atk(db, 'lak-kard', 'p01'), a)).message).toContain('undantagit den från visning');
+    expect(fel(() => journal.hamtaAnteckning(atk(db, 'lak-kard', 'p01'), a)).message).toBe('Anteckningen finns inte.');
   });
 
   test(`undantag: undantaget gäller aldrig Min journal`, async () => {

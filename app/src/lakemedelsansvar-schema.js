@@ -140,6 +140,11 @@ export function seedaLakemedelsansvar(db, bas = new Date()) {
   if (!finns('SELECT 1 FROM verksamhetschefer')) db.query("INSERT INTO verksamhetschefer VALUES ('uso-kard', 'vch-kard')").run();
   // Runda 11, r4: verksamhetschefen på Onkologiska kliniken, som utser de regimansvariga läkarna.
   if (finns("SELECT 1 FROM personal WHERE id = 'vch-onk'") && !finns("SELECT 1 FROM verksamhetschefer WHERE enhet_id = 'uso-onk'")) db.query("INSERT INTO verksamhetschefer VALUES ('uso-onk', 'vch-onk')").run();
+  // Runda 13, r3 (E3-35): varje vårdenhet har en verksamhetschef, för godkännandet av gallring och radering. De som inte
+  // är kardiologens eller onkologens går inte att logga in som.
+  for (const p of db.query("SELECT p.id, p.enhet_id FROM personal p JOIN enheter e ON e.id = p.enhet_id WHERE p.yrke = 'verksamhetschef' AND p.id LIKE 'chef-%' AND e.typ = 'vardenhet'").all()) {
+    if (!finns('SELECT 1 FROM verksamhetschefer WHERE enhet_id = ?', p.enhet_id)) db.query('INSERT INTO verksamhetschefer VALUES (?, ?)').run(p.enhet_id, p.id);
+  }
   const insM = db.query('INSERT OR IGNORE INTO substansmallar (atc, namn, innehall, version, upprattad_av, upprattad, andring) VALUES (?, ?, ?, 1, NULL, ?, NULL)');
   for (const [atc, m] of Object.entries(MALLAR)) insM.run(atc, m.namn, JSON.stringify(m), tidPlus(bas, -400));
   if (finns('SELECT 1 FROM lakemedelsuppdrag')) return;

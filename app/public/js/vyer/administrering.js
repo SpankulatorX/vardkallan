@@ -2,7 +2,7 @@
 // ordinationerna. Sjuksköterskan bekräftar det som ges med ett klick. Varningar för dubbel dos, för tidig dos, dos utan
 // ordination och högsta dygnsdos visas innan något sparas, och en allvarlig varning kvitteras med motivering. Samma
 // delar används i avdelningens lista (#/administrering) och i patientens läkemedelsflik.
-import { esc, api, notis, felNotis, medKnapp, dialog, ikon, vyRubrik, tom, klockslag, tidpunkt, datum, idag, plusDagar } from '../ui.js';
+import { esc, api, notis, felNotis, medKnapp, dialog, ikon, vyRubrik, tom, klockslag, tidpunkt, datum, idag, plusDagar, sessionNummer } from '../ui.js';
 // Runda 7, r2: hjälp i sammanhanget.
 import { hjalpRuta } from '../hjalp.js';
 import { far, S } from '../app.js';
@@ -44,7 +44,10 @@ const intervallEnhet = (dosering, n) => {
 const inteDelegerad = (x) => (omfattas(x) ? '' : `<span class="under-text adm-varfor">${esc(x.delegering.varfor)}</span>`);
 
 // Doserna för en patient, som HTML. kan: får användaren ge läkemedel till patienten.
-export function patientDoser(pid, l) {
+// Runda 13, r3 (E2-5): patientens namn och personnummer för frågan om identiteten, per patient som visas.
+const patientText = new Map();
+export function patientDoser(pid, l, patient = null) {
+  if (patient?.namn) patientText.set(pid, [patient.namn, patient.personnummer].filter(Boolean).join(', '));
   const kan = l.kan?.kan;
   const rad = (d) => {
     const [st, kl] = STATUS[d.status] ?? [d.status, ''];
@@ -147,12 +150,64 @@ const kvittensHtml = (varningar, kraver = null) => {
     ${regler.map((r, n) => `<div class="falt"><label for="adm-kv-${n}">Motivering (${esc(REGELTEXT[r] ?? r.replace(/_/g, ' '))}) <span class="obl">(obligatoriskt)</span></label><textarea id="adm-kv-${n}" name="kv_${esc(r)}" rows="2" maxlength="500" required minlength="3"></textarea></div>`).join('')}`;
 };
 
-// Registrerar en åtgärd. Med en allvarlig varning visas den med fält för motivering, och åtgärden görs om med kvittensen.
+// Runda 13, r3 (E2-5, beslut från Jonas, säkerhetsgranskningen): en dos som ges utan skannat armband kräver en uppgift
+// om hur patientens identitet kontrollerades. Servern minns bekräftelsen för den som gav den, för patienten, i sessionen,
+// en läkemedelsrunda (en kvart), och kräver en ny annars. Klienten minns bara att den inte behöver fråga igen, med
+// nyckeln inloggad person och patient, och glömmer det vid varje ny session (inloggning, utloggning och byte av person).
+// Svarar servern att bekräftelsen saknas frågar dialogen ändå. Det vanligaste sättet är förvalt, så att flödet utan
+// skanning får ett klick till och flödet med skanning inget.
+const IDENTITET_SATT = [['id_band_hand', 'Id-bandet avläst för hand'], ['id_handling', 'Id-handling'], ['kand', 'Patienten är känd av mig'], ['annan', 'Annat sätt']];
+const RUNDA_MS = 15 * 60_000;
+const identitetMinne = { session: -1, rader: new Map() };
+const identitetNyckel = (pid) => `${S.session?.personal?.id ?? ''}:${pid}`;
+function identitetRader() {
+  if (identitetMinne.session !== sessionNummer()) { identitetMinne.session = sessionNummer(); identitetMinne.rader = new Map(); }
+  return identitetMinne.rader;
+}
+const nyligenBekraftad = (pid) => { const t = identitetRader().get(identitetNyckel(pid)); return Boolean(t && Date.now() - t < RUNDA_MS); };
+async function fragaIdentitet(pid, namnText) {
+  // Formuläret fungerar också under ett avbrott (data-ko-ok), eftersom en dos då läggs i skrivkön.
+  const vem = patientText.get(pid);
+  const svar = await dialog(`<form data-ko-ok><h2 id="dlg-rubrik">Patientens identitet${vem ? `: ${esc(vem)}` : ''}</h2>
+    <p>${esc(namnText)} ges och armbandet är inte skannat. Hur har du kontrollerat att det är rätt patient?</p>
+    <fieldset class="kryssgrupp" id="adm-id"><legend>Identiteten kontrollerades med</legend>${IDENTITET_SATT.map(([k, t], i) => `<div class="kryssfalt"><input type="radio" id="adm-id-${k}" name="satt" value="${k}"${i === 0 ? ' checked' : ''}><label for="adm-id-${k}">${esc(t)}</label></div>`).join('')}</fieldset>
+    <div class="falt"><label for="adm-id-text">Hur, om annat sätt</label><input id="adm-id-text" name="text" maxlength="200" autocomplete="off"></div>
+    <p class="dialog-fel form-fel" role="alert" hidden></p>
+    <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Identiteten är kontrollerad</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`,
+  { validera: (d) => (d.satt === 'annan' && String(d.text ?? '').trim().length < 3 ? 'Skriv hur du har kontrollerat identiteten.' : null) });
+  if (!svar) return null;
+  return { satt: svar.data.satt, ...(svar.data.satt === 'annan' ? { text: String(svar.data.text).trim() } : {}) };
+}
+
+// Registrerar en åtgärd. Utan skannat armband följer identiteten med (se ovan).
 async function registrera(pid, data, namnText) {
+  const utanSkanning = data.atgard === 'ge' && !data.armband;
+  if (utanSkanning && !data.identitet && !nyligenBekraftad(pid)) {
+    const id = await fragaIdentitet(pid, namnText);
+    if (!id) return null;
+    data = { ...data, identitet: id };
+  }
+  const tyst = utanSkanning && !data.identitet;
+  try {
+    const r = await skicka(pid, data, namnText, { tyst });
+    if (r && utanSkanning) identitetRader().set(identitetNyckel(pid), Date.now());
+    return r;
+  } catch (e) {
+    if (!(tyst && e?.kod === 'identitet')) { if (tyst) felNotis(e); throw e; }
+    const id = await fragaIdentitet(pid, namnText);
+    if (!id) return null;
+    const r = await skicka(pid, { ...data, identitet: id }, namnText);
+    if (r) identitetRader().set(identitetNyckel(pid), Date.now());
+    return r;
+  }
+}
+
+// Med en allvarlig varning visas den med fält för motivering, och åtgärden görs om med kvittensen.
+async function skicka(pid, data, namnText, { tyst = false } = {}) {
   const vag = `/api/patient/${encodeURIComponent(pid)}/administreringar`;
   try {
     // Runda 10, r1: under ett avbrott läggs en given dos i skrivkön (ko), och servern prövar den när förbindelsen är tillbaka.
-    return await api(vag, { metod: 'POST', data, ko: data.atgard === 'ge' && !data.tid });
+    return await api(vag, { metod: 'POST', data, ko: data.atgard === 'ge' && !data.tid, ...(tyst ? { tyst: true } : {}) });
   } catch (e) {
     if (!(e.status === 400 && e.data?.varningar)) throw e;
     const svar = await dialog(`<form><h2 id="dlg-rubrik">${ikon.varning}<span>Varning: ${esc(namnText)}</span></h2>
@@ -300,7 +355,7 @@ export async function visa(main) {
   el.innerHTML = `${deleg}${pumparHtml(pump)}<p class="ingress liten">${esc(d.vardenhet?.namn ?? '')}: ${d.sammanfattning.attGe} ${d.sammanfattning.attGe === 1 ? 'dos' : 'doser'} att ge nu${d.sammanfattning.forsenade ? `, ${d.sammanfattning.forsenade} försenade` : ''}. Varningarna är demoregler, inte kliniskt beslutsstöd.</p>
     ${d.patienter.map(p => `<section class="adm-patient" aria-labelledby="adm-${esc(p.patient.id)}">
       <h2 id="adm-${esc(p.patient.id)}">${patientCell(p.patient, `#/patient/${encodeURIComponent(p.patient.id)}/lakemedel`)} <span class="dampad liten">${esc(p.plats ?? '')}</span></h2>
-      ${patientDoser(p.patient.id, p)}
+      ${patientDoser(p.patient.id, p, p.patient)}
     </section>`).join('')}`;
   koppla(el, () => visa(main));
   skannaArmband(el);

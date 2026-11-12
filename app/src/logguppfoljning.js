@@ -95,18 +95,27 @@ export const KONTROLLERA = {
   administrativ: 'Administrativ åtkomst. Kontrollera att uppgiften behövdes för arbetet.',
 };
 
+// Runda 13, r3 (E3-30, säkerhetsgranskningen): läskopian för avbrott är ett utlämnande och kan dras. Rutinraderna, utan
+// flagga och utan mycket högt skyddsbehov, dras i en egen kategori med högst KOPIOR_I_STICKPROV rader, så att de inte
+// tränger undan åtkomster som en människa har gjort. Rader med nödåtkomst, samtycke till spärrade uppgifter eller en
+// patient med skyddad identitet dras alltid som andra rader med mycket högt skyddsbehov.
 // Drar ett stickprov: slumpvis valda åtkomster av vårdens personal till patientuppgifter under de senaste dagarna, som
 // inte har funnits i ett tidigare stickprov. Logggranskningens egna läsningar och nekade försök (som redan flaggas)
 // räknas inte.
 // Runda 7, r4: antalet kan ändras av systemförvaltningen (konfiguration.js). STICKPROV_ANTAL är standardvärdet.
+export const KOPIOR_I_STICKPROV = 2;
 export function dra(db, pers, { antal = konfiguration.varde(db, 'logg.stickprov_antal'), dagar = STICKPROV_DAGAR, nu = new Date() } = {}) {
   const fran = new Date(nu.getTime() - dagar * 86400_000).toISOString();
   const till = nu.toISOString();
   const urval = `FROM atkomstlogg l WHERE l.personal_id IS NOT NULL AND l.patient_id IS NOT NULL AND l.invanare_id IS NULL
       AND l.resultat = 'tillaten' AND l.grund <> 'logggranskning' AND l.handling <> 'las_logg' AND l.tid >= ? AND l.tid <= ?
       AND l.id NOT IN (SELECT logg_id FROM stickprov_rader)`;
-  const kandidater = db.query(`SELECT l.id ${urval} ORDER BY l.id`).all(fran, till).map(r => r.id);
-  if (!kandidater.length) throw new Fel(400, `Det finns inga åtkomster från de senaste ${dagar} dagarna som inte redan har kontrollerats.`, 'ogiltig');
+  const RUTINKOPIA = `l.resurs IN ('lasekopia', 'lasekopia:slut') AND l.grund NOT IN ('nodatkomst', 'samtycke_sparr') AND NOT ${skyddsbehov.MYCKET_HOGT_SQL}`;
+  const allaKandidater = db.query(`SELECT l.id ${urval} ORDER BY l.id`).all(fran, till).map(r => r.id);
+  const rutinkopior = new Set(db.query(`SELECT l.id ${urval} AND ${RUTINKOPIA}`).all(fran, till).map(r => r.id));
+  const kandidater = allaKandidater.filter(id => !rutinkopior.has(id));
+  const kopiaKandidater = allaKandidater.filter(id => rutinkopior.has(id));
+  if (!kandidater.length && !kopiaKandidater.length) throw new Fel(400, `Det finns inga åtkomster från de senaste ${dagar} dagarna som inte redan har kontrollerats.`, 'ogiltig');
   // Fisher och Yates med kryptografiskt slumptal, så att urvalet inte går att förutse.
   const blanda = (lista, n) => {
     const slump = new Uint32Array(n);
@@ -124,15 +133,17 @@ export function dra(db, pers, { antal = konfiguration.varde(db, 'logg.stickprov_
   const antalHoga = hoga.size ? Math.min(hoga.size, Math.max(1, Math.floor(n / 3))) : 0;
   const forsta = blanda([...hoga], antalHoga);
   const ovriga = kandidater.filter(id => !forsta.includes(id));
-  const valda = [...forsta, ...blanda(ovriga, n - forsta.length)].sort((a, b) => a - b);
+  // Kopior för avbrott: en egen kategori med eget antal.
+  const kopior = blanda([...kopiaKandidater], Math.min(KOPIOR_I_STICKPROV, kopiaKandidater.length));
+  const valda = [...forsta, ...blanda(ovriga, n - forsta.length), ...kopior].sort((a, b) => a - b);
   const id = db.transaction(() => {
-    const r = db.query('INSERT INTO stickprov (skapad, av, fran, till, antal, urval) VALUES (?, ?, ?, ?, ?, ?)').run(till, pers.id, fran, till, n, kandidater.length);
+    const r = db.query('INSERT INTO stickprov (skapad, av, fran, till, antal, urval) VALUES (?, ?, ?, ?, ?, ?)').run(till, pers.id, fran, till, valda.length, allaKandidater.length);
     const sid = Number(r.lastInsertRowid);
     valda.forEach((lid, i) => db.query('INSERT INTO stickprov_rader (stickprov_id, logg_id, ordning) VALUES (?, ?, ?)').run(sid, lid, i + 1));
     return sid;
   })();
   logg.loggaRad(db, { personal_id: pers.id, enhet_id: pers.enhet_id, handling: 'las_logg', resurs: `stickprov:${id}`, grund: 'logggranskning',
-    syfte: `Stickprov med ${n} av ${kandidater.length} åtkomster från de senaste ${dagar} dagarna (HSLF-FS 2016:40 4 kap. 9 b §).`, resultat: 'tillaten' });
+    syfte: `Stickprov med ${valda.length} av ${allaKandidater.length} åtkomster, varav ${kopior.length} kopior för avbrott, från de senaste ${dagar} dagarna (HSLF-FS 2016:40 4 kap. 9 b §).`, resultat: 'tillaten' });
   sakerhet.logga(db, { typ: 'stickprov', personal_id: pers.id, enhet_id: pers.enhet_id, metod: 'POST', vag: '/api/stickprov', status: 201,
     beskrivning: `Ett stickprov med ${n} åtkomster drogs slumpvis för kontroll.` });
   return stickprov(db, id);
@@ -151,6 +162,8 @@ export function stickprov(db, id) {
       const l = loggrader.get(r.logg_id);
       return {
         loggId: r.logg_id, ordning: r.ordning, tid: l?.tid, personal: l?.personal, enhet: l?.enhet, patient: patientKort(db, l?.patientId, cache),
+        // Runda 13, r3: kategorin för en kopia för avbrott.
+        ...(['lasekopia', 'lasekopia:slut'].includes(l?.resurs) ? { kategori: 'Kopia för avbrott', kontrolleraKopia: 'Kontrollera att personen arbetade på vårdenheten när kopian lämnades ut.' } : {}),
         handling: l?.handling, resurs: l?.resurs, grund: l?.grund, syfte: l?.syfte, kontrollera: KONTROLLERA[l?.grund] ?? 'Kontrollera att åtkomsten behövdes för vården.',
         // Runda 9, r5: skyddsnivån och varför den är mycket hög.
         skyddsniva: l?.skyddsniva ?? null, skyddsorsak: l?.skyddsniva === 3 ? skyddsbehov.orsakFor(l, Boolean(patientKort(db, l.patientId, cache)?.skyddad)) : null,

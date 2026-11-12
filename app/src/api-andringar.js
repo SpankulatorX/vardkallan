@@ -92,6 +92,16 @@ export const ANDRINGAR = [
   },
 ];
 
+// Runda 13, r3: flerfaktor som krav, begäran om undantag av en anteckning och vårdgarantierna (docs/api-avvikelser.md).
+ANDRINGAR.find(a => a.version === '1.3.0').annat.push(
+  'När vårdgivaren kräver flerfaktor slutför POST /api/flerfaktor/totp och /api/flerfaktor/passkey inloggningen och ger sessionen',
+  'Begäran om undantag av en anteckning från anteckningens meny, och systemförvaltarens avslag av en begäran',
+  'Behandlingsgarantin i anmälan till operation och på operationsväntelistan',
+  'Uppgift om hur identiteten kontrollerades när en dos ges utan skannat armband',
+  'Verksamhetschefens godkännande av gallring och radering för sin vårdenhet',
+  'Uppgift om att det finns spärrade uppgifter hos en annan vårdgivare vid sammanhållen journalföring',
+);
+
 // Runda 12, r3: flerfaktorsinloggning i det interna API:t (docs/api-avvikelser.md).
 ANDRINGAR.find(a => a.version === '1.2.0').annat.push('Flerfaktorsinloggning med passkeys (WebAuthn) och engångskoder (RFC 6238) i det interna API:t');
 

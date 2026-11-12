@@ -356,7 +356,11 @@ export function forhandsvisa(db, personal, { slag, nyckel = null, definition } =
   if (n0 && slag === 'mall' && !forraRad) throw new Fel(404, 'Mallen finns inte. Skapa den som en ny mall.', 'saknas');
   const fel = [];
   const def = PROVA[slag](db, definition, fel, { nyckel: n0, forra: forraRad?.def ?? null });
-  const nyck = n0 ?? nyckelFor(slag, def);
+  // Runda 13, r3 (säkerhetsfynd 10): för en ram och en lokal anpassning räknas nyckeln alltid ur definitionen, och en
+  // nyckel som inte stämmer med den nekas, så att två godkända versioner aldrig kan gälla samma mall och vårdenhet.
+  const raknad = ['ram', 'lokal'].includes(slag) ? nyckelFor(slag, def) : null;
+  if (raknad && n0 && n0 !== raknad) fel.push(`Nyckeln ${n0} stämmer inte med definitionen, som gäller ${raknad.replace('|', ' på ')}. Välj den mall och vårdenhet som definitionen gäller.`);
+  const nyck = raknad ?? n0 ?? nyckelFor(slag, def);
   // En ram eller lokal anpassning för en nyckel som redan har en godkänd version blir en ny version av den.
   const forra = forraRad?.def ?? gallande(db, slag).get(nyck)?.def ?? null;
   if (!n0 && slag === 'mattyp' && gallande(db, 'mattyp').has(nyck)) fel.push(`Det finns redan en mätvärdestyp med id ${nyck}. Ge den nya ett annat namn.`);

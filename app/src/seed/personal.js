@@ -105,4 +105,20 @@ export const PERSONAL = [
   // Runda 11, r6: röntgensjuksköterskan på röntgenkliniken tar emot, prioriterar och bokar beställda undersökningar och
   // registrerar att de är gjorda (undersokningar.js). Hon läser inte journalen utan vårdrelation.
   { id: 'rtg-ssk', namn: 'Linnea Forsman', yrke: 'sjukskoterska', titel: 'Röntgensjuksköterska', enhet: 'uso-rtg', demo: true },
+  // Runda 13, r3 (E3-35): en verksamhetschef för varje vårdenhet i verksamhetschefstabellen, så att gallring och radering
+  // går att godkänna för varje vårdenhet. Påhittade namn som inte går att logga in som. Sist, så att de andras HSA-id
+  // inte ändras.
+  { id: 'chef-kkoga-ane', namn: 'Annika Holmgren', yrke: 'verksamhetschef', titel: 'Verksamhetschef', enhet: 'kkoga-ane' },
+  { id: 'chef-kkoga-ort', namn: 'Stefan Lundell', yrke: 'verksamhetschef', titel: 'Verksamhetschef', enhet: 'kkoga-ort' },
+  { id: 'chef-lind-med', namn: 'Margareta Wiklund', yrke: 'verksamhetschef', titel: 'Verksamhetschef', enhet: 'lind-med' },
+  { id: 'chef-uso-akut', namn: 'Henrik Sjöblom', yrke: 'verksamhetschef', titel: 'Verksamhetschef', enhet: 'uso-akut' },
+  { id: 'chef-uso-ane', namn: 'Cecilia Brandt', yrke: 'verksamhetschef', titel: 'Verksamhetschef', enhet: 'uso-ane' },
+  { id: 'chef-uso-inf', namn: 'Mikael Ekdahl', yrke: 'verksamhetschef', titel: 'Verksamhetschef', enhet: 'uso-inf' },
+  { id: 'chef-uso-kk', namn: 'Louise Bergqvist', yrke: 'verksamhetschef', titel: 'Verksamhetschef', enhet: 'uso-kk' },
+  { id: 'chef-uso-med', namn: 'Tomas Rehnberg', yrke: 'verksamhetschef', titel: 'Verksamhetschef', enhet: 'uso-med' },
+  { id: 'chef-uso-ort', namn: 'Jenny Sandström', yrke: 'verksamhetschef', titel: 'Verksamhetschef', enhet: 'uso-ort' },
+  { id: 'chef-uso-psyk', namn: 'Daniel Forsberg', yrke: 'verksamhetschef', titel: 'Verksamhetschef', enhet: 'uso-psyk' },
+  { id: 'chef-uso-rtg', namn: 'Helena Ottosson', yrke: 'verksamhetschef', titel: 'Verksamhetschef', enhet: 'uso-rtg' },
+  { id: 'chef-vc-kumla', namn: 'Kristina Alm', yrke: 'verksamhetschef', titel: 'Verksamhetschef', enhet: 'vc-kumla' },
+  { id: 'chef-vc-tybble', namn: 'Peter Nordqvist', yrke: 'verksamhetschef', titel: 'Verksamhetschef', enhet: 'vc-tybble' },
 ];

@@ -96,6 +96,38 @@
           "var": null,
           "rubrik": "Faktorer ändras först efter en bekräftelse",
           "text": "För att lägga till eller ta bort en passkey eller en app för engångskoder när du redan har en faktor bekräftar du först med en kod från appen eller en ny inloggning, så att en öppen session inte räcker för att ändra flerfaktorn."
+        },
+        {
+          "id": "r13r3-flerfaktor-krav",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "liten",
+          "var": "#/regler",
+          "rubrik": "Vårdgivaren kan kräva flerfaktor",
+          "text": "Parametern Flerfaktor krävs vid inloggning ändras med fyra ögon. Med ja leds den som saknar en passkey eller en app för engångskoder till att registrera en vid nästa inloggning, och ingen får behörighet förrän den andra faktorn är bekräftad. I demon står den på nej, så att ingen besökare låses ute."
+        },
+        {
+          "id": "r13r3-undantag-begaran",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "systemforvaltare"
+          ],
+          "omfattning": "liten",
+          "var": "#/undantag",
+          "rubrik": "Undantag av en anteckning börjar i journalen",
+          "text": "Journalen visar anteckningens nummer. Den som skrev anteckningen eller patientens ansvariga läkare begär undantag från visning eller publicering i anteckningens meny, med kanal och skäl. Systemförvaltaren ser begäran med nummer, typ, datum och vårdenhet men aldrig innehållet, och en andra systemförvaltare godkänner."
+        },
+        {
+          "id": "r13r3-lakemedelsvarningar",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "var": null,
+          "rubrik": "Fler läkemedelsvarningar vid ordination",
+          "text": "Kontrollera och spara varnar nu för NSAID tillsammans med apixaban och andra blodförtunnande, NSAID med spironolakton eller furosemid, warfarin med trombocythämmande läkemedel och vissa antidepressiva läkemedel med blodförtunnande, och påminner om NSAID till äldre. Läkemedel i Nationella läkemedelslistan från en spärrad vårdenhet ingår i kontrollen utan att visas. Demoregler."
         }
       ]
     },

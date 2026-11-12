@@ -71,12 +71,14 @@ describe('Sammanhållen journalföring', () => {
   test(T.sjSparr.split(' > ')[1], async () => {
     const k = await inloggad('lak-kard');
     const d = (await hamta(k, 'p01', { samtycke: true })).data;
-    // Seedens spärrade post hos den andra vårdgivaren hämtas aldrig och nämns inte.
+    // Seedens spärrade post hos den andra vårdgivaren hämtas aldrig. Runda 13, r3: systemet säger bara att det finns
+    // spärrade uppgifter hos en annan vårdgivare (HSLF-FS 2016:40 4 kap. 7 §), utan vilken, slag eller antal.
     const sparrad = sj.POSTER.p01.filter(p => p.sparrad);
     expect(sparrad.length).toBeGreaterThan(0);
     const txt = JSON.stringify(d);
     for (const p of sparrad) expect(txt).not.toContain(p.rubrik);
-    expect(txt).not.toMatch(/spärr/i);
+    expect(txt.match(/spärr/gi)).toEqual(['spärr']);
+    expect(d.sparrText).toBe(sj.SPARR_TEXT);
     expect(d.poster.length).toBe(sj.POSTER.p01.length - sparrad.length);
   });
 

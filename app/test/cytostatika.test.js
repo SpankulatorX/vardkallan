@@ -2,6 +2,7 @@
 // provkontroll före kur, dosjustering och uppskjuten cykel, beredningsorder med etikett, administrering med
 // dubbelkontroll i regimens ordning, överlämnande av peroral behandling och uppföljningen. Medicinkliniken i Lindesberg.
 import { describe, test, expect } from 'bun:test';
+import { armbandsKod } from '../src/skanning.js';
 import { datumAv, addDagar } from '../src/db.js';
 import * as cyto from '../src/cytostatika.js';
 import { alder as alderFor } from '../src/atkomst.js';
@@ -19,7 +20,7 @@ function ny(db, id = 'cy1', { prover = true, kreatinin = 70 } = {}) {
 const kur = (b, n = 0) => b.kurer[n];
 // Dubbelkontrollen: sjuksköterskan iordningställer vid sängen, läkaren kontrollerar i sin egen session och dosen ges.
 function geMedKontroll(db, d, nu, pid = 'cy1') {
-  const las = { armband: pnr(db, pid), streckkod: d.etikett };
+  const las = { armband: band(db, pid), streckkod: d.etikett };
   cyto.iordningstall(ssk(db, pid), cyto.dosRad(db, d.id), las, nu);
   cyto.kontrollera(lak(db, pid, 'ge_cytostatika'), cyto.dosRad(db, d.id), las, new Date(nu.getTime() + 60_000));
   // Runda 11, r4: en infusion startas och avslutas, så att start, slut och takt registreras. Tabletter överlämnas.
@@ -28,8 +29,10 @@ function geMedKontroll(db, d, nu, pid = 'cy1') {
   return cyto.avslutaInfusion(ssk(db, pid), cyto.dosRad(db, d.id), new Date(nu.getTime() + 180_000));
 }
 // Runda 11, r4: premedicineringen ges före den första cytostatikadosen.
-const gePremed = (db, pid = 'cy1', nu = efter(95)) => { for (const p of db.query("SELECT id FROM cyto_premed WHERE patient_id = ? AND status = 'ordinerad'").all(pid)) cyto.gePremed(ssk(db, pid), cyto.premedRad(db, p.id), { armband: pnr(db, pid) }, nu); };
+const gePremed = (db, pid = 'cy1', nu = efter(95)) => { for (const p of db.query("SELECT id FROM cyto_premed WHERE patient_id = ? AND status = 'ordinerad'").all(pid)) cyto.gePremed(ssk(db, pid), cyto.premedRad(db, p.id), { armband: band(db, pid) }, nu); };
 const pnr = (db, pid = 'cy1') => db.query('SELECT personnummer FROM patienter WHERE id = ?').get(pid).personnummer;
+// Runda 13, r3 (säkerhetsgranskningen): armbandet är patientens utskrivna armband ur armbandstabellen, inte personnumret.
+const band = (db, pid = 'cy1') => armbandsKod(db, pid);
 // En godkänd och beredd EC-kur, mottagen på avdelningen.
 function berett(db) {
   ny(db);
@@ -122,7 +125,7 @@ describe('Cytostatika', () => {
     const db = sandlada();
     const { o, b } = berett(db);
     const [epi, cyk] = o.doser;
-    const k = { armband: pnr(db) };
+    const k = { armband: band(db) };
     expect(() => cyto.taEmot(ssk(db), cyto.dosRad(db, epi.id), { streckkod: epi.etikett }, efter(91))).toThrow('redan mottagen');
     expect(() => cyto.iordningstall(ssk(db), cyto.dosRad(db, cyk.id), { ...k, streckkod: cyk.etikett }, efter(100))).toThrow('Ge epirubicin först');
     expect(() => cyto.iordningstall(ssk(db), cyto.dosRad(db, epi.id), { ...k, streckkod: cyk.etikett }, efter(100))).toThrow('Etiketten stämmer inte');
@@ -142,7 +145,7 @@ describe('Cytostatika', () => {
     const db = sandlada();
     const { o } = berett(db);
     const epi = o.doser[0];
-    const las = { armband: pnr(db), streckkod: epi.etikett };
+    const las = { armband: band(db), streckkod: epi.etikett };
     // Ett id för en kollega i anropet gör ingenting: dosen kan inte ges utan kontrollen.
     expect(() => cyto.ge(ssk(db), cyto.dosRad(db, epi.id), efter(99), { kontrollant: 'lak-lind' })).toThrow('Dosen är inte dubbelkontrollerad');
     const v = cyto.iordningstall(ssk(db), cyto.dosRad(db, epi.id), las, efter(100));
@@ -165,7 +168,7 @@ describe('Cytostatika', () => {
     ny(db, 'cy5');
     const c = cyto.cykelRad(db, kur(b).id), d = cyto.dosRad(db, o.doser[0].id), be = cyto.behandlingRad(db, b.id);
     const A = (h) => atk(db, 'lak-lind', 'cy5', h);
-    const las = { armband: pnr(db), streckkod: d.etikett };
+    const las = { armband: band(db), streckkod: d.etikett };
     for (const f of [() => cyto.provkontroll(A('las_cytostatika'), c, BAS), () => cyto.bestallProver(A('bestalla_prov'), c, BAS), () => cyto.godkann(A('ordinera_cytostatika'), c, BAS),
       () => cyto.dosjustera(A('ordinera_cytostatika'), c, { dosandel: 75, orsak: 'x' }, BAS), () => cyto.skjutUpp(A('ordinera_cytostatika'), c, {}, BAS),
       () => cyto.beredningsorder(A('las_cytostatika'), c), () => cyto.bered(A('ge_cytostatika'), c, BAS), () => cyto.nastaCykel(A('ordinera_cytostatika'), be, BAS),
@@ -233,9 +236,9 @@ describe('Cytostatika', () => {
     const { o } = berett(db);
     expect(() => cyto.ordinera(ssk(db, 'cy1', 'ordinera_cytostatika'), { regim: 'ec', tidigareBehandling: { svar: 'nej' } }, BAS)).toThrow('Yrkesrollen får inte ordinera cytostatika');
     db.query("INSERT INTO vardkontakter (patient_id, enhet_id, typ, start, plats, orsak) VALUES ('cy1', 'kkoga-ort', 'slutenvard', ?, 'Avdelning', 'Vård')").run(BAS.toISOString());
-    expect(() => cyto.iordningstall(atk(db, 'ssk-kkoga', 'cy1', 'ge_cytostatika', { andra_enheter: true }), cyto.dosRad(db, o.doser[0].id), { armband: pnr(db), streckkod: o.doser[0].etikett }, efter(100))).toThrow('ordinerande vårdenheten');
+    expect(() => cyto.iordningstall(atk(db, 'ssk-kkoga', 'cy1', 'ge_cytostatika', { andra_enheter: true }), cyto.dosRad(db, o.doser[0].id), { armband: band(db), streckkod: o.doser[0].etikett }, efter(100))).toThrow('ordinerande vårdenheten');
     // En beredning som är äldre än ett dygn iordningställs inte.
-    expect(() => cyto.iordningstall(ssk(db), cyto.dosRad(db, o.doser[0].id), { armband: pnr(db), streckkod: o.doser[0].etikett }, efter(60 + 25 * 60))).toThrow('äldre än 24 timmar');
+    expect(() => cyto.iordningstall(ssk(db), cyto.dosRad(db, o.doser[0].id), { armband: band(db), streckkod: o.doser[0].etikett }, efter(60 + 25 * 60))).toThrow('äldre än 24 timmar');
     const las = (val) => cyto.forPatient(atk(db, 'lak-kkoga', 'cy1', 'las_cytostatika', val), efter(100));
     expect(las({ andra_enheter: true }).behandlingar.length).toBe(1);
     // Runda 11, r4: svaret om tidigare behandling följer läkemedelslistan och syns utan aktivt val men inte efter en spärr,

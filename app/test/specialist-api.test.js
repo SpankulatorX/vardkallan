@@ -1,6 +1,7 @@
 // API för specialistområdena i runda 9, r3: operation, blodprodukter, graviditet, cytostatika och bilder. Flödena görs
 // med demorollerna i samma sandlåda, och dubbelkontrollerna med en ny inloggning som den andra personen.
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { armbandsKod } from '../src/skanning.js';
 import { testserver, klient, sandlada } from './hjalp.js';
 import { nyPatient } from './specialist.js';
 
@@ -18,6 +19,8 @@ async function start(roll = 'lak-kard', patienter = [{ id: 'sp1', enhet: 'uso-ka
 }
 const mv = (db, pid, typ, varde) => db.query("INSERT INTO matvarden (patient_id, enhet_id, typ, varde, varde_num, tid) VALUES (?, 'uso-kard-72', ?, ?, ?, ?)").run(pid, typ, String(varde), varde, new Date(Date.now() - 3600_000).toISOString());
 const pnr = (db, pid) => db.query('SELECT personnummer FROM patienter WHERE id = ?').get(pid).personnummer;
+// Runda 13, r3 (säkerhetsgranskningen): armbandet är patientens utskrivna armband ur armbandstabellen, inte personnumret.
+const band = (db, pid) => armbandsKod(db, pid);
 
 describe('API för specialistområdena', () => {
   test('operation: läkaren anmäler, sjuksköterskan planerar och registrerar, och en annan patients anmälan ger 404 utan logg på fel patient', async () => {
@@ -53,13 +56,15 @@ describe('API för specialistområdena', () => {
     const b = await k.post('/api/patient/sp1/blod', { produkt: 'erytrocyter', antal: 1, indikation: 'Anemi' });
     expect(b.data.status).toBe('vantar_prov');
     const labbId = db.query('SELECT labb_bestallning_id AS id FROM blod_bestallningar WHERE id = ?').get(b.data.id).id;
-    for (const p of db.query('SELECT id FROM labb_prov WHERE bestallning_id = ?').all(labbId)) expect((await k.post(`/api/labb/prov/${p.id}/tagen`, {})).status).toBe(200);
+    // Runda 13, r3 (E2-53): rören för blodgruppering och bastest tas efter kontroll med armbandet.
+    const sp1Band = (await k.post('/api/patient/sp1/armband')).data.kod;
+    for (const p of db.query('SELECT id FROM labb_prov WHERE bestallning_id = ?').all(labbId)) expect((await k.post(`/api/labb/prov/${p.id}/tagen`, { identitet: { armband: sp1Band } })).status).toBe(200);
     expect((await k.post(`/api/labb/${labbId}/simulera-svar`, {})).status).toBe(200);
     expect((await k.get('/api/patient/sp1/blod')).data.bestallningar[0].status).toBe('beredd');
     await k.logga('ssk-kard');
     const u = await k.post(`/api/blod/${b.data.id}/utlamna`, {});
     const e = u.data.enheter[0];
-    const las = { armband: pnr(db, 'sp1'), enhetsnummer: e.enhetsnummer };
+    const las = { armband: band(db, 'sp1'), enhetsnummer: e.enhetsnummer };
     expect((await k.post(`/api/blodenhet/${e.id}/forbered`, las)).data.kontroll.kandidater.map(x => x.id)).toContain('lak-kard');
     expect((await k.post(`/api/blodenhet/${e.id}/kontrollera`, las)).status).toBe(409);
     expect((await k.post(`/api/blodenhet/${e.id}/starta`, { kontrollant: 'lak-kard' })).status).toBe(409);
@@ -102,9 +107,9 @@ describe('API för specialistområdena', () => {
     const o = await k.get(`/api/cytostatika/cykel/${cid}/beredningsorder`);
     const d = o.data.doser[0];
     expect(d.status).toBe('beredd');
-    for (const p of (await k.get('/api/patient/sp1/cytostatika')).data.behandlingar[0].kurer[0].premedicinering) await k.post(`/api/cytostatika/premed/${p.id}/ge`, { armband: pnr(db, 'sp1') });
+    for (const p of (await k.get('/api/patient/sp1/cytostatika')).data.behandlingar[0].kurer[0].premedicinering) await k.post(`/api/cytostatika/premed/${p.id}/ge`, { armband: band(db, 'sp1') });
     await k.post(`/api/cytostatika/dos/${d.id}/ta-emot`, { streckkod: d.etikett });
-    const las = { armband: pnr(db, 'sp1'), streckkod: d.etikett };
+    const las = { armband: band(db, 'sp1'), streckkod: d.etikett };
     expect((await k.post(`/api/cytostatika/dos/${d.id}/iordningstall`, las)).data.kontroll.status).toBe('vantar_kontroll');
     expect((await k.post(`/api/cytostatika/dos/${d.id}/kontrollera`, las)).status).toBe(409);
     await k.logga('lak-kard');

@@ -1,9 +1,11 @@
 // Runda 9, r1: beredning med kontroll och etikett, doser i flytande form och gasform och patientnära skanning
 // (Sussa 3.5.1.4, 3.5.2.17 och 3.5.2.18). Klockan styrs med setSystemTime och sandlådan byggs vid den tiden.
 import { describe, test, expect, afterEach, afterAll } from 'bun:test';
+import { armbandsKod } from '../src/skanning.js';
 import { aterstallKlockan, stallKlockan } from './falsk-klocka.js';
 import { byggSeed, idag, addDagar, lokalTid } from '../src/db.js';
-import * as administrering from '../src/administrering.js';
+// Runda 13, r3 (E2-5): spara ger dosen med uppgiften om identiteten (administrering-hjalp.js).
+import * as administrering from './administrering-hjalp.js';
 import * as lakemedel from '../src/lakemedel.js';
 import * as stod from '../src/lakemedelsstod.js';
 import * as mallar from '../src/ordinationsmallar.js';
@@ -174,22 +176,23 @@ describe('Patientnära skanning', () => {
     const furo = lakemedel.synligaOrdinationer(ssk(db, 'p01', 'las_lakemedel')).find(o => db.query('SELECT namn FROM katalog WHERE id = ?').get(o.lakemedel_id).namn.startsWith('Furosemid'));
     const ior = administrering.spara(ssk(db, 'p01'), { ordinationId: furo.id, planerad: kl('14:00'), atgard: 'iordningstall' });
     const kod = ior.administrering.iordningstalld.kontrollkod;
-    expect(beredning.armband(ssk(db, 'p01', 'las_lakemedel')).kod).toBe('VKA-P01');
-    const ok = beredning.skanna(ssk(db, 'p01', 'las_lakemedel'), { etikett: kod, armband: 'vka-p01' });
+    // Runda 13, r3 (säkerhetsgranskningen): armbandet är patientens utskrivna armband ur armbandstabellen.
+    expect(beredning.armband(ssk(db, 'p01', 'las_lakemedel')).kod).toBe(armbandsKod(db, 'p01'));
+    const ok = beredning.skanna(ssk(db, 'p01', 'las_lakemedel'), { etikett: kod, armband: armbandsKod(db, 'p01').toLowerCase() });
     expect(ok).toMatchObject({ ok: true, administreringId: ior.id, ordinationId: furo.id, planerad: kl('14:00') });
     // Ett armband för en annan patient: inget om den andra patienten i svaret.
     const p02 = db.query("SELECT * FROM patienter WHERE id = 'p02'").get();
-    const e = fel(() => beredning.skanna(ssk(db, 'p01', 'las_lakemedel'), { etikett: kod, armband: 'VKA-P02' }));
+    const e = fel(() => beredning.skanna(ssk(db, 'p01', 'las_lakemedel'), { etikett: kod, armband: armbandsKod(db, 'p02') }));
     expect(e.message).toContain('Armbandet hör inte till den här patienten');
     for (const x of [p02.id, p02.fornamn, p02.efternamn, p02.personnummer, 'P02']) expect(JSON.stringify({ m: e.message, x: e.extra })).not.toContain(x);
-    expect(fel(() => beredning.skanna(ssk(db, 'p01', 'las_lakemedel'), { etikett: 'VK-ADM-999999-P02', armband: 'VKA-P01' })).message).toContain('Etiketten hör inte till en iordningsställd dos');
+    expect(fel(() => beredning.skanna(ssk(db, 'p01', 'las_lakemedel'), { etikett: 'VK-ADM-999999-P02', armband: armbandsKod(db, 'p01') })).message).toContain('Etiketten hör inte till en iordningsställd dos');
     expect(fel(() => beredning.skanna(ssk(db, 'p01', 'las_lakemedel'), { etikett: kod })).extra.falt).toEqual(['armband']);
     // Dosen ges med skanningen, och servern prövar armbandet på nytt.
-    expect(fel(() => administrering.spara(ssk(db, 'p01'), { ordinationId: furo.id, planerad: kl('14:00'), kontrollkod: kod, armband: 'VKA-P02' })).message).toContain('Armbandet hör inte');
-    const ut = administrering.spara(ssk(db, 'p01'), { ordinationId: furo.id, planerad: kl('14:00'), kontrollkod: kod, armband: 'VKA-P01' });
+    expect(fel(() => administrering.spara(ssk(db, 'p01'), { ordinationId: furo.id, planerad: kl('14:00'), kontrollkod: kod, armband: armbandsKod(db, 'p02') })).message).toContain('Armbandet hör inte');
+    const ut = administrering.spara(ssk(db, 'p01'), { ordinationId: furo.id, planerad: kl('14:00'), kontrollkod: kod, armband: armbandsKod(db, 'p01') });
     expect(ut.administrering.skannad).toMatchObject({ armband: true, etikett: kod, av: 'Johan Ek' });
     // En given dos har ingen iordningsställd etikett att skanna.
-    expect(fel(() => beredning.skanna(ssk(db, 'p01', 'las_lakemedel'), { etikett: kod, armband: 'VKA-P01' })).message).toContain('Etiketten hör inte');
+    expect(fel(() => beredning.skanna(ssk(db, 'p01', 'las_lakemedel'), { etikett: kod, armband: armbandsKod(db, 'p01') })).message).toContain('Etiketten hör inte');
   });
 
   test('en etikett för en dos av en spärrad vårdenhets ordination behandlas som en okänd etikett', () => {
@@ -202,13 +205,13 @@ describe('Patientnära skanning', () => {
     const kod = ior.administrering.iordningstalld.kontrollkod;
     // Utan samtycke är etiketten okänd: samma svar som för en etikett som inte finns.
     const utan = (inp) => fel(() => beredning.skanna(atk(db, 'ssk-kard', 'p04', {}, 'las_lakemedel'), inp));
-    const okand = utan({ etikett: 'VK-ADM-999999-P04', armband: 'VKA-P04' });
-    const sparrad = utan({ etikett: kod, armband: 'VKA-P04' });
+    const okand = utan({ etikett: 'VK-ADM-999999-P04', armband: armbandsKod(db, 'p04') });
+    const sparrad = utan({ etikett: kod, armband: armbandsKod(db, 'p04') });
     expect(sparrad.status).toBe(400);
     expect(sparrad.message).toBe(okand.message);
     expect(JSON.stringify(sparrad.extra)).toBe(JSON.stringify(okand.extra));
     expect(fel(() => beredning.etikett(atk(db, 'ssk-kard', 'p04', {}, 'las_lakemedel'), ior.id)).status).toBe(404);
-    expect(beredning.skanna(atk(db, 'ssk-kard', 'p04', { samtycke_sparr: true }, 'las_lakemedel'), { etikett: kod, armband: 'VKA-P04' }).ok).toBe(true);
+    expect(beredning.skanna(atk(db, 'ssk-kard', 'p04', { samtycke_sparr: true }, 'las_lakemedel'), { etikett: kod, armband: armbandsKod(db, 'p04') }).ok).toBe(true);
   });
 });
 
@@ -508,14 +511,14 @@ describe('Beredning och skanning via API', () => {
     expect(pdf.headers.get('content-type')).toBe('application/pdf');
     expect((await k.post(`/api/patient/p01/beredningar/${b.id}/kontroll`, {})).status).toBe(400);
     const arm = await k.get('/api/patient/p01/armband');
-    expect(arm.data.kod).toBe('VKA-P01');
+    expect(arm.data.kod).toMatch(/^VKA[0-9A-Z]{11}$/);
     expect(arm.data.svg).toContain('<svg');
     // Läkaren på samma vårdenhet kontrollerar beredningen.
     await k.logga('lak-kard');
     const kontroll = await k.post(`/api/patient/p01/beredningar/${b.id}/kontroll`, { batch: 'K1234' });
     expect(kontroll.status).toBe(200);
     await k.logga('ssk-kard');
-    const sk = await k.post('/api/patient/p01/administreringar/skanna', { etikett: ior.data.administrering.iordningstalld.kontrollkod, armband: 'VKA-P01' });
+    const sk = await k.post('/api/patient/p01/administreringar/skanna', { etikett: ior.data.administrering.iordningstalld.kontrollkod, armband: arm.data.kod });
     expect(sk.status).toBe(200);
     expect(sk.data.text).toContain('Etiketten och armbandet stämmer');
     // Dostiden ligger i framtiden, så varningen för en för tidig dos kvitteras.

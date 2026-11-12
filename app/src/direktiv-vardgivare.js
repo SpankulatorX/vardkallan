@@ -1,6 +1,6 @@
 // Generella direktiv på vårdgivarens nivå (runda 9, r1, Sussa 3.5.2.15): ett direktiv som gäller alla vårdenheter hos
 // vårdgivaren, fastställt av den läkare som vårdgivaren har utsett. Direktiv för en vårdenhet eller avdelning fastställs
-// som förut av verksamhetschefen eller den medicinskt ansvariga läkaren (ordinationsvagar.js, lakemedelsansvar.js).
+// av den medicinskt ansvariga läkaren (ordinationsvagar.js, lakemedelsansvar.js). Runda 13, r3: inte av verksamhetschefen.
 //
 // Systemet är experten. Systemet vet vem vårdgivaren har utsett och säger det till den som försöker fastställa ett
 // direktiv för hela vårdgivaren utan uppdraget. Sjuksköterskan ser vårdgivarens direktiv bland de egna, prövade mot
