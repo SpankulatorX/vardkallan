@@ -893,3 +893,14 @@ Inget av detta är FHIR. Inga svar till testaren innehåller patientuppgifter ur
 - `GET /api/patient/:id/sammanhallen` har `sparradeHosAnnan` och `sparrText`.
 
 - `GET /api/min/journal/:id/egenmatning` har `hjalp` per typ och `situationer` för glukos. `POST` tar `situation` (`fastande`, `efter_maltid` eller `annat`) för glukos, och mätningen har `situation`. Patientens glukos i `egna` på `GET /api/patient/:id/matvarden` har `beskrivning` med fastande eller efter måltid.
+
+## Tjänstekontrakten i RIVTA (runda 14, r2)
+
+- `GET /api/tjanstekontrakt` har för varje kontrakt `rivta: { byggt, version, roll, kontrakt, schema, tjansteplattform, anslutet, text }` eller `null`, och `rivtaStatus`.
+- `GET /api/patient/:id/sammanhallen` har `fel` när de nationella tjänsterna för sammanhållen journalföring inte svarar. Då är `poster` tom och `text` säger varför. `sparradeHosAnnan` kommer från spärrtjänsten.
+- `POST /api/patient/:id/sammanhallen/hav-sparr { samtycke: true }` häver spärrar hos andra vårdgivare för den inloggade på sin vårdenhet till dagens slut. Kräver `samtycke_sparr` och ett gällande aktivt val. 400 utan samtycke eller val, 503 när spärrtjänsten inte svarar. Svaret är läget som i `GET`.
+- `GET /api/patient/:id/sparr/sparrtjansten` (handlingen `registrera_sparr`) ger `{ stammer, baraVardkallan, baraTjansten, text }` med vårdenheternas namn.
+- `GET /api/patient/:id/folkbokforing` (handlingen `las_admin`) ger `{ stammer, sekretessmarkering, skyddadIdentitet, varden, skillnader, text }`. `skillnader` har `{ falt, vardkallan, pu }`, men bara `{ falt }` för en patient med skyddad identitet eller sekretessmarkering utan det aktiva valet `visa_identitet`. Adressen jämförs aldrig för en sådan patient.
+- `GET /api/rivta/hsa/:id` (systemförvaltaren) ger `{ stammer, hsaId, hsa: { namn, titel, dn, pahittad }, skillnader, text }` för personen i personalkatalogen.
+- `POST /api/rivta/engagemangsindex/:id` (systemförvaltaren) skickar patientens engagemang till engagemangsindex och ger `{ antal }`.
+- Producenterna för tjänstekontrakten svarar med SOAP 1.1 enligt RIVTA Basic Profile 2.1 genom en egen transport med ömsesidig TLS (`src/rivta/tls.js`), inte genom serverns HTTP. Se docs/rivta.md.

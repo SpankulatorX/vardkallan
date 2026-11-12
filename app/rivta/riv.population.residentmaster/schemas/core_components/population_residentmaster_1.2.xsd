@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+ Licensed to the Apache Software Foundation (ASF) under one
+ or more contributor license agreements. See the NOTICE file
+ distributed with this work for additional information
+ regarding copyright ownership. Sveriges Kommuner och Landsting licenses this file
+ to you under the Apache License, Version 2.0 (the
+ "License"); you may not use this file except in compliance
+ with the License. You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied. See the License for the
+ specific language governing permissions and limitations
+ under the License.
+ -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tns="urn:riv:population:residentmaster:1" xmlns:m1="urn:riv:population:residentmaster:1.1" 
+	xmlns:m2="urn:riv:population:residentmaster:1.2"
+	targetNamespace="urn:riv:population:residentmaster:1" elementFormDefault="qualified" attributeFormDefault="unqualified" version="1.2">
+
+	<xs:import namespace="urn:riv:population:residentmaster:1.1" schemaLocation="population_residentmaster_1.1_ext.xsd" />
+	<xs:import namespace="urn:riv:population:residentmaster:1.2" schemaLocation="population_residentmaster_1.2_ext.xsd" />
+	
+	<xs:complexType name="ResidentType">
+		<xs:sequence>
+			<xs:element name="Sekretessmarkering" type="tns:JaNejTYPE" />
+			<xs:element name="SenasteAndringFolkbokforing" type="tns:DT"  minOccurs="0"/>
+			<xs:element name="Personpost" type="tns:PersonpostTYPE"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="PersonpostTYPE">
+		<xs:sequence>
+			<xs:element name="PersonId" type="tns:PersonIdTYPE"/>
+			<xs:element name="Kon" type="tns:KonTYPE" minOccurs="0"/>
+			<xs:element name="Fodelsetid" type="tns:DT" minOccurs="0"/>
+			<xs:element name="Avregistrering" type="tns:AvregistreringTYPE" minOccurs="0"/>
+			<xs:element name="Namn" type="tns:NamnTYPE" minOccurs="0"/>		
+			<xs:element name="Folkbokforingsadress" type="tns:SvenskAdressTYPE" minOccurs="0"/>
+			<xs:element name="SarskildPostadress" type="tns:SvenskAdressTYPE" minOccurs="0"/>
+			<xs:element ref="m1:HanvisningsPersonNr" minOccurs="0"/>
+			<xs:element ref="m1:Utlandsadress" minOccurs="0"/>
+			<xs:element ref="m1:Civilstand" minOccurs="0" />
+			<xs:element ref="m1:Fodelse" minOccurs="0"/>
+			<xs:element ref="m1:Invandring" minOccurs="0" />
+			<xs:element ref="m1:Relationer" />
+			<xs:element ref="m2:Distriktskod" minOccurs="0"/>
+<!--			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/> -->
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="SvenskAdressTYPE">
+			<xs:sequence>
+			<xs:element name="LanKod" type="tns:Strang2TYPE" minOccurs="0"/>
+			<xs:element name="KommunKod" type="tns:Strang2TYPE" minOccurs="0"/>
+			<xs:element name="ForsamlingKod" type="tns:Strang2TYPE" minOccurs="0"/>
+			<xs:element name="Fastighetsbeteckning" type="tns:Strang40TYPE" minOccurs="0"/>		
+			<xs:element name="CareOf" type="tns:Strang35TYPE"  minOccurs="0"/>
+			<xs:element name="Utdelningsadress1" type="tns:Strang35TYPE"  minOccurs="0"/>
+			<xs:element name="Utdelningsadress2" type="tns:Strang35TYPE"  minOccurs="0"/>
+			<xs:element name="PostNr"  minOccurs="0">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:minLength value="5"/>
+						<xs:maxLength value="5"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="Postort" type="tns:Strang27TYPE"  minOccurs="0"/>
+			<xs:element ref="m1:Folkbokforingsdatum" minOccurs="0"/>
+			<xs:element ref="m1:SCB_Nyckelkod" minOccurs="0"/>
+			<!-- Any-elementet medvetet borttaget. Genom tillägg av frivilligt fält är utökningsmöjligheten förbrukad för denna post (inom 1.x) -->
+		</xs:sequence>
+	</xs:complexType>
+	
+	<xs:complexType name="AvregistreringTYPE">
+		<xs:sequence>
+			<xs:element name="AvregistreringsorsakKod" type="tns:AvregistreringsorsakKodTYPE"  minOccurs="0"/> <!-- Utgår i version 2.0 -->
+			<xs:element name="Avregistreringsdatum" type="tns:OfullstandigtDatumTYPE"  minOccurs="0"/>
+			<xs:element ref="m1:AvregistreringsorsakKodKomplett" minOccurs="0"/> <!-- byter namn till AvregistreringsorsakKod i version 2.0 -->
+			<!-- Any-elementet medvetet borttaget. Genom tillägg av frivilligt fält är utökningsmöjligheten förbrukad för denna post (inom 1.x) -->
+		</xs:sequence>
+	</xs:complexType>
+	
+	<xs:complexType name="InvandringTYPE">
+		<xs:sequence>
+			<xs:element name="Invandringsdatum" type="tns:OfullstandigtDatumTYPE" minOccurs="0"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>	
+	
+	<xs:complexType name="RelationerTYPE">
+		<xs:sequence>
+			<xs:element name="Relation" minOccurs="0" maxOccurs="unbounded">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="RelationId" type="tns:RelationPersonIdTYPE"/>
+						<xs:element name="Relationstyp" type="tns:RelationstypTYPE"/>
+						<xs:element name="RelationFromdatum" type="tns:OfullstandigtDatumTYPE" minOccurs="0"/>
+						<xs:element name="RelationTomdatum" type="tns:OfullstandigtDatumTYPE" minOccurs="0"/>
+						<xs:element name="Namn" type="tns:NamnTYPE" minOccurs="0"/>
+						<xs:element name="Avregistrering" type="tns:AvregistreringTYPE" minOccurs="0"/>
+						<xs:element name="Status" type="tns:RelationStatusTYPE" minOccurs="0"/>
+						<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>						
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	
+	<xs:complexType name="RelationPersonIdTYPE">
+		<xs:sequence> <!-- xs:choice i navets chema - ett av värdena måsta vara satta, men inte båda -->
+			<xs:element name="PersonNr" type="tns:PersonIdTYPE" minOccurs="0"/>
+			<xs:element name="FodelsetidNr" type="tns:PersonIdTYPE" minOccurs="0" />
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>				
+		</xs:sequence>
+	</xs:complexType>	
+	
+	<xs:complexType name="NamnTYPE">
+		<xs:sequence>
+			<xs:element name="Tilltalsnamnsmarkering"  minOccurs="0">
+				<xs:simpleType>
+					<xs:restriction base="xs:int">
+						<xs:minInclusive value="10"/>
+						<xs:maxInclusive value="99"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="Fornamn" type="tns:Strang80TYPE"  minOccurs="0"/>
+			<xs:element name="Mellannamn" type="tns:Strang40TYPE"  minOccurs="0"/>
+			<xs:element name="Efternamn" type="tns:Strang60TYPE"  minOccurs="0"/>
+			<xs:element name="Aviseringsnamn" type="tns:Strang36TYPE"  minOccurs="0"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>		
+		</xs:sequence>
+	</xs:complexType>
+	
+	<xs:complexType name="UtlandsadressTYPE">
+		<xs:sequence>
+			<xs:element name="Utdelningsadress1" type="tns:Strang35TYPE"  minOccurs="0"/>
+			<xs:element name="Utdelningsadress2" type="tns:Strang35TYPE"  minOccurs="0"/>
+			<xs:element name="Utdelningsadress3" type="tns:Strang35TYPE"  minOccurs="0"/>
+			<xs:element name="Land" type="tns:Strang35TYPE"  minOccurs="0"/>
+			<xs:element name="Utlandsadressdatum" type="tns:OfullstandigtDatumTYPE"  minOccurs="0"/>
+			<xs:element name="Rostrattsdatum" type="tns:OfullstandigtDatumTYPE" minOccurs="0"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>					
+		</xs:sequence>
+	</xs:complexType>
+	
+	<xs:complexType name="CivilstandTYPE">
+		<xs:sequence>
+			<xs:element name="CivilstandKod" type="tns:CivilstandKodTYPE" minOccurs="0"/>
+			<xs:element name="Civilstandsdatum" type="tns:OfullstandigtDatumTYPE" minOccurs="0"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>		
+		</xs:sequence>
+	</xs:complexType>
+	
+	<xs:complexType name="FodelseTYPE">
+		<xs:sequence>
+			<xs:element name="HemortSverige" type="tns:HemortSverigeTYPE" minOccurs="0"/>
+			<xs:element name="OrtUtlandet" type="tns:OrtUtlandetTYPE" minOccurs="0"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+	
+	<xs:complexType name="HemortSverigeTYPE">
+		<xs:sequence>
+			<xs:element name="FodelselanKod" type="tns:Strang2TYPE" minOccurs="0"/>
+			<xs:element name="Fodelseforsamling" type="tns:Strang2TYPE" minOccurs="0" />			
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>			
+		</xs:sequence>
+	</xs:complexType>
+	
+	<xs:complexType name="OrtUtlandetTYPE">
+		<xs:sequence>
+			<xs:element name="FodelseortUtland" type="tns:Strang80TYPE" minOccurs="0" />
+			<xs:element name="Styrkt" type="tns:JaNejTYPE" minOccurs="0" />
+			<xs:element name="Fodelseland" type="tns:Strang40TYPE" minOccurs="0"/>			
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+	
+	<xs:simpleType name="RelationstypTYPE">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="B"/>
+			<xs:enumeration value="MO"/>
+			<xs:enumeration value="FA"/>
+			<xs:enumeration value="F"/>
+			<xs:enumeration value="V"/>
+			<xs:enumeration value="VF"/>
+			<xs:enumeration value="M"/>
+			<xs:enumeration value="P"/>
+		</xs:restriction>
+	</xs:simpleType>			
+	
+	<xs:simpleType name="OfullstandigtDatumTYPE">
+		<xs:annotation>
+			<xs:documentation>Datum som kan vara ofullständiga</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:minLength value="4"/>
+			<xs:maxLength value="8"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="AvregistreringsorsakKodTYPE">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="AV"/>
+			<xs:enumeration value="GN"/>
+			<xs:enumeration value="OO"/>
+		</xs:restriction>
+	</xs:simpleType>
+	
+	<xs:simpleType name="AvregistreringsorsakKodKomplettTYPE">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="AV"/>
+			<xs:enumeration value="UV"/>
+			<xs:enumeration value="GN"/>
+			<xs:enumeration value="AN"/>
+			<xs:enumeration value="AS"/>
+			<xs:enumeration value="GS"/>
+			<xs:enumeration value="OB"/>
+			<xs:enumeration value="TA"/>
+		</xs:restriction>
+	</xs:simpleType>
+	
+	<xs:simpleType name="JaNejTYPE">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="J"/>
+			<xs:enumeration value="N"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="PersonIdTYPE">
+		<xs:restriction base="xs:string" />
+	</xs:simpleType>
+	<xs:simpleType name="Strang2TYPE">
+		<xs:annotation>
+			<xs:documentation>Strängar med 2 tecken</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="2"/>
+		</xs:restriction>
+	</xs:simpleType>	
+	
+	<xs:simpleType name="Strang6TYPE">
+		<xs:annotation>
+			<xs:documentation>Strängar med 6 tecken</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="6"/>
+		</xs:restriction>
+	</xs:simpleType>
+	
+	<xs:simpleType name="DistriktskodType">
+		<xs:annotation>
+			<xs:documentation>Heltal 0-999999 max 6 tecken.</xs:documentation>
+		</xs:annotation>
+<xs:restriction base="xs:integer">
+<xs:minInclusive value="0"/>
+<xs:maxInclusive value="999999"/>
+</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="Strang35TYPE">
+		<xs:annotation>
+			<xs:documentation>Strängar med 35 tecken</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="35"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="Strang27TYPE">
+		<xs:annotation>
+			<xs:documentation>Strängar med 35 tecken</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="27"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="Strang36TYPE">
+		<xs:annotation>
+			<xs:documentation>Strängar med 35 tecken</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="36"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="Strang40TYPE">
+		<xs:annotation>
+			<xs:documentation>Strängar med 40 tecken</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="40"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="Strang60TYPE">
+		<xs:annotation>
+			<xs:documentation>Strängar med 60 tecken</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="60"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="Strang80TYPE">
+		<xs:annotation>
+			<xs:documentation>Strängar med 80 tecken</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="80"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="KonTYPE">
+		<xs:annotation>
+			<xs:documentation>K=Kvinna, M=Man</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="K"/>
+			<xs:enumeration value="M"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="TS">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[1-9]{1}[0-9]{3}(0[1-9]{1}|1[0-2]{1})([0-2]{1}[0-9]{1}|3[0-1]{1})([0-1]{1}[0-9]{1}|2[0-3]{1})[0-5]{1}[0-9]{1}[0-5]{1}[0-9]{1}"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="DT">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[1-9]{1}[0-9]{3}(0[1-9]{1}|1[0-2]{1})([0-2]{1}[0-9]{1}|3[0-1]{1})"/>
+		</xs:restriction>
+	</xs:simpleType>
+	
+	<xs:simpleType name="RelationStatusTYPE"> <!-- är attribut i navet-schema -->
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="NY"/>
+			<xs:enumeration value="PB"/>
+			<xs:enumeration value="RD"/>
+			<xs:enumeration value="AS"/>
+			<xs:enumeration value="AV"/>
+			<xs:enumeration value="IV"/>
+			<xs:enumeration value="AN"/>
+		</xs:restriction>
+	</xs:simpleType>
+	
+	<xs:simpleType name="CivilstandKodTYPE">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="OG"/>
+			<xs:enumeration value="G"/>
+			<xs:enumeration value="A"/>
+			<xs:enumeration value="S"/>
+			<xs:enumeration value="RP"/>
+			<xs:enumeration value="SP"/>
+			<xs:enumeration value="EP"/>
+		</xs:restriction>
+	</xs:simpleType>
+	
+			
+</xs:schema>

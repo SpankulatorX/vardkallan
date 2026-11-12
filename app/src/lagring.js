@@ -62,7 +62,14 @@ const SYSTEM = new Set(['omorganisationer', 'omorganisation_flyttar', 'lagringsm
   // av systemet (releaser.js).
   'schema_migreringar', 'parkerade_data', 'uppgraderingar',
   // Runda 13, r1: testarens uppdrag i demon hör till testinbjudan och inte till en huvudman (testinbjudan.js).
-  'testare', 'testare_uppdrag']);
+  'testare', 'testare_uppdrag',
+  // Runda 14, r2: anslutna konsumenter av tjänstekontrakten och loggen över anrop (utan patientuppgifter) hör till
+  // förvaltningen av integrationerna (rivta/konsumenter.js och rivta/anropslogg.js).
+  'rivta_konsumenter', 'rivta_anrop',
+  // Runda 14, r2: när de simulerade nationella tjänsterna fick sina uppgifter i sandlådan (rivta/nationella.js).
+  'rivta_sim_status',
+  // Runda 14, r2: den simulerade HSA-katalogens kopia av personalkatalogen, utan patientuppgifter.
+  'rivta_sim_hsa']);
 // Tabeller vars koppling inte går att se på kolumnnamnen.
 const UTTRYCKLIGA = {
   dubblettforslag: { typ: 'patient', kolumner: ['fran_patient_id', 'till_patient_id'] },

@@ -297,6 +297,15 @@ MODULER.push(m('testinbjudan', 'forvaltning', 'Testinbjudan och synpunkter',
   { avsnitt: [], rutter: ['#/testa', '#/om', '#/testledare'], vyer: ['testa.js', 'om.js', 'testledare.js'], kod: ['src/testinbjudan.js', 'src/synpunkter.js', 'src/r13r1-rutter.js', 'public/js/testinbjudan.js', 'public/js/synpunkt-regler.js', 'scripts/testinbjudan.js'],
     api: ['/api/synpunkter', '/api/testare', '/api/testledare/synpunkter'], simulerat: 'Demorollerna och testpatienterna är påhittade. Svaren är testarnas egna och sparas i en egen databas utanför sandlådorna.' }));
 
+// Runda 14, r2: tjänstekontrakten i RIVTA hör till de nationella tjänsterna (src/rivta/, docs/rivta.md).
+{
+  const n = MODULER.find(x => x.id === 'nationella');
+  n.beskrivning += ' Tjänstekontrakten för journalen, NPÖ, Tillgänglig patient, spärr, samtycke, HSA, PU-tjänsten och engagemangsindex är byggda mot RIVTA med SOAP, validering mot de pinnade schemana och ömsesidig TLS, och testade genom en lokal tjänsteplattform.';
+  n.kod.push('src/rivta/index.js', 'src/rivta/xml.js', 'src/rivta/xsd.js', 'src/rivta/soap.js', 'src/rivta/kontrakt.js', 'src/rivta/tjanst.js', 'src/rivta/klient.js', 'src/rivta/tls.js',
+    'src/rivta/testcertifikat.js', 'src/rivta/konsumenter.js', 'src/rivta/anropslogg.js', 'src/rivta/journal.js', 'src/rivta/nationella.js', 'src/rivta/register.js', 'src/rivta/plattform.js');
+  n.api.push('/api/rivta/hsa/:id', '/api/rivta/engagemangsindex/:id', '/api/patient/:id/folkbokforing', '/api/patient/:id/sparr/sparrtjansten', '/api/patient/:id/sammanhallen/hav-sparr');
+  n.simulerat = 'Alla nationella tjänster är simulerade i demon. Tjänstekontrakten i RIVTA är byggda och testade lokalt men inte anslutna till den nationella tjänsteplattformen.';
+}
 // Runda 12, r1: journalens mallar, sökord och mätvärdestyper hör till systemförvaltningen (journalstruktur.js).
 {
   const s = MODULER.find(x => x.id === 'systemforvaltning');

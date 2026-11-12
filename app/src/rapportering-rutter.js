@@ -10,6 +10,9 @@ import * as logg from './logg.js';
 import * as mr from './myndighetsrapport.js';
 import { KALLOR } from './rapportkoder.js';
 import * as tk from './tjanstekontrakt.js';
+// Runda 14, r2: tjänstekontrakten i RIVTA (rivta/), med HSA, PU-tjänsten och engagemangsindex som konsument.
+import * as rivta from './rivta/index.js';
+import { loggaRad } from './logg.js';
 
 // Det uppföljningsrollen får se av ett fel: ingen patient, ingen vårdkontakt, inget datum, ingen detalj ur journalen och
 // ingen länk in i journalen. Vårdenheten och vem som rättar räcker för att följa upp.
@@ -102,9 +105,23 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
   // De nationella tjänstekontrakten (K10) och den simulerade producenten.
   rutt('GET', '/api/tjanstekontrakt', (c) => {
     kravInloggad(c);
-    return { kontrakt: tk.KONTRAKT, tjanster: tk.TJANSTER, symboler: tk.SYMBOLER, status: tk.STATUS, k10Rader: tk.K10_RADER, producenter: tk.PRODUCENTER };
+    return { kontrakt: tk.KONTRAKT, tjanster: tk.TJANSTER, symboler: tk.SYMBOLER, status: tk.STATUS, k10Rader: tk.K10_RADER, producenter: tk.PRODUCENTER,
+      // Runda 14, r2: kontrakten som är byggda i RIVTA.
+      rivtaStatus: tk.RIVTA_STATUS };
   });
   rutt('POST', '/api/riv/:kontrakt', (c, kontrakt) => { kravInloggad(c); return tk.anropa({ ...c, valFor: (pid) => valFor(c.s, pid) }, kontrakt, c.body); });
+  // Runda 14, r2: HSA-katalogen, PU-tjänsten och engagemangsindex med tjänstekontrakten i RIVTA (simulerade i demon).
+  rutt('GET', '/api/rivta/hsa/:id', (c, id) => rivta.register.hsaPerson(c.db, kravInloggad(c), id));
+  rutt('GET', '/api/patient/:id/folkbokforing', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_admin', (atk) => rivta.register.puPatient(atk)); });
+  rutt('POST', '/api/rivta/engagemangsindex/:id', (c, id) => {
+    const p = kravInloggad(c);
+    if (!kanRoll(p, 'forvalta_api')) throw new Fel(403, 'Bara systemförvaltaren skickar engagemang till engagemangsindex.', 'nekad');
+    const pat = c.db.query('SELECT id FROM patienter WHERE id = ?').get(String(id));
+    if (!pat) throw new Fel(404, 'Patienten finns inte.', 'saknas');
+    const antal = rivta.register.uppdateraEngagemang(c.db, pat.id);
+    loggaRad(c.db, { personal_id: p.id, enhet_id: p.enhet_id, patient_id: pat.id, handling: 'forvalta_api', resurs: 'rivta:Update', grund: 'administrativ', syfte: `${antal} engagemang skickades till engagemangsindex.` });
+    return { antal };
+  });
 }
 
 // Rader i inkorgen: fel i rapporterna som den inloggade kan rätta. Läkaren får saknade diagnoser och yttre orsaker,

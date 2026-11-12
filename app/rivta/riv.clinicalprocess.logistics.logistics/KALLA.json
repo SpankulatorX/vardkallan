@@ -1,0 +1,17 @@
+{
+  "domän": "riv.clinicalprocess.logistics.logistics",
+  "källa": "https://bitbucket.org/rivta-domains/riv.clinicalprocess.logistics.logistics",
+  "tagg": "2.0.7",
+  "commit": "42851358d799b89756fc55fbf64c7ee01c067a3d",
+  "arkiv": "https://bitbucket.org/rivta-domains/riv.clinicalprocess.logistics.logistics/get/42851358d799b89756fc55fbf64c7ee01c067a3d.tar.gz",
+  "arkivSha256": "5ab1162452d59d301e26f1dfc9790d5192b34fb315cce0b5551efa1174e8c22b",
+  "licens": "Apache License 2.0 (huvudet i varje schemafil)",
+  "hämtat": "2026-11-12",
+  "filer": {
+    "schemas/core_components/clinicalprocess_logistics_logistics_2.0.xsd": "e2eb8fde0dbb3a8336d319548e2d2f8fc9dc9ecb99bede03bafb4a9fd5476e9b",
+    "schemas/core_components/clinicalprocess_logistics_logistics_enum_2.0.xsd": "275cd58ba225a38eb82fb8e256bb98de11ad54773b5bf89959079f73fbb912c2",
+    "schemas/core_components/itintegration_registry_1.0.xsd": "3642d467194f166cb8d87d603800a591b31b11bd2c09e338c22073e33df622a4",
+    "schemas/interactions/GetCareContactsInteraction/GetCareContactsInteraction_2.0_RIVTABP21.wsdl": "9f4f9a05ca23e05368b1f72452b35dab50d7d7f532c5fd94c02196b7316f11f7",
+    "schemas/interactions/GetCareContactsInteraction/GetCareContactsResponder_2.0.xsd": "98a6df0643e75b6417fc1147c580506f7b4b17f00710a7149c2807a469c5ed0d"
+  }
+}

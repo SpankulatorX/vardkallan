@@ -644,6 +644,9 @@ UTAN_PATIENT.add('vyforval');
 // (systemkonton.js, Sussa 2.5.1.2). Rollen läser bara: vilka informationsmängder och vårdenheter ett visst konto får
 // prövas i provaSystemkonto. Rollen kan aldrig logga in och är ingen personal, så den har inga övningar.
 ROLLER.systemkonto = ['las_oversikt', 'las_diagnoser', 'las_matvarden', 'las_lakemedel', 'las_admin'];
+// Runda 14, r2: journalanteckningar och åtgärder för tjänstekontrakten (rivta/konsumenter.js). Bara ett konto för en
+// anslutning via tjänstekontrakt kan få informationsmängden, och bara det får läsa dem (systemkonton.prova).
+ROLLER.systemkonto.push('las_journal');
 // Runda 10, r4: dokumentation vid donation (donation.js, Sussa 3.1.12.1). Läkare och sjuksköterskor med vårdrelation
 // dokumenterar donationsutredningen och den avlidnes inställning. Dödsfallet, transplantationen och
 // donationsanteckningen kräver dessutom läkarens skriv_journal.

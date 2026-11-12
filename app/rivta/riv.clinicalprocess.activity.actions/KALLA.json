@@ -1,0 +1,21 @@
+{
+  "domän": "riv.clinicalprocess.activity.actions",
+  "källa": "https://bitbucket.org/rivta-domains/riv.clinicalprocess.activity.actions",
+  "tagg": "1.3.6",
+  "commit": "02b15bdee612ae4c9998678edf5c31453a6a3d71",
+  "arkiv": "https://bitbucket.org/rivta-domains/riv.clinicalprocess.activity.actions/get/02b15bdee612ae4c9998678edf5c31453a6a3d71.tar.gz",
+  "arkivSha256": "0d504e8abbc1e14717d6a925cc8284a4472ec560206cbea4b81db636d6b60b9f",
+  "licens": "Apache License 2.0 (huvudet i varje schemafil)",
+  "hämtat": "2026-11-12",
+  "filer": {
+    "schemas/core_components/clinicalprocess_activity_actions_1.3.xsd": "594c7908c080c14d1ecb45d8b3f7f41e8e1195fc5a4b0d81fcdc91e4b6d7b350",
+    "schemas/core_components/clinicalprocess_activity_actions_1.3_ext.xsd": "e94a2ce11f1d0e3cd15f26c3b6eaded8db5631fbe5043c522e13cfee64714e16",
+    "schemas/core_components/clinicalprocess_activity_actions_enum_1.3.xsd": "b2845a037c5df57ef07e39c683dc353232312e93691404990795c453614d141d",
+    "schemas/core_components/itintegration_registry_1.0.xsd": "7ec8141855aa9ac68201d2c789193d5e3a7c9ee1581286ae717e86625122aa93",
+    "schemas/engagementindex/riv_clinicalprocess_activity_actions_ei_update_constraints.xml": "68ae412d4b845489eb433f5d3b968249a842a6e6ea2c3851d14b0829cf7d3edc",
+    "schemas/interactions/GetActivitiesInteraction/Exempel GetActivitiesRequest.xml": "79fdf0d1da3db1dc2ead40fda8450311f2c1ec5f61d5f0c1b9d3a4f8adc12a7e",
+    "schemas/interactions/GetActivitiesInteraction/Exempel GetActivitiesResponse.xml": "8f570abb45f0ee51b3561d29e734b1ebf8b81286fe949804b80688bf2bef5399",
+    "schemas/interactions/GetActivitiesInteraction/GetActivitiesInteraction_1.3_RIVTABP21.wsdl": "f347f6535ea501b34933bbf7bf5214db5a960a72b865a86d6a65ee5d9e4f0aac",
+    "schemas/interactions/GetActivitiesInteraction/GetActivitiesResponder_1.3.xsd": "135c589ec0b0b217ec5e5e8d14b6e2133745892f72bcbe87d541132c26bb843c"
+  }
+}

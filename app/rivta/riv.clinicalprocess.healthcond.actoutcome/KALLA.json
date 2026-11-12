@@ -1,0 +1,27 @@
+{
+  "domän": "riv.clinicalprocess.healthcond.actoutcome",
+  "källa": "https://bitbucket.org/rivta-domains/riv.clinicalprocess.healthcond.actoutcome",
+  "tagg": "3.1.10",
+  "commit": "7c07a857587fbf8e4484f586d045d2c366a9ace6",
+  "arkiv": "https://bitbucket.org/rivta-domains/riv.clinicalprocess.healthcond.actoutcome/get/7c07a857587fbf8e4484f586d045d2c366a9ace6.tar.gz",
+  "arkivSha256": "352561af9c4390d8ef08094fbe30369014a76b35b39dec512091210f106c037b",
+  "licens": "Apache License 2.0 (huvudet i varje schemafil)",
+  "hämtat": "2026-11-12",
+  "filer": {
+    "schemas/core_components/clinicalprocess_healthcond_actoutcome_2.0.xsd": "256d430f14c8592dec9bd9fa6eff8251305c702821031d3d3b908c2674df058c",
+    "schemas/core_components/clinicalprocess_healthcond_actoutcome_3.1.xsd": "c35cfa161b48045785f7ac961fde376f447a0371b5e67b78e6212210344785e8",
+    "schemas/core_components/clinicalprocess_healthcond_actoutcome_3.1_ext.xsd": "90952306b50241cfcc6d49a53f1129413364b19f81a707359f53a9374beb7b08",
+    "schemas/core_components/clinicalprocess_healthcond_actoutcome_enum_2.0.xsd": "84f91d146e8dd51f026b3b7928799fc92a9c00b352b08100b57da1bf88a99a80",
+    "schemas/core_components/clinicalprocess_healthcond_actoutcome_enum_3.1.xsd": "b04d0ff3f9a2f8ee14110571e2d5165526e003ef9cf8e8c6a3edd6a480b035f2",
+    "schemas/core_components/itintegration_registry_1.0.xsd": "3642d467194f166cb8d87d603800a591b31b11bd2c09e338c22073e33df622a4",
+    "schemas/engagementindex/riv_clinicalprocess_healthcond_actoutcome_ei_update_constraints.xml": "5713f42dd03a0071f5dc191a1f62a23dcafdfdc43cdc9211413d6ed63aa47249",
+    "schemas/interactions/GetImagingOutcomeInteraction/GetImagingOutcomeInteraction_1.0_RIVTABP21.wsdl": "c901721f68ccff121a9d76fcb1cc9a1bf03580fb11f495478e5396b6c37597e2",
+    "schemas/interactions/GetImagingOutcomeInteraction/GetImagingOutcomeResponder_1.0.xsd": "a5b26ad3abf1c8bf424a3c1b15dbbaf91b296fce78c5ca2536d87d1527c31f65",
+    "schemas/interactions/GetLaboratoryOrderOutcomeInteraction/GetLaboratoryOrderOutcomeInteraction_3.1_RIVTABP21.wsdl": "2459eed0d6344d0b3054ced6386d8a6cfbcb26532280cb1c02fa3f3d0ae834dd",
+    "schemas/interactions/GetLaboratoryOrderOutcomeInteraction/GetLaboratoryOrderOutcomeResponder_3.1.xsd": "9b27e6981be78343e63d056893df86c54c14557c7f0c2c29fbc04264950cc675",
+    "schemas/interactions/GetMaternityMedicalHistoryInteraction/GetMaternityMedicalHistoryInteraction_2.0_RIVTABP21.wsdl": "aaad634524dcec9ecc10b50477257d23920ad5ef8ff515d1b07d07948a173665",
+    "schemas/interactions/GetMaternityMedicalHistoryInteraction/GetMaternityMedicalHistoryResponder_2.0.xsd": "e88d575376e669c7f01f5b666618a6516a13fb83959ae364c957b80ad7a031c8",
+    "schemas/interactions/GetReferralOutcomeInteraction/GetReferralOutcomeInteraction_3.1_RIVTABP21.wsdl": "8bf0c5c9b514280bbfa7387f22ecca2c703fddf27783f8263af6cbaeef827aaa",
+    "schemas/interactions/GetReferralOutcomeInteraction/GetReferralOutcomeResponder_3.1.xsd": "511a737e9016708162a0e17cdc17d8be8915294b1f6b7931b5e2194d05a68308"
+  }
+}

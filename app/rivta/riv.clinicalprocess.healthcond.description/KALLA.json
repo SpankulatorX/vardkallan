@@ -1,0 +1,25 @@
+{
+  "domän": "riv.clinicalprocess.healthcond.description",
+  "källa": "https://bitbucket.org/rivta-domains/riv.clinicalprocess.healthcond.description",
+  "tagg": "2.1.19",
+  "commit": "9ad620ea8cddde2e02c5a1da69e9102b1b959914",
+  "arkiv": "https://bitbucket.org/rivta-domains/riv.clinicalprocess.healthcond.description/get/9ad620ea8cddde2e02c5a1da69e9102b1b959914.tar.gz",
+  "arkivSha256": "89c49cbf1fe14692509867f0b1b9991d358a5b6a3101ebf6e66a224752bb5eaf",
+  "licens": "Apache License 2.0 (huvudet i varje schemafil)",
+  "hämtat": "2026-11-12",
+  "filer": {
+    "schemas/core_components/clinicalprocess_healthcond_description_2.1.xsd": "3aaf4c9f36de35f90e451b0b4f0962eaa95ef1132eff29e8a4431dfb0d30bfcc",
+    "schemas/core_components/clinicalprocess_healthcond_description_2.1_ext.xsd": "24d506a5f3f47a09658ee0e66f8743987f0fee1cbe69c5fd525ca7adc975a3c2",
+    "schemas/core_components/clinicalprocess_healthcond_description_enum_2.1.xsd": "badae04faa98c5d38258b977d8a6896214313083bb1c9cb6df6522c62d18c7a9",
+    "schemas/core_components/itintegration_registry_1.0.xsd": "3642d467194f166cb8d87d603800a591b31b11bd2c09e338c22073e33df622a4",
+    "schemas/engagementindex/riv_clinicalprocess_healthcond_description_ei_update_constraints.xml": "fd7ee295ac7c989a32f20a20ae14a988979f77d0a501a76f09889d248c56ed03",
+    "schemas/interactions/GetAlertInformationInteraction/GetAlertInformationInteraction_2.0_RIVTABP21.wsdl": "483164295261badb881e66dac8c7abdf2a9b1a607613fbe7f4d23abbfa12dafe",
+    "schemas/interactions/GetAlertInformationInteraction/GetAlertInformationResponder_2.0.xsd": "43760630c8d59a36a4b455d23de1435b52aa7dc70b4932af1a1ccb4c8f436c19",
+    "schemas/interactions/GetCareDocumentationInteraction/GetCareDocumentationInteraction_2.1_RIVTABP21.wsdl": "d4f0955017e52e22ab8d28d7507cb181c1863ef0e3eb64aef7a63038fca5cf12",
+    "schemas/interactions/GetCareDocumentationInteraction/GetCareDocumentationResponder_2.1.xsd": "1102191ea06524dfb7389163839a214d8bbfcc849b969a174236347b6352a0c9",
+    "schemas/interactions/GetDiagnosisInteraction/GetDiagnosisInteraction_2.0_RIVTABP21.wsdl": "ae6e002e547e79dc9339dfc62ea23dfebaec74bd609c9f3463209bc0c8fdea92",
+    "schemas/interactions/GetDiagnosisInteraction/GetDiagnosisResponder_2.0.xsd": "7b8fce5011505d37b0a4889d15998ecb69d7f70d8488902c18e13b4c7dfcede8",
+    "schemas/interactions/GetFunctionalStatusInteraction/GetFunctionalStatusInteraction_2.0_RIVTABP21.wsdl": "bb3ca86ab07c08a0e13bbddd3b3d42b49281f3d59839dfc421fd41f7b015e42b",
+    "schemas/interactions/GetFunctionalStatusInteraction/GetFunctionalStatusResponder_2.0.xsd": "acbcc9fd86ba26d6bbefbc19cc582581cd356dbde6954891853368e0a297e1fd"
+  }
+}
