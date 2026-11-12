@@ -7,6 +7,7 @@ import { testserver, klient, atk, personal } from './hjalp.js';
 import { sandlada } from './specialist.js';
 import * as administrering from '../src/administrering.js';
 import * as obs from '../src/obstetrik.js';
+import * as identitet from '../src/identitet.js';
 import * as obsSeed from '../src/obstetrik-seed.js';
 
 const TORSDAG = '2026-11-12';
@@ -64,6 +65,19 @@ describe('Seeddata som hänger ihop (runda 13, r4)', () => {
     const akutLista = (await akut.get('/api/arbetslista')).data;
     const akutIds = new Set(akutLista.map(r => r.id));
     for (const r of akutLista.filter(x => x.mojligDubblett)) expect([r.id, akutIds.has('p16') && akutIds.has('p17')]).toEqual([r.id, true]);
+  });
+
+  test('markeringen räknas för hela listan på en gång, med samma regel som dubbletterna för en patient', () => {
+    stallKlockan(KLOCKAN('10:00'));
+    const db = nySessionsDb();
+    // Ett öppet förslag mellan två patienter, och Annika Holmgrens två journaler med samma namn och födelsedatum.
+    db.query("INSERT INTO dubblettforslag (fran_patient_id, till_patient_id, grund, status, skapad) VALUES ('p02', 'p03', 'manuell', 'oppen', ?)").run(KLOCKAN('09:00').toISOString());
+    const alla = db.query('SELECT id FROM patienter').all().map(r => r.id);
+    const perPatient = (ids) => { const m = new Set(ids); return ids.filter(id => identitet.dubbletterFor(db, id).some(d => m.has(d.annan))).sort(); };
+    for (const ids of [alla, alla.filter(id => id !== 'p16'), ['p16', 'p17', 'p01'], ['p02', 'p03'], ['p02'], []]) {
+      expect([...identitet.dubbletterInom(db, ids)].sort()).toEqual(perPatient(ids));
+    }
+    expect([...identitet.dubbletterInom(db, alla)]).toEqual(expect.arrayContaining(['p02', 'p03', 'p16', 'p17']));
   });
 
   test('Amanda Lindholm i aktiv förlossning har en graviditetsjournal med ultraljud och besök, och barnmorskan erbjuds inte att skriva in en ny', () => {

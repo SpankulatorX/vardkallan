@@ -753,8 +753,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     }
     // Runda 13, r4: en trolig dubblett markeras när båda journalerna finns i listan, så att markeringen inte röjer någon
     // patient som användaren inte redan ser.
-    const iListan = new Set(ut.map(r => r.id));
-    for (const r of ut) r.mojligDubblett = identitet.dubbletterFor(db, r.id).some(d => iListan.has(d.annan));
+    const dubbletter = identitet.dubbletterInom(db, ut.map(r => r.id));
+    for (const r of ut) r.mojligDubblett = dubbletter.has(r.id);
     const ordning = { slutenvard: 0, akut: 1, oppenvard: 2 };
     return ut.sort((a, b) => (ordning[a.vardform] ?? 3) - (ordning[b.vardform] ?? 3) || a.namn.localeCompare(b.namn, 'sv'));
   }

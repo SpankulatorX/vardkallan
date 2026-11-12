@@ -365,6 +365,36 @@ export function dubbletterFor(db, patientId) {
   }
   return [...ut.values()];
 }
+
+// Runda 13, r4: de patienter bland ids som har en trolig dubblett bland ids, med samma regel som dubbletterFor men med
+// några få frågor för hela listan i stället för flera per patient (arbetslistans markering).
+export function dubbletterInom(db, ids) {
+  const ut = new Set();
+  if (ids.length < 2) return ut;
+  const pats = db.query(`SELECT * FROM patienter WHERE id IN (${ids.map(() => '?').join(', ')}) AND sammanslagen_till IS NULL`).all(...ids);
+  const finns = new Set(pats.map(p => p.id));
+  for (const f of db.query("SELECT fran_patient_id AS a, till_patient_id AS b FROM dubblettforslag WHERE status = 'oppen'").all()) {
+    if (f.a !== f.b && finns.has(f.a) && finns.has(f.b)) { ut.add(f.a); ut.add(f.b); }
+  }
+  const avgjorda = new Set(db.query("SELECT fran_patient_id || '>' || till_patient_id AS k FROM dubblettforslag WHERE status = 'avfardad'").all().map(r => r.k));
+  const grupper = new Map();
+  for (const p of pats) {
+    if (p.skyddad) continue;
+    const k = `${p.fodd}|${p.kon}|${namnet(p)}`;
+    grupper.set(k, [...(grupper.get(k) ?? []), p]);
+  }
+  for (const g of grupper.values()) {
+    for (let i = 0; i < g.length; i++) {
+      for (let j = i + 1; j < g.length; j++) {
+        const [a, b] = [g[i], g[j]];
+        if (a.id_typ === 'personnummer' && b.id_typ === 'personnummer') continue;
+        if (avgjorda.has(`${a.id}>${b.id}`) || avgjorda.has(`${b.id}>${a.id}`)) continue;
+        ut.add(a.id); ut.add(b.id);
+      }
+    }
+  }
+  return ut;
+}
 // Den journal som blir kvar är den med den mest gällande identiteten (personnummer före samordningsnummer, OID och
 // reservnummer). Vid lika den som skapades först.
 function ordnaPar(a, b) {
