@@ -14,6 +14,7 @@ import { fhirResurser, enhetAv, datumRiv } from '../tjanstekontrakt.js';
 import { hittaPaToken, gallandeId } from '../identitet.js';
 import { loggaRad } from '../logg.js';
 import { Fel } from '../db.js';
+import { harVardrelation, vardenhetFor } from '../atkomst.js';
 
 export const OID = { personnummer: '1.2.752.129.2.1.3.1', samordningsnummer: '1.2.752.129.2.1.3.3', icd10se: '1.2.752.116.1.1.1', kva: '1.2.752.116.1.3.2.1.4', atc: '1.2.752.129.2.2.3.1.1' };
 
@@ -215,4 +216,27 @@ vardkallan.registrera(GET_CARE_CONTACTS, (ctx, { begaran, konsument, def }) => {
     });
   }
   return { careContact: poster };
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// AssertCareEngagement 1.0 (riv.ehr.accesscontrol, Tillgänglig patient): har en viss person på en viss vårdenhet en
+// vårdrelation till patienten? Svaret räknas i behörighetsmotorn med samma regel som för all åtkomst i Vårdkällan
+// (harVardrelation). Personen ska finnas i personalkatalogen på den vårdenheten och vårdgivaren ska vara Vårdkällans.
+// För en patient med skyddade personuppgifter svarar producenten alltid nej, så att svaret inte röjer något om patienten.
+// Frågan loggas på patienten med organisationens systemkonto.
+export const ASSERT_CARE_ENGAGEMENT = kontrakt('riv.ehr.accesscontrol', 'AssertCareEngagement', '1.0');
+vardkallan.registrera(ASSERT_CARE_ENGAGEMENT, (ctx, { begaran, konsument }) => {
+  const { db } = ctx;
+  const f = hittaPaToken(db, begaran.subjectOfCareId);
+  const pid = f ? gallandeId(db, f) : null;
+  const p = pid ? db.query('SELECT id, skyddad FROM patienter WHERE id = ?').get(pid) : null;
+  const enhet = db.query("SELECT id FROM enheter WHERE hsa_id = ? AND typ = 'vardenhet'").get(begaran.careUnitHsaIdentity);
+  const person = db.query("SELECT id, enhet_id FROM personal WHERE hsa_id = ? AND aktiv = 1 AND yrke <> 'systemkonto'").get(begaran.performer);
+  const svar = Boolean(p && !p.skyddad && enhet && person && begaran.careGiverHsaIdentity === vardgivare(db)
+    && vardenhetFor(db, person.enhet_id) === enhet.id && harVardrelation(db, p.id, enhet.id, ctx.nu ?? new Date()));
+  if (p) {
+    loggaRad(db, { personal_id: konsument.personal.id, enhet_id: konsument.personal.enhet_id, patient_id: p.id, handling: 'las_admin',
+      resurs: `rivta/AssertCareEngagement/1.0?_konsument=${konsument.hsaId}`, grund: 'systemkonto', resultat: 'tillaten' });
+  }
+  return { HasCareEngagement: svar };
 });

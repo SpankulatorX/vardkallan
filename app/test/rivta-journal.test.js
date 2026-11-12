@@ -54,4 +54,19 @@ describe('Tjänstekontrakt i RIVTA, journalen', () => {
     // En organisation som inte är ansluten får ett fel och ingen uppgift.
     await expect(anropa(db, J.GET_CARE_DOCUMENTATION, fraga('194502024732'), 'SE0000000000-OKAND')).rejects.toThrow('ingen anropsbehörighet');
   });
+
+  test('AssertCareEngagement svarar om personen har vårdrelation till patienten, med behörighetsmotorns regel', async () => {
+    const db = nyDb();
+    const hsa = (id) => db.query('SELECT hsa_id FROM personal WHERE id = ?').get(id).hsa_id;
+    const fraga = (pnr, person, enhet, vg = VG) => anropa(db, J.ASSERT_CARE_ENGAGEMENT, { performer: hsa(person), subjectOfCareId: pnr, careUnitHsaIdentity: enhet, careGiverHsaIdentity: vg }, rivta.konsumenter.SJF);
+    expect((await fraga('194502024732', 'lak-kard', 'SE2321000164-VK0120')).HasCareEngagement).toBe(true);
+    // Fel vårdenhet för personen, fel vårdgivare, en patient utan relation och skyddade personuppgifter ger nej.
+    expect((await fraga('194502024732', 'lak-kard', 'SE2321000164-VK0150')).HasCareEngagement).toBe(false);
+    expect((await fraga('194502024732', 'lak-kard', 'SE2321000164-VK0120', 'SE0000000000-ANNAN')).HasCareEngagement).toBe(false);
+    expect((await fraga('194505124752', 'lak-kard', 'SE2321000164-VK0120')).HasCareEngagement).toBe(false);
+    expect((await fraga('198404162383', 'lak-kard', 'SE2321000164-VK0120')).HasCareEngagement).toBe(false);
+    expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p01' AND resurs LIKE 'rivta/AssertCareEngagement%'").get().n).toBe(3);
+    // Journalen har ingen anropsbehörighet till kontraktet.
+    await expect(anropa(db, J.ASSERT_CARE_ENGAGEMENT, { performer: hsa('lak-kard'), subjectOfCareId: '194502024732', careUnitHsaIdentity: 'SE2321000164-VK0120', careGiverHsaIdentity: VG }, rivta.konsumenter.JOURNALEN)).rejects.toThrow('ingen anropsbehörighet');
+  });
 });

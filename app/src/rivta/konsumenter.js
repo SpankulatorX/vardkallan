@@ -21,9 +21,9 @@ const JOURNALKONTRAKT = ['GetCareDocumentation', 'GetDiagnosis', 'GetAlertInform
 const MANGDER = ['anteckningar', 'diagnoser', 'uppmarksamhet', 'overkanslighet', 'vardkontakter', 'matvarden', 'lakemedel', 'atgarder'];
 
 export const DEMO = [
-  { hsaId: NPO, namn: 'NPÖ, simulerad konsument i demon', syfte: 'Nationell patientöversikt: vårdpersonal hos andra vårdgivare läser journaluppgifter vid sammanhållen journalföring.', kontrakt: JOURNALKONTRAKT, mangder: MANGDER },
+  { hsaId: NPO, namn: 'NPÖ, simulerad konsument i demon', syfte: 'Nationell patientöversikt: vårdpersonal hos andra vårdgivare läser journaluppgifter vid sammanhållen journalföring.', kontrakt: [...JOURNALKONTRAKT, 'AssertCareEngagement'], mangder: MANGDER },
   { hsaId: JOURNALEN, namn: 'Journalen, simulerad konsument i demon', syfte: 'Invånarens egen journal: patienten läser uppgifter som vårdgivaren har gjort tillgängliga för patienten.', kontrakt: JOURNALKONTRAKT, mangder: MANGDER },
-  { hsaId: SJF, namn: 'Aggregerande tjänst, simulerad konsument i demon', syfte: 'Sammanhållen journalföring: den aggregerande tjänsten hämtar uppgifter från varje källsystem för en patient.', kontrakt: JOURNALKONTRAKT, mangder: MANGDER },
+  { hsaId: SJF, namn: 'Aggregerande tjänst, simulerad konsument i demon', syfte: 'Sammanhållen journalföring: den aggregerande tjänsten hämtar uppgifter från varje källsystem för en patient.', kontrakt: [...JOURNALKONTRAKT, 'AssertCareEngagement'], mangder: MANGDER },
 ];
 
 export function sakraSchema(db) {
