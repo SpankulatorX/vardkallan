@@ -83,7 +83,7 @@ function webblasare() {
   const ta = (r) => { for (const sc of r.headers.getSetCookie()) { const [nv] = sc.split(';'); const i = nv.indexOf('='); kakor.set(nv.slice(0, i), nv.slice(i + 1)); } return r; };
   const kaka = () => [...kakor].map(([n, v]) => `${n}=${v}`).join('; ');
   const hamta = async (url, { metod = 'GET', data, form } = {}) => ta(await fetch(url, { method: metod, redirect: 'manual',
-    headers: { Cookie: kaka(), ...(data ? { 'Content-Type': 'application/json' } : {}), ...(form ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}) },
+    headers: { Cookie: kaka(), ...(metod !== 'GET' && url.startsWith(VK) ? { Origin: VK } : {}), ...(data ? { 'Content-Type': 'application/json' } : {}), ...(form ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}) },
     body: data ? JSON.stringify(data) : form ? new URLSearchParams(form).toString() : undefined }));
   // Keycloaks kakor tas bort före nästa användare, så att Keycloak inte loggar in samma person igen (enkel inloggning).
   const glomKeycloak = () => { for (const n of [...kakor.keys()]) if (n !== 'vk_sid') kakor.delete(n); };
