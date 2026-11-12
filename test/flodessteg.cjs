@@ -1327,6 +1327,24 @@ function skapa(BAS) {
     await m.klicka(page.locator('#us [data-boka]').first(), 'Boka vid den första undersökningen');
     await synlig(page, '.notis', 'är bokad');
   };
+  // Runda 14, r3: intyget och e-remissen från journalen på vårdcentralen.
+  startI['Journalen för patienten på vårdcentralen'] = async (page) => { await gaTill(page, '#/patient/p11'); await page.waitForSelector('.patientband h1'); await page.waitForLoadState('networkidle'); };
+  GOR['skriv-intyg'] = async (m, page) => {
+    await m.klicka(page.locator('.flikar a', { hasText: 'Intyg' }), 'Intyg');
+    await page.waitForSelector('.intyg-nytt');
+    await m.klicka(page.locator('.intyg-nytt [type="submit"]'), 'Skriv intyget');
+    await page.waitForURL(/#\/intygsapplikation\//);
+    await synlig(page, '.ruta-info', 'simulerad, inte Webcert');
+  };
+  GOR['skicka-eremiss'] = async (m, page) => {
+    await m.klicka(page.locator('.flikar a', { hasText: 'Remisser' }), 'Remisser');
+    await page.waitForSelector('[data-eremiss]');
+    await m.klicka(page.locator('[data-eremiss]'), 'Skicka e-remiss till annan vårdgivare');
+    await page.waitForSelector('.eremiss-form #er-fraga');
+    await m.skriv(page.locator('#er-fraga'), 'Bedömning av knäsmärta.', 'frågeställningen');
+    await m.klicka(page.locator('.eremiss-form [type="submit"]'), 'Skicka e-remissen');
+    await synlig(page, '.notis', 'E-remissen är skickad');
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 

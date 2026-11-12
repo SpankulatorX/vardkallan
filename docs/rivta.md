@@ -45,3 +45,40 @@ const svar = await anropa(DEF, { logiskAdress, begaran: { /* i schemats form */ 
 ```
 
 Ett objekt i schemats form har elementens lokala namn som nycklar, en lista för element som får förekomma flera gånger, `@namn` för attribut och `$` för texten i ett element med enkelt innehåll och attribut.
+
+## Intyg, e-remiss och vaccinationer (runda 14, del r3)
+
+Del r3 bygger på grunden i `app/src/rivta/`. Det som är gemensamt för delens kontrakt finns i `app/src/rivta-r3.js`: kontrakten ur WSDL, en tjänst med Vårdkällans producenter för meddelanden till en vårdenhet, transporterna i samma process till de simulerade motparterna och en kö för det som en motpart skickar efter sitt svar. Varje kontrakt är byggt och validerat mot sitt schema och testat lokalt mot simulerade motparter, men inte anslutet till den nationella tjänsteplattformen (det kräver avtal med Inera och SITHS-funktionscertifikat). Meddelandena i flödena är dessutom kontrollerade mot schemana med xmllint (libxml2).
+
+### Producenter för meddelanden till en vårdenhet
+
+Intygens statusuppdateringar och e-remissens meddelanden adresseras till den vårdenhet som äger intyget eller remissen, inte till vårdgivaren. De tas därför emot av en egen tjänst (`vardenheter` i `rivta-r3.js`) med samma steg som grundens producent, där den logiska adressen ska vara en vårdenhets HSA-id och den anropande organisationen ska vara ansluten för just det kontraktet. Producenterna läser inga journaluppgifter åt den som anropar och har därför inget systemkonto. Valideringen i grunden har fått stöd för complexContent med restriction, som intygens typer använder.
+
+### Intyg (riv.clinicalprocess.healthcond.certificate 4.0.5)
+
+| Kontrakt | Version | Vårdkällans roll | Byggt i | Testat i |
+| --- | --- | --- | --- | --- |
+| CreateDraftCertificate | 3.3 | konsument | `lakarintyg.js` | `test/lakarintyg-r14.test.js` |
+| CertificateStatusUpdateForCare | 3.2 | producent, adresserad till vårdenheten | `lakarintyg.js` | `test/lakarintyg-r14.test.js` |
+| ListCertificatesForCareWithQA | 3.3 | konsument (avstämning) | `lakarintyg.js` | `test/lakarintyg-r14.test.js` |
+
+Fliken Intyg i journalen skapar utkastet med patienten, läkaren, vårdenheten och diagnosen (förifyllnad i fråga 6) och öppnar det i den simulerade intygsapplikationen (`intygsapplikation-simulerad.js`), som Webcert i integrerat läge. Intygsapplikationen meddelar varje händelse med CertificateStatusUpdateForCare, och journalen stämmer själv av med ListCertificatesForCareWithQA, så att en händelse som aldrig kom fram ändå syns. Webcert och Intygstjänsten gick inte att köra lokalt, eftersom de byggs med beroenden från Ineras artefaktförråd. Intygsapplikationen är därför simulerad, med samma kontrakt, kuvert och validering som en riktig och med Webcerts regler för skyddade personuppgifter och avlidna. Frågor och svar från mottagaren hanteras inte.
+
+### E-remiss (riv.clinicalprocess.activity.request 2.3)
+
+| Kontrakt | Version | Vårdkällans roll | Byggt i | Testat i |
+| --- | --- | --- | --- | --- |
+| ProcessRequest | 2.3 | konsument (remiss ut) och producent (remiss in) | `eremiss.js` | `test/eremiss-r14.test.js` |
+| ProcessRequestConfirmation | 2.3 | producent (besked på remiss ut) och konsument (besked på remiss in) | `eremiss.js` | `test/eremiss-r14.test.js` |
+| ProcessRequestOutcome | 2.3 | producent (svar på remiss ut) och konsument (svar på remiss in) | `eremiss.js` | `test/eremiss-r14.test.js` |
+
+En e-remiss är en vanlig remiss i Vårdkällan med samma statuskedja och larm. En utgående remiss går till en simulerad vårdgivare utanför Vårdkällan (`eremiss-simulerad.js`), som bekräftar och svarar. En inkommande remiss blir en extern remiss till vårdenheten, som ger vårdrelation först när någon har tagit emot den, och mottagningen, en avvisning och svaret skickas tillbaka av systemet.
+
+### Vaccinationer (riv.clinicalprocess.activityprescription.actoutcome 2.2.2)
+
+| Kontrakt | Version | Vårdkällans roll | Byggt i | Testat i |
+| --- | --- | --- | --- | --- |
+| GetVaccinationHistory | 2.0 | producent, adresserad till vårdgivaren | `rivta-vaccination.js` | `test/rivta-vaccination-r14.test.js` |
+
+Vaccinationerna läses som FHIR Immunization med den anropande organisationens systemkonto, som journalens producenter, och informationsmängden vaccinationer kan bara ett konto för en anslutning via tjänstekontrakt få.
+

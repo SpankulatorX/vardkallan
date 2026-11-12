@@ -7,6 +7,8 @@ import { medR4 } from '../planering-r4.js';
 import { medR8 } from '../remiss-r8.js';
 // Runda 10, r6.
 import { medR10 } from '../remiss-r10.js';
+// Runda 14, r3: vårdbegäran till och från externa vårdgivare som e-remiss.
+import { medR14r3 } from '../runda14-r3.js';
 
 const { A, R, GK } = TEST;
 
@@ -76,4 +78,4 @@ const AVSNITT = [
 // Runda 6, r4: posterna som byggdes i planering och tidbok, del 2, och remiss, del 2, ersätts ur sussa/planering-r4.js.
 // Runda 8, r2: posterna som byggdes i remiss, del 3, ersätts ur sussa/remiss-r8.js.
 // Runda 10, r6: konsultation, urval och kvittens av beslut på uppdrag läggs till ur sussa/remiss-r10.js.
-export default medR10(medR8(medR4(AVSNITT)));
+export default medR14r3(medR10(medR8(medR4(AVSNITT))));

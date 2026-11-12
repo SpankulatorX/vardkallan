@@ -1355,6 +1355,38 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await dl.locator('[data-varde="ok"]').click();
       await forvanta(page, '.notis', 'är registrerad');
     });
+    // Runda 14, r3: intyg genom den simulerade intygsapplikationen och e-remiss till en vårdgivare utanför Vårdkällan.
+    await s('Läkaren på vårdcentralen skriver ett läkarintyg för sjukpenning i intygsapplikationen och journalen visar statusen', async () => {
+      await loggaIn(page, 'lak-vc');
+      await gaTill(page, '#/patient/p11/intyg');
+      await forvanta(page, '.flikhuvud h2', 'Intyg');
+      await page.selectOption('#in-typ', 'LISJP');
+      await page.click('.intyg-nytt [type="submit"]');
+      await page.waitForURL(/#\/intygsapplikation\//);
+      await forvanta(page, '.ruta-info', 'simulerad, inte Webcert');
+      await page.selectOption('#ia-sysselsattning', 'nuvarande_arbete');
+      await page.selectOption('#ia-nedsattning', 'halften');
+      await page.fill('#ia-fran', new Date().toISOString().slice(0, 10));
+      await page.fill('#ia-till', new Date(Date.now() + 14 * 86400_000).toISOString().slice(0, 10));
+      await bild(page, '99-intygsapplikation');
+      await page.click('[data-atgard="signera"]');
+      await forvanta(page, '.notis', 'Journalen har fått statusen');
+      await page.click('a:has-text("Tillbaka till journalen")');
+      await forvanta(page, '.intyg-lista', 'Signerat');
+      await bild(page, '99-intyg');
+      await page.waitForLoadState('networkidle');
+    });
+    await s('Läkaren på vårdcentralen skickar en e-remiss till en vårdgivare utanför Vårdkällan och mottagaren bekräftar den', async () => {
+      await gaTill(page, '#/patient/p11/remisser');
+      await page.click('[data-eremiss]');
+      await page.locator('.eremiss-form').waitFor();
+      await page.fill('#er-fraga', 'Bedömning av knäsmärta.');
+      await page.click('.eremiss-form [type="submit"]');
+      await forvanta(page, '.notis', 'E-remissen är skickad');
+      await forvanta(page, '#p-remisser', 'E-remiss till');
+      await bild(page, '99-eremiss');
+      await page.waitForLoadState('networkidle');
+    });
     // Runda 7, r6: vårdnadshavaren ser barnets tillväxt och skickar en mätning hemifrån.
     await s('Linnea Holmqvist ser Idas kurvor och vaccinationer i Min journal och skickar en mätning hemifrån', async () => {
       await loggaInPatient(page, 'inv-vh02');

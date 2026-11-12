@@ -1,8 +1,10 @@
 // Sussa 2.2 Kärnsystemet i relation till nationella tjänster och tjänstekontrakt: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 const T = 'Tjänstekontrakt > ';
+// Runda 14, r3: intyg, vaccinationer och e-remiss (../runda14-r3.js).
+import { medR14r3 } from '../runda14-r3.js';
 
-export default [
+export default medR14r3([
   { id: '2.2.1.1', kategori: 'nationell', egna: ['L9'], tester: [], avsedd: 'planerat',
     anmarkning: 'Tjänstekontraktet är inte anslutet. Vårdkällan har inga integrationer mot tjänsteplattformen i första versionen. Tabellen över tjänstekontrakten i K10 på sidan Öppet API visar vad som finns lokalt. HSA-id i demon är påhittade och personal och enheter ligger i seeden.' },
   { id: '2.2.1.2', kategori: 'nationell', egna: ['L9'], tester: [], avsedd: 'planerat',
@@ -39,4 +41,4 @@ export default [
     anmarkning: 'Tjänstekontraktet är inte anslutet. Vårdkällan har inga integrationer mot tjänsteplattformen i första versionen. Tabellen över tjänstekontrakten i K10 på sidan Öppet API visar vad som finns lokalt.' },
   { id: '2.2.1.14', kategori: 'nationell', egna: ['L8'], tester: [], avsedd: 'planerat',
     anmarkning: 'Tjänstekontraktet är inte anslutet. Vårdkällan har inga integrationer mot tjänsteplattformen i första versionen. Tabellen över tjänstekontrakten i K10 på sidan Öppet API visar vad som finns lokalt.' },
-];
+]);

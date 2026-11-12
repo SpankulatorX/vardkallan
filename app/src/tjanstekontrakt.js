@@ -235,16 +235,19 @@ function rivPost(db, kontrakt, r, patientId, vardgivare) {
 // validerade mot sina scheman och testade lokalt mot simulerade motparter, men inte anslutna till den nationella
 // tjänsteplattformen.
 STATUS.rivta_lokalt = 'Byggt och validerat mot tjänstekontraktet, testat lokalt; inte anslutet till den nationella tjänsteplattformen';
+const CERT = ['riv.clinicalprocess.healthcond.certificate', '4.0.5'];
+const REQ = ['riv.clinicalprocess.activity.request', '2.3'];
+const ACT = ['riv.clinicalprocess.activityprescription.actoutcome', '2.2.2'];
 export const R3_KONTRAKT = {
-  CreateDraftCertificate: ['riv.clinicalprocess.healthcond.certificate 4.0.5, version 3.3', 'Fliken Intyg skapar utkastet i den simulerade intygsapplikationen'],
-  CertificateStatusUpdateForCare: ['riv.clinicalprocess.healthcond.certificate 4.0.5, version 3.2', 'Vårdkällan tar emot intygets händelser, adresserade till vårdenheten'],
-  ListCertificatesForCareWithQA: ['riv.clinicalprocess.healthcond.certificate 4.0.5, version 3.3', 'Journalen stämmer av intygen mot intygsapplikationen'],
-  ProcessRequest: ['riv.clinicalprocess.activity.request 2.3', 'E-remiss ut till och in från vårdgivare utanför Vårdkällan'],
-  ProcessRequestConfirmation: ['riv.clinicalprocess.activity.request 2.3', 'Mottagningsbekräftelse och avvisning av e-remiss, åt båda hållen'],
-  ProcessRequestOutcome: ['riv.clinicalprocess.activity.request 2.3', 'Svar på e-remiss, åt båda hållen'],
-  GetVaccinationHistory: ['riv.clinicalprocess.activityprescription.actoutcome 2.2.2, version 2.0', 'Vårdkällan lämnar ut vaccinationerna (FHIR Immunization) till anslutna konsumenter'],
+  CreateDraftCertificate: [CERT, '3.3', 'Fliken Intyg skapar utkastet i den simulerade intygsapplikationen'],
+  CertificateStatusUpdateForCare: [CERT, '3.2', 'Vårdkällan tar emot intygets händelser, adresserade till vårdenheten'],
+  ListCertificatesForCareWithQA: [CERT, '3.3', 'Journalen stämmer av intygen mot intygsapplikationen'],
+  ProcessRequest: [REQ, '2.3', 'E-remiss ut till och in från vårdgivare utanför Vårdkällan'],
+  ProcessRequestConfirmation: [REQ, '2.3', 'Mottagningsbekräftelse och avvisning av e-remiss, åt båda hållen'],
+  ProcessRequestOutcome: [REQ, '2.3', 'Svar på e-remiss, åt båda hållen'],
+  GetVaccinationHistory: [ACT, '2.0', 'Vårdkällan lämnar ut vaccinationerna (FHIR Immunization) till anslutna konsumenter'],
 };
 for (const k of KONTRAKT) {
   const r = R3_KONTRAKT[k.kontrakt];
-  if (r) Object.assign(k, { status: 'rivta_lokalt', statusText: STATUS.rivta_lokalt, motsvarighet: `${r[1]} (${r[0]})`, simulerat: true });
+  if (r) Object.assign(k, { status: 'rivta_lokalt', statusText: STATUS.rivta_lokalt, motsvarighet: `${r[2]} (${r[0][0]} ${r[0][1]}, version ${r[1]})`, simulerat: true });
 }

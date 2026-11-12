@@ -538,3 +538,14 @@ FLODEN.push(
     motivering: 'Ett klick på yrkesrollen, som loggar in i rätt demoroll och startar uppdragen i panelen, och ett klick på en patient i arbetslistan för det första uppdraget. Systemet bockar av uppdraget själv och ställer jämförelsefrågan.',
   },
 );
+// Runda 14, r3: ett intyg genom intygsapplikationen och en e-remiss till en vårdgivare utanför Vårdkällan.
+FLODEN.push(
+  {
+    id: 'skriv-intyg', namn: 'Skriva ett intyg i intygsapplikationen', roll: 'lak-vc', start: 'Journalen för patienten på vårdcentralen', budget: 2,
+    motivering: 'Sussa 2.2.1.9. Ett klick på fliken Intyg och ett på Skriv intyget. Systemet har föreslagit det intyg som passar patienten och visar bara de intyg som får skrivas, och utkastet öppnas i intygsapplikationen med patienten, läkaren, vårdenheten och diagnosen ifyllda.',
+  },
+  {
+    id: 'skicka-eremiss', namn: 'Skicka en e-remiss till en vårdgivare utanför Vårdkällan', roll: 'lak-vc', start: 'Journalen för patienten på vårdcentralen', budget: 3,
+    motivering: 'Sussa 2.2.1.12 och 3.3.1.2. Ett klick på fliken Remisser, ett på Skicka e-remiss och ett på Skicka. Frågeställningen har fokus direkt, mottagare och prioritet är förvalda, och patienten, remittenten, vårdenheten och diagnoserna från den egna vårdenheten fyller systemet i.',
+  },
+);

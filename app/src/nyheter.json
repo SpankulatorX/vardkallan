@@ -2,6 +2,33 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "1.4.0",
+      "datum": "2026-11-12",
+      "nyheter": [
+        {
+          "id": "intyg-1-4-0",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "stor",
+          "var": "Fliken Intyg i journalen",
+          "rubrik": "Intyg skrivs i intygsapplikationen från journalen",
+          "text": "Fliken Intyg föreslår det intyg som passar patienten och visar bara de intyg som får skrivas. Läkaren väljer intyg, och utkastet öppnas i intygsapplikationen med patienten, läkaren, vårdenheten och diagnosen ifyllda. När intyget signeras eller skickas visas statusen i journalen av sig själv. Intygsapplikationen är simulerad i demon och är inte Webcert."
+        },
+        {
+          "id": "eremiss-1-4-0",
+          "roller": [
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "var": "Fliken Remisser i journalen",
+          "rubrik": "E-remiss till vårdgivare utanför Vårdkällan",
+          "text": "En remiss kan skickas som e-remiss till en vårdgivare utanför Vårdkällan. Systemet fyller i patienten, remittenten, vårdenheten och diagnoserna från din vårdenhet, och statusen uppdateras när mottagaren bekräftar och svarar. En e-remiss från en annan vårdgivare tas emot som en vanlig remiss till vårdenheten. Mottagarna är påhittade och simulerade i demon."
+        }
+      ]
+    },
+    {
       "version": "1.3.1",
       "datum": "2026-11-12",
       "nyheter": [

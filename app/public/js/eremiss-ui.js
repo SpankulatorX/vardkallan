@@ -25,6 +25,8 @@ async function form(plats, ctx) {
     <div class="falt"><label for="er-anamnes">Anamnes</label><textarea id="er-anamnes" name="anamnes" rows="3"></textarea></div>
     <p class="dialog-fel form-fel" role="alert" hidden></p>
     <div class="knapprad"><button type="submit" class="knapp">Skicka e-remissen</button></div></form>`;
+  // Frågeställningen har fokus direkt, eftersom allt annat är förvalt eller ifyllt av systemet.
+  plats.querySelector('#er-fraga').focus();
   plats.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.target;
