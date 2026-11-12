@@ -11,7 +11,9 @@ import * as etjanster from './rivta-etjanster.js';
 import * as etjansterSim from './rivta-etjanster-simulerade.js';
 import * as dos from './rivta-dos.js';
 import * as dosSim from './rivta-dos-simulerad.js';
+import * as infektion from './rivta-infektion.js';
+import * as infektionSim from './rivta-infektion-simulerad.js';
 
 export function sakraR14r3(db) {
-  for (const m of [lakarintyg, intygsapplikation, eremiss, eremissSim, etjanster, etjansterSim, dos, dosSim]) m.sakra(db);
+  for (const m of [lakarintyg, intygsapplikation, eremiss, eremissSim, etjanster, etjansterSim, dos, dosSim, infektion, infektionSim]) m.sakra(db);
 }

@@ -475,6 +475,7 @@ Del r3:s domäner är pinnade med samma skript (`app/scripts/rivta-scheman.js`, 
 | riv.clinicalprocess.healthcond.certificate | 4.0.5 | 277a809399ec |
 | riv.clinicalprocess.activity.request | 2.3 | 3fc7315e4628 |
 | riv.crm.requeststatus | 2.0.2 | d487f21af1b2 |
+| riv.processdevelopment.infections | 1.0.2 | 869d30d9a0f8 |
 | riv.followup.qualityregistry.nkrr | 1.2.2 | edc9ed9be629 |
 | riv.infrastructure.eservicesupply.forminteraction | 2.1.1 | 3dbee167710a |
 | riv-application.infrastructure.eservicesupply.patientportal | 2.0 | 444af395016b |
@@ -482,5 +483,5 @@ Del r3:s domäner är pinnade med samma skript (`app/scripts/rivta-scheman.js`, 
 
 Webcert (https://github.com/sklintyg/webcert, GPL-3.0) är läst vid commit 9410b07ee770 för parametrarna i integrerat läge och reglerna för vilka intyg som får skapas. Koderna för händelser, statusar och parter i intygen är lästa ur Ineras kodverk via sklintyg/common (LGPL-3.0) vid commit 2aa9a0c986c3. Ingen kod från dem är kopierad till Vårdkällan, och de körs inte: bara kodvärdena och namnen på parametrarna används. Webcert och Intygstjänsten gick inte att bygga lokalt, eftersom beroendena hämtas från Ineras artefaktförråd (nexus.drift.inera.se), som inte svarade från den här datorn.
 
-Domänen för e-recept (riv.se.apotekensservice.or) är inte hämtad: dess filer saknar licensuppgift, och den har bara kontrakt för att hämta ordinationer, inte för att skicka eller makulera e-recept. Domänen för Infektionsverktyget (riv.processdevelopment.infections 1.0.2) är inte hämtad än, eftersom dess meddelanden är openEHR-kompositioner med abstrakta typer och xsi:type, som valideringen i grunden inte tar med.
+Domänen för e-recept (riv.se.apotekensservice.or) är inte hämtad: dess filer saknar licensuppgift, och den har bara kontrakt för att hämta ordinationer, inte för att skicka eller makulera e-recept.
 

@@ -105,3 +105,11 @@ Domänen finns bara i RIVTA Basic Profile 2.0, där den logiska adressen står i
 
 eHälsomyndighetens kontrakt för att skicka och makulera e-recept finns inte bland de publika tjänstedomänerna. Domänen riv.se.apotekensservice.or har bara hämtning av ordinationer, och dess filer saknar licensuppgift, så den är inte hämtad. Förskrivningen går som förut till den simulerade Nationella läkemedelslistan.
 
+### Infektionsverktyget (riv.processdevelopment.infections 1.0.2)
+
+| Kontrakt | Version | Vårdkällans roll | Byggt i | Testat i |
+| --- | --- | --- | --- | --- |
+| ProcessCareEncounter, ProcessCondition, ProcessPrescriptionReason, DeleteCondition | 1.0 | konsument | `rivta-infektion.js` | `test/rivta-infektion-r14.test.js` |
+
+Domänen finns bara i RIVTA Basic Profile 2.0, och meddelandena är openEHR-kompositioner med abstrakta typer som anges med xsi:type. Valideringen i grunden tar nu emot xsi:type till en typ som är härledd från den deklarerade (extension eller restriction) och kräver xsi:type för en abstrakt typ, och serialiseraren skriver värdet i xsi:type med rätt prefix (egna block i `xsd.js` och `xml.js`). Meddelandena byggs ur domänens egna mallar (Mall *.xml), där systemet fyller i variablerna, och konsumenten tar emot ett färdigt element (eget block i `klient.js`). Mallarna följer inte schemat på två ställen (template_id och namnet på tillståndet med å), och då följer Vårdkällan schemat. Överföringen görs av systemet när en infektionsdiagnos eller ett antibiotikum registreras, och Infektionsverktyget är simulerat (`rivta-infektion-simulerad.js`). Åtgärder, provsvar och de övriga borttagningarna är inte byggda.
+

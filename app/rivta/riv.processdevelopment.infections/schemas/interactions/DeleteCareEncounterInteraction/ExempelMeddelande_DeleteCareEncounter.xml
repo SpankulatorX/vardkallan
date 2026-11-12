@@ -1,0 +1,11 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:add="http://www.w3.org/2005/08/addressing" xmlns:urn="urn:riv:processdevelopment:infections:DeleteCareEncounterResponder:1">
+   <soapenv:Header>
+      <add:To>SE2010123456</add:To>
+   </soapenv:Header>
+   <soapenv:Body>
+      <urn:DeleteCareEncounter>
+         <urn:CareEncounterId>1.2.752.129.2.1.2.1::SE2010123456-OE1vardkontid1</urn:CareEncounterId>
+         <!--You may enter ANY elements at this point-->
+      </urn:DeleteCareEncounter>
+   </soapenv:Body>
+</soapenv:Envelope>

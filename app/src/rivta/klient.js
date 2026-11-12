@@ -23,7 +23,12 @@ export async function anropa(def, { logiskAdress = null, begaran, transport, db 
   const logg = { riktning: 'ut', kontrakt: def.namn, version: def.version, organisation: logiskAdress, logiskAdress };
   try {
     let el;
-    try { el = def.schema.bygg(def.begaran.ns, def.begaran.lokal, begaran); } catch (e) {
+    // Runda 14, r3: en begäran som redan är ett element (Infektionsverktygets openEHR-kompositioner, som byggs ur
+    // kontraktets egna mallar) skickas som den är. Den valideras mot schemat som alla andra.
+    const fardig = begaran && typeof begaran === 'object' && typeof begaran.lokal === 'string' && Array.isArray(begaran.barn);
+    if (fardig && (begaran.ns !== def.begaran.ns || begaran.lokal !== def.begaran.lokal)) throw new RivtaFel('schema', `Begäran till ${def.namn} är ${begaran.lokal}, inte ${def.begaran.lokal}.`);
+    if (fardig) el = begaran;
+    else try { el = def.schema.bygg(def.begaran.ns, def.begaran.lokal, begaran); } catch (e) {
       if (e instanceof SchemaFel) throw new RivtaFel('schema', `Begäran till ${def.namn} kunde inte byggas enligt schemat: ${e.message}`);
       throw e;
     }

@@ -735,6 +735,8 @@ export function registreraDiagnos(atk, vk, body = {}) {
   const id = db.query("INSERT INTO diagnoser (patient_id, enhet_id, vardkontakt_id, kod, text, typ, datum, kalla) VALUES (?, ?, ?, ?, ?, ?, ?, 'vardkallan') RETURNING id")
     .get(vk.patient_id, vk.enhet_id, vk.id, kod, text, typ, datum).id;
   atk.logga('registrera_diagnos', atk.grund(), `vardkontakt:${vk.id}:diagnos:${id}`);
+  // Runda 14, r3: en infektionsdiagnos överförs till Infektionsverktyget av systemet, i bakgrunden (rivta-infektion.js).
+  require('./rivta-infektion.js').efterAndring(db, vk.patient_id, { kod });
   return { id, kod, text, typ };
 }
 

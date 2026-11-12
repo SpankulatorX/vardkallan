@@ -240,6 +240,7 @@ const REQ = ['riv.clinicalprocess.activity.request', '2.3'];
 const ACT = ['riv.clinicalprocess.activityprescription.actoutcome', '2.2.2'];
 const FORM = ['riv.infrastructure.eservicesupply.forminteraction', '2.1.1'];
 const PORTAL = ['riv-application.infrastructure.eservicesupply.patientportal', '2.0'];
+const INF = ['riv.processdevelopment.infections', '1.0.2'];
 export const R3_KONTRAKT = {
   CreateDraftCertificate: [CERT, '3.3', 'Fliken Intyg skapar utkastet i den simulerade intygsapplikationen'],
   CertificateStatusUpdateForCare: [CERT, '3.2', 'Vårdkällan tar emot intygets händelser, adresserade till vårdenheten'],
@@ -253,6 +254,10 @@ export const R3_KONTRAKT = {
   CancelForm: [FORM, '2.0', 'Vårdenheten avbryter en förfrågan som inte behövs'],
   AddMessageToPatientPortalInbox: [PORTAL, '2.0', 'Meddelande till patientens inkorg i 1177 med AddMessage, när patienten har ett konto'],
   IsActiveUser: [PORTAL, '2.0', 'Systemet frågar om patienten har ett konto i 1177 innan ett meddelande skickas'],
+  ProcessCareEncounter: [INF, '1.0', 'Vårdtillfällen i slutenvård överförs till Infektionsverktyget av systemet'],
+  ProcessCondition: [INF, '1.0', 'Infektionsdiagnoser överförs till Infektionsverktyget av systemet'],
+  ProcessPrescriptionReason: [INF, '1.0', 'Antibiotika med ordinationsorsak och smittväg överförs till Infektionsverktyget av systemet'],
+  DeleteCondition: [INF, '1.0', 'En överförd diagnos som inte längre finns i journalen tas bort'],
 };
 for (const k of KONTRAKT) {
   const r = R3_KONTRAKT[k.kontrakt];

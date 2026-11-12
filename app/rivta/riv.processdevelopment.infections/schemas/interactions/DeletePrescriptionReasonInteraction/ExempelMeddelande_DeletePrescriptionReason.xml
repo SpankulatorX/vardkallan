@@ -1,0 +1,13 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:add="http://www.w3.org/2005/08/addressing" xmlns:urn="urn:riv:processdevelopment:infections:DeletePrescriptionReasonResponder:1">
+   <soapenv:Header>
+      <add:To>SE2010123456</add:To>
+   </soapenv:Header>
+   <soapenv:Body>
+      <urn:DeletePrescriptionReason>
+         <!--You have a CHOICE of the next 2 items at this level-->
+         <!--<urn:ConditionId></urn:ConditionId>-->
+         <urn:ActivityId>1.2.752.129.2.1.2.1::SE2010123456-OE1aktid2</urn:ActivityId>
+         <!--You may enter ANY elements at this point-->
+      </urn:DeletePrescriptionReason>
+   </soapenv:Body>
+</soapenv:Envelope>
