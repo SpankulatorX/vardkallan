@@ -8,6 +8,8 @@ import * as r8 from '../remiss-r8-ui.js';
 import { S } from '../app.js';
 // Runda 10, r6: remiss eller konsultation, urval i översikten och kvittens av beslut på uppdrag.
 import * as r10 from '../remiss-r10-ui.js';
+// Runda 14, r3: e-remiss till och från vårdgivare utanför Vårdkällan.
+import * as eremissUi from '../eremiss-ui.js';
 
 export const namn = 'remisser';
 
@@ -96,6 +98,7 @@ export function remissKort(r, { visaPatient = false, markerad = false } = {}) {
       ${r.svar ? `<div><dt>${r.konsultation ? 'Svar på konsultationen' : 'Svar'}</dt><dd>${esc(r.svar)}</dd></div>` : ''}
     </dl>` : '<p class="dampad liten">Frågeställning, anamnes och svar är journaltext och visas inte för vårdadministratörer.</p>'}
     ${r4Html(r, klinisk)}
+    ${eremissUi.kortTillagg(r)}
     ${a.length ? `<div class="knapprad">${a.map(([k, t], i) => `<button type="button" class="knapp liten${i ? ' sekundar' : ''}" data-remiss-atgard="${k}" data-id="${r.id}">${esc(t)}</button>`).join('')}</div>` : ''}
   </article>`;
 }

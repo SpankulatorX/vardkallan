@@ -10,7 +10,7 @@
 import { randomUUID } from 'node:crypto';
 import { el } from './rivta/xml.js';
 import { Fel, iso } from './db.js';
-import { vardenhetFor, prova, visningsnamn, visningsPnr } from './atkomst.js';
+import { vardenhetFor, prova, visningsnamn, visningsPnr, kanRoll } from './atkomst.js';
 import { loggaRad } from './logg.js';
 import { avlidenFor } from './avliden.js';
 import * as r3 from './rivta-r3.js';
@@ -187,10 +187,13 @@ function ut(db, r, personal, visad) {
     skapadAv: r.personal_namn, skapad: r.skapad, signerad: r.signerad, skickad: r.skickad,
     vardenhet: db.query('SELECT namn FROM enheter WHERE id = ?').get(r.enhet_id)?.namn ?? null,
     svar: { diagnosKod: svar.diagnosKod ?? null, diagnosText: svar.diagnosText ?? null, sysselsattning: svar.sysselsattning ?? null, nedsattning: svar.nedsattning ?? null, fran: svar.fran ?? null, till: svar.till ?? null, ovrigt: svar.ovrigt ?? null },
+    patientId: r.patient_id, saknas: r.status === 'utkast' ? saknas(r) : [],
     kan: {
-      andra: r.status === 'utkast', signera: r.status === 'utkast' && personal.yrke === 'lakare',
-      skicka: r.status === 'signerat', makulera: ['signerat', 'skickat'].includes(r.status) && personal.yrke === 'lakare', radera: r.status === 'utkast',
+      andra: r.status === 'utkast' && kanRoll(personal, 'skriv_intyg'), signera: r.status === 'utkast' && personal.yrke === 'lakare',
+      skicka: r.status === 'signerat' && kanRoll(personal, 'skriv_intyg'), makulera: ['signerat', 'skickat'].includes(r.status) && personal.yrke === 'lakare',
+      radera: r.status === 'utkast' && kanRoll(personal, 'skriv_intyg'),
     },
+    alternativ: { sysselsattning: SYSSELSATTNING_TEXT, nedsattning: NEDSATTNING_TEXT, period: ['LISJP', 'AG7804'].includes(r.typ) },
     simulerad: 'Simulerad intygsapplikation i demon. Den är inte Webcert, och inget intyg lämnar demon.',
   };
 }
@@ -199,8 +202,10 @@ export function visa(db, personal, intygsId, val = {}) {
   loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, patient_id: r.patient_id, handling: 'las_intyg', resurs: `intygsapplikation:${r.intygs_id}`, grund, resultat: 'tillaten' });
   return ut(db, r, personal, Boolean(val.visa_identitet));
 }
-const NEDSATTNING = ['heltid', 'tre_fjardedelar', 'halften', 'en_fjardedel'];
-const SYSSELSATTNING = ['nuvarande_arbete', 'arbetssokande', 'foraldraledighet', 'studier'];
+const NEDSATTNING_TEXT = { heltid: 'Helt nedsatt', tre_fjardedelar: 'Nedsatt med tre fjärdedelar', halften: 'Nedsatt till hälften', en_fjardedel: 'Nedsatt med en fjärdedel' };
+const SYSSELSATTNING_TEXT = { nuvarande_arbete: 'Nuvarande arbete', arbetssokande: 'Arbetssökande', foraldraledighet: 'Föräldraledighet', studier: 'Studier' };
+const NEDSATTNING = Object.keys(NEDSATTNING_TEXT);
+const SYSSELSATTNING = Object.keys(SYSSELSATTNING_TEXT);
 export async function spara(db, personal, intygsId, body = {}, val = {}) {
   const { r, grund } = hamta(db, personal, intygsId, 'skriv_intyg');
   if (r.status !== 'utkast') throw new Fel(409, 'Ett signerat intyg kan inte ändras. Makulera det och skriv ett nytt.', 'konflikt');

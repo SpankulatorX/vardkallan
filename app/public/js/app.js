@@ -94,6 +94,8 @@ import * as forlossning from './vyer/forlossning.js';
 import * as modrahalsovard from './vyer/modrahalsovard.js';
 // Runda 12, r3 (vårt L5): flerfaktorsinloggning med passkeys och engångskoder.
 import * as flerfaktorVy from './vyer/flerfaktor.js';
+// Runda 14, r3: den simulerade intygsapplikationen (Sussa 2.2.1.9).
+import * as intygsapplikation from './vyer/intygsapplikation.js';
 import { andraFaktorn } from './flerfaktor-ui.js';
 // Runda 12, r3 (Sussa KD1.1.4.10): arbete över flera skärmar.
 import * as flera from './flera-fonster.js';
@@ -307,6 +309,8 @@ RUTTER.splice(RUTTER.findIndex(r => String(r[0]) === String(/^#\/anvandartest$/)
 );
 // Runda 12, r3 (vårt L5): inloggning och flerfaktor, för all personal och för invånaren i Min journal.
 RUTTER.splice(RUTTER.findIndex(r => String(r[0]) === String(/^#\/nyheter$/)), 0, [/^#\/flerfaktor$/, flerfaktorVy, () => arPersonal()]);
+// Runda 14, r3: den simulerade intygsapplikationen, som öppnas från fliken Intyg i journalen.
+RUTTER.splice(RUTTER.findIndex(r => String(r[0]) === String(/^#\/nyheter$/)), 0, [/^#\/intygsapplikation\/([\w-]+)$/, intygsapplikation, () => far('las_intyg')]);
 
 // Invånarens adresser i Min journal, och de offentliga sidorna. Personalens vyer finns inte här.
 const RUTTER_MIN = [

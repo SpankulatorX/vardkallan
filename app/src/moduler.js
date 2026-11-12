@@ -341,6 +341,23 @@ MODULER.push(m('testinbjudan', 'forvaltning', 'Testinbjudan och synpunkter',
   d.kod.push('src/sandlada-vila.js', 'public/js/demo-full.js');
 }
 
+// Runda 14, r3: intyg genom intygsapplikationen, e-remiss till och från vårdgivare utanför Vårdkällan och del r3:s
+// tjänstekontrakt på den gemensamma grunden för RIVTA.
+MODULER.push(m('intyg', 'journal', 'Intyg',
+  'Läkaren skriver intyg i en intygsapplikation som öppnas från journalen med patienten, läkaren, vårdenheten och diagnosen ifyllda, och journalen visar intygets status av sig själv. Systemet föreslår det intyg som passar patienten och visar bara de intyg som får skrivas.',
+  { avsnitt: ['2.2.1.9'], rutter: ['#/intygsapplikation/:id'], journal: ['intyg'], vyer: ['patient-intyg.js', 'intygsapplikation.js'], kod: ['src/lakarintyg.js', 'src/intygsapplikation-simulerad.js', 'src/r14r3-rutter.js'],
+    api: ['/api/patient/:id/intyg', '/api/intygsapplikation/:id'],
+    simulerat: 'Intygsapplikationen är simulerad och är inte Webcert. Inget intyg skickas till Försäkringskassan eller någon annan mottagare. Tjänstekontrakten är byggda och validerade mot sina scheman men inte anslutna till den nationella tjänsteplattformen.' }));
+{
+  const r = MODULER.find(x => x.id === 'remiss');
+  r.beskrivning += ' E-remiss till och från vårdgivare utanför Vårdkällan med tjänstekontrakten för elektronisk remiss, där systemet fyller i remissen och statusen följer mottagarens besked och svar.';
+  r.kod.push('src/eremiss.js', 'src/eremiss-simulerad.js', 'public/js/eremiss-ui.js');
+  r.api.push('/api/patient/:id/eremiss', '/api/eremiss/mottagare');
+  r.simulerat = `${r.simulerat ? `${r.simulerat} ` : ''}De externa vårdgivarna med e-remiss är påhittade och simulerade.`;
+  const n = MODULER.find(x => x.id === 'nationella');
+  n.kod.push('src/rivta-r3.js');
+}
+
 // Vyer och rutter som inte hör till en enskild modul, med motivering.
 export const UTAN_MODUL = {
   vyer: {
