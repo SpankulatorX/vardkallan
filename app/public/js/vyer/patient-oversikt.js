@@ -22,6 +22,8 @@ const TYP = { vardkontakt: 'Vårdkontakt', vardtillfalle: 'Vårdtillfälle', ant
 // Runda 10, r4: in- och utfarter, skannade restjournaler och donation.
 Object.assign(TYP, { infart: 'In- och utfart', restjournal: 'Restjournal', dodsfall: 'Dödsfall', donation: 'Donation' });
 const R10R4_FLIK = { infart: 'infarter', restjournal: 'restjournaler', donation: 'donation' };
+// Runda 14, r4: handlingar i mellanarkivet öppnas i journalen som de andra anteckningarna.
+TYP.mellanarkiv = 'Journal';
 // Tidslinjen i tidsordning, per vårdtillfälle och vårdkontakt, eller per hälsoärende. Valet gäller under sessionen.
 const LAGEN = [['tid', 'I tidsordning'], ['kontakt', 'Per vårdkontakt'], ['arende', 'Per hälsoärende']];
 let tidslinjeLage = 'tid';
@@ -174,7 +176,9 @@ async function sammanhallenRuta(plats, ctx) {
 
 function tidslinjeRad(t, ctx) {
   const lank = t.ref?.typ === 'anteckning' ? ctx.href('journal', t.ref.id) : t.ref?.typ === 'ordination' ? ctx.href('lakemedel') : t.ref?.typ === 'remiss' ? ctx.href('remisser')
-    : R10R4_FLIK[t.ref?.typ] ? ctx.href(R10R4_FLIK[t.ref.typ], t.ref.typ === 'restjournal' ? t.ref.id : undefined) : null;
+    : R10R4_FLIK[t.ref?.typ] ? ctx.href(R10R4_FLIK[t.ref.typ], t.ref.typ === 'restjournal' ? t.ref.id : undefined)
+      // Runda 14, r4.
+      : t.ref?.typ === 'mellanarkiv' ? ctx.href('journal', `ma-${t.ref.id}`) : null;
   const rubrik = lank ? `<a href="${lank}">${esc(t.rubrik)}</a>` : esc(t.rubrik);
   return `<li class="tl-${esc(t.typ)}">
     <time datetime="${esc(t.tid)}"><span class="tl-datum">${esc(datum(t.tid))}</span>${String(t.tid).length > 10 ? `<span class="tl-tid">${esc(klockslag(t.tid))}</span>` : ''}</time>

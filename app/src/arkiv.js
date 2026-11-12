@@ -137,6 +137,10 @@ export function registreraBeslut(db, personal, inp) {
     // Runda 9, r5: informationsmängderna som gallras för sig, med reglerna som de gäller i dag.
     const delar = Object.entries(INFORMATIONSMANGDER).map(([mangd, m]) => { const a = konfiguration.varde(db, m.parameter); return { mangd, ar: a, fore: addDagar(idag(), -Math.round(a * 365.25)) }; });
     omfattning = { urval: 'regel', ar, fore: addDagar(idag(), -Math.round(ar * 365.25)), delar };
+  } else if (typ === 'mellanarkiv') {
+    // Runda 14, r4 (Sussa 5.4.2.2): överföringen till mellanarkivet följer en regel, som gallringen (mellanarkiv.js). Den
+    // sparas som en leverans med mottagaren mellanarkivet, eftersom tabellens slag av beslut inte ändras (logiskTyp).
+    omfattning = { urval: 'mellanarkiv', ar: MELLANARKIV_AR, fore: addDagar(idag(), -Math.round(MELLANARKIV_AR * 365.25)) };
   } else {
     patientId = typeof inp.patientId === 'string' ? identitet.gallandeId(db, inp.patientId) : null;
     if (!patientId || !patientRad(db, patientId)) throw new Fel(400, 'Ange patienten som beslutet gäller.', 'ogiltig', { falt: ['patientId'] });
@@ -156,7 +160,7 @@ export function registreraBeslut(db, personal, inp) {
   }
   const motivering = typeof inp.motivering === 'string' ? inp.motivering.trim().slice(0, 500) || null : null;
   const r = db.query(`INSERT INTO arkivbeslut (typ, beslutsfattare, diarienummer, beslutsdatum, lagrum, patient_id, omfattning, motivering, registrerad, registrerad_av)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(typ, def.beslutsfattare, dnr, datum, def.lagrum, patientId, JSON.stringify(omfattning), motivering, iso(), personal.id);
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(typ === 'mellanarkiv' ? 'leverans' : typ, def.beslutsfattare, dnr, datum, def.lagrum, patientId, JSON.stringify(omfattning), motivering, iso(), personal.id);
   const id = Number(r.lastInsertRowid);
   loggArkiv(db, personal, patientId, 'registrera_arkivbeslut', `beslut:${id}`, `${def.text}, ${dnr}`);
   return beslutUt(db, hamtaBeslut(db, id));
@@ -170,7 +174,7 @@ export function hamtaBeslut(db, id) {
 
 export function beslutUt(db, b) {
   return {
-    id: b.id, typ: b.typ, typText: BESLUTSTYPER[b.typ].text, beslutsfattare: b.beslutsfattare, diarienummer: b.diarienummer,
+    id: b.id, typ: logiskTyp(b), typText: BESLUTSTYPER[logiskTyp(b)].text, beslutsfattare: b.beslutsfattare, diarienummer: b.diarienummer,
     beslutsdatum: b.beslutsdatum, lagrum: b.lagrum, omfattning: JSON.parse(b.omfattning), motivering: b.motivering,
     patient: b.patient_id ? patientKort(patientRad(db, b.patient_id)) : null,
     registrerad: b.registrerad, registreradAv: personNamn(db, b.registrerad_av),
@@ -455,7 +459,7 @@ export function allaTabeller(db) {
 
 // Bygger exportpaketet för beslutet. Returnerar ZIP-filen och vad som exporterades.
 export function exportera(db, personal, b, { version = null } = {}) {
-  if (b.typ !== 'leverans') throw new Fel(400, 'Exportpaket skapas för beslut om leverans till e-arkiv.', 'ogiltig');
+  if (logiskTyp(b) !== 'leverans') throw new Fel(400, 'Exportpaket skapas för beslut om leverans till e-arkiv.', 'ogiltig');
   const { patienter } = underlag(db, personal, b);
   const objid = `IP_${randomUUID()}`;
   const tid = iso();
@@ -724,6 +728,8 @@ export function godkann(db, personal, b, { kommentar } = {}, nu = new Date()) {
 
 // Verkställer gallring eller radering. Beslutet kan bara verkställas en gång.
 export function verkstall(db, personal, b) {
+  // Runda 14, r4: en överföring till mellanarkivet raderar inget och verkställs genom överföringen (mellanarkiv.js).
+  if (logiskTyp(b) === 'mellanarkiv') throw new Fel(400, 'Ett beslut om överföring verkställs genom att handlingarna förs över till mellanarkivet.', 'ogiltig');
   if (b.typ === 'leverans') throw new Fel(400, 'Ett beslut om leverans verkställs genom att exportpaketet skapas.', 'ogiltig');
   if (b.verkstallt) throw new Fel(400, 'Beslutet är redan verkställt.', 'ogiltig');
   // Runda 13, r3 (E3-35): utan verksamhetschefens godkännande verkställs ingen radering.
@@ -757,3 +763,37 @@ export function huvudDel(db, p) {
   const b = db.query('SELECT * FROM arkivbeslut WHERE id = ?').get(p.journal_forstord);
   return b ? { typ: b.typ, text: `Journalen är ${b.typ === 'gallring' ? 'gallrad' : 'förstörd'} enligt beslut ${b.diarienummer} den ${b.beslutsdatum} (${b.beslutsfattare}).` } : null;
 }
+
+// ---- Runda 14, r4 (Sussa 5.4.2.2): överföring till mellanarkivet --------------------------------------------------
+// Beslutet är av samma slag som de andra och registreras och loggas på samma sätt. Underlaget, paketen och mottagningen
+// finns i mellanarkiv.js, som använder paketbyggaren här, så att paketet är detsamma som exporten till e-arkivet.
+export const MELLANARKIV_AR = 5;
+BESLUTSTYPER.mellanarkiv = {
+  text: 'Överföring till mellanarkiv', beslutsfattare: 'Vårdgivarens arkivansvarige',
+  lagrum: 'Arkivlagen (1990:782) och vårdgivarens dokumenthanteringsplan',
+  forklaring: `Systemet tar själv fram journalhandlingar som är äldre än ${MELLANARKIV_AR} år och som inget annat i journalen pekar på, och för över dem till mellanarkivet. De visas fortfarande i journalen för den som har rätt att läsa dem, och de ändras aldrig.`,
+};
+LOGGHANDLING.mellanarkiv = 'arkivera';
+// Beslutets slag som det visas och prövas. Tabellen arkivbeslut tillåter bara leverans, gallring och radering, och en
+// överföring till mellanarkivet sparas därför som en leverans med urvalet mellanarkiv.
+export function logiskTyp(b) {
+  if (b.typ !== 'leverans') return b.typ;
+  try { return JSON.parse(b.omfattning).urval === 'mellanarkiv' ? 'mellanarkiv' : 'leverans'; } catch { return 'leverans'; }
+}
+// Ett FGS-paket med de filer som anroparen ger, METS.xml, PREMIS och (om inte scheman är false) XML-schemana.
+export function byggFgsPaket(db, { filer: indata, version = null, scheman = true, tid = iso(), objid = `IP_${randomUUID()}` }) {
+  const filer = [];
+  const lagg = (relativ, data, mime, grupp) => {
+    const buf = Buffer.isBuffer(data) ? data : Buffer.from(data, 'utf8');
+    filer.push({ relativ, data: buf, mime, grupp, sha: sha(buf), id: `fil-${filer.length + 1}` });
+  };
+  for (const f of indata) lagg(f.relativ, f.data, f.mime, f.grupp);
+  if (scheman) for (const f of readdirSync(SCHEMAKATALOG).filter(x => x.endsWith('.xsd')).sort()) lagg(`schemas/${f}`, readFileSync(join(SCHEMAKATALOG, f)), 'application/xml', 'Schemas');
+  lagg('metadata/preservation/premis.xml', premis(objid, tid, filer.length), 'text/xml', 'Preservation');
+  const metsXml = mets(db, objid, tid, filer, version, enhetsnamn(db, 'rol'));
+  const kataloger = ['', 'metadata/', 'metadata/descriptive/', 'metadata/preservation/', 'metadata/other/', 'representations/', 'representations/rep_1/', 'representations/rep_1/data/',
+    'representations/rep_1/data/journal/', 'schemas/', 'documentation/'];
+  const paket = zip([...kataloger.map(k => ({ namn: `${objid}/${k}` })), { namn: `${objid}/METS.xml`, data: metsXml }, ...filer.map(f => ({ namn: `${objid}/${f.relativ}`, data: f.data }))]);
+  return { objid, paket, tid, filer: filer.length + 1 };
+}
+export const slappTriggrar = (db, tabeller, fn) => medSlapptaTriggrar(db, tabeller, fn);

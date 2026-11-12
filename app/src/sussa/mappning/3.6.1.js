@@ -20,8 +20,19 @@ export default [
     expert: 'Systemet visar själv varifrån varje värde kommer och om det går att använda för diagnos, så att användaren aldrig behöver gissa om ett värde är kontrollerat.',
     anmarkning: `${SIMULERAT} Kurvorna i övervakningen visar de senaste timmarna. Vågformer och realtidsvisning som på monitorn själv finns inte.`,
   },
-  { id: '3.6.1.3', kategori: 'leverantor', egna: ['D9'], tester: [], avsedd: 'planerat',
-    anmarkning: 'Gränssnitt mot medicinteknisk utrustning finns inte. FHIR-API:t och dess profiler är dokumenterade i docs/fhir-validering.md.' },
+  // Runda 14, r4: den samlade dokumentationen av gränssnitten för informationsutbyte (gransnitt-utbyte.js, docs/gransnitt.md).
+  {
+    id: '3.6.1.3', kategori: 'leverantor', egna: ['D9'], avsedd: 'delvis',
+    tester: [
+      'Gränssnitten för informationsutbyte > varje adressprefix som servern skickar vidare hör till ett gränssnitt i registret eller är internt med motivering',
+      'Gränssnitten för informationsutbyte > varje rutt i API:t som tyder på informationsutbyte hör till ett gränssnitt i registret',
+      'Gränssnitten för informationsutbyte > varje fil i src/rivta och varje fil som bygger SOAP eller RIV-TA hör till ett gränssnitt i registret',
+      'Gränssnitten för informationsutbyte > varje adress, fil och dokument som registret nämner finns, och varje gränssnitt har ett avsnitt',
+      'Gränssnitten för informationsutbyte > dokumentet räknar FHIR-resurserna och tjänstekontrakten ur koden och är skrivet ur registret',
+    ],
+    losning: 'docs/gransnitt.md beskriver alla gränssnitt för informationsutbyte: FHIR R4, SMART on FHIR och systemkonton, prenumerationer, datauttaget, tjänstekontrakten i K10 och RIVTA, medicinteknisk utrustning, producentsystemen för labb, DICOMweb, e-arkivet, utskrift, rapportering till myndigheter och register, masterdata, inloggning med biljett och flerfaktor, signerade meddelanden, kalendern och läskopian, var och en med standard, riktning, adresser, behörighet och loggning, vad som är simulerat, koden och fler dokument. En process i sju steg beskriver hur en beställare själv ansluter, ändrar, versionerar, prövar, dokumenterar och förvaltar gränssnitten. Dokumentet skrivs ur ett register i koden, och ett test stoppar bygget när servern får ett gränssnitt mot andra system som inte står i registret.',
+    anmarkning: 'Dokumentationen är inte prövad av en beställare som tar över utveckling och förvaltning. Avsnitten om RIVTA-kontrakten, intygen och inloggningstjänstens biljett hänvisar till docs/rivta.md och docs/sakerhetsarkitektur.md. Det finns ingen gateway för medicinteknik, och flera av gränssnitten är simulerade, vilket står vid varje gränssnitt.',
+  },
   {
     id: '3.6.1.4', kategori: 'system', egna: ['D9'], avsedd: 'uppfyllt_demo',
     tester: [T.profiler, T.felFormat, T.fhir, T.hl7],

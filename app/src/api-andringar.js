@@ -24,6 +24,10 @@ export const ANDRINGAR = [
       'Intyg genom intygsapplikationen (/api/patient/:id/intyg och /api/intygsapplikation/:id) och e-remiss (/api/patient/:id/eremiss) i det interna API:t (docs/api-avvikelser.md)',
       'Tjänstekontrakten CreateDraftCertificate, CertificateStatusUpdateForCare, ListCertificatesForCareWithQA, ProcessRequest, ProcessRequestConfirmation, ProcessRequestOutcome och GetVaccinationHistory i RIVTA, byggda och validerade mot sina scheman (docs/rivta.md)',
       'Formulärtjänsten, 1177:s inkorg, NKRR, dosdispenseringen och Infektionsverktyget som konsument mot simulerade tjänster, och RIVTA Basic Profile 2.0 med wsa:To och xsi:type i grunden (docs/rivta.md)',
+      // Runda 14, r4: mellanarkivet, reservdatorn för läkemedel och testprotokollet (docs/api-avvikelser.md).
+      'Journalhandlingar i mellanarkivet per patient och en i taget, och beslut om överföring till mellanarkiv med underlag och överföring, i det interna API:t',
+      'Listan för vårdenhetens reservdator för läkemedel med inskrivna patienters ordinationer och dagens doser i det interna API:t',
+      'Nytt: GET /api/krav/testprotokoll, testprotokollet med spårbarhet från krav till testfall, öppet utan inloggning',
     ],
   },
   // Runda 13: version 1.3.1, rättelserna för kvällar och nätter.

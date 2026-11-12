@@ -61,8 +61,12 @@ const FILER = [
   '/js/vaccination-ui.js',
   '/js/demo-full.js',
   '/js/vyer/patient-intyg.js', '/js/vyer/intygsapplikation.js', '/js/eremiss-ui.js',
+  '/js/vyer/reservdator.js',
+  '/js/vyer/testprotokoll.js',
 ];
 // Runda 14, r3: listan har intygen, den simulerade intygsapplikationen och e-remissen (patient-intyg.js, intygsapplikation.js och eremiss-ui.js).
+// Runda 14, r4: listan har testprotokollet (testprotokoll.js).
+// Runda 14, r4: listan har reservdatorn för läkemedel (reservdator.js), som ska kunna öppnas också när kärnsystemet inte svarar.
 // Runda 13, r1: listan har testinbjudan, synpunkterna, de kända begränsningarna, startsidan för testare, sidan om demon och testledarens vy.
 // Runda 13, r2: listan har sidan när demon är full (demo-full.js).
 // Runda 12, r1: listan har mallarna och mätvärdestyperna (journalstruktur.js) och läkemedelsmallarna (lakemedelsmallar-ui.js).

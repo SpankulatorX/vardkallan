@@ -1904,3 +1904,29 @@ body.testlage-aktivt.har-testare #notiser { bottom: calc(var(--testlage-hojd, 64
 .demo-full h1 { font-size: 1.6rem; margin-bottom: 1rem; }
 .demo-full p { line-height: 1.6; }
 .demo-full .demo-full-tid { font-size: 1.1rem; }
+/* Runda 14, r4: testprotokollet (testprotokoll.js, Sussa 11.2.1.7). Långa testnamn bryts så att tabellen ryms i 390 px,
+   och vid utskrift delas inget krav mitt i en tabellrad. */
+.tpr-krav { margin: 0 0 18px; }
+#tp p, #tp dd { overflow-wrap: anywhere; }
+.tpr-krav h3 { margin: 0 0 4px; font-size: 1rem; }
+.tpr-krav-status { display: flex; gap: 6px; align-items: center; margin: 0 0 6px; }
+.tpr-tabell { table-layout: fixed; }
+.tpr-tabell td, .tpr-tabell th, .tpr-tabell thead th { overflow-wrap: anywhere; white-space: normal; }
+.tpr-tabell th:first-child, .tpr-tabell td.tpr-namn { width: 58%; }
+.tpr-resultat { display: inline-block; padding: 1px 6px; border-radius: var(--r); font-weight: 600; }
+.tpr-ok { background: var(--ok-bg); color: var(--ok); }
+.tpr-fel { background: var(--larm-bg); color: var(--larm); }
+.tpr-hoppad { background: var(--obs-bg); color: var(--obs); }
+@media print {
+  .tpr-krav { break-inside: avoid-page; }
+  .tpr-tabell tr { break-inside: avoid; }
+}
+
+/* Runda 14, r4 (Sussa 11.2.1.8): vårdenhetens reservdator för läkemedel. En patient per avsnitt, också på papper. */
+.reserv-patient { border-top: 1px solid var(--linje); padding: 12px 0; }
+.reserv-patient h2 { font-size: var(--f-l, 18px); margin: 0 0 8px; }
+.reserv-doser { list-style: none; padding: 0; margin: 4px 0 0; display: grid; gap: 4px; }
+@media print {
+  .reservdator .ruta-info.liten { display: none; }
+  .reserv-patient { break-inside: avoid-page; }
+}

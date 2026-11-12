@@ -132,6 +132,11 @@ import { registreraRutter as r10r3Rutter } from './r10r3-rutter.js';
 import { mallarFor as formularMallar } from './formularmotor.js';
 // Runda 10, r4: in- och utfarter, restjournaler och donation (runda10-r4-rutter.js).
 import { registreraRutter as r10r4Rutter, tidslinje as r10r4Tidslinje, inkorg as r10r4Inkorg } from './runda10-r4-rutter.js';
+// Runda 14, r4 (Sussa 5.4.2.2): journalhandlingar i mellanarkivet, i journalen och tidslinjen.
+import * as mellanarkiv from './mellanarkiv.js';
+import { registreraRutter as mellanarkivRutter } from './mellanarkiv-rutter.js';
+// Runda 14, r4 (Sussa 11.2.1.8): vårdenhetens reservdator för läkemedel, den andra källan vid avbrott.
+import * as reservlakemedel from './reservlakemedel.js';
 // Runda 11, r4: cytostatika och blodprodukter i version 1.1 (r11r4-rutter.js).
 import * as r11r4 from './r11r4-rutter.js';
 import { minBehandling as cytoMinBehandling, minHuvud as cytoMinHuvud } from './cytostatika.js';
@@ -160,6 +165,8 @@ import { skapaKopielager, schemalagdaStegvis } from './sakerhetskopior.js';
 // Runda 13, r2: sandlådor som vilar på disk, inga tappade sandlådor och en vänlig sida när demon är full.
 import { Database } from 'bun:sqlite';
 import * as vila from './sandlada-vila.js';
+// Runda 14, r4: testprotokollet med spårbarhet till kraven (testprotokoll.js, Sussa 11.2.1.7).
+import * as testprotokoll from './testprotokoll.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
 // Runda 13, r2: taket för sandlådor i minnet och på disk tillsammans. En sandlåda tas aldrig bort för att ge plats åt
@@ -876,6 +883,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const sparrar = aktivaSparrar(db, p.id);
     const enheter = new Set(db.query(`SELECT enhet_id FROM anteckningar WHERE patient_id = ?1 UNION SELECT enhet_id FROM diagnoser WHERE patient_id = ?1
       UNION SELECT enhet_id FROM matvarden WHERE patient_id = ?1 UNION SELECT enhet_id FROM vardkontakter WHERE patient_id = ?1`).all(p.id).map(x => vardenhetFor(db, x.enhet_id)));
+    // Runda 14, r4: vårdenheter med handlingar i mellanarkivet räknas också, så att det aktiva valet erbjuds för dem.
+    if (mellanarkiv.finnsTabell(db)) for (const x of db.query('SELECT DISTINCT enhet_id FROM mellanarkiv_handlingar WHERE patient_id = ?').all(p.id)) enheter.add(vardenhetFor(db, x.enhet_id));
     const andra = [...enheter].filter(e => e !== min && !sparrar.includes(e));
     const visad = p.skyddad ? val.visa_identitet : true;
     const listning = db.query('SELECT * FROM listningar WHERE patient_id = ?').get(p.id);
@@ -938,6 +947,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...sammanhallen.tidslinje(atk, c.s),
       // Runda 10, r4: in- och utfarter och skannade restjournaler, med samma behörighet som deras egna vyer.
       ...r10r4Tidslinje(atk),
+      // Runda 14, r4: handlingar i mellanarkivet, med samma behörighet som journalen.
+      ...mellanarkiv.tidslinje(atk),
     ].sort((a, b) => String(b.tid).localeCompare(String(a.tid)));
     // Vårdkontakter, vårdtillfällen och hälsoärenden (vardkontakt.js), byggt av det som redan är filtrerat ovan.
     const vardstruktur = vardkontakt.oversiktDel(atk, { vk, ant, dia, mv, ord, rem });
@@ -2376,6 +2387,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const klient = lasKlientresultat(klientresultat);
     return villkor10(sussaRegister(resultat, klient, { egna: kravregister(resultat, undefined, klient) }), klient.sussaTestfall, { version: APPVERSION });
   });
+  // Runda 14, r4 (Sussa 11.2.1.7): testprotokollet med varje krav, dess testfall, resultat, datum och den byggda versionen.
+  rutt('GET', '/api/krav/testprotokoll', () => testprotokoll.franFiler({ testresultat, klientresultat }));
   // Svarstidsmål (D5): p95 under 200 ms per endpoint.
   const MAL_P95 = 200;
   const medMal = (rader) => rader.map(r => ({ ...r, inomMal: r.p95 <= MAL_P95 }));
@@ -2465,6 +2478,10 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   r10r3Rutter({ rutt, kravInloggad, medPatient });
   // Runda 10, r4 (runda10-r4-rutter.js).
   r10r4Rutter({ rutt, kravInloggad, medPatient, valFor });
+  // Runda 14, r4 (mellanarkiv-rutter.js).
+  mellanarkivRutter({ rutt, kravInloggad, medPatient });
+  // Runda 14, r4: listan för vårdenhetens reservdator (reservlakemedel.js).
+  rutt('GET', '/api/reservlista', (c) => { const p = kravInloggad(c); return reservlakemedel.lista(c.db, p, (pid) => valFor(c.s, pid)); });
   // Runda 11, r4 (r11r4-rutter.js).
   r11r4.registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMinJournal });
   // Runda 10, r7 (r10r7-rutter.js). Kalenderlänkarna finns som HMAC i minnet och i sandlådan.
@@ -2510,6 +2527,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   for (const v of ['/api/idp/jwks', '/api/idp/.well-known/openid-configuration']) UTAN_SESSION.add(v);
   // Runda 11, r8: modulsidan är offentlig.
   UTAN_SESSION.add('/api/moduler');
+  // Runda 14, r4: testprotokollet är offentligt, som kravsidan.
+  UTAN_SESSION.add('/api/krav/testprotokoll');
   // Runda 13, r1: panelen med uppdragen och yrkesrollerna frågar utan att skapa en sandlåda. Ett sådant anrop som korsar
   // en inloggning, där sessionskakan byts, får då aldrig ge webbläsaren en ny, tom session.
   for (const v of ['/api/testare', '/api/testare/roller', '/api/synpunkter/om']) UTAN_SESSION.add(v);

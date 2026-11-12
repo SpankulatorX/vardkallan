@@ -80,6 +80,8 @@ export const STARTPUNKT = {
   'Tillväxten för ett barn som har flyttat hit': { hash: '#/patient/p09/tillvaxt', klar: '#tv-import', forbered: 'aterstall' },
   // Runda 14, r3: intyg och e-remiss från journalen för en patient på vårdcentralen.
   'Journalen för patienten på vårdcentralen': { hash: '#/patient/p11', klar: '.patientband h1' },
+  // Runda 14, r4: arkivariens sida för e-arkiv, gallring och mellanarkiv.
+  'E-arkiv och gallring': { hash: '#/arkiv', klar: '#ar-form' },
 };
 
 export const UPPGIFTER = [
@@ -691,6 +693,22 @@ export const UPPGIFTER = [
     id: 'skicka-eremiss', namn: 'Skicka en e-remiss till en vårdgivare utanför Vårdkällan', roll: 'lak-vc', start: 'Journalen för patienten på vårdcentralen',
     text: 'Patienten har ont i knät och ska bedömas av en vårdgivare utanför Vårdkällan. Skicka en remiss dit med frågeställningen.',
     kontroll: { notis: 'E-remissen är skickad' },
+  },
+  // Runda 14, r4: mellanarkivet och vårdenhetens reservdator för läkemedel.
+  {
+    id: 'las-mellanarkiv', namn: 'Läsa en äldre anteckning ur mellanarkivet', roll: 'lak-kard', start: 'Patientens översikt',
+    text: 'Gunnar Åkesson besökte kardiologiska mottagningen 2010 för hjärtklappning. Läs vad som skrevs då.',
+    kontroll: { sel: '[data-mellanarkiv-kontroll]', text: 'Kontrollsumman visar' },
+  },
+  {
+    id: 'overfor-mellanarkiv', namn: 'För över äldre journalhandlingar till mellanarkivet', roll: 'ark', start: 'E-arkiv och gallring',
+    text: 'Vårdgivaren har beslutat, med diarienummer Arkiv 2026-777, att äldre journalhandlingar ska föras över till mellanarkivet. Gör det.',
+    kontroll: { notis: 'överförda till mellanarkivet' },
+  },
+  {
+    id: 'oppna-reservdator', namn: 'Göra en dator till vårdenhetens reservdator för läkemedel', roll: 'ssk-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Datorn i läkemedelsrummet ska visa avdelningens läkemedel om journalsystemet slutar svara. Ställ i ordning den.',
+    kontroll: { sel: '#reservdator', text: 'inskrivna patienter' },
   },
 ];
 

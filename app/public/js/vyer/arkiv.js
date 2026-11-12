@@ -17,7 +17,7 @@ const reglerLista = (regler) => `<section class="arkiv-kort" aria-labelledby="ar
 </section>`;
 // Runda 13, r3 (E3-35): en gallring eller radering verkställs först när verksamhetschefen har godkänt den.
 const STATUS = (b) => (b.verkstallt ? `Verkställt ${tidpunkt(b.verkstallt)} av ${b.verkstalltAv ?? ''}`
-  : b.typ === 'leverans' ? 'Inte verkställt'
+  : b.typ === 'leverans' || b.typ === 'mellanarkiv' ? 'Inte verkställt'
     : `Inte verkställt. ${[
       ...(b.godkannande?.enheter ?? []).map(g => `Godkänt för ${g.enhet} av ${g.av ?? ''} ${tidpunkt(g.tid)}`),
       ...(b.godkannande?.klart ? [] : [`Väntar på godkännande för ${(b.godkannande?.saknas ?? []).join(', ')}`]),
@@ -26,7 +26,9 @@ const pnamn = (p) => (p ? `${p.skyddad ? 'Skyddad identitet' : p.namn}, ${p.pers
 
 function beslutKort(b) {
   const omf = b.omfattning;
-  const vad = b.typ === 'gallring' ? `Journaler med sista uppgift före ${datum(omf.fore)}` : b.typ === 'leverans' ? (omf.urval === 'alla' ? 'Alla journaler (återföring av all data)' : pnamn(b.patient))
+  // Runda 14, r4: överföringen till mellanarkivet gäller handlingar från före regelns gräns, i alla journaler.
+  const vad = b.typ === 'mellanarkiv' ? `Journalhandlingar från före ${datum(omf.fore)}`
+    : b.typ === 'gallring' ? `Journaler med sista uppgift före ${datum(omf.fore)}` : b.typ === 'leverans' ? (omf.urval === 'alla' ? 'Alla journaler (återföring av all data)' : pnamn(b.patient))
     : `${pnamn(b.patient)}: ${omf.hela ? 'hela journalen' : plural(omf.poster.length, 'post', 'poster')}`;
   const res = b.resultat;
   return `<li class="arkiv-kort" data-beslut="${b.id}">
@@ -35,7 +37,7 @@ function beslutKort(b) {
       <div><dt>Beslut</dt><dd>${esc(datum(b.beslutsdatum))}, ${esc(b.beslutsfattare)}</dd></div>
       <div><dt>Lagrum</dt><dd>${esc(b.lagrum)}</dd></div>
       <div><dt>Gäller</dt><dd>${esc(vad)}</dd></div>
-      <div><dt>Status</dt><dd>${esc(STATUS(b))}${res && !res.paket ? `. ${esc(plural(res.patienter, 'journal', 'journaler'))}` : ''}</dd></div>
+      <div><dt>Status</dt><dd>${esc(STATUS(b))}${res && b.typ === 'mellanarkiv' ? `. ${esc(plural(res.patienter, 'journal', 'journaler'))}, ${esc(plural(res.anteckningar, 'anteckning', 'anteckningar'))} och ${esc(plural(res.matvarden, 'mätvärde', 'mätvärden'))} i mellanarkivet` : res && !res.paket ? `. ${esc(plural(res.patienter, 'journal', 'journaler'))}` : ''}</dd></div>
       ${b.exporter.map(e => `<div><dt>Paket</dt><dd>${esc(e.id)}, ${esc(plural(e.filer, 'fil', 'filer'))}, ${esc(Math.round(e.storlek / 1024))} kB<span class="under-text">SHA-256 ${esc(e.sha256)}</span>${leveransText(e.leverans)}</dd></div>`).join('')}
     </dl>
     <div class="knapprad">
@@ -83,7 +85,7 @@ export async function visa(main) {
     form.querySelector('[data-forklaring]').textContent = t.forklaring;
     form.querySelector('[data-fattare]').textContent = t.beslutsfattare;
     form.querySelector('[data-lagrum]').textContent = t.lagrum;
-    form.querySelector('[data-patientdel]').hidden = tillstand.typ === 'gallring';
+    form.querySelector('[data-patientdel]').hidden = tillstand.typ === 'gallring' || tillstand.typ === 'mellanarkiv';
     form.querySelector('[data-alla]').hidden = tillstand.typ !== 'leverans';
     form.querySelector('[data-patientfalt]').hidden = tillstand.typ === 'leverans' && form.alla.checked;
     form.querySelector('[data-hela]').hidden = tillstand.typ !== 'radering' || !tillstand.patient;
@@ -161,6 +163,8 @@ async function underlag(b, main) {
   const ut = b.closest('[data-beslut]').querySelector('[data-underlag-ut]');
   let u;
   try { u = await api(`/api/arkiv/beslut/${b.dataset.underlag}/underlag`); } catch (err) { felNotis(err); return; }
+  // Runda 14, r4 (Sussa 5.4.2.2): överföringen till mellanarkivet raderar inget och kräver inget godkännande.
+  if (u.beslut.typ === 'mellanarkiv') return underlagMellanarkiv(ut, u, main);
   // Runda 9, r5: delarna av andra journaler som gallras för sig, per informationsmängd.
   const delar = u.delar ?? [];
   ut.innerHTML = `<p>${u.regel ? `${esc(u.regel)} ` : ''}Beslutet gäller ${esc(plural(u.patienter.length, 'hel journal', 'hela journaler'))}${u.patienter.length ? ':' : '.'}</p>
@@ -215,6 +219,24 @@ async function visaGodkannande(main) {
       const r = await medKnapp(k, () => api(`/api/arkiv/beslut/${b.id}/godkann`, { metod: 'POST', data: {} }));
       notis(r?.klart ? 'Verkställandet är godkänt. Arkivarien kan nu verkställa beslutet.' : 'Verkställandet är godkänt för din vårdenhet. Andra berörda vårdenheter ska också godkänna.');
       visaGodkannande(main);
+    } catch { /* notis visad */ }
+  });
+}
+
+// Runda 14, r4 (Sussa 5.4.2.2): systemet har tagit fram handlingarna. Arkivarien ser antal och period per journal, aldrig
+// innehållet, och för över dem med ett klick. Handlingarna visas sedan i journalen som förut.
+function underlagMellanarkiv(ut, u, main) {
+  const n = u.patienter.reduce((s, p) => s + p.anteckningar + p.matvarden, 0);
+  ut.innerHTML = `<p>${esc(u.regel)} Mottagare: ${esc(u.mottagare)}.</p>
+    ${u.patienter.length ? `<ul class="post-lista">${u.patienter.map(p => `<li>${esc(pnamn(p))}<span class="under-text">${esc(plural(p.anteckningar, 'anteckning', 'anteckningar'))} och ${esc(plural(p.matvarden, 'mätvärde', 'mätvärden'))}${p.period ? `, ${esc(p.period)}` : ''}</span></li>`).join('')}</ul>
+      <div class="knapprad"><button type="button" class="knapp" data-overfor>${ikon.arkiv}<span>För över till mellanarkivet</span></button></div>
+      <p class="dampad liten">Mellanarkivet kontrollerar varje paket innan något förs över. Uppgifterna visas sedan i journalen för den som har rätt att läsa dem, och de ändras aldrig.</p>`
+    : '<p class="tom">Inga journalhandlingar uppfyller beslutet.</p>'}`;
+  ut.querySelector('[data-overfor]')?.addEventListener('click', async (e) => {
+    try {
+      const r = await medKnapp(e.currentTarget, () => api(`/api/arkiv/beslut/${u.beslut.id}/overfor`, { metod: 'POST', data: {} }));
+      notis(`${plural(n, 'journalhandling', 'journalhandlingar')} i ${plural(r.resultat.patienter, 'journal', 'journaler')} är överförda till mellanarkivet.`);
+      visa(main);
     } catch { /* notis visad */ }
   });
 }

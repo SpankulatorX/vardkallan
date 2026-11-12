@@ -3,6 +3,9 @@
 // Runda 9, r5: inloggning med biljett, skyddsbehov, signering, certifikat, e-arkiv, gallring och miljöer (sussa/runda9-r5.js).
 import { medR9r5 } from '../runda9-r5.js';
 const A = 'Arkiv > ';
+// Runda 14, r4.
+const MA = 'Mellanarkiv > ';
+const GK = 'Gränssnitt > Klickbudget > ';
 
 export default medR9r5([
   {
@@ -17,8 +20,28 @@ export default medR9r5([
     expert: 'Arkivarien registrerar beslutet med diarienummer och datum. Systemet fyller i beslutsfattare och lagrum, tar med allt som hör till journalen och bygger och kontrollsummerar paketet själv.',
     anmarkning: 'Ingen överföring till ett verkligt e-arkiv, och paketet är inte prövat mot en leveransöverenskommelse. XML-schemana för METS ligger i mappen schemas, och paketet är prövat med E-ARK:s validator med öppen källkod (commons-ip 2.12.1 mot CSIP 2.1.0) utan fel (docs/earkiv-validering.md).',
   },
-  { id: '5.4.2.2', kategori: 'nationell', egna: [], tester: [], avsedd: 'planerat',
-    anmarkning: 'Åtkomst till mellanarkiv är inte byggd.' },
+  // Runda 14, r4: mellanarkivet med integrerad åtkomst från journalen (mellanarkiv.js).
+  {
+    id: '5.4.2.2', kategori: 'system', egna: ['M12'], avsedd: 'uppfyllt_demo',
+    tester: [
+      `${MA}mellanarkivet har tagit emot ett FGS-paket med äldre uppgifter ur VAS, och mottagningskontrollen är utan fel`,
+      `${MA}journalen visar handlingarna med samma behörighet: egen vårdenhet direkt och andra vårdenheter efter ett aktivt val`,
+      `${MA}yrkesrollen styr vad som visas: inre sekretess för journal och omvårdnad som i journalen`,
+      `${MA}en spärrad vårdenhet syns inte, svaret är detsamma med och utan den dolda handlingen, och med samtycke syns den`,
+      `${MA}utan vårdrelation är en handling som en som inte finns, och det nekade försöket loggas`,
+      `${MA}varje läsning loggas med handlingens id, innehållet är kontrollerat oförändrat, och handlingarna går inte att ändra eller radera`,
+      `${MA}arkivarien registrerar ett beslut, systemet tar fram underlaget och för över äldre handlingar, som sedan visas i journalen som förut`,
+      `${MA}undantag från visning gäller handlingarna i mellanarkivet, och en undantagen anteckning förs inte över`,
+      `${MA}mellanarkivet avvisar ett paket med fel, och då förs ingenting över`,
+      `${MA}tidslinjen och sökningen i journalen tar med handlingarna, märkta Ur mellanarkivet`,
+      `${MA}handlingarna följer journalen vid en sammanslagning och raderas med hela journalen efter ett beslut om förstöring`,
+      `${GK}Läsa en äldre anteckning ur mellanarkivet inom budget`,
+      `${GK}För över äldre journalhandlingar till mellanarkivet inom budget`,
+    ],
+    losning: 'Arkivarien registrerar ett beslut om överföring till mellanarkiv. Systemet tar fram signerade anteckningar som inte har rättats och mätvärden som är äldre än fem år och som inget annat i journalen pekar på, bygger ett FGS-paket per journal som exporten till e-arkivet, och mellanarkivet gör samma mottagningskontroll som e-arkivet innan något förs över. Handlingarna tas bort ur den aktiva journalen först när mellanarkivet har tagit emot dem, i samma transaktion. I journalen står anteckningarna i listan bland de andra, märkta Ur mellanarkivet, mätvärdena och anteckningarna i översiktens tidslinje, och texten är sökbar i journalens sökfält. Allt prövas av behörighetsmotorn på vårdenheten där handlingen skrevs, med inre sekretess, aktivt val, spärrar som de gäller i dag, skyddad identitet och undantag från visning, och varje läsning loggas. Uppgifterna i mellanarkivet ändras aldrig, och varje handling kontrolleras mot sin SHA-256 när den läses.',
+    expert: 'Den som arbetar i journalen behöver inte veta att mellanarkivet finns: systemet hämtar handlingarna dit där de andra finns och märker dem. Arkivarien registrerar bara beslutet, och systemet räknar fram vad som ska föras över och kontrollerar paketet.',
+    anmarkning: 'Mellanarkivet är lokalt i demon och simulerat, och ingen koppling till ett verkligt mellanarkiv är gjord. Regeln är en regel i koden (fem år), och ordinationer, diagnoser och vårdkontakter stannar i den aktiva journalen eftersom läkemedelslistan, basfakta och ekonomin använder dem. FHIR-API:t och läskopian vid avbrott lämnar inte ut handlingar ur mellanarkivet. I demon fördes Gunnar Åkessons äldre uppgifter ur VAS dit vid migreringen.',
+  },
   {
     id: '5.4.2.3', kategori: 'system', egna: ['M12'], avsedd: 'delvis',
     tester: [

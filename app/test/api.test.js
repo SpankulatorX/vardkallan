@@ -455,7 +455,8 @@ describe('API', () => {
     expect([...tider].sort().reverse()).toEqual(tider);
     // Migrerade poster ligger i samma kronologi som ny dokumentation, och vårdtillfällets händelser med dem.
     // Runda 10, r4: och de in- och utfarter som patienten har fått under vårdtillfället (seeden i infarter.js).
-    expect(new Set(o.tidslinje.map(t => t.typ))).toEqual(new Set(['vardkontakt', 'vardtillfalle', 'anteckning', 'ordination', 'remiss', 'infart']));
+    // Runda 14, r4: och de äldre handlingar ur VAS som ligger i mellanarkivet (mellanarkiv.js).
+    expect(new Set(o.tidslinje.map(t => t.typ))).toEqual(new Set(['vardkontakt', 'vardtillfalle', 'anteckning', 'ordination', 'remiss', 'infart', 'mellanarkiv']));
     expect(o.matvarden.find(m => m.typ === 'vikt').varde).toBe(81.6);
     expect(o.lakemedel.every(l => l.aktuell)).toBe(true);
     const h = (await k.get('/api/patient/p01')).data;

@@ -24,10 +24,13 @@ const INLEDNING = `<section class="ruta ruta-info kr-inledning" aria-labelledby=
   <li><strong>Planerat</strong> betyder att funktionen inte är byggd än.</li></ul>
   <p>Nationella tjänster, till exempel Nationella läkemedelslistan och Skatteverket, är simulerade i demon. Krav som bara en leverantör kan uppfylla, som avtal och support, kan en demo inte uppfylla, och anmärkningen vid kravet säger det. Kraven på drift och teknik är ett eget kapitel.</p></section>`;
 
+// Runda 14, r4 (Sussa 11.2.1.7): länken till testprotokollet, som kan skrivas ut och lämnas till en beställare.
+const TESTPROTOKOLL_LANK = '<p class="kr-testprotokoll"><a href="#/testprotokoll">Testprotokoll inför acceptanstest</a>: varje krav med sina testfall, resultat, tid och den byggda versionen, utskrivbart.</p>';
+
 export async function visa(main, _p, q) {
   const vy = ['egna', 'bor'].includes(q.get('vy')) ? q.get('vy') : 'sussa';
   // Runda 8, r5: villkoren för version 1.0 överst, räknade av servern.
-  main.innerHTML = vyRubrik('Kravspårbarhet') + INLEDNING + '<section class="version-ruta" id="kr-version" aria-labelledby="kr-version-rubrik"><h2 id="kr-version-rubrik">Version och villkoren för 1.0</h2><p class="tom">Hämtar villkoren.</p></section>' + `<nav class="flikar" aria-label="Kravregister"><ul>
+  main.innerHTML = vyRubrik('Kravspårbarhet') + INLEDNING + TESTPROTOKOLL_LANK + '<section class="version-ruta" id="kr-version" aria-labelledby="kr-version-rubrik"><h2 id="kr-version-rubrik">Version och villkoren för 1.0</h2><p class="tom">Hämtar villkoren.</p></section>' + `<nav class="flikar" aria-label="Kravregister"><ul>
       <li><a href="#/krav"${vy === 'sussa' ? ' aria-current="page"' : ''}>Sussas kravspecifikation</a></li>
       <li><a href="#/krav?vy=bor"${vy === 'bor' ? ' aria-current="page"' : ''}>Bör-krav och målbild</a></li>
       <li><a href="#/krav?vy=egna"${vy === 'egna' ? ' aria-current="page"' : ''}>Eget ramverk</a></li>

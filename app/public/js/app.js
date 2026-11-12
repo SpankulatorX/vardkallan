@@ -73,6 +73,8 @@ kontrast.init();
 import * as sussatest from './vyer/sussatest.js';
 // Runda 8, r3: avdelningens planerade händelser och en resurs planering.
 import * as avdelning from './vyer/avdelning.js';
+// Runda 14, r4 (Sussa 11.2.1.8): vårdenhetens reservdator för läkemedel.
+import * as reservdator from './vyer/reservdator.js';
 // Runda 9, r2: intensivvårdens översikt och övervakning.
 import * as iva from './vyer/iva.js';
 // Runda 11, r2: operationsavdelningen.
@@ -101,6 +103,8 @@ import { andraFaktorn } from './flerfaktor-ui.js';
 import * as flera from './flera-fonster.js';
 // Runda 13, r2: sidan när demon är full.
 import * as demoFull from './demo-full.js';
+// Runda 14, r4 (Sussa 11.2.1.7): testprotokollet med spårbarhet till kraven.
+import * as testprotokoll from './vyer/testprotokoll.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -329,6 +333,17 @@ const RUTTER_MIN = [
   [/^#\/testa$/, testa],
   [/^#\/om$/, omDemon],
 ];
+// Runda 14, r4 (Sussa 11.2.1.8): reservdatorn för läkemedel, för sjuksköterskor och läkare.
+RUTTER.splice(RUTTER.findIndex(r => String(r[0]) === String(/^#\/administrering$/)) + 1, 0,
+  [/^#\/reservdator$/, reservdator, () => far('las_lakemedel') && pa('ge_lakemedel', 'ordinera')],
+);
+// Runda 14, r4 (Sussa 11.2.1.7): testprotokollet, öppet utan inloggning som kravsidan.
+RUTTER.splice(RUTTER.findIndex(r => String(r[0]) === String(/^#\/krav$/)) + 1, 0,
+  [/^#\/testprotokoll$/, testprotokoll, () => true, true],
+);
+RUTTER_MIN.splice(RUTTER_MIN.findIndex(r => String(r[0]) === String(/^#\/krav$/)) + 1, 0,
+  [/^#\/testprotokoll$/, testprotokoll],
+);
 
 // Enhetsträdet: varje enhet med sin vårdenhet. Inre sekretess och remisser räknas per vårdenhet.
 const enhetMap = new Map();

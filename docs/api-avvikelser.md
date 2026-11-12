@@ -911,3 +911,13 @@ Inget av detta är FHIR. Inga svar till testaren innehåller patientuppgifter ur
 - `GET /api/rivta/hsa/:id` (systemförvaltaren) ger `{ stammer, hsaId, hsa: { namn, titel, dn, pahittad }, skillnader, text }` för personen i personalkatalogen.
 - `POST /api/rivta/engagemangsindex/:id` (systemförvaltaren) skickar patientens engagemang till engagemangsindex och ger `{ antal }`.
 - Producenterna för tjänstekontrakten svarar med SOAP 1.1 enligt RIVTA Basic Profile 2.1 genom en egen transport med ömsesidig TLS (`src/rivta/tls.js`), inte genom serverns HTTP. Se docs/rivta.md.
+
+## Mellanarkivet, reservdatorn för läkemedel och testprotokollet (runda 14, r4)
+
+- `GET /api/arkiv/typer` har slaget `mellanarkiv` (Överföring till mellanarkiv). `POST /api/arkiv/beslut { typ: 'mellanarkiv', diarienummer, beslutsdatum? }` registrerar beslutet med `omfattning: { urval: 'mellanarkiv', ar, fore }`. I tabellen sparas beslutet som en leverans, men API:t ger `typ: 'mellanarkiv'`.
+- `GET /api/arkiv/beslut/:id/underlag` för en överföring ger `{ beslut, patienter: [{ id, namn, personnummer, skyddad, anteckningar, matvarden, period }], delar: [], mottagare, regel }`, utan innehåll.
+- `POST /api/arkiv/beslut/:id/overfor` (arkivarien) för över och ger beslutet med `resultat: { patienter, anteckningar, matvarden, paket }`. 409 när beslutet redan är verkställt, 422 när mellanarkivet avvisar ett paket, och 400 från `POST /api/arkiv/beslut/:id/verkstall` för ett sådant beslut.
+- `GET /api/patient/:id/mellanarkiv` ger `{ handlingar: [{ id, slag, typ, datum, enhet, kategori, forfattare, sammanfattning, kalla, kallaEtikett }], period, etikett, dolda }` med det som den inloggade får se. `GET /api/mellanarkiv/:id` ger en handling med `sokord` för en anteckning, `varde` för ett mätvärde och `mellanarkiv: { mottagare, paket, mottaget, kalla, oforandrad }`. 404 för en handling som inte finns, utan vårdrelation och på en spärrad vårdenhet, och 403 med `kraver_val` för en annan vårdenhet utan aktivt val.
+- Tidslinjen i `GET /api/patient/:id/oversikt` har händelser med `typ: 'mellanarkiv'` och `ref: { typ: 'mellanarkiv', id }`, och `GET /api/patient/:id/sok` har träffar med `typ: 'mellanarkiv'` och `ref: { flik: 'journal', sub: 'ma-<id>' }`.
+- `GET /api/reservlista` (sjuksköterskor och läkare) ger `{ vardenhet, skapad, fornyas: { intervallMs, maxAlderMs }, patienter: [{ id, namn, personnummer, skyddad, plats, tid, ordinationer, doser, senaste, ejInskriven }], simulerat, text }` för de inskrivna patienterna på den egna vårdenheten. 403 för andra roller.
+- `GET /api/krav/testprotokoll` ger testprotokollet utan inloggning och utan att en sandlåda skapas.

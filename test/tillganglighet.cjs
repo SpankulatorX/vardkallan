@@ -434,6 +434,8 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
   const OFFENTLIGA = ['#/', '#/krav', '#/moduler', '#/drift', '#/tillganglighet'];
   // Runda 13, r1: startsidan för testare, sidan om demon och testledarens vy.
   OFFENTLIGA.push('#/testa', '#/om', '#/testledare');
+  // Runda 14, r4: testprotokollet inför acceptanstest (Sussa 11.2.1.7).
+  OFFENTLIGA.push('#/testprotokoll');
   const JOURNAL_ROLLER = ['lak-kard', 'ssk-kard', 'usk-kard', 'adm-kard', 'far-kard'];
   const vyLista = []; // [roll, hash]
 
@@ -502,6 +504,8 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     }
     // Runda 9, r2: intensivvårdens övervakning av en patient nås från översikten, inte från menyn.
     if (['lak-kard', 'ssk-kard'].includes(roll)) { await gaTill(page, '#/iva/p22'); vyLista.push([roll, '#/iva/p22']); await granskaHar(`${roll} #/iva/p22`); }
+    // Runda 14, r4: vårdenhetens reservdator för läkemedel nås från Läkemedel att ge, inte från menyn.
+    if (['lak-kard', 'ssk-kard'].includes(roll)) { await gaTill(page, '#/reservdator'); vyLista.push([roll, '#/reservdator']); await granskaHar(`${roll} #/reservdator`); }
     // Runda 11, r2: operationsavdelningens flikar och operationen i journalen för en planerad och en genomförd operation.
     if (roll === 'opk-kkoga') {
       for (const extra of ['#/operation/vantelista', '#/operation/uppvakning', '#/operation/block', '#/operation/forrad', '#/patient/p71/operation', '#/patient/p07/operation']) {

@@ -349,6 +349,36 @@ MODULER.push(m('testinbjudan', 'forvaltning', 'Testinbjudan och synpunkter',
   d.beskrivning += ' Sandlådor som inte används vilar på disk och läses in igen vid nästa anrop, så att ingen sandlåda tas bort för att ge plats åt en ny. Systemet räknar själv ut hur många som ryms i minnet ur minnesgränsen, och när demon är full får en ny besökare en sida som säger när det är lönt att försöka igen.';
   d.kod.push('src/sandlada-vila.js', 'public/js/demo-full.js');
 }
+// Runda 14, r4: testprotokollet med spårbarhet till kraven (Sussa 11.2.1.7) hör till kravspårbarheten.
+{
+  const k = MODULER.find(x => x.id === 'krav');
+  k.beskrivning += ' Testprotokollet visar för varje krav testfallen, resultatet, när testerna kördes och vilken byggd version det gäller, och kan skrivas ut inför ett acceptanstest.';
+  k.avsnitt.push('11.2.1.7');
+  k.rutter.push('#/testprotokoll');
+  k.vyer.push('testprotokoll.js');
+  k.kod.push('src/testprotokoll.js', 'scripts/testprotokoll-md.js');
+  k.api.push('/api/krav/testprotokoll');
+  // Dokumentationen av gränssnitten för informationsutbyte (Sussa 3.6.1.3) hör till det öppna API:t.
+  const o = MODULER.find(x => x.id === 'oppetapi');
+  o.beskrivning += ' Alla gränssnitt för informationsutbyte beskrivs samlat i docs/gransnitt.md, med processen för hur en beställare själv utvecklar och förvaltar dem.';
+  o.avsnitt.push('3.6.1.3');
+  o.kod.push('src/gransnitt-utbyte.js');
+}
+// Runda 14, r4: mellanarkivet (Sussa 5.4.2.2) hör till e-arkivet, och reservdatorn för läkemedel (Sussa 11.2.1.8) till
+// läsläget vid avbrott.
+{
+  const a = MODULER.find(x => x.id === 'arkiv');
+  a.beskrivning += ' Äldre journalhandlingar förs över till ett mellanarkiv efter ett beslut, och visas sedan i journalen, tidslinjen och sökningen som förut, med samma behörighet och loggning.';
+  a.kod.push('src/mellanarkiv.js', 'src/mellanarkiv-rutter.js');
+  a.api.push('/api/patient/:id/mellanarkiv', '/api/mellanarkiv/:id');
+  a.simulerat = 'E-arkivet och mellanarkivet är simulerade.';
+  const r = MODULER.find(x => x.id === 'avbrott');
+  r.beskrivning += ' En dator på vårdenheten kan vara reservdator för läkemedel: den hämtar själv ordinationerna och dagens doser för alla inskrivna patienter var fjärde minut och visar och skriver ut dem när kärnsystemet inte svarar.';
+  r.rutter.push('#/reservdator');
+  r.vyer.push('reservdator.js');
+  r.kod.push('src/reservlakemedel.js');
+  r.api.push('/api/reservlista');
+}
 
 // Runda 14, r3: intyg genom intygsapplikationen, e-remiss till och från vårdgivare utanför Vårdkällan och del r3:s
 // tjänstekontrakt på den gemensamma grunden för RIVTA.

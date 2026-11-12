@@ -268,6 +268,20 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await gaTill(page, '#/drift'); await forvanta(page, 'main h1', 'Svarstider');
       await gaTill(page, '#/arbetslista'); await page.waitForSelector('.roll');
     });
+    // Runda 14, r4 (Sussa 11.2.1.7): testprotokollet nås från kravsidan utan inloggning och säger att inget
+    // acceptanstest är gjort.
+    await s('testprotokollet med spårbarhet till kraven går att läsa och skriva ut utan inloggning', async () => {
+      await gaTill(page, '#/krav');
+      await page.click('.kr-testprotokoll a');
+      await vantaVy(page);
+      await forvanta(page, 'main h1', 'Testprotokoll');
+      await forvanta(page, '#tp-acceptanstest', 'Inget acceptanstest med en beställare är gjort');
+      await forvanta(page, '#tp-version', 'Version');
+      await forvanta(page, '#tp-sussa .tpr-krav', '11.2.1.7');
+      await forvanta(page, '#tp-egna .tpr-krav', 'K1');
+      await forvanta(page, '#tp-skriv-ut', 'Skriv ut protokollet');
+      await gaTill(page, '#/arbetslista'); await page.waitForSelector('.roll');
+    });
     await s('tangentbord: första tabbstoppet är länken till innehållet', async () => {
       await page.goto(`${BAS}/`); await page.waitForSelector('.roll');
       await page.keyboard.press('Tab');
@@ -1075,6 +1089,30 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
     });
     await allaVyer(page, 'Lena Ström', MENY.psykiatri);
 
+    // Runda 14, r4 (Sussa 11.2.1.8 och 5.4.2.2): vårdenhetens reservdator för läkemedel, och äldre anteckningar ur
+    // mellanarkivet bland de andra i journalen.
+    await s('Johan Ek gör en dator till reservdator för läkemedel, och Sara Lindqvist läser en anteckning ur mellanarkivet i journalen', async () => {
+      await loggaIn(page, 'ssk-kard');
+      await gaTill(page, '#/administrering');
+      await forvanta(page, '[data-reservdator-lank]', 'Reservdator för läkemedel');
+      await gaTill(page, '#/reservdator');
+      await forvanta(page, 'main h1', 'Reservdator för läkemedel');
+      await forvanta(page, '#reservdator [data-reserv-alder="aktuell"]', 'förnyas av sig själv');
+      await forvanta(page, '#reservdator .reserv-patient', 'Avd 72, sal 4');
+      await forvanta(page, '#reservdator [data-skriv-ut]', 'Skriv ut listan');
+      await bild(page, '99-reservdator', true);
+      await page.waitForLoadState('networkidle');
+      await loggaIn(page, 'lak-kard');
+      await gaTill(page, '#/patient/p01/journal');
+      await forvanta(page, '#j-poster', 'Ur mellanarkivet');
+      await page.click('#j-poster li a:has-text("Ur mellanarkivet")');
+      await forvanta(page, '[data-mellanarkiv-kontroll]', 'Kontrollsumman visar');
+      await forvanta(page, '[data-mellanarkiv] h2', 'Mottagningsanteckning');
+      await bild(page, '99-mellanarkiv-journal', true);
+      await gaTill(page, '#/patient/p01');
+      await forvanta(page, '.tidslinje', 'Ur mellanarkivet');
+      await page.waitForLoadState('networkidle');
+    });
     // Runda 11, r7: intensivvården i version 1.1. Johan Ek kopplar monitorn och ser realtiden, registrerar andningsstöd och
     // vårdtyngd, och fliken Intensivvård finns i journalen.
     await s('Johan Ek ser realtiden från monitorn, registrerar andningsstöd och NEMS och läser överrapporteringen', async () => {
@@ -2629,7 +2667,9 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
         // Runda 11, r7: vårdtyngden enligt NEMS och import av tillväxtdata.
         'iva-nems', 'tillvaxt-import',
         // Runda 13, r1: synpunkten och det första uppdraget i testinbjudan.
-        'lamna-synpunkt', 'valj-yrkesroll']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'lamna-synpunkt', 'valj-yrkesroll',
+        // Runda 14, r4: mellanarkivet och reservdatorn för läkemedel.
+        'las-mellanarkiv', 'overfor-mellanarkiv', 'oppna-reservdator']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');
