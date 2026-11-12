@@ -11,13 +11,13 @@ const tid = (iso) => (iso ? tidpunkt(iso) : 'Inte kört');
 
 function kravHtml(k, register) {
   const hid = `tp-${register}-${k.id.replace(/[^\w]/g, '-')}`;
-  return `<section class="tp-krav tp-${esc(k.resultat)}" aria-labelledby="${hid}">
+  return `<section class="tpr-krav tpr-${esc(k.resultat)}" aria-labelledby="${hid}">
     <h3 id="${hid}"><span class="krav-id">${esc(k.id)}</span> ${esc(k.rubrik)}</h3>
-    <p class="tp-krav-status">${k.resultat === 'godkant' ? ikon.bock : ikon.varning}<span>${esc(k.resultatText)}. Status i registret: ${esc(KRAVSTATUS[k.kravstatus] ?? k.kravstatus)}.</span></p>
-    <table class="tabell tp-tabell"><caption class="sr">Testfall för ${esc(k.id)}</caption>
+    <p class="tpr-krav-status">${k.resultat === 'godkant' ? ikon.bock : ikon.varning}<span>${esc(k.resultatText)}. Status i registret: ${esc(KRAVSTATUS[k.kravstatus] ?? k.kravstatus)}.</span></p>
+    <div class="tabellrulle"><table class="tabell tpr-tabell"><caption class="sr">Testfall för ${esc(k.id)}</caption>
       <thead><tr><th scope="col">Testfall</th><th scope="col">Resultat</th><th scope="col">Körning och tid</th></tr></thead>
-      <tbody>${k.testfall.map(t => `<tr><td class="tp-namn">${esc(t.namn)}</td><td><span class="tp-resultat tp-${KLASS[t.status] ?? 'hoppad'}">${esc(t.statusText)}</span></td><td>${esc(t.kalla ?? 'Inte kört')}<br><span class="dampad">${esc(tid(t.tid))}</span></td></tr>`).join('')}</tbody>
-    </table>
+      <tbody>${k.testfall.map(t => `<tr><td class="tpr-namn">${esc(t.namn)}</td><td><span class="tpr-resultat tpr-${KLASS[t.status] ?? 'hoppad'}">${esc(t.statusText)}</span></td><td>${esc(t.kalla ?? 'Inte kört')}<br><span class="dampad">${esc(tid(t.tid))}</span></td></tr>`).join('')}</tbody>
+    </table></div>
   </section>`;
 }
 
@@ -38,10 +38,10 @@ export async function visa(main) {
     </dl>
     <p class="dampad liten">Koden anges som de första tecknen av en sha256 över serverns och gränssnittets källkod (${esc(v.kodhash ?? 'okänd')}). Resultaten gäller den kod som körs här.</p>
     <section aria-labelledby="tp-korningar"><h2 id="tp-korningar">Körningar</h2>
-      <table class="tabell tp-tabell"><caption class="sr">Körningarna som resultaten kommer från</caption>
+      <div class="tabellrulle"><table class="tabell tpr-tabell"><caption class="sr">Körningarna som resultaten kommer från</caption>
         <thead><tr><th scope="col">Körning</th><th scope="col">Tid</th><th scope="col">Testfall</th><th scope="col">Godkända</th></tr></thead>
         <tbody>${p.korningar.map(k => `<tr><td>${esc(k.kalla)}</td><td>${esc(tid(k.tid))}</td><td>${k.antal}</td><td>${k.godkanda}</td></tr>`).join('') || '<tr><td colspan="4">Inga testresultat finns i bygget.</td></tr>'}</tbody>
-      </table>
+      </table></div>
     </section>
     <section id="tp-egna" aria-labelledby="tp-egna-rubrik"><h2 id="tp-egna-rubrik">Eget ramverk</h2>${p.egna.map(k => kravHtml(k, 'egna')).join('')}</section>
     <section id="tp-sussa" aria-labelledby="tp-sussa-rubrik"><h2 id="tp-sussa-rubrik">Sussas kravspecifikation</h2>${p.sussa.map(k => kravHtml(k, 'sussa')).join('')}</section>

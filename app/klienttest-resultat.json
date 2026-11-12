@@ -1,9 +1,133 @@
 {
-  "tid": "2026-11-12T16:29:16.361Z",
+  "tid": "2026-11-12T17:45:06.602Z",
   "bas": "http://127.0.0.1:18144",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "8946d625fc4fd8e2c5819b7f401f8a57e5c88852929bb82c18362cc721c0ae4c",
+  "gransnittHash": "1ab39d64a1ae2bee65755a71eda908fcef3787938cf447e3bb92f0498483bb79",
   "tester": [
+    {
+      "namn": "Gränssnitt > Avbrott > läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > appen startar utan nät från service workern och visar läsläget",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > skrivande är avstängt i läsläget med en förklaring",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > åtkomster i läsläget når åtkomstloggen när servern svarar igen",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > simulerat avbrott ger läsläge medan servern svarar andra besökare",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > läskopian rensas vid utloggning",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > utloggning under avbrott loggar ut sessionen på servern, även om fliken stängs",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > läskopian används inte efter 8 timmar",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > läskopian förnyas av sig själv medan personen är inloggad",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > läsläget visar hur gammal läkemedelsinformationen är per patient och varnar efter 10 minuter",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > reservkoden väljs när webbläsaren är uppkopplad och bara den inslagna nyckeln sparas",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > efter omstart av webbläsaren utan nät visas vilka som har en reservkopia på datorn och när den går ut",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > fel reservkod ger väntetid och rätt reservkod öppnar läsläget",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > åtkomster med reservkod loggas krypterat och överlever att fliken stängs",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > när servern svarar igen mitt i läsläget med reservkod når åtkomsterna åtkomstloggen",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > utloggning raderar reservkopian, den inslagna nyckeln och loggen efter att loggen förts över",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > utloggning i en flik avslutar läsläget i webbläsarens andra flikar",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > en navigering direkt till en fil ersätter inte appen i service workerns cache",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > fem fel reservkoder raderar reservkopian och flikar kan inte pröva samtidigt",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > två personer på samma dator har var sin reservkopia som bara öppnas med egen kod",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > simulerat avbrott visar reservinloggningen när fliken stängs i demon",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > en dos och ett mätvärde som registreras under avbrottet märks som inte sparade och sparas när förbindelsen är tillbaka",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > en dos som någon annan gav under avbrottet blir en konflikt som sjuksköterskan avgör, och dosen sparas inte två gånger",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > flerfaktor: en passkey i Chromes virtuella autentiserare slår på flerfaktor, bekräftar nästa inloggning, och läsläget vid avbrott fungerar efter den andra faktorn",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Avbrott > flerfaktor: invånaren slår på en app för engångskoder i Min journal och loggar sedan in med en kod från appen",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Användartest > testläget räknar klick, fältbyten och tangenter som klickbudgetskriptet för samma flöden",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Användartest > enkäten ger SUS-poäng enligt standardformeln",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Användartest > resultatfilen laddas ner med datum, version, deltagarkod, uppgifter och SUS-poäng",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Användartest > hoppa över och hjälp registreras per uppgift",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Användartest > inget anrop skickar testresultat till servern",
+      "status": "inaktuell"
+    },
+    {
+      "namn": "Gränssnitt > Användartest > testläget rensas när testet avslutas",
+      "status": "inaktuell"
+    },
     {
       "namn": "Gränssnitt > Tillgänglighet > röstinmatningen frågar i en dialog innan ljudet går till webbläsarens tjänst när igenkänning på enheten saknas, valet sparas per användare, och med igenkänning på enheten kommer ingen fråga",
       "status": "inaktuell"
@@ -54,7 +178,8 @@
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > vid 320 px bredd behövs ingen rullning i sidled",
-      "status": "inaktuell"
+      "status": "inaktuell",
+      "fel": "1 fynd, till exempel 320 px ute #/testprotokoll: sidan är 521 px bred vid 320 px ()"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > allt som går att klicka på går att nå med tangentbordet",
@@ -90,7 +215,8 @@
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > alla vyer fungerar på mobil, platta och stor skärm utan rullning i sidled och utan för långa textrader",
-      "status": "inaktuell"
+      "status": "inaktuell",
+      "fel": "1 fynd, till exempel mobil 360 px ute #/testprotokoll: sidan är 521 px bred vid 360 px ()"
     },
     {
       "namn": "Gränssnitt > Tillgänglighet > fem minuter före utloggningen läser skärmläsare upp en varning, Fortsätt arbeta förlänger inloggningen och osparad text finns kvar som utkast efter en ny inloggning",
@@ -118,226 +244,102 @@
     },
     {
       "namn": "Gränssnitt > Mobil > Öppna patient från arbetslistan går i 360 px",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > Läsa senaste anteckning går i 360 px",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > Registrera blodtryck går i 360 px",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > Kvittera remissvar går i 360 px",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > Ge en dos går i 360 px",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > Ge en dos med delegering går i 360 px",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > Patienten bokar om sin tid i Min journal går i 360 px",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > Söka i journalen och öppna träffen går i 360 px",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > Registrera en NEWS2-kontroll går i 360 px",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > Registrera en dos i efterhand går i 360 px",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > Överblicka dagens händelser på avdelningen går i 360 px",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > Registrera längd, vikt, blodtryck och puls går i 360 px",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > Registrera provtagning går i 360 px",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > Diktera och signera en daganteckning går i 360 px",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > Dokumentera ett sår med kroppsbilden går i 360 px",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > varje roll har sin startsida och menyn i 360 px utan sidledsrullning och med knappar på minst 40 px",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > patienten läser sin journal, sina tider och vem som läst journalen i Min journal i 360 px",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > vid sängen identifierar armbandet patienten i Läkemedel att ge, och bara patientens doser visas",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > förbindelsen bryts och kommer tillbaka från en annan adress utan att inloggningen tappas",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > varje vy i menyn för varje roll och varje flik i journalen går att öppna i 360 px utan sidledsrullning och med knappar på minst 40 px",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Mobil > i hemsjukvården utan uppkoppling registreras ett mätvärde i 360 px, märks som inte sparat och sparas när förbindelsen är tillbaka",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Öppet API > ändringsloggen visar versionen, och läkaren skickar ett ärende om en saknad informationsmängd",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Öppet API > systemförvaltaren registrerar en tillämpning, ser vad den får och kan återkalla den",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Öppet API > systemförvaltaren registrerar ett systemkonto för vårddatalagret, ser vad det får och kan återkalla det",
-      "status": "inaktuell"
+      "status": "grön"
     },
     {
       "namn": "Gränssnitt > Uppmärksamhet > läkaren registrerar en överkänslighet med ämnet och reaktionen, och den syns i patienthuvudet med graden",
-      "status": "inaktuell"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > appen startar utan nät från service workern och visar läsläget",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > skrivande är avstängt i läsläget med en förklaring",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > åtkomster i läsläget når åtkomstloggen när servern svarar igen",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > simulerat avbrott ger läsläge medan servern svarar andra besökare",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > läskopian rensas vid utloggning",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > utloggning under avbrott loggar ut sessionen på servern, även om fliken stängs",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > läskopian används inte efter 8 timmar",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > läskopian förnyas av sig själv medan personen är inloggad",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > läsläget visar hur gammal läkemedelsinformationen är per patient och varnar efter 10 minuter",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > reservkoden väljs när webbläsaren är uppkopplad och bara den inslagna nyckeln sparas",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > efter omstart av webbläsaren utan nät visas vilka som har en reservkopia på datorn och när den går ut",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > fel reservkod ger väntetid och rätt reservkod öppnar läsläget",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > åtkomster med reservkod loggas krypterat och överlever att fliken stängs",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > när servern svarar igen mitt i läsläget med reservkod når åtkomsterna åtkomstloggen",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > utloggning raderar reservkopian, den inslagna nyckeln och loggen efter att loggen förts över",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > utloggning i en flik avslutar läsläget i webbläsarens andra flikar",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > en navigering direkt till en fil ersätter inte appen i service workerns cache",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > fem fel reservkoder raderar reservkopian och flikar kan inte pröva samtidigt",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > två personer på samma dator har var sin reservkopia som bara öppnas med egen kod",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > simulerat avbrott visar reservinloggningen när fliken stängs i demon",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > en dos och ett mätvärde som registreras under avbrottet märks som inte sparade och sparas när förbindelsen är tillbaka",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > en dos som någon annan gav under avbrottet blir en konflikt som sjuksköterskan avgör, och dosen sparas inte två gånger",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > flerfaktor: en passkey i Chromes virtuella autentiserare slår på flerfaktor, bekräftar nästa inloggning, och läsläget vid avbrott fungerar efter den andra faktorn",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Avbrott > flerfaktor: invånaren slår på en app för engångskoder i Min journal och loggar sedan in med en kod från appen",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Användartest > testläget räknar klick, fältbyten och tangenter som klickbudgetskriptet för samma flöden",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Användartest > enkäten ger SUS-poäng enligt standardformeln",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Användartest > resultatfilen laddas ner med datum, version, deltagarkod, uppgifter och SUS-poäng",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Användartest > hoppa över och hjälp registreras per uppgift",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Användartest > inget anrop skickar testresultat till servern",
-      "status": "grön"
-    },
-    {
-      "namn": "Gränssnitt > Användartest > testläget rensas när testet avslutas",
       "status": "grön"
     }
   ]
