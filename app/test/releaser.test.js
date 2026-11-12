@@ -11,9 +11,6 @@ import * as lagring from '../src/lagring.js';
 import { personal, testserver, klient, sandlada } from './hjalp.js';
 
 const NU = new Date('2026-11-11T13:00:00Z');
-// Runda 13, r2: återgången prövas med version 1.2.0, den senaste versionen med migreringar, så att testerna inte beror på
-// vilken version programmet har (1.3.0 har inga migreringar, och då finns inget att backa).
-const V12 = '1.2.0';
 const schema = (db) => db.query("SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND name NOT IN ('schema_migreringar', 'parkerade_data') ORDER BY type, name").all();
 const GRON = { tid: '2026-11-11T12:00:00Z', antal: 10, godkanda: 10, misslyckade: 0 };
 const ROD = { tid: '2026-11-11T12:00:00Z', antal: 10, godkanda: 8, misslyckade: 2 };
@@ -23,6 +20,9 @@ const NYARE = [...releaser.MIGRERINGAR,
   { id: 90, version: '9.0.0', namn: 'Prov: ny tabell', upp: ['CREATE TABLE prov_ny (id INTEGER PRIMARY KEY, text TEXT)'], ned: ['DROP TABLE prov_ny'], tabeller: ['prov_ny'] },
   { id: 91, version: '9.0.0', namn: 'Prov: ny kolumn', upp: ['ALTER TABLE enheter ADD COLUMN prov_farg TEXT'], ned: ['ALTER TABLE enheter DROP COLUMN prov_farg'], kolumner: [{ tabell: 'enheter', kolumn: 'prov_farg' }] },
 ];
+
+// Runda 13: schemaversionen för en version är den högsta migreringen som hör till versionen eller en äldre.
+const schemaFor = (v) => Math.max(0, ...releaser.MIGRERINGAR.filter(m => releaser.jamforVersion(m.version, v) <= 0).map(m => m.id));
 
 describe('Releaser', () => {
   test('varje migrering har en återställning, och upp och sedan ned ger samma schema som före', () => {
@@ -77,17 +77,18 @@ describe('Releaser', () => {
   test('en sparad sandlåda som läses in får sitt schema kontrollerat, och versionen i drift gäller efter en återgång', () => {
     const db = nySessionsDb();
     const sysf = personal(db, 'sysf');
-    releaser.aterga(db, sysf, { program: V12 }, NU);
-    expect(releaser.driftversion(db, V12)).toBe(releaser.forraVersion(V12));
+    releaser.aterga(db, sysf, {}, NU);
+    expect(releaser.driftversion(db)).toBe(releaser.forraVersion(releaser.VERSION));
     const data = db.serialize();
     db.close();
     const igen = Database.deserialize(data);
     try {
-      const k = releaser.kontrolleraVidStart(igen, releaser.MIGRERINGAR, V12);
+      const k = releaser.kontrolleraVidStart(igen);
       // Servern startar om, men uppgraderingen tillämpas inte förrän den är godkänd.
       expect(k.tillampade).toEqual([]);
       expect(k.stammer).toBe(true);
-      expect(k.schemaversion).toBe(0);
+      // Runda 13: schemat står på den förra versionens migreringar, oberoende av vilken version som körs.
+      expect(k.schemaversion).toBe(schemaFor(releaser.forraVersion(releaser.VERSION)));
     } finally { igen.close(); }
   });
 
@@ -134,23 +135,25 @@ describe('Releaser', () => {
       const sysf = personal(db, 'sysf');
       const sysf2 = personal(db, 'sysf-2');
       const fore = lagring.sakerhetskopiera(db);
-      const r = releaser.aterga(db, sysf, { program: V12 }, NU);
-      expect(r.backade.length).toBe(releaser.MIGRERINGAR.filter(m => m.version === V12).length);
-      expect(db.query("SELECT 1 FROM sqlite_master WHERE name = 'lagringsklasser'").get()).toBeNull();
+      const r = releaser.aterga(db, sysf, {}, NU);
+      expect(r.backade.length).toBe(releaser.MIGRERINGAR.filter(m => m.version === releaser.VERSION).length);
+      // Lagringsklasserna kom i 1.2.0 och backas bara när den förra versionen är äldre än så.
+      const lagringsklasserBackas = releaser.jamforVersion(releaser.forraVersion(releaser.VERSION), '1.2.0') < 0;
+      expect(Boolean(db.query("SELECT 1 FROM sqlite_master WHERE name = 'lagringsklasser'").get())).toBe(!lagringsklasserBackas);
       // En återgång när den förra versionen redan är i drift går inte.
-      expect(() => releaser.aterga(db, sysf, { program: V12 }, NU)).toThrow(/väntar redan/);
-      const g1 = releaser.godkann(db, sysf, r.vantar.id, { testresultat: GRON, program: V12 }, NU);
+      expect(() => releaser.aterga(db, sysf, {}, NU)).toThrow(/väntar redan/);
+      const g1 = releaser.godkann(db, sysf, r.vantar.id, { testresultat: GRON }, NU);
       expect(g1.genomford).toBe(false);
-      expect(releaser.driftversion(db, V12)).toBe(releaser.forraVersion(V12));
+      expect(releaser.driftversion(db)).toBe(releaser.forraVersion(releaser.VERSION));
       // Samma person en gång till: fyra ögon.
       let fel = null;
-      try { releaser.godkann(db, sysf, r.vantar.id, { testresultat: GRON, program: V12 }, NU); } catch (e) { fel = e; }
+      try { releaser.godkann(db, sysf, r.vantar.id, { testresultat: GRON }, NU); } catch (e) { fel = e; }
       expect(fel?.status).toBe(403);
-      const g2 = releaser.godkann(db, sysf2, r.vantar.id, { testresultat: GRON, program: V12 }, NU);
+      const g2 = releaser.godkann(db, sysf2, r.vantar.id, { testresultat: GRON }, NU);
       expect(g2.genomford).toBe(true);
       expect(g2.uppgradering.godkand1Av).toBe(sysf.namn);
       expect(g2.uppgradering.godkand2Av).toBe(sysf2.namn);
-      expect(releaser.driftversion(db, V12)).toBe(V12);
+      expect(releaser.driftversion(db)).toBe(releaser.VERSION);
       expect(g2.schema.stammer).toBe(true);
       // Lagringsklasserna, som togs bort vid återgången, är tillbaka med sitt innehåll.
       const klasser = db.query('SELECT id FROM lagringsklasser ORDER BY id').all().map(x => x.id);
@@ -162,7 +165,7 @@ describe('Releaser', () => {
         expect(tab(db)).toEqual(tab(original));
       } finally { original.close(); }
       // Händelserna är loggade i säkerhetsloggen.
-      expect(db.query("SELECT count(*) AS n FROM sakerhetslogg WHERE beskrivning LIKE '%version ' || ? || '%'").get(V12).n).toBeGreaterThanOrEqual(3);
+      expect(db.query("SELECT count(*) AS n FROM sakerhetslogg WHERE beskrivning LIKE '%version ' || ? || '%'").get(releaser.VERSION).n).toBeGreaterThanOrEqual(3);
     } finally { db.close(); }
   });
 
