@@ -34,7 +34,9 @@ export const MALLAR = [
   { id: 'halsodeklaration', namn: 'Hälsodeklaration inför besöket', dagar: 14 },
   { id: 'symtomskattning', namn: 'Skattning av symtom inför återbesöket', dagar: 7 },
 ];
-export const REGISTER = [{ id: 'demo-kvalitetsregister', namn: 'Kvalitetsregister för hjärtsjukvård (påhittat, demo)' }];
+// Registret är samma som i rapporteringen till kvalitetsregistret (myndighetsrapport.js), så att patientens invändning
+// gäller båda vägarna.
+export const REGISTER = [{ id: 'hjartsvikt', namn: 'Demoregister för hjärtsvikt (simulerat)' }];
 
 export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS etjanst_formular (
@@ -160,7 +162,9 @@ export async function anmalRegistrering(atk, p, body = {}) {
   atk.krav('kvalitetsregister');
   const reg = REGISTER.find(r => r.id === body.register);
   if (!reg) throw new Fel(400, 'Välj ett register.', 'ogiltig', { falt: ['register'] });
-  if (p.skyddad) throw new Fel(400, 'Uppgifter om en patient med skyddade personuppgifter lämnas inte till kvalitetsregister i demon.', 'ogiltig');
+  // Samma prövning som alla utgående registreringar: invändning mot registrering och skyddade personuppgifter.
+  const pr = r3.provaUtlamning(atk.db, p, { slag: 'kvalitetsregister', register: reg.id });
+  if (!pr.tillaten) { atk.logga('kvalitetsregister', atk.grund(), `nkrr:${reg.id}:ej_skickad`); throw new Fel(400, pr.skal, 'ogiltig'); }
   const nr = kravPnr(p, 'kvalitetsregistret');
   const db = atk.db;
   const enhet = ve(db, atk.personal.enhet_id);

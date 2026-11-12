@@ -50,10 +50,25 @@ describe('E-tjänster med tjänstekontrakt i RIVTA', () => {
 
   test('NKRR > vårdenheten meddelar kvalitetsregistret med ProcessRegistrationNotification, men aldrig för skyddade personuppgifter', async () => {
     const db = nyDb();
-    const r = await et.anmalRegistrering(atk(db, 'lak-vc', 'p11', {}, 'kvalitetsregister'), pat(db, 'p11'), { register: 'demo-kvalitetsregister' });
+    const r = await et.anmalRegistrering(atk(db, 'lak-vc', 'p11', {}, 'kvalitetsregister'), pat(db, 'p11'), { register: et.REGISTER[0].id });
     expect(r.referens).toMatch(/^SIM-NKRR-/);
     expect(logg(db, 'ProcessRegistrationNotification')).toEqual(['ok']);
-    expect((await fel(() => et.anmalRegistrering(atk(db, 'lak-vc', 'p03', {}, 'kvalitetsregister'), pat(db, 'p03'), { register: 'demo-kvalitetsregister' }))).status).toBe(400);
+    expect((await fel(() => et.anmalRegistrering(atk(db, 'lak-vc', 'p03', {}, 'kvalitetsregister'), pat(db, 'p03'), { register: et.REGISTER[0].id }))).status).toBe(400);
+    expect(logg(db, 'ProcessRegistrationNotification')).toEqual(['ok']);
+  });
+
+  test('NKRR > en patient som har motsatt sig registrering i kvalitetsregistret anmäls inte, och efter att invändningen är återkallad anmäls hen', async () => {
+    const db = nyDb();
+    const mr = await import('../src/myndighetsrapport.js');
+    const a = () => atk(db, 'lak-vc', 'p11', {}, 'kvalitetsregister');
+    mr.motsatt(db, { personalId: 'lak-vc' }, 'p11');
+    const f = await fel(() => et.anmalRegistrering(a(), pat(db, 'p11'), { register: et.REGISTER[0].id }));
+    expect(f.status).toBe(400);
+    expect(f.message).toContain('motsatt sig');
+    expect(logg(db, 'ProcessRegistrationNotification')).toEqual([]);
+    expect(db.query('SELECT count(*) AS n FROM etjanst_registreringar').get().n).toBe(0);
+    mr.aterkalla(db, { personalId: 'lak-vc' }, 'p11');
+    expect((await et.anmalRegistrering(a(), pat(db, 'p11'), { register: et.REGISTER[0].id })).referens).toMatch(/^SIM-NKRR-/);
     expect(logg(db, 'ProcessRegistrationNotification')).toEqual(['ok']);
   });
 });

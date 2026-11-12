@@ -57,6 +57,31 @@ export async function anropa(db, d, { logiskAdress, begaran, transport }) {
   return anropaRivta(d, { logiskAdress, begaran, transport, db });
 }
 
+// Prövningen innan uppgifter om en patient lämnas till ett register eller en uppföljningstjänst utanför Vårdkällan.
+// Alla flöden i del r3 som registrerar eller rapporterar anropar den, så att den aldrig är svagare i ett flöde än i ett
+// annat. Ger { tillaten, skal }, där skal förklarar på vanlig svenska varför inget skickas.
+//   kvalitetsregister   patienten har inte motsatt sig registreringen i registret, eller har återkallat invändningen
+//                       (patientdatalagen 7 kap. 2 §), och har inte skyddade personuppgifter.
+//   uppfoljning         uppgifterna lämnas inte för en patient med skyddade personuppgifter (Infektionsverktyget).
+export function provaUtlamning(db, patient, { slag, register = null } = {}) {
+  if (!patient) return { tillaten: false, skal: 'Patienten finns inte.' };
+  if (patient.skyddad) return { tillaten: false, skal: 'Uppgifter om en patient med skyddade personuppgifter lämnas inte ut i demon.' };
+  if (slag === 'kvalitetsregister') {
+    let r = null;
+    try {
+      // Tabellen för invändningarna finns i rapporteringen till kvalitetsregistret och skapas där om den saknas.
+      require('./myndighetsrapport.js').sakra(db);
+      r = db.query('SELECT id FROM kvalitetsregister_motsatt WHERE patient_id = ? AND register = ? AND aterkallad IS NULL').get(patient.id, register); } catch {
+      // Utan tabellen går invändningen inte att pröva, och då skickas inget (en kontroll som inte kan avgöras stoppar).
+      return { tillaten: false, skal: 'Det går inte att se om patienten har motsatt sig registreringen, så inget skickas.' };
+    }
+    if (r) return { tillaten: false, skal: 'Patienten har motsatt sig registrering i kvalitetsregistret, så uppgifterna lämnas inte (patientdatalagen 7 kap. 2 §). Invändningen kan återkallas av patienten.' };
+    return { tillaten: true, skal: null };
+  }
+  if (slag === 'uppfoljning') return { tillaten: true, skal: null };
+  return { tillaten: false, skal: 'Okänd mottagare för uppgifterna.' };
+}
+
 // Meddelanden som skickas efter en handling i journalen (till exempel beskedet när en e-remiss tas emot) går i bakgrunden,
 // så att handlingen inte väntar på motparten. klart(db) väntar in dem, för testerna och före en utloggning.
 const PAGAENDE = new WeakMap();

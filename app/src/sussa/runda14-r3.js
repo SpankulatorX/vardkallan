@@ -38,6 +38,7 @@ export const T14R3 = {
   formular: `${ET}Formulär > ett formulär skickas med CreateFormRequest, statusen hämtas med GetForm och en förfrågan avbryts med CancelForm`,
   portal: `${ET}1177 > ett meddelande går till inkorgen i 1177 bara när patienten har ett konto, med IsActiveUser och AddMessage`,
   nkrr: `${ET}NKRR > vårdenheten meddelar kvalitetsregistret med ProcessRegistrationNotification, men aldrig för skyddade personuppgifter`,
+  nkrrInvandning: `${ET}NKRR > en patient som har motsatt sig registrering i kvalitetsregistret anmäls inte, och efter att invändningen är återkallad anmäls hen`,
 };
 const T = T14R3;
 
@@ -55,9 +56,9 @@ const POSTER = {
     anmarkning: `${anm('riv-application.infrastructure.eservicesupply.patientportal 2.0 (IsActiveUser och AddMessage)')} 1177 är simulerat, och en patient har ett konto i demon när hen är invånare i Min journal. Kallelserna i tidboken går ännu inte genom kontraktet. Min journal är Vårdkällans egen e-tjänst.`,
   },
   '2.2.1.14': {
-    tester: [T.nkrr],
+    tester: [T.nkrr, T.nkrrInvandning],
     losning: 'Vårdenheten meddelar ett kvalitetsregister med ProcessRegistrationNotification att uppgifterna för en registrering finns, och registret hämtar dem genom NKRR.',
-    expert: 'Vårdgivaren, vårdenheten och patientens identitet fyller systemet i, och en patient med skyddade personuppgifter meddelas aldrig.',
+    expert: 'Vårdgivaren, vårdenheten och patientens identitet fyller systemet i. Systemet prövar själv om patienten har motsatt sig registreringen, med samma prövning som alla utgående registreringar, och en patient som har motsatt sig det eller har skyddade personuppgifter meddelas aldrig.',
     anmarkning: `${anm('riv.followup.qualityregistry.nkrr 1.2.2 (ProcessRegistrationNotification 1.0)')} NKRR och registret är simulerade. Vårdkällan är inte producent för de kontrakt som NKRR läser journaluppgifterna med, utöver journalens producenter. Det finns inget gränssnitt för meddelandet än.`,
   },
   '2.2.1.9': {
