@@ -218,6 +218,8 @@ function anvandbar(r) {
 }
 export const aktiva = (db, typ, id) => rader(db, typ, id).filter(anvandbar);
 export const kravs = (db, typ, id) => aktiva(db, typ, id).length > 0;
+// Runda 13, r2 (säkerhetsgranskningen av runda 12, fynd 7): aktiva faktorer som inte går att pröva.
+export const oprovbara = (db, typ, id) => rader(db, typ, id).filter(r => r.aktiv && !anvandbar(r));
 export const metoder = (db, typ, id) => [...new Set(aktiva(db, typ, id).map(r => r.typ))].sort((a, b) => (a === 'passkey' ? -1 : b === 'passkey' ? 1 : 0));
 
 const faktorUt = (r) => ({ id: r.id, typ: r.typ, typText: TYPER[r.typ], namn: r.namn, skapad: r.skapad, senastAnvand: r.senast_anvand, aktiv: Boolean(r.aktiv) });

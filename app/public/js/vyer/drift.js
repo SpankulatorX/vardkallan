@@ -25,6 +25,8 @@ export async function visa(main) {
       <div><dt>Adresser över målet</dt><dd>${utanfor ? `${utanfor} av ${d.server.length}` : `Inga av ${d.server.length}`}</dd></div>
       <div><dt>Servern startad</dt><dd>${esc(tidpunkt(d.startad))}</dd></div>
       <div><dt>Aktiva sandlådor</dt><dd>${d.sandladar}</dd></div>
+      ${d.kapacitet ? `<div><dt>Sandlådor i minnet</dt><dd>${d.kapacitet.iMinnet} av ${d.kapacitet.maxIMinnet}, ${d.kapacitet.vilar} vilar på disk</dd></div>
+        <div><dt>Minnet</dt><dd>${d.kapacitet.minne.rssMb} MB${d.kapacitet.minne.gransMb ? ` av ${d.kapacitet.minne.gransMb} MB` : ''}</dd></div>` : ''}
       ${d.datauttag ? `<div><dt>Datauttag för uppföljning</dt><dd>Senast uppdaterat ${esc(tidpunkt(d.datauttag.senast))}. Nästa uppdatering ${esc(tidpunkt(d.datauttag.nasta))}, varje natt klockan ${esc(d.datauttag.klockan)}</dd></div>` : ''}
       ${sen ? `<div><dt>Ditt senaste anrop</dt><dd>${tal(sen.server, 1)} ms på servern, ${tal(sen.totalt, 0)} ms hela vägen</dd></div>` : ''}
     </dl>

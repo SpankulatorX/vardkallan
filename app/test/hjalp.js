@@ -11,7 +11,10 @@ export const atk = (db, personalId, patientId, val = {}, handling = 'las_oversik
 
 // Startar servern på en slumpvis port och ger en klient som håller sessionskakan.
 export function testserver(opts = {}) {
-  const app = starta({ port: 0, hostname: '127.0.0.1', nyaPerTimme: 1000, ...opts });
+  // Runda 13, r2: testerna skapar sandlådor fortare än en människa, så en sandlåda får flyttas till disk direkt efter ett
+  // anrop när en ny behöver platsen (tryggSekunder 0).
+  // Taken för tunga anrop och sandlådor per adress gäller människor; testerna prövar dem i missbruk-r13.test.js.
+  const app = starta({ port: 0, hostname: '127.0.0.1', nyaPerTimme: 1000, tryggSekunder: 0, tidsbudgetSandladaMs: 1e9, tidsbudgetAdressMs: 1e9, maxPerAdress: 1e9, ...opts });
   return app;
 }
 

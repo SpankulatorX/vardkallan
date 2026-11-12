@@ -265,6 +265,21 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       const t = await page.evaluate(() => document.activeElement?.textContent?.trim());
       if (t !== 'Hoppa till innehållet') throw new Error(`fokus på "${t}"`);
     });
+    // Runda 13, r2: sidan när demon är full. Serverns svar spelas upp i webbläsaren, eftersom testcontainern inte är full.
+    await s('när demon är full får en ny besökare en sida som säger när det är lönt att försöka igen, och den försöker igen av sig själv', async () => {
+      const full = { fel: 'Demon har många besökare just nu.', kod: 'demo_full', orsak: 'minne', forsokIgenSekunder: 6 };
+      await page.route('**/api/session', (r) => r.fulfill({ status: 503, contentType: 'application/json', headers: { 'Retry-After': '6', 'X-Vk-Full': '1' }, body: JSON.stringify(full) }));
+      await page.goto(`${BAS}/`);
+      await forvanta(page, '#demo-full h1', 'Demon har många besökare just nu');
+      await forvanta(page, '#demo-full', 'Det är tillfälligt');
+      await forvanta(page, '#demo-full', 'Sidan försöker igen av sig själv om');
+      if (await page.locator('#avbrott:not([hidden])').count()) throw new Error('sidan behandlades som ett avbrott');
+      await bild(page, '00b-demon-full');
+      await page.unroute('**/api/session');
+      // Sidan försöker igen av sig själv och visar inloggningen när det finns plats.
+      await page.waitForSelector('.roll', { timeout: 15_000 });
+      await page.waitForLoadState('networkidle');
+    });
 
     // Sara Lindqvist, läkare på kardiologen
     await s('Sara Lindqvist loggar in och ser arbetslistan', async () => {
@@ -1855,7 +1870,9 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await page.waitForLoadState('networkidle');
     });
     // Runda 12, r2 (KD1.1.3.6): en säkerhetskopia på två platser och återställning till en tidpunkt.
-    await s('Tomas Lindh tar en säkerhetskopia, ser att den är verifierad på båda platserna och återställer sandlådan till den', async () => {
+    // Runda 13, r2 (säkerhetsgranskningen av runda 12, fynd 4): återställningen föreslås och godkänns av en andra
+    // systemförvaltare. Här tas förslaget bort igen, eftersom en återställning loggar ut alla.
+    await s('Tomas Lindh tar en säkerhetskopia, ser att den är verifierad på båda platserna och föreslår en återställning som väntar på en andra systemförvaltare', async () => {
       await gaTill(page, '#/lagring');
       await page.click('[data-ta-kopia]');
       await forvanta(page, '.notis', 'verifierad på båda platserna');
@@ -1864,8 +1881,11 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await page.click('[data-aterstall]');
       await page.locator('dialog[open] #sf-kopia-tid').waitFor();
       await page.click('dialog[open] [data-varde="ok"]');
-      await forvanta(page, '.notis', 'Sandlådan är återställd till');
-      await forvanta(page, '[data-senaste-kopia]', 'före en återställning');
+      await forvanta(page, '.notis', 'väntar på en andra systemförvaltare');
+      await forvanta(page, '[data-vantande-aterstallning]', 'godkänner det i sin egen inloggning');
+      if (await page.locator('[data-godkann-aterstall]').count()) throw new Error('samma systemförvaltare kunde godkänna sin egen återställning');
+      await page.click('[data-avbryt-aterstall]');
+      await forvanta(page, '.notis', 'Förslaget om återställning är borttaget');
       await page.waitForLoadState('networkidle');
     });
     // Runda 12, r2 (D7 och M8): återgång till förra versionen och godkännande av uppgraderingen. Nora Ekholm godkänner

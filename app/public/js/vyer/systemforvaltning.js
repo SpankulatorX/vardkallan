@@ -2,7 +2,7 @@
 // ett ställe med giltighetsdatum, förhandsvisning och fyra ögon, omorganisation enligt HSA:s regler, undantag från
 // visning och publicering, och lagring med provåterläsning. Systemet fyller i datum och förslag, förhandsvisar effekten
 // medan man skriver och förklarar varför ett värde inte går. Inga patientuppgifter visas, bara antal.
-import { esc, api, datum, tidpunkt, notis, medKnapp, dialog, vyRubrik, ikon, tal } from '../ui.js';
+import { esc, api, datum, tidpunkt, notis, medKnapp, dialog, vyRubrik, ikon, tal, krokar } from '../ui.js';
 // Runda 8, r5: hjälpen i sammanhanget.
 import { hjalpRuta } from '../hjalp.js';
 
@@ -401,6 +401,21 @@ export const lagring = {
       }
       const as = e.target.closest('[data-aterstall]');
       if (as) return aterstallKopia(main, sk, as);
+      // Runda 13, r2 (säkerhetsgranskningen av runda 12, fynd 3 och 4): återställningen med fyra ögon.
+      const ga = e.target.closest('[data-godkann-aterstall]');
+      if (ga) {
+        try {
+          const r = await medKnapp(ga, () => api('/api/sakerhetskopior/aterstall/godkann', { metod: 'POST', data: {} }));
+          notis(`Sandlådan är återställd till ${tidpunkt(r.aterstalldTill.tid)}. Alla är utloggade och loggar in på nytt.`);
+          return krokar.vid401?.({ status: 401 });
+        } catch { /* notis visad */ }
+        return lagring.visa(main);
+      }
+      const ava = e.target.closest('[data-avbryt-aterstall]');
+      if (ava) {
+        try { await medKnapp(ava, () => api('/api/sakerhetskopior/aterstall/avbryt', { metod: 'POST', data: {} })); notis('Förslaget om återställning är borttaget.'); } catch { /* notis visad */ }
+        return lagring.visa(main);
+      }
       const g = e.target.closest('[data-godkann-uttag]');
       if (g) {
         try { await medKnapp(g, () => api(`/api/lagring/uttag/${g.dataset.godkannUttag}/godkann`, { metod: 'POST', data: {} })); notis('Uttaget är godkänt. Filen kan hämtas.'); } catch { /* notis visad */ }
@@ -443,21 +458,30 @@ function kopieSektion(sk) {
   return `<section class="inkorg-sektion" aria-labelledby="sf-l-kopior"><h2 id="sf-l-kopior">Säkerhetskopior</h2>
     ${s ? `<p class="${s.verifierad ? 'ruta ruta-ok' : 'ruta ruta-larm'} liten" data-senaste-kopia>${s.verifierad ? ikon.bock : ikon.varning}<span>Senaste kopian togs ${esc(tidpunkt(s.tid))} (${esc(s.orsakText.toLowerCase())}), ${esc(storlek(s.byte))}: ${s.platser.map(PLATS).join(', ')}.</span></p>`
       : `<p class="liten" data-senaste-kopia>Ingen kopia av den här sandlådan är tagen än. Nästa schemalagda kopia tas inom ${esc(String(sk.intervallMinuter))} minuter om något har ändrats.</p>`}
-    <div class="knapprad"><button type="button" class="knapp sekundar" data-ta-kopia>Ta en kopia nu</button>${sk.senasteVerifierade ? '<button type="button" class="knapp sekundar" data-aterstall>Återställ till en tidpunkt</button>' : ''}</div>
+    ${vantandeHtml(sk.vantande)}
+    <div class="knapprad"><button type="button" class="knapp sekundar" data-ta-kopia>Ta en kopia nu</button>${sk.senasteVerifierade && !sk.vantande ? '<button type="button" class="knapp sekundar" data-aterstall>Återställ till en tidpunkt</button>' : ''}</div>
     ${sk.kopior.length > 1 ? `<p class="liten">Tidigare kopior: ${sk.kopior.slice(1, 8).map(k => `${esc(tidpunkt(k.tid))} ${k.verifierad ? 'verifierad' : 'inte verifierad'}`).join(', ')}.</p>` : ''}
     <ul class="liten">${sk.rutin.map(r => `<li>${esc(r)}</li>`).join('')}</ul><p class="demoregel">${esc(sk.demoregel)}</p></section>`;
+}
+// Runda 13, r2 (fynd 4): förslaget som väntar på en andra systemförvaltare, med det som går förlorat.
+const forlustText = (f) => (f.length ? `Det här finns bara efter kopian och försvinner: ${f.map(x => `${x.antal} ${x.text}`).join(', ')}.` : 'Inget i journalen har tillkommit efter kopian.');
+function vantandeHtml(v) {
+  if (!v) return '';
+  return `<div class="ruta ruta-info" data-vantande-aterstallning>${ikon.info}<div><p><strong>${esc(v.av ?? 'En systemförvaltare')} föreslår att sandlådan återställs till ${esc(tidpunkt(v.tid))}.</strong> ${v.egen ? 'Förslaget väntar på att en andra systemförvaltare godkänner det i sin egen inloggning.' : 'Du kan godkänna förslaget som andra systemförvaltare.'}</p>
+    <p class="liten">${esc(forlustText(v.forlust))} Loggarna och flerfaktorn följer med som de är, och alla loggas ut när återställningen görs.</p>
+    <div class="knapprad">${v.egen ? '' : '<button type="button" class="knapp knapp-allvar" data-godkann-aterstall>Godkänn återställningen</button>'}<button type="button" class="knapp text" data-avbryt-aterstall>Ta bort förslaget</button></div></div></div>`;
 }
 // Systemet föreslår den senaste verifierade kopian och säger vad som händer med det som har gjorts efter den.
 async function aterstallKopia(main, sk, knapp) {
   const val = sk.kopior.filter(k => k.verifierad);
   const svar = await dialog(`<form><h2 id="dlg-rubrik">${ikon.varning}<span>Återställ sandlådan till en tidpunkt</span></h2>
     <div class="falt"><label for="sf-kopia-tid">Tidpunkt</label><select id="sf-kopia-tid" name="tid">${val.map(k => `<option value="${esc(k.tid)}">${esc(tidpunkt(k.tid))}, ${esc(k.orsakText.toLowerCase())}</option>`).join('')}</select></div>
-    <div class="dialog-text"><p>Sandlådan blir som den var vid tidpunkten. Det som har gjorts efter den finns kvar i en kopia som tas först, så att återställningen går att göra ogjord. Åtkomstloggen och säkerhetsloggen följer med i sin helhet.</p></div>
-    <div class="knapprad"><button type="button" class="knapp text" data-varde="avbryt">Avbryt</button><button type="button" class="knapp knapp-allvar" data-varde="ok">Återställ</button></div></form>`, { klass: 'dialog-allvar' });
+    <div class="dialog-text"><p>Sandlådan blir som den var vid tidpunkten. Det som har gjorts efter den finns kvar i en kopia som tas först, så att återställningen går att göra ogjord. Åtkomstloggen, säkerhetsloggen och flerfaktorn följer med som de är.</p><p>Systemet visar vad som går förlorat, och en andra systemförvaltare godkänner återställningen i sin egen inloggning. Har en spärr registrerats eller hävts efter kopian görs ingen återställning.</p></div>
+    <div class="knapprad"><button type="button" class="knapp text" data-varde="avbryt">Avbryt</button><button type="button" class="knapp knapp-allvar" data-varde="ok">Föreslå återställningen</button></div></form>`, { klass: 'dialog-allvar' });
   if (!svar) return;
   try {
     const r = await medKnapp(knapp, () => api('/api/sakerhetskopior/aterstall', { metod: 'POST', data: svar.data }));
-    notis(`Sandlådan är återställd till ${tidpunkt(r.aterstalldTill.tid)}, läst från plats ${r.plats}.`);
+    notis(`Förslaget väntar på en andra systemförvaltare. ${forlustText(r.forlust)}`);
   } catch { /* notis visad */ }
   lagring.visa(main);
 }

@@ -1,7 +1,7 @@
 // Runda 12, r3 (vårt L5): Inloggning och flerfaktor. Den inloggade, i personalen eller i Min journal, registrerar en
 // passkey eller en app för engångskoder. Från det ögonblicket krävs den andra faktorn vid varje inloggning som samma
 // person i sandlådan. Systemet föreslår passkey först och förklarar varför.
-import { esc, api, vyRubrik, medKnapp, notis, ikon, datum } from '../ui.js';
+import { esc, api, vyRubrik, medKnapp, notis, ikon, datum, dialog } from '../ui.js';
 import { S } from '../app.js';
 import { harPasskey, skapaPasskey, passkeyFel } from '../flerfaktor-ui.js';
 
@@ -79,7 +79,18 @@ export async function visa(main) {
       yta.querySelector('#ff-totp').innerHTML = totpHtml(r);
       yta.querySelector('#ff-ny-kod').focus();
     } else if (b.dataset.taBort) {
-      const r = await medKnapp(b, () => api(`/api/flerfaktor/${encodeURIComponent(b.dataset.taBort)}/ta-bort`, { metod: 'POST', direkt: true })).catch(() => null);
+      const vag = `/api/flerfaktor/${encodeURIComponent(b.dataset.taBort)}/ta-bort`;
+      let r = await api(vag, { metod: 'POST', data: {}, direkt: true }).catch(e => e);
+      // Runda 13, r2 (säkerhetsgranskningen av runda 12, fynd 8): en faktor tas bort först efter en färsk bekräftelse.
+      // Har personen en app för engångskoder ber systemet om en kod, annars om en ny inloggning med passkeyn.
+      if (r?.kod === 'bekrafta_faktor' && r.data?.metoder?.includes('totp')) {
+        const svar = await dialog(`<form><h2 id="dlg-rubrik">${ikon.klocka}<span>Bekräfta med en kod</span></h2>
+          <div class="falt"><label for="ff-bekrafta-kod">Kod från appen för engångskoder</label><input id="ff-bekrafta-kod" name="kod" inputmode="numeric" autocomplete="one-time-code" maxlength="8" required></div>
+          <p class="hjalp">Koden visar att det är du som tar bort faktorn, och inte någon som har kommit åt en öppen session.</p>
+          <div class="knapprad"><button type="button" class="knapp text" data-varde="avbryt">Avbryt</button><button type="button" class="knapp" data-varde="ok">Ta bort faktorn</button></div></form>`);
+        if (!svar) return;
+        r = await medKnapp(b, () => api(vag, { metod: 'POST', data: { kod: String(svar.data.kod ?? '').replace(/\s/g, '') }, direkt: true })).catch(() => null);
+      } else if (r instanceof Error) { notis(r.message, 'fel'); r = null; }
       if (r) { rita(r); notis(r.aktiv ? 'Faktorn är borttagen.' : 'Faktorn är borttagen. Flerfaktor är av.'); }
     }
   });

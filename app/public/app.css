@@ -1801,3 +1801,9 @@ form.falt-rad[hidden], form.mv-form[hidden], form.bl-reak[hidden], .cy-tidigare[
 .fonster-varning p { margin: 0; flex: 1 1 20em; }
 .fonster-varning .ikon { flex: none; }
 .fonster-varning .knapp.sekundar { background: #fff; }
+
+/* Runda 13, r2: sidan när demon är full (demo-full.js). */
+.demo-full { max-width: 40rem; margin: 2.5rem auto; padding: 0 16px; }
+.demo-full h1 { font-size: 1.6rem; margin-bottom: 1rem; }
+.demo-full p { line-height: 1.6; }
+.demo-full .demo-full-tid { font-size: 1.1rem; }

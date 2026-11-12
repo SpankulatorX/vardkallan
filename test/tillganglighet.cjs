@@ -449,6 +449,17 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
     vyLista.push(['ute', h]);
     await granskaHar(`utan inloggning ${h}`);
   }
+  // Runda 13, r2: sidan när demon är full. Serverns svar spelas upp i webbläsaren.
+  {
+    await page.route('**/api/session', (r) => r.fulfill({ status: 503, contentType: 'application/json', headers: { 'Retry-After': '120', 'X-Vk-Full': '1' }, body: JSON.stringify({ fel: 'Demon har många besökare just nu.', kod: 'demo_full', orsak: 'disk', forsokIgenSekunder: 120 }) }));
+    await page.goto(`${BAS}/#/`);
+    await page.waitForSelector('#demo-full');
+    vyLista.push(['ute', 'demon är full']);
+    await granskaHar('när demon är full');
+    await page.unroute('**/api/session');
+    await page.goto(`${BAS}/#/`);
+    await page.waitForSelector('.roll');
+  }
   // 2. Varje demoroll: alla vyer i menyn, och journalens flikar för rollerna med journal.
   for (const roll of roller) {
     await loggaIn(page, roll);

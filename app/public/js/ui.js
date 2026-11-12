@@ -107,7 +107,9 @@ export class ApiFel extends Error {
   }
 }
 // ejLaslage: när den ger true används aldrig läsläget eller läskopian (Min journal).
-export const krokar = { svarstid: null, vid401: null, vid429: null, efterSkrivning: null, ejLaslage: null, inloggning: null };
+export const krokar = { svarstid: null, vid401: null, vid429: null, efterSkrivning: null, ejLaslage: null, inloggning: null,
+  // Runda 13, r2: demon är full (app.js visar sidan som förklarar läget).
+  vidFull: null };
 
 // Avbrott (D4). När servern inte svarar går gränssnittet över till läsläge: läsningar besvaras från den krypterade
 // läskopian i webbläsaren och skrivningar stoppas. avbrott.js sätter upptackt (kontrollerar att servern verkligen är
@@ -173,6 +175,14 @@ export async function api(vag, { metod = 'GET', data, tyst = false, direkt = fal
   } finally {
     pagaende.delete(kontroll);
   }
+  // Runda 13, r2: när demon är full är servern inte nere. Sidan som förklarar läget visas i stället för läsläget.
+  if (r.headers.get('x-vk-full') === '1') {
+    let jf = {};
+    try { jf = await r.json(); } catch { /* svaret saknar text */ }
+    const e = new ApiFel(r.status, jf);
+    krokar.vidFull?.(e);
+    throw e;
+  }
   if (!direkt && NERE.has(r.status) && await avbrott.upptackt?.()) return franKopia(vag, metod, { data, ko });
   const st = lasServerTiming(r.headers.get('server-timing'));
   krokar.svarstid?.({ vag, metod, server: st, totalt: performance.now() - t0, status: r.status });
@@ -227,7 +237,7 @@ export function notis(text, typ = 'ok', { kvar = false } = {}) {
   setTimeout(() => el.remove(), 4200);
 }
 export function felNotis(e) {
-  if (e?.status === 401 || e?.status === 429 || e?.kod === 'avbruten') return;
+  if (e?.status === 401 || e?.status === 429 || e?.kod === 'avbruten' || e?.kod === 'demo_full') return;
   notis(e?.message || 'Något gick fel.', 'fel');
 }
 

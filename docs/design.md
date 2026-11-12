@@ -2513,13 +2513,13 @@ Servern tar en kopia av varje sandlåda var femtonde minut när något har ändr
 återställning och återgång. Kopian är en konsistent ögonblicksbild (`serialize`) och skrivs på två platser
 (`KOPIOR_KATALOG` och `KOPIOR_ANDRA`, som standard `kopior` och `kopior-2` bredvid sessionsfilen). Varje kopia verifieras
 på båda platserna: kontrollsumman (SHA-256) ska vara densamma som för ögonblicksbilden, och kopian läst från platsen ska
-vara en hel databas med alla tabeller och med åtkomstloggens och säkerhetsloggens hashkedjor hela. De 48 senaste kopiorna
+vara en hel databas med alla tabeller och med åtkomstloggens och säkerhetsloggens hashkedjor hela. De åtta senaste kopiorna (48 före version 1.3)
 sparas, och kopiorna tas bort när sandlådan tas bort.
 
 Kopiorna hör till sandlådans stabila id (`kopieId`), som skapas med sandlådan och aldrig byts, och inte till
 sessionskakan, som byts vid varje inloggning. Id:t används aldrig som namn: kopiorna ligger under en HMAC av id:t med en
 hemlig nyckel som sparas bredvid kopiorna och aldrig i en sandlåda. Kopiorna tas bort på varje väg där en sandlåda
-försvinner (den går ut, trängs undan av en ny sandlåda eller av en ny miljö), och städningen tar bort kataloger med
+försvinner (den går ut eller återställs till en ny sandlåda), och städningen tar bort kataloger med
 kopior för sandlådor som inte finns.
 
 Systemförvaltaren ser på sidan Lagring när den senaste kopian togs och om den är verifierad på båda platserna, tar en kopia
@@ -2569,3 +2569,112 @@ I driften är varje version en egen avbildning, och vid en återgång startas de
 själv när den startar. Säkerhetskopiornas två platser är två kataloger på samma server, eller två lager i minnet när
 servern inte sparar till disk. I driften är den andra platsen en annan volym på en annan ort. Återställningen går till den
 senaste kopian före tidpunkten, så det som gjordes mellan kopian och tidpunkten (högst femton minuter) återställs inte.
+
+## Kapacitet och säkerhet för många besökare (runda 13, r2: sandlada-vila.js, server.js, sakerhetskopior.js och demo-full.js)
+
+Version 1.3 är den version som testas av en publik inbjudan, så demon ska klara hundratals besökare på kort tid utan att
+någon förlorar sin sandlåda och utan att processen stannar för att minnet tar slut. Tidigare höll servern upp till 400
+sandlådor i minnet och tog bort den äldsta när taket nåddes, också om besökaren arbetade i den.
+
+### Sandlådor som vilar på disk
+
+En sandlåda som inte har använts på tio minuter (`VILA_MINUTER`) skrivs till disk och släpps ur minnet. Sessionen finns
+kvar i minnet, eftersom den är liten; det som skrivs till disk är databasen, läskopiornas kopplingar och sandlådans
+svarstider, komprimerat med zstd (en sandlåda på 3,3 MB blir omkring 0,3 MB). Filen heter efter en HMAC av sandlådans
+stabila id (`kopieId`) med en hemlig nyckel, aldrig efter sessionskakan, och ligger i katalogen `vila` bredvid
+sessionsfilen (`VILA_KATALOG`). Utan sessionsfil ligger de vilande sandlådorna komprimerade i minnet.
+
+Nästa gång besökaren gör ett anrop läses sandlådan in igen, vilket tar några millisekunder. Eftersom sessionen finns kvar
+gäller allt som pekar på den som förut: miljöerna för acceptanstest och deras väg tillbaka, åtkomstbiljetterna,
+utrustningens nycklar, prenumerationerna, en inloggning som väntar på den andra faktorn och läskopian, vars logg från
+läsläget hittar sin sandlåda på läskopiornas id. En kalenderlänk eller ett systemkonto hittas på en HMAC eller ett id som
+sandlådan har kvar i minnet, så att en okänd länk aldrig läser in några sandlådor. Det schemalagda som sandlådan gör
+(laboratoriets svar, utrustningens mätningar, masterdata och omorganisationer) görs när den läses in, på samma sätt som i
+varje anrop. Säkerhetskopian av en vilande sandlåda tas från filen utan att sandlådan läses in. En sandlåda som vilade när
+programmet uppgraderades får de nya tabellerna när den läses in.
+
+Systemet räknar själv ut hur många sandlådor som får vara i minnet, ur containerns minnesgräns (cgroup):
+`(gräns × 0,8 − 230 MB) / 9 MB`, och driften kan sätta taket med `MAX_I_MINNET`. Det finns också en budget i byte, så att en
+sandlåda vars databas har vuxit räknas som flera. När en plats behövs flyttas den sandlåda som har varit oanvänd längst
+till disk. En sandlåda med ett pågående anrop flyttas aldrig, och en som har använts de senaste 20 sekunderna
+(`VILA_TIDIGAST_SEKUNDER`) flyttas inte för att ge plats åt en ny besökare. En sandlåda tas aldrig bort för att ge plats
+åt en annan; den försvinner bara efter åtta timmar utan användning, också från disken och med sina säkerhetskopior. En
+sandlåda där ingen har loggat in, och som inte är en miljö, har inget att förlora och försvinner efter en timme.
+
+När servern stoppas skrivs alla sandlådor till katalogen, och sessionsfilen har bara sessionerna, utan databaser. Efter
+start vilar alla sandlådor tills de används. En sessionsfil från version 1.2, med databaserna i filen, läses in en sandlåda
+i taget och skrivs genast till disk.
+
+### När demon är full
+
+En ny besökare får en sandlåda bara när det finns plats: färre än 3 000 sandlådor (`MAX_SANDLADOR`), diskutrymmet för
+vilande sandlådor och kopior under taket (`MAX_DISK_MB`, standard 8 192), minst 1 GB ledigt på disken, och en plats i
+minnet som inte används just nu. Annars svarar servern 503 med koden `demo_full`, orsaken (`minne` eller `disk`), hur
+många sekunder det är lönt att vänta (`forsokIgenSekunder` och rubriken `Retry-After`) och rubriken `X-Vk-Full`.
+Tiden räknas ur när den första platsen blir ledig: för minnet när en sandlåda har varit oanvänd i 20 sekunder, för disken
+när den första sandlådan går ut. Gränssnittet visar då en sida på svenska som säger att demon har många besökare just nu,
+att varje besökare har en egen sandlåda och att de som arbetar får behålla sina, att det är tillfälligt och när sidan
+försöker igen av sig själv, med en knapp för att försöka direkt. Sidan behandlar inte svaret som ett avbrott, och
+hälsokontrollen och de offentliga sidorna (kravspårbarheten, modulerna och svarstiderna) svarar som vanligt. Sidan
+Svarstider visar kapaciteten: sandlådorna i minnet och på disk, minnet, diskutrymmet och taken.
+
+### Hur många som kan arbeta samtidigt
+
+Mätningen 2026-11-12 mot en container med 1 GB minne: processen använde 146 MB utan sandlådor och omkring 190 MB med den
+seedade mallen. Varje sandlåda i arbete (inloggning, arbetslistan, sökning, översikten, journalen, läkemedlen och
+mätvärdena) tog omkring 6,3 MB. Med 20 platser i minnet och 100 sandlådor som flyttades till disk och tillbaka höll sig
+processen kring 390 MB, och 80 vilande sandlådor tog 21 MB på disken. Räkningen i servern är med marginal (230 MB för
+processen och 9 MB per sandlåda, 80 procent av gränsen).
+
+| Minnesgräns | Sandlådor i minnet | Sandlådor som vilar |
+| --- | --- | --- |
+| 512 MB | 19 | upp till 3 000 |
+| 768 MB | 42 | upp till 3 000 |
+| 1 GB | 65 | upp till 3 000 |
+| 1,5 GB | 110 | upp till 3 000 |
+
+En plats i minnet räcker för flera besökare, eftersom en besökare läser och skriver mellan anropen och sandlådan kan vila
+under tiden. Hur många som kan arbeta samtidigt utan att nya besökare får vänta beror alltså på hur tätt de klickar. Det
+mäts av vågen i lasttestet.
+
+### Tak mot missbruk
+
+Allt som en anonym besökare kan göra i stor mängd har ett tak per sandlåda och per adress, och taken följer sandlådan
+också när den har vilat, eftersom de finns i sessionen eller i databasen. Adressen sparas bara som HMAC med en hemlig
+nyckel.
+
+| Vad | Tak |
+| --- | --- |
+| Nya sandlådor | 60 per adress och timme (`NYA_PER_TIMME`), 150 levande per adress (`MAX_PER_ADRESS`), 3 000 totalt |
+| Databasens storlek | 24 MB per sandlåda (`MAX_SANDLADA_MB`). Det som skulle göra den större får 507 med en förklaring |
+| Tunga anrop | anropen får ta högst 30 sekunder per minut för en sandlåda och 45 sekunder per minut för en adress (`TIDSBUDGET_SANDLADA_MS`, `TIDSBUDGET_ADRESS_MS`). Det gäller allt: export, datauttag, rapporter, sökningar, FHIR och de offentliga sidorna |
+| Miljöer | 3 per sandlåda, och de räknas som nya sandlådor från adressen |
+| Bilder och filer | som förut: 1 MB per bild, 2 MB per film, 40 per patient och 4 MB per sandlåda |
+| Säkerhetskopior | 1 per minut och 10 per timme som systemförvaltaren ber om, 8 per sandlåda, 32 MB största sandlåda, 4 096 MB för allas kopior (`MAX_KOPIOR_MB`), där de äldsta tas bort först |
+| Förfrågningar | 64 kB per förfrågan, som förut |
+
+Säkerhetskopiorna komprimeras, och den andra platsen kontrolleras med kontrollsumman, så att databasen läses in i minnet en
+gång per kopia i stället för två. Det schemalagda jobbet kopierar en sandlåda i taget med en paus emellan, så att andra
+anrop inte väntar. En kopia från version 1.2 är okomprimerad och läses som den är.
+
+### Säkerhetsgranskningen av runda 12
+
+En återställning av demon (`POST /api/reset`) ger sandlådan ett nytt id för kopiorna och tar bort kopiorna av den gamla,
+så att återställningen aldrig ger åtkomst till något som en faktor skyddade. En inläsning av en kopia föreslås av en
+systemförvaltare (`POST /api/sakerhetskopior/aterstall`, svar 202) och godkänns av en andra i sin egen inloggning
+(`POST /api/sakerhetskopior/aterstall/godkann`). Förslaget visar vad som går förlorat (signerade och osignerade
+anteckningar, mätvärden, ordinationer, samtycken, beslut, versioner av journalens struktur och uppgraderingar), och en
+spärr som har registrerats eller hävts efter kopian stoppar inläsningen, både när den föreslås och när den godkänns.
+Faktorerna för flerfaktor i kopian finns kvar, och faktorer som har registrerats efter kopian förs över, på samma sätt
+som loggarna. Efter inläsningen loggas alla ut, så att varje inloggning prövas mot den inlästa sandlådan med sin andra
+faktor. En aktiv faktor som inte går att pröva (nyckeln för engångskoder går inte att dekryptera) stoppar inloggningen och
+loggas, i stället för att släppa igenom. En faktor tas bort bara efter en färsk bekräftelse: en inloggning med faktor, en
+registrering eller en kod från appen de senaste fem minuterna. Parametrar med namn som `__proto__` och `constructor` finns
+inte.
+
+### Det som är simulerat eller saknas
+
+Demon har en process. Platserna i minnet är ett tak för en process, och i driften med många vårdgivare är varje databas
+en egen server. Vilan och diskens tak gäller demons sandlådor; en vårdgivares databas ligger på disk hela tiden. Ett
+förslag om att läsa in en kopia finns i sessionen och gäller i 30 minuter. Taken mot missbruk gäller per adress som
+Cloudflare anger, så besökare bakom samma adress delar adressens tak.

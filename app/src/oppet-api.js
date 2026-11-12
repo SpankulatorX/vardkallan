@@ -338,6 +338,8 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
   // på kontot när kontot finns.
   function hittaKonto(id) {
     for (const s of sessioner.values()) {
+      // Runda 13, r2: en sandlåda som vilar på disk läses bara in om kontot finns bland dess konton i minnet.
+      if (s.vilar && !(s.vilaIndex?.konton ?? []).includes(id)) continue;
       try { if (s.db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'api_systemkonton'").get() && s.db.query('SELECT 1 FROM api_systemkonton WHERE id = ?').get(id)) return s; } catch { /* stängd */ }
     }
     return null;

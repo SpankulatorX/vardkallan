@@ -15,7 +15,13 @@ export const ANDRINGAR = [
   {
     version: '1.3.0', datum: '2026-11-12',
     text: 'Inga nya resurstyper eller skrivningar i FHIR.',
-    resurser: [], skrivning: [], annat: [],
+    resurser: [], skrivning: [], annat: [
+      // Runda 13, r2: kapacitet, tak och fynden från säkerhetsgranskningen av runda 12.
+      'Svaret 503 med koden demo_full och tiden tills det är lönt att försöka igen när demon är full, och kapaciteten i /api/drift',
+      'Taken 429 för tunga anrop per sandlåda och adress, och 507 när sandlådans databas är full',
+      'Återställning av en säkerhetskopia med fyra ögon: ett förslag och ett godkännande av en andra systemförvaltare',
+      'Borttagning av en faktor för flerfaktor kräver en färsk bekräftelse med en faktor',
+    ],
   },
   // Runda 12: version 1.2. Varje del lägger sina rader i annat i ett eget block.
   {
