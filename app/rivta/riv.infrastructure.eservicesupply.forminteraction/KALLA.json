@@ -1,0 +1,83 @@
+{
+ "doman": "riv.infrastructure.eservicesupply.forminteraction",
+ "kalla": "https://bitbucket.org/rivta-domains/riv.infrastructure.eservicesupply.forminteraction",
+ "tagg": "2.1.1",
+ "commit": "3dbee167710a60606e6560bbf6d3e6d320dbf128",
+ "arkiv": "https://bitbucket.org/rivta-domains/riv.infrastructure.eservicesupply.forminteraction/get/3dbee167710a60606e6560bbf6d3e6d320dbf128.zip",
+ "arkivSha256": "940b2f72c82a34a5d11dd998f5bbb68eb9f33865fa938a2598489edc417943d6",
+ "licens": "Apache License 2.0 enligt licensraden i domänens filer",
+ "tjanstekontrakt": [
+  "CreateFormRequest",
+  "GetForm",
+  "CancelForm",
+  "GetFormTemplate",
+  "SaveFormTemplate"
+ ],
+ "filer": [
+  {
+   "fil": "schemas/core_components/infrastructure_eservicesupply_forminteraction_2.1.xsd",
+   "sha256": "925288de1385cfd3edee1cd6e74c9e0e8c558fab79aeff305f89cbb88e3f4dee",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/core_components/infrastructure_eservicesupply_forminteraction_2.1_ext.xsd",
+   "sha256": "95ae4cb21d17ed3774031147047a43610f255819f0734195d801b2aa078bb265",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/core_components/itintegration_registry_1.0.xsd",
+   "sha256": "5827002c9a3bae74863f6add21f9c5d8efad15167c807de91ec1453656cf771c",
+   "licensrad": false
+  },
+  {
+   "fil": "schemas/interactions/CancelFormInteraction/CancelFormInteraction_2.0_RIVTABP21.wsdl",
+   "sha256": "e198d88e6083d2c3406f3c9a403cc5b8ab9d6113783513dc1002e34240a444f3",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/CancelFormInteraction/CancelFormResponder_2.0.xsd",
+   "sha256": "0871c5e36fc32d45e7ebd189547fdd34e0e5264ff84af273edc91bd37e9f8319",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/CreateFormRequestInteraction/CreateFormRequestInteraction_2.0_RIVTABP21.wsdl",
+   "sha256": "a98e10aa3df0855c274212d46197fabfd29a82d41cc58365f174db4be7c55952",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/CreateFormRequestInteraction/CreateFormRequestResponder_2.0.xsd",
+   "sha256": "6f802a5341e0878884c44a5c79f9f0edb141acf16956d52d771a0c6144407387",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/GetFormInteraction/GetFormInteraction_2.1_RIVTABP21.wsdl",
+   "sha256": "f3b648953d891f22cab79b5c6ddbfd4e9649db30fc11822a49944a71e832e471",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/GetFormInteraction/GetFormResponder_2.1.xsd",
+   "sha256": "b838149aadd6cedc40b428388e242618f4382ef4768650286cd684dee4a18201",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/GetFormTemplateInteraction/GetFormTemplateInteraction_2.1_RIVTABP21.wsdl",
+   "sha256": "c75f717dc75d022f8b2542a281dfabc4cb7c5541c666f7f6f034071baa93192f",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/GetFormTemplateInteraction/GetFormTemplateResponder_2.1.xsd",
+   "sha256": "d9031d48e1b6b90ce413521851d81767f37dbca825ecd660a41219f767b03412",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/SaveFormTemplateInteraction/SaveFormTemplateInteraction_2.1_RIVTABP21.wsdl",
+   "sha256": "2e45022f6addcd700ea30b0e23c47c47a64bd1f609e47b8c09788ba73097b4dc",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/SaveFormTemplateInteraction/SaveFormTemplateResponder_2.1.xsd",
+   "sha256": "baf3ad2ccdc69a53d0d7b31e067495c846eb397b8b3d02c6d4083006ffc2ee96",
+   "licensrad": true
+  }
+ ]
+}

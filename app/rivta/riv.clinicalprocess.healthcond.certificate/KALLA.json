@@ -1,0 +1,91 @@
+{
+ "doman": "riv.clinicalprocess.healthcond.certificate",
+ "kalla": "https://bitbucket.org/rivta-domains/riv.clinicalprocess.healthcond.certificate",
+ "tagg": "4.0.5",
+ "commit": "277a809399ecc9d7bee85ef1792c00c0c7e41076",
+ "arkiv": "https://bitbucket.org/rivta-domains/riv.clinicalprocess.healthcond.certificate/get/277a809399ecc9d7bee85ef1792c00c0c7e41076.zip",
+ "arkivSha256": "b2fc2db467d42a9b44612129f794fadbd07edf57c5898aa12e42b3cc53e0130f",
+ "licens": "Apache License 2.0 enligt licensraden i domänens filer",
+ "tjanstekontrakt": [
+  "CreateDraftCertificate",
+  "CertificateStatusUpdateForCare",
+  "ListCertificatesForCareWithQA"
+ ],
+ "filer": [
+  {
+   "fil": "schemas/core_components/clinicalprocess_healthcond_certificate_3.2.xsd",
+   "sha256": "adf41fe2bccd6d732772b27717da4cf4a8a44a9cfca1d86e499fd45a5ce70c63",
+   "licensrad": false
+  },
+  {
+   "fil": "schemas/core_components/clinicalprocess_healthcond_certificate_3.2_ext.xsd",
+   "sha256": "06ac65e03affdfb191bcd74ea7aa4941d0932dbf67240a171fd79056e7d08fd9",
+   "licensrad": false
+  },
+  {
+   "fil": "schemas/core_components/clinicalprocess_healthcond_certificate_3.3.xsd",
+   "sha256": "78feed08f111a87fbf4e540322e77414f78a8e0aa9c1ec4c35609344accd4719",
+   "licensrad": false
+  },
+  {
+   "fil": "schemas/core_components/clinicalprocess_healthcond_certificate_3.3_ext.xsd",
+   "sha256": "53a6855eb86d482d2203bfe0742c893f9440d19aa7529b3a8d32ab6e0a78717b",
+   "licensrad": false
+  },
+  {
+   "fil": "schemas/core_components/clinicalprocess_healthcond_certificate_3.4_ext.xsd",
+   "sha256": "07915709bc016914875ce7d6a572649d00796c79da8352d5ae9f14b94c20f37f",
+   "licensrad": false
+  },
+  {
+   "fil": "schemas/core_components/clinicalprocess_healthcond_certificate_types_3.2.xsd",
+   "sha256": "80309a1ffa46f4b173efa272e3e646bc7e5585511d204e61b2b002a224f91e6a",
+   "licensrad": false
+  },
+  {
+   "fil": "schemas/core_components/itintegration_registry_1.0.xsd",
+   "sha256": "2b287ca199205ac47f1ccf2b564bac499e783c18174e30dd52dce4f6e22dcbd5",
+   "licensrad": false
+  },
+  {
+   "fil": "schemas/core_components/xmldsig-core-schema_0.1.xsd",
+   "sha256": "59b066d1e65dfe74102ab1e09f6f18e5b1e1d91e3ed3badc5d1f9cac77134879",
+   "licensrad": false
+  },
+  {
+   "fil": "schemas/interactions/CertificateStatusUpdateForCareInteraction/CertificateStatusUpdateForCareInteraction_3.2_RIVTABP21.wsdl",
+   "sha256": "205bff5abfc63b0291f00dd4ac5f23a1b7aaf140976c82b69ab27e006f41d055",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/CertificateStatusUpdateForCareInteraction/CertificateStatusUpdateForCareResponder_3.2.xsd",
+   "sha256": "d10ac5e5d47f83dd809aabf6ab614aaa07b69fa1e66f6b2355aab74e042c0670",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/CertificateStatusUpdateForCareInteraction/CertificateStatusUpdateForCareResponder_3.2_ext.xsd",
+   "sha256": "3d44b0473648ce0e4354f0e9919df78d9d87692d47c9c7592945f9df16397ca3",
+   "licensrad": false
+  },
+  {
+   "fil": "schemas/interactions/CreateDraftCertificateInteraction/CreateDraftCertificateInteraction_3.3_RIVTABP21.wsdl",
+   "sha256": "44b354bdd1b8c7a8971e47807aaeec4807001e6514adb9a39800c857ae988db7",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/CreateDraftCertificateInteraction/CreateDraftCertificateResponder_3.3.xsd",
+   "sha256": "af5684d320a3cb37646fc3458e42d590d5993c557fc0956ab25f44faa9a00e88",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/ListCertificatesForCareWithQAInteraction/ListCertificatesForCareWithQAInteraction_3.3_RIVTABP21.wsdl",
+   "sha256": "8cecae1654fcb0919043f89d629075985357474de65069c6e9c0160a6c4f8cc4",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/ListCertificatesForCareWithQAInteraction/ListCertificatesForCareWithQAResponder_3.3.xsd",
+   "sha256": "1b2b704014d541ce12af4ec66ed3f77a0456ac204987e889055c07c99b3b2541",
+   "licensrad": true
+  }
+ ]
+}

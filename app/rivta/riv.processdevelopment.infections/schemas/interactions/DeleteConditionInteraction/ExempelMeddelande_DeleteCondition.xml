@@ -1,0 +1,11 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:add="http://www.w3.org/2005/08/addressing" xmlns:urn="urn:riv:processdevelopment:infections:DeleteConditionResponder:1">
+   <soapenv:Header>
+      <add:To>SE2010123456</add:To>
+   </soapenv:Header>
+   <soapenv:Body>
+      <urn:DeleteCondition>
+         <urn:ConditionId>1.2.752.129.2.1.2.1::SE2010123456-OE1tillstid2</urn:ConditionId>
+         <!--You may enter ANY elements at this point-->
+      </urn:DeleteCondition>
+   </soapenv:Body>
+</soapenv:Envelope>

@@ -1,0 +1,34 @@
+{
+ "doman": "riv.crm.requeststatus",
+ "kalla": "https://bitbucket.org/rivta-domains/riv.crm.requeststatus",
+ "tagg": "2.0.2",
+ "commit": "d487f21af1b21e446210a36324aadaca7263f652",
+ "arkiv": "https://bitbucket.org/rivta-domains/riv.crm.requeststatus/get/d487f21af1b21e446210a36324aadaca7263f652.zip",
+ "arkivSha256": "de1204244a28aa9ba69c10c63bf6bd4172bd91b3b2e50c7463a357bf4ca939bd",
+ "licens": "Apache License 2.0 enligt licensraden i domänens filer",
+ "tjanstekontrakt": [
+  "GetRequestActivities"
+ ],
+ "filer": [
+  {
+   "fil": "schemas/core_components/crm_requeststatus_2.0.xsd",
+   "sha256": "e8fb5a8f84ca720b459d312a6a997e59098b60c4b4d6644547e15faef5450a83",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/core_components/itintegration_registry_1.0.xsd",
+   "sha256": "5827002c9a3bae74863f6add21f9c5d8efad15167c807de91ec1453656cf771c",
+   "licensrad": false
+  },
+  {
+   "fil": "schemas/interactions/GetRequestActivitiesInteraction/GetRequestActivitiesInteraction_2.0_RIVTABP21.wsdl",
+   "sha256": "69b91e85204e69daf0828152fd8716c22fa3e503fdcc5d0a1ac47cfd7c5d2c70",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/GetRequestActivitiesInteraction/GetRequestActivitiesResponder_2.0.xsd",
+   "sha256": "798cbf233c5193691de5b3d7e4b521842b6dfb1e39d3d024f2b33e7db0d3a4b7",
+   "licensrad": true
+  }
+ ]
+}

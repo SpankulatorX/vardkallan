@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- 
+ Licensed to the Apache Software Foundation (ASF) under one
+ or more contributor license agreements. See the NOTICE file
+ distributed with this work for additional information
+ regarding copyright ownership.  licenses this file
+ to you under the Apache License, Version 2.0 (the
+ "License"); you may not use this file except in compliance
+ with the License. You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied. See the License for the
+ specific language governing permissions and limitations
+ under the License.
+ -->		
+<wsdl:definitions name='SkapaVardtagareInteraction' xmlns:wsdl='http://schemas.xmlsoap.org/wsdl/' xmlns:soap='http://schemas.xmlsoap.org/wsdl/soap/' xmlns:xs='http://www.w3.org/2001/XMLSchema' xmlns:wsa='http://www.w3.org/2005/08/addressing' xmlns:tjsr='urn:riv:druglogistics:dosedispensing:SkapaVardtagareResponder:1' xmlns:tns='urn:riv:druglogistics:dosedispensing:SkapaVardtagare:1:rivtabp20' targetNamespace='urn:riv:druglogistics:dosedispensing:SkapaVardtagare:1:rivtabp20'>
+  <xs:annotation>
+    <xs:documentation>
+			 Tjänsteinteraktionens namn: SkapaVardtagareInteraction
+			 Beskrivning: 
+			   
+			 Revisioner: 
+			 Tjänstedomän: druglogistics:dosedispensing
+			 Tjänsteinteraktionstyp: Fråga-Svar
+			 WS-profil: RIVTABP20
+			 Förvaltas av: Sveriges Kommuner och Landsting			 </xs:documentation>
+  </xs:annotation>
+  <wsdl:types>
+    <xs:schema targetNamespace='urn:riv:druglogistics:dosedispensing:SkapaVardtagare:1:rivtabp20'>
+      <xs:import schemaLocation='SkapaVardtagareResponder_1.0.xsd' namespace='urn:riv:druglogistics:dosedispensing:SkapaVardtagareResponder:1' />
+      <xs:import schemaLocation='../../core_components/ws-addressing-1.0.xsd' namespace='http://www.w3.org/2005/08/addressing' />
+    </xs:schema>
+  </wsdl:types>
+  <wsdl:message name='SkapaVardtagareRequest'>
+		<xs:annotation>
+			<xs:documentation>
+				LogicalAddress is the organization number of the business partner (e.g. the org. no. of Apoteket AB).
+			</xs:documentation>
+		</xs:annotation>
+    <wsdl:part name='LogicalAddress' element='wsa:To'>
+    </wsdl:part>
+    <wsdl:part name='parameters' element='tjsr:SkapaVardtagare' />
+  </wsdl:message>
+  <wsdl:message name='SkapaVardtagareResponse'>
+    <wsdl:part name='parameters' element='tjsr:SkapaVardtagareResponse' />
+  </wsdl:message>
+  <wsdl:portType name='SkapaVardtagareResponderInterface'>
+    <wsdl:operation name='SkapaVardtagare'>
+      <wsdl:input message='tns:SkapaVardtagareRequest' />
+      <wsdl:output message='tns:SkapaVardtagareResponse' />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name='SkapaVardtagareResponderBinding' type='tns:SkapaVardtagareResponderInterface'>
+    <soap:binding style='document' transport='http://schemas.xmlsoap.org/soap/http' />
+    <wsdl:operation name='SkapaVardtagare'>
+      <soap:operation soapAction='urn:riv:druglogistics:dosedispensing:SkapaVardtagareResponder:1:SkapaVardtagare' style='document' />
+      <wsdl:input>
+        <soap:header use='literal' message='tns:SkapaVardtagareRequest' part='LogicalAddress' />
+        <soap:body use='literal' parts='parameters' />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use='literal' />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name='SkapaVardtagareResponderService'>
+    <wsdl:port name='SkapaVardtagareResponderPort' binding='tns:SkapaVardtagareResponderBinding'>
+      <soap:address location='http://tempuri.org' />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

@@ -1,0 +1,1223 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- 
+ Licensed to the Apache Software Foundation (ASF) under one
+ or more contributor license agreements. See the NOTICE file
+ distributed with this work for additional information
+ regarding copyright ownership. Sveriges Kommuner och Landsting licenses this file
+ to you under the Apache License, Version 2.0 (the
+ "License"); you may not use this file except in compliance
+ with the License. You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied. See the License for the
+ specific language governing permissions and limitations
+ under the License.
+ -->		
+<xs:schema xmlns:xs='http://www.w3.org/2001/XMLSchema' xmlns:tns='urn:riv:infrastructure:eservicesupply:forminteraction:2' 
+           xmlns:m1='urn:riv:infrastructure:eservicesupply:forminteraction:2.1' targetNamespace='urn:riv:infrastructure:eservicesupply:forminteraction:2' 
+           elementFormDefault='qualified' attributeFormDefault='unqualified' version='2.1'>
+  <xs:annotation>
+		<xs:documentation>Beskrivning: Grundläggande informationsobjekt för
+			domänen riv:infrastructure:eservicesupply:forminteraction
+			Revisionshistorik: -
+
+			Datum: 2014-03-07
+			Beskrivning: Version 2.0
+			Författare: Marco de Luca.
+		</xs:documentation>
+	</xs:annotation>
+  <xs:import namespace='urn:riv:infrastructure:eservicesupply:forminteraction:2.1' schemaLocation="infrastructure_eservicesupply_forminteraction_2.1_ext.xsd"/>
+  
+	<xs:simpleType name="HsaIdType">
+		<xs:annotation>
+			<xs:documentation>Hsa-id enligt HSA standard.</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string"></xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="SubjectOfCareIdType">
+		<xs:annotation>
+			<xs:documentation>Personnummer, reservnummer enligt format
+				yyyymmddnnnn. Ex: 191212121212</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string"></xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="TemplateIdType">
+		<xs:annotation>
+			<xs:documentation>Typ av formulär. Kodverk för standardiserade id för
+				formulärtyper. KV Malltyp (Kodverk saknas).</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string"></xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="clinicalProcessInterestIdType">
+		<xs:annotation>
+			<xs:documentation>HSA-id för framställarens enhet/process + unik
+				identifierare. Globalt/nationellt hälsoärende ID. Hälsoärende är ett
+				begrepp för det som håller samman information i en kärnprocess för
+				en vård- och omsorgstagare, tvärs över organisatoriska
+				enhetsgränser.
+			</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string"></xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="FormIDType">
+		<xs:annotation>
+			<xs:documentation>Formulärets unika ID (källsystemets unika id/GUID).
+			</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string"></xs:restriction>
+	</xs:simpleType>
+
+	<xs:complexType name="FormType">
+		<xs:sequence>
+			<xs:element name="createdDateTime" type="xs:string"/>
+			<xs:element name="clinicalProcessInterestId" type="tns:clinicalProcessInterestIdType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Hsa-id för framställarens enhet/process + unik
+						identifierare. Globalt/nationellt hälsoärende
+						ID. Hälsoärende är ett begrepp för det som
+						håller samman information i en kärnprocess för
+						en vård- och omsorgstagare, tvärs över
+						organisatoriska enhetsgränser.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="expireDate" type="xs:string" minOccurs="0"/>
+			<xs:element name="formId" type="tns:FormIDType">
+				<xs:annotation>
+					<xs:documentation>
+						Formulärets unika ID (källsystemets unika
+						id/GUID). T.ex. MHV1 har FormID =
+						3B2DF0C0-BC22-11DE-823D-00155D316606
+
+						Måste genereras slumpmässigt för att vara unikt.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="formStatus" type="tns:FormStatusType"/>
+			<xs:element name="formTemplate" type="tns:FormTemplateInfoType" />
+			<xs:element name="formText" type="xs:string" minOccurs="0" maxOccurs="1">
+				<xs:annotation>
+					<xs:documentation>Unik text för Formulär. Används t.ex. "CreateFormRequest" för att bifoga en unik text för formuläret. T.ex. "Hälsoundersökning inför besök X". </xs:documentation>
+				</xs:annotation></xs:element>
+			<xs:element name="healthcare_CareGiver" type="tns:HsaIdType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Ansvarig vårdgivare (huvudman). T.ex. Landsting
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="healthcare_MedUnit" type="tns:HsaIdType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Medicinsk ansvarig klinik/vårdcentral eller
+						motsvarande. T.ex. Medicinklinik
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="healthcare_facility_CareUnit" type="tns:HsaIdType">
+				<xs:annotation>
+					<xs:documentation>
+						Vårdenheten som erbjuder/tillhandahåller
+						formuläret. Fysisk mottagning. T.ex. Den
+						avdelning som formuläret: se2321000016-1hz3
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="healthcare_facility_CareUnitName" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>
+						Vårdenhetens namn. T.ex. Testvårdcentral A,
+						Medicinmottagningen USÖ
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="healthcare_systemID" type="tns:HsaIdType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Hsa-id för att identifiera mottagande system.
+						T.ex. Ett hsa-id uttaget för en instans av ett
+						journalsystem
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="keepUntil" type="xs:string" minOccurs="0"/>
+			<xs:element name="currentPage" type="tns:PageType" minOccurs="0"/>
+			<xs:element name="answeredPages" type="tns:PageType" maxOccurs="unbounded" minOccurs="0"/>
+			<xs:element name="lastSavedDate" type="xs:string" minOccurs="0"/>
+			<xs:element name="subjectOfCare" type="tns:SubjectOfCareIdType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Patienten formuläret avser. Personnummer format
+						yyyymmddnnnn. T.ex. 191212121212.
+						FormTemplate.anonymousForm styr huruvida
+						formulärmotorn hanterar detta fält som
+						obligatoriskt eller frivilligt.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+      <xs:element name="calculationOutcomes" type="m1:CalculationOutcomeType" minOccurs="0" maxOccurs="unbounded" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="FormTemplateInfoType">
+		<xs:sequence>
+			<xs:element name="anonymousForm" type="xs:boolean">
+				<xs:annotation>
+					<xs:documentation>
+						Attributet styr huruvida formulärmotorn stöder
+						anonym användning av formuläret. Värden True =
+						Tillåter anonym användning. "SubjectOfCare" får
+						inte användas. False = Tillåter inte anonym
+						användning. "SubjectOfCare" är obligatorisk
+						attribut.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="category" type="tns:CategoryType" >
+				<xs:annotation>
+					<xs:documentation>
+						Formulärets kategori T.ex. Anmälan,
+						registrering, hälsodeklaration
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="code" type="tns:CodeType" minOccurs="0"/>
+			<xs:element name="description" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Formulärets beskrivning och instruktioner. T.ex.
+						Formuläret skall besvaras innan du besöker
+						mottageningen.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+      <xs:element name="formCompleteText" type="xs:string" minOccurs="0" />
+			<xs:element name="formName" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>
+						Mallens namn. T.ex. Hälsodeklaration Mödravård
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="formTitle" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Mallens/formulärets rubrik. Används på
+						formulärets introduktionssida.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="language" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>
+						Kodverk för språk Innehåller språkkoder som
+						utgår från SS-ISO 639-1:2005.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="media" type="tns:MediaType" minOccurs="0"/>
+			<xs:element name="maxNumberOfQuestions" type="xs:int">
+				<xs:annotation>
+					<xs:documentation>
+						Beskriver hur många frågor formuläret maximalt
+						kan innehåller. T.ex. 10
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="minNumberOfQuestions" type="xs:int"/>
+			<xs:element name="maxNumberOfPages" type="xs:int"/>
+      <xs:element name="minNumberOfPages" type="xs:int"/>
+			<xs:element name="mandatory" type="xs:boolean">
+				<xs:annotation>
+					<xs:documentation>
+						Indikerar om formuläret är obligatoriskt att
+						fylla i av användaren. T.ex. Ett obligatoriskt
+						formulär kan indikerar att formuläret är en del
+						av en vårdprocess. True = obligatoriskt False =
+						Frivilligt
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="publishStatus" type="tns:publishStatusType"/>
+			<xs:element name="templateVersion" type="xs:int"/>
+			<xs:element name="templateId" type="tns:TemplateIdType"/>
+			<xs:element name="term" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>
+						Villkor kopplade till formuläret. T.ex.
+						Villkorstext som användaren/patienten måste
+						godkänna innan formuläret kan besvaras.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:any namespace='##other' processContents='lax' minOccurs='0' maxOccurs='unbounded' />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:simpleType name="CategoryType">
+		<xs:annotation>
+			<xs:documentation>Formulärets kategori enligt kodverk X. T.ex.
+				Anmälan, registrering, hälsodeklaration.
+				KV Formulärkategori.
+			</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string"></xs:restriction>
+	</xs:simpleType>
+
+	<xs:complexType name="QuestionBlockType">
+		<xs:annotation>
+			<xs:documentation>Objektet innehåller ett block fråga och dess
+				svarsalternativ. Ett block representerar en grupp av frågor.
+				Grupperingen kan styras av vägskäl i fråge hierarkin alternativt
+				lämplig gruppering på grund av mängden frågor. </xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="blockNumber" type="xs:int">
+				<xs:annotation>
+					<xs:documentation>
+						Grupperingsbegrepp av frågor. Frågans nummer i
+						nummerserie. Används för att indikera hur långt
+						användaren har kommit i formuläret. T.ex Fråga
+						nummer 1 (av 10).
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="description" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Beskrivande text. Stöder kodverk ”DocBook” Se
+						tidbokningskontraktet!! T.ex här skall du lämna
+						information kring din medicinering.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+      <xs:element name="gridConfig" type="tns:GridConfigType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="informationURL" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						URL till ytterligare/relevant information. Länk
+						till publik information utan krav på
+						autentisering.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="numberOfQuestions" type="xs:int">
+				<xs:annotation>
+					<xs:documentation>
+						Antal frågor tillhörande blocket. T.ex. 10
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="questions" type="tns:QuestionType" maxOccurs="unbounded"/>
+			<xs:element name="subject" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Blockets rubrik. T.ex Medicin.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:any namespace='##other' processContents='lax' minOccurs='0' maxOccurs='unbounded' />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="QuestionType">
+		<xs:annotation>
+			<xs:documentation>Objektet innehåller en fråga samt metadata .
+				Exempel: ”Vilken är din favoritfärg?”
+			</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="answers" type="tns:AnswerType" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element name="answerAlternatives" type="tns:AnswerAlternativeType" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element name="answerMax" type="xs:int" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Specificerar maxvärde för inmatning. (Gäller
+						typ: number, date) T.ex: Ett värde får inte
+						överskrida 10. Blodtryck, rimlighetsparameter.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="answerMin" type="xs:int" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Specificerar minvärde för inmatning. (Gäller
+						typ: number, date)
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="answerMaxLength" type="xs:int" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Specificerar maxvärdelängd för inmatning.
+						(Gäller typ: number) T.ex: En inmatning (text)
+						får inte vara större än 100 tecken.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="answerPattern" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Inmatningsvalidering (Regular expresson). T.ex:
+						pattern="[A-z]{3}" tillåter endast 3 teckan A-z.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="answerStep" type="xs:int" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Specificerar giltiga intervall för inmatning.
+						(Gäller typ: number, range, date, datetime,
+						datetime-local, month, time och week) T.ex:
+						Skalningsfaktor för en ”slide” kontroll. Ange
+						värde för temperatur 35-40.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="code" type="tns:CodeType" minOccurs="0"/>
+			<xs:element name="description" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Frågans beskrivande text eller instruktion till
+						användaren/patient.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+      <xs:element name="gridValue" type="tns:GridValueType" minOccurs="0"/>
+      <xs:element name="input" type="tns:inputType" >
+				<xs:annotation>
+					<xs:documentation>
+						Beskriver frågans inmatningstyp. Kodverk
+						inmatningstyp. Text textarea Checkbox Radio
+						Select SelectMultiple Number URL Date and time
+						Date Month Week Time Local date and time Range
+						Image
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="inputUnit" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Typ av enhet. Grundenheter samt härledda
+						SI-enheter beskrivs med dess beteckning. T.ex.
+						km, m, cm, kg, mm Hg etc
+
+						Måttenheter enligt SI-systemet. SWEDAC (STAFS
+						2009:26)
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="media" type="tns:MediaType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						URL till bild. Bilden kan används för att
+						illustrera en fråga. (QuestionType Image)
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="informationURL" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						URL till ytterligare/relevant information. Länk
+						till publik information utan krav på
+						autentisering.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="mandatory" type="xs:boolean">
+				<xs:annotation>
+					<xs:documentation>
+						Indikerar om frågan är obligatorisk. True =
+						obligatorisk fråga False = Frivillig fråga
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="maxNumberOfChoices" type="xs:int" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Indikerar max antal värden som användaren får
+						välja vid checkbox/multivärde.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="minNumberOfChoices" type="xs:int" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Indikerar min. antal värden som användaren får
+						välja vid checkbox/multivärde.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="questionNumber" type="xs:int">
+				<xs:annotation>
+					<xs:documentation>
+						Frågans nummer i nummer serie. Används för att
+						indikera hur långt användaren har kommit i
+						formuläret. T.ex Fråga nummer 1 (av 10).
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="subject" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>
+						Frågans rubrik. T.ex Ange din blodgrupp.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="questionSuperior" type="tns:QuestionSuperiorType" minOccurs="0"/>
+			<xs:element name="validationEvents" type="tns:ValidationEventType" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element name="questionAlign" type="tns:AlignType" minOccurs="0" />
+			<xs:element ref="m1:questionId" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:simpleType name="inputType">
+		<xs:annotation>
+			<xs:documentation>Beskriver frågans inmatningstyp. Kodverk
+				inmatningstyp. T.ex. radio(enkelvärde), checkbox(multivärde) eller
+				fritext.
+				KV Inmatnings typ.
+			</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string"></xs:restriction>
+	</xs:simpleType>
+
+	<xs:complexType name="AnswerAlternativeType">
+		<xs:annotation>
+			<xs:documentation>
+				Objektet innehåller svarsalternativ för en fråga (QuestionType).
+			</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="alternativeValue" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>
+						Valbart svarsalternativ.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="answerAlternativeNumber" type="xs:int">
+				<xs:annotation>
+					<xs:documentation>
+						Svarsalternativets id.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="answerHelp" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Hjälptext till svarsalternativet. (placeholder)
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="code" type="tns:CodeType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Objekt för att definiera kodverk kopplat till
+						fråga.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+      <xs:element name="media" type="tns:MediaType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Svarsalternativ i bildform.</xs:documentation>
+				</xs:annotation>
+      </xs:element>
+      <xs:any namespace='##other' processContents='lax' minOccurs='0' maxOccurs='unbounded' />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="AnswerType">
+		<xs:annotation>
+			<xs:documentation>Objektet innehåller patientens/användarens svar på
+				en fråga.
+				-answerAlternativNumber skall användas om ett fördefinierat svarsalternativ används.
+				-value skall innehålla invånarens svar vid fritext (text).
+			</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+      <xs:element name="answerAlternativeNumber" type="xs:int" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Svarsalternativets id/nummer.</xs:documentation>
+				</xs:annotation>
+      </xs:element>
+			<xs:element name="answerStatus" type="tns:AnswerStatusType" minOccurs="0"/>
+			<xs:element name="value" type="xs:string" maxOccurs="1" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Patientens/användarens svar.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:any namespace='##other' processContents='lax' minOccurs='0' maxOccurs='unbounded' />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="FormsType">
+		<xs:sequence>
+			<xs:element name="createdDateTime" type="xs:string"/>
+			<xs:element name="expireDate" type="xs:string" minOccurs="0"/>
+			<xs:element name="formId" type="tns:FormIDType"/>
+			<xs:element name="formStatus" type="tns:FormStatusType"/>
+			<xs:element name="healthcare_CareGiver" type="tns:HsaIdType" minOccurs="0"/>
+			<xs:element name="healthcare_MedUnit" type="tns:HsaIdType" minOccurs="0"/>
+			<xs:element name="healthcare_facility_CareUnit" type="tns:HsaIdType" />
+			<xs:element name="healthcare_facility_CareUnitName" type="xs:string"/>
+			<xs:element name="healthcare_systemID" type="tns:HsaIdType" minOccurs="0"/>
+			<xs:element name="clinicalProcessInterestId" type="tns:clinicalProcessInterestIdType" minOccurs="0"/>
+			<xs:element name="keepUntil" type="xs:string"/>
+			<xs:element name="lastSavedDate" type="xs:string" minOccurs="0"/>
+			<xs:element name="subjectOfCare" type="tns:SubjectOfCareIdType" minOccurs="0"/>
+			<xs:element name="formTemplate" type="tns:FormTemplateInfoType" />
+      <xs:any namespace='##other' processContents='lax' minOccurs='0' maxOccurs='unbounded' />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="QuestionBlockAnswersType">
+		<xs:sequence>
+      <xs:element name="blockNumber" type="xs:int" />
+			<xs:element name="questionAnswers" type="tns:QuestionAnswerType" maxOccurs="unbounded"/>
+			<xs:any namespace='##other' processContents='lax' minOccurs='0' maxOccurs='unbounded' />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="QuestionAnswerType">
+		<xs:annotation>
+			<xs:documentation>Objektet innehåller en svaret på en fråga.
+			</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="answers" type="tns:AnswerType" maxOccurs="unbounded"/>
+      <xs:element name="questionNumber" type="xs:int" />
+			<xs:any namespace='##other' processContents='lax' minOccurs='0' maxOccurs='unbounded' />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="AnswerStatusType">
+		<xs:annotation>
+			<xs:documentation>Objekt innehåller statuskod och meddelande.
+			</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="resultCode" type="tns:ResultCodeEnumType">
+				<xs:annotation>
+					<xs:documentation>Signalerar om frågan är ifylld på ett felaktigt
+						sätt. Felkod.
+						OK - Transaktion utförd INFO - Transaktion utförd med kommentar.
+						ERROR - Transaktion ej genomförd
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="resultCodeText" type="xs:string" >
+				<xs:annotation>
+					<xs:documentation>Felmeddelande, förklarande text. Vid INFO eller
+						ERROR. T.ex. INFO – Medtag legitimation.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:any namespace='##other' processContents='lax' minOccurs='0' maxOccurs='unbounded' />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:simpleType name="ResultCodeEnumType">
+		<xs:annotation>
+			<xs:documentation>OK - transaktionen har utförts enligt uppdraget i
+				frågemeddelandet. INFO - transaktionen har utförts enligt uppdraget
+				i frågemeddelandet, men det finns ett meddelande som
+				tjänstekonsumenten måste visa upp för invånaren. Exempel på detta
+				kan vara ”medtag legitiomation vid besöket”. ERROR - transaktionen
+				har INTE kunnat utföras enligt uppdrag i frågemeddelandet p.g.a.
+				logiskt fel. Det finns ett meddelande som konsumenten måste visa
+				upp. Exempel på detta kan vara ”ditt svar gick inte att hantera pga
+				XXX”.
+			</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="OK"></xs:enumeration>
+			<xs:enumeration value="ERROR"></xs:enumeration>
+			<xs:enumeration value="INFO"></xs:enumeration>
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="FormStatusType">
+		<xs:annotation>
+			<xs:documentation>COMPLETED = Avslutad ONGOING = Pågående, frågor har
+				temporärsparats PENDING_COMPLETION = Pågående, frågor
+				har temporärsparats. Alla frågor är besvarade.
+				KV Form Status
+			</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="COMPLETED"></xs:enumeration>
+			<xs:enumeration value="PENDING_COMPLETION"></xs:enumeration>
+			<xs:enumeration value="ONGOING"></xs:enumeration>
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:complexType name="FormRequestType">
+		<xs:sequence>
+            <xs:element name="clinicalProcessInterestId" type="tns:clinicalProcessInterestIdType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						HSA-id för framställarens enhet/process + unik
+						identifierare. Globalt/nationellt hälsoärende
+						ID.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+      <xs:element name="expireDate" type="xs:string" />
+      <xs:element name="formText" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Unik text för Formulär. Används t.ex.
+						"CreateFormRequest" för att bifoga en unik text
+						för formuläret. T.ex. "Hälsoundersökning inför
+						besök X".
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+      <xs:element name="healthcare_CareGiver" type="tns:HsaIdType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Ansvarig vårdgivare (huvudman). T.ex. Landsting.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="healthcare_facility_CareUnit" type="tns:HsaIdType" >
+				<xs:annotation>
+					<xs:documentation>
+						Vårdenheten som erbjuder/tillhandahåller
+						formuläret. Fysisk mottagning. T.ex. Den
+						avdelning som formuläret: se2321000016-1hz3
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="healthcare_MedUnit" type="tns:HsaIdType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Medicinsk ansvarig klinik/vårdcentral eller
+						motsvarande. T.ex. Medicinklinik
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="healthcare_systemID" type="tns:HsaIdType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Id för att identifiera mottagande system. T.ex.
+						Ett hsa-id uttaget för en instans av ett
+						journalsystem
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+      <xs:element name="keepUntil" type="xs:string" />
+      <xs:element name="subjectOfCare" type="tns:SubjectOfCareIdType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						FormTemplate.anonymousForm styr huruvida
+						formulärmotorn hanterar detta fält som
+						obligatoriskt eller frivilligt.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="templateId" type="tns:TemplateIdType">
+				<xs:annotation>
+					<xs:documentation>
+						Typ av formulär. Kodverk för standardiserade id
+						för formulärtyper.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="templateVersion" type="xs:int" minOccurs="0"/>
+			<xs:any namespace='##other' processContents='lax' minOccurs='0' maxOccurs='unbounded' />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="QuestionSuperiorType">
+		<xs:annotation>
+			<xs:documentation>
+				Objekt för att indikera beroenden till överordnade
+				frågor finns.
+			</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="superiorAnswerAlternativeNumbers" type="xs:int" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="superiorQuestionNumber" type="xs:int" />
+			<xs:any namespace='##other' processContents='lax' minOccurs='0' maxOccurs='unbounded' />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="PageType">
+		<xs:annotation>
+			<xs:documentation>
+				En PageType representerar en formulärsida. En page
+				innehåller en gruppering av QuestionBlock som skall
+				kunna visas tillsammans. - Sidan kan innehålla en till
+				många QuestionBlock.
+			</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="questionBlocks" type="tns:QuestionBlockType" maxOccurs="unbounded"/>
+			<xs:element name="description" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Beskrivande text. Stöder kodverk ”DocBook” Se
+						tidbokningskontraktet för formatering (Todo).
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+      <xs:element name="informationURL" type="xs:string" minOccurs="0">
+        	<xs:annotation>
+          	<xs:documentation>						
+            URL till ytterligare/relevant information. Länk
+						till publik information utan krav på
+						autentisering.
+            </xs:documentation>
+          </xs:annotation>
+      </xs:element>
+			<xs:element name="lastPage" type="xs:boolean">
+				<xs:annotation>
+					<xs:documentation>
+						Indikerar om ytterligare frågeblock/page finns.
+						Detta ger indikation för konsumerande system att
+						presentera en knapp för att ”Avsluta och skicka”
+						formuläret. True = Indikerar att detta är det
+						sistea frågeblocket/page. False = Indikerar att
+						ytterligare frågeblock/page .
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="subject" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Sidans rubrik. Information till
+						invånaren/användaren.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="pageNumber" type="xs:int" >
+				<xs:annotation>
+					<xs:documentation>
+						Grupperingsbegrepp av sida (page). Sidans nummer
+						i nummerserie. Används för att indikera hur
+						långt användaren har kommit i formuläret. T.ex
+						Sida nummer 1 (av 10).
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:any namespace='##other' processContents='lax' minOccurs='0' maxOccurs='unbounded' />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="PageAnswerType">
+		<xs:sequence>
+      <xs:element name="pageNumber" type="xs:int"/>
+			<xs:element name="questionAnswerBlocks" type="tns:QuestionBlockAnswersType" maxOccurs="unbounded"/>
+			<xs:any namespace='##other' processContents='lax' minOccurs='0' maxOccurs='unbounded' />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="FormRequestResponseType">
+		<xs:annotation>
+			<xs:documentation>Objektet returneras till anropande system vid
+				"createFormRequest" (Formulärbegäran). Anropande system får ett
+				unika ID per formulärbegäran.</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="clinicalProcessInterestId" type="tns:clinicalProcessInterestIdType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						HSA-id för framställarens enhet/process + unik
+						identifierare. Globalt/nationellt hälsoärende
+						ID.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="formId" type="tns:FormIDType">
+				<xs:annotation>
+					<xs:documentation>
+						Formulärets unika ID (Sätts av formulärmotorn
+						id/GUID).
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="healthcare_facility_CareUnit" type="tns:HsaIdType">
+				<xs:annotation>
+					<xs:documentation>
+						Vårdenheten som erbjuder/tillhandahåller
+						formuläret. Fysisk mottagning. T.ex. Den
+						avdelning som formuläret: se2321000016-1hz3.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+      <xs:element name="subjectOfCare" type="tns:SubjectOfCareIdType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>FormTemplate.anonymousForm styr huruvida
+						formulärmotorn hanterar detta fält som
+						obligatoriskt eller frivilligt.</xs:documentation>
+				</xs:annotation>
+      </xs:element>
+			<xs:any namespace='##other' processContents='lax' minOccurs='0' maxOccurs='unbounded' />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="ValidationEventType">
+		<xs:annotation>
+			<xs:documentation>Objektet innehåller felmeddelanen kopplade till en
+				fråga.
+				Följande Events är giltiga:
+				mandatory answerMax answerMin answerMaxLength answerPattern
+				maxNumberOfChoises minNumberOfChoises answerSuperior
+			</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="event" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Följande events är giltiga:
+						mandatory answerMax answerMin
+						answerMaxLength answerPattern maxNumberOfChoises minNumberOfChoises
+						answerSuperior
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="text" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Valideringstext/meddelande. Informationen skall
+						presenteras för användaren vid valideringsfel.
+          </xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="CodeType">
+		<xs:annotation>
+			<xs:documentation>Objekt för att definiera kodverk kopplat till
+				frågan/svar.
+				Ex:
+				- ICD-10(Diagnos kod)
+				- KVÅ (Operations kod)
+				- SNOMED-CT.
+				- EQ5D
+			</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+      <xs:element name="codeValue" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>
+						Kod som används (Kodverk).Kod identifieras av
+						"codeSystem".</xs:documentation>
+				</xs:annotation>
+      </xs:element>
+      <xs:element name="codeSystem" type="xs:string" maxOccurs="1">
+				<xs:annotation>
+					<xs:documentation>
+						Identifierar vilket kodverk som används.</xs:documentation>
+				</xs:annotation>
+      </xs:element>
+			<xs:any namespace='##other' processContents='lax' minOccurs='0' maxOccurs='unbounded' />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="FormTemplateType">
+		<xs:sequence>
+			<xs:element name="anonymousForm" type="xs:boolean"/>
+			<xs:element name="category" type="tns:CategoryType"/>
+			<xs:element name="code" type="tns:CodeType" minOccurs="0"/>
+			<xs:element name="description" type="xs:string" minOccurs="0"/>
+			<xs:element name="descriptionInternal" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Beskrivningsfält. Intern kommentar - Visas ej
+						för patient.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+      <xs:element name="formCompleteText" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Informationstext vid avslutat och sparat
+						formulär.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+      <xs:element name="formName" type="xs:string"/>
+			<xs:element name="formTitle" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Mallens/formulärets rubrik. Används på
+						formulärets introduktionssida.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="healthCareFacilityUnit" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>
+						Ägaren av mallen. Hsa-id.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="language" type="xs:string" />
+			<xs:element name="media" type="tns:MediaType" minOccurs="0"/>
+			<xs:element name="maxNumberOfQuestions" type="xs:int"/>
+			<xs:element name="minNumberOfQuestions" type="xs:int"/>
+			<xs:element name="maxNumberOfPages" type="xs:int"/>
+			<xs:element name="minNumberOfPages" type="xs:int"/>
+			<xs:element name="pages" type="tns:TemplateRoutedPageType" maxOccurs="unbounded"/>
+			<xs:element name="publishStatus" type="tns:publishStatusType"/>
+			<xs:element name="templateId" type="tns:TemplateIdType"/>
+			<xs:element name="templatePropagate" type="tns:TemplatePropagateType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Attribut för att reglera hur mallen delas.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="templateVersion" type="xs:int">
+				<xs:annotation>
+					<xs:documentation>
+						Mallens version.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="term" type="xs:string"/>
+      <xs:element name="calculationFormulas" type="m1:CalculationFormulaType" minOccurs="0" maxOccurs="unbounded" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="TemplatePageType">
+		<xs:sequence>
+			<xs:element name="questionBlocks" type="tns:TemplateQuestionBlockType" maxOccurs="unbounded" minOccurs="0"/>
+			<xs:element name="description" type="xs:string" minOccurs="0"/>
+			<xs:element name="informationURL" type="xs:string" minOccurs="0"/>
+			<xs:element name="subject" type="xs:string" minOccurs="0"/>
+			<xs:element name="pagenumber" type="xs:int"/>
+			<xs:element name="media" type="tns:MediaType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="TemplateQuestionBlockType">
+		<xs:sequence>
+			<xs:element name="blockNumber" type="xs:string"/>
+			<xs:element name="description" type="xs:string" minOccurs="0"/>
+      <xs:element name="gridConfig" type="tns:GridConfigType" minOccurs="0"/>
+      <xs:element name="informationURL" type="xs:string" minOccurs="0"/>
+			<xs:element name="numberOfQuestions" type="xs:int"/>
+			<xs:element name="questions" type="tns:TemplateQuestionType" maxOccurs="unbounded"/>
+			<xs:element name="subject" type="xs:string" minOccurs="0"/>
+			<xs:element name="media" type="tns:MediaType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="TemplateQuestionType">
+		<xs:sequence>
+			<xs:element name="answerAlternatives" type="tns:AnswerAlternativeType" maxOccurs="unbounded" minOccurs="0"/>
+			<xs:element name="answerMax" type="xs:int" minOccurs="0"/>
+			<xs:element name="answerMin" type="xs:int" minOccurs="0"/>
+			<xs:element name="answerMaxLength" type="xs:int" minOccurs="0"/>
+			<xs:element name="answerPattern" type="xs:string" minOccurs="0"/>
+			<xs:element name="answerStep" type="xs:int" minOccurs="0"/>
+			<xs:element name="code" type="tns:CodeType" minOccurs="0"/>
+			<xs:element name="description" type="xs:string" minOccurs="0"/>
+      <xs:element name="gridValue" type="tns:GridValueType" minOccurs="0"/>
+      <xs:element name="input" type="tns:inputType"/>
+			<xs:element name="inputUnit" type="xs:string" minOccurs="0"/>
+			<xs:element name="media" type="tns:MediaType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						URL till bild. Bilden kan används för att
+						illustrera en fråga. (QuestionType Image)
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="informationURL" type="xs:string" minOccurs="0"/>
+			<xs:element name="mandatory" type="xs:boolean" />
+			<xs:element name="maxNumberOfChoices" type="xs:int" minOccurs="0"/>
+			<xs:element name="minNumberOfChoices" type="xs:int" minOccurs="0"/>
+			<xs:element name="questionNumber" type="xs:int" />
+			<xs:element name="subject" type="xs:string" />
+			<xs:element name="questionSuperior" type="tns:QuestionSuperiorType" minOccurs="0"/>
+			<xs:element name="validationEvents" type="tns:ValidationEventType" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element name="questionAlign" type="tns:AlignType" minOccurs="0" />
+      <xs:element ref="m1:answerMinLabel" minOccurs="0"/>
+      <xs:element ref="m1:answerMaxLabel" minOccurs="0"/>
+      <xs:element ref="m1:answerPlaceholder" minOccurs="0"/>
+      <xs:element ref="m1:questionId" minOccurs="0"/>
+    </xs:sequence>
+	</xs:complexType>
+
+	<xs:simpleType name="countycodeType">
+        <xs:annotation>
+        	<xs:documentation>Länskod enligt ISO 3166-2:SE.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string"></xs:restriction>
+	</xs:simpleType>
+
+	<xs:complexType name="TemplatePropagateType">
+        <xs:annotation>
+        	<xs:documentation>Objekt för att definiera om mallen är global. Attributet countycode styr mallens tillgänglighet. ISO 3166-2:SE</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+        	<xs:element name="countycodes" type="tns:countycodeType" maxOccurs="unbounded" minOccurs="0">
+            <xs:annotation>
+             	<xs:documentation>Avgränsande fält. Om Propagate "true" kan mallen delas inom en till flera länskoder. 
+Om attributet är tomt delas mallen utan avgränsning.
+
+Avgärningens (länskod) gäller för inom det län verksamheten (hsa-id) verkar inom.
+              </xs:documentation>
+            </xs:annotation>
+        	</xs:element>
+        	<xs:element name="propagate" type="xs:boolean" >
+        		<xs:annotation>
+        			<xs:documentation>Attribut för att indikera att mallen är global.
+True = Mallen delas (t.ex är nationell).
+False = Mallen delas inte. </xs:documentation>
+        		</xs:annotation></xs:element>
+        </xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="TemplateRoutedPageType">
+        <xs:annotation>
+        	<xs:documentation>Objekt för att logikstyra vilka sidor (page) som visas baserat på svarsalternativ.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+			<xs:element name="page" type="tns:TemplatePageType"/>
+			<xs:element name="routing" type="tns:TemplateRoutingType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="TemplateRoutingType">
+        <xs:annotation>
+        	<xs:documentation>Objekt för att en till många sid (page) alternativ för en sida (page). T.ex. olika sidor presenteras beroende på ålder eller sjukdomstillstånd. En underliggande "TemplateRuleType" används för att beräkna/avgöra nästa sida (page). 
+Logik hanteras av formulöärmotorn.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+			<xs:element name="routes" type="tns:TemplateRouteType" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="TemplateRouteType">
+        <xs:annotation>
+        	<xs:documentation>Objekt för att skapa en eller flera regler (rule) för en sida (pgae).</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+			<xs:element name="pageNumber" type="xs:int"/>
+			<xs:element name="rules" type="tns:TemplateRuleType" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+	
+
+    <xs:complexType name="TemplateRuleType">
+        <xs:annotation>
+        	<xs:documentation>Objekt för att definiera regel för att visa en specifik sida (page).</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+    		<xs:element name="blockNumber" type="xs:int"/>
+    		<xs:element name="questionNumber" type="xs:string">
+          <xs:annotation>
+            <xs:documentation>Frågans nummer</xs:documentation>
+          </xs:annotation>
+    		</xs:element>
+    		<xs:element name="operator" type="tns:OperatorType" minOccurs="0">
+          <xs:annotation>
+           	<xs:documentation>EQ (equality)
+LT (less then)
+GT (greater)</xs:documentation>
+          </xs:annotation>
+    		</xs:element>
+    		<xs:element name="value" type="xs:string" minOccurs="0"/>
+    	</xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="OperatorType">
+    	<xs:restriction base="xs:string">
+    		<xs:enumeration value="EQ"></xs:enumeration>
+    		<xs:enumeration value="LT"></xs:enumeration>
+    		<xs:enumeration value="GT"></xs:enumeration>
+    	</xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="publishStatusType">
+        <xs:annotation>
+        	<xs:documentation>Mallens status:
+Unpublished - Ny
+Pending - Redo för publisering
+Published - Publiserad (kan användas för att skapa formulär)
+Archived - Arkiverad (kan EJ användas för att skapa formulär)</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string"></xs:restriction>
+    </xs:simpleType>
+
+
+    <xs:complexType name="MediaType">
+        <xs:annotation>
+        	<xs:documentation>Media.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+    		<xs:element name="mediaURL" type="xs:string">
+    			<xs:annotation>
+    				<xs:documentation>URL eller adress till media.</xs:documentation>
+    			</xs:annotation></xs:element>
+    		<xs:element name="mediaType" type="xs:string">
+    			<xs:annotation>
+    				<xs:documentation>Giltiga MIME typer.</xs:documentation>
+    			</xs:annotation></xs:element>
+          <xs:element ref="m1:mediaAlt" minOccurs="0" >
+            <xs:annotation>
+              <xs:documentation>alternativ text som beskriver det element som attributet hör till</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element ref="m1:mediaCaption" minOccurs="0" >
+            <xs:annotation>
+              <xs:documentation>URL eller adress till undertext.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+    	</xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="GridConfigType">
+        <xs:annotation>
+        	<xs:documentation>Typ för att definera ett rutnät (grid). Rutnätet används för att kunna styra var frågor(Question) presenteras.
+ </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+    		<xs:element name="cols" type="xs:int" />
+    		<xs:element name="rows" type="xs:int" />
+    	</xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="GridValueType">
+        <xs:annotation>
+        	<xs:documentation>Definerar i vilken ruta frågan skall presenteras i.
+- GridValue är endast giltigt om QuestionBlock.GridConfiguration är satt.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+    		<xs:element name="col" type="xs:int" />
+    		<xs:element name="row" type="xs:int" />
+    	</xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="AlignType">
+        <xs:annotation>
+        	<xs:documentation>Presentationsrekommendation för fråga och svarsalternativ.
+            -left
+            -right
+            -Center
+            -vertical: Fråga och svarsalternativ presenteras i vertikalt. T.ex. inmatning placeras under rubrik.
+            -horizontal: Fråga och svarsalternativ presenteras i horisontalt. T.ex. inmatning placeras brevid varandra.code
+            -none: Inget inmatningsfält skall visas
+        </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string"></xs:restriction>
+    </xs:simpleType>
+
+
+</xs:schema>

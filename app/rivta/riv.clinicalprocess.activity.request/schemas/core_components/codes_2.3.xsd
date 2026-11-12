@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+xmlns="urn:riv:clinicalprocess:activity:request:codes:2" 
+targetNamespace="urn:riv:clinicalprocess:activity:request:codes:2" 
+elementFormDefault="qualified" attributeFormDefault="unqualified" version="2.3">
+	<!-- kv_framställantyp, 1.2.752.129.2.2.2.24 -->
+	<xs:simpleType name="codeForRequestType_values">
+		<xs:restriction base="xs:int">
+			<xs:enumeration value="4">
+				<xs:annotation>
+					<xs:documentation>allmänremiss</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="codeForRequestType">
+		<xs:annotation>
+			<xs:documentation>Denna värdemängd innehåller information om vilken typ av remiss som avses.</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="code" type="codeForRequestType_values" use="required"/>
+		<!-- Fixed attributes not needed in greenCDA
+		<xs:attribute name="codeSystem" use="required" fixed="1.2.752.129.2.2.2.24"/>
+		-->
+	</xs:complexType>
+	<xs:simpleType name="codeVersionReason_values">
+		<xs:annotation>
+			<xs:documentation>Anger varför en ny version skapats</xs:documentation>
+			<xs:documentation>OID:1.2.752.129.5.1.32</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="NR">
+				<xs:annotation>
+					<xs:documentation>Ny remiss</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="AR">
+				<xs:annotation>
+					<xs:documentation>Ändrad remiss</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="VR">
+				<xs:annotation>
+					<xs:documentation>Vidareskickad remiss</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="AB">
+				<xs:annotation>
+					<xs:documentation>Ändrat betalningsansvar</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="codeVersionReason">
+		<xs:annotation>
+			<xs:documentation>Anger varför en ny version skapats.</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="code" type="codeVersionReason_values" use="required"/>
+		<!-- Not needed when fixed in greenCDA
+		<xs:attribute name="codeSystem" use="required" fixed="1.2.752.129.5.1.32"/>
+		-->
+	</xs:complexType>
+	<xs:simpleType name="codeRequestOutcomeType_values">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="DSV">
+				<xs:annotation>
+					<xs:documentation>Delsvar</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="PSV">
+				<xs:annotation>
+					<xs:documentation>Preliminärt svar</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="SSV">
+				<xs:annotation>
+					<xs:documentation>Slutsvar</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="codeRequestConfirmationType_values">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="KOM">
+				<xs:annotation>
+					<xs:documentation>Kompletteringsbegäran</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="BEK">
+				<xs:annotation>
+					<xs:documentation>Bekräftelse</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="VID">
+				<xs:annotation>
+					<xs:documentation>Besked om vidareskickning</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="AVB">
+				<xs:annotation>
+					<xs:documentation>Avbruten remiss</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="AVV">
+				<xs:annotation>
+					<xs:documentation>Avvisad remiss</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="codeRequestOutcomeType">
+		<xs:annotation>
+			<xs:documentation>Anger typen av svar.</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="code" type="codeRequestOutcomeType_values" use="required"/>
+	</xs:complexType>
+	<xs:complexType name="codeRequestConfirmationType">
+		<xs:annotation>
+			<xs:documentation>Anger typen av remissbekräftelse.</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="code" type="codeRequestConfirmationType_values" use="required"/>
+	</xs:complexType>
+	<xs:simpleType name="codeForGenderType_values">
+		<xs:restriction base="xs:int">
+			<xs:enumeration value="0">
+				<xs:annotation>
+					<xs:documentation>okänt</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="1">
+				<xs:annotation>
+					<xs:documentation>man</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="2">
+				<xs:annotation>
+					<xs:documentation>kvinna</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="9">
+				<xs:annotation>
+					<xs:documentation>ej tillämpligt</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="codeForGenderType">
+		<xs:annotation>
+			<xs:documentation>Anger adminstrativt kön.</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="code" type="codeForGenderType_values" use="required"/>
+		<!-- Fixed attributes not needed in greenCDA
+		<xs:attribute name="codeSystem" use="required" fixed="1.2.752.129.2.2.1.1"/>
+		-->
+	</xs:complexType>
+	<xs:simpleType name="codeForTelecomType_values">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="H">
+				<xs:annotation>
+					<xs:documentation>hemtelefon</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="MC">
+				<xs:annotation>
+					<xs:documentation>mobiltelefon</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="codeForTelecomType">
+		<xs:annotation>
+			<xs:documentation>Anger olika typer av telekomadresser</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="code" type="codeForTelecomType_values" use="required"/>
+	</xs:complexType>
+	
+</xs:schema>

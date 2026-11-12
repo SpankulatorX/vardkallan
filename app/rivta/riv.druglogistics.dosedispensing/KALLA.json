@@ -1,0 +1,89 @@
+{
+ "doman": "riv.druglogistics.dosedispensing",
+ "kalla": "https://bitbucket.org/rivta-domains/riv.druglogistics.dosedispensing",
+ "tagg": "TD_DRUGLOGISTICS_DOSEDISPENSING_1_1_0",
+ "commit": "ff5de62545f2bee995c5361272027758b504de91",
+ "arkiv": "https://bitbucket.org/rivta-domains/riv.druglogistics.dosedispensing/get/ff5de62545f2bee995c5361272027758b504de91.zip",
+ "arkivSha256": "1b30291062621d1ff1e71c70c62c6a62166030cb4d4ab26715cdb6a1aed2c3fa",
+ "licens": "Apache License 2.0 enligt licensraden i domänens filer",
+ "tjanstekontrakt": [
+  "SkapaVardtagare",
+  "HamtaVardtagareinformation",
+  "UppdateraVardtagareinformation",
+  "SkickaMeddelanden",
+  "HamtaMeddelanden",
+  "SokVardandeEnhet"
+ ],
+ "filer": [
+  {
+   "fil": "schemas/core_components/druglogistics_dosedispensing_1.0.xsd",
+   "sha256": "7283e0058e3f2525ce26cbb969db5d143146bbbbe2e54b670d211f4d0024ae55",
+   "licensrad": false
+  },
+  {
+   "fil": "schemas/core_components/ws-addressing-1.0.xsd",
+   "sha256": "97a9e9650f3465f97cebc3176161cb21b061a21f75a998e7ce7a67077773c035",
+   "licensrad": false
+  },
+  {
+   "fil": "schemas/interactions/HamtaMeddelandenInteraction/HamtaMeddelandenInteraction_1.0_RIVTABP20.wsdl",
+   "sha256": "6f55d3dafb748a1898442d96b048eb644dc4536176ab93afc111990b0e3956a8",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/HamtaMeddelandenInteraction/HamtaMeddelandenResponder_1.0.xsd",
+   "sha256": "d7c6cb82bb4af7f4f94ff777466609de8c2064a66e50d75a7ab3938fac58d944",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/HamtaVardtagareinformationInteraction/HamtaVardtagareinformationInteraction_1.0_RIVTABP20.wsdl",
+   "sha256": "9a5df3475f16ba24ed317169c8be9d88f4e94c391460b05a235375fb538435c3",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/HamtaVardtagareinformationInteraction/HamtaVardtagareinformationResponder_1.0.xsd",
+   "sha256": "101aeba6e8aba08af46ad23cdd1435d9cd4d09c95c36001a5e1aa8bec8a536dd",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/SkapaVardtagareInteraction/SkapaVardtagareInteraction_1.0_RIVTABP20.wsdl",
+   "sha256": "fb7a912427b6edecf0e460c93e35188ddaca7fca4eeed38a00285cf05c769573",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/SkapaVardtagareInteraction/SkapaVardtagareResponder_1.0.xsd",
+   "sha256": "07e71373798133dd454b33e926ea3c4e2abccfa4f109657574cb8706413876c6",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/SkickaMeddelandenInteraction/SkickaMeddelandenInteraction_1.0_RIVTABP20.wsdl",
+   "sha256": "4af778731ed24a4ae84dae105d74cb4d793e090e3c09b80feab5bdda476f5ed2",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/SkickaMeddelandenInteraction/SkickaMeddelandenResponder_1.0.xsd",
+   "sha256": "91789c45c16e683e000b1db41268324f7907e18b28bb9fb9b7198c0e1b9f9dd7",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/SokVardandeEnhetInteraction/SokVardandeEnhetInteraction_1.0_RIVTABP20.wsdl",
+   "sha256": "3b775e40893b2bfc6bd8fd191fec0079e9186a9c17b286d9d89b225a17f8e5b0",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/SokVardandeEnhetInteraction/SokVardandeEnhetResponder_1.0.xsd",
+   "sha256": "dde2af00b5522efa248975928d348cedc71d9e73045e874c01f543befcf7f584",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/UppdateraVardtagareinformationInteraction/UppdateraVardtagareinformationInteraction_1.0_RIVTABP20.wsdl",
+   "sha256": "32a60d28d03c08cdcae14fc15037f5fedfdea6034a136410857ebdc5fcec759d",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/UppdateraVardtagareinformationInteraction/UppdateraVardtagareinformationResponder_1.0.xsd",
+   "sha256": "7cc45c4f45ef494df214c063d022e602402029210ec726df678075ca04fe1f0a",
+   "licensrad": true
+  }
+ ]
+}

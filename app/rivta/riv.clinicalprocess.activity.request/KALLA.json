@@ -1,0 +1,61 @@
+{
+ "doman": "riv.clinicalprocess.activity.request",
+ "kalla": "https://bitbucket.org/rivta-domains/riv.clinicalprocess.activity.request",
+ "tagg": "2.3",
+ "commit": "3fc7315e4628d7468d6c5be80ce8dcf987315dc9",
+ "arkiv": "https://bitbucket.org/rivta-domains/riv.clinicalprocess.activity.request/get/3fc7315e4628d7468d6c5be80ce8dcf987315dc9.zip",
+ "arkivSha256": "419d506d81b7fe3913c2b299f25095ea015e2914bb6584ceb802d85f5278969c",
+ "licens": "Apache License 2.0 enligt licensraden i domänens filer",
+ "tjanstekontrakt": [
+  "ProcessRequest",
+  "ProcessRequestConfirmation",
+  "ProcessRequestOutcome"
+ ],
+ "filer": [
+  {
+   "fil": "schemas/core_components/clinicalprocess_activity_request_2.3.xsd",
+   "sha256": "28d4f5b8c3e5e0aec818fd68af424cbd8dfd85cb42a23087382a901c4f345e65",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/core_components/codes_2.3.xsd",
+   "sha256": "69b6f37c880ea2dbd86264ac6bfaf37ee6d5e258760d44d779f5ff775f30ced4",
+   "licensrad": false
+  },
+  {
+   "fil": "schemas/core_components/itintegration_registry_1.0.xsd",
+   "sha256": "5827002c9a3bae74863f6add21f9c5d8efad15167c807de91ec1453656cf771c",
+   "licensrad": false
+  },
+  {
+   "fil": "schemas/interactions/ProcessRequestConfirmationInteraction/ProcessRequestConfirmationInteraction_2.3_RIVTABP21.wsdl",
+   "sha256": "9a35a0b05a1eea69742fdc31bf89684f1619b6ab57a7a20da986743555b109b8",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/ProcessRequestConfirmationInteraction/ProcessRequestConfirmationResponder_2.3.xsd",
+   "sha256": "6e7d0d99816e497c417463b62dddf4fc48056c35cb22789dbfbc1bd5d41a8cb3",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/ProcessRequestInteraction/ProcessRequestInteraction_2.3_RIVTABP21.wsdl",
+   "sha256": "2aeb986fc414d74ad03bbdfc49508018b0fb5bc04aa27279d78e540eaac1226b",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/ProcessRequestInteraction/ProcessRequestResponder_2.3.xsd",
+   "sha256": "dfab3588d759b84a8d8ca47329b02fdb33a39311029450c9e49621d8e27d20c8",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/ProcessRequestOutcomeInteraction/ProcessRequestOutcomeInteraction_2.3_RIVTABP21.wsdl",
+   "sha256": "3ed7db68c5082d3753b054c5ad7e72c0317eb469cd92bd0cf00719252bb65e1f",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/ProcessRequestOutcomeInteraction/ProcessRequestOutcomeResponder_2.3.xsd",
+   "sha256": "1ef643585d746e082415a6236d35593e8117d55c5a8ddd200154356d9dd4bcce",
+   "licensrad": true
+  }
+ ]
+}

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- 
+ Licensed to the Apache Software Foundation (ASF) under one
+ or more contributor license agreements. See the NOTICE file
+ distributed with this work for additional information
+ regarding copyright ownership. Sveriges Kommuner och Landsting licenses this file
+ to you under the Apache License, Version 2.0 (the
+ "License"); you may not use this file except in compliance
+ with the License. You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied. See the License for the
+ specific language governing permissions and limitations
+ under the License.
+ -->		
+<wsdl:definitions name='IsActiveUserInteraction' 
+  xmlns:wsdl='http://schemas.xmlsoap.org/wsdl/' 
+  xmlns:soap='http://schemas.xmlsoap.org/wsdl/soap/' 
+  xmlns:xs='http://www.w3.org/2001/XMLSchema' 
+  xmlns:tjsr='urn:riv-application:infrastructure:eservicesupply:patientportal:IsActiveUserResponder:2' 
+  xmlns:tjsi='urn:riv-application:infrastructure:eservicesupply:patientportal:IsActiveUserInitiator:2' 
+  xmlns:tns='urn:riv-application:infrastructure:eservicesupply:patientportal:IsActiveUser:2:rivtabp21' 
+  targetNamespace='urn:riv-application:infrastructure:eservicesupply:patientportal:IsActiveUser:2:rivtabp21' 
+  xmlns:itr='urn:riv:itintegration:registry:1'>
+    <wsdl:documentation>
+			 Tjänsteinteraktionens namn: IsActiveUserInteraction
+			 Beskrivning: 
+			   Used to check if an individual is a user in the national patientportal
+			 Revisioner: 
+			 Tjänstedomän: infrastructure:eservicesupply:patientportal
+			 Tjänsteinteraktionstyp: Fråga-Svar
+			 WS-profil: RIVTABP21
+			 Förvaltas av: Sveriges Kommuner och Landsting
+			 </wsdl:documentation>
+  <wsdl:types>
+    <xs:schema targetNamespace='urn:riv-application:infrastructure:eservicesupply:patientportal:IsActiveUser:2:rivtabp21'>
+      <xs:import schemaLocation='IsActiveUserResponder_2.0.xsd' namespace='urn:riv-application:infrastructure:eservicesupply:patientportal:IsActiveUserResponder:2' />
+      <xs:import schemaLocation='../../core_components/itintegration_registry_1.0.xsd' namespace='urn:riv:itintegration:registry:1' />
+    </xs:schema>
+  </wsdl:types>
+  <wsdl:message name='IsActiveUserRequest'>
+    <wsdl:part name='LogicalAddress' element='itr:LogicalAddress'>
+      <wsdl:documentation>hsaid for the service provider</wsdl:documentation>
+    </wsdl:part>
+    <wsdl:part name='parameters' element='tjsr:IsActiveUser' />
+  </wsdl:message>
+  <wsdl:message name='IsActiveUserResponse'>
+    <wsdl:part name='parameters' element='tjsr:IsActiveUserResponse' />
+  </wsdl:message>
+  <wsdl:portType name='IsActiveUserResponderInterface'>
+    <wsdl:operation name='IsActiveUser'>
+      <wsdl:input message='tns:IsActiveUserRequest' />
+      <wsdl:output message='tns:IsActiveUserResponse' />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name='IsActiveUserResponderBinding' type='tns:IsActiveUserResponderInterface'>
+    <soap:binding style='document' transport='http://schemas.xmlsoap.org/soap/http' />
+    <wsdl:operation name='IsActiveUser'>
+      <soap:operation soapAction='urn:riv-application:infrastructure:eservicesupply:patientportal:IsActiveUserResponder:2:IsActiveUser' style='document' />
+      <wsdl:input>
+        <soap:header use='literal' message='tns:IsActiveUserRequest' part='LogicalAddress' />
+        <soap:body use='literal' parts='parameters' />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use='literal' />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name='IsActiveUserResponderService'>
+    <wsdl:port name='IsActiveUserResponderPort' binding='tns:IsActiveUserResponderBinding'>
+      <soap:address location='http://tempuri.org' />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

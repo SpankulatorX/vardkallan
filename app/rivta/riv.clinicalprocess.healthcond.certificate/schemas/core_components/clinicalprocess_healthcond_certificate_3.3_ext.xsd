@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<xs:schema xmlns:tns="urn:riv:clinicalprocess:healthcond:certificate:3.3"
+	xmlns:core="urn:riv:clinicalprocess:healthcond:certificate:3"
+	xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+	targetNamespace="urn:riv:clinicalprocess:healthcond:certificate:3.3"
+	elementFormDefault="qualified" 
+	attributeFormDefault="unqualified"
+	version="3.3">
+	
+	<!-- import the core schema -->
+	<xs:import namespace="urn:riv:clinicalprocess:healthcond:certificate:3" schemaLocation="clinicalprocess_healthcond_certificate_3.2.xsd" />
+
+	<!-- Added in version 3.3 for use in CreateDraftCertificate -->
+	<xs:complexType name="Forifyllnad">
+		<xs:sequence>
+			<xs:element name="svar" type="core:Svar" minOccurs="0" maxOccurs="unbounded" />
+			<xs:any namespace="##other" processContents="lax" minOccurs="0"
+				maxOccurs="unbounded" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<!-- 
+		Minor version Extension used in the CreateDraftCertificate interaction
+	-->
+	<xs:element name="forifyllnad" type="tns:Forifyllnad" />
+
+</xs:schema>

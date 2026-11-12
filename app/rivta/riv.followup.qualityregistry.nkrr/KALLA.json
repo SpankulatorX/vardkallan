@@ -1,0 +1,55 @@
+{
+ "doman": "riv.followup.qualityregistry.nkrr",
+ "kalla": "https://bitbucket.org/rivta-domains/riv.followup.qualityregistry.nkrr",
+ "tagg": "1.2.2",
+ "commit": "edc9ed9be6295303470de067aa8bd7518993137f",
+ "arkiv": "https://bitbucket.org/rivta-domains/riv.followup.qualityregistry.nkrr/get/edc9ed9be6295303470de067aa8bd7518993137f.zip",
+ "arkivSha256": "ccce4e9b29fad08b5bc0963a6ba83145066b3ab6ed7ff92a9962d5aa0155d111",
+ "licens": "Apache License 2.0 enligt licensraden i domänens filer",
+ "tjanstekontrakt": [
+  "GetFormData",
+  "ProcessRegistrationNotification"
+ ],
+ "filer": [
+  {
+   "fil": "schemas/core_components/followup_qualityregistry_nkrr_1.0.xsd",
+   "sha256": "0926d749cd919fdbc0d78b2e319fc0987026693756793d2fff6241c02ee89f91",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/core_components/itintegration_registry_1.0.xsd",
+   "sha256": "5827002c9a3bae74863f6add21f9c5d8efad15167c807de91ec1453656cf771c",
+   "licensrad": false
+  },
+  {
+   "fil": "schemas/interactions/GetFormDataInteraction/GetFormDataInteraction_1.2_RIVTABP21.wsdl",
+   "sha256": "ab603a0c6fffcc6b8d0870334d4bd2d5c13c81c8c80beceb88b07f53051310f1",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/GetFormDataInteraction/GetFormDataResponder_1.1_ext.xsd",
+   "sha256": "9c19dbf66fb9a72b4798f426f43e8a72b94c7b690d135a90936b2000413373ba",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/GetFormDataInteraction/GetFormDataResponder_1.2.xsd",
+   "sha256": "49502c07d5044c7f3e3daee732467fbaa0825dfb9cc6ae3de86ec3ceae7e985e",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/GetFormDataInteraction/GetFormDataResponder_1.2_ext.xsd",
+   "sha256": "e97fcbbbec695ae2a98a1254954ed40a8ab053609d1dadd2fb6f59d82960d9f3",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/ProcessRegistrationNotification/ProcessRegistrationNotificationInteraction_1.0_RIVTABP21.wsdl",
+   "sha256": "a58889d13a71cc262ef69488267f04bca833cb12c02c6ad58e94ee83e65d98c9",
+   "licensrad": true
+  },
+  {
+   "fil": "schemas/interactions/ProcessRegistrationNotification/ProcessRegistrationNotificationResponder_1.0.xsd",
+   "sha256": "a591b659bb93fa09e696bb8963f0b592b57a223c2b77854dbbcf52cfd3cb0fa8",
+   "licensrad": true
+  }
+ ]
+}
