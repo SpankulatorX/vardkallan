@@ -53,7 +53,9 @@ describe('Fynd från det utforskande testet', () => {
     const db = byggSeed();
     const a = atk(db, 'lak-vc', 'p11', {}, 'las_admin');
     // Anna Viklund har ingen pågående kontakt på vårdcentralen i dag.
-    db.query("UPDATE vardkontakter SET slut = coalesce(slut, start) WHERE patient_id = 'p11'").run();
+    // Runda 13: seeden från r4 kan ha en kontakt senare i dag (arbetsdagen), så alla Annas kontakter läggs före i dag.
+    const igar = new Date(Date.now() - 86400_000).toISOString();
+    db.query("UPDATE vardkontakter SET start = min(start, ?1), slut = min(coalesce(slut, start), ?1) WHERE patient_id = 'p11'").run(igar);
     const f = vardkontakt.aktuell(a);
     expect(f.vardkontakt).toBeNull();
     expect(f.ny).toMatchObject({ kontaktsatt: 'administrativ', plats: 'Administrativ kontakt' });

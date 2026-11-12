@@ -94,9 +94,11 @@ function genomforTill(db, A, pid, anmalanId, start, bas) {
   const alla = (del) => Object.keys(op.CHECKLISTA[del].punkter);
   let galler = [];
   const steg = [
-    [-5, (t) => op.registrera(s, rad(), { handelse: 'in_sal', armband: p.personnummer }, t)],
+    // Runda 13: patientens utskrivna armband ur armbandstabellen (skanning.js), som r3 kräver.
+    [-5, (t) => op.registrera(s, rad(), { handelse: 'in_sal', armband: require('./skanning.js').armbandsKod(db, p.id, 'kkoga-ort') }, t)],
     [-4, (t) => { galler = sg.sterilgods(A('ssk-kkoga', pid, 'las_operation'), rad(), t).galler; for (const g of galler) sg.oppna(s, rad(), { galler: g.galler }, t); }],
-    [0, (t) => op.checklista(s, rad(), { del: 'fore_anestesi', bekraftade: alla('fore_anestesi') }, t)],
+    // Runda 13, r3: blodet bekräftas med motivering när blodgruppering och bastest inte är klara i demon.
+    [0, (t) => op.checklista(s, rad(), { del: 'fore_anestesi', bekraftade: alla('fore_anestesi'), motiveringar: { blodning: 'Operatören bedömde att blod inte behövs i beredskap.' } }, t)],
     [4, (t) => aj.registreraLakemedel(s, rad(), { lakemedel: 'bupivakain', dos: 10 }, t)],
     [5, (t) => { aj.registreraHandelse(s, rad(), { handelse: 'spinal' }, t); op.registrera(s, rad(), { handelse: 'anestesistart' }, t); }],
     [10, (t) => aj.registreraLakemedel(s, rad(), { lakemedel: 'kloxacillin' }, t)],
