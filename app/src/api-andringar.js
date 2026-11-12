@@ -30,6 +30,8 @@ export const ANDRINGAR = [
       'Nytt: GET /api/krav/testprotokoll, testprotokollet med spårbarhet från krav till testfall, öppet utan inloggning',
       // Runda 14, r5: servicenivåerna, incidentregistret och incidentrapporten till beställaren.
       'Incidentregistret, månadsrapporten för servicenivåerna och incidentrapporten till beställaren i det interna API:t för systemförvaltaren (docs/api-avvikelser.md)',
+      // Runda 14, r1: inloggning genom beställarens inloggningstjänst (Sussa 5.2.1.1).
+      'Inloggning genom vårdgivarens egen inloggningstjänst med OpenID Connect (authorization code och PKCE), konfigurationen av tjänsterna med fyra ögon och övningstjänsten i det interna API:t (docs/api-avvikelser.md)',
     ],
   },
   // Runda 13: version 1.3.1, rättelserna för kvällar och nätter.

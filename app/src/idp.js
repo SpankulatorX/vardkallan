@@ -205,7 +205,9 @@ export function uppdragUrMasterdata(db, p) {
 }
 
 // Det som gränssnittet och API:t visar om inloggningen, utan biljettens id.
+// Runda 14, r1: en inloggning genom beställarens inloggningstjänst visar tjänstens namn (inloggningstjanster.js).
 export const uppdragUt = (db, u) => (u ? {
-  utfardare: BETRODDA.get(u.utfardare)?.namn ?? u.utfardare, metod: 'SITHS-kort (simulerat), OpenID Connect', andamal: u.andamal,
+  utfardare: u.extern ? u.tjanstNamn : BETRODDA.get(u.utfardare)?.namn ?? u.utfardare,
+  metod: u.extern ? `${u.simulerad ? 'Simulerad extern inloggningstjänst' : 'Beställarens inloggningstjänst'}, OpenID Connect med authorization code och PKCE` : 'SITHS-kort (simulerat), OpenID Connect', andamal: u.andamal,
   uppdragHsaId: u.uppdragHsaId, vardenhet: db.query('SELECT namn FROM enheter WHERE hsa_id = ?').get(u.vardenhetHsaId)?.namn ?? null, tillitsniva: u.tillitsniva,
 } : null);

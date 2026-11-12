@@ -342,6 +342,16 @@ MODULER.push(m('testinbjudan', 'forvaltning', 'Testinbjudan och synpunkter',
   sf.beskrivning += ' Uppgraderingar som två systemförvaltare godkänner och som går att backa, och schemalagda säkerhetskopior på två platser med återställning till en tidpunkt.';
   sf.simulerat += ' I demon byter en uppgradering eller återgång bara databasen i sandlådan, inte programmet, och säkerhetskopiornas två platser är två kataloger på samma server.';
 }
+// Runda 14, r1: inloggning genom vårdgivarens egen inloggningstjänst hör till modulen för behörighet och inloggning.
+{
+  const b = MODULER.find(x => x.id === 'behorighet');
+  b.beskrivning += ' Vårdgivaren kopplar in sin egen inloggningstjänst med OpenID Connect (authorization code och PKCE) med fyra ögon och pinnade nycklar, och behörigheten räknas ur biljettens attribut enligt Ineras attributspecifikation och prövas mot katalogen.';
+  b.rutter.push('#/inloggningstjanster', '#/ovningstjanst/:id', '#/inloggning/extern');
+  b.vyer.push('inloggningstjanster.js');
+  b.kod.push('src/inloggningstjanster.js', 'src/inloggningstjanster-rutter.js', 'src/oidc-jwt.js', 'src/ovningstjanst-oidc.js');
+  b.api.push('/api/inloggningstjanster', '/api/inloggning/extern/:id', '/api/inloggning/svar', '/api/ovningstjanst/authorize');
+  b.simulerat += ' Övningstjänsten är en simulerad extern inloggningstjänst i samma server. Ingen verklig regions inloggningstjänst är inkopplad.';
+}
 // Runda 13, r2: kapaciteten för många besökare (sandlådor som vilar på disk, sidan när demon är full och taken mot
 // missbruk) hör till modulen för systemuppbyggnad och svarstider.
 {

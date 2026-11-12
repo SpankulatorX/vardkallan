@@ -485,3 +485,8 @@ Webcert (https://github.com/sklintyg/webcert, GPL-3.0) är läst vid commit 9410
 
 Domänen för e-recept (riv.se.apotekensservice.or) är inte hämtad: dess filer saknar licensuppgift, och den har bara kontrakt för att hämta ordinationer, inte för att skicka eller makulera e-recept.
 
+## Runda 14, r1: Ineras attributspecifikation för IdP och Keycloak (2026-11-12)
+
+Attributnamnen för inloggningen genom beställarens inloggningstjänst (`app/src/inloggningstjanster.js`) är kontrollerade mot Ineras sidor 3.3 SAD - IdP - Attributlista Medarbetare - Bas (sida 6044651764, sidversion 1, 2026-09-21) och 3.3 SAD - IdP - Medarbetare Bas OIDC-Profil (sida 6044651944, sidversion 1, 2026-09-21), lästa genom Confluence-API:t på inera.atlassian.net 2026-11-12. OIDC-namnen är `employeeHsaId`, `commissionHsaId`, `commissionPurpose`, `healthCareUnitHsaId`, `healthCareProviderHsaId`, `healthcareProfessionalLicense` (flervärt), `given_name` och `family_name`, och tillitsnivån är `acr` med värdena `http://id.sambi.se/loa/loa2` till `loa4`. OIDC-profilen anger att `aud` innehåller både klientens id och IdP:ns id, att klienten autentiserar sig med `client_secret_basic`, `client_secret_jwt`, `client_secret_post` eller `private_key_jwt` (rekommenderas), och att id-biljetten gäller i fem minuter. Inga filer från Inera ingår i repot.
+
+Keycloak (quay.io/keycloak/keycloak:26.0.7, avbild sha256:469d050236bb5aa652a4ae97d5dbcf02c1af4c15bbb2ea088f7d30802f67fcf5) används bara i det lokala provet `app/test/keycloak-oidc.sh` som en separat container, och ingen kod från Keycloak ingår i Vårdkällan. Keycloak har licensen Apache 2.0.

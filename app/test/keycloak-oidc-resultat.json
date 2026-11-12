@@ -1,0 +1,46 @@
+{
+ "keycloak": "26.0.7",
+ "tid": "2026-11-12T16:24:35.997Z",
+ "steg": [
+  {
+   "namn": "systemförvaltaren föreslår Keycloak, och systemet hämtar metadata och nycklar",
+   "ok": true,
+   "detalj": "1 nyckel, tumavtryck KG1Xmtt1kQHfHDis_sgP5GrdLIQTmwkQY4fOdKCc27Q"
+  },
+  {
+   "namn": "en andra systemförvaltare godkänner",
+   "ok": true,
+   "detalj": ""
+  },
+  {
+   "namn": "begäran till Keycloak har authorization code och PKCE med S256",
+   "ok": true,
+   "detalj": ""
+  },
+  {
+   "namn": "inloggningen genom Keycloak lyckas med rätt attribut",
+   "ok": true,
+   "detalj": "{\"ok\":true,\"tjanst\":\"Regionens inloggningstjänst (Keycloak, lokalt prov)\",\"flerfaktor\":false}"
+  },
+  {
+   "namn": "personen och uppdraget kommer ur biljetten och katalogen",
+   "ok": true,
+   "detalj": "Sara Lindqvist, Kardiologiska kliniken USÖ, Beställarens inloggningstjänst, OpenID Connect med authorization code och PKCE"
+  },
+  {
+   "namn": "ett uppdrag på en annan vårdenhet ger ingen åtkomst",
+   "ok": true,
+   "detalj": "Medarbetaruppdraget i biljetten gäller en annan vårdenhet än Kardiologiska kliniken USÖ, där Sara Lindqvist arbetar enligt katalogen. Välj uppdraget för Kardiologiska kliniken USÖ när du loggar in, eller be den som administrerar HSA rätta uppdraget."
+  },
+  {
+   "namn": "en biljett utan legitimation för läkaren ger ingen åtkomst",
+   "ok": true,
+   "detalj": "Biljetten saknar legitimationen som läkare, som rollen kräver enligt katalogen. Legitimationen kommer från Socialstyrelsens register genom HSA. Kontakta din chef om den saknas."
+  },
+  {
+   "namn": "ingen är inloggad efter de misslyckade försöken",
+   "ok": true,
+   "detalj": ""
+  }
+ ]
+}

@@ -1384,6 +1384,37 @@ function skapa(BAS) {
     await synlig(page, '.notis', 'Incidenten är registrerad med prioritet 1');
     await synlig(page, '#sn-lista', 'Rapportera till beställaren senast');
   };
+  // Runda 14, r1 (Sussa 5.2.1.1): övningstjänsten kopplas in med fyra ögon genom API:t, utan att räknas, och flödet börjar
+  // på inloggningssidan. Inloggningen går genom två hela sidbyten (till tjänsten och tillbaka), som nollställer sidans
+  // egen räkning av klick. Skriptets räkning förs därför över till den sista sidan innan den jämförs.
+  startI['Inloggningssidan med en inkopplad inloggningstjänst'] = async (page) => {
+    // Sidan lämnas först, så att inga anrop från den förra vyn pågår när sessionen byter person.
+    await page.waitForLoadState('networkidle');
+    await page.goto('about:blank');
+    const req = page.context().request;
+    const post = async (v, d = {}) => (await req.post(`${BAS}${v}`, { data: d, headers: { Origin: BAS } })).json();
+    const { tjanster } = await (await req.get(`${BAS}/api/inloggning/tjanster`)).json();
+    if (!tjanster.length) {
+      await post('/api/logout'); await post('/api/login', { personalId: 'sysf' });
+      const f = await post('/api/inloggningstjanster', { ovning: true, motivering: 'Prövar inloggningen genom en extern inloggningstjänst.' });
+      await post('/api/logout'); await post('/api/login', { personalId: 'sysf-2' });
+      await post(`/api/inloggningstjanster/andring/${f.andring.id}/godkann`);
+    }
+    await post('/api/logout');
+    await page.goto(`${BAS}/#/`);
+    await page.waitForLoadState('networkidle');
+    await page.waitForSelector('#extern-inloggning [data-extern]');
+  };
+  GOR['inloggning-extern'] = async (m, page) => {
+    await m.klicka(page.locator('#extern-inloggning [data-extern]'), 'Övningstjänst för inloggning (simulerad)');
+    await page.waitForSelector('#ot-form');
+    if (await page.locator('#ot-person').inputValue() !== 'lak-kard' || !await page.locator('#ot-v-ratt').isChecked()) throw new Error('personen och rätt uppgifter är inte förvalda');
+    await m.klicka(page.locator('#ot-form button[type="submit"]'), 'Logga in i tjänsten');
+    await page.waitForSelector('[data-a="loggaut"]');
+    await synlig(page, '.vem', 'Sara Lindqvist');
+    await page.waitForLoadState('networkidle');
+    await page.evaluate((n) => { window.__klick = n; }, m.klick);
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 

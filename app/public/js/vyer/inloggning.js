@@ -80,6 +80,11 @@ export async function visa(main, _param, q) {
         <p class="liten-text">Ett lett test med en testledare, där deltagaren får en kod och uppgifterna en i taget, finns under <a href="#/anvandartest">Användartest</a>. Testar du på egen hand passar <a href="#/testa">startsidan för testare</a> bättre.</p>
         <div class="reservkopior" id="reservkopior" hidden></div>
       </section>
+      ${/* Runda 14, r1: beställarens inloggningstjänster som systemförvaltningen har kopplat in i sandlådan. */ ''}
+      <section class="roller extern-inloggning" aria-labelledby="extern-rubrik" id="extern-inloggning" hidden>
+        <h2 id="extern-rubrik">Logga in med vårdgivarens inloggningstjänst</h2>
+        <ul class="rollista" id="externa-tjanster"></ul>
+      </section>
       <section class="roller" aria-labelledby="roll-rubrik">
         <h2 id="roll-rubrik">Välj demoroll</h2>
         <ul class="rollista" id="rollista"><li class="tom">Hämtar demorollerna.</li></ul>
@@ -127,6 +132,17 @@ export async function visa(main, _param, q) {
   visaReservkopior(main.querySelector('#reservkopior'));
   // Runda 13, r1.
   rollvaljare(main.querySelector('#testa-forst-roller'), undefined, { kort: true }).catch(() => {});
+  // Runda 14, r1: inloggningen går genom tjänsten, så knappen är en vanlig länk som lämnar sidan.
+  api('/api/inloggning/tjanster', { tyst: true }).then(({ tjanster }) => {
+    const sek = main.querySelector('#extern-inloggning');
+    if (!sek || !tjanster.length) return;
+    sek.querySelector('#externa-tjanster').innerHTML = tjanster.map(t => `<li><a class="roll" href="/api/inloggning/extern/${encodeURIComponent(t.id)}" data-extern="${esc(t.id)}">
+      <span class="roll-kort" aria-hidden="true">${ikon.nyckel}</span>
+      <span class="roll-text"><span class="roll-namn">${esc(t.namn)}</span><span class="roll-yrke">OpenID Connect${t.simulerad ? ', simulerad extern tjänst' : ''}</span>
+        <span class="roll-enhet">Behörigheten räknas ur biljetten och katalogen</span></span>
+      <span class="roll-pil" aria-hidden="true">${ikon.pil}</span></a></li>`).join('');
+    sek.hidden = false;
+  }).catch(() => {});
   const [roller, invanare] = await Promise.all([api('/api/demo/personal'), api('/api/demo/invanare')]);
   const lista = main.querySelector('#rollista');
   lista.innerHTML = roller.map(r => `<li>

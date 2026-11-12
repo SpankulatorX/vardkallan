@@ -719,6 +719,14 @@ export const UPPGIFTER = [
     kontroll: { notis: 'Incidenten är registrerad' },
   },
 ];
+// Runda 14, r1 (Sussa 5.2.1.1): inloggning genom vårdgivarens inloggningstjänst, här övningstjänsten. Förberedelsen
+// kopplar in övningstjänsten med fyra ögon och loggar ut, som i test/flodessteg.cjs.
+STARTPUNKT['Inloggningssidan med en inkopplad inloggningstjänst'] = { hash: '#/', klar: '#extern-inloggning [data-extern]', forbered: 'inloggningstjanst' };
+UPPGIFTER.push({
+  id: 'inloggning-extern', namn: 'Logga in genom vårdgivarens inloggningstjänst', roll: 'lak-kard', start: 'Inloggningssidan med en inkopplad inloggningstjänst',
+  text: 'Din vårdgivare har kopplat in sin egen inloggningstjänst. Logga in som Sara Lindqvist genom den.',
+  kontroll: { sel: '.vem', text: 'Sara Lindqvist' },
+});
 
 // Deltagarens bakgrund. Bara val, inga fritextfält, så att inga identifierande uppgifter samlas in.
 export const YRKESROLLER = [

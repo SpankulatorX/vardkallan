@@ -571,3 +571,10 @@ FLODEN.push(
     motivering: 'Ett fältbyte till vad som har hänt, ett klick för hur många som berörs, ett för om vården kan arbeta och ett på Registrera incidenten. Systemet sätter prioriteten enligt servicenivåavtalet, tiden och sorten (driftstörning) och säger direkt när beställaren ska ha rapporten och när processen för en större incident ska startas.',
   },
 );
+// Runda 14, r1 (Sussa 5.2.1.1): inloggning genom vårdgivarens egen inloggningstjänst, här övningstjänsten.
+FLODEN.push(
+  {
+    id: 'inloggning-extern', namn: 'Logga in genom vårdgivarens inloggningstjänst', roll: 'lak-kard', start: 'Inloggningssidan med en inkopplad inloggningstjänst', budget: 2,
+    motivering: 'Sussa 5.2.1.1. Ett klick på tjänsten på inloggningssidan och ett på Logga in i tjänsten. Uppdraget, vårdenheten och behörigheten kommer ur biljetten och katalogen, så personen väljer ingenting i Vårdkällan. I en verklig tjänst ersätts klicket i tjänsten av SITHS-kortet.',
+  },
+);

@@ -225,6 +225,8 @@ MENY.barnmorska.splice(MENY.barnmorska.indexOf('Remisser'), 0, 'Förlossningen')
 MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterdata') + 1, 0, 'Mallar och mätvärdestyper');
 // Runda 14, r5: systemförvaltaren har Servicenivåer och incidenter efter Uppgraderingar.
 MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Uppgraderingar') + 1, 0, 'Servicenivåer och incidenter');
+// Runda 14, r1: systemförvaltaren har Inloggningstjänster direkt efter Kodverk och masterdata.
+MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterdata') + 1, 0, 'Inloggningstjänster');
 
 (async () => {
   // Runda 11, r1: klockan ställs innan testet räknar ut några datum.
@@ -2157,6 +2159,52 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Uppgraderingar') + 1
       if (await page.locator('#sf-mina ~ ul [data-godkann]').count()) throw new Error('den egna ändringen gick att godkänna');
       await page.waitForLoadState('networkidle');
     });
+    // Runda 14, r1 (Sussa 5.2.1.1): vårdgivarens egen inloggningstjänst. Tomas Lindh kopplar in övningstjänsten, Nora
+    // Ekholm godkänner den, och Sara Lindqvist loggar in genom den, först med fel vårdenhet i biljetten och sedan rätt.
+    await s('Inloggningstjänster: övningstjänsten kopplas in med fyra ögon, och en biljett med fel vårdenhet ger ingen åtkomst', async () => {
+      await loggaIn(page, 'sysf');
+      await gaTill(page, '#/inloggningstjanster');
+      await forvanta(page, '#it-inkopplade ~ p', 'Ingen tjänst är inkopplad');
+      await page.click('[data-ovning]');
+      await forvanta(page, 'dialog[open] [data-forhand]', 'Systemet hämtade och kontrollerade');
+      await forvanta(page, 'dialog[open] [data-forhand]', 'Tumavtryck');
+      await bild(page, '104a-inloggningstjanst-forslag');
+      await page.click('dialog[open] [data-varde="ok"]');
+      await forvanta(page, '.notis', 'väntar på att en annan systemförvaltare godkänner');
+      await forvanta(page, '#it-mina ~ ul', 'Övningstjänst för inloggning');
+      if (await page.locator('#it-mina ~ ul [data-godkann]').count()) throw new Error('den egna ändringen gick att godkänna');
+      await page.waitForLoadState('networkidle');
+      await loggaIn(page, 'sysf-2');
+      await gaTill(page, '#/inloggningstjanster');
+      await forvanta(page, '#it-att-godkanna ~ ul', 'Föreslagen av Tomas Lindh');
+      await page.click('#it-att-godkanna ~ ul [data-godkann]');
+      await forvanta(page, '.notis', 'Ändringen är godkänd');
+      await forvanta(page, '#it-inkopplade ~ ul', 'Övningstjänst för inloggning');
+      await bild(page, '104b-inloggningstjanst-inkopplad');
+      await page.waitForLoadState('networkidle');
+      await page.click('[data-a="loggaut"]');
+      await page.waitForSelector('#extern-inloggning [data-extern]');
+      await bild(page, '104c-inloggning-med-tjanst');
+      await page.click('#extern-inloggning [data-extern]');
+      await page.waitForSelector('#ot-form');
+      await page.check('#ot-v-annan_vardenhet');
+      await bild(page, '104d-ovningstjanst');
+      await page.click('#ot-form button[type="submit"]');
+      await forvanta(page, '#ie-sida .ruta-larm', 'annan vårdenhet än Kardiologiska kliniken USÖ');
+      await bild(page, '104e-biljett-med-fel-vardenhet');
+      if (await page.locator('[data-a="loggaut"]').count()) throw new Error('en biljett med fel vårdenhet gav en inloggning');
+      await page.click('#ie-sida a.knapp');
+      await page.waitForSelector('#extern-inloggning [data-extern]');
+      await page.click('#extern-inloggning [data-extern]');
+      await page.waitForSelector('#ot-form');
+      await page.click('#ot-form button[type="submit"]');
+      await page.waitForSelector('[data-a="loggaut"]');
+      await vantaVy(page);
+      await forvanta(page, '.vem', 'Sara Lindqvist');
+      await page.waitForLoadState('networkidle');
+      // Nora Ekholm fortsätter med det som väntar på hennes godkännande.
+      await loggaIn(page, 'sysf-2');
+    });
     // Runda 9, r4: fyra ögon på kodverket som Tomas Lindh skapade.
     await s('Nora Ekholm godkänner uttaget ur VAS som Tomas Lindh lade fram, och avvikelserna syns i avstämningen', async () => {
       await gaTill(page, '#/migrering');
@@ -2700,7 +2748,9 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Uppgraderingar') + 1
         // Runda 14, r4: mellanarkivet och reservdatorn för läkemedel.
         'las-mellanarkiv', 'overfor-mellanarkiv', 'oppna-reservdator',
         // Runda 14, r5: incidenten på sidan Servicenivåer och incidenter.
-        'registrera-incident']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'registrera-incident',
+        // Runda 14, r1: inloggningen genom vårdgivarens inloggningstjänst.
+        'inloggning-extern']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

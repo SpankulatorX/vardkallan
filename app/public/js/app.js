@@ -46,6 +46,8 @@ import * as lakemedelsansvar from './vyer/lakemedelsansvar.js';
 import * as ekonomi from './vyer/ekonomi.js';
 // Runda 7, r4: systemförvaltningen.
 import * as systemforvaltning from './vyer/systemforvaltning.js';
+// Runda 14, r1: inloggningstjänsterna, övningstjänsten och utfallet av en inloggning genom en extern tjänst.
+import * as inloggningstjansterVy from './vyer/inloggningstjanster.js';
 // Runda 10, r3: systemförvaltarens formulär (formularbyggare.js).
 import { formularVy } from './vyer/formularbyggare.js';
 // Runda 9, r4: kodverken och masterdatan.
@@ -175,6 +177,8 @@ const MENY = [
   ['#/servicenivaer', 'Servicenivåer och incidenter', 'larm', () => far('servicenivaer')],
   // Runda 9, r4.
   ['#/kodverk', 'Kodverk och masterdata', 'lista', () => far('konfigurera')],
+  // Runda 14, r1.
+  ['#/inloggningstjanster', 'Inloggningstjänster', 'nyckel', () => far('konfigurera')],
   // Runda 12, r1.
   ['#/struktur', 'Mallar och mätvärdestyper', 'penna', () => far('konfigurera')],
   // Runda 10, r3: formulären som verksamheten bygger.
@@ -316,6 +320,13 @@ RUTTER.splice(RUTTER.findIndex(r => String(r[0]) === String(/^#\/anvandartest$/)
   [/^#\/testa$/, testa, () => true, true],
   [/^#\/om$/, omDemon, () => true, true],
   [/^#\/testledare$/, testledare, () => true, true],
+);
+// Runda 14, r1: systemförvaltningens sida för inloggningstjänsterna, och övningstjänsten och utfallet av en inloggning
+// genom en extern tjänst, som är öppna utan inloggning.
+RUTTER.splice(RUTTER.findIndex(r => String(r[0]) === String(/^#\/anvandartest$/)), 0,
+  [/^#\/inloggningstjanster$/, inloggningstjansterVy.tjanster, () => far('konfigurera')],
+  [/^#\/ovningstjanst\/([\w-]+)$/, inloggningstjansterVy.ovningstjanst, () => true, true],
+  [/^#\/inloggning\/extern$/, inloggningstjansterVy.resultat, () => true, true],
 );
 // Runda 12, r3 (vårt L5): inloggning och flerfaktor, för all personal och för invånaren i Min journal.
 RUTTER.splice(RUTTER.findIndex(r => String(r[0]) === String(/^#\/nyheter$/)), 0, [/^#\/flerfaktor$/, flerfaktorVy, () => arPersonal()]);
@@ -674,6 +685,24 @@ export async function loggaIn(personalId, knapp) {
   if (reservBorttagen) notis('Din reservkopia från förra inloggningen är raderad. Välj en ny reservkod om du vill kunna läsa vid ett avbrott.', 'info');
   await Promise.all([uppdateraInkorg(), laddaEnheter().catch(() => {})]);
   if (location.hash === hem()) rita(); else location.hash = hem();
+}
+
+// Runda 14, r1: efter en inloggning genom en extern inloggningstjänst. Servern har redan loggat in personen, så sessionen
+// läses och gränssnittet gör samma sak som efter en vanlig inloggning.
+export async function efterExternInloggning() {
+  avbrottslage.stoppaFornyelse();
+  const s = await api('/api/session');
+  if (!s?.inloggad || !s.personal) { location.hash = '#/'; return; }
+  nySession();
+  S.session = s;
+  const { reservBorttagen } = await satNyckel(s.lasnyckel, s.personal.id).catch(() => ({}));
+  avbrottslage.fornya({ nu: true });
+  ramNyckel = null;
+  document.getElementById('notiser').replaceChildren();
+  avbrottslage.skickaLoggar().then(avbrottslage.meddelaLogg).catch(() => {});
+  if (reservBorttagen) notis('Din reservkopia från förra inloggningen är raderad. Välj en ny reservkod om du vill kunna läsa vid ett avbrott.', 'info');
+  await Promise.all([uppdateraInkorg(), laddaEnheter().catch(() => {})]);
+  location.hash = hem();
 }
 
 // Inloggning i Min journal. En läskopia som personal har lämnat i webbläsaren raderas, eftersom invånaren aldrig får en.
