@@ -238,6 +238,8 @@ STATUS.rivta_lokalt = 'Byggt och validerat mot tjänstekontraktet, testat lokalt
 const CERT = ['riv.clinicalprocess.healthcond.certificate', '4.0.5'];
 const REQ = ['riv.clinicalprocess.activity.request', '2.3'];
 const ACT = ['riv.clinicalprocess.activityprescription.actoutcome', '2.2.2'];
+const FORM = ['riv.infrastructure.eservicesupply.forminteraction', '2.1.1'];
+const PORTAL = ['riv-application.infrastructure.eservicesupply.patientportal', '2.0'];
 export const R3_KONTRAKT = {
   CreateDraftCertificate: [CERT, '3.3', 'Fliken Intyg skapar utkastet i den simulerade intygsapplikationen'],
   CertificateStatusUpdateForCare: [CERT, '3.2', 'Vårdkällan tar emot intygets händelser, adresserade till vårdenheten'],
@@ -246,6 +248,11 @@ export const R3_KONTRAKT = {
   ProcessRequestConfirmation: [REQ, '2.3', 'Mottagningsbekräftelse och avvisning av e-remiss, åt båda hållen'],
   ProcessRequestOutcome: [REQ, '2.3', 'Svar på e-remiss, åt båda hållen'],
   GetVaccinationHistory: [ACT, '2.0', 'Vårdkällan lämnar ut vaccinationerna (FHIR Immunization) till anslutna konsumenter'],
+  CreateFormRequest: [FORM, '2.0', 'Vårdenheten skickar ett formulär till patienten inför besöket'],
+  GetForm: [FORM, '2.1', 'Vårdenheten hämtar formulärets status och svar'],
+  CancelForm: [FORM, '2.0', 'Vårdenheten avbryter en förfrågan som inte behövs'],
+  AddMessageToPatientPortalInbox: [PORTAL, '2.0', 'Meddelande till patientens inkorg i 1177 med AddMessage, när patienten har ett konto'],
+  IsActiveUser: [PORTAL, '2.0', 'Systemet frågar om patienten har ett konto i 1177 innan ett meddelande skickas'],
 };
 for (const k of KONTRAKT) {
   const r = R3_KONTRAKT[k.kontrakt];

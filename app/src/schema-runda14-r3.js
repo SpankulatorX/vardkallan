@@ -7,7 +7,9 @@ import * as eremiss from './eremiss.js';
 import * as eremissSim from './eremiss-simulerad.js';
 // Producenten för vaccinationer registreras när modulen läses in.
 import './rivta-vaccination.js';
+import * as etjanster from './rivta-etjanster.js';
+import * as etjansterSim from './rivta-etjanster-simulerade.js';
 
 export function sakraR14r3(db) {
-  for (const m of [lakarintyg, intygsapplikation, eremiss, eremissSim]) m.sakra(db);
+  for (const m of [lakarintyg, intygsapplikation, eremiss, eremissSim, etjanster, etjansterSim]) m.sakra(db);
 }

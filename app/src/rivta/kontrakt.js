@@ -36,7 +36,8 @@ const cache = new Map();
 export function kontrakt(doman, namn, version) {
   const k = `${doman}|${namn}|${version}`;
   if (cache.has(k)) return cache.get(k);
-  if (!/^riv(\.[a-z]+)+$/.test(doman) || !/^[A-Z][A-Za-z]+$/.test(namn) || !/^\d+\.\d+$/.test(version)) throw new SchemaFel(`Okänt tjänstekontrakt ${doman} ${namn} ${version}.`);
+  // Runda 14, r3: domäner för tillämpningar heter riv-application (till exempel 1177:s patientportal).
+  if (!/^riv(-application)?(\.[a-z]+)+$/.test(doman) || !/^[A-Z][A-Za-z]+$/.test(namn) || !/^\d+\.\d+$/.test(version)) throw new SchemaFel(`Okänt tjänstekontrakt ${doman} ${namn} ${version}.`);
   const fil = filerI(join(RIVTA_ROT, doman, 'schemas')).find(f => f.endsWith(`/${namn}Interaction_${version}_RIVTABP21.wsdl`));
   if (!fil) throw new SchemaFel(`WSDL för ${namn} ${version} finns inte bland de pinnade schemana för ${doman}.`);
   const w = tolka(readFileSync(fil, 'utf8'));

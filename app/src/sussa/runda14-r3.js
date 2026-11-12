@@ -9,6 +9,7 @@ const IN = 'Intyg genom intygsapplikationen > Intyg > ';
 const ER = 'E-remiss till och från externa vårdgivare > E-remiss > ';
 const API = 'Intyg och e-remiss i API:t > ';
 const VA = 'Tjänstekontrakt i RIVTA, vaccinationer > Vaccination > ';
+const ET = 'E-tjänster med tjänstekontrakt i RIVTA > ';
 const INTE_ANSLUTET = 'inte anslutet till den nationella tjänsteplattformen (kräver avtal med Inera och SITHS-funktionscertifikat)';
 const anm = (kontrakt) => `Byggt och validerat mot tjänstekontraktet ${kontrakt}, testat lokalt mot tjänsteplattformen; ${INTE_ANSLUTET}.`;
 
@@ -34,10 +35,31 @@ export const T14R3 = {
   erApi: `${API}E-remiss > API: läkaren skickar en e-remiss, mottagaren bekräftar och svarar, och en inkommande e-remiss väntar på mottagning`,
   vaccLas: `${VA}GetVaccinationHistory svarar med de vaccinationer som organisationens systemkonto får läsa i FHIR`,
   vaccSkydd: `${VA}GetVaccinationHistory lämnar aldrig ut skyddade personuppgifter eller spärrade vaccinationer, och en okänd organisation nekas`,
+  formular: `${ET}Formulär > ett formulär skickas med CreateFormRequest, statusen hämtas med GetForm och en förfrågan avbryts med CancelForm`,
+  portal: `${ET}1177 > ett meddelande går till inkorgen i 1177 bara när patienten har ett konto, med IsActiveUser och AddMessage`,
+  nkrr: `${ET}NKRR > vårdenheten meddelar kvalitetsregistret med ProcessRegistrationNotification, men aldrig för skyddade personuppgifter`,
 };
 const T = T14R3;
 
 const POSTER = {
+  '2.2.1.5': {
+    tester: [T.formular],
+    losning: 'Vårdenheten skickar ett formulär till patienten inför besöket med CreateFormRequest, hämtar status och svar med GetForm och avbryter en förfrågan som inte behövs med CancelForm.',
+    expert: 'Mallen, vårdenheten, vårdgivaren, patientens identitet och giltighetstiden fyller systemet i. Den som skickar väljer bara formulär.',
+    anmarkning: `${anm('riv.infrastructure.eservicesupply.forminteraction 2.1.1 (CreateFormRequest 2.0, GetForm 2.1, CancelForm 2.0)')} Formulärtjänsten är simulerad. Mallarna förvaltas inte från Vårdkällan (GetFormTemplate och SaveFormTemplate är inte byggda), och svaren förs inte in i journalen. Det finns inget gränssnitt för formulären än.`,
+  },
+  '2.2.1.6': {
+    tester: [T.portal],
+    losning: 'Ett meddelande från vårdenheten går till patientens inkorg i 1177 med AddMessage, efter att systemet med IsActiveUser har frågat om patienten har ett konto.',
+    expert: 'Systemet skickar bara till 1177 när patienten kan läsa meddelandet och säger annars att det ska gå som brev. Vårdenheten och vårdgivaren fyller systemet i.',
+    anmarkning: `${anm('riv-application.infrastructure.eservicesupply.patientportal 2.0 (IsActiveUser och AddMessage)')} 1177 är simulerat, och en patient har ett konto i demon när hen är invånare i Min journal. Kallelserna i tidboken går ännu inte genom kontraktet. Min journal är Vårdkällans egen e-tjänst.`,
+  },
+  '2.2.1.14': {
+    tester: [T.nkrr],
+    losning: 'Vårdenheten meddelar ett kvalitetsregister med ProcessRegistrationNotification att uppgifterna för en registrering finns, och registret hämtar dem genom NKRR.',
+    expert: 'Vårdgivaren, vårdenheten och patientens identitet fyller systemet i, och en patient med skyddade personuppgifter meddelas aldrig.',
+    anmarkning: `${anm('riv.followup.qualityregistry.nkrr 1.2.2 (ProcessRegistrationNotification 1.0)')} NKRR och registret är simulerade. Vårdkällan är inte producent för de kontrakt som NKRR läser journaluppgifterna med, utöver journalens producenter. Det finns inget gränssnitt för meddelandet än.`,
+  },
   '2.2.1.9': {
     tester: [T.intygSkapa, T.intygStatus, T.intygAvstam, T.intygTyper, T.intygSkyddad, T.intygRoll, T.intygSparr, T.intygProducent, T.intygUppdrag, T.intygApi, flode('skriv-intyg')],
     losning: 'Fliken Intyg i journalen öppnar en integrerad intygsapplikation för patienten, som Webcert i integrerat läge: journalen skapar utkastet med CreateDraftCertificate, tar emot intygets händelser med CertificateStatusUpdateForCare adresserat till vårdenheten och stämmer av med ListCertificatesForCareWithQA. Meddelandena byggs, valideras och skickas med den gemensamma grunden för RIVTA.',
