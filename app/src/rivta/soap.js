@@ -27,8 +27,8 @@ export function kuvert(kropp, huvud = []) {
 export const logiskAdress = (adress) => skriv(el(REGISTRY_NS, 'LogicalAddress', String(adress)));
 // Runda 14, r3: den logiska adressen i RIVTA Basic Profile 2.0 står i WS-Addressing (wsa:To).
 export const WSA_NS = 'http://www.w3.org/2005/08/addressing';
-export const wsaTo = (adress) => skriv(el(WSA_NS, 'To', String(adress)));
-const WSA_TILL = el(WSA_NS, 'To').lokal;
+const WSA_TILL = 'wsa:To'.split(':')[1];
+export const wsaTo = (adress) => skriv(el(WSA_NS, WSA_TILL, String(adress)));
 
 export function fault(kod, text) {
   const f = `<soap:Fault><faultcode>soap:${kod}</faultcode><faultstring xml:lang="sv">${String(text).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))}</faultstring></soap:Fault>`;
