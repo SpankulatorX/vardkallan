@@ -147,7 +147,8 @@ describe('Öppet API hålls aktuellt', () => {
     expect([...skrivna].sort()).toEqual([...new Set(fran.skrivning)].sort());
     // Versionerna står i ordning med den senaste först, och varje rad har datum och text.
     const nummer = ANDRINGAR.map(a => a.version.split('.').map(Number));
-    for (let i = 1; i < nummer.length; i++) expect(nummer[i - 1][0] * 1000 + nummer[i - 1][1] > nummer[i][0] * 1000 + nummer[i][1]).toBe(true);
+    const tal = (n) => (n[0] * 1000 + n[1]) * 1000 + (n[2] ?? 0);
+    for (let i = 1; i < nummer.length; i++) expect(tal(nummer[i - 1]) > tal(nummer[i])).toBe(true);
     for (const a of ANDRINGAR) { expect(a.datum).toMatch(/^\d{4}-\d{2}-\d{2}$/); expect(a.text.length).toBeGreaterThan(10); }
     // Loggen kan läsas utan inloggning.
     const r = await klient(app).get('/api/oppet-api/andringar');

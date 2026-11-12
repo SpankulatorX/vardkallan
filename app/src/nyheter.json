@@ -2,6 +2,32 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "1.3.1",
+      "datum": "2026-11-12",
+      "nyheter": [
+        {
+          "id": "kassan-dygnet-1-3-1",
+          "roller": [
+            "vardadministrator"
+          ],
+          "omfattning": "liten",
+          "var": null,
+          "rubrik": "Kassan går att öva på när som helst på dygnet",
+          "text": "Uppdragen Ta betalt och Gör dagsavslut i testinbjudan, och övningen Kassan i användartestet, fungerar nu också på kvällen och natten. Om ingen patient har kommit kommer en patient till mottagningen direkt, så att det finns ett besök att ta betalt för."
+        },
+        {
+          "id": "natt-1-3-1",
+          "roller": [
+            "alla"
+          ],
+          "omfattning": "liten",
+          "var": null,
+          "rubrik": "Rättelser för kvällar, nätter och helger",
+          "text": "En ankomst som registreras i efterhand räknas nu i testinbjudans uppdrag. En patient som läggs till i en gruppträff efter att kallelserna har gått ut får sin kallelse direkt, också när träffen ligger för nära i tid för brev eller när de andra fick tiden per telefon."
+        }
+      ]
+    },
+    {
       "version": "1.3.0",
       "datum": "2026-11-12",
       "nyheter": [
