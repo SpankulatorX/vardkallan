@@ -312,7 +312,10 @@ function spara(db, personal, tjanst, atgard, konf, forra, m, nu) {
 // nycklarnas tumavtryck. ovning: true fyller i allt för övningstjänsten.
 export async function forhandsvisa(db, personal, inp = {}, ctx) {
   kravRoll(personal);
-  const vg = vardgivareFor(db, personal.enhet_id) ?? db.query("SELECT hsa_id, namn FROM enheter WHERE typ = 'vardgivare' ORDER BY id LIMIT 1").get();
+  // Vårdgivaren är systemförvaltarens egen enligt katalogen. Den väljs aldrig av klienten, så att ingen kan koppla in en
+  // tjänst för en annan vårdgivare.
+  const vg = vardgivareFor(db, personal.enhet_id);
+  if (!vg) throw new Fel(403, 'Din plats i katalogen hör inte till någon vårdgivare, så du kan inte koppla in en inloggningstjänst.', 'nekad');
   const ovningen = inp.ovning === true;
   const utfardare = ovningen ? ovning.utfardare(ctx.bas) : text(inp.utfardare, 300);
   if (!utfardare) throw new Fel(400, 'Skriv inloggningstjänstens adress (utfärdaren), till exempel https://idp.example.se/oidc.', 'ogiltig', { falt: ['utfardare'] });
@@ -320,7 +323,7 @@ export async function forhandsvisa(db, personal, inp = {}, ctx) {
   const klientautentisering = ovningen ? 'private_key_jwt' : inp.klientautentisering ?? 'private_key_jwt';
   const u = await uppgifter(ctx, utfardare, { metadata: ovningen ? null : jsonFalt(inp.metadata, 'Metadata'), jwks: ovningen ? null : jsonFalt(inp.jwks, 'Nycklarna'), klientautentisering });
   const konf = prova(db, {
-    id: `t-${randomBytes(4).toString('hex')}`, namn: ovningen ? ovning.NAMN : inp.namn, vardgivareHsaId: inp.vardgivareHsaId ?? vg?.hsa_id,
+    id: `t-${randomBytes(4).toString('hex')}`, namn: ovningen ? ovning.NAMN : inp.namn, vardgivareHsaId: vg.hsa_id,
     protokoll: inp.protokoll ?? 'oidc', utfardare, ...u, klientId: ovningen ? ovning.KLIENT_ID : inp.klientId, klientautentisering,
     hemlighetMiljo: inp.hemlighetMiljo, attributprofil: inp.attributprofil,
   }, ctx);

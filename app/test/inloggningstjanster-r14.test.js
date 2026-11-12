@@ -80,7 +80,8 @@ describe('Inloggningstjänst (5.2.1.1)', () => {
   test('en extern inloggningstjänst kopplas in med fyra ögon, och nycklarna pinnas med tumavtryck', async () => {
     const b = webblasare();
     await b.som('sysf');
-    const f = await b.post('/api/inloggningstjanster/forhandsvisa', { namn: 'Regionens inloggningstjänst', utfardare: op.iss, klientId: op.klientId, klientautentisering: 'client_secret_basic', hemlighetMiljo: 'VK_IDP_TEST' });
+    // Vårdgivaren tas ur systemförvaltarens plats i katalogen, aldrig ur anropet.
+    const f = await b.post('/api/inloggningstjanster/forhandsvisa', { namn: 'Regionens inloggningstjänst', utfardare: op.iss, klientId: op.klientId, klientautentisering: 'client_secret_basic', hemlighetMiljo: 'VK_IDP_TEST', vardgivareHsaId: 'DEMO-KOMMUN-0001' });
     expect(f.data.ok).toBe(true);
     expect(f.data.konfiguration).toMatchObject({ utfardare: op.iss, tokenEndpoint: `${op.iss}/token`, protokoll: 'oidc', vardgivareHsaId: 'SE2321000164-VK0000', hemlighetFinns: true });
     expect(f.data.konfiguration.nycklar[0].tumavtryck).toBe(jwt.tumavtryck(op.nycklar[0].jwk));
