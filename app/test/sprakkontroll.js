@@ -251,6 +251,10 @@ BADA_GILTIGA.add('mata');
 // i mödrahälsovården och förlossningen: IVF, CTG, EDA, EPDS, PKU, KUB, BB och TENS, och demokvittensernas SKV-SIM och GR-SIM.
 BADA_GILTIGA.add('vald');
 for (const f of ['IVF', 'CTG', 'EDA', 'EPDS', 'PKU', 'KUB', 'BB', 'TENS', 'SKV', 'SIM', 'GR', 'SKV-SIM', 'GR-SIM', 'CTG-SIM', 'CTG-SIM-1']) TILLATNA.add(f);
+// Runda 14, r1: inloggningen genom beställarens inloggningstjänst. SAML är protokollet, SAD rubriken på Ineras
+// specifikation och JWKS och jwks_uri formatet och adressen för publika nycklar.
+for (const f of ['SAML', 'SAD', 'JWKS']) TILLATNA.add(f);
+FRASER.push('/api/inloggning/rp-jwks', 'jwks_uri', 'alg none');
 
 // Interna anteckningar och råd till oss själva, som aldrig ska visas för användaren.
 export const INTERN = /\b(TODO|FIXME|XXX|HACK)\b|\b([Tt]änk på att|[Kk]om ihåg att|[Ss]äg inte|[Gg]löm inte att|OBS! [Ii]ntern|[Ii]ntern anteckning)/;

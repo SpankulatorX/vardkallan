@@ -2,6 +2,22 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "1.4.0",
+      "datum": "2026-11-12",
+      "nyheter": [
+        {
+          "id": "inloggningstjanst-1-4-0",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "liten",
+          "var": "#/inloggningstjanster",
+          "rubrik": "Vårdgivarens egen inloggningstjänst",
+          "text": "Under Inloggningstjänster kopplar du in vårdgivarens egen inloggningstjänst med OpenID Connect, till exempel Ineras IdP för medarbetare. Skriv adressen och klient-id, så hämtar systemet tjänstens uppgifter och nycklar och visar nycklarnas tumavtryck. Inloggningen gäller först när en annan systemförvaltare har godkänt den. Pröva med övningstjänsten, en simulerad extern tjänst där du också kan se vad som händer med en biljett vars uppgifter inte stämmer med katalogen."
+        }
+      ]
+    },
+    {
       "version": "1.3.1",
       "datum": "2026-11-12",
       "nyheter": [

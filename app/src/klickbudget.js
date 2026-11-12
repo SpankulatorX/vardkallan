@@ -538,3 +538,10 @@ FLODEN.push(
     motivering: 'Ett klick på yrkesrollen, som loggar in i rätt demoroll och startar uppdragen i panelen, och ett klick på en patient i arbetslistan för det första uppdraget. Systemet bockar av uppdraget själv och ställer jämförelsefrågan.',
   },
 );
+// Runda 14, r1 (Sussa 5.2.1.1): inloggning genom vårdgivarens egen inloggningstjänst, här övningstjänsten.
+FLODEN.push(
+  {
+    id: 'inloggning-extern', namn: 'Logga in genom vårdgivarens inloggningstjänst', roll: 'lak-kard', start: 'Inloggningssidan med en inkopplad inloggningstjänst', budget: 2,
+    motivering: 'Sussa 5.2.1.1. Ett klick på tjänsten på inloggningssidan och ett på Logga in i tjänsten. Uppdraget, vårdenheten och behörigheten kommer ur biljetten och katalogen, så personen väljer ingenting i Vårdkällan. I en verklig tjänst ersätts klicket i tjänsten av SITHS-kortet.',
+  },
+);

@@ -182,7 +182,7 @@ export function prova(db, konf, ctx) {
   k.namn = text(konf.namn, 80);
   if (k.namn.length < 3) throw new Fel(400, 'Skriv tjänstens namn, så som personalen känner igen den, till exempel Regionens inloggningstjänst.', 'ogiltig', { falt: ['namn'] });
   if (k.namn.length > 80) throw new Fel(400, 'Namnet får vara högst 80 tecken.', 'ogiltig', { falt: ['namn'] });
-  if (/[—–…<>]/.test(k.namn)) throw new Fel(400, 'Skriv namnet utan tankstreck, ellipser och vinkelparenteser.', 'ogiltig', { falt: ['namn'] });
+  if (/[\u2014\u2013\u2026<>]/.test(k.namn)) throw new Fel(400, 'Skriv namnet utan tankstreck, ellipser och vinkelparenteser.', 'ogiltig', { falt: ['namn'] });
   const vg = db.query("SELECT hsa_id, namn FROM enheter WHERE hsa_id = ? AND typ = 'vardgivare'").get(text(konf.vardgivareHsaId));
   if (!vg) throw new Fel(400, 'Vårdgivaren finns inte i masterdata.', 'ogiltig', { falt: ['vardgivareHsaId'] });
   k.vardgivareHsaId = vg.hsa_id;

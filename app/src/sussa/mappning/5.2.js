@@ -9,8 +9,30 @@ import { medR9r5 } from '../runda9-r5.js';
 const { B, A, L, F, LK, MJ, GA, GK } = TEST;
 
 const POSTERNA = [
-  { id: '5.2.1.1', kategori: 'nationell', egna: ['L5', 'L9'], tester: [], avsedd: 'planerat',
-    anmarkning: 'Inloggningen går genom en simulerad autentiseringstjänst som utfärdar en signerad biljett (Sussa 5.2.1.6). Ineras tjänst för SITHS är inte ansluten.' },
+  // Runda 14, r1: inloggning genom beställarens inloggningstjänst (inloggningstjanster.js och
+  // test/inloggningstjanster-r14.test.js).
+  {
+    id: '5.2.1.1', kategori: 'nationell', egna: ['L5', 'L9'], avsedd: 'uppfyllt_demo',
+    tester: [
+      'en extern inloggningstjänst kopplas in med fyra ögon, och nycklarna pinnas med tumavtryck',
+      'servern anropar bara inloggningstjänster som driften har godkänt',
+      'nycklar med privata delar, symmetriska nycklar och för korta RSA-nycklar godtas inte',
+      'inloggning med authorization code och PKCE ger åtkomst ur biljettens attribut, och personen väljer inget',
+      'klienten kan autentisera sig med ett signerat intyg (private_key_jwt), och tjänsten kan signera med RSA',
+      'en biljett med fel signatur, alg none, HS256 med den publika nyckeln, fel utfärdare, fel mottagare, fel nonce eller som har gått ut avvisas',
+      'state hör till sessionen och används en gång, och koden kan inte användas igen',
+      'attribut som saknas eller motsäger masterdata ger ingen åtkomst, med orsaken på vanlig svenska',
+      'ett byte av nyckel kräver fyra ögon, och systemet föreslår bytet när tjänsten har bytt nyckel',
+      'en avstängd tjänst går inte att logga in med, och den som är inloggad genom den loggas ut',
+      'konfigurationen sparar inga hemligheter, bara namnet på miljövariabeln',
+      'en beslutad ändring av en inloggningstjänst ändras eller raderas inte, och bara systemförvaltningen kopplar in tjänster',
+      'övningstjänsten i demon: hela inloggningen, och en biljett med fel vårdenhet ger ingen åtkomst',
+      'övningstjänsten ger koden en gång och kräver rätt PKCE och klientens intyg',
+    ].map(t => `Inloggningstjänst (5.2.1.1) > ${t}`),
+    losning: 'Vårdgivaren kopplar in sin egen inloggningstjänst (OpenID Connect Provider, till exempel Ineras IdP för medarbetare, som talar OpenID Connect enligt HEART-profilen) i systemförvaltningen. Varje ändring, också ett byte av nyckel och en avstängning, gäller först när en andra systemförvaltare har godkänt den. Tjänstens publika nycklar pinnas med tumavtryck när den läggs in, och inga hemligheter sparas i databasen: Vårdkällan autentiserar sig med ett signerat intyg (private_key_jwt) med en nyckel utanför databasen, eller med en hemlighet i serverns miljö. Inloggningen går med authorization code och PKCE, och biljetten prövas: state och nonce, signatur med en inlagd nyckel och en asymmetrisk algoritm, utfärdare, mottagare, giltighetstid, tillitsnivå och att den används en gång. Attributen tolkas enligt Ineras attributspecifikation för IdP 3.3 (HSA-id, medarbetaruppdrag med ändamål och vårdenhet, vårdgivare och legitimerad yrkesgrupp) och prövas mot masterdata vid inloggningen och i varje anrop.',
+    expert: 'Systemförvaltaren skriver bara in tjänstens adress och klient-id. Systemet hämtar tjänstens uppgifter och nycklar från adresser som driften har godkänt, kontrollerar att tjänsten stödjer det som krävs, visar tumavtrycken och föreslår själv ett byte när tjänsten har bytt nyckel. Personalen väljer aldrig uppdrag eller behörighet, och när ett attribut saknas eller inte stämmer med katalogen stänger systemet och säger på vanlig svenska vad som är fel och vem som kan rätta det.',
+    anmarkning: 'Ingen verklig regions inloggningstjänst är inkopplad. Testerna använder en lokal testutfärdare och demon en simulerad övningstjänst i samma server, och inloggningen är prövad lokalt mot Keycloak (test/keycloak-oidc.sh). SAML 2.0 är inte byggt: signaturkontrollen av XML kräver kanonisering och en härdad XML-tolk, som Vårdkällan inte har utan ett granskat beroende, och Ineras IdP för medarbetare talar också OpenID Connect. Utloggning hos tjänsten (RP-initiated logout) finns inte.',
+  },
   {
     id: '5.2.1.2', kategori: 'system', egna: ['L4'], avsedd: 'uppfyllt_demo',
     tester: [

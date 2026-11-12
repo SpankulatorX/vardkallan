@@ -1327,6 +1327,35 @@ function skapa(BAS) {
     await m.klicka(page.locator('#us [data-boka]').first(), 'Boka vid den första undersökningen');
     await synlig(page, '.notis', 'är bokad');
   };
+  // Runda 14, r1 (Sussa 5.2.1.1): övningstjänsten kopplas in med fyra ögon genom API:t, utan att räknas, och flödet börjar
+  // på inloggningssidan. Inloggningen går genom två hela sidbyten (till tjänsten och tillbaka), som nollställer sidans
+  // egen räkning av klick. Skriptets räkning förs därför över till den sista sidan innan den jämförs.
+  startI['Inloggningssidan med en inkopplad inloggningstjänst'] = async (page) => {
+    await page.evaluate(async () => {
+      const post = (v, d = {}) => fetch(v, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then(r => r.json());
+      const { tjanster } = await fetch('/api/inloggning/tjanster').then(r => r.json());
+      if (!tjanster.length) {
+        await post('/api/logout'); await post('/api/login', { personalId: 'sysf' });
+        const f = await post('/api/inloggningstjanster', { ovning: true, motivering: 'Prövar inloggningen genom en extern inloggningstjänst.' });
+        await post('/api/logout'); await post('/api/login', { personalId: 'sysf-2' });
+        await post(`/api/inloggningstjanster/andring/${f.andring.id}/godkann`);
+      }
+      await post('/api/logout');
+    });
+    await page.goto(`${BAS}/#/`);
+    await page.waitForLoadState('networkidle');
+    await page.waitForSelector('#extern-inloggning [data-extern]');
+  };
+  GOR['inloggning-extern'] = async (m, page) => {
+    await m.klicka(page.locator('#extern-inloggning [data-extern]'), 'Övningstjänst för inloggning (simulerad)');
+    await page.waitForSelector('#ot-form');
+    if (await page.locator('#ot-person').inputValue() !== 'lak-kard' || !await page.locator('#ot-v-ratt').isChecked()) throw new Error('personen och rätt uppgifter är inte förvalda');
+    await m.klicka(page.locator('#ot-form button[type="submit"]'), 'Logga in i tjänsten');
+    await page.waitForSelector('[data-a="loggaut"]');
+    await synlig(page, '.vem', 'Sara Lindqvist');
+    await page.waitForLoadState('networkidle');
+    await page.evaluate((n) => { window.__klick = n; }, m.klick);
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 

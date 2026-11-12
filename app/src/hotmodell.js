@@ -72,4 +72,19 @@ export const HOT = [
     principer: ['lager'], tester: [`${SL}inloggning, misslyckad inloggning, avvisade anrop och utloggning blir säkerhetshändelser`, `${SL}ändrade behörigheter och inställningar blir säkerhetshändelser`] },
 ];
 
+// Runda 14, r1 (Sussa 5.2.1.1): inloggningen genom beställarens inloggningstjänst.
+{
+  const R = 'Inloggningstjänst (5.2.1.1) > ';
+  HOT.push(
+    { id: 'Y8', slag: 'yttre', hot: 'Någon loggar in genom en extern inloggningstjänst med en förfalskad biljett, ett stulet svar eller en biljett med fel attribut.',
+      kontroll: 'Svaret ska höra till inloggningen i samma webbläsare (state och nonce) och koden byts med PKCE. Biljetten prövas mot de pinnade nycklarna med en asymmetrisk algoritm, utfärdare, mottagare och tid, och attributen prövas mot masterdata. Allt som inte stämmer stänger.',
+      principer: ['sjalvforsvar', 'lager'], tester: [`${R}en biljett med fel signatur, alg none, HS256 med den publika nyckeln, fel utfärdare, fel mottagare, fel nonce eller som har gått ut avvisas`,
+        `${R}state hör till sessionen och används en gång, och koden kan inte användas igen`, `${R}attribut som saknas eller motsäger masterdata ger ingen åtkomst, med orsaken på vanlig svenska`] },
+    { id: 'I9', slag: 'inre', hot: 'En ensam systemförvaltare kopplar in en falsk inloggningstjänst, byter dess nyckel eller får servern att anropa en intern adress.',
+      kontroll: 'Varje ändring av en inloggningstjänst gäller först när en andra systemförvaltare har godkänt den, nycklarna pinnas med tumavtryck, inga hemligheter sparas i databasen och servern anropar bara adresser som driften har godkänt.',
+      principer: ['minsta_privilegium', 'kontrollerat_flode'], tester: [`${R}en extern inloggningstjänst kopplas in med fyra ögon, och nycklarna pinnas med tumavtryck`,
+        `${R}ett byte av nyckel kräver fyra ögon, och systemet föreslår bytet när tjänsten har bytt nyckel`, `${R}servern anropar bara inloggningstjänster som driften har godkänt`, `${R}konfigurationen sparar inga hemligheter, bara namnet på miljövariabeln`] },
+  );
+}
+
 export const HOTMODELL_TESTER = [...new Set(HOT.flatMap(h => h.tester))];
