@@ -234,6 +234,29 @@ export class Schemaset {
       else if (b.lokal === 'anyAttribute') t.anyAttribute = { namespace: attr(b, 'namespace') ?? '##any', process: attr(b, 'processContents') ?? 'strict', tns: info.tns };
       else if (b.lokal === 'simpleContent' || b.lokal === 'complexContent') {
         const ext = b.barn.find(x => x.ns === XS && !SKIP.has(x.lokal));
+        // Runda 14, r3: complexContent med restriction, som intygens typer använder (till exempel HsaId som begränsar
+        // IIType). Innehållet är restriktionens egen modell, som ersätter basens. Attributen ärvs från basen, med
+        // restriktionens deklarationer i stället för basens med samma namn, och use="prohibited" tar bort ett attribut.
+        if (ext?.lokal === 'restriction' && b.lokal === 'complexContent') {
+          const bas = this.typ(...Object.values(this.qname(ext, attr(ext, 'base'))));
+          if (bas.art !== 'komplex') throw new SchemaFel('En complexContent ska bygga på en komplex typ.');
+          let egen = null;
+          const egnaAttr = [];
+          const borttagna = new Set();
+          let egenAny = null;
+          for (const x of ext.barn) {
+            if (x.ns !== XS || SKIP.has(x.lokal)) continue;
+            if (['sequence', 'choice', 'group'].includes(x.lokal)) egen = this.partikel(x, info);
+            else if (x.lokal === 'attribute') { if (attr(x, 'use') === 'prohibited') borttagna.add(attr(x, 'name')); else egnaAttr.push(this.attributDekl(x, info)); }
+            else if (x.lokal === 'anyAttribute') egenAny = { namespace: attr(x, 'namespace') ?? '##any', process: attr(x, 'processContents') ?? 'strict', tns: info.tns };
+            else throw new SchemaFel(`xs:${x.lokal} i en restriction tas inte med i valideringen.`);
+          }
+          t.innehall = egen;
+          const egna = new Set(egnaAttr.map(a => a.lokal));
+          t.attribut = [...bas.attribut.filter(a => !egna.has(a.lokal) && !borttagna.has(a.lokal)), ...egnaAttr];
+          t.anyAttribute = egenAny;
+          continue;
+        }
         if (!ext || ext.lokal !== 'extension') throw new SchemaFel(`xs:${b.lokal} med ${ext ? `xs:${ext.lokal}` : 'inget innehåll'} tas inte med i valideringen, bara extension.`);
         const bas = this.typ(...Object.values(this.qname(ext, attr(ext, 'base'))));
         let egen = null;

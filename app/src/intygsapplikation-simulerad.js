@@ -4,17 +4,17 @@
 // CertificateStatusUpdateForCare. Den svarar också på ListCertificatesForCareWithQA.
 //
 // Den är inte Webcert och inte Ineras tjänst. Den kör i samma process och sandlåda som Vårdkällan och tar bara emot
-// meddelanden som XML genom samma kontrakt som en riktig intygsapplikation. Reglerna för vilka intyg som får skrivas
+// meddelanden genom samma kontrakt, kuvert och validering som en riktig intygsapplikation (src/rivta/). Reglerna för vilka intyg som får skrivas
 // följer de regler som Webcert tillämpar för skyddade personuppgifter och avlidna, så att journalen kan visa samma sak.
 // Personuppgifterna slås upp i sandlådans patienter, som en intygsapplikation slår upp dem i PU-tjänsten.
 import { randomUUID } from 'node:crypto';
+import { el } from './rivta/xml.js';
 import { Fel, iso } from './db.js';
 import { vardenhetFor, prova, visningsnamn, visningsPnr } from './atkomst.js';
 import { loggaRad } from './logg.js';
 import { avlidenFor } from './avliden.js';
-import { e, xml, tolka, text, hitta, XmlFel } from './rivta-r3-xml.js';
-import * as transport from './rivta-r3-transport.js';
-import { NS, KV, INTYGSTYPER, LOGISK_ADRESS_INTYGSAPPLIKATION, KONTRAKT, taEmotStatus, personId } from './lakarintyg.js';
+import * as r3 from './rivta-r3.js';
+import { KV, INTYGSTYPER, LOGISK_ADRESS_INTYGSAPPLIKATION, DEF, personId, sattTransport } from './lakarintyg.js';
 
 export const NAMN = 'Intygsapplikation (simulerad, inte Webcert)';
 // Påhittade värden som kontraktet kräver men som demon inte har. Märkta som demo.
@@ -31,10 +31,7 @@ CREATE TABLE IF NOT EXISTS sim_intygsapplikation (
 export const sakra = (db) => db.exec(SCHEMA);
 const TYP = new Map(INTYGSTYPER.map(t => [t.kod, t]));
 
-const svaraSkapa = (kod, t = null, err = null, intygsId = null, rot = null) => xml(e('skapa:CreateDraftCertificateResponse', [
-  intygsId ? e('skapa:intygs-id', [e('types:root', rot), e('types:extension', intygsId)]) : null,
-  e('skapa:result', [e('core:resultCode', kod), e('core:resultText', t), e('core:errorId', err)]),
-]), { skapa: NS.skapa, core: NS.core, types: NS.types });
+const svaraSkapa = (kod, resultText = null, errorId = null, intygsId = null, rot = null) => ({ 'intygs-id': intygsId ? { root: rot, extension: intygsId } : null, result: { resultCode: kod, resultText, errorId } });
 
 const enhetPaHsa = (db, hsa) => db.query("SELECT id, hsa_id, namn FROM enheter WHERE hsa_id = ?").get(hsa);
 const vardgivare = (db, enhetId) => {
@@ -50,20 +47,16 @@ const vardgivare = (db, enhetId) => {
 
 // CreateDraftCertificate 3.3. Samma kontroller som en intygsapplikation: patient, läkare och vårdenhet ska finnas,
 // intygstypen ska stödjas, och reglerna för skyddade personuppgifter och avlidna gäller.
-export function skapaUtkast(db, kroppXml, { logiskAdress } = {}) {
-  let m;
-  try { m = tolka(kroppXml); } catch (x) { return svaraSkapa('ERROR', x instanceof XmlFel ? x.message : 'Meddelandet gick inte att tolka.', 'VALIDATION_ERROR'); }
-  if (m.n !== 'CreateDraftCertificate' || m.ns !== NS.skapa) return svaraSkapa('ERROR', 'Meddelandet är inte CreateDraftCertificate version 3.', 'VALIDATION_ERROR');
-  if (logiskAdress !== LOGISK_ADRESS_INTYGSAPPLIKATION) return svaraSkapa('ERROR', 'Fel logisk adress.', 'VALIDATION_ERROR');
-  const i = hitta(m, 'intyg');
-  const typ = text(i, 'typAvIntyg/code');
-  const pnr = text(i, 'patient/person-id/extension');
-  const enhetHsa = text(i, 'skapadAv/enhet/enhets-id/extension');
-  const personalHsa = text(i, 'skapadAv/personal-id/extension');
-  const personalNamn = text(i, 'skapadAv/fullstandigtNamn');
-  if (!TYP.has(typ ?? '') || text(i, 'typAvIntyg/codeSystem') !== KV.intygstyp) return svaraSkapa('ERROR', `Intygstypen ${typ ?? ''} stöds inte.`, 'VALIDATION_ERROR');
-  if (!text(i, 'patient/fornamn') || !text(i, 'patient/efternamn')) return svaraSkapa('ERROR', 'Patientens förnamn och efternamn krävs.', 'VALIDATION_ERROR');
-  if (!/^\d{12}$/.test(pnr ?? '')) return svaraSkapa('ERROR', 'Patientens personnummer saknas eller är fel.', 'VALIDATION_ERROR');
+function skapaUtkast(ctx, { begaran: m }) {
+  const { db } = ctx;
+  const i = m.intyg;
+  const typ = i.typAvIntyg?.code;
+  const pnr = i.patient?.['person-id']?.extension;
+  const enhetHsa = i.skapadAv?.enhet?.['enhets-id']?.extension;
+  const personalHsa = i.skapadAv?.['personal-id']?.extension;
+  const personalNamn = i.skapadAv?.fullstandigtNamn;
+  if (!TYP.has(typ ?? '') || i.typAvIntyg.codeSystem !== KV.intygstyp) return svaraSkapa('ERROR', `Intygstypen ${typ ?? ''} stöds inte.`, 'VALIDATION_ERROR');
+  if (!i.patient.fornamn || !i.patient.efternamn) return svaraSkapa('ERROR', 'Patientens förnamn och efternamn krävs.', 'VALIDATION_ERROR');
   if (!personalHsa || !personalNamn) return svaraSkapa('ERROR', 'Läkarens HSA-id och namn krävs.', 'VALIDATION_ERROR');
   const enhet = enhetHsa ? enhetPaHsa(db, enhetHsa) : null;
   if (!enhet) return svaraSkapa('ERROR', 'Vårdenheten finns inte.', 'VALIDATION_ERROR');
@@ -71,7 +64,7 @@ export function skapaUtkast(db, kroppXml, { logiskAdress } = {}) {
   const pers = db.query('SELECT id, enhet_id FROM personal WHERE hsa_id = ? AND aktiv = 1').get(personalHsa);
   if (!pers || vardenhetFor(db, pers.enhet_id) !== enhet.id) return svaraSkapa('ERROR', 'Personen har inget uppdrag på vårdenheten.', 'VALIDATION_ERROR');
   // Personuppgifterna, som en intygsapplikation hämtar dem ur PU-tjänsten.
-  const p = db.query('SELECT * FROM patienter WHERE personnummer = ?').get(pnr) ?? db.query('SELECT * FROM patienter WHERE replace(personnummer, \'-\', \'\') = ?').get(pnr);
+  const p = db.query('SELECT * FROM patienter WHERE personnummer = ?').get(pnr);
   if (!p) return svaraSkapa('ERROR', 'Personuppgiftstjänsten känner inte till personen.', 'APPLICATION_ERROR');
   const t = TYP.get(typ);
   if (p.skyddad && !t.sekretess) return svaraSkapa('ERROR', 'Intygstypen kan inte skrivas för en patient med skyddade personuppgifter.', 'APPLICATION_ERROR');
@@ -80,66 +73,63 @@ export function skapaUtkast(db, kroppXml, { logiskAdress } = {}) {
   const intygsId = randomUUID();
   // Förifyllnaden: de svar som går att använda följer med till utkastet.
   const svar = {};
-  const f = hitta(i, 'forifyllnad');
-  for (const s of (f?.b ?? []).filter(x => x.n === 'svar')) {
-    for (const d of s.b.filter(x => x.n === 'delsvar')) {
-      if (d.a.id === '6.1') svar.diagnosText = d.text?.slice(0, 200) ?? null;
-      if (d.a.id === '6.2') svar.diagnosKod = text(d, 'cv/code')?.slice(0, 10) ?? null;
+  for (const sv of i.forifyllnad?.svar ?? []) {
+    for (const d of sv.delsvar ?? []) {
+      const cv = (d.$any ?? []).find(x => x.lokal === 'cv');
+      if (d['@id'] === '6.2' && cv) {
+        const v = (n) => cv.barn.find(x => x.lokal === n)?.text ?? null;
+        svar.diagnosKod = v('code')?.slice(0, 10) ?? null;
+        svar.diagnosText = v('displayName')?.slice(0, 200) ?? null;
+      }
     }
   }
   const tid = iso();
   db.query("INSERT INTO sim_intygsapplikation (intygs_id, patient_id, enhet_id, typ, personnummer, personal_hsa, personal_namn, ref, status, skapad, svar, handelser) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'utkast', ?, ?, '[]')")
-    .run(intygsId, p.id, enhet.id, typ, pnr, personalHsa, personalNamn, text(i, 'ref'), tid, JSON.stringify(svar));
+    .run(intygsId, p.id, enhet.id, typ, pnr, personalHsa, personalNamn, i.ref ?? null, tid, JSON.stringify(svar));
   // Statusuppdateringen om det nya utkastet skickas efter svaret, som från en riktig intygsapplikation.
-  transport.ko(db, () => handelse(db, intygsId, 'SKAPAT'));
+  r3.ko(db, () => handelse(db, intygsId, 'SKAPAT'));
   return svaraSkapa('OK', null, null, intygsId, enhet.hsa_id);
 }
 
 const ms = (d = new Date()) => d.toISOString().slice(0, 23);
 const sek = (s) => (s ? s.slice(0, 19) : null);
 
-function intygElement(db, r, { med } = {}) {
+const hsa = (x) => ({ root: KV.hsa, extension: x });
+const kv = (code, codeSystem, displayName = null) => ({ code, codeSystem, displayName });
+function intygObjekt(db, r, { med } = {}) {
   const p = db.query('SELECT * FROM patienter WHERE id = ?').get(r.patient_id);
   const enhet = db.query('SELECT id, hsa_id, namn FROM enheter WHERE id = ?').get(r.enhet_id);
   const vg = vardgivare(db, r.enhet_id);
   const t = TYP.get(r.typ);
   const svar = JSON.parse(r.svar);
-  const statusar = [];
-  if (r.signerad) statusar.push(e('core:status', [e('core:part', [e('types:code', 'HSVARD'), e('types:codeSystem', KV.part)]), e('core:status', [e('types:code', 'RECEIV'), e('types:codeSystem', KV.status)]), e('core:tidpunkt', sek(r.signerad))]));
-  if (r.skickad) statusar.push(e('core:status', [e('core:part', [e('types:code', t.part), e('types:codeSystem', KV.part)]), e('core:status', [e('types:code', 'SENTTO'), e('types:codeSystem', KV.status)]), e('core:tidpunkt', sek(r.skickad))]));
-  if (r.makulerad) statusar.push(e('core:status', [e('core:part', [e('types:code', 'HSVARD'), e('types:codeSystem', KV.part)]), e('core:status', [e('types:code', 'CANCEL'), e('types:codeSystem', KV.status)]), e('core:tidpunkt', sek(r.makulerad))]));
-  const svarEl = med && svar.diagnosKod ? [e('core:svar', [e('core:delsvar', svar.diagnosText ?? '', { id: '6.1' }), e('core:delsvar', [e('types:cv', [e('types:code', svar.diagnosKod), e('types:codeSystem', KV.icd10), e('types:displayName', svar.diagnosText ?? svar.diagnosKod)])], { id: '6.2' })], { id: '6' })] : [];
-  const pid = personId(p);
-  return [
-    e('core:intygs-id', [e('types:root', enhet.hsa_id), e('types:extension', r.intygs_id)]),
-    r.skickad ? e('core:mottagare', [e('types:code', t.part), e('types:codeSystem', KV.part)]) : null,
-    e('core:typ', [e('types:code', t.kod), e('types:codeSystem', KV.intygstyp), e('types:displayName', t.text)]),
-    e('core:version', '1.0'),
-    r.signerad ? e('core:signeringstidpunkt', sek(r.signerad)) : null,
-    r.skickad ? e('core:skickatTidpunkt', sek(r.skickad)) : null,
-    e('core:patient', [
-      e('core:person-id', [e('types:root', pid.root), e('types:extension', pid.extension)]),
-      e('core:fornamn', p.fornamn), e('core:efternamn', p.efternamn),
-      e('core:postadress', p.skyddad ? '' : (p.adress ?? '')), e('core:postnummer', p.skyddad ? '' : (p.postnr ?? '')), e('core:postort', p.skyddad ? '' : (p.ort ?? '')),
-    ]),
-    e('core:skapadAv', [
-      e('core:personal-id', [e('types:root', KV.hsa), e('types:extension', r.personal_hsa)]),
-      e('core:fullstandigtNamn', r.personal_namn),
-      e('core:enhet', [
-        e('core:enhets-id', [e('types:root', KV.hsa), e('types:extension', enhet.hsa_id)]),
-        e('core:arbetsplatskod', [e('types:root', '1.2.752.29.4.71'), e('types:extension', ARBETSPLATSKOD)]),
-        e('core:enhetsnamn', enhet.namn), e('core:postadress', ''), e('core:postnummer', ''), e('core:postort', ''), e('core:telefonnummer', TELEFON),
-        e('core:vardgivare', [e('core:vardgivare-id', [e('types:root', KV.hsa), e('types:extension', vg?.hsa_id ?? enhet.hsa_id)]), e('core:vardgivarnamn', vg?.namn ?? enhet.namn)]),
-      ]),
-    ]),
-    ...statusar,
-    ...svarEl,
-  ];
+  const status = [];
+  if (r.signerad) status.push({ part: kv('HSVARD', KV.part), status: kv('RECEIV', KV.status), tidpunkt: sek(r.signerad) });
+  if (r.skickad) status.push({ part: kv(t.part, KV.part), status: kv('SENTTO', KV.status), tidpunkt: sek(r.skickad) });
+  if (r.makulerad) status.push({ part: kv('HSVARD', KV.part), status: kv('CANCEL', KV.status), tidpunkt: sek(r.makulerad) });
+  return {
+    'intygs-id': { root: enhet.hsa_id, extension: r.intygs_id },
+    mottagare: r.skickad ? [kv(t.part, KV.part)] : null,
+    typ: kv(t.kod, KV.intygstyp, t.text), version: '1.0',
+    signeringstidpunkt: sek(r.signerad), skickatTidpunkt: sek(r.skickad),
+    patient: { 'person-id': personId(p), fornamn: p.fornamn, efternamn: p.efternamn, postadress: p.skyddad ? '' : (p.adress ?? ''), postnummer: p.skyddad ? '' : (p.postnr ?? ''), postort: p.skyddad ? '' : (p.ort ?? '') },
+    skapadAv: {
+      'personal-id': hsa(r.personal_hsa), fullstandigtNamn: r.personal_namn,
+      enhet: {
+        'enhets-id': hsa(enhet.hsa_id), arbetsplatskod: { root: '1.2.752.29.4.71', extension: ARBETSPLATSKOD }, enhetsnamn: enhet.namn,
+        postadress: '', postnummer: '', postort: '', telefonnummer: TELEFON,
+        vardgivare: { 'vardgivare-id': hsa(vg?.hsa_id ?? enhet.hsa_id), vardgivarnamn: vg?.namn ?? enhet.namn },
+      },
+    },
+    status: status.length ? status : null,
+    svar: med && svar.diagnosKod ? [{ '@id': '6', delsvar: [{ '@id': '6.2', $any: [el(NS_TYPES, 'cv', [el(NS_TYPES, 'code', svar.diagnosKod), el(NS_TYPES, 'codeSystem', KV.icd10), el(NS_TYPES, 'displayName', svar.diagnosText ?? svar.diagnosKod)])] }] }] : null,
+  };
 }
+const NS_TYPES = 'urn:riv:clinicalprocess:healthcond:certificate:types:3';
+const arenden = () => ({ totalt: 0, ejBesvarade: 0, besvarade: 0, hanterade: 0 });
 
 // En händelse: statusen sparas hos intygsapplikationen och CertificateStatusUpdateForCare skickas till den vårdenhet som
 // äger intyget. Ger journalens svar.
-export function handelse(db, intygsId, kod, nu = new Date()) {
+export async function handelse(db, intygsId, kod, nu = new Date()) {
   const r = db.query('SELECT * FROM sim_intygsapplikation WHERE intygs_id = ?').get(intygsId);
   if (!r) return null;
   const h = JSON.parse(r.handelser);
@@ -148,36 +138,27 @@ export function handelse(db, intygsId, kod, nu = new Date()) {
   db.query('UPDATE sim_intygsapplikation SET handelser = ? WHERE intygs_id = ?').run(JSON.stringify(h), intygsId);
   const enhet = db.query('SELECT hsa_id FROM enheter WHERE id = ?').get(r.enhet_id);
   const rad = db.query('SELECT * FROM sim_intygsapplikation WHERE intygs_id = ?').get(intygsId);
-  const kropp = e('status:CertificateStatusUpdateForCare', [
-    e('status:intyg', intygElement(db, rad, { med: true })),
-    e('status:handelse', [e('core:handelsekod', [e('types:code', kod), e('types:codeSystem', KV.handelse)]), e('core:tidpunkt', tid)]),
-    e('status:skickadeFragor', [e('core:totalt', 0), e('core:ejBesvarade', 0), e('core:besvarade', 0), e('core:hanterade', 0)]),
-    e('status:mottagnaFragor', [e('core:totalt', 0), e('core:ejBesvarade', 0), e('core:besvarade', 0), e('core:hanterade', 0)]),
-    e('status:ref', r.ref),
-  ]);
-  return transport.anropa(db, { kontrakt: KONTRAKT.status.namn, logiskAdress: enhet.hsa_id, kropp, ns: { status: NS.status, core: NS.core, types: NS.types }, patientId: r.patient_id, enhetId: r.enhet_id });
+  const begaran = { intyg: intygObjekt(db, rad, { med: true }), handelse: { handelsekod: kv(kod, KV.handelse), tidpunkt: tid }, skickadeFragor: arenden(), mottagnaFragor: arenden(), ref: r.ref };
+  try {
+    return await r3.anropa(db, DEF.status(), { logiskAdress: enhet.hsa_id, begaran, transport: r3.tillVardkallan(db, LOGISK_ADRESS_INTYGSAPPLIKATION) });
+  } catch (x) {
+    if (x instanceof r3.RivtaFel) return { fel: x.message };
+    throw x;
+  }
 }
 
 // ListCertificatesForCareWithQA 3.3: patientens intyg på de angivna vårdenheterna, med händelserna.
-export function lista(db, kroppXml) {
-  // Svaret har ingen resultatkod. Ett fel blir ett SOAP-fel, som här är ett undantag som transporten fångar.
-  const svara = (items) => xml(e('lista:ListCertificatesForCareWithQAResponse', [e('lista:list', items.length ? items : null) ?? { n: 'lista:list', a: null, b: [] }]),
-    { lista: NS.lista, core: NS.core, types: NS.types });
-  let m;
-  try { m = tolka(kroppXml); } catch (x) { throw new Error('Meddelandet gick inte att tolka.'); }
-  const pnr = text(m, 'person-id/extension');
-  const enheter = (m.b ?? []).filter(x => x.n === 'enhets-id').map(x => text(x, 'extension'));
-  if (!/^\d{12}$/.test(pnr ?? '') || !enheter.length) throw new Error('Personnummer och minst en vårdenhet krävs.');
-  const ids = enheter.map(h => enhetPaHsa(db, h)?.id).filter(Boolean);
-  const rader = db.query(`SELECT * FROM sim_intygsapplikation WHERE personnummer = ? AND status != 'raderat' AND enhet_id IN (${ids.map(() => '?').join(',') || "''"})`).all(pnr, ...ids);
-  const items = rader.map(r => e('lista:item', [
-    e('lista:intyg', intygElement(db, r)),
-    e('lista:handelser', JSON.parse(r.handelser).map(h => e('core:handelse', [e('core:handelsekod', [e('types:code', h.kod), e('types:codeSystem', KV.handelse)]), e('core:tidpunkt', h.tid)]))),
-    e('lista:skickadeFragor', [e('core:totalt', 0), e('core:ejBesvarade', 0), e('core:besvarade', 0), e('core:hanterade', 0)]),
-    e('lista:mottagnaFragor', [e('core:totalt', 0), e('core:ejBesvarade', 0), e('core:besvarade', 0), e('core:hanterade', 0)]),
-    e('lista:ref', r.ref),
-  ]));
-  return svara(items);
+function lista(ctx, { begaran: m }) {
+  const { db } = ctx;
+  const pnr = m['person-id']?.extension;
+  const ids = (m['enhets-id'] ?? []).map(x => enhetPaHsa(db, x.extension)?.id).filter(Boolean);
+  if (!ids.length) return { list: { item: [] } };
+  const rader = db.query(`SELECT * FROM sim_intygsapplikation WHERE personnummer = ? AND status != 'raderat' AND enhet_id IN (${ids.map(() => '?').join(',')})`).all(pnr, ...ids);
+  return { list: { item: rader.map(r => ({
+    intyg: intygObjekt(db, r),
+    handelser: { handelse: JSON.parse(r.handelser).map(h => ({ handelsekod: kv(h.kod, KV.handelse), tidpunkt: h.tid })) },
+    skickadeFragor: arenden(), mottagnaFragor: arenden(), ref: r.ref,
+  })) } };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -220,7 +201,7 @@ export function visa(db, personal, intygsId, val = {}) {
 }
 const NEDSATTNING = ['heltid', 'tre_fjardedelar', 'halften', 'en_fjardedel'];
 const SYSSELSATTNING = ['nuvarande_arbete', 'arbetssokande', 'foraldraledighet', 'studier'];
-export function spara(db, personal, intygsId, body = {}, val = {}) {
+export async function spara(db, personal, intygsId, body = {}, val = {}) {
   const { r, grund } = hamta(db, personal, intygsId, 'skriv_intyg');
   if (r.status !== 'utkast') throw new Fel(409, 'Ett signerat intyg kan inte ändras. Makulera det och skriv ett nytt.', 'konflikt');
   const s = JSON.parse(r.svar);
@@ -232,7 +213,7 @@ export function spara(db, personal, intygsId, body = {}, val = {}) {
   if (ny.fran && ny.till && ny.till < ny.fran) throw new Fel(400, 'Slutdatumet kan inte vara före startdatumet.', 'ogiltig');
   db.query('UPDATE sim_intygsapplikation SET svar = ? WHERE intygs_id = ?').run(JSON.stringify(ny), r.intygs_id);
   loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, patient_id: r.patient_id, handling: 'skriv_intyg', resurs: `intygsapplikation:${r.intygs_id}`, grund, resultat: 'tillaten' });
-  handelse(db, r.intygs_id, 'ANDRAT');
+  await handelse(db, r.intygs_id, 'ANDRAT');
   return ut(db, db.query('SELECT * FROM sim_intygsapplikation WHERE intygs_id = ?').get(r.intygs_id), personal, Boolean(val.visa_identitet));
 }
 // Vad som saknas innan intyget kan signeras, på vanlig svenska.
@@ -247,7 +228,7 @@ export function saknas(r) {
   }
   return fel;
 }
-export function atgard(db, personal, intygsId, atgardNamn, val = {}) {
+export async function atgard(db, personal, intygsId, atgardNamn, val = {}) {
   const handlingar = { signera: 'skriv_intyg', skicka: 'skriv_intyg', makulera: 'skriv_intyg', radera: 'skriv_intyg' };
   if (!Object.hasOwn(handlingar, atgardNamn)) throw new Fel(404, 'Åtgärden finns inte.', 'saknas');
   const { r, grund } = hamta(db, personal, intygsId, handlingar[atgardNamn]);
@@ -258,27 +239,29 @@ export function atgard(db, personal, intygsId, atgardNamn, val = {}) {
     const f = saknas(r);
     if (f.length) throw new Fel(400, `Fyll i ${f.join(', ')} innan intyget signeras.`, 'ogiltig');
     db.query("UPDATE sim_intygsapplikation SET status = 'signerat', signerad = ?, signerad_av = ? WHERE intygs_id = ?").run(tid, personal.hsa_id, r.intygs_id);
-    handelse(db, r.intygs_id, 'SIGNAT');
+    await handelse(db, r.intygs_id, 'SIGNAT');
   } else if (atgardNamn === 'skicka') {
     if (r.status !== 'signerat') throw new Fel(409, 'Bara ett signerat intyg som inte är skickat kan skickas.', 'konflikt');
     db.query("UPDATE sim_intygsapplikation SET status = 'skickat', skickad = ? WHERE intygs_id = ?").run(tid, r.intygs_id);
-    handelse(db, r.intygs_id, 'SKICKA');
+    await handelse(db, r.intygs_id, 'SKICKA');
   } else if (atgardNamn === 'makulera') {
     if (!['signerat', 'skickat'].includes(r.status)) throw new Fel(409, 'Bara ett signerat intyg kan makuleras. Ett utkast raderas.', 'konflikt');
     if (personal.yrke !== 'lakare') throw new Fel(403, 'Bara en läkare makulerar intyget.', 'nekad');
     db.query("UPDATE sim_intygsapplikation SET status = 'makulerat', makulerad = ? WHERE intygs_id = ?").run(tid, r.intygs_id);
-    handelse(db, r.intygs_id, 'MAKULE');
+    await handelse(db, r.intygs_id, 'MAKULE');
   } else {
     if (r.status !== 'utkast') throw new Fel(409, 'Ett signerat intyg raderas inte. Makulera det i stället.', 'konflikt');
     db.query("UPDATE sim_intygsapplikation SET status = 'raderat' WHERE intygs_id = ?").run(r.intygs_id);
-    handelse(db, r.intygs_id, 'RADERA');
+    await handelse(db, r.intygs_id, 'RADERA');
   }
   loggaRad(db, { personal_id: personal.id, enhet_id: personal.enhet_id, patient_id: r.patient_id, handling: 'skriv_intyg', resurs: `intygsapplikation:${r.intygs_id}:${atgardNamn}`, grund, resultat: 'tillaten' });
   return ut(db, db.query('SELECT * FROM sim_intygsapplikation WHERE intygs_id = ?').get(r.intygs_id), personal, Boolean(val.visa_identitet));
 }
 
-// Kontrakten kopplas till motparterna: intygsapplikationen tar emot CreateDraftCertificate och
-// ListCertificatesForCareWithQA, och journalen tar emot CertificateStatusUpdateForCare.
-transport.registrera(KONTRAKT.skapa.namn, NAMN, skapaUtkast);
-transport.registrera(KONTRAKT.lista.namn, NAMN, lista);
-transport.registrera(KONTRAKT.status.namn, 'Vårdkällan (producent)', taEmotStatus);
+// Den simulerade intygsapplikationen: en egen tjänst med samma kuvert, validering och fel som en riktig, som tar emot
+// CreateDraftCertificate och ListCertificatesForCareWithQA från Vårdkällan. Journalen når den genom transporten i samma
+// process.
+export const tjanst = r3.simuleradTjanst(NAMN, [LOGISK_ADRESS_INTYGSAPPLIKATION]);
+tjanst.registrera(DEF.skapa(), skapaUtkast);
+tjanst.registrera(DEF.lista(), lista);
+sattTransport((db) => r3.tillMotpart(db, tjanst));

@@ -34,7 +34,6 @@ DOMANER.push(
   ['riv.clinicalprocess.healthcond.certificate', '4.0.5', '277a809399ecc9d7bee85ef1792c00c0c7e41076'],
   ['riv.clinicalprocess.activity.request', '2.3', '3fc7315e4628d7468d6c5be80ce8dcf987315dc9'],
   ['riv.crm.requeststatus', '2.0.2', 'd487f21af1b21e446210a36324aadaca7263f652'],
-  ['riv.processdevelopment.infections', '1.0.2', '869d30d9a0f8adc676e052edb3f7e2141dc6aeb0'],
   ['riv.followup.qualityregistry.nkrr', '1.2.2', 'edc9ed9be6295303470de067aa8bd7518993137f'],
   ['riv.infrastructure.eservicesupply.forminteraction', '2.1.1', '3dbee167710a60606e6560bbf6d3e6d320dbf128'],
   ['riv-application.infrastructure.eservicesupply.patientportal', '2.0', '444af395016bd6c97d1b6ca26014c5890359f0e7'],
