@@ -310,7 +310,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // tryggSekunder är hur länge efter att en sandlåda har använts som den inte flyttas till disk för att ge plats åt en ny.
   vilaKatalog = process.env.VILA_KATALOG || (sessionFil ? join(dirname(sessionFil), 'vila') : null),
   vilaMinuter = Number(process.env.VILA_MINUTER || 10),
-  maxIMinnet = process.env.MAX_I_MINNET ? Number(process.env.MAX_I_MINNET) : vila.maxIMinnet(vila.minnesgrans()),
+  maxIMinnet = process.env.MAX_I_MINNET ? Number(process.env.MAX_I_MINNET) : vila.maxIMinnet(vila.minnesgrans(), { cpu: vila.processorer() }),
   maxSessioner = null,
   maxSandlador = Number(process.env.MAX_SANDLADOR || process.env.MAX_SESSIONER || MAX_SANDLADOR),
   maxDiskMb = Number(process.env.MAX_DISK_MB || 8192),
@@ -320,7 +320,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // minut, och maxPerAdress hur många levande sandlådor en adress får ha.
   maxSandladaMb = Number(process.env.MAX_SANDLADA_MB || 24),
   tidsbudgetSandladaMs = Number(process.env.TIDSBUDGET_SANDLADA_MS || 30_000),
-  tidsbudgetAdressMs = Number(process.env.TIDSBUDGET_ADRESS_MS || 45_000),
+  tidsbudgetAdressMs = Number(process.env.TIDSBUDGET_ADRESS_MS || 90_000),
   maxPerAdress = Number(process.env.MAX_PER_ADRESS || 150) } = {}) {
   if (maxSessioner) maxSandlador = maxSessioner;
   const sessioner = new Map();

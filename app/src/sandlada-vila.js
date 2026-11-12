@@ -113,9 +113,28 @@ export function minneNu(las = (f) => readFileSync(f, 'utf8')) {
 }
 
 // Hur många sandlådor som får vara i minnet med en minnesgräns i byte. Utan gräns gäller standardvärdet.
-export function maxIMinnet(grans, { basMb = MATT.basMb, perSandladaMb = MATT.perSandladaMb, standard = 40 } = {}) {
-  if (!grans) return standard;
-  return Math.max(2, Math.floor((grans / 1048576 * ANDEL - basMb) / perSandladaMb));
+// Runda 13, r2: med cpu (antal processorer, till exempel 0,75) gäller också taket per processor. Vågen i lasttestet
+// 2026-11-12 med 0,75 processor: 65 platser höll p95 under 160 ms, 110 platser gav p95 över två sekunder, eftersom fler
+// besökare i arbete då delar samma processor. Taket räknas därför ur det som tar slut först.
+export const PER_PROCESSOR = 85;
+export function maxIMinnet(grans, { basMb = MATT.basMb, perSandladaMb = MATT.perSandladaMb, standard = 40, cpu = null } = {}) {
+  const minne = grans ? Math.max(2, Math.floor((grans / 1048576 * ANDEL - basMb) / perSandladaMb)) : standard;
+  return cpu ? Math.min(minne, Math.max(2, Math.floor(cpu * PER_PROCESSOR))) : minne;
+}
+// Containerns processorer enligt cgroup (cpu.max i v2, kvoten i v1), eller null utan gräns.
+export function processorer(las = (f) => readFileSync(f, 'utf8')) {
+  try {
+    const [kvot, period] = las('/sys/fs/cgroup/cpu.max').trim().split(/\s+/);
+    if (kvot === 'max') return null;
+    const n = Number(kvot) / Number(period);
+    if (Number.isFinite(n) && n > 0) return n;
+  } catch { /* v1 */ }
+  try {
+    const k = Number(las('/sys/fs/cgroup/cpu/cpu.cfs_quota_us').trim());
+    const p = Number(las('/sys/fs/cgroup/cpu/cpu.cfs_period_us').trim());
+    if (k > 0 && p > 0) return k / p;
+  } catch { /* ingen gräns */ }
+  return null;
 }
 // Hur många besökare som kan arbeta samtidigt med en minnesgräns i MB, för dokumentationen och driftsidan.
 export const besokareFor = (mb, matt = MATT) => maxIMinnet(mb * 1048576, matt);

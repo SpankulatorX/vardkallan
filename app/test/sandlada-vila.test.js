@@ -66,6 +66,16 @@ describe('Vilande sandlådor: lagret', () => {
     expect(vila.MATT.basMb + m512 * vila.MATT.perSandladaMb).toBeLessThan(512);
   });
 
+  // Vågen i lasttestet 2026-11-12: med 0,75 processor höll 65 platser svarstidsmålet, medan 110 platser gav p95 över två
+  // sekunder. Taket räknas därför också ur processorerna.
+  test('taket i minnet räknas också ur containerns processorer, så att fler platser aldrig ger längre svarstider än målet', () => {
+    expect(vila.processorer(() => '75000 100000\n')).toBe(0.75);
+    expect(vila.processorer(() => 'max 100000\n')).toBeNull();
+    expect(vila.maxIMinnet(2048 * 1048576, { cpu: 0.75 })).toBe(Math.floor(0.75 * vila.PER_PROCESSOR));
+    expect(vila.maxIMinnet(512 * 1048576, { cpu: 4 })).toBe(vila.maxIMinnet(512 * 1048576));
+    expect(vila.maxIMinnet(null, { cpu: 0.5 })).toBe(Math.min(40, Math.floor(0.5 * vila.PER_PROCESSOR)));
+  });
+
   test('tiden tills det är lönt att försöka igen räknas ur när den första platsen blir ledig, inom rimliga gränser', () => {
     const nu = 1_000_000;
     expect(vila.forsokIgenOm([nu + 5 * MIN, nu + 2 * MIN], nu)).toBe(120);

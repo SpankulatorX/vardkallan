@@ -2594,7 +2594,8 @@ varje anrop. Säkerhetskopian av en vilande sandlåda tas från filen utan att s
 programmet uppgraderades får de nya tabellerna när den läses in.
 
 Systemet räknar själv ut hur många sandlådor som får vara i minnet, ur containerns minnesgräns (cgroup):
-`(gräns × 0,8 − 230 MB) / 9 MB`, och driften kan sätta taket med `MAX_I_MINNET`. Det finns också en budget i byte, så att en
+`(gräns × 0,8 − 230 MB) / 9 MB`, och ur containerns processorer: 85 sandlådor per processor. Det som tar slut först
+gäller, och driften kan sätta taket med `MAX_I_MINNET`. Det finns också en budget i byte, så att en
 sandlåda vars databas har vuxit räknas som flera. När en plats behövs flyttas den sandlåda som har varit oanvänd längst
 till disk. En sandlåda med ett pågående anrop flyttas aldrig, och en som har använts de senaste 20 sekunderna
 (`VILA_TIDIGAST_SEKUNDER`) flyttas inte för att ge plats åt en ny besökare. En sandlåda tas aldrig bort för att ge plats
@@ -2626,16 +2627,46 @@ mätvärdena) tog omkring 6,3 MB. Med 20 platser i minnet och 100 sandlådor som
 processen kring 390 MB, och 80 vilande sandlådor tog 21 MB på disken. Räkningen i servern är med marginal (230 MB för
 processen och 9 MB per sandlåda, 80 procent av gränsen).
 
-| Minnesgräns | Sandlådor i minnet | Sandlådor som vilar |
-| --- | --- | --- |
-| 512 MB | 19 | upp till 3 000 |
-| 768 MB | 42 | upp till 3 000 |
-| 1 GB | 65 | upp till 3 000 |
-| 1,5 GB | 110 | upp till 3 000 |
+| Minnesgräns | Sandlådor i minnet (ur minnet) | Med 0,75 processor | Sandlådor som vilar |
+| --- | --- | --- | --- |
+| 512 MB | 19 | 19 | upp till 3 000 |
+| 768 MB | 42 | 42 | upp till 3 000 |
+| 1 GB | 65 | 63 | upp till 3 000 |
+| 1,5 GB | 110 | 63 | upp till 3 000 |
 
 En plats i minnet räcker för flera besökare, eftersom en besökare läser och skriver mellan anropen och sandlådan kan vila
 under tiden. Hur många som kan arbeta samtidigt utan att nya besökare får vänta beror alltså på hur tätt de klickar. Det
-mäts av vågen i lasttestet.
+mäts av vågen i lasttestet: 300 nya besökare under fem minuter, var och en med en egen sandlåda, som loggar in och arbetar
+två till sex minuter med fem till femton sekunders betänketid. Körningarna 2026-11-12 mot en container med 0,75 processor,
+som i driften:
+
+| Minne | Platser | Skydd efter användning | p95, sämsta åtgärden | Fel | Största RSS | Besökare som väntade | Längsta väntan |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 GB | 65 | 20 s | 120 ms (inkorgen) | 0 | 745 MB | 234 av 300 | 1 050 s |
+| 1 GB | 65 | 5 s | 157 ms (inkorgen) | 1 avbruten anslutning, inget 5xx | 721 MB | 146 av 300 | 330 s |
+| 1,5 GB | 110 | 5 s | 2 454 ms | 1 avbruten anslutning, inget 5xx | 978 MB | 53 av 300 | 93 s |
+| 1,5 GB | 63 (processorn) | 5 s | 544 ms | 1 avbruten anslutning, inget 5xx | 724 MB | 154 av 300 | 361 s |
+| 1 GB | 63 (processorn) | 5 s | 338 ms | 0 | 725 MB | 151 av 300 | 331 s |
+| 1 GB | 63 (processorn) | 20 s | 77 ms (inkorgen) | 0 | 690 MB | 232 av 300 | 1 020 s |
+
+Ingen sandlåda tappades i någon körning, och servern svarade aldrig med 5xx. De avbrutna anslutningarna gällde en
+registrering (POST) på en anslutning som servern hade stängt efter tio sekunder utan anrop; inget syntes i serverns logg.
+Med 1,5 GB och 110 platser räckte minnet, men 0,75 processor räckte inte för så många besökare i arbete samtidigt, och
+svarstiderna blev tio gånger för långa. Taket räknas därför också ur processorerna (85 per processor). Med ett kortare
+skydd efter användning (5 sekunder) kom fler in tidigare, men sandlådorna byttes oftare och svarstiderna blev längre och
+varierade mer mellan körningarna, eftersom darkstar hade annan last samtidigt. Skyddet är därför 20 sekunder: svarstiderna
+för dem som arbetar går före, och nya besökare får vänta på sidan som säger när det är lönt att försöka igen. Fler
+samtidiga besökare kräver fler processorer, inte bara mer minne.
+
+Vågen körs ensam, mot en container med driftens gränser, en datakatalog för vilande sandlådor och taken per adress
+höjda, eftersom alla besökare i testet kommer från samma adress:
+
+```sh
+docker run -d --rm --name vk-last --memory 1g --memory-swap 1g --cpus 0.75 -p 127.0.0.1:18222:8080 -v "$PWD/app:/app:ro" \
+  -v "$PWD/app/.testtmp-last:/data" -w /app -e NYA_PER_TIMME=100000 -e TIDSBUDGET_ADRESS_MS=1000000000 \
+  -e MAX_PER_ADRESS=100000 -e SESSION_FIL=/data/sessioner.json oven/bun:1.3.14-alpine bun src/server.js
+docker run --rm --memory 1g --network host -v "$PWD/app:/app" -w /app oven/bun:1.3.14-alpine bun scripts/lasttest.js http://127.0.0.1:18222
+```
 
 ### Tak mot missbruk
 
@@ -2647,7 +2678,7 @@ nyckel.
 | --- | --- |
 | Nya sandlådor | 60 per adress och timme (`NYA_PER_TIMME`), 150 levande per adress (`MAX_PER_ADRESS`), 3 000 totalt |
 | Databasens storlek | 24 MB per sandlåda (`MAX_SANDLADA_MB`). Det som skulle göra den större får 507 med en förklaring |
-| Tunga anrop | anropen får ta högst 30 sekunder per minut för en sandlåda och 45 sekunder per minut för en adress (`TIDSBUDGET_SANDLADA_MS`, `TIDSBUDGET_ADRESS_MS`). Det gäller allt: export, datauttag, rapporter, sökningar, FHIR och de offentliga sidorna |
+| Tunga anrop | anropen får ta högst 30 sekunder per minut för en sandlåda och 90 sekunder per minut för en adress (`TIDSBUDGET_SANDLADA_MS`, `TIDSBUDGET_ADRESS_MS`). Det gäller allt: export, datauttag, rapporter, sökningar, FHIR och de offentliga sidorna |
 | Miljöer | 3 per sandlåda, och de räknas som nya sandlådor från adressen |
 | Bilder och filer | som förut: 1 MB per bild, 2 MB per film, 40 per patient och 4 MB per sandlåda |
 | Säkerhetskopior | 1 per minut och 10 per timme som systemförvaltaren ber om, 8 per sandlåda, 32 MB största sandlåda, 4 096 MB för allas kopior (`MAX_KOPIOR_MB`), där de äldsta tas bort först |
@@ -2680,4 +2711,9 @@ inte.
 Demon har en process. Platserna i minnet är ett tak för en process, och i driften med många vårdgivare är varje databas
 en egen server. Vilan och diskens tak gäller demons sandlådor; en vårdgivares databas ligger på disk hela tiden. Ett
 förslag om att läsa in en kopia finns i sessionen och gäller i 30 minuter. Taken mot missbruk gäller per adress som
-Cloudflare anger, så besökare bakom samma adress delar adressens tak.
+Cloudflare anger, så besökare bakom samma adress delar adressens tak. Tidsbudgeten per adress är räknad för ett
+sjukhusnät där 20 testare delar adress: i vågen gjorde varje besökare omkring sex anrop i minuten, med serverns tid i
+median 8 till 50 ms per anrop. En testare som klickar tätt, en sida var femte sekund med fyra anrop per sida, gör 48 anrop
+i minuten, och med 50 ms per anrop blir det 2,4 sekunder per minut. Tjugo sådana testare använder 48 sekunder per minut,
+mer än de 45 som först var taket, så budgeten är 90 sekunder per minut. Taket per sandlåda, 30 sekunder per minut, är
+detsamma.

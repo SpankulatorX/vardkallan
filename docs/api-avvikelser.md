@@ -843,7 +843,7 @@ Det som ändrar något kräver radens vårdenhet. Listor på enhetsnivå och upp
 ## Kapacitet, säkerhetskopior och flerfaktor i version 1.3 (runda 13, r2)
 
 - **Demon är full.** När en ny sandlåda inte får plats svarar varje anrop som skulle skapa en 503 `{ fel, kod: "demo_full", orsak: "minne" | "disk", forsokIgenSekunder }` med rubrikerna `Retry-After` och `X-Vk-Full: 1`. Ingen sessionskaka sätts. En besökare som redan har en sandlåda får aldrig svaret.
-- **Tak.** 429 `kod: "for_manga"` när anropen från en sandlåda tar mer än 30 sekunder per minut, från en adress mer än 45 sekunder per minut, eller när en adress redan har 150 levande sandlådor. 507 `kod: "sandlada_full"` när en skrivning skulle göra sandlådans databas större än 24 MB.
+- **Tak.** 429 `kod: "for_manga"` när anropen från en sandlåda tar mer än 30 sekunder per minut, från en adress mer än 90 sekunder per minut, eller när en adress redan har 150 levande sandlådor. 507 `kod: "sandlada_full"` när en skrivning skulle göra sandlådans databas större än 24 MB.
 - **Miljövariabler.** `VILA_KATALOG`, `VILA_MINUTER`, `VILA_TIDIGAST_SEKUNDER`, `MAX_I_MINNET`, `MAX_SANDLADOR` (det äldre namnet `MAX_SESSIONER` gäller också), `MAX_DISK_MB`, `MAX_KOPIOR_MB`, `MAX_SANDLADA_MB`, `MAX_PER_ADRESS`, `TIDSBUDGET_SANDLADA_MS` och `TIDSBUDGET_ADRESS_MS`.
 - `GET /api/drift` har `kapacitet: { iMinnet, maxIMinnet, minneMb, minnesbudgetMb, maxSandladaMb, vilar, sandlador, maxSandlador, vilaMinuter, diskMb, maxDiskMb, overskridna, minne: { rssMb, anvantMb, gransMb } }`.
 - `POST /api/reset` ger sandlådan ett nytt id för säkerhetskopiorna, och kopiorna av den gamla sandlådan tas bort.

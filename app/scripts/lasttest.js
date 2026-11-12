@@ -77,6 +77,9 @@ async function anrop(sandlada, metod, vag, kropp) {
     body: kropp ? JSON.stringify(kropp) : undefined,
   });
   await r.arrayBuffer();
+  // Runda 13, r2: som en webbläsare tar klienten emot en ny sessionskaka, till exempel vid inloggningen.
+  const ny = (r.headers.get('set-cookie') || '').split(';')[0];
+  if (ny) sandlada.kaka = ny;
   return { ms: performance.now() - t0, status: r.status, server: Number((r.headers.get('server-timing') || '').match(/dur=([\d.]+)/)?.[1] ?? NaN) };
 }
 
@@ -194,7 +197,7 @@ async function vag(antal) {
       } catch (e) { matt.get(a.id).fel++; fel(`${a.id}: ${e.message}`); }
     }
     // Markeringen ska finnas kvar i besökarens egen sandlåda.
-    const kvar = await fetch(`${BAS}/api/patient/p01/matvarden`, { headers: { Cookie: kaka } });
+    const kvar = await fetch(`${BAS}/api/patient/p01/matvarden`, { headers: { Cookie: s.kaka } });
     const text = await kvar.text();
     if (kvar.status !== 200 || !new RegExp(`"varde":"?${MARKERING}"?[,}]`).test(text)) { resultat.tappade++; fel(`Markeringen saknades (${kvar.status})`); }
   })());
