@@ -98,9 +98,9 @@ export async function overfor(db, { patientId = null } = {}) {
   const ut = { vardkontakter: 0, tillstand: 0, orsaker: 0, borttagna: 0, utelamnade: 0 };
   const pat = new Map();
   const patient = (id) => (pat.has(id) ? pat.get(id) : pat.set(id, db.query('SELECT * FROM patienter WHERE id = ?').get(id)).get(id));
-  const far = (id) => {
+  const far = (id, enhetId) => {
     const p = patient(id);
-    const pr = r3.provaUtlamning(db, p, { slag: 'uppfoljning' });
+    const pr = r3.provaUtlamning(db, p, { slag: 'uppfoljning', enhetId });
     if (!pr.tillaten || !/^\d{12}$/.test(String(p?.personnummer ?? '').replace(/\D/g, ''))) { ut.utelamnade++; return false; }
     return true;
   };
@@ -108,7 +108,7 @@ export async function overfor(db, { patientId = null } = {}) {
   const arg = patientId ? [patientId] : [];
   // Vårdtillfällen i slutenvård.
   for (const v of db.query(`SELECT * FROM vardkontakter WHERE typ = 'slutenvard' AND coalesce(kalla, 'vardkallan') = 'vardkallan' ${filter}`).all(...arg)) {
-    if (!far(v.patient_id)) continue;
+    if (!far(v.patient_id, v.enhet_id)) continue;
     const r = await skicka(db, 'vardkontakt', v, { ...patientVarden(patient(v.patient_id)), vårdgivare: vg, 'registrerande enhet': hsa(v.enhet_id), vårdkontaktid: `VK-${v.id}`,
       vårdkontakttid_starttidpunkt: tid(v.start), vårdkontakttid_sluttidpunkt: tid(v.slut ?? v.start) }, 'vardkontakt', String(v.id));
     if (r === 'ok') ut.vardkontakter++;
@@ -116,14 +116,14 @@ export async function overfor(db, { patientId = null } = {}) {
   // Infektionsdiagnoser.
   const diagnoser = db.query(`SELECT * FROM diagnoser WHERE coalesce(kalla, 'vardkallan') = 'vardkallan' ${filter}`).all(...arg).filter(d => INFEKTION.test(d.kod));
   for (const d of diagnoser) {
-    if (!far(d.patient_id)) continue;
+    if (!far(d.patient_id, d.enhet_id)) continue;
     const r = await skicka(db, 'tillstand', d, { ...patientVarden(patient(d.patient_id)), vårdgivare: vg, 'registrerande enhet': hsa(d.enhet_id), tillståndsid: `D-${d.id}`,
       tillståndskod: d.kod.replace('.', ''), tillståndstid: `${d.datum.slice(0, 10)}T00:00:00` }, 'tillstand', String(d.id));
     if (r === 'ok') ut.tillstand++;
   }
   // Antibiotika med ordinationsorsak: den senaste infektionsdiagnosen på samma vårdenhet.
   for (const o of db.query(`SELECT o.*, k.atc FROM ordinationer o JOIN katalog k ON k.id = o.lakemedel_id WHERE coalesce(o.kalla, 'vardkallan') = 'vardkallan' ${patientId ? 'AND o.patient_id = ?' : ''}`).all(...arg)) {
-    if (!ANTIBIOTIKA.test(o.atc) || !far(o.patient_id)) continue;
+    if (!ANTIBIOTIKA.test(o.atc) || !far(o.patient_id, o.enhet_id)) continue;
     const ve = vardenhetFor(db, o.enhet_id);
     const d = diagnoser.filter(x => x.patient_id === o.patient_id && vardenhetFor(db, x.enhet_id) === ve).sort((a, b) => b.datum.localeCompare(a.datum))[0];
     if (!d) continue;

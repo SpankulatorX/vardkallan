@@ -163,7 +163,7 @@ export async function anmalRegistrering(atk, p, body = {}) {
   const reg = REGISTER.find(r => r.id === body.register);
   if (!reg) throw new Fel(400, 'Välj ett register.', 'ogiltig', { falt: ['register'] });
   // Samma prövning som alla utgående registreringar: invändning mot registrering och skyddade personuppgifter.
-  const pr = r3.provaUtlamning(atk.db, p, { slag: 'kvalitetsregister', register: reg.id });
+  const pr = r3.provaUtlamning(atk.db, p, { slag: 'kvalitetsregister', register: reg.id, enhetId: atk.personal.enhet_id });
   if (!pr.tillaten) { atk.logga('kvalitetsregister', atk.grund(), `nkrr:${reg.id}:ej_skickad`); throw new Fel(400, pr.skal, 'ogiltig'); }
   const nr = kravPnr(p, 'kvalitetsregistret');
   const db = atk.db;

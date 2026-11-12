@@ -42,6 +42,7 @@ export const T14R3 = {
   dosSkyddad: 'Dosdispensering med tjänstekontrakt i RIVTA > Dos > en patient med skyddade personuppgifter anmäls utan adress',
   infOverfor: 'Infektionsverktyget med tjänstekontrakt i RIVTA > Infektion > vårdtillfällen, infektionsdiagnoser och antibiotika med orsak och smittväg överförs av systemet, en gång',
   infSkydd: 'Infektionsverktyget med tjänstekontrakt i RIVTA > Infektion > en patient med skyddade personuppgifter överförs inte, och en borttagen diagnos tas bort med DeleteCondition',
+  infSparr: 'Infektionsverktyget med tjänstekontrakt i RIVTA > Infektion > en diagnos från en vårdenhet som patienten har spärrat överförs inte',
   infAuto: 'Infektionsverktyget med tjänstekontrakt i RIVTA > Infektion > en infektionsdiagnos som läkaren registrerar överförs av systemet i bakgrunden, och en annan diagnos inte',
   infSchema: 'Infektionsverktyget med tjänstekontrakt i RIVTA > Infektion > meddelandena följer schemat med xsi:type, och ett element med en abstrakt typ utan xsi:type avvisas',
   nkrrInvandning: `${ET}NKRR > en patient som har motsatt sig registrering i kvalitetsregistret anmäls inte, och efter att invändningen är återkallad anmäls hen`,
@@ -50,7 +51,7 @@ const T = T14R3;
 
 const POSTER = {
   '2.2.1.13': {
-    tester: [T.infOverfor, T.infSkydd, T.infAuto, T.infSchema],
+    tester: [T.infOverfor, T.infSkydd, T.infSparr, T.infAuto, T.infSchema],
     losning: 'Vårdtillfällen i slutenvård, infektionsdiagnoser och antibiotika med ordinationsorsak och smittväg överförs till Infektionsverktyget med ProcessCareEncounter, ProcessCondition och ProcessPrescriptionReason, och en diagnos som inte längre finns tas bort med DeleteCondition. Meddelandena är openEHR-kompositioner byggda ur kontraktets egna mallar.',
     expert: 'Överföringen görs av systemet när en infektionsdiagnos eller antibiotika registreras, och läkaren behöver aldrig fylla i en särskild dialog: ordinationsorsaken tas ur patientens infektionsdiagnos på vårdenheten och smittvägen räknas ut ur inskrivningen. Patienter med skyddade personuppgifter lämnas inte ut, med samma prövning som alla utgående registreringar.',
     anmarkning: `${anm('riv.processdevelopment.infections 1.0.2 (ProcessCareEncounter, ProcessCondition, ProcessPrescriptionReason och DeleteCondition 1.0, RIVTA Basic Profile 2.0)')} Infektionsverktyget är simulerat. Urvalet av diagnoser är en demoregel och inte regionens triggerlistor ur terminologitjänsten. Åtgärder (KVÅ), provsvar för Clostridium difficile och de övriga borttagningarna är inte byggda. Smittvägen är en demoregel (vårdrelaterad när diagnosen ställs mer än 48 timmar efter inskrivningen).`,

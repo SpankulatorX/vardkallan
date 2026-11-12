@@ -40,6 +40,14 @@ describe('Infektionsverktyget med tjänstekontrakt i RIVTA', () => {
     expect(ut(db).some(x => x.kontrakt === 'DeleteCondition' && x.resultat === 'ok')).toBe(true);
   });
 
+  test('Infektion > en diagnos från en vårdenhet som patienten har spärrat överförs inte', async () => {
+    const db = nyDb();
+    const d = Number(db.query("INSERT INTO diagnoser (patient_id, enhet_id, kod, text, typ, datum) VALUES ('p11', 'vc-tybble', 'N30.0', 'Akut cystit', 'huvud', '2026-11-10')").run().lastInsertRowid);
+    db.query("INSERT INTO sparrar (patient_id, enhet_id, registrerad, aktiv) VALUES ('p11', 'vc-tybble', '2026-11-01T00:00:00Z', 1)").run();
+    await inf.overfor(db, { patientId: 'p11' });
+    expect(db.query('SELECT count(*) AS n FROM infektion_overforingar WHERE kalla_id = ?').get(String(d)).n).toBe(0);
+  });
+
   test('Infektion > en infektionsdiagnos som läkaren registrerar överförs av systemet i bakgrunden, och en annan diagnos inte', async () => {
     const db = nyDb();
     const mr = await import('../src/myndighetsrapport.js');

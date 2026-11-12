@@ -11,6 +11,7 @@ import { kontrakt } from './rivta/kontrakt.js';
 import { skapaTjanst } from './rivta/tjanst.js';
 import { anropa as anropaRivta, iProcessen, RivtaFel } from './rivta/klient.js';
 import { vardgivare } from './rivta/konsumenter.js';
+import { vardenhetFor } from './atkomst.js';
 
 export { RivtaFel };
 const cache = new Map();
@@ -63,9 +64,16 @@ export async function anropa(db, d, { logiskAdress, begaran, transport }) {
 //   kvalitetsregister   patienten har inte motsatt sig registreringen i registret, eller har återkallat invändningen
 //                       (patientdatalagen 7 kap. 2 §), och har inte skyddade personuppgifter.
 //   uppfoljning         uppgifterna lämnas inte för en patient med skyddade personuppgifter (Infektionsverktyget).
-export function provaUtlamning(db, patient, { slag, register = null } = {}) {
+//   enhetId             uppgifter från en vårdenhet som patienten har spärrat lämnas inte ut (patientdatalagen 4 kap.
+//                       4 §), samma försiktiga val som i rapporteringen till kvalitetsregistret och datauttaget.
+export function provaUtlamning(db, patient, { slag, register = null, enhetId = null } = {}) {
   if (!patient) return { tillaten: false, skal: 'Patienten finns inte.' };
   if (patient.skyddad) return { tillaten: false, skal: 'Uppgifter om en patient med skyddade personuppgifter lämnas inte ut i demon.' };
+  if (enhetId) {
+    const ve = vardenhetFor(db, enhetId);
+    const sparrad = db.query('SELECT enhet_id FROM sparrar WHERE patient_id = ? AND aktiv = 1').all(patient.id).some(r => vardenhetFor(db, r.enhet_id) === ve);
+    if (sparrad) return { tillaten: false, skal: 'Patienten har spärrat uppgifterna på vårdenheten, så de lämnas inte ut.' };
+  }
   if (slag === 'kvalitetsregister') {
     let r = null;
     try {
