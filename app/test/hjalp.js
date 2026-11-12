@@ -6,7 +6,24 @@ import { starta } from '../src/server.js';
 import { uppdragUrMasterdata } from '../src/idp.js';
 import { berordaEnheter } from '../src/arkiv.js';
 
-export const nyDb = () => nySessionsDb();
+// Runda 14, r3: bun kör testfilerna en i taget i samma process, och en sandlåda i minnet ligger annars kvar i SQLite
+// tills processen slutar, så att hela sviten växte över containerns minnesgräns på 3 GB. När en ny testfil skapar sin
+// första databas stängs databaserna som de tidigare filerna skapade. Filen läses ur anropsstacken.
+const oppnaDb = [];
+const testfil = () => (new Error().stack ?? '').split('\n').map(r => r.match(/([^\s(]+\.test\.js)/)?.[1]).find(Boolean) ?? null;
+export const nyDb = () => {
+  const fil = testfil();
+  if (fil) {
+    for (let i = oppnaDb.length - 1; i >= 0; i--) {
+      if (oppnaDb[i].fil === fil) continue;
+      try { oppnaDb[i].db.close(); } catch { /* redan stängd */ }
+      oppnaDb.splice(i, 1);
+    }
+  }
+  const db = nySessionsDb();
+  if (fil) oppnaDb.push({ fil, db });
+  return db;
+};
 export const personal = (db, id) => db.query('SELECT * FROM personal WHERE id = ?').get(id);
 export const atk = (db, personalId, patientId, val = {}, handling = 'las_oversikt') => new Atkomst(db, personal(db, personalId), patientId, val, handling);
 
