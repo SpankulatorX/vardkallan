@@ -134,7 +134,9 @@ export const TESTROLLER = [
     id: 'vardadministrator', knapp: 'Vårdadministratör eller medicinsk sekreterare', yrke: 'vardadministrator', demoroll: 'adm-kard', sussaData: true,
     om: 'Du arbetar som Karin Berg, vårdadministratör på kardiologiska kliniken, som motsvarar Sussas mottagning.',
     uppdrag: [
-      { id: '5.5', sussa: '5.5', klar: egen(['bokningar'], (db, u) => Boolean(db.query("SELECT 1 FROM bokningar WHERE incheckad >= ? AND incheckad_via = 'personal' LIMIT 1").get(u.start))) },
+      // Runda 13: registreringen i åtkomstloggen, inte ankomsttiden. En ankomst som registreras i efterhand räknas från
+      // den bokade tiden, som kan ligga före testets start (tidbok.checkaInRad).
+      { id: '5.5', sussa: '5.5', klar: nyLogg("handling = 'checka_in' AND resurs LIKE 'bokning:%:incheckad'") },
       { id: '5.7', sussa: '5.7', klar: nya('vardkontakter', 'skapad_av') },
       { id: '5.1', sussa: '5.1', klar: nya('bokningar', 'bokad_av', 'AND t.ersatter_id IS NULL AND t.vantelista_id IS NULL AND NOT EXISTS (SELECT 1 FROM teambesok_deltagare d WHERE d.bokning_id = t.id) AND (SELECT platser FROM tider WHERE id = t.tid_id) = 1') },
       { id: '5.2', sussa: '5.2', klar: egen(['bokningar', 'teambesok_deltagare'], (db, u) => Boolean(db.query('SELECT 1 FROM bokningar b JOIN teambesok_deltagare d ON d.bokning_id = b.id WHERE b.id > ? AND b.bokad_av = ? LIMIT 1').get(u.bas.bokningar ?? 0, u.av))) },

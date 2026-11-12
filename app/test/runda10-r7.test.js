@@ -1,4 +1,5 @@
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll, afterEach } from 'bun:test';
+import { stallKlockan, aterstallKlockan } from './falsk-klocka.js';
 import { testserver, klient, sandlada, nyDb, somPerson } from './hjalp.js';
 import { T10 } from '../src/sussa/runda10-r7.js';
 import * as kassa from '../src/kassa.js';
@@ -6,7 +7,7 @@ import * as kapacitet from '../src/kapacitetsprognos.js';
 import * as kontorsstod from '../src/kontorsstod.js';
 import * as konfiguration from '../src/konfiguration.js';
 import { packaUpp } from '../src/zip.js';
-import { idag, addDagar, iso } from '../src/db.js';
+import { idag, addDagar, iso, lokalTid } from '../src/db.js';
 import { harVardrelation, Atkomst } from '../src/atkomst.js';
 import { hogkostnadsskyddet } from '../src/vardkontakt.js';
 
@@ -17,6 +18,7 @@ import { hogkostnadsskyddet } from '../src/vardkontakt.js';
 let app;
 beforeAll(() => { app = testserver(); });
 afterAll(() => app.stopp());
+afterEach(() => aterstallKlockan());
 
 // Testnamnen i T10 har avsnittet först (Ombud > ...), som describe ger. Här står bara resten.
 const namn = (t) => t.split(' > ').slice(1).join(' > ');
@@ -774,6 +776,9 @@ describe('Kassan', () => {
   });
 
   test(namn(T10.avslut), async () => {
+    // Runda 13: mottagningens besök ligger på dagtid (arbetsdagen). Mitt på en vardag har dagens tidigare patienter
+    // betalat, och den nya sandlådan har en tid vars incheckning har öppnat. På natten finns ingen sådan tid.
+    stallKlockan(new Date(lokalTid('2026-11-12', '11:00')));
     const k = await inloggad('adm-kard');
     const d = db(k);
     const bok = d.query("SELECT b.* FROM bokningar b JOIN tider t ON t.id = b.tid_id JOIN scheman s ON s.id = t.schema_id WHERE b.patient_id = 'p15' AND b.status = 'bokad' AND s.enhet_id = 'uso-kard-mott'").get();

@@ -280,7 +280,10 @@ function bokaPlats(atk, tid) {
   const db = atk.db;
   const relation = gerVardrelation(db, atk.personal, atk.patientId);
   const b = tidbok.skapaBokning(db, { patientId: atk.patientId, tid, orsak: tid.rubrik ?? 'Gruppträff', av: atk.personal.id, relation });
-  const skickade = db.query("SELECT 1 FROM kallelser k JOIN bokningar b ON b.id = k.bokning_id WHERE b.tid_id = ? AND k.typ = 'kallelse' AND k.status = 'skickad' LIMIT 1").get(tid.id);
+  // Runda 13: utskicket räknas som gjort också när ett brev inte hann fram (kan_inte), och när en skriven kallelse har
+  // gått ut eller patienten har fått tiden per telefon (klar), inte bara när en kallelse skickades. Annars väntar den
+  // nya patientens kallelse på ett utskick som redan är gjort.
+  const skickade = db.query("SELECT 1 FROM kallelser k JOIN bokningar b ON b.id = k.bokning_id WHERE b.tid_id = ? AND k.typ = 'kallelse' AND k.status IN ('skickad', 'kan_inte', 'klar') LIMIT 1").get(tid.id);
   let k;
   if (skickade) k = tidbok.skickaKallelse(db, b, 'kallelse', { av: atk.personal.id });
   else { tidbok.forberedKallelse(db, b); k = db.query("SELECT * FROM kallelser WHERE bokning_id = ? ORDER BY id DESC").get(b.id); }

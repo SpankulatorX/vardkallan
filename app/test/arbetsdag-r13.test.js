@@ -5,7 +5,10 @@ import { describe, test, expect, afterEach } from 'bun:test';
 import { lokalTid, datumAv, addDagar, nySessionsDb, arbetsdagensMitt, ARBETSDAG } from '../src/db.js';
 import * as tidbok from '../src/tidbok.js';
 import { aterstallKlockan, stallKlockan } from './falsk-klocka.js';
-import { personal } from './hjalp.js';
+import { personal, atk, testserver, klient, sandlada } from './hjalp.js';
+import * as r8 from '../src/bokning-r8.js';
+import { laddaTestdata } from '../src/sussa-demo.js';
+import { Atkomst } from '../src/atkomst.js';
 import * as op from '../src/operation.js';
 import * as opSeed from '../src/operation-seed.js';
 import { sandlada as specialistSandlada } from './specialist.js';
@@ -168,4 +171,74 @@ describe('Arbetsdagen på mottagningarna (runda 13, r4)', () => {
       }
     });
   }
+});
+
+// Efter sammanslagningen av runda 13: arbetsdagen möter de andra delarnas kod. Klockan ställs i varje test.
+describe('Arbetsdagen och de andra delarna (runda 13, efter sammanslagningen)', () => {
+  const SONDAG = '2026-11-15';
+
+  test('kassans demoläge tar inte betalt för en tid vars incheckning inte har öppnat, till exempel på natten', async () => {
+    const app = testserver();
+    try {
+      stallKlockan(new Date(ms(TORSDAG, '00:30')));
+      const natt = klient(app);
+      await natt.logga('adm-kard');
+      expect((await natt.post('/api/demo/kassa-besok', {})).status).toBe(400);
+      expect(sandlada(app, natt).db.query('SELECT count(*) AS n FROM betalningar WHERE tid >= ?').get(new Date(ms(TORSDAG, '00:00')).toISOString()).n).toBe(0);
+      stallKlockan(new Date(ms(TORSDAG, '11:00')));
+      const dag = klient(app);
+      await dag.logga('adm-kard');
+      expect((await dag.post('/api/demo/kassa-besok', {})).status).toBe(201);
+    } finally { app.stopp(); }
+  });
+
+  test('en ankomst som registreras i efterhand på kvällen bockar av testinbjudans uppdrag 5.5', async () => {
+    const app = testserver({ synpunktFil: ':memory:' });
+    try {
+      stallKlockan(new Date(ms(TORSDAG, '23:30')));
+      const k = klient(app);
+      await k.logga('adm-kard');
+      expect((await k.post('/api/testare/starta', { testroll: 'vardadministrator', profil: {} })).status).toBe(200);
+      const d = sandlada(app, k).db;
+      const b = dagens(d).find(x => x.status === 'bokad' && tidbok.TIDSTYPER[x.tidstyp].fysisk && datumAv(new Date(x.start)) === TORSDAG);
+      expect(b).toBeTruthy();
+      expect((await k.post(`/api/bokning/${b.id}/checka-in`)).status).toBe(200);
+      // Ankomsten räknas från den bokade tiden, men registreringen gjordes nu.
+      expect(d.query('SELECT incheckad FROM bokningar WHERE id = ?').get(b.id).incheckad).toBe(b.start);
+      const t = (await k.get('/api/testare')).data;
+      expect(t.uppdrag.find(u => u.id === '5.5').status).toBe('klar');
+    } finally { app.stopp(); }
+  });
+
+  test('en gruppträff vars brev inte hinner fram: den som läggs till efter utskicket får sin kallelse direkt, inte väntande', () => {
+    stallKlockan(new Date(ms(TORSDAG, '11:00')));
+    const db = nySessionsDb();
+    laddaTestdata(db, personal(db, 'adm-kard'), { nu: new Date(ms(TORSDAG, '11:00')) });
+    const tid = db.query("SELECT * FROM tider WHERE rubrik = 'Hjärtrehabilitering i grupp'").get();
+    // Träffen flyttas till i morgon, så att ett brev inte hinner fram.
+    const start = new Date(ms(addDagar(TORSDAG, 1), '11:45')).toISOString();
+    db.query('UPDATE tider SET start = ?, slut = ? WHERE id = ?').run(start, new Date(Date.parse(start) + 2 * 3600_000).toISOString(), tid.id);
+    for (const pid of ['sus10', 'sus08']) r8.laggTillGrupp(atk(db, 'adm-kard', pid, {}, 'boka'), tidbok.tidRad(db, tid.id));
+    tidbok.kallaGrupp(db, personal(db, 'adm-kard'), tidbok.tidRad(db, tid.id), { Atkomst });
+    // Utskicket är gjort, men inget brev gick iväg: patienterna ska få tiden per telefon.
+    const status = db.query('SELECT DISTINCT k.status FROM kallelser k JOIN bokningar b ON b.id = k.bokning_id WHERE b.tid_id = ?').all(tid.id).map(r => r.status);
+    expect(status).toContain('kan_inte');
+    expect(status).not.toContain('skickad');
+    expect(status).not.toContain('vantar');
+    const [, sen] = r8.laggTillGrupp(atk(db, 'adm-kard', 'sus11', {}, 'boka'), tidbok.tidRad(db, tid.id));
+    expect(sen.kallelse.status).toBe('kan_inte');
+    expect(sen.kallelse.forklaring).toContain('ett brev hinner inte fram');
+  });
+
+  test('Sussas gruppträff i testfall 5.3 ligger så långt fram att kallelsen hinner fram med brev, också från en söndag', () => {
+    for (const [dag, klocka] of [[SONDAG, '12:00'], [SONDAG, '23:00'], [TORSDAG, '11:00'], [TORSDAG, '23:30']]) {
+      const nu = new Date(ms(dag, klocka));
+      stallKlockan(nu);
+      const db = nySessionsDb();
+      laddaTestdata(db, personal(db, 'adm-kard'), { nu });
+      const tid = db.query("SELECT * FROM tider WHERE rubrik = 'Hjärtrehabilitering i grupp'").get();
+      expect([dag, klocka, Date.parse(tid.start) - nu.getTime() >= tidbok.BREV_DAGAR * 86400_000]).toEqual([dag, klocka, true]);
+      expect([0, 6]).not.toContain(new Date(tid.start).getUTCDay());
+    }
+  });
 });
