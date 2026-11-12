@@ -59,6 +59,9 @@ function certifikat({ subjekt, utfardare = null, ca = false, dns = [], ip = [], 
   ];
   const serie = randomBytes(12);
   serie[0] &= 0x7f;
+  // Runda 14, r3: en första byte 0 ger ett heltal som inte är minimalt kodat i DER (BoringSSL vägrar då läsa
+  // certifikatet, ungefär en gång på 256). Den första byten får aldrig vara 0.
+  serie[0] |= 0x40;
   const tbs = seq(
     tlv(0xa0, heltal(Buffer.from([2]))), heltal(serie), seq(oid(OID.ecdsaSha256)), namn(ut.namn),
     seq(tid(new Date(nu.getTime() - 3600_000)), tid(new Date(nu.getTime() + dagar * 86400_000))),
