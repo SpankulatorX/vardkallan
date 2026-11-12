@@ -5,6 +5,7 @@ import { medR9r5 } from '../runda9-r5.js';
 const A = 'Arkiv > ';
 // Runda 14, r4.
 const MA = 'Mellanarkiv > ';
+const GK = 'Gränssnitt > Klickbudget > ';
 
 export default medR9r5([
   {
@@ -34,6 +35,8 @@ export default medR9r5([
       `${MA}mellanarkivet avvisar ett paket med fel, och då förs ingenting över`,
       `${MA}tidslinjen och sökningen i journalen tar med handlingarna, märkta Ur mellanarkivet`,
       `${MA}handlingarna följer journalen vid en sammanslagning och raderas med hela journalen efter ett beslut om förstöring`,
+      `${GK}Läsa en äldre anteckning ur mellanarkivet inom budget`,
+      `${GK}För över äldre journalhandlingar till mellanarkivet inom budget`,
     ],
     losning: 'Arkivarien registrerar ett beslut om överföring till mellanarkiv. Systemet tar fram signerade anteckningar som inte har rättats och mätvärden som är äldre än fem år och som inget annat i journalen pekar på, bygger ett FGS-paket per journal som exporten till e-arkivet, och mellanarkivet gör samma mottagningskontroll som e-arkivet innan något förs över. Handlingarna tas bort ur den aktiva journalen först när mellanarkivet har tagit emot dem, i samma transaktion. I journalen står anteckningarna i listan bland de andra, märkta Ur mellanarkivet, mätvärdena och anteckningarna i översiktens tidslinje, och texten är sökbar i journalens sökfält. Allt prövas av behörighetsmotorn på vårdenheten där handlingen skrevs, med inre sekretess, aktivt val, spärrar som de gäller i dag, skyddad identitet och undantag från visning, och varje läsning loggas. Uppgifterna i mellanarkivet ändras aldrig, och varje handling kontrolleras mot sin SHA-256 när den läses.',
     expert: 'Den som arbetar i journalen behöver inte veta att mellanarkivet finns: systemet hämtar handlingarna dit där de andra finns och märker dem. Arkivarien registrerar bara beslutet, och systemet räknar fram vad som ska föras över och kontrollerar paketet.',
