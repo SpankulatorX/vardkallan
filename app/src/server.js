@@ -154,6 +154,9 @@ import { registreraRutter as r12r2Rutter } from './runda12-r2-rutter.js';
 import { MIGRERINGAR as r12r2Migreringar } from './releaser.js';
 // Runda 13, r1: testinbjudan, guidade uppdrag och synpunkter (r13r1-rutter.js).
 import { registreraRutter as r13r1Rutter } from './r13r1-rutter.js';
+// Runda 14, r1: inloggning genom beställarens inloggningstjänst (inloggningstjanster-rutter.js, Sussa 5.2.1.1).
+import { registreraRutter as r14r1Rutter, UTAN_SESSION as R14R1_UTAN_SESSION } from './inloggningstjanster-rutter.js';
+import { galler as externTjanstGaller } from './inloggningstjanster.js';
 import { skapaKopielager, schemalagdaStegvis } from './sakerhetskopior.js';
 // Runda 13, r2: sandlådor som vilar på disk, inga tappade sandlådor och en vänlig sida när demon är full.
 import { Database } from 'bun:sqlite';
@@ -328,7 +331,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   tidsbudgetAdressMs = Number(process.env.TIDSBUDGET_ADRESS_MS || 90_000),
   maxPerAdress = Number(process.env.MAX_PER_ADRESS || 150),
   // Runda 13, r1: synpunkterna i en egen databas bredvid sandlådorna (synpunkter.js), och taken som testerna kan ändra.
-  synpunktFil = '', synpunktTak = undefined } = {}) {
+  synpunktFil = '', synpunktTak = undefined,
+  // Runda 14, r1: ursprungen (schema, värd och port) för de inloggningstjänster som servern får anropa. Driftens tak.
+  inloggningTillatna = process.env.INLOGGNING_TILLATNA ?? '' } = {}) {
   if (maxSessioner) maxSandlador = maxSessioner;
   const sessioner = new Map();
   // Runda 12, r3: nyckeln som krypterar nycklarna för engångskoder, bredvid sessionsfilen så att den följer med en omstart.
@@ -1325,6 +1330,10 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // och behörigheten tas ur biljettens attribut, på samma sätt som för en biljett som kommer utifrån (/api/login/biljett).
   function loggaInMedBiljett(c, biljett, { forbruka = true, demo = false } = {}) {
     const { personal: p, uppdrag } = idp.loggaIn(c.db, idp.verifiera(biljett, { forbruka }));
+    return loggaInMedUppdrag(c, p, uppdrag, { demo });
+  }
+  // Runda 14, r1: samma fortsättning för en inloggning genom beställarens inloggningstjänst (inloggningstjanster.js).
+  function loggaInMedUppdrag(c, p, uppdrag, { demo = false } = {}) {
     // Runda 12, r3: har personen en passkey eller en app för engångskoder i sandlådan väntar inloggningen på den.
     stoppaOprovbarFaktor(c, 'personal', p.id, p.enhet_id);
     if (flerfaktor.kravs(c.db, 'personal', p.id)) return borjaFlerfaktor(c, { typ: 'personal', id: p.id, namn: p.namn, enhet: p.enhet_id, uppdrag, demo });
@@ -2485,6 +2494,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     s.vantande = null; s.flerfaktorMetod = null; s.flerfaktorUtmaning = null; s.kopior = new Map();
   };
   r12r2Rutter({ rutt, kravInloggad, testresultat, kopior, migrera, loggaUtAlla });
+  // Runda 14, r1 (inloggningstjanster-rutter.js).
+  r14r1Rutter({ rutt, kravInloggad, loggaInMedUppdrag, origin, tillatna: inloggningTillatna });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
   // visas direkt (bara i den egna sandlådan).
   const kravNagon = (c) => { if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad'); };
@@ -2509,6 +2520,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // Runda 13, r1: panelen med uppdragen och yrkesrollerna frågar utan att skapa en sandlåda. Ett sådant anrop som korsar
   // en inloggning, där sessionskakan byts, får då aldrig ge webbläsaren en ny, tom session.
   for (const v of ['/api/testare', '/api/testare/roller', '/api/synpunkter/om']) UTAN_SESSION.add(v);
+  // Runda 14, r1: Vårdkällans publika nyckel och övningstjänstens metadata och nycklar.
+  for (const v of R14R1_UTAN_SESSION) UTAN_SESSION.add(v);
 
   async function api(req, server, url, c) {
     if (url.pathname === '/api/health') return json({ ok: true, sandladar: sessioner.size, version: APPVERSION, gransnitt: gransnittVersion(),
@@ -2555,6 +2568,13 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     // Runda 11, r5: en rutt kan svara med ett löfte (avkodning och miniatyrer av bilder görs asynkront i bildmedia.js).
     let ut = await traff[0](c, ...traff[1]);
     // En fil, till exempel exportpaketet eller datauttaget, går ut som den är.
+    // Runda 14, r1: en omdirigering i inloggningen genom en extern tjänst får sessionskakan, ny när sessionen är ny eller
+    // när inloggningen har bytt sessionsnyckel.
+    if (ut instanceof Response && c.kakaPaSvar && c.sid) {
+      if (c.rotera) { c.s.harLoggatIn = true; sessioner.delete(c.sid); c.sid = slumpId(); sessioner.set(c.sid, c.s); c.ny = true; }
+      if (c.ny) ut.headers.set('Set-Cookie', kaka(c.sid));
+      return ut;
+    }
     if (ut instanceof Response) return ut;
     let status = 200;
     if (Array.isArray(ut) && typeof ut[0] === 'number') [status, ut] = ut;
@@ -2584,7 +2604,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     let personal = personalRad(s.db, s.personalId);
     // Runda 9, r5: medarbetaruppdraget prövas mot masterdata i varje anrop (idp.uppdragGaller).
     if (personal) {
-      const orsak = idp.uppdragGaller(s.db, personal, s.uppdrag);
+      // Runda 14, r1: en inloggning genom en extern tjänst gäller bara så länge tjänsten är godkänd och påslagen.
+      const orsak = idp.uppdragGaller(s.db, personal, s.uppdrag) ?? externTjanstGaller(s.db, s.uppdrag);
       if (orsak) { loggaUtOgiltigtUppdrag(s, personal, orsak); personal = null; }
     }
     const invanare = minJournal.invanareRad(s.db, s.invanareId);

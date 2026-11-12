@@ -513,6 +513,8 @@ export function byggSeed(bas = nu()) {
   require('./undantag.js').sakraBegaran(db);
   // Runda 13, r3: hur identiteten kontrollerades när en dos gavs utan skanning (administrering.js).
   require('./administrering.js').sakraIdentitet(db);
+  // Runda 14, r1: de betrodda inloggningstjänsterna (inloggningstjanster.js).
+  require('./inloggningstjanster.js').sakra(db);
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_datum', datumAv(bas));
   db.query('INSERT INTO installningar VALUES (?, ?)').run('seed_tid', bas.toISOString());
   // Runda 12, r2: de versionerade migreringarna från version 1.2 (releaser.js). Sist, så att schemaversionen gäller allt.
@@ -668,6 +670,8 @@ export function migrera(db) {
   require('./undantag.js').sakraBegaran(db);
   // Runda 13, r3: hur identiteten kontrollerades när en dos gavs utan skanning (administrering.js).
   require('./administrering.js').sakraIdentitet(db);
+  // Runda 14, r1: de betrodda inloggningstjänsterna (inloggningstjanster.js).
+  require('./inloggningstjanster.js').sakra(db);
   // Runda 12, r2: kontrollen av schemaversionen när en sandlåda läses in (releaser.js). Saknade migreringar tillämpas och
   // migreringar från en nyare version av programmet backas med de återställningar som sparades i databasen.
   require('./releaser.js').kontrolleraVidStart(db);

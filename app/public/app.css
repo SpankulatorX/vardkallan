@@ -1904,3 +1904,14 @@ body.testlage-aktivt.har-testare #notiser { bottom: calc(var(--testlage-hojd, 64
 .demo-full h1 { font-size: 1.6rem; margin-bottom: 1rem; }
 .demo-full p { line-height: 1.6; }
 .demo-full .demo-full-tid { font-size: 1.1rem; }
+/* Runda 14, r1: inloggningstjänsterna i systemförvaltningen och övningstjänsten (vyer/inloggningstjanster.js). */
+.ruta-varning { background: var(--obs-bg); border-color: var(--obs-kant); color: var(--blak); }
+code.tumavtryck { overflow-wrap: anywhere; word-break: break-word; font-size: var(--f-xs); }
+.it-nycklar { margin: 6px 0 0; padding-left: 1.1rem; }
+.it-nycklar li { margin: 4px 0; }
+.it-uppgifter dt { font-weight: 600; margin-top: 8px; }
+.it-uppgifter dd { margin: 2px 0 0; }
+.it-inklistrat { margin: 8px 0; }
+.ovningstjanst { max-width: 40rem; }
+.ot-form select { max-width: 100%; }
+.extern-inloggning { margin-bottom: 1.25rem; }
