@@ -2460,6 +2460,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     port, hostname,
     // Ingen förfrågan behöver mer än 64 kB. Taket gäller också kroppar utan Content-Length.
     maxRequestBodySize: MAX_KROPP * 2,
+    // Runda 13, r2: vilande anslutningar hålls öppna i två minuter (Bun stänger annars efter omkring tio sekunder), så
+    // att ett anrop efter en stunds läsning inte hamnar på en anslutning som servern just har stängt.
+    idleTimeout: 120,
     async fetch(req, srv) {
       const t0 = performance.now();
       const url = new URL(req.url);

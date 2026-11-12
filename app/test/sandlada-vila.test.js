@@ -346,3 +346,29 @@ describe('Omstart med vilande sandlådor', () => {
     } finally { b.stopp(); rmSync(dir, { recursive: true, force: true }); }
   });
 });
+
+// Vågen i lasttestet 2026-11-12: en registrering misslyckades ibland på en anslutning som servern hade stängt efter tio
+// sekunder utan anrop, medan besökaren läste (Bun stänger annars efter 10 till 12 sekunder). Servern håller nu vilande
+// anslutningar öppna längre än en lång betänketid.
+describe('Anslutningar', () => {
+  test('en anslutning som har varit tyst i sexton sekunder kan användas för nästa anrop', async () => {
+    const app = testserver();
+    const net = require('node:net');
+    try {
+      const sock = net.connect(app.port, '127.0.0.1');
+      await new Promise((r, f) => { sock.once('connect', r); sock.once('error', f); });
+      let data = '';
+      sock.on('data', (d) => { data += d.toString(); });
+      const fraga = 'GET /api/health HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: keep-alive\r\n\r\n';
+      const antal = () => (data.match(/HTTP\/1\.1 200/g) ?? []).length;
+      const svar = async (n) => { const slut = Date.now() + 5000; while (antal() < n && Date.now() < slut) await Bun.sleep(20); return antal(); };
+      sock.write(fraga);
+      expect(await svar(1)).toBe(1);
+      await Bun.sleep(16_000);
+      expect(sock.readyState).toBe('open');
+      sock.write(fraga);
+      expect(await svar(2)).toBe(2);
+      sock.destroy();
+    } finally { app.stopp(); }
+  }, 30_000);
+});
