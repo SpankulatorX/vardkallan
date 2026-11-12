@@ -105,6 +105,17 @@ export function seedaAdministreringar(db, bas = new Date()) {
     for (const o of ordinationer) {
       const tider = (o.tider ? JSON.parse(o.tider) : []).map(klocka).filter(Boolean);
       const plus = (iso, min) => new Date(Date.parse(iso) + min * 60_000).toISOString();
+      // Runda 13, r4: en ordination utan fasta tider vars dosering säger klockslaget (Waran enligt doseringsschema) har
+      // fått de senaste dagarnas doser på det klockslaget. Dagens dos ges av sjuksköterskan.
+      const utanTiderKlocka = !o.vid_behov && !tider.length && String(o.dosering ?? '').match(/klockan (\d{1,2})\b/);
+      if (utanTiderKlocka) {
+        for (const d of [-2, -1]) {
+          const t = lokalTid(addDag(datumI(basMs), d), `${utanTiderKlocka[1].padStart(2, '0')}:05`);
+          if (Date.parse(t) < fran || Date.parse(t) < Date.parse(o.skapad)) continue;
+          ins.run(o.patient_id, v.enhet_id, o.id, o.lakemedel_id, null, o.dos, o.dos_enhet, 1, t, ssk, new Date(Date.parse(t) + 60_000).toISOString(), ssk, v.id);
+        }
+        continue;
+      }
       if (o.vid_behov) {
         const t = new Date(Math.floor((basMs - 14 * 3600_000) / 300_000) * 300_000).toISOString();
         if (Date.parse(t) > Date.parse(o.skapad) && Date.parse(t) < basMs) ins.run(o.patient_id, v.enhet_id, o.id, o.lakemedel_id, null, o.dos, o.dos_enhet, 1, t, ssk, plus(t, 2), ssk, v.id);

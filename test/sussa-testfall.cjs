@@ -241,7 +241,7 @@ function floden(D) {
       await m.klicka(dos('Stesolid').locator('[data-adm="ge"]'), 'Ge för Stesolid');
       await synlig(page, '.notis', 'Stesolid är given');
       await page.waitForLoadState('networkidle');
-      await m.klicka(bertil.locator('.adm-vb', { hasText: 'Zopiklon' }).locator('[data-adm="ge"]'), 'Ge för Zopiklon vid behov');
+      await m.klicka(bertil.locator('.adm-vb', { hasText: 'Zopiklon' }).locator('[data-adm="ge"]').first(), 'Ge för Zopiklon vid behov');
       if (await page.locator('dialog[open] [data-varde="ok"]').count()) await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'bekräfta');
       await synlig(page, '.notis', 'Zopiklon');
       // Listan ritas om efter varje dos. Vänta tills den står still, så att nästa klick inte hamnar på en knapp som flyttas.
@@ -433,8 +433,9 @@ function floden(D) {
     '5.6': async (m, page) => {
       await m.klicka(page.locator('.snabbval a[href="#/tidbok"]'), 'Min tidbok i arbetslistan');
       await page.waitForSelector('.tb-bokning');
-      const incheckade = await page.locator('.tb-bokning', { hasText: 'Incheckad' }).allInnerTexts();
       const namn = D.ANKOMNA.map(id => D.namn[id]);
+      // Runda 13, r4: distriktsläkaren har också seedens egna patienter i dag, så bara testfallets fem räknas.
+      const incheckade = (await page.locator('.tb-bokning', { hasText: 'Incheckad' }).allInnerTexts()).filter(t => namn.some(n => t.includes(n)));
       if (incheckade.length !== 5 || !namn.every(n => incheckade.some(t => t.includes(n)))) throw new Error(`incheckade: ${incheckade.join(', ')}`);
     },
     '5.7': async (m, page) => {

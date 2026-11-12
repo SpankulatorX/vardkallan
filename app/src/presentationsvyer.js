@@ -71,8 +71,17 @@ export function valjSituation(atk) {
   const pagar = (typ) => db.query(`SELECT 1 FROM vardkontakter WHERE patient_id = ? AND typ = ? AND slut IS NULL AND start <= ? AND enhet_id IN (${ph})`).get(atk.patientId, typ, iso(), ...enheter);
   if (pagar('akut')) return { id: 'akut', varfor: 'Patienten har en pågående akut vårdkontakt på din vårdenhet.' };
   if (pagar('slutenvard')) return { id: 'rond', varfor: 'Patienten är inskriven på din vårdenhet.' };
+  // Runda 13, r4: på akutmottagningen är en patient utan pågående kontakt där en akut patient som just har kommit.
+  if (vardenhetFor(db, atk.personal.enhet_id) === AKUTMOTTAGNINGEN) return { id: 'akut', varfor: 'Du arbetar på akutmottagningen, och patienten har ingen pågående vårdkontakt där än.' };
   return { id: 'mottagning', varfor: 'Patienten är inte inskriven och har ingen pågående akut vårdkontakt på din vårdenhet.' };
 }
+
+// Runda 13, r4: mallarna som en ny anteckning förväljer, i ordning, efter situationen: akutanteckning på akuten,
+// daganteckning för en inskriven patient och mottagningsanteckning annars. Omvårdnadsanteckningen för den som skriver
+// omvårdnad. Gränssnittet väljer den första som användaren får skriva.
+export const ANTECKNINGSMALLAR = { akut: ['Akutanteckning', 'Omvårdnadsanteckning'], rond: ['Daganteckning', 'Omvårdnadsanteckning'], mottagning: ['Mottagningsanteckning', 'Omvårdnadsanteckning'] };
+export const anteckningsmallar = (atk) => ANTECKNINGSMALLAR[valjSituation(atk).id];
+const AKUTMOTTAGNINGEN = 'uso-akut';
 
 // Kontrollerar en inställning. Med personal prövas delarna mot rollen; utan (vårdenhetens förval) mot alla delar.
 function provaInstallning(inst, personal = null) {

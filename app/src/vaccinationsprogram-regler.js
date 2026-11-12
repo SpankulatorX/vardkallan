@@ -84,7 +84,17 @@ const alderAr = (fodd, nu) => {
 };
 // Åldern i hela dagar från födelsedagen till det svenska datumet i dag.
 const alderDagar = (fodd, nu) => Math.round((Date.parse(`${datumI(nu)}T12:00:00Z`) - Date.parse(`${fodd}T12:00:00Z`)) / DAG);
-const datumEfter = (fodd, dagar) => new Date(Date.parse(`${fodd}T12:00:00Z`) + dagar * DAG).toISOString().slice(0, 10);
+// Runda 13, r4 (E2-38): en ålder i hela år räknas från födelsedagen, så att dosen vid sex års ålder ges tidigast på
+// sexårsdagen och inte ett par dagar före på grund av skottår. En ålder i dagar räknas som förut.
+const datumEfter = (fodd, dagar) => {
+  if (dagar && dagar % AR === 0) {
+    const [y, m, d] = fodd.split('-').map(Number);
+    // Den som är född 29 februari fyller år 1 mars de år som inte är skottår (Date.UTC räknar över till 1 mars).
+    return new Date(Date.UTC(y + dagar / AR, m - 1, d, 12)).toISOString().slice(0, 10);
+  }
+  return new Date(Date.parse(`${fodd}T12:00:00Z`) + dagar * DAG).toISOString().slice(0, 10);
+};
+const fyllt = (fodd, nu, dagar) => (dagar && dagar % AR === 0 ? datumI(nu) >= datumEfter(fodd, dagar) : alderDagar(fodd, nu) >= dagar);
 
 // Kan dosen ges nu? Ger { ok, status, skal, varfor }. status: nu, kommande, given, ej_aktuell, ej_faststalld.
 export function prova(v, { fodd, nu = Date.now(), givna = [], riskgrupper = [], regler = {} }) {
@@ -118,7 +128,7 @@ export function prova(v, { fodd, nu = Date.now(), givna = [], riskgrupper = [], 
     return { ok: true, status: 'nu', varfor, skal: '' };
   }
   if (givna.some(x => x.vaccinId === v.id)) return { ok: false, status: 'given', skal: `${v.text} är redan given.` };
-  if (dagar < v.alder) return { ok: false, status: 'kommande', skal: `${v.text} ges tidigast vid ${Math.round(v.alder / AR)} års ålder, ${datumEfter(fodd, v.alder)} (${v.nar.toLowerCase()}).` };
+  if (!fyllt(fodd, nu, v.alder)) return { ok: false, status: 'kommande', skal: `${v.text} ges tidigast vid ${Math.round(v.alder / AR)} års ålder, ${datumEfter(fodd, v.alder)} (${v.nar.toLowerCase()}).` };
   if (v.foregaende) {
     const g = givna.find(x => x.vaccinId === v.foregaende);
     if (!g) return { ok: false, status: 'kommande', skal: `Föregående dos i serien är inte registrerad. Kontrollera barnets vaccinationer innan ${v.text.toLowerCase()} ges.` };

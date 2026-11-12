@@ -378,8 +378,9 @@ export const FLODEN = [
     motivering: 'Sussa 3.5.1.1. Ett klick till läkemedelsfliken och ett på Skicka läkemedelsberättelsen. Systemet har tagit fram berättelsen ur ordinationernas historik, den aktuella listan och epikrisen, och valt mottagarna själv: vårdcentralen där patienten är listad och kommunen i den samordnade planeringen.',
   },
   {
-    id: 'vaccination-riskgrupp', namn: 'Ge en vaccination i programmet för riskgrupper', roll: 'lak-vc', start: 'Översikten för den inlagda patienten efter återställning', budget: 3,
-    motivering: 'Sussa 3.5.1.7. Ett klick på fliken Vaccinationer, ett på Ge dosen vid den dos som systemet föreslår och ett för att registrera. Systemet har räknat ut att patienten ska ha dosen och varför, frågar om vaccinationer någon annanstans med nej förvalt, sätter ATC, dos och tid och rapporterar dosen till vaccinationsregistret.',
+    id: 'vaccination-riskgrupp', namn: 'Ge en vaccination i programmet för riskgrupper', roll: 'lak-vc', start: 'Översikten för den inlagda patienten efter återställning', budget: 4,
+    // Runda 13, r4: ett klick till för kontrollen före vaccinationen (E2-39), som en människa måste svara på.
+    motivering: 'Sussa 3.5.1.7. Ett klick på fliken Vaccinationer, ett på Ge dosen vid den dos som systemet föreslår, ett på svaret att patienten är frisk i dag och ett för att registrera. Systemet har räknat ut att patienten ska ha dosen och varför, frågar om vaccinationer någon annanstans med nej förvalt, föreslår injektionsstället efter åldern, sätter ATC, dos och tid och rapporterar dosen till vaccinationsregistret.',
   },
   {
     id: 'sammanhallen', namn: 'Hämta uppgifter från en annan vårdgivare', roll: 'lak-kard', start: 'Översikten för den inlagda patienten efter återställning', budget: 2,

@@ -29,6 +29,18 @@ const vem = (a) => {
 };
 // Undersköterskan ser knappen Ge bara för doser som hennes delegering omfattar, och annars varför (runda 5).
 const omfattas = (x) => x.delegering?.omfattas !== false;
+// Runda 13, r4: antalet ur en dosering som "1 till 2 tabletter vid behov", högst fyra knappar.
+const vbIntervall = (dosering) => {
+  const m = String(dosering ?? '').match(/(\d+)\s*(?:till|-)\s*(\d+)\s+(tablett|tabletter|kapsel|kapslar|dos|doser|droppar|puffar)/i);
+  if (!m) return null;
+  const [a, b] = [Number(m[1]), Number(m[2])];
+  return a >= 1 && b > a && b - a <= 3 ? Array.from({ length: b - a + 1 }, (_, i) => a + i) : null;
+};
+const intervallEnhet = (dosering, n) => {
+  const ord = (String(dosering ?? '').match(/\d+\s*(?:till|-)\s*\d+\s+(\S+)/i)?.[1] ?? '').toLowerCase();
+  const par = { tablett: ['tablett', 'tabletter'], tabletter: ['tablett', 'tabletter'], kapsel: ['kapsel', 'kapslar'], kapslar: ['kapsel', 'kapslar'], dos: ['dos', 'doser'], doser: ['dos', 'doser'], droppar: ['droppe', 'droppar'], puffar: ['puff', 'puffar'] }[ord];
+  return par ? par[n === 1 ? 0 : 1] : '';
+};
 const inteDelegerad = (x) => (omfattas(x) ? '' : `<span class="under-text adm-varfor">${esc(x.delegering.varfor)}</span>`);
 
 // Doserna för en patient, som HTML. kan: får användaren ge läkemedel till patienten.
@@ -71,6 +83,10 @@ export function patientDoser(pid, l) {
     const ior = vbIor(v);
     if (ior) return ior.kollegakontroll && !ior.kollegakontroll.av ? '' : `<button type="button" class="knapp liten" data-adm="ge" data-pid="${esc(pid)}" data-ord="${v.ordinationId}" data-kod="${esc(ior.iordningstalld.kontrollkod)}" data-namn="${esc(v.lakemedel?.namn)}">Ge</button>`;
     if (v.kollegakontroll?.kravs) return `<button type="button" class="knapp liten${v.kanGesNu ? '' : ' sekundar'}" data-adm="iordningstall" data-pid="${esc(pid)}" data-ord="${v.ordinationId}" data-namn="${esc(v.lakemedel?.namn)}">Iordningsställ</button>`;
+    // Runda 13, r4 (E2-9): en dos som får vara 1 till 2 tabletter ges med en knapp per antal, så att antalet alltid väljs
+    // med samma klick som dosen ges.
+    const intervall = vbIntervall(v.dosering);
+    if (intervall) return intervall.map(n => `<button type="button" class="knapp liten${v.kanGesNu ? '' : ' sekundar'}" data-adm="ge" data-antal="${n}" data-pid="${esc(pid)}" data-ord="${v.ordinationId}" data-namn="${esc(v.lakemedel?.namn)}" data-ko-ok>Ge ${n} ${esc(intervallEnhet(v.dosering, n))}</button>`).join(' ');
     return `<button type="button" class="knapp liten${v.kanGesNu ? '' : ' sekundar'}" data-adm="ge" data-pid="${esc(pid)}" data-ord="${v.ordinationId}" data-namn="${esc(v.lakemedel?.namn)}" data-ko-ok>Ge</button>`;
   };
   const vb = (v) => `<li class="adm-vb"><div><strong>${lmText(v)}</strong> <span class="tagg">Vid behov</span>${kollegaInfo(v)}
@@ -180,6 +196,8 @@ export function koppla(el, ladda) {
     const data = { ordinationId: Number(b.dataset.ord) };
     if (b.dataset.planerad) data.planerad = b.dataset.planerad;
     if (b.dataset.kod) data.kontrollkod = b.dataset.kod;
+    // Runda 13, r4: antalet som valdes med knappen för en dos vid behov.
+    if (b.dataset.antal) data.antal = Number(b.dataset.antal);
     const namnText = b.dataset.namn;
     if (typ === 'ej_given') {
       const svar = await dialog(`<form><h2 id="dlg-rubrik">${esc(namnText)} ges inte</h2>
@@ -226,7 +244,9 @@ export function koppla(el, ladda) {
         notis(`${a.lakemedel?.namn ?? namnText} är given kl. ${klockslag(a.tid)}. Den är sparad i kön på den här datorn och inte i journalen än. Den skickas när förbindelsen är tillbaka.`, 'info');
         return ladda();
       }
-      notis(`${a.lakemedel?.namn} ${KLAR[typ] ?? 'är registrerad'}${a.tid ? ` kl. ${klockslag(a.tid)}` : ''}.${a.iordningstalld && a.status === 'iordningstalld' ? ` Etikett ${a.iordningstalld.kontrollkod}.` : ''}`);
+      // Runda 13, r4: efter en dos vid behov påminner systemet om att följa upp effekten.
+      const vidBehov = b.closest('.adm-vb') && typ === 'ge';
+      notis(`${a.lakemedel?.namn} ${KLAR[typ] ?? 'är registrerad'}${a.antal > 1 ? `, ${a.antal} st,` : ''}${a.tid ? ` kl. ${klockslag(a.tid)}` : ''}.${a.iordningstalld && a.status === 'iordningstalld' ? ` Etikett ${a.iordningstalld.kontrollkod}.` : ''}${vidBehov ? ' Följ upp effekten om en timme och dokumentera den.' : ''}`);
       ladda();
     } catch { /* notis visad */ }
   });

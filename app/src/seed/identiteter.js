@@ -55,7 +55,7 @@ export const IDENTITETSPATIENTER = [
     adress: null, postnr: null, ort: null, telefon: null, kontaktperson: null,
     vardkontakter: [
       { ref: 'akut', enhet: 'uso-akut', typ: 'akut', start: [-1, '22:40'], slut: [0, '02:10'], plats: 'Akutrum 3', orsak: 'Hjärtklappning' },
-      { ref: 'avd', enhet: 'uso-kard-72', typ: 'slutenvard', start: [0, '02:20'], plats: 'Sal 4, säng 2', orsak: 'Förmaksflimmer' },
+      { ref: 'avd', enhet: 'uso-kard-72', typ: 'slutenvard', start: [0, '02:20'], plats: 'Avd 72, sal 4', orsak: 'Förmaksflimmer' },
     ],
     diagnoser: [
       { kod: 'I48.0', text: 'Paroxysmalt förmaksflimmer', enhet: 'uso-kard', vk: 'avd', datum: 0, typ: 'huvud' },

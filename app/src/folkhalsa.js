@@ -16,7 +16,7 @@
 //
 // Behörigheten är patientgrupperingens: läkare och sjuksköterskor startar och följer insatser för patienter som de har
 // vårdrelation till på den egna vårdenheten, och utfallet räknas bara på uppgifter från den egna vårdenheten.
-import { Fel, iso, idag, addDagar } from './db.js';
+import { Fel, iso, idag, addDagar, datumAv, lokalTid } from './db.js';
 import { kanRoll, vardenhetFor, visningsnamn, visningsPnr, alder as alderAv, prova } from './atkomst.js';
 import { loggaRad } from './logg.js';
 import * as analys from './analys.js';
@@ -191,7 +191,8 @@ export function forPatient(atk) {
 export function seeda(db, bas = new Date()) {
   if (db.query('SELECT 1 FROM folkhalsoinsatser LIMIT 1').get()) return;
   const kontakt = (pid) => db.query("SELECT id FROM vardkontakter WHERE patient_id = ? AND enhet_id = 'vc-tybble' ORDER BY start DESC LIMIT 1").get(pid)?.id ?? null;
-  const tid = (dagar) => new Date(bas.getTime() - dagar * 86400_000).toISOString();
+  // Runda 13, r4: anteckningarna skrevs på mottagningens dagtid, inte på det klockslag då sandlådan skapades.
+  const tid = (dagar) => lokalTid(addDagar(datumAv(bas), -dagar), '10:15');
   const levnadsvanor = require('./levnadsvanor.js');
   const NOTER = [
     { pid: 'p01', dagar: 120, av: 'ssk-vc', svar: { alkohol: { glasPerVecka: 14, berusning: 'manad' }, fysisk: { traningMinuter: 0, vardagMinuter: 60 }, stod: { alkohol: 'accepterat', fysisk: 'avbojt' }, givet: {} } },

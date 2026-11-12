@@ -30,9 +30,24 @@ export const METFORMIN = 'A10BA02';
 const enhetsnamn = (db, id) => db.query('SELECT namn FROM enheter WHERE id = ?').get(id)?.namn ?? id;
 const personNamn = (db, id) => (id ? db.query('SELECT namn FROM personal WHERE id = ?').get(id)?.namn ?? id : null);
 
+// Runda 13, r4: vanliga handelsnamn som sökord, så att den som skriver Ipren eller Voltaren hittar substansen i
+// katalogen. Namnen är sökord och påverkar inte vilket läkemedel som ordineras.
+export const HANDELSNAMN = {
+  ipren: 'ibuprofen', brufen: 'ibuprofen', ibumetin: 'ibuprofen', voltaren: 'diklofenak', eeze: 'diklofenak',
+  alvedon: 'paracetamol', panodil: 'paracetamol', pamol: 'paracetamol', trombyl: 'acetylsalicylsyra', magnecyl: 'acetylsalicylsyra',
+  brilique: 'tikagrelor', eliquis: 'apixaban', xarelto: 'rivaroxaban', pradaxa: 'dabigatran', waran: 'warfarin',
+  seloken: 'metoprolol', furix: 'furosemid', aldactone: 'spironolakton', levaxin: 'levotyroxin', losec: 'omeprazol',
+  zoloft: 'sertralin', lipitor: 'atorvastatin', imovane: 'zopiklon', stesolid: 'diazepam', oxynorm: 'oxikodon',
+  nitrolingual: 'glyceryltrinitrat', glytrin: 'glyceryltrinitrat', cordarone: 'amiodaron', klacid: 'klaritromycin',
+  diflucan: 'flukonazol', fragmin: 'dalteparin', klexane: 'enoxaparin', glucophage: 'metformin', norvasc: 'amlodipin',
+  renitec: 'enalapril', atacand: 'kandesartan', betapred: 'betametason', zofran: 'ondansetron', heracillin: 'flukloxacillin',
+};
 export function sokKatalog(db, q = '') {
-  const s = `%${String(q).trim().toLowerCase().slice(0, 60)}%`;
-  return db.query('SELECT * FROM katalog WHERE lower(namn) LIKE ? OR lower(substans) LIKE ? OR lower(atc) LIKE ? ORDER BY namn LIMIT 50').all(s, s, s);
+  const ord = String(q).trim().toLowerCase().slice(0, 60);
+  const s = `%${ord}%`;
+  const substanser = ord.length >= 3 ? [...new Set(Object.entries(HANDELSNAMN).filter(([namn]) => namn.startsWith(ord)).map(([, sub]) => sub))] : [];
+  const extra = substanser.length ? ` OR lower(substans) IN (${substanser.map(() => '?').join(', ')})` : '';
+  return db.query(`SELECT * FROM katalog WHERE lower(namn) LIKE ? OR lower(substans) LIKE ? OR lower(atc) LIKE ?${extra} ORDER BY namn LIMIT 50`).all(s, s, s, ...substanser);
 }
 const lakemedelRad = (db, id) => db.query('SELECT * FROM katalog WHERE id = ?').get(id);
 

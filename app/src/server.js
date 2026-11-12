@@ -39,6 +39,9 @@ import { YRKEN } from './seed/personal.js';
 import { registreraRutter as utdataRutter, tillagg as utdata } from './utdata-rutter.js';
 // Runda 6, r3: vårdplaner, psykiatrisk tvångsvård, samordnad planering (SIP och SPU) och ändringar i hälsoärenden.
 import { registreraRutter as r3Rutter, tillagg as r3 } from './r3-rutter.js';
+// Runda 13, r4: arbetslistan visar en patient i sluten tvångsvård som vårdas på en annan vårdenhet.
+import * as tvangsvard from './tvangsvard.js';
+import { datumAv } from './db.js';
 // Runda 6, r1: sökning i journalen, mätvärden med kurvor och NEWS2, basfakta, säkerhetsloggen, loggexport och stickprov.
 import { registreraRutter as r1Rutter } from './sok-matvarden-logg-rutter.js';
 import * as vitalparametrar from './vitalparametrar.js';
@@ -638,6 +641,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       aktivtValSyfte: require('./operation.js').aktivtValSyfte(db, c.personal, p.id),
       // Runda 11, r4: om patienten har cytostatika eller blod som den inloggade får se, för flikarna.
       ...r11r4.huvud(atk),
+      // Runda 13, r4: mallarna som en ny anteckning förväljer efter situationen (presentationsvyer.js).
+      anteckningsmallar: presentationsvyer.anteckningsmallar(atk),
     };
   }
 
@@ -718,6 +723,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       ...db.query(`SELECT patient_id FROM vardkontakter WHERE enhet_id IN (${ph})`).all(...enheter),
       ...db.query(`SELECT patient_id FROM listningar WHERE enhet_id IN (${ph})`).all(...enheter),
       ...db.query('SELECT patient_id FROM remisser WHERE till_enhet_id = ? OR fran_enhet_id = ?').all(ve, ve),
+      // Runda 13, r4: anestesienheten har patienterna med operationer som är beställda till den.
+      ...anestesiPatienter(c, ve),
     ].map(r => r.patient_id));
     const larm = remiss.larmForEnhet(db, p);
     const nll = lakemedel.nllAvvikelser(db, p);
@@ -730,17 +737,61 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
         AND NOT (coalesce(planerad, 0) = 1 AND ankomst IS NULL AND start > ?) ORDER BY start DESC`).get(id, ...enheter, new Date(Date.now() + 3600_000).toISOString());
       const inkRemiss = db.query("SELECT * FROM remisser WHERE patient_id = ? AND till_enhet_id = ? AND status <> 'svar_kvitterat' ORDER BY skickad_tid DESC").get(id, ve);
       const list = db.query(`SELECT 1 FROM listningar WHERE patient_id = ? AND enhet_id IN (${ph})`).get(id, ...enheter);
+      // Runda 13, r4: en patient i sluten psykiatrisk tvångsvård som enheten ansvarar för men som vårdas på en annan
+      // vårdenhet (till exempel somatisk vård) står bland de inskrivna, utan att säga var.
+      const lpt = !vk ? tvangsvardAnnanstans(db, id, ve) : null;
+      const ane = !vk && !lpt ? anestesiPlats(c, id, ve) : null;
       ut.push({
         id, namn: visningsnamn(pat), personnummer: visningsPnr(pat), alder: alder(pat.fodd, idag()), kon: pat.kon,
-        plats: vk ? vk.plats : inkRemiss ? 'Inkommande remiss' : list ? 'Listad' : 'Nyligen avslutad kontakt',
-        orsak: vk?.orsak ?? (inkRemiss && kanRoll(p, 'las_remiss') ? inkRemiss.fragestallning : null),
+        plats: vk ? vk.plats : lpt ? lpt.plats : ane ? ane.plats : inkRemiss ? 'Inkommande remiss' : list ? 'Listad' : 'Nyligen avslutad kontakt',
+        orsak: vk?.orsak ?? lpt?.orsak ?? ane?.orsak ?? (inkRemiss && kanRoll(p, 'las_remiss') ? inkRemiss.fragestallning : null),
         skyddad: Boolean(pat.skyddad), larm: larm.filter(l => l.patientId === id).length + nll.filter(n => n.patientId === id).length,
-        pagaende: Boolean(vk), vardform: vk?.typ ?? null,
+        pagaende: Boolean(vk || lpt), vardform: vk?.typ ?? (lpt ? 'slutenvard' : null),
+        // Runda 13, r4: om kontakten är dagens (började i dag), så att en lång pågående kontakt i öppenvården inte står
+        // som ett besök i dag.
+        idag: Boolean(vk && datumAv(new Date(vk.start)) === idag()),
         uppmarksamhet: uppmarksamhet.symbolFor(db, p, id, valFor(c.s, id)),
+        // Runda 13, r4: identitetens typ, så att ett reservnummer syns som reservnummer.
+        idTyp: pat.id_typ ?? 'personnummer', idTypText: identitet.TYPER[pat.id_typ ?? 'personnummer']?.text ?? null,
       });
     }
+    // Runda 13, r4: en trolig dubblett markeras när båda journalerna finns i listan, så att markeringen inte röjer någon
+    // patient som användaren inte redan ser.
+    const dubbletter = identitet.dubbletterInom(db, ut.map(r => r.id));
+    for (const r of ut) r.mojligDubblett = dubbletter.has(r.id);
     const ordning = { slutenvard: 0, akut: 1, oppenvard: 2 };
     return ut.sort((a, b) => (ordning[a.vardform] ?? 3) - (ordning[b.vardform] ?? 3) || a.namn.localeCompare(b.namn, 'sv'));
+  }
+
+  // Runda 13, r4: operationerna som är beställda till anestesienheten, för arbetslistan. Varje anmälan prövas med samma
+  // regel som operationsprogrammet och listan över beställda anestesibedömningar (operation.js, anestesiSynlig), och det
+  // som inte får visas används varken för platsen eller för orsaken.
+  const ANESTESI_TEXT = { vantar: 'Väntar på planering', planerad: 'Planerad', pagar: 'Pågår', uppvak: 'Uppvakning' };
+  function anestesiAnmalningar(c, ve) {
+    const op = require('./operation.js');
+    if (!Object.hasOwn(op.ANESTESIENHETER_FOR_LISTA, ve) || !kanRoll(c.personal, 'las_operation')) return [];
+    if (!c.db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'op_anmalningar'").get()) return [];
+    return c.db.query("SELECT * FROM op_anmalningar WHERE status IN ('vantar', 'planerad', 'pagar', 'uppvak') ORDER BY id").all()
+      .filter(an => op.anestesiSynlig(c.db, c.personal, (pid) => valFor(c.s, pid), an).tillaten);
+  }
+  const anestesiPatienter = (c, ve) => anestesiAnmalningar(c, ve).map(an => ({ patient_id: an.patient_id }));
+  function anestesiPlats(c, pid, ve) {
+    const an = anestesiAnmalningar(c, ve).find(x => x.patient_id === pid);
+    if (!an) return null;
+    const op = require('./operation.js');
+    const plan = c.db.query('SELECT start FROM op_planeringar WHERE anmalan_id = ? AND struken_tid IS NULL ORDER BY id DESC').get(an.id);
+    const nar = plan ? new Date(plan.start).toLocaleString('sv-SE', { timeZone: 'Europe/Stockholm', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(':', '.') : null;
+    return { plats: `Operation, ${ANESTESI_TEXT[an.status] ?? an.status}${nar ? ` ${nar}` : ''}`, orsak: op.INGREPP[an.kva]?.namn ?? null };
+  }
+
+  // Runda 13, r4: pågående sluten tvångsvård på vårdenheten för en patient utan egen pågående vårdkontakt där.
+  function tvangsvardAnnanstans(db, pid, ve) {
+    if (!db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'tvangsvard_perioder'").get()) return null;
+    for (const per of db.query('SELECT * FROM tvangsvard_perioder WHERE patient_id = ? AND enhet_id = ? ORDER BY skapad DESC').all(pid, ve)) {
+      const { l } = tvangsvard.periodLage(db, per);
+      if (l.status === 'sluten') return { plats: 'Vårdas på en annan vårdenhet', orsak: `${l.statusText}. Ansvaret för tvångsvården ligger kvar här.` };
+    }
+    return null;
   }
 
   function sok(c, q) {
@@ -1507,10 +1558,13 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const d = c.url.searchParams.get('datum');
     return tidbok.tidbok(c.db, c.personal, { datum: /^\d{4}-\d{2}-\d{2}$/.test(d ?? '') ? d : idag(), avidentifierad: c.url.searchParams.get('avidentifierad') === '1', vy: planering.vyFor(c.db, c.personal, 'tidbok').installning });
   });
-  rutt('GET', '/api/vantelista', (c) => { kravRoll(c, 'vantelista'); return { poster: tidbok.vantelista(c.db, c.personal), prioriteringsorsaker: tidbok.OMPRIORITERING, demoregler: tidbok.DEMOREGLER.text }; });
+  rutt('GET', '/api/vantelista', (c) => { kravRoll(c, 'vantelista'); return { poster: tidbok.vantelista(c.db, c.personal), prioriteringsorsaker: tidbok.OMPRIORITERING, vantan: tidbok.VANTAN, avslut: tidbok.AVSLUT, demoregler: tidbok.DEMOREGLER.text }; });
   rutt('GET', '/api/vantelista/:id/forslag', (c, id) => medPost(c, id, 'boka', (atk, v) => tidbok.forslagForPost(atk, v)));
   rutt('POST', '/api/vantelista/:id/boka', (c, id) => medPost(c, id, 'boka', (atk, v) => tidbok.boka(atk, v, c.body)));
   rutt('POST', '/api/vantelista/:id/prioritet', (c, id) => medPost(c, id, 'vantelista', (atk, v) => tidbok.prioritera(atk, v, c.body)));
+  // Runda 13, r4: patientvald och medicinskt orsakad väntan, och avslut från väntelistan med orsak.
+  rutt('POST', '/api/vantelista/:id/vantan', (c, id) => medPost(c, id, 'vantelista', (atk, v) => tidbok.registreraVantan(atk, v, c.body)));
+  rutt('POST', '/api/vantelista/:id/avsluta', (c, id) => medPost(c, id, 'vantelista', (atk, v) => tidbok.avslutaPost(atk, v, c.body)));
   rutt('POST', '/api/patient/:id/vantelista', (c, id) => { kravInloggad(c); return medPatient(c, id, 'vantelista', (atk) => tidbok.nyPost(atk, c.body)); });
   rutt('GET', '/api/patient/:id/bokningar', (c, id) => { kravInloggad(c); return medPatient(c, id, 'las_admin', (atk) => tidbok.patientensBokningar(atk)); });
   // Runda 5, r1: läkaren sätter upp ett återbesök som systemet föreslår (aterbesok.js).

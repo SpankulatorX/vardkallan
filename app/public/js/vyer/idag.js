@@ -137,13 +137,20 @@ export async function bokaPost(id, namn) {
   const f = await api(`/api/vantelista/${id}/forslag`);
   // En planerad vårdhändelse: dialogen säger att tiden styr en läkemedelsdos, aldrig vilket läkemedel (runda 5, r1).
   const styr = f.post.styrLakemedel ? `</p><p class="ruta ruta-info liten">${esc(f.post.styrLakemedel)}` : '';
-  const tidId = await valjTid({ rubrik: `Boka tid för ${namn}`, text: `${esc(f.post.orsak)}. ${esc(f.post.tidstypText)} hos ${esc(f.post.yrkesrollText)}.${styr}`, forslag: f.forslag, demoregler: f.demoregler });
+  // Runda 13, r4: att patienten är inskriven, patientens kommande tider på vårdenheten och vägen till fri bokning.
+  const inskriven = f.inskriven ? `</p><p class="ruta ruta-info liten">${esc(f.inskriven.text)}` : '';
+  const kommande = f.kommande?.length ? `</p><p class="liten">Redan bokat här: ${f.kommande.map(k => `${esc(k.orsak ?? k.tidstypText)} ${esc(tidText(k.start))}`).join(', ')}.` : '';
+  const fri = '</p><p class="liten">Passar ingen av tiderna kan du välja en annan i <a href="#/tidbok">tidboken</a> eller med Fri bokning i Dagens arbete.';
+  const tidId = await valjTid({ rubrik: `Boka tid för ${namn}`, text: `${esc(f.post.orsak)}. ${esc(f.post.tidstypText)} hos ${esc(f.post.yrkesrollText)}.${styr}${inskriven}${kommande}${fri}`, forslag: f.forslag, demoregler: f.demoregler });
   if (!tidId) return null;
   const r = await api(`/api/vantelista/${id}/boka`, { metod: 'POST', data: { tidId } });
   // Runda 6, r4: det systemet bokade samtidigt, och provtagningen före besöket.
   const samtidigt = r.resurser?.length ? ` ${r.resurser.map(x => x.namn).join(', ')} är bokade samtidigt.` : '';
   const fore = r.kedja?.fore ? ` Med provtagning klockan ${kl(r.kedja.fore.tid.start)} före besöket.` : '';
-  notis(`${namn} har fått en tid ${tidText(r.tid.start)}.${fore}${samtidigt} Kallelsen är skickad${r.kallelse?.kanalText ? ` via ${r.kallelse.kanalText.toLowerCase()}` : ''}${r.kallelse?.sprak && r.kallelse.sprak !== 'sv' ? `, på ${r.kallelse.sprakText.toLowerCase()}` : ''}.`);
+  // Runda 13, r4: när kallelsen inte kan skickas, till exempel ett brev till en tid om mindre än tre dagar, står varför
+  // kvar tills den stängs, och raden finns i Dagens arbete.
+  if (r.kallelse?.status === 'kan_inte') notis(`${namn} har fått en tid ${tidText(r.tid.start)}.${fore}${samtidigt} ${r.kallelse.forklaring ?? 'Kallelsen kunde inte skickas.'}`, 'fel', { kvar: true });
+  else notis(`${namn} har fått en tid ${tidText(r.tid.start)}.${fore}${samtidigt} Kallelsen är skickad${r.kallelse?.kanalText ? ` via ${r.kallelse.kanalText.toLowerCase()}` : ''}${r.kallelse?.sprak && r.kallelse.sprak !== 'sv' ? `, på ${r.kallelse.sprakText.toLowerCase()}` : ''}.`);
   return r;
 }
 

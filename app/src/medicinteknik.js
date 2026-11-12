@@ -266,7 +266,9 @@ export function koppla(atk, p, body = {}, nu = new Date()) {
   const db = atk.db;
   const kod = typeof body.streckkod === 'string' ? body.streckkod.trim().toUpperCase() : '';
   if (!kod) throw new Fel(400, 'Skanna streckkoden på utrustningen.', 'ogiltig', { falt: ['streckkod'] });
-  const u = db.query('SELECT * FROM mt_utrustning WHERE streckkod = ? AND aktiv = 1').get(kod);
+  // Runda 13, r4: utrustningen hittas också på serienumret som står på den och i listorna, så att det spelar roll vilket
+  // av numren som skannas eller skrivs.
+  const u = db.query('SELECT * FROM mt_utrustning WHERE (streckkod = ?1 OR upper(serienummer) = ?1) AND aktiv = 1').get(kod);
   if (!u) throw new Fel(400, 'Streckkoden hör inte till någon utrustning i Vårdkällan. Kontrollera att det är utrustningens streckkod.', 'ogiltig', { falt: ['streckkod'] });
   kravVardande(atk, 'koppla_utrustning', null, `mt:koppla:${u.id}`);
   kravUtrustning(db, atk.personal, u);
@@ -303,8 +305,13 @@ export function koppla(atk, p, body = {}, nu = new Date()) {
   })();
   atk.logga('koppla_utrustning', atk.grund(), `mt:koppling:${ut.koppling.id}`);
   const flyttad = tidigare && !ut.redan && tidigare.patient_id !== p.id;
+  // Runda 13, r4: en monitor som hör till en annan sal än patientens ger en varning, men kopplas ändå (den kan ha flyttats).
+  const salFor = (t) => (String(t ?? '').match(/sal (\d+)/i) ?? [])[1] ?? null;
+  const plats = db.query("SELECT plats FROM vardkontakter WHERE patient_id = ? AND enhet_id = ? AND slut IS NULL ORDER BY start DESC").get(p.id, u.enhet_id)?.plats;
+  const varning = salFor(u.modell) && salFor(plats) && salFor(u.modell) !== salFor(plats)
+    ? `${TYPER[u.typ]} ${u.serienummer} hör till sal ${salFor(u.modell)}, och patienten ligger i sal ${salFor(plats)}. Kontrollera att det är rätt utrustning.` : null;
   return {
-    koppling: kopplingUt(db, ut.koppling), redan: ut.redan,
+    koppling: kopplingUt(db, ut.koppling), redan: ut.redan, varning,
     text: ut.redan ? `${TYPER[u.typ]} ${u.serienummer} är redan kopplad till patienten.`
       : `${TYPER[u.typ]} ${u.serienummer} är kopplad till patienten från ${klocka(t)}.${flyttad ? ' Kopplingen till den förra patienten avslutades samtidigt.' : ''}${u.typ === 'monitor' ? ' Värdena kommer som referens tills de godkänns.' : ''}`,
   };

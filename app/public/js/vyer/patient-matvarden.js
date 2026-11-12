@@ -10,6 +10,9 @@ import { varde as vardeHtml } from './patient-oversikt.js';
 import { kontaktRad, nyKontaktData, kontaktNotis } from './patient-vardkontakt.js';
 // Runda 9, r2: medicinteknisk utrustning och patientens egna mätningar (mt-ui.js).
 import { utrustningHtml, egnaHtml, koppla as kopplaMt, klassEtikett } from '../mt-ui.js';
+// Runda 13, r4: vätskebalansen har en egen plats bland mätvärdena, samma del som under Läkemedel.
+import * as lms from './lakemedelsstod.js';
+import { registreraVatska } from './patient-lakemedel.js';
 
 // Typer och enheter enligt API:t. Blodtryck står först, eftersom det är det vanligaste.
 export const MATTYPER = [
@@ -169,7 +172,33 @@ export async function visa(el, ctx) {
         <thead><tr><th scope="col">Tid</th><th scope="col">Mätvärde</th><th scope="col">Värde</th><th scope="col">Enhet där det togs</th><th scope="col">Registrerat av</th><th scope="col">Inmatning</th></tr></thead>
         <tbody>${d.matvarden.map(m => `<tr${m.ejSparad ? ' data-ej-sparad' : ''}><td>${esc(tidpunkt(m.tid))}${m.ejSparad ? ' <span class="tagg tagg-larm">Inte sparat i journalen än</span>' : ''}</td><td>${esc(m.namn)}</td><td>${visatVarde(m)}</td><td>${esc(m.vardenhet.namn)}${migreradEtikett(m)}</td><td>${esc(m.registreradAv?.namn ?? '')}${m.bestallning ? `<span class="under-text">Svar från laboratoriet, beställt av ${esc(m.bestallning.bestalldAv ?? '')}</span>` : ''}${klassEtikett(m.klass)}</td><td><span class="tagg${m.inmatning?.maskinell ? ' tagg-maskinell' : ''}">${esc(m.inmatning?.maskinell ? 'Maskinellt' : m.inmatning?.typ === 'manuell' ? 'Manuellt' : m.inmatning?.typ === 'patient' ? 'Patienten' : 'Migrerat')}</span><span class="under-text">${esc(m.inmatning?.text ?? '')}</span></td></tr>`).join('')}</tbody>
       </table></div></section>` : '<p class="tom">Inga mätvärden som du kan se.</p>'}
-    ${egnaHtml(d)}`;
+    ${egnaHtml(d)}
+    <div id="mv-vb-plats"></div>`;
+
+  // Runda 13, r4: vätskebalansen, med registrering av intag och förlust med tid och period.
+  if (far('las_matvarden')) {
+    const vbPlats = el.querySelector('#mv-vb-plats');
+    const visaVb = async (param = '') => {
+      try {
+        const vb = await api(`/api/patient/${encodeURIComponent(ctx.id)}/vatskebalans${param}`, { tyst: true });
+        if (ctx.aktuell() && vbPlats.isConnected) vbPlats.innerHTML = lms.vatskeSektion(vb);
+      } catch { /* utan vätskebalans */ }
+    };
+    visaVb();
+    const vbVal = {};
+    vbPlats.addEventListener('change', (e) => {
+      const v = e.target.closest('[data-vb]');
+      if (!v) return;
+      vbVal[v.dataset.vb] = v.value;
+      visaVb(`?${new URLSearchParams(Object.entries(vbVal).filter(([, x]) => x))}`);
+    });
+    vbPlats.addEventListener('click', (e) => {
+      const r = e.target.closest('[data-vatska]');
+      if (r) { registreraVatska(ctx, r.dataset.vatska); return; }
+      const m = e.target.closest('[data-makulera-vb]');
+      if (m) lms.makulera(ctx.id, 'vatskebalans', m.dataset.makuleraVb, m.dataset.text, () => ctx.ladda());
+    });
+  }
 
   // Från en sökträff öppnas kurvan för mätvärdet.
   if (markerad) {

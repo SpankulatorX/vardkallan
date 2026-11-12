@@ -60,8 +60,9 @@ describe('Intensivvård', () => {
     expect(d.enhet).toMatchObject({ id: 'uso-kard-hia', namn: 'Hjärtintensivvårdsavdelningen (HIA)', platser: 8, belagda: 1 });
     const p = d.patienter.find(x => x.patientId === 'p22');
     expect(p).toMatchObject({ plats: 'Hjärtintensiven, sal 3', utrustning: [], infusioner: [], vatska: { balans: 0 } });
-    expect(p.varden.puls).toMatchObject({ varde: 132, godkand: true });
-    // Pulsen 132 är från i förrgår och ligger utanför analysens fönster på sex timmar.
+    // Runda 13, r4: den senaste pulsen är från en och en halv timme sedan, efter frekvensregleringen.
+    expect(p.varden.puls).toMatchObject({ varde: 92, godkand: true });
+    // Pulsen sjunker och ligger inom gränserna, så analysen har inget att larma om.
     expect(p.analys).toEqual([]);
     expect(d.demoregel).toContain('demoregler');
     // Varje patient i översikten loggas en gång per session.

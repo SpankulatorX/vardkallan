@@ -1,5 +1,7 @@
 // Sussa 3.4.4 Registrering av vårdkontakt och betalning: hur Vårdkällan möter posterna i avsnittet.
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
+// Runda 13, r4 (sussa/runda13-r4.js).
+import { medR13r4 } from '../runda13-r4.js';
 import { klickbudgetTest } from '../../krav.js';
 import { FLODEN } from '../../klickbudget.js';
 import { T } from '../tidbok-tester.js';
@@ -69,4 +71,5 @@ const AVSNITT = [
 ];
 
 // Runda 6, r4: posterna som byggdes i planering och tidbok, del 2, och remiss, del 2, ersätts ur sussa/planering-r4.js.
-export default medR10r7(medR4(AVSNITT));
+// Runda 13, r4: ankomst i efterhand (sussa/runda13-r4.js).
+export default medR13r4(medR10r7(medR4(AVSNITT)));

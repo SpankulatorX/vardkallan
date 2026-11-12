@@ -14,7 +14,7 @@
 // checka_in, vantelista) och kräver vårdrelation eller remiss till vårdenheten, som all annan åtkomst till patienten.
 // Varje åtgärd loggas på patienten. Kallelsen innehåller aldrig journaltext. En patient med skyddade personuppgifter
 // får kallelser bara i Min journal, och namnet visas aldrig på incheckningsskärmen.
-import { Fel, iso, idag, addDagar, datumAv, lokalTid, installning, inomDagen } from './db.js';
+import { Fel, iso, idag, addDagar, datumAv, lokalTid, installning, arbetsdagensTid, arbetsdagensMitt } from './db.js';
 import { kanRoll, vardenhetFor, enheterUnder, harVardrelation, visningsnamn, visningsPnr, provaInvanare } from './atkomst.js';
 import { avgiftFor, gerVardrelation } from './vardkontakt.js';
 import * as identitet from './identitet.js';
@@ -55,11 +55,12 @@ export const EGEN_VARDBEGARAN = 'min-journal';
 export const KANAL = { min_journal: 'Min journal', sms: 'Sms', brev: 'Brev' };
 // Orsaker som systemet föreslår vid omprioritering. patientvald betyder att patienten själv har valt att vänta, och då
 // räknas inte vårdgarantin.
+// Runda 13, r4: patientvald väntan är ingen orsak till en ändrad prioritet utan en egen åtgärd (VANTAN), och vård på annat
+// sätt avslutar posten (AVSLUT). Den medicinska prioriteten ändras när patientens tillstånd har ändrats eller efter
+// läkarens bedömning.
 export const OMPRIORITERING = {
   tillstand: 'Patientens tillstånd har ändrats',
   bedomning: 'Ny bedömning av läkaren',
-  patientvald: 'Patienten vill vänta (patientvald väntan)',
-  annan_tid: 'Patienten har fått vård på annat sätt',
 };
 
 // Runda 12, r1: tidbokens regler är parametrar som systemförvaltningen ändrar med fyra ögon (konfiguration.js, Sussa
@@ -164,7 +165,8 @@ function idagAvrundad(bas, ms) {
   const sista = Date.parse(lokalTid(addDagar(datum, 1), '00:00')) - 5 * MIN;
   return Math.min(Math.max(round5(ms), forsta), sista);
 }
-const dagensTid = (bas, minuter) => new Date(idagAvrundad(bas, inomDagen(bas, minuter))).toISOString();
+// Runda 13, r4: dagens tider ligger kring arbetsdagens mitt (db.js), aldrig sent på kvällen eller på natten.
+const dagensTid = (bas, minuter) => new Date(idagAvrundad(bas, arbetsdagensTid(bas, minuter))).toISOString();
 const veckodag = (datum) => new Date(`${datum}T12:00:00Z`).getUTCDay();
 // En dag framåt som hamnar på en helg flyttas till måndagen efter.
 function vardag(datum) {
@@ -218,10 +220,13 @@ export function seedaTidbok(db, { bas = new Date() } = {}) {
     }
     const bokad = new Date(Date.parse(lokalTid(addDagar(basDatum, b.bokad), '09:00'))).toISOString();
     const bok = skapaBokning(db, { patientId: b.patient, tid, orsak: b.orsak ?? null, av: b.bokadAv, bokad });
+    // Runda 13, r4: patienten har checkat in bara när den tiden har passerat.
     if (b.incheckad) {
       const t = dagensTid(bas, b.incheckad.min);
-      db.query("UPDATE bokningar SET status = 'incheckad', incheckad = ?, incheckad_via = ?, konummer = ? WHERE id = ?").run(t, b.incheckad.via, konummerFor(db, tid, t), bok.id);
-      db.query('UPDATE vardkontakter SET ankomst = ? WHERE id = ?').run(t, bok.vardkontakt_id);
+      if (Date.parse(t) < bas.getTime()) {
+        db.query("UPDATE bokningar SET status = 'incheckad', incheckad = ?, incheckad_via = ?, konummer = ? WHERE id = ?").run(t, b.incheckad.via, konummerFor(db, tid, t), bok.id);
+        db.query('UPDATE vardkontakter SET ankomst = ? WHERE id = ?').run(t, bok.vardkontakt_id);
+      }
     }
     // Kallelserna till dagens patienter skrivs när sandlådan skapas, efter att tiderna har flyttats (anpassaTillNu).
     if (!relativ) seedKallelser(db, bok.id, b, basDatum);
@@ -271,7 +276,8 @@ export function anpassaTillNu(db, nu = Date.now()) {
   const bas = installning(db, 'tidbok_bas');
   if (!bas || installning(db, 'tidbok_anpassad')) return 0;
   installning(db, 'tidbok_anpassad', new Date(nu).toISOString());
-  const skift = round5(nu - Date.parse(bas));
+  // Runda 13, r4: tiderna flyttas lika mycket som arbetsdagens mitt har flyttats sedan mallen byggdes.
+  const skift = round5(arbetsdagensMitt(new Date(nu)) - arbetsdagensMitt(new Date(bas)));
   // Runda 11, r1: en tid som flyttas över midnatt stannar på dagens datum (mallen är högst 30 minuter gammal, db.js).
   const flytta = (t) => (t && skift ? new Date(idagAvrundad(new Date(nu), Date.parse(t) + skift)).toISOString() : t);
   const tider = db.query('SELECT * FROM tider WHERE relativ = 1').all();
@@ -291,12 +297,47 @@ export function anpassaTillNu(db, nu = Date.now()) {
     const b = db.query('SELECT b.id FROM bokningar b JOIN tider t ON t.id = b.tid_id WHERE b.patient_id = ? AND t.relativ = 1 AND t.schema_id = ? ORDER BY b.id').get(s.patient, s.schema);
     if (!b || db.query('SELECT 1 FROM kallelser WHERE bokning_id = ?').get(b.id)) continue;
     seedKallelser(db, b.id, s, basDatum);
-    // Den som redan har checkat in och inte betalar något har fått det registrerat av systemet.
-    const rad = bokningRad(db, b.id);
-    const a = rad.status === 'incheckad' ? avgiftForBokning(db, rad) : null;
-    if (a && a.belopp === 0 && !db.query('SELECT 1 FROM betalningar WHERE bokning_id = ?').get(rad.id)) registreraBetalning(db, rad, a, a.satt, { av: rad.bokad_av });
+    stallInIncheckning(db, b.id, s, nu);
   }
+  avslutaGenomforda(db, nu);
   return tider.length;
+}
+
+// Runda 13, r4: incheckningen och betalningen för en av dagens bokningar i seeden, efter klockan när sandlådan skapas.
+// Har incheckningens tid passerat är patienten incheckad, annars inte (efter midnatt kan dagens tider ha flyttats till
+// morgonen). Den som har checkat in och inte betalar något har fått det registrerat av systemet, och den som enligt
+// seeden har betalat har gjort det när den checkade in.
+function stallInIncheckning(db, bokningId, s, nu) {
+  let rad = bokningRad(db, bokningId);
+  const tid = tidRad(db, rad.tid_id);
+  if (rad.status === 'incheckad' && Date.parse(rad.incheckad) > nu && !db.query('SELECT 1 FROM betalningar WHERE bokning_id = ?').get(rad.id)) {
+    db.query("UPDATE bokningar SET status = 'bokad', incheckad = NULL, incheckad_via = NULL, konummer = NULL WHERE id = ?").run(rad.id);
+    if (rad.vardkontakt_id) db.query('UPDATE vardkontakter SET ankomst = NULL WHERE id = ?').run(rad.vardkontakt_id);
+  }
+  rad = bokningRad(db, bokningId);
+  if (s.incheckad && rad.status === 'bokad') {
+    const t = round5(Date.parse(tid.start) + (s.incheckad.min - s.tid.min) * MIN);
+    if (t < nu) {
+      const it = new Date(t).toISOString();
+      db.query("UPDATE bokningar SET status = 'incheckad', incheckad = ?, incheckad_via = ?, konummer = ? WHERE id = ?").run(it, s.incheckad.via, konummerFor(db, tid, it), rad.id);
+      if (rad.vardkontakt_id) db.query('UPDATE vardkontakter SET ankomst = ? WHERE id = ?').run(it, rad.vardkontakt_id);
+    }
+  }
+  rad = bokningRad(db, bokningId);
+  if (rad.status !== 'incheckad' || db.query('SELECT 1 FROM betalningar WHERE bokning_id = ?').get(rad.id)) return;
+  const a = avgiftForBokning(db, rad);
+  if (a && a.belopp === 0) registreraBetalning(db, rad, a, a.satt, { av: rad.bokad_av, tid: rad.incheckad });
+  else if (a && s.betald) registreraBetalning(db, rad, a, s.betald, { av: rad.bokad_av, tid: rad.incheckad });
+}
+
+// Runda 13, r4: ett besök i dag som patienten har checkat in till och som slutade för mer än en halvtimme sedan är
+// genomfört, och vårdkontakten är avslutad när besöket slutade.
+function avslutaGenomforda(db, nu) {
+  const grans = new Date(nu - 30 * MIN).toISOString();
+  for (const r of db.query(`SELECT b.vardkontakt_id, t.slut FROM bokningar b JOIN tider t ON t.id = b.tid_id
+    WHERE t.relativ = 1 AND b.status = 'incheckad' AND b.vardkontakt_id IS NOT NULL AND t.slut < ?`).all(grans)) {
+    db.query('UPDATE vardkontakter SET slut = ? WHERE id = ? AND slut IS NULL').run(r.slut, r.vardkontakt_id);
+  }
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -481,6 +522,8 @@ export function vantelistaUt(db, post, dag = idag()) {
     status: post.status, bokningId: post.bokning_id ?? null, skapad: post.skapad, skapadAv: personKort(db, post.skapad_av),
     // Planerad vårdhändelse: att tiden styr en läkemedelsdos, aldrig vilket läkemedel (vardhandelse.js).
     styrLakemedel: styrDos(db, { postRad: post }) ? STYR_LAKEMEDEL : null,
+    // Runda 13, r4: vårdgarantin för sig och pågående väntan som inte räknas.
+    vardgaranti: vardgarantiFor(db, post, dag), vantan: pagaendeVantan(db, post.id),
     // Runda 6, r4: ett ingrepp eller en bokningsmall, och en kallelse där patienten väljer tid själv.
     ...behovUt(db, post),
     handelser: db.query('SELECT * FROM vantelista_handelser WHERE vantelista_id = ? ORDER BY tid, id').all(post.id)
@@ -523,11 +566,77 @@ export function prioritera(atk, post, body = {}) {
   const ny = body.prioritet;
   if (!Object.hasOwn(PRIORITET, ny)) throw new Fel(400, 'Välj hög, normal eller låg prioritet.', 'ogiltig', { falt: ['prioritet'] });
   if (!Object.hasOwn(OMPRIORITERING, body.orsak)) throw new Fel(400, 'Välj orsaken till ändringen.', 'ogiltig', { falt: ['orsak'] });
-  if (ny === post.prioritet && body.orsak !== 'patientvald') throw new Fel(400, `Prioriteten är redan ${PRIORITET[ny].toLowerCase()}.`, 'ogiltig', { falt: ['prioritet'] });
-  const patientvald = body.orsak === 'patientvald' ? 1 : post.patientvald;
-  db.query('UPDATE vantelista SET prioritet = ?, patientvald = ? WHERE id = ?').run(ny, patientvald, post.id);
+  if (ny === post.prioritet) throw new Fel(400, `Prioriteten är redan ${PRIORITET[ny].toLowerCase()}.`, 'ogiltig', { falt: ['prioritet'] });
+  db.query('UPDATE vantelista SET prioritet = ? WHERE id = ?').run(ny, post.id);
   vlHandelse(db, post.id, 'omprioriterad', { av: atk.personal.id, detalj: `${PRIORITET[post.prioritet]} till ${PRIORITET[ny].toLowerCase()}. ${OMPRIORITERING[body.orsak]}.` });
   atk.logga('vantelista', atk.grund(), `vantelista:${post.id}:prioritet`);
+  return vantelistaUt(db, vantelistaRad(db, post.id));
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Runda 13, r4: väntan som inte räknas i vårdgarantin, och avslut från väntelistan (fynden E3-8 och E3-9).
+//
+// Tiden räknas inte när patienten själv har valt att vänta eller av medicinska skäl inte kan få vård (6 kap. 2 §
+// hälso- och sjukvårdsförordningen, demoregel). Väntan registreras som en egen åtgärd med ett startdatum och avslutas när
+// patienten kan få tid igen. Vårdgarantins datum flyttas med de dagar som inte räknas. Händelserna sparas i
+// väntelistans historik, som inte ändras.
+export const VANTAN = { pvv: 'Patientvald väntan', mov: 'Medicinskt orsakad väntan' };
+export const AVSLUT = { annan_vard: 'Patienten har fått vård på annat sätt', avstar: 'Patienten avstår från vården', fel: 'Posten lades upp av misstag' };
+function vantanPerioder(db, postId, dag = idag()) {
+  const ut = [];
+  for (const h of db.query("SELECT * FROM vantelista_handelser WHERE vantelista_id = ? AND typ IN ('pvv_start', 'pvv_slut', 'mov_start', 'mov_slut') ORDER BY tid, id").all(postId)) {
+    const [typ, steg] = h.typ.split('_');
+    if (steg === 'start') ut.push({ typ, typText: VANTAN[typ], fran: datumAv(new Date(h.tid)), till: null });
+    else { const p = ut.findLast(x => x.typ === typ && !x.till); if (p) p.till = datumAv(new Date(h.tid)); }
+  }
+  return ut.map(p => ({ ...p, dagar: Math.max(dagarMellan(p.fran, p.till ?? dag), 0) }));
+}
+export function pagaendeVantan(db, postId) {
+  return vantanPerioder(db, postId).find(p => !p.till) ?? null;
+}
+// Vårdgarantin för en post: samma gräns som gransFor räknar för vårdgarantin, flyttad med dagarna som inte räknas.
+export function vardgarantiFor(db, post, dag = idag()) {
+  const bas = gransFor({ ...post, mal: null, patientvald: 0 }, dag, db);
+  if (!bas || bas.typ !== 'vardgaranti') return { galler: false, text: 'Vårdgarantin gäller inte för den här posten, till exempel för ett återbesök.' };
+  const perioder = vantanPerioder(db, post.id, dag);
+  const pausade = perioder.reduce((s, p) => s + p.dagar, 0);
+  const datum = addDagar(bas.datum, pausade);
+  const pagar = perioder.find(p => !p.till) ?? null;
+  const kvar = dagarMellan(dag, datum);
+  return {
+    galler: true, datum, dagarKvar: kvar, pausadeDagar: pausade, pagar,
+    risk: pagar ? null : kvar < 0 ? 'passerad' : kvar <= regel(db, 'riskDagar') ? 'risk' : null,
+    text: pagar ? `Räknas inte under ${pagar.typText.toLowerCase()} sedan ${pagar.fran}.` : pausade ? `${pausade} ${pausade === 1 ? 'dag' : 'dagar'} med väntan räknas inte.` : 'Demoregel: 90 dagar från remissen.',
+  };
+}
+// POST /api/vantelista/:id/vantan { typ: pvv|mov, steg: start|slut, kommentar? }.
+export function registreraVantan(atk, post, body = {}) {
+  atk.krav('vantelista');
+  const db = atk.db;
+  kravEgenVardenhet(atk, post.enhet_id, `vantelista:${post.id}`);
+  if (post.status !== 'vantar') throw new Fel(400, 'Patienten har redan fått en tid eller är inte längre på väntelistan.', 'ogiltig');
+  if (!Object.hasOwn(VANTAN, body.typ ?? '')) throw new Fel(400, 'Välj patientvald eller medicinskt orsakad väntan.', 'ogiltig', { falt: ['typ'] });
+  if (!['start', 'slut'].includes(body.steg)) throw new Fel(400, 'Välj om väntan börjar eller slutar.', 'ogiltig', { falt: ['steg'] });
+  const kommentar = typeof body.kommentar === 'string' ? body.kommentar.trim().slice(0, 300) : '';
+  const pagar = pagaendeVantan(db, post.id);
+  if (body.steg === 'start' && pagar) throw new Fel(400, `${pagar.typText} pågår redan sedan ${pagar.fran}. Avsluta den först.`, 'ogiltig');
+  if (body.steg === 'slut' && pagar?.typ !== body.typ) throw new Fel(400, `Det finns ingen pågående ${VANTAN[body.typ].toLowerCase()} att avsluta.`, 'ogiltig');
+  vlHandelse(db, post.id, `${body.typ}_${body.steg}`, { av: atk.personal.id, detalj: `${VANTAN[body.typ]} ${body.steg === 'start' ? 'börjar' : 'slutar'}.${kommentar ? ` ${kommentar}` : ''}` });
+  // Patientvald väntan märks också på posten, som kapacitetsprognosen och rapporten till Väntetider i vården läser.
+  if (body.typ === 'pvv') db.query('UPDATE vantelista SET patientvald = ? WHERE id = ?').run(body.steg === 'start' ? 1 : 0, post.id);
+  atk.logga('vantelista', atk.grund(), `vantelista:${post.id}:vantan`);
+  return vantelistaUt(db, vantelistaRad(db, post.id));
+}
+// POST /api/vantelista/:id/avsluta { orsak }. Posten tas bort från väntelistan med en orsak i historiken.
+export function avslutaPost(atk, post, body = {}) {
+  atk.krav('vantelista');
+  const db = atk.db;
+  kravEgenVardenhet(atk, post.enhet_id, `vantelista:${post.id}`);
+  if (post.status !== 'vantar') throw new Fel(400, 'Posten är inte längre på väntelistan.', 'ogiltig');
+  if (!Object.hasOwn(AVSLUT, body.orsak ?? '')) throw new Fel(400, 'Välj varför patienten tas bort från väntelistan.', 'ogiltig', { falt: ['orsak'] });
+  db.query("UPDATE vantelista SET status = 'avslutad' WHERE id = ?").run(post.id);
+  vlHandelse(db, post.id, 'avslutad', { av: atk.personal.id, detalj: `${AVSLUT[body.orsak]}.` });
+  atk.logga('vantelista', atk.grund(), `vantelista:${post.id}:avslutad`);
   return vantelistaUt(db, vantelistaRad(db, post.id));
 }
 
@@ -602,10 +711,20 @@ export function tidigareVardgivare(db, patientId, ve, yrkesroll = null) {
 // Systemet tar bara tider med rätt tidstyp och yrkesroll på vårdenheten, hoppar över dagar då patienten redan har en
 // tid och väljer i den här ordningen: den tidigaste tiden hos den vårdgivare patienten har träffat förut, om den ligger
 // före gränsen, annars den tidigaste tiden över huvud taget, och sedan tider andra dagar. Varje förslag säger varför.
+// Runda 13, r4: får patienten kallelsen med brev föreslår systemet inte en tid som brevet inte hinner fram till, utom
+// vid hög prioritet. Då säger kallelsen att patienten ska få tiden per telefon (skickaKallelse). Samma regel för
+// väntelistan, fri bokning och teambesök (bokning-r8.js).
+export function tidigastFor(db, patientId, prioritet, fran) {
+  const pat = patientId ? patientRad(db, patientId) : null;
+  if (!pat || prioritet === 'hog' || kanalFor(db, pat).kanal !== 'brev') return fran;
+  const brevFran = new Date(Date.now() + BREV_DAGAR * DAG).toISOString();
+  return brevFran > fran ? brevFran : fran;
+}
+
 export function foreslaTider(db, behov, antal = 3) {
   const enheter = enheterUnder(db, behov.ve);
   const ph = enheter.map(() => '?').join(', ');
-  const fran = behov.fran ?? new Date(Date.now() + 2 * TIMME).toISOString();
+  const fran = tidigastFor(db, behov.patientId, behov.prioritet, behov.fran ?? new Date(Date.now() + 2 * TIMME).toISOString());
   // Runda 6, r4: en kallelse utan förbokad tid har en ram som tiderna ska ligga inom.
   const till = behov.till ?? new Date(Date.now() + (SEED.DAGAR_FRAMAT + 5) * DAG).toISOString();
   const rader = db.query(`SELECT t.*, s.personal_id, s.yrkesroll, s.enhet_id FROM tider t JOIN scheman s ON s.id = t.schema_id
@@ -718,12 +837,34 @@ function langd(ms) {
 // Får användaren se uppgifter från vårdenheten (inre sekretess, aktivt val och spärr)?
 const synligFor = (atk) => (enhetId) => atk.prova('las_admin', { enhet_id: enhetId }).tillaten;
 
+// Runda 13, r4: ett brev behöver så här många dagar för att hinna fram (demoregel).
+export const BREV_DAGAR = 3;
+// Runda 13, r4: en patient som är inskriven på samma vårdenhet får förslag från några dagar efter i dag, eftersom återbesöket
+// görs efter utskrivningen, och dialogen säger det. Patientens kommande tider på vårdenheten visas också. Bara den egna
+// vårdenhetens uppgifter används, så att inget från en annan vårdenhet röjs.
+export const INSKRIVEN_FORSLAG_DAGAR = 4;
+function lageForPost(db, post) {
+  const enheter = enheterUnder(db, vardenhetFor(db, post.enhet_id));
+  const ph = enheter.map(() => '?').join(', ');
+  const inskriven = db.query(`SELECT * FROM vardkontakter WHERE patient_id = ? AND enhet_id IN (${ph}) AND typ = 'slutenvard' AND slut IS NULL ORDER BY start DESC`).get(post.patient_id, ...enheter);
+  const kommande = db.query(`SELECT b.*, t.start, t.tidstyp FROM bokningar b JOIN tider t ON t.id = b.tid_id JOIN scheman s ON s.id = t.schema_id
+    WHERE b.patient_id = ? AND s.enhet_id IN (${ph}) AND b.status = 'bokad' AND t.start > ? ORDER BY t.start`).all(post.patient_id, ...enheter, iso());
+  return {
+    inskriven: inskriven ? { plats: inskriven.plats, sedan: inskriven.start, text: `Patienten är inskriven (${inskriven.plats}). Ett återbesök görs efter utskrivningen, så systemet föreslår tider från ${INSKRIVEN_FORSLAG_DAGAR} dagar efter i dag. Passar ingen kan du boka fritt i tidboken.` } : null,
+    kommande: kommande.map(b => ({ start: b.start, tidstyp: b.tidstyp, tidstypText: TIDSTYPER[b.tidstyp]?.text ?? b.tidstyp, orsak: b.orsak })),
+  };
+}
+
 export function forslagForPost(atk, post) {
   atk.krav('boka');
   kravEgenVardenhet(atk, post.enhet_id, `vantelista:${post.id}`);
   const db = atk.db;
   atk.logga('boka', atk.grund(), `vantelista:${post.id}:forslag`);
-  return { post: vantelistaUt(db, post), forslag: foreslaTider(db, { ...behovForPost(db, post), synlig: synligFor(atk) }), demoregler: demoregelText(db) };
+  const lage = lageForPost(db, post);
+  const behov = behovForPost(db, post);
+  // Ett ingrepp, till exempel en elkonvertering, planeras ofta under vårdtillfället och får förslag som förut.
+  const fran = lage.inskriven && !plan.behovForPost(db, post.id)?.ingrepp ? lokalTid(addDagar(idag(), INSKRIVEN_FORSLAG_DAGAR), '00:00') : behov.fran;
+  return { post: vantelistaUt(db, post), forslag: foreslaTider(db, { ...behov, ...(fran ? { fran } : {}), synlig: synligFor(atk) }), demoregler: demoregelText(db), ...lage };
 }
 
 export function forslagForBokning(atk, b) {
@@ -892,7 +1033,10 @@ export function checkaInRad(db, b, via, { av = null, avInvanare = null } = {}) {
   const tid = tidRad(db, b.tid_id);
   if (!TIDSTYPER[tid.tidstyp].fysisk) throw new Fel(400, `En ${TIDSTYPER[tid.tidstyp].text.toLowerCase()} checkas inte in. Vårdgivaren tar kontakt med patienten.`, 'ogiltig');
   if (datumAv(new Date(tid.start)) !== idag()) throw new Fel(400, `Tiden är ${tidText(tid.start)}. Incheckningen öppnar samma dag.`, 'ogiltig');
-  const t = iso();
+  // Runda 13, r4: en ankomst som registreras i efterhand, när tiden för incheckningen har gått ut (till exempel vid
+  // dagsavslutet), räknas från den bokade tiden och inte från när någon klickade.
+  const efterhand = Date.now() > Date.parse(tid.start) + regel(db, 'incheckningEfterMin') * MIN;
+  const t = efterhand ? tid.start : iso();
   db.query("UPDATE bokningar SET status = 'incheckad', incheckad = ?, incheckad_via = ?, konummer = ? WHERE id = ?").run(t, via, konummerFor(db, tid, t), b.id);
   if (b.vardkontakt_id) db.query('UPDATE vardkontakter SET ankomst = ?, andrad = ?, andrad_av = ? WHERE id = ? AND ankomst IS NULL').run(t, t, av, b.vardkontakt_id);
   const ut = bokningRad(db, b.id);
@@ -915,12 +1059,12 @@ export function avgiftForBokning(db, b) {
 }
 
 const BETALSATT = { kort: 'Kort', faktura: 'Faktura', frikort: 'Frikort', avgiftsfri: 'Avgiftsfritt' };
-function registreraBetalning(db, b, a, satt, { av = null, avInvanare = null } = {}) {
+function registreraBetalning(db, b, a, satt, { av = null, avInvanare = null, tid = iso() } = {}) {
   const nr = db.query('SELECT count(*) AS n FROM betalningar').get().n + 1;
   const kvitto = `VK-DEMO-${String(nr).padStart(5, '0')}`;
   const text = satt === 'frikort' ? (a.frikortTill ? `Frikort gäller till och med ${a.frikortTill}.` : 'Frikort.') : satt === 'avgiftsfri' ? 'Avgiftsfritt.' : satt === 'kort' ? 'Kortbetalning, simulerad. Inga pengar dras.' : 'Faktura, simulerad. Ingen faktura skickas.';
   db.query('INSERT INTO betalningar (bokning_id, patient_id, belopp, satt, tid, av, av_invanare, kvitto, text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(b.id, b.patient_id, a.belopp, satt, iso(), av, avInvanare, kvitto, text);
+    .run(b.id, b.patient_id, a.belopp, satt, tid, av, avInvanare, kvitto, text);
 }
 
 export function checkaIn(atk, b) {
@@ -1100,10 +1244,15 @@ export function skickaKallelse(db, b, typ, { av = null, tid = iso(), kanal = nul
   const valtKanal = kanal && !p.skyddad ? kanal : k.kanal;
   const mottagare = valtKanal === k.kanal ? k.mottagare : valtKanal === 'sms' ? p.telefon : valtKanal === 'brev' ? `${p.adress}, ${p.postnr} ${p.ort}` : 'Min journal';
   const text = kallelseText(db, b, typ, tillagg);
-  const status = valtKanal ? 'skickad' : 'kan_inte';
-  const forklaring = [k.forklaring, valtKanal && valtKanal !== 'min_journal' ? `${KANAL[valtKanal]} är simulerat i demon. Inget skickas.` : null].filter(Boolean).join(' ') || null;
+  // Runda 13, r4: ett brev hinner inte fram till en tid om mindre än tre dagar. Då skickas inget brev, och raden i Dagens
+  // arbete säger att patienten ska få tiden per telefon.
+  const start = tidRad(db, b.tid_id)?.start;
+  const forSnart = typ === 'kallelse' && valtKanal === 'brev' && start && Date.parse(start) - Date.parse(tid) < BREV_DAGAR * DAG;
+  const status = valtKanal && !forSnart ? 'skickad' : 'kan_inte';
+  const forklaring = forSnart ? `Tiden är om mindre än ${BREV_DAGAR} dagar, och ett brev hinner inte fram. Ring patienten och ge tiden, och markera sedan att patienten har fått den.`
+    : [k.forklaring, valtKanal && valtKanal !== 'min_journal' ? `${KANAL[valtKanal]} är simulerat i demon. Inget skickas.` : null].filter(Boolean).join(' ') || null;
   const id = Number(db.query(`INSERT INTO kallelser (bokning_id, patient_id, typ, kanal, mottagare, text, status, skapad, skickad, skapad_av, forklaring)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(b.id, b.patient_id, typ, valtKanal, valtKanal ? mottagare : null, text, status, tid, valtKanal ? tid : null, av, forklaring).lastInsertRowid);
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(b.id, b.patient_id, typ, valtKanal, valtKanal ? mottagare : null, text, status, tid, status === 'skickad' ? tid : null, av, forklaring).lastInsertRowid);
   // Runda 6, r4: kallelsens språk sparas, så att personalen ser att den är skriven på patientens språk.
   const sprak = plan.sprakFor(db, b.patient_id);
   plan.sparaKallelsesprak(db, id, sprak);
@@ -1313,8 +1462,15 @@ export function startsida(db, personal, { fran = idag(), till = fran } = {}) {
         status = `${u.tid.tidstypText}, ${YRKESROLL[u.tid.yrkesroll]} tar kontakt`;
       } else {
         const sen = Math.round((nu - s) / MIN);
-        status = sen > 5 ? `Har inte kommit, ${sen} minuter sen` : 'Väntas';
-        atgard = { typ: 'checka_in', text: 'Checka in' };
+        // Runda 13, r4: när tiden för incheckningen har gått ut säger raden att ankomsten saknas, så att den kan
+        // registreras i efterhand innan dagen avslutas.
+        if (nu > s + regel(db, 'incheckningEfterMin') * MIN) {
+          status = `Ankomsten är inte registrerad. Tiden var ${klockText(u.tid.start)}`;
+          atgard = { typ: 'checka_in', text: 'Registrera ankomsten' };
+        } else {
+          status = sen > 5 ? `Har inte kommit, ${sen} minuter sen` : 'Väntas';
+          atgard = { typ: 'checka_in', text: 'Checka in' };
+        }
       }
       return { ...u, datum, rad: { status, atgard, sen: u.status !== 'incheckad' && fysisk && nu - s > 5 * MIN } };
     });

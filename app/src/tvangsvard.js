@@ -450,6 +450,10 @@ export function seeda(db, bas = new Date()) {
   mv('p22', 'uso-psyk', psyk, 'vikt', 74.5, 'kg', dag(-25, '07:30'), 'ssk-psyk');
   mv('p22', 'uso-kard-hia', hia, 'puls', 132, 'slag/min', dag(-2, '10:15'), null);
   ord('p22', 'uso-psyk', psyk, { lm: 'VK-NPL-0041', dosering: '2 tabletter på morgonen', dos: 100, dosEnhet: 'mg', tider: ['08'], typ: 'staende', orsak: 'Depression', av: 'lak-psyk' }, dag(-26, '15:40'));
+  // Runda 13, r4: på hjärtintensiven har han frekvensreglering och blodförtunnande, och dygnets doser är givna fram till nu.
+  ord('p22', 'uso-kard-hia', hia, { lm: 'VK-NPL-0008', dosering: '1 tablett morgon och kväll', dos: 50, dosEnhet: 'mg', tider: ['08', '20'], typ: 'staende', orsak: 'Förmaksflimmer, frekvensreglering', av: 'lak-kard' }, dag(-2, '11:10'));
+  ord('p22', 'uso-kard-hia', hia, { lm: 'VK-NPL-0002', dosering: '1 tablett morgon och kväll', dos: 5, dosEnhet: 'mg', tider: ['08', '20'], typ: 'staende', orsak: 'Förmaksflimmer, strokeprofylax', av: 'lak-kard' }, dag(-2, '11:12'));
+  givnaDoserHia(db, 'p22', hia, bas);
 }
 const dagPlus = (isoTid, minuter) => new Date(Date.parse(isoTid) + minuter * 60_000).toISOString();
 function skrivare(db) {
@@ -497,6 +501,34 @@ export function anpassaTillNu(db, nu = Date.now()) {
   h(p1, 'p21', 'ankomst', tim(-5), 'lak-akut', 'uso-akut', { forklaring: 'till Akutmottagningen USÖ, på samma sjukhus. Lagen räknar från ankomsten till vårdinrättningen, så Vårdkällan räknar från när patienten kom dit' });
   h(p1, 'p21', 'vardintyg', tim(-4), 'lak-akut', 'uso-akut', { redogorelse: 'Svår depressiv episod med uttalade suicidtankar och plan. Motsätter sig inläggning och kan inte ta ställning till vård. Oundgängligt behov av psykiatrisk dygnetruntvård.', utfardatPa: 'uso-akut' });
   h(p1, 'p21', 'kvarhallning', dagPlus(tim(-4), 5), 'lak-akut', 'uso-akut', {});
+  // Runda 13, r4: Emil Sjölunds värden på hjärtintensiven det senaste dygnet, så att övervakningen syns.
+  const hia = db.query("SELECT id FROM vardkontakter WHERE patient_id = 'p22' AND enhet_id = 'uso-kard-hia' AND slut IS NULL").get()?.id;
+  if (hia) {
+    for (const [x, puls, bt, sat] of [[-9, 112, '124/78', 96], [-5, 104, '120/74', 97], [-1.5, 92, '118/72', 97]]) {
+      mv('p22', 'uso-kard-hia', hia, 'puls', puls, 'slag/min', tim(x), 'ssk-hia');
+      mv('p22', 'uso-kard-hia', hia, 'blodtryck', bt, 'mmHg', tim(x), 'ssk-hia');
+      mv('p22', 'uso-kard-hia', hia, 'saturation', sat, '%', tim(x), 'ssk-hia');
+    }
+  }
+}
+
+// Runda 13, r4: de doser som skulle ha getts sedan flytten till hjärtintensiven och fram till en timme före bas är
+// givna av sjuksköterskan på avdelningen, som för de andra inneliggande patienterna (lakemedelsprocess.js).
+function givnaDoserHia(db, pid, hiaId, bas) {
+  if (!db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'administreringar'").get()) return;
+  const v = db.query('SELECT * FROM vardkontakter WHERE id = ?').get(hiaId);
+  const ins = db.query(`INSERT INTO administreringar (patient_id, enhet_id, ordination_id, lakemedel_id, planerad, status, dos, dos_enhet, antal, tid, utford_av,
+    registrerad, registrerad_av, vardkontakt_id) VALUES (?, ?, ?, ?, ?, 'given', ?, ?, 1, ?, 'ssk-hia', ?, 'ssk-hia', ?)`);
+  const plus = (t, min) => new Date(Date.parse(t) + min * 60_000).toISOString();
+  for (const o of db.query("SELECT * FROM ordinationer WHERE patient_id = ? AND status = 'aktiv' AND tider IS NOT NULL").all(pid)) {
+    for (let d = -2; d <= 0; d++) {
+      for (const k of JSON.parse(o.tider)) {
+        const slot = lokalTid(addDagar(datumAv(bas), d), `${String(k).padStart(2, '0').slice(0, 2)}:00`);
+        if (Date.parse(slot) < Math.max(Date.parse(v.start), Date.parse(o.skapad)) || Date.parse(slot) > bas.getTime() - 3600_000) continue;
+        ins.run(pid, v.enhet_id, o.id, o.lakemedel_id, slot, o.dos, o.dos_enhet, plus(slot, 5), plus(slot, 6), v.id);
+      }
+    }
+  }
 }
 
 // En sandlåda från före runda 6 får tabellerna, de nya patienterna och seeden relativt till i dag.

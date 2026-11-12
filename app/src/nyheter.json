@@ -24,6 +24,48 @@
           "var": null,
           "rubrik": "Testa och jämför, och lämna synpunkter från varje sida",
           "text": "Startsidan för testare ger uppdrag per yrke som följer Sussas testfall, och efter varje uppdrag frågar systemet om det var lättare, ungefär lika eller svårare än i ditt journalsystem. Knappen Lämna synpunkt finns längst ner på varje sida."
+        },
+        {
+          "id": "arbetsdag-1-3",
+          "roller": [
+            "personal"
+          ],
+          "omfattning": "liten",
+          "var": "#/idag",
+          "rubrik": "Demon har en vanlig arbetsdag",
+          "text": "Mottagningarnas patienter och dagens operationer ligger på dagtid. På kvällen är dagens besök och operationer gjorda och nästa arbetsdag är bokad, och på natten väntar dagens patienter. Slutenvården och akuten går dygnet runt."
+        },
+        {
+          "id": "vantelista-1-3",
+          "roller": [
+            "vardadministrator"
+          ],
+          "omfattning": "liten",
+          "var": "#/vantelista",
+          "rubrik": "Vårdgarantin och väntan på väntelistan",
+          "text": "Väntelistan har en egen kolumn för vårdgarantin. Patientvald och medicinskt orsakad väntan registreras för sig och räknas inte, och en patient tas bort från listan med en orsak. Ett brev till en tid om mindre än tre dagar skickas inte, och en ankomst kan registreras i efterhand."
+        },
+        {
+          "id": "vatska-vaccin-1-3",
+          "roller": [
+            "sjukskoterska",
+            "lakare",
+            "underskoterska"
+          ],
+          "omfattning": "liten",
+          "var": null,
+          "rubrik": "Vätskebalans under Mätvärden och kontroll före vaccination",
+          "text": "Vätskebalansen finns under Mätvärden, med tid och period för en mätning, och en timme utan registrering räknas inte som noll. Före en vaccination frågar systemet om patienten är frisk i dag och sparar batch, utgångsdatum och injektionsställe."
+        },
+        {
+          "id": "systemforvaltning-1-3",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "liten",
+          "var": "#/regler",
+          "rubrik": "Allt som väntar på godkännande på ett ställe",
+          "text": "Sidan Regler och parametrar visar allt som väntar på en andra systemförvaltares godkännande, med länk dit. En mätvärdestyp kan inte få koden för en del av en inbyggd mätning, till exempel det systoliska blodtrycket."
         }
       ]
     },

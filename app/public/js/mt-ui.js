@@ -72,7 +72,9 @@ export function koppla(el, ctx) {
   const godkann = async (knapp, kalla, beslut) => {
     try {
       const r = await medKnapp(knapp, () => api(`/api/patient/${pid}/mt/godkann`, { metod: 'POST', data: { kalla, beslut } }));
-      notis(r.text);
+      // Runda 13, r4: en varning om att utrustningen hör till en annan sal står kvar tills den stängs.
+      if (r.varning) notis(`${r.text} ${r.varning}`, 'fel', { kvar: true });
+      else notis(r.text);
       ctx.ladda();
     } catch { /* felet visas som notis */ }
   };
@@ -96,7 +98,9 @@ export function koppla(el, ctx) {
     if (form.ordinationId) data.ordinationId = Number(form.ordinationId.value);
     try {
       const r = await medKnapp(knapp, () => api(`/api/patient/${pid}/mt/koppla`, { metod: 'POST', data }), form);
-      notis(r.text);
+      // Runda 13, r4: en varning om att utrustningen hör till en annan sal står kvar tills den stängs.
+      if (r.varning) notis(`${r.text} ${r.varning}`, 'fel', { kvar: true });
+      else notis(r.text);
       ctx.ladda();
     } catch (err) {
       const f = err?.data?.falt?.[0];
@@ -134,7 +138,9 @@ export async function minEgna(el, ctx) {
     if (form.tid.value) data.tid = new Date(form.tid.value).toISOString();
     try {
       const r = await medKnapp(form.querySelector('[type=submit]'), () => api(`/api/min/journal/${encodeURIComponent(ctx.pid)}/egenmatning`, { metod: 'POST', data }), form);
-      notis(r.text);
+      // Runda 13, r4: en varning om att utrustningen hör till en annan sal står kvar tills den stängs.
+      if (r.varning) notis(`${r.text} ${r.varning}`, 'fel', { kvar: true });
+      else notis(r.text);
       ctx.ladda();
     } catch (err) {
       const f = err?.data?.falt?.[0];

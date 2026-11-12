@@ -148,6 +148,20 @@ export function lista(atk, { dag = idag() } = {}) {
   // Runda 6, r2: en makulerad registrering räknas inte. Dosen blir att ge igen, och den syns bland de senaste.
   const adm = allaAdm.filter(a => !a.makulerad);
   const perm = permissionFor(db, atk.patientId);
+  // Runda 13, r4: läkemedel ges av vården bara när patienten är inskriven eller på akuten. En patient som bor hemma tar
+  // sina läkemedel själv, och då finns inga doser att ge och inga som är försenade. Bara vårdkontakter som användaren får
+  // se räknas, så att listan aldrig röjer en inskrivning på en annan eller spärrad vårdenhet.
+  const pagar = db.query("SELECT * FROM vardkontakter WHERE patient_id = ? AND slut IS NULL AND typ IN ('slutenvard', 'akut') AND coalesce(planerad, 0) = 0").all(atk.patientId)
+    .filter(v => atk.prova('las_lakemedel', { enhet_id: v.enhet_id }).tillaten);
+  if (!pagar.length) {
+    return {
+      dag, ejInskriven: true, text: 'Patienten är inte inskriven och tar sina läkemedel själv. Det finns inga doser att ge.',
+      permission: null, doser: [], vidBehov: [], utanTider: [], vantarPaHandelse: [], kommandeHandelser: [], egenadministrering: [],
+      utanOrdination: [], senaste: allaAdm.filter(a => Date.parse(a.tid ?? a.iordningstalld?.tid ?? a.registrerad) >= nu - DAG).slice(0, 30),
+      sammanfattning: { attGe: 0, forsenade: 0, givna: 0, totalt: 0 },
+      kan: kanVarda(atk, 'ge_lakemedel'), dolda: { sparrade: atk.doldaSparr }, demoregler: true, anmarkning: DEMOREGLER_PROCESS,
+    };
+  }
   const doser = [];
   const vidBehov = [];
   const utanTider = [];
@@ -542,12 +556,14 @@ export function vatskebalans(atk, { dag = idag(), brytning = '00' } = {}) {
   // Runda 6, r2: en makulerad post, eller volymen från en makulerad dos, visas överstruken och räknas inte.
   const makDos = stod.makulerade(db, 'administrering', atk.patientId);
   const poster = rader.map(r => ({
-    id: r.id, riktning: r.riktning, typ: r.typ, typText: VATSKETYPER[r.riktning][r.typ] ?? r.typ, volymMl: r.volym_ml, tid: r.tid,
+    id: r.id, riktning: r.riktning, typ: r.typ, typText: VATSKETYPER[r.riktning][r.typ] ?? r.typ, volymMl: r.volym_ml, tid: r.tid, fran: vatskePeriod(db, r.id),
     registreradAv: personNamn(db, r.registrerad_av), administreringId: r.administrering_id, automatisk: r.administrering_id != null, enhet: enhetKort(db, r.enhet_id),
     makulerad: stod.makuleringFor(db, 'vatskebalans', r.id) ?? (r.administrering_id != null && makDos.has(r.administrering_id) ? stod.makuleringFor(db, 'administrering', r.administrering_id) : null),
   }));
   const summa = (x) => Math.round(poster.filter(p => p.riktning === x && !p.makulerad).reduce((s, p) => s + p.volymMl, 0) * 10) / 10;
-  return { dag, brytning: k, fran: new Date(fran).toISOString(), till: new Date(till).toISOString(), poster, summaIn: summa('in'), summaUt: summa('ut'), balans: Math.round((summa('in') - summa('ut')) * 10) / 10, typer: VATSKETYPER };
+  return { dag, brytning: k, fran: new Date(fran).toISOString(), till: new Date(till).toISOString(), poster, summaIn: summa('in'), summaUt: summa('ut'), balans: Math.round((summa('in') - summa('ut')) * 10) / 10, typer: VATSKETYPER,
+    // Runda 13, r4: förslaget på när perioden för nästa urinmätning började.
+    senasteUrin: senasteUrin(atk) };
 }
 export function registreraVatska(atk, inp = {}) {
   kravVardande(atk, 'registrera_matvarde', null, 'vatskebalans');
@@ -559,16 +575,32 @@ export function registreraVatska(atk, inp = {}) {
   if (!typ) falt.push('typ');
   const volym = Number(inp.volymMl);
   if (!Number.isFinite(volym) || volym <= 0 || volym > 5000) falt.push('volymMl');
-  const tid = inp.tid == null ? Date.now() : Date.parse(inp.tid);
+  const tid = inp.tid == null || inp.tid === '' ? Date.now() : Date.parse(inp.tid);
   if (!Number.isFinite(tid) || tid > Date.now() + 5 * 60_000 || tid < Date.now() - EFTERHAND_DAGAR * DAG) falt.push('tid');
-  if (falt.length) throw new Fel(400, 'Kontrollera in eller ut, typ, volym (1 till 5 000 ml) och tid.', 'ogiltig', { falt });
+  // Runda 13, r4: en förlust kan gälla en period, till exempel urin sedan katetern tömdes förra gången. Perioden är högst
+  // ett dygn och slutar vid tiden.
+  const fran = inp.fran == null || inp.fran === '' ? null : Date.parse(inp.fran);
+  if (fran != null && (!Number.isFinite(fran) || fran >= tid || tid - fran > DAG)) falt.push('fran');
+  if (falt.length) throw new Fel(400, falt.includes('fran') && falt.length === 1 ? 'Perioden ska börja före tiden och vara högst ett dygn.' : 'Kontrollera in eller ut, typ, volym (1 till 5 000 ml) och tid.', 'ogiltig', { falt });
   // Runda 6, r2: kalorier för ett intag av mat eller dryck (Sussa 3.5.3.2).
   const kcal = inp.kcal == null || inp.kcal === '' ? null : Number(inp.kcal);
   if (kcal != null && (!Number.isFinite(kcal) || kcal < 0 || kcal > 5000 || riktning !== 'in')) throw new Fel(400, 'Kalorier anges för ett intag, från 0 till 5 000 kcal.', 'ogiltig', { falt: ['kcal'] });
   const r = db.query('INSERT INTO vatskebalans (patient_id, enhet_id, riktning, typ, volym_ml, tid, registrerad, registrerad_av) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
     .run(atk.patientId, atk.personal.enhet_id, riktning, typ, volym, new Date(tid).toISOString(), iso(), atk.personal.id);
   if (kcal != null) db.query('INSERT INTO vatskebalans_kcal (vatskebalans_id, kcal) VALUES (?, ?)').run(Number(r.lastInsertRowid), kcal);
-  return { id: Number(r.lastInsertRowid), riktning, typ, volymMl: volym, tid: new Date(tid).toISOString(), ...(kcal != null ? { kcal } : {}) };
+  if (fran != null) db.query('INSERT INTO vatskebalans_period (vatskebalans_id, fran) VALUES (?, ?)').run(Number(r.lastInsertRowid), new Date(fran).toISOString());
+  return { id: Number(r.lastInsertRowid), riktning, typ, volymMl: volym, tid: new Date(tid).toISOString(), ...(kcal != null ? { kcal } : {}), ...(fran != null ? { fran: new Date(fran).toISOString() } : {}) };
+}
+// Runda 13, r4: periodens början för en registrering, om den har en.
+export function vatskePeriod(db, id) {
+  try { return db.query('SELECT fran FROM vatskebalans_period WHERE vatskebalans_id = ?').get(id)?.fran ?? null; } catch { return null; }
+}
+// Runda 13, r4: den senaste urinregistreringen som användaren får se, som förslag på när perioden för nästa började.
+export function senasteUrin(atk) {
+  if (!kanRoll(atk.personal, 'las_matvarden')) return null;
+  const r = atk.filtrera(atk.db.query("SELECT * FROM vatskebalans WHERE patient_id = ? AND riktning = 'ut' AND typ = 'urin' ORDER BY tid DESC, id DESC LIMIT 20").all(atk.patientId), 'las_matvarden')
+    .find(x => !stod.makuleringFor(atk.db, 'vatskebalans', x.id) && Date.now() - Date.parse(x.tid) < DAG);
+  return r?.tid ?? null;
 }
 
 export { ADMINISTRATIONSSATT };

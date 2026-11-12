@@ -182,7 +182,8 @@ export async function visa(el, ctx) {
   const [senaste, ...tidigare] = d.graviditeter;
   el.innerHTML = `<div class="flikhuvud"><h2>Graviditet</h2></div>
     ${d.moder ? '<p class="ruta ruta-info liten">Patienten är ett barn som föddes på förlossningen. BB-journalen finns under fliken Nyfödd.</p>' : ''}
-    ${!pagaende && far('graviditet') ? registreraHtml() : ''}
+    ${d.dolda?.kraverVal && !pagaende ? `<p class="ruta ruta-info liten">${ikon.info}<span>Graviditetsjournalen finns på en annan vårdenhet, till exempel mödrahälsovården. Den visas efter ett aktivt val.</span></p>` : ''}
+    ${!pagaende && !d.dolda?.kraverVal && far('graviditet') ? registreraHtml() : ''}
     ${senaste ? graviditetHtml(senaste, ctx.id) : (!far('graviditet') ? '<p class="tom">Ingen graviditetsjournal.</p>' : '')}
     ${tidigare.length ? `<details><summary>Tidigare graviditeter (${tidigare.length})</summary>${tidigare.map(g => graviditetHtml(g, ctx.id)).join('')}</details>` : ''}
 `;

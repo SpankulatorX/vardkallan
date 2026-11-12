@@ -4,12 +4,14 @@
 // Runda 11, r2: salsblock, team med anestesi, utrustning, anestesijournal, sterilgods, material, gränssnitt och datauttag
 // (operation.js, anestesijournal.js, sterilgods.js, patient-operation.js och vyer/operation.js), se docs/design.md,
 // avsnittet Operationsplanering och anestesi, version 1.1.
+// Runda 13, r4 (sussa/runda13-r4.js).
+import { medR13r4 } from '../runda13-r4.js';
 import { OPERATION as T } from '../runda9-r3.js';
 import { OPERATION11 as U } from '../runda11-r2.js';
 
 const DEMO = 'Salarna, salstiden, salsblocken, utrustningen, instrumentgallren, förrådets artiklar och operationstiderna är demoregler, anestesimonitorn, sterilcentralen och förrådet är simulerade och kallelsen skickas av en simulerad tjänst.';
 
-export default [
+const AVSNITT_45 = [
   { id: '4.5.1.1', kategori: 'system', egna: [], tester: [...Object.values(T), ...Object.values(U)], avsedd: 'uppfyllt_demo',
     losning: 'Operationsplaneringen följer patienten från operationsanmälan via väntelista, planering av sal, block, team, utrustning och tid och förloppet på salen med anestesijournal, checklista, sterilgods och material till uppvakningen, överrapporteringen och uppföljningen. Läkare och sjuksköterskor arbetar i fliken Operation i journalen, och operationsavdelningen har en egen vy med dagens program, väntelistan, uppvakningen, salsblocken, förrådet och uppföljningen.',
     expert: 'Systemet sätter KVÅ, operationstid, mål för väntetiden och förberedelser ur ingreppet och prioriteten, föreslår tid, team och utrustning, håller ordningen och checklistan under operationen och skriver överrapporteringen.',
@@ -35,3 +37,5 @@ export default [
     expert: 'Systemet räknar allt ur anmälningarna, planeringen, förloppet och uppvakningen, så att ingen behöver föra statistik.',
     anmarkning: 'Uppfyllt i demon. Tidsgränsen för punktlighet (tio minuter) är en demoregel.' },
 ];
+// Runda 13, r4: anestesiläkarens program (sussa/runda13-r4.js).
+export default medR13r4(AVSNITT_45);

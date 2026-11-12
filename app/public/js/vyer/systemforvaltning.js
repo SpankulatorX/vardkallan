@@ -76,7 +76,14 @@ export const regler = {
     const el = main.querySelector('#sf-regler');
     if (!el) return;
     const vardeCell = (p) => `<strong>${esc(p.vardeText)}</strong>${p.arStandard ? '' : ' <span class="tagg">Ändrad</span>'}${p.kommande ? `<br><span class="under-text">${esc(p.kommande.vardeText)} från ${esc(datum(p.kommande.gallerFran))}</span>` : ''}${p.vantar ? `<br><span class="under-text">Väntar på godkännande: ${esc(p.vantar.vardeText)}</span>` : ''}`;
+    // Runda 13, r4: allt som väntar på godkännande i systemförvaltningen, med länk till sidan där det godkänns.
+    const ovriga = (o.allaAttGodkanna ?? []).filter(a => a.id !== 'parametrar');
     el.innerHTML = `
+      <section class="inkorg-sektion" aria-labelledby="sf-alla-godkanna"><h2 id="sf-alla-godkanna">Väntar på godkännande i systemförvaltningen</h2>
+        ${ovriga.length ? `<ul class="inkorg-lista">${ovriga.map(a => `<li class="ik-ater"><div class="ik-text"><span class="ik-rubrik">${esc(a.rubrik)}</span>
+          <span class="under-text">${a.antal === 1 ? 'En ändring väntar' : `${a.antal} ändringar väntar`}${a.kan ? `, ${a.kan === a.antal ? (a.antal === 1 ? 'och du kan godkänna den' : 'och du kan godkänna dem') : `och du kan godkänna ${a.kan}`}` : ', och en annan systemförvaltare godkänner'}.</span></div>
+          <div class="ik-knappar"><a class="knapp liten sekundar" href="${esc(a.href)}">Öppna</a></div></li>`).join('')}</ul>`
+          : '<p class="tom liten">Inget annat väntar på godkännande: inga undantag, mallar, mätvärdestyper, kodverk, omorganisationer, uttag eller uppgraderingar.</p>'}</section>
       <section class="inkorg-sektion" aria-labelledby="sf-att-godkanna"><h2 id="sf-att-godkanna">Att godkänna <span class="antal${o.attGodkanna.length ? ' antal-aktiv' : ''}">${o.attGodkanna.length}</span></h2>
         ${o.attGodkanna.length ? `<ul class="inkorg-lista">${o.attGodkanna.map(a => andringRad(a)).join('')}</ul>` : '<p class="tom liten">Inga ändringar väntar på ditt godkännande.</p>'}</section>
       ${o.mina.length ? `<section class="inkorg-sektion" aria-labelledby="sf-mina"><h2 id="sf-mina">Mina förslag</h2><p class="liten">Väntar på att en annan systemförvaltare godkänner dem.</p><ul class="inkorg-lista">${o.mina.map(a => andringRad(a)).join('')}</ul></section>` : ''}
@@ -465,7 +472,7 @@ async function aterstallKopia(main, sk, knapp) {
 // Runda 9, r5 (KD1.1.1.5): acceptanstest-, utbildnings- och testmiljö ur en kopia av sandlådan.
 function miljoSektion(mi) {
   return `<section class="lm-sektion" aria-labelledby="sf-l-miljo"><h2 id="sf-l-miljo">Miljöer</h2>
-    <p class="liten">Det här är ${esc(mi.aktuell.text.toLowerCase())}. En ny miljö blir en egen sandlåda ur en kopia av den här. Acceptanstestmiljön har skarpa data med avidentifierade patientuppgifter, och utbildnings- och testmiljön har fiktiva patienter med samma regler och parametrar som här. Loggarna börjar om i den nya miljön.</p>
+    <p class="liten">${mi.aktuell.typ === 'produktion' ? 'Det här är din sandlåda i demon. Den har produktionsmiljöns roll, men allt i den är påhittat och inga riktiga patientuppgifter finns någonstans i demon.' : `Det här är en ${esc(mi.aktuell.text.toLowerCase())} i demon, och allt i den är påhittat.`} En ny miljö blir en egen sandlåda ur en kopia av den här. Acceptanstestmiljön får sandlådans data med avidentifierade patientuppgifter (i en riktig installation produktionens data), och utbildnings- och testmiljön har fiktiva patienter med samma regler och parametrar som här. Loggarna börjar om i den nya miljön.</p>
     ${mi.aktuell.typ === 'produktion' ? `<div class="knapprad">${mi.typer.map(t => `<button type="button" class="knapp sekundar" data-ny-miljo="${esc(t.typ)}">Skapa ${esc(t.text.toLowerCase())}</button>`).join('')}</div>
       <div data-miljo-ut aria-live="polite"></div>
       ${mi.skapade.length ? `<p class="liten">Skapade härifrån: ${mi.skapade.map(m => `${esc(m.text)} ${esc(tidpunkt(m.skapad))}`).join(', ')}. Högst ${esc(String(mi.max))} åt gången.</p>` : ''}`

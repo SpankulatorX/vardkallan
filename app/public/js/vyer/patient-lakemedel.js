@@ -716,18 +716,27 @@ function vidimeringPanel(v) {
   </section>`;
 }
 
-async function registreraVatska(ctx, riktning) {
+// Runda 13, r4: tiden förifylld med nu och, för urin, perioden sedan den förra urinmätningen, som systemet föreslår.
+const lokalVarde = (ms) => new Date(ms - new Date(ms).getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+export async function registreraVatska(ctx, riktning) {
   const typer = riktning === 'in' ? [['dryck', 'Dryck'], ['mat', 'Mat och sondnäring'], ['infusion', 'Infusion']] : [['urin', 'Urin'], ['dran', 'Dränage'], ['krakning', 'Kräkning'], ['avforing', 'Avföring']];
+  let senasteUrin = null;
+  if (riktning === 'ut') { try { senasteUrin = (await api(`/api/patient/${encodeURIComponent(ctx.id)}/vatskebalans`, { tyst: true })).senasteUrin ?? null; } catch { /* utan förslag */ } }
+  const nu = Date.now();
   const svar = await dialog(`<form><h2 id="dlg-rubrik">${riktning === 'in' ? 'Registrera intag' : 'Registrera förlust'}</h2>
     <div class="falt-rad"><div class="falt"><label for="vb-typ">Typ</label><select id="vb-typ" name="typ">${typer.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select></div>
     <div class="falt"><label for="vb-ml">Volym i ml <span class="obl">(obligatoriskt)</span></label><input id="vb-ml" name="volymMl" inputmode="numeric" required></div>
     ${riktning === 'in' ? '<div class="falt"><label for="vb-kcal">Kalorier (kcal)</label><input id="vb-kcal" name="kcal" inputmode="numeric"></div>' : ''}</div>
+    <div class="falt-rad"><div class="falt"><label for="vb-tid">Tid</label><input id="vb-tid" name="tid" type="datetime-local" value="${lokalVarde(nu)}"></div>
+    ${riktning === 'ut' ? `<div class="falt"><label for="vb-fran">Gäller sedan</label><input id="vb-fran" name="fran" type="datetime-local" value="${senasteUrin ? lokalVarde(Date.parse(senasteUrin)) : ''}" aria-describedby="vb-fran-h"><span class="hjalp" id="vb-fran-h">${senasteUrin ? 'Förslaget är tiden för den förra urinmätningen. ' : ''}Tomt betyder att volymen gäller tiden ovan.</span></div>` : ''}</div>
     <p class="dialog-fel form-fel" role="alert" hidden></p>
     <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Registrera</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`,
-  { validera: (x) => (!(Number(x.volymMl.replace(',', '.')) > 0) ? 'Ange volymen i ml.' : null) });
+  { validera: (x) => (!(Number(x.volymMl.replace(',', '.')) > 0) ? 'Ange volymen i ml.' : x.fran && x.tid && x.fran >= x.tid ? 'Perioden ska börja före tiden.' : null) });
   if (!svar) return;
+  const iso = (v) => new Date(v).toISOString();
   try {
-    await api(`/api/patient/${encodeURIComponent(ctx.id)}/vatskebalans`, { metod: 'POST', data: { riktning, typ: svar.data.typ, volymMl: Number(svar.data.volymMl.replace(',', '.')), ...(svar.data.kcal?.trim() ? { kcal: Number(svar.data.kcal.replace(',', '.')) } : {}) } });
+    await api(`/api/patient/${encodeURIComponent(ctx.id)}/vatskebalans`, { metod: 'POST', data: { riktning, typ: svar.data.typ, volymMl: Number(svar.data.volymMl.replace(',', '.')),
+      ...(svar.data.kcal?.trim() ? { kcal: Number(svar.data.kcal.replace(',', '.')) } : {}), ...(svar.data.tid ? { tid: iso(svar.data.tid) } : {}), ...(svar.data.fran ? { fran: iso(svar.data.fran) } : {}) } });
     notis('Vätskebalansen är registrerad.');
     ctx.ladda();
   } catch (e) { felNotis(e); }

@@ -3,6 +3,8 @@
 // och målängd, mätningar hemma som väntar på bekräftelse, och barnhälsovårdens program med bokning och vaccinationer.
 import { esc, api, datum, tidpunkt, notis, medKnapp, tal, ikon, dialog } from '../ui.js';
 import { doldaRad } from './patient.js';
+// Runda 13, r4: kontrollen före vaccinationen och dosens uppgifter, samma som i fliken Vaccinationer.
+import { dosFaltHtml, provaDosFalt, dosData } from '../vaccination-ui.js';
 import { kurvaSvg, teckenforklaring, tabell, zText, alderText } from '../tillvaxt-kurva.js';
 
 const ALLVAR = { hog: 'ruta-larm', varning: 'ruta-larm', info: 'ruta-info' };
@@ -171,7 +173,7 @@ function programHtml(d, bhv) {
     <details class="tv-program-lista"><summary>Alla besök i programmet</summary><div class="tabellrulle"><table class="tabell"><thead><tr><th scope="col">Besök</th><th scope="col">Omkring</th><th scope="col">Vaccinationer</th><th scope="col">Status</th></tr></thead>
       <tbody>${p.besok.map(x => `<tr class="tv-status-${esc(x.status)}"><td>${esc(x.text)}</td><td>${esc(x.datum)}</td><td>${esc(x.vacciner.map(v => `${v.text}${v.given ? ' (given)' : ''}`).join(', '))}</td><td>${esc(STATUS[x.status])}</td></tr>`).join('')}</tbody></table></div>
       <p class="under-text">Senare ger elevhälsan: ${esc(p.elevhalsan.map(e => `${e.text} (${e.nar.toLowerCase()})`).join(', '))}. ${esc(p.demoregel)} Källor: ${esc(p.kallor.besok)}. ${esc(p.kallor.vaccin)}.</p></details>
-    ${bhv.vaccinationer.length ? `<details><summary>Givna vaccinationer (${bhv.vaccinationer.length})</summary><ul class="enkel-lista">${bhv.vaccinationer.map(v => `<li><strong>${esc(v.text)}</strong><span class="under-text">${esc(datum(v.tid))}, ${esc(v.vardenhet.namn)}${v.batch ? `, batch ${esc(v.batch)}` : ''}. ATC ${esc(v.atc)}.</span></li>`).join('')}</ul></details>` : ''}
+    ${bhv.vaccinationer.length ? `<details><summary>Givna vaccinationer (${bhv.vaccinationer.length})</summary><ul class="enkel-lista">${bhv.vaccinationer.map(v => `<li><strong>${esc(v.text)}</strong><span class="under-text">${esc(datum(v.tid))}, ${esc(v.vardenhet.namn)}${v.batch ? `, batch ${esc(v.batch)}` : ''}${v.stalleText ? `, ${esc(v.stalleText.toLowerCase())}` : ''}. ATC ${esc(v.atc)}.</span></li>`).join('')}</ul></details>` : ''}
     ${bhv.egenEnhet && d.kan.registrera ? `<div class="kryssfalt tv-bhvq"><input type="checkbox" id="tv-bhvq"${bhv.bhvqMotsatt ? ' checked' : ''}><label for="tv-bhvq">Vårdnadshavaren har motsatt sig att uppgifterna rapporteras till Svenska barnhälsovårdsregistret</label></div>` : ''}
   </section>`;
 }
@@ -296,10 +298,12 @@ async function vaccinFraga(d, vaccinId) {
       <div class="kryssfalt"><input type="radio" id="dlg-andra-nej" name="andra" value="nej"><label for="dlg-andra-nej">Nej, inga andra vaccinationer</label></div>
       <div class="kryssfalt"><input type="radio" id="dlg-andra-ja" name="andra" value="ja"><label for="dlg-andra-ja">Ja, eller vårdnadshavaren vet inte</label></div>
     </fieldset>
+    ${dosFaltHtml('dlg', { barn: true })}
     <p class="dialog-fel form-fel" role="alert" hidden></p>
     <div class="knapprad"><button type="button" class="knapp" data-varde="ok">Registrera given</button><button type="button" class="knapp sekundar" data-varde="avbryt">Avbryt</button></div></form>`,
-  { validera: (x) => (!x.andra ? 'Svara på frågan om andra vaccinationer.' : x.andra === 'ja' ? 'Registrera inte dosen förrän du vet vilka vaccinationer barnet har fått. Fråga vårdnadshavaren eller titta i barnets vaccinationskort.' : dold && x.dolda !== 'ja' ? 'Gör ett aktivt val för att se vaccinationerna, eller bekräfta att du ger dosen utan att se dem.' : null),
+  { validera: (x) => (!x.andra ? 'Svara på frågan om andra vaccinationer.' : x.andra === 'ja' ? 'Registrera inte dosen förrän du vet vilka vaccinationer barnet har fått. Fråga vårdnadshavaren eller titta i barnets vaccinationskort.' : dold && x.dolda !== 'ja' ? 'Gör ett aktivt val för att se vaccinationerna, eller bekräfta att du ger dosen utan att se dem.' : provaDosFalt(x)),
     onOpen: (dl) => dl.querySelector('#dlg-andra-nej').focus() });
   if (!svar) return null;
-  return { vaccinId, andraVaccinationer: 'nej', ...(dold ? { bekraftaDolda: true } : {}) };
+  // Runda 13, r4: kontrollen före vaccinationen och dosens batch, utgångsdatum och injektionsställe.
+  return { vaccinId, andraVaccinationer: 'nej', ...dosData(svar.data), ...(dold ? { bekraftaDolda: true } : {}) };
 }

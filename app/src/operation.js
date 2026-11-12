@@ -16,7 +16,7 @@
 //
 // Ingreppen, salarna, operationstiderna och kriterierna är demoregler och inget kliniskt beslutsstöd.
 import { Fel, datumAv, addDagar, lokalTid } from './db.js';
-import { vardenhetFor, enheterUnder, kanRoll, visningsnamn, ANESTESIENHETER, OPERERANDE_VARDENHETER, harVardrelation } from './atkomst.js';
+import { vardenhetFor, enheterUnder, kanRoll, visningsnamn, ANESTESIENHETER, OPERERANDE_VARDENHETER, harVardrelation, anmalanGerAnestesiRelation } from './atkomst.js';
 import { registreraAtgard } from './atgarder.js';
 import { KVA } from './kodverk.js';
 import * as kontroller from './kontroller.js';
@@ -328,6 +328,22 @@ export function session(db, personal) {
   return opererar(ve) ? { vardenhet: enhetKort(db, ve), sjukhus: sjukhusFor(db, ve) } : null;
 }
 
+// Runda 13, r4: anestesienheterna, för arbetslistan.
+export const ANESTESIENHETER_FOR_LISTA = ANESTESIENHETER;
+// Runda 13, r4 (säkerhetsgranskningen): den gemensamma prövningen av om en anmälan får visas för den inloggade på
+// anestesienheten, i programmet, arbetslistan och listan över beställda anestesibedömningar. Rollen ska få läsa
+// operationer, anmälan ska vara beställd till den inloggades anestesienhet och ge relation (inte avslutad, inte ett
+// datum som har passerat), och raden och patienten prövas som för alla andra rader. Ger provningens svar eller
+// { tillaten: false }.
+export function anestesiSynlig(db, personal, valFor, an, nu = new Date()) {
+  const ve = vardenhetFor(db, personal.enhet_id);
+  if (!kanRoll(personal, 'las_operation') || !Object.hasOwn(ANESTESIENHETER, ve) || anestesienhetFor(db, an) !== ve) return { tillaten: false };
+  if (!anmalanGerAnestesiRelation(db, an, ve, nu) || !anestesiRadOk(db, personal, valFor, an)) return { tillaten: false };
+  const r = new Atkomst(db, personal, an.patient_id, valFor(an.patient_id), 'las_operation').prova('las_operation');
+  return r.tillaten ? r : { tillaten: false };
+}
+const anestesiProgram = (db, personal, valFor, an, _ve, nu) => anestesiSynlig(db, personal, valFor, an, nu);
+
 // Runda 11, r2: anmälningarna som är beställda till den inloggades anestesienhet och inte avslutade, med om bedömningen
 // gäller och om ASA-klassen är bekräftad i dag. Varje patient som visas loggas.
 export function anestesilista(db, personal, valFor, nu = new Date()) {
@@ -337,10 +353,10 @@ export function anestesilista(db, personal, valFor, nu = new Date()) {
   if (!Object.hasOwn(ANESTESIENHETER, ve)) return { vardenhet: enhetKort(db, ve), anmalningar: [], demoregel: DEMOREGEL };
   const ut = [];
   for (const an of db.query("SELECT * FROM op_anmalningar WHERE status NOT IN ('klar', 'avbokad') ORDER BY mal_datum, id").all()) {
-    if (anestesienhetFor(db, an) !== ve || !anestesiRadOk(db, personal, valFor, an)) continue;
-    const atk = new Atkomst(db, personal, an.patient_id, valFor(an.patient_id), 'las_operation');
-    const r = atk.prova('las_operation');
+    // Runda 13, r4: samma prövning som programmet och arbetslistan (anestesiSynlig).
+    const r = anestesiSynlig(db, personal, valFor, an, nu);
     if (!r.tillaten) continue;
+    const atk = new Atkomst(db, personal, an.patient_id, valFor(an.patient_id), 'las_operation');
     loggaPatient(db, personal, an.patient_id, 'las_operation', r.grund, '/api/operation/anestesi');
     const p = db.query('SELECT * FROM patienter WHERE id = ?').get(an.patient_id);
     const plan = planeringFor(db, an.id);
@@ -1155,7 +1171,9 @@ export function oversikt(db, personal, valFor, { datum = null } = {}, nu = new D
         beraknatSlut = beraknadStart + langd;
       }
       ledig = beraknatSlut;
-      const r = vardenhetFor(db, an.enhet_id) === ve ? provaRad(db, personal, valFor, an, 'las_operation') : { tillaten: false };
+      // Runda 13, r4: anestesienheten ser operationerna som är beställda till den i programmet, med samma prövning som
+      // listan över beställda anestesibedömningar (anestesilista).
+      const r = vardenhetFor(db, an.enhet_id) === ve ? provaRad(db, personal, valFor, an, 'las_operation') : anestesiProgram(db, personal, valFor, an, ve, nu);
       if (!r.tillaten) return { start: p.start, slut: p.slut, upptagen: true };
       loggaPatient(db, personal, an.patient_id, 'las_operation', r.grund, '/api/operation/oversikt');
       const pat = db.query('SELECT * FROM patienter WHERE id = ?').get(an.patient_id);

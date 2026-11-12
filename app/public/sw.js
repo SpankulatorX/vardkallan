@@ -9,6 +9,7 @@
 //
 // Listan måste ha med varje fil i public/. Ett test (Läskopia > service workern cachar alla statiska filer) jämför.
 const CACHE = 'vardkallan-v3';
+// Runda 13, r4: vaccination-ui.js sist, fälten för en dos som ges, gemensamma för Tillväxt och Vaccinationer.
 const FILER = [
   '/index.html', '/app.css', '/favicon.svg',
   '/fonts/OFL.txt', '/fonts/noto-sans-400.woff2', '/fonts/noto-sans-600.woff2', '/fonts/noto-sans-700.woff2',
@@ -57,6 +58,7 @@ const FILER = [
   '/js/vyer/journalstruktur.js', '/js/lakemedelsmallar-ui.js',
   '/js/flerfaktor-ui.js', '/js/vyer/flerfaktor.js', '/js/flera-fonster.js',
   '/js/testinbjudan.js', '/js/synpunkt-regler.js', '/js/kanda-begransningar.js', '/js/vyer/testa.js', '/js/vyer/om.js', '/js/vyer/testledare.js',
+  '/js/vaccination-ui.js',
 ];
 // Runda 13, r1: listan har testinbjudan, synpunkterna, de kända begränsningarna, startsidan för testare, sidan om demon och testledarens vy.
 // Runda 12, r1: listan har mallarna och mätvärdestyperna (journalstruktur.js) och läkemedelsmallarna (lakemedelsmallar-ui.js).

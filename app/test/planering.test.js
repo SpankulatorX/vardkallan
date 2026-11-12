@@ -1,6 +1,7 @@
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll, afterEach } from 'bun:test';
+import { stallKlockan, aterstallKlockan } from './falsk-klocka.js';
 import { testserver, klient, sandlada, nyDb } from './hjalp.js';
-import { idag, addDagar, datumAv } from '../src/db.js';
+import { idag, addDagar, datumAv, lokalTid } from '../src/db.js';
 import { harVardrelation } from '../src/atkomst.js';
 
 // Planering och tidbok, del 2 (runda 6, r4, Sussa 3.4.1.2 till 3.4.1.8, 3.4.2.2, 3.4.3.3 och 3.4.4.5). Systemet är
@@ -25,6 +26,8 @@ const MIN = 60_000;
 const delaSandlada = (fran, till) => { sandlada(app, till).db = sandlada(app, fran).db; };
 // Uppgifter om patienterna som aldrig får finnas i ett svar utan patientuppgifter.
 const PATIENTUPPGIFTER = (d) => d.query('SELECT id, fornamn, efternamn, personnummer FROM patienter').all().flatMap(p => [`"${p.id}"`, p.efternamn, p.personnummer, p.personnummer.slice(0, 8)]);
+
+afterEach(() => aterstallKlockan());
 
 describe('Planering', () => {
   test('seeden har lokaler, utrustning och en simulerad sjukresa som resurser, och tidstypen ingrepp med vad den kräver', async () => {
@@ -457,7 +460,9 @@ describe('FHIR-incheckning', () => {
     expect((await igen.json()).resourceType).toBe('OperationOutcome');
   });
 
+  // Runda 13, r4: mottagningen är öppen på dagen, så testet körs en torsdag klockan 11 (arbetsdag-r13.test.js).
   test('invånaren checkar in sin egen tid med PATCH, bara när incheckningen är öppen', async () => {
+    stallKlockan(new Date(lokalTid('2026-11-12', '11:00')));
     const inv = await invanare('inv-p15');
     const b = db(inv).query("SELECT b.* FROM bokningar b JOIN tider t ON t.id = b.tid_id WHERE b.patient_id = 'p15' AND t.relativ = 1").get();
     const r = await patch(inv, `/fhir/Appointment/${b.id}`, arrived);

@@ -161,6 +161,9 @@ export function laddaTestdata(db, personal, { nu = new Date() } = {}) {
     vk('sus02', 'uso-kard-mott', { start: T(-30, '10:00'), slut: T(-30, '10:30'), plats: 'Kardiologiska mottagningen', orsak: 'Besök' });
     vk('sus13', 'uso-kard-mott', { start: T(-40, '13:00'), slut: T(-40, '13:30'), plats: 'Kardiologiska mottagningen', orsak: 'Besök' });
     vk('sus20', 'uso-kard-mott', { start: T(-50, '11:00'), slut: T(-50, '11:30'), plats: 'Kardiologiska mottagningen', orsak: 'Besök' });
+    // Runda 13, r4: testfall 5.8 skickar en kallelse till Jonas Brun. Han har en påhittad adress, så att den går som brev
+    // (simulerat), som för patienterna i testfall 5.1 till 5.3.
+    db.query("UPDATE patienter SET adress = 'Påhittad gata 20 (demo)', postnr = '702 10' WHERE id = 'sus20' AND adress IS NULL").run();
 
     // Runda 8, r2: tio inkommande remisser från vårdcentralen till kardiologen (Medicinkliniken, Mottagning 1 i
     // Sussas testdata), kvitterade som mottagna och inte bedömda (testfall 2.3 och 2.4).

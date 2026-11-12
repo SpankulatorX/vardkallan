@@ -2,7 +2,9 @@
 // Allt är påhittat. Tiderna anges relativt till dagen då sandlådan skapas:
 //   dag   dagar från i dag (arbetsdagar räknas inte, en lördag eller söndag flyttas till måndagen efter)
 //   klocka svensk tid
-//   min   minuter från nu, för dagens patienter, så att det alltid finns någon som väntas och någon som har kommit.
+//   min   minuter från arbetsdagens mitt, för dagens patienter (runda 13, r4: db.js, arbetsdagensMitt). Mitt på dagen är
+//         mitten nu, så att det finns någon som väntas och någon som har kommit. På kvällen är dagens arbete gjort och på
+//         natten väntas dagens patienter. incheckad och betald gäller bara när den tiden har passerat.
 
 // Personal som bara finns i tidboken. HSA-id är påhittade.
 export const TIDBOK_PERSONAL = [
@@ -30,7 +32,8 @@ export const SCHEMAN = [
   { id: 'sch-kard-sara', enhet: 'uso-kard-mott', personal: 'lak-kard', yrkesroll: 'lakare', dagar: [1, 2, 3, 4, 5], mall: LAKARDAG },
   { id: 'sch-kard-magnus', enhet: 'uso-kard-mott', personal: 'lak-kard2', yrkesroll: 'lakare', dagar: [1, 3, 5], mall: LAKARDAG },
   { id: 'sch-kard-lina', enhet: 'uso-kard-mott', personal: 'ssk-kardmott', yrkesroll: 'sjukskoterska', dagar: [1, 2, 3, 4, 5], mall: SSKDAG },
-  { id: 'sch-vc-per', enhet: 'vc-tybble', personal: 'lak-vc', yrkesroll: 'lakare', dagar: [1, 2, 4, 5], mall: VCDAG },
+  // Runda 13, r4: distriktsläkaren tar emot alla vardagar, så att hans tidbok har patienter i dag.
+  { id: 'sch-vc-per', enhet: 'vc-tybble', personal: 'lak-vc', yrkesroll: 'lakare', dagar: [1, 2, 3, 4, 5], mall: VCDAG },
   { id: 'sch-vc-hanna', enhet: 'vc-tybble', personal: 'ssk-vc', yrkesroll: 'sjukskoterska', dagar: [1, 2, 3, 4, 5], mall: VCDAG },
 ];
 // Så många dagar framåt tiderna läggs ut.
@@ -46,6 +49,8 @@ export const EGENBOKNING = [
 export const KANALVAL = [
   { patient: 'p08', kanal: 'brev' },
   { patient: 'p15', kanal: 'sms' },
+  // Runda 13, r4: Karl-Erik Brandt, 80 år, använder inte Min journal och vill få kallelser med brev.
+  { patient: 'p10', kanal: 'brev' },
 ];
 
 // Dagens patienter och kommande bokningar. tid är { min } för i dag eller { dag, klocka } framåt.
@@ -69,6 +74,16 @@ export const BOKNINGAR = [
   // till den, så att läkemedlet får sin tid från tidboken (vardhandelse.js).
   { patient: 'p01', schema: 'sch-kard-sara', tidstyp: 'aterbesok', tid: { dag: 15, klocka: '10:00' }, bokad: -1, bokadAv: 'adm-kard', orsak: 'Elkonvertering',
     kallelse: { dagar: -1, kanal: 'min_journal' } },
+  // Runda 13, r4: distriktsläkarens dag på Vårdcentralen Tybble. En telefontid tidigare i dag, en patient som kommer
+  // senare (eller har kommit och betalat, när tiden har passerat) och två bokade patienter nästa arbetsdag.
+  { patient: 'p11', schema: 'sch-vc-per', tidstyp: 'telefon', tid: { min: -120 }, bokad: -6, bokadAv: 'ssk-vc', orsak: 'Svar från kardiologen',
+    kallelse: { dagar: -6, kanal: 'min_journal' } },
+  { patient: 'p10', schema: 'sch-vc-per', tidstyp: 'aterbesok', tid: { min: 40 }, bokad: -12, bokadAv: 'ssk-vc', orsak: 'Kontroll av hjärtsvikt',
+    kallelse: { dagar: -12, kanal: 'brev' }, paminnelse: true, incheckad: { min: 34, via: 'personal' }, betald: 'kort' },
+  { patient: 'p14', schema: 'sch-vc-per', tidstyp: 'aterbesok', tid: { dag: 1, klocka: '08:30' }, bokad: -14, bokadAv: 'ssk-vc', orsak: 'Uppföljning blodtryck',
+    kallelse: { dagar: -14, kanal: 'min_journal' } },
+  { patient: 'p11', schema: 'sch-vc-per', tidstyp: 'aterbesok', tid: { dag: 1, klocka: '10:00' }, bokad: -20, bokadAv: 'ssk-vc', orsak: 'Kontroll hypotyreos',
+    kallelse: { dagar: -20, kanal: 'min_journal' } },
   // Skyddade personuppgifter: kallelsen går bara till Min journal.
   { patient: 'p03', schema: 'sch-vc-hanna', tidstyp: 'aterbesok', tid: { dag: 8, klocka: '09:00' }, bokad: -3, bokadAv: null,
     kallelse: { dagar: -3, kanal: 'min_journal' } },

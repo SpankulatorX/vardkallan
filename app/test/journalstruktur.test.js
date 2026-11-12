@@ -121,6 +121,8 @@ describe('Journalens struktur', () => {
     expect(f({ ...MIDJA, kod: '8280-1' }).fel[0]).toContain('Kontrollsiffran i 8280-1 stämmer inte');
     expect(f({ ...FERRITIN, kod: 'NPU1976' }).fel[0]).toContain('NPU och fem siffror');
     expect(f({ ...FERRITIN, kod: 'NPU19748' }).fel[0]).toBe('Koden NPU19748 används redan för CRP. Använd den mätvärdestypen, så att samma mätning inte får två namn.');
+    // Runda 13, r4 (E3-25): koden för det systoliska trycket hör till det inbyggda blodtrycket och kan inte bli en egen typ.
+    expect(f({ ...MIDJA, namn: 'Övertryck', kod: '8480-6', ucum: 'mm[Hg]', min: 40, max: 300 }).fel).toContain('Koden 8480-6 används redan för Blodtryck (det systoliska trycket). Använd den mätvärdestypen, så att samma mätning inte får två namn.');
     expect(f({ ...MIDJA, ucum: 'centimeter' }).fel[0]).toContain('är inte en enhet i UCUM');
     expect(f({ ...MIDJA, min: 300 }).fel[0]).toContain('lägsta rimliga värdet måste vara lägre');
     expect(f({ ...MIDJA, min: '' }).fel[0]).toContain('Ange det lägsta och det högsta rimliga värdet');

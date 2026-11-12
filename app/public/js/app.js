@@ -538,6 +538,7 @@ export async function rita() {
   const main = ritaRam(vag);
   document.getElementById('meny')?.classList.remove('oppen');
   document.querySelector('[data-a="meny"]')?.setAttribute('aria-expanded', 'false');
+  document.body.classList.remove('meny-oppen');
   return visaVy(traff.vy, main, traff.param, q, nr);
 }
 
@@ -721,6 +722,8 @@ document.addEventListener('click', async (e) => {
     const nav = document.getElementById('meny');
     const oppen = nav.classList.toggle('oppen');
     b.setAttribute('aria-expanded', String(oppen));
+    // Runda 13, r4: på en smal skärm visas skannern, reservkoden, flerfaktorn och svarstiden när menyn är öppen.
+    document.body.classList.toggle('meny-oppen', oppen);
   }
 });
 
