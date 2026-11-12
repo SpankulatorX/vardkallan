@@ -132,7 +132,9 @@ export function typerFor(db, p, dag = idag()) {
 // så att förifyllnaden aldrig kan föra med sig något från en annan eller spärrad vårdenhet.
 function diagnosForForifyllnad(atk) {
   const min = vardenhetFor(atk.db, atk.personal.enhet_id);
-  const rader = atk.db.query("SELECT id, enhet_id, kod, text, datum FROM diagnoser WHERE patient_id = ? ORDER BY datum DESC, id DESC LIMIT 50").all(atk.patientId)
+  // Säkerhetsgranskningen vid sammanslagningen av runda 14: inget tak före urvalet av den egna vårdenheten, så att
+  // diagnoser på en annan eller spärrad vårdenhet aldrig kan tränga undan den egna och därmed röja att de finns.
+  const rader = atk.db.query('SELECT id, enhet_id, kod, text, datum FROM diagnoser WHERE patient_id = ? ORDER BY datum DESC, id DESC').all(atk.patientId)
     .filter(d => vardenhetFor(atk.db, d.enhet_id) === min);
   const synliga = atk.filtrera(rader, 'las_diagnoser');
   return synliga[0] ?? null;

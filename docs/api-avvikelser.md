@@ -909,7 +909,7 @@ Inget av detta är FHIR. Inga svar till testaren innehåller patientuppgifter ur
 - `GET /api/patient/:id/sparr/sparrtjansten` (handlingen `registrera_sparr`) ger `{ stammer, baraVardkallan, baraTjansten, text }` med vårdenheternas namn.
 - `GET /api/patient/:id/folkbokforing` (handlingen `las_admin`) ger `{ stammer, sekretessmarkering, skyddadIdentitet, varden, skillnader, text }`. `skillnader` har `{ falt, vardkallan, pu }`, men bara `{ falt }` för en patient med skyddad identitet eller sekretessmarkering utan det aktiva valet `visa_identitet`. Adressen jämförs aldrig för en sådan patient.
 - `GET /api/rivta/hsa/:id` (systemförvaltaren) ger `{ stammer, hsaId, hsa: { namn, titel, dn, pahittad }, skillnader, text }` för personen i personalkatalogen.
-- `POST /api/rivta/engagemangsindex/:id` (systemförvaltaren) skickar patientens engagemang till engagemangsindex och ger `{ antal }`.
+- `POST /api/rivta/engagemangsindex/:id` (systemförvaltaren) skickar patientens engagemang till engagemangsindex och ger `{ text }`, samma för alla patienter. Antalet engagemang står bara i åtkomstloggen, eftersom systemförvaltaren inte har åtkomst till journalen.
 - Producenterna för tjänstekontrakten svarar med SOAP 1.1 enligt RIVTA Basic Profile 2.1 genom en egen transport med ömsesidig TLS (`src/rivta/tls.js`), inte genom serverns HTTP. Se docs/rivta.md.
 
 ## Mellanarkivet, reservdatorn för läkemedel och testprotokollet (runda 14, r4)

@@ -120,7 +120,10 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
     if (!pat) throw new Fel(404, 'Patienten finns inte.', 'saknas');
     const antal = rivta.register.uppdateraEngagemang(c.db, pat.id);
     loggaRad(c.db, { personal_id: p.id, enhet_id: p.enhet_id, patient_id: pat.id, handling: 'forvalta_api', resurs: 'rivta:Update', grund: 'administrativ', syfte: `${antal} engagemang skickades till engagemangsindex.` });
-    return { antal };
+    // Säkerhetsgranskningen vid sammanslagningen av runda 14: systemförvaltaren har ingen åtkomst till patientens journal,
+    // så svaret är detsamma för alla patienter. Antalet engagemang, som röjer var patienten har vårdats och om
+    // personuppgifterna är skyddade, står bara i åtkomstloggen.
+    return { text: 'Patientens engagemang är skickade till engagemangsindex (simulerat i demon).' };
   });
 }
 

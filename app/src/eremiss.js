@@ -79,8 +79,10 @@ const reqId = (hsa, id) => `${hsa}#${id}`;
 export function diagnoserForRemiss(atk) {
   if (!kanRoll(atk.personal, 'las_diagnoser')) return [];
   const min = vardenhetFor(atk.db, atk.personal.enhet_id);
-  const rader = atk.db.query('SELECT id, enhet_id, kod, text FROM diagnoser WHERE patient_id = ? ORDER BY datum DESC, id DESC LIMIT 20').all(atk.patientId)
-    .filter(d => vardenhetFor(atk.db, d.enhet_id) === min);
+  // Säkerhetsgranskningen vid sammanslagningen av runda 14: urvalet av den egna vårdenheten görs före taket, så att
+  // diagnoser på en annan eller spärrad vårdenhet aldrig kan tränga undan den egna och därmed röja att de finns.
+  const rader = atk.db.query('SELECT id, enhet_id, kod, text FROM diagnoser WHERE patient_id = ? ORDER BY datum DESC, id DESC').all(atk.patientId)
+    .filter(d => vardenhetFor(atk.db, d.enhet_id) === min).slice(0, 20);
   return atk.filtrera(rader, 'las_diagnoser').slice(0, 5);
 }
 
