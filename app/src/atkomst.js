@@ -660,3 +660,10 @@ Object.assign(HANDLINGAR, {
 for (const r of ['lakare', 'sjukskoterska', 'fysioterapeut', 'vardadministrator']) ROLLER[r].push('meddelande_invanare');
 ROLLER.vardadministrator.push('fullmakt', 'kassa', 'kapacitet');
 for (const h of ['kassa', 'kapacitet']) UTAN_PATIENT.add(h);
+
+// Runda 14, r3: intyg genom den integrerade intygsapplikationen (lakarintyg.js, Sussa 2.2.1.9). Läkaren skapar, skriver
+// och signerar intyg för patienter med vårdrelation på sin vårdenhet. Läkare och sjuksköterskor ser intygen och deras
+// status, med samma regler för andra vårdenheter och spärrar som journalen.
+Object.assign(HANDLINGAR, { las_intyg: 'se patientens intyg och deras status', skriv_intyg: 'skapa, skriva och signera intyg' });
+ROLLER.lakare.push('las_intyg', 'skriv_intyg');
+ROLLER.sjukskoterska.push('las_intyg');
