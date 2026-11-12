@@ -3,7 +3,9 @@
 import { describe, test, expect } from 'bun:test';
 import * as inf from '../src/rivta-infektion.js';
 import * as rivta from '../src/rivta/index.js';
-import { nyDb } from './hjalp.js';
+import { nyDbSomStangs } from './r14r3-hjalp.js';
+
+const nyDb = nyDbSomStangs();
 
 const ut = (db) => rivta.anropslogg(db).filter(x => x.riktning === 'ut');
 

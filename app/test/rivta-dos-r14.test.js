@@ -3,7 +3,10 @@
 import { describe, test, expect } from 'bun:test';
 import * as dos from '../src/rivta-dos.js';
 import * as rivta from '../src/rivta/index.js';
-import { atk, nyDb } from './hjalp.js';
+import { atk } from './hjalp.js';
+import { nyDbSomStangs } from './r14r3-hjalp.js';
+
+const nyDb = nyDbSomStangs();
 
 const fel = async (fn) => { try { await fn(); } catch (e) { return e; } return null; };
 const pat = (db, id) => db.query('SELECT * FROM patienter WHERE id = ?').get(id);

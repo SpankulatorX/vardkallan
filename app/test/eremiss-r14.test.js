@@ -6,7 +6,10 @@ import * as sim from '../src/eremiss-simulerad.js';
 import * as remiss from '../src/remiss.js';
 import * as r3 from '../src/rivta-r3.js';
 import * as rivta from '../src/rivta/index.js';
-import { atk, nyDb, personal } from './hjalp.js';
+import { atk, personal } from './hjalp.js';
+import { nyDbSomStangs } from './r14r3-hjalp.js';
+
+const nyDb = nyDbSomStangs();
 
 const T = 'E-remiss > ';
 const fel = async (fn) => { try { await fn(); } catch (e) { return e; } return null; };

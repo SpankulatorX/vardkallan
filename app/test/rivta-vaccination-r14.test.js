@@ -2,10 +2,12 @@
 // byggs och valideras mot schemat i producenten och igen i konsumenten, och det innehåller precis det som den
 // anropande organisationens systemkonto får läsa som Immunization i FHIR-API:t.
 import { describe, test, expect } from 'bun:test';
-import { nyDb } from './hjalp.js';
+import { nyDbSomStangs } from './r14r3-hjalp.js';
 import * as rivta from '../src/rivta/index.js';
 import * as vacc from '../src/rivta-vaccination.js';
 import { fhirResurser } from '../src/tjanstekontrakt.js';
+
+const nyDb = nyDbSomStangs();
 
 const VG = 'SE2321000164-VK0000';
 const fraga = (pnr, extra = {}) => ({ patientId: { id: pnr, type: '1.2.752.129.2.1.3.1' }, ...extra });

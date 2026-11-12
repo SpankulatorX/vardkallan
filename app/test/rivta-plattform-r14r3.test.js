@@ -3,7 +3,8 @@
 // och skickar anropet vidare med den ursprungliga konsumenten i huvudet. Varje kontrakt anropas en gång åt varje håll
 // som Vårdkällan har en roll i, också profil 2.0 med wsa:To.
 import { describe, test, expect } from 'bun:test';
-import { nyDb, atk, personal } from './hjalp.js';
+import { atk, personal } from './hjalp.js';
+import { nyDbSomStangs } from './r14r3-hjalp.js';
 import * as rivta from '../src/rivta/index.js';
 import * as plattform from '../src/rivta/plattform.js';
 import * as r3 from '../src/rivta-r3.js';
@@ -18,6 +19,8 @@ import * as dosSim from '../src/rivta-dos-simulerad.js';
 import * as inf from '../src/rivta-infektion.js';
 import * as infSim from '../src/rivta-infektion-simulerad.js';
 import * as vacc from '../src/rivta-vaccination.js';
+
+const nyDb = nyDbSomStangs();
 
 const VG = 'SE2321000164-VK0000';
 

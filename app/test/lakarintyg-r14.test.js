@@ -7,7 +7,10 @@ import * as intyg from '../src/lakarintyg.js';
 import * as app from '../src/intygsapplikation-simulerad.js';
 import * as rivta from '../src/rivta/index.js';
 import * as r3 from '../src/rivta-r3.js';
-import { atk, nyDb, personal } from './hjalp.js';
+import { atk, personal } from './hjalp.js';
+import { nyDbSomStangs } from './r14r3-hjalp.js';
+
+const nyDb = nyDbSomStangs();
 
 const T = 'Intyg > ';
 const DAG = '2026-11-12';
