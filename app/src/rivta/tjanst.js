@@ -20,7 +20,7 @@ import { loggaAnrop } from './anropslogg.js';
 const nyckel = (ns, lokal) => `${ns}|${lokal}`;
 
 // En tjänst är en uppsättning producenter med samma prövning av logisk adress och anropande organisation. Vårdkällans
-// egna producenter finns i vardkallan nedan. De simulerade nationella tjänsterna (mockar.js) är egna tjänster med samma
+// egna producenter finns i vardkallan nedan. De simulerade nationella tjänsterna (nationella.js) är en egen tjänst med samma
 // kuvert, validering och fel, så att en konsument i Vårdkällan prövas mot samma profil som mot en riktig producent.
 //   adresser(db)                     de logiska adresser som tjänsten svarar för
 //   prova(db, avsandare, def)        { tillaten, konsument, skal } för den anropande organisationen

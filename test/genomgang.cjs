@@ -1621,6 +1621,8 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await gaTill(page, '#/api');
       await forvanta(page, '#tk', 'GetCareDocumentation');
       await forvanta(page, '#tk', 'Simulerad producent');
+      // Runda 14, r2: kontrakten som är byggda i RIVTA, testade lokalt och inte anslutna.
+      await forvanta(page, '#tk', 'Byggt mot schemat. Testat lokalt genom tjänsteplattformen. Inte anslutet.');
     });
     await s('Sara Lindqvist registrerar och ångrar patientens invändning mot kvalitetsregistret, och patienten anmäler den själv i Min journal', async () => {
       await loggaIn(page, 'lak-kard');
