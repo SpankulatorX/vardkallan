@@ -1,8 +1,9 @@
 // Ekonomi (runda 7, r3, Sussa 7.1.1.1, 7.1.1.2, 7.1.2.1 och 3.4.4.4). Systemet är experten: transaktionsposterna skapas
 // av systemet ur det som har hänt, betalningsmottagaren räknas fram, priset hämtas ur den prislista som gällde dagen för
 // händelsen och vårdtillfället grupperas med en demoregel. Ingen registrerar en transaktion.
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
-import { byggSeed, migrera, idag, addDagar, datumAv } from '../src/db.js';
+import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
+import { byggSeed, migrera, idag, addDagar, datumAv, lokalTid } from '../src/db.js';
+import { stallKlockan, aterstallKlockan } from './falsk-klocka.js';
 import * as ekonomi from '../src/ekonomi.js';
 import { BASPRISER, DRG_DEMO, FOLKBOKFORING_DEMO } from '../src/ekonomi-schema.js';
 import { KATALOG } from '../src/seed/lakemedel-katalog.js';
@@ -459,7 +460,10 @@ describe('Ekonomi: kostnader i vårdprocessen', () => {
 
 describe('Ekonomi: skydd i underlaget och högkostnadsskyddet', () => {
   // Barnet Leo Bergström (p09) har en vårdkontakt i dag på kardiologiska mottagningen, och vårdnadshavaren är
-  // Johanna Bergström (inv-vh01).
+  // Johanna Bergström (inv-vh01). Runda 13: mottagningens besök ligger på dagtid (arbetsdagen), så klockan ställs
+  // mitt på en vardag, när besöket har varit. På natten har dagens besök inte varit, och då finns inget att fakturera.
+  beforeEach(() => stallKlockan(new Date(lokalTid('2026-11-12', '11:00'))));
+  afterEach(() => aterstallKlockan());
   const VARDNADSHAVARE = ['Johanna', '19861214-2383', '198612142383'];
   const BARNETS_ADRESS = ['Lövstagatan', '702 13'];
   const underlag = (d) => ekonomi.exportera(d, personal(d, 'eko'), { vardenhet: 'uso-kard', fran: addDagar(idag(), -1), till: idag(), format: 'json' }).text;

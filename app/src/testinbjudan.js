@@ -17,6 +17,8 @@
 import { Fel } from './db.js';
 import { TESTFALL } from './sussa-testfall.js';
 import * as sussaDemo from './sussa-demo.js';
+import * as tidbok from './tidbok.js';
+import { vardenhetFor } from './atkomst.js';
 import { YRKEN, SYSTEM, AR, VARDFORM, HOPPADE_OVER } from '../public/js/synpunkt-regler.js';
 import { profil as provaProfil } from './synpunkter.js';
 
@@ -134,7 +136,9 @@ export const TESTROLLER = [
     id: 'vardadministrator', knapp: 'Vårdadministratör eller medicinsk sekreterare', yrke: 'vardadministrator', demoroll: 'adm-kard', sussaData: true,
     om: 'Du arbetar som Karin Berg, vårdadministratör på kardiologiska kliniken, som motsvarar Sussas mottagning.',
     uppdrag: [
-      { id: '5.5', sussa: '5.5', klar: egen(['bokningar'], (db, u) => Boolean(db.query("SELECT 1 FROM bokningar WHERE incheckad >= ? AND incheckad_via = 'personal' LIMIT 1").get(u.start))) },
+      // Runda 13: registreringen i åtkomstloggen, inte ankomsttiden. En ankomst som registreras i efterhand räknas från
+      // den bokade tiden, som kan ligga före testets start (tidbok.checkaInRad).
+      { id: '5.5', sussa: '5.5', klar: nyLogg("handling = 'checka_in' AND resurs LIKE 'bokning:%:incheckad'") },
       { id: '5.7', sussa: '5.7', klar: nya('vardkontakter', 'skapad_av') },
       { id: '5.1', sussa: '5.1', klar: nya('bokningar', 'bokad_av', 'AND t.ersatter_id IS NULL AND t.vantelista_id IS NULL AND NOT EXISTS (SELECT 1 FROM teambesok_deltagare d WHERE d.bokning_id = t.id) AND (SELECT platser FROM tider WHERE id = t.tid_id) = 1') },
       { id: '5.2', sussa: '5.2', klar: egen(['bokningar', 'teambesok_deltagare'], (db, u) => Boolean(db.query('SELECT 1 FROM bokningar b JOIN teambesok_deltagare d ON d.bokning_id = b.id WHERE b.id > ? AND b.bokad_av = ? LIMIT 1').get(u.bas.bokningar ?? 0, u.av))) },
@@ -223,6 +227,12 @@ export function starta(db, body = {}, { nu = new Date() } = {}) {
   if (r.sussaData) {
     const pers = db.query('SELECT * FROM personal WHERE id = ?').get(r.demoroll);
     if (r.avdelning) sussaDemo.laddaAvdelning(db, pers, { nu }); else sussaDemo.laddaTestdata(db, pers, { nu });
+  }
+  // Runda 13: kassans uppdrag (Ta betalt och Gör dagsavslut) har alltid en patient som har checkat in och ska betala,
+  // också när testaren börjar på kvällen eller natten. Före baslinjen, så att ankomsten inte räknas som testarens.
+  if (r.uppdrag.some(u => u.id === 'betala')) {
+    const pers = db.query('SELECT * FROM personal WHERE id = ?').get(r.demoroll);
+    tidbok.ankomstNu(db, vardenhetFor(db, pers.enhet_id));
   }
   const tabeller = new Set(['atkomstlogg']);
   for (const u of r.uppdrag) for (const t of u.klar?.tabeller ?? []) tabeller.add(t);

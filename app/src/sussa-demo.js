@@ -263,8 +263,11 @@ function laggTillBokningsdata(db, { nu, T, plus }) {
     });
     const g = GRUPP_5_3;
     db.query('INSERT OR IGNORE INTO scheman (id, enhet_id, personal_id, yrkesroll) VALUES (?, ?, ?, ?)').run(g.schema, g.enhet, g.personal, 'fysioterapeut');
+    // Runda 13: träffen ligger på en vardag och minst så långt fram att en kallelse med brev hinner fram
+    // (tidbok.BREV_DAGAR), också när testdata läggs in en söndag eller sent på dagen.
     let dag = addDagar(basDatum, g.dag);
-    while ([0, 6].includes(new Date(`${dag}T12:00:00Z`).getUTCDay())) dag = addDagar(dag, 1);
+    const vardag = (d) => ![0, 6].includes(new Date(`${d}T12:00:00Z`).getUTCDay());
+    while (!vardag(dag) || Date.parse(lokalTid(dag, g.klocka)) - nu.getTime() < tidbok.BREV_DAGAR * 86400_000) dag = addDagar(dag, 1);
     const start = lokalTid(dag, g.klocka);
     db.query("INSERT INTO tider (schema_id, start, slut, tidstyp, platser, rubrik, relativ) VALUES (?, ?, ?, 'grupp', ?, ?, 0)").run(g.schema, start, plus(start, g.minuter), g.platser, g.rubrik);
   })();

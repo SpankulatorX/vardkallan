@@ -2642,6 +2642,15 @@ injektionsställets förslag är demoregler. Batch och utgångsdatum skrivs in f
 förpackning inte är byggd. Fler läkemedel med riktiga NPL-id i katalogen är inte tillagda. Handelsnamnen är sökord som
 pekar på en substans i katalogen.
 
+Efter sammanslagningen: kassans uppdrag går att göra när som helst på dygnet, eftersom testare ofta prövar på kvällen.
+När vårdadministratören börjar testinbjudan, och när användartestets uppdrag Kassan förbereds utan en tid vars
+incheckning har öppnat, kommer en patient till mottagningen nu (`tidbok.js`, `ankomstNu`): ett återbesök som börjar om
+några minuter, för en patient som har varit där förut och betalar avgift, incheckad på skärmen i väntrummet och inte
+betald. Finns redan en sådan ankomst i dag används den. Kassans demoläge tar aldrig betalt för en tid vars incheckning
+inte har öppnat. Testinbjudans uppdrag Ankomstregistrering räknas ur åtkomstloggen, eftersom en ankomst som registreras
+i efterhand har den bokade tiden. En gruppträff räknar utskicket som gjort också när breven inte hann fram, och Sussas
+gruppträff i testfall 5.3 ligger minst tre dagar fram.
+
 ## Kapacitet och säkerhet för många besökare (runda 13, r2: sandlada-vila.js, server.js, sakerhetskopior.js och demo-full.js)
 
 Version 1.3 är den version som testas av en publik inbjudan, så demon ska klara hundratals besökare på kort tid utan att

@@ -264,13 +264,16 @@ export function dagsavslut(db, personal, body = {}) {
   return [201, avslutUt(db, db.query('SELECT * FROM kassaavslut WHERE id = ?').get(id))];
 }
 
-// Demoläget: tider i dag på kassörens vårdenhet som inte är incheckade eller betalda.
+// Demoläget: tider i dag på kassörens vårdenhet som inte är incheckade eller betalda. Runda 13: bara tider vars
+// incheckning har öppnat, så att demoläget inte tar betalt på natten för ett besök senare samma dag.
 export function demoBokningar(db, personal) {
   kravKassa(personal);
   const enheter = enheterUnder(db, minVe(db, personal));
-  return db.query(`SELECT b.* FROM bokningar b JOIN tider t ON t.id = b.tid_id JOIN scheman s ON s.id = t.schema_id
+  const oppnat = Date.now() + konfiguration.varde(db, 'tidbok.incheckning_fore_min') * 60_000;
+  return db.query(`SELECT b.*, t.start AS tid_start FROM bokningar b JOIN tider t ON t.id = b.tid_id JOIN scheman s ON s.id = t.schema_id
     WHERE b.status = 'bokad' AND NOT EXISTS (SELECT 1 FROM betalningar x WHERE x.bokning_id = b.id) AND s.enhet_id IN (${enheter.map(() => '?').join(', ')}) ORDER BY t.start`).all(...enheter)
-    .filter(b => datumAv(new Date(db.query('SELECT start FROM tider WHERE id = ?').get(b.tid_id).start)) === idag());
+    .filter(b => datumAv(new Date(b.tid_start)) === idag() && Date.parse(b.tid_start) <= oppnat)
+    .map(({ tid_start, ...b }) => b);
 }
 
 // --- Ekonomen ------------------------------------------------------------------------------------------------------

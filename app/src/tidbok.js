@@ -1057,6 +1057,42 @@ export function checkaInRad(db, b, via, { av = null, avInvanare = null } = {}) {
   return ut;
 }
 
+// Runda 13: en ankomst nu på en mottagning under vårdenheten, för kassans uppdrag i testinbjudan och användartestet,
+// som ofta görs på kvällen. Ett återbesök hos läkare som börjar om några minuter, för en patient som har varit på
+// mottagningen förut, betalar avgift och inte är inlagd eller redan bokad i dag. Patienten har checkat in på skärmen i
+// väntrummet, och inget är betalt. Finns redan en sådan ankomst i dag används den. Görs med tidbokens egna funktioner,
+// som i seeden. Returnerar bokningen, eller null om vårdenheten saknar mottagning eller patient.
+export const ANKOMST_OM_MIN = 5;
+export function ankomstNu(db, ve, { av = null } = {}) {
+  const enheter = enheterUnder(db, ve);
+  const ph = enheter.map(() => '?').join(', ');
+  const nu = Date.now();
+  const dagStart = lokalTid(idag(), '00:00');
+  const dagSlut = lokalTid(addDagar(idag(), 1), '00:00');
+  const iDag = db.query(`SELECT b.* FROM bokningar b JOIN tider t ON t.id = b.tid_id JOIN scheman s ON s.id = t.schema_id
+    WHERE s.enhet_id IN (${ph}) AND b.status IN ('bokad', 'incheckad') AND t.start >= ? AND t.start < ?`).all(...enheter, dagStart, dagSlut);
+  const finns = iDag.find(b => b.status === 'incheckad' && !db.query('SELECT 1 FROM betalningar WHERE bokning_id = ?').get(b.id) && avgiftForBokning(db, b)?.belopp > 0);
+  if (finns) return finns;
+  const schema = db.query(`SELECT * FROM scheman WHERE enhet_id IN (${ph}) AND yrkesroll = 'lakare' ORDER BY id`).get(...enheter);
+  if (!schema) return null;
+  // Några minuter fram, på jämna fem minuter. Nära midnatt började tiden för en stund sedan, så att den är i dag.
+  const fem = 5 * MIN;
+  let start = new Date(Math.ceil((nu + ANKOMST_OM_MIN * MIN) / fem) * fem).toISOString();
+  if (datumAv(new Date(start)) !== idag()) start = new Date(Math.floor(nu / fem) * fem).toISOString();
+  const tidstyp = 'aterbesok';
+  const bokade = new Set(iDag.map(b => b.patient_id));
+  const kandidater = db.query(`SELECT DISTINCT p.* FROM patienter p JOIN vardkontakter v ON v.patient_id = p.id
+    WHERE v.enhet_id IN (${ph}) AND v.typ = 'oppenvard' AND v.start < ? AND p.skyddad = 0 AND p.sammanslagen_till IS NULL ORDER BY p.id`).all(...enheter, dagStart);
+  const patient = kandidater.find(p => !bokade.has(p.id) && !avliden.avlidenFor(db, p.id)
+    && !db.query("SELECT 1 FROM vardkontakter WHERE patient_id = ? AND typ IN ('slutenvard', 'akut') AND slut IS NULL AND start <= ?").get(p.id, iso())
+    && avgiftFor(db, p, { typ: 'oppenvard', kontaktsatt: TIDSTYPER[tidstyp].kontaktsatt, start, enhet_id: schema.enhet_id, kalla: 'vardkallan' })?.belopp > 0);
+  if (!patient) return null;
+  const id = Number(db.query('INSERT INTO tider (schema_id, start, slut, tidstyp, platser, rubrik, relativ) VALUES (?, ?, ?, ?, 1, NULL, 0)')
+    .run(schema.id, start, plusMin(start, TIDSTYPER[tidstyp].min), tidstyp).lastInsertRowid);
+  const b = skapaBokning(db, { patientId: patient.id, tid: tidRad(db, id), orsak: null, av, relation: 1 });
+  return checkaInRad(db, b, 'skarm');
+}
+
 // Avgiften för bokningen, med samma demoregler som vårdkontakten. satt är frikort när högkostnadsskyddet är nått och
 // avgiftsfri när patienten inte betalar av andra skäl.
 export function avgiftForBokning(db, b) {
