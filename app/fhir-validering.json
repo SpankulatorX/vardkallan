@@ -1,7 +1,7 @@
 {
-  "tid": "2026-11-11T18:28:20.199Z",
+  "tid": "2026-11-12T11:25:29.641Z",
   "validator": "HL7 FHIR Validation tool 7.0.3",
-  "fhirKodHash": "e7aa614abc7a16c7eb4bcb4d4097266e3519fc64048bd0e9a82e4590b6a1b997",
+  "fhirKodHash": "8fc0524315f679650cd8d33ecc4b7b5f79551f754c5796db2be880c223f0bb09",
   "kodfiler": [
     "arkiv.js",
     "atgarder.js",
@@ -26,9 +26,9 @@
     "tjanstekontrakt.js",
     "vitalparametrar.js"
   ],
-  "resurser": 5897,
+  "resurser": 6057,
   "fel": 0,
-  "varningar": 7266,
+  "varningar": 7446,
   "saknas": [],
   "perTyp": {
     "Patient": {
@@ -42,9 +42,9 @@
       "varningar": 31
     },
     "Practitioner": {
-      "resurser": 51,
+      "resurser": 64,
       "fel": 0,
-      "varningar": 51
+      "varningar": 64
     },
     "def": {
       "resurser": 27,
@@ -52,9 +52,9 @@
       "varningar": 35
     },
     "Encounter": {
-      "resurser": 211,
+      "resurser": 219,
       "fel": 0,
-      "varningar": 211
+      "varningar": 219
     },
     "EpisodeOfCare": {
       "resurser": 1,
@@ -67,19 +67,19 @@
       "varningar": 230
     },
     "Observation": {
-      "resurser": 459,
+      "resurser": 482,
       "fel": 0,
-      "varningar": 505
+      "varningar": 530
     },
     "MedicationRequest": {
-      "resurser": 131,
+      "resurser": 133,
       "fel": 0,
-      "varningar": 271
+      "varningar": 277
     },
     "MedicationAdministration": {
-      "resurser": 31,
+      "resurser": 43,
       "fel": 0,
-      "varningar": 62
+      "varningar": 86
     },
     "List": {
       "resurser": 1,
@@ -102,9 +102,9 @@
       "varningar": 28
     },
     "Procedure": {
-      "resurser": 8,
+      "resurser": 10,
       "fel": 0,
-      "varningar": 16
+      "varningar": 20
     },
     "Composition": {
       "resurser": 213,
@@ -117,14 +117,14 @@
       "varningar": 7
     },
     "Slot": {
-      "resurser": 3123,
+      "resurser": 3205,
       "fel": 0,
-      "varningar": 3123
+      "varningar": 3205
     },
     "Appointment": {
-      "resurser": 18,
+      "resurser": 26,
       "fel": 0,
-      "varningar": 18
+      "varningar": 26
     },
     "AuditEvent": {
       "resurser": 1000,
@@ -142,9 +142,9 @@
       "varningar": 1
     },
     "ChargeItem": {
-      "resurser": 339,
+      "resurser": 349,
       "fel": 0,
-      "varningar": 346
+      "varningar": 356
     },
     "Immunization": {
       "resurser": 16,

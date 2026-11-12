@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-12T07:58:04.118Z",
-  "bas": "http://127.0.0.1:18241",
+  "tid": "2026-11-12T11:24:37.297Z",
+  "bas": "http://127.0.0.1:18250",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "8aecc7d98efe3d996c13a232bcb7fdee5f35bc4400c0afbc2ccbd670d1436c71",
+  "gransnittHash": "7e770fd8f3bc0a1d2e5fedb4d2ef7b40b155779b91f6e41c28761fb0b43365cb",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -344,16 +344,17 @@
       "namn": "Ge en dos",
       "roll": "ssk-kard",
       "start": "Arbetslistan efter inloggning",
-      "budget": 2,
-      "motivering": "Sussa 3.5.2.18. Ett klick till Läkemedel att ge och ett på Ge för dosen. Systemet har räknat fram dagens doser ur ordinationerna och kontrollerat dosen mot ordinationen och tidigare doser, och tiden, vem som gav den och vårdkontakten sätts av systemet. En varning för dubbel dos eller för tidig dos visas först när den gäller.",
-      "klick": 2,
+      "budget": 3,
+      "motivering": "Sussa 3.5.2.18. Ett klick till Läkemedel att ge och ett på Ge för dosen. Systemet har räknat fram dagens doser ur ordinationerna och kontrollerat dosen mot ordinationen och tidigare doser, och tiden, vem som gav den och vårdkontakten sätts av systemet. En varning för dubbel dos eller för tidig dos visas först när den gäller. Runda 13, r3 (E2-5): utan skannat armband bekräftar sjuksköterskan med ett klick hur patientens identitet kontrollerades, med det vanligaste sättet förvalt, en gång per patient och läkemedelsrunda. Med skanning behövs inget extra klick.",
+      "klick": 3,
       "faltbyten": 0,
       "tangenter": 0,
-      "uppmatt": 2,
+      "uppmatt": 3,
       "inomBudget": true,
       "steg": [
         "klick: Läkemedel att ge i menyn",
-        "klick: Ge för Alvedon vid behov"
+        "klick: Ge för Alvedon vid behov",
+        "klick: Identiteten är kontrollerad"
       ]
     },
     {
@@ -469,16 +470,17 @@
       "namn": "Ge en dos med delegering",
       "roll": "usk-kard",
       "start": "Arbetslistan efter inloggning",
-      "budget": 2,
-      "motivering": "Sussa 3.5.2.18. Ett klick till Läkemedel att ge och ett på Ge för dosen. Systemet har kontrollerat att undersköterskans delegering omfattar dosens läkemedelsform och administrationssätt, att den gäller i dag och på vårdenheten, och visar knappen Ge bara för de doserna. Delegeringen sparas med dosen.",
-      "klick": 2,
+      "budget": 3,
+      "motivering": "Sussa 3.5.2.18. Ett klick till Läkemedel att ge och ett på Ge för dosen. Systemet har kontrollerat att undersköterskans delegering omfattar dosens läkemedelsform och administrationssätt, att den gäller i dag och på vårdenheten, och visar knappen Ge bara för de doserna. Delegeringen sparas med dosen. Runda 13, r3 (E2-5): utan skannat armband bekräftar sjuksköterskan med ett klick hur patientens identitet kontrollerades, med det vanligaste sättet förvalt, en gång per patient och läkemedelsrunda. Med skanning behövs inget extra klick.",
+      "klick": 3,
       "faltbyten": 0,
       "tangenter": 0,
-      "uppmatt": 2,
+      "uppmatt": 3,
       "inomBudget": true,
       "steg": [
         "klick: Läkemedel att ge i menyn",
-        "klick: Ge för Alvedon vid behov"
+        "klick: Ge för Alvedon vid behov",
+        "klick: Identiteten är kontrollerad"
       ]
     },
     {
@@ -757,17 +759,18 @@
       "namn": "Registrera en dos i efterhand",
       "roll": "ssk-kard",
       "start": "Läkemedel att ge efter återställning",
-      "budget": 3,
-      "motivering": "Sussa 3.5.2.2. Ett klick på Mer för dosen, ett på Given tidigare och ett för att registrera. Systemet föreslår tiden, aldrig i framtiden, kontrollerar den mot ordinationen och tidigare doser och visar att registreringen gjordes i efterhand.",
-      "klick": 3,
+      "budget": 4,
+      "motivering": "Sussa 3.5.2.2. Ett klick på Mer för dosen, ett på Given tidigare och ett för att registrera. Systemet föreslår tiden, aldrig i framtiden, kontrollerar den mot ordinationen och tidigare doser och visar att registreringen gjordes i efterhand. Runda 13, r3 (E2-5): utan skannat armband bekräftar sjuksköterskan med ett klick hur patientens identitet kontrollerades, med det vanligaste sättet förvalt, en gång per patient och läkemedelsrunda. Med skanning behövs inget extra klick.",
+      "klick": 4,
       "faltbyten": 0,
       "tangenter": 0,
-      "uppmatt": 3,
+      "uppmatt": 4,
       "inomBudget": true,
       "steg": [
         "klick: Mer för Alvedon vid behov",
         "klick: Given tidigare",
-        "klick: Registrera"
+        "klick: Registrera",
+        "klick: Identiteten är kontrollerad"
       ]
     },
     {
@@ -1473,16 +1476,17 @@
       "namn": "Ge en vaccination i programmet för riskgrupper",
       "roll": "lak-vc",
       "start": "Översikten för den inlagda patienten efter återställning",
-      "budget": 3,
-      "motivering": "Sussa 3.5.1.7. Ett klick på fliken Vaccinationer, ett på Ge dosen vid den dos som systemet föreslår och ett för att registrera. Systemet har räknat ut att patienten ska ha dosen och varför, frågar om vaccinationer någon annanstans med nej förvalt, sätter ATC, dos och tid och rapporterar dosen till vaccinationsregistret.",
-      "klick": 3,
+      "budget": 4,
+      "motivering": "Sussa 3.5.1.7. Ett klick på fliken Vaccinationer, ett på Ge dosen vid den dos som systemet föreslår, ett på svaret att patienten är frisk i dag och ett för att registrera. Systemet har räknat ut att patienten ska ha dosen och varför, frågar om vaccinationer någon annanstans med nej förvalt, föreslår injektionsstället efter åldern, sätter ATC, dos och tid och rapporterar dosen till vaccinationsregistret.",
+      "klick": 4,
       "faltbyten": 0,
       "tangenter": 0,
-      "uppmatt": 3,
+      "uppmatt": 4,
       "inomBudget": true,
       "steg": [
         "klick: fliken Vaccinationer",
         "klick: Ge dosen",
+        "klick: patienten är frisk i dag",
         "klick: Registrera dosen"
       ]
     },
