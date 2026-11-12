@@ -1,0 +1,22 @@
+{
+  "domän": "riv.infrastructure.directory.employee",
+  "källa": "https://bitbucket.org/rivta-domains/riv.infrastructure.directory.employee",
+  "tagg": "4.0.1",
+  "commit": "0f9fd6418f2b0d7cde44e4cc6a61db856c8a861e",
+  "arkiv": "https://bitbucket.org/rivta-domains/riv.infrastructure.directory.employee/get/0f9fd6418f2b0d7cde44e4cc6a61db856c8a861e.tar.gz",
+  "arkivSha256": "df0d6c41e5ad385473b3e6709339e19ab9d0b94a9ea4fe5aa221982dc9f4edf0",
+  "licens": "Apache License 2.0 (huvudet i varje schemafil)",
+  "hämtat": "2026-11-12",
+  "filer": {
+    "schemas/core_components/infrastructure_directory_employee_4.0.xsd": "1744ac7a24bfb3085919936efd9eb51720200d6954aedaf20958881b1814f42d",
+    "schemas/core_components/itintegration_registry_1.0.xsd": "5fed8e58b64ffc689d97e2e3b66c66fb39f1e668262cfea7f0fe6c337da1f811",
+    "schemas/interactions/GetCommissionMembersIncludingProtectedPersonInteraction/GetCommissionMembersIncludingProtectedPersonInteraction_3.0_RIVTABP21.wsdl": "e0948018f61b1bbf38f37adf96a3f381f3999610986858e5c2a8fb9b6920d4aa",
+    "schemas/interactions/GetCommissionMembersIncludingProtectedPersonInteraction/GetCommissionMembersIncludingProtectedPersonResponder_3.0.xsd": "309186cd87643e8da10f0d26ee1bdf8e0cdfdadb7b97c9c2e52a8d7265dd88f7",
+    "schemas/interactions/GetCommissionMembersInteraction/GetCommissionMembersInteraction_3.0_RIVTABP21.wsdl": "5b82cd3fa6ecd819f0279e598a6b27e6eb0024034585faf406ee0413e930197d",
+    "schemas/interactions/GetCommissionMembersInteraction/GetCommissionMembersResponder_3.0.xsd": "9e5fca20b494a09248ec280c8fb8c75dda076911566939950bc29a2801429d5a",
+    "schemas/interactions/GetEmployeeIncludingProtectedPersonInteraction/GetEmployeeIncludingProtectedPersonInteraction_4.0_RIVTABP21.wsdl": "333e030fd976951c0bf49b4a4d1733244c7b7ae9dd81665a6d718b9d59530733",
+    "schemas/interactions/GetEmployeeIncludingProtectedPersonInteraction/GetEmployeeIncludingProtectedPersonResponder_4.0.xsd": "ca777a90fbb27b8fdeb5cd112c49255ccd9a4be1a6b32deddcf9e564253f54e8",
+    "schemas/interactions/GetEmployeeInteraction/GetEmployeeInteraction_4.0_RIVTABP21.wsdl": "9bccf0d5e762d3b955a676001ff573be0aa9ecadd750ea7d57452e740ed46d7e",
+    "schemas/interactions/GetEmployeeInteraction/GetEmployeeResponder_4.0.xsd": "c7ccb15f98896af6a5cd6a2c36b47a8b8cde7621c9ce21a5fdd896f78c25aab2"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "domän": "riv.itintegration.engagementindex",
+  "källa": "https://bitbucket.org/rivta-domains/riv.itintegration.engagementindex",
+  "tagg": "1.0.10",
+  "commit": "feef3879647a74344c55b62bead12ce2748aa841",
+  "arkiv": "https://bitbucket.org/rivta-domains/riv.itintegration.engagementindex/get/feef3879647a74344c55b62bead12ce2748aa841.tar.gz",
+  "arkivSha256": "4b9e05932874860ec706619c515fa520e120adea346806a58415d527f424a611",
+  "licens": "Apache License 2.0 (huvudet i varje schemafil)",
+  "hämtat": "2026-11-12",
+  "filer": {
+    "schemas/core_components/itintegration_engagementindex_1.0.xsd": "e77630a86fe97d03dd63b08cd9818661cf72efc95932ef81f0de301992c3e6d9",
+    "schemas/core_components/itintegration_registry_1.0.xsd": "5827002c9a3bae74863f6add21f9c5d8efad15167c807de91ec1453656cf771c",
+    "schemas/interactions/FindContentInteraction/FindContentInteraction_1.0_RIVTABP21.wsdl": "39cd70459dc74b83634ee11517b891ced0d0428e9c414326cb7a5cad45f68236",
+    "schemas/interactions/FindContentInteraction/FindContentResponder_1.0.xsd": "6cc22e1d44dad699a8ed58e1ad0835ad4a1f884b0015f115d0137a63a49aa270",
+    "schemas/interactions/ProcessNotificationInteraction/ProcessNotificationInteraction_1.0_RIVTABP21.wsdl": "dfc41cb9b97f24e2b97775b54d49184a32d38ea063e2959ccae8e6e130745ba1",
+    "schemas/interactions/ProcessNotificationInteraction/ProcessNotificationResponder_1.0.xsd": "9df71dedd478aafc31e868a84484c63cc0707e1d2c5f0d78861cc5f888c008e0",
+    "schemas/interactions/UpdateInteraction/UpdateInteraction_1.0_RIVTABP21.wsdl": "82764a42e2eb106f24a21918247f8406313709db570c72eff4dd0b259caead1f",
+    "schemas/interactions/UpdateInteraction/UpdateResponder_1.0.xml": "0438baaf7536c43959e4e5ad872539cd51c4f577f8fde795a6b2a1e4c7e50dab",
+    "schemas/interactions/UpdateInteraction/UpdateResponder_1.0.xsd": "430f761d42b170aa8d080943b8f348e4a63a12de4f2f1182dba8d7d7dec0e373"
+  }
+}

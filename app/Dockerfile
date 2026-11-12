@@ -6,6 +6,8 @@ COPY src ./src
 COPY public ./public
 COPY scripts ./scripts
 COPY test ./test
+# Runda 14, r2: de pinnade schemana för tjänstekontrakten i RIVTA (rivta/<domän>/KALLA.json).
+COPY rivta ./rivta
 # Playwright-testerna av gränssnittet (test/avbrott.cjs, test/anvandartest.cjs och test/klickbudget.cjs) körs före bygget. Resultaten följer med här.
 COPY klickbudget.json klienttest-resultat.json ./
 # Runda 7, r1: Sussas användbarhetstester (test/sussa-testfall.cjs).
@@ -21,6 +23,8 @@ WORKDIR /app
 COPY package.json ./
 COPY src ./src
 COPY public ./public
+# Runda 14, r2: schemana för tjänstekontrakten, som producenterna och konsumenterna validerar mot.
+COPY rivta ./rivta
 # Runda 13, r1: skriptet för läskoder och nya synpunkter körs i containern (docker exec).
 COPY scripts/testinbjudan.js ./scripts/testinbjudan.js
 COPY --from=test /app/test-resultat.json ./test-resultat.json

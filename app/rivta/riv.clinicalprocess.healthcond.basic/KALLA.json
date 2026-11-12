@@ -1,0 +1,21 @@
+{
+  "domän": "riv.clinicalprocess.healthcond.basic",
+  "källa": "https://bitbucket.org/rivta-domains/riv.clinicalprocess.healthcond.basic",
+  "tagg": "1.2.3",
+  "commit": "55a953227545bf0500cb7976f01152773b0f6bec",
+  "arkiv": "https://bitbucket.org/rivta-domains/riv.clinicalprocess.healthcond.basic/get/55a953227545bf0500cb7976f01152773b0f6bec.tar.gz",
+  "arkivSha256": "2c305c57b6ac07e6cf70456c0bae4b455f94063c8bd793d34a1fed9bfdbfa547",
+  "licens": "Apache License 2.0 (huvudet i varje schemafil)",
+  "hämtat": "2026-11-12",
+  "filer": {
+    "schemas/core_components/clinicalprocess_healthcond_basic_1.2.xsd": "e98f5d25099f5d6c765f393c76237d390946550ed4bf4a6309bbc338f7d35a87",
+    "schemas/core_components/clinicalprocess_healthcond_basic_1.2_ext.xsd": "634b2a3b3af30a44bc43a4feccf8d281c69810a3cc08c7139c773b4a959da427",
+    "schemas/core_components/clinicalprocess_healthcond_basic_enum_1.2.xsd": "441860fc590f310341db41e5d3549e6198ef795a2c765ba8012225e69153982d",
+    "schemas/core_components/itintegration_registry_1.0.xsd": "5827002c9a3bae74863f6add21f9c5d8efad15167c807de91ec1453656cf771c",
+    "schemas/engagementindex/riv_clinicalprocess_healthcond_basic_ei_update_constraints.xml": "506fd575b6425255923c9f9e63e86907bc130e781acd6949445f6a5d1fbedc67",
+    "schemas/interactions/GetObservationsInteraction/Exempel GetObservations - vikt längd.xml": "0497349a55488d69607fa02c79e0fe91c37ee4de09dc7cff6626946524155823",
+    "schemas/interactions/GetObservationsInteraction/Exempel GetObservationsResponse - vikt längd.xml": "ed4e421d879eace4ef67862efeace1e60b80fdd5ee747bd51894ed00c575f080",
+    "schemas/interactions/GetObservationsInteraction/GetObservationsInteraction_1.2_RIVTABP21.wsdl": "c44510d237a9c1abf28994af51c845c7d17cb2e6ee9e6333014badac15565d06",
+    "schemas/interactions/GetObservationsInteraction/GetObservationsResponder_1.2.xsd": "cc951eaabb5b65b7ad8a97395442df121c573af374db9f8b96465ef4a4dddf75"
+  }
+}

@@ -34,6 +34,12 @@ export const MANGDER = {
   lakemedel: { namn: 'läkemedel', typer: ['MedicationRequest'], handling: 'las_lakemedel' },
   overkanslighet: { namn: 'överkänsligheter', typer: ['AllergyIntolerance'], handling: 'las_oversikt' },
   vardkontakter: { namn: 'vårdkontakter', typer: ['Encounter'], handling: 'las_admin' },
+  // Runda 14, r2: informationsmängderna för tjänstekontrakten i RIVTA (rivta/konsumenter.js): journalanteckningar
+  // (GetCareDocumentation), uppmärksamhetsinformation (GetAlertInformation) och åtgärder (GetActivities).
+  // Journalanteckningar och åtgärder kan bara ett konto för en anslutning via tjänstekontrakt få (behorighetsanalys.js).
+  anteckningar: { namn: 'journalanteckningar', typer: ['Composition'], handling: 'las_journal', tjanstekontrakt: true },
+  uppmarksamhet: { namn: 'uppmärksamhetsinformation', typer: ['Flag'], handling: 'las_oversikt' },
+  atgarder: { namn: 'åtgärder', typer: ['Procedure'], handling: 'las_journal', tjanstekontrakt: true },
 };
 // Patienten behövs för att posterna ska kunna knytas till samma person, och prenumerationerna för att få meddelanden.
 const ALLTID = ['system/Patient.r', 'system/Subscription.crds'];
@@ -85,10 +91,11 @@ export function kontoFor(db, id) {
 }
 
 // Systemets förslag ur informationsmängderna och vårdenheterna: omfånget och texten om vad kontot får.
-export function forslag(db, { mangder, vardenheter, identitet = false } = {}) {
+export function forslag(db, { mangder, vardenheter, identitet = false } = {}, { tjanstekontrakt = false } = {}) {
   const m = Array.isArray(mangder) ? [...new Set(mangder.map(String))] : [];
   if (!m.length) throw new Fel(400, 'Välj minst en informationsmängd som kontot ska få, till exempel diagnoser.', 'ogiltig', { falt: ['mangder'] });
-  const okand = m.find(x => !Object.hasOwn(MANGDER, x));
+  // Runda 14, r2: journalanteckningar och åtgärder bara för en anslutning via tjänstekontrakt.
+  const okand = m.find(x => !Object.hasOwn(MANGDER, x) || (MANGDER[x].tjanstekontrakt && !tjanstekontrakt));
   if (okand) throw new Fel(400, `Informationsmängden ${okand} finns inte för systemkonton.`, 'ogiltig', { falt: ['mangder'] });
   const v = Array.isArray(vardenheter) ? [...new Set(vardenheter.map(String))] : [];
   if (!v.length) throw new Fel(400, 'Välj de vårdenheter vars uppgifter kontot ska få.', 'ogiltig', { falt: ['vardenheter'] });
@@ -196,6 +203,9 @@ export function provaIntyg(db, jwt, { aud, nu = Date.now() } = {}) {
   if (!r) throw fel('Systemkontot finns inte.');
   if (r.aterkallad) throw fel('Systemkontot är återkallat.');
   const nyckel = JSON.parse(r.nyckel);
+  // Runda 14, r2: ett konto för en organisation som är ansluten via tjänstekontrakt prövas med sitt
+  // funktionscertifikat och har ingen nyckel för klientintyg.
+  if (nyckel.kty !== 'EC' && nyckel.kty !== 'RSA') throw fel('Kontot är anslutet via tjänstekontrakt och tar inte emot klientintyg.');
   const alg = nyckel.kty === 'EC' ? 'ES256' : 'RS384';
   if (huvud.alg !== alg) throw fel(`Klientintyget ska vara signerat med ${alg}.`);
   const nyckelObj = createPublicKey({ key: { kty: nyckel.kty, ...(nyckel.kty === 'EC' ? { crv: nyckel.crv, x: nyckel.x, y: nyckel.y } : { n: nyckel.n, e: nyckel.e }) }, format: 'jwk' });
@@ -314,4 +324,23 @@ export function pseudonymisera(db, kontoId, body) {
     return forbjudna.reduce((t, f) => t.split(f).join('[skyddad uppgift]'), v);
   };
   return skydda(ut);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Runda 14, r2: ett systemkonto för en organisation som är ansluten via tjänstekontrakt i RIVTA (rivta/konsumenter.js).
+// Organisationen prövas med sitt funktionscertifikat i transporten, inte med ett klientintyg, och kontot har därför
+// ingen nyckel. Behörighetsmotorn prövar kontot som vilket systemkonto som helst: bara kontots vårdenheter och
+// informationsmängder, aldrig skyddade personuppgifter och aldrig spärrade uppgifter. Kontot får patientens
+// personnummer, eftersom tjänstekontrakten identifierar patienten med det.
+export function registreraForTjanstekontrakt(db, { namn, syfte, vardenheter, mangder, hsaId, registreradAv = 'system' }) {
+  sakraSchema(db);
+  const f = forslag(db, { mangder, vardenheter, identitet: true }, { tjanstekontrakt: true });
+  const id = `sys-${randomBytes(9).toString('base64url')}`;
+  const nu = iso();
+  db.query('INSERT INTO personal (id, namn, yrke, titel, enhet_id, hsa_id, demo, aktiv) VALUES (?, ?, ?, ?, ?, ?, 0, 1)')
+    .run(id, `Systemkonto: ${namn}`, 'systemkonto', 'Ansluten via tjänstekontrakt', f.vardenheter[0], hsaId);
+  db.query('INSERT INTO api_systemkonton (id, namn, syfte, vardenheter, mangder, omfang, nyckel, far, registrerad, registrerad_av, identitet, identitet_motivering) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)')
+    .run(id, namn, syfte, JSON.stringify(f.vardenheter), JSON.stringify(f.mangder), JSON.stringify(f.omfang), JSON.stringify({ kty: 'tjanstekontrakt', kid: hsaId }), f.far, nu, registreradAv,
+      'Tjänstekontrakten i RIVTA identifierar patienten med personnummer eller samordningsnummer.');
+  return id;
 }

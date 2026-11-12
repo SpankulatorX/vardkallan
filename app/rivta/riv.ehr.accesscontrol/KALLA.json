@@ -1,0 +1,18 @@
+{
+  "domän": "riv.ehr.accesscontrol",
+  "källa": "https://bitbucket.org/rivta-domains/riv.ehr.accesscontrol",
+  "tagg": "1.0.6",
+  "commit": "4167090fb46b9c24f13b83ecfdf4e95efcc0e86f",
+  "arkiv": "https://bitbucket.org/rivta-domains/riv.ehr.accesscontrol/get/4167090fb46b9c24f13b83ecfdf4e95efcc0e86f.tar.gz",
+  "arkivSha256": "4c1c036454ceb857d72e1ce193eba28369bfe533db2bffed6e462e45114bff7c",
+  "licens": "Apache License 2.0 (huvudet i varje schemafil)",
+  "hämtat": "2026-11-12",
+  "filer": {
+    "schemas/core_components/ehr_accesscontrol_1.0.xsd": "2e01b442dba4b519982f1a0a87ab7bf00c8640112ba9820944944fbce4f34de5",
+    "schemas/core_components/itintegration_registry_1.0.xsd": "90fd91f30bef1160a74e601dbcea8a133da7e8a081c1d5f26b3d1f62efc03b4a",
+    "schemas/core_components/ws-addressing-1.0.xsd": "09ff106922386b294671423c37089a8999ad0752106bca47e62dadb73c9fa37a",
+    "schemas/interactions/AssertCareEngagementInteraction/AssertCareEngagementInteraction_1.0_RIVTABP20.wsdl": "aa20dac5675bf981003eb4f64416c096baed6b32778742b49ddd96f767309c3e",
+    "schemas/interactions/AssertCareEngagementInteraction/AssertCareEngagementInteraction_1.0_RIVTABP21.wsdl": "658bb4c9b38e33c5a6164131d32cee841603ce817ff9b01e084e5402c7646da7",
+    "schemas/interactions/AssertCareEngagementInteraction/AssertCareEngagementResponder_1.0.xsd": "121ecd9f361726f34f6c4bf8cef4b200ae14c0c66fe9b84b36d2f1c3492c620c"
+  }
+}

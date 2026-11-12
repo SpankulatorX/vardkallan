@@ -1,0 +1,20 @@
+{
+  "domän": "riv.population.residentmaster",
+  "källa": "https://bitbucket.org/rivta-domains/riv.population.residentmaster",
+  "tagg": "population_residentmaster_1.2",
+  "commit": "9c8dd64e666fc9d474f622db2c8b041a20a414ef",
+  "arkiv": "https://bitbucket.org/rivta-domains/riv.population.residentmaster/get/9c8dd64e666fc9d474f622db2c8b041a20a414ef.tar.gz",
+  "arkivSha256": "c3763660eac7e8febe4ae7740ee14612cd13f6775f74e0bb823514e8ab13f143",
+  "licens": "Apache License 2.0 (huvudet i varje schemafil)",
+  "hämtat": "2026-11-12",
+  "filer": {
+    "schemas/core_components/itintegration_registry_1.0.xsd": "3642d467194f166cb8d87d603800a591b31b11bd2c09e338c22073e33df622a4",
+    "schemas/core_components/population_residentmaster_1.1_ext.xsd": "9df93b7b6cbc98a62e8e2efa19609fdcda8956a6ff728c2776a2162e23ce3240",
+    "schemas/core_components/population_residentmaster_1.2.xsd": "8d810e402f17ab422cbe98da2bc35f8fc5f9706334399be27c5b35b87c2231c6",
+    "schemas/core_components/population_residentmaster_1.2_ext.xsd": "a5f26c68c9c723f0c0fbe740278e68b7cf26a1c5db06fa6def5ceeca79ecd723",
+    "schemas/interactions/LookupResidentForFullProfileInteraction/LookupResidentForFullProfileInteraction_1.2_RIVTABP21.wsdl": "d5891a52d3eacb2ec01f0b819b26e87eb20a7d9b621e755317b631beb527b7b1",
+    "schemas/interactions/LookupResidentForFullProfileInteraction/LookupResidentForFullProfileResponder_1.2.xml": "c097d5a6601341c1501655c5d04200a9537b55610abb520d9d8bdaa61baed62a",
+    "schemas/interactions/LookupResidentForFullProfileInteraction/LookupResidentForFullProfileResponder_1.2.xsd": "e15fde2f2f3d0943ff5dbf284198a6a3ccc46d9c2d82dbc157420e958df416ce",
+    "schemas/interactions/LookupResidentForFullProfileInteraction/LookupResidentForFullProfileResponder_Response_1.2.xml": "09bdae79a9dc8a66414109d1f2f62cf8a141008d2b6236316b679b04cee45a77"
+  }
+}
