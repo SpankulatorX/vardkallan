@@ -64,7 +64,7 @@ const INBYGGDA = {
   NMTOKEN: { vit: 'collapse', prova: (v) => (/^[A-Za-z0-9_.:\-·À-￯]+$/.test(v) ? null : 'är inte ett namnord') },
   anyURI: { vit: 'collapse', prova: (v) => (/[\s<>"{}|\\^`]/.test(v.replace(/ /g, '')) ? 'är inte en URI' : null) },
   QName: { vit: 'collapse', qname: true, prova: (v) => (/^([A-Za-z_][\w.\-]*:)?[A-Za-z_][\w.\-]*$/.test(v) ? null : 'är inte ett kvalificerat namn') },
-  boolean: { vit: 'collapse', prova: (v) => (/^(true|false|1|0)$/.test(v) ? null : 'ska vara true eller false') },
+  boolean: { vit: 'collapse', prova: (v) => (/^(true|false|1|0)$/.test(v) ? null : 'ska vara ett sanningsvärde') },
   decimal: { vit: 'collapse', tal: true, prova: tal(/^[+-]?(\d+(\.\d*)?|\.\d+)$/) },
   double: { vit: 'collapse', tal: true, prova: tal(/^([+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?|[+-]?INF|NaN)$/) },
   float: { vit: 'collapse', tal: true, prova: tal(/^([+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?|[+-]?INF|NaN)$/) },
@@ -176,7 +176,7 @@ export class Schemaset {
 
   enkelTyp(nod, info) {
     const delar = nod.barn.filter(b => b.ns === XS && !SKIP.has(b.lokal));
-    if (delar.length !== 1) throw new SchemaFel(`En simpleType ska ha restriction, union eller list (${attr(nod, 'name') ?? 'anonym'}).`);
+    if (delar.length !== 1) throw new SchemaFel(`En enkel typ ska ha en begränsning, en union eller en lista (${attr(nod, 'name') ?? 'anonym'}).`);
     const d = delar[0];
     if (d.lokal === 'restriction') {
       const basNamn = attr(d, 'base');

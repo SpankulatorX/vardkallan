@@ -19,37 +19,68 @@ export class RivtaFel extends Error {
   constructor(kod, text, faultkod = null) { super(text); this.kod = kod; this.faultkod = faultkod; }
 }
 
+// Bygger och validerar begäran. Ger kuvertets text.
+function byggBegaran(def, logiskAdress, begaran) {
+  let el;
+  try { el = def.schema.bygg(def.begaran.ns, def.begaran.lokal, begaran); } catch (e) {
+    if (e instanceof SchemaFel) throw new RivtaFel('schema', `Begäran till ${def.namn} kunde inte byggas enligt schemat: ${e.message}`);
+    throw e;
+  }
+  const fel = def.schema.validera(el);
+  if (fel.length) throw new RivtaFel('schema', `Begäran till ${def.namn} följer inte schemat och skickas inte: ${fel.slice(0, 3).join(' ')}`);
+  if (def.logiskAdressIHuvud && !logiskAdress) throw new RivtaFel('schema', `${def.namn} kräver en logisk adress i huvudet.`);
+  return kuvert(skriv(el), def.logiskAdressIHuvud ? [adressHuvud(logiskAdress)] : []);
+}
+
+// Tolkar och validerar svaret. Ger svarets objekt i schemats form.
+function lasSvar(def, res) {
+  let k;
+  try { k = lasKuvert(res.text); } catch (e) {
+    if (e instanceof SoapFel) throw new RivtaFel('svar', `Svaret från ${def.namn} är inget giltigt SOAP-kuvert: ${e.message}`);
+    throw e;
+  }
+  if (k.fault) throw new RivtaFel('fault', `${def.namn} svarade med ett fel: ${k.fault.text}`, k.fault.kod);
+  if (res.status !== 200) throw new RivtaFel('transport', `${def.namn} svarade med HTTP-status ${res.status}.`);
+  if (k.kropp.ns !== def.svar.ns || k.kropp.lokal !== def.svar.lokal) throw new RivtaFel('svar', `Svaret från ${def.namn} är ${k.kropp.lokal}, inte ${def.svar.lokal}.`);
+  const svarFel = def.schema.validera(k.kropp);
+  if (svarFel.length) throw new RivtaFel('schema', `Svaret från ${def.namn} följer inte schemat och används inte: ${svarFel.slice(0, 3).join(' ')}`);
+  return def.schema.lasUt(k.kropp);
+}
+
+const loggaUt = (db, def, logiskAdress, resultat, text = null) => {
+  if (!db) return;
+  try { loggaAnrop(db, { riktning: 'ut', kontrakt: def.namn, version: def.version, organisation: logiskAdress, logiskAdress, resultat, text }); } catch { /* loggen får inte dölja felet */ }
+};
+
 export async function anropa(def, { logiskAdress = null, begaran, transport, db = null }) {
-  const logg = { riktning: 'ut', kontrakt: def.namn, version: def.version, organisation: logiskAdress, logiskAdress };
   try {
-    let el;
-    try { el = def.schema.bygg(def.begaran.ns, def.begaran.lokal, begaran); } catch (e) {
-      if (e instanceof SchemaFel) throw new RivtaFel('schema', `Begäran till ${def.namn} kunde inte byggas enligt schemat: ${e.message}`);
-      throw e;
-    }
-    const fel = def.schema.validera(el);
-    if (fel.length) throw new RivtaFel('schema', `Begäran till ${def.namn} följer inte schemat och skickas inte: ${fel.slice(0, 3).join(' ')}`);
-    if (def.logiskAdressIHuvud && !logiskAdress) throw new RivtaFel('schema', `${def.namn} kräver en logisk adress i huvudet.`);
-    const text = kuvert(skriv(el), def.logiskAdressIHuvud ? [adressHuvud(logiskAdress)] : []);
+    const text = byggBegaran(def, logiskAdress, begaran);
     let res;
     try { res = await transport({ text, soapAction: def.soapAction, vag: def.vag }); } catch (e) {
       throw new RivtaFel('transport', `${def.namn} kunde inte nås: ${e.message}`);
     }
-    let k;
-    try { k = lasKuvert(res.text); } catch (e) {
-      if (e instanceof SoapFel) throw new RivtaFel('svar', `Svaret från ${def.namn} är inget giltigt SOAP-kuvert: ${e.message}`);
-      throw e;
-    }
-    if (k.fault) throw new RivtaFel('fault', `${def.namn} svarade med ett fel: ${k.fault.text}`, k.fault.kod);
-    if (res.status !== 200) throw new RivtaFel('transport', `${def.namn} svarade med HTTP-status ${res.status}.`);
-    if (k.kropp.ns !== def.svar.ns || k.kropp.lokal !== def.svar.lokal) throw new RivtaFel('svar', `Svaret från ${def.namn} är ${k.kropp.lokal}, inte ${def.svar.lokal}.`);
-    const svarFel = def.schema.validera(k.kropp);
-    if (svarFel.length) throw new RivtaFel('schema', `Svaret från ${def.namn} följer inte schemat och används inte: ${svarFel.slice(0, 3).join(' ')}`);
-    logg.resultat = 'ok';
-    if (db) loggaAnrop(db, logg);
-    return def.schema.lasUt(k.kropp);
+    const ut = lasSvar(def, res);
+    loggaUt(db, def, logiskAdress, 'ok');
+    return ut;
   } catch (e) {
-    if (db) { try { loggaAnrop(db, { ...logg, resultat: e instanceof RivtaFel ? e.kod : 'fel', text: e.message }); } catch { /* loggen får inte dölja felet */ } }
+    loggaUt(db, def, logiskAdress, e instanceof RivtaFel ? e.kod : 'fel', e.message);
+    throw e;
+  }
+}
+
+// Samma anrop med en transport som svarar direkt (en tjänst i samma process, iProcessenSynk).
+export function anropaSynk(def, { logiskAdress = null, begaran, transport, db = null }) {
+  try {
+    const text = byggBegaran(def, logiskAdress, begaran);
+    let res;
+    try { res = transport({ text, soapAction: def.soapAction, vag: def.vag }); } catch (e) {
+      throw new RivtaFel('transport', `${def.namn} kunde inte nås: ${e.message}`);
+    }
+    const ut = lasSvar(def, res);
+    loggaUt(db, def, logiskAdress, 'ok');
+    return ut;
+  } catch (e) {
+    loggaUt(db, def, logiskAdress, e instanceof RivtaFel ? e.kod : 'fel', e.message);
     throw e;
   }
 }
@@ -57,6 +88,12 @@ export async function anropa(def, { logiskAdress = null, begaran, transport, db 
 // En tjänst i samma process, som om anropet kom från avsandare genom en transport med ömsesidig TLS.
 export const iProcessen = (tjanst, { ctx, avsandare }) => async ({ text, soapAction, vag }) => {
   const r = await tjanst.hanteraAnrop(typeof ctx === 'function' ? ctx() : ctx, { text, soapAction, vag, avsandare });
+  return { status: r.status, text: r.body };
+};
+
+// Samma sak med direkt svar, för en tjänst i samma process vars producenter svarar direkt.
+export const iProcessenSynk = (tjanst, { ctx, avsandare }) => ({ text, soapAction, vag }) => {
+  const r = tjanst.hanteraAnropSynk(typeof ctx === 'function' ? ctx() : ctx, { text, soapAction, vag, avsandare });
   return { status: r.status, text: r.body };
 };
 

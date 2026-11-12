@@ -25,7 +25,7 @@ function patientI(db, begaran) {
   const id = String(begaran.patientId?.id ?? '').replace(/\D/g, '');
   const typ = begaran.patientId?.type;
   if (!/^\d{12}$/.test(id) || ![OID.personnummer, OID.samordningsnummer].includes(typ)) {
-    return { fel: 'patientId ska vara ett personnummer eller samordningsnummer med tolv siffror, med OID:n för personnummer eller samordningsnummer i type.' };
+    return { fel: 'Patientens identitet ska vara ett personnummer eller samordningsnummer med tolv siffror och ha OID:n för sin typ.' };
   }
   const funnen = hittaPaToken(db, id);
   return { pid: funnen ? gallandeId(db, funnen) : null, patientId: { id, type: typ } };

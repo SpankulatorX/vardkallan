@@ -16,7 +16,7 @@ export * as xsd from './xsd.js';
 export * as soap from './soap.js';
 export { kontrakt, kalla, RIVTA_ROT } from './kontrakt.js';
 export { skapaTjanst, vardkallan } from './tjanst.js';
-export { anropa, iProcessen, https, RivtaFel } from './klient.js';
+export { anropa, anropaSynk, iProcessen, iProcessenSynk, https, RivtaFel } from './klient.js';
 export * as tls from './tls.js';
 export { testCa } from './testcertifikat.js';
 export * as konsumenter from './konsumenter.js';

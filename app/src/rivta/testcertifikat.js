@@ -1,6 +1,6 @@
 // Runda 14, r2: testcertifikat för ömsesidig TLS mellan tjänstekonsument, tjänsteplattform och producent i demon.
 // Certifikaten skapas när de behövs, med en egen test-CA, och sparas aldrig i databasen eller i källkoden. De är märkta
-// TEST i namnet och i organisationen, och de är aldrig SITHS-certifikat: en riktig anslutning till den nationella
+// test i namnet och i organisationen, och de är aldrig SITHS-certifikat: en riktig anslutning till den nationella
 // tjänsteplattformen kräver SITHS-funktionscertifikat från Inera och ett avtal.
 //
 // Ett certifikat är X.509 v3 med en EC-nyckel på kurvan P-256 och ECDSA med SHA-256, kodat i DER för hand
@@ -72,14 +72,14 @@ function certifikat({ subjekt, utfardare = null, ca = false, dns = [], ip = [], 
   };
 }
 
-// En test-CA och funktionscertifikat utfärdade av den. Allt är märkt TEST och gäller bara i demon.
-export function testCa({ namn: caNamn = 'Vårdkällan TEST-CA för tjänstekontrakt (inte SITHS)' } = {}) {
-  const ca = certifikat({ subjekt: { c: 'SE', o: 'Vårdkällan TEST (demo)', cn: caNamn }, ca: true, dagar: 3650 });
+// En test-CA och funktionscertifikat utfärdade av den. Allt är märkt som test och gäller bara i demon.
+export function testCa({ namn: caNamn = 'Vårdkällan test-CA för tjänstekontrakt (inte SITHS)' } = {}) {
+  const ca = certifikat({ subjekt: { c: 'SE', o: 'Vårdkällan testcertifikat (demo)', cn: caNamn }, ca: true, dagar: 3650 });
   return {
     cert: ca.cert, key: ca.key, fingeravtryck: ca.fingeravtryck,
     // Ett funktionscertifikat för en organisation. hsaId står i serialNumber, och värdnamnen i subjectAltName.
     utfarda({ hsaId, cn, dns = ['localhost'], ip = ['127.0.0.1'], dagar = 365 }) {
-      return certifikat({ subjekt: { c: 'SE', o: 'Vårdkällan TEST (demo)', cn: `TEST ${cn}`, serialNumber: hsaId }, utfardare: { nyckel: ca.nyckel, namn: ca.namn, spki: ca.spki }, dns, ip, dagar });
+      return certifikat({ subjekt: { c: 'SE', o: 'Vårdkällan testcertifikat (demo)', cn: `Test ${cn}`, serialNumber: hsaId }, utfardare: { nyckel: ca.nyckel, namn: ca.namn, spki: ca.spki }, dns, ip, dagar });
     },
   };
 }
