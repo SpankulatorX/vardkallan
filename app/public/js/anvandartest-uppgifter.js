@@ -78,6 +78,8 @@ export const STARTPUNKT = {
   // Runda 11, r7: övervakningen på Hjärtintensiven och Leos tillväxt, efter återställning.
   'Övervakningen av en patient på intensivvården': { hash: '#/iva/p22', klar: '#iva-nems-form', forbered: 'aterstall' },
   'Tillväxten för ett barn som har flyttat hit': { hash: '#/patient/p09/tillvaxt', klar: '#tv-import', forbered: 'aterstall' },
+  // Runda 14, r3: intyg och e-remiss från journalen för en patient på vårdcentralen.
+  'Journalen för patienten på vårdcentralen': { hash: '#/patient/p11', klar: '.patientband h1' },
 };
 
 export const UPPGIFTER = [
@@ -678,6 +680,17 @@ export const UPPGIFTER = [
     id: 'valj-yrkesroll', namn: 'Välja yrkesroll och starta första uppdraget', roll: 'lak-kard', start: 'Startsidan för testare',
     text: 'Du har fått en länk till ett test av Vårdkällan och arbetar som läkare på sjukhus. Välj ditt yrke och gör det första uppdraget.',
     kontroll: { sel: '#testare-panel .tp-jamforelse', text: 'Ta emot dagens första patient' },
+  },
+  // Runda 14, r3: intyg i intygsapplikationen och e-remiss till en vårdgivare utanför Vårdkällan.
+  {
+    id: 'skriv-intyg', namn: 'Skriva ett intyg i intygsapplikationen', roll: 'lak-vc', start: 'Journalen för patienten på vårdcentralen',
+    text: 'Patienten behöver ett läkarintyg för sjukpenning till Försäkringskassan. Börja skriva intyget.',
+    kontroll: { sel: '.ruta-info', text: 'simulerad, inte Webcert' },
+  },
+  {
+    id: 'skicka-eremiss', namn: 'Skicka en e-remiss till en vårdgivare utanför Vårdkällan', roll: 'lak-vc', start: 'Journalen för patienten på vårdcentralen',
+    text: 'Patienten har ont i knät och ska bedömas av en vårdgivare utanför Vårdkällan. Skicka en remiss dit med frågeställningen.',
+    kontroll: { notis: 'E-remissen är skickad' },
   },
 ];
 

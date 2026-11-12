@@ -43,7 +43,7 @@
             "sjukskoterska"
           ],
           "omfattning": "stor",
-          "var": "Fliken Intyg i journalen",
+          "var": null,
           "rubrik": "Intyg skrivs i intygsapplikationen från journalen",
           "text": "Fliken Intyg föreslår det intyg som passar patienten och visar bara de intyg som får skrivas. Läkaren väljer intyg, och utkastet öppnas i intygsapplikationen med patienten, läkaren, vårdenheten och diagnosen ifyllda. När intyget signeras eller skickas visas statusen i journalen av sig själv. Intygsapplikationen är simulerad i demon och är inte Webcert."
         },
@@ -53,7 +53,7 @@
             "lakare"
           ],
           "omfattning": "liten",
-          "var": "Fliken Remisser i journalen",
+          "var": null,
           "rubrik": "E-remiss till vårdgivare utanför Vårdkällan",
           "text": "En remiss kan skickas som e-remiss till en vårdgivare utanför Vårdkällan. Systemet fyller i patienten, remittenten, vårdenheten och diagnoserna från din vårdenhet, och statusen uppdateras när mottagaren bekräftar och svarar. En e-remiss från en annan vårdgivare tas emot som en vanlig remiss till vårdenheten. Mottagarna är påhittade och simulerade i demon."
         }
