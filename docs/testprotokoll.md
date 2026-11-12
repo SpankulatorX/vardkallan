@@ -1,6 +1,6 @@
 # Testprotokoll
 
-Testprotokoll med spårbarhet till krav, Sussa 11.2.1.7. Version 1.3.1, kod c13448a4414d, inga servertester körda.
+Testprotokoll med spårbarhet till krav, Sussa 11.2.1.7. Version 1.3.1, kod 43bdb845f8dd, inga servertester körda.
 
 Inget acceptanstest med en beställare är gjort. Protokollet visar resultatet av Vårdkällans egna automatiska tester i det senaste bygget och är underlaget inför ett acceptanstest, inte resultatet av ett.
 
@@ -8,17 +8,17 @@ Protokollet skrivs av `app/scripts/testprotokoll-md.js` ur kravregistret (`app/s
 
 ## Sammanfattning
 
-Krav och poster med testfall: 306, varav 0 med alla testfall godkända. Testfall: 3259, varav 0 godkänt, 0 ej godkänt, 0 hoppades över, 2628 inte kört, 631 inaktuellt, gränssnittet har ändrats sedan testet kördes. Krav utan testfall: 10 i det egna ramverket och 116 i Sussas kravspecifikation.
+Krav och poster med testfall: 307, varav 0 med alla testfall godkända. Testfall: 3273, varav 0 godkänt, 0 ej godkänt, 0 hoppades över, 2642 inte kört, 631 inaktuellt, gränssnittet har ändrats sedan testet kördes. Krav utan testfall: 10 i det egna ramverket och 115 i Sussas kravspecifikation.
 
 ## Körningar
 
 | Körning | Tid | Testfall | Godkända | Ej godkända |
 | --- | --- | --- | --- | --- |
-| Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC | 84 | 84 | 0 |
-| Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC | 117 | 117 | 0 |
-| Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC | 56 | 56 | 0 |
-| Lasttest | 2026-11-12 kl. 15:06 UTC | 3 | 3 | 0 |
-| Validering med HL7:s validator | 2026-11-12 kl. 11:25 UTC | 1 | 1 | 0 |
+| Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid | 84 | 84 | 0 |
+| Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid | 117 | 117 | 0 |
+| Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid | 56 | 56 | 0 |
+| Lasttest | 2026-11-12 kl. 16:06 svensk tid | 3 | 3 | 0 |
+| Validering med HL7:s validator | 2026-11-12 kl. 12:25 svensk tid | 1 | 1 | 0 |
 
 ## Eget ramverk
 
@@ -48,7 +48,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Sussa-avtalet > viktningen stämmer med utvärderingsmodellen och Cambios prispåslag | Inte kört | inte kört | inte kört |
 | Sussa-avtalet > registret visar vikt, rang och betyg per kriterium så att det går att sortera på vad Sussa värderade högst | Inte kört | inte kört | inte kört |
 | Sussa-avtalet > API: krav/sussa ger vikter, Cambios svar, signaler, bilaga A1 och bör-kraven | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Visa de tio högst viktade kriterierna som inte är uppfyllda inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Visa de tio högst viktade kriterierna som inte är uppfyllda inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### K3 Prioritetssignal för krav som exkluderades eller sköts upp
 
@@ -76,62 +76,62 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Sussas testfall > sussa-testfall.json har varje genomförbart testfall med registrets klickbudget och tidsklass, inom budget | Inte kört | inte kört | inte kört |
 | Sussas testfall > demoläget lägger in testpatienterna med Skatteverkets testpersonnummer och datan som testfallen behöver | Inte kört | inte kört | inte kört |
 | Sussas testfall > tema 1 genomförs med Sussas läkemedel i en katalog med minst 100 produkter | Inte kört | inte kört | inte kört |
-| Gränssnitt > Sussas testfall > 1.1 Förskriva läkemedel (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 1.2 Ordinera läkemedel (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 1.3 Ordinera läkemedel på uppdrag (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 1.4 Administrera läkemedel (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.1 Upprätta och skicka vårdbegäran (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.1 Upprätta och skicka vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.1 Upprätta och skicka vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.2 Upprätta och skicka vårdbegäran på uppdrag (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.3 Ta emot vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.3 Ta emot vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.4 Ta emot vårdbegäran på uppdrag (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.5 Registrera en extern vårdbegäran (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.6 Besvara en vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.6 Besvara en vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.2 Upprätta en labbeställning på uppdrag (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.2 Upprätta en labbeställning på uppdrag (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.4 Överblicka provsvar (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.4 Överblicka provsvar (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.4 Överblicka provsvar (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.5 Upprätta en beställning eller ordination på intern analys eller mätvärde (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.5 Upprätta en beställning eller ordination på intern analys eller mätvärde (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.3 Skapa slutanteckning eller epikris (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.4 Signera (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.1 Boka patient till ett besök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.2 Boka ett teambesök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.3 Boka ett gruppbesök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.4 Omboka besök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.5 Ankomstregistrering (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.6 Överblicka ankomstregistrering (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.7 Oplanerad ankomstregistrering (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.8 Väntelista (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 6.1 Akut inskrivning av patient på vårdavdelning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 6.1 Akut inskrivning av patient på vårdavdelning (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 6.2 Överflyttning av patient mellan avdelningar med olika medicinsk specialitet (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 6.2 Överflyttning av patient mellan avdelningar med olika medicinsk specialitet (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 6.3 Hitta information från tidigare slutenvårdstillfälle (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 6.3 Hitta information från tidigare slutenvårdstillfälle (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.2 Överblicka dagens händelser för en grupp patienter (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.2 Överblicka dagens händelser för en grupp patienter (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.3 Överblicka patientens planering (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.3 Överblicka patientens planering (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.4 Visualisera en specifik resurs arbetsplanering (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.4 Visualisera en specifik resurs arbetsplanering (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
+| Gränssnitt > Sussas testfall > 1.1 Förskriva läkemedel (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 1.2 Ordinera läkemedel (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 1.3 Ordinera läkemedel på uppdrag (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 1.4 Administrera läkemedel (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.1 Upprätta och skicka vårdbegäran (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.1 Upprätta och skicka vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.1 Upprätta och skicka vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.2 Upprätta och skicka vårdbegäran på uppdrag (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.3 Ta emot vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.3 Ta emot vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.4 Ta emot vårdbegäran på uppdrag (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.5 Registrera en extern vårdbegäran (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.6 Besvara en vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.6 Besvara en vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.2 Upprätta en labbeställning på uppdrag (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.2 Upprätta en labbeställning på uppdrag (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.4 Överblicka provsvar (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.4 Överblicka provsvar (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.4 Överblicka provsvar (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.5 Upprätta en beställning eller ordination på intern analys eller mätvärde (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.5 Upprätta en beställning eller ordination på intern analys eller mätvärde (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.3 Skapa slutanteckning eller epikris (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.4 Signera (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.1 Boka patient till ett besök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.2 Boka ett teambesök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.3 Boka ett gruppbesök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.4 Omboka besök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.5 Ankomstregistrering (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.6 Överblicka ankomstregistrering (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.7 Oplanerad ankomstregistrering (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.8 Väntelista (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 6.1 Akut inskrivning av patient på vårdavdelning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 6.1 Akut inskrivning av patient på vårdavdelning (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 6.2 Överflyttning av patient mellan avdelningar med olika medicinsk specialitet (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 6.2 Överflyttning av patient mellan avdelningar med olika medicinsk specialitet (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 6.3 Hitta information från tidigare slutenvårdstillfälle (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 6.3 Hitta information från tidigare slutenvårdstillfälle (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.2 Överblicka dagens händelser för en grupp patienter (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.2 Överblicka dagens händelser för en grupp patienter (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.3 Överblicka patientens planering (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.3 Överblicka patientens planering (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.4 Visualisera en specifik resurs arbetsplanering (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.4 Visualisera en specifik resurs arbetsplanering (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
 
 ### K5 Bör-krav och målbild som separat backlogg
 
@@ -198,27 +198,27 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Läskopia > en ändrad ordination finns i läskopian inom 10 minuter utan att någon gör något | Inte kört | inte kört | inte kört |
 | Läskopia > varje del av läkemedelsdelen är identisk med det vanliga anropet och har en egen tid per patient | Inte kört | inte kört | inte kört |
 | Läskopia > förnyelsen loggas inte var för sig: utlämnandet loggas när det börjar och när det slutar | Inte kört | inte kört | inte kört |
-| Gränssnitt > Avbrott > läskopian förnyas av sig själv medan personen är inloggad | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > läsläget visar hur gammal läkemedelsinformationen är per patient och varnar efter 10 minuter | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > appen startar utan nät från service workern och visar läsläget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > skrivande är avstängt i läsläget med en förklaring | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > simulerat avbrott ger läsläge medan servern svarar andra besökare | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > åtkomster i läsläget når åtkomstloggen när servern svarar igen | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > läskopian rensas vid utloggning | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > utloggning under avbrott loggar ut sessionen på servern, även om fliken stängs | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > läskopian används inte efter 8 timmar | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > reservkoden väljs när webbläsaren är uppkopplad och bara den inslagna nyckeln sparas | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > efter omstart av webbläsaren utan nät visas vilka som har en reservkopia på datorn och när den går ut | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > fel reservkod ger väntetid och rätt reservkod öppnar läsläget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > åtkomster med reservkod loggas krypterat och överlever att fliken stängs | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > när servern svarar igen mitt i läsläget med reservkod når åtkomsterna åtkomstloggen | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > utloggning raderar reservkopian, den inslagna nyckeln och loggen efter att loggen förts över | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > utloggning i en flik avslutar läsläget i webbläsarens andra flikar | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > en navigering direkt till en fil ersätter inte appen i service workerns cache | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > fem fel reservkoder raderar reservkopian och flikar kan inte pröva samtidigt | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > två personer på samma dator har var sin reservkopia som bara öppnas med egen kod | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > simulerat avbrott visar reservinloggningen när fliken stängs i demon | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Avbrott > läskopian förnyas av sig själv medan personen är inloggad | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > läsläget visar hur gammal läkemedelsinformationen är per patient och varnar efter 10 minuter | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > appen startar utan nät från service workern och visar läsläget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > skrivande är avstängt i läsläget med en förklaring | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > simulerat avbrott ger läsläge medan servern svarar andra besökare | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > åtkomster i läsläget når åtkomstloggen när servern svarar igen | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > läskopian rensas vid utloggning | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > utloggning under avbrott loggar ut sessionen på servern, även om fliken stängs | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > läskopian används inte efter 8 timmar | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > reservkoden väljs när webbläsaren är uppkopplad och bara den inslagna nyckeln sparas | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > efter omstart av webbläsaren utan nät visas vilka som har en reservkopia på datorn och när den går ut | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > fel reservkod ger väntetid och rätt reservkod öppnar läsläget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > åtkomster med reservkod loggas krypterat och överlever att fliken stängs | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > när servern svarar igen mitt i läsläget med reservkod når åtkomsterna åtkomstloggen | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > utloggning raderar reservkopian, den inslagna nyckeln och loggen efter att loggen förts över | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > utloggning i en flik avslutar läsläget i webbläsarens andra flikar | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > en navigering direkt till en fil ersätter inte appen i service workerns cache | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > fem fel reservkoder raderar reservkopian och flikar kan inte pröva samtidigt | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > två personer på samma dator har var sin reservkopia som bara öppnas med egen kod | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > simulerat avbrott visar reservinloggningen när fliken stängs i demon | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 | Min journal > patientvyn får ingen läskopia | Inte kört | inte kört | inte kört |
 
 ### D5 Svarstidsmål per vanlig åtgärd, mätta i drift och publicerade
@@ -237,132 +237,132 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Testfall | Resultat | Körning | Tid |
 | --- | --- | --- | --- |
 | Klickbudget > klickbudget.json täcker alla flöden med budgetarna från koden | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Öppna patient från arbetslistan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Läsa senaste anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Skriva och signera en daganteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Ordinera ett läkemedel utan varning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Sätta ut ett läkemedel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Bekräfta föreslagen uppmärksamhetsinformation inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Registrera blodtryck inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Skicka remiss inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Kvittera remissvar inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Nödåtkomst inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Registrera patient utan känd identitet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Slå samman en dubblett inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Bekräfta ett hälsoärende inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Skriva in en patient inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Flytta en patient till en annan avdelning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Skriva ut en patient inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Registrera ett besök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Planera ett videobesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Ge en dos inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Vidimera pågående ordinationer inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Sätta ut ett läkemedel med varning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Sätta ut Waran med plan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Skriva ut läkemedelslistan vid utskrivning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Begära kontrasignering av en anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Kontrasignera en anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Ge en dos med delegering inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Registrera en delegering inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Boka tid för en remiss inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Checka in en patient inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Skicka en gruppkallelse inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Boka om en tid inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Patienten bokar om sin tid i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Sätta upp ett återbesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Sätta in Waran igen efter ett uppehåll inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Avsluta behandlingen efter ett uppehåll inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Avvisa en remiss och sätta ut läkemedlet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Sätta upp en standardvårdplan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Registrera ett intagningsbeslut inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Söka i journalen och öppna träffen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Registrera en NEWS2-kontroll inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Ordinera från en mall med flera ordinationer inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Registrera en dos i efterhand inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Utse en medicinskt ansvarig läkare inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Godkänna en ändrad läkemedelsmall inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Starta en extern tillämpning från journalen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Boka elkonvertering med rum och utrustning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Boka provtagning före läkarbesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Granska och skicka månadens rapport till patientregistret inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Visa de tio högst viktade kriterierna som inte är uppfyllda inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Exportera faktureringsunderlag för en månad inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Lämna ut ett hjälpmedel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Förbereda ett namnbyte för en enhet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Ändra en demoregel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Registrera längd och vikt vid ett BHV-besök och se kurvan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Ändra dosen i en pågående ordination inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Läsa nyheterna och stänga dem inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Boka en patient fritt inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Boka ett teambesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Lägga till en patient i en gruppträff inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Överblicka dagens händelser på avdelningen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Fortsätta arbeta när inloggningen snart går ut inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Fylla i tobaksmallen i en anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Skriva och signera en epikris inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Registrera längd, vikt, blodtryck och puls inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Skriva en remiss på uppdrag av en läkare inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Fördela en remiss till en läkare inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Registrera en pappersremiss inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Beställa ett standardpaket med prover inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Registrera provtagning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Koppla en patientmonitor till patienten inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Godkänna värden från monitorn inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Öppna intensivvårdens översikt och övervakningen av en patient inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Lämna en egen mätning i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Förskriva förbrukningsartiklar ur en mall inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Öppna patienten genom att skanna armbandet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Visa en färdig patientgrupp inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Skriva ut en enskild anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Registrera en överkänslighet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Söka bland vårdenhetens patienter på en diagnos inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Skicka en konsultation inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Skicka läkemedelsberättelsen till nästa vårdgivare inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Ge en vaccination i programmet för riskgrupper inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Hämta uppgifter från en annan vårdgivare inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Registrera en ankomst på akutmottagningen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Diktera och signera en daganteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Rätta en felstavad medicinsk term i en anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Dokumentera ett sår med kroppsbilden inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Bygga ett formulär och föreslå det inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Registrera en perifer venkateter inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Skanna in en restjournal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Pröva donation efter ett dödsfall på intensivvården inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Förnya ett recept som patienten har bett om i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Lägga in sin tidbok i kalenderprogrammet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Svara på ett meddelande från en patient och avsluta inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Se vårdenhetens kapacitet och prognos för väntelistan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Göra dagsavslut i kassan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Skriva ett meddelande till vården i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Planera en operation från väntelistan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Registrera att patienten kommer in på salen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Boka en tid för patienten som ombud inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Registrera ett besök i graviditetsjournalen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Bedöma CTG under en förlossning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Lägga in en bild från datorn i journalen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Jämföra bilder av ett kroppsställe över tid inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Hämta en bild från en apparat och föra in den i journalen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Visa en röntgenstudie ur arkivet med ett annat fönster inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Beställa en röntgenundersökning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Boka en inkommen undersökning på röntgenkliniken inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Registrera vårdtyngden enligt NEMS för en patient på intensivvården inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Läsa in ett barns tillväxtdata från ett annat journalsystem inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Godkänna en cytostatikakur inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Godkänna en ny version av en cytostatikaregim inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Beställa blod inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Bereda en cytostatikados på beredningsenheten inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Rapportera dagens tabletter i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Lämna en synpunkt inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Välja yrkesroll och starta första uppdraget inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Öppna patient från arbetslistan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Läsa senaste anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Skriva och signera en daganteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Ordinera ett läkemedel utan varning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Sätta ut ett läkemedel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Bekräfta föreslagen uppmärksamhetsinformation inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Registrera blodtryck inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Skicka remiss inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Kvittera remissvar inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Nödåtkomst inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Registrera patient utan känd identitet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Slå samman en dubblett inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Bekräfta ett hälsoärende inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Skriva in en patient inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Flytta en patient till en annan avdelning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Skriva ut en patient inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Registrera ett besök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Planera ett videobesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Ge en dos inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Vidimera pågående ordinationer inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Sätta ut ett läkemedel med varning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Sätta ut Waran med plan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Skriva ut läkemedelslistan vid utskrivning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Begära kontrasignering av en anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Kontrasignera en anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Ge en dos med delegering inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Registrera en delegering inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Boka tid för en remiss inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Checka in en patient inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Skicka en gruppkallelse inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Boka om en tid inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Patienten bokar om sin tid i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Sätta upp ett återbesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Sätta in Waran igen efter ett uppehåll inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Avsluta behandlingen efter ett uppehåll inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Avvisa en remiss och sätta ut läkemedlet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Sätta upp en standardvårdplan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Registrera ett intagningsbeslut inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Söka i journalen och öppna träffen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Registrera en NEWS2-kontroll inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Ordinera från en mall med flera ordinationer inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Registrera en dos i efterhand inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Utse en medicinskt ansvarig läkare inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Godkänna en ändrad läkemedelsmall inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Starta en extern tillämpning från journalen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Boka elkonvertering med rum och utrustning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Boka provtagning före läkarbesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Granska och skicka månadens rapport till patientregistret inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Visa de tio högst viktade kriterierna som inte är uppfyllda inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Exportera faktureringsunderlag för en månad inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Lämna ut ett hjälpmedel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Förbereda ett namnbyte för en enhet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Ändra en demoregel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Registrera längd och vikt vid ett BHV-besök och se kurvan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Ändra dosen i en pågående ordination inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Läsa nyheterna och stänga dem inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Boka en patient fritt inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Boka ett teambesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Lägga till en patient i en gruppträff inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Överblicka dagens händelser på avdelningen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Fortsätta arbeta när inloggningen snart går ut inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Fylla i tobaksmallen i en anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Skriva och signera en epikris inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Registrera längd, vikt, blodtryck och puls inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Skriva en remiss på uppdrag av en läkare inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Fördela en remiss till en läkare inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Registrera en pappersremiss inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Beställa ett standardpaket med prover inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Registrera provtagning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Koppla en patientmonitor till patienten inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Godkänna värden från monitorn inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Öppna intensivvårdens översikt och övervakningen av en patient inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Lämna en egen mätning i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Förskriva förbrukningsartiklar ur en mall inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Öppna patienten genom att skanna armbandet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Visa en färdig patientgrupp inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Skriva ut en enskild anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Registrera en överkänslighet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Söka bland vårdenhetens patienter på en diagnos inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Skicka en konsultation inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Skicka läkemedelsberättelsen till nästa vårdgivare inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Ge en vaccination i programmet för riskgrupper inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Hämta uppgifter från en annan vårdgivare inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Registrera en ankomst på akutmottagningen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Diktera och signera en daganteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Rätta en felstavad medicinsk term i en anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Dokumentera ett sår med kroppsbilden inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Bygga ett formulär och föreslå det inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Registrera en perifer venkateter inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Skanna in en restjournal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Pröva donation efter ett dödsfall på intensivvården inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Förnya ett recept som patienten har bett om i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Lägga in sin tidbok i kalenderprogrammet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Svara på ett meddelande från en patient och avsluta inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Se vårdenhetens kapacitet och prognos för väntelistan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Göra dagsavslut i kassan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Skriva ett meddelande till vården i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Planera en operation från väntelistan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Registrera att patienten kommer in på salen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Boka en tid för patienten som ombud inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Registrera ett besök i graviditetsjournalen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Bedöma CTG under en förlossning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Lägga in en bild från datorn i journalen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Jämföra bilder av ett kroppsställe över tid inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Hämta en bild från en apparat och föra in den i journalen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Visa en röntgenstudie ur arkivet med ett annat fönster inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Beställa en röntgenundersökning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Boka en inkommen undersökning på röntgenkliniken inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Registrera vårdtyngden enligt NEMS för en patient på intensivvården inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Läsa in ett barns tillväxtdata från ett annat journalsystem inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Godkänna en cytostatikakur inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Godkänna en ny version av en cytostatikaregim inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Beställa blod inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Bereda en cytostatikados på beredningsenheten inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Rapportera dagens tabletter i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Lämna en synpunkt inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Välja yrkesroll och starta första uppdraget inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Användartest > räkningen: klick på knappar och länkar, inte i fält som gränssnittet har satt fokus i | Inte kört | inte kört | inte kört |
 | Användartest > SUS-poängen räknas med standardformeln | Inte kört | inte kört | inte kört |
 | Användartest > uppgifterna följer flödena i klickbudgeten | Inte kört | inte kört | inte kört |
 | Användartest > sammanställningen ger median, spridning, andel slutförda och SUS per flöde | Inte kört | inte kört | inte kört |
-| Gränssnitt > Användartest > testläget räknar klick, fältbyten och tangenter som klickbudgetskriptet för samma flöden | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Användartest > enkäten ger SUS-poäng enligt standardformeln | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Användartest > resultatfilen laddas ner med datum, version, deltagarkod, uppgifter och SUS-poäng | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Användartest > inget anrop skickar testresultat till servern | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Användartest > testläget rensas när testet avslutas | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Användartest > testläget räknar klick, fältbyten och tangenter som klickbudgetskriptet för samma flöden | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Användartest > enkäten ger SUS-poäng enligt standardformeln | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Användartest > resultatfilen laddas ner med datum, version, deltagarkod, uppgifter och SUS-poäng | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Användartest > inget anrop skickar testresultat till servern | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Användartest > testläget rensas när testet avslutas | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 
 ### D7 Små releaser med automatiserad regressionstest och återgång
 
@@ -426,7 +426,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Skalor > eGFR: CKD-EPI 2021 ur kreatinin, ålder och kön, och seedens eGFR är räknat ur kreatininet vid samma provtagning | Inte kört | inte kört | inte kört |
 | Åtgärder med KVÅ > koderna och titlarna stämmer med KVÅ 2026, och systemet har OID:n ur Socialstyrelsens OID-serie | Inte kört | inte kört | inte kört |
 | Åtgärder med KVÅ > FHIR: Procedure med KVÅ för NEWS2-omgångar, GCS och läkemedelsgenomgång, med samma behörighet | Inte kört | inte kört | inte kört |
-| FHIR-validering > HL7:s validator ger inga fel för någon resurstyp, också MedicationAdministration och List, i den FHIR-kod som byggs | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Validering med HL7:s validator | 2026-11-12 kl. 11:25 UTC |
+| FHIR-validering > HL7:s validator ger inga fel för någon resurstyp, också MedicationAdministration och List, i den FHIR-kod som byggs | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Validering med HL7:s validator | 2026-11-12 kl. 12:25 svensk tid |
 
 ### D10 Beslutsstöd i separata moduler, journalkärnan utanför MDR
 
@@ -449,7 +449,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Godkännande av läkemedelsmallar > mallansvarig läkare godkänner en ändrad mall från inkorgen: den gamla används tills den nya är godkänd, och historiken sparas | Inte kört | inte kört | inte kört |
 | Godkännande av läkemedelsmallar > säkerhet: bara den mallansvariga läkaren på vårdenheten godkänner, och nekade försök loggas | Inte kört | inte kört | inte kört |
 | Godkännande av läkemedelsmallar > en ändrad läkemedelsmall per substans kräver nytt godkännande per vårdenhet, och förslaget använder den godkända versionen | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Godkänna en ändrad läkemedelsmall inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Godkänna en ändrad läkemedelsmall inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Ansvarsuppdrag för läkemedel > verksamhetschefen ser vårdenhetens uppdrag, och systemet påminner om det som saknas och föreslår vem som ska få uppdraget | Inte kört | inte kört | inte kört |
 | Ansvarsuppdrag för läkemedel > verksamhetschefen utser en medicinskt ansvarig läkare med ett år förifyllt, och det loggas och syns i säkerhetsloggen | Inte kört | inte kört | inte kört |
 | Ansvarsuppdrag för läkemedel > säkerhet: bara vårdenhetens verksamhetschef utser och avslutar uppdrag, och nekade försök loggas | Inte kört | inte kört | inte kört |
@@ -458,7 +458,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Ansvarsuppdrag för läkemedel > ett nytt uppdrag som medicinskt ansvarig läkare avslutar det förra, och ett uppdrag ändras och raderas aldrig | Inte kört | inte kört | inte kört |
 | Ansvarsuppdrag för läkemedel > påminnelsen kommer när ett uppdrag går ut inom 30 dagar, uppdraget upphör när personen slutar och genomgången av ansvarsdokumentet sparas | Inte kört | inte kört | inte kört |
 | Ansvarsuppdrag för läkemedel > säkerhet: verksamhetschefen läser inte journalen och har ingen arbetslista | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Utse en medicinskt ansvarig läkare inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Utse en medicinskt ansvarig läkare inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Journalens struktur > ram: vårdgivarens ram anger sökord som måste finnas och sökord som får läggas till lokalt | Inte kört | inte kört | inte kört |
 | Journalens struktur > lokal: en vårdenhets anpassning inom ramen gäller bara på vårdenheten, och en anpassning utanför ramen stoppas | Inte kört | inte kört | inte kört |
 | Journalens struktur > ram: en ny ram visar vilka lokala anpassningar som slutar gälla, och de slutar gälla när den godkänns | Inte kört | inte kört | inte kört |
@@ -563,8 +563,8 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Flerfaktor > för många felaktiga koder avbryter inloggningen, och återställd sandlåda tar bort faktorn så att ingen låses ute | Inte kört | inte kört | inte kört |
 | Flerfaktor > TOTP stämmer med testvektorerna i RFC 6238 | Inte kört | inte kört | inte kört |
 | Flerfaktor > säkerhetsloggen visar registrering, väntande inloggning, misslyckad och lyckad andra faktor | Inte kört | inte kört | inte kört |
-| Gränssnitt > Avbrott > flerfaktor: en passkey i Chromes virtuella autentiserare slår på flerfaktor, bekräftar nästa inloggning, och läsläget vid avbrott fungerar efter den andra faktorn | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > flerfaktor: invånaren slår på en app för engångskoder i Min journal och loggar sedan in med en kod från appen | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Avbrott > flerfaktor: en passkey i Chromes virtuella autentiserare slår på flerfaktor, bekräftar nästa inloggning, och läsläget vid avbrott fungerar efter den andra faktorn | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > flerfaktor: invånaren slår på en app för engångskoder i Min journal och loggar sedan in med en kod från appen | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 | Flerfaktor som krav > parametern Flerfaktor krävs vid inloggning är en demoregel som står på nej och ändras med fyra ögon | Inte kört | inte kört | inte kört |
 | Flerfaktor som krav > med kravet på ja leds den som saknar faktor till att registrera en, och får ingen behörighet eller läskopia förrän den är bekräftad | Inte kört | inte kört | inte kört |
 | Flerfaktor som krav > med kravet på ja ger en felaktig kod vid registreringen ingen inloggning, och för många försök avbryter | Inte kört | inte kört | inte kört |
@@ -639,8 +639,8 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Arkiv > exportpaketet följer FGS Paketstruktur 2.0 med METS.xml, alla mappar och SHA-256 för varje fil | Inte kört | inte kört | inte kört |
 | Arkiv > exportpaketet är fullständigt och tar med spärrar och skyddad identitet som uppgifter | Inte kört | inte kört | inte kört |
 | Tillgänglighetsredogörelse > redogörelsen har varje krav i bilaga K2 med status och hur det är testat | Inte kört | inte kört | inte kört |
-| Gränssnitt > Tillgänglighet > varje formulärfält, knapp och länk har ett namn som beskriver syftet | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > texten har minst 4,5:1 i kontrast och stor text minst 3:1, i alla vyer för alla roller | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Tillgänglighet > varje formulärfält, knapp och länk har ett namn som beskriver syftet | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > texten har minst 4,5:1 i kontrast och stor text minst 3:1, i alla vyer för alla roller | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 
 ### M2 Krav utvärderade på papper: krav som testfall och spårbar bedömning
 
@@ -765,19 +765,19 @@ Inte alla testfall godkända. Status i registret: delvis.
 
 | Testfall | Resultat | Körning | Tid |
 | --- | --- | --- | --- |
-| Gränssnitt > Mobil > varje roll har sin startsida och menyn i 360 px utan sidledsrullning och med knappar på minst 40 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > varje vy i menyn för varje roll och varje flik i journalen går att öppna i 360 px utan sidledsrullning och med knappar på minst 40 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Ge en dos går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Ge en dos med delegering går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Registrera en dos i efterhand går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Registrera blodtryck går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Registrera en NEWS2-kontroll går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Registrera längd, vikt, blodtryck och puls går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Registrera provtagning går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > vid sängen identifierar armbandet patienten i Läkemedel att ge, och bara patientens doser visas | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Mobil > varje roll har sin startsida och menyn i 360 px utan sidledsrullning och med knappar på minst 40 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > varje vy i menyn för varje roll och varje flik i journalen går att öppna i 360 px utan sidledsrullning och med knappar på minst 40 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Ge en dos går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Ge en dos med delegering går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Registrera en dos i efterhand går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Registrera blodtryck går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Registrera en NEWS2-kontroll går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Registrera längd, vikt, blodtryck och puls går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Registrera provtagning går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > vid sängen identifierar armbandet patienten i Läkemedel att ge, och bara patientens doser visas | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 | Mobilt arbetssätt > varje flöde i klickbudgeten är bedömt för mobilen, och varje perspektiv i figur 2 har mobila flöden | Inte kört | inte kört | inte kört |
-| Gränssnitt > Mobil > i hemsjukvården utan uppkoppling registreras ett mätvärde i 360 px, märks som inte sparat och sparas när förbindelsen är tillbaka | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > en dos och ett mätvärde som registreras under avbrottet märks som inte sparade och sparas när förbindelsen är tillbaka | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Mobil > i hemsjukvården utan uppkoppling registreras ett mätvärde i 360 px, märks som inte sparat och sparas när förbindelsen är tillbaka | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > en dos och ett mätvärde som registreras under avbrottet märks som inte sparade och sparas när förbindelsen är tillbaka | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 
 ### 2.3.1.2 Mobilt arbetssätt
 
@@ -786,17 +786,17 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Testfall | Resultat | Körning | Tid |
 | --- | --- | --- | --- |
 | Mobilt arbetssätt > varje flöde i klickbudgeten är bedömt för mobilen, och varje perspektiv i figur 2 har mobila flöden | Inte kört | inte kört | inte kört |
-| Gränssnitt > Mobil > varje roll har sin startsida och menyn i 360 px utan sidledsrullning och med knappar på minst 40 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > varje vy i menyn för varje roll och varje flik i journalen går att öppna i 360 px utan sidledsrullning och med knappar på minst 40 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Ge en dos går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Ge en dos med delegering går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Öppna patient från arbetslistan går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Läsa senaste anteckning går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Patienten bokar om sin tid i Min journal går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > patienten läser sin journal, sina tider och vem som läst journalen i Min journal i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > förbindelsen bryts och kommer tillbaka från en annan adress utan att inloggningen tappas | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > i hemsjukvården utan uppkoppling registreras ett mätvärde i 360 px, märks som inte sparat och sparas när förbindelsen är tillbaka | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > en dos och ett mätvärde som registreras under avbrottet märks som inte sparade och sparas när förbindelsen är tillbaka | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Mobil > varje roll har sin startsida och menyn i 360 px utan sidledsrullning och med knappar på minst 40 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > varje vy i menyn för varje roll och varje flik i journalen går att öppna i 360 px utan sidledsrullning och med knappar på minst 40 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Ge en dos går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Ge en dos med delegering går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Öppna patient från arbetslistan går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Läsa senaste anteckning går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Patienten bokar om sin tid i Min journal går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > patienten läser sin journal, sina tider och vem som läst journalen i Min journal i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > förbindelsen bryts och kommer tillbaka från en annan adress utan att inloggningen tappas | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > i hemsjukvården utan uppkoppling registreras ett mätvärde i 360 px, märks som inte sparat och sparas när förbindelsen är tillbaka | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > en dos och ett mätvärde som registreras under avbrottet märks som inte sparade och sparas när förbindelsen är tillbaka | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 
 ### 2.3.1.3 Mobila tillämpningar
 
@@ -807,21 +807,21 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Mobilt arbetssätt > varje flöde i klickbudgeten är bedömt för mobilen, och varje perspektiv i figur 2 har mobila flöden | Inte kört | inte kört | inte kört |
 | Mobilt arbetssätt > uppställningen per funktionellt krav i kapitel 3 och 4 räknas ur registret och anger bara flöden som prövas i 360 px | Inte kört | inte kört | inte kört |
 | Mobila tillämpningar > varje funktionellt krav i kapitel 3 och 4 finns i uppställningen, med mobila flöden, skrivbordets flöden, vyer i 360 px eller som inte byggt | Inte kört | inte kört | inte kört |
-| Gränssnitt > Mobil > varje vy i menyn för varje roll och varje flik i journalen går att öppna i 360 px utan sidledsrullning och med knappar på minst 40 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Ge en dos går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Ge en dos med delegering går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Registrera en dos i efterhand går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Registrera blodtryck går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Registrera en NEWS2-kontroll går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Registrera längd, vikt, blodtryck och puls går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Registrera provtagning går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Öppna patient från arbetslistan går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Läsa senaste anteckning går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Överblicka dagens händelser på avdelningen går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Kvittera remissvar går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Söka i journalen och öppna träffen går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > Patienten bokar om sin tid i Min journal går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > i hemsjukvården utan uppkoppling registreras ett mätvärde i 360 px, märks som inte sparat och sparas när förbindelsen är tillbaka | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Mobil > varje vy i menyn för varje roll och varje flik i journalen går att öppna i 360 px utan sidledsrullning och med knappar på minst 40 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Ge en dos går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Ge en dos med delegering går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Registrera en dos i efterhand går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Registrera blodtryck går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Registrera en NEWS2-kontroll går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Registrera längd, vikt, blodtryck och puls går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Registrera provtagning går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Öppna patient från arbetslistan går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Läsa senaste anteckning går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Överblicka dagens händelser på avdelningen går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Kvittera remissvar går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Söka i journalen och öppna träffen går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > Patienten bokar om sin tid i Min journal går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > i hemsjukvården utan uppkoppling registreras ett mätvärde i 360 px, märks som inte sparat och sparas när förbindelsen är tillbaka | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 
 ### 2.3.1.4 Tillgänglighet och robusthet
 
@@ -829,19 +829,19 @@ Inte alla testfall godkända. Status i registret: delvis.
 
 | Testfall | Resultat | Körning | Tid |
 | --- | --- | --- | --- |
-| Gränssnitt > Avbrott > appen startar utan nät från service workern och visar läsläget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > simulerat avbrott ger läsläge medan servern svarar andra besökare | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > skrivande är avstängt i läsläget med en förklaring | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > åtkomster i läsläget når åtkomstloggen när servern svarar igen | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Avbrott > appen startar utan nät från service workern och visar läsläget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > simulerat avbrott ger läsläge medan servern svarar andra besökare | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > skrivande är avstängt i läsläget med en förklaring | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > åtkomster i läsläget når åtkomstloggen när servern svarar igen | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 | Läskopia > åtkomster i läsläget skrivs till åtkomstloggen när förbindelsen är tillbaka | Inte kört | inte kört | inte kört |
-| Gränssnitt > Mobil > förbindelsen bryts och kommer tillbaka från en annan adress utan att inloggningen tappas | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Mobil > förbindelsen bryts och kommer tillbaka från en annan adress utan att inloggningen tappas | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 | Skrivkön efter avbrott > ett mätvärde och en dos från kön sparas med tiden då de gjordes, och en rad som skickas igen sparas inte två gånger | Inte kört | inte kört | inte kört |
 | Skrivkön efter avbrott > en dos som någon annan gav under avbrottet blir en konflikt som personen avgör, och ingen dos sparas två gånger | Inte kört | inte kört | inte kört |
 | Skrivkön efter avbrott > kön tas bara emot från den som gjorde registreringarna, med en rad som är krypterad med läskopians nyckel och inom läskopians giltighet | Inte kört | inte kört | inte kört |
 | Skrivkön efter avbrott > läskopian har mätvärdena och remisserna för patienterna, för de roller som får läsa dem | Inte kört | inte kört | inte kört |
-| Gränssnitt > Avbrott > en dos och ett mätvärde som registreras under avbrottet märks som inte sparade och sparas när förbindelsen är tillbaka | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > en dos som någon annan gav under avbrottet blir en konflikt som sjuksköterskan avgör, och dosen sparas inte två gånger | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Mobil > i hemsjukvården utan uppkoppling registreras ett mätvärde i 360 px, märks som inte sparat och sparas när förbindelsen är tillbaka | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Avbrott > en dos och ett mätvärde som registreras under avbrottet märks som inte sparade och sparas när förbindelsen är tillbaka | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > en dos som någon annan gav under avbrottet blir en konflikt som sjuksköterskan avgör, och dosen sparas inte två gånger | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Mobil > i hemsjukvården utan uppkoppling registreras ett mätvärde i 360 px, märks som inte sparat och sparas när förbindelsen är tillbaka | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 
 ### 2.5.1.1 Öppet integrationsgränssnitt under hela avtalstiden
 
@@ -860,12 +860,12 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Öppet API hålls aktuellt > Condition: fel roll, en vårdkontakt på en annan patient, en annan vårdenhet, en okänd kod och ett annat kodverk nekas med en förklaring | Inte kört | inte kört | inte kört |
 | Öppet API hålls aktuellt > CapabilityStatement har versionen och listar varje resurstyp och operation som servern har, och inget annat | Inte kört | inte kört | inte kört |
 | Öppet API hålls aktuellt > ändringsloggen: den senaste versionen är CapabilityStatements, och varje resurstyp och skrivning har en rad | Inte kört | inte kört | inte kört |
-| Gränssnitt > Öppet API > ändringsloggen visar versionen, och läkaren skickar ett ärende om en saknad informationsmängd | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Öppet API > ändringsloggen visar versionen, och läkaren skickar ett ärende om en saknad informationsmängd | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 | Fler skrivningar via API:t > Överkänslighet: läkarens registrering blir uppmärksamhetsinformation med bekräftad grad och ATC-kod och varnar för läkemedel i listan som omfattas, bara bland ordinationer som läkaren får se | Inte kört | inte kört | inte kört |
 | Fler skrivningar via API:t > AllergyIntolerance: överkänsligheten registreras via API:t med samma funktion som gränssnittet, och fel roll och dubblett nekas | Inte kört | inte kört | inte kört |
 | Fler skrivningar via API:t > Patient: en ny patient registreras via API:t med samma tolkning av numret och dubblettkontroll som gränssnittet | Inte kört | inte kört | inte kört |
 | Fler skrivningar via API:t > Patient/$everything för personalen: varje resurstyp prövas och loggas för sig, och bara det personen får se kommer med | Inte kört | inte kört | inte kört |
-| Gränssnitt > Uppmärksamhet > läkaren registrerar en överkänslighet med ämnet och reaktionen, och den syns i patienthuvudet med graden | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Uppmärksamhet > läkaren registrerar en överkänslighet med ämnet och reaktionen, och den syns i patienthuvudet med graden | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 | Systemkonton > SMART Backend Services: tillämpningen får en åtkomstbiljett med ett signerat klientintyg, och fel intyg nekas och loggas | Inte kört | inte kört | inte kört |
 | Systemkonton > prenumeration på en population: varje ny diagnos på vårdenheten meddelas med bara id, och bara det som systemkontot får läsa | Inte kört | inte kört | inte kört |
 | Skrivning för systemkonton > ett systemkonto kan inte registrera överkänslighet eller annat som kontot inte får skriva, och inget sparas | Inte kört | inte kört | inte kört |
@@ -898,7 +898,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Systemkonton > systemkontot läser bara sina vårdenheters poster ur sina informationsmängder, aldrig skyddad identitet eller spärrade uppgifter, och varje läsning loggas | Inte kört | inte kört | inte kört |
 | Systemkonton > prenumeration på en population: varje ny diagnos på vårdenheten meddelas med bara id, och bara det som systemkontot får läsa | Inte kört | inte kört | inte kört |
 | Systemkonton > ett återkallat systemkonto får ingen biljett, dess biljetter slutar gälla och dess prenumerationer avslutas | Inte kört | inte kört | inte kört |
-| Gränssnitt > Öppet API > systemförvaltaren registrerar ett systemkonto för vårddatalagret, ser vad det får och kan återkalla det | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Öppet API > systemförvaltaren registrerar ett systemkonto för vårddatalagret, ser vad det får och kan återkalla det | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 | Fler skrivningar via API:t > AllergyIntolerance: överkänsligheten registreras via API:t med samma funktion som gränssnittet, och fel roll och dubblett nekas | Inte kört | inte kört | inte kört |
 | Fler skrivningar via API:t > Patient: en ny patient registreras via API:t med samma tolkning av numret och dubblettkontroll som gränssnittet | Inte kört | inte kört | inte kört |
 | Makulering via API:t > DELETE och $makulera makulerar en dos med samma regler som gränssnittet: orsak krävs, historiken står kvar och makuleringen loggas | Inte kört | inte kört | inte kört |
@@ -942,18 +942,18 @@ Inte alla testfall godkända. Status i registret: delvis.
 | SMART on FHIR > EHR launch från journalen med PKCE ger en åtkomstbiljett för patienten, och varje anrop loggas | Inte kört | inte kört | inte kört |
 | SMART on FHIR > standalone launch: personen väljer patienten bland sina patienter på arbetslistan | Inte kört | inte kört | inte kört |
 | SMART on FHIR > omfånget begränsar åtkomsten utöver behörighetsmotorn: annan patient, annan resurstyp och skrivning nekas | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Starta en extern tillämpning från journalen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Starta en extern tillämpning från journalen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Tillämpningar och mottagare > systemförvaltaren registrerar en tillämpning, systemet föreslår behörighet och text ur omfånget, och den startas från journalen | Inte kört | inte kört | inte kört |
 | Tillämpningar och mottagare > en återkallad tillämpning kan inte startas, och dess åtkomstbiljetter återkallas direkt | Inte kört | inte kört | inte kört |
 | Tillämpningar och mottagare > bara systemförvaltaren registrerar, och adresser, omfång och namn prövas | Inte kört | inte kört | inte kört |
 | Ärenden om API:t > en begäran om ny information går från inkommen till levererad, och levererad kräver en version i ändringsloggen | Inte kört | inte kört | inte kört |
 | Ärenden om API:t > systemet svarar direkt när det begärda redan finns, och ett ärende med ett personnummer avvisas | Inte kört | inte kört | inte kört |
 | Öppet API hålls aktuellt > ändringsloggen: den senaste versionen är CapabilityStatements, och varje resurstyp och skrivning har en rad | Inte kört | inte kört | inte kört |
-| Gränssnitt > Öppet API > systemförvaltaren registrerar en tillämpning, ser vad den får och kan återkalla den | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Öppet API > ändringsloggen visar versionen, och läkaren skickar ett ärende om en saknad informationsmängd | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Öppet API > systemförvaltaren registrerar en tillämpning, ser vad den får och kan återkalla den | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Öppet API > ändringsloggen visar versionen, och läkaren skickar ett ärende om en saknad informationsmängd | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 | Innovationsramverket > en tillämpning registreras med källkoden, licensen och versionen, och öppen källkod kräver adressen till källkoden | Inte kört | inte kört | inte kört |
 | Systemkonton > SMART Backend Services: tillämpningen får en åtkomstbiljett med ett signerat klientintyg, och fel intyg nekas och loggas | Inte kört | inte kört | inte kört |
-| Gränssnitt > Öppet API > systemförvaltaren registrerar ett systemkonto för vårddatalagret, ser vad det får och kan återkalla det | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Öppet API > systemförvaltaren registrerar ett systemkonto för vårddatalagret, ser vad det får och kan återkalla det | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 | Systemförvaltning > konfiguration: fyra ögon, den som föreslår kan inte godkänna, och ändringen gäller först från giltighetsdatumet | Inte kört | inte kört | inte kört |
 | Systemförvaltning > konfiguration: mallens sökord ändras på ett ställe och syns i anteckningsformuläret, och skrivna anteckningar är oförändrade | Inte kört | inte kört | inte kört |
 | Systemförvaltning > konfiguration: historiken visar varje ändring med vem som föreslog och godkände, och en beslutad ändring kan inte ändras eller raderas | Inte kört | inte kört | inte kört |
@@ -1017,8 +1017,8 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Delegering > undersköterska med giltig delegering ger en tablett, och delegeringen syns i dosen och i FHIR | Inte kört | inte kört | inte kört |
 | Delegering > undersköterska: utgången delegering, och ingen delegering alls, ger ingen rätt och förklaras | Inte kört | inte kört | inte kört |
 | Tillgänglighetsredogörelse > redogörelsen har varje krav i bilaga K2 med status och hur det är testat | Inte kört | inte kört | inte kört |
-| Gränssnitt > Tillgänglighet > varje formulärfält, knapp och länk har ett namn som beskriver syftet | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > texten har minst 4,5:1 i kontrast och stor text minst 3:1, i alla vyer för alla roller | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Tillgänglighet > varje formulärfält, knapp och länk har ett namn som beskriver syftet | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > texten har minst 4,5:1 i kontrast och stor text minst 3:1, i alla vyer för alla roller | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 | Säkerhetsloggen > inloggning, misslyckad inloggning, avvisade anrop och utloggning blir säkerhetshändelser | Inte kört | inte kört | inte kört |
 | Systemförvaltning > lagring: provåterläsningen i sandlådan kontrollerar tabeller, triggrar, integritet och loggarnas hashkedjor och sparas utan patientuppgifter | Inte kört | inte kört | inte kört |
 | Läkemedel > varningarna är märkta som demoregler | Inte kört | inte kört | inte kört |
@@ -1057,7 +1057,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Identitet > FHIR: Patient har alla identifierare med HL7 Swedens system och Patient.link för sammanslagna journaler | Inte kört | inte kört | inte kört |
 | FHIR > Patient har personnummer med rätt identifier-system | Inte kört | inte kört | inte kört |
 | Seed > personnummer kommer från Skatteverkets testpersonnummer | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera patient utan känd identitet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Registrera patient utan känd identitet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.1.1.2 Koppla samman tidigare identiteter
 
@@ -1072,7 +1072,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Identitet > API: sammanslagning flyttar journalen, och sök, logglista och huvud leder till den gällande journalen | Inte kört | inte kört | inte kört |
 | Identitet > behörighet: bara vårdadministratören slår samman, och bara journaler som systemet har föreslagit | Inte kört | inte kört | inte kört |
 | Identitet > FHIR: Patient har alla identifierare med HL7 Swedens system och Patient.link för sammanslagna journaler | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Slå samman en dubblett inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Slå samman en dubblett inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.1.1.3 Identifikation
 
@@ -1092,7 +1092,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Identitet > FHIR: Patient har alla identifierare med HL7 Swedens system och Patient.link för sammanslagna journaler | Inte kört | inte kört | inte kört |
 | FHIR > Patient har personnummer med rätt identifier-system | Inte kört | inte kört | inte kört |
 | Seed > personnummer kommer från Skatteverkets testpersonnummer | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera patient utan känd identitet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Registrera patient utan känd identitet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Identitet > API: sök förklarar ett felskrivet nummer | Inte kört | inte kört | inte kört |
 
 ### 3.1.1.4 Koppla samman identiteter
@@ -1108,7 +1108,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Identitet > API: sammanslagning flyttar journalen, och sök, logglista och huvud leder till den gällande journalen | Inte kört | inte kört | inte kört |
 | Identitet > behörighet: bara vårdadministratören slår samman, och bara journaler som systemet har föreslagit | Inte kört | inte kört | inte kört |
 | Identitet > FHIR: Patient har alla identifierare med HL7 Swedens system och Patient.link för sammanslagna journaler | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Slå samman en dubblett inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Slå samman en dubblett inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.1.2.1 Standardiserade och anpassningsbara vyer
 
@@ -1184,18 +1184,18 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Tobaksvanor > hölls samtalet vid besöket registreras åtgärden med KVÅ-koden när anteckningen signeras, och svaren ändras sedan aldrig | Inte kört | inte kört | inte kört |
 | Tobaksvanor > API: rollerna som skriver omvårdnadsanteckningar dokumenterar tobaksvanor, och översikten visar den senaste | Inte kört | inte kört | inte kört |
 | Tobaksvanor > en anteckning om tobaksvanor på en spärrad vårdenhet varken visas eller ändrar svaret i översikten | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Fylla i tobaksmallen i en anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
+| Gränssnitt > Klickbudget > Fylla i tobaksmallen i en anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
 | Formulär > fasta svarsalternativ ger poäng, skalan tolkar summan och anteckningen får text som systemet skriver ur svaren | Inte kört | inte kört | inte kört |
 | Formulär > frågor visas och krävs efter regler, och reglerna ger varningar på vanlig svenska | Inte kört | inte kört | inte kört |
 | Formulär > kroppsbilden: systemet avgör kroppsdel och sida ur markeringen, också höger och vänster bakifrån | Inte kört | inte kört | inte kört |
 | Formulär > ett formulär byggs som en ny version och används först när en annan systemförvaltare har godkänt det | Inte kört | inte kört | inte kört |
 | Formulär > svaren i en signerad anteckning ändras aldrig, och en rättelse blir en ny version med egna svar | Inte kört | inte kört | inte kört |
 | Formulär > API: systemförvaltaren bygger, förhandsvisar och föreslår formulär, och den som dokumenterar får aktiva formulär bland mallarna | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Dokumentera ett sår med kroppsbilden inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Bygga ett formulär och föreslå det inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Dokumentera ett sår med kroppsbilden inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Bygga ett formulär och föreslå det inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.1.3.2 Röstinmatning
 
@@ -1207,9 +1207,9 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Röstinmatning > signering och andra beslut görs aldrig med rösten: kommandot signera ger en förklaring och inget händer | Inte kört | inte kört | inte kört |
 | Röstinmatning > dikterad text märks i anteckningen och blir journal för andra först när den är signerad | Inte kört | inte kört | inte kört |
 | Röstinmatning > igenkänning på enheten används när den finns, och annars krävs att användaren har valt webbläsarens tjänst, ett val som sparas per användare | Inte kört | inte kört | inte kört |
-| Gränssnitt > Tillgänglighet > röstinmatningen frågar i en dialog innan ljudet går till webbläsarens tjänst när igenkänning på enheten saknas, valet sparas per användare, och med igenkänning på enheten kommer ingen fråga | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Klickbudget > Diktera och signera en daganteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Mobil > Diktera och signera en daganteckning går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Tillgänglighet > röstinmatningen frågar i en dialog innan ljudet går till webbläsarens tjänst när igenkänning på enheten saknas, valet sparas per användare, och med igenkänning på enheten kommer ingen fråga | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Klickbudget > Diktera och signera en daganteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Mobil > Diktera och signera en daganteckning går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 
 ### 3.1.3.3 Registrera in- och utfarter
 
@@ -1226,7 +1226,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | In- och utfarter > spärr och inre sekretess: en spärrad vårdenhets infart syns inte och röjs inte, varken i listan, tidslinjen eller planeringen | Inte kört | inte kört | inte kört |
 | In- och utfarter > FHIR: insättning, skötsel och avveckling är Procedure med KVÅ och samma behörighet | Inte kört | inte kört | inte kört |
 | In- och utfarter > tidslinjen i översikten har insättning och avveckling | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera en perifer venkateter inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Registrera en perifer venkateter inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.1.3.4 Manuell registrering av mätvärden
 
@@ -1235,13 +1235,13 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Testfall | Resultat | Körning | Tid |
 | --- | --- | --- | --- |
 | Journal > mätvärden valideras och registreras | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera blodtryck inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Registrera blodtryck inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Kodverk > varje mätvärdestyp har kod: NPU för labb, LOINC för vitalparametrar, och UCUM-enhet | Inte kört | inte kört | inte kört |
 | Epikris och mätvärden > längd, vikt, blodtryck och puls registreras på en gång med samma tid och vårdkontakt, och systemet räknar BMI | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera längd, vikt, blodtryck och puls inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
+| Gränssnitt > Klickbudget > Registrera längd, vikt, blodtryck och puls inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
 
 ### 3.1.3.5 Stöd vid dokumentation
 
@@ -1263,19 +1263,19 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Tobaksvanor > hölls samtalet vid besöket registreras åtgärden med KVÅ-koden när anteckningen signeras, och svaren ändras sedan aldrig | Inte kört | inte kört | inte kört |
 | Tobaksvanor > API: rollerna som skriver omvårdnadsanteckningar dokumenterar tobaksvanor, och översikten visar den senaste | Inte kört | inte kört | inte kört |
 | Tobaksvanor > en anteckning om tobaksvanor på en spärrad vårdenhet varken visas eller ändrar svaret i översikten | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Fylla i tobaksmallen i en anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
+| Gränssnitt > Klickbudget > Fylla i tobaksmallen i en anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
 | Epikris och mätvärden > epikrisen får Orsak till vård ur vårdtillfället och diagnoserna, och läkaren skriver bara förloppet och uppföljningen | Inte kört | inte kört | inte kört |
 | Epikris och mätvärden > epikrisens förslag bygger bara på det läkaren får se: en spärrad eller annan vårdenhets diagnos ändrar inte förslaget | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Skriva och signera en epikris inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Sussas testfall > 4.3 Skapa slutanteckning eller epikris (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
+| Gränssnitt > Klickbudget > Skriva och signera en epikris inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Sussas testfall > 4.3 Skapa slutanteckning eller epikris (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
 | Formulär > fasta svarsalternativ ger poäng, skalan tolkar summan och anteckningen får text som systemet skriver ur svaren | Inte kört | inte kört | inte kört |
 | Formulär > kroppsbilden: systemet avgör kroppsdel och sida ur markeringen, också höger och vänster bakifrån | Inte kört | inte kört | inte kört |
 | Formulär > förifyllnad: systemet fyller i ålder och senaste mätvärde ur journalen och säger varifrån värdet kommer | Inte kört | inte kört | inte kört |
 | Formulär > ett nytt mätvärde i formuläret registreras som mätvärde när anteckningen signeras, och ett oförändrat förifyllt värde registreras inte igen | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Dokumentera ett sår med kroppsbilden inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Dokumentera ett sår med kroppsbilden inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.1.3.6 Textfri informationsinmatning
 
@@ -1302,9 +1302,9 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Röstinmatning > signering och andra beslut görs aldrig med rösten: kommandot signera ger en förklaring och inget händer | Inte kört | inte kört | inte kört |
 | Röstinmatning > dikterad text märks i anteckningen och blir journal för andra först när den är signerad | Inte kört | inte kört | inte kört |
 | Röstinmatning > igenkänning på enheten används när den finns, och annars krävs att användaren har valt webbläsarens tjänst, ett val som sparas per användare | Inte kört | inte kört | inte kört |
-| Gränssnitt > Tillgänglighet > röstinmatningen frågar i en dialog innan ljudet går till webbläsarens tjänst när igenkänning på enheten saknas, valet sparas per användare, och med igenkänning på enheten kommer ingen fråga | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Klickbudget > Diktera och signera en daganteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Mobil > Diktera och signera en daganteckning går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Tillgänglighet > röstinmatningen frågar i en dialog innan ljudet går till webbläsarens tjänst när igenkänning på enheten saknas, valet sparas per användare, och med igenkänning på enheten kommer ingen fråga | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Klickbudget > Diktera och signera en daganteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Mobil > Diktera och signera en daganteckning går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 
 ### 3.1.3.8 In- och utfarter
 
@@ -1321,7 +1321,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | In- och utfarter > spärr och inre sekretess: en spärrad vårdenhets infart syns inte och röjs inte, varken i listan, tidslinjen eller planeringen | Inte kört | inte kört | inte kört |
 | In- och utfarter > FHIR: insättning, skötsel och avveckling är Procedure med KVÅ och samma behörighet | Inte kört | inte kört | inte kört |
 | In- och utfarter > tidslinjen i översikten har insättning och avveckling | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera en perifer venkateter inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Registrera en perifer venkateter inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.1.3.9 Mätvärden
 
@@ -1340,7 +1340,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Mätvärden och NEWS2 > FHIR: NEWS2 som härledd Observation med samma behörighet som mätvärdena | Inte kört | inte kört | inte kört |
 | NEWS2-larm i inkorgen > larmet syns för sjuksköterskan och läkaren på vårdenheten, med vad som ska göras, men inte för andra roller eller vårdenheter | Inte kört | inte kört | inte kört |
 | NEWS2-larm i inkorgen > larmet bygger bara på den egna vårdenhetens värden: en spärrad vårdenhets värden larmar inte och nämns inte | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera en NEWS2-kontroll inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Registrera en NEWS2-kontroll inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Mätvärden, skala 2 och inmatning > SpO2 skala 2: poängen följer Chart 1, och utan uppgift om luft eller syrgas räknas syremättnaden inte | Inte kört | inte kört | inte kört |
 | Mätvärden, skala 2 och inmatning > systemet föreslår skala 2 vid andningssvikt med hyperkapné, läkaren beslutar med ett klick och NEWS2 räknas med skala 2 | Inte kört | inte kört | inte kört |
 | Mätvärden, skala 2 och inmatning > skala 2 gäller bara där beslutet syns: en spärrad vårdenhets beslut räknas inte och röjs inte | Inte kört | inte kört | inte kört |
@@ -1351,10 +1351,10 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Vätskebalans > vätskebalansen räknar in administrerad volym av sig själv | Inte kört | inte kört | inte kört |
 | Intensivvård > vätskebalansen räknas timvis och kumulativt, med urin och dränage per timme, urin per kilo och timme och varning för oliguri | Inte kört | inte kört | inte kört |
 | Epikris och mätvärden > längd, vikt, blodtryck och puls registreras på en gång med samma tid och vårdkontakt, och systemet räknar BMI | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera längd, vikt, blodtryck och puls inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
+| Gränssnitt > Klickbudget > Registrera längd, vikt, blodtryck och puls inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
 
 ### 3.1.3.10 Rättstavning
 
@@ -1368,7 +1368,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Rättstavning > engelska: medicinska termer på engelska kontrolleras när texten är på engelska | Inte kört | inte kört | inte kört |
 | Rättstavning > ordlistan har källor och utgåvor: kodverken, läkemedelskatalogen och den medicinska ordlistan | Inte kört | inte kört | inte kört |
 | Rättstavning > API: kontrollen tar emot text utan att spara eller logga den, och kräver inloggning | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Rätta en felstavad medicinsk term i en anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Rätta en felstavad medicinsk term i en anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.1.5.1 Strukturerad uppmärksamhetsinformation enligt Socialstyrelsen
 
@@ -1400,7 +1400,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Uppmärksamhetsinformation > spärrade uppgifter syns inte i symbolen förrän patienten samtycker | Inte kört | inte kört | inte kört |
 | Uppmärksamhetsinformation > läskopian har uppmärksamhetsinformationen och symbolen | Inte kört | inte kört | inte kört |
 | Uppmärksamhetsinformation > Min journal visar patientens uppmärksamhetsinformation, utan förslag och personalens id | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Bekräfta föreslagen uppmärksamhetsinformation inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Bekräfta föreslagen uppmärksamhetsinformation inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Uppmärksamhetssymbolen i sök och inkorg > patientsök visar symbolen med samma regler som i patienthuvudet | Inte kört | inte kört | inte kört |
 | Uppmärksamhetssymbolen i sök och inkorg > inkorgen visar symbolen på raderna med patient, bara när översikten får läsas | Inte kört | inte kört | inte kört |
 
@@ -1419,7 +1419,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Uppmärksamhetsinformation > sjuksköterska och undersköterska ser informationen men bekräftar inte, vårdadministratören ser den inte | Inte kört | inte kört | inte kört |
 | Uppmärksamhetsinformation > väntrummet visar symbolen för akutens personal, utan namn för skyddad identitet | Inte kört | inte kört | inte kört |
 | Uppmärksamhetsinformation > FHIR: Flag och AllergyIntolerance med samma behörighet och loggning | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Bekräfta föreslagen uppmärksamhetsinformation inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Bekräfta föreslagen uppmärksamhetsinformation inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.1.6.1 Strukturerade och enhetligt åtkomliga basfakta
 
@@ -1447,7 +1447,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Basfakta, överkänslighet > skyddad identitet: svaret innehåller varken namn eller personnummer | Inte kört | inte kört | inte kört |
 | Basfakta, överkänslighet > en annan vårdenhets rad hos samma vårdgivare får ändras och avslutas, och avslutet lämnar raden kvar med historiken | Inte kört | inte kört | inte kört |
 | Basfakta, överkänslighet > en rad hos en annan vårdgivare och en spärrad vårdenhets rad kan inte ändras eller avslutas, och felet röjer inget | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera en överkänslighet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Registrera en överkänslighet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.1.7.1 Dubbeldokumentation
 
@@ -1481,7 +1481,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Sökning i journalen > spärrade uppgifter: inga träffar, och svaret röjer inte att de finns, inte heller med nödåtkomst | Inte kört | inte kört | inte kört |
 | Sökning i journalen > andra vårdenheters uppgifter söks först efter ett aktivt val, och svaret nämner dem inte per träff | Inte kört | inte kört | inte kört |
 | Sökning i journalen > sökningen loggas som läsning med söktermen och antalet synliga träffar i syftet | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Söka i journalen och öppna träffen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Söka i journalen och öppna träffen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.1.8.2 Sökmöjligheter
 
@@ -1501,8 +1501,8 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Sökning, filter och flera patienter > samma sökfält söker över vårdenhetens patienter: en diagnos, ett läkemedel eller en grupp blir villkor | Inte kört | inte kört | inte kört |
 | Sökning, filter och flera patienter > en patient utan vårdrelation, en spärrad vårdenhets uppgift och skyddad identitet följer behörigheten i sökningen över patienter | Inte kört | inte kört | inte kört |
 | Sökning, filter och flera patienter > på vårdgivarnivå får uppföljningen antal utan personuppgifter, och andra roller nekas | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Söka i journalen och öppna träffen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Söka bland vårdenhetens patienter på en diagnos inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Söka i journalen och öppna träffen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Söka bland vårdenhetens patienter på en diagnos inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.1.9.1 Utskriftsfunktion
 
@@ -1512,7 +1512,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | --- | --- | --- | --- |
 | Utskrift > utskriften har samma innehåll som gränssnittet, med utskrifts-id, syfte, vem och när | Inte kört | inte kört | inte kört |
 | Utskrift > en roll eller enhet utan behörighet nekas, och delar som rollen inte får läsa kommer inte med | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Skriva ut läkemedelslistan vid utskrivning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Skriva ut läkemedelslistan vid utskrivning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.1.9.2 Spårbara och loggade utskrifter
 
@@ -1545,7 +1545,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Utskrift, urval > en enskild anteckning skrivs ut för sig, och loggen, posterna och kontrollsumman gäller just urvalet | Inte kört | inte kört | inte kört |
 | Utskrift, urval > valda poster ur flera delar skrivs ut, och en post som inte syns för den inloggade avvisas utan att röja den | Inte kört | inte kört | inte kört |
 | Utskrift, urval > förslaget erbjuder datumintervall och de poster som går att välja, och bara de som rollen får läsa | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Skriva ut en enskild anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Skriva ut en enskild anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.1.9.5 Loggning och spårbarhet
 
@@ -1572,7 +1572,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Skannade restjournaler > vårdadministratören skannar men läser inte, och fel roll och fel vårdenhet nekas | Inte kört | inte kört | inte kört |
 | Skannade restjournaler > en spärrad vårdenhets restjournal syns inte och röjs inte, varken i listan, tidslinjen eller sökningen | Inte kört | inte kört | inte kört |
 | Skannade restjournaler > ett dokument som skannats till fel patient makuleras med orsak, raderas inte och försvinner ur kronologin | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Skanna in en restjournal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Skanna in en restjournal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.1.10.2 Presentation skanning
 
@@ -1587,7 +1587,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Skannade restjournaler > vårdadministratören skannar men läser inte, och fel roll och fel vårdenhet nekas | Inte kört | inte kört | inte kört |
 | Skannade restjournaler > en spärrad vårdenhets restjournal syns inte och röjs inte, varken i listan, tidslinjen eller sökningen | Inte kört | inte kört | inte kört |
 | Skannade restjournaler > ett dokument som skannats till fel patient makuleras med orsak, raderas inte och försvinner ur kronologin | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Skanna in en restjournal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Skanna in en restjournal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.1.11.1 Signeringsfunktion
 
@@ -1599,7 +1599,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Journal > signerad anteckning kan inte ändras i databasen (trigger) | Inte kört | inte kört | inte kört |
 | Journal > signerad anteckning kan inte raderas (trigger) | Inte kört | inte kört | inte kört |
 | Journal > annan än författaren kan inte ändra eller signera utkast | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Skriva och signera en daganteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Skriva och signera en daganteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.1.11.2 Signering
 
@@ -1611,7 +1611,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Journal > signerad anteckning kan inte ändras i databasen (trigger) | Inte kört | inte kört | inte kört |
 | Journal > signerad anteckning kan inte raderas (trigger) | Inte kört | inte kört | inte kört |
 | Journal > annan än författaren kan inte ändra eller signera utkast | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Skriva och signera en daganteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Skriva och signera en daganteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Journal > rättelse skapar ny version och den gamla finns kvar oförändrad | Inte kört | inte kört | inte kört |
 | Sussas testfall > Granska och signera alla: varje utkast signeras för sig och bara av författaren | Inte kört | inte kört | inte kört |
 | Signering > en signering sparar en signatur över anteckningens innehåll med det simulerade SITHS-kortet, och den går att kontrollera | Inte kört | inte kört | inte kört |
@@ -1629,8 +1629,8 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Kontrasignering > en roll eller enhet utan behörighet nekas, och begäran ger ingen åtkomst utöver posten | Inte kört | inte kört | inte kört |
 | Kontrasignering > spärrade uppgifter och andra vårdenheters uppgifter kan inte begäras kontrasignerade | Inte kört | inte kört | inte kört |
 | Kontrasignering > ett provsvar kan begäras kontrasignerat, och en kontrasignering kan inte ändras eller raderas | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Begära kontrasignering av en anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Kontrasignera en anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Begära kontrasignering av en anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Kontrasignera en anteckning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.1.12.1 Dokumentation
 
@@ -1644,7 +1644,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Donation och transplantation > donationsanteckningen skrivs av systemet ur checklistan, och läkaren signerar den | Inte kört | inte kört | inte kört |
 | Donation och transplantation > en transplantation ger bidiagnos ur ICD-10-SE och uppmärksamhetsinformationen föreslår transplantat | Inte kört | inte kört | inte kört |
 | Donation och transplantation > behörighet: fel roll, fel vårdenhet och spärr, och tidslinjen visar bara det som får ses | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Pröva donation efter ett dödsfall på intensivvården inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Pröva donation efter ett dödsfall på intensivvården inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Donationsansvariga och avliden patient > förslaget går till de donationsansvariga som verksamhetschefen har utsett, och ett byte av uppdraget ändrar mottagaren | Inte kört | inte kört | inte kört |
 | Donationsansvariga och avliden patient > dödsfallet märker patienten som avliden med datum i huvudet och i sökningen, och den simulerade folkbokföringen meddelas | Inte kört | inte kört | inte kört |
 | Donationsansvariga och avliden patient > kommande tider avbokas med orsak och utan besked till patienten, och posterna på väntelistan avslutas | Inte kört | inte kört | inte kört |
@@ -1668,7 +1668,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Kunskapsstöd > NEWS2 visas med vad poängen betyder och källan | Inte kört | inte kört | inte kört |
 | Kunskapsgenererande stöd > utfallet för en standardplan räknas ur vårdenhetens avslutade planer och visas när planen föreslås | Inte kört | inte kört | inte kört |
 | Vårdplan > systemet föreslår standardplanen ur diagnosen och läkaren sätter upp den med ett klick | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Sätta upp en standardvårdplan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Sätta upp en standardvårdplan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.2.1.2 Processtöd med integrerat kunskaps- och kliniskt beslutsstöd
 
@@ -1686,7 +1686,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Kunskapsgenererande stöd > utfallet för en standardplan räknas ur vårdenhetens avslutade planer och visas när planen föreslås | Inte kört | inte kört | inte kört |
 | Kunskapsgenererande stöd > vid varningen visar systemet hur ofta den har kvitterats på vårdenheten | Inte kört | inte kört | inte kört |
 | Kollegakontroll av högriskläkemedel > systemet avgör själv vilka doser en kollega kontrollerar: koncentrerade elektrolyter och Addex, opioider, insulin- och heparininfusion och cytostatika | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Sätta upp en standardvårdplan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Sätta upp en standardvårdplan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.2.1.3 Beslutsstödstrappan
 
@@ -1714,7 +1714,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Vårdplan > systemet föreslår standardplanen ur diagnosen och läkaren sätter upp den med ett klick | Inte kört | inte kört | inte kört |
 | Vårdplan > en individuell plan har mål, åtgärder, ansvarig yrkesroll och uppföljningsdatum, och planen kan anpassas | Inte kört | inte kört | inte kört |
 | Vårdplan > inre sekretess, spärr och nödåtkomst gäller vårdplanerna | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Sätta upp en standardvårdplan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Sätta upp en standardvårdplan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.2.2.2 Stöd för vårdplaner
 
@@ -1746,7 +1746,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Sammanhållen journalföring > nödåtkomst utan samtycke hämtar uppgifterna och loggas som nödåtkomst, men aldrig spärrade | Inte kört | inte kört | inte kört |
 | Sammanhållen journalföring > valet gäller bara den person och vårdenhet som gjorde det och följer aldrig med till nästa inloggning eller uppdrag | Inte kört | inte kört | inte kört |
 | Sammanhållen journalföring > varje hämtning loggas på patienten med vårdgivaren, och samtycket kan återkallas | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Hämta uppgifter från en annan vårdgivare inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Hämta uppgifter från en annan vårdgivare inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.2.3.1 Dokumentation och uppföljning av psykiatrisk tvångsvård
 
@@ -1762,7 +1762,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Tvångsvård > läkaren beslutar om intagning med ett klick, systemet kontrollerar vårdintyget och skriver in patienten | Inte kört | inte kört | inte kört |
 | Tvångsvård > inre sekretess: en annan vårdenhet ser tvångsvården bara efter aktivt val, och en spärr döljer allt | Inte kört | inte kört | inte kört |
 | Tvångsvård > skyddad identitet maskeras i bevakningen, och nödåtkomst ger bara läsning | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera ett intagningsbeslut inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Registrera ett intagningsbeslut inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.2.3.2 Stöd för dokumentation av psykiatrisk tvångsvård
 
@@ -1778,7 +1778,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Samordnad planering > SIP kräver samtycke och anger insatser, huvudman och övergripande ansvar | Inte kört | inte kört | inte kört |
 | Tvångsvård > inre sekretess: en annan vårdenhet ser tvångsvården bara efter aktivt val, och en spärr döljer allt | Inte kört | inte kört | inte kört |
 | Tvångsvård > skyddad identitet maskeras i bevakningen, och nödåtkomst ger bara läsning | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera ett intagningsbeslut inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Registrera ett intagningsbeslut inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.2.3.3 Psykiatrisk tvångsvård med parallella vårdprocesser
 
@@ -1819,7 +1819,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Akutmottagningen > en förvarning från ambulansen tas emot och blir en ankomst med prehospitala uppgifter | Inte kört | inte kört | inte kört |
 | Akutmottagningen > den direkta ankomsten tar bara patient och kontaktorsak från anropet, och ankomstsätt, prioritet, triage och prehospitala uppgifter ignoreras | Inte kört | inte kört | inte kört |
 | Akutmottagningen > vårdrelationen uppstår bara när en annan person bekräftar den, också efter en förvarning, och bekräftelsen loggas | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera en ankomst på akutmottagningen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Registrera en ankomst på akutmottagningen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.3.1.1 Funktion för vårdbegäran
 
@@ -1831,7 +1831,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Remiss > steg kan inte hoppas över | Inte kört | inte kört | inte kört |
 | Remiss > ny remiss valideras | Inte kört | inte kört | inte kört |
 | API > helflöde: remiss genom hela statuskedjan | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Skicka remiss inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Skicka remiss inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.3.1.2 Vårdbegäran till och från externa vårdgivare
 
@@ -1842,8 +1842,8 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Remiss, del 3 > extern pappersremiss: registreras från en inskannad remiss med avsändare ur den simulerade HSA-katalogen eller som fritext och går in i samma flöde | Inte kört | inte kört | inte kört |
 | Remiss, del 3 > extern pappersremiss: registreringen ger ingen läsrätt, den som registrerade tar inte emot och bedömer inte, och vårdrelationen uppstår när någon annan tar emot | Inte kört | inte kört | inte kört |
 | Remiss, del 3 > extern pappersremiss: skyddad identitet maskeras och en spärr röjs inte, och registreringen ger ingen åtkomst till de spärrade uppgifterna | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera en pappersremiss inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Sussas testfall > 2.5 Registrera en extern vårdbegäran (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
+| Gränssnitt > Klickbudget > Registrera en pappersremiss inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Sussas testfall > 2.5 Registrera en extern vårdbegäran (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
 
 ### 3.3.1.3 Presentation
 
@@ -1874,7 +1874,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Testfall | Resultat | Körning | Tid |
 | --- | --- | --- | --- |
 | Remiss > ny remiss valideras | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Skicka remiss inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Skicka remiss inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | API > helflöde: remiss genom hela statuskedjan | Inte kört | inte kört | inte kört |
 | Remiss, del 2 > ett utkast fylls i av systemet, kan sparas och ändras av den som skrev det och skickas när det är klart | Inte kört | inte kört | inte kört |
 | Remiss, del 2 > ett utkast kan återanvända en tidigare remiss som användaren får läsa | Inte kört | inte kört | inte kört |
@@ -1882,12 +1882,12 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Remiss, del 2 > avsändaren kompletterar en skickad remiss med en bilaga, men inte efter svaret och inte från en annan vårdenhet | Inte kört | inte kört | inte kört |
 | Remiss, del 3 > på uppdrag: vårdadministratören skriver remissen med en läkare som remittent, systemet föreslår läkaren och remissen skickas när läkaren har signerat i inkorgen | Inte kört | inte kört | inte kört |
 | Remiss, del 3 > på uppdrag: den som skriver ser aldrig remissens text eller läkarens anteckning, och bara den namngivna läkaren signerar | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Skriva en remiss på uppdrag av en läkare inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Sussas testfall > 2.2 Upprätta och skicka vårdbegäran på uppdrag (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
+| Gränssnitt > Klickbudget > Skriva en remiss på uppdrag av en läkare inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Sussas testfall > 2.2 Upprätta och skicka vårdbegäran på uppdrag (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
 | Remiss, del 4 > konsultation: typen väljs när remissen skapas och följer med utkast, återanvändning, på uppdrag och vidarebefordran | Inte kört | inte kört | inte kört |
 | Remiss, del 4 > konsultation: en ServiceRequest med kategorin konsultation skapar en konsultation genom FHIR, och utan kategori blir det en remiss | Inte kört | inte kört | inte kört |
 | Remiss, del 4 > bilagor: storleken och antalet är parametrar som systemförvaltaren sätter, med demons gränser som förval | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Skicka en konsultation inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Skicka en konsultation inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.3.1.5 Mottagande och svar
 
@@ -1898,17 +1898,17 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Remiss > bara mottagande enhet kan kvittera, bedöma och svara | Inte kört | inte kört | inte kört |
 | Remiss > avvisning kräver motivering och avslutar kedjan | Inte kört | inte kört | inte kört |
 | Remiss > bara avsändaren kan kvittera svaret | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Kvittera remissvar inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Kvittera remissvar inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Remiss, del 2 > vidarebefordran till en annan vårdenhet med motivering: systemet kvitterar mottagningen och avsändaren ser var remissen är | Inte kört | inte kört | inte kört |
 | Remiss, del 2 > avsändaren kompletterar en skickad remiss med en bilaga, men inte efter svaret och inte från en annan vårdenhet | Inte kört | inte kört | inte kört |
 | Remiss, del 3 > fördelning: en inkommande remiss fördelas till en namngiven läkare med två klick, systemet kvitterar mottagningen och läkaren får den i inkorgen | Inte kört | inte kört | inte kört |
 | Remiss, del 3 > besök inom: en accepterad remiss hamnar på väntelistan med den tidsram som läkaren väljer | Inte kört | inte kört | inte kört |
 | Remiss, del 3 > remisskonferens: nästa konferens är tisdag eller torsdag klockan 8 och räknas från en fast tid | Inte kört | inte kört | inte kört |
 | Remiss, del 3 > remisskonferens: systemet sätter remissen på nästa konferens, läkaren bedömer i följd och vårdadministratören registrerar beslut på uppdrag med läkaren som ansvarig | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Fördela en remiss till en läkare inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Sussas testfall > 2.3 Ta emot vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.3 Ta emot vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.4 Ta emot vårdbegäran på uppdrag (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
+| Gränssnitt > Klickbudget > Fördela en remiss till en läkare inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Sussas testfall > 2.3 Ta emot vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.3 Ta emot vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.4 Ta emot vårdbegäran på uppdrag (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
 | Remiss, del 4 > konsultation: mottagaren svarar direkt med ett konsultationssvar, systemet kvitterar mottagning och bedömning och vårdansvaret stannar hos remittenten | Inte kört | inte kört | inte kört |
 | Remiss, del 4 > beslut på uppdrag: hamnar i den ansvariga läkarens inkorg och kvitteras av läkaren i egen inloggning | Inte kört | inte kört | inte kört |
 | Remiss, del 4 > beslut på uppdrag: läkaren som inte håller med öppnar remissen igen för egen bedömning, och väntelistans post avslutas | Inte kört | inte kört | inte kört |
@@ -1943,12 +1943,12 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Tidbok > systemet föreslår tider med rätt tidstyp och yrkesroll, före gränsen, hos tidigare vårdgivare och inte samma dag som en annan tid | Inte kört | inte kört | inte kört |
 | Tidbok > en remiss bokas med ett klick: bokningen blir en planerad vårdkontakt och kallelsen går ut av sig själv | Inte kört | inte kört | inte kört |
 | Tidbok > väntelistan lyfter den som riskerar att passera gränsen, och omprioritering kräver orsak och sparas | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Boka tid för en remiss inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Boka tid för en remiss inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Återbesök > planeringen i texten tolkas: tidstyp, yrkesroll och tidsram | Inte kört | inte kört | inte kört |
 | Återbesök > systemet föreslår återbesöket ur anteckningens planering, och läkaren sätter upp det med ett klick | Inte kört | inte kört | inte kört |
 | Återbesök > utan planering i texten föreslår systemet ur diagnosen och den senaste kontakten, och läkaren kan ändra förslaget | Inte kört | inte kört | inte kört |
 | Återbesök > säkerhet: skriv_journal och vårdrelation på egen vårdenhet krävs, och anteckningar som inte får läsas används inte | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Sätta upp ett återbesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Sätta upp ett återbesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Vårdhändelse i tidboken > utan bokning hamnar vårdhändelsen på väntelistan, och vårdadministratören bokar den som vanligt i Dagens arbete | Inte kört | inte kört | inte kört |
 
 ### 3.4.1.2 Resursplanering kopplad till patient
@@ -1963,10 +1963,10 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Planering > seeden har lokaler, utrustning och en simulerad sjukresa som resurser, och tidstypen ingrepp med vad den kräver | Inte kört | inte kört | inte kört |
 | Planering > systemet föreslår bara ingreppstider där personal, behandlingsrum och defibrillator är lediga, och bokar allt samtidigt | Inte kört | inte kört | inte kört |
 | Planering > ombokning flyttar rum, utrustning och sjukresa, och avbokning släpper dem | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Boka elkonvertering med rum och utrustning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Boka elkonvertering med rum och utrustning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Bokning, del 3 > teambesök: systemet föreslår teamet och tider där alla och ett rum är lediga, och teamets tider blir upptagna | Inte kört | inte kört | inte kört |
 | Bokning, del 3 > teambesök: färre än två vårdgivare eller en vårdgivare från en annan vårdenhet nekas | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Boka ett teambesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Boka ett teambesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.4.1.3 Åtgärder och bevakningar på individ- och enhetsnivå
 
@@ -1990,13 +1990,13 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Tidbok > systemet föreslår tider med rätt tidstyp och yrkesroll, före gränsen, hos tidigare vårdgivare och inte samma dag som en annan tid | Inte kört | inte kört | inte kört |
 | Tidbok > en remiss bokas med ett klick: bokningen blir en planerad vårdkontakt och kallelsen går ut av sig själv | Inte kört | inte kört | inte kört |
 | Tidbok > skyddad identitet: kallelser bara i Min journal med förklaring, och inget namn i listorna eller på incheckningsskärmen | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Boka tid för en remiss inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Boka tid för en remiss inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Återbesök > systemet föreslår återbesöket ur anteckningens planering, och läkaren sätter upp det med ett klick | Inte kört | inte kört | inte kört |
 | Återbesök > utan planering i texten föreslår systemet ur diagnosen och den senaste kontakten, och läkaren kan ändra förslaget | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Sätta upp ett återbesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Sätta upp ett återbesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Planering > provtagning före läkarbesök: systemet föreslår tiderna i följd med rätt mellanrum och bokar båda med ett klick | Inte kört | inte kört | inte kört |
 | Planering > tider i följd: ombokning flyttar provtagningen med, och avbokning avbokar båda | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Boka provtagning före läkarbesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Boka provtagning före läkarbesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Arbetsdagen på mottagningarna (runda 13, r4) > mitt på dagen har några patienter kommit och några väntas | Inte kört | inte kört | inte kört |
 | Arbetsdagen på mottagningarna (runda 13, r4) > en ankomst som registreras i efterhand räknas från den bokade tiden | Inte kört | inte kört | inte kört |
 
@@ -2019,7 +2019,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Kapacitet och prognos > patienter som riskerar att passera gränsen ger förslag på fler tider, och lokaler och utrustning visas per vecka | Inte kört | inte kört | inte kört |
 | Kapacitet och prognos > översikten har inga patientuppgifter och är bara för vårdadministratören | Inte kört | inte kört | inte kört |
 | Kontorsstöd > rapporterna för kassan och kapaciteten som Word-dokument utan patientuppgifter | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Se vårdenhetens kapacitet och prognos för väntelistan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Se vårdenhetens kapacitet och prognos för väntelistan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.4.1.6 Presentation av planering
 
@@ -2036,16 +2036,16 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Avdelningens planering > dagens händelser på avdelningen per patient med uppgifter, läkemedel att ge och bokade tider (testfall 7.1 och 7.2) | Inte kört | inte kört | inte kört |
 | Avdelningens planering > patientens planering över flera dagar och en resurs planering för veckan (testfall 7.3 och 7.4) | Inte kört | inte kört | inte kört |
 | Avdelningens planering > en bokad tid på en annan vårdenhet syns inte utan aktivt val, och svaret är detsamma med och utan den | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Överblicka dagens händelser på avdelningen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.2 Överblicka dagens händelser för en grupp patienter (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.2 Överblicka dagens händelser för en grupp patienter (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.3 Överblicka patientens planering (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.3 Överblicka patientens planering (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.4 Visualisera en specifik resurs arbetsplanering (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.4 Visualisera en specifik resurs arbetsplanering (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
+| Gränssnitt > Klickbudget > Överblicka dagens händelser på avdelningen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.2 Överblicka dagens händelser för en grupp patienter (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.2 Överblicka dagens händelser för en grupp patienter (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.3 Överblicka patientens planering (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.3 Överblicka patientens planering (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.4 Visualisera en specifik resurs arbetsplanering (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.4 Visualisera en specifik resurs arbetsplanering (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
 
 ### 3.4.1.7 Hantering av väntelista
 
@@ -2068,14 +2068,14 @@ Inte alla testfall godkända. Status i registret: delvis.
 | --- | --- | --- | --- |
 | API > arbetslista maskerar skyddad identitet | Inte kört | inte kört | inte kört |
 | API > inkorgen visar larm, okvitterade svar och NLL-avvikelser | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Öppna patient från arbetslistan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Öppna patient från arbetslistan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Tidbok > startsidan visar dagens arbete i ordning med en enda nästa åtgärd per rad | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Checka in en patient inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Checka in en patient inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Planering > Dagens arbete visar en fritt vald tidsperiod | Inte kört | inte kört | inte kört |
 | Planering > egna bevakningar på individ- och enhetsnivå med datum och ansvarig syns i Dagens arbete och inkorgen | Inte kört | inte kört | inte kört |
 | Avdelningens planering > dagens händelser på avdelningen per patient med uppgifter, läkemedel att ge och bokade tider (testfall 7.1 och 7.2) | Inte kört | inte kört | inte kört |
 | Avdelningens planering > systemet avgör typ, yrkesroll, längd och tid ur texten när en uppgift planeras, och undersköterskan registrerar att den är utförd | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Överblicka dagens händelser på avdelningen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Överblicka dagens händelser på avdelningen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.4.2.1 Bokning
 
@@ -2090,12 +2090,12 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Tidbok > utan vårdrelation eller remiss nekas bokningen, och en annan vårdenhets tidbok går inte att använda | Inte kört | inte kört | inte kört |
 | Tidbok, säkerhetsgranskning > en bokning ger inte bestående vårdrelation när remissen avvisas: tiden avbokas och patienten får besked | Inte kört | inte kört | inte kört |
 | Tidbok, säkerhetsgranskning > en planerad kontakt ger vårdrelation bara till 90 dagar efter tiden | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Boka tid för en remiss inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Boka om en tid inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Boka tid för en remiss inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Boka om en tid inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Bokning, del 3 > fri bokning: systemet väljer besökstyp, vårdgivare och tider, och bokningen skapar vårdkontakten och kallelsen | Inte kört | inte kört | inte kört |
 | Bokning, del 3 > fri bokning: utan vårdrelation, fel roll, en annan vårdenhets tid och en gruppträff nekas | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Boka en patient fritt inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Sussas testfall > 5.1 Boka patient till ett besök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
+| Gränssnitt > Klickbudget > Boka en patient fritt inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Sussas testfall > 5.1 Boka patient till ett besök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
 
 ### 3.4.2.2 Bokning
 
@@ -2108,23 +2108,23 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Tidbok > ombokning flyttar den planerade vårdkontakten och systemet skickar en ny kallelse | Inte kört | inte kört | inte kört |
 | Tidbok > avbokning tar bort den planerade kontakten, lägger tillbaka posten på väntelistan och meddelar patienten | Inte kört | inte kört | inte kört |
 | Tidbok > kallelsen skrivs ur bokningen på enkel svenska, med kanal vald av systemet och utan journaltext | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Boka tid för en remiss inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Boka om en tid inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Boka tid för en remiss inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Boka om en tid inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Planering > systemet föreslår bara ingreppstider där personal, behandlingsrum och defibrillator är lediga, och bokar allt samtidigt | Inte kört | inte kört | inte kört |
 | Planering > provtagning före läkarbesök: systemet föreslår tiderna i följd med rätt mellanrum och bokar båda med ett klick | Inte kört | inte kört | inte kört |
 | Planering > tidboken visar resursernas arbetslista och bokningsmallarna, och utan namn inga patientuppgifter | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Boka elkonvertering med rum och utrustning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Boka provtagning före läkarbesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Boka elkonvertering med rum och utrustning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Boka provtagning före läkarbesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Bokning, del 3 > fri bokning: systemet väljer besökstyp, vårdgivare och tider, och bokningen skapar vårdkontakten och kallelsen | Inte kört | inte kört | inte kört |
 | Bokning, del 3 > teambesök: systemet föreslår teamet och tider där alla och ett rum är lediga, och teamets tider blir upptagna | Inte kört | inte kört | inte kört |
 | Bokning, del 3 > gruppträff: platser kvar, kallelser som går ut för hela gruppen och direkt för den som läggs till efteråt | Inte kört | inte kört | inte kört |
 | Bokning, del 3 > gruppträff: en full träff ger plats på gruppens väntelista, och systemet föreslår den som har väntat längst | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Boka en patient fritt inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Boka ett teambesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Lägga till en patient i en gruppträff inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Sussas testfall > 5.1 Boka patient till ett besök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.2 Boka ett teambesök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.3 Boka ett gruppbesök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
+| Gränssnitt > Klickbudget > Boka en patient fritt inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Boka ett teambesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Lägga till en patient i en gruppträff inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Sussas testfall > 5.1 Boka patient till ett besök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.2 Boka ett teambesök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.3 Boka ett gruppbesök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
 | Bokning från väntelistan (runda 13, r4, E3-10 och E3-47) > en inskriven patient får förslag från några dagar efter i dag, med hans kommande tider på vårdenheten | Inte kört | inte kört | inte kört |
 | Bokning från väntelistan (runda 13, r4, E3-10 och E3-47) > systemet föreslår inte en tid som ett brev inte hinner fram till, och ett brev till en för nära tid skickas inte | Inte kört | inte kört | inte kört |
 
@@ -2137,7 +2137,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Tidbok > patienten bokar om och avbokar i Min journal på de tidstyper mottagningen öppnar, med samma förslag | Inte kört | inte kört | inte kört |
 | Tidbok > egenbokning stängs 24 timmar före tiden och för tidstyper som mottagningen inte öppnar | Inte kört | inte kört | inte kört |
 | Tidbok > patienten checkar in själv i Min journal och ankomsten registreras på vårdkontakten | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Patienten bokar om sin tid i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Patienten bokar om sin tid i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Tidbok, egenbokning > patientens egenbokning gäller bara återbesök, telefon och video, aldrig nybesök | Inte kört | inte kört | inte kört |
 | Vårdhändelse i tidboken > en tid som styr en läkemedelsdos kan patienten inte boka om själv i Min journal | Inte kört | inte kört | inte kört |
 | Ombud > patienten ger fullmakt i Min journal, och ombudet bokar, bokar om och avbokar patientens tider med loggning på patienten | Inte kört | inte kört | inte kört |
@@ -2149,7 +2149,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Ombud > en fullmakt i Min journal röjer aldrig vem ett personnummer tillhör, skyddad identitet registreras bara av personal, och försöken har ett tak | Inte kört | inte kört | inte kört |
 | Ombud > en fullmakt från Min journal gäller först när ombudet har godkänt den, och svaret är detsamma för alla nummer som inte kan bli ombud | Inte kört | inte kört | inte kört |
 | Ombud > registreringar och återkallelser har ett tak per dygn, ett ombud kan avböja och en skriftlig fullmakt hos vården gäller direkt | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Boka en tid för patienten som ombud inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Boka en tid för patienten som ombud inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.4.3.1 Kommunikationsalternativ för kallelse och påminnelse
 
@@ -2173,7 +2173,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Tidbok > gruppkallelse skickar en kallelse till varje deltagare och loggas per patient | Inte kört | inte kört | inte kört |
 | Tidbok > exemplet på gruppkallelsen skrivs ur en mall och aldrig ur en sparad kallelse till en patient | Inte kört | inte kört | inte kört |
 | Tidbok > påminnelsen skickas automatiskt två dagar före tiden | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Skicka en gruppkallelse inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Skicka en gruppkallelse inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.4.3.3 Kallelse och påminnelse
 
@@ -2201,15 +2201,15 @@ Inte alla testfall godkända. Status i registret: delvis.
 | --- | --- | --- | --- |
 | Vårdkontakt > vårdadministratören registrerar ett oplanerat besök med förval ur sammanhanget | Inte kört | inte kört | inte kört |
 | Vårdkontakt > patientavgiften räknas ur kontakttyp och regler och är märkt som demoregler | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera ett besök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Registrera ett besök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Tidbok > incheckning registrerar ankomsten på den planerade vårdkontakten, ger konummer och visar avgiften | Inte kört | inte kört | inte kört |
 | Tidbok > betalningen räknas av systemet: kort, faktura, frikort och avgiftsfrihet, simulerad och märkt | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Checka in en patient inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Checka in en patient inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Kassan > betalning i den simulerade terminalen och återbetalning med kvitto samma väg, en gång | Inte kört | inte kört | inte kört |
 | Kassan > kassaredovisning per kassör och betalsätt och dagsavslut som inte kan ändras, med avstämning mot terminalen | Inte kört | inte kört | inte kört |
 | Kassan > fel roll och en annan vårdenhet nekas, avgifter för tjänster finns inte i kassan, och redovisningen har inga patientuppgifter | Inte kört | inte kört | inte kört |
 | Kontorsstöd > rapporterna för kassan och kapaciteten som Word-dokument utan patientuppgifter | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Göra dagsavslut i kassan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Göra dagsavslut i kassan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.4.4.2 Incheckning som patienten gör själv
 
@@ -2234,9 +2234,9 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Vårdkontakt > den som dokumenterar kan ändra kontakten som systemet skapade, men inte en annan enhets | Inte kört | inte kört | inte kört |
 | Vårdkontakt > yrkesrollen avgör vem som registrerar kontakter och vem som skriver in och ut | Inte kört | inte kört | inte kört |
 | Vårdkontakt > vårdtillfället hålls samman vid sektionsbyte, sängbyte och permission utan att något registreras om | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera ett besök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Planera ett videobesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Skriva in en patient inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Registrera ett besök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Planera ett videobesök inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Skriva in en patient inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Arbetsdagen på mottagningarna (runda 13, r4) > en ankomst som registreras i efterhand räknas från den bokade tiden | Inte kört | inte kört | inte kört |
 
 ### 3.4.4.4 Stöd vid betalning av patientavgifter
@@ -2262,7 +2262,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Meddelanden från invånare > läkaren förnyar receptet och systemet skapar avgiften och svaret till patienten | Inte kört | inte kört | inte kört |
 | Kassan > patienten betalar en avgift för en tjänst i Min journal, och ett ombud ser den inte | Inte kört | inte kört | inte kört |
 | Kassan > fel roll och en annan vårdenhet nekas, avgifter för tjänster finns inte i kassan, och redovisningen har inga patientuppgifter | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Förnya ett recept som patienten har bett om i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Förnya ett recept som patienten har bett om i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.4.4.5 Incheckning
 
@@ -2301,7 +2301,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Kollegakontroll av högriskläkemedel > systemförvaltaren styr grupperna som parametrar med fyra ögon, och en avstängd grupp kontrolleras inte | Inte kört | inte kört | inte kört |
 | Kollegakontroll av högriskläkemedel > den sparade kontrollen avgör: ett annat läkemedel eller en annan ordination i anropet, eller en avstängd parameter, öppnar inte en okontrollerad dos | Inte kört | inte kört | inte kört |
 | Kollegakontroll av högriskläkemedel > inkorgen visar antalet doser som väntar på kontroll utan patientuppgifter, och aldrig den egna dosen | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Skicka läkemedelsberättelsen till nästa vårdgivare inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Skicka läkemedelsberättelsen till nästa vårdgivare inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.5.1.2 Läkemedelsinformation i vyer
 
@@ -2325,11 +2325,11 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Mallar med flera ordinationer > läkaren ordinerar ur en mall: systemet fyller i allt, varnar per ordination och tar själv bort ett läkemedel som patienten redan har | Inte kört | inte kört | inte kört |
 | Mallar med flera ordinationer > ordinationerna i mallen knyts till samma planerade vårdhändelse och en annan allvarlig varning kräver motivering | Inte kört | inte kört | inte kört |
 | Mallar med flera ordinationer > säkerhet: mallen gäller bara sin vårdenhet, sjuksköterskan ordinerar inte ur mallar, bara läkare upprättar en mall och den används först när den är godkänd | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Ordinera från en mall med flera ordinationer inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Ordinera från en mall med flera ordinationer inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Godkännande av läkemedelsmallar > mallansvarig läkare godkänner en ändrad mall från inkorgen: den gamla används tills den nya är godkänd, och historiken sparas | Inte kört | inte kört | inte kört |
 | Godkännande av läkemedelsmallar > säkerhet: bara den mallansvariga läkaren på vårdenheten godkänner, och nekade försök loggas | Inte kört | inte kört | inte kört |
 | Godkännande av läkemedelsmallar > en ändrad läkemedelsmall per substans kräver nytt godkännande per vårdenhet, och förslaget använder den godkända versionen | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Godkänna en ändrad läkemedelsmall inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Godkänna en ändrad läkemedelsmall inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Doseringsmallar per produkt > Alvedon forte 1 g och paracetamol som infusion får egna förslag ur produkten, inte tablettdosen för 500 mg | Inte kört | inte kört | inte kört |
 | Doseringsmallar per produkt > en annan styrka i samma form får samma antal tabletter och dosen ur styrkan, och en annan form får inte substansens mall | Inte kört | inte kört | inte kört |
 
@@ -2405,7 +2405,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Vaccinationsprogram > barnhälsovården registrerar bara vaccin i sitt eget program och hänvisar andra vacciner till vaccinationsprogrammens flöde, som prövar dem | Inte kört | inte kört | inte kört |
 | Vaccinationsprogram > åldern för vattkoppor, åldersgränsen och riskgrupperna är parametrar som systemförvaltaren sätter med fyra ögon, och programmet följer dem | Inte kört | inte kört | inte kört |
 | Vaccinationsprogram > FHIR: vaccinationerna i programmen är Immunization med samma behörighet | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Ge en vaccination i programmet för riskgrupper inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Ge en vaccination i programmet för riskgrupper inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Vaccinationer (runda 13, r4, E2-38 och E2-39) > barnhälsovårdens doser står i fliken Vaccinationer, och åldern räknas från födelsedagen | Inte kört | inte kört | inte kört |
 | Vaccinationer (runda 13, r4, E2-38 och E2-39) > en dos ges bara när patienten är frisk i dag, och batch, utgångsdatum och injektionsställe sparas | Inte kört | inte kört | inte kört |
 
@@ -2470,7 +2470,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Registrering i efterhand och makulering > säkerhet: en annan vårdenhet, nödåtkomst och en spärrad dos kan inte makuleras, och nekade försök loggas | Inte kört | inte kört | inte kört |
 | Säkerhetsgranskning av läkemedelsprocessen del 2 > en muntlig ordination prövas mot när registreringen görs: en bakdaterad dos efter fönstret stoppas | Inte kört | inte kört | inte kört |
 | Säkerhetsgranskning av läkemedelsprocessen del 2 > ett iordningsställande i efterhand får inte ligga före ordinationen eller i framtiden | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera en dos i efterhand inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Registrera en dos i efterhand inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.5.2.3 Vätskebalans i läkemedelsprocessen
 
@@ -2515,7 +2515,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Läkemedel > ordinationsorsak är obligatorisk | Inte kört | inte kört | inte kört |
 | Läkemedel > databasen vägrar ordination utan orsak (CHECK) | Inte kört | inte kört | inte kört |
 | Seed > alla ordinationer har orsak och uppföljningsdatum | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Ordinera ett läkemedel utan varning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Ordinera ett läkemedel utan varning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.5.2.7 Ordination kopplad till planerad vårdhändelse
 
@@ -2540,7 +2540,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Avvisad remiss med vårdhändelse > Behåll finns bara när den ordinerande läkaren eller en annan vårdenhet har grund, och sätter då upp vårdhändelsen igen | Inte kört | inte kört | inte kört |
 | Avvisad remiss med vårdhändelse > säkerhet: ett läkemedel som den som avvisar inte får se sätts inte ut, och vårdenhetens läkare får besked utan patientuppgifter | Inte kört | inte kört | inte kört |
 | Avvisad remiss med vårdhändelse > säkerhet: bara vårdenhetens läkare som remissen är ställd till kan förhandsvisa och avvisa, och nekade försök loggas | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Avvisa en remiss och sätta ut läkemedlet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Avvisa en remiss och sätta ut läkemedlet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Avbokad vårdhändelse utan grund > raden går till den ordinerande läkaren, annars till den medicinskt ansvariga läkaren och annars till alla läkare, och verksamhetschefen påminns | Inte kört | inte kört | inte kört |
 
 ### 3.5.2.8 Varning vid utsättning av läkemedel med särskilda observationer
@@ -2552,20 +2552,20 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Utsättning > utsättning av betablockerare ger varning och kräver bekräftelse | Inte kört | inte kört | inte kört |
 | Utsättning > utsättning utan särskilda observationer ger ingen varning, och antikoagulantia kräver en plan | Inte kört | inte kört | inte kört |
 | Utsättning > utsättningsreglerna ligger i en egen modul och är märkta som demoregler | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Sätta ut ett läkemedel med varning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Sätta ut ett läkemedel med varning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Utsättning av antikoagulantia > utsättning av Waran kräver en plan, som sparas med utsättningen och syns i listan och i FHIR | Inte kört | inte kört | inte kört |
 | Utsättning av antikoagulantia > vid byte föreslår systemet det nya antikoagulantia som redan är ordinerat | Inte kört | inte kört | inte kört |
 | Utsättning av antikoagulantia > plan via API, och läkemedel utan antikoagulantia sätts ut utan plan | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Sätta ut Waran med plan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Sätta ut Waran med plan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Återinsättning efter uppehåll > dagen före och på dagen får läkaren en rad i inkorgen med läkemedlet, planen och en knapp till läkemedelslistan | Inte kört | inte kört | inte kört |
 | Återinsättning efter uppehåll > raden går till den ordinerande läkaren, den som beslutade om uppehållet och vårdenhetens läkare, aldrig till andra roller | Inte kört | inte kört | inte kört |
 | Återinsättning efter uppehåll > raden försvinner när läkemedlet är insatt igen eller ordinationen ändras, men inte av en bryggbehandling | Inte kört | inte kört | inte kört |
 | Återinsättning efter uppehåll > säkerhet: bara patienter som användaren får se, och aldrig uppgifter från en spärrad vårdenhet | Inte kört | inte kört | inte kört |
 | Återinsättning i inkorgen via API > API: inkorgen visar raden med skyddad identitet maskerad, loggar åtkomsten och leder till läkemedelslistan | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Sätta in Waran igen efter ett uppehåll inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Sätta in Waran igen efter ett uppehåll inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Avslutad behandling efter uppehåll > läkaren avslutar behandlingen med en orsak som systemet föreslår, sparat i historiken och i FHIR, och raden försvinner för alla mottagare | Inte kört | inte kört | inte kört |
 | Avslutad behandling efter uppehåll > säkerhet: bara en läkare som är mottagare och får se patienten, aldrig från en spärrad vårdenhet, och nekade försök loggas | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Avsluta behandlingen efter ett uppehåll inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Avsluta behandlingen efter ett uppehåll inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.5.2.9 Vidimering av samlade pågående ordinationer
 
@@ -2576,7 +2576,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Vidimering > vidimering visar ändringar sedan senaste vidimeringen och vidimeras med ett klick | Inte kört | inte kört | inte kört |
 | Vidimering > vidimering kräver läkare med vårdrelation och omfattar inte spärrade ordinationer, inte ens med samtycke | Inte kört | inte kört | inte kört |
 | Administrering via API > FHIR > MedicationAdministration med samma behörighet som läkemedelslistan, och List för vidimeringen | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Vidimera pågående ordinationer inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Vidimera pågående ordinationer inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.5.2.10 Läkemedelsprocess
 
@@ -2587,7 +2587,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Läkemedel > utsättning kräver orsak och inget raderas | Inte kört | inte kört | inte kört |
 | Administrering > ge en dos: med tid och den som gav den, knuten till vårdtillfällets vårdkontakt | Inte kört | inte kört | inte kört |
 | Administrering > administreringar raderas inte och en given dos ändras inte (trigger) | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Ge en dos inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Ge en dos inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Uppföljning av läkemedel > en passerad uppföljning hamnar i läkarens inkorg, och en utvärdering med beslut sätter nästa uppföljning | Inte kört | inte kört | inte kört |
 | Registrering i efterhand och makulering > en felaktig registrering makuleras med orsak och historik och raderas aldrig, och dosen blir att ge igen | Inte kört | inte kört | inte kört |
 | Vyer för läkemedel > dosering över flera dygn räknas fram ur ordinationerna, med status för givna doser och trappschemats dos per dag | Inte kört | inte kört | inte kört |
@@ -2605,7 +2605,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Dosändring > en ny dosering från ett senare datum gäller av sig själv när dagen kommer, också i Läkemedel att ge | Inte kört | inte kört | inte kört |
 | Dosändring > säkerhet: dosändring kräver ordinationsrätt och vårdrelation, inte trappschema, och en spärrad enhets ordination röjs inte | Inte kört | inte kört | inte kört |
 | Dosändring > API: dosändring med loggning och FHIR | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Ändra dosen i en pågående ordination inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Ändra dosen i en pågående ordination inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.5.2.12 Ordination
 
@@ -2616,7 +2616,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Läkemedel > ordinationsorsak är obligatorisk | Inte kört | inte kört | inte kört |
 | Läkemedel > uppföljningsdatum är obligatoriskt | Inte kört | inte kört | inte kört |
 | Läkemedel > sjuksköterska kan inte ordinera | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Ordinera ett läkemedel utan varning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Ordinera ett läkemedel utan varning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Mallar med flera ordinationer > läkaren ordinerar ur en mall: systemet fyller i allt, varnar per ordination och tar själv bort ett läkemedel som patienten redan har | Inte kört | inte kört | inte kört |
 | Upp- och nedtrappning > systemet föreslår ett nedtrappningsschema för kortison och räknar dosen för varje dag i Läkemedel att ge | Inte kört | inte kört | inte kört |
 | Upp- och nedtrappning > upptrappning fortsätter med slutdosen, och en dos som inte går att ge med produkten förklaras | Inte kört | inte kört | inte kört |
@@ -2629,7 +2629,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Dosändring > en ny dosering från ett senare datum gäller av sig själv när dagen kommer, också i Läkemedel att ge | Inte kört | inte kört | inte kört |
 | Dosändring > säkerhet: dosändring kräver ordinationsrätt och vårdrelation, inte trappschema, och en spärrad enhets ordination röjs inte | Inte kört | inte kört | inte kört |
 | Muntlig ordination i följd > läkaren och skälet föreslås från sjuksköterskans förra muntliga ordination, bara för samma patient och inom två timmar | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Ändra dosen i en pågående ordination inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Ändra dosen i en pågående ordination inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Egenadministrering i slutenvården > en ordination som patienten sköter själv kommer inte med bland doserna att ge, och sjuksköterskan kvitterar intaget per dostid | Inte kört | inte kört | inte kört |
 | Egenadministrering i slutenvården > systemet förklarar varför en blodprodukt, en infusion och narkotika inte kan skötas av patienten själv | Inte kört | inte kört | inte kört |
 | Doser i flytande form och gasform > syrgas ordineras i liter per minut med utrustning och mål för saturationen, och systemet stoppar ett flöde som utrustningen inte ger | Inte kört | inte kört | inte kört |
@@ -2643,7 +2643,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Läkemedel > ordinationsorsak är obligatorisk | Inte kört | inte kört | inte kört |
 | Läkemedel > databasen vägrar ordination utan orsak (CHECK) | Inte kört | inte kört | inte kört |
 | Läkemedel > utsättning kräver orsak och inget raderas | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Sätta ut ett läkemedel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Sätta ut ett läkemedel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.5.2.14 Ordination inför planerad vårdhändelse
 
@@ -2653,7 +2653,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | --- | --- | --- | --- |
 | Fördefinierade ordinationer > ordination till planerad vårdhändelse får administrationstid när händelsen tidsätts | Inte kört | inte kört | inte kört |
 | Mallar med flera ordinationer > ordinationerna i mallen knyts till samma planerade vårdhändelse och en annan allvarlig varning kräver motivering | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Ordinera från en mall med flera ordinationer inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Ordinera från en mall med flera ordinationer inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.5.2.15 Ordination enligt generella direktiv
 
@@ -2701,7 +2701,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Administrering > nekas: nödåtkomst och aktivt val ger inte rätt att ge läkemedel | Inte kört | inte kört | inte kört |
 | Administrering > per avdelning visar bara patienter som användaren får se, med skyddad identitet maskerad och spärrade ordinationer dolda | Inte kört | inte kört | inte kört |
 | Administrering via API > Läskopia > en given dos finns i läskopians läkemedelsdel, identisk med det vanliga anropet | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Ge en dos inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Ge en dos inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Läkare ger läkemedel > läkare får ge en dos med samma kontroller och loggning som sjuksköterskan | Inte kört | inte kört | inte kört |
 | Delegering > undersköterska med giltig delegering ger en tablett, och delegeringen syns i dosen och i FHIR | Inte kört | inte kört | inte kört |
 | Delegering > undersköterska: en dos som delegeringen inte omfattar nekas och förklaras, och knappen visas inte | Inte kört | inte kört | inte kört |
@@ -2722,8 +2722,8 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Säkerhetsgranskning av delegering och dos > avvikande dos räknas som dos gånger antal, så antal kringgår inte varningen | Inte kört | inte kört | inte kört |
 | Säkerhetsgranskning av delegering och dos > administrationssättet ska passa läkemedelsformen, och delegeringens kategori bestäms av formen | Inte kört | inte kört | inte kört |
 | Säkerhetsgranskning av delegering och dos > en delegering ska gälla både när en dos iordningsställs och för dostiden | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Ge en dos med delegering inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Registrera en delegering inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Ge en dos med delegering inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Registrera en delegering inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Delegering av läkare > läkaren registrerar och återkallar delegering på samma villkor som sjuksköterskan: samma vårdenhet, inte för sig själv och samma gränser för giltighet | Inte kört | inte kört | inte kört |
 | Delegering av läkare > läkaren påminns bara om de delegeringar som läkaren själv har utfärdat, sjuksköterskan som förut | Inte kört | inte kört | inte kört |
 | Delegering via API > API: läkaren registrerar en delegering under Delegeringar, och undersköterskan ger med den | Inte kört | inte kört | inte kört |
@@ -2834,7 +2834,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Förbrukningsartiklar > ny förskrivning, ändring, förnyelse, utsättning och återinsättning för egenkontroll, tillförsel och stomi, med historik och överföring till NLL | Inte kört | inte kört | inte kört |
 | Förbrukningsartiklar > kontroller: en dubbelförskrivning stoppas med förslag om förnyelse, en stor mängd kräver motivering och en artikel som inte passar listan ger en observation | Inte kört | inte kört | inte kört |
 | Förbrukningsartiklar > en förskrivning från en annan förskrivare registreras med vem och när, utan att skickas till NLL | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Förskriva förbrukningsartiklar ur en mall inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Förskriva förbrukningsartiklar ur en mall inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.5.5.1 Klinisk prövning
 
@@ -2868,8 +2868,8 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Medicinteknik > värden från utrustning är referens tills en behörig person godkänner dem, och först då räknas de i NEWS2 och larm | Inte kört | inte kört | inte kört |
 | Intensivvård > övervakningsvyn har täta värden från den simulerade patientmonitorn och kurvor där monitorns värden är märkta | Inte kört | inte kört | inte kört |
 | Medicinteknik > en patientmonitor skickar mätvärden i FHIR med sin nyckel, och värdena hamnar som mätvärden med källan utrustning bara för den kopplade patienten | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Koppla en patientmonitor till patienten inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Godkänna värden från monitorn inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Koppla en patientmonitor till patienten inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Godkänna värden från monitorn inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.6.1.3 Dokumentation av gränssnitt för egen utveckling och förvaltning
 
@@ -2906,7 +2906,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Medicinteknik > ett meddelande som anger en annan patient än kopplingen avvisas | Inte kört | inte kört | inte kört |
 | Medicinteknik > fel roll och fel vårdenhet får inte koppla utrustning, och logggranskaren når inte utrustningen | Inte kört | inte kört | inte kört |
 | Medicinteknik > utan giltig nyckel avvisas meddelandet, och nyckeln sparas bara som HMAC och ersätts av en ny | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Koppla en patientmonitor till patienten inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Koppla en patientmonitor till patienten inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.6.1.6 Klassificering och visualisering
 
@@ -2918,7 +2918,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Medicinteknik > bara behörig personal på vårdenheten godkänner, och ett bedömt värde kan inte bedömas igen eller ändras | Inte kört | inte kört | inte kört |
 | Medicinteknik > ett värde från utrustning på en spärrad vårdenhet syns inte och röjs inte i svaret | Inte kört | inte kört | inte kört |
 | Intensivvård > analysen prövar fördefinierade gränser och trender mot de senaste värdena och ger larm och förslag | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Godkänna värden från monitorn inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Godkänna värden från monitorn inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.6.1.7 Egenmätning
 
@@ -2930,7 +2930,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Medicinteknik > patientens egna mätningar visas skilda från vårdens värden och räknas inte i NEWS2, larm eller vikt förrän de är bedömda | Inte kört | inte kört | inte kört |
 | Medicinteknik > egna mätningar har ett tak per dygn, och fel typ eller värde förklaras | Inte kört | inte kört | inte kört |
 | Medicinteknik > bara behörig personal på vårdenheten godkänner, och ett bedömt värde kan inte bedömas igen eller ändras | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Lämna en egen mätning i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Lämna en egen mätning i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.7.1.1 Olika former för kommunikation med invånare/patient/ombud
 
@@ -2957,8 +2957,8 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Ombud > en fullmakt i Min journal röjer aldrig vem ett personnummer tillhör, skyddad identitet registreras bara av personal, och försöken har ett tak | Inte kört | inte kört | inte kört |
 | Ombud > en fullmakt från Min journal gäller först när ombudet har godkänt den, och svaret är detsamma för alla nummer som inte kan bli ombud | Inte kört | inte kört | inte kört |
 | Ombud > registreringar och återkallelser har ett tak per dygn, ett ombud kan avböja och en skriftlig fullmakt hos vården gäller direkt | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Skriva ett meddelande till vården i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Svara på ett meddelande från en patient och avsluta inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Skriva ett meddelande till vården i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Svara på ett meddelande från en patient och avsluta inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 3.7.1.3 Övrigt stöd för partnerskap
 
@@ -2971,7 +2971,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Min journal > vårdnadshavare läser barnets journal under 13 år men inte från 13 år eller för ett barn med skyddad identitet | Inte kört | inte kört | inte kört |
 | Min journal > logglistan visar vårdenhet, yrkesroll, tid och typ av åtkomst men inte personalens namn | Inte kört | inte kört | inte kört |
 | Tidbok > patienten bokar om och avbokar i Min journal på de tidstyper mottagningen öppnar, med samma förslag | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Patienten bokar om sin tid i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Patienten bokar om sin tid i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Egen vårdbegäran > invånaren beskriver sitt besvär, systemet föreslår vårdenhet och begäran hamnar som en remiss hos vårdenheten | Inte kört | inte kört | inte kört |
 | Egen vårdbegäran > vid tecken på akuta besvär hänvisar systemet till 112, och en invånare kan ha högst tre öppna vårdbegäranden | Inte kört | inte kört | inte kört |
 | Vårdplanen i Min journal > patienten ser mål, åtgärder och uppföljningar och kommenterar, och kommentaren går till vårdenheten som har planen | Inte kört | inte kört | inte kört |
@@ -2980,7 +2980,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Meddelanden från invånare > vården läser i sin egen inloggning med vårdrelation, svarar och avslutar, och allt loggas på patienten | Inte kört | inte kört | inte kört |
 | Meddelanden från invånare > läkaren förnyar receptet och systemet skapar avgiften och svaret till patienten | Inte kört | inte kört | inte kört |
 | Meddelanden från invånare > en begäran om spärr, om att häva en spärr och om loggutdrag handläggs av rätt roll och patienten får beskedet | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Skriva ett meddelande till vården i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Skriva ett meddelande till vården i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 4.1.1.1 Funktionalitet för tillväxtmonitorering
 
@@ -2992,7 +2992,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Tillväxt > mätvärdena vid ett besök registreras på en gång med samma vårdkontakt, och besöket i programmet blir gjort | Inte kört | inte kört | inte kört |
 | API för barnhälsovården > läkaren på barnavårdscentralen ser tillväxten och registrerar vikt och längd | Inte kört | inte kört | inte kört |
 | API för barnhälsovården > personal utan vårdrelation nekas, och sjuksköterskan på kardiologen har ingen barnhälsovård | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera längd och vikt vid ett BHV-besök och se kurvan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Registrera längd och vikt vid ett BHV-besök och se kurvan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 4.1.1.2 Tillväxt baserad på referensmaterial
 
@@ -3028,7 +3028,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Rapportering till Svenska barnhälsovårdsregistret > systemet sammanställer barnets uppgifter med koderna i K11 och skickar till den simulerade mottagaren | Inte kört | inte kört | inte kört |
 | Mätningar hemma och Min journal > vårdnadshavaren registrerar en mätning som väntar tills barnavårdscentralen bekräftar den | Inte kört | inte kört | inte kört |
 | Barnhälsovårdens program > sjuksköterskor gör barnhälsovårdens flöde med ett uppdrag på barnavårdscentralen, och utan uppdrag nekas det | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera längd och vikt vid ett BHV-besök och se kurvan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Registrera längd och vikt vid ett BHV-besök och se kurvan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Tillväxt, version 1.1 > sitthöjd registreras med K11:s kod och visas som kurva utan referens, och K11:s koder är kontrollerade mot Snomed CT | Inte kört | inte kört | inte kört |
 | Tillväxt, version 1.1 > pubertet registreras med de stadier som gäller barnets kön, och systemet räknar starten och varnar för tidig pubertet | Inte kört | inte kört | inte kört |
 | Tillväxt, version 1.1 > en pubertetsregistrering på en spärrad vårdenhet syns inte och ändrar inte bedömningen | Inte kört | inte kört | inte kört |
@@ -3050,7 +3050,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | --- | --- | --- | --- |
 | Tillväxt > kurvorna, analysen och larmet för barnet byggs av det användaren får se | Inte kört | inte kört | inte kört |
 | Mätningar hemma och Min journal > Min journal visar kurvorna och vaccinationerna utan larm, id eller personal | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera längd och vikt vid ett BHV-besök och se kurvan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Registrera längd och vikt vid ett BHV-besök och se kurvan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Tillväxt, version 1.1 > referenserna som inte får användas fritt står med skälet, och användaren kan byta referens i kurvorna | Inte kört | inte kört | inte kört |
 | Tillväxt, version 1.1 > sitthöjd registreras med K11:s kod och visas som kurva utan referens, och K11:s koder är kontrollerade mot Snomed CT | Inte kört | inte kört | inte kört |
 | Tillväxt, version 1.1 > pubertet registreras med de stadier som gäller barnets kön, och systemet räknar starten och varnar för tidig pubertet | Inte kört | inte kört | inte kört |
@@ -3071,7 +3071,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Tillväxt, version 1.1 > inläsningen sparar ursprunget som det var, och den som läser in står aldrig som den som mätte | Inte kört | inte kört | inte kört |
 | Tillväxt, version 1.1 > det simulerade journalsystemet svarar på GetObservations, och svaret granskas och läses in som en fil | Inte kört | inte kört | inte kört |
 | Tillväxt, version 1.1 > GetObservations och GetActivities svarar med samma behörighet som FHIR | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Läsa in ett barns tillväxtdata från ett annat journalsystem inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Läsa in ett barns tillväxtdata från ett annat journalsystem inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 4.1.1.8 Uppföljning av kvalitet och produktion
 
@@ -3104,8 +3104,8 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Bilder och media 1.1 > annoteringar sparas som ett eget lager med författare, originalet ändras inte, och bara den som gjorde annoteringen tar bort den | Inte kört | inte kört | inte kört |
 | Bilder och media 1.1 > FHIR Media och ImagingStudy med samma behörighet som fliken, och ImagingStudy pekar på arkivets DICOMweb | Inte kört | inte kört | inte kört |
 | API för bilder och media 1.1 > bilder 1.1: en stor bild skickas i delar, servern gör miniatyren, bilden annoteras och studien hämtas genom DICOMweb | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Lägga in en bild från datorn i journalen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Jämföra bilder av ett kroppsställe över tid inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Lägga in en bild från datorn i journalen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Jämföra bilder av ett kroppsställe över tid inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 4.2.1.2 Bildhantering
 
@@ -3133,9 +3133,9 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Bilder och media 1.1 > FHIR Media och ImagingStudy med samma behörighet som fliken, och ImagingStudy pekar på arkivets DICOMweb | Inte kört | inte kört | inte kört |
 | API för bilder och media 1.1 > bilder 1.1: en stor bild skickas i delar, servern gör miniatyren, bilden annoteras och studien hämtas genom DICOMweb | Inte kört | inte kört | inte kört |
 | Simulerat multimediaarkiv med DICOMweb > den renderade bilden är en PNG med fönstret, bilderna är desamma varje gång, och ett ogiltigt fönster avvisas | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Lägga in en bild från datorn i journalen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Jämföra bilder av ett kroppsställe över tid inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Visa en röntgenstudie ur arkivet med ett annat fönster inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Lägga in en bild från datorn i journalen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Jämföra bilder av ett kroppsställe över tid inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Visa en röntgenstudie ur arkivet med ett annat fönster inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 4.2.1.3 Integration mot externt multimediaarkiv
 
@@ -3156,7 +3156,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Bilder och media 1.1 > FHIR Media och ImagingStudy med samma behörighet som fliken, och ImagingStudy pekar på arkivets DICOMweb | Inte kört | inte kört | inte kört |
 | Bilder och media 1.1 > demons mall har trycksårsbilderna och en besvarad lungröntgen för Gunnar Åkesson, men inte seeden som testerna bygger på | Inte kört | inte kört | inte kört |
 | API för bilder och media 1.1 > bilder 1.1: en stor bild skickas i delar, servern gör miniatyren, bilden annoteras och studien hämtas genom DICOMweb | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Visa en röntgenstudie ur arkivet med ett annat fönster inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Visa en röntgenstudie ur arkivet med ett annat fönster inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 4.2.1.4 Import av media
 
@@ -3180,8 +3180,8 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Bilder och media 1.1 > säkerhet: bilder från en annan vårdgivare kräver ett aktivt val med syfte i sessionen för samma person och patient, som sammanhållen journalföring | Inte kört | inte kört | inte kört |
 | Bilder och media 1.1 > säkerhet: granskningen kräver skrivrätten för bildens kategori, så en roll med bara omvårdnadens skrivrätt för inte in en bild i journalens kategori | Inte kört | inte kört | inte kört |
 | API för bilder och media 1.1 > bilder 1.1: sjuksköterskan hämtar från apparaten och granskar, och läkaren hämtar bilder från en annan vårdgivare med samtycke | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Lägga in en bild från datorn i journalen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Hämta en bild från en apparat och föra in den i journalen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Lägga in en bild från datorn i journalen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Hämta en bild från en apparat och föra in den i journalen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 4.3.1.1 Funktionalitet för SIP och SPU
 
@@ -3230,10 +3230,10 @@ Inte alla testfall godkända. Status i registret: delvis.
 | API för beställning och svar > läkaren beställer, sjuksköterskan tar proverna, demoknappen ger svaret och läkaren vidimerar från inkorgen | Inte kört | inte kört | inte kört |
 | Beställning och svar > nycklar som constructor, __proto__ och toString är aldrig analyser, paket, laboratorier, kontroller eller frekvenser | Inte kört | inte kört | inte kört |
 | Min journal > provsvar visas när de är vidimerade eller efter 14 dagar, mätvärden direkt | Inte kört | inte kört | inte kört |
-| Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
+| Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
 
 ### 4.4.1.2 Flera utförande laboratorier inom samma disciplin
 
@@ -3352,7 +3352,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Undersökningar i beställning och svar > jodkontrast: eGFR under 30 stoppar, 30 till 44 kräver kvittens, och ett värde på en spärrad vårdenhet varken räknas eller nämns | Inte kört | inte kört | inte kört |
 | Undersökningar i beställning och svar > graviditet: systemet frågar bara kvinnor 12 till 55 år före strålning, stoppar strålning mot buken och tar en registrerad graviditet som ja | Inte kört | inte kört | inte kört |
 | Undersökningar i beställning och svar > magnetkamera: implantat i uppmärksamhetsinformationen eller enligt beställaren kräver MR-säkerhetskontroll innan röntgen bokar | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Beställa en röntgenundersökning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Beställa en röntgenundersökning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Beställning och svar > ett paket beställs med ett klick: systemet föreslår det ur vårdkontakten och väljer laboratorium, rör, provtagningsordning och anamnes | Inte kört | inte kört | inte kört |
 | Beställning och svar > ett prov som nyss är taget eller redan är beställt tas bort ur paketet med en förklaring, och en ny beställning kräver kvittens | Inte kört | inte kört | inte kört |
 | Beställning och svar > dubblettvarningen räknas bara på det läkaren får se: en dold rad på en spärrad enhet ändrar inget i svaret | Inte kört | inte kört | inte kört |
@@ -3360,14 +3360,14 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Beställning och svar > provtagningen registreras med ett klick per rör, systemet sätter tid och provtagare och skickar när alla rör är tagna | Inte kört | inte kört | inte kört |
 | Beställning och svar > sjuksköterskan och undersköterskan beställer på uppdrag av en läkare på vårdenheten, som signerar i inkorgen | Inte kört | inte kört | inte kört |
 | Beställning och svar > signeringen prövar behörigheten först och nämner inte den ansvariga läkaren för den som inte får se beställningen | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Beställa ett standardpaket med prover inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Registrera provtagning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.2 Upprätta en labbeställning på uppdrag (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.2 Upprätta en labbeställning på uppdrag (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
+| Gränssnitt > Klickbudget > Beställa ett standardpaket med prover inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Registrera provtagning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.2 Upprätta en labbeställning på uppdrag (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.2 Upprätta en labbeställning på uppdrag (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
 
 ### 4.4.2.7 Planerade beställningar
 
@@ -3383,7 +3383,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Undersökningar i beställning och svar > röntgenklinikens arbetslista: prioritet och senaste dag, föreslagen tid, bokning, utförande med studie i arkivet och loggning med grunden utförande | Inte kört | inte kört | inte kört |
 | Undersökningar i beställning och svar > klinisk fysiologi bokar själv, utför när tiden har kommit och bifogar kurvan till svaret | Inte kört | inte kört | inte kört |
 | Undersökningar i beställning och svar > upprepad beställning: en serie beställningar med rätt tider, utan dubblettvarning för de egna delarna och högst 60 dagar framåt | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Boka en inkommen undersökning på röntgenkliniken inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Boka en inkommen undersökning på röntgenkliniken inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 4.4.2.8 Flera beställningar
 
@@ -3453,7 +3453,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Blodprodukter i version 1.1 > säkerhet: en reaktion eller dess prover för en annan patient eller vårdenhet ges inte, och en spärrad reaktion syns inte i blodcentralens vy | Inte kört | inte kört | inte kört |
 | Blodprodukter i version 1.1 > blodcentralens vy visar vårdenhetens beställningar i kedjan, enheterna på avdelningen och lagret per blodgrupp, och varje patient loggas | Inte kört | inte kört | inte kört |
 | Blodprodukter i version 1.1 via API > API: blodcentralens vy, journalens markering och reaktionen rapporteras med proverna i två anrop | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Beställa blod inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Beställa blod inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 4.4.2.13 Svar
 
@@ -3482,8 +3482,8 @@ Inte alla testfall godkända. Status i registret: delvis.
 | --- | --- | --- | --- |
 | Kontroller till avdelningen > läkaren ordinerar puls, blodtryck, SR, temperatur, vikt och vätskebalans till i morgon klockan 7, och systemet lägger dem på avdelningen där patienten ligger | Inte kört | inte kört | inte kört |
 | Kontroller till avdelningen > kontrollerna blir uppgifter med tid för sjuksköterskan, och ett registrerat mätvärde bockar av kontrollen utan något mer | Inte kört | inte kört | inte kört |
-| Gränssnitt > Sussas testfall > 3.5 Upprätta en beställning eller ordination på intern analys eller mätvärde (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.5 Upprätta en beställning eller ordination på intern analys eller mätvärde (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
+| Gränssnitt > Sussas testfall > 3.5 Upprätta en beställning eller ordination på intern analys eller mätvärde (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.5 Upprätta en beställning eller ordination på intern analys eller mätvärde (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
 | Patientnära analyser > en patientnära analys beställs, provet tas och instrumentet skickar svaret genom det öppna gränssnittet med etiketten | Inte kört | inte kört | inte kört |
 | Patientnära analyser > instrumentets svar med fel etikett avvisas, och svaret bockar av kontrollen av samma mätvärde | Inte kört | inte kört | inte kört |
 
@@ -3557,8 +3557,8 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Operation 1.1, anestesienheten > ASA-klassen bekräftas på operationsdagen före induktionen, av en läkare | Inte kört | inte kört | inte kört |
 | Operation 1.1, anestesienheten > säkerhet: en spärr mot den opererande vårdenheten gäller också anestesienheten, i listan, i läsning och i ändring, och samtycke öppnar som vanligt | Inte kört | inte kört | inte kört |
 | Operation 1.1, anestesienheten > säkerhet: en anestesienhet eller en enhet som inte opererar kan inte skapa sin egen vårdrelation, och relationen upphör när anmälan avbokas eller operationsdagen har passerat | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Planera en operation från väntelistan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Registrera att patienten kommer in på salen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Planera en operation från väntelistan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Registrera att patienten kommer in på salen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 4.5.1.2 Preoperativ fas
 
@@ -3582,7 +3582,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Operation 1.1, anestesi och material > anestesibedömningen knyts till operationsanmälan med riskskalor, samtycke, giltighetstid och information till patienten | Inte kört | inte kört | inte kört |
 | Operation 1.1, seeden > seeden har en genomförd operation för Margareta Forsberg, dagens program och väntelistan (2026-11-09T07:00:00.000Z) | Inte kört | inte kört | inte kört |
 | Operation 1.1, API > api: koordinatorn ser dagens program, blocken, uppvakningen, förrådet och anestesijournalen, och undersköterskan på kardiologen ser ingen operation | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Planera en operation från väntelistan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Planera en operation från väntelistan inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Operation 1.1, anestesienheten > anestesienheten får vårdrelation genom operationsanmälan, men inte till andra patienter och inte efter att operationen och uppvakningen är avslutade | Inte kört | inte kört | inte kört |
 | Operation 1.1, anestesienheten > anestesienheten läser operationen och gör bedömningen, och den opererande enhetens journal kräver ett aktivt val med förvalt syfte | Inte kört | inte kört | inte kört |
 | Operation 1.1, anestesienheten > giltigheten: tolv månader, fem för barn under sju år, provsvar högst tre månader och en varning när tillståndet har ändrats efter bedömningen | Inte kört | inte kört | inte kört |
@@ -3611,7 +3611,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Operation 1.1, anestesi och material > säkerhet och behörighet: anestesijournalen, sterilgodset och materialet ger 404 för en annan patient, ändras bara av den anmälande vårdenheten och syns inte bakom en spärr | Inte kört | inte kört | inte kört |
 | Operation 1.1, seeden > seeden har en genomförd operation för Margareta Forsberg, dagens program och väntelistan (2026-11-09T07:00:00.000Z) | Inte kört | inte kört | inte kört |
 | Operation 1.1, API > api: koordinatorn ser dagens program, blocken, uppvakningen, förrådet och anestesijournalen, och undersköterskan på kardiologen ser ingen operation | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera att patienten kommer in på salen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Registrera att patienten kommer in på salen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Operation 1.1, anestesienheten > ASA-klassen bekräftas på operationsdagen före induktionen, av en läkare | Inte kört | inte kört | inte kört |
 
 ### 4.5.1.4 Postoperativ fas
@@ -3674,7 +3674,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Intensivvård > övervakningsvyn har täta värden från den simulerade patientmonitorn och kurvor där monitorns värden är märkta | Inte kört | inte kört | inte kört |
 | Medicinteknik, infusionspump > den simulerade utrustningen skickar värden genom samma mottagning, var femte minut för monitorn och var femtonde för pumpen | Inte kört | inte kört | inte kört |
 | Medicinteknik > värden från utrustning är referens tills en behörig person godkänner dem, och först då räknas de i NEWS2 och larm | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Öppna intensivvårdens översikt och övervakningen av en patient inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Öppna intensivvårdens översikt och övervakningen av en patient inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Intensivvård, version 1.1 > realtidsvisningen har vågformer som följer pulsen, blodtrycket och andningen, och samma tid ger samma kurva | Inte kört | inte kört | inte kört |
 | Intensivvård, version 1.1 > realtidsvisningen kräver en kopplad monitor, larmar mot patientens gränser och loggas en gång per session | Inte kört | inte kört | inte kört |
 | Intensivvård, version 1.1 > behandlingsbegränsningar står överst i översikten och i överrapporteringen, som systemet skriver enligt SBAR | Inte kört | inte kört | inte kört |
@@ -3755,7 +3755,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | --- | --- | --- | --- |
 | Intensivvård > uppföljningen räknar vårddygn, beläggning, vårdtyngd och kvalitetsindikatorer per intensivvårdsavdelning utan personuppgifter | Inte kört | inte kört | inte kört |
 | Intensivvård, version 1.1 > NEMS föreslås ur journalen med orsak för varje post, sjuksköterskan bekräftar, och servern räknar poängen | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Registrera vårdtyngden enligt NEMS för en patient på intensivvården inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Registrera vårdtyngden enligt NEMS för en patient på intensivvården inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Intensivvård, version 1.1 > en regel, ett andningsstöd, ett mål och NEMS på en spärrad vårdenhet röjs inte och påverkar varken larm eller förslag | Inte kört | inte kört | inte kört |
 
 ### 4.7.1.1 Funktionalitet för mödrahälsovård, graviditet och förlossning
@@ -3885,8 +3885,8 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Cytostatika i version 1.1 > kapaciteten: beredningsenheten styr hur många kurer den tar emot per dag, och en full dag stoppar godkännandet med första lediga dag | Inte kört | inte kört | inte kört |
 | Cytostatika i version 1.1 > vårdenhetens vy visar kurerna med nästa steg och beredningsenhetens platser, och bara patienter som den inloggade får se | Inte kört | inte kört | inte kört |
 | Cytostatika i version 1.1 via API > API: regimen godkänns i två inloggningar, beredningsenheten bereder och avdelningen ger kuren med start och slut | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Godkänna en cytostatikakur inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Godkänna en ny version av en cytostatikaregim inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Godkänna en cytostatikakur inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Godkänna en ny version av en cytostatikaregim inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 4.8.1.2 Beredning av cytostatika
 
@@ -3904,7 +3904,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Cytostatika i version 1.1 > säkerhet: beredningsenheten ser bara beställningen och aldrig journalen, en farmaceut på en vårdenhet bereder inte, och varje patient i arbetslistan loggas | Inte kört | inte kört | inte kört |
 | Cytostatika i version 1.1 > kapaciteten: beredningsenheten styr hur många kurer den tar emot per dag, och en full dag stoppar godkännandet med första lediga dag | Inte kört | inte kört | inte kört |
 | Cytostatika i version 1.1 via API > API: regimen godkänns i två inloggningar, beredningsenheten bereder och avdelningen ger kuren med start och slut | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Bereda en cytostatikados på beredningsenheten inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Bereda en cytostatikados på beredningsenheten inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 4.8.1.3 Iordningställande och administrering av cytostatika
 
@@ -3924,7 +3924,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Cytostatika i version 1.1 > extravasering och reaktioner: systemet avgör om infusionen fortsätter, pausas eller stoppas och säger vad som ska göras | Inte kört | inte kört | inte kört |
 | Cytostatika i version 1.1 > Min journal: patienten ser den överlämnade behandlingen och rapporterar intag och mående, och systemet säger när patienten ska ringa | Inte kört | inte kört | inte kört |
 | Cytostatika i version 1.1 via API > API: regimen godkänns i två inloggningar, beredningsenheten bereder och avdelningen ger kuren med start och slut | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Rapportera dagens tabletter i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Rapportera dagens tabletter i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 4.8.1.4 Ordination
 
@@ -3947,8 +3947,8 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Cytostatika i version 1.1 > kapaciteten: beredningsenheten styr hur många kurer den tar emot per dag, och en full dag stoppar godkännandet med första lediga dag | Inte kört | inte kört | inte kört |
 | Cytostatika i version 1.1 > vårdenhetens vy visar kurerna med nästa steg och beredningsenhetens platser, och bara patienter som den inloggade får se | Inte kört | inte kört | inte kört |
 | Cytostatika i version 1.1 via API > API: regimen godkänns i två inloggningar, beredningsenheten bereder och avdelningen ger kuren med start och slut | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Godkänna en cytostatikakur inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Godkänna en ny version av en cytostatikaregim inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Godkänna en cytostatikakur inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Godkänna en ny version av en cytostatikaregim inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 4.8.1.5 Beredning
 
@@ -3966,7 +3966,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Cytostatika i version 1.1 > säkerhet: beredningsenheten ser bara beställningen och aldrig journalen, en farmaceut på en vårdenhet bereder inte, och varje patient i arbetslistan loggas | Inte kört | inte kört | inte kört |
 | Cytostatika i version 1.1 > kapaciteten: beredningsenheten styr hur många kurer den tar emot per dag, och en full dag stoppar godkännandet med första lediga dag | Inte kört | inte kört | inte kört |
 | Cytostatika i version 1.1 via API > API: regimen godkänns i två inloggningar, beredningsenheten bereder och avdelningen ger kuren med start och slut | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Bereda en cytostatikados på beredningsenheten inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Bereda en cytostatikados på beredningsenheten inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 4.8.1.6 Iordningställande och administrering
 
@@ -3986,7 +3986,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Cytostatika i version 1.1 > extravasering och reaktioner: systemet avgör om infusionen fortsätter, pausas eller stoppas och säger vad som ska göras | Inte kört | inte kört | inte kört |
 | Cytostatika i version 1.1 > Min journal: patienten ser den överlämnade behandlingen och rapporterar intag och mående, och systemet säger när patienten ska ringa | Inte kört | inte kört | inte kört |
 | Cytostatika i version 1.1 via API > API: regimen godkänns i två inloggningar, beredningsenheten bereder och avdelningen ger kuren med start och slut | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Rapportera dagens tabletter i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Rapportera dagens tabletter i Min journal inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 4.8.1.7 Uppföljning av kvalitet och produktion
 
@@ -4012,7 +4012,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Kontorsstöd > kalenderprenumerationen med hemlig länk visar tid och typ men aldrig patienten, och kan återkallas | Inte kört | inte kört | inte kört |
 | Kontorsstöd > möteslänk för videobesök, uppringning vid telefontid och inbjudan som kalenderfil och e-post | Inte kört | inte kört | inte kört |
 | Kontorsstöd > arkitekturen beskriver ordbehandling, rapporter, kalender, SharePoint, e-post, telefoni och video | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Lägga in sin tidbok i kalenderprogrammet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Lägga in sin tidbok i kalenderprogrammet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 5.1.1.2 Migrering
 
@@ -4049,9 +4049,9 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Formulär > svaren i en signerad anteckning ändras aldrig, och en rättelse blir en ny version med egna svar | Inte kört | inte kört | inte kört |
 | Formulär > API: systemförvaltaren bygger, förhandsvisar och föreslår formulär, och den som dokumenterar får aktiva formulär bland mallarna | Inte kört | inte kört | inte kört |
 | Formulär > FHIR: formuläret som Questionnaire och svaren som QuestionnaireResponse med samma behörighet som anteckningen | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Bygga ett formulär och föreslå det inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Dokumentera ett sår med kroppsbilden inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Mobil > Dokumentera ett sår med kroppsbilden går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Klickbudget > Bygga ett formulär och föreslå det inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Dokumentera ett sår med kroppsbilden inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Mobil > Dokumentera ett sår med kroppsbilden går i 360 px | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 
 ### 5.1.1.4 Externa tillämpningar
 
@@ -4063,7 +4063,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | SMART on FHIR > biljetten ger aldrig mer än personen utan aktiva val: andra vårdenheter och spärr följer inte med | Inte kört | inte kört | inte kört |
 | SMART on FHIR > PKCE krävs, koden går att använda en gång och fel adress eller okänd tillämpning avvisas utan omdirigering | Inte kört | inte kört | inte kört |
 | SMART on FHIR > biljetten återkallas vid utloggning, när tillämpningen stängs och när den går ut, och allt loggas | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Starta en extern tillämpning från journalen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Starta en extern tillämpning från journalen inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 5.1.2.1 Nyttja externt förvaltad masterdata
 
@@ -4249,9 +4249,9 @@ Inte alla testfall godkända. Status i registret: delvis.
 | --- | --- | --- | --- |
 | Min journal > utloggning och byte av roll i samma webbläsare nollställer sessionen | Inte kört | inte kört | inte kört |
 | Läskopia > nyckeln lämnas vid inloggning, byts vid ny inloggning och glöms vid utloggning | Inte kört | inte kört | inte kört |
-| Gränssnitt > Avbrott > läskopian rensas vid utloggning | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > utloggning under avbrott loggar ut sessionen på servern, även om fliken stängs | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > utloggning i en flik avslutar läsläget i webbläsarens andra flikar | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Avbrott > läskopian rensas vid utloggning | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > utloggning under avbrott loggar ut sessionen på servern, även om fliken stängs | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > utloggning i en flik avslutar läsläget i webbläsarens andra flikar | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 | Parametrar för utloggning och rapportering > utloggningen har skilda gränser för personal och invånare, med rimlighetskontroll och samma standard som förut | Inte kört | inte kört | inte kört |
 | Parametrar för utloggning och rapportering > en godkänd ändring av utloggningen gäller från dagen den gäller, med fyra ögon, och bara för personalen | Inte kört | inte kört | inte kört |
 
@@ -4288,7 +4288,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Behörighetsmotorn > nödåtkomst: utan vårdrelation krävs val och läkare får nödåtkomst | Inte kört | inte kört | inte kört |
 | API > aktivt val för andra enheter via API | Inte kört | inte kört | inte kört |
 | API > spärrmarkering och samtycke via API | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Nödåtkomst inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Nödåtkomst inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 5.2.1.8 Behörighetshantering
 
@@ -4462,6 +4462,23 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Arkiv > exportpaketet följer FGS Paketstruktur 2.0 med METS.xml, alla mappar och SHA-256 för varje fil | Inte kört | inte kört | inte kört |
 | Arkiv > exportpaketet är fullständigt och tar med spärrar och skyddad identitet som uppgifter | Inte kört | inte kört | inte kört |
 
+### 5.4.2.2 Integrerad åtkomst till mellanarkiv
+
+Inte alla testfall godkända. Status i registret: delvis.
+
+| Testfall | Resultat | Körning | Tid |
+| --- | --- | --- | --- |
+| Mellanarkiv > mellanarkivet har tagit emot ett FGS-paket med äldre uppgifter ur VAS, och mottagningskontrollen är utan fel | Inte kört | inte kört | inte kört |
+| Mellanarkiv > journalen visar handlingarna med samma behörighet: egen vårdenhet direkt och andra vårdenheter efter ett aktivt val | Inte kört | inte kört | inte kört |
+| Mellanarkiv > yrkesrollen styr vad som visas: inre sekretess för journal och omvårdnad som i journalen | Inte kört | inte kört | inte kört |
+| Mellanarkiv > en spärrad vårdenhet syns inte, svaret är detsamma med och utan den dolda handlingen, och med samtycke syns den | Inte kört | inte kört | inte kört |
+| Mellanarkiv > utan vårdrelation är en handling som en som inte finns, och det nekade försöket loggas | Inte kört | inte kört | inte kört |
+| Mellanarkiv > varje läsning loggas med handlingens id, innehållet är kontrollerat oförändrat, och handlingarna går inte att ändra eller radera | Inte kört | inte kört | inte kört |
+| Mellanarkiv > arkivarien registrerar ett beslut, systemet tar fram underlaget och för över äldre handlingar, som sedan visas i journalen som förut | Inte kört | inte kört | inte kört |
+| Mellanarkiv > mellanarkivet avvisar ett paket med fel, och då förs ingenting över | Inte kört | inte kört | inte kört |
+| Mellanarkiv > tidslinjen och sökningen i journalen tar med handlingarna, märkta Ur mellanarkivet | Inte kört | inte kört | inte kört |
+| Mellanarkiv > handlingarna följer journalen vid en sammanslagning och raderas med hela journalen efter ett beslut om förstöring | Inte kört | inte kört | inte kört |
+
 ### 5.4.2.3 Export av information
 
 Inte alla testfall godkända. Status i registret: delvis.
@@ -4520,7 +4537,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Vårdkontakt > förslagen bygger bara på kontakter som användaren får se, och ett förslag kan avvisas | Inte kört | inte kört | inte kört |
 | Vårdkontakt > hälsoärendet visar bara de vårdkontakter som användaren får se | Inte kört | inte kört | inte kört |
 | Vårdkontakt > seedens hälsoärende håller samman remisskedjan för patient 11 | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Bekräfta ett hälsoärende inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Bekräfta ett hälsoärende inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 6.1.1.3 Spårbarhet kringsystem
 
@@ -4560,9 +4577,9 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Vårdkontakt > inskrivningen avslutar bara den egna akutkontakten och skriver bara in där den inloggade får | Inte kört | inte kört | inte kört |
 | Vårdkontakt > vårdtillfället visar bara de vistelser, händelser och det innehåll som användaren får se | Inte kört | inte kört | inte kört |
 | Vårdkontakt > FHIR: vårdtillfällets Encounter och hälsoärendets EpisodeOfCare visar bara det användaren får se | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Skriva in en patient inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Flytta en patient till en annan avdelning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Skriva ut en patient inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Skriva in en patient inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Flytta en patient till en annan avdelning inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Skriva ut en patient inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 6.1.1.6 Enhetlig hantering av vårdkontakter
 
@@ -4710,7 +4727,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Myndighetsrapportering i API:t > inkorgen följer det aktuella läget när en vårdkontakt flyttas eller personalen byter enhet efter att sammanställningen har sparats | Inte kört | inte kört | inte kört |
 | Myndighetsrapportering i API:t > den sparade sammanställningen görs om när en spärr eller en vårdenhet ändras | Inte kört | inte kört | inte kört |
 | Myndighetsrapportering i API:t > ett fel för ett vårdtillfälle syns bara när behörigheten gäller vårdtillfällets och varje kontakts vårdenhet, utan och med samtycke | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Granska och skicka månadens rapport till patientregistret inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Granska och skicka månadens rapport till patientregistret inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 6.3.3.1 Forskningsunderlag
 
@@ -4741,8 +4758,8 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Ekonomi: sandlådor och roller > en sandlåda från före runda 7 får tabellerna, prislistorna och ekonomen | Inte kört | inte kört | inte kört |
 | Ekonomi: export för en spärrad vårdenhet > underlaget för en vårdenhet som patienten har spärrat har minsta möjliga uppgifter och inget om andra vårdenheter | Inte kört | inte kört | inte kört |
 | Ekonomi: ChargeItem i FHIR > ChargeItem med samma behörighet och loggning som kostnadsrutan | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Exportera faktureringsunderlag för en månad inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
-| Gränssnitt > Klickbudget > Lämna ut ett hjälpmedel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Exportera faktureringsunderlag för en månad inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
+| Gränssnitt > Klickbudget > Lämna ut ett hjälpmedel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 7.1.1.2 Faktureringsunderlag
 
@@ -4791,62 +4808,62 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Sussas testfall > demoläget lägger in testpatienterna med Skatteverkets testpersonnummer och datan som testfallen behöver | Inte kört | inte kört | inte kört |
 | Sussas testfall > tema 1 genomförs med Sussas läkemedel i en katalog med minst 100 produkter | Inte kört | inte kört | inte kört |
 | Klickbudget > klickbudget.json täcker alla flöden med budgetarna från koden | Inte kört | inte kört | inte kört |
-| Gränssnitt > Sussas testfall > 1.1 Förskriva läkemedel (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 1.2 Ordinera läkemedel (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 1.3 Ordinera läkemedel på uppdrag (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 1.4 Administrera läkemedel (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.1 Upprätta och skicka vårdbegäran (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.1 Upprätta och skicka vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.1 Upprätta och skicka vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.2 Upprätta och skicka vårdbegäran på uppdrag (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.3 Ta emot vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.3 Ta emot vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.4 Ta emot vårdbegäran på uppdrag (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.5 Registrera en extern vårdbegäran (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.6 Besvara en vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.6 Besvara en vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.2 Upprätta en labbeställning på uppdrag (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.2 Upprätta en labbeställning på uppdrag (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.4 Överblicka provsvar (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.4 Överblicka provsvar (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.4 Överblicka provsvar (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.5 Upprätta en beställning eller ordination på intern analys eller mätvärde (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.5 Upprätta en beställning eller ordination på intern analys eller mätvärde (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.3 Skapa slutanteckning eller epikris (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.4 Signera (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.1 Boka patient till ett besök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.2 Boka ett teambesök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.3 Boka ett gruppbesök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.4 Omboka besök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.5 Ankomstregistrering (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.6 Överblicka ankomstregistrering (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.7 Oplanerad ankomstregistrering (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.8 Väntelista (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 6.1 Akut inskrivning av patient på vårdavdelning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 6.1 Akut inskrivning av patient på vårdavdelning (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 6.2 Överflyttning av patient mellan avdelningar med olika medicinsk specialitet (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 6.2 Överflyttning av patient mellan avdelningar med olika medicinsk specialitet (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 6.3 Hitta information från tidigare slutenvårdstillfälle (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 6.3 Hitta information från tidigare slutenvårdstillfälle (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.2 Överblicka dagens händelser för en grupp patienter (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.2 Överblicka dagens händelser för en grupp patienter (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.3 Överblicka patientens planering (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.3 Överblicka patientens planering (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.4 Visualisera en specifik resurs arbetsplanering (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.4 Visualisera en specifik resurs arbetsplanering (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
+| Gränssnitt > Sussas testfall > 1.1 Förskriva läkemedel (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 1.2 Ordinera läkemedel (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 1.3 Ordinera läkemedel på uppdrag (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 1.4 Administrera läkemedel (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.1 Upprätta och skicka vårdbegäran (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.1 Upprätta och skicka vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.1 Upprätta och skicka vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.2 Upprätta och skicka vårdbegäran på uppdrag (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.3 Ta emot vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.3 Ta emot vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.4 Ta emot vårdbegäran på uppdrag (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.5 Registrera en extern vårdbegäran (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.6 Besvara en vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.6 Besvara en vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.2 Upprätta en labbeställning på uppdrag (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.2 Upprätta en labbeställning på uppdrag (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.4 Överblicka provsvar (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.4 Överblicka provsvar (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.4 Överblicka provsvar (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.5 Upprätta en beställning eller ordination på intern analys eller mätvärde (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.5 Upprätta en beställning eller ordination på intern analys eller mätvärde (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.3 Skapa slutanteckning eller epikris (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.4 Signera (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.1 Boka patient till ett besök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.2 Boka ett teambesök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.3 Boka ett gruppbesök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.4 Omboka besök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.5 Ankomstregistrering (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.6 Överblicka ankomstregistrering (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.7 Oplanerad ankomstregistrering (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.8 Väntelista (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 6.1 Akut inskrivning av patient på vårdavdelning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 6.1 Akut inskrivning av patient på vårdavdelning (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 6.2 Överflyttning av patient mellan avdelningar med olika medicinsk specialitet (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 6.2 Överflyttning av patient mellan avdelningar med olika medicinsk specialitet (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 6.3 Hitta information från tidigare slutenvårdstillfälle (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 6.3 Hitta information från tidigare slutenvårdstillfälle (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.2 Överblicka dagens händelser för en grupp patienter (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.2 Överblicka dagens händelser för en grupp patienter (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.3 Överblicka patientens planering (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.3 Överblicka patientens planering (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.4 Visualisera en specifik resurs arbetsplanering (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.4 Visualisera en specifik resurs arbetsplanering (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
 | Testinbjudan > varje yrkesroll har 6 till 12 uppdrag, och tillsammans täcker uppdragen alla Sussas 34 testfall | Inte kört | inte kört | inte kört |
 | Testinbjudan > inget uppdrag är avbockat när det startar, för någon roll, så att seedens och Sussas testdata aldrig räknas | Inte kört | inte kört | inte kört |
 | Testinbjudan > ett uppdrag bockas av när rollen gör det på riktigt, och tiden till uppdraget räknas | Inte kört | inte kört | inte kört |
@@ -4872,62 +4889,62 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Användartestens svar > tillfällen utan aktivitet på 90 dagar raderas med sina svar | Inte kört | inte kört | inte kört |
 | Användartestens svar > skapandet är begränsat per session och timme och per skapare, så att ingen kan fylla det globala taket | Inte kört | inte kört | inte kört |
 | Användartestens svar > tomma tillfällen utan svar raderas efter 24 timmar och räknas då inte längre mot skaparen | Inte kört | inte kört | inte kört |
-| Gränssnitt > Sussas testfall > 1.1 Förskriva läkemedel (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 1.2 Ordinera läkemedel (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 1.3 Ordinera läkemedel på uppdrag (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 1.4 Administrera läkemedel (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.1 Upprätta och skicka vårdbegäran (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.1 Upprätta och skicka vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.1 Upprätta och skicka vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.2 Upprätta och skicka vårdbegäran på uppdrag (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.3 Ta emot vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.3 Ta emot vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.4 Ta emot vårdbegäran på uppdrag (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.5 Registrera en extern vårdbegäran (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.6 Besvara en vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 2.6 Besvara en vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.2 Upprätta en labbeställning på uppdrag (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.2 Upprätta en labbeställning på uppdrag (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.4 Överblicka provsvar (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.4 Överblicka provsvar (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.4 Överblicka provsvar (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.5 Upprätta en beställning eller ordination på intern analys eller mätvärde (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 3.5 Upprätta en beställning eller ordination på intern analys eller mätvärde (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.3 Skapa slutanteckning eller epikris (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 4.4 Signera (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.1 Boka patient till ett besök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.2 Boka ett teambesök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.3 Boka ett gruppbesök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.4 Omboka besök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.5 Ankomstregistrering (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.6 Överblicka ankomstregistrering (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.7 Oplanerad ankomstregistrering (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 5.8 Väntelista (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 6.1 Akut inskrivning av patient på vårdavdelning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 6.1 Akut inskrivning av patient på vårdavdelning (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 6.2 Överflyttning av patient mellan avdelningar med olika medicinsk specialitet (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 6.2 Överflyttning av patient mellan avdelningar med olika medicinsk specialitet (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 6.3 Hitta information från tidigare slutenvårdstillfälle (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 6.3 Hitta information från tidigare slutenvårdstillfälle (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.2 Överblicka dagens händelser för en grupp patienter (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.2 Överblicka dagens händelser för en grupp patienter (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.3 Överblicka patientens planering (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.3 Överblicka patientens planering (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.4 Visualisera en specifik resurs arbetsplanering (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
-| Gränssnitt > Sussas testfall > 7.4 Visualisera en specifik resurs arbetsplanering (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 11:41 UTC |
+| Gränssnitt > Sussas testfall > 1.1 Förskriva läkemedel (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 1.2 Ordinera läkemedel (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 1.3 Ordinera läkemedel på uppdrag (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 1.4 Administrera läkemedel (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.1 Upprätta och skicka vårdbegäran (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.1 Upprätta och skicka vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.1 Upprätta och skicka vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.2 Upprätta och skicka vårdbegäran på uppdrag (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.3 Ta emot vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.3 Ta emot vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.4 Ta emot vårdbegäran på uppdrag (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.5 Registrera en extern vårdbegäran (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.6 Besvara en vårdbegäran (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 2.6 Besvara en vårdbegäran (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.1 Upprätta en labbeställning (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.2 Upprätta en labbeställning på uppdrag (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.2 Upprätta en labbeställning på uppdrag (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.3 Registrera provtagning (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.4 Överblicka provsvar (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.4 Överblicka provsvar (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.4 Överblicka provsvar (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.5 Upprätta en beställning eller ordination på intern analys eller mätvärde (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 3.5 Upprätta en beställning eller ordination på intern analys eller mätvärde (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.1 Skapa anteckning (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.2 Registrera mätvärden (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.3 Skapa slutanteckning eller epikris (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 4.4 Signera (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.1 Boka patient till ett besök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.2 Boka ett teambesök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.3 Boka ett gruppbesök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.4 Omboka besök (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.5 Ankomstregistrering (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.6 Överblicka ankomstregistrering (läkare öppenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.7 Oplanerad ankomstregistrering (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 5.8 Väntelista (medicinsk sekreterare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 6.1 Akut inskrivning av patient på vårdavdelning (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 6.1 Akut inskrivning av patient på vårdavdelning (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 6.2 Överflyttning av patient mellan avdelningar med olika medicinsk specialitet (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 6.2 Överflyttning av patient mellan avdelningar med olika medicinsk specialitet (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 6.3 Hitta information från tidigare slutenvårdstillfälle (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 6.3 Hitta information från tidigare slutenvårdstillfälle (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.1 Överblicka dagens arbete för din arbetsplats (paramedicinare) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.2 Överblicka dagens händelser för en grupp patienter (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.2 Överblicka dagens händelser för en grupp patienter (undersköterska) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.3 Överblicka patientens planering (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.3 Överblicka patientens planering (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.4 Visualisera en specifik resurs arbetsplanering (läkare slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
+| Gränssnitt > Sussas testfall > 7.4 Visualisera en specifik resurs arbetsplanering (sjuksköterska slutenvård) når slutvillkoret inom klickbudgeten | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Sussas testfall i webbläsaren | 2026-11-12 kl. 12:41 svensk tid |
 | Testinbjudan > varje yrkesroll har 6 till 12 uppdrag, och tillsammans täcker uppdragen alla Sussas 34 testfall | Inte kört | inte kört | inte kört |
 | Testinbjudan > inget uppdrag är avbockat när det startar, för någon roll, så att seedens och Sussas testdata aldrig räknas | Inte kört | inte kört | inte kört |
 | Testinbjudan > ett uppdrag bockas av när rollen gör det på riktigt, och tiden till uppdraget räknas | Inte kört | inte kört | inte kört |
@@ -4947,31 +4964,31 @@ Inte alla testfall godkända. Status i registret: delvis.
 
 | Testfall | Resultat | Körning | Tid |
 | --- | --- | --- | --- |
-| Gränssnitt > Tillgänglighet > inget ljud, ingen video, inga bilder av text och inget som blinkar eller rör sig av sig självt | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > varje bild och symbol har ett textalternativ eller är dold för hjälpmedel | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > varje formulärfält, knapp och länk har ett namn som beskriver syftet | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > varje vy har en rubrik på nivå 1 och rubrikerna hoppar inte över någon nivå | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > allt innehåll ligger i landmärken: sidhuvud, meny, huvudinnehåll och sidfot | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > sidan har språket svenska och varje vy har en egen sidtitel | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > texten har minst 4,5:1 i kontrast och stor text minst 3:1, i alla vyer för alla roller | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > fältens ramar och fokusmarkeringen har minst 3:1 mot bakgrunden | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > status, larm, uppmärksamhetssymbolen och kurvorna har text eller form utöver färgen | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > texten går att förstora till 200 procent utan att innehåll eller funktion försvinner | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > vid 320 px bredd behövs ingen rullning i sidled | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > allt som går att klicka på går att nå med tangentbordet | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > tabbordningen följer sidans ordning, utan positivt tabindex och utan tangentbordsfälla | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > varje element som får fokus med tabb har en synlig fokusmarkering | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > inloggning, att öppna en patient, byta flik och stänga nyheterna går med bara tangentbordet | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > att ett element får fokus byter inte sida och öppnar inget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > ett fel i ett formulär markeras vid fältet och beskrivs med text | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > högkontrastläget ger minst 7:1 i kontrast och följer datorns inställning | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > med minskade rörelser i datorn finns inga animationer eller övergångar | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Tillgänglighet > inget ljud, ingen video, inga bilder av text och inget som blinkar eller rör sig av sig självt | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > varje bild och symbol har ett textalternativ eller är dold för hjälpmedel | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > varje formulärfält, knapp och länk har ett namn som beskriver syftet | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > varje vy har en rubrik på nivå 1 och rubrikerna hoppar inte över någon nivå | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > allt innehåll ligger i landmärken: sidhuvud, meny, huvudinnehåll och sidfot | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > sidan har språket svenska och varje vy har en egen sidtitel | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > texten har minst 4,5:1 i kontrast och stor text minst 3:1, i alla vyer för alla roller | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > fältens ramar och fokusmarkeringen har minst 3:1 mot bakgrunden | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > status, larm, uppmärksamhetssymbolen och kurvorna har text eller form utöver färgen | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > texten går att förstora till 200 procent utan att innehåll eller funktion försvinner | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > vid 320 px bredd behövs ingen rullning i sidled | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > allt som går att klicka på går att nå med tangentbordet | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > tabbordningen följer sidans ordning, utan positivt tabindex och utan tangentbordsfälla | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > varje element som får fokus med tabb har en synlig fokusmarkering | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > inloggning, att öppna en patient, byta flik och stänga nyheterna går med bara tangentbordet | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > att ett element får fokus byter inte sida och öppnar inget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > ett fel i ett formulär markeras vid fältet och beskrivs med text | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > högkontrastläget ger minst 7:1 i kontrast och följer datorns inställning | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > med minskade rörelser i datorn finns inga animationer eller övergångar | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 | Tillgänglighetsredogörelse > redogörelsen har varje krav i bilaga K2 med status och hur det är testat | Inte kört | inte kört | inte kört |
 | Tillgänglighetsredogörelse > ett krav är uppfyllt bara när alla dess tester är gröna, och det som bara kan bedömas av människor är märkt | Inte kört | inte kört | inte kört |
 | Tillgänglighetsredogörelse > API: tillganglighet går att läsa utan inloggning | Inte kört | inte kört | inte kört |
 | Tillgänglighetsredogörelse > docs/tillganglighet.md skrivs ur samma register som sidan och tar upp varje krav | Inte kört | inte kört | inte kört |
-| Gränssnitt > Tillgänglighet > fem minuter före utloggningen läser skärmläsare upp en varning, Fortsätt arbeta förlänger inloggningen och osparad text finns kvar som utkast efter en ny inloggning | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Klickbudget > Fortsätta arbeta när inloggningen snart går ut inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Tillgänglighet > fem minuter före utloggningen läser skärmläsare upp en varning, Fortsätt arbeta förlänger inloggningen och osparad text finns kvar som utkast efter en ny inloggning | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Klickbudget > Fortsätta arbeta när inloggningen snart går ut inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Inloggningens tidsgräns > inloggningen går ut efter en tid utan aktivitet, men sandlådan och utkasten finns kvar efter en ny inloggning | Inte kört | inte kört | inte kört |
 | Inloggningens tidsgräns > anrop i bakgrunden förlänger inte inloggningen, och Fortsätt arbeta gör det | Inte kört | inte kört | inte kört |
 | Inloggningens tidsgräns > varje svar till en inloggad säger när inloggningen går ut, och utloggningen står i säkerhetsloggen | Inte kört | inte kört | inte kört |
@@ -4982,7 +4999,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 
 | Testfall | Resultat | Körning | Tid |
 | --- | --- | --- | --- |
-| Gränssnitt > Utbildning > hjälpen i sammanhanget finns i de vanligaste flödena och går att öppna med tangentbordet | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Utbildning > hjälpen i sammanhanget finns i de vanligaste flödena och går att öppna med tangentbordet | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 | Övningar och intyg > övningarna och nyheterna innehåller inga patientuppgifter utom demopatienternas namn, och texterna är svenska | Inte kört | inte kört | inte kört |
 
 ### 10.1.1.3 Utbildning användare
@@ -4991,8 +5008,8 @@ Inte alla testfall godkända. Status i registret: delvis.
 
 | Testfall | Resultat | Körning | Tid |
 | --- | --- | --- | --- |
-| Gränssnitt > Utbildning > hjälpen i sammanhanget finns i de vanligaste flödena och går att öppna med tangentbordet | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Utbildning > övningarna ger ett intyg med giltighetstid, och verksamhetschefen ser vårdenhetens intyg | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Utbildning > hjälpen i sammanhanget finns i de vanligaste flödena och går att öppna med tangentbordet | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Utbildning > övningarna ger ett intyg med giltighetstid, och verksamhetschefen ser vårdenhetens intyg | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 | Övningar och intyg > varje yrkesroll har övningar, och rätt svar lämnas inte ut före rättningen | Inte kört | inte kört | inte kört |
 | Övningar och intyg > alla rätt ger ett intyg som gäller i ett år, och ett fel ger förklaringar men inget intyg | Inte kört | inte kört | inte kört |
 | Övningar och intyg > verksamhetschefen ser vilka på vårdenheten som har giltigt intyg, och ingen annan gör det | Inte kört | inte kört | inte kört |
@@ -5007,8 +5024,8 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Nyheter > rutan visar bara den aktuella versionens nyheter för användarens roll, och historiken går att läsa igen | Inte kört | inte kört | inte kört |
 | Nyheter > rutan stängs per användare och version och kommer tillbaka vid nästa version | Inte kört | inte kört | inte kört |
 | Nyheter > API: nyheter kräver inloggning, och invånaren får sina egna | Inte kört | inte kört | inte kört |
-| Gränssnitt > Utbildning > nyhetsrutan visar rollens nyheter efter inloggning, stängs med ett klick och går att läsa igen | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Klickbudget > Läsa nyheterna och stänga dem inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Utbildning > nyhetsrutan visar rollens nyheter efter inloggning, stängs med ett klick och går att läsa igen | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Klickbudget > Läsa nyheterna och stänga dem inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 10.1.1.5 Certifierade användare
 
@@ -5025,9 +5042,9 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Övningar och intyg > verksamhetschefen och en utbildare ändrar övningarna som en ny version med historik, och ingen annan gör det | Inte kört | inte kört | inte kört |
 | Övningar och intyg > en ändrad övning prövas innan den sparas, och systemet säger vad som saknas | Inte kört | inte kört | inte kört |
 | Övningar och intyg > verksamhetschefen utfärdar utbildarintyg bara till någon på vårdenheten med giltigt intyg | Inte kört | inte kört | inte kört |
-| Gränssnitt > Utbildning > övningarna ger ett intyg med giltighetstid, och verksamhetschefen ser vårdenhetens intyg | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Utbildning > verksamhetschefen utser en utbildare, och utbildaren ändrar en övning som sparas som en ny version med historik | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Utbildning > hjälpen i sammanhanget finns i de vanligaste flödena och går att öppna med tangentbordet | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Utbildning > övningarna ger ett intyg med giltighetstid, och verksamhetschefen ser vårdenhetens intyg | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Utbildning > verksamhetschefen utser en utbildare, och utbildaren ändrar en övning som sparas som en ny version med historik | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Utbildning > hjälpen i sammanhanget finns i de vanligaste flödena och går att öppna med tangentbordet | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 | Övningar per vårdenhet > personalen gör vårdgivarens och den egna vårdenhetens övningar, och de egna har ett eget prefix | Inte kört | inte kört | inte kört |
 | Övningar per vårdenhet > vårdenhetens verksamhetschef och utbildare ändrar de egna övningarna som en ny version med egen historik | Inte kört | inte kört | inte kört |
 | Praktiska prov > utbildaren och verksamhetschefen skapar praktiska prov för vårdenheten, och den som inte är utbildare får inte | Inte kört | inte kört | inte kört |
@@ -5035,7 +5052,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Praktiska prov > en anteckning som inte är signerad godkänns inte, och en signerad anteckning godkänns | Inte kört | inte kört | inte kört |
 | Praktiska prov > utbildaren följer upp vem som har klarat provet utan att se vilken patient provet gjordes på | Inte kört | inte kört | inte kört |
 | Praktiska prov > systemet väljer en övningsjournal som personen har vårdrelation till, aldrig en skyddad patient, och ett godkänt prov gäller i ett år | Inte kört | inte kört | inte kört |
-| Gränssnitt > Utbildning > utbildaren skapar ett praktiskt prov, läkaren gör det i övningsjournalen och systemet kontrollerar resultatet | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Utbildning > utbildaren skapar ett praktiskt prov, läkaren gör det i övningsjournalen och systemet kontrollerar resultatet | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 
 ### 11.2.1.5 Beprövad och standardiserad testmetod
 
@@ -5076,10 +5093,14 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Läskopia > förnyelsen loggas inte var för sig: utlämnandet loggas när det börjar och när det slutar | Inte kört | inte kört | inte kört |
 | Läskopia > innehåller bara det servern redan lämnar ut till den inloggade | Inte kört | inte kört | inte kört |
 | Läskopia > yrkesrollen styr vad läskopian innehåller | Inte kört | inte kört | inte kört |
-| Gränssnitt > Avbrott > läskopian förnyas av sig själv medan personen är inloggad | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > läsläget visar hur gammal läkemedelsinformationen är per patient och varnar efter 10 minuter | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > appen startar utan nät från service workern och visar läsläget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Avbrott > fel reservkod ger väntetid och rätt reservkod öppnar läsläget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Avbrott > läskopian förnyas av sig själv medan personen är inloggad | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > läsläget visar hur gammal läkemedelsinformationen är per patient och varnar efter 10 minuter | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > appen startar utan nät från service workern och visar läsläget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Avbrott > fel reservkod ger väntetid och rätt reservkod öppnar läsläget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Reservdator för läkemedel > listan har alla inskrivna patienter på vårdenheten med aktuella ordinationer och dagens doser, ur samma svar som de vanliga anropen | Inte kört | inte kört | inte kört |
+| Reservdator för läkemedel > bara sjuksköterskor och läkare använder reservdatorn, och bara för den egna vårdenhetens inskrivna patienter | Inte kört | inte kört | inte kört |
+| Reservdator för läkemedel > en spärrad vårdenhets ordinationer finns inte med, och skyddad identitet är maskerad | Inte kört | inte kört | inte kört |
+| Reservdator för läkemedel > utlämnandet till reservdatorn loggas som en period: en rad när patienten kommer med och en när det slutar | Inte kört | inte kört | inte kört |
 
 ### 11.3.1.5 Plan för implementation av Tillväxt
 
@@ -5108,7 +5129,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Systemförvaltning > omorganisation: delning fördelar arbetsplatserna och personalen på de nya vårdenheterna och flyttar tidbokens tider framåt | Inte kört | inte kört | inte kört |
 | Systemförvaltning > omorganisation: systemet stoppar ett namn som redan finns, ett datum bakåt i tiden och en enhet som redan ingår i en förberedd förändring | Inte kört | inte kört | inte kört |
 | Systemförvaltning > omorganisation: API: förbereda, avbryta och se förändringarna, utan patientuppgifter, och en förändring som gäller i dag genomförs vid nästa anrop | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Förbereda ett namnbyte för en enhet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Förbereda ett namnbyte för en enhet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Systemförvaltning > roll: systemförvaltaren är en egen demoroll som inte läser journalen och inte har någon arbetslista | Inte kört | inte kört | inte kört |
 
 ### 12.1.1.3 Applikationskonfiguration
@@ -5124,7 +5145,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Systemförvaltning > konfiguration: förhandsvisningen räknar effekten i dag med bara antal, utan patientuppgifter | Inte kört | inte kört | inte kört |
 | Systemförvaltning > konfiguration: historiken visar varje ändring med vem som föreslog och godkände, och en beslutad ändring kan inte ändras eller raderas | Inte kört | inte kört | inte kört |
 | Systemförvaltning > konfiguration: API: systemförvaltaren godkänner kollegans ändring och mallarna i anteckningsformuläret följer med | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Ändra en demoregel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Ändra en demoregel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Systemförvaltning > konfiguration: remissernas larm, dosfönstret, påminnelsen före en tid, stickprovet, gallringsförslaget och hälsoärendena läser det godkända värdet | Inte kört | inte kört | inte kört |
 | Systemförvaltning > konfiguration: mallens sökord ändras på ett ställe och syns i anteckningsformuläret, och skrivna anteckningar är oförändrade | Inte kört | inte kört | inte kört |
 | Systemförvaltning > roll: systemförvaltaren är en egen demoroll som inte läser journalen och inte har någon arbetslista | Inte kört | inte kört | inte kört |
@@ -5151,7 +5172,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Systemförvaltning > omorganisation: delning fördelar arbetsplatserna och personalen på de nya vårdenheterna och flyttar tidbokens tider framåt | Inte kört | inte kört | inte kört |
 | Systemförvaltning > omorganisation: systemet stoppar ett namn som redan finns, ett datum bakåt i tiden och en enhet som redan ingår i en förberedd förändring | Inte kört | inte kört | inte kört |
 | Systemförvaltning > omorganisation: API: förbereda, avbryta och se förändringarna, utan patientuppgifter, och en förändring som gäller i dag genomförs vid nästa anrop | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Förbereda ett namnbyte för en enhet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Förbereda ett namnbyte för en enhet inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 
 ### 12.1.1.5 Applikationskonfiguration
 
@@ -5166,7 +5187,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Systemförvaltning > konfiguration: förhandsvisningen räknar effekten i dag med bara antal, utan patientuppgifter | Inte kört | inte kört | inte kört |
 | Systemförvaltning > konfiguration: historiken visar varje ändring med vem som föreslog och godkände, och en beslutad ändring kan inte ändras eller raderas | Inte kört | inte kört | inte kört |
 | Systemförvaltning > konfiguration: API: systemförvaltaren godkänner kollegans ändring och mallarna i anteckningsformuläret följer med | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Ändra en demoregel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Ändra en demoregel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Systemförvaltning > roll: systemförvaltaren är en egen demoroll som inte läser journalen och inte har någon arbetslista | Inte kört | inte kört | inte kört |
 | Parametrar för utloggning och rapportering > utloggningen har skilda gränser för personal och invånare, med rimlighetskontroll och samma standard som förut | Inte kört | inte kört | inte kört |
 | Parametrar för utloggning och rapportering > en godkänd ändring av utloggningen gäller från dagen den gäller, med fyra ögon, och bara för personalen | Inte kört | inte kört | inte kört |
@@ -5184,7 +5205,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Systemförvaltning > konfiguration: förhandsvisningen räknar effekten i dag med bara antal, utan patientuppgifter | Inte kört | inte kört | inte kört |
 | Systemförvaltning > konfiguration: historiken visar varje ändring med vem som föreslog och godkände, och en beslutad ändring kan inte ändras eller raderas | Inte kört | inte kört | inte kört |
 | Systemförvaltning > konfiguration: API: systemförvaltaren godkänner kollegans ändring och mallarna i anteckningsformuläret följer med | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Ändra en demoregel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Ändra en demoregel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Systemförvaltning > konfiguration: remissernas larm, dosfönstret, påminnelsen före en tid, stickprovet, gallringsförslaget och hälsoärendena läser det godkända värdet | Inte kört | inte kört | inte kört |
 | Administration som konfiguration > tidboken och vårdgarantin: reglerna är parametrar med samma standardvärden, och väntelistan räknar gränsen ur det godkända värdet | Inte kört | inte kört | inte kört |
 | Administration som konfiguration > avgifterna och högkostnadsskyddet: parametrar med fyra ögon som avgiften räknas ur, och sidan säger vad som inte går att ändra | Inte kört | inte kört | inte kört |
@@ -5210,7 +5231,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Systemförvaltning > konfiguration: förhandsvisningen räknar effekten i dag med bara antal, utan patientuppgifter | Inte kört | inte kört | inte kört |
 | Systemförvaltning > konfiguration: historiken visar varje ändring med vem som föreslog och godkände, och en beslutad ändring kan inte ändras eller raderas | Inte kört | inte kört | inte kört |
 | Systemförvaltning > konfiguration: API: systemförvaltaren godkänner kollegans ändring och mallarna i anteckningsformuläret följer med | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Ändra en demoregel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Ändra en demoregel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Systemförvaltning > konfiguration: mallens sökord ändras på ett ställe och syns i anteckningsformuläret, och skrivna anteckningar är oförändrade | Inte kört | inte kört | inte kört |
 | Systemförvaltning > konfiguration: remissernas larm, dosfönstret, påminnelsen före en tid, stickprovet, gallringsförslaget och hälsoärendena läser det godkända värdet | Inte kört | inte kört | inte kört |
 | Journalens struktur > mall: en ny mall med ett nytt sökord godkänns av en annan systemförvaltare och används direkt i journalen | Inte kört | inte kört | inte kört |
@@ -5244,7 +5265,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Systemförvaltning > konfiguration: förhandsvisningen räknar effekten i dag med bara antal, utan patientuppgifter | Inte kört | inte kört | inte kört |
 | Systemförvaltning > konfiguration: historiken visar varje ändring med vem som föreslog och godkände, och en beslutad ändring kan inte ändras eller raderas | Inte kört | inte kört | inte kört |
 | Systemförvaltning > konfiguration: API: systemförvaltaren godkänner kollegans ändring och mallarna i anteckningsformuläret följer med | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Ändra en demoregel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Ändra en demoregel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Systemförvaltning > konfiguration: remissernas larm, dosfönstret, påminnelsen före en tid, stickprovet, gallringsförslaget och hälsoärendena läser det godkända värdet | Inte kört | inte kört | inte kört |
 | Läkemedelsregler som konfiguration > interaktioner: vårdgivarens lista är en demoregel med fyra ögon, och en ny interaktion ger en varning vid ordination | Inte kört | inte kört | inte kört |
 | Läkemedelsregler som konfiguration > maxdoser och njurfunktion: högsta dygnsdosen och gränserna för metformin är parametrar som läses vid varje ordination | Inte kört | inte kört | inte kört |
@@ -5268,7 +5289,7 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Systemförvaltning > konfiguration: förhandsvisningen räknar effekten i dag med bara antal, utan patientuppgifter | Inte kört | inte kört | inte kört |
 | Systemförvaltning > konfiguration: historiken visar varje ändring med vem som föreslog och godkände, och en beslutad ändring kan inte ändras eller raderas | Inte kört | inte kört | inte kört |
 | Systemförvaltning > konfiguration: API: systemförvaltaren godkänner kollegans ändring och mallarna i anteckningsformuläret följer med | Inte kört | inte kört | inte kört |
-| Gränssnitt > Klickbudget > Ändra en demoregel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 11:24 UTC |
+| Gränssnitt > Klickbudget > Ändra en demoregel inom budget | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Klickbudget i webbläsaren | 2026-11-12 kl. 12:24 svensk tid |
 | Systemförvaltning > konfiguration: remissernas larm, dosfönstret, påminnelsen före en tid, stickprovet, gallringsförslaget och hälsoärendena läser det godkända värdet | Inte kört | inte kört | inte kört |
 | Beställning och svar > paketens innehåll och laboratoriets svarstid ändras på ett ställe och slår igenom i förslagen och svaren | Inte kört | inte kört | inte kört |
 | Parametrar för beställning och svar > vad som förs över till det mottagande systemet, etikettskrivarna och anvisningarna ändras med fyra ögon och slår igenom | Inte kört | inte kört | inte kört |
@@ -5310,8 +5331,8 @@ Inte alla testfall godkända. Status i registret: delvis.
 | Miljöer > utbildnings- och testmiljön har fiktiva data och samma regler och parametrar som produktionsmiljön | Inte kört | inte kört | inte kört |
 | Miljöer > miljön är märkt i varje svar om sessionen och går inte att återställa, och det går att gå tillbaka till produktionsmiljön | Inte kört | inte kört | inte kört |
 | Miljöer > bara systemförvaltaren skapar miljöer, högst tre per sandlåda och inte ur en annan miljö | Inte kört | inte kört | inte kört |
-| Lasttest > 100 samtidiga användare: p95 under svarstidsmålet för varje åtgärd och inga fel | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Lasttest | 2026-11-12 kl. 15:06 UTC |
-| Lasttest > 500 samtidiga användare: p95 under svarstidsmålet för varje åtgärd och inga fel | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Lasttest | 2026-11-12 kl. 15:06 UTC |
+| Lasttest > 100 samtidiga användare: p95 under svarstidsmålet för varje åtgärd och inga fel | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Lasttest | 2026-11-12 kl. 16:06 svensk tid |
+| Lasttest > 500 samtidiga användare: p95 under svarstidsmålet för varje åtgärd och inga fel | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Lasttest | 2026-11-12 kl. 16:06 svensk tid |
 | Vilande sandlådor i servern > en sandlåda som inte har använts på tio minuter skrivs till disk och släpps ur minnet, och nästa anrop läser in den med allt kvar | Inte kört | inte kört | inte kört |
 | Vilande sandlådor i servern > en aktiv sandlåda tas aldrig bort för att ge plats åt en ny: med plats för tre i minnet finns alla åtta kvar | Inte kört | inte kört | inte kört |
 | När demon är full > en ny besökare får 503 med en förklaring på svenska och när det är lönt att försöka igen, och de som redan arbetar märker inget | Inte kört | inte kört | inte kört |
@@ -5409,9 +5430,9 @@ Inte alla testfall godkända. Status i registret: delvis.
 
 | Testfall | Resultat | Körning | Tid |
 | --- | --- | --- | --- |
-| Gränssnitt > Tillgänglighet > alla vyer fungerar på mobil, platta och stor skärm utan rullning i sidled och utan för långa textrader | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > vid 320 px bredd behövs ingen rullning i sidled | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > texten går att förstora till 200 procent utan att innehåll eller funktion försvinner | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Tillgänglighet > alla vyer fungerar på mobil, platta och stor skärm utan rullning i sidled och utan för långa textrader | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > vid 320 px bredd behövs ingen rullning i sidled | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > texten går att förstora till 200 procent utan att innehåll eller funktion försvinner | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 
 ### KD1.1.4.10 Bildskärm
 
@@ -5419,14 +5440,14 @@ Inte alla testfall godkända. Status i registret: delvis.
 
 | Testfall | Resultat | Körning | Tid |
 | --- | --- | --- | --- |
-| Gränssnitt > Tillgänglighet > alla vyer fungerar på mobil, platta och stor skärm utan rullning i sidled och utan för långa textrader | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > vid 320 px bredd behövs ingen rullning i sidled | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > texten går att förstora till 200 procent utan att innehåll eller funktion försvinner | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > högkontrastläget ger minst 7:1 i kontrast och följer datorns inställning | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
-| Gränssnitt > Tillgänglighet > flera skärmar: en del av journalen öppnas i ett nytt fönster som följer patientbytet, och ett låst fönster visar tydligt att en annan patient är öppen | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 11:58 UTC |
+| Gränssnitt > Tillgänglighet > alla vyer fungerar på mobil, platta och stor skärm utan rullning i sidled och utan för långa textrader | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > vid 320 px bredd behövs ingen rullning i sidled | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > texten går att förstora till 200 procent utan att innehåll eller funktion försvinner | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > högkontrastläget ger minst 7:1 i kontrast och följer datorns inställning | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
+| Gränssnitt > Tillgänglighet > flera skärmar: en del av journalen öppnas i ett nytt fönster som följer patientbytet, och ett låst fönster visar tydligt att en annan patient är öppen | Inaktuellt, gränssnittet har ändrats sedan testet kördes | Gränssnittstest i webbläsaren | 2026-11-12 kl. 12:58 svensk tid |
 
 ## Krav utan testfall
 
 Eget ramverk: D12, L8, L11, L12, M1, M3, M7, M10, M11, M13.
 
-Sussas kravspecifikation: 2.2.1.1, 2.2.1.2, 2.2.1.3, 2.2.1.4, 2.2.1.5, 2.2.1.6, 2.2.1.9, 2.2.1.10, 2.2.1.11, 2.2.1.12, 2.2.1.13, 2.2.1.14, 2.4.1.1, 2.6.1.1, 2.6.1.3, 2.7.1.1, 3.1.4.1, 3.1.4.2, 3.5.1.10, 3.5.2.16, 3.5.4.5, 3.7.1.2, 5.1.4.2, 5.1.4.3, 5.1.4.4, 5.1.4.6, 5.2.1.1, 5.2.1.5, 5.3.1.1, 5.3.1.4, 5.3.1.9, 5.3.1.10, 5.3.1.11, 5.3.1.13, 5.3.1.14, 5.3.1.15, 5.3.1.16, 5.3.1.17, 5.4.2.2, 9.1.1.1, 9.1.1.2, 9.1.1.3, 10.1.1.1, 11.1.1.1, 11.1.1.2, 11.2.1.1, 11.2.1.2, 11.2.1.3, 11.2.1.4, 11.2.1.6, 11.2.1.9, 11.2.1.10, 11.2.1.11, 11.2.1.12, 11.3.1.1, 11.3.1.2, 11.3.1.3, 11.3.1.4, 11.3.1.6, 11.3.1.7, 11.3.1.8, 11.3.1.9, 11.3.1.10, 12.1.1.2, 12.2.1.1, 12.2.1.2, 12.2.1.3, 12.3.1.1, 12.3.1.2, 12.3.1.3, 12.3.1.4, 12.3.1.5, KD1.1.1.1, KD1.1.1.2, KD1.1.1.3, KD1.1.1.4, KD1.1.1.6, KD1.1.1.7, KD1.1.1.8, KD1.1.1.9, KD1.1.1.11, KD1.1.1.12, KD1.1.1.13, KD1.1.2.1, KD1.1.2.2, KD1.1.3.1, KD1.1.3.2, KD1.1.4.1, KD1.1.4.2, KD1.1.4.4, KD1.1.4.5, KD1.1.4.6, KD1.1.4.7, KD1.1.4.8, KD1.1.4.9, KD1.2.1.1, KD1.2.1.2, KD1.2.1.3, KD1.2.1.4, KD1.2.1.5, KD1.3.1.1, KD1.3.1.2, KD1.3.1.3, KD1.3.2.1, KD1.3.2.2, KD1.3.2.3, KD1.3.2.4, KD1.3.3.1, KD1.3.3.2, KD1.3.4.1, KD1.3.4.2, KD1.3.5.1, KD1.3.5.2, KD1.3.6.1, KD1.3.6.2, KD1.3.7.1.
+Sussas kravspecifikation: 2.2.1.1, 2.2.1.2, 2.2.1.3, 2.2.1.4, 2.2.1.5, 2.2.1.6, 2.2.1.9, 2.2.1.10, 2.2.1.11, 2.2.1.12, 2.2.1.13, 2.2.1.14, 2.4.1.1, 2.6.1.1, 2.6.1.3, 2.7.1.1, 3.1.4.1, 3.1.4.2, 3.5.1.10, 3.5.2.16, 3.5.4.5, 3.7.1.2, 5.1.4.2, 5.1.4.3, 5.1.4.4, 5.1.4.6, 5.2.1.1, 5.2.1.5, 5.3.1.1, 5.3.1.4, 5.3.1.9, 5.3.1.10, 5.3.1.11, 5.3.1.13, 5.3.1.14, 5.3.1.15, 5.3.1.16, 5.3.1.17, 9.1.1.1, 9.1.1.2, 9.1.1.3, 10.1.1.1, 11.1.1.1, 11.1.1.2, 11.2.1.1, 11.2.1.2, 11.2.1.3, 11.2.1.4, 11.2.1.6, 11.2.1.9, 11.2.1.10, 11.2.1.11, 11.2.1.12, 11.3.1.1, 11.3.1.2, 11.3.1.3, 11.3.1.4, 11.3.1.6, 11.3.1.7, 11.3.1.8, 11.3.1.9, 11.3.1.10, 12.1.1.2, 12.2.1.1, 12.2.1.2, 12.2.1.3, 12.3.1.1, 12.3.1.2, 12.3.1.3, 12.3.1.4, 12.3.1.5, KD1.1.1.1, KD1.1.1.2, KD1.1.1.3, KD1.1.1.4, KD1.1.1.6, KD1.1.1.7, KD1.1.1.8, KD1.1.1.9, KD1.1.1.11, KD1.1.1.12, KD1.1.1.13, KD1.1.2.1, KD1.1.2.2, KD1.1.3.1, KD1.1.3.2, KD1.1.4.1, KD1.1.4.2, KD1.1.4.4, KD1.1.4.5, KD1.1.4.6, KD1.1.4.7, KD1.1.4.8, KD1.1.4.9, KD1.2.1.1, KD1.2.1.2, KD1.2.1.3, KD1.2.1.4, KD1.2.1.5, KD1.3.1.1, KD1.3.1.2, KD1.3.1.3, KD1.3.2.1, KD1.3.2.2, KD1.3.2.3, KD1.3.2.4, KD1.3.3.1, KD1.3.3.2, KD1.3.4.1, KD1.3.4.2, KD1.3.5.1, KD1.3.5.2, KD1.3.6.1, KD1.3.6.2, KD1.3.7.1.

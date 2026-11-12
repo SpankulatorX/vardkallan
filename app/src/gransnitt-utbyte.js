@@ -141,6 +141,16 @@ export const GRANSSNITT = [
     behorighet: 'Bara arkivarien, med ett registrerat beslut. Varje journal i paketet loggas som utlämnad till e-arkivet.',
     simulerat: 'E-arkivet är simulerat i demon, och paketet är inte prövat mot en verklig leveransöverenskommelse.',
   }),
+  // Runda 14, r4 (Sussa 5.4.2.2): överföringen till mellanarkivet och åtkomsten därifrån i journalen.
+  g('mellanarkiv', 'Överföring till mellanarkiv och åtkomst från journalen', {
+    standard: 'Riksarkivets FGS Paketstruktur 2.0 som exporten till e-arkivet, med journalhandlingarna i HL7 FHIR R4',
+    riktning: 'Vårdkällan för över paket till mellanarkivet, och journalen läser handlingarna därifrån',
+    adresser: ['/api/arkiv/beslut/:id/overfor', '/api/patient/:id/mellanarkiv', '/api/mellanarkiv/:id'], prefix: ['/api/arkiv/beslut/:id/overfor', '/api/mellanarkiv'],
+    kod: ['src/mellanarkiv.js', 'src/mellanarkiv-rutter.js', 'src/arkiv.js', 'src/earkiv.js'],
+    text: 'Arkivarien registrerar ett beslut om överföring, och systemet tar fram de äldre handlingarna, bygger ett paket per journal och låter mellanarkivet göra samma mottagningskontroll som e-arkivet innan något förs över. Anteckningarnas kategori och mätvärdenas typ följer med som taggar i FHIR-resurserna. Journalen visar handlingarna bland de andra, och varje handling kontrolleras mot sin SHA-256 när den läses.',
+    behorighet: 'Överföringen bara av arkivarien med ett registrerat beslut. Läsningen med samma behörighet som journalen, prövad på vårdenheten där handlingen skrevs, och varje läsning loggas.',
+    simulerat: 'Mellanarkivet är lokalt och simulerat i demon.',
+  }),
   g('utskrift', 'Utskrift och utlämnande', {
     standard: 'Utskriftsvänlig sida som webbläsaren skriver ut eller sparar som PDF',
     riktning: 'Vårdkällan lämnar ut en journalkopia på papper eller som fil',

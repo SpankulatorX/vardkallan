@@ -2,6 +2,56 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "1.4.0",
+      "datum": "2026-11-13",
+      "nyheter": [
+        {
+          "id": "mellanarkiv-1-4",
+          "roller": [
+            "lakare",
+            "sjukskoterska",
+            "underskoterska",
+            "arkivarie"
+          ],
+          "omfattning": "liten",
+          "var": null,
+          "rubrik": "Äldre uppgifter ur mellanarkivet står i journalen",
+          "text": "Anteckningar och mätvärden som har förts över till mellanarkivet står i journalens lista, i översiktens tidslinje och i sökningen bland de andra, märkta Ur mellanarkivet. De läses med samma behörighet som journalen i övrigt och ändras aldrig. Arkivarien registrerar ett beslut om överföring till mellanarkiv, och systemet tar själv fram vad som ska föras över."
+        },
+        {
+          "id": "reservdator-1-4",
+          "roller": [
+            "sjukskoterska",
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "var": "#/reservdator",
+          "rubrik": "Reservdator för läkemedel",
+          "text": "Öppna Reservdator för läkemedel på en dator på vårdenheten och låt den vara öppen. Den hämtar själv ordinationerna och dagens doser för alla inskrivna patienter var fjärde minut och visar dem, och kan skriva ut dem, också när kärnsystemet inte svarar. Den hjälper den vars egen dator är nere eller som inte var inloggad när avbrottet började."
+        },
+        {
+          "id": "testprotokoll-1-4",
+          "roller": [
+            "alla"
+          ],
+          "omfattning": "liten",
+          "var": "#/testprotokoll",
+          "rubrik": "Testprotokoll inför acceptanstest",
+          "text": "Testprotokollet visar varje krav med sina testfall, resultatet, när testerna kördes och vilken byggd version det gäller, och kan skrivas ut från kravsidan."
+        },
+        {
+          "id": "gransnitt-1-4",
+          "roller": [
+            "alla"
+          ],
+          "omfattning": "liten",
+          "var": null,
+          "rubrik": "Gränssnitten för informationsutbyte beskrivs samlat",
+          "text": "Alla gränssnitt för informationsutbyte beskrivs samlat i docs/gransnitt.md, med processen för hur en beställare själv utvecklar och förvaltar dem."
+        }
+      ]
+    },
+    {
       "version": "1.3.1",
       "datum": "2026-11-12",
       "nyheter": [

@@ -78,6 +78,8 @@ export const STARTPUNKT = {
   // Runda 11, r7: övervakningen på Hjärtintensiven och Leos tillväxt, efter återställning.
   'Övervakningen av en patient på intensivvården': { hash: '#/iva/p22', klar: '#iva-nems-form', forbered: 'aterstall' },
   'Tillväxten för ett barn som har flyttat hit': { hash: '#/patient/p09/tillvaxt', klar: '#tv-import', forbered: 'aterstall' },
+  // Runda 14, r4: arkivariens sida för e-arkiv, gallring och mellanarkiv.
+  'E-arkiv och gallring': { hash: '#/arkiv', klar: '#ar-form' },
 };
 
 export const UPPGIFTER = [
@@ -678,6 +680,22 @@ export const UPPGIFTER = [
     id: 'valj-yrkesroll', namn: 'Välja yrkesroll och starta första uppdraget', roll: 'lak-kard', start: 'Startsidan för testare',
     text: 'Du har fått en länk till ett test av Vårdkällan och arbetar som läkare på sjukhus. Välj ditt yrke och gör det första uppdraget.',
     kontroll: { sel: '#testare-panel .tp-jamforelse', text: 'Ta emot dagens första patient' },
+  },
+  // Runda 14, r4: mellanarkivet och vårdenhetens reservdator för läkemedel.
+  {
+    id: 'las-mellanarkiv', namn: 'Läsa en äldre anteckning ur mellanarkivet', roll: 'lak-kard', start: 'Patientens översikt',
+    text: 'Gunnar Åkesson besökte kardiologiska mottagningen 2010 för hjärtklappning. Läs vad som skrevs då.',
+    kontroll: { sel: '[data-mellanarkiv-kontroll]', text: 'Kontrollsumman visar' },
+  },
+  {
+    id: 'overfor-mellanarkiv', namn: 'För över äldre journalhandlingar till mellanarkivet', roll: 'ark', start: 'E-arkiv och gallring',
+    text: 'Vårdgivaren har beslutat, med diarienummer RS 2026-777, att äldre journalhandlingar ska föras över till mellanarkivet. Gör det.',
+    kontroll: { notis: 'överförda till mellanarkivet' },
+  },
+  {
+    id: 'oppna-reservdator', namn: 'Göra en dator till vårdenhetens reservdator för läkemedel', roll: 'ssk-kard', start: 'Arbetslistan efter inloggning',
+    text: 'Datorn i läkemedelsrummet ska visa avdelningens läkemedel om journalsystemet slutar svara. Ställ i ordning den.',
+    kontroll: { sel: '#reservdator', text: 'inskrivna patienter' },
   },
 ];
 

@@ -18,6 +18,7 @@ Den här beskrivningen samlar Vårdkällans gränssnitt för informationsutbyte 
 | [Producentsystem för beställning och svar](#producentsystem-för-beställning-och-svar) | HL7 FHIR R4: Bundle, ServiceRequest, Specimen, Task, DiagnosticReport och ActivityDefinition | Laboratoriets system hämtar beställningar och skickar status, svar och katalog till Vårdkällan |
 | [Bilder med DICOMweb](#bilder-med-dicomweb) | DICOMweb (QIDO-RS och WADO-RS) | Bildvisaren och andra system hämtar studier, serier och instanser från Vårdkällan |
 | [Export till e-arkiv och återföring](#export-till-e-arkiv-och-återföring) | Riksarkivets FGS Paketstruktur 2.0 (E-ARK CSIP och SIP 2.1.0) med journalen i HL7 FHIR R4 | Vårdkällan levererar paket till e-arkivet och får en signerad kvittens |
+| [Överföring till mellanarkiv och åtkomst från journalen](#överföring-till-mellanarkiv-och-åtkomst-från-journalen) | Riksarkivets FGS Paketstruktur 2.0 som exporten till e-arkivet, med journalhandlingarna i HL7 FHIR R4 | Vårdkällan för över paket till mellanarkivet, och journalen läser handlingarna därifrån |
 | [Utskrift och utlämnande](#utskrift-och-utlämnande) | Utskriftsvänlig sida som webbläsaren skriver ut eller sparar som PDF | Vårdkällan lämnar ut en journalkopia på papper eller som fil |
 | [Rapportering till myndigheter och kvalitetsregister](#rapportering-till-myndigheter-och-kvalitetsregister) | Mottagarnas egna filformat, sammanställda ur journalen | Vårdkällan skickar till myndigheter och register |
 | [Masterdata](#masterdata) | Utbytbara adaptrar med ett gemensamt kontrakt för varje källa | Vårdkällan hämtar organisation, personal, befolkning, läkemedel och kodverk från sina källor |
@@ -218,6 +219,22 @@ Simulerat: E-arkivet är simulerat i demon, och paketet är inte prövat mot en 
 Koden: `app/src/arkiv.js`, `app/src/earkiv.js`, `app/src/zip.js`, `app/src/earkiv-scheman`.
 
 Dokumentation: `docs/earkiv-validering.md`.
+
+## Överföring till mellanarkiv och åtkomst från journalen
+
+Arkivarien registrerar ett beslut om överföring, och systemet tar fram de äldre handlingarna, bygger ett paket per journal och låter mellanarkivet göra samma mottagningskontroll som e-arkivet innan något förs över. Anteckningarnas kategori och mätvärdenas typ följer med som taggar i FHIR-resurserna. Journalen visar handlingarna bland de andra, och varje handling kontrolleras mot sin SHA-256 när den läses.
+
+Standard: Riksarkivets FGS Paketstruktur 2.0 som exporten till e-arkivet, med journalhandlingarna i HL7 FHIR R4.
+
+Riktning: Vårdkällan för över paket till mellanarkivet, och journalen läser handlingarna därifrån.
+
+Adresser: `/api/arkiv/beslut/:id/overfor`, `/api/patient/:id/mellanarkiv`, `/api/mellanarkiv/:id`.
+
+Behörighet och loggning: Överföringen bara av arkivarien med ett registrerat beslut. Läsningen med samma behörighet som journalen, prövad på vårdenheten där handlingen skrevs, och varje läsning loggas.
+
+Simulerat: Mellanarkivet är lokalt och simulerat i demon.
+
+Koden: `app/src/mellanarkiv.js`, `app/src/mellanarkiv-rutter.js`, `app/src/arkiv.js`, `app/src/earkiv.js`.
 
 ## Utskrift och utlämnande
 

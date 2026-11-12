@@ -1327,6 +1327,29 @@ function skapa(BAS) {
     await m.klicka(page.locator('#us [data-boka]').first(), 'Boka vid den första undersökningen');
     await synlig(page, '.notis', 'är bokad');
   };
+  // Runda 14, r4: mellanarkivet och reservdatorn för läkemedel.
+  GOR['las-mellanarkiv'] = async (m, page) => {
+    await m.klicka(page.locator('.flikar a', { hasText: 'Journal' }).first(), 'fliken Journal');
+    const rad = page.locator('#j-poster li a', { hasText: 'Ur mellanarkivet' }).first();
+    await rad.waitFor();
+    await m.klicka(rad, 'anteckningen Ur mellanarkivet');
+    await synlig(page, '[data-mellanarkiv-kontroll]', 'Kontrollsumman visar');
+  };
+  startI['E-arkiv och gallring'] = async (page) => { await gaTill(page, '#/arkiv'); await page.waitForSelector('#ar-form'); };
+  GOR['overfor-mellanarkiv'] = async (m, page) => {
+    await m.klicka(page.locator('#ar-form label.val-rad', { hasText: 'Överföring till mellanarkiv' }), 'Överföring till mellanarkiv');
+    await m.skriv(page.locator('#ar-dnr'), 'RS 2026-777', 'diarienumret');
+    await m.klicka(page.locator('#ar-form [type="submit"]'), 'Registrera beslutet');
+    const kort = page.locator('[data-beslut]', { hasText: 'RS 2026-777' }).first();
+    await m.klicka(kort.locator('[data-underlag]'), 'Visa underlag');
+    await m.klicka(kort.locator('[data-overfor]'), 'För över till mellanarkivet');
+    await synlig(page, '.notis', 'överförda till mellanarkivet');
+  };
+  GOR['oppna-reservdator'] = async (m, page) => {
+    await m.klicka(page.locator('.meny a[href="#/administrering"]'), 'Läkemedel att ge i menyn');
+    await m.klicka(page.locator('[data-reservdator-lank] a'), 'Reservdator för läkemedel');
+    await synlig(page, '#reservdator', 'inskrivna patienter');
+  };
   return { synlig, gaTill, loggaIn, startI, GOR };
 }
 

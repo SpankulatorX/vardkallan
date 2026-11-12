@@ -538,3 +538,18 @@ FLODEN.push(
     motivering: 'Ett klick på yrkesrollen, som loggar in i rätt demoroll och startar uppdragen i panelen, och ett klick på en patient i arbetslistan för det första uppdraget. Systemet bockar av uppdraget själv och ställer jämförelsefrågan.',
   },
 );
+// Runda 14, r4: mellanarkivet (Sussa 5.4.2.2) och vårdenhetens reservdator för läkemedel (Sussa 11.2.1.8).
+FLODEN.push(
+  {
+    id: 'las-mellanarkiv', namn: 'Läsa en äldre anteckning ur mellanarkivet', roll: 'lak-kard', start: 'Patientens översikt', budget: 2,
+    motivering: 'Sussa 5.4.2.2. Ett klick på fliken Journal och ett på anteckningen, som står bland de andra märkt Ur mellanarkivet. Ingen behöver veta att mellanarkivet finns eller söka där: systemet hämtar handlingen, prövar behörigheten och säger att innehållet är oförändrat.',
+  },
+  {
+    id: 'overfor-mellanarkiv', namn: 'För över äldre journalhandlingar till mellanarkivet', roll: 'ark', start: 'E-arkiv och gallring', budget: 5,
+    motivering: 'Sussa 5.4.2.2. Ett klick på Överföring till mellanarkiv, ett fältbyte till diarienumret, ett klick på Registrera beslutet, ett på Visa underlag och ett på För över till mellanarkivet. Beslutsdatumet är förvalt, beslutsfattare och lagrum fyller systemet i, och systemet räknar fram vilka handlingar som ska föras över och kontrollerar paketen.',
+  },
+  {
+    id: 'oppna-reservdator', namn: 'Göra en dator till vårdenhetens reservdator för läkemedel', roll: 'ssk-kard', start: 'Arbetslistan efter inloggning', budget: 2,
+    motivering: 'Sussa 11.2.1.8. Ett klick på Läkemedel att ge och ett på Reservdator för läkemedel. Sedan hämtar sidan själv listan över alla inskrivna patienter var fjärde minut, och ingen behöver göra något mer.',
+  },
+);
