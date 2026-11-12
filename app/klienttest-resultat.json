@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-12T11:58:13.510Z",
-  "bas": "http://127.0.0.1:18250",
+  "tid": "2026-11-12T20:34:16.308Z",
+  "bas": "http://127.0.0.1:18145",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "7e770fd8f3bc0a1d2e5fedb4d2ef7b40b155779b91f6e41c28761fb0b43365cb",
+  "gransnittHash": "ca4fdd968100af1c4b88cb569912af10265ac30331aa691c34067e6dfcdd8121",
   "tester": [
     {
       "namn": "Gränssnitt > Avbrott > läskopian i webbläsaren är krypterad och nyckeln ligger inte i IndexedDB",
@@ -226,7 +226,8 @@
     },
     {
       "namn": "Gränssnitt > Utbildning > hjälpen i sammanhanget finns i de vanligaste flödena och går att öppna med tangentbordet",
-      "status": "grön"
+      "status": "röd",
+      "fel": "hjälpen inkorg saknas i #/inkorg"
     },
     {
       "namn": "Gränssnitt > Utbildning > verksamhetschefen utser en utbildare, och utbildaren ändrar en övning som sparas som en ny version med historik",
@@ -254,7 +255,7 @@
     },
     {
       "namn": "Gränssnitt > Mobil > Kvittera remissvar går i 360 px",
-      "status": "grön"
+      "status": "röd"
     },
     {
       "namn": "Gränssnitt > Mobil > Ge en dos går i 360 px",

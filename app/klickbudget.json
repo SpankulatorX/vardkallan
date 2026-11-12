@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-12T11:24:37.297Z",
-  "bas": "http://127.0.0.1:18250",
+  "tid": "2026-11-12T16:54:50.138Z",
+  "bas": "http://127.0.0.1:18145",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "7e770fd8f3bc0a1d2e5fedb4d2ef7b40b155779b91f6e41c28761fb0b43365cb",
+  "gransnittHash": "ca4fdd968100af1c4b88cb569912af10265ac30331aa691c34067e6dfcdd8121",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -2125,6 +2125,25 @@
         "klick: Läkare på sjukhus",
         "klick: en patient i arbetslistan"
       ]
+    },
+    {
+      "id": "registrera-incident",
+      "namn": "Registrera en incident",
+      "roll": "sysf",
+      "start": "Servicenivåsidan efter återställning",
+      "budget": 4,
+      "motivering": "Ett fältbyte till vad som har hänt, ett klick för hur många som berörs, ett för om vården kan arbeta och ett på Registrera incidenten. Systemet sätter prioriteten enligt servicenivåavtalet, tiden och sorten (driftstörning) och säger direkt när beställaren ska ha rapporten och när processen för en större incident ska startas.",
+      "klick": 3,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 4,
+      "inomBudget": true,
+      "steg": [
+        "fältbyte: vad som har hänt",
+        "klick: Alla eller en väsentlig del av användarna berörs",
+        "klick: Vården kan inte använda systemet",
+        "klick: Registrera incidenten"
+      ]
     }
   ],
   "tester": [
@@ -2594,6 +2613,10 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Välja yrkesroll och starta första uppdraget inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera en incident inom budget",
       "status": "grön"
     }
   ]
