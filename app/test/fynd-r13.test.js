@@ -156,7 +156,7 @@ describe('Säkerhets- och lagrumsgranskningen', () => {
   // En verksamhetschef för en vårdenhet som saknar en i demon.
   const nyChef = (db, ve) => {
     db.query("INSERT INTO personal (id, namn, yrke, titel, enhet_id, hsa_id, demo) VALUES (?, 'Test Verksamhetschef', 'verksamhetschef', 'Verksamhetschef', ?, ?, 0)").run(`vch-t-${ve}`, ve, `vch-t-${ve}`);
-    db.query('INSERT INTO verksamhetschefer (enhet_id, personal_id) VALUES (?, ?)').run(ve, `vch-t-${ve}`);
+    db.query('INSERT OR REPLACE INTO verksamhetschefer (enhet_id, personal_id) VALUES (?, ?)').run(ve, `vch-t-${ve}`);
     return `vch-t-${ve}`;
   };
   // En inloggning som verksamhetschef i arkivariens sandlåda.
@@ -328,6 +328,20 @@ describe('Säkerhets- och lagrumsgranskningen', () => {
     const mv = (await k.get('/api/patient/p01/matvarden')).data;
     const rader = mv.egna.filter(m => m.typ === 'glukos');
     expect(rader[0].beskrivning).toBe('6,2 mmol/L, fastande enligt patienten');
+  });
+
+  test('E3-35: varje vårdenhet i seeden har en verksamhetschef i verksamhetschefstabellen, och ingen av de nya går att logga in som', async () => {
+    const db = byggSeed();
+    const enheter = db.query("SELECT id FROM enheter WHERE typ = 'vardenhet' ORDER BY id").all().map(e => e.id);
+    expect(enheter.length).toBeGreaterThan(10);
+    for (const ve of enheter) {
+      const c = db.query('SELECT p.* FROM verksamhetschefer v JOIN personal p ON p.id = v.personal_id WHERE v.enhet_id = ?').get(ve);
+      expect(c?.yrke, ve).toBe('verksamhetschef');
+    }
+    const nya = db.query("SELECT id FROM personal WHERE id LIKE 'chef-%'").all();
+    expect(nya.length).toBe(enheter.length - 2);
+    const k = klient(app);
+    for (const p of nya) expect((await k.post('/api/login', { personalId: p.id })).status).not.toBe(200);
   });
 });
 

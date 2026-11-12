@@ -2703,3 +2703,7 @@ en kontakt utan diagnos frågar systemet om en diagnos ska sättas först, med S
 Avbryt. Diagnosen sätts på den kontakt som avslutas. I Min journal följer enheten och hjälptexten den mätning som
 patienten väljer, och för glukos väljer patienten om mätningen var fastande, efter måltid eller okänd. Vården ser
 fastande eller efter måltid vid värdet bland patientens egna mätningar.
+
+**Verksamhetschefer i demon (E3-35).** Varje vårdenhet i demon har en verksamhetschef i verksamhetschefstabellen, så att
+gallring och radering går att godkänna för varje vårdenhet. Kardiologens och onkologens verksamhetschefer går att logga
+in som. De andra har påhittade namn och är bara data.

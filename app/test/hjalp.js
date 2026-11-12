@@ -50,8 +50,8 @@ export const sandlada = (app, k) => app.sessioner.get(k.kaka().split('=')[1]);
 export function somPerson(s, id) { s.personalId = id; s.uppdrag = uppdragUrMasterdata(s.db, personal(s.db, id)); return s; }
 
 // Runda 13, r3 (E3-35): verksamhetschefen för varje berörd vårdenhet godkänner verkställandet av en gallring eller
-// radering i sin egen inloggning, i samma sandlåda som arkivarien. En vårdenhet utan verksamhetschef i demon får en
-// verksamhetschef för testet.
+// radering i sin egen inloggning, i samma sandlåda som arkivarien. Varje vårdenhet i seeden har en verksamhetschef, och
+// en vårdenhet som ett test har lagt till får en.
 export async function godkannGallring(app, k, id) {
   const db = sandlada(app, k).db;
   const b = db.query('SELECT * FROM arkivbeslut WHERE id = ?').get(Number(id));
