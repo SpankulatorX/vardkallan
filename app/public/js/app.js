@@ -97,6 +97,8 @@ import * as flerfaktorVy from './vyer/flerfaktor.js';
 import { andraFaktorn } from './flerfaktor-ui.js';
 // Runda 12, r3 (Sussa KD1.1.4.10): arbete över flera skärmar.
 import * as flera from './flera-fonster.js';
+// Runda 13, r2: sidan när demon är full.
+import * as demoFull from './demo-full.js';
 
 // Globalt tillstånd.
 export const S = { session: null, inkorg: null, svarstid: null };
@@ -372,7 +374,18 @@ krokar.vid401 = () => {
 };
 // Runda 7, r2: servern säger i varje svar när inloggningen går ut, och tidsgrans.js varnar fem minuter innan.
 krokar.inloggning = (iso) => tidsgrans.satt(iso);
-krokar.vid429 = () => notis('Det har kommit många nya besök från din adress. Vänta en stund och försök sedan igen.', 'info');
+// Runda 13, r2: servern säger vad taket gäller (nya besök, tunga anrop eller sandlådor från adressen).
+krokar.vid429 = (e) => notis(e?.message || 'Det har kommit många nya besök från din adress. Vänta en stund och försök sedan igen.', 'info');
+// Runda 13, r2: när demon är full visas en sida som förklarar läget och försöker igen av sig själv (demo-full.js).
+krokar.vidFull = (e) => { ramNyckel = null; demoFull.visa(e.data, forsokIgenFull); };
+async function forsokIgenFull() {
+  S.session = await api('/api/session', { tyst: true });
+  demoFull.stang();
+  ramNyckel = null;
+  miljorad(S.session.miljo);
+  await uppdateraInkorg();
+  rita();
+}
 
 // Ett anrop som avbröts vid utloggning är inget fel. Omritningar efter en sparad ändring väntas inte alltid in,
 // så avbrottet fångas här i stället för i varje vy. Alla andra fel släpps igenom.
@@ -755,6 +768,8 @@ async function start() {
     if (!arPersonal() && !avbrott.aktivt) await avbrottslage.rensa().catch(() => {});
   } catch (e) {
     S.session = { inloggad: false };
+    // Runda 13, r2: sidan som säger att demon är full visas redan och försöker igen av sig själv.
+    if (e.kod === 'demo_full') return;
     // Under ett avbrott förklarar avbrottsraden och reservinloggningen läget.
     if (e.status !== 429 && !avbrott.aktivt) felNotis(e);
   }

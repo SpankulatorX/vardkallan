@@ -333,6 +333,13 @@ MODULER.push(m('testinbjudan', 'forvaltning', 'Testinbjudan och synpunkter',
   sf.beskrivning += ' Uppgraderingar som två systemförvaltare godkänner och som går att backa, och schemalagda säkerhetskopior på två platser med återställning till en tidpunkt.';
   sf.simulerat += ' I demon byter en uppgradering eller återgång bara databasen i sandlådan, inte programmet, och säkerhetskopiornas två platser är två kataloger på samma server.';
 }
+// Runda 13, r2: kapaciteten för många besökare (sandlådor som vilar på disk, sidan när demon är full och taken mot
+// missbruk) hör till modulen för systemuppbyggnad och svarstider.
+{
+  const d = MODULER.find(x => x.id === 'drift');
+  d.beskrivning += ' Sandlådor som inte används vilar på disk och läses in igen vid nästa anrop, så att ingen sandlåda tas bort för att ge plats åt en ny. Systemet räknar själv ut hur många som ryms i minnet ur minnesgränsen, och när demon är full får en ny besökare en sida som säger när det är lönt att försöka igen.';
+  d.kod.push('src/sandlada-vila.js', 'public/js/demo-full.js');
+}
 
 // Vyer och rutter som inte hör till en enskild modul, med motivering.
 export const UTAN_MODUL = {

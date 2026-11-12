@@ -154,13 +154,24 @@ import { registreraRutter as r12r2Rutter } from './runda12-r2-rutter.js';
 import { MIGRERINGAR as r12r2Migreringar } from './releaser.js';
 // Runda 13, r1: testinbjudan, guidade uppdrag och synpunkter (r13r1-rutter.js).
 import { registreraRutter as r13r1Rutter } from './r13r1-rutter.js';
-import { skapaKopielager, schemalagda as schemalagdaKopior } from './sakerhetskopior.js';
+import { skapaKopielager, schemalagdaStegvis } from './sakerhetskopior.js';
+// Runda 13, r2: sandlådor som vilar på disk, inga tappade sandlådor och en vänlig sida när demon är full.
+import { Database } from 'bun:sqlite';
+import * as vila from './sandlada-vila.js';
 
 const PUBLIC = join(import.meta.dir, '..', 'public');
-const MAX_SESSIONER = 400;
+// Runda 13, r2: taket för sandlådor i minnet och på disk tillsammans. En sandlåda tas aldrig bort för att ge plats åt
+// en ny; när taket är nått får en ny besökare en sida som säger när det är lönt att försöka igen.
+const MAX_SANDLADOR = 3000;
 const SESSION_TTL = 8 * 3600_000;
+// Runda 13, r2: en sandlåda där ingen har loggat in har inget att förlora och försvinner efter en timme utan användning.
+const TOM_TTL = 3600_000;
+// Runda 13, r2: så mycket ledigt utrymme lämnas alltid kvar på disken.
+const DISK_RESERV = 1024 * 1048576;
 const MAX_KROPP = 64 * 1024;
 const SPARVERSION = 1;
+// Runda 13, r2: sessionsfilen med vilande sandlådor, där databaserna ligger i katalogen för vilande sandlådor.
+const SPARVERSION_VILA = 2;
 // Runda 12, r2: nyckeln för kopiornas namn. Med en katalog sparas den i en fil där, annars en ny för varje start.
 function kopieNyckel(katalog) {
   const { randomBytes } = require('node:crypto');
@@ -297,9 +308,28 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   kopieKatalog = process.env.KOPIOR_KATALOG || (sessionFil ? join(dirname(sessionFil), 'kopior') : null),
   kopieAndra = process.env.KOPIOR_ANDRA || (sessionFil ? join(dirname(sessionFil), 'kopior-2') : null),
   kopieMinuter = Number(process.env.KOPIOR_MINUTER || 15),
-  maxSessioner = Number(process.env.MAX_SESSIONER || MAX_SESSIONER),
+  // Runda 13, r2: sandlådor som vilar på disk (sandlada-vila.js). vilaKatalog ligger bredvid sessionsfilen, annars
+  // vilar sandlådorna komprimerade i minnet. vilaMinuter är hur länge en sandlåda får vara oanvänd innan den skrivs till
+  // disk. maxIMinnet räknas ur containerns minnesgräns när driften inte sätter det, maxSandlador är taket för alla
+  // sandlådor (maxSessioner är det äldre namnet), och maxDiskMb taket för diskutrymmet för vilande sandlådor och kopior.
+  // tryggSekunder är hur länge efter att en sandlåda har använts som den inte flyttas till disk för att ge plats åt en ny.
+  vilaKatalog = process.env.VILA_KATALOG || (sessionFil ? join(dirname(sessionFil), 'vila') : null),
+  vilaMinuter = Number(process.env.VILA_MINUTER || 10),
+  maxIMinnet = process.env.MAX_I_MINNET ? Number(process.env.MAX_I_MINNET) : vila.maxIMinnet(vila.minnesgrans(), { cpu: vila.processorer() }),
+  maxSessioner = null,
+  maxSandlador = Number(process.env.MAX_SANDLADOR || process.env.MAX_SESSIONER || MAX_SANDLADOR),
+  maxDiskMb = Number(process.env.MAX_DISK_MB || 8192),
+  tryggSekunder = Number(process.env.VILA_TIDIGAST_SEKUNDER ?? 20),
+  // Runda 13, r2: tak mot missbruk från många anonyma besökare. maxSandladaMb är hur stor en sandlåda får bli,
+  // tidsbudgetSandladaMs och tidsbudgetAdressMs hur många millisekunder anrop en sandlåda och en adress får använda per
+  // minut, och maxPerAdress hur många levande sandlådor en adress får ha.
+  maxSandladaMb = Number(process.env.MAX_SANDLADA_MB || 24),
+  tidsbudgetSandladaMs = Number(process.env.TIDSBUDGET_SANDLADA_MS || 30_000),
+  tidsbudgetAdressMs = Number(process.env.TIDSBUDGET_ADRESS_MS || 90_000),
+  maxPerAdress = Number(process.env.MAX_PER_ADRESS || 150),
   // Runda 13, r1: synpunkterna i en egen databas bredvid sandlådorna (synpunkter.js), och taken som testerna kan ändra.
   synpunktFil = '', synpunktTak = undefined } = {}) {
+  if (maxSessioner) maxSandlador = maxSessioner;
   const sessioner = new Map();
   // Runda 12, r3: nyckeln som krypterar nycklarna för engångskoder, bredvid sessionsfilen så att den följer med en omstart.
   flerfaktor.satNyckel({ fil: sessionFil ? join(dirname(sessionFil), 'flerfaktor.nyckel') : null });
@@ -309,7 +339,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   anvandartestSvar.stada(anvandartestDb);
   // Runda 12, r2: lagret med säkerhetskopior. Nyckeln som döljer sandlådornas id sparas bredvid kopiorna, aldrig i en
   // sandlåda, så att kopiorna hittas igen när servern har startat om.
-  const kopior = skapaKopielager({ katalog: kopieKatalog, andraKatalog: kopieAndra, intervallMinuter: kopieMinuter, hemlighet: kopieNyckel(kopieKatalog) });
+  // Runda 13, r2 (säkerhetsgranskningen av runda 12, fynd 1): ett tak för alla kopiornas diskutrymme (MAX_KOPIOR_MB).
+  const kopior = skapaKopielager({ katalog: kopieKatalog, andraKatalog: kopieAndra, intervallMinuter: kopieMinuter, hemlighet: kopieNyckel(kopieKatalog), maxByte: Number(process.env.MAX_KOPIOR_MB || 4096) * 1048576 });
   const serverMatning = new Matning(1000);
   const startad = new Date().toISOString();
 
@@ -369,31 +400,195 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // personalId och invanareId är aldrig satta samtidigt: personalens och invånarens inloggning utesluter varandra.
   // Runda 12, r2: kopieId är sandlådans stabila id för säkerhetskopiorna. Det skapas med sandlådan och roteras aldrig,
   // till skillnad från sessionskakan, så att kopiorna hittas efter en ny inloggning.
-  const nySession = () => ({ db: nySessionsDb(), personalId: null, invanareId: null, val: {}, sist: Date.now(), matning: new Matning(200), lasnyckel: null, oppnade: new Set(), kopior: new Map(), kopieId: slumpId() });
-  // Runda 12, r2: en sandlåda som försvinner tar sina säkerhetskopior med sig.
+  const nySession = () => medVila({ db: nySessionsDb(), personalId: null, invanareId: null, val: {}, sist: Date.now(), matning: new Matning(200), lasnyckel: null, oppnade: new Set(), kopior: new Map(), kopieId: slumpId() });
+  // Runda 12, r2: en sandlåda som försvinner tar sina säkerhetskopior med sig. Runda 13, r2: och sin fil på disken.
   function taBortSandlada(sid) {
     const s = sessioner.get(sid);
     if (!s) return;
-    s.db.close();
+    s.dbOmVaken?.close();
+    s.db = null;
     sessioner.delete(sid);
+    pagande.delete(s);
+    raknaAdress(s.adress, -1);
     kopior.radera(s.kopieId ?? sid);
+    vilolager.radera(s.kopieId ?? sid);
   }
   // Läskopian som id:t gäller, i den sandlåda som lämnade ut den. Kräver ingen session: loggen från läsläget visar
-  // själv att den kommer från den som hade läskopian, eftersom den är krypterad med läskopians nyckel.
+  // själv att den kommer från den som hade läskopian, eftersom den är krypterad med läskopians nyckel. Runda 13, r2: en
+  // sandlåda som vilar har läskopiornas id kvar i minnet och läses in när en av dem efterfrågas.
   function hittaKopia(id) {
     const nu = Date.now();
     for (const s of sessioner.values()) {
+      if (s.vilar && !(s.kopiaIds ?? []).includes(id)) continue;
+      if (s.vilar) vaknaSandlada(s);
       const k = s.kopior.get(id);
       if (k && Date.parse(k.giltigTill) + KLOCKMARGINAL >= nu) return { s, kopia: k };
     }
     return null;
   }
 
+  // ---------------------------------------------------------------------------------------------------------------
+  // Runda 13, r2: sandlådor som vilar på disk (sandlada-vila.js). Sessionen finns alltid kvar i minnet; bara databasen,
+  // läskopiornas kopplingar och svarstiderna skrivs till disk. s.db läser in sandlådan igen när någon behöver den, så
+  // att allt som pekar på sessionen (miljöer, biljetter, utrustningens nycklar, prenumerationer) gäller som förut.
+  // s.rord är när databasen senast användes, s.anvand när besökaren senast gjorde något (bakgrundsanrop räknas inte).
+  const vilaNyckel = kopieNyckel(vilaKatalog);
+  const vilolager = vila.skapaVilolager({ katalog: vilaKatalog, hemlighet: vilaNyckel });
+  // Runda 13, r2: besökarens adress sparas bara som HMAC med en hemlig nyckel.
+  const adressHmac = (ip) => require('node:crypto').createHmac('sha256', vilaNyckel).update(`adress:${ip}`).digest('hex').slice(0, 32);
+  const perAdress = new Map();
+  const raknaAdress = (a, d) => { if (!a) return; const n = (perAdress.get(a) ?? 0) + d; if (n > 0) perAdress.set(a, n); else perAdress.delete(a); };
+  // Tidsbudgeten: millisekunder anrop i fack om tio sekunder, för den senaste minuten.
+  const nyttFonster = () => new Map();
+  const laggTillTid = (f, ms, nu = Date.now()) => { const k = Math.floor(nu / 10_000); f.set(k, (f.get(k) ?? 0) + ms); for (const x of f.keys()) if (x < k - 5) f.delete(x); };
+  const tidSenasteMinuten = (f, nu = Date.now()) => { if (!f) return 0; const k = Math.floor(nu / 10_000); let sum = 0; for (const [x, v] of f) if (x >= k - 5) sum += v; return sum; };
+  const budgetAdress = new Map();
+  function kravBudget(c, s) {
+    if (c.adress && tidSenasteMinuten(budgetAdress.get(c.adress)) > tidsbudgetAdressMs) throw new Fel(429, 'Det har kommit många tunga anrop från din adress den senaste minuten. Vänta en stund och försök igen.', 'for_manga');
+    if (s && tidSenasteMinuten(s.budget) > tidsbudgetSandladaMs) throw new Fel(429, 'Sandlådan har gjort många tunga anrop den senaste minuten. Vänta en stund och försök igen.', 'for_manga');
+  }
+  // Minnet: en sandlåda kostar sin databas och lika mycket till som en vanlig, men minst lika mycket som en vanlig.
+  const PER_SANDLADA = vila.MATT.perSandladaMb * 1048576;
+  const MALL_BYTE = 3.5 * 1048576;
+  const minnesbudget = maxIMinnet * PER_SANDLADA;
+  const kostnad = (s) => Math.max(PER_SANDLADA, (s.dbByte ?? MALL_BYTE) + PER_SANDLADA - MALL_BYTE);
+  const minneVakna = () => { let sum = 0; for (const x of vakna) sum += kostnad(x); return sum; };
+  // Taket för databasens storlek gäller varje gång en databas sätts i sandlådan (ny, inläst, återställd eller miljö).
+  const satDbTak = (db) => { try { const ps = db.query('PRAGMA page_size').get().page_size; db.exec(`PRAGMA max_page_count = ${Math.floor(maxSandladaMb * 1048576 / ps)}`); } catch (e) { console.error('Taket för sandlådan:', e.message); } };
+  const vakna = new Set();
+  // Anrop som pågår per sandlåda. En sandlåda med ett pågående anrop flyttas aldrig till disk.
+  const pagande = new Map();
+  const bokningar = new WeakMap();
+  const tryggMs = tryggSekunder * 1000;
+  const vilaMs = vilaMinuter * 60_000;
+  const maxDiskByte = maxDiskMb * 1048576;
+  let overskridna = 0;
+  function medVila(falt) {
+    const { db: forsta = null, ...s } = falt;
+    let db = null;
+    s.rord = Date.now();
+    s.anvand ??= s.sist ?? Date.now();
+    Object.defineProperty(s, 'db', {
+      enumerable: true, configurable: true,
+      get() { s.rord = Date.now(); if (!db) vaknaSandlada(s); return db; },
+      set(v) { db = v; if (v) { satDbTak(v); vakna.add(s); } else vakna.delete(s); },
+    });
+    Object.defineProperty(s, 'vilar', { enumerable: false, configurable: true, get: () => !db });
+    Object.defineProperty(s, 'dbOmVaken', { enumerable: false, configurable: true, get: () => db });
+    if (forsta) s.db = forsta;
+    return s;
+  }
+  function boka(req, s) {
+    if (!req || !s) return;
+    pagande.set(s, (pagande.get(s) ?? 0) + 1);
+    const b = bokningar.get(req);
+    if (b) b.push(s); else bokningar.set(req, [s]);
+  }
+  function slappa(req) {
+    for (const s of bokningar.get(req) ?? []) { const n = (pagande.get(s) ?? 1) - 1; if (n > 0) pagande.set(s, n); else pagande.delete(s); }
+    bokningar.delete(req);
+  }
+  // Det som en vilande sandlåda behöver ha kvar i minnet för att hittas utan att läsas in: kalenderlänkarnas HMAC och
+  // systemkontonas id.
+  function vilaIndex(db) {
+    const ut = { kalender: [], konton: [] };
+    try { ut.kalender = db.query('SELECT hmac FROM kalenderlankar WHERE aterkallad IS NULL').all().map(r => r.hmac); } catch { /* inga kalenderlänkar */ }
+    try { ut.konton = db.query('SELECT id FROM api_systemkonton').all().map(r => r.id); } catch { /* inga systemkonton */ }
+    return ut;
+  }
+  const kopiorTillJson = (m) => [...m].map(([id, k]) => [id, { ...k, patienter: [...k.patienter], loggIds: [...k.loggIds] }]);
+  const kopiorFranJson = (a) => new Map((a ?? []).map(([id, k]) => [id, { ...k, patienter: new Map(k.patienter), loggIds: new Set(k.loggIds) }]));
+  // Skriver sandlådan till disk och släpper den ur minnet. Gör inget med en sandlåda som har ett pågående anrop.
+  function vilaSandlada(s, { tvinga = false } = {}) {
+    const db = s.dbOmVaken;
+    if (!db || (!tvinga && pagande.get(s))) return false;
+    try {
+      vilolager.vila(s.kopieId, db.serialize(), { app: APPVERSION, kopior: kopiorTillJson(s.kopior), matning: [...s.matning.data] });
+    } catch (e) { console.error('Sandlådan kunde inte skrivas till disk:', e.message); return false; }
+    s.vilaIndex = vilaIndex(db);
+    s.kopiaIds = [...s.kopior.keys()];
+    db.close();
+    s.db = null;
+    s.kopior = null;
+    s.matning = null;
+    return true;
+  }
+  // Läser in en sandlåda som vilar. Gör plats i minnet först, och tar då den sandlåda som har varit oanvänd längst.
+  function vaknaSandlada(s) {
+    if (!s.vilar) return;
+    if (!gorPlats(true, kostnad(s))) overskridna++;
+    const ut = vilolager.vakna(s.kopieId);
+    if (!ut) {
+      const sid = sidFor(s);
+      if (sid) taBortSandlada(sid);
+      throw new Fel(500, 'Sandlådan kunde inte läsas in från disken. Ladda om sidan för att börja om i en ny sandlåda.', 'fel');
+    }
+    const db = Database.deserialize(ut.data);
+    s.dbByte = ut.data.byteLength;
+    // En sandlåda som vilade när programmet uppgraderades får de nya tabellerna.
+    if (ut.meta.app !== APPVERSION) migrera(db);
+    db.exec('PRAGMA foreign_keys = OFF');
+    s.kopior = kopiorFranJson(ut.meta.kopior);
+    s.matning = new Matning(200);
+    for (const [k, v] of ut.meta.matning ?? []) s.matning.data.set(k, v);
+    delete s.kopiaIds;
+    delete s.vilaIndex;
+    s.db = db;
+    vilolager.radera(s.kopieId);
+    rensaKopior(s);
+  }
+  // Ser till att det finns plats i minnet för en sandlåda till. En sandlåda som har använts de senaste tryggSekunder
+  // flyttas inte för att ge plats åt en ny besökare; då svarar gorPlats false. För en besökare vars sandlåda vilar
+  // (tvinga) räcker det att den andra inte har använts den senaste sekunden, och finns ingen sådan överskrids taket
+  // tillfälligt, eftersom en sandlåda aldrig får tappas.
+  function gorPlats(tvinga, behov = PER_SANDLADA) {
+    while (vakna.size >= maxIMinnet || (vakna.size && minneVakna() + behov > minnesbudget)) {
+      const nu = Date.now();
+      let kandidat = null;
+      for (const s of vakna) if (!pagande.get(s) && (!kandidat || s.rord < kandidat.rord)) kandidat = s;
+      if (!kandidat) return false;
+      const ledig = nu - kandidat.rord;
+      if (ledig < tryggMs && !(tvinga && ledig >= 1000)) return false;
+      if (!vilaSandlada(kandidat)) return false;
+    }
+    return true;
+  }
+  // Varför en ny besökare inte får en sandlåda just nu, eller null. Disken: taket för antalet sandlådor, taket för
+  // diskutrymmet eller för lite ledigt på disken. Minnet: alla platser används just nu.
+  function fullOrsak(nu = Date.now()) {
+    const ledigt = vila.ledigtPaDisk(vilaKatalog);
+    const disk = sessioner.size >= maxSandlador || vilolager.byte() + kopior.byte() >= maxDiskByte || (ledigt != null && ledigt < DISK_RESERV);
+    if (disk) return { orsak: 'disk', forsokIgenSekunder: vila.forsokIgenOm([...sessioner.values()].map(x => x.sist + (x.harLoggatIn || x.ursprung ? SESSION_TTL : TOM_TTL)), nu) };
+    if (!gorPlats(false)) return { orsak: 'minne', forsokIgenSekunder: vila.forsokIgenOm([...vakna].map(x => x.rord + tryggMs), nu, { max: 120 }) };
+    return null;
+  }
+  const FULL_TEXT = 'Demon har många besökare just nu, och alla platser är upptagna. Varje besökare får en egen sandlåda, och de som redan arbetar får behålla sina. Det är tillfälligt.';
+  function kravPlats() {
+    const f = fullOrsak();
+    if (f) throw new Fel(503, FULL_TEXT, 'demo_full', f);
+  }
+  // Flyttar sandlådor som inte har använts på vilaMinuter till disk. Körs varje minut.
+  function vilaStadning(nu = Date.now()) {
+    let n = 0;
+    for (const s of [...vakna]) if ((s.anvand ?? s.sist) < nu - vilaMs && s.rord < nu - tryggMs && vilaSandlada(s)) n++;
+    return n;
+  }
+  const kapacitet = () => ({
+    iMinnet: vakna.size, maxIMinnet, minneMb: Math.round(minneVakna() / 1048576), minnesbudgetMb: Math.round(minnesbudget / 1048576), maxSandladaMb, vilar: sessioner.size - vakna.size, sandlador: sessioner.size, maxSandlador, vilaMinuter,
+    diskMb: Math.round((vilolager.byte() + kopior.byte()) / 1048576 * 10) / 10, maxDiskMb, overskridna,
+    minne: { rssMb: Math.round(process.memoryUsage().rss / 1048576), anvantMb: (x => (x ? Math.round(x / 1048576) : null))(vila.minneNu()), gransMb: (x => (x ? Math.round(x / 1048576) : null))(vila.minnesgrans()) },
+  });
+
   function hamtaSession(req) {
     const sid = kakSid(req);
     const s = sid && sessioner.get(sid);
     if (!s) return null;
+    // Runda 13, r2: anropet bokar sandlådan, så att den inte flyttas till disk medan anropet pågår, och läser in den om
+    // den vilar.
+    boka(req, s);
+    if (s.vilar) vaknaSandlada(s);
     s.sist = Date.now();
+    if (req.headers.get('x-vk-bakgrund') !== '1') s.anvand = s.sist;
     sessioner.delete(sid); sessioner.set(sid, s);
     kontrolleraInloggning(s, req);
     return { sid, s };
@@ -446,39 +641,71 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   }
   const inloggningUt = (s) => (s && inloggad(s) ? { garUt: new Date((s.aktiv ?? Date.now()) + inloggningMs(s)).toISOString(), minuter: minuterFor(s), varningMinuter: VARNING_MINUTER } : null);
   function skapaSession(req, server) {
+    // Runda 13, r2: när demon är full får besökaren veta när det är lönt att försöka igen. Det prövas före taket per
+    // adress, så att sidan som försöker igen av sig själv inte förbrukar besökarens nya besök. Ingen sandlåda tas bort
+    // för att ge plats.
+    kravPlats();
+    // Runda 13, r2: taket för levande sandlådor per adress.
+    const adress = adressHmac(klientIp(req, server));
+    if ((perAdress.get(adress) ?? 0) >= maxPerAdress) throw new Fel(429, `Det finns redan ${maxPerAdress} sandlådor från din adress. En sandlåda där ingen har loggat in försvinner efter en timme, och de andra efter åtta timmar utan användning.`, 'for_manga');
     const k = `${klientIp(req, server)}:${Math.floor(Date.now() / 3600_000)}`;
     const n = (nyaPerIp.get(k) ?? 0) + 1;
     nyaPerIp.set(k, n);
     if (n > nyaPerTimme) throw new Fel(429, 'För många nya besök från din adress. Försök igen om en stund.', 'nekad');
-    while (sessioner.size >= maxSessioner) {
-      // Runda 12, r2: sandlådans säkerhetskopior tas bort med den.
-      taBortSandlada(sessioner.keys().next().value);
-    }
     const sid = slumpId();
     const s = nySession();
+    s.adress = adress;
+    raknaAdress(adress, 1);
     sessioner.set(sid, s);
+    boka(req, s);
     return { sid, s, ny: true };
   }
 
-  const stadning = setInterval(() => {
-    const grans = Date.now() - SESSION_TTL;
+  function stadning(nu = Date.now()) {
+    const grans = nu - SESSION_TTL;
     // Runda 7, r1: testtillfällen utan aktivitet på 90 dagar raderas med sina svar.
     anvandartestSvar.stada(anvandartestDb);
-    for (const [sid, s] of sessioner) { if (s.sist < grans) { oppetApi.aterkalla(s, 'Åtkomstbiljetten återkallades när sessionen gick ut.'); taBortSandlada(sid); } else { rensaKopior(s); utdata.stadning(s.db); } }
+    for (const [sid, s] of [...sessioner]) {
+      // Runda 13, r2: en sandlåda där ingen har loggat in (och som inte är en miljö) försvinner efter en timme.
+      const ttl = s.harLoggatIn || s.ursprung ? grans : nu - TOM_TTL;
+      if (s.sist < ttl) { oppetApi.aterkalla(s, 'Åtkomstbiljetten återkallades när sessionen gick ut.'); taBortSandlada(sid); }
+      // Runda 13, r2: en vilande sandlåda städas när den läses in igen.
+      else if (!s.vilar) { rensaKopior(s); utdata.stadning(s.db); }
+    }
     // Runda 6, r5: åtkomstbiljetter som har gått ut tas bort och loggas.
     oppetApi.stada();
     // Runda 12, r2.
     stadaKopior();
-    const timme = Math.floor(Date.now() / 3600_000);
+    // Runda 13, r2.
+    try { vilolager.stada([...sessioner.values()].map(x => x.kopieId)); } catch (e) { console.error('De vilande sandlådorna kunde inte städas:', e.message); }
+    const timme = Math.floor(nu / 3600_000);
     for (const k of nyaPerIp.keys()) if (!k.endsWith(`:${timme}`)) nyaPerIp.delete(k);
-  }, 10 * 60_000);
+    // Runda 13, r2.
+    for (const [a, f] of budgetAdress) if (!tidSenasteMinuten(f, nu)) budgetAdress.delete(a);
+  }
+  const stadningsTimer = setInterval(() => stadning(), 10 * 60_000);
+  // Runda 13, r2: sandlådor som inte har använts på vilaMinuter flyttas till disk varje minut.
+  const vilaTimer = setInterval(() => { try { vilaStadning(); } catch (e) { console.error('Vilan:', e.message); } }, 60_000);
+  vilaTimer.unref?.();
 
   function lasSparade() {
     if (!sessionFil || !existsSync(sessionFil)) return;
     try {
       const grans = Date.now() - SESSION_TTL;
       for (const x of JSON.parse(readFileSync(sessionFil, 'utf8'))) {
-        if (x.v !== SPARVERSION || x.sist < grans || !/^[A-Za-z0-9_-]{32}$/.test(x.sid)) continue;
+        if (![SPARVERSION, SPARVERSION_VILA].includes(x.v) || x.sist < grans || !/^[A-Za-z0-9_-]{32}$/.test(x.sid)) continue;
+        // Runda 13, r2: en sandlåda som vilade när servern stoppades har sin databas på disken och fortsätter vila.
+        if (x.v === SPARVERSION_VILA) {
+          if (typeof x.kopieId !== 'string' || !vilolager.finns(x.kopieId)) continue;
+          sessioner.set(x.sid, medVila({
+            personalId: x.personalId, uppdrag: x.uppdrag ?? null, invanareId: x.personalId ? null : x.invanareId ?? null, val: x.val ?? {}, sist: x.sist, aktiv: x.aktiv ?? x.sist, anvand: x.anvand ?? x.sist,
+            lasnyckel: x.lasnyckel ?? null, oppnade: new Set(x.oppnade ?? []), kopieId: x.kopieId, kopiaIds: x.kopiaIds ?? [], vilaIndex: x.vilaIndex ?? { kalender: [], konton: [] },
+            harLoggatIn: Boolean(x.harLoggatIn), kopior: null, matning: null,
+            adress: typeof x.adress === 'string' ? x.adress : null, dbByte: Number(x.dbByte) || null,
+          }));
+          raknaAdress(sessioner.get(x.sid).adress, 1);
+          continue;
+        }
         const s = {
           db: lasSandlada(x.db), personalId: x.personalId, uppdrag: x.uppdrag ?? null, invanareId: x.personalId ? null : x.invanareId ?? null, val: x.val ?? {}, sist: x.sist, aktiv: x.aktiv ?? x.sist, matning: new Matning(200),
           lasnyckel: x.lasnyckel ?? null, oppnade: new Set(x.oppnade ?? []),
@@ -494,7 +721,12 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
         // Runda 9, r5: en session från en version före biljetterna får uppdraget ur masterdata.
         if (s.personalId && !s.uppdrag) s.uppdrag = idp.uppdragUrMasterdata(s.db, s.db.query('SELECT * FROM personal WHERE id = ?').get(s.personalId));
         rensaKopior(s);
-        sessioner.set(x.sid, s);
+        // Runda 13, r2: en sandlåda från en äldre version läses in en i taget och skrivs genast till disk, så att alla inte
+        // ligger i minnet samtidigt.
+        s.harLoggatIn = true;
+        const ms = medVila(s);
+        sessioner.set(x.sid, ms);
+        if (vilolager.typ === 'katalog') vilaSandlada(ms, { tvinga: true });
       }
       console.log(`Läste in ${sessioner.size} sparade sandlådor`);
     } catch (e) { console.error('Kunde inte läsa sparade sandlådor:', e.message); }
@@ -502,6 +734,20 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   }
   function spara() {
     if (!sessionFil) return 0;
+    // Runda 13, r2: med en katalog för vilande sandlådor skrivs alla sandlådor dit, och sessionsfilen har bara
+    // sessionerna, utan databaser.
+    if (vilolager.typ === 'katalog') {
+      for (const x of [...vakna]) vilaSandlada(x, { tvinga: true });
+      const lista = [...sessioner].filter(([, x]) => x.vilar).map(([sid, x]) => ({
+        v: SPARVERSION_VILA, sid, personalId: x.personalId, uppdrag: x.uppdrag ?? null, invanareId: x.invanareId, val: x.val, sist: x.sist, aktiv: x.aktiv, anvand: x.anvand,
+        lasnyckel: x.lasnyckel, oppnade: [...x.oppnade], kopieId: x.kopieId, kopiaIds: x.kopiaIds, vilaIndex: x.vilaIndex, harLoggatIn: Boolean(x.harLoggatIn),
+        adress: x.adress ?? null, dbByte: x.dbByte ?? null,
+      }));
+      writeFileSync(sessionFil + '.tmp', JSON.stringify(lista), { mode: 0o600 });
+      renameSync(sessionFil + '.tmp', sessionFil);
+      return lista.length;
+    }
+    for (const x of sessioner.values()) if (x.vilar) vaknaSandlada(x);
     const lista = [...sessioner].map(([sid, x]) => ({
       v: SPARVERSION, sid, personalId: x.personalId, uppdrag: x.uppdrag ?? null, invanareId: x.invanareId, val: x.val, sist: x.sist, aktiv: x.aktiv, db: Buffer.from(x.db.serialize()).toString('base64'),
       lasnyckel: x.lasnyckel, oppnade: [...x.oppnade], kopieId: x.kopieId,
@@ -513,11 +759,19 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   }
   lasSparade();
   // Runda 12, r2: schemalagda säkerhetskopior av sandlådorna som har ändrats sedan sin senaste kopia.
-  const kopieSchema = kopieMinuter > 0 ? setInterval(() => schemalagdaKopior(kopior, sessioner), kopieMinuter * 60_000) : null;
+  // Runda 13, r2 (fynd 1): en sandlåda i taget, och en vilande sandlåda kopieras från disken utan att läsas in.
+  let kopierar = false;
+  const kopieSchema = kopieMinuter > 0 ? setInterval(() => {
+    if (kopierar) return;
+    kopierar = true;
+    schemalagdaStegvis(kopior, sessioner, new Date(), { vilande: (x) => vilolager.data(x.kopieId) }).catch(e => console.error('Säkerhetskopiorna:', e.message)).finally(() => { kopierar = false; });
+  }, kopieMinuter * 60_000) : null;
   // Kopior för sandlådor som inte finns (till exempel efter en omstart utan sparade sandlådor) tas bort.
   const stadaKopior = () => { try { kopior.stada([...sessioner.values()].map(s => s.kopieId)); } catch (e) { console.error('Kopiorna kunde inte städas:', e.message); } };
   stadaKopior();
   kopieSchema?.unref?.();
+  // Runda 13, r2: filer för vilande sandlådor som inte finns (till exempel efter en omstart utan sessionsfil) tas bort.
+  try { vilolager.stada([...sessioner.values()].map(x => x.kopieId)); } catch (e) { console.error('De vilande sandlådorna kunde inte städas:', e.message); }
 
   function kontrolleraOrigin(req) {
     if (!origin) return;
@@ -1055,6 +1309,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   function loggaInMedBiljett(c, biljett, { forbruka = true, demo = false } = {}) {
     const { personal: p, uppdrag } = idp.loggaIn(c.db, idp.verifiera(biljett, { forbruka }));
     // Runda 12, r3: har personen en passkey eller en app för engångskoder i sandlådan väntar inloggningen på den.
+    stoppaOprovbarFaktor(c, 'personal', p.id, p.enhet_id);
     if (flerfaktor.kravs(c.db, 'personal', p.id)) return borjaFlerfaktor(c, { typ: 'personal', id: p.id, namn: p.namn, enhet: p.enhet_id, uppdrag, demo });
     return slutforPersonal(c, p, uppdrag, { demo });
   }
@@ -1073,6 +1328,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     c.s.oppnade = new Set();
     c.s.vantande = null;
     c.s.flerfaktorMetod = metod;
+    // Runda 13, r2 (fynd 8): när inloggningen senast bekräftades med en faktor.
+    c.s.flerfaktorTid = metod ? Date.now() : null;
     sakraKopia(c.s);
     c.rotera = true;
     // Runda 11, r3: demopatienterna för förlossningen vid barnmorskans första inloggning i sandlådan.
@@ -1124,6 +1381,7 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   rutt('POST', '/api/login/invanare', (c) => {
     const inv = minJournal.provaInloggning(c.db, c.body.invanareId);
     // Runda 12, r3: med en passkey eller en app för engångskoder väntar inloggningen på den.
+    stoppaOprovbarFaktor(c, 'invanare', inv.id, null);
     if (flerfaktor.kravs(c.db, 'invanare', inv.id)) return borjaFlerfaktor(c, { typ: 'invanare', id: inv.id, namn: minJournal.sessionDel(c.db, inv).invanare.namn });
     return slutforInvanare(c, inv);
   });
@@ -1140,6 +1398,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     c.s.oppnade = new Set();
     c.s.vantande = null;
     c.s.flerfaktorMetod = metod;
+    // Runda 13, r2 (fynd 8): när inloggningen senast bekräftades med en faktor.
+    c.s.flerfaktorTid = metod ? Date.now() : null;
     c.rotera = true;
     return sessionUt(c.s);
   }
@@ -1148,6 +1408,14 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // e-legitimationen) är godkänd, och den förra inloggningen i webbläsaren avslutas direkt, så att ingen annan är
   // inloggad medan den andra faktorn väntar. Ingen nyckel till läskopian lämnas ut förrän den andra faktorn är godkänd.
   const webbplats = (c) => { const u = new URL(origin || `${c.url.protocol}//${c.url.host}`); return { rpId: u.hostname, ursprung: u.origin }; };
+  // Runda 13, r2 (säkerhetsgranskningen av runda 12, fynd 7): en aktiv faktor som inte kan prövas (nyckeln för
+  // engångskoder går inte att dekryptera) stoppar inloggningen i stället för att släppa igenom utan andra faktor.
+  function stoppaOprovbarFaktor(c, typ, id, enhet) {
+    if (flerfaktor.kravs(c.db, typ, id) || !flerfaktor.oprovbara(c.db, typ, id).length) return;
+    sakerhetslogg.logga(c.db, { typ: 'inloggning_misslyckad', personal_id: typ === 'personal' ? id : null, invanare_id: typ === 'invanare' ? id : null, enhet_id: enhet,
+      metod: 'POST', vag: c.url.pathname, status: 403, beskrivning: 'Inloggningen stoppades: en aktiv faktor kan inte prövas, eftersom nyckeln för engångskoder inte går att dekryptera.' });
+    throw new Fel(403, 'Din app för engångskoder kan inte prövas i den här sandlådan, så inloggningen stoppas för att skydda kontot. Återställ demon för att börja om utan faktor.', 'nekad');
+  }
   function borjaFlerfaktor(c, agare) {
     oppetApi.aterkalla(c.s, 'Åtkomstbiljetten återkallades vid en ny inloggning.');
     const akt = aktuellKopia(c.s);
@@ -1199,22 +1467,57 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     enhet_id: a.enhet ?? null, metod: 'POST', vag: c.url.pathname.replace(/\/\d+\//, '/:id/'), status: 200, beskrivning: text });
   const oversiktFor = (c, a) => flerfaktor.oversikt(c.db, a.typ, a.id, { metod: c.s.flerfaktorMetod ?? null });
   rutt('GET', '/api/flerfaktor', (c) => oversiktFor(c, agareFor(c)));
-  rutt('POST', '/api/flerfaktor/passkey/borja', (c) => flerfaktor.borjaPasskey(c.db, c.s, agareFor(c), webbplats(c)));
+  // Runda 13, r2 (säkerhetsgranskningen av runda 12, fynd 8): en faktor läggs till eller tas bort bara efter en färsk
+  // bekräftelse med en faktor som redan var aktiv: inloggningen med faktor de senaste fem minuterna, eller en kod från
+  // appen för engångskoder i bekraftelse. En faktor som just har registrerats räknas aldrig som bekräftelse, så att den
+  // som har kommit åt en öppen session inte kan lägga till sin egen faktor och sedan ta bort den riktiga. Felaktiga koder
+  // räknas som vid inloggningen och loggas, och efter för många stoppas bekräftelsen en kvart.
+  const FARSK_MS = 5 * 60_000;
+  function kravFarskBekraftelse(c, a, kod) {
+    if (!flerfaktor.kravs(c.db, a.typ, a.id)) return;
+    if (c.s.flerfaktorTid && Date.now() - c.s.flerfaktorTid <= FARSK_MS) return;
+    const agare = flerfaktor.agareNyckel(a.typ, a.id);
+    const m = flerfaktor.metoder(c.db, a.typ, a.id);
+    const nu = Date.now();
+    const fel = ((c.s.bekraftaFel ??= {})[agare] ?? []).filter(t => t > nu - 15 * 60_000);
+    if (flerfaktor.sparrad(c.s, agare) || fel.length >= flerfaktor.MAX_FORSOK) {
+      throw new Fel(429, 'För många felaktiga koder den senaste kvarten. Vänta en stund, eller logga ut och logga in igen med din faktor.', 'nekad');
+    }
+    if (typeof kod !== 'string' || !m.includes('totp')) {
+      throw new Fel(403, m.includes('totp') ? 'Bekräfta med en kod från din app för engångskoder först.' : 'Logga in igen med din passkey först. Bekräftelsen gäller i fem minuter.', 'bekrafta_faktor', { metoder: m });
+    }
+    try { flerfaktor.prova(c.db, c.s, a, { typ: 'totp', kod }, webbplats(c)); } catch (e) {
+      if (!(e instanceof Fel)) throw e;
+      fel.push(nu);
+      c.s.bekraftaFel[agare] = fel;
+      flerfaktor.raknaFel(c.s, agare, nu);
+      sakerhetslogg.logga(c.db, { typ: 'inloggning_misslyckad', personal_id: a.typ === 'personal' ? a.id : null, invanare_id: a.typ === 'invanare' ? a.id : null, enhet_id: a.enhet ?? null,
+        metod: 'POST', vag: c.url.pathname, status: e.status, beskrivning: `Bekräftelsen med en faktor godkändes inte. ${e.message}`.slice(0, 300) });
+      if (fel.length >= flerfaktor.MAX_FORSOK || flerfaktor.sparrad(c.s, agare)) throw new Fel(429, 'För många felaktiga koder den senaste kvarten. Vänta en stund, eller logga ut och logga in igen med din faktor.', 'nekad');
+      throw e;
+    }
+    c.s.bekraftaFel[agare] = [];
+    c.s.flerfaktorTid = nu;
+  }
+  rutt('POST', '/api/flerfaktor/passkey/borja', (c) => { const a = agareFor(c); kravFarskBekraftelse(c, a, c.body.bekraftelse); return flerfaktor.borjaPasskey(c.db, c.s, a, webbplats(c)); });
   rutt('POST', '/api/flerfaktor/passkey', (c) => {
     const a = agareFor(c);
+    kravFarskBekraftelse(c, a, c.body.bekraftelse);
     const f = flerfaktor.sparaPasskey(c.db, c.s, a, c.body, webbplats(c));
     loggaFaktor(c, a, 'En passkey registrerades. Flerfaktor krävs vid nästa inloggning.');
     return [201, { faktor: f, ...oversiktFor(c, a) }];
   });
-  rutt('POST', '/api/flerfaktor/totp/borja', (c) => flerfaktor.borjaTotp(c.db, agareFor(c)));
+  rutt('POST', '/api/flerfaktor/totp/borja', (c) => { const a = agareFor(c); kravFarskBekraftelse(c, a, c.body.bekraftelse); return flerfaktor.borjaTotp(c.db, a); });
   rutt('POST', '/api/flerfaktor/totp', (c) => {
     const a = agareFor(c);
+    kravFarskBekraftelse(c, a, c.body.bekraftelse);
     const f = flerfaktor.bekraftaTotp(c.db, a, c.body.kod);
     loggaFaktor(c, a, 'En app för engångskoder registrerades. Flerfaktor krävs vid nästa inloggning.');
     return [201, { faktor: f, ...oversiktFor(c, a) }];
   });
   rutt('POST', '/api/flerfaktor/:id/ta-bort', (c, id) => {
     const a = agareFor(c);
+    kravFarskBekraftelse(c, a, c.body.bekraftelse ?? c.body.kod);
     const r = flerfaktor.taBort(c.db, a, id);
     loggaFaktor(c, a, r.aktiv ? 'En faktor togs bort. Flerfaktor är fortfarande på.' : 'Den sista faktorn togs bort. Flerfaktor är av.');
     return { ...r, metod: c.s.flerfaktorMetod ?? null };
@@ -1225,6 +1528,11 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     oppetApi.aterkalla(c.s, 'Åtkomstbiljetten återkallades när sandlådan återställdes.');
     c.s.db.close();
     c.s.db = nySessionsDb();
+    // Runda 13, r2 (säkerhetsgranskningen av runda 12, fynd 3): den nya sandlådan får ett nytt id för kopiorna, och
+    // kopiorna av den gamla tas bort, så att återställningen aldrig ger åtkomst till något som skyddades av en faktor.
+    kopior.radera(c.s.kopieId);
+    c.s.kopieId = slumpId();
+    c.s.aterstallning = null;
     c.s.val = {};
     c.s.oppnade = new Set();
     // Den nya sandlådan har en ny logg, så läskopian lämnas ut och loggas på nytt där. Läskopior från tidigare
@@ -1252,11 +1560,14 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const k = `${c.ip ?? 'okänd'}:${Math.floor(Date.now() / 3600_000)}`;
     const n = (nyaPerIp.get(k) ?? 0) + 1;
     if (n > nyaPerTimme) throw new Fel(429, 'För många nya besök från din adress. Försök igen om en stund.', 'nekad');
+    // Runda 13, r2: ingen sandlåda tas bort för att ge plats åt miljön. När demon är full säger svaret när det är lönt
+    // att försöka igen.
+    kravPlats();
     nyaPerIp.set(k, n);
     const { db, resultat } = miljoer.skapa(c.db, c.body.typ);
-    // Runda 12, r2: en sandlåda som trängs undan tar sina säkerhetskopior med sig, och den nya miljön får ett eget id för kopiorna.
-    while (sessioner.size >= maxSessioner) taBortSandlada(sessioner.keys().next().value);
-    const ny = { db, personalId: null, invanareId: null, val: {}, sist: Date.now(), matning: new Matning(200), lasnyckel: null, oppnade: new Set(), kopior: new Map(), ursprung: c.s, kopieId: slumpId() };
+    // Runda 12, r2: den nya miljön får ett eget id för kopiorna.
+    const ny = medVila({ db, personalId: null, invanareId: null, val: {}, sist: Date.now(), matning: new Matning(200), lasnyckel: null, oppnade: new Set(), kopior: new Map(), ursprung: c.s, kopieId: slumpId(), adress: c.s.adress ?? null });
+    raknaAdress(ny.adress, 1);
     sessioner.set(slumpId(), ny);
     const skapad = new Date().toISOString();
     c.s.miljoer = [...levande, { typ: c.body.typ, s: ny, skapad }];
@@ -1955,14 +2266,17 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // Svarstidsmål (D5): p95 under 200 ms per endpoint.
   const MAL_P95 = 200;
   const medMal = (rader) => rader.map(r => ({ ...r, inomMal: r.p95 <= MAL_P95 }));
-  rutt('GET', '/api/drift', (c) => ({ startad, sandladar: sessioner.size, mal: { p95Ms: MAL_P95 }, server: medMal(serverMatning.sammanstall()), sandlada: c.s ? medMal(c.s.matning.sammanstall()) : [], ...utdata.drift(c.db) }));
+  rutt('GET', '/api/drift', (c) => ({ startad, sandladar: sessioner.size,
+    // Runda 13, r2: hur många sandlådor som är i minnet och vilar på disk, taken och minnet.
+    kapacitet: kapacitet(), mal: { p95Ms: MAL_P95 }, server: medMal(serverMatning.sammanstall()), sandlada: c.s ? medMal(c.s.matning.sammanstall()) : [], ...utdata.drift(c.db) }));
   // Runda 9, r6: systemuppbyggnaden med modulerna, de fem perspektiven och totalkostnaden ur serverns eget minne och
   // svarstider (arkitektur.js, Sussa 2.1.1.1). Inga patientuppgifter.
   rutt('GET', '/api/arkitektur', () => {
     const tider = serverMatning.sammanstall();
     const p95 = tider.length ? Math.max(...tider.map(t => t.p95 ?? 0)) : null;
     // Minnet per sandlåda är databasens storlek i minnet, i snitt över sandlådorna.
-    const storlek = [...sessioner.values()].map(x => { try { const p = x.db.query('PRAGMA page_count').get().page_count; return p * x.db.query('PRAGMA page_size').get().page_size; } catch { return 0; } });
+    // Runda 13, r2: bara sandlådorna i minnet, så att sidan inte läser in de vilande.
+    const storlek = [...vakna].map(x => { try { const p = x.db.query('PRAGMA page_count').get().page_count; return p * x.db.query('PRAGMA page_size').get().page_size; } catch { return 0; } });
     const mb = storlek.length ? storlek.reduce((a, b) => a + b, 0) / storlek.length / 1048576 : null;
     return arkitektur.arkitektur({ matning: mb ? { mbPerSandlada: Math.round(mb * 10) / 10, p95Ms: p95, sandladar: sessioner.size } : null });
   });
@@ -2052,7 +2366,14 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
   // Runda 13, r1 (r13r1-rutter.js).
   const synpunkter = r13r1Rutter({ rutt, sessionFil, synpunktFil, version: APPVERSION, gransnittVersion, ...(synpunktTak ? { tak: synpunktTak } : {}) });
   // Runda 12, r2.
-  r12r2Rutter({ rutt, kravInloggad, testresultat, kopior, migrera });
+  // Runda 13, r2 (säkerhetsgranskningen av runda 12, fynd 3): efter inläsningen av en kopia loggas sessionen ut, så att
+  // nästa inloggning prövas mot den inlästa sandlådan med dess faktorer. Läskopiorna hör till den gamla databasen.
+  const loggaUtAlla = (s) => {
+    oppetApi.aterkalla(s, 'Åtkomstbiljetten återkallades när en säkerhetskopia lästes in.');
+    s.personalId = null; s.uppdrag = null; s.invanareId = null; s.val = {}; s.lasnyckel = null; s.oppnade = new Set();
+    s.vantande = null; s.flerfaktorMetod = null; s.flerfaktorUtmaning = null; s.kopior = new Map();
+  };
+  r12r2Rutter({ rutt, kravInloggad, testresultat, kopior, migrera, loggaUtAlla });
   // Fortsätt arbeta: anropet räknas som aktivitet och förlänger inloggningen. Demoläget flyttar tiden så att varningen
   // visas direkt (bara i den egna sandlådan).
   const kravNagon = (c) => { if (!c.personal && !c.invanare) throw new Fel(401, 'Logga in först.', 'ej_inloggad'); };
@@ -2093,6 +2414,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     c.ip = klientIp(req, server);
     // Runda 13, r1: webbläsarens rubrik, som synpunkter.js kortar till namn, huvudversion och operativsystem.
     c.ua = req.headers.get('user-agent');
+    // Runda 13, r2: tidsbudgeten för adressen prövas före allt annat, också före en ny sandlåda.
+    kravBudget(c, null);
     if (metod !== 'GET' && metod !== 'HEAD') kontrolleraOrigin(req);
     let traff = null;
     for (const [m, re, fn] of R) {
@@ -2103,6 +2426,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (!traff) throw new Fel(404, 'Okänd adress.', 'saknas');
     if (traff === 'metod') throw new Fel(405, 'Metoden stöds inte.', 'ogiltig');
     let sess = hamtaSession(req);
+    // Runda 13, r2: sandlådans tidsbudget, som följer sandlådan också när den har vilat.
+    if (sess) kravBudget(c, sess.s);
     if (!sess && !UTAN_SESSION.has(url.pathname)) sess = skapaSession(req, server);
     // Runda 7, r4: en förberedd omorganisation genomförs av systemet den dag den gäller, före allt annat i anropet.
     if (sess) systemforvaltningEfterDatum(sess.s.db);
@@ -2124,6 +2449,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     if (Array.isArray(ut) && typeof ut[0] === 'number') [status, ut] = ut;
     // Ny sessionsnyckel vid inloggning, samma sandlåda.
     if (c.rotera && c.sid) {
+      // Runda 13, r2: en sandlåda där någon har loggat in lever i åtta timmar.
+      c.s.harLoggatIn = true;
       sessioner.delete(c.sid);
       c.sid = slumpId();
       sessioner.set(c.sid, c.s);
@@ -2176,6 +2503,8 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     const r5 = await oppetApi.fhir(req, url, c);
     if (r5) return r5;
     const sess = hamtaSession(req);
+    // Runda 13, r2: tidsbudgeten gäller också FHIR-API:t.
+    kravBudget(c, sess?.s ?? null);
     // Runda 7, r4: förberedda omorganisationer som gäller i dag genomförs först.
     if (sess) systemforvaltningEfterDatum(sess.s.db);
     // Runda 8, r1: det simulerade laboratoriet svarar på det som har hunnit bli klart.
@@ -2196,10 +2525,14 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     port, hostname,
     // Ingen förfrågan behöver mer än 64 kB. Taket gäller också kroppar utan Content-Length.
     maxRequestBodySize: MAX_KROPP * 2,
+    // Runda 13, r2: vilande anslutningar hålls öppna i två minuter (Bun stänger annars efter omkring tio sekunder), så
+    // att ett anrop efter en stunds läsning inte hamnar på en anslutning som servern just har stängt.
+    idleTimeout: 120,
     async fetch(req, srv) {
       const t0 = performance.now();
       const url = new URL(req.url);
-      const c = {};
+      // Runda 13, r2: adressen som HMAC, för taken per adress. Hälsokontrollen räknas inte.
+      const c = url.pathname === '/api/health' ? {} : { adress: adressHmac(klientIp(req, srv)) };
       let svar;
       try {
         if (url.pathname.startsWith('/api/')) svar = await api(req, srv, url, c);
@@ -2221,7 +2554,12 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
           c.feltext = e.message;
           svar = arFhir
             ? new Response(JSON.stringify(fhir.utfall(e.status, e.kod, e.message)), { status: e.status, headers: { 'Content-Type': 'application/fhir+json; charset=utf-8', 'Cache-Control': 'no-store' } })
-            : json({ fel: e.message, kod: e.kod, ...e.extra }, e.status, c.ny ? { 'Set-Cookie': kaka(c.sid) } : {});
+            : json({ fel: e.message, kod: e.kod, ...e.extra }, e.status, { ...(c.ny ? { 'Set-Cookie': kaka(c.sid) } : {}),
+              // Runda 13, r2: när demon är full säger svaret när det är lönt att försöka igen.
+              ...(e.kod === 'demo_full' ? { 'retry-after': String(e.extra.forsokIgenSekunder), 'x-vk-full': '1' } : {}) });
+        } else if (e?.code === 'SQLITE_FULL') {
+          // Runda 13, r2: sandlådans databas har nått sitt tak.
+          svar = json({ fel: `Sandlådan är full. En sandlåda får vara högst ${maxSandladaMb} MB i demon. Ta bort något som du har lagt in, eller återställ demon för att börja om.`, kod: 'sandlada_full' }, 507);
         } else if (e?.code?.startsWith?.('SQLITE_CONSTRAINT')) {
           svar = json({ fel: 'Ändringen är inte tillåten.', kod: 'ogiltig' }, 400);
         } else {
@@ -2242,7 +2580,16 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
       // Runda 6, r5: ändringarna i sandlådan ger meddelanden till prenumerationerna.
       if (c.s) oppetApi.efterAnrop(c.s, origin || `${url.protocol}//${url.host}`);
       serverMatning.lagg(nyckel, ms);
-      if (c.s) c.s.matning.lagg(nyckel, ms);
+      if (c.s?.matning) c.s.matning.lagg(nyckel, ms);
+      // Runda 13, r2: anropets tid räknas mot sandlådans och adressens budget, sandlådans storlek räknas för minnet, och
+      // sandlådan får flyttas till disk igen.
+      if (c.adress) { let f = budgetAdress.get(c.adress); if (!f) budgetAdress.set(c.adress, (f = nyttFonster())); laggTillTid(f, ms); }
+      if (c.s) {
+        laggTillTid((c.s.budget ??= nyttFonster()), ms);
+        const vdb = c.s.dbOmVaken;
+        if (vdb) { try { c.s.dbByte = vdb.query('PRAGMA page_count').get().page_count * vdb.query('PRAGMA page_size').get().page_size; } catch { /* stängd */ } }
+      }
+      slappa(req);
       return svar;
     },
   });
@@ -2252,7 +2599,9 @@ export function starta({ port = Number(process.env.PORT || 8080), hostname = '0.
     kopior, stadaKopior,
     // Runda 13, r1.
     synpunkter,
-    stopp() { clearInterval(stadning); if (kopieSchema) clearInterval(kopieSchema); server.stop(true); for (const s of sessioner.values()) s.db.close(); sessioner.clear(); anvandartestDb.close(); synpunkter.stopp(); },
+    stopp() { clearInterval(stadningsTimer); clearInterval(vilaTimer); if (kopieSchema) clearInterval(kopieSchema); server.stop(true); for (const s of sessioner.values()) { s.dbOmVaken?.close(); s.db = null; } sessioner.clear(); anvandartestDb.close(); synpunkter.stopp(); },
+    // Runda 13, r2: vilan och städningen med en vald tid, för testerna och lasttestet.
+    vilolager, vila: (s) => vilaSandlada(s, { tvinga: true }), vilaStadning, stadning, kapacitet, glomKalenderlankar: () => kalender.lankar.clear(),
   };
 }
 

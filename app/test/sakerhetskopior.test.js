@@ -151,11 +151,18 @@ describe('Säkerhetskopior', () => {
     r = await k.get('/api/sakerhetskopior');
     expect(r.data.senaste.verifierad).toBe(true);
     expect(r.data.senaste.av).toBe('Tomas Lindh');
+    // Runda 13, r2 (säkerhetsgranskningen av runda 12, fynd 4): återställningen väntar på en andra systemförvaltare.
     r = await k.post('/api/sakerhetskopior/aterstall', { tid });
+    expect(r.status).toBe(202);
+    expect(antalMat(sandlada(app, k).db)).toBe(1);
+    await k.logga('sysf-2');
+    r = await k.post('/api/sakerhetskopior/aterstall/godkann', {});
     expect(r.status).toBe(200);
     expect(r.data.aterstalldTill.tid).toBe(tid);
     expect(antalMat(sandlada(app, k).db)).toBe(0);
-    // Sessionen fortsätter i den återställda sandlådan.
+    // Runda 13, r2 (fynd 3): alla loggas ut och loggar in på nytt i den återställda sandlådan.
+    expect((await k.get('/api/session')).data.inloggad).toBe(false);
+    await k.logga('sysf');
     expect((await k.get('/api/sakerhetskopior')).data.kopior.length).toBe(2);
     await k.logga('lak-kard');
     expect((await k.get('/api/sakerhetskopior')).status).toBe(403);
@@ -169,11 +176,11 @@ describe('Säkerhetskopior', () => {
 describe('Säkerhetskopior', () => {
   let app;
   let a, b;
-  beforeAll(() => { a = tmp(); b = tmp(); app = testserver({ kopieKatalog: a, kopieAndra: b, kopieMinuter: 0, maxSessioner: 3 }); });
+  beforeAll(() => { a = tmp(); b = tmp(); app = testserver({ kopieKatalog: a, kopieAndra: b, kopieMinuter: 0 }); });
   afterAll(() => { app.stopp(); rmSync(a, { recursive: true, force: true }); rmSync(b, { recursive: true, force: true }); });
   const kataloger = (dir) => readdirSync(dir).filter(x => /^[0-9a-f]{32}$/.test(x));
 
-  test('en session vars kaka har bytts vid en ny inloggning hittar sina kopior, och kopiorna försvinner när sandlådan trängs undan', async () => {
+  test('en session vars kaka har bytts vid en ny inloggning hittar sina kopior, och kopiorna försvinner när sandlådan försvinner', async () => {
     const k = klient(app);
     await k.logga('sysf');
     const id = sandlada(app, k).kopieId;
@@ -188,8 +195,8 @@ describe('Säkerhetskopior', () => {
     const o = await k.get('/api/sakerhetskopior');
     expect(o.data.kopior.map(x => x.id)).toEqual([r.data.kopia.id]);
     expect(kataloger(a)).toEqual([app.kopior.nyckel(id)]);
-    // Tre nya sandlådor tränger undan den första, och dess kopior försvinner på båda platserna.
-    for (let i = 0; i < 3; i++) await klient(app).logga('lak-kard');
+    // Runda 13, r2: ingen sandlåda trängs undan längre. När sandlådan går ut försvinner dess kopior på båda platserna.
+    app.stadning(Date.now() + 8 * 3600_000 + 60_000);
     expect([...app.sessioner.values()].some(s => s.kopieId === id)).toBe(false);
     for (const dir of [a, b]) expect(kataloger(dir)).toEqual([]);
   });

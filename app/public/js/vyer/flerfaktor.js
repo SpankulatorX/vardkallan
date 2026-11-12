@@ -1,7 +1,7 @@
 // Runda 12, r3 (vårt L5): Inloggning och flerfaktor. Den inloggade, i personalen eller i Min journal, registrerar en
 // passkey eller en app för engångskoder. Från det ögonblicket krävs den andra faktorn vid varje inloggning som samma
 // person i sandlådan. Systemet föreslår passkey först och förklarar varför.
-import { esc, api, vyRubrik, medKnapp, notis, ikon, datum } from '../ui.js';
+import { esc, api, vyRubrik, medKnapp, notis, ikon, datum, dialog } from '../ui.js';
 import { S } from '../app.js';
 import { harPasskey, skapaPasskey, passkeyFel } from '../flerfaktor-ui.js';
 
@@ -57,6 +57,21 @@ function totpHtml(b) {
   </form>`;
 }
 
+// Runda 13, r2 (säkerhetsgranskningen av runda 12, fynd 8): att lägga till eller ta bort en faktor kräver en färsk
+// bekräftelse med en faktor som redan finns. Har personen en app för engångskoder ber systemet om en kod och gör om
+// anropet, annars förklarar svaret att personen ska logga in igen med sin passkey.
+async function medBekraftelse(anrop, knapptext) {
+  let r;
+  try { return await anrop({}); } catch (e) { r = e; }
+  if (r?.kod !== 'bekrafta_faktor' || !r.data?.metoder?.includes('totp')) throw r;
+  const svar = await dialog(`<form><h2 id="dlg-rubrik">${ikon.klocka}<span>Bekräfta med en kod</span></h2>
+    <div class="falt"><label for="ff-bekrafta-kod">Kod från din app för engångskoder</label><input id="ff-bekrafta-kod" name="kod" inputmode="numeric" autocomplete="one-time-code" maxlength="8" required></div>
+    <p class="hjalp">Koden visar att det är du som ändrar dina faktorer, och inte någon som har kommit åt en öppen session.</p>
+    <div class="knapprad"><button type="button" class="knapp text" data-varde="avbryt">Avbryt</button><button type="button" class="knapp" data-varde="ok">${esc(knapptext)}</button></div></form>`);
+  if (!svar) throw Object.assign(new Error('Avbrutet.'), { kod: 'avbruten' });
+  return anrop({ bekraftelse: String(svar.data.kod ?? '').replace(/\s/g, '') });
+}
+
 export async function visa(main) {
   main.innerHTML = vyRubrik('Inloggning och flerfaktor', 'Skydda din inloggning med en passkey eller en app för engångskoder. Systemet frågar efter den vid varje inloggning.') + '<div id="ff"><p class="tom">Hämtar.</p></div>';
   const yta = main.querySelector('#ff');
@@ -67,19 +82,19 @@ export async function visa(main) {
     const b = e.target.closest('button');
     if (!b) return;
     if (b.dataset.a === 'passkey') {
-      const alt = await medKnapp(b, () => api('/api/flerfaktor/passkey/borja', { metod: 'POST', direkt: true })).catch(() => null);
+      const alt = await medKnapp(b, () => medBekraftelse((x) => api('/api/flerfaktor/passkey/borja', { metod: 'POST', data: x, direkt: true }), 'Fortsätt')).catch(() => null);
       if (!alt) return;
       let svar;
       try { svar = await skapaPasskey(alt); } catch (err) { notis(passkeyFel(err), 'fel'); return; }
       const r = await medKnapp(b, () => api('/api/flerfaktor/passkey', { metod: 'POST', data: { namn: `Passkey för ${namn}`, svar }, direkt: true })).catch(() => null);
       if (r) { rita(r); notis('Passkeyn är registrerad. Den krävs vid nästa inloggning.'); }
     } else if (b.dataset.a === 'totp') {
-      const r = await medKnapp(b, () => api('/api/flerfaktor/totp/borja', { metod: 'POST', direkt: true })).catch(() => null);
+      const r = await medKnapp(b, () => medBekraftelse((x) => api('/api/flerfaktor/totp/borja', { metod: 'POST', data: x, direkt: true }), 'Fortsätt')).catch(() => null);
       if (!r) return;
       yta.querySelector('#ff-totp').innerHTML = totpHtml(r);
       yta.querySelector('#ff-ny-kod').focus();
     } else if (b.dataset.taBort) {
-      const r = await medKnapp(b, () => api(`/api/flerfaktor/${encodeURIComponent(b.dataset.taBort)}/ta-bort`, { metod: 'POST', direkt: true })).catch(() => null);
+      const r = await medKnapp(b, () => medBekraftelse((x) => api(`/api/flerfaktor/${encodeURIComponent(b.dataset.taBort)}/ta-bort`, { metod: 'POST', data: x, direkt: true }), 'Ta bort faktorn')).catch(() => null);
       if (r) { rita(r); notis(r.aktiv ? 'Faktorn är borttagen.' : 'Faktorn är borttagen. Flerfaktor är av.'); }
     }
   });

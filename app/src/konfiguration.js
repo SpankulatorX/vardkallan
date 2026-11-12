@@ -648,10 +648,14 @@ export const LASTA = [
   { rubrik: 'Signerade anteckningar och rättelser', varfor: 'En signerad anteckning ändras aldrig. Rättelser görs som en ny version (HSLF-FS 2016:40 6 kap.).' },
 ];
 
+// Runda 13, r2 (säkerhetsgranskningen av runda 12, fynd 11): bara parametrarnas egna namn, aldrig namn som
+// __proto__, constructor eller toString som finns på alla objekt.
+const paramDef = (nyckel) => (typeof nyckel === 'string' && Object.hasOwn(parametrar(), nyckel) ? parametrar()[nyckel] : null);
+
 // Gällande värde för en parameter en viss dag. En sandlåda utan tabellen, eller en parameter utan godkänd ändring, har
 // standardvärdet.
 export function varde(db, nyckel, nu = new Date()) {
-  const def = parametrar()[nyckel];
+  const def = paramDef(nyckel);
   if (!def) throw new Error(`Okänd parameter: ${nyckel}`);
   let rad = null;
   try {
@@ -663,7 +667,7 @@ export function varde(db, nyckel, nu = new Date()) {
 
 // Kontrollerar ett värde. Returnerar { ok, varde, varfor }.
 export function prova(nyckel, inmatat) {
-  const def = parametrar()[nyckel];
+  const def = paramDef(nyckel);
   if (!def) return { ok: false, varfor: 'Parametern finns inte.' };
   // Runda 8, r5: ja eller nej.
   if (def.typ === 'janej') {
@@ -723,7 +727,7 @@ const loggaAtgard = (db, personal, resurs) => loggaRad(db, { personal_id: person
 // Förhandsvisning: om värdet är rimligt, vad som gäller nu och vad ändringen får för effekt i dag. Inga patientuppgifter.
 export function forhandsvisa(db, personal, { nyckel, varde: inmatat, giltigFran } = {}, nu = new Date()) {
   kravRoll(personal);
-  const def = parametrar()[nyckel];
+  const def = paramDef(nyckel);
   if (!def) throw new Fel(404, 'Parametern finns inte.', 'saknas');
   const forra = varde(db, nyckel, nu);
   const p = prova(nyckel, inmatat);
@@ -741,7 +745,7 @@ export function forhandsvisa(db, personal, { nyckel, varde: inmatat, giltigFran 
 // Föreslår en ändring. Den gäller först när en annan systemförvaltare har godkänt den.
 export function foresla(db, personal, { nyckel, varde: inmatat, giltigFran, motivering } = {}, nu = new Date()) {
   kravRoll(personal);
-  const def = parametrar()[nyckel];
+  const def = paramDef(nyckel);
   if (!def) throw new Fel(404, 'Parametern finns inte.', 'saknas');
   const dag = datumAv(nu);
   const datum = giltigFran ?? addDagar(dag, 1);
@@ -821,7 +825,7 @@ export function avsluta(db, personal, id, { kommentar } = {}, nu = new Date(), {
 const STATUS = { vantar: 'Väntar på godkännande', godkand: 'Godkänd', avslagen: 'Avslagen', aterkallad: 'Återkallad' };
 
 export function andringUt(db, a, personal = null) {
-  const def = a.slag === 'parameter' ? parametrar()[a.nyckel] : null;
+  const def = a.slag === 'parameter' ? paramDef(a.nyckel) : null;
   const v = JSON.parse(a.varde);
   const f = a.forra ? JSON.parse(a.forra) : null;
   return {

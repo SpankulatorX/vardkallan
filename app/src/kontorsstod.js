@@ -128,6 +128,8 @@ export function skapaKalenderlager({ hemlighet = process.env.KALENDER_NYCKEL || 
     if (k && !sessioner.includes(k.s)) { lankar.delete(h); k = null; }
     if (!k) {
       for (const s of sessioner) {
+        // Runda 13, r2: en sandlåda som vilar på disk läses bara in om dess länkar finns i minnet (sandlada-vila.js).
+        if (s.vilar && !(s.vilaIndex?.kalender ?? []).includes(h)) continue;
         try {
           const r = s.db.query("SELECT personal_id FROM kalenderlankar WHERE hmac = ? AND aterkallad IS NULL").get(h);
           if (r) { k = { s, personalId: r.personal_id, anrop: [] }; lankar.set(h, k); break; }

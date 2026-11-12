@@ -1899,3 +1899,8 @@ body.testlage-aktivt.har-testare #notiser { bottom: calc(var(--testlage-hojd, 64
   .arbetslista-tabell td.al-larm { grid-column: 3; grid-row: 1; }
   .arbetslista-tabell td.al-pnr, .arbetslista-tabell td.al-alder, .arbetslista-tabell td.al-plats, .arbetslista-tabell td.al-orsak { grid-column: 2 / span 2; font-size: var(--f-s); }
 }
+/* Runda 13, r2: sidan när demon är full (demo-full.js). */
+.demo-full { max-width: 40rem; margin: 2.5rem auto; padding: 0 16px; }
+.demo-full h1 { font-size: 1.6rem; margin-bottom: 1rem; }
+.demo-full p { line-height: 1.6; }
+.demo-full .demo-full-tid { font-size: 1.1rem; }

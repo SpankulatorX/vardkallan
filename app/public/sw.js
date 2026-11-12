@@ -59,8 +59,10 @@ const FILER = [
   '/js/flerfaktor-ui.js', '/js/vyer/flerfaktor.js', '/js/flera-fonster.js',
   '/js/testinbjudan.js', '/js/synpunkt-regler.js', '/js/kanda-begransningar.js', '/js/vyer/testa.js', '/js/vyer/om.js', '/js/vyer/testledare.js',
   '/js/vaccination-ui.js',
+  '/js/demo-full.js',
 ];
 // Runda 13, r1: listan har testinbjudan, synpunkterna, de kända begränsningarna, startsidan för testare, sidan om demon och testledarens vy.
+// Runda 13, r2: listan har sidan när demon är full (demo-full.js).
 // Runda 12, r1: listan har mallarna och mätvärdestyperna (journalstruktur.js) och läkemedelsmallarna (lakemedelsmallar-ui.js).
 // Runda 12, r3: listan har flerfaktorsinloggningen (flerfaktor-ui.js och vyer/flerfaktor.js) och flera skärmar (flera-fonster.js).
 // Runda 11, r2: listan har operationen i journalen och operationsavdelningen (patient-operation.js och operation.js).

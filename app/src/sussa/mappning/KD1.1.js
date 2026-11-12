@@ -6,6 +6,8 @@ import { medR7r2 } from '../runda7-r2.js';
 import { medR9r5 } from '../runda9-r5.js';
 // Runda 12, r2 (sussa/runda12-r2.js).
 import { medR12r2 } from '../runda12-r2.js';
+// Runda 13, r2: kapacitet, vilande sandlådor och säkerhetskopiornas tak (sussa/runda13-r2.js).
+import { medR13r2 } from '../runda13-r2.js';
 
 // Runda 7, r4: lagringen (lagring.js och test/systemforvaltning.test.js).
 const S = 'Systemförvaltning > ';
@@ -122,5 +124,5 @@ const R12R3 = {
     anmarkning: 'Rekommendation: minst 1280 px bredd för arbete med journalen på en vanlig arbetsplats, men allt fungerar från 320 px. Fönstren talar med varandra genom BroadcastChannel inom samma webbläsare och inloggning, och varje fönster hämtar journalen med sin egen behörighetsprövning. Prövat i Chromium med Playwright. Riktiga plattor, telefoner och fysiska skärmar är inte prövade.',
   },
 };
-export default medR12r2(medR9r5(medR7r2(AVSNITT))).map(x => (R12R3[x.id] ? { ...x, ...R12R3[x.id], tester: [...new Set([...(x.tester ?? []), ...R12R3[x.id].tester])] } : x));
+export default medR13r2(medR12r2(medR9r5(medR7r2(AVSNITT)))).map(x => (R12R3[x.id] ? { ...x, ...R12R3[x.id], tester: [...new Set([...(x.tester ?? []), ...R12R3[x.id].tester])] } : x));
 // Runda 12, r2: säkerhetskopior på två platser och återställning till en tidpunkt (sussa/runda12-r2.js), med medR12r2 ovan.

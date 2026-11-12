@@ -23,6 +23,11 @@ export const ANDRINGAR = [
       'Tid och period för en registrering i vätskebalansen i det interna API:t',
       'Kontrollen före en vaccination och dosens utgångsdatum och injektionsställe i det interna API:t',
       'Allt som väntar på godkännande i systemförvaltningen i det interna API:t',
+      // Runda 13, r2: kapacitet, tak och fynden från säkerhetsgranskningen av runda 12.
+      'Svaret 503 med koden demo_full och tiden tills det är lönt att försöka igen när demon är full, och kapaciteten i /api/drift',
+      'Taken 429 för tunga anrop per sandlåda och adress, och 507 när sandlådans databas är full',
+      'Återställning av en säkerhetskopia med fyra ögon: ett förslag och ett godkännande av en andra systemförvaltare',
+      'Att lägga till eller ta bort en faktor för flerfaktor kräver en färsk bekräftelse med en befintlig faktor',
     ],
   },
   // Runda 12: version 1.2. Varje del lägger sina rader i annat i ett eget block.
