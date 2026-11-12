@@ -24,3 +24,4 @@ export { loggaAnrop, anrop as anropslogg, utanPersonnummer } from './anropslogg.
 export * as journal from './journal.js';
 export * as nationella from './nationella.js';
 export * as register from './register.js';
+export * as plattform from './plattform.js';
