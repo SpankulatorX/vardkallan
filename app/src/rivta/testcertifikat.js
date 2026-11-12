@@ -44,6 +44,10 @@ const ext = (id, kritisk, varde) => seq(oid(id), ...(kritisk ? [tlv(0x01, Buffer
 const pem = (typ, der) => `-----BEGIN ${typ}-----\n${der.toString('base64').match(/.{1,64}/g).join('\n')}\n-----END ${typ}-----\n`;
 const nyckelId = (spki) => createHash('sha1').update(spki).digest();
 
+// Runda 14, sammanslagningen: certifikatet gäller från fem år före sin tid. TLS prövar giltigheten mot datorns verkliga
+// klocka, medan testerna med falsk klocka (scripts/klocktest.js) skapar certifikaten upp till två år fram i tiden, och
+// en timme bakåt räckte då inte ("certificate is not yet valid").
+const FORE_MS = 5 * 365 * 86400_000;
 // Skapar ett certifikat. utfardare är { nyckel, namn, spki } för CA:n, eller null för ett självsignerat certifikat.
 function certifikat({ subjekt, utfardare = null, ca = false, dns = [], ip = [], dagar = 365, nu = new Date(), serie = randomBytes(12) }) {
   const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
@@ -63,7 +67,7 @@ function certifikat({ subjekt, utfardare = null, ca = false, dns = [], ip = [], 
   serie[0] = (serie[0] & 0x7f) || 1;
   const tbs = seq(
     tlv(0xa0, heltal(Buffer.from([2]))), heltal(serie), seq(oid(OID.ecdsaSha256)), namn(ut.namn),
-    seq(tid(new Date(nu.getTime() - 3600_000)), tid(new Date(nu.getTime() + dagar * 86400_000))),
+    seq(tid(new Date(nu.getTime() - FORE_MS)), tid(new Date(nu.getTime() + dagar * 86400_000))),
     namn(subjekt), spki, tlv(0xa3, seq(...tillagg)),
   );
   const sig = sign('sha256', tbs, ut.nyckel);

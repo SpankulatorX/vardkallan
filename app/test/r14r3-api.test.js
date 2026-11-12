@@ -2,6 +2,7 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import { testserver, klient, sandlada } from './hjalp.js';
 import * as r3 from '../src/rivta-r3.js';
+import { idag } from '../src/db.js';
 
 let app;
 beforeAll(() => { app = testserver(); });
@@ -12,7 +13,9 @@ describe('Intyg och e-remiss i API:t', () => {
     const k = klient(app);
     await k.logga('lak-vc');
     const db = sandlada(app, k).db;
-    db.query("INSERT INTO diagnoser (patient_id, enhet_id, kod, text, typ, datum) VALUES ('p11', 'vc-tybble', 'J06.9', 'Akut övre luftvägsinfektion', 'huvud', '2026-11-12')").run();
+    // Runda 14, sammanslagningen: diagnosen ställs i dag, så att den är den senaste också med falsk klocka (seedens
+    // diagnoser ligger dagar före sandlådans dag).
+    db.query("INSERT INTO diagnoser (patient_id, enhet_id, kod, text, typ, datum) VALUES ('p11', 'vc-tybble', 'J06.9', 'Akut övre luftvägsinfektion', 'huvud', ?)").run(idag());
     const fore = await k.get('/api/patient/p11/intyg');
     expect(fore.status).toBe(200);
     expect(fore.data.forslag.kod).toBe('LISJP');

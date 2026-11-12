@@ -2,7 +2,7 @@
 // CreateDraftCertificate, tar emot händelserna med CertificateStatusUpdateForCare och stämmer av med
 // ListCertificatesForCareWithQA. Intygsapplikationen är simulerad.
 import { describe, test, expect } from 'bun:test';
-import { iso } from '../src/db.js';
+import { iso, idag } from '../src/db.js';
 import * as intyg from '../src/lakarintyg.js';
 import * as app from '../src/intygsapplikation-simulerad.js';
 import * as rivta from '../src/rivta/index.js';
@@ -17,7 +17,8 @@ const DAG = '2026-11-12';
 const lisjp = async (db, pid = 'p11', pers = 'lak-vc') => intyg.skapa(atk(db, pers, pid, {}, 'skriv_intyg'), db.query('SELECT * FROM patienter WHERE id = ?').get(pid), { typ: 'LISJP' }, DAG);
 const fel = async (fn) => { try { await fn(); } catch (e) { return e; } return null; };
 const diagnos = (db, pid, enhet = 'vc-tybble', kod = 'J06.9', textD = 'Akut övre luftvägsinfektion') =>
-  db.query("INSERT INTO diagnoser (patient_id, enhet_id, kod, text, typ, datum) VALUES (?, ?, ?, ?, 'huvud', ?)").run(pid, enhet, kod, textD, DAG);
+  // Runda 14, sammanslagningen: diagnosen ställs på sandlådans dag, så att den är den senaste också med falsk klocka.
+  db.query("INSERT INTO diagnoser (patient_id, enhet_id, kod, text, typ, datum) VALUES (?, ?, ?, ?, 'huvud', ?)").run(pid, enhet, kod, textD, idag());
 
 describe('Intyg genom intygsapplikationen', () => {
   test(`${T}läkaren skapar ett utkast med CreateDraftCertificate, och patient, läkare, vårdenhet och diagnos fylls i av systemet`, async () => {
