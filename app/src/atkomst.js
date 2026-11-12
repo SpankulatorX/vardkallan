@@ -163,6 +163,11 @@ for (const h of ROLLER.systemforvaltare) UTAN_PATIENT.add(h);
 // Runda 9, r6: systemförvaltaren registrerar tillämpningar och godkänner mottagare för det öppna API:t (api-forvaltning.js).
 ROLLER.systemforvaltare.push('forvalta_api');
 UTAN_PATIENT.add('forvalta_api');
+// Runda 14, r5: systemförvaltaren följer upp servicenivåerna, registrerar incidenter och tar ut incidentrapporten till
+// beställaren (servicenivaer.js). Inget av det rör en enskild patient.
+HANDLINGAR.servicenivaer = 'följa upp servicenivåer, registrera incidenter och rapportera dem till beställaren';
+ROLLER.systemforvaltare.push('servicenivaer');
+UTAN_PATIENT.add('servicenivaer');
 // Efter en omorganisation kan patienten själv besluta att en spärr också ska gälla den nya vårdenheten. Vårdadministratören
 // registrerar beslutet som en vanlig spärr (omorganisation.js, registreraSparr). Kräver vårdrelation.
 HANDLINGAR.registrera_sparr = 'registrera en spärr som patienten själv har beslutat';

@@ -13,6 +13,9 @@ export const TYPER = {
   andrad_behorighet: 'Ändrad behörighet', andrad_installning: 'Ändrad inställning', loggexport: 'Export av loggen', stickprov: 'Stickprovskontroll',
   // Runda 12, r3: registrerade och borttagna faktorer och en inloggning som väntar på den andra faktorn (flerfaktor.js).
   flerfaktor: 'Flerfaktor',
+  // Runda 14, r5: incidenter som systemförvaltaren registrerar, avslutar och följer upp, och incidentrapporten till
+  // beställaren (servicenivaer.js).
+  incident: 'Incident', incidentrapport: 'Incidentrapport till beställaren',
 };
 
 const kanonisk = (r) => JSON.stringify(Object.fromEntries(FALT.map(f => [f, r[f] ?? null])));

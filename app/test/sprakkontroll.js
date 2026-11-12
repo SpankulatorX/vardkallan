@@ -318,7 +318,9 @@ export function gransnittTexter(app) {
 const FHIRKOD = /\b(display|code|system|url|valueCode|resourceType)\s*:\s*$/;
 export function serverTexter(app) {
   const ut = [];
-  for (const f of filer(join(app, 'src'), p => p.endsWith('.js') && !/\/(seed|sussa)\/|\/(kodverk|fhir-definitioner|kallelse-engelska|filformat)\.js$/.test(p))) {
+  // Runda 14, r5: driftdokumenten är dokument och inte serverns meddelanden. De prövas med sina förkortningar och
+  // engelska termer inom parentes i test/driftdokument.test.js.
+  for (const f of filer(join(app, 'src'), p => p.endsWith('.js') && !/\/(seed|sussa)\/|\/(kodverk|fhir-definitioner|kallelse-engelska|filformat)\.js$/.test(p) && !/\/driftdokument(-[a-z]+)?\.js$/.test(p))) {
     const kod = readFileSync(f, 'utf8');
     const fil = relative(app, f);
     for (const s of strangar(kod)) {

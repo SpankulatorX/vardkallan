@@ -2,6 +2,22 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "1.4.0",
+      "datum": "2026-11-12",
+      "nyheter": [
+        {
+          "id": "servicenivaer-1-4-0",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "liten",
+          "var": "#/servicenivaer",
+          "rubrik": "Servicenivåer och incidenter",
+          "text": "Registrera en incident genom att svara på två frågor. Systemet sätter prioriteten enligt servicenivåavtalet, säger när beställaren ska ha rapporten och när processen för en större incident ska startas, och räknar månadsrapporten för servicenivåerna. Incidentrapporten till beställaren hämtas utan patientuppgifter."
+        }
+      ]
+    },
+    {
       "version": "1.3.1",
       "datum": "2026-11-12",
       "nyheter": [

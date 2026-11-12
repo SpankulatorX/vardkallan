@@ -62,7 +62,9 @@ const SYSTEM = new Set(['omorganisationer', 'omorganisation_flyttar', 'lagringsm
   // av systemet (releaser.js).
   'schema_migreringar', 'parkerade_data', 'uppgraderingar',
   // Runda 13, r1: testarens uppdrag i demon hör till testinbjudan och inte till en huvudman (testinbjudan.js).
-  'testare', 'testare_uppdrag']);
+  'testare', 'testare_uppdrag',
+  // Runda 14, r5: incidentregistret hör till driften och har inga patientuppgifter (servicenivaer.js).
+  'incidenter']);
 // Tabeller vars koppling inte går att se på kolumnnamnen.
 const UTTRYCKLIGA = {
   dubblettforslag: { typ: 'patient', kolumner: ['fran_patient_id', 'till_patient_id'] },

@@ -132,6 +132,9 @@ docker run --rm -v "$PWD/app:/app" -w /app oven/bun:1.3.14-alpine bun test
 - `app/test/`: automatiska tester. `test/genomgang.cjs`: genomgång i webbläsaren av alla demoroller och av Min journal, och av varje vy på 360 px med knappar som är minst 40 px höga.
 - `test/tillganglighet.cjs`: tillgänglighetskontrollen i webbläsaren av alla vyer för alla demoroller, och skärmarna mobil, platta och stor skärm. Resultatet visas på sidan Tillgänglighet och i `docs/tillganglighet.md`.
 - `docs/anvandartest.md`: testprotokoll för användartest med personer som arbetar i vården, med testläget i demon på `#/anvandartest`.
+- `docs/drift/`: processhandbok, servicenivåer, kontinuitet, återställning, informationssäkerhet, support, samverkan och införande, som en region eller en driftleverantör tar över och fyller i för leverantörens åtaganden. Systemförvaltaren registrerar incidenter och ser månadsrapporten för servicenivåerna på `#/servicenivaer`.
+- `docs/utbildning/`: utbildningsmaterial per roll, skrivet ur övningarna, arbetsflödena och testinbjudans uppdrag. `docs/filmer/`: korta instruktionsfilmer med textade steg, inspelade med `test/instruktionsfilmer.cjs`.
+- `CONTRIBUTING.md` och `docs/innovationsrum.md`: hur man bygger, testar och bidrar, och hur förändringar beslutas.
 
 ## Licens
 

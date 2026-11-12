@@ -140,15 +140,15 @@ Handlingar i koden (3): `faktureringsunderlag`, `prislista`, `utbildning`.
 
 ## Systemförvaltare (systemforvaltare)
 
-Behov: Ändrar regler och parametrar, förbereder omorganisationer, beslutar om undantag och förvaltar det öppna API:t.
+Behov: Ändrar regler och parametrar, förbereder omorganisationer, beslutar om undantag och förvaltar det öppna API:t. Registrerar incidenter, följer upp servicenivåerna och tar ut incidentrapporten till beställaren.
 
-Risker: Att ändringar i konfigurationen ger någon åtkomst eller ändrar regler utan kontroll.
+Risker: Att ändringar i konfigurationen ger någon åtkomst eller ändrar regler utan kontroll, och att patientuppgifter hamnar i en incident som lämnar systemet.
 
-Så begränsas risken: Läser inte journalen. Ändringar kräver fyra ögon, det vill säga en andra systemförvaltare i sin egen inloggning, och loggas.
+Så begränsas risken: Läser inte journalen. Ändringar kräver fyra ögon, det vill säga en andra systemförvaltare i sin egen inloggning, och loggas. En incident tar inte emot en text som ser ut att innehålla ett personnummer, och incidentrapporten har inga patientuppgifter och loggas i säkerhetsloggen.
 
 Får inte: `las_journal`, `las_oversikt`, `ordinera`.
 
-Handlingar i koden (7): `konfigurera`, `omorganisera`, `undanta`, `lagring`, `forvalta_api`, `utbildning`, `vyforval`.
+Handlingar i koden (8): `konfigurera`, `omorganisera`, `undanta`, `lagring`, `forvalta_api`, `servicenivaer`, `utbildning`, `vyforval`.
 
 ## Fysioterapeut (fysioterapeut)
 

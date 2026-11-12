@@ -2,7 +2,10 @@
 // Fälten beskrivs i ../index.js. Status räknas fram från testerna vid varje bygge.
 import { R6, R10 } from './2.5.js';
 
-export default [
+// Runda 14, r5: leverantörens åtaganden, servicenivåerna, utbildningsmaterialet och innovationsrummet (sussa/runda14-r5.js).
+import { medR14r5 } from '../runda14-r5.js';
+
+const R14_FORE = [
   { id: '2.6.1.1', kategori: 'leverantor', egna: ['M11'], tester: [], avsedd: 'planerat',
     anmarkning: 'Källkoden och dokumentationen är öppna på GitHub under EUPL 1.2. Utvecklarforum, utbildning och support finns inte.' },
   // Runda 9, r6: systemförvaltaren registrerar och återkallar tillämpningar, sidan för utvecklare och ärenden mellan
@@ -34,3 +37,4 @@ export default [
   { id: '2.6.1.3', kategori: 'leverantor', egna: [], tester: [], avsedd: 'planerat',
     anmarkning: 'Gäller innovationer som leverantören redan har genomfört.' },
 ];
+export default medR14r5(R14_FORE);

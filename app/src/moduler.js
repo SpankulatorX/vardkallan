@@ -340,6 +340,22 @@ MODULER.push(m('testinbjudan', 'forvaltning', 'Testinbjudan och synpunkter',
   d.beskrivning += ' Sandlådor som inte används vilar på disk och läses in igen vid nästa anrop, så att ingen sandlåda tas bort för att ge plats åt en ny. Systemet räknar själv ut hur många som ryms i minnet ur minnesgränsen, och när demon är full får en ny besökare en sida som säger när det är lönt att försöka igen.';
   d.kod.push('src/sandlada-vila.js', 'public/js/demo-full.js');
 }
+// Runda 14, r5: servicenivåer, incidentregistret och incidentrapporten till beställaren hör till systemförvaltningen, och
+// driftdokumenten, utbildningsmaterialet och instruktionsfilmerna till samma modul som de krav i KD1, 9, 10, 11 och 12
+// som de gäller.
+{
+  const sf = MODULER.find(x => x.id === 'systemforvaltning');
+  sf.rutter.push('#/servicenivaer');
+  sf.vyer.push('servicenivaer.js');
+  sf.avsnitt.push('KD1.2', 'KD1.3');
+  sf.kod.push('src/servicenivaer.js', 'src/servicenivaer-rutter.js', 'src/driftdokument.js');
+  sf.api.push('/api/servicenivaer/rapport', '/api/servicenivaer/incidenter', '/api/servicenivaer/export');
+  sf.beskrivning += ' Ett incidentregister där systemet sätter prioriteten enligt servicenivåavtalet ur två frågor, säger när beställaren ska ha rapporten och när processen för en större incident ska startas, och räknar månadsrapporten för servicenivåerna ur registret och systemets egna mått. Incidentrapporten till beställaren tas ut utan patientuppgifter. Driftdokumenten i docs/drift/ är processer och mallar som den som driver systemet tar över.';
+  const u = MODULER.find(x => x.id === 'utbildning');
+  u.kod.push('src/utbildningsmaterial.js', 'src/instruktionsfilmer.js');
+  u.beskrivning += ' Ett utbildningsmaterial per roll skrivs ur övningarna, flödena och testinbjudans uppdrag, och korta instruktionsfilmer med textade steg spelas in ur samma flöden som klickbudgeten mäter.';
+  sf.simulerat += ' Incidentregistret och servicenivårapporten gäller sandlådan. Gränsvärdena kommer ur upphandlingens servicenivåbilaga och är förslag tills de överenskoms, och rapporten till beställaren hämtas som en fil.';
+}
 
 // Vyer och rutter som inte hör till en enskild modul, med motivering.
 export const UTAN_MODUL = {

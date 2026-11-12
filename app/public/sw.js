@@ -60,6 +60,8 @@ const FILER = [
   '/js/testinbjudan.js', '/js/synpunkt-regler.js', '/js/kanda-begransningar.js', '/js/vyer/testa.js', '/js/vyer/om.js', '/js/vyer/testledare.js',
   '/js/vaccination-ui.js',
   '/js/demo-full.js',
+  // Runda 14, r5: servicenivåer och incidenter.
+  '/js/vyer/servicenivaer.js',
 ];
 // Runda 13, r1: listan har testinbjudan, synpunkterna, de kända begränsningarna, startsidan för testare, sidan om demon och testledarens vy.
 // Runda 13, r2: listan har sidan när demon är full (demo-full.js).

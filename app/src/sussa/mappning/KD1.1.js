@@ -124,5 +124,9 @@ const R12R3 = {
     anmarkning: 'Rekommendation: minst 1280 px bredd för arbete med journalen på en vanlig arbetsplats, men allt fungerar från 320 px. Fönstren talar med varandra genom BroadcastChannel inom samma webbläsare och inloggning, och varje fönster hämtar journalen med sin egen behörighetsprövning. Prövat i Chromium med Playwright. Riktiga plattor, telefoner och fysiska skärmar är inte prövade.',
   },
 };
-export default medR13r2(medR12r2(medR9r5(medR7r2(AVSNITT)))).map(x => (R12R3[x.id] ? { ...x, ...R12R3[x.id], tester: [...new Set([...(x.tester ?? []), ...R12R3[x.id].tester])] } : x));
+// Runda 14, r5: leverantörens åtaganden, servicenivåerna, utbildningsmaterialet och innovationsrummet (sussa/runda14-r5.js).
+import { medR14r5 } from '../runda14-r5.js';
+
+const R14_FORE = medR13r2(medR12r2(medR9r5(medR7r2(AVSNITT)))).map(x => (R12R3[x.id] ? { ...x, ...R12R3[x.id], tester: [...new Set([...(x.tester ?? []), ...R12R3[x.id].tester])] } : x));
 // Runda 12, r2: säkerhetskopior på två platser och återställning till en tidpunkt (sussa/runda12-r2.js), med medR12r2 ovan.
+export default medR14r5(R14_FORE);
