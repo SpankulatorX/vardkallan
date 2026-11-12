@@ -22,3 +22,5 @@ export { testCa } from './testcertifikat.js';
 export * as konsumenter from './konsumenter.js';
 export { loggaAnrop, anrop as anropslogg, utanPersonnummer } from './anropslogg.js';
 export * as journal from './journal.js';
+export * as nationella from './nationella.js';
+export * as register from './register.js';
