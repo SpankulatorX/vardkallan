@@ -11,7 +11,7 @@ import { kontrakt } from './kontrakt.js';
 import { tjanst, anropa as anropaSim, NATIONELL } from './nationella.js';
 import { vardgivare } from './konsumenter.js';
 import { hittaPaToken, gallandeId } from '../identitet.js';
-import { vardenhetFor } from '../atkomst.js';
+import { vardenhetFor, kanRoll } from '../atkomst.js';
 import { Fel } from '../db.js';
 
 export const HSA = kontrakt('riv.infrastructure.directory.employee', 'GetEmployeeIncludingProtectedPerson', '4.0');
@@ -113,18 +113,25 @@ export function puPatient(atk) {
     throw e;
   }
   const r = svar.resident?.[0];
-  atk.logga('las_admin', atk.grund(), 'rivta:LookupResidentForFullProfile');
+  if (!r) atk.logga('las_admin', atk.grund(), 'rivta:LookupResidentForFullProfile');
   if (!r) return { stammer: false, text: 'Personnumret finns inte i PU-tjänsten. Kontrollera identiteten med patienten.' };
   const pp = r.Personpost;
   const adress = pp.Folkbokforingsadress;
+  // Säkerhetsgranskningen av runda 14: för en patient med skyddad identitet i Vårdkällan eller sekretessmarkering i
+  // PU-tjänsten jämförs adressen aldrig, och svaret säger bara vilka fält som skiljer sig, utan värden. Värdena för namnet
+  // visas bara efter det aktiva valet visa_identitet, som prövas på servern för just den patienten och personen, som när
+  // identiteten visas i journalen. Ett sådant val kan bara göras för skyddad identitet i Vårdkällan.
+  const sekretess = r.Sekretessmarkering === 'J';
+  const skyddad = Boolean(p.skyddad) || sekretess;
+  const visad = !skyddad || (Boolean(p.skyddad) && Boolean(atk.val?.visa_identitet) && kanRoll(atk.personal, 'visa_identitet'));
   const falt = [['förnamn', p.fornamn, pp.Namn?.Fornamn ?? null], ['efternamn', p.efternamn, pp.Namn?.Efternamn ?? null]];
-  // Adressen jämförs inte för en person med sekretessmarkering, eftersom PU-tjänsten inte lämnar ut den.
-  if (r.Sekretessmarkering !== 'J') falt.push(['adress', p.adress ?? null, adress?.Utdelningsadress1 ?? null], ['postnummer', p.postnr ? String(p.postnr).replace(/\s/g, '') : null, adress?.PostNr ?? null], ['ort', p.ort ?? null, adress?.Postort ?? null]);
-  const skillnader = falt.filter(([, a, b]) => a !== b).map(([f, vardkallan, pu]) => ({ falt: f, vardkallan, pu }));
+  if (!skyddad) falt.push(['adress', p.adress ?? null, adress?.Utdelningsadress1 ?? null], ['postnummer', p.postnr ? String(p.postnr).replace(/\s/g, '') : null, adress?.PostNr ?? null], ['ort', p.ort ?? null, adress?.Postort ?? null]);
+  const skillnader = falt.filter(([, a, b]) => a !== b).map(([f, vardkallan, pu]) => (visad ? { falt: f, vardkallan, pu } : { falt: f }));
+  atk.logga('las_admin', atk.grund(), 'rivta:LookupResidentForFullProfile', 'tillaten', skyddad && visad ? 'Jämförelse med folkbokföringen efter aktivt val att visa skyddad identitet.' : null);
   return {
-    stammer: !skillnader.length, sekretessmarkering: r.Sekretessmarkering === 'J', skillnader,
-    text: skillnader.length ? `Folkbokföringen har en annan uppgift för ${skillnader.map(s => s.falt).join(', ')}. Uppdatera patientens uppgifter efter folkbokföringen.`
-      : r.Sekretessmarkering === 'J' ? 'Namnet stämmer med folkbokföringen. Patienten har sekretessmarkering, så adressen lämnas inte ut av PU-tjänsten.' : 'Patientens uppgifter stämmer med folkbokföringen.',
+    stammer: !skillnader.length, sekretessmarkering: sekretess, skyddadIdentitet: Boolean(p.skyddad), varden: visad, skillnader,
+    text: skillnader.length ? `Folkbokföringen har en annan uppgift för ${skillnader.map(x => x.falt).join(', ')}. Uppdatera patientens uppgifter efter folkbokföringen.${visad ? '' : ' Värdena visas inte, eftersom patienten har skyddade personuppgifter.'}`
+      : skyddad ? 'Namnet stämmer med folkbokföringen. Patienten har skyddade personuppgifter, så adressen jämförs inte.' : 'Patientens uppgifter stämmer med folkbokföringen.',
   };
 }
 
