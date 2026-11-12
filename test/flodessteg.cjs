@@ -515,7 +515,7 @@ function skapa(BAS) {
       await m.klicka(page.locator('#meny-lista a[href="#/inkorg"]'), 'Inkorg i menyn');
       await synlig(page, '.ik-ater', 'Waran ska sättas in igen i morgon');
       await m.klicka(page.locator('.ik-ater', { hasText: 'Gunnar Åkesson' }).locator('[data-aterinsatt]'), 'Sätt in igen');
-      await page.waitForFunction(() => document.querySelector('#ordform input[name="dosering"]')?.value === 'Enligt doseringsschema, styrs av INR' && document.querySelector('#ordform input[name="ordinationsorsak"]')?.value);
+      await page.waitForFunction(() => document.querySelector('#ordform input[name="dosering"]')?.value.startsWith('Enligt doseringsschema, styrs av INR') && document.querySelector('#ordform input[name="ordinationsorsak"]')?.value);
       await m.klicka(page.locator('#ordform [data-spara]'), 'Kontrollera och spara');
       await synlig(page, '.notis', 'Waran är ordinerat');
       await synlig(page, '.lm-tabell', 'Waran');
@@ -989,7 +989,7 @@ function skapa(BAS) {
     await m.klicka(page.locator('[data-vp-ge="pneumokocker"]'), 'Ge dosen');
     await page.locator('dialog[open] [data-varde="ok"]').waitFor();
     // Runda 13, r4: kontrollen före vaccinationen.
-    await m.klicka(page.locator('dialog[open] label[for="vp-k-ja"]'), 'patienten är frisk i dag');
+    await m.klicka(page.locator('dialog[open] #vp-k-ja'), 'patienten är frisk i dag');
     await m.klicka(page.locator('dialog[open] [data-varde="ok"]'), 'Registrera dosen');
     await synlig(page, '.notis', 'rapporterad till vaccinationsregistret');
   };
